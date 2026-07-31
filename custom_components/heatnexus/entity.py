@@ -21,6 +21,22 @@ CATEGORY_MAP = {
     "config": EntityCategory.CONFIG,
 }
 
+# Nur lesbare Entitäten dürfen nicht als "Konfiguration" eingeordnet werden –
+# Home Assistant weist sie sonst beim Anlegen zurück.
+NUR_LESEND = {
+    "sensor",
+    "temperature",
+    "enum_sensor",
+    "string_sensor",
+    "error_sensor",
+    "time_program",
+    "device_status",
+    "message_text",
+    "binary_sensor",
+    "total",
+    "total_increasing",
+}
+
 
 @callback
 def async_setup_entities(
@@ -64,11 +80,16 @@ def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
     Aufbau: Heizungsanlage (Konfigurationseintrag) → Steuerung (Adresse) →
     Funktion (Kessel, Heizkreis, Puffer …), an der die Entität hängt.
     """
+    funktion = (beschreibung.get("device_name") or "").strip()
+    steuerung = (getattr(coordinator, "label", "") or "").strip()
+    # Der Steuerungsname vorne hält die Geräteliste sortiert und macht
+    # gleichnamige Funktionen zweier Steuerungen unterscheidbar.
+    name = f"{steuerung} · {funktion}" if steuerung and steuerung != funktion else funktion
     return DeviceInfo(
         identifiers={(DOMAIN, beschreibung.get("device_id"))},
-        name=beschreibung.get("device_name"),
+        name=name,
         manufacturer="Windhager",
-        model=beschreibung.get("device_name"),
+        model=funktion,
         via_device=(DOMAIN, f"{coordinator.entry.entry_id}_{coordinator.host}"),
     )
 
@@ -87,6 +108,8 @@ class WindhagerEntity(CoordinatorEntity):
         if device_info.get("enabled_default") is False:
             self._attr_entity_registry_enabled_default = False
         category = device_info.get("category")
+        if category == "config" and device_info.get("type") in NUR_LESEND:
+            category = "diagnostic"
         if category in CATEGORY_MAP:
             self._attr_entity_category = CATEGORY_MAP[category]
         self._attr_device_info = geraet_info(coordinator, device_info)

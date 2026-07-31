@@ -339,10 +339,10 @@ class WindhagerOptionsFlow(OptionsFlow):
             self._host = systeme[0][CONF_HOST] if systeme else ""
             return await self.async_step_system()
 
-        return self.async_show_menu(
-            step_id="init",
-            menu_options=["allgemein", *[f"anlage_{i}" for i in range(len(systeme))]],
-        )
+        auswahl = {"allgemein": "Allgemein (Abfrageintervall)"}
+        for i, system in enumerate(systeme):
+            auswahl[f"anlage_{i}"] = f"{system[CONF_LABEL]} ({system[CONF_HOST]})"
+        return self.async_show_menu(step_id="init", menu_options=auswahl)
 
     async def async_step_allgemein(
         self, user_input: dict[str, Any] | None = None

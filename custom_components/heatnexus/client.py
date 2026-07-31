@@ -589,8 +589,15 @@ class WindhagerHttpClient:
                     # ist in Wahrheit ein Zaehler -> normaler Sensor
                     if d["type"] == "switch" and m.get("unit"):
                         fallback = "sensor"
-                    _LOGGER.info("%s (%s) is write protected, exposing read-only", d["name"], oid)
+                    _LOGGER.info(
+                        "%s (%s) ist schreibgeschützt und wird nur angezeigt", d["name"], oid
+                    )
                     d["type"] = fallback
+                    # Nur bedienbare Entitäten dürfen die Kategorie
+                    # "Konfiguration" tragen; Home Assistant lehnt sie
+                    # bei reinen Sensoren ab.
+                    if d.get("category") == "config":
+                        d["category"] = "diagnostic"
                 d["write_prot"] = m.get("writeProt")
                 # read-only-Punkt ganz ohne Wert (z.B. Softwareversion ohne value-Feld)
                 if (
