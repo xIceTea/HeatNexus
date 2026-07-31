@@ -14,8 +14,12 @@ blueprint:
     Rückstellschwelle liegt – die Anlage setzt den Zähler nach der Arbeit
     selbst zurück.
 
-    Je Zähler eine Automation anlegen. Helfer werden keine gebraucht: Den
-    Zustand hält die Automation selbst.
+    Je Zähler eine Automation anlegen. Am PuroWIN sind das die drei Sensoren
+    **Laufzeit bis Ascheentleerung**, **Laufzeit bis Hauptreinigung** und
+    **Laufzeit bis Wartung**; sie zählen in Stunden herunter, die Vorgaben
+    unten passen dazu.
+
+    Helfer werden keine gebraucht: Den Zustand hält die Automation selbst.
   domain: automation
   author: HeatNexus
   source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/wartung_warnungen.yaml

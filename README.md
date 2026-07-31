@@ -151,7 +151,7 @@ dem Netz:
 |---|---|
 | Störung melden | Meldung bei Störung, Erinnerung in festem Abstand, Entwarnung |
 | Wartungswarnung mit Erinnerung | Vorwarnung, Warnung und Erinnerung für eine Restlaufzeit (Asche, Reinigung, Wartung) |
-| Brennstoffvorrat niedrig | Meldung, wenn Vorratsbehälter oder Lagerraum zur Neige gehen |
+| Brennstoffvorrat niedrig | Meldung, wenn der Vorratsbehälter leer meldet, mit Erinnerung |
 | Betriebsdauer erfassen | Misst, wie lange ein Anlagenteil ununterbrochen läuft |
 | Heizkreis bei Abwesenheit absenken | Absenken bei Abwesenheit, Rückstellen bei Rückkehr |
 

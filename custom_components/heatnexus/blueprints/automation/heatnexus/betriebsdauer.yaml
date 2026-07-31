@@ -19,19 +19,29 @@ blueprint:
   source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/betriebsdauer.yaml
   input:
     betriebsart:
-      name: Betriebsart
-      description: Der Sensor, dessen Zustand Lauf und Stillstand unterscheidet.
+      name: Zustandssensor
+      description: >
+        Der Sensor, dessen Zustand Lauf und Stillstand unterscheidet. Am Kessel
+        ist das **Betriebsphase**, am Heizkreis **Betriebsart**.
       selector:
         entity:
           filter:
             - integration: heatnexus
               domain: sensor
-    ruhezustand:
-      name: Zustand im Stillstand
-      description: Genau so, wie der Sensor ihn anzeigt.
-      default: Standby
+    ruhezustaende:
+      name: Zustände, die als Stillstand gelten
+      description: >
+        Genau so schreiben, wie der Sensor sie anzeigt. Die Vorgabe deckt die
+        Ruhephasen des Kessels ab. Für einen Heizkreis genügt *Standby*.
+      default:
+        - Standby
+        - Standby Sperrzeit
+        - Brenner AUS
+        - Brenner gesperrt
+        - Gerät gesperrt
       selector:
-        text: {}
+        text:
+          multiple: true
     merker:
       name: Merker „Messung läuft"
       selector:
@@ -67,7 +77,7 @@ variables:
   sensor: !input betriebsart
   merker: !input merker
   startzeit: !input startzeit
-  ruhezustand: !input ruhezustand
+  ruhezustaende: !input ruhezustaende
   # Verstrichene Minuten seit dem gemerkten Start.
   verstrichen: >
     {{ (((now().timestamp() - (state_attr(startzeit, 'timestamp')
@@ -81,7 +91,8 @@ actions:
             id: wechsel
           - condition: template
             value_template: >
-              {{ trigger.to_state.state not in [ruhezustand, 'unknown', 'unavailable'] }}
+              {{ trigger.to_state.state not in ruhezustaende
+                 and trigger.to_state.state not in ['unknown', 'unavailable'] }}
           - condition: state
             entity_id: !input merker
             state: "off"
@@ -105,7 +116,7 @@ actions:
           - condition: trigger
             id: wechsel
           - condition: template
-            value_template: "{{ trigger.to_state.state == ruhezustand }}"
+            value_template: "{{ trigger.to_state.state in ruhezustaende }}"
           - condition: state
             entity_id: !input merker
             state: "on"

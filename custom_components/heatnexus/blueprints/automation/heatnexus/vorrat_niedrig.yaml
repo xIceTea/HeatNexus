@@ -1,36 +1,37 @@
 blueprint:
   name: HeatNexus – Brennstoffvorrat niedrig
   description: >
-    Meldet sich, wenn der Vorratsbehälter oder der Lagerraum unter einen
-    gewählten Wert fällt. Passend sind alle Füllstands- und Vorratssensoren
-    der Anlage (Hackgut, Pellets). Es wird höchstens einmal je Unterschreitung
-    gemeldet – erst wenn der Wert wieder darüber liegt, ist die nächste
-    Meldung möglich.
+    Meldet sich, wenn der Vorratsbehälter leer ist, und erinnert daran,
+    solange sich nichts ändert.
+
+    Ausgewertet wird der Sensor **Vorratsbehälter Status**. Er ist keine
+    Füllstandszahl, sondern eine Zustandsmeldung der Anlage – am PuroWIN:
+    *Vorratsbehälter voll*, *teilgefüllt*, *leer* und *Fehler
+    Vorratsbehälter*. Welche davon eine Meldung wert sind, steht unten.
   domain: automation
   author: HeatNexus
-  source_url: https://github.com/xIceTea/HeatNexus/blob/main/blueprints/automation/heatnexus/vorrat_niedrig.yaml
+  source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/vorrat_niedrig.yaml
   input:
     vorrat:
-      name: Vorratssensor
-      description: Füllstand des Vorratsbehälters oder Lagerraums.
+      name: Vorratsbehälter Status
       selector:
         entity:
           filter:
             - integration: heatnexus
               domain: sensor
-    schwelle:
-      name: Schwelle
-      description: Unterhalb dieses Werts wird gemeldet.
-      default: 20
+    zustaende:
+      name: Zustände, die gemeldet werden
+      description: >
+        Genau so schreiben, wie der Sensor sie anzeigt. Die Vorgabe passt zum
+        PuroWIN; „Fehler Vorratsbehälter" lässt sich ergänzen.
+      default:
+        - Vorratsbehälter leer
       selector:
-        number:
-          min: 0
-          max: 100
-          step: 1
-          mode: slider
+        text:
+          multiple: true
     dauer:
       name: Mindestdauer
-      description: So lange muss der Wert darunter liegen, bevor gemeldet wird.
+      description: So lange muss der Zustand anliegen, bevor gemeldet wird.
       default:
         minutes: 10
       selector:
@@ -38,26 +39,63 @@ blueprint:
     aktion:
       name: Was soll passieren
       description: >
-        Der aktuelle Wert steht als `vorrat_wert` bereit, die Schwelle als
-        `vorrat_schwelle`.
+        Der Zustand steht als `vorrat_zustand` bereit, der Name des
+        Anlagenteils als `anlagenteil`.
+      selector:
+        action: {}
+    erinnern:
+      name: Erinnern, solange der Zustand anliegt
+      default: false
+      selector:
+        boolean: {}
+    abstand:
+      name: Abstand der Erinnerungen
+      default:
+        hours: 12
+      selector:
+        duration: {}
+    aktion_erinnerung:
+      name: Bei Erinnerung
+      default: []
       selector:
         action: {}
 
-mode: single
+# restart: Ein Zustandswechsel beendet eine laufende Erinnerungsschleife.
+mode: restart
 
 triggers:
-  - trigger: numeric_state
+  - trigger: state
     entity_id: !input vorrat
-    below: !input schwelle
     for: !input dauer
 
 variables:
   sensor: !input vorrat
-  vorrat_schwelle: !input schwelle
-  vorrat_wert: "{{ states(sensor) }}"
+  gemeldete_zustaende: !input zustaende
+  soll_erinnern: !input erinnern
+  vorrat_zustand: "{{ states(sensor) }}"
+  anlagenteil: "{{ device_attr(sensor, 'name_by_user') or device_attr(sensor, 'name') or '' }}"
 
 conditions:
   - condition: template
-    value_template: "{{ states(sensor) not in ['unknown', 'unavailable'] }}"
+    value_template: "{{ vorrat_zustand in gemeldete_zustaende }}"
 
-actions: !input aktion
+actions:
+  - sequence: !input aktion
+  - if:
+      - condition: template
+        value_template: "{{ soll_erinnern }}"
+    then:
+      - repeat:
+          sequence:
+            - wait_template: "{{ states(sensor) not in gemeldete_zustaende }}"
+              timeout: !input abstand
+              continue_on_timeout: true
+            # wait.completed ist falsch, wenn die Wartezeit abgelaufen ist –
+            # der Zustand liegt dann immer noch an.
+            - if:
+                - condition: template
+                  value_template: "{{ not wait.completed }}"
+              then: !input aktion_erinnerung
+          until:
+            - condition: template
+              value_template: "{{ wait.completed }}"

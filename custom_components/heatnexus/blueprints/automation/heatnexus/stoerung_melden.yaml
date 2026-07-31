@@ -5,9 +5,12 @@ blueprint:
     auf Wunsch in einem festen Abstand und meldet die Entwarnung.
 
     Ausgewertet wird das Attribut `stoerung_aktiv` des Sensors
-    „Meldung Klartext" – nicht der angezeigte Text. Damit hängt die Automation
-    nicht an einer Formulierung und läuft auch bei mehreren gleichzeitigen
-    Störungen richtig.
+    **Meldung Klartext** – nicht der angezeigte Text. Damit hängt die
+    Automation nicht an einer Formulierung und läuft auch bei mehreren
+    gleichzeitigen Störungen richtig.
+
+    Jeder Anlagenteil hat einen eigenen Sensor dieser Art (Kessel, Heizkreis,
+    Puffer, Zirkulation). Für den Kessel genügt meist einer.
   domain: automation
   author: HeatNexus
   source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/stoerung_melden.yaml

@@ -27,6 +27,9 @@ wenn dort Vorabversionen zugelassen sind.
   Bedienebenen-Auswahl.
 - Der gespeicherte Erkennungsstand wird beim Entfernen einer Anlage
   mitgelöscht, statt dauerhaft liegenzubleiben.
+- Beim Entladen einer Anlage lief das Einlesen im Hintergrund weiter und
+  meldete „Connector is closed". Es wird jetzt zuerst beendet, danach wird die
+  Verbindung geschlossen.
 
 ### Geändert
 
@@ -49,6 +52,10 @@ wenn dort Vorabversionen zugelassen sind.
     angezeigten Text; sie bleibt damit von Formulierungen unabhängig.
   - Die Betriebsdauer wird aus dem gemerkten Startzeitpunkt berechnet, nicht
     hochgezählt: Ein Neustart von Home Assistant verfälscht sie nicht mehr.
+  - Alle Vorlagen sind auf die Werte abgestimmt, die die Anlage tatsächlich
+    liefert: Der Vorratsbehälter meldet einen Zustand („Vorratsbehälter leer")
+    und keine Füllstandszahl, und der Stillstand des Kessels umfasst mehrere
+    Betriebsphasen, nicht nur „Standby".
 
 ## [0.1.0] – Erste Veröffentlichung
 

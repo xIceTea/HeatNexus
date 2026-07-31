@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 from datetime import timedelta
 import logging
 
@@ -233,7 +235,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not restored:
             nachzuladen.append((coordinator, client, store, host, fingerprint, cache_key))
 
-    hass.data[DOMAIN][entry.entry_id] = {"name": hub_name, "coordinators": coordinators}
+    hintergrund: list = []
+    hass.data[DOMAIN][entry.entry_id] = {
+        "name": hub_name,
+        "coordinators": coordinators,
+        "hintergrund": hintergrund,
+    }
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _geraetenamen_angleichen(registry, entry, coordinators)
     _abgewaehlte_entitaeten_stilllegen(hass, entry, coordinators)
@@ -245,21 +252,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_remove_dashboard(hass)
 
     for coordinator, client, store, host, fingerprint, cache_key in nachzuladen:
-        entry.async_create_background_task(
-            hass,
-            _vollabzug(
+        hintergrund.append(
+            entry.async_create_background_task(
                 hass,
-                entry,
-                coordinator,
-                client,
-                store,
-                host,
-                fingerprint,
-                cache_key,
-                mem_cache,
-                version,
-            ),
-            name=f"{DOMAIN}_vollabzug_{host}",
+                _vollabzug(
+                    hass,
+                    entry,
+                    coordinator,
+                    client,
+                    store,
+                    host,
+                    fingerprint,
+                    cache_key,
+                    mem_cache,
+                    version,
+                ),
+                name=f"{DOMAIN}_vollabzug_{host}",
+            )
         )
 
     return True
@@ -355,6 +364,9 @@ async def _vollabzug(
     """
     try:
         await client.async_init()
+    except asyncio.CancelledError:
+        # Der Eintrag wird gerade entladen – kein Grund für eine Warnung.
+        raise
     except Exception as err:
         _LOGGER.warning("%s konnte nicht vollständig eingelesen werden: %s", host, err)
         return
@@ -405,6 +417,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         daten = hass.data[DOMAIN].pop(entry.entry_id, {})
+        # Erst den Vollabzug beenden, dann die Verbindung schließen. Andersherum
+        # läuft die Hintergrundaufgabe in eine geschlossene Verbindung und
+        # meldet „Connector is closed".
+        for aufgabe in daten.get("hintergrund", []):
+            aufgabe.cancel()
+        for aufgabe in daten.get("hintergrund", []):
+            with contextlib.suppress(asyncio.CancelledError):
+                await aufgabe
         for coordinator in daten.get("coordinators", {}).values():
             await coordinator.client.close()
     return unload_ok
