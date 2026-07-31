@@ -630,6 +630,10 @@ def run_host(host: str, password: str, actions: set[str], out_dir: Path, workers
             path.write_text(json.dumps(objects, indent=2, ensure_ascii=False), encoding="utf-8")
             written.append(path)
 
+    if "texte" in actions:
+        print("    Namensdateien werden gesucht …")
+        written.extend(run_texte(probe, out_dir, stem))
+
     if menus and "diag" in actions:
         print("    Nachlade-Varianten werden getestet …")
         findings = run_diagnose(probe, menus)
@@ -668,6 +672,46 @@ def run_host(host: str, password: str, actions: set[str], out_dir: Path, workers
     }
 
 
+TEXTDATEIEN = (
+    "/VarIdentTexte_de.xml",
+    "/config/VarIdentTexte_de.xml",
+    "/VarIdentTexte.xml",
+    "/EbenenTexte_de.xml",
+    "/config/EbenenTexte_de.xml",
+    "/api/1.0/VarIdentTexte_de.xml",
+)
+
+
+def run_texte(probe: Probe, out_dir: Path, stem: str) -> list:
+    """Suchen, ob die Anlage ihre Namensdateien selbst ausliefert.
+
+    Die Steuerungen tragen die Klartextnamen aller Datenpunkte als XML mit
+    sich. Findet sich die Datei, können Namen direkt vom Gerät kommen statt
+    aus einer mitgelieferten Datenbank.
+    """
+    gefunden = []
+    for pfad in TEXTDATEIEN:
+        url = f"{probe.base}{pfad}"
+        try:
+            with probe.opener.open(url, timeout=TIMEOUT) as resp:
+                inhalt = resp.read()
+                status = resp.status
+        except urllib.error.HTTPError as err:
+            status, inhalt = err.code, b""
+        except (urllib.error.URLError, TimeoutError, OSError) as err:
+            print(f"      {pfad:<32} Fehler: {err}")
+            continue
+        marker = " <== gefunden" if status == 200 and len(inhalt) > 200 else ""
+        print(f"      {pfad:<32} HTTP {status}, {len(inhalt)} Bytes{marker}")
+        if marker:
+            ziel = out_dir / f"{stem}{pfad.replace('/', '_')}"
+            ziel.write_bytes(inhalt)
+            gefunden.append(ziel)
+    if not gefunden:
+        print("    Die Anlage liefert keine Namensdatei aus.")
+    return gefunden
+
+
 ACTIONS = {
     "1": ("structure", "Anlagenstruktur (Knoten, Funktionen, Meldungen)"),
     "2": ("menus", "Menü-Ebenen und alle Datenpunkte (JSON + CSV)"),
@@ -675,6 +719,7 @@ ACTIONS = {
     "4": ("compare", "Abgleich mit der Geräte-Datenbank"),
     "5": ("report", "Markdown-Bericht je Anlage"),
     "6": ("diag", "Test: wie lassen sich Menüs mit über 10 Datenpunkten nachladen"),
+    "7": ("texte", "Test: liefert die Anlage ihre Datenpunktnamen als Datei"),
 }
 
 

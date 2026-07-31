@@ -337,6 +337,13 @@ class WindhagerHttpClient:
                     for level in ("info", "operate", "service", "oem")
                     for gnmn in layers.get(level, [])
                 }
+                # Bereichsnamen der Bedienebenen als Rückfall für Datenpunkte
+                # ohne eigenen Namen (z.B. "Zündung 39/4").
+                gruppe_of = {
+                    gnmn: bereich
+                    for bereich, adressen in (layers.get("groups") or {}).items()
+                    for gnmn in adressen
+                }
 
                 # Datenpunkte, die die Anlage meldet, plus die bekannten
                 # Ergänzungen, die in keinem Menü stehen (Zeitprogramme u. a.).
@@ -365,7 +372,12 @@ class WindhagerHttpClient:
                         {
                             "id": self.slugify(f"{self.host}{oid}"),
                             "oid": oid,
-                            "name": NAME_OVERRIDES.get(gnmn) or get_name(gnmn) or gnmn,
+                            "name": (
+                                NAME_OVERRIDES.get(gnmn)
+                                or get_name(gnmn)
+                                or (f"{gruppe_of[gnmn]} {gnmn}" if gnmn in gruppe_of else None)
+                                or f"Datenpunkt {gnmn}"
+                            ),
                             "type": "auto",
                             "level": level,
                             # Service- und Werksebene sind vorhanden, aber
@@ -624,6 +636,28 @@ class WindhagerHttpClient:
             kept.append(d)
         self.devices = kept
         self.oids -= missing
+        self._namen_vereindeutigen()
+
+    def _namen_vereindeutigen(self) -> None:
+        """Gleichnamige Datenpunkte eines Geräts unterscheidbar machen.
+
+        Die Parameterliste des Herstellers vergibt denselben Namen mehrfach:
+        „Betriebswahl" gibt es als Bedienung (3/50) und als Anzeige der
+        Serviceebene (4/14), „WW-Zirkulationsprogramm" zweimal (5/64, 5/65).
+        Bei Gleichstand wird die Datenpunktadresse angehängt.
+        """
+        namen_je_geraet: dict[tuple, list] = {}
+        for d in self.devices:
+            if not d.get("oid") or not d.get("name"):
+                continue
+            namen_je_geraet.setdefault((d.get("device_id"), d["name"]), []).append(d)
+
+        for (_geraet, _name), gruppe in namen_je_geraet.items():
+            if len(gruppe) < 2:
+                continue
+            for d in gruppe:
+                praefix = d["oid"].rsplit("/", 3)[0]
+                d["name"] = f"{d['name']} ({self._gnmn(praefix, d['oid'])})"
 
     # OIDs, die statisch immer mitgepollt werden müssen, weil eine
     # Climate-Entity sie für Anzeige/Berechnung braucht.
