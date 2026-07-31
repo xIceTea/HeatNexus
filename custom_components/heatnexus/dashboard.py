@@ -8,6 +8,7 @@ auf diese Strategie besteht.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from pathlib import Path
@@ -90,7 +91,8 @@ async def async_setup_dashboard(hass: HomeAssistant) -> None:
     if DASHBOARD_URL not in daten.dashboards:
         daten.dashboards[DASHBOARD_URL] = HeatNexusDashboard()
 
-    try:
+    # Ein bestehendes Panel mit dieser Adresse ist kein Fehler.
+    with contextlib.suppress(ValueError):
         frontend.async_register_built_in_panel(
             hass,
             "lovelace",
@@ -101,9 +103,6 @@ async def async_setup_dashboard(hass: HomeAssistant) -> None:
             require_admin=False,
             update=True,
         )
-    except ValueError:
-        # Ein Panel mit dieser Adresse besteht bereits.
-        pass
 
     hass.data[f"{DOMAIN}_dashboard"] = True
     _LOGGER.info("Dashboard %s in der Seitenleiste angemeldet", DASHBOARD_TITEL)
