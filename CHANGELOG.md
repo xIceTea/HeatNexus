@@ -54,6 +54,12 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
+- **Eigene Oberfläche** (in Arbeit, standardmäßig aus): Unter *Konfigurieren →
+  Allgemein* lässt sich ein eigener Eintrag „HeatNexus" in der Seitenleiste
+  einschalten – Kennwerte, Anlagenschaubild, Systemzustand, Heizkreise,
+  Warmwasser, Störungen, 24-Stunden-Verlauf und Schnellzugriff in einer
+  Anordnung, die sich mit Lovelace-Karten nicht bauen lässt. Welche Werte wo
+  stehen, ermittelt die Integration; die Datei im Browser stellt nur dar.
 - **Ansicht „Anlage"**: Ein Schaubild je Anlage – Kessel, Puffer, Heizkreise,
   Warmwasser und Zirkulation, verbunden durch Vor- und Rücklauf, mit den
   Live-Werten darauf. Das Bild wird aus den erkannten Anlagenteilen gezeichnet

@@ -36,14 +36,16 @@
           "enable_advanced": "Enable service/factory level right away",
           "writable_advanced": "Allow writing service/factory parameters",
           "update_interval": "Polling interval",
-          "dashboard": "Create dashboard"
+          "dashboard": "Create dashboard",
+          "panel": "Own interface"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "update_interval": "How often the system is queried.",
-          "dashboard": "Adds a “Heating” dashboard to the sidebar that builds itself from the discovered devices."
+          "dashboard": "Adds a “Heating” dashboard to the sidebar that builds itself from the discovered devices.",
+          "panel": "Adds a “HeatNexus” entry to the sidebar with a plant diagram, status, heating circuits and quick actions. Work in progress."
         }
       },
       "reauth_confirm": {
@@ -70,11 +72,13 @@
         "description": "Applies to all controllers of this system.",
         "data": {
           "update_interval": "Polling interval",
-          "dashboard": "Create dashboard"
+          "dashboard": "Create dashboard",
+          "panel": "Own interface"
         },
         "data_description": {
           "update_interval": "How often the system is queried.",
-          "dashboard": "Adds a “Heating” dashboard to the sidebar that builds itself from the discovered devices."
+          "dashboard": "Adds a “Heating” dashboard to the sidebar that builds itself from the discovered devices.",
+          "panel": "Adds a “HeatNexus” entry to the sidebar with a plant diagram, status, heating circuits and quick actions. Work in progress."
         }
       },
       "system": {

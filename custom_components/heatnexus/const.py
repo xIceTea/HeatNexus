@@ -24,6 +24,13 @@ CONF_DASHBOARD = "dashboard"
 DASHBOARD_URL = "heatnexus"
 DASHBOARD_TITEL = "Heizung"
 
+# Eigene Oberfläche (Panel) mit dem Anlagenschaubild
+CONF_PANEL = "panel"
+PANEL_URL = "heatnexus-anlage"
+PANEL_TITEL = "HeatNexus"
+PANEL_ELEMENT = "heatnexus-panel"
+PANEL_JS_PFAD = "/heatnexus-frontend/heatnexus-panel.js"
+
 # Bedienebenen der Anlage, wie sie auch das InfoWIN Touch kennt
 LEVEL_INFO = "info"  # Messwerte und Zustände
 LEVEL_OPERATE = "operate"  # Betreiberebene: Betriebswahl, Sollwerte, Programme

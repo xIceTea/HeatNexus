@@ -39,6 +39,7 @@ from .const import (
     CONF_ENABLE_ADVANCED,
     CONF_LABEL,
     CONF_LEVELS,
+    CONF_PANEL,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_WRITABLE_ADVANCED,
@@ -117,6 +118,7 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
         felder[vol.Required(CONF_DASHBOARD, default=bool(defaults.get(CONF_DASHBOARD, True)))] = (
             bool
         )
+        felder[vol.Required(CONF_PANEL, default=bool(defaults.get(CONF_PANEL, False)))] = bool
         felder[
             vol.Required(
                 CONF_UPDATE_INTERVAL,
@@ -150,6 +152,8 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         ergebnis[CONF_UPDATE_INTERVAL] = int(raw[CONF_UPDATE_INTERVAL])
     if CONF_DASHBOARD in raw:
         ergebnis[CONF_DASHBOARD] = bool(raw[CONF_DASHBOARD])
+    if CONF_PANEL in raw:
+        ergebnis[CONF_PANEL] = bool(raw[CONF_PANEL])
     return ergebnis
 
 
@@ -237,9 +241,11 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             gemeinsam = normalize_options(user_input)
             intervall = gemeinsam.pop(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)
             dashboard = gemeinsam.pop(CONF_DASHBOARD, True)
+            oberflaeche = gemeinsam.pop(CONF_PANEL, False)
             options: dict[str, Any] = {
                 CONF_UPDATE_INTERVAL: intervall,
                 CONF_DASHBOARD: dashboard,
+                CONF_PANEL: oberflaeche,
             }
             # Die Auswahl gilt zunächst für alle Anlagen; sie lässt sich
             # später je Anlage getrennt ändern.
@@ -362,6 +368,7 @@ class WindhagerOptionsFlow(OptionsFlow):
         if user_input is not None:
             options[CONF_UPDATE_INTERVAL] = int(user_input[CONF_UPDATE_INTERVAL])
             options[CONF_DASHBOARD] = bool(user_input[CONF_DASHBOARD])
+            options[CONF_PANEL] = bool(user_input[CONF_PANEL])
             return self.async_create_entry(data=options)
 
         return self.async_show_form(
@@ -371,6 +378,7 @@ class WindhagerOptionsFlow(OptionsFlow):
                     vol.Required(
                         CONF_DASHBOARD, default=bool(options.get(CONF_DASHBOARD, True))
                     ): bool,
+                    vol.Required(CONF_PANEL, default=bool(options.get(CONF_PANEL, False))): bool,
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
                         default=int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),

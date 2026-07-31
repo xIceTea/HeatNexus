@@ -28,6 +28,7 @@ from .const import (
     CONF_ENABLE_ADVANCED,
     CONF_LABEL,
     CONF_LEVELS,
+    CONF_PANEL,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_WRITABLE_ADVANCED,
@@ -40,6 +41,7 @@ from .const import (
     UPDATE_INTERVAL,
 )
 from .dashboard import async_remove_dashboard, async_setup_dashboard
+from .panel import async_remove_panel, async_setup_panel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -251,6 +253,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Abgewählt: der Seitenleisten-Eintrag verschwindet beim nächsten Laden.
         await async_remove_dashboard(hass)
 
+    if (entry.options or {}).get(CONF_PANEL, False):
+        await async_setup_panel(hass)
+    else:
+        await async_remove_panel(hass)
+
     for coordinator, client, store, host, fingerprint, cache_key in nachzuladen:
         hintergrund.append(
             entry.async_create_background_task(
@@ -438,3 +445,4 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         ).async_remove()
     if not hass.config_entries.async_entries(DOMAIN):
         await async_remove_dashboard(hass)
+        await async_remove_panel(hass)
