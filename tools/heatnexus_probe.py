@@ -211,6 +211,12 @@ def fetch_menu_all(
     probe: Probe, menu_url: str, expected: int, strategy
 ) -> tuple[list, object | None, int]:
     """Eine Menü-Ebene vollständig lesen (soweit das Gerät es zulässt)."""
+    # Das Bedienteil ruft ganze Ebenen mit count=-1 ab.
+    if expected > PAGE_SIZE:
+        alles, status = probe.get(f"{menu_url}?count=-1&offset=0")
+        if status == 200 and isinstance(alles, list) and len(alles) > PAGE_SIZE:
+            return alles, strategy, status
+
     data, status = probe.get(menu_url)
     if status != 200 or not isinstance(data, list):
         return [], strategy, status

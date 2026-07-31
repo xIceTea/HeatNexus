@@ -25,6 +25,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import xml.etree.ElementTree as ET
 import urllib.request
 
 BASIS = "https://connect-api.windhager.com/config"
@@ -49,14 +50,36 @@ def lade(name: str, quelle: Path | None) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def sammle_namen(parameter: dict, oem: dict) -> dict[str, str]:
-    """Datenpunktnamen aus Betreiber- und Werksliste zusammenführen."""
+def sammle_namen(parameter: dict, oem: dict, geraetetexte: Path | None = None) -> dict[str, str]:
+    """Datenpunktnamen aus allen verfügbaren Listen zusammenführen.
+
+    Reihenfolge nach Verlässlichkeit: die Bezeichnungen aus der Gerätedatei
+    (falls vorhanden) füllen Lücken, die Werksliste ergänzt die Fachparameter,
+    die reguläre Liste hat Vorrang – dort stehen die Namen, die auch am
+    Bedienteil erscheinen.
+    """
     namen: dict[str, str] = {}
+    if geraetetexte and geraetetexte.exists():
+        namen.update(lade_geraetetexte(geraetetexte))
     namen.update(oem.get("oids_oem", {}))
-    # Die reguläre Liste hat Vorrang: dort stehen die Bezeichnungen, die auch
-    # am Bedienteil erscheinen.
     namen.update(parameter.get("oids", {}))
     return {k: v for k, v in namen.items() if isinstance(v, str) and v.strip()}
+
+
+def lade_geraetetexte(pfad: Path) -> dict[str, str]:
+    """Namen aus einer Gerätedatei (VarIdentTexte) einlesen.
+
+    Die Steuerungen führen die Klartextnamen aller Datenpunkte als XML mit
+    sich. Sie deckt auch Adressen ab, die in den Parameterlisten fehlen.
+    """
+    wurzel = ET.parse(pfad).getroot()
+    namen: dict[str, str] = {}
+    for gruppe in wurzel:
+        for eintrag in gruppe:
+            text = (eintrag.text or "").strip()
+            if text:
+                namen[f"{gruppe.get('id')}/{eintrag.get('id')}"] = text
+    return namen
 
 
 def _adressen(eintraege) -> list[str]:
@@ -139,6 +162,11 @@ def main() -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--quelle", type=Path, help="Ordner mit den Parameterdateien")
+    parser.add_argument(
+        "--geraetetexte",
+        type=Path,
+        help="XML einer Steuerung mit Datenpunktnamen (VarIdentTexte)",
+    )
     parser.add_argument("--nur-anzeigen", action="store_true", help="nichts schreiben")
     args = parser.parse_args()
 
@@ -146,7 +174,7 @@ def main() -> int:
     parameter, oem, layer = (lade(name, args.quelle) for name in DATEIEN)
 
     texte = parameter.get("emStrIds", {})
-    namen = sammle_namen(parameter, oem)
+    namen = sammle_namen(parameter, oem, args.geraetetexte)
     enums = {k: v for k, v in parameter.get("enums", {}).items() if isinstance(v, dict)}
     ebenen = sammle_ebenen(layer, texte)
     stoerungen = sammle_stoerungen(texte)

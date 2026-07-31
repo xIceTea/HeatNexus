@@ -167,6 +167,13 @@ class WindhagerHttpClient:
         seen: set = set()
         offset = 0
 
+        # Das Bedienteil der Anlage fordert mit count=-1 alle Einträge einer
+        # Ebene auf einmal an. Klappt das, entfällt das seitenweise Nachladen.
+        if expected > MENU_PAGE_SIZE:
+            data, status = await self._get(f"{base}?count=-1&offset=0")
+            if status == 200 and isinstance(data, list) and len(data) > MENU_PAGE_SIZE:
+                return [i for i in data if isinstance(i, dict) and i.get("OID")]
+
         while True:
             url = base if offset == 0 else f"{base}?offset={offset}"
             data, status = await self._get(url)
