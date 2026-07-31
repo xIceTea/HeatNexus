@@ -123,11 +123,30 @@ class WindhagerEnumSensor(WindhagerEntity, SensorEntity):
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
-        allowed = device_info.get("allowed")
-        values = allowed if allowed else sorted(self.enum_map)
-        self._labels = {v: self.enum_map.get(v, f"Unbekannt ({v})") for v in values}
-        # ENUM device class requires the list of possible options
-        self._attr_options = sorted(set(self._labels.values()))
+        # Die Liste in "enum" nennt die Werte, die das Gerät zur *Auswahl*
+        # anbietet. Für einen reinen Anzeigesensor ist das keine Schranke: Der
+        # Puffer meldet "Pufferspeicher", wählbar wäre nur "Standby". Wird die
+        # Anzeige daran ausgerichtet, steht dort dauerhaft "Unbekannt".
+        # Angezeigt wird deshalb aus der vollen Tabelle.
+        werte = set(self.enum_map) | set(device_info.get("allowed") or ())
+        self._labels = {v: self.enum_map.get(v, f"Unbekannt ({v})") for v in sorted(werte)}
+
+    @staticmethod
+    def _ersatzname(raw: int) -> str:
+        return f"Unbekannt ({raw})"
+
+    @property
+    def options(self) -> list[str]:
+        """Mögliche Zustände.
+
+        Die Geräteklasse ENUM verlangt, dass der aktuelle Zustand in dieser
+        Liste steht – auch ein unbekannter Wert muss also aufgenommen werden,
+        sonst verwirft Home Assistant den Zustand mit einer Fehlermeldung.
+        """
+        namen = set(self._labels.values())
+        if (aktuell := self.native_value) is not None:
+            namen.add(aktuell)
+        return sorted(namen)
 
     @property
     def native_value(self) -> str | None:
@@ -137,11 +156,9 @@ class WindhagerEnumSensor(WindhagerEntity, SensorEntity):
         label = self._labels.get(raw)
         if label is None:
             _LOGGER.debug(
-                "Enum value %s outside allowed range for %s (%s)",
-                raw,
-                self.name,
-                self._oid,
+                "Enum-Wert %s nicht in der Tabelle für %s (%s)", raw, self.name, self._oid
             )
+            return self._ersatzname(raw)
         return label
 
 

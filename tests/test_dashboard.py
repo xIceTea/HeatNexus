@@ -66,3 +66,31 @@ def test_leerer_abschnitt_entfaellt(dashboard):
     assert dashboard._abschnitt("Messwerte", []) == []
     abschnitt = dashboard._abschnitt("Messwerte", [{"type": "tile"}])
     assert abschnitt[0]["cards"][0]["heading"] == "Messwerte"
+
+
+def test_skala_rundet_auf_hunderter(dashboard):
+    assert dashboard._skala(None) == 100
+    assert dashboard._skala(0) == 100
+    assert dashboard._skala(37) == 100
+    assert dashboard._skala(101) == 200
+    assert dashboard._skala(1180) == 1200
+
+
+def test_gleichnamige_anlagenteile_werden_erkannt(dashboard):
+    anlagen = [
+        {"name": "Heizhaus", "teile": [{"name": "B-PLMi PUFFER"}, {"name": "PuroWIN"}]},
+        {"name": "Wohnhaus", "teile": [{"name": "B-PLMi PUFFER"}]},
+    ]
+    assert dashboard._mehrfach_vergebene_namen(anlagen) == {"B-PLMi PUFFER"}
+
+
+def test_anlage_steht_vor_dem_anlagenteil(dashboard):
+    anlage = {"name": "Heizhaus"}
+    assert dashboard._voller_name(anlage, {"name": "PuroWIN"}) == "Heizhaus · PuroWIN"
+    assert dashboard._voller_name({"name": ""}, {"name": "PuroWIN"}) == "PuroWIN"
+
+
+def test_symbol_je_anlagenteil(dashboard):
+    assert dashboard._symbol(25) == "mdi:fire"
+    assert dashboard._symbol(16) == "mdi:storage-tank"
+    assert dashboard._symbol(None) == dashboard.SYMBOL_UNBEKANNT

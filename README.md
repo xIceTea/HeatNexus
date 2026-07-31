@@ -130,7 +130,13 @@ Entitäts-IDs eintragen, kein YAML kopieren:
 
 - **Übersicht** – je Anlagenteil die wichtigsten Werte, in fachlicher
   Reihenfolge (Kessel, Puffer, Heizkreis, Warmwasser, Zirkulation), dazu die
-  Störungsmeldungen.
+  Störungsmeldungen. Bei mehreren Anlagen steht die Anlage in der Überschrift,
+  damit zwei gleich benannte Anlagenteile unterscheidbar bleiben.
+- **Wartung** – Restlaufzeiten bis Ascheentleerung, Hauptreinigung und Wartung
+  als Rundinstrument, dazu Brennstoff, Vorratsbehälter und Zählerstände.
+- **Auswertung** – Zuwachs der Zähler *heute* und *diesen Monat*
+  (Brennerstarts, Betriebsstunden) sowie Temperaturverläufe der letzten
+  48 Stunden je Anlagenteil.
 - **Je Anlagenteil eine Ansicht**, gegliedert in Bedienung, Messwerte,
   Einstellungen und Diagnose.
 

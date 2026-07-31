@@ -7,9 +7,12 @@ liefert, erscheint; was fehlt, entfällt.
 
 Der frühere Weg über eine JavaScript-Strategie hing daran, dass der Browser
 das Modul rechtzeitig geladen hatte. Nach einem Neustart oder einer
-Aktualisierung war das nicht der Fall und die Ansicht meldete nur noch
+Aktualisierung war das nicht der Fall und die Ansicht meldete nur
 "Timeout waiting for strategy element". Serverseitig gebaut entfällt diese
 ganze Fehlerquelle.
+
+Aufbau: Übersicht (nach Anlage gruppiert) – Wartung – Auswertung – je
+Anlagenteil eine Ansicht.
 """
 
 from __future__ import annotations
@@ -48,28 +51,47 @@ FCT_RANG: dict[int, int] = {
 }
 RANG_UNBEKANNT = 80
 
+# Symbol je Anlagenteil für die Überschriften.
+FCT_SYMBOL: dict[int, str] = {
+    25: "mdi:fire",
+    9: "mdi:fire",
+    1: "mdi:fire",
+    2: "mdi:fire",
+    10: "mdi:fire",
+    16: "mdi:storage-tank",
+    14: "mdi:radiator",
+    15: "mdi:radiator",
+    4: "mdi:solar-power-variant",
+    5: "mdi:water-boiler",
+    6: "mdi:water-boiler",
+    20: "mdi:pump",
+}
+SYMBOL_UNBEKANNT = "mdi:heating-coil"
+
+
+def _muster(*ausdruecke: str) -> tuple[re.Pattern, ...]:
+    return tuple(re.compile(a, re.IGNORECASE) for a in ausdruecke)
+
+
 # Werte, die in der Übersicht zuerst stehen sollen.
-UEBERSICHT_VORRANG: tuple[re.Pattern, ...] = tuple(
-    re.compile(muster, re.IGNORECASE)
-    for muster in (
-        r"betriebsphase",
-        r"betriebsart",
-        r"betriebswahl",
-        r"kesseltemperatur ist",
-        r"kesselleistung",
-        r"aktueller brennstoff",
-        r"vorratsbeh",
-        r"puffer oben",
-        r"puffer unten",
-        r"au(ß|ss)entemperatur",
-        r"raumtemperatur ist",
-        r"raumtemperatur soll",
-        r"vorlauftemperatur ist",
-        r"warmwasser",
-        r"heizkreispumpe",
-        r"pumpe",
-        r"temperatur ist",
-    )
+UEBERSICHT_VORRANG = _muster(
+    r"betriebsphase",
+    r"betriebsart",
+    r"betriebswahl",
+    r"kesseltemperatur ist",
+    r"kesselleistung",
+    r"aktueller brennstoff",
+    r"vorratsbeh",
+    r"puffer oben",
+    r"puffer unten",
+    r"au(ß|ss)entemperatur",
+    r"raumtemperatur ist",
+    r"raumtemperatur soll",
+    r"vorlauftemperatur ist",
+    r"warmwasser",
+    r"heizkreispumpe",
+    r"pumpe",
+    r"temperatur ist",
 )
 
 # Werte, die als Rundinstrument mehr sagen als eine Kachel.
@@ -89,15 +111,45 @@ RUNDINSTRUMENT: tuple[tuple[re.Pattern, dict], ...] = (
     ),
 )
 
+# Wartungsansicht: Restlaufzeiten, Zähler, Brennstoff.
+WARTUNG_RESTLAUFZEIT = _muster(r"laufzeit bis")
+WARTUNG_WEITERE = _muster(
+    r"vorratsbeh",
+    r"aktueller brennstoff",
+    r"gew(ä|ae)hlter brennstoff",
+    r"reinigung best",
+    r"betriebsstunden",
+    r"brennerstarts",
+    r"serviceausbrand",
+)
+
+# Auswertung: was in einen Verlauf gehört.
+VERLAUF = _muster(
+    r"kesseltemperatur",
+    r"abgastemperatur",
+    r"puffer oben",
+    r"puffer unten",
+    r"vorlauftemperatur",
+    r"raumtemperatur",
+    r"au(ß|ss)entemperatur",
+    r"kesselleistung",
+    r"r(ü|ue)cklauf temperatur",
+)
+
 # Plattformen, die der Nutzer bedient statt nur abliest.
 BEDIENBAR = frozenset({"climate", "select", "number", "switch", "button", "time", "date"})
 
+# Zustände, mit denen sich keine Karte lohnt.
+OHNE_WERT = frozenset({"unavailable", "unknown", "none", ""})
+
 # Höchstzahl der Kacheln, die ein Anlagenteil in der Übersicht bekommt.
 UEBERSICHT_MAX = 8
+# Höchstzahl der Linien in einem Verlaufsdiagramm.
+VERLAUF_MAX = 6
 
 
 def _kurzname(name: str | None) -> str:
-    """Gerätenamen ohne das vorangestellte Steuerungskürzel."""
+    """Name ohne das vorangestellte Anlagenkürzel."""
     return (name or "").split(" · ")[-1].strip()
 
 
@@ -109,12 +161,31 @@ def _rang(fct_type: Any) -> int:
         return RANG_UNBEKANNT
 
 
+def _symbol(fct_type: Any) -> str:
+    """Symbol eines Anlagenteils."""
+    try:
+        return FCT_SYMBOL.get(int(fct_type), SYMBOL_UNBEKANNT)
+    except (TypeError, ValueError):
+        return SYMBOL_UNBEKANNT
+
+
 def _vorrang(name: str) -> int:
     """Position eines Werts in der Übersicht; kleiner heißt weiter oben."""
     for platz, muster in enumerate(UEBERSICHT_VORRANG):
         if muster.search(name):
             return platz
     return len(UEBERSICHT_VORRANG)
+
+
+def _passt(name: str, muster: tuple[re.Pattern, ...]) -> bool:
+    return any(m.search(name) for m in muster)
+
+
+def _skala(wert: float | None) -> int:
+    """Obere Grenze einer Restlaufzeit-Skala, auf 100 aufgerundet."""
+    if not wert or wert <= 0:
+        return 100
+    return max(100, -(-int(wert) // 100) * 100)
 
 
 def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
@@ -131,24 +202,30 @@ def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
     return zuordnung
 
 
-def _anlagenteile(hass: HomeAssistant) -> list[dict[str, Any]]:
-    """Alle Anlagenteile mit ihren sichtbaren Entitäten, fachlich sortiert."""
+def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Anlagen mit ihren Anlagenteilen und deren sichtbaren Entitäten.
+
+    Der Aufbau der Geräte spiegelt die Anlage wider: Heizungsanlage →
+    Steuerung (eine Adresse) → Funktion. Die Steuerung trägt den Namen, den
+    der Nutzer bei der Einrichtung vergeben hat ("Heizhaus", "Wohnhaus"), und
+    genau der macht zwei gleichnamige Pufferlademodule unterscheidbar.
+    """
     geraete_registry = dr.async_get(hass)
     entitaeten_registry = er.async_get(hass)
     fct_je_geraet = _fct_je_geraet(hass)
 
     teile: dict[str, dict[str, Any]] = {}
     for geraet in geraete_registry.devices.values():
-        kennung = next(
-            (wert for bereich, wert in geraet.identifiers if bereich == DOMAIN),
-            None,
-        )
+        kennung = next((w for bereich, w in geraet.identifiers if bereich == DOMAIN), None)
         if kennung is None:
             continue
+        fct = fct_je_geraet.get(kennung)
         teile[geraet.id] = {
             "name": _kurzname(geraet.name_by_user or geraet.name),
             "id": geraet.id,
-            "rang": _rang(fct_je_geraet.get(kennung)),
+            "anlage_id": geraet.via_device_id,
+            "rang": _rang(fct),
+            "symbol": _symbol(fct),
             "entitaeten": [],
         }
 
@@ -160,22 +237,65 @@ def _anlagenteile(hass: HomeAssistant) -> list[dict[str, Any]]:
         teil = teile.get(eintrag.device_id)
         if teil is None:
             continue
+        zustand = hass.states.get(eintrag.entity_id)
+        hat_wert = bool(zustand) and zustand.state.lower() not in OHNE_WERT
+        try:
+            zahl = float(zustand.state) if hat_wert else None
+        except (TypeError, ValueError):
+            zahl = None
         teil["entitaeten"].append(
             {
                 "entity_id": eintrag.entity_id,
                 "name": _kurzname(eintrag.name or eintrag.original_name or eintrag.entity_id),
                 "kategorie": eintrag.entity_category,
                 "bereich": eintrag.entity_id.split(".")[0],
+                "hat_wert": hat_wert,
+                "wert": zahl,
+                "state_class": (zustand.attributes.get("state_class") if zustand else None),
             }
         )
 
-    mit_werten = [teil for teil in teile.values() if teil["entitaeten"]]
-    mit_werten.sort(key=lambda teil: (teil["rang"], teil["name"]))
-    for teil in mit_werten:
+    # Anlagenteile ihren Steuerungen zuordnen; die Steuerungen selbst tragen
+    # keine Entitäten und erscheinen nur als Gruppe.
+    anlagen: dict[str, dict[str, Any]] = {}
+    for teil in teile.values():
+        if not teil["entitaeten"]:
+            continue
+        anlage_id = teil["anlage_id"] or teil["id"]
+        gruppe = anlagen.setdefault(
+            anlage_id,
+            {"name": _kurzname((teile.get(anlage_id) or {}).get("name")), "teile": []},
+        )
+        gruppe["teile"].append(teil)
         teil["entitaeten"].sort(key=lambda e: e["name"])
-    return mit_werten
+
+    for gruppe in anlagen.values():
+        gruppe["teile"].sort(key=lambda t: (t["rang"], t["name"]))
+
+    return sorted(anlagen.values(), key=lambda a: a["name"])
 
 
+def _mehrfach_vergebene_namen(anlagen: list[dict[str, Any]]) -> set[str]:
+    """Namen, die in mehr als einem Anlagenteil vorkommen.
+
+    Zwei Pufferlademodule heißen beide "B-PLMi PUFFER". In den Reitern muss
+    dann die Anlage davor, sonst sind sie nicht auseinanderzuhalten.
+    """
+    gesehen: dict[str, int] = {}
+    for anlage in anlagen:
+        for teil in anlage["teile"]:
+            gesehen[teil["name"]] = gesehen.get(teil["name"], 0) + 1
+    return {name for name, anzahl in gesehen.items() if anzahl > 1}
+
+
+def _voller_name(anlage: dict[str, Any], teil: dict[str, Any]) -> str:
+    """Anlagenteil mit vorangestellter Anlage."""
+    return f"{anlage['name']} · {teil['name']}" if anlage["name"] else teil["name"]
+
+
+# ---------------------------------------------------------------------------
+# Karten
+# ---------------------------------------------------------------------------
 def _karte(eintrag: dict[str, Any], rundinstrument: bool = False) -> dict[str, Any]:
     """Passende Karte für eine Entität."""
     if eintrag["bereich"] == "climate":
@@ -193,55 +313,173 @@ def _karte(eintrag: dict[str, Any], rundinstrument: bool = False) -> dict[str, A
     return {"type": "tile", "entity": eintrag["entity_id"], "name": eintrag["name"]}
 
 
-def _abschnitt(titel: str, karten: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _ueberschrift(titel: str, symbol: str | None = None, stil: str = "title") -> dict[str, Any]:
+    karte: dict[str, Any] = {"type": "heading", "heading": titel, "heading_style": stil}
+    if symbol:
+        karte["icon"] = symbol
+    return karte
+
+
+def _abschnitt(
+    titel: str, karten: list[dict[str, Any]], symbol: str | None = None, stil: str = "title"
+) -> list[dict[str, Any]]:
     """Ein Abschnitt mit Überschrift – oder gar keiner, wenn nichts drin ist."""
     if not karten:
         return []
-    return [
-        {
-            "type": "grid",
-            "cards": [
-                {"type": "heading", "heading": titel, "heading_style": "title"},
-                *karten,
-            ],
-        }
-    ]
+    return [{"type": "grid", "cards": [_ueberschrift(titel, symbol, stil), *karten]}]
 
 
-def _uebersicht(teile: list[dict[str, Any]]) -> dict[str, Any]:
-    """Erste Ansicht: je Anlagenteil die wichtigsten Werte."""
-    abschnitte: list[dict[str, Any]] = []
-    for teil in teile:
-        messwerte = [
-            e
-            for e in teil["entitaeten"]
-            if e["kategorie"] is None and e["bereich"] not in ("button", "time", "date")
-        ]
-        messwerte.sort(key=lambda e: (_vorrang(e["name"]), e["name"]))
-        abschnitte += _abschnitt(
-            teil["name"],
-            [_karte(e, rundinstrument=True) for e in messwerte[:UEBERSICHT_MAX]],
-        )
-
-    meldungen = [
-        e
-        for teil in teile
-        for e in teil["entitaeten"]
-        if e["kategorie"] == "diagnostic" and "meldung" in e["name"].lower()
-    ]
-    abschnitte += _abschnitt("Meldungen", [_karte(e) for e in meldungen])
-
+def _ansicht(
+    titel: str, pfad: str, symbol: str, abschnitte: list[dict[str, Any]]
+) -> dict[str, Any]:
     return {
-        "title": "Übersicht",
-        "path": "uebersicht",
-        "icon": "mdi:fire",
+        "title": titel,
+        "path": pfad,
+        "icon": symbol,
         "type": "sections",
         "max_columns": 3,
         "sections": abschnitte,
     }
 
 
-def _geraeteansicht(teil: dict[str, Any]) -> dict[str, Any]:
+# ---------------------------------------------------------------------------
+# Ansichten
+# ---------------------------------------------------------------------------
+def _uebersicht(anlagen: list[dict[str, Any]]) -> dict[str, Any]:
+    """Erste Ansicht: je Anlagenteil die wichtigsten Werte."""
+    abschnitte: list[dict[str, Any]] = []
+    for anlage in anlagen:
+        for teil in anlage["teile"]:
+            messwerte = [
+                e
+                for e in teil["entitaeten"]
+                if e["kategorie"] is None
+                and e["hat_wert"]
+                and e["bereich"] not in ("button", "time", "date")
+            ]
+            messwerte.sort(key=lambda e: (_vorrang(e["name"]), e["name"]))
+            abschnitte += _abschnitt(
+                _voller_name(anlage, teil),
+                [_karte(e, rundinstrument=True) for e in messwerte[:UEBERSICHT_MAX]],
+                teil["symbol"],
+            )
+
+    meldungen = [
+        e
+        for anlage in anlagen
+        for teil in anlage["teile"]
+        for e in teil["entitaeten"]
+        if e["kategorie"] == "diagnostic" and "klartext" in e["name"].lower()
+    ]
+    abschnitte += _abschnitt(
+        "Meldungen", [_karte(e) for e in meldungen], "mdi:alert-circle-outline"
+    )
+
+    return _ansicht("Übersicht", "uebersicht", "mdi:view-dashboard-outline", abschnitte)
+
+
+def _wartung(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Restlaufzeiten, Zähler und Brennstoff – alles, was Arbeit ankündigt."""
+    abschnitte: list[dict[str, Any]] = []
+    for anlage in anlagen:
+        for teil in anlage["teile"]:
+            restlaufzeit = [
+                e
+                for e in teil["entitaeten"]
+                if e["hat_wert"] and _passt(e["name"], WARTUNG_RESTLAUFZEIT)
+            ]
+            weitere = [
+                e
+                for e in teil["entitaeten"]
+                if e["hat_wert"] and _passt(e["name"], WARTUNG_WEITERE)
+            ]
+            if not restlaufzeit and not weitere:
+                continue
+
+            # Rundinstrument: Der Abstand zur Null ist auf einen Blick zu
+            # sehen, eine Zahl allein sagt das nicht. Die Skala richtet sich
+            # nach dem aktuellen Stand – die Wartungsintervalle der Anlagen
+            # reichen von wenigen Dutzend bis über tausend Stunden.
+            karten: list[dict[str, Any]] = [
+                {
+                    "type": "gauge",
+                    "entity": e["entity_id"],
+                    "name": e["name"].replace("Laufzeit bis ", ""),
+                    "needle": True,
+                    "min": 0,
+                    "max": _skala(e["wert"]),
+                    # Absteigend gelesen: unter 20 h gelb, unter 5 h rot.
+                    "severity": {"green": 20, "yellow": 5, "red": 0},
+                }
+                for e in restlaufzeit
+            ]
+            karten += [_karte(e) for e in weitere]
+            abschnitte += _abschnitt(_voller_name(anlage, teil), karten, "mdi:wrench-clock")
+
+    if not abschnitte:
+        return None
+    return _ansicht("Wartung", "wartung", "mdi:wrench-clock", abschnitte)
+
+
+def _auswertung(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Verläufe und Zählerstände über die Zeit."""
+    abschnitte: list[dict[str, Any]] = []
+
+    # Zähler: Home Assistant führt für total_increasing eine Langzeitstatistik.
+    # Damit lässt sich der Zuwachs eines Tages/Monats direkt anzeigen – ohne
+    # Hilfsentität und ohne eigene Automation.
+    zaehler = [
+        (anlage, teil, e)
+        for anlage in anlagen
+        for teil in anlage["teile"]
+        for e in teil["entitaeten"]
+        if e["state_class"] == "total_increasing"
+    ]
+    for zeitraum, beschriftung in (("day", "heute"), ("month", "dieser Monat")):
+        karten = [
+            {
+                "type": "statistic",
+                "entity": e["entity_id"],
+                "name": f"{e['name']} {beschriftung}",
+                "stat_type": "change",
+                "period": {"calendar": {"period": zeitraum}},
+            }
+            for _anlage, _teil, e in zaehler
+        ]
+        abschnitte += _abschnitt(f"Zähler – {beschriftung}", karten, "mdi:counter", stil="subtitle")
+
+    for anlage in anlagen:
+        for teil in anlage["teile"]:
+            verlauf = [
+                e
+                for e in teil["entitaeten"]
+                if e["hat_wert"] and e["bereich"] == "sensor" and _passt(e["name"], VERLAUF)
+            ]
+            if not verlauf:
+                continue
+            abschnitte += _abschnitt(
+                _voller_name(anlage, teil),
+                [
+                    {
+                        "type": "history-graph",
+                        "hours_to_show": 48,
+                        "entities": [
+                            {"entity": e["entity_id"], "name": e["name"]}
+                            for e in verlauf[:VERLAUF_MAX]
+                        ],
+                    }
+                ],
+                teil["symbol"],
+            )
+
+    if not abschnitte:
+        return None
+    return _ansicht("Auswertung", "auswertung", "mdi:chart-line", abschnitte)
+
+
+def _geraeteansicht(
+    anlage: dict[str, Any], teil: dict[str, Any], mehrdeutig: set[str]
+) -> dict[str, Any]:
     """Eine Ansicht je Anlagenteil, nach Verwendungszweck gegliedert."""
     entitaeten = teil["entitaeten"]
     bedienbar = [e for e in entitaeten if e["bereich"] in BEDIENBAR]
@@ -249,24 +487,24 @@ def _geraeteansicht(teil: dict[str, Any]) -> dict[str, Any]:
     einstellungen = [e for e in entitaeten if e not in bedienbar and e["kategorie"] == "config"]
     diagnose = [e for e in entitaeten if e["kategorie"] == "diagnostic"]
 
-    return {
-        "title": teil["name"],
-        "path": f"teil-{teil['id'][:8]}",
-        "type": "sections",
-        "max_columns": 3,
-        "sections": [
-            *_abschnitt("Bedienung", [_karte(e) for e in bedienbar]),
-            *_abschnitt("Messwerte", [_karte(e) for e in messwerte]),
-            *_abschnitt("Einstellungen", [_karte(e) for e in einstellungen]),
-            *_abschnitt("Diagnose", [_karte(e) for e in diagnose]),
+    titel = _voller_name(anlage, teil) if teil["name"] in mehrdeutig else teil["name"]
+    return _ansicht(
+        titel,
+        f"teil-{teil['id'][:8]}",
+        teil["symbol"],
+        [
+            *_abschnitt("Bedienung", [_karte(e) for e in bedienbar], "mdi:tune"),
+            *_abschnitt("Messwerte", [_karte(e) for e in messwerte], "mdi:gauge"),
+            *_abschnitt("Einstellungen", [_karte(e) for e in einstellungen], "mdi:cog-outline"),
+            *_abschnitt("Diagnose", [_karte(e) for e in diagnose], "mdi:stethoscope"),
         ],
-    }
+    )
 
 
 def dashboard_konfiguration(hass: HomeAssistant) -> dict[str, Any]:
     """Die vollständige Lovelace-Konfiguration des Dashboards."""
-    teile = _anlagenteile(hass)
-    if not teile:
+    anlagen = _anlagen(hass)
+    if not anlagen:
         return {
             "title": DASHBOARD_TITEL,
             "views": [
@@ -286,10 +524,15 @@ def dashboard_konfiguration(hass: HomeAssistant) -> dict[str, Any]:
             ],
         }
 
-    return {
-        "title": DASHBOARD_TITEL,
-        "views": [_uebersicht(teile), *(_geraeteansicht(teil) for teil in teile)],
-    }
+    mehrdeutig = _mehrfach_vergebene_namen(anlagen)
+    views: list[dict[str, Any]] = [_uebersicht(anlagen)]
+    for ansicht in (_wartung(anlagen), _auswertung(anlagen)):
+        if ansicht:
+            views.append(ansicht)
+    views += [
+        _geraeteansicht(anlage, teil, mehrdeutig) for anlage in anlagen for teil in anlage["teile"]
+    ]
+    return {"title": DASHBOARD_TITEL, "views": views}
 
 
 async def async_setup_dashboard(hass: HomeAssistant) -> None:

@@ -299,9 +299,33 @@ PUROWIN_ENTITIES = [
         "unit": "h",
         "state_class": "total_increasing",
     },
-    {"oid": "/39/91/0", "name": "Laufzeit bis Ascheentleerung", "platform": "sensor", "unit": "h"},
-    {"oid": "/39/92/0", "name": "Laufzeit bis Hauptreinigung", "platform": "sensor", "unit": "h"},
-    {"oid": "/39/93/0", "name": "Laufzeit bis Wartung", "platform": "sensor", "unit": "h"},
+    # Restlaufzeiten: "measurement", damit Home Assistant sie in die Statistik
+    # aufnimmt. Ohne state_class gäbe es keinen Langzeitverlauf und die
+    # Auswertung "wann war zuletzt Ascheentleerung" wäre nicht möglich.
+    {
+        "oid": "/39/91/0",
+        "name": "Laufzeit bis Ascheentleerung",
+        "platform": "sensor",
+        "unit": "h",
+        "state_class": "measurement",
+        "icon": "mdi:delete-clock-outline",
+    },
+    {
+        "oid": "/39/92/0",
+        "name": "Laufzeit bis Hauptreinigung",
+        "platform": "sensor",
+        "unit": "h",
+        "state_class": "measurement",
+        "icon": "mdi:broom",
+    },
+    {
+        "oid": "/39/93/0",
+        "name": "Laufzeit bis Wartung",
+        "platform": "sensor",
+        "unit": "h",
+        "state_class": "measurement",
+        "icon": "mdi:wrench-clock",
+    },
     {
         "oid": "/32/0/14",
         "name": "Störung aktiv",

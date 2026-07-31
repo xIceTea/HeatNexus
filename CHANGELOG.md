@@ -30,6 +30,11 @@ wenn dort Vorabversionen zugelassen sind.
 - Beim Entladen einer Anlage lief das Einlesen im Hintergrund weiter und
   meldete „Connector is closed". Es wird jetzt zuerst beendet, danach wird die
   Verbindung geschlossen.
+- **„Betriebsart: Unbekannt"** bei Puffer und Heizkreis. Die Anlage nennt in
+  ihren Metadaten die Werte, die sie zur *Auswahl* stellt – beim Puffer nur
+  „Standby". Angezeigt wurde daraufhin nur noch das, gemeldet hat die Anlage
+  aber etwas anderes. Ein Anzeigesensor nutzt jetzt wieder die vollständige
+  Tabelle.
 
 ### Geändert
 
@@ -38,8 +43,23 @@ wenn dort Vorabversionen zugelassen sind.
   stehen hinten.
 - Das Dashboard baut sich bei jedem Öffnen neu auf und folgt damit einem
   geänderten Umfang ohne Zutun.
+- **Die Anlage steht jetzt überall dabei.** Zwei gleich benannte Anlagenteile
+  – etwa zwei Pufferlademodule – waren im Dashboard nicht auseinanderzuhalten.
+  Jede Überschrift trägt nun „Heizhaus · B-PLMi PUFFER"; bei den Reitern
+  geschieht das nur dort, wo der Name mehrfach vorkommt.
+- Jeder Anlagenteil bekommt ein eigenes Symbol, und Werte ohne Inhalt
+  („Nicht verfügbar") erscheinen nicht mehr in der Übersicht.
+- Restlaufzeiten (Ascheentleerung, Hauptreinigung, Wartung) werden in die
+  Langzeitstatistik aufgenommen; damit ist ihr Verlauf auswertbar.
 
 ### Neu
+
+- **Ansicht „Wartung"**: Restlaufzeiten bis Ascheentleerung, Hauptreinigung und
+  Wartung als Rundinstrument mit mitwachsender Skala, dazu Brennstoff,
+  Vorratsbehälter, Betriebsstunden und Brennerstarts.
+- **Ansicht „Auswertung"**: Zählerstände als Zuwachs *heute* und *dieser Monat*
+  – Brennerstarts und Betriebsstunden also ohne Hilfsentität und ohne eigene
+  Automation – sowie Temperaturverläufe der letzten 48 Stunden je Anlagenteil.
 
 - **Fünf Automations-Vorlagen** werden mitgeliefert: Störung melden,
   Wartungswarnung mit Erinnerung, Brennstoffvorrat niedrig, Betriebsdauer
