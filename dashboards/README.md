@@ -1,6 +1,10 @@
 # Dashboards
 
-Vorlagen für Home-Assistant-Ansichten.
+**Für den Normalfall wird hier nichts gebraucht:** Die Integration bringt ein
+fertiges Dashboard *Heizung* mit, das sich aus den erkannten Geräten aufbaut
+und in der Seitenleiste erscheint.
+
+Die Dateien hier sind für alle, die ihre Ansichten selbst bauen wollen.
 
 | Datei | Inhalt | Einbau |
 |---|---|---|

@@ -29,4 +29,4 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements_test.txt
-      - run: pytest --cov=custom_components/windhager --cov-report=term-missing
+      - run: pytest --cov=custom_components/heatnexus --cov-report=term-missing

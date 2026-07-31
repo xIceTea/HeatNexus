@@ -8,6 +8,48 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Behoben
+
+- **Das Dashboard erschien nur als Fehlermeldung.** Die Ansichten wurden bisher
+  im Browser aus einer nachgeladenen Datei aufgebaut. War sie noch nicht
+  geladen – nach einem Neustart der Regelfall – zeigte die Seite nur
+  „Timeout waiting for strategy element". Die Ansichten entstehen jetzt in Home
+  Assistant selbst und sind sofort da.
+- **Umlaute in Gerätenamen.** Von Hand vergebene Namen wie „Hebebühne" kamen als
+  „Hebeb?hne" an: Die Steuerung nutzt die DOS-Zeichentabelle, in der das „ü" auf
+  einem Byte liegt, das die bisherige Rückfallkette gar nicht kannte.
+- **Abgewählte Bedienebenen löschten Entitäten.** Wurde der Umfang verkleinert,
+  waren eigene Namen, Symbole, Bereichszuordnung und Verlauf verloren. Die
+  betroffenen Entitäten werden jetzt nur stillgelegt und beim Wiederdazuwählen
+  reaktiviert. Wirklich aufräumen lässt sich weiterhin mit
+  `heatnexus.rediscover`.
+- **Ab der siebten Anlage** fehlte im Optionsdialog der Menüpunkt zur
+  Bedienebenen-Auswahl.
+- Der gespeicherte Erkennungsstand wird beim Entfernen einer Anlage
+  mitgelöscht, statt dauerhaft liegenzubleiben.
+
+### Geändert
+
+- **Reihenfolge im Dashboard** folgt der Anlage statt dem Alphabet: Kessel,
+  Puffer, Heizkreis, Warmwasser, Zirkulation. Anlagenteile ohne bekannten Typ
+  stehen hinten.
+- Das Dashboard baut sich bei jedem Öffnen neu auf und folgt damit einem
+  geänderten Umfang ohne Zutun.
+
+### Neu
+
+- **Fünf Automations-Vorlagen** werden mitgeliefert: Störung melden,
+  Wartungswarnung mit Erinnerung, Brennstoffvorrat niedrig, Betriebsdauer
+  erfassen, Heizkreis bei Abwesenheit absenken. Sie stehen nach der Einrichtung
+  unter Blueprints bereit, ein Import aus dem Netz entfällt.
+  - Die Wartungswarnung kennt Vorwarnung, Warnung und Erinnerung in festem
+    Abstand und kommt dabei ohne Hilfsschalter aus – zurückgesetzt wird sie,
+    sobald die Anlage den Zähler wieder hochsetzt.
+  - Die Störungsvorlage wertet das Attribut `stoerung_aktiv` aus statt den
+    angezeigten Text; sie bleibt damit von Formulierungen unabhängig.
+  - Die Betriebsdauer wird aus dem gemerkten Startzeitpunkt berechnet, nicht
+    hochgezählt: Ein Neustart von Home Assistant verfälscht sie nicht mehr.
+
 ## [0.1.0] – Erste Veröffentlichung
 
 Erkennung, Anzeige und Bedienung von Windhager-Heizungen über die lokale

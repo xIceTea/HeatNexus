@@ -50,6 +50,8 @@ gelisteten Geräten sind willkommen.
 - **Störungen im Klartext** mit Code, Art und Handlungsempfehlung.
 - **Serviceebene** vollständig verfügbar, standardmäßig deaktiviert und pro
   Entity zuschaltbar.
+- **Dashboard und Automations-Vorlagen** kommen mit und bauen sich aus dem,
+  was die Anlage liefert.
 - Mehrere Anlagen parallel.
 
 ## Installation
@@ -122,8 +124,41 @@ data:
 
 ## Dashboard
 
-Vorlagen für Gesamtübersicht, Bedienkarten und ein Anlagenschaubild liegen unter
-[`dashboards/`](dashboards/).
+Ein Dashboard **Heizung** erscheint nach der Einrichtung von selbst in der
+Seitenleiste. Es wird aus den tatsächlich gefundenen Geräten gebaut – keine
+Entitäts-IDs eintragen, kein YAML kopieren:
+
+- **Übersicht** – je Anlagenteil die wichtigsten Werte, in fachlicher
+  Reihenfolge (Kessel, Puffer, Heizkreis, Warmwasser, Zirkulation), dazu die
+  Störungsmeldungen.
+- **Je Anlagenteil eine Ansicht**, gegliedert in Bedienung, Messwerte,
+  Einstellungen und Diagnose.
+
+Fehlt ein Anlagenteil, entfällt der Block. Wird der Umfang später geändert,
+passt sich das Dashboard beim nächsten Öffnen an. Abschalten lässt es sich
+unter *Konfigurieren → Allgemein*.
+
+Wer lieber selbst baut: Vorlagen für Gesamtübersicht, Bedienkarten und ein
+Anlagenschaubild liegen unter [`dashboards/`](dashboards/).
+
+## Automations-Vorlagen
+
+Fünf Blueprints werden mitgeliefert und liegen nach der Einrichtung unter
+*Einstellungen → Automationen & Szenen → Blueprints* bereit – ohne Import aus
+dem Netz:
+
+| Vorlage | Zweck |
+|---|---|
+| Störung melden | Meldung bei Störung, Erinnerung in festem Abstand, Entwarnung |
+| Wartungswarnung mit Erinnerung | Vorwarnung, Warnung und Erinnerung für eine Restlaufzeit (Asche, Reinigung, Wartung) |
+| Brennstoffvorrat niedrig | Meldung, wenn Vorratsbehälter oder Lagerraum zur Neige gehen |
+| Betriebsdauer erfassen | Misst, wie lange ein Anlagenteil ununterbrochen läuft |
+| Heizkreis bei Abwesenheit absenken | Absenken bei Abwesenheit, Rückstellen bei Rückkehr |
+
+Was bei einem Ereignis passieren soll, gibt die jeweilige Automation vor –
+Benachrichtigung, Ansage, Anruf, beliebige Aktion. Die Störungsvorlage wertet
+das Attribut `stoerung_aktiv` aus, nicht den angezeigten Text; sie hängt damit
+an keiner Formulierung.
 
 ## Dokumentation
 

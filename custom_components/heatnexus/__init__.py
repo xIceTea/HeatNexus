@@ -19,6 +19,7 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from . import device_db, error_texts
+from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
     CONF_DASHBOARD,
@@ -36,11 +37,7 @@ from .const import (
     SIGNAL_NEUE_ENTITAETEN,
     UPDATE_INTERVAL,
 )
-from .dashboard import (
-    async_register_frontend,
-    async_remove_dashboard,
-    async_setup_dashboard,
-)
+from .dashboard import async_remove_dashboard, async_setup_dashboard
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -160,6 +157,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     integration = await async_get_integration(hass, DOMAIN)
     version = str(integration.version)
+    await async_install_blueprints(hass, version)
     mem_cache = hass.data[DOMAIN].setdefault("_discovery_cache", {})
     hub_name = entry.data.get(CONF_NAME) or entry.title
 
@@ -238,12 +236,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {"name": hub_name, "coordinators": coordinators}
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _geraetenamen_angleichen(registry, entry, coordinators)
-    _verwaiste_entitaeten_entfernen(hass, entry, coordinators)
+    _abgewaehlte_entitaeten_stilllegen(hass, entry, coordinators)
 
     if (entry.options or {}).get(CONF_DASHBOARD, True):
         await async_setup_dashboard(hass)
     else:
-        await async_register_frontend(hass)
+        # Abgewählt: der Seitenleisten-Eintrag verschwindet beim nächsten Laden.
+        await async_remove_dashboard(hass)
 
     for coordinator, client, store, host, fingerprint, cache_key in nachzuladen:
         entry.async_create_background_task(
@@ -266,29 +265,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-def _verwaiste_entitaeten_entfernen(
+def _abgewaehlte_entitaeten_stilllegen(
     hass: HomeAssistant, entry: ConfigEntry, coordinators: dict
 ) -> None:
-    """Entitäten entfernen, die es nach der aktuellen Auswahl nicht mehr gibt.
+    """Entitäten stilllegen, die es nach der aktuellen Auswahl nicht mehr gibt.
 
-    Wird der Umfang verkleinert (z.B. Werksebene abgewählt), blieben die
+    Wird der Umfang verkleinert (z.B. Serviceebene abgewählt), blieben die
     bereits angelegten Entitäten sonst dauerhaft als „nicht verfügbar" stehen.
+
+    Sie werden **deaktiviert statt gelöscht**: Wählt der Nutzer die Ebene
+    wieder dazu, sind eigene Namen, Symbole, Bereichszuordnung und der Verlauf
+    noch vorhanden. Ein Löschen würde all das verwerfen und beim erneuten
+    Anlegen womöglich andere `entity_id`s vergeben – Dashboards und
+    Automationen wären hin. Wer wirklich aufräumen will, ruft
+    `heatnexus.rediscover` auf.
     """
     vollstaendig = all(getattr(c.client, "_vollstaendig", False) for c in coordinators.values())
     if not vollstaendig:
-        # Vor dem Vollabzug ist die Liste noch unvollständig – nichts löschen.
+        # Vor dem Vollabzug ist die Liste noch unvollständig – nichts anfassen.
         return
 
-    gueltig = {
-        beschreibung.get("id")
+    # Entitäten der Serviceebene sind absichtlich deaktiviert angelegt; sie
+    # dürfen beim Wiederdazuwählen nicht versehentlich eingeschaltet werden.
+    standardmaessig_an = {
+        beschreibung.get("id"): beschreibung.get("enabled_default", True)
         for coordinator in coordinators.values()
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
     registry = er.async_get(hass)
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
-        if eintrag.unique_id not in gueltig:
-            _LOGGER.debug("Entferne verwaiste Entität %s", eintrag.entity_id)
-            registry.async_remove(eintrag.entity_id)
+        if eintrag.unique_id not in standardmaessig_an:
+            if eintrag.disabled_by is None:
+                _LOGGER.debug("Lege abgewählte Entität %s still", eintrag.entity_id)
+                registry.async_update_entity(
+                    eintrag.entity_id, disabled_by=er.RegistryEntryDisabler.INTEGRATION
+                )
+        elif (
+            standardmaessig_an[eintrag.unique_id]
+            and eintrag.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+        ):
+            # Wieder dazugewählt – die eigene Stilllegung wird aufgehoben.
+            # Eine Abschaltung durch den Nutzer (disabled_by USER) bleibt.
+            _LOGGER.debug("Nehme %s wieder in Betrieb", eintrag.entity_id)
+            registry.async_update_entity(eintrag.entity_id, disabled_by=None)
 
 
 def _geraetenamen_angleichen(registry, entry: ConfigEntry, coordinators: dict) -> None:
@@ -344,7 +363,7 @@ async def _vollabzug(
     async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id))
     daten = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if daten:
-        _verwaiste_entitaeten_entfernen(hass, entry, daten["coordinators"])
+        _abgewaehlte_entitaeten_stilllegen(hass, entry, daten["coordinators"])
 
     data = client.export_discovery()
     mem_cache[cache_key] = data
@@ -392,6 +411,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Beim Entfernen der letzten Anlage auch das Dashboard abräumen."""
+    """Gespeicherten Erkennungsstand und Dashboard abräumen."""
+    for system in _systems(entry):
+        await Store(
+            hass, DISCOVERY_STORE_VERSION, _store_key(entry, system[CONF_HOST])
+        ).async_remove()
     if not hass.config_entries.async_entries(DOMAIN):
         await async_remove_dashboard(hass)

@@ -1,0 +1,134 @@
+blueprint:
+  name: HeatNexus – Betriebsdauer erfassen
+  description: >
+    Misst, wie lange ein Anlagenteil ununterbrochen läuft: Beim Verlassen von
+    Standby beginnt die Messung, bei der Rückkehr endet sie. Der Zwischenstand
+    wird jede Minute nachgeführt.
+
+    Gezählt wird aus der gemerkten Startzeit heraus, nicht durch Hochzählen –
+    ein Neustart von Home Assistant verfälscht die Dauer damit nicht.
+
+    **Nötige Helfer** (Einstellungen → Geräte & Dienste → Helfer):
+
+    - ein *Ein-/Ausschalter* als Merker „Messung läuft"
+    - ein *Datum und Zeit* für den Startzeitpunkt (Datum **und** Uhrzeit)
+    - eine *Zahl* für die Dauer in Minuten; Höchstwert großzügig setzen,
+      z. B. 100000, sonst wird die Dauer abgeschnitten
+  domain: automation
+  author: HeatNexus
+  source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/betriebsdauer.yaml
+  input:
+    betriebsart:
+      name: Betriebsart
+      description: Der Sensor, dessen Zustand Lauf und Stillstand unterscheidet.
+      selector:
+        entity:
+          filter:
+            - integration: heatnexus
+              domain: sensor
+    ruhezustand:
+      name: Zustand im Stillstand
+      description: Genau so, wie der Sensor ihn anzeigt.
+      default: Standby
+      selector:
+        text: {}
+    merker:
+      name: Merker „Messung läuft"
+      selector:
+        entity:
+          filter:
+            - domain: input_boolean
+    startzeit:
+      name: Startzeitpunkt
+      selector:
+        entity:
+          filter:
+            - domain: input_datetime
+    dauer:
+      name: Dauer in Minuten
+      selector:
+        entity:
+          filter:
+            - domain: input_number
+
+# queued: Der Minutentakt darf einen Start oder ein Ende nicht verdrängen.
+mode: queued
+max: 5
+
+triggers:
+  - trigger: state
+    entity_id: !input betriebsart
+    id: wechsel
+  - trigger: time_pattern
+    minutes: /1
+    id: takt
+
+variables:
+  sensor: !input betriebsart
+  merker: !input merker
+  startzeit: !input startzeit
+  ruhezustand: !input ruhezustand
+  # Verstrichene Minuten seit dem gemerkten Start.
+  verstrichen: >
+    {{ (((now().timestamp() - (state_attr(startzeit, 'timestamp')
+        | float(now().timestamp()))) / 60) | round(0)) | max(0) }}
+
+actions:
+  - choose:
+      # Anlauf: aus dem Stillstand heraus, und es läuft noch keine Messung.
+      - conditions:
+          - condition: trigger
+            id: wechsel
+          - condition: template
+            value_template: >
+              {{ trigger.to_state.state not in [ruhezustand, 'unknown', 'unavailable'] }}
+          - condition: state
+            entity_id: !input merker
+            state: "off"
+        sequence:
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: !input startzeit
+            data:
+              datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+          - action: input_number.set_value
+            target:
+              entity_id: !input dauer
+            data:
+              value: 0
+          - action: input_boolean.turn_on
+            target:
+              entity_id: !input merker
+
+      # Stillstand: letzten Stand festhalten, dann Messung beenden.
+      - conditions:
+          - condition: trigger
+            id: wechsel
+          - condition: template
+            value_template: "{{ trigger.to_state.state == ruhezustand }}"
+          - condition: state
+            entity_id: !input merker
+            state: "on"
+        sequence:
+          - action: input_number.set_value
+            target:
+              entity_id: !input dauer
+            data:
+              value: "{{ verstrichen }}"
+          - action: input_boolean.turn_off
+            target:
+              entity_id: !input merker
+
+      # Laufender Betrieb: Zwischenstand nachführen.
+      - conditions:
+          - condition: trigger
+            id: takt
+          - condition: state
+            entity_id: !input merker
+            state: "on"
+        sequence:
+          - action: input_number.set_value
+            target:
+              entity_id: !input dauer
+            data:
+              value: "{{ verstrichen }}"

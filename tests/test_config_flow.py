@@ -49,6 +49,16 @@ def test_unbekannte_ebene_wird_verworfen(flow):
     assert options[CONF_LEVELS] == ["info", "operate", "oem"]
 
 
+def test_menueschritt_fuer_jede_anlage(flow):
+    """Auch die siebte Anlage muss einen Schritt bekommen."""
+    optionen = flow.WindhagerOptionsFlow()
+    assert callable(optionen.async_step_anlage_0)
+    assert callable(optionen.async_step_anlage_9)
+    for unbekannt in ("async_step_anlage_x", "irgendwas_anderes"):
+        with pytest.raises(AttributeError):
+            getattr(optionen, unbekannt)
+
+
 def test_schalter_und_intervall_werden_uebernommen(flow):
     from custom_components.heatnexus.const import (
         CONF_ENABLE_ADVANCED,

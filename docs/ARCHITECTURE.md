@@ -29,7 +29,8 @@
  "min": None, "max": None, "step": None,
  "write_prot": True,
  "device_id": "192-168-178-100-1-60-0",   # HA-Gerät
- "device_name": "PuroWIN"}
+ "device_name": "PuroWIN",
+ "fct_type": 25}                          # Funktionstyp, ordnet das Dashboard
 ```
 
 Jede Plattform filtert `coordinator.data["devices"]` nach `type`. Eine neue
@@ -53,8 +54,37 @@ filtert, und den Eintrag in `PLATFORMS`.
    Entities der Serviceebene sind deaktiviert und melden ihre OID erst beim
    Aktivieren zum Polling an.
 
-Discovery und Metadaten laufen einmalig in `client.async_init()` mit eigenem
-Zeitlimit (`INIT_TIMEOUT`), getrennt vom Zeitlimit des zyklischen Pollings.
+Die Einrichtung wartet nur auf die Grunddaten (`async_init_basic()`, eigenes
+Zeitlimit `INIT_TIMEOUT`, getrennt vom Zeitlimit des Pollings). Der Vollabzug
+läuft danach als Hintergrundaufgabe und meldet die zusätzlich gefundenen
+Entities nach.
+
+Wird der Umfang verkleinert, werden die betroffenen Entities **stillgelegt,
+nicht gelöscht** – eigene Namen, Bereichszuordnung und Verlauf bleiben damit
+erhalten und leben beim Wiederdazuwählen weiter.
+
+## Zeichensatz
+
+Die Steuerung antwortet nicht in UTF-8. Von Hand vergebene Namen kommen in der
+DOS-Zeichentabelle der Anlage; das „ü" liegt dort auf einem Byte, das CP1252
+nicht kennt. `client._decode` probiert deshalb der Reihe nach `utf-8`,
+`cp1252`, `cp850` und zuletzt `latin-1`, das jedes Byte abbilden kann.
+
+## Dashboard
+
+`dashboard.py` baut die Lovelace-Konfiguration **in Home Assistant** aus der
+Geräte- und Entitätsregistrierung und liefert sie fertig aus; bei jedem Öffnen
+neu. Die Reihenfolge der Abschnitte kommt aus dem Funktionstyp (`FCT_RANG`:
+Kessel, Puffer, Heizkreis, Warmwasser, Zirkulation), unbekannte Typen stehen
+hinten. Ein Frontend-Modul gibt es bewusst nicht: Eine Strategie im Browser
+steht erst zur Verfügung, wenn die Seite sie geladen hat – nach einem Neustart
+ist das nicht der Fall.
+
+## Automations-Vorlagen
+
+`blueprints.py` legt die mitgelieferten Vorlagen aus
+`blueprints/automation/heatnexus/` unter `<config>/blueprints/automation/heatnexus/`
+ab und frischt sie beim Versionswechsel auf.
 
 ## Zyklisches Polling
 
@@ -105,6 +135,9 @@ von Hand gepflegt.
 | `client.py` | HTTP, Discovery, Metadaten, Polling, strukturierte Objekte |
 | `aiohelper.py` | nebenläufigkeitssichere Digest-Authentifizierung |
 | `__init__.py` | Coordinator, Cache, Setup/Unload, Dienste |
+| `dashboard.py` | mitgeliefertes Dashboard, serverseitig gebaut |
+| `blueprints.py` | Automations-Vorlagen bereitstellen |
+| `diagnostics.py` | Diagnosedaten für Fehlerberichte |
 | `entity.py` | Basisklasse: unique_id, Gerätezuordnung, Poll-Registrierung |
 | `const.py` | kuratierte Entity-Tabellen, Enums, Zeitkonstanten |
 | `device_db.py` | Zugriff auf die Geräte-Datenbank |

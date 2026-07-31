@@ -1,0 +1,98 @@
+blueprint:
+  name: HeatNexus – Heizkreis bei Abwesenheit absenken
+  description: >
+    Senkt einen Heizkreis ab, sobald niemand mehr zu Hause ist, und stellt
+    ihn bei der Rückkehr wieder auf den vorherigen Betrieb. Gesteuert wird
+    über das Thermostat des Heizkreises; die Betriebsart wird vor dem
+    Absenken gemerkt.
+  domain: automation
+  author: HeatNexus
+  source_url: https://github.com/xIceTea/HeatNexus/blob/main/blueprints/automation/heatnexus/heizkreis_abwesend.yaml
+  input:
+    anwesenheit:
+      name: Anwesenheit
+      description: Personen oder Gruppe, deren Abwesenheit das Absenken auslöst.
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - domain: person
+            - domain: device_tracker
+            - domain: group
+    heizkreis:
+      name: Heizkreis
+      description: Das Thermostat des Heizkreises.
+      selector:
+        entity:
+          filter:
+            - integration: heatnexus
+              domain: climate
+    modus_abwesend:
+      name: Betriebsart bei Abwesenheit
+      description: >
+        Betriebsart, auf die umgestellt wird. „Absenkbetrieb" hält die
+        Absenktemperatur, „Standby" schaltet den Heizkreis ganz ab.
+      default: "5"
+      selector:
+        select:
+          options:
+            - label: Absenkbetrieb
+              value: "5"
+            - label: Standby
+              value: "0"
+            - label: Heizbetrieb
+              value: "4"
+    verzoegerung:
+      name: Verzögerung
+      description: So lange muss niemand da sein, bevor abgesenkt wird.
+      default:
+        minutes: 30
+      selector:
+        duration: {}
+
+mode: single
+
+triggers:
+  - trigger: state
+    entity_id: !input anwesenheit
+    to: not_home
+    for: !input verzoegerung
+    id: abwesend
+  - trigger: state
+    entity_id: !input anwesenheit
+    to: home
+    id: anwesend
+
+variables:
+  anwesende: !input anwesenheit
+  modus_abwesend: !input modus_abwesend
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: abwesend
+          - condition: template
+            value_template: >
+              {{ anwesende | select('is_state', 'home') | list | count == 0 }}
+        sequence:
+          - action: scene.create
+            data:
+              scene_id: heatnexus_heizkreis_vorher
+              snapshot_entities: !input heizkreis
+          - action: climate.set_preset_mode
+            target:
+              entity_id: !input heizkreis
+            data:
+              preset_mode: "{{ modus_abwesend }}"
+      - conditions:
+          - condition: trigger
+            id: anwesend
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ states('scene.heatnexus_heizkreis_vorher') not in ['unknown', 'unavailable'] }}"
+            then:
+              - action: scene.turn_on
+                target:
+                  entity_id: scene.heatnexus_heizkreis_vorher

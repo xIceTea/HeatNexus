@@ -108,18 +108,29 @@ class WindhagerHttpClient:
             self._session = None
             self._auth = None
 
-    @staticmethod
-    def _decode(raw: bytes) -> str:
+    # Zeichensätze in der Reihenfolge, in der sie ausprobiert werden.
+    # cp850 ist die DOS-Codepage der Steuerung: dort liegt „ü" auf 0x81,
+    # einem in CP1252 gar nicht belegten Byte. Genau daran scheiterte die
+    # frühere Kette und machte aus „Hebebühne" ein „Hebeb?hne".
+    _ZEICHENSAETZE = ("utf-8", "cp1252", "cp850")
+
+    @classmethod
+    def _decode(cls, raw: bytes) -> str:
         """Antwort dekodieren.
 
-        Die Anlagen liefern Text nicht durchgängig als UTF-8: Funktionsnamen
-        wie „Hebebühne" kommen als Latin-1/CP1252 zurück. Ohne Rückfall stünden
-        Fragezeichen in Geräte- und Entitätsnamen.
+        Die Anlagen liefern Text nicht durchgängig als UTF-8: von Hand
+        vergebene Funktionsnamen kommen im Zeichensatz der Steuerung zurück.
+        Ohne passenden Rückfall stünden Fragezeichen in Geräte- und
+        Entitätsnamen.
         """
-        try:
-            return raw.decode("utf-8")
-        except UnicodeDecodeError:
-            return raw.decode("cp1252", "replace")
+        for zeichensatz in cls._ZEICHENSAETZE:
+            try:
+                return raw.decode(zeichensatz)
+            except UnicodeDecodeError:
+                continue
+        # latin-1 kann jedes Byte abbilden und schlägt daher nie fehl.
+        _LOGGER.debug("Antwort in keinem bekannten Zeichensatz lesbar, nutze latin-1")
+        return raw.decode("latin-1")
 
     async def _get(self, url: str):
         """GET auf die Anlage; gibt (json_oder_None, status) zurück."""
@@ -294,6 +305,7 @@ class WindhagerHttpClient:
             "write_prot": None,
             "device_id": self.slugify(f"{self.host}{prefix}"),
             "device_name": fct["name"],
+            "fct_type": fct.get("fctType"),
         }
         self.devices.append(descriptor)
         self.oids.add(oid)
@@ -313,6 +325,7 @@ class WindhagerHttpClient:
             device_id = f"/1/{node_id}"
             primary_prefix = None
             primary_name = None
+            primary_type = None
             for fct in device.get("functions", []):
                 fct_type = fct.get("fctType")
                 if fct.get("lock"):
@@ -327,6 +340,7 @@ class WindhagerHttpClient:
                 if primary_prefix is None:
                     primary_prefix = prefix
                     primary_name = fct["name"]
+                    primary_type = fct_type
 
                 # Kuratierte Tabellen: beim Kurzdurchlauf übersprungen, damit
                 # die Einrichtung nur wenige Anfragen kostet. Thermostat und
@@ -409,6 +423,7 @@ class WindhagerHttpClient:
                             "write_prot": None,
                             "device_id": self.slugify(f"{self.host}{prefix}"),
                             "device_name": fct["name"],
+                            "fct_type": fct_type,
                         }
                     )
                     self.oids.add(oid)
@@ -424,6 +439,7 @@ class WindhagerHttpClient:
                             "prefix": prefix,
                             "device_id": self.slugify(f"{self.host}{prefix}"),
                             "device_name": fct["name"],
+                            "fct_type": fct_type,
                         }
                     )
                     self.oids.update(
@@ -450,6 +466,7 @@ class WindhagerHttpClient:
                         "enabled_default": True,
                         "device_id": self.slugify(f"{self.host}{primary_prefix}"),
                         "device_name": primary_name,
+                        "fct_type": primary_type,
                     }
                 )
                 # Zweiter Sensor: Fehlercode -> Klartext (z.B. "Fehler 346 –
@@ -465,6 +482,7 @@ class WindhagerHttpClient:
                         "enabled_default": True,
                         "device_id": self.slugify(f"{self.host}{primary_prefix}"),
                         "device_name": primary_name,
+                        "fct_type": primary_type,
                     }
                 )
 

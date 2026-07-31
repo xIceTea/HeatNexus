@@ -1,0 +1,63 @@
+blueprint:
+  name: HeatNexus – Brennstoffvorrat niedrig
+  description: >
+    Meldet sich, wenn der Vorratsbehälter oder der Lagerraum unter einen
+    gewählten Wert fällt. Passend sind alle Füllstands- und Vorratssensoren
+    der Anlage (Hackgut, Pellets). Es wird höchstens einmal je Unterschreitung
+    gemeldet – erst wenn der Wert wieder darüber liegt, ist die nächste
+    Meldung möglich.
+  domain: automation
+  author: HeatNexus
+  source_url: https://github.com/xIceTea/HeatNexus/blob/main/blueprints/automation/heatnexus/vorrat_niedrig.yaml
+  input:
+    vorrat:
+      name: Vorratssensor
+      description: Füllstand des Vorratsbehälters oder Lagerraums.
+      selector:
+        entity:
+          filter:
+            - integration: heatnexus
+              domain: sensor
+    schwelle:
+      name: Schwelle
+      description: Unterhalb dieses Werts wird gemeldet.
+      default: 20
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          mode: slider
+    dauer:
+      name: Mindestdauer
+      description: So lange muss der Wert darunter liegen, bevor gemeldet wird.
+      default:
+        minutes: 10
+      selector:
+        duration: {}
+    aktion:
+      name: Was soll passieren
+      description: >
+        Der aktuelle Wert steht als `vorrat_wert` bereit, die Schwelle als
+        `vorrat_schwelle`.
+      selector:
+        action: {}
+
+mode: single
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input vorrat
+    below: !input schwelle
+    for: !input dauer
+
+variables:
+  sensor: !input vorrat
+  vorrat_schwelle: !input schwelle
+  vorrat_wert: "{{ states(sensor) }}"
+
+conditions:
+  - condition: template
+    value_template: "{{ states(sensor) not in ['unknown', 'unavailable'] }}"
+
+actions: !input aktion

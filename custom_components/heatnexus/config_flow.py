@@ -402,29 +402,23 @@ class WindhagerOptionsFlow(OptionsFlow):
             description_placeholders={"anlage": f"{label} ({host})".strip()},
         )
 
-    async def async_step_anlage_0(self, user_input=None) -> ConfigFlowResult:
-        """Erste Anlage."""
-        return await self._anlage(0, user_input)
+    def __getattr__(self, name: str):
+        """Schritt ``anlage_<n>`` zu jeder eingerichteten Anlage bereitstellen.
 
-    async def async_step_anlage_1(self, user_input=None) -> ConfigFlowResult:
-        """Zweite Anlage."""
-        return await self._anlage(1, user_input)
+        Das Menü führt eine Zeile je Anlage; feste Methoden würden die Zahl
+        der Anlagen künstlich begrenzen und bei einer mehr mit „unbekannter
+        Schritt" abbrechen.
+        """
+        if not name.startswith("async_step_anlage_"):
+            raise AttributeError(name)
+        rest = name.removeprefix("async_step_anlage_")
+        if not rest.isdigit():
+            raise AttributeError(name)
 
-    async def async_step_anlage_2(self, user_input=None) -> ConfigFlowResult:
-        """Dritte Anlage."""
-        return await self._anlage(2, user_input)
+        async def schritt(user_input=None) -> ConfigFlowResult:
+            return await self._anlage(int(rest), user_input)
 
-    async def async_step_anlage_3(self, user_input=None) -> ConfigFlowResult:
-        """Vierte Anlage."""
-        return await self._anlage(3, user_input)
-
-    async def async_step_anlage_4(self, user_input=None) -> ConfigFlowResult:
-        """Fünfte Anlage."""
-        return await self._anlage(4, user_input)
-
-    async def async_step_anlage_5(self, user_input=None) -> ConfigFlowResult:
-        """Sechste Anlage."""
-        return await self._anlage(5, user_input)
+        return schritt
 
     async def _anlage(self, index: int, user_input) -> ConfigFlowResult:
         """Menüauswahl auf den gemeinsamen Schritt lenken."""

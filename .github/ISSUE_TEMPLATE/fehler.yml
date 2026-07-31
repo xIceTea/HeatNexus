@@ -50,5 +50,5 @@ body:
     id: log
     attributes:
       label: Protokollauszug
-      description: Einstellungen → System → Protokolle, gefiltert nach "windhager"
+      description: Einstellungen → System → Protokolle, gefiltert nach "heatnexus"
       render: text

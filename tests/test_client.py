@@ -59,6 +59,22 @@ def test_time_program_without_value(client_module):
     assert _resolve(client_module, meta) == "time_program"
 
 
+def test_umlaut_aus_der_dos_codepage(client_module):
+    """Der Funktionsname „Hebebühne" kommt mit 0x81 – nur CP850 kennt das."""
+    roh = b'{"name": "Hebeb\x81hne"}'
+    assert "Hebebühne" in client_module.WindhagerHttpClient._decode(roh)
+
+
+def test_umlaut_aus_cp1252(client_module):
+    roh = b'{"name": "Hebeb\xfchne"}'
+    assert "Hebebühne" in client_module.WindhagerHttpClient._decode(roh)
+
+
+def test_utf8_bleibt_unangetastet(client_module):
+    roh = '{"name": "Wärmeanforderung"}'.encode()
+    assert "Wärmeanforderung" in client_module.WindhagerHttpClient._decode(roh)
+
+
 def test_discovery_roundtrip_is_json_safe(client_module):
     """export_discovery muss per HA-Store persistierbar sein (keine Sets)."""
     import json

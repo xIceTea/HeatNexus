@@ -1,0 +1,147 @@
+blueprint:
+  name: HeatNexus – Wartungswarnung mit Erinnerung
+  description: >
+    Dreistufige Warnung für eine Restlaufzeit der Anlage – Ascheentleerung,
+    Hauptreinigung oder Wartung:
+
+    1. **Vorwarnung**, wenn die Restlaufzeit die erste Schwelle unterschreitet.
+
+    2. **Warnung**, wenn sie die zweite Schwelle unterschreitet.
+
+    3. **Erinnerung** in festem Abstand, solange nichts passiert.
+
+    Erledigt ist die Sache, sobald die Restlaufzeit wieder über der
+    Rückstellschwelle liegt – die Anlage setzt den Zähler nach der Arbeit
+    selbst zurück.
+
+    Je Zähler eine Automation anlegen. Helfer werden keine gebraucht: Den
+    Zustand hält die Automation selbst.
+  domain: automation
+  author: HeatNexus
+  source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/wartung_warnungen.yaml
+  input:
+    restlaufzeit:
+      name: Restlaufzeit
+      description: Der Sensor mit der verbleibenden Laufzeit.
+      selector:
+        entity:
+          filter:
+            - integration: heatnexus
+              domain: sensor
+    bezeichnung:
+      name: Bezeichnung
+      description: Kommt in den Meldungen vor, z. B. „Aschebox" oder „Wartung".
+      default: Wartung
+      selector:
+        text: {}
+    vorwarnschwelle:
+      name: Schwelle Vorwarnung
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 500
+          step: 1
+          mode: box
+    warnschwelle:
+      name: Schwelle Warnung
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 500
+          step: 1
+          mode: box
+    rueckstellschwelle:
+      name: Rückstellschwelle
+      description: >
+        Darüber gilt die Arbeit als erledigt und die Erinnerungen hören auf.
+        Muss über der Warnschwelle liegen.
+      default: 10
+      selector:
+        number:
+          min: 0
+          max: 500
+          step: 1
+          mode: box
+    abstand:
+      name: Abstand der Erinnerungen
+      default:
+        hours: 24
+      selector:
+        duration: {}
+    aktion_vorwarnung:
+      name: Bei Vorwarnung
+      description: >
+        Bereit stehen `bezeichnung`, der aktuelle Wert `wert` und die Einheit
+        `einheit`.
+      selector:
+        action: {}
+    aktion_warnung:
+      name: Bei Warnung
+      selector:
+        action: {}
+    aktion_erinnerung:
+      name: Bei Erinnerung
+      description: Bleibt das leer, wird nicht erinnert.
+      default: []
+      selector:
+        action: {}
+
+# restart: Die Warnung löst die Vorwarnung ab, ein Neustart der Anlage die
+# laufende Erinnerungsschleife.
+mode: restart
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input restlaufzeit
+    below: !input vorwarnschwelle
+  - trigger: numeric_state
+    entity_id: !input restlaufzeit
+    below: !input warnschwelle
+  # Nach einem Neustart von Home Assistant löst kein Schwellenübertritt mehr
+  # aus – die Lage wird deshalb einmal aktiv geprüft.
+  - trigger: homeassistant
+    event: start
+
+variables:
+  sensor: !input restlaufzeit
+  bezeichnung: !input bezeichnung
+  vorwarnschwelle: !input vorwarnschwelle
+  warnschwelle: !input warnschwelle
+  wert: "{{ states(sensor) | float(-1) }}"
+  einheit: "{{ state_attr(sensor, 'unit_of_measurement') or '' }}"
+  anlagenteil: "{{ device_attr(sensor, 'name_by_user') or device_attr(sensor, 'name') or '' }}"
+
+conditions:
+  - condition: template
+    value_template: "{{ states(sensor) not in ['unknown', 'unavailable'] }}"
+
+actions:
+  - choose:
+      # Die Warnung zuerst prüfen: Sie ist der schärfere Fall und schließt
+      # die Vorwarnung mit ein.
+      - conditions:
+          - condition: template
+            value_template: "{{ wert >= 0 and wert < warnschwelle }}"
+        sequence:
+          - sequence: !input aktion_warnung
+          - repeat:
+              sequence:
+                - wait_for_trigger:
+                    - trigger: numeric_state
+                      entity_id: !input restlaufzeit
+                      above: !input rueckstellschwelle
+                  timeout: !input abstand
+                  continue_on_timeout: true
+                - if:
+                    - condition: template
+                      value_template: "{{ wait.trigger is none }}"
+                  then: !input aktion_erinnerung
+              until:
+                - condition: template
+                  value_template: "{{ wait.trigger is not none }}"
+      - conditions:
+          - condition: template
+            value_template: "{{ wert >= 0 and wert < vorwarnschwelle }}"
+        sequence: !input aktion_vorwarnung

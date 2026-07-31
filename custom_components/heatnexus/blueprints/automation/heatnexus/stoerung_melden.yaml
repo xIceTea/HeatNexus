@@ -1,0 +1,109 @@
+blueprint:
+  name: HeatNexus – Störung melden
+  description: >
+    Meldet sich, sobald die Anlage eine Störung anzeigt, wiederholt die Meldung
+    auf Wunsch in einem festen Abstand und meldet die Entwarnung.
+
+    Ausgewertet wird das Attribut `stoerung_aktiv` des Sensors
+    „Meldung Klartext" – nicht der angezeigte Text. Damit hängt die Automation
+    nicht an einer Formulierung und läuft auch bei mehreren gleichzeitigen
+    Störungen richtig.
+  domain: automation
+  author: HeatNexus
+  source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/stoerung_melden.yaml
+  input:
+    meldung:
+      name: Meldung im Klartext
+      description: Der Sensor „Meldung Klartext" des Anlagenteils.
+      selector:
+        entity:
+          filter:
+            - integration: heatnexus
+              domain: sensor
+    aktion_stoerung:
+      name: Bei Störung
+      description: >
+        Der Störungstext steht als `stoerungstext` bereit, die Zahl der
+        anstehenden Meldungen als `anzahl`, der Name des Anlagenteils als
+        `anlagenteil`.
+      selector:
+        action: {}
+    erinnern:
+      name: Erinnern, solange die Störung ansteht
+      default: true
+      selector:
+        boolean: {}
+    abstand:
+      name: Abstand der Erinnerungen
+      default:
+        hours: 24
+      selector:
+        duration: {}
+    aktion_erinnerung:
+      name: Bei Erinnerung
+      description: >
+        Meist dieselbe Benachrichtigung wie oben, mit anderem Text. Bleibt das
+        leer, passiert bei der Erinnerung nichts.
+      default: []
+      selector:
+        action: {}
+    aktion_entwarnung:
+      name: Bei Entwarnung
+      description: Bleibt das leer, wird keine Entwarnung gemeldet.
+      default: []
+      selector:
+        action: {}
+
+# restart: Eine neue Störung beendet die Erinnerungsschleife der alten.
+mode: restart
+
+triggers:
+  - trigger: state
+    entity_id: !input meldung
+    attribute: stoerung_aktiv
+  - trigger: homeassistant
+    event: start
+
+variables:
+  sensor: !input meldung
+  soll_erinnern: !input erinnern
+  stoerung: "{{ state_attr(sensor, 'stoerung_aktiv') | default(false, true) }}"
+  anzahl: "{{ state_attr(sensor, 'anzahl') | default(0, true) }}"
+  stoerungstext: "{{ states(sensor) }}"
+  anlagenteil: "{{ device_attr(sensor, 'name_by_user') or device_attr(sensor, 'name') or '' }}"
+
+conditions:
+  - condition: template
+    value_template: "{{ states(sensor) not in ['unknown', 'unavailable'] }}"
+
+actions:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ stoerung }}"
+        sequence:
+          - sequence: !input aktion_stoerung
+          - repeat:
+              sequence:
+                - wait_for_trigger:
+                    - trigger: state
+                      entity_id: !input meldung
+                      attribute: stoerung_aktiv
+                      to: false
+                  timeout: !input abstand
+                  continue_on_timeout: true
+                # Kein Auslöser heißt: die Wartezeit ist abgelaufen und die
+                # Störung steht immer noch an.
+                - if:
+                    - condition: template
+                      value_template: "{{ soll_erinnern and wait.trigger is none }}"
+                  then: !input aktion_erinnerung
+              # Verlassen wird die Schleife erst mit der Entwarnung – auch
+              # ohne Erinnerungen, sonst käme die Entwarnung zu spät.
+              until:
+                - condition: template
+                  value_template: "{{ wait.trigger is not none }}"
+          - if:
+              - condition: template
+                value_template: "{{ not state_attr(sensor, 'stoerung_aktiv') }}"
+            then: !input aktion_entwarnung
