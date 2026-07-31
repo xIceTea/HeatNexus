@@ -40,7 +40,19 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
 
 
 async def async_setup_dashboard(hass: HomeAssistant) -> None:
-    """Dashboard in der Seitenleiste anmelden."""
+    """Dashboard in der Seitenleiste anmelden.
+
+    Schlägt das fehl, bleibt die Integration trotzdem nutzbar – das
+    Dashboard ist Beiwerk, keine Voraussetzung.
+    """
+    try:
+        await _async_setup_dashboard(hass)
+    except Exception as err:
+        _LOGGER.warning("Dashboard konnte nicht angemeldet werden: %s", err)
+
+
+async def _async_setup_dashboard(hass: HomeAssistant) -> None:
+    """Eigentliche Anmeldung."""
     await async_register_frontend(hass)
 
     if hass.data.get(f"{DOMAIN}_dashboard"):
@@ -93,13 +105,16 @@ async def async_setup_dashboard(hass: HomeAssistant) -> None:
 
     # Ein bestehendes Panel mit dieser Adresse ist kein Fehler.
     with contextlib.suppress(ValueError):
+        # Ausschließlich benannte Parameter: Home Assistant hat die Reihenfolge
+        # bereits erweitert (sidebar_default_visible), eine Übergabe nach
+        # Position würde damit still die falschen Felder belegen.
         frontend.async_register_built_in_panel(
             hass,
-            "lovelace",
-            DASHBOARD_TITEL,
-            "mdi:fire",
-            DASHBOARD_URL,
-            {"mode": MODE_YAML, "urlPath": DASHBOARD_URL},
+            component_name="lovelace",
+            sidebar_title=DASHBOARD_TITEL,
+            sidebar_icon="mdi:fire",
+            frontend_url_path=DASHBOARD_URL,
+            config={"mode": MODE_YAML, "urlPath": DASHBOARD_URL},
             require_admin=False,
             update=True,
         )
