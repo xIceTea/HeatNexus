@@ -323,9 +323,10 @@ class WindhagerHttpClient:
                 for oid, gnmn in candidates.items():
                     if oid in self.oids:
                         continue
-                    # Unbekannte Datenpunkte (nicht in der Datenbank) gelten als
-                    # Fachparameter: vorhanden, aber zurückhaltend behandelt.
-                    level = level_of.get(gnmn, "service")
+                    # Datenpunkte, die keiner Bedienebene zugeordnet sind,
+                    # gehören zur Werksebene: Sie erscheinen nur, wenn diese
+                    # ausdrücklich gewählt wurde.
+                    level = level_of.get(gnmn, "oem")
                     if level not in self.levels:
                         continue
                     self.devices.append(

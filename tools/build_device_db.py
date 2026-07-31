@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+"""Geräte-Datenbank aus den offiziellen Windhager-Parameterdateien erzeugen.
+
+Die Dateien liegen öffentlich bereit und werden bei Bedarf geladen:
+
+    de-parameters.json      Datenpunktnamen, Enum-Texte, Störungstexte
+    de-oem-parameters.json  Datenpunktnamen der Werksebene
+    parameterLayer.json     Zuordnung der Datenpunkte zu den Bedienebenen
+
+Ergebnis sind zwei Dateien der Integration:
+
+    custom_components/heatnexus/device_db.json
+    custom_components/heatnexus/error_texts_de.json
+
+Aufruf:
+
+    python tools/build_device_db.py               # Dateien laden und erzeugen
+    python tools/build_device_db.py --quelle ORDNER  # aus vorhandenen Dateien
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+import re
+import sys
+import urllib.request
+
+BASIS = "https://connect-api.windhager.com/config"
+DATEIEN = ("de-parameters.json", "de-oem-parameters.json", "parameterLayer.json")
+EBENEN = ("overview", "info", "operate", "service", "oem")
+REPO = Path(__file__).resolve().parent.parent
+ZIEL = REPO / "custom_components" / "heatnexus"
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+
+def lade(name: str, quelle: Path | None) -> dict:
+    """Eine Parameterdatei aus dem Ordner oder von Windhager laden."""
+    if quelle:
+        pfad = quelle / name
+        print(f"  lese {pfad}")
+        return json.loads(pfad.read_text(encoding="utf-8"))
+    url = f"{BASIS}/{name}"
+    print(f"  lade {url}")
+    with urllib.request.urlopen(url, timeout=60) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def sammle_namen(parameter: dict, oem: dict) -> dict[str, str]:
+    """Datenpunktnamen aus Betreiber- und Werksliste zusammenführen."""
+    namen: dict[str, str] = {}
+    namen.update(oem.get("oids_oem", {}))
+    # Die reguläre Liste hat Vorrang: dort stehen die Bezeichnungen, die auch
+    # am Bedienteil erscheinen.
+    namen.update(parameter.get("oids", {}))
+    return {k: v for k, v in namen.items() if isinstance(v, str) and v.strip()}
+
+
+def _adressen(eintraege) -> list[str]:
+    """Datenpunktadressen einer Ebene einsammeln.
+
+    Eine Ebene enthält entweder einzelne Datenpunkte oder Gruppen mit einem
+    Namen und den enthaltenen Datenpunkten.
+    """
+    gefunden: list[str] = []
+    for eintrag in eintraege or []:
+        if not isinstance(eintrag, dict):
+            continue
+        if eintrag.get("oid"):
+            gefunden.append(eintrag["oid"])
+        gefunden.extend(_adressen(eintrag.get("parameters")))
+    return gefunden
+
+
+def _gruppen(eintraege, texte: dict) -> dict[str, list[str]]:
+    """Benannte Gruppen einer Ebene: Klartext -> Datenpunkte."""
+    ergebnis: dict[str, list[str]] = {}
+    for eintrag in eintraege or []:
+        if not isinstance(eintrag, dict) or not eintrag.get("group_name"):
+            continue
+        name = texte.get(eintrag["group_name"], eintrag["group_name"])
+        adressen = _adressen(eintrag.get("parameters"))
+        if adressen:
+            ergebnis.setdefault(name, []).extend(
+                a for a in adressen if a not in ergebnis.get(name, [])
+            )
+    return ergebnis
+
+
+def sammle_ebenen(layer: dict, texte: dict) -> dict[str, dict]:
+    """Ebenenlisten und Gruppennamen je Funktionstyp aufbauen."""
+    ebenen: dict[str, dict] = {}
+    for schluessel, inhalt in layer.items():
+        geraet, _, fct = schluessel.partition("/")
+        if not fct.isdigit():
+            continue
+        ziel = ebenen.setdefault(fct, {})
+        for ebene in EBENEN:
+            adressen = _adressen(inhalt.get(ebene))
+            if adressen:
+                vorhanden = ziel.setdefault(ebene, [])
+                vorhanden.extend(a for a in adressen if a not in vorhanden)
+            gruppen = _gruppen(inhalt.get(ebene), texte)
+            if gruppen:
+                ziel.setdefault("groups", {}).update(gruppen)
+        if geraet != "default":
+            geraete = ziel.setdefault("devices", [])
+            if geraet not in geraete:
+                geraete.append(geraet)
+    return ebenen
+
+
+STOERUNG = re.compile(r"^EmStrId_(FE|AL|IN)(\d+)_(INFO_)?TEXT$")
+
+
+def sammle_stoerungen(texte: dict) -> dict[str, dict[str, str]]:
+    """Störungstexte nach Art und Code ordnen.
+
+    Je Code gibt es zwei Einträge: die Kurzmeldung (…_TEXT) und die
+    Handlungsempfehlung (…_INFO_TEXT).
+    """
+    ergebnis: dict[str, dict[str, str]] = {}
+    for schluessel, text in texte.items():
+        treffer = STOERUNG.match(schluessel)
+        if not treffer or not isinstance(text, str) or not text.strip():
+            continue
+        art, code, ist_info = treffer.group(1), int(treffer.group(2)), bool(treffer.group(3))
+        eintrag = ergebnis.setdefault(f"{art}{code}", {})
+        eintrag["info" if ist_info else "text"] = text.strip()
+    return ergebnis
+
+
+def main() -> int:
+    """Kommandozeile."""
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--quelle", type=Path, help="Ordner mit den Parameterdateien")
+    parser.add_argument("--nur-anzeigen", action="store_true", help="nichts schreiben")
+    args = parser.parse_args()
+
+    print("Parameterdateien:")
+    parameter, oem, layer = (lade(name, args.quelle) for name in DATEIEN)
+
+    texte = parameter.get("emStrIds", {})
+    namen = sammle_namen(parameter, oem)
+    enums = {k: v for k, v in parameter.get("enums", {}).items() if isinstance(v, dict)}
+    ebenen = sammle_ebenen(layer, texte)
+    stoerungen = sammle_stoerungen(texte)
+
+    print(f"\nDatenpunktnamen : {len(namen)}")
+    print(f"Enum-Tabellen   : {len(enums)}")
+    print(f"Funktionstypen  : {len(ebenen)}")
+    print(f"Störungstexte   : {len(stoerungen)}")
+    for fct in sorted(ebenen, key=int):
+        zaehler = {e: len(ebenen[fct].get(e, [])) for e in EBENEN if ebenen[fct].get(e)}
+        gruppen = len(ebenen[fct].get("groups", {}))
+        zeile = ", ".join(f"{e} {n}" for e, n in zaehler.items())
+        print(f"   fctType {fct:>3}: {zeile}" + (f", Gruppen {gruppen}" if gruppen else ""))
+
+    if args.nur_anzeigen:
+        return 0
+
+    db = {"names": namen, "enums": enums, "layers": ebenen}
+    (ZIEL / "device_db.json").write_text(
+        json.dumps(db, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    (ZIEL / "error_texts_de.json").write_text(
+        json.dumps(stoerungen, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    print(f"\ngeschrieben: {ZIEL / 'device_db.json'}")
+    print(f"geschrieben: {ZIEL / 'error_texts_de.json'}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

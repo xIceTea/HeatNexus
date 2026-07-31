@@ -1,868 +1,888 @@
 {
-    "IN438":  {
-                  "text":  "Eine Zone im Lagerraum ist leer",
-                  "info":  "Brennstoffvorrat im Lagerraum überprüfen."
-              },
-    "FE253":  {
-                  "text":  "Ansteuerung Raumaustragung defekt",
-                  "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-              },
-    "AL150":  {
-                  "text":  "Deckel Vorratsbehälter Saugzuführung offen",
-                  "info":  "Deckel Vorratsbehälter Saugzuführung kontrollieren, Bedienungsanleitung beachten"
-              },
-    "AL17":  {
-                 "text":  "Saugzuggebläse steckt",
-                 "info":  "Gebläserad reinigen."
-             },
-    "IN414":  {
-                  "text":  "Ascheförderer defekt",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE362":  {
-                  "text":  "Fehlermeldung Wärmepumpe",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL197":  {
-                  "text":  "Ansteuerung Saugzuführung ausgefallen",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE321":  {
-                  "text":  "Notbetrieb! Hauptreinigung",
-                  "info":  "Hauptreinigung entsprechend der Bedienungsanleitung durchführen."
-              },
-    "AL152":  {
-                  "text":  "Ventil Spülung Abfluss schließt nicht",
-                  "info":  "Kaltwasseranschluss schließen"
-              },
-    "AL45":  {
-                 "text":  "Alle ausgewählten Sonden sind leer",
-                 "info":  "Brennstoffvorrat im Lagerraum und Zuführschlauch\nüberprüfen."
-             },
-    "IN504":  {
-                  "text":  "TP/TW Frostschutz aktiv",
-                  "info":  "TP/TW Frostschutz aktiv, Anlage überprüfen"
-              },
-    "FE297":  {
-                  "text":  "Sollwert wird nicht erreicht",
-                  "info":  "Kesselverbund überprüfen"
-              },
-    "FE254":  {
-                  "text":  "Ansteuerung Steig-/Zwischenschnecke defekt",
-                  "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-              },
-    "FE375":  {
-                  "text":  "Anheizen bei zu hoher Kessel-/ Puffertemperatur",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL162":  {
-                  "text":  "Alarmmeldung Wärmepumpe",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE390":  {
-                  "text":  "Notbetrieb! Kessel und Brenner reinigen.",
-                  "info":  "Asche entfernen. Kessel und Brenner reinigen. Reinigung bestätigen"
-              },
-    "AL68":  {
-                 "text":  "Verkleidungstürschalter defekt",
-                 "info":  "Verkleidungstürschalter prüfen"
-             },
-    "IN409":  {
-                  "text":  "Überwachung Ascheaustragung defekt",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE368":  {
-                  "text":  "E-Heizung funktioniert nicht",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL106":  {
-                  "text":  "TPO-Fühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "AL15":  {
-                 "text":  "Netzspannung nicht vorhanden",
-                 "info":  "Netzzuleitung bzw. Netzspannung prüfen"
-             },
-    "AL89":  {
-                 "text":  "O2-Sonde Heizung defekt",
-                 "info":  "O2-Sonde, Trafo und Anschlüsse überprüfen."
-             },
-    "IN527":  {
-                  "text":  "Wartung",
-                  "info":  "Die Wartung ist Voraussetzung für die Gerätegarantie. Termin für die Wartung innerhalb von 3 Monaten vereinbaren."
-              },
-    "AL195":  {
-                  "text":  "Brennraumtür im Betrieb geöffnet",
-                  "info":  "Verkleidungstüre kontrollieren"
-              },
-    "AL10":  {
-                 "text":  "Glutbettschieber blockiert",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "FE311":  {
-                  "text":  "Zirkulationsfühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "IN551":  {
-                  "text":  "Durchfluss Spülung Abfluss zu hoch",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE383":  {
-                  "text":  "Füllstandsmeldung nicht in Ordnung",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL130":  {
-                  "text":  "Brennraumtemperatur zu gering",
-                  "info":  "Brennraum und Brennraumfühler prüfen"
-              },
-    "FE261":  {
-                  "text":  "Überfüllung Raumaustragung",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL147":  {
-                  "text":  "Absperrschieber unten defekt",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE345":  {
-                  "text":  "Brennraumtür offen",
-                  "info":  "Brenner gesperrt."
-              },
-    "AL104":  {
-                  "text":  "TPE-Fühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "AL81":  {
-                 "text":  "Abgastemperaturfühler defekt",
-                 "info":  "Abgastemperaturfühler und Anschlüsse überprüfen."
-             },
-    "AL78":  {
-                 "text":  "Thermocontrolfühler defekt",
-                 "info":  "Thermocontrolfühler und Anschlüsse überprüfen."
-             },
-    "FE313":  {
-                  "text":  "TPS-Fühler defekt",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "IN525":  {
-                  "text":  "Aschebox entleeren",
-                  "info":  "Aschebox entleeren, Bedienungsanleitung beachten"
-              },
-    "AL115":  {
-                  "text":  "ZSK Kesselfühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "AL149":  {
-                  "text":  "Sicherheitseinrichtung Lagerrraum",
-                  "info":  "Sicherheitseinrichtungen Lagerraum kontrollieren, Bedienungsanleitung beachten"
-              },
-    "FE350":  {
-                  "text":  "Deckel Vorratsbehälter Saugzuführung offen",
-                  "info":  "Deckel Vorratsbehälter Saugzuführung kontrollieren, Bedienungsanleitung beachten"
-              },
-    "IN582":  {
-                  "text":  "Vorratsbehälter ist leer.",
-                  "info":  "Vorratsbehälter ist leer. Brennstoff nachfüllen. Brenner wird gesperrt."
-              },
-    "AL189":  {
-                  "text":  "Keine Kommunikation mit Zusatzprint",
-                  "info":  "Bindung Zusatzprint, Feuerungsautomat und Anschlüsse überprüfen."
-              },
-    "FE250":  {
-                  "text":  "Ansteuerung Stokerschnecke defekt",
-                  "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-              },
-    "AL5":  {
-                "text":  "Entaschung / Rostrüttelung defekt",
-                "info":  "Entaschung / Rostrüttelung defekt oder steckt. Brennertopf reinigen."
-            },
-    "FE252":  {
-                  "text":  "Ansteuerung Vorratsbehälterschnecke defekt",
-                  "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-              },
-    "AL153":  {
-                  "text":  "Kein Durchfluss Spülung Wärmetauscher",
-                  "info":  "Kaltwasseranschluss überprüfen"
-              },
-    "FE372":  {
-                  "text":  "Anheizauswertung",
-                  "info":  "Zu geringe Brennkammertemperatur beim Anheizen."
-              },
-    "FE294":  {
-                  "text":  "Wasser-Volumenstrom zu gering",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL12":  {
-                 "text":  "Vorratsbehälterschnecke blockiert",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "AL62":  {
-                 "text":  "Zuluftklappe defekt",
-                 "info":  "Zuluftklappe defekt bzw. öffnet nicht. Klappen überprüfen."
-             },
-    "IN496":  {
-                  "text":  "Anlagen-Frostschutz aktiv",
-                  "info":  "Anlagen-Frostschutz aktiv, Anlage überprüfen"
-              },
-    "AL27":  {
-                 "text":  "Zündung defekt",
-                 "info":  "Zündung defekt"
-             },
-    "IN524":  {
-                  "text":  "Wartung",
-                  "info":  "Die Wartung ist Voraussetzung für die Gerätegarantie."
-              },
-    "FE327":  {
-                  "text":  "Wartung",
-                  "info":  "Die Wartung ist Voraussetzung für die Gerätegarantie. Termin für die Wartung vereinbaren."
-              },
-    "FE238":  {
-                  "text":  "Zuführung saugt keinen Brennstoff an",
-                  "info":  "Brennstoffvorrat im Lagerraum und Zuführschlauch überprüfen."
-              },
-    "AL187":  {
-                  "text":  "Keine Kommunikation mit Feuerungsautomat",
-                  "info":  "Bindung Feuerungsautomat und Anschlüsse überprüfen."
-              },
-    "AL128":  {
-                  "text":  "Keine Flammenbildung im Regelbetrieb",
-                  "info":  "Kessel und Brenner reinigen."
-              },
-    "AL55":  {
-                 "text":  "Ansteuerung Saugturbine defekt",
-                 "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-             },
-    "IN563":  {
-                  "text":  "Zusatzkessel meldet Störung",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE373":  {
-                  "text":  "Fehler beim Anheizen",
-                  "info":  "Zu geringe Leistungsabnahme beim Anheizen."
-              },
-    "AL103":  {
-                  "text":  "Kesselfühler defekt",
-                  "info":  "Kesselfühler und Anschlüsse prüfen."
-              },
-    "AL88":  {
-                 "text":  "O2-Sonde defekt",
-                 "info":  "O2-Sonde und Anschlüsse überprüfen."
-             },
-    "IN595":  {
-                  "text":  "Tür offen",
-                  "info":  "Brenner gesperrt"
-              },
-    "FE326":  {
-                  "text":  "Notbetrieb! Hauptreinigung",
-                  "info":  "Hauptreinigung entsprechend der Bedienungsanleitung durchführen."
-              },
-    "AL93":  {
-                 "text":  "Wärmeanforderung 0-10V falsch angeschlossen",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "FE330":  {
-                  "text":  "Brennraumtemperatur zu gering",
-                  "info":  "Maximale Ausbrandzeit überschritten"
-              },
-    "FE245":  {
-                  "text":  "Alle ausgewählten Sonden sind leer",
-                  "info":  "Brennstoffvorrat im Lagerraum und Zuführschlauch\nüberprüfen."
-              },
-    "AL194":  {
-                  "text":  "Keine Kommunikation mit einem WE",
-                  "info":  "Keine Kommunikation mit einem Wärmeerzeuger bzw. Anschlüsse prüfen"
-              },
-    "FE318":  {
-                  "text":  "TPT-Fühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "IN599":  {
-                  "text":  "Anlagenverbindung und Überwachung deaktiviert. Die Verbindung kann auf der Windhager Connect Verwaltungsseite wieder aktiviert werden.",
-                  "info":  "Anlage offline"
-              },
-    "IN553":  {
-                  "text":  "Durchfluss Spülung Wärmetauscher zu hoch",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "IN520":  {
-                  "text":  "Reinigung",
-                  "info":  "Aschelade entleeren, Asche unter Nachheizfläche entfernen. Thermocontrolfühler reinigen."
-              },
-    "AL101":  {
-                  "text":  "TWE-Fühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "AL144":  {
-                  "text":  "Sicherheitseinrichtung unterbrochen",
-                  "info":  "Sicherheitseinrichtung überprüfen."
-              },
-    "IN560":  {
-                  "text":  "Kondensationswächter",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL18":  {
-                 "text":  "Saugzuggebläse instabil",
-                 "info":  "Saugzuggebläse bzw. Gebläsekasten kontrollieren"
-             },
-    "AL72":  {
-                 "text":  "Sicherheitseinrichtungen Raumaustragung",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "FE247":  {
-                  "text":  "Vorratsbehälter ist leer.",
-                  "info":  "Vorratsbehälter ist leer. Brennstoff nachfüllen. Brenner wird gesperrt."
-              },
-    "AL114":  {
-                  "text":  "Weichen-/Pufferfühler defekt",
-                  "info":  "Weichen-/Pufferfühler und Anschlüsse am Kaskadenmodul überprüfen."
-              },
-    "AL35":  {
-                 "text":  "Netzrelais Saugzuführung defekt",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "AL151":  {
-                  "text":  "Kein Durchfluss Spülung Abfluss",
-                  "info":  "Kaltwasseranschluss überprüfen"
-              },
-    "FE395":  {
-                  "text":  "Brennraum- oder Aschetür offen.",
-                  "info":  "Brenner gesperrt."
-              },
-    "AL54":  {
-                 "text":  "Ansteuerung Steig-/Zwischenschnecke defekt",
-                 "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-             },
-    "IN562":  {
-                  "text":  "Infomeldungen Wärmepumpe",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE214":  {
-                  "text":  "Ascheförderer defekt",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL131":  {
-                  "text":  "Flammenabrisse / Wassergehalt Brennstoff zu hoch",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE365":  {
-                  "text":  "Fehlermeldung Wärmepumpe",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL79":  {
-                 "text":  "Vorlauffühler E-Heizung defekt",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "FE241":  {
-                  "text":  "Deckel Vorratsbehälter offen",
-                  "info":  "Deckel Vorratsbehälter schließen."
-              },
-    "AL186":  {
-                  "text":  "Keine Kommunikation mit MES Modul",
-                  "info":  "Kommunikation der MES-Module prüfen"
-              },
-    "IN581":  {
-                  "text":  "Brennstoff nachfüllen",
-                  "info":  "Vorratsbehälter ist fast leer. Brennstoff nachfüllen."
-              },
-    "AL13":  {
-                 "text":  "Stockerschnecke blockiert",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "FE291":  {
-                  "text":  "Kälte-Pufferfühler oben defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "FE204":  {
-                  "text":  "Ventil Abgas-Rezirkulation defekt",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL135":  {
-                  "text":  "Übertemperatur am Schneckenrohr",
-                  "info":  "Schneckenrohr prüfen"
-              },
-    "IN446":  {
-                  "text":  "Lagerraum wird leer",
-                  "info":  "Brennstoffvorrat im Lagerraum überprüfen"
-              },
-    "FE206":  {
-                  "text":  "Überwachung der Förderschnecke defekt",
-                  "info":  "Förderschnecke und Näherungssensor prüfen"
-              },
-    "AL148":  {
-                  "text":  "Absperrschieber oben defekt",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL11":  {
-                 "text":  "Ascheschieber blockiert",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "AL42":  {
-                 "text":  "Relais Saugturbine defekt",
-                 "info":  "Netzstecker am Kessel abstecken."
-             },
-    "IN570":  {
-                  "text":  "E-Heizung in Betrieb",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE353":  {
-                  "text":  "Durchfluss Spülung Wärmetauscher zu gering",
-                  "info":  "Kaltwasseranschluss überprüfen"
-              },
-    "FE393":  {
-                  "text":  "Fehlermeldung E1",
-                  "info":  "Fehlereingang E1 prüfen"
-              },
-    "IN512":  {
-                  "text":  "Fehler Wärmemengenzähler",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL71":  {
-                 "text":  "Sicherheits-/Notschalter offen",
-                 "info":  "Schalterstellung bei Sicherheits- und Notschaltern kontrollieren."
-             },
-    "FE387":  {
-                  "text":  "Fehler bei der Kommunikation mit Feuerungsautomat",
-                  "info":  "Reset Taste mindestens 5 sec drücken."
-              },
-    "FE295":  {
-                  "text":  "Frostschutz Wärmepumpe",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE255":  {
-                  "text":  "Ansteuerung Saugturbine defekt",
-                  "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-              },
-    "FE306":  {
-                  "text":  "TPO-Fühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "AL133":  {
-                  "text":  "Sicherheitstemperatur Abschaltung",
-                  "info":  "Anlage und Fülldruck überprüfen."
-              },
-    "FE320":  {
-                  "text":  "Notbetrieb! Reinigung",
-                  "info":  "Aschelade entleeren, Asche unter Nachheizfläche entfernen. Thermocontrolfühler reinigen."
-              },
-    "AL129":  {
-                  "text":  "Maximale Ausbrandzeit überschritten",
-                  "info":  "Hauptreinigung entsprechend der Bedienungsanleitung durchführen."
-              },
-    "AL64":  {
-                 "text":  "Überfüllung Steig-/Zwischenschnecke",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "AL176":  {
-                  "text":  "Vorspülen nicht erfolgreich",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL51":  {
-                 "text":  "Ansteuerung Raumaustragung defekt",
-                 "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-             },
-    "AL73":  {
-                 "text":  "Interne Spannungsversorgung defekt",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "FE300":  {
-                  "text":  "WW-Fühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "FE309":  {
-                  "text":  "Rücklauftemperaturfühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "IN447":  {
-                  "text":  "Brennstoff nachfüllen",
-                  "info":  "Vorratsbehälter ist fast leer. Brennstoff nachfüllen."
-              },
-    "FE226":  {
-                  "text":  "Keine Flammenbildung beim Zünden",
-                  "info":  "Zündvorgang nicht erfolgreich"
-              },
-    "AL154":  {
-                  "text":  "Ventil Spülung Wärmetauscher schließt nicht",
-                  "info":  "Kaltwasseranschluss schließen"
-              },
-    "IN526":  {
-                  "text":  "Hauptreinigung",
-                  "info":  "Hauptreinigung entsprechend der Bedienungsanleitung durchführen."
-              },
-    "FE374":  {
-                  "text":  "Anheizabbruch",
-                  "info":  "Zu geringe Brennkammertemperatur beim Anheizen."
-              },
-    "FE296":  {
-                  "text":  "Vorlauffühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "FE310":  {
-                  "text":  "Die minimale Rücklauftemperatur wird nicht erreicht",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL157":  {
-                  "text":  "Primärluftmenge nicht korrekt",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL43":  {
-                 "text":  "Raumaustragung blockiert",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "IN521":  {
-                  "text":  "Hauptreinigung",
-                  "info":  "Hauptreinigung entsprechend der Bedienungsanleitung durchführen."
-              },
-    "AL2":  {
-                "text":  "Primärluftventil schließt nicht",
-                "info":  "Bedienungsanleitung beachten"
-            },
-    "AL52":  {
-                 "text":  "Ansteuerung Vorratsbehälterschnecke defekt",
-                 "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-             },
-    "FE338":  {
-                  "text":  "Kommunikation zu Staubabscheider unterbrochen"
-              },
-    "AL29":  {
-                 "text":  "Sekundärzündung defekt",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "FE381":  {
-                  "text":  "Vorratsbehälter leer",
-                  "info":  "Zeitprogramm sperrt Zuführung. Freigabezeit in Menü Betreiberebene ändern."
-              },
-    "AL38":  {
-                 "text":  "Zuführung saugt keinen Brennstoff an",
-                 "info":  "Brennstoffvorrat im Lagerraum und Zuführschlauch\nüberprüfen."
-             },
-    "FE292":  {
-                  "text":  "Kälte-Pufferfühler unten defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "FE307":  {
-                  "text":  "TPM-Fühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "AL134":  {
-                  "text":  "Übertemperatur an der Stokerschnecke",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "IN445":  {
-                  "text":  "Eine Sonde ist leer",
-                  "info":  "Brennstoffvorrat im Lagerraum überprüfen"
-              },
-    "FE298":  {
-                  "text":  "Kessel-Minimaltemperatur wird nicht erreicht",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL180":  {
-                  "text":  "Sekundärzündung nicht erfolgreich",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "IN499":  {
-                  "text":  "Raum-Frostschutz aktiv",
-                  "info":  "Raum-Frostschutz aktiv, Anlage überprüfen"
-              },
-    "AL41":  {
-                 "text":  "Schalter Deckel Vorratsbehälter defekt",
-                 "info":  "Schalter Deckel Vorratsbehälter überprüfen."
-             },
-    "FE396":  {
-                  "text":  "Verkleidungstür offen",
-                  "info":  "Verkleidungstür schliessen."
-              },
-    "IN511":  {
-                  "text":  "Fehler Volumenstromsensor",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL166":  {
-                  "text":  "Störung Kommunikation zu Wärmepumpe",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE317":  {
-                  "text":  "Zirkulationsfühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "FE209":  {
-                  "text":  "Ascheaustragung blockiert",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "IN522":  {
-                  "text":  "Reinigung",
-                  "info":  "Aschebox entleeren, Brennraum und Brennertopf reinigen."
-              },
-    "AL199":  {
-                  "text":  "Anlage offline",
-                  "info":  "Netzwerkverbindung unterbrochen, überprüfen Sie die Internetverbindung zu Ihrer Anlage."
-              },
-    "FE260":  {
-                  "text":  "Raumaustragung blockiert",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL119":  {
-                  "text":  "Aschebox nicht vorhanden",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "IN481":  {
-                  "text":  "Abgastemperaturfühler vor Wärmetauscher defekt",
-                  "info":  "Abgastemperaturfühler und Anschlüsse überprüfen"
-              },
-    "FE323":  {
-                  "text":  "Notbetrieb! Hauptreinigung",
-                  "info":  "Aschelade entleeren, Asche unter Nachheizfläche entfernen. Thermocontrolfühler reinigen."
-              },
-    "IN537":  {
-                  "text":  "Brennwertnutzen zu gering",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL171":  {
-                  "text":  "Maximale Anheizzeit überschritten",
-                  "info":  "Brennertopf reinigen."
-              },
-    "AL9":  {
-                "text":  "Ascheaustragung blockiert",
-                "info":  "Bedienungsanleitung beachten"
-            },
-    "AL76":  {
-                 "text":  "Kesselfühler defekt",
-                 "info":  "Kesselfühler und Anschlüsse prüfen."
-             },
-    "AL63":  {
-                 "text":  "Steig-/Zwischenschnecke blockiert",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "AL179":  {
-                  "text":  "Primärzündung nicht erfolgreich",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "IN565":  {
-                  "text":  "Unbekannter Fehler Wärmepumpe",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE356":  {
-                  "text":  "Brennraumdruck nicht stabil",
-                  "info":  "Luftdruckwächter bzw. Brennraum prüfen"
-              },
-    "AL3":  {
-                "text":  "Sekundärluftklappe defekt",
-                "info":  "Sekundärluftklappe blockiert oder defekt."
-            },
-    "FE268":  {
-                  "text":  "Verkleidungstürschalter defekt",
-                  "info":  "Verkleidungstürschalter prüfen"
-              },
-    "IN519":  {
-                  "text":  "Aschebox nicht vorhanden",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL37":  {
-                 "text":  "Klappe Brennstoffzuführung öffnet nicht",
-                 "info":  "Klappe in Zuführeinheit überprüfen."
-             },
-    "IN591":  {
-                  "text":  "Vorsicht beim Öffnen der Fülltür",
-                  "info":  "Fülltür mind. 15 sek. lang anlüften."
-              },
-    "IN338":  {
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "IN578":  {
-                  "text":  "Saugzuggebläse beim Holzkessel gesperrt",
-                  "info":  "Holzkessel nicht anheizen."
-              },
-    "FE322":  {
-                  "text":  "Notbetrieb! Reinigung",
-                  "info":  "Aschebox entleeren, Brennraum und Brennertopf reinigen."
-              },
-    "AL7":  {
-                "text":  "Förderschnecke blockiert",
-                "info":  "Förderschnecke blockiert "
-            },
-    "IN564":  {
-                  "text":  "Laufzeit der Flammenstabilisierung überschritten",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL40":  {
-                 "text":  "Absperreinheit defekt",
-                 "info":  "Absperreinheit der Brennstoffzuführung öffnet oder schließt nicht."
-             },
-    "AL156":  {
-                  "text":  "Kein Unterdruck im Brennraum",
-                  "info":  "Kein Unterdruck im Brennraum bzw. Sensor defekt."
-              },
-    "IN523":  {
-                  "text":  "Hauptreinigung",
-                  "info":  "Hauptreinigung entsprechend der Bedienungsanleitung durchführen."
-              },
-    "AL1":  {
-                "text":  "Primärluftklappe defekt",
-                "info":  "Primärluftklappe blockiert oder defekt."
-            },
-    "AL53":  {
-                 "text":  "Ansteuerung Raumaustragung defekt",
-                 "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-             },
-    "FE266":  {
-                  "text":  "Fülltürschalter schaltet nicht",
-                  "info":  "Nicht mehr einheizen."
-              },
-    "AL165":  {
-                  "text":  "Alarmmeldung Wärmepumpe",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE382":  {
-                  "text":  "Klappe oder Schalter im Vorratsbehälter defekt.",
-                  "info":  "Klappe und Schalter im Vorratsbehälter überprüfen."
-              },
-    "AL16":  {
-                 "text":  "Saugzuggebläse defekt",
-                 "info":  "Gebläserad und Gebläsekasten reinigen."
-             },
-    "AL90":  {
-                 "text":  "Fehler O2 Messwert",
-                 "info":  "O2 Messwert außerhalb der Grenzwerte.\nBedienungsanleitung beachten!"
-             },
-    "FE316":  {
-                  "text":  "Kollektorfühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "AL94":  {
-                 "text":  "Pumpe Wärmeerzeuger defekt",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "FE325":  {
-                  "text":  "Notbetrieb! Aschebox entleeren",
-                  "info":  "Aschebox entleeren, Bedienungsanleitung beachten"
-              },
-    "FE324":  {
-                  "text":  "Wartung",
-                  "info":  "Die Wartung ist Voraussetzung für die Gerätegarantie."
-              },
-    "FE299":  {
-                  "text":  "RT-Fühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "AL161":  {
-                  "text":  "Alarmmeldung Wärmepumpe",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE351":  {
-                  "text":  "Durchfluss Spülung Abfluss zu gering",
-                  "info":  "Kaltwasseranschluss überprüfen"
-              },
-    "AL69":  {
-                 "text":  "Brennstoffzuführung in den Brenner funktioniert nicht",
-                 "info":  "Lagerraum / Vorratsbehälter kontrollieren!\nBedienungsanleitung beachten!"
-             },
-    "IN500":  {
-                  "text":  "WW-Frostschutz aktiv",
-                  "info":  "WW-Frostschutz aktiv, Anlage überprüfen"
-              },
-    "AL167":  {
-                  "text":  "Typ Wärmepumpe undefiniert",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE346":  {
-                  "text":  "Verkleidungstür offen",
-                  "info":  "Verkleidungstür schließen, Bedienungsanleitung beachten"
-              },
-    "AL39":  {
-                 "text":  "Sondenumschaltung defekt",
-                 "info":  "Umschalteinheit überprüfen"
-             },
-    "IN408":  {
-                  "text":  "Überwachung Nachheizflächenreinigung defekt",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL191":  {
-                  "text":  "GAS-FA meldet Störung",
-                  "info":  "Feuerungsautomat bei Gaswämeerzeuger prüfen"
-              },
-    "FE281":  {
-                  "text":  "Abgastemperaturfühler defekt",
-                  "info":  "Abgastemperaturfühler und Anschlüsse überprüfen."
-              },
-    "IN418":  {
-                  "text":  "Saugzuggebläse beim Pelletskessel defekt",
-                  "info":  "Achtung: Rauchgasaustritt beim Anheizen möglich."
-              },
-    "AL44":  {
-                 "text":  "Überfüllung Raumaustragung",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "AL8":  {
-                "text":  "Heizflächenreinigung defekt",
-                "info":  "Heizflächenreinigung überprüfen."
-            },
-    "FE239":  {
-                  "text":  "Sondenumschaltung defekt",
-                  "info":  "Umschalteinheit überprüfen."
-              },
-    "AL50":  {
-                 "text":  "Ansteuerung Stokerschnecke defekt",
-                 "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-             },
-    "FE208":  {
-                  "text":  "Heizflächenreinigung defekt",
-                  "info":  "Heizflächenreinigung prüfen"
-              },
-    "AL169":  {
-                  "text":  "Spannungsversorgung Wärmepumpe fehlt",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL105":  {
-                  "text":  "TPA-Fühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "AL82":  {
-                 "text":  "Maximale Abgastemperatur überschritten",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "FE251":  {
-                  "text":  "Ansteuerung Raumaustragung defekt",
-                  "info":  "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten"
-              },
-    "IN590":  {
-                  "text":  "Kessel und Brenner reinigen.",
-                  "info":  "Asche entfernen. Kessel und Brenner reinigen. Reinigung bestätigen."
-              },
-    "FE302":  {
-                  "text":  "Aussentemperaturfühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "FE240":  {
-                  "text":  "Absperreinheit Brennstoffzuführung offen",
-                  "info":  "Absperreinheit der Brennstoffzuführung schließt nicht."
-              },
-    "AL188":  {
-                  "text":  "Internal error occurred",
-                  "info":  "Internal error occurred"
-              },
-    "IN495":  {
-                  "text":  "Frostschutz, Automatikkessel nicht verfügbar",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "FE308":  {
-                  "text":  "TPU-Fühler defekt",
-                  "info":  "Fühler und Anschlüsse kontrollieren"
-              },
-    "AL6":  {
-                "text":  "Motor Förderschnecke defekt",
-                "info":  "Motor Förderschnecke defekt."
-            },
-    "FE363":  {
-                  "text":  "Zusatzkessel meldet Störung",
-                  "info":  "Bedienungsanleitung beachten"
-              },
-    "AL155":  {
-                  "text":  "Wassermangelsicherung hat angesprochen",
-                  "info":  "Anlagendruck überprüfen."
-              },
-    "AL20":  {
-                 "text":  "Saugturbine defekt",
-                 "info":  "Bedienungsanleitung beachten"
-             },
-    "AL57":  {
-                 "text":  "Brennerstörung",
-                 "info":  "Entriegelungsknopf am Brenner drücken."
-             }
+ "AL1": {
+  "info": "Primärluftklappe blockiert oder defekt.",
+  "text": "Primärluftklappe defekt"
+ },
+ "AL10": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Glutbettschieber blockiert"
+ },
+ "AL101": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "TWE-Fühler defekt"
+ },
+ "AL103": {
+  "info": "Kesselfühler und Anschlüsse prüfen.",
+  "text": "Kesselfühler defekt"
+ },
+ "AL104": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "TPE-Fühler defekt"
+ },
+ "AL105": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "TPA-Fühler defekt"
+ },
+ "AL106": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "TPO-Fühler defekt"
+ },
+ "AL11": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Ascheschieber blockiert"
+ },
+ "AL114": {
+  "info": "Weichen-/Pufferfühler und Anschlüsse am Kaskadenmodul überprüfen.",
+  "text": "Weichen-/Pufferfühler defekt"
+ },
+ "AL115": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "ZSK Kesselfühler defekt"
+ },
+ "AL119": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Aschebox nicht vorhanden"
+ },
+ "AL12": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Vorratsbehälterschnecke blockiert"
+ },
+ "AL128": {
+  "info": "Kessel und Brenner reinigen.",
+  "text": "Keine Flammenbildung im Regelbetrieb"
+ },
+ "AL129": {
+  "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
+  "text": "Maximale Ausbrandzeit überschritten"
+ },
+ "AL13": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Stockerschnecke blockiert"
+ },
+ "AL130": {
+  "info": "Brennraum und Brennraumfühler prüfen",
+  "text": "Brennraumtemperatur zu gering"
+ },
+ "AL131": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Flammenabrisse / Wassergehalt Brennstoff zu hoch"
+ },
+ "AL133": {
+  "info": "Anlage und Fülldruck überprüfen.",
+  "text": "Sicherheitstemperatur Abschaltung"
+ },
+ "AL134": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Übertemperatur an der Stokerschnecke"
+ },
+ "AL135": {
+  "info": "Schneckenrohr prüfen",
+  "text": "Übertemperatur am Schneckenrohr"
+ },
+ "AL144": {
+  "info": "Sicherheitseinrichtung überprüfen.",
+  "text": "Sicherheitseinrichtung unterbrochen"
+ },
+ "AL147": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Absperrschieber unten defekt"
+ },
+ "AL148": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Absperrschieber oben defekt"
+ },
+ "AL149": {
+  "info": "Sicherheitseinrichtungen Lagerraum kontrollieren, Bedienungsanleitung beachten",
+  "text": "Sicherheitseinrichtung Lagerrraum"
+ },
+ "AL15": {
+  "info": "Netzzuleitung bzw. Netzspannung prüfen",
+  "text": "Netzspannung nicht vorhanden"
+ },
+ "AL150": {
+  "info": "Deckel Vorratsbehälter Saugzuführung kontrollieren, Bedienungsanleitung beachten",
+  "text": "Deckel Vorratsbehälter Saugzuführung offen"
+ },
+ "AL151": {
+  "info": "Kaltwasseranschluss überprüfen",
+  "text": "Kein Durchfluss Spülung Abfluss"
+ },
+ "AL152": {
+  "info": "Kaltwasseranschluss schließen",
+  "text": "Ventil Spülung Abfluss schließt nicht"
+ },
+ "AL153": {
+  "info": "Kaltwasseranschluss überprüfen",
+  "text": "Kein Durchfluss Spülung Wärmetauscher"
+ },
+ "AL154": {
+  "info": "Kaltwasseranschluss schließen",
+  "text": "Ventil Spülung Wärmetauscher schließt nicht"
+ },
+ "AL155": {
+  "info": "Anlagendruck überprüfen.",
+  "text": "Wassermangelsicherung hat angesprochen"
+ },
+ "AL156": {
+  "info": "Kein Unterdruck im Brennraum bzw. Sensor defekt.",
+  "text": "Kein Unterdruck im Brennraum"
+ },
+ "AL157": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Primärluftmenge nicht korrekt"
+ },
+ "AL16": {
+  "info": "Gebläserad und Gebläsekasten reinigen.",
+  "text": "Saugzuggebläse defekt"
+ },
+ "AL161": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Alarmmeldung Wärmepumpe"
+ },
+ "AL162": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Alarmmeldung Wärmepumpe"
+ },
+ "AL165": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Alarmmeldung Wärmepumpe"
+ },
+ "AL166": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Störung Kommunikation zu Wärmepumpe"
+ },
+ "AL167": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Typ Wärmepumpe undefiniert"
+ },
+ "AL169": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Spannungsversorgung Wärmepumpe fehlt"
+ },
+ "AL17": {
+  "info": "Gebläserad reinigen.",
+  "text": "Saugzuggebläse steckt"
+ },
+ "AL171": {
+  "info": "Brennertopf reinigen.",
+  "text": "Maximale Anheizzeit überschritten"
+ },
+ "AL176": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Vorspülen nicht erfolgreich"
+ },
+ "AL179": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Primärzündung nicht erfolgreich"
+ },
+ "AL18": {
+  "info": "Saugzuggebläse bzw. Gebläsekasten kontrollieren",
+  "text": "Saugzuggebläse instabil"
+ },
+ "AL180": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Sekundärzündung nicht erfolgreich"
+ },
+ "AL186": {
+  "info": "Kommunikation der MES-Module prüfen",
+  "text": "Keine Kommunikation mit MES Modul"
+ },
+ "AL187": {
+  "info": "Bindung Feuerungsautomat und Anschlüsse überprüfen.",
+  "text": "Keine Kommunikation mit Feuerungsautomat"
+ },
+ "AL188": {
+  "info": "Internal error occurred",
+  "text": "Internal error occurred"
+ },
+ "AL189": {
+  "info": "Bindung Zusatzprint, Feuerungsautomat und Anschlüsse überprüfen.",
+  "text": "Keine Kommunikation mit Zusatzprint"
+ },
+ "AL191": {
+  "info": "Feuerungsautomat bei Gaswämeerzeuger prüfen",
+  "text": "GAS-FA meldet Störung"
+ },
+ "AL194": {
+  "info": "Keine Kommunikation mit einem Wärmeerzeuger bzw. Anschlüsse prüfen",
+  "text": "Keine Kommunikation mit einem WE"
+ },
+ "AL195": {
+  "info": "Verkleidungstüre kontrollieren",
+  "text": "Brennraumtür im Betrieb geöffnet"
+ },
+ "AL197": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Ansteuerung Saugzuführung ausgefallen"
+ },
+ "AL199": {
+  "info": "Netzwerkverbindung unterbrochen, überprüfen Sie die Internetverbindung zu Ihrer Anlage.",
+  "text": "Anlage offline"
+ },
+ "AL2": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Primärluftventil schließt nicht"
+ },
+ "AL20": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Saugturbine defekt"
+ },
+ "AL27": {
+  "info": "Zündung defekt",
+  "text": "Zündung defekt"
+ },
+ "AL29": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Sekundärzündung defekt"
+ },
+ "AL3": {
+  "info": "Sekundärluftklappe blockiert oder defekt.",
+  "text": "Sekundärluftklappe defekt"
+ },
+ "AL35": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Netzrelais Saugzuführung defekt"
+ },
+ "AL37": {
+  "info": "Klappe in Zuführeinheit überprüfen.",
+  "text": "Klappe Brennstoffzuführung öffnet nicht"
+ },
+ "AL38": {
+  "info": "Brennstoffvorrat im Lagerraum und Zuführschlauch\nüberprüfen.",
+  "text": "Zuführung saugt keinen Brennstoff an"
+ },
+ "AL39": {
+  "info": "Umschalteinheit überprüfen",
+  "text": "Sondenumschaltung defekt"
+ },
+ "AL40": {
+  "info": "Absperreinheit der Brennstoffzuführung öffnet oder schließt nicht.",
+  "text": "Absperreinheit defekt"
+ },
+ "AL41": {
+  "info": "Schalter Deckel Vorratsbehälter überprüfen.",
+  "text": "Schalter Deckel Vorratsbehälter defekt"
+ },
+ "AL42": {
+  "info": "Netzstecker am Kessel abstecken.",
+  "text": "Relais Saugturbine defekt"
+ },
+ "AL43": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Raumaustragung blockiert"
+ },
+ "AL44": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Überfüllung Raumaustragung"
+ },
+ "AL45": {
+  "info": "Brennstoffvorrat im Lagerraum und Zuführschlauch\nüberprüfen.",
+  "text": "Alle ausgewählten Sonden sind leer"
+ },
+ "AL5": {
+  "info": "Entaschung / Rostrüttelung defekt oder steckt. Brennertopf reinigen.",
+  "text": "Entaschung / Rostrüttelung defekt"
+ },
+ "AL50": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Stokerschnecke defekt"
+ },
+ "AL51": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Raumaustragung defekt"
+ },
+ "AL52": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Vorratsbehälterschnecke defekt"
+ },
+ "AL53": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Raumaustragung defekt"
+ },
+ "AL54": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Steig-/Zwischenschnecke defekt"
+ },
+ "AL55": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Saugturbine defekt"
+ },
+ "AL57": {
+  "info": "Entriegelungsknopf am Brenner drücken.",
+  "text": "Brennerstörung"
+ },
+ "AL6": {
+  "info": "Motor Förderschnecke defekt.",
+  "text": "Motor Förderschnecke defekt"
+ },
+ "AL62": {
+  "info": "Zuluftklappe defekt bzw. öffnet nicht. Klappen überprüfen.",
+  "text": "Zuluftklappe defekt"
+ },
+ "AL63": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Steig-/Zwischenschnecke blockiert"
+ },
+ "AL64": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Überfüllung Steig-/Zwischenschnecke"
+ },
+ "AL68": {
+  "info": "Verkleidungstürschalter prüfen",
+  "text": "Verkleidungstürschalter defekt"
+ },
+ "AL69": {
+  "info": "Lagerraum / Vorratsbehälter kontrollieren!\nBedienungsanleitung beachten!",
+  "text": "Brennstoffzuführung in den Brenner funktioniert nicht"
+ },
+ "AL7": {
+  "info": "Förderschnecke blockiert",
+  "text": "Förderschnecke blockiert"
+ },
+ "AL71": {
+  "info": "Schalterstellung bei Sicherheits- und Notschaltern kontrollieren.",
+  "text": "Sicherheits-/Notschalter offen"
+ },
+ "AL72": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Sicherheitseinrichtungen Raumaustragung"
+ },
+ "AL73": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Interne Spannungsversorgung defekt"
+ },
+ "AL76": {
+  "info": "Kesselfühler und Anschlüsse prüfen.",
+  "text": "Kesselfühler defekt"
+ },
+ "AL78": {
+  "info": "Thermocontrolfühler und Anschlüsse überprüfen.",
+  "text": "Thermocontrolfühler defekt"
+ },
+ "AL79": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Vorlauffühler E-Heizung defekt"
+ },
+ "AL8": {
+  "info": "Heizflächenreinigung überprüfen.",
+  "text": "Heizflächenreinigung defekt"
+ },
+ "AL81": {
+  "info": "Abgastemperaturfühler und Anschlüsse überprüfen.",
+  "text": "Abgastemperaturfühler defekt"
+ },
+ "AL82": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Maximale Abgastemperatur überschritten"
+ },
+ "AL88": {
+  "info": "O2-Sonde und Anschlüsse überprüfen.",
+  "text": "O2-Sonde defekt"
+ },
+ "AL89": {
+  "info": "O2-Sonde, Trafo und Anschlüsse überprüfen.",
+  "text": "O2-Sonde Heizung defekt"
+ },
+ "AL9": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Ascheaustragung blockiert"
+ },
+ "AL90": {
+  "info": "O2 Messwert außerhalb der Grenzwerte.\nBedienungsanleitung beachten!",
+  "text": "Fehler O2 Messwert"
+ },
+ "AL93": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Wärmeanforderung 0-10V falsch angeschlossen"
+ },
+ "AL94": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Pumpe Wärmeerzeuger defekt"
+ },
+ "FE204": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Ventil Abgas-Rezirkulation defekt"
+ },
+ "FE206": {
+  "info": "Förderschnecke und Näherungssensor prüfen",
+  "text": "Überwachung der Förderschnecke defekt"
+ },
+ "FE208": {
+  "info": "Heizflächenreinigung prüfen",
+  "text": "Heizflächenreinigung defekt"
+ },
+ "FE209": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Ascheaustragung blockiert"
+ },
+ "FE214": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Ascheförderer defekt"
+ },
+ "FE226": {
+  "info": "Zündvorgang nicht erfolgreich",
+  "text": "Keine Flammenbildung beim Zünden"
+ },
+ "FE238": {
+  "info": "Brennstoffvorrat im Lagerraum und Zuführschlauch überprüfen.",
+  "text": "Zuführung saugt keinen Brennstoff an"
+ },
+ "FE239": {
+  "info": "Umschalteinheit überprüfen.",
+  "text": "Sondenumschaltung defekt"
+ },
+ "FE240": {
+  "info": "Absperreinheit der Brennstoffzuführung schließt nicht.",
+  "text": "Absperreinheit Brennstoffzuführung offen"
+ },
+ "FE241": {
+  "info": "Deckel Vorratsbehälter schließen.",
+  "text": "Deckel Vorratsbehälter offen"
+ },
+ "FE245": {
+  "info": "Brennstoffvorrat im Lagerraum und Zuführschlauch\nüberprüfen.",
+  "text": "Alle ausgewählten Sonden sind leer"
+ },
+ "FE247": {
+  "info": "Vorratsbehälter ist leer. Brennstoff nachfüllen. Brenner wird gesperrt.",
+  "text": "Vorratsbehälter ist leer."
+ },
+ "FE250": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Stokerschnecke defekt"
+ },
+ "FE251": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Raumaustragung defekt"
+ },
+ "FE252": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Vorratsbehälterschnecke defekt"
+ },
+ "FE253": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Raumaustragung defekt"
+ },
+ "FE254": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Steig-/Zwischenschnecke defekt"
+ },
+ "FE255": {
+  "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
+  "text": "Ansteuerung Saugturbine defekt"
+ },
+ "FE260": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Raumaustragung blockiert"
+ },
+ "FE261": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Überfüllung Raumaustragung"
+ },
+ "FE266": {
+  "info": "Nicht mehr einheizen.",
+  "text": "Fülltürschalter schaltet nicht"
+ },
+ "FE268": {
+  "info": "Verkleidungstürschalter prüfen",
+  "text": "Verkleidungstürschalter defekt"
+ },
+ "FE279": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Vorlauffühler Inneneinheit defekt"
+ },
+ "FE281": {
+  "info": "Abgastemperaturfühler und Anschlüsse überprüfen.",
+  "text": "Abgastemperaturfühler defekt"
+ },
+ "FE291": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "Kälte-Pufferfühler oben defekt"
+ },
+ "FE292": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "Kälte-Pufferfühler unten defekt"
+ },
+ "FE294": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Wasser-Volumenstrom zu gering"
+ },
+ "FE295": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Frostschutz Wärmepumpe"
+ },
+ "FE296": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "Vorlauffühler defekt"
+ },
+ "FE297": {
+  "info": "Kesselverbund überprüfen",
+  "text": "Sollwert wird nicht erreicht"
+ },
+ "FE298": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Kessel-Minimaltemperatur wird nicht erreicht"
+ },
+ "FE299": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "RT-Fühler defekt"
+ },
+ "FE300": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "WW-Fühler defekt"
+ },
+ "FE302": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "Aussentemperaturfühler defekt"
+ },
+ "FE306": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "TPO-Fühler defekt"
+ },
+ "FE307": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "TPM-Fühler defekt"
+ },
+ "FE308": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "TPU-Fühler defekt"
+ },
+ "FE309": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "Rücklauftemperaturfühler defekt"
+ },
+ "FE310": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Die minimale Rücklauftemperatur wird nicht erreicht"
+ },
+ "FE311": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "Zirkulationsfühler defekt"
+ },
+ "FE313": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "TPS-Fühler defekt"
+ },
+ "FE316": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "Kollektorfühler defekt"
+ },
+ "FE317": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "Zirkulationsfühler defekt"
+ },
+ "FE318": {
+  "info": "Fühler und Anschlüsse kontrollieren",
+  "text": "TPT-Fühler defekt"
+ },
+ "FE320": {
+  "info": "Aschelade entleeren, Asche unter Nachheizfläche entfernen. Thermocontrolfühler reinigen.",
+  "text": "Notbetrieb! Reinigung"
+ },
+ "FE321": {
+  "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
+  "text": "Notbetrieb! Hauptreinigung"
+ },
+ "FE322": {
+  "info": "Aschebox entleeren, Brennraum und Brennertopf reinigen.",
+  "text": "Notbetrieb! Reinigung"
+ },
+ "FE323": {
+  "info": "Aschelade entleeren, Asche unter Nachheizfläche entfernen. Thermocontrolfühler reinigen.",
+  "text": "Notbetrieb! Hauptreinigung"
+ },
+ "FE324": {
+  "info": "Die Wartung ist Voraussetzung für die Gerätegarantie.",
+  "text": "Wartung"
+ },
+ "FE325": {
+  "info": "Aschebox entleeren, Bedienungsanleitung beachten",
+  "text": "Notbetrieb! Aschebox entleeren"
+ },
+ "FE326": {
+  "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
+  "text": "Notbetrieb! Hauptreinigung"
+ },
+ "FE327": {
+  "info": "Die Wartung ist Voraussetzung für die Gerätegarantie. Termin für die Wartung vereinbaren.",
+  "text": "Wartung"
+ },
+ "FE330": {
+  "info": "Maximale Ausbrandzeit überschritten",
+  "text": "Brennraumtemperatur zu gering"
+ },
+ "FE338": {
+  "text": "Kommunikation zu Staubabscheider unterbrochen"
+ },
+ "FE345": {
+  "info": "Brenner gesperrt.",
+  "text": "Brennraumtür offen"
+ },
+ "FE346": {
+  "info": "Verkleidungstür schließen, Bedienungsanleitung beachten",
+  "text": "Verkleidungstür offen"
+ },
+ "FE350": {
+  "info": "Deckel Vorratsbehälter Saugzuführung kontrollieren, Bedienungsanleitung beachten",
+  "text": "Deckel Vorratsbehälter Saugzuführung offen"
+ },
+ "FE351": {
+  "info": "Kaltwasseranschluss überprüfen",
+  "text": "Durchfluss Spülung Abfluss zu gering"
+ },
+ "FE353": {
+  "info": "Kaltwasseranschluss überprüfen",
+  "text": "Durchfluss Spülung Wärmetauscher zu gering"
+ },
+ "FE356": {
+  "info": "Luftdruckwächter bzw. Brennraum prüfen",
+  "text": "Brennraumdruck nicht stabil"
+ },
+ "FE362": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Fehlermeldung Wärmepumpe"
+ },
+ "FE363": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Zusatzkessel meldet Störung"
+ },
+ "FE365": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Fehlermeldung Wärmepumpe"
+ },
+ "FE368": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "E-Heizung funktioniert nicht"
+ },
+ "FE372": {
+  "info": "Zu geringe Brennkammertemperatur beim Anheizen.",
+  "text": "Anheizauswertung"
+ },
+ "FE373": {
+  "info": "Zu geringe Leistungsabnahme beim Anheizen.",
+  "text": "Fehler beim Anheizen"
+ },
+ "FE374": {
+  "info": "Zu geringe Brennkammertemperatur beim Anheizen.",
+  "text": "Anheizabbruch"
+ },
+ "FE375": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Anheizen bei zu hoher Kessel-/ Puffertemperatur"
+ },
+ "FE377": {
+  "info": "Modbus prüfen",
+  "text": "Kommunikationsausfall"
+ },
+ "FE381": {
+  "info": "Zeitprogramm sperrt Zuführung. Freigabezeit in Menü Betreiberebene ändern.",
+  "text": "Vorratsbehälter leer"
+ },
+ "FE382": {
+  "info": "Klappe und Schalter im Vorratsbehälter überprüfen.",
+  "text": "Klappe oder Schalter im Vorratsbehälter defekt."
+ },
+ "FE383": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Füllstandsmeldung nicht in Ordnung"
+ },
+ "FE384": {
+  "info": "Internetverbindung prüfen",
+  "text": "Variable Stromtarife Download Fehler"
+ },
+ "FE387": {
+  "info": "Reset Taste mindestens 5 sec drücken.",
+  "text": "Fehler bei der Kommunikation mit Feuerungsautomat"
+ },
+ "FE390": {
+  "info": "Asche entfernen. Kessel und Brenner reinigen. Reinigung bestätigen",
+  "text": "Notbetrieb! Kessel und Brenner reinigen."
+ },
+ "FE393": {
+  "info": "Fehlereingang E1 prüfen",
+  "text": "Fehlermeldung E1"
+ },
+ "FE394": {
+  "info": "Wärmeerzeuger kontrollieren",
+  "text": "Ausfall von einem Wärmeerzeuger"
+ },
+ "FE395": {
+  "info": "Brenner gesperrt.",
+  "text": "Brennraum- oder Aschetür offen."
+ },
+ "FE396": {
+  "info": "Verkleidungstür schliessen.",
+  "text": "Verkleidungstür offen"
+ },
+ "IN338": {
+  "info": "Bedienungsanleitung beachten"
+ },
+ "IN408": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Überwachung Nachheizflächenreinigung defekt"
+ },
+ "IN409": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Überwachung Ascheaustragung defekt"
+ },
+ "IN414": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Ascheförderer defekt"
+ },
+ "IN418": {
+  "info": "Achtung: Rauchgasaustritt beim Anheizen möglich.",
+  "text": "Saugzuggebläse beim Pelletskessel defekt"
+ },
+ "IN438": {
+  "info": "Brennstoffvorrat im Lagerraum überprüfen.",
+  "text": "Eine Zone im Lagerraum ist leer"
+ },
+ "IN445": {
+  "info": "Brennstoffvorrat im Lagerraum überprüfen",
+  "text": "Eine Sonde ist leer"
+ },
+ "IN446": {
+  "info": "Brennstoffvorrat im Lagerraum überprüfen",
+  "text": "Lagerraum wird leer"
+ },
+ "IN447": {
+  "info": "Vorratsbehälter ist fast leer. Brennstoff nachfüllen.",
+  "text": "Brennstoff nachfüllen"
+ },
+ "IN481": {
+  "info": "Abgastemperaturfühler und Anschlüsse überprüfen",
+  "text": "Abgastemperaturfühler vor Wärmetauscher defekt"
+ },
+ "IN495": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Frostschutz, Automatikkessel nicht verfügbar"
+ },
+ "IN496": {
+  "info": "Anlagen-Frostschutz aktiv, Anlage überprüfen",
+  "text": "Anlagen-Frostschutz aktiv"
+ },
+ "IN499": {
+  "info": "Raum-Frostschutz aktiv, Anlage überprüfen",
+  "text": "Raum-Frostschutz aktiv"
+ },
+ "IN500": {
+  "info": "WW-Frostschutz aktiv, Anlage überprüfen",
+  "text": "WW-Frostschutz aktiv"
+ },
+ "IN504": {
+  "info": "TP/TW Frostschutz aktiv, Anlage überprüfen",
+  "text": "TP/TW Frostschutz aktiv"
+ },
+ "IN511": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Fehler Volumenstromsensor"
+ },
+ "IN512": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Fehler Wärmemengenzähler"
+ },
+ "IN519": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Aschebox nicht vorhanden"
+ },
+ "IN520": {
+  "info": "Aschelade entleeren, Asche unter Nachheizfläche entfernen. Thermocontrolfühler reinigen.",
+  "text": "Reinigung"
+ },
+ "IN521": {
+  "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
+  "text": "Hauptreinigung"
+ },
+ "IN522": {
+  "info": "Aschebox entleeren, Brennraum und Brennertopf reinigen.",
+  "text": "Reinigung"
+ },
+ "IN523": {
+  "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
+  "text": "Hauptreinigung"
+ },
+ "IN524": {
+  "info": "Die Wartung ist Voraussetzung für die Gerätegarantie.",
+  "text": "Wartung"
+ },
+ "IN525": {
+  "info": "Aschebox entleeren, Bedienungsanleitung beachten",
+  "text": "Aschebox entleeren"
+ },
+ "IN526": {
+  "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
+  "text": "Hauptreinigung"
+ },
+ "IN527": {
+  "info": "Die Wartung ist Voraussetzung für die Gerätegarantie. Termin für die Wartung innerhalb von 3 Monaten vereinbaren.",
+  "text": "Wartung"
+ },
+ "IN537": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Brennwertnutzen zu gering"
+ },
+ "IN551": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Durchfluss Spülung Abfluss zu hoch"
+ },
+ "IN553": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Durchfluss Spülung Wärmetauscher zu hoch"
+ },
+ "IN560": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Kondensationswächter"
+ },
+ "IN562": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Infomeldungen Wärmepumpe"
+ },
+ "IN563": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Zusatzkessel meldet Störung"
+ },
+ "IN564": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Laufzeit der Flammenstabilisierung überschritten"
+ },
+ "IN565": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "Unbekannter Fehler Wärmepumpe"
+ },
+ "IN570": {
+  "info": "Bedienungsanleitung beachten",
+  "text": "E-Heizung in Betrieb"
+ },
+ "IN578": {
+  "info": "Holzkessel nicht anheizen.",
+  "text": "Saugzuggebläse beim Holzkessel gesperrt"
+ },
+ "IN581": {
+  "info": "Vorratsbehälter ist fast leer. Brennstoff nachfüllen.",
+  "text": "Brennstoff nachfüllen"
+ },
+ "IN582": {
+  "info": "Vorratsbehälter ist leer. Brennstoff nachfüllen. Brenner wird gesperrt.",
+  "text": "Vorratsbehälter ist leer."
+ },
+ "IN590": {
+  "info": "Asche entfernen. Kessel und Brenner reinigen. Reinigung bestätigen.",
+  "text": "Kessel und Brenner reinigen."
+ },
+ "IN591": {
+  "info": "Fülltür mind. 15 sek. lang anlüften.",
+  "text": "Vorsicht beim Öffnen der Fülltür"
+ },
+ "IN595": {
+  "info": "Brenner gesperrt",
+  "text": "Tür offen"
+ },
+ "IN598": {
+  "info": "Keine Kommunikation mit dem PV-Überschuss Energiezähler",
+  "text": "Energiezähler keine Kommunikation"
+ },
+ "IN599": {
+  "info": "Anlage offline",
+  "text": "Anlagenverbindung und Überwachung deaktiviert. Die Verbindung kann auf der Windhager Connect Verwaltungsseite wieder aktiviert werden."
+ }
 }
