@@ -132,6 +132,10 @@ Entitäts-IDs eintragen, kein YAML kopieren:
   Reihenfolge (Kessel, Puffer, Heizkreis, Warmwasser, Zirkulation), dazu die
   Störungsmeldungen. Bei mehreren Anlagen steht die Anlage in der Überschrift,
   damit zwei gleich benannte Anlagenteile unterscheidbar bleiben.
+- **Anlage** – ein Schaubild je Anlage: Kessel, Puffer, Heizkreise, Warmwasser
+  und Zirkulation, verbunden durch Vor- und Rücklauf, mit den Live-Werten
+  darauf. Gezeichnet wird, was gefunden wurde – bei zwei Puffern erscheinen
+  zwei.
 - **Wartung** – Restlaufzeiten bis Ascheentleerung, Hauptreinigung und Wartung
   als Rundinstrument, dazu Brennstoff, Vorratsbehälter und Zählerstände.
 - **Auswertung** – Zuwachs der Zähler *heute* und *diesen Monat*

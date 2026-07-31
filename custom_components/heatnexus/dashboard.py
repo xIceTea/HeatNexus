@@ -29,6 +29,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .const import DASHBOARD_TITEL, DASHBOARD_URL, DOMAIN
+from .schema import anlagenschema
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -121,6 +122,16 @@ WARTUNG_WEITERE = _muster(
     r"betriebsstunden",
     r"brennerstarts",
     r"serviceausbrand",
+)
+
+# Schaubild-Ansicht: der Zustand der Anlage in Kurzform.
+ZUSTAND = _muster(
+    r"betriebsphase",
+    r"meldung klartext",
+    r"au(ß|ss)entemperatur",
+    r"kesselleistung",
+    r"aktueller brennstoff",
+    r"vorratsbeh",
 )
 
 # Auswertung: was in einen Verlauf gehört.
@@ -224,6 +235,7 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
             "name": _kurzname(geraet.name_by_user or geraet.name),
             "id": geraet.id,
             "anlage_id": geraet.via_device_id,
+            "fct_type": fct,
             "rang": _rang(fct),
             "symbol": _symbol(fct),
             "entitaeten": [],
@@ -378,6 +390,34 @@ def _uebersicht(anlagen: list[dict[str, Any]]) -> dict[str, Any]:
     return _ansicht("Übersicht", "uebersicht", "mdi:view-dashboard-outline", abschnitte)
 
 
+def _anlagenbild(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Ansicht „Anlage": das Schaubild mit den Werten darauf.
+
+    Je Anlage ein Schaubild, darunter der Zustand in Kurzform – Meldung,
+    Betriebsphase, Außentemperatur.
+    """
+    abschnitte: list[dict[str, Any]] = []
+    for anlage in anlagen:
+        bild = anlagenschema(anlage["teile"])
+        if bild is None:
+            continue
+        abschnitte += _abschnitt(anlage["name"] or "Anlage", [bild], "mdi:sitemap-outline")
+
+        zustand = [
+            e
+            for teil in anlage["teile"]
+            for e in teil["entitaeten"]
+            if e["hat_wert"] and _passt(e["name"], ZUSTAND)
+        ]
+        abschnitte += _abschnitt(
+            "Zustand", [_karte(e) for e in zustand], "mdi:information-outline", stil="subtitle"
+        )
+
+    if not abschnitte:
+        return None
+    return _ansicht("Anlage", "anlage", "mdi:sitemap-outline", abschnitte)
+
+
 def _wartung(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Restlaufzeiten, Zähler und Brennstoff – alles, was Arbeit ankündigt."""
     abschnitte: list[dict[str, Any]] = []
@@ -526,7 +566,7 @@ def dashboard_konfiguration(hass: HomeAssistant) -> dict[str, Any]:
 
     mehrdeutig = _mehrfach_vergebene_namen(anlagen)
     views: list[dict[str, Any]] = [_uebersicht(anlagen)]
-    for ansicht in (_wartung(anlagen), _auswertung(anlagen)):
+    for ansicht in (_anlagenbild(anlagen), _wartung(anlagen), _auswertung(anlagen)):
         if ansicht:
             views.append(ansicht)
     views += [

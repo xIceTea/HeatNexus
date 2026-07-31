@@ -54,6 +54,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
+- **Ansicht „Anlage"**: Ein Schaubild je Anlage – Kessel, Puffer, Heizkreise,
+  Warmwasser und Zirkulation, verbunden durch Vor- und Rücklauf, mit den
+  Live-Werten darauf. Das Bild wird aus den erkannten Anlagenteilen gezeichnet
+  und passt sich damit jeder Anlage an: Wer zwei Puffer hat, sieht zwei.
 - **Ansicht „Wartung"**: Restlaufzeiten bis Ascheentleerung, Hauptreinigung und
   Wartung als Rundinstrument mit mitwachsender Skala, dazu Brennstoff,
   Vorratsbehälter, Betriebsstunden und Brennerstarts.
