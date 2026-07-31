@@ -1,0 +1,72 @@
+{
+  "title": "Heizung",
+  "views": [
+    {
+      "path": "anlage",
+      "panel": true,
+      "cards": [
+        {
+          "type": "picture-elements",
+          "image": "/api/image/serve/92e1a57bbe15255a7419ff644eb025fc/original",
+          "elements": [
+            {"type": "state-label", "entity": "sensor.betriebsart_4", "style": {"top": "5.2%", "left": "76.0%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.7vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.purowin_meldung", "style": {"top": "5.2%", "left": "92.7%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.7vw", "white-space": "nowrap"}},
+
+            {"type": "state-label", "entity": "sensor.kesseltemperatur_4", "style": {"top": "19.9%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.kesselleistung_4", "style": {"top": "22.6%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.betriebsart_4", "style": {"top": "25.3%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.66vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.abgastemperatur_8", "style": {"top": "28.0%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.brennerkammertemperatur_4", "style": {"top": "30.6%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.purowin_o2_signal", "style": {"top": "33.3%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.brennerstarts_5", "style": {"top": "36.0%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.betriebsstunden_4", "style": {"top": "38.7%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.laufzeit_bis_ascheentleerung_8", "style": {"top": "41.4%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.laufzeit_bis_hauptreinigung_9", "style": {"top": "44.0%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.laufzeit_bis_wartung_9", "style": {"top": "46.7%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.purowin_nennleistung", "style": {"top": "49.4%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.purowin_aktueller_brennstoff", "style": {"top": "52.1%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.62vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.purowin_saugzuggeblase_soll_drehzahl", "style": {"top": "54.8%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.8vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.purowin_saugzuggeblase_ist_drehzahl", "style": {"top": "57.4%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.8vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.purowin_meldung", "style": {"top": "60.1%", "left": "14.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.66vw", "white-space": "nowrap"}},
+
+            {"type": "state-label", "entity": "sensor.puffer_oben_temperatur", "style": {"top": "22.4%", "left": "40.5%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.puffer_unten_temperatur", "style": {"top": "25.6%", "left": "40.5%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.rucklauf_temperatur", "style": {"top": "28.9%", "left": "40.5%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.pumpendrehzahl_kessel", "style": {"top": "32.1%", "left": "40.5%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "select.b_plmi_puffer_betriebswahl", "style": {"top": "35.9%", "left": "40.5%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.6vw", "white-space": "nowrap"}},
+
+            {"type": "state-label", "entity": "sensor.pumpendrehzahl_kessel", "style": {"top": "32.2%", "left": "52.1%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.8vw", "white-space": "nowrap"}},
+
+            {"type": "state-label", "entity": "sensor.puffer_oben_temperatur_2", "style": {"top": "20.4%", "left": "70.8%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.puffer_unten_temperatur_2", "style": {"top": "23.8%", "left": "70.8%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.pumpe_kessel", "style": {"top": "27.1%", "left": "70.8%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "select.b_plmi_puffer_betriebswahl_2", "style": {"top": "30.4%", "left": "70.8%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.6vw", "white-space": "nowrap"}},
+
+            {"type": "state-label", "entity": "sensor.warmwasser_ist_temperatur", "style": {"top": "19.7%", "left": "90.0%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.warmwasser_soll_temperatur", "style": {"top": "22.4%", "left": "90.0%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "binary_sensor.umlz_heizkreis_ww_ladepumpe", "style": {"top": "25.1%", "left": "90.0%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.72vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "switch.umlz_heizkreis_ww_einmalladung", "style": {"top": "27.9%", "left": "90.0%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.72vw", "white-space": "nowrap"}},
+
+            {"type": "state-label", "entity": "sensor.ww_zirkulationspumpe_temperatur_ist", "style": {"top": "56.5%", "left": "92.0%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.ww_zirkulationspumpe_temperatur_soll", "style": {"top": "59.1%", "left": "92.0%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "binary_sensor.umlz_heizkreis_ww_zirkulationspumpe", "style": {"top": "61.8%", "left": "92.0%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.72vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "select.umlz_heizkreis_ww_zirkulationspumpe", "style": {"top": "64.4%", "left": "92.0%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.58vw", "white-space": "nowrap"}},
+
+            {"type": "state-label", "entity": "sensor.umlz_heizkreis_aussentemperatur", "style": {"top": "74.9%", "left": "71.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.umlz_heizkreis_vorlauftemperatur_ist", "style": {"top": "77.9%", "left": "71.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.umlz_heizkreis_raumtemperatur_soll", "style": {"top": "80.8%", "left": "71.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.umlz_heizkreis_mischer_stellwert", "style": {"top": "83.7%", "left": "71.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "binary_sensor.umlz_heizkreis_heizkreispumpe", "style": {"top": "86.7%", "left": "71.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.72vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "select.umlz_heizkreis_betriebswahl", "style": {"top": "89.6%", "left": "71.3%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.62vw", "white-space": "nowrap"}},
+
+            {"type": "state-label", "entity": "sensor.hebebuhne_aussentemperatur", "style": {"top": "79.0%", "left": "18.1%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.hebebuhne_vorlauftemperatur_ist", "style": {"top": "81.9%", "left": "18.1%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "sensor.hebebuhne_mischer_stellwert", "style": {"top": "84.8%", "left": "18.1%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.85vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "binary_sensor.hebebuhne_heizkreispumpe", "style": {"top": "87.5%", "left": "18.1%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.72vw", "white-space": "nowrap"}},
+            {"type": "state-label", "entity": "select.hebebuhne_betriebswahl", "style": {"top": "90.4%", "left": "18.1%", "color": "#1f2933", "font-family": "'Helvetica Neue', Arial, sans-serif", "font-weight": "500", "font-size": "0.62vw", "white-space": "nowrap"}}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+[project]
+name = "heatnexus"
+version = "0.9.0"
+description = "HeatNexus – Home-Assistant-Integration für Windhager-Heizungen (PuroWIN, BioWIN, Heizkreise, Puffer)"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["custom_components", "tests", "tools"]
+
+[tool.ruff.lint]
+select = [
+  "E",    # pycodestyle
+  "F",    # pyflakes
+  "W",    # warnings
+  "I",    # isort
+  "UP",   # pyupgrade
+  "B",    # bugbear
+  "SIM",  # simplify
+  "RUF",
+  "D",    # docstrings (HA-Konvention)
+  "ASYNC",
+]
+ignore = [
+  "D203",   # kollidiert mit D211
+  "D213",   # kollidiert mit D212
+  "D401",   # imperative mood – deutsche Docstrings
+  "E501",   # Zeilenlänge via formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D100", "D101", "D102", "D103", "D104"]
+"tools/*" = ["D100", "D103", "T201"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components"]
+force-sort-within-sections = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+markers = [
+  "requires_ha: Test benötigt eine installierte Home-Assistant-Umgebung",
+  "requires_aiohttp: Test benötigt aiohttp (Client-Modul)",
+]

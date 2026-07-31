@@ -1,0 +1,96 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Diese Anlage ist bereits eingerichtet",
+      "reauth_successful": "Passwort aktualisiert"
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_auth": "Anmeldung abgelehnt – bitte Service-Passwort prüfen",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "step": {
+      "user": {
+        "title": "Windhager-Anlage verbinden",
+        "description": "IP-Adresse der Anlage und Service-Passwort. Der Benutzername ist immer USER.",
+        "data": {
+          "host": "IP-Adresse",
+          "password": "Service-Passwort"
+        }
+      },
+      "scope": {
+        "title": "Umfang festlegen",
+        "description": "Welche Bedienebenen sollen eingebunden werden? Info- und Betreiberebene sind immer dabei. Service- und Werksebene enthalten Fachparameter – falsch gesetzte Werte können den Betrieb der Anlage stören.",
+        "data": {
+          "levels": "Bedienebenen",
+          "enable_advanced": "Service-/Werksebene sofort aktivieren",
+          "writable_advanced": "Service-/Werksebene bedienbar machen",
+          "update_interval": "Abfrageintervall"
+        },
+        "data_description": {
+          "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
+          "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
+          "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",
+          "update_interval": "Wie oft die Anlage abgefragt wird."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Passwort erneuern",
+        "description": "Die Anlage {host} hat die Anmeldung abgelehnt. Bitte das Service-Passwort erneut eingeben.",
+        "data": {
+          "password": "Service-Passwort"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Umfang ändern",
+        "description": "Änderungen werden sofort übernommen; die Anlage wird dabei neu eingelesen.",
+        "data": {
+          "levels": "Bedienebenen",
+          "enable_advanced": "Service-/Werksebene sofort aktivieren",
+          "writable_advanced": "Service-/Werksebene bedienbar machen",
+          "update_interval": "Abfrageintervall"
+        },
+        "data_description": {
+          "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
+          "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
+          "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",
+          "update_interval": "Wie oft die Anlage abgefragt wird."
+        }
+      }
+    }
+  },
+  "selector": {
+    "levels": {
+      "options": {
+        "info": "Infoebene (Messwerte)",
+        "operate": "Betreiberebene (Bedienung)",
+        "service": "Serviceebene (Fachparameter)",
+        "oem": "Werksebene (Herstellerparameter)"
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "windhager_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Standby",
+              "1": "Heizprogramm 1",
+              "2": "Heizprogramm 2",
+              "3": "Heizprogramm 3",
+              "4": "Heizbetrieb",
+              "5": "Absenkbetrieb",
+              "6": "WW-Betrieb",
+              "7": "Handbetrieb"
+            }
+          }
+        }
+      }
+    }
+  }
+}

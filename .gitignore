@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+desktop.ini
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+*.egg-info/
+
+# Interne Notizen, Planung, Recherche
+_intern/
+notes/
+research/
+*.internal.md
+
+# Anlagenbezogene Daten (IP-Adressen, Werte, Dumps)
+probe/
+dumps/
+*_menus.json
+*_structure.json
+*_dump*.txt

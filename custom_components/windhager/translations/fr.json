@@ -1,0 +1,96 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Cette installation est deja configuree",
+      "reauth_successful": "Mot de passe mis a jour"
+    },
+    "error": {
+      "cannot_connect": "Echec de la connexion",
+      "invalid_auth": "Connexion refusee - verifiez le mot de passe",
+      "unknown": "Erreur inattendue"
+    },
+    "step": {
+      "user": {
+        "title": "Connecter l installation Windhager",
+        "description": "Adresse IP de l installation et mot de passe de service. L utilisateur est toujours USER.",
+        "data": {
+          "host": "Adresse IP",
+          "password": "Mot de passe de service"
+        }
+      },
+      "scope": {
+        "title": "Definir l etendue",
+        "description": "Quels niveaux integrer ? Les niveaux Info et Exploitant sont toujours inclus. Les niveaux Service et Usine contiennent des parametres experts.",
+        "data": {
+          "levels": "Niveaux",
+          "enable_advanced": "Activer immediatement les niveaux Service/Usine",
+          "writable_advanced": "Rendre modifiables les parametres Service/Usine",
+          "update_interval": "Intervalle d interrogation"
+        },
+        "data_description": {
+          "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : regulation de combustion, entrainements.",
+          "enable_advanced": "Sans coche, les entites sont creees mais restent desactivees.",
+          "writable_advanced": "Sans coche, ces parametres sont affiches en lecture seule.",
+          "update_interval": "Frequence d interrogation de l installation."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Renouveler le mot de passe",
+        "description": "L installation {host} a refuse la connexion. Saisissez a nouveau le mot de passe.",
+        "data": {
+          "password": "Mot de passe de service"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Modifier l etendue",
+        "description": "Les modifications sont appliquees immediatement ; l installation est relue.",
+        "data": {
+          "levels": "Niveaux",
+          "enable_advanced": "Activer immediatement les niveaux Service/Usine",
+          "writable_advanced": "Rendre modifiables les parametres Service/Usine",
+          "update_interval": "Intervalle d interrogation"
+        },
+        "data_description": {
+          "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : regulation de combustion, entrainements.",
+          "enable_advanced": "Sans coche, les entites sont creees mais restent desactivees.",
+          "writable_advanced": "Sans coche, ces parametres sont affiches en lecture seule.",
+          "update_interval": "Frequence d interrogation de l installation."
+        }
+      }
+    }
+  },
+  "selector": {
+    "levels": {
+      "options": {
+        "info": "Niveau Info (mesures)",
+        "operate": "Niveau Exploitant (commande)",
+        "service": "Niveau Service (parametres experts)",
+        "oem": "Niveau Usine (parametres constructeur)"
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "windhager_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Veille",
+              "1": "Programme 1",
+              "2": "Programme 2",
+              "3": "Programme 3",
+              "4": "Mode chauffage",
+              "5": "Mode reduit",
+              "6": "Mode ECS",
+              "7": "Mode manuel"
+            }
+          }
+        }
+      }
+    }
+  }
+}

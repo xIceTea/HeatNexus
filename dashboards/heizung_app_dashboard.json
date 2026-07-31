@@ -1,0 +1,87 @@
+{
+  "title": "Heizung",
+  "views": [
+    {
+      "title": "Übersicht",
+      "path": "uebersicht",
+      "type": "sections",
+      "max_columns": 3,
+      "sections": [
+        {
+          "type": "grid",
+          "cards": [
+            {"type": "heading", "heading": "Kessel – PuroWIN 40", "icon": "mdi:fire"},
+            {"type": "gauge", "entity": "sensor.kesseltemperatur_4", "name": "Kesseltemperatur", "min": 0, "max": 95, "needle": true, "severity": {"green": 0, "yellow": 78, "red": 88}},
+            {"type": "tile", "entity": "sensor.kesselleistung_4", "name": "Leistung"},
+            {"type": "tile", "entity": "sensor.betriebsart_4", "name": "Betriebsphase"},
+            {"type": "tile", "entity": "sensor.purowin_meldung", "name": "Meldung", "color": "green"},
+            {"type": "tile", "entity": "sensor.abgastemperatur_8", "name": "Abgas"},
+            {"type": "tile", "entity": "sensor.brennerkammertemperatur_4", "name": "Brennkammer"},
+            {"type": "tile", "entity": "sensor.purowin_o2_signal", "name": "O₂-Signal"},
+            {"type": "tile", "entity": "sensor.purowin_aktueller_brennstoff", "name": "Brennstoff"},
+            {"type": "tile", "entity": "sensor.betriebsstunden_4", "name": "Betriebsstunden"},
+            {"type": "tile", "entity": "sensor.brennerstarts_5", "name": "Brennerstarts"},
+            {"type": "tile", "entity": "sensor.laufzeit_bis_ascheentleerung_8", "name": "Bis Ascheentleerung"},
+            {"type": "tile", "entity": "sensor.laufzeit_bis_hauptreinigung_9", "name": "Bis Hauptreinigung"},
+            {"type": "tile", "entity": "sensor.laufzeit_bis_wartung_9", "name": "Bis Wartung"}
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {"type": "heading", "heading": "Pufferspeicher Heizhaus", "icon": "mdi:storage-tank"},
+            {"type": "gauge", "entity": "sensor.puffer_oben_temperatur", "name": "Oben (TPE)", "min": 0, "max": 95, "needle": true, "severity": {"green": 0, "yellow": 80, "red": 90}},
+            {"type": "tile", "entity": "sensor.puffer_unten_temperatur", "name": "Unten (TPA)"},
+            {"type": "tile", "entity": "sensor.rucklauf_temperatur", "name": "Rücklauf"},
+            {"type": "tile", "entity": "sensor.pumpendrehzahl_kessel", "name": "Ladepumpe"},
+            {"type": "tile", "entity": "select.b_plmi_puffer_betriebswahl", "name": "Betriebswahl"},
+            {"type": "heading", "heading": "Pufferspeicher Wohnhaus", "icon": "mdi:storage-tank"},
+            {"type": "gauge", "entity": "sensor.puffer_oben_temperatur_2", "name": "Oben (TPE)", "min": 0, "max": 95, "needle": true, "severity": {"green": 0, "yellow": 80, "red": 90}},
+            {"type": "tile", "entity": "sensor.puffer_unten_temperatur_2", "name": "Unten (TPA)"},
+            {"type": "tile", "entity": "sensor.pumpe_kessel", "name": "Ladepumpe"},
+            {"type": "tile", "entity": "select.b_plmi_puffer_betriebswahl_2", "name": "Betriebswahl"}
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {"type": "heading", "heading": "Warmwasser", "icon": "mdi:water-boiler"},
+            {"type": "gauge", "entity": "sensor.warmwasser_ist_temperatur", "name": "WW Ist", "min": 0, "max": 75, "needle": true},
+            {"type": "tile", "entity": "sensor.warmwasser_soll_temperatur", "name": "WW Soll"},
+            {"type": "tile", "entity": "binary_sensor.umlz_heizkreis_ww_ladepumpe", "name": "Ladepumpe"},
+            {"type": "tile", "entity": "switch.umlz_heizkreis_ww_einmalladung", "name": "Einmalladung"},
+            {"type": "heading", "heading": "Zirkulation", "icon": "mdi:pump"},
+            {"type": "tile", "entity": "sensor.ww_zirkulationspumpe_temperatur_ist", "name": "Zirkulation Ist"},
+            {"type": "tile", "entity": "sensor.ww_zirkulationspumpe_temperatur_soll", "name": "Zirkulation Soll"},
+            {"type": "tile", "entity": "binary_sensor.umlz_heizkreis_ww_zirkulationspumpe", "name": "Pumpe"},
+            {"type": "tile", "entity": "select.umlz_heizkreis_ww_zirkulationspumpe", "name": "Modus"}
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {"type": "heading", "heading": "Heizkreis Wohnhaus", "icon": "mdi:radiator"},
+            {"type": "thermostat", "entity": "climate.umlz_heizkreis_2"},
+            {"type": "tile", "entity": "sensor.umlz_heizkreis_aussentemperatur", "name": "Außentemperatur"},
+            {"type": "tile", "entity": "sensor.umlz_heizkreis_vorlauftemperatur_ist", "name": "Vorlauf"},
+            {"type": "tile", "entity": "sensor.umlz_heizkreis_mischer_stellwert", "name": "Mischer"},
+            {"type": "tile", "entity": "binary_sensor.umlz_heizkreis_heizkreispumpe", "name": "Pumpe"},
+            {"type": "tile", "entity": "select.umlz_heizkreis_betriebswahl", "name": "Betriebswahl"}
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {"type": "heading", "heading": "Heizkreis Werkstatt / Hebebühne", "icon": "mdi:radiator"},
+            {"type": "thermostat", "entity": "climate.hebebuhne_heizkreis"},
+            {"type": "tile", "entity": "sensor.hebebuhne_aussentemperatur", "name": "Außentemperatur"},
+            {"type": "tile", "entity": "sensor.hebebuhne_vorlauftemperatur_ist", "name": "Vorlauf"},
+            {"type": "tile", "entity": "sensor.hebebuhne_mischer_stellwert", "name": "Mischer"},
+            {"type": "tile", "entity": "binary_sensor.hebebuhne_heizkreispumpe", "name": "Pumpe"},
+            {"type": "tile", "entity": "select.hebebuhne_betriebswahl", "name": "Betriebswahl"}
+          ]
+        }
+      ]
+    }
+  ]
+}

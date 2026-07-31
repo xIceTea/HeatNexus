@@ -1,0 +1,48 @@
+type: picture-elements
+image: /api/image/serve/2111a9ac76cd05af95d57dc0a019d301/original
+elements:
+  - {type: state-label, entity: sensor.purowin_meldung, style: {top: "4.3%", left: "92%", color: "#111111", font-size: "0.95vw", font-weight: "600", white-space: "nowrap"}}
+  - {type: state-label, entity: sensor.kesseltemperatur_4, style: {top: "20.7%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.kesselleistung_4, style: {top: "22.9%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.betriebsart_4, style: {top: "25.1%", left: "13.5%", color: "#111111", font-size: "0.8vw", font-weight: "600", white-space: "nowrap"}}
+  - {type: state-label, entity: sensor.abgastemperatur_8, style: {top: "27.3%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.brennerkammertemperatur_4, style: {top: "29.5%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.purowin_o2_signal, style: {top: "31.7%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.brennerstarts_5, style: {top: "33.9%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.betriebsstunden_4, style: {top: "36.1%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.laufzeit_bis_ascheentleerung_8, style: {top: "38.3%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.laufzeit_bis_hauptreinigung_9, style: {top: "40.5%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.laufzeit_bis_wartung_9, style: {top: "42.7%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.purowin_nennleistung, style: {top: "44.9%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.purowin_aktueller_brennstoff, style: {top: "47.1%", left: "13.0%", color: "#111111", font-size: "0.8vw", font-weight: "600", white-space: "nowrap"}}
+  - {type: state-label, entity: sensor.purowin_saugzuggeblase_soll_drehzahl, style: {top: "49.3%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.purowin_saugzuggeblase_ist_drehzahl, style: {top: "51.5%", left: "13.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.purowin_meldung, style: {top: "53.7%", left: "13.0%", color: "#111111", font-size: "0.8vw", font-weight: "600", white-space: "nowrap"}}
+  - {type: state-label, entity: sensor.puffer_oben_temperatur, style: {top: "26.3%", left: "46.0%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.puffer_unten_temperatur, style: {top: "29.5%", left: "46.0%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.rucklauf_temperatur, style: {top: "32.7%", left: "46.0%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.pumpendrehzahl_kessel, style: {top: "36.0%", left: "46.0%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: select.b_plmi_puffer_betriebswahl, style: {top: "39.2%", left: "45.0%", color: "#111111", font-size: "0.8vw", font-weight: "600", white-space: "nowrap"}}
+  - {type: state-label, entity: sensor.puffer_oben_temperatur_2, style: {top: "26.3%", left: "62.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.puffer_unten_temperatur_2, style: {top: "29.5%", left: "62.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.pumpe_kessel, style: {top: "32.7%", left: "62.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: select.b_plmi_puffer_betriebswahl_2, style: {top: "35.9%", left: "61.5%", color: "#111111", font-size: "0.8vw", font-weight: "600", white-space: "nowrap"}}
+  - {type: state-label, entity: sensor.warmwasser_ist_temperatur, style: {top: "22.8%", left: "79.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.warmwasser_soll_temperatur, style: {top: "25.6%", left: "79.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: binary_sensor.umlz_heizkreis_ww_ladepumpe, style: {top: "28.4%", left: "79.0%", color: "#111111", font-size: "0.85vw", font-weight: "600"}}
+  - {type: state-label, entity: switch.umlz_heizkreis_ww_einmalladung, style: {top: "31.2%", left: "79.0%", color: "#111111", font-size: "0.85vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.ww_zirkulationspumpe_temperatur_ist, style: {top: "22.8%", left: "95.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.ww_zirkulationspumpe_temperatur_soll, style: {top: "25.6%", left: "95.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: binary_sensor.umlz_heizkreis_ww_zirkulationspumpe, style: {top: "28.4%", left: "95.0%", color: "#111111", font-size: "0.85vw", font-weight: "600"}}
+  - {type: state-label, entity: select.umlz_heizkreis_ww_zirkulationspumpe, style: {top: "31.2%", left: "94.0%", color: "#111111", font-size: "0.75vw", font-weight: "600", white-space: "nowrap"}}
+  - {type: state-label, entity: sensor.umlz_heizkreis_aussentemperatur, style: {top: "80.8%", left: "62.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.umlz_heizkreis_vorlauftemperatur_ist, style: {top: "83.6%", left: "62.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.umlz_heizkreis_raumtemperatur_soll, style: {top: "86.4%", left: "62.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.umlz_heizkreis_mischer_stellwert, style: {top: "89.2%", left: "62.5%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: binary_sensor.umlz_heizkreis_heizkreispumpe, style: {top: "92.0%", left: "62.0%", color: "#111111", font-size: "0.85vw", font-weight: "600"}}
+  - {type: state-label, entity: select.umlz_heizkreis_betriebswahl, style: {top: "94.8%", left: "61.5%", color: "#111111", font-size: "0.8vw", font-weight: "600", white-space: "nowrap"}}
+  - {type: state-label, entity: sensor.hebebuhne_aussentemperatur, style: {top: "80.8%", left: "28.0%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.hebebuhne_vorlauftemperatur_ist, style: {top: "83.6%", left: "28.0%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: sensor.hebebuhne_mischer_stellwert, style: {top: "86.4%", left: "28.0%", color: "#111111", font-size: "0.95vw", font-weight: "600"}}
+  - {type: state-label, entity: binary_sensor.hebebuhne_heizkreispumpe, style: {top: "89.2%", left: "27.5%", color: "#111111", font-size: "0.85vw", font-weight: "600"}}
+  - {type: state-label, entity: select.hebebuhne_betriebswahl, style: {top: "92.0%", left: "27.0%", color: "#111111", font-size: "0.8vw", font-weight: "600", white-space: "nowrap"}}

@@ -1,0 +1,96 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "This system is already configured",
+      "reauth_successful": "Password updated"
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Login rejected - check the password",
+      "unknown": "Unexpected error"
+    },
+    "step": {
+      "user": {
+        "title": "Connect Windhager system",
+        "description": "IP address of the system and the service password. The user name is always USER.",
+        "data": {
+          "host": "IP address",
+          "password": "Service password"
+        }
+      },
+      "scope": {
+        "title": "Choose scope",
+        "description": "Which levels should be included? Info and operator level are always included. Service and factory level contain expert parameters - wrong values can disturb the system.",
+        "data": {
+          "levels": "Levels",
+          "enable_advanced": "Enable service/factory level right away",
+          "writable_advanced": "Allow writing service/factory parameters",
+          "update_interval": "Polling interval"
+        },
+        "data_description": {
+          "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits, screed program. Factory: combustion control, ignition, drives.",
+          "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
+          "writable_advanced": "Unchecked, these parameters are shown read-only.",
+          "update_interval": "How often the system is queried."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update password",
+        "description": "System {host} rejected the login. Please enter the service password again.",
+        "data": {
+          "password": "Service password"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Change scope",
+        "description": "Changes apply immediately; the system is read again.",
+        "data": {
+          "levels": "Levels",
+          "enable_advanced": "Enable service/factory level right away",
+          "writable_advanced": "Allow writing service/factory parameters",
+          "update_interval": "Polling interval"
+        },
+        "data_description": {
+          "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits, screed program. Factory: combustion control, ignition, drives.",
+          "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
+          "writable_advanced": "Unchecked, these parameters are shown read-only.",
+          "update_interval": "How often the system is queried."
+        }
+      }
+    }
+  },
+  "selector": {
+    "levels": {
+      "options": {
+        "info": "Info level (readings)",
+        "operate": "Operator level (control)",
+        "service": "Service level (expert parameters)",
+        "oem": "Factory level (manufacturer parameters)"
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "windhager_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Standby",
+              "1": "Heating program 1",
+              "2": "Heating program 2",
+              "3": "Heating program 3",
+              "4": "Heating mode",
+              "5": "Setback mode",
+              "6": "DHW mode",
+              "7": "Manual mode"
+            }
+          }
+        }
+      }
+    }
+  }
+}

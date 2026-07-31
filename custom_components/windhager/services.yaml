@@ -1,0 +1,66 @@
+rediscover:
+  name: Anlage neu erkennen
+  description: >-
+    Verwirft den gespeicherten Discovery-Cache und liest die Anlage komplett neu
+    ein (Datenpunkte/Geräte). Nötig z.B. nach Umbauten an der Heizung oder wenn
+    neue Heizkreise hinzugekommen sind. Dauert einmalig etwas länger.
+
+set_current_temp_compensation:
+  name: Set Current Temperature Compensation
+  description: Change the compensation for current temperature mesurement
+  target:
+    entity:
+      integration: windhager
+      domain: climate
+  fields:
+    compensation:
+      name: Thermostat bias
+      description: Added to the current temperature
+      required: true
+      selector:
+        number:
+          min: -3.0
+          max: 3.0
+          step: 0.1
+          unit_of_measurement: "K"
+
+set_time_program:
+  name: Zeitprogramm setzen
+  description: >-
+    Schreibt ein Heiz-/Warmwasser-Zeitprogramm (Ziel: ein Zeitprogramm-Sensor
+    der Windhager-Integration). Entweder vereinfacht über switch_points
+    (+ optional weekdays, Standard täglich) oder über blocks für volle Kontrolle
+    (mehrere Wochentag-Gruppen, z.B. Mo-Fr und Sa-So).
+  target:
+    entity:
+      integration: windhager
+      domain: sensor
+  fields:
+    switch_points:
+      name: Schaltpunkte
+      description: >-
+        Liste von Schaltpunkten {time, value}. time im Format HH:MM, value =
+        Soll-Temperatur. Gilt für den Block aus weekdays.
+      example: '[{"time": "06:00", "value": 21}, {"time": "22:00", "value": 18}]'
+      selector:
+        object:
+    weekdays:
+      name: Wochentage
+      description: >-
+        Wochentage für die Schaltpunkte (Mo Di Mi Do Fr Sa So oder
+        Mo Tu We Th Fr Sa Su). Standard: täglich.
+      example: '["Mo", "Di", "Mi", "Do", "Fr"]'
+      selector:
+        object:
+    blocks:
+      name: Blöcke (erweitert)
+      description: >-
+        Volle Programmstruktur als Liste von Blöcken, je Block mit weekdays und
+        switch_points. Überschreibt switch_points/weekdays, wenn angegeben.
+      example: >-
+        [{"weekdays": ["Mo","Di","Mi","Do","Fr"], "switch_points":
+        [{"time":"06:00","value":21},{"time":"22:00","value":18}]},
+        {"weekdays": ["Sa","So"], "switch_points":
+        [{"time":"07:00","value":21},{"time":"23:00","value":18}]}]
+      selector:
+        object:

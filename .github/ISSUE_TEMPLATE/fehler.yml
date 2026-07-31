@@ -1,0 +1,54 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie erwartet
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bitte keine Passwörter, Seriennummern oder vollständigen IP-Adressen posten.
+  - type: input
+    id: version
+    attributes:
+      label: Version der Integration
+      placeholder: "0.9.0"
+    validations:
+      required: true
+  - type: input
+    id: ha
+    attributes:
+      label: Home-Assistant-Version
+      placeholder: "2026.7.1"
+    validations:
+      required: true
+  - type: input
+    id: anlage
+    attributes:
+      label: Anlage
+      description: Kessel und Module, z. B. PuroWIN 40 mit B-PLMi und zwei UML-Heizkreisen
+    validations:
+      required: true
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: Erwartetes Verhalten
+    validations:
+      required: true
+  - type: textarea
+    id: tatsaechlich
+    attributes:
+      label: Tatsächliches Verhalten
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: |
+        1. …
+        2. …
+  - type: textarea
+    id: log
+    attributes:
+      label: Protokollauszug
+      description: Einstellungen → System → Protokolle, gefiltert nach "windhager"
+      render: text

@@ -1,0 +1,215 @@
+# =============================================================================
+# Windhager – Gesamtübersicht Heizungsanlage (Home Assistant "Sections"-View)
+# -----------------------------------------------------------------------------
+# Verwendung:
+#   1. Einstellungen → Dashboards → (neues Dashboard) → oben rechts ⋮ →
+#      "Raw-Konfigurationseditor" → diesen Inhalt einfügen.
+#      (Oder als eine View in ein bestehendes Dashboard übernehmen.)
+#   2. Alle entity-IDs mit "# <-- anpassen" auf deine echten Entitäten ändern
+#      (HA markiert nicht gefundene Entitäten rot; per Entity-Auswahl ersetzen).
+#   3. Nicht vorhandene Anlagenteile (Puffer 2, Heizkreis 2, volle Solar) einfach
+#      löschen.
+#
+# Namensschema der Integration: sensor.<gerätename>_<wert>, z.B.
+#   sensor.purowin_kesseltemperatur_ist, climate.hebebuhne, ...
+# =============================================================================
+title: Heizung
+views:
+  - title: Gesamtübersicht
+    path: heizung
+    type: sections
+    max_columns: 3
+    sections:
+
+      # ----------------------------------------------------------------- KESSEL
+      - type: grid
+        cards:
+          - type: heading
+            heading: Kessel – Windhager PuroWIN 40
+            heading_style: title
+            icon: mdi:fire
+          - type: gauge
+            entity: sensor.purowin_kesseltemperatur_ist   # <-- anpassen
+            name: Kesseltemperatur
+            unit: °C
+            min: 0
+            max: 90
+            needle: true
+            severity: {green: 0, yellow: 70, red: 85}
+          - type: gauge
+            entity: sensor.purowin_kesselleistung          # <-- anpassen
+            name: Leistung
+            unit: "%"
+            min: 0
+            max: 100
+            needle: true
+          - type: tile
+            entity: sensor.purowin_betriebsphase           # <-- anpassen
+            name: Betriebsstatus
+          - type: tile
+            entity: sensor.purowin_meldung                 # <-- anpassen (FE01msg)
+            name: Anlagenstatus
+          - type: tile
+            entity: sensor.purowin_abgastemperatur         # <-- anpassen
+            name: Abgastemperatur
+          - type: tile
+            entity: sensor.purowin_o2_signal               # <-- anpassen
+            name: Sauerstoffgehalt
+          - type: tile
+            entity: sensor.purowin_brennerstarts           # <-- anpassen
+            name: Brennerstarts
+          - type: tile
+            entity: sensor.purowin_betriebsstunden         # <-- anpassen
+            name: Laufzeit gesamt
+
+      # -------------------------------------------------------------- BRENNSTOFF
+      - type: grid
+        cards:
+          - type: heading
+            heading: Brennstoff
+            heading_style: title
+            icon: mdi:storefront-outline
+          - type: gauge
+            entity: sensor.purowin_befullgrad_lagerraum    # <-- anpassen
+            name: Füllstand Lagerraum
+            unit: "%"
+            min: 0
+            max: 100
+            needle: true
+            severity: {green: 40, yellow: 20, red: 0}
+          - type: tile
+            entity: sensor.purowin_vorratsbehalter_status  # <-- anpassen
+            name: Vorratsbehälter
+          - type: tile
+            entity: binary_sensor.purowin_austragung_aktiv # <-- anpassen (falls vorhanden)
+            name: Austragung aktiv
+
+      # ------------------------------------------------------------------- SOLAR
+      # Aktuell nur Pumpe + Stromverbrauch verfügbar.
+      - type: grid
+        cards:
+          - type: heading
+            heading: Solaranlage (thermisch)
+            heading_style: title
+            icon: mdi:solar-power-variant
+          - type: tile
+            entity: switch.solarpumpe                      # <-- anpassen (Ein/Aus)
+            name: Solarpumpe
+          - type: tile
+            entity: sensor.solarpumpe_stromverbrauch       # <-- anpassen
+            name: Stromverbrauch Pumpe
+
+      # --------------------------------------------------------- PUFFER 1 (WOHN)
+      - type: grid
+        cards:
+          - type: heading
+            heading: Puffer 1 – Wohnhaus
+            heading_style: title
+            icon: mdi:storage-tank
+          - type: gauge
+            entity: sensor.b_plmi_puffer_puffer_oben_temperatur_tpe   # <-- anpassen
+            name: Oben (TPE)
+            unit: °C
+            min: 0
+            max: 95
+            needle: true
+            severity: {green: 0, yellow: 75, red: 88}
+          - type: tile
+            entity: sensor.b_plmi_puffer_puffer_unten_temperatur_tpa  # <-- anpassen
+            name: Unten (TPA)
+          - type: gauge
+            entity: sensor.b_plmi_puffer_ladezustand       # <-- anpassen (falls vorhanden)
+            name: Ladezustand
+            unit: "%"
+            min: 0
+            max: 100
+            needle: true
+
+      # ---------------------------------------------------- PUFFER 2 (optional)
+      - type: grid
+        cards:
+          - type: heading
+            heading: Puffer 2 – KFZ-Werkstatt
+            heading_style: title
+            icon: mdi:storage-tank
+          - type: gauge
+            entity: sensor.puffer2_oben                    # <-- anpassen / löschen
+            name: Oben
+            unit: °C
+            min: 0
+            max: 95
+            needle: true
+          - type: tile
+            entity: sensor.puffer2_unten                   # <-- anpassen / löschen
+            name: Unten
+
+      # --------------------------------------------------------- WW-BOILER
+      - type: grid
+        cards:
+          - type: heading
+            heading: Warmwasser-Boiler
+            heading_style: title
+            icon: mdi:water-boiler
+          - type: gauge
+            entity: sensor.hebebuhne_warmwasser_ist_temperatur   # <-- anpassen
+            name: Warmwasser Ist
+            unit: °C
+            min: 0
+            max: 75
+            needle: true
+            severity: {green: 45, yellow: 35, red: 0}
+          - type: tile
+            entity: sensor.hebebuhne_warmwasser_soll_temperatur  # <-- anpassen
+            name: Warmwasser Soll
+          - type: tile
+            entity: binary_sensor.hebebuhne_ww_ladepumpe         # <-- anpassen
+            name: Ladepumpe
+
+      # ------------------------------------------------------ ZIRKULATIONSPUMPE
+      - type: grid
+        cards:
+          - type: heading
+            heading: Zirkulationspumpe
+            heading_style: title
+            icon: mdi:pump
+          - type: tile
+            entity: sensor.hebebuhne_ww_zirkulation_ist_temperatur   # <-- anpassen
+            name: Temperatur Ist
+          - type: tile
+            entity: binary_sensor.hebebuhne_ww_zirkulationspumpe     # <-- anpassen
+            name: Pumpenstatus
+
+      # ------------------------------------------------ HEIZKREIS 1 (WOHNHAUS)
+      - type: grid
+        cards:
+          - type: heading
+            heading: Heizkreis 1 – Wohnhaus (Heizkörper)
+            heading_style: title
+            icon: mdi:radiator
+          - type: thermostat
+            entity: climate.hebebuhne                      # <-- anpassen
+            features:
+              - type: climate-preset-modes
+                style: dropdown
+          - type: tile
+            entity: sensor.hebebuhne_vorlauftemperatur_ist  # <-- anpassen
+            name: Vorlauf
+          - type: tile
+            entity: sensor.hebebuhne_rucklauftemperatur     # <-- anpassen (falls vorhanden)
+            name: Rücklauf
+          - type: tile
+            entity: binary_sensor.hebebuhne_heizkreispumpe  # <-- anpassen
+            name: Pumpe
+          - type: tile
+            entity: sensor.hebebuhne_mischer_stellwert      # <-- anpassen
+            name: Mischerstellung
+
+      # ------------------------------------------------ HEIZKREIS 2 (optional)
+      - type: grid
+        cards:
+          - type: heading
+            heading: Heizkreis 2 – KFZ-Werkstatt
+            heading_style: title
+            icon: mdi:radiator
+          - type: thermostat
+            entity: climate.kfz_werkstatt                  # <-- anpassen / löschen

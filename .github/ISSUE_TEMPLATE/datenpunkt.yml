@@ -1,0 +1,32 @@
+name: Datenpunkt oder Gerät fehlt
+description: Ein Wert der Anlage taucht nicht auf oder ist falsch benannt
+labels: ["datenpunkt"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Am hilfreichsten ist ein Auszug aus `tools/heatnexus_probe.py`
+        (Aktion „Menü-Ebenen"). Bitte vorher IP-Adressen entfernen.
+  - type: input
+    id: geraet
+    attributes:
+      label: Gerät oder Funktion
+      placeholder: "PuroWIN, Heizkreis, Puffer …"
+    validations:
+      required: true
+  - type: input
+    id: oid
+    attributes:
+      label: OID oder Datenpunkt
+      placeholder: "/1/60/0/39/91/0 bzw. 39/91"
+  - type: textarea
+    id: erwartung
+    attributes:
+      label: Was der Wert am InfoWIN anzeigt
+    validations:
+      required: true
+  - type: textarea
+    id: probe
+    attributes:
+      label: Auszug aus der Anlagen-Probe
+      render: json
