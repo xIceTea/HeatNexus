@@ -25,8 +25,8 @@ import json
 from pathlib import Path
 import re
 import sys
-import xml.etree.ElementTree as ET
 import urllib.request
+import xml.etree.ElementTree as ET
 
 BASIS = "https://connect-api.windhager.com/config"
 DATEIEN = ("de-parameters.json", "de-oem-parameters.json", "parameterLayer.json")
