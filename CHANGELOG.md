@@ -1,129 +1,49 @@
 # Changelog
 
-Alle nennenswerten Änderungen dieses Projekts. Format nach
-[Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
+Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 
-## [0.9.0]
+Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
+wenn dort Vorabversionen zugelassen sind.
 
-### Geändert
+## [Unveröffentlicht]
 
-- Das Projekt heißt **HeatNexus**; die Integration erscheint als
-  „HeatNexus Windhager". Bestehende Entitäten, Verlaufsdaten und Automationen
-  bleiben unverändert – Entitäts-IDs werden nicht angefasst.
-- Projektstruktur als reguläre HACS-Integration: HACS-Metadaten, bereinigtes
-  Manifest (`integration_type: hub`), Testsuite, Linting und automatische
-  Validierung (hassfest, HACS).
+## [0.1.0] – Erste Veröffentlichung
 
-### Hinzugefügt
+Erkennung, Anzeige und Bedienung von Windhager-Heizungen über die lokale
+Geräte-API. Getestet an PuroWIN mit B-PLMi-Puffer, UML/UMLZ-Heizkreisen und
+ZSP-Zirkulation.
 
-- **Umfang bei der Einrichtung wählbar**: Bedienebenen (Info, Betreiber,
-  Service, Werk), ob deren Entitäten sofort aktiv sind, ob sie bedienbar sein
-  sollen, und das Abfrageintervall. Alles nachträglich über *Konfigurieren*
-  änderbar. Service- und Werksparameter sind ohne ausdrückliche Freigabe nur
-  lesbar.
-- Erneute Passwortabfrage, wenn die Anlage die Anmeldung ablehnt, statt eines
-  dauerhaft fehlerhaften Eintrags.
-- Jede Anlage kann nur einmal eingerichtet werden; ein zweiter Versuch mit
-  derselben Adresse wird abgewiesen.
-- Werkzeug zum Auslesen einer Anlage (`tools/probe.cmd` bzw.
-  `tools/heatnexus_probe.py`): Struktur, Menü-Ebenen, alle Datenpunkte als CSV,
-  Zeitprogramme und ein Bericht mit Abgleich gegen die Geräte-Datenbank.
-  Mehrere Anlagen in einem Lauf, IP-Adressen und Passwort werden abgefragt.
-- Logo und Banner.
-- Dokumentation zu Geräte-API, Architektur und Datenpunkten unter `docs/`.
+### Enthalten
 
-## [0.8.0]
+- **Automatische Erkennung** aller freigeschalteten Funktionen. Wertebereiche,
+  Einheiten, Auswahlmöglichkeiten und Schreibschutz kommen aus den Metadaten der
+  Anlage; nicht vorhandene Datenpunkte werden verworfen.
+- **Umfang wählbar**: Bedienebenen (Info, Betreiber, Service, Werk), ob deren
+  Entitäten sofort aktiv sind, ob sie bedienbar sein sollen, und das
+  Abfrageintervall – bei der Einrichtung und jederzeit über *Konfigurieren*.
+  Service- und Werksparameter sind ohne ausdrückliche Freigabe nur lesbar.
+- **Thermostat je Heizkreis** mit Betriebswahl, Behaglichkeitskorrektur und
+  befristetem Komfort-Sollwert; Bedienungen werden sofort angezeigt und beim
+  nächsten Abruf bestätigt.
+- **Zeitprogramme** für Heizung, Warmwasser und Zirkulation lesen und über den
+  Dienst `heatnexus.set_time_program` schreiben.
+- **Störungen im Klartext** mit Code, Art und Handlungsempfehlung; die
+  vollständige Liste steht als Attribut bereit.
+- **Mehrere Anlagen** parallel, jede nur einmal einrichtbar; erneute
+  Passwortabfrage, wenn die Anlage die Anmeldung ablehnt.
+- **Schneller Start**: Der Erkennungsstand wird gespeichert und übersteht
+  Neustarts; neu eingelesen wird nur bei Bedarf oder über den Dienst
+  `heatnexus.rediscover`.
+- **Werkzeug zum Auslesen einer Anlage** (`tools/probe.cmd`): Struktur,
+  Menü-Ebenen, alle Datenpunkte als CSV, Zeitprogramme und ein Bericht mit
+  Abgleich gegen die mitgelieferte Geräte-Datenbank.
 
-### Hinzugefügt
+### Bekannte Einschränkungen
 
-- Sensor „Meldung Klartext" je Gerät: aktive Störungen mit Klartext, Art
-  (Fehler/Alarm/Info) und Handlungsempfehlung; vollständige Liste im Attribut
-  `meldungen`.
-- Störungstexttabelle mit 217 Einträgen.
-
-### Geändert
-
-- Mehrere gleichzeitig anstehende Störungen werden gesammelt und einzeln
-  aufgeschlüsselt.
-- Der Zustand des Klartextsensors enthält nur den Störungstext; Code und
-  Handlungsempfehlung stehen im Attribut.
-
-### Performance
-
-- Discovery-Ergebnis wird persistent gespeichert und übersteht einen Neustart;
-  Neuerkennung nur bei Versionswechsel, nach 30 Tagen oder auf Anforderung.
-- Neuer Dienst `windhager.rediscover`.
-
-## [0.7.0]
-
-### Hinzugefügt
-
-- Zeitprogramme (Heizprogramm 1–3, Warmwasser, Zirkulation) lesen und über den
-  Dienst `windhager.set_time_program` schreiben, wahlweise mit mehreren
-  Wochentag-Blöcken.
-- Sensor „Meldung" je Gerät mit dem aktuellen Gerätestatus.
-
-### Behoben
-
-- Sollwert der Thermostate wird als befristeter Komfort-Override gesetzt und
-  aus dem aktiven Raum-Sollwert zurückgelesen; der eingestellte Wert bleibt bis
-  zur Bestätigung durch die Anlage sichtbar.
-- Betriebsarten ohne Heizbetrieb (Standby, WW-Betrieb) lehnen das Setzen eines
-  Sollwerts mit klarer Meldung ab, statt ihn stillschweigend zu verwerfen.
-- Bedienungen am Thermostat werden innerhalb weniger Sekunden aktualisiert.
-
-## [0.6.0]
-
-### Behoben
-
-- Erstinitialisierung ist vom zyklischen Abruf getrennt; schlägt sie fehl,
-  meldet die Integration dies sauber zurück und wiederholt sie.
-- Es werden nur aktive Datenpunkte zyklisch abgefragt; deaktivierte Entities
-  erzeugen keine Last.
-- Je Heizkreis existiert genau eine Thermostat-Entity.
-
-### Geändert
-
-- Abrufintervall 30 s, höhere Parallelität beim Lesen.
-
-## [0.5.0]
-
-### Hinzugefügt
-
-- Serviceebene aller Funktionstypen (Heizkurve, Heizgrenzen, Vorlaufgrenzen,
-  Estrichprogramm, Zirkulationseinstellungen, Pufferparameter) – standardmäßig
-  deaktiviert.
-- Urlaubsprogramm als Datums-Entity.
-
-## [0.4.0]
-
-### Hinzugefügt
-
-- Automatische Erkennung aller freigeschalteten Funktionen über eine
-  mitgelieferte Geräte-Datenbank; neue Heizkreise und Datenpunkte erscheinen
-  ohne Codeänderung.
-
-## [0.3.0]
-
-### Geändert
-
-- Wertebereiche, Schrittweiten, Einheiten, Schreibschutz und erlaubte
-  Enum-Werte stammen aus den Metadaten der Anlage.
-- Nicht vorhandene Datenpunkte werden entfernt.
-- Übersetzungen für die Betriebsarten der Thermostate.
-
-## [0.2.0]
-
-### Hinzugefügt
-
-- Bedienbare Datenpunkte der Betreiberebene: Betriebswahl, Behaglichkeit,
-  Raumtemperatur-Sollwerte, Warmwasser-Einmalladung, Reinigung bestätigen,
-  Brennstoffwahl, Kaminkehrerleistung.
-
-## [0.1.0]
-
-### Hinzugefügt
-
-- Erste Fassung: Kessel, Heizkreise, Puffer und Zirkulation als Sensoren,
-  Thermostat je Heizkreis, Einrichtung über die Oberfläche.
+- Ohne angeschlossenen Raumfühler regelt die Anlage über die Heizkurve; das
+  Thermostat verschiebt dann den Raum-Sollwert befristet.
+- In den Betriebsarten Standby und WW-Betrieb heizt der Heizkreis nicht; ein
+  Sollwert wird dort mit einer Meldung abgelehnt.
+- BioWIN-Anlagen werden über die allgemeine Erkennung eingebunden, sind aber
+  noch nicht an echter Hardware geprüft.

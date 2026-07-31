@@ -40,7 +40,7 @@ filtert, und den Eintrag in `PLATFORMS`.
 
 1. **Cache** – RAM (Reload) → Platte (`Store`, Neustart) → vollständige Discovery.
    Der Cache wird verworfen bei Versionswechsel, Alter über 30 Tage oder durch
-   den Dienst `windhager.rediscover`.
+   den Dienst `heatnexus.rediscover`.
 2. **Discovery** – `/1` liefert Knoten und Funktionen. Je Funktion entstehen
    Entities aus den kuratierten Tabellen in `const.py` (`FCT_ENTITY_MAP`) und aus
    der Geräte-Datenbank (`device_db.json`, Ebenen `info`/`operate`/`service`).

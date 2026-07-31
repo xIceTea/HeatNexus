@@ -1,6 +1,6 @@
 """Constants for the Windhager Heater integration."""
 
-DOMAIN = "windhager"
+DOMAIN = "heatnexus"
 DEFAULT_USERNAME = "USER"
 
 # ---------------------------------------------------------------------------

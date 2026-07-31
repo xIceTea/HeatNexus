@@ -2,7 +2,7 @@
 
 Die reinen Logikmodule (error_texts, helpers, device_db) werden bewusst per
 Dateipfad geladen, damit sie ohne installierte Home-Assistant-Umgebung
-getestet werden können. Alles, was das Paket ``custom_components.windhager``
+getestet werden können. Alles, was das Paket ``custom_components.heatnexus``
 importiert, zieht Home Assistant nach und wird bei fehlender Umgebung
 übersprungen.
 """
@@ -16,7 +16,7 @@ from types import ModuleType
 
 import pytest
 
-COMPONENT_DIR = Path(__file__).parent.parent / "custom_components" / "windhager"
+COMPONENT_DIR = Path(__file__).parent.parent / "custom_components" / "heatnexus"
 
 
 def load_standalone(module_name: str) -> ModuleType:

@@ -1,6 +1,6 @@
 """Client: Plattform-Auflösung aus Geräte-Metadaten und Discovery-Cache.
 
-Benötigt eine installierte HA-Umgebung, weil ``custom_components.windhager``
+Benötigt eine installierte HA-Umgebung, weil ``custom_components.heatnexus``
 beim Import Home Assistant lädt.
 """
 
@@ -15,7 +15,7 @@ pytestmark = requires_ha()
 
 @pytest.fixture(scope="module")
 def client_module():
-    from custom_components.windhager import client  # noqa: PLC0415
+    from custom_components.heatnexus import client  # noqa: PLC0415
 
     return client
 

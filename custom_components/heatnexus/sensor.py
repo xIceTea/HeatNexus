@@ -359,7 +359,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         return {"blocks": blocks}
 
     # ------------------------------------------------------------------
-    # Schreiben (Service windhager.set_time_program)
+    # Schreiben (Service heatnexus.set_time_program)
     # ------------------------------------------------------------------
     ALL_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
     # Eingabe (deutsch ODER englisch) -> von der API erwartete Codes

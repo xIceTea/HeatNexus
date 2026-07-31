@@ -109,7 +109,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
             self._preset_modes = [str(v) for v in allowed if 0 <= v <= 7]
         else:
             self._preset_modes = ["0", "1", "2", "3", "4", "5", "6", "7"]
-        self._attr_translation_key = "windhager_climate"
+        self._attr_translation_key = "heatnexus_climate"
         # Optimistisch gesetzter Sollwert: wird sofort angezeigt und beim
         # nächsten Coordinator-Update (das den geschriebenen Wert vom Gerät
         # zurückliest) wieder verworfen. Verhindert das "Zurückspringen" des

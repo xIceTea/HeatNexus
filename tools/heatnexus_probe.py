@@ -49,7 +49,7 @@ if hasattr(sys.stdout, "reconfigure"):  # Umlaute auch in der Windows-Konsole
 # ---------------------------------------------------------------- Geräte-DB
 def _load_device_db():
     """device_db ohne Home-Assistant-Umgebung laden."""
-    path = REPO / "custom_components" / "windhager" / "device_db.py"
+    path = REPO / "custom_components" / "heatnexus" / "device_db.py"
     spec = importlib.util.spec_from_file_location("heatnexus_device_db", path)
     if not spec or not spec.loader:
         return None

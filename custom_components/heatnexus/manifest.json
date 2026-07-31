@@ -1,13 +1,13 @@
 {
-  "domain": "windhager",
-  "name": "HeatNexus Windhager",
+  "domain": "heatnexus",
+  "name": "HeatNexus",
   "codeowners": ["@xIceTea"],
   "config_flow": true,
   "documentation": "https://github.com/xIceTea/HeatNexus",
   "integration_type": "hub",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/xIceTea/HeatNexus/issues",
-  "loggers": ["custom_components.windhager"],
+  "loggers": ["custom_components.heatnexus"],
   "requirements": [],
-  "version": "0.9.0"
+  "version": "0.1.0"
 }

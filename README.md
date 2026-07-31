@@ -13,12 +13,24 @@
 
 Heizungen in Home Assistant – lokal, vollständig, ohne Cloud.
 
-Diese Ausgabe unterstützt **Windhager**-Anlagen (PuroWIN, BioWIN und
-kompatible Steuerungen). Die Anlage wird direkt über ihre HTTP-API im Netzwerk
-gelesen und gesteuert.
-
+Die Anlage wird direkt über ihre HTTP-API im Netzwerk gelesen und gesteuert.
 Abgedeckt sind Kessel, Heizkreise, Puffer, Warmwasser und Zirkulation,
 einschließlich Info-, Betreiber- und Serviceebene.
+
+## Unterstützte Geräte
+
+| Hersteller | Gerät | Stand |
+|---|---|---|
+| Windhager | PuroWIN (Hackgut) | getestet |
+| Windhager | BioWIN, BioWIN 2 (Pellets) | eingebunden, noch nicht an Hardware geprüft |
+| Windhager | UML / UMLZ Heizkreismodul | getestet |
+| Windhager | B-PLMi Pufferlademodul | getestet |
+| Windhager | ZSP Zirkulationssteuerung | getestet |
+| Windhager | Solar, Kaskade, Wärmepumpe | werden erkannt, ungetestet |
+
+Weitere Anlagen werden über die allgemeine Erkennung eingebunden: Was die
+Steuerung liefert, erscheint auch in Home Assistant. Rückmeldungen zu nicht
+gelisteten Geräten sind willkommen.
 
 ## Funktionsumfang
 
@@ -41,17 +53,17 @@ einschließlich Info-, Betreiber- und Serviceebene.
 
 1. HACS → Integrationen → ⋮ → **Benutzerdefinierte Repositories**
 2. Repository-URL eintragen, Kategorie *Integration*
-3. „HeatNexus Windhager" installieren, Home Assistant neu starten
+3. „HeatNexus" installieren, Home Assistant neu starten
 
 ### Manuell
 
-Ordner `custom_components/windhager` nach `<config>/custom_components/windhager`
+Ordner `custom_components/heatnexus` nach `<config>/custom_components/heatnexus`
 kopieren und Home Assistant neu starten.
 
 ### Einrichtung
 
-Einstellungen → Geräte & Dienste → Integration hinzufügen → **HeatNexus
-Windhager**. Erforderlich sind die IP-Adresse der Anlage und das
+Einstellungen → Geräte & Dienste → Integration hinzufügen → **HeatNexus**.
+Erforderlich sind die IP-Adresse der Anlage und das
 Service-Passwort; der Benutzername ist `USER`.
 
 Im zweiten Schritt wird der **Umfang** festgelegt:
@@ -81,12 +93,12 @@ wird gespeichert und übersteht Neustarts.
 
 | Dienst | Wirkung |
 |---|---|
-| `windhager.set_time_program` | Zeitprogramm setzen (`switch_points` mit `weekdays`, oder `blocks` für getrennte Wochenpläne) |
-| `windhager.set_current_temp_compensation` | Behaglichkeitskorrektur eines Heizkreises |
-| `windhager.rediscover` | Anlage neu einlesen, z. B. nach Umbauten |
+| `heatnexus.set_time_program` | Zeitprogramm setzen (`switch_points` mit `weekdays`, oder `blocks` für getrennte Wochenpläne) |
+| `heatnexus.set_current_temp_compensation` | Behaglichkeitskorrektur eines Heizkreises |
+| `heatnexus.rediscover` | Anlage neu einlesen, z. B. nach Umbauten |
 
 ```yaml
-service: windhager.set_time_program
+service: heatnexus.set_time_program
 target:
   entity_id: sensor.heizkreis_programm_1
 data:

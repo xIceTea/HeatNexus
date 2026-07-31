@@ -1,7 +1,7 @@
 [project]
 name = "heatnexus"
-version = "0.9.0"
-description = "HeatNexus – Home-Assistant-Integration für Windhager-Heizungen (PuroWIN, BioWIN, Heizkreise, Puffer)"
+version = "0.1.0"
+description = "HeatNexus – Heizungen in Home Assistant, lokal und ohne Cloud"
 requires-python = ">=3.12"
 
 [tool.ruff]

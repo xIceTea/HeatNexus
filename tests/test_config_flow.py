@@ -11,7 +11,7 @@ pytestmark = requires_ha()
 
 @pytest.fixture(scope="module")
 def flow():
-    from custom_components.windhager import config_flow  # noqa: PLC0415
+    from custom_components.heatnexus import config_flow  # noqa: PLC0415
 
     return config_flow
 
@@ -31,7 +31,7 @@ def test_clean_host(flow, eingabe, erwartet):
 
 
 def test_info_und_betreiberebene_sind_pflicht(flow):
-    from custom_components.windhager.const import (  # noqa: PLC0415
+    from custom_components.heatnexus.const import (  # noqa: PLC0415
         CONF_LEVELS,
         LEVEL_INFO,
         LEVEL_OPERATE,
@@ -43,14 +43,14 @@ def test_info_und_betreiberebene_sind_pflicht(flow):
 
 
 def test_unbekannte_ebene_wird_verworfen(flow):
-    from custom_components.windhager.const import CONF_LEVELS  # noqa: PLC0415
+    from custom_components.heatnexus.const import CONF_LEVELS  # noqa: PLC0415
 
     options = flow.normalize_options({CONF_LEVELS: ["info", "quatsch", "oem"]})
     assert options[CONF_LEVELS] == ["info", "operate", "oem"]
 
 
 def test_schalter_und_intervall_werden_uebernommen(flow):
-    from custom_components.windhager.const import (  # noqa: PLC0415
+    from custom_components.heatnexus.const import (  # noqa: PLC0415
         CONF_ENABLE_ADVANCED,
         CONF_UPDATE_INTERVAL,
         CONF_WRITABLE_ADVANCED,

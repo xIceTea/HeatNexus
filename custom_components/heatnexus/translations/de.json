@@ -75,7 +75,7 @@
   },
   "entity": {
     "climate": {
-      "windhager_climate": {
+      "heatnexus_climate": {
         "state_attributes": {
           "preset_mode": {
             "state": {

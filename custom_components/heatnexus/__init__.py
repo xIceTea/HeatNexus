@@ -1,4 +1,4 @@
-"""The Windhager Heater integration."""
+"""HeatNexus – Heizungen in Home Assistant."""
 
 from __future__ import annotations
 
@@ -129,8 +129,8 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up windhager integration from a config entry."""
-    _LOGGER.info("Setting up Windhager integration for %s", entry.data["host"])
+    """Set up heatnexus integration from a config entry."""
+    _LOGGER.info("Setting up HeatNexus integration for %s", entry.data["host"])
 
     hass.data.setdefault(DOMAIN, {})
     _async_register_rediscover_service(hass)
@@ -153,7 +153,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     #   1) im RAM   -> überlebt einen Config-Entry-Reload (Entity aktivieren)
     #   2) auf Platte (Store) -> überlebt einen HA-Neustart
     # Neu erkannt wird nur, wenn die Integration aktualisiert wurde (andere
-    # Version), der Cache zu alt ist, oder der Dienst windhager.rediscover läuft.
+    # Version), der Cache zu alt ist, oder der Dienst heatnexus.rediscover läuft.
     host = entry.data["host"]
     mem_cache = hass.data[DOMAIN].setdefault("_discovery_cache", {})
     store = Store(hass, DISCOVERY_STORE_VERSION, _store_key(entry))
@@ -221,7 +221,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 def _async_register_rediscover_service(hass: HomeAssistant) -> None:
-    """Dienst windhager.rediscover: Cache verwerfen und neu erkennen."""
+    """Dienst heatnexus.rediscover: Cache verwerfen und neu erkennen."""
     if hass.services.has_service(DOMAIN, "rediscover"):
         return
 
@@ -241,7 +241,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    _LOGGER.info("Unloading Windhager integration for %s", entry.data["host"])
+    _LOGGER.info("Unloading HeatNexus integration for %s", entry.data["host"])
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         coordinator = hass.data[DOMAIN][entry.entry_id]

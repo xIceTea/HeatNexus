@@ -10,7 +10,7 @@ set_current_temp_compensation:
   description: Change the compensation for current temperature mesurement
   target:
     entity:
-      integration: windhager
+      integration: heatnexus
       domain: climate
   fields:
     compensation:
@@ -33,7 +33,7 @@ set_time_program:
     (mehrere Wochentag-Gruppen, z.B. Mo-Fr und Sa-So).
   target:
     entity:
-      integration: windhager
+      integration: heatnexus
       domain: sensor
   fields:
     switch_points:

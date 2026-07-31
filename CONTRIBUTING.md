@@ -30,7 +30,7 @@ Assistant benötigen, werden lokal übersprungen und laufen in der CI.
 
 Nach Änderungen an `const.py`, `device_db.json` oder der Discovery muss der
 gespeicherte Erkennungsstand verworfen werden: Version im `manifest.json`
-erhöhen oder den Dienst `windhager.rediscover` aufrufen.
+erhöhen oder den Dienst `heatnexus.rediscover` aufrufen.
 
 ## Anlage auslesen
 
