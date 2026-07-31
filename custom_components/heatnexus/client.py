@@ -619,7 +619,7 @@ class WindhagerHttpClient:
                     # "Konfiguration" tragen; Home Assistant lehnt sie
                     # bei reinen Sensoren ab.
                     if d.get("category") == "config":
-                        d["category"] = "diagnostic"
+                        d["category"] = None
                 d["write_prot"] = m.get("writeProt")
                 # read-only-Punkt ganz ohne Wert (z.B. Softwareversion ohne value-Feld)
                 if (

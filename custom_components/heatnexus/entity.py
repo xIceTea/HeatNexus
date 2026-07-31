@@ -109,7 +109,10 @@ class WindhagerEntity(CoordinatorEntity):
             self._attr_entity_registry_enabled_default = False
         category = device_info.get("category")
         if category == "config" and device_info.get("type") in NUR_LESEND:
-            category = "diagnostic"
+            # Nur lesbare Werte dürfen nicht als "Konfiguration" gelten – und
+            # sie sind auch keine Gerätediagnose, sondern ganz normale
+            # Messwerte (Heizkurve, Grenzwerte). Also ohne Einordnung.
+            category = None
         if category in CATEGORY_MAP:
             self._attr_entity_category = CATEGORY_MAP[category]
         self._attr_device_info = geraet_info(coordinator, device_info)

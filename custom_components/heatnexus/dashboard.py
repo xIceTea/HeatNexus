@@ -1,15 +1,17 @@
 """Mitgeliefertes Dashboard bereitstellen.
 
 Die Dashboard-Strategie liegt als JavaScript bei und baut die Ansichten zur
-Laufzeit aus den erkannten Geräten. Auf Wunsch wird zusätzlich ein fertiges
-Dashboard in der Seitenleiste angelegt.
+Laufzeit aus den erkannten Geräten. Zusätzlich meldet die Integration ein
+eigenes Dashboard in der Seitenleiste an, dessen Inhalt nur aus dem Verweis
+auf diese Strategie besteht.
 """
 
 from __future__ import annotations
 
-import contextlib
+import json
 import logging
 from pathlib import Path
+from typing import Any
 
 from homeassistant.components import frontend
 from homeassistant.components.http import StaticPathConfig
@@ -20,6 +22,7 @@ from .const import DASHBOARD_TITEL, DASHBOARD_URL, DOMAIN, JS_URL
 _LOGGER = logging.getLogger(__name__)
 
 _JS_DATEI = Path(__file__).parent / "frontend" / "heatnexus-dashboard.js"
+_INHALT: dict[str, Any] = {"strategy": {"type": "custom:heatnexus"}}
 
 
 async def async_register_frontend(hass: HomeAssistant) -> None:
@@ -35,54 +38,88 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
     _LOGGER.debug("Dashboard-Strategie bereitgestellt: %s", JS_URL)
 
 
-def _sammlung(hass: HomeAssistant):
-    """Verwaltung der Dashboards, falls verfügbar."""
-    daten = hass.data.get("lovelace")
-    return getattr(daten, "dashboards_collection", None)
-
-
 async def async_setup_dashboard(hass: HomeAssistant) -> None:
-    """Ein Dashboard in der Seitenleiste anlegen, falls noch keines besteht."""
+    """Dashboard in der Seitenleiste anmelden."""
     await async_register_frontend(hass)
 
-    sammlung = _sammlung(hass)
-    if sammlung is None:
-        _LOGGER.warning(
-            "Dashboard konnte nicht angelegt werden. Es lässt sich von Hand hinzufügen: "
-            "Einstellungen, Dashboards, Dashboard hinzufügen, dann die Strategie "
-            "custom:heatnexus eintragen."
-        )
-        return
-
-    if any(eintrag.get("url_path") == DASHBOARD_URL for eintrag in sammlung.async_items()):
+    if hass.data.get(f"{DOMAIN}_dashboard"):
         return
 
     try:
-        await sammlung.async_create_item(
-            {
-                "allow_single_word": True,
-                "icon": "mdi:fire",
-                "title": DASHBOARD_TITEL,
-                "url_path": DASHBOARD_URL,
-                "require_admin": False,
-                "show_in_sidebar": True,
-            }
+        from homeassistant.components.lovelace.const import (
+            LOVELACE_DATA,
+            MODE_YAML,
         )
-        speicher = hass.data["lovelace"].dashboards.get(DASHBOARD_URL)
-        if speicher is not None:
-            await speicher.async_save({"strategy": {"type": "custom:heatnexus"}})
-        _LOGGER.info("Dashboard %s angelegt", DASHBOARD_TITEL)
-    except Exception as err:
-        _LOGGER.warning("Dashboard konnte nicht angelegt werden: %s", err)
+        from homeassistant.components.lovelace.dashboard import (
+            LovelaceConfig,
+        )
+        from homeassistant.helpers.json import json_fragment
+    except ImportError as err:  # pragma: no cover - ältere Home-Assistant-Fassung
+        _LOGGER.warning("Dashboard nicht verfügbar: %s", err)
+        return
+
+    class HeatNexusDashboard(LovelaceConfig):
+        """Verweist nur auf die Strategie; die Ansichten baut der Browser."""
+
+        def __init__(self) -> None:
+            """Dashboard ohne eigene Konfigurationsdatei."""
+            super().__init__(hass, DASHBOARD_URL, {"mode": MODE_YAML})
+
+        @property
+        def mode(self) -> str:
+            """Der Inhalt kommt aus der Integration, nicht aus dem Speicher."""
+            return MODE_YAML
+
+        async def async_get_info(self) -> dict[str, Any]:
+            """Kurzinfo für die Dashboard-Übersicht."""
+            return {"mode": MODE_YAML}
+
+        async def async_load(self, force: bool) -> dict[str, Any]:
+            """Inhalt des Dashboards."""
+            return dict(_INHALT)
+
+        async def async_json(self, force: bool) -> Any:
+            """Inhalt als vorbereitetes JSON."""
+            return json_fragment(json.dumps(_INHALT))
+
+    daten = hass.data.get(LOVELACE_DATA)
+    if daten is None:
+        _LOGGER.warning("Dashboards stehen noch nicht bereit")
+        return
+
+    if DASHBOARD_URL not in daten.dashboards:
+        daten.dashboards[DASHBOARD_URL] = HeatNexusDashboard()
+
+    try:
+        frontend.async_register_built_in_panel(
+            hass,
+            "lovelace",
+            DASHBOARD_TITEL,
+            "mdi:fire",
+            DASHBOARD_URL,
+            {"mode": MODE_YAML, "urlPath": DASHBOARD_URL},
+            require_admin=False,
+            update=True,
+        )
+    except ValueError:
+        # Ein Panel mit dieser Adresse besteht bereits.
+        pass
+
+    hass.data[f"{DOMAIN}_dashboard"] = True
+    _LOGGER.info("Dashboard %s in der Seitenleiste angemeldet", DASHBOARD_TITEL)
 
 
 async def async_remove_dashboard(hass: HomeAssistant) -> None:
-    """Das angelegte Dashboard wieder entfernen."""
-    sammlung = _sammlung(hass)
-    if sammlung is None:
+    """Das Dashboard wieder aus der Seitenleiste nehmen."""
+    if not hass.data.pop(f"{DOMAIN}_dashboard", None):
         return
-    for eintrag in list(sammlung.async_items()):
-        if eintrag.get("url_path") == DASHBOARD_URL:
-            with contextlib.suppress(Exception):
-                await sammlung.async_delete_item(eintrag["id"])
-                _LOGGER.info("Dashboard %s entfernt", DASHBOARD_TITEL)
+    try:
+        from homeassistant.components.lovelace.const import LOVELACE_DATA
+    except ImportError:  # pragma: no cover
+        return
+
+    daten = hass.data.get(LOVELACE_DATA)
+    if daten is not None:
+        daten.dashboards.pop(DASHBOARD_URL, None)
+    frontend.async_remove_panel(hass, DASHBOARD_URL)
+    _LOGGER.info("Dashboard %s entfernt", DASHBOARD_TITEL)
