@@ -9,6 +9,11 @@
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.12%2B-03a9f4" alt="Home Assistant 2024.12+">
 </p>
 
+<p align="center">
+  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&amp;repository=HeatNexus&amp;category=integration"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="In HACS öffnen"></a>
+  <a href="https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Integration hinzufügen"></a>
+</p>
+
 # HeatNexus
 
 Heizungen in Home Assistant – lokal, vollständig, ohne Cloud.
@@ -49,21 +54,28 @@ gelisteten Geräten sind willkommen.
 
 ## Installation
 
-### HACS
+### Über HACS
 
-1. HACS → Integrationen → ⋮ → **Benutzerdefinierte Repositories**
-2. Repository-URL eintragen, Kategorie *Integration*
-3. „HeatNexus" installieren, Home Assistant neu starten
+[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration)
 
-### Manuell
+Der Knopf trägt das Repository in HACS ein und öffnet die Installation direkt.
+Danach Home Assistant neu starten.
+
+Von Hand geht es genauso: HACS → Integrationen → ⋮ → **Benutzerdefinierte
+Repositories** → Repository-URL eintragen, Kategorie *Integration* →
+„HeatNexus" installieren → Home Assistant neu starten.
+
+### Ohne HACS
 
 Ordner `custom_components/heatnexus` nach `<config>/custom_components/heatnexus`
 kopieren und Home Assistant neu starten.
 
 ### Einrichtung
 
-Einstellungen → Geräte & Dienste → Integration hinzufügen → **HeatNexus**.
-Erforderlich sind die IP-Adresse der Anlage und das
+[![Integration hinzufügen](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
+
+Oder von Hand: Einstellungen → Geräte & Dienste → Integration hinzufügen →
+**HeatNexus**. Erforderlich sind die IP-Adresse der Anlage und das
 Service-Passwort; der Benutzername ist `USER`.
 
 Im zweiten Schritt wird der **Umfang** festgelegt:
