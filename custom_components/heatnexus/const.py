@@ -31,8 +31,27 @@ MAX_UPDATE_INTERVAL = 300
 # Sensorwerte; dank schlankem Poll-Set (nur aktive OIDs) gut vertretbar.
 UPDATE_INTERVAL = 30
 
-# Maximum parallel HTTP requests against the device
-FETCH_CONCURRENCY = 8
+# Gleichzeitige Anfragen an die Anlage. Mehr als drei quittieren die Geräte bei
+# großen Menü-Ebenen mit abgebrochenen Antworten.
+FETCH_CONCURRENCY = 3
+
+# Ein Menü-Abruf liefert höchstens so viele Datenpunkte; der Rest kommt über
+# ?offset=<n> nach.
+MENU_PAGE_SIZE = 10
+
+# Datenpunkte, die in keiner Menü-Ebene auftauchen, aber vorhanden und für die
+# Bedienung nötig sind. Sie werden zusätzlich einzeln gelesen.
+# (An zwei Anlagen erhoben: Zeitprogramme, Warmwasser- und Zirkulationswerte,
+# gemessene Raumtemperatur.)
+EXTRA_OIDS_BY_FCT: dict[int, tuple[str, ...]] = {
+    14: (  # Heizkreis
+        "0/1", "0/4", "0/118", "1/4", "1/65", "1/118", "2/9", "4/82",
+        "3/61", "3/62", "3/63", "5/51", "5/61", "5/64", "5/65", "5/70", "5/71",
+    ),
+    16: ("0/7", "2/9", "4/82"),          # Puffer
+    20: ("0/7", "1/7", "4/92", "4/93"),  # Zirkulation
+    25: ("0/97", "4/92"),                # Kessel
+}
 
 # Timeout (s) für die einmalige Erstinitialisierung (Discovery + Metadaten
 # aller Datenpunkte inkl. Serviceebene). Bewusst großzügig, da getrennt vom

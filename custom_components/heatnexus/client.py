@@ -17,9 +17,11 @@ from .const import (
     ADVANCED_LEVELS,
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
+    EXTRA_OIDS_BY_FCT,
     FCT_CLIMATE,
     FCT_ENTITY_MAP,
     FETCH_CONCURRENCY,
+    MENU_PAGE_SIZE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,6 +57,9 @@ class WindhagerHttpClient:
         self.writable_advanced = writable_advanced
         self.oids: set | None = None
         self.devices: list[dict] = []
+        # Metadaten aus den Menü-Ebenen: OID -> vollständiger Datenpunkt.
+        # Damit entfällt für diese OIDs die einzelne Metadaten-Abfrage.
+        self.menu_meta: dict = {}
         # Statisch immer gepollte OIDs (aktive Entities + Climate).
         self.poll_oids: set = set()
         # Dynamisch von tatsächlich aktivierten Entities registrierte OIDs
@@ -94,16 +99,35 @@ class WindhagerHttpClient:
             self._session = None
             self._auth = None
 
-    async def fetch(self, url):
-        """GET /api/1.0/lookup<url> and return the parsed JSON."""
+    @staticmethod
+    def _decode(raw: bytes) -> str:
+        """Antwort dekodieren.
+
+        Die Anlagen liefern Text nicht durchgängig als UTF-8: Funktionsnamen
+        wie „Hebebühne" kommen als Latin-1/CP1252 zurück. Ohne Rückfall stünden
+        Fragezeichen in Geräte- und Entitätsnamen.
+        """
+        try:
+            return raw.decode("utf-8")
+        except UnicodeDecodeError:
+            return raw.decode("cp1252", "replace")
+
+    async def _get(self, url: str):
+        """GET auf die Anlage; gibt (json_oder_None, status) zurück."""
         await self._ensure_session()
         async with self._semaphore:
-            ret = await self._auth.request(
-                "GET", f"http://{self.host}/api/1.0/lookup{url}"
-            )
-            json = await ret.json()
-        _LOGGER.debug("Fetched data for %s: %s", url, json)
-        return json
+            ret = await self._auth.request("GET", url)
+            raw = await ret.read()
+        try:
+            return json.loads(self._decode(raw)), ret.status
+        except ValueError:
+            return None, ret.status
+
+    async def fetch(self, url):
+        """GET /api/1.0/lookup<url> and return the parsed JSON."""
+        data, _status = await self._get(f"http://{self.host}/api/1.0/lookup{url}")
+        _LOGGER.debug("Fetched data for %s: %s", url, data)
+        return data
 
     async def probe(self):
         """Verbindung prüfen: Anlagenstruktur und HTTP-Status zurückgeben.
@@ -111,16 +135,67 @@ class WindhagerHttpClient:
         Wird vom Einrichtungsdialog benutzt, damit dort zwischen „nicht
         erreichbar" und „Passwort falsch" unterschieden werden kann.
         """
-        await self._ensure_session()
-        async with self._semaphore:
-            ret = await self._auth.request(
-                "GET", f"http://{self.host}/api/1.0/lookup/1"
+        return await self._get(f"http://{self.host}/api/1.0/lookup/1")
+
+    # ------------------------------------------------------------------
+    # Sammel-Lesezugriff über Menü-Ebenen
+    # ------------------------------------------------------------------
+    async def _read_menu(self, prefix: str, menu_id: str, expected: int) -> list:
+        """Eine Menü-Ebene vollständig lesen.
+
+        Ein Abruf liefert höchstens MENU_PAGE_SIZE Datenpunkte; weitere holt
+        das Gerät über ?offset=<n>. Jeder Eintrag enthält bereits Wert und
+        Metadaten, ein zusätzlicher Einzelabruf entfällt damit.
+        """
+        base = f"http://{self.host}/api/1.0/lookup{prefix}/{menu_id}"
+        items: list = []
+        seen: set = set()
+        offset = 0
+
+        while True:
+            url = base if offset == 0 else f"{base}?offset={offset}"
+            data, status = await self._get(url)
+            if status != 200 or not isinstance(data, list) or not data:
+                break
+            fresh = [i for i in data if isinstance(i, dict) and i.get("OID") not in seen]
+            if not fresh:
+                break
+            items.extend(fresh)
+            seen.update(i["OID"] for i in fresh)
+            if len(items) >= expected or len(data) < MENU_PAGE_SIZE:
+                break
+            offset += MENU_PAGE_SIZE
+
+        if expected and len(items) < expected:
+            _LOGGER.debug(
+                "Menü %s%s: %d von %d Datenpunkten gelesen",
+                prefix, menu_id, len(items), expected
             )
-            try:
-                data = await ret.json(content_type=None)
-            except Exception:  # noqa: BLE001
-                data = None
-            return data, ret.status
+        return items
+
+    async def _read_function_menus(self, prefix: str) -> dict:
+        """Alle Datenpunkte einer Funktion über ihre Menü-Ebenen einlesen."""
+        root, status = await self._get(f"http://{self.host}/api/1.0/lookup{prefix}")
+        if status != 200 or not isinstance(root, list) or not root:
+            return {}
+        if not isinstance(root[0], dict) or "id" not in root[0]:
+            # Ältere Firmware kennt die Menüliste nicht – Einzelabfragen greifen.
+            return {}
+
+        menus = {str(m.get("id")): int(m.get("count") or 0) for m in root}
+        results = await asyncio.gather(
+            *(self._read_menu(prefix, menu_id, count) for menu_id, count in menus.items())
+        )
+        datapoints: dict = {}
+        for items in results:
+            for item in items:
+                oid = item.get("OID")
+                if oid:
+                    datapoints[oid] = item
+        _LOGGER.debug(
+            "%s: %d Datenpunkte aus %d Menü-Ebenen", prefix, len(datapoints), len(menus)
+        )
+        return datapoints
 
     async def update(self, oid, value):
         """PUT a new value to a datapoint."""
@@ -147,6 +222,12 @@ class WindhagerHttpClient:
     @staticmethod
     def slugify(identifier_str):
         return identifier_str.replace(".", "-").replace("/", "-")
+
+    @staticmethod
+    def _gnmn(prefix: str, oid: str) -> str:
+        """Datenpunktadresse 'gn/mn' relativ zum Funktionspräfix."""
+        rest = oid[len(prefix):].strip("/").split("/")
+        return f"{rest[0]}/{rest[1]}" if len(rest) >= 2 else oid
 
     # ------------------------------------------------------------------
     # Discovery
@@ -210,43 +291,64 @@ class WindhagerHttpClient:
                 for definition in FCT_ENTITY_MAP.get(fct_type, []):
                     self._add_entity(definition, prefix, device_id, fct)
 
-                # Auto discovery from the bundled device database: every
-                # info/operate datapoint of this function type that is not
-                # covered yet. The concrete platform is resolved later from
-                # the device metadata; unavailable OIDs are pruned.
-                layers = get_layers(fct_type)
-                if layers:
-                    for level in self.levels:
-                        for gnmn in layers.get(level, []):
-                            oid = f"{prefix}/{gnmn}/0"
-                            if oid in self.oids:
-                                continue
-                            self.devices.append(
-                                {
-                                    "id": self.slugify(f"{self.host}{oid}"),
-                                    "oid": oid,
-                                    "name": NAME_OVERRIDES.get(gnmn) or get_name(gnmn) or gnmn,
-                                    "type": "auto",
-                                    "level": level,
-                                    # Service- und Werksebene sind vorhanden,
-                                    # aber standardmäßig deaktiviert (pro Entity
-                                    # in Home Assistant aktivierbar oder über
-                                    # die Optionen der Integration).
-                                    "enabled_default": (
-                                        level not in ADVANCED_LEVELS
-                                        or self.enable_advanced
-                                    ),
-                                    "enum": gnmn if get_enum(gnmn) else None,
-                                    "unit": None, "device_class": None,
-                                    "state_class": None, "category": None,
-                                    "icon": None, "min": None, "max": None,
-                                    "step": None, "press_value": None,
-                                    "write_prot": None,
-                                    "device_id": self.slugify(f"{self.host}{prefix}"),
-                                    "device_name": fct["name"],
-                                }
-                            )
-                            self.oids.add(oid)
+                # Sammel-Lesezugriff: Die Menü-Ebenen der Funktion liefern
+                # sämtliche vorhandenen Datenpunkte inklusive Metadaten in
+                # wenigen Anfragen. Das ist die Hauptquelle der Erkennung.
+                menu_data = await self._read_function_menus(prefix)
+                self.menu_meta.update(menu_data)
+
+                layers = get_layers(fct_type) or {}
+                level_of = {
+                    gnmn: level
+                    for level in ("info", "operate", "service", "oem")
+                    for gnmn in layers.get(level, [])
+                }
+
+                # Datenpunkte, die die Anlage meldet, plus die bekannten
+                # Ergänzungen, die in keinem Menü stehen (Zeitprogramme u. a.).
+                candidates = {
+                    oid: self._gnmn(prefix, oid) for oid in menu_data
+                }
+                for gnmn in EXTRA_OIDS_BY_FCT.get(fct_type, ()):
+                    candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
+                # Datenpunkte der gewählten Ebenen, die das Gerät nicht im Menü
+                # führt, aber laut Datenbank kennen könnte
+                for level in self.levels:
+                    for gnmn in layers.get(level, []):
+                        candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
+
+                for oid, gnmn in candidates.items():
+                    if oid in self.oids:
+                        continue
+                    # Unbekannte Datenpunkte (nicht in der Datenbank) gelten als
+                    # Fachparameter: vorhanden, aber zurückhaltend behandelt.
+                    level = level_of.get(gnmn, "service")
+                    if level not in self.levels:
+                        continue
+                    self.devices.append(
+                        {
+                            "id": self.slugify(f"{self.host}{oid}"),
+                            "oid": oid,
+                            "name": NAME_OVERRIDES.get(gnmn) or get_name(gnmn) or gnmn,
+                            "type": "auto",
+                            "level": level,
+                            # Service- und Werksebene sind vorhanden, aber
+                            # standardmäßig deaktiviert (pro Entity in Home
+                            # Assistant aktivierbar oder über die Optionen).
+                            "enabled_default": (
+                                level not in ADVANCED_LEVELS or self.enable_advanced
+                            ),
+                            "enum": gnmn if get_enum(gnmn) else None,
+                            "unit": None, "device_class": None,
+                            "state_class": None, "category": None,
+                            "icon": None, "min": None, "max": None,
+                            "step": None, "press_value": None,
+                            "write_prot": None,
+                            "device_id": self.slugify(f"{self.host}{prefix}"),
+                            "device_name": fct["name"],
+                        }
+                    )
+                    self.oids.add(oid)
 
                 # Heizkreis additionally gets a climate entity
                 if fct_type == FCT_CLIMATE:
@@ -309,17 +411,8 @@ class WindhagerHttpClient:
     async def _fetch_json(self, oid):
         """Fetch one OID and return (oid, json_or_None, http_status)."""
         try:
-            await self._ensure_session()
-            async with self._semaphore:
-                ret = await self._auth.request(
-                    "GET", f"http://{self.host}/api/1.0/lookup{oid}"
-                )
-                status = ret.status
-                try:
-                    json = await ret.json()
-                except Exception:  # noqa: BLE001
-                    json = None
-            return oid, json, status
+            data, status = await self._get(f"http://{self.host}/api/1.0/lookup{oid}")
+            return oid, data, status
         except Exception as e:  # noqa: BLE001
             _LOGGER.debug("Metadata fetch failed for %s: %s", oid, e)
             return oid, None, 0
@@ -371,11 +464,17 @@ class WindhagerHttpClient:
         - writeProt=True converts writable entities into read-only ones
         - OIDs answered with 404 are dropped entirely (e.g. Sonden ohne Saugzuführung)
         """
-        results = await asyncio.gather(
-            *(self._fetch_json(oid) for oid in list(self.oids))
+        # Alles, was schon aus den Menü-Ebenen bekannt ist, muss nicht erneut
+        # gelesen werden – das spart den Großteil der Anfragen beim Start.
+        meta = {oid: m for oid, m in self.menu_meta.items() if oid in self.oids}
+        offen = [oid for oid in self.oids if oid not in meta]
+        _LOGGER.debug(
+            "Metadaten: %d aus Menü-Ebenen, %d werden einzeln gelesen",
+            len(meta), len(offen)
         )
+
+        results = await asyncio.gather(*(self._fetch_json(oid) for oid in offen))
         missing = set()
-        meta = {}
         for oid, json, status in results:
             reason = (json or {}).get("reason", "") if isinstance(json, dict) else ""
             if status == 404 or (status == 409 and "invalid Identifier" in reason):

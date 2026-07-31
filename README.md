@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="HeatNexus" width="720">
+  <img src="assets/banner_small.png" alt="HeatNexus" width="820">
 </p>
 
 <p align="center">
