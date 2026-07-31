@@ -9,8 +9,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from . import DOMAIN
-from .entity import WindhagerEntity
+from .entity import WindhagerEntity, async_setup_entities
 
 DEVICE_CLASS_MAP = {
     "problem": BinarySensorDeviceClass.PROBLEM,
@@ -21,13 +20,7 @@ DEVICE_CLASS_MAP = {
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager binary sensors from a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = [
-        WindhagerBinarySensor(coordinator, device_info)
-        for device_info in coordinator.data.get("devices", [])
-        if device_info.get("type") == "binary_sensor"
-    ]
-    async_add_entities(entities)
+    async_setup_entities(hass, entry, async_add_entities, {"binary_sensor": WindhagerBinarySensor})
 
 
 class WindhagerBinarySensor(WindhagerEntity, BinarySensorEntity):

@@ -17,9 +17,8 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 import voluptuous as vol
 
-from . import DOMAIN
 from .const import ERROR_TEXTS
-from .entity import WindhagerEntity
+from .entity import WindhagerEntity, async_setup_entities
 from .error_texts import parse_messages
 from .exceptions import WindhagerValueError
 
@@ -65,31 +64,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         "async_set_time_program",
     )
 
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[SensorEntity] = []
-
-    for device_info in coordinator.data.get("devices", []):
-        dev_type = device_info.get("type")
-        if dev_type == "temperature":
-            entities.append(WindhagerTemperatureSensor(coordinator, device_info))
-        elif dev_type == "sensor":
-            entities.append(WindhagerGenericSensor(coordinator, device_info))
-        elif dev_type == "enum_sensor":
-            entities.append(WindhagerEnumSensor(coordinator, device_info))
-        elif dev_type == "string_sensor":
-            entities.append(WindhagerStringSensor(coordinator, device_info))
-        elif dev_type == "error_sensor":
-            entities.append(WindhagerErrorTextSensor(coordinator, device_info))
-        elif dev_type == "time_program":
-            entities.append(WindhagerTimeProgramSensor(coordinator, device_info))
-        elif dev_type == "device_status":
-            entities.append(WindhagerDeviceStatusSensor(coordinator, device_info))
-        elif dev_type == "message_text":
-            entities.append(WindhagerMessageTextSensor(coordinator, device_info))
-        elif dev_type in ("total", "total_increasing"):
-            entities.append(WindhagerPelletSensor(coordinator, device_info))
-
-    async_add_entities(entities)
+    async_setup_entities(
+        hass,
+        entry,
+        async_add_entities,
+        {
+            "temperature": WindhagerTemperatureSensor,
+            "sensor": WindhagerGenericSensor,
+            "enum_sensor": WindhagerEnumSensor,
+            "string_sensor": WindhagerStringSensor,
+            "error_sensor": WindhagerErrorTextSensor,
+            "time_program": WindhagerTimeProgramSensor,
+            "device_status": WindhagerDeviceStatusSensor,
+            "message_text": WindhagerMessageTextSensor,
+            "total": WindhagerPelletSensor,
+            "total_increasing": WindhagerPelletSensor,
+        },
+    )
 
 
 class WindhagerTemperatureSensor(WindhagerEntity, SensorEntity):

@@ -77,6 +77,8 @@ class WindhagerHttpClient:
         self._object_texts: dict = {}
         # Anzahl der Anfragen an die Anlage (für die Startmeldung)
         self.request_count = 0
+        # Ist der vollständige Abzug (Menü-Ebenen) bereits gelaufen?
+        self._vollstaendig = False
         self._session = None
         self._auth = None
         self._semaphore = asyncio.Semaphore(FETCH_CONCURRENCY)
@@ -289,8 +291,12 @@ class WindhagerHttpClient:
         self.devices.append(descriptor)
         self.oids.add(oid)
 
-    async def _discover(self):
-        """Discover devices/functions and build entity descriptors (once)."""
+    async def _discover(self, nur_kern: bool = False):
+        """Geräte und Datenpunkte der Anlage ermitteln.
+
+        Mit ``nur_kern`` werden ausschließlich die kuratierten Datenpunkte
+        angelegt – ohne die Menü-Ebenen zu lesen.
+        """
         self.oids = set()
         self.devices = []
         json_devices = await self.fetch("/1")
@@ -322,7 +328,7 @@ class WindhagerHttpClient:
                 # Sammel-Lesezugriff: Die Menü-Ebenen der Funktion liefern
                 # sämtliche vorhandenen Datenpunkte inklusive Metadaten in
                 # wenigen Anfragen. Das ist die Hauptquelle der Erkennung.
-                menu_data = await self._read_function_menus(prefix, fct_type)
+                menu_data = {} if nur_kern else await self._read_function_menus(prefix, fct_type)
                 self.menu_meta.update(menu_data)
 
                 layers = get_layers(fct_type) or {}
@@ -335,10 +341,11 @@ class WindhagerHttpClient:
                 # Datenpunkte, die die Anlage meldet, plus die bekannten
                 # Ergänzungen, die in keinem Menü stehen (Zeitprogramme u. a.).
                 candidates = {oid: self._gnmn(prefix, oid) for oid in menu_data}
-                for gnmn in EXTRA_OIDS_BY_FCT.get(fct_type, ()):
-                    candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
+                if not nur_kern:
+                    for gnmn in EXTRA_OIDS_BY_FCT.get(fct_type, ()):
+                        candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
 
-                if not menu_data:
+                if not menu_data and not nur_kern:
                     # Ältere Firmware ohne Menüliste: auf die Datenbank
                     # zurückfallen und jeden Datenpunkt einzeln prüfen.
                     for level in self.levels:
@@ -652,17 +659,43 @@ class WindhagerHttpClient:
         self.poll_oids = poll
         self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
 
-    async def async_init(self) -> None:
-        """Anlage einmalig einlesen (getrennt vom zyklischen Abruf)."""
+    async def async_init_basic(self) -> None:
+        """Grunddaten lesen: Anlagenstruktur und die wichtigsten Datenpunkte.
+
+        Kostet nur wenige Anfragen. Danach sind Geräte und Kernwerte in Home
+        Assistant sichtbar; der vollständige Abzug folgt im Hintergrund.
+        """
         if self.oids is not None:
             return
 
         begonnen = time.monotonic()
         self.request_count = 0
+        await self._discover(nur_kern=True)
+        await self._apply_metadata()
+        self._compute_poll_oids()
+        self._vollstaendig = False
+        _LOGGER.info(
+            "%s: Grunddaten gelesen – %d Entitäten, %d Anfragen, %.1f s. "
+            "Die Anlage wird im Hintergrund vollständig eingelesen.",
+            self.host,
+            len(self.devices),
+            self.request_count,
+            time.monotonic() - begonnen,
+        )
+
+    async def async_init(self) -> None:
+        """Anlage vollständig einlesen (getrennt vom zyklischen Abruf)."""
+        if self._vollstaendig:
+            return
+
+        begonnen = time.monotonic()
+        self.request_count = 0
+        self.oids = None
         await self._discover()
         nach_discovery = self.request_count
         await self._apply_metadata()
         self._compute_poll_oids()
+        self._vollstaendig = True
 
         _LOGGER.info(
             "%s eingelesen: %d Datenpunkte, %d Entitäten, davon %d aktiv – "
@@ -702,6 +735,7 @@ class WindhagerHttpClient:
         self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
         # object-Unterstützung aus dem Cache übernehmen (kein erneutes Probing).
         self._objects_supported = data.get("objects_supported")
+        self._vollstaendig = True
 
     # ------------------------------------------------------------------
     # Polling

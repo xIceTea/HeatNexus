@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, ENUMS
+from .const import DOMAIN, ENUMS, SIGNAL_NEUE_ENTITAETEN
 from .device_db import get_enum
 from .helpers import parse_value
 
@@ -16,6 +20,41 @@ CATEGORY_MAP = {
     "diagnostic": EntityCategory.DIAGNOSTIC,
     "config": EntityCategory.CONFIG,
 }
+
+
+@callback
+def async_setup_entities(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+    klassen: dict[str, type],
+) -> None:
+    """Entitäten einer Plattform anlegen – auch später nachgemeldete.
+
+    Beim Einrichten sind zunächst nur die Kerndatenpunkte bekannt; der
+    vollständige Abzug der Anlage läuft im Hintergrund weiter. Sobald er
+    fertig ist, werden die zusätzlich gefundenen Entitäten nachgereicht.
+    """
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    bekannt: set[str] = set()
+
+    @callback
+    def _anlegen() -> None:
+        neu = []
+        for beschreibung in (coordinator.data or {}).get("devices", []):
+            klasse = klassen.get(beschreibung.get("type"))
+            kennung = beschreibung.get("id")
+            if klasse is None or not kennung or kennung in bekannt:
+                continue
+            bekannt.add(kennung)
+            neu.append(klasse(coordinator, beschreibung))
+        if neu:
+            async_add_entities(neu)
+
+    _anlegen()
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id), _anlegen)
+    )
 
 
 class WindhagerEntity(CoordinatorEntity):

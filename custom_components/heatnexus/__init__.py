@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
@@ -30,6 +31,7 @@ from .const import (
     DISCOVERY_STORE_VERSION,
     DOMAIN,
     INIT_TIMEOUT,
+    SIGNAL_NEUE_ENTITAETEN,
     UPDATE_INTERVAL,
 )
 
@@ -183,29 +185,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.debug("Windhager: Discovery aus persistentem Cache geladen (%s)", host)
 
     if not restored:
-        _LOGGER.info(
-            "Windhager: Erstinitialisierung/Discovery für %s (einmalig, kann etwas dauern)…",
-            host,
-        )
+        # Nur die Grunddaten abwarten: Anlagenstruktur und Kerndatenpunkte.
+        # Das kostet wenige Anfragen, Home Assistant startet sofort durch.
         try:
             async with async_timeout.timeout(INIT_TIMEOUT):
-                await client.async_init()
+                await client.async_init_basic()
         except TimeoutError as err:
             await client.close()
-            raise ConfigEntryNotReady(f"Timeout bei der Erstinitialisierung von {host}") from err
+            raise ConfigEntryNotReady(f"Zeitüberschreitung beim Verbinden mit {host}") from err
         except Exception as err:
             await client.close()
-            raise ConfigEntryNotReady(
-                f"Fehler bei der Erstinitialisierung von {host}: {err}"
-            ) from err
+            raise ConfigEntryNotReady(f"Fehler beim Verbinden mit {host}: {err}") from err
 
     coordinator = WindhagerDataUpdateCoordinator(hass, client, entry, scope["update_interval"])
     await coordinator.async_config_entry_first_refresh()
 
-    # Cache erst nach dem ersten Refresh schreiben (dann ist auch geklärt, ob
-    # der object-Endpunkt/Zeitprogramme lokal unterstützt werden und nicht
-    # lesbare Datenpunkte sind bereits entfernt). RAM + Platte.
-    if not restored:
+    hass.data[DOMAIN][entry.entry_id] = coordinator
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    if restored:
+        return True
+
+    async def _vollstaendig_einlesen() -> None:
+        """Die Anlage im Hintergrund vollständig einlesen.
+
+        Home Assistant ist zu diesem Zeitpunkt bereits gestartet; die
+        zusätzlich gefundenen Entitäten werden anschließend nachgemeldet.
+        """
+        try:
+            await client.async_init()
+        except Exception as err:
+            _LOGGER.warning("%s konnte nicht vollständig eingelesen werden: %s", host, err)
+            return
+
+        await coordinator.async_refresh()
+        async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id))
+
         data = client.export_discovery()
         mem_cache[cache_key] = data
         await store.async_save(
@@ -218,8 +233,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             }
         )
 
-    hass.data[DOMAIN][entry.entry_id] = coordinator
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_create_background_task(
+        hass, _vollstaendig_einlesen(), name=f"{DOMAIN}_vollabzug_{host}"
+    )
 
     return True
 

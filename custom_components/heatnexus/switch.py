@@ -6,19 +6,12 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from . import DOMAIN
-from .entity import WindhagerEntity
+from .entity import WindhagerEntity, async_setup_entities
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager switches from a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = [
-        WindhagerSwitch(coordinator, device_info)
-        for device_info in coordinator.data.get("devices", [])
-        if device_info.get("type") == "switch"
-    ]
-    async_add_entities(entities)
+    async_setup_entities(hass, entry, async_add_entities, {"switch": WindhagerSwitch})
 
 
 class WindhagerSwitch(WindhagerEntity, SwitchEntity):

@@ -21,6 +21,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import voluptuous as vol
 
 from . import DOMAIN
+from .entity import async_setup_entities
 from .exceptions import WindhagerValueError
 from .helpers import get_oid_value
 
@@ -56,19 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         "set_current_temp_compensation",
     )
 
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = []
-
-    for device_info in coordinator.data.get("devices", []):
-        if device_info.get("type") == "climate":
-            # Eine Climate-Entity je Heizkreis. Die frühere zweite Variante
-            # "without bias" war ein Artefakt aus dem Upstream (für Anlagen,
-            # deren Raumfühler die Behaglichkeitskorrektur bereits enthält);
-            # ohne angeschlossenen Raumfühler liefert sie identische Werte
-            # und sorgte nur für doppelte, verwirrende Entities.
-            entities.append(WindhagerThermostatClimate(coordinator, device_info))
-
-    async_add_entities(entities)
+    async_setup_entities(hass, entry, async_add_entities, {"climate": WindhagerThermostatClimate})
 
 
 class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):

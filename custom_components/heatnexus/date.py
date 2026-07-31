@@ -10,8 +10,7 @@ from homeassistant.components.date import DateEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from . import DOMAIN
-from .entity import WindhagerEntity
+from .entity import WindhagerEntity, async_setup_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,13 +27,7 @@ def parse_date(value: str | None) -> dt_date | None:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager date entities from a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = [
-        WindhagerDate(coordinator, device_info)
-        for device_info in coordinator.data.get("devices", [])
-        if device_info.get("type") == "date"
-    ]
-    async_add_entities(entities)
+    async_setup_entities(hass, entry, async_add_entities, {"date": WindhagerDate})
 
 
 class WindhagerDate(WindhagerEntity, DateEntity):

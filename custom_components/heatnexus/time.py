@@ -9,8 +9,7 @@ from homeassistant.components.time import TimeEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from . import DOMAIN
-from .entity import WindhagerEntity
+from .entity import WindhagerEntity, async_setup_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,13 +29,7 @@ def parse_time(value: str | None) -> dt_time | None:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager time entities from a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = [
-        WindhagerTime(coordinator, device_info)
-        for device_info in coordinator.data.get("devices", [])
-        if device_info.get("type") == "time"
-    ]
-    async_add_entities(entities)
+    async_setup_entities(hass, entry, async_add_entities, {"time": WindhagerTime})
 
 
 class WindhagerTime(WindhagerEntity, TimeEntity):

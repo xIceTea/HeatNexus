@@ -3,6 +3,9 @@
 DOMAIN = "heatnexus"
 DEFAULT_USERNAME = "USER"
 
+# Meldung an die Plattformen, sobald nachträglich Entitäten dazugekommen sind
+SIGNAL_NEUE_ENTITAETEN = "heatnexus_neue_entitaeten_{}"
+
 # ---------------------------------------------------------------------------
 # Konfiguration (Einrichtungsdialog und Optionen)
 # ---------------------------------------------------------------------------
