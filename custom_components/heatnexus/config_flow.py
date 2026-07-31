@@ -35,6 +35,7 @@ from .client import WindhagerHttpClient
 from .const import (
     ALL_LEVELS,
     CONF_COUNT,
+    CONF_DASHBOARD,
     CONF_ENABLE_ADVANCED,
     CONF_LABEL,
     CONF_LEVELS,
@@ -113,6 +114,9 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
         ): bool,
     }
     if mit_intervall:
+        felder[vol.Required(CONF_DASHBOARD, default=bool(defaults.get(CONF_DASHBOARD, True)))] = (
+            bool
+        )
         felder[
             vol.Required(
                 CONF_UPDATE_INTERVAL,
@@ -144,6 +148,8 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
     }
     if CONF_UPDATE_INTERVAL in raw:
         ergebnis[CONF_UPDATE_INTERVAL] = int(raw[CONF_UPDATE_INTERVAL])
+    if CONF_DASHBOARD in raw:
+        ergebnis[CONF_DASHBOARD] = bool(raw[CONF_DASHBOARD])
     return ergebnis
 
 
@@ -230,7 +236,11 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             gemeinsam = normalize_options(user_input)
             intervall = gemeinsam.pop(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)
-            options: dict[str, Any] = {CONF_UPDATE_INTERVAL: intervall}
+            dashboard = gemeinsam.pop(CONF_DASHBOARD, True)
+            options: dict[str, Any] = {
+                CONF_UPDATE_INTERVAL: intervall,
+                CONF_DASHBOARD: dashboard,
+            }
             # Die Auswahl gilt zunächst für alle Anlagen; sie lässt sich
             # später je Anlage getrennt ändern.
             for system in self._systeme:
@@ -351,12 +361,16 @@ class WindhagerOptionsFlow(OptionsFlow):
         options = dict(self.config_entry.options)
         if user_input is not None:
             options[CONF_UPDATE_INTERVAL] = int(user_input[CONF_UPDATE_INTERVAL])
+            options[CONF_DASHBOARD] = bool(user_input[CONF_DASHBOARD])
             return self.async_create_entry(data=options)
 
         return self.async_show_form(
             step_id="allgemein",
             data_schema=vol.Schema(
                 {
+                    vol.Required(
+                        CONF_DASHBOARD, default=bool(options.get(CONF_DASHBOARD, True))
+                    ): bool,
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
                         default=int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),
@@ -368,7 +382,7 @@ class WindhagerOptionsFlow(OptionsFlow):
                             unit_of_measurement="s",
                             mode=NumberSelectorMode.BOX,
                         )
-                    )
+                    ),
                 }
             ),
         )

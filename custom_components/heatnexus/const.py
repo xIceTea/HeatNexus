@@ -18,6 +18,12 @@ CONF_LEVELS = "levels"
 CONF_ENABLE_ADVANCED = "enable_advanced"
 CONF_WRITABLE_ADVANCED = "writable_advanced"
 CONF_UPDATE_INTERVAL = "update_interval"
+CONF_DASHBOARD = "dashboard"
+
+# Mitgeliefertes Dashboard
+DASHBOARD_URL = "heatnexus"
+DASHBOARD_TITEL = "Heizung"
+JS_URL = "/heatnexus/heatnexus-dashboard.js"
 
 # Bedienebenen der Anlage, wie sie auch das InfoWIN Touch kennt
 LEVEL_INFO = "info"  # Messwerte und Zustände

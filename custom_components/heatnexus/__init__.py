@@ -11,6 +11,7 @@ from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -20,6 +21,7 @@ from homeassistant.util import dt as dt_util
 from . import device_db, error_texts
 from .client import WindhagerHttpClient
 from .const import (
+    CONF_DASHBOARD,
     CONF_ENABLE_ADVANCED,
     CONF_LABEL,
     CONF_LEVELS,
@@ -33,6 +35,11 @@ from .const import (
     INIT_TIMEOUT,
     SIGNAL_NEUE_ENTITAETEN,
     UPDATE_INTERVAL,
+)
+from .dashboard import (
+    async_register_frontend,
+    async_remove_dashboard,
+    async_setup_dashboard,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -231,6 +238,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {"name": hub_name, "coordinators": coordinators}
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _geraetenamen_angleichen(registry, entry, coordinators)
+    _verwaiste_entitaeten_entfernen(hass, entry, coordinators)
+
+    if (entry.options or {}).get(CONF_DASHBOARD, True):
+        await async_setup_dashboard(hass)
+    else:
+        await async_register_frontend(hass)
 
     for coordinator, client, store, host, fingerprint, cache_key in nachzuladen:
         entry.async_create_background_task(
@@ -251,6 +264,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     return True
+
+
+def _verwaiste_entitaeten_entfernen(
+    hass: HomeAssistant, entry: ConfigEntry, coordinators: dict
+) -> None:
+    """Entitäten entfernen, die es nach der aktuellen Auswahl nicht mehr gibt.
+
+    Wird der Umfang verkleinert (z.B. Werksebene abgewählt), blieben die
+    bereits angelegten Entitäten sonst dauerhaft als „nicht verfügbar" stehen.
+    """
+    vollstaendig = all(getattr(c.client, "_vollstaendig", False) for c in coordinators.values())
+    if not vollstaendig:
+        # Vor dem Vollabzug ist die Liste noch unvollständig – nichts löschen.
+        return
+
+    gueltig = {
+        beschreibung.get("id")
+        for coordinator in coordinators.values()
+        for beschreibung in (coordinator.data or {}).get("devices", [])
+    }
+    registry = er.async_get(hass)
+    for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
+        if eintrag.unique_id not in gueltig:
+            _LOGGER.debug("Entferne verwaiste Entität %s", eintrag.entity_id)
+            registry.async_remove(eintrag.entity_id)
 
 
 def _geraetenamen_angleichen(registry, entry: ConfigEntry, coordinators: dict) -> None:
@@ -304,6 +342,9 @@ async def _vollabzug(
 
     await coordinator.async_refresh()
     async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id))
+    daten = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if daten:
+        _verwaiste_entitaeten_entfernen(hass, entry, daten["coordinators"])
 
     data = client.export_discovery()
     mem_cache[cache_key] = data
@@ -348,3 +389,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         for coordinator in daten.get("coordinators", {}).values():
             await coordinator.client.close()
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Beim Entfernen der letzten Anlage auch das Dashboard abräumen."""
+    if not hass.config_entries.async_entries(DOMAIN):
+        await async_remove_dashboard(hass)

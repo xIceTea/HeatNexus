@@ -35,13 +35,15 @@
           "levels": "Niveaux",
           "enable_advanced": "Activer immédiatement les niveaux Service/Usine",
           "writable_advanced": "Rendre modifiables les paramètres Service/Usine",
-          "update_interval": "Intervalle d'interrogation"
+          "update_interval": "Intervalle d'interrogation",
+          "dashboard": "Créer un tableau de bord"
         },
         "data_description": {
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
           "enable_advanced": "Sans coche, les entités sont créées mais restent désactivées.",
           "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule.",
-          "update_interval": "Fréquence d'interrogation de l'installation."
+          "update_interval": "Fréquence d'interrogation de l'installation.",
+          "dashboard": "Ajoute un tableau de bord « Chauffage » qui se construit à partir des appareils détectés."
         }
       },
       "reauth_confirm": {
@@ -67,10 +69,12 @@
         "title": "Paramètres généraux",
         "description": "S'applique à toutes les régulations.",
         "data": {
-          "update_interval": "Intervalle d'interrogation"
+          "update_interval": "Intervalle d'interrogation",
+          "dashboard": "Créer un tableau de bord"
         },
         "data_description": {
-          "update_interval": "Fréquence d'interrogation de l'installation."
+          "update_interval": "Fréquence d'interrogation de l'installation.",
+          "dashboard": "Ajoute un tableau de bord « Chauffage » qui se construit à partir des appareils détectés."
         }
       },
       "system": {

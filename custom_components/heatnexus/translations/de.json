@@ -35,13 +35,15 @@
           "levels": "Bedienebenen",
           "enable_advanced": "Service-/Werksebene sofort aktivieren",
           "writable_advanced": "Service-/Werksebene bedienbar machen",
-          "update_interval": "Abfrageintervall"
+          "update_interval": "Abfrageintervall",
+          "dashboard": "Dashboard einrichten"
         },
         "data_description": {
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
           "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
           "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",
-          "update_interval": "Wie oft die Anlage abgefragt wird."
+          "update_interval": "Wie oft die Anlage abgefragt wird.",
+          "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut."
         }
       },
       "reauth_confirm": {
@@ -67,10 +69,12 @@
         "title": "Allgemeine Einstellungen",
         "description": "Gilt für alle Steuerungen dieser Anlage.",
         "data": {
-          "update_interval": "Abfrageintervall"
+          "update_interval": "Abfrageintervall",
+          "dashboard": "Dashboard einrichten"
         },
         "data_description": {
-          "update_interval": "Wie oft die Anlage abgefragt wird."
+          "update_interval": "Wie oft die Anlage abgefragt wird.",
+          "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut."
         }
       },
       "system": {
