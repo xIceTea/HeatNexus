@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/xIceTea/heatnexus/actions/workflows/validate.yml"><img src="https://github.com/xIceTea/heatnexus/actions/workflows/validate.yml/badge.svg" alt="Validate"></a>
-  <a href="https://github.com/xIceTea/heatnexus/actions/workflows/tests.yml"><img src="https://github.com/xIceTea/heatnexus/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml"><img src="https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg" alt="Validate"></a>
+  <a href="https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml"><img src="https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <img src="https://img.shields.io/badge/HACS-Custom-41BDF5" alt="HACS Custom">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.12%2B-03a9f4" alt="Home Assistant 2024.12+">
 </p>
