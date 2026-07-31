@@ -148,12 +148,17 @@ class WindhagerHttpClient:
     # ------------------------------------------------------------------
     # Sammel-Lesezugriff über Menü-Ebenen
     # ------------------------------------------------------------------
-    async def _read_menu(self, prefix: str, menu_id: str, expected: int) -> list:
-        """Eine Menü-Ebene vollständig lesen.
+    async def _read_menu(self, prefix: str, menu_id: str, expected: int, gewuenscht) -> list:
+        """Eine Menü-Ebene lesen, soweit sie gebrauchte Datenpunkte enthält.
 
         Ein Abruf liefert höchstens MENU_PAGE_SIZE Datenpunkte; weitere holt
         das Gerät über ?offset=<n>. Jeder Eintrag enthält bereits Wert und
         Metadaten, ein zusätzlicher Einzelabruf entfällt damit.
+
+        Enthält die erste Seite keinen einzigen Datenpunkt der gewählten
+        Bedienebenen, werden die restlichen Seiten übersprungen. Die großen
+        Werksebenen-Menüs des Kessels umfassen bis zu 95 Datenpunkte – das
+        spart bei abgewählter Werksebene den Großteil der Anfragen.
         """
         base = f"http://{self.host}/api/1.0/lookup{prefix}/{menu_id}"
         items: list = []
@@ -172,15 +177,26 @@ class WindhagerHttpClient:
             seen.update(i["OID"] for i in fresh)
             if len(items) >= expected or len(data) < MENU_PAGE_SIZE:
                 break
+            if (
+                offset == 0
+                and gewuenscht is not None
+                and not any(gewuenscht(self._gnmn(prefix, i["OID"])) for i in fresh)
+            ):
+                _LOGGER.debug(
+                    "Menü %s/%s übersprungen: keine Datenpunkte der gewählten Ebenen",
+                    prefix,
+                    menu_id,
+                )
+                break
             offset += MENU_PAGE_SIZE
 
         if expected and len(items) < expected:
             _LOGGER.debug(
-                "Menü %s%s: %d von %d Datenpunkten gelesen", prefix, menu_id, len(items), expected
+                "Menü %s/%s: %d von %d Datenpunkten gelesen", prefix, menu_id, len(items), expected
             )
         return items
 
-    async def _read_function_menus(self, prefix: str) -> dict:
+    async def _read_function_menus(self, prefix: str, fct_type: int) -> dict:
         """Alle Datenpunkte einer Funktion über ihre Menü-Ebenen einlesen."""
         root, status = await self._get(f"http://{self.host}/api/1.0/lookup{prefix}")
         if status != 200 or not isinstance(root, list) or not root:
@@ -189,9 +205,18 @@ class WindhagerHttpClient:
             # Ältere Firmware kennt die Menüliste nicht – Einzelabfragen greifen.
             return {}
 
+        layers = get_layers(fct_type) or {}
+        interessant = {g for lvl in self.levels for g in layers.get(lvl, [])}
+        # Kuratierte Datenpunkte und bekannte Ausnahmen zählen immer dazu.
+        interessant.update(
+            d["oid"].strip("/").rsplit("/", 1)[0] for d in FCT_ENTITY_MAP.get(fct_type, [])
+        )
+        interessant.update(EXTRA_OIDS_BY_FCT.get(fct_type, ()))
+        pruefer = interessant.__contains__ if interessant else None
+
         menus = {str(m.get("id")): int(m.get("count") or 0) for m in root}
         results = await asyncio.gather(
-            *(self._read_menu(prefix, menu_id, count) for menu_id, count in menus.items())
+            *(self._read_menu(prefix, menu_id, count, pruefer) for menu_id, count in menus.items())
         )
         datapoints: dict = {}
         for items in results:
@@ -297,7 +322,7 @@ class WindhagerHttpClient:
                 # Sammel-Lesezugriff: Die Menü-Ebenen der Funktion liefern
                 # sämtliche vorhandenen Datenpunkte inklusive Metadaten in
                 # wenigen Anfragen. Das ist die Hauptquelle der Erkennung.
-                menu_data = await self._read_function_menus(prefix)
+                menu_data = await self._read_function_menus(prefix, fct_type)
                 self.menu_meta.update(menu_data)
 
                 layers = get_layers(fct_type) or {}
