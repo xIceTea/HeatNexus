@@ -5,6 +5,7 @@ import contextlib
 import json
 import logging
 import re as _re
+import time
 
 import aiohttp
 from yarl import URL
@@ -71,6 +72,8 @@ class WindhagerHttpClient:
         # das Gerät den object-Endpunkt lokal unterstützt (None = noch ungetestet).
         self.time_programs: list[dict] = []
         self._objects_supported: bool | None = None
+        # Anzahl der Anfragen an die Anlage (für die Startmeldung)
+        self.request_count = 0
         self._session = None
         self._auth = None
         self._semaphore = asyncio.Semaphore(FETCH_CONCURRENCY)
@@ -116,6 +119,7 @@ class WindhagerHttpClient:
     async def _get(self, url: str):
         """GET auf die Anlage; gibt (json_oder_None, status) zurück."""
         await self._ensure_session()
+        self.request_count += 1
         async with self._semaphore:
             ret = await self._auth.request("GET", url)
             raw = await ret.read()
@@ -305,11 +309,13 @@ class WindhagerHttpClient:
                 candidates = {oid: self._gnmn(prefix, oid) for oid in menu_data}
                 for gnmn in EXTRA_OIDS_BY_FCT.get(fct_type, ()):
                     candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
-                # Datenpunkte der gewählten Ebenen, die das Gerät nicht im Menü
-                # führt, aber laut Datenbank kennen könnte
-                for level in self.levels:
-                    for gnmn in layers.get(level, []):
-                        candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
+
+                if not menu_data:
+                    # Ältere Firmware ohne Menüliste: auf die Datenbank
+                    # zurückfallen und jeden Datenpunkt einzeln prüfen.
+                    for level in self.levels:
+                        for gnmn in layers.get(level, []):
+                            candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
 
                 for oid, gnmn in candidates.items():
                     if oid in self.oids:
@@ -618,11 +624,28 @@ class WindhagerHttpClient:
         self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
 
     async def async_init(self) -> None:
-        """Einmalige Discovery + Metadaten (teuer, außerhalb des Poll-Timeouts)."""
-        if self.oids is None:
-            await self._discover()
-            await self._apply_metadata()
-            self._compute_poll_oids()
+        """Anlage einmalig einlesen (getrennt vom zyklischen Abruf)."""
+        if self.oids is not None:
+            return
+
+        begonnen = time.monotonic()
+        self.request_count = 0
+        await self._discover()
+        nach_discovery = self.request_count
+        await self._apply_metadata()
+        self._compute_poll_oids()
+
+        _LOGGER.info(
+            "%s eingelesen: %d Datenpunkte, %d Entitäten, davon %d aktiv – "
+            "%d Anfragen (%d für die Menü-Ebenen), %.1f s",
+            self.host,
+            len(self.oids),
+            len(self.devices),
+            len(self.poll_oids),
+            self.request_count,
+            nach_discovery,
+            time.monotonic() - begonnen,
+        )
 
     # ------------------------------------------------------------------
     # Discovery-Cache (überlebt einen Config-Entry-Reload, z.B. wenn der

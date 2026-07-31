@@ -71,7 +71,7 @@ EXTRA_OIDS_BY_FCT: dict[int, tuple[str, ...]] = {
 # Timeout (s) für die einmalige Erstinitialisierung (Discovery + Metadaten
 # aller Datenpunkte inkl. Serviceebene). Bewusst großzügig, da getrennt vom
 # schnellen zyklischen Poll-Timeout.
-INIT_TIMEOUT = 120
+INIT_TIMEOUT = 240
 
 # Persistenter Discovery-Cache (überlebt HA-Neustart -> schneller Start).
 DISCOVERY_STORE_VERSION = 1
