@@ -19,6 +19,10 @@ jobs:
   hacs:
     name: HACS
     runs-on: ubuntu-latest
+    # Die HACS-Prüfung liest Repository-Angaben über die öffentliche API und
+    # kann das erst, wenn das Repository öffentlich ist. Bis dahin würde sie
+    # unabhängig vom Inhalt fehlschlagen.
+    if: ${{ !github.event.repository.private }}
     steps:
       - uses: actions/checkout@v4
       - uses: hacs/action@main
