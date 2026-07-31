@@ -1,43 +1,54 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Cette installation est deja configuree",
-      "reauth_successful": "Mot de passe mis a jour"
+      "already_configured": "Cette installation est déjà configurée",
+      "reauth_successful": "Mot de passe mis à jour"
     },
     "error": {
-      "cannot_connect": "Echec de la connexion",
-      "invalid_auth": "Connexion refusee - verifiez le mot de passe",
-      "unknown": "Erreur inattendue"
+      "cannot_connect": "Échec de la connexion",
+      "invalid_auth": "Connexion refusée - vérifiez le mot de passe",
+      "unknown": "Erreur inattendue",
+      "already_configured": "Cette adresse a déjà été ajoutée"
     },
     "step": {
       "user": {
-        "title": "Connecter l installation Windhager",
-        "description": "Adresse IP de l installation et mot de passe de service. L utilisateur est toujours USER.",
+        "title": "Ajouter une installation",
+        "description": "Quel nom pour l'installation et combien de régulations comporte-t-elle ? Chaque régulation a sa propre adresse IP.",
         "data": {
+          "name": "Nom de l'installation",
+          "count": "Nombre de régulations"
+        }
+      },
+      "system": {
+        "title": "Régulation {nummer} sur {anzahl}",
+        "description": "Désignation, adresse IP et mot de passe de service. L'utilisateur est toujours USER.",
+        "data": {
+          "label": "Désignation",
           "host": "Adresse IP",
           "password": "Mot de passe de service"
         }
       },
       "scope": {
-        "title": "Definir l etendue",
-        "description": "Quels niveaux integrer ? Les niveaux Info et Exploitant sont toujours inclus. Les niveaux Service et Usine contiennent des parametres experts.",
+        "title": "Définir l'étendue",
+        "description": "Trouvé :\n\n{gefunden}\n\nQuels niveaux intégrer ? Les niveaux Info et Exploitant sont toujours inclus. Les niveaux Service et Usine contiennent des paramètres experts.",
         "data": {
           "levels": "Niveaux",
-          "enable_advanced": "Activer immediatement les niveaux Service/Usine",
-          "writable_advanced": "Rendre modifiables les parametres Service/Usine",
-          "update_interval": "Intervalle d interrogation"
+          "enable_advanced": "Activer immédiatement les niveaux Service/Usine",
+          "writable_advanced": "Rendre modifiables les paramètres Service/Usine",
+          "update_interval": "Intervalle d'interrogation"
         },
         "data_description": {
-          "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : regulation de combustion, entrainements.",
-          "enable_advanced": "Sans coche, les entites sont creees mais restent desactivees.",
-          "writable_advanced": "Sans coche, ces parametres sont affiches en lecture seule.",
-          "update_interval": "Frequence d interrogation de l installation."
+          "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
+          "enable_advanced": "Sans coche, les entités sont créées mais restent désactivées.",
+          "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule.",
+          "update_interval": "Fréquence d'interrogation de l'installation."
         }
       },
       "reauth_confirm": {
         "title": "Renouveler le mot de passe",
-        "description": "L installation {host} a refuse la connexion. Saisissez a nouveau le mot de passe.",
+        "description": "Une régulation a refusé la connexion. Sélectionnez-la et saisissez à nouveau le mot de passe.",
         "data": {
+          "host": "Adresse IP",
           "password": "Mot de passe de service"
         }
       }
@@ -46,19 +57,34 @@
   "options": {
     "step": {
       "init": {
-        "title": "Modifier l etendue",
-        "description": "Les modifications sont appliquees immediatement ; l installation est relue.",
+        "title": "Paramètres",
+        "description": "Que souhaitez-vous modifier ?",
+        "menu_options": {
+          "allgemein": "Général (intervalle)"
+        }
+      },
+      "allgemein": {
+        "title": "Paramètres généraux",
+        "description": "S'applique à toutes les régulations.",
         "data": {
-          "levels": "Niveaux",
-          "enable_advanced": "Activer immediatement les niveaux Service/Usine",
-          "writable_advanced": "Rendre modifiables les parametres Service/Usine",
-          "update_interval": "Intervalle d interrogation"
+          "update_interval": "Intervalle d'interrogation"
         },
         "data_description": {
-          "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : regulation de combustion, entrainements.",
-          "enable_advanced": "Sans coche, les entites sont creees mais restent desactivees.",
-          "writable_advanced": "Sans coche, ces parametres sont affiches en lecture seule.",
-          "update_interval": "Frequence d interrogation de l installation."
+          "update_interval": "Fréquence d'interrogation de l'installation."
+        }
+      },
+      "system": {
+        "title": "Niveaux",
+        "description": "Paramètres pour {anlage}.",
+        "data": {
+          "levels": "Niveaux",
+          "enable_advanced": "Activer immédiatement les niveaux Service/Usine",
+          "writable_advanced": "Rendre modifiables les paramètres Service/Usine"
+        },
+        "data_description": {
+          "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
+          "enable_advanced": "Sans coche, les entités sont créées mais restent désactivées.",
+          "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule."
         }
       }
     }
@@ -68,14 +94,14 @@
       "options": {
         "info": "Niveau Info (mesures)",
         "operate": "Niveau Exploitant (commande)",
-        "service": "Niveau Service (parametres experts)",
-        "oem": "Niveau Usine (parametres constructeur)"
+        "service": "Niveau Service (paramètres experts)",
+        "oem": "Niveau Usine (paramètres constructeur)"
       }
     }
   },
   "entity": {
     "climate": {
-      "heatnexus_climate": {
+      "windhager_climate": {
         "state_attributes": {
           "preset_mode": {
             "state": {
@@ -84,7 +110,7 @@
               "2": "Programme 2",
               "3": "Programme 3",
               "4": "Mode chauffage",
-              "5": "Mode reduit",
+              "5": "Mode réduit",
               "6": "Mode ECS",
               "7": "Mode manuel"
             }

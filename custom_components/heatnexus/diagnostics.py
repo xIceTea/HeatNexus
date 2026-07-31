@@ -18,7 +18,23 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
     """Alles zusammentragen, was zur Fehlersuche nützlich ist."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    eintrag = hass.data[DOMAIN][entry.entry_id]
+    anlagen = {}
+    for host, coordinator in eintrag["coordinators"].items():
+        anlagen[host] = _anlage(coordinator)
+    return {
+        "eintrag": {
+            "name": eintrag["name"],
+            "version": entry.version,
+            "optionen": async_redact_data(dict(entry.options), ZU_SCHWAERZEN),
+            "anlagen": len(anlagen),
+        },
+        "anlagen": async_redact_data(anlagen, ZU_SCHWAERZEN),
+    }
+
+
+def _anlage(coordinator) -> dict[str, Any]:
+    """Kennzahlen und Daten einer einzelnen Anlage."""
     client = coordinator.client
     daten = coordinator.data or {}
 
@@ -32,10 +48,7 @@ async def async_get_config_entry_diagnostics(
         nach_ebene[ebene] = nach_ebene.get(ebene, 0) + 1
 
     return {
-        "eintrag": {
-            "version": entry.version,
-            "optionen": dict(entry.options),
-        },
+        "bezeichnung": coordinator.label,
         "anlage": {
             "vollstaendig_eingelesen": getattr(client, "_vollstaendig", None),
             "datenpunkte": len(client.oids or []),

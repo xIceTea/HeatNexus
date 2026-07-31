@@ -6,21 +6,31 @@
     },
     "error": {
       "cannot_connect": "Failed to connect",
-      "invalid_auth": "Login rejected - check the password",
-      "unknown": "Unexpected error"
+      "invalid_auth": "Login rejected - check the service password",
+      "unknown": "Unexpected error",
+      "already_configured": "This address was already added"
     },
     "step": {
       "user": {
-        "title": "Connect Windhager system",
-        "description": "IP address of the system and the service password. The user name is always USER.",
+        "title": "Add heating system",
+        "description": "What should the system be called, and how many controllers does it have? Each controller has its own IP address.",
         "data": {
+          "name": "System name",
+          "count": "Number of controllers"
+        }
+      },
+      "system": {
+        "title": "Controller {nummer} of {anzahl}",
+        "description": "Label, IP address and service password. The user name is always USER.",
+        "data": {
+          "label": "Label",
           "host": "IP address",
           "password": "Service password"
         }
       },
       "scope": {
         "title": "Choose scope",
-        "description": "Which levels should be included? Info and operator level are always included. Service and factory level contain expert parameters - wrong values can disturb the system.",
+        "description": "Found:\n\n{gefunden}\n\nWhich levels should be included? Info and operator level are always included. Service and factory level contain expert parameters. The choice applies to all controllers at first and can be changed per controller later.",
         "data": {
           "levels": "Levels",
           "enable_advanced": "Enable service/factory level right away",
@@ -28,7 +38,7 @@
           "update_interval": "Polling interval"
         },
         "data_description": {
-          "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits, screed program. Factory: combustion control, ignition, drives.",
+          "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "update_interval": "How often the system is queried."
@@ -36,8 +46,9 @@
       },
       "reauth_confirm": {
         "title": "Update password",
-        "description": "System {host} rejected the login. Please enter the service password again.",
+        "description": "A controller rejected the login. Select it and enter the service password again.",
         "data": {
+          "host": "IP address",
           "password": "Service password"
         }
       }
@@ -46,19 +57,34 @@
   "options": {
     "step": {
       "init": {
-        "title": "Change scope",
-        "description": "Changes apply immediately; the system is read again.",
+        "title": "Settings",
+        "description": "What would you like to change?",
+        "menu_options": {
+          "allgemein": "General (polling interval)"
+        }
+      },
+      "allgemein": {
+        "title": "General settings",
+        "description": "Applies to all controllers of this system.",
         "data": {
-          "levels": "Levels",
-          "enable_advanced": "Enable service/factory level right away",
-          "writable_advanced": "Allow writing service/factory parameters",
           "update_interval": "Polling interval"
         },
         "data_description": {
-          "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits, screed program. Factory: combustion control, ignition, drives.",
-          "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
-          "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "update_interval": "How often the system is queried."
+        }
+      },
+      "system": {
+        "title": "Levels",
+        "description": "Settings for {anlage}.",
+        "data": {
+          "levels": "Levels",
+          "enable_advanced": "Enable service/factory level right away",
+          "writable_advanced": "Allow writing service/factory parameters"
+        },
+        "data_description": {
+          "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
+          "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
+          "writable_advanced": "Unchecked, these parameters are shown read-only."
         }
       }
     }
@@ -75,7 +101,7 @@
   },
   "entity": {
     "climate": {
-      "heatnexus_climate": {
+      "windhager_climate": {
         "state_attributes": {
           "preset_mode": {
             "state": {

@@ -20,8 +20,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import voluptuous as vol
 
-from . import DOMAIN
-from .entity import async_setup_entities
+from .entity import async_setup_entities, geraet_info
 from .exceptions import WindhagerValueError
 from .helpers import get_oid_value
 
@@ -103,12 +102,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
         # bis der Poll den neuen Wert bestätigt.
         self._optimistic_mode: int | None = None
         self._optimistic_mode_ts: float = 0.0
-        self._device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_info.get("device_id", ""))},
-            name=device_info.get("device_name", ""),
-            manufacturer="Windhager",
-            model=device_info.get("device_name", ""),
-        )
+        self._device_info = geraet_info(coordinator, device_info)
 
     @callback
     def _handle_coordinator_update(self) -> None:

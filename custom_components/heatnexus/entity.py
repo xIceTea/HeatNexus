@@ -35,25 +35,41 @@ def async_setup_entities(
     vollständige Abzug der Anlage läuft im Hintergrund weiter. Sobald er
     fertig ist, werden die zusätzlich gefundenen Entitäten nachgereicht.
     """
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinators = hass.data[DOMAIN][entry.entry_id]["coordinators"]
     bekannt: set[str] = set()
 
     @callback
     def _anlegen() -> None:
         neu = []
-        for beschreibung in (coordinator.data or {}).get("devices", []):
-            klasse = klassen.get(beschreibung.get("type"))
-            kennung = beschreibung.get("id")
-            if klasse is None or not kennung or kennung in bekannt:
-                continue
-            bekannt.add(kennung)
-            neu.append(klasse(coordinator, beschreibung))
+        for coordinator in coordinators.values():
+            for beschreibung in (coordinator.data or {}).get("devices", []):
+                klasse = klassen.get(beschreibung.get("type"))
+                kennung = beschreibung.get("id")
+                if klasse is None or not kennung or kennung in bekannt:
+                    continue
+                bekannt.add(kennung)
+                neu.append(klasse(coordinator, beschreibung))
         if neu:
             async_add_entities(neu)
 
     _anlegen()
     entry.async_on_unload(
         async_dispatcher_connect(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id), _anlegen)
+    )
+
+
+def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
+    """Gerätezuordnung einer Entität.
+
+    Aufbau: Heizungsanlage (Konfigurationseintrag) → Steuerung (Adresse) →
+    Funktion (Kessel, Heizkreis, Puffer …), an der die Entität hängt.
+    """
+    return DeviceInfo(
+        identifiers={(DOMAIN, beschreibung.get("device_id"))},
+        name=beschreibung.get("device_name"),
+        manufacturer="Windhager",
+        model=beschreibung.get("device_name"),
+        via_device=(DOMAIN, f"{coordinator.entry.entry_id}_{coordinator.host}"),
     )
 
 
@@ -73,12 +89,7 @@ class WindhagerEntity(CoordinatorEntity):
         category = device_info.get("category")
         if category in CATEGORY_MAP:
             self._attr_entity_category = CATEGORY_MAP[category]
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, device_info.get("device_id"))},
-            name=device_info.get("device_name"),
-            manufacturer="Windhager",
-            model=device_info.get("device_name"),
-        )
+        self._attr_device_info = geraet_info(coordinator, device_info)
 
     # Zeitprogramme werden über den object-Endpunkt gelesen, nicht über das
     # OID-Polling – solche Entities setzen das Flag auf False.
