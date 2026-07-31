@@ -328,9 +328,12 @@ class WindhagerHttpClient:
                     primary_prefix = prefix
                     primary_name = fct["name"]
 
-                # Entities from the declarative tables (curated, take priority)
-                for definition in FCT_ENTITY_MAP.get(fct_type, []):
-                    self._add_entity(definition, prefix, device_id, fct)
+                # Kuratierte Tabellen: beim Kurzdurchlauf übersprungen, damit
+                # die Einrichtung nur wenige Anfragen kostet. Thermostat und
+                # Meldungen entstehen weiter unten und reichen für den Start.
+                if not nur_kern:
+                    for definition in FCT_ENTITY_MAP.get(fct_type, []):
+                        self._add_entity(definition, prefix, device_id, fct)
 
                 # Sammel-Lesezugriff: Die Menü-Ebenen der Funktion liefern
                 # sämtliche vorhandenen Datenpunkte inklusive Metadaten in

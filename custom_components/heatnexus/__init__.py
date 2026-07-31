@@ -230,6 +230,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data[DOMAIN][entry.entry_id] = {"name": hub_name, "coordinators": coordinators}
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    _geraetenamen_angleichen(registry, entry, coordinators)
 
     for coordinator, client, store, host, fingerprint, cache_key in nachzuladen:
         entry.async_create_background_task(
@@ -250,6 +251,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     return True
+
+
+def _geraetenamen_angleichen(registry, entry: ConfigEntry, coordinators: dict) -> None:
+    """Namen bestehender Geräte an das aktuelle Schema angleichen.
+
+    Home Assistant übernimmt geänderte Gerätenamen nicht immer von selbst.
+    Eine eigene Umbenennung durch den Nutzer bleibt unangetastet.
+    """
+    for host, coordinator in coordinators.items():
+        for beschreibung in (coordinator.data or {}).get("devices", []):
+            kennung = beschreibung.get("device_id")
+            funktion = (beschreibung.get("device_name") or "").strip()
+            if not kennung or not funktion:
+                continue
+            geraet = registry.async_get_device(identifiers={(DOMAIN, kennung)})
+            if geraet is None:
+                continue
+            gewuenscht = f"{coordinator.label} · {funktion}"
+            if coordinator.label and coordinator.label != funktion and geraet.name != gewuenscht:
+                registry.async_update_device(
+                    geraet.id,
+                    name=gewuenscht,
+                    via_device_id=registry.async_get_device(
+                        identifiers={(DOMAIN, f"{entry.entry_id}_{host}")}
+                    ).id,
+                )
 
 
 async def _vollabzug(
