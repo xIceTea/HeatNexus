@@ -72,6 +72,9 @@ class WindhagerHttpClient:
         # das Gerät den object-Endpunkt lokal unterstützt (None = noch ungetestet).
         self.time_programs: list[dict] = []
         self._objects_supported: bool | None = None
+        # Objekte mit einfachem Textwert (z.B. Modulinfo, Softwarestand).
+        # Sie werden wie normale Werte behandelt, nicht als Zeitprogramm.
+        self._object_texts: dict = {}
         # Anzahl der Anfragen an die Anlage (für die Startmeldung)
         self.request_count = 0
         self._session = None
@@ -761,9 +764,20 @@ class WindhagerHttpClient:
         objects: dict = {}
         any_ok = False
         for tp, (data, status) in zip(self.time_programs, results, strict=False):
-            if status == 200 and isinstance(data, dict) and "value" in data:
-                objects[tp["oid"]] = data["value"]
-                any_ok = True
+            if status != 200 or not isinstance(data, dict) or "value" not in data:
+                continue
+            any_ok = True
+            wert = data["value"]
+            if isinstance(wert, list) and wert and isinstance(wert[0], dict):
+                objects[tp["oid"]] = wert
+                continue
+            # Kein Zeitprogramm, sondern ein einfacher Wert (Modulinfo,
+            # Software-/Hardwarestand). Als Textsensor führen.
+            self._object_texts[tp["oid"]] = str(wert)
+            tp["type"] = "string_sensor"
+            _LOGGER.debug(
+                "%s (%s) ist kein Zeitprogramm, sondern ein Textwert", tp.get("name"), tp["oid"]
+            )
 
         if self._objects_supported is None:
             self._objects_supported = any_ok
@@ -774,6 +788,7 @@ class WindhagerHttpClient:
                 tp_oids = {tp["oid"] for tp in self.time_programs}
                 self.devices = [d for d in self.devices if d.get("oid") not in tp_oids]
                 self.time_programs = []
+        self.time_programs = [tp for tp in self.time_programs if tp.get("type") == "time_program"]
         return objects
 
     # Alle Meldungsfelder eines Geräts (FE01msg, FE02msg, …) – mehrere
@@ -821,9 +836,11 @@ class WindhagerHttpClient:
         objects = await self._fetch_time_programs()
         status = await self._fetch_status()
 
+        werte = dict(results)
+        werte.update(self._object_texts)
         return {
             "devices": self.devices,
-            "oids": dict(results),
+            "oids": werte,
             "objects": objects,
             "status": status,
         }

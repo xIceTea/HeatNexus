@@ -68,3 +68,8 @@ def parse_messages(raw: str | None) -> list[dict]:
             }
         )
     return out
+
+
+def preload() -> None:
+    """Störungstexte einlesen (siehe device_db.preload)."""
+    _table()

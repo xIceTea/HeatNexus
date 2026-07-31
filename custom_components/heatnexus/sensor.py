@@ -319,7 +319,12 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
     def _blocks(self):
         if not self.coordinator.data:
             return None
-        return self.coordinator.data.get("objects", {}).get(self._oid)
+        blocks = self.coordinator.data.get("objects", {}).get(self._oid)
+        # Die Anlage liefert unter derselben Typkennung auch einfache Werte
+        # (z.B. Modulinfo). Nur echte Schaltprogramme darstellen.
+        if not isinstance(blocks, list):
+            return None
+        return [b for b in blocks if isinstance(b, dict)] or None
 
     @property
     def available(self) -> bool:

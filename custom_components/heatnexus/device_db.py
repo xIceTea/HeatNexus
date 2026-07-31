@@ -37,3 +37,13 @@ def get_enum(gnmn: str) -> dict[int, str] | None:
 def get_layers(fct_type: int) -> dict | None:
     """Info/operate datapoint lists for a function type."""
     return _db()["layers"].get(str(fct_type))
+
+
+def preload() -> None:
+    """Datenbank einlesen.
+
+    Home Assistant verbietet blockierende Dateizugriffe in der Ereignisschleife;
+    deshalb wird die Datei beim Einrichten einmal in einem Arbeitsthread
+    geladen und liegt danach im Zwischenspeicher.
+    """
+    _db()

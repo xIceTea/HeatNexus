@@ -18,6 +18,7 @@ from homeassistant.helpers.update_coordinator import (
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
+from . import device_db, error_texts
 from .client import WindhagerHttpClient
 from .const import (
     CONF_ENABLE_ADVANCED,
@@ -33,6 +34,12 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _preload_data() -> None:
+    """Geräte-Datenbank und Störungstexte in den Zwischenspeicher holen."""
+    device_db.preload()
+    error_texts.preload()
 
 
 def _store_key(entry: ConfigEntry) -> str:
@@ -132,6 +139,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})
     _async_register_rediscover_service(hass)
+
+    # Mitgelieferte Datendateien außerhalb der Ereignisschleife einlesen.
+    await hass.async_add_executor_job(_preload_data)
 
     scope = _scope(entry)
     fingerprint = _scope_fingerprint(scope)
