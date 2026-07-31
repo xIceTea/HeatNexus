@@ -9,9 +9,9 @@ hand-curated entity table, e.g. BioWIN or AeroWIN devices.
 
 from __future__ import annotations
 
+from functools import lru_cache
 import json
 import os
-from functools import lru_cache
 
 
 @lru_cache(maxsize=1)

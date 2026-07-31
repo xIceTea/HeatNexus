@@ -14,9 +14,7 @@ from .entity import WindhagerEntity
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager selects from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [
@@ -44,16 +42,12 @@ class WindhagerSelect(WindhagerEntity, SelectEntity):
         if allowed:
             # restrict to values the device actually supports; unknown values
             # get a generic label so they are still selectable
-            self._value_to_label = {
-                v: self.enum_map.get(v, f"Wert {v}") for v in allowed
-            }
+            self._value_to_label = {v: self.enum_map.get(v, f"Wert {v}") for v in allowed}
         self._label_to_value: dict[str, int] = {}
         for value, label in self.enum_map.items():
             # first value wins if labels are duplicated
             self._label_to_value.setdefault(label, value)
-        self._attr_options = [
-            self._value_to_label[v] for v in sorted(self._value_to_label)
-        ]
+        self._attr_options = [self._value_to_label[v] for v in sorted(self._value_to_label)]
 
     @property
     def current_option(self) -> str | None:
@@ -62,9 +56,7 @@ class WindhagerSelect(WindhagerEntity, SelectEntity):
             return None
         label = self._value_to_label.get(raw)
         if label is None:
-            _LOGGER.debug(
-                "Unknown enum value %s for %s (%s)", raw, self.name, self._oid
-            )
+            _LOGGER.debug("Unknown enum value %s for %s (%s)", raw, self.name, self._oid)
         return label
 
     async def async_select_option(self, option: str) -> None:

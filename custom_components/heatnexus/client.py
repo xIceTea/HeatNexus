@@ -1,19 +1,16 @@
 """Windhager HTTP API client."""
 
 import asyncio
+import contextlib
 import json
 import logging
-
-import aiohttp
-
 import re as _re
 
+import aiohttp
 from yarl import URL
 
 from .aiohelper import DigestAuth
-from .device_db import get_enum, get_layers, get_name
 from .const import (
-    ENUMS as ENUMS_FALLBACK,
     ADVANCED_LEVELS,
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
@@ -23,6 +20,10 @@ from .const import (
     FETCH_CONCURRENCY,
     MENU_PAGE_SIZE,
 )
+from .const import (
+    ENUMS as ENUMS_FALLBACK,
+)
+from .device_db import get_enum, get_layers, get_name
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -168,8 +169,7 @@ class WindhagerHttpClient:
 
         if expected and len(items) < expected:
             _LOGGER.debug(
-                "Menü %s%s: %d von %d Datenpunkten gelesen",
-                prefix, menu_id, len(items), expected
+                "Menü %s%s: %d von %d Datenpunkten gelesen", prefix, menu_id, len(items), expected
             )
         return items
 
@@ -192,9 +192,7 @@ class WindhagerHttpClient:
                 oid = item.get("OID")
                 if oid:
                     datapoints[oid] = item
-        _LOGGER.debug(
-            "%s: %d Datenpunkte aus %d Menü-Ebenen", prefix, len(datapoints), len(menus)
-        )
+        _LOGGER.debug("%s: %d Datenpunkte aus %d Menü-Ebenen", prefix, len(datapoints), len(menus))
         return datapoints
 
     async def update(self, oid, value):
@@ -208,9 +206,7 @@ class WindhagerHttpClient:
             )
             if ret.status >= 400:
                 body = await ret.text()
-                _LOGGER.error(
-                    "Write to %s failed with HTTP %s: %s", oid, ret.status, body
-                )
+                _LOGGER.error("Write to %s failed with HTTP %s: %s", oid, ret.status, body)
                 raise aiohttp.ClientResponseError(
                     ret.request_info,
                     ret.history,
@@ -226,7 +222,7 @@ class WindhagerHttpClient:
     @staticmethod
     def _gnmn(prefix: str, oid: str) -> str:
         """Datenpunktadresse 'gn/mn' relativ zum Funktionspräfix."""
-        rest = oid[len(prefix):].strip("/").split("/")
+        rest = oid[len(prefix) :].strip("/").split("/")
         return f"{rest[0]}/{rest[1]}" if len(rest) >= 2 else oid
 
     # ------------------------------------------------------------------
@@ -306,9 +302,7 @@ class WindhagerHttpClient:
 
                 # Datenpunkte, die die Anlage meldet, plus die bekannten
                 # Ergänzungen, die in keinem Menü stehen (Zeitprogramme u. a.).
-                candidates = {
-                    oid: self._gnmn(prefix, oid) for oid in menu_data
-                }
+                candidates = {oid: self._gnmn(prefix, oid) for oid in menu_data}
                 for gnmn in EXTRA_OIDS_BY_FCT.get(fct_type, ()):
                     candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
                 # Datenpunkte der gewählten Ebenen, die das Gerät nicht im Menü
@@ -339,10 +333,15 @@ class WindhagerHttpClient:
                                 level not in ADVANCED_LEVELS or self.enable_advanced
                             ),
                             "enum": gnmn if get_enum(gnmn) else None,
-                            "unit": None, "device_class": None,
-                            "state_class": None, "category": None,
-                            "icon": None, "min": None, "max": None,
-                            "step": None, "press_value": None,
+                            "unit": None,
+                            "device_class": None,
+                            "state_class": None,
+                            "category": None,
+                            "icon": None,
+                            "min": None,
+                            "max": None,
+                            "step": None,
+                            "press_value": None,
                             "write_prot": None,
                             "device_id": self.slugify(f"{self.host}{prefix}"),
                             "device_name": fct["name"],
@@ -365,8 +364,8 @@ class WindhagerHttpClient:
                     )
                     self.oids.update(
                         [
-                            f"{prefix}/0/1/0",   # Raumtemperatur Ist
-                            f"{prefix}/1/1/0",   # Raumtemperatur Soll
+                            f"{prefix}/0/1/0",  # Raumtemperatur Ist
+                            f"{prefix}/1/1/0",  # Raumtemperatur Soll
                             f"{prefix}/3/50/0",  # Betriebswahl
                             f"{prefix}/2/10/0",  # Dauer Eco/Party (Resthandzeit)
                             f"{prefix}/3/58/0",  # Behaglichkeitskorrektur
@@ -413,7 +412,7 @@ class WindhagerHttpClient:
         try:
             data, status = await self._get(f"http://{self.host}/api/1.0/lookup{oid}")
             return oid, data, status
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             _LOGGER.debug("Metadata fetch failed for %s: %s", oid, e)
             return oid, None, 0
 
@@ -469,19 +468,18 @@ class WindhagerHttpClient:
         meta = {oid: m for oid, m in self.menu_meta.items() if oid in self.oids}
         offen = [oid for oid in self.oids if oid not in meta]
         _LOGGER.debug(
-            "Metadaten: %d aus Menü-Ebenen, %d werden einzeln gelesen",
-            len(meta), len(offen)
+            "Metadaten: %d aus Menü-Ebenen, %d werden einzeln gelesen", len(meta), len(offen)
         )
 
         results = await asyncio.gather(*(self._fetch_json(oid) for oid in offen))
         missing = set()
-        for oid, json, status in results:
-            reason = (json or {}).get("reason", "") if isinstance(json, dict) else ""
+        for oid, data, status in results:
+            reason = (data or {}).get("reason", "") if isinstance(data, dict) else ""
             if status == 404 or (status == 409 and "invalid Identifier" in reason):
                 # Datenpunkt existiert auf dieser Anlage nicht
                 missing.add(oid)
-            elif isinstance(json, dict) and "code" not in json:
-                meta[oid] = json
+            elif isinstance(data, dict) and "code" not in data:
+                meta[oid] = data
 
         kept = []
         for d in self.devices:
@@ -496,9 +494,7 @@ class WindhagerHttpClient:
                     continue
                 resolved = self._resolve_auto_type(d, m)
                 if not resolved:
-                    _LOGGER.info(
-                        "Dropping %s (%s): unreadable datapoint type", d["name"], oid
-                    )
+                    _LOGGER.info("Dropping %s (%s): unreadable datapoint type", d["name"], oid)
                     continue
                 d["type"] = resolved
                 if d["type"] == "time_program":
@@ -508,7 +504,9 @@ class WindhagerHttpClient:
                     d["typeId"] = m.get("typeId", 30)
                     d["subtypeId"] = m.get("subtypeId", 14)
                     d["write_prot"] = m.get("writeProt")
-                elif d["type"] in ("select", "number", "switch", "time", "date") and d.get("level") in ("operate", "service"):
+                elif d["type"] in ("select", "number", "switch", "time", "date") and d.get(
+                    "level"
+                ) in ("operate", "service"):
                     d["category"] = "config"
             if m:
                 # Device reports the actually allowed enum values, e.g. "[1,2]"
@@ -522,17 +520,18 @@ class WindhagerHttpClient:
                         _LOGGER.debug("Unparseable enum %r for %s", enum_raw, oid)
                 if d["type"] in ("select", "enum_sensor") and not d.get("allowed"):
                     # Gerät meldet zwar keine Enum-Liste, aber einen Wertebereich
-                    try:
+                    with contextlib.suppress(TypeError, ValueError, KeyError):
                         lo, hi = int(float(m["minValue"])), int(float(m["maxValue"]))
-                        from .device_db import get_enum as _ge
-                        emap = ENUMS_FALLBACK.get(d.get("enum") or "") or _ge(d.get("enum") or "") or {}
+                        emap = (
+                            ENUMS_FALLBACK.get(d.get("enum") or "")
+                            or get_enum(d.get("enum") or "")
+                            or {}
+                        )
                         allowed = [v for v in emap if lo <= v <= hi]
                         if allowed:
                             d["allowed"] = allowed
-                    except (TypeError, ValueError, KeyError):
-                        pass
                 if d["type"] == "number":
-                    try:
+                    with contextlib.suppress(ValueError, TypeError, KeyError):
                         lo = float(m["minValue"]) if m.get("minValue") not in (None, "") else None
                         hi = float(m["maxValue"]) if m.get("maxValue") not in (None, "") else None
                         st = float(m["step"]) if m.get("step") not in (None, "") else None
@@ -540,8 +539,6 @@ class WindhagerHttpClient:
                             d["min"], d["max"] = lo, hi
                         if st and st > 0:
                             d["step"] = st
-                    except (ValueError, TypeError, KeyError):
-                        pass
                 if m.get("unit") and d["type"] in ("number", "sensor"):
                     d["unit"] = m["unit"]
                 if m.get("writeProt") is True and d["type"] in self._READONLY_FALLBACK:
@@ -550,9 +547,7 @@ class WindhagerHttpClient:
                     # ist in Wahrheit ein Zaehler -> normaler Sensor
                     if d["type"] == "switch" and m.get("unit"):
                         fallback = "sensor"
-                    _LOGGER.info(
-                        "%s (%s) is write protected, exposing read-only", d["name"], oid
-                    )
+                    _LOGGER.info("%s (%s) is write protected, exposing read-only", d["name"], oid)
                     d["type"] = fallback
                 d["write_prot"] = m.get("writeProt")
                 # read-only-Punkt ganz ohne Wert (z.B. Softwareversion ohne value-Feld)
@@ -575,12 +570,8 @@ class WindhagerHttpClient:
             if d["type"] == "climate":
                 m50 = meta.get(f"{d['prefix']}/3/50/0")
                 if m50 and m50.get("enum"):
-                    try:
-                        d["preset_allowed"] = [
-                            int(v) for v in __import__("json").loads(m50["enum"])
-                        ]
-                    except (ValueError, TypeError):
-                        pass
+                    with contextlib.suppress(ValueError, TypeError):
+                        d["preset_allowed"] = [int(v) for v in json.loads(m50["enum"])]
             kept.append(d)
         self.devices = kept
         self.oids -= missing
@@ -588,8 +579,8 @@ class WindhagerHttpClient:
     # OIDs, die statisch immer mitgepollt werden müssen, weil eine
     # Climate-Entity sie für Anzeige/Berechnung braucht.
     _CLIMATE_POLL_SUFFIXES = (
-        "/0/1/0",   # Raumtemperatur Ist
-        "/1/1/0",   # Raumtemperatur Soll (aktiv) = angezeigter Sollwert
+        "/0/1/0",  # Raumtemperatur Ist
+        "/1/1/0",  # Raumtemperatur Soll (aktiv) = angezeigter Sollwert
         "/3/50/0",  # Betriebswahl
         "/2/10/0",  # Override-Restzeit (Timer) für Anzeige/Feedback
         "/3/58/0",  # Behaglichkeitskorrektur
@@ -624,9 +615,7 @@ class WindhagerHttpClient:
             if d.get("enabled_default", True) and d.get("oid"):
                 poll.add(d["oid"])
         self.poll_oids = poll
-        self.time_programs = [
-            d for d in self.devices if d.get("type") == "time_program"
-        ]
+        self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
 
     async def async_init(self) -> None:
         """Einmalige Discovery + Metadaten (teuer, außerhalb des Poll-Timeouts)."""
@@ -658,9 +647,7 @@ class WindhagerHttpClient:
         self.oids = set(data["oids"]) if data.get("oids") is not None else set()
         self.devices = [dict(d) for d in data.get("devices", [])]
         self.poll_oids = set(data.get("poll_oids", set()))
-        self.time_programs = [
-            d for d in self.devices if d.get("type") == "time_program"
-        ]
+        self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
         # object-Unterstützung aus dem Cache übernehmen (kein erneutes Probing).
         self._objects_supported = data.get("objects_supported")
 
@@ -678,7 +665,7 @@ class WindhagerHttpClient:
             # which destroyed all decimals (21.5 °C -> "21"). Entities parse
             # the value themselves.
             return oid, str(value)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             _LOGGER.warning("Error while fetching OID %s: %s", oid, e)
             return oid, None
 
@@ -690,9 +677,7 @@ class WindhagerHttpClient:
         müssen unkodiert bleiben -> encoded=True verhindert ein Re-Quoting
         durch yarl.
         """
-        return URL(
-            f"http://{self.host}/api/1.0/object?OID={full_oid}", encoded=True
-        )
+        return URL(f"http://{self.host}/api/1.0/object?OID={full_oid}", encoded=True)
 
     async def fetch_object(self, full_oid):
         """GET a structured object (Zeitprogramm) via ?OID=<full_oid>.
@@ -707,10 +692,10 @@ class WindhagerHttpClient:
                 status = ret.status
                 try:
                     data = await ret.json()
-                except Exception:  # noqa: BLE001
+                except Exception:
                     data = None
             return data, status
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             _LOGGER.debug("Object fetch failed for %s: %s", full_oid, e)
             return None, 0
 
@@ -719,14 +704,17 @@ class WindhagerHttpClient:
         await self._ensure_session()
         async with self._semaphore:
             ret = await self._auth.request(
-                "PUT", self._object_url(full_oid),
+                "PUT",
+                self._object_url(full_oid),
                 data=bytes(json.dumps(payload), "utf-8"),
             )
             if ret.status >= 400:
                 body = await ret.text()
                 _LOGGER.error(
                     "Write to object %s failed with HTTP %s: %s",
-                    full_oid, ret.status, body,
+                    full_oid,
+                    ret.status,
+                    body,
                 )
                 raise aiohttp.ClientResponseError(
                     ret.request_info,
@@ -746,12 +734,10 @@ class WindhagerHttpClient:
         if self._objects_supported is False or not self.time_programs:
             return {}
 
-        results = await asyncio.gather(
-            *(self.fetch_object(tp["oid"]) for tp in self.time_programs)
-        )
+        results = await asyncio.gather(*(self.fetch_object(tp["oid"]) for tp in self.time_programs))
         objects: dict = {}
         any_ok = False
-        for tp, (data, status) in zip(self.time_programs, results):
+        for tp, (data, status) in zip(self.time_programs, results, strict=False):
             if status == 200 and isinstance(data, dict) and "value" in data:
                 objects[tp["oid"]] = data["value"]
                 any_ok = True
@@ -760,13 +746,10 @@ class WindhagerHttpClient:
             self._objects_supported = any_ok
             if not any_ok:
                 _LOGGER.info(
-                    "object-Endpunkt lokal nicht verfügbar – Zeitprogramme werden "
-                    "übersprungen"
+                    "object-Endpunkt lokal nicht verfügbar – Zeitprogramme werden übersprungen"
                 )
                 tp_oids = {tp["oid"] for tp in self.time_programs}
-                self.devices = [
-                    d for d in self.devices if d.get("oid") not in tp_oids
-                ]
+                self.devices = [d for d in self.devices if d.get("oid") not in tp_oids]
                 self.time_programs = []
         return objects
 
@@ -780,13 +763,11 @@ class WindhagerHttpClient:
         Quelle ist die /1-Discovery, die je Gerät FE01msg (+ ggf. weitere)
         mitliefert. Nur nötig, wenn ein Meldungs-/Klartext-Sensor existiert.
         """
-        if not any(
-            d.get("type") in ("device_status", "message_text") for d in self.devices
-        ):
+        if not any(d.get("type") in ("device_status", "message_text") for d in self.devices):
             return {}
         try:
             devs = await self.fetch("/1")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             _LOGGER.debug("Status fetch failed: %s", e)
             return {}
         out: dict = {}
@@ -795,11 +776,7 @@ class WindhagerHttpClient:
                 nid = dev.get("nodeId")
                 if nid is None:
                     continue
-                msgs = [
-                    str(v)
-                    for k, v in dev.items()
-                    if self._FEMSG_RE.match(k) and v
-                ]
+                msgs = [str(v) for k, v in dev.items() if self._FEMSG_RE.match(k) and v]
                 if msgs:
                     out[str(nid)] = "  ".join(msgs)
         return out
@@ -817,9 +794,7 @@ class WindhagerHttpClient:
             await self.async_init()
 
         oids_to_poll = self.poll_oids | self._dynamic_oids
-        results = await asyncio.gather(
-            *(self._fetch_oid(oid) for oid in oids_to_poll)
-        )
+        results = await asyncio.gather(*(self._fetch_oid(oid) for oid in oids_to_poll))
         objects = await self._fetch_time_programs()
         status = await self._fetch_status()
 

@@ -5,9 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Optional
-
-import voluptuous as vol
 
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
@@ -21,6 +18,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+import voluptuous as vol
 
 from . import DOMAIN
 from .exceptions import WindhagerValueError
@@ -47,17 +45,13 @@ FAST_REFRESH_INTERVAL = 3
 OPTIMISTIC_MAX_AGE_S = 120
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager climates from a config entry."""
     platform = entity_platform.async_get_current_platform()
     platform.async_register_entity_service(
         "set_current_temp_compensation",
         {
-            vol.Required("compensation"): vol.All(
-                vol.Coerce(float), vol.Range(min=-3.0, max=3.0)
-            ),
+            vol.Required("compensation"): vol.All(vol.Coerce(float), vol.Range(min=-3.0, max=3.0)),
         },
         "set_current_temp_compensation",
     )
@@ -114,11 +108,11 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
         # nächsten Coordinator-Update (das den geschriebenen Wert vom Gerät
         # zurückliest) wieder verworfen. Verhindert das "Zurückspringen" des
         # Schiebereglers während der ~Sekunden bis zum nächsten Poll.
-        self._optimistic_target: Optional[float] = None
+        self._optimistic_target: float | None = None
         self._optimistic_ts: float = 0.0
         # Optimistische Betriebswahl (Modus/Voreinstellung) – sofort anzeigen,
         # bis der Poll den neuen Wert bestätigt.
-        self._optimistic_mode: Optional[int] = None
+        self._optimistic_mode: int | None = None
         self._optimistic_mode_ts: float = 0.0
         self._device_info = DeviceInfo(
             identifiers={(DOMAIN, device_info.get("device_id", ""))},
@@ -171,11 +165,11 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
     def preset_modes(self) -> list[str]:
         return self._preset_modes
 
-    def get_oid_value(self, path: str) -> Optional[float]:
+    def get_oid_value(self, path: str) -> float | None:
         """Get OID value relative to this function's prefix."""
         return get_oid_value(self.coordinator, path, self._prefix)
 
-    def raw_selected_mode(self) -> Optional[int]:
+    def raw_selected_mode(self) -> int | None:
         """Get selected mode (Betriebswahl 3/50), optimistisch bevorzugt."""
         if self._optimistic_mode is not None:
             return self._optimistic_mode
@@ -240,7 +234,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
             await asyncio.sleep(FAST_REFRESH_INTERVAL)
             try:
                 updated = await self.client.fetch_oids(oids)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 break
             data = self.coordinator.data
             if data is not None and updated:
@@ -249,12 +243,15 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
                 self.coordinator.async_update_listeners()
 
     @property
-    def preset_mode(self) -> Optional[str]:
+    def preset_mode(self) -> str | None:
         """Return the current preset mode."""
         # Frisch gewählte Voreinstellung sofort zeigen (ohne "7"-Override-Logik).
-        if self._optimistic_mode is None:
-            if self.raw_custom_temp_remaining_time() > 0 and "7" in self._preset_modes:
-                return "7"
+        if (
+            self._optimistic_mode is None
+            and self.raw_custom_temp_remaining_time() > 0
+            and "7" in self._preset_modes
+        ):
+            return "7"
         mode = self.raw_selected_mode()
         if mode is None:
             return None
@@ -326,9 +323,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
         self._optimistic_ts = time.monotonic()
         self.async_write_ha_state()
         await self.client.update(f"{self._prefix}/3/4/0", f"{temp:.1f}")
-        await self.client.update(
-            f"{self._prefix}/2/10/0", str(OVERRIDE_DURATION_MIN)
-        )
+        await self.client.update(f"{self._prefix}/2/10/0", str(OVERRIDE_DURATION_MIN))
         self._start_fast_refresh()
 
 

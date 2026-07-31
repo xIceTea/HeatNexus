@@ -9,10 +9,10 @@ empfehlung übersetzt.
 
 from __future__ import annotations
 
+from functools import lru_cache
 import json
 import os
 import re
-from functools import lru_cache
 
 # Code-Muster im FE01msg: E=Fehler, A=Alarm, I=Info, gefolgt von der Nummer.
 _CODE_RE = re.compile(r"([EAI])(\d{2,4})")

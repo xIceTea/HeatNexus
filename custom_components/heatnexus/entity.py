@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
@@ -65,18 +65,18 @@ class WindhagerEntity(CoordinatorEntity):
         await super().async_will_remove_from_hass()
 
     @property
-    def raw_value(self) -> Optional[str]:
+    def raw_value(self) -> str | None:
         """Raw string value of this entity's OID."""
         if not self.coordinator.data:
             return None
         return self.coordinator.data.get("oids", {}).get(self._oid)
 
     @property
-    def float_value(self) -> Optional[float]:
+    def float_value(self) -> float | None:
         return parse_value(self.raw_value, float, self._oid)
 
     @property
-    def int_value(self) -> Optional[int]:
+    def int_value(self) -> int | None:
         return parse_value(self.raw_value, int, self._oid)
 
     @property

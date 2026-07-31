@@ -18,9 +18,9 @@ Umgebungsvariablen HEATNEXUS_PW oder aus einer verdeckten Eingabe.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import csv
 import datetime as dt
-from concurrent.futures import ThreadPoolExecutor
 import getpass
 import importlib.util
 import json
@@ -34,11 +34,11 @@ import urllib.error
 import urllib.request
 
 USERNAME = "USER"
-TIMEOUT = 30           # große Menü-Ebenen brauchen deutlich länger als eine Einzelabfrage
-DEFAULT_WORKERS = 3    # mehr Parallelität quittieren die Geräte mit Abbrüchen
-RETRIES = 2            # Wiederholungen bei Zeitüberschreitung/Verbindungsabbruch
+TIMEOUT = 30  # große Menü-Ebenen brauchen deutlich länger als eine Einzelabfrage
+DEFAULT_WORKERS = 3  # mehr Parallelität quittieren die Geräte mit Abbrüchen
+RETRIES = 2  # Wiederholungen bei Zeitüberschreitung/Verbindungsabbruch
 RETRY_PAUSE = 1.5
-PAGE_SIZE = 10         # das Gerät liefert je Menü-Abruf höchstens 10 Datenpunkte
+PAGE_SIZE = 10  # das Gerät liefert je Menü-Abruf höchstens 10 Datenpunkte
 REPO = Path(__file__).resolve().parent.parent
 HOSTS_FILE = "hosts.txt"
 
@@ -56,7 +56,7 @@ def _load_device_db():
     module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(module)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
     return module
 
@@ -70,7 +70,7 @@ def db_name(gnmn: str) -> str:
         return ""
     try:
         return DEVICE_DB.get_name(gnmn) or ""
-    except Exception:  # noqa: BLE001
+    except Exception:
         return ""
 
 
@@ -79,6 +79,7 @@ class Probe:
     """Digest-authentifizierter Lesezugriff auf eine Anlage."""
 
     def __init__(self, host: str, password: str, workers: int = DEFAULT_WORKERS) -> None:
+        """Zugriff auf eine Anlage vorbereiten."""
         self.host = host  # darf "1.2.3.4" oder "1.2.3.4:8080" sein
         self.base = f"http://{host}"
         self.password = password
@@ -206,7 +207,9 @@ def detect_pagination(probe: Probe, menu_url: str, first_page: list) -> tuple[st
     return None
 
 
-def fetch_menu_all(probe: Probe, menu_url: str, expected: int, strategy) -> tuple[list, object | None, int]:
+def fetch_menu_all(
+    probe: Probe, menu_url: str, expected: int, strategy
+) -> tuple[list, object | None, int]:
     """Eine Menü-Ebene vollständig lesen (soweit das Gerät es zulässt)."""
     data, status = probe.get(menu_url)
     if status != 200 or not isinstance(data, list):
@@ -280,9 +283,9 @@ def fetch_menus(probe: Probe, structure: list) -> dict:
                 entry["menus"] = {str(m.get("id")): m.get("count") for m in root}
                 entry["unvollstaendig"] = {}
 
-                def read_menu(menu_id, _prefix=prefix):
+                def read_menu(menu_id, _prefix=prefix, _entry=entry):
                     url = f"{probe.base}/api/1.0/lookup{_prefix}/{menu_id}"
-                    expected = entry["menus"].get(menu_id) or 0
+                    expected = _entry["menus"].get(menu_id) or 0
                     items, strategy, mstatus = fetch_menu_all(
                         probe, url, expected, probe.page_strategy
                     )
@@ -314,7 +317,7 @@ def fetch_menus(probe: Probe, structure: list) -> dict:
             if entry["menu_errors"]:
                 hinweis += f"  [{len(entry['menu_errors'])} Menüs ohne Antwort]"
             print(
-                f"    {prefix:<12} fctType {str(entry['fct_type']):>3}  "
+                f"    {prefix:<12} fctType {entry['fct_type']!s:>3}  "
                 f"{str(entry['name'])[:22]:<22} Menüs {len(entry['menus']):>3}  "
                 f"Datenpunkte {ist:>4}{hinweis}"
             )
@@ -325,8 +328,9 @@ def fetch_menus(probe: Probe, structure: list) -> dict:
         print(f"    Nachladen weiterer Menü-Seiten funktioniert über: {strategy[0]}")
     elif strategy == "keine":
         result["seitenmodus"] = "keine"
-        print("    Das Gerät liefert je Menü nur die ersten 10 Datenpunkte "
-              "(kein Nachladen möglich)")
+        print(
+            "    Das Gerät liefert je Menü nur die ersten 10 Datenpunkte (kein Nachladen möglich)"
+        )
     return result
 
 
@@ -353,8 +357,12 @@ def run_diagnose(probe: Probe, menus: dict) -> dict:
     known = set(_oids_of(first))
     print(f"    Grundabruf liefert {len(first)} Einträge, erster: {sorted(known)[0]}")
 
-    findings = {"ebene": f"{fct['prefix']}/{menu}", "count": count,
-                "grundabruf": len(first), "varianten": {}}
+    findings = {
+        "ebene": f"{fct['prefix']}/{menu}",
+        "count": count,
+        "grundabruf": len(first),
+        "varianten": {},
+    }
     for name, build in PAGE_STRATEGIES:
         test_url = build(url, PAGE_SIZE)
         data, st = probe.get(test_url)
@@ -370,8 +378,10 @@ def run_diagnose(probe: Probe, menus: dict) -> dict:
         print(f"      {name:<12} {test_url.split('/api/1.0/lookup')[1]:<28} {ergebnis}{marker}")
 
     if not any(v["neu"] for v in findings["varianten"].values()):
-        print("    Keine Variante liefert weitere Datenpunkte – die fehlenden müssen "
-              "einzeln gelesen werden.")
+        print(
+            "    Keine Variante liefert weitere Datenpunkte – die fehlenden müssen "
+            "einzeln gelesen werden."
+        )
     return findings
 
 
@@ -417,7 +427,7 @@ def compare(menus: dict) -> list[dict]:
         if DEVICE_DB is not None:
             try:
                 layers = DEVICE_DB.get_layers(fct["fct_type"]) or {}
-            except Exception:  # noqa: BLE001
+            except Exception:
                 layers = {}
         known = {g for lvl in ("info", "operate", "service") for g in layers.get(lvl, [])}
         rows.append(
@@ -444,21 +454,47 @@ def write_csv(path: Path, menus: dict) -> None:
     with path.open("w", encoding="utf-8-sig", newline="") as fh:
         writer = csv.writer(fh, delimiter=";")
         writer.writerow(
-            ["host", "prefix", "fctType", "funktion", "menue", "oid", "gn/mn",
-             "name_db", "wert", "einheit", "min", "max", "step", "schreibbar",
-             "enum", "typeId"]
+            [
+                "host",
+                "prefix",
+                "fctType",
+                "funktion",
+                "menue",
+                "oid",
+                "gn/mn",
+                "name_db",
+                "wert",
+                "einheit",
+                "min",
+                "max",
+                "step",
+                "schreibbar",
+                "enum",
+                "typeId",
+            ]
         )
         for fct in menus["functions"]:
             for oid, item in sorted(fct["datapoints"].items()):
                 gnmn = gnmn_of(fct["prefix"], oid)
                 writer.writerow(
-                    [menus["host"], fct["prefix"], fct["fct_type"], fct["name"],
-                     item.get("_menu", ""), oid, gnmn, db_name(gnmn),
-                     item.get("value", ""), item.get("unit", ""),
-                     item.get("minValue", ""), item.get("maxValue", ""),
-                     item.get("step", ""),
-                     "nein" if item.get("writeProt") else "ja",
-                     item.get("enum", ""), item.get("typeId", "")]
+                    [
+                        menus["host"],
+                        fct["prefix"],
+                        fct["fct_type"],
+                        fct["name"],
+                        item.get("_menu", ""),
+                        oid,
+                        gnmn,
+                        db_name(gnmn),
+                        item.get("value", ""),
+                        item.get("unit", ""),
+                        item.get("minValue", ""),
+                        item.get("maxValue", ""),
+                        item.get("step", ""),
+                        "nein" if item.get("writeProt") else "ja",
+                        item.get("enum", ""),
+                        item.get("typeId", ""),
+                    ]
                 )
 
 
@@ -524,7 +560,11 @@ def write_report(path: Path, menus: dict, objects: dict, stats: dict) -> None:
         lines += ["## Strukturierte Objekte", "", "| OID | Status | Blöcke |", "|---|---|---|"]
         for oid, entry in sorted(objects.items()):
             data = entry.get("data")
-            blocks = len(data["value"]) if isinstance(data, dict) and isinstance(data.get("value"), list) else "–"
+            blocks = (
+                len(data["value"])
+                if isinstance(data, dict) and isinstance(data.get("value"), list)
+                else "–"
+            )
             lines.append(f"| `{oid}` | {entry['status']} | {blocks} |")
         lines.append("")
 
@@ -554,7 +594,9 @@ def run_host(host: str, password: str, actions: set[str], out_dir: Path, workers
 
     nodes = len(structure)
     fcts = sum(
-        1 for n in structure for f in n.get("functions", [])
+        1
+        for n in structure
+        for f in n.get("functions", [])
         if not f.get("lock") and f.get("fctType", -1) >= 0
     )
     print(f"    {nodes} Knoten, {fcts} nutzbare Funktionen")
@@ -600,9 +642,11 @@ def run_host(host: str, password: str, actions: set[str], out_dir: Path, workers
 
     if menus and "compare" in actions:
         for row in compare(menus):
-            print(f"    {row['prefix']:<12} fctType {row['fct_type']:>3}: "
-                  f"Anlage {len(row['found']):>3} | DB {len(row['known']):>3} | "
-                  f"nur Anlage {len(row['only_device']):>3} | nur DB {len(row['only_db']):>3}")
+            print(
+                f"    {row['prefix']:<12} fctType {row['fct_type']:>3}: "
+                f"Anlage {len(row['found']):>3} | DB {len(row['known']):>3} | "
+                f"nur Anlage {len(row['only_device']):>3} | nur DB {len(row['only_db']):>3}"
+            )
 
     if menus and "report" in actions:
         path = out_dir / f"{stem}_bericht.md"
@@ -615,8 +659,12 @@ def run_host(host: str, password: str, actions: set[str], out_dir: Path, workers
         print(f"      -> {path}")
 
     return {
-        "host": host, "ok": True, "datapoints": total,
-        "requests": probe.requests, "seconds": seconds, "files": [str(p) for p in written],
+        "host": host,
+        "ok": True,
+        "datapoints": total,
+        "requests": probe.requests,
+        "seconds": seconds,
+        "files": [str(p) for p in written],
     }
 
 
@@ -640,7 +688,9 @@ def interactive(out_default: str = "probe") -> int:
     hosts_file = out_dir / HOSTS_FILE
     stored = []
     if hosts_file.exists():
-        stored = [h.strip() for h in hosts_file.read_text(encoding="utf-8").splitlines() if h.strip()]
+        stored = [
+            h.strip() for h in hosts_file.read_text(encoding="utf-8").splitlines() if h.strip()
+        ]
 
     if stored:
         print(f"\nZuletzt verwendet: {', '.join(stored)}")
@@ -662,7 +712,10 @@ def interactive(out_default: str = "probe") -> int:
 
     same = True
     if len(hosts) > 1:
-        same = input("\nGleiches Passwort für alle Anlagen? [J/n] ").strip().lower() not in ("n", "nein")
+        same = input("\nGleiches Passwort für alle Anlagen? [J/n] ").strip().lower() not in (
+            "n",
+            "nein",
+        )
 
     passwords: dict[str, str] = {}
     env_pw = os.environ.get("HEATNEXUS_PW")
@@ -702,8 +755,10 @@ def interactive(out_default: str = "probe") -> int:
     print("=" * 64)
     for res in results:
         if res.get("ok"):
-            print(f"  {res['host']:<16} {res['datapoints']:>4} Datenpunkte  "
-                  f"{res['requests']:>4} Requests  {res['seconds']:.1f} s")
+            print(
+                f"  {res['host']:<16} {res['datapoints']:>4} Datenpunkte  "
+                f"{res['requests']:>4} Requests  {res['seconds']:.1f} s"
+            )
         else:
             print(f"  {res['host']:<16} fehlgeschlagen")
     print(f"\nDateien liegen in: {out_dir.resolve()}")
@@ -737,16 +792,33 @@ def main() -> int:
         description="HeatNexus – Anlagen-Probe für Windhager-Heizungen",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("command", nargs="?", default="interactive",
-                        choices=["interactive", "structure", "menus", "objects",
-                                 "compare", "report", "diag", "all", "oid"],
-                        help="Aktion (Standard: geführter Modus)")
+    parser.add_argument(
+        "command",
+        nargs="?",
+        default="interactive",
+        choices=[
+            "interactive",
+            "structure",
+            "menus",
+            "objects",
+            "compare",
+            "report",
+            "diag",
+            "all",
+            "oid",
+        ],
+        help="Aktion (Standard: geführter Modus)",
+    )
     parser.add_argument("hosts", nargs="*", help="eine oder mehrere IP-Adressen")
     parser.add_argument("--oid", help="vollständige OID für die Aktion 'oid'")
     parser.add_argument("--password", help="Service-Passwort (sonst Abfrage oder HEATNEXUS_PW)")
     parser.add_argument("-o", "--out", default="probe", help="Zielordner (Standard: probe)")
-    parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS,
-                        help=f"parallele Anfragen je Anlage (Standard: {DEFAULT_WORKERS})")
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=DEFAULT_WORKERS,
+        help=f"parallele Anfragen je Anlage (Standard: {DEFAULT_WORKERS})",
+    )
     args = parser.parse_args()
 
     if args.command == "interactive":

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import asyncio
-import logging
 from datetime import timedelta
+import logging
 
 import async_timeout
 from homeassistant.config_entries import ConfigEntry
@@ -72,6 +71,7 @@ def _discovery_cache_valid(stored, host: str, version: str, fingerprint: str) ->
         return False
     return (dt_util.utcnow() - saved).days <= DISCOVERY_MAX_AGE_DAYS
 
+
 PLATFORMS: list[Platform] = [
     Platform.CLIMATE,
     Platform.SENSOR,
@@ -108,7 +108,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 data = await self.client.fetch_all()
                 self.consecutive_timeouts = 0
                 return data
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             self.consecutive_timeouts += 1
             _LOGGER.warning(
                 "Timeout fetching data from %s (attempt %d)",
@@ -122,9 +122,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             # Return last known good data if available
             return self.data if self.data else None
         except Exception as err:
-            _LOGGER.error(
-                "Error fetching data from %s: %s", self.entry.data["host"], str(err)
-            )
+            _LOGGER.error("Error fetching data from %s: %s", self.entry.data["host"], str(err))
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
 
@@ -182,20 +180,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         try:
             async with async_timeout.timeout(INIT_TIMEOUT):
                 await client.async_init()
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             await client.close()
-            raise ConfigEntryNotReady(
-                f"Timeout bei der Erstinitialisierung von {host}"
-            ) from err
-        except Exception as err:  # noqa: BLE001
+            raise ConfigEntryNotReady(f"Timeout bei der Erstinitialisierung von {host}") from err
+        except Exception as err:
             await client.close()
             raise ConfigEntryNotReady(
                 f"Fehler bei der Erstinitialisierung von {host}: {err}"
             ) from err
 
-    coordinator = WindhagerDataUpdateCoordinator(
-        hass, client, entry, scope["update_interval"]
-    )
+    coordinator = WindhagerDataUpdateCoordinator(hass, client, entry, scope["update_interval"])
     await coordinator.async_config_entry_first_refresh()
 
     # Cache erst nach dem ersten Refresh schreiben (dann ist auch geklärt, ob

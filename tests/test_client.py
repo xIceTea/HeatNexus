@@ -15,7 +15,7 @@ pytestmark = requires_ha()
 
 @pytest.fixture(scope="module")
 def client_module():
-    from custom_components.heatnexus import client  # noqa: PLC0415
+    from custom_components.heatnexus import client
 
     return client
 
@@ -61,7 +61,7 @@ def test_time_program_without_value(client_module):
 
 def test_discovery_roundtrip_is_json_safe(client_module):
     """export_discovery muss per HA-Store persistierbar sein (keine Sets)."""
-    import json  # noqa: PLC0415
+    import json
 
     client = client_module.WindhagerHttpClient("192.0.2.1", "secret")
     client.oids = {"/1/15/0/0/0/0"}

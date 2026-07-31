@@ -9,12 +9,13 @@ wrong retries when multiple requests were in flight at the same time.
 import hashlib
 import os
 import time
-from yarl import URL
 
 from aiohttp import client_exceptions
+from yarl import URL
 
 
 def parse_pair(pair):
+    """Ein Schlüssel-Wert-Paar aus dem Digest-Header zerlegen."""
     key, value = pair.split("=", 1)
     if value[-1] == ",":
         value = value[:-1]
@@ -24,9 +25,9 @@ def parse_pair(pair):
 
 
 def parse_key_value_list(header):
+    """Digest-Header in ein Wörterbuch überführen."""
     return {
-        key: value
-        for key, value in [parse_pair(header_pair) for header_pair in header.split(" ")]
+        key: value for key, value in [parse_pair(header_pair) for header_pair in header.split(" ")]
     }
 
 
@@ -42,15 +43,10 @@ class DigestAuth:
         self.challenge = None
 
     async def request(self, method, url, *, headers=None, retry=True, **kwargs):
-        if headers is None:
-            headers = {}
-        else:
-            headers = dict(headers)
+        headers = {} if headers is None else dict(headers)
 
         if self.challenge:
-            headers["Authorization"] = self._build_digest_header(
-                method.upper(), url
-            )
+            headers["Authorization"] = self._build_digest_header(method.upper(), url)
 
         response = await self.session.request(method, url, headers=headers, **kwargs)
 
@@ -60,9 +56,7 @@ class DigestAuth:
             if parts[0].lower() == "digest" and len(parts) > 1:
                 self.challenge = parse_key_value_list(parts[1])
                 response.release()
-                return await self.request(
-                    method, url, headers=headers, retry=False, **kwargs
-                )
+                return await self.request(method, url, headers=headers, retry=False, **kwargs)
 
         return response
 

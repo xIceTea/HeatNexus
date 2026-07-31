@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import date as dt_date
+from datetime import datetime
 import logging
-from datetime import date as dt_date, datetime
 
 from homeassistant.components.date import DateEntity
 from homeassistant.config_entries import ConfigEntry
@@ -25,9 +26,7 @@ def parse_date(value: str | None) -> dt_date | None:
         return None
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager date entities from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [
@@ -47,9 +46,7 @@ class WindhagerDate(WindhagerEntity, DateEntity):
     def native_value(self) -> dt_date | None:
         value = parse_date(self.raw_value)
         if value is None and self.raw_value not in (None, "-"):
-            _LOGGER.debug(
-                "Unparseable date %r for %s (%s)", self.raw_value, self.name, self._oid
-            )
+            _LOGGER.debug("Unparseable date %r for %s (%s)", self.raw_value, self.name, self._oid)
         return value
 
     async def async_set_value(self, value: dt_date) -> None:

@@ -10,9 +10,7 @@ from . import DOMAIN
 from .entity import WindhagerEntity
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager numbers from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [
@@ -45,9 +43,7 @@ class WindhagerNumber(WindhagerEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         # Clamp defensively, HA UI should already enforce the limits
-        value = max(
-            self._attr_native_min_value, min(self._attr_native_max_value, value)
-        )
+        value = max(self._attr_native_min_value, min(self._attr_native_max_value, value))
         if self._attr_native_step >= 1 and float(value).is_integer():
             payload = str(int(value))
         else:

@@ -10,9 +10,7 @@ from . import DOMAIN
 from .entity import WindhagerEntity
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager switches from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [

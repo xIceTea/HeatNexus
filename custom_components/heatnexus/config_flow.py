@@ -7,8 +7,6 @@ import logging
 from typing import Any
 from urllib.parse import urlparse
 
-import voluptuous as vol
-
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -26,6 +24,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
 )
+import voluptuous as vol
 
 from .client import WindhagerHttpClient
 from .const import (
@@ -135,9 +134,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         """Zwischenstand des Dialogs."""
         self._data: dict[str, Any] = {}
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Adresse und Service-Passwort abfragen."""
         errors: dict[str, str] = {}
 
@@ -151,7 +148,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.exception("Unerwarteter Fehler beim Verbinden mit %s", host)
                 errors["base"] = "unknown"
             else:
@@ -166,9 +163,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_scope(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_scope(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Bedienebenen und Abfrageintervall wählen."""
         if user_input is not None:
             return self.async_create_entry(
@@ -179,9 +174,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(step_id="scope", data_schema=level_schema({}))
 
-    async def async_step_reauth(
-        self, entry_data: Mapping[str, Any]
-    ) -> ConfigFlowResult:
+    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
         """Nach abgelehnter Anmeldung ein neues Passwort erfragen."""
         return await self.async_step_reauth_confirm()
 
@@ -221,9 +214,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
 class WindhagerOptionsFlow(OptionsFlow):
     """Umfang und Abfrageintervall nachträglich ändern."""
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Gleiche Auswahl wie bei der Einrichtung."""
         if user_input is not None:
             return self.async_create_entry(data=normalize_options(user_input))

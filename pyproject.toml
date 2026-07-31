@@ -23,15 +23,23 @@ select = [
   "ASYNC",
 ]
 ignore = [
-  "D203",   # kollidiert mit D211
-  "D213",   # kollidiert mit D212
-  "D401",   # imperative mood – deutsche Docstrings
-  "E501",   # Zeilenlänge via formatter
+  "D203",    # kollidiert mit D211
+  "D213",    # kollidiert mit D212
+  "D401",    # imperative mood – deutsche Docstrings
+  "E501",    # Zeilenlänge via formatter
+  "RUF001",  # deutsche Texte enthalten Gedankenstriche und typografische
+  "RUF002",  # Anführungszeichen – das ist beabsichtigt
+  "RUF003",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D100", "D101", "D102", "D103", "D104"]
-"tools/*" = ["D100", "D103", "T201"]
+"tools/*" = ["D100", "D103", "T201", "SIM108"]
+# Von Home Assistant vorgegebene Eigenschaften und Rückrufe erklären sich über
+# ihren Namen; eigene Docstrings stehen dort, wo Verhalten begründet werden muss.
+"custom_components/heatnexus/*.py" = ["D102", "D107", "RUF012"]
+# Wird durch die Digest-Unterstützung von aiohttp ersetzt.
+"custom_components/heatnexus/aiohelper.py" = ["D102", "D107", "UP031", "N802", "N806"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["custom_components"]

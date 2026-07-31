@@ -19,9 +19,7 @@ DEVICE_CLASS_MAP = {
 }
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager binary sensors from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [

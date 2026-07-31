@@ -1,0 +1,30 @@
+HeatNexus
+Copyright 2026 xIceTea
+
+Dieses Produkt enthält Software, die im Rahmen der Apache License 2.0
+entwickelt wurde (siehe LICENSE).
+
+Herkunftsnachweise
+------------------
+
+custom_components/heatnexus/aiohelper.py
+    Digest-Authentifizierung für aiohttp, abgeleitet von der Implementierung
+    des Projekts "requests" (Apache License 2.0),
+    https://github.com/psf/requests
+    Nebenläufigkeitssicher neu geschrieben. Diese Datei entfällt, sobald die
+    Digest-Unterstützung von aiohttp genutzt wird.
+
+Geräteangaben
+-------------
+
+Datenpunktnamen, Enum-Texte und Störungstexte in device_db.json und
+error_texts_de.json sind aus den öffentlich abrufbaren Parameterdateien von
+Windhager abgeleitet. Windhager, PuroWIN und BioWIN sind Marken der
+Windhager Zentralheizung GmbH. Dieses Projekt steht in keiner Verbindung zum
+Hersteller und wird von ihm weder unterstützt noch geprüft.
+
+Name und Logo
+-------------
+
+Der Name "HeatNexus" und die Bilddateien unter assets/ sowie
+custom_components/heatnexus/brand/ sind nicht Bestandteil der Apache-Lizenz.

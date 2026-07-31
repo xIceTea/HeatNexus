@@ -5,8 +5,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import voluptuous as vol
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -15,7 +13,9 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv, entity_platform
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_platform
+import voluptuous as vol
 
 from . import DOMAIN
 from .const import ERROR_TEXTS
@@ -48,9 +48,7 @@ _BLOCK_SCHEMA = vol.Schema(
 )
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager sensors from a config entry."""
     platform = entity_platform.async_get_current_platform()
     # Service zum Schreiben eines Zeitprogramms (Heiz-/WW-Programm). Ziel ist
@@ -149,7 +147,9 @@ class WindhagerEnumSensor(WindhagerEntity, SensorEntity):
         if label is None:
             _LOGGER.debug(
                 "Enum value %s outside allowed range for %s (%s)",
-                raw, self.name, self._oid,
+                raw,
+                self.name,
+                self._oid,
             )
         return label
 
@@ -306,8 +306,13 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
     _register_poll_oid = False
 
     _DAY_DE = {
-        "Mo": "Mo", "Tu": "Di", "We": "Mi", "Th": "Do",
-        "Fr": "Fr", "Sa": "Sa", "Su": "So",
+        "Mo": "Mo",
+        "Tu": "Di",
+        "We": "Mi",
+        "Th": "Do",
+        "Fr": "Fr",
+        "Sa": "Sa",
+        "Su": "So",
     }
 
     @property
@@ -364,8 +369,17 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
     ALL_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
     # Eingabe (deutsch ODER englisch) -> von der API erwartete Codes
     _DAY_NORMALIZE = {
-        "mo": "Mo", "di": "Tu", "tu": "Tu", "mi": "We", "we": "We",
-        "do": "Th", "th": "Th", "fr": "Fr", "sa": "Sa", "so": "Su", "su": "Su",
+        "mo": "Mo",
+        "di": "Tu",
+        "tu": "Tu",
+        "mi": "We",
+        "we": "We",
+        "do": "Th",
+        "th": "Th",
+        "fr": "Fr",
+        "sa": "Sa",
+        "so": "Su",
+        "su": "Su",
     }
 
     @classmethod
@@ -397,9 +411,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         out.sort(key=lambda x: x["time"])
         return out
 
-    async def async_set_time_program(
-        self, switch_points=None, weekdays=None, blocks=None
-    ) -> None:
+    async def async_set_time_program(self, switch_points=None, weekdays=None, blocks=None) -> None:
         """Write the time program via the object endpoint.
 
         Liest zuerst das aktuelle Objekt, ersetzt nur 'value' und schreibt das
@@ -429,9 +441,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
                 }
             ]
         else:
-            raise WindhagerValueError(
-                "Bitte 'switch_points' oder 'blocks' angeben"
-            )
+            raise WindhagerValueError("Bitte 'switch_points' oder 'blocks' angeben")
 
         client = self.coordinator.client
         # Aktuelles Objekt als Envelope lesen (Felder wie OID/typeId erhalten).

@@ -14,9 +14,7 @@ from .entity import WindhagerEntity
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager buttons from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [

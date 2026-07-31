@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import time as dt_time
+import logging
 
 from homeassistant.components.time import TimeEntity
 from homeassistant.config_entries import ConfigEntry
@@ -28,9 +28,7 @@ def parse_time(value: str | None) -> dt_time | None:
     return None
 
 
-async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
-) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager time entities from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities = [

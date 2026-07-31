@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def parse_value(value: Any, as_type: type = float, oid: str | None = None) -> An
         return None
 
 
-def get_oid_raw(coordinator: Any, oid: str, prefix: str = "") -> Optional[str]:
+def get_oid_raw(coordinator: Any, oid: str, prefix: str = "") -> str | None:
     """Get the raw string value for an OID (or None)."""
     if not coordinator.data:
         return None
@@ -30,7 +30,7 @@ def get_oid_raw(coordinator: Any, oid: str, prefix: str = "") -> Optional[str]:
 
 def get_oid_value(
     coordinator: Any, oid: str, prefix: str = "", default: Any = None
-) -> Optional[float]:
+) -> float | None:
     """Get OID value as float with error handling.
 
     NOTE: default is None on purpose. The old default of "0" masked missing
