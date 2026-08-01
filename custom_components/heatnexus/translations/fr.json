@@ -55,6 +55,14 @@
           "host": "Adresse IP",
           "password": "Mot de passe de service"
         }
+      },
+      "reconfigure": {
+        "title": "Modifier l’adresse",
+        "description": "Saisir la nouvelle adresse de l’installation. Appareils, entités et historique sont conservés.",
+        "data": {
+          "anlage": "Installation",
+          "host": "Nouvelle adresse"
+        }
       }
     }
   },

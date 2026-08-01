@@ -62,6 +62,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
     """Base class for Windhager thermostats."""
 
+    # Das Thermostat ist die Hauptfunktion seines Geräts und trägt deshalb
+    # keinen eigenen Namen: Es heißt wie der Heizkreis, an dem es hängt.
+    _attr_has_entity_name = True
+    _attr_name = None
+
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_min_temp = MIN_TEMP
     _attr_max_temp = MAX_TEMP
@@ -135,10 +140,6 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
     @property
     def unique_id(self) -> str:
         return self._id
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     @property
     def device_info(self) -> DeviceInfo:

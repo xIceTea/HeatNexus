@@ -49,6 +49,24 @@ def test_unbekannte_ebene_wird_verworfen(flow):
     assert options[CONF_LEVELS] == ["info", "operate", "oem"]
 
 
+def test_anlagenkennung_kommt_aus_der_seriennummer(flow):
+    """Die Kennung darf nicht an der Adresse hängen."""
+    struktur = [
+        {"nodeId": 60, "neuronId": "070269ad1601"},
+        {"nodeId": 14, "neuronId": "07026d3c8b01"},
+        {"nodeId": 15, "neuronId": "070261a50401"},
+    ]
+    # Immer die kleinste Seriennummer – unabhängig von der Reihenfolge, in der
+    # die Anlage ihre Knoten meldet.
+    assert flow.anlagenkennung(struktur) == "070261a50401"
+    assert flow.anlagenkennung(list(reversed(struktur))) == "070261a50401"
+
+
+def test_anlagenkennung_ohne_seriennummer(flow):
+    assert flow.anlagenkennung([{"nodeId": 1}]) == ""
+    assert flow.anlagenkennung([]) == ""
+
+
 def test_menueschritt_fuer_jede_anlage(flow):
     """Auch die siebte Anlage muss einen Schritt bekommen."""
     optionen = flow.WindhagerOptionsFlow()

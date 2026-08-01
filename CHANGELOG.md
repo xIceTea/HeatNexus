@@ -38,6 +38,23 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Geändert
 
+- **Kennungen hängen nicht mehr an der IP-Adresse.** Geräte und Entitäten
+  tragen jetzt die Seriennummer des jeweiligen Bausteins, die die Anlage in
+  ihrer Struktur mitliefert. Zieht die Anlage im Netz um, bleibt alles
+  bestehen – Namen, Bereiche, Verlauf, Automationen. Vorhandene Einträge
+  werden beim ersten Start nach der Aktualisierung umgeschrieben; gelöscht
+  oder neu angelegt wird nichts.
+- **Adresse änderbar**: Über *Neu konfigurieren* an der Integration lässt sich
+  die Adresse einer Anlage austauschen, ohne sie neu einzurichten.
+- **Entitätsnamen nach Home-Assistant-Art**: Eine Entität heißt jetzt nach dem
+  Muster „Anlage · Anlagenteil – Datenpunkt", ihre Kennung entsprechend
+  `sensor.heizhaus_purowin_kesseltemperatur_ist`. Bisher entstanden Namen wie
+  `sensor.b_plmi_puffer_meldung_4`, bei denen nicht erkennbar war, zu welcher
+  Anlage sie gehören. Bestehende Entitäten werden einmalig umbenannt, soweit
+  der neue Name frei ist und der Nutzer sie nicht selbst benannt hat.
+  Das Thermostat eines Heizkreises trägt keinen Zusatz mehr und heißt wie der
+  Heizkreis selbst.
+
 - **Reihenfolge im Dashboard** folgt der Anlage statt dem Alphabet: Kessel,
   Puffer, Heizkreis, Warmwasser, Zirkulation. Anlagenteile ohne bekannten Typ
   stehen hinten.

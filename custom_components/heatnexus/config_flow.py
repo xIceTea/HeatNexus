@@ -84,6 +84,18 @@ async def validate_connection(host: str, password: str) -> list:
     return data
 
 
+def anlagenkennung(struktur: list) -> str:
+    """Dauerhafte Kennung einer Steuerung aus ihren Seriennummern.
+
+    Jeder Knoten meldet eine ``neuronId``; die kleinste davon kennzeichnet die
+    Steuerung. Anders als die IP-Adresse bleibt sie gleich, wenn die Anlage im
+    Netz umzieht – erst dadurch erkennt Home Assistant eine bereits
+    eingerichtete Anlage unter neuer Adresse wieder.
+    """
+    neuronen = sorted(str(k["neuronId"]) for k in struktur if k.get("neuronId"))
+    return neuronen[0] if neuronen else ""
+
+
 def beschreibe(struktur: list) -> str:
     """Kurzfassung dessen, was die Anlage meldet."""
     namen = []
@@ -216,6 +228,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                             CONF_HOST: host,
                             CONF_PASSWORD: user_input[CONF_PASSWORD],
                             "gefunden": beschreibe(struktur),
+                            "kennung": anlagenkennung(struktur),
                         }
                     )
                     if len(self._systeme) < self._anzahl:
@@ -252,7 +265,10 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             for system in self._systeme:
                 options[system[CONF_HOST]] = dict(gemeinsam)
 
-            await self.async_set_unique_id("-".join(sorted(s[CONF_HOST] for s in self._systeme)))
+            # Kennung aus den Seriennummern; nur wenn eine Anlage keine
+            # meldet, bleibt ihre Adresse als Rückfall.
+            kennungen = sorted(s.get("kennung") or s[CONF_HOST] for s in self._systeme)
+            await self.async_set_unique_id("-".join(kennungen))
             self._abort_if_unique_id_configured()
 
             return self.async_create_entry(
@@ -326,6 +342,62 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                         )
                     ),
                     vol.Required(CONF_PASSWORD): str,
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Adresse einer Anlage ändern.
+
+        Nötig, wenn die Anlage im Netz umzieht. Geräte und Entitäten bleiben
+        dabei erhalten – ihre Kennungen hängen an den Seriennummern, nicht an
+        der Adresse.
+        """
+        entry = self._get_reconfigure_entry()
+        systeme = entry.data.get(CONF_SYSTEMS, [])
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            alt = user_input["anlage"]
+            neu_host = clean_host(user_input[CONF_HOST])
+            passwort = next((s[CONF_PASSWORD] for s in systeme if s[CONF_HOST] == alt), "")
+            try:
+                await validate_connection(neu_host, passwort)
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            else:
+                neu = [{**s, CONF_HOST: neu_host} if s[CONF_HOST] == alt else s for s in systeme]
+                # Die Optionen sind je Adresse abgelegt und ziehen mit um.
+                optionen = dict(entry.options)
+                if alt in optionen:
+                    optionen[neu_host] = optionen.pop(alt)
+                self.hass.config_entries.async_update_entry(entry, options=optionen)
+                return self.async_update_reload_and_abort(entry, data_updates={CONF_SYSTEMS: neu})
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        "anlage", default=systeme[0][CONF_HOST] if systeme else ""
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(
+                                    value=s[CONF_HOST],
+                                    label=f"{s[CONF_LABEL]} ({s[CONF_HOST]})",
+                                )
+                                for s in systeme
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
+                    vol.Required(CONF_HOST): str,
                 }
             ),
             errors=errors,

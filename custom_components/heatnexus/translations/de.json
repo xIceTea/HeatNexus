@@ -55,6 +55,14 @@
           "host": "IP-Adresse",
           "password": "Service-Passwort"
         }
+      },
+      "reconfigure": {
+        "title": "Adresse ändern",
+        "description": "Neue Adresse der Anlage eintragen. Geräte, Entitäten und Verlauf bleiben erhalten.",
+        "data": {
+          "anlage": "Anlage",
+          "host": "Neue Adresse"
+        }
       }
     }
   },

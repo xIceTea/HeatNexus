@@ -41,6 +41,8 @@ from .const import (
     UPDATE_INTERVAL,
 )
 from .dashboard import async_remove_dashboard, async_setup_dashboard
+from .entity import steuerung_kennung
+from .migration import async_entity_ids_umstellen, async_kennungen_umstellen
 from .panel import async_remove_panel, async_setup_panel
 
 _LOGGER = logging.getLogger(__name__)
@@ -224,10 +226,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await coordinator.async_config_entry_first_refresh()
         coordinators[host] = coordinator
 
-        # Die Anlage selbst als Untergerät der Heizungsanlage.
+        # Die Steuerung als Untergerät der Heizungsanlage. Ihre Kennung stammt
+        # aus den Seriennummern der Anlage und übersteht damit einen Wechsel
+        # der IP-Adresse; die alte, adressgebundene Kennung wird vorher
+        # umgeschrieben.
+        alte_kennung = f"{entry.entry_id}_{host}"
+        kennung = steuerung_kennung(coordinator)
+        if kennung != alte_kennung:
+            _steuerung_umstellen(registry, alte_kennung, kennung)
         registry.async_get_or_create(
             config_entry_id=entry.entry_id,
-            identifiers={(DOMAIN, f"{entry.entry_id}_{host}")},
+            identifiers={(DOMAIN, kennung)},
             name=label,
             manufacturer="Windhager",
             model="Steuerung",
@@ -243,8 +252,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "coordinators": coordinators,
         "hintergrund": hintergrund,
     }
+    # Erst die Kennungen umstellen, dann die Plattformen anlegen: Sonst
+    # entstünden neben den umbenannten Einträgen zusätzlich neue.
+    async_kennungen_umstellen(hass, entry, coordinators)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _geraetenamen_angleichen(registry, entry, coordinators)
+    async_entity_ids_umstellen(hass, entry)
     _abgewaehlte_entitaeten_stilllegen(hass, entry, coordinators)
 
     if (entry.options or {}).get(CONF_DASHBOARD, True):
@@ -326,13 +339,27 @@ def _abgewaehlte_entitaeten_stilllegen(
             registry.async_update_entity(eintrag.entity_id, disabled_by=None)
 
 
+def _steuerung_umstellen(registry, alt: str, neu: str) -> None:
+    """Die Kennung des Steuerungs-Geräts auf die Seriennummer umschreiben."""
+    geraet = registry.async_get_device(identifiers={(DOMAIN, alt)})
+    if geraet is None or registry.async_get_device(identifiers={(DOMAIN, neu)}) is not None:
+        return
+    kennungen = {i for i in geraet.identifiers if i != (DOMAIN, alt)}
+    kennungen.add((DOMAIN, neu))
+    registry.async_update_device(geraet.id, new_identifiers=kennungen)
+    _LOGGER.debug("Kennung der Steuerung %s -> %s", alt, neu)
+
+
 def _geraetenamen_angleichen(registry, entry: ConfigEntry, coordinators: dict) -> None:
     """Namen bestehender Geräte an das aktuelle Schema angleichen.
 
     Home Assistant übernimmt geänderte Gerätenamen nicht immer von selbst.
     Eine eigene Umbenennung durch den Nutzer bleibt unangetastet.
     """
-    for host, coordinator in coordinators.items():
+    for coordinator in coordinators.values():
+        steuerung = registry.async_get_device(
+            identifiers={(DOMAIN, steuerung_kennung(coordinator))}
+        )
         for beschreibung in (coordinator.data or {}).get("devices", []):
             kennung = beschreibung.get("device_id")
             funktion = (beschreibung.get("device_name") or "").strip()
@@ -342,14 +369,13 @@ def _geraetenamen_angleichen(registry, entry: ConfigEntry, coordinators: dict) -
             if geraet is None:
                 continue
             gewuenscht = f"{coordinator.label} · {funktion}"
-            if coordinator.label and coordinator.label != funktion and geraet.name != gewuenscht:
-                registry.async_update_device(
-                    geraet.id,
-                    name=gewuenscht,
-                    via_device_id=registry.async_get_device(
-                        identifiers={(DOMAIN, f"{entry.entry_id}_{host}")}
-                    ).id,
-                )
+            if (
+                coordinator.label
+                and coordinator.label != funktion
+                and geraet.name != gewuenscht
+                and steuerung is not None
+            ):
+                registry.async_update_device(geraet.id, name=gewuenscht, via_device_id=steuerung.id)
 
 
 async def _vollabzug(

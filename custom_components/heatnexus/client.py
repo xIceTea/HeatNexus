@@ -59,6 +59,9 @@ class WindhagerHttpClient:
         self.writable_advanced = writable_advanced
         self.oids: set | None = None
         self.devices: list[dict] = []
+        # nodeId -> neuronId (Seriennummer des Bausteins). Grundlage aller
+        # dauerhaften Kennungen; wird bei der Discovery aus /1 gefüllt.
+        self.neuron_by_node: dict[str, str] = {}
         # Metadaten aus den Menü-Ebenen: OID -> vollständiger Datenpunkt.
         # Damit entfällt für diese OIDs die einzelne Metadaten-Abfrage.
         self.menu_meta: dict = {}
@@ -271,6 +274,47 @@ class WindhagerHttpClient:
     def slugify(identifier_str):
         return identifier_str.replace(".", "-").replace("/", "-")
 
+    # ------------------------------------------------------------------
+    # Kennungen
+    # ------------------------------------------------------------------
+    # Jeder Knoten meldet in der Struktur eine `neuronId` – die Seriennummer
+    # seines Bausteins. Sie bleibt gleich, wenn die Anlage eine andere
+    # IP-Adresse bekommt, und ist damit die einzige tragfähige Grundlage für
+    # dauerhafte Kennungen. Nur wenn ein Knoten keine meldet, bleibt die
+    # Adresse als Notnagel.
+    def _neuron(self, node_id: str) -> str:
+        return self.neuron_by_node.get(str(node_id)) or self.slugify(self.host)
+
+    def _kennung(self, oid: str) -> str:
+        """Dauerhafte Kennung eines Datenpunkts aus seiner OID.
+
+        `/1/60/0/0/7/0` wird zu `<neuronId>-0-0-7-0`: Knoten- und
+        Anlagenadresse fallen weg, der Rest bleibt wie er ist.
+        """
+        teile = oid.strip("/").split("/")
+        if len(teile) < 3:
+            return self.slugify(f"{self.host}{oid}")
+        return "-".join([self._neuron(teile[1]), *teile[2:]])
+
+    def _geraetekennung(self, prefix: str) -> str:
+        """Dauerhafte Kennung einer Funktion (`/1/<node>/<fct>`)."""
+        return self._kennung(prefix)
+
+    def _alte_kennung(self, teil: str) -> str:
+        """Die frühere, adressgebundene Kennung – nur noch für die Umstellung."""
+        return self.slugify(f"{self.host}{teil}")
+
+    def steuerung_kennung(self) -> str | None:
+        """Dauerhafte Kennung der Steuerung (eine Adresse, mehrere Knoten).
+
+        Die Steuerung selbst meldet keine eigene Seriennummer; genommen wird
+        deshalb die kleinste ihrer Knoten-Seriennummern. Sie ändert sich nur,
+        wenn genau dieser Baustein getauscht wird.
+        """
+        if not self.neuron_by_node:
+            return None
+        return f"steuerung-{min(self.neuron_by_node.values())}"
+
     @staticmethod
     def _gnmn(prefix: str, oid: str) -> str:
         """Datenpunktadresse 'gn/mn' relativ zum Funktionspräfix."""
@@ -284,11 +328,14 @@ class WindhagerHttpClient:
         """Create a device/entity descriptor from a const.py definition."""
         base = device_id if definition.get("node_level") else prefix
         oid = f"{base}{definition['oid']}"
-        unique_id = self.slugify(f"{self.host}{oid}")
+        unique_id = self._kennung(oid)
+        alt = self._alte_kennung(oid)
         if definition.get("key_suffix"):
             unique_id = f"{unique_id}-{definition['key_suffix']}"
+            alt = f"{alt}-{definition['key_suffix']}"
         descriptor = {
             "id": unique_id,
+            "alt_id": alt,
             "oid": oid,
             "name": definition["name"],
             "type": definition["platform"],
@@ -303,7 +350,8 @@ class WindhagerHttpClient:
             "step": definition.get("step"),
             "press_value": definition.get("press_value"),
             "write_prot": None,
-            "device_id": self.slugify(f"{self.host}{prefix}"),
+            "device_id": self._geraetekennung(prefix),
+            "alt_device_id": self._alte_kennung(prefix),
             "device_name": fct["name"],
             "fct_type": fct.get("fctType"),
         }
@@ -319,6 +367,11 @@ class WindhagerHttpClient:
         self.oids = set()
         self.devices = []
         json_devices = await self.fetch("/1")
+
+        # Erst die Seriennummern einsammeln – alle Kennungen hängen daran.
+        for device in json_devices:
+            if (neuron := device.get("neuronId")) and device.get("nodeId") is not None:
+                self.neuron_by_node[str(device["nodeId"])] = str(neuron)
 
         for device in json_devices:
             node_id = device["nodeId"]
@@ -394,7 +447,8 @@ class WindhagerHttpClient:
                         continue
                     self.devices.append(
                         {
-                            "id": self.slugify(f"{self.host}{oid}"),
+                            "id": self._kennung(oid),
+                            "alt_id": self._alte_kennung(oid),
                             "oid": oid,
                             "name": (
                                 NAME_OVERRIDES.get(gnmn)
@@ -421,7 +475,8 @@ class WindhagerHttpClient:
                             "step": None,
                             "press_value": None,
                             "write_prot": None,
-                            "device_id": self.slugify(f"{self.host}{prefix}"),
+                            "device_id": self._geraetekennung(prefix),
+                            "alt_device_id": self._alte_kennung(prefix),
                             "device_name": fct["name"],
                             "fct_type": fct_type,
                         }
@@ -432,12 +487,13 @@ class WindhagerHttpClient:
                 if fct_type == FCT_CLIMATE:
                     self.devices.append(
                         {
-                            # keep legacy unique_id scheme of the climate entity
-                            "id": self.slugify(f"{self.host}{device_id}"),
+                            "id": f"{self._geraetekennung(prefix)}-thermostat",
+                            "alt_id": self._alte_kennung(device_id),
                             "name": fct["name"],
                             "type": "climate",
                             "prefix": prefix,
-                            "device_id": self.slugify(f"{self.host}{prefix}"),
+                            "device_id": self._geraetekennung(prefix),
+                            "alt_device_id": self._alte_kennung(prefix),
                             "device_name": fct["name"],
                             "fct_type": fct_type,
                         }
@@ -457,14 +513,16 @@ class WindhagerHttpClient:
             if device.get("FE01msg") is not None and primary_prefix is not None:
                 self.devices.append(
                     {
-                        "id": self.slugify(f"{self.host}{device_id}-fe01"),
+                        "id": f"{self._neuron(node_id)}-fe01",
+                        "alt_id": self._alte_kennung(f"{device_id}-fe01"),
                         "type": "device_status",
                         "node_id": str(node_id),
                         "name": "Meldung",
                         "category": "diagnostic",
                         "icon": "mdi:message-alert-outline",
                         "enabled_default": True,
-                        "device_id": self.slugify(f"{self.host}{primary_prefix}"),
+                        "device_id": self._geraetekennung(primary_prefix),
+                        "alt_device_id": self._alte_kennung(primary_prefix),
                         "device_name": primary_name,
                         "fct_type": primary_type,
                     }
@@ -473,14 +531,16 @@ class WindhagerHttpClient:
                 # Verkleidungstür offen"), Liste aller aktiven Störungen im Attribut.
                 self.devices.append(
                     {
-                        "id": self.slugify(f"{self.host}{device_id}-fe01text"),
+                        "id": f"{self._neuron(node_id)}-fe01text",
+                        "alt_id": self._alte_kennung(f"{device_id}-fe01text"),
                         "type": "message_text",
                         "node_id": str(node_id),
                         "name": "Meldung Klartext",
                         "category": "diagnostic",
                         "icon": "mdi:alert-circle-outline",
                         "enabled_default": True,
-                        "device_id": self.slugify(f"{self.host}{primary_prefix}"),
+                        "device_id": self._geraetekennung(primary_prefix),
+                        "alt_device_id": self._alte_kennung(primary_prefix),
                         "device_name": primary_name,
                         "fct_type": primary_type,
                     }
@@ -794,12 +854,14 @@ class WindhagerHttpClient:
             "devices": [dict(d) for d in self.devices],
             "poll_oids": sorted(self.poll_oids),
             "objects_supported": self._objects_supported,
+            "neuron_by_node": dict(self.neuron_by_node),
         }
 
     def restore_discovery(self, data: dict) -> None:
         """Discovery-Ergebnis aus dem Cache übernehmen (überspringt async_init)."""
         self.oids = set(data["oids"]) if data.get("oids") is not None else set()
         self.devices = [dict(d) for d in data.get("devices", [])]
+        self.neuron_by_node = dict(data.get("neuron_by_node") or {})
         self.poll_oids = set(data.get("poll_oids", set()))
         self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
         # object-Unterstützung aus dem Cache übernehmen (kein erneutes Probing).

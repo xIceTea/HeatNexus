@@ -90,12 +90,33 @@ def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
         name=name,
         manufacturer="Windhager",
         model=funktion,
-        via_device=(DOMAIN, f"{coordinator.entry.entry_id}_{coordinator.host}"),
+        via_device=(DOMAIN, steuerung_kennung(coordinator)),
     )
 
 
+def steuerung_kennung(coordinator: Any) -> str:
+    """Kennung des Steuerungs-Geräts, an dem die Funktionen hängen.
+
+    Vorzugsweise aus den Seriennummern der Anlage; erst wenn die noch nicht
+    gelesen sind, bleibt die Adresse als Rückfall.
+    """
+    eigene = getattr(coordinator.client, "steuerung_kennung", None)
+    if callable(eigene) and (kennung := eigene()):
+        return kennung
+    return f"{coordinator.entry.entry_id}_{coordinator.host}"
+
+
 class WindhagerEntity(CoordinatorEntity):
-    """Base entity bound to one OID descriptor from the client."""
+    """Base entity bound to one OID descriptor from the client.
+
+    ``has_entity_name`` bedeutet: Der hier gesetzte Name ist der Name des
+    Datenpunkts allein ("Kesseltemperatur Ist"). Den Gerätenamen stellt Home
+    Assistant selbst voran – in der Anzeige wie in der ``entity_id``. Erst
+    dadurch heißt eine Entität ``sensor.heizhaus_purowin_kesseltemperatur_ist``
+    statt ``sensor.kesseltemperatur_ist_4``.
+    """
+
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator)
