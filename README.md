@@ -133,14 +133,6 @@ https://connect.windhager.com/systems/<Kennung der Anlage>/settings
 Auf der Einstellungsseite steht das Passwort im Klartext und lässt sich dort
 auch ändern.
 
-> **Nach einem Software-Update:** Es kommt vor, dass der lokale Zugang nach
-> einem Firmware-Update nicht mehr funktioniert, obwohl sich niemand etwas
-> geändert hat. In einem beobachteten Fall stand vor dem bisherigen Passwort
-> plötzlich ein **Leerzeichen** – sonst war es unverändert. Ob Absicht oder
-> Versehen, ist nicht bekannt. Wer den Anmeldefehler nach einem Update sieht,
-> schaut also am besten zuerst in Windhager Connect nach, was dort gerade als
-> Passwort steht.
-
 > **Windhager-App:** Wird die Anlage mit myComfort / myConnect verbunden,
 > vergibt Windhager ein eigenes Passwort; die Werksangaben oben gelten dann
 > nicht mehr. Das ist kein dauerhafter Ausschluss – das Passwort lässt sich wie

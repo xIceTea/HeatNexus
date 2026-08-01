@@ -30,6 +30,7 @@ from .const import (
     CONF_ENABLE_ADVANCED,
     CONF_LABEL,
     CONF_LEVELS,
+    CONF_MELDUNG_EINLESEN,
     CONF_PANEL,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
@@ -109,11 +110,23 @@ def _scope_fingerprint(scope: dict) -> str:
     )
 
 
-def _discovery_cache_valid(stored, host: str, version: str, fingerprint: str) -> bool:
-    """Gespeicherten Erkennungsstand auf Gültigkeit prüfen."""
+def _discovery_cache_valid(stored, host: str, fingerprint: str) -> bool:
+    """Gespeicherten Erkennungsstand auf Gültigkeit prüfen.
+
+    Die Version der Integration steht bewusst **nicht** in dieser Prüfung:
+    Sonst läse HeatNexus nach jeder Aktualisierung die ganze Anlage neu ein –
+    30 bis 120 Sekunden, in denen kaum etwas dasteht, obwohl sich an der
+    Anlage nichts geändert hat. Ein Versionswechsel löst stattdessen einen
+    Abgleich im Hintergrund aus (siehe `_veraltet`): Die bekannten Werte sind
+    sofort da, Neues kommt nach.
+
+    Was den Stand weiterhin verwirft: eine andere Anlage, ein geänderter
+    Umfang (Ebenen, Freigaben, Zugang), zu hohes Alter – und der Dienst
+    `heatnexus.rediscover`.
+    """
     if not isinstance(stored, dict) or "data" not in stored:
         return False
-    if stored.get("host") != host or stored.get("version") != version:
+    if stored.get("host") != host:
         return False
     if stored.get("scope") != fingerprint:
         return False
@@ -121,6 +134,11 @@ def _discovery_cache_valid(stored, host: str, version: str, fingerprint: str) ->
     if saved is None:
         return False
     return (dt_util.utcnow() - saved).days <= DISCOVERY_MAX_AGE_DAYS
+
+
+def _veraltet(stored, version: str) -> bool:
+    """Prüfen, ob der Stand aus einer anderen Fassung der Integration stammt."""
+    return isinstance(stored, dict) and stored.get("version") != version
 
 
 class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
@@ -206,21 +224,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             levels=scope["levels"],
             enable_advanced=scope["enable_advanced"],
             writable_advanced=scope["writable_advanced"],
+            update_interval=scope["update_interval"],
         )
 
         # Erkennungsstand: erst Arbeitsspeicher, dann Platte, sonst neu lesen.
         store = Store(hass, DISCOVERY_STORE_VERSION, _store_key(entry, host))
         cache_key = f"{host}|{fingerprint}"
         restored = False
+        # Nach einer Aktualisierung wird der bekannte Stand zwar benutzt, im
+        # Hintergrund aber gegen die Anlage abgeglichen.
+        abgleichen = False
         if (cached := mem_cache.get(cache_key)) is not None:
             client.restore_discovery(cached)
             restored = True
         else:
             stored = await store.async_load()
-            if _discovery_cache_valid(stored, host, version, fingerprint):
+            if _discovery_cache_valid(stored, host, fingerprint):
                 client.restore_discovery(stored["data"])
                 mem_cache[cache_key] = stored["data"]
                 restored = True
+                abgleichen = _veraltet(stored, version)
+                if abgleichen:
+                    _LOGGER.info(
+                        "%s: Erkennungsstand stammt aus Fassung %s – die Werte sind sofort "
+                        "da, der Abgleich mit der Anlage läuft im Hintergrund.",
+                        host,
+                        stored.get("version"),
+                    )
 
         if not restored:
             # Nur Grunddaten abwarten – der Vollabzug folgt im Hintergrund.
@@ -257,14 +287,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             via_device=(DOMAIN, entry.entry_id),
         )
 
-        if not restored:
-            nachzuladen.append((coordinator, client, store, host, fingerprint, cache_key))
+        if not restored or abgleichen:
+            nachzuladen.append((coordinator, client, store, host, fingerprint, cache_key, restored))
 
     hintergrund: list = []
     hass.data[DOMAIN][entry.entry_id] = {
         "name": hub_name,
         "coordinators": coordinators,
         "hintergrund": hintergrund,
+        # Der Umfang, mit dem dieser Eintrag geladen wurde. Ändert der Nutzer
+        # ihn, lässt sich daran erkennen, ob er etwas abgewählt hat.
+        "umfang": {system[CONF_HOST]: _scope(entry, system[CONF_HOST]) for system in systeme},
         # Anlagen, deren Vollabzug noch läuft – für die Meldung an den Nutzer.
         "einlesen_offen": {eintrag[3] for eintrag in nachzuladen},
     }
@@ -284,10 +317,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await _oberflaeche_anwenden(hass, bool((entry.options or {}).get(CONF_PANEL, False)))
 
-    if nachzuladen:
+    # Gemeldet wird nur das echte Ersteinlesen, nicht der Abgleich nach einem
+    # Update – und auch das nur, wenn der Nutzer es eingeschaltet hat.
+    if any(not eintrag[6] for eintrag in nachzuladen) and (entry.options or {}).get(
+        CONF_MELDUNG_EINLESEN, False
+    ):
         _einlesen_melden(hass, entry)
 
-    for coordinator, client, store, host, fingerprint, cache_key in nachzuladen:
+    for coordinator, client, store, host, fingerprint, cache_key, war_im_cache in nachzuladen:
         hintergrund.append(
             entry.async_create_background_task(
                 hass,
@@ -302,6 +339,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     cache_key,
                     mem_cache,
                     version,
+                    war_im_cache,
                 ),
                 name=f"{DOMAIN}_vollabzug_{host}",
             )
@@ -366,25 +404,58 @@ def _einlesen_abgeschlossen(hass: HomeAssistant, entry: ConfigEntry, host: str) 
     )
 
 
+def _umfang_verkleinert(alt: dict[str, dict], neu: dict[str, dict]) -> bool:
+    """Prüfen, ob der Nutzer am Umfang etwas abgewählt hat.
+
+    Nur dann werden Entitäten wirklich gelöscht. Fällt dagegen ein Datenpunkt
+    weg, weil ihn die Anlage nicht mehr liefert, steckt keine Entscheidung
+    dahinter – dort wird nur stillgelegt.
+    """
+    for host, alt_umfang in alt.items():
+        neu_umfang = neu.get(host)
+        if neu_umfang is None:
+            return True
+        if set(neu_umfang["levels"]) < set(alt_umfang["levels"]):
+            return True
+        if alt_umfang["enable_advanced"] and not neu_umfang["enable_advanced"]:
+            return True
+    return False
+
+
+def _abwahl_vormerken(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Merken, dass der nächste Ladevorgang nach einer Abwahl aufräumen darf."""
+    hass.data.setdefault(DOMAIN, {}).setdefault("_abwahl", set()).add(entry.entry_id)
+
+
+def _abwahl_abholen(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Die Vormerkung einlösen – sie gilt genau einmal."""
+    offen = hass.data.get(DOMAIN, {}).get("_abwahl")
+    if not isinstance(offen, set) or entry.entry_id not in offen:
+        return False
+    offen.discard(entry.entry_id)
+    return True
+
+
 def _abgewaehlte_entitaeten_stilllegen(
     hass: HomeAssistant, entry: ConfigEntry, coordinators: dict
 ) -> None:
-    """Entitäten stilllegen, die es nach der aktuellen Auswahl nicht mehr gibt.
+    """Entitäten aufräumen, die es nach der aktuellen Auswahl nicht mehr gibt.
 
-    Wird der Umfang verkleinert (z.B. Serviceebene abgewählt), blieben die
-    bereits angelegten Entitäten sonst dauerhaft als „nicht verfügbar" stehen.
+    Was mit ihnen geschieht, hängt davon ab, **warum** sie weg sind:
 
-    Sie werden **deaktiviert statt gelöscht**: Wählt der Nutzer die Ebene
-    wieder dazu, sind eigene Namen, Symbole, Bereichszuordnung und der Verlauf
-    noch vorhanden. Ein Löschen würde all das verwerfen und beim erneuten
-    Anlegen womöglich andere `entity_id`s vergeben – Dashboards und
-    Automationen wären hin. Wer wirklich aufräumen will, ruft
-    `heatnexus.rediscover` auf.
+    * Der Nutzer hat eine Bedienebene **abgewählt** – eine bewusste
+      Entscheidung. Dann werden die Einträge gelöscht, sonst stünden sie
+      dauerhaft als abgeschaltete Zeilen in der Integrationsübersicht.
+    * Die Anlage liefert den Datenpunkt nicht mehr (Umbau, andere Firmware).
+      Dann werden sie nur **stillgelegt**: Kommt er zurück, sind eigene Namen,
+      Symbole, Bereichszuordnung und Verlauf noch da.
     """
     vollstaendig = all(getattr(c.client, "_vollstaendig", False) for c in coordinators.values())
     if not vollstaendig:
         # Vor dem Vollabzug ist die Liste noch unvollständig – nichts anfassen.
         return
+
+    loeschen = _abwahl_abholen(hass, entry)
 
     # Entitäten der Serviceebene sind absichtlich deaktiviert angelegt; sie
     # dürfen beim Wiederdazuwählen nicht versehentlich eingeschaltet werden.
@@ -394,9 +465,13 @@ def _abgewaehlte_entitaeten_stilllegen(
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
     registry = er.async_get(hass)
+    entfernt = 0
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
         if eintrag.unique_id not in standardmaessig_an:
-            if eintrag.disabled_by is None:
+            if loeschen:
+                registry.async_remove(eintrag.entity_id)
+                entfernt += 1
+            elif eintrag.disabled_by is None:
                 _LOGGER.debug("Lege abgewählte Entität %s still", eintrag.entity_id)
                 registry.async_update_entity(
                     eintrag.entity_id, disabled_by=er.RegistryEntryDisabler.INTEGRATION
@@ -409,6 +484,13 @@ def _abgewaehlte_entitaeten_stilllegen(
             # Eine Abschaltung durch den Nutzer (disabled_by USER) bleibt.
             _LOGGER.debug("Nehme %s wieder in Betrieb", eintrag.entity_id)
             registry.async_update_entity(eintrag.entity_id, disabled_by=None)
+
+    if entfernt:
+        _LOGGER.info(
+            "%d Entitäten entfernt, weil ihre Bedienebene abgewählt wurde. "
+            "Beim Wiederdazuwählen werden sie neu angelegt.",
+            entfernt,
+        )
 
 
 async def _oberflaeche_anwenden(hass: HomeAssistant, gewuenscht: bool) -> None:
@@ -481,14 +563,19 @@ async def _vollabzug(
     cache_key: str,
     mem_cache: dict,
     version: str,
+    war_im_cache: bool = False,
 ) -> None:
     """Die Anlage im Hintergrund vollständig einlesen.
 
     Home Assistant läuft zu diesem Zeitpunkt bereits; die zusätzlich
     gefundenen Entitäten werden anschließend nachgemeldet.
+
+    Mit ``war_im_cache`` ist es kein Ersteinlesen, sondern der Abgleich nach
+    einer Aktualisierung: Die Anzeige steht schon, hier kommt nur dazu, was
+    die neue Fassung zusätzlich erkennt.
     """
     try:
-        await client.async_init()
+        await client.async_init(erzwingen=war_im_cache)
     except asyncio.CancelledError:
         # Der Eintrag wird gerade entladen – kein Grund für eine Warnung.
         raise
@@ -541,7 +628,15 @@ def _async_register_rediscover_service(hass: HomeAssistant) -> None:
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Nach geänderten Optionen neu laden (anderer Umfang = andere Entitäten)."""
+    """Nach geänderten Optionen neu laden (anderer Umfang = andere Entitäten).
+
+    Vorher wird festgehalten, ob dabei etwas *abgewählt* wurde: Nur dann darf
+    der nächste Ladevorgang die betroffenen Entitäten wirklich entfernen.
+    """
+    alt = (hass.data.get(DOMAIN, {}).get(entry.entry_id) or {}).get("umfang") or {}
+    neu = {system[CONF_HOST]: _scope(entry, system[CONF_HOST]) for system in _systems(entry)}
+    if alt and _umfang_verkleinert(alt, neu):
+        _abwahl_vormerken(hass, entry)
     await hass.config_entries.async_reload(entry.entry_id)
 
 

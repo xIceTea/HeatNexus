@@ -24,15 +24,16 @@ from .const import (
     POLL_FAST,
     POLL_NORMAL,
     POLL_SLOW,
-    POLL_TAKTE,
     POLL_TYPEN_SCHNELL,
     POLL_WOERTER_SCHNELL,
     POLL_WOERTER_TRAEGE,
+    UPDATE_INTERVAL,
 )
 from .const import (
     ENUMS as ENUMS_FALLBACK,
 )
 from .device_db import get_enum, get_layers, get_name
+from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,9 +58,13 @@ class WindhagerHttpClient:
         enable_advanced: bool = False,
         writable_advanced: bool = False,
         username: str | None = None,
+        update_interval: int = UPDATE_INTERVAL,
     ) -> None:
         self.host = host
         self.password = password
+        # Abfrageintervall des Coordinators. Es bestimmt, wie oft eine träge
+        # Poll-Klasse überhaupt an die Reihe kommen kann.
+        self.update_interval = int(update_interval or UPDATE_INTERVAL)
         # Die Anlage kennt zwei Zugänge mit unterschiedlichem Umfang: „USER"
         # sieht Info- und Betreiberebene, „Service" zusätzlich die
         # Fachparameter. Welcher gilt, entscheidet der Nutzer bei der
@@ -611,12 +616,7 @@ class WindhagerHttpClient:
             return "string_sensor"
 
     # writeProt=True turns a writable platform into its read-only sibling
-    _READONLY_FALLBACK = {
-        "number": "sensor",
-        "select": "enum_sensor",
-        "switch": "binary_sensor",
-        "time": "string_sensor",
-    }
+    _READONLY_FALLBACK = READONLY_FALLBACK
 
     async def _apply_metadata(self):
         """Read metadata for every OID once and refine the descriptors.
@@ -704,11 +704,7 @@ class WindhagerHttpClient:
                 if m.get("unit") and d["type"] in ("number", "sensor"):
                     d["unit"] = m["unit"]
                 if m.get("writeProt") is True and d["type"] in self._READONLY_FALLBACK:
-                    fallback = self._READONLY_FALLBACK[d["type"]]
-                    # ein "Schalter" mit Einheit (z.B. Kaminkehrer 9/90 in min)
-                    # ist in Wahrheit ein Zaehler -> normaler Sensor
-                    if d["type"] == "switch" and m.get("unit"):
-                        fallback = "sensor"
+                    fallback = lesetyp(d["type"], m.get("unit") or d.get("unit"))
                     _LOGGER.info(
                         "%s (%s) ist schreibgeschützt und wird nur angezeigt", d["name"], oid
                     )
@@ -734,13 +730,18 @@ class WindhagerHttpClient:
                 and not self.writable_advanced
                 and d["type"] in self._READONLY_FALLBACK
             ):
-                d["type"] = self._READONLY_FALLBACK[d["type"]]
+                d["type"] = lesetyp(d["type"], d.get("unit"))
+                if d.get("category") == "config":
+                    d["category"] = None
 
             if d["type"] == "climate":
                 m50 = meta.get(f"{d['prefix']}/3/50/0")
                 if m50 and m50.get("enum"):
                     with contextlib.suppress(ValueError, TypeError):
                         d["preset_allowed"] = [int(v) for v in json.loads(m50["enum"])]
+            # Zum Schluss, wenn der endgültige Typ feststeht: Einheit in die
+            # HA-Schreibweise bringen und Geräte-/Statistikklasse setzen.
+            messgroesse(d)
             kept.append(d)
         self.devices = kept
         self.oids -= missing
@@ -871,9 +872,14 @@ class WindhagerHttpClient:
             time.monotonic() - begonnen,
         )
 
-    async def async_init(self) -> None:
-        """Anlage vollständig einlesen (getrennt vom zyklischen Abruf)."""
-        if self._vollstaendig:
+    async def async_init(self, erzwingen: bool = False) -> None:
+        """Anlage vollständig einlesen (getrennt vom zyklischen Abruf).
+
+        Mit ``erzwingen`` läuft der Abzug auch dann, wenn bereits ein
+        vollständiger Stand vorliegt – so gleicht eine neue Fassung der
+        Integration einen aus dem Cache übernommenen Stand ab.
+        """
+        if self._vollstaendig and not erzwingen:
             return
 
         begonnen = time.monotonic()
@@ -919,7 +925,11 @@ class WindhagerHttpClient:
     def restore_discovery(self, data: dict) -> None:
         """Discovery-Ergebnis aus dem Cache übernehmen (überspringt async_init)."""
         self.oids = set(data["oids"]) if data.get("oids") is not None else set()
-        self.devices = [dict(d) for d in data.get("devices", [])]
+        # Einheiten und Klassen werden neu bestimmt, nicht aus dem Cache
+        # übernommen: Ein gespeicherter Stand kann von einer Fassung stammen,
+        # die die Einheitentabelle noch nicht kannte. Der Aufruf ist
+        # wiederholbar und ändert an einem aktuellen Stand nichts.
+        self.devices = [messgroesse(dict(d)) for d in data.get("devices", [])]
         self.neuron_by_node = dict(data.get("neuron_by_node") or {})
         self.poll_oids = set(data.get("poll_oids", set()))
         # Die Poll-Klassen leiten sich aus den Deskriptoren ab und werden
@@ -1078,6 +1088,10 @@ class WindhagerHttpClient:
                     out[str(nid)] = "  ".join(msgs)
         return out
 
+    def _takte(self) -> dict[str, int]:
+        """Wie viele Durchläufe eine Poll-Klasse aussetzt (siehe helpers)."""
+        return poll_takte(self.update_interval)
+
     def _faellig(self) -> set:
         """OIDs, die in diesem Durchlauf an der Reihe sind.
 
@@ -1088,9 +1102,10 @@ class WindhagerHttpClient:
         dass an der Anzeige etwas fehlt – die zuletzt gelesenen Werte bleiben
         stehen.
         """
+        takte = self._takte()
         faellig = set()
         for oid in self.poll_oids | self._dynamic_oids:
-            takt = POLL_TAKTE.get(self.poll_class.get(oid, POLL_NORMAL), 1)
+            takt = takte.get(self.poll_class.get(oid, POLL_NORMAL), 1)
             # Beim ersten Durchlauf ist alles fällig, sonst stünde eine
             # langsame Entität bis zu 15 Minuten ohne Wert da.
             if self._tick == 0 or self._tick % takt == 0:
@@ -1116,7 +1131,8 @@ class WindhagerHttpClient:
         results = await asyncio.gather(*(self._fetch_oid(oid) for oid in faellig))
         # Zeitprogramme und Status ändern sich selten und kosten je eine
         # eigene Anfrage – sie laufen im langsamen Takt mit.
-        langsam_faellig = self._tick == 0 or self._tick % POLL_TAKTE[POLL_SLOW] == 0
+        langsamer_takt = self._takte()[POLL_SLOW]
+        langsam_faellig = self._tick == 0 or self._tick % langsamer_takt == 0
         if langsam_faellig:
             self._letzte_objekte = await self._fetch_time_programs()
         status = await self._fetch_status()

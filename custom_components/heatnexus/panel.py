@@ -40,7 +40,14 @@ from .const import (
     PANEL_TITEL,
     PANEL_URL,
 )
-from .dashboard import _anlagen, _muster, _passt, rueckfrage
+from .dashboard import (
+    WARTUNG_RESTLAUFZEIT,
+    WARTUNG_WEITERE,
+    _anlagen,
+    _muster,
+    _passt,
+    rueckfrage,
+)
 from .schema import anlagenschema
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,13 +76,28 @@ STATUS = (
 )
 
 # Warmwasser hat keine eigene Funktion: Die Datenpunkte hängen am Heizkreis.
-# Eine Anlage ohne Warmwasserbereitung liefert hier nichts – dann bleibt die
-# Karte zu Recht leer.
+# Die Wortgrenze ist nötig – ohne sie zählte auch die Abgas-Re*zirkulation* des
+# Kessels als Warmwasserwert.
 WARMWASSER = _muster(
-    r"warmwasser",
-    r"ww[- ]",
-    r"zirkulation",
+    r"\bwarmwasser",
+    r"\bww[- ]",
+    r"\bzirkulation",
 )
+
+# Ob überhaupt Warmwasser bereitet wird, verraten diese beiden: eine gemessene
+# Warmwassertemperatur (0/4) oder der ausdrücklich gemeldete Kreis (5/76).
+#
+# Die Parameter allein beweisen nichts: „WW-Überhöhung", „WW-Ladepumpe" und
+# „WW-Ladung max. Ladevorrang" stehen auch an einem Heizkreis ohne
+# Warmwasserspeicher in der Liste. Genau daran zeigte die Oberfläche im
+# Heizhaus eine Warmwasserkarte, die es dort nie gab.
+# Kuratiert heißt der Datenpunkt „Warmwasser Ist-Temperatur", aus der
+# Menü-Erkennung „WW-Temperatur Aktueller Wert" – beide Schreibweisen zählen.
+WARMWASSER_IST = _muster(
+    r"\bww[- ]temperatur",
+    r"\bwarmwasser[- ]?(ist|soll)?[- ]?temperatur",
+)
+WARMWASSER_KREIS = _muster(r"\bww-kreis\b")
 
 VERLAUF = _muster(
     r"kesseltemperatur ist",
@@ -95,6 +117,37 @@ SCHNELLZUGRIFF = (
 
 # Höchstzahl der Warmwasserzeilen; mehr sprengt die Karte.
 WARMWASSER_MAX = 6
+
+# ---------------------------------------------------------------------------
+# Reiter „Steuerung": die Anlage bedienen statt nur ablesen
+# ---------------------------------------------------------------------------
+# Betriebswahl eines Heizkreises bzw. des Kessels.
+BETRIEBSWAHL = _muster(r"\bbetriebswahl\b")
+# Zeitprogramm eines Kreises.
+ZEITPROGRAMM = _muster(r"programm")
+# Die Einmalladung: der einzige Warmwasser-Eingriff, den man täglich anfasst.
+EINMALLADUNG = _muster(r"einmalladung")
+# Die Anlage kennt zur Einmalladung zwei Einstellungen: auslösen und die
+# Temperatur, auf die dabei geladen wird.
+EINMALLADUNG_TEMPERATUR = _muster(r"einmalladung temperatur", r"ww-ladefreigabe temperatur")
+WARMWASSER_SOLL = _muster(r"\bww[- ]temperatur sollwert", r"\bwarmwasser soll")
+
+# Die Außentemperatur gehört an der Anlage in die Kopfzeile und nicht in eine
+# Kachel – sie gilt für die ganze Anlage, nicht für einen Anlagenteil.
+AUSSENTEMPERATUR = _muster(r"au(ß|ss)entemperatur")
+
+# Bedienbares am Kessel, in dieser Reihenfolge.
+KESSEL_BEDIENUNG = (
+    (r"gew(ä|ae)hlter brennstoff", "Brennstoff", "mdi:sack"),
+    (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off"),
+    (r"reinigung best", "Reinigung bestätigen", "mdi:broom"),
+    (r"lagerraum bef(ü|ue)llen", "Lagerraum befüllen", "mdi:warehouse"),
+)
+
+# ---------------------------------------------------------------------------
+# Reiter „Wartung"
+# ---------------------------------------------------------------------------
+WARTUNG_BRENNSTOFF = _muster(r"vorratsbeh", r"aktueller brennstoff", r"brennstoff")
 
 
 def _erster(entitaeten: list[dict[str, Any]], muster: str) -> dict[str, Any] | None:
@@ -126,6 +179,140 @@ def _zeilen(
                 }
             )
     return zeilen
+
+
+def _bereitet_warmwasser(entitaeten: list[dict[str, Any]]) -> bool:
+    """Prüfen, ob diese Anlage überhaupt Warmwasser bereitet.
+
+    Zwei Belege lässt die Anlage zu: eine gemessene Warmwassertemperatur oder
+    einen gemeldeten Warmwasserkreis ungleich null. Solange der Vollabzug noch
+    läuft, hat der Istwert womöglich noch keinen Wert – vorhanden sein reicht
+    deshalb, ein Wert ist nicht nötig.
+    """
+    for eintrag in entitaeten:
+        if _passt(eintrag["name"], WARMWASSER_IST):
+            return True
+        if _passt(eintrag["name"], WARMWASSER_KREIS) and (eintrag.get("wert") or 0) != 0:
+            return True
+    return False
+
+
+def _warmwasser(entitaeten: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Zeilen der Warmwasserkarte – leer, wo es kein Warmwasser gibt."""
+    if not _bereitet_warmwasser(entitaeten):
+        return []
+    return [
+        {"entity": e["entity_id"], "titel": e["name"]}
+        for e in entitaeten
+        if e["kategorie"] is None and e["bereich"] != "climate" and _passt(e["name"], WARMWASSER)
+    ][:WARMWASSER_MAX]
+
+
+def _kennung(entitaeten: list[dict[str, Any]], muster: tuple, bereiche: tuple = ()) -> str | None:
+    """Entity-ID der ersten passenden Entität, optional auf Plattformen begrenzt."""
+    for eintrag in entitaeten:
+        if bereiche and eintrag["bereich"] not in bereiche:
+            continue
+        if _passt(eintrag["name"], muster):
+            return eintrag["entity_id"]
+    return None
+
+
+def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
+    """Der Reiter „Steuerung": alles, was man an der Anlage wirklich verstellt.
+
+    Vorbild ist die Bedienung der Anlage selbst – Heizkreis, Warmwasser,
+    Kessel. Was nur abgelesen wird, gehört in die Übersicht.
+    """
+    alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
+
+    heizkreise = []
+    for teil in anlage["teile"]:
+        thermostat = next((e for e in teil["entitaeten"] if e["bereich"] == "climate"), None)
+        if thermostat is None:
+            continue
+        heizkreise.append(
+            {
+                "entity": thermostat["entity_id"],
+                "titel": teil["name"],
+                "betriebswahl": _kennung(teil["entitaeten"], BETRIEBSWAHL, ("select",)),
+                "programm": _kennung(teil["entitaeten"], ZEITPROGRAMM, ("sensor",)),
+                "vorlauf": (
+                    v["entity_id"]
+                    if (v := _erster(teil["entitaeten"], r"vorlauftemperatur ist"))
+                    else None
+                ),
+            }
+        )
+
+    warmwasser = None
+    if _bereitet_warmwasser(alle):
+        ist = _erster(alle, r"\bww[- ]temperatur aktueller|\bwarmwasser ist")
+        warmwasser = {
+            "ist": ist["entity_id"] if ist else None,
+            "soll": _kennung(alle, WARMWASSER_SOLL),
+            "laden": _kennung(alle, EINMALLADUNG, ("switch", "button")),
+            # Die Temperatur der Einmalladung ist an der Anlage Teil derselben
+            # Bedienung; ohne sie lädt man auf einen Wert, den man nicht sieht.
+            "laden_temperatur": _kennung(alle, EINMALLADUNG_TEMPERATUR, ("number",)),
+            "programm": _kennung(alle, _muster(r"ww[- ].*programm"), ("sensor",)),
+        }
+
+    kessel = []
+    for teil in anlage["teile"]:
+        for muster, beschriftung, symbol in KESSEL_BEDIENUNG:
+            treffer = next(
+                (
+                    e
+                    for e in teil["entitaeten"]
+                    if e["bereich"] in ("switch", "button", "select")
+                    and re.search(muster, e["name"], re.IGNORECASE)
+                ),
+                None,
+            )
+            if treffer is not None:
+                kessel.append(
+                    {
+                        "entity": treffer["entity_id"],
+                        "titel": beschriftung,
+                        "symbol": symbol,
+                        "frage": rueckfrage(treffer["name"]),
+                    }
+                )
+
+    return {"heizkreise": heizkreise, "warmwasser": warmwasser, "kessel": kessel}
+
+
+def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:
+    """Der Reiter „Wartung": Restlaufzeiten, Brennstoff, Zählerstände."""
+    alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
+
+    def zeilen(bedingung) -> list[dict[str, str]]:
+        return [
+            {"entity": e["entity_id"], "titel": e["name"]}
+            for e in alle
+            if e["kategorie"] is None and bedingung(e)
+        ]
+
+    return {
+        "restlaufzeiten": zeilen(lambda e: _passt(e["name"], WARTUNG_RESTLAUFZEIT)),
+        "brennstoff": zeilen(
+            lambda e: (
+                _passt(e["name"], WARTUNG_BRENNSTOFF)
+                and not _passt(e["name"], WARTUNG_RESTLAUFZEIT)
+            )
+        ),
+        # Zählerstände erkennt man an der Statistikklasse, nicht am Namen.
+        "zaehler": zeilen(lambda e: e.get("state_class") == "total_increasing"),
+        "weitere": zeilen(
+            lambda e: (
+                _passt(e["name"], WARTUNG_WEITERE)
+                and not _passt(e["name"], WARTUNG_RESTLAUFZEIT)
+                and not _passt(e["name"], WARTUNG_BRENNSTOFF)
+                and e.get("state_class") != "total_increasing"
+            )
+        ),
+    }
 
 
 def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
@@ -166,11 +353,7 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    warmwasser = [
-        {"entity": e["entity_id"], "titel": e["name"]}
-        for e in alle
-        if e["kategorie"] is None and e["bereich"] != "climate" and _passt(e["name"], WARMWASSER)
-    ][:WARMWASSER_MAX]
+    warmwasser = _warmwasser(alle)
 
     stoerungen = [
         {"entity": e["entity_id"], "titel": e["name"]}
@@ -201,8 +384,14 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
                 )
 
     bild = anlagenschema(anlage["teile"])
+    aussen = _kennung(alle, AUSSENTEMPERATUR)
     return {
         "name": anlage["name"],
+        # Die Außentemperatur gilt für die ganze Anlage und steht deshalb oben,
+        # nicht in der Liste der Anlagenteile.
+        "aussentemperatur": aussen,
+        "steuerung": _steuerung(anlage),
+        "wartung": _wartung(anlage),
         "kennwerte": kennwerte,
         "status": _zeilen(alle, STATUS),
         "heizkreise": heizkreise,

@@ -10,6 +10,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, ENUMS, SIGNAL_NEUE_ENTITAETEN
@@ -106,7 +107,7 @@ def steuerung_kennung(coordinator: Any) -> str:
     return f"{coordinator.entry.entry_id}_{coordinator.host}"
 
 
-class WindhagerEntity(CoordinatorEntity):
+class WindhagerEntity(CoordinatorEntity, RestoreEntity):
     """Base entity bound to one OID descriptor from the client.
 
     ``has_entity_name`` bedeutet: Der hier gesetzte Name ist der Name des
@@ -121,6 +122,7 @@ class WindhagerEntity(CoordinatorEntity):
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator)
         self._descriptor = device_info
+        self._alter_zustand: str | None = None
         self._oid = device_info.get("oid")
         self._attr_unique_id = device_info.get("id")
         self._attr_name = device_info.get("name")
@@ -142,6 +144,12 @@ class WindhagerEntity(CoordinatorEntity):
     # OID-Polling – solche Entities setzen das Flag auf False.
     _register_poll_oid = True
 
+    # Nur-lesende Sensoren zeigen nach einem Neustart ihren letzten Wert, bis
+    # der erste Abruf durch ist. Für bedienbare Entitäten ist das nichts: Ein
+    # wiederhergestellter Sollwert, der nicht dem der Anlage entspricht, ist
+    # schlimmer als ein leeres Feld.
+    _wiederherstellbar = False
+
     # ------------------------------------------------------------------
     async def async_added_to_hass(self) -> None:
         """Beim Aktivieren der Entity ihre OID zum Polling anmelden.
@@ -150,10 +158,31 @@ class WindhagerEntity(CoordinatorEntity):
         (z.B. Service-Datenpunkte) registrieren sich daher nicht und werden
         nicht gepollt. Aktiviert der Nutzer eine Service-Entity, wird ihre
         OID hier registriert und ab dem nächsten Poll mit abgefragt.
+
+        Außerdem wird hier der zuletzt bekannte Zustand geholt: Nach einem
+        Neustart von Home Assistant stünde sonst bis zum ersten Abruf überall
+        „nicht verfügbar".
         """
         await super().async_added_to_hass()
         if self._register_poll_oid and self._oid:
             self.coordinator.client.register_poll_oid(self._oid)
+        if not self._wiederherstellbar:
+            return
+        alt = await self.async_get_last_state()
+        if alt is not None and alt.state not in (None, "", "unknown", "unavailable"):
+            self._alter_zustand = alt.state
+
+    # ------------------------------------------------------------------
+    @property
+    def letzter_zustand(self) -> str | None:
+        """Der Zustand vor dem Neustart – nur solange die Anlage schweigt.
+
+        Sobald ein eigener Wert vorliegt, gilt ausschließlich dieser. Ein
+        gespeicherter Zustand darf einen frischen niemals überstimmen.
+        """
+        if self.raw_value is not None:
+            return None
+        return self._alter_zustand
 
     async def async_will_remove_from_hass(self) -> None:
         """Beim Entfernen/Deaktivieren die OID wieder abmelden."""
@@ -189,7 +218,11 @@ class WindhagerEntity(CoordinatorEntity):
     def available(self) -> bool:
         if not self._require_value_for_available:
             return super().available
-        return super().available and self.raw_value is not None
+        if self.raw_value is not None:
+            return super().available
+        # Der wiederhergestellte Zustand ist ein Wert – sonst wäre die Entität
+        # nach einem Neustart „nicht verfügbar" und zeigte ihn gar nicht erst.
+        return super().available and self._alter_zustand is not None
 
     async def _async_write(self, value: str) -> None:
         """Write a value to this entity's OID and refresh."""

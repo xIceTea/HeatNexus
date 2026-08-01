@@ -14,6 +14,18 @@ const OHNE_WERT = ["unavailable", "unknown", "none", ""];
 // Wie lange „übertragen ✓" stehen bleibt, bevor wieder der Zustand erscheint.
 const RUECKMELDUNG_MS = 4000;
 
+// Wie lange auf die Bestätigung der Anlage gewartet wird, bevor die
+// Rückmeldung aufgibt. Die Anlage wird nur alle 30 s abgefragt, und ein
+// Vorgang wie die Warmwasser-Einmalladung dauert Minuten.
+const BESTAETIGUNG_MAX_MS = 15 * 60 * 1000;
+
+const REITER = [
+  { schluessel: "uebersicht", titel: "Übersicht", symbol: "mdi:view-dashboard-outline" },
+  { schluessel: "steuerung", titel: "Steuerung", symbol: "mdi:tune-vertical" },
+  { schluessel: "wartung", titel: "Wartung", symbol: "mdi:wrench-outline" },
+  { schluessel: "verlauf", titel: "Verlauf", symbol: "mdi:chart-line" },
+];
+
 const STIL = `
   :host {
     display: block;
@@ -23,6 +35,57 @@ const STIL = `
     box-sizing: border-box;
   }
   * { box-sizing: border-box; }
+
+  /* --- Kopfleiste: Menütaste, Marke, Anlagenwahl, Reiter --------------- */
+  .kopfleiste {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px 0;
+    flex-wrap: wrap;
+  }
+  .menue-taste {
+    display: none;
+    align-items: center; justify-content: center;
+    width: 40px; height: 40px; flex: none;
+    border-radius: 12px; cursor: pointer;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: inherit;
+  }
+  .menue-taste:hover { background: rgba(255, 255, 255, 0.1); }
+  .kopfleiste .marke { font-size: 20px; font-weight: 700; }
+  .kopfleiste .abstand { flex: 1; }
+  .aussen {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 600;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .aussen ha-icon { --mdc-icon-size: 18px; }
+  .waehler { display: flex; gap: 6px; flex-wrap: wrap; }
+  .waehler button {
+    padding: 8px 14px; border-radius: 999px; font: inherit; font-size: 13px;
+    font-weight: 600; cursor: pointer; color: inherit;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .waehler button:hover { background: rgba(255, 255, 255, 0.1); }
+  .waehler button[aria-selected="true"] {
+    background: rgba(111, 178, 245, 0.18);
+    border-color: rgba(111, 178, 245, 0.5);
+    color: #6fb2f5;
+  }
+  .reiter { display: flex; gap: 4px; padding: 12px 16px 0; overflow-x: auto; }
+  .reiter button {
+    display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    padding: 10px 16px; border: none; border-bottom: 2px solid transparent;
+    background: none; color: inherit; font: inherit; font-size: 14px;
+    font-weight: 600; cursor: pointer; opacity: 0.55;
+  }
+  .reiter button:hover { opacity: 0.85; }
+  .reiter button[aria-selected="true"] {
+    opacity: 1; color: #6fb2f5; border-bottom-color: #6fb2f5;
+  }
+
+  /* --- Raster der Übersicht ------------------------------------------- */
   .rahmen {
     display: grid;
     gap: 16px;
@@ -39,6 +102,12 @@ const STIL = `
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas: "seite" "schema" "kreise" "status" "verlauf" "schnell";
     }
+    .menue-taste { display: inline-flex; }
+  }
+  .spalten {
+    display: grid; gap: 16px; padding: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    align-items: start;
   }
   .karte {
     background: var(--card-background-color, #151d26);
@@ -70,6 +139,8 @@ const STIL = `
     background: rgba(67, 160, 71, 0.15); color: #7bd88f;
   }
   .abzeichen.stoerung { background: rgba(229, 57, 53, 0.15); color: #ff8a80; }
+
+  /* --- Zeilen ---------------------------------------------------------- */
   .zeile {
     display: flex; align-items: center; gap: 12px;
     padding: 11px 12px; border-radius: 12px;
@@ -79,8 +150,14 @@ const STIL = `
   .zeile .text { flex: 1; min-width: 0; }
   .zeile .titel { font-size: 14px; font-weight: 600; }
   .zeile .unter { font-size: 12px; opacity: 0.55; }
-  .zeile .wert { font-size: 18px; font-weight: 600; white-space: nowrap; }
-  .zeile .wert.klein { font-size: 15px; }
+  /* Rechte Spalte einer Zeile: großer Wert, darunter die Bezeichnung. */
+  .zeile .rechts { text-align: right; min-width: 0; }
+  .zeile .wert {
+    font-size: 20px; font-weight: 600; line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+  .zeile .wert.lang { font-size: 15px; }
+  .zeile .bezeichnung { font-size: 11px; opacity: 0.5; margin-top: 2px; }
   .status-zeile {
     display: flex; align-items: center; gap: 12px; padding: 9px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -88,7 +165,11 @@ const STIL = `
   .status-zeile:last-child { border-bottom: none; }
   .status-zeile .titel { flex: 1; font-size: 14px; }
   .status-zeile .wert { font-weight: 600; font-size: 14px; color: #6fb2f5; }
+  .status-zeile .wert.zustand { color: #7bd88f; }
+  .status-zeile .wert.warm { color: #ffab6f; }
   ha-icon { --mdc-icon-size: 22px; opacity: 0.85; flex: none; }
+
+  /* --- Schaubild ------------------------------------------------------- */
   .schaubild { width: 100%; position: relative; }
   .schaubild img { width: 100%; display: block; border-radius: 12px; }
   .schaubild .marke-wert {
@@ -97,9 +178,12 @@ const STIL = `
     font-size: 15px; font-weight: 600; padding: 3px 9px;
     border-radius: 8px; white-space: nowrap;
   }
+
   .doppel { display: grid; gap: 16px; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
   @media (max-width: 900px) { .doppel { grid-template-columns: minmax(0, 1fr); } }
   .gitter { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+
+  /* --- Tasten ---------------------------------------------------------- */
   .taste {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
     padding: 16px 10px; border-radius: 14px; cursor: pointer;
@@ -110,6 +194,8 @@ const STIL = `
   .taste:hover { background: rgba(255, 255, 255, 0.08); }
   .taste .beschriftung { font-size: 13px; font-weight: 600; }
   .taste.an { border-color: rgba(111, 178, 245, 0.5); color: #6fb2f5; }
+  .taste.an .beschriftung { text-shadow: 0 0 12px rgba(111, 178, 245, 0.6); }
+  .taste[disabled] { opacity: 0.6; cursor: progress; }
   select {
     width: 100%; padding: 9px 10px; border-radius: 10px;
     background: rgba(255, 255, 255, 0.05); color: inherit;
@@ -119,8 +205,37 @@ const STIL = `
   .rueckmeldung.laeuft { opacity: 0.9; color: #6fb2f5; }
   .rueckmeldung.erfolg { opacity: 1; color: #7bd88f; }
   .rueckmeldung.fehler { opacity: 1; color: #ff8a80; }
-  .taste[disabled] { opacity: 0.6; cursor: progress; }
-  .taste.an .beschriftung { text-shadow: 0 0 12px rgba(111, 178, 245, 0.6); }
+  .rueckmeldung.wartet { opacity: 0.9; color: #ffab6f; }
+
+  /* --- Steuerung ------------------------------------------------------- */
+  .regler { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+  .regler button {
+    width: 42px; height: 42px; border-radius: 12px; font: inherit;
+    font-size: 20px; font-weight: 600; cursor: pointer; color: inherit;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .regler button:hover { background: rgba(255, 255, 255, 0.1); }
+  .regler .sollwert { flex: 1; text-align: center; }
+  .regler .sollwert .zahl { font-size: 30px; font-weight: 700; line-height: 1.1; }
+  .regler .sollwert .beschriftung { font-size: 11px; opacity: 0.5; }
+  .betriebsart {
+    font-size: 13px; font-weight: 600; color: #6fb2f5;
+    margin-bottom: 4px; min-height: 16px;
+  }
+  .gross { display: flex; align-items: baseline; gap: 10px; }
+  .gross .zahl { font-size: 32px; font-weight: 700; }
+  .gross .beschriftung { font-size: 12px; opacity: 0.55; }
+  .trenner { height: 1px; background: rgba(255, 255, 255, 0.07); margin: 14px 0; }
+  .laufzeit {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+    padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: rgba(255, 171, 111, 0.15); color: #ffab6f;
+  }
+  .feld { margin-top: 12px; }
+  .feld > .beschriftung { font-size: 11px; opacity: 0.5; margin-bottom: 6px; }
+
+  /* --- Dialog ---------------------------------------------------------- */
   .schleier {
     position: fixed; inset: 0; z-index: 20;
     display: flex; align-items: center; justify-content: center;
@@ -145,6 +260,7 @@ const STIL = `
   .dialog-taste:hover { background: rgba(255, 255, 255, 0.12); }
   .dialog-taste.betont { background: rgba(229, 57, 53, 0.2); border-color: rgba(229, 57, 53, 0.5);
     color: #ff8a80; }
+
   .klickbar { cursor: pointer; }
   .klickbar:hover { background: rgba(255, 255, 255, 0.07); }
   .status-zeile.klickbar:hover { background: rgba(255, 255, 255, 0.05); border-radius: 8px; }
@@ -153,6 +269,10 @@ const STIL = `
   .hinweis { opacity: 0.6; font-size: 14px; padding: 6px 0; }
   .gut { color: #7bd88f; }
   .schlecht { color: #ff8a80; }
+  .mitte { text-align: center; padding: 18px 0; }
+  .mitte ha-icon { --mdc-icon-size: 46px; opacity: 0.8; }
+  .mitte .haupt { font-size: 16px; font-weight: 600; margin-top: 10px; }
+  .mitte .neben { font-size: 13px; opacity: 0.6; margin-top: 4px; }
 `;
 
 class HeatNexusPanel extends HTMLElement {
@@ -162,7 +282,11 @@ class HeatNexusPanel extends HTMLElement {
     this._gebaut = false;
     this._daten = null;
     this._bindungen = [];
-    this._verlaufskarte = null;
+    this._verlaufskarten = [];
+    this._anlageIndex = 0;
+    this._reiter = "uebersicht";
+    // Laufende Bedienvorgänge: Anzeige -> wann begonnen, wann bestätigt.
+    this._wartend = [];
   }
 
   set panel(panel) {
@@ -208,12 +332,24 @@ class HeatNexusPanel extends HTMLElement {
     return this._hass && this._hass.states ? this._hass.states[entity] : undefined;
   }
 
+  _hatWert(entity) {
+    const zustand = this._zustand(entity);
+    return !!zustand && !OHNE_WERT.includes(String(zustand.state).toLowerCase());
+  }
+
   _text(entity) {
     const zustand = this._zustand(entity);
-    if (!zustand || OHNE_WERT.includes(String(zustand.state).toLowerCase())) return "–";
+    if (!this._hatWert(entity)) return "–";
     if (this._hass.formatEntityState) return this._hass.formatEntityState(zustand);
     const einheit = zustand.attributes.unit_of_measurement;
     return einheit ? `${zustand.state} ${einheit}` : zustand.state;
+  }
+
+  _zahl(entity) {
+    const zustand = this._zustand(entity);
+    if (!this._hatWert(entity)) return null;
+    const wert = Number.parseFloat(zustand.state);
+    return Number.isNaN(wert) ? null : wert;
   }
 
   _name(entity) {
@@ -271,20 +407,133 @@ class HeatNexusPanel extends HTMLElement {
     this._aktualisieren();
   }
 
-  _aufbauen() {
-    this._bindungen = [];
-    const anlagen = this._daten.anlagen || [];
-    const stil = document.createElement("style");
-    stil.textContent = STIL;
-
-    const inhalt = document.createElement("div");
-    anlagen.forEach((anlage) => inhalt.appendChild(this._anlage(anlage)));
-
-    this.shadowRoot.replaceChildren(stil, inhalt);
-    this._verlaufKarteLaden(anlagen);
+  _anlagen() {
+    return (this._daten && this._daten.anlagen) || [];
   }
 
-  _anlage(anlage) {
+  _aktuelleAnlage() {
+    const anlagen = this._anlagen();
+    return anlagen[Math.min(this._anlageIndex, anlagen.length - 1)];
+  }
+
+  _aufbauen() {
+    this._bindungen = [];
+    this._verlaufskarten = [];
+    this._wartend = [];
+    const anlage = this._aktuelleAnlage();
+    const stil = document.createElement("style");
+    stil.textContent = STIL;
+    if (!anlage) {
+      this.shadowRoot.replaceChildren(stil);
+      return;
+    }
+
+    const inhalt = document.createElement("div");
+    inhalt.append(this._kopfleiste(anlage), this._reiterleiste(), this._inhalt(anlage));
+    this.shadowRoot.replaceChildren(stil, inhalt);
+    this._verlaufKarteLaden();
+  }
+
+  /** Kopfleiste mit Menütaste, Marke und Anlagenwahl. */
+  _kopfleiste(anlage) {
+    const leiste = document.createElement("div");
+    leiste.className = "kopfleiste";
+
+    // Auf schmalen Bildschirmen verdeckt das Panel die Seitenleiste; über
+    // diese Taste kommt sie zurück. Das Ereignis ist dasselbe, das die
+    // eigenen Ansichten von Home Assistant benutzen – es muss den
+    // Schattenbaum verlassen, daher `composed`.
+    const menue = document.createElement("button");
+    menue.className = "menue-taste";
+    menue.type = "button";
+    menue.title = "Seitenleiste anzeigen";
+    menue.setAttribute("aria-label", "Seitenleiste anzeigen");
+    menue.appendChild(this._symbolKnoten("mdi:menu"));
+    menue.addEventListener("click", () => {
+      this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
+    });
+    leiste.appendChild(menue);
+
+    const marke = document.createElement("div");
+    marke.className = "marke";
+    marke.textContent = "HeatNexus";
+    leiste.appendChild(marke);
+
+    const abstand = document.createElement("div");
+    abstand.className = "abstand";
+    leiste.appendChild(abstand);
+
+    // Die Außentemperatur gilt für die ganze Anlage – an der Anlage selbst
+    // steht sie deshalb in der Kopfzeile und nicht bei einem Anlagenteil.
+    if (anlage.aussentemperatur) {
+      const aussen = document.createElement("div");
+      aussen.className = "aussen";
+      aussen.appendChild(this._symbolKnoten("mdi:thermometer"));
+      const wert = document.createElement("span");
+      aussen.appendChild(wert);
+      leiste.appendChild(this._klickbar(aussen, anlage.aussentemperatur));
+      this._bindungen.push(() => {
+        wert.textContent = this._text(anlage.aussentemperatur);
+      });
+    }
+
+    const anlagen = this._anlagen();
+    if (anlagen.length > 1) {
+      const waehler = document.createElement("div");
+      waehler.className = "waehler";
+      waehler.setAttribute("role", "tablist");
+      anlagen.forEach((eintrag, index) => {
+        const taste = document.createElement("button");
+        taste.type = "button";
+        taste.setAttribute("role", "tab");
+        taste.setAttribute("aria-selected", String(eintrag === anlage));
+        taste.textContent = eintrag.name || `Anlage ${index + 1}`;
+        taste.addEventListener("click", () => {
+          this._anlageIndex = index;
+          this._gebaut = false;
+          this._zeichnen();
+        });
+        waehler.appendChild(taste);
+      });
+      leiste.appendChild(waehler);
+    }
+    return leiste;
+  }
+
+  _reiterleiste() {
+    const leiste = document.createElement("div");
+    leiste.className = "reiter";
+    leiste.setAttribute("role", "tablist");
+    REITER.forEach((reiter) => {
+      const taste = document.createElement("button");
+      taste.type = "button";
+      taste.setAttribute("role", "tab");
+      taste.setAttribute("aria-selected", String(reiter.schluessel === this._reiter));
+      taste.appendChild(this._symbolKnoten(reiter.symbol));
+      const beschriftung = document.createElement("span");
+      beschriftung.textContent = reiter.titel;
+      taste.appendChild(beschriftung);
+      taste.addEventListener("click", () => {
+        this._reiter = reiter.schluessel;
+        this._gebaut = false;
+        this._zeichnen();
+      });
+      leiste.appendChild(taste);
+    });
+    return leiste;
+  }
+
+  _inhalt(anlage) {
+    if (this._reiter === "steuerung") return this._steuerung(anlage);
+    if (this._reiter === "wartung") return this._wartung(anlage);
+    if (this._reiter === "verlauf") return this._verlaufReiter(anlage);
+    return this._uebersicht(anlage);
+  }
+
+  // -------------------------------------------------------------------
+  // Reiter „Übersicht"
+  // -------------------------------------------------------------------
+  _uebersicht(anlage) {
     const rahmen = document.createElement("div");
     rahmen.className = "rahmen";
     rahmen.append(
@@ -292,7 +541,7 @@ class HeatNexusPanel extends HTMLElement {
       this._bereich("schema", this._schaubild(anlage)),
       this._bereich("kreise", this._kreiseUndWasser(anlage)),
       this._bereich("status", this._status(anlage)),
-      this._bereich("verlauf", this._verlauf(anlage)),
+      this._bereich("verlauf", this._verlauf(anlage, 24)),
       this._bereich("schnell", this._schnellzugriff(anlage))
     );
     return rahmen;
@@ -321,6 +570,13 @@ class HeatNexusPanel extends HTMLElement {
     const ikone = document.createElement("ha-icon");
     ikone.setAttribute("icon", symbol);
     return ikone;
+  }
+
+  _hinweisKnoten(text) {
+    const hinweis = document.createElement("div");
+    hinweis.className = "hinweis";
+    hinweis.textContent = text;
+    return hinweis;
   }
 
   // -------------------------------------------------------------------
@@ -368,7 +624,11 @@ class HeatNexusPanel extends HTMLElement {
     return karte;
   }
 
-  _wertzeile(entity, titel, unter, symbol) {
+  /**
+   * Kennwertzeile wie im Muster: links Anlagenteil, rechts der große Wert und
+   * darunter klein, worum es sich handelt („Kesseltemperatur").
+   */
+  _wertzeile(entity, titel, bezeichnung, symbol) {
     const zeile = document.createElement("div");
     zeile.className = "zeile";
     if (symbol) zeile.appendChild(this._symbolKnoten(symbol));
@@ -377,16 +637,22 @@ class HeatNexusPanel extends HTMLElement {
     const oben = document.createElement("div");
     oben.className = "titel";
     oben.textContent = titel;
-    const unten = document.createElement("div");
-    unten.className = "unter";
-    unten.textContent = unter || "";
-    text.append(oben, unten);
+    text.appendChild(oben);
+
+    const rechts = document.createElement("div");
+    rechts.className = "rechts";
     const wert = document.createElement("div");
     wert.className = "wert";
-    zeile.append(text, wert);
+    const unten = document.createElement("div");
+    unten.className = "bezeichnung";
+    unten.textContent = bezeichnung || "";
+    rechts.append(wert, unten);
+
+    zeile.append(text, rechts);
     this._bindungen.push(() => {
       wert.textContent = this._text(entity);
-      wert.classList.toggle("klein", wert.textContent.length > 8);
+      // Lange Texte („Betriebsbereit") umbrechen statt zu schrumpfen.
+      wert.classList.toggle("lang", wert.textContent.length > 8);
     });
     return this._klickbar(zeile, entity);
   }
@@ -432,58 +698,64 @@ class HeatNexusPanel extends HTMLElement {
 
     const linkeKarte = this._karte("Heizkreise");
     if (!kreise.length) {
-      const hinweis = document.createElement("div");
-      hinweis.className = "hinweis";
-      hinweis.textContent = "Kein Heizkreis gefunden.";
-      linkeKarte.appendChild(hinweis);
+      linkeKarte.appendChild(this._hinweisKnoten("Kein Heizkreis gefunden."));
     }
-    kreise.forEach((kreis) => {
-      const zeile = document.createElement("div");
-      zeile.className = "zeile";
-      zeile.appendChild(this._symbolKnoten("mdi:home-thermometer-outline"));
-      const text = document.createElement("div");
-      text.className = "text";
-      const oben = document.createElement("div");
-      oben.className = "titel";
-      oben.textContent = kreis.titel;
-      const unten = document.createElement("div");
-      unten.className = "unter";
-      text.append(oben, unten);
-      const wert = document.createElement("div");
-      wert.className = "wert";
-      zeile.append(text, wert);
-      this._bindungen.push(() => {
-        const zustand = this._zustand(kreis.entity);
-        if (!zustand) {
-          wert.textContent = "–";
-          return;
-        }
-        const ist = zustand.attributes.current_temperature;
-        const soll = zustand.attributes.temperature;
-        wert.textContent = ist !== undefined && ist !== null ? `${ist} °C` : "–";
-        const teile = [];
-        if (zustand.attributes.preset_mode) {
-          teile.push(this._presetName(zustand));
-        }
-        if (soll !== undefined && soll !== null) teile.push(`Soll ${soll} °C`);
-        unten.textContent = teile.join(" · ");
+    kreise.forEach((kreis) => linkeKarte.appendChild(this._heizkreiszeile(kreis)));
+
+    doppel.appendChild(linkeKarte);
+    // Eine Anlage ohne Warmwasserbereitung bekommt gar keine Karte – eine
+    // leere Karte behauptet, da fehle etwas.
+    if (wasser.length) {
+      const rechteKarte = this._karte("Warmwasser");
+      wasser.forEach((eintrag) => {
+        rechteKarte.appendChild(this._statuszeile(eintrag.entity, eintrag.titel));
       });
-      linkeKarte.appendChild(this._klickbar(zeile, kreis.entity));
-    });
-
-    const rechteKarte = this._karte("Warmwasser");
-    if (!wasser.length) {
-      const hinweis = document.createElement("div");
-      hinweis.className = "hinweis";
-      hinweis.textContent = "Kein Warmwasserkreis gefunden.";
-      rechteKarte.appendChild(hinweis);
+      doppel.appendChild(rechteKarte);
     }
-    wasser.forEach((eintrag) => {
-      rechteKarte.appendChild(this._statuszeile(eintrag.entity, eintrag.titel));
-    });
-
-    doppel.append(linkeKarte, rechteKarte);
     return doppel;
+  }
+
+  /** Eine Heizkreiszeile: Ist groß, darunter Betriebsart und Sollwert. */
+  _heizkreiszeile(kreis) {
+    const zeile = document.createElement("div");
+    zeile.className = "zeile";
+    zeile.appendChild(this._symbolKnoten("mdi:home-thermometer-outline"));
+    const text = document.createElement("div");
+    text.className = "text";
+    const oben = document.createElement("div");
+    oben.className = "titel";
+    oben.textContent = kreis.titel;
+    const unten = document.createElement("div");
+    unten.className = "unter";
+    text.append(oben, unten);
+
+    const rechts = document.createElement("div");
+    rechts.className = "rechts";
+    const wert = document.createElement("div");
+    wert.className = "wert";
+    const bezeichnung = document.createElement("div");
+    bezeichnung.className = "bezeichnung";
+    bezeichnung.textContent = "Raumtemperatur";
+    rechts.append(wert, bezeichnung);
+
+    zeile.append(text, rechts);
+    this._bindungen.push(() => {
+      const zustand = this._zustand(kreis.entity);
+      if (!zustand) {
+        wert.textContent = "–";
+        return;
+      }
+      const ist = zustand.attributes.current_temperature;
+      const soll = zustand.attributes.temperature;
+      wert.textContent = ist !== undefined && ist !== null ? `${ist} °C` : "–";
+      const teile = [];
+      if (zustand.attributes.preset_mode) teile.push(this._presetName(zustand));
+      if (soll !== undefined && soll !== null) teile.push(`Soll ${soll} °C`);
+      const rest = this._restzeit(zustand);
+      if (rest) teile.push(rest);
+      unten.textContent = teile.join(" · ");
+    });
+    return this._klickbar(zeile, kreis.entity);
   }
 
   _presetName(zustand) {
@@ -493,6 +765,24 @@ class HeatNexusPanel extends HTMLElement {
       return this._hass.formatEntityAttributeValue(zustand, "preset_mode");
     }
     return zustand.attributes.preset_mode;
+  }
+
+  /**
+   * Text zur laufenden Sollwert-Vorgabe.
+   *
+   * Ein am Thermostat gesetzter Wert gilt befristet; die Anlage meldet die
+   * Restzeit in Minuten (2/10). Ohne diese Anzeige sieht man dem Heizkreis
+   * nicht an, dass gerade eine Vorgabe läuft.
+   */
+  _restzeit(zustand) {
+    if (!zustand || zustand.attributes.override_aktiv !== true) return "";
+    const minuten = Number(zustand.attributes.override_restzeit_min) || 0;
+    if (minuten <= 0) return "";
+    const ende = new Date(Date.now() + minuten * 60000);
+    const uhrzeit = ende.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    return minuten >= 60
+      ? `noch bis ${uhrzeit}`
+      : `noch ${minuten} min (bis ${uhrzeit})`;
   }
 
   // -------------------------------------------------------------------
@@ -510,6 +800,13 @@ class HeatNexusPanel extends HTMLElement {
     zeile.append(links, wert);
     this._bindungen.push(() => {
       wert.textContent = this._text(entity);
+      // Farbe nach Art des Wertes: Zustände grün, Leistungen orange, Zahlen
+      // blau – so wie im Muster.
+      const zustand = this._zustand(entity);
+      const einheit = zustand && zustand.attributes.unit_of_measurement;
+      wert.className = "wert";
+      if (!einheit && this._hatWert(entity)) wert.classList.add("zustand");
+      else if (einheit === "%" || einheit === "kW") wert.classList.add("warm");
     });
     return this._klickbar(zeile, entity);
   }
@@ -522,18 +819,47 @@ class HeatNexusPanel extends HTMLElement {
       karte.appendChild(this._statuszeile(eintrag.entity, eintrag.titel, eintrag.symbol));
     });
     if (!(anlage.status || []).length) {
-      const hinweis = document.createElement("div");
-      hinweis.className = "hinweis";
-      hinweis.textContent = "Keine Statuswerte gefunden.";
-      karte.appendChild(hinweis);
+      karte.appendChild(this._hinweisKnoten("Keine Statuswerte gefunden."));
     }
-    huelle.appendChild(karte);
 
-    const stoerungskarte = this._karte("Störungen");
-    const zusammenfassung = document.createElement("div");
-    zusammenfassung.className = "hinweis";
-    stoerungskarte.appendChild(zusammenfassung);
-    (anlage.stoerungen || []).forEach((eintrag) => {
+    // Der grüne bzw. rote Kasten unter dem Status, wie im Muster.
+    const kasten = document.createElement("div");
+    kasten.className = "abzeichen";
+    kasten.style.marginTop = "14px";
+    kasten.style.width = "100%";
+    kasten.appendChild(this._symbolKnoten("mdi:check-circle-outline"));
+    const kastenText = document.createElement("span");
+    kasten.appendChild(kastenText);
+    karte.appendChild(kasten);
+    this._bindungen.push(() => {
+      const stoerung = this._stoerung(anlage);
+      kasten.classList.toggle("stoerung", stoerung);
+      kastenText.textContent = stoerung ? "Störung anliegend" : "Keine Störung";
+      kasten.firstChild.setAttribute(
+        "icon",
+        stoerung ? "mdi:alert-circle-outline" : "mdi:check-circle-outline"
+      );
+    });
+    huelle.appendChild(karte);
+    huelle.appendChild(this._stoerungskarte(anlage));
+    return huelle;
+  }
+
+  _stoerungskarte(anlage) {
+    const karte = this._karte("Störungen");
+    const eintraege = anlage.stoerungen || [];
+
+    const mitte = document.createElement("div");
+    mitte.className = "mitte";
+    const symbol = this._symbolKnoten("mdi:shield-check-outline");
+    const haupt = document.createElement("div");
+    haupt.className = "haupt";
+    const neben = document.createElement("div");
+    neben.className = "neben";
+    mitte.append(symbol, haupt, neben);
+    karte.appendChild(mitte);
+
+    eintraege.forEach((eintrag) => {
       const zeile = document.createElement("div");
       zeile.className = "status-zeile";
       const links = document.createElement("div");
@@ -541,39 +867,61 @@ class HeatNexusPanel extends HTMLElement {
       const wert = document.createElement("div");
       wert.className = "wert";
       zeile.append(links, wert);
-      stoerungskarte.appendChild(this._klickbar(zeile, eintrag.entity));
+      karte.appendChild(this._klickbar(zeile, eintrag.entity));
       this._bindungen.push(() => {
         links.textContent = this._name(eintrag.entity).replace(" Meldung Klartext", "");
         const zustand = this._zustand(eintrag.entity);
         const aktiv = zustand && zustand.attributes.stoerung_aktiv === true;
         wert.textContent = this._text(eintrag.entity);
         wert.className = `wert ${aktiv ? "schlecht" : "gut"}`;
-        zeile.style.display = "flex";
+        // Ohne Störung sagt der Kasten oben schon alles; die Zeilen sind dann
+        // nur Wiederholung.
+        zeile.style.display = aktiv ? "flex" : "none";
       });
     });
+
     this._bindungen.push(() => {
-      zusammenfassung.textContent = this._stoerung(anlage)
-        ? "Es liegt mindestens eine Störung an."
-        : "Keine Störung. Alles läuft.";
+      const stoerung = this._stoerung(anlage);
+      symbol.setAttribute("icon", stoerung ? "mdi:shield-alert-outline" : "mdi:shield-check-outline");
+      symbol.className = stoerung ? "schlecht" : "gut";
+      haupt.textContent = stoerung ? "Störung anliegend" : "Keine Störung";
+      neben.textContent = stoerung
+        ? "Die Anlage meldet mindestens eine aktive Störung."
+        : "Alles läuft.";
+      mitte.style.display = stoerung ? "none" : "block";
     });
-    huelle.appendChild(stoerungskarte);
-    return huelle;
+    return karte;
   }
 
   // -------------------------------------------------------------------
   // Verlauf
   // -------------------------------------------------------------------
-  _verlauf(anlage) {
+  _verlauf(anlage, stunden) {
     if (!(anlage.verlauf || []).length) return null;
-    const karte = this._karte("Verlauf (24 Stunden)");
+    const karte = this._karte(`Verlauf (${stunden} Stunden)`);
     const platz = document.createElement("div");
     platz.dataset.verlauf = "1";
+    platz.dataset.stunden = String(stunden);
     platz.dataset.entities = JSON.stringify(anlage.verlauf);
     karte.appendChild(platz);
     return karte;
   }
 
-  async _verlaufKarteLaden(anlagen) {
+  _verlaufReiter(anlage) {
+    const spalten = document.createElement("div");
+    spalten.className = "spalten";
+    const karte = this._verlauf(anlage, 48);
+    if (!karte) {
+      const leer = this._karte("Verlauf");
+      leer.appendChild(this._hinweisKnoten("Keine Werte für einen Verlauf gefunden."));
+      spalten.appendChild(leer);
+      return spalten;
+    }
+    spalten.appendChild(karte);
+    return spalten;
+  }
+
+  async _verlaufKarteLaden() {
     const plaetze = this.shadowRoot.querySelectorAll("[data-verlauf]");
     if (!plaetze.length || !window.loadCardHelpers) return;
     const helfer = await window.loadCardHelpers();
@@ -581,13 +929,329 @@ class HeatNexusPanel extends HTMLElement {
     plaetze.forEach((platz) => {
       const karte = helfer.createCardElement({
         type: "history-graph",
-        hours_to_show: 24,
+        hours_to_show: Number(platz.dataset.stunden) || 24,
         entities: JSON.parse(platz.dataset.entities),
       });
       karte.hass = this._hass;
       platz.replaceChildren(karte);
       this._verlaufskarten.push(karte);
     });
+  }
+
+  // -------------------------------------------------------------------
+  // Reiter „Steuerung"
+  // -------------------------------------------------------------------
+  _steuerung(anlage) {
+    const steuerung = anlage.steuerung || {};
+    const spalten = document.createElement("div");
+    spalten.className = "spalten";
+
+    (steuerung.heizkreise || []).forEach((kreis) => {
+      spalten.appendChild(this._heizkreisKarte(kreis));
+    });
+    if (steuerung.warmwasser) {
+      spalten.appendChild(this._warmwasserKarte(steuerung.warmwasser));
+    }
+    if ((steuerung.kessel || []).length) {
+      spalten.appendChild(this._kesselKarte(steuerung.kessel));
+    }
+    if (!spalten.childElementCount) {
+      const leer = this._karte("Steuerung");
+      leer.appendChild(this._hinweisKnoten("Keine bedienbaren Werte gefunden."));
+      spalten.appendChild(leer);
+    }
+    return spalten;
+  }
+
+  /** Heizkreis mit Sollwertregler, Betriebswahl und Zeitprogramm. */
+  _heizkreisKarte(kreis) {
+    const karte = this._karte(kreis.titel);
+
+    // Die Anlage stellt in ihrer Detailansicht die Betriebsart als Klartext
+    // ueber den Wert - dort sucht man sie.
+    const betriebsart = document.createElement("div");
+    betriebsart.className = "betriebsart";
+    karte.appendChild(betriebsart);
+    this._bindungen.push(() => {
+      const zustand = this._zustand(kreis.entity);
+      betriebsart.textContent =
+        zustand && zustand.attributes.preset_mode ? this._presetName(zustand) : "";
+    });
+
+    const gross = document.createElement("div");
+    gross.className = "gross";
+    const zahl = document.createElement("div");
+    zahl.className = "zahl";
+    const beschriftung = document.createElement("div");
+    beschriftung.className = "beschriftung";
+    beschriftung.textContent = "Raumtemperatur";
+    gross.append(zahl, beschriftung);
+    karte.appendChild(this._klickbar(gross, kreis.entity));
+
+    const laufzeit = document.createElement("div");
+    laufzeit.className = "laufzeit";
+    laufzeit.appendChild(this._symbolKnoten("mdi:timer-sand"));
+    const laufzeitText = document.createElement("span");
+    laufzeit.appendChild(laufzeitText);
+    karte.appendChild(laufzeit);
+
+    // Sollwertregler
+    const regler = document.createElement("div");
+    regler.className = "regler";
+    const runter = document.createElement("button");
+    runter.type = "button";
+    runter.textContent = "−";
+    runter.setAttribute("aria-label", "Sollwert senken");
+    const mitte = document.createElement("div");
+    mitte.className = "sollwert";
+    const sollZahl = document.createElement("div");
+    sollZahl.className = "zahl";
+    const sollText = document.createElement("div");
+    sollText.className = "beschriftung";
+    sollText.textContent = "Sollwert";
+    mitte.append(sollZahl, sollText);
+    const hoch = document.createElement("button");
+    hoch.type = "button";
+    hoch.textContent = "+";
+    hoch.setAttribute("aria-label", "Sollwert anheben");
+    regler.append(runter, mitte, hoch);
+    karte.appendChild(regler);
+
+    const rueckmeldung = document.createElement("div");
+    rueckmeldung.className = "rueckmeldung";
+    karte.appendChild(rueckmeldung);
+
+    const stellen = async (richtung) => {
+      const zustand = this._zustand(kreis.entity);
+      if (!zustand) return;
+      const schritt = Number(zustand.attributes.target_temp_step) || 0.5;
+      const soll = Number(zustand.attributes.temperature);
+      if (Number.isNaN(soll)) return;
+      const neu = Math.round((soll + richtung * schritt) * 10) / 10;
+      await this._uebertragen(
+        rueckmeldung,
+        () =>
+          this._hass.callService("climate", "set_temperature", {
+            entity_id: kreis.entity,
+            temperature: neu,
+          }),
+        // Bestätigt ist die Vorgabe erst, wenn die Anlage sie zurückmeldet.
+        () => {
+          const jetzt = this._zustand(kreis.entity);
+          return !!jetzt && Math.abs(Number(jetzt.attributes.temperature) - neu) < 0.3;
+        }
+      );
+    };
+    runter.addEventListener("click", () => stellen(-1));
+    hoch.addEventListener("click", () => stellen(1));
+
+    if (kreis.betriebswahl) {
+      karte.appendChild(this._auswahlFeld("Betriebswahl", kreis.betriebswahl));
+    }
+    if (kreis.programm) {
+      const trenner = document.createElement("div");
+      trenner.className = "trenner";
+      karte.append(trenner, this._statuszeile(kreis.programm, "Zeitprogramm"));
+    }
+    if (kreis.vorlauf) {
+      karte.appendChild(this._statuszeile(kreis.vorlauf, "Vorlauf"));
+    }
+
+    this._bindungen.push(() => {
+      const zustand = this._zustand(kreis.entity);
+      const ist = zustand && zustand.attributes.current_temperature;
+      zahl.textContent = ist !== undefined && ist !== null ? `${ist} °C` : "–";
+      const soll = zustand && zustand.attributes.temperature;
+      sollZahl.textContent = soll !== undefined && soll !== null ? `${soll} °C` : "–";
+      const rest = this._restzeit(zustand);
+      laufzeit.style.display = rest ? "inline-flex" : "none";
+      laufzeitText.textContent = rest ? `Vorgabe ${rest}` : "";
+    });
+    return karte;
+  }
+
+  /**
+   * Warmwasser mit Ist, Soll und Einmalladung.
+   *
+   * Die Einmalladung läuft minutenlang. Die Taste bleibt deshalb markiert,
+   * solange die Anlage sie als aktiv meldet, und springt von selbst zurück,
+   * wenn die Ladung fertig ist – so wie in der Windhager-App.
+   */
+  _warmwasserKarte(wasser) {
+    const karte = this._karte("Warmwasser");
+
+    const gross = document.createElement("div");
+    gross.className = "gross";
+    const zahl = document.createElement("div");
+    zahl.className = "zahl";
+    const beschriftung = document.createElement("div");
+    beschriftung.className = "beschriftung";
+    beschriftung.textContent = "Isttemperatur";
+    gross.append(zahl, beschriftung);
+    karte.appendChild(wasser.ist ? this._klickbar(gross, wasser.ist) : gross);
+    this._bindungen.push(() => {
+      zahl.textContent = wasser.ist ? this._text(wasser.ist) : "–";
+    });
+
+    if (wasser.soll) {
+      const trenner = document.createElement("div");
+      trenner.className = "trenner";
+      karte.append(trenner, this._statuszeile(wasser.soll, "Sollwert"));
+    }
+    if (wasser.programm) {
+      karte.appendChild(this._statuszeile(wasser.programm, "Programm"));
+    }
+
+    if (wasser.laden) {
+      const trenner = document.createElement("div");
+      trenner.className = "trenner";
+      karte.appendChild(trenner);
+      // Die Anlage kennt zur Einmalladung beides: die Temperatur, auf die
+      // geladen wird, und das Ausloesen.
+      if (wasser.laden_temperatur) {
+        karte.appendChild(this._statuszeile(wasser.laden_temperatur, "Ladetemperatur"));
+      }
+      karte.appendChild(this._ladeTaste(wasser.laden));
+    }
+    return karte;
+  }
+
+  _ladeTaste(entity) {
+    const bereich = entity.split(".")[0];
+    const taste = document.createElement("button");
+    taste.className = "taste";
+    taste.type = "button";
+    taste.appendChild(this._symbolKnoten("mdi:water-boiler"));
+    const beschriftung = document.createElement("div");
+    beschriftung.className = "beschriftung";
+    beschriftung.textContent = "Einmalladung";
+    const rueckmeldung = document.createElement("div");
+    rueckmeldung.className = "rueckmeldung";
+    taste.append(beschriftung, rueckmeldung);
+
+    taste.addEventListener("click", async () => {
+      if (taste.disabled) return;
+      const lief = this._istAn(entity);
+      taste.disabled = true;
+      try {
+        await this._uebertragen(
+          rueckmeldung,
+          () =>
+            bereich === "button"
+              ? this._hass.callService("button", "press", { entity_id: entity })
+              : this._hass.callService("homeassistant", "toggle", { entity_id: entity }),
+          // Bestätigt ist der Befehl, wenn die Anlage den Zustand gewechselt
+          // hat. Bis dahin steht „wird ausgeführt …" unter der Taste.
+          bereich === "button" ? null : () => this._istAn(entity) !== lief
+        );
+      } finally {
+        taste.disabled = false;
+      }
+    });
+
+    this._bindungen.push(() => {
+      const laeuft = this._istAn(entity);
+      taste.classList.toggle("an", laeuft);
+      if (rueckmeldung.dataset.belegt === "1") return;
+      rueckmeldung.className = "rueckmeldung";
+      rueckmeldung.textContent = laeuft ? "lädt gerade" : "bereit";
+    });
+    return taste;
+  }
+
+  _istAn(entity) {
+    const zustand = this._zustand(entity);
+    return !!zustand && zustand.state === "on";
+  }
+
+  _auswahlFeld(titel, entity) {
+    const feld = document.createElement("div");
+    feld.className = "feld";
+    const beschriftung = document.createElement("div");
+    beschriftung.className = "beschriftung";
+    beschriftung.textContent = titel;
+    const auswahl = document.createElement("select");
+    const rueckmeldung = document.createElement("div");
+    rueckmeldung.className = "rueckmeldung";
+    feld.append(beschriftung, auswahl, rueckmeldung);
+
+    auswahl.addEventListener("change", async () => {
+      const gewaehlt = auswahl.value;
+      await this._uebertragen(
+        rueckmeldung,
+        () =>
+          this._hass.callService("select", "select_option", {
+            entity_id: entity,
+            option: gewaehlt,
+          }),
+        () => {
+          const zustand = this._zustand(entity);
+          return !!zustand && zustand.state === gewaehlt;
+        }
+      );
+    });
+
+    this._bindungen.push(() => {
+      const zustand = this._zustand(entity);
+      const optionen = (zustand && zustand.attributes.options) || [];
+      if (auswahl.dataset.optionen !== optionen.join("|")) {
+        auswahl.dataset.optionen = optionen.join("|");
+        auswahl.replaceChildren(
+          ...optionen.map((option) => {
+            const knoten = document.createElement("option");
+            knoten.value = option;
+            knoten.textContent = option;
+            return knoten;
+          })
+        );
+      }
+      if (zustand && rueckmeldung.dataset.belegt !== "1") auswahl.value = zustand.state;
+    });
+    return feld;
+  }
+
+  _kesselKarte(eintraege) {
+    const karte = this._karte("Kessel");
+    eintraege.forEach((eintrag) => {
+      const bereich = eintrag.entity.split(".")[0];
+      if (bereich === "select") {
+        karte.appendChild(this._auswahlFeld(eintrag.titel, eintrag.entity));
+        return;
+      }
+      karte.appendChild(this._bedientaste(eintrag, true));
+    });
+    return karte;
+  }
+
+  // -------------------------------------------------------------------
+  // Reiter „Wartung"
+  // -------------------------------------------------------------------
+  _wartung(anlage) {
+    const wartung = anlage.wartung || {};
+    const spalten = document.createElement("div");
+    spalten.className = "spalten";
+
+    const abschnitte = [
+      ["Restlaufzeiten", wartung.restlaufzeiten, "mdi:progress-clock"],
+      ["Brennstoff", wartung.brennstoff, "mdi:sack"],
+      ["Zählerstände", wartung.zaehler, "mdi:counter"],
+      ["Weiteres", wartung.weitere, "mdi:wrench-outline"],
+    ];
+    abschnitte.forEach(([titel, zeilen]) => {
+      if (!zeilen || !zeilen.length) return;
+      const karte = this._karte(titel);
+      zeilen.forEach((zeile) => {
+        karte.appendChild(this._statuszeile(zeile.entity, zeile.titel));
+      });
+      spalten.appendChild(karte);
+    });
+
+    if (!spalten.childElementCount) {
+      const leer = this._karte("Wartung");
+      leer.appendChild(this._hinweisKnoten("Keine Wartungswerte gefunden."));
+      spalten.appendChild(leer);
+    }
+    return spalten;
   }
 
   // -------------------------------------------------------------------
@@ -601,90 +1265,63 @@ class HeatNexusPanel extends HTMLElement {
     gitter.className = "gitter";
 
     eintraege.forEach((eintrag) => {
-      const bereich = eintrag.entity.split(".")[0];
-      if (bereich === "select") {
-        const huelle = document.createElement("div");
+      if (eintrag.entity.split(".")[0] === "select") {
+        const huelle = this._auswahlFeld(eintrag.titel, eintrag.entity);
         huelle.style.gridColumn = "1 / -1";
-        const beschriftung = document.createElement("div");
-        beschriftung.className = "unter";
-        beschriftung.textContent = eintrag.titel;
-        beschriftung.style.marginBottom = "6px";
-        const auswahl = document.createElement("select");
-        const rueckmeldung = document.createElement("div");
-        rueckmeldung.className = "rueckmeldung";
-        auswahl.addEventListener("change", async () => {
-          const gewaehlt = auswahl.value;
-          if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) {
-            const zustand = this._zustand(eintrag.entity);
-            if (zustand) auswahl.value = zustand.state;
-            return;
-          }
-          await this._uebertragen(rueckmeldung, () =>
-            this._hass.callService("select", "select_option", {
-              entity_id: eintrag.entity,
-              option: gewaehlt,
-            })
-          );
-        });
-        huelle.append(beschriftung, auswahl, rueckmeldung);
         gitter.appendChild(huelle);
-        this._bindungen.push(() => {
-          const zustand = this._zustand(eintrag.entity);
-          const optionen = (zustand && zustand.attributes.options) || [];
-          if (auswahl.dataset.optionen !== optionen.join("|")) {
-            auswahl.dataset.optionen = optionen.join("|");
-            auswahl.replaceChildren(
-              ...optionen.map((option) => {
-                const knoten = document.createElement("option");
-                knoten.value = option;
-                knoten.textContent = option;
-                return knoten;
-              })
-            );
-          }
-          if (zustand) auswahl.value = zustand.state;
-        });
         return;
       }
-
-      const taste = document.createElement("button");
-      taste.className = "taste";
-      taste.type = "button";
-      taste.appendChild(this._symbolKnoten(eintrag.symbol));
-      const beschriftung = document.createElement("div");
-      beschriftung.className = "beschriftung";
-      beschriftung.textContent = eintrag.titel;
-      const rueckmeldung = document.createElement("div");
-      rueckmeldung.className = "rueckmeldung";
-      taste.append(beschriftung, rueckmeldung);
-      taste.addEventListener("click", async () => {
-        if (taste.disabled) return;
-        if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) return;
-        taste.disabled = true;
-        try {
-          await this._uebertragen(rueckmeldung, () =>
-            bereich === "button"
-              ? this._hass.callService("button", "press", { entity_id: eintrag.entity })
-              : this._hass.callService("homeassistant", "toggle", { entity_id: eintrag.entity })
-          );
-        } finally {
-          taste.disabled = false;
-        }
-      });
-      gitter.appendChild(taste);
-      this._bindungen.push(() => {
-        const zustand = this._zustand(eintrag.entity);
-        const laeuft = !!zustand && zustand.state === "on";
-        taste.classList.toggle("an", laeuft);
-        // Solange eine Übertragung läuft, gehört die Zeile der Rückmeldung.
-        if (rueckmeldung.dataset.belegt === "1") return;
-        rueckmeldung.className = "rueckmeldung";
-        rueckmeldung.textContent = this._tastenZustand(bereich, zustand, laeuft);
-      });
+      gitter.appendChild(this._bedientaste(eintrag, false));
     });
 
     karte.appendChild(gitter);
     return karte;
+  }
+
+  /** Eine Kachel, die einen Befehl auslöst – mit Rückfrage und Rückmeldung. */
+  _bedientaste(eintrag, breit) {
+    const bereich = eintrag.entity.split(".")[0];
+    const taste = document.createElement("button");
+    taste.className = "taste";
+    taste.type = "button";
+    if (breit) taste.style.marginTop = "10px";
+    taste.appendChild(this._symbolKnoten(eintrag.symbol || "mdi:gesture-tap-button"));
+    const beschriftung = document.createElement("div");
+    beschriftung.className = "beschriftung";
+    beschriftung.textContent = eintrag.titel;
+    const rueckmeldung = document.createElement("div");
+    rueckmeldung.className = "rueckmeldung";
+    taste.append(beschriftung, rueckmeldung);
+
+    taste.addEventListener("click", async () => {
+      if (taste.disabled) return;
+      if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) return;
+      const lief = this._istAn(eintrag.entity);
+      taste.disabled = true;
+      try {
+        await this._uebertragen(
+          rueckmeldung,
+          () =>
+            bereich === "button"
+              ? this._hass.callService("button", "press", { entity_id: eintrag.entity })
+              : this._hass.callService("homeassistant", "toggle", { entity_id: eintrag.entity }),
+          bereich === "button" ? null : () => this._istAn(eintrag.entity) !== lief
+        );
+      } finally {
+        taste.disabled = false;
+      }
+    });
+
+    this._bindungen.push(() => {
+      const zustand = this._zustand(eintrag.entity);
+      const laeuft = !!zustand && zustand.state === "on";
+      taste.classList.toggle("an", laeuft);
+      // Solange eine Übertragung läuft, gehört die Zeile der Rückmeldung.
+      if (rueckmeldung.dataset.belegt === "1") return;
+      rueckmeldung.className = "rueckmeldung";
+      rueckmeldung.textContent = this._tastenZustand(bereich, zustand, laeuft);
+    });
+    return taste;
   }
 
   // -------------------------------------------------------------------
@@ -751,26 +1388,80 @@ class HeatNexusPanel extends HTMLElement {
    * Einen Dienstaufruf ausführen und den Verlauf sichtbar machen.
    *
    * Die Anlage wird nur alle 30 s abgefragt; ohne Rückmeldung drückt man und
-   * nichts passiert. Deshalb: „wird übertragen" während des Aufrufs, danach
-   * kurz „übertragen" oder der Fehlertext.
+   * nichts passiert. Deshalb drei Stufen: „wird übertragen" während des
+   * Aufrufs, danach „wird ausgeführt …", solange die Anlage den neuen Zustand
+   * noch nicht zurückmeldet, und erst dann „übernommen ✓".
+   *
+   * Ohne `bestaetigt` bleibt es bei den ersten beiden Stufen – bei einer
+   * Taste ohne Zustand gibt es nichts, worauf man warten könnte.
    */
-  async _uebertragen(anzeige, aufruf) {
+  async _uebertragen(anzeige, aufruf, bestaetigt) {
     anzeige.dataset.belegt = "1";
     anzeige.className = "rueckmeldung laeuft";
     anzeige.textContent = "wird übertragen …";
     try {
       await aufruf();
-      anzeige.className = "rueckmeldung erfolg";
-      anzeige.textContent = "übertragen ✓";
     } catch (err) {
       anzeige.className = "rueckmeldung fehler";
       anzeige.textContent = "nicht übernommen";
       console.warn("HeatNexus: Befehl abgelehnt", err);
+      this._freigeben(anzeige, RUECKMELDUNG_MS);
+      return;
     }
+
+    if (!bestaetigt) {
+      anzeige.className = "rueckmeldung erfolg";
+      anzeige.textContent = "übertragen ✓";
+      this._freigeben(anzeige, RUECKMELDUNG_MS);
+      return;
+    }
+
+    anzeige.className = "rueckmeldung wartet";
+    anzeige.textContent = "wird ausgeführt …";
+    this._wartend.push({ anzeige, bestaetigt, seit: Date.now() });
+    this._pruefeWartende();
+  }
+
+  /** Die Anzeige nach kurzer Zeit wieder dem Zustand überlassen. */
+  _freigeben(anzeige, verzoegerung) {
     window.setTimeout(() => {
       delete anzeige.dataset.belegt;
       this._aktualisieren();
-    }, RUECKMELDUNG_MS);
+    }, verzoegerung);
+  }
+
+  /**
+   * Laufende Vorgänge prüfen.
+   *
+   * Läuft bei jedem Zustandswechsel mit – die Anlage meldet ihren neuen
+   * Zustand mit dem nächsten Abruf, und genau darauf wird gewartet.
+   */
+  _pruefeWartende() {
+    if (!this._wartend.length) return;
+    const offen = [];
+    this._wartend.forEach((vorgang) => {
+      let fertig = false;
+      try {
+        fertig = vorgang.bestaetigt();
+      } catch (err) {
+        console.warn("HeatNexus: Zustand nicht prüfbar", err);
+        fertig = true;
+      }
+      if (fertig) {
+        vorgang.anzeige.className = "rueckmeldung erfolg";
+        vorgang.anzeige.textContent = "übernommen ✓";
+        this._freigeben(vorgang.anzeige, RUECKMELDUNG_MS);
+        return;
+      }
+      if (Date.now() - vorgang.seit > BESTAETIGUNG_MAX_MS) {
+        vorgang.anzeige.className = "rueckmeldung fehler";
+        vorgang.anzeige.textContent = "keine Rückmeldung der Anlage";
+        this._freigeben(vorgang.anzeige, RUECKMELDUNG_MS);
+        return;
+      }
+      offen.push(vorgang);
+    });
+    this._wartend = offen;
   }
 
   /** Was unter einer Taste steht, wenn gerade nichts übertragen wird. */
@@ -790,6 +1481,7 @@ class HeatNexusPanel extends HTMLElement {
   // -------------------------------------------------------------------
   _aktualisieren() {
     this._bindungen.forEach((binden) => binden());
+    this._pruefeWartende();
     (this._verlaufskarten || []).forEach((karte) => {
       karte.hass = this._hass;
     });

@@ -19,13 +19,34 @@ import pytest
 COMPONENT_DIR = Path(__file__).parent.parent / "custom_components" / "heatnexus"
 
 
+# Ersatzpaket für die HA-freien Module. Ohne ein Paket scheitert jeder
+# relative Import („from .const import …") beim Laden über den Dateipfad;
+# mit ihm findet er die Nachbardatei und zieht trotzdem kein Home Assistant
+# nach.
+PAKET = "heatnexus_standalone"
+
+
+def _paket() -> ModuleType:
+    """Das Ersatzpaket anlegen (einmalig) und zurückgeben."""
+    if (paket := sys.modules.get(PAKET)) is None:
+        paket = ModuleType(PAKET)
+        paket.__path__ = [str(COMPONENT_DIR)]
+        sys.modules[PAKET] = paket
+    return paket
+
+
 def load_standalone(module_name: str) -> ModuleType:
     """Ein HA-freies Modul der Integration direkt aus der Datei laden."""
+    voller_name = f"{PAKET}.{module_name}"
+    if (vorhanden := sys.modules.get(voller_name)) is not None:
+        return vorhanden
+
+    _paket()
     path = COMPONENT_DIR / f"{module_name}.py"
-    spec = importlib.util.spec_from_file_location(f"windhager_{module_name}", path)
+    spec = importlib.util.spec_from_file_location(voller_name, path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
+    sys.modules[voller_name] = module
     spec.loader.exec_module(module)
     return module
 

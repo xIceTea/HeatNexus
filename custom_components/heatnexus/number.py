@@ -8,6 +8,10 @@ from homeassistant.core import HomeAssistant
 
 from .entity import WindhagerEntity, async_setup_entities
 
+# Die Einheitentabelle liefert Geräteklassen für alle Plattformen; das
+# Zahlenfeld kennt davon weniger als der Sensor (keine Dauer, keine Energie).
+DEVICE_CLASSES = {klasse.value for klasse in NumberDeviceClass}
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager numbers from a config entry."""
@@ -23,12 +27,16 @@ class WindhagerNumber(WindhagerEntity, NumberEntity):
 
     def __init__(self, coordinator, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
-        self._attr_native_min_value = float(device_info.get("min", 0))
-        self._attr_native_max_value = float(device_info.get("max", 100))
-        self._attr_native_step = float(device_info.get("step", 1))
+        # Der Deskriptor trägt die Schlüssel immer – ohne Angabe der Anlage
+        # aber mit dem Wert None. `float(None)` würde die Entity beim Anlegen
+        # abbrechen und die ganze Plattform mitreißen; deshalb `or`.
+        self._attr_native_min_value = float(device_info.get("min") or 0)
+        self._attr_native_max_value = float(device_info.get("max") or 100)
+        self._attr_native_step = float(device_info.get("step") or 1)
         self._attr_native_unit_of_measurement = device_info.get("unit")
-        if device_info.get("device_class") == "temperature":
-            self._attr_device_class = NumberDeviceClass.TEMPERATURE
+        device_class = device_info.get("device_class")
+        if device_class in DEVICE_CLASSES:
+            self._attr_device_class = NumberDeviceClass(device_class)
 
     @property
     def native_value(self) -> float | None:

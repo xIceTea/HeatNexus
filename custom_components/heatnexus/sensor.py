@@ -30,6 +30,20 @@ STATE_CLASS_MAP = {
     "total_increasing": SensorStateClass.TOTAL_INCREASING,
 }
 
+# Geräteklassen, die aus der Einheitentabelle kommen können. Was Home Assistant
+# nicht kennt, bleibt lieber ohne Klasse als mit einer falschen.
+DEVICE_CLASSES = {klasse.value for klasse in SensorDeviceClass}
+
+
+def _zahl(zustand: str | None) -> float | None:
+    """Einen gespeicherten Zustand als Zahl lesen (oder gar nicht)."""
+    if zustand is None:
+        return None
+    try:
+        return float(zustand)
+    except (TypeError, ValueError):
+        return None
+
 
 # Schaltpunkt: {"time": "HH:MM", "value": <Temperatur>}
 _SWITCHPOINT_SCHEMA = vol.Schema(
@@ -90,14 +104,22 @@ class WindhagerTemperatureSensor(WindhagerEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 1
+    _wiederherstellbar = True
 
     @property
     def native_value(self) -> float | None:
-        return self.float_value
+        wert = self.float_value
+        return wert if wert is not None else _zahl(self.letzter_zustand)
 
 
 class WindhagerGenericSensor(WindhagerEntity, SensorEntity):
-    """Generic numeric sensor."""
+    """Generic numeric sensor.
+
+    Einheit, Geräteklasse, Statistikklasse und Anzeigegenauigkeit stehen im
+    Deskriptor – der Client leitet sie aus der Einheitentabelle ab. Ohne
+    Statistikklasse führt Home Assistant keinen Langzeitverlauf; ohne
+    Geräteklasse fehlt dem Wert Symbol und Umrechnung.
+    """
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
@@ -105,10 +127,16 @@ class WindhagerGenericSensor(WindhagerEntity, SensorEntity):
         state_class = device_info.get("state_class")
         if state_class in STATE_CLASS_MAP:
             self._attr_state_class = STATE_CLASS_MAP[state_class]
+        device_class = device_info.get("device_class")
+        if device_class in DEVICE_CLASSES:
+            self._attr_device_class = SensorDeviceClass(device_class)
+        if (stellen := device_info.get("precision")) is not None:
+            self._attr_suggested_display_precision = stellen
 
     @property
     def native_value(self) -> float | None:
-        return self.float_value
+        wert = self.float_value
+        return wert if wert is not None else _zahl(self.letzter_zustand)
 
 
 class WindhagerEnumSensor(WindhagerEntity, SensorEntity):
@@ -120,6 +148,7 @@ class WindhagerEnumSensor(WindhagerEntity, SensorEntity):
     """
 
     _attr_device_class = SensorDeviceClass.ENUM
+    _wiederherstellbar = True
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
@@ -152,7 +181,7 @@ class WindhagerEnumSensor(WindhagerEntity, SensorEntity):
     def native_value(self) -> str | None:
         raw = self.int_value
         if raw is None:
-            return None
+            return self.letzter_zustand
         label = self._labels.get(raw)
         if label is None:
             _LOGGER.debug(
@@ -165,15 +194,18 @@ class WindhagerEnumSensor(WindhagerEntity, SensorEntity):
 class WindhagerStringSensor(WindhagerEntity, SensorEntity):
     """Sensor that exposes the raw string value (e.g. times, versions)."""
 
+    _wiederherstellbar = True
+
     @property
     def native_value(self) -> str | None:
-        return self.raw_value
+        return self.raw_value if self.raw_value is not None else self.letzter_zustand
 
 
 class WindhagerPelletSensor(WindhagerEntity, SensorEntity):
     """Pellet/fuel consumption sensor (legacy)."""
 
     _attr_native_unit_of_measurement = "t"
+    _wiederherstellbar = True
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
@@ -183,7 +215,8 @@ class WindhagerPelletSensor(WindhagerEntity, SensorEntity):
 
     @property
     def native_value(self) -> float | None:
-        return self.float_value
+        wert = self.float_value
+        return wert if wert is not None else _zahl(self.letzter_zustand)
 
 
 class WindhagerErrorTextSensor(WindhagerEntity, SensorEntity):
@@ -408,8 +441,17 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         # in Wochenreihenfolge sortieren
         return [d for d in cls.ALL_DAYS if d in out]
 
-    @staticmethod
-    def _norm_points(points: list) -> list:
+    # Die Anlage nimmt je Tag bzw. Block höchstens sechs Schaltzeiten an.
+    # Besser hier ablehnen als die Anlage kommentarlos kürzen lassen.
+    MAX_SCHALTPUNKTE = 6
+
+    @classmethod
+    def _norm_points(cls, points: list) -> list:
+        if len(points) > cls.MAX_SCHALTPUNKTE:
+            raise WindhagerValueError(
+                f"Höchstens {cls.MAX_SCHALTPUNKTE} Schaltpunkte je Block, "
+                f"angegeben wurden {len(points)}"
+            )
         out = []
         for p in points:
             t = str(p["time"]).strip()

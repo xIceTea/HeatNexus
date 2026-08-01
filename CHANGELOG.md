@@ -6,6 +6,69 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.1.0-beta.2] - 2026-08-01
+
+Vorabversion zum Ausprobieren.
+
+### Behoben
+
+- **Warmwasser wurde angezeigt, wo es keines gibt.** Ein Heizkreis führt die
+  Warmwasser-Einstellungen auch dann, wenn kein Speicher daran hängt – erkannt
+  wurde Warmwasser aber genau daran. Jetzt zählt, was die Anlage misst: eine
+  Warmwassertemperatur oder ein gemeldeter Warmwasserkreis. Nebenbei zählte
+  die Abgas-*Re*zirkulation des Kessels als Zirkulation mit.
+- **Messwerte ohne Einheit und ohne Verlauf.** Außer Temperaturen bekam kein
+  Wert eine Zuordnung: Drehzahlen, Ströme, Leistungen, Volumenströme und
+  Zählerstände liefen als namenlose Zahlen ohne Langzeitstatistik. Sie tragen
+  jetzt ihre Größe, ihre Einheit in der von Home Assistant erwarteten
+  Schreibweise und eine sinnvolle Anzahl Nachkommastellen. Zählerstände
+  (Betriebsstunden, Brennerstarts, Verbrauch) werden als Summe geführt und
+  sind damit auswertbar.
+- **Schreibgeschützte Temperaturen verloren ihre Eigenschaft** und standen als
+  nackte Zahl da. Sie bleiben jetzt Temperaturen.
+- Der Diagnose-Export enthält keine Adresse und keine Seriennummer mehr – er
+  landet oft ungelesen in Fehlerberichten.
+
+### Geändert
+
+- **Nach einem Neustart stehen die Werte sofort da.** Bisher war bis zum ersten
+  Abruf alles „nicht verfügbar". Angezeigt wird nun der zuletzt bekannte Wert,
+  bis die Anlage antwortet. Bedienbare Werte machen das bewusst nicht: Ein
+  Sollwert, der nicht der Anlage entspricht, wäre schlimmer als ein leeres Feld.
+- **Eine Aktualisierung liest die Anlage nicht mehr komplett neu ein.** Bisher
+  kostete jedes Update 30 bis 120 Sekunden, in denen kaum etwas dastand. Der
+  bekannte Stand gilt sofort weiter, der Abgleich läuft im Hintergrund, und
+  Neues wird nachgereicht.
+- **Abgewählte Bedienebenen verschwinden wirklich.** Bisher blieben ihre
+  Einträge abgeschaltet stehen. Wer eine Ebene abwählt, meint das auch – ihre
+  Entitäten werden entfernt. Fällt dagegen ein Datenpunkt weg, weil die Anlage
+  ihn nicht mehr liefert, wird er wie bisher nur stillgelegt.
+- **Die Abfragetakte stimmen jetzt bei jedem Intervall.** „Alle 15 Minuten"
+  hieß bei einem Intervall von 300 Sekunden in Wahrheit zweieinhalb Stunden.
+- Die Benachrichtigung beim Einlesen ist jetzt **abschaltbar und
+  standardmäßig aus** (*Konfigurieren → Allgemein*).
+- Zeitprogramme: Mehr als sechs Schaltpunkte je Block werden mit einer
+  Meldung abgelehnt, statt von der Anlage stillschweigend gekürzt zu werden.
+
+### Neu
+
+- **Die eigene Oberfläche hat Reiter**: Übersicht, Steuerung, Wartung, Verlauf.
+  Bei mehreren Anlagen steht die Anlagenwahl darüber – bisher liefen sie
+  ineinander.
+- **Steuerung** nach dem Vorbild der Anlage selbst: je Heizkreis Betriebsart,
+  Raumtemperatur, Sollwertregler, Betriebswahl und Zeitprogramm; Warmwasser
+  mit Ist, Soll, Ladetemperatur und Einmalladung; die Eingriffe am Kessel.
+- **Rückmeldung, die bis zum Ende trägt.** Nach „wird übertragen" steht jetzt
+  „wird ausgeführt …", solange die Anlage den neuen Zustand nicht bestätigt
+  hat, und erst dann „übernommen ✓". Ein laufender Sollwert am Heizkreis zeigt,
+  wie lange er noch gilt.
+- **Taste für die Seitenleiste** oben links, wenn der Platz knapp ist – auf dem
+  Handy war die Seitenleiste sonst verdeckt.
+- Die Außentemperatur steht in der Kopfzeile, wo sie hingehört: Sie gilt für
+  die ganze Anlage, nicht für einen Anlagenteil.
+
+---
+
 ## [1.1.0-beta.1] - 2026-08-01
 
 Vorabversion zum Ausprobieren. In HACS nur sichtbar, wenn dort

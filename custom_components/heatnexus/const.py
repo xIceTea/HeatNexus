@@ -30,6 +30,10 @@ DASHBOARD_TITEL = "Heizung"
 
 # Eigene Oberfläche (Panel) mit dem Anlagenschaubild
 CONF_PANEL = "panel"
+# Benachrichtigung, während die Anlage eingelesen wird. Standardmäßig aus:
+# Wer nicht gerade zusieht, will keine Meldung, und beim zweiten Start steht
+# ohnehin alles sofort da.
+CONF_MELDUNG_EINLESEN = "meldung_einlesen"
 PANEL_URL = "heatnexus-anlage"
 PANEL_TITEL = "HeatNexus"
 PANEL_ELEMENT = "heatnexus-panel"
@@ -63,13 +67,15 @@ ADVANCED_LEVELS = {LEVEL_SERVICE, LEVEL_OEM}
 MIN_UPDATE_INTERVAL = 15
 MAX_UPDATE_INTERVAL = 300
 
-# Poll-Klassen: nicht jeder Datenpunkt gehört in denselben Takt. Die Zahl ist
-# der Vielfache des eingestellten Abfrageintervalls – bei den voreingestellten
-# 30 s also 30 s, 2 min und 15 min.
+# Poll-Klassen: nicht jeder Datenpunkt gehört in denselben Takt.
 POLL_FAST = "fast"
 POLL_NORMAL = "normal"
 POLL_SLOW = "slow"
-POLL_TAKTE = {POLL_FAST: 1, POLL_NORMAL: 4, POLL_SLOW: 30}
+# Angestrebter Abstand zweier Abrufe je Klasse, in Sekunden. Daraus wird der
+# Takt am tatsächlich eingestellten Intervall berechnet – eine feste Vielfache
+# stimmte nur bei den voreingestellten 30 s: Bei 300 s wären aus den 15 Minuten
+# der langsamen Klasse zweieinhalb Stunden geworden.
+POLL_ZIEL_SEKUNDEN = {POLL_FAST: 30, POLL_NORMAL: 120, POLL_SLOW: 900}
 
 # Entitätsarten, die die Anlage bedienen oder ihren Zustand zeigen: immer schnell.
 POLL_TYPEN_SCHNELL = frozenset(
@@ -111,6 +117,58 @@ POLL_WOERTER_SCHNELL = (
 # Poll-Intervall (s). 30 s für spürbar schnellere Aktualisierung der Climate-/
 # Sensorwerte; dank schlankem Poll-Set (nur aktive OIDs) gut vertretbar.
 UPDATE_INTERVAL = 30
+
+# ---------------------------------------------------------------------------
+# Einheiten der Anlage -> Home-Assistant-Konvention
+#
+# Die Steuerung meldet ihre Einheiten so, wie sie am Display stehen ("U/min",
+# "m^3/h"). Home Assistant erwartet eigene Schreibweisen und leitet aus der
+# Geräteklasse ab, ob ein Wert umgerechnet, in der Statistik geführt und mit
+# wie vielen Nachkommastellen angezeigt wird. Ohne diese Tabelle lief alles
+# außer den °C-Werten als namenloser Zahlensensor ohne Langzeitverlauf.
+#
+# Aufbau: Geräteeinheit -> (HA-Einheit, device_class, state_class, Stellen)
+# ---------------------------------------------------------------------------
+EINHEITEN: dict[str, tuple[str, str | None, str, int]] = {
+    "°C": ("°C", "temperature", "measurement", 1),
+    # Kelvin steht hier immer für eine Differenz (Überhöhung, Spreizung) und
+    # nicht für eine absolute Temperatur – deshalb ohne Geräteklasse.
+    "K": ("K", None, "measurement", 1),
+    "%": ("%", None, "measurement", 0),
+    "kW": ("kW", "power", "measurement", 1),
+    "W": ("W", "power", "measurement", 0),
+    "kWh": ("kWh", "energy", "total_increasing", 1),
+    "MWh": ("MWh", "energy", "total_increasing", 2),
+    "A": ("A", "current", "measurement", 2),
+    "V": ("V", "voltage", "measurement", 1),
+    "Hz": ("Hz", "frequency", "measurement", 1),
+    "U/min": ("rpm", None, "measurement", 0),
+    "m^3/h": ("m³/h", "volume_flow_rate", "measurement", 1),
+    "m³/h": ("m³/h", "volume_flow_rate", "measurement", 1),
+    "l/h": ("L/h", "volume_flow_rate", "measurement", 1),
+    "s": ("s", "duration", "measurement", 0),
+    "min": ("min", "duration", "measurement", 0),
+    "h": ("h", "duration", "measurement", 0),
+    "d": ("d", "duration", "measurement", 0),
+    "t": ("t", "weight", "total_increasing", 2),
+    "kg": ("kg", "weight", "total_increasing", 1),
+    "bar": ("bar", "pressure", "measurement", 2),
+    "mbar": ("mbar", "pressure", "measurement", 1),
+    "Pa": ("Pa", "pressure", "measurement", 0),
+}
+
+# Namensbestandteile, die einen Zählerstand kennzeichnen: Sie laufen nur nach
+# oben und gehören damit in die Langzeitstatistik als Summe, nicht als Messwert.
+ZAEHLER_WOERTER = (
+    "betriebsstunden",
+    "brennerstarts",
+    "verbrauch",
+    "zähler",
+    "zaehler",
+    "wärmemenge",
+    "waermemenge",
+    "gesamt",
+)
 
 # Gleichzeitige Anfragen an die Anlage. Mehr als drei quittieren die Geräte bei
 # großen Menü-Ebenen mit abgebrochenen Antworten.

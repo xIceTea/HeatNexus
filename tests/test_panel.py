@@ -146,12 +146,115 @@ def test_ohne_warmwasser_bleibt_die_karte_leer(panel):
     assert panel._anlage_daten(ohne)["warmwasser"] == []
 
 
+def test_reine_parameter_beweisen_kein_warmwasser(panel):
+    """Der Fehler aus 1.1.0-beta.1: Das Heizhaus zeigte eine Warmwasserkarte.
+
+    Ein Heizkreis führt die Warmwasser-*Parameter* auch dann, wenn kein
+    Speicher daran hängt – gemessen wird dort aber nichts, und „WW-Kreis"
+    steht auf 0. Genau so meldet es die Anlage im Heizhaus.
+    """
+    ohne = anlage(
+        teil(
+            "Hebebühne",
+            14,
+            [
+                entitaet("climate.hebebuehne", "Hebebühne"),
+                entitaet("number.ww_ueberhoehung", "WW-Überhöhung"),
+                entitaet("binary_sensor.ww_ladepumpe", "WW-Ladepumpe"),
+                entitaet("number.ww_ladevorrang", "WW-Ladung max. Ladevorrang"),
+                entitaet("sensor.ww_kreis", "WW-Kreis", wert=0.0),
+            ],
+        )
+    )
+    assert panel._anlage_daten(ohne)["warmwasser"] == []
+
+
+def test_gemeldeter_warmwasserkreis_genuegt(panel):
+    """Meldet die Anlage den Kreis, gibt es ihn – auch ohne eigenen Istwert."""
+    mit = anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [
+                entitaet("climate.umlz", "UMLZ HEIZKREIS"),
+                entitaet("sensor.ww_kreis", "WW-Kreis", wert=1.0),
+                entitaet("binary_sensor.ww_ladepumpe", "WW-Ladepumpe"),
+            ],
+        )
+    )
+    assert panel._anlage_daten(mit)["warmwasser"]
+
+
+def test_abgas_rezirkulation_ist_kein_warmwasser(panel):
+    """„Rezirkulation" enthält „Zirkulation" – ohne Wortgrenze zählte sie mit."""
+    kessel = anlage(
+        teil(
+            "PuroWIN",
+            25,
+            [
+                entitaet("sensor.warmwasser_ist", "Warmwasser Ist-Temperatur"),
+                entitaet("sensor.abgas_rezirkulation", "Abgas-Rezirkulation"),
+            ],
+        )
+    )
+    namen = [w["titel"] for w in panel._anlage_daten(kessel)["warmwasser"]]
+    assert "Abgas-Rezirkulation" not in namen
+
+
 def test_thermostat_zaehlt_nicht_als_warmwasser(panel):
     """Ein Heizkreis namens „Warmwasser" ist trotzdem ein Heizkreis."""
     seltsam = anlage(teil("Warmwasser Nord", 14, [entitaet("climate.ww_nord", "Warmwasser Nord")]))
     daten = panel._anlage_daten(seltsam)
     assert daten["warmwasser"] == []
     assert daten["heizkreise"][0]["entity"] == "climate.ww_nord"
+
+
+# ---------------------------------------------------------------------------
+# Reiter „Steuerung" und „Wartung"
+# ---------------------------------------------------------------------------
+def test_steuerung_findet_heizkreis_und_warmwasser(panel, kessel_und_heizkreis):
+    steuerung = panel._anlage_daten(kessel_und_heizkreis)["steuerung"]
+    assert steuerung["heizkreise"][0]["entity"] == "climate.umlz_heizkreis"
+    assert steuerung["warmwasser"]["ist"] == "sensor.warmwasser_ist"
+    assert steuerung["warmwasser"]["laden"] == "switch.ww_einmalladung"
+
+
+def test_steuerung_ohne_warmwasser_bleibt_leer(panel):
+    ohne = anlage(teil("Hebebühne", 14, [entitaet("climate.hebebuehne", "Hebebühne")]))
+    assert panel._anlage_daten(ohne)["steuerung"]["warmwasser"] is None
+
+
+def test_steuerung_nimmt_die_betriebswahl_des_kreises(panel):
+    mit = anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [
+                entitaet("climate.umlz", "UMLZ HEIZKREIS"),
+                entitaet("select.betriebswahl", "Betriebswahl"),
+                entitaet("sensor.heizprogramm", "Heizprogramm 1"),
+            ],
+        )
+    )
+    kreis = panel._anlage_daten(mit)["steuerung"]["heizkreise"][0]
+    assert kreis["betriebswahl"] == "select.betriebswahl"
+    assert kreis["programm"] == "sensor.heizprogramm"
+
+
+def test_wartung_trennt_restlaufzeit_von_zaehler(panel):
+    anlagenteil = teil(
+        "PuroWIN",
+        25,
+        [
+            entitaet("sensor.laufzeit_asche", "Laufzeit bis Ascheentleerung"),
+            entitaet("sensor.betriebsstunden", "Betriebsstunden", state_class="total_increasing"),
+            entitaet("sensor.vorratsbehaelter", "Vorratsbehälter"),
+        ],
+    )
+    wartung = panel._anlage_daten(anlage(anlagenteil))["wartung"]
+    assert [z["titel"] for z in wartung["restlaufzeiten"]] == ["Laufzeit bis Ascheentleerung"]
+    assert [z["titel"] for z in wartung["zaehler"]] == ["Betriebsstunden"]
+    assert [z["titel"] for z in wartung["brennstoff"]] == ["Vorratsbehälter"]
 
 
 # ---------------------------------------------------------------------------

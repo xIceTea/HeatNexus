@@ -89,12 +89,14 @@
         "data": {
           "update_interval": "Polling interval",
           "dashboard": "Create dashboard",
-          "panel": "Own interface"
+          "panel": "Own interface",
+          "meldung_einlesen": "Notify while reading in"
         },
         "data_description": {
           "update_interval": "How often the system is queried.",
           "dashboard": "Adds a “Heating” dashboard to the sidebar that builds itself from the discovered devices.",
-          "panel": "Adds a “HeatNexus” entry to the sidebar with a plant diagram, status, heating circuits and quick actions."
+          "panel": "Adds a “HeatNexus” entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
+          "meldung_einlesen": "Shows a notification while HeatNexus reads the plant. Off by default – from the second start everything is there immediately."
         }
       },
       "system": {

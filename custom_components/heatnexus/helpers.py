@@ -1,9 +1,17 @@
-"""Helper functions for Windhager integration."""
+"""Helper functions for Windhager integration.
+
+Dieses Modul kommt bewusst ohne aiohttp und ohne Home Assistant aus: Was hier
+steht, lässt sich lokal prüfen, auch wenn keine der beiden Umgebungen
+installiert ist. Deshalb liegen die reinen Umrechnungen hier und nicht im
+Client.
+"""
 
 from __future__ import annotations
 
 import logging
 from typing import Any
+
+from .const import EINHEITEN, POLL_ZIEL_SEKUNDEN, UPDATE_INTERVAL, ZAEHLER_WOERTER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,6 +27,101 @@ def parse_value(value: Any, as_type: type = float, oid: str | None = None) -> An
     except (ValueError, TypeError):
         _LOGGER.debug("Invalid value %r for %s", value, oid)
         return None
+
+
+# Schreibschutz macht aus einer bedienbaren Entität ihre nur-lesende
+# Entsprechung.
+READONLY_FALLBACK = {
+    "number": "sensor",
+    "select": "enum_sensor",
+    "switch": "binary_sensor",
+    "time": "string_sensor",
+}
+
+
+def lesetyp(typ: str, einheit: str | None) -> str:
+    """Nur-lesende Entsprechung einer bedienbaren Entität.
+
+    Eine Temperatur bleibt dabei eine Temperatur: Fiele sie auf den
+    allgemeinen Zahlensensor zurück, verlöre sie Geräteklasse, Statistik und
+    Anzeigegenauigkeit. Bei einer Anlage, die fast jeden Wert als schreibbaren
+    Zahlenbereich meldet, trifft das die halbe Liste – auf der Testanlage 57
+    °C-Werte, sobald die Serviceebene nicht bedienbar ist (Standard).
+    """
+    if typ == "number" and (einheit or "").strip() == "°C":
+        return "temperature"
+    # Ein „Schalter" mit Einheit (z.B. Kaminkehrer 9/90 in min) ist in
+    # Wahrheit ein Zähler -> normaler Sensor.
+    if typ == "switch" and einheit:
+        return "sensor"
+    return READONLY_FALLBACK[typ]
+
+
+def poll_takte(intervall: int | None) -> dict[str, int]:
+    """Wie viele Durchläufe eine Poll-Klasse aussetzt.
+
+    Der Takt hängt am eingestellten Abfrageintervall: „alle 15 Minuten" muss
+    bei 30 s jeden 30. Durchlauf bedeuten, bei 300 s jeden dritten. Eine feste
+    Vielfache stimmte nur bei der Voreinstellung – bei 300 s wären daraus
+    zweieinhalb Stunden geworden.
+    """
+    takt = max(1, int(intervall or UPDATE_INTERVAL))
+    return {klasse: max(1, round(ziel / takt)) for klasse, ziel in POLL_ZIEL_SEKUNDEN.items()}
+
+
+def _nachkommastellen(schritt: Any) -> int | None:
+    """Wie viele Stellen die Schrittweite der Anlage verlangt."""
+    try:
+        wert = float(schritt)
+    except (TypeError, ValueError):
+        return None
+    if not 0 < wert < 1:
+        return None
+    return len(str(schritt).rstrip("0").partition(".")[2]) or None
+
+
+def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
+    """Einheit, Geräteklasse, Statistikklasse und Genauigkeit festlegen.
+
+    Die Anlage meldet ihre Einheiten in Displayschreibweise („U/min",
+    „m^3/h"); Home Assistant erwartet eigene. Und ohne Statistikklasse führt
+    der Rekorder keinen Langzeitverlauf – bis hierher galt das für alles außer
+    den °C-Werten.
+
+    Kuratierte Angaben aus `const.py` haben Vorrang: Dort steht, was die
+    Tabelle nicht wissen kann, etwa dass eine Restlaufzeit in Stunden ein
+    Messwert ist und kein Zählerstand.
+    """
+    if beschreibung.get("type") not in ("sensor", "temperature", "number"):
+        return beschreibung
+    roh = (beschreibung.get("unit") or "").strip()
+    if not roh:
+        return beschreibung
+    # „20" und „21" meldet die Anlage als Einheit von Datum und Uhrzeit – das
+    # sind Formatkennungen, keine Maßeinheiten.
+    if roh.isdigit():
+        beschreibung["unit"] = None
+        return beschreibung
+
+    eintrag = EINHEITEN.get(roh)
+    if eintrag is None:
+        return beschreibung
+    einheit, geraeteklasse, statistik, stellen = eintrag
+    beschreibung["unit"] = einheit
+    if beschreibung.get("device_class") is None:
+        beschreibung["device_class"] = geraeteklasse
+    if beschreibung["type"] == "number":
+        # Zahlenfelder kennen weder Statistik noch Anzeigegenauigkeit.
+        return beschreibung
+    if beschreibung.get("state_class") is None:
+        name = (beschreibung.get("name") or "").lower()
+        if any(wort in name for wort in ZAEHLER_WOERTER):
+            statistik = "total_increasing"
+        beschreibung["state_class"] = statistik
+    if beschreibung.get("precision") is None:
+        genauer = _nachkommastellen(beschreibung.get("step"))
+        beschreibung["precision"] = max(stellen, genauer) if genauer else stellen
+    return beschreibung
 
 
 def get_oid_raw(coordinator: Any, oid: str, prefix: str = "") -> str | None:

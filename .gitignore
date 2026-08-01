@@ -17,6 +17,13 @@ notes/
 research/
 *.internal.md
 
+# Herstellerunterlagen (Bedienungsanleitungen, Parameterlisten). Sie sind
+# urheberrechtlich geschützt und gehören nicht ins Repository – gelesen wird
+# daraus, kopiert wird nichts.
+*.pdf
+doku/
+hersteller-doku/
+
 # Anlagenbezogene Daten (IP-Adressen, Werte, Dumps)
 probe/
 dumps/

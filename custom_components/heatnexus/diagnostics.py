@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -13,24 +14,78 @@ from .const import DOMAIN
 # Zugangsdaten und eindeutige Gerätekennungen bleiben draußen.
 ZU_SCHWAERZEN = {"password", "host", "neuronId", "programId"}
 
+# IPv4-Adresse als ganzer Wert bzw. irgendwo im Text.
+_ADRESSE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+_ADRESSE_IM_TEXT = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b")
+
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
-    """Alles zusammentragen, was zur Fehlersuche nützlich ist."""
+    """Alles zusammentragen, was zur Fehlersuche nützlich ist.
+
+    Der Export landet in Fehlerberichten – oft ungelesen weitergereicht.
+    Deshalb steht hier keine Adresse und keine Seriennummer: Die Anlagen
+    werden durchnummeriert, und die Seriennummer, die in jeder Kennung
+    steckt, wird durch einen gleichbleibenden Platzhalter ersetzt. Wer zwei
+    Anlagen vergleicht, kann sie weiterhin auseinanderhalten.
+    """
     eintrag = hass.data[DOMAIN][entry.entry_id]
     anlagen = {}
-    for host, coordinator in eintrag["coordinators"].items():
-        anlagen[host] = _anlage(coordinator)
-    return {
+    for nummer, coordinator in enumerate(eintrag["coordinators"].values(), start=1):
+        anlagen[f"anlage_{nummer}"] = _anlage(coordinator)
+
+    optionen = async_redact_data(dict(entry.options), ZU_SCHWAERZEN)
+    # Die Optionen sind je Anlage unter deren Adresse abgelegt.
+    optionen = {
+        (schluessel if not _ist_adresse(schluessel) else "anlage"): wert
+        for schluessel, wert in optionen.items()
+    }
+    daten = {
         "eintrag": {
             "name": eintrag["name"],
             "version": entry.version,
-            "optionen": async_redact_data(dict(entry.options), ZU_SCHWAERZEN),
+            "optionen": optionen,
             "anlagen": len(anlagen),
         },
         "anlagen": async_redact_data(anlagen, ZU_SCHWAERZEN),
     }
+    return _anonymisieren(daten, _seriennummern(eintrag))
+
+
+def _ist_adresse(wert: Any) -> bool:
+    """Sieht der Schlüssel nach einer IP-Adresse aus."""
+    return isinstance(wert, str) and bool(_ADRESSE.match(wert))
+
+
+def _seriennummern(eintrag: dict[str, Any]) -> dict[str, str]:
+    """Seriennummer -> Platzhalter, je Anlage durchnummeriert."""
+    ersatz: dict[str, str] = {}
+    for nummer, coordinator in enumerate(eintrag.get("coordinators", {}).values(), start=1):
+        for lfd, seriennummer in enumerate(
+            sorted(getattr(coordinator.client, "neuron_by_node", {}).values()), start=1
+        ):
+            ersatz.setdefault(str(seriennummer), f"SN{nummer}-{lfd}")
+    return ersatz
+
+
+def _anonymisieren(wert: Any, ersatz: dict[str, str]) -> Any:
+    """Seriennummern und Adressen in allen Zeichenketten ersetzen.
+
+    Auch in zusammengesetzten Kennungen wie ``12345678-0-7-0``.
+    """
+    if isinstance(wert, dict):
+        return {
+            _anonymisieren(schluessel, ersatz): _anonymisieren(inhalt, ersatz)
+            for schluessel, inhalt in wert.items()
+        }
+    if isinstance(wert, list):
+        return [_anonymisieren(eintrag, ersatz) for eintrag in wert]
+    if isinstance(wert, str):
+        for seriennummer, platzhalter in ersatz.items():
+            wert = wert.replace(seriennummer, platzhalter)
+        return _ADRESSE_IM_TEXT.sub("<adresse>", wert)
+    return wert
 
 
 def _anlage(coordinator) -> dict[str, Any]:

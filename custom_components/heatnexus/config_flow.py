@@ -40,6 +40,7 @@ from .const import (
     CONF_ENABLE_ADVANCED,
     CONF_LABEL,
     CONF_LEVELS,
+    CONF_MELDUNG_EINLESEN,
     CONF_PANEL,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
@@ -480,6 +481,7 @@ class WindhagerOptionsFlow(OptionsFlow):
             options[CONF_UPDATE_INTERVAL] = int(user_input[CONF_UPDATE_INTERVAL])
             options[CONF_DASHBOARD] = bool(user_input[CONF_DASHBOARD])
             options[CONF_PANEL] = bool(user_input[CONF_PANEL])
+            options[CONF_MELDUNG_EINLESEN] = bool(user_input[CONF_MELDUNG_EINLESEN])
             return self.async_create_entry(data=options)
 
         return self.async_show_form(
@@ -490,6 +492,10 @@ class WindhagerOptionsFlow(OptionsFlow):
                         CONF_DASHBOARD, default=bool(options.get(CONF_DASHBOARD, True))
                     ): bool,
                     vol.Required(CONF_PANEL, default=bool(options.get(CONF_PANEL, False))): bool,
+                    vol.Required(
+                        CONF_MELDUNG_EINLESEN,
+                        default=bool(options.get(CONF_MELDUNG_EINLESEN, False)),
+                    ): bool,
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
                         default=int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),
