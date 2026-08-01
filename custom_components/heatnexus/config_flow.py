@@ -18,7 +18,7 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     NumberSelector,
@@ -34,6 +34,7 @@ import voluptuous as vol
 from .client import WindhagerHttpClient
 from .const import (
     ALL_LEVELS,
+    BEKANNTE_BENUTZER,
     CONF_COUNT,
     CONF_DASHBOARD,
     CONF_ENABLE_ADVANCED,
@@ -44,6 +45,7 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     CONF_WRITABLE_ADVANCED,
     DEFAULT_LEVELS,
+    DEFAULT_USERNAME,
     DOMAIN,
     LEVEL_BESCHRIFTUNG,
     LEVEL_INFO,
@@ -70,9 +72,20 @@ def clean_host(raw: str) -> str:
     return host.strip("/")
 
 
-async def validate_connection(host: str, password: str) -> list:
+def benutzer_auswahl() -> SelectSelector:
+    """Auswahlfeld für den Zugang; ein eigener Name bleibt möglich."""
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=[SelectOptionDict(value=b, label=b) for b in BEKANNTE_BENUTZER],
+            custom_value=True,
+            mode=SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+async def validate_connection(host: str, password: str, username: str = DEFAULT_USERNAME) -> list:
     """Prüfen, ob die Anlage antwortet, und ihre Struktur zurückgeben."""
-    client = WindhagerHttpClient(host=host, password=password)
+    client = WindhagerHttpClient(host=host, password=password, username=username)
     try:
         data, status = await client.probe()
     finally:
@@ -222,8 +235,9 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             if any(s[CONF_HOST] == host for s in self._systeme):
                 errors["base"] = "already_configured"
             else:
+                benutzer = (user_input.get(CONF_USERNAME) or DEFAULT_USERNAME).strip()
                 try:
-                    struktur = await validate_connection(host, user_input[CONF_PASSWORD])
+                    struktur = await validate_connection(host, user_input[CONF_PASSWORD], benutzer)
                 except InvalidAuth:
                     errors["base"] = "invalid_auth"
                 except CannotConnect:
@@ -236,6 +250,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                         {
                             CONF_LABEL: user_input[CONF_LABEL].strip() or host,
                             CONF_HOST: host,
+                            CONF_USERNAME: benutzer,
                             CONF_PASSWORD: user_input[CONF_PASSWORD],
                             "gefunden": beschreibe(struktur),
                             "kennung": anlagenkennung(struktur),
@@ -251,6 +266,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_LABEL, default=f"Anlage {nummer}"): str,
                     vol.Required(CONF_HOST): str,
+                    vol.Required(CONF_USERNAME, default=DEFAULT_USERNAME): benutzer_auswahl(),
                     vol.Required(CONF_PASSWORD): str,
                 }
             ),
@@ -289,6 +305,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                         {
                             CONF_LABEL: s[CONF_LABEL],
                             CONF_HOST: s[CONF_HOST],
+                            CONF_USERNAME: s[CONF_USERNAME],
                             CONF_PASSWORD: s[CONF_PASSWORD],
                         }
                         for s in self._systeme
@@ -320,15 +337,20 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             host = user_input[CONF_HOST]
+            benutzer = (user_input.get(CONF_USERNAME) or DEFAULT_USERNAME).strip()
             try:
-                await validate_connection(host, user_input[CONF_PASSWORD])
+                await validate_connection(host, user_input[CONF_PASSWORD], benutzer)
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             else:
                 neu = [
-                    {**s, CONF_PASSWORD: user_input[CONF_PASSWORD]} if s[CONF_HOST] == host else s
+                    (
+                        {**s, CONF_USERNAME: benutzer, CONF_PASSWORD: user_input[CONF_PASSWORD]}
+                        if s[CONF_HOST] == host
+                        else s
+                    )
                     for s in systeme
                 ]
                 return self.async_update_reload_and_abort(entry, data_updates={CONF_SYSTEMS: neu})
@@ -351,6 +373,11 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                             mode=SelectSelectorMode.DROPDOWN,
                         )
                     ),
+                    vol.Required(
+                        CONF_USERNAME,
+                        default=(systeme[0].get(CONF_USERNAME) if systeme else DEFAULT_USERNAME)
+                        or DEFAULT_USERNAME,
+                    ): benutzer_auswahl(),
                     vol.Required(CONF_PASSWORD): str,
                 }
             ),
@@ -373,9 +400,11 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             alt = user_input["anlage"]
             neu_host = clean_host(user_input[CONF_HOST])
-            passwort = next((s[CONF_PASSWORD] for s in systeme if s[CONF_HOST] == alt), "")
+            system = next((s for s in systeme if s[CONF_HOST] == alt), {})
+            passwort = system.get(CONF_PASSWORD, "")
+            benutzer = system.get(CONF_USERNAME) or DEFAULT_USERNAME
             try:
-                await validate_connection(neu_host, passwort)
+                await validate_connection(neu_host, passwort, benutzer)
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:

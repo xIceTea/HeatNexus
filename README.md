@@ -77,8 +77,33 @@ kopieren und Home Assistant neu starten.
 [![Integration hinzufügen](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
 
 Oder von Hand: Einstellungen → Geräte & Dienste → Integration hinzufügen →
-**HeatNexus**. Erforderlich sind die IP-Adresse der Anlage und das
-Service-Passwort; der Benutzername ist `USER`.
+**HeatNexus**. Erforderlich sind die IP-Adresse der Anlage, der Zugang und das
+zugehörige Passwort.
+
+#### Zugang und Passwort
+
+Die Schnittstelle ist dieselbe, die auch die Weboberfläche der Anlage benutzt.
+Ab Werk kennt die Steuerung zwei Zugänge:
+
+| Zugang | Passwort ab Werk | Umfang |
+|---|---|---|
+| `USER` | `123` | Info- und Betreiberebene |
+| `Service` | `123` | zusätzlich die Fachparameter |
+
+Ob der Zugang stimmt, lässt sich ohne Home Assistant prüfen: `http://<IP der
+Anlage>` im Browser öffnen. Kommt die Weboberfläche, passt die Kombination.
+
+Wer Fachparameter auslesen oder schreiben will, wählt bei der Einrichtung
+`Service`. Ein abweichender Benutzername lässt sich im selben Feld eintippen.
+Geändert wird das Passwort an der Anlage selbst über das InfoWIN Touch; die
+Menüführung steht in der Anleitung der Steuerung.
+
+> **Wichtig:** Wird die Anlage mit der Windhager-App (myComfort / myConnect)
+> verbunden, vergibt Windhager ein eigenes Passwort. Die Standardangaben oben
+> gelten dann nicht mehr, und je nach Anlage ist entweder die App **oder** die
+> lokale Schnittstelle nutzbar. Meldet HeatNexus nach dem Verbinden mit der App
+> plötzlich einen Anmeldefehler, ist das die Ursache – das neue Passwort kennt
+> der Heizungsbauer oder es lässt sich an der Anlage neu setzen.
 
 Im zweiten Schritt wird der **Umfang** festgelegt:
 

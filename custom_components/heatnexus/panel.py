@@ -40,7 +40,7 @@ from .const import (
     PANEL_TITEL,
     PANEL_URL,
 )
-from .dashboard import _anlagen, _muster, _passt
+from .dashboard import _anlagen, _muster, _passt, rueckfrage
 from .schema import anlagenschema
 
 _LOGGER = logging.getLogger(__name__)
@@ -83,6 +83,8 @@ VERLAUF = _muster(
 )
 
 # Schnellzugriff: bedienbare Datenpunkte, die man wirklich anfasst.
+# Ob vor dem Auslösen nachgefragt wird, entscheidet `dashboard.rueckfrage` –
+# dieselbe Tabelle gilt für die Kacheln im Dashboard.
 SCHNELLZUGRIFF = (
     (r"ww einmalladung", "Warmwasser laden", "mdi:water-boiler"),
     (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off"),
@@ -194,6 +196,7 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
                         "entity": treffer["entity_id"],
                         "titel": beschriftung,
                         "symbol": symbol,
+                        "frage": rueckfrage(treffer["name"]),
                     }
                 )
 

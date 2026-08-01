@@ -30,12 +30,42 @@ def load_standalone(module_name: str) -> ModuleType:
     return module
 
 
+def ha_fehlt() -> bool:
+    """Prüfen, ob die Home-Assistant-Umgebung fehlt."""
+    return importlib.util.find_spec("homeassistant") is None
+
+
 def requires_ha():
     """Skip-Marker, wenn keine Home-Assistant-Umgebung installiert ist."""
     return pytest.mark.skipif(
-        importlib.util.find_spec("homeassistant") is None,
+        ha_fehlt(),
         reason="Home Assistant nicht installiert (pip install -r requirements_test.txt)",
     )
+
+
+# Ein Lauf ohne Home Assistant überspringt rund die Hälfte aller Tests –
+# schweigend. Genau so ist in 1.0.0 ein falscher Erwartungswert bis in die CI
+# durchgerutscht. Der Hinweis steht deshalb am Anfang **und** am Ende.
+_WARNUNG = (
+    "Home Assistant ist nicht installiert: alle Tests der Integration werden "
+    "übersprungen. Ein grüner Lauf beweist hier nichts. "
+    "Abhilfe: pip install -r requirements_test.txt "
+    "(unter Windows nur in WSL – pytest-homeassistant-custom-component sperrt "
+    "dort Sockets, die der Windows-Ereignisschleife fehlen). "
+    "Verlass dich sonst auf die CI."
+)
+
+
+def pytest_report_header(config) -> list[str]:
+    """Fehlende Testumgebung schon in der Kopfzeile melden."""
+    return [f"ACHTUNG: {_WARNUNG}"] if ha_fehlt() else []
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config) -> None:
+    """Und nach dem Lauf noch einmal, dort wo man hinschaut."""
+    if ha_fehlt():
+        terminalreporter.write_line("")
+        terminalreporter.write_line(f"ACHTUNG: {_WARNUNG}", yellow=True, bold=True)
 
 
 @pytest.fixture(scope="session")

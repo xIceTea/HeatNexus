@@ -83,3 +83,24 @@ def test_spitze_klammern_im_namen_zerlegen_das_bild_nicht(schema):
     svg = base64.b64decode(schema.anlagenschema([teil])["image"].split(",", 1)[1]).decode("utf-8")
     assert "<b>" not in svg
     assert "&lt;b&gt;" in svg
+
+
+def test_schaubild_entsteht_auch_ohne_werte(schema, anlage):
+    """Beim ersten Aufbau ist die Anlage noch nicht eingelesen.
+
+    Verlangte das Schaubild einen vorhandenen Wert, bliebe der Reiter „Anlage"
+    dauerhaft leer – der Fehler aus 1.0.0.
+    """
+    for teil in anlage:
+        for eintrag in teil["entitaeten"]:
+            eintrag["hat_wert"] = False
+
+    bild = schema.anlagenschema(anlage)
+    assert bild is not None
+    assert len(bild["elements"]) == 4
+
+
+def test_anlagenteil_ohne_passenden_messwert_faellt_weg(schema):
+    """Ein leerer Kasten hilft niemandem."""
+    ohne = [{"name": "Rätsel", "fct_type": 99, "entitaeten": []}]
+    assert schema.anlagenschema(ohne) is None

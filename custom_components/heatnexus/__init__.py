@@ -10,7 +10,7 @@ import logging
 import async_timeout
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, Platform
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
@@ -35,6 +35,7 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     CONF_WRITABLE_ADVANCED,
     DEFAULT_LEVELS,
+    DEFAULT_USERNAME,
     DISCOVERY_MAX_AGE_DAYS,
     DISCOVERY_STORE_VERSION,
     DOMAIN,
@@ -82,22 +83,29 @@ def _systems(entry: ConfigEntry) -> list[dict]:
 
 
 def _scope(entry: ConfigEntry, host: str) -> dict:
-    """Gewählter Umfang einer Anlage (Ebenen, Freigaben, Intervall)."""
+    """Gewählter Umfang einer Anlage (Ebenen, Freigaben, Intervall, Zugang)."""
     options = entry.options or {}
     je_anlage = options.get(host) or {}
+    system = next((s for s in _systems(entry) if s.get(CONF_HOST) == host), {})
     return {
         "levels": list(je_anlage.get(CONF_LEVELS, DEFAULT_LEVELS)),
         "enable_advanced": bool(je_anlage.get(CONF_ENABLE_ADVANCED, False)),
         "writable_advanced": bool(je_anlage.get(CONF_WRITABLE_ADVANCED, False)),
         "update_interval": int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),
+        "username": system.get(CONF_USERNAME) or DEFAULT_USERNAME,
     }
 
 
 def _scope_fingerprint(scope: dict) -> str:
-    """Kennung des Umfangs – ändert er sich, ist der Erkennungsstand ungültig."""
+    """Kennung des Umfangs – ändert er sich, ist der Erkennungsstand ungültig.
+
+    Der Zugang gehört dazu: „Service" sieht Datenpunkte, die „USER" gar nicht
+    erst geliefert bekommt. Ein Wechsel muss die Anlage neu einlesen.
+    """
     return (
         ",".join(scope["levels"])
         + f"|{int(scope['enable_advanced'])}{int(scope['writable_advanced'])}"
+        + f"|{scope.get('username', DEFAULT_USERNAME)}"
     )
 
 
@@ -194,6 +202,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         client = WindhagerHttpClient(
             host=host,
             password=system[CONF_PASSWORD],
+            username=scope["username"],
             levels=scope["levels"],
             enable_advanced=scope["enable_advanced"],
             writable_advanced=scope["writable_advanced"],

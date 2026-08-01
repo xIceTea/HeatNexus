@@ -25,7 +25,11 @@
         "data": {
           "label": "Bezeichnung",
           "host": "IP-Adresse",
-          "password": "Service-Passwort"
+          "password": "Service-Passwort",
+          "username": "Zugang"
+        },
+        "data_description": {
+          "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter. Ein eigener Name lässt sich eintragen."
         }
       },
       "scope": {
@@ -53,7 +57,11 @@
         "description": "Eine Steuerung hat die Anmeldung abgelehnt. Bitte auswählen und das Service-Passwort erneut eingeben.",
         "data": {
           "host": "IP-Adresse",
-          "password": "Service-Passwort"
+          "password": "Service-Passwort",
+          "username": "Zugang"
+        },
+        "data_description": {
+          "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter. Ein eigener Name lässt sich eintragen."
         }
       },
       "reconfigure": {

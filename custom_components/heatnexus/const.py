@@ -1,7 +1,11 @@
 """Constants for the Windhager Heater integration."""
 
 DOMAIN = "heatnexus"
+# Zugang zur Anlage. Ab Werk kennt die Steuerung „USER" und „Service" mit
+# demselben Standardkennwort; „Service" sieht zusätzlich die Fachparameter.
 DEFAULT_USERNAME = "USER"
+SERVICE_USERNAME = "Service"
+BEKANNTE_BENUTZER = [DEFAULT_USERNAME, SERVICE_USERNAME]
 
 # Meldung an die Plattformen, sobald nachträglich Entitäten dazugekommen sind
 SIGNAL_NEUE_ENTITAETEN = "heatnexus_neue_entitaeten_{}"
@@ -58,6 +62,52 @@ ADVANCED_LEVELS = {LEVEL_SERVICE, LEVEL_OEM}
 
 MIN_UPDATE_INTERVAL = 15
 MAX_UPDATE_INTERVAL = 300
+
+# Poll-Klassen: nicht jeder Datenpunkt gehört in denselben Takt. Die Zahl ist
+# der Vielfache des eingestellten Abfrageintervalls – bei den voreingestellten
+# 30 s also 30 s, 2 min und 15 min.
+POLL_FAST = "fast"
+POLL_NORMAL = "normal"
+POLL_SLOW = "slow"
+POLL_TAKTE = {POLL_FAST: 1, POLL_NORMAL: 4, POLL_SLOW: 30}
+
+# Entitätsarten, die die Anlage bedienen oder ihren Zustand zeigen: immer schnell.
+POLL_TYPEN_SCHNELL = frozenset(
+    {"climate", "temperature", "device_status", "message_text", "binary_sensor"}
+)
+# Namensbestandteile träger Werte (Zählerstände, Wartungsfristen, Kennungen).
+POLL_WOERTER_TRAEGE = (
+    "betriebsstunden",
+    "laufzeit bis",
+    "brennerstarts",
+    "wärmemenge",
+    "waermemenge",
+    "energie",
+    "verbrauch",
+    "zähler",
+    "zaehler",
+    "software",
+    "seriennummer",
+    "version",
+    "gesamt",
+)
+# Einheiten, die es nur bei Zählerständen gibt.
+POLL_EINHEITEN_TRAEGE = frozenset({"h", "kWh", "MWh", "d"})
+# Namensbestandteile, die einen laufenden Betriebswert kennzeichnen.
+POLL_WOERTER_SCHNELL = (
+    "temperatur",
+    "betriebsphase",
+    "betriebsart",
+    "pumpe",
+    "leistung",
+    "meldung",
+    "störung",
+    "stoerung",
+    "brenner",
+    "vorlauf",
+    "rücklauf",
+    "ruecklauf",
+)
 # Poll-Intervall (s). 30 s für spürbar schnellere Aktualisierung der Climate-/
 # Sensorwerte; dank schlankem Poll-Set (nur aktive OIDs) gut vertretbar.
 UPDATE_INTERVAL = 30

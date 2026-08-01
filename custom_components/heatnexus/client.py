@@ -20,6 +20,14 @@ from .const import (
     FCT_ENTITY_MAP,
     FETCH_CONCURRENCY,
     MENU_PAGE_SIZE,
+    POLL_EINHEITEN_TRAEGE,
+    POLL_FAST,
+    POLL_NORMAL,
+    POLL_SLOW,
+    POLL_TAKTE,
+    POLL_TYPEN_SCHNELL,
+    POLL_WOERTER_SCHNELL,
+    POLL_WOERTER_TRAEGE,
 )
 from .const import (
     ENUMS as ENUMS_FALLBACK,
@@ -48,9 +56,15 @@ class WindhagerHttpClient:
         levels: list | None = None,
         enable_advanced: bool = False,
         writable_advanced: bool = False,
+        username: str | None = None,
     ) -> None:
         self.host = host
         self.password = password
+        # Die Anlage kennt zwei Zugänge mit unterschiedlichem Umfang: „USER"
+        # sieht Info- und Betreiberebene, „Service" zusätzlich die
+        # Fachparameter. Welcher gilt, entscheidet der Nutzer bei der
+        # Einrichtung.
+        self.username = username or DEFAULT_USERNAME
         # Welche Bedienebenen überhaupt angelegt werden (Auswahl bei der
         # Einrichtung). Service- und Werksebene gelten als "fortgeschritten":
         # ihre Entities sind nur auf Wunsch aktiv bzw. bedienbar.
@@ -78,6 +92,12 @@ class WindhagerHttpClient:
         # Objekte mit einfachem Textwert (z.B. Modulinfo, Softwarestand).
         # Sie werden wie normale Werte behandelt, nicht als Zeitprogramm.
         self._object_texts: dict = {}
+        # Poll-Klasse je OID und Zähler der Abrufdurchläufe. Zusammen sorgen
+        # sie dafür, dass träge Werte nicht im 30-Sekunden-Takt gelesen werden.
+        self.poll_class: dict[str, str] = {}
+        self._tick = 0
+        self._letzte_werte: dict[str, str | None] = {}
+        self._letzte_objekte: dict = {}
         # Anzahl der Anfragen an die Anlage (für die Startmeldung)
         self.request_count = 0
         # Ist der vollständige Abzug (Menü-Ebenen) bereits gelaufen?
@@ -102,7 +122,7 @@ class WindhagerHttpClient:
         """Ensure that we have an active client session."""
         if self._session is None:
             self._session = aiohttp.ClientSession()
-            self._auth = DigestAuth(DEFAULT_USERNAME, self.password, self._session)
+            self._auth = DigestAuth(self.username, self.password, self._session)
 
     async def close(self):
         """Close the client session."""
@@ -767,6 +787,35 @@ class WindhagerHttpClient:
         results = await asyncio.gather(*(self._fetch_oid(o) for o in oids))
         return dict(results)
 
+    @staticmethod
+    def _poll_klasse(beschreibung: dict) -> str:
+        """In welchem Takt ein Datenpunkt gelesen werden muss.
+
+        Die Einstufung folgt dem, was der Wert *ist*, nicht wo er steht:
+        Zählerstände und Restlaufzeiten bewegen sich in Stunden, Temperaturen
+        und Betriebszustände in Sekunden. Im Zweifel bleibt es beim mittleren
+        Takt – lieber einmal zu oft gelesen als eine Anzeige, die nachhinkt.
+        """
+        typ = beschreibung.get("type") or ""
+        if typ in POLL_TYPEN_SCHNELL:
+            return POLL_FAST
+
+        name = (beschreibung.get("name") or "").lower()
+        if any(wort in name for wort in POLL_WOERTER_TRAEGE):
+            return POLL_SLOW
+        if beschreibung.get("state_class") in ("total", "total_increasing"):
+            return POLL_SLOW
+        if (beschreibung.get("unit") or "") in POLL_EINHEITEN_TRAEGE:
+            return POLL_SLOW
+        # Fachparameter der Service- und Werksebene werden standardmäßig
+        # deaktiviert angelegt. Sie ändern sich nur, wenn jemand sie ändert.
+        if not beschreibung.get("enabled_default", True):
+            return POLL_SLOW
+
+        if any(wort in name for wort in POLL_WOERTER_SCHNELL):
+            return POLL_FAST
+        return POLL_NORMAL
+
     def _compute_poll_oids(self) -> None:
         """Statisches Poll-Set: aktive Entities + Climate-Hilfs-OIDs.
 
@@ -775,17 +824,27 @@ class WindhagerHttpClient:
         die Entity sich per register_poll_oid() dynamisch anmeldet.
         """
         poll: set = set()
+        klassen: dict[str, str] = {}
         for d in self.devices:
             if d.get("type") == "climate":
                 prefix = d.get("prefix", "")
-                poll.update(f"{prefix}{s}" for s in self._CLIMATE_POLL_SUFFIXES)
+                for suffix in self._CLIMATE_POLL_SUFFIXES:
+                    oid = f"{prefix}{suffix}"
+                    poll.add(oid)
+                    # Das Thermostat ist das Bedienelement der Anlage; es darf
+                    # nicht hinterherlaufen.
+                    klassen[oid] = POLL_FAST
                 continue
             if d.get("type") == "time_program":
                 # wird über den object-Endpunkt gelesen, nicht über lookup
                 continue
-            if d.get("enabled_default", True) and d.get("oid"):
+            if not d.get("oid"):
+                continue
+            klassen.setdefault(d["oid"], self._poll_klasse(d))
+            if d.get("enabled_default", True):
                 poll.add(d["oid"])
         self.poll_oids = poll
+        self.poll_class = klassen
         self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
 
     async def async_init_basic(self) -> None:
@@ -863,6 +922,15 @@ class WindhagerHttpClient:
         self.devices = [dict(d) for d in data.get("devices", [])]
         self.neuron_by_node = dict(data.get("neuron_by_node") or {})
         self.poll_oids = set(data.get("poll_oids", set()))
+        # Die Poll-Klassen leiten sich aus den Deskriptoren ab und werden
+        # deshalb nicht mitgespeichert, sondern neu bestimmt. So wirkt eine
+        # geänderte Einstufung sofort und nicht erst nach neuer Erkennung.
+        self.poll_class = {d["oid"]: self._poll_klasse(d) for d in self.devices if d.get("oid")}
+        for d in self.devices:
+            if d.get("type") == "climate":
+                prefix = d.get("prefix", "")
+                for suffix in self._CLIMATE_POLL_SUFFIXES:
+                    self.poll_class[f"{prefix}{suffix}"] = POLL_FAST
         self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
         # object-Unterstützung aus dem Cache übernehmen (kein erneutes Probing).
         self._objects_supported = data.get("objects_supported")
@@ -1010,6 +1078,25 @@ class WindhagerHttpClient:
                     out[str(nid)] = "  ".join(msgs)
         return out
 
+    def _faellig(self) -> set:
+        """OIDs, die in diesem Durchlauf an der Reihe sind.
+
+        Nicht jeder Wert ändert sich im selben Takt: Die Kesseltemperatur
+        gehört alle 30 s abgefragt, „Betriebsstunden gesamt" nicht. Jede OID
+        trägt eine Poll-Klasse; langsame Klassen kommen nur jeden n-ten
+        Durchlauf dran. Das senkt die Last auf der Steuerung erheblich, ohne
+        dass an der Anzeige etwas fehlt – die zuletzt gelesenen Werte bleiben
+        stehen.
+        """
+        faellig = set()
+        for oid in self.poll_oids | self._dynamic_oids:
+            takt = POLL_TAKTE.get(self.poll_class.get(oid, POLL_NORMAL), 1)
+            # Beim ersten Durchlauf ist alles fällig, sonst stünde eine
+            # langsame Entität bis zu 15 Minuten ohne Wert da.
+            if self._tick == 0 or self._tick % takt == 0:
+                faellig.add(oid)
+        return faellig
+
     async def fetch_all(self):
         """Poll the currently relevant OIDs in parallel and return coordinator data.
 
@@ -1017,21 +1104,36 @@ class WindhagerHttpClient:
         Entities dynamisch angemeldeten OIDs abgefragt – nicht mehr blind alle
         entdeckten OIDs. Das hält jeden Poll deutlich unter dem Coordinator-
         Timeout, auch wenn Hunderte Service-Datenpunkte bekannt sind.
+
+        Aus diesem Satz kommt je Durchlauf nur dran, was nach seiner
+        Poll-Klasse fällig ist; der Rest behält seinen letzten Wert.
         """
         if self.oids is None:
             # Fallback, falls async_init noch nicht lief (sollte nicht passieren).
             await self.async_init()
 
-        oids_to_poll = self.poll_oids | self._dynamic_oids
-        results = await asyncio.gather(*(self._fetch_oid(oid) for oid in oids_to_poll))
-        objects = await self._fetch_time_programs()
+        faellig = self._faellig()
+        results = await asyncio.gather(*(self._fetch_oid(oid) for oid in faellig))
+        # Zeitprogramme und Status ändern sich selten und kosten je eine
+        # eigene Anfrage – sie laufen im langsamen Takt mit.
+        langsam_faellig = self._tick == 0 or self._tick % POLL_TAKTE[POLL_SLOW] == 0
+        if langsam_faellig:
+            self._letzte_objekte = await self._fetch_time_programs()
         status = await self._fetch_status()
 
-        werte = dict(results)
+        self._letzte_werte.update(dict(results))
+        # Abgemeldete Entities dürfen nicht ewig als alter Wert weiterleben.
+        aktuell = self.poll_oids | self._dynamic_oids
+        for oid in list(self._letzte_werte):
+            if oid not in aktuell and oid not in self._object_texts:
+                del self._letzte_werte[oid]
+
+        self._tick += 1
+        werte = dict(self._letzte_werte)
         werte.update(self._object_texts)
         return {
             "devices": self.devices,
             "oids": werte,
-            "objects": objects,
+            "objects": dict(self._letzte_objekte),
             "status": status,
         }

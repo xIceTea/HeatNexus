@@ -25,7 +25,11 @@
         "data": {
           "label": "Label",
           "host": "IP address",
-          "password": "Service password"
+          "password": "Service password",
+          "username": "Account"
+        },
+        "data_description": {
+          "username": "By default the system knows “USER” and “Service”. “Service” also returns the expert parameters. A different name can be entered."
         }
       },
       "scope": {
@@ -53,7 +57,11 @@
         "description": "A controller rejected the login. Select it and enter the service password again.",
         "data": {
           "host": "IP address",
-          "password": "Service password"
+          "password": "Service password",
+          "username": "Account"
+        },
+        "data_description": {
+          "username": "By default the system knows “USER” and “Service”. “Service” also returns the expert parameters. A different name can be entered."
         }
       },
       "reconfigure": {

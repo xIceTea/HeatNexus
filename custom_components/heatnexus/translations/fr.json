@@ -25,7 +25,11 @@
         "data": {
           "label": "Désignation",
           "host": "Adresse IP",
-          "password": "Mot de passe de service"
+          "password": "Mot de passe de service",
+          "username": "Compte"
+        },
+        "data_description": {
+          "username": "D'origine, l'installation connaît « USER » et « Service ». « Service » fournit en plus les paramètres experts. Un autre nom peut être saisi."
         }
       },
       "scope": {
@@ -53,7 +57,11 @@
         "description": "Une régulation a refusé la connexion. Sélectionnez-la et saisissez à nouveau le mot de passe.",
         "data": {
           "host": "Adresse IP",
-          "password": "Mot de passe de service"
+          "password": "Mot de passe de service",
+          "username": "Compte"
+        },
+        "data_description": {
+          "username": "D'origine, l'installation connaît « USER » et « Service ». « Service » fournit en plus les paramètres experts. Un autre nom peut être saisi."
         }
       },
       "reconfigure": {

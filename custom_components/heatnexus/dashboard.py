@@ -150,6 +150,52 @@ VERLAUF = _muster(
 # Plattformen, die der Nutzer bedient statt nur abliest.
 BEDIENBAR = frozenset({"climate", "select", "number", "switch", "button", "time", "date"})
 
+# Eingriffe, bei denen vor dem Auslösen nachgefragt wird. Gefragt wird nur dort,
+# wo ein Fehlgriff Arbeit macht, Brennstoff kostet oder die Anlage tagelang
+# anders fährt – nicht aus Prinzip: Eine Rückfrage, die immer kommt, klickt man
+# irgendwann blind weg.
+RUECKFRAGE: tuple[tuple[re.Pattern, str], ...] = (
+    (
+        re.compile(r"serviceausbrand", re.IGNORECASE),
+        "Der Kessel brennt den restlichen Brennstoff aus und geht danach in den "
+        "Stillstand. Das dauert und verbraucht Brennstoff. Wirklich auslösen?",
+    ),
+    (
+        re.compile(r"reinigung best", re.IGNORECASE),
+        "Damit meldest du der Anlage, dass die Reinigung erledigt ist: Die "
+        "Wartungszähler beginnen von vorn. Wirklich bestätigen?",
+    ),
+    (
+        re.compile(r"gew(ä|ae)hlter brennstoff", re.IGNORECASE),
+        "Die Verbrennungsregelung stellt sich auf den gewählten Brennstoff ein. "
+        "Passt die Angabe nicht zum tatsächlichen Vorrat, läuft der Kessel "
+        "schlechter. Wirklich umstellen?",
+    ),
+    (
+        re.compile(r"estrich", re.IGNORECASE),
+        "Das Estrichprogramm fährt ein festes Temperaturprofil über Tage und "
+        "lässt sich nicht einfach abbrechen. Wirklich starten?",
+    ),
+    (
+        re.compile(r"legionellen", re.IGNORECASE),
+        "Die Legionellenschaltung heizt den Speicher auf hohe Temperatur. Wirklich auslösen?",
+    ),
+    (
+        re.compile(r"lagerraum bef(ü|ue)llen", re.IGNORECASE),
+        "Die Anlage bereitet die Befüllung des Lagerraums vor und stellt den "
+        "Betrieb dafür um. Wirklich starten?",
+    ),
+)
+
+
+def rueckfrage(name: str) -> str:
+    """Rückfragetext für einen Datenpunkt – leer heißt: ohne Nachfrage."""
+    for muster, text in RUECKFRAGE:
+        if muster.search(name):
+            return text
+    return ""
+
+
 # Zustände, mit denen sich keine Karte lohnt.
 OHNE_WERT = frozenset({"unavailable", "unknown", "none", ""})
 
@@ -322,7 +368,31 @@ def _karte(eintrag: dict[str, Any], rundinstrument: bool = False) -> dict[str, A
                     "needle": True,
                     **form,
                 }
-    return {"type": "tile", "entity": eintrag["entity_id"], "name": eintrag["name"]}
+    karte: dict[str, Any] = {
+        "type": "tile",
+        "entity": eintrag["entity_id"],
+        "name": eintrag["name"],
+    }
+    if (frage := rueckfrage(eintrag["name"])) and (
+        aktion := _schaltaktion(eintrag["bereich"], eintrag["entity_id"])
+    ):
+        # Nur das Symbol schaltet; ein Tippen auf die Kachel öffnet weiterhin
+        # die Detailansicht und braucht keine Rückfrage.
+        karte["icon_tap_action"] = {**aktion, "confirmation": {"text": frage}}
+    return karte
+
+
+def _schaltaktion(bereich: str, entity_id: str) -> dict[str, Any] | None:
+    """Die Aktion, die das Symbol einer Kachel auslöst."""
+    if bereich == "switch":
+        return {"action": "toggle"}
+    if bereich == "button":
+        return {
+            "action": "perform-action",
+            "perform_action": "button.press",
+            "target": {"entity_id": entity_id},
+        }
+    return None
 
 
 def _ueberschrift(titel: str, symbol: str | None = None, stil: str = "title") -> dict[str, Any]:

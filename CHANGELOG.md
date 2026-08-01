@@ -6,6 +6,41 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Neu
+
+- **Rückfrage vor Eingriffen.** Serviceausbrand, Reinigung bestätigen,
+  Brennstoffwahl, Estrichprogramm, Legionellenschaltung und Lagerraumbefüllung
+  fragen nach, bevor sie ausgelöst werden – in der eigenen Oberfläche als
+  Dialog, im Dashboard über das Kachelsymbol. Harmlose Bedienungen wie die
+  Warmwasser-Einmalladung bleiben ohne Nachfrage: Ein Hinweis, der immer kommt,
+  wird irgendwann blind weggeklickt.
+- **Sichtbare Rückmeldung beim Bedienen.** Die Anlage wird nur alle 30 Sekunden
+  abgefragt; bisher drückte man eine Taste und nichts geschah. Jetzt steht
+  „wird übertragen …", danach „übertragen ✓" oder der Fehlertext, und unter der
+  Taste bleibt der Zustand stehen – bei Tasten der Zeitpunkt der letzten
+  Auslösung, bei Schaltern „läuft" oder „aus".
+- **Zugang wählbar.** Bei der Einrichtung lässt sich zwischen `USER` und
+  `Service` wählen oder ein eigener Benutzername eintragen. Bisher war `USER`
+  fest eingebaut, womit die Fachparameter je nach Anlage gar nicht erreichbar
+  waren. Der Zugang gehört zum Erkennungsstand: Ein Wechsel liest die Anlage
+  neu ein.
+- Die README erklärt jetzt, welche Zugänge es ab Werk gibt, wie sich der Zugang
+  prüfen lässt und warum die Windhager-App das Passwort ändert.
+
+### Geändert
+
+- **Nicht mehr alles im selben Takt.** Jeder Datenpunkt bekommt eine
+  Poll-Klasse: Temperaturen, Betriebszustände und das Thermostat weiter alle
+  30 Sekunden, Leistungen und Mischer alle zwei Minuten, Zählerstände,
+  Betriebsstunden, Restlaufzeiten und Fachparameter alle 15 Minuten.
+  Zeitprogramme laufen im langsamen Takt mit. Die Anzeige ändert sich dadurch
+  nicht – zuletzt gelesene Werte bleiben stehen –, die Last auf der Steuerung
+  sinkt aber deutlich.
+
+---
+
 ## [1.0.0] - 2026-08-01
 
 Erste öffentliche Fassung.

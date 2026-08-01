@@ -94,3 +94,53 @@ def test_symbol_je_anlagenteil(dashboard):
     assert dashboard._symbol(25) == "mdi:fire"
     assert dashboard._symbol(16) == "mdi:storage-tank"
     assert dashboard._symbol(None) == dashboard.SYMBOL_UNBEKANNT
+
+
+# ---------------------------------------------------------------------------
+# Rückfragen vor Eingriffen
+# ---------------------------------------------------------------------------
+def test_rueckfrage_nur_bei_eingriffen(dashboard):
+    assert dashboard.rueckfrage("Serviceausbrand")
+    assert dashboard.rueckfrage("Reinigung bestätigt")
+    assert dashboard.rueckfrage("Gewählter Brennstoff")
+    # Harmlose Werte bleiben ohne Nachfrage – sonst klickt man sie blind weg.
+    assert dashboard.rueckfrage("WW Einmalladung") == ""
+    assert dashboard.rueckfrage("Kesseltemperatur Ist") == ""
+
+
+def test_gefaehrliche_taste_bekommt_bestaetigung(dashboard):
+    eintrag = {
+        "entity_id": "button.serviceausbrand",
+        "name": "Serviceausbrand",
+        "bereich": "button",
+    }
+    karte = dashboard._karte(eintrag)
+    aktion = karte["icon_tap_action"]
+    assert aktion["perform_action"] == "button.press"
+    assert aktion["confirmation"]["text"]
+    # Das Tippen auf die Kachel selbst bleibt die Detailansicht.
+    assert "tap_action" not in karte
+
+
+def test_schalter_wird_umgeschaltet_statt_ausgeloest(dashboard):
+    eintrag = {"entity_id": "switch.estrich", "name": "Estrichprogramm", "bereich": "switch"}
+    assert dashboard._karte(eintrag)["icon_tap_action"]["action"] == "toggle"
+
+
+def test_harmlose_kachel_bleibt_unveraendert(dashboard):
+    eintrag = {
+        "entity_id": "sensor.kesseltemperatur_ist",
+        "name": "Kesseltemperatur Ist",
+        "bereich": "sensor",
+    }
+    assert "icon_tap_action" not in dashboard._karte(eintrag)
+
+
+def test_ohne_schaltbare_plattform_keine_bestaetigung(dashboard):
+    """Ein Anzeigewert mit brenzligem Namen bekommt keine Schaltaktion."""
+    eintrag = {
+        "entity_id": "sensor.serviceausbrand_zaehler",
+        "name": "Serviceausbrand Zähler",
+        "bereich": "sensor",
+    }
+    assert "icon_tap_action" not in dashboard._karte(eintrag)

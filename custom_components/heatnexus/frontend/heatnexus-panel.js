@@ -11,6 +11,9 @@
 
 const OHNE_WERT = ["unavailable", "unknown", "none", ""];
 
+// Wie lange „übertragen ✓" stehen bleibt, bevor wieder der Zustand erscheint.
+const RUECKMELDUNG_MS = 4000;
+
 const STIL = `
   :host {
     display: block;
@@ -112,6 +115,36 @@ const STIL = `
     background: rgba(255, 255, 255, 0.05); color: inherit;
     border: 1px solid rgba(255, 255, 255, 0.1); font: inherit;
   }
+  .rueckmeldung { font-size: 11px; opacity: 0.5; min-height: 14px; }
+  .rueckmeldung.laeuft { opacity: 0.9; color: #6fb2f5; }
+  .rueckmeldung.erfolg { opacity: 1; color: #7bd88f; }
+  .rueckmeldung.fehler { opacity: 1; color: #ff8a80; }
+  .taste[disabled] { opacity: 0.6; cursor: progress; }
+  .taste.an .beschriftung { text-shadow: 0 0 12px rgba(111, 178, 245, 0.6); }
+  .schleier {
+    position: fixed; inset: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.55); padding: 16px;
+  }
+  .dialog {
+    background: var(--card-background-color, #151d26);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px; padding: 22px 24px; max-width: 420px; width: 100%;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  }
+  .dialog-titel { margin: 0 0 10px; font-size: 17px; font-weight: 600;
+    text-transform: none; letter-spacing: 0; opacity: 1; }
+  .dialog-text { font-size: 14px; line-height: 1.5; opacity: 0.8; }
+  .dialog-leiste { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+  .dialog-taste {
+    padding: 9px 16px; border-radius: 10px; font: inherit; font-weight: 600;
+    cursor: pointer; color: inherit;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .dialog-taste:hover { background: rgba(255, 255, 255, 0.12); }
+  .dialog-taste.betont { background: rgba(229, 57, 53, 0.2); border-color: rgba(229, 57, 53, 0.5);
+    color: #ff8a80; }
   .klickbar { cursor: pointer; }
   .klickbar:hover { background: rgba(255, 255, 255, 0.07); }
   .status-zeile.klickbar:hover { background: rgba(255, 255, 255, 0.05); border-radius: 8px; }
@@ -577,13 +610,23 @@ class HeatNexusPanel extends HTMLElement {
         beschriftung.textContent = eintrag.titel;
         beschriftung.style.marginBottom = "6px";
         const auswahl = document.createElement("select");
-        auswahl.addEventListener("change", () => {
-          this._hass.callService("select", "select_option", {
-            entity_id: eintrag.entity,
-            option: auswahl.value,
-          });
+        const rueckmeldung = document.createElement("div");
+        rueckmeldung.className = "rueckmeldung";
+        auswahl.addEventListener("change", async () => {
+          const gewaehlt = auswahl.value;
+          if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) {
+            const zustand = this._zustand(eintrag.entity);
+            if (zustand) auswahl.value = zustand.state;
+            return;
+          }
+          await this._uebertragen(rueckmeldung, () =>
+            this._hass.callService("select", "select_option", {
+              entity_id: eintrag.entity,
+              option: gewaehlt,
+            })
+          );
         });
-        huelle.append(beschriftung, auswahl);
+        huelle.append(beschriftung, auswahl, rueckmeldung);
         gitter.appendChild(huelle);
         this._bindungen.push(() => {
           const zustand = this._zustand(eintrag.entity);
@@ -611,23 +654,137 @@ class HeatNexusPanel extends HTMLElement {
       const beschriftung = document.createElement("div");
       beschriftung.className = "beschriftung";
       beschriftung.textContent = eintrag.titel;
-      taste.appendChild(beschriftung);
-      taste.addEventListener("click", () => {
-        if (bereich === "button") {
-          this._hass.callService("button", "press", { entity_id: eintrag.entity });
-        } else {
-          this._hass.callService("homeassistant", "toggle", { entity_id: eintrag.entity });
+      const rueckmeldung = document.createElement("div");
+      rueckmeldung.className = "rueckmeldung";
+      taste.append(beschriftung, rueckmeldung);
+      taste.addEventListener("click", async () => {
+        if (taste.disabled) return;
+        if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) return;
+        taste.disabled = true;
+        try {
+          await this._uebertragen(rueckmeldung, () =>
+            bereich === "button"
+              ? this._hass.callService("button", "press", { entity_id: eintrag.entity })
+              : this._hass.callService("homeassistant", "toggle", { entity_id: eintrag.entity })
+          );
+        } finally {
+          taste.disabled = false;
         }
       });
       gitter.appendChild(taste);
       this._bindungen.push(() => {
         const zustand = this._zustand(eintrag.entity);
-        taste.classList.toggle("an", !!zustand && zustand.state === "on");
+        const laeuft = !!zustand && zustand.state === "on";
+        taste.classList.toggle("an", laeuft);
+        // Solange eine Übertragung läuft, gehört die Zeile der Rückmeldung.
+        if (rueckmeldung.dataset.belegt === "1") return;
+        rueckmeldung.className = "rueckmeldung";
+        rueckmeldung.textContent = this._tastenZustand(bereich, zustand, laeuft);
       });
     });
 
     karte.appendChild(gitter);
     return karte;
+  }
+
+  // -------------------------------------------------------------------
+  // Bedienen: nachfragen, übertragen, zurückmelden
+  // -------------------------------------------------------------------
+
+  /**
+   * Rückfrage vor einem Eingriff, der die Anlage wirklich etwas kostet.
+   *
+   * Bewusst ein eigener Dialog statt `window.confirm`: Der blockiert den
+   * Browser und sieht in Home Assistant wie ein Fremdkörper aus.
+   */
+  _bestaetigen(titel, frage) {
+    return new Promise((antworten) => {
+      const schleier = document.createElement("div");
+      schleier.className = "schleier";
+      const dialog = document.createElement("div");
+      dialog.className = "dialog";
+      dialog.setAttribute("role", "alertdialog");
+
+      const ueberschrift = document.createElement("h3");
+      ueberschrift.className = "dialog-titel";
+      ueberschrift.textContent = titel;
+      const text = document.createElement("div");
+      text.className = "dialog-text";
+      text.textContent = frage;
+
+      const leiste = document.createElement("div");
+      leiste.className = "dialog-leiste";
+      const abbrechen = document.createElement("button");
+      abbrechen.type = "button";
+      abbrechen.className = "dialog-taste";
+      abbrechen.textContent = "Abbrechen";
+      const ausloesen = document.createElement("button");
+      ausloesen.type = "button";
+      ausloesen.className = "dialog-taste betont";
+      ausloesen.textContent = "Ja, ausführen";
+      leiste.append(abbrechen, ausloesen);
+
+      dialog.append(ueberschrift, text, leiste);
+      schleier.appendChild(dialog);
+
+      const schliessen = (antwort) => {
+        schleier.remove();
+        document.removeEventListener("keydown", beiTaste);
+        antworten(antwort);
+      };
+      const beiTaste = (ereignis) => {
+        if (ereignis.key === "Escape") schliessen(false);
+      };
+      abbrechen.addEventListener("click", () => schliessen(false));
+      ausloesen.addEventListener("click", () => schliessen(true));
+      schleier.addEventListener("click", (ereignis) => {
+        if (ereignis.target === schleier) schliessen(false);
+      });
+      document.addEventListener("keydown", beiTaste);
+
+      this.shadowRoot.appendChild(schleier);
+      ausloesen.focus();
+    });
+  }
+
+  /**
+   * Einen Dienstaufruf ausführen und den Verlauf sichtbar machen.
+   *
+   * Die Anlage wird nur alle 30 s abgefragt; ohne Rückmeldung drückt man und
+   * nichts passiert. Deshalb: „wird übertragen" während des Aufrufs, danach
+   * kurz „übertragen" oder der Fehlertext.
+   */
+  async _uebertragen(anzeige, aufruf) {
+    anzeige.dataset.belegt = "1";
+    anzeige.className = "rueckmeldung laeuft";
+    anzeige.textContent = "wird übertragen …";
+    try {
+      await aufruf();
+      anzeige.className = "rueckmeldung erfolg";
+      anzeige.textContent = "übertragen ✓";
+    } catch (err) {
+      anzeige.className = "rueckmeldung fehler";
+      anzeige.textContent = "nicht übernommen";
+      console.warn("HeatNexus: Befehl abgelehnt", err);
+    }
+    window.setTimeout(() => {
+      delete anzeige.dataset.belegt;
+      this._aktualisieren();
+    }, RUECKMELDUNG_MS);
+  }
+
+  /** Was unter einer Taste steht, wenn gerade nichts übertragen wird. */
+  _tastenZustand(bereich, zustand, laeuft) {
+    if (!zustand) return "";
+    if (bereich === "button") {
+      const zeitpunkt = new Date(zustand.state);
+      if (Number.isNaN(zeitpunkt.getTime())) return "noch nie ausgelöst";
+      return `zuletzt ${zeitpunkt.toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
+    }
+    return laeuft ? "läuft" : "aus";
   }
 
   // -------------------------------------------------------------------
