@@ -95,7 +95,7 @@ def test_kennung_faellt_ohne_seriennummer_auf_die_adresse_zurueck(client_module)
 def test_alte_kennung_bleibt_reproduzierbar(client_module):
     """Für die Umstellung muss die frühere Kennung exakt nachbildbar sein."""
     client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
-    assert client._alte_kennung("/1/60/0/0/7/0") == "192-168-178-100-1-60-0-0-7-0"
+    assert client._alte_kennung("/1/60/0/0/7/0") == "192-0-2-10-1-60-0-0-7-0"
 
 
 def test_discovery_roundtrip_is_json_safe(client_module):
