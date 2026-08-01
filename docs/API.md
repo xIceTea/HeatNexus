@@ -29,7 +29,7 @@ desselben Typs führen (z. B. zwei Heizkreise).
 
 ```json
 [{"name": "UMUMLZ", "group": "4", "device": {"id": 49}, "nodeId": 15,
-  "subnet": 1, "FE01msg": "PCM 00  OK", "neuronId": "0702619ca901",
+  "subnet": 1, "FE01msg": "PCM 00  OK", "neuronId": "0702dd000004",
   "programId": "9001001d010a0506",
   "functions": [{"lock": false, "name": "UMLZ HEIZKREIS", "fctId": 0, "fctType": 14},
                 {"lock": true,  "name": "UM (2)",         "fctId": 1, "fctType": 14},

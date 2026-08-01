@@ -52,14 +52,14 @@ def test_unbekannte_ebene_wird_verworfen(flow):
 def test_anlagenkennung_kommt_aus_der_seriennummer(flow):
     """Die Kennung darf nicht an der Adresse hängen."""
     struktur = [
-        {"nodeId": 60, "neuronId": "070269ad1601"},
-        {"nodeId": 14, "neuronId": "07026d3c8b01"},
-        {"nodeId": 15, "neuronId": "070261a50401"},
+        {"nodeId": 60, "neuronId": "0702bb000002"},
+        {"nodeId": 14, "neuronId": "0702cc000003"},
+        {"nodeId": 15, "neuronId": "0702aa000001"},
     ]
     # Immer die kleinste Seriennummer – unabhängig von der Reihenfolge, in der
     # die Anlage ihre Knoten meldet.
-    assert flow.anlagenkennung(struktur) == "070261a50401"
-    assert flow.anlagenkennung(list(reversed(struktur))) == "070261a50401"
+    assert flow.anlagenkennung(struktur) == "0702aa000001"
+    assert flow.anlagenkennung(list(reversed(struktur))) == "0702aa000001"
 
 
 def test_anlagenkennung_ohne_seriennummer(flow):
