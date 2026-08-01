@@ -112,6 +112,11 @@ const STIL = `
     background: rgba(255, 255, 255, 0.05); color: inherit;
     border: 1px solid rgba(255, 255, 255, 0.1); font: inherit;
   }
+  .klickbar { cursor: pointer; }
+  .klickbar:hover { background: rgba(255, 255, 255, 0.07); }
+  .status-zeile.klickbar:hover { background: rgba(255, 255, 255, 0.05); border-radius: 8px; }
+  .marke-wert.klickbar:hover { background: rgba(10, 14, 19, 0.92); }
+  .klickbar:focus-visible { outline: 2px solid #6fb2f5; outline-offset: 2px; }
   .hinweis { opacity: 0.6; font-size: 14px; padding: 6px 0; }
   .gut { color: #7bd88f; }
   .schlecht { color: #ff8a80; }
@@ -181,6 +186,37 @@ class HeatNexusPanel extends HTMLElement {
   _name(entity) {
     const zustand = this._zustand(entity);
     return (zustand && zustand.attributes.friendly_name) || entity;
+  }
+
+  /**
+   * Ein Element zur Entität führen: Klick öffnet die Detailansicht.
+   *
+   * `hass-more-info` ist das Ereignis, das auch die Lovelace-Karten benutzen.
+   * Es muss den Schattenbaum verlassen, sonst hört Home Assistant es nicht –
+   * daher `composed`.
+   */
+  _klickbar(element, entity) {
+    if (!entity) return element;
+    element.classList.add("klickbar");
+    element.setAttribute("role", "button");
+    element.setAttribute("tabindex", "0");
+    const oeffnen = () => {
+      this.dispatchEvent(
+        new CustomEvent("hass-more-info", {
+          detail: { entityId: entity },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    };
+    element.addEventListener("click", oeffnen);
+    element.addEventListener("keydown", (ereignis) => {
+      if (ereignis.key === "Enter" || ereignis.key === " ") {
+        ereignis.preventDefault();
+        oeffnen();
+      }
+    });
+    return element;
   }
 
   _stoerung(anlage) {
@@ -319,7 +355,7 @@ class HeatNexusPanel extends HTMLElement {
       wert.textContent = this._text(entity);
       wert.classList.toggle("klein", wert.textContent.length > 8);
     });
-    return zeile;
+    return this._klickbar(zeile, entity);
   }
 
   // -------------------------------------------------------------------
@@ -340,7 +376,7 @@ class HeatNexusPanel extends HTMLElement {
       marke.className = "marke-wert";
       marke.style.left = eintrag.left;
       marke.style.top = eintrag.top;
-      huelle.appendChild(marke);
+      huelle.appendChild(this._klickbar(marke, eintrag.entity));
       this._bindungen.push(() => {
         marke.textContent = this._text(eintrag.entity);
       });
@@ -399,7 +435,7 @@ class HeatNexusPanel extends HTMLElement {
         if (soll !== undefined && soll !== null) teile.push(`Soll ${soll} °C`);
         unten.textContent = teile.join(" · ");
       });
-      linkeKarte.appendChild(zeile);
+      linkeKarte.appendChild(this._klickbar(zeile, kreis.entity));
     });
 
     const rechteKarte = this._karte("Warmwasser");
@@ -442,7 +478,7 @@ class HeatNexusPanel extends HTMLElement {
     this._bindungen.push(() => {
       wert.textContent = this._text(entity);
     });
-    return zeile;
+    return this._klickbar(zeile, entity);
   }
 
   _status(anlage) {
@@ -472,7 +508,7 @@ class HeatNexusPanel extends HTMLElement {
       const wert = document.createElement("div");
       wert.className = "wert";
       zeile.append(links, wert);
-      stoerungskarte.appendChild(zeile);
+      stoerungskarte.appendChild(this._klickbar(zeile, eintrag.entity));
       this._bindungen.push(() => {
         links.textContent = this._name(eintrag.entity).replace(" Meldung Klartext", "");
         const zustand = this._zustand(eintrag.entity);

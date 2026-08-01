@@ -105,6 +105,10 @@ Erste öffentliche Fassung.
   solange erscheinen nach und nach weitere Entitäten. Eine Benachrichtigung
   sagt das an und nennt am Ende die gefundene Anzahl. Bisher standen zunächst
   nur wenige Werte da, ohne dass erkennbar war, dass noch etwas nachkommt.
+- **Werte in der Oberfläche sind anklickbar.** Kennwerte, Systemstatus,
+  Warmwasser, Heizkreise, Störungen und die Beschriftungen im Anlagenschaubild
+  öffnen die Detailansicht der Entität – mit Verlauf, Einstellungen und
+  Bedienung. Auch über die Tastatur erreichbar.
 - **Eigene Oberfläche** (standardmäßig aus): Unter *Konfigurieren →
   Allgemein* lässt sich ein eigener Eintrag „HeatNexus" in der Seitenleiste
   einschalten – Kennwerte, Anlagenschaubild, Systemzustand, Heizkreise,
