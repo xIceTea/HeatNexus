@@ -6,10 +6,18 @@ Störungen, Verlauf und Schnellzugriff – in einer Anordnung, die sich mit
 Lovelace-Karten nicht bauen lässt.
 
 **Die Aufteilung entsteht hier, nicht im Browser.** Python sucht die
-Entitäten zusammen und legt sie als fertige Struktur in die Panel-Konfiguration;
-die Datei im Browser stellt sie nur dar und holt sich die aktuellen Werte aus
-``hass.states``. Damit bleibt die gesamte Gerätekenntnis an einer Stelle, und
-im Browser liegt nichts, was bei einer neuen Anlage angepasst werden müsste.
+Entitäten zusammen und legt sie als fertige Struktur ab; die Datei im Browser
+stellt sie nur dar und holt sich die aktuellen Werte aus ``hass.states``.
+Damit bleibt die gesamte Gerätekenntnis an einer Stelle, und im Browser liegt
+nichts, was bei einer neuen Anlage angepasst werden müsste.
+
+Die Struktur wird **beim Öffnen** über ``heatnexus/panel_daten`` geholt, nicht
+nur beim Einrichten mitgegeben. Beim Einrichten ist die Anlage erst zur Hälfte
+eingelesen: Der Vollabzug läuft im Hintergrund weiter, und die Werte der
+zuerst angelegten Entitäten stehen teils noch aus. Eine damals berechnete
+Aufteilung bliebe für immer halb leer – genau daran fehlten Kennwerte,
+Systemstatus, Warmwasser, Schaubild und Verlauf. Die Konfiguration des Panels
+enthält weiterhin einen Stand, damit die Ansicht sofort etwas zeigt.
 """
 
 from __future__ import annotations
@@ -20,9 +28,10 @@ from pathlib import Path
 import re
 from typing import Any
 
-from homeassistant.components import frontend
+from homeassistant.components import frontend, websocket_api
 from homeassistant.components.http import StaticPathConfig
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+import voluptuous as vol
 
 from .const import (
     DOMAIN,
@@ -59,6 +68,9 @@ STATUS = (
     (r"laufzeit bis ascheentleerung", "Bis Ascheentleerung", "mdi:delete-clock-outline"),
 )
 
+# Warmwasser hat keine eigene Funktion: Die Datenpunkte hängen am Heizkreis.
+# Eine Anlage ohne Warmwasserbereitung liefert hier nichts – dann bleibt die
+# Karte zu Recht leer.
 WARMWASSER = _muster(
     r"warmwasser",
     r"ww[- ]",
@@ -79,13 +91,22 @@ SCHNELLZUGRIFF = (
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff wählen", "mdi:sack"),
 )
 
+# Höchstzahl der Warmwasserzeilen; mehr sprengt die Karte.
+WARMWASSER_MAX = 6
+
 
 def _erster(entitaeten: list[dict[str, Any]], muster: str) -> dict[str, Any] | None:
+    """Erste passende Entität; eine mit Wert hat Vorrang.
+
+    Ein vorhandener Wert darf keine Bedingung sein: Beim ersten Aufbau ist die
+    Anlage noch nicht fertig eingelesen. Was jetzt noch leer ist, bekommt
+    trotzdem seine Zeile und füllt sich mit dem nächsten Abruf.
+    """
     regex = re.compile(muster, re.IGNORECASE)
-    for eintrag in entitaeten:
-        if eintrag.get("hat_wert") and regex.search(eintrag["name"]):
-            return eintrag
-    return None
+    treffer = [e for e in entitaeten if regex.search(e["name"])]
+    if not treffer:
+        return None
+    return next((e for e in treffer if e.get("hat_wert")), treffer[0])
 
 
 def _zeilen(
@@ -146,8 +167,8 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
     warmwasser = [
         {"entity": e["entity_id"], "titel": e["name"]}
         for e in alle
-        if e["hat_wert"] and e["kategorie"] is None and _passt(e["name"], WARMWASSER)
-    ][:6]
+        if e["kategorie"] is None and e["bereich"] != "climate" and _passt(e["name"], WARMWASSER)
+    ][:WARMWASSER_MAX]
 
     stoerungen = [
         {"entity": e["entity_id"], "titel": e["name"]}
@@ -185,9 +206,7 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
         "warmwasser": warmwasser,
         "stoerungen": stoerungen,
         "schnellzugriff": schnellzugriff[:6],
-        "verlauf": [e["entity_id"] for e in alle if e["hat_wert"] and _passt(e["name"], VERLAUF)][
-            :2
-        ],
+        "verlauf": [e["entity_id"] for e in alle if _passt(e["name"], VERLAUF)][:2],
         "schema": bild["image"] if bild else None,
         "schema_werte": (
             [
@@ -209,6 +228,13 @@ def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
     return {"anlagen": [_anlage_daten(anlage) for anlage in _anlagen(hass)]}
 
 
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/panel_daten"})
+@callback
+def _ws_panel_daten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
+    """Die Aufteilung frisch berechnen, so wie sie gerade gilt."""
+    connection.send_result(msg["id"], panel_daten(hass))
+
+
 async def async_setup_panel(hass: HomeAssistant) -> None:
     """Die Oberfläche in der Seitenleiste anmelden.
 
@@ -227,6 +253,7 @@ async def _async_setup_panel(hass: HomeAssistant) -> None:
         await hass.http.async_register_static_paths(
             [StaticPathConfig(PANEL_JS_PFAD, str(_JS_DATEI), cache_headers=False)]
         )
+        websocket_api.async_register_command(hass, _ws_panel_daten)
         hass.data[f"{DOMAIN}_panel_datei"] = True
 
     daten = panel_daten(hass)

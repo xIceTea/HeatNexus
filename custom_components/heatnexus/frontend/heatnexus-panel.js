@@ -137,8 +137,26 @@ class HeatNexusPanel extends HTMLElement {
   }
 
   set hass(hass) {
+    const erster = !this._hass;
     this._hass = hass;
+    // Die Aufteilung aus `panel.config` stammt aus dem Augenblick der
+    // Einrichtung – da war die Anlage erst zur Hälfte eingelesen. Deshalb
+    // wird sie beim Öffnen einmal frisch geholt.
+    if (erster) this._datenHolen();
     this._zeichnen();
+  }
+
+  async _datenHolen() {
+    try {
+      const daten = await this._hass.callWS({ type: "heatnexus/panel_daten" });
+      if (!daten || !daten.anlagen || !daten.anlagen.length) return;
+      this._daten = daten;
+      this._gebaut = false;
+      this._zeichnen();
+    } catch (err) {
+      // Ohne frische Daten bleibt der Stand aus der Panel-Konfiguration.
+      console.warn("HeatNexus: Aufteilung konnte nicht geladen werden", err);
+    }
   }
 
   set narrow(_narrow) {

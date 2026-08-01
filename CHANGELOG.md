@@ -6,9 +6,25 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unveröffentlicht]
+## [1.0.0] - 2026-08-01
+
+Erste öffentliche Fassung.
 
 ### Behoben
+
+- **Die eigene Oberfläche blieb halb leer.** Kennwerte, Systemstatus,
+  Warmwasser, Anlagenschaubild, Verlauf und Schnellzugriff fehlten. Die
+  Aufteilung wurde beim Einrichten einmalig berechnet – zu einem Zeitpunkt, zu
+  dem die Anlage noch eingelesen wurde und die meisten Werte schlicht noch
+  nicht da waren. Sie wird jetzt bei jedem Öffnen frisch bestimmt, und ein noch
+  fehlender Wert schließt eine Zeile nicht mehr aus.
+- **Warmwasser wurde nicht erkannt.** Die Warmwasser-Datenpunkte gehören am
+  Gerät zum Heizkreis und nicht zu einem eigenen Anlagenteil; gesucht wurde
+  aber nach einem eigenen. Anlagen ohne Warmwasserbereitung zeigen die Karte
+  weiterhin nicht – dort gibt es sie wirklich nicht.
+- **Betriebsart des Heizkreises als Zahl.** In der Oberfläche stand „0" statt
+  „Standby": Der Schlüssel der Übersetzungstabelle trug noch den alten
+  Domänennamen.
 
 - **Das Dashboard erschien nur als Fehlermeldung.** Die Ansichten wurden bisher
   im Browser aus einer nachgeladenen Datei aufgebaut. War sie noch nicht
@@ -18,6 +34,9 @@ wenn dort Vorabversionen zugelassen sind.
 - **Umlaute in Gerätenamen.** Von Hand vergebene Namen wie „Hebebühne" kamen als
   „Hebeb?hne" an: Die Steuerung nutzt die DOS-Zeichentabelle, in der das „ü" auf
   einem Byte liegt, das die bisherige Rückfallkette gar nicht kannte.
+  Manche Steuerungen haben den Umlaut allerdings schon selbst verloren und
+  liefern ihn als Ersatzzeichen aus – dann hilft nur, den Anlagenteil in Home
+  Assistant oder an der Anlage umzubenennen.
 - **Abgewählte Bedienebenen löschten Entitäten.** Wurde der Umfang verkleinert,
   waren eigene Namen, Symbole, Bereichszuordnung und Verlauf verloren. Die
   betroffenen Entitäten werden jetzt nur stillgelegt und beim Wiederdazuwählen
@@ -32,8 +51,9 @@ wenn dort Vorabversionen zugelassen sind.
   Verbindung geschlossen.
 - **Bedienebenen ohne Klartext.** Im Dialog *Umfang festlegen* standen die
   internen Schlüssel „info", „operate", „service" und „oem" statt der
-  deutschen Bezeichnungen. Die Übersetzung war hinterlegt, wurde aber von einer
-  fest eingetragenen Beschriftung verdrängt.
+  deutschen Bezeichnungen: Home Assistant lädt die Übersetzung von
+  Auswahlfeldern im Einrichtungsdialog einer eigenen Integration nicht
+  zuverlässig mit. Die Bezeichnungen stehen jetzt zusätzlich fest hinterlegt.
 - **Eine unvollständige Aktualisierung legte die Integration lahm.** Fehlte
   eine Datei der optionalen Oberfläche, meldete Home Assistant nur „No setup or
   config entry setup function defined" und richtete gar nichts mehr ein. Die
@@ -80,7 +100,12 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- **Eigene Oberfläche** (in Arbeit, standardmäßig aus): Unter *Konfigurieren →
+- **Begleitung beim ersten Einlesen.** Nach dem Einrichten liest HeatNexus die
+  Anlage im Hintergrund vollständig ein; das dauert 30 bis 120 Sekunden, und
+  solange erscheinen nach und nach weitere Entitäten. Eine Benachrichtigung
+  sagt das an und nennt am Ende die gefundene Anzahl. Bisher standen zunächst
+  nur wenige Werte da, ohne dass erkennbar war, dass noch etwas nachkommt.
+- **Eigene Oberfläche** (standardmäßig aus): Unter *Konfigurieren →
   Allgemein* lässt sich ein eigener Eintrag „HeatNexus" in der Seitenleiste
   einschalten – Kennwerte, Anlagenschaubild, Systemzustand, Heizkreise,
   Warmwasser, Störungen, 24-Stunden-Verlauf und Schnellzugriff in einer

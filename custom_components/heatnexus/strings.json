@@ -30,7 +30,7 @@
       },
       "scope": {
         "title": "Choose scope",
-        "description": "Found:\n\n{gefunden}\n\nWhich levels should be included? Info and operator level are always included. Service and factory level contain expert parameters. The choice applies to all controllers at first and can be changed per controller later.",
+        "description": "Found:\n\n{gefunden}\n\nWhich levels should be included? Info and operator level are always included. Service and factory level contain expert parameters. The choice applies to all controllers at first and can be changed per controller later.\n\nAfter finishing, HeatNexus reads the system in full in the background. Depending on the system this takes 30 to 120 seconds, and further entities keep appearing meanwhile. A notification tells you when everything is there.",
         "data": {
           "levels": "Levels",
           "enable_advanced": "Enable service/factory level right away",
@@ -45,7 +45,7 @@
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "update_interval": "How often the system is queried.",
           "dashboard": "Adds a dashboard that builds itself from the discovered devices.",
-          "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions. In preparation."
+          "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions."
         }
       },
       "reauth_confirm": {
@@ -86,7 +86,7 @@
         "data_description": {
           "update_interval": "How often the system is queried.",
           "dashboard": "Adds a dashboard that builds itself from the discovered devices.",
-          "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions. In preparation."
+          "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions."
         }
       },
       "system": {
@@ -117,7 +117,7 @@
   },
   "entity": {
     "climate": {
-      "windhager_climate": {
+      "heatnexus_climate": {
         "state_attributes": {
           "preset_mode": {
             "state": {

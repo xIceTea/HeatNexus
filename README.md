@@ -100,8 +100,21 @@ Beides ist jederzeit über *Konfigurieren* an der Integration änderbar, ebenso
 das Abfrageintervall. Nach einer Änderung liest die Integration die Anlage neu
 ein.
 
-Beim ersten Start wird die Anlage einmal vollständig eingelesen. Das Ergebnis
-wird gespeichert und übersteht Neustarts.
+#### Die erste Minute
+
+Nach dem Einrichten steht die Integration sofort da, aber noch **nicht
+vollständig**: Zuerst entsteht der Grundstock an Entitäten, dann liest
+HeatNexus die Anlage im Hintergrund komplett ein. Je nach Anlage dauert das
+30 bis 120 Sekunden, und in dieser Zeit kommen laufend weitere Entitäten
+dazu – aus einer Handvoll werden je nach Umfang schnell mehrere hundert.
+
+Eine Benachrichtigung begleitet den Vorgang und nennt am Ende die gefundene
+Anzahl. Es ist also kein Grund zur Sorge, wenn direkt nach dem Einrichten erst
+wenige Werte zu sehen sind.
+
+Das Ergebnis wird gespeichert und übersteht Neustarts; beim nächsten Start ist
+alles sofort da. Neu eingelesen wird nur nach einer Änderung des Umfangs, nach
+einer neuen Version oder über den Dienst `heatnexus.rediscover`.
 
 ## Dienste
 

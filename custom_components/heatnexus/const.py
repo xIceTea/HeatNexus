@@ -38,6 +38,17 @@ LEVEL_SERVICE = "service"  # Serviceebene: Heizkurve, Grenzwerte, Estrich
 LEVEL_OEM = "oem"  # Werksebene: Verbrennungsregelung, Zündung, Antriebe
 
 ALL_LEVELS = [LEVEL_INFO, LEVEL_OPERATE, LEVEL_SERVICE, LEVEL_OEM]
+# Beschriftung der Bedienebenen im Einrichtungsdialog. Sie steht hier und
+# nicht nur in den Übersetzungsdateien, weil Home Assistant die
+# Übersetzungen von Auswahlfeldern im Einrichtungsdialog einer eigenen
+# Integration nicht zuverlässig lädt – dort stünden sonst „info", „operate",
+# „service" und „oem".
+LEVEL_BESCHRIFTUNG = {
+    LEVEL_INFO: "Infoebene (Messwerte)",
+    LEVEL_OPERATE: "Betreiberebene (Bedienung)",
+    LEVEL_SERVICE: "Serviceebene (Fachparameter)",
+    LEVEL_OEM: "Werksebene (Herstellerparameter)",
+}
 # Info und Betreiberebene sind der sinnvolle Standard; die Serviceebene wird
 # mitgelesen, ihre Entities sind aber zunächst deaktiviert.
 DEFAULT_LEVELS = [LEVEL_INFO, LEVEL_OPERATE, LEVEL_SERVICE]

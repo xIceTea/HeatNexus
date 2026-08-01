@@ -94,12 +94,17 @@ def _escape(text: str) -> str:
 
 
 def _finde(entitaeten: list[dict[str, Any]], muster: str) -> dict[str, Any] | None:
-    """Erste Entität, deren Name zum Muster passt und die einen Wert hat."""
+    """Erste Entität, deren Name zum Muster passt; eine mit Wert hat Vorrang.
+
+    Ein Wert darf keine Bedingung sein. Das Schaubild wird gebaut, während die
+    Anlage noch eingelesen wird – wäre der Wert Pflicht, bliebe es leer und
+    füllte sich auch später nicht mehr.
+    """
     regex = re.compile(muster, re.IGNORECASE)
-    for eintrag in entitaeten:
-        if eintrag.get("hat_wert") and regex.search(eintrag["name"]):
-            return eintrag
-    return None
+    treffer = [e for e in entitaeten if regex.search(e["name"])]
+    if not treffer:
+        return None
+    return next((e for e in treffer if e.get("hat_wert")), treffer[0])
 
 
 def _module(teile: list[dict[str, Any]]) -> list[dict[str, Any]]:

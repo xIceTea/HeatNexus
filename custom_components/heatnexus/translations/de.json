@@ -30,7 +30,7 @@
       },
       "scope": {
         "title": "Umfang festlegen",
-        "description": "Gefunden wurde:\n\n{gefunden}\n\nWelche Bedienebenen sollen eingebunden werden? Info- und Betreiberebene sind immer dabei. Service- und Werksebene enthalten Fachparameter – falsch gesetzte Werte können den Betrieb stören. Die Auswahl gilt zunächst für alle Steuerungen und lässt sich später je Steuerung ändern.",
+        "description": "Gefunden wurde:\n\n{gefunden}\n\nWelche Bedienebenen sollen eingebunden werden? Info- und Betreiberebene sind immer dabei. Service- und Werksebene enthalten Fachparameter – falsch gesetzte Werte können den Betrieb stören. Die Auswahl gilt zunächst für alle Steuerungen und lässt sich später je Steuerung ändern.\n\nNach dem Abschluss liest HeatNexus die Anlage im Hintergrund vollständig ein. Das dauert je nach Anlage 30 bis 120 Sekunden; solange erscheinen nach und nach weitere Entitäten. Eine Benachrichtigung meldet, wenn alles da ist.",
         "data": {
           "levels": "Bedienebenen",
           "enable_advanced": "Service-/Werksebene sofort aktivieren",
@@ -45,7 +45,7 @@
           "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",
           "update_interval": "Wie oft die Anlage abgefragt wird.",
           "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut.",
-          "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff. Noch in Arbeit."
+          "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff."
         }
       },
       "reauth_confirm": {
@@ -86,7 +86,7 @@
         "data_description": {
           "update_interval": "Wie oft die Anlage abgefragt wird.",
           "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut.",
-          "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff. Noch in Arbeit."
+          "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff."
         }
       },
       "system": {
@@ -117,7 +117,7 @@
   },
   "entity": {
     "climate": {
-      "windhager_climate": {
+      "heatnexus_climate": {
         "state_attributes": {
           "preset_mode": {
             "state": {

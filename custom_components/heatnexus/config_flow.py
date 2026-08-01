@@ -45,6 +45,7 @@ from .const import (
     CONF_WRITABLE_ADVANCED,
     DEFAULT_LEVELS,
     DOMAIN,
+    LEVEL_BESCHRIFTUNG,
     LEVEL_INFO,
     LEVEL_OPERATE,
     MAX_SYSTEMS,
@@ -113,10 +114,16 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
             CONF_LEVELS, default=list(defaults.get(CONF_LEVELS, DEFAULT_LEVELS))
         ): SelectSelector(
             SelectSelectorConfig(
-                # Nur die Werte, keine Beschriftungen: Ein hier gesetztes Label
-                # verdrängt die Übersetzung, und im Dialog stünden dann die
-                # rohen Schlüssel „info", „operate", „service", „oem".
-                options=list(ALL_LEVELS),
+                # Beschriftung *und* Übersetzungsschlüssel: Findet die
+                # Oberfläche die Übersetzung, gewinnt sie; findet sie keine,
+                # steht hier der deutsche Text statt der rohen Schlüssel
+                # „info", „operate", „service", „oem". Im Einrichtungsdialog
+                # lädt Home Assistant die Übersetzungen der Auswahlfelder
+                # einer eigenen Integration nicht zuverlässig mit – ohne
+                # Beschriftung blieben die Schlüssel stehen.
+                options=[
+                    SelectOptionDict(value=lvl, label=LEVEL_BESCHRIFTUNG[lvl]) for lvl in ALL_LEVELS
+                ],
                 multiple=True,
                 mode=SelectSelectorMode.LIST,
                 translation_key="levels",

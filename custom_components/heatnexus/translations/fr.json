@@ -30,7 +30,7 @@
       },
       "scope": {
         "title": "Définir l'étendue",
-        "description": "Trouvé :\n\n{gefunden}\n\nQuels niveaux intégrer ? Les niveaux Info et Exploitant sont toujours inclus. Les niveaux Service et Usine contiennent des paramètres experts.",
+        "description": "Trouvé :\n\n{gefunden}\n\nQuels niveaux intégrer ? Les niveaux Info et Exploitant sont toujours inclus. Les niveaux Service et Usine contiennent des paramètres experts.\n\nUne fois terminé, HeatNexus lit l'installation en entier en arrière-plan. Selon l'installation, cela prend 30 à 120 secondes ; d'autres entités apparaissent au fur et à mesure. Une notification signale la fin.",
         "data": {
           "levels": "Niveaux",
           "enable_advanced": "Activer immédiatement les niveaux Service/Usine",
@@ -45,7 +45,7 @@
           "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule.",
           "update_interval": "Fréquence d'interrogation de l'installation.",
           "dashboard": "Ajoute un tableau de bord « Chauffage » qui se construit à partir des appareils détectés.",
-          "panel": "Ajoute une entrée « HeatNexus » dans la barre latérale : schéma de l’installation, état, circuits de chauffage et accès rapide. En cours."
+          "panel": "Ajoute une entrée « HeatNexus » dans la barre latérale : schéma de l’installation, état, circuits de chauffage et accès rapide."
         }
       },
       "reauth_confirm": {
@@ -86,7 +86,7 @@
         "data_description": {
           "update_interval": "Fréquence d'interrogation de l'installation.",
           "dashboard": "Ajoute un tableau de bord « Chauffage » qui se construit à partir des appareils détectés.",
-          "panel": "Ajoute une entrée « HeatNexus » dans la barre latérale : schéma de l’installation, état, circuits de chauffage et accès rapide. En cours."
+          "panel": "Ajoute une entrée « HeatNexus » dans la barre latérale : schéma de l’installation, état, circuits de chauffage et accès rapide."
         }
       },
       "system": {
@@ -117,7 +117,7 @@
   },
   "entity": {
     "climate": {
-      "windhager_climate": {
+      "heatnexus_climate": {
         "state_attributes": {
           "preset_mode": {
             "state": {

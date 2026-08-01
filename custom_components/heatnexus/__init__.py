@@ -8,6 +8,7 @@ from datetime import timedelta
 import logging
 
 import async_timeout
+from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -15,6 +16,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.loader import async_get_integration
@@ -45,6 +47,10 @@ from .entity import steuerung_kennung
 from .migration import async_entity_ids_umstellen, async_kennungen_umstellen
 
 _LOGGER = logging.getLogger(__name__)
+
+# Sekunden, die die Erfolgsmeldung dem Anlegen der nachgemeldeten Entitäten
+# einräumt.
+MELDUNG_VERZOEGERUNG = 10
 
 PLATFORMS: list[Platform] = [
     Platform.CLIMATE,
@@ -250,6 +256,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "name": hub_name,
         "coordinators": coordinators,
         "hintergrund": hintergrund,
+        # Anlagen, deren Vollabzug noch läuft – für die Meldung an den Nutzer.
+        "einlesen_offen": {eintrag[3] for eintrag in nachzuladen},
     }
     # Erst die Kennungen umstellen, dann die Plattformen anlegen: Sonst
     # entstünden neben den umbenannten Einträgen zusätzlich neue.
@@ -266,6 +274,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_remove_dashboard(hass)
 
     await _oberflaeche_anwenden(hass, bool((entry.options or {}).get(CONF_PANEL, False)))
+
+    if nachzuladen:
+        _einlesen_melden(hass, entry)
 
     for coordinator, client, store, host, fingerprint, cache_key in nachzuladen:
         hintergrund.append(
@@ -288,6 +299,62 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     return True
+
+
+def _meldungs_id(entry: ConfigEntry) -> str:
+    """Kennung der Einlese-Meldung dieses Eintrags."""
+    return f"{DOMAIN}_einlesen_{entry.entry_id}"
+
+
+def _entitaeten_anzahl(hass: HomeAssistant, entry: ConfigEntry) -> int:
+    """Wie viele Entitäten dieser Eintrag angelegt hat."""
+    return len(er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id))
+
+
+def _einlesen_melden(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Ankündigen, dass die Anlage noch eingelesen wird.
+
+    Eine Anlage liefert ihre Datenpunkte nicht auf einen Schlag: Zuerst
+    entsteht der Grundstock, der Rest kommt über den Vollabzug im Hintergrund
+    nach. Ohne Hinweis sieht der Nutzer eine Handvoll Entitäten und hält die
+    Einrichtung für gescheitert.
+    """
+    persistent_notification.async_create(
+        hass,
+        (
+            f"**{entry.title}** wird gerade vollständig eingelesen.\n\n"
+            f"Bisher angelegt: {_entitaeten_anzahl(hass, entry)} Entitäten. "
+            "Je nach Anlage dauert es 30 bis 120 Sekunden, bis alle Werte da "
+            "sind – Sie müssen nichts tun, die Meldung meldet sich wieder."
+        ),
+        title="HeatNexus liest die Anlage ein",
+        notification_id=_meldungs_id(entry),
+    )
+
+
+def _einlesen_abgeschlossen(hass: HomeAssistant, entry: ConfigEntry, host: str) -> None:
+    """Eine Anlage ist durch; sind alle durch, das Ergebnis melden."""
+    daten = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if not isinstance(daten, dict):
+        return
+    offen = daten.get("einlesen_offen")
+    if not isinstance(offen, set):
+        return
+    offen.discard(host)
+    if offen:
+        return
+
+    persistent_notification.async_create(
+        hass,
+        (
+            f"**{entry.title}** ist vollständig eingelesen: "
+            f"{_entitaeten_anzahl(hass, entry)} Entitäten.\n\n"
+            "Fachparameter der Service- und Werksebene sind bewusst "
+            "deaktiviert angelegt; sie lassen sich einzeln einschalten."
+        ),
+        title="HeatNexus ist bereit",
+        notification_id=_meldungs_id(entry),
+    )
 
 
 def _abgewaehlte_entitaeten_stilllegen(
@@ -418,6 +485,7 @@ async def _vollabzug(
         raise
     except Exception as err:
         _LOGGER.warning("%s konnte nicht vollständig eingelesen werden: %s", host, err)
+        _einlesen_abgeschlossen(hass, entry, host)
         return
 
     await coordinator.async_refresh()
@@ -425,6 +493,13 @@ async def _vollabzug(
     daten = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     if daten:
         _abgewaehlte_entitaeten_stilllegen(hass, entry, daten["coordinators"])
+
+    # Die nachgemeldeten Entitäten werden erst angelegt, nachdem dieser Ablauf
+    # den Dispatcher verlassen hat – die Erfolgsmeldung wartet das ab, sonst
+    # nennt sie eine zu kleine Zahl.
+    async_call_later(
+        hass, MELDUNG_VERZOEGERUNG, lambda _jetzt: _einlesen_abgeschlossen(hass, entry, host)
+    )
 
     data = client.export_discovery()
     mem_cache[cache_key] = data
@@ -481,6 +556,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Gespeicherten Erkennungsstand und Dashboard abräumen."""
+    persistent_notification.async_dismiss(hass, _meldungs_id(entry))
     for system in _systems(entry):
         await Store(
             hass, DISCOVERY_STORE_VERSION, _store_key(entry, system[CONF_HOST])
