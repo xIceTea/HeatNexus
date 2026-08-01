@@ -22,6 +22,24 @@ Die Anlage wird direkt über ihre HTTP-API im Netzwerk gelesen und gesteuert.
 Abgedeckt sind Kessel, Heizkreise, Puffer, Warmwasser und Zirkulation,
 einschließlich Info-, Betreiber- und Serviceebene.
 
+<p align="center">
+  <img src="assets/anlagenschema_beispiel.svg" alt="Anlagenschaubild mit Kessel, Puffer, Heizkreis und Zirkulation" width="820">
+</p>
+
+<p align="center">
+  <em>Das Anlagenschaubild wird aus den erkannten Anlagenteilen gezeichnet –
+  wer zwei Puffer hat, sieht zwei. Beispielwerte.</em>
+</p>
+
+<p align="center">
+  <img src="assets/dashboard_beispiel.png" alt="Mitgeliefertes Dashboard" width="820">
+</p>
+
+<p align="center">
+  <em>Das mitgelieferte Dashboard baut sich bei jedem Öffnen aus den
+  vorhandenen Geräten neu auf.</em>
+</p>
+
 ## Unterstützte Geräte
 
 | Hersteller | Gerät | Stand |
@@ -91,19 +109,29 @@ Ab Werk kennt die Steuerung zwei Zugänge:
 | `Service` | `123` | zusätzlich die Fachparameter |
 
 Ob der Zugang stimmt, lässt sich ohne Home Assistant prüfen: `http://<IP der
-Anlage>` im Browser öffnen. Kommt die Weboberfläche, passt die Kombination.
+Anlage>` im Browser öffnen. Kommt die Weboberfläche des InfoWIN Touch, passt die
+Kombination.
 
 Wer Fachparameter auslesen oder schreiben will, wählt bei der Einrichtung
 `Service`. Ein abweichender Benutzername lässt sich im selben Feld eintippen.
-Geändert wird das Passwort an der Anlage selbst über das InfoWIN Touch; die
-Menüführung steht in der Anleitung der Steuerung.
 
-> **Wichtig:** Wird die Anlage mit der Windhager-App (myComfort / myConnect)
-> verbunden, vergibt Windhager ein eigenes Passwort. Die Standardangaben oben
-> gelten dann nicht mehr, und je nach Anlage ist entweder die App **oder** die
-> lokale Schnittstelle nutzbar. Meldet HeatNexus nach dem Verbinden mit der App
-> plötzlich einen Anmeldefehler, ist das die Ursache – das neue Passwort kennt
-> der Heizungsbauer oder es lässt sich an der Anlage neu setzen.
+**Passwort ändern** lässt sich an zwei Stellen, beide führen zum selben
+Parameter: direkt am InfoWIN Touch oder in dessen Weboberfläche unter
+*Passwort*. Ein dort gesetztes Passwort gilt sofort auch für die Schnittstelle
+– danach muss es in Home Assistant über *Neu anmelden* nachgezogen werden.
+
+> **Windhager-App:** Wird die Anlage mit myComfort / myConnect verbunden,
+> vergibt Windhager ein eigenes Passwort; die Werksangaben oben gelten dann
+> nicht mehr. Das ist kein dauerhafter Ausschluss – das Passwort lässt sich wie
+> oben beschrieben neu setzen, und danach laufen App und HeatNexus wieder. Wenn
+> HeatNexus nach dem Einrichten der App plötzlich einen Anmeldefehler meldet,
+> ist das die Ursache.
+
+> **Nur HTTP:** Die Steuerung antwortet ausschließlich unverschlüsselt auf
+> Port 80; einen HTTPS-Zugang gibt es lokal nicht (geprüft am PuroWIN mit
+> InfoWIN Touch). Das Passwort selbst geht dank Digest-Authentifizierung nicht
+> im Klartext über die Leitung, die Messwerte schon. HeatNexus gehört deshalb
+> ins eigene Netz, nicht ins Internet.
 
 Im zweiten Schritt wird der **Umfang** festgelegt:
 
