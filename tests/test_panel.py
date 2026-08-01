@@ -67,9 +67,7 @@ def kessel_und_heizkreis():
             entitaet("sensor.kesselleistung", "Kesselleistung"),
             entitaet("button.serviceausbrand", "Serviceausbrand"),
             entitaet("switch.ww_einmalladung", "WW Einmalladung"),
-            entitaet(
-                "sensor.meldung_klartext", "Meldung Klartext", kategorie="diagnostic"
-            ),
+            entitaet("sensor.meldung_klartext", "Meldung Klartext", kategorie="diagnostic"),
         ],
     )
     heizkreis = teil(
@@ -150,9 +148,7 @@ def test_ohne_warmwasser_bleibt_die_karte_leer(panel):
 
 def test_thermostat_zaehlt_nicht_als_warmwasser(panel):
     """Ein Heizkreis namens „Warmwasser" ist trotzdem ein Heizkreis."""
-    seltsam = anlage(
-        teil("Warmwasser Nord", 14, [entitaet("climate.ww_nord", "Warmwasser Nord")])
-    )
+    seltsam = anlage(teil("Warmwasser Nord", 14, [entitaet("climate.ww_nord", "Warmwasser Nord")]))
     daten = panel._anlage_daten(seltsam)
     assert daten["warmwasser"] == []
     assert daten["heizkreise"][0]["entity"] == "climate.ww_nord"
