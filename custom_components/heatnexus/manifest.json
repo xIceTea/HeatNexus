@@ -5,6 +5,13 @@
     "@xIceTea"
   ],
   "config_flow": true,
+  "dependencies": [
+    "frontend",
+    "http",
+    "lovelace",
+    "persistent_notification",
+    "websocket_api"
+  ],
   "documentation": "https://github.com/xIceTea/HeatNexus",
   "integration_type": "hub",
   "iot_class": "local_polling",
@@ -13,12 +20,5 @@
     "custom_components.heatnexus"
   ],
   "requirements": [],
-  "version": "1.0.0",
-  "dependencies": [
-    "frontend",
-    "http",
-    "lovelace",
-    "persistent_notification",
-    "websocket_api"
-  ]
+  "version": "1.0.0"
 }
