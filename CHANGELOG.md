@@ -30,6 +30,15 @@ wenn dort Vorabversionen zugelassen sind.
 - Beim Entladen einer Anlage lief das Einlesen im Hintergrund weiter und
   meldete „Connector is closed". Es wird jetzt zuerst beendet, danach wird die
   Verbindung geschlossen.
+- **Bedienebenen ohne Klartext.** Im Dialog *Umfang festlegen* standen die
+  internen Schlüssel „info", „operate", „service" und „oem" statt der
+  deutschen Bezeichnungen. Die Übersetzung war hinterlegt, wurde aber von einer
+  fest eingetragenen Beschriftung verdrängt.
+- **Eine unvollständige Aktualisierung legte die Integration lahm.** Fehlte
+  eine Datei der optionalen Oberfläche, meldete Home Assistant nur „No setup or
+  config entry setup function defined" und richtete gar nichts mehr ein. Die
+  Oberfläche wird jetzt erst geladen, wenn sie gebraucht wird; fehlt sie,
+  laufen Entitäten und Dashboard weiter.
 - **„Betriebsart: Unbekannt"** bei Puffer und Heizkreis. Die Anlage nennt in
   ihren Metadaten die Werte, die sie zur *Auswahl* stellt – beim Puffer nur
   „Standby". Angezeigt wurde daraufhin nur noch das, gemeldet hat die Anlage

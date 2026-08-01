@@ -43,7 +43,6 @@ from .const import (
 from .dashboard import async_remove_dashboard, async_setup_dashboard
 from .entity import steuerung_kennung
 from .migration import async_entity_ids_umstellen, async_kennungen_umstellen
-from .panel import async_remove_panel, async_setup_panel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -266,10 +265,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Abgewählt: der Seitenleisten-Eintrag verschwindet beim nächsten Laden.
         await async_remove_dashboard(hass)
 
-    if (entry.options or {}).get(CONF_PANEL, False):
-        await async_setup_panel(hass)
-    else:
-        await async_remove_panel(hass)
+    await _oberflaeche_anwenden(hass, bool((entry.options or {}).get(CONF_PANEL, False)))
 
     for coordinator, client, store, host, fingerprint, cache_key in nachzuladen:
         hintergrund.append(
@@ -337,6 +333,26 @@ def _abgewaehlte_entitaeten_stilllegen(
             # Eine Abschaltung durch den Nutzer (disabled_by USER) bleibt.
             _LOGGER.debug("Nehme %s wieder in Betrieb", eintrag.entity_id)
             registry.async_update_entity(eintrag.entity_id, disabled_by=None)
+
+
+async def _oberflaeche_anwenden(hass: HomeAssistant, gewuenscht: bool) -> None:
+    """Die eigene Oberfläche an- oder abmelden.
+
+    Erst hier importiert: Sie ist eine Beigabe, und ein Problem mit ihr darf
+    nicht die ganze Integration lahmlegen. Fehlt die Datei – etwa weil eine
+    Aktualisierung unvollständig kopiert wurde –, laufen Entitäten und
+    Dashboard trotzdem weiter.
+    """
+    try:
+        from .panel import async_remove_panel, async_setup_panel
+    except ImportError as err:
+        _LOGGER.warning("Eigene Oberfläche nicht verfügbar: %s", err)
+        return
+
+    if gewuenscht:
+        await async_setup_panel(hass)
+    else:
+        await async_remove_panel(hass)
 
 
 def _steuerung_umstellen(registry, alt: str, neu: str) -> None:
@@ -471,4 +487,4 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         ).async_remove()
     if not hass.config_entries.async_entries(DOMAIN):
         await async_remove_dashboard(hass)
-        await async_remove_panel(hass)
+        await _oberflaeche_anwenden(hass, False)

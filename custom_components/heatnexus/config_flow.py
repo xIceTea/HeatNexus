@@ -113,7 +113,10 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
             CONF_LEVELS, default=list(defaults.get(CONF_LEVELS, DEFAULT_LEVELS))
         ): SelectSelector(
             SelectSelectorConfig(
-                options=[SelectOptionDict(value=lvl, label=lvl) for lvl in ALL_LEVELS],
+                # Nur die Werte, keine Beschriftungen: Ein hier gesetztes Label
+                # verdrängt die Übersetzung, und im Dialog stünden dann die
+                # rohen Schlüssel „info", „operate", „service", „oem".
+                options=list(ALL_LEVELS),
                 multiple=True,
                 mode=SelectSelectorMode.LIST,
                 translation_key="levels",
