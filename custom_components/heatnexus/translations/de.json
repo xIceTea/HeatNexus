@@ -114,13 +114,15 @@
           "levels": "Bedienebenen",
           "enable_advanced": "Service-/Werksebene sofort aktivieren",
           "writable_advanced": "Service-/Werksebene bedienbar machen",
-          "username": "Zugang"
+          "username": "Zugang",
+          "kesselart": "Wärmeerzeuger (Schaubild)"
         },
         "data_description": {
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
           "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
           "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",
-          "username": "„USER“ sieht Info- und Betreiberebene, „Service“ zusätzlich die Fachparameter. Ein Wechsel liest die Anlage neu ein."
+          "username": "„USER“ sieht Info- und Betreiberebene, „Service“ zusätzlich die Fachparameter. Ein Wechsel liest die Anlage neu ein.",
+          "kesselart": "Welches Gerät das Anlagenschaubild zeichnet. Wirkt nur auf die Zeichnung – keine Entität, kein Wert ändert sich."
         }
       }
     }
@@ -132,6 +134,17 @@
         "operate": "Betreiberebene (Bedienung)",
         "service": "Serviceebene (Fachparameter)",
         "oem": "Werksebene (Herstellerparameter)"
+      }
+    },
+    "kesselart": {
+      "options": {
+        "auto": "Automatisch erkennen",
+        "hackgut": "Hackgutkessel",
+        "pellets": "Pelletskessel",
+        "scheitholz": "Scheitholzkessel",
+        "waermepumpe": "Wärmepumpe",
+        "gas_oel": "Gas- oder Ölkessel",
+        "standard": "Neutral (ohne Brennstoffbezug)"
       }
     }
   },

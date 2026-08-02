@@ -27,7 +27,7 @@ einschließlich Info-, Betreiber- und Serviceebene.
 </p>
 
 <p align="center">
-  <em>Das Anlagenschaubild wird aus den erkannten Anlagenteilen gezeichnet –
+  <em>Das Anlagenschaubild wird aus den erkannten Anlagenteilen zusammengesetzt –
   wer zwei Puffer hat, sieht zwei. Beispielwerte.</em>
 </p>
 
@@ -42,18 +42,27 @@ einschließlich Info-, Betreiber- und Serviceebene.
 
 ## Unterstützte Geräte
 
-| Hersteller | Gerät | Stand |
-|---|---|---|
-| Windhager | PuroWIN (Hackgut) | getestet |
-| Windhager | BioWIN, BioWIN 2 (Pellets) | eingebunden, noch nicht an Hardware geprüft |
-| Windhager | UML / UMLZ Heizkreismodul | getestet |
-| Windhager | B-PLMi Pufferlademodul | getestet |
-| Windhager | ZSP Zirkulationssteuerung | getestet |
-| Windhager | Solar, Kaskade, Wärmepumpe | werden erkannt, ungetestet |
+| Anlagenteil | Stand |
+|---|---|
+| PuroWIN – Hackgut und Pellets | an der Anlage geprüft |
+| UML / UMLZ Heizkreismodul | an der Anlage geprüft |
+| B-PLMi Pufferlademodul | an der Anlage geprüft |
+| ZSP Pumpen- und Relaismodul | an der Anlage geprüft |
+| BioWIN, BioWIN 2 – Pellets | eingebunden, ungeprüft |
+| Wärmepumpe, E-Heizung | eingebunden, ungeprüft |
+| Gas- und Ölkessel | eingebunden, ungeprüft |
+| Solar, Kaskade, Umschaltung | eingebunden, ungeprüft |
+| Infinity PLUS Heizkreis und Warmwasser | eingebunden, ungeprüft |
 
-Weitere Anlagen werden über die allgemeine Erkennung eingebunden: Was die
-Steuerung liefert, erscheint auch in Home Assistant. Rückmeldungen zu nicht
-gelisteten Geräten sind willkommen.
+„Eingebunden" heißt: Die Funktion ist in der mitgelieferten Datenbank
+beschrieben und wird mit Namen, Einheiten und Auswahlwerten erkannt – nur stand
+noch keine solche Anlage zum Nachmessen bereit. Welcher Funktionstyp was ist und
+welche Datenpunkte er führt, steht vollständig in
+[`docs/DATAPOINTS.md`](docs/DATAPOINTS.md).
+
+Alles Weitere wird über die allgemeine Erkennung eingebunden: Was die Steuerung
+liefert, erscheint auch in Home Assistant. Rückmeldungen zu nicht gelisteten
+Geräten sind willkommen – der Diagnose-Export der Integration reicht dafür.
 
 ## Funktionsumfang
 
@@ -68,6 +77,13 @@ gelisteten Geräten sind willkommen.
 - **Störungen im Klartext** mit Code, Art und Handlungsempfehlung.
 - **Serviceebene** vollständig verfügbar, standardmäßig deaktiviert und pro
   Entity zuschaltbar.
+- **Eigene Oberfläche** in der Seitenleiste: Anlagenschaubild, Kennwerte,
+  Systemstatus, Heizkreise, Warmwasser, Störungen, Verlauf und Schnellzugriff
+  auf einer Seite.
+- **Anlagenschaubild** aus den erkannten Anlagenteilen gezeichnet, mit
+  laufenden Pumpen und den Live-Werten darauf. Die Art des Wärmeerzeugers –
+  Hackgut, Pellets, Scheitholz, Wärmepumpe, Gas/Öl – wird erkannt und lässt
+  sich je Anlage übersteuern.
 - **Dashboard und Automations-Vorlagen** kommen mit und bauen sich aus dem,
   was die Anlage liefert.
 - Mehrere Anlagen parallel.
@@ -165,6 +181,12 @@ Beides ist jederzeit über *Konfigurieren* an der Integration änderbar, ebenso
 das Abfrageintervall. Nach einer Änderung liest die Integration die Anlage neu
 ein.
 
+Dort steht je Anlage auch der **Wärmeerzeuger**. Er wirkt nur auf die Zeichnung
+im Anlagenschaubild und ändert weder Entitäten noch Werte. Ab Werk steht er auf
+*automatisch erkennen*: HeatNexus nimmt zuerst den Brennstoff, den die Anlage
+meldet, sonst den Funktionstyp, sonst den Namen der Funktion. Passt das Ergebnis
+nicht, lässt es sich hier fest setzen.
+
 #### Die erste Minute
 
 Nach dem Einrichten steht die Integration sofort da, aber noch **nicht
@@ -199,6 +221,28 @@ data:
     - {time: "06:00", value: 21}
     - {time: "22:00", value: 18}
 ```
+
+## Eigene Oberfläche
+
+Neben dem Dashboard bringt HeatNexus eine eigene Seite in der Seitenleiste mit.
+Sie zeigt die Anlage als Ganzes statt als Kachelsammlung:
+
+- **Anlagenschaubild** mit Vor- und Rücklauf, den Live-Werten und Pumpen, die
+  sich drehen, solange sie laufen.
+- **Kennwerte** je Anlagenteil – ein Leitwert je Funktion, wie am Bediengerät
+  der Anlage.
+- **Systemstatus**: Betriebszustand, Außentemperatur, Kesselleistung,
+  Brennstoff, Vorratsbehälter, Restlaufzeiten.
+- **Heizkreise und Warmwasser** mit Betriebswahl und Sollwert direkt bedienbar.
+- **Störungen im Klartext**, **Verlauf** und **Schnellzugriff** auf die
+  häufigen Eingriffe, jeweils mit Rückfrage, wo ein Fehlgriff Arbeit macht.
+
+Ein „?" neben Karten und Bedienelementen erklärt, was ein Wert bedeutet und was
+eine Aktion auslöst. Beides – Oberfläche und Erklärungen – lässt sich unter
+*Konfigurieren → Allgemein* abschalten.
+
+Die Aufteilung entsteht in Home Assistant, nicht im Browser: Was die Anlage
+liefert, erscheint; was fehlt, entfällt.
 
 ## Dashboard
 
@@ -254,8 +298,13 @@ an keiner Formulierung.
 |---|---|
 | [`docs/API.md`](docs/API.md) | Geräte-API und OID-Aufbau |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Aufbau der Integration |
-| [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md) | Datenpunkte je Funktionstyp |
+| [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md) | alle Datenpunkte je Funktionstyp, mit Bedienebene |
+| [`docs/ENUMS.md`](docs/ENUMS.md) | alle Auswahlwerte mit ihrer Bedeutung |
 | [`CHANGELOG.md`](CHANGELOG.md) | Versionshistorie |
+
+`DATAPOINTS.md` und `ENUMS.md` werden aus der mitgelieferten Geräte-Datenbank
+erzeugt (`python tools/build_datenpunkte_doku.py`) und von einem Test gegen sie
+geprüft – sie können also nicht veralten.
 
 ## Entwicklung
 

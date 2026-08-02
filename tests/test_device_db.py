@@ -36,3 +36,49 @@ def test_layer_entries_are_gn_mn(device_db):
     for gnmn in device_db.get_layers(FCT_PUROWIN)["operate"]:
         gn, _, mn = gnmn.partition("/")
         assert gn.isdigit() and mn.isdigit(), gnmn
+
+
+# ---------------------------------------------------------------------------
+# Erzeugte Referenz
+#
+# `docs/DATAPOINTS.md` und `docs/ENUMS.md` werden aus `device_db.json` erzeugt.
+# Ohne diesen Test fällt niemandem auf, dass sie nach einem neuen Datenbestand
+# veraltet sind – und eine veraltete Referenz ist schlimmer als keine.
+# ---------------------------------------------------------------------------
+def test_datenpunkt_referenz_ist_aktuell():
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    wurzel = Path(__file__).parent.parent
+    pfad = wurzel / "tools" / "build_datenpunkte_doku.py"
+    spec = importlib.util.spec_from_file_location("doku", pfad)
+    doku = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(doku)
+
+    db = json.loads(doku.DB.read_text(encoding="utf-8"))
+    for ziel, erzeugt in (
+        (doku.ZIEL_DATENPUNKTE, doku.datenpunkte(db)),
+        (doku.ZIEL_ENUMS, doku.enums(db)),
+    ):
+        assert ziel.exists(), f"{ziel.name} fehlt"
+        assert ziel.read_text(encoding="utf-8") == erzeugt, (
+            f"{ziel.name} passt nicht zur Geräte-Datenbank. "
+            "Abhilfe: python tools/build_datenpunkte_doku.py"
+        )
+
+
+def test_jeder_funktionstyp_hat_einen_namen():
+    """Ein Funktionstyp ohne Namen steht als „unbekannt" in der Referenz."""
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    pfad = Path(__file__).parent.parent / "tools" / "build_datenpunkte_doku.py"
+    spec = importlib.util.spec_from_file_location("doku", pfad)
+    doku = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(doku)
+
+    db = json.loads(doku.DB.read_text(encoding="utf-8"))
+    ohne = sorted(set(db["layers"]) - set(doku.FUNKTIONEN), key=int)
+    assert not ohne, f"Funktionstypen ohne Namen: {ohne}"

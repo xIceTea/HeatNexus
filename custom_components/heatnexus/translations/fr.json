@@ -114,13 +114,15 @@
           "levels": "Niveaux",
           "enable_advanced": "Activer immédiatement les niveaux Service/Usine",
           "writable_advanced": "Rendre modifiables les paramètres Service/Usine",
-          "username": "Accès"
+          "username": "Accès",
+          "kesselart": "Générateur de chaleur (schéma)"
         },
         "data_description": {
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
           "enable_advanced": "Sans coche, les entités sont créées mais restent désactivées.",
           "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule.",
-          "username": "USER voit les niveaux info et exploitant, Service en plus les paramètres spécialisés. Un changement relit l'installation."
+          "username": "USER voit les niveaux info et exploitant, Service en plus les paramètres spécialisés. Un changement relit l'installation.",
+          "kesselart": "Quel appareil le schéma de l'installation dessine. N'affecte que le dessin – aucune entité, aucune valeur ne change."
         }
       }
     }
@@ -132,6 +134,17 @@
         "operate": "Niveau Exploitant (commande)",
         "service": "Niveau Service (paramètres experts)",
         "oem": "Niveau Usine (paramètres constructeur)"
+      }
+    },
+    "kesselart": {
+      "options": {
+        "auto": "Détection automatique",
+        "hackgut": "Chaudière à plaquettes",
+        "pellets": "Chaudière à granulés",
+        "scheitholz": "Chaudière à bûches",
+        "waermepumpe": "Pompe à chaleur",
+        "gas_oel": "Chaudière gaz ou fioul",
+        "standard": "Neutre (sans référence au combustible)"
       }
     }
   },

@@ -1,0 +1,30 @@
+<defs>
+  <linearGradient id="gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+  <linearGradient id="flamme" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0%" stop-color="{{glut}}"/>
+    <stop offset="100%" stop-color="{{glut}}" stop-opacity="0.15"/>
+  </linearGradient>
+</defs>
+
+<!-- Kesselkörper -->
+<rect x="38" y="120" width="124" height="174" rx="14" fill="url(#gehaeuse)"
+      stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Bedienteil -->
+<rect x="52" y="134" width="96" height="26" rx="6" fill="{{korpus_dunkel}}"
+      stroke="{{rahmen}}" stroke-width="1"/>
+<rect x="60" y="142" width="48" height="10" rx="5" fill="{{titel}}" opacity="0.25"/>
+<circle cx="136" cy="147" r="4" fill="{{glut}}" opacity="0.8"/>
+
+<!-- Fülltür -->
+<rect x="54" y="172" width="92" height="54" rx="8" fill="{{korpus}}"
+      stroke="{{rahmen}}" stroke-width="1.5"/>
+<rect x="138" y="190" width="4" height="18" rx="2" fill="{{rahmen}}"/>
+
+<!-- Brennraum mit Schauglas -->
+<rect x="54" y="238" width="92" height="42" rx="8" fill="{{korpus_dunkel}}"
+      stroke="{{rahmen}}" stroke-width="1.5"/>
+<rect x="66" y="250" width="68" height="20" rx="6" fill="url(#flamme)"/>

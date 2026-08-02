@@ -1,1 +1,210 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 848 360" width="848" height="360"><defs><linearGradient id="schichtung" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#b3341f"/><stop offset="55%" stop-color="#8a4a52"/><stop offset="100%" stop-color="#25508f"/></linearGradient><linearGradient id="kessel" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b444e"/><stop offset="100%" stop-color="#232a32"/></linearGradient><linearGradient id="warmwasser" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#b3341f"/><stop offset="100%" stop-color="#6d3038"/></linearGradient><linearGradient id="waerme" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e2543a"/><stop offset="100%" stop-color="#8a3b2c"/></linearGradient></defs><rect width="100%" height="100%" rx="16" fill="#151d26"/><rect x="24" y="89" width="800" height="6" rx="3" fill="#e2543a" opacity="0.85"/><rect x="24" y="315" width="800" height="6" rx="3" fill="#3a7fe2" opacity="0.85"/><rect x="122" y="92" width="4" height="30" fill="#e2543a" opacity="0.7"/><rect x="122" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><rect x="62" y="122" width="124" height="168" rx="12" fill="url(#kessel)" stroke="#4a5561" stroke-width="2"/><rect x="84" y="238" width="80" height="34" rx="6" fill="#e2543a" opacity="0.35"/><text x="124" y="348" text-anchor="middle" fill="#f2f6fa" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">PuroWIN</text><rect x="322" y="92" width="4" height="30" fill="#e2543a" opacity="0.7"/><rect x="322" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><rect x="266" y="118" width="116" height="176" rx="26" fill="url(#schichtung)" stroke="#4a5561" stroke-width="2"/><line x1="266" y1="206" x2="382" y2="206" stroke="#4a5561" stroke-width="1" opacity="0.5"/><text x="324" y="348" text-anchor="middle" fill="#f2f6fa" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">B-PLMi PUFFER</text><rect x="522" y="92" width="4" height="30" fill="#e2543a" opacity="0.7"/><rect x="522" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><rect x="466" y="128" width="116" height="154" rx="10" fill="#1d242c" stroke="#4a5561" stroke-width="2"/><rect x="476" y="140" width="10" height="130" rx="5" fill="url(#waerme)" opacity="0.9"/><rect x="496" y="140" width="10" height="130" rx="5" fill="url(#waerme)" opacity="0.9"/><rect x="516" y="140" width="10" height="130" rx="5" fill="url(#waerme)" opacity="0.9"/><rect x="536" y="140" width="10" height="130" rx="5" fill="url(#waerme)" opacity="0.9"/><rect x="556" y="140" width="10" height="130" rx="5" fill="url(#waerme)" opacity="0.9"/><text x="524" y="348" text-anchor="middle" fill="#f2f6fa" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">UMLZ HEIZKREIS</text><rect x="722" y="92" width="4" height="30" fill="#e2543a" opacity="0.7"/><rect x="722" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><circle cx="724" cy="206" r="52" fill="#1d242c" stroke="#4a5561" stroke-width="2"/><path d="M 706 182 L 746 206 L 706 230 Z" fill="#3a7fe2" opacity="0.8"/><text x="724" y="348" text-anchor="middle" fill="#f2f6fa" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">ZSP-PWA</text><rect x="88.6" y="155.9" width="70.4" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="123.8" y="174.9" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">72,4 °C</text><rect x="100.9" y="235.8" width="45.8" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="123.8" y="254.8" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">38 %</text><rect x="288.7" y="155.9" width="70.4" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="323.9" y="174.9" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">68,1 °C</text><rect x="288.7" y="235.8" width="70.4" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="323.9" y="254.8" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">42,7 °C</text><rect x="488.9" y="155.9" width="70.4" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="524.1" y="174.9" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">45,0 °C</text><rect x="488.9" y="235.8" width="70.4" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="524.1" y="254.8" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">21,5 °C</text><rect x="689.0" y="191.9" width="70.4" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="724.2" y="210.9" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">58,3 °C</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1248 392" width="1248" height="392"><rect width="100%" height="100%" rx="16" fill="#151d26"/><rect x="24" y="89" width="1200" height="6" rx="3" fill="#e2543a" opacity="0.85"/><rect x="24" y="315" width="1200" height="6" rx="3" fill="#3a7fe2" opacity="0.85"/><g transform="translate(24,0)"><rect x="98" y="92" width="4" height="30" fill="#e2543a" opacity="0.7"/><rect x="98" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><defs>
+  <linearGradient id="t0-gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#3b444e"/>
+    <stop offset="100%" stop-color="#1d242c"/>
+  </linearGradient>
+  <linearGradient id="t0-glutbett" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0%" stop-color="#e2543a"/>
+    <stop offset="55%" stop-color="#e2543a" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#e2543a" stop-opacity="0"/>
+  </linearGradient>
+</defs>
+
+<!-- Einschub der Stokerschnecke, von links unten in den Brennraum -->
+<g stroke="#4a5561" stroke-width="2" fill="#2b333c">
+  <path d="M 22 290 L 22 262 L 54 240 L 54 274 Z"/>
+</g>
+<g stroke="#f2f6fa" stroke-width="1.5" opacity="0.25" fill="none">
+  <path d="M 28 284 L 48 270"/>
+  <path d="M 28 274 L 48 260"/>
+</g>
+
+<!-- Kesselkörper -->
+<rect x="52" y="120" width="112" height="174" rx="14" fill="url(#t0-gehaeuse)"
+      stroke="#4a5561" stroke-width="2"/>
+
+<!-- Bedienteil -->
+<rect x="64" y="134" width="88" height="26" rx="6" fill="#1d242c"
+      stroke="#4a5561" stroke-width="1"/>
+<rect x="72" y="142" width="44" height="10" rx="5" fill="#f2f6fa" opacity="0.25"/>
+<circle cx="140" cy="147" r="4" fill="#e2543a" opacity="0.8"/>
+
+<!-- Wärmetauscher: senkrechte Rauchrohre -->
+<g fill="#1d242c" opacity="0.8">
+  <rect x="70" y="172" width="9" height="46" rx="4"/>
+  <rect x="88" y="172" width="9" height="46" rx="4"/>
+  <rect x="106" y="172" width="9" height="46" rx="4"/>
+  <rect x="124" y="172" width="9" height="46" rx="4"/>
+  <rect x="142" y="172" width="9" height="46" rx="4"/>
+</g>
+
+<!-- Brennraum mit Glutbett -->
+<rect x="64" y="230" width="88" height="52" rx="8" fill="#1d242c"
+      stroke="#4a5561" stroke-width="1.5"/>
+<rect x="72" y="244" width="72" height="30" rx="6" fill="url(#t0-glutbett)"/>
+<rect x="72" y="268" width="72" height="6" rx="3" fill="#e2543a"/><text x="100" y="374" text-anchor="middle" fill="#f2f6fa" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">PuroWIN</text></g><g transform="translate(224,0)"><rect x="98" y="92" width="4" height="30" fill="#e2543a" opacity="0.7"/><rect x="98" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><defs>
+  <linearGradient id="t1-schichtung" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#b3341f"/>
+    <stop offset="30%" stop-color="#b3341f"/>
+    <stop offset="62%" stop-color="#25508f" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#25508f"/>
+  </linearGradient>
+  <linearGradient id="t1-glanz" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16"/>
+    <stop offset="26%" stop-color="#ffffff" stop-opacity="0.03"/>
+    <stop offset="78%" stop-color="#000000" stop-opacity="0.06"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.22"/>
+  </linearGradient>
+</defs>
+
+<!-- Speicherkörper mit Schichtung von oben warm nach unten kalt -->
+<rect x="42" y="116" width="116" height="180" rx="30" fill="url(#t1-schichtung)"/>
+<rect x="42" y="116" width="116" height="180" rx="30" fill="url(#t1-glanz)"/>
+<rect x="42" y="116" width="116" height="180" rx="30" fill="none"
+      stroke="#4a5561" stroke-width="2"/>
+
+<!-- Schichtgrenzen: der Speicher ist keine gleichmäßige Masse -->
+<g stroke="#ffffff" stroke-width="1" opacity="0.13">
+  <line x1="50" y1="168" x2="150" y2="168"/>
+  <line x1="50" y1="206" x2="150" y2="206"/>
+  <line x1="50" y1="244" x2="150" y2="244"/>
+</g>
+
+<!-- Isolierungsband oben und unten -->
+<g fill="#1d242c" opacity="0.5">
+  <rect x="44" y="132" width="112" height="7" rx="3"/>
+  <rect x="44" y="274" width="112" height="7" rx="3"/>
+</g>
+
+<!-- Fühlerpunkte TPE (oben) und TPA (unten) -->
+<g fill="#f2f6fa" opacity="0.45">
+  <circle cx="152" cy="150" r="3"/>
+  <circle cx="152" cy="264" r="3"/>
+</g><text x="100" y="374" text-anchor="middle" fill="#f2f6fa" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">B-PLMi PUFFER</text></g><g transform="translate(424,0)"><rect x="98" y="92" width="4" height="30" fill="#e2543a" opacity="0.7"/><rect x="98" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><defs>
+  <linearGradient id="t2-waerme" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#e2543a"/>
+    <stop offset="100%" stop-color="#b3341f"/>
+  </linearGradient>
+</defs>
+
+<!-- Heizkörper: Sammelrohre oben und unten, Glieder dazwischen -->
+<rect x="42" y="132" width="116" height="12" rx="6" fill="#2b333c"
+      stroke="#4a5561" stroke-width="1.5"/>
+<rect x="42" y="266" width="116" height="12" rx="6" fill="#2b333c"
+      stroke="#4a5561" stroke-width="1.5"/>
+
+<g fill="url(#t2-waerme)" stroke="#4a5561" stroke-width="1">
+  <rect x="50" y="140" width="14" height="132" rx="7"/>
+  <rect x="72" y="140" width="14" height="132" rx="7"/>
+  <rect x="94" y="140" width="14" height="132" rx="7"/>
+  <rect x="116" y="140" width="14" height="132" rx="7"/>
+  <rect x="138" y="140" width="14" height="132" rx="7"/>
+</g>
+
+<!-- Glanzkante, damit die Glieder rund wirken -->
+<g fill="#ffffff" opacity="0.16">
+  <rect x="53" y="146" width="4" height="120" rx="2"/>
+  <rect x="75" y="146" width="4" height="120" rx="2"/>
+  <rect x="97" y="146" width="4" height="120" rx="2"/>
+  <rect x="119" y="146" width="4" height="120" rx="2"/>
+  <rect x="141" y="146" width="4" height="120" rx="2"/>
+</g>
+
+<!-- Mischer im Vorlauf: das Stellglied des Kreises -->
+<circle cx="100" cy="112" r="11" fill="#1d242c" stroke="#4a5561" stroke-width="1.5"/>
+<path d="M 94 112 L 106 112 M 100 106 L 100 118" stroke="#f2f6fa" stroke-width="2"
+      opacity="0.6" stroke-linecap="round"/><text x="100" y="374" text-anchor="middle" fill="#f2f6fa" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">UMLZ HEIZKREIS</text></g><g transform="translate(624,0)"><rect x="98" y="92" width="4" height="30" fill="#e2543a" opacity="0.7"/><rect x="98" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><defs>
+  <linearGradient id="t3-boiler" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#b3341f"/>
+    <stop offset="70%" stop-color="#b3341f" stop-opacity="0.75"/>
+    <stop offset="100%" stop-color="#25508f" stop-opacity="0.55"/>
+  </linearGradient>
+  <linearGradient id="t3-glanz" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+    <stop offset="28%" stop-color="#ffffff" stop-opacity="0.03"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.22"/>
+  </linearGradient>
+</defs>
+
+<!-- Speicherkörper, oben und unten gewölbt -->
+<rect x="48" y="124" width="104" height="168" rx="48" fill="url(#t3-boiler)"/>
+<rect x="48" y="124" width="104" height="168" rx="48" fill="url(#t3-glanz)"/>
+<rect x="48" y="124" width="104" height="168" rx="48" fill="none"
+      stroke="#4a5561" stroke-width="2"/>
+
+<!-- Registerheizschlange -->
+<path d="M 70 176 h 60 M 70 176 a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60
+         a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60"
+      fill="none" stroke="#f2f6fa" stroke-width="3" opacity="0.3"
+      stroke-linecap="round"/>
+
+<!-- Wassertropfen als Merkzeichen -->
+<path d="M 100 138 q 11 14 11 21 a 11 11 0 0 1 -22 0 q 0 -7 11 -21 Z"
+      fill="#f2f6fa" opacity="0.35"/><text x="100" y="374" text-anchor="middle" fill="#f2f6fa" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">Warmwasser</text></g><g transform="translate(824,0)"><rect x="98" y="92" width="4" height="30" fill="#e2543a" opacity="0.7"/><rect x="98" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><defs>
+  <linearGradient id="t4-ring" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#3b444e"/>
+    <stop offset="100%" stop-color="#1d242c"/>
+  </linearGradient>
+</defs>
+
+<!-- Kreislauf als Ring: der Zirkulationskreis hat keinen Speicher -->
+<circle cx="100" cy="206" r="58" fill="url(#t4-ring)" stroke="#4a5561" stroke-width="2"/>
+<circle cx="100" cy="206" r="42" fill="none" stroke="#4a5561" stroke-width="1"
+        opacity="0.5"/>
+
+<!-- Umlaufpfeile: oben warm hin, unten kühler zurück -->
+<path d="M 100 164 a 42 42 0 0 1 36 21" fill="none" stroke="#e2543a"
+      stroke-width="6" stroke-linecap="round"/>
+<path d="M 136 185 l 6 -14 l -15 2 Z" fill="#e2543a"/>
+<path d="M 100 248 a 42 42 0 0 1 -36 -21" fill="none" stroke="#3a7fe2"
+      stroke-width="6" stroke-linecap="round"/>
+<path d="M 64 227 l -6 14 l 15 -2 Z" fill="#3a7fe2"/>
+
+<!-- Pumpe in der Mitte -->
+<circle cx="100" cy="206" r="18" fill="#1d242c" stroke="#4a5561"
+        stroke-width="1.5"/>
+<g fill="#f2f6fa" opacity="0.35">
+  <path d="M 100 206 L 116 200 A 17 17 0 0 0 105 190 Z"/>
+  <path d="M 100 206 L 92 222 A 17 17 0 0 0 108 219 Z"/>
+  <path d="M 100 206 L 85 196 A 17 17 0 0 0 85 214 Z"/>
+</g><text x="100" y="374" text-anchor="middle" fill="#f2f6fa" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">Zirkulation</text></g><g transform="translate(1024,0)"><rect x="98" y="92" width="4" height="30" fill="#e2543a" opacity="0.7"/><rect x="98" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><defs>
+  <linearGradient id="t5-gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#3b444e"/>
+    <stop offset="100%" stop-color="#1d242c"/>
+  </linearGradient>
+</defs>
+
+<!-- ZSP: ein Modul in der Leitung, kein eigener Kreis. Es sitzt zwischen
+     Vor- und Rücklauf und regelt eine Pumpe bzw. schaltet ein Relais. -->
+<rect x="52" y="150" width="96" height="116" rx="12" fill="url(#t5-gehaeuse)"
+      stroke="#4a5561" stroke-width="2"/>
+
+<!-- Klemmleiste oben: das Modul ist ein Schaltgerät -->
+<g fill="#1d242c">
+  <rect x="62" y="158" width="76" height="12" rx="4"/>
+</g>
+<g fill="#4a5561">
+  <circle cx="74" cy="164" r="2.5"/>
+  <circle cx="88" cy="164" r="2.5"/>
+  <circle cx="102" cy="164" r="2.5"/>
+  <circle cx="116" cy="164" r="2.5"/>
+  <circle cx="130" cy="164" r="2.5"/>
+</g>
+
+<!-- Pumpe als Kreis mit Laufrad, wie im Hydraulikplan -->
+<circle cx="100" cy="212" r="26" fill="#1d242c" stroke="#4a5561"
+        stroke-width="2"/>
+<g fill="#f2f6fa" opacity="0.4">
+  <path d="M 100 212 L 124 204 A 25 25 0 0 0 108 192 Z"/>
+  <path d="M 100 212 L 92 236 A 25 25 0 0 0 116 230 Z"/>
+  <path d="M 100 212 L 78 199 A 25 25 0 0 0 78 226 Z"/>
+</g>
+<circle cx="100" cy="212" r="5" fill="#4a5561"/>
+
+<!-- Betriebslampe -->
+<circle cx="136" cy="252" r="4" fill="#e2543a" opacity="0.75"/>
+
+<!-- Anlegefühler an der Leitung darunter -->
+<rect x="60" y="248" width="18" height="10" rx="4" fill="#1d242c"
+      stroke="#4a5561" stroke-width="1.2"/>
+<line x1="69" y1="258" x2="69" y2="288" stroke="#4a5561" stroke-width="2"/><text x="100" y="374" text-anchor="middle" fill="#f2f6fa" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">ZSP-PWA</text></g><rect x="84.5" y="156.1" width="78.2" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="123.6" y="175.1" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">72,4 °C</text><rect x="97.4" y="236.1" width="52.4" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="123.6" y="255.1" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">38 %</text><rect x="285.4" y="154.2" width="78.2" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="324.5" y="173.2" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">68,1 °C</text><rect x="285.4" y="243.9" width="78.2" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="324.5" y="262.9" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">42,7 °C</text><rect x="485.1" y="156.1" width="78.2" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="524.2" y="175.1" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">45,0 °C</text><rect x="485.1" y="236.1" width="78.2" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="524.2" y="255.1" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">21,5 °C</text><rect x="684.7" y="192.2" width="78.2" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="723.8" y="211.2" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">51,2 °C</text><rect x="884.4" y="192.2" width="78.2" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="923.5" y="211.2" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">38,6 °C</text><rect x="1085.3" y="192.2" width="78.2" height="28" rx="8" fill="#0a0e13" opacity="0.72"/><text x="1124.4" y="211.2" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">58,3 °C</text></svg>

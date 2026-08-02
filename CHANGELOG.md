@@ -6,6 +6,52 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.2.0-beta.1] - 2026-08-02
+
+### Hinzugefügt
+
+- **Das Anlagenschaubild ist gezeichnet statt skizziert.** Kessel, Puffer,
+  Heizkörper, Warmwasserspeicher und Zirkulationskreis haben jetzt eine eigene
+  Zeichnung mit Wärmetauscher, Schichtung, Registerheizschlange und
+  Umlaufpumpe – statt der bunten Rechtecke von bisher.
+- **Auswahl des Wärmeerzeugers je Anlage** unter *Einstellungen → Anlage*:
+  Hackgut, Pellets, Scheitholz, Wärmepumpe, Gas/Öl oder neutral. Jede Art hat
+  ihre eigene Zeichnung – der Hackgutkessel bekommt die Einschubschnecke, der
+  Pelletskessel den Vorratsbehälter, die Wärmepumpe den Ventilator.
+- Ohne Auswahl **erkennt HeatNexus die Art selbst**: zuerst am Brennstoff, den
+  die Anlage meldet, sonst am Namen der Funktion. Lässt sich nichts sagen, wird
+  neutral gezeichnet – geraten wird nicht.
+- **Solaranlage und Pumpenmodul haben eigene Zeichnungen.** Der Kollektor
+  erscheint als geneigtes Feld mit Sonne, das ZSP als Schaltgerät mit Pumpe und
+  Anlegefühler. Bisher sah das ZSP genauso aus wie die
+  Warmwasser-Zirkulation – im Schaubild standen zwei gleiche Kreise
+  nebeneinander, die verschiedene Dinge meinten.
+- Eine **Wärmepumpe** wird jetzt als Wärmeerzeuger gezeichnet und nicht mehr
+  als namenloser Kasten. Sie braucht dafür weder eine Auswahl noch einen
+  sprechenden Namen.
+- **Alle Datenpunkte und Auswahlwerte stehen jetzt als Dokument bereit.**
+  [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md) führt je Funktionstyp jeden
+  Datenpunkt mit Adresse, Name und Bedienebene, [`docs/ENUMS.md`](docs/ENUMS.md)
+  alle Auswahltabellen. Beide werden aus der Geräte-Datenbank erzeugt, und ein
+  Test schlägt fehl, wenn sie veralten. Bisher war das nur als JSON vorhanden.
+
+### Behoben
+
+- **Die Funktionstypen waren an mehreren Stellen falsch zugeordnet.** Sie waren
+  aus Namen abgeleitet statt aus der Parameterliste des Herstellers. Richtig ist
+  jetzt: 1 und 14 Heizkreis, 2 Warmwasser, 4 Kaskade, 5 und 13 Solar,
+  6 Gas-/Ölkessel, 7 Wärmepumpe, 8 E-Heizung, 15 Umschaltung, 16 und 21 Puffer,
+  20 und 24 Pumpenmodul, 26 und 27 Wärmepumpe. Betroffen waren Reihenfolge und
+  Symbol der Abschnitte im Dashboard sowie die Zeichnung im Schaubild – eine
+  Anlage mit Solarmodul sah dort bisher einen Warmwasserspeicher, eine
+  Wärmepumpe einen namenlosen Kasten.
+- Der Diagnose-Export listete unter *Geräte* zwanzigmal dasselbe Gerät statt
+  der vorhandenen Anlagenteile. Jetzt eine Zeile je Anlagenteil, mit
+  Funktionstyp und Zahl der Datenpunkte.
+- Die Gerätesonde (`tools/heatnexus_probe.py`) las Umlaute anders als die
+  Integration und machte aus „Hebebühne" ein „Hebeb�hne". Beide benutzen jetzt
+  dieselbe Zeichensatzkette.
+
 ## [1.1.1] - 2026-08-02
 
 ### Behoben

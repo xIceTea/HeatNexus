@@ -1,0 +1,42 @@
+<defs>
+  <linearGradient id="gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+  <radialGradient id="luft" cx="0.5" cy="0.5" r="0.5">
+    <stop offset="0%" stop-color="{{kalt}}" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="{{kalt}}" stop-opacity="0.08"/>
+  </radialGradient>
+</defs>
+
+<!-- Gehäuse der Ausseneinheit -->
+<rect x="36" y="126" width="128" height="162" rx="14" fill="url(#gehaeuse)"
+      stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Lamellen des Verdampfers, links seitlich sichtbar -->
+<g stroke="{{kalt}}" stroke-width="2" opacity="0.35">
+  <line x1="44" y1="142" x2="44" y2="272"/>
+  <line x1="50" y1="142" x2="50" y2="272"/>
+  <line x1="56" y1="142" x2="56" y2="272"/>
+</g>
+
+<!-- Ventilatorgitter -->
+<circle cx="110" cy="196" r="44" fill="url(#luft)" stroke="{{rahmen}}" stroke-width="2"/>
+<g stroke="{{titel}}" stroke-width="1" opacity="0.22" fill="none">
+  <circle cx="110" cy="196" r="34"/>
+  <circle cx="110" cy="196" r="24"/>
+  <circle cx="110" cy="196" r="14"/>
+</g>
+<!-- Flügel -->
+<g fill="{{titel}}" opacity="0.32">
+  <path d="M 110 196 L 138 178 A 34 34 0 0 0 110 162 Z"/>
+  <path d="M 110 196 L 96 229 A 34 34 0 0 0 128 220 Z"/>
+  <path d="M 110 196 L 78 176 A 34 34 0 0 0 82 213 Z"/>
+</g>
+<circle cx="110" cy="196" r="6" fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.5"/>
+
+<!-- Verdichter im Sockel -->
+<rect x="70" y="252" width="80" height="28" rx="8" fill="{{korpus_dunkel}}"
+      stroke="{{rahmen}}" stroke-width="1.5"/>
+<circle cx="88" cy="266" r="6" fill="{{glut}}" opacity="0.55"/>
+<rect x="102" y="262" width="38" height="8" rx="4" fill="{{titel}}" opacity="0.2"/>

@@ -42,6 +42,7 @@ from .const import (
     CONF_DASHBOARD,
     CONF_ENABLE_ADVANCED,
     CONF_HILFE,
+    CONF_KESSELART,
     CONF_LABEL,
     CONF_LEVELS,
     CONF_MELDUNG_EINLESEN,
@@ -52,6 +53,9 @@ from .const import (
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
     DOMAIN,
+    KESSELART_AUTO,
+    KESSELART_BESCHRIFTUNG,
+    KESSELARTEN,
     LEVEL_BESCHRIFTUNG,
     LEVEL_INFO,
     LEVEL_OPERATE,
@@ -153,6 +157,21 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
         vol.Required(
             CONF_WRITABLE_ADVANCED, default=bool(defaults.get(CONF_WRITABLE_ADVANCED, False))
         ): bool,
+        # Wirkt nur auf die Zeichnung im Schaubild. Steht trotzdem hier bei
+        # der Anlage und nicht in den allgemeinen Einstellungen: Zwei Anlagen
+        # in einem Eintrag können verschiedene Wärmeerzeuger haben.
+        vol.Required(
+            CONF_KESSELART, default=defaults.get(CONF_KESSELART, KESSELART_AUTO)
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=art, label=KESSELART_BESCHRIFTUNG[art])
+                    for art in KESSELARTEN
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+                translation_key="kesselart",
+            )
+        ),
     }
     if mit_intervall:
         felder[vol.Required(CONF_DASHBOARD, default=bool(defaults.get(CONF_DASHBOARD, True)))] = (
@@ -183,10 +202,12 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
     for pflicht in (LEVEL_INFO, LEVEL_OPERATE):
         if pflicht not in levels:
             levels.append(pflicht)
+    kesselart = raw.get(CONF_KESSELART, KESSELART_AUTO)
     ergebnis: dict[str, Any] = {
         CONF_LEVELS: [lvl for lvl in ALL_LEVELS if lvl in levels],
         CONF_ENABLE_ADVANCED: bool(raw.get(CONF_ENABLE_ADVANCED, False)),
         CONF_WRITABLE_ADVANCED: bool(raw.get(CONF_WRITABLE_ADVANCED, False)),
+        CONF_KESSELART: kesselart if kesselart in KESSELARTEN else KESSELART_AUTO,
     }
     if CONF_UPDATE_INTERVAL in raw:
         ergebnis[CONF_UPDATE_INTERVAL] = int(raw[CONF_UPDATE_INTERVAL])

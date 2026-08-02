@@ -1,0 +1,28 @@
+<defs>
+  <linearGradient id="ring" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+</defs>
+
+<!-- Kreislauf als Ring: der Zirkulationskreis hat keinen Speicher -->
+<circle cx="100" cy="206" r="58" fill="url(#ring)" stroke="{{rahmen}}" stroke-width="2"/>
+<circle cx="100" cy="206" r="42" fill="none" stroke="{{rahmen}}" stroke-width="1"
+        opacity="0.5"/>
+
+<!-- Umlaufpfeile: oben warm hin, unten kühler zurück -->
+<path d="M 100 164 a 42 42 0 0 1 36 21" fill="none" stroke="{{vorlauf}}"
+      stroke-width="6" stroke-linecap="round"/>
+<path d="M 136 185 l 6 -14 l -15 2 Z" fill="{{vorlauf}}"/>
+<path d="M 100 248 a 42 42 0 0 1 -36 -21" fill="none" stroke="{{ruecklauf}}"
+      stroke-width="6" stroke-linecap="round"/>
+<path d="M 64 227 l -6 14 l 15 -2 Z" fill="{{ruecklauf}}"/>
+
+<!-- Pumpe in der Mitte -->
+<circle cx="100" cy="206" r="18" fill="{{korpus_dunkel}}" stroke="{{rahmen}}"
+        stroke-width="1.5"/>
+<g fill="{{titel}}" opacity="0.35">
+  <path d="M 100 206 L 116 200 A 17 17 0 0 0 105 190 Z"/>
+  <path d="M 100 206 L 92 222 A 17 17 0 0 0 108 219 Z"/>
+  <path d="M 100 206 L 85 196 A 17 17 0 0 0 85 214 Z"/>
+</g>

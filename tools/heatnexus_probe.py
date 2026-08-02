@@ -103,18 +103,26 @@ class Probe:
             self._local.opener = opener
         return opener
 
-    @staticmethod
-    def _decode(raw: bytes) -> str:
+    # Dieselbe Kette wie in ``client._decode``. Sie muss dieselbe sein: Sonst
+    # zeigt die Sonde einen anderen Namen als die Integration, und man sucht
+    # den Fehler an der falschen Stelle. CP850 ist die DOS-Codepage der
+    # Steuerung – dort liegt „ü" auf 0x81, einem in CP1252 unbelegten Byte.
+    ZEICHENSAETZE = ("utf-8", "cp1252", "cp850")
+
+    @classmethod
+    def _decode(cls, raw: bytes) -> str:
         """Antwort dekodieren.
 
-        Die Geräte liefern Texte nicht durchgängig als UTF-8 – Namen wie
-        „Hebebühne" kommen als Latin-1/CP1252. Ohne Rückfall werden daraus
-        Fragezeichen.
+        Die Geräte liefern Texte nicht durchgängig als UTF-8: Von Hand
+        vergebene Funktionsnamen kommen im Zeichensatz der Steuerung zurück.
         """
-        try:
-            return raw.decode("utf-8")
-        except UnicodeDecodeError:
-            return raw.decode("cp1252", "replace")
+        for zeichensatz in cls.ZEICHENSAETZE:
+            try:
+                return raw.decode(zeichensatz)
+            except UnicodeDecodeError:
+                continue
+        # latin-1 bildet jedes Byte ab und schlägt daher nie fehl.
+        return raw.decode("latin-1")
 
     def get(self, url: str):
         """GET mit Zählung und Wiederholung; gibt (json_oder_None, status) zurück."""

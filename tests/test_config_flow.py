@@ -94,3 +94,32 @@ def test_schalter_und_intervall_werden_uebernommen(flow):
     assert options[CONF_ENABLE_ADVANCED] is True
     assert options[CONF_WRITABLE_ADVANCED] is True
     assert options[CONF_UPDATE_INTERVAL] == 45
+
+
+def test_kesselart_wird_uebernommen_und_geprueft(flow):
+    """Die Kesselart wirkt nur auf das Schaubild – aber sie muss ankommen."""
+    from custom_components.heatnexus.const import CONF_KESSELART, KESSELART_AUTO
+
+    assert flow.normalize_options({CONF_KESSELART: "pellets"})[CONF_KESSELART] == "pellets"
+    # Fehlt sie oder ist sie unbekannt, wird automatisch erkannt.
+    assert flow.normalize_options({})[CONF_KESSELART] == KESSELART_AUTO
+    assert flow.normalize_options({CONF_KESSELART: "dampfmaschine"})[CONF_KESSELART] == (
+        KESSELART_AUTO
+    )
+
+
+def test_kesselart_aendert_den_umfang_nicht(flow):
+    """Eine andere Zeichnung darf die Anlage nicht neu einlesen lassen.
+
+    Der Erkennungsstand hängt am Umfang. Käme die Kesselart darin vor, kostete
+    jede Umstellung einen vollen Neuabzug von 30–120 s.
+    """
+    from custom_components.heatnexus import _scope_fingerprint
+
+    umfang = {
+        "levels": ["info", "operate"],
+        "enable_advanced": False,
+        "writable_advanced": False,
+        "username": "USER",
+    }
+    assert _scope_fingerprint(umfang) == _scope_fingerprint({**umfang, "kesselart": "pellets"})

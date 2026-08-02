@@ -1,0 +1,41 @@
+<defs>
+  <linearGradient id="gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+</defs>
+
+<!-- ZSP: ein Modul in der Leitung, kein eigener Kreis. Es sitzt zwischen
+     Vor- und Rücklauf und regelt eine Pumpe bzw. schaltet ein Relais. -->
+<rect x="52" y="150" width="96" height="116" rx="12" fill="url(#gehaeuse)"
+      stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Klemmleiste oben: das Modul ist ein Schaltgerät -->
+<g fill="{{korpus_dunkel}}">
+  <rect x="62" y="158" width="76" height="12" rx="4"/>
+</g>
+<g fill="{{rahmen}}">
+  <circle cx="74" cy="164" r="2.5"/>
+  <circle cx="88" cy="164" r="2.5"/>
+  <circle cx="102" cy="164" r="2.5"/>
+  <circle cx="116" cy="164" r="2.5"/>
+  <circle cx="130" cy="164" r="2.5"/>
+</g>
+
+<!-- Pumpe als Kreis mit Laufrad, wie im Hydraulikplan -->
+<circle cx="100" cy="212" r="26" fill="{{korpus_dunkel}}" stroke="{{rahmen}}"
+        stroke-width="2"/>
+<g fill="{{titel}}" opacity="0.4">
+  <path d="M 100 212 L 124 204 A 25 25 0 0 0 108 192 Z"/>
+  <path d="M 100 212 L 92 236 A 25 25 0 0 0 116 230 Z"/>
+  <path d="M 100 212 L 78 199 A 25 25 0 0 0 78 226 Z"/>
+</g>
+<circle cx="100" cy="212" r="5" fill="{{rahmen}}"/>
+
+<!-- Betriebslampe -->
+<circle cx="136" cy="252" r="4" fill="{{glut}}" opacity="0.75"/>
+
+<!-- Anlegefühler an der Leitung darunter -->
+<rect x="60" y="248" width="18" height="10" rx="4" fill="{{korpus_dunkel}}"
+      stroke="{{rahmen}}" stroke-width="1.2"/>
+<line x1="69" y1="258" x2="69" y2="288" stroke="{{rahmen}}" stroke-width="2"/>

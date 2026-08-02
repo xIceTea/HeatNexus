@@ -28,27 +28,45 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .const import DASHBOARD_TITEL, DASHBOARD_URL, DOMAIN
-from .schema import anlagenschema
+from .const import (
+    CONF_KESSELART,
+    DASHBOARD_TITEL,
+    DASHBOARD_URL,
+    DOMAIN,
+    KESSELART_AUTO,
+)
+from .schema import anlagenschema, kesselart_erkennen
 
 _LOGGER = logging.getLogger(__name__)
 
 # Fachliche Reihenfolge der Anlagenteile. Alphabetisch sortiert stünde der
 # Puffer vor dem Kessel und ein von Hand benannter Heizkreis irgendwo
 # dazwischen – hier bestimmt der Funktionstyp die Reihenfolge.
+#
+# Welche Zahl welche Funktion ist, steht belegt in `schema.ART_JE_FCT` und
+# ausführlich in `_intern/HERSTELLER-REFERENZ.md` 5.3. Nicht nach Namen raten:
+# Bis 1.2.0 stand hier 4 als Solar, 5 als Warmwasser, 2 als Kessel und 21 als
+# Solar – alles vier falsch. Typen ohne Beleg stehen nicht in der Liste und
+# landen hinten.
 FCT_RANG: dict[int, int] = {
     25: 10,  # PuroWIN Hackgutkessel
     9: 10,  # BioWIN Pelletskessel
-    1: 12,  # Kessel allgemein
-    2: 12,
-    10: 14,  # Kaskade / Zusatzkessel
-    16: 20,  # Puffer
-    14: 30,  # Heizkreis
-    15: 32,  # Heizkreis / Umschaltung
-    4: 40,  # Solar
-    5: 42,  # Warmwasser
-    6: 44,
-    20: 50,  # Zirkulation
+    7: 10,  # Wärmepumpe
+    26: 10,  # Wärmepumpe (Energiemanagement)
+    27: 10,  # Wärmepumpe
+    6: 12,  # Gas-/Ölkessel
+    8: 12,  # E-Heizung / Zusatzheizung
+    10: 14,  # Automatik-/Zusatzkessel
+    4: 16,  # Kaskade ("KAS")
+    15: 18,  # Umschaltung Automatikkessel / Festbrennstoff / Puffer
+    16: 20,  # Puffer (B-PLMi)
+    21: 22,  # Puffer
+    24: 24,  # Pumpe Wärmeerzeuger / Schichtladung
+    1: 30,  # Heizkreis (Infinity PLUS)
+    14: 30,  # Heizkreis (UML / UMLZ)
+    2: 42,  # Warmwasser
+    5: 44,  # Solar
+    20: 50,  # ZSP Pumpen-/Relaismodul
 }
 RANG_UNBEKANNT = 80
 
@@ -56,15 +74,21 @@ RANG_UNBEKANNT = 80
 FCT_SYMBOL: dict[int, str] = {
     25: "mdi:fire",
     9: "mdi:fire",
-    1: "mdi:fire",
-    2: "mdi:fire",
     10: "mdi:fire",
+    7: "mdi:heat-pump",
+    26: "mdi:heat-pump",
+    27: "mdi:heat-pump",
+    6: "mdi:fire",
+    8: "mdi:heating-coil",
+    4: "mdi:layers-triple",
+    15: "mdi:valve",
     16: "mdi:storage-tank",
+    21: "mdi:storage-tank",
+    24: "mdi:pump",
+    1: "mdi:radiator",
     14: "mdi:radiator",
-    15: "mdi:radiator",
-    4: "mdi:solar-power-variant",
-    5: "mdi:water-boiler",
-    6: "mdi:water-boiler",
+    2: "mdi:water-boiler",
+    5: "mdi:solar-power-variant",
     20: "mdi:pump",
 }
 SYMBOL_UNBEKANNT = "mdi:heating-coil"
@@ -287,6 +311,27 @@ def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
     return zuordnung
 
 
+def _kesselart_je_geraet(hass: HomeAssistant) -> dict[str, str]:
+    """Eingestellte Kesselart je Gerätekennung.
+
+    Die Option liegt je Anlage unter deren Adresse; die Geräte tragen sie nicht.
+    Der Umweg über die Koordinatoren stellt die Verbindung her – dieselbe
+    Zuordnung wie beim Funktionstyp.
+    """
+    zuordnung: dict[str, str] = {}
+    for entry_id, eintrag in hass.data.get(DOMAIN, {}).items():
+        if not isinstance(eintrag, dict):
+            continue
+        entry = hass.config_entries.async_get_entry(entry_id)
+        optionen = (entry.options if entry else None) or {}
+        for host, coordinator in (eintrag.get("coordinators") or {}).items():
+            wahl = (optionen.get(host) or {}).get(CONF_KESSELART) or KESSELART_AUTO
+            for beschreibung in (coordinator.data or {}).get("devices", []):
+                if kennung := beschreibung.get("device_id"):
+                    zuordnung.setdefault(kennung, wahl)
+    return zuordnung
+
+
 def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
     """Anlagen mit ihren Anlagenteilen und deren sichtbaren Entitäten.
 
@@ -298,6 +343,7 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
     geraete_registry = dr.async_get(hass)
     entitaeten_registry = er.async_get(hass)
     fct_je_geraet = _fct_je_geraet(hass)
+    kesselart_je_geraet = _kesselart_je_geraet(hass)
 
     teile: dict[str, dict[str, Any]] = {}
     for geraet in geraete_registry.devices.values():
@@ -312,6 +358,7 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
             "fct_type": fct,
             "rang": _rang(fct),
             "symbol": _symbol(fct),
+            "kesselart_wahl": kesselart_je_geraet.get(kennung, KESSELART_AUTO),
             "entitaeten": [],
         }
 
@@ -337,6 +384,10 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
                 "bereich": eintrag.entity_id.split(".")[0],
                 "hat_wert": hat_wert,
                 "wert": zahl,
+                # Der Zustand als Text: Zahlen stehen in "wert", aber die
+                # Kesselart wird am gemeldeten Brennstoff erkannt, und der ist
+                # ein Wort.
+                "text": zustand.state if hat_wert else None,
                 "state_class": (zustand.attributes.get("state_class") if zustand else None),
             }
         )
@@ -357,6 +408,17 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
 
     for gruppe in anlagen.values():
         gruppe["teile"].sort(key=lambda t: (t["rang"], t["name"]))
+        # Die ausdrückliche Auswahl schlägt die Erkennung; steht überall
+        # "automatisch", entscheidet der gemeldete Brennstoff bzw. der Name.
+        gewaehlt = next(
+            (
+                t["kesselart_wahl"]
+                for t in gruppe["teile"]
+                if t.get("kesselart_wahl") not in (None, KESSELART_AUTO)
+            ),
+            None,
+        )
+        gruppe["kesselart"] = gewaehlt or kesselart_erkennen(gruppe["teile"])
 
     return sorted(anlagen.values(), key=lambda a: a["name"])
 
@@ -496,7 +558,7 @@ def _anlagenbild(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
     """
     abschnitte: list[dict[str, Any]] = []
     for anlage in anlagen:
-        bild = anlagenschema(anlage["teile"])
+        bild = anlagenschema(anlage["teile"], anlage.get("kesselart"))
         if bild is None:
             continue
         abschnitte += _abschnitt(anlage["name"] or "Anlage", [bild], "mdi:sitemap-outline")

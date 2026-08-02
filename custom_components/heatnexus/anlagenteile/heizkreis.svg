@@ -1,0 +1,34 @@
+<defs>
+  <linearGradient id="waerme" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{glut}}"/>
+    <stop offset="100%" stop-color="{{warm}}"/>
+  </linearGradient>
+</defs>
+
+<!-- Heizkörper: Sammelrohre oben und unten, Glieder dazwischen -->
+<rect x="42" y="132" width="116" height="12" rx="6" fill="{{korpus}}"
+      stroke="{{rahmen}}" stroke-width="1.5"/>
+<rect x="42" y="266" width="116" height="12" rx="6" fill="{{korpus}}"
+      stroke="{{rahmen}}" stroke-width="1.5"/>
+
+<g fill="url(#waerme)" stroke="{{rahmen}}" stroke-width="1">
+  <rect x="50" y="140" width="14" height="132" rx="7"/>
+  <rect x="72" y="140" width="14" height="132" rx="7"/>
+  <rect x="94" y="140" width="14" height="132" rx="7"/>
+  <rect x="116" y="140" width="14" height="132" rx="7"/>
+  <rect x="138" y="140" width="14" height="132" rx="7"/>
+</g>
+
+<!-- Glanzkante, damit die Glieder rund wirken -->
+<g fill="#ffffff" opacity="0.16">
+  <rect x="53" y="146" width="4" height="120" rx="2"/>
+  <rect x="75" y="146" width="4" height="120" rx="2"/>
+  <rect x="97" y="146" width="4" height="120" rx="2"/>
+  <rect x="119" y="146" width="4" height="120" rx="2"/>
+  <rect x="141" y="146" width="4" height="120" rx="2"/>
+</g>
+
+<!-- Mischer im Vorlauf: das Stellglied des Kreises -->
+<circle cx="100" cy="112" r="11" fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.5"/>
+<path d="M 94 112 L 106 112 M 100 106 L 100 118" stroke="{{titel}}" stroke-width="2"
+      opacity="0.6" stroke-linecap="round"/>

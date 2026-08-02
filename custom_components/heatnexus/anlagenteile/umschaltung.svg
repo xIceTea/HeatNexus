@@ -1,0 +1,35 @@
+<defs>
+  <linearGradient id="gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+</defs>
+
+<!-- Hydraulische Weiche bzw. Umschaltung: kein Speicher, kein Erzeuger,
+     sondern das Bauteil, das entscheidet, wohin der Volumenstrom geht. -->
+<rect x="72" y="132" width="56" height="152" rx="14" fill="url(#gehaeuse)"
+      stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Innenströmung: oben warm, unten kalt, in der Mitte die Trennung -->
+<rect x="80" y="142" width="40" height="54" rx="8" fill="{{vorlauf}}" opacity="0.28"/>
+<rect x="80" y="220" width="40" height="54" rx="8" fill="{{ruecklauf}}" opacity="0.28"/>
+<line x1="76" y1="208" x2="124" y2="208" stroke="{{rahmen}}" stroke-width="1.5"
+      opacity="0.6" stroke-dasharray="4 4"/>
+
+<!-- Abgänge nach links und rechts -->
+<g stroke="{{vorlauf}}" stroke-width="5" stroke-linecap="round" opacity="0.8">
+  <line x1="42" y1="166" x2="72" y2="166"/>
+  <line x1="128" y1="166" x2="158" y2="166"/>
+</g>
+<g stroke="{{ruecklauf}}" stroke-width="5" stroke-linecap="round" opacity="0.8">
+  <line x1="42" y1="250" x2="72" y2="250"/>
+  <line x1="128" y1="250" x2="158" y2="250"/>
+</g>
+
+<!-- Dreiwegeventil mit Antrieb -->
+<circle cx="100" cy="208" r="17" fill="{{korpus_dunkel}}" stroke="{{rahmen}}"
+        stroke-width="2"/>
+<path d="M 100 208 L 100 193 M 100 208 L 113 216 M 100 208 L 87 216"
+      stroke="{{titel}}" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+<rect x="90" y="176" width="20" height="12" rx="4" fill="{{korpus}}"
+      stroke="{{rahmen}}" stroke-width="1.2"/>

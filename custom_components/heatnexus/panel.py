@@ -652,7 +652,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                     eintrag["zustand_wenn"] = list(WARMWASSER_LAEDT)
                 schnellzugriff.append(eintrag)
 
-    bild = anlagenschema(anlage["teile"])
+    bild = anlagenschema(anlage["teile"], anlage.get("kesselart"))
     # Eine in den Optionen gewählte Entität hat Vorrang: Der Außenfühler hängt
     # oft an einer anderen Anlage als der, deren Werte man gerade ansieht.
     aussen = aussen_gewaehlt or _kennung(alle, AUSSENTEMPERATUR)

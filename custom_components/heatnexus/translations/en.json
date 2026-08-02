@@ -114,13 +114,15 @@
           "levels": "Levels",
           "enable_advanced": "Enable service/factory level right away",
           "writable_advanced": "Allow writing service/factory parameters",
-          "username": "Access"
+          "username": "Access",
+          "kesselart": "Heat generator (diagram)"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
-          "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant."
+          "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
+          "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes."
         }
       }
     }
@@ -132,6 +134,17 @@
         "operate": "Operator level (control)",
         "service": "Service level (expert parameters)",
         "oem": "Factory level (manufacturer parameters)"
+      }
+    },
+    "kesselart": {
+      "options": {
+        "auto": "Detect automatically",
+        "hackgut": "Wood chip boiler",
+        "pellets": "Pellet boiler",
+        "scheitholz": "Log wood boiler",
+        "waermepumpe": "Heat pump",
+        "gas_oel": "Gas or oil boiler",
+        "standard": "Neutral (no fuel reference)"
       }
     }
   },

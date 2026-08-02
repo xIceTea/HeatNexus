@@ -1,0 +1,40 @@
+<defs>
+  <linearGradient id="gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+  <linearGradient id="flamme" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0%" stop-color="{{glut}}"/>
+    <stop offset="70%" stop-color="{{glut}}" stop-opacity="0.35"/>
+    <stop offset="100%" stop-color="{{glut}}" stop-opacity="0"/>
+  </linearGradient>
+</defs>
+
+<!-- Schmales Wandgerät -->
+<rect x="52" y="126" width="96" height="162" rx="12" fill="url(#gehaeuse)"
+      stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Bedienteil -->
+<rect x="62" y="138" width="76" height="22" rx="6" fill="{{korpus_dunkel}}"
+      stroke="{{rahmen}}" stroke-width="1"/>
+<rect x="69" y="145" width="38" height="8" rx="4" fill="{{titel}}" opacity="0.25"/>
+<circle cx="128" cy="149" r="3.5" fill="{{glut}}" opacity="0.8"/>
+
+<!-- Wärmetauscher als Lamellenpaket -->
+<g stroke="{{rahmen}}" stroke-width="1.5" opacity="0.75">
+  <line x1="64" y1="176" x2="136" y2="176"/>
+  <line x1="64" y1="186" x2="136" y2="186"/>
+  <line x1="64" y1="196" x2="136" y2="196"/>
+  <line x1="64" y1="206" x2="136" y2="206"/>
+  <line x1="64" y1="216" x2="136" y2="216"/>
+</g>
+
+<!-- Brenner mit Flammenreihe -->
+<rect x="62" y="234" width="76" height="14" rx="6" fill="{{korpus_dunkel}}"
+      stroke="{{rahmen}}" stroke-width="1.5"/>
+<rect x="66" y="246" width="68" height="30" fill="url(#flamme)"/>
+<g fill="{{glut}}">
+  <path d="M 78 276 q -5 -14 0 -22 q 5 8 0 22 Z"/>
+  <path d="M 100 278 q -6 -17 0 -27 q 6 10 0 27 Z"/>
+  <path d="M 122 276 q -5 -14 0 -22 q 5 8 0 22 Z"/>
+</g>

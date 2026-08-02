@@ -80,6 +80,26 @@ hinten. Ein Frontend-Modul gibt es bewusst nicht: Eine Strategie im Browser
 steht erst zur Verfügung, wenn die Seite sie geladen hat – nach einem Neustart
 ist das nicht der Fall.
 
+## Anlagenschaubild
+
+`schema.py` setzt das Schaubild aus **SVG-Dateien** in `anlagenteile/`
+zusammen und übergibt es als `data:`-URL an eine `picture-elements`-Karte; die
+Live-Werte liegen als eigene Marken darüber. Jede Datei zeichnet ein Bauteil in
+ein Feld von 200 × 392 mit der Mitte bei x = 100, dem Vorlauf auf y = 92 und dem
+Rücklauf auf y = 318. Farben stehen darin als Platzhalter (`{{korpus}}`,
+`{{glut}}`, …) und werden beim Zusammensetzen eingesetzt; Kennungen bekommen je
+Anlagenteil einen eigenen Präfix, damit zwei Puffer sich nicht denselben Verlauf
+teilen. Fehlt eine Datei, greift eine schlichte gezeichnete Ersatzform.
+
+Für den Kessel entscheidet die **Kesselart** über die Datei
+(`kessel-<art>.svg`, Rückfall `kessel.svg`). Sie kommt aus der Option
+`kesselart` je Anlage; steht die auf „automatisch", wird sie aus dem gemeldeten
+Brennstoff (`38/126`, `38/127`) und sonst aus dem Funktionsnamen abgeleitet. Die
+Kesselart wirkt **nur auf die Zeichnung** – sie steht bewusst nicht im
+Umfangs-Fingerabdruck, ein Wechsel liest die Anlage also nicht neu ein.
+
+`schema.py` importiert nichts aus Home Assistant und ist ohne HA testbar.
+
 ## Automations-Vorlagen
 
 `blueprints.py` legt die mitgelieferten Vorlagen aus
@@ -136,6 +156,8 @@ von Hand gepflegt.
 | `aiohelper.py` | nebenläufigkeitssichere Digest-Authentifizierung |
 | `__init__.py` | Coordinator, Cache, Setup/Unload, Dienste |
 | `dashboard.py` | mitgeliefertes Dashboard, serverseitig gebaut |
+| `panel.py` | eigener Eintrag in der Seitenleiste, Aufteilung serverseitig |
+| `schema.py` | Anlagenschaubild aus den Bauteildateien in `anlagenteile/` |
 | `blueprints.py` | Automations-Vorlagen bereitstellen |
 | `diagnostics.py` | Diagnosedaten für Fehlerberichte |
 | `entity.py` | Basisklasse: unique_id, Gerätezuordnung, Poll-Registrierung |

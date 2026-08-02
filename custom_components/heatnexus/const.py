@@ -41,6 +41,11 @@ CONF_AUSSENTEMPERATUR = "aussentemperatur"
 # Erklärungen („?") in der eigenen Oberfläche. Standardmäßig an – wer die
 # Anlage kennt, schaltet sie ab.
 CONF_HILFE = "hilfe"
+# Art des Wärmeerzeugers. Wirkt **nur auf die Zeichnung im Schaubild** – keine
+# Entität, keine Einheit, kein Datenpunkt hängt davon ab. „auto" leitet sie aus
+# dem gemeldeten Brennstoff und dem Funktionsnamen ab; die Auswahl ist dafür
+# da, dass eine falsch erkannte Anlage trotzdem richtig aussieht.
+CONF_KESSELART = "kesselart"
 PANEL_URL = "heatnexus-anlage"
 PANEL_TITEL = "HeatNexus"
 PANEL_ELEMENT = "heatnexus-panel"
@@ -83,6 +88,33 @@ DEFAULT_LEVELS = [LEVEL_INFO, LEVEL_OPERATE, LEVEL_SERVICE]
 # Diese Ebenen gelten als "fortgeschritten": Entities werden nur auf Wunsch
 # aktiviert und nur auf Wunsch bedienbar gemacht.
 ADVANCED_LEVELS = {LEVEL_SERVICE, LEVEL_OEM}
+
+# Art des Wärmeerzeugers für das Schaubild. Die Schlüssel sind zugleich die
+# Namenszusätze der Bauteildateien: `kessel-<art>.svg`. Wer eine weitere Art
+# zeichnen will, legt die Datei ab und trägt den Schlüssel hier ein – im Code
+# ist sonst nichts zu ändern.
+KESSELART_AUTO = "auto"
+KESSELART_STANDARD = "standard"
+KESSELARTEN = [
+    KESSELART_AUTO,
+    "hackgut",
+    "pellets",
+    "scheitholz",
+    "waermepumpe",
+    "gas_oel",
+    KESSELART_STANDARD,
+]
+# Beschriftung wie bei den Bedienebenen: im Einrichtungsdialog lädt Home
+# Assistant die Übersetzung der Auswahlfelder nicht zuverlässig mit.
+KESSELART_BESCHRIFTUNG = {
+    KESSELART_AUTO: "Automatisch erkennen",
+    "hackgut": "Hackgutkessel",
+    "pellets": "Pelletskessel",
+    "scheitholz": "Scheitholzkessel",
+    "waermepumpe": "Wärmepumpe",
+    "gas_oel": "Gas- oder Ölkessel",
+    KESSELART_STANDARD: "Neutral (ohne Brennstoffbezug)",
+}
 
 MIN_UPDATE_INTERVAL = 15
 MAX_UPDATE_INTERVAL = 300
@@ -264,7 +296,7 @@ DISCOVERY_MAX_AGE_DAYS = 30
 
 # Function types (fctType) as reported by /api/1.0/lookup/1
 FCT_CLIMATE = 14  # Heizkreis (UML+ / UMLZ)
-FCT_BOILER_SWITCH = 15  # WFBPK Heizkreis/Umschaltung (meist locked)
+FCT_BOILER_SWITCH = 15  # Umschaltung Automatikkessel/Festbrennstoff/Puffer
 FCT_BUFFER = 16  # B-PLMi Pufferspeicher
 FCT_ZSP = 20  # ZSP Zirkulationspumpensteuerung
 FCT_PUROWIN = 25  # PuroWIN Hackgutkessel

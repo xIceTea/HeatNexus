@@ -88,6 +88,26 @@ def _anonymisieren(wert: Any, ersatz: dict[str, str]) -> Any:
     return wert
 
 
+def _geraete(beschreibungen: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Die Anlagenteile einer Anlage, jedes einmal, mit Zahl der Datenpunkte."""
+    je_geraet: dict[str, dict[str, Any]] = {}
+    for beschreibung in beschreibungen:
+        kennung = beschreibung.get("device_id")
+        if not kennung:
+            continue
+        eintrag = je_geraet.setdefault(
+            kennung,
+            {
+                "praefix": kennung,
+                "name": beschreibung.get("device_name"),
+                "fct_type": beschreibung.get("fct_type"),
+                "entitaeten": 0,
+            },
+        )
+        eintrag["entitaeten"] += 1
+    return list(je_geraet.values())
+
+
 def _anlage(coordinator) -> dict[str, Any]:
     """Kennzahlen und Daten einer einzelnen Anlage."""
     client = coordinator.client
@@ -121,17 +141,10 @@ def _anlage(coordinator) -> dict[str, Any]:
         "abrufverhalten": client.statistik() if hasattr(client, "statistik") else {},
         "entitaeten_nach_typ": dict(sorted(nach_typ.items())),
         "entitaeten_nach_ebene": dict(sorted(nach_ebene.items())),
-        "geraete": async_redact_data(
-            [
-                {
-                    "praefix": b.get("device_id"),
-                    "name": b.get("device_name"),
-                }
-                for b in beschreibungen
-                if b.get("device_id")
-            ][:20],
-            ZU_SCHWAERZEN,
-        ),
+        # Je Gerät eine Zeile, nicht je Datenpunkt: Sonst füllten die ersten
+        # zwanzig Beschreibungen desselben Geräts die ganze Liste, und man sah
+        # zwanzigmal "ZSP-PTS" statt der vier Anlagenteile.
+        "geraete": async_redact_data(_geraete(beschreibungen), ZU_SCHWAERZEN),
         "meldungen": daten.get("status", {}),
         "beschreibungen": async_redact_data(beschreibungen, ZU_SCHWAERZEN),
         "werte": daten.get("oids", {}),

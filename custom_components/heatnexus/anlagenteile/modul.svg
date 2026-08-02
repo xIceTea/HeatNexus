@@ -1,0 +1,23 @@
+<defs>
+  <linearGradient id="gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+</defs>
+
+<!-- Unbekannter Funktionstyp: neutrales Modul, keine erfundene Hydraulik -->
+<rect x="44" y="132" width="112" height="148" rx="12" fill="url(#gehaeuse)"
+      stroke="{{rahmen}}" stroke-width="2"/>
+<rect x="56" y="146" width="88" height="20" rx="5" fill="{{korpus_dunkel}}"
+      stroke="{{rahmen}}" stroke-width="1"/>
+<g fill="{{titel}}" opacity="0.22">
+  <rect x="62" y="152" width="34" height="8" rx="4"/>
+  <rect x="60" y="180" width="72" height="6" rx="3"/>
+  <rect x="60" y="196" width="52" height="6" rx="3"/>
+  <rect x="60" y="212" width="64" height="6" rx="3"/>
+</g>
+<g fill="{{rahmen}}">
+  <circle cx="66" cy="256" r="5"/>
+  <circle cx="86" cy="256" r="5"/>
+  <circle cx="106" cy="256" r="5"/>
+</g>

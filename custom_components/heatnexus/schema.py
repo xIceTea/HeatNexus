@@ -4,10 +4,18 @@ Zeichnet die Anlage als Grafik – Kessel, Puffer, Heizkreise, Warmwasser,
 Zirkulation, verbunden durch Vor- und Rücklauf – und legt die Live-Werte
 darauf.
 
-Das Bild wird **aus den erkannten Anlagenteilen erzeugt**, nicht als fertige
-Datei mitgeliefert. Ein festes Bild würde nur zu der Anlage passen, für die es
-gezeichnet wurde; hier wächst das Schaubild mit: Wer zwei Puffer hat, sieht
-zwei, wer keinen hat, sieht keinen.
+Das Bild wird **aus den erkannten Anlagenteilen zusammengesetzt**, nicht als
+fertiges Bild mitgeliefert. Ein festes Bild würde nur zu der Anlage passen, für
+die es gezeichnet wurde; hier wächst das Schaubild mit: Wer zwei Puffer hat,
+sieht zwei, wer keinen hat, sieht keinen.
+
+Die einzelnen Anlagenteile liegen als **SVG-Dateien** in ``anlagenteile/``.
+Jede Datei zeichnet ein Bauteil in einem eigenen Feld von ``MODUL_BREITE`` ×
+``HOEHE``; die Mitte liegt bei x = 100, der Vorlauf auf y = 92, der Rücklauf auf
+y = 318. Farben stehen darin als Platzhalter (``{{vorlauf}}``, ``{{korpus}}``,
+…) und werden hier eingesetzt – sonst wäre jede Farbänderung eine Änderung an
+elf Dateien. Fehlt eine Datei, greift die gezeichnete Ersatzform weiter unten;
+das Schaubild bleibt also auch dann heil, wenn eine Datei fehlt.
 
 Ausgegeben wird ein Bild als Daten-URL plus die Liste der Beschriftungen, die
 Home Assistant als `picture-elements`-Karte darüberlegt.
@@ -16,6 +24,9 @@ Home Assistant als `picture-elements`-Karte darüberlegt.
 from __future__ import annotations
 
 import base64
+import contextlib
+from functools import cache
+from pathlib import Path
 import re
 from typing import Any
 
@@ -36,6 +47,52 @@ FARBE_TITEL = "#f2f6fa"
 # Ohne Angabe zeichnen manche Browser SVG-Text mit einer Serifenschrift.
 SCHRIFT = "system-ui, -apple-system, Roboto, sans-serif"
 
+# Ordner mit den Bauteilzeichnungen.
+TEILE_ORDNER = Path(__file__).parent / "anlagenteile"
+
+# Platzhalter, die in den Bauteildateien stehen dürfen. Wer eine Farbe ändern
+# will, ändert sie hier – nicht in elf Dateien.
+FARBEN: dict[str, str] = {
+    "vorlauf": FARBE_VORLAUF,
+    "ruecklauf": FARBE_RUECKLAUF,
+    "rahmen": FARBE_RAHMEN,
+    "text": FARBE_TEXT,
+    "titel": FARBE_TITEL,
+    # Gehäuse: oben etwas heller als unten, damit Körper Volumen bekommen.
+    "korpus": "#2b333c",
+    "korpus_hell": "#3b444e",
+    "korpus_dunkel": "#1d242c",
+    # Wärme und Kälte im Inneren (Schichtung, Glut, Kollektor).
+    "warm": "#b3341f",
+    "glut": "#e2543a",
+    "kalt": "#25508f",
+    "schrift": SCHRIFT,
+}
+
+# Lage der Live-Werte je Anlagenart. Zwei Werte stehen ober- und unterhalb der
+# Mitte, einer mittig. Bauteile mit anderer Form dürfen abweichen.
+WERT_HOEHEN: dict[str, tuple[int, ...]] = {
+    "puffer": (168, 258),
+    "pumpenmodul": (186, 246),
+    "solar": (158, 252),
+}
+WERT_HOEHEN_STANDARD = (170, 250)
+WERT_HOEHE_EINZELN = 206
+
+# Woran ein Anlagenteil erkennen lässt, dass Warmwasser bzw. eine Zirkulation
+# daran hängt. Bei fctType 14 gehören beide Datenpunkte am Gerät zum Heizkreis,
+# im Schaubild sind sie eigene Anlagenteile – so steht es auch auf dem Display
+# der Anlage. Die Zirkulation braucht die Aufteilung selbst dann, wenn eine
+# ZSP-Funktion vorhanden ist: Die meldet an einer der geprüften Anlagen gar
+# keine Temperatur.
+#
+# Je zwei Schreibweisen, weil die kuratierten Tabellen anders benennen als die
+# Geräte-Datenbank: „Warmwasser Ist-Temperatur" gegen „WW-Temperatur Aktueller
+# Wert", „WW-Zirkulation Ist-Temperatur" gegen „WW-Zirkulationstemperatur
+# Aktueller Wert". Der Sollwert darf dabei nicht mitgehen.
+WARMWASSER_IST = r"\bww[- ]temperatur aktueller|\bwarmwasser ist[- ]?temperatur"
+ZIRKULATION_IST = r"\bww-zirkulations?[- ]?(ist[- ])?temperatur(?!.*soll)"
+
 # Welcher Wert eines Anlagenteils wo im Schaubild steht.
 # (Muster, Beschriftung) – die Reihenfolge bestimmt die Position von oben.
 WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
@@ -43,15 +100,21 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
         (r"kesseltemperatur ist", "Kessel"),
         (r"kesselleistung", "Leistung"),
     ),
+    # Zwei Schreibweisen: die kuratierte Tabelle nennt sie „Puffer oben
+    # Temperatur (TPE)", die Geräte-Datenbank „Puffertemperatur TPE" bzw.
+    # „Puffertemperatur oben". Beide müssen treffen.
     "puffer": (
-        (r"puffer oben", "oben"),
-        (r"puffer unten", "unten"),
+        (r"puffer(temperatur)?[ -]?oben|puffertemperatur tpe", "oben"),
+        (r"puffer(temperatur)?[ -]?unten|puffertemperatur tpa", "unten"),
     ),
     "heizkreis": (
         (r"vorlauftemperatur ist", "Vorlauf"),
         (r"raumtemperatur ist", "Raum"),
     ),
-    "zirkulation": (
+    # Das Pumpen-/Relaismodul (ZSP, fctType 20). Es ist keine Zirkulation: Es
+    # kann eine Pumpe regeln, eine externe Wärmeanforderung entgegennehmen oder
+    # einen Sammelalarm schalten – was davon, sagt `29/0..29/3`.
+    "pumpenmodul": (
         (r"^temperatur ist$", "Temperatur"),
         (r"r(ü|ue)cklauf temperatur", "Rücklauf"),
     ),
@@ -59,8 +122,17 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
     # zweite *gemessene* Temperatur steht, liest sich wie ein Messwert und
     # verwirrt mehr, als er nützt.
     "wasser": ((r"\bww[- ]temperatur aktueller|\bwarmwasser ist", "Warmwasser"),),
-    # Zirkulation, wie sie am Heizkreis hängt (nicht die ZSP-Funktion).
-    "zirkulation_ww": ((r"\bww-zirkulation ist", "Zirkulation"),),
+    # Die Warmwasser-Zirkulation.
+    "zirkulation": ((ZIRKULATION_IST, "Zirkulation"),),
+    "solar": (
+        (r"kollektortemperatur", "Kollektor"),
+        (r"ww[- ]temperatur solar|puffertemperatur tps", "Speicher"),
+    ),
+    # Weiche bzw. Umschaltung: was hereinkommt und was im Speicher steht.
+    "umschaltung": (
+        (r"kesseltemperatur(?!.*soll)", "Kessel"),
+        (r"puffertemperatur (oben|tpe)", "Puffer"),
+    ),
 }
 
 # Die Pumpe eines Anlagenteils. Sie steht im Schaubild in der Leitung und
@@ -71,41 +143,81 @@ PUMPE_JE_ART: dict[str, str] = {
     "puffer": r"pufferladepumpe",
     "heizkreis": r"heizkreispumpe",
     "wasser": r"\bww-ladepumpe",
-    "zirkulation": r"zirkulationspumpe(?!.*modus)",
-    "zirkulation_ww": r"\bww-zirkulationspumpe(?!.*modus)",
+    # Das ZSP-Modul meldet keinen Pumpenzustand, sondern seine Drehzahl.
+    "pumpenmodul": r"pumpendrehzahl|zirkulationspumpe(?!.*modus)",
+    "zirkulation": r"\bww-zirkulationspumpe(?!.*modus)",
+    "solar": r"solarpumpe|pumpensteuerung drehzahl",
 }
 
 # Manche Pumpen melden keinen Zustand, sondern ihre Drehzahl in Prozent – die
 # Pufferladepumpe etwa. Sie zählt genauso; „läuft" heißt dann „über null".
 PUMPE_BEREICHE = ("binary_sensor", "switch", "sensor")
 
-# Woran ein Heizkreis erkennen lässt, dass an ihm Warmwasser hängt. Die
-# Datenpunkte gehören am Gerät zum Heizkreis, im Schaubild ist Warmwasser aber
-# ein eigener Anlagenteil – so steht es auch auf dem Display der Anlage.
-WARMWASSER_IST = r"\bww[- ]temperatur aktueller|\bwarmwasser ist[- ]?temperatur"
-
-# Die Zirkulation hängt am Gerät ebenfalls am Heizkreis, ist im Schaubild aber
-# ein eigener Kreis. Ohne diese Aufteilung fehlt sie ganz, wenn die
-# ZSP-Funktion selbst keine Temperatur meldet – so wie an einer der beiden
-# geprüften Anlagen.
-ZIRKULATION_IST = r"\bww-zirkulation ist[- ]?temperatur"
-
 # Funktionstyp -> Art im Schaubild.
+#
+# **Diese Zuordnung ist nicht geraten.** Sie stammt aus den offiziellen
+# Windhager-Dateien: `parameterLayer.json` führt je Funktionstyp die Liste
+# seiner Datenpunkte, `de-parameters.json` deren Namen. Wer sie ändern will,
+# lese sie dort nach – der Weg steht in `_intern/HERSTELLER-REFERENZ.md` 5.3.
+# Bis 1.2.0 standen hier fünf Zuordnungen falsch, weil sie aus Namen abgeleitet
+# waren statt aus der Parameterliste.
+#
+# Kurzform des Belegs je Typ:
+#   1  Heizkurve, Kühlgrenzen, Estrich; Zeitprogramme 3/61..3/63 (Heizprogramme)
+#   2  0/4 WW-Temperatur, Hygiene-Programm; Zeitprogramme 5/61, 5/62, 5/64
+#   4  „Kaskadenmanager" – so nennt die Anlage ihn selbst; Folgeschaltung, ZSK
+#   5  58/56 Kollektortemperatur, Kollektor spülen, Hydraulikschema Solar
+#  13  „Solar ES" – ebenfalls von der Anlage benannt
+#   6  60/30 Ionisationsstrom, 60/27 Anlagendruck, Netzbetriebsstunden
+#   7  52/40 COP, Silentmode, Betriebsstunden Heizen/Warmwasser
+#   8  56/5 Aktuelle Stufe E-Heizung, Betriebsstunden Stufe 1..3
+#   9  Laufzeit bis Reinigung, Brennstoffverbrauch, Sondenumschaltung (BioWIN)
+#  10  Startverzögerung Automatikkessel, O2-Signal, Puffertemperaturen
+#  14  wie 1, aber ältere Baureihe (1/20 Heizkreispumpe) samt Warmwasser
+#  15  Automatikkessel / Festbrennstoff / Pufferspeicher, Umschaltventil
+#  16  21/65 TPE, 21/66 TPA, Pufferladepumpe
+#  20  Pumpensteuerung, Ext. Wärmeanforderung, Summenstörmeldung
+#  21  Puffertemperatur oben/mitte/unten, Beladegrad, Kälte-Puffertemperatur
+#  24  58/12 Pumpe Wärmeerzeuger, Schichtladung, Rücklaufhochhaltung
+#  25  PuroWIN
+#  26  Kosten Strom, PV-Eingang, SG Ready, Bivalenztemperatur (Wärmepumpe)
+#  27  50/70 Betriebsphase, Wärmemenge Heizen/Kühlen, E-Heizung (Wärmepumpe)
+#
 ART_JE_FCT: dict[int, str] = {
-    25: "kessel",
-    9: "kessel",
-    1: "kessel",
-    2: "kessel",
-    10: "kessel",
-    16: "puffer",
-    14: "heizkreis",
-    15: "heizkreis",
-    5: "wasser",
-    6: "wasser",
-    4: "wasser",
-    20: "zirkulation",
+    # Wärmeerzeuger. Auch Wärmepumpe und E-Heizung stehen hier: Im Schaubild
+    # sitzen sie an derselben Stelle wie ein Kessel. Welche Zeichnung es wird,
+    # entscheidet die Kesselart.
+    6: "kessel",  # Gas-/Ölbrennwertgerät
+    7: "kessel",  # Wärmepumpe
+    8: "kessel",  # E-Heizung / Zusatzheizung
+    9: "kessel",  # BioWIN Pelletskessel
+    10: "kessel",  # Automatik-/Zusatzkessel
+    25: "kessel",  # PuroWIN
+    26: "kessel",  # Wärmepumpe (Energiemanagement)
+    27: "kessel",  # Wärmepumpe
+    # Speicher
+    16: "puffer",  # B-PLMi
+    21: "puffer",  # Pufferspeicher neuerer Bauart
+    # Heizkreise
+    1: "heizkreis",  # Infinity PLUS
+    14: "heizkreis",  # UML / UMLZ
+    # Warmwasser als eigene Funktion. Bei fctType 14 hängt es dagegen am
+    # Heizkreis – daraus macht `_module` ebenfalls ein eigenes Anlagenteil.
+    2: "wasser",
+    5: "solar",
+    13: "solar",  # „Solar ES"
+    # Module in der Leitung
+    20: "pumpenmodul",  # ZSP
+    24: "pumpenmodul",  # Pumpe Wärmeerzeuger / Schichtladung
+    4: "umschaltung",  # Kaskade: hydraulische Weiche mit Folgeschaltung
+    15: "umschaltung",  # Automatikkessel / Festbrennstoff / Puffer
 }
 ART_UNBEKANNT = "modul"
+
+# Alle Arten, für die es eine Bauteilzeichnung geben muss. `zirkulation` steht
+# in keinem Funktionstyp: Sie entsteht in `_module` aus den Datenpunkten eines
+# Heizkreises.
+ALLE_ARTEN = set(ART_JE_FCT.values()) | {"zirkulation", ART_UNBEKANNT}
 
 
 def _art(fct_type: Any) -> str:
@@ -113,6 +225,67 @@ def _art(fct_type: Any) -> str:
         return ART_JE_FCT.get(int(fct_type), ART_UNBEKANNT)
     except (TypeError, ValueError):
         return ART_UNBEKANNT
+
+
+# ---------------------------------------------------------------------------
+# Art des Wärmeerzeugers
+# ---------------------------------------------------------------------------
+# Erste Quelle: der Funktionstyp, wo er die Art schon festlegt. Eine
+# Wärmepumpe verbrennt nichts – bei ihr braucht es keinen Brennstoff und keinen
+# Namen, um die Zeichnung zu wählen.
+KESSELART_JE_FCT: dict[int, str] = {
+    6: "gas_oel",
+    7: "waermepumpe",
+    26: "waermepumpe",
+    27: "waermepumpe",
+}
+
+# Zweite Quelle: der Brennstoff, den die Anlage selbst meldet (`38/126`,
+# `38/127`). Er ist eindeutig – ein PuroWIN kann Hackgut *oder* Pellets
+# verbrennen, die Baureihe allein verrät es nicht.
+BRENNSTOFF_ENTITAET = re.compile(r"(aktueller|gew(ä|ae)hlter) brennstoff", re.IGNORECASE)
+BRENNSTOFF_ART: tuple[tuple[str, str], ...] = (
+    (r"pellet", "pellets"),
+    (r"hackgut|hackschnitzel", "hackgut"),
+    (r"scheitholz|st(ü|ue)ckholz|stueckholz", "scheitholz"),
+)
+
+# Dritte Quelle: der Name der Funktion. Die Windhager-Baureihen sind sprechend
+# genug, und bei fremden Anlagen ist es oft das Einzige, was wir haben.
+NAME_ART: tuple[tuple[str, str], ...] = (
+    (r"aerowin|w(ä|ae)rmepumpe|heat\s?pump", "waermepumpe"),
+    (r"purowin", "hackgut"),
+    (r"biowin|pelletswin|pelletskessel|\bpellet", "pellets"),
+    (r"logwin|vario\s?win|scheitholz|st(ü|ue)ckholz|holzvergaser", "scheitholz"),
+    (r"duo\s?win|gas|\b(ö|oe)l\b|brennwert|therme", "gas_oel"),
+)
+
+
+def kesselart_erkennen(teile: list[dict[str, Any]]) -> str | None:
+    """Art des Wärmeerzeugers aus den Anlagenteilen ableiten.
+
+    Gibt einen Schlüssel aus ``const.KESSELARTEN`` zurück oder ``None``, wenn
+    sich nichts sagen lässt. ``None`` heißt „neutral zeichnen" – nicht raten.
+    Die Funktion wirkt ausschließlich auf die Zeichnung.
+    """
+    kessel = [t for t in teile if _art(t.get("fct_type")) == "kessel"]
+    for teil in kessel:
+        with contextlib.suppress(TypeError, ValueError):
+            if art := KESSELART_JE_FCT.get(int(teil.get("fct_type"))):
+                return art
+    for teil in kessel:
+        for eintrag in teil.get("entitaeten", []):
+            if not BRENNSTOFF_ENTITAET.search(eintrag.get("name") or ""):
+                continue
+            text = str(eintrag.get("text") or "")
+            for muster, art in BRENNSTOFF_ART:
+                if re.search(muster, text, re.IGNORECASE):
+                    return art
+    for teil in kessel:
+        for muster, art in NAME_ART:
+            if re.search(muster, teil.get("name") or "", re.IGNORECASE):
+                return art
+    return None
 
 
 def _escape(text: str) -> str:
@@ -190,18 +363,85 @@ def _module(teile: list[dict[str, Any]]) -> list[dict[str, Any]]:
                         "pumpe": _pumpe(teil["entitaeten"], "wasser"),
                     }
                 )
-        if art == "heizkreis" and _finde(teil["entitaeten"], ZIRKULATION_IST) is not None:
-            kreis = _werte(teil["entitaeten"], "zirkulation_ww")
+        # Auch an einer eigenständigen Warmwasserfunktion (fctType 2) hängt die
+        # Zirkulation als Datenpunkt, nicht als eigene Funktion.
+        if art in ("heizkreis", "wasser") and _finde(teil["entitaeten"], ZIRKULATION_IST):
+            kreis = _werte(teil["entitaeten"], "zirkulation")
             if kreis:
                 module.append(
                     {
                         "titel": "Zirkulation",
                         "art": "zirkulation",
                         "werte": kreis,
-                        "pumpe": _pumpe(teil["entitaeten"], "zirkulation_ww"),
+                        "pumpe": _pumpe(teil["entitaeten"], "zirkulation"),
                     }
                 )
     return module
+
+
+# ---------------------------------------------------------------------------
+# Bauteildateien
+# ---------------------------------------------------------------------------
+# Kennungen, die eine Bauteildatei selbst vergibt.
+_ID = re.compile(r'id="([A-Za-z][\w.:-]*)"')
+
+
+@cache
+def _bauteil(dateiname: str) -> str | None:
+    """Eine Bauteilzeichnung laden – oder ``None``, wenn es sie nicht gibt.
+
+    Der Inhalt ist ein SVG-Bruchstück ohne ``<svg>``-Wurzel: Es wird in das
+    Gesamtbild eingesetzt, nicht als eigenes Bild ausgeliefert.
+    """
+    pfad = TEILE_ORDNER / dateiname
+    try:
+        text = pfad.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    return text.strip() or None
+
+
+def _farben(fragment: str) -> str:
+    """Farbplatzhalter einsetzen."""
+    for name, wert in FARBEN.items():
+        fragment = fragment.replace("{{" + name + "}}", wert)
+    return fragment
+
+
+def _ids_eindeutig(fragment: str, praefix: str) -> str:
+    """Kennungen eines Bruchstücks eindeutig machen.
+
+    Zwei Puffer im selben Bild brächten sonst zweimal ``id="schichtung"`` mit;
+    ein Verlauf gewönne, der andere bliebe leer.
+
+    Ersetzt werden nur die drei Schreibweisen, in denen unsere Dateien auf eine
+    Kennung verweisen. Alle drei enthalten das schließende Zeichen und können
+    deshalb nicht in einen längeren Namen hineinrutschen: ``url(#kessel)``
+    trifft nicht ``kesselrand``.
+    """
+    for alt in dict.fromkeys(_ID.findall(fragment)):
+        neu = f"{praefix}{alt}"
+        fragment = (
+            fragment.replace(f'id="{alt}"', f'id="{neu}"')
+            .replace(f"url(#{alt})", f"url(#{neu})")
+            .replace(f'href="#{alt}"', f'href="#{neu}"')
+        )
+    return fragment
+
+
+def _bauteil_dateien(art: str, kesselart: str | None) -> tuple[str, ...]:
+    """Dateinamen für ein Anlagenteil, in der Reihenfolge der Bevorzugung."""
+    if art == "kessel" and kesselart:
+        return (f"kessel-{kesselart}.svg", "kessel.svg")
+    return (f"{art}.svg",)
+
+
+def _aus_datei(art: str, kesselart: str | None, praefix: str) -> str | None:
+    """Bauteilzeichnung, fertig eingefärbt und mit eindeutigen Kennungen."""
+    for dateiname in _bauteil_dateien(art, kesselart):
+        if (fragment := _bauteil(dateiname)) is not None:
+            return _ids_eindeutig(_farben(fragment), praefix)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -217,72 +457,63 @@ def _rohre(breite: int) -> str:
     )
 
 
-def _kasten(x: int, modul: dict[str, Any]) -> str:
-    """Ein Anlagenteil als Form, passend zu seiner Art."""
+# Mitte eines Bauteilfeldes in dessen eigenem Koordinatensystem. Bauteile
+# zeichnen bei 0…MODUL_BREITE; erst das Gesamtbild schiebt sie an ihren Platz.
+MITTE = MODUL_BREITE // 2
+
+
+def _ersatzform(art: str) -> str:
+    """Gezeichnete Form, wenn es für ein Anlagenteil keine Datei gibt.
+
+    Bewusst schlicht: Sie ist der Rückfall, nicht die Gestaltung. Ein fehlendes
+    Bauteil darf das Schaubild nicht zerreißen.
+    """
+    if art == "puffer":
+        return (
+            f'<rect x="{MITTE - 58}" y="118" width="116" height="176" rx="26" '
+            f'fill="{FARBEN["warm"]}" stroke="{FARBE_RAHMEN}" stroke-width="2"/>'
+        )
+    if art == "zirkulation":
+        return (
+            f'<circle cx="{MITTE}" cy="206" r="52" fill="{FARBEN["korpus_dunkel"]}" '
+            f'stroke="{FARBE_RAHMEN}" stroke-width="2"/>'
+        )
+    return (
+        f'<rect x="{MITTE - 56}" y="126" width="112" height="160" rx="12" '
+        f'fill="{FARBEN["korpus"]}" stroke="{FARBE_RAHMEN}" stroke-width="2"/>'
+    )
+
+
+def _kasten(x: int, platz: int, modul: dict[str, Any], kesselart: str | None) -> str:
+    """Ein Anlagenteil an seinem Platz im Gesamtbild."""
     art = modul["art"]
-    mitte = x + MODUL_BREITE // 2
+    inhalt = _aus_datei(art, kesselart if art == "kessel" else None, f"t{platz}-")
+    if inhalt is None:
+        inhalt = _ersatzform(art)
+
+    anschluss = (
+        f'<rect x="{MITTE - 2}" y="{VORLAUF_Y}" width="4" height="30" '
+        f'fill="{FARBE_VORLAUF}" opacity="0.7"/>'
+        f'<rect x="{MITTE - 2}" y="{RUECKLAUF_Y - 30}" width="4" height="30" '
+        f'fill="{FARBE_RUECKLAUF}" opacity="0.7"/>'
+    )
     titel = (
-        f'<text x="{mitte}" y="{RUECKLAUF_Y + 56}" text-anchor="middle" '
+        f'<text x="{MITTE}" y="{RUECKLAUF_Y + 56}" text-anchor="middle" '
         f'fill="{FARBE_TITEL}" font-size="15" font-weight="600" font-family="{SCHRIFT}">'
         f"{_escape(modul['titel'])}</text>"
     )
-    anschluss = (
-        f'<rect x="{mitte - 2}" y="{VORLAUF_Y}" width="4" height="30" fill="{FARBE_VORLAUF}" '
-        f'opacity="0.7"/>'
-        f'<rect x="{mitte - 2}" y="{RUECKLAUF_Y - 30}" width="4" height="30" '
-        f'fill="{FARBE_RUECKLAUF}" opacity="0.7"/>'
-    )
-
-    if art == "puffer":
-        form = (
-            f'<rect x="{mitte - 58}" y="118" width="116" height="176" rx="26" '
-            f'fill="url(#schichtung)" stroke="{FARBE_RAHMEN}" stroke-width="2"/>'
-            f'<line x1="{mitte - 58}" y1="206" x2="{mitte + 58}" y2="206" '
-            f'stroke="{FARBE_RAHMEN}" stroke-width="1" opacity="0.5"/>'
-        )
-    elif art == "kessel":
-        form = (
-            f'<rect x="{mitte - 62}" y="122" width="124" height="168" rx="12" '
-            f'fill="url(#kessel)" stroke="{FARBE_RAHMEN}" stroke-width="2"/>'
-            f'<rect x="{mitte - 40}" y="238" width="80" height="34" rx="6" '
-            f'fill="{FARBE_VORLAUF}" opacity="0.35"/>'
-        )
-    elif art == "heizkreis":
-        stege = "".join(
-            f'<rect x="{mitte - 48 + i * 20}" y="140" width="10" height="130" rx="5" '
-            f'fill="url(#waerme)" opacity="0.9"/>'
-            for i in range(5)
-        )
-        form = (
-            f'<rect x="{mitte - 58}" y="128" width="116" height="154" rx="10" '
-            f'fill="#1d242c" stroke="{FARBE_RAHMEN}" stroke-width="2"/>{stege}'
-        )
-    elif art == "wasser":
-        form = (
-            f'<rect x="{mitte - 50}" y="126" width="100" height="164" rx="46" '
-            f'fill="url(#warmwasser)" stroke="{FARBE_RAHMEN}" stroke-width="2"/>'
-        )
-    elif art == "zirkulation":
-        form = (
-            f'<circle cx="{mitte}" cy="206" r="52" fill="#1d242c" '
-            f'stroke="{FARBE_RAHMEN}" stroke-width="2"/>'
-            f'<path d="M {mitte - 18} 182 L {mitte + 22} 206 L {mitte - 18} 230 Z" '
-            f'fill="{FARBE_RUECKLAUF}" opacity="0.8"/>'
-        )
-    else:
-        form = (
-            f'<rect x="{mitte - 56}" y="132" width="112" height="148" rx="10" '
-            f'fill="#1d242c" stroke="{FARBE_RAHMEN}" stroke-width="2"/>'
-        )
-
-    return anschluss + form + titel
+    return f'<g transform="translate({x},0)">{anschluss}{inhalt}{titel}</g>'
 
 
 def _beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str, Any]]:
     """Die Live-Werte eines Anlagenteils als picture-elements-Einträge."""
     mitte = x + MODUL_BREITE // 2
     # Zwei Werte werden ober- und unterhalb der Mitte gesetzt, einer mittig.
-    hoehen = (170, 250) if len(modul["werte"]) > 1 else (206,)
+    hoehen = (
+        WERT_HOEHEN.get(modul["art"], WERT_HOEHEN_STANDARD)
+        if len(modul["werte"]) > 1
+        else (WERT_HOEHE_EINZELN,)
+    )
 
     elemente = []
     for wert, y in zip(modul["werte"], hoehen, strict=False):
@@ -308,49 +539,36 @@ def _beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str
     return elemente
 
 
-def _svg(module: list[dict[str, Any]]) -> tuple[str, int]:
+def _svg(module: list[dict[str, Any]], kesselart: str | None) -> tuple[str, int]:
     """Das Schaubild als SVG-Text und seine Breite."""
     breite = max(2 * RAND + len(module) * MODUL_BREITE, 400)
     teile = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {breite} {HOEHE}" '
         f'width="{breite}" height="{HOEHE}">',
-        "<defs>",
-        '<linearGradient id="schichtung" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0%" stop-color="#b3341f"/>'
-        '<stop offset="55%" stop-color="#8a4a52"/>'
-        '<stop offset="100%" stop-color="#25508f"/>'
-        "</linearGradient>",
-        '<linearGradient id="kessel" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0%" stop-color="#3b444e"/>'
-        '<stop offset="100%" stop-color="#232a32"/>'
-        "</linearGradient>",
-        '<linearGradient id="warmwasser" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0%" stop-color="#b3341f"/>'
-        '<stop offset="100%" stop-color="#6d3038"/>'
-        "</linearGradient>",
-        '<linearGradient id="waerme" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0%" stop-color="#e2543a"/>'
-        '<stop offset="100%" stop-color="#8a3b2c"/>'
-        "</linearGradient>",
-        "</defs>",
         _rohre(breite),
     ]
     for platz, modul in enumerate(module):
-        teile.append(_kasten(RAND + platz * MODUL_BREITE, modul))
+        teile.append(_kasten(RAND + platz * MODUL_BREITE, platz, modul, kesselart))
     teile.append("</svg>")
     return "".join(teile), breite
 
 
-def anlagenschema(teile: list[dict[str, Any]]) -> dict[str, Any] | None:
+def anlagenschema(
+    teile: list[dict[str, Any]], kesselart: str | None = None
+) -> dict[str, Any] | None:
     """Eine `picture-elements`-Karte für eine Anlage – oder nichts.
 
     Erwartet die Anlagenteile in der Form, die `dashboard._anlagen` liefert.
+    ``kesselart`` wählt die Kesselzeichnung; ohne Angabe wird sie aus den
+    Anlagenteilen abgeleitet.
     """
     module = _module(teile)
     if not module:
         return None
 
-    svg, breite = _svg(module)
+    if kesselart is None:
+        kesselart = kesselart_erkennen(teile)
+    svg, breite = _svg(module, kesselart)
     daten = base64.b64encode(svg.encode("utf-8")).decode("ascii")
 
     elemente: list[dict[str, Any]] = []

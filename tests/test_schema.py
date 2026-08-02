@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import re
+from xml.etree import ElementTree
 
 import pytest
 
@@ -124,7 +126,7 @@ def test_anlagenteil_ohne_passenden_messwert_faellt_weg(schema):
 # ---------------------------------------------------------------------------
 def test_muster_enthalten_keine_steuerzeichen(schema):
     """Ein Suchmuster darf nie ein Steuerzeichen enthalten."""
-    muster = [schema.WARMWASSER_IST]
+    muster = [schema.WARMWASSER_IST, schema.ZIRKULATION_IST]
     muster += [m for eintraege in schema.WERTE_JE_ART.values() for m, _ in eintraege]
     muster += list(schema.PUMPE_JE_ART.values())
     for einzeln in muster:
@@ -169,3 +171,216 @@ def test_pumpe_je_anlagenteil(schema):
     )
     module = schema._module([heizkreis])
     assert module[0]["pumpe"] == "binary_sensor.hkp"
+
+
+# ---------------------------------------------------------------------------
+# Bauteildateien
+#
+# Die Anlagenteile werden aus SVG-Dateien in `anlagenteile/` zusammengesetzt.
+# Zwei Dinge dürfen dabei nie passieren: ein stehengebliebener Farbplatzhalter
+# (dann steht `{{korpus}}` als Farbe im Bild und der Browser zeichnet gar
+# nichts) und doppelte Kennungen (dann teilen sich zwei Puffer denselben
+# Verlauf und einer bleibt leer).
+# ---------------------------------------------------------------------------
+def _svg_von(schema, teile, kesselart=None) -> str:
+    karte = schema.anlagenschema(teile, kesselart)
+    return base64.b64decode(karte["image"].split(",", 1)[1]).decode("utf-8")
+
+
+def test_jedes_bauteil_hat_eine_datei(schema):
+    """Für jede gezeichnete Art gibt es eine Datei – sonst greift der Rückfall."""
+    for art in schema.ALLE_ARTEN:
+        assert schema._bauteil(f"{art}.svg") is not None, f"anlagenteile/{art}.svg fehlt"
+
+
+def test_bauteildateien_sind_bruchstuecke_ohne_platzhalterreste(schema):
+    for pfad in sorted(schema.TEILE_ORDNER.glob("*.svg")):
+        inhalt = pfad.read_text(encoding="utf-8")
+        assert "<svg" not in inhalt, f"{pfad.name} ist ein ganzes Bild, kein Bruchstück"
+        assert "<image" not in inhalt, f"{pfad.name} verweist auf eine fremde Datei"
+        assert "<script" not in inhalt, f"{pfad.name} enthält ein Script"
+        # Erlaubt sind nur Weiß und Schwarz: Sie liegen mit kleiner Deckkraft
+        # als Licht und Schatten über einer Form und sind damit unabhängig von
+        # der Farbe darunter. Alles andere gehört als Platzhalter in FARBEN.
+        feste = set(re.findall(r"#[0-9a-fA-F]{3,8}\b", inhalt)) - {"#ffffff", "#000000"}
+        assert not feste, f"{pfad.name} enthält feste Farben statt Platzhaltern: {feste}"
+        offen = re.findall(r"\{\{(\w+)\}\}", inhalt)
+        unbekannt = set(offen) - set(schema.FARBEN)
+        assert not unbekannt, f"{pfad.name} nutzt unbekannte Platzhalter: {unbekannt}"
+
+
+def test_bild_ist_wohlgeformt_und_ohne_platzhalter(schema, anlage):
+    svg = _svg_von(schema, anlage)
+    ElementTree.fromstring(svg)
+    assert "{{" not in svg
+
+
+def test_kennungen_bleiben_eindeutig(schema):
+    """Zwei Puffer im selben Bild dürfen sich keinen Verlauf teilen."""
+    zwei = [
+        _teil("Puffer A", 16, [("sensor.a1", "Puffer oben"), ("sensor.a2", "Puffer unten")]),
+        _teil("Puffer B", 16, [("sensor.b1", "Puffer oben"), ("sensor.b2", "Puffer unten")]),
+    ]
+    svg = _svg_von(schema, zwei)
+    kennungen = re.findall(r'id="([^"]+)"', svg)
+    assert kennungen, "keine Kennungen im Bild – Bauteildateien nicht geladen?"
+    assert len(kennungen) == len(set(kennungen))
+    # Und jeder Verweis zeigt auf eine Kennung, die es auch gibt.
+    for verweis in re.findall(r"url\(#([^)]+)\)", svg):
+        assert verweis in kennungen
+
+
+def test_fehlende_bauteildatei_zerreisst_das_bild_nicht(schema, anlage, monkeypatch):
+    monkeypatch.setattr(schema, "_bauteil", lambda dateiname: None)
+    svg = _svg_von(schema, anlage)
+    ElementTree.fromstring(svg)
+    assert "PuroWIN" in svg
+
+
+# ---------------------------------------------------------------------------
+# Kesselart
+# ---------------------------------------------------------------------------
+def test_kesselart_kommt_aus_dem_gemeldeten_brennstoff(schema):
+    kessel = _teil("Kessel", 25, [("sensor.k", "Kesseltemperatur Ist")])
+    kessel["entitaeten"].append(
+        {
+            "entity_id": "sensor.brennstoff",
+            "name": "Aktueller Brennstoff",
+            "bereich": "sensor",
+            "hat_wert": True,
+            "text": "Hackgut feucht schlackend",
+        }
+    )
+    assert schema.kesselart_erkennen([kessel]) == "hackgut"
+
+    kessel["entitaeten"][-1]["text"] = "Pellets"
+    assert schema.kesselart_erkennen([kessel]) == "pellets"
+
+
+def test_kesselart_faellt_auf_den_namen_zurueck(schema):
+    assert schema.kesselart_erkennen([_teil("PuroWIN 40", 25, [])]) == "hackgut"
+    assert schema.kesselart_erkennen([_teil("BioWIN 2", 25, [])]) == "pellets"
+    assert schema.kesselart_erkennen([_teil("AeroWIN", 25, [])]) == "waermepumpe"
+
+
+def test_kesselart_raet_nicht(schema):
+    """Sagt weder Brennstoff noch Name etwas, wird neutral gezeichnet."""
+    assert schema.kesselart_erkennen([_teil("Waermeerzeuger", 25, [])]) is None
+    assert schema.kesselart_erkennen([_teil("PuroWIN", 16, [])]) is None
+
+
+def test_kesselart_waehlt_die_zeichnung(schema):
+    kessel = [_teil("Kessel", 25, [("sensor.k", "Kesseltemperatur Ist")])]
+    hackgut = _svg_von(schema, kessel, "hackgut")
+    pellets = _svg_von(schema, kessel, "pellets")
+    neutral = _svg_von(schema, kessel, None)
+    assert hackgut != pellets != neutral
+
+
+def test_unbekannte_kesselart_faellt_auf_die_neutrale_zeichnung(schema):
+    kessel = [_teil("Kessel", 25, [("sensor.k", "Kesseltemperatur Ist")])]
+    assert _svg_von(schema, kessel, "gibtsnicht") == _svg_von(schema, kessel, None)
+
+
+# ---------------------------------------------------------------------------
+# Funktionstypen
+#
+# Bis 1.2.0 waren fünf Zuordnungen falsch, weil sie aus Namen abgeleitet waren
+# statt aus der Parameterliste des Herstellers. Der Beleg für jede Zeile steht
+# in `_intern/HERSTELLER-REFERENZ.md` 5.3; hier wird er festgehalten, damit ihn
+# niemand versehentlich zurückdreht.
+# ---------------------------------------------------------------------------
+def test_funktionstypen_stimmen_mit_der_parameterliste_ueberein(schema):
+    erwartet = {
+        1: "heizkreis",  # Heizkurve, Kühlgrenzen, Estrichprogramm
+        2: "wasser",  # WW-Programm, Hygiene-Programm, Zirkulationspumpe
+        4: "umschaltung",  # Weiche, Folgeschaltung, Zusatzkessel ZSK
+        5: "solar",  # Kollektortemperatur, Kollektor spülen
+        6: "kessel",  # Gas/Öl: Ionisationsstrom, Anlagendruck
+        7: "kessel",  # Wärmepumpe: COP, Silentmode
+        8: "kessel",  # E-Heizung: Stufen 1..3
+        9: "kessel",  # BioWIN
+        10: "kessel",  # Automatikkessel
+        13: "solar",  # „Solar ES", von der Anlage selbst benannt
+        14: "heizkreis",
+        15: "umschaltung",  # Automatikkessel / Festbrennstoff / Puffer
+        16: "puffer",
+        20: "pumpenmodul",  # ZSP
+        21: "puffer",
+        24: "pumpenmodul",  # Pumpe Wärmeerzeuger, Schichtladung
+        25: "kessel",  # PuroWIN
+        26: "kessel",  # Wärmepumpe
+        27: "kessel",  # Wärmepumpe
+    }
+    assert erwartet == schema.ART_JE_FCT
+    assert schema.KESSELART_JE_FCT == {
+        6: "gas_oel",
+        7: "waermepumpe",
+        26: "waermepumpe",
+        27: "waermepumpe",
+    }
+
+
+def test_warmwasser_und_zirkulation_in_beiden_schreibweisen(schema):
+    """Kuratierte Tabelle und Geräte-Datenbank benennen dieselben Werte anders."""
+    import re
+
+    for name in ("Warmwasser Ist-Temperatur", "WW-Temperatur Aktueller Wert"):
+        assert re.search(schema.WARMWASSER_IST, name, re.IGNORECASE), name
+    for name in ("WW-Zirkulation Ist-Temperatur", "WW-Zirkulationstemperatur Aktueller Wert"):
+        assert re.search(schema.ZIRKULATION_IST, name, re.IGNORECASE), name
+    # Der Sollwert darf nicht als Istwert durchgehen.
+    assert not re.search(
+        schema.ZIRKULATION_IST, "WW-Zirkulationstemperatur Sollwert", re.IGNORECASE
+    )
+
+
+def test_puffer_in_beiden_schreibweisen(schema):
+    for namen in (
+        [("sensor.o", "Puffer oben Temperatur (TPE)"), ("sensor.u", "Puffer unten Temperatur")],
+        [("sensor.o", "Puffertemperatur oben"), ("sensor.u", "Puffertemperatur unten")],
+        [("sensor.o", "Puffertemperatur TPE"), ("sensor.u", "Puffertemperatur TPA")],
+    ):
+        module = schema._module([_teil("Puffer", 16, namen)])
+        assert len(module[0]["werte"]) == 2, namen
+
+
+def test_waermepumpe_ist_ein_waermeerzeuger(schema):
+    """Eine Wärmepumpe steht an der Stelle des Kessels, nicht daneben."""
+    for fct in (26, 27):
+        assert schema.ART_JE_FCT[fct] == "kessel"
+    # Und sie braucht weder Brennstoff noch sprechenden Namen.
+    stumm = _teil("Modul 26", 26, [("sensor.k", "Kesseltemperatur Ist")])
+    assert schema.kesselart_erkennen([stumm]) == "waermepumpe"
+
+
+def test_zsp_und_zirkulation_sehen_verschieden_aus(schema):
+    """Ein Pumpenmodul ist kein Zirkulationskreis.
+
+    Beide hingen bis 1.2.0 an derselben Zeichnung; im Schaubild einer Anlage
+    mit beidem standen zwei gleiche Kreise nebeneinander.
+    """
+    zsp = _teil("ZSP-PWA", 20, [("sensor.t", "Temperatur Ist")])
+    heizkreis = _teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            ("sensor.vorlauf", "Vorlauftemperatur Ist"),
+            ("sensor.raum", "Raumtemperatur Ist"),
+            ("sensor.zirk", "WW-Zirkulation Ist-Temperatur"),
+        ],
+    )
+    arten = [m["art"] for m in schema._module([zsp, heizkreis])]
+    assert "pumpenmodul" in arten
+    assert "zirkulation" in arten
+    assert schema._bauteil("pumpenmodul.svg") != schema._bauteil("zirkulation.svg")
+
+
+def test_zsp_meldet_seine_pumpe_ueber_die_drehzahl(schema):
+    """Das ZSP hat keinen Pumpenzustand, nur „Pumpendrehzahl" in Prozent."""
+    zsp = _teil(
+        "ZSP-PWA",
+        20,
+        [("sensor.t", "Temperatur Ist"), ("sensor.dz", "Pumpendrehzahl")],
+    )
+    assert schema._module([zsp])[0]["pumpe"] == "sensor.dz"

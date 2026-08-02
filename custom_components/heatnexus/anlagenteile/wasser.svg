@@ -1,0 +1,28 @@
+<defs>
+  <linearGradient id="boiler" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{warm}}"/>
+    <stop offset="70%" stop-color="{{warm}}" stop-opacity="0.75"/>
+    <stop offset="100%" stop-color="{{kalt}}" stop-opacity="0.55"/>
+  </linearGradient>
+  <linearGradient id="glanz" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+    <stop offset="28%" stop-color="#ffffff" stop-opacity="0.03"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.22"/>
+  </linearGradient>
+</defs>
+
+<!-- Speicherkörper, oben und unten gewölbt -->
+<rect x="48" y="124" width="104" height="168" rx="48" fill="url(#boiler)"/>
+<rect x="48" y="124" width="104" height="168" rx="48" fill="url(#glanz)"/>
+<rect x="48" y="124" width="104" height="168" rx="48" fill="none"
+      stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Registerheizschlange -->
+<path d="M 70 176 h 60 M 70 176 a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60
+         a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60"
+      fill="none" stroke="{{titel}}" stroke-width="3" opacity="0.3"
+      stroke-linecap="round"/>
+
+<!-- Wassertropfen als Merkzeichen -->
+<path d="M 100 138 q 11 14 11 21 a 11 11 0 0 1 -22 0 q 0 -7 11 -21 Z"
+      fill="{{titel}}" opacity="0.35"/>

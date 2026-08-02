@@ -1,0 +1,45 @@
+<defs>
+  <linearGradient id="gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+  <linearGradient id="glutbett" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0%" stop-color="{{glut}}"/>
+    <stop offset="55%" stop-color="{{glut}}" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="{{glut}}" stop-opacity="0"/>
+  </linearGradient>
+</defs>
+
+<!-- Einschub der Stokerschnecke, von links unten in den Brennraum -->
+<g stroke="{{rahmen}}" stroke-width="2" fill="{{korpus}}">
+  <path d="M 22 290 L 22 262 L 54 240 L 54 274 Z"/>
+</g>
+<g stroke="{{titel}}" stroke-width="1.5" opacity="0.25" fill="none">
+  <path d="M 28 284 L 48 270"/>
+  <path d="M 28 274 L 48 260"/>
+</g>
+
+<!-- Kesselkörper -->
+<rect x="52" y="120" width="112" height="174" rx="14" fill="url(#gehaeuse)"
+      stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Bedienteil -->
+<rect x="64" y="134" width="88" height="26" rx="6" fill="{{korpus_dunkel}}"
+      stroke="{{rahmen}}" stroke-width="1"/>
+<rect x="72" y="142" width="44" height="10" rx="5" fill="{{titel}}" opacity="0.25"/>
+<circle cx="140" cy="147" r="4" fill="{{glut}}" opacity="0.8"/>
+
+<!-- Wärmetauscher: senkrechte Rauchrohre -->
+<g fill="{{korpus_dunkel}}" opacity="0.8">
+  <rect x="70" y="172" width="9" height="46" rx="4"/>
+  <rect x="88" y="172" width="9" height="46" rx="4"/>
+  <rect x="106" y="172" width="9" height="46" rx="4"/>
+  <rect x="124" y="172" width="9" height="46" rx="4"/>
+  <rect x="142" y="172" width="9" height="46" rx="4"/>
+</g>
+
+<!-- Brennraum mit Glutbett -->
+<rect x="64" y="230" width="88" height="52" rx="8" fill="{{korpus_dunkel}}"
+      stroke="{{rahmen}}" stroke-width="1.5"/>
+<rect x="72" y="244" width="72" height="30" rx="6" fill="url(#glutbett)"/>
+<rect x="72" y="268" width="72" height="6" rx="3" fill="{{glut}}"/>
