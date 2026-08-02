@@ -69,7 +69,11 @@
         "description": "Enter the new address of the system. Devices, entities and history are kept.",
         "data": {
           "anlage": "System",
-          "host": "New address"
+          "host": "New address",
+          "username": "Access"
+        },
+        "data_description": {
+          "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant."
         }
       }
     }

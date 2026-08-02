@@ -403,7 +403,13 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             neu_host = clean_host(user_input[CONF_HOST])
             system = next((s for s in systeme if s[CONF_HOST] == alt), {})
             passwort = system.get(CONF_PASSWORD, "")
-            benutzer = system.get(CONF_USERNAME) or DEFAULT_USERNAME
+            # Der Zugang lässt sich hier mitändern. „Service" sieht
+            # Datenpunkte, die „USER" gar nicht erst geliefert bekommt –
+            # bisher kam man an diese Umstellung nur über eine fehlgeschlagene
+            # Anmeldung heran.
+            benutzer = (
+                user_input.get(CONF_USERNAME) or system.get(CONF_USERNAME) or DEFAULT_USERNAME
+            ).strip()
             try:
                 await validate_connection(neu_host, passwort, benutzer)
             except InvalidAuth:
@@ -411,7 +417,12 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             else:
-                neu = [{**s, CONF_HOST: neu_host} if s[CONF_HOST] == alt else s for s in systeme]
+                neu = [
+                    {**s, CONF_HOST: neu_host, CONF_USERNAME: benutzer}
+                    if s[CONF_HOST] == alt
+                    else s
+                    for s in systeme
+                ]
                 # Die Optionen sind je Adresse abgelegt und ziehen mit um.
                 optionen = dict(entry.options)
                 if alt in optionen:
@@ -438,6 +449,11 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                         )
                     ),
                     vol.Required(CONF_HOST): str,
+                    vol.Required(
+                        CONF_USERNAME,
+                        default=(systeme[0].get(CONF_USERNAME) if systeme else DEFAULT_USERNAME)
+                        or DEFAULT_USERNAME,
+                    ): benutzer_auswahl(),
                 }
             ),
             errors=errors,

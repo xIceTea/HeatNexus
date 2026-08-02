@@ -6,6 +6,58 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.1.0-beta.3] - 2026-08-02
+
+Vorabversion zum Ausprobieren.
+
+### Behoben
+
+- **„Warmwasser laden" im Heizhaus.** Die Karte war schon weg, die Taste im
+  Schnellzugriff nicht: Sie hing am Datenpunkt des Heizkreises, den die Anlage
+  auch dort führt, wo gar kein Speicher hängt.
+- **Die Warmwasserladung sprang zu früh auf „aus".** Der Auslöser der Anlage
+  („Freigabe starten") ist eine Taste, kein Zustand – er fällt zurück, sobald
+  der Auftrag angenommen ist. Angezeigt wird jetzt die **Betriebsart**, in der
+  die Anlage „Warmwasser Einmalladung" bzw. „WW-Ladung" meldet, solange
+  wirklich geladen wird. Solange das läuft, bietet die Taste **Abbrechen** an:
+  Sie setzt die Betriebswahl neu und stellt damit den Grundzustand wieder her
+  – denselben Weg geht die Anlagen-App über „Programm".
+- **Am Heizkreis stand die Kesseltemperatur** als Leitwert statt der
+  Raumtemperatur. Jeder Anlagenteil zeigt jetzt den Wert, den auch die Anlage
+  für ihn zeigt.
+- **Lange Werte sprengten die Karten.** Ein ganzes Warmwasserprogramm lief über
+  zwanzig Zeilen; es wird gekürzt, der volle Text steht im Tooltip und in der
+  Detailansicht.
+
+### Geändert
+
+- **Mehrere Anlagen werden gleichzeitig verbunden.** Bisher wartete die zweite
+  Anlage, bis die erste ihren vollständigen Erstabruf hinter sich hatte.
+- **Der Zugang lässt sich nachträglich wechseln** – über *Neu konfigurieren*,
+  zusammen mit der Adresse. Bisher kam man an die Umstellung von „USER" auf
+  „Service" nur über eine fehlgeschlagene Anmeldung heran.
+- **Systemstatus** zeigt zusätzlich Brennkammer, Abgas, Brennerstarts und
+  Betriebsstunden.
+
+### Neu
+
+- **Pumpen im Anlagenschaubild**, und sie drehen sich, solange sie laufen. Am
+  Standbild war nicht zu erkennen, ob gerade etwas fließt.
+- **Warmwasser als eigener Anlagenteil im Schaubild** – am Gerät hängen seine
+  Datenpunkte am Heizkreis, auf dem Display steht es trotzdem für sich.
+- **Verlauf mit wählbaren Linien**: Kesseltemperatur, Abgas, Brennkammer,
+  Puffer, Vorlauf, Raum, Rücklauf, Außentemperatur und Kesselleistung sind
+  vorausgewählt, jede Linie lässt sich an- und abschalten.
+- **Reiter „Alle"** stellt bei mehreren Anlagen alle untereinander, mit
+  Überschrift je Anlage.
+- **Das HeatNexus-Symbol oben links** öffnet die Seitenleiste – auf dem Handy
+  kam man sonst nur mit einer Wischgeste wieder heraus.
+- **Abfragestatistik in der Diagnose**: Anfragen je Stunde, Dauer je Anfrage
+  und je Abruf, Fehlschläge. Ohne diese Zahlen war jede Aussage über das
+  Abrufverhalten geschätzt.
+
+---
+
 ## [1.1.0-beta.2] - 2026-08-01
 
 Vorabversion zum Ausprobieren.

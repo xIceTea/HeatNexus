@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 from datetime import timedelta
 import logging
+import time
 
 import async_timeout
 from homeassistant.components import persistent_notification
@@ -208,10 +209,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         model="Heizungsanlage",
     )
 
-    coordinators: dict[str, WindhagerDataUpdateCoordinator] = {}
-    nachzuladen: list[tuple] = []
+    async def _anlage_vorbereiten(system: dict) -> tuple:
+        """Eine Anlage verbinden und ihren ersten Abruf machen.
 
-    for system in systeme:
+        Bewusst als eigene Aufgabe: Die Anlagen wurden bisher nacheinander
+        eingerichtet – bei zwei Anlagen wartete die zweite, bis die erste ihren
+        vollständigen Erstabruf hinter sich hatte. Da beide über getrennte
+        Verbindungen laufen, gibt es keinen Grund dafür.
+        """
         host = system[CONF_HOST]
         label = system.get(CONF_LABEL) or host
         scope = _scope(entry, host)
@@ -268,6 +273,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass, client, entry, host, label, scope["update_interval"]
         )
         await coordinator.async_config_entry_first_refresh()
+        return host, label, coordinator, client, store, fingerprint, cache_key, restored, abgleichen
+
+    begonnen = time.monotonic()
+    ergebnisse = await asyncio.gather(*(_anlage_vorbereiten(s) for s in systeme))
+
+    coordinators: dict[str, WindhagerDataUpdateCoordinator] = {}
+    nachzuladen: list[tuple] = []
+    for (
+        host,
+        label,
+        coordinator,
+        client,
+        store,
+        fingerprint,
+        cache_key,
+        restored,
+        abgleichen,
+    ) in ergebnisse:
         coordinators[host] = coordinator
 
         # Die Steuerung als Untergerät der Heizungsanlage. Ihre Kennung stammt
@@ -289,6 +312,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         if not restored or abgleichen:
             nachzuladen.append((coordinator, client, store, host, fingerprint, cache_key, restored))
+
+    _LOGGER.info(
+        "%d Anlage(n) verbunden in %.1f s (%s)",
+        len(coordinators),
+        time.monotonic() - begonnen,
+        ", ".join(f"{c.host}: {c.client.request_count} Anfragen" for c in coordinators.values()),
+    )
 
     hintergrund: list = []
     hass.data[DOMAIN][entry.entry_id] = {

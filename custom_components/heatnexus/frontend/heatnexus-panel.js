@@ -43,7 +43,7 @@ const STIL = `
     flex-wrap: wrap;
   }
   .menue-taste {
-    display: none;
+    display: inline-flex;
     align-items: center; justify-content: center;
     width: 40px; height: 40px; flex: none;
     border-radius: 12px; cursor: pointer;
@@ -84,6 +84,13 @@ const STIL = `
   .reiter button[aria-selected="true"] {
     opacity: 1; color: #6fb2f5; border-bottom-color: #6fb2f5;
   }
+  .anlagen-trenner {
+    display: flex; align-items: center; gap: 12px;
+    margin: 8px 16px 0; padding-top: 16px;
+    font-size: 15px; font-weight: 700; letter-spacing: 0.3px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .anlagen-trenner:first-of-type { border-top: none; padding-top: 4px; }
 
   /* --- Raster der Übersicht ------------------------------------------- */
   .rahmen {
@@ -102,7 +109,6 @@ const STIL = `
       grid-template-columns: minmax(0, 1fr);
       grid-template-areas: "seite" "schema" "kreise" "status" "verlauf" "schnell";
     }
-    .menue-taste { display: inline-flex; }
   }
   .spalten {
     display: grid; gap: 16px; padding: 16px;
@@ -163,8 +169,18 @@ const STIL = `
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
   .status-zeile:last-child { border-bottom: none; }
-  .status-zeile .titel { flex: 1; font-size: 14px; }
-  .status-zeile .wert { font-weight: 600; font-size: 14px; color: #6fb2f5; }
+  .status-zeile .titel {
+    flex: 1; font-size: 14px; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* Lange Werte (z.B. ein ganzes Zeitprogramm) sprengten die Karte über
+     zwanzig Zeilen. Sie werden gekürzt; der volle Text steht im Tooltip und
+     in der Detailansicht. */
+  .status-zeile .wert {
+    font-weight: 600; font-size: 14px; color: #6fb2f5;
+    max-width: 60%; text-align: right;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .status-zeile .wert.zustand { color: #7bd88f; }
   .status-zeile .wert.warm { color: #ffab6f; }
   ha-icon { --mdc-icon-size: 22px; opacity: 0.85; flex: none; }
@@ -172,6 +188,24 @@ const STIL = `
   /* --- Schaubild ------------------------------------------------------- */
   .schaubild { width: 100%; position: relative; }
   .schaubild img { width: 100%; display: block; border-radius: 12px; }
+  .schaubild .pumpe {
+    position: absolute; transform: translate(-50%, -50%);
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(10, 14, 19, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.35);
+  }
+  .schaubild .pumpe ha-icon { --mdc-icon-size: 18px; opacity: 1; }
+  .schaubild .pumpe.laeuft {
+    color: #6fb2f5; border-color: rgba(111, 178, 245, 0.6);
+    box-shadow: 0 0 10px rgba(111, 178, 245, 0.35);
+  }
+  .schaubild .pumpe.laeuft ha-icon { animation: dreht 1.6s linear infinite; }
+  @keyframes dreht { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .schaubild .pumpe.laeuft ha-icon { animation: none; }
+  }
   .schaubild .marke-wert {
     position: absolute; transform: translate(-50%, -50%);
     background: rgba(10, 14, 19, 0.72); color: #fff;
@@ -179,6 +213,19 @@ const STIL = `
     border-radius: 8px; white-space: nowrap;
   }
 
+  .linienwahl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .linie {
+    padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px;
+    font-weight: 600; cursor: pointer; color: inherit; opacity: 0.45;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .linie:hover { opacity: 0.8; }
+  .linie[aria-pressed="true"] {
+    opacity: 1; color: #6fb2f5;
+    background: rgba(111, 178, 245, 0.15);
+    border-color: rgba(111, 178, 245, 0.45);
+  }
   .doppel { display: grid; gap: 16px; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
   @media (max-width: 900px) { .doppel { grid-template-columns: minmax(0, 1fr); } }
   .gitter { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
@@ -411,8 +458,13 @@ class HeatNexusPanel extends HTMLElement {
     return (this._daten && this._daten.anlagen) || [];
   }
 
+  _alleAnlagen() {
+    return this._anlageIndex < 0 && this._anlagen().length > 1;
+  }
+
   _aktuelleAnlage() {
     const anlagen = this._anlagen();
+    if (this._anlageIndex < 0) return anlagen[0];
     return anlagen[Math.min(this._anlageIndex, anlagen.length - 1)];
   }
 
@@ -429,7 +481,17 @@ class HeatNexusPanel extends HTMLElement {
     }
 
     const inhalt = document.createElement("div");
-    inhalt.append(this._kopfleiste(anlage), this._reiterleiste(), this._inhalt(anlage));
+    inhalt.append(this._kopfleiste(anlage), this._reiterleiste());
+    if (this._alleAnlagen()) {
+      this._anlagen().forEach((eintrag) => {
+        const ueberschrift = document.createElement("div");
+        ueberschrift.className = "anlagen-trenner";
+        ueberschrift.textContent = eintrag.name || "Anlage";
+        inhalt.append(ueberschrift, this._inhalt(eintrag));
+      });
+    } else {
+      inhalt.appendChild(this._inhalt(anlage));
+    }
     this.shadowRoot.replaceChildren(stil, inhalt);
     this._verlaufKarteLaden();
   }
@@ -446,9 +508,12 @@ class HeatNexusPanel extends HTMLElement {
     const menue = document.createElement("button");
     menue.className = "menue-taste";
     menue.type = "button";
-    menue.title = "Seitenleiste anzeigen";
+    menue.title = "Seitenleiste anzeigen (Karten, Energie, Einstellungen)";
     menue.setAttribute("aria-label", "Seitenleiste anzeigen");
-    menue.appendChild(this._symbolKnoten("mdi:menu"));
+    // Das eigene Symbol statt eines Hamburgers: Es ist zugleich der Weg
+    // zurueck in die uebrigen Ansichten von Home Assistant - auf dem Handy
+    // sonst nur ueber eine Wischgeste erreichbar.
+    menue.appendChild(this._symbolKnoten("mdi:radiator"));
     menue.addEventListener("click", () => {
       this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
     });
@@ -482,12 +547,17 @@ class HeatNexusPanel extends HTMLElement {
       const waehler = document.createElement("div");
       waehler.className = "waehler";
       waehler.setAttribute("role", "tablist");
-      anlagen.forEach((eintrag, index) => {
+      // "Alle" stellt die Anlagen untereinander - mit Ueberschrift je Anlage,
+      // damit man beim Scrollen sieht, wo die naechste anfaengt.
+      const eintraege = [{ name: "Alle", index: -1 }].concat(
+        anlagen.map((a, index) => ({ name: a.name || `Anlage ${index + 1}`, index }))
+      );
+      eintraege.forEach(({ name, index }) => {
         const taste = document.createElement("button");
         taste.type = "button";
         taste.setAttribute("role", "tab");
-        taste.setAttribute("aria-selected", String(eintrag === anlage));
-        taste.textContent = eintrag.name || `Anlage ${index + 1}`;
+        taste.setAttribute("aria-selected", String(index === this._anlageIndex));
+        taste.textContent = name;
         taste.addEventListener("click", () => {
           this._anlageIndex = index;
           this._gebaut = false;
@@ -681,6 +751,24 @@ class HeatNexusPanel extends HTMLElement {
       });
     });
 
+    // Pumpen liegen als eigene Marken auf dem Bild: Ein Standbild kann sich
+    // nicht drehen, und ohne Bewegung sieht man der Anlage nicht an, ob
+    // gerade etwas fließt.
+    (anlage.schema_pumpen || []).forEach((eintrag) => {
+      const marke = document.createElement("div");
+      marke.className = "pumpe";
+      marke.title = `${eintrag.titel} – Pumpe`;
+      marke.style.left = eintrag.left;
+      marke.style.top = eintrag.top;
+      const ikone = this._symbolKnoten("mdi:fan");
+      marke.appendChild(ikone);
+      huelle.appendChild(this._klickbar(marke, eintrag.entity));
+      this._bindungen.push(() => {
+        const laeuft = this._istAn(eintrag.entity);
+        marke.classList.toggle("laeuft", laeuft);
+      });
+    });
+
     karte.appendChild(huelle);
     return karte;
   }
@@ -799,14 +887,19 @@ class HeatNexusPanel extends HTMLElement {
     wert.className = "wert";
     zeile.append(links, wert);
     this._bindungen.push(() => {
-      wert.textContent = this._text(entity);
-      // Farbe nach Art des Wertes: Zustände grün, Leistungen orange, Zahlen
-      // blau – so wie im Muster.
+      const text = this._text(entity);
+      wert.textContent = text;
+      wert.title = text;
+      // Farbe nach Art des Wertes: kurze Zustände grün, Leistungen orange,
+      // Zahlen blau – so wie im Muster. Ein langer Text bleibt neutral, sonst
+      // leuchtet die halbe Karte.
       const zustand = this._zustand(entity);
       const einheit = zustand && zustand.attributes.unit_of_measurement;
       wert.className = "wert";
-      if (!einheit && this._hatWert(entity)) wert.classList.add("zustand");
-      else if (einheit === "%" || einheit === "kW") wert.classList.add("warm");
+      if (einheit === "%" || einheit === "kW") wert.classList.add("warm");
+      else if (!einheit && this._hatWert(entity) && text.length <= 20) {
+        wert.classList.add("zustand");
+      }
     });
     return this._klickbar(zeile, entity);
   }
@@ -896,15 +989,64 @@ class HeatNexusPanel extends HTMLElement {
   // -------------------------------------------------------------------
   // Verlauf
   // -------------------------------------------------------------------
+  /**
+   * Verlaufskarte mit an- und abwählbaren Linien.
+   *
+   * Die Vorauswahl kommt aus der Integration; welche Linien der Nutzer
+   * zusätzlich sehen will, entscheidet er hier. Die Auswahl überlebt einen
+   * Reiterwechsel, weil sie am Element hängt und nicht an der Karte.
+   */
   _verlauf(anlage, stunden) {
     if (!(anlage.verlauf || []).length) return null;
+    const schluessel = `${anlage.name || ""}|${stunden}`;
+    if (!this._linien) this._linien = {};
+    if (!this._linien[schluessel]) this._linien[schluessel] = new Set(anlage.verlauf);
+    const gewaehlt = this._linien[schluessel];
+
     const karte = this._karte(`Verlauf (${stunden} Stunden)`);
+
+    const auswahl = document.createElement("div");
+    auswahl.className = "linienwahl";
+    const moeglich = anlage.verlauf_moeglich || anlage.verlauf.map((e) => ({ entity: e }));
+    moeglich.forEach((eintrag) => {
+      const kennung = eintrag.entity || eintrag;
+      const marke = document.createElement("button");
+      marke.type = "button";
+      marke.className = "linie";
+      marke.textContent = eintrag.titel || this._name(kennung);
+      marke.setAttribute("aria-pressed", String(gewaehlt.has(kennung)));
+      marke.addEventListener("click", () => {
+        if (gewaehlt.has(kennung)) gewaehlt.delete(kennung);
+        else gewaehlt.add(kennung);
+        marke.setAttribute("aria-pressed", String(gewaehlt.has(kennung)));
+        this._verlaufNeuLaden(platz, gewaehlt);
+      });
+      auswahl.appendChild(marke);
+    });
+    karte.appendChild(auswahl);
+
     const platz = document.createElement("div");
     platz.dataset.verlauf = "1";
     platz.dataset.stunden = String(stunden);
-    platz.dataset.entities = JSON.stringify(anlage.verlauf);
+    platz.dataset.entities = JSON.stringify([...gewaehlt]);
     karte.appendChild(platz);
     return karte;
+  }
+
+  async _verlaufNeuLaden(platz, gewaehlt) {
+    platz.dataset.entities = JSON.stringify([...gewaehlt]);
+    if (!window.loadCardHelpers) return;
+    const helfer = await window.loadCardHelpers();
+    const karte = helfer.createCardElement({
+      type: "history-graph",
+      hours_to_show: Number(platz.dataset.stunden) || 24,
+      entities: [...gewaehlt],
+    });
+    karte.hass = this._hass;
+    platz.replaceChildren(karte);
+    const alt = this._verlaufskarten.findIndex((k) => k.parentElement === platz);
+    if (alt >= 0) this._verlaufskarten[alt] = karte;
+    else this._verlaufskarten.push(karte);
   }
 
   _verlaufReiter(anlage) {
@@ -1080,6 +1222,16 @@ class HeatNexusPanel extends HTMLElement {
   _warmwasserKarte(wasser) {
     const karte = this._karte("Warmwasser");
 
+    // Wie bei der Anlage: die Betriebsart im Klartext über dem Wert.
+    if (wasser.betriebsart) {
+      const betriebsart = document.createElement("div");
+      betriebsart.className = "betriebsart";
+      karte.appendChild(betriebsart);
+      this._bindungen.push(() => {
+        betriebsart.textContent = this._text(wasser.betriebsart);
+      });
+    }
+
     const gross = document.createElement("div");
     gross.className = "gross";
     const zahl = document.createElement("div");
@@ -1111,13 +1263,32 @@ class HeatNexusPanel extends HTMLElement {
       if (wasser.laden_temperatur) {
         karte.appendChild(this._statuszeile(wasser.laden_temperatur, "Ladetemperatur"));
       }
-      karte.appendChild(this._ladeTaste(wasser.laden));
+      karte.appendChild(this._ladeTaste(wasser));
     }
     return karte;
   }
 
-  _ladeTaste(entity) {
+  /**
+   * Taste für die Warmwasser-Einmalladung.
+   *
+   * Der Auslöser selbst (`2/16`) fällt zurück, sobald die Anlage den Auftrag
+   * angenommen hat – er taugt deshalb nicht als Anzeige. Ob wirklich geladen
+   * wird, sagt die WW-Ladepumpe; im Zweifel wird gegengeprüft, ob die
+   * Warmwassertemperatur noch unter dem Sollwert liegt.
+   */
+  _ladeTaste(wasser) {
+    const entity = wasser.laden;
     const bereich = entity.split(".")[0];
+    // Was die Anlage gerade tut, steht in der Betriebsart. Meldet sie keine,
+    // bleibt die Ladepumpe als Anhaltspunkt.
+    const laedt = () => {
+      const zustand = this._zustand(wasser.betriebsart);
+      if (zustand && !OHNE_WERT.includes(String(zustand.state).toLowerCase())) {
+        return (wasser.laedt_wenn || []).includes(zustand.state);
+      }
+      if (wasser.laeuft) return this._istAn(wasser.laeuft);
+      return this._istAn(entity);
+    };
     const taste = document.createElement("button");
     taste.className = "taste";
     taste.type = "button";
@@ -1131,18 +1302,34 @@ class HeatNexusPanel extends HTMLElement {
 
     taste.addEventListener("click", async () => {
       if (taste.disabled) return;
-      const lief = this._istAn(entity);
+      const lief = laedt();
       taste.disabled = true;
       try {
+        if (lief && wasser.betriebswahl) {
+          // Abbrechen heißt an der Anlage: die dauerhafte Betriebswahl wieder
+          // setzen. Der vorübergehende Zustand fällt damit weg – denselben Weg
+          // geht die Anlagen-App über die Taste „Programm".
+          const wahl = this._zustand(wasser.betriebswahl);
+          if (!wahl) return;
+          await this._uebertragen(
+            rueckmeldung,
+            () =>
+              this._hass.callService("select", "select_option", {
+                entity_id: wasser.betriebswahl,
+                option: wahl.state,
+              }),
+            () => !laedt()
+          );
+          return;
+        }
         await this._uebertragen(
           rueckmeldung,
           () =>
             bereich === "button"
               ? this._hass.callService("button", "press", { entity_id: entity })
-              : this._hass.callService("homeassistant", "toggle", { entity_id: entity }),
-          // Bestätigt ist der Befehl, wenn die Anlage den Zustand gewechselt
-          // hat. Bis dahin steht „wird ausgeführt …" unter der Taste.
-          bereich === "button" ? null : () => this._istAn(entity) !== lief
+              : this._hass.callService("homeassistant", "turn_on", { entity_id: entity }),
+          // Bestätigt ist der Auftrag, wenn die Anlage anfängt zu laden.
+          () => laedt()
         );
       } finally {
         taste.disabled = false;
@@ -1150,8 +1337,9 @@ class HeatNexusPanel extends HTMLElement {
     });
 
     this._bindungen.push(() => {
-      const laeuft = this._istAn(entity);
+      const laeuft = laedt();
       taste.classList.toggle("an", laeuft);
+      beschriftung.textContent = laeuft ? "Ladung abbrechen" : "Einmalladung";
       if (rueckmeldung.dataset.belegt === "1") return;
       rueckmeldung.className = "rueckmeldung";
       rueckmeldung.textContent = laeuft ? "lädt gerade" : "bereit";

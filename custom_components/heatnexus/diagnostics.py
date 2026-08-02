@@ -117,6 +117,8 @@ def _anlage(coordinator) -> dict[str, Any]:
             "fachparameter_aktiv": client.enable_advanced,
             "fachparameter_bedienbar": client.writable_advanced,
         },
+        # Ohne diese Zahlen ist jede Aussage über das Abrufverhalten geschätzt.
+        "abrufverhalten": client.statistik() if hasattr(client, "statistik") else {},
         "entitaeten_nach_typ": dict(sorted(nach_typ.items())),
         "entitaeten_nach_ebene": dict(sorted(nach_ebene.items())),
         "geraete": async_redact_data(

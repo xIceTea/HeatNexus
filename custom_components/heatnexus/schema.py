@@ -55,7 +55,27 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
         (r"^temperatur ist$", "Temperatur"),
         (r"r(ü|ue)cklauf temperatur", "Rücklauf"),
     ),
+    "wasser": (
+        (r"ww[- ]temperatur aktueller|warmwasser ist", "Warmwasser"),
+        (r"ww[- ]temperatur sollwert|warmwasser soll", "Soll"),
+    ),
 }
+
+# Die Pumpe eines Anlagenteils. Sie steht im Schaubild in der Leitung und
+# dreht sich, solange sie läuft – im Standbild ist nicht zu erkennen, ob
+# gerade etwas fließt.
+PUMPE_JE_ART: dict[str, str] = {
+    "kessel": r"kesselpumpe|pumpe",
+    "puffer": r"pufferladepumpe(?!.*drehzahl)|ladepumpe",
+    "heizkreis": r"heizkreispumpe",
+    "wasser": r"ww-ladepumpe",
+    "zirkulation": r"zirkulationspumpe(?!.*modus)",
+}
+
+# Woran ein Heizkreis erkennen lässt, dass an ihm Warmwasser hängt. Die
+# Datenpunkte gehören am Gerät zum Heizkreis, im Schaubild ist Warmwasser aber
+# ein eigener Anlagenteil – so steht es auch auf dem Display der Anlage.
+WARMWASSER_IST = r"ww[- ]temperatur aktueller|warmwasser ist[- ]?temperatur"
 
 # Funktionstyp -> Art im Schaubild.
 ART_JE_FCT: dict[int, str] = {
@@ -107,19 +127,58 @@ def _finde(entitaeten: list[dict[str, Any]], muster: str) -> dict[str, Any] | No
     return next((e for e in treffer if e.get("hat_wert")), treffer[0])
 
 
+def _werte(entitaeten: list[dict[str, Any]], art: str) -> list[dict[str, Any]]:
+    """Die Messwerte eines Anlagenteils in der Reihenfolge des Schaubilds."""
+    werte = []
+    for muster, beschriftung in WERTE_JE_ART.get(art, ()):
+        if (treffer := _finde(entitaeten, muster)) is not None:
+            werte.append({"entity_id": treffer["entity_id"], "beschriftung": beschriftung})
+    return werte
+
+
+def _pumpe(entitaeten: list[dict[str, Any]], art: str) -> str | None:
+    """Die Pumpe eines Anlagenteils, sofern sie als Zustand gemeldet wird."""
+    muster = PUMPE_JE_ART.get(art)
+    if not muster:
+        return None
+    treffer = _finde(
+        [e for e in entitaeten if e.get("bereich") in ("binary_sensor", "switch")], muster
+    )
+    return treffer["entity_id"] if treffer else None
+
+
 def _module(teile: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Anlagenteile, die sich zeichnen lassen, mit ihren Werten."""
+    """Anlagenteile, die sich zeichnen lassen, mit ihren Werten.
+
+    Warmwasser bekommt einen eigenen Kasten, obwohl seine Datenpunkte am
+    Heizkreis hängen – auf dem Display der Anlage steht es genauso.
+    """
     module: list[dict[str, Any]] = []
     for teil in teile:
         art = _art(teil.get("fct_type"))
-        werte = []
-        for muster, beschriftung in WERTE_JE_ART.get(art, ()):
-            if (treffer := _finde(teil["entitaeten"], muster)) is not None:
-                werte.append({"entity_id": treffer["entity_id"], "beschriftung": beschriftung})
-        if not werte:
-            # Ohne Messwert bleibt nur ein leerer Kasten – der hilft nicht.
-            continue
-        module.append({"titel": teil["name"], "art": art, "werte": werte})
+        werte = _werte(teil["entitaeten"], art)
+        if werte:
+            module.append(
+                {
+                    "titel": teil["name"],
+                    "art": art,
+                    "werte": werte,
+                    "pumpe": _pumpe(teil["entitaeten"], art),
+                }
+            )
+        # Hängt an diesem Kreis eine Warmwasserbereitung, wird sie als eigener
+        # Anlagenteil dahinter gezeichnet.
+        if art == "heizkreis" and _finde(teil["entitaeten"], WARMWASSER_IST) is not None:
+            wasser = _werte(teil["entitaeten"], "wasser")
+            if wasser:
+                module.append(
+                    {
+                        "titel": "Warmwasser",
+                        "art": "wasser",
+                        "werte": wasser,
+                        "pumpe": _pumpe(teil["entitaeten"], "wasser"),
+                    }
+                )
     return module
 
 
@@ -273,11 +332,27 @@ def anlagenschema(teile: list[dict[str, Any]]) -> dict[str, Any] | None:
     daten = base64.b64encode(svg.encode("utf-8")).decode("ascii")
 
     elemente: list[dict[str, Any]] = []
+    pumpen: list[dict[str, Any]] = []
     for platz, modul in enumerate(module):
-        elemente += _beschriftungen(RAND + platz * MODUL_BREITE, modul, breite)
+        x = RAND + platz * MODUL_BREITE
+        elemente += _beschriftungen(x, modul, breite)
+        if modul.get("pumpe"):
+            # Die Pumpe sitzt im Rücklauf, unterhalb ihres Anlagenteils.
+            mitte = x + MODUL_BREITE // 2
+            pumpen.append(
+                {
+                    "entity": modul["pumpe"],
+                    "left": f"{mitte / breite * 100:.2f}%",
+                    "top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
+                    "titel": modul["titel"],
+                }
+            )
 
     return {
         "type": "picture-elements",
         "image": f"data:image/svg+xml;base64,{daten}",
         "elements": elemente,
+        # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht
+        # drehen. Sie werden als eigene Marken darübergelegt.
+        "pumpen": pumpen,
     }

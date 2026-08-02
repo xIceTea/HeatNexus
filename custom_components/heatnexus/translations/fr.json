@@ -69,7 +69,11 @@
         "description": "Saisir la nouvelle adresse de l’installation. Appareils, entités et historique sont conservés.",
         "data": {
           "anlage": "Installation",
-          "host": "Nouvelle adresse"
+          "host": "Nouvelle adresse",
+          "username": "Accès"
+        },
+        "data_description": {
+          "username": "USER voit les niveaux info et exploitant, Service en plus les paramètres spécialisés. Un changement relit l'installation."
         }
       }
     }

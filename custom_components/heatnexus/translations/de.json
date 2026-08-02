@@ -69,7 +69,11 @@
         "description": "Neue Adresse der Anlage eintragen. Geräte, Entitäten und Verlauf bleiben erhalten.",
         "data": {
           "anlage": "Anlage",
-          "host": "Neue Adresse"
+          "host": "Neue Adresse",
+          "username": "Zugang"
+        },
+        "data_description": {
+          "username": "„USER“ sieht Info- und Betreiberebene, „Service“ zusätzlich die Fachparameter. Ein Wechsel liest die Anlage neu ein."
         }
       }
     }

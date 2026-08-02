@@ -105,6 +105,14 @@ class WindhagerHttpClient:
         self._letzte_objekte: dict = {}
         # Anzahl der Anfragen an die Anlage (für die Startmeldung)
         self.request_count = 0
+        # Abfragestatistik: Ohne Zahlen ist jede Optimierung geraten. Gezählt
+        # werden alle Anfragen, ihre Gesamtdauer und die Fehlschläge; die
+        # Diagnose rechnet daraus Mittelwert und Anfragen je Stunde.
+        self.request_seconds = 0.0
+        self.request_errors = 0
+        self.poll_count = 0
+        self.poll_seconds = 0.0
+        self.gestartet = time.monotonic()
         # Ist der vollständige Abzug (Menü-Ebenen) bereits gelaufen?
         self._vollstaendig = False
         self._session = None
@@ -164,9 +172,16 @@ class WindhagerHttpClient:
         """GET auf die Anlage; gibt (json_oder_None, status) zurück."""
         await self._ensure_session()
         self.request_count += 1
-        async with self._semaphore:
-            ret = await self._auth.request("GET", url)
-            raw = await ret.read()
+        begonnen = time.monotonic()
+        try:
+            async with self._semaphore:
+                ret = await self._auth.request("GET", url)
+                raw = await ret.read()
+        except Exception:
+            self.request_errors += 1
+            raise
+        finally:
+            self.request_seconds += time.monotonic() - begonnen
         try:
             return json.loads(self._decode(raw)), ret.status
         except ValueError:
@@ -1088,6 +1103,31 @@ class WindhagerHttpClient:
                     out[str(nid)] = "  ".join(msgs)
         return out
 
+    def statistik(self) -> dict:
+        """Kennzahlen des Abrufverhaltens – für die Diagnose.
+
+        Erst mit diesen Zahlen lässt sich beurteilen, ob eine Änderung am
+        Abrufverhalten etwas gebracht hat. Vorher war jede Aussage dazu
+        geschätzt.
+        """
+        laufzeit = max(time.monotonic() - self.gestartet, 1.0)
+        return {
+            "anfragen": self.request_count,
+            "anfragen_je_stunde": round(self.request_count / laufzeit * 3600),
+            "anfragen_fehlgeschlagen": self.request_errors,
+            "dauer_je_anfrage_ms": (
+                round(self.request_seconds / self.request_count * 1000, 1)
+                if self.request_count
+                else None
+            ),
+            "abrufe": self.poll_count,
+            "dauer_je_abruf_s": (
+                round(self.poll_seconds / self.poll_count, 2) if self.poll_count else None
+            ),
+            "laufzeit_min": round(laufzeit / 60, 1),
+            "gleichzeitige_anfragen": FETCH_CONCURRENCY,
+        }
+
     def _takte(self) -> dict[str, int]:
         """Wie viele Durchläufe eine Poll-Klasse aussetzt (siehe helpers)."""
         return poll_takte(self.update_interval)
@@ -1127,6 +1167,7 @@ class WindhagerHttpClient:
             # Fallback, falls async_init noch nicht lief (sollte nicht passieren).
             await self.async_init()
 
+        poll_begonnen = time.monotonic()
         faellig = self._faellig()
         results = await asyncio.gather(*(self._fetch_oid(oid) for oid in faellig))
         # Zeitprogramme und Status ändern sich selten und kosten je eine
@@ -1145,6 +1186,8 @@ class WindhagerHttpClient:
                 del self._letzte_werte[oid]
 
         self._tick += 1
+        self.poll_count += 1
+        self.poll_seconds += time.monotonic() - poll_begonnen
         werte = dict(self._letzte_werte)
         werte.update(self._object_texts)
         return {

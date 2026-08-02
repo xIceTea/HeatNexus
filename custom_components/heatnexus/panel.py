@@ -55,6 +55,30 @@ _LOGGER = logging.getLogger(__name__)
 _JS_DATEI = Path(__file__).parent / "frontend" / "heatnexus-panel.js"
 
 # Der wichtigste Wert eines Anlagenteils, für die Liste links.
+#
+# Die Anlage selbst zeigt je Funktion **einen** Leitwert: am Kessel die
+# Kesseltemperatur, am Heizkreis die Raumtemperatur, am Puffer die obere
+# Temperatur. Ohne diese Trennung gewann bisher die Kesseltemperatur auch am
+# Heizkreis – der meldet sie nämlich ebenfalls.
+KENNWERT_JE_FCT: dict[int, tuple[tuple[str, str, str], ...]] = {
+    14: (  # Heizkreis
+        (r"raumtemperatur ist", "Raumtemperatur", "mdi:home-thermometer"),
+        (r"vorlauftemperatur ist", "Vorlauf", "mdi:radiator"),
+    ),
+    16: (  # Puffer
+        (r"puffer oben", "Puffer oben", "mdi:storage-tank"),
+        (r"^temperatur ist$", "Temperatur", "mdi:thermometer"),
+    ),
+    20: (  # Zirkulation
+        (r"^temperatur ist$", "Temperatur", "mdi:thermometer"),
+        (r"r(ü|ue)cklauf temperatur", "Rücklauf", "mdi:pipe"),
+    ),
+    25: (  # Kessel
+        (r"kesseltemperatur ist", "Kesseltemperatur", "mdi:fire"),
+    ),
+}
+
+# Rückfall für Funktionstypen ohne eigene Liste.
 KENNWERT = (
     (r"kesseltemperatur ist", "Kesseltemperatur", "mdi:fire"),
     (r"puffer oben", "Puffer oben", "mdi:storage-tank"),
@@ -70,8 +94,12 @@ STATUS = (
     (r"betriebsphase", "Betriebszustand", "mdi:state-machine"),
     (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer"),
     (r"kesselleistung", "Kesselleistung", "mdi:fire"),
+    (r"brennerkammertemperatur", "Brennkammer", "mdi:fireplace"),
+    (r"abgastemperatur", "Abgas", "mdi:smoke"),
     (r"aktueller brennstoff", "Brennstoff", "mdi:sack"),
     (r"vorratsbeh", "Vorratsbehälter", "mdi:battery-70"),
+    (r"brennerstarts", "Brennerstarts", "mdi:restart"),
+    (r"betriebsstunden", "Betriebsstunden", "mdi:clock-outline"),
     (r"laufzeit bis ascheentleerung", "Bis Ascheentleerung", "mdi:delete-clock-outline"),
 )
 
@@ -99,10 +127,23 @@ WARMWASSER_IST = _muster(
 )
 WARMWASSER_KREIS = _muster(r"\bww-kreis\b")
 
+# Verlauf: Was standardmäßig als Linie erscheint. Der Nutzer kann in der
+# Ansicht jede Linie ab- und weitere dazuwählen; das hier ist nur der Start.
 VERLAUF = _muster(
     r"kesseltemperatur ist",
+    r"abgastemperatur",
+    r"brennerkammertemperatur",
+    r"puffer oben",
+    r"puffer unten",
+    r"vorlauftemperatur ist",
+    r"raumtemperatur ist",
+    r"r(ü|ue)cklauf temperatur",
     r"au(ß|ss)entemperatur",
+    r"kesselleistung",
 )
+
+# Wie viele Linien der Verlauf höchstens von allein anschaltet.
+VERLAUF_MAX = 8
 
 # Schnellzugriff: bedienbare Datenpunkte, die man wirklich anfasst.
 # Ob vor dem Auslösen nachgefragt wird, entscheidet `dashboard.rueckfrage` –
@@ -131,6 +172,27 @@ EINMALLADUNG = _muster(r"einmalladung")
 # Temperatur, auf die dabei geladen wird.
 EINMALLADUNG_TEMPERATUR = _muster(r"einmalladung temperatur", r"ww-ladefreigabe temperatur")
 WARMWASSER_SOLL = _muster(r"\bww[- ]temperatur sollwert", r"\bwarmwasser soll")
+# Die ehrliche Rückmeldung der Einmalladung.
+#
+# Die Anlage trennt sauber zwischen dreierlei:
+#   2/16 „Freigabe starten"  Nein/Ja – ein Auslöser, kein Zustand. Er fällt
+#                            zurück, sobald der Auftrag angenommen ist.
+#   3/50 „Betriebswahl"      die dauerhafte Wahl (Standby, Programm 1–3,
+#                            Heizbetrieb, Absenkbetrieb, WW-Betrieb …).
+#   2/9  „Betriebsart"       was die Anlage **gerade tut**. Dort stehen die
+#                            vorübergehenden Zustände: „WW-Ladung",
+#                            „Warmwasser Einmalladung", „Eco / Comfort",
+#                            „Urlaubsprogramm", „Frostschutz".
+#
+# Eine Einmalladung überstimmt die Betriebswahl also nur vorübergehend; wer
+# die Betriebswahl neu setzt, stellt den Grundzustand wieder her und bricht
+# damit ab. Angezeigt wird deshalb die Betriebsart; die Ladepumpe ist nur der
+# Rückfall für Anlagen, die keine Betriebsart melden.
+BETRIEBSART = _muster(r"^betriebsart$")
+WARMWASSER_LADEPUMPE = _muster(r"\bww-ladepumpe")
+
+# Betriebsarten (2/9), die eine laufende Warmwasserladung bedeuten.
+WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-Programm")
 
 # Die Außentemperatur gehört an der Anlage in die Kopfzeile und nicht in eine
 # Kachel – sie gilt für die ganze Anlage, nicht für einen Anlagenteil.
@@ -255,6 +317,16 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
             # Die Temperatur der Einmalladung ist an der Anlage Teil derselben
             # Bedienung; ohne sie lädt man auf einen Wert, den man nicht sieht.
             "laden_temperatur": _kennung(alle, EINMALLADUNG_TEMPERATUR, ("number",)),
+            # Woran man sieht, dass wirklich geladen wird: Der Auslöser (2/16)
+            # faellt zurueck, sobald die Anlage den Auftrag angenommen hat.
+            # Die Ladepumpe laeuft dagegen, solange geladen wird.
+            "laeuft": _kennung(alle, WARMWASSER_LADEPUMPE, ("binary_sensor",)),
+            # Was die Anlage gerade tut – daran hängt die Rückmeldung.
+            "betriebsart": _kennung(alle, BETRIEBSART, ("sensor",)),
+            "laedt_wenn": list(WARMWASSER_LAEDT),
+            # Über die Betriebswahl kommt man zurück in den Grundzustand; in
+            # der Anlagen-App ist das der Weg, eine Ladung abzubrechen.
+            "betriebswahl": _kennung(alle, BETRIEBSWAHL, ("select",)),
             "programm": _kennung(alle, _muster(r"ww[- ].*programm"), ("sensor",)),
         }
 
@@ -321,7 +393,8 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
 
     kennwerte = []
     for teil in anlage["teile"]:
-        for muster, beschriftung, symbol in KENNWERT:
+        vorlage = KENNWERT_JE_FCT.get(teil.get("fct_type")) or KENNWERT
+        for muster, beschriftung, symbol in vorlage:
             if (treffer := _erster(teil["entitaeten"], muster)) is not None:
                 kennwerte.append(
                     {
@@ -361,9 +434,14 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
         if e["kategorie"] == "diagnostic" and "klartext" in e["name"].lower()
     ]
 
+    # Ohne Warmwasserbereitung hat auch die Taste „Warmwasser laden" nichts
+    # verloren – der Datenpunkt existiert am Heizkreis trotzdem.
+    hat_warmwasser = _bereitet_warmwasser(alle)
     schnellzugriff = []
     for teil in anlage["teile"]:
         for muster, beschriftung, symbol in SCHNELLZUGRIFF:
+            if not hat_warmwasser and _passt(beschriftung, WARMWASSER):
+                continue
             treffer = next(
                 (
                     e
@@ -398,7 +476,14 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
         "warmwasser": warmwasser,
         "stoerungen": stoerungen,
         "schnellzugriff": schnellzugriff[:6],
-        "verlauf": [e["entity_id"] for e in alle if _passt(e["name"], VERLAUF)][:2],
+        "verlauf": [e["entity_id"] for e in alle if _passt(e["name"], VERLAUF)][:VERLAUF_MAX],
+        # Alles, was sich sonst noch als Linie eignet – in der Ansicht
+        # dazuwaehlbar.
+        "verlauf_moeglich": [
+            {"entity": e["entity_id"], "titel": e["name"]}
+            for e in alle
+            if e["kategorie"] is None and e["bereich"] == "sensor"
+        ],
         "schema": bild["image"] if bild else None,
         "schema_werte": (
             [
@@ -412,6 +497,7 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
             if bild
             else []
         ),
+        "schema_pumpen": bild.get("pumpen", []) if bild else [],
     }
 
 
