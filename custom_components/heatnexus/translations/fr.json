@@ -94,13 +94,15 @@
           "update_interval": "Intervalle d'interrogation",
           "dashboard": "Créer un tableau de bord",
           "panel": "Interface dédiée",
-          "meldung_einlesen": "Notifier pendant la lecture"
+          "meldung_einlesen": "Notifier pendant la lecture",
+          "aussentemperatur": "Température extérieure"
         },
         "data_description": {
           "update_interval": "Fréquence d'interrogation de l'installation.",
           "dashboard": "Ajoute un tableau de bord « Chauffage » qui se construit à partir des appareils détectés.",
           "panel": "Ajoute une entrée « HeatNexus » dans la barre latérale : schéma de l’installation, état, circuits de chauffage et accès rapide.",
-          "meldung_einlesen": "Affiche une notification pendant que HeatNexus lit l'installation. Désactivé par défaut."
+          "meldung_einlesen": "Affiche une notification pendant que HeatNexus lit l'installation. Désactivé par défaut.",
+          "aussentemperatur": "Quel capteur sert de température extérieure dans l'en-tête. Vide : HeatNexus la cherche dans l'installation."
         }
       },
       "system": {

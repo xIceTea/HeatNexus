@@ -6,6 +6,30 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.1.0-beta.6] - 2026-08-02
+
+### Neu
+
+- **Lagerraum-Freigabe ist sichtbar.** Die Anlage führt zwei getrennte Werte:
+  die Anforderung über die Betriebswahl des Kessels und die eigentliche
+  Freigabe („Gesperrt" / „Freigegeben") samt Restlaufzeit. Beide standen in
+  keiner Bedienebene und fehlten deshalb, obwohl das Bediengerät sie anzeigt.
+  Sie werden jetzt immer mitgelesen.
+- **Außentemperatur frei wählbar.** Unter *Konfigurieren → Allgemein* lässt
+  sich festlegen, welcher Sensor in der Kopfzeile gilt – auch einer aus einer
+  anderen Integration. Leer gelassen sucht HeatNexus sie wie bisher selbst.
+  Nötig, weil der Außenfühler oft an einer anderen Anlage hängt als der, deren
+  Werte man gerade ansieht.
+
+### Geändert
+
+- **Die Heizkreiszeile folgt jetzt der Vorlage**: Name mit farbiger
+  Betriebsart darunter, rechts die Raumtemperatur groß und der Sollwert klein,
+  dahinter Symbole für Betriebsart und Zeitprogramm. Heizen erscheint warm,
+  Absenken kühl.
+
+---
+
 ## [1.1.0-beta.5] - 2026-08-02
 
 ### Neu

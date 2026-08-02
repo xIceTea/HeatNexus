@@ -34,6 +34,10 @@ CONF_PANEL = "panel"
 # Wer nicht gerade zusieht, will keine Meldung, und beim zweiten Start steht
 # ohnehin alles sofort da.
 CONF_MELDUNG_EINLESEN = "meldung_einlesen"
+# Entität, die in der Kopfzeile der eigenen Oberfläche als Außentemperatur
+# gilt. Leer heißt: HeatNexus sucht sie sich in der Anlage selbst. Nötig,
+# weil der Außenfühler oft woanders hängt als bei der Anlage, die ihn meldet.
+CONF_AUSSENTEMPERATUR = "aussentemperatur"
 PANEL_URL = "heatnexus-anlage"
 PANEL_TITEL = "HeatNexus"
 PANEL_ELEMENT = "heatnexus-panel"
@@ -204,7 +208,11 @@ EXTRA_OIDS_BY_FCT: dict[int, tuple[str, ...]] = {
     ),
     16: ("0/7", "2/9", "4/82"),  # Puffer
     20: ("0/7", "1/7", "4/92", "4/93"),  # Zirkulation
-    25: ("0/97", "4/92"),  # Kessel
+    # Kessel: Störcode, Softwarestand – und die Lagerraumbefüllung.
+    # 39/107 meldet „Gesperrt"/„Freigegeben", 39/5 die Restlaufzeit der
+    # Freigabe. Beide stehen in keiner Bedienebene und fehlten deshalb, obwohl
+    # die Anlage sie führt und das InfoWIN Touch sie anzeigt.
+    25: ("0/97", "4/92", "39/107", "39/5"),
 }
 
 # Timeout (s) für die einmalige Erstinitialisierung (Discovery + Metadaten

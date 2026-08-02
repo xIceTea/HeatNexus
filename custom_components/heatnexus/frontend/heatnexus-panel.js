@@ -168,6 +168,13 @@ const STIL = `
   }
   .zeile .wert.lang { font-size: 15px; }
   .zeile .bezeichnung { font-size: 11px; opacity: 0.5; margin-top: 2px; }
+  .betriebsart-klein { font-size: 12px; font-weight: 600; margin-top: 2px; }
+  .betriebsart-klein.heizt { color: #ffab6f; }
+  .betriebsart-klein.abgesenkt { color: #6fb2f5; }
+  .kreis-symbole { display: flex; gap: 10px; margin-left: 12px; }
+  .kreis-symbole ha-icon { --mdc-icon-size: 20px; opacity: 0.7; }
+  .kreis-symbole ha-icon.heizt { color: #ffab6f; opacity: 1; }
+  .kreis-symbole ha-icon.abgesenkt { color: #6fb2f5; opacity: 1; }
   .status-zeile {
     display: flex; align-items: center; gap: 12px; padding: 8px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -815,30 +822,42 @@ class HeatNexusPanel extends HTMLElement {
     return doppel;
   }
 
-  /** Eine Heizkreiszeile: Ist groß, darunter Betriebsart und Sollwert. */
+  /**
+   * Eine Heizkreiszeile nach dem Vorbild der Anlage.
+   *
+   * Links Symbol, Name und die Betriebsart farbig darunter; rechts der große
+   * Ist-Wert mit dem Sollwert klein daneben, dahinter zwei Symbole: die
+   * Betriebsart (Sonne, Mond, Standby …) und das Zeitprogramm.
+   */
   _heizkreiszeile(kreis) {
     const zeile = document.createElement("div");
-    zeile.className = "zeile";
-    zeile.appendChild(this._symbolKnoten("mdi:home-thermometer-outline"));
+    zeile.className = "zeile kreis";
+    zeile.appendChild(this._symbolKnoten("mdi:home-outline"));
+
     const text = document.createElement("div");
     text.className = "text";
     const oben = document.createElement("div");
     oben.className = "titel";
     oben.textContent = kreis.titel;
     const unten = document.createElement("div");
-    unten.className = "unter";
+    unten.className = "betriebsart-klein";
     text.append(oben, unten);
 
     const rechts = document.createElement("div");
     rechts.className = "rechts";
     const wert = document.createElement("div");
     wert.className = "wert";
-    const bezeichnung = document.createElement("div");
-    bezeichnung.className = "bezeichnung";
-    bezeichnung.textContent = "Raumtemperatur";
-    rechts.append(wert, bezeichnung);
+    const sollzeile = document.createElement("div");
+    sollzeile.className = "bezeichnung";
+    rechts.append(wert, sollzeile);
 
-    zeile.append(text, rechts);
+    const symbole = document.createElement("div");
+    symbole.className = "kreis-symbole";
+    const artSymbol = this._symbolKnoten("mdi:white-balance-sunny");
+    const uhr = this._symbolKnoten("mdi:clock-outline");
+    symbole.append(artSymbol, uhr);
+
+    zeile.append(text, rechts, symbole);
     this._bindungen.push(() => {
       const zustand = this._zustand(kreis.entity);
       if (!zustand) {
@@ -848,12 +867,18 @@ class HeatNexusPanel extends HTMLElement {
       const ist = zustand.attributes.current_temperature;
       const soll = zustand.attributes.temperature;
       wert.textContent = ist !== undefined && ist !== null ? `${ist} °C` : "–";
-      const teile = [];
-      if (zustand.attributes.preset_mode) teile.push(this._presetName(zustand));
-      if (soll !== undefined && soll !== null) teile.push(`Soll ${soll} °C`);
+      sollzeile.textContent =
+        soll !== undefined && soll !== null ? `${soll} °C` : "Raumtemperatur";
+
+      const art = zustand.attributes.preset_mode ? this._presetName(zustand) : "";
       const rest = this._restzeit(zustand);
-      if (rest) teile.push(rest);
-      unten.textContent = teile.join(" · ");
+      unten.textContent = rest ? `${art} · ${rest}` : art;
+      // Farbe wie im Muster: Heizen warm, Absenken kühl.
+      const heizt = zustand.state === "heat" || zustand.attributes.hvac_action === "heating";
+      unten.className = `betriebsart-klein ${heizt ? "heizt" : "abgesenkt"}`;
+      artSymbol.setAttribute("icon", heizt ? "mdi:white-balance-sunny" : "mdi:weather-night");
+      artSymbol.className = heizt ? "heizt" : "abgesenkt";
+      uhr.style.display = kreis.programm ? "" : "none";
     });
     return this._klickbar(zeile, kreis.entity);
   }

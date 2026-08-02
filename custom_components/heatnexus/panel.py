@@ -34,6 +34,7 @@ from homeassistant.core import HomeAssistant, callback
 import voluptuous as vol
 
 from .const import (
+    CONF_AUSSENTEMPERATUR,
     DOMAIN,
     PANEL_ELEMENT,
     PANEL_JS_PFAD,
@@ -387,7 +388,7 @@ def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
+def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) -> dict[str, Any]:
     """Alles, was die Oberfläche für eine Anlage braucht."""
     alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
 
@@ -467,7 +468,9 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
                 schnellzugriff.append(eintrag)
 
     bild = anlagenschema(anlage["teile"])
-    aussen = _kennung(alle, AUSSENTEMPERATUR)
+    # Eine in den Optionen gewählte Entität hat Vorrang: Der Außenfühler hängt
+    # oft an einer anderen Anlage als der, deren Werte man gerade ansieht.
+    aussen = aussen_gewaehlt or _kennung(alle, AUSSENTEMPERATUR)
     return {
         "name": anlage["name"],
         # Die Außentemperatur gilt für die ganze Anlage und steht deshalb oben,
@@ -506,9 +509,18 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _gewaehlte_aussentemperatur(hass: HomeAssistant) -> str | None:
+    """In den Optionen festgelegte Außentemperatur, falls vorhanden."""
+    for eintrag in hass.config_entries.async_entries(DOMAIN):
+        if gewaehlt := (eintrag.options or {}).get(CONF_AUSSENTEMPERATUR):
+            return str(gewaehlt)
+    return None
+
+
 def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
     """Die vollständige Struktur für die Oberfläche."""
-    return {"anlagen": [_anlage_daten(anlage) for anlage in _anlagen(hass)]}
+    aussen = _gewaehlte_aussentemperatur(hass)
+    return {"anlagen": [_anlage_daten(anlage, aussen) for anlage in _anlagen(hass)]}
 
 
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/panel_daten"})

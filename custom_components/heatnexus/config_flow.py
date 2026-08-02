@@ -35,6 +35,7 @@ from .client import WindhagerHttpClient
 from .const import (
     ALL_LEVELS,
     BEKANNTE_BENUTZER,
+    CONF_AUSSENTEMPERATUR,
     CONF_COUNT,
     CONF_DASHBOARD,
     CONF_ENABLE_ADVANCED,
@@ -498,6 +499,11 @@ class WindhagerOptionsFlow(OptionsFlow):
             options[CONF_DASHBOARD] = bool(user_input[CONF_DASHBOARD])
             options[CONF_PANEL] = bool(user_input[CONF_PANEL])
             options[CONF_MELDUNG_EINLESEN] = bool(user_input[CONF_MELDUNG_EINLESEN])
+            gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
+            if gewaehlt:
+                options[CONF_AUSSENTEMPERATUR] = gewaehlt
+            else:
+                options.pop(CONF_AUSSENTEMPERATUR, None)
             return self.async_create_entry(data=options)
 
         return self.async_show_form(
@@ -509,6 +515,7 @@ class WindhagerOptionsFlow(OptionsFlow):
                     ): bool,
                     vol.Required(CONF_PANEL, default=bool(options.get(CONF_PANEL, False))): bool,
                     vol.Required(
+                        CONF_AUSSENTEMPERATUR,
                         CONF_MELDUNG_EINLESEN,
                         default=bool(options.get(CONF_MELDUNG_EINLESEN, False)),
                     ): bool,

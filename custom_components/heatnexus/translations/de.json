@@ -94,13 +94,15 @@
           "update_interval": "Abfrageintervall",
           "dashboard": "Dashboard einrichten",
           "panel": "Eigene Oberfläche",
-          "meldung_einlesen": "Beim Einlesen benachrichtigen"
+          "meldung_einlesen": "Beim Einlesen benachrichtigen",
+          "aussentemperatur": "Außentemperatur"
         },
         "data_description": {
           "update_interval": "Wie oft die Anlage abgefragt wird.",
           "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut.",
           "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff.",
-          "meldung_einlesen": "Meldet sich, während HeatNexus die Anlage einliest. Standardmäßig aus – ab dem zweiten Start steht ohnehin alles sofort da."
+          "meldung_einlesen": "Meldet sich, während HeatNexus die Anlage einliest. Standardmäßig aus – ab dem zweiten Start steht ohnehin alles sofort da.",
+          "aussentemperatur": "Welcher Sensor in der Kopfzeile als Außentemperatur gilt. Leer: HeatNexus sucht sie sich in der Anlage selbst."
         }
       },
       "system": {

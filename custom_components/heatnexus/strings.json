@@ -94,13 +94,15 @@
           "update_interval": "Polling interval",
           "dashboard": "Create dashboard",
           "panel": "Own interface",
-          "meldung_einlesen": "Notify while reading in"
+          "meldung_einlesen": "Notify while reading in",
+          "aussentemperatur": "Outside temperature"
         },
         "data_description": {
           "update_interval": "How often the system is queried.",
           "dashboard": "Adds a dashboard that builds itself from the discovered devices.",
           "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
-          "meldung_einlesen": "Shows a notification while HeatNexus reads the plant. Off by default – from the second start everything is there immediately."
+          "meldung_einlesen": "Shows a notification while HeatNexus reads the plant. Off by default – from the second start everything is there immediately.",
+          "aussentemperatur": "Which sensor counts as the outside temperature in the header. Empty: HeatNexus finds it in the plant itself."
         }
       },
       "system": {
