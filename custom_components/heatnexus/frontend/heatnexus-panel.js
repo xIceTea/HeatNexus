@@ -312,7 +312,14 @@ const STIL = `
     background: rgba(255, 171, 111, 0.15); color: #ffab6f;
   }
   .feld { margin-top: 12px; }
-  .feld > .beschriftung { font-size: 11px; opacity: 0.5; margin-bottom: 6px; }
+  /* Die Blässe sitzt auf dem Wort, nicht auf der Zeile: Ein durchsichtiger
+     Kasten färbt auch das „?" darin blass, und das soll auffallen. */
+  .feld > .beschriftung {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; margin-bottom: 6px;
+  }
+  .feld > .beschriftung > span { opacity: 0.5; }
+  .feld > .beschriftung .fragezeichen { width: 18px; height: 18px; font-size: 11px; }
 
   /* --- Dialog ---------------------------------------------------------- */
   .schleier {
@@ -328,7 +335,11 @@ const STIL = `
   }
   .dialog-titel { margin: 0 0 10px; font-size: 17px; font-weight: 600;
     text-transform: none; letter-spacing: 0; opacity: 1; }
-  .dialog-text { font-size: 14px; line-height: 1.5; opacity: 0.8; }
+  /* pre-line: Die Erklärungen bringen Absätze und Aufzählungen mit; ohne das
+     liefen sie zu einem einzigen Block zusammen. */
+  .dialog-text { font-size: 14px; line-height: 1.5; opacity: 0.8; white-space: pre-line; }
+  .dialog.erklaerung { max-width: 520px; }
+  .dialog.erklaerung .dialog-text { max-height: 62vh; overflow-y: auto; }
   .dialog-leiste { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
   .dialog-taste {
     padding: 9px 16px; border-radius: 10px; font: inherit; font-weight: 600;
@@ -701,7 +712,7 @@ class HeatNexusPanel extends HTMLElement {
     const schleier = document.createElement("div");
     schleier.className = "schleier";
     const dialog = document.createElement("div");
-    dialog.className = "dialog";
+    dialog.className = "dialog erklaerung";
     dialog.setAttribute("role", "dialog");
 
     const ueberschrift = document.createElement("h3");
@@ -1315,7 +1326,9 @@ class HeatNexusPanel extends HTMLElement {
     hoch.addEventListener("click", () => stellen(1));
 
     if (kreis.betriebswahl) {
-      karte.appendChild(this._auswahlFeld("Betriebswahl", kreis.betriebswahl));
+      karte.appendChild(
+        this._auswahlFeld("Betriebswahl", kreis.betriebswahl, kreis.betriebswahl_hilfe)
+      );
     }
     if (kreis.programm) {
       const trenner = document.createElement("div");
@@ -1482,12 +1495,18 @@ class HeatNexusPanel extends HTMLElement {
     return !!zustand && zustand.state === "on";
   }
 
-  _auswahlFeld(titel, entity) {
+  _auswahlFeld(titel, entity, hilfe) {
     const feld = document.createElement("div");
     feld.className = "feld";
     const beschriftung = document.createElement("div");
     beschriftung.className = "beschriftung";
-    beschriftung.textContent = titel;
+    const wort = document.createElement("span");
+    wort.textContent = titel;
+    beschriftung.appendChild(wort);
+    // Gerade der Brennstoff braucht die Erklärung: Welche der vier
+    // Einstellungen richtig ist, sieht man der Auswahlliste nicht an.
+    const text = hilfe || (this._hilfe && this._hilfe[titel]);
+    if (text) beschriftung.appendChild(this._fragezeichen(titel, text));
     const auswahl = document.createElement("select");
     const rueckmeldung = document.createElement("div");
     rueckmeldung.className = "rueckmeldung";
@@ -1561,16 +1580,29 @@ class HeatNexusPanel extends HTMLElement {
     return karte;
   }
 
+  /**
+   * Kesselbedienung: Auswahlfelder oben, Tasten darunter im Raster.
+   *
+   * Untereinander gestapelt wuchs die Karte mit jeder Reinigungstaste weiter
+   * in die Länge; nebeneinander bleibt sie überschaubar und sieht aus wie der
+   * Schnellzugriff.
+   */
   _kesselKarte(eintraege) {
     const karte = this._karte("Kessel");
+    const gitter = document.createElement("div");
+    gitter.className = "gitter";
+    gitter.style.marginTop = "10px";
+
     eintraege.forEach((eintrag) => {
       const bereich = eintrag.entity.split(".")[0];
       if (bereich === "select") {
-        karte.appendChild(this._auswahlFeld(eintrag.titel, eintrag.entity));
+        karte.appendChild(this._auswahlFeld(eintrag.titel, eintrag.entity, eintrag.hilfe));
         return;
       }
-      karte.appendChild(this._bedientaste(eintrag, true));
+      gitter.appendChild(this._bedientaste(eintrag, false));
     });
+
+    if (gitter.childElementCount) karte.appendChild(gitter);
     return karte;
   }
 
@@ -1617,7 +1649,7 @@ class HeatNexusPanel extends HTMLElement {
 
     eintraege.forEach((eintrag) => {
       if (eintrag.entity.split(".")[0] === "select") {
-        const huelle = this._auswahlFeld(eintrag.titel, eintrag.entity);
+        const huelle = this._auswahlFeld(eintrag.titel, eintrag.entity, eintrag.hilfe);
         huelle.style.gridColumn = "1 / -1";
         gitter.appendChild(huelle);
         return;

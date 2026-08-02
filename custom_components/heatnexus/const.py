@@ -44,7 +44,20 @@ CONF_HILFE = "hilfe"
 PANEL_URL = "heatnexus-anlage"
 PANEL_TITEL = "HeatNexus"
 PANEL_ELEMENT = "heatnexus-panel"
-PANEL_JS_PFAD = "/heatnexus-frontend/heatnexus-panel.js"
+
+
+def panel_js_pfad(version: str) -> str:
+    """Adresse der Oberflächendatei für genau diese Fassung.
+
+    Die Fassungsnummer steckt im Pfad, nicht in einem Anhang dahinter: Home
+    Assistants Service Worker gleicht zwischengespeicherte Antworten ohne
+    Suchteil ab, ein „?v=…“ wurde also übergangen und weiterhin die alte Datei
+    ausgeliefert. Ein anderer Pfad ist für den Zwischenspeicher eine andere
+    Datei – damit genügt ein gewöhnliches Neuladen statt Strg+Umschalt+R.
+    """
+    sauber = "".join(z if z.isalnum() else "-" for z in (version or "0"))
+    return f"/heatnexus-frontend/{sauber}/heatnexus-panel.js"
+
 
 # Bedienebenen der Anlage, wie sie auch das InfoWIN Touch kennt
 LEVEL_INFO = "info"  # Messwerte und Zustände
@@ -191,16 +204,16 @@ ZAEHLER_WOERTER = (
 
 # Gleichzeitige Anfragen an die Anlage.
 #
-# Beim **Einlesen** bleibt es bei drei: Mehr quittieren die Geräte bei großen
-# Menü-Ebenen mit abgebrochenen Antworten.
+# Drei – und zwar gemessen, nicht geschätzt. Der Versuch mit sechs brachte
+# nichts: Die Antwortzeit je Datenpunkt stieg von 765 ms auf 1287 ms, während
+# ein vollständiger Abruf nur von 11,0 s auf 10,4 s sank. Die Steuerung
+# arbeitet Anfragen praktisch nacheinander ab; mehr Parallelität verteilt
+# dieselbe Zeit auf mehr Verbindungen und belastet sie stärker.
 #
-# Beim **Abrufen** einzelner Werte ist das anders. Gemessen an der Anlage:
-# 0,76 s Antwortzeit je Datenpunkt, aber 5,6 s Wartezeit in der eigenen
-# Warteschlange – siebenmal so viel. Nicht die Anlage ist langsam, unser
-# Durchsatz ist zu klein. Ein Abruf von 72 Werten dauerte damit 11 s bei einem
-# Intervall von 30 s.
+# Der einzige wirksame Hebel ist deshalb, **weniger zu fragen** – nicht,
+# schneller zu fragen.
 FETCH_CONCURRENCY = 3
-POLL_CONCURRENCY = 6
+POLL_CONCURRENCY = 3
 
 # Ein Menü-Abruf liefert höchstens so viele Datenpunkte; der Rest kommt über
 # ?offset=<n> nach.

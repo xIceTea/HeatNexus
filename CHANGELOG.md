@@ -6,6 +6,39 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.1.1] - 2026-08-02
+
+### Behoben
+
+- **Die Oberfläche erscheint nach einem Update von selbst** – ohne
+  Strg+Umschalt+R. Bisher hielt der Browser die alte Datei fest: Home
+  Assistant legt seine Oberfläche über einen Service-Worker ab, und der
+  vergleicht Adressen ohne den Teil hinter dem Fragezeichen. Die
+  Fassungsnummer steht deshalb jetzt im Pfad und nicht mehr dahinter.
+- Ohne das Neuladen fehlten auch die „?“ – die sind damit erledigt.
+- Im Einstellungsmenü hieß der erste Punkt weiter *Allgemein
+  (Abfrageintervall)*, obwohl dort längst mehr steht. Jetzt: *Allgemein
+  (Oberfläche, Erklärungen, Abfrage)*.
+- Im Anlagenschaubild verdeckten die Pumpenkreise die Beschriftung darunter.
+
+### Geändert
+
+- **Erklärungen nach dem Wortlaut der Anlagendokumentation.** Der Brennstoff
+  nennt jetzt die Werte, nach denen ausgewählt wird: *normal* 15 bis 30 %
+  Wassergehalt bei bis zu 1,5 % Asche, *feucht* darüber bis höchstens 35 %,
+  *schlackend* ab etwa 1,5 % Asche – samt Hinweis, dass die Umstellung erst
+  nach Aus- und Einschalten am Hauptschalter wirkt. Ebenso überarbeitet:
+  Serviceausbrand, Lagerraumbefüllung, Reinigungsbestätigungen,
+  Einmalladung, Betriebswahl, Behaglichkeit und Sollwert.
+- Das „?“ steht jetzt auch an den Auswahlfeldern – vor allem am Brennstoff,
+  dem man die richtige Einstellung nicht ansieht.
+- **Die Tasten der Kesselkarte stehen nebeneinander** statt untereinander; die
+  Karte wuchs mit jeder Reinigungstaste weiter in die Länge.
+- Gleichzeitige Anfragen an die Anlage wieder auf drei begrenzt. Sechs waren
+  ausprobiert und gemessen: Die Antwortzeit stieg um zwei Drittel, der ganze
+  Abruf wurde dabei kaum schneller. Die Anlage arbeitet Anfragen praktisch
+  nacheinander ab.
+
 ## [1.1.0] - 2026-08-02
 
 Die zehn Vorabversionen dieser Fassung sind hier zu einem Eintrag

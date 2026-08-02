@@ -38,9 +38,9 @@ from .const import (
     CONF_HILFE,
     DOMAIN,
     PANEL_ELEMENT,
-    PANEL_JS_PFAD,
     PANEL_TITEL,
     PANEL_URL,
+    panel_js_pfad,
 )
 from .dashboard import (
     WARTUNG_RESTLAUFZEIT,
@@ -244,68 +244,63 @@ WARTUNG_BRENNSTOFF = _muster(r"vorratsbeh", r"aktueller brennstoff", r"brennstof
 HILFE: tuple[tuple[str, str], ...] = (
     (
         r"gew(ä|ae)hlter brennstoff|^brennstoff$",
-        "Sagt der Verbrennungsregelung, womit sie es zu tun hat. „Feucht“ gilt "
-        "ab etwa 30 % Wassergehalt, „schlackend“ dann, wenn die Asche feste "
-        "Klumpen bildet – die Anlage verlängert daraufhin die "
-        "Entaschungsintervalle. Die Umstellung wirkt erst, nachdem der Kessel "
-        "am Hauptschalter aus- und wieder eingeschaltet wurde.",
+        "Womit der Kessel rechnet. Die Anlage kennt vier Einstellungen:\n\n• Hackgut normal — Wassergehalt 15 bis 30 %, Aschegehalt bis 1,5 %\n• Hackgut feucht — über 30 %, höchstens 35 % Wassergehalt\n• Hackgut normal schlackend — 15 bis 30 % Wasser, Aschegehalt über 1,5 bis etwa 3 %\n• Hackgut feucht schlackend — über 30 % Wasser, Aschegehalt über 1,5 bis etwa 3 %\n\n„Schlackend“ erkennt man an festen Klumpen in der Asche; die Anlage verlängert dann die Entaschungsintervalle. Bei unter 25 % Wassergehalt rät der Hersteller von „feucht“ ab. Nach einem Brennstoffwechsel lohnt ein Blick in die Asche: zu viele Holzkohlereste sprechen wieder für „normal“ oder „feucht“.\n\nDie Umstellung wirkt erst, nachdem der Kessel am Hauptschalter aus- und wieder eingeschaltet wurde.",
     ),
     (
         r"serviceausbrand",
-        "Brennt den restlichen Brennstoff aus, bis weder Glut noch "
-        "unverbranntes Material im Brenner liegt. Danach ist der Kessel zur "
-        "Reinigung bereit. Der Vorgang dauert etwa eine Stunde und lässt sich "
-        "nicht abbrechen.",
+        "Brennt den Kessel gezielt aus, bis weder Glut noch unverbrannter Brennstoff im Brenner liegt — danach ist er zur Reinigung bereit. Vor Reinigungs-, Wartungs- und Servicearbeiten schaltet man den Kessel so ab. Der Vorgang dauert und lässt sich nicht abbrechen.",
     ),
     (
-        r"lagerraum",
-        "Setzt Kessel und Rührwerk in Gang, damit sich das Rührwerk während "
-        "des Befüllens dreht. Erst wenn hier „freigegeben“ steht, darf weiter "
-        "eingeblasen werden – ein stehendes Rührwerk kann beim Befüllen "
-        "Schaden nehmen. Bei pneumatischer Zuführung wird erst freigegeben, "
-        "wenn der Vorratsbehälter leer ist.",
+        r"lagerraum|bef(ü|ue)llung anfordern",
+        "Nimmt Kessel und Rührwerk in Betrieb, damit sich das Rührwerk beim Befüllen dreht.\n\nOhne drehendes Rührwerk darf der Lagerraum nur bis etwa einen Meter Schütthöhe befüllt werden — darüber kann das Rührwerk Schaden nehmen, und dafür besteht keine Garantie. Erst wenn hier „freigegeben“ steht, darf weiter eingeblasen werden.\n\nBei pneumatischer Zuführung wird erst freigegeben, wenn der Vorratsbehälter leer ist; er muss also zuerst leergefahren werden.",
     ),
     (
-        r"durchgef(ü|ue)hrt|reinigung best",
-        "Meldet der Anlage, dass die Arbeit erledigt ist, und setzt den "
-        "zugehörigen Wartungszähler zurück. Nur drücken, wenn wirklich "
-        "gereinigt wurde – sonst warnt die Anlage beim nächsten Mal zu spät.",
+        r"durchgef(ü|ue)hrt|reinigung best|erledigt|aschetonnen",
+        "Meldet der Anlage, dass die Arbeit erledigt ist, und setzt die zugehörige Reinigungsaufforderung zurück. Jede Taste betrifft nur ihren eigenen Zähler.\n\nVor Reinigungsarbeiten den Kessel über den Serviceausbrand ausschalten. Nur bestätigen, wenn wirklich gereinigt wurde — sonst meldet sich die Anlage beim nächsten Mal zu spät.",
     ),
     (
         r"einmalladung|ww[- ]ladung",
-        "Lädt den Warmwasserspeicher einmalig auf, auch außerhalb der "
-        "Freigabezeiten des Warmwasserprogramms. Die Anlage startet nur, wenn "
-        "die Warmwassertemperatur mindestens 5 K unter dem Sollwert liegt.",
+        "Lädt den Warmwasserspeicher einmalig auf, auch während einer Sperrzeit des Warmwasserprogramms.\n\nDie Anlage startet nur, wenn die Warmwassertemperatur mindestens 5 K unter dem eingestellten Wert liegt. Die eingestellte Temperatur ist der Ausschaltpunkt.",
     ),
     (
         r"betriebswahl",
-        "Standby heizt nicht und hält nur den Frostschutz. Programm 1 bis 3 "
-        "folgen den Zeitprogrammen. Heizbetrieb und Absenkbetrieb halten "
-        "dauerhaft den jeweils eingestellten Sollwert.",
+        "Wie der Heizkreis gefahren wird:\n\n• Standby — Heizung aus, nur Frostschutz\n• Programm 1 bis 3 — Betrieb nach dem jeweiligen Zeitprogramm\n• Heizbetrieb — dauerhaft auf dem Sollwert Heizbetrieb\n• Absenkbetrieb — dauerhaft auf dem Absenk-Sollwert\n• Handbetrieb — Regelung von Hand\n\nAm Kessel bedeutet die Betriebswahl etwas anderes: dort schaltet sie zwischen Aus, Ein und den Sonderbetriebsarten um.",
     ),
     (
         r"^kessel$",
-        "Schaltet den Kessel ein oder aus. Ausgeschaltet versorgt er weder "
-        "Heizkreise noch Warmwasser; der Frostschutz bleibt aktiv.",
+        "Schaltet den Kessel ein oder aus. Ausgeschaltet versorgt er weder Heizkreise noch Warmwasser; der Frostschutz bleibt aktiv.",
     ),
     (
         r"vorratsbeh",
-        "Der Zwischenbehälter am Kessel, nicht der Lagerraum. Meldet er "
-        "„leer“, sperrt die Anlage den Brenner, bis wieder zugeführt wurde.",
+        "Der Zwischenbehälter am Kessel, nicht der Lagerraum. Meldet die Anlage „Brennstoff nachfüllen“, heizt sie weiter, bis der Rest verbraucht ist; bei „Vorratsbehälter leer“ sperrt sie den Brenner.",
     ),
     (
         r"betriebsphase|betriebszustand",
-        "Was der Kessel gerade tut – von Standby über Zündung und "
-        "Stabilisierung bis Modulation und Ausbrand.",
+        "Was der Kessel gerade tut — von Standby über Vorspülen, Zündphase und Stabilisierung bis Modulation und Ausbrand.",
     ),
     (
         r"laufzeit bis",
-        "Verbleibende Betriebsstunden bis zur nächsten Arbeit. Bei 0 fordert "
-        "die Anlage sie an; bestätigt wird sie mit der zugehörigen Taste.",
+        "Verbleibende Betriebsstunden bis zur nächsten Arbeit. Läuft der Wert ab, fordert die Anlage sie an; bestätigt wird sie mit der zugehörigen Taste im Reiter Steuerung.",
     ),
     (
         r"restlaufzeit",
         "Wie lange die aktuelle Freigabe noch gilt. Danach stellt die Anlage von selbst zurück.",
+    ),
+    (
+        r"behaglichkeit",
+        "Verschiebt alle Raumtemperatur-Sollwerte dieses Heizkreises — Zeitprogramme, Heiz- und Absenkbetrieb — um denselben Betrag, ohne die Grundeinstellungen zu ändern. Bereich −3,0 bis +3,0 K.",
+    ),
+    (
+        r"^sollwert$|raumtemperatur",
+        "Ein hier gesetzter Wert gilt befristet und stellt danach von selbst auf die Betriebswahl zurück; die Zeitprogramme bleiben unverändert. Die Anlage nennt das „Eco / Comfort“ — gedacht zum Absenken beim Lüften oder zum Aufheizen für ein paar Stunden. Dauer 0 bis 400 Minuten, Temperatur 6 bis 30 °C.",
+    ),
+    (
+        r"zeitprogramm|^programm [0-9]",
+        "Wochenprogramm von Montag bis Sonntag. Tage lassen sich einzeln verwenden oder zu Blöcken zusammenfassen; je Tag oder Block sind bis zu sechs Schaltzeiten mit je einem Temperaturwert möglich.",
+    ),
+    (
+        r"au(ß|ss)entemperatur",
+        "Grundlage der Heizkurve: Die Anlage errechnet daraus die Vorlauftemperatur. Welcher Sensor hier gilt, lässt sich unter Konfigurieren → Allgemein festlegen.",
     ),
 )
 
@@ -466,6 +461,7 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                 "entity": thermostat["entity_id"],
                 "titel": teil["name"],
                 "betriebswahl": _kennung(teil["entitaeten"], BETRIEBSWAHL, ("select",)),
+                "betriebswahl_hilfe": hilfe("Betriebswahl"),
                 "programm": _kennung(teil["entitaeten"], ZEITPROGRAMM, ("sensor",)),
                 "vorlauf": (
                     v["entity_id"]
@@ -517,6 +513,7 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                         "titel": beschriftung,
                         "symbol": symbol,
                         "frage": rueckfrage(treffer["name"]),
+                        "hilfe": hilfe(treffer["name"]) or hilfe(beschriftung),
                     }
                 )
 
@@ -729,6 +726,8 @@ def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
             steuerung = anlage.get("steuerung") or {}
             for eintrag in steuerung.get("kessel") or []:
                 eintrag.pop("hilfe", None)
+            for kreis in steuerung.get("heizkreise") or []:
+                kreis.pop("betriebswahl_hilfe", None)
             if steuerung.get("lagerraum"):
                 steuerung["lagerraum"].pop("hilfe", None)
     return daten
@@ -756,15 +755,22 @@ async def async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
 async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
     """Eigentliche Anmeldung.
 
-    Die Adresse der Oberflächendatei bekommt die Fassungsnummer angehängt.
-    Ohne sie lädt der Browser nach einer Aktualisierung weiter die alte Datei
-    aus seinem Zwischenspeicher – die Oberfläche sähe dann aus wie vorher,
-    obwohl die neue Fassung längst installiert ist.
+    Die Fassungsnummer steckt im *Pfad* der Oberflächendatei, nicht als
+    Fragezeichen-Anhang dahinter. Home Assistant legt seine Oberfläche über
+    einen Service-Worker im Browser ab, und der vergleicht Adressen ohne
+    Suchteil – ein Anhang wie ``?v=1.1.0`` wird dabei schlicht übergangen und
+    die alte Datei weiter ausgeliefert. Ein neuer Pfad ist für den
+    Zwischenspeicher dagegen eine neue Datei; die Oberfläche erscheint nach
+    einer Aktualisierung von selbst, ohne dass jemand neu laden muss.
     """
-    if not hass.data.get(f"{DOMAIN}_panel_datei"):
+    pfad = panel_js_pfad(version)
+    registriert: set[str] = hass.data.setdefault(f"{DOMAIN}_panel_dateien", set())
+    if pfad not in registriert:
         await hass.http.async_register_static_paths(
-            [StaticPathConfig(PANEL_JS_PFAD, str(_JS_DATEI), cache_headers=False)]
+            [StaticPathConfig(pfad, str(_JS_DATEI), cache_headers=False)]
         )
+        registriert.add(pfad)
+    if not hass.data.get(f"{DOMAIN}_panel_datei"):
         websocket_api.async_register_command(hass, _ws_panel_daten)
         hass.data[f"{DOMAIN}_panel_datei"] = True
 
@@ -783,7 +789,7 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
         config={
             "_panel_custom": {
                 "name": PANEL_ELEMENT,
-                "module_url": f"{PANEL_JS_PFAD}?v={version}" if version else PANEL_JS_PFAD,
+                "module_url": pfad,
                 "embed_iframe": False,
                 "trust_external": False,
             },
