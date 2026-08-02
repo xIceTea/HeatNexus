@@ -6,6 +6,32 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.1.0-beta.5] - 2026-08-02
+
+### Neu
+
+- **Reinigung, Hauptreinigung und Wartung als eigene Tasten.** Bisher war das
+  eine Auswahlliste, in der man erst lesen musste, was man wählt – und im
+  Zweifel falsch wählte. Jede Taste fragt einzeln nach („Wurde die
+  Hauptreinigung durchgeführt?") und setzt nur den Zähler zurück, um den es
+  geht.
+- **Lagerraum befüllen** als eigene Taste. Die Anlage kennt das als
+  Betriebswahl des Kessels; dafür ist keine Werksebene nötig.
+
+### Behoben
+
+- **„wird ausgeführt …" blieb stehen**, wenn der Vorgang an der Anlage selbst
+  abgebrochen wurde. Die Anzeige gibt jetzt nach drei Minuten auf, und ein
+  zweiter Druck auf die Taste löst den alten Auftrag ab.
+- **Der Heizkreis stand verloren in der Mitte**, wenn es kein Warmwasser gibt:
+  Die Karte nahm nur zwei Drittel der Breite, die dritte Spalte blieb leer.
+- **„Der Benutzername ist immer USER"** stand noch im Einrichtungsdialog,
+  obwohl der Zugang direkt darunter wählbar ist.
+- Eine Warnung im Protokoll über eine abgekündigte Home-Assistant-Funktion
+  beim Umbenennen von Entitäten.
+
+---
+
 ## [1.1.0-beta.4] - 2026-08-02
 
 Vorabversion. **Wichtig für alle, die beta.3 installiert hatten:** Dort blieb

@@ -473,13 +473,8 @@ PUROWIN_ENTITIES = [
         "category": "diagnostic",
     },
     # --- Betreiberebene (operate, schreibbar) ---
-    {
-        "oid": "/39/94/0",
-        "name": "Reinigung bestätigen",
-        "platform": "select",
-        "enum": "39/94",
-        "category": "config",
-    },
+    # „Reinigung bestätigen" gibt es weiter unten als einzelne Tasten je Arbeit
+    # statt als Auswahlliste – die Liste stand hier bis 1.1.0-beta.5.
     {
         "oid": "/39/57/0",
         "name": "Aschetonne entleeren",
@@ -649,8 +644,11 @@ PUROWIN_ENTITIES = [
         "platform": "enum_sensor",
         "enum": "39/76",
     },
-    # Serviceausbrand: schreibt 6 auf Betriebswahl 9/75 (läuft ca. 1 h!)
-    # Bestätigungsdialog im Dashboard per "confirmation:" an der Button-Karte.
+    # Betriebswahl 9/75 kennt mehrere Eingriffe, die man einzeln auslöst:
+    #   6 Serviceausbrand (läuft ca. 1 h)
+    #   7 Lagerraum befüllen
+    # Als eigene Tasten sind sie auffindbar; als Auswahlliste war der
+    # Serviceausbrand einen Fehlgriff vom Bunkerbefüllen entfernt.
     {
         "oid": "/9/75/0",
         "name": "Serviceausbrand starten",
@@ -658,6 +656,56 @@ PUROWIN_ENTITIES = [
         "press_value": "6",
         "category": "config",
         "icon": "mdi:fire-alert",
+    },
+    {
+        "oid": "/9/75/0",
+        "name": "Lagerraum befüllen",
+        "platform": "button",
+        "press_value": "7",
+        "key_suffix": "befuellen",
+        "category": "config",
+        "icon": "mdi:warehouse",
+    },
+    # „Reinigung bestätigen" (39/94) ist am Gerät eine Auswahlliste:
+    #   1 Reinigung · 2 Hauptreinigung · 3 Wartung
+    #   4 Hauptreinigung und Aschetonnen entleeren
+    # Als Liste muss man erst lesen, was man wählt, und wählt im Zweifel
+    # falsch. Je Arbeit eine eigene Taste mit Rückfrage ist eindeutig.
+    {
+        "oid": "/39/94/0",
+        "name": "Reinigung durchgeführt",
+        "platform": "button",
+        "press_value": "1",
+        "key_suffix": "reinigung",
+        "category": "config",
+        "icon": "mdi:broom",
+    },
+    {
+        "oid": "/39/94/0",
+        "name": "Hauptreinigung durchgeführt",
+        "platform": "button",
+        "press_value": "2",
+        "key_suffix": "hauptreinigung",
+        "category": "config",
+        "icon": "mdi:broom",
+    },
+    {
+        "oid": "/39/94/0",
+        "name": "Wartung durchgeführt",
+        "platform": "button",
+        "press_value": "3",
+        "key_suffix": "wartung",
+        "category": "config",
+        "icon": "mdi:wrench-check-outline",
+    },
+    {
+        "oid": "/39/94/0",
+        "name": "Hauptreinigung und Aschetonnen durchgeführt",
+        "platform": "button",
+        "press_value": "4",
+        "key_suffix": "hauptreinigung_asche",
+        "category": "config",
+        "icon": "mdi:delete-empty-outline",
     },
     {
         "oid": "/9/75/0",

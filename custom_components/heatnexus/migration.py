@@ -115,9 +115,16 @@ def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
         teile = [geraetename]
         if eintrag.original_name:
             teile.append(eintrag.original_name)
-        vorschlag = registry.async_generate_entity_id(
-            eintrag.domain, " ".join(t for t in teile if t), current_entity_id=eintrag.entity_id
-        )
+        # `async_generate_entity_id` ist seit HA 2027.2 abgekündigt; die neue
+        # Funktion heißt anders und gibt es in älteren Fassungen noch nicht.
+        # Deshalb erst die neue versuchen, dann die alte.
+        gewuenscht = " ".join(t for t in teile if t)
+        if (neuere := getattr(registry, "async_get_available_entity_id", None)) is not None:
+            vorschlag = neuere(eintrag.domain, gewuenscht, current_entity_id=eintrag.entity_id)
+        else:
+            vorschlag = registry.async_generate_entity_id(
+                eintrag.domain, gewuenscht, current_entity_id=eintrag.entity_id
+            )
         if vorschlag == eintrag.entity_id:
             continue
         # Ein angehängter Zähler heißt: Der eigentliche Name ist belegt. Dann

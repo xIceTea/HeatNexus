@@ -21,7 +21,7 @@
       },
       "system": {
         "title": "Régulation {nummer} sur {anzahl}",
-        "description": "Désignation, adresse IP et mot de passe de service. L'utilisateur est toujours USER.",
+        "description": "Désignation, adresse IP, accès et mot de passe de service.",
         "data": {
           "label": "Désignation",
           "host": "Adresse IP",

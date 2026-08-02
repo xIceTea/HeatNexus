@@ -21,7 +21,7 @@
       },
       "system": {
         "title": "Steuerung {nummer} von {anzahl}",
-        "description": "Bezeichnung, IP-Adresse und Service-Passwort. Der Benutzername ist immer USER.",
+        "description": "Bezeichnung, IP-Adresse, Zugang und Service-Passwort.",
         "data": {
           "label": "Bezeichnung",
           "host": "IP-Adresse",

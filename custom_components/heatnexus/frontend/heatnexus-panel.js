@@ -15,9 +15,11 @@ const OHNE_WERT = ["unavailable", "unknown", "none", ""];
 const RUECKMELDUNG_MS = 4000;
 
 // Wie lange auf die Bestätigung der Anlage gewartet wird, bevor die
-// Rückmeldung aufgibt. Die Anlage wird nur alle 30 s abgefragt, und ein
-// Vorgang wie die Warmwasser-Einmalladung dauert Minuten.
-const BESTAETIGUNG_MAX_MS = 15 * 60 * 1000;
+// Rückmeldung aufgibt. Die Anlage wird nur alle 30 s abgefragt – drei
+// Minuten reichen also für mehrere Versuche. Länger zu warten hilft nicht:
+// Wird der Vorgang inzwischen an der Anlage selbst abgebrochen, bliebe
+// „wird ausgeführt …" sonst minutenlang stehen, obwohl nichts mehr läuft.
+const BESTAETIGUNG_MAX_MS = 3 * 60 * 1000;
 
 const REITER = [
   { schluessel: "uebersicht", titel: "Übersicht", symbol: "mdi:view-dashboard-outline" },
@@ -215,6 +217,7 @@ const STIL = `
     border-radius: 8px; white-space: nowrap;
   }
 
+  .einzeln { display: block; }
   .linienwahl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
   .linie {
     padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px;
@@ -789,7 +792,9 @@ class HeatNexusPanel extends HTMLElement {
     if (!kreise.length && !wasser.length) return null;
 
     const doppel = document.createElement("div");
-    doppel.className = "doppel";
+    // Ohne Warmwasser bleibt sonst eine leere Spalte stehen und der Heizkreis
+    // steht verloren in der Mitte.
+    doppel.className = wasser.length ? "doppel" : "einzeln";
 
     // Was es nicht gibt, bekommt auch keine Karte – so hält es die Anlage
     // selbst: Was keinen Wert liefert, wird ausgeblendet.
@@ -1310,6 +1315,9 @@ class HeatNexusPanel extends HTMLElement {
     taste.addEventListener("click", async () => {
       if (taste.disabled) return;
       const lief = laedt();
+      // Ein zweiter Druck während „wird ausgeführt …" ist ein Abbruchwunsch:
+      // Die Anzeige wird freigegeben und der Grundzustand wiederhergestellt.
+      delete rueckmeldung.dataset.belegt;
       taste.disabled = true;
       try {
         if (lief && wasser.betriebswahl) {
@@ -1608,6 +1616,9 @@ class HeatNexusPanel extends HTMLElement {
    * Taste ohne Zustand gibt es nichts, worauf man warten könnte.
    */
   async _uebertragen(anzeige, aufruf, bestaetigt) {
+    // Ein neuer Auftrag löst den alten ab – sonst hinge die Anzeige an einer
+    // Bestätigung, auf die niemand mehr wartet.
+    this._wartend = this._wartend.filter((v) => v.anzeige !== anzeige);
     anzeige.dataset.belegt = "1";
     anzeige.className = "rueckmeldung laeuft";
     anzeige.textContent = "wird übertragen …";
@@ -1666,8 +1677,8 @@ class HeatNexusPanel extends HTMLElement {
         return;
       }
       if (Date.now() - vorgang.seit > BESTAETIGUNG_MAX_MS) {
-        vorgang.anzeige.className = "rueckmeldung fehler";
-        vorgang.anzeige.textContent = "keine Rückmeldung der Anlage";
+        vorgang.anzeige.className = "rueckmeldung";
+        vorgang.anzeige.textContent = "keine Rückmeldung";
         this._freigeben(vorgang.anzeige, RUECKMELDUNG_MS);
         return;
       }

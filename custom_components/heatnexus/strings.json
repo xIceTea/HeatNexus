@@ -21,7 +21,7 @@
       },
       "system": {
         "title": "Controller {nummer} of {anzahl}",
-        "description": "Label, IP address and service password. The user name is always USER.",
+        "description": "Label, IP address, access and service password.",
         "data": {
           "label": "Label",
           "host": "IP address",

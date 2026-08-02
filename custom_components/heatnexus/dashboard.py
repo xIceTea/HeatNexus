@@ -165,6 +165,27 @@ RUECKFRAGE: tuple[tuple[re.Pattern, str], ...] = (
         "Damit meldest du der Anlage, dass die Reinigung erledigt ist: Die "
         "Wartungszähler beginnen von vorn. Wirklich bestätigen?",
     ),
+    # Die einzelnen Bestätigungstasten fragen jede für sich nach – sie setzen
+    # je einen Wartungszähler zurück, und ein Fehlgriff fällt erst auf, wenn
+    # die Anlage Monate später zu spät warnt.
+    (
+        re.compile(r"hauptreinigung und aschetonnen durchgef", re.IGNORECASE),
+        "Wurde die Hauptreinigung durchgeführt und wurden die Aschetonnen "
+        "entleert? Die Anlage setzt beide Zähler zurück.",
+    ),
+    (
+        re.compile(r"hauptreinigung durchgef", re.IGNORECASE),
+        "Wurde die Hauptreinigung durchgeführt? Die Anlage setzt den Zähler "
+        "für die Hauptreinigung zurück.",
+    ),
+    (
+        re.compile(r"^reinigung durchgef", re.IGNORECASE),
+        "Wurde die Reinigung durchgeführt? Die Anlage setzt den Reinigungszähler zurück.",
+    ),
+    (
+        re.compile(r"wartung durchgef", re.IGNORECASE),
+        "Wurde die Wartung durchgeführt? Die Anlage setzt den Zähler für die Wartung zurück.",
+    ),
     (
         re.compile(r"gew(ä|ae)hlter brennstoff", re.IGNORECASE),
         "Die Verbrennungsregelung stellt sich auf den gewählten Brennstoff ein. "
