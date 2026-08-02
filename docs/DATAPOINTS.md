@@ -30,13 +30,13 @@ hat.
 | 8 | E-Heizung / Zusatzheizung | Aktuelle Stufe, Betriebsstunden Stufe 1–3 | 9 | – | 10 | 23 |
 | 9 | Kessel (BioWIN) | Laufzeit bis Reinigung, Brennstoffverbrauch, Sonden | 21 | 27 | 103 | 376 |
 | 10 | Kessel (Automatik-/Zusatzkessel) | Startverzögerung, O2-Signal | 17 | 5 | 39 | – |
-| 14 | Heizkreis (UML / UMLZ) | wie 1, ältere Baureihe, Warmwasser inbegriffen | 19 | 28 | 39 | 13 |
+| 14 | Heizkreis (UML / UMLZ) | wie 1, ältere Baureihe, Warmwasser inbegriffen | 19 | 28 | 49 | 13 |
 | 15 | Umschaltung | Automatikkessel / Festbrennstoff / Puffer, Umschaltventil | 8 | 1 | 20 | – |
-| 16 | Puffer (B-PLMi) | TPE, TPA, TPT, Pufferladepumpe | 10 | 2 | 14 | – |
+| 16 | Puffer (B-PLMi) | TPE, TPA, TPT, Pufferladepumpe | 15 | 2 | 16 | – |
 | 20 | ZSP Pumpen-/Relaismodul | Pumpensteuerung, ext. Wärmeanforderung, Sammelstörung | 6 | 16 | 6 | – |
 | 21 | Puffer | Puffertemperatur oben/mitte/unten, Beladegrad | 13 | 5 | 21 | – |
 | 24 | Pumpe Wärmeerzeuger / Schichtladung | Rücklaufhochhaltung, Mischer | 5 | – | 16 | – |
-| 25 | Kessel (PuroWIN) | Hackgut und Pellets | 9 | 24 | 61 | 289 |
+| 25 | Kessel (PuroWIN) | Hackgut und Pellets | 10 | 24 | 64 | 289 |
 | 26 | Wärmepumpe (Energiemanagement) | Stromtarife, PV-Eingang, SG Ready | 5 | 19 | 5 | 57 |
 | 27 | Wärmepumpe | Betriebsphase, Wärmemenge Heizen/Kühlen, E-Heizung | 21 | 15 | 47 | – |
 
@@ -1027,6 +1027,7 @@ Datenpunkte und werden übersprungen.
 | `2/16` | Freigabe starten | Betreiber |
 | `2/70` | Datum | Betreiber |
 | `2/72` | Uhrzeit | Betreiber |
+| `3/0` | Raumtemperatur | Service |
 | `3/1` | Fusspunkt | Service |
 | `3/2` | TA Absenkbetrieb | Service |
 | `3/4` | Temperatur | Betreiber |
@@ -1035,6 +1036,7 @@ Datenpunkte und werden übersprungen.
 | `3/12` | Klimapunkt | Service |
 | `3/13` | Vorlauf | Service |
 | `3/21` | TA Heizbetrieb | Service |
+| `3/23` | Aussentemperatur | Service |
 | `3/29` | Rücklauf | Service |
 | `3/30` | Nachstellzeit | Service |
 | `3/50` | Betriebswahl | Info, Betreiber |
@@ -1058,18 +1060,26 @@ Datenpunkte und werden übersprungen.
 | `4/82` | Zeitprogramm | Betreiber |
 | `4/92` | Softwareversion | Service |
 | `4/93` | Hardwareversion | Service |
+| `5/0` | Hysterese Ein | Service |
+| `5/1` | WW-Überhöhung | Service |
+| `5/3` | Nachlaufzeit 1 | Service |
 | `5/6` | WW-Zirkulationspumpe | Service |
 | `5/8` | WW-Ladung max. Ladevorrang | Service |
 | `5/51` | Temperatur | Betreiber |
+| `5/58` | WW-Speicher | Service |
 | `5/61` | WW-Programm | Betreiber |
 | `5/64` | WW-Zirkulationsprogramm | Betreiber |
 | `5/65` | WW-Zirkulationsprogramm | Betreiber |
 | `5/70` | Einschaltzeit | Service |
 | `5/71` | Ausschaltzeit | Service |
 | `5/76` | WW-Kreis | Service |
+| `5/80` | Nachlaufzeit 2 | Service |
 | `7/1` | Kesseltemp.-Überhöhung Heizkreis | Service |
 | `7/2` | Vorlauf min. | Service |
+| `7/3` | Nachlaufz. Pumpe | Service |
 | `7/8` | Vorlauf max. | Service |
+| `7/13` | Mischerlaufzeit | Service |
+| `7/45` | Vorlauftemperatur | Service |
 | `7/76` | Heizkreis | Service |
 | `51/102` | Normaltemp. Kühlen | Betreiber |
 | `51/103` | Absenktemp. Kühlen | Betreiber |
@@ -1144,7 +1154,11 @@ Datenpunkte und werden übersprungen.
 |---|---|---|
 | `0/7` | Kesseltemperatur | Info |
 | `0/8` | Rücklauftemperatur Aktueller Wert | Info |
+| `1/7` | Kesseltemperatur Soll | Info |
 | `1/8` | Rücklauftemperatur Sollwert | Info |
+| `1/15` | Puffertemperatur Sollwert | Info |
+| `1/22` | WE-Pumpe | Info |
+| `1/100` | Brenner | Info |
 | `1/102` | Rücklaufhochhaltung | Info |
 | `2/2` | Aktive Aktoren | Info |
 | `2/9` | Betriebsart | Info |
@@ -1152,8 +1166,10 @@ Datenpunkte und werden übersprungen.
 | `4/82` | Zeitprogramm | Betreiber |
 | `4/92` | Softwareversion | Service |
 | `4/93` | Hardwareversion | Service |
+| `5/1` | WW-Überhöhung | Service |
 | `6/4` | Überhöhung | Service |
 | `7/12` | Drehzahlregelung | Service |
+| `9/0` | Nachlaufzeit | Service |
 | `9/32` | Minimalwert | Service |
 | `9/35` | Hysterese | Service |
 | `9/57` | Solltemperatur ext. Wärmeanforderung | Service |
@@ -1168,6 +1184,7 @@ Datenpunkte und werden übersprungen.
 | `21/64` | Puffertemperatur TPT | Info |
 | `21/65` | Puffertemperatur TPE | Info |
 | `21/66` | Puffertemperatur TPA | Info |
+| `22/75` | Puffertransferpumpe | Info |
 
 ### fctType 20 – ZSP Pumpen-/Relaismodul
 
@@ -1292,6 +1309,7 @@ Datenpunkte und werden übersprungen.
 | `9/90` | Kaminkehrer | Betreiber |
 | `10/110` | Kaminkehrer Leistung | Betreiber |
 | `11/27` | WEZ-Nummer | Service |
+| `12/38` | Gerätetyp | Info |
 | `12/39` | Maximalwert der Solltemperatur | Service, Werk |
 | `12/106` | Minimale Abgastemperatur | Service, Werk |
 | `14/10` | Zuführung mit Freigabezeit Ende | Betreiber, Werk |
@@ -1299,6 +1317,7 @@ Datenpunkte und werden übersprungen.
 | `14/19` | Betriebsart Zuführung | Betreiber, Werk |
 | `14/20` | Zuführung mit Startzeit | Betreiber, Werk |
 | `14/75` | Korrektur Reinigungsintervall | Betreiber |
+| `20/96` | Handbetrieb Soll-Leistung | Service |
 | `20/97` | Hysterese TK-Soll Ausschalten (nach oben) | Werk |
 | `20/98` | Soll-Leistung min. | Werk |
 | `20/99` | Soll-Leistung max. | Werk |
@@ -1546,6 +1565,7 @@ Datenpunkte und werden übersprungen.
 | `38/126` | Gewählter Brennstoff | Betreiber |
 | `38/127` | Aktueller Brennstoff | Betreiber |
 | `39/3` | Primärluftmenge | Service |
+| `39/23` | Saugzuggebläse Soll-Drehzahl | Service |
 | `39/57` | Aschetonne entleeren | Betreiber |
 | `39/61` | Gerätetyp | Info |
 | `39/66` | Interner Fehler | Service |
@@ -1553,6 +1573,7 @@ Datenpunkte und werden übersprungen.
 | `39/90` | Brenner sperren | Service |
 | `39/94` | Reinigung bestätigen | Betreiber |
 | `39/95` | Brennstoffzuführung anfordern | Betreiber |
+| `39/100` | Wartung | Service |
 | `40/0` | RAS-Steigschnecke Mindeststrom relativ | Werk |
 | `40/1` | RAS-Steigschnecke Spitzenststrom relativ | Werk |
 | `40/2` | RAS-Steigschnecke Maximale Frequenz | Werk |

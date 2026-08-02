@@ -653,9 +653,12 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                 schnellzugriff.append(eintrag)
 
     bild = anlagenschema(anlage["teile"], anlage.get("kesselart"))
-    # Eine in den Optionen gewählte Entität hat Vorrang: Der Außenfühler hängt
-    # oft an einer anderen Anlage als der, deren Werte man gerade ansieht.
-    aussen = aussen_gewaehlt or _kennung(alle, AUSSENTEMPERATUR)
+    # **Jede Anlage behält ihren eigenen Messwert.** Die in den Optionen
+    # gewählte Entität gilt nur für die Ansicht „Alle" – dort gibt es keine
+    # einzelne Anlage, deren Fühler man nehmen könnte. Bis 1.2.0-beta.3
+    # überschrieb die Auswahl jede Anlage, und das Heizhaus zeigte plötzlich
+    # den Fühler des Wohnhauses.
+    aussen = _kennung(alle, AUSSENTEMPERATUR) or aussen_gewaehlt
     return {
         "name": anlage["name"],
         # Erklärungen je Karte – im Browser als „?" neben der Überschrift.
@@ -715,7 +718,12 @@ def _hilfe_gewuenscht(hass: HomeAssistant) -> bool:
 def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
     """Die vollständige Struktur für die Oberfläche."""
     aussen = _gewaehlte_aussentemperatur(hass)
-    daten = {"anlagen": [_anlage_daten(anlage, aussen) for anlage in _anlagen(hass)]}
+    daten = {
+        "anlagen": [_anlage_daten(anlage, aussen) for anlage in _anlagen(hass)],
+        # Die Außentemperatur der Ansicht „Alle". Dort steht keine einzelne
+        # Anlage im Vordergrund, also gilt die gewählte Entität – und nur dort.
+        "aussentemperatur": aussen,
+    }
     if not _hilfe_gewuenscht(hass):
         # Abgewählt: Die Texte gar nicht erst mitschicken.
         for anlage in daten["anlagen"]:

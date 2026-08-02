@@ -519,9 +519,12 @@ def _kasten(x: int, platz: int, modul: dict[str, Any], kesselart: str | None) ->
         f'<rect x="{MITTE - 2}" y="{RUECKLAUF_Y - 30}" width="4" height="30" '
         f'fill="{FARBE_RUECKLAUF}" opacity="0.7"/>'
     )
+    # Größer als die Messwerte darüber: Der Name des Anlagenteils ist das
+    # erste, wonach man im Schaubild sucht, und die Karte skaliert das Bild
+    # auf ihre Breite – bei vier Anlagenteilen wird daraus schnell Kleingedrucktes.
     titel = (
-        f'<text x="{MITTE}" y="{RUECKLAUF_Y + 56}" text-anchor="middle" '
-        f'fill="{FARBE_TITEL}" font-size="15" font-weight="600" font-family="{SCHRIFT}">'
+        f'<text x="{MITTE}" y="{RUECKLAUF_Y + 58}" text-anchor="middle" '
+        f'fill="{FARBE_TITEL}" font-size="19" font-weight="600" font-family="{SCHRIFT}">'
         f"{_escape(modul['titel'])}</text>"
     )
     return f'<g transform="translate({x},0)">{anschluss}{inhalt}{titel}</g>'

@@ -16,6 +16,13 @@ Aufruf:
 
     python tools/build_device_db.py               # Dateien laden und erzeugen
     python tools/build_device_db.py --quelle ORDNER  # aus vorhandenen Dateien
+
+**`--geraetetexte` nicht vergessen.** Gut die Hälfte der Datenpunktnamen steht
+nicht in den Parameterdateien, sondern in `VarIdentTexte_de.xml` der Anlage –
+ohne die Datei schrumpft die Datenbank von 2875 auf 1351 Namen, und der Rest
+heißt dann nur noch „20-127". Die XML liegt auf jeder Anlage unter
+`http://<IP>/res/xml/` und ist ohne Anmeldung lesbar; sie ist firmwareweit
+gleich, ein Abzug von irgendeiner Anlage genügt also.
 """
 
 from __future__ import annotations
@@ -113,6 +120,63 @@ def _gruppen(eintraege, texte: dict) -> dict[str, list[str]]:
     return ergebnis
 
 
+# Datenpunkte, die die Anlagen liefern, die aber in **keiner** Ebenenliste des
+# Herstellers stehen. Ohne Eintrag zählen sie als Werksebene und sind damit
+# unsichtbar, solange die niemand einschaltet – auch dann, wenn es sich um
+# gewöhnliche Messwerte handelt.
+#
+# Jede Zeile ist an einer Anlage gemessen, nicht geraten. Beleg ist der
+# vollständige Abzug beider Anlagen (`tools/heatnexus_probe.py`, PuroWIN mit
+# 518 Datenpunkten); wo die Bedienungsanleitung denselben Parameter nennt,
+# steht ihr Wertebereich daneben und stimmt mit dem der Anlage überein.
+#
+# Neue Zeilen nur mit Messbeleg. Der Rest gehört auf die Werksebene.
+UEBERSTEUERUNG: dict[str, dict[str, list[str]]] = {
+    # Heizkreis (UML / UMLZ)
+    "14": {
+        # Frostschutzgrenzen – am Gerät die Ebene 119 „Frostschutzgrenzen".
+        # Die Werte der Anlage (5 °C Raum, 2 °C außen, 10 °C Vorlauf,
+        # 5 °C WW-Speicher) sind genau die der Anleitung.
+        "service": ["3/0", "3/23", "7/45", "5/58"],
+        # Warmwasser-Fachparameter. Anleitung: Hysterese EIN 1–20 K,
+        # WW-Überhöhung 5–30 K, Mischerlaufzeit 60–300 s. Die Anlage meldet
+        # 1…20, 5…30 und 1…6 min – dieselben Bereiche.
+        "service_ww": ["5/0", "5/1", "7/13", "7/3", "5/3", "5/80"],
+    },
+    # Puffer (B-PLMi)
+    "16": {
+        # Zustände, die ins Schaubild gehören: Drehzahl der Wärmeerzeuger-
+        # pumpe, Brenner an/aus, Transferpumpe an/aus, Sollwert des Puffers.
+        "info": ["1/7", "1/15", "1/22", "1/100", "22/75"],
+        "service": ["9/0", "5/1"],
+    },
+    # Kessel (PuroWIN)
+    "25": {
+        # „Kesseltype" der Infoebene – die Anlage meldet „PW 400". Sie kommt
+        # über den object-Endpunkt als Text, nicht über lookup.
+        "info": ["12/38"],
+        # Messwerte und Parameter der Serviceebene laut Anleitung.
+        "service": ["39/23", "39/100", "20/96"],
+    },
+}
+
+
+def uebersteuern(ebenen: dict[str, dict]) -> int:
+    """Gemessene Datenpunkte in die Ebene heben, in die sie gehören."""
+    ergaenzt = 0
+    for fct, je_ebene in UEBERSTEUERUNG.items():
+        ziel = ebenen.setdefault(fct, {})
+        for ebene, adressen in je_ebene.items():
+            # Schlüssel wie „service_ww" sind nur zur Gliederung da.
+            stufe = ebene.split("_")[0]
+            vorhanden = ziel.setdefault(stufe, [])
+            for adresse in adressen:
+                if adresse not in vorhanden:
+                    vorhanden.append(adresse)
+                    ergaenzt += 1
+    return ergaenzt
+
+
 def sammle_ebenen(layer: dict, texte: dict) -> dict[str, dict]:
     """Ebenenlisten und Gruppennamen je Funktionstyp aufbauen."""
     ebenen: dict[str, dict] = {}
@@ -177,9 +241,11 @@ def main() -> int:
     namen = sammle_namen(parameter, oem, args.geraetetexte)
     enums = {k: v for k, v in parameter.get("enums", {}).items() if isinstance(v, dict)}
     ebenen = sammle_ebenen(layer, texte)
+    ergaenzt = uebersteuern(ebenen)
     stoerungen = sammle_stoerungen(texte)
 
     print(f"\nDatenpunktnamen : {len(namen)}")
+    print(f"davon ergänzt   : {ergaenzt} (an der Anlage gemessen, siehe UEBERSTEUERUNG)")
     print(f"Enum-Tabellen   : {len(enums)}")
     print(f"Funktionstypen  : {len(ebenen)}")
     print(f"Störungstexte   : {len(stoerungen)}")

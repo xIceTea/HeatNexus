@@ -6,6 +6,45 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.2.0-beta.4] - 2026-08-02
+
+### Behoben
+
+- **Die gewählte Außentemperatur überschrieb jede Anlage.** Wer in den
+  Optionen einen Sensor festlegte, sah ihn danach auch beim Heizhaus, obwohl
+  das seinen eigenen Fühler hat. Jetzt behält jede Anlage ihren Messwert; die
+  Auswahl gilt nur für die Ansicht **Alle**, wo es keine einzelne Anlage gibt.
+
+### Geändert
+
+- **Die Oberfläche startet in der Ansicht „Alle".** Wer zwei Anlagen hat, will
+  beide sehen, nicht die erste.
+- **Neue Anordnung der Übersicht.** Je Spalte eine Sache: links die Anlage mit
+  ihren Heizkreisen darunter, in der Mitte das Schaubild mit dem Warmwasser
+  darunter, rechts Systemstatus, Störungen und **Schnellzugriff**. Damit wächst
+  jede Spalte nach unten, wenn eine Anlage mehr Heizkreise oder mehr
+  Warmwasserwerte hat, ohne die anderen zu verschieben.
+- **Der Verlauf ist in der Übersicht zugeklappt** und lässt sich aufklappen.
+  Er ist das größte Element der Seite; wer ihn wirklich lesen will, hat dafür
+  den eigenen Reiter.
+- **Der Störungshinweis steht nur noch zweimal statt dreimal.** „Keine
+  Störung" im Systemstatus ist weg – derselbe Zustand steht in der
+  Anlagenübersicht und in der Störungskarte.
+- Die Namen der Anlagenteile im Schaubild sind größer.
+
+### Hinzugefügt
+
+- **21 Datenpunkte, die die Anlagen liefern, sind nicht mehr auf der
+  Werksebene versteckt.** Sie stehen in keiner Ebenenliste des Herstellers und
+  waren damit unsichtbar, obwohl es gewöhnliche Messwerte und Fachparameter
+  sind. Neu erreichbar unter anderem: **Kesseltype** („PW 400"),
+  Puffer-Sollwert, Drehzahl der Wärmeerzeugerpumpe, Brenner, Puffertransfer-
+  pumpe, die vier Frostschutzgrenzen des Heizkreises, Hysterese EIN,
+  WW-Überhöhung, Mischerlaufzeit, Pumpennachlaufzeiten sowie Soll-Drehzahl des
+  Saugzuggebläses. Jede Zeile ist an der Anlage gemessen; wo die
+  Bedienungsanleitung denselben Parameter nennt, stimmen die Wertebereiche
+  überein.
+
 ## [1.2.0-beta.3] - 2026-08-02
 
 ### Behoben

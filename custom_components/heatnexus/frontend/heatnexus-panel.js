@@ -100,10 +100,15 @@ const STIL = `
     gap: 16px;
     padding: 16px;
     grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(280px, 340px);
+    /* Je Spalte eine Sache: links die Anlage mit ihren Heizkreisen, in der
+       Mitte das Schaubild mit dem Warmwasser darunter, rechts der Zustand mit
+       dem Schnellzugriff. So wächst jede Spalte nach unten, wenn eine Anlage
+       mehr Heizkreise oder mehr Warmwasserwerte hat, ohne die anderen zu
+       verschieben. Der Verlauf liegt darunter über die volle Breite. */
     grid-template-areas:
       "seite schema status"
-      "seite kreise status"
-      "verlauf verlauf schnell";
+      "kreise wasser schnell"
+      "verlauf verlauf verlauf";
     align-items: start;
     grid-auto-rows: min-content;
   }
@@ -111,9 +116,29 @@ const STIL = `
   @media (max-width: 1180px) {
     .rahmen {
       grid-template-columns: minmax(0, 1fr);
-      grid-template-areas: "seite" "schema" "kreise" "status" "verlauf" "schnell";
+      grid-template-areas:
+        "seite" "schema" "kreise" "wasser" "status" "schnell" "verlauf";
     }
   }
+
+  /* --- Karte zum Aufklappen -------------------------------------------- */
+  /* Der Verlauf ist in der Übersicht zugeklappt: Er ist das größte Element
+     der Seite, und wer ihn wirklich lesen will, geht in den eigenen Reiter. */
+  .klappkarte > summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .klappkarte > summary::-webkit-details-marker { display: none; }
+  .klappkarte > summary h2 { flex: 1; margin: 0; }
+  .klappkarte > summary .pfeil {
+    flex: none; opacity: 0.5; transition: transform 0.15s ease;
+    --mdc-icon-size: 20px;
+  }
+  .klappkarte[open] > summary { margin-bottom: 12px; }
+  .klappkarte[open] > summary .pfeil { transform: rotate(180deg); }
   .spalten {
     display: grid; gap: 16px; padding: 16px;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -239,7 +264,6 @@ const STIL = `
     border-radius: 8px; white-space: nowrap;
   }
 
-  .einzeln { display: block; }
   .linienwahl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
   .linie {
     padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px;
@@ -253,13 +277,6 @@ const STIL = `
     background: rgba(111, 178, 245, 0.15);
     border-color: rgba(111, 178, 245, 0.45);
   }
-  /* Karten wachsen nur so hoch wie ihr Inhalt. Ohne das zieht die längste
-     Karte einer Zeile alle anderen mit und die Seite wirkt zerklüftet. */
-  .doppel {
-    display: grid; gap: 16px; align-items: start;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  }
-  @media (max-width: 900px) { .doppel { grid-template-columns: minmax(0, 1fr); } }
   .gitter { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 
   /* --- Tasten ---------------------------------------------------------- */
@@ -373,7 +390,9 @@ class HeatNexusPanel extends HTMLElement {
     this._daten = null;
     this._bindungen = [];
     this._verlaufskarten = [];
-    this._anlageIndex = 0;
+    // „Alle" ist der Standard: Wer zwei Anlagen hat, will beide sehen, nicht
+    // die erste. Bei nur einer Anlage gibt es die Wahl gar nicht.
+    this._anlageIndex = -1;
     this._reiter = "uebersicht";
     // Laufende Bedienvorgänge: Anzeige -> wann begonnen, wann bestätigt.
     this._wartend = [];
@@ -573,6 +592,13 @@ class HeatNexusPanel extends HTMLElement {
 
     // Die Außentemperatur gilt für die ganze Anlage – an der Anlage selbst
     // steht sie deshalb in der Kopfzeile und nicht bei einem Anlagenteil.
+    //
+    // Unter „Alle" gibt es keine einzelne Anlage, deren Fühler gälte; dort
+    // zählt die in den Optionen gewählte Entität. Steht keine da, nimmt die
+    // Kopfzeile den Wert der ersten Anlage.
+    if (this._alleAnlagen() && this._daten && this._daten.aussentemperatur) {
+      anlage = { ...anlage, aussentemperatur: this._daten.aussentemperatur };
+    }
     if (anlage.aussentemperatur) {
       const aussen = document.createElement("div");
       aussen.className = "aussen";
@@ -654,12 +680,36 @@ class HeatNexusPanel extends HTMLElement {
     rahmen.append(
       this._bereich("seite", this._seite(anlage)),
       this._bereich("schema", this._schaubild(anlage)),
-      this._bereich("kreise", this._kreiseUndWasser(anlage)),
+      this._bereich("kreise", this._heizkreiskarte(anlage)),
+      this._bereich("wasser", this._warmwasserkarte(anlage)),
       this._bereich("status", this._status(anlage)),
-      this._bereich("verlauf", this._verlauf(anlage, 24)),
-      this._bereich("schnell", this._schnellzugriff(anlage))
+      this._bereich("schnell", this._schnellzugriff(anlage)),
+      this._bereich("verlauf", this._klappbar(this._verlauf(anlage, 24)))
     );
     return rahmen;
+  }
+
+  /**
+   * Eine Karte zuklappbar machen.
+   *
+   * Der Kartenkopf wird zur Zusammenfassung, der Rest verschwindet, bis man
+   * daraufdrückt. Gebaut wird der Inhalt trotzdem – nur so stimmen die
+   * Bindungen, wenn jemand aufklappt, ohne dass die Ansicht neu entsteht.
+   */
+  _klappbar(karte) {
+    if (!karte) return null;
+    const kopf = karte.querySelector(".kartenkopf");
+    const details = document.createElement("details");
+    details.className = "karte klappkarte";
+    const zusammenfassung = document.createElement("summary");
+    if (kopf) {
+      while (kopf.firstChild) zusammenfassung.appendChild(kopf.firstChild);
+      kopf.remove();
+    }
+    zusammenfassung.appendChild(this._symbolKnoten("mdi:chevron-down", "pfeil"));
+    details.appendChild(zusammenfassung);
+    while (karte.firstChild) details.appendChild(karte.firstChild);
+    return details;
   }
 
   _bereich(name, knoten) {
@@ -748,9 +798,10 @@ class HeatNexusPanel extends HTMLElement {
     schliessen.focus();
   }
 
-  _symbolKnoten(symbol) {
+  _symbolKnoten(symbol, klasse) {
     const ikone = document.createElement("ha-icon");
     ikone.setAttribute("icon", symbol);
+    if (klasse) ikone.className = klasse;
     return ikone;
   }
 
@@ -891,33 +942,37 @@ class HeatNexusPanel extends HTMLElement {
   // -------------------------------------------------------------------
   // Heizkreise und Warmwasser
   // -------------------------------------------------------------------
-  _kreiseUndWasser(anlage) {
+  /**
+   * Die Heizkreise, unter der Anlagenübersicht in derselben Spalte.
+   *
+   * Dort wächst die Karte nach unten, wenn eine Anlage mehr als einen Kreis
+   * hat, ohne das Schaubild zu verschieben.
+   *
+   * Was es nicht gibt, bekommt auch keine Karte – so hält es die Anlage
+   * selbst: Was keinen Wert liefert, wird ausgeblendet.
+   */
+  _heizkreiskarte(anlage) {
     const kreise = anlage.heizkreise || [];
+    if (!kreise.length) return null;
+    const karte = this._karte("Heizkreise");
+    kreise.forEach((kreis) => karte.appendChild(this._heizkreiszeile(kreis)));
+    return karte;
+  }
+
+  /**
+   * Warmwasser, unter dem Schaubild und genauso breit.
+   *
+   * Eine Anlage ohne Warmwasserbereitung bekommt gar keine Karte – eine leere
+   * Karte behauptet, da fehle etwas.
+   */
+  _warmwasserkarte(anlage) {
     const wasser = anlage.warmwasser || [];
-    if (!kreise.length && !wasser.length) return null;
-
-    const doppel = document.createElement("div");
-    // Ohne Warmwasser bleibt sonst eine leere Spalte stehen und der Heizkreis
-    // steht verloren in der Mitte.
-    doppel.className = wasser.length ? "doppel" : "einzeln";
-
-    // Was es nicht gibt, bekommt auch keine Karte – so hält es die Anlage
-    // selbst: Was keinen Wert liefert, wird ausgeblendet.
-    if (kreise.length) {
-      const linkeKarte = this._karte("Heizkreise");
-      kreise.forEach((kreis) => linkeKarte.appendChild(this._heizkreiszeile(kreis)));
-      doppel.appendChild(linkeKarte);
-    }
-    // Eine Anlage ohne Warmwasserbereitung bekommt gar keine Karte – eine
-    // leere Karte behauptet, da fehle etwas.
-    if (wasser.length) {
-      const rechteKarte = this._karte("Warmwasser");
-      wasser.forEach((eintrag) => {
-        rechteKarte.appendChild(this._statuszeile(eintrag.entity, eintrag.titel));
-      });
-      doppel.appendChild(rechteKarte);
-    }
-    return doppel;
+    if (!wasser.length) return null;
+    const karte = this._karte("Warmwasser");
+    wasser.forEach((eintrag) => {
+      karte.appendChild(this._statuszeile(eintrag.entity, eintrag.titel));
+    });
+    return karte;
   }
 
   /**
@@ -1050,24 +1105,9 @@ class HeatNexusPanel extends HTMLElement {
       karte.appendChild(this._hinweisKnoten("Keine Statuswerte gefunden."));
     }
 
-    // Der grüne bzw. rote Kasten unter dem Status, wie im Muster.
-    const kasten = document.createElement("div");
-    kasten.className = "abzeichen";
-    kasten.style.marginTop = "14px";
-    kasten.style.width = "100%";
-    kasten.appendChild(this._symbolKnoten("mdi:check-circle-outline"));
-    const kastenText = document.createElement("span");
-    kasten.appendChild(kastenText);
-    karte.appendChild(kasten);
-    this._bindungen.push(() => {
-      const stoerung = this._stoerung(anlage);
-      kasten.classList.toggle("stoerung", stoerung);
-      kastenText.textContent = stoerung ? "Störung anliegend" : "Keine Störung";
-      kasten.firstChild.setAttribute(
-        "icon",
-        stoerung ? "mdi:alert-circle-outline" : "mdi:check-circle-outline"
-      );
-    });
+    // Kein dritter Störungshinweis: Derselbe Zustand stand bis 1.2.0-beta.3
+    // hier, in der Anlagenübersicht („Anlage in Ordnung") und noch einmal in
+    // der Störungskarte darunter. Zweimal ist einmal zu viel.
     huelle.appendChild(karte);
     huelle.appendChild(this._stoerungskarte(anlage));
     return huelle;
