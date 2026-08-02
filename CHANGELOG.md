@@ -6,6 +6,25 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.1.0-beta.9] - 2026-08-02
+
+### Behoben
+
+- **Der Warmwasserspeicher fehlte im Anlagenschaubild**, obwohl die Anlage ihn
+  liefert – und mit ihm seine Pumpe. In den Suchmustern des Schaubilds steckte
+  ein Steuerzeichen statt einer Wortgrenze; im Quelltext war das nicht zu
+  sehen, nur im Verhalten. Vier Tests halten den Fall jetzt fest.
+
+### Neu
+
+- **Erklärungen per „?"** neben Karten und Bedienungen: was ein Wert bedeutet,
+  was eine Bedienung auslöst und worauf zu achten ist – etwa dass ein
+  Brennstoffwechsel erst nach Aus- und Einschalten am Hauptschalter wirkt oder
+  dass beim Lagerraumbefüllen erst weitergemacht werden darf, wenn
+  „freigegeben" dasteht. Abschaltbar unter *Konfigurieren → Allgemein*.
+
+---
+
 ## [1.1.0-beta.8] - 2026-08-02
 
 ### Geändert

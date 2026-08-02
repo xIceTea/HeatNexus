@@ -126,6 +126,18 @@ const STIL = `
     padding: 14px 16px;
   }
   .karte + .karte { margin-top: 16px; }
+  .kartenkopf { display: flex; align-items: center; gap: 8px; }
+  .kartenkopf h2 { flex: 1; }
+  .fragezeichen {
+    width: 20px; height: 20px; flex: none; border-radius: 50%;
+    font: inherit; font-size: 12px; font-weight: 700; line-height: 1;
+    cursor: pointer; color: inherit; opacity: 0.4;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .fragezeichen:hover { opacity: 1; color: #6fb2f5; border-color: rgba(111, 178, 245, 0.5); }
+  .fragezeichen.auf-taste { position: absolute; top: 6px; right: 6px; }
+  .taste { position: relative; }
   h2 {
     margin: 0 0 12px;
     font-size: 17px;
@@ -611,6 +623,8 @@ class HeatNexusPanel extends HTMLElement {
   }
 
   _inhalt(anlage) {
+    // Die Karten holen ihre Erklärung über den Titel.
+    this._hilfe = anlage.hilfe || {};
     if (this._reiter === "steuerung") return this._steuerung(anlage);
     if (this._reiter === "wartung") return this._wartung(anlage);
     if (this._reiter === "verlauf") return this._verlaufReiter(anlage);
@@ -642,15 +656,82 @@ class HeatNexusPanel extends HTMLElement {
     return huelle;
   }
 
-  _karte(titel) {
+  _karte(titel, hilfe) {
     const karte = document.createElement("div");
     karte.className = "karte";
     if (titel) {
+      const kopf = document.createElement("div");
+      kopf.className = "kartenkopf";
       const ueberschrift = document.createElement("h2");
       ueberschrift.textContent = titel;
-      karte.appendChild(ueberschrift);
+      kopf.appendChild(ueberschrift);
+      const text = hilfe || (this._hilfe && this._hilfe[titel]);
+      if (text) kopf.appendChild(this._fragezeichen(titel, text));
+      karte.appendChild(kopf);
     }
     return karte;
+  }
+
+  /**
+   * Ein „?", das erklärt, was hier eigentlich passiert.
+   *
+   * Die Anlage bringt zu jeder Einstellung eine Erklärung mit – nur liegt die
+   * Anleitung beim Heizen selten daneben. Der Text kommt aus der Integration;
+   * abschalten lässt er sich in den Optionen.
+   */
+  _fragezeichen(titel, text) {
+    const taste = document.createElement("button");
+    taste.type = "button";
+    taste.className = "fragezeichen";
+    taste.textContent = "?";
+    taste.title = "Erklärung";
+    taste.setAttribute("aria-label", `Erklärung zu ${titel}`);
+    taste.addEventListener("click", (ereignis) => {
+      ereignis.stopPropagation();
+      this._erklaeren(titel, text);
+    });
+    return taste;
+  }
+
+  /** Erklärung als Hinweisfenster – bewusst dieselbe Form wie die Rückfrage. */
+  _erklaeren(titel, text) {
+    const schleier = document.createElement("div");
+    schleier.className = "schleier";
+    const dialog = document.createElement("div");
+    dialog.className = "dialog";
+    dialog.setAttribute("role", "dialog");
+
+    const ueberschrift = document.createElement("h3");
+    ueberschrift.className = "dialog-titel";
+    ueberschrift.textContent = titel;
+    const inhalt = document.createElement("div");
+    inhalt.className = "dialog-text";
+    inhalt.textContent = text;
+
+    const leiste = document.createElement("div");
+    leiste.className = "dialog-leiste";
+    const schliessen = document.createElement("button");
+    schliessen.type = "button";
+    schliessen.className = "dialog-taste";
+    schliessen.textContent = "Verstanden";
+    leiste.appendChild(schliessen);
+
+    dialog.append(ueberschrift, inhalt, leiste);
+    schleier.appendChild(dialog);
+    const weg = () => {
+      schleier.remove();
+      document.removeEventListener("keydown", beiTaste);
+    };
+    const beiTaste = (ereignis) => {
+      if (ereignis.key === "Escape") weg();
+    };
+    schliessen.addEventListener("click", weg);
+    schleier.addEventListener("click", (e) => {
+      if (e.target === schleier) weg();
+    });
+    document.addEventListener("keydown", beiTaste);
+    this.shadowRoot.appendChild(schleier);
+    schliessen.focus();
   }
 
   _symbolKnoten(symbol) {
@@ -1567,6 +1648,11 @@ class HeatNexusPanel extends HTMLElement {
     const rueckmeldung = document.createElement("div");
     rueckmeldung.className = "rueckmeldung";
     taste.append(beschriftung, rueckmeldung);
+    if (eintrag.hilfe) {
+      const hinweis = this._fragezeichen(eintrag.titel, eintrag.hilfe);
+      hinweis.classList.add("auf-taste");
+      taste.appendChild(hinweis);
+    }
 
     taste.addEventListener("click", async () => {
       if (taste.disabled) return;

@@ -56,8 +56,8 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
         (r"r(ü|ue)cklauf temperatur", "Rücklauf"),
     ),
     "wasser": (
-        (r"ww[- ]temperatur aktueller|warmwasser ist", "Warmwasser"),
-        (r"ww[- ]temperatur sollwert|warmwasser soll", "Soll"),
+        (r"\bww[- ]temperatur aktueller|\bwarmwasser ist", "Warmwasser"),
+        (r"\bww[- ]temperatur sollwert|\bwarmwasser soll", "Soll"),
     ),
 }
 
@@ -65,17 +65,17 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
 # dreht sich, solange sie läuft – im Standbild ist nicht zu erkennen, ob
 # gerade etwas fließt.
 PUMPE_JE_ART: dict[str, str] = {
-    "kessel": r"kesselpumpe|pumpe",
-    "puffer": r"pufferladepumpe(?!.*drehzahl)|ladepumpe",
+    "kessel": r"kesselpumpe|\bpumpe\b",
+    "puffer": r"pufferladepumpe(?!.*drehzahl)|\bladepumpe\b",
     "heizkreis": r"heizkreispumpe",
-    "wasser": r"ww-ladepumpe",
+    "wasser": r"\bww-ladepumpe",
     "zirkulation": r"zirkulationspumpe(?!.*modus)",
 }
 
 # Woran ein Heizkreis erkennen lässt, dass an ihm Warmwasser hängt. Die
 # Datenpunkte gehören am Gerät zum Heizkreis, im Schaubild ist Warmwasser aber
 # ein eigener Anlagenteil – so steht es auch auf dem Display der Anlage.
-WARMWASSER_IST = r"ww[- ]temperatur aktueller|warmwasser ist[- ]?temperatur"
+WARMWASSER_IST = r"\bww[- ]temperatur aktueller|\bwarmwasser ist[- ]?temperatur"
 
 # Funktionstyp -> Art im Schaubild.
 ART_JE_FCT: dict[int, str] = {

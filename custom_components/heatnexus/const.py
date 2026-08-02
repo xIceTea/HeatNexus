@@ -38,6 +38,9 @@ CONF_MELDUNG_EINLESEN = "meldung_einlesen"
 # gilt. Leer heißt: HeatNexus sucht sie sich in der Anlage selbst. Nötig,
 # weil der Außenfühler oft woanders hängt als bei der Anlage, die ihn meldet.
 CONF_AUSSENTEMPERATUR = "aussentemperatur"
+# Erklärungen („?") in der eigenen Oberfläche. Standardmäßig an – wer die
+# Anlage kennt, schaltet sie ab.
+CONF_HILFE = "hilfe"
 PANEL_URL = "heatnexus-anlage"
 PANEL_TITEL = "HeatNexus"
 PANEL_ELEMENT = "heatnexus-panel"

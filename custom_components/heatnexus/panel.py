@@ -35,6 +35,7 @@ import voluptuous as vol
 
 from .const import (
     CONF_AUSSENTEMPERATUR,
+    CONF_HILFE,
     DOMAIN,
     PANEL_ELEMENT,
     PANEL_JS_PFAD,
@@ -225,6 +226,123 @@ KESSEL_BEDIENUNG = (
 WARTUNG_BRENNSTOFF = _muster(r"vorratsbeh", r"aktueller brennstoff", r"brennstoff")
 
 
+# ---------------------------------------------------------------------------
+# Erklärungen („?")
+#
+# Was ein Wert bedeutet und was eine Bedienung auslöst, steht in den
+# Anleitungen der Anlage – nur hat die beim Heizen niemand zur Hand. Die Texte
+# hier sind eigene, knappe Zusammenfassungen dessen, was dort erklärt wird;
+# übernommen wird kein Wortlaut.
+# ---------------------------------------------------------------------------
+HILFE: tuple[tuple[str, str], ...] = (
+    (
+        r"gew(ä|ae)hlter brennstoff|^brennstoff$",
+        "Sagt der Verbrennungsregelung, womit sie es zu tun hat. „Feucht“ gilt "
+        "ab etwa 30 % Wassergehalt, „schlackend“ dann, wenn die Asche feste "
+        "Klumpen bildet – die Anlage verlängert daraufhin die "
+        "Entaschungsintervalle. Die Umstellung wirkt erst, nachdem der Kessel "
+        "am Hauptschalter aus- und wieder eingeschaltet wurde.",
+    ),
+    (
+        r"serviceausbrand",
+        "Brennt den restlichen Brennstoff aus, bis weder Glut noch "
+        "unverbranntes Material im Brenner liegt. Danach ist der Kessel zur "
+        "Reinigung bereit. Der Vorgang dauert etwa eine Stunde und lässt sich "
+        "nicht abbrechen.",
+    ),
+    (
+        r"lagerraum",
+        "Setzt Kessel und Rührwerk in Gang, damit sich das Rührwerk während "
+        "des Befüllens dreht. Erst wenn hier „freigegeben“ steht, darf weiter "
+        "eingeblasen werden – ein stehendes Rührwerk kann beim Befüllen "
+        "Schaden nehmen. Bei pneumatischer Zuführung wird erst freigegeben, "
+        "wenn der Vorratsbehälter leer ist.",
+    ),
+    (
+        r"durchgef(ü|ue)hrt|reinigung best",
+        "Meldet der Anlage, dass die Arbeit erledigt ist, und setzt den "
+        "zugehörigen Wartungszähler zurück. Nur drücken, wenn wirklich "
+        "gereinigt wurde – sonst warnt die Anlage beim nächsten Mal zu spät.",
+    ),
+    (
+        r"einmalladung|ww[- ]ladung",
+        "Lädt den Warmwasserspeicher einmalig auf, auch außerhalb der "
+        "Freigabezeiten des Warmwasserprogramms. Die Anlage startet nur, wenn "
+        "die Warmwassertemperatur mindestens 5 K unter dem Sollwert liegt.",
+    ),
+    (
+        r"betriebswahl",
+        "Standby heizt nicht und hält nur den Frostschutz. Programm 1 bis 3 "
+        "folgen den Zeitprogrammen. Heizbetrieb und Absenkbetrieb halten "
+        "dauerhaft den jeweils eingestellten Sollwert.",
+    ),
+    (
+        r"^kessel$",
+        "Schaltet den Kessel ein oder aus. Ausgeschaltet versorgt er weder "
+        "Heizkreise noch Warmwasser; der Frostschutz bleibt aktiv.",
+    ),
+    (
+        r"vorratsbeh",
+        "Der Zwischenbehälter am Kessel, nicht der Lagerraum. Meldet er "
+        "„leer“, sperrt die Anlage den Brenner, bis wieder zugeführt wurde.",
+    ),
+    (
+        r"betriebsphase|betriebszustand",
+        "Was der Kessel gerade tut – von Standby über Zündung und "
+        "Stabilisierung bis Modulation und Ausbrand.",
+    ),
+    (
+        r"laufzeit bis",
+        "Verbleibende Betriebsstunden bis zur nächsten Arbeit. Bei 0 fordert "
+        "die Anlage sie an; bestätigt wird sie mit der zugehörigen Taste.",
+    ),
+    (
+        r"restlaufzeit",
+        "Wie lange die aktuelle Freigabe noch gilt. Danach stellt die Anlage von selbst zurück.",
+    ),
+)
+
+# Erklärungen für ganze Karten der Oberfläche.
+HILFE_KARTEN = {
+    "Anlagenübersicht": (
+        "Der hydraulische Aufbau, gezeichnet aus dem, was die Anlage meldet. "
+        "Rot ist der Vorlauf, blau der Rücklauf; eine Pumpe dreht sich, "
+        "solange sie läuft."
+    ),
+    "Systemstatus": (
+        "Die Werte, die den Zustand der ganzen Anlage beschreiben – der "
+        "Infoebene des Bediengeräts nachempfunden."
+    ),
+    "Heizkreise": (
+        "Je Kreis die gemessene Raumtemperatur, die aktuelle Betriebsart und "
+        "der Sollwert. Ein am Thermostat gesetzter Wert gilt befristet und "
+        "stellt danach von selbst zurück; die Zeitprogramme bleiben unberührt."
+    ),
+    "Warmwasser": (
+        "Die eingestellte Warmwassertemperatur ist der Ausschaltpunkt – "
+        "geladen wird, sobald die Temperatur etwa 5 K darunter fällt."
+    ),
+    "Lagerraum befüllen": (
+        "Erst anfordern, dann warten, bis „freigegeben“ dasteht. Vorher darf "
+        "nur bis etwa einen Meter Schütthöhe befüllt werden, sonst kann das "
+        "Rührwerk Schaden nehmen."
+    ),
+    "Störungen": (
+        "Meldungen der Anlage im Klartext. Fehler und Alarme müssen am "
+        "Bediengerät zurückgesetzt werden, bevor die Anlage weiterläuft."
+    ),
+    "Schnellzugriff": "Die Bedienungen, die man im Alltag wirklich anfasst.",
+}
+
+
+def hilfe(name: str) -> str:
+    """Erklärung zu einem Datenpunkt – leer, wenn es keine gibt."""
+    for muster, text in HILFE:
+        if re.search(muster, name or "", re.IGNORECASE):
+            return text
+    return ""
+
+
 def _erster(entitaeten: list[dict[str, Any]], muster: str) -> dict[str, Any] | None:
     """Erste passende Entität; eine mit Wert hat Vorrang.
 
@@ -372,6 +490,7 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
         lagerraum = {
             "anfordern": anfordern,
             "frage": rueckfrage("Lagerraumbefüllung anfordern"),
+            "hilfe": HILFE_KARTEN.get("Lagerraum befüllen", ""),
             "zeilen": [
                 {"entity": treffer["entity_id"], "titel": beschriftung}
                 for muster, beschriftung in LAGERRAUM_ZEILEN
@@ -489,6 +608,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                     "titel": beschriftung,
                     "symbol": symbol,
                     "frage": rueckfrage(treffer["name"]),
+                    "hilfe": hilfe(treffer["name"]) or hilfe(beschriftung),
                 }
                 # Die Warmwasserladung meldet ihren Zustand nicht am Auslöser,
                 # sondern in der Betriebsart. Ohne diesen Hinweis wirkt die
@@ -504,6 +624,8 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     aussen = aussen_gewaehlt or _kennung(alle, AUSSENTEMPERATUR)
     return {
         "name": anlage["name"],
+        # Erklärungen je Karte – im Browser als „?" neben der Überschrift.
+        "hilfe": dict(HILFE_KARTEN),
         # Die Außentemperatur gilt für die ganze Anlage und steht deshalb oben,
         # nicht in der Liste der Anlagenteile.
         "aussentemperatur": aussen,
@@ -548,10 +670,31 @@ def _gewaehlte_aussentemperatur(hass: HomeAssistant) -> str | None:
     return None
 
 
+def _hilfe_gewuenscht(hass: HomeAssistant) -> bool:
+    """Ob die Erklärungen angezeigt werden sollen (Standard: ja)."""
+    for eintrag in hass.config_entries.async_entries(DOMAIN):
+        if CONF_HILFE in (eintrag.options or {}):
+            return bool(eintrag.options[CONF_HILFE])
+    return True
+
+
 def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
     """Die vollständige Struktur für die Oberfläche."""
     aussen = _gewaehlte_aussentemperatur(hass)
-    return {"anlagen": [_anlage_daten(anlage, aussen) for anlage in _anlagen(hass)]}
+    daten = {"anlagen": [_anlage_daten(anlage, aussen) for anlage in _anlagen(hass)]}
+    if not _hilfe_gewuenscht(hass):
+        # Abgewählt: Die Texte gar nicht erst mitschicken.
+        for anlage in daten["anlagen"]:
+            anlage["hilfe"] = {}
+            for bereich in ("schnellzugriff",):
+                for eintrag in anlage.get(bereich) or []:
+                    eintrag.pop("hilfe", None)
+            steuerung = anlage.get("steuerung") or {}
+            for eintrag in steuerung.get("kessel") or []:
+                eintrag.pop("hilfe", None)
+            if steuerung.get("lagerraum"):
+                steuerung["lagerraum"].pop("hilfe", None)
+    return daten
 
 
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/panel_daten"})

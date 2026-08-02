@@ -19,7 +19,15 @@ def _teil(name: str, fct: int, werte: list[tuple[str, str]]) -> dict:
     return {
         "name": name,
         "fct_type": fct,
-        "entitaeten": [{"entity_id": eid, "name": n, "hat_wert": True} for eid, n in werte],
+        "entitaeten": [
+            {
+                "entity_id": eid,
+                "name": n,
+                "hat_wert": True,
+                "bereich": eid.split(".")[0],
+            }
+            for eid, n in werte
+        ],
     }
 
 
@@ -104,3 +112,60 @@ def test_anlagenteil_ohne_passenden_messwert_faellt_weg(schema):
     """Ein leerer Kasten hilft niemandem."""
     ohne = [{"name": "Rätsel", "fct_type": 99, "entitaeten": []}]
     assert schema.anlagenschema(ohne) is None
+
+
+# ---------------------------------------------------------------------------
+# Warmwasser als eigener Anlagenteil
+#
+# In 1.1.0-beta.6/7 fehlte der Warmwasserbehälter im Schaubild, obwohl die
+# Anlage ihn liefert. Grund war ein Steuerzeichen im Suchmuster: Beim Erzeugen
+# der Datei war aus der Wortgrenze `\b` ein echtes Backspace-Zeichen geworden.
+# Im Quelltext war das nicht zu sehen – nur im Verhalten.
+# ---------------------------------------------------------------------------
+def test_muster_enthalten_keine_steuerzeichen(schema):
+    """Ein Suchmuster darf nie ein Steuerzeichen enthalten."""
+    muster = [schema.WARMWASSER_IST]
+    muster += [m for eintraege in schema.WERTE_JE_ART.values() for m, _ in eintraege]
+    muster += list(schema.PUMPE_JE_ART.values())
+    for einzeln in muster:
+        assert not any(ord(z) < 32 for z in einzeln), f"Steuerzeichen in {einzeln!r}"
+
+
+def test_warmwasser_wird_eigener_anlagenteil(schema):
+    heizkreis = _teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            ("sensor.vorlauf", "Vorlauftemperatur Ist"),
+            ("sensor.raum", "Raumtemperatur Ist"),
+            ("sensor.ww_ist", "Warmwasser Ist-Temperatur"),
+            ("sensor.ww_soll", "Warmwasser Soll-Temperatur"),
+            ("binary_sensor.ww_ladepumpe", "WW-Ladepumpe"),
+        ],
+    )
+    arten = [m["art"] for m in schema._module([heizkreis])]
+    assert "wasser" in arten, "Warmwasser fehlt im Schaubild"
+
+
+def test_ohne_warmwasser_kein_eigener_anlagenteil(schema):
+    heizkreis = _teil(
+        "Hebebuehne",
+        14,
+        [("sensor.vorlauf", "Vorlauftemperatur Ist"), ("sensor.raum", "Raumtemperatur Ist")],
+    )
+    arten = [m["art"] for m in schema._module([heizkreis])]
+    assert "wasser" not in arten
+
+
+def test_pumpe_je_anlagenteil(schema):
+    heizkreis = _teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            ("sensor.raum", "Raumtemperatur Ist"),
+            ("sensor.vorlauf", "Vorlauftemperatur Ist"),
+            ("binary_sensor.hkp", "Heizkreispumpe"),
+        ],
+    )
+    module = schema._module([heizkreis])
+    assert module[0]["pumpe"] == "binary_sensor.hkp"

@@ -39,6 +39,7 @@ from .const import (
     CONF_COUNT,
     CONF_DASHBOARD,
     CONF_ENABLE_ADVANCED,
+    CONF_HILFE,
     CONF_LABEL,
     CONF_LEVELS,
     CONF_MELDUNG_EINLESEN,
@@ -499,6 +500,7 @@ class WindhagerOptionsFlow(OptionsFlow):
             options[CONF_DASHBOARD] = bool(user_input[CONF_DASHBOARD])
             options[CONF_PANEL] = bool(user_input[CONF_PANEL])
             options[CONF_MELDUNG_EINLESEN] = bool(user_input[CONF_MELDUNG_EINLESEN])
+            options[CONF_HILFE] = bool(user_input[CONF_HILFE])
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
             if gewaehlt:
                 options[CONF_AUSSENTEMPERATUR] = gewaehlt
