@@ -339,6 +339,36 @@ HILFE_KARTEN = {
         "Bediengerät zurückgesetzt werden, bevor die Anlage weiterläuft."
     ),
     "Schnellzugriff": "Die Bedienungen, die man im Alltag wirklich anfasst.",
+    "Kessel": (
+        "Die Eingriffe am Kessel. Die Bestätigungstasten setzen jeweils nur "
+        "den Zähler zurück, um den es geht – bitte erst drücken, wenn die "
+        "Arbeit erledigt ist."
+    ),
+    "Wartung": (
+        "Restlaufzeiten bis zur nächsten Arbeit, Brennstoff und Zählerstände. "
+        "Erreicht eine Restlaufzeit null, fordert die Anlage die Arbeit an."
+    ),
+    "Restlaufzeiten": (
+        "Verbleibende Betriebsstunden bis Ascheentleerung, Hauptreinigung und "
+        "Wartung. Erledigt wird die Arbeit am Kessel, bestätigt im Reiter "
+        "Steuerung."
+    ),
+    "Brennstoff": (
+        "Was gerade verheizt wird und wie voll der Vorratsbehälter ist – nicht "
+        "der Lagerraum, sondern der Zwischenbehälter am Kessel."
+    ),
+    "Zählerstände": (
+        "Werte, die nur nach oben laufen. Home Assistant führt daraus eine "
+        "Langzeitstatistik; im Reiter Verlauf lässt sich der Zuwachs ablesen."
+    ),
+    "Verlauf (24 Stunden)": (
+        "Jede Linie lässt sich an- und abschalten. Vorausgewählt sind die "
+        "Temperaturen der Anlage, die Außentemperatur und die Kesselleistung."
+    ),
+    "Verlauf (48 Stunden)": (
+        "Jede Linie lässt sich an- und abschalten. Vorausgewählt sind die "
+        "Temperaturen der Anlage, die Außentemperatur und die Kesselleistung."
+    ),
 }
 
 

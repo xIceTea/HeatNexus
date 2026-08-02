@@ -189,9 +189,18 @@ ZAEHLER_WOERTER = (
     "gesamt",
 )
 
-# Gleichzeitige Anfragen an die Anlage. Mehr als drei quittieren die Geräte bei
-# großen Menü-Ebenen mit abgebrochenen Antworten.
+# Gleichzeitige Anfragen an die Anlage.
+#
+# Beim **Einlesen** bleibt es bei drei: Mehr quittieren die Geräte bei großen
+# Menü-Ebenen mit abgebrochenen Antworten.
+#
+# Beim **Abrufen** einzelner Werte ist das anders. Gemessen an der Anlage:
+# 0,76 s Antwortzeit je Datenpunkt, aber 5,6 s Wartezeit in der eigenen
+# Warteschlange – siebenmal so viel. Nicht die Anlage ist langsam, unser
+# Durchsatz ist zu klein. Ein Abruf von 72 Werten dauerte damit 11 s bei einem
+# Intervall von 30 s.
 FETCH_CONCURRENCY = 3
+POLL_CONCURRENCY = 6
 
 # Ein Menü-Abruf liefert höchstens so viele Datenpunkte; der Rest kommt über
 # ?offset=<n> nach.

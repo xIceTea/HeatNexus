@@ -129,13 +129,16 @@ const STIL = `
   .kartenkopf { display: flex; align-items: center; gap: 8px; }
   .kartenkopf h2 { flex: 1; }
   .fragezeichen {
-    width: 20px; height: 20px; flex: none; border-radius: 50%;
-    font: inherit; font-size: 12px; font-weight: 700; line-height: 1;
-    cursor: pointer; color: inherit; opacity: 0.4;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    width: 22px; height: 22px; flex: none; border-radius: 50%;
+    font: inherit; font-size: 13px; font-weight: 700; line-height: 1;
+    cursor: pointer; color: #6fb2f5;
+    background: rgba(111, 178, 245, 0.12);
+    border: 1px solid rgba(111, 178, 245, 0.35);
   }
-  .fragezeichen:hover { opacity: 1; color: #6fb2f5; border-color: rgba(111, 178, 245, 0.5); }
+  .fragezeichen:hover {
+    background: rgba(111, 178, 245, 0.28);
+    border-color: rgba(111, 178, 245, 0.7);
+  }
   .fragezeichen.auf-taste { position: absolute; top: 6px; right: 6px; }
   .taste { position: relative; }
   h2 {

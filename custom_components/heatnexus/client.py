@@ -20,6 +20,7 @@ from .const import (
     FCT_ENTITY_MAP,
     FETCH_CONCURRENCY,
     MENU_PAGE_SIZE,
+    POLL_CONCURRENCY,
     POLL_EINHEITEN_TRAEGE,
     POLL_FAST,
     POLL_NORMAL,
@@ -124,6 +125,10 @@ class WindhagerHttpClient:
         self._session = None
         self._auth = None
         self._semaphore = asyncio.Semaphore(FETCH_CONCURRENCY)
+        # Für das zyklische Abrufen einzelner Werte gilt eine eigene, höhere
+        # Grenze: Dort sind die Antworten klein, und die Warteschlange war der
+        # Flaschenhals, nicht die Anlage.
+        self._poll_semaphore = asyncio.Semaphore(POLL_CONCURRENCY)
 
     # ------------------------------------------------------------------
     # Dynamische Poll-Registrierung
@@ -174,7 +179,7 @@ class WindhagerHttpClient:
         _LOGGER.debug("Antwort in keinem bekannten Zeichensatz lesbar, nutze latin-1")
         return raw.decode("latin-1")
 
-    async def _get(self, url: str):
+    async def _get(self, url: str, semaphore=None):
         """GET auf die Anlage; gibt (json_oder_None, status) zurück.
 
         Gemessen wird die reine Antwortzeit der Anlage – **innerhalb** der
@@ -185,7 +190,7 @@ class WindhagerHttpClient:
         await self._ensure_session()
         self.request_count += 1
         angefragt = time.monotonic()
-        async with self._semaphore:
+        async with semaphore or self._semaphore:
             begonnen = time.monotonic()
             self.queue_seconds += begonnen - angefragt
             try:
@@ -201,9 +206,9 @@ class WindhagerHttpClient:
         except ValueError:
             return None, ret.status
 
-    async def fetch(self, url):
+    async def fetch(self, url, semaphore=None):
         """GET /api/1.0/lookup<url> and return the parsed JSON."""
-        data, _status = await self._get(f"http://{self.host}/api/1.0/lookup{url}")
+        data, _status = await self._get(f"http://{self.host}/api/1.0/lookup{url}", semaphore)
         _LOGGER.debug("Fetched data for %s: %s", url, data)
         return data
 
@@ -981,7 +986,7 @@ class WindhagerHttpClient:
     async def _fetch_oid(self, oid):
         """Fetch a single OID, returning (oid, value-or-None)."""
         try:
-            json = await self.fetch(oid)
+            json = await self.fetch(oid, self._poll_semaphore)
             value = json.get("value") if isinstance(json, dict) else None
             if value in (None, "-.-", "-", ""):
                 return oid, None
@@ -1148,6 +1153,7 @@ class WindhagerHttpClient:
             ),
             "laufzeit_min": round(laufzeit / 60, 1),
             "gleichzeitige_anfragen": FETCH_CONCURRENCY,
+            "gleichzeitige_abfragen": POLL_CONCURRENCY,
         }
 
     def _takte(self) -> dict[str, int]:

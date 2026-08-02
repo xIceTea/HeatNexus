@@ -21,7 +21,7 @@ from typing import Any
 
 # Maße des Schaubilds. Die Karte skaliert es auf ihre Breite, die Angaben
 # sind also Verhältnisse, keine Bildpunkte.
-HOEHE = 360
+HOEHE = 392
 MODUL_BREITE = 200
 RAND = 24
 VORLAUF_Y = 92
@@ -222,7 +222,7 @@ def _kasten(x: int, modul: dict[str, Any]) -> str:
     art = modul["art"]
     mitte = x + MODUL_BREITE // 2
     titel = (
-        f'<text x="{mitte}" y="{RUECKLAUF_Y + 30}" text-anchor="middle" '
+        f'<text x="{mitte}" y="{RUECKLAUF_Y + 56}" text-anchor="middle" '
         f'fill="{FARBE_TITEL}" font-size="15" font-weight="600" font-family="{SCHRIFT}">'
         f"{_escape(modul['titel'])}</text>"
     )
