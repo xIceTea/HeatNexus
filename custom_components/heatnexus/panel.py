@@ -152,8 +152,9 @@ VERLAUF_MAX = 8
 # dieselbe Tabelle gilt für die Kacheln im Dashboard.
 SCHNELLZUGRIFF = (
     (r"ww einmalladung", "Warmwasser laden", "mdi:water-boiler"),
+    (r"^reinigung durchgef", "Reinigung erledigt", "mdi:broom"),
+    (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom"),
     (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off"),
-    (r"reinigung best", "Reinigung bestätigen", "mdi:broom"),
     (r"betriebswahl", "Betriebswahl", "mdi:tune"),
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff wählen", "mdi:sack"),
 )
@@ -215,9 +216,15 @@ LAGERRAUM_ZEILEN = (
 # Bedienbares am Kessel, in dieser Reihenfolge.
 KESSEL_BEDIENUNG = (
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff", "mdi:sack"),
+    (r"^reinigung durchgef", "Reinigung erledigt", "mdi:broom"),
+    (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom"),
+    (
+        r"hauptreinigung und aschetonnen durchgef",
+        "Hauptreinigung + Aschetonnen",
+        "mdi:delete-empty-outline",
+    ),
+    (r"wartung durchgef", "Wartung erledigt", "mdi:wrench-check-outline"),
     (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off"),
-    (r"reinigung best", "Reinigung bestätigen", "mdi:broom"),
-    (r"lagerraum bef(ü|ue)llen", "Lagerraum befüllen", "mdi:warehouse"),
 )
 
 # ---------------------------------------------------------------------------

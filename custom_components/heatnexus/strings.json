@@ -84,7 +84,7 @@
         "title": "Settings",
         "description": "What would you like to change?",
         "menu_options": {
-          "allgemein": "General (polling interval)"
+          "allgemein": "General (interface, help, polling)"
         }
       },
       "allgemein": {

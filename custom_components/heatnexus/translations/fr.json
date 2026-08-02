@@ -84,7 +84,7 @@
         "title": "Paramètres",
         "description": "Que souhaitez-vous modifier ?",
         "menu_options": {
-          "allgemein": "Général (intervalle)"
+          "allgemein": "Général (interface, aide, interrogation)"
         }
       },
       "allgemein": {

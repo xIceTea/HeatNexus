@@ -6,6 +6,35 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.1.0-beta.10] - 2026-08-02
+
+### Behoben
+
+- **Die allgemeinen Einstellungen ließen sich nicht speichern** („Unknown error
+  occurred"), und „Außentemperatur" erschien als Häkchen statt als Auswahlfeld:
+  Zwei Felder waren im Dialog zu einem verschmolzen, „Beim Einlesen
+  benachrichtigen" und „Erklärungen anzeigen" fehlten ganz. Ein fehlendes Feld
+  bricht den Dialog jetzt auch nicht mehr ab.
+- **Reinigung und Hauptreinigung waren aus dem Schnellzugriff verschwunden.**
+  Beim Umbau von der Auswahlliste auf einzelne Tasten blieben die Suchmuster
+  auf dem alten Namen stehen.
+- **Die Zirkulation fehlte im Anlagenschaubild.** Ihre Datenpunkte hängen – wie
+  die des Warmwassers – am Heizkreis; die Zirkulationsfunktion selbst meldet
+  je nach Anlage gar keine Temperatur. Sie bekommt jetzt einen eigenen Kreis
+  samt Pumpe.
+- **Pumpen, die ihre Drehzahl melden statt eines Zustands**, drehten sich nie –
+  etwa die Pufferladepumpe. „Läuft" heißt dort jetzt „über null".
+- **Beim Warmwasser stand der Sollwert an der Stelle**, an der beim Puffer die
+  zweite gemessene Temperatur steht, und las sich wie ein Messwert. Der
+  Warmwasserkreis zeigt nur noch seinen Istwert.
+
+### Geändert
+
+- Der Menüpunkt hieß „Allgemein (Abfrageintervall)", obwohl dort längst
+  Oberfläche, Erklärungen und Außentemperatur stehen.
+
+---
+
 ## [1.1.0-beta.9] - 2026-08-02
 
 ### Behoben

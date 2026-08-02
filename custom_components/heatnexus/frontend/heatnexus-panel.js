@@ -862,8 +862,11 @@ class HeatNexusPanel extends HTMLElement {
       marke.appendChild(ikone);
       huelle.appendChild(this._klickbar(marke, eintrag.entity));
       this._bindungen.push(() => {
-        const laeuft = this._istAn(eintrag.entity);
+        // Manche Pumpen melden keinen Zustand, sondern ihre Drehzahl.
+        const zahl = this._zahl(eintrag.entity);
+        const laeuft = zahl !== null ? zahl > 0 : this._istAn(eintrag.entity);
         marke.classList.toggle("laeuft", laeuft);
+        marke.title = `${eintrag.titel} – Pumpe ${laeuft ? "läuft" : "steht"}`;
       });
     });
 

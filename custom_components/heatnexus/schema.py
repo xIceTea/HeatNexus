@@ -55,10 +55,12 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
         (r"^temperatur ist$", "Temperatur"),
         (r"r(ü|ue)cklauf temperatur", "Rücklauf"),
     ),
-    "wasser": (
-        (r"\bww[- ]temperatur aktueller|\bwarmwasser ist", "Warmwasser"),
-        (r"\bww[- ]temperatur sollwert|\bwarmwasser soll", "Soll"),
-    ),
+    # Nur der Istwert. Ein Sollwert an der Stelle, an der beim Puffer die
+    # zweite *gemessene* Temperatur steht, liest sich wie ein Messwert und
+    # verwirrt mehr, als er nützt.
+    "wasser": ((r"\bww[- ]temperatur aktueller|\bwarmwasser ist", "Warmwasser"),),
+    # Zirkulation, wie sie am Heizkreis hängt (nicht die ZSP-Funktion).
+    "zirkulation_ww": ((r"\bww-zirkulation ist", "Zirkulation"),),
 }
 
 # Die Pumpe eines Anlagenteils. Sie steht im Schaubild in der Leitung und
@@ -66,16 +68,27 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
 # gerade etwas fließt.
 PUMPE_JE_ART: dict[str, str] = {
     "kessel": r"kesselpumpe|\bpumpe\b",
-    "puffer": r"pufferladepumpe(?!.*drehzahl)|\bladepumpe\b",
+    "puffer": r"pufferladepumpe",
     "heizkreis": r"heizkreispumpe",
     "wasser": r"\bww-ladepumpe",
     "zirkulation": r"zirkulationspumpe(?!.*modus)",
+    "zirkulation_ww": r"\bww-zirkulationspumpe(?!.*modus)",
 }
+
+# Manche Pumpen melden keinen Zustand, sondern ihre Drehzahl in Prozent – die
+# Pufferladepumpe etwa. Sie zählt genauso; „läuft" heißt dann „über null".
+PUMPE_BEREICHE = ("binary_sensor", "switch", "sensor")
 
 # Woran ein Heizkreis erkennen lässt, dass an ihm Warmwasser hängt. Die
 # Datenpunkte gehören am Gerät zum Heizkreis, im Schaubild ist Warmwasser aber
 # ein eigener Anlagenteil – so steht es auch auf dem Display der Anlage.
 WARMWASSER_IST = r"\bww[- ]temperatur aktueller|\bwarmwasser ist[- ]?temperatur"
+
+# Die Zirkulation hängt am Gerät ebenfalls am Heizkreis, ist im Schaubild aber
+# ein eigener Kreis. Ohne diese Aufteilung fehlt sie ganz, wenn die
+# ZSP-Funktion selbst keine Temperatur meldet – so wie an einer der beiden
+# geprüften Anlagen.
+ZIRKULATION_IST = r"\bww-zirkulation ist[- ]?temperatur"
 
 # Funktionstyp -> Art im Schaubild.
 ART_JE_FCT: dict[int, str] = {
@@ -141,9 +154,7 @@ def _pumpe(entitaeten: list[dict[str, Any]], art: str) -> str | None:
     muster = PUMPE_JE_ART.get(art)
     if not muster:
         return None
-    treffer = _finde(
-        [e for e in entitaeten if e.get("bereich") in ("binary_sensor", "switch")], muster
-    )
+    treffer = _finde([e for e in entitaeten if e.get("bereich") in PUMPE_BEREICHE], muster)
     return treffer["entity_id"] if treffer else None
 
 
@@ -177,6 +188,17 @@ def _module(teile: list[dict[str, Any]]) -> list[dict[str, Any]]:
                         "art": "wasser",
                         "werte": wasser,
                         "pumpe": _pumpe(teil["entitaeten"], "wasser"),
+                    }
+                )
+        if art == "heizkreis" and _finde(teil["entitaeten"], ZIRKULATION_IST) is not None:
+            kreis = _werte(teil["entitaeten"], "zirkulation_ww")
+            if kreis:
+                module.append(
+                    {
+                        "titel": "Zirkulation",
+                        "art": "zirkulation",
+                        "werte": kreis,
+                        "pumpe": _pumpe(teil["entitaeten"], "zirkulation_ww"),
                     }
                 )
     return module

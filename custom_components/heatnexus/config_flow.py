@@ -21,6 +21,8 @@ from homeassistant.config_entries import (
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -499,8 +501,10 @@ class WindhagerOptionsFlow(OptionsFlow):
             options[CONF_UPDATE_INTERVAL] = int(user_input[CONF_UPDATE_INTERVAL])
             options[CONF_DASHBOARD] = bool(user_input[CONF_DASHBOARD])
             options[CONF_PANEL] = bool(user_input[CONF_PANEL])
-            options[CONF_MELDUNG_EINLESEN] = bool(user_input[CONF_MELDUNG_EINLESEN])
-            options[CONF_HILFE] = bool(user_input[CONF_HILFE])
+            # .get statt [] – ein fehlendes Feld darf den Dialog nicht mit
+            # „Unknown error occurred“ abbrechen lassen.
+            options[CONF_MELDUNG_EINLESEN] = bool(user_input.get(CONF_MELDUNG_EINLESEN, False))
+            options[CONF_HILFE] = bool(user_input.get(CONF_HILFE, True))
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
             if gewaehlt:
                 options[CONF_AUSSENTEMPERATUR] = gewaehlt
@@ -516,11 +520,15 @@ class WindhagerOptionsFlow(OptionsFlow):
                         CONF_DASHBOARD, default=bool(options.get(CONF_DASHBOARD, True))
                     ): bool,
                     vol.Required(CONF_PANEL, default=bool(options.get(CONF_PANEL, False))): bool,
+                    vol.Required(CONF_HILFE, default=bool(options.get(CONF_HILFE, True))): bool,
                     vol.Required(
-                        CONF_AUSSENTEMPERATUR,
                         CONF_MELDUNG_EINLESEN,
                         default=bool(options.get(CONF_MELDUNG_EINLESEN, False)),
                     ): bool,
+                    vol.Optional(
+                        CONF_AUSSENTEMPERATUR,
+                        description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
+                    ): EntitySelector(EntitySelectorConfig(domain="sensor")),
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
                         default=int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),

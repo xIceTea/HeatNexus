@@ -84,7 +84,7 @@
         "title": "Einstellungen",
         "description": "Was soll geändert werden?",
         "menu_options": {
-          "allgemein": "Allgemein (Abfrageintervall)"
+          "allgemein": "Allgemein (Oberfläche, Erklärungen, Abfrage)"
         }
       },
       "allgemein": {
