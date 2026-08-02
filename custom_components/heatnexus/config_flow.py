@@ -529,17 +529,45 @@ class WindhagerOptionsFlow(OptionsFlow):
         )
 
     async def async_step_system(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Bedienebenen einer Anlage."""
+        """Bedienebenen und Zugang einer Anlage.
+
+        Der Zugang steht hier, weil man ihn hier sucht: Er bestimmt zusammen
+        mit den Bedienebenen, welche Datenpunkte die Anlage überhaupt
+        herausgibt. Über *Neu konfigurieren* ist er ebenfalls erreichbar –
+        dort zusammen mit der Adresse.
+        """
         options = dict(self.config_entry.options)
         host = self._host or ""
+        systeme = self._systeme()
+        system = next((s for s in systeme if s[CONF_HOST] == host), {})
+
         if user_input is not None:
+            benutzer = (user_input.pop(CONF_USERNAME, None) or DEFAULT_USERNAME).strip()
             options[host] = normalize_options(user_input)
+            if benutzer != (system.get(CONF_USERNAME) or DEFAULT_USERNAME):
+                # Der Zugang steht in den Anlagendaten, nicht in den Optionen –
+                # er gehört zur Anmeldung. Ein Wechsel ändert den Umfang und
+                # lässt die Anlage neu einlesen.
+                neue_systeme = [
+                    {**s, CONF_USERNAME: benutzer} if s[CONF_HOST] == host else s for s in systeme
+                ]
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, data={**self.config_entry.data, CONF_SYSTEMS: neue_systeme}
+                )
             return self.async_create_entry(data=options)
 
-        label = next((s[CONF_LABEL] for s in self._systeme() if s[CONF_HOST] == host), host)
+        label = system.get(CONF_LABEL) or host
+        schema = level_schema(options.get(host, {}), mit_intervall=False)
+        schema = schema.extend(
+            {
+                vol.Required(
+                    CONF_USERNAME, default=system.get(CONF_USERNAME) or DEFAULT_USERNAME
+                ): benutzer_auswahl()
+            }
+        )
         return self.async_show_form(
             step_id="system",
-            data_schema=level_schema(options.get(host, {}), mit_intervall=False),
+            data_schema=schema,
             description_placeholders={"anlage": f"{label} ({host})".strip()},
         )
 

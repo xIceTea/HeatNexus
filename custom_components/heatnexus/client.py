@@ -109,6 +109,7 @@ class WindhagerHttpClient:
         # werden alle Anfragen, ihre Gesamtdauer und die Fehlschläge; die
         # Diagnose rechnet daraus Mittelwert und Anfragen je Stunde.
         self.request_seconds = 0.0
+        self.queue_seconds = 0.0
         self.request_errors = 0
         self.poll_count = 0
         self.poll_seconds = 0.0
@@ -169,19 +170,27 @@ class WindhagerHttpClient:
         return raw.decode("latin-1")
 
     async def _get(self, url: str):
-        """GET auf die Anlage; gibt (json_oder_None, status) zurück."""
+        """GET auf die Anlage; gibt (json_oder_None, status) zurück.
+
+        Gemessen wird die reine Antwortzeit der Anlage – **innerhalb** der
+        Warteschlange. Wird die Wartezeit mitgezählt, misst man bei drei
+        gleichzeitigen Anfragen und zweihundert Aufträgen nur noch die eigene
+        Warteschlange und hält eine schnelle Anlage für langsam.
+        """
         await self._ensure_session()
         self.request_count += 1
-        begonnen = time.monotonic()
-        try:
-            async with self._semaphore:
+        angefragt = time.monotonic()
+        async with self._semaphore:
+            begonnen = time.monotonic()
+            self.queue_seconds += begonnen - angefragt
+            try:
                 ret = await self._auth.request("GET", url)
                 raw = await ret.read()
-        except Exception:
-            self.request_errors += 1
-            raise
-        finally:
-            self.request_seconds += time.monotonic() - begonnen
+            except Exception:
+                self.request_errors += 1
+                raise
+            finally:
+                self.request_seconds += time.monotonic() - begonnen
         try:
             return json.loads(self._decode(raw)), ret.status
         except ValueError:
@@ -1117,6 +1126,14 @@ class WindhagerHttpClient:
             "anfragen_fehlgeschlagen": self.request_errors,
             "dauer_je_anfrage_ms": (
                 round(self.request_seconds / self.request_count * 1000, 1)
+                if self.request_count
+                else None
+            ),
+            # Wartezeit in der eigenen Warteschlange. Ist sie groß gegenüber
+            # der Antwortzeit, hilft nicht eine schnellere Anlage, sondern
+            # weniger Anfragen oder mehr gleichzeitige.
+            "wartezeit_je_anfrage_ms": (
+                round(self.queue_seconds / self.request_count * 1000, 1)
                 if self.request_count
                 else None
             ),

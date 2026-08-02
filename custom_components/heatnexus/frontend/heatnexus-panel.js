@@ -103,7 +103,9 @@ const STIL = `
       "seite kreise status"
       "verlauf verlauf schnell";
     align-items: start;
+    grid-auto-rows: min-content;
   }
+  .rahmen > div { align-self: start; }
   @media (max-width: 1180px) {
     .rahmen {
       grid-template-columns: minmax(0, 1fr);
@@ -119,11 +121,11 @@ const STIL = `
     background: var(--card-background-color, #151d26);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 16px;
-    padding: 16px 18px;
+    padding: 14px 16px;
   }
   .karte + .karte { margin-top: 16px; }
   h2 {
-    margin: 0 0 14px;
+    margin: 0 0 12px;
     font-size: 17px;
     font-weight: 600;
     letter-spacing: 0.2px;
@@ -149,10 +151,10 @@ const STIL = `
   /* --- Zeilen ---------------------------------------------------------- */
   .zeile {
     display: flex; align-items: center; gap: 12px;
-    padding: 11px 12px; border-radius: 12px;
+    padding: 10px 12px; border-radius: 12px;
     background: rgba(255, 255, 255, 0.03);
   }
-  .zeile + .zeile { margin-top: 8px; }
+  .zeile + .zeile { margin-top: 6px; }
   .zeile .text { flex: 1; min-width: 0; }
   .zeile .titel { font-size: 14px; font-weight: 600; }
   .zeile .unter { font-size: 12px; opacity: 0.55; }
@@ -165,7 +167,7 @@ const STIL = `
   .zeile .wert.lang { font-size: 15px; }
   .zeile .bezeichnung { font-size: 11px; opacity: 0.5; margin-top: 2px; }
   .status-zeile {
-    display: flex; align-items: center; gap: 12px; padding: 9px 0;
+    display: flex; align-items: center; gap: 12px; padding: 8px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
   .status-zeile:last-child { border-bottom: none; }
@@ -226,7 +228,12 @@ const STIL = `
     background: rgba(111, 178, 245, 0.15);
     border-color: rgba(111, 178, 245, 0.45);
   }
-  .doppel { display: grid; gap: 16px; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+  /* Karten wachsen nur so hoch wie ihr Inhalt. Ohne das zieht die längste
+     Karte einer Zeile alle anderen mit und die Seite wirkt zerklüftet. */
+  .doppel {
+    display: grid; gap: 16px; align-items: start;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
   @media (max-width: 900px) { .doppel { grid-template-columns: minmax(0, 1fr); } }
   .gitter { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 
@@ -784,13 +791,13 @@ class HeatNexusPanel extends HTMLElement {
     const doppel = document.createElement("div");
     doppel.className = "doppel";
 
-    const linkeKarte = this._karte("Heizkreise");
-    if (!kreise.length) {
-      linkeKarte.appendChild(this._hinweisKnoten("Kein Heizkreis gefunden."));
+    // Was es nicht gibt, bekommt auch keine Karte – so hält es die Anlage
+    // selbst: Was keinen Wert liefert, wird ausgeblendet.
+    if (kreise.length) {
+      const linkeKarte = this._karte("Heizkreise");
+      kreise.forEach((kreis) => linkeKarte.appendChild(this._heizkreiszeile(kreis)));
+      doppel.appendChild(linkeKarte);
     }
-    kreise.forEach((kreis) => linkeKarte.appendChild(this._heizkreiszeile(kreis)));
-
-    doppel.appendChild(linkeKarte);
     // Eine Anlage ohne Warmwasserbereitung bekommt gar keine Karte – eine
     // leere Karte behauptet, da fehle etwas.
     if (wasser.length) {
@@ -1469,6 +1476,17 @@ class HeatNexusPanel extends HTMLElement {
   /** Eine Kachel, die einen Befehl auslöst – mit Rückfrage und Rückmeldung. */
   _bedientaste(eintrag, breit) {
     const bereich = eintrag.entity.split(".")[0];
+    // Manche Bedienungen melden ihren Zustand woanders: Die Warmwasserladung
+    // steht in der Betriebsart, ihr Auslöser fällt sofort zurück.
+    const laeuft = () => {
+      if (eintrag.zustand_an) {
+        const zustand = this._zustand(eintrag.zustand_an);
+        if (zustand && !OHNE_WERT.includes(String(zustand.state).toLowerCase())) {
+          return (eintrag.zustand_wenn || []).includes(zustand.state);
+        }
+      }
+      return this._istAn(eintrag.entity);
+    };
     const taste = document.createElement("button");
     taste.className = "taste";
     taste.type = "button";
@@ -1484,7 +1502,7 @@ class HeatNexusPanel extends HTMLElement {
     taste.addEventListener("click", async () => {
       if (taste.disabled) return;
       if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) return;
-      const lief = this._istAn(eintrag.entity);
+      const lief = laeuft();
       taste.disabled = true;
       try {
         await this._uebertragen(
@@ -1492,8 +1510,12 @@ class HeatNexusPanel extends HTMLElement {
           () =>
             bereich === "button"
               ? this._hass.callService("button", "press", { entity_id: eintrag.entity })
-              : this._hass.callService("homeassistant", "toggle", { entity_id: eintrag.entity }),
-          bereich === "button" ? null : () => this._istAn(eintrag.entity) !== lief
+              : this._hass.callService(
+                  "homeassistant",
+                  eintrag.zustand_an ? "turn_on" : "toggle",
+                  { entity_id: eintrag.entity }
+                ),
+          bereich === "button" ? null : () => laeuft() !== lief
         );
       } finally {
         taste.disabled = false;
@@ -1502,12 +1524,14 @@ class HeatNexusPanel extends HTMLElement {
 
     this._bindungen.push(() => {
       const zustand = this._zustand(eintrag.entity);
-      const laeuft = !!zustand && zustand.state === "on";
-      taste.classList.toggle("an", laeuft);
+      const an = laeuft();
+      taste.classList.toggle("an", an);
       // Solange eine Übertragung läuft, gehört die Zeile der Rückmeldung.
       if (rueckmeldung.dataset.belegt === "1") return;
       rueckmeldung.className = "rueckmeldung";
-      rueckmeldung.textContent = this._tastenZustand(bereich, zustand, laeuft);
+      rueckmeldung.textContent = eintrag.zustand_an
+        ? (an ? "läuft" : "bereit")
+        : this._tastenZustand(bereich, zustand, an);
     });
     return taste;
   }

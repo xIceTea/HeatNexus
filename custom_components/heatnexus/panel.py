@@ -452,14 +452,19 @@ def _anlage_daten(anlage: dict[str, Any]) -> dict[str, Any]:
                 None,
             )
             if treffer is not None:
-                schnellzugriff.append(
-                    {
-                        "entity": treffer["entity_id"],
-                        "titel": beschriftung,
-                        "symbol": symbol,
-                        "frage": rueckfrage(treffer["name"]),
-                    }
-                )
+                eintrag = {
+                    "entity": treffer["entity_id"],
+                    "titel": beschriftung,
+                    "symbol": symbol,
+                    "frage": rueckfrage(treffer["name"]),
+                }
+                # Die Warmwasserladung meldet ihren Zustand nicht am Auslöser,
+                # sondern in der Betriebsart. Ohne diesen Hinweis wirkt die
+                # Taste, als hätte sie nichts bewirkt.
+                if _passt(beschriftung, WARMWASSER):
+                    eintrag["zustand_an"] = _kennung(alle, BETRIEBSART, ("sensor",))
+                    eintrag["zustand_wenn"] = list(WARMWASSER_LAEDT)
+                schnellzugriff.append(eintrag)
 
     bild = anlagenschema(anlage["teile"])
     aussen = _kennung(alle, AUSSENTEMPERATUR)
@@ -513,20 +518,26 @@ def _ws_panel_daten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> Non
     connection.send_result(msg["id"], panel_daten(hass))
 
 
-async def async_setup_panel(hass: HomeAssistant) -> None:
+async def async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
     """Die Oberfläche in der Seitenleiste anmelden.
 
     Fehler bleiben folgenlos – das Dashboard und die Entitäten funktionieren
     auch ohne sie.
     """
     try:
-        await _async_setup_panel(hass)
+        await _async_setup_panel(hass, version)
     except Exception as err:
         _LOGGER.warning("Oberfläche konnte nicht angemeldet werden: %s", err)
 
 
-async def _async_setup_panel(hass: HomeAssistant) -> None:
-    """Eigentliche Anmeldung."""
+async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
+    """Eigentliche Anmeldung.
+
+    Die Adresse der Oberflächendatei bekommt die Fassungsnummer angehängt.
+    Ohne sie lädt der Browser nach einer Aktualisierung weiter die alte Datei
+    aus seinem Zwischenspeicher – die Oberfläche sähe dann aus wie vorher,
+    obwohl die neue Fassung längst installiert ist.
+    """
     if not hass.data.get(f"{DOMAIN}_panel_datei"):
         await hass.http.async_register_static_paths(
             [StaticPathConfig(PANEL_JS_PFAD, str(_JS_DATEI), cache_headers=False)]
@@ -549,7 +560,7 @@ async def _async_setup_panel(hass: HomeAssistant) -> None:
         config={
             "_panel_custom": {
                 "name": PANEL_ELEMENT,
-                "module_url": PANEL_JS_PFAD,
+                "module_url": f"{PANEL_JS_PFAD}?v={version}" if version else PANEL_JS_PFAD,
                 "embed_iframe": False,
                 "trust_external": False,
             },

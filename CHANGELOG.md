@@ -6,13 +6,47 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.1.0-beta.4] - 2026-08-02
+
+Vorabversion. **Wichtig für alle, die beta.3 installiert hatten:** Dort blieb
+die Oberfläche auf dem alten Stand, weil der Browser die Datei aus seinem
+Zwischenspeicher nahm. Das ist jetzt behoben.
+
+### Behoben
+
+- **Die eigene Oberfläche zeigte nach einer Aktualisierung weiter die alte
+  Fassung.** Reiter, Anlagenwahl, Pumpen und die Seitenleisten-Taste fehlten,
+  obwohl sie installiert waren: Die Adresse der Oberflächendatei ändert sich
+  nicht, also lud der Browser die zwischengespeicherte. Sie trägt jetzt die
+  Fassungsnummer und wird bei jeder Aktualisierung neu geholt.
+- **Keine Rückmeldung beim Warmwasserladen** im Schnellzugriff. Die Taste sah
+  auf den Auslöser, der sofort zurückfällt; sie sieht jetzt wie die Karte im
+  Reiter *Steuerung* auf die Betriebsart der Anlage.
+- **Leere Karten.** „Kein Heizkreis gefunden" und „Kein Warmwasserkreis
+  gefunden" erschienen auch dort, wo es beides zu Recht nicht gibt. Was die
+  Anlage nicht liefert, bekommt gar keine Karte mehr – so hält es die Anlage
+  selbst.
+- **Der Zugang stand nur unter *Neu konfigurieren*.** Er steht jetzt auch bei
+  den Einstellungen der Anlage, wo man ihn neben den Bedienebenen sucht.
+- **Die Abfragestatistik maß falsch.** Sie zählte die Wartezeit in der eigenen
+  Warteschlange zur Antwortzeit der Anlage – bei 200 Anfragen und drei
+  gleichzeitigen kam so eine „Antwortzeit" von zehn Sekunden heraus. Beides
+  wird jetzt getrennt ausgewiesen.
+
+### Geändert
+
+- **Ruhigeres Layout.** Karten wachsen nur noch so hoch wie ihr Inhalt; bisher
+  zog die längste Karte einer Zeile alle anderen mit.
+
+---
+
 ## [1.1.0-beta.3] - 2026-08-02
 
 Vorabversion zum Ausprobieren.
 
 ### Behoben
 
-- **„Warmwasser laden" im Heizhaus.** Die Karte war schon weg, die Taste im
+- **„Warmwasser laden" ohne Warmwasser.** Die Karte war schon weg, die Taste im
   Schnellzugriff nicht: Sie hing am Datenpunkt des Heizkreises, den die Anlage
   auch dort führt, wo gar kein Speicher hängt.
 - **Die Warmwasserladung sprang zu früh auf „aus".** Der Auslöser der Anlage
@@ -245,7 +279,7 @@ Erste öffentliche Fassung.
   geänderten Umfang ohne Zutun.
 - **Die Anlage steht jetzt überall dabei.** Zwei gleich benannte Anlagenteile
   – etwa zwei Pufferlademodule – waren im Dashboard nicht auseinanderzuhalten.
-  Jede Überschrift trägt nun „Heizhaus · B-PLMi PUFFER"; bei den Reitern
+  Jede Überschrift trägt nun die Anlage vor dem Anlagenteil; bei den Reitern
   geschieht das nur dort, wo der Name mehrfach vorkommt.
 - Jeder Anlagenteil bekommt ein eigenes Symbol, und Werte ohne Inhalt
   („Nicht verfügbar") erscheinen nicht mehr in der Übersicht.

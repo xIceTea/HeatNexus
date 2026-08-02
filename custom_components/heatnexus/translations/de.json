@@ -109,12 +109,14 @@
         "data": {
           "levels": "Bedienebenen",
           "enable_advanced": "Service-/Werksebene sofort aktivieren",
-          "writable_advanced": "Service-/Werksebene bedienbar machen"
+          "writable_advanced": "Service-/Werksebene bedienbar machen",
+          "username": "Zugang"
         },
         "data_description": {
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
           "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
-          "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben."
+          "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",
+          "username": "„USER“ sieht Info- und Betreiberebene, „Service“ zusätzlich die Fachparameter. Ein Wechsel liest die Anlage neu ein."
         }
       }
     }

@@ -109,12 +109,14 @@
         "data": {
           "levels": "Niveaux",
           "enable_advanced": "Activer immédiatement les niveaux Service/Usine",
-          "writable_advanced": "Rendre modifiables les paramètres Service/Usine"
+          "writable_advanced": "Rendre modifiables les paramètres Service/Usine",
+          "username": "Accès"
         },
         "data_description": {
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
           "enable_advanced": "Sans coche, les entités sont créées mais restent désactivées.",
-          "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule."
+          "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule.",
+          "username": "USER voit les niveaux info et exploitant, Service en plus les paramètres spécialisés. Un changement relit l'installation."
         }
       }
     }

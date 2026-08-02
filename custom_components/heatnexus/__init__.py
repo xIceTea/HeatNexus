@@ -345,7 +345,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Abgewählt: der Seitenleisten-Eintrag verschwindet beim nächsten Laden.
         await async_remove_dashboard(hass)
 
-    await _oberflaeche_anwenden(hass, bool((entry.options or {}).get(CONF_PANEL, False)))
+    await _oberflaeche_anwenden(hass, bool((entry.options or {}).get(CONF_PANEL, False)), version)
 
     # Gemeldet wird nur das echte Ersteinlesen, nicht der Abgleich nach einem
     # Update – und auch das nur, wenn der Nutzer es eingeschaltet hat.
@@ -523,7 +523,7 @@ def _abgewaehlte_entitaeten_stilllegen(
         )
 
 
-async def _oberflaeche_anwenden(hass: HomeAssistant, gewuenscht: bool) -> None:
+async def _oberflaeche_anwenden(hass: HomeAssistant, gewuenscht: bool, version: str = "") -> None:
     """Die eigene Oberfläche an- oder abmelden.
 
     Erst hier importiert: Sie ist eine Beigabe, und ein Problem mit ihr darf
@@ -538,7 +538,7 @@ async def _oberflaeche_anwenden(hass: HomeAssistant, gewuenscht: bool) -> None:
         return
 
     if gewuenscht:
-        await async_setup_panel(hass)
+        await async_setup_panel(hass, version)
     else:
         await async_remove_panel(hass)
 
