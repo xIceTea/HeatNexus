@@ -356,9 +356,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Gemeldet wird nur das echte Ersteinlesen, nicht der Abgleich nach einem
     # Update – und auch das nur, wenn der Nutzer es eingeschaltet hat.
-    if any(not eintrag[6] for eintrag in nachzuladen) and (entry.options or {}).get(
-        CONF_MELDUNG_EINLESEN, False
-    ):
+    if any(not eintrag[6] for eintrag in nachzuladen) and meldung_erwuenscht(entry.options):
         _einlesen_melden(hass, entry)
 
     for coordinator, client, store, host, fingerprint, cache_key, war_im_cache in nachzuladen:
@@ -388,6 +386,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 def _meldungs_id(entry: ConfigEntry) -> str:
     """Kennung der Einlese-Meldung dieses Eintrags."""
     return f"{DOMAIN}_einlesen_{entry.entry_id}"
+
+
+def meldung_erwuenscht(optionen) -> bool:
+    """Prüfen, ob die Meldungen zum Einlesen erscheinen sollen.
+
+    Beide Meldungen – „liest die Anlage ein" und „ist bereit" – hängen an
+    derselben Option und teilen sich eine Kennung: Die zweite *ersetzt* die
+    erste. Prüft nur eine von beiden die Option, erscheint die andere aus dem
+    Nichts. Genau das passierte bis 1.2.0-beta.4 mit der Abschlussmeldung.
+    """
+    return bool((optionen or {}).get(CONF_MELDUNG_EINLESEN, False))
 
 
 def _entitaeten_anzahl(hass: HomeAssistant, entry: ConfigEntry) -> int:
@@ -426,6 +435,8 @@ def _einlesen_abgeschlossen(hass: HomeAssistant, entry: ConfigEntry, host: str) 
         return
     offen.discard(host)
     if offen:
+        return
+    if not meldung_erwuenscht(entry.options):
         return
 
     persistent_notification.async_create(

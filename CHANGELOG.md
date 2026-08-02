@@ -6,6 +6,31 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.2.0-beta.5] - 2026-08-02
+
+### Behoben
+
+- **Die Oberfläche erscheint nach einer Aktualisierung endlich von selbst.**
+  Bisher blieb die alte Ansicht stehen, bis jemand Strg+Umschalt+R drückte.
+  Seit 1.1.1 trägt der Dateipfad die Fassungsnummer, die Datei wurde also neu
+  geladen – aber der Name des Anzeigeelements war fest, und ein Element lässt
+  sich im Browser nur einmal je Seitensitzung anmelden. Die neue Datei
+  übersprang die Anmeldung, und die alte Fassung zeichnete weiter. Jetzt trägt
+  auch der Name die Fassung.
+- **Keine Benachrichtigung mehr ohne Haken.** „HeatNexus ist bereit" erschien
+  auch dann, wenn *Benachrichtigung beim Einlesen* abgewählt war: Nur die
+  Fortschrittsmeldung prüfte die Option. Beide teilen sich eine Kennung – die
+  zweite ersetzt die erste –, also erschien sie ohne die erste aus dem Nichts.
+- **Keine schwarze Lücke mehr in der Übersicht.** Bereitet eine Anlage kein
+  Warmwasser, klaffte in der Mitte ein Loch, weil das Raster feste Zeilen
+  hatte. Jetzt stapeln die Karten in ihrer Spalte und rücken nach oben.
+
+### Geändert
+
+- Die Karte *Heizungsübersicht* zeigt Logo und Schriftzug nicht mehr ein
+  zweites Mal – beides steht in der Kopfzeile darüber. Sie hat jetzt eine
+  Überschrift wie jede andere Karte.
+
 ## [1.2.0-beta.4] - 2026-08-02
 
 ### Behoben

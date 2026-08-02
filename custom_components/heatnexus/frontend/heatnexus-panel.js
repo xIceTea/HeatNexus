@@ -100,25 +100,28 @@ const STIL = `
     gap: 16px;
     padding: 16px;
     grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(280px, 340px);
-    /* Je Spalte eine Sache: links die Anlage mit ihren Heizkreisen, in der
-       Mitte das Schaubild mit dem Warmwasser darunter, rechts der Zustand mit
-       dem Schnellzugriff. So wächst jede Spalte nach unten, wenn eine Anlage
-       mehr Heizkreise oder mehr Warmwasserwerte hat, ohne die anderen zu
-       verschieben. Der Verlauf liegt darunter über die volle Breite. */
-    grid-template-areas:
-      "seite schema status"
-      "kreise wasser schnell"
-      "verlauf verlauf verlauf";
     align-items: start;
-    grid-auto-rows: min-content;
   }
-  .rahmen > div { align-self: start; }
+  /* Je Spalte eine Sache: links die Anlage mit ihren Heizkreisen, in der Mitte
+     das Schaubild mit dem Warmwasser darunter, rechts Zustand, Störungen und
+     Schnellzugriff. Der Verlauf liegt darunter über die volle Breite.
+
+     Gestapelt wird **in der Spalte**, nicht über feste Rasterbereiche. Mit
+     Bereichen behielt eine Zeile ihre Höhe, auch wenn eine Anlage die Karte
+     gar nicht hat – im Heizhaus ohne Warmwasser klaffte in der Mitte ein
+     schwarzes Loch. So rückt jede Spalte für sich nach oben. */
+  .spalte {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+  /* Der Abstand kommt vom gap; der Geschwisterabstand käme obendrauf. */
+  .spalte > .karte + .karte { margin-top: 0; }
+  .volle-breite { grid-column: 1 / -1; min-width: 0; }
   @media (max-width: 1180px) {
-    .rahmen {
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-areas:
-        "seite" "schema" "kreise" "wasser" "status" "schnell" "verlauf";
-    }
+    .rahmen { grid-template-columns: minmax(0, 1fr); }
+    .volle-breite { grid-column: auto; }
   }
 
   /* --- Karte zum Aufklappen -------------------------------------------- */
@@ -180,9 +183,6 @@ const STIL = `
     letter-spacing: 0.6px;
     opacity: 0.55;
   }
-  .kopf { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-  .kopf .marke { font-size: 24px; font-weight: 700; line-height: 1.15; }
-  .kopf .unterzeile { font-size: 13px; opacity: 0.6; }
   .abzeichen {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 14px;
@@ -678,15 +678,31 @@ class HeatNexusPanel extends HTMLElement {
     const rahmen = document.createElement("div");
     rahmen.className = "rahmen";
     rahmen.append(
-      this._bereich("seite", this._seite(anlage)),
-      this._bereich("schema", this._schaubild(anlage)),
-      this._bereich("kreise", this._heizkreiskarte(anlage)),
-      this._bereich("wasser", this._warmwasserkarte(anlage)),
-      this._bereich("status", this._status(anlage)),
-      this._bereich("schnell", this._schnellzugriff(anlage)),
-      this._bereich("verlauf", this._klappbar(this._verlauf(anlage, 24)))
+      this._spalte(this._seite(anlage), this._heizkreiskarte(anlage)),
+      this._spalte(this._schaubild(anlage), this._warmwasserkarte(anlage)),
+      this._spalte(
+        this._statuskarte(anlage),
+        this._stoerungskarte(anlage),
+        this._schnellzugriff(anlage)
+      ),
+      this._volleBreite(this._klappbar(this._verlauf(anlage, 24)))
     );
     return rahmen;
+  }
+
+  /** Eine Spalte der Übersicht; leere Karten fallen weg statt Platz zu lassen. */
+  _spalte(...karten) {
+    const spalte = document.createElement("div");
+    spalte.className = "spalte";
+    karten.filter(Boolean).forEach((karte) => spalte.appendChild(karte));
+    return spalte;
+  }
+
+  _volleBreite(knoten) {
+    const huelle = document.createElement("div");
+    huelle.className = "volle-breite";
+    if (knoten) huelle.appendChild(knoten);
+    return huelle;
   }
 
   /**
@@ -710,14 +726,6 @@ class HeatNexusPanel extends HTMLElement {
     details.appendChild(zusammenfassung);
     while (karte.firstChild) details.appendChild(karte.firstChild);
     return details;
-  }
-
-  _bereich(name, knoten) {
-    const huelle = document.createElement("div");
-    huelle.style.gridArea = name;
-    huelle.style.minWidth = "0";
-    if (knoten) huelle.appendChild(knoten);
-    return huelle;
   }
 
   _karte(titel, hilfe) {
@@ -816,19 +824,11 @@ class HeatNexusPanel extends HTMLElement {
   // Linke Spalte: Marke, Zustand, Kennwerte
   // -------------------------------------------------------------------
   _seite(anlage) {
-    const karte = this._karte(null);
-
-    const kopf = document.createElement("div");
-    kopf.className = "kopf";
-    kopf.appendChild(this._symbolKnoten("mdi:radiator"));
-    const beschriftung = document.createElement("div");
-    beschriftung.innerHTML =
-      '<div class="marke">HeatNexus</div><div class="unterzeile"></div>';
-    beschriftung.querySelector(".unterzeile").textContent = anlage.name
-      ? `Heizungsübersicht · ${anlage.name}`
-      : "Heizungsübersicht";
-    kopf.appendChild(beschriftung);
-    karte.appendChild(kopf);
+    // Eine Überschrift wie jede andere Karte. Marke und Logo standen hier ein
+    // zweites Mal, obwohl beide in der Kopfleiste darüber stehen; der Name der
+    // Anlage steht unter „Alle" in der Trennzeile und sonst im gewählten
+    // Reiter oben rechts.
+    const karte = this._karte("Heizungsübersicht");
 
     const abzeichen = document.createElement("div");
     abzeichen.className = "abzeichen";
@@ -1094,9 +1094,16 @@ class HeatNexusPanel extends HTMLElement {
     return this._klickbar(zeile, entity);
   }
 
-  _status(anlage) {
-    const huelle = document.createElement("div");
-
+  /**
+   * Der Systemstatus – **ohne** die Störungskarte.
+   *
+   * Beide standen bis 1.2.0-beta.4 in einer gemeinsamen Hülle. In einer Spalte
+   * wären sie damit ein einziger Block und könnten nicht getrennt aufrücken.
+   *
+   * Kein dritter Störungshinweis: Derselbe Zustand steht in der
+   * Anlagenübersicht („Anlage in Ordnung") und in der Störungskarte.
+   */
+  _statuskarte(anlage) {
     const karte = this._karte("Systemstatus");
     (anlage.status || []).forEach((eintrag) => {
       karte.appendChild(this._statuszeile(eintrag.entity, eintrag.titel, eintrag.symbol));
@@ -1104,13 +1111,7 @@ class HeatNexusPanel extends HTMLElement {
     if (!(anlage.status || []).length) {
       karte.appendChild(this._hinweisKnoten("Keine Statuswerte gefunden."));
     }
-
-    // Kein dritter Störungshinweis: Derselbe Zustand stand bis 1.2.0-beta.3
-    // hier, in der Anlagenübersicht („Anlage in Ordnung") und noch einmal in
-    // der Störungskarte darunter. Zweimal ist einmal zu viel.
-    huelle.appendChild(karte);
-    huelle.appendChild(this._stoerungskarte(anlage));
-    return huelle;
+    return karte;
   }
 
   _stoerungskarte(anlage) {
@@ -1936,6 +1937,21 @@ class HeatNexusPanel extends HTMLElement {
   }
 }
 
-if (!customElements.get("heatnexus-panel")) {
-  customElements.define("heatnexus-panel", HeatNexusPanel);
+/*
+ * Der Name des Anzeigeelements trägt die Fassungsnummer.
+ *
+ * Ein Element lässt sich im Browser nur einmal je Seitensitzung anmelden. Mit
+ * festem Namen übersprang eine neu geladene Fassung die Anmeldung, und die
+ * alte Klasse zeichnete weiter – sichtbar wurde die Änderung erst nach
+ * Strg+Umschalt+R. Die Fassung steht schon im Pfad dieser Datei
+ * (`/heatnexus-frontend/<fassung>/heatnexus-panel.js`), von dort kommt sie.
+ *
+ * Passt der Pfad nicht zum Muster, bleibt es beim bisherigen Namen; dann ist
+ * das Verhalten wie vorher, aber nichts kaputt. Die Integration bildet
+ * denselben Namen in `const.panel_element`.
+ */
+const FASSUNG = (import.meta.url.match(/\/heatnexus-frontend\/([^/]+)\//) || [])[1];
+const ELEMENT = FASSUNG ? `heatnexus-panel-${FASSUNG}` : "heatnexus-panel";
+if (!customElements.get(ELEMENT)) {
+  customElements.define(ELEMENT, HeatNexusPanel);
 }

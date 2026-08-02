@@ -37,9 +37,9 @@ from .const import (
     CONF_AUSSENTEMPERATUR,
     CONF_HILFE,
     DOMAIN,
-    PANEL_ELEMENT,
     PANEL_TITEL,
     PANEL_URL,
+    panel_element,
     panel_js_pfad,
 )
 from .dashboard import (
@@ -796,7 +796,7 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
         frontend_url_path=PANEL_URL,
         config={
             "_panel_custom": {
-                "name": PANEL_ELEMENT,
+                "name": panel_element(version),
                 "module_url": pfad,
                 "embed_iframe": False,
                 "trust_external": False,

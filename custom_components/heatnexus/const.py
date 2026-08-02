@@ -51,6 +51,11 @@ PANEL_TITEL = "HeatNexus"
 PANEL_ELEMENT = "heatnexus-panel"
 
 
+def panel_fassung(version: str) -> str:
+    """Fassungsnummer so, wie sie in Pfad und Elementnamen stehen darf."""
+    return "".join(z if z.isalnum() else "-" for z in (version or "0"))
+
+
 def panel_js_pfad(version: str) -> str:
     """Adresse der Oberflächendatei für genau diese Fassung.
 
@@ -60,8 +65,23 @@ def panel_js_pfad(version: str) -> str:
     ausgeliefert. Ein anderer Pfad ist für den Zwischenspeicher eine andere
     Datei – damit genügt ein gewöhnliches Neuladen statt Strg+Umschalt+R.
     """
-    sauber = "".join(z if z.isalnum() else "-" for z in (version or "0"))
-    return f"/heatnexus-frontend/{sauber}/heatnexus-panel.js"
+    return f"/heatnexus-frontend/{panel_fassung(version)}/heatnexus-panel.js"
+
+
+def panel_element(version: str) -> str:
+    """Name des Anzeigeelements für genau diese Fassung.
+
+    Der neue *Pfad* allein genügt nicht. Ein Anzeigeelement lässt sich im
+    Browser nur **einmal je Seitensitzung** anmelden; ein zweiter Aufruf von
+    ``customElements.define`` mit demselben Namen scheitert. Die neue Datei
+    wurde also geladen, übersprang die Anmeldung – und die **alte Klasse
+    zeichnete weiter**, bis jemand mit Strg+Umschalt+R eine neue Seitensitzung
+    erzwang. Mit der Fassung im Namen ist jede Fassung ein eigenes Element.
+
+    Die Datei im Browser leitet denselben Namen aus ihrer eigenen Adresse ab;
+    beide müssen also zusammenpassen (siehe `tests/test_panel.py`).
+    """
+    return f"{PANEL_ELEMENT}-{panel_fassung(version)}"
 
 
 # Bedienebenen der Anlage, wie sie auch das InfoWIN Touch kennt

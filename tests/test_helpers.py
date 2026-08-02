@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 
@@ -104,3 +106,96 @@ def test_nur_echte_zeitprogramme_gelten_als_zeitprogramm():
     assert not ist_zeitprogramm("PW 400")
     assert not ist_zeitprogramm([])
     assert not ist_zeitprogramm(None)
+
+
+# ---------------------------------------------------------------------------
+# Oberfläche nach einem Update
+#
+# Bis 1.2.0-beta.4 zeigte die Seitenleiste nach einer Aktualisierung die alte
+# Ansicht, bis jemand Strg+Umschalt+R drückte. Der Dateipfad trug die Fassung
+# schon, der Name des Anzeigeelements aber nicht – und ein Element lässt sich
+# im Browser nur einmal je Seitensitzung anmelden. Die neue Datei übersprang
+# also die Anmeldung, und die alte Klasse zeichnete weiter.
+# ---------------------------------------------------------------------------
+def _const():
+    from .conftest import load_standalone
+
+    return load_standalone("const")
+
+
+def test_pfad_und_element_tragen_dieselbe_fassung():
+    const = _const()
+    for version in ("1.2.0", "1.2.0-beta.5", "", None):
+        fassung = const.panel_fassung(version)
+        assert fassung in const.panel_js_pfad(version)
+        assert const.panel_element(version).endswith(fassung)
+        # Ein Elementname muss einen Bindestrich enthalten und darf keine
+        # Zeichen führen, die der Browser ablehnt.
+        assert re.fullmatch(r"[a-z][a-z0-9]*(-[a-z0-9]+)+", const.panel_element(version))
+
+
+def test_verschiedene_fassungen_ergeben_verschiedene_elemente():
+    const = _const()
+    assert const.panel_element("1.2.0-beta.4") != const.panel_element("1.2.0-beta.5")
+
+
+def test_die_oberflaeche_leitet_denselben_namen_ab():
+    """Die Datei im Browser muss zum Namen der Integration passen.
+
+    Sie kennt ihre Fassung nur aus ihrer eigenen Adresse; stimmt das Muster
+    nicht mit `panel_js_pfad` überein, meldet sie ein anderes Element an als
+    das, welches die Integration anfordert – und die Seite bliebe leer.
+    """
+    from pathlib import Path
+
+    const = _const()
+    datei = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "frontend"
+    quelle = (datei / "heatnexus-panel.js").read_text(encoding="utf-8")
+
+    # Das Suchmuster steht als JavaScript-Literal zwischen zwei Schrägstrichen.
+    treffer = re.search(r"import\.meta\.url\.match\(/(.+?)/\)", quelle)
+    assert treffer, "Die Oberfläche leitet ihren Elementnamen nicht mehr aus der Adresse ab"
+    muster = re.compile(treffer.group(1))
+
+    version = "1.2.0-beta.5"
+    pfad = const.panel_js_pfad(version)
+    gefunden = muster.search(pfad)
+    assert gefunden, f"Das Muster der Oberfläche greift nicht auf {pfad}"
+    assert f"heatnexus-panel-{gefunden.group(1)}" == const.panel_element(version)
+
+
+# ---------------------------------------------------------------------------
+# Meldungen zum Einlesen
+#
+# „HeatNexus ist bereit" erschien auch mit abgewählter Option: Die
+# Fortschrittsmeldung prüfte sie, die Abschlussmeldung nicht. Beide teilen sich
+# eine Kennung, die zweite ersetzt also die erste – fehlt die erste, erscheint
+# die zweite aus dem Nichts.
+# ---------------------------------------------------------------------------
+def test_meldung_nur_mit_haken():
+    import ast
+    from pathlib import Path
+
+    pfad = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "__init__.py"
+    quelle = pfad.read_text(encoding="utf-8")
+    anfang = quelle.index("def meldung_erwuenscht")
+    ende = quelle.index("def _einlesen_melden")
+    raum: dict = {"CONF_MELDUNG_EINLESEN": "meldung_einlesen"}
+    exec(compile(quelle[anfang:ende], str(pfad), "exec"), raum)
+    erwuenscht = raum["meldung_erwuenscht"]
+
+    assert erwuenscht({"meldung_einlesen": True}) is True
+    assert erwuenscht({"meldung_einlesen": False}) is False
+    assert erwuenscht({}) is False
+    assert erwuenscht(None) is False
+
+    # Und beide Meldungen fragen wirklich dieselbe Stelle.
+    baum = ast.parse(quelle)
+    aufrufe = [
+        k.func.id
+        for k in ast.walk(baum)
+        if isinstance(k, ast.Call) and isinstance(k.func, ast.Name)
+    ]
+    assert aufrufe.count("meldung_erwuenscht") == 2, (
+        "Fortschritts- und Abschlussmeldung müssen beide die Option prüfen"
+    )
