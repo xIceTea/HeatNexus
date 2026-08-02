@@ -53,6 +53,22 @@ NAME_OVERRIDES = {
 }
 
 
+def _ist_zeitprogramm(wert) -> bool:
+    """Prüfen, ob die Antwort ein Zeitprogramm ist und nicht irgendeine Liste.
+
+    Der object-Endpunkt liefert für `typeId 30` je nach `subtypeId`
+    Verschiedenes: ein Zeitprogramm (Blöcke aus Wochentagen und Schaltpunkten),
+    einen Text (Gerätetyp „PW 400") oder die Funktionsliste eines Knotens
+    (`[{"fctType": 25, "lock": false}]`). Die letzte ist ebenfalls eine Liste
+    von Objekten und ging vorher als Zeitprogramm durch.
+    """
+    return (
+        isinstance(wert, list)
+        and bool(wert)
+        and all(isinstance(b, dict) and ("weekdays" in b or "switchPoints" in b) for b in wert)
+    )
+
+
 class WindhagerHttpClient:
     """Raw API HTTP requests."""
 
@@ -618,7 +634,7 @@ class WindhagerHttpClient:
             return oid, None, 0
 
     @staticmethod
-    def _resolve_auto_type(d: dict, m: dict) -> str:
+    def _resolve_auto_type(d: dict, m: dict) -> str | None:
         """Map an auto-discovered datapoint to a HA platform via metadata."""
         writable = m.get("writeProt") is False
         value = m.get("value")
@@ -631,8 +647,22 @@ class WindhagerHttpClient:
         if isinstance(value, str) and _re.fullmatch(r"\d{2}\.\d{2}\.\d{4}", value):
             return "date" if writable else "string_sensor"
         if m.get("typeId") == 30 and "value" not in m:
-            # Zeitprogramme (3/61.., 5/61..): liefern über lookup keinen Wert,
-            # werden separat über den object-Endpunkt gelesen.
+            # `typeId 30` heißt „über den object-Endpunkt lesen", **nicht**
+            # „Zeitprogramm". Was drinsteht, sagt erst `subtypeId`. An der
+            # Anlage gemessen (PuroWIN, 518 Datenpunkte):
+            #   14  Zeitprogramm – Blöcke aus Wochentagen und Schaltpunkten
+            #    9  Text – Gerätetyp „PW 400", Funktionsbezeichnung „PuroWIN",
+            #        Softwarestände „V 0.13"
+            #   10  Funktionsliste – [{"fctType": 25, "lock": false}]
+            # Alle drei kommen über `lookup` ohne Wert.
+            #
+            # Text (9) erkennt `_fetch_time_programs` beim ersten Abruf selbst
+            # und macht einen Textsensor daraus – so kommt der Gerätetyp
+            # überhaupt erst herein. Die Funktionsliste (10) dagegen *ist* eine
+            # Liste von Objekten und käme dort als Zeitprogramm durch. Sie ist
+            # der einzige Fall, der hier heraus muss.
+            if m.get("subtypeId") == 10:
+                return None
             return "time_program"
         if writable:
             try:
@@ -1071,7 +1101,7 @@ class WindhagerHttpClient:
                 continue
             any_ok = True
             wert = data["value"]
-            if isinstance(wert, list) and wert and isinstance(wert[0], dict):
+            if _ist_zeitprogramm(wert):
                 objects[tp["oid"]] = wert
                 continue
             # Kein Zeitprogramm, sondern ein einfacher Wert (Modulinfo,

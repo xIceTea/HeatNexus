@@ -6,6 +6,18 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.2.0-beta.3] - 2026-08-02
+
+### Behoben
+
+- **Die Funktionsliste eines Knotens wurde als Zeitprogramm angelegt.** Der
+  `object`-Endpunkt liefert unter derselben Kennung ganz Verschiedenes: ein
+  Zeitprogramm, einen Text (Gerätetyp, Softwarestand) oder die Liste der
+  Funktionen eines Knotens. Weil die Funktionsliste ebenfalls eine Liste von
+  Objekten ist, ging sie als Zeitprogramm durch – und ergab einen Sensor, der
+  nichts anzeigt. Sichtbar wurde das nur mit eingeschalteter Werksebene.
+  Erkannt an einem vollständigen Abzug der Anlage (518 Datenpunkte).
+
 ## [1.2.0-beta.2] - 2026-08-02
 
 ### Behoben

@@ -71,3 +71,36 @@ def test_init_importiert_kein_modul_wie_eine_eigene_datei():
         "Laden der gleichnamigen Plattform überschrieben. Abhilfe: "
         "`from x import y` statt `import x`, oder `import x as z`."
     )
+
+
+# ---------------------------------------------------------------------------
+# object-Endpunkt: nicht jede Liste ist ein Zeitprogramm
+#
+# An der Anlage gemessen (PuroWIN, 518 Datenpunkte): `typeId 30` steht für
+# „über den object-Endpunkt lesen", nicht für „Zeitprogramm". Erst `subtypeId`
+# sagt, was drinsteht – 14 Zeitprogramm, 9 Text, 10 Funktionsliste. Die
+# Funktionsliste ist ebenfalls eine Liste von Objekten und ging vorher als
+# Zeitprogramm durch.
+# ---------------------------------------------------------------------------
+def test_nur_echte_zeitprogramme_gelten_als_zeitprogramm():
+    from pathlib import Path
+
+    pfad = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "client.py"
+    quelle = pfad.read_text(encoding="utf-8")
+    # Nur die Funktion laden – der Rest des Moduls zieht aiohttp nach.
+    anfang = quelle.index("def _ist_zeitprogramm")
+    ende = quelle.index("class WindhagerHttpClient")
+    raum: dict = {}
+    exec(compile(quelle[anfang:ende], str(pfad), "exec"), raum)
+    ist_zeitprogramm = raum["_ist_zeitprogramm"]
+
+    assert ist_zeitprogramm(
+        [{"weekdays": ["Mo"], "switchPoints": [{"time": "06:00", "value": 21}]}]
+    )
+    assert ist_zeitprogramm([{"switchPoints": []}])
+    # Die Funktionsliste eines Knotens – /1/60/0/4/1/0
+    assert not ist_zeitprogramm([{"fctType": 25, "lock": False}])
+    # Text – /1/60/0/12/38/0 meldet "PW 400"
+    assert not ist_zeitprogramm("PW 400")
+    assert not ist_zeitprogramm([])
+    assert not ist_zeitprogramm(None)
