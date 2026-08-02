@@ -6,7 +6,14 @@ import asyncio
 import contextlib
 from datetime import timedelta
 import logging
-import time
+
+# Nur die Funktion, nicht das Modul: Diese Datei *ist* der Namensraum des
+# Pakets. Sobald Home Assistant die Plattform `heatnexus.time` lädt, setzt
+# Python sie als Attribut `time` auf das Paket – und überschreibt damit ein
+# hier stehendes `import time`. Danach zeigt `time.monotonic` auf die
+# Plattformdatei und der Aufruf scheitert. Ob das passiert, hing bisher am
+# Wettlauf zwischen Plattform-Import und Einrichtung.
+from time import monotonic
 
 import async_timeout
 from homeassistant.components import persistent_notification
@@ -275,7 +282,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await coordinator.async_config_entry_first_refresh()
         return host, label, coordinator, client, store, fingerprint, cache_key, restored, abgleichen
 
-    begonnen = time.monotonic()
+    begonnen = monotonic()
     ergebnisse = await asyncio.gather(*(_anlage_vorbereiten(s) for s in systeme))
 
     coordinators: dict[str, WindhagerDataUpdateCoordinator] = {}
@@ -316,7 +323,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info(
         "%d Anlage(n) verbunden in %.1f s (%s)",
         len(coordinators),
-        time.monotonic() - begonnen,
+        monotonic() - begonnen,
         ", ".join(f"{c.host}: {c.client.request_count} Anfragen" for c in coordinators.values()),
     )
 

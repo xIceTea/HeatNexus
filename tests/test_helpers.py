@@ -35,3 +35,39 @@ def test_get_oid_value_uses_prefix(helpers):
 def test_get_oid_value_missing_returns_none_not_zero(helpers):
     coordinator = _Coordinator({})
     assert helpers.get_oid_value(coordinator, "/1/1/0", "/1/15/0") is None
+
+
+# ---------------------------------------------------------------------------
+# Paketaufbau
+#
+# In 1.2.0-beta.1 scheiterte die Einrichtung mit
+# „module 'custom_components.heatnexus.time' has no attribute 'monotonic'".
+# Ursache: `__init__.py` *ist* der Namensraum des Pakets. Importiert Home
+# Assistant die Plattform `heatnexus.time`, setzt Python sie als Attribut
+# `time` auf das Paket und überschreibt damit das dortige `import time`.
+# Ob es knallte, hing am Wettlauf zwischen Plattform-Import und Einrichtung –
+# deshalb fiel es monatelang nicht auf.
+# ---------------------------------------------------------------------------
+def test_init_importiert_kein_modul_wie_eine_eigene_datei():
+    """Kein Name in `__init__.py` darf so heißen wie eine Nachbardatei."""
+    import ast
+    from pathlib import Path
+
+    ordner = Path(__file__).parent.parent / "custom_components" / "heatnexus"
+    nachbarn = {p.stem for p in ordner.glob("*.py")} - {"__init__"}
+
+    baum = ast.parse((ordner / "__init__.py").read_text(encoding="utf-8"))
+    namen: set[str] = set()
+    for knoten in ast.walk(baum):
+        if isinstance(knoten, ast.Import):
+            for teil in knoten.names:
+                namen.add((teil.asname or teil.name).split(".")[0])
+        elif isinstance(knoten, ast.ImportFrom) and knoten.level == 0:
+            namen.update((teil.asname or teil.name) for teil in knoten.names)
+
+    kollision = namen & nachbarn
+    assert not kollision, (
+        f"{sorted(kollision)} heißt wie eine Datei des Pakets und wird beim "
+        "Laden der gleichnamigen Plattform überschrieben. Abhilfe: "
+        "`from x import y` statt `import x`, oder `import x as z`."
+    )

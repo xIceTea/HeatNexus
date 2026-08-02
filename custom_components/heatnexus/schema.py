@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import base64
 import contextlib
-from functools import cache
 from pathlib import Path
 import re
 from typing import Any
@@ -386,19 +385,42 @@ def _module(teile: list[dict[str, Any]]) -> list[dict[str, Any]]:
 _ID = re.compile(r'id="([A-Za-z][\w.:-]*)"')
 
 
-@cache
+def _alle_bauteile() -> dict[str, str]:
+    """Alle Bauteilzeichnungen einlesen.
+
+    **Beim Import des Moduls, nicht beim ersten Schaubild.** Home Assistant
+    lädt eine Integration in einem eigenen Thread, dort ist Lesen von der
+    Platte erlaubt; das Schaubild dagegen entsteht in der Ereignisschleife, und
+    ein Dateizugriff blockiert sie. Genau das meldete Home Assistant in
+    1.2.0-beta.1 als „Detected blocking call to read_text".
+
+    Es sind rund zwanzig Kilobyte – die dürfen dauerhaft im Speicher stehen.
+    """
+    teile: dict[str, str] = {}
+    try:
+        dateien = sorted(TEILE_ORDNER.glob("*.svg"))
+    except OSError:
+        return teile
+    for pfad in dateien:
+        try:
+            inhalt = pfad.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+        if inhalt:
+            teile[pfad.name] = inhalt
+    return teile
+
+
+BAUTEILE: dict[str, str] = _alle_bauteile()
+
+
 def _bauteil(dateiname: str) -> str | None:
-    """Eine Bauteilzeichnung laden – oder ``None``, wenn es sie nicht gibt.
+    """Eine Bauteilzeichnung – oder ``None``, wenn es sie nicht gibt.
 
     Der Inhalt ist ein SVG-Bruchstück ohne ``<svg>``-Wurzel: Es wird in das
     Gesamtbild eingesetzt, nicht als eigenes Bild ausgeliefert.
     """
-    pfad = TEILE_ORDNER / dateiname
-    try:
-        text = pfad.read_text(encoding="utf-8")
-    except OSError:
-        return None
-    return text.strip() or None
+    return BAUTEILE.get(dateiname)
 
 
 def _farben(fragment: str) -> str:

@@ -6,6 +6,22 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.2.0-beta.2] - 2026-08-02
+
+### Behoben
+
+- **Die Integration ließ sich nicht mehr einrichten**: „module
+  'custom_components.heatnexus.time' has no attribute 'monotonic'". Die
+  Startdatei der Integration ist zugleich der Namensraum des Pakets – sobald
+  Home Assistant die Plattform `time` lädt, überschreibt Python damit das dort
+  stehende `import time`. Ob es dazu kam, war ein Wettlauf zwischen beidem;
+  deshalb fiel es lange nicht auf, und deshalb war danach keine Anlage mehr da,
+  weder im Panel noch als Entität. Ein Test hält den Fall jetzt fest.
+- Die Bauteilzeichnungen des Schaubilds wurden beim ersten Aufbau von der
+  Platte gelesen – mitten in der Ereignisschleife, was Home Assistant als
+  „Detected blocking call to read_text" meldete. Sie werden jetzt einmal beim
+  Laden der Integration eingelesen.
+
 ## [1.2.0-beta.1] - 2026-08-02
 
 ### Hinzugefügt
