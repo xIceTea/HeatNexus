@@ -199,6 +199,18 @@ WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-
 # Kachel – sie gilt für die ganze Anlage, nicht für einen Anlagenteil.
 AUSSENTEMPERATUR = _muster(r"au(ß|ss)entemperatur")
 
+# Lagerraumbefüllung. Die Anlage zeigt dazu eine eigene Seite mit
+# Kesseltemperatur bzw. Vorratsbehälter-Status, Restlaufzeit, der Freigabe
+# („freigegeben"/„gesperrt") und der Betriebsphase – in dieser Reihenfolge.
+LAGERRAUM_ANFORDERN = _muster(r"lagerraumbef(ü|ue)llung anfordern")
+LAGERRAUM_ZEILEN = (
+    (r"kesseltemperatur ist", "Kesseltemperatur"),
+    (r"vorratsbeh", "Vorratsbehälter"),
+    (r"lagerraumbef(ü|ue)llung restlaufzeit", "Restlaufzeit"),
+    (r"lagerraum bef(ü|ue)llen freigabe", "Lagerraum befüllen"),
+    (r"betriebsphase", "Betriebsphase"),
+)
+
 # Bedienbares am Kessel, in dieser Reihenfolge.
 KESSEL_BEDIENUNG = (
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff", "mdi:sack"),
@@ -353,7 +365,26 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                     }
                 )
 
-    return {"heizkreise": heizkreise, "warmwasser": warmwasser, "kessel": kessel}
+    # Lagerraumbefüllung: anfordern und dann ablesen, ob freigegeben ist.
+    # Ohne die Anforderungstaste hat die Karte keinen Zweck.
+    lagerraum = None
+    if (anfordern := _kennung(alle, LAGERRAUM_ANFORDERN, ("button",))) is not None:
+        lagerraum = {
+            "anfordern": anfordern,
+            "frage": rueckfrage("Lagerraumbefüllung anfordern"),
+            "zeilen": [
+                {"entity": treffer["entity_id"], "titel": beschriftung}
+                for muster, beschriftung in LAGERRAUM_ZEILEN
+                if (treffer := _erster(alle, muster)) is not None
+            ],
+        }
+
+    return {
+        "heizkreise": heizkreise,
+        "warmwasser": warmwasser,
+        "kessel": kessel,
+        "lagerraum": lagerraum,
+    }
 
 
 def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:

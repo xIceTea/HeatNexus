@@ -665,9 +665,20 @@ PUROWIN_ENTITIES = [
         "category": "config",
         "icon": "mdi:fire-alert",
     },
+    # „Kessel EIN/AUS" ist am InfoWIN Touch der oberste Menüpunkt überhaupt –
+    # und fehlte hier. Betriebswahl 0 ist AUS, 1 ist EIN; alles darüber sind
+    # Sonderbetriebsarten, in denen der Kessel ebenfalls nicht aus ist.
     {
         "oid": "/9/75/0",
-        "name": "Lagerraum befüllen",
+        "name": "Kessel",
+        "platform": "switch",
+        "key_suffix": "ein_aus",
+        "category": "config",
+        "icon": "mdi:power",
+    },
+    {
+        "oid": "/9/75/0",
+        "name": "Lagerraumbefüllung anfordern",
         "platform": "button",
         "press_value": "7",
         "key_suffix": "befuellen",

@@ -6,6 +6,33 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.1.0-beta.7] - 2026-08-02
+
+Diese Fassung gleicht die Bedienung an das an, was das Bediengerät der Anlage
+selbst tut.
+
+### Neu
+
+- **Kessel ein- und ausschalten.** Am Bediengerät ist das der oberste
+  Menüpunkt überhaupt – bei HeatNexus fehlte er. Mit Rückfrage, denn
+  ausgeschaltet heizt der Kessel weder Heizkreise noch Warmwasser.
+- **Karte „Lagerraum befüllen"** im Reiter *Steuerung*, aufgebaut wie die
+  Seite am Bediengerät: Kesseltemperatur bzw. Vorratsbehälter, Restlaufzeit,
+  ob das Befüllen **freigegeben oder gesperrt** ist, und die Betriebsphase –
+  darunter die Anforderung mit Rückfrage.
+
+### Geändert
+
+- **Ein Abbrechen der Lagerraumbefüllung gibt es nicht** – und HeatNexus tut
+  jetzt auch nicht mehr so. Am Bediengerät ist „Abbruch" die Taste des
+  Nachfragedialogs, kein Stopp einer laufenden Freigabe. Die Freigabe läuft
+  über ihre Restlaufzeit aus.
+- Die Rückfrage beim **Brennstoffwechsel** nennt jetzt, was die Anleitung
+  dazu sagt: Die Änderung wirkt erst nach Aus- und Einschalten am
+  Hauptschalter.
+
+---
+
 ## [1.1.0-beta.6] - 2026-08-02
 
 ### Neu

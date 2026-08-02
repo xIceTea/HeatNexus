@@ -42,6 +42,11 @@ _LOGGER = logging.getLogger(__name__)
 # Präfix landen zusammengehörige Werte (z.B. WW-Zirkulation) beieinander.
 NAME_OVERRIDES = {
     "5/6": "WW-Zirkulationspumpe Modus",
+    # 39/107 meldet, ob das Befüllen gerade freigegeben ist; die Anforderung
+    # läuft über die Betriebswahl des Kessels. Ohne eigenen Namen hießen beide
+    # gleich und bekämen ihre Adresse angehängt.
+    "39/107": "Lagerraum befüllen Freigabe",
+    "39/5": "Lagerraumbefüllung Restlaufzeit",
     "5/70": "WW-Zirkulation Einschaltzeit",
     "5/71": "WW-Zirkulation Ausschaltzeit",
 }

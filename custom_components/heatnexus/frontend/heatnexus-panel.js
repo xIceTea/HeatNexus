@@ -1134,6 +1134,9 @@ class HeatNexusPanel extends HTMLElement {
     if ((steuerung.kessel || []).length) {
       spalten.appendChild(this._kesselKarte(steuerung.kessel));
     }
+    if (steuerung.lagerraum) {
+      spalten.appendChild(this._lagerraumKarte(steuerung.lagerraum));
+    }
     if (!spalten.childElementCount) {
       const leer = this._karte("Steuerung");
       leer.appendChild(this._hinweisKnoten("Keine bedienbaren Werte gefunden."));
@@ -1436,6 +1439,39 @@ class HeatNexusPanel extends HTMLElement {
       if (zustand && rueckmeldung.dataset.belegt !== "1") auswahl.value = zustand.state;
     });
     return feld;
+  }
+
+  /**
+   * Lagerraumbefüllung, aufgebaut wie die Seite am Bediengerät.
+   *
+   * Erst anfordern, dann ablesen: Die Anlage gibt das Befüllen nur frei, wenn
+   * ihr Zustand es zulässt – bei pneumatischer Zuführung etwa erst bei leerem
+   * Vorratsbehälter. Erst wenn dort „freigegeben" steht, darf weiterbefüllt
+   * werden; das ist keine Anzeigefrage, sondern steht so in der Anleitung des
+   * Kessels (Beschädigung des Rührwerks).
+   */
+  _lagerraumKarte(lagerraum) {
+    const karte = this._karte("Lagerraum befüllen");
+
+    (lagerraum.zeilen || []).forEach((zeile) => {
+      karte.appendChild(this._statuszeile(zeile.entity, zeile.titel));
+    });
+
+    const trenner = document.createElement("div");
+    trenner.className = "trenner";
+    karte.appendChild(trenner);
+    karte.appendChild(
+      this._bedientaste(
+        {
+          entity: lagerraum.anfordern,
+          titel: "Befüllung anfordern",
+          symbol: "mdi:warehouse",
+          frage: lagerraum.frage,
+        },
+        true
+      )
+    );
+    return karte;
   }
 
   _kesselKarte(eintraege) {

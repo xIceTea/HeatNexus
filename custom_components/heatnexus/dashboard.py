@@ -156,6 +156,11 @@ BEDIENBAR = frozenset({"climate", "select", "number", "switch", "button", "time"
 # irgendwann blind weg.
 RUECKFRAGE: tuple[tuple[re.Pattern, str], ...] = (
     (
+        re.compile(r"^kessel$", re.IGNORECASE),
+        "Damit wird der Kessel ein- bzw. ausgeschaltet. Ausgeschaltet heizt er "
+        "weder Heizkreise noch Warmwasser – nur der Frostschutz bleibt aktiv.",
+    ),
+    (
         re.compile(r"serviceausbrand", re.IGNORECASE),
         "Der Kessel brennt den restlichen Brennstoff aus und geht danach in den "
         "Stillstand. Das dauert und verbraucht Brennstoff. Wirklich auslösen?",
@@ -190,7 +195,8 @@ RUECKFRAGE: tuple[tuple[re.Pattern, str], ...] = (
         re.compile(r"gew(ä|ae)hlter brennstoff", re.IGNORECASE),
         "Die Verbrennungsregelung stellt sich auf den gewählten Brennstoff ein. "
         "Passt die Angabe nicht zum tatsächlichen Vorrat, läuft der Kessel "
-        "schlechter. Wirklich umstellen?",
+        "schlechter. Die Änderung wirkt erst, nachdem der Kessel am "
+        "Hauptschalter aus- und wieder eingeschaltet wurde. Wirklich umstellen?",
     ),
     (
         re.compile(r"estrich", re.IGNORECASE),
@@ -202,9 +208,10 @@ RUECKFRAGE: tuple[tuple[re.Pattern, str], ...] = (
         "Die Legionellenschaltung heizt den Speicher auf hohe Temperatur. Wirklich auslösen?",
     ),
     (
-        re.compile(r"lagerraum bef(ü|ue)llen", re.IGNORECASE),
-        "Die Anlage bereitet die Befüllung des Lagerraums vor und stellt den "
-        "Betrieb dafür um. Wirklich starten?",
+        re.compile(r"lagerraumbef(ü|ue)llung anfordern|lagerraum bef(ü|ue)llen", re.IGNORECASE),
+        "Soll die Lagerraumbefüllung jetzt durchgeführt werden? Die Anlage "
+        "gibt sie nur frei, wenn ihr Zustand das zulässt – ob sie freigegeben "
+        "ist und wie lange noch, steht danach unter „Lagerraum befüllen”.",
     ),
 )
 
