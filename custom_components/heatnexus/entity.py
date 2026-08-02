@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -13,9 +16,17 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, ENUMS, SIGNAL_NEUE_ENTITAETEN
+from .const import (
+    DOMAIN,
+    ENUMS,
+    NACHFASS_ANZAHL,
+    NACHFASS_INTERVALL,
+    SIGNAL_NEUE_ENTITAETEN,
+)
 from .device_db import get_enum
 from .helpers import parse_value
+
+_LOGGER = logging.getLogger(__name__)
 
 CATEGORY_MAP = {
     "diagnostic": EntityCategory.DIAGNOSTIC,
@@ -228,3 +239,40 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         """Write a value to this entity's OID and refresh."""
         await self.coordinator.client.update(self._oid, value)
         await self.coordinator.async_request_refresh()
+        self._nachfassen(value)
+
+    # ------------------------------------------------------------------
+    def _nachfassen(self, erwartet: str | None = None) -> None:
+        """Den geschriebenen Datenpunkt kurz engmaschig nachlesen.
+
+        Die Anlage nimmt einen Auftrag entgegen und arbeitet ihn ab; der
+        Abruf unmittelbar danach liest deshalb oft noch den alten Wert. Ohne
+        Nachfassen stünde bis zum nächsten Takt der alte Stand da, und die
+        Bedienung wirkte folgenlos.
+
+        Gelesen wird nur diese eine Adresse – nicht das ganze Poll-Set.
+        """
+        if not self._oid or not self.hass:
+            return
+        self.hass.async_create_task(self._nachfass_lauf(erwartet))
+
+    async def _nachfass_lauf(self, erwartet: str | None) -> None:
+        for _ in range(NACHFASS_ANZAHL):
+            await asyncio.sleep(NACHFASS_INTERVALL)
+            if not self.hass:
+                return
+            try:
+                aktuell = await self.coordinator.client.fetch_oids([self._oid])
+            except Exception as err:
+                _LOGGER.debug("Nachfassen für %s fehlgeschlagen: %s", self._oid, err)
+                return
+            daten = self.coordinator.data
+            if daten is None or not aktuell:
+                continue
+            daten.setdefault("oids", {}).update(aktuell)
+            with contextlib.suppress(Exception):
+                self.coordinator.async_update_listeners()
+            # Sobald die Anlage den erwarteten Wert meldet, ist nichts mehr
+            # nachzufassen.
+            if erwartet is not None and str(aktuell.get(self._oid)) == str(erwartet):
+                return

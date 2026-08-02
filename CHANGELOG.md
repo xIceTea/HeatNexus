@@ -6,6 +6,22 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.1.0-beta.8] - 2026-08-02
+
+### Geändert
+
+- **Nach jeder Bedienung wird nachgefasst.** Die Anlage nimmt einen Auftrag
+  entgegen und arbeitet ihn ab – der Abruf unmittelbar danach liest deshalb oft
+  noch den alten Stand, und bis zum nächsten Takt vergingen 30 Sekunden, in
+  denen die Anzeige behauptete, nichts sei passiert. Jetzt wird der
+  geschriebene Wert sechsmal im Abstand von drei Sekunden nachgelesen und die
+  Anzeige sofort nachgeführt; sobald die Anlage den erwarteten Wert meldet,
+  hört das Nachfassen auf. Gelesen wird dabei nur dieser eine Datenpunkt –
+  sechs Anfragen statt sechsmal siebzig. Für das Thermostat gab es das schon,
+  für Schalter, Tasten, Auswahlfelder und Zahlen bisher nicht.
+
+---
+
 ## [1.1.0-beta.7] - 2026-08-02
 
 Diese Fassung gleicht die Bedienung an das an, was das Bediengerät der Anlage

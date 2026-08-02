@@ -122,6 +122,18 @@ POLL_WOERTER_SCHNELL = (
 # Sensorwerte; dank schlankem Poll-Set (nur aktive OIDs) gut vertretbar.
 UPDATE_INTERVAL = 30
 
+# Nachfassen nach einer Bedienung.
+#
+# Die Anlage übernimmt einen geschriebenen Wert nicht sofort: Sie quittiert den
+# Auftrag und arbeitet ihn ab. Ein einzelner Abruf direkt danach liest deshalb
+# oft noch den alten Stand, und bis zum nächsten Takt vergehen 30 Sekunden – in
+# denen die Oberfläche behauptet, nichts sei passiert.
+#
+# Nachgefasst wird nur der **eine** geschriebene Datenpunkt, nicht das ganze
+# Poll-Set: Das kostet sechs Anfragen statt sechsmal siebzig.
+NACHFASS_ANZAHL = 6
+NACHFASS_INTERVALL = 3
+
 # ---------------------------------------------------------------------------
 # Einheiten der Anlage -> Home-Assistant-Konvention
 #
