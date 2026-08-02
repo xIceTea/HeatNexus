@@ -44,7 +44,7 @@ einschließlich Info-, Betreiber- und Serviceebene.
 
 | Anlagenteil | Stand |
 |---|---|
-| PuroWIN – Hackgut und Pellets | an der Anlage geprüft |
+| PuroWIN – Hackgut | an der Anlage geprüft |
 | UML / UMLZ Heizkreismodul | an der Anlage geprüft |
 | B-PLMi Pufferlademodul | an der Anlage geprüft |
 | ZSP Pumpen- und Relaismodul | an der Anlage geprüft |
