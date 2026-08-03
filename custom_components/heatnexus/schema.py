@@ -582,6 +582,11 @@ MISCHER_MARKE = 26
 # `WERT_HOEHEN["puffer"]` setzt sie auf 168 und 258.
 SPEICHER_Y = 213
 
+# Wie viel wärmer der Kessel sein muss, damit wirklich in den Puffer geladen
+# wird. Ohne diesen Abstand gälte schon ein Zehntelgrad Messrauschen als
+# Ladung.
+LADE_HYSTERESE = 2.0
+
 
 # Arten, deren Pumpe dem Speicher Wärme entnimmt.
 ENTNAHME_ARTEN = ("heizkreis", "wasser", "zirkulation", "pumpenmodul")
@@ -776,17 +781,42 @@ def anlagenschema(
 
     # Wer dem Speicher Wärme entnimmt: alle Pumpen der Verbraucher.
     entnahme = [m["pumpe"] for m in module if m.get("pumpe") and m["art"] in ENTNAHME_ARTEN]
+    # Die Kesseltemperatur des ersten Wärmeerzeugers. Ohne sie liesse sich
+    # nicht sagen, ob die laufende Ladepumpe wirklich Wärme in den Puffer
+    # bringt oder nur umwälzt.
+    kessel_ist = next(
+        (
+            w["entity_id"]
+            for m in module
+            if m["art"] == "kessel"
+            for w in m["werte"]
+            if w.get("beschriftung") == "Kessel"
+        ),
+        None,
+    )
     for platz, modul in enumerate(module):
         if modul["art"] != "puffer":
             continue
         mitte = RAND + platz * MODUL_BREITE + MODUL_BREITE // 2
+        oben = next(
+            (w["entity_id"] for w in modul["werte"] if w.get("beschriftung") == "oben"),
+            None,
+        )
         speicher.append(
             {
-                # „lädt" heißt: Die Ladepumpe des Puffers fördert. „entlädt":
-                # Ein Verbraucher zieht, ohne dass nachgeladen wird. Der
-                # Füllstand allein sagt das nicht – zwei Temperaturen ergeben
-                # keine Richtung.
+                # „lädt" heißt: Die Ladepumpe fördert **und** der Kessel ist
+                # wärmer als der obere Pufferbereich. Die Pumpe allein genügt
+                # nicht – sie läuft auch, wenn der Kessel gerade direkt in
+                # einen Heizkreis fährt und dem Puffer nichts zugeht.
+                #
+                # „entlädt": Ein Verbraucher zieht, ohne dass geladen wird.
+                # Läuft beides, bleibt es bei „lädt"; welche Richtung netto
+                # überwiegt, hängt vom Massenstrom ab, und den misst die
+                # Anlage nicht.
                 "laden": modul.get("pumpe"),
+                "kessel": kessel_ist,
+                "oben": oben,
+                "hysterese": LADE_HYSTERESE,
                 "entnahme": entnahme,
                 "left": f"{mitte / breite * 100:.2f}%",
                 "top": f"{SPEICHER_Y / HOEHE * 100:.2f}%",

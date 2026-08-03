@@ -1810,7 +1810,17 @@ class HeatNexusPanel extends HTMLElement {
       marke.style.top = eintrag.top;
       huelle.appendChild(marke);
       this._bindungen.push(() => {
-        const laedt = eintrag.laden ? this._foerdert(eintrag.laden) : false;
+        // Die Ladepumpe allein genügt nicht: Sie läuft auch, wenn der Kessel
+        // gerade direkt in einen Heizkreis fährt. Wärme geht nur dann in den
+        // Puffer, wenn der Kessel wärmer ist als dessen oberer Bereich.
+        const pumpe = eintrag.laden ? this._foerdert(eintrag.laden) : false;
+        const kessel = eintrag.kessel ? this._zahl(eintrag.kessel) : null;
+        const oben = eintrag.oben ? this._zahl(eintrag.oben) : null;
+        const waermer =
+          kessel === null || oben === null
+            ? true
+            : kessel > oben + (Number(eintrag.hysterese) || 0);
+        const laedt = pumpe && waermer;
         const zieht = (eintrag.entnahme || []).some((e) => this._foerdert(e));
         marke.classList.toggle("laedt", laedt);
         marke.classList.toggle("entlaedt", !laedt && zieht);

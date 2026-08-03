@@ -534,3 +534,35 @@ def test_zsp_temperatur_heisst_wie_beim_hersteller(schema):
         module = schema._module(teile)
         assert module, f"{name!r} ergibt kein Anlagenteil"
         assert module[0]["werte"][0]["entity_id"] == "sensor.t"
+
+
+def test_puffer_kennt_kessel_und_obere_temperatur(schema):
+    """„lädt" braucht mehr als die laufende Ladepumpe.
+
+    Die Pumpe läuft auch, wenn der Kessel gerade direkt in einen Heizkreis
+    fährt und dem Puffer nichts zugeht. Wärme geht nur dann hinein, wenn der
+    Kessel wärmer ist als der obere Pufferbereich – dafür muss die Oberfläche
+    beide Werte kennen.
+    """
+    teile = [
+        _teil(
+            "PuroWIN",
+            25,
+            [("sensor.kessel", "Kesseltemperatur Ist"), ("sensor.leistung", "Kesselleistung")],
+        ),
+        _teil(
+            "B-PLMi PUFFER",
+            16,
+            [
+                ("sensor.tpe", "Puffer oben Temperatur (TPE)"),
+                ("sensor.tpa", "Puffer unten Temperatur (TPA)"),
+                ("sensor.plp", "Pufferladepumpe Drehzahl"),
+            ],
+        ),
+    ]
+    speicher = schema.anlagenschema(teile)["speicher"]
+    assert len(speicher) == 1
+    assert speicher[0]["laden"] == "sensor.plp"
+    assert speicher[0]["kessel"] == "sensor.kessel"
+    assert speicher[0]["oben"] == "sensor.tpe"
+    assert speicher[0]["hysterese"] > 0
