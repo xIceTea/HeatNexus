@@ -6,6 +6,24 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.0-beta.6] - 2026-08-03
+
+### Neu
+
+- **Die Strömung zeigt, wohin die Wärme geht.** Die waagrechten Leitungen
+  strömen wie bisher, sobald irgendeine Pumpe fördert. Zusätzlich strömt jetzt
+  die senkrechte Stichleitung zu jedem Anlagenteil, dessen eigene Pumpe läuft –
+  bei mehreren gleichzeitig eben mehrere. Vorher blieben die Abzweige still,
+  auch wenn dort tatsächlich Wasser lief.
+
+### Behoben
+
+- **Die Taste wechselte nicht auf „Warmwasser laden abbrechen".** Ob geladen
+  wird, hing allein an der Betriebsart – die meldet je nach Baureihe andere
+  Worte und an manchen Kreisen gar nichts. Jetzt zählt zusätzlich die
+  Ladepumpe, und die läuft, solange geladen wird. Damit greift auch das
+  Zurückstellen der Betriebswahl wieder.
+
 ## [1.3.0-beta.5] - 2026-08-03
 
 ### Behoben

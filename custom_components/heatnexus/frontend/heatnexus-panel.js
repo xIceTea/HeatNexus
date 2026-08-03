@@ -410,6 +410,30 @@ const STIL = `
     to { background-position: 26px 0; }
   }
 
+  /* Die Stichleitung hinunter zum Anlagenteil: dieselben Bänder, gekippt.
+     Der Vorlauf läuft hinunter zum Verbraucher, der Rücklauf hinauf. */
+  .schaubild .fluss.senkrecht {
+    width: 6px; height: auto;
+    transform: translateX(-50%);
+    background-repeat: repeat-y;
+    background-size: 6px 26px;
+  }
+  .schaubild .fluss.senkrecht.vorlauf {
+    background-image: linear-gradient(
+      180deg, rgba(255, 214, 194, 0) 0%, rgba(255, 214, 194, 0.85) 45%,
+      rgba(255, 214, 194, 0) 70%);
+  }
+  .schaubild .fluss.senkrecht.ruecklauf {
+    background-image: linear-gradient(
+      180deg, rgba(198, 224, 255, 0) 0%, rgba(198, 224, 255, 0.85) 45%,
+      rgba(198, 224, 255, 0) 70%);
+  }
+  .schaubild .fluss.senkrecht.laeuft { animation-name: stroemen-senkrecht; }
+  @keyframes stroemen-senkrecht {
+    from { background-position: 0 0; }
+    to { background-position: 0 26px; }
+  }
+
   .schaubild .glut {
     position: absolute; height: 26px; transform: translate(-50%, -50%);
     border-radius: 13px; pointer-events: auto; cursor: pointer;
@@ -1769,6 +1793,26 @@ class HeatNexusPanel extends HTMLElement {
     // Pumpen liegen als eigene Marken auf dem Bild: Ein Standbild kann sich
     // nicht drehen, und ohne Bewegung sieht man der Anlage nicht an, ob
     // gerade etwas fließt.
+    // Die senkrechten Stichleitungen: Sie strömen nur, solange die Pumpe
+    // dieses Anlagenteils fördert. Erst daran sieht man, wohin die Wärme
+    // gerade geht – die waagrechten Leitungen allein zeigen nur, dass
+    // überhaupt etwas läuft.
+    (anlage.schema_pumpen || []).forEach((eintrag) => {
+      ["vorlauf", "ruecklauf"].forEach((richtung) => {
+        const hoehe = eintrag[`${richtung}_hoehe`];
+        if (!hoehe) return;
+        const band = document.createElement("div");
+        band.className = `fluss senkrecht ${richtung}`;
+        band.style.left = eintrag.left;
+        band.style.top = eintrag[`${richtung}_top`];
+        band.style.height = hoehe;
+        huelle.appendChild(band);
+        this._bindungen.push(() => {
+          band.classList.toggle("laeuft", this._foerdert(eintrag.entity));
+        });
+      });
+    });
+
     (anlage.schema_pumpen || []).forEach((eintrag) => {
       const marke = document.createElement("div");
       marke.className = "pumpe";
@@ -2559,6 +2603,10 @@ class HeatNexusPanel extends HTMLElement {
     // Manche Bedienungen melden ihren Zustand woanders: Die Warmwasserladung
     // steht in der Betriebsart, ihr Auslöser fällt sofort zurück.
     const laeuft = () => {
+      // Die Ladepumpe ist der handfeste Beleg: Sie läuft, solange geladen
+      // wird. Die Betriebsart meldet je nach Baureihe andere Worte und an
+      // manchen Kreisen gar nichts.
+      if (eintrag.zustand_pumpe && this._istAn(eintrag.zustand_pumpe)) return true;
       if (eintrag.zustand_an) {
         const zustand = this._zustand(eintrag.zustand_an);
         if (zustand && !OHNE_WERT.includes(String(zustand.state).toLowerCase())) {

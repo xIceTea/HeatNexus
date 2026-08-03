@@ -670,6 +670,17 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                 if _passt(beschriftung, WARMWASSER):
                     eintrag["zustand_an"] = _kennung(alle, BETRIEBSART, ("sensor",))
                     eintrag["zustand_wenn"] = list(WARMWASSER_LAEDT)
+                    # Zweiter Beleg für „lädt gerade": die Ladepumpe.
+                    #
+                    # Die Betriebsart allein genügt nicht. Sie meldet je nach
+                    # Baureihe andere Worte, und an einem Kreis, der nur einen
+                    # einzigen Wert kennt (`allowed: [0]`), meldet sie den
+                    # Ladezustand überhaupt nicht. Dann blieb die Taste auf
+                    # „Warmwasser laden" stehen und ein zweiter Druck löste
+                    # eine weitere Ladung aus, statt abzubrechen.
+                    eintrag["zustand_pumpe"] = _kennung(
+                        alle, WARMWASSER_LADEPUMPE, ("binary_sensor",)
+                    )
                     # Die Betriebswahl gehört zur Ladung dazu.
                     #
                     # Steht der Kreis auf Standby, ist er abgeschaltet und

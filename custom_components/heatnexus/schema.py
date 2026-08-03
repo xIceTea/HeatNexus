@@ -668,12 +668,22 @@ def anlagenschema(
         if modul.get("pumpe"):
             # Die Pumpe sitzt im Rücklauf, unterhalb ihres Anlagenteils.
             mitte = x + MODUL_BREITE // 2
+            oben, unten = KANTEN_JE_ART.get(modul["art"], KANTEN_STANDARD)
             pumpen.append(
                 {
                     "entity": modul["pumpe"],
                     "left": f"{mitte / breite * 100:.2f}%",
                     "top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
                     "titel": modul["titel"],
+                    # Die beiden senkrechten Stichleitungen dieses Anlagenteils.
+                    # Sie strömen nur, solange **seine** Pumpe fördert – daran
+                    # sieht man, wohin die Wärme gerade geht. Die waagrechten
+                    # Leitungen strömen dagegen immer, sobald irgendwo etwas
+                    # läuft: Dort steht das Wasser ja auch nicht still.
+                    "vorlauf_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
+                    "vorlauf_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
+                    "ruecklauf_top": f"{unten / HOEHE * 100:.2f}%",
+                    "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
                 }
             )
         # Der Mischer zeigt seine Stellung, nicht Bewegung: Ein dauernd
