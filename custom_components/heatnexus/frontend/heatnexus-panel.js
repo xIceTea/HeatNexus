@@ -403,8 +403,12 @@ const STIL = `
       90deg, rgba(198, 224, 255, 0) 0%, rgba(198, 224, 255, 0.85) 45%,
       rgba(198, 224, 255, 0) 70%);
   }
-  /* Der Rücklauf fließt zum Kessel zurück, also andersherum. */
+  /* Der Rücklauf fließt zum Kessel zurück, also andersherum. Das gilt für die
+     **waagrechte** Leitung. Die senkrechte Stichleitung führt vom Anlagenteil
+     hinunter *in* den Rücklauf – dort ist die Grundrichtung schon richtig, und
+     ein zweites Umdrehen ließ sie in das Bauteil hineinfließen. */
   .schaubild .fluss.ruecklauf.laeuft { animation-direction: reverse; }
+  .schaubild .fluss.senkrecht.ruecklauf.laeuft { animation-direction: normal; }
   @keyframes stroemen {
     from { background-position: 0 0; }
     to { background-position: 26px 0; }
@@ -475,6 +479,26 @@ const STIL = `
   }
   .schaubild .speicher.laedt { opacity: 1; color: #ffab6f; }
   .schaubild .speicher.entlaedt { opacity: 1; color: #6fb2f5; }
+
+  /* Lampen des Pumpen-/Relaismoduls. Ohne Anforderung unsichtbar – dann steht
+     im Bild die gezeichnete Lampe. Mit Anforderung liegt Grün darüber; die
+     Betriebslampe deckt das gezeichnete Rot vollständig ab. */
+  .schaubild .lampe {
+    position: absolute; transform: translate(-50%, -50%);
+    border-radius: 50%; pointer-events: none;
+    opacity: 0; transition: opacity 0.4s ease;
+    background: #7bd88f;
+  }
+  .schaubild .lampe.betrieb { box-shadow: 0 0 6px 2px rgba(123, 216, 143, 0.55); }
+  .schaubild .lampe.an { opacity: 1; }
+  .schaubild .lampe.klemme.an { animation: lampe-blinken 1.8s ease-in-out infinite; }
+  @keyframes lampe-blinken {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .schaubild .lampe.klemme.an { animation: none; opacity: 1; }
+  }
   @keyframes glimmen {
     0%, 100% { filter: brightness(0.85); }
     50% { filter: brightness(1.25); }
@@ -647,6 +671,9 @@ class HeatNexusPanel extends HTMLElement {
     this._speicherAuftrag = null;
     // Welche Karte gerade gezogen wird; null, solange niemand zieht.
     this._gezogen = null;
+    // Betriebswahl je Kreis, wie sie **vor** einer Warmwasserladung stand.
+    // Beim Abbrechen wird genau die wiederhergestellt.
+    this._wahlVorLadung = {};
   }
 
   set panel(panel) {
@@ -1640,7 +1667,7 @@ class HeatNexusPanel extends HTMLElement {
    * Kennwertzeile wie im Muster: links Anlagenteil, rechts der große Wert und
    * darunter klein, worum es sich handelt („Kesseltemperatur").
    */
-  _wertzeile(entity, titel, bezeichnung, symbol, soll) {
+  _wertzeile(entity, titel, bezeichnung, symbol, nurUeberNull) {
     const zeile = document.createElement("div");
     zeile.className = "zeile";
     if (symbol) zeile.appendChild(this._symbolKnoten(symbol));
@@ -1664,10 +1691,12 @@ class HeatNexusPanel extends HTMLElement {
     this._bindungen.push(() => {
       // Fordert das Anlagenteil gerade Wärme an, steht der Sollwert daneben.
       // Ohne Anforderung ist er nichtssagend und bleibt weg.
-      const angefordert = soll ? this._zahl(soll) : null;
-      if (angefordert !== null && angefordert > 0) {
-        wert.textContent = `Soll ${this._text(soll)}`;
-        unten.textContent = `Ist ${this._text(entity)}`;
+      // Ein Sollwert von null heißt: keine Anforderung. Dann bleibt die Zeile
+      // leer, statt „0 °C" zu behaupten.
+      const zahl = this._zahl(entity);
+      if (nurUeberNull && !(zahl !== null && zahl > 0)) {
+        wert.textContent = "–";
+        unten.textContent = "keine Anforderung";
       } else {
         wert.textContent = this._text(entity);
         unten.textContent = bezeichnung || "";
@@ -1781,6 +1810,28 @@ class HeatNexusPanel extends HTMLElement {
           anteil * 100
         )}%, #3a7fe2)`;
         marke.title = `${eintrag.titel} – Mischer ${Math.round(stellwert)} %`;
+      });
+    });
+
+    // Die Lampen des Pumpen-/Relaismoduls. Liegt eine Wärmeanforderung an,
+    // blinken die Klemmen grün und die Betriebslampe wechselt von Rot auf
+    // Grün. Sie liegen als eigene Ebene über dem Bild – die Zeichnung im
+    // <img> kennt keine Zustände.
+    (anlage.schema_lampen || []).forEach((eintrag) => {
+      const lampe = document.createElement("div");
+      lampe.className = `lampe ${eintrag.art}`;
+      lampe.style.left = eintrag.left;
+      lampe.style.top = eintrag.top;
+      lampe.style.width = eintrag.groesse;
+      lampe.style.height = eintrag.groesse;
+      huelle.appendChild(lampe);
+      this._bindungen.push(() => {
+        const soll = this._zahl(eintrag.entity);
+        const an = soll !== null && soll > 0;
+        lampe.classList.toggle("an", an);
+        lampe.title = an
+          ? `${eintrag.titel} – fordert ${Math.round(soll)} °C`
+          : `${eintrag.titel} – keine Anforderung`;
       });
     });
 
@@ -2779,7 +2830,14 @@ class HeatNexusPanel extends HTMLElement {
       // zurücknehmen könnte. Beendet wird über die Betriebswahl – genauso wie
       // an der Anlage selbst.
       if (lief && eintrag.betriebswahl && eintrag.betriebswahl_zurueck) {
-        const ziel = this._optionWie(eintrag.betriebswahl, eintrag.betriebswahl_zurueck);
+        // Zurück auf das, was **vor** der Ladung eingestellt war. Nur wenn das
+        // unbekannt ist – etwa nach einem Neuladen der Seite –, greift das
+        // Zeitprogramm als Rückfall. Blind aufs Zeitprogramm zu stellen würde
+        // sonst einen laufenden Heiz- oder Absenkbetrieb stillschweigend
+        // beenden.
+        const gemerkt = this._wahlVorLadung[eintrag.betriebswahl];
+        const ziel =
+          gemerkt || this._optionWie(eintrag.betriebswahl, eintrag.betriebswahl_zurueck);
         if (ziel) {
           taste.disabled = true;
           try {
@@ -2792,6 +2850,8 @@ class HeatNexusPanel extends HTMLElement {
                 }),
               () => !laeuft()
             );
+            delete this._wahlVorLadung[eintrag.betriebswahl];
+            this._nachfassen(eintrag);
           } finally {
             taste.disabled = false;
           }
@@ -2810,6 +2870,10 @@ class HeatNexusPanel extends HTMLElement {
             // im Heiz- oder Absenkbetrieb lädt, soll den nicht verlieren.
             if (eintrag.betriebswahl && eintrag.betriebswahl_aus && eintrag.betriebswahl_ww) {
               const jetzt = this._zustand(eintrag.betriebswahl);
+              // Was jetzt eingestellt ist, gilt als Rückkehrpunkt.
+              if (jetzt && !OHNE_WERT.includes(String(jetzt.state).toLowerCase())) {
+                this._wahlVorLadung[eintrag.betriebswahl] = jetzt.state;
+              }
               const aus = new RegExp(eintrag.betriebswahl_aus, "i");
               if (jetzt && aus.test(jetzt.state)) {
                 const ww = this._optionWie(eintrag.betriebswahl, eintrag.betriebswahl_ww);
@@ -2831,6 +2895,7 @@ class HeatNexusPanel extends HTMLElement {
           },
           bereich === "button" ? null : () => laeuft() !== lief
         );
+        this._nachfassen(eintrag);
       } finally {
         taste.disabled = false;
       }
@@ -2852,6 +2917,26 @@ class HeatNexusPanel extends HTMLElement {
         : this._tastenZustand(bereich, zustand, an);
     });
     return taste;
+  }
+
+  /**
+   * Die beteiligten Entitäten sofort neu abfragen.
+   *
+   * Die Anlage wird nur alle 30 s abgerufen. Nach einem Eingriff stünde die
+   * Anzeige bis dahin auf dem alten Stand – gerade beim Abbrechen, wo die
+   * Betriebswahl den Ausschlag gibt, wirkte die Taste dadurch wirkungslos.
+   */
+  _nachfassen(eintrag) {
+    const entitaeten = [
+      eintrag.betriebswahl,
+      eintrag.zustand_an,
+      eintrag.zustand_pumpe,
+      eintrag.entity,
+    ].filter(Boolean);
+    if (!entitaeten.length) return;
+    this._hass
+      .callService("homeassistant", "update_entity", { entity_id: entitaeten })
+      .catch((err) => console.warn("HeatNexus: Nachfassen fehlgeschlagen", err));
   }
 
   /**

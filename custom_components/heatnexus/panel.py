@@ -79,9 +79,12 @@ KENNWERT_JE_FCT: dict[int, tuple[tuple[str, str, str], ...]] = {
         (r"puffer oben", "Puffer oben", "mdi:storage-tank"),
         (r"^temperatur ist$", "Temperatur", "mdi:thermometer"),
     ),
+    # Das Pumpen-/Relaismodul zeigt seine **Anforderung**, nicht seinen Fühler.
+    # Dessen Kesseltemperatur (0/7) misst bei einer Fernwärmeübergabe den
+    # Speicher auf der anderen Seite – in der Übersicht sagt sie nichts. Der
+    # Sollwert erscheint erst über null; darunter liegt keine Anforderung an.
     20: (  # ZSP Pumpen-/Relaismodul
-        (r"^kesseltemperatur$|^temperatur ist$", "Temperatur", "mdi:thermometer"),
-        (r"r(ü|ue)cklauf temperatur", "Rücklauf", "mdi:pipe"),
+        (ANALOG_SOLLWERT, "Anforderung", "mdi:thermometer-alert"),
     ),
     25: (  # Kessel
         (r"kesseltemperatur ist", "Kesseltemperatur", "mdi:fire"),
@@ -136,6 +139,14 @@ WARMWASSER_IST = _muster(
     r"\bwarmwasser[- ]?(ist|soll)?[- ]?temperatur",
 )
 WARMWASSER_KREIS = _muster(r"\bww-kreis\b")
+
+# Eigene Zeilen in der Heizungsübersicht. Warmwasser und Zirkulation hängen als
+# Datenpunkte am Heizkreis, liest man aber täglich – sie gehören in die Liste
+# der Kennwerte. Beide Schreibweisen zählen, weil die kuratierte Tabelle anders
+# benennt als die Geräte-Datenbank; der Sollwert darf nicht mitgehen, sonst
+# stünde er statt des Messwerts da.
+WARMWASSER_IST_KENNWERT = r"\bww[- ]temperatur aktueller|\bwarmwasser ist[- ]?temperatur"
+ZIRKULATION_IST_KENNWERT = r"\bww-zirkulations?[- ]?(ist[- ])?temperatur(?!.*soll)"
 
 # Verlauf: Was standardmäßig als Linie erscheint. Der Nutzer kann in der
 # Ansicht jede Linie ab- und weitere dazuwählen; das hier ist nur der Start.
@@ -625,16 +636,28 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                     "untertitel": beschriftung,
                     "symbol": symbol,
                 }
-                # Das Pumpen-/Relaismodul zeigt zusätzlich, mit welcher
-                # Temperatur es gerade Wärme anfordert. Über null steht dann
-                # „Soll … | Ist …" statt nur der gemessenen Temperatur – ohne
-                # Anforderung ist der Sollwert nichtssagend und bleibt weg.
+                # Ein Sollwert von null heißt: keine Anforderung. Die Zeile
+                # bleibt dann leer statt „0 °C" zu behaupten.
                 if teil.get("fct_type") == 20:
-                    eintrag["soll"] = _kennung(
-                        teil["entitaeten"], _muster(ANALOG_SOLLWERT), ("sensor",)
-                    )
+                    eintrag["nur_ueber_null"] = True
                 kennwerte.append(eintrag)
                 break
+
+        # Warmwasser und Zirkulation hängen als Datenpunkte am Heizkreis,
+        # gehören in der Übersicht aber eigene Zeilen – man liest sie täglich.
+        for muster, beschriftung, symbol in (
+            (WARMWASSER_IST_KENNWERT, "Warmwasser", "mdi:water-boiler"),
+            (ZIRKULATION_IST_KENNWERT, "Zirkulation", "mdi:reload"),
+        ):
+            if (treffer := _erster(teil["entitaeten"], muster)) is not None:
+                kennwerte.append(
+                    {
+                        "entity": treffer["entity_id"],
+                        "titel": teil["name"],
+                        "untertitel": beschriftung,
+                        "symbol": symbol,
+                    }
+                )
 
     heizkreise = []
     for teil in anlage["teile"]:
@@ -777,6 +800,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         "schema_brenner": bild.get("brenner", []) if bild else [],
         "schema_anforderung": bild.get("anforderung", []) if bild else [],
         "schema_mischer": bild.get("mischer", []) if bild else [],
+        "schema_lampen": bild.get("lampen", []) if bild else [],
         "schema_speicher": bild.get("speicher", []) if bild else [],
     }
 

@@ -6,6 +6,46 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.0] - 2026-08-03
+
+Die eigene Oberfläche lässt sich jetzt einrichten statt nur ablesen: Karten
+selbst anordnen, das Schaubild zeigt Bewegung und Zustand, Eco und Comfort
+sind einen Druck entfernt. Die Abschnitte der neun Vorabversionen darunter
+führen jede Änderung einzeln auf; hier stehen die Neuerungen gegenüber 1.2.0
+und alles, was seit 1.3.0-beta.9 dazugekommen ist.
+
+### Neu
+
+- **Karten selbst anordnen.** In allen vier Reitern: ziehen, verschieben,
+  aus- und einblenden, über ein bis vier Spalten breit machen. Je Benutzer und
+  je Reiter gespeichert; neue Anlagenteile bringen die Anordnung nicht
+  durcheinander.
+- **Das Schaubild bewegt sich und zeigt Zustand.** Vor- und Rücklauf strömen,
+  die Stichleitung zu jedem Verbraucher strömt mit, wenn dessen Pumpe läuft.
+  Das Glutbett des Kessels glimmt nach seiner Leistung, der Mischer zeigt seine
+  Stellung, der Puffer sagt *lädt* oder *entlädt*.
+- **Eco und Comfort je Heizkreis** – zwei Tasten, die Temperatur und Dauer in
+  einem Zug schreiben. Werte in den Optionen einstellbar.
+- **Warmwasser und Zirkulation stehen in der Heizungsübersicht.** Beide hängen
+  als Datenpunkte am Heizkreis, liest man aber täglich.
+- **Das Pumpen-/Relaismodul zeigt seine Wärmeanforderung im Bild.** Liegt eine
+  an, blinken die Klemmen des Moduls grün und die Betriebslampe wechselt von
+  Rot auf Grün; in der Übersicht steht der angeforderte Sollwert.
+
+### Behoben
+
+- **Der Rücklauf floss in der Stichleitung verkehrt herum** – ins Bauteil
+  hinein statt in die Leitung.
+- **Eine laufende Warmwasserladung kehrt beim Abbrechen dorthin zurück, wo sie
+  herkam.** Bisher stellte der Abbruch immer auf das Zeitprogramm und beendete
+  damit stillschweigend einen laufenden Heiz- oder Absenkbetrieb. Nach jedem
+  Eingriff werden die beteiligten Werte sofort neu abgefragt, statt bis zum
+  nächsten Abruf zu warten.
+- **Am Pumpen-/Relaismodul steht keine fremde Temperatur mehr.** Sein Fühler
+  misst bei einer Fernwärmeübergabe den Speicher auf der anderen Seite; in der
+  Übersicht sagte diese Zahl nichts. Dort steht jetzt die Anforderung – und
+  nur, wenn eine anliegt.
+
 ## [1.3.0-beta.9] - 2026-08-03
 
 ### Behoben

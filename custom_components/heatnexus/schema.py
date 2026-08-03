@@ -398,6 +398,9 @@ def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[
                     "werte": werte,
                     "pumpe": _pumpe(teil["entitaeten"], art),
                     "mischer": _mischer(teil["entitaeten"]) if art == "heizkreis" else None,
+                    # Für Auswertungen, die über die angezeigten Werte
+                    # hinausgehen – etwa die Lampen des Pumpen-/Relaismoduls.
+                    "entitaeten": teil["entitaeten"],
                     # Für das Glutbett, unabhängig davon, welcher Wert im Bild
                     # steht: Leistung zuerst, Brennkammertemperatur als Ersatz.
                     "leistung": (
@@ -587,6 +590,13 @@ SPEICHER_Y = 213
 # Ladung.
 LADE_HYSTERESE = 2.0
 
+# Die Lampen des Pumpen-/Relaismoduls, aus `pumpenmodul.svg`: fünf Klemmen
+# oben, eine Betriebslampe rechts unten. Liegt eine Wärmeanforderung an,
+# blinken die Klemmen grün und die Betriebslampe wechselt von Rot auf Grün –
+# so sieht man am Bild selbst, dass gerade angefordert wird.
+ZSP_KLEMMEN = ((74, 164, 2.5), (88, 164, 2.5), (102, 164, 2.5), (116, 164, 2.5), (130, 164, 2.5))
+ZSP_BETRIEBSLAMPE = (136, 252, 4)
+
 
 # Arten, deren Pumpe dem Speicher Wärme entnimmt.
 ENTNAHME_ARTEN = ("heizkreis", "wasser", "zirkulation", "pumpenmodul")
@@ -712,6 +722,7 @@ def anlagenschema(
     brenner: list[dict[str, Any]] = []
     mischer: list[dict[str, Any]] = []
     speicher: list[dict[str, Any]] = []
+    lampen: list[dict[str, Any]] = []
     for platz, modul in enumerate(module):
         x = RAND + platz * MODUL_BREITE
         elemente += _beschriftungen(x, modul, breite)
@@ -781,6 +792,27 @@ def anlagenschema(
 
     # Wer dem Speicher Wärme entnimmt: alle Pumpen der Verbraucher.
     entnahme = [m["pumpe"] for m in module if m.get("pumpe") and m["art"] in ENTNAHME_ARTEN]
+    # Die Lampen des Pumpen-/Relaismoduls. Sie hängen am Analog-Sollwert: über
+    # null fordert das Modul Wärme an.
+    for platz, modul in enumerate(module):
+        if modul["art"] != "pumpenmodul":
+            continue
+        soll = _finde(modul.get("entitaeten") or [], ANALOG_SOLLWERT)
+        if soll is None:
+            continue
+        x = RAND + platz * MODUL_BREITE
+        for lx, ly, r in (*ZSP_KLEMMEN, ZSP_BETRIEBSLAMPE):
+            lampen.append(
+                {
+                    "entity": soll["entity_id"],
+                    "left": f"{(x + lx) / breite * 100:.2f}%",
+                    "top": f"{ly / HOEHE * 100:.2f}%",
+                    "groesse": f"{(2 * r) / breite * 100:.2f}%",
+                    "art": "betrieb" if (lx, ly, r) == ZSP_BETRIEBSLAMPE else "klemme",
+                    "titel": modul["titel"],
+                }
+            )
+
     # Die Kesseltemperatur des ersten Wärmeerzeugers. Ohne sie liesse sich
     # nicht sagen, ob die laufende Ladepumpe wirklich Wärme in den Puffer
     # bringt oder nur umwälzt.
@@ -847,4 +879,6 @@ def anlagenschema(
         "mischer": mischer,
         # Ob der Puffer gerade beladen oder entleert wird.
         "speicher": speicher,
+        # Die Lampen des Pumpen-/Relaismoduls, siehe ZSP_KLEMMEN.
+        "lampen": lampen,
     }

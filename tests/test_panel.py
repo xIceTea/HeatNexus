@@ -281,10 +281,19 @@ def test_stoerungen_kommen_aus_der_diagnose(panel, kessel_und_heizkreis):
     assert [s["entity"] for s in daten["stoerungen"]] == ["sensor.meldung_klartext"]
 
 
-def test_je_anlagenteil_nur_ein_kennwert(panel, kessel_und_heizkreis):
-    """Die linke Spalte zeigt je Anlagenteil den wichtigsten Wert, nicht alle."""
+def test_je_anlagenteil_ein_leitwert(panel, kessel_und_heizkreis):
+    """Die linke Spalte zeigt je Anlagenteil **einen** Leitwert, nicht alle.
+
+    Ausnahme sind Warmwasser und Zirkulation: Sie hängen als Datenpunkte am
+    Heizkreis, liest man aber täglich und einzeln – sie bekommen deshalb ihre
+    eigene Zeile. Ohne die Ausnahme stünde am Heizkreis nur die Raumtemperatur
+    und das Warmwasser gar nicht.
+    """
     daten = panel._anlage_daten(kessel_und_heizkreis)
-    assert len(daten["kennwerte"]) == len(kessel_und_heizkreis["teile"])
+    leitwerte = [
+        e for e in daten["kennwerte"] if e["untertitel"] not in ("Warmwasser", "Zirkulation")
+    ]
+    assert len(leitwerte) == len(kessel_und_heizkreis["teile"])
     assert daten["kennwerte"][0]["entity"] == "sensor.kesseltemperatur_ist"
 
 
