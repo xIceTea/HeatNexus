@@ -296,7 +296,7 @@ EXTRA_OIDS_BY_FCT: dict[int, tuple[str, ...]] = {
         "5/71",
     ),
     16: ("0/7", "2/9", "4/82"),  # Puffer
-    20: ("0/7", "1/7", "4/92", "4/93"),  # Zirkulation
+    20: ("0/7", "1/7", "4/92", "4/93"),  # ZSP Pumpen-/Relaismodul
     # Kessel: Störcode, Softwarestand – und die Lagerraumbefüllung.
     # 39/107 meldet „Gesperrt"/„Freigegeben", 39/5 die Restlaufzeit der
     # Freigabe. Beide stehen in keiner Bedienebene und fehlten deshalb, obwohl
@@ -318,7 +318,7 @@ DISCOVERY_MAX_AGE_DAYS = 30
 FCT_CLIMATE = 14  # Heizkreis (UML+ / UMLZ)
 FCT_BOILER_SWITCH = 15  # Umschaltung Automatikkessel/Festbrennstoff/Puffer
 FCT_BUFFER = 16  # B-PLMi Pufferspeicher
-FCT_ZSP = 20  # ZSP Zirkulationspumpensteuerung
+FCT_ZSP = 20  # ZSP Pumpen-/Relaismodul (Pumpe, ext. Wärmeanforderung, Sammelalarm)
 FCT_PUROWIN = 25  # PuroWIN Hackgutkessel
 
 # Legacy names kept for compatibility
@@ -1031,9 +1031,14 @@ BUFFER_ENTITIES = [
     },
 ]
 
+# Die Namen sind die des Herstellers. `0/7` heißt bei fctType 20
+# „Kesseltemperatur" – gemeint ist der eigene Fühlereingang des Moduls, nicht
+# der Kessel im Heizhaus. Bis 1.3.0-beta.2 stand hier „Temperatur Ist"; das war
+# kürzer, verschwieg aber, worum es geht, und war in keiner Unterlage
+# nachschlagbar. Was der Fühler misst, erklärt der Hilfetext in `panel.py`.
 ZSP_ENTITIES = [
-    {"oid": "/0/7/0", "name": "Temperatur Ist", "platform": "temperature"},
-    {"oid": "/1/7/0", "name": "Temperatur Soll", "platform": "temperature"},
+    {"oid": "/0/7/0", "name": "Kesseltemperatur", "platform": "temperature"},
+    {"oid": "/1/7/0", "name": "Kesseltemperatur Soll", "platform": "temperature"},
     {
         "oid": "/0/22/0",
         "name": "Pumpendrehzahl",

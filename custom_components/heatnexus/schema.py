@@ -92,6 +92,10 @@ WERT_HOEHE_EINZELN = 206
 WARMWASSER_IST = r"\bww[- ]temperatur aktueller|\bwarmwasser ist[- ]?temperatur"
 ZIRKULATION_IST = r"\bww-zirkulations?[- ]?(ist[- ])?temperatur(?!.*soll)"
 
+# Der Stellwert des Heizkreismischers. „Laufzeit" muss draußen bleiben: Die
+# Mischerlaufzeit ist eine Einstellung in Minuten, keine Stellung in Prozent.
+MISCHER_IST = r"^mischer( stellwert)?$"
+
 # Welcher Wert eines Anlagenteils wo im Schaubild steht.
 # (Muster, Beschriftung) – die Reihenfolge bestimmt die Position von oben.
 WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
@@ -114,7 +118,10 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
     # kann eine Pumpe regeln, eine externe Wärmeanforderung entgegennehmen oder
     # einen Sammelalarm schalten – was davon, sagt `29/0..29/3`.
     "pumpenmodul": (
-        (r"^temperatur ist$", "Temperatur"),
+        # Beide Schreibweisen: „Kesseltemperatur" ist der Herstellername, den
+        # HeatNexus ab 1.3.0-beta.4 benutzt, „Temperatur Ist" der bis dahin
+        # vergebene – der steht noch in jedem gespeicherten Erkennungsstand.
+        (r"^kesseltemperatur$|^temperatur ist$", "Temperatur"),
         (r"r(ü|ue)cklauf temperatur", "Rücklauf"),
     ),
     # Nur der Istwert. Ein Sollwert an der Stelle, an der beim Puffer die
@@ -330,6 +337,19 @@ def _pumpe(entitaeten: list[dict[str, Any]], art: str) -> str | None:
     return treffer["entity_id"] if treffer else None
 
 
+def _mischer(entitaeten: list[dict[str, Any]]) -> str | None:
+    """Der Stellwert des Heizkreismischers in Prozent, sofern gemeldet.
+
+    Die Anlage nennt den Datenpunkt `1/21` „Mischer"; die kuratierte Tabelle
+    „Mischer Stellwert". Beide Schreibweisen zählen.
+    """
+    treffer = _finde(
+        [e for e in entitaeten if (e.get("unit") or "") == "%" or e.get("bereich") == "sensor"],
+        MISCHER_IST,
+    )
+    return treffer["entity_id"] if treffer else None
+
+
 def _module(teile: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Anlagenteile, die sich zeichnen lassen, mit ihren Werten.
 
@@ -347,6 +367,7 @@ def _module(teile: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "art": art,
                     "werte": werte,
                     "pumpe": _pumpe(teil["entitaeten"], art),
+                    "mischer": _mischer(teil["entitaeten"]) if art == "heizkreis" else None,
                 }
             )
         # Hängt an diesem Kreis eine Warmwasserbereitung, wird sie als eigener
@@ -509,6 +530,12 @@ KANTEN_STANDARD = (126, 288)
 GLUTBETT_Y = 258
 GLUTBETT_BREITE = 76
 
+# Lage des Mischers im Heizkreis – dieselbe Stelle, an der `heizkreis.svg` das
+# Ventil zeichnet. Darüber liegt der Stellungsanzeiger, darunter das Stück
+# Vorlauf, dessen Farbe die Beimischung zeigt.
+MISCHER_Y = 112
+MISCHER_MARKE = 26
+
 
 def _ersatzform(art: str) -> str:
     """Gezeichnete Form, wenn es für ein Anlagenteil keine Datei gibt.
@@ -626,6 +653,7 @@ def anlagenschema(
     elemente: list[dict[str, Any]] = []
     pumpen: list[dict[str, Any]] = []
     brenner: list[dict[str, Any]] = []
+    mischer: list[dict[str, Any]] = []
     for platz, modul in enumerate(module):
         x = RAND + platz * MODUL_BREITE
         elemente += _beschriftungen(x, modul, breite)
@@ -637,6 +665,25 @@ def anlagenschema(
                     "entity": modul["pumpe"],
                     "left": f"{mitte / breite * 100:.2f}%",
                     "top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
+                    "titel": modul["titel"],
+                }
+            )
+        # Der Mischer zeigt seine Stellung, nicht Bewegung: Ein dauernd
+        # drehendes Ventil läse sich wie eine Pumpe, und die dreht sich im
+        # Bild schon. Der Anzeiger schwenkt, das Stück Vorlauf darüber färbt
+        # sich nach der Beimischung.
+        if modul.get("mischer"):
+            mitte = x + MODUL_BREITE // 2
+            oben, _unten = KANTEN_JE_ART["heizkreis"]
+            mischer.append(
+                {
+                    "entity": modul["mischer"],
+                    "left": f"{mitte / breite * 100:.2f}%",
+                    "top": f"{MISCHER_Y / HOEHE * 100:.2f}%",
+                    "groesse": f"{MISCHER_MARKE / breite * 100:.2f}%",
+                    # Das Stück Vorlauf zwischen Leitung und Ventil.
+                    "stutzen_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
+                    "stutzen_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
                     "titel": modul["titel"],
                 }
             )
@@ -678,6 +725,7 @@ def anlagenschema(
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht
         # drehen. Sie werden als eigene Marken darübergelegt.
         "pumpen": pumpen,
-        # Ebenso das Glutbett der Wärmeerzeuger.
+        # Ebenso das Glutbett der Wärmeerzeuger und die Mischerstellung.
         "brenner": brenner,
+        "mischer": mischer,
     }

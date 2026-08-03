@@ -6,6 +6,35 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.0-beta.4] - 2026-08-03
+
+Die Nummer 1.3.0-beta.3 wurde zurückgezogen: Sie enthielt denselben Stand wie
+beta.2, gehörte inhaltlich aber dorthin. Eine bereits veröffentlichte Nummer
+ein zweites Mal mit anderem Inhalt zu vergeben, verwirrt HACS und jeden, der
+sie schon geholt hat.
+
+### Neu
+
+- **Der Mischer zeigt seine Stellung.** Im Schaubild schwenkt der Zeiger im
+  Ventil zwischen Rücklauf (0 %) und Vorlauf (100 %), und das Stück Leitung
+  darüber färbt sich von Blau nach Rot – genau das, was ein Mischer tut. Der
+  Zeiger dreht sich bewusst *nicht* dauernd: Eine Mischerstellung ist ein
+  Zustand, kein Vorgang, und ein kreisendes Ventil läse sich wie eine Pumpe.
+
+### Geändert
+
+- **Der Temperaturwert des Pumpen-/Relaismoduls heißt wie beim Hersteller.**
+  Bisher stand dort „Temperatur Ist" – kurz, aber in keiner Unterlage
+  nachschlagbar. Windhager nennt den Datenpunkt `0/7` bei diesem Funktionstyp
+  **Kesseltemperatur**; gemeint ist der eigene Fühlereingang des Moduls, nicht
+  der Kessel. Ein „?"-Text erklärt das jetzt an Ort und Stelle. Die alte
+  Schreibweise wird weiter erkannt, ein gespeicherter Erkennungsstand bleibt
+  also gültig.
+- Der Funktionstyp 20 heißt im Quelltext nicht mehr „Zirkulation", sondern
+  **ZSP Pumpen-/Relaismodul**. Er kann eine Pumpe regeln, eine externe
+  Wärmeanforderung entgegennehmen oder eine Sammelstörung melden – eine
+  Zirkulationspumpe ist etwas anderes.
+
 ## [1.3.0-beta.2] - 2026-08-03
 
 ### Neu

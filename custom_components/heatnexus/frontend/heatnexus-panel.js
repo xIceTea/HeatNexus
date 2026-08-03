@@ -418,6 +418,27 @@ const STIL = `
       ellipse at center, #ffb347 0%, #e2543a 45%, rgba(226, 84, 58, 0) 75%);
   }
   .schaubild .glut.brennt { animation: glimmen 2.6s ease-in-out infinite; }
+
+  /* Mischer: Stellung, nicht Bewegung. Der Zeiger schwenkt beim Wechsel des
+     Werts an seine neue Stelle und bleibt dort stehen. */
+  .schaubild .mischer-stutzen {
+    position: absolute; width: 4px; transform: translateX(-50%);
+    pointer-events: none; border-radius: 2px; opacity: 0.85;
+    transition: background 0.8s ease;
+  }
+  .schaubild .mischer {
+    position: absolute; transform: translate(-50%, -50%);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .schaubild .mischer .zeiger {
+    width: 3px; height: 62%; border-radius: 2px;
+    background: #f2f6fa;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+    transform-origin: 50% 50%;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .schaubild .mischer:hover .zeiger { background: #6fb2f5; }
   @keyframes glimmen {
     0%, 100% { filter: brightness(0.85); }
     50% { filter: brightness(1.25); }
@@ -1647,6 +1668,46 @@ class HeatNexusPanel extends HTMLElement {
         glut.classList.toggle("brennt", brennt);
         glut.style.opacity = brennt ? String(0.35 + Math.min(leistung, 100) / 100 * 0.65) : "0";
         glut.title = `${eintrag.titel} – ${brennt ? `${leistung} %` : "aus"}`;
+      });
+    });
+
+    // Mischerstellung. Bewusst keine Dauerbewegung: Eine Mischerstellung ist
+    // ein Zustand, kein Vorgang – ein sich drehendes Ventil läse sich wie eine
+    // Pumpe, und die dreht sich daneben schon. Der Anzeiger schwenkt zwischen
+    // Rücklauf (0 %) und Vorlauf (100 %), das Stück Leitung darüber färbt sich
+    // nach der Beimischung. Bewegt wird nur der Übergang.
+    (anlage.schema_mischer || []).forEach((eintrag) => {
+      const stutzen = document.createElement("div");
+      stutzen.className = "mischer-stutzen";
+      stutzen.style.left = eintrag.left;
+      stutzen.style.top = eintrag.stutzen_top;
+      stutzen.style.height = eintrag.stutzen_hoehe;
+      huelle.appendChild(stutzen);
+
+      const marke = document.createElement("div");
+      marke.className = "mischer";
+      marke.style.left = eintrag.left;
+      marke.style.top = eintrag.top;
+      marke.style.width = eintrag.groesse;
+      marke.style.height = eintrag.groesse;
+      const zeiger = document.createElement("div");
+      zeiger.className = "zeiger";
+      marke.appendChild(zeiger);
+      huelle.appendChild(this._klickbar(marke, eintrag.entity));
+
+      this._bindungen.push(() => {
+        const stellwert = this._zahl(eintrag.entity);
+        const da = stellwert !== null;
+        marke.hidden = !da;
+        stutzen.hidden = !da;
+        if (!da) return;
+        const anteil = Math.max(0, Math.min(100, stellwert)) / 100;
+        // −60° steht auf dem Rücklaufschenkel, +60° auf dem Vorlauf.
+        zeiger.style.transform = `rotate(${-60 + anteil * 120}deg)`;
+        stutzen.style.background = `color-mix(in oklab, #e2543a ${Math.round(
+          anteil * 100
+        )}%, #3a7fe2)`;
+        marke.title = `${eintrag.titel} – Mischer ${Math.round(stellwert)} %`;
       });
     });
 

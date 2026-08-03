@@ -480,3 +480,57 @@ def test_ohne_leistungswert_kein_glutbett(schema):
     """Meldet ein Kessel keine Leistung, bleibt das Bild ruhig."""
     teile = [_teil("Fremdkessel", 6, [("sensor.kessel_ist", "Kesseltemperatur Ist")])]
     assert schema.anlagenschema(teile)["brenner"] == []
+
+
+def test_mischerstellung_wird_gemeldet(schema):
+    """Der Heizkreismischer bekommt Anzeiger und eingefärbtes Vorlaufstück."""
+    teile = [
+        _teil(
+            "Hebebühne",
+            14,
+            [
+                ("sensor.vl", "Vorlauftemperatur Ist"),
+                ("sensor.rt", "Raumtemperatur Ist"),
+                ("sensor.mischer", "Mischer Stellwert"),
+            ],
+        )
+    ]
+    mischer = schema.anlagenschema(teile)["mischer"]
+    assert [e["entity"] for e in mischer] == ["sensor.mischer"]
+    # Das Vorlaufstück reicht von der Leitung bis zum Ventil.
+    assert mischer[0]["stutzen_top"].endswith("%")
+    assert float(mischer[0]["stutzen_hoehe"].rstrip("%")) > 0
+
+
+def test_mischerlaufzeit_ist_kein_stellwert(schema):
+    """Die Mischerlaufzeit ist eine Einstellung in Minuten, keine Stellung.
+
+    Ohne die Abgrenzung landete sie als Prozentwert im Schaubild und der
+    Zeiger stand irgendwo.
+    """
+    teile = [
+        _teil(
+            "Hebebühne",
+            14,
+            [
+                ("sensor.vl", "Vorlauftemperatur Ist"),
+                ("sensor.rt", "Raumtemperatur Ist"),
+                ("sensor.laufzeit", "Mischerlaufzeit"),
+            ],
+        )
+    ]
+    assert schema.anlagenschema(teile)["mischer"] == []
+
+
+def test_zsp_temperatur_heisst_wie_beim_hersteller(schema):
+    """`0/7` heißt bei fctType 20 „Kesseltemperatur".
+
+    Die alte Schreibweise „Temperatur Ist" muss weiter treffen: Sie steht noch
+    in jedem gespeicherten Erkennungsstand, und der überlebt eine
+    Aktualisierung.
+    """
+    for name in ("Kesseltemperatur", "Temperatur Ist"):
+        teile = [_teil("ZSP-PTS", 20, [("sensor.t", name)])]
+        module = schema._module(teile)
+        assert module, f"{name!r} ergibt kein Anlagenteil"
+        assert module[0]["werte"][0]["entity_id"] == "sensor.t"

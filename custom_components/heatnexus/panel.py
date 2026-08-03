@@ -72,8 +72,8 @@ KENNWERT_JE_FCT: dict[int, tuple[tuple[str, str, str], ...]] = {
         (r"puffer oben", "Puffer oben", "mdi:storage-tank"),
         (r"^temperatur ist$", "Temperatur", "mdi:thermometer"),
     ),
-    20: (  # Zirkulation
-        (r"^temperatur ist$", "Temperatur", "mdi:thermometer"),
+    20: (  # ZSP Pumpen-/Relaismodul
+        (r"^kesseltemperatur$|^temperatur ist$", "Temperatur", "mdi:thermometer"),
         (r"r(ü|ue)cklauf temperatur", "Rücklauf", "mdi:pipe"),
     ),
     25: (  # Kessel
@@ -270,6 +270,14 @@ HILFE: tuple[tuple[str, str], ...] = (
     (
         r"^kessel$",
         "Schaltet den Kessel ein oder aus. Ausgeschaltet versorgt er weder Heizkreise noch Warmwasser; der Frostschutz bleibt aktiv.",
+    ),
+    (
+        r"^kesseltemperatur$",
+        "Der eigene Fühlereingang des Pumpen-/Relaismoduls — nicht der Kessel im Heizhaus.\n\nDas Modul misst hier die Temperatur der Leitung, an der es sitzt, und regelt danach: Kommt an seinem Eingang eine externe Wärmeanforderung an, fordert es Wärme an, bis dieser Wert die eingestellte Solltemperatur erreicht.\n\nWas der Fühler physisch misst, legt die Verdrahtung fest; die Anlage kann es nicht melden. Welche Aufgabe das Modul hat — Pumpensteuerung, externe Wärmeanforderung oder Sammelstörmeldung — steht in den Datenpunkten der Gruppe 29 auf der Serviceebene.",
+    ),
+    (
+        r"stellwert|^mischer$",
+        "Wie weit der Mischer geöffnet ist. 0 % heißt: Es wird nur Rücklauf umgewälzt, der Kreis bekommt keine Wärme vom Kessel. 100 % heißt: voller Durchgang.\n\nDazwischen mischt das Ventil kühleren Rücklauf in den Vorlauf, bis die Vorlauftemperatur zur Heizkurve passt. Im Schaubild schwenkt der Zeiger im Ventil entsprechend, und das Stück Leitung darüber färbt sich von Blau nach Rot.",
     ),
     (
         r"vorratsbeh",
@@ -709,6 +717,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         # läuft, das Glutbett glimmt, solange der Kessel Leistung bringt.
         "schema_leitungen": bild.get("leitungen") if bild else None,
         "schema_brenner": bild.get("brenner", []) if bild else [],
+        "schema_mischer": bild.get("mischer", []) if bild else [],
     }
 
 
