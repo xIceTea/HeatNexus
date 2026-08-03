@@ -401,7 +401,14 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
         anlage_id = teil["anlage_id"] or teil["id"]
         gruppe = anlagen.setdefault(
             anlage_id,
-            {"name": _kurzname((teile.get(anlage_id) or {}).get("name")), "teile": []},
+            {
+                # Die Kennung der Steuerung. Sie überlebt eine erneute
+                # Erkennung und unterscheidet zwei gleich aufgebaute Anlagen –
+                # der Name täte das auch, bis ihn jemand ändert.
+                "id": anlage_id,
+                "name": _kurzname((teile.get(anlage_id) or {}).get("name")),
+                "teile": [],
+            },
         )
         gruppe["teile"].append(teil)
         teil["entitaeten"].sort(key=lambda e: e["name"])

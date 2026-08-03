@@ -98,7 +98,7 @@ STATUS = (
     (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer"),
     (r"kesselleistung", "Kesselleistung", "mdi:fire"),
     (r"brennerkammertemperatur", "Brennkammer", "mdi:fireplace"),
-    (r"abgastemperatur", "Abgas", "mdi:smoke"),
+    (r"abgastemperatur", "Abgastemperatur", "mdi:smoke"),
     (r"aktueller brennstoff", "Brennstoff", "mdi:sack"),
     (r"vorratsbeh", "Vorratsbehälter", "mdi:battery-70"),
     (r"brennerstarts", "Brennerstarts", "mdi:restart"),
@@ -665,6 +665,10 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     # den Fühler des Wohnhauses.
     aussen = _kennung(alle, AUSSENTEMPERATUR) or aussen_gewaehlt
     return {
+        # Die Anordnung der Karten wird je Anlage gespeichert. Ohne eigene
+        # Kennung teilten sich Heizhaus und Wohnhaus eine Reihenfolge – wer
+        # im Heizhaus etwas verschob, verschob es im Wohnhaus mit.
+        "id": anlage.get("id") or anlage["name"],
         "name": anlage["name"],
         # Erklärungen je Karte – im Browser als „?" neben der Überschrift.
         "hilfe": dict(HILFE_KARTEN),

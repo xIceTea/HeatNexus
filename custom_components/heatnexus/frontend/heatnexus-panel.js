@@ -160,12 +160,19 @@ const STIL = `
 
      Spaltenzahl und Kartenbreite kommen als Variablen von der Anordnung; sie
      stehen bewusst nicht als Inline-Stil da, sonst schlüge die eigene
-     Einstellung den Umbruch auf schmalen Bildschirmen. */
+     Einstellung den Umbruch auf schmalen Bildschirmen.
+
+     "auto-fill" statt "auto-fit": Unter „Alle" bekommt jede Anlage ihr eigenes
+     Raster. Mit "auto-fit" fallen leere Spalten in sich zusammen, und eine
+     Anlage mit zwei Karten machte daraus zwei breite – daneben stand die
+     Anlage mit drei Karten in drei schmalen. Gleiches „1×" sah dann
+     verschieden groß aus. "auto-fill" lässt die leeren Spalten stehen, also
+     ist eine Spalte überall gleich breit. */
   .raster {
     display: grid;
     gap: 16px;
     padding: 16px;
-    grid-template-columns: var(--raster-spalten, repeat(auto-fit, minmax(320px, 1fr)));
+    grid-template-columns: var(--raster-spalten, repeat(auto-fill, minmax(320px, 1fr)));
     align-items: stretch;
   }
   .raster > * { grid-column: span var(--breite, 1); min-width: 0; }
@@ -244,8 +251,12 @@ const STIL = `
   .anordner-griff button:hover { background: rgba(255, 255, 255, 0.14); }
   .anordner-griff button:disabled { opacity: 0.3; cursor: default; }
   .anordner-griff button ha-icon { --mdc-icon-size: 16px; }
+  /* Die Breite ist eine Anzeige, keine Taste – geklickt wird links und rechts
+     davon. */
   .anordner-griff .breite {
-    width: auto; padding: 0 8px; font-size: 12px; font-weight: 700;
+    flex: none; min-width: 26px; padding: 0 2px;
+    font-size: 12px; font-weight: 700; text-align: center;
+    font-variant-numeric: tabular-nums;
   }
   .anordner.gezogen { opacity: 0.4; }
   .anordner.ziel-vor { box-shadow: -3px 0 0 0 #6fb2f5; }
@@ -759,21 +770,6 @@ class HeatNexusPanel extends HTMLElement {
       });
     }
 
-    // Anordnen: die Karten dieses Reiters selbst sortieren. Bewusst eine
-    // eigene Taste und kein Dauerzustand – wer nur ablesen will, soll nicht
-    // versehentlich etwas verschieben.
-    const anordnen = document.createElement("button");
-    anordnen.className = "menue-taste";
-    anordnen.type = "button";
-    anordnen.title = this._anordnen ? "Anordnen beenden" : "Karten anordnen";
-    anordnen.setAttribute("aria-label", anordnen.title);
-    anordnen.setAttribute("aria-pressed", String(this._anordnen));
-    anordnen.appendChild(
-      this._symbolKnoten(this._anordnen ? "mdi:check" : "mdi:view-dashboard-edit-outline")
-    );
-    anordnen.addEventListener("click", () => this._anordnenUmschalten());
-    leiste.appendChild(anordnen);
-
     const anlagen = this._anlagen();
     if (anlagen.length > 1) {
       const waehler = document.createElement("div");
@@ -799,6 +795,22 @@ class HeatNexusPanel extends HTMLElement {
       });
       leiste.appendChild(waehler);
     }
+
+    // Anordnen steht ganz außen: Es gehört nicht zum Ablesen, sondern zum
+    // Einrichten. Zwischen Außentemperatur und Anlagenwahl stand es mitten in
+    // den Angaben, die man ständig liest.
+    const anordnen = document.createElement("button");
+    anordnen.className = "menue-taste";
+    anordnen.type = "button";
+    anordnen.title = this._anordnen ? "Anordnen beenden" : "Karten anordnen";
+    anordnen.setAttribute("aria-label", anordnen.title);
+    anordnen.setAttribute("aria-pressed", String(this._anordnen));
+    anordnen.appendChild(
+      this._symbolKnoten(this._anordnen ? "mdi:check" : "mdi:view-dashboard-edit-outline")
+    );
+    anordnen.addEventListener("click", () => this._anordnenUmschalten());
+    leiste.appendChild(anordnen);
+
     return leiste;
   }
 
@@ -829,15 +841,19 @@ class HeatNexusPanel extends HTMLElement {
     // Die Karten holen ihre Erklärung über den Titel.
     this._hilfe = anlage.hilfe || {};
     if (this._reiter === "steuerung") {
-      return this._raster(this._steuerung(anlage), "Keine bedienbaren Werte gefunden.");
+      return this._raster(anlage, this._steuerung(anlage), "Keine bedienbaren Werte gefunden.");
     }
     if (this._reiter === "wartung") {
-      return this._raster(this._wartung(anlage), "Keine Wartungswerte gefunden.");
+      return this._raster(anlage, this._wartung(anlage), "Keine Wartungswerte gefunden.");
     }
     if (this._reiter === "verlauf") {
-      return this._raster(this._verlaufReiter(anlage), "Keine Werte für einen Verlauf gefunden.");
+      return this._raster(
+        anlage,
+        this._verlaufReiter(anlage),
+        "Keine Werte für einen Verlauf gefunden."
+      );
     }
-    return this._raster(this._uebersicht(anlage), "Keine Werte gefunden.");
+    return this._raster(anlage, this._uebersicht(anlage), "Keine Werte gefunden.");
   }
 
   // -------------------------------------------------------------------
@@ -886,11 +902,17 @@ class HeatNexusPanel extends HTMLElement {
    * Warmwasser nichts, und die gespeicherte Reihenfolge bleibt für beide
    * Anlagen dieselbe.
    */
-  _raster(karten, leerText) {
+  _raster(anlage, karten, leerText) {
     const raster = document.createElement("div");
     raster.className = "raster";
 
-    const vorhanden = (karten || []).filter((karte) => karte && karte.knoten);
+    // Die Kennung trägt die Anlage vorneweg. Ohne sie teilten sich Heizhaus
+    // und Wohnhaus dieselbe „schnellzugriff"-Karte: Wer im Heizhaus schob,
+    // schob im Wohnhaus mit.
+    const vorwahl = `${(anlage && anlage.id) || anlage.name || ""}|`;
+    const vorhanden = (karten || [])
+      .filter((karte) => karte && karte.knoten)
+      .map((karte) => ({ ...karte, id: vorwahl + karte.id }));
     const anordnung = this._reiterAnordnung();
     const spalten = Number(anordnung.spalten) || 0;
     if (spalten > 0) {
@@ -962,16 +984,25 @@ class HeatNexusPanel extends HTMLElement {
       )
     );
 
-    // Breite: durchklicken statt zwei Tasten – mehr als vier Spalten gibt es
-    // nicht, und der Rundlauf ist schneller als Suchen.
-    const breitentaste = document.createElement("button");
-    breitentaste.type = "button";
-    breitentaste.className = "breite";
-    breitentaste.textContent = `${breite}×`;
-    breitentaste.title = "Breite in Spalten";
-    breitentaste.setAttribute("aria-label", `Breite ${breite} Spalten, ändern`);
-    breitentaste.addEventListener("click", () => this._breiteWeiter(karte.id, breite));
-    griff.appendChild(breitentaste);
+    // Breite: schmaler, Anzeige, breiter. Vorher lief eine einzige Taste im
+    // Kreis – wer einmal zu weit klickte, musste bis 4× durch und wieder von
+    // vorn.
+    const grenze = Math.min(Number(this._reiterAnordnung().spalten) || BREITE_MAX, BREITE_MAX);
+    griff.appendChild(
+      this._griffTaste("mdi:minus", "Schmaler", breite <= 1, () =>
+        this._breiteAendern(karte.id, breite - 1)
+      )
+    );
+    const breitenwert = document.createElement("div");
+    breitenwert.className = "breite";
+    breitenwert.textContent = `${breite}×`;
+    breitenwert.title = "Breite in Spalten";
+    griff.appendChild(breitenwert);
+    griff.appendChild(
+      this._griffTaste("mdi:plus", "Breiter", breite >= grenze, () =>
+        this._breiteAendern(karte.id, breite + 1)
+      )
+    );
 
     griff.appendChild(
       this._griffTaste(
@@ -1095,13 +1126,13 @@ class HeatNexusPanel extends HTMLElement {
     return kennungen;
   }
 
-  _breiteWeiter(kennung, breite) {
+  _breiteAendern(kennung, breite) {
     const anordnung = this._reiterAnordnung();
-    const grenze = Number(anordnung.spalten) || BREITE_MAX;
-    const naechste = breite >= Math.min(grenze, BREITE_MAX) ? 1 : breite + 1;
+    const grenze = Math.min(Number(anordnung.spalten) || BREITE_MAX, BREITE_MAX);
+    const neu = Math.max(1, Math.min(grenze, breite));
     this._anordnungSetzen({
       ...anordnung,
-      breite: { ...(anordnung.breite || {}), [kennung]: naechste },
+      breite: { ...(anordnung.breite || {}), [kennung]: neu },
     });
   }
 
