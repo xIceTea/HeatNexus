@@ -17,9 +17,7 @@ sie schon geholt hat.
 
 - **Der Mischer zeigt seine Stellung.** Im Schaubild schwenkt der Zeiger im
   Ventil zwischen Rücklauf (0 %) und Vorlauf (100 %), und das Stück Leitung
-  darüber färbt sich von Blau nach Rot – genau das, was ein Mischer tut. Der
-  Zeiger dreht sich bewusst *nicht* dauernd: Eine Mischerstellung ist ein
-  Zustand, kein Vorgang, und ein kreisendes Ventil läse sich wie eine Pumpe.
+  darüber färbt sich von Blau nach Rot – genau das, was ein Mischer tut.
 
 ### Geändert
 
