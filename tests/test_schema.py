@@ -522,18 +522,32 @@ def test_mischerlaufzeit_ist_kein_stellwert(schema):
     assert schema.anlagenschema(teile)["mischer"] == []
 
 
-def test_zsp_temperatur_heisst_wie_beim_hersteller(schema):
-    """`0/7` heißt bei fctType 20 „Kesseltemperatur".
+def test_pumpenmodul_wird_ohne_messwert_gezeichnet(schema):
+    """Das Pumpen-/Relaismodul zeigt im Schaubild keine Zahl.
 
-    Die alte Schreibweise „Temperatur Ist" muss weiter treffen: Sie steht noch
-    in jedem gespeicherten Erkennungsstand, und der überlebt eine
-    Aktualisierung.
+    Sein Fühler (`0/7`) misst bei einer Fernwärmeübergabe den Speicher auf der
+    *anderen* Seite – im Schaubild sah es aus, als stünde diese Temperatur im
+    Heizhaus. Dass das Modul in der Leitung sitzt, muss man trotzdem sehen;
+    seinen Zustand zeigen die Lampen.
     """
-    for name in ("Kesseltemperatur", "Temperatur Ist"):
-        teile = [_teil("ZSP-PTS", 20, [("sensor.t", name)])]
-        module = schema._module(teile)
-        assert module, f"{name!r} ergibt kein Anlagenteil"
-        assert module[0]["werte"][0]["entity_id"] == "sensor.t"
+    module = schema._module([_teil("ZSP-PTS", 20, [("sensor.t", "Kesseltemperatur")])])
+    assert [m["art"] for m in module] == ["pumpenmodul"]
+    assert module[0]["werte"] == []
+
+
+def test_ohne_einen_einzigen_messwert_kein_schaubild(schema):
+    """Ein Bild aus lauter leeren Kästen hilft niemandem."""
+    nur_modul = [_teil("ZSP-PTS", 20, [("sensor.t", "Kesseltemperatur")])]
+    assert schema.anlagenschema(nur_modul) is None
+
+    # Zusammen mit einem messenden Anlagenteil erscheint es sehr wohl.
+    mit_kessel = [
+        _teil("PuroWIN", 25, [("sensor.k", "Kesseltemperatur Ist")]),
+        *nur_modul,
+    ]
+    bild = schema.anlagenschema(mit_kessel)
+    assert bild is not None
+    assert len(bild["lampen"]) == 0, "ohne Analog-Sollwert gibt es nichts zu leuchten"
 
 
 def test_puffer_kennt_kessel_und_obere_temperatur(schema):

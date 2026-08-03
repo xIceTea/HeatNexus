@@ -213,6 +213,12 @@ WARMWASSER_SOLL = _muster(r"\bww[- ]temperatur sollwert", r"\bwarmwasser soll")
 BETRIEBSART = _muster(r"^betriebsart$")
 WARMWASSER_LADEPUMPE = _muster(r"\bww-ladepumpe")
 
+# Wie weit die Warmwassertemperatur unter dem eingestellten Wert liegen muss,
+# damit die Anlage eine Einmalladung überhaupt annimmt. Der eingestellte Wert
+# ist der Ausschaltpunkt; darüber startet sie nicht. Steht so in der Anleitung
+# und deckt sich mit dem Hilfetext zur Einmalladung.
+WARMWASSER_ABSTAND = 5.0
+
 # Betriebsarten (2/9), die eine laufende Warmwasserladung bedeuten.
 WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-Programm")
 
@@ -729,6 +735,14 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                     eintrag["zustand_pumpe"] = _kennung(
                         alle, WARMWASSER_LADEPUMPE, ("binary_sensor",)
                     )
+                    # Die Anlage nimmt den Auftrag nur an, wenn das Wasser
+                    # mindestens `WARMWASSER_ABSTAND` Kelvin unter dem
+                    # eingestellten Wert liegt – der Sollwert ist der
+                    # Ausschaltpunkt. Darüber passiert schlicht nichts, und die
+                    # Taste stand minutenlang auf „wird ausgeführt …".
+                    eintrag["ist"] = _kennung(alle, WARMWASSER_IST, ("sensor",))
+                    eintrag["soll"] = _kennung(alle, WARMWASSER_SOLL, ("number", "sensor"))
+                    eintrag["abstand"] = WARMWASSER_ABSTAND
                     # Die Betriebswahl gehört zur Ladung dazu.
                     #
                     # Steht der Kreis auf Standby, ist er abgeschaltet und

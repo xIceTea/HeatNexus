@@ -485,15 +485,19 @@ const STIL = `
      Betriebslampe deckt das gezeichnete Rot vollständig ab. */
   .schaubild .lampe {
     position: absolute; transform: translate(-50%, -50%);
-    border-radius: 50%; pointer-events: none;
+    aspect-ratio: 1; border-radius: 50%; pointer-events: none;
     opacity: 0; transition: opacity 0.4s ease;
-    background: #7bd88f;
+    /* Innen fast weiß, außen grün: So leuchtet die Lampe, statt nur grün zu
+       sein – auf dem dunklen Gehäuse sonst kaum zu sehen. */
+    background: radial-gradient(circle at 50% 40%, #d6ffe2 0%, #4ade6a 55%, #2f9e46 100%);
   }
-  .schaubild .lampe.betrieb { box-shadow: 0 0 6px 2px rgba(123, 216, 143, 0.55); }
+  /* Die Betriebslampe muss die gezeichnete rote vollständig verdecken. */
+  .schaubild .lampe.betrieb { box-shadow: 0 0 10px 3px rgba(74, 222, 106, 0.75); }
+  .schaubild .lampe.klemme { box-shadow: 0 0 7px 2px rgba(74, 222, 106, 0.7); }
   .schaubild .lampe.an { opacity: 1; }
   .schaubild .lampe.klemme.an { animation: lampe-blinken 1.8s ease-in-out infinite; }
   @keyframes lampe-blinken {
-    0%, 100% { opacity: 0.25; }
+    0%, 100% { opacity: 0.45; }
     50% { opacity: 1; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -592,6 +596,15 @@ const STIL = `
   .gross .zahl { font-size: 32px; font-weight: 700; }
   .gross .beschriftung { font-size: 12px; opacity: 0.55; }
   .trenner { height: 1px; background: rgba(255, 255, 255, 0.07); margin: 14px 0; }
+  .laufzeit-abbruch {
+    margin-left: 4px; padding: 2px 8px; border-radius: 999px;
+    font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+    color: #ff8a80;
+    background: rgba(229, 57, 53, 0.18);
+    border: 1px solid rgba(229, 57, 53, 0.45);
+  }
+  .laufzeit-abbruch:hover { background: rgba(229, 57, 53, 0.3); }
+  .laufzeit-abbruch:disabled { opacity: 0.5; cursor: default; }
   .laufzeit {
     display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
     padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
@@ -1689,18 +1702,17 @@ class HeatNexusPanel extends HTMLElement {
 
     zeile.append(text, rechts);
     this._bindungen.push(() => {
-      // Fordert das Anlagenteil gerade Wärme an, steht der Sollwert daneben.
-      // Ohne Anforderung ist er nichtssagend und bleibt weg.
-      // Ein Sollwert von null heißt: keine Anforderung. Dann bleibt die Zeile
-      // leer, statt „0 °C" zu behaupten.
-      const zahl = this._zahl(entity);
-      if (nurUeberNull && !(zahl !== null && zahl > 0)) {
-        wert.textContent = "–";
-        unten.textContent = "keine Anforderung";
-      } else {
-        wert.textContent = this._text(entity);
-        unten.textContent = bezeichnung || "";
+      // `nurUeberNull` gilt für Werte, die nur etwas bedeuten, solange sie
+      // über null stehen – die Wärmeanforderung des Pumpen-/Relaismoduls etwa.
+      // Liegt keine an, verschwindet die Zeile ganz: Ein „–" sähe aus wie ein
+      // fehlender Messwert, dabei ist schlicht nichts angefordert.
+      if (nurUeberNull) {
+        const zahl = this._zahl(entity);
+        zeile.hidden = !(zahl !== null && zahl > 0);
+        if (zeile.hidden) return;
       }
+      wert.textContent = this._text(entity);
+      unten.textContent = bezeichnung || "";
       // Lange Texte („Betriebsbereit") umbrechen statt zu schrumpfen.
       wert.classList.toggle("lang", wert.textContent.length > 8);
     });
@@ -1822,8 +1834,10 @@ class HeatNexusPanel extends HTMLElement {
       lampe.className = `lampe ${eintrag.art}`;
       lampe.style.left = eintrag.left;
       lampe.style.top = eintrag.top;
+      // Nur die Breite setzen: „groesse" ist ein Anteil der Bild*breite*.
+      // Auf die Höhe angewandt ergäbe derselbe Prozentsatz einen anderen
+      // Bildpunktwert – die Lampe wurde oval. `aspect-ratio` hält sie rund.
       lampe.style.width = eintrag.groesse;
-      lampe.style.height = eintrag.groesse;
       huelle.appendChild(lampe);
       this._bindungen.push(() => {
         const soll = this._zahl(eintrag.entity);
@@ -2385,6 +2399,16 @@ class HeatNexusPanel extends HTMLElement {
     laufzeit.appendChild(this._symbolKnoten("mdi:timer-sand"));
     const laufzeitText = document.createElement("span");
     laufzeit.appendChild(laufzeitText);
+    // Eine laufende Vorgabe muss sich beenden lassen, ohne dass man den
+    // Sollwert zurückdreht. Die Dauer (2/10) auf null zu setzen ist derselbe
+    // Weg, den die Anlage beim Wechsel der Betriebswahl selbst geht – danach
+    // gilt wieder das Zeitprogramm.
+    const abbruch = document.createElement("button");
+    abbruch.type = "button";
+    abbruch.className = "laufzeit-abbruch";
+    abbruch.textContent = "abbrechen";
+    abbruch.title = "Vorgabe beenden und zum Programm zurückkehren";
+    if (kreis.uebersteuerung_dauer) laufzeit.appendChild(abbruch);
     karte.appendChild(laufzeit);
 
     // Sollwertregler
@@ -2437,6 +2461,31 @@ class HeatNexusPanel extends HTMLElement {
     runter.addEventListener("click", () => stellen(-1));
     hoch.addEventListener("click", () => stellen(1));
 
+    abbruch.addEventListener("click", async () => {
+      if (abbruch.disabled || !kreis.uebersteuerung_dauer) return;
+      abbruch.disabled = true;
+      try {
+        await this._uebertragen(
+          rueckmeldung,
+          () =>
+            this._hass.callService("number", "set_value", {
+              entity_id: kreis.uebersteuerung_dauer,
+              value: 0,
+            }),
+          () => {
+            const jetzt = this._zustand(kreis.entity);
+            return !!jetzt && jetzt.attributes.override_aktiv !== true;
+          }
+        );
+        this._nachfassen({
+          entity: kreis.uebersteuerung_dauer,
+          betriebswahl: kreis.betriebswahl,
+        });
+      } finally {
+        abbruch.disabled = false;
+      }
+    });
+
     // Eco und Comfort: dieselbe befristete Übersteuerung, die auch das
     // Bediengerät schreibt. Die Anlage kennt je Kreis nur *einen*
     // Übersteuerungswert – ob er Eco oder Comfort heißt, entscheidet sie
@@ -2477,6 +2526,8 @@ class HeatNexusPanel extends HTMLElement {
       const rest = this._restzeit(zustand);
       laufzeit.style.display = rest ? "inline-flex" : "none";
       laufzeitText.textContent = rest ? `Vorgabe ${rest}` : "";
+      // Ohne laufende Vorgabe gibt es nichts zu beenden.
+      laufzeit.hidden = !rest;
     });
     return karte;
   }
@@ -2859,6 +2910,23 @@ class HeatNexusPanel extends HTMLElement {
         return;
       }
 
+      // Zu warm für eine Ladung: Die Anlage nimmt den Auftrag gar nicht an,
+      // und die Taste stünde minutenlang auf „wird ausgeführt …". Lieber
+      // gleich sagen, warum nichts passiert.
+      if (eintrag.ist && eintrag.soll) {
+        const ist = this._zahl(eintrag.ist);
+        const soll = this._zahl(eintrag.soll);
+        const abstand = Number(eintrag.abstand) || 0;
+        if (ist !== null && soll !== null && ist > soll - abstand) {
+          this._abgelehnt(
+            taste,
+            rueckmeldung,
+            `schon ${Math.round(ist)} °C – erst ab ${Math.round(soll - abstand)} °C`
+          );
+          return;
+        }
+      }
+
       if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) return;
       taste.disabled = true;
       try {
@@ -2917,6 +2985,26 @@ class HeatNexusPanel extends HTMLElement {
         : this._tastenZustand(bereich, zustand, an);
     });
     return taste;
+  }
+
+  /**
+   * Ein Eingriff, den die Anlage gar nicht erst annimmt.
+   *
+   * Zweimal rot aufblitzen und kurz sagen, woran es liegt – danach steht
+   * wieder der Zustand da. Ein Dialog wäre für „geht gerade nicht" zu viel,
+   * ein stummes Nichts zu wenig.
+   */
+  _abgelehnt(taste, anzeige, grund) {
+    anzeige.dataset.belegt = "1";
+    anzeige.className = "rueckmeldung fehler";
+    anzeige.textContent = grund;
+    taste.classList.remove("blinkt");
+    // Neustart der Animation erzwingen: Ohne das Auslesen läuft sie beim
+    // zweiten Druck nicht noch einmal.
+    void taste.offsetWidth;
+    taste.classList.add("blinkt");
+    window.setTimeout(() => taste.classList.remove("blinkt"), 1200);
+    this._freigeben(anzeige, RUECKMELDUNG_MS);
   }
 
   /**

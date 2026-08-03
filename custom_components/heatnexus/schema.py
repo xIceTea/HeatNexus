@@ -137,13 +137,8 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
     # Das Pumpen-/Relaismodul (ZSP, fctType 20). Es ist keine Zirkulation: Es
     # kann eine Pumpe regeln, eine externe Wärmeanforderung entgegennehmen oder
     # einen Sammelalarm schalten – was davon, sagt `29/0..29/3`.
-    "pumpenmodul": (
-        # Beide Schreibweisen: „Kesseltemperatur" ist der Herstellername, den
-        # HeatNexus ab 1.3.0-beta.4 benutzt, „Temperatur Ist" der bis dahin
-        # vergebene – der steht noch in jedem gespeicherten Erkennungsstand.
-        (r"^kesseltemperatur$|^temperatur ist$", "Temperatur"),
-        (r"r(ü|ue)cklauf temperatur", "Rücklauf"),
-    ),
+    # Bewusst leer: siehe `_module`. Was das Modul tut, zeigen seine Lampen.
+    "pumpenmodul": (),
     # Nur der Istwert. Ein Sollwert an der Stelle, an der beim Puffer die
     # zweite *gemessene* Temperatur steht, liest sich wie ein Messwert und
     # verwirrt mehr, als er nützt.
@@ -390,7 +385,12 @@ def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[
     for teil in teile:
         art = _art(teil.get("fct_type"))
         werte = _werte(teil["entitaeten"], art, kesselwert)
-        if werte:
+        # Das Pumpen-/Relaismodul wird auch ohne Messwert gezeichnet: Seine
+        # Kesseltemperatur misst bei einer Fernwärmeübergabe den Speicher auf
+        # der anderen Seite – im Schaubild sagt die Zahl nichts. Dass das Modul
+        # in der Leitung sitzt, muss man trotzdem sehen; seinen Zustand zeigen
+        # die Lampen.
+        if werte or art == "pumpenmodul":
             module.append(
                 {
                     "titel": teil["name"],
@@ -594,8 +594,11 @@ LADE_HYSTERESE = 2.0
 # oben, eine Betriebslampe rechts unten. Liegt eine Wärmeanforderung an,
 # blinken die Klemmen grün und die Betriebslampe wechselt von Rot auf Grün –
 # so sieht man am Bild selbst, dass gerade angefordert wird.
-ZSP_KLEMMEN = ((74, 164, 2.5), (88, 164, 2.5), (102, 164, 2.5), (116, 164, 2.5), (130, 164, 2.5))
-ZSP_BETRIEBSLAMPE = (136, 252, 4)
+# Die Radien sind größer als die gezeichneten Punkte darunter: Die grüne
+# Lampe muss die rote vollständig verdecken, sonst schimmert Rot am Rand
+# durch.
+ZSP_KLEMMEN = ((74, 164, 4), (88, 164, 4), (102, 164, 4), (116, 164, 4), (130, 164, 4))
+ZSP_BETRIEBSLAMPE = (136, 252, 6)
 
 
 # Arten, deren Pumpe dem Speicher Wärme entnimmt.
@@ -709,7 +712,9 @@ def anlagenschema(
     Anlagenteilen abgeleitet.
     """
     module = _module(teile, kesselwert)
-    if not module:
+    # Ein Bild aus lauter leeren Kästen hilft niemandem: Mindestens ein
+    # Anlagenteil muss etwas messen.
+    if not any(m["werte"] for m in module):
         return None
 
     if kesselart is None:
