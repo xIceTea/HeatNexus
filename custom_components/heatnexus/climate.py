@@ -17,6 +17,7 @@ from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import voluptuous as vol
 
@@ -33,6 +34,16 @@ MAX_TEMP = 30.0
 # Dauer des Komfort-Overrides in Minuten (so wie die Windhager-App: sie
 # schreibt 3/4 = Temperatur + 2/10 = Dauer; beobachtet wurden 180 min).
 OVERRIDE_DURATION_MIN = 180
+
+# Betriebswahl (3/50), in die für eine befristete Vorgabe geschaltet wird, wenn
+# der Kreis gerade aus ist. „Programm 1" ist das erste Heizprogramm und die
+# Voreinstellung der Anlage.
+HEIZPROGRAMM = 1
+
+# Merker für den Rücksprung. Er steht in den Attributen, damit er einen
+# Neustart von Home Assistant übersteht: Sonst bliebe ein Heizkreis, dessen
+# Vorgabe während des Neustarts abläuft, für immer im Heizprogramm stehen.
+ATTR_MODUS_DAVOR = "modus_vor_vorgabe"
 
 # Schneller Nachlade-Burst nach einer Climate-Bedienung: das Gerät übernimmt
 # sofort, der normale 30-s-Poll ist aber zu träge. Daher kurz hochfrequent nur
@@ -59,7 +70,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     async_setup_entities(hass, entry, async_add_entities, {"climate": WindhagerThermostatClimate})
 
 
-class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
+class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
     """Base class for Windhager thermostats."""
 
     # Das Thermostat ist die Hauptfunktion seines Geräts und trägt deshalb
@@ -107,6 +118,9 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
         # bis der Poll den neuen Wert bestätigt.
         self._optimistic_mode: int | None = None
         self._optimistic_mode_ts: float = 0.0
+        # Betriebswahl, in die nach Ablauf einer befristeten Vorgabe
+        # zurückgesprungen wird. None heißt: kein Rücksprung vorgemerkt.
+        self._modus_davor: int | None = None
         self._device_info = geraet_info(coordinator, device_info)
 
     @callback
@@ -135,7 +149,59 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
             expired = (now - self._optimistic_mode_ts) > OPTIMISTIC_MAX_AGE_S
             if confirmed or expired:
                 self._optimistic_mode = None
+        self._ruecksprung_pruefen()
         super()._handle_coordinator_update()
+
+    @callback
+    def _ruecksprung_pruefen(self) -> None:
+        """Nach Ablauf einer befristeten Vorgabe in den alten Modus zurück.
+
+        Vorgemerkt wird nur, wenn für die Vorgabe überhaupt umgeschaltet werden
+        musste – also aus Standby oder WW-Betrieb heraus.
+
+        Zurückgesprungen wird ausschließlich aus genau dem Heizprogramm, in das
+        umgeschaltet wurde. Hat jemand die Betriebswahl inzwischen selbst
+        verstellt, ist das eine Entscheidung; sie zu überschreiben wäre
+        übergriffig. Der Merker fällt dann einfach weg.
+        """
+        if self._modus_davor is None:
+            return
+        if self.raw_custom_temp_remaining_time() > 0:
+            return
+
+        roh = self.get_oid_value("/3/50/0")
+        jetzt = int(roh) if roh is not None else None
+        ziel, self._modus_davor = self._modus_davor, None
+        if jetzt != HEIZPROGRAMM:
+            _LOGGER.debug("Rücksprung entfällt: Betriebswahl steht auf %s", jetzt)
+            return
+
+        self._set_optimistic_mode(ziel)
+        self.hass.async_create_task(self._modus_schreiben(ziel))
+
+    async def _modus_schreiben(self, modus: int) -> None:
+        """Die Betriebswahl setzen; ein Fehler darf die Anzeige nicht zerreißen."""
+        try:
+            await self.client.update(f"{self._prefix}/3/50/0", str(modus))
+        except Exception as err:  # pragma: no cover - Gerätefehler
+            _LOGGER.warning("Rücksprung auf Betriebswahl %s fehlgeschlagen: %s", modus, err)
+
+    async def async_added_to_hass(self) -> None:
+        """Einen vorgemerkten Rücksprung über den Neustart hinweg übernehmen.
+
+        Ohne das bliebe ein Heizkreis, dessen Vorgabe während eines Neustarts
+        abläuft, für immer im Heizprogramm stehen.
+        """
+        await super().async_added_to_hass()
+        if (letzter := await self.async_get_last_state()) is None:
+            return
+        gemerkt = letzter.attributes.get(ATTR_MODUS_DAVOR)
+        if gemerkt is None:
+            return
+        try:
+            self._modus_davor = int(gemerkt)
+        except (TypeError, ValueError):
+            _LOGGER.debug("Vorgemerkter Modus %r unlesbar", gemerkt)
 
     @property
     def unique_id(self) -> str:
@@ -203,6 +269,8 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
         mode = self.raw_selected_mode()
         if mode is not None:
             attrs["betriebswahl"] = mode
+        if self._modus_davor is not None:
+            attrs[ATTR_MODUS_DAVOR] = self._modus_davor
         return attrs
 
     # ------------------------------------------------------------------
@@ -290,14 +358,24 @@ class WindhagerBaseThermostat(CoordinatorEntity, ClimateEntity):
         if temp is None:
             raise WindhagerValueError("No temperature provided")
 
-        # Im Aus/WW-Betrieb ist der Heizkreis aus -> ein Sollwert hätte keine
-        # Wirkung (das Gerät würde nur den Timer setzen, die Temperatur nicht
-        # übernehmen). Klar zurückmelden statt still "zurückspringen".
+        # Im Aus/WW-Betrieb ist der Heizkreis aus: Das Gerät setzt dann nur den
+        # Timer und übernimmt die Temperatur nicht. Bis 1.3.1 wurde der Versuch
+        # deshalb abgelehnt – nur hilft das niemandem, der aus dem WW-Betrieb
+        # heraus kurz heizen will. Stattdessen wird für die Dauer der Vorgabe
+        # in ein Heizprogramm geschaltet und danach zurückgesprungen.
         mode = self.raw_selected_mode()
-        if mode is None or mode in self.OFF_MODES:
+        if mode is None:
             raise WindhagerValueError(
-                "Sollwert kann im aktuellen Modus (Aus/WW-Betrieb) nicht gesetzt "
-                "werden – bitte zuerst einen Heizmodus wählen."
+                "Betriebswahl unbekannt – bitte warten, bis die Anlage gelesen ist."
+            )
+        if mode in self.OFF_MODES:
+            self._modus_davor = mode
+            self._set_optimistic_mode(HEIZPROGRAMM)
+            await self.client.update(f"{self._prefix}/3/50/0", str(HEIZPROGRAMM))
+            _LOGGER.debug(
+                "Vorgabe aus Modus %s: schalte auf Programm %s, Rücksprung vorgemerkt",
+                mode,
+                HEIZPROGRAMM,
             )
 
         temp = max(MIN_TEMP, min(MAX_TEMP, float(temp)))

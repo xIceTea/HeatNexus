@@ -3141,10 +3141,19 @@ class HeatNexusPanel extends HTMLElement {
     this._pruefeWartende();
   }
 
-  /** Die Anzeige nach kurzer Zeit wieder dem Zustand überlassen. */
+  /**
+   * Die Anzeige nach kurzer Zeit wieder dem Zustand überlassen.
+   *
+   * Der Text wird hier gelöscht, nicht von den Bindungen. Nur die wenigsten
+   * schreiben die Zeile ohnehin neu – bei den übrigen blieb „übernommen ✓"
+   * für immer stehen, zuletzt beim Abbrechen einer Vorgabe. Wer die Zeile
+   * besitzt, füllt sie im gleich folgenden `_aktualisieren` wieder.
+   */
   _freigeben(anzeige, verzoegerung) {
     window.setTimeout(() => {
       delete anzeige.dataset.belegt;
+      anzeige.className = "rueckmeldung";
+      anzeige.textContent = "";
       this._aktualisieren();
     }, verzoegerung);
   }
