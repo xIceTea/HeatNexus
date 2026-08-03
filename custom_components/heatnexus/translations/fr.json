@@ -115,14 +115,16 @@
           "enable_advanced": "Activer immédiatement les niveaux Service/Usine",
           "writable_advanced": "Rendre modifiables les paramètres Service/Usine",
           "username": "Accès",
-          "kesselart": "Générateur de chaleur (schéma)"
+          "kesselart": "Générateur de chaleur (schéma)",
+          "kesselwert": "Valeur de la chaudière (schéma)"
         },
         "data_description": {
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
           "enable_advanced": "Sans coche, les entités sont créées mais restent désactivées.",
           "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule.",
           "username": "USER voit les niveaux info et exploitant, Service en plus les paramètres spécialisés. Un changement relit l'installation.",
-          "kesselart": "Quel appareil le schéma de l'installation dessine. N'affecte que le dessin – aucune entité, aucune valeur ne change."
+          "kesselart": "Quel appareil le schéma de l'installation dessine. N'affecte que le dessin – aucune entité, aucune valeur ne change.",
+          "kesselwert": "Quelle deuxième valeur figure sur la chaudière. Le lit de braises suit toujours la puissance ; à défaut, il se règle sur la température de la chambre de combustion."
         }
       }
     }
@@ -145,6 +147,12 @@
         "waermepumpe": "Pompe à chaleur",
         "gas_oel": "Chaudière gaz ou fioul",
         "standard": "Neutre (sans référence au combustible)"
+      }
+    },
+    "kesselwert": {
+      "options": {
+        "leistung": "Puissance de la chaudière",
+        "brennkammer": "Température de la chambre de combustion"
       }
     }
   },

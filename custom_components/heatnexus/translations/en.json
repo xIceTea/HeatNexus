@@ -115,14 +115,16 @@
           "enable_advanced": "Enable service/factory level right away",
           "writable_advanced": "Allow writing service/factory parameters",
           "username": "Access",
-          "kesselart": "Heat generator (diagram)"
+          "kesselart": "Heat generator (diagram)",
+          "kesselwert": "Boiler value (diagram)"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
-          "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes."
+          "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes.",
+          "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature."
         }
       }
     }
@@ -145,6 +147,12 @@
         "waermepumpe": "Heat pump",
         "gas_oel": "Gas or oil boiler",
         "standard": "Neutral (no fuel reference)"
+      }
+    },
+    "kesselwert": {
+      "options": {
+        "leistung": "Boiler output",
+        "brennkammer": "Combustion chamber temperature"
       }
     }
   },

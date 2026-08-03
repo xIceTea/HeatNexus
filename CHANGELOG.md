@@ -6,6 +6,14 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.0-beta.9] - 2026-08-03
+
+### Behoben
+
+- **In den Optionen stand „kesselwert" als roher Schlüssel.** Die Einstellung
+  heißt jetzt *Kesselwert (Schaubild)*, ihre beiden Auswahlmöglichkeiten
+  *Kesselleistung* und *Brennkammertemperatur* – in allen drei Sprachen.
+
 ## [1.3.0-beta.8] - 2026-08-03
 
 ### Behoben
