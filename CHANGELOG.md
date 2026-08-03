@@ -6,6 +6,35 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.2.0] - 2026-08-02
+
+Erste ausgereifte Fassung der eigenen Oberfläche. Inhaltlich entspricht sie
+`1.2.0-beta.5`; die Abschnitte der fünf Vorabversionen darunter führen jede
+Änderung einzeln auf.
+
+### Hinzugefügt
+
+- **Das Anlagenschaubild ist gezeichnet statt skizziert.** Kessel, Puffer,
+  Heizkreis, Solaranlage und Pumpenmodul haben eigene Zeichnungen; das Bild
+  entsteht aus dem, was die Anlage meldet.
+- **Auswahl des Wärmeerzeugers je Anlage**, falls die Erkennung danebenliegt.
+- **21 zusätzliche Datenpunkte**, die die Anlagen liefern, sind nicht mehr auf
+  der Werksebene versteckt.
+- **Alle Datenpunkte und Auswahlwerte stehen als Dokument bereit.**
+
+### Geändert
+
+- **Neue Anordnung der Übersicht**, der Verlauf darin zugeklappt.
+- **Die Oberfläche startet in der Ansicht „Alle"**, wenn es mehrere Anlagen gibt.
+
+### Behoben
+
+- Die Oberfläche erschien nach einer Aktualisierung erst nach `Strg`+`Umschalt`+`R`.
+- Die in den Optionen gewählte Außentemperatur überschrieb den Fühler jeder Anlage.
+- Die Funktionsliste eines Knotens wurde als Zeitprogramm angelegt.
+- Die Integration ließ sich zeitweise gar nicht mehr einrichten.
+- Mehrere Funktionstypen waren falsch zugeordnet.
+
 ## [1.2.0-beta.5] - 2026-08-02
 
 ### Behoben
