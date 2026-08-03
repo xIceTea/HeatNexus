@@ -138,11 +138,11 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
     # kann eine Pumpe regeln, eine externe Wärmeanforderung entgegennehmen oder
     # einen Sammelalarm schalten – was davon, sagt `29/0..29/3`.
     "pumpenmodul": (
-        (ANALOG_SOLLWERT, "Anforderung"),
         # Beide Schreibweisen: „Kesseltemperatur" ist der Herstellername, den
         # HeatNexus ab 1.3.0-beta.4 benutzt, „Temperatur Ist" der bis dahin
         # vergebene – der steht noch in jedem gespeicherten Erkennungsstand.
         (r"^kesseltemperatur$|^temperatur ist$", "Temperatur"),
+        (r"r(ü|ue)cklauf temperatur", "Rücklauf"),
     ),
     # Nur der Istwert. Ein Sollwert an der Stelle, an der beim Puffer die
     # zweite *gemessene* Temperatur steht, liest sich wie ein Messwert und
@@ -582,9 +582,6 @@ MISCHER_MARKE = 26
 # `WERT_HOEHEN["puffer"]` setzt sie auf 168 und 258.
 SPEICHER_Y = 213
 
-# Unter den beiden Werten des Pumpen-/Relaismoduls (186 und 246) ist Platz
-# für den Hinweis auf eine anstehende Wärmeanforderung.
-ANFORDERUNG_Y = 282
 
 # Arten, deren Pumpe dem Speicher Wärme entnimmt.
 ENTNAHME_ARTEN = ("heizkreis", "wasser", "zirkulation", "pumpenmodul")
@@ -710,7 +707,6 @@ def anlagenschema(
     brenner: list[dict[str, Any]] = []
     mischer: list[dict[str, Any]] = []
     speicher: list[dict[str, Any]] = []
-    anforderung: list[dict[str, Any]] = []
     for platz, modul in enumerate(module):
         x = RAND + platz * MODUL_BREITE
         elemente += _beschriftungen(x, modul, breite)
@@ -735,24 +731,6 @@ def anlagenschema(
                     "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
                 }
             )
-        # Wärmeanforderung des Pumpen-/Relaismoduls: Steht der Analog-Sollwert
-        # über null, fordert das Modul gerade Wärme an – und mit welcher
-        # Temperatur.
-        if modul["art"] == "pumpenmodul":
-            soll = next(
-                (w for w in modul["werte"] if w.get("beschriftung") == "Anforderung"),
-                None,
-            )
-            if soll is not None:
-                mitte = x + MODUL_BREITE // 2
-                anforderung.append(
-                    {
-                        "entity": soll["entity_id"],
-                        "left": f"{mitte / breite * 100:.2f}%",
-                        "top": f"{ANFORDERUNG_Y / HOEHE * 100:.2f}%",
-                        "titel": modul["titel"],
-                    }
-                )
         # Der Mischer zeigt seine Stellung, nicht Bewegung: Ein dauernd
         # drehendes Ventil läse sich wie eine Pumpe, und die dreht sich im
         # Bild schon. Der Anzeiger schwenkt, das Stück Vorlauf darüber färbt
@@ -839,6 +817,4 @@ def anlagenschema(
         "mischer": mischer,
         # Ob der Puffer gerade beladen oder entleert wird.
         "speicher": speicher,
-        # Liegt am Pumpen-/Relaismodul gerade eine Wärmeanforderung an.
-        "anforderung": anforderung,
     }

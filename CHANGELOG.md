@@ -6,6 +6,21 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.0-beta.8] - 2026-08-03
+
+### Behoben
+
+- **Der Analog-Sollwert ist wieder aus dem Schaubild verschwunden.** In
+  1.3.0-beta.7 stand er dort vorn; im Schaubild sagt eine Zahl an dieser Stelle
+  aber nichts aus. Das Pumpen-/Relaismodul zeigt dort wieder seine gemessene
+  Temperatur.
+- **Stattdessen steht die Anforderung in der Heizungsübersicht.** Fordert das
+  Modul gerade Wärme an – Analog-Sollwert über null –, steht dort
+  *Soll … | Ist …* statt nur der gemessenen Temperatur. Ohne Anforderung
+  bleibt der Sollwert weg; er sagt dann nichts.
+- **Die Abbrechen-Taste ist rot.** *Warmwasser laden abbrechen* sah aus wie
+  jede andere Taste.
+
 ## [1.3.0-beta.7] - 2026-08-03
 
 ### Neu

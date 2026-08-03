@@ -1640,7 +1640,7 @@ class HeatNexusPanel extends HTMLElement {
    * Kennwertzeile wie im Muster: links Anlagenteil, rechts der große Wert und
    * darunter klein, worum es sich handelt („Kesseltemperatur").
    */
-  _wertzeile(entity, titel, bezeichnung, symbol) {
+  _wertzeile(entity, titel, bezeichnung, symbol, soll) {
     const zeile = document.createElement("div");
     zeile.className = "zeile";
     if (symbol) zeile.appendChild(this._symbolKnoten(symbol));
@@ -1662,7 +1662,16 @@ class HeatNexusPanel extends HTMLElement {
 
     zeile.append(text, rechts);
     this._bindungen.push(() => {
-      wert.textContent = this._text(entity);
+      // Fordert das Anlagenteil gerade Wärme an, steht der Sollwert daneben.
+      // Ohne Anforderung ist er nichtssagend und bleibt weg.
+      const angefordert = soll ? this._zahl(soll) : null;
+      if (angefordert !== null && angefordert > 0) {
+        wert.textContent = `Soll ${this._text(soll)}`;
+        unten.textContent = `Ist ${this._text(entity)}`;
+      } else {
+        wert.textContent = this._text(entity);
+        unten.textContent = bezeichnung || "";
+      }
       // Lange Texte („Betriebsbereit") umbrechen statt zu schrumpfen.
       wert.classList.toggle("lang", wert.textContent.length > 8);
     });
@@ -2822,10 +2831,9 @@ class HeatNexusPanel extends HTMLElement {
       const an = laeuft();
       taste.classList.toggle("an", an);
       // Läuft die Ladung, sagt die Taste, was ein Druck jetzt bewirkt.
-      beschriftung.textContent =
-        an && eintrag.titel_abbrechen && eintrag.betriebswahl
-          ? eintrag.titel_abbrechen
-          : eintrag.titel;
+      const abbrechbar = an && !!eintrag.titel_abbrechen && !!eintrag.betriebswahl;
+      beschriftung.textContent = abbrechbar ? eintrag.titel_abbrechen : eintrag.titel;
+      taste.classList.toggle("abbrechen", abbrechbar);
       // Solange eine Übertragung läuft, gehört die Zeile der Rückmeldung.
       if (rueckmeldung.dataset.belegt === "1") return;
       rueckmeldung.className = "rueckmeldung";

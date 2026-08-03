@@ -58,7 +58,7 @@ from .dashboard import (
     _passt,
     rueckfrage,
 )
-from .schema import anlagenschema
+from .schema import ANALOG_SOLLWERT, anlagenschema
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -619,14 +619,21 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         vorlage = KENNWERT_JE_FCT.get(teil.get("fct_type")) or KENNWERT
         for muster, beschriftung, symbol in vorlage:
             if (treffer := _erster(teil["entitaeten"], muster)) is not None:
-                kennwerte.append(
-                    {
-                        "entity": treffer["entity_id"],
-                        "titel": teil["name"],
-                        "untertitel": beschriftung,
-                        "symbol": symbol,
-                    }
-                )
+                eintrag = {
+                    "entity": treffer["entity_id"],
+                    "titel": teil["name"],
+                    "untertitel": beschriftung,
+                    "symbol": symbol,
+                }
+                # Das Pumpen-/Relaismodul zeigt zusätzlich, mit welcher
+                # Temperatur es gerade Wärme anfordert. Über null steht dann
+                # „Soll … | Ist …" statt nur der gemessenen Temperatur – ohne
+                # Anforderung ist der Sollwert nichtssagend und bleibt weg.
+                if teil.get("fct_type") == 20:
+                    eintrag["soll"] = _kennung(
+                        teil["entitaeten"], _muster(ANALOG_SOLLWERT), ("sensor",)
+                    )
+                kennwerte.append(eintrag)
                 break
 
     heizkreise = []
