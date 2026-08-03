@@ -11,44 +11,44 @@
 </defs>
 
 <!-- Vorratsbehälter links, unten trichterförmig -->
-<path d="M 22 140 L 56 140 L 56 250 L 45 274 L 33 274 L 22 250 Z"
+<path d="M 2 140 L 36 140 L 36 250 L 25 274 L 13 274 L 2 250 Z"
       fill="{{korpus}}" stroke="{{rahmen}}" stroke-width="2"/>
 <!-- Füllstand -->
-<path d="M 24 186 L 54 186 L 54 249 L 44 272 L 34 272 L 24 249 Z"
+<path d="M 4 186 L 34 186 L 34 249 L 24 272 L 14 272 L 4 249 Z"
       fill="{{titel}}" opacity="0.16"/>
 <g fill="{{titel}}" opacity="0.5">
-  <rect x="30" y="196" width="9" height="4" rx="2"/>
-  <rect x="42" y="204" width="9" height="4" rx="2"/>
-  <rect x="30" y="214" width="9" height="4" rx="2"/>
-  <rect x="41" y="224" width="9" height="4" rx="2"/>
-  <rect x="32" y="234" width="9" height="4" rx="2"/>
+  <rect x="10" y="196" width="9" height="4" rx="2"/>
+  <rect x="22" y="204" width="9" height="4" rx="2"/>
+  <rect x="10" y="214" width="9" height="4" rx="2"/>
+  <rect x="21" y="224" width="9" height="4" rx="2"/>
+  <rect x="12" y="234" width="9" height="4" rx="2"/>
 </g>
 
 <!-- Kesselkörper -->
-<rect x="64" y="120" width="112" height="174" rx="14" fill="url(#gehaeuse)"
+<rect x="44" y="120" width="112" height="174" rx="14" fill="url(#gehaeuse)"
       stroke="{{rahmen}}" stroke-width="2"/>
 
 <!-- Bedienteil -->
-<rect x="76" y="134" width="88" height="26" rx="6" fill="{{korpus_dunkel}}"
+<rect x="56" y="134" width="88" height="26" rx="6" fill="{{korpus_dunkel}}"
       stroke="{{rahmen}}" stroke-width="1"/>
-<rect x="84" y="142" width="44" height="10" rx="5" fill="{{titel}}" opacity="0.25"/>
-<circle cx="152" cy="147" r="4" fill="{{glut}}" opacity="0.8"/>
+<rect x="64" y="142" width="44" height="10" rx="5" fill="{{titel}}" opacity="0.25"/>
+<circle cx="132" cy="147" r="4" fill="{{glut}}" opacity="0.8"/>
 
 <!-- Wärmetauscher -->
 <g fill="{{korpus_dunkel}}" opacity="0.8">
-  <rect x="82" y="172" width="9" height="46" rx="4"/>
-  <rect x="100" y="172" width="9" height="46" rx="4"/>
-  <rect x="118" y="172" width="9" height="46" rx="4"/>
-  <rect x="136" y="172" width="9" height="46" rx="4"/>
-  <rect x="154" y="172" width="9" height="46" rx="4"/>
+  <rect x="62" y="172" width="9" height="46" rx="4"/>
+  <rect x="80" y="172" width="9" height="46" rx="4"/>
+  <rect x="98" y="172" width="9" height="46" rx="4"/>
+  <rect x="116" y="172" width="9" height="46" rx="4"/>
+  <rect x="134" y="172" width="9" height="46" rx="4"/>
 </g>
 
 <!-- Brennertopf -->
-<rect x="76" y="230" width="88" height="52" rx="8" fill="{{korpus_dunkel}}"
+<rect x="56" y="230" width="88" height="52" rx="8" fill="{{korpus_dunkel}}"
       stroke="{{rahmen}}" stroke-width="1.5"/>
-<path d="M 100 274 L 140 274 L 134 246 L 106 246 Z" fill="url(#glutbett)"/>
-<rect x="100" y="270" width="40" height="6" rx="3" fill="{{glut}}"/>
+<path d="M 80 274 L 120 274 L 114 246 L 86 246 Z" fill="url(#glutbett)"/>
+<rect x="80" y="270" width="40" height="6" rx="3" fill="{{glut}}"/>
 
 <!-- Förderschnecke vom Behälter in den Brennertopf -->
-<path d="M 45 250 L 45 268 L 76 268" fill="none" stroke="{{rahmen}}" stroke-width="4"
+<path d="M 25 250 L 25 268 L 56 268" fill="none" stroke="{{rahmen}}" stroke-width="4"
       stroke-linecap="round" stroke-linejoin="round"/>

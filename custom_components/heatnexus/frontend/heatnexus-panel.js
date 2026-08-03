@@ -377,6 +377,56 @@ const STIL = `
   /* --- Schaubild ------------------------------------------------------- */
   .schaubild { width: 100%; position: relative; }
   .schaubild img { width: 100%; display: block; border-radius: 12px; }
+
+  /* --- Bewegung im Schaubild ------------------------------------------- */
+  /* Das Bild selbst ist eine Daten-URL in einem <img> und kennt keine
+     Zustände aus Home Assistant. Bewegung entsteht deshalb als eigene Ebene
+     darüber, genau wie schon bei den Pumpen.
+
+     Bewegt wird ausschließlich die Hintergrundposition – das läuft im
+     Compositor und kostet kein Neuzeichnen. */
+  .schaubild .fluss {
+    position: absolute; height: 6px; transform: translateY(-50%);
+    border-radius: 3px; pointer-events: none;
+    opacity: 0; transition: opacity 0.4s ease;
+    background-repeat: repeat-x;
+    background-size: 26px 6px;
+  }
+  .schaubild .fluss.laeuft { opacity: 1; animation: stroemen 1.1s linear infinite; }
+  .schaubild .fluss.vorlauf {
+    background-image: linear-gradient(
+      90deg, rgba(255, 214, 194, 0) 0%, rgba(255, 214, 194, 0.85) 45%,
+      rgba(255, 214, 194, 0) 70%);
+  }
+  .schaubild .fluss.ruecklauf {
+    background-image: linear-gradient(
+      90deg, rgba(198, 224, 255, 0) 0%, rgba(198, 224, 255, 0.85) 45%,
+      rgba(198, 224, 255, 0) 70%);
+  }
+  /* Der Rücklauf fließt zum Kessel zurück, also andersherum. */
+  .schaubild .fluss.ruecklauf.laeuft { animation-direction: reverse; }
+  @keyframes stroemen {
+    from { background-position: 0 0; }
+    to { background-position: 26px 0; }
+  }
+
+  .schaubild .glut {
+    position: absolute; height: 26px; transform: translate(-50%, -50%);
+    border-radius: 13px; pointer-events: auto; cursor: pointer;
+    opacity: 0; transition: opacity 0.6s ease;
+    background: radial-gradient(
+      ellipse at center, #ffb347 0%, #e2543a 45%, rgba(226, 84, 58, 0) 75%);
+  }
+  .schaubild .glut.brennt { animation: glimmen 2.6s ease-in-out infinite; }
+  @keyframes glimmen {
+    0%, 100% { filter: brightness(0.85); }
+    50% { filter: brightness(1.25); }
+  }
+
+  /* Wer Bewegung abbestellt hat, bekommt den Zustand als ruhige Farbe. */
+  @media (prefers-reduced-motion: reduce) {
+    .schaubild .fluss.laeuft, .schaubild .glut.brennt { animation: none; }
+  }
   .schaubild .pumpe {
     position: absolute; transform: translate(-50%, -50%);
     width: 30px; height: 30px; border-radius: 50%;
@@ -653,6 +703,15 @@ class HeatNexusPanel extends HTMLElement {
       }
     });
     return element;
+  }
+
+  /** Ob an dieser Anlage gerade irgendeine Pumpe fördert. */
+  _foerdertEtwas(anlage) {
+    return (anlage.schema_pumpen || []).some((eintrag) => {
+      // Manche Pumpen melden keinen Zustand, sondern ihre Drehzahl.
+      const zahl = this._zahl(eintrag.entity);
+      return zahl !== null ? zahl > 0 : this._istAn(eintrag.entity);
+    });
   }
 
   _stoerung(anlage) {
@@ -1556,6 +1615,41 @@ class HeatNexusPanel extends HTMLElement {
     bild.alt = "Anlagenschaubild";
     huelle.appendChild(bild);
 
+    // Strömung: zwei Bänder auf Vor- und Rücklauf. Sie laufen, solange
+    // irgendeine Pumpe der Anlage fördert – steht alles, steht auch das Bild.
+    const leitungen = anlage.schema_leitungen;
+    if (leitungen) {
+      ["vorlauf", "ruecklauf"].forEach((richtung) => {
+        const band = document.createElement("div");
+        band.className = `fluss ${richtung}`;
+        band.style.left = leitungen.left;
+        band.style.width = leitungen.width;
+        band.style.top = leitungen[`${richtung}_top`];
+        huelle.appendChild(band);
+        this._bindungen.push(() => {
+          band.classList.toggle("laeuft", this._foerdertEtwas(anlage));
+        });
+      });
+    }
+
+    // Glutbett im Kessel. Die Helligkeit folgt der Leistung: Bei 30 % glimmt
+    // es, bei Volllast leuchtet es.
+    (anlage.schema_brenner || []).forEach((eintrag) => {
+      const glut = document.createElement("div");
+      glut.className = "glut";
+      glut.style.left = eintrag.left;
+      glut.style.top = eintrag.top;
+      glut.style.width = eintrag.breite;
+      huelle.appendChild(this._klickbar(glut, eintrag.entity));
+      this._bindungen.push(() => {
+        const leistung = this._zahl(eintrag.entity);
+        const brennt = leistung !== null && leistung > 0;
+        glut.classList.toggle("brennt", brennt);
+        glut.style.opacity = brennt ? String(0.35 + Math.min(leistung, 100) / 100 * 0.65) : "0";
+        glut.title = `${eintrag.titel} – ${brennt ? `${leistung} %` : "aus"}`;
+      });
+    });
+
     (anlage.schema_werte || []).forEach((eintrag) => {
       const marke = document.createElement("div");
       marke.className = "marke-wert";
@@ -1563,7 +1657,11 @@ class HeatNexusPanel extends HTMLElement {
       marke.style.top = eintrag.top;
       huelle.appendChild(this._klickbar(marke, eintrag.entity));
       this._bindungen.push(() => {
-        marke.textContent = this._text(eintrag.entity);
+        // Ohne Wert keine Marke: Ein „–" mitten im Heizkörper sah aus wie ein
+        // Symbol und nicht wie ein fehlender Messwert.
+        const da = this._hatWert(eintrag.entity);
+        marke.hidden = !da;
+        marke.textContent = da ? this._text(eintrag.entity) : "";
       });
     });
 

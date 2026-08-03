@@ -483,6 +483,32 @@ def _rohre(breite: int) -> str:
 # zeichnen bei 0…MODUL_BREITE; erst das Gesamtbild schiebt sie an ihren Platz.
 MITTE = MODUL_BREITE // 2
 
+# Ober- und Unterkante der Bauteilzeichnung je Art.
+#
+# Die Anschlussstutzen reichen bis dorthin. Vorher waren sie fest 30 Bildpunkte
+# lang, die Bauteile fangen aber verschieden hoch an: Beim Pumpenmodul (y=150)
+# endete der Stutzen bei 122 und darunter klaffte ein Loch, beim Kessel (y=120)
+# lag er richtig. Ein paar Punkte zu tief schadet nichts – der Stutzen wird vor
+# dem Bauteil gezeichnet und verschwindet dahinter.
+KANTEN_JE_ART: dict[str, tuple[int, int]] = {
+    "kessel": (126, 288),
+    "puffer": (116, 296),
+    "heizkreis": (132, 278),
+    "wasser": (124, 292),
+    "zirkulation": (148, 264),
+    "pumpenmodul": (150, 266),
+    "solar": (158, 244),
+    "umschaltung": (132, 284),
+    "modul": (132, 280),
+}
+KANTEN_STANDARD = (126, 288)
+
+# Lage des Glutbetts im Kessel. Dort legt die Oberfläche einen Schein darüber,
+# solange der Kessel Leistung bringt. Die Werte stammen aus den Zeichnungen
+# `kessel-*.svg`, in denen der Brennraum bei y = 230…282 sitzt.
+GLUTBETT_Y = 258
+GLUTBETT_BREITE = 76
+
 
 def _ersatzform(art: str) -> str:
     """Gezeichnete Form, wenn es für ein Anlagenteil keine Datei gibt.
@@ -513,10 +539,11 @@ def _kasten(x: int, platz: int, modul: dict[str, Any], kesselart: str | None) ->
     if inhalt is None:
         inhalt = _ersatzform(art)
 
+    oben, unten = KANTEN_JE_ART.get(art, KANTEN_STANDARD)
     anschluss = (
-        f'<rect x="{MITTE - 2}" y="{VORLAUF_Y}" width="4" height="30" '
+        f'<rect x="{MITTE - 2}" y="{VORLAUF_Y}" width="4" height="{oben - VORLAUF_Y}" '
         f'fill="{FARBE_VORLAUF}" opacity="0.7"/>'
-        f'<rect x="{MITTE - 2}" y="{RUECKLAUF_Y - 30}" width="4" height="30" '
+        f'<rect x="{MITTE - 2}" y="{unten}" width="4" height="{RUECKLAUF_Y - unten}" '
         f'fill="{FARBE_RUECKLAUF}" opacity="0.7"/>'
     )
     # Größer als die Messwerte darüber: Der Name des Anlagenteils ist das
@@ -598,6 +625,7 @@ def anlagenschema(
 
     elemente: list[dict[str, Any]] = []
     pumpen: list[dict[str, Any]] = []
+    brenner: list[dict[str, Any]] = []
     for platz, modul in enumerate(module):
         x = RAND + platz * MODUL_BREITE
         elemente += _beschriftungen(x, modul, breite)
@@ -612,12 +640,44 @@ def anlagenschema(
                     "titel": modul["titel"],
                 }
             )
+        # Der Wärmeerzeuger bekommt ein Glutbett, das mitgeht, solange er
+        # Leistung bringt. Maßgeblich ist die Kesselleistung: Die Betriebsphase
+        # heißt auf jeder Baureihe anders, eine Zahl über null nicht.
+        if modul["art"] == "kessel":
+            leistung = next(
+                (w for w in modul["werte"] if w.get("beschriftung") == "Leistung"),
+                None,
+            )
+            if leistung is not None:
+                mitte = x + MODUL_BREITE // 2
+                brenner.append(
+                    {
+                        "entity": leistung["entity_id"],
+                        "left": f"{mitte / breite * 100:.2f}%",
+                        "top": f"{GLUTBETT_Y / HOEHE * 100:.2f}%",
+                        "breite": f"{GLUTBETT_BREITE / breite * 100:.2f}%",
+                        "titel": modul["titel"],
+                    }
+                )
+
+    # Lage der beiden Leitungen in Prozent des Bildes. Die Oberfläche legt
+    # darüber eine bewegte Ebene: Ein Bild als Daten-URL kennt keine Zustände
+    # aus Home Assistant, es kann also nicht selbst anzeigen, ob etwas fließt.
+    leitungen = {
+        "left": f"{RAND / breite * 100:.2f}%",
+        "width": f"{(breite - 2 * RAND) / breite * 100:.2f}%",
+        "vorlauf_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
+        "ruecklauf_top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
+    }
 
     return {
         "type": "picture-elements",
         "image": f"data:image/svg+xml;base64,{daten}",
         "elements": elemente,
+        "leitungen": leitungen,
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht
         # drehen. Sie werden als eigene Marken darübergelegt.
         "pumpen": pumpen,
+        # Ebenso das Glutbett der Wärmeerzeuger.
+        "brenner": brenner,
     }

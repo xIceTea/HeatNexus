@@ -705,6 +705,10 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
             else []
         ),
         "schema_pumpen": bild.get("pumpen", []) if bild else [],
+        # Bewegung im Schaubild: die Leitungen strömen, solange eine Pumpe
+        # läuft, das Glutbett glimmt, solange der Kessel Leistung bringt.
+        "schema_leitungen": bild.get("leitungen") if bild else None,
+        "schema_brenner": bild.get("brenner", []) if bild else [],
     }
 
 

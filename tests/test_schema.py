@@ -384,3 +384,99 @@ def test_zsp_meldet_seine_pumpe_ueber_die_drehzahl(schema):
         [("sensor.t", "Temperatur Ist"), ("sensor.dz", "Pumpendrehzahl")],
     )
     assert schema._module([zsp])[0]["pumpe"] == "sensor.dz"
+
+
+# ---------------------------------------------------------------------------
+# Ausrichtung der Zeichnungen
+#
+# Die Anschlussstutzen sitzen bei x = MITTE. Steht der Korpus eines Bauteils
+# daneben, hängt das Rohr sichtbar schief am Kessel – genau das war bis
+# 1.3.0-beta.2 bei Hackgut (Mitte 108) und Pellets (Mitte 120) der Fall.
+# Beiwerk wie Einschubschnecke, Vorratsbehälter oder Sonne darf ausscheren;
+# geprüft wird deshalb der größte Rechteckkorpus, nicht die ganze Hülle.
+# ---------------------------------------------------------------------------
+_RECHTECK = re.compile(
+    r'<rect[^>]*?x="(-?[\d.]+)"[^>]*?y="(-?[\d.]+)"'
+    r'[^>]*?width="([\d.]+)"[^>]*?height="([\d.]+)"'
+)
+
+
+def _korpus(inhalt: str) -> tuple[float, float, float, float]:
+    """Das flächengrößte Rechteck einer Bauteilzeichnung."""
+    kandidaten = [
+        (float(x), float(y), float(b), float(h)) for x, y, b, h in _RECHTECK.findall(inhalt)
+    ]
+    assert kandidaten, "keine Rechtecke in der Zeichnung"
+    return max(kandidaten, key=lambda r: r[2] * r[3])
+
+
+@pytest.mark.parametrize(
+    "datei",
+    ["kessel.svg", "kessel-hackgut.svg", "kessel-pellets.svg", "kessel-scheitholz.svg"],
+)
+def test_kesselkoerper_steht_mittig_ueber_dem_anschluss(schema, datei):
+    x, _y, breite, _h = _korpus(schema._bauteil(datei))
+    assert x + breite / 2 == pytest.approx(schema.MITTE, abs=1), (
+        f"{datei}: Korpusmitte {x + breite / 2}, erwartet {schema.MITTE}"
+    )
+
+
+def _senkrechte_huelle(inhalt: str) -> tuple[float, float]:
+    """Oberste und unterste gezeichnete Kante einer Bauteilzeichnung."""
+    ys: list[float] = []
+    for _x, y, _b, hoehe in _RECHTECK.findall(inhalt):
+        ys += [float(y), float(y) + float(hoehe)]
+    for cy, r in re.findall(r'<circle[^>]*?cy="(-?[\d.]+)"[^>]*?r="([\d.]+)"', inhalt):
+        ys += [float(cy) - float(r), float(cy) + float(r)]
+    for y in re.findall(r"[ML] -?[\d.]+ (-?[\d.]+)", inhalt):
+        ys.append(float(y))
+    assert ys, "keine Formen in der Zeichnung"
+    return min(ys), max(ys)
+
+
+def test_anschluesse_reichen_bis_an_das_bauteil(schema):
+    """Kein Loch zwischen Leitung und Bauteil.
+
+    Beim Pumpenmodul begann die Zeichnung erst bei y = 150, der Stutzen endete
+    aber schon bei 122 – dazwischen klaffte sichtbar nichts. Geprüft wird gegen
+    die äußerste gezeichnete Kante: Reicht der Stutzen bis dorthin, kann keine
+    Lücke mehr entstehen. Dass er ein Stück in das Bauteil hineinragt, ist
+    unschädlich – er wird davor gezeichnet und verschwindet dahinter.
+    """
+    for art, (oben, unten) in schema.KANTEN_JE_ART.items():
+        inhalt = schema._bauteil(f"{art}.svg")
+        assert inhalt is not None, f"{art}.svg fehlt"
+        erste, letzte = _senkrechte_huelle(inhalt)
+        assert oben >= erste, f"{art}: Vorlaufstutzen endet bei {oben}, Bauteil beginnt bei {erste}"
+        assert unten <= letzte, (
+            f"{art}: Rücklaufstutzen beginnt bei {unten}, Bauteil endet bei {letzte}"
+        )
+        assert schema.VORLAUF_Y < oben < unten < schema.RUECKLAUF_Y, f"{art}: Kanten vertauscht"
+
+
+def test_schaubild_liefert_die_lage_der_leitungen(schema, anlage):
+    """Die Oberfläche legt die Strömung als eigene Ebene darüber."""
+    karte = schema.anlagenschema(anlage)
+    leitungen = karte["leitungen"]
+    for feld in ("left", "width", "vorlauf_top", "ruecklauf_top"):
+        assert leitungen[feld].endswith("%")
+    assert float(leitungen["vorlauf_top"].rstrip("%")) < float(
+        leitungen["ruecklauf_top"].rstrip("%")
+    )
+
+
+def test_waermeerzeuger_meldet_sein_glutbett(schema, anlage):
+    """Das Glutbett hängt an der Kesselleistung, nicht an der Betriebsphase.
+
+    Die Betriebsphase heißt auf jeder Baureihe anders; eine Zahl über null
+    nicht.
+    """
+    brenner = schema.anlagenschema(anlage)["brenner"]
+    assert [e["entity"] for e in brenner] == ["sensor.leistung"]
+    assert brenner[0]["titel"] == "PuroWIN"
+
+
+def test_ohne_leistungswert_kein_glutbett(schema):
+    """Meldet ein Kessel keine Leistung, bleibt das Bild ruhig."""
+    teile = [_teil("Fremdkessel", 6, [("sensor.kessel_ist", "Kesseltemperatur Ist")])]
+    assert schema.anlagenschema(teile)["brenner"] == []

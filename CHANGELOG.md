@@ -6,6 +6,45 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.0-beta.3] - 2026-08-03
+
+### Neu
+
+- **Das Schaubild bewegt sich.** Vor- und Rücklauf strömen, solange eine Pumpe
+  der Anlage fördert, und das Glutbett des Kessels glimmt, solange er Leistung
+  bringt – heller bei Volllast, dunkler beim Modulieren. Wer in Home Assistant
+  „Bewegung reduzieren" eingestellt hat, bekommt den Zustand als ruhige Farbe.
+
+### Behoben
+
+- **Der Kessel steht wieder mittig über seinem Anschluss.** Beim Hackgutkessel
+  saß der Korpus acht, beim Pelletskessel zwanzig Bildpunkte neben dem Rohr –
+  die Einschubschnecke bzw. der Vorratsbehälter hatte die Zeichnung
+  verschoben. Ein Test misst das jetzt nach.
+- **Keine Lücke mehr zwischen Leitung und Anlagenteil.** Die Anschlussstutzen
+  waren fest dreißig Bildpunkte lang, die Bauteile fangen aber verschieden
+  hoch an. Bei Pumpenmodul und Zirkulation klaffte deshalb sichtbar nichts.
+- **Der Mischer sieht aus wie ein Ventil.** Bisher stand im Vorlauf des
+  Heizkreises ein Kreis mit einem Kreuz darin, den man für eine Plus-Taste
+  hielt. Jetzt steht dort das übliche Schaltzeichen aus drei Dreiecken.
+- **Fehlende Messwerte erscheinen nicht mehr als Strich.** Ein Heizkreis ohne
+  Raumfühler zeigte mitten im Heizkörper ein „–", das wie ein Symbol aussah.
+- **Die Anordnung gilt je Anlage.** Wer im Heizhaus eine Karte verschob oder
+  breiter machte, verschob sie im Wohnhaus mit.
+- **Gleiche Breitenangabe heißt jetzt gleiche Breite.** Eine Anlage mit zwei
+  Karten bekam zwei breite Spalten, die daneben mit drei Karten drei schmale –
+  „1×" sah dadurch verschieden groß aus.
+- **Die Breite lässt sich wieder verkleinern.** Bisher lief eine einzige Taste
+  im Kreis: Wer einmal zu weit klickte, musste bis `4×` durch und von vorn
+  beginnen. Jetzt gibt es `−`, die Anzeige und `+`.
+- Im Systemstatus heißt der Wert wieder **Abgastemperatur** statt „Abgas".
+
+### Geändert
+
+- Die Taste *Karten anordnen* steht in der Kopfzeile ganz außen. Zwischen
+  Außentemperatur und Anlagenwahl stand sie mitten in den Angaben, die man
+  ständig abliest.
+
 ## [1.3.0-beta.2] - 2026-08-03
 
 ### Behoben
