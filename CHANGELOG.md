@@ -6,6 +6,33 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.1] - 2026-08-04
+
+### Neu
+
+- **Eine laufende Vorgabe lässt sich beenden.** Neben *Vorgabe noch bis …*
+  steht jetzt dauerhaft *abbrechen*. Ein Druck setzt die Dauer auf null –
+  derselbe Weg, den die Anlage beim Wechsel der Betriebswahl selbst geht –,
+  und es gilt wieder das Zeitprogramm. Ohne laufende Vorgabe ist die Zeile
+  ausgeblendet.
+- **Die Warmwasserladung sagt, wenn die Anlage sie nicht annimmt.** Sie
+  startet erst, wenn das Wasser mindestens 5 K unter dem eingestellten Wert
+  liegt; der eingestellte Wert ist der Ausschaltpunkt. Ist es dafür zu warm,
+  blitzt die Taste zweimal rot und nennt den Grund, statt minutenlang auf
+  *wird ausgeführt …* zu stehen.
+
+### Behoben
+
+- **Am Pumpen-/Relaismodul steht im Schaubild keine Zahl mehr.** Sein Fühler
+  misst bei einer Fernwärmeübergabe den Speicher auf der *anderen* Seite – im
+  Bild sah es aus, als stünde diese Temperatur im Heizhaus. Gezeichnet wird das
+  Modul weiter; seinen Zustand zeigen die Lampen.
+- **In der Heizungsübersicht verschwindet die Wärmeanforderung ganz**, solange
+  keine anliegt. Ein „–" sah aus wie ein fehlender Messwert.
+- **Die Lampen des Moduls waren oval und zu blass.** Sie sind rund, größer und
+  leuchten von innen heraus; die Betriebslampe verdeckt die gezeichnete rote
+  jetzt vollständig.
+
 ## [1.3.0] - 2026-08-03
 
 Die eigene Oberfläche lässt sich jetzt einrichten statt nur ablesen: Karten
