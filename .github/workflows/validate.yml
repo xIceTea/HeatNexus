@@ -28,8 +28,11 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # „brands" verlangt einen Eintrag der Domain im Repository
-          # home-assistant/brands. Der ist eigenen Integrationen außerhalb des
-          # Kerns nicht zugänglich; die Symbole liefert HeatNexus in `brand/`
-          # selbst mit.
-          ignore: brands
+          # „brands" lässt sich auf zwei Wegen erfüllen: mit einem Eintrag der
+          # Domain im Repository home-assistant/brands oder mit einem eigenen
+          # `brand/` im Integrationsverzeichnis. HeatNexus geht den zweiten Weg
+          # – die Prüfung läuft deshalb mit.
+          #
+          # Bis 1.3.0-beta.2 stand hier `ignore: brands` mit genau dieser
+          # Begründung, nur gab es das Verzeichnis gar nicht. Die Prüfung war
+          # abgeschaltet, die Symbole fehlten, und in HACS blieb das Feld leer.

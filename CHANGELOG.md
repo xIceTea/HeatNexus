@@ -6,6 +6,19 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.0-beta.2] - 2026-08-03
+
+### Behoben
+
+- **HeatNexus hat wieder ein Symbol.** In HACS und auf der Integrationsseite
+  blieb das Feld leer, weil die Bilder fehlten: Home Assistant holt sie
+  entweder aus dem Repository *home-assistant/brands* oder aus einem
+  `brand/`-Verzeichnis der Integration selbst – und das gab es nicht, obwohl
+  die Prüfung mit genau dieser Begründung abgeschaltet war. Symbol und
+  Schriftzug liegen jetzt in der Integration; die Prüfung läuft wieder mit.
+  Eigene Bilder haben Vorrang vor dem Brands-Repository, dafür braucht Home
+  Assistant allerdings Fassung 2026.3 oder neuer.
+
 ## [1.3.0-beta.1] - 2026-08-03
 
 ### Neu
