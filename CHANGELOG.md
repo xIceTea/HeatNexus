@@ -6,6 +6,36 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.0-beta.1] - 2026-08-03
+
+### Neu
+
+- **Die Karten lassen sich selbst anordnen.** Oben in der Kopfzeile gibt es
+  eine Taste *Karten anordnen*. Darin trägt jede Karte eine Griffleiste: mit
+  der Maus ziehen, mit den Pfeilen verschieben, über das Auge ausblenden und
+  über `1×` breiter oder schmaler machen. Die Spaltenzahl (automatisch bis
+  vier) wird in der Leiste darüber gewählt. Jeder Reiter hat seine eigene
+  Anordnung, und jeder Benutzer seine eigene – wer am Tablet in der Küche
+  umsortiert, ändert nichts für die anderen.
+- **Neue Anlagenteile bringen die Anordnung nicht durcheinander.** Gespeichert
+  wird nicht die Reihenfolge als solche, sondern die Reihenfolge der Karten,
+  die man kennt. Kommt ein Heizkreis dazu, rutscht er neben die anderen
+  Heizkreise – nicht ans Ende. Was die Anlage zeitweise nicht meldet, behält
+  seinen Platz und steht nach der Rückkehr wieder dort.
+- **Zurück zur Standardanordnung** geht über das Menü `⋮` in der
+  Anordnen-Leiste, wahlweise für den aktuellen Reiter oder für alle vier.
+  Bewusst hinter dem Menü und hinter einer Rückfrage: Als Taste neben
+  *Fertig* wäre eine ganze Anordnung schnell versehentlich weggeworfen.
+
+### Geändert
+
+- **Karten einer Zeile sind jetzt gleich hoch.** In der Steuerung stand die
+  Heizkreiskarte deutlich höher als *Kessel* und *Lagerraum befüllen* daneben;
+  die Zeile sah aus, als fehle etwas.
+- Alle vier Reiter benutzen dasselbe Kartenraster. Die Übersicht hatte bisher
+  drei feste Spalten mit je einem Stapel Karten darin – darin ließ sich nichts
+  umsortieren.
+
 ## [1.2.0-beta.5] - 2026-08-02
 
 ### Behoben

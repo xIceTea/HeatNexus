@@ -28,6 +28,58 @@ const REITER = [
   { schluessel: "verlauf", titel: "Verlauf", symbol: "mdi:chart-line" },
 ];
 
+// Wie breit eine Karte höchstens werden darf, in Spalten. Deckt sich mit
+// `anordnung.BREITE_MAX` auf der Serverseite – was hier durchgeht, muss dort
+// gespeichert werden können.
+const BREITE_MAX = 4;
+
+// Wie lange nach der letzten Änderung gewartet wird, bevor die Anordnung
+// gespeichert wird. Beim Ziehen fallen mehrere Änderungen kurz hintereinander
+// an; jede einzeln zu schreiben hieße, dieselbe Liste mehrfach abzulegen.
+const SPEICHERN_MS = 500;
+
+/**
+ * Zwei Reihenfolgen zusammenführen: `basis` gilt, `rest` füllt auf.
+ *
+ * Was in `basis` steht, behält seinen Platz. Alles, was nur in `rest` steht,
+ * wird dort eingefügt, wo es nach `rest` hingehört – direkt hinter dem
+ * nächsten Vorgänger, der bereits einen Platz hat. Hat es keinen, kommt es
+ * nach vorn.
+ */
+function reihenfolgeMischen(basis, rest) {
+  const ergebnis = [...basis];
+  (rest || []).forEach((kennung, stelle) => {
+    if (ergebnis.includes(kennung)) return;
+    let ziel = 0;
+    for (let vorher = stelle - 1; vorher >= 0; vorher--) {
+      const platz = ergebnis.indexOf(rest[vorher]);
+      if (platz >= 0) {
+        ziel = platz + 1;
+        break;
+      }
+    }
+    ergebnis.splice(ziel, 0, kennung);
+  });
+  return ergebnis;
+}
+
+/**
+ * Die gespeicherte Reihenfolge auf die tatsächlich vorhandenen Karten anwenden.
+ *
+ * **Neue Anlagenteile dürfen die Anordnung nicht zerreißen.** Gespeichert ist
+ * nur die Reihenfolge bekannter Kennungen; was neu dazukommt, landet an der
+ * Stelle, an der es von Haus aus stünde, und nicht am Ende. Kennungen, die es
+ * nicht mehr gibt, fallen still weg. Dieselbe Rechnung steht in
+ * `anordnung.ordnung_anwenden` auf der Serverseite.
+ */
+function ordnungAnwenden(standard, gespeichert) {
+  const vorhanden = new Set(standard);
+  return reihenfolgeMischen(
+    (gespeichert || []).filter((kennung) => vorhanden.has(kennung)),
+    standard
+  );
+}
+
 const STIL = `
   :host {
     display: block;
@@ -94,34 +146,114 @@ const STIL = `
   }
   .anlagen-trenner:first-of-type { border-top: none; padding-top: 4px; }
 
-  /* --- Raster der Übersicht ------------------------------------------- */
-  .rahmen {
+  /* --- Kartenraster ---------------------------------------------------- */
+  /* Ein Raster für alle vier Reiter. Bis 1.2.0 hatte die Übersicht ein
+     eigenes mit drei festen Spalten und je Spalte einem Stapel Karten. Damit
+     ließ sich nichts umsortieren: Die Reihenfolge steckte im Stapel und
+     nicht in einer Liste. Jetzt liegt jede Karte einzeln im Raster, und die
+     Reihenfolge ist genau die, die der Nutzer wählt.
+
+     "align-items: stretch" ist Absicht. Vorher richtete sich jede Karte nach
+     ihrem eigenen Inhalt, und in der Steuerung stand die Heizkreiskarte
+     deutlich höher als Kessel und Lagerraum daneben – die Zeile sah aus, als
+     fehlte etwas. Gleich hohe Karten je Zeile lesen sich ruhiger.
+
+     Spaltenzahl und Kartenbreite kommen als Variablen von der Anordnung; sie
+     stehen bewusst nicht als Inline-Stil da, sonst schlüge die eigene
+     Einstellung den Umbruch auf schmalen Bildschirmen. */
+  .raster {
     display: grid;
     gap: 16px;
     padding: 16px;
-    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr) minmax(280px, 340px);
-    align-items: start;
+    grid-template-columns: var(--raster-spalten, repeat(auto-fit, minmax(320px, 1fr)));
+    align-items: stretch;
   }
-  /* Je Spalte eine Sache: links die Anlage mit ihren Heizkreisen, in der Mitte
-     das Schaubild mit dem Warmwasser darunter, rechts Zustand, Störungen und
-     Schnellzugriff. Der Verlauf liegt darunter über die volle Breite.
-
-     Gestapelt wird **in der Spalte**, nicht über feste Rasterbereiche. Mit
-     Bereichen behielt eine Zeile ihre Höhe, auch wenn eine Anlage die Karte
-     gar nicht hat – im Heizhaus ohne Warmwasser klaffte in der Mitte ein
-     schwarzes Loch. So rückt jede Spalte für sich nach oben. */
-  .spalte {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
-  }
-  /* Der Abstand kommt vom gap; der Geschwisterabstand käme obendrauf. */
-  .spalte > .karte + .karte { margin-top: 0; }
-  .volle-breite { grid-column: 1 / -1; min-width: 0; }
+  .raster > * { grid-column: span var(--breite, 1); min-width: 0; }
+  /* Der Inhalt bleibt oben, auch wenn die Karte für die Zeile mitwächst. */
+  .karte { display: flex; flex-direction: column; }
+  .raster > .karte + .karte { margin-top: 0; }
   @media (max-width: 1180px) {
-    .rahmen { grid-template-columns: minmax(0, 1fr); }
-    .volle-breite { grid-column: auto; }
+    .raster { grid-template-columns: minmax(0, 1fr); }
+    .raster > * { grid-column: auto; }
+  }
+
+  /* --- Anordnen -------------------------------------------------------- */
+  .anordnen-leiste {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin: 12px 16px 0; padding: 10px 14px; border-radius: 14px;
+    background: rgba(111, 178, 245, 0.12);
+    border: 1px solid rgba(111, 178, 245, 0.35);
+  }
+  .anordnen-leiste .titel { font-weight: 700; font-size: 15px; color: #6fb2f5; }
+  .anordnen-leiste .hinweis { font-size: 12px; opacity: 0.7; flex: 1; min-width: 180px; }
+  .anordnen-leiste .abstand { flex: 1; }
+  .anordnen-taste {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: 999px; cursor: pointer;
+    font: inherit; font-size: 13px; font-weight: 600; color: inherit;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .anordnen-taste:hover { background: rgba(255, 255, 255, 0.12); }
+  .anordnen-taste.fertig {
+    background: rgba(111, 178, 245, 0.25); border-color: rgba(111, 178, 245, 0.5);
+    color: #cfe6ff;
+  }
+  .anordnen-taste ha-icon { --mdc-icon-size: 18px; }
+  /* Die Spaltenwahl sieht aus wie die Anlagenwahl oben – gleiche Geste. */
+  .spaltenwahl { display: inline-flex; gap: 4px; }
+  .spaltenwahl button {
+    min-width: 34px; padding: 7px 10px; border-radius: 999px;
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    color: inherit; opacity: 0.6;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .spaltenwahl button[aria-pressed="true"] {
+    opacity: 1; color: #6fb2f5;
+    background: rgba(111, 178, 245, 0.15);
+    border-color: rgba(111, 178, 245, 0.45);
+  }
+
+  /* Die Hülle, die im Anordnen-Modus um jede Karte liegt. Ohne sie müsste die
+     Karte selbst die Griffleiste tragen – und jede Kartenart hätte sie neu
+     bekommen müssen. */
+  .anordner { display: flex; flex-direction: column; min-width: 0; }
+  .anordner > .karte, .anordner > .klappkarte {
+    flex: 1;
+    border-color: rgba(111, 178, 245, 0.35);
+    border-top-left-radius: 0; border-top-right-radius: 0;
+  }
+  .anordner-griff {
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 8px; cursor: grab;
+    border: 1px solid rgba(111, 178, 245, 0.35); border-bottom: none;
+    border-radius: 14px 14px 0 0;
+    background: rgba(111, 178, 245, 0.16);
+  }
+  .anordner-griff .name {
+    flex: 1; min-width: 0; font-size: 12px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .anordner-griff button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; flex: none; border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1);
+    color: inherit; font: inherit; cursor: pointer;
+  }
+  .anordner-griff button:hover { background: rgba(255, 255, 255, 0.14); }
+  .anordner-griff button:disabled { opacity: 0.3; cursor: default; }
+  .anordner-griff button ha-icon { --mdc-icon-size: 16px; }
+  .anordner-griff .breite {
+    width: auto; padding: 0 8px; font-size: 12px; font-weight: 700;
+  }
+  .anordner.gezogen { opacity: 0.4; }
+  .anordner.ziel-vor { box-shadow: -3px 0 0 0 #6fb2f5; }
+  .anordner.ziel-nach { box-shadow: 3px 0 0 0 #6fb2f5; }
+  /* Versteckte Karten verschwinden nur außerhalb des Anordnen-Modus. Drin
+     bleiben sie blass stehen – sonst wüsste niemand mehr, wo sie hinkommen. */
+  .anordner.versteckt > .karte, .anordner.versteckt > .klappkarte {
+    opacity: 0.35; filter: grayscale(1);
   }
 
   /* --- Karte zum Aufklappen -------------------------------------------- */
@@ -142,11 +274,6 @@ const STIL = `
   }
   .klappkarte[open] > summary { margin-bottom: 12px; }
   .klappkarte[open] > summary .pfeil { transform: rotate(180deg); }
-  .spalten {
-    display: grid; gap: 16px; padding: 16px;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    align-items: start;
-  }
   .karte {
     background: var(--card-background-color, #151d26);
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -396,6 +523,12 @@ class HeatNexusPanel extends HTMLElement {
     this._reiter = "uebersicht";
     // Laufende Bedienvorgänge: Anzeige -> wann begonnen, wann bestätigt.
     this._wartend = [];
+    // Selbst gewählte Anordnung je Reiter; leer heißt: Standard.
+    this._anordnung = {};
+    this._anordnen = false;
+    this._speicherAuftrag = null;
+    // Welche Karte gerade gezogen wird; null, solange niemand zieht.
+    this._gezogen = null;
   }
 
   set panel(panel) {
@@ -413,7 +546,10 @@ class HeatNexusPanel extends HTMLElement {
     // Die Aufteilung aus `panel.config` stammt aus dem Augenblick der
     // Einrichtung – da war die Anlage erst zur Hälfte eingelesen. Deshalb
     // wird sie beim Öffnen einmal frisch geholt.
-    if (erster) this._datenHolen();
+    if (erster) {
+      this._datenHolen();
+      this._anordnungHolen();
+    }
     this._zeichnen();
   }
 
@@ -427,6 +563,17 @@ class HeatNexusPanel extends HTMLElement {
     } catch (err) {
       // Ohne frische Daten bleibt der Stand aus der Panel-Konfiguration.
       console.warn("HeatNexus: Aufteilung konnte nicht geladen werden", err);
+    }
+  }
+
+  /** Die eigene Anordnung holen; ohne sie gilt die Standardanordnung. */
+  async _anordnungHolen() {
+    try {
+      this._anordnung = (await this._hass.callWS({ type: "heatnexus/anordnung" })) || {};
+      this._gebaut = false;
+      this._zeichnen();
+    } catch (err) {
+      console.warn("HeatNexus: Anordnung konnte nicht geladen werden", err);
     }
   }
 
@@ -544,6 +691,7 @@ class HeatNexusPanel extends HTMLElement {
 
     const inhalt = document.createElement("div");
     inhalt.append(this._kopfleiste(anlage), this._reiterleiste());
+    if (this._anordnen) inhalt.appendChild(this._anordnenLeiste());
     if (this._alleAnlagen()) {
       this._anlagen().forEach((eintrag) => {
         const ueberschrift = document.createElement("div");
@@ -611,6 +759,21 @@ class HeatNexusPanel extends HTMLElement {
       });
     }
 
+    // Anordnen: die Karten dieses Reiters selbst sortieren. Bewusst eine
+    // eigene Taste und kein Dauerzustand – wer nur ablesen will, soll nicht
+    // versehentlich etwas verschieben.
+    const anordnen = document.createElement("button");
+    anordnen.className = "menue-taste";
+    anordnen.type = "button";
+    anordnen.title = this._anordnen ? "Anordnen beenden" : "Karten anordnen";
+    anordnen.setAttribute("aria-label", anordnen.title);
+    anordnen.setAttribute("aria-pressed", String(this._anordnen));
+    anordnen.appendChild(
+      this._symbolKnoten(this._anordnen ? "mdi:check" : "mdi:view-dashboard-edit-outline")
+    );
+    anordnen.addEventListener("click", () => this._anordnenUmschalten());
+    leiste.appendChild(anordnen);
+
     const anlagen = this._anlagen();
     if (anlagen.length > 1) {
       const waehler = document.createElement("div");
@@ -665,44 +828,503 @@ class HeatNexusPanel extends HTMLElement {
   _inhalt(anlage) {
     // Die Karten holen ihre Erklärung über den Titel.
     this._hilfe = anlage.hilfe || {};
-    if (this._reiter === "steuerung") return this._steuerung(anlage);
-    if (this._reiter === "wartung") return this._wartung(anlage);
-    if (this._reiter === "verlauf") return this._verlaufReiter(anlage);
-    return this._uebersicht(anlage);
+    if (this._reiter === "steuerung") {
+      return this._raster(this._steuerung(anlage), "Keine bedienbaren Werte gefunden.");
+    }
+    if (this._reiter === "wartung") {
+      return this._raster(this._wartung(anlage), "Keine Wartungswerte gefunden.");
+    }
+    if (this._reiter === "verlauf") {
+      return this._raster(this._verlaufReiter(anlage), "Keine Werte für einen Verlauf gefunden.");
+    }
+    return this._raster(this._uebersicht(anlage), "Keine Werte gefunden.");
   }
 
   // -------------------------------------------------------------------
   // Reiter „Übersicht"
   // -------------------------------------------------------------------
+  /**
+   * Die Karten der Übersicht in ihrer Standardreihenfolge.
+   *
+   * Zurück kommen **Beschreibungen**, keine fertige Aufteilung: Kennung,
+   * Titel, Knoten und die Standardbreite in Spalten. Erst `_raster` bringt
+   * sie in die Reihenfolge, die der Nutzer gewählt hat. Die Kennungen sind
+   * fest verdrahtet und nicht durchnummeriert – nur so findet eine gespeicherte
+   * Anordnung ihre Karten wieder, wenn ein Anlagenteil dazukommt.
+   */
   _uebersicht(anlage) {
-    const rahmen = document.createElement("div");
-    rahmen.className = "rahmen";
-    rahmen.append(
-      this._spalte(this._seite(anlage), this._heizkreiskarte(anlage)),
-      this._spalte(this._schaubild(anlage), this._warmwasserkarte(anlage)),
-      this._spalte(
-        this._statuskarte(anlage),
-        this._stoerungskarte(anlage),
-        this._schnellzugriff(anlage)
-      ),
-      this._volleBreite(this._klappbar(this._verlauf(anlage, 24)))
+    return [
+      { id: "seite", titel: "Heizungsübersicht", knoten: this._seite(anlage) },
+      { id: "schaubild", titel: "Anlagenübersicht", knoten: this._schaubild(anlage) },
+      { id: "status", titel: "Systemstatus", knoten: this._statuskarte(anlage) },
+      { id: "heizkreise", titel: "Heizkreise", knoten: this._heizkreiskarte(anlage) },
+      { id: "warmwasser", titel: "Warmwasser", knoten: this._warmwasserkarte(anlage) },
+      { id: "stoerungen", titel: "Störungen", knoten: this._stoerungskarte(anlage) },
+      { id: "schnellzugriff", titel: "Schnellzugriff", knoten: this._schnellzugriff(anlage) },
+      {
+        id: "verlauf24",
+        titel: "Verlauf (24 Stunden)",
+        knoten: this._klappbar(this._verlauf(anlage, 24)),
+        breite: 2,
+      },
+    ];
+  }
+
+  // -------------------------------------------------------------------
+  // Anordnung: Reihenfolge, Breite, Spaltenzahl, Verstecktes
+  // -------------------------------------------------------------------
+  /** Die gespeicherte Anordnung des aktuellen Reiters. */
+  _reiterAnordnung() {
+    return (this._anordnung && this._anordnung[this._reiter]) || {};
+  }
+
+  /**
+   * Aus Kartenbeschreibungen das Raster bauen.
+   *
+   * Karten ohne Knoten gibt es an dieser Anlage nicht; sie fallen weg, bevor
+   * die Reihenfolge gebildet wird. Damit verschiebt eine Anlage ohne
+   * Warmwasser nichts, und die gespeicherte Reihenfolge bleibt für beide
+   * Anlagen dieselbe.
+   */
+  _raster(karten, leerText) {
+    const raster = document.createElement("div");
+    raster.className = "raster";
+
+    const vorhanden = (karten || []).filter((karte) => karte && karte.knoten);
+    const anordnung = this._reiterAnordnung();
+    const spalten = Number(anordnung.spalten) || 0;
+    if (spalten > 0) {
+      raster.style.setProperty("--raster-spalten", `repeat(${spalten}, minmax(0, 1fr))`);
+    }
+    const versteckt = new Set(anordnung.versteckt || []);
+    const breiten = anordnung.breite || {};
+
+    const reihenfolge = ordnungAnwenden(
+      vorhanden.map((karte) => karte.id),
+      anordnung.ordnung || []
     );
-    return rahmen;
+    const jeKennung = new Map(vorhanden.map((karte) => [karte.id, karte]));
+
+    reihenfolge.forEach((kennung) => {
+      const karte = jeKennung.get(kennung);
+      if (!karte) return;
+      const istVersteckt = versteckt.has(kennung);
+      if (istVersteckt && !this._anordnen) return;
+      const breite = Math.max(1, Math.min(BREITE_MAX, breiten[kennung] || karte.breite || 1));
+      const knoten = this._anordnen
+        ? this._anordner(karte, breite, istVersteckt, reihenfolge)
+        : karte.knoten;
+      knoten.style.setProperty("--breite", String(breite));
+      raster.appendChild(knoten);
+    });
+
+    if (!raster.childElementCount) {
+      const leer = this._karte("HeatNexus");
+      leer.appendChild(this._hinweisKnoten(leerText));
+      raster.appendChild(leer);
+    }
+    return raster;
   }
 
-  /** Eine Spalte der Übersicht; leere Karten fallen weg statt Platz zu lassen. */
-  _spalte(...karten) {
-    const spalte = document.createElement("div");
-    spalte.className = "spalte";
-    karten.filter(Boolean).forEach((karte) => spalte.appendChild(karte));
-    return spalte;
-  }
-
-  _volleBreite(knoten) {
+  /**
+   * Eine Karte im Anordnen-Modus: Griffleiste oben, Karte darunter.
+   *
+   * Gezogen wird mit der Maus, verschoben auch mit den Pfeiltasten – am
+   * Tablet vor dem Kessel ist Ziehen unzuverlässig, und ohne Tasten käme man
+   * mit der Tastatur gar nicht weiter.
+   */
+  _anordner(karte, breite, istVersteckt, reihenfolge) {
     const huelle = document.createElement("div");
-    huelle.className = "volle-breite";
-    if (knoten) huelle.appendChild(knoten);
+    huelle.className = istVersteckt ? "anordner versteckt" : "anordner";
+    huelle.dataset.kennung = karte.id;
+
+    const griff = document.createElement("div");
+    griff.className = "anordner-griff";
+    griff.appendChild(this._symbolKnoten("mdi:drag"));
+
+    const name = document.createElement("div");
+    name.className = "name";
+    name.textContent = karte.titel || karte.id;
+    griff.appendChild(name);
+
+    const platz = reihenfolge.indexOf(karte.id);
+    griff.appendChild(
+      this._griffTaste("mdi:chevron-left", "Nach vorn", platz <= 0, () =>
+        this._verschieben(karte.id, -1)
+      )
+    );
+    griff.appendChild(
+      this._griffTaste(
+        "mdi:chevron-right",
+        "Nach hinten",
+        platz < 0 || platz >= reihenfolge.length - 1,
+        () => this._verschieben(karte.id, 1)
+      )
+    );
+
+    // Breite: durchklicken statt zwei Tasten – mehr als vier Spalten gibt es
+    // nicht, und der Rundlauf ist schneller als Suchen.
+    const breitentaste = document.createElement("button");
+    breitentaste.type = "button";
+    breitentaste.className = "breite";
+    breitentaste.textContent = `${breite}×`;
+    breitentaste.title = "Breite in Spalten";
+    breitentaste.setAttribute("aria-label", `Breite ${breite} Spalten, ändern`);
+    breitentaste.addEventListener("click", () => this._breiteWeiter(karte.id, breite));
+    griff.appendChild(breitentaste);
+
+    griff.appendChild(
+      this._griffTaste(
+        istVersteckt ? "mdi:eye-off-outline" : "mdi:eye-outline",
+        istVersteckt ? "Wieder einblenden" : "Ausblenden",
+        false,
+        () => this._sichtbarkeitUmschalten(karte.id)
+      )
+    );
+
+    huelle.append(griff, karte.knoten);
+    this._ziehenVerdrahten(huelle, griff, karte.id);
     return huelle;
+  }
+
+  _griffTaste(symbol, beschriftung, gesperrt, beiKlick) {
+    const taste = document.createElement("button");
+    taste.type = "button";
+    taste.title = beschriftung;
+    taste.setAttribute("aria-label", beschriftung);
+    taste.disabled = !!gesperrt;
+    taste.appendChild(this._symbolKnoten(symbol));
+    taste.addEventListener("click", beiKlick);
+    return taste;
+  }
+
+  /** Ziehen und Ablegen: der schnelle Weg für die Maus. */
+  _ziehenVerdrahten(huelle, griff, kennung) {
+    huelle.draggable = true;
+    // Nur am Griff anfassen: Sonst startete jeder Klick in der Karte – etwa
+    // auf ein Auswahlfeld – einen Ziehvorgang.
+    huelle.addEventListener("dragstart", (ereignis) => {
+      if (!griff.contains(ereignis.target) && ereignis.target !== huelle) {
+        ereignis.preventDefault();
+        return;
+      }
+      this._gezogen = kennung;
+      huelle.classList.add("gezogen");
+      ereignis.dataTransfer.effectAllowed = "move";
+      // Firefox startet ohne gesetzte Nutzlast gar nicht erst.
+      ereignis.dataTransfer.setData("text/plain", kennung);
+    });
+    huelle.addEventListener("dragend", () => {
+      this._gezogen = null;
+      huelle.classList.remove("gezogen");
+    });
+    huelle.addEventListener("dragover", (ereignis) => {
+      if (!this._gezogen || this._gezogen === kennung) return;
+      ereignis.preventDefault();
+      ereignis.dataTransfer.dropEffect = "move";
+      const feld = huelle.getBoundingClientRect();
+      const davor = ereignis.clientX < feld.left + feld.width / 2;
+      huelle.classList.toggle("ziel-vor", davor);
+      huelle.classList.toggle("ziel-nach", !davor);
+    });
+    huelle.addEventListener("dragleave", () => {
+      huelle.classList.remove("ziel-vor", "ziel-nach");
+    });
+    huelle.addEventListener("drop", (ereignis) => {
+      ereignis.preventDefault();
+      const davor = huelle.classList.contains("ziel-vor");
+      huelle.classList.remove("ziel-vor", "ziel-nach");
+      const gezogen = this._gezogen;
+      this._gezogen = null;
+      if (gezogen && gezogen !== kennung) this._ablegen(gezogen, kennung, davor);
+    });
+  }
+
+  /** Eine Karte vor oder hinter eine andere setzen. */
+  _ablegen(kennung, ziel, davor) {
+    this._ordnungAendern((reihenfolge) => {
+      const ohne = reihenfolge.filter((eintrag) => eintrag !== kennung);
+      const stelle = ohne.indexOf(ziel);
+      if (stelle < 0) return reihenfolge;
+      ohne.splice(davor ? stelle : stelle + 1, 0, kennung);
+      return ohne;
+    });
+  }
+
+  /** Eine Karte um einen Platz verschieben. */
+  _verschieben(kennung, richtung) {
+    this._ordnungAendern((reihenfolge) => {
+      const stelle = reihenfolge.indexOf(kennung);
+      const ziel = stelle + richtung;
+      if (stelle < 0 || ziel < 0 || ziel >= reihenfolge.length) return reihenfolge;
+      const neu = [...reihenfolge];
+      neu.splice(ziel, 0, neu.splice(stelle, 1)[0]);
+      return neu;
+    });
+  }
+
+  /**
+   * Die Reihenfolge ändern.
+   *
+   * Die sichtbaren Karten bestimmen die neue Reihenfolge, aber sie sind nicht
+   * alles: Unter „Alle" zeigt der Reiter nur die Karten *einer* Anlage, und
+   * die Kennungen der anderen dürfen dabei nicht aus dem Speicher fallen. Was
+   * gerade nicht auf dem Bildschirm steht, wird deshalb wieder eingefügt –
+   * dort, wo es vorher stand.
+   */
+  _ordnungAendern(aenderung) {
+    const anordnung = this._reiterAnordnung();
+    const sichtbar = this._sichtbareKennungen();
+    const alt = anordnung.ordnung || [];
+    const neu = aenderung(ordnungAnwenden(sichtbar, alt));
+    this._anordnungSetzen({ ...anordnung, ordnung: reihenfolgeMischen(neu, alt) });
+  }
+
+  /**
+   * Die Kennungen der Karten, die dieser Reiter gerade zeigt.
+   *
+   * Unter „Alle" steht jede Kartenart einmal je Anlage auf dem Bildschirm –
+   * „Kessel" also zweimal. Die Reihenfolge gilt aber für alle Anlagen
+   * gemeinsam, deshalb zählt jede Kennung nur einmal.
+   */
+  _sichtbareKennungen() {
+    const kennungen = [];
+    this.shadowRoot.querySelectorAll(".anordner[data-kennung]").forEach((knoten) => {
+      if (!kennungen.includes(knoten.dataset.kennung)) kennungen.push(knoten.dataset.kennung);
+    });
+    return kennungen;
+  }
+
+  _breiteWeiter(kennung, breite) {
+    const anordnung = this._reiterAnordnung();
+    const grenze = Number(anordnung.spalten) || BREITE_MAX;
+    const naechste = breite >= Math.min(grenze, BREITE_MAX) ? 1 : breite + 1;
+    this._anordnungSetzen({
+      ...anordnung,
+      breite: { ...(anordnung.breite || {}), [kennung]: naechste },
+    });
+  }
+
+  _sichtbarkeitUmschalten(kennung) {
+    const anordnung = this._reiterAnordnung();
+    const versteckt = new Set(anordnung.versteckt || []);
+    if (versteckt.has(kennung)) versteckt.delete(kennung);
+    else versteckt.add(kennung);
+    this._anordnungSetzen({ ...anordnung, versteckt: [...versteckt] });
+  }
+
+  _spaltenSetzen(spalten) {
+    this._anordnungSetzen({ ...this._reiterAnordnung(), spalten });
+  }
+
+  /** Eine geänderte Anordnung übernehmen, anzeigen und sichern. */
+  _anordnungSetzen(anordnung) {
+    const reiter = this._reiter;
+    this._anordnung = { ...this._anordnung, [reiter]: anordnung };
+    this._gebaut = false;
+    this._zeichnen();
+    this._anordnungSichern(reiter, anordnung);
+  }
+
+  /**
+   * Die Anordnung speichern – gesammelt, nicht bei jedem Klick.
+   *
+   * Beim Ziehen entstehen mehrere Änderungen kurz hintereinander; jede
+   * einzeln zu schreiben hieße, die Platte für dieselbe Liste mehrfach
+   * anzufassen.
+   */
+  _anordnungSichern(reiter, anordnung) {
+    if (this._speicherAuftrag) clearTimeout(this._speicherAuftrag);
+    this._speicherAuftrag = setTimeout(async () => {
+      this._speicherAuftrag = null;
+      try {
+        await this._hass.callWS({
+          type: "heatnexus/anordnung/setzen",
+          reiter,
+          anordnung,
+        });
+      } catch (err) {
+        console.warn("HeatNexus: Anordnung konnte nicht gespeichert werden", err);
+      }
+    }, SPEICHERN_MS);
+  }
+
+  _anordnenUmschalten() {
+    this._anordnen = !this._anordnen;
+    this._gebaut = false;
+    this._zeichnen();
+  }
+
+  /** Die Leiste, die im Anordnen-Modus über dem Raster steht. */
+  _anordnenLeiste() {
+    const leiste = document.createElement("div");
+    leiste.className = "anordnen-leiste";
+
+    const titel = document.createElement("div");
+    titel.className = "titel";
+    titel.textContent = "Anordnen";
+    leiste.appendChild(titel);
+
+    const hinweis = document.createElement("div");
+    hinweis.className = "hinweis";
+    hinweis.textContent =
+      "Karten am Griff ziehen oder mit den Pfeilen verschieben. Die Anordnung gilt " +
+      "nur für dich und nur für diesen Reiter.";
+    leiste.appendChild(hinweis);
+
+    const wahl = document.createElement("div");
+    wahl.className = "spaltenwahl";
+    wahl.setAttribute("role", "group");
+    wahl.setAttribute("aria-label", "Spaltenzahl");
+    const jetzt = Number(this._reiterAnordnung().spalten) || 0;
+    [
+      { wert: 0, name: "Auto" },
+      { wert: 1, name: "1" },
+      { wert: 2, name: "2" },
+      { wert: 3, name: "3" },
+      { wert: 4, name: "4" },
+    ].forEach(({ wert, name }) => {
+      const taste = document.createElement("button");
+      taste.type = "button";
+      taste.textContent = name;
+      taste.title = wert === 0 ? "So viele Spalten, wie nebeneinander passen" : `${name} Spalten`;
+      taste.setAttribute("aria-pressed", String(wert === jetzt));
+      taste.addEventListener("click", () => this._spaltenSetzen(wert));
+      wahl.appendChild(taste);
+    });
+    leiste.appendChild(wahl);
+
+    const fertig = document.createElement("button");
+    fertig.type = "button";
+    fertig.className = "anordnen-taste fertig";
+    fertig.appendChild(this._symbolKnoten("mdi:check"));
+    const fertigText = document.createElement("span");
+    fertigText.textContent = "Fertig";
+    fertig.appendChild(fertigText);
+    fertig.addEventListener("click", () => this._anordnenUmschalten());
+    leiste.appendChild(fertig);
+
+    // Das Zurücksetzen steckt hinter dem Menü und hinter einer Rückfrage.
+    // Als Taste in der Leiste läge es neben „Fertig" – und ein Fehlgriff
+    // dort wirft eine ganze Anordnung weg, die niemand wiederherstellen kann.
+    const mehr = document.createElement("button");
+    mehr.type = "button";
+    mehr.className = "anordnen-taste";
+    mehr.title = "Weitere Möglichkeiten";
+    mehr.setAttribute("aria-label", "Weitere Möglichkeiten");
+    mehr.appendChild(this._symbolKnoten("mdi:dots-vertical"));
+    mehr.addEventListener("click", () => this._anordnenMenue());
+    leiste.appendChild(mehr);
+
+    return leiste;
+  }
+
+  /** Das Menü hinter „⋮": nur das Zurücksetzen, jeweils mit Rückfrage. */
+  _anordnenMenue() {
+    const reiterName = (REITER.find((r) => r.schluessel === this._reiter) || {}).titel || "Reiter";
+    this._menueDialog("Anordnung zurücksetzen", [
+      {
+        titel: `Nur „${reiterName}" zurücksetzen`,
+        symbol: "mdi:restore",
+        frage: `Die eigene Anordnung des Reiters „${reiterName}" verwerfen und zur Standardanordnung zurückgehen?`,
+        tun: () => this._zuruecksetzen(this._reiter),
+      },
+      {
+        titel: "Alle Reiter zurücksetzen",
+        symbol: "mdi:restore-alert",
+        frage:
+          "Die eigene Anordnung aller vier Reiter verwerfen? Reihenfolge, " +
+          "Breiten, ausgeblendete Karten und Spaltenzahl gehen dabei verloren.",
+        tun: () => this._zuruecksetzen(null),
+      },
+    ]);
+  }
+
+  async _zuruecksetzen(reiter) {
+    if (this._speicherAuftrag) {
+      clearTimeout(this._speicherAuftrag);
+      this._speicherAuftrag = null;
+    }
+    if (reiter) {
+      const rest = { ...this._anordnung };
+      delete rest[reiter];
+      this._anordnung = rest;
+    } else {
+      this._anordnung = {};
+    }
+    this._gebaut = false;
+    this._zeichnen();
+    try {
+      await this._hass.callWS({
+        type: "heatnexus/anordnung/zuruecksetzen",
+        ...(reiter ? { reiter } : {}),
+      });
+    } catch (err) {
+      console.warn("HeatNexus: Anordnung konnte nicht zurückgesetzt werden", err);
+    }
+  }
+
+  /**
+   * Ein kleines Menüfenster; jeder Eintrag stellt vor der Tat seine Rückfrage.
+   *
+   * Bewusst dieselben Klassen wie die übrigen Fenster – und bewusst nicht
+   * `window.confirm`: Der blockiert den Browser und sieht in Home Assistant
+   * wie ein Fremdkörper aus.
+   */
+  _menueDialog(titel, eintraege) {
+    const schleier = document.createElement("div");
+    schleier.className = "schleier";
+    const dialog = document.createElement("div");
+    dialog.className = "dialog";
+
+    const ueberschrift = document.createElement("h3");
+    ueberschrift.className = "dialog-titel";
+    ueberschrift.textContent = titel;
+    dialog.appendChild(ueberschrift);
+
+    const weg = () => {
+      schleier.remove();
+      document.removeEventListener("keydown", beiTaste);
+    };
+    const beiTaste = (ereignis) => {
+      if (ereignis.key === "Escape") weg();
+    };
+
+    eintraege.forEach((eintrag) => {
+      const taste = document.createElement("button");
+      taste.type = "button";
+      taste.className = "anordnen-taste";
+      taste.style.width = "100%";
+      taste.style.marginTop = "10px";
+      taste.appendChild(this._symbolKnoten(eintrag.symbol));
+      const text = document.createElement("span");
+      text.textContent = eintrag.titel;
+      taste.appendChild(text);
+      taste.addEventListener("click", async () => {
+        // Zweiter Schritt: erst die Rückfrage, dann die Tat.
+        if (!(await this._bestaetigen(eintrag.titel, eintrag.frage))) return;
+        weg();
+        eintrag.tun();
+      });
+      dialog.appendChild(taste);
+    });
+
+    const leiste = document.createElement("div");
+    leiste.className = "dialog-leiste";
+    const schliessen = document.createElement("button");
+    schliessen.type = "button";
+    schliessen.className = "dialog-taste";
+    schliessen.textContent = "Schließen";
+    schliessen.addEventListener("click", weg);
+    leiste.appendChild(schliessen);
+    dialog.appendChild(leiste);
+
+    schleier.appendChild(dialog);
+    schleier.addEventListener("click", (ereignis) => {
+      if (ereignis.target === schleier) weg();
+    });
+    document.addEventListener("keydown", beiTaste);
+    this.shadowRoot.appendChild(schleier);
   }
 
   /**
@@ -1226,17 +1848,16 @@ class HeatNexusPanel extends HTMLElement {
   }
 
   _verlaufReiter(anlage) {
-    const spalten = document.createElement("div");
-    spalten.className = "spalten";
-    const karte = this._verlauf(anlage, 48);
-    if (!karte) {
-      const leer = this._karte("Verlauf");
-      leer.appendChild(this._hinweisKnoten("Keine Werte für einen Verlauf gefunden."));
-      spalten.appendChild(leer);
-      return spalten;
-    }
-    spalten.appendChild(karte);
-    return spalten;
+    return [
+      {
+        id: "verlauf48",
+        titel: "Verlauf (48 Stunden)",
+        knoten: this._verlauf(anlage, 48),
+        // Ein Diagramm über die halbe Breite liest sich schlechter als eines
+        // über zwei Spalten; schmaler machen kann man es im Anordnen-Modus.
+        breite: 2,
+      },
+    ];
   }
 
   async _verlaufKarteLaden() {
@@ -1261,27 +1882,31 @@ class HeatNexusPanel extends HTMLElement {
   // -------------------------------------------------------------------
   _steuerung(anlage) {
     const steuerung = anlage.steuerung || {};
-    const spalten = document.createElement("div");
-    spalten.className = "spalten";
-
-    (steuerung.heizkreise || []).forEach((kreis) => {
-      spalten.appendChild(this._heizkreisKarte(kreis));
-    });
-    if (steuerung.warmwasser) {
-      spalten.appendChild(this._warmwasserKarte(steuerung.warmwasser));
-    }
-    if ((steuerung.kessel || []).length) {
-      spalten.appendChild(this._kesselKarte(steuerung.kessel));
-    }
-    if (steuerung.lagerraum) {
-      spalten.appendChild(this._lagerraumKarte(steuerung.lagerraum));
-    }
-    if (!spalten.childElementCount) {
-      const leer = this._karte("Steuerung");
-      leer.appendChild(this._hinweisKnoten("Keine bedienbaren Werte gefunden."));
-      spalten.appendChild(leer);
-    }
-    return spalten;
+    // Je Heizkreis eine Karte – die Kennung hängt an der Gerätekennung, nicht
+    // an der Position: Kommt ein Kreis dazu, behalten die anderen ihren Platz.
+    const karten = (steuerung.heizkreise || []).map((kreis) => ({
+      id: `heizkreis:${kreis.id || kreis.entity}`,
+      titel: kreis.titel,
+      knoten: this._heizkreisKarte(kreis),
+    }));
+    karten.push(
+      {
+        id: "warmwasser",
+        titel: "Warmwasser",
+        knoten: steuerung.warmwasser ? this._warmwasserKarte(steuerung.warmwasser) : null,
+      },
+      {
+        id: "kessel",
+        titel: "Kessel",
+        knoten: (steuerung.kessel || []).length ? this._kesselKarte(steuerung.kessel) : null,
+      },
+      {
+        id: "lagerraum",
+        titel: "Lagerraum befüllen",
+        knoten: steuerung.lagerraum ? this._lagerraumKarte(steuerung.lagerraum) : null,
+      }
+    );
+    return karten;
   }
 
   /** Heizkreis mit Sollwertregler, Betriebswahl und Zeitprogramm. */
@@ -1652,30 +2277,20 @@ class HeatNexusPanel extends HTMLElement {
   // -------------------------------------------------------------------
   _wartung(anlage) {
     const wartung = anlage.wartung || {};
-    const spalten = document.createElement("div");
-    spalten.className = "spalten";
-
     const abschnitte = [
-      ["Restlaufzeiten", wartung.restlaufzeiten, "mdi:progress-clock"],
-      ["Brennstoff", wartung.brennstoff, "mdi:sack"],
-      ["Zählerstände", wartung.zaehler, "mdi:counter"],
-      ["Weiteres", wartung.weitere, "mdi:wrench-outline"],
+      ["restlaufzeiten", "Restlaufzeiten", wartung.restlaufzeiten],
+      ["brennstoff", "Brennstoff", wartung.brennstoff],
+      ["zaehler", "Zählerstände", wartung.zaehler],
+      ["weiteres", "Weiteres", wartung.weitere],
     ];
-    abschnitte.forEach(([titel, zeilen]) => {
-      if (!zeilen || !zeilen.length) return;
+    return abschnitte.map(([id, titel, zeilen]) => {
+      if (!zeilen || !zeilen.length) return { id, titel, knoten: null };
       const karte = this._karte(titel);
       zeilen.forEach((zeile) => {
         karte.appendChild(this._statuszeile(zeile.entity, zeile.titel));
       });
-      spalten.appendChild(karte);
+      return { id, titel, knoten: karte };
     });
-
-    if (!spalten.childElementCount) {
-      const leer = this._karte("Wartung");
-      leer.appendChild(this._hinweisKnoten("Keine Wartungswerte gefunden."));
-      spalten.appendChild(leer);
-    }
-    return spalten;
   }
 
   // -------------------------------------------------------------------

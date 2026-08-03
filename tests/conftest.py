@@ -70,11 +70,45 @@ def requires_ha():
 _WARNUNG = (
     "Home Assistant ist nicht installiert: alle Tests der Integration werden "
     "übersprungen. Ein grüner Lauf beweist hier nichts. "
-    "Abhilfe: pip install -r requirements_test.txt "
-    "(unter Windows nur in WSL – pytest-homeassistant-custom-component sperrt "
-    "dort Sockets, die der Windows-Ereignisschleife fehlen). "
+    "Abhilfe: pip install -r requirements_test.txt. "
     "Verlass dich sonst auf die CI."
 )
+
+
+# ---------------------------------------------------------------------------
+# Windows: die Socket-Sperre der Testumgebung wieder lockern
+#
+# `pytest-homeassistant-custom-component` sperrt vor jedem Test alle Sockets
+# und lässt nur Unix-Sockets durch – unter Linux genau richtig, denn asyncio
+# baut seine Selbstweck-Leitung dort aus einem Unix-Paar.
+#
+# Unter Windows gibt es keine Unix-Sockets. asyncio nimmt dort ein AF_INET-Paar
+# (`socket.socketpair()` in `proactor_events._make_self_pipe`), und das fällt
+# in die Sperre. Weil `asyncio_mode = "auto"` jedem Test eine Ereignisschleife
+# gibt, scheitert damit **jeder** Test schon beim Aufbau – auch ein rein
+# rechnender ohne jeden Bezug zu Home Assistant.
+#
+# Abgeschaltet wird deshalb nur *ein* Teil der Sperre: das Verbot, überhaupt
+# einen Socket anzulegen. Die Zielbeschränkung des Plugins bleibt in Kraft –
+# `socket_allow_hosts(["127.0.0.1"])` läuft weiter, ein Test kommt also nach
+# wie vor nicht ins Netz.
+#
+# Warum als Ersatz für die Funktion und nicht als eigener Hook: Die Hooks einer
+# conftest laufen **vor** denen der Plugins, der Sperr-Hook käme also hinterher
+# und setzte alles zurück. Mit `trylast` liefe der eigene Hook zwar zuletzt,
+# aber erst nach dem von pytest selbst – und der hat die Fixtures da längst
+# aufgebaut, mitsamt der Ereignisschleife, an der es scheitert. Bleibt, die
+# Sperre an der Wurzel wirkungslos zu machen.
+#
+# Unter Linux – und damit in der CI – ändert sich nichts.
+if sys.platform == "win32":  # pragma: no cover - plattformabhängig
+    try:
+        import pytest_socket
+    except ImportError:  # Testumgebung ohne Home Assistant
+        pass
+    else:
+        pytest_socket.disable_socket = lambda *args, **kwargs: None
+        pytest_socket.enable_socket()
 
 
 def pytest_report_header(config) -> list[str]:

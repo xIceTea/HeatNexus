@@ -16,6 +16,44 @@ from .const import EINHEITEN, POLL_ZIEL_SEKUNDEN, UPDATE_INTERVAL, ZAEHLER_WOERT
 _LOGGER = logging.getLogger(__name__)
 
 
+def reihenfolge_mischen(basis: list[str], rest: list[str]) -> list[str]:
+    """Zwei Reihenfolgen zusammenführen: ``basis`` gilt, ``rest`` füllt auf.
+
+    Was in ``basis`` steht, behält seinen Platz. Alles, was nur in ``rest``
+    steht, wird dort eingefügt, wo es nach ``rest`` hingehört: direkt hinter
+    dem nächsten Vorgänger, der bereits einen Platz hat. Hat es keinen, kommt
+    es nach vorn.
+    """
+    ergebnis = list(basis)
+    for stelle, eintrag in enumerate(rest):
+        if eintrag in ergebnis:
+            continue
+        ziel = 0
+        for vorheriger in reversed(rest[:stelle]):
+            if vorheriger in ergebnis:
+                ziel = ergebnis.index(vorheriger) + 1
+                break
+        ergebnis.insert(ziel, eintrag)
+    return ergebnis
+
+
+def ordnung_anwenden(standard: list[str], gespeichert: list[str]) -> list[str]:
+    """Eine gespeicherte Reihenfolge auf das anwenden, was es wirklich gibt.
+
+    Gebraucht wird das für die selbst gewählte Anordnung der Karten in der
+    Oberfläche. **Ein neu erkanntes Anlagenteil darf sie nicht zerreißen:**
+    Gespeichert ist nur die Reihenfolge bekannter Kennungen; was neu
+    dazukommt, landet an der Stelle, an der es von Haus aus stünde, und nicht
+    am Ende. Kennungen, die es nicht mehr gibt, fallen still weg.
+
+    Dieselbe Rechnung steht als ``ordnungAnwenden`` in
+    ``frontend/heatnexus-panel.js``; ``tests/test_anordnung.py`` hält beide
+    Fassungen gegeneinander.
+    """
+    vorhanden = set(standard)
+    return reihenfolge_mischen([e for e in gespeichert if e in vorhanden], standard)
+
+
 def parse_value(value: Any, as_type: type = float, oid: str | None = None) -> Any | None:
     """Safely parse a value with error handling."""
     if value is None:

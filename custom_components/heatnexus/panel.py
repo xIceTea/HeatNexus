@@ -33,6 +33,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant, callback
 import voluptuous as vol
 
+from .anordnung import async_register_anordnung
 from .const import (
     CONF_AUSSENTEMPERATUR,
     CONF_HILFE,
@@ -458,6 +459,10 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
             continue
         heizkreise.append(
             {
+                # Die Gerätekennung überlebt eine erneute Erkennung und ist
+                # damit der einzige Anker, an dem eine selbst gewählte
+                # Anordnung diese Karte wiedererkennt.
+                "id": teil["id"],
                 "entity": thermostat["entity_id"],
                 "titel": teil["name"],
                 "betriebswahl": _kennung(teil["entitaeten"], BETRIEBSWAHL, ("select",)),
@@ -781,6 +786,8 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
     if not hass.data.get(f"{DOMAIN}_panel_datei"):
         websocket_api.async_register_command(hass, _ws_panel_daten)
         hass.data[f"{DOMAIN}_panel_datei"] = True
+    # Die selbst gewählte Anordnung hängt am Panel, nicht an einer Anlage.
+    async_register_anordnung(hass)
 
     daten = panel_daten(hass)
     if not daten["anlagen"]:

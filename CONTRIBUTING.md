@@ -12,7 +12,11 @@ ruff format custom_components tests
 ```
 
 Die Logiktests laufen ohne Home-Assistant-Installation. Tests, die Home
-Assistant benötigen, werden lokal übersprungen und laufen in der CI.
+Assistant benötigen, werden ohne installierte Umgebung übersprungen; die
+Kopfzeile des Laufs weist darauf hin. Mit `requirements_test.txt` läuft die
+gesamte Suite – auch unter Windows: `tests/conftest.py` nimmt dort die
+Socket-Sperre der Home-Assistant-Testumgebung zurück, an der sonst jeder
+einzelne Test schon beim Anlegen der Ereignisschleife scheitert.
 
 ## Grundsätze
 
