@@ -716,9 +716,7 @@ def anlagenschema(
                 )
 
     # Wer dem Speicher Wärme entnimmt: alle Pumpen der Verbraucher.
-    entnahme = [
-        m["pumpe"] for m in module if m.get("pumpe") and m["art"] in ENTNAHME_ARTEN
-    ]
+    entnahme = [m["pumpe"] for m in module if m.get("pumpe") and m["art"] in ENTNAHME_ARTEN]
     for platz, modul in enumerate(module):
         if modul["art"] != "puffer":
             continue
