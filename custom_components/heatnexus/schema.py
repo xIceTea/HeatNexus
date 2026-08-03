@@ -536,6 +536,13 @@ GLUTBETT_BREITE = 76
 MISCHER_Y = 112
 MISCHER_MARKE = 26
 
+# Zwischen den beiden Temperaturen des Puffers ist Platz für ein Wort.
+# `WERT_HOEHEN["puffer"]` setzt sie auf 168 und 258.
+SPEICHER_Y = 213
+
+# Arten, deren Pumpe dem Speicher Wärme entnimmt.
+ENTNAHME_ARTEN = ("heizkreis", "wasser", "zirkulation", "pumpenmodul")
+
 
 def _ersatzform(art: str) -> str:
     """Gezeichnete Form, wenn es für ein Anlagenteil keine Datei gibt.
@@ -654,6 +661,7 @@ def anlagenschema(
     pumpen: list[dict[str, Any]] = []
     brenner: list[dict[str, Any]] = []
     mischer: list[dict[str, Any]] = []
+    speicher: list[dict[str, Any]] = []
     for platz, modul in enumerate(module):
         x = RAND + platz * MODUL_BREITE
         elemente += _beschriftungen(x, modul, breite)
@@ -707,6 +715,28 @@ def anlagenschema(
                     }
                 )
 
+    # Wer dem Speicher Wärme entnimmt: alle Pumpen der Verbraucher.
+    entnahme = [
+        m["pumpe"] for m in module if m.get("pumpe") and m["art"] in ENTNAHME_ARTEN
+    ]
+    for platz, modul in enumerate(module):
+        if modul["art"] != "puffer":
+            continue
+        mitte = RAND + platz * MODUL_BREITE + MODUL_BREITE // 2
+        speicher.append(
+            {
+                # „lädt" heißt: Die Ladepumpe des Puffers fördert. „entlädt":
+                # Ein Verbraucher zieht, ohne dass nachgeladen wird. Der
+                # Füllstand allein sagt das nicht – zwei Temperaturen ergeben
+                # keine Richtung.
+                "laden": modul.get("pumpe"),
+                "entnahme": entnahme,
+                "left": f"{mitte / breite * 100:.2f}%",
+                "top": f"{SPEICHER_Y / HOEHE * 100:.2f}%",
+                "titel": modul["titel"],
+            }
+        )
+
     # Lage der beiden Leitungen in Prozent des Bildes. Die Oberfläche legt
     # darüber eine bewegte Ebene: Ein Bild als Daten-URL kennt keine Zustände
     # aus Home Assistant, es kann also nicht selbst anzeigen, ob etwas fließt.
@@ -728,4 +758,6 @@ def anlagenschema(
         # Ebenso das Glutbett der Wärmeerzeuger und die Mischerstellung.
         "brenner": brenner,
         "mischer": mischer,
+        # Ob der Puffer gerade beladen oder entleert wird.
+        "speicher": speicher,
     }

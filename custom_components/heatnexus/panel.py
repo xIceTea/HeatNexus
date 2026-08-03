@@ -97,7 +97,7 @@ STATUS = (
     (r"betriebsphase", "Betriebszustand", "mdi:state-machine"),
     (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer"),
     (r"kesselleistung", "Kesselleistung", "mdi:fire"),
-    (r"brennerkammertemperatur", "Brennkammer", "mdi:fireplace"),
+    (r"brennerkammertemperatur", "Brennkammertemperatur", "mdi:fireplace"),
     (r"abgastemperatur", "Abgastemperatur", "mdi:smoke"),
     (r"aktueller brennstoff", "Brennstoff", "mdi:sack"),
     (r"vorratsbeh", "Vorratsbehälter", "mdi:battery-70"),
@@ -197,6 +197,13 @@ WARMWASSER_LADEPUMPE = _muster(r"\bww-ladepumpe")
 
 # Betriebsarten (2/9), die eine laufende Warmwasserladung bedeuten.
 WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-Programm")
+
+# Betriebswahl-Einträge (3/50), die bei der Warmwasserladung eine Rolle
+# spielen. Es sind Muster, keine festen Namen: Welche Einträge eine Anlage
+# anbietet, meldet sie selbst, und „Programm 1" heißt nicht überall gleich.
+BETRIEBSWAHL_STANDBY = r"^standby$"
+BETRIEBSWAHL_WW = r"^ww[- ]betrieb$|^warmwasserbetrieb$"
+BETRIEBSWAHL_ZURUECK = r"^programm"
 
 # Die Außentemperatur gehört an der Anlage in die Kopfzeile und nicht in eine
 # Kachel – sie gilt für die ganze Anlage, nicht für einen Anlagenteil.
@@ -663,6 +670,21 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                 if _passt(beschriftung, WARMWASSER):
                     eintrag["zustand_an"] = _kennung(alle, BETRIEBSART, ("sensor",))
                     eintrag["zustand_wenn"] = list(WARMWASSER_LAEDT)
+                    # Die Betriebswahl gehört zur Ladung dazu.
+                    #
+                    # Steht der Kreis auf Standby, ist er abgeschaltet und
+                    # nimmt den Ladeauftrag gar nicht erst an – erst der
+                    # WW-Betrieb macht ihn ausführbar. Und abbrechen lässt
+                    # sich eine laufende Ladung nur über die Betriebswahl:
+                    # Der Auslöser selbst fällt sofort zurück und hat danach
+                    # keinen Zustand mehr, den man zurücknehmen könnte.
+                    eintrag["betriebswahl"] = _kennung(
+                        teil["entitaeten"], BETRIEBSWAHL, ("select",)
+                    )
+                    eintrag["betriebswahl_aus"] = BETRIEBSWAHL_STANDBY
+                    eintrag["betriebswahl_ww"] = BETRIEBSWAHL_WW
+                    eintrag["betriebswahl_zurueck"] = BETRIEBSWAHL_ZURUECK
+                    eintrag["titel_abbrechen"] = "Warmwasser laden abbrechen"
                 schnellzugriff.append(eintrag)
 
     bild = anlagenschema(anlage["teile"], anlage.get("kesselart"))
@@ -718,6 +740,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         "schema_leitungen": bild.get("leitungen") if bild else None,
         "schema_brenner": bild.get("brenner", []) if bild else [],
         "schema_mischer": bild.get("mischer", []) if bild else [],
+        "schema_speicher": bild.get("speicher", []) if bild else [],
     }
 
 

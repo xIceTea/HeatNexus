@@ -439,6 +439,18 @@ const STIL = `
     transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .schaubild .mischer:hover .zeiger { background: #6fb2f5; }
+
+  /* Ladezustand des Puffers, zwischen seinen beiden Temperaturen. */
+  .schaubild .speicher {
+    position: absolute; transform: translate(-50%, -50%);
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+    background: rgba(10, 14, 19, 0.78);
+    pointer-events: none; white-space: nowrap;
+    opacity: 0; transition: opacity 0.4s ease;
+  }
+  .schaubild .speicher.laedt { opacity: 1; color: #ffab6f; }
+  .schaubild .speicher.entlaedt { opacity: 1; color: #6fb2f5; }
   @keyframes glimmen {
     0%, 100% { filter: brightness(0.85); }
     50% { filter: brightness(1.25); }
@@ -726,13 +738,15 @@ class HeatNexusPanel extends HTMLElement {
     return element;
   }
 
+  /** Ob eine Pumpe fördert. Manche melden keinen Zustand, sondern ihre Drehzahl. */
+  _foerdert(entity) {
+    const zahl = this._zahl(entity);
+    return zahl !== null ? zahl > 0 : this._istAn(entity);
+  }
+
   /** Ob an dieser Anlage gerade irgendeine Pumpe fördert. */
   _foerdertEtwas(anlage) {
-    return (anlage.schema_pumpen || []).some((eintrag) => {
-      // Manche Pumpen melden keinen Zustand, sondern ihre Drehzahl.
-      const zahl = this._zahl(eintrag.entity);
-      return zahl !== null ? zahl > 0 : this._istAn(eintrag.entity);
-    });
+    return (anlage.schema_pumpen || []).some((eintrag) => this._foerdert(eintrag.entity));
   }
 
   _stoerung(anlage) {
@@ -949,14 +963,22 @@ class HeatNexusPanel extends HTMLElement {
    * Anordnung ihre Karten wieder, wenn ein Anlagenteil dazukommt.
    */
   _uebersicht(anlage) {
+    const wasser = this._warmwasserkarte(anlage);
     return [
       { id: "seite", titel: "Heizungsübersicht", knoten: this._seite(anlage) },
-      { id: "schaubild", titel: "Anlagenübersicht", knoten: this._schaubild(anlage) },
+      { id: "schaubild", titel: "Anlagenübersicht", knoten: this._schaubild(anlage), breite: 2 },
       { id: "status", titel: "Systemstatus", knoten: this._statuskarte(anlage) },
       { id: "heizkreise", titel: "Heizkreise", knoten: this._heizkreiskarte(anlage) },
-      { id: "warmwasser", titel: "Warmwasser", knoten: this._warmwasserkarte(anlage) },
+      {
+        id: "schnellzugriff",
+        titel: "Schnellzugriff",
+        knoten: this._schnellzugriff(anlage),
+        // Ohne Warmwasserkreis bleibt in der Zeile ein Platz frei; den nimmt
+        // der Schnellzugriff ein, statt ein Loch stehen zu lassen.
+        breite: wasser ? 1 : 2,
+      },
+      { id: "warmwasser", titel: "Warmwasser", knoten: wasser },
       { id: "stoerungen", titel: "Störungen", knoten: this._stoerungskarte(anlage) },
-      { id: "schnellzugriff", titel: "Schnellzugriff", knoten: this._schnellzugriff(anlage) },
       {
         id: "verlauf24",
         titel: "Verlauf (24 Stunden)",
@@ -1711,6 +1733,24 @@ class HeatNexusPanel extends HTMLElement {
       });
     });
 
+    // Puffer: lädt, entlädt oder steht. Zwei Temperaturen allein sagen keine
+    // Richtung – maßgeblich ist, welche Pumpe fördert.
+    (anlage.schema_speicher || []).forEach((eintrag) => {
+      const marke = document.createElement("div");
+      marke.className = "speicher";
+      marke.style.left = eintrag.left;
+      marke.style.top = eintrag.top;
+      huelle.appendChild(marke);
+      this._bindungen.push(() => {
+        const laedt = eintrag.laden ? this._foerdert(eintrag.laden) : false;
+        const zieht = (eintrag.entnahme || []).some((e) => this._foerdert(e));
+        marke.classList.toggle("laedt", laedt);
+        marke.classList.toggle("entlaedt", !laedt && zieht);
+        marke.textContent = laedt ? "lädt" : zieht ? "entlädt" : "";
+        marke.title = `${eintrag.titel} – ${marke.textContent || "keine Förderung"}`;
+      });
+    });
+
     (anlage.schema_werte || []).forEach((eintrag) => {
       const marke = document.createElement("div");
       marke.className = "marke-wert";
@@ -2398,7 +2438,13 @@ class HeatNexusPanel extends HTMLElement {
           })
         );
       }
-      if (zustand && rueckmeldung.dataset.belegt !== "1") auswahl.value = zustand.state;
+      if (rueckmeldung.dataset.belegt === "1") return;
+      // Die Rückmeldung gehört ausdrücklich zurückgesetzt. Ohne das blieb
+      // „übernommen ✓" für immer stehen: `_freigeben` löscht nur die Sperre
+      // und stößt die Bindungen an – den Text löscht niemand.
+      rueckmeldung.textContent = "";
+      rueckmeldung.className = "rueckmeldung";
+      if (zustand) auswahl.value = zustand.state;
     });
     return feld;
   }
@@ -2540,20 +2586,63 @@ class HeatNexusPanel extends HTMLElement {
 
     taste.addEventListener("click", async () => {
       if (taste.disabled) return;
-      if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) return;
       const lief = laeuft();
+      // Läuft die Ladung schon, bricht dieselbe Taste sie ab. Der Auslöser
+      // selbst taugt dafür nicht: Er fällt zurück, sobald die Anlage den
+      // Auftrag angenommen hat, und hat danach keinen Zustand mehr, den man
+      // zurücknehmen könnte. Beendet wird über die Betriebswahl – genauso wie
+      // an der Anlage selbst.
+      if (lief && eintrag.betriebswahl && eintrag.betriebswahl_zurueck) {
+        const ziel = this._optionWie(eintrag.betriebswahl, eintrag.betriebswahl_zurueck);
+        if (ziel) {
+          taste.disabled = true;
+          try {
+            await this._uebertragen(
+              rueckmeldung,
+              () =>
+                this._hass.callService("select", "select_option", {
+                  entity_id: eintrag.betriebswahl,
+                  option: ziel,
+                }),
+              () => !laeuft()
+            );
+          } finally {
+            taste.disabled = false;
+          }
+        }
+        return;
+      }
+
+      if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) return;
       taste.disabled = true;
       try {
         await this._uebertragen(
           rueckmeldung,
-          () =>
-            bereich === "button"
+          async () => {
+            // Auf Standby ist der Kreis abgeschaltet und nimmt den
+            // Ladeauftrag nicht an. Nur dann wird vorher umgeschaltet – wer
+            // im Heiz- oder Absenkbetrieb lädt, soll den nicht verlieren.
+            if (eintrag.betriebswahl && eintrag.betriebswahl_aus && eintrag.betriebswahl_ww) {
+              const jetzt = this._zustand(eintrag.betriebswahl);
+              const aus = new RegExp(eintrag.betriebswahl_aus, "i");
+              if (jetzt && aus.test(jetzt.state)) {
+                const ww = this._optionWie(eintrag.betriebswahl, eintrag.betriebswahl_ww);
+                if (ww) {
+                  await this._hass.callService("select", "select_option", {
+                    entity_id: eintrag.betriebswahl,
+                    option: ww,
+                  });
+                }
+              }
+            }
+            return bereich === "button"
               ? this._hass.callService("button", "press", { entity_id: eintrag.entity })
               : this._hass.callService(
                   "homeassistant",
                   eintrag.zustand_an ? "turn_on" : "toggle",
                   { entity_id: eintrag.entity }
-                ),
+                );
+          },
           bereich === "button" ? null : () => laeuft() !== lief
         );
       } finally {
@@ -2565,6 +2654,11 @@ class HeatNexusPanel extends HTMLElement {
       const zustand = this._zustand(eintrag.entity);
       const an = laeuft();
       taste.classList.toggle("an", an);
+      // Läuft die Ladung, sagt die Taste, was ein Druck jetzt bewirkt.
+      beschriftung.textContent =
+        an && eintrag.titel_abbrechen && eintrag.betriebswahl
+          ? eintrag.titel_abbrechen
+          : eintrag.titel;
       // Solange eine Übertragung läuft, gehört die Zeile der Rückmeldung.
       if (rueckmeldung.dataset.belegt === "1") return;
       rueckmeldung.className = "rueckmeldung";
@@ -2573,6 +2667,19 @@ class HeatNexusPanel extends HTMLElement {
         : this._tastenZustand(bereich, zustand, an);
     });
     return taste;
+  }
+
+  /**
+   * Die erste Auswahlmöglichkeit einer Entität, die zu einem Muster passt.
+   *
+   * Welche Einträge eine Betriebswahl anbietet, meldet die Anlage selbst –
+   * eine feste Liste im Quelltext ginge bei der nächsten Baureihe daneben.
+   */
+  _optionWie(entity, muster) {
+    const zustand = this._zustand(entity);
+    const optionen = (zustand && zustand.attributes.options) || [];
+    const regex = new RegExp(muster, "i");
+    return optionen.find((option) => regex.test(option)) || null;
   }
 
   // -------------------------------------------------------------------

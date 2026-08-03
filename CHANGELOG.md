@@ -6,6 +6,38 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.0-beta.5] - 2026-08-03
+
+### Behoben
+
+- **„übernommen ✓" blieb für immer stehen.** Nach dem Umstellen einer
+  Betriebswahl im Schnellzugriff verschwand die Rückmeldung nicht mehr. Die
+  Sperre wurde zwar aufgehoben, den Text löschte aber niemand.
+- **Warmwasser laden schaltet vorher den Kreis ein.** Steht die Betriebswahl
+  auf *Standby*, ist der Kreis abgeschaltet und nimmt den Ladeauftrag gar
+  nicht erst an. Er wird jetzt zuerst auf *WW-Betrieb* gestellt – aber nur
+  aus dem Standby heraus, damit ein laufender Heiz- oder Absenkbetrieb
+  erhalten bleibt.
+- **Eine laufende Warmwasserladung lässt sich abbrechen.** Solange sie läuft,
+  heißt die Taste *Warmwasser laden abbrechen*; ein Druck stellt die
+  Betriebswahl zurück auf das Zeitprogramm. Über den Auslöser allein ging das
+  nicht: Er fällt zurück, sobald die Anlage den Auftrag angenommen hat.
+- Im Systemstatus heißt der Wert **Brennkammertemperatur** statt „Brennkammer".
+
+### Neu
+
+- **Der Puffer sagt, was er tut.** Zwischen seinen beiden Temperaturen steht
+  *lädt* oder *entlädt* – je nachdem, ob seine Ladepumpe fördert oder ein
+  Verbraucher zieht. Zwei Temperaturen allein ergeben keine Richtung.
+
+### Geändert
+
+- **Die Übersicht kommt in einer aufgeräumten Standardanordnung.** Oben
+  Heizungsübersicht, Anlagenübersicht über zwei Spalten und Systemstatus,
+  darunter Heizkreise, Schnellzugriff, Warmwasser und Störungen, unten der
+  Verlauf. Gibt es keinen Warmwasserkreis, nimmt der Schnellzugriff dessen
+  Platz ein, statt ein Loch stehen zu lassen.
+
 ## [1.3.0-beta.4] - 2026-08-03
 
 Die Nummer 1.3.0-beta.3 wurde zurückgezogen: Sie enthielt denselben Stand wie
