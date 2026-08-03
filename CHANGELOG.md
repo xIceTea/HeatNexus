@@ -6,6 +6,32 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.3.0-beta.7] - 2026-08-03
+
+### Neu
+
+- **Eco und Comfort je Heizkreis.** Zwei Tasten schreiben die befristete
+  Übersteuerung, die auch das Bediengerät setzt – Temperatur und Dauer in einem
+  Zug. Beide Wertepaare stehen in den Optionen (Vorgabe: Eco 10 °C, Comfort
+  22 °C, je 180 Minuten) und gelten für alle Kreise: Die Anlage kennt je Kreis
+  nur *einen* Übersteuerungswert. Ob er Eco oder Comfort heißt, entscheidet sie
+  daran, ob er unter oder über dem Programmsollwert liegt – deshalb landet man
+  in der App bei „Comfort" auf „Eco", solange die Temperatur nicht passt.
+- **Der zweite Wert am Kessel ist wählbar**: Kesselleistung (Vorgabe) oder
+  Brennkammertemperatur, einstellbar je Anlage.
+- **Das Glutbett hat eine Ersatzskala.** Es folgt weiterhin der Leistung.
+  Meldet die Anlage keine, richtet es sich nach der Brennkammertemperatur:
+  unter 100 °C dunkel, ab 500 °C voll, darüber bleibt es voll.
+- **Das Pumpen-/Relaismodul zeigt seine Wärmeanforderung.** Steht der
+  Analog-Sollwert über null, erscheint *fordert xx °C* unter dem Modul.
+
+### Geändert
+
+- **Am Pumpen-/Relaismodul steht der Analog-Sollwert vorn**, nicht mehr die
+  Kesseltemperatur. Die misst den Fühler des Moduls – bei einer
+  Fernwärmeübergabe also den Speicher auf der *anderen* Seite. Im Schaubild sah
+  es damit so aus, als stünde diese Temperatur im Heizhaus.
+
 ## [1.3.0-beta.6] - 2026-08-03
 
 ### Neu

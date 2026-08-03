@@ -30,10 +30,12 @@ from homeassistant.helpers import entity_registry as er
 
 from .const import (
     CONF_KESSELART,
+    CONF_KESSELWERT,
     DASHBOARD_TITEL,
     DASHBOARD_URL,
     DOMAIN,
     KESSELART_AUTO,
+    KESSELWERT_LEISTUNG,
 )
 from .schema import anlagenschema, kesselart_erkennen
 
@@ -311,7 +313,7 @@ def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
     return zuordnung
 
 
-def _kesselart_je_geraet(hass: HomeAssistant) -> dict[str, str]:
+def _kesselart_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str]]:
     """Eingestellte Kesselart je Gerätekennung.
 
     Die Option liegt je Anlage unter deren Adresse; die Geräte tragen sie nicht.
@@ -325,7 +327,11 @@ def _kesselart_je_geraet(hass: HomeAssistant) -> dict[str, str]:
         entry = hass.config_entries.async_get_entry(entry_id)
         optionen = (entry.options if entry else None) or {}
         for host, coordinator in (eintrag.get("coordinators") or {}).items():
-            wahl = (optionen.get(host) or {}).get(CONF_KESSELART) or KESSELART_AUTO
+            je_host = optionen.get(host) or {}
+            wahl = (
+                je_host.get(CONF_KESSELART) or KESSELART_AUTO,
+                je_host.get(CONF_KESSELWERT) or KESSELWERT_LEISTUNG,
+            )
             for beschreibung in (coordinator.data or {}).get("devices", []):
                 if kennung := beschreibung.get("device_id"):
                     zuordnung.setdefault(kennung, wahl)
@@ -358,7 +364,12 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
             "fct_type": fct,
             "rang": _rang(fct),
             "symbol": _symbol(fct),
-            "kesselart_wahl": kesselart_je_geraet.get(kennung, KESSELART_AUTO),
+            "kesselart_wahl": kesselart_je_geraet.get(
+                kennung, (KESSELART_AUTO, KESSELWERT_LEISTUNG)
+            )[0],
+            "kesselwert_wahl": kesselart_je_geraet.get(
+                kennung, (KESSELART_AUTO, KESSELWERT_LEISTUNG)
+            )[1],
             "entitaeten": [],
         }
 
@@ -426,6 +437,12 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
             None,
         )
         gruppe["kesselart"] = gewaehlt or kesselart_erkennen(gruppe["teile"])
+        # Welcher zweite Wert am Kessel steht. Die erste ausdrückliche Angabe
+        # gilt; ohne Angabe bleibt es bei der Leistung.
+        gruppe["kesselwert"] = next(
+            (t["kesselwert_wahl"] for t in gruppe["teile"] if t.get("kesselwert_wahl")),
+            KESSELWERT_LEISTUNG,
+        )
 
     return sorted(anlagen.values(), key=lambda a: a["name"])
 

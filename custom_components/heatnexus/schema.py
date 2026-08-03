@@ -96,9 +96,29 @@ ZIRKULATION_IST = r"\bww-zirkulations?[- ]?(ist[- ])?temperatur(?!.*soll)"
 # Mischerlaufzeit ist eine Einstellung in Minuten, keine Stellung in Prozent.
 MISCHER_IST = r"^mischer( stellwert)?$"
 
+# Die Brennkammertemperatur: wahlweise zweiter Wert am Kessel und Ersatzskala
+# für das Glutbett, wenn keine Leistung gemeldet wird.
+BRENNKAMMER_IST = r"brennerkammertemperatur|brennkammertemperatur"
+
+# Der Analog-Sollwert des Pumpen-/Relaismoduls (0/95): die Temperatur, mit der
+# gerade Wärme angefordert wird. Über null heißt: Es liegt eine Anforderung an.
+#
+# Er steht bewusst vor der Kesseltemperatur (0/7). Die misst den Fühler des
+# Moduls – bei einer Fernwärmeübergabe also den Speicher auf der *anderen*
+# Seite. Im Schaubild sah es damit so aus, als stünde diese Temperatur im
+# Heizhaus, und die ganze Darstellung stimmte nicht mehr.
+ANALOG_SOLLWERT = r"^analog[- ]sollwert$"
+KESSELLEISTUNG_IST = r"kesselleistung"
+
+# Unter dieser Temperatur glimmt nichts, darüber wird es voll.
+BRENNKAMMER_KALT = 100
+BRENNKAMMER_HEISS = 500
+
 # Welcher Wert eines Anlagenteils wo im Schaubild steht.
 # (Muster, Beschriftung) – die Reihenfolge bestimmt die Position von oben.
 WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
+    # Der zweite Wert am Kessel ist wählbar (Option „kesselwert"); hier steht
+    # die Vorgabe. `_werte_je_art` tauscht ihn gegebenenfalls aus.
     "kessel": (
         (r"kesseltemperatur ist", "Kessel"),
         (r"kesselleistung", "Leistung"),
@@ -118,11 +138,11 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
     # kann eine Pumpe regeln, eine externe Wärmeanforderung entgegennehmen oder
     # einen Sammelalarm schalten – was davon, sagt `29/0..29/3`.
     "pumpenmodul": (
+        (ANALOG_SOLLWERT, "Anforderung"),
         # Beide Schreibweisen: „Kesseltemperatur" ist der Herstellername, den
         # HeatNexus ab 1.3.0-beta.4 benutzt, „Temperatur Ist" der bis dahin
         # vergebene – der steht noch in jedem gespeicherten Erkennungsstand.
         (r"^kesseltemperatur$|^temperatur ist$", "Temperatur"),
-        (r"r(ü|ue)cklauf temperatur", "Rücklauf"),
     ),
     # Nur der Istwert. Ein Sollwert an der Stelle, an der beim Puffer die
     # zweite *gemessene* Temperatur steht, liest sich wie ein Messwert und
@@ -319,10 +339,20 @@ def _finde(entitaeten: list[dict[str, Any]], muster: str) -> dict[str, Any] | No
     return next((e for e in treffer if e.get("hat_wert")), treffer[0])
 
 
-def _werte(entitaeten: list[dict[str, Any]], art: str) -> list[dict[str, Any]]:
+def _werte_je_art(art: str, kesselwert: str | None) -> tuple[tuple[str, str], ...]:
+    """Die Wertevorlage einer Art, mit dem gewählten zweiten Kesselwert."""
+    vorlage = WERTE_JE_ART.get(art, ())
+    if art != "kessel" or kesselwert != "brennkammer":
+        return vorlage
+    return (vorlage[0], (BRENNKAMMER_IST, "Brennkammer"))
+
+
+def _werte(
+    entitaeten: list[dict[str, Any]], art: str, kesselwert: str | None = None
+) -> list[dict[str, Any]]:
     """Die Messwerte eines Anlagenteils in der Reihenfolge des Schaubilds."""
     werte = []
-    for muster, beschriftung in WERTE_JE_ART.get(art, ()):
+    for muster, beschriftung in _werte_je_art(art, kesselwert):
         if (treffer := _finde(entitaeten, muster)) is not None:
             werte.append({"entity_id": treffer["entity_id"], "beschriftung": beschriftung})
     return werte
@@ -350,7 +380,7 @@ def _mischer(entitaeten: list[dict[str, Any]]) -> str | None:
     return treffer["entity_id"] if treffer else None
 
 
-def _module(teile: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[dict[str, Any]]:
     """Anlagenteile, die sich zeichnen lassen, mit ihren Werten.
 
     Warmwasser bekommt einen eigenen Kasten, obwohl seine Datenpunkte am
@@ -359,7 +389,7 @@ def _module(teile: list[dict[str, Any]]) -> list[dict[str, Any]]:
     module: list[dict[str, Any]] = []
     for teil in teile:
         art = _art(teil.get("fct_type"))
-        werte = _werte(teil["entitaeten"], art)
+        werte = _werte(teil["entitaeten"], art, kesselwert)
         if werte:
             module.append(
                 {
@@ -368,6 +398,18 @@ def _module(teile: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "werte": werte,
                     "pumpe": _pumpe(teil["entitaeten"], art),
                     "mischer": _mischer(teil["entitaeten"]) if art == "heizkreis" else None,
+                    # Für das Glutbett, unabhängig davon, welcher Wert im Bild
+                    # steht: Leistung zuerst, Brennkammertemperatur als Ersatz.
+                    "leistung": (
+                        e["entity_id"]
+                        if art == "kessel" and (e := _finde(teil["entitaeten"], KESSELLEISTUNG_IST))
+                        else None
+                    ),
+                    "brennkammer": (
+                        e["entity_id"]
+                        if art == "kessel" and (e := _finde(teil["entitaeten"], BRENNKAMMER_IST))
+                        else None
+                    ),
                 }
             )
         # Hängt an diesem Kreis eine Warmwasserbereitung, wird sie als eigener
@@ -540,6 +582,10 @@ MISCHER_MARKE = 26
 # `WERT_HOEHEN["puffer"]` setzt sie auf 168 und 258.
 SPEICHER_Y = 213
 
+# Unter den beiden Werten des Pumpen-/Relaismoduls (186 und 246) ist Platz
+# für den Hinweis auf eine anstehende Wärmeanforderung.
+ANFORDERUNG_Y = 282
+
 # Arten, deren Pumpe dem Speicher Wärme entnimmt.
 ENTNAHME_ARTEN = ("heizkreis", "wasser", "zirkulation", "pumpenmodul")
 
@@ -640,7 +686,9 @@ def _svg(module: list[dict[str, Any]], kesselart: str | None) -> tuple[str, int]
 
 
 def anlagenschema(
-    teile: list[dict[str, Any]], kesselart: str | None = None
+    teile: list[dict[str, Any]],
+    kesselart: str | None = None,
+    kesselwert: str | None = None,
 ) -> dict[str, Any] | None:
     """Eine `picture-elements`-Karte für eine Anlage – oder nichts.
 
@@ -648,7 +696,7 @@ def anlagenschema(
     ``kesselart`` wählt die Kesselzeichnung; ohne Angabe wird sie aus den
     Anlagenteilen abgeleitet.
     """
-    module = _module(teile)
+    module = _module(teile, kesselwert)
     if not module:
         return None
 
@@ -662,6 +710,7 @@ def anlagenschema(
     brenner: list[dict[str, Any]] = []
     mischer: list[dict[str, Any]] = []
     speicher: list[dict[str, Any]] = []
+    anforderung: list[dict[str, Any]] = []
     for platz, modul in enumerate(module):
         x = RAND + platz * MODUL_BREITE
         elemente += _beschriftungen(x, modul, breite)
@@ -686,6 +735,24 @@ def anlagenschema(
                     "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
                 }
             )
+        # Wärmeanforderung des Pumpen-/Relaismoduls: Steht der Analog-Sollwert
+        # über null, fordert das Modul gerade Wärme an – und mit welcher
+        # Temperatur.
+        if modul["art"] == "pumpenmodul":
+            soll = next(
+                (w for w in modul["werte"] if w.get("beschriftung") == "Anforderung"),
+                None,
+            )
+            if soll is not None:
+                mitte = x + MODUL_BREITE // 2
+                anforderung.append(
+                    {
+                        "entity": soll["entity_id"],
+                        "left": f"{mitte / breite * 100:.2f}%",
+                        "top": f"{ANFORDERUNG_Y / HOEHE * 100:.2f}%",
+                        "titel": modul["titel"],
+                    }
+                )
         # Der Mischer zeigt seine Stellung, nicht Bewegung: Ein dauernd
         # drehendes Ventil läse sich wie eine Pumpe, und die dreht sich im
         # Bild schon. Der Anzeiger schwenkt, das Stück Vorlauf darüber färbt
@@ -709,15 +776,19 @@ def anlagenschema(
         # Leistung bringt. Maßgeblich ist die Kesselleistung: Die Betriebsphase
         # heißt auf jeder Baureihe anders, eine Zahl über null nicht.
         if modul["art"] == "kessel":
-            leistung = next(
-                (w for w in modul["werte"] if w.get("beschriftung") == "Leistung"),
-                None,
-            )
-            if leistung is not None:
+            # Erste Wahl bleibt die Leistung, unabhängig davon, welcher Wert
+            # angezeigt wird. Fehlt sie, dient die Brennkammertemperatur als
+            # Ersatzskala – dort heißt kalt 100 °C und voll 500 °C.
+            leistung = modul.get("leistung")
+            ersatz = modul.get("brennkammer")
+            if leistung or ersatz:
                 mitte = x + MODUL_BREITE // 2
                 brenner.append(
                     {
-                        "entity": leistung["entity_id"],
+                        "entity": leistung,
+                        "ersatz": ersatz,
+                        "ersatz_min": BRENNKAMMER_KALT,
+                        "ersatz_max": BRENNKAMMER_HEISS,
                         "left": f"{mitte / breite * 100:.2f}%",
                         "top": f"{GLUTBETT_Y / HOEHE * 100:.2f}%",
                         "breite": f"{GLUTBETT_BREITE / breite * 100:.2f}%",
@@ -768,4 +839,6 @@ def anlagenschema(
         "mischer": mischer,
         # Ob der Puffer gerade beladen oder entleert wird.
         "speicher": speicher,
+        # Liegt am Pumpen-/Relaismodul gerade eine Wärmeanforderung an.
+        "anforderung": anforderung,
     }

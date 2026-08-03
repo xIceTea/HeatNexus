@@ -1707,13 +1707,31 @@ class HeatNexusPanel extends HTMLElement {
       glut.style.left = eintrag.left;
       glut.style.top = eintrag.top;
       glut.style.width = eintrag.breite;
-      huelle.appendChild(this._klickbar(glut, eintrag.entity));
+      huelle.appendChild(this._klickbar(glut, eintrag.entity || eintrag.ersatz));
       this._bindungen.push(() => {
-        const leistung = this._zahl(eintrag.entity);
-        const brennt = leistung !== null && leistung > 0;
+        // Die Leistung ist der beste Massstab. Meldet die Anlage keine, dient
+        // die Brennkammertemperatur als Ersatz: unter 100 Grad glimmt nichts,
+        // ab 500 laeuft der Kessel voll, darueber bleibt es bei voll - heisser
+        // heisst nicht mehr Leistung.
+        const leistung = eintrag.entity ? this._zahl(eintrag.entity) : null;
+        let anteil = null;
+        let text = "";
+        if (leistung !== null) {
+          anteil = Math.max(0, Math.min(100, leistung)) / 100;
+          text = `${Math.round(leistung)} %`;
+        } else if (eintrag.ersatz) {
+          const grad = this._zahl(eintrag.ersatz);
+          if (grad !== null) {
+            const kalt = Number(eintrag.ersatz_min) || 100;
+            const heiss = Number(eintrag.ersatz_max) || 500;
+            anteil = Math.max(0, Math.min(1, (grad - kalt) / (heiss - kalt)));
+            text = `${Math.round(grad)} °C`;
+          }
+        }
+        const brennt = anteil !== null && anteil > 0;
         glut.classList.toggle("brennt", brennt);
-        glut.style.opacity = brennt ? String(0.35 + Math.min(leistung, 100) / 100 * 0.65) : "0";
-        glut.title = `${eintrag.titel} – ${brennt ? `${leistung} %` : "aus"}`;
+        glut.style.opacity = brennt ? String(0.35 + anteil * 0.65) : "0";
+        glut.title = `${eintrag.titel} – ${brennt ? text : "aus"}`;
       });
     });
 
@@ -1754,6 +1772,23 @@ class HeatNexusPanel extends HTMLElement {
           anteil * 100
         )}%, #3a7fe2)`;
         marke.title = `${eintrag.titel} – Mischer ${Math.round(stellwert)} %`;
+      });
+    });
+
+    // Wärmeanforderung: Steht der Analog-Sollwert über null, fordert das
+    // Modul gerade Wärme an – und mit welcher Temperatur.
+    (anlage.schema_anforderung || []).forEach((eintrag) => {
+      const marke = document.createElement("div");
+      marke.className = "speicher anforderung";
+      marke.style.left = eintrag.left;
+      marke.style.top = eintrag.top;
+      huelle.appendChild(marke);
+      this._bindungen.push(() => {
+        const soll = this._zahl(eintrag.entity);
+        const an = soll !== null && soll > 0;
+        marke.classList.toggle("laedt", an);
+        marke.textContent = an ? `fordert ${Math.round(soll)} °C` : "";
+        marke.title = `${eintrag.titel} – ${an ? "Wärmeanforderung" : "keine Anforderung"}`;
       });
     });
 
@@ -2183,6 +2218,73 @@ class HeatNexusPanel extends HTMLElement {
     return karten;
   }
 
+  /**
+   * Eine Taste für Eco bzw. Comfort.
+   *
+   * Geschrieben werden zwei Werte: die Temperatur (3/4) und die Dauer (2/10) –
+   * dieselbe befristete Übersteuerung, die das Bediengerät setzt. Die Vorgaben
+   * stehen in den Optionen der Integration und gelten für alle Kreise.
+   */
+  _uebersteuerungsTaste(kreis, schluessel, beschriftungText, symbol) {
+    const werte = ((this._daten && this._daten.uebersteuerung) || {})[schluessel] || {};
+    const taste = document.createElement("button");
+    taste.className = "taste";
+    taste.type = "button";
+    taste.appendChild(this._symbolKnoten(symbol));
+    const beschriftung = document.createElement("div");
+    beschriftung.className = "beschriftung";
+    beschriftung.textContent = beschriftungText;
+    const rueckmeldung = document.createElement("div");
+    rueckmeldung.className = "rueckmeldung";
+    taste.append(beschriftung, rueckmeldung);
+
+    taste.addEventListener("click", async () => {
+      if (taste.disabled) return;
+      const temperatur = Number(werte.temperatur);
+      const dauer = Number(werte.dauer);
+      if (!Number.isFinite(temperatur) || !Number.isFinite(dauer)) return;
+      taste.disabled = true;
+      try {
+        await this._uebertragen(
+          rueckmeldung,
+          async () => {
+            await this._hass.callService("number", "set_value", {
+              entity_id: kreis.uebersteuerung_temperatur,
+              value: temperatur,
+            });
+            return this._hass.callService("number", "set_value", {
+              entity_id: kreis.uebersteuerung_dauer,
+              value: dauer,
+            });
+          },
+          () => {
+            const jetzt = this._zustand(kreis.entity);
+            return !!jetzt && Math.abs(Number(jetzt.attributes.temperature) - temperatur) < 0.3;
+          }
+        );
+      } finally {
+        taste.disabled = false;
+      }
+    });
+
+    this._bindungen.push(() => {
+      if (rueckmeldung.dataset.belegt === "1") return;
+      const zustand = this._zustand(kreis.entity);
+      const soll = zustand ? Number(zustand.attributes.temperature) : NaN;
+      const aktiv =
+        !!zustand &&
+        zustand.attributes.override_aktiv === true &&
+        Math.abs(soll - Number(werte.temperatur)) < 0.3;
+      taste.classList.toggle("an", aktiv);
+      rueckmeldung.className = "rueckmeldung";
+      const grad = Number(werte.temperatur);
+      rueckmeldung.textContent = Number.isFinite(grad)
+        ? `${grad} °C · ${Math.round(Number(werte.dauer) || 0)} min`
+        : "";
+    });
+    return taste;
+  }
+
   /** Heizkreis mit Sollwertregler, Betriebswahl und Zeitprogramm. */
   _heizkreisKarte(kreis) {
     const karte = this._karte(kreis.titel);
@@ -2264,6 +2366,23 @@ class HeatNexusPanel extends HTMLElement {
     };
     runter.addEventListener("click", () => stellen(-1));
     hoch.addEventListener("click", () => stellen(1));
+
+    // Eco und Comfort: dieselbe befristete Übersteuerung, die auch das
+    // Bediengerät schreibt. Die Anlage kennt je Kreis nur *einen*
+    // Übersteuerungswert – ob er Eco oder Comfort heißt, entscheidet sie
+    // daran, ob er unter oder über dem Programmsollwert liegt.
+    if (kreis.uebersteuerung_temperatur && kreis.uebersteuerung_dauer) {
+      const paar = document.createElement("div");
+      paar.className = "gitter";
+      paar.style.marginTop = "12px";
+      [
+        ["eco", "Eco", "mdi:leaf"],
+        ["comfort", "Comfort", "mdi:sofa"],
+      ].forEach(([schluessel, beschriftung, symbol]) => {
+        paar.appendChild(this._uebersteuerungsTaste(kreis, schluessel, beschriftung, symbol));
+      });
+      karte.appendChild(paar);
+    }
 
     if (kreis.betriebswahl) {
       karte.appendChild(

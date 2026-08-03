@@ -37,12 +37,18 @@ from .client import WindhagerHttpClient
 from .const import (
     ALL_LEVELS,
     BEKANNTE_BENUTZER,
+    COMFORT_TEMP_STANDARD,
     CONF_AUSSENTEMPERATUR,
+    CONF_COMFORT_DAUER,
+    CONF_COMFORT_TEMP,
     CONF_COUNT,
     CONF_DASHBOARD,
+    CONF_ECO_DAUER,
+    CONF_ECO_TEMP,
     CONF_ENABLE_ADVANCED,
     CONF_HILFE,
     CONF_KESSELART,
+    CONF_KESSELWERT,
     CONF_LABEL,
     CONF_LEVELS,
     CONF_MELDUNG_EINLESEN,
@@ -53,15 +59,20 @@ from .const import (
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
     DOMAIN,
+    ECO_TEMP_STANDARD,
     KESSELART_AUTO,
     KESSELART_BESCHRIFTUNG,
     KESSELARTEN,
+    KESSELWERT_BESCHRIFTUNG,
+    KESSELWERT_LEISTUNG,
+    KESSELWERTE,
     LEVEL_BESCHRIFTUNG,
     LEVEL_INFO,
     LEVEL_OPERATE,
     MAX_SYSTEMS,
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
+    UEBERSTEUERUNG_DAUER_STANDARD,
     UPDATE_INTERVAL,
 )
 from .exceptions import CannotConnect, InvalidAuth
@@ -172,12 +183,47 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
                 translation_key="kesselart",
             )
         ),
+        # Welcher zweite Wert am Kessel steht. Das Glutbett richtet sich
+        # weiterhin nach der Leistung; die Wahl betrifft nur die Anzeige.
+        vol.Required(
+            CONF_KESSELWERT, default=defaults.get(CONF_KESSELWERT, KESSELWERT_LEISTUNG)
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=wert, label=KESSELWERT_BESCHRIFTUNG[wert])
+                    for wert in KESSELWERTE
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+                translation_key="kesselwert",
+            )
+        ),
     }
     if mit_intervall:
         felder[vol.Required(CONF_DASHBOARD, default=bool(defaults.get(CONF_DASHBOARD, True)))] = (
             bool
         )
         felder[vol.Required(CONF_PANEL, default=bool(defaults.get(CONF_PANEL, False)))] = bool
+        # Eco und Comfort: die befristete Übersteuerung, die auch das
+        # Bediengerät schreibt. Die Werte gelten für alle Heizkreise – die
+        # Anlage kennt je Kreis nur einen Übersteuerungswert, zwei getrennte
+        # Vorgaben je Kreis hätten dort nichts, worin sie stehen könnten.
+        for schluessel, vorgabe, einheit, kleinst, groesst in (
+            (CONF_ECO_TEMP, ECO_TEMP_STANDARD, "°C", 6, 30),
+            (CONF_ECO_DAUER, UEBERSTEUERUNG_DAUER_STANDARD, "min", 0, 400),
+            (CONF_COMFORT_TEMP, COMFORT_TEMP_STANDARD, "°C", 6, 30),
+            (CONF_COMFORT_DAUER, UEBERSTEUERUNG_DAUER_STANDARD, "min", 0, 400),
+        ):
+            felder[vol.Required(schluessel, default=float(defaults.get(schluessel, vorgabe)))] = (
+                NumberSelector(
+                    NumberSelectorConfig(
+                        min=kleinst,
+                        max=groesst,
+                        step=0.5 if einheit == "°C" else 5,
+                        unit_of_measurement=einheit,
+                        mode=NumberSelectorMode.BOX,
+                    )
+                )
+            )
         felder[
             vol.Required(
                 CONF_UPDATE_INTERVAL,
@@ -203,11 +249,13 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         if pflicht not in levels:
             levels.append(pflicht)
     kesselart = raw.get(CONF_KESSELART, KESSELART_AUTO)
+    kesselwert = raw.get(CONF_KESSELWERT, KESSELWERT_LEISTUNG)
     ergebnis: dict[str, Any] = {
         CONF_LEVELS: [lvl for lvl in ALL_LEVELS if lvl in levels],
         CONF_ENABLE_ADVANCED: bool(raw.get(CONF_ENABLE_ADVANCED, False)),
         CONF_WRITABLE_ADVANCED: bool(raw.get(CONF_WRITABLE_ADVANCED, False)),
         CONF_KESSELART: kesselart if kesselart in KESSELARTEN else KESSELART_AUTO,
+        CONF_KESSELWERT: (kesselwert if kesselwert in KESSELWERTE else KESSELWERT_LEISTUNG),
     }
     if CONF_UPDATE_INTERVAL in raw:
         ergebnis[CONF_UPDATE_INTERVAL] = int(raw[CONF_UPDATE_INTERVAL])
@@ -215,6 +263,9 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         ergebnis[CONF_DASHBOARD] = bool(raw[CONF_DASHBOARD])
     if CONF_PANEL in raw:
         ergebnis[CONF_PANEL] = bool(raw[CONF_PANEL])
+    for schluessel in (CONF_ECO_TEMP, CONF_ECO_DAUER, CONF_COMFORT_TEMP, CONF_COMFORT_DAUER):
+        if schluessel in raw:
+            ergebnis[schluessel] = float(raw[schluessel])
     return ergebnis
 
 

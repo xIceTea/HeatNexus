@@ -35,11 +35,18 @@ import voluptuous as vol
 
 from .anordnung import async_register_anordnung
 from .const import (
+    COMFORT_TEMP_STANDARD,
     CONF_AUSSENTEMPERATUR,
+    CONF_COMFORT_DAUER,
+    CONF_COMFORT_TEMP,
+    CONF_ECO_DAUER,
+    CONF_ECO_TEMP,
     CONF_HILFE,
     DOMAIN,
+    ECO_TEMP_STANDARD,
     PANEL_TITEL,
     PANEL_URL,
+    UEBERSTEUERUNG_DAUER_STANDARD,
     panel_element,
     panel_js_pfad,
 )
@@ -483,6 +490,17 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                 "betriebswahl": _kennung(teil["entitaeten"], BETRIEBSWAHL, ("select",)),
                 "betriebswahl_hilfe": hilfe("Betriebswahl"),
                 "programm": _kennung(teil["entitaeten"], ZEITPROGRAMM, ("sensor",)),
+                # Eco und Comfort schreiben dieselbe befristete Übersteuerung
+                # wie das Bediengerät: Temperatur (3/4) und Dauer (2/10). Die
+                # Anlage kennt nur einen Übersteuerungswert – ob er Eco oder
+                # Comfort heißt, entscheidet sie daran, ob er unter oder über
+                # dem Programmsollwert liegt.
+                "uebersteuerung_temperatur": _kennung(
+                    teil["entitaeten"], _muster(r"^temperatur$"), ("number",)
+                ),
+                "uebersteuerung_dauer": _kennung(
+                    teil["entitaeten"], _muster(r"^dauer$"), ("number",)
+                ),
                 "vorlauf": (
                     v["entity_id"]
                     if (v := _erster(teil["entitaeten"], r"vorlauftemperatur ist"))
@@ -698,7 +716,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                     eintrag["titel_abbrechen"] = "Warmwasser laden abbrechen"
                 schnellzugriff.append(eintrag)
 
-    bild = anlagenschema(anlage["teile"], anlage.get("kesselart"))
+    bild = anlagenschema(anlage["teile"], anlage.get("kesselart"), anlage.get("kesselwert"))
     # **Jede Anlage behält ihren eigenen Messwert.** Die in den Optionen
     # gewählte Entität gilt nur für die Ansicht „Alle" – dort gibt es keine
     # einzelne Anlage, deren Fühler man nehmen könnte. Bis 1.2.0-beta.3
@@ -750,8 +768,31 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         # läuft, das Glutbett glimmt, solange der Kessel Leistung bringt.
         "schema_leitungen": bild.get("leitungen") if bild else None,
         "schema_brenner": bild.get("brenner", []) if bild else [],
+        "schema_anforderung": bild.get("anforderung", []) if bild else [],
         "schema_mischer": bild.get("mischer", []) if bild else [],
         "schema_speicher": bild.get("speicher", []) if bild else [],
+    }
+
+
+def _uebersteuerung(hass: HomeAssistant) -> dict[str, dict[str, float]]:
+    """Die eingestellten Werte für Eco und Comfort.
+
+    Sie gelten für alle Heizkreise: Die Anlage kennt je Kreis nur *einen*
+    Übersteuerungswert, zwei getrennte Vorgaben je Kreis hätten dort nichts,
+    worin sie stehen könnten.
+    """
+    optionen: dict[str, Any] = {}
+    for eintrag in hass.config_entries.async_entries(DOMAIN):
+        optionen = {**(eintrag.options or {}), **optionen}
+    return {
+        "eco": {
+            "temperatur": float(optionen.get(CONF_ECO_TEMP, ECO_TEMP_STANDARD)),
+            "dauer": float(optionen.get(CONF_ECO_DAUER, UEBERSTEUERUNG_DAUER_STANDARD)),
+        },
+        "comfort": {
+            "temperatur": float(optionen.get(CONF_COMFORT_TEMP, COMFORT_TEMP_STANDARD)),
+            "dauer": float(optionen.get(CONF_COMFORT_DAUER, UEBERSTEUERUNG_DAUER_STANDARD)),
+        },
     }
 
 
@@ -776,6 +817,8 @@ def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
     aussen = _gewaehlte_aussentemperatur(hass)
     daten = {
         "anlagen": [_anlage_daten(anlage, aussen) for anlage in _anlagen(hass)],
+        # Eco und Comfort gelten für alle Anlagen gemeinsam.
+        "uebersteuerung": _uebersteuerung(hass),
         # Die Außentemperatur der Ansicht „Alle". Dort steht keine einzelne
         # Anlage im Vordergrund, also gilt die gewählte Entität – und nur dort.
         "aussentemperatur": aussen,

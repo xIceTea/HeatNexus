@@ -46,6 +46,38 @@ CONF_HILFE = "hilfe"
 # dem gemeldeten Brennstoff und dem Funktionsnamen ab; die Auswahl ist dafür
 # da, dass eine falsch erkannte Anlage trotzdem richtig aussieht.
 CONF_KESSELART = "kesselart"
+
+# Welchen zweiten Wert der Kessel im Schaubild zeigt. Die Leistung sagt am
+# meisten über den Betrieb aus und bleibt Vorgabe; wer lieber die Temperatur
+# im Brennraum sieht, stellt hier um. Die Bewegung des Glutbetts richtet sich
+# davon unabhaengig weiter nach der Leistung - erst wenn die fehlt, springt
+# sie auf die Brennkammertemperatur um.
+CONF_KESSELWERT = "kesselwert"
+KESSELWERT_LEISTUNG = "leistung"
+KESSELWERT_BRENNKAMMER = "brennkammer"
+KESSELWERTE = (KESSELWERT_LEISTUNG, KESSELWERT_BRENNKAMMER)
+KESSELWERT_BESCHRIFTUNG = {
+    KESSELWERT_LEISTUNG: "Kesselleistung",
+    KESSELWERT_BRENNKAMMER: "Brennkammertemperatur",
+}
+
+# Ersatzskala für das Glutbett, wenn keine Leistung gemeldet wird: Unter 100 °C
+# im Brennraum glimmt nichts, ab 500 °C laeuft der Kessel voll. Darueber bleibt
+# es bei voller Helligkeit - heisser heisst nicht mehr Leistung.
+BRENNKAMMER_KALT = 100
+BRENNKAMMER_HEISS = 500
+
+# Eco und Comfort: dieselbe befristete Uebersteuerung, die auch das Bediengeraet
+# schreibt (3/4 Temperatur + 2/10 Dauer). Die Anlage kennt nur *einen*
+# Uebersteuerungswert; ob er Eco oder Comfort heisst, entscheidet sie daran, ob
+# er unter oder ueber dem Programmsollwert liegt.
+CONF_ECO_TEMP = "eco_temperatur"
+CONF_ECO_DAUER = "eco_dauer"
+CONF_COMFORT_TEMP = "comfort_temperatur"
+CONF_COMFORT_DAUER = "comfort_dauer"
+ECO_TEMP_STANDARD = 10.0
+COMFORT_TEMP_STANDARD = 22.0
+UEBERSTEUERUNG_DAUER_STANDARD = 180
 PANEL_URL = "heatnexus-anlage"
 PANEL_TITEL = "HeatNexus"
 PANEL_ELEMENT = "heatnexus-panel"
