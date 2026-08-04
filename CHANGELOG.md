@@ -6,6 +6,78 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.4.0] - 2026-08-04
+
+Bedienen, was man täglich anfasst: Warmwasser, Heizkreis und Lagerraum. Drei
+der vier Fehler darunter waren keine Anzeigefehler, sondern Vergleiche mit dem
+falschen Wert – belegt an zwei Anlagen und den Sonden-Läufen.
+
+### Neu
+
+- **Der Heizkörper im Schaubild färbt sich nach seiner Vorlauftemperatur.**
+  Kalt in der Farbe des Rücklaufs, heiß in der des Vorlaufs – dieselben beiden
+  Farben, die auch die Leitungen tragen. Ab etwa zwei Dritteln der Skala
+  pulsiert er leicht, wie das Glutbett am Kessel. Wer Bewegung abbestellt hat,
+  bekommt nur die Farbe.
+- **Das Menüband bleibt beim Blättern stehen.** Marke, Anlagenwahl und die
+  Reiter kleben oben; nur die Karten laufen durch. Vorher kam man aus der
+  Wartung nur über den Weg nach oben zurück in die Übersicht.
+- **Die Lagerraumbefüllung zeigt endlich Freigabe und Restlaufzeit.** Beide
+  Datenpunkte führt die Anlage (`39/107`, `39/5`), abgefragt wurden sie auch –
+  angelegt wurden sie nie, weil sie in keiner Bedienebene stehen und deshalb
+  als Werksebene durchfielen. Ausdrücklich ergänzte Datenpunkte sind davon
+  jetzt ausgenommen.
+- **Neuer Dienst `heatnexus.set_vorgabe`**: befristete Raumtemperatur-Vorgabe
+  eines Heizkreises mit eigener Dauer – derselbe Eingriff, den die Anlage
+  „Eco / Comfort" nennt, jetzt auch für Automationen.
+- **Englische Fassung des README** (`README.en.md`), verlinkt in beiden
+  Richtungen.
+
+### Behoben
+
+- **Die Warmwasserladung verglich mit dem falschen Sollwert.** Geprüft wurde
+  gegen die gewöhnliche Warmwassertemperatur (`1/4`, an der geprüften Anlage
+  49,5 °C) statt gegen die Temperatur der *Einmalladung* (`5/51`, dort
+  65 °C). Bei 61 °C im Speicher meldete die Taste „schon 61 °C – erst ab
+  45 °C" und verweigerte eine Ladung, die die Anlage klaglos ausgeführt hätte.
+  Der Abstand sah nach 16 K aus, war aber die Differenz der beiden Sollwerte.
+  Der Abstand selbst bleibt bei den 5 K des Herstellers; meldet die Anlage
+  ihren eigenen Parameter „Hysterese EIN" (`5/0`), gilt der.
+- **Eco, Comfort und der Sollwert wirkten im WW-Betrieb und im Standby
+  nicht.** Beide Tasten schrieben Temperatur und Dauer als Zahlenwerte an der
+  Klimaentität vorbei. Dort ist der Heizkreis aber aus: Die Anlage übernahm
+  nur den Timer, es lief eine Vorgabe ohne Wärmeanforderung, und die
+  Rückmeldung wartete auf eine Bestätigung, die nicht kommen konnte. Jetzt
+  gehen sie denselben Weg wie ein gesetzter Sollwert – kurz in ein
+  Heizprogramm und danach zurück.
+- **„Warmwasser laden" ist in Übersicht und Steuerung dieselbe Taste.** In der
+  Steuerung fehlten Ladeschwelle, Betriebswahl und Abbruch; dieselbe Ladung
+  ließ sich in der einen Ansicht beenden und in der anderen nicht.
+- **Das Urlaubsprogramm zählt bei der Warmwasserladung wie Standby.** Es steht
+  nicht in der Betriebswahl – `3/50` kennt es gar nicht – sondern nur in der
+  Betriebsart (`2/9`). Dort wird es jetzt gelesen.
+- **Ein Pumpen-/Relaismodul ohne Aufgabe steht nicht mehr im Schaubild.** An
+  der zweiten geprüften Anlage beantwortet das Modul weder Kesseltemperatur
+  noch Pumpendrehzahl noch die Gruppe 29 – es ist ein Klemmenkasten. Es stand
+  trotzdem als Kasten in der Leitung, durch den nichts fließt.
+- **Der Schriftzug der Integration hielt die Maße nicht ein.** `logo.png` war
+  512×127 statt mindestens 128 hoch, `logo@2x.png` 1024×254 statt 256. Ein
+  Test prüft die vier Bilder jetzt.
+
+### Werkzeug
+
+- Die Sonde liest strukturierte Objekte einzeln (`objekt`), sucht die
+  statischen Navigationseinträge der Steuerung (`statisch`) und legt ihre
+  Ausgabe immer im Repository ab, egal aus welchem Ordner sie gestartet wird.
+- Ein verbrauchter Digest-Nonce beantwortete jede folgende Anfrage mit 401 und
+  ließ ganze Suchläufe wie „gibt es nicht" aussehen. Die Sonde meldet sich in
+  diesem Fall neu an.
+
+### Hinweis
+
+Die neuen Datenpunkte der Lagerraumbefüllung erscheinen erst nach einem
+Neueinlesen: Dienst `heatnexus.rediscover` aufrufen.
+
 ## [1.3.1] - 2026-08-04
 
 ### Neu

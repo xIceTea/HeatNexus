@@ -34,6 +34,8 @@ MAX_TEMP = 30.0
 # Dauer des Komfort-Overrides in Minuten (so wie die Windhager-App: sie
 # schreibt 3/4 = Temperatur + 2/10 = Dauer; beobachtet wurden 180 min).
 OVERRIDE_DURATION_MIN = 180
+# Obergrenze der Dauer (2/10), wie die Anlage sie selbst meldet: 0 bis 400 min.
+OVERRIDE_DURATION_MAX = 400
 
 # Betriebswahl (3/50), in die für eine befristete Vorgabe geschaltet wird, wenn
 # der Kreis gerade aus ist. „Programm 1" ist das erste Heizprogramm und die
@@ -65,6 +67,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             vol.Required("compensation"): vol.All(vol.Coerce(float), vol.Range(min=-3.0, max=3.0)),
         },
         "set_current_temp_compensation",
+    )
+    # Eco und Comfort sind dieselbe befristete Vorgabe wie ein gesetzter
+    # Sollwert, nur mit eigener Dauer. Als Dienst statt als zwei
+    # Zahlen-Entitäten, damit die Umschaltung aus einem Aus-Modus für alle
+    # Wege gilt – Oberfläche, Automation und Sprachassistent.
+    platform.async_register_entity_service(
+        "set_vorgabe",
+        {
+            vol.Required("temperature"): vol.All(
+                vol.Coerce(float), vol.Range(min=MIN_TEMP, max=MAX_TEMP)
+            ),
+            vol.Optional("duration", default=OVERRIDE_DURATION_MIN): vol.All(
+                vol.Coerce(float), vol.Range(min=0, max=OVERRIDE_DURATION_MAX)
+            ),
+        },
+        "async_set_vorgabe",
     )
 
     async_setup_entities(hass, entry, async_add_entities, {"climate": WindhagerThermostatClimate})
@@ -340,7 +358,14 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         self._start_fast_refresh()
 
     async def async_set_temperature(self, **kwargs) -> None:
-        """Set the room comfort setpoint as a timed override (like the app).
+        """Set the room comfort setpoint as a timed override (like the app)."""
+        temp = kwargs.get(ATTR_TEMPERATURE)
+        if temp is None:
+            raise WindhagerValueError("No temperature provided")
+        await self.async_set_vorgabe(float(temp), OVERRIDE_DURATION_MIN)
+
+    async def async_set_vorgabe(self, temperature: float, duration: float) -> None:
+        """Eine befristete Vorgabe schreiben – Temperatur und Dauer.
 
         Per Geräte-Probe bestätigt: Einen Sollwert setzen heißt beim Windhager
         einen befristeten Komfort-Override schreiben:
@@ -350,14 +375,18 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         3/51 ("Heizbetrieb") ist NICHT der aktive Sollwert (blieb in der Probe
         konstant) – das war der Fehler in v0.6.2.
 
+        **Eco und Comfort gehen denselben Weg.** Bis 1.3.1 schrieben die beiden
+        Tasten der Oberfläche `3/4` und `2/10` als Zahlenwerte direkt an der
+        Klimaentität vorbei. Damit fehlte ihnen genau das, was hier darunter
+        steht: die Umschaltung aus einem Aus-Modus. Im WW-Betrieb setzte die
+        Anlage daraufhin nur den Timer, nicht die Temperatur – es lief eine
+        Vorgabe, aber keine Wärmeanforderung, und die Rückmeldung wartete auf
+        eine Bestätigung, die nie kam.
+
         Hinweis: Ohne angeschlossenen Raumfühler regelt die Anlage über die
         Heizkurve; der Override verschiebt den Raum-Sollwert befristet, eine
         echte Raumtemperaturregelung ist ohne Fühler aber nicht möglich.
         """
-        temp = kwargs.get(ATTR_TEMPERATURE)
-        if temp is None:
-            raise WindhagerValueError("No temperature provided")
-
         # Im Aus/WW-Betrieb ist der Heizkreis aus: Das Gerät setzt dann nur den
         # Timer und übernimmt die Temperatur nicht. Bis 1.3.1 wurde der Versuch
         # deshalb abgelehnt – nur hilft das niemandem, der aus dem WW-Betrieb
@@ -378,14 +407,15 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
                 HEIZPROGRAMM,
             )
 
-        temp = max(MIN_TEMP, min(MAX_TEMP, float(temp)))
+        temp = max(MIN_TEMP, min(MAX_TEMP, float(temperature)))
+        dauer = max(0, min(OVERRIDE_DURATION_MAX, round(float(duration))))
 
         # Sofort anzeigen, dann Override + Dauer schreiben und Refresh anstoßen.
         self._optimistic_target = temp
         self._optimistic_ts = time.monotonic()
         self.async_write_ha_state()
         await self.client.update(f"{self._prefix}/3/4/0", f"{temp:.1f}")
-        await self.client.update(f"{self._prefix}/2/10/0", str(OVERRIDE_DURATION_MIN))
+        await self.client.update(f"{self._prefix}/2/10/0", str(dauer))
         self._start_fast_refresh()
 
 

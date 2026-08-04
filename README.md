@@ -14,6 +14,8 @@
   <a href="https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Integration hinzufügen"></a>
 </p>
 
+<p align="center"><strong>Deutsch</strong> · <a href="README.en.md">English</a></p>
+
 # HeatNexus
 
 Heizungen in Home Assistant – lokal, vollständig, ohne Cloud.
@@ -208,6 +210,7 @@ einer neuen Version oder über den Dienst `heatnexus.rediscover`.
 | Dienst | Wirkung |
 |---|---|
 | `heatnexus.set_time_program` | Zeitprogramm setzen (`switch_points` mit `weekdays`, oder `blocks` für getrennte Wochenpläne) |
+| `heatnexus.set_vorgabe` | befristete Raumtemperatur-Vorgabe eines Heizkreises („Eco / Comfort") |
 | `heatnexus.set_current_temp_compensation` | Behaglichkeitskorrektur eines Heizkreises |
 | `heatnexus.rediscover` | Anlage neu einlesen, z. B. nach Umbauten |
 

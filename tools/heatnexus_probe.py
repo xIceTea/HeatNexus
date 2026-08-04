@@ -135,6 +135,19 @@ class Probe:
                     return json.loads(self._decode(resp.read())), resp.status
             except urllib.error.HTTPError as err:
                 body = self._decode(err.read())
+                # 401 nach erfolgreicher Anmeldung heißt: Der Digest-Nonce ist
+                # verbraucht. `HTTPDigestAuthHandler` versucht es genau einmal
+                # neu und gibt dann auf – und weil er seinen Zähler erst bei
+                # Erfolg zurücksetzt, antwortet derselbe Opener danach auf
+                # *jede* Anfrage mit 401. Sichtbar wurde das bei der Suche nach
+                # den statischen Einträgen: die ersten drei Präfixe lieferten
+                # saubere 409er, alle folgenden 401 – ein Ergebnis, das wie
+                # „gibt es nicht" aussieht und keines ist. Opener wegwerfen und
+                # neu anmelden.
+                if err.code == 401 and attempt < RETRIES:
+                    self._local.opener = None
+                    time.sleep(RETRY_PAUSE)
+                    continue
                 if err.code >= 500 and attempt < RETRIES:
                     time.sleep(RETRY_PAUSE)
                     continue
@@ -170,6 +183,18 @@ class Probe:
 def safe_name(host: str) -> str:
     """Dateinamensicherer Name einer Anlage (Windows erlaubt kein ':')."""
     return "".join(c if c.isalnum() or c in "._-" else "_" for c in host)
+
+
+def zielordner(angabe: str) -> Path:
+    """Zielordner bestimmen – relative Angaben gelten ab dem Repository.
+
+    Sonst landet die Ausgabe dort, wo man gerade steht: Wer die Sonde aus
+    ``tools/`` startet, bekam ein zweites ``tools/probe/``, und die Integration
+    verglich später gegen einen Ordner, in dem nichts lag. Absolute Pfade
+    bleiben unberührt.
+    """
+    pfad = Path(angabe)
+    return pfad if pfad.is_absolute() else REPO / pfad
 
 
 def reachable(host: str, timeout: float = 2.0) -> bool:
@@ -261,6 +286,78 @@ def fetch_structure(probe: Probe):
     if status != 200 or not isinstance(data, list):
         return None, status
     return data, status
+
+
+# Statische Navigationseinträge der Steuerung. Sie stehen in
+# `res/xml/StaticNavAssignment.xml`, das die Anlage ohne Anmeldung ausliefert,
+# und sind absichtlich in keiner Menü-Ebene enthalten – der Menü-Abzug findet
+# sie deshalb nie:
+#
+#     <staticentry type="errorlog"    oidextension="2/90/0"/>   Störspeicher
+#     <staticentry type="timeprogram" oidextension="4/80/0"/>   Sonderzeitprogramm
+#     <staticentry type="parameter"   oidextension="4/42/0"/>   Passwort
+#
+# Zugeordnet sind sie dort den Funktionstypen 0 und 18 – einer Zählung, die
+# **nicht** die des `fctType` aus `/1` ist. Wo sie tatsächlich liegen, lässt
+# sich nur durch Ausprobieren feststellen, und genau das macht `suche_statisch`:
+# Sie klappert jeden Knoten und jede Funktion ab, auch die sonst übersprungenen
+# (`NV's` mit fctType −1, gesperrte) und den Knoten ohne Funktionsangabe.
+STATISCHE_NAV = {
+    "2/90/0": "Störspeicher (errorlog)",
+    "4/80/0": "Sonderzeitprogramm",
+    "4/42/0": "Passwort",
+}
+
+
+def suche_statisch(probe: Probe, structure: list) -> dict:
+    """Die statischen Navigationseinträge an allen Knoten und Funktionen suchen."""
+    praefixe: list[str] = []
+    for node in structure:
+        node_id = node.get("nodeId")
+        praefixe.append(f"/1/{node_id}/0")
+        for fct in node.get("functions", []):
+            kandidat = f"/1/{node_id}/{fct.get('fctId')}"
+            if kandidat not in praefixe:
+                praefixe.append(kandidat)
+
+    ziele = [(f"{p}/{gnmn}", p, gnmn) for p in praefixe for gnmn in STATISCHE_NAV]
+    print(f"    {len(ziele)} Kombinationen aus {len(praefixe)} Präfixen werden geprüft")
+
+    def read(ziel):
+        oid, praefix, gnmn = ziel
+        # Erst der object-Endpunkt: Ein Störspeicher ist eine Liste, kein
+        # Einzelwert. Antwortet er nicht, wird `lookup` gegengeprüft – manches
+        # führt die Anlage als schlichten Datenpunkt, und ein 409 „invalid
+        # Identifier" von *einem* der beiden beweist noch nichts.
+        data, status = probe.obj(oid)
+        wie = "object"
+        if status != 200:
+            data2, status2 = probe.lookup(f"/{oid.lstrip('/')}")
+            if status2 == 200:
+                data, status, wie = data2, status2, "lookup"
+        return {
+            "oid": oid,
+            "prefix": praefix,
+            "gnmn": gnmn,
+            "status": status,
+            "endpunkt": wie,
+            "data": data,
+        }
+
+    # Bewusst nacheinander statt über `probe.map`: Es sind wenige Dutzend
+    # Anfragen, und jeder Thread müsste sich einzeln anmelden. Bei einer Suche,
+    # deren Ergebnis „gibt es nicht" sein darf, ist ein sauberer Lauf mehr wert
+    # als ein schneller.
+    treffer = []
+    ergebnisse = [read(ziel) for ziel in ziele]
+    for eintrag in ergebnisse:
+        if eintrag["status"] == 200:
+            treffer.append(eintrag)
+            beschreibung = STATISCHE_NAV[eintrag["gnmn"]]
+            print(f"    TREFFER  {eintrag['oid']:22} {beschreibung} (ueber {eintrag['endpunkt']})")
+    if not treffer:
+        print("    kein statischer Eintrag lesbar – die Anlage führt sie woanders")
+    return {"treffer": treffer, "alle": ergebnisse}
 
 
 def fetch_menus(probe: Probe, structure: list) -> dict:
@@ -399,13 +496,32 @@ def run_diagnose(probe: Probe, menus: dict) -> dict:
     return findings
 
 
+# Datenpunkte, die die Anlage als Struktur führt, aber in keiner Menü-Ebene
+# nennt. Sie stehen in `res/xml/StaticNavAssignment.xml`, das die Steuerung
+# ohne Anmeldung ausliefert:
+#
+#     <staticentry type="errorlog"   oidextension="2/90/0"/>
+#     <staticentry type="timeprogram" oidextension="4/80/0"/>
+#     <staticentry type="parameter"  oidextension="4/42/0"/>
+#
+# `2/90` ist der **Störspeicher** – die Meldungsliste des Bediengeräts. Weil
+# sie in keinem Menü steht, hat der Menü-Abzug sie nie gefunden.
+STATISCHE_OBJEKTE = ("2/90/0", "4/80/0")
+
+
 def fetch_objects(probe: Probe, menus: dict) -> dict:
-    """Strukturierte Objekte (Zeitprogramme, typeId 30) lesen."""
+    """Strukturierte Objekte (Zeitprogramme, Störspeicher) lesen."""
     targets = [
         oid
         for fct in menus["functions"]
         for oid, item in fct["datapoints"].items()
         if item.get("typeId") == 30
+    ]
+    targets += [
+        f"{fct['prefix']}/{gnmn}"
+        for fct in menus["functions"]
+        for gnmn in STATISCHE_OBJEKTE
+        if f"{fct['prefix']}/{gnmn}" not in targets
     ]
     if not targets:
         print("    keine strukturierten Objekte gefunden")
@@ -644,6 +760,13 @@ def run_host(host: str, password: str, actions: set[str], out_dir: Path, workers
             path.write_text(json.dumps(objects, indent=2, ensure_ascii=False), encoding="utf-8")
             written.append(path)
 
+    if "statisch" in actions:
+        print("    Statische Navigationseinträge werden gesucht …")
+        statisch = suche_statisch(probe, structure)
+        path = out_dir / f"{stem}_statisch.json"
+        path.write_text(json.dumps(statisch, indent=2, ensure_ascii=False), encoding="utf-8")
+        written.append(path)
+
     if "texte" in actions:
         print("    Namensdateien werden gesucht …")
         written.extend(run_texte(probe, out_dir, stem))
@@ -734,6 +857,7 @@ ACTIONS = {
     "5": ("report", "Markdown-Bericht je Anlage"),
     "6": ("diag", "Test: wie lassen sich Menüs mit über 10 Datenpunkten nachladen"),
     "7": ("texte", "Test: liefert die Anlage ihre Datenpunktnamen als Datei"),
+    "8": ("statisch", "Suche: Störspeicher und andere statische Navigationseinträge"),
 }
 
 
@@ -743,7 +867,7 @@ def interactive(out_default: str = "probe") -> int:
     print(" HeatNexus – Anlagen-Probe")
     print("=" * 64)
 
-    out_dir = Path(out_default)
+    out_dir = zielordner(out_default)
     hosts_file = out_dir / HOSTS_FILE
     stored = []
     if hosts_file.exists():
@@ -865,13 +989,20 @@ def main() -> int:
             "diag",
             "all",
             "oid",
+            "objekt",
+            "statisch",
         ],
         help="Aktion (Standard: geführter Modus)",
     )
     parser.add_argument("hosts", nargs="*", help="eine oder mehrere IP-Adressen")
-    parser.add_argument("--oid", help="vollständige OID für die Aktion 'oid'")
+    parser.add_argument("--oid", help="vollständige OID für die Aktionen 'oid' und 'objekt'")
     parser.add_argument("--password", help="Service-Passwort (sonst Abfrage oder HEATNEXUS_PW)")
-    parser.add_argument("-o", "--out", default="probe", help="Zielordner (Standard: probe)")
+    parser.add_argument(
+        "-o",
+        "--out",
+        default="probe",
+        help="Zielordner, relativ zum Repository (Standard: probe)",
+    )
     parser.add_argument(
         "--workers",
         type=int,
@@ -884,7 +1015,7 @@ def main() -> int:
         return interactive(args.out)
 
     hosts = args.hosts
-    if args.command == "oid" and hosts and not args.oid:
+    if args.command in ("oid", "objekt") and hosts and not args.oid:
         # Aufruf: oid <host> <OID>
         candidates = [h for h in hosts if h.startswith("/")]
         if candidates:
@@ -904,6 +1035,33 @@ def main() -> int:
             print(json.dumps(data, indent=2, ensure_ascii=False))
         return 0
 
+    if args.command == "objekt":
+        # Der object-Endpunkt statt lookup. Nötig für alles, was die Anlage
+        # als Struktur führt statt als einzelnen Wert: Zeitprogramme – und der
+        # Störspeicher (2/90), den `res/xml/StaticNavAssignment.xml` als
+        # `errorlog` führt. Er steht in keiner Menü-Ebene und wird deshalb von
+        # `menus` nie gefunden.
+        if not args.oid:
+            parser.error("Bitte die OID angeben, z. B. /1/60/0/2/90/0")
+        ziel = zielordner(args.out)
+        ziel.mkdir(parents=True, exist_ok=True)
+        for host in hosts:
+            data, status = Probe(host, password, 1).obj(args.oid)
+            print(f"\n{host}  HTTP {status}")
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+            # Zusätzlich als Datei: Was man ansehen will, will man meist auch
+            # weitergeben, und Abtippen aus der Konsole verliert Umlaute.
+            name = args.oid.strip("/").replace("/", "-")
+            pfad = ziel / f"{safe_name(host)}_objekt_{name}.json"
+            pfad.write_text(
+                json.dumps(
+                    {"oid": args.oid, "status": status, "data": data}, indent=2, ensure_ascii=False
+                ),
+                encoding="utf-8",
+            )
+            print(f"  -> {pfad}")
+        return 0
+
     if args.command == "all":
         actions = {name for name, _ in ACTIONS.values()}
     else:
@@ -911,7 +1069,7 @@ def main() -> int:
         if args.command in ("compare", "report"):
             actions |= {"menus"}
 
-    results = [run_host(h, password, actions, Path(args.out), args.workers) for h in hosts]
+    results = [run_host(h, password, actions, zielordner(args.out), args.workers) for h in hosts]
     return 0 if all(r.get("ok") for r in results) else 1
 
 

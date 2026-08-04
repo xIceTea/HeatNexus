@@ -386,6 +386,72 @@ def test_zsp_meldet_seine_pumpe_ueber_die_drehzahl(schema):
     assert schema._module([zsp])[0]["pumpe"] == "sensor.dz"
 
 
+def test_heizkoerper_haengt_an_der_vorlauftemperatur(schema):
+    """Der Heizkörper färbt sich nach dem Istwert, nicht nach dem Sollwert.
+
+    Der Sollwert steht auch dann auf seinem Wert, wenn der Kreis abgeschaltet
+    ist und der Körper kalt an der Wand hängt.
+    """
+    kreis = _teil(
+        "UMLZ",
+        14,
+        [
+            ("sensor.soll", "Vorlauftemperatur Soll"),
+            ("sensor.ist", "Vorlauftemperatur Ist"),
+            ("sensor.raum", "Raumtemperatur Ist"),
+        ],
+    )
+    bild = schema.anlagenschema([kreis])
+    koerper = bild["heizkoerper"]
+    assert len(koerper) == 1
+    assert koerper[0]["entity"] == "sensor.ist"
+    # Die Skala muss aufsteigen, sonst teilt die Ansicht durch null.
+    assert koerper[0]["kalt"] < koerper[0]["heiss"]
+
+
+def test_ohne_vorlaufmessung_kein_gefaerbter_heizkoerper(schema):
+    """Ohne Messwert bleibt es bei der Zeichnung – geraten wird nicht."""
+    kreis = _teil("UMLZ", 14, [("sensor.raum", "Raumtemperatur Ist")])
+    assert schema.anlagenschema([kreis])["heizkoerper"] == []
+
+
+def test_zsp_ohne_aufgabe_kommt_nicht_ins_schaubild(schema):
+    """Ein Pumpenmodul, an dem nichts hängt, gehört nicht in die Leitung.
+
+    Der Fall stammt aus dem Wohnhaus: Dort meldet das ZSP-PWA nur noch
+    Sollwerte (``0/95`` Analog-Sollwert, ``9/57`` Solltemperatur ext.
+    Wärmeanforderung, ``20/23`` Digital-Sollwert WWK) und den Aktorentest.
+    Kesseltemperatur, Pumpendrehzahl und die ganze Gruppe 29 beantwortet die
+    Anlage dort nicht – das Modul hat keine Aufgabe. Im Heizhaus dagegen
+    liefert dasselbe Bauteil ``0/7`` und ``0/22`` und steht mit „Ext.
+    Wärmeanforderung = Ja" mitten im Betrieb.
+    """
+    ohne_aufgabe = _teil(
+        "ZSP-PWA",
+        20,
+        [
+            ("sensor.analog", "Analog-Sollwert"),
+            ("number.ext", "Solltemperatur ext. Wärmeanforderung"),
+            ("number.wwk", "Digital-Sollwert WWK"),
+            ("sensor.test", "Aktorentest Drehzahl"),
+        ],
+    )
+    in_betrieb = _teil(
+        "ZSP-PTS",
+        20,
+        [
+            ("sensor.analog", "Analog-Sollwert"),
+            ("number.ext", "Solltemperatur ext. Wärmeanforderung"),
+            ("sensor.kessel", "Kesseltemperatur"),
+            ("sensor.dz", "Pumpendrehzahl"),
+        ],
+    )
+    heizkreis = _teil("UMLZ", 14, [("sensor.v", "Vorlauftemperatur Ist")])
+
+    assert [m["art"] for m in schema._module([ohne_aufgabe, heizkreis])] == ["heizkreis"]
+    assert "pumpenmodul" in [m["art"] for m in schema._module([in_betrieb, heizkreis])]
+
+
 # ---------------------------------------------------------------------------
 # Ausrichtung der Zeichnungen
 #

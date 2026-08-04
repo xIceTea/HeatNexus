@@ -91,6 +91,19 @@ const STIL = `
   * { box-sizing: border-box; }
 
   /* --- Kopfleiste: Menütaste, Marke, Anlagenwahl, Reiter --------------- */
+  /* Kopfleiste und Reiter bleiben beim Blättern stehen; nur die Karten
+     darunter laufen durch. Beide stecken dafür in einem gemeinsamen Kasten:
+     Zwei getrennt klebende Elemente würden übereinander rutschen, weil jedes
+     für sich am oberen Rand hängen bliebe.
+
+     Der Hintergrund ist Pflicht – ohne ihn scheinen die Karten durch die
+     Leiste hindurch. Der Farbwert ist derselbe wie am Wirtselement, damit die
+     Leiste im hellen wie im dunklen Erscheinungsbild nicht auffällt. */
+  .leiste {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--primary-background-color, #0e1419);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
   .kopfleiste {
     display: flex; align-items: center; gap: 12px;
     padding: 12px 16px 0;
@@ -467,6 +480,33 @@ const STIL = `
     transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .schaubild .mischer:hover .zeiger { background: #6fb2f5; }
+
+  /* Der Heizkörper, eingefärbt nach seiner Vorlauftemperatur.
+
+     Die Zeichnung füllt die fünf Glieder mit einem festen Verlauf – ein
+     Heizkörper, der auch bei 27 Grad glüht. Darüber liegt deshalb diese Ebene
+     und malt sie neu: unten die Farbe des Rücklaufs, oben die des Vorlaufs.
+
+     Die Glieder entstehen als wiederholter Verlauf, nicht als fünf Kästen:
+     "repeating-linear-gradient" trifft dieselben Abstände wie die Zeichnung
+     (Glied 14 breit, Lücke 8, Raster 22), und die Ebene bleibt ein Element.
+     Die weiße Kante links in jedem Glied ist der Glanz aus der Zeichnung. */
+  .schaubild .heizkoerper {
+    position: absolute; pointer-events: none;
+    border-radius: 7px;
+    -webkit-mask-image: repeating-linear-gradient(
+      to right, #000 0 14px, transparent 14px 22px);
+    mask-image: repeating-linear-gradient(to right, #000 0 14px, transparent 14px 22px);
+    transition: background 1.2s ease, opacity 0.6s ease;
+    opacity: 0;
+  }
+  .schaubild .heizkoerper.da { opacity: 1; }
+  /* Heiß genug, um zu arbeiten: ein ruhiges Pulsieren, dieselbe Geste wie am
+     Glutbett des Kessels. Nichts blinkt – es soll auffallen, nicht nerven. */
+  .schaubild .heizkoerper.heiss { animation: glimmen 3.2s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .schaubild .heizkoerper.heiss { animation: none; }
+  }
 
   /* Ladezustand des Puffers, zwischen seinen beiden Temperaturen. */
   .schaubild .speicher {
@@ -859,7 +899,13 @@ class HeatNexusPanel extends HTMLElement {
     }
 
     const inhalt = document.createElement("div");
-    inhalt.append(this._kopfleiste(anlage), this._reiterleiste());
+    // Marke, Anlagenwahl und Reiter zusammen in einen klebenden Kasten: Wer
+    // in der Wartung nach unten blättert, kommt sonst nur über den Weg nach
+    // oben zurück in die Übersicht.
+    const leiste = document.createElement("div");
+    leiste.className = "leiste";
+    leiste.append(this._kopfleiste(anlage), this._reiterleiste());
+    inhalt.appendChild(leiste);
     if (this._anordnen) inhalt.appendChild(this._anordnenLeiste());
     if (this._alleAnlagen()) {
       this._anlagen().forEach((eintrag) => {
@@ -1825,6 +1871,36 @@ class HeatNexusPanel extends HTMLElement {
       });
     });
 
+    // Der Heizkörper nimmt die Farbe dessen an, was durch ihn fließt: kalt in
+    // der Farbe des Rücklaufs, heiß in der des Vorlaufs – dieselben beiden
+    // Farben wie die waagrechten Leitungen. Ab zwei Dritteln der Skala pulsiert
+    // er leicht; dann arbeitet der Kreis wirklich.
+    (anlage.schema_heizkoerper || []).forEach((eintrag) => {
+      const koerper = document.createElement("div");
+      koerper.className = "heizkoerper";
+      koerper.style.left = eintrag.left;
+      koerper.style.top = eintrag.top;
+      koerper.style.width = eintrag.breite;
+      koerper.style.height = eintrag.hoehe;
+      huelle.appendChild(koerper);
+
+      this._bindungen.push(() => {
+        const grad = this._zahl(eintrag.entity);
+        koerper.classList.toggle("da", grad !== null);
+        if (grad === null) return;
+        const spanne = Number(eintrag.heiss) - Number(eintrag.kalt);
+        const anteil =
+          spanne > 0 ? Math.max(0, Math.min(1, (grad - Number(eintrag.kalt)) / spanne)) : 0;
+        // Oben etwas wärmer als unten – so wirkt das Glied rund, wie in der
+        // Zeichnung, und der Übergang bleibt an derselben Stelle.
+        const warm = `color-mix(in oklab, #e2543a ${Math.round(anteil * 100)}%, #3a7fe2)`;
+        const kuehl = `color-mix(in oklab, #b3341f ${Math.round(anteil * 100)}%, #25508f)`;
+        koerper.style.background = `linear-gradient(to bottom, ${warm}, ${kuehl})`;
+        koerper.classList.toggle("heiss", anteil > 0.66);
+        koerper.title = `${eintrag.titel} – Vorlauf ${this._text(eintrag.entity)}`;
+      });
+    });
+
     // Die Lampen des Pumpen-/Relaismoduls. Liegt eine Wärmeanforderung an,
     // blinken die Klemmen grün und die Betriebslampe wechselt von Rot auf
     // Grün. Sie liegen als eigene Ebene über dem Bild – die Zeichnung im
@@ -2305,9 +2381,15 @@ class HeatNexusPanel extends HTMLElement {
   /**
    * Eine Taste für Eco bzw. Comfort.
    *
-   * Geschrieben werden zwei Werte: die Temperatur (3/4) und die Dauer (2/10) –
-   * dieselbe befristete Übersteuerung, die das Bediengerät setzt. Die Vorgaben
-   * stehen in den Optionen der Integration und gelten für alle Kreise.
+   * Geschrieben wird dieselbe befristete Übersteuerung, die das Bediengerät
+   * setzt: Temperatur (3/4) und Dauer (2/10). Die Vorgaben stehen in den
+   * Optionen der Integration und gelten für alle Kreise.
+   *
+   * Der Weg führt bewusst über den Dienst `heatnexus.set_vorgabe` und nicht
+   * mehr über die beiden Zahlen-Entitäten. Direkt geschrieben fehlte die
+   * Umschaltung aus Standby und WW-Betrieb: Dort ist der Heizkreis aus, die
+   * Anlage übernahm nur den Timer, und die Taste wartete auf eine Bestätigung,
+   * die nicht kommen konnte.
    */
   _uebersteuerungsTaste(kreis, schluessel, beschriftungText, symbol) {
     const werte = ((this._daten && this._daten.uebersteuerung) || {})[schluessel] || {};
@@ -2331,21 +2413,20 @@ class HeatNexusPanel extends HTMLElement {
       try {
         await this._uebertragen(
           rueckmeldung,
-          async () => {
-            await this._hass.callService("number", "set_value", {
-              entity_id: kreis.uebersteuerung_temperatur,
-              value: temperatur,
-            });
-            return this._hass.callService("number", "set_value", {
-              entity_id: kreis.uebersteuerung_dauer,
-              value: dauer,
-            });
-          },
+          () =>
+            this._hass.callService("heatnexus", "set_vorgabe", {
+              entity_id: kreis.entity,
+              temperature: temperatur,
+              duration: dauer,
+            }),
           () => {
             const jetzt = this._zustand(kreis.entity);
             return !!jetzt && Math.abs(Number(jetzt.attributes.temperature) - temperatur) < 0.3;
           }
         );
+        // Betriebswahl und Restzeit ziehen erst mit dem nächsten Abruf nach –
+        // ohne Nachfassen stünde die Karte 30 s lang auf dem alten Stand.
+        this._nachfassen({ entity: kreis.entity, betriebswahl: kreis.betriebswahl });
       } finally {
         taste.disabled = false;
       }
@@ -2574,7 +2655,7 @@ class HeatNexusPanel extends HTMLElement {
       karte.appendChild(this._statuszeile(wasser.programm, "Programm"));
     }
 
-    if (wasser.laden) {
+    if (wasser.taste) {
       const trenner = document.createElement("div");
       trenner.className = "trenner";
       karte.appendChild(trenner);
@@ -2583,7 +2664,11 @@ class HeatNexusPanel extends HTMLElement {
       if (wasser.laden_temperatur) {
         karte.appendChild(this._statuszeile(wasser.laden_temperatur, "Ladetemperatur"));
       }
-      karte.appendChild(this._ladeTaste(wasser));
+      // **Dieselbe Taste wie im Schnellzugriff der Übersicht.** Vorher stand
+      // hier eine eigene, die weder die Ladeschwelle kannte noch abbrechen
+      // konnte: In der Übersicht ließ sich eine Ladung beenden, in der
+      // Steuerung nicht.
+      karte.appendChild(this._bedientaste(wasser.taste, true));
     }
     return karte;
   }

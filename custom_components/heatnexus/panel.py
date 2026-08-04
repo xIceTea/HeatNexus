@@ -215,9 +215,13 @@ WARMWASSER_LADEPUMPE = _muster(r"\bww-ladepumpe")
 
 # Wie weit die Warmwassertemperatur unter dem eingestellten Wert liegen muss,
 # damit die Anlage eine Einmalladung überhaupt annimmt. Der eingestellte Wert
-# ist der Ausschaltpunkt; darüber startet sie nicht. Steht so in der Anleitung
-# und deckt sich mit dem Hilfetext zur Einmalladung.
+# ist der Ausschaltpunkt; darüber startet sie nicht. Die Anleitung nennt dafür
+# den Serviceparameter „Hysterese EIN" (5/0, Werk 5 K, Bereich 1–20 K).
 WARMWASSER_ABSTAND = 5.0
+# Genau dieser Serviceparameter, falls die Anlage ihn hergibt. Er steht auf der
+# Serviceebene und ist standardmäßig abgeschaltet; dann bleibt es beim
+# Werkswert oben.
+WARMWASSER_HYSTERESE = r"^hysterese ein$"
 
 # Betriebsarten (2/9), die eine laufende Warmwasserladung bedeuten.
 WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-Programm")
@@ -228,6 +232,12 @@ WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-
 BETRIEBSWAHL_STANDBY = r"^standby$"
 BETRIEBSWAHL_WW = r"^ww[- ]betrieb$|^warmwasserbetrieb$"
 BETRIEBSWAHL_ZURUECK = r"^programm"
+# Das Urlaubsprogramm steht **nicht** in der Betriebswahl: `3/50` kennt
+# Standby, Programm 1–3, Heiz-, Absenk-, WW-, Handbetrieb und Kühlen – mehr
+# nicht. Der Urlaub entsteht aus dem Datum (`3/78`) und meldet sich nur in der
+# Betriebsart (`2/9` = 5). Für die Warmwasserladung zählt er wie Standby: Der
+# Kreis nimmt den Auftrag nicht an, es muss vorher umgeschaltet werden.
+BETRIEBSART_URLAUB = r"^urlaub"
 
 # Die Außentemperatur gehört an der Anlage in die Kopfzeile und nicht in eine
 # Kachel – sie gilt für die ganze Anlage, nicht für einen Anlagenteil.
@@ -473,6 +483,82 @@ def _warmwasser(entitaeten: list[dict[str, Any]]) -> list[dict[str, str]]:
     ][:WARMWASSER_MAX]
 
 
+def _ladeschwelle(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
+    """Ab wann die Anlage eine Einmalladung überhaupt annimmt.
+
+    Drei Werte, und der mittlere war bis 1.3.1 der falsche:
+
+    * **Ist** – die gemessene Warmwassertemperatur.
+    * **Soll** – die Temperatur, auf die die *Einmalladung* lädt (``5/51``,
+      an der geprüften Anlage 65 °C). Verglichen wurde bisher mit dem
+      gewöhnlichen Warmwasser-Sollwert (``1/4``, dort 49,5 °C). Bei 61 °C im
+      Speicher meldete die Taste deshalb „schon 61 °C – erst ab 45 °C" und
+      verweigerte eine Ladung, die die Anlage klaglos ausgeführt hätte. Der
+      Abstand sah nach 16 K aus, war aber die Differenz der beiden Sollwerte.
+    * **Abstand** – „Hysterese EIN". Die Anleitung nennt 5 K als Werkswert bei
+      einem Bereich von 1 bis 20 K; meldet die Anlage den Parameter (``5/0``,
+      Serviceebene), gilt ihr eigener Wert.
+    """
+    ist = _erster(entitaeten, WARMWASSER_IST_KENNWERT)
+    soll = _kennung(entitaeten, EINMALLADUNG_TEMPERATUR, ("number", "sensor")) or _kennung(
+        entitaeten, WARMWASSER_SOLL, ("number", "sensor")
+    )
+    abstand = WARMWASSER_ABSTAND
+    if (hysterese := _erster(entitaeten, WARMWASSER_HYSTERESE)) is not None:
+        with contextlib.suppress(TypeError, ValueError):
+            if (gemeldet := hysterese.get("wert")) is not None:
+                abstand = float(gemeldet)
+    return {
+        "ist": ist["entity_id"] if ist else None,
+        "soll": soll,
+        "abstand": abstand,
+    }
+
+
+def _warmwasser_bedienung(
+    alle: list[dict[str, Any]], kreis: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Alles, was die Taste „Warmwasser laden" über die Anlage wissen muss.
+
+    **Eine Beschreibung für beide Tasten.** Bis 1.3.1 baute die Übersicht ihre
+    Taste aus diesen Angaben, die Steuerung dagegen aus einer eigenen, ärmeren
+    Fassung: Dort fehlten Ladeschwelle, Betriebswahl und Abbruch, und dieselbe
+    Ladung ließ sich in der einen Ansicht beenden und in der anderen nicht.
+
+    Die Anlage trennt dabei dreierlei:
+
+    * ``2/16`` „Freigabe starten" – ein Auslöser. Er fällt zurück, sobald der
+      Auftrag angenommen ist, und taugt deshalb nicht als Anzeige.
+    * ``3/50`` „Betriebswahl" – die dauerhafte Wahl.
+    * ``2/9``  „Betriebsart" – was gerade läuft. Dort steht „Warmwasser
+      Einmalladung", und dort steht auch „Urlaubsprogramm".
+    """
+    return {
+        "zustand_an": _kennung(alle, BETRIEBSART, ("sensor",)),
+        "zustand_wenn": list(WARMWASSER_LAEDT),
+        # Zweiter Beleg für „lädt gerade": die Ladepumpe. Die Betriebsart
+        # allein genügt nicht – sie meldet je nach Baureihe andere Worte, und
+        # an einem Kreis mit nur einem zulässigen Wert (`allowed: [0]`) meldet
+        # sie den Ladezustand gar nicht.
+        "zustand_pumpe": _kennung(alle, WARMWASSER_LADEPUMPE, ("binary_sensor",)),
+        # Die Betriebswahl gehört zur Ladung dazu: Auf Standby ist der Kreis
+        # abgeschaltet und nimmt den Auftrag nicht an, im Urlaubsprogramm
+        # ebenso wenig. Nur dann wird auf WW-Betrieb umgeschaltet – und
+        # hinterher genau auf den Wert zurück, der vorher stand.
+        "betriebswahl": _kennung(kreis, BETRIEBSWAHL, ("select",)),
+        "betriebswahl_aus": BETRIEBSWAHL_STANDBY,
+        "betriebswahl_ww": BETRIEBSWAHL_WW,
+        "betriebswahl_zurueck": BETRIEBSWAHL_ZURUECK,
+        # „Urlaubsprogramm" ist kein Eintrag der Betriebswahl (3/50 kennt ihn
+        # nicht), sondern ein Zustand der Betriebsart. Erkennbar ist er nur
+        # dort – deshalb ein eigenes Muster statt eines weiteren
+        # Betriebswahl-Eintrags.
+        "zustand_urlaub": BETRIEBSART_URLAUB,
+        "titel_abbrechen": "Warmwasser laden abbrechen",
+        **_ladeschwelle(alle),
+    }
+
+
 def _kennung(entitaeten: list[dict[str, Any]], muster: tuple, bereiche: tuple = ()) -> str | None:
     """Entity-ID der ersten passenden Entität, optional auf Plattformen begrenzt."""
     for eintrag in entitaeten:
@@ -529,24 +615,42 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
     warmwasser = None
     if _bereitet_warmwasser(alle):
         ist = _erster(alle, r"\bww[- ]temperatur aktueller|\bwarmwasser ist")
+        # Der Kreis, an dem das Warmwasser hängt – seine Betriebswahl ist die,
+        # die für die Ladung umgeschaltet und hinterher wiederhergestellt wird.
+        kreis = next(
+            (
+                teil["entitaeten"]
+                for teil in anlage["teile"]
+                if _erster(teil["entitaeten"], WARMWASSER_IST_KENNWERT) is not None
+            ),
+            alle,
+        )
+        laden = _kennung(alle, EINMALLADUNG, ("switch", "button"))
         warmwasser = {
             "ist": ist["entity_id"] if ist else None,
             "soll": _kennung(alle, WARMWASSER_SOLL),
-            "laden": _kennung(alle, EINMALLADUNG, ("switch", "button")),
+            "laden": laden,
             # Die Temperatur der Einmalladung ist an der Anlage Teil derselben
             # Bedienung; ohne sie lädt man auf einen Wert, den man nicht sieht.
             "laden_temperatur": _kennung(alle, EINMALLADUNG_TEMPERATUR, ("number",)),
-            # Woran man sieht, dass wirklich geladen wird: Der Auslöser (2/16)
-            # faellt zurueck, sobald die Anlage den Auftrag angenommen hat.
-            # Die Ladepumpe laeuft dagegen, solange geladen wird.
-            "laeuft": _kennung(alle, WARMWASSER_LADEPUMPE, ("binary_sensor",)),
             # Was die Anlage gerade tut – daran hängt die Rückmeldung.
             "betriebsart": _kennung(alle, BETRIEBSART, ("sensor",)),
-            "laedt_wenn": list(WARMWASSER_LAEDT),
-            # Über die Betriebswahl kommt man zurück in den Grundzustand; in
-            # der Anlagen-App ist das der Weg, eine Ladung abzubrechen.
-            "betriebswahl": _kennung(alle, BETRIEBSWAHL, ("select",)),
             "programm": _kennung(alle, _muster(r"ww[- ].*programm"), ("sensor",)),
+            # **Dieselbe Taste wie in der Übersicht.** Beschreibung, Ladeschwelle
+            # und Abbruch kommen aus einer Quelle; die Ansicht baut daraus nur
+            # noch die Schaltfläche.
+            "taste": (
+                {
+                    "entity": laden,
+                    "titel": "Warmwasser laden",
+                    "symbol": "mdi:water-boiler",
+                    "frage": rueckfrage("WW Einmalladung"),
+                    "hilfe": hilfe("Einmalladung"),
+                    **_warmwasser_bedienung(alle, kreis),
+                }
+                if laden
+                else None
+            ),
         }
 
     kessel = []
@@ -718,46 +822,8 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                     "frage": rueckfrage(treffer["name"]),
                     "hilfe": hilfe(treffer["name"]) or hilfe(beschriftung),
                 }
-                # Die Warmwasserladung meldet ihren Zustand nicht am Auslöser,
-                # sondern in der Betriebsart. Ohne diesen Hinweis wirkt die
-                # Taste, als hätte sie nichts bewirkt.
                 if _passt(beschriftung, WARMWASSER):
-                    eintrag["zustand_an"] = _kennung(alle, BETRIEBSART, ("sensor",))
-                    eintrag["zustand_wenn"] = list(WARMWASSER_LAEDT)
-                    # Zweiter Beleg für „lädt gerade": die Ladepumpe.
-                    #
-                    # Die Betriebsart allein genügt nicht. Sie meldet je nach
-                    # Baureihe andere Worte, und an einem Kreis, der nur einen
-                    # einzigen Wert kennt (`allowed: [0]`), meldet sie den
-                    # Ladezustand überhaupt nicht. Dann blieb die Taste auf
-                    # „Warmwasser laden" stehen und ein zweiter Druck löste
-                    # eine weitere Ladung aus, statt abzubrechen.
-                    eintrag["zustand_pumpe"] = _kennung(
-                        alle, WARMWASSER_LADEPUMPE, ("binary_sensor",)
-                    )
-                    # Die Anlage nimmt den Auftrag nur an, wenn das Wasser
-                    # mindestens `WARMWASSER_ABSTAND` Kelvin unter dem
-                    # eingestellten Wert liegt – der Sollwert ist der
-                    # Ausschaltpunkt. Darüber passiert schlicht nichts, und die
-                    # Taste stand minutenlang auf „wird ausgeführt …".
-                    eintrag["ist"] = _kennung(alle, WARMWASSER_IST, ("sensor",))
-                    eintrag["soll"] = _kennung(alle, WARMWASSER_SOLL, ("number", "sensor"))
-                    eintrag["abstand"] = WARMWASSER_ABSTAND
-                    # Die Betriebswahl gehört zur Ladung dazu.
-                    #
-                    # Steht der Kreis auf Standby, ist er abgeschaltet und
-                    # nimmt den Ladeauftrag gar nicht erst an – erst der
-                    # WW-Betrieb macht ihn ausführbar. Und abbrechen lässt
-                    # sich eine laufende Ladung nur über die Betriebswahl:
-                    # Der Auslöser selbst fällt sofort zurück und hat danach
-                    # keinen Zustand mehr, den man zurücknehmen könnte.
-                    eintrag["betriebswahl"] = _kennung(
-                        teil["entitaeten"], BETRIEBSWAHL, ("select",)
-                    )
-                    eintrag["betriebswahl_aus"] = BETRIEBSWAHL_STANDBY
-                    eintrag["betriebswahl_ww"] = BETRIEBSWAHL_WW
-                    eintrag["betriebswahl_zurueck"] = BETRIEBSWAHL_ZURUECK
-                    eintrag["titel_abbrechen"] = "Warmwasser laden abbrechen"
+                    eintrag.update(_warmwasser_bedienung(alle, teil["entitaeten"]))
                 schnellzugriff.append(eintrag)
 
     bild = anlagenschema(anlage["teile"], anlage.get("kesselart"), anlage.get("kesselwert"))
@@ -814,6 +880,8 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         "schema_brenner": bild.get("brenner", []) if bild else [],
         "schema_anforderung": bild.get("anforderung", []) if bild else [],
         "schema_mischer": bild.get("mischer", []) if bild else [],
+        # Der Heizkörper färbt sich nach seiner Vorlauftemperatur.
+        "schema_heizkoerper": bild.get("heizkoerper", []) if bild else [],
         "schema_lampen": bild.get("lampen", []) if bild else [],
         "schema_speicher": bild.get("speicher", []) if bild else [],
     }
@@ -882,6 +950,8 @@ def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
                 kreis.pop("betriebswahl_hilfe", None)
             if steuerung.get("lagerraum"):
                 steuerung["lagerraum"].pop("hilfe", None)
+            if (wasser := steuerung.get("warmwasser")) and wasser.get("taste"):
+                wasser["taste"].pop("hilfe", None)
     return daten
 
 

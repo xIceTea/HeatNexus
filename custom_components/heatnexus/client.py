@@ -500,9 +500,19 @@ class WindhagerHttpClient:
                 # Datenpunkte, die die Anlage meldet, plus die bekannten
                 # Ergänzungen, die in keinem Menü stehen (Zeitprogramme u. a.).
                 candidates = {oid: self._gnmn(prefix, oid) for oid in menu_data}
+                # Die Ergänzungen stehen in keiner Bedienebene – sonst wären sie
+                # im Menü. Ohne eigenen Vermerk fielen sie deshalb gleich unten
+                # als „Werksebene" wieder heraus, und das war kein theoretischer
+                # Fall: `39/107` („Lagerraum befüllen: freigegeben/gesperrt")
+                # und `39/5` (Restlaufzeit der Freigabe) wurden abgefragt,
+                # angelegt wurden sie nie. Die Karte „Lagerraum befüllen" zeigte
+                # deshalb weder Freigabe noch Restzeit – genau die zwei Angaben,
+                # wegen derer man beim Befüllen überhaupt hinschaut.
+                ergaenzt: set[str] = set()
                 if not nur_kern:
                     for gnmn in EXTRA_OIDS_BY_FCT.get(fct_type, ()):
                         candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
+                        ergaenzt.add(gnmn)
 
                 if not menu_data and not nur_kern:
                     # Ältere Firmware ohne Menüliste: auf die Datenbank
@@ -516,8 +526,12 @@ class WindhagerHttpClient:
                         continue
                     # Datenpunkte, die keiner Bedienebene zugeordnet sind,
                     # gehören zur Werksebene: Sie erscheinen nur, wenn diese
-                    # ausdrücklich gewählt wurde.
-                    level = level_of.get(gnmn, "oem")
+                    # ausdrücklich gewählt wurde. Die ausdrücklich ergänzten
+                    # sind davon ausgenommen – sie stehen von Hand in
+                    # `EXTRA_OIDS_BY_FCT`, gerade *weil* die Anlage sie in
+                    # keiner Ebene führt, und das ist eine Entscheidung und
+                    # kein Zufall.
+                    level = level_of.get(gnmn) or ("operate" if gnmn in ergaenzt else "oem")
                     if level not in self.levels:
                         continue
                     self.devices.append(

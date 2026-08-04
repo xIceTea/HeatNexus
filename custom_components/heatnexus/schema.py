@@ -96,6 +96,10 @@ ZIRKULATION_IST = r"\bww-zirkulations?[- ]?(ist[- ])?temperatur(?!.*soll)"
 # Mischerlaufzeit ist eine Einstellung in Minuten, keine Stellung in Prozent.
 MISCHER_IST = r"^mischer( stellwert)?$"
 
+# Die gemessene Vorlauftemperatur eines Heizkreises – die Wärme, die wirklich
+# im Heizkörper ankommt. Der Sollwert darf nicht mitgehen.
+VORLAUF_IST = r"^vorlauftemperatur ist$"
+
 # Die Brennkammertemperatur: wahlweise zweiter Wert am Kessel und Ersatzskala
 # für das Glutbett, wenn keine Leistung gemeldet wird.
 BRENNKAMMER_IST = r"brennerkammertemperatur|brennkammertemperatur"
@@ -375,6 +379,50 @@ def _mischer(entitaeten: list[dict[str, Any]]) -> str | None:
     return treffer["entity_id"] if treffer else None
 
 
+# Woran ein Pumpen-/Relaismodul erkennen lässt, dass es eine Aufgabe hat: ein
+# eigener **Messwert** oder eine der Funktionen aus Gruppe 29. Sollwerte zählen
+# ausdrücklich nicht – „Solltemperatur ext. Wärmeanforderung" und
+# „Digital-Sollwert WWK" meldet auch ein Modul, an dem nichts hängt. Deshalb
+# sind alle Muster verankert: unverankert fischte
+# `ext. wärmeanforderung` genau diesen Sollwert mit heraus.
+MODUL_AUFGABE = (
+    r"^kesseltemperatur$",
+    r"^temperatur ist$",
+    r"^ext\.? w(ä|ae)rmeanforderung$",
+    r"^pumpensteuerung$",
+    r"^relaisfunktion$",
+)
+
+
+def _modul_in_betrieb(entitaeten: list[dict[str, Any]]) -> bool:
+    """Ob ein Pumpen-/Relaismodul an dieser Anlage überhaupt eine Aufgabe hat.
+
+    Der ZSP ist ein Universalmodul: Es kann eine Pumpe regeln, eine externe
+    Wärmeanforderung entgegennehmen oder einen Sammelalarm schalten – oder als
+    Klemmenkasten dasitzen und nichts davon. Welche Aufgabe verdrahtet ist,
+    sagt die Anlage nicht als Wert; sie sagt es dadurch, **welche Datenpunkte
+    sie überhaupt beantwortet**. Fehlende beantwortet sie mit 404 bzw. 409, und
+    die fliegen schon in `client._apply_metadata` heraus.
+
+    An den beiden geprüften Anlagen ist der Unterschied eindeutig:
+
+    ==================  ================================  ===================
+    Datenpunkt          Heizhaus (ZSP-PTS, in Betrieb)    Wohnhaus (ZSP-PWA)
+    ==================  ================================  ===================
+    ``0/7``  Kessel-T.  74,3 °C                           nicht vorhanden
+    ``0/22`` Drehzahl   0 %                               nicht vorhanden
+    ``29/2`` ext. Anf.  1 (Ja)                            nicht vorhanden
+    ==================  ================================  ===================
+
+    Das Wohnhaus-Modul meldet nur noch Sollwerte und den Aktorentest. Es stand
+    trotzdem im Schaubild – als Kasten in der Leitung, durch den nichts
+    fließt, mit Lampen, die nie angehen.
+    """
+    return _pumpe(entitaeten, "pumpenmodul") is not None or any(
+        _finde(entitaeten, muster) is not None for muster in MODUL_AUFGABE
+    )
+
+
 def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[dict[str, Any]]:
     """Anlagenteile, die sich zeichnen lassen, mit ihren Werten.
 
@@ -389,7 +437,10 @@ def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[
         # Kesseltemperatur misst bei einer Fernwärmeübergabe den Speicher auf
         # der anderen Seite – im Schaubild sagt die Zahl nichts. Dass das Modul
         # in der Leitung sitzt, muss man trotzdem sehen; seinen Zustand zeigen
-        # die Lampen.
+        # die Lampen. Ein Modul ohne Aufgabe bleibt aber draußen, siehe
+        # `_modul_in_betrieb`.
+        if art == "pumpenmodul" and not _modul_in_betrieb(teil["entitaeten"]):
+            continue
         if werte or art == "pumpenmodul":
             module.append(
                 {
@@ -398,6 +449,14 @@ def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[
                     "werte": werte,
                     "pumpe": _pumpe(teil["entitaeten"], art),
                     "mischer": _mischer(teil["entitaeten"]) if art == "heizkreis" else None,
+                    # Die Temperatur, die tatsächlich in den Heizkörper geht.
+                    # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn
+                    # der Kreis abgeschaltet ist und der Körper kalt hängt.
+                    "vorlauf": (
+                        e["entity_id"]
+                        if art == "heizkreis" and (e := _finde(teil["entitaeten"], VORLAUF_IST))
+                        else None
+                    ),
                     # Für Auswertungen, die über die angezeigten Werte
                     # hinausgehen – etwa die Lampen des Pumpen-/Relaismoduls.
                     "entitaeten": teil["entitaeten"],
@@ -581,6 +640,27 @@ GLUTBETT_BREITE = 76
 MISCHER_Y = 112
 MISCHER_MARKE = 26
 
+# Der Körper des Heizkörpers: die fünf Glieder aus `heizkreis.svg`, von x = 50
+# bis x = 152 und von y = 140 bis y = 272. Die Zeichnung füllt sie mit einem
+# festen Verlauf – ein Heizkörper, der immer gleich glüht, auch wenn 27 °C
+# durchlaufen. Darüber liegt deshalb eine eigene Ebene, die ihre Farbe aus der
+# Vorlauftemperatur nimmt.
+HEIZKOERPER_X = 50
+HEIZKOERPER_BREITE = 102
+HEIZKOERPER_Y = 140
+HEIZKOERPER_HOEHE = 132
+
+# Die Skala dafür. Unten die Farbe des Rücklaufs, oben die des Vorlaufs –
+# dieselben beiden Farben, die auch die Leitungen tragen, damit das Bild eine
+# Sprache spricht.
+#
+# Die Grenzen sind keine Erfindung: Die Anlage meldet als Bereich für „Vorlauf
+# min." 10–50 °C und für „Vorlauf max." 30–90 °C. 25 °C ist damit sicher kalt,
+# 65 °C sicher heiß, und dazwischen liegt der Bereich, in dem sich ein
+# Heizkreis tatsächlich bewegt.
+HEIZKOERPER_KALT = 25.0
+HEIZKOERPER_HEISS = 65.0
+
 # Zwischen den beiden Temperaturen des Puffers ist Platz für ein Wort.
 # `WERT_HOEHEN["puffer"]` setzt sie auf 168 und 258.
 SPEICHER_Y = 213
@@ -726,6 +806,7 @@ def anlagenschema(
     pumpen: list[dict[str, Any]] = []
     brenner: list[dict[str, Any]] = []
     mischer: list[dict[str, Any]] = []
+    heizkoerper: list[dict[str, Any]] = []
     speicher: list[dict[str, Any]] = []
     lampen: list[dict[str, Any]] = []
     for platz, modul in enumerate(module):
@@ -771,6 +852,23 @@ def anlagenschema(
                     "titel": modul["titel"],
                 }
             )
+        # Der Heizkörper färbt sich nach dem, was durch ihn fließt: kalt in der
+        # Farbe des Rücklaufs, heiß in der des Vorlaufs. Ohne gemessene
+        # Vorlauftemperatur bleibt es bei der Zeichnung.
+        if modul["art"] == "heizkreis" and modul.get("vorlauf"):
+            heizkoerper.append(
+                {
+                    "entity": modul["vorlauf"],
+                    "left": f"{(x + HEIZKOERPER_X) / breite * 100:.2f}%",
+                    "top": f"{HEIZKOERPER_Y / HOEHE * 100:.2f}%",
+                    "breite": f"{HEIZKOERPER_BREITE / breite * 100:.2f}%",
+                    "hoehe": f"{HEIZKOERPER_HOEHE / HOEHE * 100:.2f}%",
+                    "kalt": HEIZKOERPER_KALT,
+                    "heiss": HEIZKOERPER_HEISS,
+                    "titel": modul["titel"],
+                }
+            )
+
         # Der Wärmeerzeuger bekommt ein Glutbett, das mitgeht, solange er
         # Leistung bringt. Maßgeblich ist die Kesselleistung: Die Betriebsphase
         # heißt auf jeder Baureihe anders, eine Zahl über null nicht.
@@ -882,6 +980,8 @@ def anlagenschema(
         # Ebenso das Glutbett der Wärmeerzeuger und die Mischerstellung.
         "brenner": brenner,
         "mischer": mischer,
+        # Der Heizkörper, eingefärbt nach seiner Vorlauftemperatur.
+        "heizkoerper": heizkoerper,
         # Ob der Puffer gerade beladen oder entleert wird.
         "speicher": speicher,
         # Die Lampen des Pumpen-/Relaismoduls, siehe ZSP_KLEMMEN.
