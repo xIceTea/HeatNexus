@@ -429,11 +429,28 @@ def test_heizkoerper_raster_passt_zur_zeichnung(schema):
     anteil = lambda feld: float(eintrag[feld].rstrip("%"))  # noqa: E731
     assert anteil("glied") < anteil("raster")
     assert anteil("glanz_von") < anteil("glanz_bis") <= anteil("glied")
-    # Fünf Glieder im Raster ergeben genau die Breite der Ebene.
+    # Die Glieder im Raster ergeben genau die Breite der Ebene.
+    assert eintrag["anzahl"] == schema.HEIZKOERPER_ANZAHL
     assert (
-        5 * schema.HEIZKOERPER_RASTER - (schema.HEIZKOERPER_RASTER - schema.HEIZKOERPER_GLIED)
+        schema.HEIZKOERPER_ANZAHL * schema.HEIZKOERPER_RASTER
+        - (schema.HEIZKOERPER_RASTER - schema.HEIZKOERPER_GLIED)
         == schema.HEIZKOERPER_BREITE
     )
+    # Das letzte Glied darf nicht über die Ebene hinausragen.
+    assert anteil("raster") * (schema.HEIZKOERPER_ANZAHL - 1) + anteil("glied") <= 100.0001
+
+
+def test_heizkoerper_zeichnung_ist_neutral(schema):
+    """Unter der farbigen Ebene darf kein Rot liegen.
+
+    Bis 1.4.1 füllte die Zeichnung die Glieder mit einem Verlauf von Glut nach
+    Warm. An den runden Enden schimmerte er unter der Ebene hervor: Ein
+    Heizkreis mit 27 °C Vorlauf hatte rote Ecken.
+    """
+    datei = schema._bauteil("heizkreis.svg")
+    assert datei is not None
+    assert "{{glut}}" not in datei
+    assert "{{warm}}" not in datei
 
 
 def test_ohne_vorlaufmessung_kein_gefaerbter_heizkoerper(schema):

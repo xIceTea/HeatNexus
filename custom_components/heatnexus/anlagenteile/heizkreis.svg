@@ -1,7 +1,17 @@
+<!-- Der Koerper ist bewusst neutral gefaerbt.
+
+     Bis 1.4.1 stand hier ein Verlauf von Glut nach Warm - ein
+     Heizkoerper, der immer glueht, auch bei 27 Grad Vorlauf. Die Waerme legt
+     die Oberflaeche als eigene Ebene darueber (siehe schema.HEIZKOERPER_*),
+     und die kann nur so gut sein wie das, was darunter liegt: An den runden
+     Enden der Glieder schimmerte das gezeichnete Rot durch.
+
+     Ohne gemessene Vorlauftemperatur bleibt es bei diesem Grau. Das ist
+     richtig so - dann wissen wir es schlicht nicht. -->
 <defs>
-  <linearGradient id="waerme" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="{{glut}}"/>
-    <stop offset="100%" stop-color="{{warm}}"/>
+  <linearGradient id="koerper" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus}}"/>
   </linearGradient>
 </defs>
 
@@ -11,7 +21,7 @@
 <rect x="42" y="266" width="116" height="12" rx="6" fill="{{korpus}}"
       stroke="{{rahmen}}" stroke-width="1.5"/>
 
-<g fill="url(#waerme)" stroke="{{rahmen}}" stroke-width="1">
+<g fill="url(#koerper)" stroke="{{rahmen}}" stroke-width="1">
   <rect x="50" y="140" width="14" height="132" rx="7"/>
   <rect x="72" y="140" width="14" height="132" rx="7"/>
   <rect x="94" y="140" width="14" height="132" rx="7"/>

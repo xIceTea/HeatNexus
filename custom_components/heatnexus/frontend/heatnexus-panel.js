@@ -493,9 +493,18 @@ const STIL = `
      Die weiße Kante links in jedem Glied ist der Glanz aus der Zeichnung. */
   .schaubild .heizkoerper {
     position: absolute; pointer-events: none;
-    border-radius: 7px;
-    transition: background 1.2s ease, opacity 0.6s ease;
-    opacity: 0;
+    opacity: 0; transition: opacity 0.6s ease;
+  }
+  /* Ein Element je Glied statt einer Maske über der ganzen Fläche.
+     Eine Maske aus einem Streifenverlauf hat harte Ecken; die gezeichneten
+     Glieder sind an den Enden rund – Radius 7 bei Breite 14, also genau ein
+     Halbkreis. An den vier Ecken jedes Glieds blieb deshalb ein Rest der
+     Zeichnung sichtbar. Ein voller Eckradius ergibt dieselbe Rundung, und
+     zwar mitskalierend. */
+  .schaubild .heizkoerper .glied {
+    position: absolute; top: 0; bottom: 0;
+    border-radius: 999px;
+    transition: background 1.2s ease;
   }
   .schaubild .heizkoerper.da { opacity: 1; }
   /* Heiß genug, um zu arbeiten: ein ruhiges Pulsieren, dieselbe Geste wie am
@@ -1879,15 +1888,19 @@ class HeatNexusPanel extends HTMLElement {
       koerper.style.top = eintrag.top;
       koerper.style.width = eintrag.breite;
       koerper.style.height = eintrag.hoehe;
-      // Die Maske schneidet die fünf Glieder aus der Ebene heraus. Sie kommt
-      // als **Anteil der Ebenenbreite** aus der Integration, nicht in
-      // Bildpunkten: Die Karte skaliert das Bild auf ihre eigene Breite, und
-      // ein festes Muster säße danach neben den gezeichneten Gliedern.
-      const maske =
-        `repeating-linear-gradient(to right, #000 0 ${eintrag.glied}, ` +
-        `transparent ${eintrag.glied} ${eintrag.raster})`;
-      koerper.style.webkitMaskImage = maske;
-      koerper.style.maskImage = maske;
+      // Ein Element je Glied, gesetzt in **Anteilen der Ebenenbreite**. Die
+      // Karte skaliert das Bild auf ihre eigene Breite; feste Bildpunkte
+      // säßen danach neben den gezeichneten Gliedern.
+      const glieder = [];
+      const raster = Number.parseFloat(eintrag.raster);
+      for (let i = 0; i < (eintrag.anzahl || 0); i++) {
+        const glied = document.createElement("div");
+        glied.className = "glied";
+        glied.style.left = `${(raster * i).toFixed(4)}%`;
+        glied.style.width = eintrag.glied;
+        koerper.appendChild(glied);
+        glieder.push(glied);
+      }
       huelle.appendChild(koerper);
 
       this._bindungen.push(() => {
@@ -1901,14 +1914,15 @@ class HeatNexusPanel extends HTMLElement {
         // Zeichnung, und der Übergang bleibt an derselben Stelle.
         const warm = `color-mix(in oklab, #e2543a ${Math.round(anteil * 100)}%, #3a7fe2)`;
         const kuehl = `color-mix(in oklab, #b3341f ${Math.round(anteil * 100)}%, #25508f)`;
-        // Zwei Lagen: oben die Glanzkante, die in der Zeichnung über der
-        // Füllung liegt und von dieser Ebene sonst verdeckt würde, darunter
-        // der Verlauf von warm nach kühl.
+        // Zwei Lagen je Glied: links die Glanzkante, die das Glied rund
+        // wirken lässt, darunter der Verlauf von warm nach kühl.
         const glanz =
-          `repeating-linear-gradient(to right, transparent 0 ${eintrag.glanz_von}, ` +
-          `rgba(255, 255, 255, 0.16) ${eintrag.glanz_von} ${eintrag.glanz_bis}, ` +
-          `transparent ${eintrag.glanz_bis} ${eintrag.raster})`;
-        koerper.style.background = `${glanz}, linear-gradient(to bottom, ${warm}, ${kuehl})`;
+          "linear-gradient(to right, transparent 0 18%, " +
+          "rgba(255, 255, 255, 0.18) 18% 46%, transparent 46%)";
+        const fuellung = `${glanz}, linear-gradient(to bottom, ${warm}, ${kuehl})`;
+        glieder.forEach((glied) => {
+          glied.style.background = fuellung;
+        });
         koerper.classList.toggle("heiss", anteil > 0.66);
         koerper.title = `${eintrag.titel} – Vorlauf ${this._text(eintrag.entity)}`;
       });

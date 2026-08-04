@@ -661,6 +661,7 @@ HEIZKOERPER_HOEHE = 132
 # blau-rot gestreift aus.
 HEIZKOERPER_GLIED = 14
 HEIZKOERPER_RASTER = 22
+HEIZKOERPER_ANZAHL = 5
 
 # Die Glanzkante in jedem Glied, aus derselben Datei: 4 breit, 3 vom linken
 # Rand des Glieds entfernt. Sie liegt in der Zeichnung *über* der Füllung und
@@ -887,6 +888,7 @@ def anlagenschema(
                     "raster": f"{HEIZKOERPER_RASTER / HEIZKOERPER_BREITE * 100:.4f}%",
                     "glanz_von": f"{HEIZKOERPER_GLANZ_VON / HEIZKOERPER_BREITE * 100:.4f}%",
                     "glanz_bis": f"{HEIZKOERPER_GLANZ_BIS / HEIZKOERPER_BREITE * 100:.4f}%",
+                    "anzahl": HEIZKOERPER_ANZAHL,
                     "kalt": HEIZKOERPER_KALT,
                     "heiss": HEIZKOERPER_HEISS,
                     "titel": modul["titel"],

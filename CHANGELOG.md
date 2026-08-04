@@ -6,6 +6,28 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.4.2] - 2026-08-04
+
+### Behoben
+
+- **An den Ecken des Heizkörpers schimmerte Rot durch.** Die gezeichneten
+  Glieder sind an den Enden rund, die farbige Ebene darüber war eckig – an
+  jeder der vier Ecken blieb ein Rest der Zeichnung stehen. Die Ebene besteht
+  jetzt aus einem Element je Glied mit derselben Rundung. Dazu ist die
+  Zeichnung selbst neutral geworden: Sie füllte die Glieder mit einem Verlauf
+  von Glut nach Warm und glühte damit auch bei 27 °C Vorlauf. Ohne gemessene
+  Vorlauftemperatur bleibt der Heizkörper jetzt grau – dann wissen wir es
+  schlicht nicht.
+
+### Werkzeug
+
+- Die Sonde kann die Endpunkte der Steuerung **aufzählen** statt sie zu raten:
+  Auf einen unbekannten Namen antwortet die Anlage mit
+  `503 endpoint <name> does not exist`. Damit lässt sich prüfen, was es
+  wirklich gibt (`probe endpunkte`).
+- Neuer Suchlauf `stoerspeicher` über den SOAP-Dienst der Steuerung, rein
+  lesend.
+
 ## [1.4.1] - 2026-08-04
 
 ### Behoben

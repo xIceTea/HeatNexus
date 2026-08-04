@@ -176,6 +176,34 @@ class Probe:
         """GET /api/1.0/object?OID=<vollständige OID>."""
         return self.get(f"{self.base}/api/1.0/object?OID={full_oid}")
 
+    def post(self, url: str, rumpf: bytes, typ: str = "text/xml; charset=utf-8"):
+        """POST mit derselben Anmeldung; gibt (Text, Status) zurück.
+
+        **Nur für Leseanfragen.** Der Web-Service der Steuerung kennt auch
+        `setDp` und `writeDp`; die haben in einer Sonde nichts zu suchen.
+        """
+        anfrage = urllib.request.Request(url, data=rumpf, method="POST")
+        anfrage.add_header("Content-Type", typ)
+        with self._lock:
+            self.requests += 1
+        try:
+            with self.opener.open(anfrage, timeout=TIMEOUT) as resp:
+                return self._decode(resp.read()), resp.status
+        except urllib.error.HTTPError as err:
+            if err.code == 401:
+                # Wie bei `get`: verbrauchter Nonce, einmal neu anmelden.
+                self._local.opener = None
+                try:
+                    with self.opener.open(anfrage, timeout=TIMEOUT) as resp:
+                        return self._decode(resp.read()), resp.status
+                except urllib.error.HTTPError as zweiter:
+                    return self._decode(zweiter.read()), zweiter.code
+                except (urllib.error.URLError, TimeoutError, OSError) as zweiter:
+                    return str(zweiter), 0
+            return self._decode(err.read()), err.code
+        except (urllib.error.URLError, TimeoutError, OSError) as err:
+            return str(err), 0
+
     def map(self, func, items):
         """Aufgaben parallel abarbeiten."""
         if self.workers <= 1:
@@ -311,6 +339,151 @@ STATISCHE_NAV = {
     "4/80/0": "Sonderzeitprogramm",
     "4/42/0": "Passwort",
 }
+
+
+# ------------------------------------------------------------- Störspeicher
+# Der Störspeicher steht in keinem Menü und ist über `lookup`/`object` nicht
+# lesbar – beide antworten mit `409 – invalid Identifier`. Die Weboberfläche der
+# Anlage zeigt ihn trotzdem. Wie, verrät ihr eigener Quelltext:
+#
+#     function zq(a,b){ … this.f = '/'+c[1]+'/'+c[2]+'/'+c[3]+'/2/96/0'; … }
+#     BU(196,1,{},zq)          und in der Typtabelle:
+#     uM = V6(snb,'StaticNavActionErrorLog',196)
+#
+# `zq` ist also der Störspeicher, und seine Adresse ist `2/96` – nicht `2/90`,
+# das ist nur der Schlüssel des Navigationseintrags in `StaticNav.xml`.
+#
+# Gelesen wird sie über einen zweiten Kanal: einen SOAP-Dienst, dessen Vorlagen
+# unter `res/xml/ws.*.req.xml` liegen. `getDpRequest` und `listDpRequest`
+# kennen `startIndex` und `count` – genau das, was eine Liste braucht und was
+# der REST-Schnittstelle fehlt.
+SOAP_HUELLE = """<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope
+ xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+ xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+ xmlns:ns="http://ws01.lom.ch/soap/">
+ <SOAP-ENV:Body>
+   <ns:{ruf}Request>
+    <ref>
+     <oid>{oid}</oid>
+     <prop></prop>
+    </ref>
+    <startIndex>0</startIndex>
+    <count>{anzahl}</count>
+   </ns:{ruf}Request>
+ </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
+"""
+
+# Wohin der Dienst hört, sagt der Quelltext nicht eindeutig; diese Adressen
+# stehen dort als Zeichenketten. Die erste, die antwortet, gewinnt.
+SOAP_ADRESSEN = ("/WsAdmin/api/1.0/", "/WsAdmin", "/api/1.0/", "/soap", "/ws")
+
+
+# Endpunkte unter `/api/1.0/`. Die Steuerung verrät selbst, welche es gibt:
+# Auf einen unbekannten Namen antwortet sie
+#
+#     503  {"reason": "endpoint <name> does not exist."}
+#
+# Damit lässt sich die Liste **aufzählen** statt raten. Die Namen unten stehen
+# als Zeichenketten im Quelltext der Weboberfläche; ergänzt sind ein paar
+# naheliegende für den Störspeicher.
+ENDPUNKT_KANDIDATEN = (
+    # belegt aus dem Quelltext
+    "lookup",
+    "datapoint",
+    "object",
+    "monitoring",
+    "config/Alarm",
+    "config/DynIP",
+    "config/network",
+    "scan/nodes/status",
+    "settings/systemtime/interval",
+    "systemtime/timezone",
+    "systemtime/ntpserver",
+    "user",
+    "user/group",
+    # Aufzeichnung – laut Quelltext unter `dprecorder/api/1.0/`
+    "recorder/oids",
+    "recorder/settings",
+    # Vermutungen zum Störspeicher
+    "errorlog",
+    "error",
+    "errors",
+    "alarm",
+    "alarms",
+    "message",
+    "messages",
+    "log",
+    "history",
+)
+
+# Basispfade, unter denen die Kandidaten gesucht werden.
+ENDPUNKT_BASEN = ("/api/1.0/", "/dprecorder/api/1.0/", "/WsAdmin/api/1.0/")
+
+
+def suche_endpunkte(probe: Probe) -> dict:
+    """Aufzählen, welche Endpunkte die Steuerung kennt.
+
+    Rein lesend: Jeder Kandidat wird einmal mit GET angefragt. Die Antwort
+    ``503 endpoint <name> does not exist`` heißt „kennt sie nicht"; alles
+    andere – auch ein 400 oder 409 wegen fehlender Parameter – heißt „gibt es".
+    """
+    ergebnisse = []
+    for basis in ENDPUNKT_BASEN:
+        for name in ENDPUNKT_KANDIDATEN:
+            data, status = probe.get(f"{probe.base}{basis}{name}")
+            grund = str((data or {}).get("reason") or "")
+            unbekannt = status == 503 and "does not exist" in grund
+            ergebnisse.append(
+                {
+                    "pfad": f"{basis}{name}",
+                    "status": status,
+                    "reason": grund[:200],
+                    "vorhanden": not unbekannt and status != 404,
+                }
+            )
+            if ergebnisse[-1]["vorhanden"]:
+                print(f"    GIBT ES  {basis}{name:30} HTTP {status:>3}  {grund[:80]}", flush=True)
+    gefunden = [e for e in ergebnisse if e["vorhanden"]]
+    print(f"    {len(gefunden)} von {len(ergebnisse)} Kandidaten vorhanden")
+    return {"vorhanden": gefunden, "alle": ergebnisse}
+
+
+def suche_stoerspeicher(probe: Probe, structure: list, anzahl: int = 20) -> dict:
+    """Den Störspeicher über den SOAP-Dienst der Steuerung suchen."""
+    versuche = []
+    for node in structure:
+        node_id = node.get("nodeId")
+        for fct in node.get("functions", []):
+            if fct.get("fctType", -1) < 0:
+                continue
+            oid = f"/1/{node_id}/{fct.get('fctId')}/2/96/0"
+            for adresse in SOAP_ADRESSEN:
+                for ruf in ("listDp", "getDp"):
+                    rumpf = SOAP_HUELLE.format(ruf=ruf, oid=oid, anzahl=anzahl)
+                    antwort, status = probe.post(probe.base + adresse, rumpf.encode("utf-8"))
+                    treffer = status == 200 and "Fault" not in antwort[:400]
+                    print(
+                        f"    {adresse:20} {ruf:7} {oid:20} HTTP {status:>3}"
+                        f"{'  TREFFER' if treffer else ''}",
+                        flush=True,
+                    )
+                    versuche.append(
+                        {
+                            "adresse": adresse,
+                            "ruf": ruf,
+                            "oid": oid,
+                            "status": status,
+                            "antwort": antwort[:4000],
+                        }
+                    )
+                    if treffer:
+                        return {"treffer": versuche[-1], "versuche": versuche}
+    print("    kein SOAP-Dienst hat geantwortet")
+    return {"treffer": None, "versuche": versuche}
 
 
 def suche_statisch(probe: Probe, structure: list) -> dict:
@@ -780,6 +953,20 @@ def run_host(host: str, password: str, actions: set[str], out_dir: Path, workers
             path.write_text(json.dumps(objects, indent=2, ensure_ascii=False), encoding="utf-8")
             written.append(path)
 
+    if "endpunkte" in actions:
+        print("    Endpunkte der Steuerung werden aufgezählt …")
+        punkte = suche_endpunkte(probe)
+        path = out_dir / f"{stem}_endpunkte.json"
+        path.write_text(json.dumps(punkte, indent=2, ensure_ascii=False), encoding="utf-8")
+        written.append(path)
+
+    if "stoerspeicher" in actions:
+        print("    Störspeicher wird über den SOAP-Dienst gesucht …")
+        speicher = suche_stoerspeicher(probe, structure)
+        path = out_dir / f"{stem}_stoerspeicher.json"
+        path.write_text(json.dumps(speicher, indent=2, ensure_ascii=False), encoding="utf-8")
+        written.append(path)
+
     if "statisch" in actions:
         print("    Statische Navigationseinträge werden gesucht …")
         statisch = suche_statisch(probe, structure)
@@ -877,7 +1064,9 @@ ACTIONS = {
     "5": ("report", "Markdown-Bericht je Anlage"),
     "6": ("diag", "Test: wie lassen sich Menüs mit über 10 Datenpunkten nachladen"),
     "7": ("texte", "Test: liefert die Anlage ihre Datenpunktnamen als Datei"),
-    "8": ("statisch", "Suche: Störspeicher und andere statische Navigationseinträge"),
+    "8": ("statisch", "Suche: statische Navigationseinträge (Störspeicher, Sonderzeitprogramm)"),
+    "9": ("stoerspeicher", "Suche: Störspeicher über den SOAP-Dienst der Steuerung"),
+    "10": ("endpunkte", "Aufzählen: welche Endpunkte die Steuerung überhaupt kennt"),
 }
 
 
@@ -1011,6 +1200,8 @@ def main() -> int:
             "oid",
             "objekt",
             "statisch",
+            "stoerspeicher",
+            "endpunkte",
         ],
         help="Aktion (Standard: geführter Modus)",
     )
