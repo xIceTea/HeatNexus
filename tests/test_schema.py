@@ -409,6 +409,33 @@ def test_heizkoerper_haengt_an_der_vorlauftemperatur(schema):
     assert koerper[0]["kalt"] < koerper[0]["heiss"]
 
 
+def test_heizkoerper_raster_passt_zur_zeichnung(schema):
+    """Das Streifenmuster muss in Anteilen kommen, nicht in Bildpunkten.
+
+    Die Karte skaliert das Schaubild auf ihre eigene Breite. In 1.4.0 stand das
+    Raster als feste Bildpunktwerte im Stylesheet: Nach der Skalierung saßen
+    die Streifen neben den gezeichneten Gliedern, und dazwischen blitzte die
+    rote Füllung der Zeichnung durch – der Heizkörper war blau-rot gestreift.
+
+    Geprüft wird zweierlei: Die Angaben sind Prozentwerte, und fünf Glieder
+    füllen die Ebene genau aus (5 × Raster − Abstand = Breite).
+    """
+    kreis = _teil("UMLZ", 14, [("sensor.ist", "Vorlauftemperatur Ist")])
+    eintrag = schema.anlagenschema([kreis])["heizkoerper"][0]
+
+    for feld in ("glied", "raster", "glanz_von", "glanz_bis"):
+        assert eintrag[feld].endswith("%"), f"{feld} muss ein Anteil sein, ist {eintrag[feld]!r}"
+
+    anteil = lambda feld: float(eintrag[feld].rstrip("%"))  # noqa: E731
+    assert anteil("glied") < anteil("raster")
+    assert anteil("glanz_von") < anteil("glanz_bis") <= anteil("glied")
+    # Fünf Glieder im Raster ergeben genau die Breite der Ebene.
+    assert (
+        5 * schema.HEIZKOERPER_RASTER - (schema.HEIZKOERPER_RASTER - schema.HEIZKOERPER_GLIED)
+        == schema.HEIZKOERPER_BREITE
+    )
+
+
 def test_ohne_vorlaufmessung_kein_gefaerbter_heizkoerper(schema):
     """Ohne Messwert bleibt es bei der Zeichnung – geraten wird nicht."""
     kreis = _teil("UMLZ", 14, [("sensor.raum", "Raumtemperatur Ist")])

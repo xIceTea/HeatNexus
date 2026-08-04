@@ -142,11 +142,15 @@ class Probe:
                 # *jede* Anfrage mit 401. Sichtbar wurde das bei der Suche nach
                 # den statischen Einträgen: die ersten drei Präfixe lieferten
                 # saubere 409er, alle folgenden 401 – ein Ergebnis, das wie
-                # „gibt es nicht" aussieht und keines ist. Opener wegwerfen und
-                # neu anmelden.
-                if err.code == 401 and attempt < RETRIES:
+                # „gibt es nicht" aussieht und keines ist.
+                #
+                # Genau ein zweiter Versuch, und ohne Pause: Eine neue Anmeldung
+                # braucht keine Bedenkzeit, und scheitert auch die, liegt es
+                # wirklich am Passwort. Mit Wartezeit und drei Anläufen wurde
+                # aus einer Suche über 36 Adressen ein Lauf, der aussah, als
+                # hinge er.
+                if err.code == 401 and attempt == 0:
                     self._local.opener = None
-                    time.sleep(RETRY_PAUSE)
                     continue
                 if err.code >= 500 and attempt < RETRIES:
                     time.sleep(RETRY_PAUSE)
@@ -326,12 +330,17 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
     def read(ziel):
         oid, praefix, gnmn = ziel
         # Erst der object-Endpunkt: Ein Störspeicher ist eine Liste, kein
-        # Einzelwert. Antwortet er nicht, wird `lookup` gegengeprüft – manches
-        # führt die Anlage als schlichten Datenpunkt, und ein 409 „invalid
-        # Identifier" von *einem* der beiden beweist noch nichts.
+        # Einzelwert.
         data, status = probe.obj(oid)
         wie = "object"
-        if status != 200:
+        # `409 – invalid Identifier` ist die endgültige Antwort der Anlage:
+        # Diese Adresse führt sie nicht. Ein zweiter Versuch über `lookup`
+        # brächte dieselbe Auskunft und kostet nur Zeit. Nachgefasst wird
+        # deshalb nur, wenn die erste Antwort *keine* Auskunft war.
+        endgueltig = (
+            status == 409 and "invalid identifier" in str((data or {}).get("reason", "")).lower()
+        )
+        if status != 200 and not endgueltig:
             data2, status2 = probe.lookup(f"/{oid.lstrip('/')}")
             if status2 == 200:
                 data, status, wie = data2, status2, "lookup"
@@ -348,12 +357,23 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
     # Anfragen, und jeder Thread müsste sich einzeln anmelden. Bei einer Suche,
     # deren Ergebnis „gibt es nicht" sein darf, ist ein sauberer Lauf mehr wert
     # als ein schneller.
+    #
+    # Jede Zeile wird gemeldet, sobald sie da ist. Vorher lief die Schleife
+    # stumm durch – bei einer Anlage, die auf nicht vorhandene Adressen
+    # langsam antwortet, sah ein laufender Suchlauf wie ein hängender aus.
     treffer = []
-    ergebnisse = [read(ziel) for ziel in ziele]
-    for eintrag in ergebnisse:
+    ergebnisse = []
+    for nummer, ziel in enumerate(ziele, start=1):
+        eintrag = read(ziel)
+        ergebnisse.append(eintrag)
+        beschreibung = STATISCHE_NAV[eintrag["gnmn"]]
+        print(
+            f"    [{nummer:2}/{len(ziele)}] {eintrag['oid']:22} "
+            f"HTTP {eintrag['status']:>3}  {beschreibung}",
+            flush=True,
+        )
         if eintrag["status"] == 200:
             treffer.append(eintrag)
-            beschreibung = STATISCHE_NAV[eintrag["gnmn"]]
             print(f"    TREFFER  {eintrag['oid']:22} {beschreibung} (ueber {eintrag['endpunkt']})")
     if not treffer:
         print("    kein statischer Eintrag lesbar – die Anlage führt sie woanders")

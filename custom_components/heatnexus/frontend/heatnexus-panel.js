@@ -494,9 +494,6 @@ const STIL = `
   .schaubild .heizkoerper {
     position: absolute; pointer-events: none;
     border-radius: 7px;
-    -webkit-mask-image: repeating-linear-gradient(
-      to right, #000 0 14px, transparent 14px 22px);
-    mask-image: repeating-linear-gradient(to right, #000 0 14px, transparent 14px 22px);
     transition: background 1.2s ease, opacity 0.6s ease;
     opacity: 0;
   }
@@ -1882,6 +1879,15 @@ class HeatNexusPanel extends HTMLElement {
       koerper.style.top = eintrag.top;
       koerper.style.width = eintrag.breite;
       koerper.style.height = eintrag.hoehe;
+      // Die Maske schneidet die fünf Glieder aus der Ebene heraus. Sie kommt
+      // als **Anteil der Ebenenbreite** aus der Integration, nicht in
+      // Bildpunkten: Die Karte skaliert das Bild auf ihre eigene Breite, und
+      // ein festes Muster säße danach neben den gezeichneten Gliedern.
+      const maske =
+        `repeating-linear-gradient(to right, #000 0 ${eintrag.glied}, ` +
+        `transparent ${eintrag.glied} ${eintrag.raster})`;
+      koerper.style.webkitMaskImage = maske;
+      koerper.style.maskImage = maske;
       huelle.appendChild(koerper);
 
       this._bindungen.push(() => {
@@ -1895,7 +1901,14 @@ class HeatNexusPanel extends HTMLElement {
         // Zeichnung, und der Übergang bleibt an derselben Stelle.
         const warm = `color-mix(in oklab, #e2543a ${Math.round(anteil * 100)}%, #3a7fe2)`;
         const kuehl = `color-mix(in oklab, #b3341f ${Math.round(anteil * 100)}%, #25508f)`;
-        koerper.style.background = `linear-gradient(to bottom, ${warm}, ${kuehl})`;
+        // Zwei Lagen: oben die Glanzkante, die in der Zeichnung über der
+        // Füllung liegt und von dieser Ebene sonst verdeckt würde, darunter
+        // der Verlauf von warm nach kühl.
+        const glanz =
+          `repeating-linear-gradient(to right, transparent 0 ${eintrag.glanz_von}, ` +
+          `rgba(255, 255, 255, 0.16) ${eintrag.glanz_von} ${eintrag.glanz_bis}, ` +
+          `transparent ${eintrag.glanz_bis} ${eintrag.raster})`;
+        koerper.style.background = `${glanz}, linear-gradient(to bottom, ${warm}, ${kuehl})`;
         koerper.classList.toggle("heiss", anteil > 0.66);
         koerper.title = `${eintrag.titel} – Vorlauf ${this._text(eintrag.entity)}`;
       });

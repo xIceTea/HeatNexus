@@ -6,6 +6,28 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.4.1] - 2026-08-04
+
+### Behoben
+
+- **Der Heizkörper im Schaubild war blau-rot gestreift.** Das Streifenmuster,
+  das die fünf Glieder aus der Ebene ausschneidet, stand in festen
+  Bildpunkten. Die Karte skaliert das Schaubild aber auf ihre eigene Breite –
+  danach saßen die Streifen neben den gezeichneten Gliedern, und dazwischen
+  blitzte die rote Füllung der Zeichnung durch. Das Raster kommt jetzt als
+  Anteil der Ebenenbreite aus derselben Quelle wie die Zeichnung selbst; ein
+  Test prüft es. Die Glanzkante in jedem Glied malt die Ebene mit, statt sie
+  zu verdecken.
+
+### Werkzeug
+
+- **Die Suche nach den statischen Navigationseinträgen sah aus, als hinge
+  sie.** Sie meldet jetzt jede geprüfte Adresse sofort. Dazu zwei Ursachen
+  beseitigt: Ein `409 – invalid Identifier` ist die endgültige Auskunft der
+  Anlage und wird nicht mehr über den zweiten Endpunkt nachgefragt, und ein
+  verbrauchter Digest-Nonce kostet einen Anlauf ohne Wartezeit statt dreier
+  mit.
+
 ## [1.4.0] - 2026-08-04
 
 Bedienen, was man täglich anfasst: Warmwasser, Heizkreis und Lagerraum. Drei

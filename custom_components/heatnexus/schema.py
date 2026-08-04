@@ -650,6 +650,24 @@ HEIZKOERPER_BREITE = 102
 HEIZKOERPER_Y = 140
 HEIZKOERPER_HOEHE = 132
 
+# Das Raster der Glieder, ebenfalls aus `heizkreis.svg`: jedes Glied 14 breit,
+# der Abstand von Glied zu Glied 22. Fünf Glieder ergeben 5 × 22 − 8 = 102 und
+# damit genau HEIZKOERPER_BREITE.
+#
+# **Diese beiden Zahlen gehören als Anteil in die Ansicht, nicht als
+# Bildpunkte.** Die Karte skaliert das Bild auf ihre Breite; ein Streifenmuster
+# in festen Bildpunkten sitzt danach neben den gezeichneten Gliedern, und
+# dazwischen blitzt die rote Füllung der Zeichnung durch – der Heizkörper sah
+# blau-rot gestreift aus.
+HEIZKOERPER_GLIED = 14
+HEIZKOERPER_RASTER = 22
+
+# Die Glanzkante in jedem Glied, aus derselben Datei: 4 breit, 3 vom linken
+# Rand des Glieds entfernt. Sie liegt in der Zeichnung *über* der Füllung und
+# wird von der Ebene verdeckt – deshalb malt die Ebene sie mit.
+HEIZKOERPER_GLANZ_VON = 3
+HEIZKOERPER_GLANZ_BIS = 7
+
 # Die Skala dafür. Unten die Farbe des Rücklaufs, oben die des Vorlaufs –
 # dieselben beiden Farben, die auch die Leitungen tragen, damit das Bild eine
 # Sprache spricht.
@@ -863,6 +881,12 @@ def anlagenschema(
                     "top": f"{HEIZKOERPER_Y / HOEHE * 100:.2f}%",
                     "breite": f"{HEIZKOERPER_BREITE / breite * 100:.2f}%",
                     "hoehe": f"{HEIZKOERPER_HOEHE / HOEHE * 100:.2f}%",
+                    # Anteile der Ebenenbreite, nicht Bildpunkte – siehe
+                    # HEIZKOERPER_GLIED.
+                    "glied": f"{HEIZKOERPER_GLIED / HEIZKOERPER_BREITE * 100:.4f}%",
+                    "raster": f"{HEIZKOERPER_RASTER / HEIZKOERPER_BREITE * 100:.4f}%",
+                    "glanz_von": f"{HEIZKOERPER_GLANZ_VON / HEIZKOERPER_BREITE * 100:.4f}%",
+                    "glanz_bis": f"{HEIZKOERPER_GLANZ_BIS / HEIZKOERPER_BREITE * 100:.4f}%",
                     "kalt": HEIZKOERPER_KALT,
                     "heiss": HEIZKOERPER_HEISS,
                     "titel": modul["titel"],
