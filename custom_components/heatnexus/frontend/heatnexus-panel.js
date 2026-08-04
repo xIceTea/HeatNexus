@@ -514,6 +514,15 @@ const STIL = `
     .schaubild .heizkoerper.heiss { animation: none; }
   }
 
+  /* Die Schichtung des Puffers: oben die Farbe der oberen Temperatur, unten
+     die der unteren. Beide sind gemessen, hier wird nichts angedeutet. Ist
+     der Speicher durchgeladen, steht er durchgehend in einer Farbe. */
+  .schaubild .schichtung {
+    position: absolute; pointer-events: none;
+    opacity: 0; transition: background 1.5s ease, opacity 0.6s ease;
+  }
+  .schaubild .schichtung.da { opacity: 1; }
+
   /* Ladezustand des Puffers, zwischen seinen beiden Temperaturen. */
   .schaubild .speicher {
     position: absolute; transform: translate(-50%, -50%);
@@ -1925,6 +1934,44 @@ class HeatNexusPanel extends HTMLElement {
         });
         koerper.classList.toggle("heiss", anteil > 0.66);
         koerper.title = `${eintrag.titel} – Vorlauf ${this._text(eintrag.entity)}`;
+      });
+    });
+
+    // Die Schichtung des Puffers. Oben und unten sind zwei echte Fühler
+    // (21/65 TPE, 21/66 TPA) – die Grenze dazwischen wandert also mit, statt
+    // eine feste Zeichnung zu sein. Durchgeladen heißt: beide gleich warm,
+    // also durchgehend eine Farbe.
+    (anlage.schema_schichtung || []).forEach((eintrag) => {
+      const koerper = document.createElement("div");
+      koerper.className = "schichtung";
+      koerper.style.left = eintrag.left;
+      koerper.style.top = eintrag.top;
+      koerper.style.width = eintrag.breite;
+      koerper.style.height = eintrag.hoehe;
+      koerper.style.borderRadius = eintrag.ecke;
+      huelle.appendChild(koerper);
+
+      this._bindungen.push(() => {
+        const oben = this._zahl(eintrag.oben);
+        const unten = this._zahl(eintrag.unten);
+        const da = oben !== null && unten !== null;
+        koerper.classList.toggle("da", da);
+        if (!da) return;
+        const spanne = Number(eintrag.heiss) - Number(eintrag.kalt);
+        const farbe = (grad) => {
+          const anteil =
+            spanne > 0 ? Math.max(0, Math.min(1, (grad - Number(eintrag.kalt)) / spanne)) : 0;
+          return `color-mix(in oklab, #b3341f ${Math.round(anteil * 100)}%, #25508f)`;
+        };
+        // Dieselben Haltepunkte wie in der Zeichnung: das obere Drittel
+        // gehört dem oberen Fühler, das untere Viertel dem unteren,
+        // dazwischen liegt die Sprungschicht.
+        koerper.style.background =
+          `linear-gradient(to bottom, ${farbe(oben)} 0%, ${farbe(oben)} 30%, ` +
+          `${farbe((oben + unten) / 2)} 62%, ${farbe(unten)} 100%)`;
+        koerper.title =
+          `${eintrag.titel} – oben ${this._text(eintrag.oben)}, ` +
+          `unten ${this._text(eintrag.unten)}`;
       });
     });
 

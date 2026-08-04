@@ -882,6 +882,8 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         "schema_mischer": bild.get("mischer", []) if bild else [],
         # Der Heizkörper färbt sich nach seiner Vorlauftemperatur.
         "schema_heizkoerper": bild.get("heizkoerper", []) if bild else [],
+        # Die Schichtung des Puffers – oben und unten je nach Messwert.
+        "schema_schichtung": bild.get("schichtung", []) if bild else [],
         "schema_lampen": bild.get("lampen", []) if bild else [],
         "schema_speicher": bild.get("speicher", []) if bild else [],
     }

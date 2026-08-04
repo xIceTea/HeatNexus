@@ -680,6 +680,23 @@ HEIZKOERPER_GLANZ_BIS = 7
 HEIZKOERPER_KALT = 25.0
 HEIZKOERPER_HEISS = 65.0
 
+# Der Speicherkörper aus `puffer.svg`: x = 42…158, y = 116…296, Eckradius 30.
+# Darüber liegt die Schichtung – oben die Farbe der oberen Temperatur, unten
+# die der unteren. Beide sind echte Fühler (`21/65` TPE, `21/66` TPA), also
+# wird hier nichts angedeutet: Ist der Speicher durchgeladen, steht er
+# durchgehend in einer Farbe; steht unten kaltes Wasser, sieht man die Grenze.
+PUFFER_X = 42
+PUFFER_BREITE = 116
+PUFFER_Y = 116
+PUFFER_HOEHE = 180
+PUFFER_ECKE = 30
+
+# Die Skala des Speichers. Weiter gefasst als beim Heizkörper: Ein Puffer wird
+# bis 75…85 °C geladen (so melden es die beiden geprüften Anlagen als
+# „Puffer Maximaltemperatur") und kann unten auf Rücklaufniveau abkühlen.
+PUFFER_KALT = 25.0
+PUFFER_HEISS = 80.0
+
 # Zwischen den beiden Temperaturen des Puffers ist Platz für ein Wort.
 # `WERT_HOEHEN["puffer"]` setzt sie auf 168 und 258.
 SPEICHER_Y = 213
@@ -826,6 +843,7 @@ def anlagenschema(
     brenner: list[dict[str, Any]] = []
     mischer: list[dict[str, Any]] = []
     heizkoerper: list[dict[str, Any]] = []
+    schichtung: list[dict[str, Any]] = []
     speicher: list[dict[str, Any]] = []
     lampen: list[dict[str, Any]] = []
     for platz, modul in enumerate(module):
@@ -959,10 +977,39 @@ def anlagenschema(
         if modul["art"] != "puffer":
             continue
         mitte = RAND + platz * MODUL_BREITE + MODUL_BREITE // 2
+        x = RAND + platz * MODUL_BREITE
         oben = next(
             (w["entity_id"] for w in modul["werte"] if w.get("beschriftung") == "oben"),
             None,
         )
+        unten = next(
+            (w["entity_id"] for w in modul["werte"] if w.get("beschriftung") == "unten"),
+            None,
+        )
+        # Die Schichtung braucht **beide** Fühler. Mit nur einem ließe sich
+        # kein Übergang zeichnen, und einen zu erfinden wäre schlimmer als
+        # keiner: Der Speicher sähe halb geladen aus, ohne dass es jemand
+        # gemessen hätte.
+        if oben and unten:
+            schichtung.append(
+                {
+                    "oben": oben,
+                    "unten": unten,
+                    "left": f"{(x + PUFFER_X) / breite * 100:.2f}%",
+                    "top": f"{PUFFER_Y / HOEHE * 100:.2f}%",
+                    "breite": f"{PUFFER_BREITE / breite * 100:.2f}%",
+                    "hoehe": f"{PUFFER_HOEHE / HOEHE * 100:.2f}%",
+                    # Der Eckradius als Anteil je Achse – sonst verzieht er
+                    # sich, sobald die Karte das Bild skaliert.
+                    "ecke": (
+                        f"{PUFFER_ECKE / PUFFER_BREITE * 100:.2f}%"
+                        f" / {PUFFER_ECKE / PUFFER_HOEHE * 100:.2f}%"
+                    ),
+                    "kalt": PUFFER_KALT,
+                    "heiss": PUFFER_HEISS,
+                    "titel": modul["titel"],
+                }
+            )
         speicher.append(
             {
                 # „lädt" heißt: Die Ladepumpe fördert **und** der Kessel ist
@@ -1008,6 +1055,8 @@ def anlagenschema(
         "mischer": mischer,
         # Der Heizkörper, eingefärbt nach seiner Vorlauftemperatur.
         "heizkoerper": heizkoerper,
+        # Die Schichtung des Puffers aus seinen beiden Fühlern.
+        "schichtung": schichtung,
         # Ob der Puffer gerade beladen oder entleert wird.
         "speicher": speicher,
         # Die Lampen des Pumpen-/Relaismoduls, siehe ZSP_KLEMMEN.

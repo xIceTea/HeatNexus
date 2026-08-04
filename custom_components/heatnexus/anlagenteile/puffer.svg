@@ -1,9 +1,14 @@
 <defs>
+  <!-- Neutral, wie beim Heizkoerper.
+
+       Bis 1.4.2 stand hier ein fester Verlauf von warm nach kalt - ein
+       Speicher, der immer halb geladen aussieht, auch wenn oben und unten
+       dieselbe Temperatur steht. Die wirkliche Schichtung legt die Oberflaeche
+       als eigene Ebene darueber; sie kennt beide Fuehler (21/65 oben,
+       21/66 unten). Ohne diese Messwerte bleibt es bei diesem Grau. -->
   <linearGradient id="schichtung" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="{{warm}}"/>
-    <stop offset="30%" stop-color="{{warm}}"/>
-    <stop offset="62%" stop-color="{{kalt}}" stop-opacity="0.55"/>
-    <stop offset="100%" stop-color="{{kalt}}"/>
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
   </linearGradient>
   <linearGradient id="glanz" x1="0" y1="0" x2="1" y2="0">
     <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16"/>

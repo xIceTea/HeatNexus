@@ -440,6 +440,34 @@ def test_heizkoerper_raster_passt_zur_zeichnung(schema):
     assert anteil("raster") * (schema.HEIZKOERPER_ANZAHL - 1) + anteil("glied") <= 100.0001
 
 
+def test_puffer_schichtung_braucht_beide_fuehler(schema, anlage):
+    """Oben und unten sind gemessen – mit nur einem wird nichts gezeichnet.
+
+    Ein erfundener zweiter Wert wäre schlimmer als keine Schichtung: Der
+    Speicher sähe halb geladen aus, ohne dass es jemand gemessen hat.
+    """
+    bild = schema.anlagenschema(anlage)
+    schicht = bild["schichtung"]
+    assert len(schicht) == 1
+    assert schicht[0]["oben"] == "sensor.tpe"
+    assert schicht[0]["unten"] == "sensor.tpa"
+    assert schicht[0]["kalt"] < schicht[0]["heiss"]
+
+    nur_oben = [
+        _teil("PuroWIN", 25, [("sensor.k", "Kesseltemperatur Ist")]),
+        _teil("Puffer", 16, [("sensor.tpe", "Puffer oben Temperatur (TPE)")]),
+    ]
+    assert schema.anlagenschema(nur_oben)["schichtung"] == []
+
+
+def test_puffer_zeichnung_ist_neutral(schema):
+    """Auch der Speicher darf unter der Ebene keine feste Schichtung tragen."""
+    datei = schema._bauteil("puffer.svg")
+    assert datei is not None
+    assert "{{warm}}" not in datei
+    assert "{{kalt}}" not in datei
+
+
 def test_heizkoerper_zeichnung_ist_neutral(schema):
     """Unter der farbigen Ebene darf kein Rot liegen.
 
