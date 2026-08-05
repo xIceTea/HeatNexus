@@ -508,82 +508,139 @@ ENDPUNKT_ANLAEUFE = 3
 
 
 # ------------------------------------------------------- LON-Netzwerkvariablen
-# Die Menü-Liste einer `NV's`-Funktion ist ein **Katalog**, keine Werteliste:
-# Jeder Eintrag nennt `nvIndex`, `nvName` und den LON-Datentyp `snvtName`, der
-# Wert steht aber durchgängig auf `"-"`.
+# **Was hier gemessen wird und warum.**
 #
-# Ein Einzelabruf liefert dagegen einen Wert: `/1/15/32/4/42/0` gab
-# `nvIndex 42, nvName WZP_nvoStpt, value "0.00"`. Offen ist damit zweierlei –
-# wie die Adresse eines NV richtig gebildet wird (welche Gruppe vor dem Index
-# steht) und ob sich Werte gebündelt lesen lassen. Bei 172 Einträgen wäre ein
-# Abruf je Wert und Takt ein Vielfaches der heutigen Last.
+# Jeder Knoten führt neben seinen Funktionen eine `NV's` (fctType −1): die
+# LON-Netzwerkschnittstelle des Bausteins, also seine Ein- und Ausgänge zur
+# Verständigung mit den anderen Modulen. Am geprüften PuroWIN sind das 172
+# Einträge über vier Knoten.
 #
-# Dieser Lauf probiert die denkbaren Adressformen an wenigen Einträgen durch,
-# statt sie zu erraten.
-# Geklärt am 05.08.2026: Die Gruppe vor dem Index wird **ignoriert**.
-# `/1/14/32/0/3/0` und `/1/14/32/4/3/0` liefern denselben Wert. Gelesen wird
-# deshalb mit Gruppe 0.
+# Drei Dinge sind daran geklärt:
+#
+# 1. Die Menü-Liste ist ein **Katalog**: Sie nennt `nvIndex`, `nvName` und den
+#    LON-Datentyp `snvtName`, der Wert steht durchgängig auf `"-"`.
+# 2. Einzeln gelesen liefert `/1/<node>/32/<gruppe>/<nvIndex>/0` einen Wert –
+#    und die **Gruppe wird ignoriert**: `…/0/3/0` und `…/4/3/0` geben dasselbe.
+# 3. Die Werte sind **rohe LON-Nutzlasten**, keine Zahlen: `"0 0"`,
+#    sechsundzwanzig Nullen, `"2026 8 5 10 19 10"`.
+#
+# Offen ist die Frage, die über das ganze Vorhaben entscheidet: **Wie viele der
+# Einträge führen überhaupt Daten?** Ein Gutteil ist auf einer konkreten Anlage
+# nicht verdrahtet und meldet die Ungültig-Marke seines Datentyps – 65535 bei
+# `SNVT_count`, −1 bei `SNVT_hvac_mode`, 163.835 bei `SNVT_lev_percent`.
+#
+# Deshalb liest `nv --alle` einmalig jeden Eintrag und zählt aus. Das kostet
+# rund 172 Anfragen und anderthalb Minuten – einmal, nicht im Betrieb.
 NV_GRUPPEN = (0,)
 
+# Werte, die „nicht verdrahtet" heißen, nicht „gemessen". Sie stehen so in der
+# LON-Norm: Jeder SNVT hat eine Marke am Rand seines Wertebereichs.
+NV_UNGUELTIG = {
+    "SNVT_count": {"65535"},
+    "SNVT_hvac_mode": {"-1"},
+    "SNVT_lev_percent": {"163.835", "-163.84"},
+    "SNVT_temp_p": {"327.67", "-327.68"},
+    "SNVT_lev_cont": {"163.835", "-163.84"},
+    "SNVT_time_sec": {"6553.5"},
+    "SNVT_time_min": {"65535"},
+}
 
-def suche_nv_werte(probe: Probe, menus: dict, je_funktion: int = 4) -> dict:
-    """Prüfen, wie sich der Wert einer LON-Netzwerkvariablen lesen lässt.
+# Datentypen, die mehrere Felder in einer Zeichenkette tragen. Aus ihnen wird
+# ohne eigene Zerlegung kein Sensor.
+NV_STRUKTUREN = {
+    "SNVT_obj_request",
+    "SNVT_obj_status",
+    "SNVT_state",
+    "SNVT_switch",
+    "SNVT_time_stamp",
+}
 
-    Gestichprobt wird **je LON-Datentyp einer**, nicht die ersten vier je
-    Funktion: Die stehen immer an derselben Stelle und sind immer dieselben
-    Verwaltungsvariablen (`nviRequest`, `nvoStatus`, `nviTimeSet`,
-    `nvoTimeSet`). Interessant ist, was `SNVT_temp_p`, `SNVT_count` und
-    `SNVT_lev_percent` zurückgeben – daraus muss die Integration später eine
-    Zahl machen.
+
+def nv_bewerten(snvt: str | None, wert: str | None) -> str:
+    """Einordnen, was ein gelesener NV-Wert taugt."""
+    if wert in (None, "", "-", "-.-"):
+        return "leer"
+    text = str(wert).strip()
+    if snvt in NV_STRUKTUREN:
+        return "struktur"
+    if snvt is None:
+        return "ohne Typ"
+    if text in NV_UNGUELTIG.get(snvt, ()):
+        return "ungueltig"
+    try:
+        float(text)
+    except ValueError:
+        return "kein Zahlwert"
+    return "brauchbar"
+
+
+def suche_nv_werte(probe: Probe, menus: dict, alle: bool = False) -> dict:
+    """Werte der LON-Netzwerkvariablen lesen und einordnen.
+
+    Ohne ``alle`` eine Stichprobe je Datentyp – das zeigt die *Form*. Mit
+    ``alle`` jeder Eintrag, und dann steht die Zahl fest, die über das Feature
+    entscheidet.
     """
+    ziele = []
     gesehen: set[str] = set()
-    proben = []
     for fct in menus["functions"]:
         if fct.get("fct_type", 0) != -1:
             continue
         for eintrag in fct["datapoints"].values():
             typ = str(eintrag.get("snvtName"))
-            if typ in gesehen:
-                continue
-            gesehen.add(typ)
-            proben.append((fct, eintrag))
+            if not alle:
+                if typ in gesehen:
+                    continue
+                gesehen.add(typ)
+            ziele.append((fct, eintrag))
 
+    print(f"    {len(ziele)} Einträge werden gelesen")
     versuche = []
-    for fct, eintrag in proben:
+    for nummer, (fct, eintrag) in enumerate(ziele, start=1):
         index = eintrag.get("nvIndex")
-        name = eintrag.get("nvName")
-        if index is not None:
-            for gruppe in NV_GRUPPEN:
-                oid = f"{fct['prefix']}/{gruppe}/{index}/0"
-                data, status = probe.lookup(oid)
-                wert = data.get("value") if isinstance(data, dict) else None
-                brauchbar = status == 200 and wert not in (None, "", "-", "-.-")
-                print(
-                    f"    {str(eintrag.get('snvtName'))[:18]:20} {str(name)[:22]:24} "
-                    f"HTTP {status:>3}  value={str(wert)[:46]!r}",
-                    flush=True,
-                )
-                versuche.append(
-                    {
-                        "oid": oid,
-                        "nvIndex": index,
-                        "nvName": name,
-                        "snvtName": eintrag.get("snvtName"),
-                        "unit": eintrag.get("unit"),
-                        "gruppe": gruppe,
-                        "status": status,
-                        "value": wert,
-                        "brauchbar": brauchbar,
-                        "data": data if status == 200 else None,
-                    }
-                )
-    treffer = [v for v in versuche if v["brauchbar"]]
-    if treffer:
-        gruppen = sorted({v["gruppe"] for v in treffer})
-        print(f"    {len(treffer)} von {len(versuche)} lesbar; Gruppe(n) {gruppen}")
-    else:
-        print("    kein NV-Wert einzeln lesbar")
-    return {"treffer": treffer, "versuche": versuche}
+        if index is None:
+            continue
+        oid = f"{fct['prefix']}/{NV_GRUPPEN[0]}/{index}/0"
+        data, status = probe.lookup(oid)
+        wert = data.get("value") if isinstance(data, dict) else None
+        urteil = nv_bewerten(eintrag.get("snvtName"), wert) if status == 200 else "Fehler"
+        versuche.append(
+            {
+                "oid": oid,
+                "funktion": fct["prefix"],
+                "nvIndex": index,
+                "nvName": eintrag.get("nvName"),
+                "snvtName": eintrag.get("snvtName"),
+                "unit": eintrag.get("unit"),
+                "status": status,
+                "value": wert,
+                "urteil": urteil,
+            }
+        )
+        if alle:
+            if nummer % 20 == 0:
+                print(f"      {nummer}/{len(ziele)} …", flush=True)
+        else:
+            print(
+                f"    {str(eintrag.get('snvtName'))[:18]:20} "
+                f"{str(eintrag.get('nvName'))[:22]:24} "
+                f"{eintrag.get('unit') or ''!s:14} value={str(wert)[:40]!r}  {urteil}",
+                flush=True,
+            )
+
+    zaehler: dict[str, int] = {}
+    for v in versuche:
+        zaehler[v["urteil"]] = zaehler.get(v["urteil"], 0) + 1
+    print("\n    Einordnung:")
+    for urteil, anzahl in sorted(zaehler.items(), key=lambda x: -x[1]):
+        print(f"      {urteil:14} {anzahl:>4}")
+    brauchbar = [v for v in versuche if v["urteil"] == "brauchbar"]
+    print(f"\n    Als Sensor verwendbar: {len(brauchbar)} von {len(versuche)}")
+    if brauchbar:
+        print("    Beispiele:")
+        for v in brauchbar[:12]:
+            print(f"      {str(v['nvName'])[:26]:28} {v['unit'] or ''!s:8} {v['value']}")
+    return {"brauchbar": brauchbar, "zaehler": zaehler, "alle": versuche}
 
 
 def suche_endpunkte(probe: Probe) -> dict:
@@ -1095,6 +1152,7 @@ def run_host(
     out_dir: Path,
     workers: int,
     username: str = USERNAME,
+    nv_alle: bool = False,
 ) -> dict:
     """Alle gewählten Aktionen für eine Anlage ausführen."""
     print(f"\n=== {host}")
@@ -1152,7 +1210,7 @@ def run_host(
 
     if menus and "nv" in actions:
         print("    LON-Netzwerkvariablen: Adressform wird gesucht …")
-        nv = suche_nv_werte(probe, menus)
+        nv = suche_nv_werte(probe, menus, alle=nv_alle)
         path = out_dir / f"{stem}_nv.json"
         path.write_text(json.dumps(nv, indent=2, ensure_ascii=False), encoding="utf-8")
         written.append(path)
@@ -1415,6 +1473,11 @@ def main() -> int:
     parser.add_argument("--oid", help="vollständige OID für die Aktionen 'oid' und 'objekt'")
     parser.add_argument("--password", help="Service-Passwort (sonst Abfrage oder HEATNEXUS_PW)")
     parser.add_argument(
+        "--alle",
+        action="store_true",
+        help="beim Lauf 'nv': jeden Eintrag lesen statt einer Stichprobe je Datentyp",
+    )
+    parser.add_argument(
         "--user",
         default=USERNAME,
         help=f"Zugang der Anlage: USER oder Service (Standard: {USERNAME})",
@@ -1492,7 +1555,8 @@ def main() -> int:
             actions |= {"menus"}
 
     results = [
-        run_host(h, password, actions, zielordner(args.out), args.workers, args.user) for h in hosts
+        run_host(h, password, actions, zielordner(args.out), args.workers, args.user, args.alle)
+        for h in hosts
     ]
     return 0 if all(r.get("ok") for r in results) else 1
 
