@@ -434,37 +434,72 @@ ENDPUNKT_KANDIDATEN = (
 # Basispfade, unter denen die Kandidaten gesucht werden.
 ENDPUNKT_BASEN = ("/api/1.0/", "/dprecorder/api/1.0/", "/WsAdmin/api/1.0/")
 
+# Wie oft ein 401 mit frischer Anmeldung wiederholt wird, bevor der Kandidat
+# als „unklar" gilt. Drei reichen: Die Steuerung verwirft ihren Nonce sporadisch,
+# nicht dauerhaft.
+ENDPUNKT_ANLAEUFE = 3
+
 
 def suche_endpunkte(probe: Probe) -> dict:
     """Aufzählen, welche Endpunkte die Steuerung kennt.
 
-    Rein lesend: Jeder Kandidat wird einmal mit GET angefragt. Die Antwort
-    ``503 endpoint <name> does not exist`` heißt „kennt sie nicht"; alles
-    andere – auch ein 400 oder 409 wegen fehlender Parameter – heißt „gibt es".
+    Rein lesend: Jeder Kandidat wird mit GET angefragt. Es gibt **drei**
+    Ausgänge, nicht zwei:
+
+    ``503 endpoint <name> does not exist``
+        Die Anlage kennt den Namen nicht. Verlässlich.
+    ``401``
+        Nichts gelernt. Der Digest-Nonce der Steuerung ist verbraucht, und das
+        hat mit dem Endpunkt nichts zu tun. Solche Antworten als „vorhanden"
+        zu zählen war der Fehler des ersten Laufs: `errorlog`, `message` und
+        `alarm` standen als Fund in der Liste, obwohl niemand sie je gesehen
+        hatte.
+    alles andere
+        Der Endpunkt existiert – auch ein `400` wegen fehlendem Parameter oder
+        ein `500 Wrong formatted OID` ist eine Auskunft und damit ein Beleg.
+
+    Bei ``401`` wird bis zu ``ENDPUNKT_ANLAEUFE``-mal mit frischer Anmeldung
+    nachgefasst; bleibt es dabei, gilt der Kandidat als **unklar** und nicht
+    als Fund.
     """
     ergebnisse = []
     for basis in ENDPUNKT_BASEN:
         for name in ENDPUNKT_KANDIDATEN:
-            data, status = probe.get(f"{probe.base}{basis}{name}")
+            for anlauf in range(ENDPUNKT_ANLAEUFE):
+                data, status = probe.get(f"{probe.base}{basis}{name}")
+                if status != 401:
+                    break
+                # Frische Anmeldung erzwingen und noch einmal.
+                probe._local.opener = None
+                if anlauf + 1 < ENDPUNKT_ANLAEUFE:
+                    time.sleep(0.4)
             # `get` liefert, was die Anlage schickt – und das ist nicht immer
             # ein Objekt: `lookup` etwa antwortet mit einer **Liste**. Ein
             # blindes `.get("reason")` darauf beendet den ganzen Lauf mit
             # einem AttributeError, noch bevor eine Datei geschrieben ist.
             grund = str(data.get("reason") or "") if isinstance(data, dict) else ""
-            unbekannt = status == 503 and "does not exist" in grund
+            fehlt = (status == 503 and "does not exist" in grund) or status == 404
+            unklar = status == 401
             ergebnisse.append(
                 {
                     "pfad": f"{basis}{name}",
                     "status": status,
                     "reason": grund[:200],
-                    "vorhanden": not unbekannt and status != 404,
+                    "vorhanden": not fehlt and not unklar,
+                    "unklar": unklar,
                 }
             )
             if ergebnisse[-1]["vorhanden"]:
                 print(f"    GIBT ES  {basis}{name:30} HTTP {status:>3}  {grund[:80]}", flush=True)
+            elif unklar:
+                print(f"    unklar   {basis}{name:30} HTTP 401 (Anmeldung)", flush=True)
     gefunden = [e for e in ergebnisse if e["vorhanden"]]
-    print(f"    {len(gefunden)} von {len(ergebnisse)} Kandidaten vorhanden")
-    return {"vorhanden": gefunden, "alle": ergebnisse}
+    offen = [e for e in ergebnisse if e["unklar"]]
+    print(
+        f"    {len(gefunden)} vorhanden, {len(offen)} unklar, "
+        f"{len(ergebnisse) - len(gefunden) - len(offen)} kennt sie nicht"
+    )
+    return {"vorhanden": gefunden, "unklar": offen, "alle": ergebnisse}
 
 
 def suche_stoerspeicher(probe: Probe, structure: list, anzahl: int = 20) -> dict:
