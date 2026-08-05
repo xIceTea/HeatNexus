@@ -8,5 +8,13 @@ PyYAML>=6.0
 ruff>=0.8
 
 # Volle HA-Testumgebung (Config-Flow, Entities, Coordinator).
-# Version muss zur getesteten HA-Version passen.
-pytest-homeassistant-custom-component>=0.13.190
+#
+# **Fest angenagelt, mit Absicht.** Jede Fassung dieses Pakets zieht genau eine
+# Home-Assistant-Fassung nach; 0.13.348 ist die zu HA 2026.7.4, und das ist die
+# Fassung, gegen die HeatNexus ausgeliefert wird. Ohne Nagel holte pip die
+# neueste noch installierbare - unter Python 3.12 war das HA 2025.1.4, also ein
+# Stand von vor anderthalb Jahren. Geprüft wurde damit die falsche Software.
+#
+# Braucht **Python 3.14** (Vorgabe von HA 2026.7). Beim Anheben beide Zahlen
+# zusammen bewegen, dazu `python-version` in `.github/workflows/tests.yml`.
+pytest-homeassistant-custom-component==0.13.348

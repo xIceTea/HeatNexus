@@ -81,7 +81,17 @@ export const UebersichtMixin = (Basis) =>
     liste.style.marginTop = "16px";
     (anlage.kennwerte || []).forEach((kennwert) => {
       liste.appendChild(
-        this._wertzeile(kennwert.entity, kennwert.titel, kennwert.untertitel, kennwert.symbol)
+        this._wertzeile(
+          kennwert.entity,
+          kennwert.titel,
+          kennwert.untertitel,
+          kennwert.symbol,
+          // Der Server markiert damit die Wärmeanforderung des
+          // Pumpen-/Relaismoduls. Ohne das Durchreichen stand sie auch dort in
+          // der Übersicht, wo das Modul nur ein Relais schaltet und nie etwas
+          // anfordert – eine Zeile, die nie einen Wert bekommt.
+          kennwert.nur_ueber_null
+        )
       );
     });
     karte.appendChild(liste);

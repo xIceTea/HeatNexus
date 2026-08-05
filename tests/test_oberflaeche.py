@@ -109,9 +109,19 @@ def aufteilung() -> dict:
             _entitaet("select.betriebswahl_puffer", "Betriebswahl"),
         ],
     )
+    # Das Pumpen-/Relaismodul: Sein Leitwert ist die Wärmeanforderung, und die
+    # gibt es an einer Anlage, die das Modul nur als Relais benutzt, nie.
+    zsp = _teil(
+        "ZSP-PWA",
+        20,
+        [
+            _entitaet("sensor.analog_sollwert", "Analog-Sollwert", wert=0.0, text="0"),
+            _entitaet("sensor.pumpendrehzahl", "Pumpendrehzahl"),
+        ],
+    )
     return {
         "anlagen": [
-            modul._anlage_daten({"name": "Heizhaus", "teile": [kessel, heizkreis, puffer]})
+            modul._anlage_daten({"name": "Heizhaus", "teile": [kessel, heizkreis, puffer, zsp]})
         ],
         "uebersteuerung": {
             "eco": {"temperatur": 18, "dauer": 120},
@@ -155,6 +165,17 @@ def test_karten_haengen_am_zustand(durchlauf):
 
 def test_anordnen_gibt_jeder_karte_einen_griff(durchlauf):
     assert durchlauf["anordnen"]["griffe"] > 0
+
+
+def test_ohne_waermeanforderung_verschwindet_die_zeile(durchlauf):
+    """Das Pumpen-/Relaismodul steht nicht mit einem „–" in der Übersicht.
+
+    Wo das Modul nur ein Relais schaltet, kommt nie eine Wärmeanforderung. Der
+    Server markiert den Wert deshalb als „nur über null"; bis 1.5.0 reichte die
+    Oberfläche die Markierung nicht durch und zeigte eine Zeile, die nie einen
+    Wert bekam.
+    """
+    assert durchlauf["uebersicht"]["versteckteZeilen"] > 0
 
 
 # ---------------------------------------------------------------------------

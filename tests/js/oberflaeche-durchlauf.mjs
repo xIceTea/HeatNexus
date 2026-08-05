@@ -43,6 +43,15 @@ const zeitprogramme = new Set(
   (daten.anlagen || []).flatMap((anlage) => (anlage.zeitprogramme || []).map((p) => p.entity))
 );
 
+// Werte, die nur über null etwas bedeuten – die Wärmeanforderung des
+// Pumpen-/Relaismoduls. Sie stehen im Durchlauf auf null, damit sich prüfen
+// lässt, dass ihre Zeile dann verschwindet.
+const ohneAnforderung = new Set(
+  (daten.anlagen || []).flatMap((anlage) =>
+    (anlage.kennwerte || []).filter((k) => k.nur_ueber_null).map((k) => k.entity)
+  )
+);
+
 const states = {};
 entitaeten.forEach((entity) => {
   const bereich = entity.split(".")[0];
@@ -65,6 +74,7 @@ entitaeten.forEach((entity) => {
       meldungen: [{ code: 346, kind: "Fehler", text: "Verkleidungstür offen", info: "schließen" }],
     },
   };
+  if (ohneAnforderung.has(entity)) states[entity].state = "0";
   if (zeitprogramme.has(entity)) {
     states[entity].state = "täglich: 06:00→21°";
     states[entity].attributes.blocks = [
@@ -107,9 +117,12 @@ REITER.forEach((reiter) => {
   flaeche._gebaut = false;
   flaeche._zeichnen();
   flaeche._aktualisieren();
+  const zeilen = flaeche.shadowRoot.querySelectorAll(".zeile");
   bilanz[reiter] = {
     karten: flaeche.shadowRoot.querySelectorAll(".karte").length,
     bindungen: flaeche._bindungen.length,
+    zeilen: zeilen.length,
+    versteckteZeilen: zeilen.filter((zeile) => zeile.hidden).length,
   };
 });
 
