@@ -8,7 +8,27 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+## [1.5.0-beta.2] - 2026-08-05
+
+Vorabversion. Sie bündelt alles seit `1.5.0-beta.1`: den Reiter für die
+Zeitprogramme, die Meldungsliste, den sparsameren Abruf und die Färbung der
+Speicher. Zwei Umbauten darin fassen die Oberfläche an – bitte an beiden
+Anlagen prüfen, bevor daraus 1.5.0 wird.
+
 ### Neu
+
+- **Zeitprogramme bedienen statt nur ablesen.** Ein eigener Reiter zeigt jedes
+  Zeitprogramm als Wochenraster: sieben Zeilen, darin die Schaltzeiten als
+  Balken, eingefärbt nach Solltemperatur – bei Zirkulation und Freigabezeiten
+  nach Ein und Aus. Bearbeitet wird in **Blöcken**, so wie die Anlage es führt:
+  Wochentage anhaken, bis zu sechs Schaltzeiten je Block setzen, speichern
+  schreibt das ganze Programm.
+
+  Der Editor lehnt vorher ab, was die Anlage nicht annimmt – mehr als sechs
+  Schaltzeiten je Block, denselben Wochentag in zwei Blöcken, dieselbe Uhrzeit
+  doppelt. Das Gerät würde sonst kommentarlos kürzen. Vor der ersten
+  Schaltzeit des Tages gilt die letzte des Vortages weiter; genau so heizt die
+  Anlage, und genau so steht es jetzt auch im Raster.
 
 - **Meldungsliste je Anlage.** `FE01msg` nennt nur, was gerade anliegt – wer
   die Verkleidungstür öffnet und wieder schließt, sieht die Meldung kommen und
@@ -23,8 +43,33 @@ wenn dort Vorabversionen zugelassen sind.
   Steuerung keinen. Löschen räumt deshalb nur in Home Assistant auf; am Gerät
   anstehende Meldungen bleiben unberührt.
 
+### Verbessert
+
+- **Der Abruf holt Menü-Fenster statt einzelner Datenpunkte.** Bisher wurde
+  jeder fällige Wert einzeln geholt. Jetzt liest die Integration je Menü-Ebene
+  ein Fenster von der ersten bis zur letzten gebrauchten Stelle
+  (`?count=&offset=`) – dieselbe Form, die das Bediengerät selbst benutzt. An
+  der Anlage gemessen, 78 abgerufene Werte über 28 Menü-Ebenen: **78 Anfragen
+  → 28**, und die Zahl der Datenpunkte auf dem Anlagenbus bleibt bei 80. Das
+  ganze Menü zu ziehen wäre mit 29 Anfragen kaum besser gewesen, hätte die
+  Buslast aber verdreifacht.
+- **Puffer und Warmwasserboiler bekommen ihre Farbe aus den echten Fühlern.**
+  Die Farbe liegt unter der Zeichnung, nicht darüber – so bleiben Kontur,
+  Dämmnähte, Stutzen und Register sichtbar; oben liegend deckte sie alles zu
+  und der Speicher sah aus wie ein Klotz. Meldet ein Boiler nur einen Istwert,
+  wird gleichmäßig eingefärbt, statt eine Schichtung zu erfinden.
+- **Unveränderte Werte lösen keinen Rundlauf mehr aus.** Der Koordinator
+  meldet nur noch, was sich wirklich geändert hat. Die befristete Anzeige des
+  Thermostats prüft ihren Ablauf dafür zeitbasiert und nicht mehr am Takt des
+  Abrufs.
+
 ### Intern
 
+- **Die Oberfläche liegt in ES-Modulen.** 3395 Zeilen in einer Datei sind
+  jetzt `frontend/heatnexus-panel.js`, `stil.js`, `ordnung.js` und
+  `zeitprogramm.js`; ausgeliefert wird der Ordner statt der Einzeldatei. Die
+  Rechnung hinter den Zeitprogrammen – Abschnitte, Prüfung, Nutzlast – steht
+  damit für sich und wird in Node geprüft.
 - **`panel.py` ist ein Paket.** 1037 Zeilen in einer Datei mit vier Aufgaben –
   jetzt `panel/daten.py` (Aufbereitung), `panel/muster.py` (Suchmuster),
   `panel/hilfe.py` (Erklärtexte) und `panel/__init__.py` (Anmeldung).
