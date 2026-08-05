@@ -6,6 +6,35 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Neu
+
+- **Meldungsliste je Anlage.** `FE01msg` nennt nur, was gerade anliegt – wer
+  die Verkleidungstür öffnet und wieder schließt, sieht die Meldung kommen und
+  gehen, und hinterher steht nirgends, dass sie da war. Ein neuer Sensor
+  „Meldungsliste" sammelt jede Meldung ohne Dubletten, mit erstem und letztem
+  Auftreten; der Dienst `heatnexus.meldungen_loeschen` leert sie.
+
+  **Es ist unsere Liste, nicht die des Kessels.** Der Störspeicher des
+  Bediengeräts ist über die Schnittstelle nicht zu bekommen: `2/96` – die
+  Adresse, die die Weboberfläche der Steuerung selbst benutzt – antwortet an
+  jeder Funktion mit `409`, und von 24 denkbaren Endpunktnamen kennt die
+  Steuerung keinen. Löschen räumt deshalb nur in Home Assistant auf; am Gerät
+  anstehende Meldungen bleiben unberührt.
+
+### Intern
+
+- **Testabdeckung 39 % → 51 %, 209 → 265 Tests.** Die sieben Plattformen, die
+  auf die Heizung schreiben, standen bei null Prozent – geprüft war
+  ausgerechnet das Ungefährliche. Jetzt 87–95 %, `sensor.py` 71 %.
+- Die Sonde kennt den Zugang der Anlage (`--user`), zählt die Endpunkte der
+  Steuerung auf statt sie zu raten und prüft drei neue Seitenmodus-Varianten
+  (`count=0`, `count=50`) – die Weboberfläche liest mit `?count=&offset=`, und
+  ob `count=0` „alle" heißt, ist der größte offene Leistungshebel.
+- Die Geräte-Datenbank wurde gegen die Livequelle von Windhager neu erzeugt:
+  bytegleich, sie ist aktuell.
+
 ## [1.5.0-beta.1] - 2026-08-05
 
 Vorabversion. Sie bündelt alles seit 1.4.1 – darunter den zweiten Anlauf beim
