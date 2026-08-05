@@ -507,6 +507,65 @@ ENDPUNKT_BASEN = (
 ENDPUNKT_ANLAEUFE = 3
 
 
+# ------------------------------------------------------- LON-Netzwerkvariablen
+# Die Menü-Liste einer `NV's`-Funktion ist ein **Katalog**, keine Werteliste:
+# Jeder Eintrag nennt `nvIndex`, `nvName` und den LON-Datentyp `snvtName`, der
+# Wert steht aber durchgängig auf `"-"`.
+#
+# Ein Einzelabruf liefert dagegen einen Wert: `/1/15/32/4/42/0` gab
+# `nvIndex 42, nvName WZP_nvoStpt, value "0.00"`. Offen ist damit zweierlei –
+# wie die Adresse eines NV richtig gebildet wird (welche Gruppe vor dem Index
+# steht) und ob sich Werte gebündelt lesen lassen. Bei 172 Einträgen wäre ein
+# Abruf je Wert und Takt ein Vielfaches der heutigen Last.
+#
+# Dieser Lauf probiert die denkbaren Adressformen an wenigen Einträgen durch,
+# statt sie zu erraten.
+NV_GRUPPEN = (0, 4)
+
+
+def suche_nv_werte(probe: Probe, menus: dict, je_funktion: int = 4) -> dict:
+    """Prüfen, wie sich der Wert einer LON-Netzwerkvariablen lesen lässt."""
+    versuche = []
+    for fct in menus["functions"]:
+        if fct.get("fct_type", 0) != -1:
+            continue
+        eintraege = list(fct["datapoints"].values())[:je_funktion]
+        for eintrag in eintraege:
+            index = eintrag.get("nvIndex")
+            name = eintrag.get("nvName")
+            if index is None:
+                continue
+            for gruppe in NV_GRUPPEN:
+                oid = f"{fct['prefix']}/{gruppe}/{index}/0"
+                data, status = probe.lookup(oid)
+                wert = data.get("value") if isinstance(data, dict) else None
+                brauchbar = status == 200 and wert not in (None, "", "-", "-.-")
+                print(
+                    f"    {oid:22} {str(name)[:20]:22} HTTP {status:>3}  "
+                    f"value={wert!r}{'  BRAUCHBAR' if brauchbar else ''}",
+                    flush=True,
+                )
+                versuche.append(
+                    {
+                        "oid": oid,
+                        "nvIndex": index,
+                        "nvName": name,
+                        "gruppe": gruppe,
+                        "status": status,
+                        "value": wert,
+                        "brauchbar": brauchbar,
+                        "data": data if status == 200 else None,
+                    }
+                )
+    treffer = [v for v in versuche if v["brauchbar"]]
+    if treffer:
+        gruppen = sorted({v["gruppe"] for v in treffer})
+        print(f"    {len(treffer)} von {len(versuche)} lesbar; Gruppe(n) {gruppen}")
+    else:
+        print("    kein NV-Wert einzeln lesbar")
+    return {"treffer": treffer, "versuche": versuche}
+
+
 def suche_endpunkte(probe: Probe) -> dict:
     """Aufzählen, welche Endpunkte die Steuerung kennt.
 
@@ -694,7 +753,17 @@ def fetch_menus(probe: Probe, structure: list) -> dict:
                 for menu_id, items, mstatus in probe.map(read_menu, list(entry["menus"])):
                     if mstatus == 200 and isinstance(items, list):
                         for item in items:
+                            # LON-Netzwerkvariablen tragen **kein** `OID`-Feld,
+                            # sondern `nvIndex` und `nvName`. Ohne diesen Zweig
+                            # fielen sie stillschweigend heraus: Der erste Lauf
+                            # meldete je NV-Funktion „1 Menü, 30 Einträge" und
+                            # danach null Datenpunkte.
+                            #
+                            # Ihre Adresse ist der Menü-Eintrag selbst; als
+                            # Schlüssel dient deshalb der Pfad mit dem Index.
                             oid = item.get("OID")
+                            if not oid and item.get("nvIndex") is not None:
+                                oid = f"{entry['prefix']}/{menu_id}/{item['nvIndex']}"
                             if oid:
                                 item["_menu"] = menu_id
                                 entry["datapoints"][oid] = item
@@ -888,6 +957,13 @@ def write_csv(path: Path, menus: dict) -> None:
                 "schreibbar",
                 "enum",
                 "typeId",
+                # Nur bei LON-Netzwerkvariablen belegt: Index, Kurzname und
+                # der standardisierte LON-Datentyp. Aus `snvtName` lässt sich
+                # eine Gruppe ableiten (Temperatur, Leistung, Zähler …), aus
+                # `nvName` ein sprechender Name.
+                "nvIndex",
+                "nvName",
+                "snvtName",
             ]
         )
         for fct in menus["functions"]:
@@ -911,6 +987,9 @@ def write_csv(path: Path, menus: dict) -> None:
                         "nein" if item.get("writeProt") else "ja",
                         item.get("enum", ""),
                         item.get("typeId", ""),
+                        item.get("nvIndex", ""),
+                        item.get("nvName", ""),
+                        item.get("snvtName", ""),
                     ]
                 )
 
@@ -1033,7 +1112,7 @@ def run_host(
         written.append(path)
 
     menus = objects = None
-    if actions & {"menus", "objects", "compare", "report", "diag"}:
+    if actions & {"menus", "objects", "compare", "report", "diag", "nv"}:
         print("    Menü-Ebenen werden gelesen …")
         menus = fetch_menus(probe, structure)
         path = out_dir / f"{stem}_menus.json"
@@ -1050,6 +1129,13 @@ def run_host(
             path = out_dir / f"{stem}_objekte.json"
             path.write_text(json.dumps(objects, indent=2, ensure_ascii=False), encoding="utf-8")
             written.append(path)
+
+    if menus and "nv" in actions:
+        print("    LON-Netzwerkvariablen: Adressform wird gesucht …")
+        nv = suche_nv_werte(probe, menus)
+        path = out_dir / f"{stem}_nv.json"
+        path.write_text(json.dumps(nv, indent=2, ensure_ascii=False), encoding="utf-8")
+        written.append(path)
 
     if "endpunkte" in actions:
         print("    Endpunkte der Steuerung werden aufgezählt …")
@@ -1165,6 +1251,7 @@ ACTIONS = {
     "8": ("statisch", "Suche: statische Navigationseinträge (Störspeicher, Sonderzeitprogramm)"),
     "9": ("stoerspeicher", "Suche: Störspeicher über den SOAP-Dienst der Steuerung"),
     "10": ("endpunkte", "Aufzählen: welche Endpunkte die Steuerung überhaupt kennt"),
+    "11": ("nv", "Test: wie sich der Wert einer LON-Netzwerkvariablen lesen lässt"),
 }
 
 
@@ -1300,6 +1387,7 @@ def main() -> int:
             "statisch",
             "stoerspeicher",
             "endpunkte",
+            "nv",
         ],
         help="Aktion (Standard: geführter Modus)",
     )
