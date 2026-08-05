@@ -15,7 +15,6 @@ import logging
 # Wettlauf zwischen Plattform-Import und Einrichtung.
 from time import monotonic
 
-import async_timeout
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME, Platform
@@ -181,7 +180,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Werte der Anlage holen."""
         try:
-            async with async_timeout.timeout(30):
+            async with asyncio.timeout(30):
                 data = await self.client.fetch_all()
                 self.consecutive_timeouts = 0
                 return data
@@ -278,7 +277,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not restored:
             # Nur Grunddaten abwarten – der Vollabzug folgt im Hintergrund.
             try:
-                async with async_timeout.timeout(INIT_TIMEOUT):
+                async with asyncio.timeout(INIT_TIMEOUT):
                     await client.async_init_basic()
             except TimeoutError as err:
                 await client.close()
