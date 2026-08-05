@@ -37,6 +37,7 @@ from .const import (
     KESSELART_AUTO,
     KESSELWERT_LEISTUNG,
 )
+from .kanonisch import schluessel as kanonischer_schluessel
 from .schema import anlagenschema, kesselart_erkennen
 
 _LOGGER = logging.getLogger(__name__)
@@ -292,6 +293,23 @@ def _passt(name: str, muster: tuple[re.Pattern, ...]) -> bool:
     return any(m.search(name) for m in muster)
 
 
+def _trifft(eintrag: dict, muster: tuple[re.Pattern, ...], *schluessel: str) -> bool:
+    """Erst am kanonischen Schlüssel, sonst am Namen.
+
+    **Der Schlüssel gewinnt, der Name bleibt als Rückfall.** So erkennt die
+    Oberfläche einen Datenpunkt auch dann, wenn die Anlage ihre Namen in einer
+    anderen Sprache liefert – und trotzdem bricht nichts weg, wo es noch keinen
+    Schlüssel gibt (`kanonisch.KANONISCH` deckt bei weitem nicht alles ab).
+
+    Umgekehrt darf der fehlende Schlüssel nicht als „passt nicht" gelten: Auf
+    der Serviceebene gibt es Datenpunkte, die dieselbe Adresse an einer anderen
+    Funktion tragen, und die Muster sind dort bisher die einzige Auskunft.
+    """
+    if schluessel and eintrag.get("schluessel") in schluessel:
+        return True
+    return _passt(eintrag.get("name") or "", muster)
+
+
 def _skala(wert: float | None) -> int:
     """Obere Grenze einer Restlaufzeit-Skala, auf 100 aufgerundet."""
     if not wert or wert <= 0:
@@ -391,6 +409,11 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
             {
                 "entity_id": eintrag.entity_id,
                 "name": _kurzname(eintrag.name or eintrag.original_name or eintrag.entity_id),
+                # Der sprachunabhängige Schlüssel, sofern der Datenpunkt einen
+                # hat. Er kommt aus der Adresse in der Kennung und nicht aus
+                # dem Namen – siehe `kanonisch.py`. Wo er fehlt, bleibt es beim
+                # Namensmuster.
+                "schluessel": kanonischer_schluessel(eintrag.unique_id),
                 "kategorie": eintrag.entity_category,
                 "bereich": eintrag.entity_id.split(".")[0],
                 "hat_wert": hat_wert,

@@ -16,7 +16,14 @@ import contextlib
 import re
 from typing import Any
 
-from ..dashboard import WARTUNG_RESTLAUFZEIT, WARTUNG_WEITERE, _muster, _passt, rueckfrage
+from ..dashboard import (
+    WARTUNG_RESTLAUFZEIT,
+    WARTUNG_WEITERE,
+    _muster,
+    _passt,
+    _trifft,
+    rueckfrage,
+)
 from ..schema import anlagenschema
 from .hilfe import HILFE_KARTEN, hilfe
 from .muster import (
@@ -96,7 +103,7 @@ def _bereitet_warmwasser(entitaeten: list[dict[str, Any]]) -> bool:
     deshalb, ein Wert ist nicht nötig.
     """
     for eintrag in entitaeten:
-        if _passt(eintrag["name"], WARMWASSER_IST):
+        if _trifft(eintrag, WARMWASSER_IST, "dhw_temperature"):
             return True
         if _passt(eintrag["name"], WARMWASSER_KREIS) and (eintrag.get("wert") or 0) != 0:
             return True
@@ -176,7 +183,7 @@ def _warmwasser_bedienung(
         # abgeschaltet und nimmt den Auftrag nicht an, im Urlaubsprogramm
         # ebenso wenig. Nur dann wird auf WW-Betrieb umgeschaltet – und
         # hinterher genau auf den Wert zurück, der vorher stand.
-        "betriebswahl": _kennung(kreis, BETRIEBSWAHL, ("select",)),
+        "betriebswahl": _kennung(kreis, BETRIEBSWAHL, ("select",), "mode_selection"),
         "betriebswahl_aus": BETRIEBSWAHL_STANDBY,
         "betriebswahl_ww": BETRIEBSWAHL_WW,
         "betriebswahl_zurueck": BETRIEBSWAHL_ZURUECK,
@@ -190,12 +197,21 @@ def _warmwasser_bedienung(
     }
 
 
-def _kennung(entitaeten: list[dict[str, Any]], muster: tuple, bereiche: tuple = ()) -> str | None:
-    """Entity-ID der ersten passenden Entität, optional auf Plattformen begrenzt."""
+def _kennung(
+    entitaeten: list[dict[str, Any]],
+    muster: tuple,
+    bereiche: tuple = (),
+    *schluessel: str,
+) -> str | None:
+    """Entity-ID der ersten passenden Entität, optional auf Plattformen begrenzt.
+
+    Sind kanonische Schlüssel angegeben, zählen sie zuerst; das Muster bleibt
+    der Rückfall (siehe `dashboard._trifft`).
+    """
     for eintrag in entitaeten:
         if bereiche and eintrag["bereich"] not in bereiche:
             continue
-        if _passt(eintrag["name"], muster):
+        if _trifft(eintrag, muster, *schluessel):
             return eintrag["entity_id"]
     return None
 
@@ -221,7 +237,9 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                 "id": teil["id"],
                 "entity": thermostat["entity_id"],
                 "titel": teil["name"],
-                "betriebswahl": _kennung(teil["entitaeten"], BETRIEBSWAHL, ("select",)),
+                "betriebswahl": _kennung(
+                    teil["entitaeten"], BETRIEBSWAHL, ("select",), "mode_selection"
+                ),
                 "betriebswahl_hilfe": hilfe("Betriebswahl"),
                 "programm": _kennung(teil["entitaeten"], ZEITPROGRAMM, ("sensor",)),
                 # Eco und Comfort schreiben dieselbe befristete Übersteuerung
@@ -525,7 +543,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     # einzelne Anlage, deren Fühler man nehmen könnte. Bis 1.2.0-beta.3
     # überschrieb die Auswahl jede Anlage, und das Heizhaus zeigte plötzlich
     # den Fühler des Wohnhauses.
-    aussen = _kennung(alle, AUSSENTEMPERATUR) or aussen_gewaehlt
+    aussen = _kennung(alle, AUSSENTEMPERATUR, (), "outdoor_temperature") or aussen_gewaehlt
     return {
         # Die Anordnung der Karten wird je Anlage gespeichert. Ohne eigene
         # Kennung teilten sich Heizhaus und Wohnhaus eine Reihenfolge – wer
