@@ -195,3 +195,20 @@ def test_die_rueckmeldung_durchlaeuft_ihre_drei_stufen(durchlauf):
     assert bedienen["waehrend"] == "wird ausgeführt …"
     assert bedienen["bestaetigt"] == "übernommen ✓"
     assert bedienen["aufgeraeumt"] == ""
+
+
+# ---------------------------------------------------------------------------
+# Farbsatz des Schaubilds
+# ---------------------------------------------------------------------------
+def test_das_schaubild_folgt_dem_erscheinungsbild(durchlauf, aufteilung):
+    """Hell und Dunkel kommen beide mit, gewählt wird im Browser.
+
+    Serverseitig ist beim Zeichnen nicht bekannt, welches Erscheinungsbild
+    gilt, und beim Umschalten berechnet niemand die Aufteilung neu – deshalb
+    hängt die Auswahl an einer Bindung und nicht am Aufbau.
+    """
+    anlage = aufteilung["anlagen"][0]
+    schaubild = durchlauf["schaubild"]
+    assert schaubild["dunkel"] == anlage["schema"]
+    assert schaubild["hell"] == anlage["schema_hell"]
+    assert schaubild["hell"] != schaubild["dunkel"]

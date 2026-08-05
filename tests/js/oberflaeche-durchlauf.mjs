@@ -126,6 +126,24 @@ REITER.forEach((reiter) => {
   };
 });
 
+// ---------------------------------------------------------------------------
+// Farbsatz des Schaubilds
+//
+// Die Zeichnung liegt als Daten-URL in einem `<img>` und erbt darin kein CSS.
+// Beide Fassungen kommen deshalb mit; gewählt wird hier, bei jedem Abgleich.
+// ---------------------------------------------------------------------------
+flaeche._reiter = "uebersicht";
+flaeche._gebaut = false;
+flaeche._zeichnen();
+flaeche._aktualisieren();
+// Zwei Schritte, weil die Attrappe nur einfache Wähler kennt.
+const huelle = flaeche.shadowRoot.querySelector(".schaubild");
+const schaubild = huelle ? huelle.querySelector("img") : null;
+const beiDunkel = schaubild ? schaubild.src : null;
+hass.themes = { darkMode: false };
+flaeche._aktualisieren();
+bilanz.schaubild = { dunkel: beiDunkel, hell: schaubild ? schaubild.src : null };
+
 // Anordnen-Modus: eigener Zweig mit Griffen, Menü und Speicherauftrag.
 flaeche._reiter = "uebersicht";
 flaeche._anordnen = true;

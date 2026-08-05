@@ -56,6 +56,7 @@ def test_karte_ist_ein_bild_mit_beschriftungen(schema, anlage):
     karte = schema.anlagenschema(anlage)
     assert karte["type"] == "picture-elements"
     assert karte["image"].startswith("data:image/svg+xml;base64,")
+    assert karte["dark_mode_image"].startswith("data:image/svg+xml;base64,")
     # Je Anlagenteil zwei Werte.
     assert len(karte["elements"]) == 4
     assert {e["entity"] for e in karte["elements"]} == {
@@ -68,7 +69,7 @@ def test_karte_ist_ein_bild_mit_beschriftungen(schema, anlage):
 
 def test_bild_enthaelt_die_namen(schema, anlage):
     karte = schema.anlagenschema(anlage)
-    svg = base64.b64decode(karte["image"].split(",", 1)[1]).decode("utf-8")
+    svg = base64.b64decode(karte["dark_mode_image"].split(",", 1)[1]).decode("utf-8")
     assert svg.startswith("<svg")
     assert "PuroWIN" in svg
     assert "B-PLMi PUFFER" in svg
@@ -90,7 +91,8 @@ def test_ohne_messwerte_kein_schaubild(schema):
 
 def test_spitze_klammern_im_namen_zerlegen_das_bild_nicht(schema):
     teil = _teil("Kessel <b>", 25, [("sensor.k", "Kesseltemperatur Ist")])
-    svg = base64.b64decode(schema.anlagenschema([teil])["image"].split(",", 1)[1]).decode("utf-8")
+    karte = schema.anlagenschema([teil])
+    svg = base64.b64decode(karte["dark_mode_image"].split(",", 1)[1]).decode("utf-8")
     assert "<b>" not in svg
     assert "&lt;b&gt;" in svg
 
@@ -183,8 +185,9 @@ def test_pumpe_je_anlagenteil(schema):
 # Verlauf und einer bleibt leer).
 # ---------------------------------------------------------------------------
 def _svg_von(schema, teile, kesselart=None) -> str:
+    """Die dunkle Fassung – sie ist die gezeichnete, die helle entsteht daraus."""
     karte = schema.anlagenschema(teile, kesselart)
-    return base64.b64decode(karte["image"].split(",", 1)[1]).decode("utf-8")
+    return base64.b64decode(karte["dark_mode_image"].split(",", 1)[1]).decode("utf-8")
 
 
 def test_jedes_bauteil_hat_eine_datei(schema):
@@ -865,3 +868,67 @@ def test_der_boiler_traegt_dieselbe_bildsprache(schema):
     # Die Kalottennähte, wo die Wölbung auf den Zylinder trifft.
     for y in (172, 244):
         assert f'y1="{y}"' in svg, f"Kalottennaht bei y={y} fehlt"
+
+
+# ---------------------------------------------------------------------------
+# Heller Farbsatz
+#
+# Das Bild steckt als Daten-URL in einem `<img>` und erbt dort kein CSS – der
+# Wechsel geschieht deshalb am fertigen Bild, durch Austausch der Farbwerte.
+# Beide Fassungen gehen mit, weil beim Zeichnen niemand weiß, welches
+# Erscheinungsbild der Betrachter eingestellt hat.
+# ---------------------------------------------------------------------------
+def _svg_hell_von(schema, teile, kesselart=None) -> str:
+    karte = schema.anlagenschema(teile, kesselart)
+    return base64.b64decode(karte["image"].split(",", 1)[1]).decode("utf-8")
+
+
+def test_beide_farbsaetze_liegen_der_karte_bei(schema, anlage):
+    karte = schema.anlagenschema(anlage)
+    assert karte["image"] != karte["dark_mode_image"]
+
+
+def test_jede_rolle_hat_eine_helle_entsprechung(schema):
+    """Sonst fiele eine Farbe beim Wechsel still auf ihren dunklen Wert zurück."""
+    assert set(schema.FARBEN) == set(schema.FARBEN_HELL)
+
+
+def test_im_hellen_bild_bleibt_kein_dunkler_farbwert(schema, anlage):
+    hell = _svg_hell_von(schema, anlage)
+    for rolle, farbe in schema.FARBEN.items():
+        if rolle == "schrift":
+            continue
+        assert farbe not in hell, f"{rolle} steht noch mit dem dunklen Wert {farbe} im Bild"
+
+
+def test_das_helle_bild_traegt_die_hellen_werte(schema, anlage):
+    hell = _svg_hell_von(schema, anlage)
+    for rolle in ("vorlauf", "ruecklauf", "rahmen", "titel"):
+        assert schema.FARBEN_HELL[rolle] in hell, f"{rolle} fehlt im hellen Bild"
+
+
+def test_der_wechsel_aendert_nur_farben(schema, anlage):
+    """Gleiche Zeichnung, gleiche Kennungen – nur andere Werte."""
+    dunkel = _svg_von(schema, anlage)
+    hell = _svg_hell_von(schema, anlage)
+    ohne_farben = re.compile(r"#[0-9a-f]{6}\b")
+    assert ohne_farben.sub("#", dunkel) == ohne_farben.sub("#", hell)
+
+
+def test_ohne_helles_thema_bleibt_das_bild_wie_es_ist(schema, anlage):
+    dunkel = _svg_von(schema, anlage)
+    assert schema.farben_umstellen(dunkel, None) == dunkel
+    assert schema.farben_umstellen(dunkel, schema.THEMA_DUNKEL) == dunkel
+
+
+def test_geteilte_dunkle_farbe_muss_hell_geteilt_bleiben(schema, monkeypatch):
+    """`vorlauf` und `glut` sind beide `#e2543a`.
+
+    Im fertigen Bild ist nicht mehr zu erkennen, welche Rolle eine Farbe hatte.
+    Bekämen die beiden verschiedene helle Werte, entschiede die Reihenfolge im
+    Wörterbuch – und eine der beiden Rollen bekäme still die falsche Farbe.
+    """
+    assert schema.FARBEN["vorlauf"] == schema.FARBEN["glut"]
+    monkeypatch.setitem(schema.FARBEN_HELL, "glut", "#123456")
+    with pytest.raises(ValueError, match="nicht zu unterscheiden"):
+        schema._helle_entsprechung()

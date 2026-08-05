@@ -68,6 +68,42 @@ FARBEN: dict[str, str] = {
     "schrift": SCHRIFT,
 }
 
+# Derselbe Satz für eine helle Oberfläche.
+#
+# **Warum überhaupt zwei Sätze.** Das Schaubild steckt als `data:`-Adresse in
+# einem `<img>`; darin erbt es kein CSS, und das Erscheinungsbild des
+# Betrachters ist beim Zeichnen nicht bekannt. Auf hellem Grund verschwanden
+# die dunklen Gehäuse zwar nicht, aber Rahmen und Beschriftung wurden unlesbar
+# blass – sie waren für einen dunklen Hintergrund gerechnet.
+#
+# Umgesetzt wird der Wechsel als **Austausch der fertigen Farbwerte** im
+# gezeichneten Bild, nicht als zweiter Weg durch den Zeichencode: Jede Farbe
+# kommt aus genau diesem Satz und steht als eindeutige Zeichenfolge (`#e2543a`)
+# im Ergebnis. Ein zweiter Pfad durch elf Bauteildateien und zwanzig
+# Zeichenfunktionen wäre die Stelle, an der später einer von beiden vergessen
+# wird.
+FARBEN_HELL: dict[str, str] = {
+    "vorlauf": "#c8412a",
+    "ruecklauf": "#2b63b8",
+    "rahmen": "#7d8b9a",
+    "text": "#3d4854",
+    "titel": "#16202b",
+    "korpus": "#dde3ea",
+    "korpus_hell": "#eef2f7",
+    "korpus_dunkel": "#c2ccd8",
+    "warm": "#c0402a",
+    # Muss denselben Wert haben wie `vorlauf`: Im dunklen Satz sind beide
+    # `#e2543a`, und der Austausch geschieht am fertigen Bild – dort ist nicht
+    # mehr zu unterscheiden, welche Rolle eine Farbe hatte. Die Prüfung
+    # darunter besteht darauf.
+    "glut": "#c8412a",
+    "kalt": "#3f78c9",
+    "schrift": SCHRIFT,
+}
+
+THEMA_DUNKEL = "dunkel"
+THEMA_HELL = "hell"
+
 # Lage der Live-Werte je Anlagenart. Zwei Werte stehen ober- und unterhalb der
 # Mitte, einer mittig. Bauteile mit anderer Form dürfen abweichen.
 WERT_HOEHEN: dict[str, tuple[int, ...]] = {
@@ -911,6 +947,48 @@ def _svg(module: list[dict[str, Any]], kesselart: str | None) -> tuple[str, int]
     return "".join(teile), breite
 
 
+def _helle_entsprechung() -> dict[str, str]:
+    """Dunkle Farbe -> helle Farbe, für den Austausch im fertigen Bild.
+
+    Zwei Rollen dürfen sich einen dunklen Wert teilen (``vorlauf`` und ``glut``
+    sind beide ``#e2543a``) – dann müssen sie sich auch den hellen teilen. Sonst
+    entschiede die Reihenfolge im Wörterbuch darüber, welche Farbe gewinnt, und
+    eine der beiden Rollen bekäme still die falsche.
+    """
+    abbildung: dict[str, str] = {}
+    for name, dunkel in FARBEN.items():
+        if name == "schrift":
+            continue
+        hell = FARBEN_HELL[name]
+        if abbildung.setdefault(dunkel, hell) != hell:
+            raise ValueError(
+                f"{dunkel} soll gleichzeitig {abbildung[dunkel]} und {hell} werden "
+                f"(Rolle {name}) – im fertigen Bild ist das nicht zu unterscheiden."
+            )
+    return abbildung
+
+
+_HELLE_ENTSPRECHUNG = _helle_entsprechung()
+_FARBSTELLE = re.compile("|".join(sorted(map(re.escape, _HELLE_ENTSPRECHUNG), reverse=True)))
+
+
+def farben_umstellen(svg: str, thema: str | None) -> str:
+    """Ein fertiges Schaubild auf den hellen Farbsatz umstellen.
+
+    In **einem** Durchgang, nicht als Kette einzelner Ersetzungen: Sonst könnte
+    eine gerade eingesetzte helle Farbe von der nächsten Regel noch einmal
+    getroffen werden.
+    """
+    if thema != THEMA_HELL:
+        return svg
+    return _FARBSTELLE.sub(lambda treffer: _HELLE_ENTSPRECHUNG[treffer.group(0)], svg)
+
+
+def _datenadresse(svg: str) -> str:
+    """Ein fertiges SVG als `data:`-Adresse für ein `<img>`."""
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii")
+
+
 def anlagenschema(
     teile: list[dict[str, Any]],
     kesselart: str | None = None,
@@ -921,6 +999,15 @@ def anlagenschema(
     Erwartet die Anlagenteile in der Form, die `dashboard._anlagen` liefert.
     ``kesselart`` wählt die Kesselzeichnung; ohne Angabe wird sie aus den
     Anlagenteilen abgeleitet.
+
+    **Beide Farbsätze werden mitgeliefert**, nicht einer nach Vorgabe: Das Bild
+    steckt als `data:`-Adresse in einem `<img>` und erbt dort kein CSS, die
+    Karte wird aber serverseitig gebaut – zu diesem Zeitpunkt ist das
+    Erscheinungsbild des Betrachters nicht bekannt, und bei einem Umschalten
+    gäbe es niemanden, der neu zeichnet. ``image`` trägt den hellen Satz,
+    ``dark_mode_image`` den dunklen; genau so erwartet es die
+    `picture-elements`-Karte. Die eigene Oberfläche wählt mit derselben Angabe
+    (`panel/daten.py`).
     """
     module = _module(teile, kesselwert)
     # Ein Bild aus lauter leeren Kästen hilft niemandem: Mindestens ein
@@ -931,7 +1018,6 @@ def anlagenschema(
     if kesselart is None:
         kesselart = kesselart_erkennen(teile)
     svg, breite = _svg(module, kesselart)
-    daten = base64.b64encode(svg.encode("utf-8")).decode("ascii")
 
     elemente: list[dict[str, Any]] = []
     pumpen: list[dict[str, Any]] = []
@@ -1144,7 +1230,8 @@ def anlagenschema(
 
     return {
         "type": "picture-elements",
-        "image": f"data:image/svg+xml;base64,{daten}",
+        "image": _datenadresse(farben_umstellen(svg, THEMA_HELL)),
+        "dark_mode_image": _datenadresse(svg),
         "elements": elemente,
         "leitungen": leitungen,
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht

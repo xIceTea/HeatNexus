@@ -23,6 +23,29 @@ export const SchaubildMixin = (Basis) =>
     bild.alt = "Anlagenschaubild";
     huelle.appendChild(bild);
 
+    // **Der Farbsatz wird hier gewählt, nicht serverseitig.** Die Zeichnung
+    // liegt als Daten-URL in einem `<img>` und erbt darin kein CSS; die
+    // Aufteilung wiederum entsteht in Python, lange bevor jemand das
+    // Erscheinungsbild umschaltet. Deshalb kommen beide Fassungen mit, und die
+    // Auswahl hängt an einer Bindung – die läuft bei jedem Abgleich mit, also
+    // auch nach einem Wechsel von Hell auf Dunkel.
+    if (anlage.schema_hell) {
+      // Gemerkt statt am Bild abgelesen: Ein `<img>` macht aus der Daten-URL
+      // beim Zurücklesen nicht zwingend dieselbe Zeichenfolge, und ein
+      // vermeintlicher Unterschied setzte die Quelle bei jedem Abgleich neu.
+      let gezeigt = anlage.schema;
+      this._bindungen.push(() => {
+        const themen = this._hass && this._hass.themes;
+        // Ohne Auskunft bleibt es beim dunklen Satz: Er war es bis 1.5.0
+        // immer, und ein falsch geratenes Hell fiele stärker auf.
+        const gewuenscht = themen && themen.darkMode === false ? anlage.schema_hell : anlage.schema;
+        if (gewuenscht !== gezeigt) {
+          gezeigt = gewuenscht;
+          bild.src = gewuenscht;
+        }
+      });
+    }
+
     // Strömung: zwei Bänder auf Vor- und Rücklauf. Sie laufen, solange
     // irgendeine Pumpe der Anlage fördert – steht alles, steht auch das Bild.
     const leitungen = anlage.schema_leitungen;
