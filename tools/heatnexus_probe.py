@@ -529,7 +529,7 @@ ENDPUNKT_ANLAEUFE = 3
 # nicht verdrahtet und meldet die Ungültig-Marke seines Datentyps – 65535 bei
 # `SNVT_count`, −1 bei `SNVT_hvac_mode`, 163.835 bei `SNVT_lev_percent`.
 #
-# Deshalb liest `nv --alle` einmalig jeden Eintrag und zählt aus. Das kostet
+# Deshalb liest der Lauf `nv` einmalig jeden Eintrag und zählt aus. Das kostet
 # rund 172 Anfragen und anderthalb Minuten – einmal, nicht im Betrieb.
 NV_GRUPPEN = (0,)
 
@@ -574,25 +574,22 @@ def nv_bewerten(snvt: str | None, wert: str | None) -> str:
     return "brauchbar"
 
 
-def suche_nv_werte(probe: Probe, menus: dict, alle: bool = False) -> dict:
-    """Werte der LON-Netzwerkvariablen lesen und einordnen.
+def suche_nv_werte(probe: Probe, menus: dict) -> dict:
+    """Jeden LON-Eintrag lesen und einordnen.
 
-    Ohne ``alle`` eine Stichprobe je Datentyp – das zeigt die *Form*. Mit
-    ``alle`` jeder Eintrag, und dann steht die Zahl fest, die über das Feature
-    entscheidet.
+    **Ohne Stichprobe.** Bis 1.5.0 gab es dafür einen Schalter `--alle`, und
+    die Vorgabe war eine Stichprobe je Datentyp. Das war richtig, solange die
+    Adressform unklar war – sie ist geklärt. Geblieben wäre nur eine
+    Fehlerquelle: Der geführte Modus reichte den Schalter nicht durch, und
+    dreimal hintereinander stand hinterher dieselbe Stichprobe in der Datei,
+    obwohl der Vollabzug gemeint war.
     """
-    ziele = []
-    gesehen: set[str] = set()
-    for fct in menus["functions"]:
-        if fct.get("fct_type", 0) != -1:
-            continue
-        for eintrag in fct["datapoints"].values():
-            typ = str(eintrag.get("snvtName"))
-            if not alle:
-                if typ in gesehen:
-                    continue
-                gesehen.add(typ)
-            ziele.append((fct, eintrag))
+    ziele = [
+        (fct, eintrag)
+        for fct in menus["functions"]
+        if fct.get("fct_type", 0) == -1
+        for eintrag in fct["datapoints"].values()
+    ]
 
     print(f"    {len(ziele)} Einträge werden gelesen")
     versuche = []
@@ -617,16 +614,8 @@ def suche_nv_werte(probe: Probe, menus: dict, alle: bool = False) -> dict:
                 "urteil": urteil,
             }
         )
-        if alle:
-            if nummer % 20 == 0:
-                print(f"      {nummer}/{len(ziele)} …", flush=True)
-        else:
-            print(
-                f"    {str(eintrag.get('snvtName'))[:18]:20} "
-                f"{str(eintrag.get('nvName'))[:22]:24} "
-                f"{eintrag.get('unit') or ''!s:14} value={str(wert)[:40]!r}  {urteil}",
-                flush=True,
-            )
+        if nummer % 20 == 0 or nummer == len(ziele):
+            print(f"      {nummer}/{len(ziele)} …", flush=True)
 
     zaehler: dict[str, int] = {}
     for v in versuche:
@@ -1152,7 +1141,6 @@ def run_host(
     out_dir: Path,
     workers: int,
     username: str = USERNAME,
-    nv_alle: bool = False,
 ) -> dict:
     """Alle gewählten Aktionen für eine Anlage ausführen."""
     print(f"\n=== {host}")
@@ -1210,7 +1198,7 @@ def run_host(
 
     if menus and "nv" in actions:
         print("    LON-Netzwerkvariablen: Adressform wird gesucht …")
-        nv = suche_nv_werte(probe, menus, alle=nv_alle)
+        nv = suche_nv_werte(probe, menus)
         path = out_dir / f"{stem}_nv.json"
         path.write_text(json.dumps(nv, indent=2, ensure_ascii=False), encoding="utf-8")
         written.append(path)
@@ -1473,11 +1461,6 @@ def main() -> int:
     parser.add_argument("--oid", help="vollständige OID für die Aktionen 'oid' und 'objekt'")
     parser.add_argument("--password", help="Service-Passwort (sonst Abfrage oder HEATNEXUS_PW)")
     parser.add_argument(
-        "--alle",
-        action="store_true",
-        help="beim Lauf 'nv': jeden Eintrag lesen statt einer Stichprobe je Datentyp",
-    )
-    parser.add_argument(
         "--user",
         default=USERNAME,
         help=f"Zugang der Anlage: USER oder Service (Standard: {USERNAME})",
@@ -1555,8 +1538,7 @@ def main() -> int:
             actions |= {"menus"}
 
     results = [
-        run_host(h, password, actions, zielordner(args.out), args.workers, args.user, args.alle)
-        for h in hosts
+        run_host(h, password, actions, zielordner(args.out), args.workers, args.user) for h in hosts
     ]
     return 0 if all(r.get("ok") for r in results) else 1
 
