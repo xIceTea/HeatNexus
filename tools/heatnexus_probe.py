@@ -471,10 +471,35 @@ ENDPUNKT_KANDIDATEN = (
     "messages",
     "log",
     "history",
+    # Aus `domfie/windhager-rest-api-documentation` – eine fremde
+    # Dokumentation des RC7030-Webservers. Sie nennt Dienste, auf die von
+    # allein niemand kommt, allen voran **InfoWinFehlerlog**. Ungeprüft, aber
+    # aus einer Quelle und nicht geraten.
+    "InfoWinFehlerlog",
+    "InfoWinHeartbeat",
+    "datapoints",
+    "nodes",
+    "notification",
+    "vpn",
+    "dynip",
+    "scan",
+    "led",
+    "update",
 )
 
 # Basispfade, unter denen die Kandidaten gesucht werden.
-ENDPUNKT_BASEN = ("/api/1.0/", "/dprecorder/api/1.0/", "/WsAdmin/api/1.0/")
+ENDPUNKT_BASEN = (
+    "/api/1.0/",
+    "/dprecorder/api/1.0/",
+    "/WsAdmin/api/1.0/",
+    # Ebenfalls aus der fremden Dokumentation: Der Webserver trägt mehrere
+    # Dienste nebeneinander. Unangemeldet antworten alle mit 401 – das sagt
+    # nichts; erst der angemeldete Lauf unterscheidet.
+    "/RestApiRC7030/api/1.0/",
+    "/WsFUP7030/api/1.0/",
+    "/DcmRC7030/api/1.0/",
+    "/InfoWinFehlerlog/api/1.0/",
+)
 
 # Wie oft ein 401 mit frischer Anmeldung wiederholt wird, bevor der Kandidat
 # als „unklar" gilt. Drei reichen: Die Steuerung verwirft ihren Nonce sporadisch,
