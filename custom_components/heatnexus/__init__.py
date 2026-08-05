@@ -33,6 +33,7 @@ from . import device_db, error_texts
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
+    BACKOFF_MAX,
     CONF_DASHBOARD,
     CONF_ENABLE_ADVANCED,
     CONF_LABEL,
@@ -176,6 +177,31 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         self.label = label
         self.hub_name = entry.data.get(CONF_NAME) or entry.title
         self.consecutive_timeouts = 0
+        # Der gewählte Takt. Bei Störungen wird langsamer gefragt, danach
+        # wieder genau hierauf zurückgestellt.
+        self._takt = update_interval
+        self._fehlschlaege = 0
+
+    def _langsamer_fragen(self) -> None:
+        """Nach einem Fehlschlag den Abstand verdoppeln.
+
+        Eine Anlage, die nicht antwortet, antwortet auch dreißig Sekunden
+        später nicht – sie bekommt dann aber trotzdem alle dreißig Sekunden
+        eine volle Runde Anfragen. Ist die Steuerung nur überlastet, hält der
+        gleichbleibende Takt sie genau darin fest.
+        """
+        self._fehlschlaege += 1
+        neu = min(self._takt * 2**self._fehlschlaege, BACKOFF_MAX)
+        if self.update_interval != timedelta(seconds=neu):
+            _LOGGER.debug("Abruf von %s vorerst alle %d s", self.host, neu)
+            self.update_interval = timedelta(seconds=neu)
+
+    def _wieder_normal_fragen(self) -> None:
+        """Zurück auf den gewählten Takt, sobald die Anlage wieder antwortet."""
+        self._fehlschlaege = 0
+        if self.update_interval != timedelta(seconds=self._takt):
+            _LOGGER.debug("Abruf von %s wieder alle %d s", self.host, self._takt)
+            self.update_interval = timedelta(seconds=self._takt)
 
     async def _async_update_data(self):
         """Werte der Anlage holen."""
@@ -183,9 +209,11 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             async with asyncio.timeout(30):
                 data = await self.client.fetch_all()
                 self.consecutive_timeouts = 0
+                self._wieder_normal_fragen()
                 return data
         except TimeoutError as err:
             self.consecutive_timeouts += 1
+            self._langsamer_fragen()
             _LOGGER.warning(
                 "Zeitüberschreitung beim Abruf von %s (Versuch %d)",
                 self.host,
@@ -195,6 +223,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed(f"Anlage {self.host} antwortet wiederholt nicht: {err}") from err
             return self.data if self.data else None
         except Exception as err:
+            self._langsamer_fragen()
             _LOGGER.error("Fehler beim Abruf von %s: %s", self.host, err)
             raise UpdateFailed(f"Fehler bei der Abfrage von {self.host}: {err}") from err
 

@@ -233,6 +233,15 @@ POLL_WOERTER_SCHNELL = (
 # Sensorwerte; dank schlankem Poll-Set (nur aktive OIDs) gut vertretbar.
 UPDATE_INTERVAL = 30
 
+# Obergrenze, wenn die Anlage nicht antwortet.
+#
+# Nach jedem Fehlschlag verdoppelt sich der Abstand, höchstens aber bis hierhin.
+# Eine Anlage, die gerade neu startet oder überlastet ist, bekommt sonst alle
+# dreißig Sekunden eine volle Runde Anfragen und kommt nicht zur Ruhe. Fünf
+# Minuten sind lang genug, um sie in Frieden zu lassen, und kurz genug, dass
+# niemand auf eine Rückkehr wartet.
+BACKOFF_MAX = 300
+
 # Nachfassen nach einer Bedienung.
 #
 # Die Anlage übernimmt einen geschriebenen Wert nicht sofort: Sie quittiert den
