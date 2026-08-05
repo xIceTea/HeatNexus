@@ -520,29 +520,47 @@ ENDPUNKT_ANLAEUFE = 3
 #
 # Dieser Lauf probiert die denkbaren Adressformen an wenigen Einträgen durch,
 # statt sie zu erraten.
-NV_GRUPPEN = (0, 4)
+# Geklärt am 05.08.2026: Die Gruppe vor dem Index wird **ignoriert**.
+# `/1/14/32/0/3/0` und `/1/14/32/4/3/0` liefern denselben Wert. Gelesen wird
+# deshalb mit Gruppe 0.
+NV_GRUPPEN = (0,)
 
 
 def suche_nv_werte(probe: Probe, menus: dict, je_funktion: int = 4) -> dict:
-    """Prüfen, wie sich der Wert einer LON-Netzwerkvariablen lesen lässt."""
-    versuche = []
+    """Prüfen, wie sich der Wert einer LON-Netzwerkvariablen lesen lässt.
+
+    Gestichprobt wird **je LON-Datentyp einer**, nicht die ersten vier je
+    Funktion: Die stehen immer an derselben Stelle und sind immer dieselben
+    Verwaltungsvariablen (`nviRequest`, `nvoStatus`, `nviTimeSet`,
+    `nvoTimeSet`). Interessant ist, was `SNVT_temp_p`, `SNVT_count` und
+    `SNVT_lev_percent` zurückgeben – daraus muss die Integration später eine
+    Zahl machen.
+    """
+    gesehen: set[str] = set()
+    proben = []
     for fct in menus["functions"]:
         if fct.get("fct_type", 0) != -1:
             continue
-        eintraege = list(fct["datapoints"].values())[:je_funktion]
-        for eintrag in eintraege:
-            index = eintrag.get("nvIndex")
-            name = eintrag.get("nvName")
-            if index is None:
+        for eintrag in fct["datapoints"].values():
+            typ = str(eintrag.get("snvtName"))
+            if typ in gesehen:
                 continue
+            gesehen.add(typ)
+            proben.append((fct, eintrag))
+
+    versuche = []
+    for fct, eintrag in proben:
+        index = eintrag.get("nvIndex")
+        name = eintrag.get("nvName")
+        if index is not None:
             for gruppe in NV_GRUPPEN:
                 oid = f"{fct['prefix']}/{gruppe}/{index}/0"
                 data, status = probe.lookup(oid)
                 wert = data.get("value") if isinstance(data, dict) else None
                 brauchbar = status == 200 and wert not in (None, "", "-", "-.-")
                 print(
-                    f"    {oid:22} {str(name)[:20]:22} HTTP {status:>3}  "
-                    f"value={wert!r}{'  BRAUCHBAR' if brauchbar else ''}",
+                    f"    {str(eintrag.get('snvtName'))[:18]:20} {str(name)[:22]:24} "
+                    f"HTTP {status:>3}  value={str(wert)[:46]!r}",
                     flush=True,
                 )
                 versuche.append(
@@ -550,6 +568,8 @@ def suche_nv_werte(probe: Probe, menus: dict, je_funktion: int = 4) -> dict:
                         "oid": oid,
                         "nvIndex": index,
                         "nvName": name,
+                        "snvtName": eintrag.get("snvtName"),
+                        "unit": eintrag.get("unit"),
                         "gruppe": gruppe,
                         "status": status,
                         "value": wert,
