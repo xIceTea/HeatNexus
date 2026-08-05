@@ -137,6 +137,9 @@ class WindhagerHttpClient:
         self.request_seconds = 0.0
         self.queue_seconds = 0.0
         self.request_errors = 0
+        # Abgewiesene Anfragen in Folge (401/403). Erst wenn es mehrere sind,
+        # ist es wirklich das Passwort und nicht ein verbrauchter Nonce.
+        self.auth_errors = 0
         self.poll_count = 0
         self.poll_seconds = 0.0
         # Was der letzte Durchlauf gekostet hat – geht in die Diagnose ein.
@@ -246,6 +249,14 @@ class WindhagerHttpClient:
                 raise
             finally:
                 self.request_seconds += time.monotonic() - begonnen
+        # Ein `401`, der bis hierher durchkommt, ist die Auskunft der Anlage,
+        # dass das Passwort nicht stimmt – die Aufforderung selbst hat aiohttp
+        # schon beantwortet. Gezählt wird beides, damit ein einzelner
+        # verbrauchter Digest-Nonce nicht gleich nach dem Passwort fragen lässt.
+        if ret.status in (401, 403):
+            self.auth_errors += 1
+        else:
+            self.auth_errors = 0
         try:
             return json.loads(self._decode(raw)), ret.status
         except ValueError:

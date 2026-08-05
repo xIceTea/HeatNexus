@@ -20,9 +20,10 @@ from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.storage import Store
@@ -34,6 +35,7 @@ from . import device_db, error_texts
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
+    AUTH_FEHLER_GRENZE,
     BACKOFF_MAX,
     CONF_DASHBOARD,
     CONF_ENABLE_ADVANCED,
@@ -204,13 +206,41 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Abruf von %s wieder alle %d s", self.host, self._takt)
             self.update_interval = timedelta(seconds=self._takt)
 
+    def _stoerung_melden(self, grund: str) -> None:
+        """Ein Problem in die Reparaturen von Home Assistant eintragen.
+
+        Eine Benachrichtigung verschwindet mit einem Klick und kommt nie
+        wieder; ein Reparatureintrag bleibt stehen, bis das Problem weg ist,
+        und **löst sich von selbst auf**, sobald die Anlage wieder antwortet.
+        """
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            f"nicht_erreichbar_{self.entry.entry_id}_{self.host}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="nicht_erreichbar",
+            translation_placeholders={"anlage": self.label or self.host, "grund": grund},
+        )
+
+    def _stoerung_zuruecknehmen(self) -> None:
+        ir.async_delete_issue(
+            self.hass, DOMAIN, f"nicht_erreichbar_{self.entry.entry_id}_{self.host}"
+        )
+
     async def _async_update_data(self):
         """Werte der Anlage holen."""
+        # Mehrere abgewiesene Anfragen hintereinander heißen: Das Passwort
+        # stimmt nicht mehr. Home Assistant fragt dann von sich aus danach,
+        # statt die Anlage still als „nicht verfügbar" stehen zu lassen.
+        if getattr(self.client, "auth_errors", 0) >= AUTH_FEHLER_GRENZE:
+            raise ConfigEntryAuthFailed(f"Anlage {self.host} weist die Anmeldung ab")
         try:
             async with asyncio.timeout(30):
                 data = await self.client.fetch_all()
                 self.consecutive_timeouts = 0
                 self._wieder_normal_fragen()
+                self._stoerung_zuruecknehmen()
                 return data
         except TimeoutError as err:
             self.consecutive_timeouts += 1
@@ -221,11 +251,16 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 self.consecutive_timeouts,
             )
             if self.consecutive_timeouts >= 3:
+                self._stoerung_melden("Sie antwortet nicht mehr.")
                 raise UpdateFailed(f"Anlage {self.host} antwortet wiederholt nicht: {err}") from err
             return self.data if self.data else None
+        except ConfigEntryAuthFailed:
+            raise
         except Exception as err:
             self._langsamer_fragen()
             _LOGGER.error("Fehler beim Abruf von %s: %s", self.host, err)
+            if self._fehlschlaege >= 3:
+                self._stoerung_melden(str(err))
             raise UpdateFailed(f"Fehler bei der Abfrage von {self.host}: {err}") from err
 
 

@@ -264,6 +264,13 @@ FCT_MODELL: dict[int, str] = {
 OID_SOFTWAREVERSION = "4/92"
 OID_HARDWAREVERSION = "4/93"
 
+# Ab wie vielen abgewiesenen Anfragen in Folge nach dem Passwort gefragt wird.
+#
+# Ein einzelner `401` heißt hier nichts: Die Steuerung vergibt ihre Nonce nur
+# einmal, und ein verbrauchter kostet einen Anlauf. Drei hintereinander sind
+# etwas anderes - dann stimmt das Passwort nicht mehr.
+AUTH_FEHLER_GRENZE = 3
+
 # Obergrenze, wenn die Anlage nicht antwortet.
 #
 # Nach jedem Fehlschlag verdoppelt sich der Abstand, höchstens aber bis hierhin.

@@ -175,5 +175,11 @@
         }
       }
     }
+  },
+  "issues": {
+    "nicht_erreichbar": {
+      "title": "{anlage} est injoignable",
+      "description": "HeatNexus ne reçoit plus de valeurs de **{anlage}**.\n\nSignalé : {grund}\n\nVérifiez que la régulation est allumée et joignable sur le réseau. Ce message disparaît de lui-même dès que l'installation répond à nouveau."
+    }
   }
 }

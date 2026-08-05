@@ -33,7 +33,11 @@ def coordinator(hass):
     eintrag = MagicMock()
     eintrag.data = {"name": "Heizhaus"}
     eintrag.title = "Heizhaus"
+    eintrag.entry_id = "abc123"
     client = MagicMock()
+    # Eine Attrappe liefert sonst auch für Zähler wieder eine Attrappe, und der
+    # Vergleich mit einer Zahl scheitert.
+    client.auth_errors = 0
     client.fetch_all = AsyncMock(return_value={"oids": {}, "devices": []})
     return WindhagerDataUpdateCoordinator(
         hass, client, eintrag, "192.0.2.1", "Heizhaus", update_interval=30

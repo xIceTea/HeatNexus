@@ -175,5 +175,11 @@
         }
       }
     }
+  },
+  "issues": {
+    "nicht_erreichbar": {
+      "title": "{anlage} ist nicht erreichbar",
+      "description": "HeatNexus bekommt von der Anlage **{anlage}** keine Werte mehr.\n\nGemeldet wird: {grund}\n\nBitte prüfen, ob die Steuerung eingeschaltet und im Netz erreichbar ist. Diese Meldung verschwindet von selbst, sobald die Anlage wieder antwortet."
+    }
   }
 }
