@@ -121,6 +121,92 @@ def test_mehrere_stoerungen_werden_aneinandergereiht(sensoren):
     assert " | " in entity.native_value
 
 
+# ---------------------------------------------------------------------------
+# Meldungsliste – unsere eigene, weil die Anlage ihre nicht hergibt
+# ---------------------------------------------------------------------------
+def _liste(sensoren):
+    entity, koordinator = _entitaet(
+        sensoren.WindhagerMessageListSensor, {}, type="message_list", node_id="60", oid=None
+    )
+    koordinator.last_update_success = True
+    return entity, koordinator
+
+
+def _melden(entity, koordinator, roh):
+    koordinator.data["status"] = {"60": roh}
+    entity._aufnehmen()
+
+
+def test_meldungsliste_behaelt_was_wieder_verschwindet(sensoren):
+    """Der Fall, für den es die Liste überhaupt gibt.
+
+    Verkleidungstür auf, Meldung da; Tür zu, Meldung weg. `FE01msg` zeigt
+    danach wieder „OK", und ohne Liste stünde nirgends, dass etwas war.
+    """
+    entity, koordinator = _liste(sensoren)
+    _melden(entity, koordinator, "PUR 09E346")
+    _melden(entity, koordinator, "PUR 09  OK")
+
+    assert entity.native_value == 1
+    eintrag = entity.extra_state_attributes["meldungen"][0]
+    assert eintrag["code"] == 346
+    assert eintrag["text"] == "Verkleidungstür offen"
+    assert eintrag["zuerst"] and eintrag["zuletzt"]
+
+
+def test_meldungsliste_zaehlt_dieselbe_meldung_nicht_hoch(sensoren):
+    """Eine offene Tür über zehn Abrufe ist ein Ereignis, nicht zehn.
+
+    Ohne diese Prüfung liefe der Zähler alle 30 Sekunden weiter, und nach
+    einer Stunde stünden 120 „Meldungen" in der Liste.
+    """
+    entity, koordinator = _liste(sensoren)
+    for _ in range(10):
+        _melden(entity, koordinator, "PUR 09E346")
+
+    assert entity.native_value == 1
+    assert len(entity.extra_state_attributes["meldungen"]) == 1
+
+
+def test_meldungsliste_sammelt_verschiedene_codes(sensoren):
+    entity, koordinator = _liste(sensoren)
+    _melden(entity, koordinator, "PUR 09E346")
+    _melden(entity, koordinator, "PUR 09E239")
+    assert entity.native_value == 2
+    codes = {e["code"] for e in entity.extra_state_attributes["meldungen"]}
+    assert codes == {346, 239}
+
+
+def test_meldungsliste_laesst_sich_leeren(sensoren):
+    entity, koordinator = _liste(sensoren)
+    _melden(entity, koordinator, "PUR 09E346")
+    entity.leeren()
+    assert entity.native_value == 0
+    assert entity.extra_state_attributes["meldungen"] == []
+
+
+def test_meldungsliste_sagt_dass_sie_unsere_ist(sensoren):
+    """Eine geleerte Liste ist kein quittierter Fehler.
+
+    Das Attribut macht die Unterscheidung maschinenlesbar; die Beschreibung
+    des Dienstes sagt dasselbe in Worten.
+    """
+    entity, _ = _liste(sensoren)
+    assert entity.extra_state_attributes["eigene_liste"] is True
+
+
+def test_meldungsliste_ohne_daten_bleibt_leer(sensoren):
+    """Kein FE01msg heißt: nichts aufnehmen, nicht abstürzen."""
+    entity, koordinator = _liste(sensoren)
+    koordinator.data["status"] = {}
+    entity._aufnehmen()
+    assert entity.native_value == 0
+
+
+def test_meldungsliste_wird_nicht_gepollt(sensoren):
+    assert sensoren.WindhagerMessageListSensor._register_poll_oid is False
+
+
 def test_die_automationsvorlage_haengt_am_attribut_nicht_am_text(sensoren):
     """`stoerung_aktiv` ist die Wahrheit, der angezeigte Text nur Anzeige.
 

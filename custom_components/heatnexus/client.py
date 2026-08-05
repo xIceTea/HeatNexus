@@ -634,6 +634,35 @@ class WindhagerHttpClient:
                         "fct_type": primary_type,
                     }
                 )
+                # Dritter Sensor: die **Meldungsliste**.
+                #
+                # `FE01msg` nennt nur, was *gerade* anliegt. Wer die
+                # Verkleidungstür öffnet und wieder schließt, sieht die Meldung
+                # kommen und gehen – nachher steht nirgends, dass sie da war.
+                # Das Bediengerät führt dafür eine fortlaufende Liste; über die
+                # Schnittstelle ist sie nicht zu bekommen (geprüft: `2/96`
+                # antwortet an jeder Funktion mit 409, und die Steuerung kennt
+                # keinen der acht denkbaren Endpunkte). Also führt Home
+                # Assistant sie selbst.
+                #
+                # Ausdrücklich **unsere** Liste, nicht die des Kessels: Löschen
+                # räumt hier auf, nicht dort.
+                self.devices.append(
+                    {
+                        "id": f"{self._neuron(node_id)}-fe01liste",
+                        "alt_id": self._alte_kennung(f"{device_id}-fe01liste"),
+                        "type": "message_list",
+                        "node_id": str(node_id),
+                        "name": "Meldungsliste",
+                        "category": "diagnostic",
+                        "icon": "mdi:format-list-bulleted",
+                        "enabled_default": True,
+                        "device_id": self._geraetekennung(primary_prefix),
+                        "alt_device_id": self._alte_kennung(primary_prefix),
+                        "device_name": primary_name,
+                        "fct_type": primary_type,
+                    }
+                )
 
     # ------------------------------------------------------------------
     # Metadata (min/max/step/unit/writeProt from the device itself)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import Any
 
@@ -12,9 +13,10 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTemperature
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
+from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from .const import ERROR_TEXTS
@@ -64,6 +66,13 @@ _BLOCK_SCHEMA = vol.Schema(
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager sensors from a config entry."""
     platform = entity_platform.async_get_current_platform()
+
+    # Die Meldungsliste ist **unsere** Liste; dieser Dienst leert sie. Am
+    # Bediengerät der Anlage ändert er nichts – das steht auch in der
+    # Beschreibung, weil eine geleerte Liste sonst wie ein quittierter Fehler
+    # aussieht.
+    platform.async_register_entity_service("meldungen_loeschen", {}, "leeren")
+
     # Service zum Schreiben eines Zeitprogramms (Heiz-/WW-Programm). Ziel ist
     # eine Zeitprogramm-Sensor-Entity. Entweder mehrere "blocks" (volle
     # Kontrolle, je Block Wochentage + Schaltpunkte) ODER vereinfacht
@@ -91,6 +100,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "time_program": WindhagerTimeProgramSensor,
             "device_status": WindhagerDeviceStatusSensor,
             "message_text": WindhagerMessageTextSensor,
+            "message_list": WindhagerMessageListSensor,
             "total": WindhagerPelletSensor,
             "total_increasing": WindhagerPelletSensor,
         },
@@ -331,6 +341,102 @@ class WindhagerMessageTextSensor(WindhagerEntity, SensorEntity):
             "meldungen": msgs,
             "rohwert": self._raw,
         }
+
+
+class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
+    """Fortlaufende Liste aller Meldungen, die diese Anlage gezeigt hat.
+
+    **Warum es sie gibt.** ``FE01msg`` nennt nur, was gerade anliegt. Wer die
+    Verkleidungstür öffnet und wieder schließt, sieht die Meldung kommen und
+    gehen – hinterher steht nirgends, dass sie da war. Das Bediengerät führt
+    dafür eine Liste mit Papierkorb; über die Schnittstelle ist sie nicht zu
+    bekommen. Geprüft an der Anlage: ``2/96`` – die Adresse, die die
+    Weboberfläche der Steuerung dafür benutzt – antwortet an jeder Funktion mit
+    ``409 invalid Identifier``, und von 24 denkbaren Endpunktnamen kennt die
+    Steuerung keinen einzigen (``errorlog``, ``errors``, ``message``,
+    ``messages``, ``alarm``, ``alarms``, ``log``, ``history``).
+
+    **Das hier ist deshalb unsere Liste, nicht die des Kessels.** Sie beginnt,
+    wenn die Integration eingerichtet wird, und der Dienst
+    ``heatnexus.meldungen_loeschen`` leert *sie* – am Bediengerät ändert das
+    nichts. Wer das verwechselt, hält eine geleerte Liste für einen
+    quittierten Fehler.
+
+    Je Code ein Eintrag, ohne Dubletten, mit erstem und letztem Auftreten und
+    einem Zähler. Der Zustand ist die Anzahl; die Einträge stehen im Attribut.
+    Sie überleben einen Neustart über ``RestoreEntity``.
+    """
+
+    _attr_icon = "mdi:format-list-bulleted"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "Meldungen"
+    # Quelle ist die /1-Discovery, nicht das OID-Polling.
+    _register_poll_oid = False
+
+    def __init__(self, coordinator: Any, device_info: dict) -> None:
+        super().__init__(coordinator, device_info)
+        self._node_id = str(device_info.get("node_id"))
+        # code -> Eintrag. Ein Wörterbuch, damit derselbe Fehler beim zweiten
+        # Auftreten seinen Zähler hochsetzt statt eine Dublette anzulegen.
+        self._eintraege: dict[int, dict] = {}
+
+    async def async_added_to_hass(self) -> None:
+        """Die gesammelten Meldungen über einen Neustart hinweg mitnehmen."""
+        await super().async_added_to_hass()
+        letzter = await self.async_get_last_state()
+        if letzter is None:
+            return
+        for eintrag in letzter.attributes.get("meldungen") or []:
+            with contextlib.suppress(TypeError, ValueError, AttributeError):
+                self._eintraege[int(eintrag["code"])] = dict(eintrag)
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Neue Meldungen aufnehmen, bevor der Zustand geschrieben wird."""
+        self._aufnehmen()
+        super()._handle_coordinator_update()
+
+    def _aufnehmen(self) -> None:
+        roh = (self.coordinator.data or {}).get("status", {}).get(self._node_id)
+        if roh is None:
+            return
+        jetzt = dt_util.utcnow().isoformat(timespec="seconds")
+        for meldung in parse_messages(roh):
+            vorhanden = self._eintraege.get(meldung["code"])
+            if vorhanden is None:
+                self._eintraege[meldung["code"]] = {
+                    **meldung,
+                    "zuerst": jetzt,
+                    "zuletzt": jetzt,
+                    "anzahl": 1,
+                }
+                continue
+            # Dieselbe Meldung im nächsten Abruf ist kein neues Ereignis –
+            # sonst zählte eine offene Tür alle 30 Sekunden weiter hoch.
+            vorhanden["zuletzt"] = jetzt
+
+    @callback
+    def leeren(self) -> None:
+        """Die Liste verwerfen – nur unsere, nicht die der Anlage."""
+        self._eintraege.clear()
+        # Wie in `entity._nachfassen`: Ohne angemeldete Entität gibt es
+        # nichts zu schreiben. Home Assistant leitet einen Dienst zwar nur an
+        # angemeldete Entitäten weiter, aber ein Aufruf ohne `hass` wäre ein
+        # Absturz statt einer wirkungslosen Zeile.
+        if self.hass:
+            self.async_write_ha_state()
+
+    @property
+    def native_value(self) -> int:
+        return len(self._eintraege)
+
+    @property
+    def extra_state_attributes(self):
+        # Neueste zuerst: Wer nachschaut, sucht meist das Letzte.
+        eintraege = sorted(
+            self._eintraege.values(), key=lambda e: e.get("zuletzt") or "", reverse=True
+        )
+        return {"meldungen": eintraege, "eigene_liste": True}
 
 
 class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):

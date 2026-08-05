@@ -24,6 +24,19 @@ set_current_temp_compensation:
           step: 0.1
           unit_of_measurement: "K"
 
+meldungen_loeschen:
+  name: Meldungsliste leeren
+  description: >-
+    Leert die von HeatNexus geführte Meldungsliste einer Anlage. Die Anlage
+    selbst führt diese Liste nicht über ihre Schnittstelle – gelöscht wird
+    also nur die Sammlung in Home Assistant, nicht der Störspeicher am
+    Bediengerät. Dort anstehende Meldungen bleiben unberührt und müssen wie
+    gewohnt am Gerät zurückgesetzt werden.
+  target:
+    entity:
+      integration: heatnexus
+      domain: sensor
+
 set_vorgabe:
   name: Befristete Vorgabe setzen
   description: >-
