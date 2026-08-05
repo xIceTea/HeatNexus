@@ -25,7 +25,23 @@ export const REITER = [
   { schluessel: "steuerung", titel: "Steuerung", symbol: "mdi:tune-vertical" },
   { schluessel: "wartung", titel: "Wartung", symbol: "mdi:wrench-outline" },
   { schluessel: "verlauf", titel: "Verlauf", symbol: "mdi:chart-line" },
+  { schluessel: "zeitprogramme", titel: "Zeitprogramme", symbol: "mdi:calendar-clock" },
 ];
+
+// Wochentage, wie die Anlage sie schreibt, mit deutscher Beschriftung. Die
+// Reihenfolge ist die der Woche - die Anlage liefert sie unsortiert.
+export const WOCHENTAGE = [
+  ["Mo", "Mo"],
+  ["Tu", "Di"],
+  ["We", "Mi"],
+  ["Th", "Do"],
+  ["Fr", "Fr"],
+  ["Sa", "Sa"],
+  ["Su", "So"],
+];
+
+// Mehr Schaltzeiten nimmt die Anlage je Block nicht an.
+export const SCHALTPUNKTE_MAX = 6;
 
 // Wie breit eine Karte höchstens werden darf, in Spalten. Deckt sich mit
 // `anordnung.BREITE_MAX` auf der Serverseite – was hier durchgeht, muss dort

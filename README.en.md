@@ -81,13 +81,14 @@ welcome — the integration's diagnostics export is all it takes.
 - **A thermostat per heating circuit** with operating mode, comfort correction
   and a timed comfort setpoint.
 - **Time programs** for heating, hot water and circulation, readable and
-  writable.
+  writable — shown as a weekly grid in the panel, with an editor for weekdays
+  and switch points.
 - **Faults in plain text** with code, class and what to do about it.
 - **Service level** available in full, disabled by default, switchable per
   entity.
 - **A dedicated panel** in the sidebar: plant diagram, key values, system
   status, heating circuits, hot water, faults, history and quick controls on one
-  page.
+  page, plus tabs for controls, maintenance, history and time programs.
 - **Plant diagram** drawn from the discovered parts, with running pumps and live
   values on top. The kind of heat generator — wood chips, pellets, logs, heat
   pump, gas/oil — is detected and can be overridden per system.
@@ -239,6 +240,9 @@ system as a whole instead of as a pile of tiles:
   directly.
 - **Faults in plain text**, **history** and **quick controls** for the frequent
   interventions, each with a confirmation where a wrong tap causes work.
+- **Time programs** as a weekly grid: seven rows per program, switch points as
+  bars. Editing works in blocks — tick weekdays, set switch points — and saving
+  writes the whole program at once, the way the system stores it.
 
 A "?" next to cards and controls explains what a value means and what an action
 does. Both the panel and the explanations can be switched off under *Configure →

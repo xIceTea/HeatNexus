@@ -38,7 +38,7 @@ ANORDNUNG_STORE_VERSION = 1
 ANORDNUNG_STORE_KEY = f"{DOMAIN}.anordnung"
 
 # Reiter, die eine eigene Anordnung haben.
-REITER = ("uebersicht", "steuerung", "wartung", "verlauf")
+REITER = ("uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme")
 
 # 0 heißt „automatisch": so viele Spalten, wie nebeneinander passen.
 SPALTEN_AUTO = 0

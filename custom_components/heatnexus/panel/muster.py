@@ -136,6 +136,12 @@ WARMWASSER_MAX = 6
 BETRIEBSWAHL = _muster(r"\bbetriebswahl\b")
 # Zeitprogramm eines Kreises.
 ZEITPROGRAMM = _muster(r"programm")
+# Das Zirkulationsprogramm und der Datenpunkt, der darüber entscheidet, ob es
+# überhaupt etwas tut: `5/6` „WW-Zirkulationspumpe" mit den Werten Aus, Mit
+# Zeitsteuerung, Mit Temperatursteuerung, Mit Impulssteuerung, EIN. Nur bei
+# „Mit Zeitsteuerung" richtet sich die Pumpe nach dem Programm.
+ZIRKULATIONSPROGRAMM = _muster(r"zirkulations?programm")
+ZIRKULATIONSPUMPE = _muster(r"zirkulationspumpe")
 # Die Einmalladung: der einzige Warmwasser-Eingriff, den man täglich anfasst.
 EINMALLADUNG = _muster(r"einmalladung")
 # Die Anlage kennt zur Einmalladung zwei Einstellungen: auslösen und die

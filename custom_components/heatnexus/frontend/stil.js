@@ -652,6 +652,76 @@ export const STIL = `
   .dialog-taste.betont { background: rgba(229, 57, 53, 0.2); border-color: rgba(229, 57, 53, 0.5);
     color: #ff8a80; }
 
+  /* --- Zeitprogramme: Wochenraster und Editor -------------------------- */
+  /* Die Balken sitzen in Prozent der Spur, nicht in Bildpunkten: Die Karte
+     ist mal eine Spalte breit und mal vier. In Bildpunkten säßen die Zeiten
+     schon bei der zweiten Breite daneben. */
+  .zp-anlagenteil { font-size: 12px; opacity: 0.55; margin: -4px 0 12px; }
+  .zeitraster { display: flex; flex-direction: column; gap: 4px; }
+  .zeitraster-skala {
+    display: flex; justify-content: space-between;
+    margin-left: 34px; font-size: 10px; opacity: 0.45;
+  }
+  .zeitraster-zeile { display: flex; align-items: center; gap: 8px; }
+  .zeitraster-zeile .tag {
+    width: 26px; flex: none; font-size: 11px; font-weight: 600; opacity: 0.6;
+  }
+  .zeitraster .spur {
+    position: relative; flex: 1; height: 16px; border-radius: 5px;
+    background: rgba(255, 255, 255, 0.05); overflow: hidden;
+  }
+  .zeitraster .spur.leer { opacity: 0.5; }
+  .zeitraster .balken { position: absolute; top: 0; bottom: 0; }
+
+  .zp-wirkung {
+    margin-top: 12px; padding: 7px 10px; border-radius: 8px; font-size: 12px;
+    background: rgba(255, 171, 111, 0.12); color: #ffab6f;
+  }
+  .zp-karteleiste { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+  .zp-taste {
+    padding: 7px 12px; border-radius: 10px; font: inherit; font-size: 13px;
+    font-weight: 600; cursor: pointer; color: inherit;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .zp-taste:hover { background: rgba(255, 255, 255, 0.12); }
+  .zp-taste:disabled { opacity: 0.4; cursor: default; }
+  .zp-taste.betont { background: rgba(111, 178, 245, 0.16); border-color: rgba(111, 178, 245, 0.4); }
+
+  .dialog.zp-dialog { max-width: 560px; }
+  .zp-editor { max-height: 58vh; overflow-y: auto; display: flex;
+    flex-direction: column; gap: 12px; }
+  .zp-block {
+    border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px;
+  }
+  .zp-tage { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .zp-tag {
+    width: 36px; padding: 6px 0; border-radius: 8px; font: inherit; font-size: 12px;
+    font-weight: 600; cursor: pointer; color: inherit;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .zp-tag[aria-pressed="true"] {
+    background: rgba(111, 178, 245, 0.2); border-color: rgba(111, 178, 245, 0.5);
+  }
+  .zp-punkte { display: flex; flex-direction: column; gap: 6px; }
+  .zp-punkt { display: flex; align-items: center; gap: 8px; }
+  .zp-punkt input, .zp-punkt select {
+    padding: 6px 8px; border-radius: 8px; font: inherit; font-size: 13px;
+    color: inherit; background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .zp-punkt .zp-wert { width: 92px; }
+  .zp-weg {
+    width: 28px; height: 28px; border-radius: 8px; font: inherit; font-size: 15px;
+    cursor: pointer; color: inherit; background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .zp-weg:hover { background: rgba(229, 57, 53, 0.25); }
+  .zp-blockleiste { display: flex; gap: 8px; margin-top: 10px; }
+  .zp-meldung { font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .zp-meldung.fehler { color: #ff8a80; }
+
   .klickbar { cursor: pointer; }
   .klickbar:hover { background: rgba(255, 255, 255, 0.07); }
   .status-zeile.klickbar:hover { background: rgba(255, 255, 255, 0.05); border-radius: 8px; }

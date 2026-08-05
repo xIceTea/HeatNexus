@@ -51,6 +51,8 @@ from .muster import (
     WARTUNG_BRENNSTOFF,
     ZEITPROGRAMM,
     ZIRKULATION_IST_KENNWERT,
+    ZIRKULATIONSPROGRAMM,
+    ZIRKULATIONSPUMPE,
 )
 
 
@@ -328,6 +330,68 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
+    """Alle Zeitprogramme der Anlage, für den eigenen Reiter.
+
+    Die Blöcke selbst holt die Oberfläche aus den Attributen der Entität – sie
+    stehen dort schon, und ein zweiter Weg über den Server würde nur dieselben
+    Daten ein zweites Mal aufbereiten.
+
+    Was hier steht, ist eine **Vorauswahl am Namen**: Ob eine Entität wirklich
+    ein Zeitprogramm führt, sagt erst ihr Attribut ``blocks``. Die Oberfläche
+    lässt Karten ohne Blöcke weg. Andersherum ginge es nicht – die
+    Registry-Einträge, aus denen diese Liste entsteht, tragen die Typkennung
+    der Anlage nicht mit.
+    """
+    programme: list[dict[str, str]] = []
+    for teil in anlage["teile"]:
+        for eintrag in teil["entitaeten"]:
+            if eintrag["bereich"] != "sensor" or not _passt(eintrag["name"], ZEITPROGRAMM):
+                continue
+            programm = {
+                "entity": eintrag["entity_id"],
+                "titel": eintrag["name"],
+                "anlagenteil": teil["name"],
+            }
+            if text := hilfe(eintrag["name"]):
+                programm["hilfe"] = text
+            if (wirkung := _wirkt_nur_wenn(eintrag, teil["entitaeten"])) is not None:
+                programm["wirkung"] = wirkung
+            programme.append(programm)
+    return programme
+
+
+def _wirkt_nur_wenn(
+    programm: dict[str, Any], geschwister: list[dict[str, Any]]
+) -> dict[str, str] | None:
+    """Der Datenpunkt, an dem hängt, ob ein Programm überhaupt etwas bewirkt.
+
+    Das Zirkulationsprogramm läuft ins Leere, solange `5/6`
+    „WW-Zirkulationspumpe" nicht auf „Mit Zeitsteuerung" steht – die Pumpe
+    richtet sich dann nach Temperatur, nach Impuls, oder sie läuft durch. Die
+    Karte wird deshalb **nicht versteckt**, sondern beschriftet: Wer sein
+    Programm vorbereiten will, bevor er die Steuerung umstellt, soll es
+    weiterhin sehen.
+    """
+    if not _passt(programm["name"], ZIRKULATIONSPROGRAMM):
+        return None
+    pumpe = next(
+        (
+            e
+            for e in geschwister
+            if e["bereich"] in ("select", "sensor") and _passt(e["name"], ZIRKULATIONSPUMPE)
+        ),
+        None,
+    )
+    if pumpe is None:
+        return None
+    return {
+        "entity": pumpe["entity_id"],
+        "muster": "zeitsteuerung",
+        "hinweis": "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ steht.",
+    }
+
+
 def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:
     """Der Reiter „Wartung": Restlaufzeiten, Brennstoff, Zählerstände."""
     alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
@@ -474,6 +538,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         # nicht in der Liste der Anlagenteile.
         "aussentemperatur": aussen,
         "steuerung": _steuerung(anlage),
+        "zeitprogramme": _zeitprogramme(anlage),
         "wartung": _wartung(anlage),
         "kennwerte": kennwerte,
         "status": _zeilen(alle, STATUS),

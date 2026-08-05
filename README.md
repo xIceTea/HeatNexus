@@ -75,13 +75,16 @@ Geräten sind willkommen – der Diagnose-Export der Integration reicht dafür.
   erlaubte Auswahlwerte stammen aus den Metadaten der Anlage.
 - **Thermostat je Heizkreis** mit Betriebswahl, Behaglichkeitskorrektur und
   befristetem Komfort-Sollwert.
-- **Zeitprogramme** für Heizung, Warmwasser und Zirkulation lesen und schreiben.
+- **Zeitprogramme** für Heizung, Warmwasser und Zirkulation lesen und schreiben –
+  in der eigenen Oberfläche als Wochenraster, mit Editor für Wochentage und
+  Schaltzeiten.
 - **Störungen im Klartext** mit Code, Art und Handlungsempfehlung.
 - **Serviceebene** vollständig verfügbar, standardmäßig deaktiviert und pro
   Entity zuschaltbar.
 - **Eigene Oberfläche** in der Seitenleiste: Anlagenschaubild, Kennwerte,
   Systemstatus, Heizkreise, Warmwasser, Störungen, Verlauf und Schnellzugriff
-  auf einer Seite.
+  auf einer Seite; dazu eigene Reiter für Steuerung, Wartung, Verlauf und
+  Zeitprogramme.
 - **Anlagenschaubild** aus den erkannten Anlagenteilen gezeichnet, mit
   laufenden Pumpen und den Live-Werten darauf. Die Art des Wärmeerzeugers –
   Hackgut, Pellets, Scheitholz, Wärmepumpe, Gas/Öl – wird erkannt und lässt
@@ -239,6 +242,10 @@ Sie zeigt die Anlage als Ganzes statt als Kachelsammlung:
 - **Heizkreise und Warmwasser** mit Betriebswahl und Sollwert direkt bedienbar.
 - **Störungen im Klartext**, **Verlauf** und **Schnellzugriff** auf die
   häufigen Eingriffe, jeweils mit Rückfrage, wo ein Fehlgriff Arbeit macht.
+- **Zeitprogramme** als Wochenraster: je Programm sieben Zeilen, darin die
+  Schaltzeiten als Balken. Bearbeitet wird in Blöcken – Wochentage anhaken,
+  Schaltzeiten setzen –, gespeichert wird das ganze Programm auf einmal, so wie
+  die Anlage es führt.
 
 Ein „?" neben Karten und Bedienelementen erklärt, was ein Wert bedeutet und was
 eine Aktion auslöst. Beides – Oberfläche und Erklärungen – lässt sich unter

@@ -258,6 +258,73 @@ def test_wartung_trennt_restlaufzeit_von_zaehler(panel):
 
 
 # ---------------------------------------------------------------------------
+# Zeitprogramme
+# ---------------------------------------------------------------------------
+def test_zeitprogramme_tragen_ihren_anlagenteil(panel):
+    """Zwei Anlagen melden gleich benannte Programme.
+
+    „Programm 1" gibt es an jedem Heizkreis. Ohne den Anlagenteil daneben
+    stünden im Reiter mehrere gleich beschriftete Karten, und niemand wüsste,
+    welche zu welchem Kreis gehört.
+    """
+    kreis = teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            entitaet("sensor.programm_1", "Programm 1"),
+            entitaet("sensor.ww_programm", "WW-Programm"),
+            entitaet("sensor.vorlauftemperatur_ist", "Vorlauftemperatur Ist"),
+        ],
+    )
+    programme = panel._anlage_daten(anlage(kreis))["zeitprogramme"]
+    assert [p["titel"] for p in programme] == ["Programm 1", "WW-Programm"]
+    assert {p["anlagenteil"] for p in programme} == {"UMLZ HEIZKREIS"}
+    assert programme[0]["entity"] == "sensor.programm_1"
+
+
+def test_zirkulationsprogramm_sagt_wann_es_wirkt(panel):
+    """`5/6` entscheidet, ob die Pumpe dem Programm überhaupt folgt.
+
+    Steht sie auf Temperatur- oder Impulssteuerung, läuft das schönste
+    Zirkulationsprogramm ins Leere. Versteckt wird die Karte trotzdem nicht –
+    vorbereiten können muss man es.
+    """
+    kreis = teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            entitaet("sensor.ww_zirkulationsprogramm", "WW-Zirkulationsprogramm"),
+            entitaet("select.ww_zirkulationspumpe", "WW-Zirkulationspumpe"),
+            entitaet("sensor.programm_1", "Programm 1"),
+        ],
+    )
+    programme = {p["titel"]: p for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]}
+    wirkung = programme["WW-Zirkulationsprogramm"]["wirkung"]
+    assert wirkung["entity"] == "select.ww_zirkulationspumpe"
+    assert wirkung["muster"] == "zeitsteuerung"
+    # Das Heizprogramm hängt an nichts – es wirkt immer.
+    assert "wirkung" not in programme["Programm 1"]
+
+
+def test_nur_sensoren_kommen_als_zeitprogramm_in_frage(panel):
+    """Die Betriebswahl heißt „Programm 1", ist aber eine Auswahl.
+
+    Was am Ende wirklich ein Zeitprogramm ist, entscheidet die Oberfläche am
+    Attribut `blocks`; hier fällt schon einmal alles weg, was gar kein Sensor
+    ist.
+    """
+    kreis = teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            entitaet("select.betriebswahl", "Betriebswahl"),
+            entitaet("number.urlaubsprogramm", "Urlaubsprogramm"),
+        ],
+    )
+    assert panel._anlage_daten(anlage(kreis))["zeitprogramme"] == []
+
+
+# ---------------------------------------------------------------------------
 # Rückfragen
 # ---------------------------------------------------------------------------
 def test_serviceausbrand_fragt_nach(panel, kessel_und_heizkreis):

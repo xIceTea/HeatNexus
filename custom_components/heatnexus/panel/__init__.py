@@ -124,7 +124,7 @@ def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
         # Abgewählt: Die Texte gar nicht erst mitschicken.
         for anlage in daten["anlagen"]:
             anlage["hilfe"] = {}
-            for bereich in ("schnellzugriff",):
+            for bereich in ("schnellzugriff", "zeitprogramme"):
                 for eintrag in anlage.get(bereich) or []:
                     eintrag.pop("hilfe", None)
             steuerung = anlage.get("steuerung") or {}
