@@ -28,6 +28,9 @@ from .const import (
     POLL_TYPEN_SCHNELL,
     POLL_WOERTER_SCHNELL,
     POLL_WOERTER_TRAEGE,
+    SAMMEL_MAX,
+    SAMMEL_MAX_LEERLAUF,
+    SAMMEL_MIN_TREFFER,
     UPDATE_INTERVAL,
 )
 from .const import (
@@ -106,6 +109,8 @@ class WindhagerHttpClient:
         # Metadaten aus den Menü-Ebenen: OID -> vollständiger Datenpunkt.
         # Damit entfällt für diese OIDs die einzelne Metadaten-Abfrage.
         self.menu_meta: dict = {}
+        # OID -> (prefix, menu_id, Position in der Ebene) für den Sammelabruf.
+        self.menu_pos: dict = {}
         # Statisch immer gepollte OIDs (aktive Entities + Climate).
         self.poll_oids: set = set()
         # Dynamisch von tatsächlich aktivierten Entities registrierte OIDs
@@ -135,6 +140,9 @@ class WindhagerHttpClient:
         self.request_errors = 0
         self.poll_count = 0
         self.poll_seconds = 0.0
+        # Was der letzte Durchlauf gekostet hat – geht in die Diagnose ein.
+        self._poll_gebuendelt = 0
+        self._poll_anfragen = 0
         self.gestartet = time.monotonic()
         # Ist der vollständige Abzug (Menü-Ebenen) bereits gelaufen?
         self._vollstaendig = False
@@ -317,11 +325,15 @@ class WindhagerHttpClient:
             *(self._read_menu(prefix, menu_id, count, pruefer) for menu_id, count in menus.items())
         )
         datapoints: dict = {}
-        for items in results:
-            for item in items:
+        for menu_id, items in zip(menus, results, strict=True):
+            for position, item in enumerate(items):
                 oid = item.get("OID")
                 if oid:
                     datapoints[oid] = item
+                    # Für den Sammelabruf im Poll: Wo in seiner Ebene steht
+                    # dieser Datenpunkt? Ohne die Position lässt sich kein
+                    # Fenster (`offset`/`count`) bilden.
+                    self.menu_pos[oid] = (prefix, str(menu_id), position)
         _LOGGER.debug("%s: %d Datenpunkte aus %d Menü-Ebenen", prefix, len(datapoints), len(menus))
         return datapoints
 
@@ -1027,6 +1039,10 @@ class WindhagerHttpClient:
             "poll_oids": sorted(self.poll_oids),
             "objects_supported": self._objects_supported,
             "neuron_by_node": dict(self.neuron_by_node),
+            # Positionen der Datenpunkte in ihren Menü-Ebenen. Ohne sie fällt
+            # der Poll auf Einzelabrufe zurück – langsamer, aber richtig.
+            # Listen statt Tupel, weil JSON keine Tupel kennt.
+            "menu_pos": {oid: list(stelle) for oid, stelle in self.menu_pos.items()},
         }
 
     def restore_discovery(self, data: dict) -> None:
@@ -1039,6 +1055,14 @@ class WindhagerHttpClient:
         self.devices = [messgroesse(dict(d)) for d in data.get("devices", [])]
         self.neuron_by_node = dict(data.get("neuron_by_node") or {})
         self.poll_oids = set(data.get("poll_oids", set()))
+        # Ein Cache aus einer Fassung ohne Sammelabruf bringt keine Positionen
+        # mit. Dann bleibt die Liste leer und der Poll läuft wie bisher; der
+        # Hintergrundlauf füllt sie nach.
+        self.menu_pos = {
+            oid: (stelle[0], str(stelle[1]), int(stelle[2]))
+            for oid, stelle in (data.get("menu_pos") or {}).items()
+            if isinstance(stelle, (list, tuple)) and len(stelle) == 3
+        }
         # Die Poll-Klassen leiten sich aus den Deskriptoren ab und werden
         # deshalb nicht mitgespeichert, sondern neu bestimmt. So wirkt eine
         # geänderte Einstufung sofort und nicht erst nach neuer Erkennung.
@@ -1056,17 +1080,107 @@ class WindhagerHttpClient:
     # ------------------------------------------------------------------
     # Polling
     # ------------------------------------------------------------------
+    @staticmethod
+    def _wert_oder_none(value):
+        """Rohwert übernehmen; die Leermarken der Anlage werden zu None.
+
+        `-.-` ist die Auskunft der Steuerung, dass zu diesem Datenpunkt kein
+        Messwert vorliegt (Fühler nicht angeschlossen). Ein `0` daraus zu
+        machen wäre eine Falschaussage.
+        """
+        if value in (None, "-.-", "-", ""):
+            return None
+        # Rohe Zeichenkette behalten. Ein früheres str(int(float(v))) hat hier
+        # alle Nachkommastellen vernichtet (21.5 °C -> "21"); die Entities
+        # zerlegen den Wert selbst.
+        return str(value)
+
+    def sammel_plan(self, oids: set) -> tuple[list, set]:
+        """Fällige OIDs in Menü-Fenster bündeln.
+
+        Gibt (Fenster, Einzeln) zurück. Ein Fenster ist
+        ``(prefix, menu_id, offset, count, erwartete_oids)`` und wird mit
+        *einer* Anfrage gelesen.
+
+        Gebündelt wird nur, wo es sich rechnet: Ein Fenster muss mindestens
+        SAMMEL_MIN_TREFFER gebrauchte Datenpunkte enthalten und darf höchstens
+        SAMMEL_MAX_LEERLAUF ungebrauchte mitschleppen. Sonst bleibt der
+        Einzelabruf billiger – für die Anlage wie für uns.
+        """
+        nach_ebene: dict = {}
+        einzeln: set = set()
+        for oid in oids:
+            stelle = self.menu_pos.get(oid)
+            if stelle is None:
+                # Kein bekannter Platz in einer Ebene (kuratierte OID, die in
+                # keinem Menü auftaucht, oder ein Cache ohne Positionen).
+                einzeln.add(oid)
+                continue
+            prefix, menu_id, position = stelle
+            nach_ebene.setdefault((prefix, menu_id), []).append((position, oid))
+
+        fenster = []
+        for (prefix, menu_id), eintraege in nach_ebene.items():
+            eintraege.sort()
+            gruppe: list = []
+            for position, oid in eintraege:
+                # Eine neue Gruppe beginnen, sobald das Fenster zu groß würde
+                # oder zu viel Leerlauf mitliefe.
+                if gruppe and (
+                    position - gruppe[0][0] >= SAMMEL_MAX
+                    or position - gruppe[-1][0] - 1 > SAMMEL_MAX_LEERLAUF
+                ):
+                    self._fenster_anfuegen(fenster, einzeln, prefix, menu_id, gruppe)
+                    gruppe = []
+                gruppe.append((position, oid))
+            self._fenster_anfuegen(fenster, einzeln, prefix, menu_id, gruppe)
+        return fenster, einzeln
+
+    @staticmethod
+    def _fenster_anfuegen(fenster: list, einzeln: set, prefix: str, menu_id: str, gruppe: list):
+        """Eine fertige Gruppe als Fenster ablegen – oder als Einzelabrufe."""
+        if not gruppe:
+            return
+        if len(gruppe) < SAMMEL_MIN_TREFFER:
+            einzeln.update(oid for _, oid in gruppe)
+            return
+        offset = gruppe[0][0]
+        count = gruppe[-1][0] - offset + 1
+        fenster.append((prefix, menu_id, offset, count, {oid for _, oid in gruppe}))
+
+    async def _fetch_fenster(self, prefix: str, menu_id: str, offset: int, count: int, erwartet):
+        """Ein Menü-Fenster in einer Anfrage lesen.
+
+        Rückgabe ist ein dict OID -> Wert für die erwarteten OIDs. Fehlt eine
+        davon in der Antwort, kommt sie als None zurück und der Aufrufer holt
+        sie einzeln nach: Eine verschobene Position darf keine Entität
+        stillegen.
+        """
+        url = f"http://{self.host}/api/1.0/lookup{prefix}/{menu_id}?count={count}&offset={offset}"
+        try:
+            data, status = await self._get(url, self._poll_semaphore)
+        # Ein einzelnes Fenster darf den ganzen Durchlauf nicht abbrechen.
+        except Exception as e:
+            _LOGGER.warning("Sammelabruf %s/%s fehlgeschlagen: %s", prefix, menu_id, e)
+            return {}
+        if status != 200 or not isinstance(data, list):
+            _LOGGER.debug("Sammelabruf %s/%s: HTTP %s", prefix, menu_id, status)
+            return {}
+        werte = {}
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            oid = item.get("OID")
+            if oid in erwartet:
+                werte[oid] = self._wert_oder_none(item.get("value"))
+        return werte
+
     async def _fetch_oid(self, oid):
         """Fetch a single OID, returning (oid, value-or-None)."""
         try:
             json = await self.fetch(oid, self._poll_semaphore)
             value = json.get("value") if isinstance(json, dict) else None
-            if value in (None, "-.-", "-", ""):
-                return oid, None
-            # Keep the raw string. The old code did str(int(float(v))) here,
-            # which destroyed all decimals (21.5 °C -> "21"). Entities parse
-            # the value themselves.
-            return oid, str(value)
+            return oid, self._wert_oder_none(value)
         except Exception as e:
             _LOGGER.warning("Error while fetching OID %s: %s", oid, e)
             return oid, None
@@ -1227,6 +1341,11 @@ class WindhagerHttpClient:
             "laufzeit_min": round(laufzeit / 60, 1),
             "gleichzeitige_anfragen": FETCH_CONCURRENCY,
             "gleichzeitige_abfragen": POLL_CONCURRENCY,
+            # Sammelabruf: wie viele Werte der letzte Durchlauf gebündelt
+            # gelesen hat und wie viele Anfragen er insgesamt gekostet hat.
+            "gebuendelte_werte": self._poll_gebuendelt,
+            "anfragen_je_abruf": self._poll_anfragen,
+            "positionen_bekannt": len(self.menu_pos),
         }
 
     def _takte(self) -> dict[str, int]:
@@ -1253,6 +1372,38 @@ class WindhagerHttpClient:
                 faellig.add(oid)
         return faellig
 
+    async def _lese_faellige(self, faellig: set) -> list:
+        """Die fälligen OIDs lesen – gebündelt, wo es sich lohnt.
+
+        Der Sammelabruf ist eine reine Beschleunigung, kein neues Verhalten:
+        Was ein Fenster nicht liefert, wird einzeln nachgeholt. Fällt die
+        Bündelung ganz aus (alter Cache ohne Positionen, ältere Firmware ohne
+        Menü-Ebenen), läuft alles über den bisherigen Weg.
+        """
+        fenster, einzeln = self.sammel_plan(faellig)
+        if not fenster:
+            return await asyncio.gather(*(self._fetch_oid(oid) for oid in einzeln))
+
+        gelesen = await asyncio.gather(*(self._fetch_fenster(*f) for f in fenster))
+        werte: dict = {}
+        for (_, _, _, _, erwartet), teil in zip(fenster, gelesen, strict=True):
+            werte.update(teil)
+            # Was das Fenster nicht hergab, kommt einzeln nach. Das deckt
+            # verschobene Positionen und Ebenen ab, die die Anlage gerade
+            # nicht beantwortet.
+            einzeln.update(erwartet - teil.keys())
+
+        nachgeholt = await asyncio.gather(*(self._fetch_oid(oid) for oid in einzeln))
+        self._poll_gebuendelt = len(werte)
+        self._poll_anfragen = len(fenster) + len(einzeln)
+        _LOGGER.debug(
+            "Poll: %d OIDs über %d Fenster + %d Einzelabrufe",
+            len(faellig),
+            len(fenster),
+            len(einzeln),
+        )
+        return list(werte.items()) + list(nachgeholt)
+
     async def fetch_all(self):
         """Poll the currently relevant OIDs in parallel and return coordinator data.
 
@@ -1270,7 +1421,7 @@ class WindhagerHttpClient:
 
         poll_begonnen = time.monotonic()
         faellig = self._faellig()
-        results = await asyncio.gather(*(self._fetch_oid(oid) for oid in faellig))
+        results = await self._lese_faellige(faellig)
         # Zeitprogramme und Status ändern sich selten und kosten je eine
         # eigene Anfrage – sie laufen im langsamen Takt mit.
         langsamer_takt = self._takte()[POLL_SLOW]

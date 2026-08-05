@@ -533,6 +533,11 @@ ENDPUNKT_ANLAEUFE = 3
 # rund 172 Anfragen und anderthalb Minuten – einmal, nicht im Betrieb.
 NV_GRUPPEN = (0,)
 
+# Wieviele Indizes ein Blindlauf abklopft, wenn die Funktion keinen Katalog
+# liefert. Die vier bekannten Funktionen führen 16 bis 68 Einträge; 80 deckt
+# das mit Rand ab und bleibt eine Anfragezahl, die eine Anlage wegsteckt.
+NV_BLIND_MAX = 80
+
 # Werte, die „nicht verdrahtet" heißen, nicht „gemessen". Sie stehen so in der
 # LON-Norm: Jeder SNVT hat eine Marke am Rand seines Wertebereichs.
 NV_UNGUELTIG = {
@@ -591,6 +596,19 @@ def suche_nv_werte(probe: Probe, menus: dict) -> dict:
         for eintrag in fct["datapoints"].values()
     ]
 
+    # Blindlauf für Funktionen ohne Katalog.
+    #
+    # Knoten 90 (MB6611 LOP, die Bedieneinheit) meldet in `structure` sehr wohl
+    # eine Funktion `NV's`, aber ihre Menüwurzel antwortet mit HTTP 500. Ohne
+    # Katalog fällt sie aus der Liste oben heraus, und im Ergebnis sieht es aus,
+    # als hätte der Knoten keine Netzwerkvariablen – dabei wurde er nie
+    # gefragt. Ein fehlgeschlagener Lesevorgang ist kein Befund.
+    for fct in menus["functions"]:
+        if fct.get("fct_type", 0) != -1 or fct.get("datapoints"):
+            continue
+        print(f"    {fct['prefix']} ohne Katalog – Blindlauf über {NV_BLIND_MAX} Indizes")
+        ziele.extend((fct, {"nvIndex": i}) for i in range(NV_BLIND_MAX))
+
     print(f"    {len(ziele)} Einträge werden gelesen")
     versuche = []
     for nummer, (fct, eintrag) in enumerate(ziele, start=1):
@@ -630,6 +648,68 @@ def suche_nv_werte(probe: Probe, menus: dict) -> dict:
         for v in brauchbar[:12]:
             print(f"      {str(v['nvName'])[:26]:28} {v['unit'] or ''!s:8} {v['value']}")
     return {"brauchbar": brauchbar, "zaehler": zaehler, "alle": versuche}
+
+
+# Wieviel vom Antwortkörper eines gefundenen Endpunkts abgelegt wird.
+ENDPUNKT_INHALT_MAX = 4000
+
+
+def _gekuerzt(data, grenze: int = ENDPUNKT_INHALT_MAX):
+    """Antwortkörper für die Ablage kürzen.
+
+    Ein `200` ohne seinen Inhalt ist eine halbe Auskunft. Der erste Lauf hielt
+    nur den Status fest, und danach stand in der Datei, dass `config/Alarm`,
+    `datapoints` und `nodes` mit 200 antworten – aber nicht, *womit*. Genau
+    dort hätte die Meldungsliste stehen können.
+    """
+    if data is None:
+        return None
+    text = json.dumps(data, ensure_ascii=False)
+    if len(text) <= grenze:
+        return data
+    return {"gekuerzt": True, "laenge": len(text), "anfang": text[:grenze]}
+
+
+def hole_vollabzug(probe: Probe) -> dict:
+    """`/api/1.0/datapoints` ganz lesen und ausmessen.
+
+    Der Endpunkt stand seit dem ersten Endpunktlauf als „vorhanden, HTTP 200"
+    in der Liste, ohne dass jemand hineingesehen hätte. Er liefert **alle**
+    Datenpunkte samt Wert, Typ, Einheit, Schreibschutz und Zeitstempel in
+    *einer* Antwort – die Integration holt heute jeden einzeln.
+
+    Die Frage, die dieser Lauf beantwortet: Deckt der Abzug alle Knoten ab
+    oder nur einen? Davon hängt ab, ob er den Abfragepfad ersetzen kann.
+    """
+    data, status = probe.get(f"{probe.base}/api/1.0/datapoints")
+    if status != 200 or not isinstance(data, list):
+        print(f"    Vollabzug nicht lesbar: HTTP {status}")
+        return {"status": status, "data": data}
+
+    je_praefix: dict[str, int] = {}
+    ohne_wert = 0
+    zeitstempel: set[str] = set()
+    for eintrag in data:
+        teile = str(eintrag.get("OID", "")).split("/")
+        praefix = "/".join(teile[:4]) if len(teile) >= 4 else "?"
+        je_praefix[praefix] = je_praefix.get(praefix, 0) + 1
+        if eintrag.get("value") in (None, ""):
+            ohne_wert += 1
+        if eintrag.get("timestamp"):
+            zeitstempel.add(str(eintrag["timestamp"]))
+
+    print(f"    {len(data)} Datenpunkte in einer Anfrage")
+    for praefix, anzahl in sorted(je_praefix.items()):
+        print(f"      {praefix:<14} {anzahl:>4}")
+    print(f"    ohne Wert: {ohne_wert}, verschiedene Zeitstempel: {len(zeitstempel)}")
+    return {
+        "status": status,
+        "anzahl": len(data),
+        "je_praefix": je_praefix,
+        "ohne_wert": ohne_wert,
+        "zeitstempel": sorted(zeitstempel)[:20],
+        "data": data,
+    }
 
 
 def suche_endpunkte(probe: Probe) -> dict:
@@ -679,10 +759,17 @@ def suche_endpunkte(probe: Probe) -> dict:
                     "reason": grund[:200],
                     "vorhanden": not fehlt and not unklar,
                     "unklar": unklar,
+                    "inhalt": _gekuerzt(data) if status == 200 else None,
                 }
             )
             if ergebnisse[-1]["vorhanden"]:
-                print(f"    GIBT ES  {basis}{name:30} HTTP {status:>3}  {grund[:80]}", flush=True)
+                vorschau = ""
+                if status == 200:
+                    vorschau = json.dumps(data, ensure_ascii=False)[:80]
+                print(
+                    f"    GIBT ES  {basis}{name:30} HTTP {status:>3}  {grund[:80]}{vorschau}",
+                    flush=True,
+                )
             elif unklar:
                 print(f"    unklar   {basis}{name:30} HTTP 401 (Anmeldung)", flush=True)
     gefunden = [e for e in ergebnisse if e["vorhanden"]]
@@ -1210,6 +1297,13 @@ def run_host(
         path.write_text(json.dumps(punkte, indent=2, ensure_ascii=False), encoding="utf-8")
         written.append(path)
 
+    if "vollabzug" in actions:
+        print("    Vollabzug /api/1.0/datapoints wird gelesen …")
+        abzug = hole_vollabzug(probe)
+        path = out_dir / f"{stem}_vollabzug.json"
+        path.write_text(json.dumps(abzug, indent=2, ensure_ascii=False), encoding="utf-8")
+        written.append(path)
+
     if "stoerspeicher" in actions:
         print("    Störspeicher wird über den SOAP-Dienst gesucht …")
         speicher = suche_stoerspeicher(probe, structure)
@@ -1318,6 +1412,7 @@ ACTIONS = {
     "9": ("stoerspeicher", "Suche: Störspeicher über den SOAP-Dienst der Steuerung"),
     "10": ("endpunkte", "Aufzählen: welche Endpunkte die Steuerung überhaupt kennt"),
     "11": ("nv", "Test: wie sich der Wert einer LON-Netzwerkvariablen lesen lässt"),
+    "12": ("vollabzug", "Vollabzug: alle Datenpunkte über /api/1.0/datapoints"),
 }
 
 
@@ -1454,6 +1549,7 @@ def main() -> int:
             "stoerspeicher",
             "endpunkte",
             "nv",
+            "vollabzug",
         ],
         help="Aktion (Standard: geführter Modus)",
     )

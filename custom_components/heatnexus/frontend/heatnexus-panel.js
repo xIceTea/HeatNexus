@@ -1250,26 +1250,54 @@ class HeatNexusPanel extends HTMLElement {
       koerper.style.width = eintrag.breite;
       koerper.style.height = eintrag.hoehe;
       koerper.style.borderRadius = eintrag.ecke;
-      huelle.appendChild(koerper);
+      // Ohne Messwerte derselbe Verlauf, den die Zeichnung sonst selbst
+      // gemalt hätte – er kommt vom Server, damit die Farben nicht an zwei
+      // Stellen gepflegt werden müssen.
+      koerper.style.background = eintrag.grund;
+      // **Vor** das Bild, nicht dahinter. Die Zeichnung lässt den
+      // Speicherkörper frei, wenn ein Fühlerwert da ist; die Farbe scheint
+      // durch das Loch, und Kontur, Dämmnähte, Stutzen und Register bleiben
+      // darüber sichtbar. Lag die Farbe oben, deckte sie all das zu und der
+      // Speicher sah aus wie ein Klotz.
+      huelle.insertBefore(koerper, huelle.firstChild);
 
       this._bindungen.push(() => {
         const oben = this._zahl(eintrag.oben);
-        const unten = this._zahl(eintrag.unten);
-        const da = oben !== null && unten !== null;
+        // Der Boiler meldet nur einen Istwert – dann bleibt `unten` leer und
+        // der Inhalt wird gleichmäßig eingefärbt.
+        const unten = eintrag.unten ? this._zahl(eintrag.unten) : null;
+        const geschichtet = eintrag.unten !== null && eintrag.unten !== undefined;
+        const da = oben !== null && (!geschichtet || unten !== null);
         koerper.classList.toggle("da", da);
-        if (!da) return;
+        if (!da) {
+          // Zurück auf den neutralen Verlauf. Ohne das bliebe die letzte
+          // Färbung stehen und behauptete Messwerte, die es nicht gibt.
+          koerper.style.background = eintrag.grund;
+          koerper.title = `${eintrag.titel} – kein Fühlerwert`;
+          return;
+        }
         const spanne = Number(eintrag.heiss) - Number(eintrag.kalt);
         const farbe = (grad) => {
           const anteil =
             spanne > 0 ? Math.max(0, Math.min(1, (grad - Number(eintrag.kalt)) / spanne)) : 0;
           return `color-mix(in oklab, #b3341f ${Math.round(anteil * 100)}%, #25508f)`;
         };
-        // Dieselben Haltepunkte wie in der Zeichnung: das obere Drittel
-        // gehört dem oberen Fühler, das untere Viertel dem unteren,
-        // dazwischen liegt die Sprungschicht.
+        if (!geschichtet) {
+          koerper.style.background = farbe(oben);
+          koerper.title = `${eintrag.titel} – ${this._text(eintrag.oben)}`;
+          return;
+        }
+        // Die Haltepunkte liegen auf den gezeichneten Dämmnähten: Der
+        // Speicherkörper reicht von y=116 bis y=296, die drei Nähte sitzen
+        // bei 168, 206 und 244 – also bei 29 %, 50 % und 71 %. Der obere
+        // Fühler beherrscht alles bis zur ersten Naht, der untere alles ab
+        // der dritten, dazwischen liegt die Sprungschicht mittig auf der
+        // mittleren. Vorher endete der obere Bereich bei 30 % und die
+        // Mischfarbe saß bei 62 % – beides zwischen den Nähten, und genau
+        // das ließ die Färbung gegenüber der Zeichnung verrutscht aussehen.
         koerper.style.background =
-          `linear-gradient(to bottom, ${farbe(oben)} 0%, ${farbe(oben)} 30%, ` +
-          `${farbe((oben + unten) / 2)} 62%, ${farbe(unten)} 100%)`;
+          `linear-gradient(to bottom, ${farbe(oben)} 0%, ${farbe(oben)} 29%, ` +
+          `${farbe((oben + unten) / 2)} 50%, ${farbe(unten)} 71%, ${farbe(unten)} 100%)`;
         koerper.title =
           `${eintrag.titel} – oben ${this._text(eintrag.oben)}, ` +
           `unten ${this._text(eintrag.unten)}`;

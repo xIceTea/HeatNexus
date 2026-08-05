@@ -205,7 +205,10 @@ def test_bauteildateien_sind_bruchstuecke_ohne_platzhalterreste(schema):
         feste = set(re.findall(r"#[0-9a-fA-F]{3,8}\b", inhalt)) - {"#ffffff", "#000000"}
         assert not feste, f"{pfad.name} enthält feste Farben statt Platzhaltern: {feste}"
         offen = re.findall(r"\{\{(\w+)\}\}", inhalt)
-        unbekannt = set(offen) - set(schema.FARBEN)
+        # Neben den Farben gibt es Platzhalter, die vom Zustand der Anlage
+        # abhängen und deshalb je Bauteil eingesetzt werden. Sie sind in
+        # `ZUSATZ_PLATZHALTER` benannt – alles andere ist ein Tippfehler.
+        unbekannt = set(offen) - set(schema.FARBEN) - schema.ZUSATZ_PLATZHALTER
         assert not unbekannt, f"{pfad.name} nutzt unbekannte Platzhalter: {unbekannt}"
 
 
@@ -221,13 +224,31 @@ def test_kennungen_bleiben_eindeutig(schema):
         _teil("Puffer A", 16, [("sensor.a1", "Puffer oben"), ("sensor.a2", "Puffer unten")]),
         _teil("Puffer B", 16, [("sensor.b1", "Puffer oben"), ("sensor.b2", "Puffer unten")]),
     ]
-    svg = _svg_von(schema, zwei)
-    kennungen = re.findall(r'id="([^"]+)"', svg)
-    assert kennungen, "keine Kennungen im Bild – Bauteildateien nicht geladen?"
-    assert len(kennungen) == len(set(kennungen))
-    # Und jeder Verweis zeigt auf eine Kennung, die es auch gibt.
-    for verweis in re.findall(r"url\(#([^)]+)\)", svg):
-        assert verweis in kennungen
+    # Und verschiedene Bauteile, die dieselben Namen mitbringen: `puffer.svg`
+    # und `wasser.svg` führen beide `glanz` und `innen`. Ohne Präfix griffe
+    # der Boiler auf den Beschnitt des Puffers zu – und stünde als Rechteck
+    # im Bild statt als Oval.
+    gemischt = [
+        _teil("Puffer", 16, [("sensor.o", "Puffer oben"), ("sensor.u", "Puffer unten")]),
+        _teil(
+            "Heizkreis",
+            14,
+            [
+                ("sensor.vl", "Vorlauftemperatur Ist"),
+                ("sensor.raum", "Raumtemperatur Ist"),
+                ("sensor.ww", "Warmwasser Ist-Temperatur"),
+            ],
+        ),
+    ]
+    for teile in (zwei, gemischt):
+        svg = _svg_von(schema, teile)
+        kennungen = re.findall(r'id="([^"]+)"', svg)
+        assert kennungen, "keine Kennungen im Bild – Bauteildateien nicht geladen?"
+        assert len(kennungen) == len(set(kennungen)), "doppelte Kennung im Bild"
+        # Und jeder Verweis zeigt auf eine Kennung, die es auch gibt. Das
+        # schließt `clip-path="url(#…)"` ein.
+        for verweis in re.findall(r"url\(#([^)]+)\)", svg):
+            assert verweis in kennungen
 
 
 def test_fehlende_bauteildatei_zerreisst_das_bild_nicht(schema, anlage, monkeypatch):
@@ -718,3 +739,129 @@ def test_puffer_kennt_kessel_und_obere_temperatur(schema):
     assert speicher[0]["kessel"] == "sensor.kessel"
     assert speicher[0]["oben"] == "sensor.tpe"
     assert speicher[0]["hysterese"] > 0
+
+
+# ------------------------------------------------- Schichtung und Zeichnung
+def _puffer_teile(mit_beiden_fuehlern: bool) -> list:
+    """Anlage mit einem Puffer – wahlweise mit beiden oder nur einem Fühler."""
+    werte = [("sensor.tpe", "Puffer oben Temperatur (TPE)")]
+    if mit_beiden_fuehlern:
+        werte.append(("sensor.tpa", "Puffer unten Temperatur (TPA)"))
+    return [
+        _teil("PuroWIN", 25, [("sensor.kessel", "Kesseltemperatur Ist")]),
+        _teil("B-PLMi PUFFER", 16, werte),
+    ]
+
+
+def test_mit_beiden_fuehlern_bleibt_der_speicherkoerper_ungefuellt(schema):
+    """Die Farbe liegt unter der Zeichnung – dort darf keine Füllung stehen.
+
+    Füllte die Zeichnung den Körper, verdeckte sie die Schichtung; läge die
+    Schichtung stattdessen darüber, verdeckte sie Glanz, Schichtlinien,
+    Isolierbänder und Fühlerpunkte. Genau das sah unfertig aus.
+    """
+    teile = _puffer_teile(True)
+    bild = schema.anlagenschema(teile)
+
+    assert len(bild["schichtung"]) == 1
+    # Der Speicherkörper ist das einzige Rechteck mit rx=30.
+    svg = _svg_von(schema, teile)
+    assert 'height="180" rx="30" fill="none"' in svg
+    assert 'height="180" rx="30" fill="url(#t1-schichtung)"' not in svg
+
+
+def test_ohne_zweiten_fuehler_bleibt_die_zeichnung_wie_sie_war(schema):
+    """Ein Fühler reicht für keine Schichtung – dann füllt die Zeichnung selbst."""
+    teile = _puffer_teile(False)
+    bild = schema.anlagenschema(teile)
+
+    assert bild["schichtung"] == []
+    assert 'height="180" rx="30" fill="url(#t1-schichtung)"' in _svg_von(schema, teile)
+
+
+def test_zeichnung_und_farbflaeche_entscheiden_gemeinsam(schema):
+    """Beide Seiten hängen an derselben Prüfung, sonst klafft ein Loch."""
+
+    def wert(beschriftung):
+        return {"beschriftung": beschriftung, "entity_id": f"sensor.{beschriftung.lower()}"}
+
+    puffer_beide = {"art": "puffer", "werte": [wert("oben"), wert("unten")]}
+    puffer_einer = {"art": "puffer", "werte": [wert("oben")]}
+    boiler = {"art": "wasser", "werte": [wert("Warmwasser")]}
+    fremd = {"art": "kessel", "werte": [wert("oben"), wert("unten")]}
+
+    assert schema.hat_speicherfarbe(puffer_beide) is True
+    # Ein einzelner Pufferfühler ergibt keine Schichtung.
+    assert schema.hat_speicherfarbe(puffer_einer) is False
+    # Der Boiler hat von Haus aus nur einen – er wird gleichmäßig gefärbt.
+    assert schema.hat_speicherfarbe(boiler) is True
+    assert schema.hat_speicherfarbe(fremd) is False
+
+
+def test_boiler_wird_gleichmaessig_gefaerbt(schema):
+    """Ein Istwert, kein zweiter – `unten` bleibt leer statt erfunden."""
+    heizkreis = _teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            ("sensor.vorlauf", "Vorlauftemperatur Ist"),
+            ("sensor.raum", "Raumtemperatur Ist"),
+            ("sensor.ww", "Warmwasser Ist-Temperatur"),
+        ],
+    )
+    bild = schema.anlagenschema([heizkreis])
+    boiler = [e for e in bild["schichtung"] if e["oben"] == "sensor.ww"]
+
+    assert len(boiler) == 1
+    assert boiler[0]["unten"] is None
+    assert boiler[0]["grund"], "ohne Messwert braucht die Fläche einen Grundverlauf"
+
+
+def test_die_struktur_der_zeichnung_bleibt_erhalten(schema):
+    """Was den Speicher als Speicher lesbar macht, muss im Bild stehen.
+
+    Die Farbfläche liegt darunter; wäre eines dieser Merkmale in die Fläche
+    gewandert, hätte es der Farbklotz wieder verdeckt.
+    """
+    svg = _svg_von(schema, _puffer_teile(True))
+
+    assert "t1-glanz" in svg, "der Glanzverlauf fehlt"
+    # Der Dämmmantel als Ring um den Körper.
+    assert 'x="37" y="111" width="126" height="190"' in svg, "der Dämmmantel fehlt"
+    # Die drei Dämmnähte bei y=168, 206, 244 – dort schlägt auch die Farbe um.
+    for y in (168, 206, 244):
+        assert f'y1="{y}"' in svg, f"Dämmnaht bei y={y} fehlt"
+    # Deckel und Sockel, an der Körperform beschnitten.
+    assert "clipPath" in svg and "t1-innen" in svg, "der Beschnitt am Körper fehlt"
+    # Die Anbauteile: vier Anschlussstutzen rechts, zwei Fühlertauchhülsen
+    # links. Gezählt wird ihre gemeinsame Form, nicht ihre Maße – die sind
+    # Gestaltung und dürfen sich ändern, ohne dass ein Test bricht.
+    assert svg.count('rx="2.5"') == 6, "Stutzen oder Tauchhülsen fehlen"
+    # Die Fühlerpunkte in den Hülsen.
+    assert svg.count('r="2.2"') == 2, "die Fühlerpunkte fehlen"
+
+
+def test_der_boiler_traegt_dieselbe_bildsprache(schema):
+    """Sonst steht ein aufwendiger Puffer neben einem flachen Boiler."""
+    heizkreis = _teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            ("sensor.vorlauf", "Vorlauftemperatur Ist"),
+            ("sensor.raum", "Raumtemperatur Ist"),
+            ("sensor.ww", "Warmwasser Ist-Temperatur"),
+        ],
+    )
+    svg = _svg_von(schema, [heizkreis])
+
+    # Körper ungefüllt, Farbe liegt darunter.
+    assert 'height="168" rx="48" fill="none"' in svg
+    # Dämmmantel, Beschnitt, Stutzen, Register.
+    assert 'width="114" height="178"' in svg, "der Dämmmantel fehlt"
+    assert "clipPath" in svg, "der Beschnitt am Körper fehlt"
+    # Zwei Anschlussstutzen rechts plus eine Fühlertauchhülse links.
+    assert svg.count('rx="2.5"') == 3, "Stutzen oder Tauchhülse fehlen"
+    assert "M 70 176" in svg, "die Registerheizschlange fehlt"
+    # Die Kalottennähte, wo die Wölbung auf den Zylinder trifft.
+    for y in (172, 244):
+        assert f'y1="{y}"' in svg, f"Kalottennaht bei y={y} fehlt"

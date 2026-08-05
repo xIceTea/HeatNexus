@@ -4,41 +4,116 @@
        Bis 1.4.2 stand hier ein fester Verlauf von warm nach kalt - ein
        Speicher, der immer halb geladen aussieht, auch wenn oben und unten
        dieselbe Temperatur steht. Die wirkliche Schichtung legt die Oberflaeche
-       als eigene Ebene darueber; sie kennt beide Fuehler (21/65 oben,
-       21/66 unten). Ohne diese Messwerte bleibt es bei diesem Grau. -->
+       als eigene Ebene *unter* diese Zeichnung; sie kennt beide Fuehler
+       (21/65 oben, 21/66 unten). Ohne diese Messwerte bleibt es bei diesem
+       Grau. -->
   <linearGradient id="schichtung" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0%" stop-color="{{korpus_hell}}"/>
     <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
   </linearGradient>
+  <!-- Zylinderrundung. Die Lichtkante liegt bei 30 Prozent, nicht am Rand:
+       Ein stehender Zylinder ist dort am hellsten, wo das Licht streift, und
+       an *beiden* Kanten dunkel. Vorher sass die Kante bei 0 Prozent, also
+       genau unter der Kontur - sichtbar war davon nichts, und der Koerper
+       las sich als flache Platte. -->
   <linearGradient id="glanz" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16"/>
-    <stop offset="26%" stop-color="#ffffff" stop-opacity="0.03"/>
-    <stop offset="78%" stop-color="#000000" stop-opacity="0.06"/>
-    <stop offset="100%" stop-color="#000000" stop-opacity="0.22"/>
+    <stop offset="0%" stop-color="#000000" stop-opacity="0.20"/>
+    <stop offset="10%" stop-color="#ffffff" stop-opacity="0.06"/>
+    <stop offset="30%" stop-color="#ffffff" stop-opacity="0.22"/>
+    <stop offset="52%" stop-color="#ffffff" stop-opacity="0.02"/>
+    <stop offset="78%" stop-color="#000000" stop-opacity="0.16"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.36"/>
   </linearGradient>
+  <!-- Alles Innenleben wird an dieser Form beschnitten. So bleiben Deckel,
+       Sockel und Naehte einfache Rechtecke und folgen trotzdem exakt den
+       gerundeten Ecken des Koerpers - von Hand nachgezogene Boegen trafen
+       sie nie genau und standen an den Ecken ueber. -->
+  <clipPath id="innen">
+    <rect x="42" y="116" width="116" height="180" rx="30"/>
+  </clipPath>
 </defs>
 
-<!-- Speicherkörper mit Schichtung von oben warm nach unten kalt -->
-<rect x="42" y="116" width="116" height="180" rx="30" fill="url(#schichtung)"/>
-<rect x="42" y="116" width="116" height="180" rx="30" fill="url(#glanz)"/>
+<!-- Daemmmantel als Ring, nicht als Flaeche: Eine gefuellte Form wuerde die
+     Temperaturfarbe verdecken, die unter dieser Zeichnung liegt. Der Ring
+     gibt dem Speicher Wandstaerke und hebt ihn vom Hintergrund ab. -->
+<rect x="37" y="111" width="126" height="190" rx="35" fill="none"
+      stroke="{{korpus_dunkel}}" stroke-width="8"/>
+<rect x="37" y="111" width="126" height="190" rx="35" fill="none"
+      stroke="{{rahmen}}" stroke-width="1" opacity="0.7"/>
+
+<!-- Anschlussstutzen rechts: Vorlauf oben, Ruecklauf unten, dazwischen die
+     beiden Speicheranschluesse. Sie beginnen *innerhalb* des Koerpers und
+     enden buendig mit dem Daemmmantel - so sitzen sie am Speicher, statt als
+     freie Plaettchen daneben zu schweben. Die Kontur des Koerpers laeuft
+     spaeter darueber und schliesst sie an. -->
+<g fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.5">
+  <rect x="148" y="141" width="18" height="9" rx="2.5"/>
+  <rect x="148" y="185" width="18" height="9" rx="2.5"/>
+  <rect x="148" y="229" width="18" height="9" rx="2.5"/>
+  <rect x="148" y="267" width="18" height="9" rx="2.5"/>
+</g>
+
+<!-- Speicherkoerper. Die Fuellung ist ein Platzhalter: Liegen die Fuehlerwerte
+     vor, setzt `schema.py` sie auf `none` und die Oberflaeche legt die
+     gemessene Temperatur darunter. Alles Weitere bleibt darueber stehen und
+     geht nicht mehr unter einem Farbklotz verloren. -->
+<rect x="42" y="116" width="116" height="180" rx="30" fill="{{koerper}}"/>
+
+<g clip-path="url(#innen)">
+  <!-- Deckel und Sockel. Durchscheinend, damit die Temperatur darunter
+       sichtbar bleibt, und bewusst schmal: Oben steht das heisseste Wasser,
+       ein breiter dunkler Deckel verdeckt genau den Messwert, um den es
+       geht.
+
+       Die Kante darunter macht sie erst sichtbar. Ohne sie verlief die
+       Flaeche ins Nichts und war bei halber Deckkraft ueber Farbe schlicht
+       nicht zu erkennen. -->
+  <g fill="{{korpus_dunkel}}" opacity="0.3">
+    <rect x="42" y="116" width="116" height="20"/>
+    <rect x="42" y="276" width="116" height="20"/>
+  </g>
+  <g stroke-width="1.5" stroke="#000000" opacity="0.3">
+    <line x1="42" y1="136" x2="158" y2="136"/>
+    <line x1="42" y1="276" x2="158" y2="276"/>
+  </g>
+  <g stroke-width="1" stroke="#ffffff" opacity="0.14">
+    <line x1="42" y1="137.5" x2="158" y2="137.5"/>
+    <line x1="42" y1="274.5" x2="158" y2="274.5"/>
+  </g>
+
+  <!-- Naehte des Daemmmantels. Jede Naht ist eine dunkle Fuge mit einer
+       Lichtkante darunter - so liest sie sich als Falz und nicht als Kratzer.
+       Die Hoehen 168, 206 und 244 sind dieselben, an denen die Oberflaeche
+       ihren Farbverlauf umschlagen laesst. -->
+  <g stroke-width="2" stroke="#000000" opacity="0.22">
+    <line x1="42" y1="168" x2="158" y2="168"/>
+    <line x1="42" y1="206" x2="158" y2="206"/>
+    <line x1="42" y1="244" x2="158" y2="244"/>
+  </g>
+  <g stroke-width="1" stroke="#ffffff" opacity="0.16">
+    <line x1="42" y1="170" x2="158" y2="170"/>
+    <line x1="42" y1="208" x2="158" y2="208"/>
+    <line x1="42" y1="246" x2="158" y2="246"/>
+  </g>
+
+  <!-- Licht von links, Schatten nach rechts: gibt dem Zylinder Rundung. -->
+  <rect x="42" y="116" width="116" height="180" fill="url(#glanz)"/>
+</g>
+
+<!-- Kontur zuletzt, damit keine Naht und kein Band darueber laeuft. Innen
+     eine dunkle Haarlinie: Sie gibt der Kante Tiefe, wie beim Kesselkoerper. -->
 <rect x="42" y="116" width="116" height="180" rx="30" fill="none"
       stroke="{{rahmen}}" stroke-width="2"/>
+<rect x="44" y="118" width="112" height="176" rx="28" fill="none"
+      stroke="#000000" stroke-width="1" opacity="0.28"/>
 
-<!-- Schichtgrenzen: der Speicher ist keine gleichmäßige Masse -->
-<g stroke="#ffffff" stroke-width="1" opacity="0.13">
-  <line x1="50" y1="168" x2="150" y2="168"/>
-  <line x1="50" y1="206" x2="150" y2="206"/>
-  <line x1="50" y1="244" x2="150" y2="244"/>
+<!-- Fuehlertauchhuelsen TPE (oben) und TPA (unten), links. Sie sitzen dort,
+     wo die Oberflaeche die beiden Messwerte beschriftet. -->
+<g fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.5">
+  <rect x="34" y="163" width="16" height="9" rx="2.5"/>
+  <rect x="34" y="253" width="16" height="9" rx="2.5"/>
 </g>
-
-<!-- Isolierungsband oben und unten -->
-<g fill="{{korpus_dunkel}}" opacity="0.5">
-  <rect x="44" y="132" width="112" height="7" rx="3"/>
-  <rect x="44" y="274" width="112" height="7" rx="3"/>
-</g>
-
-<!-- Fühlerpunkte TPE (oben) und TPA (unten) -->
-<g fill="{{titel}}" opacity="0.45">
-  <circle cx="152" cy="150" r="3"/>
-  <circle cx="152" cy="264" r="3"/>
+<g fill="{{titel}}" opacity="0.55">
+  <circle cx="40" cy="167.5" r="2.2"/>
+  <circle cx="40" cy="257.5" r="2.2"/>
 </g>

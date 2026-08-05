@@ -576,6 +576,16 @@ def _ids_eindeutig(fragment: str, praefix: str) -> str:
     return fragment
 
 
+# Platzhalter in den Bauteildateien, die **keine** Farbe sind, sondern vom
+# Zustand der Anlage abhängen. Sie werden je Bauteil eingesetzt, nicht aus der
+# festen Tafel – stehen aber hier, damit der Test sie von einem Tippfehler
+# unterscheiden kann.
+#
+# `koerper`  Füllung des Speicherkörpers: der neutrale Verlauf, oder `none`,
+#            wenn die Oberfläche die gemessene Schichtung darunterlegt.
+ZUSATZ_PLATZHALTER = frozenset({"koerper"})
+
+
 def _bauteil_dateien(art: str, kesselart: str | None) -> tuple[str, ...]:
     """Dateinamen für ein Anlagenteil, in der Reihenfolge der Bevorzugung."""
     if art == "kessel" and kesselart:
@@ -583,12 +593,62 @@ def _bauteil_dateien(art: str, kesselart: str | None) -> tuple[str, ...]:
     return (f"{art}.svg",)
 
 
-def _aus_datei(art: str, kesselart: str | None, praefix: str) -> str | None:
-    """Bauteilzeichnung, fertig eingefärbt und mit eindeutigen Kennungen."""
+def _aus_datei(
+    art: str, kesselart: str | None, praefix: str, zusatz: dict[str, str] | None = None
+) -> str | None:
+    """Bauteilzeichnung, fertig eingefärbt und mit eindeutigen Kennungen.
+
+    ``zusatz`` füllt Platzhalter, die nicht aus der festen Farbtafel kommen –
+    beim Puffer die Füllung des Speicherkörpers, die von den vorhandenen
+    Fühlern abhängt. Sie wird vor ``_ids_eindeutig`` eingesetzt, damit ein
+    darin genannter Verlauf mit umbenannt wird.
+    """
     for dateiname in _bauteil_dateien(art, kesselart):
         if (fragment := _bauteil(dateiname)) is not None:
+            for name, wert in (zusatz or {}).items():
+                fragment = fragment.replace("{{" + name + "}}", wert)
             return _ids_eindeutig(_farben(fragment), praefix)
     return None
+
+
+def speicherfuehler(modul: dict[str, Any]) -> tuple[str | None, str | None]:
+    """Die Fühler, aus denen sich die Farbe des Speicherinhalts ergibt.
+
+    Rückgabe ist ``(oben, unten)``. Der Puffer hat zwei echte Fühler
+    (`21/65` TPE, `21/66` TPA) und zeigt damit eine Schichtung: Ist er
+    durchgeladen, steht er durchgehend in einer Farbe; steht unten kaltes
+    Wasser, sieht man die Grenze. Der Boiler meldet nur einen Istwert und wird
+    deshalb gleichmäßig eingefärbt – eine zweite Temperatur zu erfinden wäre
+    schlimmer als keine: Er sähe halb geladen aus, ohne dass es jemand
+    gemessen hätte.
+    """
+    art = modul.get("art")
+    if art not in SPEICHER_ARTEN:
+        return None, None
+
+    def suche(*beschriftungen: str) -> str | None:
+        for wert in modul.get("werte", []):
+            if wert.get("beschriftung") in beschriftungen:
+                return wert.get("entity_id")
+        return None
+
+    if art == "puffer":
+        oben, unten = suche("oben"), suche("unten")
+        # Ein einzelner Pufferfühler ergibt keine Schichtung. Dann bleibt es
+        # bei der gezeichneten Füllung.
+        return (oben, unten) if oben and unten else (None, None)
+    return suche("Warmwasser"), None
+
+
+def hat_speicherfarbe(modul: dict[str, Any]) -> bool:
+    """Ob die Oberfläche den Inhalt dieses Speichers einfärbt.
+
+    Eine Stelle für zwei Entscheidungen: ob der Körper in der Zeichnung
+    ungefüllt bleibt und ob eine Farbfläche darunter kommt. Liefen die
+    auseinander, stünde entweder ein farbloses Loch im Bild oder wieder ein
+    Farbklotz über der Zeichnung.
+    """
+    return speicherfuehler(modul)[0] is not None
 
 
 # ---------------------------------------------------------------------------
@@ -680,22 +740,52 @@ HEIZKOERPER_GLANZ_BIS = 7
 HEIZKOERPER_KALT = 25.0
 HEIZKOERPER_HEISS = 65.0
 
-# Der Speicherkörper aus `puffer.svg`: x = 42…158, y = 116…296, Eckradius 30.
-# Darüber liegt die Schichtung – oben die Farbe der oberen Temperatur, unten
-# die der unteren. Beide sind echte Fühler (`21/65` TPE, `21/66` TPA), also
-# wird hier nichts angedeutet: Ist der Speicher durchgeladen, steht er
-# durchgehend in einer Farbe; steht unten kaltes Wasser, sieht man die Grenze.
-PUFFER_X = 42
-PUFFER_BREITE = 116
-PUFFER_Y = 116
-PUFFER_HOEHE = 180
-PUFFER_ECKE = 30
-
-# Die Skala des Speichers. Weiter gefasst als beim Heizkörper: Ein Puffer wird
-# bis 75…85 °C geladen (so melden es die beiden geprüften Anlagen als
-# „Puffer Maximaltemperatur") und kann unten auf Rücklaufniveau abkühlen.
-PUFFER_KALT = 25.0
-PUFFER_HEISS = 80.0
+# Speicher, deren Inhalt eingefärbt wird: Puffer und Warmwasserboiler.
+#
+# Die Farbe liegt **unter** der Zeichnung. Das Bauteil lässt seinen Körper
+# ungefüllt (`{{koerper}}` wird zu `none`), die Oberfläche legt die gemessene
+# Temperatur darunter, und alles Gezeichnete – Kontur, Dämmnähte, Stutzen,
+# Register – bleibt darüber sichtbar. Läge die Farbe oben, deckte sie das zu.
+#
+# Je Art die Geometrie ihres Körpers, wörtlich aus der Bauteildatei:
+#   Puffer  `puffer.svg`  x = 42…158, y = 116…296, Eckradius 30
+#   Boiler  `wasser.svg`  x = 48…152, y = 124…292, Eckradius 48
+#
+# `kalt`/`heiss` spannen die Skala. Weiter gefasst als beim Heizkörper: Ein
+# Puffer wird bis 75…85 °C geladen (so melden es die beiden geprüften Anlagen
+# als „Puffer Maximaltemperatur") und kann unten auf Rücklaufniveau abkühlen.
+# Der Boiler bleibt darunter – 60 °C ist die übliche Solltemperatur, darüber
+# liegt nur noch die Legionellenschaltung.
+#
+# `grund` ist der Verlauf, den die Fläche ohne Messwerte trägt: derselbe, den
+# die Zeichnung sonst selbst gemalt hätte. Ohne ihn klaffte beim Laden ein
+# Loch im Bauteil.
+SPEICHER_ARTEN: dict[str, dict[str, Any]] = {
+    "puffer": {
+        "x": 42,
+        "y": 116,
+        "breite": 116,
+        "hoehe": 180,
+        "ecke": 30,
+        "kalt": 25.0,
+        "heiss": 80.0,
+        "fuellung": "url(#schichtung)",
+        "grund": f"linear-gradient(to bottom, {FARBEN['korpus_hell']} 0%, "
+        f"{FARBEN['korpus_dunkel']} 100%)",
+    },
+    "wasser": {
+        "x": 48,
+        "y": 124,
+        "breite": 104,
+        "hoehe": 168,
+        "ecke": 48,
+        "kalt": 20.0,
+        "heiss": 65.0,
+        "fuellung": "url(#boiler)",
+        "grund": f"linear-gradient(to bottom, {FARBEN['warm']} 0%, "
+        f"{FARBEN['warm']} 70%, {FARBEN['kalt']} 100%)",
+    },
+}
 
 # Zwischen den beiden Temperaturen des Puffers ist Platz für ein Wort.
 # `WERT_HOEHEN["puffer"]` setzt sie auf 168 und 258.
@@ -746,7 +836,12 @@ def _ersatzform(art: str) -> str:
 def _kasten(x: int, platz: int, modul: dict[str, Any], kesselart: str | None) -> str:
     """Ein Anlagenteil an seinem Platz im Gesamtbild."""
     art = modul["art"]
-    inhalt = _aus_datei(art, kesselart if art == "kessel" else None, f"t{platz}-")
+    # Der Speicherkörper bleibt leer, wenn die Oberfläche die gemessene
+    # Temperatur darunterlegt – sonst deckt sie die Zeichnung zu.
+    zusatz = {}
+    if (masse := SPEICHER_ARTEN.get(art)) is not None:
+        zusatz["koerper"] = "none" if hat_speicherfarbe(modul) else masse["fuellung"]
+    inhalt = _aus_datei(art, kesselart if art == "kessel" else None, f"t{platz}-", zusatz)
     if inhalt is None:
         inhalt = _ersatzform(art)
 
@@ -973,43 +1068,48 @@ def anlagenschema(
         ),
         None,
     )
+    # Der eingefärbte Inhalt von Puffer und Boiler. Beide laufen über dieselbe
+    # Ebene: Der Puffer hat zwei Fühler und zeigt damit eine Schichtung, der
+    # Boiler einen und wird gleichmäßig eingefärbt.
+    for platz, modul in enumerate(module):
+        masse = SPEICHER_ARTEN.get(modul["art"])
+        if masse is None:
+            continue
+        oben, unten = speicherfuehler(modul)
+        if oben is None:
+            continue
+        x = RAND + platz * MODUL_BREITE
+        schichtung.append(
+            {
+                "oben": oben,
+                "unten": unten,
+                "left": f"{(x + masse['x']) / breite * 100:.2f}%",
+                "top": f"{masse['y'] / HOEHE * 100:.2f}%",
+                "breite": f"{masse['breite'] / breite * 100:.2f}%",
+                "hoehe": f"{masse['hoehe'] / HOEHE * 100:.2f}%",
+                # Der Eckradius als Anteil je Achse – sonst verzieht er sich,
+                # sobald die Karte das Bild skaliert.
+                "ecke": (
+                    f"{masse['ecke'] / masse['breite'] * 100:.2f}%"
+                    f" / {masse['ecke'] / masse['hoehe'] * 100:.2f}%"
+                ),
+                "kalt": masse["kalt"],
+                "heiss": masse["heiss"],
+                # Ohne Messwerte trägt die Fläche denselben Verlauf, den die
+                # Zeichnung sonst selbst gemalt hätte.
+                "grund": masse["grund"],
+                "titel": modul["titel"],
+            }
+        )
+
     for platz, modul in enumerate(module):
         if modul["art"] != "puffer":
             continue
         mitte = RAND + platz * MODUL_BREITE + MODUL_BREITE // 2
-        x = RAND + platz * MODUL_BREITE
         oben = next(
             (w["entity_id"] for w in modul["werte"] if w.get("beschriftung") == "oben"),
             None,
         )
-        unten = next(
-            (w["entity_id"] for w in modul["werte"] if w.get("beschriftung") == "unten"),
-            None,
-        )
-        # Die Schichtung braucht **beide** Fühler. Mit nur einem ließe sich
-        # kein Übergang zeichnen, und einen zu erfinden wäre schlimmer als
-        # keiner: Der Speicher sähe halb geladen aus, ohne dass es jemand
-        # gemessen hätte.
-        if oben and unten:
-            schichtung.append(
-                {
-                    "oben": oben,
-                    "unten": unten,
-                    "left": f"{(x + PUFFER_X) / breite * 100:.2f}%",
-                    "top": f"{PUFFER_Y / HOEHE * 100:.2f}%",
-                    "breite": f"{PUFFER_BREITE / breite * 100:.2f}%",
-                    "hoehe": f"{PUFFER_HOEHE / HOEHE * 100:.2f}%",
-                    # Der Eckradius als Anteil je Achse – sonst verzieht er
-                    # sich, sobald die Karte das Bild skaliert.
-                    "ecke": (
-                        f"{PUFFER_ECKE / PUFFER_BREITE * 100:.2f}%"
-                        f" / {PUFFER_ECKE / PUFFER_HOEHE * 100:.2f}%"
-                    ),
-                    "kalt": PUFFER_KALT,
-                    "heiss": PUFFER_HEISS,
-                    "titel": modul["titel"],
-                }
-            )
         speicher.append(
             {
                 # „lädt" heißt: Die Ladepumpe fördert **und** der Kessel ist

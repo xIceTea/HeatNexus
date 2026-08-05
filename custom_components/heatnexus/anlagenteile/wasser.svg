@@ -1,28 +1,98 @@
 <defs>
+  <!-- Neutral. Der Boiler meldet nur einen Istwert - liegt der vor, faerbt
+       die Oberflaeche den Inhalt gleichmaessig ein und legt die Farbe *unter*
+       diese Zeichnung. Eine zweite Temperatur zu erfinden waere schlimmer als
+       keine: Der Boiler saehe halb geladen aus, ohne dass es jemand gemessen
+       haette. Ohne Messwert bleibt es bei diesem Verlauf. -->
   <linearGradient id="boiler" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0%" stop-color="{{warm}}"/>
     <stop offset="70%" stop-color="{{warm}}" stop-opacity="0.75"/>
     <stop offset="100%" stop-color="{{kalt}}" stop-opacity="0.55"/>
   </linearGradient>
+  <!-- Zylinderrundung, wie beim Puffer: Die Lichtkante liegt bei 30 Prozent,
+       nicht am Rand. Am Rand sass sie unter der Kontur und war unsichtbar,
+       der Koerper las sich als flache Platte. -->
   <linearGradient id="glanz" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
-    <stop offset="28%" stop-color="#ffffff" stop-opacity="0.03"/>
-    <stop offset="100%" stop-color="#000000" stop-opacity="0.22"/>
+    <stop offset="0%" stop-color="#000000" stop-opacity="0.20"/>
+    <stop offset="10%" stop-color="#ffffff" stop-opacity="0.06"/>
+    <stop offset="30%" stop-color="#ffffff" stop-opacity="0.22"/>
+    <stop offset="52%" stop-color="#ffffff" stop-opacity="0.02"/>
+    <stop offset="78%" stop-color="#000000" stop-opacity="0.16"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.36"/>
   </linearGradient>
+  <!-- Wie beim Puffer: Innenleben wird an der Koerperform beschnitten, statt
+       die stark gerundeten Ecken von Hand nachzuziehen. -->
+  <clipPath id="innen">
+    <rect x="48" y="124" width="104" height="168" rx="48"/>
+  </clipPath>
 </defs>
 
-<!-- Speicherkörper, oben und unten gewölbt -->
-<rect x="48" y="124" width="104" height="168" rx="48" fill="url(#boiler)"/>
-<rect x="48" y="124" width="104" height="168" rx="48" fill="url(#glanz)"/>
+<!-- Daemmmantel als Ring - eine gefuellte Form wuerde die Temperaturfarbe
+     verdecken, die unter dieser Zeichnung liegt. -->
+<rect x="43" y="119" width="114" height="178" rx="53" fill="none"
+      stroke="{{korpus_dunkel}}" stroke-width="8"/>
+<rect x="43" y="119" width="114" height="178" rx="53" fill="none"
+      stroke="{{rahmen}}" stroke-width="1" opacity="0.7"/>
+
+<!-- Anschlussstutzen rechts: Warmwasser oben hinaus, Kaltwasser unten hinein.
+     Sie beginnen innerhalb des Koerpers und enden buendig mit dem Daemmmantel,
+     damit sie am Speicher sitzen und nicht daneben schweben. -->
+<g fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.5">
+  <rect x="142" y="153" width="18" height="9" rx="2.5"/>
+  <rect x="142" y="253" width="18" height="9" rx="2.5"/>
+</g>
+
+<!-- Speicherkoerper, oben und unten gewoelbt. Fuellung als Platzhalter,
+     siehe oben. -->
+<rect x="48" y="124" width="104" height="168" rx="48" fill="{{koerper}}"/>
+
+<g clip-path="url(#innen)">
+  <!-- Kalottennaehte statt Deckel und Sockel.
+
+       Ein Boiler ist ein Zylinder mit gewoelbtem Boden und Deckel; die
+       Woelbungen reichen bei Eckradius 48 von y=124 bis 172 und von 244 bis
+       292. Waagrechte Baender wie beim Puffer lagen genau darauf und nahmen
+       der Kalotte die Farbe - der Speicher sah aus, als reiche der Inhalt
+       nicht bis an die Kontur. Die Naht dagegen zeichnet nach, wie das Ding
+       gebaut ist, und laesst die Farbe stehen. -->
+  <g stroke-width="1.5" stroke="#000000" opacity="0.26">
+    <line x1="48" y1="172" x2="152" y2="172"/>
+    <line x1="48" y1="244" x2="152" y2="244"/>
+  </g>
+  <g stroke-width="1" stroke="#ffffff" opacity="0.13">
+    <line x1="48" y1="173.5" x2="152" y2="173.5"/>
+    <line x1="48" y1="245.5" x2="152" y2="245.5"/>
+  </g>
+
+  <!-- Registerheizschlange. Sie ist das Merkmal des Boilers und lag bisher
+       schon hier - jetzt liegt sie ueber der gemessenen Temperatur statt
+       unter einer Farbflaeche. Der versetzte Schatten gibt ihr Koerper. -->
+  <path d="M 70 178 h 60 M 70 178 a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60
+           a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60"
+        fill="none" stroke="#000000" stroke-width="4" opacity="0.16"
+        stroke-linecap="round"/>
+  <path d="M 70 176 h 60 M 70 176 a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60
+           a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60"
+        fill="none" stroke="{{titel}}" stroke-width="3" opacity="0.34"
+        stroke-linecap="round"/>
+
+  <!-- Licht von links, Schatten nach rechts: gibt dem Zylinder Rundung. -->
+  <rect x="48" y="124" width="104" height="168" fill="url(#glanz)"/>
+</g>
+
+<!-- Kontur zuletzt, damit nichts darueber laeuft. Innen eine dunkle
+     Haarlinie fuer Tiefe, wie beim Puffer und beim Kesselkoerper. -->
 <rect x="48" y="124" width="104" height="168" rx="48" fill="none"
       stroke="{{rahmen}}" stroke-width="2"/>
-
-<!-- Registerheizschlange -->
-<path d="M 70 176 h 60 M 70 176 a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60
-         a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60"
-      fill="none" stroke="{{titel}}" stroke-width="3" opacity="0.3"
-      stroke-linecap="round"/>
+<rect x="50" y="126" width="100" height="164" rx="46" fill="none"
+      stroke="#000000" stroke-width="1" opacity="0.28"/>
 
 <!-- Wassertropfen als Merkzeichen -->
 <path d="M 100 138 q 11 14 11 21 a 11 11 0 0 1 -22 0 q 0 -7 11 -21 Z"
-      fill="{{titel}}" opacity="0.35"/>
+      fill="{{titel}}" opacity="0.4"/>
+
+<!-- Fuehlertauchhuelse links, auf Hoehe des Messwerts. -->
+<g fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.5">
+  <rect x="40" y="201" width="16" height="9" rx="2.5"/>
+</g>
+<circle cx="46" cy="205.5" r="2.2" fill="{{titel}}" opacity="0.55"/>

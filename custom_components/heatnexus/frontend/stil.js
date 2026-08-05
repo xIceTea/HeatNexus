@@ -320,7 +320,11 @@ export const STIL = `
   ha-icon { --mdc-icon-size: 22px; opacity: 0.85; flex: none; }
 
   /* --- Schaubild ------------------------------------------------------- */
-  .schaubild { width: 100%; position: relative; }
+  /* Die Isolation macht die Huelle zum Stapelkontext. Ohne sie wuerde
+     die Farbflaeche des Speichers mit ihrem negativen z-index nicht nur
+     hinter das Bild rutschen, sondern hinter die ganze Karte - und waere
+     verschwunden. */
+  .schaubild { width: 100%; position: relative; isolation: isolate; }
   .schaubild img { width: 100%; display: block; border-radius: 12px; }
 
   /* --- Bewegung im Schaubild ------------------------------------------- */
@@ -451,9 +455,20 @@ export const STIL = `
      der Speicher durchgeladen, steht er durchgehend in einer Farbe. */
   .schaubild .schichtung {
     position: absolute; pointer-events: none;
-    opacity: 0; transition: background 1.5s ease, opacity 0.6s ease;
+    /* Unter das Bild. Das muss ein *negativer* Wert sein: Ein absolut
+       gesetztes Element malt sonst ueber jeden in-flow-Inhalt, auch wenn es
+       im DOM davor steht. Mit z-index 0 lag die Farbe wieder ueber der
+       Zeichnung und verdeckte Naehte, Deckel, Glanz und beim Boiler das
+       Register - genau der Zustand, der behoben werden sollte. */
+    z-index: -1;
+    /* Nicht ausblendbar: Die Zeichnung laesst den Speicherkoerper frei,
+       sobald ein Fuehlerwert bekannt ist. Stuende diese Flaeche auf
+       Deckkraft null, sae man beim Laden durch den Speicher hindurch. Fehlen
+       die Messwerte, setzt die Oberflaeche den neutralen Verlauf des
+       Bauteils - er kommt mit den Daten vom Server, damit die Farben nicht
+       hier und in schema.py getrennt gepflegt werden muessen. */
+    transition: background 1.5s ease;
   }
-  .schaubild .schichtung.da { opacity: 1; }
 
   /* Ladezustand des Puffers, zwischen seinen beiden Temperaturen. */
   .schaubild .speicher {
