@@ -10,6 +10,7 @@ Störung dauerhaft im Fünf-Minuten-Takt.
 
 from __future__ import annotations
 
+import contextlib
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock
 
@@ -59,10 +60,8 @@ async def test_der_abstand_waechst_nicht_ins_unendliche(coordinator):
 
     coordinator.client.fetch_all.side_effect = TimeoutError("keine Antwort")
     for _ in range(10):
-        try:
+        with contextlib.suppress(UpdateFailed):
             await coordinator._async_update_data()
-        except UpdateFailed:
-            pass
     assert coordinator.update_interval == timedelta(seconds=BACKOFF_MAX)
 
 
