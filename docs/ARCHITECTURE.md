@@ -153,7 +153,6 @@ von Hand gepflegt.
 | Datei | Aufgabe |
 |---|---|
 | `client.py` | HTTP, Discovery, Metadaten, Polling, strukturierte Objekte |
-| `aiohelper.py` | nebenläufigkeitssichere Digest-Authentifizierung |
 | `__init__.py` | Coordinator, Cache, Setup/Unload, Dienste |
 | `dashboard.py` | mitgeliefertes Dashboard, serverseitig gebaut |
 | `panel/` | eigener Eintrag in der Seitenleiste: Anmeldung, Aufteilung, Suchmuster, Erklärtexte |

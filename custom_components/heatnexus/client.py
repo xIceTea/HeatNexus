@@ -10,7 +10,6 @@ import time
 import aiohttp
 from yarl import URL
 
-from .aiohelper import DigestAuth
 from .const import (
     ADVANCED_LEVELS,
     DEFAULT_LEVELS,
@@ -147,7 +146,6 @@ class WindhagerHttpClient:
         # Ist der vollständige Abzug (Menü-Ebenen) bereits gelaufen?
         self._vollstaendig = False
         self._session = None
-        self._auth = None
         self._semaphore = asyncio.Semaphore(FETCH_CONCURRENCY)
         # Für das zyklische Abrufen einzelner Werte gilt eine eigene, höhere
         # Grenze: Dort sind die Antworten klein, und die Warteschlange war der
@@ -167,17 +165,40 @@ class WindhagerHttpClient:
         self._dynamic_oids.discard(oid)
 
     async def _ensure_session(self):
-        """Ensure that we have an active client session."""
+        """Sitzung mit Digest-Authentifizierung bereitstellen.
+
+        Die Anmeldung übernimmt aiohttp selbst (ab 3.12, in Home Assistant ab
+        2025.6). Bis 1.6.0 lag dafür eine eigene, von `requests` abgeleitete
+        Datei im Projekt; sie ist ersatzlos entfallen.
+
+        `preemptive=True` schickt die Anmeldung nach der ersten Antwort gleich
+        mit, statt sich jedes Mal einen `401` abzuholen. Bei einer Steuerung,
+        die pro Abruf dutzende Anfragen bekommt, ist das die halbe Last.
+        """
         if self._session is None:
-            self._session = aiohttp.ClientSession()
-            self._auth = DigestAuth(self.username, self.password, self._session)
+            self._session = aiohttp.ClientSession(
+                connector=aiohttp.TCPConnector(
+                    # Mehr Verbindungen als gleichzeitige Anfragen bringen
+                    # nichts: Die Steuerung ist der Engpass, nicht das Netz.
+                    # Ohne eigene Grenze macht aiohttp bis zu 100 auf.
+                    limit=FETCH_CONCURRENCY + POLL_CONCURRENCY,
+                    limit_per_host=FETCH_CONCURRENCY + POLL_CONCURRENCY,
+                    # Der C-Auflöser (aiodns) verlangt unter Windows eine
+                    # bestimmte Ereignisschleife und bricht sonst ab. Er brächte
+                    # hier ohnehin nichts – die Anlage steht unter einer festen
+                    # Adresse, meist einer IP.
+                    resolver=aiohttp.ThreadedResolver(),
+                ),
+                middlewares=(
+                    aiohttp.DigestAuthMiddleware(login=self.username, password=self.password),
+                ),
+            )
 
     async def close(self):
         """Close the client session."""
         if self._session:
             await self._session.close()
             self._session = None
-            self._auth = None
 
     # Zeichensätze in der Reihenfolge, in der sie ausprobiert werden.
     # cp850 ist die DOS-Codepage der Steuerung: dort liegt „ü" auf 0x81,
@@ -218,7 +239,7 @@ class WindhagerHttpClient:
             begonnen = time.monotonic()
             self.queue_seconds += begonnen - angefragt
             try:
-                ret = await self._auth.request("GET", url)
+                ret = await self._session.request("GET", url)
                 raw = await ret.read()
             except Exception:
                 self.request_errors += 1
@@ -341,7 +362,7 @@ class WindhagerHttpClient:
         """PUT a new value to a datapoint."""
         await self._ensure_session()
         async with self._semaphore:
-            ret = await self._auth.request(
+            ret = await self._session.request(
                 "PUT",
                 f"http://{self.host}/api/1.0/datapoint",
                 data=bytes(f'{{"OID":"{oid}","value":"{value}"}}', "utf-8"),
@@ -1204,7 +1225,7 @@ class WindhagerHttpClient:
         try:
             await self._ensure_session()
             async with self._semaphore:
-                ret = await self._auth.request("GET", self._object_url(full_oid))
+                ret = await self._session.request("GET", self._object_url(full_oid))
                 status = ret.status
                 try:
                     data = await ret.json()
@@ -1219,7 +1240,7 @@ class WindhagerHttpClient:
         """PUT a structured object (Zeitprogramm) via ?OID=<full_oid>."""
         await self._ensure_session()
         async with self._semaphore:
-            ret = await self._auth.request(
+            ret = await self._session.request(
                 "PUT",
                 self._object_url(full_oid),
                 data=bytes(json.dumps(payload), "utf-8"),

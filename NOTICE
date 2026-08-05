@@ -7,12 +7,9 @@ entwickelt wurde (siehe LICENSE).
 Herkunftsnachweise
 ------------------
 
-custom_components/heatnexus/aiohelper.py
-    Digest-Authentifizierung für aiohttp, abgeleitet von der Implementierung
-    des Projekts "requests" (Apache License 2.0),
-    https://github.com/psf/requests
-    Nebenläufigkeitssicher neu geschrieben. Diese Datei entfällt, sobald die
-    Digest-Unterstützung von aiohttp genutzt wird.
+Keine. HeatNexus enthält seit 1.6.0 ausschließlich eigenen Code; die frühere
+Digest-Authentifizierung (abgeleitet vom Projekt "requests", Apache License
+2.0) ist entfallen, weil aiohttp diese Aufgabe selbst übernimmt.
 
 Geräteangaben
 -------------
