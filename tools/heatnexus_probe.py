@@ -33,6 +33,10 @@ import time
 import urllib.error
 import urllib.request
 
+# Zugang ab Werk. Die Steuerung kennt zwei: `USER` sieht Info- und
+# Betreiberebene, `Service` zusätzlich die Fachparameter. Welcher gilt,
+# entscheidet `--user`; fest eingebaut war er bis 1.4.2, und damit blieb
+# alles unsichtbar, was Service verlangt.
 USERNAME = "USER"
 TIMEOUT = 30  # große Menü-Ebenen brauchen deutlich länger als eine Einzelabfrage
 DEFAULT_WORKERS = 3  # mehr Parallelität quittieren die Geräte mit Abbrüchen
@@ -78,9 +82,16 @@ def db_name(gnmn: str) -> str:
 class Probe:
     """Digest-authentifizierter Lesezugriff auf eine Anlage."""
 
-    def __init__(self, host: str, password: str, workers: int = DEFAULT_WORKERS) -> None:
+    def __init__(
+        self,
+        host: str,
+        password: str,
+        workers: int = DEFAULT_WORKERS,
+        username: str = USERNAME,
+    ) -> None:
         """Zugriff auf eine Anlage vorbereiten."""
         self.host = host  # darf "1.2.3.4" oder "1.2.3.4:8080" sein
+        self.username = username
         self.base = f"http://{host}"
         self.password = password
         self.workers = workers
@@ -98,7 +109,7 @@ class Probe:
         opener = getattr(self._local, "opener", None)
         if opener is None:
             mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-            mgr.add_password(None, f"{self.base}/", USERNAME, self.password)
+            mgr.add_password(None, f"{self.base}/", self.username, self.password)
             opener = urllib.request.build_opener(urllib.request.HTTPDigestAuthHandler(mgr))
             self._local.opener = opener
         return opener
@@ -435,7 +446,11 @@ def suche_endpunkte(probe: Probe) -> dict:
     for basis in ENDPUNKT_BASEN:
         for name in ENDPUNKT_KANDIDATEN:
             data, status = probe.get(f"{probe.base}{basis}{name}")
-            grund = str((data or {}).get("reason") or "")
+            # `get` liefert, was die Anlage schickt – und das ist nicht immer
+            # ein Objekt: `lookup` etwa antwortet mit einer **Liste**. Ein
+            # blindes `.get("reason")` darauf beendet den ganzen Lauf mit
+            # einem AttributeError, noch bevor eine Datei geschrieben ist.
+            grund = str(data.get("reason") or "") if isinstance(data, dict) else ""
             unbekannt = status == 503 and "does not exist" in grund
             ergebnisse.append(
                 {
@@ -895,7 +910,14 @@ def write_report(path: Path, menus: dict, objects: dict, stats: dict) -> None:
 
 
 # -------------------------------------------------------------------- Ablauf
-def run_host(host: str, password: str, actions: set[str], out_dir: Path, workers: int) -> dict:
+def run_host(
+    host: str,
+    password: str,
+    actions: set[str],
+    out_dir: Path,
+    workers: int,
+    username: str = USERNAME,
+) -> dict:
     """Alle gewählten Aktionen für eine Anlage ausführen."""
     print(f"\n=== {host}")
     if not reachable(host):
@@ -906,7 +928,7 @@ def run_host(host: str, password: str, actions: set[str], out_dir: Path, workers
         return {"host": host, "ok": False}
 
     stem = safe_name(host)
-    probe = Probe(host, password, workers)
+    probe = Probe(host, password, workers, username)
     started = time.monotonic()
 
     structure, status = fetch_structure(probe)
@@ -1209,6 +1231,11 @@ def main() -> int:
     parser.add_argument("--oid", help="vollständige OID für die Aktionen 'oid' und 'objekt'")
     parser.add_argument("--password", help="Service-Passwort (sonst Abfrage oder HEATNEXUS_PW)")
     parser.add_argument(
+        "--user",
+        default=USERNAME,
+        help=f"Zugang der Anlage: USER oder Service (Standard: {USERNAME})",
+    )
+    parser.add_argument(
         "-o",
         "--out",
         default="probe",
@@ -1241,7 +1268,7 @@ def main() -> int:
         if not args.oid:
             parser.error("Bitte die OID angeben, z. B. /1/15/0/3/50/0")
         for host in hosts:
-            data, status = Probe(host, password, 1).lookup(args.oid)
+            data, status = Probe(host, password, 1, args.user).lookup(args.oid)
             print(f"\n{host}  HTTP {status}")
             print(json.dumps(data, indent=2, ensure_ascii=False))
         return 0
@@ -1257,7 +1284,7 @@ def main() -> int:
         ziel = zielordner(args.out)
         ziel.mkdir(parents=True, exist_ok=True)
         for host in hosts:
-            data, status = Probe(host, password, 1).obj(args.oid)
+            data, status = Probe(host, password, 1, args.user).obj(args.oid)
             print(f"\n{host}  HTTP {status}")
             print(json.dumps(data, indent=2, ensure_ascii=False))
             # Zusätzlich als Datei: Was man ansehen will, will man meist auch
@@ -1280,7 +1307,9 @@ def main() -> int:
         if args.command in ("compare", "report"):
             actions |= {"menus"}
 
-    results = [run_host(h, password, actions, zielordner(args.out), args.workers) for h in hosts]
+    results = [
+        run_host(h, password, actions, zielordner(args.out), args.workers, args.user) for h in hosts
+    ]
     return 0 if all(r.get("ok") for r in results) else 1
 
 
