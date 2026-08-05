@@ -6,9 +6,9 @@ Zeichenkettenliteral – die Datei war danach nicht mehr lesbar. Ein anderes Mal
 stand statt `\\b` ein Rückschritt-Zeichen im Muster, unsichtbar in jeder
 Suche, und ein ganzer Abschnitt der Oberfläche verschwand.
 
-Die Prüfung liest `panel.py` als Quelltext ein, statt es zu importieren: Das
-Modul zieht Home Assistant nach, die Texte hängen aber an nichts. So läuft der
-Test auch auf einem Rechner ohne HA.
+Die Prüfung liest die Dateien als Quelltext ein, statt sie zu importieren:
+Das Paket zieht Home Assistant nach, die Texte hängen aber an nichts. So läuft
+der Test auch auf einem Rechner ohne HA.
 """
 
 from __future__ import annotations
@@ -19,12 +19,24 @@ import re
 
 import pytest
 
-QUELLE = Path(__file__).resolve().parents[1] / "custom_components" / "heatnexus" / "panel.py"
+PANEL = Path(__file__).resolve().parents[1] / "custom_components" / "heatnexus" / "panel"
+
+# Wo welche Konstante steht. Seit dem Schnitt von `panel.py` in ein Paket
+# liegen die Erklärtexte in `hilfe.py` und die Mustertabellen in `muster.py`.
+QUELLEN = (PANEL / "hilfe.py", PANEL / "muster.py", PANEL / "daten.py")
 
 
 def _konstante(name: str):
-    """Eine Konstante aus `panel.py`, ohne das Modul zu laden."""
-    baum = ast.parse(QUELLE.read_text(encoding="utf-8"))
+    """Eine Konstante des Panel-Pakets, ohne das Modul zu laden."""
+    for quelle in QUELLEN:
+        if (wert := _aus_datei(quelle, name)) is not None:
+            return wert
+    raise AssertionError(f"{name} in keiner Quelle gefunden")
+
+
+def _aus_datei(quelle: Path, name: str):
+    """Eine Konstante aus einer Datei – oder None, wenn sie dort nicht steht."""
+    baum = ast.parse(quelle.read_text(encoding="utf-8"))
     for knoten in baum.body:
         ziele = []
         if isinstance(knoten, ast.AnnAssign):
@@ -33,7 +45,7 @@ def _konstante(name: str):
             ziele = knoten.targets
         if any(getattr(z, "id", "") == name for z in ziele):
             return ast.literal_eval(knoten.value)
-    raise AssertionError(f"{name} nicht gefunden")
+    return None
 
 
 @pytest.fixture(scope="module")
