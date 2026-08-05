@@ -353,44 +353,73 @@ STATISCHE_NAV = {
 
 
 # ------------------------------------------------------------- Störspeicher
-# Der Störspeicher steht in keinem Menü und ist über `lookup`/`object` nicht
-# lesbar – beide antworten mit `409 – invalid Identifier`. Die Weboberfläche der
-# Anlage zeigt ihn trotzdem. Wie, verrät ihr eigener Quelltext:
+# **Nicht geraten, sondern aus der Weboberfläche der Anlage abgelesen.**
+#
+# Deren Quelltext liegt unter `/infowintouch/<STRONGNAME>.cache.html` und ist
+# ohne Anmeldung ladbar. Darin:
 #
 #     function zq(a,b){ … this.f = '/'+c[1]+'/'+c[2]+'/'+c[3]+'/2/96/0'; … }
-#     BU(196,1,{},zq)          und in der Typtabelle:
-#     uM = V6(snb,'StaticNavActionErrorLog',196)
+#     BU(196,1,{},zq)      und  uM = V6(snb,'StaticNavActionErrorLog',196)
 #
-# `zq` ist also der Störspeicher, und seine Adresse ist `2/96` – nicht `2/90`,
-# das ist nur der Schlüssel des Navigationseintrags in `StaticNav.xml`.
+# `zq` ist der Störspeicher; seine Adresse ist `2/96`. (`2/90` aus
+# `StaticNav.xml` ist nur der Schlüssel des Menüeintrags und antwortet überall
+# mit `409 – invalid Identifier`.)
 #
-# Gelesen wird sie über einen zweiten Kanal: einen SOAP-Dienst, dessen Vorlagen
-# unter `res/xml/ws.*.req.xml` liegen. `getDpRequest` und `listDpRequest`
-# kennen `startIndex` und `count` – genau das, was eine Liste braucht und was
-# der REST-Schnittstelle fehlt.
-SOAP_HUELLE = """<?xml version="1.0" encoding="UTF-8"?>
-<SOAP-ENV:Envelope
- xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
- xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
- xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
- xmlns:xsd="http://www.w3.org/2001/XMLSchema"
- xmlns:ns="http://ws01.lom.ch/soap/">
- <SOAP-ENV:Body>
-   <ns:{ruf}Request>
-    <ref>
-     <oid>{oid}</oid>
-     <prop></prop>
-    </ref>
-    <startIndex>0</startIndex>
-    <count>{anzahl}</count>
-   </ns:{ruf}Request>
- </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>
-"""
+# `zq` baut vier Leser, einen je Kesselfamilie – und alle vier sind gleich
+# aufgebaut:
+#
+#     function Pf(a,b){ … c = h8(a,0,a.length-1);          // OID ohne letzte Stelle
+#                       for(d=0;d<10;d++){ … new Sf(c+d) } }
+#
+# Der **letzte OID-Abschnitt ist der Index**, und es sind genau zehn Einträge:
+# `/1/<node>/<fct>/2/96/0` bis `…/9`.
+#
+# Gelesen werden sie über denselben Endpunkt wie alles andere. Der Lesepfad der
+# Oberfläche lautet im Klartext:
+#
+#     'api/1.0/' + 'lookup' + <OID> + '?count=' + n + '&offset=' + m
+#
+# Also `lookup`, nicht `object` – deshalb ging die Suche über den
+# object-Endpunkt ins Leere.
+STOERSPEICHER_GNMN = "2/96"
+STOERSPEICHER_EINTRAEGE = 10
 
-# Wohin der Dienst hört, sagt der Quelltext nicht eindeutig; diese Adressen
-# stehen dort als Zeichenketten. Die erste, die antwortet, gewinnt.
-SOAP_ADRESSEN = ("/WsAdmin/api/1.0/", "/WsAdmin", "/api/1.0/", "/soap", "/ws")
+
+def suche_stoerspeicher(probe: Probe, structure: list) -> dict:
+    """Den Störspeicher lesen, so wie die Oberfläche der Anlage es tut."""
+    treffer = []
+    ergebnisse = []
+    for node in structure:
+        node_id = node.get("nodeId")
+        for fct in node.get("functions", []):
+            if fct.get("fctType", -1) < 0:
+                continue
+            praefix = f"/1/{node_id}/{fct.get('fctId')}"
+            for index in range(STOERSPEICHER_EINTRAEGE):
+                oid = f"{praefix}/{STOERSPEICHER_GNMN}/{index}"
+                data, status = probe.lookup(oid)
+                eintrag = {
+                    "oid": oid,
+                    "funktion": fct.get("name"),
+                    "status": status,
+                    "data": data,
+                }
+                ergebnisse.append(eintrag)
+                grund = str(data.get("reason") or "") if isinstance(data, dict) else ""
+                print(
+                    f"    {oid:24} HTTP {status:>3}  {grund[:60]}",
+                    flush=True,
+                )
+                if status == 200:
+                    treffer.append(eintrag)
+                    print(f"    TREFFER  {oid}  {json.dumps(data, ensure_ascii=False)[:200]}")
+                elif status == 409 and index == 0:
+                    # Diese Funktion führt keinen Störspeicher – die übrigen
+                    # neun Anfragen wären reine Zeitverschwendung.
+                    break
+    if not treffer:
+        print("    kein Störspeicher lesbar")
+    return {"treffer": treffer, "alle": ergebnisse}
 
 
 # Endpunkte unter `/api/1.0/`. Die Steuerung verrät selbst, welche es gibt:
@@ -500,40 +529,6 @@ def suche_endpunkte(probe: Probe) -> dict:
         f"{len(ergebnisse) - len(gefunden) - len(offen)} kennt sie nicht"
     )
     return {"vorhanden": gefunden, "unklar": offen, "alle": ergebnisse}
-
-
-def suche_stoerspeicher(probe: Probe, structure: list, anzahl: int = 20) -> dict:
-    """Den Störspeicher über den SOAP-Dienst der Steuerung suchen."""
-    versuche = []
-    for node in structure:
-        node_id = node.get("nodeId")
-        for fct in node.get("functions", []):
-            if fct.get("fctType", -1) < 0:
-                continue
-            oid = f"/1/{node_id}/{fct.get('fctId')}/2/96/0"
-            for adresse in SOAP_ADRESSEN:
-                for ruf in ("listDp", "getDp"):
-                    rumpf = SOAP_HUELLE.format(ruf=ruf, oid=oid, anzahl=anzahl)
-                    antwort, status = probe.post(probe.base + adresse, rumpf.encode("utf-8"))
-                    treffer = status == 200 and "Fault" not in antwort[:400]
-                    print(
-                        f"    {adresse:20} {ruf:7} {oid:20} HTTP {status:>3}"
-                        f"{'  TREFFER' if treffer else ''}",
-                        flush=True,
-                    )
-                    versuche.append(
-                        {
-                            "adresse": adresse,
-                            "ruf": ruf,
-                            "oid": oid,
-                            "status": status,
-                            "antwort": antwort[:4000],
-                        }
-                    )
-                    if treffer:
-                        return {"treffer": versuche[-1], "versuche": versuche}
-    print("    kein SOAP-Dienst hat geantwortet")
-    return {"treffer": None, "versuche": versuche}
 
 
 def suche_statisch(probe: Probe, structure: list) -> dict:
