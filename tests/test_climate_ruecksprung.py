@@ -112,3 +112,46 @@ def test_standby_und_ww_betrieb_gelten_als_aus(climate):
     0 ist Standby, 6 der WW-Betrieb – in beiden ist der Heizkreis aus.
     """
     assert sorted(climate.WindhagerBaseThermostat.OFF_MODES) == [0, 6]
+
+
+# ---------------------------------------------------------------------------
+# Ablauf der optimistischen Anzeige – seit `always_update=False`
+# ---------------------------------------------------------------------------
+class _Optimistisch:
+    """Nur die Zeitprüfung, ohne Home Assistant darunter."""
+
+    def __init__(self, climate):
+        """Die geprüfte Methode an ein nacktes Objekt binden."""
+        self._gueltig = climate.WindhagerBaseThermostat._optimistisch_gueltig.__get__(self)
+
+
+def test_optimistische_anzeige_laeuft_nach_zeit_ab(climate):
+    """Der Ablauf darf nicht am Takt des Coordinators hängen.
+
+    Bis 1.5.0 wurde er nur in `_handle_coordinator_update` geprüft. Seit der
+    Coordinator unveränderte Daten stillschweigend verwirft
+    (`always_update=False`), gibt es diesen Takt nicht mehr zwangsläufig:
+    Nimmt die Anlage einen Schreibvorgang **nicht** an, ändert sich nichts, es
+    feuert nichts – und der optimistisch angezeigte Sollwert bliebe für immer
+    stehen. Also genau der Fall, den die Zeitgrenze abfangen soll.
+    """
+    import time
+
+    entity = _Optimistisch(climate)
+    jetzt = time.monotonic()
+
+    assert entity._gueltig(jetzt) is True, "frisch gesetzt muss gelten"
+    assert entity._gueltig(jetzt - climate.OPTIMISTIC_MAX_AGE_S + 1) is True
+    assert entity._gueltig(jetzt - climate.OPTIMISTIC_MAX_AGE_S - 1) is False, (
+        "nach der Zeitgrenze darf die optimistische Anzeige nicht mehr gelten"
+    )
+
+
+def test_zeitgrenze_ist_kuerzer_als_der_nachlade_burst_lang(climate):
+    """Der Burst muss innerhalb der Gültigkeit fertig sein.
+
+    Sonst verfiele die Anzeige, während die Anlage noch nachzieht – und der
+    Regler spränge genau in dem Moment zurück, in dem der Nutzer hinsieht.
+    """
+    burst = climate.FAST_REFRESH_COUNT * climate.FAST_REFRESH_INTERVAL
+    assert burst < climate.OPTIMISTIC_MAX_AGE_S

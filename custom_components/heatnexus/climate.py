@@ -237,9 +237,25 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         """Get OID value relative to this function's prefix."""
         return get_oid_value(self.coordinator, path, self._prefix)
 
+    def _optimistisch_gueltig(self, seit: float) -> bool:
+        """Ob eine optimistische Anzeige noch gelten darf.
+
+        **Zeit statt Takt.** Bis 1.5.0 wurde der Ablauf nur in
+        `_handle_coordinator_update` geprüft – also nur, wenn der Coordinator
+        die Zuhörer benachrichtigt. Seit der Coordinator unveränderte Daten
+        stillschweigend verwirft (`always_update=False`), gibt es diesen Takt
+        nicht mehr zwangsläufig: Nimmt die Anlage einen Schreibvorgang nicht
+        an, ändert sich nichts, es feuert nichts, und die optimistische
+        Anzeige bliebe für immer stehen. Genau der Fall, den die Zeitgrenze
+        abfangen soll.
+        """
+        return (time.monotonic() - seit) <= OPTIMISTIC_MAX_AGE_S
+
     def raw_selected_mode(self) -> int | None:
         """Get selected mode (Betriebswahl 3/50), optimistisch bevorzugt."""
-        if self._optimistic_mode is not None:
+        if self._optimistic_mode is not None and self._optimistisch_gueltig(
+            self._optimistic_mode_ts
+        ):
             return self._optimistic_mode
         value = self.get_oid_value("/3/50/0")
         return int(value) if value is not None else None
@@ -317,7 +333,10 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         """Return the current preset mode."""
         # Frisch gewählte Voreinstellung sofort zeigen (ohne "7"-Override-Logik).
         if (
-            self._optimistic_mode is None
+            (
+                self._optimistic_mode is None
+                or not self._optimistisch_gueltig(self._optimistic_mode_ts)
+            )
             and self.raw_custom_temp_remaining_time() > 0
             and "7" in self._preset_modes
         ):
@@ -434,7 +453,7 @@ class WindhagerThermostatClimate(WindhagerBaseThermostat):
         # Temperatur, im Heiz-/Absenkbetrieb den jeweiligen Sollwert und in
         # Aus/WW-Betrieb korrekt den Frostwert. Direkt nach dem Setzen kurz der
         # optimistische Wert, bis das Gerät 1/1 nachzieht.
-        if self._optimistic_target is not None:
+        if self._optimistic_target is not None and self._optimistisch_gueltig(self._optimistic_ts):
             return self._optimistic_target
         return self.get_oid_value("/1/1/0")
 

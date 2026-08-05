@@ -159,6 +159,17 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER,
             name=f"{DOMAIN} {host}",
             update_interval=timedelta(seconds=update_interval),
+            # Unveränderte Daten lösen keinen Durchlauf durch alle Entitäten
+            # aus. Eine Anlage im Standby meldet minutenlang dieselben Werte;
+            # bei 167 Entitäten ist das jedes Mal ein vollständiger Rundlauf
+            # ohne Ergebnis.
+            #
+            # Achtung, das hat eine Nebenwirkung: Was sich nur *mit der Zeit*
+            # ändert, darf nicht am Takt des Coordinators hängen. Die
+            # optimistische Anzeige des Thermostats prüft ihren Ablauf deshalb
+            # seither in der Eigenschaft selbst (`_optimistisch_gueltig`) und
+            # nicht mehr nur beim Eintreffen neuer Daten.
+            always_update=False,
         )
         self.client = client
         self.entry = entry

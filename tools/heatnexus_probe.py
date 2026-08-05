@@ -648,7 +648,18 @@ def fetch_menus(probe: Probe, structure: list) -> dict:
     for node in structure:
         node_id = node.get("nodeId")
         for fct in node.get("functions", []):
-            if fct.get("lock") or fct.get("fctType", -1) < 0:
+            # `fctType -1` ist die Funktion `NV's`: der LON-Adressraum des
+            # Knotens. Bis heute wurde sie hier übersprungen – und damit auch
+            # in der Integration, die denselben Filter hat. Zwei fremde
+            # Projekte lesen daraus rund 200 zusätzliche Werte je Anlage
+            # (Betriebsstunden, Verbrauch, Zündungen), und Knoten 90 – die
+            # Bedieneinheit – besteht ausschließlich daraus.
+            #
+            # Gelesen wird sie genauso wie jede andere Funktion: `lookup
+            # /1/<node>/<fctId>` liefert die Menü-Ebenen mit Anzahl. Die Sonde
+            # nimmt sie jetzt mit, damit überhaupt einmal Daten vorliegen,
+            # bevor irgendjemand etwas darauf baut.
+            if fct.get("lock"):
                 continue
             prefix = f"/1/{node_id}/{fct['fctId']}"
             root, status = probe.lookup(prefix)
@@ -1006,13 +1017,10 @@ def run_host(
         return {"host": host, "ok": False}
 
     nodes = len(structure)
-    fcts = sum(
-        1
-        for n in structure
-        for f in n.get("functions", [])
-        if not f.get("lock") and f.get("fctType", -1) >= 0
-    )
-    print(f"    {nodes} Knoten, {fcts} nutzbare Funktionen")
+    offen = [f for n in structure for f in n.get("functions", []) if not f.get("lock")]
+    fcts = sum(1 for f in offen if f.get("fctType", -1) >= 0)
+    nvs = sum(1 for f in offen if f.get("fctType", -1) < 0)
+    print(f"    {nodes} Knoten, {fcts} nutzbare Funktionen, {nvs} LON-Adressräume")
     for node in structure:
         msg = node.get("FE01msg")
         print(f"      Knoten {node.get('nodeId'):>3}  {str(node.get('name'))[:18]:<18} {msg or ''}")
