@@ -25,9 +25,14 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Intern
 
-- **Testabdeckung 39 % → 51 %, 209 → 265 Tests.** Die sieben Plattformen, die
+- **`panel.py` ist ein Paket.** 1037 Zeilen in einer Datei mit vier Aufgaben –
+  jetzt `panel/daten.py` (Aufbereitung), `panel/muster.py` (Suchmuster),
+  `panel/hilfe.py` (Erklärtexte) und `panel/__init__.py` (Anmeldung).
+  Verhaltensneutral, kein Funktionsrumpf geändert.
+- **Testabdeckung 39 % → 52 %, 209 → 276 Tests.** Die sieben Plattformen, die
   auf die Heizung schreiben, standen bei null Prozent – geprüft war
   ausgerechnet das Ungefährliche. Jetzt 87–95 %, `sensor.py` 71 %.
+  `migration.py`, das die Entity-Registry umschreibt, von 19 % auf 72 %.
 - Die Sonde kennt den Zugang der Anlage (`--user`), zählt die Endpunkte der
   Steuerung auf statt sie zu raten und prüft drei neue Seitenmodus-Varianten
   (`count=0`, `count=50`) – die Weboberfläche liest mit `?count=&offset=`, und
