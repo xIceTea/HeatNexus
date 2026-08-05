@@ -64,6 +64,29 @@ def requires_ha():
     )
 
 
+def digest_fehlt() -> bool:
+    """Ob die vorhandene aiohttp die Digest-Anmeldung noch nicht mitbringt."""
+    try:
+        import aiohttp
+    except ImportError:
+        return True
+    return not hasattr(aiohttp, "DigestAuthMiddleware")
+
+
+def requires_digest_auth():
+    """Skip-Marker für alles, was `aiohttp.DigestAuthMiddleware` braucht.
+
+    Sie kam mit aiohttp 3.12. Eine ältere Umgebung lässt die Tests nicht etwa
+    fehlschlagen, weil an der Anmeldung etwas falsch wäre – sie kennt die
+    Middleware schlicht nicht. Ein `AttributeError` an dieser Stelle sähe wie
+    ein Produktfehler aus und wäre keiner; deshalb wird sauber übersprungen.
+    """
+    return pytest.mark.skipif(
+        digest_fehlt(),
+        reason="aiohttp ohne DigestAuthMiddleware (< 3.12) – siehe requirements_test.txt",
+    )
+
+
 # Ein Lauf ohne Home Assistant überspringt rund die Hälfte aller Tests –
 # schweigend. Genau so ist in 1.0.0 ein falscher Erwartungswert bis in die CI
 # durchgerutscht. Der Hinweis steht deshalb am Anfang **und** am Ende.

@@ -16,9 +16,9 @@ import hashlib
 
 import pytest
 
-from .conftest import requires_ha
+from .conftest import requires_digest_auth, requires_ha
 
-pytestmark = requires_ha()
+pytestmark = [requires_ha(), requires_digest_auth()]
 
 BENUTZER = "USER"
 PASSWORT = "geheim"

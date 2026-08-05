@@ -17,7 +17,7 @@ jobs:
           python-version: "3.12"
       - run: pip install ruff
       - run: ruff check custom_components tests tools
-      - run: ruff format --check custom_components tests
+      - run: ruff format --check custom_components tests tools
 
   pytest:
     name: pytest
