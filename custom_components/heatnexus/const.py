@@ -233,6 +233,37 @@ POLL_WOERTER_SCHNELL = (
 # Sensorwerte; dank schlankem Poll-Set (nur aktive OIDs) gut vertretbar.
 UPDATE_INTERVAL = 30
 
+# Was für ein Anlagenteil das ist – für die Geräteseite in Home Assistant.
+#
+# Der Gerätename kommt von der Anlage selbst und ist oft von Hand vergeben
+# („Hebebühne", „KFZ Werkstatt"). Als Modell taugt er deshalb nicht: Dort
+# gehört hin, um was für ein Gerät es sich handelt. Die Nummern sind dieselben
+# `fctType`-Werte wie in `dashboard.FCT_RANG`.
+FCT_MODELL: dict[int, str] = {
+    1: "Heizkreis (Infinity PLUS)",
+    2: "Warmwasser",
+    4: "Kaskade",
+    5: "Solar",
+    6: "Gas-/Ölkessel",
+    7: "Wärmepumpe",
+    8: "Zusatzheizung",
+    9: "BioWIN Pelletskessel",
+    10: "Automatik-/Zusatzkessel",
+    14: "Heizkreis (UML/UMLZ)",
+    15: "Umschaltung Kessel/Puffer",
+    16: "Pufferspeicher (B-PLMi)",
+    20: "Pumpen-/Relaismodul (ZSP)",
+    21: "Pufferspeicher",
+    24: "Pumpe Wärmeerzeuger",
+    25: "PuroWIN Hackgutkessel",
+    26: "Wärmepumpe (Energiemanagement)",
+    27: "Wärmepumpe",
+}
+
+# Datenpunkte, die jedes Modul über sich selbst führt.
+OID_SOFTWAREVERSION = "4/92"
+OID_HARDWAREVERSION = "4/93"
+
 # Obergrenze, wenn die Anlage nicht antwortet.
 #
 # Nach jedem Fehlschlag verdoppelt sich der Abstand, höchstens aber bis hierhin.

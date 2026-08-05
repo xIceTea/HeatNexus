@@ -1,9 +1,11 @@
 rediscover:
   name: Anlage neu erkennen
   description: >-
-    Verwirft den gespeicherten Discovery-Cache und liest die Anlage komplett neu
+    Verwirft den gespeicherten Erkennungsstand und liest die Anlage komplett neu
     ein (Datenpunkte/Geräte). Nötig z.B. nach Umbauten an der Heizung oder wenn
-    neue Heizkreise hinzugekommen sind. Dauert einmalig etwas länger.
+    neue Heizkreise hinzugekommen sind. Dauert einmalig etwas länger und meldet
+    danach je Anlage zurück, wie viele Entitäten, zyklisch abgefragte
+    Datenpunkte und Zeitprogramme gefunden wurden.
 
 set_current_temp_compensation:
   name: Set Current Temperature Compensation

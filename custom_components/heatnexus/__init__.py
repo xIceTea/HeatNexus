@@ -14,11 +14,12 @@ import logging
 # Plattformdatei und der Aufruf scheitert. Ob das passiert, hing bisher am
 # Wettlauf zwischen Plattform-Import und Einrichtung.
 from time import monotonic
+from typing import Any
 
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME, Platform
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -702,16 +703,43 @@ def _async_register_rediscover_service(hass: HomeAssistant) -> None:
     if hass.services.has_service(DOMAIN, "rediscover"):
         return
 
-    async def _handle_rediscover(call: ServiceCall) -> None:
+    async def _handle_rediscover(call: ServiceCall) -> dict[str, Any]:
+        """Erkennungsstand verwerfen, neu einlesen und sagen, was dabei herauskam.
+
+        Der Lauf dauert je nach Anlage 30 bis 120 Sekunden. Ohne Rückgabe stand
+        hinterher nur „Dienst ausgeführt" da, und ob die Anlage nun mehr, weniger
+        oder dasselbe meldet, musste man sich aus der Entitätsliste
+        zusammensuchen.
+        """
         hass.data.get(DOMAIN, {}).get("_discovery_cache", {}).clear()
+        anlagen: list[dict[str, Any]] = []
         for eintrag in hass.config_entries.async_entries(DOMAIN):
             for system in _systems(eintrag):
                 await Store(
                     hass, DISCOVERY_STORE_VERSION, _store_key(eintrag, system[CONF_HOST])
                 ).async_remove()
             await hass.config_entries.async_reload(eintrag.entry_id)
+            daten = hass.data.get(DOMAIN, {}).get(eintrag.entry_id) or {}
+            for host, coordinator in (daten.get("coordinators") or {}).items():
+                client = getattr(coordinator, "client", None)
+                if client is None:
+                    continue
+                anlagen.append(
+                    {
+                        "anlage": getattr(coordinator, "label", None) or host,
+                        "entitaeten": len(getattr(client, "devices", []) or []),
+                        "zyklisch_abgefragt": len(getattr(client, "poll_oids", None) or []),
+                        "zeitprogramme": len(getattr(client, "time_programs", []) or []),
+                    }
+                )
+        return {"anlagen": anlagen}
 
-    hass.services.async_register(DOMAIN, "rediscover", _handle_rediscover)
+    hass.services.async_register(
+        DOMAIN,
+        "rediscover",
+        _handle_rediscover,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:

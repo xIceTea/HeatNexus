@@ -19,8 +19,11 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     DOMAIN,
     ENUMS,
+    FCT_MODELL,
     NACHFASS_ANZAHL,
     NACHFASS_INTERVALL,
+    OID_HARDWAREVERSION,
+    OID_SOFTWAREVERSION,
     SIGNAL_NEUE_ENTITAETEN,
 )
 from .device_db import get_enum
@@ -86,6 +89,33 @@ def async_setup_entities(
     )
 
 
+def _modulwert(coordinator: Any, beschreibung: dict, gn_mn: str) -> str | None:
+    """Einen Datenpunkt lesen, den jedes Modul über sich selbst führt.
+
+    Software- und Hardwarestand kommen über den `object`-Endpunkt und stehen
+    als Text im Abruf. Fehlt der Wert – etwa weil die Anlage noch eingelesen
+    wird –, bleibt das Feld leer, statt eine Null zu behaupten.
+    """
+    prefix = beschreibung.get("prefix")
+    if not prefix or not getattr(coordinator, "data", None):
+        return None
+    wert = coordinator.data.get("oids", {}).get(f"{prefix}/{gn_mn}/0")
+    return str(wert).strip() or None if wert not in (None, "") else None
+
+
+def _seriennummer(coordinator: Any, beschreibung: dict) -> str | None:
+    """Die `neuronId` des Knotens, an dem diese Funktion hängt.
+
+    Sie bildet ohnehin schon jede Entitätskennung – sie steht nur bisher
+    nirgends, wo man sie ablesen könnte.
+    """
+    prefix = beschreibung.get("prefix") or ""
+    teile = prefix.split("/")
+    if len(teile) < 3:
+        return None
+    return (getattr(coordinator.client, "neuron_by_node", None) or {}).get(teile[2])
+
+
 def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
     """Gerätezuordnung einer Entität.
 
@@ -97,13 +127,23 @@ def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
     # Der Steuerungsname vorne hält die Geräteliste sortiert und macht
     # gleichnamige Funktionen zweier Steuerungen unterscheidbar.
     name = f"{steuerung} · {funktion}" if steuerung and steuerung != funktion else funktion
-    return DeviceInfo(
+    fct_type = beschreibung.get("fct_type")
+    info = DeviceInfo(
         identifiers={(DOMAIN, beschreibung.get("device_id"))},
         name=name,
         manufacturer="Windhager",
-        model=funktion,
+        # Der von Hand vergebene Anlagenname steht schon oben; als Modell
+        # gehört dorthin, **was** das Gerät ist.
+        model=FCT_MODELL.get(fct_type) or funktion,
         via_device=(DOMAIN, steuerung_kennung(coordinator)),
     )
+    if seriennummer := _seriennummer(coordinator, beschreibung):
+        info["serial_number"] = seriennummer
+    if software := _modulwert(coordinator, beschreibung, OID_SOFTWAREVERSION):
+        info["sw_version"] = software
+    if hardware := _modulwert(coordinator, beschreibung, OID_HARDWAREVERSION):
+        info["hw_version"] = hardware
+    return info
 
 
 def steuerung_kennung(coordinator: Any) -> str:

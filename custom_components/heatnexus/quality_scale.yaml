@@ -1,0 +1,144 @@
+# Qualitätsstufe nach dem Raster von Home Assistant.
+#
+# Die Datei ist eine **ehrliche Selbstauskunft**, keine Auszeichnung: Sie sagt,
+# welche Regeln HeatNexus erfüllt, welche noch offen sind und welche für eine
+# Integration wie diese nicht gelten. Wer wissen will, wo das Projekt steht,
+# liest hier – und wer daran arbeitet, findet die nächste Aufgabe.
+#
+# status: done | todo | exempt (mit Begründung)
+
+rules:
+  # ---------------------------------------------------------------- Bronze
+  action-setup:
+    status: todo
+    comment: >-
+      Die Dienste werden in async_setup_entry angemeldet, nicht in async_setup.
+      Ohne eingerichtete Anlage gibt es sie deshalb gar nicht.
+  appropriate-polling: done
+  brands: done
+  common-modules:
+    status: todo
+    comment: >-
+      Der Coordinator steht in __init__.py statt in coordinator.py. Die
+      Basisklasse liegt bereits in entity.py.
+  config-flow: done
+  config-flow-test-coverage:
+    status: todo
+    comment: Der Einrichtungsdialog ist geprüft, aber nicht vollständig.
+  dependency-transparency: done
+  docs-actions: done
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  docs-triggers:
+    status: exempt
+    comment: HeatNexus bringt keine eigenen Auslöser mit.
+  docs-conditions:
+    status: exempt
+    comment: HeatNexus bringt keine eigenen Bedingungen mit.
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data:
+    status: todo
+    comment: Die Laufzeitdaten liegen in hass.data, nicht in entry.runtime_data.
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # ---------------------------------------------------------------- Silber
+  action-exceptions:
+    status: todo
+    comment: >-
+      Die Dienste werfen eigene Ausnahmen; erwartet sind
+      ServiceValidationError und HomeAssistantError.
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable:
+    status: todo
+    comment: >-
+      Eine nicht erreichbare Anlage wird bei jedem Fehlversuch protokolliert,
+      nicht einmalig.
+  parallel-updates:
+    status: todo
+    comment: >-
+      PARALLEL_UPDATES ist in keiner Plattform gesetzt. Die Begrenzung
+      geschieht heute im Client (eigene Warteschlange, eigener
+      Verbindungspool).
+  reauthentication-flow: done
+  test-coverage:
+    status: todo
+    comment: Rund die Hälfte des Codes ist geprüft, verlangt sind 95 Prozent.
+
+  # ------------------------------------------------------------------ Gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: >-
+      Die Steuerung meldet sich weder über mDNS noch über SSDP oder DHCP an.
+      Sie wird über Adresse und Passwort eingerichtet.
+  discovery-update-info:
+    status: exempt
+    comment: >-
+      Ohne Erkennung im Netz gibt es nichts nachzuführen. Ein Adresswechsel
+      lässt sich über den Neu-Einrichten-Dialog erledigen; die Entitäten hängen
+      ohnehin an der Seriennummer der Anlage, nicht an der Adresse.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: todo
+    comment: >-
+      Neue Anlagenteile erscheinen erst nach heatnexus.rediscover oder einem
+      Neustart, nicht von allein.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default: done
+  entity-translations:
+    status: todo
+    comment: >-
+      Die Namen kommen aus der Anlage und aus der Geräte-Datenbank, nicht aus
+      Übersetzungsschlüsseln. Voraussetzung dafür sind stabile Schlüssel je
+      Datenpunkt; bis dahin ist die Oberfläche deutsch.
+  exception-translations:
+    status: todo
+    comment: Fehlermeldungen der Dienste stehen im Klartext, nicht als Schlüssel.
+  icon-translations:
+    status: todo
+    comment: Symbole werden je Entität gesetzt statt über icons.json.
+  reconfiguration-flow: done
+  repair-issues:
+    status: todo
+    comment: >-
+      Probleme melden sich als dauerhafte Benachrichtigung statt über den
+      Reparatur-Ablauf.
+  stale-devices:
+    status: todo
+    comment: >-
+      Verschwundene Datenpunkte werden stillgelegt, aber nicht entfernt - das
+      ist Absicht (Verlauf und Benennung bleiben erhalten). Ein ganzes Gerät,
+      das die Anlage nicht mehr meldet, bleibt derzeit stehen.
+
+  # --------------------------------------------------------------- Platin
+  async-dependency:
+    status: exempt
+    comment: >-
+      HeatNexus hat keine Abhängigkeiten (requirements ist leer); der
+      HTTP-Zugriff läuft direkt über aiohttp.
+  inject-websession:
+    status: todo
+    comment: >-
+      Die Sitzung wird selbst angelegt, weil sie eine eigene
+      Digest-Anmeldung und einen eigenen, engen Verbindungspool braucht.
+      Über async_create_clientsession ginge beides ebenfalls.
+  strict-typing:
+    status: todo
+    comment: Typangaben sind verbreitet, aber nicht vollständig.
