@@ -8,6 +8,72 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+## [1.5.0-beta.4] - 2026-08-06
+
+Vorabversion.
+
+> **Diese Fassung setzt Home Assistant 2025.6 oder neuer voraus.** Die
+> Anmeldung an der Anlage übernimmt jetzt Home Assistants eigene
+> HTTP-Bibliothek; die dafür nötige Fassung liegt ab 2025.6 bei. Auf älteren
+> Installationen bitte bei 1.5.0-beta.3 bleiben.
+
+### Neu
+
+- **Die Geräteseite sagt, was das Gerät ist.** Bisher stand dort nichts:
+  kein Software-, kein Hardwarestand, keine Seriennummer – obwohl die Anlage
+  alles davon liefert. Als Modell stand der von Hand vergebene Anlagenname
+  („KFZ Werkstatt"); jetzt steht dort die Bauart.
+- **Probleme melden sich, statt still zu bleiben.** Stimmt das Passwort nicht
+  mehr, fragt Home Assistant von sich aus danach – aber erst nach drei
+  abgewiesenen Anfragen hintereinander, denn eine einzelne ist Alltag.
+  Antwortet die Anlage gar nicht mehr, steht das in den Reparaturen, mit Namen
+  und Grund, und verschwindet von selbst, sobald wieder Werte kommen. Vorher
+  wurden die Entitäten einfach grau.
+- **`heatnexus.rediscover` schweigt nicht mehr.** Der Lauf dauert 30 bis 120
+  Sekunden; hinterher stand nur „Dienst ausgeführt" da. Jetzt kommt je Anlage
+  zurück, wie viele Entitäten, Datenpunkte und Zeitprogramme gefunden wurden.
+- **Das Schaubild passt sich dem Erscheinungsbild an.** Auf hellem Grund waren
+  Rahmen und Beschriftung blass bis unlesbar – die Zeichnung war für einen
+  dunklen Hintergrund gerechnet. Sie kommt jetzt in beiden Farbsätzen mit und
+  wechselt beim Umschalten mit, ohne neu zu laden. Gilt für die Oberfläche wie
+  für das mitgelieferte Dashboard.
+
+### Geändert
+
+- **Bei Störungen wird langsamer gefragt.** Bisher lief der Abruf unbeirrt
+  alle dreißig Sekunden weiter, auch wenn die Steuerung dreimal hintereinander
+  nichts geliefert hatte – und hielt eine überlastete oder gerade neu
+  startende Anlage genau darin fest. Jetzt verdoppelt sich der Abstand nach
+  jedem Fehlschlag, höchstens bis fünf Minuten; die erste gelungene Antwort
+  stellt sofort auf den gewählten Takt zurück.
+
+### Behoben
+
+- **Die Integration ließ sich unter Home Assistant 2026.7 nicht mehr laden.**
+  Sie benutzte ein Paket, das Home Assistant inzwischen aus seinen
+  Abhängigkeiten geworfen hat. Es lief nur weiter, solange irgendeine andere
+  Integration es noch mitbrachte.
+- **Das Pumpen-/Relaismodul zeigte eine Wärmeanforderung, wo es nie eine
+  gibt.** Wo das Modul nur ein Relais schaltet, stand in der Heizungsübersicht
+  eine Zeile mit einem Strich, die nie einen Wert bekam.
+
+### Intern
+
+- Die eigene Digest-Anmeldung entfällt; damit enthält HeatNexus keinen
+  abgeleiteten fremden Code mehr. Dazu ein eigener Verbindungspool und die
+  Anmeldung im Voraus, statt sich für jede Anfrage erst eine Abweisung
+  abzuholen.
+- Datenpunkte werden zusätzlich an einem sprachunabhängigen Schlüssel erkannt,
+  nicht mehr nur am deutschen Namen – die Voraussetzung dafür, die übrigen
+  Sprachen der Anlage überhaupt einschalten zu können. Der Name bleibt
+  Rückfall, bis alle Stellen umgestellt sind.
+- `quality_scale.yaml` als ehrliche Selbstauskunft gegenüber dem Raster von
+  Home Assistant.
+- Geprüft wird gegen die Home-Assistant-Fassung, die wirklich ausgeliefert
+  wird; vorher lief die Prüfung gegen einen anderthalb Jahre alten Stand. Neue
+  Tests für Abrufplan, Zugriffsschicht, Erkennungsstand und den Diagnoseexport
+  – dort ist jetzt belegt, dass weder Adresse noch Seriennummer darin landen.
+
 ## [1.5.0-beta.3] - 2026-08-05
 
 Vorabversion. Sie behebt, was an der Anlage aufgefallen ist, und schneidet die
