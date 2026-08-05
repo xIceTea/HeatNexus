@@ -263,6 +263,19 @@ PAGE_STRATEGIES = [
     ("page", lambda base, off: f"{base}?page={off // PAGE_SIZE}"),
     ("pfad", lambda base, off: f"{base}/{off}"),
     ("start+count", lambda base, off: f"{base}?start={off}&count={PAGE_SIZE}"),
+    # Die Form, die die Weboberfläche der Anlage selbst benutzt. Ihr Lesepfad
+    # lautet im Quelltext wörtlich
+    #     'api/1.0/' + 'lookup' + <OID> + '?count=' + n + '&offset=' + m
+    # und die Vorgabewerte der zuständigen Klasse sind `t=0` (count) und
+    # `u=0` (offset). Auch die SOAP-Vorlage `ws.getDP.req.xml` trägt
+    # `<count>0</count>`. Beides deutet darauf, dass **0 „alle" heißt**.
+    #
+    # Falls das stimmt, ist es der größte Leistungshebel des Projekts: Heute
+    # liefert ein Menü-Abruf zehn Datenpunkte, und beide Anlagen zusammen
+    # kommen auf rund 8900 Anfragen je Stunde.
+    ("count+offset", lambda base, off: f"{base}?count={PAGE_SIZE}&offset={off}"),
+    ("count=0", lambda base, off: f"{base}?count=0&offset={off}"),
+    ("count=50", lambda base, off: f"{base}?count=50&offset={off}"),
 ]
 
 
