@@ -48,6 +48,7 @@ from ..const import (
     UEBERSTEUERUNG_DAUER_STANDARD,
     panel_element,
     panel_js_pfad,
+    panel_verzeichnis,
 )
 from ..dashboard import _anlagen
 from .daten import _anlage_daten, _erster
@@ -67,7 +68,7 @@ __all__ = [
 
 _LOGGER = logging.getLogger(__name__)
 
-_JS_DATEI = Path(__file__).parent.parent / "frontend" / "heatnexus-panel.js"
+_FRONTEND = Path(__file__).parent.parent / "frontend"
 
 
 def _uebersteuerung(hass: HomeAssistant) -> dict[str, dict[str, float]]:
@@ -168,13 +169,16 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
     Zwischenspeicher dagegen eine neue Datei; die Oberfläche erscheint nach
     einer Aktualisierung von selbst, ohne dass jemand neu laden muss.
     """
-    pfad = panel_js_pfad(version)
+    # **Der Ordner, nicht die Datei.** Die Oberfläche besteht aus mehreren
+    # ES-Modulen, die einander relativ laden (`./stil.js`); ein einzeln
+    # angemeldeter Pfad ließe die Nachbardateien ins Leere laufen.
+    ordner = panel_verzeichnis(version)
     registriert: set[str] = hass.data.setdefault(f"{DOMAIN}_panel_dateien", set())
-    if pfad not in registriert:
+    if ordner not in registriert:
         await hass.http.async_register_static_paths(
-            [StaticPathConfig(pfad, str(_JS_DATEI), cache_headers=False)]
+            [StaticPathConfig(ordner, str(_FRONTEND), cache_headers=False)]
         )
-        registriert.add(pfad)
+        registriert.add(ordner)
     if not hass.data.get(f"{DOMAIN}_panel_datei"):
         websocket_api.async_register_command(hass, _ws_panel_daten)
         hass.data[f"{DOMAIN}_panel_datei"] = True
@@ -196,7 +200,7 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
         config={
             "_panel_custom": {
                 "name": panel_element(version),
-                "module_url": pfad,
+                "module_url": panel_js_pfad(version),
                 "embed_iframe": False,
                 "trust_external": False,
             },

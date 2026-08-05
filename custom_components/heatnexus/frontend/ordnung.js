@@ -1,0 +1,81 @@
+/**
+ * Reihenfolge und Sichtbarkeit der Karten.
+ *
+ * Reine Funktionen ohne Zustand – deshalb eigene Datei und deshalb
+ * prüfbar: `tests/test_anordnung.py` lädt genau dieses Modul in Node und
+ * vergleicht sein Ergebnis mit der Python-Fassung in `anordnung.py`.
+ * Laufen die beiden auseinander, verschiebt der Browser Karten anders als
+ * der Server sie speichert.
+ */
+
+export const OHNE_WERT = ["unavailable", "unknown", "none", ""];
+
+// Wie lange „übertragen ✓" stehen bleibt, bevor wieder der Zustand erscheint.
+const RUECKMELDUNG_MS = 4000;
+
+// Wie lange auf die Bestätigung der Anlage gewartet wird, bevor die
+// Rückmeldung aufgibt. Die Anlage wird nur alle 30 s abgefragt – drei
+// Minuten reichen also für mehrere Versuche. Länger zu warten hilft nicht:
+// Wird der Vorgang inzwischen an der Anlage selbst abgebrochen, bliebe
+// „wird ausgeführt …" sonst minutenlang stehen, obwohl nichts mehr läuft.
+const BESTAETIGUNG_MAX_MS = 3 * 60 * 1000;
+
+export const REITER = [
+  { schluessel: "uebersicht", titel: "Übersicht", symbol: "mdi:view-dashboard-outline" },
+  { schluessel: "steuerung", titel: "Steuerung", symbol: "mdi:tune-vertical" },
+  { schluessel: "wartung", titel: "Wartung", symbol: "mdi:wrench-outline" },
+  { schluessel: "verlauf", titel: "Verlauf", symbol: "mdi:chart-line" },
+];
+
+// Wie breit eine Karte höchstens werden darf, in Spalten. Deckt sich mit
+// `anordnung.BREITE_MAX` auf der Serverseite – was hier durchgeht, muss dort
+// gespeichert werden können.
+export const BREITE_MAX = 4;
+
+// Wie lange nach der letzten Änderung gewartet wird, bevor die Anordnung
+// gespeichert wird. Beim Ziehen fallen mehrere Änderungen kurz hintereinander
+// an; jede einzeln zu schreiben hieße, dieselbe Liste mehrfach abzulegen.
+export const SPEICHERN_MS = 500;
+
+/**
+ * Zwei Reihenfolgen zusammenführen: `basis` gilt, `rest` füllt auf.
+ *
+ * Was in `basis` steht, behält seinen Platz. Alles, was nur in `rest` steht,
+ * wird dort eingefügt, wo es nach `rest` hingehört – direkt hinter dem
+ * nächsten Vorgänger, der bereits einen Platz hat. Hat es keinen, kommt es
+ * nach vorn.
+ */
+export function reihenfolgeMischen(basis, rest) {
+  const ergebnis = [...basis];
+  (rest || []).forEach((kennung, stelle) => {
+    if (ergebnis.includes(kennung)) return;
+    let ziel = 0;
+    for (let vorher = stelle - 1; vorher >= 0; vorher--) {
+      const platz = ergebnis.indexOf(rest[vorher]);
+      if (platz >= 0) {
+        ziel = platz + 1;
+        break;
+      }
+    }
+    ergebnis.splice(ziel, 0, kennung);
+  });
+  return ergebnis;
+}
+
+/**
+ * Die gespeicherte Reihenfolge auf die tatsächlich vorhandenen Karten anwenden.
+ *
+ * **Neue Anlagenteile dürfen die Anordnung nicht zerreißen.** Gespeichert ist
+ * nur die Reihenfolge bekannter Kennungen; was neu dazukommt, landet an der
+ * Stelle, an der es von Haus aus stünde, und nicht am Ende. Kennungen, die es
+ * nicht mehr gibt, fallen still weg. Dieselbe Rechnung steht in
+ * `anordnung.ordnung_anwenden` auf der Serverseite.
+ */
+export function ordnungAnwenden(standard, gespeichert) {
+  const vorhanden = new Set(standard);
+  return reihenfolgeMischen(
+    (gespeichert || []).filter((kennung) => vorhanden.has(kennung)),
+    standard
+  );
+}
+

@@ -21,12 +21,12 @@ import subprocess
 
 import pytest
 
-PANEL_JS = (
+ORDNUNG_JS = (
     Path(__file__).resolve().parents[1]
     / "custom_components"
     / "heatnexus"
     / "frontend"
-    / "heatnexus-panel.js"
+    / "ordnung.js"
 )
 
 
@@ -151,14 +151,18 @@ FAELLE = [
 @pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
 def test_browser_rechnet_genauso(helpers, tmp_path):
     """Die Fassung im Browser muss dasselbe herausbekommen wie die hier."""
-    quelle = PANEL_JS.read_text(encoding="utf-8")
-    anfang = quelle.index("function reihenfolgeMischen")
-    ende = quelle.index("class HeatNexusPanel")
-    skript = tmp_path / "ordnung.mjs"
+    # Das Modul wird **geladen**, nicht aus einer größeren Datei
+    # herausgeschnitten. Bis 1.5.0 lagen die Funktionen mitten in der
+    # Panel-Datei, und der Test schnitt sie zwischen zwei Markierungen heraus.
+    # Das prüfte nebenbei die ganze Datei auf gültiges JavaScript und hat so
+    # zweimal einen Backtick im CSS-Kommentar gefunden – diese Prüfung
+    # übernimmt jetzt `test_module_sind_gueltiges_javascript`.
+    skript = tmp_path / "pruefung.mjs"
+    adresse = ORDNUNG_JS.resolve().as_uri()
     skript.write_text(
-        quelle[anfang:ende]
-        + "\nconst faelle = JSON.parse(process.argv[2]);\n"
-        + "console.log(JSON.stringify(faelle.map(([s, g]) => ordnungAnwenden(s, g))));\n",
+        f'import {{ ordnungAnwenden }} from "{adresse}";\n'
+        "const faelle = JSON.parse(process.argv[2]);\n"
+        "console.log(JSON.stringify(faelle.map(([s, g]) => ordnungAnwenden(s, g))));\n",
         encoding="utf-8",
     )
     ausgabe = subprocess.run(
@@ -169,3 +173,37 @@ def test_browser_rechnet_genauso(helpers, tmp_path):
     )
     erwartet = [helpers.ordnung_anwenden(standard, gespeichert) for standard, gespeichert in FAELLE]
     assert json.loads(ausgabe.stdout) == erwartet
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_module_sind_gueltiges_javascript(tmp_path):
+    """Jedes Modul der Oberfläche muss sich laden lassen.
+
+    Diese Prüfung hing bisher als Nebenwirkung am Test darüber. Sie hat zweimal
+    denselben Fehler gefunden – ein Backtick in einem CSS-Kommentar beendet das
+    Template-Literal, und die Datei ist kein gültiges JavaScript mehr –, und
+    deshalb steht sie jetzt für sich und deckt **alle** Module ab.
+    """
+    ordner = ORDNUNG_JS.parent
+    module = sorted(p for p in ordner.glob("*.js"))
+    assert module, "keine Module gefunden"
+
+    # Node kennt keinen Browser. Ohne diese Attrappen scheitert das Laden an
+    # `extends HTMLElement`, und der Test prüfte nur noch sich selbst. Sie
+    # sind bewusst so dünn wie möglich: Geprüft wird, dass die Dateien
+    # gültiges JavaScript sind und ihr Rumpf durchläuft – nicht, was sie
+    # zeichnen.
+    attrappen = (
+        "globalThis.HTMLElement = class {};\n"
+        "globalThis.customElements = { get: () => undefined, define: () => {} };\n"
+        "globalThis.document = { createElement: () => ({ style: {} }) };\n"
+        "globalThis.window = globalThis;\n"
+    )
+    zeilen = [f'await import("{p.resolve().as_uri()}");' for p in module]
+    skript = tmp_path / "laden.mjs"
+    skript.write_text(attrappen + "\n".join(zeilen) + '\nconsole.log("ok");\n', encoding="utf-8")
+
+    ausgabe = subprocess.run(["node", str(skript)], capture_output=True, text=True)
+    assert ausgabe.returncode == 0, (
+        f"Ein Modul der Oberfläche ist kein gültiges JavaScript: {ausgabe.stderr[:800]}"
+    )

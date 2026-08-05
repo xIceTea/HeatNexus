@@ -97,7 +97,18 @@ def panel_js_pfad(version: str) -> str:
     ausgeliefert. Ein anderer Pfad ist für den Zwischenspeicher eine andere
     Datei – damit genügt ein gewöhnliches Neuladen statt Strg+Umschalt+R.
     """
-    return f"/heatnexus-frontend/{panel_fassung(version)}/heatnexus-panel.js"
+    return f"{panel_verzeichnis(version)}/heatnexus-panel.js"
+
+
+def panel_verzeichnis(version: str) -> str:
+    """Adresse des Ordners, in dem die Oberflächendateien liegen.
+
+    Ausgeliefert wird seit 1.5.0 der ganze Ordner, nicht mehr die eine Datei:
+    Die Oberfläche besteht aus mehreren ES-Modulen, die einander über relative
+    Adressen laden (``./stil.js``). Die Fassung bleibt im Pfad – aus demselben
+    Grund wie zuvor.
+    """
+    return f"/heatnexus-frontend/{panel_fassung(version)}"
 
 
 def panel_element(version: str) -> str:
