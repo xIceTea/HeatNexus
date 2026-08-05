@@ -660,11 +660,23 @@ export const STIL = `
   .zeitraster { display: flex; flex-direction: column; gap: 4px; }
   .zeitraster-skala {
     display: flex; justify-content: space-between;
-    margin-left: 34px; font-size: 10px; opacity: 0.45;
+    margin-left: 92px; font-size: 10px; opacity: 0.45;
   }
+  .zeitraster-block { padding: 6px 0; }
+  .zeitraster-block + .zeitraster-block { border-top: 1px solid rgba(255, 255, 255, 0.06); }
   .zeitraster-zeile { display: flex; align-items: center; gap: 8px; }
   .zeitraster-zeile .tag {
-    width: 26px; flex: none; font-size: 11px; font-weight: 600; opacity: 0.6;
+    width: 84px; flex: none; font-size: 12px; font-weight: 600; opacity: 0.75;
+  }
+  /* Die Schaltzeiten als Text unter dem Balken: Aus dem Balken allein liest
+     niemand ab, ob um 05:00 oder um 05:30 geschaltet wird. */
+  .zeitraster-zeiten {
+    display: flex; flex-wrap: wrap; gap: 6px 14px;
+    margin: 6px 0 2px 92px; font-size: 12px; opacity: 0.75;
+  }
+  .zeitraster-zeiten .schaltzeit { display: inline-flex; align-items: center; gap: 5px; }
+  .zeitraster-zeiten .schaltzeit i {
+    width: 8px; height: 8px; border-radius: 2px; display: inline-block;
   }
   .zeitraster .spur {
     position: relative; flex: 1; height: 16px; border-radius: 5px;
@@ -679,11 +691,13 @@ export const STIL = `
   }
   .zp-karteleiste { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
   .zp-taste {
+    display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 12px; border-radius: 10px; font: inherit; font-size: 13px;
     font-weight: 600; cursor: pointer; color: inherit;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);
   }
+  .zp-taste ha-icon { --mdc-icon-size: 18px; }
   .zp-taste:hover { background: rgba(255, 255, 255, 0.12); }
   .zp-taste:disabled { opacity: 0.4; cursor: default; }
   .zp-taste.betont { background: rgba(111, 178, 245, 0.16); border-color: rgba(111, 178, 245, 0.4); }
@@ -693,6 +707,9 @@ export const STIL = `
     flex-direction: column; gap: 12px; }
   .zp-block {
     border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px;
+  }
+  .zp-blockkopf {
+    font-size: 12px; font-weight: 600; opacity: 0.6; margin-bottom: 8px;
   }
   .zp-tage { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .zp-tag {
@@ -713,11 +730,13 @@ export const STIL = `
   }
   .zp-punkt .zp-wert { width: 92px; }
   .zp-weg {
-    width: 28px; height: 28px; border-radius: 8px; font: inherit; font-size: 15px;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 8px; font: inherit;
     cursor: pointer; color: inherit; background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  .zp-weg:hover { background: rgba(229, 57, 53, 0.25); }
+  .zp-weg ha-icon { --mdc-icon-size: 18px; }
+  .zp-weg:hover { background: rgba(229, 57, 53, 0.25); color: #ff8a80; }
   .zp-blockleiste { display: flex; gap: 8px; margin-top: 10px; }
   .zp-meldung { font-size: 13px; margin-top: 10px; min-height: 18px; }
   .zp-meldung.fehler { color: #ff8a80; }

@@ -619,4 +619,13 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         payload["value"] = value
 
         await client.write_object(full_oid, payload)
+
+        # Sofort nachlesen und die Anzeige damit versorgen. Zeitprogramme
+        # laufen im langsamen Takt mit; ohne das stünde hier bis zu mehrere
+        # Minuten lang der Stand von vor der Änderung – wer die Karte gleich
+        # wieder öffnet, glaubt, das Schreiben sei fehlgeschlagen.
+        geschrieben = await client.refresh_object(full_oid)
+        if geschrieben is not None and (daten := self.coordinator.data) is not None:
+            daten.setdefault("objects", {})[full_oid] = geschrieben
+            self.coordinator.async_update_listeners()
         await self.coordinator.async_request_refresh()

@@ -127,6 +127,58 @@ export function wochenraster(bloecke) {
 }
 
 /**
+ * Wochentage kurz benennen: „täglich", „Mo–Fr", „Mo–Mi, Sa".
+ *
+ * Sieben gleiche Zeilen untereinander sagen nichts, was eine Zeile „täglich"
+ * nicht auch sagt. Zusammenhängende Tage werden zu einer Spanne, ab drei
+ * Tagen mit Gedankenstrich – bei zweien wäre „Sa–So" länger als „Sa, So".
+ */
+export function tagesbereich(tage) {
+  const gewaehlt = TAGE.filter((tag) => (tage || []).includes(tag));
+  if (!gewaehlt.length) return "kein Tag";
+  if (gewaehlt.length === 7) return "täglich";
+  const spannen = [];
+  gewaehlt.forEach((tag) => {
+    const stelle = TAGE.indexOf(tag);
+    const letzte = spannen[spannen.length - 1];
+    if (letzte && stelle === letzte.bis + 1) letzte.bis = stelle;
+    else spannen.push({ von: stelle, bis: stelle });
+  });
+  return spannen
+    .map(({ von, bis }) => {
+      if (von === bis) return tagText(TAGE[von]);
+      if (bis - von === 1) return `${tagText(TAGE[von])}, ${tagText(TAGE[bis])}`;
+      return `${tagText(TAGE[von])}–${tagText(TAGE[bis])}`;
+    })
+    .join(", ");
+}
+
+/**
+ * Das Raster nach **Blöcken** statt nach Tagen.
+ *
+ * So führt die Anlage es, und so ist es zu lesen: Ein Programm mit einem
+ * einzigen Block für die ganze Woche steht in einer Zeile „täglich" statt in
+ * sieben gleichen. Tage ohne Block bekommen eine eigene, leere Zeile – sonst
+ * fiele nicht auf, dass Samstag nirgends vorkommt.
+ */
+export function blockraster(bloecke) {
+  const zeilen = (bloecke || [])
+    .filter((block) => block.tage.length)
+    .map((block) => ({
+      text: tagesbereich(block.tage),
+      tage: [...block.tage],
+      abschnitte: abschnitte(block.punkte),
+      punkte: [...block.punkte].sort((a, b) => a.zeit - b.zeit),
+    }));
+  const belegt = new Set(zeilen.flatMap((zeile) => zeile.tage));
+  const offen = TAGE.filter((tag) => !belegt.has(tag));
+  if (offen.length) {
+    zeilen.push({ text: tagesbereich(offen), tage: offen, abschnitte: [], punkte: [] });
+  }
+  return zeilen;
+}
+
+/**
  * Ein Schaltprogramm kennt nur Ein und Aus.
  *
  * Zirkulation und Freigabezeiten schreiben 0/1, Heizprogramme Temperaturen.
@@ -266,7 +318,10 @@ export function rasterKnoten(bloecke) {
   });
   raster.appendChild(kopf);
 
-  wochenraster(bloecke).forEach((zeile) => {
+  blockraster(bloecke).forEach((zeile) => {
+    const gruppe = document.createElement("div");
+    gruppe.className = "zeitraster-block";
+
     const reihe = document.createElement("div");
     reihe.className = "zeitraster-zeile";
 
@@ -294,7 +349,27 @@ export function rasterKnoten(bloecke) {
     });
 
     reihe.append(tag, spur);
-    raster.appendChild(reihe);
+    gruppe.appendChild(reihe);
+
+    // Die Schaltzeiten noch einmal als Text. Aus dem Balken allein liest
+    // niemand ab, ob um 05:00 oder um 05:30 geschaltet wird.
+    if (zeile.punkte.length) {
+      const zeiten = document.createElement("div");
+      zeiten.className = "zeitraster-zeiten";
+      zeile.punkte.forEach((punkt) => {
+        const marke = document.createElement("span");
+        marke.className = "schaltzeit";
+        const punktfarbe = document.createElement("i");
+        punktfarbe.style.background = farbe(punkt.wert, grenzen);
+        const text = document.createElement("span");
+        text.textContent = `${uhrzeit(punkt.zeit)} ${wertText(punkt.wert, grenzen)}`;
+        marke.append(punktfarbe, text);
+        zeiten.appendChild(marke);
+      });
+      gruppe.appendChild(zeiten);
+    }
+
+    raster.appendChild(gruppe);
   });
 
   return raster;
@@ -340,9 +415,22 @@ export function editorKnoten(bloecke, optionen = {}) {
     knoten.appendChild(anfuegen);
   };
 
+  // Ein Symbol aus dem Vorrat von Home Assistant. Ein „x" sah nach
+  // „Fenster schließen" aus; der Mülleimer sagt, was wirklich passiert.
+  const symbol = (name) => {
+    const ikone = document.createElement("ha-icon");
+    ikone.setAttribute("icon", name);
+    return ikone;
+  };
+
   const blockKnoten = (block, stelle) => {
     const kasten = document.createElement("div");
     kasten.className = "zp-block";
+
+    const kopf = document.createElement("div");
+    kopf.className = "zp-blockkopf";
+    kopf.textContent = `Block ${stelle + 1} · ${tagesbereich(block.tage)}`;
+    kasten.appendChild(kopf);
 
     const tage = document.createElement("div");
     tage.className = "zp-tage";
@@ -395,7 +483,10 @@ export function editorKnoten(bloecke, optionen = {}) {
     const weg = document.createElement("button");
     weg.type = "button";
     weg.className = "zp-taste";
-    weg.textContent = "Block entfernen";
+    weg.append(symbol("mdi:trash-can-outline"));
+    const wegText = document.createElement("span");
+    wegText.textContent = "Block entfernen";
+    weg.appendChild(wegText);
     weg.disabled = modell.length <= 1;
     weg.addEventListener("click", () => {
       modell.splice(stelle, 1);
@@ -456,7 +547,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     const weg = document.createElement("button");
     weg.type = "button";
     weg.className = "zp-weg";
-    weg.textContent = "×";
+    weg.appendChild(symbol("mdi:trash-can-outline"));
     weg.title = "Schaltzeit entfernen";
     weg.setAttribute("aria-label", "Schaltzeit entfernen");
     weg.addEventListener("click", () => {

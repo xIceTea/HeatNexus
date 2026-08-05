@@ -11,14 +11,19 @@
 export const OHNE_WERT = ["unavailable", "unknown", "none", ""];
 
 // Wie lange „übertragen ✓" stehen bleibt, bevor wieder der Zustand erscheint.
-const RUECKMELDUNG_MS = 4000;
+//
+// **Muss ausgeführt werden.** Beim Schnitt in ES-Module blieben die beiden
+// Zeitwerte hier ohne `export` liegen, während die Oberfläche sie weiter
+// benutzte. Ergebnis: Beim ersten Aufräumen einer Rückmeldung flog ein
+// `ReferenceError`, und „wird ausgeführt …" blieb für immer stehen.
+export const RUECKMELDUNG_MS = 4000;
 
 // Wie lange auf die Bestätigung der Anlage gewartet wird, bevor die
 // Rückmeldung aufgibt. Die Anlage wird nur alle 30 s abgefragt – drei
 // Minuten reichen also für mehrere Versuche. Länger zu warten hilft nicht:
 // Wird der Vorgang inzwischen an der Anlage selbst abgebrochen, bliebe
 // „wird ausgeführt …" sonst minutenlang stehen, obwohl nichts mehr läuft.
-const BESTAETIGUNG_MAX_MS = 3 * 60 * 1000;
+export const BESTAETIGUNG_MAX_MS = 3 * 60 * 1000;
 
 export const REITER = [
   { schluessel: "uebersicht", titel: "Übersicht", symbol: "mdi:view-dashboard-outline" },

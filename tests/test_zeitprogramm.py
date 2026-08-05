@@ -43,11 +43,13 @@ def rechnung(tmp_path_factory) -> dict:
 import {{
   abschnitte,
   bereich,
+  blockraster,
   bloeckeLesen,
   gleich,
   istSchaltprogramm,
   nachDienst,
   pruefen,
+  tagesbereich,
   wochenraster,
 }} from "{adresse}";
 
@@ -126,6 +128,16 @@ console.log(
     deutscher_wert: deutsch[0].punkte,
     schmutz: schmutz[0],
     raster_tage: wochenraster(heizen).map((zeile) => [zeile.tag, zeile.abschnitte.length]),
+    bereich_taeglich: tagesbereich(["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]),
+    bereich_spanne: tagesbereich(["Mo", "Tu", "We", "Th", "Fr"]),
+    bereich_paar: tagesbereich(["Sa", "Su"]),
+    bereich_luecke: tagesbereich(["Mo", "Tu", "We", "Fr"]),
+    bereich_leer: tagesbereich([]),
+    bloecke_als_zeilen: blockraster(heizen).map((zeile) => [zeile.text, zeile.punkte.length]),
+    zeile_ohne_programm: blockraster(schalten).map((zeile) => [
+      zeile.text,
+      zeile.abschnitte.length,
+    ]),
     schalt_erkannt: istSchaltprogramm(schalten),
     heizen_ist_kein_schaltprogramm: istSchaltprogramm(heizen),
     bereich_heizen: bereich(heizen),
@@ -144,7 +156,11 @@ console.log(
 """,
         encoding="utf-8",
     )
-    ausgabe = subprocess.run(["node", str(skript)], capture_output=True, text=True, check=True)
+    # Ohne `encoding` liest Windows die Ausgabe in der Codepage der Konsole,
+    # und aus dem Gedankenstrich in „Mo–Fr" wird Zeichensalat.
+    ausgabe = subprocess.run(
+        ["node", str(skript)], capture_output=True, text=True, encoding="utf-8", check=True
+    )
     return json.loads(ausgabe.stdout)
 
 
@@ -171,6 +187,27 @@ def test_ein_schaltpunkt_um_mitternacht_deckt_den_ganzen_tag(rechnung):
 
 def test_ohne_schaltpunkte_gibt_es_keine_abschnitte(rechnung):
     assert rechnung["ohne_punkte"] == []
+
+
+def test_wochentage_werden_zu_spannen_zusammengefasst(rechnung):
+    """Sieben gleiche Zeilen sagen nichts, was „täglich" nicht auch sagt."""
+    assert rechnung["bereich_taeglich"] == "täglich"
+    assert rechnung["bereich_spanne"] == "Mo–Fr"
+    # Bei zwei Tagen wäre „Sa–So" länger als die Aufzählung.
+    assert rechnung["bereich_paar"] == "Sa, So"
+    assert rechnung["bereich_luecke"] == "Mo–Mi, Fr"
+    assert rechnung["bereich_leer"] == "kein Tag"
+
+
+def test_raster_zeigt_bloecke_statt_sieben_gleicher_zeilen(rechnung):
+    """Ein Block je Zeile – so führt die Anlage das Programm auch."""
+    assert rechnung["bloecke_als_zeilen"] == [["Mo–Fr", 2], ["Sa, So", 1]]
+
+
+def test_tage_ohne_block_bekommen_eine_leere_zeile(rechnung):
+    """Sonst fiele nicht auf, dass für sechs Tage nichts hinterlegt ist."""
+    # Mo hat drei Abschnitte: Ein ab 05:00, Aus ab 08:00, davor der Umlauf.
+    assert rechnung["zeile_ohne_programm"] == [["Mo", 3], ["Di–So", 0]]
 
 
 def test_jeder_wochentag_bekommt_seine_zeile(rechnung):

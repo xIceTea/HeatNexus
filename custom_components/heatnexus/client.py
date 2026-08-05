@@ -1281,6 +1281,26 @@ class WindhagerHttpClient:
         self.time_programs = [tp for tp in self.time_programs if tp.get("type") == "time_program"]
         return objects
 
+    async def refresh_object(self, oid: str):
+        """Ein einzelnes Zeitprogramm sofort neu lesen.
+
+        Zeitprogramme laufen im langsamen Takt mit – wer eines schreibt, sähe
+        seinen eigenen Stand sonst bis zu mehrere Minuten lang nicht. Nach dem
+        Schreiben wird deshalb genau dieses eine Objekt nachgelesen, nicht
+        alle: Jedes kostet eine eigene Anfrage an der Anlage.
+
+        Zurück kommen die Blöcke, oder ``None``, wenn die Anlage nichts
+        Brauchbares liefert – dann bleibt der zuletzt bekannte Stand stehen.
+        """
+        data, status = await self.fetch_object(oid)
+        if status != 200 or not isinstance(data, dict) or "value" not in data:
+            return None
+        wert = data["value"]
+        if not _ist_zeitprogramm(wert):
+            return None
+        self._letzte_objekte[oid] = wert
+        return wert
+
     # Alle Meldungsfelder eines Geräts (FE01msg, FE02msg, …) – mehrere
     # gleichzeitige Störungen reihen sich aneinander.
     _FEMSG_RE = _re.compile(r"^FE\d+msg$")

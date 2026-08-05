@@ -156,7 +156,8 @@ von Hand gepflegt.
 | `aiohelper.py` | nebenläufigkeitssichere Digest-Authentifizierung |
 | `__init__.py` | Coordinator, Cache, Setup/Unload, Dienste |
 | `dashboard.py` | mitgeliefertes Dashboard, serverseitig gebaut |
-| `panel.py` | eigener Eintrag in der Seitenleiste, Aufteilung serverseitig |
+| `panel/` | eigener Eintrag in der Seitenleiste: Anmeldung, Aufteilung, Suchmuster, Erklärtexte |
+| `frontend/` | die Oberfläche selbst (siehe unten) |
 | `schema.py` | Anlagenschaubild aus den Bauteildateien in `anlagenteile/` |
 | `blueprints.py` | Automations-Vorlagen bereitstellen |
 | `diagnostics.py` | Diagnosedaten für Fehlerberichte |
@@ -167,3 +168,28 @@ von Hand gepflegt.
 | `helpers.py` | Wertparsing |
 | `config_flow.py` | Einrichtung (Host, Passwort) |
 | `climate.py` … `date.py` | Plattformen |
+
+## Die Oberfläche
+
+Ausgeliefert wird der Ordner `frontend/`, ohne Bauschritt und ohne Framework —
+was dort steht, lädt der Browser genau so.
+
+| Datei | Aufgabe |
+|---|---|
+| `heatnexus-panel.js` | das Element selbst: Lebenszyklus, Werte-Zugriff, Aufbau, Kopf- und Reiterleiste |
+| `stil.js` | das gesamte CSS |
+| `ordnung.js` | Reihenfolge der Karten und Zeitkonstanten – dieselbe Rechnung wie `anordnung.py` auf dem Server |
+| `zeitprogramm.js` | Zeitprogramme: Abschnitte, Prüfung, Nutzlast, Wochenraster, Editor |
+| `teile/*.js` | die Abschnitte der Oberfläche, je einer als Mixin |
+
+Ein Web-Component ist **eine** Klasse. Um sie trotzdem auf mehrere Dateien zu
+verteilen, bringt jede Datei unter `teile/` ihren Abschnitt als Mixin mit
+(`(Basis) => class extends Basis { … }`), und `heatnexus-panel.js` setzt sie
+zusammen. Die Methoden bleiben dadurch Methoden derselben Klasse; es gibt kein
+durchgereichtes `this` und keine geänderten Aufrufstellen.
+
+`tests/test_oberflaeche.py` baut die Oberfläche in Node gegen eine schmale
+DOM-Attrappe einmal komplett auf – mit der Aufteilung, die die echte
+Serverseite liefert. Ein reiner Ladetest hätte den Fehler nicht gefunden, der
+diesen Test veranlasst hat: eine Konstante ohne `export`, die erst beim
+Aufräumen einer Rückmeldung auffiel.

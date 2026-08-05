@@ -185,7 +185,10 @@ def test_module_sind_gueltiges_javascript(tmp_path):
     deshalb steht sie jetzt für sich und deckt **alle** Module ab.
     """
     ordner = ORDNUNG_JS.parent
-    module = sorted(p for p in ordner.glob("*.js"))
+    # **Rekursiv.** Seit 1.5.0 liegen die Abschnitte der Oberfläche unter
+    # `teile/`; mit einem flachen Muster wäre die Prüfung genau in dem Augenblick
+    # blind geworden, in dem es mehr zu prüfen gab.
+    module = sorted(p for p in ordner.rglob("*.js"))
     assert module, "keine Module gefunden"
 
     # Node kennt keinen Browser. Ohne diese Attrappen scheitert das Laden an
