@@ -6,6 +6,42 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.5.0-beta.1] - 2026-08-05
+
+Vorabversion. Sie bündelt alles seit 1.4.1 – darunter den zweiten Anlauf beim
+Heizkörper und die Schichtung des Puffers. Bitte an beiden Anlagen prüfen,
+bevor daraus 1.5.0 wird.
+
+### Neu
+
+- **Der Puffer zeigt seine Schichtung.** Oben die Farbe der oberen Temperatur,
+  unten die der unteren, dazwischen die Sprungschicht – beides echte Fühler
+  (`21/65` TPE, `21/66` TPA). Durchgeladen heißt durchgehend eine Farbe.
+  Gezeichnet wird nur, wenn beide melden: Einen zweiten Wert abzuleiten wäre
+  schlimmer als keine Schichtung, der Speicher sähe immer halb geladen aus.
+
+### Behoben
+
+- **An den Ecken des Heizkörpers schimmerte Rot durch**, auf dem Handy
+  deutlicher als am Rechner. Die gezeichneten Glieder sind an den Enden rund,
+  die farbige Ebene darüber war eckig. Sie besteht jetzt aus einem Element je
+  Glied mit derselben Rundung, und die Zeichnung darunter ist neutral: Sie
+  füllte die Glieder mit einem Verlauf von Glut nach Warm und glühte damit
+  auch bei 27 °C Vorlauf. Ohne gemessene Vorlauftemperatur bleibt der
+  Heizkörper grau.
+
+### Werkzeug
+
+- Die Sonde kennt den Zugang der Anlage (`--user USER|Service`); er war fest
+  verdrahtet.
+- Sie kann die Endpunkte der Steuerung **aufzählen** statt sie zu raten und
+  unterscheidet dabei „vorhanden", „kennt sie nicht" und „unklar". Ein `401`
+  ist der verbrauchte Digest-Nonce und kein Fund – vorher zählte er als einer.
+- Der Störspeicher-Suchlauf ist aus dem Quelltext der Weboberfläche abgeleitet
+  statt geraten: zehn Einträge unter `/1/<node>/<fct>/2/96/<0…9>`, gelesen
+  über `lookup`. Ergebnis an der geprüften Anlage: Diese Firmware führt ihn
+  nicht über die Schnittstelle.
+
 ## [1.4.2] - 2026-08-04
 
 ### Behoben
