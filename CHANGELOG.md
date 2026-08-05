@@ -8,6 +8,49 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+## [1.5.0-beta.3] - 2026-08-05
+
+Vorabversion. Sie behebt, was an der Anlage aufgefallen ist, und schneidet die
+Oberfläche in lesbare Teile.
+
+### Behoben
+
+- **„wird ausgeführt …" blieb für immer stehen.** Nach einem Eingriff räumte
+  die Oberfläche ihre Rückmeldung nie wieder ab: Beim Schnitt in ES-Module
+  blieben zwei Zeitkonstanten ohne Ausfuhr liegen, und der erste Aufräumversuch
+  scheiterte still. Sichtbar wurde es bei Eco und Comfort — die Anlage stellte
+  brav zurück, die Karte behauptete weiter, sie arbeite noch.
+- **Ein zweiter Eingriff löst den ersten ab.** Wer den Sollwert verschiebt und
+  danach Eco drückt, hat seine erste Vorgabe selbst überstimmt. Sie wartete
+  trotzdem drei Minuten auf eine Bestätigung, die nicht mehr kommen konnte.
+- **Ein geschriebenes Zeitprogramm steht sofort in der Karte.** Zeitprogramme
+  werden im langsamen Takt gelesen; wer eines änderte und die Karte gleich
+  wieder öffnete, sah bis zu einer Viertelstunde lang den Stand von vorher und
+  musste glauben, das Schreiben sei fehlgeschlagen. Jetzt wird genau dieses
+  eine Programm sofort nachgelesen.
+
+### Geändert
+
+- **Das Wochenraster zeigt Blöcke statt sieben gleicher Zeilen.** Ein Programm,
+  das für die ganze Woche gilt, steht in einer Zeile „täglich"; getrennte
+  Blöcke stehen als „Mo–Fr" und „Sa, So" untereinander — so, wie die Anlage sie
+  auch führt. Unter jedem Balken stehen die Schaltzeiten als Text: Ob um 05:00
+  oder um 05:30 geschaltet wird, liest niemand aus einem Balken ab. Tage ohne
+  Programm bekommen eine eigene, leere Zeile.
+- Entfernen im Zeitprogramm-Editor trägt einen Mülleimer statt eines „x".
+
+### Intern
+
+- **Die Oberfläche liegt in Teilen.** 2899 Zeilen in einer Datei mit neun
+  Aufgaben — jetzt `frontend/teile/{bedienen,bausteine,anordnen,schaubild,
+  uebersicht,steuerung,wartung,verlauf,zeitprogramme}.js`, Hauptdatei 443
+  Zeilen. Die Methoden sind unverändert übernommen (88 vorher, keine verloren,
+  keine doppelt).
+- **Die Oberfläche wird jetzt geprüft, nicht nur geladen.** Ein Durchlauf in
+  Node baut alle Reiter gegen eine schmale DOM-Attrappe auf — mit der
+  Aufteilung, die die echte Serverseite liefert. Der Fehler oben wäre damit vor
+  der Auslieferung aufgefallen; ein reiner Ladetest fand ihn nicht.
+
 ## [1.5.0-beta.2] - 2026-08-05
 
 Vorabversion. Sie bündelt alles seit `1.5.0-beta.1`: den Reiter für die
