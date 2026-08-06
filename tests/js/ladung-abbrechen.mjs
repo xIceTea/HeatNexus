@@ -19,7 +19,7 @@ import { pathToFileURL } from "node:url";
 import { browserAttrappe } from "./dom-attrappe.mjs";
 
 const [pfadPanel] = process.argv.slice(2);
-browserAttrappe();
+const zeit = browserAttrappe();
 
 await import(pathToFileURL(pfadPanel).href);
 const [klasse] = [...globalThis.customElements._klassen.values()];
@@ -334,6 +334,61 @@ const faelle = [];
     throw new Error("Abbruch schickte eine überflüssige Betriebswahl hinterher");
   }
   faelle.push("Abbruch aus einem Programm: nur die Freigabe zurück");
+}
+
+// --- Übergangener Abbruch wird nachgesetzt ---------------------------------
+//
+// Gemeldet: Manchmal lief die Ladung nach dem Abbrechen weiter, und erst ein
+// zweiter Druck beendete sie. Nachgesetzt wird nur nach einer Prüfung und nur
+// die Freigabe – ein zusätzlicher Betriebswahl-Befehl war es, der das
+// Abbrechen vorher unwirksam machte.
+const abschaltungen = (gerufen) =>
+  gerufen.filter((r) => r.dienst === "turn_off" && r.daten.entity_id === AUSLOESER).length;
+
+{
+  const { element, taste, gerufen } = panelBauen({
+    laedt: true,
+    optionen: ["Standby", "Programm 1", "Heizbetrieb", "WW-Betrieb"],
+  });
+  element._wahlVorLadung[BETRIEBSWAHL] = "Programm 1";
+  taste.ausloesen("click");
+  await abwarten();
+  const zuerst = abschaltungen(gerufen);
+  if (zuerst !== 1) throw new Error(`Abbruch schaltete ${zuerst}-mal ab statt einmal`);
+
+  // Die Anlage bleibt auf Ladung stehen – der Befehl kam nicht an.
+  for (let runde = 0; runde < 4; runde++) {
+    zeit.zeitLaufenLassen();
+    await abwarten();
+  }
+  const danach = abschaltungen(gerufen);
+  if (danach <= zuerst) throw new Error("übergangener Abbruch wurde nicht nachgesetzt");
+  if (gerufen.filter((r) => r.dienst === "select_option").length > 1) {
+    throw new Error("beim Nachsetzen ging eine Betriebswahl mit");
+  }
+  faelle.push("übergangener Abbruch wird nachgesetzt");
+}
+
+{
+  const { element, taste, gerufen } = panelBauen({
+    laedt: true,
+    optionen: ["Standby", "Programm 1", "Heizbetrieb", "WW-Betrieb"],
+  });
+  element._wahlVorLadung[BETRIEBSWAHL] = "Programm 1";
+  taste.ausloesen("click");
+  await abwarten();
+  const zuerst = abschaltungen(gerufen);
+
+  // Die Anlage bestätigt: Sie lädt nicht mehr.
+  element._hass.states[BETRIEBSART].state = "Heizbetrieb";
+  for (let runde = 0; runde < 4; runde++) {
+    zeit.zeitLaufenLassen();
+    await abwarten();
+  }
+  if (abschaltungen(gerufen) !== zuerst) {
+    throw new Error("bestätigter Abbruch wurde trotzdem nachgesetzt");
+  }
+  faelle.push("bestätigter Abbruch wird nicht nachgesetzt");
 }
 
 console.log(JSON.stringify({ faelle }, null, 1));

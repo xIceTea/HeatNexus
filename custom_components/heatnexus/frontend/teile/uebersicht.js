@@ -9,7 +9,14 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { ANNAHME_MS, OHNE_WERT, RUECKMELDUNG_MS, SPERRE_MS } from "../ordnung.js";
+import {
+  ABBRUCH_PAUSE_MS,
+  ABBRUCH_VERSUCHE,
+  ANNAHME_MS,
+  OHNE_WERT,
+  RUECKMELDUNG_MS,
+  SPERRE_MS,
+} from "../ordnung.js";
 
 export const UebersichtMixin = (Basis) =>
   class extends Basis {
@@ -671,11 +678,50 @@ export const UebersichtMixin = (Basis) =>
       );
       delete this._wahlVorLadung[eintrag.betriebswahl];
       this._nachfassen(eintrag);
+      this._abbruchNachsetzen(eintrag, ausloeser);
     } finally {
       // Nicht blind freigeben: Ob die Taste jetzt gesperrt gehört, entscheidet
       // die Annahme, nicht dieser Ablauf.
       if (taste._zeichnen) taste._zeichnen();
       else taste.disabled = false;
+    }
+  }
+
+  /**
+   * Einen Abbruch nachsetzen, den die Anlage überging.
+   *
+   * Nicht jeder Befehl kommt an – gemeldet wurde, dass die Ladung nach dem
+   * Abbrechen manchmal weiterlief und erst ein zweiter Druck sie beendete.
+   * Statt blind ein zweites Mal zu schreiben wird **erst gelesen**: Meldet die
+   * Betriebsart weiter eine Ladung, geht die Freigabe noch einmal auf Nein.
+   *
+   * Nur die Freigabe, nie die Betriebswahl. Die Freigabe ist ein Zustand
+   * (`2/16`, Nein/Ja) und lässt sich gefahrlos wiederholen; ein zusätzlicher
+   * Betriebswahl-Befehl war es, der das Abbrechen vorher unwirksam machte.
+   *
+   * Die Ladepumpe zählt hier nicht mit: Sie läuft nach und wäre kein Beleg
+   * für eine weiterlaufende Ladung.
+   */
+  async _abbruchNachsetzen(eintrag, ausloeser) {
+    if (!ausloeser) return;
+    // Wer inzwischen erneut gedrückt hat, hat das letzte Wort. Ohne diese
+    // Marke beendete ein alter Nachsetzer eine gerade frisch gestartete
+    // Ladung.
+    this._abbruchLauf = this._abbruchLauf || {};
+    const marke = (this._abbruchLauf[ausloeser] || 0) + 1;
+    this._abbruchLauf[ausloeser] = marke;
+
+    for (let versuch = 0; versuch < ABBRUCH_VERSUCHE; versuch++) {
+      await new Promise((weiter) => window.setTimeout(weiter, ABBRUCH_PAUSE_MS));
+      if (this._abbruchLauf[ausloeser] !== marke || !this._hass) return;
+      if (!this._laedtLautBetriebsart(eintrag)) return;
+      try {
+        await this._hass.callService("switch", "turn_off", { entity_id: ausloeser });
+      } catch (err) {
+        console.warn("HeatNexus: Abbruch liess sich nicht wiederholen", err);
+        return;
+      }
+      this._nachfassen(eintrag);
     }
   }
 

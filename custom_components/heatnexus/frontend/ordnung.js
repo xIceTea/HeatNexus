@@ -79,6 +79,22 @@ export const SPERRE_MS = 5 * 1000;
 export const NACHFASS_ANZAHL = 4;
 export const NACHFASS_MS = 4 * 1000;
 
+/**
+ * Wie oft ein Abbruch nachgesetzt wird, wenn die Anlage ihn überging.
+ *
+ * Nicht jeder Befehl kommt an: Manchmal lief die Ladung nach dem Abbrechen
+ * weiter, und erst ein zweiter Druck beendete sie. Statt das dem Nutzer
+ * aufzubürden, wird **geprüft und nur dann erneut geschickt** – blind ein
+ * zweites Mal zu schreiben wäre genau der Fehler, der das Abbrechen vorher
+ * unwirksam gemacht hat.
+ *
+ * Wiederholt wird ausschließlich die Freigabe auf Nein. Sie ist ein Zustand,
+ * kein Auslöser: Sie ein zweites Mal zu setzen kann nichts anrichten und
+ * nichts doppelt auslösen. Die Betriebswahl bleibt außen vor.
+ */
+export const ABBRUCH_VERSUCHE = 2;
+export const ABBRUCH_PAUSE_MS = 6 * 1000;
+
 export const REITER = [
   { schluessel: "uebersicht", titel: "Übersicht", symbol: "mdi:view-dashboard-outline" },
   { schluessel: "steuerung", titel: "Steuerung", symbol: "mdi:tune-vertical" },
