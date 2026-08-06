@@ -334,6 +334,12 @@ export const SteuerungMixin = (Basis) =>
       if (wasser.laden_temperatur) {
         karte.appendChild(this._statuszeile(wasser.laden_temperatur, "Ladetemperatur"));
       }
+      // Die Einschalthysterese: wie weit die Temperatur unter den Sollwert
+      // fallen darf, bevor nachgeladen wird. Sie entscheidet mit, ob ein
+      // Ladeauftrag angenommen wird - deshalb steht sie neben der Taste.
+      if (wasser.hysterese) {
+        karte.appendChild(this._zahlFeld("Nachladen ab", wasser.hysterese));
+      }
       // **Dieselbe Taste wie im Schnellzugriff der Übersicht.** Vorher stand
       // hier eine eigene, die weder die Ladeschwelle kannte noch abbrechen
       // konnte: In der Übersicht ließ sich eine Ladung beenden, in der
@@ -343,6 +349,61 @@ export const SteuerungMixin = (Basis) =>
     return karte;
   }
 
+
+  /**
+   * Ein Zahlenwert der Anlage, direkt hier einstellbar.
+   *
+   * Gedacht für die wenigen Werte, die zur Bedienung gehören, aber keine
+   * eigene Karte rechtfertigen - die Einschalthysterese der Warmwasserladung
+   * etwa. Grenzen und Schrittweite meldet die Anlage selbst; erfunden wird
+   * hier nichts.
+   */
+  _zahlFeld(titel, entity) {
+    const zeile = document.createElement("div");
+    zeile.className = "status-zeile";
+    const links = document.createElement("div");
+    links.className = "titel";
+    links.textContent = titel;
+    const rechts = document.createElement("div");
+    rechts.className = "wert";
+    const feld = document.createElement("input");
+    feld.type = "number";
+    feld.className = "zp-wert";
+    const einheit = document.createElement("span");
+    einheit.className = "zp-einheit";
+    const rueckmeldung = document.createElement("div");
+    rueckmeldung.className = "rueckmeldung";
+    rechts.append(feld, einheit);
+    zeile.append(links, rechts, rueckmeldung);
+
+    feld.addEventListener("change", async () => {
+      const wert = Number(feld.value);
+      if (!Number.isFinite(wert)) return;
+      await this._uebertragen(
+        rueckmeldung,
+        () => this._hass.callService("number", "set_value", { entity_id: entity, value: wert }),
+        () => {
+          const jetzt = this._zustand(entity);
+          return !!jetzt && Math.abs(Number(jetzt.state) - wert) < 0.05;
+        },
+        entity
+      );
+    });
+
+    this._bindungen.push(() => {
+      const zustand = this._zustand(entity);
+      zeile.hidden = !zustand;
+      if (!zustand) return;
+      const merkmale = zustand.attributes || {};
+      if (merkmale.min !== undefined) feld.min = String(merkmale.min);
+      if (merkmale.max !== undefined) feld.max = String(merkmale.max);
+      if (merkmale.step !== undefined) feld.step = String(merkmale.step);
+      einheit.textContent = merkmale.unit_of_measurement || "";
+      // Nicht überschreiben, während jemand tippt.
+      if (document.activeElement !== feld) feld.value = zustand.state;
+    });
+    return zeile;
+  }
 
   _istAn(entity) {
     const zustand = this._zustand(entity);

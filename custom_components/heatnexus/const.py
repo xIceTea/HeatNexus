@@ -856,6 +856,24 @@ CLIMATE_EXTRA_ENTITIES = [
         "category": "config",
         "icon": "mdi:reload",
     },
+    # **Die Einschalthysterese der Warmwasserladung.** Sie sagt, wie weit die
+    # Temperatur unter den Sollwert fallen darf, bevor die Anlage nachlädt –
+    # Werk 5 K, Bereich 1 bis 20 K. Sie gilt für die Ladung überhaupt, nicht
+    # nur für die Einmalladung; die Oberfläche sagt mit ihr vorher, ob ein
+    # Ladeauftrag angenommen wird. Der Hersteller führt sie auf der
+    # Serviceebene, wodurch sie abgeschaltet entstand und praktisch niemand
+    # sie fand.
+    {
+        "oid": "/5/0/0",
+        "name": "Hysterese Ein",
+        "platform": "number",
+        "unit": "K",
+        "min": 1,
+        "max": 20,
+        "step": 0.5,
+        "category": "config",
+        "icon": "mdi:arrow-expand-vertical",
+    },
     {
         "oid": "/1/66/0",
         "name": "WW-Ladepumpe",

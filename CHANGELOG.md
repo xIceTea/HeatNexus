@@ -8,26 +8,31 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+## [1.5.0-beta.8] - 2026-08-06
+
+Vorabversion.
+
+### Neu
+
+- Einschalthysterese der Warmwasserladung unter *Steuerung* einstellbar
+  (1–20 K, Werk 5 K). Sie entscheidet mit, ob ein Ladeauftrag angenommen wird.
+
+### Geändert
+
+- Ein neu eingeschalteter Wert steht sofort da statt erst nach bis zu 30 s.
+
 ## [1.5.0-beta.7] - 2026-08-06
 
 Vorabversion.
 
 ### Behoben
 
-- **Im HACS-Fenster fehlten alle Bilder.** Sie standen als `<picture>` mit
-  zwei Farbsätzen im README. HACS setzt beim Anzeigen nur die Adresse im
-  `src` auf das Repository um, nicht die im `srcset` – und genau die zog der
-  Browser im dunklen Erscheinungsbild. Jetzt steht überall eine vollständige
-  Adresse; dafür entfällt der helle Satz im README.
+- Im HACS-Fenster fehlten alle Bilder.
 
 ### Geändert
 
-- **Das Zeitprogramm des Puffers sagt, wann es wirkt.** Der Puffer folgt ihm
-  nur in der Betriebswahl „Auto mit Zeitprogramm"; in Standby, Automatik-,
-  Festbrennstoff-, Hand- oder Kaminkehrerbetrieb läuft es ins Leere. Die Karte
-  trägt jetzt denselben Hinweis wie das Zirkulationsprogramm. Versteckt wird
-  sie nicht – anders als bei der Zirkulation gibt es kein zweites Programm,
-  das stattdessen gälte.
+- Das Zeitprogramm des Puffers weist darauf hin, dass es nur in der
+  Betriebswahl *Auto mit Zeitprogramm* wirkt.
 
 ## [1.5.0-beta.6] - 2026-08-06
 
@@ -35,27 +40,15 @@ Vorabversion.
 
 ### Behoben
 
-- **Ein zweiter Druck auf „abbrechen" stellte die Anlage auf ein fremdes
-  Programm.** Nach dem ersten Abbruch war der gemerkte Zustand verbraucht, die
-  Ladung bis zum nächsten Abruf aber noch als laufend gemeldet. Der zweite
-  Druck suchte sich daraufhin selbst ein Zeitprogramm – und schrieb
-  „Heizprogramm 1", das nie jemand gewählt hatte. Geraten wird jetzt nichts
-  mehr: Ist der Zustand von vor der Ladung unbekannt, wird die **aktuelle**
-  Betriebswahl erneut gesetzt. Das beendet den vorübergehenden Zustand und
-  kann nichts verstellen.
-- **Der Modus der Zirkulationspumpe war standardmäßig abgeschaltet.** Der
-  Hersteller führt `5/6` auf der Serviceebene; dadurch entstand die Entität
-  deaktiviert. Ohne sie wusste die Oberfläche nicht, welches der beiden
-  gleichnamigen Zirkulationsprogramme gerade wirkt – es standen kommentarlos
-  beide da. Der Modus ist jetzt Teil der Bedienung und von Anfang an dabei.
+- Ein zweiter Druck auf *Warmwasser laden abbrechen* stellte die Betriebswahl
+  auf ein Programm, das nie jemand gewählt hatte.
+- Der Modus der Zirkulationspumpe war standardmäßig abgeschaltet; ohne ihn
+  standen beide Zirkulationsprogramme kommentarlos nebeneinander.
 
 ### Geändert
 
-- **Zeitprogramme tragen das Symbol ihres Anlagenteils** – dasselbe wie in der
-  Heizungsübersicht. Bei mehreren Programmen untereinander findet man seines
-  damit am Bild statt an der Überschrift.
-- **Im Editor steht die Einheit hinter dem Wert** (`°C`). Vorher stand dort
-  eine nackte Zahl, während darunter im Raster „05:30 21 °C" steht.
+- Zeitprogramme tragen das Symbol ihres Anlagenteils.
+- Im Zeitprogramm-Editor steht die Einheit hinter dem Wert.
 
 ## [1.5.0-beta.5] - 2026-08-06
 
@@ -63,44 +56,15 @@ Vorabversion.
 
 ### Behoben
 
-- **„Warmwasser laden abbrechen" startete die Ladung neu.** Der Abbruch
-  verlangte neben der laufenden Ladung noch die Betriebswahl und einen
-  bekannten Rückkehrpunkt. Fehlte eines davon, landete der Druck beim
-  Auslöser – und lud noch einmal. Von außen sah das aus, als passierte gar
-  nichts: „lädt gerade" stand sofort wieder da. Jetzt bricht die Taste immer
-  ab, und wenn sie nicht kann, sagt sie warum.
-- **Der Abbruch hing an der Ladepumpe.** Die läuft nach; solange sie das tat,
-  blieb die Rückmeldung auf „wird ausgeführt …" stehen, obwohl das Umschalten
-  längst durch war. Maßgeblich ist jetzt die Betriebsart.
-- **Anlagen mit „Heizprogramm 1" werden erkannt.** Gesucht wurde nur nach
-  Einträgen, die mit „Programm" *beginnen*; bei anderer Benennung fand der
-  Abbruch keinen Rückkehrpunkt.
+- *Warmwasser laden abbrechen* startete die Ladung neu, statt sie zu beenden.
+- Der Abbruch wartete auf die nachlaufende Ladepumpe und blieb auf
+  „wird ausgeführt …" stehen.
+- Anlagen, die ihre Zeitprogramme *Heizprogramm 1* nennen, wurden nicht erkannt.
 
 ### Geändert
 
-- **Von zwei Zirkulationsprogrammen steht nur noch das wirksame da.** Die
-  Anlage führt zwei, und sie heißen wortgleich „WW-Zirkulationsprogramm" –
-  eines gilt bei Zeitsteuerung, das andere bei Temperatursteuerung. Bisher
-  standen beide nebeneinander, ohne dass zu erkennen war, welches gerade
-  greift. Jetzt verschwindet das der jeweils anderen Art. Steht die
-  Zirkulationspumpe auf Aus, Impuls oder Dauerlauf, bleiben beide sichtbar –
-  vorbereiten können muss man sie.
-
-### Neu
-
-- **Der BioWIN wird als Pelletskessel erkannt.** Bisher blieb es bei dem, was
-  die Menü-Erkennung zufällig fand; jetzt gibt es eine eigene Tabelle mit
-  Kesseltemperatur, Leistung, Abgastemperatur, Betriebsphase und -art,
-  Brennerstarts, Betriebsstunden, Brennstoffverbrauch und den drei
-  Restlaufzeiten bis Reinigung, Hauptreinigung und Wartung. Der BioWIN führt
-  diese Zähler an anderen Stellen als der PuroWIN – bisher blieben die Zeilen
-  deshalb leer.
-
-### Behoben
-
-- **„Fehler Vorratsbehälter" trug ein Leerzeichen am Ende.** In der
-  Herstellerdatei steht es so. Als Zustand war es unsichtbar, aber ein
-  Vergleich in einer Automation ging daneben, ohne dass zu sehen war, warum.
+- Von den beiden gleichnamigen Zirkulationsprogrammen steht nur noch das da,
+  das zur eingestellten Steuerungsart passt.
 
 ## [1.5.0-beta.4] - 2026-08-06
 

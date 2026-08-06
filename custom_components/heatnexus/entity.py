@@ -217,6 +217,12 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         await super().async_added_to_hass()
         if self._register_poll_oid and self._oid:
             self.coordinator.client.register_poll_oid(self._oid)
+            # **Den einen Wert sofort holen, nicht erst beim nächsten Takt.**
+            # Wer eine abgeschaltete Entität einschaltet, lädt damit den ganzen
+            # Eintrag neu – und sah danach bis zu dreißig Sekunden lang „nicht
+            # verfügbar", obwohl alle anderen Werte längst standen. Gelesen wird
+            # nur diese Adresse; der Rest kommt mit dem regulären Abruf.
+            self._wert_sofort_holen()
         if not self._wiederherstellbar:
             return
         alt = await self.async_get_last_state()
@@ -282,6 +288,33 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         self._nachfassen(value)
 
     # ------------------------------------------------------------------
+    def _wert_sofort_holen(self) -> None:
+        """Die eigene Adresse einmal lesen, ohne auf den Takt zu warten.
+
+        Nur, wenn noch kein Wert vorliegt: Nach einem gewöhnlichen Neustart
+        steht er längst in den Abrufdaten, und ein zweiter Zugriff wäre eine
+        Anfrage an die Anlage ohne jeden Gewinn.
+        """
+        if not self.hass or not self._oid:
+            return
+        vorhanden = (self.coordinator.data or {}).get("oids", {})
+        if self._oid in vorhanden:
+            return
+        self.hass.async_create_task(self._sofort_lauf())
+
+    async def _sofort_lauf(self) -> None:
+        try:
+            aktuell = await self.coordinator.client.fetch_oids([self._oid])
+        except Exception as err:
+            _LOGGER.debug("Sofortabruf für %s fehlgeschlagen: %s", self._oid, err)
+            return
+        daten = self.coordinator.data
+        if daten is None or not aktuell or not self.hass:
+            return
+        daten.setdefault("oids", {}).update(aktuell)
+        with contextlib.suppress(Exception):
+            self.coordinator.async_update_listeners()
+
     def _nachfassen(self, erwartet: str | None = None) -> None:
         """Den geschriebenen Datenpunkt kurz engmaschig nachlesen.
 

@@ -235,6 +235,9 @@ WARMWASSER_ABSTAND = 5.0
 # Serviceebene und ist standardmäßig abgeschaltet; dann bleibt es beim
 # Werkswert oben.
 WARMWASSER_HYSTERESE = r"^hysterese ein$"
+# Dieselbe Adresse als Mustertupel, für die Suche nach der bedienbaren
+# Entität (`_kennung` erwartet ein Tupel, `_erster` eine Zeichenkette).
+WARMWASSER_HYSTERESE_MUSTER = _muster(WARMWASSER_HYSTERESE)
 
 # Betriebsarten (2/9), die eine laufende Warmwasserladung bedeuten.
 WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-Programm")

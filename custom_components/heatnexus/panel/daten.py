@@ -52,6 +52,7 @@ from .muster import (
     WARMWASSER,
     WARMWASSER_ABSTAND,
     WARMWASSER_HYSTERESE,
+    WARMWASSER_HYSTERESE_MUSTER,
     WARMWASSER_IST,
     WARMWASSER_IST_KENNWERT,
     WARMWASSER_KREIS,
@@ -301,6 +302,11 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
             # Die Temperatur der Einmalladung ist an der Anlage Teil derselben
             # Bedienung; ohne sie lädt man auf einen Wert, den man nicht sieht.
             "laden_temperatur": _kennung(alle, EINMALLADUNG_TEMPERATUR, ("number",)),
+            # Die Einschalthysterese: wie weit die Temperatur unter den
+            # Sollwert fallen darf, bevor nachgeladen wird. Sie entscheidet
+            # mit, ob ein Ladeauftrag überhaupt angenommen wird – deshalb
+            # gehört sie neben die Taste und nicht in die Serviceebene.
+            "hysterese": _kennung(alle, WARMWASSER_HYSTERESE_MUSTER, ("number",)),
             # Was die Anlage gerade tut – daran hängt die Rückmeldung.
             "betriebsart": _kennung(alle, BETRIEBSART, ("sensor",)),
             "programm": _kennung(alle, _muster(r"ww[- ].*programm"), ("sensor",)),
