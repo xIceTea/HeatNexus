@@ -388,6 +388,10 @@ def _zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
                 "entity": eintrag["entity_id"],
                 "titel": eintrag["name"],
                 "anlagenteil": teil["name"],
+                # Dasselbe Symbol wie in der Heizungsübersicht: Wer vier
+                # Programme untereinander hat, findet seines schneller am Bild
+                # des Anlagenteils als an der Überschrift.
+                "symbol": teil.get("symbol"),
             }
             if text := hilfe(eintrag["name"]):
                 programm["hilfe"] = text

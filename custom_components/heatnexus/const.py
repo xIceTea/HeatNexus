@@ -842,6 +842,20 @@ CLIMATE_EXTRA_ENTITIES = [
         "platform": "binary_sensor",
         "device_class": "running",
     },
+    # **Der Modus der Zirkulationspumpe gehört zur Bedienung, nicht auf die
+    # Serviceebene.** Der Hersteller führt `5/6` dort; dadurch entstand die
+    # Entität abgeschaltet, und ohne sie wusste die Oberfläche nicht, welches
+    # der beiden gleichnamigen Zirkulationsprogramme gerade wirkt – es standen
+    # kommentarlos beide da. Wer eine Zirkulation hat, stellt genau hier ein,
+    # wonach sie sich richtet.
+    {
+        "oid": "/5/6/0",
+        "name": "WW-Zirkulationspumpe Modus",
+        "platform": "select",
+        "enum": "5/6",
+        "category": "config",
+        "icon": "mdi:reload",
+    },
     {
         "oid": "/1/66/0",
         "name": "WW-Ladepumpe",

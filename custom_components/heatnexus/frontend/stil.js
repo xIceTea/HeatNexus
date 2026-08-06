@@ -656,7 +656,13 @@ export const STIL = `
   /* Die Balken sitzen in Prozent der Spur, nicht in Bildpunkten: Die Karte
      ist mal eine Spalte breit und mal vier. In Bildpunkten säßen die Zeiten
      schon bei der zweiten Breite daneben. */
-  .zp-anlagenteil { font-size: 12px; opacity: 0.55; margin: -4px 0 12px; }
+  .zp-anlagenteil {
+    font-size: 12px; opacity: 0.55; margin: -4px 0 12px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .zp-anlagenteil ha-icon { --mdc-icon-size: 15px; }
+  /* Die Einheit hinter dem Eingabefeld: leise, aber da. */
+  .zp-einheit { font-size: 12px; opacity: 0.6; min-width: 20px; }
   .zeitraster { display: flex; flex-direction: column; gap: 4px; }
   .zeitraster-skala {
     display: flex; justify-content: space-between;

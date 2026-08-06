@@ -544,6 +544,14 @@ export function editorKnoten(bloecke, optionen = {}) {
     wert.setAttribute("aria-label", grenzen.schalt ? "Schaltzustand" : "Solltemperatur");
     wert.className = "zp-wert";
 
+    // Die Einheit hinter das Feld. Ohne sie steht im Editor eine nackte Zahl,
+    // während im Raster darunter „05:30 21 °C" steht – und man rechnet kurz,
+    // ob 21 nun Grad oder eine Uhrzeit ist. Beim Schaltzustand („Ein"/„Aus")
+    // gibt es nichts zu ergänzen.
+    const einheiten = document.createElement("span");
+    einheiten.className = "zp-einheit";
+    einheiten.textContent = grenzen.schalt ? "" : "°C";
+
     const weg = document.createElement("button");
     weg.type = "button";
     weg.className = "zp-weg";
@@ -555,7 +563,7 @@ export function editorKnoten(bloecke, optionen = {}) {
       zeichnen();
     });
 
-    zeile.append(zeit, wert, weg);
+    zeile.append(zeit, wert, einheiten, weg);
     return zeile;
   };
 

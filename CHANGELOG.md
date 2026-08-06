@@ -8,6 +8,34 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+## [1.5.0-beta.6] - 2026-08-06
+
+Vorabversion.
+
+### Behoben
+
+- **Ein zweiter Druck auf „abbrechen" stellte die Anlage auf ein fremdes
+  Programm.** Nach dem ersten Abbruch war der gemerkte Zustand verbraucht, die
+  Ladung bis zum nächsten Abruf aber noch als laufend gemeldet. Der zweite
+  Druck suchte sich daraufhin selbst ein Zeitprogramm – und schrieb
+  „Heizprogramm 1", das nie jemand gewählt hatte. Geraten wird jetzt nichts
+  mehr: Ist der Zustand von vor der Ladung unbekannt, wird die **aktuelle**
+  Betriebswahl erneut gesetzt. Das beendet den vorübergehenden Zustand und
+  kann nichts verstellen.
+- **Der Modus der Zirkulationspumpe war standardmäßig abgeschaltet.** Der
+  Hersteller führt `5/6` auf der Serviceebene; dadurch entstand die Entität
+  deaktiviert. Ohne sie wusste die Oberfläche nicht, welches der beiden
+  gleichnamigen Zirkulationsprogramme gerade wirkt – es standen kommentarlos
+  beide da. Der Modus ist jetzt Teil der Bedienung und von Anfang an dabei.
+
+### Geändert
+
+- **Zeitprogramme tragen das Symbol ihres Anlagenteils** – dasselbe wie in der
+  Heizungsübersicht. Bei mehreren Programmen untereinander findet man seines
+  damit am Bild statt an der Überschrift.
+- **Im Editor steht die Einheit hinter dem Wert** (`°C`). Vorher stand dort
+  eine nackte Zahl, während darunter im Raster „05:30 21 °C" steht.
+
 ## [1.5.0-beta.5] - 2026-08-06
 
 Vorabversion.

@@ -245,7 +245,7 @@ def abbruch() -> dict:
 
 def test_eine_laufende_ladung_wird_beendet_statt_neu_gestartet(abbruch):
     """Derselbe Druck, entgegengesetzte Wirkung – daran hing der Fehler."""
-    assert "laufende Ladung: Betriebswahl zurück auf Programm 1" in abbruch["faelle"]
+    assert "laufende Ladung: zurück auf den Zustand von vorher" in abbruch["faelle"]
 
 
 def test_ohne_rueckkehrpunkt_passiert_lieber_nichts(abbruch):
@@ -255,7 +255,7 @@ def test_ohne_rueckkehrpunkt_passiert_lieber_nichts(abbruch):
     Oberfläche und heizt trotzdem weiter.
     """
     assert "ohne Betriebswahl: kein Dienst, kein zweiter Start" in abbruch["faelle"]
-    assert "kein Programm in der Betriebswahl: kein zweiter Start" in abbruch["faelle"]
+    assert "Betriebswahl ohne Zustand: kein Dienst, kein zweiter Start" in abbruch["faelle"]
 
 
 def test_ohne_laufende_ladung_loest_die_taste_aus(abbruch):
@@ -263,6 +263,13 @@ def test_ohne_laufende_ladung_loest_die_taste_aus(abbruch):
     assert "ruhende Anlage: Ladung wird ausgelöst" in abbruch["faelle"]
 
 
-def test_auch_heizprogramm_zaehlt_als_programm(abbruch):
-    """Nicht jede Baureihe nennt die Zeitprogramme „Programm 1"."""
-    assert "Baureihe mit „Heizprogramm 1“: erkannt" in abbruch["faelle"]
+def test_der_zweite_druck_raet_kein_programm(abbruch):
+    """Der zweite gemeldete Fehler – und der gefährlichere.
+
+    Nach dem ersten Abbruch ist der gemerkte Zustand verbraucht, die Ladung
+    aber bis zum nächsten Abruf noch als laufend gemeldet. Wer dann noch
+    einmal drückt, bekam die Anlage kommentarlos auf „Heizprogramm 1"
+    gestellt – ein Programm, das nie jemand gewählt hatte.
+    """
+    assert "zweiter Druck: kein geratenes Programm" in abbruch["faelle"]
+    assert "unbekannter Rückkehrpunkt: aktuelle Wahl erneut geschrieben" in abbruch["faelle"]

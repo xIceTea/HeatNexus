@@ -50,7 +50,13 @@ export const ZeitprogrammeMixin = (Basis) =>
     if (programm.anlagenteil) {
       const unter = document.createElement("div");
       unter.className = "zp-anlagenteil";
-      unter.textContent = programm.anlagenteil;
+      // Dasselbe Symbol wie in der Heizungsübersicht – bei mehreren
+      // Programmen untereinander findet man seines am Bild schneller als am
+      // Text.
+      if (programm.symbol) unter.appendChild(this._symbolKnoten(programm.symbol));
+      const name = document.createElement("span");
+      name.textContent = programm.anlagenteil;
+      unter.appendChild(name);
       karte.appendChild(unter);
     }
 

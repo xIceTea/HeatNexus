@@ -577,12 +577,21 @@ export const UebersichtMixin = (Basis) =>
   _rueckkehrWahl(eintrag) {
     const gemerkt = this._wahlVorLadung[eintrag.betriebswahl];
     if (gemerkt) return gemerkt;
-    // Erst das genaue Muster, dann großzügiger: Nicht jede Baureihe nennt die
-    // Zeitprogramme „Programm 1" – es gibt auch „Heizprogramm 1".
-    return (
-      this._optionWie(eintrag.betriebswahl, eintrag.betriebswahl_zurueck || "^programm") ||
-      this._optionWie(eintrag.betriebswahl, "programm")
-    );
+    // **Nie ein Programm raten.** Bis 1.5.0-beta.5 suchte diese Stelle den
+    // ersten Eintrag, der wie ein Zeitprogramm aussah. Das ging genau so
+    // lange gut, bis jemand ein zweites Mal drückte: Der gemerkte Zustand war
+    // schon verbraucht, die Ladung nach dem ersten Druck noch als laufend
+    // gemeldet – und die Taste stellte die Anlage kommentarlos auf
+    // „Heizprogramm 1", das der Nutzer nie gewählt hatte.
+    //
+    // Ist der Zustand von vor der Ladung unbekannt, wird stattdessen die
+    // **aktuelle** Betriebswahl erneut geschrieben. Sie ist die dauerhafte
+    // Wahl; die Ladung liegt nur vorübergehend darüber. Sie erneut zu setzen
+    // beendet den vorübergehenden Zustand und kann nichts verstellen – sie
+    // steht ja schon so.
+    const jetzt = this._zustand(eintrag.betriebswahl);
+    if (!jetzt || OHNE_WERT.includes(String(jetzt.state).toLowerCase())) return null;
+    return jetzt.state;
   }
 
   /**

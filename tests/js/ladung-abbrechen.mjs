@@ -71,23 +71,40 @@ const abwarten = async () => {
 
 const faelle = [];
 
-// --- Der gemeldete Fehler ---------------------------------------------------
+// --- Der gemeldete Fehler: Abbruch startete die Ladung neu ------------------
 {
-  const { taste, gerufen } = panelBauen({
+  const { element, taste, gerufen } = panelBauen({
     laedt: true,
     optionen: ["Standby", "Programm 1", "Programm 2", "Heizbetrieb", "WW-Betrieb"],
   });
+  // Wie nach einem Start über dieselbe Taste: Der Zustand von vorher steht.
+  element._wahlVorLadung[BETRIEBSWAHL] = "Programm 2";
   taste.ausloesen("click");
   await abwarten();
   const wahl = gerufen.find((r) => r.dienst === "select_option");
   if (!wahl) throw new Error("Abbruch schrieb die Betriebswahl nicht");
-  if (wahl.daten.option !== "Programm 1") {
-    throw new Error(`Abbruch stellte auf ${wahl.daten.option} statt auf Programm 1`);
+  if (wahl.daten.option !== "Programm 2") {
+    throw new Error(`Abbruch stellte auf ${wahl.daten.option} statt auf Programm 2`);
   }
   if (gerufen.some((r) => r.dienst === "turn_on" || r.dienst === "press")) {
     throw new Error("Abbruch löste die Ladung erneut aus");
   }
-  faelle.push("laufende Ladung: Betriebswahl zurück auf Programm 1");
+  faelle.push("laufende Ladung: zurück auf den Zustand von vorher");
+}
+
+// --- Ohne gemerkten Zustand: die aktuelle Wahl erneut schreiben -------------
+{
+  const { taste, gerufen } = panelBauen({
+    laedt: true,
+    optionen: ["Standby", "Programm 1", "Heizbetrieb", "WW-Betrieb"],
+  });
+  taste.ausloesen("click");
+  await abwarten();
+  const wahl = gerufen.find((r) => r.dienst === "select_option");
+  if (!wahl || wahl.daten.option !== "WW-Betrieb") {
+    throw new Error(`unbekannter Rückkehrpunkt führte zu ${wahl && wahl.daten.option}`);
+  }
+  faelle.push("unbekannter Rückkehrpunkt: aktuelle Wahl erneut geschrieben");
 }
 
 // --- Ohne Betriebswahl darf die Ladung nicht erneut starten -----------------
@@ -101,18 +118,19 @@ const faelle = [];
   faelle.push("ohne Betriebswahl: kein Dienst, kein zweiter Start");
 }
 
-// --- Kein Programm in der Auswahl: ebenfalls kein zweiter Start -------------
+// --- Betriebswahl ohne lesbaren Zustand: lieber gar nichts ------------------
 {
-  const { taste, gerufen } = panelBauen({
+  const { element, taste, gerufen } = panelBauen({
     laedt: true,
     optionen: ["Standby", "Heizbetrieb", "WW-Betrieb"],
   });
+  element._hass.states[BETRIEBSWAHL].state = "unavailable";
   taste.ausloesen("click");
   await abwarten();
   if (gerufen.length) {
-    throw new Error(`ohne Programm wurde ${gerufen[0].dienst} gerufen`);
+    throw new Error(`ohne lesbaren Zustand wurde ${gerufen[0].dienst} gerufen`);
   }
-  faelle.push("kein Programm in der Betriebswahl: kein zweiter Start");
+  faelle.push("Betriebswahl ohne Zustand: kein Dienst, kein zweiter Start");
 }
 
 // --- Steht sie still, löst dieselbe Taste die Ladung aus --------------------
@@ -129,19 +147,27 @@ const faelle = [];
   faelle.push("ruhende Anlage: Ladung wird ausgelöst");
 }
 
-// --- „Heizprogramm 1" zählt auch als Programm -------------------------------
+// --- Ohne gemerkten Zustand wird nichts geraten -----------------------------
+//
+// Der gemeldete Fehler: Beim zweiten Druck war der gemerkte Zustand
+// verbraucht, die Ladung noch als laufend gemeldet – und die Taste stellte die
+// Anlage auf „Heizprogramm 1", das nie jemand gewählt hatte.
 {
   const { taste, gerufen } = panelBauen({
     laedt: true,
-    optionen: ["Standby", "Heizprogramm 1", "Heizbetrieb", "WW-Betrieb"],
+    optionen: ["Standby", "Heizprogramm 1", "Heizprogramm 2", "Heizbetrieb", "WW-Betrieb"],
   });
   taste.ausloesen("click");
   await abwarten();
-  const wahl = gerufen.find((r) => r.dienst === "select_option");
-  if (!wahl || wahl.daten.option !== "Heizprogramm 1") {
-    throw new Error("Baureihe mit Heizprogramm 1 wurde nicht erkannt");
+  taste.ausloesen("click");
+  await abwarten();
+  const geraten = gerufen.find(
+    (r) => r.dienst === "select_option" && r.daten.option !== "WW-Betrieb"
+  );
+  if (geraten) {
+    throw new Error(`zweiter Druck stellte auf ${geraten.daten.option}`);
   }
-  faelle.push("Baureihe mit „Heizprogramm 1“: erkannt");
+  faelle.push("zweiter Druck: kein geratenes Programm");
 }
 
 console.log(JSON.stringify({ faelle }, null, 1));
