@@ -425,39 +425,15 @@ export const UebersichtMixin = (Basis) =>
 
     taste.addEventListener("click", async () => {
       if (taste.disabled) return;
-      const lief = laeuft();
-      // Läuft die Ladung schon, bricht dieselbe Taste sie ab. Der Auslöser
-      // selbst taugt dafür nicht: Er fällt zurück, sobald die Anlage den
-      // Auftrag angenommen hat, und hat danach keinen Zustand mehr, den man
-      // zurücknehmen könnte. Beendet wird über die Betriebswahl – genauso wie
-      // an der Anlage selbst.
-      if (lief && eintrag.betriebswahl && eintrag.betriebswahl_zurueck) {
-        // Zurück auf das, was **vor** der Ladung eingestellt war. Nur wenn das
-        // unbekannt ist – etwa nach einem Neuladen der Seite –, greift das
-        // Zeitprogramm als Rückfall. Blind aufs Zeitprogramm zu stellen würde
-        // sonst einen laufenden Heiz- oder Absenkbetrieb stillschweigend
-        // beenden.
-        const gemerkt = this._wahlVorLadung[eintrag.betriebswahl];
-        const ziel =
-          gemerkt || this._optionWie(eintrag.betriebswahl, eintrag.betriebswahl_zurueck);
-        if (ziel) {
-          taste.disabled = true;
-          try {
-            await this._uebertragen(
-              rueckmeldung,
-              () =>
-                this._hass.callService("select", "select_option", {
-                  entity_id: eintrag.betriebswahl,
-                  option: ziel,
-                }),
-              () => !laeuft()
-            );
-            delete this._wahlVorLadung[eintrag.betriebswahl];
-            this._nachfassen(eintrag);
-          } finally {
-            taste.disabled = false;
-          }
-        }
+      // **Läuft die Ladung, bricht dieselbe Taste sie ab – und tut sonst
+      // nichts.** Bis 1.5.0 hing diese Bedingung zusätzlich an der
+      // Betriebswahl und ihrem Rückkehrmuster. Fehlte eines von beiden, fiel
+      // der Druck durch bis zum Auslöser und startete die Ladung **noch
+      // einmal**. Von außen sah das aus, als passierte gar nichts: „lädt
+      // gerade" stand sofort wieder da, ohne Rückfrage, ohne Meldung. Genau
+      // so war es gemeldet worden.
+      if (laeuft()) {
+        await this._ladungAbbrechen(eintrag, taste, rueckmeldung);
         return;
       }
 
@@ -512,7 +488,9 @@ export const UebersichtMixin = (Basis) =>
                   { entity_id: eintrag.entity }
                 );
           },
-          bereich === "button" ? null : () => laeuft() !== lief
+          // Bestätigt ist der Auftrag, wenn die Anlage anfängt zu laden. Hier
+          // steht sie noch – der Abbruch ist oben schon abgebogen.
+          bereich === "button" ? null : () => laeuft()
         );
         this._nachfassen(eintrag);
       } finally {
@@ -545,6 +523,82 @@ export const UebersichtMixin = (Basis) =>
    * wieder der Zustand da. Ein Dialog wäre für „geht gerade nicht" zu viel,
    * ein stummes Nichts zu wenig.
    */
+  /**
+   * Eine laufende Warmwasserladung beenden.
+   *
+   * Beendet wird über die **Betriebswahl**. Der Auslöser (`2/16`) taugt dafür
+   * nicht: Er fällt zurück, sobald die Anlage den Auftrag angenommen hat, und
+   * hat danach keinen Zustand mehr, den man zurücknehmen könnte.
+   *
+   * Geht es nicht, sagt die Taste warum. Ein stummes Nichts ist hier das
+   * Schlimmste – es sieht aus wie eine kaputte Oberfläche und war es bis
+   * 1.5.0 auch: Der Druck landete beim Auslöser und lud erneut.
+   */
+  async _ladungAbbrechen(eintrag, taste, rueckmeldung) {
+    if (!eintrag.betriebswahl) {
+      this._abgelehnt(taste, rueckmeldung, "keine Betriebswahl gefunden");
+      return;
+    }
+    const ziel = this._rueckkehrWahl(eintrag);
+    if (!ziel) {
+      this._abgelehnt(taste, rueckmeldung, "kein Programm in der Betriebswahl");
+      return;
+    }
+    taste.disabled = true;
+    try {
+      await this._uebertragen(
+        rueckmeldung,
+        () =>
+          this._hass.callService("select", "select_option", {
+            entity_id: eintrag.betriebswahl,
+            option: ziel,
+          }),
+        // **Ohne die Ladepumpe.** Die läuft nach (`5/5` „Modus
+        // Ladepumpennachlauf"), und solange sie läuft, gälte die Ladung als
+        // aktiv: Die Rückmeldung hinge auf „wird ausgeführt …", obwohl das
+        // Umschalten längst durch ist.
+        () => !this._laedtLautBetriebsart(eintrag)
+      );
+      delete this._wahlVorLadung[eintrag.betriebswahl];
+      this._nachfassen(eintrag);
+    } finally {
+      taste.disabled = false;
+    }
+  }
+
+  /**
+   * Der Eintrag der Betriebswahl, auf den nach einer Ladung zurückgestellt wird.
+   *
+   * Erste Wahl ist der Zustand **vor** der Ladung – blind auf ein Programm zu
+   * stellen beendete sonst stillschweigend einen laufenden Heiz- oder
+   * Absenkbetrieb. Ist er unbekannt (etwa nach einem Neuladen der Seite oder
+   * wenn die Ladung am Gerät gestartet wurde), greift das Zeitprogramm.
+   */
+  _rueckkehrWahl(eintrag) {
+    const gemerkt = this._wahlVorLadung[eintrag.betriebswahl];
+    if (gemerkt) return gemerkt;
+    // Erst das genaue Muster, dann großzügiger: Nicht jede Baureihe nennt die
+    // Zeitprogramme „Programm 1" – es gibt auch „Heizprogramm 1".
+    return (
+      this._optionWie(eintrag.betriebswahl, eintrag.betriebswahl_zurueck || "^programm") ||
+      this._optionWie(eintrag.betriebswahl, "programm")
+    );
+  }
+
+  /**
+   * Lädt die Anlage laut Betriebsart – ohne die nachlaufende Ladepumpe.
+   *
+   * Für die Anzeige zählt die Pumpe mit: Sie ist der handfeste Beleg, dass
+   * gerade geladen wird. Für die Bestätigung eines Abbruchs zählt sie
+   * gerade nicht.
+   */
+  _laedtLautBetriebsart(eintrag) {
+    if (!eintrag.zustand_an) return false;
+    const zustand = this._zustand(eintrag.zustand_an);
+    if (!zustand || OHNE_WERT.includes(String(zustand.state).toLowerCase())) return false;
+    return (eintrag.zustand_wenn || []).includes(zustand.state);
+  }
+
   _abgelehnt(taste, anzeige, grund) {
     anzeige.dataset.belegt = "1";
     anzeige.className = "rueckmeldung fehler";

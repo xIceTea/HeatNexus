@@ -212,3 +212,57 @@ def test_das_schaubild_folgt_dem_erscheinungsbild(durchlauf, aufteilung):
     assert schaubild["dunkel"] == anlage["schema"]
     assert schaubild["hell"] == anlage["schema_hell"]
     assert schaubild["hell"] != schaubild["dunkel"]
+
+
+# ---------------------------------------------------------------------------
+# Warmwasserladung abbrechen
+#
+# Der Fehler, den es hier zu halten gilt: Bis 1.5.0 hing der Abbruchzweig
+# zusätzlich an der Betriebswahl und ihrem Rückkehrmuster. Fehlte eines von
+# beiden, fiel der Druck durch bis zum Auslöser und startete die Ladung noch
+# einmal. Am Gerät sah das aus, als passierte gar nichts – „lädt gerade" stand
+# sofort wieder da, ohne Meldung.
+# ---------------------------------------------------------------------------
+ABBRUCH = Path(__file__).parent / "js" / "ladung-abbrechen.mjs"
+
+
+@pytest.fixture(scope="module")
+def abbruch() -> dict:
+    """Den Tastendruck in Node fahren – ohne Browser, ohne Anlage."""
+    lauf = subprocess.run(
+        ["node", str(ABBRUCH), str(PANEL_JS)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert lauf.returncode == 0, lauf.stderr or lauf.stdout
+    # Eine Warnung auf der Fehlerausgabe wäre hier ein Produktfehler: Der
+    # Durchlauf meldet dort, wenn eine Bestätigung nicht prüfbar war.
+    assert not lauf.stderr.strip(), lauf.stderr
+    return json.loads(lauf.stdout)
+
+
+def test_eine_laufende_ladung_wird_beendet_statt_neu_gestartet(abbruch):
+    """Derselbe Druck, entgegengesetzte Wirkung – daran hing der Fehler."""
+    assert "laufende Ladung: Betriebswahl zurück auf Programm 1" in abbruch["faelle"]
+
+
+def test_ohne_rueckkehrpunkt_passiert_lieber_nichts(abbruch):
+    """Kein zweiter Start, wenn der Abbruch nicht geht.
+
+    Ein stummer Neustart ist das Schlimmste: Er sieht aus wie eine kaputte
+    Oberfläche und heizt trotzdem weiter.
+    """
+    assert "ohne Betriebswahl: kein Dienst, kein zweiter Start" in abbruch["faelle"]
+    assert "kein Programm in der Betriebswahl: kein zweiter Start" in abbruch["faelle"]
+
+
+def test_ohne_laufende_ladung_loest_die_taste_aus(abbruch):
+    """Die Gegenprobe – sonst ließe sich gar nicht mehr laden."""
+    assert "ruhende Anlage: Ladung wird ausgelöst" in abbruch["faelle"]
+
+
+def test_auch_heizprogramm_zaehlt_als_programm(abbruch):
+    """Nicht jede Baureihe nennt die Zeitprogramme „Programm 1"."""
+    assert "Baureihe mit „Heizprogramm 1“: erkannt" in abbruch["faelle"]
