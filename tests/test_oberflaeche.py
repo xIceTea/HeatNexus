@@ -97,6 +97,9 @@ def aufteilung() -> dict:
             _entitaet("number.behaglichkeitskorrektur", "Behaglichkeitskorrektur"),
             _entitaet("number.dauer", "Dauer"),
             _entitaet("number.temperatur", "Temperatur"),
+            # Die Einschalthysterese steht als Zahlenfeld neben der Ladetaste –
+            # der einzige Wert der Oberfläche, den man dort direkt verstellt.
+            _entitaet("number.hysterese_ein", "Hysterese Ein", wert=5.0, text="5"),
             _entitaet("switch.ww_einmalladung", "WW Einmalladung"),
         ],
     )
@@ -183,6 +186,20 @@ def test_zwischen_schaltzeit_und_wert_steht_ein_strich(durchlauf):
     schaltzeiten = durchlauf["zeitprogramme"]["schaltzeiten"]
     assert schaltzeiten, "Das Wochenraster zeigt keine Schaltzeiten"
     assert all(" – " in text for text in schaltzeiten), schaltzeiten
+
+
+def test_das_zahlenfeld_hat_eigene_pfeile(durchlauf):
+    """Die des Browsers sind abgeschaltet – ganz ohne blieb nur noch Tippen.
+
+    Am Telefon ist ein 22 px breiter Pfeil der Unterschied zwischen „geht" und
+    „geht nicht".
+    """
+    assert durchlauf["steuerung"]["zahlPfeile"] >= 2
+
+
+def test_die_ladeschwelle_heisst_nach_dem_was_sie_tut(durchlauf):
+    """„Nachladen ab" las sich wie eine Temperatur; gemeint ist der Abstand."""
+    assert "Freigabe ab Abweichung" in durchlauf["steuerung"]["zahlFelder"]
 
 
 # ---------------------------------------------------------------------------

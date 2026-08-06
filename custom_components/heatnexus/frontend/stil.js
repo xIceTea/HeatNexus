@@ -685,6 +685,19 @@ export const STIL = `
   .zahl-feld input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   .zahl-feld input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   .zahl-einheit { font-size: 13px; opacity: 0.6; }
+  /* Eigene Pfeile links vom Feld. Am Telefon sind die des Browsers kaum zu
+     treffen; diese sind so hoch wie das Feld und je 20 px breit. */
+  .zahl-stufen { display: flex; flex-direction: column; gap: 2px; align-self: center; }
+  .zahl-pfeil {
+    width: 22px; height: 15px; padding: 0; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 5px;
+    color: var(--primary-text-color, #e6edf3);
+    font-size: 9px; cursor: pointer;
+  }
+  .zahl-pfeil:hover { background: rgba(111, 178, 245, 0.18); border-color: #6fb2f5; }
+  .zahl-pfeil:active { background: rgba(111, 178, 245, 0.3); }
   .zeitraster { display: flex; flex-direction: column; gap: 4px; }
   .zeitraster-skala {
     display: flex; justify-content: space-between;

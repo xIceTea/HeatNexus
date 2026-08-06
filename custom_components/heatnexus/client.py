@@ -832,6 +832,15 @@ class WindhagerHttpClient:
                     "level"
                 ) in ("operate", "service"):
                     d["category"] = "config"
+                if d["type"] in ("time", "date"):
+                    # **Uhrzeiten und Datumsfelder sind Einstellwerte, keine
+                    # Messwerte.** Schaltzeiten, Urlaubsende, Systemuhr – man
+                    # fasst sie einmal an und danach jahrelang nicht mehr.
+                    # Standardmäßig angelegt füllten sie die Entitätsliste und
+                    # kosteten in jedem Durchlauf eine Anfrage an eine Anlage,
+                    # die ohnehin knapp zwei Sekunden je Anfrage braucht. Wer
+                    # sie braucht, schaltet sie in Home Assistant einzeln ein.
+                    d["enabled_default"] = False
             if m:
                 # Device reports the actually allowed enum values, e.g. "[1,2]"
                 enum_raw = m.get("enum")

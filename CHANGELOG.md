@@ -8,6 +8,20 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+## [1.5.0-beta.10] - 2026-08-06
+
+Vorabversion.
+
+### Geändert
+
+- Uhrzeiten und Datumsfelder werden nicht mehr von selbst angelegt. Es sind
+  Einstellwerte, die man einmal anfasst; sie kosteten in jedem Durchlauf eine
+  Anfrage an die Anlage. Wer sie braucht, schaltet sie einzeln ein.
+- Das Zahlenfeld der Ladeschwelle hat wieder Pfeile — eigene, die die
+  Schrittweite der Anlage treffen und am Telefon zu bedienen sind.
+- Die Ladeschwelle heißt *Freigabe ab Abweichung* statt *Nachladen ab*: Gemeint
+  ist der Abstand zum Sollwert, nicht eine Temperatur.
+
 ## [1.5.0-beta.9] - 2026-08-06
 
 Vorabversion.

@@ -131,6 +131,11 @@ REITER.forEach((reiter) => {
     schaltzeiten: [...flaeche.shadowRoot.querySelectorAll(".schaltzeit")].map((knoten) =>
       String(knoten.textContent || "").trim()
     ),
+    // Eigene Pfeile am Zahlenfeld – die des Browsers sind abgeschaltet.
+    zahlPfeile: flaeche.shadowRoot.querySelectorAll(".zahl-pfeil").length,
+    zahlFelder: [...flaeche.shadowRoot.querySelectorAll(".status-zeile")]
+      .filter((zeile) => zeile.querySelector(".zahl-feld"))
+      .map((zeile) => String(zeile.querySelector(".titel").textContent || "").trim()),
   };
 });
 

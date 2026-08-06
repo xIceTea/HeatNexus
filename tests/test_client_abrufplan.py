@@ -45,6 +45,37 @@ def test_eine_arbeitseinheit_wird_traege_gelesen(client_module):
     assert client_module.WindhagerHttpClient._poll_klasse({"unit": "kWh"}) == "slow"
 
 
+async def test_uhrzeit_und_datum_werden_nicht_von_selbst_angelegt(client, client_module):
+    """Einstellwerte, die man einmal im Leben anfasst.
+
+    Standardmäßig angelegt füllten sie die Entitätsliste und kosteten in jedem
+    Durchlauf eine Anfrage an eine Anlage, die knapp zwei Sekunden je Anfrage
+    braucht. Wer sie braucht, schaltet sie einzeln ein.
+    """
+    client.oids = {"/1/15/0/3/78/0", "/1/15/0/5/61/0", "/1/15/0/0/7/0"}
+    client.menu_meta = {
+        "/1/15/0/3/78/0": {"writeProt": False, "value": "24.12.2026"},
+        "/1/15/0/5/61/0": {"writeProt": False, "value": "06:30"},
+        "/1/15/0/0/7/0": {"writeProt": True, "unit": "°C", "value": "45.7"},
+    }
+    client.devices = [
+        {"oid": oid, "name": name, "type": "auto", "level": "operate"}
+        for oid, name in (
+            ("/1/15/0/3/78/0", "Urlaubsprogramm bis Datum"),
+            ("/1/15/0/5/61/0", "Schaltzeit"),
+            ("/1/15/0/0/7/0", "Kesseltemperatur Ist"),
+        )
+    ]
+
+    await client._apply_metadata()
+
+    nach_typ = {d["type"]: d for d in client.devices}
+    assert nach_typ["date"]["enabled_default"] is False
+    assert nach_typ["time"]["enabled_default"] is False
+    # Die Gegenprobe: ein Messwert bleibt selbstverständlich an.
+    assert nach_typ["temperature"].get("enabled_default", True) is True
+
+
 def test_ein_abgewaehlter_fachparameter_wird_traege_gelesen(client_module):
     """Er ändert sich nur, wenn ihn jemand ändert."""
     beschreibung = {"name": "Kesselsolltemperatur Minimum", "enabled_default": False}

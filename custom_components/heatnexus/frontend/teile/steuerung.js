@@ -337,8 +337,11 @@ export const SteuerungMixin = (Basis) =>
       // Die Einschalthysterese: wie weit die Temperatur unter den Sollwert
       // fallen darf, bevor nachgeladen wird. Sie entscheidet mit, ob ein
       // Ladeauftrag angenommen wird - deshalb steht sie neben der Taste.
+      //
+      // „Nachladen ab" las sich wie eine Temperatur, ab der nachgeladen wird.
+      // Gemeint ist der Abstand zum Sollwert, den es zur Freigabe braucht.
       if (wasser.hysterese) {
-        karte.appendChild(this._zahlFeld("Nachladen ab", wasser.hysterese));
+        karte.appendChild(this._zahlFeld("Freigabe ab Abweichung", wasser.hysterese));
       }
       // **Dieselbe Taste wie im Schnellzugriff der Übersicht.** Vorher stand
       // hier eine eigene, die weder die Ladeschwelle kannte noch abbrechen
@@ -373,7 +376,27 @@ export const SteuerungMixin = (Basis) =>
     einheit.className = "zahl-einheit";
     const rueckmeldung = document.createElement("div");
     rueckmeldung.className = "rueckmeldung";
-    rechts.append(feld, einheit);
+
+    // **Eigene Pfeile vor dem Feld.** Die des Browsers sind abgeschaltet: Sie
+    // saßen über der Einheit und trafen die Schrittweite der Anlage nicht.
+    // Ganz ohne sie ließ sich der Wert am Telefon nur noch tippen. Diese hier
+    // kennen die Schrittweite, die die Anlage meldet, und laufen in dieselbe
+    // Warteschlange wie das Tippen – gehaltene Pfeile schicken also nicht
+    // jeden Schritt einzeln zur Anlage.
+    const stufen = document.createElement("div");
+    stufen.className = "zahl-stufen";
+    const pfeil = (richtung, zeichen, beschriftung) => {
+      const taste = document.createElement("button");
+      taste.type = "button";
+      taste.className = "zahl-pfeil";
+      taste.textContent = zeichen;
+      taste.setAttribute("aria-label", beschriftung);
+      taste.addEventListener("click", () => this._stufen(feld, richtung, anstossen));
+      return taste;
+    };
+    stufen.append(pfeil(1, "▲", "erhöhen"), pfeil(-1, "▼", "verringern"));
+
+    rechts.append(stufen, feld, einheit);
     zeile.append(links, rechts, rueckmeldung);
 
     // **Erst tippen, dann senden.** Jede Zahl einzeln zu übertragen hieß bei
@@ -420,6 +443,26 @@ export const SteuerungMixin = (Basis) =>
       if (document.activeElement !== feld && !warteschlange) feld.value = zustand.state;
     });
     return zeile;
+  }
+
+  /**
+   * Einen Schritt hoch oder runter – in der Schrittweite der Anlage.
+   *
+   * Gerundet wird auf die Schrittweite, damit aus 5 K bei Schritt 0,5 nicht
+   * 5,000000001 wird, und die Grenzen der Anlage werden eingehalten: Ein Wert
+   * außerhalb wird ohnehin abgewiesen.
+   */
+  _stufen(feld, richtung, anstossen) {
+    const schritt = Number(feld.step) || 1;
+    const jetzt = Number(feld.value);
+    const grundwert = Number.isFinite(jetzt) ? jetzt : Number(feld.min) || 0;
+    let neu = Math.round((grundwert + richtung * schritt) / schritt) * schritt;
+    if (feld.min !== "" && neu < Number(feld.min)) neu = Number(feld.min);
+    if (feld.max !== "" && neu > Number(feld.max)) neu = Number(feld.max);
+    // Nachkommastellen der Schrittweite übernehmen, sonst steht „4.9999" da.
+    const stellen = (String(schritt).split(".")[1] || "").length;
+    feld.value = neu.toFixed(stellen);
+    anstossen();
   }
 
   _istAn(entity) {
