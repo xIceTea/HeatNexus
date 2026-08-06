@@ -54,6 +54,11 @@ def _coordinator():
             "devices": [
                 {
                     "id": f"{SERIENNUMMER}-0-7-0",
+                    # Die frühere, adressgebundene Kennung. Sie hängt an jeder
+                    # Beschreibung und trägt die Adresse mit Bindestrichen –
+                    # ohne sie in der Vorlage bewiese der Test unten nichts.
+                    "alt_id": "192-168-178-100-1-60-0-0-7-0",
+                    "alt_device_id": "192-168-178-100-1-60-0",
                     "device_id": f"{SERIENNUMMER}-0",
                     "device_name": "PuroWIN",
                     "fct_type": 25,
@@ -63,6 +68,8 @@ def _coordinator():
                 },
                 {
                     "id": f"{SERIENNUMMER}-2-1-0",
+                    "alt_id": "192-168-178-100-1-60-0-2-1-0",
+                    "alt_device_id": "192-168-178-100-1-60-0",
                     "device_id": f"{SERIENNUMMER}-0",
                     "device_name": "PuroWIN",
                     "fct_type": 25,
@@ -110,6 +117,10 @@ async def test_keine_adresse_im_export(export):
     daten = await export
     text = json.dumps(daten)
     assert ADRESSE not in text
+    # **Auch nicht mit Bindestrichen.** Die frühere Kennung trägt die Adresse
+    # als `192-168-178-100-…`; ein Muster, das nach Punkten sucht, sieht sie
+    # nicht. Bis 1.5.0-beta.4 stand sie deshalb in jeder Zeile des Exports.
+    assert ADRESSE.replace(".", "-") not in text
     # Der Optionsschlüssel ist die Adresse der Anlage; er wird zu „anlage".
     assert "anlage" in daten["eintrag"]["optionen"]
 

@@ -58,6 +58,31 @@ def test_eine_unbrauchbare_kennung_ergibt_keine_adresse(kanonisch, kaputt):
     assert kanonisch.gnmn(kaputt) is None
 
 
+@pytest.mark.parametrize(
+    "kennung",
+    [
+        "10-0-1-20-0-thermostat",
+        "192-168-1-20-fe01",
+        "192-168-1-4-fe01text",
+    ],
+)
+def test_ohne_seriennummer_wird_nicht_geraten(kanonisch, kennung):
+    """Meldet ein Knoten keine `neuronId`, steht die Adresse in der Kennung.
+
+    Dann beginnt sie selbst mit Zahlen, und zusammen mit einem Wortzusatz
+    hinten verschiebt sich der Zahlenlauf: `10-0-1-20-0-thermostat` ergäbe
+    sonst `1/20` und damit „Heizkreispumpe" für ein Thermostat. Solche
+    Kennungen bleiben ohne Adresse – das Muster greift weiter.
+    """
+    assert kanonisch.gnmn(kennung) is None
+    assert kanonisch.schluessel(kennung) is None
+
+
+def test_die_alte_kennung_ohne_zusatz_bleibt_lesbar(kanonisch):
+    """Sie beginnt zwar auch mit Zahlen, hat aber keinen Zusatz – sie trägt."""
+    assert kanonisch.gnmn("192-168-178-100-1-60-0-0-7-0") == "0/7"
+
+
 # ---------------------------------------------------------------------------
 # Schlüssel
 # ---------------------------------------------------------------------------
@@ -67,15 +92,31 @@ def test_bekannte_datenpunkte_bekommen_ihren_schluessel(kanonisch):
     assert kanonisch.schluessel("0000ABCD1234-0-0-0-0") == "outdoor_temperature"
 
 
+def test_auch_die_nachgereichten_datenpunkte_tragen_ihren_schluessel(kanonisch):
+    """Die Adressen, die die Muster der Oberfläche brauchen."""
+    assert kanonisch.schluessel("0000ABCD1234-0-0-8-0") == "return_temperature"
+    assert kanonisch.schluessel("0000ABCD1234-0-0-95-0") == "analog_setpoint"
+    assert kanonisch.schluessel("0000ABCD1234-0-1-21-0") == "mixer_position"
+    assert kanonisch.schluessel("0000ABCD1234-0-39-76-0") == "fuel_storage_status"
+
+
 def test_ein_datenpunkt_ohne_entsprechung_bleibt_ohne_schluessel(kanonisch):
     """Er behält den Herstellernamen; deshalb verschwinden die Muster nicht."""
     assert kanonisch.schluessel("0000ABCD1234-0-9-31-0") is None
 
 
-def test_kein_schluessel_wird_zweimal_vergeben(kanonisch):
-    """Sonst suchte die Oberfläche einen Namen und fände zwei Datenpunkte."""
-    werte = list(kanonisch.KANONISCH.values())
-    assert len(werte) == len(set(werte))
+def test_ein_schluessel_gilt_nur_dort_mehrfach_wo_es_begruendet_ist(kanonisch):
+    """Sonst suchte die Oberfläche einen Begriff und fände zwei Datenpunkte.
+
+    Zwei Adressen dürfen denselben Schlüssel tragen, wenn zwei Baureihen
+    denselben Messwert an verschiedenen Stellen führen – der Puffer etwa. Wer
+    einen weiteren Schlüssel doppelt vergibt, muss ihn hier eintragen und
+    begründen; genau das soll auffallen.
+    """
+    mehrfach = {"buffer_top", "buffer_bottom"}
+    werte = [w for w in kanonisch.KANONISCH.values() if w not in mehrfach]
+    doppelt = sorted({w for w in werte if werte.count(w) > 1})
+    assert doppelt == [], f"doppelt vergeben: {doppelt}"
 
 
 def test_jede_adresse_steht_auch_in_der_geraete_datenbank(kanonisch):
