@@ -346,6 +346,64 @@ def test_zirkulationsprogramm_sagt_wann_es_wirkt(panel):
     assert "wirkung" not in programme["Programm 1"]
 
 
+def test_von_zwei_zirkulationsprogrammen_bleibt_das_wirksame(panel):
+    """Die Anlage führt zwei – wortgleich benannt, nur die Adresse trennt sie.
+
+    `5/65` gilt bei Zeitsteuerung, `5/64` bei Temperatursteuerung. Ohne die
+    Unterscheidung standen zwei gleichnamige Karten nebeneinander, und keine
+    sagte, welche gerade wirkt. Versteckt wird jeweils die der **anderen**
+    Art – bei „Aus" oder Impulssteuerung bleiben beide stehen.
+    """
+    kreis = teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            entitaet(
+                "sensor.zirkulationsprogramm_zeit",
+                "WW-Zirkulationsprogramm",
+                schluessel="dhw_circulation_program_time",
+            ),
+            entitaet(
+                "sensor.zirkulationsprogramm_temperatur",
+                "WW-Zirkulationsprogramm",
+                schluessel="dhw_circulation_program_temperature",
+            ),
+            entitaet(
+                "select.ww_zirkulationspumpe",
+                "WW-Zirkulationspumpe",
+                schluessel="dhw_circulation_mode",
+            ),
+        ],
+    )
+    programme = {
+        p["entity"]: p for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]
+    }
+    nach_zeit = programme["sensor.zirkulationsprogramm_zeit"]["wirkung"]
+    nach_temperatur = programme["sensor.zirkulationsprogramm_temperatur"]["wirkung"]
+
+    # Jedes verschwindet, sobald die Pumpe der anderen Art folgt.
+    assert nach_zeit["verbergen_bei"] == "temperatursteuerung"
+    assert nach_temperatur["verbergen_bei"] == "zeitsteuerung"
+    # Und jedes nennt die Steuerungsart, bei der es selbst greift.
+    assert nach_zeit["muster"] == "zeitsteuerung"
+    assert nach_temperatur["muster"] == "temperatursteuerung"
+    assert "Temperatursteuerung" in nach_temperatur["hinweis"]
+
+
+def test_ein_einzelnes_zirkulationsprogramm_wird_nie_versteckt(panel):
+    """Ohne Schlüssel keine Zuordnung – dann bleibt es bei Hinweis statt Verstecken."""
+    kreis = teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            entitaet("sensor.ww_zirkulationsprogramm", "WW-Zirkulationsprogramm"),
+            entitaet("select.ww_zirkulationspumpe", "WW-Zirkulationspumpe"),
+        ],
+    )
+    programme = {p["titel"]: p for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]}
+    assert "verbergen_bei" not in programme["WW-Zirkulationsprogramm"]["wirkung"]
+
+
 def test_nur_sensoren_kommen_als_zeitprogramm_in_frage(panel):
     """Die Betriebswahl heißt „Programm 1", ist aber eine Auswahl.
 

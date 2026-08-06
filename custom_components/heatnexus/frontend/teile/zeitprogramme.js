@@ -70,6 +70,14 @@ export const ZeitprogrammeMixin = (Basis) =>
         const zustand = this._zustand(programm.wirkung.entity);
         const text = zustand ? String(zustand.state).toLowerCase() : "";
         hinweis.hidden = text.includes(programm.wirkung.muster);
+        // **Die Anlage führt zwei Zirkulationsprogramme, eines je Steuerungsart.**
+        // Steht die Pumpe auf der anderen, gehört dieses hier nicht auf die
+        // Seite – es wirkt nicht und heißt genauso wie das, das wirkt.
+        // Versteckt wird nur bei nachweislich anderer Art: Bei „Aus", Impuls
+        // oder Dauerlauf bleiben beide stehen, damit man vorbereiten kann.
+        if (programm.wirkung.verbergen_bei) {
+          karte.hidden = text.includes(programm.wirkung.verbergen_bei);
+        }
       });
     }
 

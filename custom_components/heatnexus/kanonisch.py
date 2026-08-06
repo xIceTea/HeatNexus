@@ -81,6 +81,13 @@ KANONISCH: dict[str, str] = {
     # zwei Schlüssel – bis 1.5.0-beta.4 trug der Modus den Namen der Pumpe.
     "1/65": "dhw_circulation_pump",
     "5/6": "dhw_circulation_mode",
+    # Zwei Zirkulationsprogramme, in der Herstellerdatei **wortgleich**
+    # benannt: beide heißen „WW-Zirkulationsprogramm". Auseinanderhalten lassen
+    # sie sich nur an der Adresse – `5/65` gilt bei Zeitsteuerung, `5/64` bei
+    # Temperatursteuerung (`5/6`). Ohne diese Zuordnung stünden im Reiter
+    # Zeitprogramme zwei gleichnamige Karten, und keine sagt, welche wirkt.
+    "5/65": "dhw_circulation_program_time",
+    "5/64": "dhw_circulation_program_temperature",
     "0/118": "dhw_circulation_temperature",
     # `5/76` „WW-Kreis" – daran hängt, ob eine Anlage überhaupt Warmwasser
     # bereitet. Die übrigen WW-Parameter beweisen das nicht: Sie stehen auch

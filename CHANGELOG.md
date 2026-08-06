@@ -8,6 +8,35 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+## [1.5.0-beta.5] - 2026-08-06
+
+Vorabversion.
+
+### Behoben
+
+- **„Warmwasser laden abbrechen" startete die Ladung neu.** Der Abbruch
+  verlangte neben der laufenden Ladung noch die Betriebswahl und einen
+  bekannten Rückkehrpunkt. Fehlte eines davon, landete der Druck beim
+  Auslöser – und lud noch einmal. Von außen sah das aus, als passierte gar
+  nichts: „lädt gerade" stand sofort wieder da. Jetzt bricht die Taste immer
+  ab, und wenn sie nicht kann, sagt sie warum.
+- **Der Abbruch hing an der Ladepumpe.** Die läuft nach; solange sie das tat,
+  blieb die Rückmeldung auf „wird ausgeführt …" stehen, obwohl das Umschalten
+  längst durch war. Maßgeblich ist jetzt die Betriebsart.
+- **Anlagen mit „Heizprogramm 1" werden erkannt.** Gesucht wurde nur nach
+  Einträgen, die mit „Programm" *beginnen*; bei anderer Benennung fand der
+  Abbruch keinen Rückkehrpunkt.
+
+### Geändert
+
+- **Von zwei Zirkulationsprogrammen steht nur noch das wirksame da.** Die
+  Anlage führt zwei, und sie heißen wortgleich „WW-Zirkulationsprogramm" –
+  eines gilt bei Zeitsteuerung, das andere bei Temperatursteuerung. Bisher
+  standen beide nebeneinander, ohne dass zu erkennen war, welches gerade
+  greift. Jetzt verschwindet das der jeweils anderen Art. Steht die
+  Zirkulationspumpe auf Aus, Impuls oder Dauerlauf, bleiben beide sichtbar –
+  vorbereiten können muss man sie.
+
 ### Neu
 
 - **Der BioWIN wird als Pelletskessel erkannt.** Bisher blieb es bei dem, was

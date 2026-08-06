@@ -402,12 +402,19 @@ def _wirkt_nur_wenn(
 ) -> dict[str, str] | None:
     """Der Datenpunkt, an dem hängt, ob ein Programm überhaupt etwas bewirkt.
 
-    Das Zirkulationsprogramm läuft ins Leere, solange `5/6`
-    „WW-Zirkulationspumpe" nicht auf „Mit Zeitsteuerung" steht – die Pumpe
-    richtet sich dann nach Temperatur, nach Impuls, oder sie läuft durch. Die
-    Karte wird deshalb **nicht versteckt**, sondern beschriftet: Wer sein
-    Programm vorbereiten will, bevor er die Steuerung umstellt, soll es
-    weiterhin sehen.
+    **Die Anlage führt zwei Zirkulationsprogramme.** In der Herstellerdatei
+    heißen sie wortgleich „WW-Zirkulationsprogramm"; auseinanderhalten lassen
+    sie sich nur an der Adresse. `5/65` gilt, wenn die Zirkulationspumpe
+    (`5/6`) auf **Zeitsteuerung** steht, `5/64` bei **Temperatursteuerung**.
+    Ohne diese Unterscheidung standen zwei gleichnamige Karten nebeneinander,
+    und keine sagte, welche gerade wirkt.
+
+    Deshalb zweierlei: Das Programm der *anderen* Steuerungsart verschwindet
+    (`verbergen_bei`), und was übrig bleibt, trägt einen Hinweis, solange die
+    Pumpe auf keiner der beiden steht – aus, nach Impuls oder durchlaufend.
+    Versteckt wird also nur, was nachweislich eine andere Art betrifft; bei
+    „Aus" bleiben beide sichtbar, damit man sein Programm vorbereiten kann,
+    bevor man die Steuerung umstellt.
     """
     if not _passt(programm["name"], ZIRKULATIONSPROGRAMM):
         return None
@@ -424,11 +431,23 @@ def _wirkt_nur_wenn(
     )
     if pumpe is None:
         return None
-    return {
+    wirkung = {
         "entity": pumpe["entity_id"],
         "muster": "zeitsteuerung",
         "hinweis": "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ steht.",
     }
+    # Welche Art dieses Programm ist, sagt allein sein Schlüssel – der Name
+    # taugt dafür nicht, beide heißen gleich.
+    schluessel = programm.get("schluessel")
+    if schluessel == "dhw_circulation_program_time":
+        wirkung["verbergen_bei"] = "temperatursteuerung"
+    elif schluessel == "dhw_circulation_program_temperature":
+        wirkung["verbergen_bei"] = "zeitsteuerung"
+        wirkung["muster"] = "temperatursteuerung"
+        wirkung["hinweis"] = (
+            "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Temperatursteuerung“ steht."
+        )
+    return wirkung
 
 
 def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:
