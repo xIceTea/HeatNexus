@@ -22,6 +22,11 @@ wenn dort Vorabversionen zugelassen sind.
   Freigabe ging noch eine Betriebswahl an die Anlage, und die Ladung lief
   weiter. Zurückgestellt wird die Betriebswahl jetzt nur noch, wenn die Ladung
   aus dem Standby heraus gestartet wurde und dafür umgeschaltet werden musste.
+- Nach einer Bedienung wurde nur einmal nachgelesen. Betriebsart und Pumpe
+  ziehen aber nicht gleichzeitig nach — im Schaubild lief die Ladepumpe
+  dadurch bis zum nächsten Durchlauf weiter. Jetzt wird mehrfach nachgefasst.
+- Der Wartezeiger auf einer gedrückten Taste sah nach Hängen aus. Dass etwas
+  läuft, sagt die Zeile darunter.
 - Nach einem Druck blieb eine Taste bis zu dreiviertel Minuten gesperrt, wenn
   die Anlage den Auftrag nicht übernahm — der Mauszeiger stand auf
   „beschäftigt", weitere Drucke fielen wortlos weg. Die Sperre dauert jetzt nur
