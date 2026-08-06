@@ -265,7 +265,7 @@ a plant diagram are in [`dashboards/`](dashboards/).
 
 ## Automation blueprints
 
-Five blueprints ship with the integration and are ready under *Settings →
+Six blueprints ship with the integration and are ready under *Settings →
 Automations & Scenes → Blueprints* after setup — no import from the internet:
 
 | Blueprint | Purpose |
@@ -275,6 +275,7 @@ Automations & Scenes → Blueprints* after setup — no import from the internet
 | Fuel supply low | notify when the hopper reports empty, with reminder |
 | Record running time | measure how long a part runs uninterrupted |
 | Lower heating circuit while away | lower on absence, restore on return |
+| Emulate legionella protection | raises the cylinder on a fixed schedule via the one-off charge — for controllers without a built-in legionella function |
 
 What happens on an event is up to the individual automation — notification,
 announcement, phone call, any action. The fault blueprint evaluates the

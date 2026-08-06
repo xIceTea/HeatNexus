@@ -12,6 +12,15 @@ wenn dort Vorabversionen zugelassen sind.
 
 Vorabversion.
 
+### Neu
+
+- Automations-Vorlage **Legionellenschutz nachbilden**. Nicht jeder Regler
+  führt die eingebaute Legionellenschutzfunktion; wo sie fehlt, fährt die
+  Vorlage den Speicher in festem Turnus über die Einmalladung hoch und stellt
+  hinterher alles zurück. Wochentage, Uhrzeit, Zieltemperatur und Haltezeit
+  sind einstellbar. **Nur mit Verbrühschutz-Armatur einsetzen** — die Vorlage
+  sagt im Einrichtungsdialog, warum.
+
 ### Behoben
 
 - *Warmwasser laden abbrechen* wirkte erst beim zweiten Druck, wenn die Ladung

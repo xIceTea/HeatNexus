@@ -1,0 +1,289 @@
+blueprint:
+  name: HeatNexus – Legionellenschutz nachbilden
+  description: >
+    Fährt den Warmwasserspeicher in festem Turnus auf eine erhöhte Temperatur,
+    indem die **Einmalladung** dafür benutzt wird. Gedacht für Anlagen, deren
+    Regler die eingebaute Legionellenschutzfunktion nicht führt – dort gibt es
+    keinen Datenpunkt, den man einschalten könnte.
+
+    Ablauf: Die Ladetemperatur wird auf den Zielwert gestellt, die Einmalladung
+    ausgelöst, auf das Erreichen gewartet, die Temperatur gehalten und
+    anschließend **alles auf den vorherigen Stand zurückgesetzt** – Ladung aus,
+    Ladetemperatur zurück, Betriebswahl zurück.
+
+    **Verbrühungsgefahr.** Wasser mit 60 °C verbrüht die Haut in wenigen
+    Sekunden. Diese Vorlage nur einsetzen, wenn eine thermostatische
+    Verbrühschutz-Armatur (Mischventil) hinter dem Speicher sitzt und die
+    Zapftemperatur begrenzt. Die Nachtstunden als Vorgabe sind kein Ersatz
+    dafür.
+
+    **Kein zertifizierter Legionellenschutz.** Die Vorlage ahmt nach, was der
+    Regler sonst selbst täte; sie prüft nicht, ob jede Leitung die Temperatur
+    erreicht, und ersetzt keine Anlage nach DVGW W 551. Wer dazu verpflichtet
+    ist, klärt das mit seinem Installateur.
+  domain: automation
+  author: HeatNexus
+  source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/legionellenschutz.yaml
+  input:
+    warmwasser_ist:
+      name: Warmwasser Ist-Temperatur
+      description: Der Fühler, an dem das Erreichen der Zieltemperatur abgelesen wird.
+      selector:
+        entity:
+          filter:
+            - integration: heatnexus
+              domain: sensor
+    einmalladung:
+      name: WW Einmalladung
+      description: Der Schalter, der die Ladung auslöst.
+      selector:
+        entity:
+          filter:
+            - integration: heatnexus
+              domain: switch
+    ladetemperatur:
+      name: WW Einmalladung Temperatur
+      description: >
+        Die Temperatur, auf die die Einmalladung lädt. Sie wird für den Lauf
+        gestellt und hinterher auf ihren alten Wert zurückgesetzt.
+      selector:
+        entity:
+          filter:
+            - integration: heatnexus
+              domain: number
+    zieltemperatur:
+      name: Zieltemperatur
+      description: >
+        60 °C ist der Wert, auf den sich die einschlägigen Regelwerke beziehen.
+        Weniger bringt wenig, mehr belastet den Speicher und verschärft die
+        Verbrühungsgefahr. Die Anlage nimmt nur an, was ihr eigener
+        Einstellbereich hergibt.
+      default: 60
+      selector:
+        number:
+          min: 50
+          max: 70
+          step: 1
+          unit_of_measurement: "°C"
+          mode: slider
+    wochentage:
+      name: Wochentage
+      description: >
+        Einmal in der Woche ist für Ein- und Zweifamilienhäuser die übliche
+        Empfehlung. Mehr Tage heißt mehr Brennstoff für dieselbe Wirkung.
+      default:
+        - tue
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Montag
+              value: mon
+            - label: Dienstag
+              value: tue
+            - label: Mittwoch
+              value: wed
+            - label: Donnerstag
+              value: thu
+            - label: Freitag
+              value: fri
+            - label: Samstag
+              value: sat
+            - label: Sonntag
+              value: sun
+    uhrzeit:
+      name: Uhrzeit
+      description: >
+        Nachts, damit niemand während des Laufs heißes Wasser zapft und der
+        Kessel ungestört durchheizen kann.
+      default: "02:00:00"
+      selector:
+        time: {}
+    haltezeit:
+      name: Haltezeit
+      description: >
+        So lange bleibt die Zieltemperatur nach dem Erreichen noch stehen.
+        Null schaltet das Halten ab.
+      default:
+        minutes: 15
+      selector:
+        duration: {}
+    hoechstdauer:
+      name: Längstens warten
+      description: >
+        Wird die Zieltemperatur bis dahin nicht erreicht, bricht der Lauf ab und
+        räumt trotzdem auf. Ohne diese Grenze liefe die Ladung im Zweifel bis
+        zum nächsten Mal weiter.
+      default:
+        hours: 3
+      selector:
+        duration: {}
+    betriebswahl:
+      name: Betriebswahl (freiwillig)
+      description: >
+        Steht der Kreis auf Standby, nimmt er den Ladeauftrag gar nicht an.
+        Wird hier die Betriebswahl angegeben, stellt die Automation für den
+        Lauf auf WW-Betrieb um und hinterher genau auf den Wert zurück, der
+        vorher stand. Leer lassen, wenn der Kreis ohnehin durchläuft.
+      default: []
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - integration: heatnexus
+              domain: select
+    aktion_fertig:
+      name: Wenn der Lauf durch ist
+      description: >
+        Die erreichte Temperatur steht als `erreichte_temperatur` bereit, das
+        Anlagenteil als `anlagenteil`.
+      default: []
+      selector:
+        action: {}
+    aktion_misslungen:
+      name: Wenn die Zieltemperatur nicht erreicht wurde
+      description: >
+        Der wichtigere Zweig: Ein stillschweigend gescheiterter Lauf ist
+        schlimmer als gar keiner, weil man sich auf ihn verlässt. Verfügbar
+        sind `erreichte_temperatur` und `anlagenteil`.
+      default: []
+      selector:
+        action: {}
+
+# single: Ein zweiter Lauf während des ersten würde ihm die Ladetemperatur
+# unter den Händen wegstellen und am Ende den falschen Wert zurückschreiben.
+mode: single
+max_exceeded: warning
+
+triggers:
+  - trigger: time
+    at: !input uhrzeit
+
+conditions:
+  - condition: time
+    weekday: !input wochentage
+
+variables:
+  fuehler: !input warmwasser_ist
+  schalter: !input einmalladung
+  temperaturfeld: !input ladetemperatur
+  ziel: !input zieltemperatur
+  wahl_liste: !input betriebswahl
+  anlagenteil: >
+    {{ device_attr(fuehler, 'name_by_user') or device_attr(fuehler, 'name') or '' }}
+  # Alles, was hinterher zurückgestellt wird, **vor** dem ersten Schreibvorgang
+  # merken. Danach steht dort der eigene Wert.
+  vorherige_temperatur: "{{ states(temperaturfeld) }}"
+  # Bewusst als Schleife, nicht als `map('states')`: Ob `states` auch als
+  # Filter zur Verfügung steht, hängt an der Home-Assistant-Fassung, und ein
+  # Fehlgriff hier schriebe am Ende den falschen Wert zurück.
+  vorherige_wahl: >
+    {% set ns = namespace(werte=[]) %}
+    {% for eintrag in wahl_liste %}
+      {% set ns.werte = ns.werte + [states(eintrag)] %}
+    {% endfor %}
+    {{ ns.werte }}
+
+actions:
+  # Steht der Kreis auf Standby oder im Urlaubsprogramm, nimmt er den Auftrag
+  # nicht an. Der Name des WW-Eintrags wird gesucht, nicht geraten: Wie die
+  # Betriebswahl ihre Einträge nennt, meldet die Anlage selbst.
+  - repeat:
+      for_each: "{{ wahl_liste }}"
+      sequence:
+        - variables:
+            # Wie die Betriebswahl ihre Einträge nennt, meldet die Anlage
+            # selbst – geraten wird nichts. Verglichen wird gegen die
+            # bekannten Schreibweisen statt per Regex: Ob `match` als
+            # Jinja-Test zur Verfügung steht, hängt an der HA-Fassung.
+            ww_eintrag: >
+              {% set ns = namespace(treffer='') %}
+              {% for eintrag in (state_attr(repeat.item, 'options') or []) %}
+                {% if ns.treffer == ''
+                      and eintrag | lower | replace(' ', '-')
+                          in ['ww-betrieb', 'warmwasserbetrieb'] %}
+                  {% set ns.treffer = eintrag %}
+                {% endif %}
+              {% endfor %}
+              {{ ns.treffer }}
+        - if:
+            - condition: template
+              value_template: "{{ ww_eintrag != '' and states(repeat.item) != ww_eintrag }}"
+          then:
+            - action: select.select_option
+              target:
+                entity_id: "{{ repeat.item }}"
+              data:
+                option: "{{ ww_eintrag }}"
+
+  - action: number.set_value
+    target:
+      entity_id: !input ladetemperatur
+    data:
+      value: !input zieltemperatur
+
+  - action: switch.turn_on
+    target:
+      entity_id: !input einmalladung
+
+  # Ein halbes Grad Nachsicht: Der Fühler meldet in Zehntelschritten, und auf
+  # das letzte Zehntel zu warten hieße im Zweifel, bis zur Höchstdauer zu
+  # warten.
+  - wait_for_trigger:
+      - trigger: numeric_state
+        entity_id: !input warmwasser_ist
+        above: "{{ ziel | float - 0.5 }}"
+    timeout: !input hoechstdauer
+    continue_on_timeout: true
+
+  - variables:
+      erreicht: "{{ wait.trigger is not none }}"
+      erreichte_temperatur: "{{ states(fuehler) }}"
+
+  - if:
+      - condition: template
+        value_template: "{{ erreicht }}"
+    then:
+      - delay: !input haltezeit
+
+  # **Aufräumen läuft immer**, auch nach einem Abbruch. Bliebe die
+  # Ladetemperatur auf 60 °C stehen, heizte die Anlage ab sofort jede normale
+  # Ladung dorthin.
+  - action: switch.turn_off
+    target:
+      entity_id: !input einmalladung
+
+  - if:
+      - condition: template
+        value_template: "{{ vorherige_temperatur not in ['unknown', 'unavailable', 'none'] }}"
+    then:
+      - action: number.set_value
+        target:
+          entity_id: !input ladetemperatur
+        data:
+          value: "{{ vorherige_temperatur | float }}"
+
+  - repeat:
+      for_each: "{{ wahl_liste }}"
+      sequence:
+        - variables:
+            vorher: "{{ vorherige_wahl[repeat.index - 1] }}"
+        - if:
+            - condition: template
+              value_template: >
+                {{ vorher not in ['unknown', 'unavailable', 'none']
+                   and vorher in (state_attr(repeat.item, 'options') or [])
+                   and states(repeat.item) != vorher }}
+          then:
+            - action: select.select_option
+              target:
+                entity_id: "{{ repeat.item }}"
+              data:
+                option: "{{ vorher }}"
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ erreicht }}"
+        sequence: !input aktion_fertig
+    default: !input aktion_misslungen

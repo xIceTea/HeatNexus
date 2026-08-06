@@ -273,7 +273,7 @@ Anlagenschaubild liegen unter [`dashboards/`](dashboards/).
 
 ## Automations-Vorlagen
 
-Fünf Blueprints werden mitgeliefert und liegen nach der Einrichtung unter
+Sechs Blueprints werden mitgeliefert und liegen nach der Einrichtung unter
 *Einstellungen → Automationen & Szenen → Blueprints* bereit – ohne Import aus
 dem Netz:
 
@@ -284,6 +284,7 @@ dem Netz:
 | Brennstoffvorrat niedrig | Meldung, wenn der Vorratsbehälter leer meldet, mit Erinnerung |
 | Betriebsdauer erfassen | Misst, wie lange ein Anlagenteil ununterbrochen läuft |
 | Heizkreis bei Abwesenheit absenken | Absenken bei Abwesenheit, Rückstellen bei Rückkehr |
+| Legionellenschutz nachbilden | Fährt den Speicher in festem Turnus über die Einmalladung hoch — für Regler ohne eigene Legionellenschutzfunktion |
 
 Was bei einem Ereignis passieren soll, gibt die jeweilige Automation vor –
 Benachrichtigung, Ansage, Anruf, beliebige Aktion. Die Störungsvorlage wertet
