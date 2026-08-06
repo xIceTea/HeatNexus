@@ -8,6 +8,17 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Behoben
+
+- **Eco und Comfort aus dem Warmwasser- oder Standby-Betrieb heraus.** Die
+  Vorgabe wurde übertragen, eine Sekunde später aber wieder zurückgenommen: Die
+  Anzeige sprang auf den alten Wert, und an der Anlage änderte sich nichts.
+- Der senkrechte Strang am Kessel bewegt sich jetzt mit, solange der Puffer
+  geladen wird. Bisher stand er still, während daneben alles strömte.
+- Die Beschriftung „Warmwasser laden abbrechen" war auf dunklem Grund kaum zu
+  lesen. Sie hebt sich jetzt ab und zeigt in eigener Farbe, dass ein Druck den
+  laufenden Auftrag beendet.
+
 ### Geändert
 
 - **HeatNexus steht jetzt unter der GNU General Public License v3.0.** Wer die
