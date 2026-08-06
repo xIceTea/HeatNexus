@@ -21,8 +21,8 @@ Vorabversion.
 
 - **Die Geräteseite sagt, was das Gerät ist.** Bisher stand dort nichts:
   kein Software-, kein Hardwarestand, keine Seriennummer – obwohl die Anlage
-  alles davon liefert. Als Modell stand der von Hand vergebene Anlagenname
-  („KFZ Werkstatt"); jetzt steht dort die Bauart.
+  alles davon liefert. Als Modell stand der von Hand vergebene Anlagenname;
+  jetzt steht dort die Bauart.
 - **Probleme melden sich, statt still zu bleiben.** Stimmt das Passwort nicht
   mehr, fragt Home Assistant von sich aus danach – aber erst nach drei
   abgewiesenen Anfragen hintereinander, denn eine einzelne ist Alltag.
@@ -57,23 +57,6 @@ Vorabversion.
   gibt.** Wo das Modul nur ein Relais schaltet, stand in der Heizungsübersicht
   eine Zeile mit einem Strich, die nie einen Wert bekam.
 
-### Intern
-
-- Die eigene Digest-Anmeldung entfällt; damit enthält HeatNexus keinen
-  abgeleiteten fremden Code mehr. Dazu ein eigener Verbindungspool und die
-  Anmeldung im Voraus, statt sich für jede Anfrage erst eine Abweisung
-  abzuholen.
-- Datenpunkte werden zusätzlich an einem sprachunabhängigen Schlüssel erkannt,
-  nicht mehr nur am deutschen Namen – die Voraussetzung dafür, die übrigen
-  Sprachen der Anlage überhaupt einschalten zu können. Der Name bleibt
-  Rückfall, bis alle Stellen umgestellt sind.
-- `quality_scale.yaml` als ehrliche Selbstauskunft gegenüber dem Raster von
-  Home Assistant.
-- Geprüft wird gegen die Home-Assistant-Fassung, die wirklich ausgeliefert
-  wird; vorher lief die Prüfung gegen einen anderthalb Jahre alten Stand. Neue
-  Tests für Abrufplan, Zugriffsschicht, Erkennungsstand und den Diagnoseexport
-  – dort ist jetzt belegt, dass weder Adresse noch Seriennummer darin landen.
-
 ## [1.5.0-beta.3] - 2026-08-05
 
 Vorabversion. Sie behebt, was an der Anlage aufgefallen ist, und schneidet die
@@ -104,18 +87,6 @@ Oberfläche in lesbare Teile.
   oder um 05:30 geschaltet wird, liest niemand aus einem Balken ab. Tage ohne
   Programm bekommen eine eigene, leere Zeile.
 - Entfernen im Zeitprogramm-Editor trägt einen Mülleimer statt eines „x".
-
-### Intern
-
-- **Die Oberfläche liegt in Teilen.** 2899 Zeilen in einer Datei mit neun
-  Aufgaben — jetzt `frontend/teile/{bedienen,bausteine,anordnen,schaubild,
-  uebersicht,steuerung,wartung,verlauf,zeitprogramme}.js`, Hauptdatei 443
-  Zeilen. Die Methoden sind unverändert übernommen (88 vorher, keine verloren,
-  keine doppelt).
-- **Die Oberfläche wird jetzt geprüft, nicht nur geladen.** Ein Durchlauf in
-  Node baut alle Reiter gegen eine schmale DOM-Attrappe auf — mit der
-  Aufteilung, die die echte Serverseite liefert. Der Fehler oben wäre damit vor
-  der Auslieferung aufgefallen; ein reiner Ladetest fand ihn nicht.
 
 ## [1.5.0-beta.2] - 2026-08-05
 
@@ -171,28 +142,6 @@ Anlagen prüfen, bevor daraus 1.5.0 wird.
   meldet nur noch, was sich wirklich geändert hat. Die befristete Anzeige des
   Thermostats prüft ihren Ablauf dafür zeitbasiert und nicht mehr am Takt des
   Abrufs.
-
-### Intern
-
-- **Die Oberfläche liegt in ES-Modulen.** 3395 Zeilen in einer Datei sind
-  jetzt `frontend/heatnexus-panel.js`, `stil.js`, `ordnung.js` und
-  `zeitprogramm.js`; ausgeliefert wird der Ordner statt der Einzeldatei. Die
-  Rechnung hinter den Zeitprogrammen – Abschnitte, Prüfung, Nutzlast – steht
-  damit für sich und wird in Node geprüft.
-- **`panel.py` ist ein Paket.** 1037 Zeilen in einer Datei mit vier Aufgaben –
-  jetzt `panel/daten.py` (Aufbereitung), `panel/muster.py` (Suchmuster),
-  `panel/hilfe.py` (Erklärtexte) und `panel/__init__.py` (Anmeldung).
-  Verhaltensneutral, kein Funktionsrumpf geändert.
-- **Testabdeckung 39 % → 52 %, 209 → 276 Tests.** Die sieben Plattformen, die
-  auf die Heizung schreiben, standen bei null Prozent – geprüft war
-  ausgerechnet das Ungefährliche. Jetzt 87–95 %, `sensor.py` 71 %.
-  `migration.py`, das die Entity-Registry umschreibt, von 19 % auf 72 %.
-- Die Sonde kennt den Zugang der Anlage (`--user`), zählt die Endpunkte der
-  Steuerung auf statt sie zu raten und prüft drei neue Seitenmodus-Varianten
-  (`count=0`, `count=50`) – die Weboberfläche liest mit `?count=&offset=`, und
-  ob `count=0` „alle" heißt, ist der größte offene Leistungshebel.
-- Die Geräte-Datenbank wurde gegen die Livequelle von Windhager neu erzeugt:
-  bytegleich, sie ist aktuell.
 
 ## [1.5.0-beta.1] - 2026-08-05
 
