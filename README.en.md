@@ -325,7 +325,12 @@ your own risk.
 HeatNexus is built in my spare time against a real heating system. If you would
 like to support the work:
 
-[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="48">](https://buymeacoffee.com/xicetea)
+<p align="center">
+  <a href="https://buymeacoffee.com/xicetea">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+         alt="Buy Me A Coffee" height="60">
+  </a>
+</p>
 
 Just as helpful and free: a bug report with the diagnostics export, especially
 from hardware listed here as *supported, unverified*.

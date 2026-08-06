@@ -335,7 +335,12 @@ Nutzung auf eigene Verantwortung.
 HeatNexus entsteht in der Freizeit an einer echten Anlage. Wer die Arbeit
 unterstützen möchte:
 
-[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="48">](https://buymeacoffee.com/xicetea)
+<p align="center">
+  <a href="https://buymeacoffee.com/xicetea">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+         alt="Buy Me A Coffee" height="60">
+  </a>
+</p>
 
 Genauso hilfreich und kostenlos: ein Fehlerbericht mit Diagnose-Export,
 besonders von Anlagentypen, die hier als *unterstützt, ungeprüft* stehen.
