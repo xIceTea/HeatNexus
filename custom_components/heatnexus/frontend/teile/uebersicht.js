@@ -9,7 +9,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { ANNAHME_MS, OHNE_WERT, RUECKMELDUNG_MS } from "../ordnung.js";
+import { ANNAHME_MS, OHNE_WERT, RUECKMELDUNG_MS, SPERRE_MS } from "../ordnung.js";
 
 export const UebersichtMixin = (Basis) =>
   class extends Basis {
@@ -560,10 +560,19 @@ export const UebersichtMixin = (Basis) =>
     this._ladungAnnahmen[entity] = { laeuft, seit: Date.now() };
   }
 
-  /** Läuft für diese Taste noch eine Annahme? Dann ist sie gesperrt. */
+  /**
+   * Ist der letzte Druck noch unterwegs? Dann bleibt die Taste gesperrt.
+   *
+   * **Nicht an die Annahme gekoppelt.** Die hält bis zu 45 s, und zwar auch
+   * dann, wenn die Anlage den Auftrag gar nicht angenommen hat – sie wird ja
+   * erst verbraucht, wenn die Anlage dasselbe meldet. Beim Abbrechen einer
+   * laufenden Warmwasserladung sperrte sich die Taste dadurch selbst, solange
+   * die Ladung weiterlief: Mauszeiger auf „beschäftigt", jeder weitere Druck
+   * lautlos verworfen.
+   */
   _ladungWartet(entity) {
     const merk = this._ladungAnnahmen && this._ladungAnnahmen[entity];
-    return !!merk && Date.now() - merk.seit < ANNAHME_MS;
+    return !!merk && Date.now() - merk.seit < SPERRE_MS;
   }
 
   /**

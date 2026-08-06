@@ -49,6 +49,22 @@ export const BESTAETIGUNG_MAX_MS = 3 * 60 * 1000;
  */
 export const ANNAHME_MS = 45 * 1000;
 
+/**
+ * Wie lange eine Taste nach einem Druck gesperrt bleibt.
+ *
+ * **Deutlich kürzer als die Annahme.** Die Sperre soll nur verhindern, dass
+ * ein zweiter Druck den ersten überholt, solange der noch unterwegs ist. An
+ * die Annahme gekoppelt war sie eine Falle: Nimmt die Anlage den Auftrag
+ * nicht an, wird die Annahme nie verbraucht – „Warmwasser laden abbrechen"
+ * sperrte sich danach dreiviertel Minuten lang selbst, ohne ein Wort dazu.
+ * Der Mauszeiger stand auf „beschäftigt", jeder weitere Druck fiel lautlos
+ * weg.
+ *
+ * Ein gezieltes Nachlesen ist nach gut einer Sekunde zurück; fünf Sekunden
+ * sind reichlich Abstand und stehen niemandem im Weg.
+ */
+export const SPERRE_MS = 5 * 1000;
+
 export const REITER = [
   { schluessel: "uebersicht", titel: "Übersicht", symbol: "mdi:view-dashboard-outline" },
   { schluessel: "steuerung", titel: "Steuerung", symbol: "mdi:tune-vertical" },
