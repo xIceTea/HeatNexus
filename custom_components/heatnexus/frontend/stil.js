@@ -577,7 +577,11 @@ export const STIL = `
     50% { border-color: #ff8a80; background: rgba(255, 138, 128, 0.12); }
   }
   .taste.blinkt { animation: taste-abgewiesen 0.6s ease-in-out 2; }
-  .taste[disabled] { opacity: 0.6; cursor: progress; }
+  /* Gesperrt, aber ohne Wartezeiger. Die Anlage braucht für eine Antwort gut
+     zwei Sekunden; ein Fortschritts-Zeiger machte daraus einen blauen Kringel,
+     der nach Hängen aussah. Dass etwas läuft, sagt die Zeile darunter ohnehin —
+     „wird übertragen …", und das ist die ehrlichere Auskunft. */
+  .taste[disabled] { opacity: 0.6; cursor: default; }
   select {
     width: 100%; padding: 9px 10px; border-radius: 10px;
     background: rgba(255, 255, 255, 0.05); color: inherit;
