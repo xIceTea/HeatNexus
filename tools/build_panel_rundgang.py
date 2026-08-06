@@ -59,27 +59,71 @@ STOERUNG = {
     }
 }
 
-# Der Rundgang. Je Auftritt: Reiter, wie lange er steht, wie weit die Seite
-# gerollt ist und was an der Anlage gerade anders ist.
+# Die laufende Warmwasser-Einmalladung. Die Oberfläche erkennt sie an der
+# **Betriebsart** (`2/9`), nicht am Auslöser: Der fällt zurück, sobald die
+# Anlage den Auftrag angenommen hat. Dazu die befristete Vorgabe am Thermostat,
+# damit die Restzeit im Bild steht.
+EINMALLADUNG = {
+    "sensor.betriebsart": {"state": "Warmwasser Einmalladung"},
+    "switch.ww_einmalladung": {"state": "on"},
+    "binary_sensor.ww_ladepumpe": {"state": "on"},
+    "sensor.ww_temperatur": {"state": "57.8"},
+}
+
+# Eine laufende, befristete Vorgabe am Heizkreis. Sie ist der Grund, warum die
+# Karte eine Restzeit und ein „beenden" zeigt: Wer den Sollwert von Hand
+# verschiebt, überstimmt das Zeitprogramm nur auf Zeit.
+VORGABE = {
+    "climate.umlz_heizkreis": {
+        "attributes": {
+            "temperature": 22.5,
+            "override_aktiv": True,
+            "override_restzeit_min": 143,
+        }
+    },
+}
+
+# Der Rundgang. Je Auftritt: Reiter, wie lange er steht, auf welche Karte die
+# Seite gerollt wird und was an der Anlage gerade anders ist.
+#
+# `ziel` nennt die Überschrift der Karte, die oben stehen soll – nicht eine
+# Bildpunktzahl. Feste Abstände verrutschen, sobald eine Karte eine Zeile mehr
+# bekommt, und dann steht im Bild oben ein leerer Streifen.
+#
+# `bilder` macht aus einem Auftritt eine kurze Bewegung: So viele Aufnahmen im
+# Abstand `takt`, die Bewegung der Oberfläche jeweils um denselben Schritt
+# weitergestellt. Nur dort eingesetzt, wo es etwas zu sehen gibt – am
+# Schaubild, wo Pumpen laufen und die Leitungen strömen.
 AUFTRITTE = [
-    {"reiter": "uebersicht", "dauer": 2600, "rollen": 0, "titel": "Übersicht"},
-    {"reiter": "uebersicht", "dauer": 2000, "rollen": 620, "titel": "Schaubild"},
+    {"reiter": "uebersicht", "dauer": 2600, "titel": "Übersicht"},
+    {
+        "reiter": "uebersicht",
+        "ziel": "Anlagenübersicht",
+        "bilder": 10,
+        "takt": 110,
+        "titel": "Schaubild in Bewegung",
+    },
     {
         "reiter": "uebersicht",
         "dauer": 3000,
-        "rollen": 0,
         "zustand": STOERUNG,
         "titel": "Störung anliegend",
     },
-    {"reiter": "steuerung", "dauer": 3000, "rollen": 0, "titel": "Steuerung"},
-    {"reiter": "steuerung", "dauer": 2400, "rollen": 560, "titel": "Warmwasser und Kessel"},
-    {"reiter": "wartung", "dauer": 2400, "rollen": 0, "titel": "Wartung"},
-    {"reiter": "zeitprogramme", "dauer": 2800, "rollen": 0, "titel": "Zeitprogramme"},
+    {"reiter": "steuerung", "dauer": 3000, "zustand": VORGABE, "titel": "Steuerung"},
+    {
+        "reiter": "steuerung",
+        "dauer": 3200,
+        "ziel": "Warmwasser",
+        "zustand": EINMALLADUNG,
+        "titel": "Einmalladung läuft",
+    },
+    {"reiter": "wartung", "dauer": 2400, "titel": "Wartung"},
+    {"reiter": "zeitprogramme", "dauer": 2800, "titel": "Zeitprogramme"},
     # Der Reiter „Verlauf" fehlt mit Absicht: Er zeichnet mit der
     # Verlaufskarte von Home Assistant, und die kommt über `loadCardHelpers`
     # aus dem Frontend. Außerhalb einer laufenden Instanz gibt es sie nicht –
     # eine leere Karte im Rundgang wäre eine Falschaussage.
-    {"reiter": "uebersicht", "dauer": 2600, "rollen": 1180, "titel": "Systemstatus"},
+    {"reiter": "uebersicht", "ziel": "Systemstatus", "dauer": 2600, "titel": "Systemstatus"},
 ]
 
 
@@ -162,13 +206,20 @@ SEITE = """<!doctype html><meta charset="utf-8">
 <style>
   html, body { margin: 0; padding: 0; background: #0e1419; color: #e6edf3;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  /* Die Bewegung wird angehalten: Eine Aufnahme soll denselben Zustand
-     zeigen, egal wie lange der Browser bis dahin gebraucht hat. */
+  /* Die Bewegung wird angehalten und um einen festen Schritt vorgestellt:
+     Eine Aufnahme soll denselben Zustand zeigen, egal wie lange der Browser
+     bis dahin gebraucht hat – und mehrere Aufnahmen hintereinander ergeben
+     die Bewegung. Der Schritt steht in `PHASE`, gesetzt wird er unten. */
   * { animation-play-state: paused !important; transition: none !important; }
 </style>
 <div id="halter"></div>
 <script type="module">
-import { DATEN, STATES, MDI, REITER, ROLLEN, PRESETS } from "./auftritt.js";
+import { DATEN, STATES, MDI, REITER, ZIEL, PHASE, PRESETS } from "./auftritt.js";
+
+// Die Bewegung an dieselbe Stelle stellen wie beim bewegten Schaubild.
+const halt = document.createElement("style");
+halt.textContent = "* { animation-delay: -" + PHASE + "s !important; }";
+document.head.appendChild(halt);
 
 /** Ersatz für `ha-icon`: dieselben Pfade, die Home Assistant ausliefert. */
 class HeatNexusIcon extends HTMLElement {
@@ -218,18 +269,44 @@ element.panel = { config: { daten: DATEN } };
 element.hass = hass;
 // Den Reiter setzen wie ein Klick auf die Leiste – die Oberfläche baut sich
 // daraufhin neu auf.
+// **Erst die eigene Abfrage abwarten.** `set hass` stößt `_datenHolen()` an;
+// das ist asynchron und baut die Oberfläche hinterher neu auf. Wer vorher
+// eingreift, dessen Änderungen sind gleich wieder weg.
+await new Promise((fertig) => setTimeout(fertig, 250));
+
 element._reiter = REITER;
 element._gebaut = false;
 element._zeichnen();
-window.scrollTo(0, ROLLEN);
+
+// **Eine Karte nach oben holen, ohne zu rollen.** Gerollt wurde vorher mit
+// festen Bildpunktzahlen; die verrutschen, sobald eine Karte eine Zeile mehr
+// bekommt, und dann steht im Bild oben ein leerer Streifen. Statt zu rollen
+// werden die Karten davor ausgeblendet – die gesuchte steht damit unter der
+// Kopfleiste, und die bleibt sichtbar.
+if (ZIEL) {
+  // Die Oberfläche wohnt in einem Schattenbaum – `document.querySelectorAll`
+  // findet darin nichts.
+  const wurzel = element.shadowRoot || element;
+  const karten = [...wurzel.querySelectorAll(".karte")];
+  const gesucht = karten.find((karte) => {
+    const kopf = karte.querySelector("h2");
+    return kopf && kopf.textContent.trim().startsWith(ZIEL);
+  });
+  if (gesucht) {
+    for (const karte of karten) {
+      if (karte === gesucht) break;
+      karte.style.display = "none";
+    }
+  }
+}
 </script>
 """
 
 
 def _auftritt_schreiben(
-    ordner: Path, daten: dict, auftritt: dict, mdi: dict, klartexte: dict
+    ordner: Path, daten: dict, auftritt: dict, mdi: dict, klartexte: dict, phase: float
 ) -> None:
-    """Die Datei mit Daten, Zuständen und Reiter für eine Aufnahme."""
+    """Die Datei mit Daten, Zuständen, Reiter und Bewegungsschritt."""
     (ordner / "auftritt.js").write_text(
         "export const DATEN = " + json.dumps(daten, ensure_ascii=False) + ";\n"
         "export const STATES = "
@@ -237,10 +314,23 @@ def _auftritt_schreiben(
         + ";\n"
         "export const MDI = " + json.dumps(mdi, ensure_ascii=False) + ";\n"
         "export const REITER = " + json.dumps(auftritt["reiter"]) + ";\n"
-        "export const ROLLEN = " + json.dumps(auftritt.get("rollen", 0)) + ";\n"
+        "export const ZIEL = " + json.dumps(auftritt.get("ziel")) + ";\n"
+        "export const PHASE = " + json.dumps(round(phase, 2)) + ";\n"
         "export const PRESETS = " + json.dumps(klartexte, ensure_ascii=False) + ";\n",
         encoding="utf-8",
     )
+
+
+def _schritte(auftritt: dict) -> list[tuple[float, int]]:
+    """Die Aufnahmen eines Auftritts: je Bewegungsschritt und Standzeit.
+
+    Ohne ``bilder`` ist es ein Standbild; mit ``bilder`` wird die Bewegung der
+    Oberfläche Schritt für Schritt weitergestellt.
+    """
+    if not (anzahl := auftritt.get("bilder", 0)):
+        return [(0.0, auftritt["dauer"])]
+    takt = auftritt.get("takt", 110)
+    return [(nummer * takt / 1000, takt) for nummer in range(anzahl)]
 
 
 BROWSER = [
@@ -293,26 +383,27 @@ def main() -> None:
                 tor = server.server_address[1]
                 threading.Thread(target=server.serve_forever, daemon=True).start()
                 for nummer, auftritt in enumerate(AUFTRITTE):
-                    _auftritt_schreiben(ordner, daten, auftritt, mdi, klartexte)
-                    aufnahme = ordner / f"auftritt_{nummer}.png"
-                    subprocess.run(
-                        [
-                            browser,
-                            "--headless",
-                            "--disable-gpu",
-                            "--hide-scrollbars",
-                            f"--window-size={BREITE},{HOEHE}",
-                            "--virtual-time-budget=3000",
-                            f"--screenshot={aufnahme}",
-                            f"http://127.0.0.1:{tor}/index.html?a={nummer}",
-                        ],
-                        check=True,
-                        capture_output=True,
-                    )
-                    bild = Image.open(aufnahme).convert("RGB")
-                    hoehe = round(HOEHE * GIF_BREITE / BREITE)
-                    bilder.append(bild.resize((GIF_BREITE, hoehe), Image.LANCZOS))
-                    dauern.append(auftritt["dauer"])
+                    for schritt, (phase, dauer) in enumerate(_schritte(auftritt)):
+                        _auftritt_schreiben(ordner, daten, auftritt, mdi, klartexte, phase)
+                        aufnahme = ordner / f"auftritt_{nummer}_{schritt}.png"
+                        subprocess.run(
+                            [
+                                browser,
+                                "--headless",
+                                "--disable-gpu",
+                                "--hide-scrollbars",
+                                f"--window-size={BREITE},{HOEHE}",
+                                "--virtual-time-budget=3000",
+                                f"--screenshot={aufnahme}",
+                                f"http://127.0.0.1:{tor}/index.html?a={nummer}_{schritt}",
+                            ],
+                            check=True,
+                            capture_output=True,
+                        )
+                        bild = Image.open(aufnahme).convert("RGB")
+                        hoehe = round(HOEHE * GIF_BREITE / BREITE)
+                        bilder.append(bild.resize((GIF_BREITE, hoehe), Image.LANCZOS))
+                        dauern.append(dauer)
                     print(f"aufgenommen: {auftritt['titel']}")
                 server.shutdown()
         finally:

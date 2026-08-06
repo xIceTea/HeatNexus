@@ -21,6 +21,11 @@ Anlagenschaubild, dann der Systemstatus mit Betriebszustand,
 Außentemperatur, Kesselleistung, Brennstoff, Vorratsbehälter und den
 Restlaufzeiten.
 
+**Schaubild in Bewegung.** Die Pumpen drehen sich, solange sie fördern, und
+die Bänder auf Vor- und Rücklauf zeigen die Richtung. Im Rundgang läuft neben
+Kessel, Puffer und Heizkreis auch die Zirkulation — an den senkrechten
+Stichleitungen sieht man, wohin die Wärme gerade geht.
+
 **Störung.** Liegt eine Meldung an, wechselt der Balken oben von „Anlage in
 Ordnung" auf „Störung anliegend", und die Störungskarte nennt den Klartext des
 Herstellers samt Abhilfe. Verschwindet die Meldung an der Anlage, verschwindet
@@ -30,6 +35,14 @@ auch die Anzeige — sie wird nicht quittiert, sondern gelesen.
 Heizkreises, Eco und Comfort als befristete Übersteuerung, die Betriebswahl,
 Warmwasser mit Sollwert und Einmalladung, dazu die Tasten am Kessel. Wo ein
 Fehlgriff Arbeit macht oder Brennstoff kostet, kommt vorher eine Rückfrage.
+
+Im Bild läuft dabei beides mit: Am Heizkreis steht „Vorgabe noch bis 10:09"
+samt „abbrechen" — ein von Hand verschobener Sollwert überstimmt das
+Zeitprogramm nur auf Zeit. Und die Warmwasserkarte zeigt eine **laufende
+Einmalladung**: Die Betriebsart meldet „Warmwasser Einmalladung", die Taste
+heißt so lange „Warmwasser laden abbrechen". Erkannt wird das an der
+Betriebsart, nicht am Auslöser — der fällt zurück, sobald die Anlage den
+Auftrag angenommen hat.
 
 **Wartung.** Restlaufzeiten bis Ascheentleerung, Hauptreinigung und Wartung,
 der Brennstoff, die Zählerstände.

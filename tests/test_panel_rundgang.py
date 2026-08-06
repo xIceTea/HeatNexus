@@ -54,8 +54,51 @@ def test_der_rundgang_zeigt_nur_reiter_die_es_gibt(rundgang):
 def test_jeder_auftritt_hat_eine_dauer_und_einen_titel(rundgang):
     """Ohne Dauer stünde das Bild still, ohne Titel wüsste niemand, was läuft."""
     for auftritt in rundgang.AUFTRITTE:
-        assert auftritt["dauer"] > 0
         assert auftritt["titel"]
+        schritte = rundgang._schritte(auftritt)
+        assert schritte
+        assert all(dauer > 0 for _phase, dauer in schritte), auftritt["titel"]
+
+
+def test_ein_auftritt_zeigt_die_anlage_in_bewegung(rundgang):
+    """Ein Rundgang aus lauter Standbildern zeigt die Strömung nicht.
+
+    Am Schaubild laufen Pumpen, und die Bänder auf Vor- und Rücklauf zeigen
+    die Förderrichtung – das sieht man nur, wenn es sich bewegt.
+    """
+    bewegt = [a for a in rundgang.AUFTRITTE if a.get("bilder", 0) > 1]
+    assert bewegt, "kein Auftritt mit mehr als einer Aufnahme"
+    for auftritt in bewegt:
+        phasen = [phase for phase, _dauer in rundgang._schritte(auftritt)]
+        assert phasen == sorted(phasen)
+        assert len(set(phasen)) == len(phasen), "zweimal derselbe Bewegungsschritt"
+
+
+def test_der_rundgang_zeigt_eine_laufende_einmalladung(rundgang):
+    """Die Oberfläche erkennt sie an der Betriebsart, nicht am Auslöser.
+
+    Der Auslöser (`2/16`) fällt zurück, sobald die Anlage den Auftrag
+    angenommen hat – wer ihn als Anzeige nimmt, sieht nie eine laufende
+    Ladung.
+    """
+    from custom_components.heatnexus.panel.muster import WARMWASSER_LAEDT
+
+    betriebsart = rundgang.EINMALLADUNG["sensor.betriebsart"]["state"]
+    assert betriebsart in WARMWASSER_LAEDT
+
+
+def test_der_rundgang_zeigt_eine_befristete_vorgabe(rundgang):
+    """Sonst bliebe unsichtbar, dass ein Sollwert nur auf Zeit gilt."""
+    merkmale = rundgang.VORGABE["climate.umlz_heizkreis"]["attributes"]
+    assert merkmale["override_aktiv"] is True
+    assert merkmale["override_restzeit_min"] > 0
+
+
+def test_die_zirkulation_laeuft_im_rundgang(rundgang):
+    """Ein Strang soll fördern – sonst steht im Schaubild alles still."""
+    from beispielanlage import zustaende
+
+    assert zustaende()["binary_sensor.ww_zirkulationspumpe"]["state"] == "on"
 
 
 def test_der_rundgang_zeigt_eine_stoerung(rundgang):
