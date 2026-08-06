@@ -9,7 +9,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { LADUNG_ANNAHME_MS, OHNE_WERT, RUECKMELDUNG_MS } from "../ordnung.js";
+import { ANNAHME_MS, OHNE_WERT, RUECKMELDUNG_MS } from "../ordnung.js";
 
 export const UebersichtMixin = (Basis) =>
   class extends Basis {
@@ -549,7 +549,7 @@ export const UebersichtMixin = (Basis) =>
   /** Läuft für diese Taste noch eine Annahme? Dann ist sie gesperrt. */
   _ladungWartet(entity) {
     const merk = this._ladungAnnahmen && this._ladungAnnahmen[entity];
-    return !!merk && Date.now() - merk.seit < LADUNG_ANNAHME_MS;
+    return !!merk && Date.now() - merk.seit < ANNAHME_MS;
   }
 
   /**
@@ -563,7 +563,7 @@ export const UebersichtMixin = (Basis) =>
   _ladungAnnahme(entity, echt) {
     const merk = this._ladungAnnahmen && this._ladungAnnahmen[entity];
     if (!merk) return null;
-    if (echt === merk.laeuft || Date.now() - merk.seit >= LADUNG_ANNAHME_MS) {
+    if (echt === merk.laeuft || Date.now() - merk.seit >= ANNAHME_MS) {
       delete this._ladungAnnahmen[entity];
       return null;
     }

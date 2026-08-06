@@ -32,6 +32,11 @@ Vorabversion.
 - Das Estrich-Ausheizprogramm des Heizkreises heißt schlicht *Programm* und
   stand deshalb als Zeitprogramm in der Liste. Wer den Datenpunkt einschaltete,
   sah in der Steuerungsübersicht *beenden* statt seines Heizprogramms.
+- Ein Zahlenfeld sprang nach der Eingabe erst auf den alten Wert zurück und
+  Sekunden später auf den neuen. Der eingestellte Wert bleibt jetzt stehen, bis
+  die Anlage ihn bestätigt.
+- Die Taste am Zeitprogramm stand bei kurzen Programmen mitten in der Karte
+  statt unten links.
 
 ### Geändert
 

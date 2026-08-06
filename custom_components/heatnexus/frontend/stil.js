@@ -730,7 +730,14 @@ export const STIL = `
     margin-top: 12px; padding: 7px 10px; border-radius: 8px; font-size: 12px;
     background: rgba(255, 171, 111, 0.12); color: #ffab6f;
   }
-  .zp-karteleiste { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+  /* margin-top:auto haelt die Leiste am unteren Rand. Die Karten einer Zeile
+     sind gleich hoch (.raster steht auf align-items:stretch), und ohne das
+     stand die Taste bei einem kurzen Programm irgendwo in der Mitte, weil
+     darunter nur Leerraum kam. Links bleibt sie durch flex-start. */
+  .zp-karteleiste {
+    display: flex; align-items: center; justify-content: flex-start;
+    gap: 12px; margin-top: auto; padding-top: 14px;
+  }
   .zp-taste {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 12px; border-radius: 10px; font: inherit; font-size: 13px;

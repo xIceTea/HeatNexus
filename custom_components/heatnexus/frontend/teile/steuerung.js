@@ -9,7 +9,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { OHNE_WERT, ZAHL_VERZOEGERUNG_MS } from "../ordnung.js";
+import { ANNAHME_MS, OHNE_WERT, ZAHL_VERZOEGERUNG_MS } from "../ordnung.js";
 
 export const SteuerungMixin = (Basis) =>
   class extends Basis {
@@ -406,10 +406,16 @@ export const SteuerungMixin = (Basis) =>
     // Pfeiltaste hielt, schickte jeden Schritt mit. Gesendet wird deshalb
     // eine kurze Weile nach der letzten Eingabe; jede weitere setzt sie neu.
     let warteschlange = null;
+    // **Was gesendet wurde, bleibt stehen, bis die Anlage es bestätigt.**
+    // Sonst sprang das Feld nach dem Tippen erst auf den alten Wert zurück und
+    // zwei Sekunden später auf den neuen - man sah zu, wie die eigene Eingabe
+    // verschwand und wiederkam.
+    let angenommen = null;
     const senden = async () => {
       warteschlange = null;
       const wert = Number(feld.value);
       if (!Number.isFinite(wert)) return;
+      angenommen = { wert, seit: Date.now() };
       await this._uebertragen(
         rueckmeldung,
         () => this._hass.callService("number", "set_value", { entity_id: entity, value: wert }),
@@ -440,9 +446,18 @@ export const SteuerungMixin = (Basis) =>
       if (merkmale.max !== undefined) feld.max = String(merkmale.max);
       if (merkmale.step !== undefined) feld.step = String(merkmale.step);
       einheit.textContent = merkmale.unit_of_measurement || "";
+      // Die Annahme ist verbraucht, sobald die Anlage denselben Wert meldet -
+      // oder wenn sie ihn nach einem Abrufabstand immer noch nicht meldet.
+      if (angenommen) {
+        const gemeldet = Number(zustand.state);
+        const passt = Number.isFinite(gemeldet) && Math.abs(gemeldet - angenommen.wert) < 0.05;
+        if (passt || Date.now() - angenommen.seit >= ANNAHME_MS) angenommen = null;
+      }
       // Weder während des Tippens noch während einer laufenden Übertragung
       // überschreiben – sonst springt der Wert unter den Fingern zurück.
-      if (document.activeElement !== feld && !warteschlange) feld.value = zustand.state;
+      if (document.activeElement !== feld && !warteschlange && !angenommen) {
+        feld.value = zustand.state;
+      }
     });
     return zeile;
   }
