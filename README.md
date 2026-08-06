@@ -40,12 +40,14 @@ einschließlich Info-, Betreiber- und Serviceebene.
 </p>
 
 <p align="center">
-  <img src="assets/dashboard_beispiel.png" alt="Mitgeliefertes Dashboard" width="820">
+  <a href="docs/OBERFLAECHE.md"><img src="assets/panel_rundgang.gif" alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme" width="820"></a>
 </p>
 
 <p align="center">
-  <em>Das mitgelieferte Dashboard baut sich bei jedem Öffnen aus den
-  vorhandenen Geräten neu auf.</em>
+  <em>Die eigene Oberfläche in der Seitenleiste: Übersicht, anliegende Störung,
+  Steuerung mit laufender Warmwasserladung, Wartung, Zeitprogramme. Ausführlich
+  in <a href="docs/OBERFLAECHE.md">docs/OBERFLAECHE.md</a> – Beispielwerte,
+  aufgenommen aus der ausgelieferten Oberfläche.</em>
 </p>
 
 ## Unterstützte Geräte
@@ -237,16 +239,8 @@ data:
 ## Eigene Oberfläche
 
 Neben dem Dashboard bringt HeatNexus eine eigene Seite in der Seitenleiste mit.
-Sie zeigt die Anlage als Ganzes statt als Kachelsammlung:
-
-<p align="center">
-  <a href="docs/OBERFLAECHE.md"><img src="assets/panel_rundgang.gif" alt="Rundgang durch die Oberfläche" width="820"></a>
-</p>
-
-<p align="center">
-  <em>Rundgang durch die Reiter, mit anliegender Störung – ausführlich in
-  <a href="docs/OBERFLAECHE.md">docs/OBERFLAECHE.md</a>. Beispielwerte.</em>
-</p>
+Sie zeigt die Anlage als Ganzes statt als Kachelsammlung – im Bild ganz oben,
+Reiter für Reiter in [docs/OBERFLAECHE.md](docs/OBERFLAECHE.md):
 
 - **Anlagenschaubild** mit Vor- und Rücklauf, den Live-Werten und Pumpen, die
   sich drehen, solange sie laufen.
@@ -321,6 +315,7 @@ an keiner Formulierung.
 
 | Datei | Inhalt |
 |---|---|
+| [`docs/OBERFLAECHE.md`](docs/OBERFLAECHE.md) | die eigene Oberfläche, Reiter für Reiter |
 | [`docs/API.md`](docs/API.md) | Geräte-API und OID-Aufbau |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Aufbau der Integration |
 | [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md) | alle Datenpunkte je Funktionstyp, mit Bedienebene |

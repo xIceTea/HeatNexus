@@ -45,12 +45,14 @@ decide whether the integration fits before you install it.
 </p>
 
 <p align="center">
-  <img src="assets/dashboard_beispiel.png" alt="Bundled dashboard" width="820">
+  <a href="docs/OBERFLAECHE.md"><img src="assets/panel_rundgang.gif" alt="Tour of the panel: overview, fault, controls, maintenance, time programmes" width="820"></a>
 </p>
 
 <p align="center">
-  <em>The bundled dashboard rebuilds itself from the devices present every time
-  you open it.</em>
+  <em>The integration's own page in the sidebar: overview, an active fault,
+  controls with a hot-water charge running, maintenance, time programmes. In
+  detail in <a href="docs/OBERFLAECHE.md">docs/OBERFLAECHE.md</a> (German) –
+  example values, recorded from the shipped interface.</em>
 </p>
 
 ## Supported hardware
