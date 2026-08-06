@@ -8,6 +8,13 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Neu
+
+- **Ein übergangener Abbruch wird nachgesetzt.** Ging der Befehl an der Anlage
+  vorbei, lief die Warmwasserladung weiter und man musste ein zweites Mal
+  drücken. Jetzt wird nachgesehen und, falls nötig, noch einmal geschickt —
+  nur die Freigabe, höchstens zweimal.
+
 ### Behoben
 
 - **Eco und Comfort aus dem Warmwasser- oder Standby-Betrieb heraus.** Die
