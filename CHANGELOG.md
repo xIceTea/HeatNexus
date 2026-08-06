@@ -8,6 +8,22 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Neu
+
+- **Der BioWIN wird als Pelletskessel erkannt.** Bisher blieb es bei dem, was
+  die Menü-Erkennung zufällig fand; jetzt gibt es eine eigene Tabelle mit
+  Kesseltemperatur, Leistung, Abgastemperatur, Betriebsphase und -art,
+  Brennerstarts, Betriebsstunden, Brennstoffverbrauch und den drei
+  Restlaufzeiten bis Reinigung, Hauptreinigung und Wartung. Der BioWIN führt
+  diese Zähler an anderen Stellen als der PuroWIN – bisher blieben die Zeilen
+  deshalb leer.
+
+### Behoben
+
+- **„Fehler Vorratsbehälter" trug ein Leerzeichen am Ende.** In der
+  Herstellerdatei steht es so. Als Zustand war es unsichtbar, aber ein
+  Vergleich in einer Automation ging daneben, ohne dass zu sehen war, warum.
+
 ## [1.5.0-beta.4] - 2026-08-06
 
 Vorabversion.
