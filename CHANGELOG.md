@@ -8,6 +8,14 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Geändert
+
+- **HeatNexus steht jetzt unter der GNU General Public License v3.0.** Wer die
+  Integration abwandelt und weitergibt, gibt sie unter derselben Lizenz weiter —
+  mit Quelltext. Bis einschließlich 1.5.0 galt die Apache License 2.0; ältere
+  Fassungen bleiben unter den Bedingungen, unter denen sie erschienen sind. Für
+  die Nutzung ändert sich nichts.
+
 ## [1.5.0] - 2026-08-06
 
 Zeitprogramme lassen sich jetzt bedienen statt nur ablesen, die Anlage meldet

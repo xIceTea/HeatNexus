@@ -1,6 +1,6 @@
 ![HeatNexus](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png)
 
-[![Validate](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml) [![Tests](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml) ![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5) ![Home Assistant 2025.6+](https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4)
+[![Validate](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml) [![Tests](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml) ![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5) ![Home Assistant 2025.6+](https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4) [![Lizenz: GPL-3.0](https://img.shields.io/badge/Lizenz-GPL--3.0-blue)](LICENSE)
 
 [![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Integration hinzufügen](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
 
@@ -329,3 +329,12 @@ Details in [`tools/README.md`](tools/README.md).
 Die Integration schreibt auf eine Heizungsanlage. Steuerbare Datenpunkte der
 Betreiberebene sind geprüft, Serviceparameter sind bewusst deaktiviert.
 Nutzung auf eigene Verantwortung.
+
+## Lizenz
+
+HeatNexus steht unter der [GNU General Public License v3.0](LICENSE). Wer die
+Integration abwandelt und weitergibt, gibt sie unter derselben Lizenz weiter —
+mit Quelltext. Name und Logo sind davon ausgenommen, siehe [`NOTICE`](NOTICE).
+
+Bis einschließlich 1.5.0 galt die Apache License 2.0; ältere Fassungen bleiben
+unter den Bedingungen, unter denen sie erschienen sind.
