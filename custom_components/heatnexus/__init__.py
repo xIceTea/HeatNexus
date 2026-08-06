@@ -35,6 +35,7 @@ from . import device_db, error_texts
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
+    ABRUF_TIMEOUT,
     AUTH_FEHLER_GRENZE,
     BACKOFF_MAX,
     CONF_DASHBOARD,
@@ -51,6 +52,7 @@ from .const import (
     DISCOVERY_MAX_AGE_DAYS,
     DISCOVERY_STORE_VERSION,
     DOMAIN,
+    ERSTABRUF_TIMEOUT,
     INIT_TIMEOUT,
     SIGNAL_NEUE_ENTITAETEN,
     UPDATE_INTERVAL,
@@ -235,8 +237,9 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         # statt die Anlage still als „nicht verfügbar" stehen zu lassen.
         if getattr(self.client, "auth_errors", 0) >= AUTH_FEHLER_GRENZE:
             raise ConfigEntryAuthFailed(f"Anlage {self.host} weist die Anmeldung ab")
+        erster = bool(getattr(self.client, "erster_abruf", False))
         try:
-            async with asyncio.timeout(30):
+            async with asyncio.timeout(ERSTABRUF_TIMEOUT if erster else ABRUF_TIMEOUT):
                 data = await self.client.fetch_all()
                 self.consecutive_timeouts = 0
                 self._wieder_normal_fragen()
@@ -253,7 +256,17 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             if self.consecutive_timeouts >= 3:
                 self._stoerung_melden("Sie antwortet nicht mehr.")
                 raise UpdateFailed(f"Anlage {self.host} antwortet wiederholt nicht: {err}") from err
-            return self.data if self.data else None
+            # Ein verpasster Abruf lässt die zuletzt gelesenen Werte stehen.
+            # Gibt es noch keine, ist nichts zu halten – dann muss der
+            # Fehlschlag auch als Fehlschlag gelten. Ein leeres Ergebnis als
+            # *Erfolg* abzulegen hieß, dass jeder Leser der Koordinatordaten
+            # eine Anlage ohne Datenpunkte sah; daran hing in 1.5.0-beta.9 die
+            # Stilllegung sämtlicher Entitäten.
+            if not self.data:
+                raise UpdateFailed(
+                    f"Anlage {self.host} hat noch keine Werte geliefert: {err}"
+                ) from err
+            return self.data
         except ConfigEntryAuthFailed:
             raise
         except Exception as err:
@@ -576,6 +589,18 @@ def _abgewaehlte_entitaeten_stilllegen(
     vollstaendig = all(getattr(c.client, "_vollstaendig", False) for c in coordinators.values())
     if not vollstaendig:
         # Vor dem Vollabzug ist die Liste noch unvollständig – nichts anfassen.
+        return
+
+    # **Keine Daten heißt nicht: keine Datenpunkte.** Kommt der Erkennungsstand
+    # aus dem Zwischenspeicher, gilt die Anlage sofort als vollständig
+    # eingelesen – der erste Abruf kann trotzdem in die Zeitüberschreitung
+    # laufen, und `data` bleibt leer. Ohne diese Prüfung ist die Liste der
+    # bekannten Datenpunkte dann leer und **jede** Entität des Eintrags gilt
+    # als abgewählt: In 1.5.0-beta.9 lagen danach 285 Entitäten still und die
+    # Anlage stand ohne einen einzigen Wert da. Aufgeräumt wird erst, wenn
+    # jede Anlage tatsächlich etwas gemeldet hat.
+    if any(not (coordinator.data or {}).get("devices") for coordinator in coordinators.values()):
+        _LOGGER.debug("Abruf noch ohne Daten – es wird nichts stillgelegt")
         return
 
     loeschen = _abwahl_abholen(hass, entry)

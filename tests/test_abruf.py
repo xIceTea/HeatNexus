@@ -50,12 +50,22 @@ async def test_ohne_stoerung_bleibt_der_takt(coordinator):
 
 
 async def test_nach_fehlschlaegen_wird_der_abstand_groesser(coordinator):
+    """Solange noch kein Wert dasteht, ist die Zeitüberschreitung ein Fehlschlag.
+
+    Ein leeres Ergebnis als *Erfolg* abzulegen hieß, dass jeder Leser der
+    Koordinatordaten eine Anlage ohne Datenpunkte sah. Der Abstand wächst
+    trotzdem – darum geht es hier.
+    """
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
     coordinator.client.fetch_all.side_effect = TimeoutError("keine Antwort")
 
-    await coordinator._async_update_data()
+    with contextlib.suppress(UpdateFailed):
+        await coordinator._async_update_data()
     assert coordinator.update_interval == timedelta(seconds=60)
 
-    await coordinator._async_update_data()
+    with contextlib.suppress(UpdateFailed):
+        await coordinator._async_update_data()
     assert coordinator.update_interval == timedelta(seconds=120)
 
 
@@ -71,8 +81,11 @@ async def test_der_abstand_waechst_nicht_ins_unendliche(coordinator):
 
 async def test_die_erste_antwort_stellt_den_takt_zurueck(coordinator):
     """Der Punkt, an dem so etwas sonst hängen bleibt."""
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
     coordinator.client.fetch_all.side_effect = TimeoutError("keine Antwort")
-    await coordinator._async_update_data()
+    with contextlib.suppress(UpdateFailed):
+        await coordinator._async_update_data()
     assert coordinator.update_interval == timedelta(seconds=60)
 
     coordinator.client.fetch_all.side_effect = None

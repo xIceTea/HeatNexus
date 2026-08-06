@@ -187,6 +187,79 @@ def test_die_vormerkung_gilt_genau_einmal(modul, const, hass):
     assert not modul._abwahl_abholen(hass, eintrag)
 
 
+def _eintrag_in_hass(hass):
+    """Ein Eintrag mit einer Entität in der Registry."""
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = MockConfigEntry(domain=DOMAIN, title="PuroWin40", data={}, options={})
+    eintrag.add_to_hass(hass)
+    entitaet = er.async_get(hass).async_get_or_create(
+        "sensor", DOMAIN, "SN1-0-0-7-0", config_entry=eintrag
+    )
+    return eintrag, entitaet.entity_id
+
+
+def _koordinator(daten):
+    """Ein Koordinator, dessen Anlage vollständig eingelesen ist."""
+    return SimpleNamespace(data=daten, client=SimpleNamespace(_vollstaendig=True))
+
+
+def test_ein_abruf_ohne_daten_legt_nichts_still(modul, hass):
+    """Eine Zeitüberschreitung ist kein weggefallener Datenpunkt.
+
+    Der Erkennungsstand kommt aus dem Zwischenspeicher, die Anlage gilt damit
+    als vollständig eingelesen – aber der erste Abruf lief in die
+    Zeitüberschreitung und ``coordinator.data`` blieb leer. Die Liste der
+    bekannten Datenpunkte war dann leer, und **jede** Entität des Eintrags
+    galt als abgewählt: In 1.5.0-beta.9 lagen danach 285 Entitäten still und
+    kein einziger Wert stand mehr da.
+    """
+    from homeassistant.helpers import entity_registry as er
+
+    eintrag, entitaet = _eintrag_in_hass(hass)
+
+    modul._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(None)})
+
+    assert er.async_get(hass).async_get(entitaet).disabled_by is None
+
+
+def test_eine_anlage_ohne_daten_schuetzt_auch_die_andere(modul, hass):
+    """Zwei Anlagen: Antwortet eine nicht, wird für keine aufgeräumt.
+
+    Die Deskriptoren beider Anlagen landen in derselben Liste. Fehlt die eine,
+    fehlt in der Liste die Hälfte – und die Entitäten der stummen Anlage
+    stünden als abgewählt da, obwohl niemand etwas abgewählt hat.
+    """
+    from homeassistant.helpers import entity_registry as er
+
+    eintrag, entitaet = _eintrag_in_hass(hass)
+    koordinatoren = {
+        "a": _koordinator({"devices": [{"id": "irgendwas", "enabled_default": True}]}),
+        "b": _koordinator(None),
+    }
+
+    modul._abgewaehlte_entitaeten_stilllegen(hass, eintrag, koordinatoren)
+
+    assert er.async_get(hass).async_get(entitaet).disabled_by is None
+
+
+def test_ein_wirklich_weggefallener_datenpunkt_wird_stillgelegt(modul, hass):
+    """Die Gegenprobe: Antwortet die Anlage und fehlt der Datenpunkt, gilt er als weg."""
+    from homeassistant.helpers import entity_registry as er
+
+    eintrag, entitaet = _eintrag_in_hass(hass)
+    koordinator = _koordinator({"devices": [{"id": "ein-anderer", "enabled_default": True}]})
+
+    modul._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+
+    assert (
+        er.async_get(hass).async_get(entitaet).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    )
+
+
 # ---------------------------------------------------------------------------
 # Meldungen
 # ---------------------------------------------------------------------------

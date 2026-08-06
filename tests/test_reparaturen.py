@@ -85,3 +85,52 @@ async def test_der_eintrag_verschwindet_von_selbst(hass, coordinator):
     coordinator.client.fetch_all.side_effect = None
     await coordinator._async_update_data()
     assert _stoerung(hass, coordinator) is None
+
+
+# ---------------------------------------------------------------------------
+# Zeitfenster eines Abrufs
+# ---------------------------------------------------------------------------
+async def test_der_erste_abruf_bekommt_mehr_zeit(coordinator, monkeypatch):
+    """Beim ersten Abruf ist jede Poll-Klasse fällig – auch die trägen.
+
+    Auf einer Anlage mit knapp zwei Sekunden je Anfrage passte das nicht in
+    dreißig Sekunden; der Abruf lief in die Zeitüberschreitung und es stand
+    kein einziger Wert da.
+    """
+    import custom_components.heatnexus as modul
+
+    fenster = []
+    monkeypatch.setattr(modul.asyncio, "timeout", lambda s: fenster.append(s) or _offen())
+
+    coordinator.client.erster_abruf = True
+    await coordinator._async_update_data()
+    coordinator.client.erster_abruf = False
+    await coordinator._async_update_data()
+
+    assert fenster == [modul.ERSTABRUF_TIMEOUT, modul.ABRUF_TIMEOUT]
+    assert modul.ERSTABRUF_TIMEOUT > modul.ABRUF_TIMEOUT
+
+
+def _offen():
+    """Ein Zeitfenster, das nie zuschlägt – gemessen wird nur seine Größe."""
+    return contextlib.nullcontext()
+
+
+async def test_ohne_vorherige_werte_ist_die_zeitueberschreitung_ein_fehlschlag(coordinator):
+    """Ein leeres Ergebnis darf nicht als Erfolg abgelegt werden.
+
+    Sonst sieht jeder Leser der Koordinatordaten eine Anlage ohne Datenpunkte.
+    Daran hing in 1.5.0-beta.9 die Stilllegung sämtlicher Entitäten.
+    """
+    coordinator.client.fetch_all.side_effect = TimeoutError("keine Antwort")
+    with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()
+    assert coordinator.data is None
+
+
+async def test_mit_vorherigen_werten_bleiben_diese_stehen(coordinator):
+    """Ein einzelner verpasster Abruf soll die Anzeige nicht leeren."""
+    coordinator.data = {"oids": {"/1/15/0/0/7/0": "42"}, "devices": [{"id": "a"}]}
+    coordinator.client.fetch_all.side_effect = TimeoutError("keine Antwort")
+
+    assert await coordinator._async_update_data() == coordinator.data

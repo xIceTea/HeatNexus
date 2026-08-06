@@ -415,6 +415,17 @@ EXTRA_OIDS_BY_FCT: dict[int, tuple[str, ...]] = {
 # schnellen zyklischen Poll-Timeout.
 INIT_TIMEOUT = 240
 
+# Zeitfenster (s) für einen zyklischen Abruf.
+#
+# Der **erste** Abruf nach dem Start ist der größte: Da ist noch kein Wert da,
+# also ist jede Poll-Klasse fällig – auch die trägen, die sonst nur jeden
+# fünfzehnten Durchlauf drankommen. Auf einer Anlage mit knapp zwei Sekunden
+# Antwortzeit je Anfrage passte das nicht mehr in dreißig Sekunden; der Abruf
+# lief in die Zeitüberschreitung und die Oberfläche blieb leer. Danach hält
+# der reguläre Takt das Fenster locker ein.
+ABRUF_TIMEOUT = 30
+ERSTABRUF_TIMEOUT = 180
+
 # Persistenter Discovery-Cache (überlebt HA-Neustart -> schneller Start).
 DISCOVERY_STORE_VERSION = 1
 # Cache nach dieser Zeit verwerfen und neu erkennen (fängt geänderte Anlagen ab).

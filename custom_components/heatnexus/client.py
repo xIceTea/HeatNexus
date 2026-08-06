@@ -155,6 +155,17 @@ class WindhagerHttpClient:
         # Flaschenhals, nicht die Anlage.
         self._poll_semaphore = asyncio.Semaphore(POLL_CONCURRENCY)
 
+    @property
+    def erster_abruf(self) -> bool:
+        """Sagen, ob der erste Abruf noch aussteht.
+
+        Er ist der größte: Solange kein Wert dasteht, ist jede Poll-Klasse
+        fällig – auch die trägen, die sonst nur jeden fünfzehnten Durchlauf
+        drankommen. Er braucht deshalb ein größeres Zeitfenster als der Takt
+        danach.
+        """
+        return self._tick == 0
+
     # ------------------------------------------------------------------
     # Dynamische Poll-Registrierung
     # ------------------------------------------------------------------
@@ -171,7 +182,7 @@ class WindhagerHttpClient:
         """Sitzung mit Digest-Authentifizierung bereitstellen.
 
         Die Anmeldung übernimmt aiohttp selbst (ab 3.12, in Home Assistant ab
-        2025.6). Bis 1.6.0 lag dafür eine eigene, von `requests` abgeleitete
+        2025.6). Bis 1.5.0 lag dafür eine eigene, von `requests` abgeleitete
         Datei im Projekt; sie ist ersatzlos entfallen.
 
         `preemptive=True` schickt die Anmeldung nach der ersten Antwort gleich
