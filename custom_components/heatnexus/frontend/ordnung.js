@@ -30,6 +30,19 @@ export const ZAHL_VERZOEGERUNG_MS = 2500;
 // „wird ausgeführt …" sonst minutenlang stehen, obwohl nichts mehr läuft.
 export const BESTAETIGUNG_MAX_MS = 3 * 60 * 1000;
 
+/**
+ * Wie lange die Ladetaste ihrem eigenen Druck glaubt, bevor sie wieder der
+ * Anlage glaubt.
+ *
+ * Die Anlage wird alle 30 s abgefragt. Wer „Warmwasser laden abbrechen"
+ * drückt, sah bis dahin unverändert „läuft" und dieselbe Taste - es sah aus,
+ * als sei der Druck ins Leere gegangen, und man drückte noch einmal. Die
+ * Taste zeigt den gedrückten Zustand deshalb sofort und bleibt so lange
+ * gesperrt, bis die Anlage ihn bestätigt oder diese Zeit um ist. Etwas mehr
+ * als ein Abrufabstand, damit ein knapp verpasster Durchlauf noch zählt.
+ */
+export const LADUNG_ANNAHME_MS = 45 * 1000;
+
 export const REITER = [
   { schluessel: "uebersicht", titel: "Übersicht", symbol: "mdi:view-dashboard-outline" },
   { schluessel: "steuerung", titel: "Steuerung", symbol: "mdi:tune-vertical" },

@@ -308,3 +308,17 @@ def test_der_erste_druck_wirkt_auch_ohne_gemerkten_zustand(abbruch):
     „wird ausgeführt …" blieb daneben stehen.
     """
     assert "unbekannter Rückkehrpunkt: Auslöser zurückgenommen" in abbruch["faelle"]
+
+
+def test_der_druck_wirkt_sofort_und_sperrt_die_taste(abbruch):
+    """Die Anlage wird alle 30 s abgefragt – so lange sah es aus wie nichts.
+
+    Bis dahin stand unverändert „läuft" und dieselbe Beschriftung da. Also
+    drückte man noch einmal, und der zweite Druck traf auf den alten Zustand.
+    """
+    assert "Druck wirkt sofort, zweiter Druck ist gesperrt" in abbruch["faelle"]
+
+
+def test_die_bestaetigung_gibt_die_taste_wieder_frei(abbruch):
+    """Sonst bliebe sie nach jeder Bedienung eine dreiviertel Minute tot."""
+    assert "bestaetigte Bedienung gibt die Taste sofort wieder frei" in abbruch["faelle"]

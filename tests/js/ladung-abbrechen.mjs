@@ -54,6 +54,7 @@ function panelBauen({ laedt, optionen, betriebswahl = BETRIEBSWAHL }) {
   const eintrag = {
     entity: AUSLOESER,
     titel: "Warmwasser laden",
+    titel_abbrechen: "Warmwasser laden abbrechen",
     symbol: "mdi:water-boiler",
     betriebswahl,
     betriebswahl_zurueck: "^programm",
@@ -185,6 +186,65 @@ const faelle = [];
     throw new Error(`zweiter Druck stellte auf ${geraten.daten.option}`);
   }
   faelle.push("zweiter Druck: kein geratenes Programm");
+}
+
+// --- Der Druck wirkt sofort, nicht erst beim nächsten Abruf ----------------
+//
+// Die Anlage wird alle 30 s abgefragt. Bis dahin stand unverändert „läuft" und
+// dieselbe Beschriftung da – es sah aus, als sei nichts passiert, und man
+// drückte noch einmal. Der zweite Druck traf dann auf den alten Zustand.
+{
+  const { element, taste, gerufen } = panelBauen({
+    laedt: true,
+    optionen: ["Standby", "Programm 1", "Heizbetrieb", "WW-Betrieb"],
+  });
+  element._wahlVorLadung[BETRIEBSWAHL] = "Programm 1";
+  // Einmal zeichnen, wie es die Oberfläche beim Aufbau tut.
+  element._bindungen.forEach((bindung) => bindung());
+  const vorher = taste.querySelector(".beschriftung").textContent;
+  if (vorher !== "Warmwasser laden abbrechen") {
+    throw new Error(`Die laufende Ladung wird nicht angeboten: "${vorher}"`);
+  }
+  taste.ausloesen("click");
+  await abwarten();
+
+  // Ohne neue Zustände von der Anlage: allein der Druck muss die Anzeige
+  // umstellen.
+  const nachher = taste.querySelector(".beschriftung").textContent;
+  if (vorher === nachher) {
+    throw new Error(`Beschriftung blieb nach dem Druck auf "${nachher}"`);
+  }
+  if (!taste.disabled) {
+    throw new Error("Taste liess sich sofort erneut druecken");
+  }
+
+  const vorZweitem = gerufen.length;
+  taste.ausloesen("click");
+  await abwarten();
+  if (gerufen.length !== vorZweitem) {
+    throw new Error("Ein zweiter Druck ging trotzdem an die Anlage");
+  }
+  faelle.push("Druck wirkt sofort, zweiter Druck ist gesperrt");
+}
+
+// --- Meldet die Anlage dasselbe, gibt die Annahme die Taste wieder frei -----
+{
+  const { element, taste } = panelBauen({
+    laedt: true,
+    optionen: ["Standby", "Programm 1", "Heizbetrieb", "WW-Betrieb"],
+  });
+  element._wahlVorLadung[BETRIEBSWAHL] = "Programm 1";
+  taste.ausloesen("click");
+  await abwarten();
+  if (!taste.disabled) throw new Error("Taste war nach dem Druck nicht gesperrt");
+
+  // Die Anlage bestätigt: Sie lädt nicht mehr.
+  element._hass.states[BETRIEBSART].state = "Heizbetrieb";
+  element._bindungen.forEach((bindung) => bindung());
+  if (taste.disabled) {
+    throw new Error("Taste blieb gesperrt, obwohl die Anlage bestaetigt hat");
+  }
+  faelle.push("bestaetigte Bedienung gibt die Taste sofort wieder frei");
 }
 
 console.log(JSON.stringify({ faelle }, null, 1));

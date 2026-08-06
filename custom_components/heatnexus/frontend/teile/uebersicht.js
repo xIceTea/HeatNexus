@@ -9,7 +9,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { OHNE_WERT, RUECKMELDUNG_MS } from "../ordnung.js";
+import { LADUNG_ANNAHME_MS, OHNE_WERT, RUECKMELDUNG_MS } from "../ordnung.js";
 
 export const UebersichtMixin = (Basis) =>
   class extends Basis {
@@ -391,7 +391,7 @@ export const UebersichtMixin = (Basis) =>
     const bereich = eintrag.entity.split(".")[0];
     // Manche Bedienungen melden ihren Zustand woanders: Die Warmwasserladung
     // steht in der Betriebsart, ihr Auslöser fällt sofort zurück.
-    const laeuft = () => {
+    const lautAnlage = () => {
       // Die Ladepumpe ist der handfeste Beleg: Sie läuft, solange geladen
       // wird. Die Betriebsart meldet je nach Baureihe andere Worte und an
       // manchen Kreisen gar nichts.
@@ -403,6 +403,13 @@ export const UebersichtMixin = (Basis) =>
         }
       }
       return this._istAn(eintrag.entity);
+    };
+    // Zwischen Druck und Antwort der Anlage liegt ein Abrufabstand. Bis dahin
+    // gilt, was gedrückt wurde – sonst sähe es aus, als sei nichts passiert.
+    const laeuft = () => {
+      const echt = lautAnlage();
+      const angenommen = this._ladungAnnahme(eintrag.entity, echt);
+      return angenommen === null ? echt : angenommen;
     };
     const taste = document.createElement("button");
     taste.className = "taste";
@@ -478,40 +485,89 @@ export const UebersichtMixin = (Basis) =>
                 }
               }
             }
-            return bereich === "button"
-              ? this._hass.callService("button", "press", { entity_id: eintrag.entity })
-              : this._hass.callService(
-                  "homeassistant",
-                  eintrag.zustand_an ? "turn_on" : "toggle",
-                  { entity_id: eintrag.entity }
-                );
+            if (bereich === "button") {
+              await this._hass.callService("button", "press", { entity_id: eintrag.entity });
+            } else {
+              await this._hass.callService(
+                "homeassistant",
+                eintrag.zustand_an ? "turn_on" : "toggle",
+                { entity_id: eintrag.entity }
+              );
+            }
+            // Erst hier, nach dem gelungenen Aufruf: Eine abgewiesene
+            // Bedienung darf die Taste nicht sperren.
+            if (eintrag.zustand_an) this._ladungAnnehmen(eintrag.entity, true);
           },
-          // Bestätigt ist der Auftrag, wenn die Anlage anfängt zu laden. Hier
-          // steht sie noch – der Abbruch ist oben schon abgebogen.
-          bereich === "button" ? null : () => laeuft()
+          // Bestätigt ist der Auftrag, wenn die Anlage anfängt zu laden.
+          // **Ohne die eigene Annahme** – die sagt sonst sofort ja, und die
+          // Rückmeldung meldete Erfolg, bevor die Anlage etwas getan hat.
+          bereich === "button" ? null : () => lautAnlage()
         );
         this._nachfassen(eintrag);
       } finally {
-        taste.disabled = false;
+        zeichnen();
       }
     });
 
-    this._bindungen.push(() => {
+    const zeichnen = () => {
       const zustand = this._zustand(eintrag.entity);
       const an = laeuft();
       taste.classList.toggle("an", an);
       // Läuft die Ladung, sagt die Taste, was ein Druck jetzt bewirkt.
-      const abbrechbar = an && !!eintrag.titel_abbrechen && !!eintrag.betriebswahl;
+      const abbrechbar =
+        an && !!eintrag.titel_abbrechen && !!(eintrag.betriebswahl || bereich === "switch");
       beschriftung.textContent = abbrechbar ? eintrag.titel_abbrechen : eintrag.titel;
       taste.classList.toggle("abbrechen", abbrechbar);
+      // **Kein zweiter Druck, solange der erste noch unterwegs ist.** Er
+      // träfe auf den alten Zustand und kehrte den ersten wieder um.
+      // `.taste[disabled]` blendet ab und zeigt den Warte-Zeiger.
+      taste.disabled = this._ladungWartet(eintrag.entity);
       // Solange eine Übertragung läuft, gehört die Zeile der Rückmeldung.
       if (rueckmeldung.dataset.belegt === "1") return;
       rueckmeldung.className = "rueckmeldung";
       rueckmeldung.textContent = eintrag.zustand_an
         ? (an ? "läuft" : "bereit")
         : this._tastenZustand(bereich, zustand, an);
-    });
+    };
+    taste._zeichnen = zeichnen;
+    this._bindungen.push(zeichnen);
     return taste;
+  }
+
+  /**
+   * Was die Taste nach einem Druck annimmt, bis die Anlage antwortet.
+   *
+   * Die Anlage wird alle 30 s abgefragt. Ohne diese Annahme stand nach einem
+   * „Warmwasser laden abbrechen" bis zum nächsten Abruf unverändert „läuft"
+   * da – es sah aus, als sei der Druck ins Leere gegangen.
+   */
+  _ladungAnnehmen(entity, laeuft) {
+    this._ladungAnnahmen = this._ladungAnnahmen || {};
+    this._ladungAnnahmen[entity] = { laeuft, seit: Date.now() };
+  }
+
+  /** Läuft für diese Taste noch eine Annahme? Dann ist sie gesperrt. */
+  _ladungWartet(entity) {
+    const merk = this._ladungAnnahmen && this._ladungAnnahmen[entity];
+    return !!merk && Date.now() - merk.seit < LADUNG_ANNAHME_MS;
+  }
+
+  /**
+   * Die Annahme, solange sie gilt – sonst `null`.
+   *
+   * Verbraucht wird sie, sobald die Anlage dasselbe meldet oder die Zeit um
+   * ist. Beides muss sein: Ohne das Erste bliebe die Taste nach einer
+   * bestätigten Bedienung unnötig gesperrt, ohne das Zweite für immer, wenn
+   * die Anlage den Auftrag gar nicht angenommen hat.
+   */
+  _ladungAnnahme(entity, echt) {
+    const merk = this._ladungAnnahmen && this._ladungAnnahmen[entity];
+    if (!merk) return null;
+    if (echt === merk.laeuft || Date.now() - merk.seit >= LADUNG_ANNAHME_MS) {
+      delete this._ladungAnnahmen[entity];
+      return null;
+    }
+    return merk.laeuft;
   }
 
   /**
@@ -573,6 +629,10 @@ export const UebersichtMixin = (Basis) =>
               option: ziel,
             });
           }
+          // Ab jetzt gilt „steht" – bis die Anlage widerspricht oder die
+          // Annahme verfällt. Erst hier, damit ein abgewiesener Aufruf die
+          // Taste nicht sperrt.
+          this._ladungAnnehmen(eintrag.entity, false);
         },
         // **Ohne die Ladepumpe.** Die läuft nach (`5/5` „Modus
         // Ladepumpennachlauf"), und solange sie läuft, gälte die Ladung als
@@ -583,7 +643,10 @@ export const UebersichtMixin = (Basis) =>
       delete this._wahlVorLadung[eintrag.betriebswahl];
       this._nachfassen(eintrag);
     } finally {
-      taste.disabled = false;
+      // Nicht blind freigeben: Ob die Taste jetzt gesperrt gehört, entscheidet
+      // die Annahme, nicht dieser Ablauf.
+      if (taste._zeichnen) taste._zeichnen();
+      else taste.disabled = false;
     }
   }
 

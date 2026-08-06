@@ -479,7 +479,9 @@ def test_das_pufferprogramm_nennt_seine_betriebswahl(panel):
         "B-PLMi PUFFER",
         16,
         [
-            entitaet("sensor.pufferprogramm", "Programm Puffer"),
+            # So heißt `4/82` an der Anlage wirklich. „Programm Puffer" stand
+            # hier bis 1.5.0-beta.10 und war erfunden.
+            entitaet("sensor.pufferprogramm", "Zeitprogramm"),
             entitaet(
                 "select.puffer_betriebswahl",
                 "Betriebswahl",
@@ -488,11 +490,37 @@ def test_das_pufferprogramm_nennt_seine_betriebswahl(panel):
         ],
     )
     programme = {p["titel"]: p for p in panel._anlage_daten(anlage(puffer))["zeitprogramme"]}
-    wirkung = programme["Programm Puffer"]["wirkung"]
+    wirkung = programme["Zeitprogramm"]["wirkung"]
     assert wirkung["entity"] == "select.puffer_betriebswahl"
     assert wirkung["muster"] == "zeitprogramm"
     # Kein Verstecken – es gibt kein konkurrierendes zweites Programm.
     assert "verbergen_bei" not in wirkung
+
+
+def test_das_estrichprogramm_ist_kein_zeitprogramm(panel):
+    """`4/60` heißt schlicht „Programm" und ist das Estrich-Ausheizprogramm.
+
+    Es kennt *beenden*, *Belegreifheizen* und *Funktionsheizen* – keine
+    Schaltzeiten. Mit dem bloßen Teilwort „programm" stand es im Reiter
+    Zeitprogramme und verdrängte als erster Treffer die echten Programme aus
+    der Steuerungsübersicht, sobald jemand den Datenpunkt einschaltete.
+    """
+    kreis = teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            entitaet("climate.umlz_heizkreis", "UMLZ HEIZKREIS"),
+            entitaet("sensor.programm", "Programm"),
+            entitaet("sensor.programm_1", "Programm 1"),
+        ],
+    )
+    daten = panel._anlage_daten(anlage(kreis))
+
+    titel = [p["titel"] for p in daten["zeitprogramme"]]
+    assert "Programm" not in titel
+    assert "Programm 1" in titel
+    # Und in der Steuerungsübersicht steht das echte Programm, nicht „beenden".
+    assert daten["steuerung"]["heizkreise"][0]["programm"] == "sensor.programm_1"
 
 
 def test_jedes_zeitprogramm_traegt_sein_eigenes_symbol(panel):

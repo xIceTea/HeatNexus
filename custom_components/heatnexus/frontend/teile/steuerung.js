@@ -330,9 +330,11 @@ export const SteuerungMixin = (Basis) =>
       trenner.className = "trenner";
       karte.appendChild(trenner);
       // Die Anlage kennt zur Einmalladung beides: die Temperatur, auf die
-      // geladen wird, und das Ausloesen.
+      // geladen wird, und das Ausloesen. Die Temperatur ist der
+      // Ausschaltpunkt der Ladung - sie nur anzuzeigen hiess, zum Verstellen
+      // in die Entitaetsliste zu wechseln.
       if (wasser.laden_temperatur) {
-        karte.appendChild(this._statuszeile(wasser.laden_temperatur, "Ladetemperatur"));
+        karte.appendChild(this._zahlFeld("Ladetemperatur", wasser.laden_temperatur));
       }
       // Die Einschalthysterese: wie weit die Temperatur unter den Sollwert
       // fallen darf, bevor nachgeladen wird. Sie entscheidet mit, ob ein

@@ -25,6 +25,13 @@ Vorabversion.
 
 - *Warmwasser laden abbrechen* wirkte erst beim zweiten Druck, wenn die Ladung
   am Gerät gestartet oder die Seite zwischendurch neu geladen wurde.
+- Die Ladetaste zeigte den Druck erst beim nächsten Abruf — bis zu 30 Sekunden,
+  in denen unverändert *läuft* dastand und es aussah, als sei nichts passiert.
+  Sie zeigt den gedrückten Zustand jetzt sofort und bleibt so lange gesperrt,
+  bis die Anlage ihn bestätigt.
+- Das Estrich-Ausheizprogramm des Heizkreises heißt schlicht *Programm* und
+  stand deshalb als Zeitprogramm in der Liste. Wer den Datenpunkt einschaltete,
+  sah in der Steuerungsübersicht *beenden* statt seines Heizprogramms.
 
 ### Geändert
 
@@ -33,6 +40,8 @@ Vorabversion.
   Anfrage an die Anlage. Wer sie braucht, schaltet sie einzeln ein.
 - Das Zahlenfeld der Ladeschwelle hat wieder Pfeile — eigene, die die
   Schrittweite der Anlage treffen und am Telefon zu bedienen sind.
+- Die *Ladetemperatur* der Einmalladung lässt sich in der Steuerung direkt
+  verstellen statt nur ablesen. Sie ist der Ausschaltpunkt der Ladung.
 - Die Ladeschwelle heißt *Freigabe ab Abweichung* statt *Nachladen ab*: Gemeint
   ist der Abstand zum Sollwert, nicht eine Temperatur.
 

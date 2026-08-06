@@ -194,7 +194,18 @@ WARMWASSER_MAX = 6
 # Betriebswahl eines Heizkreises bzw. des Kessels.
 BETRIEBSWAHL = _muster(r"\bbetriebswahl\b")
 # Zeitprogramm eines Kreises.
-ZEITPROGRAMM = _muster(r"programm")
+# **Nicht einfach „programm".** Der Heizkreis führt unter `4/60` ein
+# Estrich-Ausheizprogramm, das schlicht „Programm" heißt (beenden,
+# Belegreifheizen, Funktionsheizen). Es ist kein Zeitprogramm, hat keine
+# Schaltzeiten und gehört weder in die Steuerungsübersicht noch in den Reiter
+# Zeitprogramme. Mit dem bloßen Teilwort stand es dort – und verdrängte als
+# erster Treffer die echten Programme, sobald jemand den Datenpunkt einschaltete.
+ZEITPROGRAMM = _muster(
+    r"programm\s*\d",
+    r"zeitprogramm",
+    r"\bww[- ]programm",
+    r"zirkulations?programm",
+)
 # Das Zirkulationsprogramm und der Datenpunkt, der darüber entscheidet, ob es
 # überhaupt etwas tut: `5/6` „WW-Zirkulationspumpe" mit den Werten Aus, Mit
 # Zeitsteuerung, Mit Temperatursteuerung, Mit Impulssteuerung, EIN. Nur bei
