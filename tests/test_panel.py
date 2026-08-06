@@ -493,3 +493,25 @@ def test_das_pufferprogramm_nennt_seine_betriebswahl(panel):
     assert wirkung["muster"] == "zeitprogramm"
     # Kein Verstecken – es gibt kein konkurrierendes zweites Programm.
     assert "verbergen_bei" not in wirkung
+
+
+def test_jedes_zeitprogramm_traegt_sein_eigenes_symbol(panel):
+    """Warmwasser und Zirkulation hängen am Heizkreis – nicht sein Symbol.
+
+    Mit dem Symbol des Anlagenteils trugen beide einen Heizkörper; im Reiter
+    Zeitprogramme standen drei gleiche Bilder untereinander.
+    """
+    kreis = teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            entitaet("sensor.heizprogramm", "Heizprogramm 1"),
+            entitaet("sensor.ww_programm", "WW-Programm"),
+            entitaet("sensor.zirkulationsprogramm", "WW-Zirkulationsprogramm"),
+        ],
+    )
+    kreis["symbol"] = "mdi:radiator"
+    symbole = {p["titel"]: p["symbol"] for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]}
+    assert symbole["WW-Zirkulationsprogramm"] == "mdi:reload"
+    assert symbole["WW-Programm"] == "mdi:water-boiler"
+    assert symbole["Heizprogramm 1"] == "mdi:radiator"

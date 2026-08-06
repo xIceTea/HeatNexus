@@ -8,6 +8,16 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+## [1.5.0-beta.9] - 2026-08-06
+
+Vorabversion.
+
+### Behoben
+
+- Warmwasser- und Zirkulationsprogramm trugen im Reiter Zeitprogramme das
+  Symbol des Heizkreises.
+
+
 ## [1.5.0-beta.8] - 2026-08-06
 
 Vorabversion.

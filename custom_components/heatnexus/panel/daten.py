@@ -395,10 +395,10 @@ def _zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
                 "entity": eintrag["entity_id"],
                 "titel": eintrag["name"],
                 "anlagenteil": teil["name"],
-                # Dasselbe Symbol wie in der Heizungsübersicht: Wer vier
-                # Programme untereinander hat, findet seines schneller am Bild
-                # des Anlagenteils als an der Überschrift.
-                "symbol": teil.get("symbol"),
+                # Das Symbol des **Programms**, nicht des Anlagenteils.
+                # Warmwasser und Zirkulation hängen als Datenpunkte am
+                # Heizkreis; mit dessen Symbol trugen beide einen Heizkörper.
+                "symbol": _programmsymbol(eintrag, teil),
             }
             if text := hilfe(eintrag["name"]):
                 programm["hilfe"] = text
@@ -406,6 +406,27 @@ def _zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
                 programm["wirkung"] = wirkung
             programme.append(programm)
     return programme
+
+
+def _programmsymbol(eintrag: dict[str, Any], teil: dict[str, Any]) -> str | None:
+    """Das Symbol einer Zeitprogramm-Karte.
+
+    Dieselben Bilder wie in der Heizungsübersicht – aber nach dem, was das
+    Programm steuert, nicht nach dem Anlagenteil, an dem sein Datenpunkt
+    hängt. Warmwasser und Zirkulation sitzen beide am Heizkreis und trugen
+    deshalb dessen Heizkörper.
+    """
+    name = eintrag.get("name") or ""
+    if _passt(name, ZIRKULATIONSPROGRAMM) or _trifft(
+        eintrag,
+        ZIRKULATIONSPROGRAMM,
+        "dhw_circulation_program_time",
+        "dhw_circulation_program_temperature",
+    ):
+        return "mdi:reload"
+    if _passt(name, WARMWASSER):
+        return "mdi:water-boiler"
+    return teil.get("symbol")
 
 
 def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
