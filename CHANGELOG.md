@@ -13,8 +13,11 @@ wenn dort Vorabversionen zugelassen sind.
 - **Eco und Comfort aus dem Warmwasser- oder Standby-Betrieb heraus.** Die
   Vorgabe wurde übertragen, eine Sekunde später aber wieder zurückgenommen: Die
   Anzeige sprang auf den alten Wert, und an der Anlage änderte sich nichts.
-- Der senkrechte Strang am Kessel bewegt sich jetzt mit, solange der Puffer
-  geladen wird. Bisher stand er still, während daneben alles strömte.
+- Die senkrechte Leitung am Puffer bewegt sich jetzt auch beim **Entladen**.
+  Sie hing allein an der Ladepumpe, und die dreht nur beim Laden — der Strang
+  stand still, während daneben „entlädt" stand und die Wärme nach oben abfloss.
+- Der senkrechte Strang am Kessel bewegt sich mit, solange der Puffer geladen
+  wird. Bisher stand er still, während daneben alles strömte.
 - Die Beschriftung „Warmwasser laden abbrechen" war auf dunklem Grund kaum zu
   lesen. Sie hebt sich jetzt ab und zeigt in eigener Farbe, dass ein Druck den
   laufenden Auftrag beendet.
