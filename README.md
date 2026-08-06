@@ -1,20 +1,10 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png" alt="HeatNexus" width="820">
-</p>
+![HeatNexus](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png)
 
-<p align="center">
-  <a href="https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml"><img src="https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg" alt="Validate"></a>
-  <a href="https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml"><img src="https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
-  <img src="https://img.shields.io/badge/HACS-Custom-41BDF5" alt="HACS Custom">
-  <img src="https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4" alt="Home Assistant 2025.6+">
-</p>
+[![Validate](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml) [![Tests](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml) ![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5) ![Home Assistant 2025.6+](https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4)
 
-<p align="center">
-  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&amp;repository=HeatNexus&amp;category=integration"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="In HACS öffnen"></a>
-  <a href="https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Integration hinzufügen"></a>
-</p>
+[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Integration hinzufügen](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
 
-<p align="center"><strong>Deutsch</strong> · <a href="README.en.md">English</a></p>
+**Deutsch** · [English](README.en.md)
 
 # HeatNexus
 
@@ -24,28 +14,20 @@ Die Anlage wird direkt über ihre HTTP-API im Netzwerk gelesen und gesteuert.
 Abgedeckt sind Kessel, Heizkreise, Puffer, Warmwasser und Zirkulation,
 einschließlich Info-, Betreiber- und Serviceebene.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif" alt="Anlagenschaubild in Bewegung: Kessel startet, Puffer lädt, Heizkreis und Warmwasser werden warm" width="820">
-</p>
+![Anlagenschaubild in Bewegung: Kessel startet, Puffer lädt, Heizkreis und Warmwasser werden warm](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif)
 
-<p align="center">
-  <em>Das Anlagenschaubild wird aus den erkannten Anlagenteilen zusammengesetzt –
+*Das Anlagenschaubild wird aus den erkannten Anlagenteilen zusammengesetzt –
   wer zwei Puffer hat, sieht zwei. Es steht nicht still: Die Pumpen drehen sich,
   die Bänder auf Vor- und Rücklauf zeigen die Förderrichtung, der Puffer meldet
   „lädt“ und „entlädt“, Speicher und Heizkörper färben sich nach ihren Fühlern.
-  Beispielwerte.</em>
-</p>
+  Beispielwerte.*
 
-<p align="center">
-  <a href="docs/OBERFLAECHE.md"><img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif" alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme" width="820"></a>
-</p>
+[![Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](docs/OBERFLAECHE.md)
 
-<p align="center">
-  <em>Die eigene Oberfläche in der Seitenleiste: Übersicht, anliegende Störung,
+*Die eigene Oberfläche in der Seitenleiste: Übersicht, anliegende Störung,
   Steuerung mit laufender Warmwasserladung, Wartung, Zeitprogramme. Ausführlich
-  in <a href="docs/OBERFLAECHE.md">docs/OBERFLAECHE.md</a> – Beispielwerte,
-  aufgenommen aus der ausgelieferten Oberfläche.</em>
-</p>
+  in [docs/OBERFLAECHE.md](docs/OBERFLAECHE.md) – Beispielwerte,
+  aufgenommen aus der ausgelieferten Oberfläche.*
 
 ## Unterstützte Geräte
 

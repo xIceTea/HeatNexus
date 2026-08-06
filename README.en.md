@@ -1,20 +1,10 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png" alt="HeatNexus" width="820">
-</p>
+![HeatNexus](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png)
 
-<p align="center">
-  <a href="https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml"><img src="https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg" alt="Validate"></a>
-  <a href="https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml"><img src="https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
-  <img src="https://img.shields.io/badge/HACS-Custom-41BDF5" alt="HACS Custom">
-  <img src="https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4" alt="Home Assistant 2025.6+">
-</p>
+[![Validate](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/validate.yml) [![Tests](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml/badge.svg)](https://github.com/xIceTea/HeatNexus/actions/workflows/tests.yml) ![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5) ![Home Assistant 2025.6+](https://img.shields.io/badge/Home%20Assistant-2025.6%2B-03a9f4)
 
-<p align="center">
-  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&amp;repository=HeatNexus&amp;category=integration"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Open in HACS"></a>
-  <a href="https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus"><img src="https://my.home-assistant.io/badges/config_flow_start.svg" alt="Add integration"></a>
-</p>
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&repository=HeatNexus&category=integration) [![Add integration](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=heatnexus)
 
-<p align="center"><a href="README.md">Deutsch</a> · <strong>English</strong></p>
+[Deutsch](README.md) · **English**
 
 # HeatNexus
 
@@ -30,27 +20,19 @@ the same wording as the InfoWIN Touch control panel, so what you read in Home
 Assistant matches what you read on the boiler. This page exists so you can
 decide whether the integration fits before you install it.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif" alt="Animated plant diagram: boiler starts, buffer charges, heating circuit and hot water warm up" width="820">
-</p>
+![Animated plant diagram: boiler starts, buffer charges, heating circuit and hot water warm up](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif)
 
-<p align="center">
-  <em>The plant diagram is assembled from the parts that were discovered —
+*The plant diagram is assembled from the parts that were discovered —
   two buffer tanks give you two. And it moves: pumps spin, the bands on flow and
   return show the direction, the buffer reports “charging” and “discharging”,
-  tanks and radiators take the colour of their sensors. Example values.</em>
-</p>
+  tanks and radiators take the colour of their sensors. Example values.*
 
-<p align="center">
-  <a href="docs/OBERFLAECHE.md"><img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif" alt="Tour of the panel: overview, fault, controls, maintenance, time programmes" width="820"></a>
-</p>
+[![Tour of the panel: overview, fault, controls, maintenance, time programmes](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](docs/OBERFLAECHE.md)
 
-<p align="center">
-  <em>The integration's own page in the sidebar: overview, an active fault,
+*The integration's own page in the sidebar: overview, an active fault,
   controls with a hot-water charge running, maintenance, time programmes. In
-  detail in <a href="docs/OBERFLAECHE.md">docs/OBERFLAECHE.md</a> (German) –
-  example values, recorded from the shipped interface.</em>
-</p>
+  detail in [docs/OBERFLAECHE.md](docs/OBERFLAECHE.md) (German) –
+  example values, recorded from the shipped interface.*
 
 ## Supported hardware
 
