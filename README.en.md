@@ -31,7 +31,10 @@ Assistant matches what you read on the boiler. This page exists so you can
 decide whether the integration fits before you install it.
 
 <p align="center">
-  <img src="assets/anlagenschema_beispiel.svg" alt="Plant diagram with boiler, buffer tank, heating circuit and circulation" width="820">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/anlagenschema_beispiel.svg">
+    <img src="assets/anlagenschema_beispiel_hell.svg" alt="Plant diagram with boiler, buffer tank, heating circuit and circulation" width="820">
+  </picture>
 </p>
 
 <p align="center">

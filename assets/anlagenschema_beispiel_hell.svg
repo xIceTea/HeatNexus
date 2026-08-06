@@ -1,36 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1048 392" width="1048" height="392"><rect width="100%" height="100%" rx="16" fill="#151d26"/><rect x="24" y="89" width="1000" height="6" rx="3" fill="#e2543a" opacity="0.85"/><rect x="24" y="315" width="1000" height="6" rx="3" fill="#3a7fe2" opacity="0.85"/><g transform="translate(24,0)"><rect x="98" y="92" width="4" height="34" fill="#e2543a" opacity="0.7"/><rect x="98" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1048 392" width="1048" height="392"><rect width="100%" height="100%" rx="16" fill="#f4f6f9"/><rect x="24" y="89" width="1000" height="6" rx="3" fill="#c8412a" opacity="0.85"/><rect x="24" y="315" width="1000" height="6" rx="3" fill="#2b63b8" opacity="0.85"/><g transform="translate(24,0)"><rect x="98" y="92" width="4" height="34" fill="#c8412a" opacity="0.7"/><rect x="98" y="288" width="4" height="30" fill="#2b63b8" opacity="0.7"/><defs>
   <linearGradient id="t0-gehaeuse" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#3b444e"/>
-    <stop offset="100%" stop-color="#1d242c"/>
+    <stop offset="0%" stop-color="#eef2f7"/>
+    <stop offset="100%" stop-color="#c2ccd8"/>
   </linearGradient>
   <linearGradient id="t0-glutbett" x1="0" y1="1" x2="0" y2="0">
-    <stop offset="0%" stop-color="#e2543a"/>
-    <stop offset="55%" stop-color="#e2543a" stop-opacity="0.55"/>
-    <stop offset="100%" stop-color="#e2543a" stop-opacity="0"/>
+    <stop offset="0%" stop-color="#c8412a"/>
+    <stop offset="55%" stop-color="#c8412a" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#c8412a" stop-opacity="0"/>
   </linearGradient>
 </defs>
 
 <!-- Einschub der Stokerschnecke, von links unten in den Brennraum -->
-<g stroke="#4a5561" stroke-width="2" fill="#2b333c">
+<g stroke="#7d8b9a" stroke-width="2" fill="#dde3ea">
   <path d="M 14 290 L 14 262 L 46 240 L 46 274 Z"/>
 </g>
-<g stroke="#f2f6fa" stroke-width="1.5" opacity="0.25" fill="none">
+<g stroke="#16202b" stroke-width="1.5" opacity="0.25" fill="none">
   <path d="M 20 284 L 40 270"/>
   <path d="M 20 274 L 40 260"/>
 </g>
 
 <!-- Kesselkörper -->
 <rect x="44" y="120" width="112" height="174" rx="14" fill="url(#t0-gehaeuse)"
-      stroke="#4a5561" stroke-width="2"/>
+      stroke="#7d8b9a" stroke-width="2"/>
 
 <!-- Bedienteil -->
-<rect x="56" y="134" width="88" height="26" rx="6" fill="#1d242c"
-      stroke="#4a5561" stroke-width="1"/>
-<rect x="64" y="142" width="44" height="10" rx="5" fill="#f2f6fa" opacity="0.25"/>
-<circle cx="132" cy="147" r="4" fill="#e2543a" opacity="0.8"/>
+<rect x="56" y="134" width="88" height="26" rx="6" fill="#c2ccd8"
+      stroke="#7d8b9a" stroke-width="1"/>
+<rect x="64" y="142" width="44" height="10" rx="5" fill="#16202b" opacity="0.25"/>
+<circle cx="132" cy="147" r="4" fill="#c8412a" opacity="0.8"/>
 
 <!-- Wärmetauscher: senkrechte Rauchrohre -->
-<g fill="#1d242c" opacity="0.8">
+<g fill="#c2ccd8" opacity="0.8">
   <rect x="62" y="172" width="9" height="46" rx="4"/>
   <rect x="80" y="172" width="9" height="46" rx="4"/>
   <rect x="98" y="172" width="9" height="46" rx="4"/>
@@ -39,10 +39,10 @@
 </g>
 
 <!-- Brennraum mit Glutbett -->
-<rect x="56" y="230" width="88" height="52" rx="8" fill="#1d242c"
-      stroke="#4a5561" stroke-width="1.5"/>
+<rect x="56" y="230" width="88" height="52" rx="8" fill="#c2ccd8"
+      stroke="#7d8b9a" stroke-width="1.5"/>
 <rect x="64" y="244" width="72" height="30" rx="6" fill="url(#t0-glutbett)"/>
-<rect x="64" y="268" width="72" height="6" rx="3" fill="#e2543a"/><text x="100" y="376" text-anchor="middle" fill="#f2f6fa" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">PuroWIN</text></g><g transform="translate(224,0)"><rect x="98" y="92" width="4" height="24" fill="#e2543a" opacity="0.7"/><rect x="98" y="296" width="4" height="22" fill="#3a7fe2" opacity="0.7"/><defs>
+<rect x="64" y="268" width="72" height="6" rx="3" fill="#c8412a"/><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">PuroWIN</text></g><g transform="translate(224,0)"><rect x="98" y="92" width="4" height="24" fill="#c8412a" opacity="0.7"/><rect x="98" y="296" width="4" height="22" fill="#2b63b8" opacity="0.7"/><defs>
   <!-- Neutral, wie beim Heizkoerper.
 
        Bis 1.4.2 stand hier ein fester Verlauf von warm nach kalt - ein
@@ -52,8 +52,8 @@
        (21/65 oben, 21/66 unten). Ohne diese Messwerte bleibt es bei diesem
        Grau. -->
   <linearGradient id="t1-schichtung" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#3b444e"/>
-    <stop offset="100%" stop-color="#1d242c"/>
+    <stop offset="0%" stop-color="#eef2f7"/>
+    <stop offset="100%" stop-color="#c2ccd8"/>
   </linearGradient>
   <!-- Zylinderrundung. Die Lichtkante liegt bei 30 Prozent, nicht am Rand:
        Ein stehender Zylinder ist dort am hellsten, wo das Licht streift, und
@@ -81,16 +81,16 @@
      Temperaturfarbe verdecken, die unter dieser Zeichnung liegt. Der Ring
      gibt dem Speicher Wandstaerke und hebt ihn vom Hintergrund ab. -->
 <rect x="37" y="111" width="126" height="190" rx="35" fill="none"
-      stroke="#1d242c" stroke-width="8"/>
+      stroke="#c2ccd8" stroke-width="8"/>
 <rect x="37" y="111" width="126" height="190" rx="35" fill="none"
-      stroke="#4a5561" stroke-width="1" opacity="0.7"/>
+      stroke="#7d8b9a" stroke-width="1" opacity="0.7"/>
 
 <!-- Anschlussstutzen rechts: Vorlauf oben, Ruecklauf unten, dazwischen die
      beiden Speicheranschluesse. Sie beginnen *innerhalb* des Koerpers und
      enden buendig mit dem Daemmmantel - so sitzen sie am Speicher, statt als
      freie Plaettchen daneben zu schweben. Die Kontur des Koerpers laeuft
      spaeter darueber und schliesst sie an. -->
-<g fill="#1d242c" stroke="#4a5561" stroke-width="1.5">
+<g fill="#c2ccd8" stroke="#7d8b9a" stroke-width="1.5">
   <rect x="148" y="141" width="18" height="9" rx="2.5"/>
   <rect x="148" y="185" width="18" height="9" rx="2.5"/>
   <rect x="148" y="229" width="18" height="9" rx="2.5"/>
@@ -112,7 +112,7 @@
        Die Kante darunter macht sie erst sichtbar. Ohne sie verlief die
        Flaeche ins Nichts und war bei halber Deckkraft ueber Farbe schlicht
        nicht zu erkennen. -->
-  <g fill="#1d242c" opacity="0.3">
+  <g fill="#c2ccd8" opacity="0.3">
     <rect x="42" y="116" width="116" height="20"/>
     <rect x="42" y="276" width="116" height="20"/>
   </g>
@@ -147,20 +147,20 @@
 <!-- Kontur zuletzt, damit keine Naht und kein Band darueber laeuft. Innen
      eine dunkle Haarlinie: Sie gibt der Kante Tiefe, wie beim Kesselkoerper. -->
 <rect x="42" y="116" width="116" height="180" rx="30" fill="none"
-      stroke="#4a5561" stroke-width="2"/>
+      stroke="#7d8b9a" stroke-width="2"/>
 <rect x="44" y="118" width="112" height="176" rx="28" fill="none"
       stroke="#000000" stroke-width="1" opacity="0.28"/>
 
 <!-- Fuehlertauchhuelsen TPE (oben) und TPA (unten), links. Sie sitzen dort,
      wo die Oberflaeche die beiden Messwerte beschriftet. -->
-<g fill="#1d242c" stroke="#4a5561" stroke-width="1.5">
+<g fill="#c2ccd8" stroke="#7d8b9a" stroke-width="1.5">
   <rect x="34" y="163" width="16" height="9" rx="2.5"/>
   <rect x="34" y="253" width="16" height="9" rx="2.5"/>
 </g>
-<g fill="#f2f6fa" opacity="0.55">
+<g fill="#16202b" opacity="0.55">
   <circle cx="40" cy="167.5" r="2.2"/>
   <circle cx="40" cy="257.5" r="2.2"/>
-</g><text x="100" y="376" text-anchor="middle" fill="#f2f6fa" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">B-PLMi PUFFER</text></g><g transform="translate(424,0)"><rect x="98" y="92" width="4" height="40" fill="#e2543a" opacity="0.7"/><rect x="98" y="278" width="4" height="40" fill="#3a7fe2" opacity="0.7"/><!-- Der Koerper ist bewusst neutral gefaerbt.
+</g><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">B-PLMi PUFFER</text></g><g transform="translate(424,0)"><rect x="98" y="92" width="4" height="40" fill="#c8412a" opacity="0.7"/><rect x="98" y="278" width="4" height="40" fill="#2b63b8" opacity="0.7"/><!-- Der Koerper ist bewusst neutral gefaerbt.
 
      Bis 1.4.1 stand hier ein Verlauf von Glut nach Warm - ein
      Heizkoerper, der immer glueht, auch bei 27 Grad Vorlauf. Die Waerme legt
@@ -172,18 +172,18 @@
      richtig so - dann wissen wir es schlicht nicht. -->
 <defs>
   <linearGradient id="t2-koerper" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#3b444e"/>
-    <stop offset="100%" stop-color="#2b333c"/>
+    <stop offset="0%" stop-color="#eef2f7"/>
+    <stop offset="100%" stop-color="#dde3ea"/>
   </linearGradient>
 </defs>
 
 <!-- Heizkörper: Sammelrohre oben und unten, Glieder dazwischen -->
-<rect x="42" y="132" width="116" height="12" rx="6" fill="#2b333c"
-      stroke="#4a5561" stroke-width="1.5"/>
-<rect x="42" y="266" width="116" height="12" rx="6" fill="#2b333c"
-      stroke="#4a5561" stroke-width="1.5"/>
+<rect x="42" y="132" width="116" height="12" rx="6" fill="#dde3ea"
+      stroke="#7d8b9a" stroke-width="1.5"/>
+<rect x="42" y="266" width="116" height="12" rx="6" fill="#dde3ea"
+      stroke="#7d8b9a" stroke-width="1.5"/>
 
-<g fill="url(#t2-koerper)" stroke="#4a5561" stroke-width="1">
+<g fill="url(#t2-koerper)" stroke="#7d8b9a" stroke-width="1">
   <rect x="50" y="140" width="14" height="132" rx="7"/>
   <rect x="72" y="140" width="14" height="132" rx="7"/>
   <rect x="94" y="140" width="14" height="132" rx="7"/>
@@ -206,21 +206,21 @@
      zwei im Durchgang, eines zum dritten Weg. Bis 1.3.0-beta.2 stand hier ein
      Kreis mit Kreuz darin; das las sich wie eine Plus-Taste und niemand
      erkannte ein Ventil. -->
-<g fill="#1d242c" stroke="#4a5561" stroke-width="1.5" stroke-linejoin="round">
+<g fill="#c2ccd8" stroke="#7d8b9a" stroke-width="1.5" stroke-linejoin="round">
   <path d="M 86 104 L 86 120 L 100 112 Z"/>
   <path d="M 114 104 L 114 120 L 100 112 Z"/>
   <path d="M 92 126 L 108 126 L 100 112 Z"/>
 </g>
-<circle cx="100" cy="112" r="2.5" fill="#f2f6fa" opacity="0.55"/><text x="100" y="376" text-anchor="middle" fill="#f2f6fa" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">UMLZ HEIZKREIS</text></g><g transform="translate(624,0)"><rect x="98" y="92" width="4" height="32" fill="#e2543a" opacity="0.7"/><rect x="98" y="292" width="4" height="26" fill="#3a7fe2" opacity="0.7"/><defs>
+<circle cx="100" cy="112" r="2.5" fill="#16202b" opacity="0.55"/><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">UMLZ HEIZKREIS</text></g><g transform="translate(624,0)"><rect x="98" y="92" width="4" height="32" fill="#c8412a" opacity="0.7"/><rect x="98" y="292" width="4" height="26" fill="#2b63b8" opacity="0.7"/><defs>
   <!-- Neutral. Der Boiler meldet nur einen Istwert - liegt der vor, faerbt
        die Oberflaeche den Inhalt gleichmaessig ein und legt die Farbe *unter*
        diese Zeichnung. Eine zweite Temperatur zu erfinden waere schlimmer als
        keine: Der Boiler saehe halb geladen aus, ohne dass es jemand gemessen
        haette. Ohne Messwert bleibt es bei diesem Verlauf. -->
   <linearGradient id="t3-boiler" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#b3341f"/>
-    <stop offset="70%" stop-color="#b3341f" stop-opacity="0.75"/>
-    <stop offset="100%" stop-color="#25508f" stop-opacity="0.55"/>
+    <stop offset="0%" stop-color="#c0402a"/>
+    <stop offset="70%" stop-color="#c0402a" stop-opacity="0.75"/>
+    <stop offset="100%" stop-color="#3f78c9" stop-opacity="0.55"/>
   </linearGradient>
   <!-- Zylinderrundung, wie beim Puffer: Die Lichtkante liegt bei 30 Prozent,
        nicht am Rand. Am Rand sass sie unter der Kontur und war unsichtbar,
@@ -243,14 +243,14 @@
 <!-- Daemmmantel als Ring - eine gefuellte Form wuerde die Temperaturfarbe
      verdecken, die unter dieser Zeichnung liegt. -->
 <rect x="43" y="119" width="114" height="178" rx="53" fill="none"
-      stroke="#1d242c" stroke-width="8"/>
+      stroke="#c2ccd8" stroke-width="8"/>
 <rect x="43" y="119" width="114" height="178" rx="53" fill="none"
-      stroke="#4a5561" stroke-width="1" opacity="0.7"/>
+      stroke="#7d8b9a" stroke-width="1" opacity="0.7"/>
 
 <!-- Anschlussstutzen rechts: Warmwasser oben hinaus, Kaltwasser unten hinein.
      Sie beginnen innerhalb des Koerpers und enden buendig mit dem Daemmmantel,
      damit sie am Speicher sitzen und nicht daneben schweben. -->
-<g fill="#1d242c" stroke="#4a5561" stroke-width="1.5">
+<g fill="#c2ccd8" stroke="#7d8b9a" stroke-width="1.5">
   <rect x="142" y="153" width="18" height="9" rx="2.5"/>
   <rect x="142" y="253" width="18" height="9" rx="2.5"/>
 </g>
@@ -286,7 +286,7 @@
         stroke-linecap="round"/>
   <path d="M 70 176 h 60 M 70 176 a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60
            a 8 8 0 0 1 0 16 h 60 a 8 8 0 0 1 0 16 h -60"
-        fill="none" stroke="#f2f6fa" stroke-width="3" opacity="0.34"
+        fill="none" stroke="#16202b" stroke-width="3" opacity="0.34"
         stroke-linecap="round"/>
 
   <!-- Licht von links, Schatten nach rechts: gibt dem Zylinder Rundung. -->
@@ -296,43 +296,43 @@
 <!-- Kontur zuletzt, damit nichts darueber laeuft. Innen eine dunkle
      Haarlinie fuer Tiefe, wie beim Puffer und beim Kesselkoerper. -->
 <rect x="48" y="124" width="104" height="168" rx="48" fill="none"
-      stroke="#4a5561" stroke-width="2"/>
+      stroke="#7d8b9a" stroke-width="2"/>
 <rect x="50" y="126" width="100" height="164" rx="46" fill="none"
       stroke="#000000" stroke-width="1" opacity="0.28"/>
 
 <!-- Wassertropfen als Merkzeichen -->
 <path d="M 100 138 q 11 14 11 21 a 11 11 0 0 1 -22 0 q 0 -7 11 -21 Z"
-      fill="#f2f6fa" opacity="0.4"/>
+      fill="#16202b" opacity="0.4"/>
 
 <!-- Fuehlertauchhuelse links, auf Hoehe des Messwerts. -->
-<g fill="#1d242c" stroke="#4a5561" stroke-width="1.5">
+<g fill="#c2ccd8" stroke="#7d8b9a" stroke-width="1.5">
   <rect x="40" y="201" width="16" height="9" rx="2.5"/>
 </g>
-<circle cx="46" cy="205.5" r="2.2" fill="#f2f6fa" opacity="0.55"/><text x="100" y="376" text-anchor="middle" fill="#f2f6fa" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">Warmwasser</text></g><g transform="translate(824,0)"><rect x="98" y="92" width="4" height="56" fill="#e2543a" opacity="0.7"/><rect x="98" y="264" width="4" height="54" fill="#3a7fe2" opacity="0.7"/><defs>
+<circle cx="46" cy="205.5" r="2.2" fill="#16202b" opacity="0.55"/><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">Warmwasser</text></g><g transform="translate(824,0)"><rect x="98" y="92" width="4" height="56" fill="#c8412a" opacity="0.7"/><rect x="98" y="264" width="4" height="54" fill="#2b63b8" opacity="0.7"/><defs>
   <linearGradient id="t4-ring" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#3b444e"/>
-    <stop offset="100%" stop-color="#1d242c"/>
+    <stop offset="0%" stop-color="#eef2f7"/>
+    <stop offset="100%" stop-color="#c2ccd8"/>
   </linearGradient>
 </defs>
 
 <!-- Kreislauf als Ring: der Zirkulationskreis hat keinen Speicher -->
-<circle cx="100" cy="206" r="58" fill="url(#t4-ring)" stroke="#4a5561" stroke-width="2"/>
-<circle cx="100" cy="206" r="42" fill="none" stroke="#4a5561" stroke-width="1"
+<circle cx="100" cy="206" r="58" fill="url(#t4-ring)" stroke="#7d8b9a" stroke-width="2"/>
+<circle cx="100" cy="206" r="42" fill="none" stroke="#7d8b9a" stroke-width="1"
         opacity="0.5"/>
 
 <!-- Umlaufpfeile: oben warm hin, unten kühler zurück -->
-<path d="M 100 164 a 42 42 0 0 1 36 21" fill="none" stroke="#e2543a"
+<path d="M 100 164 a 42 42 0 0 1 36 21" fill="none" stroke="#c8412a"
       stroke-width="6" stroke-linecap="round"/>
-<path d="M 136 185 l 6 -14 l -15 2 Z" fill="#e2543a"/>
-<path d="M 100 248 a 42 42 0 0 1 -36 -21" fill="none" stroke="#3a7fe2"
+<path d="M 136 185 l 6 -14 l -15 2 Z" fill="#c8412a"/>
+<path d="M 100 248 a 42 42 0 0 1 -36 -21" fill="none" stroke="#2b63b8"
       stroke-width="6" stroke-linecap="round"/>
-<path d="M 64 227 l -6 14 l 15 -2 Z" fill="#3a7fe2"/>
+<path d="M 64 227 l -6 14 l 15 -2 Z" fill="#2b63b8"/>
 
 <!-- Pumpe in der Mitte -->
-<circle cx="100" cy="206" r="18" fill="#1d242c" stroke="#4a5561"
+<circle cx="100" cy="206" r="18" fill="#c2ccd8" stroke="#7d8b9a"
         stroke-width="1.5"/>
-<g fill="#f2f6fa" opacity="0.35">
+<g fill="#16202b" opacity="0.35">
   <path d="M 100 206 L 116 200 A 17 17 0 0 0 105 190 Z"/>
   <path d="M 100 206 L 92 222 A 17 17 0 0 0 108 219 Z"/>
   <path d="M 100 206 L 85 196 A 17 17 0 0 0 85 214 Z"/>
-</g><text x="100" y="376" text-anchor="middle" fill="#f2f6fa" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">Zirkulation</text></g><rect x="86.0" y="158.1" width="75.4" height="24" rx="8" fill="rgba(10, 14, 19, 0.72)"/><text x="123.7" y="175.1" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#ffffff">72,4 °C</text><rect x="98.3" y="238.1" width="50.8" height="24" rx="8" fill="rgba(10, 14, 19, 0.72)"/><text x="123.7" y="255.1" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#ffffff">38 %</text><rect x="286.1" y="156.2" width="75.4" height="24" rx="8" fill="rgba(10, 14, 19, 0.72)"/><text x="323.8" y="173.2" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#ffffff">68,1 °C</text><rect x="286.1" y="245.9" width="75.4" height="24" rx="8" fill="rgba(10, 14, 19, 0.72)"/><text x="323.8" y="262.9" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#ffffff">42,7 °C</text><rect x="486.3" y="158.1" width="75.4" height="24" rx="8" fill="rgba(10, 14, 19, 0.72)"/><text x="524.0" y="175.1" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#ffffff">45,0 °C</text><rect x="486.3" y="238.1" width="75.4" height="24" rx="8" fill="rgba(10, 14, 19, 0.72)"/><text x="524.0" y="255.1" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#ffffff">21,5 °C</text><rect x="686.5" y="194.2" width="75.4" height="24" rx="8" fill="rgba(10, 14, 19, 0.72)"/><text x="724.2" y="211.2" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#ffffff">51,2 °C</text><rect x="886.6" y="194.2" width="75.4" height="24" rx="8" fill="rgba(10, 14, 19, 0.72)"/><text x="924.3" y="211.2" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#ffffff">38,6 °C</text></svg>
+</g><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">Zirkulation</text></g><rect x="86.0" y="158.1" width="75.4" height="24" rx="8" fill="rgba(255, 255, 255, 0.82)"/><text x="123.7" y="175.1" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#12181f">72,4 °C</text><rect x="98.3" y="238.1" width="50.8" height="24" rx="8" fill="rgba(255, 255, 255, 0.82)"/><text x="123.7" y="255.1" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#12181f">38 %</text><rect x="286.1" y="156.2" width="75.4" height="24" rx="8" fill="rgba(255, 255, 255, 0.82)"/><text x="323.8" y="173.2" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#12181f">68,1 °C</text><rect x="286.1" y="245.9" width="75.4" height="24" rx="8" fill="rgba(255, 255, 255, 0.82)"/><text x="323.8" y="262.9" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#12181f">42,7 °C</text><rect x="486.3" y="158.1" width="75.4" height="24" rx="8" fill="rgba(255, 255, 255, 0.82)"/><text x="524.0" y="175.1" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#12181f">45,0 °C</text><rect x="486.3" y="238.1" width="75.4" height="24" rx="8" fill="rgba(255, 255, 255, 0.82)"/><text x="524.0" y="255.1" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#12181f">21,5 °C</text><rect x="686.5" y="194.2" width="75.4" height="24" rx="8" fill="rgba(255, 255, 255, 0.82)"/><text x="724.2" y="211.2" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#12181f">51,2 °C</text><rect x="886.6" y="194.2" width="75.4" height="24" rx="8" fill="rgba(255, 255, 255, 0.82)"/><text x="924.3" y="211.2" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" fill="#12181f">38,6 °C</text></svg>

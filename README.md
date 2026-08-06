@@ -25,7 +25,10 @@ Abgedeckt sind Kessel, Heizkreise, Puffer, Warmwasser und Zirkulation,
 einschließlich Info-, Betreiber- und Serviceebene.
 
 <p align="center">
-  <img src="assets/anlagenschema_beispiel.svg" alt="Anlagenschaubild mit Kessel, Puffer, Heizkreis und Zirkulation" width="820">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/anlagenschema_beispiel.svg">
+    <img src="assets/anlagenschema_beispiel_hell.svg" alt="Anlagenschaubild mit Kessel, Puffer, Heizkreis und Zirkulation" width="820">
+  </picture>
 </p>
 
 <p align="center">

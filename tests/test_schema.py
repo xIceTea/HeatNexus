@@ -52,6 +52,34 @@ def anlage():
     ]
 
 
+def test_das_beispielbild_im_readme_ist_aktuell():
+    """Das Bild in `assets/` muss zur heutigen Zeichnung passen.
+
+    Es war einmal von Hand zusammengesetzt worden und stand danach vier
+    Fassungen lang unverändert im README, während sich die Zeichnung
+    weiterentwickelte. Wer es aufschlug, sah einen Stand, den die Integration
+    längst nicht mehr ausliefert – und niemandem fiel es auf.
+    """
+    import importlib.util
+    from pathlib import Path
+
+    pfad = Path(__file__).parent.parent / "tools" / "build_schaubild_beispiel.py"
+    spec = importlib.util.spec_from_file_location("schaubild_beispiel", pfad)
+    werkzeug = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(werkzeug)
+
+    karte = werkzeug._schema().anlagenschema(werkzeug.BEISPIEL)
+    for ziel, farbsatz in (
+        (werkzeug.ZIEL_DUNKEL, "dunkel"),
+        (werkzeug.ZIEL_HELL, "hell"),
+    ):
+        assert ziel.exists(), f"{ziel.name} fehlt"
+        assert ziel.read_text(encoding="utf-8") == werkzeug.bild(karte, farbsatz), (
+            f"{ziel.name} passt nicht zur heutigen Zeichnung. "
+            "Abhilfe: python tools/build_schaubild_beispiel.py"
+        )
+
+
 def test_das_schaubild_entsteht_auch_ohne_deutsche_namen(schema):
     """Der Zweck der kanonischen Schlüssel, hier fürs Schaubild.
 
