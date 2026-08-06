@@ -457,7 +457,7 @@ MODUL_AUFGABE: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 
 
-def _modul_in_betrieb(entitaeten: list[dict[str, Any]]) -> bool:
+def modul_in_betrieb(entitaeten: list[dict[str, Any]]) -> bool:
     """Ob ein Pumpen-/Relaismodul an dieser Anlage überhaupt eine Aufgabe hat.
 
     Der ZSP ist ein Universalmodul: Es kann eine Pumpe regeln, eine externe
@@ -501,8 +501,8 @@ def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[
         # der anderen Seite – im Schaubild sagt die Zahl nichts. Dass das Modul
         # in der Leitung sitzt, muss man trotzdem sehen; seinen Zustand zeigen
         # die Lampen. Ein Modul ohne Aufgabe bleibt aber draußen, siehe
-        # `_modul_in_betrieb`.
-        if art == "pumpenmodul" and not _modul_in_betrieb(teil["entitaeten"]):
+        # `modul_in_betrieb`.
+        if art == "pumpenmodul" and not modul_in_betrieb(teil["entitaeten"]):
             continue
         if werte or art == "pumpenmodul":
             module.append(

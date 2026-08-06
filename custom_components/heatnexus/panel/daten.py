@@ -16,7 +16,7 @@ import contextlib
 import re
 from typing import Any
 
-from ..const import FCT_BUFFER
+from ..const import FCT_BUFFER, FCT_ZSP
 from ..dashboard import (
     WARTUNG_RESTLAUFZEIT,
     WARTUNG_RESTLAUFZEIT_SCHLUESSEL,
@@ -27,7 +27,7 @@ from ..dashboard import (
     _trifft,
     rueckfrage,
 )
-from ..schema import anlagenschema
+from ..schema import anlagenschema, modul_in_betrieb
 from .hilfe import HILFE_KARTEN, hilfe
 from .muster import (
     AUSSENTEMPERATUR,
@@ -552,6 +552,12 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
 
     kennwerte = []
     for teil in anlage["teile"]:
+        # **Ein Pumpen-/Relaismodul ohne Aufgabe kommt gar nicht vor.** Es
+        # meldet zwar Sollwerte, schaltet aber nichts – im Schaubild fliegt es
+        # längst heraus, in der Übersicht stand es weiter und zeigte eine
+        # Anforderung, die es nie geben wird.
+        if teil.get("fct_type") == FCT_ZSP and not modul_in_betrieb(teil["entitaeten"]):
+            continue
         vorlage = KENNWERT_JE_FCT.get(teil.get("fct_type")) or KENNWERT
         for muster, beschriftung, symbol, schluessel in vorlage:
             if (treffer := _erster(teil["entitaeten"], muster, *schluessel)) is not None:
@@ -561,10 +567,12 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                     "untertitel": beschriftung,
                     "symbol": symbol,
                 }
-                # Ein Sollwert von null heißt: keine Anforderung. Die Zeile
-                # bleibt dann leer statt „0 °C" zu behaupten.
-                if teil.get("fct_type") == 20:
-                    eintrag["nur_ueber_null"] = True
+                # Ein Sollwert von null heißt: keine Anforderung. Statt „0 °C"
+                # zu behaupten oder die Zeile verschwinden zu lassen, steht
+                # dort dann der Zustand im Klartext – das Anlagenteil bleibt
+                # sichtbar.
+                if teil.get("fct_type") == FCT_ZSP:
+                    eintrag["ersatz_unter_null"] = "keine Anforderung"
                 kennwerte.append(eintrag)
                 break
 

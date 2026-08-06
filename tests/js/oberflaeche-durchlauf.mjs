@@ -45,10 +45,10 @@ const zeitprogramme = new Set(
 
 // Werte, die nur über null etwas bedeuten – die Wärmeanforderung des
 // Pumpen-/Relaismoduls. Sie stehen im Durchlauf auf null, damit sich prüfen
-// lässt, dass ihre Zeile dann verschwindet.
+// lässt, dass dort dann der Klartext steht.
 const ohneAnforderung = new Set(
   (daten.anlagen || []).flatMap((anlage) =>
-    (anlage.kennwerte || []).filter((k) => k.nur_ueber_null).map((k) => k.entity)
+    (anlage.kennwerte || []).filter((k) => k.ersatz_unter_null).map((k) => k.entity)
   )
 );
 
@@ -123,6 +123,10 @@ REITER.forEach((reiter) => {
     bindungen: flaeche._bindungen.length,
     zeilen: zeilen.length,
     versteckteZeilen: zeilen.filter((zeile) => zeile.hidden).length,
+    // Statt zu verschwinden sagt die Zeile jetzt, dass nichts angefordert ist.
+    ohneAnforderung: [...flaeche.shadowRoot.querySelectorAll(".wert")].filter(
+      (knoten) => String(knoten.textContent || "").includes("keine Anforderung")
+    ).length,
   };
 });
 

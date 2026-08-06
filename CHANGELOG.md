@@ -16,6 +16,13 @@ Vorabversion.
 
 - Warmwasser- und Zirkulationsprogramm trugen im Reiter Zeitprogramme das
   Symbol des Heizkreises.
+- Ein Pumpen-/Relaismodul ohne Aufgabe stand mit einer Wärmeanforderung in der
+  Heizungsübersicht, die es nie geben wird.
+- Liegt keine Wärmeanforderung an, verschwand die Zeile ganz und mit ihr das
+  Anlagenteil; jetzt steht dort „keine Anforderung".
+- Zahlenfelder übertrugen jede getippte Ziffer einzeln zur Anlage.
+- Das Zahlenfeld trug eine fremde Schrift, die Pfeilchen lagen über der Einheit.
+- Im Zeitprogramm-Editor fehlte „Uhr" hinter der Schaltzeit.
 
 
 ## [1.5.0-beta.8] - 2026-08-06

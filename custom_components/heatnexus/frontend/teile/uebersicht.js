@@ -86,11 +86,11 @@ export const UebersichtMixin = (Basis) =>
           kennwert.titel,
           kennwert.untertitel,
           kennwert.symbol,
-          // Der Server markiert damit die Wärmeanforderung des
-          // Pumpen-/Relaismoduls. Ohne das Durchreichen stand sie auch dort in
-          // der Übersicht, wo das Modul nur ein Relais schaltet und nie etwas
-          // anfordert – eine Zeile, die nie einen Wert bekommt.
-          kennwert.nur_ueber_null
+          // Was statt einer Zahl dasteht, solange der Wert nicht über null
+          // liegt – bei der Wärmeanforderung des Pumpen-/Relaismoduls etwa
+          // „keine Anforderung". Ein „0,0 °C" behauptete dort eine Anforderung
+          // mit null Grad.
+          kennwert.ersatz_unter_null
         )
       );
     });
@@ -102,7 +102,7 @@ export const UebersichtMixin = (Basis) =>
    * Kennwertzeile wie im Muster: links Anlagenteil, rechts der große Wert und
    * darunter klein, worum es sich handelt („Kesseltemperatur").
    */
-  _wertzeile(entity, titel, bezeichnung, symbol, nurUeberNull) {
+  _wertzeile(entity, titel, bezeichnung, symbol, ersatzUnterNull) {
     const zeile = document.createElement("div");
     zeile.className = "zeile";
     if (symbol) zeile.appendChild(this._symbolKnoten(symbol));
@@ -124,14 +124,20 @@ export const UebersichtMixin = (Basis) =>
 
     zeile.append(text, rechts);
     this._bindungen.push(() => {
-      // `nurUeberNull` gilt für Werte, die nur etwas bedeuten, solange sie
-      // über null stehen – die Wärmeanforderung des Pumpen-/Relaismoduls etwa.
-      // Liegt keine an, verschwindet die Zeile ganz: Ein „–" sähe aus wie ein
-      // fehlender Messwert, dabei ist schlicht nichts angefordert.
-      if (nurUeberNull) {
+      // Werte, die nur über null etwas bedeuten – die Wärmeanforderung des
+      // Pumpen-/Relaismoduls. Liegt keine an, steht dort der Zustand im
+      // Klartext statt einer Zahl; das Anlagenteil bleibt sichtbar. Bis
+      // 1.5.0-beta.9 verschwand die Zeile stattdessen ganz, und mit ihr das
+      // Anlagenteil aus der Liste.
+      if (ersatzUnterNull) {
         const zahl = this._zahl(entity);
-        zeile.hidden = !(zahl !== null && zahl > 0);
-        if (zeile.hidden) return;
+        if (!(zahl !== null && zahl > 0)) {
+          wert.textContent = ersatzUnterNull;
+          wert.classList.add("lang");
+          unten.textContent = bezeichnung || "";
+          return;
+        }
+        wert.classList.remove("lang");
       }
       wert.textContent = this._text(entity);
       unten.textContent = bezeichnung || "";

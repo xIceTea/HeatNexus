@@ -167,15 +167,15 @@ def test_anordnen_gibt_jeder_karte_einen_griff(durchlauf):
     assert durchlauf["anordnen"]["griffe"] > 0
 
 
-def test_ohne_waermeanforderung_verschwindet_die_zeile(durchlauf):
+def test_ohne_waermeanforderung_sagt_die_zeile_das_auch(durchlauf):
     """Das Pumpen-/Relaismodul steht nicht mit einem „–" in der Übersicht.
 
-    Wo das Modul nur ein Relais schaltet, kommt nie eine Wärmeanforderung. Der
-    Server markiert den Wert deshalb als „nur über null"; bis 1.5.0 reichte die
-    Oberfläche die Markierung nicht durch und zeigte eine Zeile, die nie einen
-    Wert bekam.
+    Liegt keine Wärmeanforderung an, stand dort bis 1.5.0-beta.9 gar nichts –
+    die Zeile verschwand und mit ihr das Anlagenteil aus der Liste. Jetzt steht
+    der Zustand im Klartext; ein „0,0 °C" behauptete eine Anforderung mit null
+    Grad, ein Verschwinden ein Anlagenteil, das es nicht gibt.
     """
-    assert durchlauf["uebersicht"]["versteckteZeilen"] > 0
+    assert durchlauf["uebersicht"]["ohneAnforderung"] > 0
 
 
 # ---------------------------------------------------------------------------
