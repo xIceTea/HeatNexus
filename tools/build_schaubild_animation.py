@@ -102,14 +102,14 @@ def zustand(bild: int) -> dict:
     leistung = _rampe(bild, 48, 59, leistung, 26) if bild >= 48 else leistung
     return {
         "werte": {
-            "sensor.kessel": kessel,
-            "sensor.leistung": leistung,
+            "sensor.kesseltemperatur_ist": kessel,
+            "sensor.kesselleistung": leistung,
             "sensor.puffer_oben": _rampe(bild, 20, 38, 34, 70),
             "sensor.puffer_unten": _rampe(bild, 26, 48, 30, 49),
-            "sensor.vorlauf": _rampe(bild, 32, 46, 22, 48),
-            "sensor.raum": _rampe(bild, 34, 59, 19.8, 21.4),
-            "sensor.warmwasser": _rampe(bild, 44, 57, 39, 55),
-            "sensor.zirkulation": _rampe(bild, 46, 59, 26, 38),
+            "sensor.vorlauftemperatur_ist": _rampe(bild, 32, 46, 22, 48),
+            "sensor.raumtemperatur_ist": _rampe(bild, 34, 59, 19.8, 21.4),
+            "sensor.ww_temperatur": _rampe(bild, 44, 57, 39, 55),
+            "sensor.ww_zirkulation_ist": _rampe(bild, 46, 59, 26, 38),
         },
         "pumpen": {
             "binary_sensor.kesselpumpe": bild >= 10,

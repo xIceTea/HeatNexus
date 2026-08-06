@@ -43,12 +43,14 @@ def test_am_anfang_steht_die_anlage_still(animation):
     """Ohne Ruhe am Anfang sieht man dem Bild den Start nicht an."""
     lage = animation.zustand(0)
     assert not any(lage["pumpen"].values())
-    assert lage["werte"]["sensor.leistung"] == 0
+    assert lage["werte"]["sensor.kesselleistung"] == 0
 
 
 def test_der_kessel_springt_an_bevor_der_puffer_laedt(animation):
     """Erst Wärme, dann Ladung – andersherum ergäbe es keinen Sinn."""
-    an = min(b for b in range(animation.BILDER) if animation.zustand(b)["werte"]["sensor.leistung"])
+    an = min(
+        b for b in range(animation.BILDER) if animation.zustand(b)["werte"]["sensor.kesselleistung"]
+    )
     laedt = min(
         b
         for b in range(animation.BILDER)
@@ -59,7 +61,7 @@ def test_der_kessel_springt_an_bevor_der_puffer_laedt(animation):
 
 def test_die_anlage_wird_durchgehend_waermer(animation):
     """Puffer, Vorlauf und Warmwasser dürfen zwischendurch nicht abkühlen."""
-    for messwert in ("sensor.puffer_oben", "sensor.puffer_unten", "sensor.warmwasser"):
+    for messwert in ("sensor.puffer_oben", "sensor.puffer_unten", "sensor.ww_temperatur"):
         verlauf = [animation.zustand(b)["werte"][messwert] for b in range(animation.BILDER)]
         assert verlauf == sorted(verlauf), messwert
         assert verlauf[-1] > verlauf[0], messwert

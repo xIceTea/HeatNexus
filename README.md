@@ -239,6 +239,15 @@ data:
 Neben dem Dashboard bringt HeatNexus eine eigene Seite in der Seitenleiste mit.
 Sie zeigt die Anlage als Ganzes statt als Kachelsammlung:
 
+<p align="center">
+  <a href="docs/OBERFLAECHE.md"><img src="assets/panel_rundgang.gif" alt="Rundgang durch die Oberfläche" width="820"></a>
+</p>
+
+<p align="center">
+  <em>Rundgang durch die Reiter, mit anliegender Störung – ausführlich in
+  <a href="docs/OBERFLAECHE.md">docs/OBERFLAECHE.md</a>. Beispielwerte.</em>
+</p>
+
 - **Anlagenschaubild** mit Vor- und Rücklauf, den Live-Werten und Pumpen, die
   sich drehen, solange sie laufen.
 - **Kennwerte** je Anlagenteil – ein Leitwert je Funktion, wie am Bediengerät
