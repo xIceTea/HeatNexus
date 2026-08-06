@@ -192,4 +192,45 @@ bilanz.bedienen = {
   aufgeraeumt: anzeige.textContent,
 };
 
+// ---------------------------------------------------------------------------
+// Zeitprogramm-Dialog: erst lesen, dann bearbeiten
+//
+// Im Bediengerät stehen die Zeiten als „von – bis"; eingestellt wird dagegen
+// der Startpunkt, weil ein Punkt gilt, bis der nächste kommt. Beides in einer
+// Ansicht zu mischen hiess, beim Verstellen die falsche Zeit zu erwischen.
+// ---------------------------------------------------------------------------
+const einProgramm = (daten.anlagen || []).flatMap((anlage) => anlage.zeitprogramme || [])[0];
+
+let zeitprogrammDialog = null;
+if (einProgramm) {
+  const meldung = document.createElement("div");
+  flaeche._zeitprogrammBearbeiten(einProgramm, meldung);
+  const dialog = flaeche.shadowRoot.querySelector(".zp-dialog");
+  const tasten = () =>
+    [...dialog.querySelectorAll(".dialog-taste")].map((t) => String(t.textContent || "").trim());
+
+  const beimLesen = {
+    spannen: [...dialog.querySelectorAll(".zp-spanne")].map((knoten) =>
+      String(knoten.textContent || "").trim()
+    ),
+    editoren: dialog.querySelectorAll(".zp-editor").length,
+    tasten: tasten(),
+  };
+
+  // Der zweite Knopf holt den Editor.
+  dialog._bearbeiten();
+
+  const beimBearbeiten = {
+    spannen: dialog.querySelectorAll(".zp-spanne").length,
+    editoren: dialog.querySelectorAll(".zp-editor").length,
+    startpunkte: [...dialog.querySelectorAll(".zp-punktekopf")].map((knoten) =>
+      String(knoten.textContent || "").trim()
+    ),
+    tasten: tasten(),
+  };
+
+  zeitprogrammDialog = { lesen: beimLesen, bearbeiten: beimBearbeiten };
+}
+bilanz.zeitprogrammDialog = zeitprogrammDialog;
+
 console.log(JSON.stringify(bilanz));

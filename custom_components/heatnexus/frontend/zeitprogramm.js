@@ -379,6 +379,54 @@ export function rasterKnoten(bloecke) {
 }
 
 /**
+ * Die Leseansicht: je Block die Wochentage und die Abschnitte als „von – bis".
+ *
+ * **So steht es auch im Bediengerät.** Der Editor arbeitet mit Schaltpunkten –
+ * ein Punkt gilt, bis der nächste kommt –, und das ist zum Einstellen richtig.
+ * Zum Ablesen ist es die falsche Frage: Wer wissen will, wann geheizt wird,
+ * will „06:00 – 19:00" lesen und nicht zwei Zeilen im Kopf zusammenrechnen.
+ * Der Umlauf über Mitternacht steckt schon in `abschnitte`.
+ */
+export function uebersichtKnoten(bloecke, optionen = {}) {
+  const grenzen = optionen.grenzen || bereich(bloecke);
+  const knoten = document.createElement("div");
+  knoten.className = "zp-uebersicht";
+
+  (bloecke || []).forEach((block) => {
+    const kasten = document.createElement("div");
+    kasten.className = "zp-block";
+
+    const kopf = document.createElement("div");
+    kopf.className = "zp-blockkopf";
+    kopf.textContent = tagesbereich(block.tage);
+    kasten.appendChild(kopf);
+
+    const liste = document.createElement("div");
+    liste.className = "zp-spannen";
+    abschnitte(block.punkte).forEach((stueck) => {
+      const zeile = document.createElement("div");
+      zeile.className = "zp-spanne";
+      const punktfarbe = document.createElement("i");
+      punktfarbe.style.background = farbe(stueck.wert, grenzen);
+      const zeit = document.createElement("span");
+      zeit.className = "zp-spannezeit";
+      // `bis` steht auf 1440, wenn der Abschnitt bis Mitternacht läuft; als
+      // Uhrzeit ist das 00:00.
+      zeit.textContent = `${uhrzeit(stueck.von)} – ${uhrzeit(stueck.bis % TAG_MINUTEN)}`;
+      const wert = document.createElement("span");
+      wert.className = "zp-spannewert";
+      wert.textContent = wertText(stueck.wert, grenzen);
+      zeile.append(punktfarbe, zeit, wert);
+      liste.appendChild(zeile);
+    });
+    kasten.appendChild(liste);
+    knoten.appendChild(kasten);
+  });
+
+  return knoten;
+}
+
+/**
  * Der Editor: je Block die Wochentage und eine Tabelle der Schaltzeiten.
  *
  * Zurück kommt der Knoten und ein `lesen()`, das den aktuellen Stand als
@@ -460,6 +508,15 @@ export function editorKnoten(bloecke, optionen = {}) {
       tage.appendChild(taste);
     });
     kasten.appendChild(tage);
+
+    // **Was hier eingestellt wird, ist der Startpunkt, nicht die Spanne.**
+    // Ein Punkt gilt, bis der nächste kommt; das Ende einer Spanne ist der
+    // Anfang der nächsten. Ohne diese Überschrift liest man die Zeilen wie
+    // die „von – bis" der Leseansicht und stellt das Falsche ein.
+    const wozu = document.createElement("div");
+    wozu.className = "zp-punktekopf";
+    wozu.textContent = "Startpunkt";
+    kasten.appendChild(wozu);
 
     const tabelle = document.createElement("div");
     tabelle.className = "zp-punkte";

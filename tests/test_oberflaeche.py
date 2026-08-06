@@ -188,6 +188,34 @@ def test_zwischen_schaltzeit_und_wert_steht_ein_strich(durchlauf):
     assert all(" – " in text for text in schaltzeiten), schaltzeiten
 
 
+def test_der_zeitprogramm_dialog_zeigt_erst_die_spannen(durchlauf):
+    """Wie im Bediengerät: „06:00 – 19:00", nicht zwei Startpunkte.
+
+    Wer wissen will, wann geheizt wird, soll die Spanne lesen und nicht zwei
+    Zeilen im Kopf zusammenrechnen.
+    """
+    lesen = durchlauf["zeitprogrammDialog"]["lesen"]
+    assert lesen["spannen"], "Die Leseansicht zeigt keine Spannen"
+    assert all(" – " in text for text in lesen["spannen"]), lesen["spannen"]
+    assert lesen["editoren"] == 0, "Der Editor steht schon vor dem Bearbeiten da"
+    assert lesen["tasten"] == ["Schließen", "Bearbeiten"]
+
+
+def test_erst_bearbeiten_holt_die_startpunkte(durchlauf):
+    """Eingestellt wird der Startpunkt – ein Punkt gilt, bis der nächste kommt.
+
+    Ohne diese Überschrift liest man die Zeilen wie die Spannen der
+    Leseansicht und verstellt die falsche Zeit.
+    """
+    bearbeiten = durchlauf["zeitprogrammDialog"]["bearbeiten"]
+    assert bearbeiten["editoren"] == 1
+    assert bearbeiten["spannen"] == 0, "Spannen und Startpunkte stehen gemischt da"
+    assert bearbeiten["startpunkte"], "Die Punktetabelle sagt nicht, was sie einstellt"
+    assert set(bearbeiten["startpunkte"]) == {"Startpunkt"}
+    # Und die Leiste sagt, dass jetzt etwas zu übernehmen ist.
+    assert bearbeiten["tasten"] == ["Verwerfen", "Übernehmen"]
+
+
 def test_das_zahlenfeld_hat_eigene_pfeile(durchlauf):
     """Die des Browsers sind abgeschaltet – ganz ohne blieb nur noch Tippen.
 

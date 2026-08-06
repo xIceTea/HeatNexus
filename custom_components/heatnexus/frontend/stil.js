@@ -746,6 +746,21 @@ export const STIL = `
   .dialog.zp-dialog { max-width: 560px; }
   .zp-editor { max-height: 58vh; overflow-y: auto; display: flex;
     flex-direction: column; gap: 12px; }
+  /* Leseansicht: dieselben Blockkaesten wie im Editor, aber statt der
+     Startpunkte die fertigen Spannen - so steht es auch im Bediengeraet. */
+  .zp-uebersicht { max-height: 58vh; overflow-y: auto; display: flex;
+    flex-direction: column; gap: 12px; }
+  .zp-spannen { display: flex; flex-direction: column; gap: 7px; }
+  .zp-spanne { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+  .zp-spanne i { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+  .zp-spannezeit { font-variant-numeric: tabular-nums; }
+  .zp-spannewert { margin-left: auto; font-weight: 600; }
+  /* Ueber der Punktetabelle: was hier eingestellt wird, ist der Start einer
+     Spanne, nicht die Spanne selbst. */
+  .zp-punktekopf {
+    font-size: 11px; font-weight: 600; opacity: 0.5; margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
   .zp-block {
     border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px;
   }

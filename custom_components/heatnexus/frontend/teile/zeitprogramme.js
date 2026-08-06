@@ -16,6 +16,7 @@ import {
   nachDienst,
   pruefen,
   rasterKnoten,
+  uebersichtKnoten,
 } from "../zeitprogramm.js";
 
 export const ZeitprogrammeMixin = (Basis) =>
@@ -92,12 +93,14 @@ export const ZeitprogrammeMixin = (Basis) =>
 
     const leiste = document.createElement("div");
     leiste.className = "zp-karteleiste";
-    const bearbeiten = document.createElement("button");
-    bearbeiten.type = "button";
-    bearbeiten.className = "zp-taste betont";
-    bearbeiten.textContent = "Bearbeiten";
-    bearbeiten.addEventListener("click", () => this._zeitprogrammBearbeiten(programm, rueckmeldung));
-    leiste.append(bearbeiten, rueckmeldung);
+    // „Öffnen", nicht „Bearbeiten": Der Dialog zeigt zuerst die Zeiten als
+    // „von – bis". Bearbeitet wird erst, wer dort noch einmal drückt.
+    const oeffnen = document.createElement("button");
+    oeffnen.type = "button";
+    oeffnen.className = "zp-taste betont";
+    oeffnen.textContent = "Öffnen";
+    oeffnen.addEventListener("click", () => this._zeitprogrammBearbeiten(programm, rueckmeldung));
+    leiste.append(oeffnen, rueckmeldung);
     karte.appendChild(leiste);
 
     // Das Raster hängt am Zustand: Wird das Programm an der Anlage selbst
@@ -115,9 +118,15 @@ export const ZeitprogrammeMixin = (Basis) =>
   }
 
   /**
-   * Der Editor als Dialog – dieselbe Form wie Rückfrage und Erklärung.
+   * Das Programm als Dialog – dieselbe Form wie Rückfrage und Erklärung.
    *
-   * Geschrieben wird erst beim Speichern, und dann das **ganze** Programm:
+   * **Zwei Zustände.** Zuerst nur lesen: die Zeiten als „von – bis", so wie
+   * das Bediengerät sie zeigt. Erst ein Druck auf *Bearbeiten* holt den
+   * Editor, und der arbeitet mit Startpunkten – ein Punkt gilt, bis der
+   * nächste kommt. Beides in einer Ansicht zu mischen war die Ursache dafür,
+   * dass man beim Verstellen einer Zeit die falsche erwischte.
+   *
+   * Geschrieben wird erst beim Übernehmen, und dann das **ganze** Programm:
    * Die Anlage kennt keinen Weg, einen einzelnen Schaltpunkt zu ändern.
    * `heatnexus.set_time_program` liest das Objekt vorher und tauscht nur den
    * Wert aus, damit der Umschlag des Geräts erhalten bleibt.
@@ -126,6 +135,7 @@ export const ZeitprogrammeMixin = (Basis) =>
     const zustand = this._zustand(programm.entity);
     const bloecke = bloeckeLesen(zustand && zustand.attributes && zustand.attributes.blocks);
     if (!bloecke.length) return;
+    const grenzen = bereich(bloecke);
 
     const schleier = document.createElement("div");
     schleier.className = "schleier";
@@ -137,7 +147,8 @@ export const ZeitprogrammeMixin = (Basis) =>
     ueberschrift.className = "dialog-titel";
     ueberschrift.textContent = programm.titel;
 
-    const editor = editorKnoten(bloecke, { grenzen: bereich(bloecke) });
+    const platz = document.createElement("div");
+    platz.appendChild(uebersichtKnoten(bloecke, { grenzen }));
 
     const meldung = document.createElement("div");
     meldung.className = "zp-meldung";
@@ -147,14 +158,14 @@ export const ZeitprogrammeMixin = (Basis) =>
     const abbrechen = document.createElement("button");
     abbrechen.type = "button";
     abbrechen.className = "dialog-taste";
-    abbrechen.textContent = "Abbrechen";
+    abbrechen.textContent = "Schließen";
     const speichern = document.createElement("button");
     speichern.type = "button";
     speichern.className = "dialog-taste betont";
-    speichern.textContent = "Speichern";
+    speichern.textContent = "Bearbeiten";
     leiste.append(abbrechen, speichern);
 
-    dialog.append(ueberschrift, editor.knoten, meldung, leiste);
+    dialog.append(ueberschrift, platz, meldung, leiste);
     schleier.appendChild(dialog);
 
     const weg = () => {
@@ -170,7 +181,22 @@ export const ZeitprogrammeMixin = (Basis) =>
     });
     document.addEventListener("keydown", beiTaste);
 
+    // Im Lesezustand liegt hier nichts; erst *Bearbeiten* legt den Editor an.
+    let editor = null;
+    dialog._bearbeiten = () => {
+      editor = editorKnoten(bloecke, { grenzen });
+      platz.replaceChildren(editor.knoten);
+      meldung.textContent = "";
+      abbrechen.textContent = "Verwerfen";
+      speichern.textContent = "Übernehmen";
+      speichern.focus();
+    };
+
     speichern.addEventListener("click", async () => {
+      if (!editor) {
+        dialog._bearbeiten();
+        return;
+      }
       const neu = editor.lesen();
       const fehler = pruefen(neu);
       if (fehler.length) {

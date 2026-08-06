@@ -35,6 +35,11 @@ Vorabversion.
 
 ### Geändert
 
+- Das Zeitprogramm öffnet sich zuerst zum **Lesen**: Die Zeiten stehen als
+  *von – bis*, so wie das Bediengerät sie zeigt. *Bearbeiten* holt den Editor,
+  und der sagt jetzt über der Tabelle, dass dort der **Startpunkt** eingestellt
+  wird — ein Punkt gilt, bis der nächste kommt. Übernommen oder verworfen wird
+  unten.
 - Uhrzeiten und Datumsfelder werden nicht mehr von selbst angelegt. Es sind
   Einstellwerte, die man einmal anfasst; sie kosteten in jedem Durchlauf eine
   Anfrage an die Anlage. Wer sie braucht, schaltet sie einzeln ein.
