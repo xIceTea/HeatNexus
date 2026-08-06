@@ -335,7 +335,7 @@ Nutzung auf eigene Verantwortung.
 HeatNexus entsteht in der Freizeit an einer echten Anlage. Wer die Arbeit
 unterstützen möchte:
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-unterst%C3%BCtzen-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/xicetea)
+[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="48">](https://buymeacoffee.com/xicetea)
 
 Genauso hilfreich und kostenlos: ein Fehlerbericht mit Diagnose-Export,
 besonders von Anlagentypen, die hier als *unterstützt, ungeprüft* stehen.

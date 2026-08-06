@@ -325,7 +325,7 @@ your own risk.
 HeatNexus is built in my spare time against a real heating system. If you would
 like to support the work:
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/xicetea)
+[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="48">](https://buymeacoffee.com/xicetea)
 
 Just as helpful and free: a bug report with the diagnostics export, especially
 from hardware listed here as *supported, unverified*.
