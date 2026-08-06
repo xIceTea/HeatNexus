@@ -485,17 +485,24 @@ export const UebersichtMixin = (Basis) =>
             if (eintrag.betriebswahl && eintrag.betriebswahl_aus && eintrag.betriebswahl_ww) {
               const jetzt = this._zustand(eintrag.betriebswahl);
               // Was jetzt eingestellt ist, gilt als Rückkehrpunkt.
-              if (jetzt && !OHNE_WERT.includes(String(jetzt.state).toLowerCase())) {
-                this._wahlVorLadung[eintrag.betriebswahl] = jetzt.state;
-              }
+              const bekannt = jetzt && !OHNE_WERT.includes(String(jetzt.state).toLowerCase());
               const aus = new RegExp(eintrag.betriebswahl_aus, "i");
-              if (jetzt && aus.test(jetzt.state)) {
+              if (bekannt && aus.test(jetzt.state)) {
                 const ww = this._optionWie(eintrag.betriebswahl, eintrag.betriebswahl_ww);
                 if (ww) {
                   await this._hass.callService("select", "select_option", {
                     entity_id: eintrag.betriebswahl,
                     option: ww,
                   });
+                  // **Nur was hier verstellt wurde, wird später zurückgestellt.**
+                  // Während einer Ladung meldet die Anlage von sich aus
+                  // WW-Betrieb und kehrt nach deren Ende allein zum vorherigen
+                  // Stand zurück – auch das Bediengerät schreibt zum Abbrechen
+                  // nichts weiter als die Freigabe auf Nein. Wurde der Merker
+                  // dagegen bei jedem Start gesetzt, schickte das Abbrechen
+                  // hinter der Freigabe noch eine Betriebswahl her, und die
+                  // Ladung lief weiter.
+                  this._wahlVorLadung[eintrag.betriebswahl] = jetzt.state;
                 }
               }
             }

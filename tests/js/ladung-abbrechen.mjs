@@ -31,7 +31,7 @@ const BETRIEBSART = "sensor.betriebsart";
 const LADEPUMPE = "binary_sensor.ww_ladepumpe";
 
 /** Ein Panel mit nachgebildeten Zuständen und mitschreibendem Dienstaufruf. */
-function panelBauen({ laedt, optionen, betriebswahl = BETRIEBSWAHL }) {
+function panelBauen({ laedt, optionen, betriebswahl = BETRIEBSWAHL, zusatz = {} }) {
   const element = new klasse();
   const gerufen = [];
   element._hass = {
@@ -63,6 +63,7 @@ function panelBauen({ laedt, optionen, betriebswahl = BETRIEBSWAHL }) {
     zustand_an: BETRIEBSART,
     zustand_wenn: ["WW-Ladung", "Warmwasser Einmalladung"],
     zustand_pumpe: LADEPUMPE,
+    ...zusatz,
   };
   const taste = element._bedientaste(eintrag, false);
   return { element, taste, gerufen };
@@ -290,6 +291,49 @@ const faelle = [];
     throw new Error(`Ohne Betriebsart zaehlt die Pumpe nicht: "${beschriftung}"`);
   }
   faelle.push("ohne lesbare Betriebsart bleibt die Pumpe der Beleg");
+}
+
+// --- Aus einem Programm heraus wird nichts gemerkt -------------------------
+//
+// Der gemeldete Fehler: Ladung aus „Programm 1" gestartet, Abbrechen ohne
+// Wirkung – auch in der Windhager-App lief sie weiter. Die Anlage stellt die
+// Betriebswahl während einer Ladung selbst auf WW-Betrieb und kehrt danach
+// allein zurück; das Bediengerät schreibt zum Abbrechen nur die Freigabe auf
+// Nein. Weil hier bei **jedem** Start gemerkt wurde, schickte das Abbrechen
+// hinterher noch eine Betriebswahl – und die Ladung lief weiter.
+{
+  const zusatz = { betriebswahl_aus: "^standby", betriebswahl_ww: "ww" };
+  const { element, taste, gerufen } = panelBauen({
+    laedt: false,
+    optionen: ["Standby", "Programm 1", "Heizbetrieb", "WW-Betrieb"],
+    zusatz,
+  });
+  element._hass.states[BETRIEBSWAHL].state = "Programm 1";
+  taste.ausloesen("click");
+  await abwarten();
+  if (gerufen.some((r) => r.dienst === "select_option")) {
+    throw new Error("aus einem Programm heraus wurde die Betriebswahl verstellt");
+  }
+  if (element._wahlVorLadung[BETRIEBSWAHL] !== undefined) {
+    throw new Error("gemerkt, obwohl nichts verstellt wurde");
+  }
+  faelle.push("Start aus einem Programm: nichts verstellt, nichts gemerkt");
+
+  // Jetzt läuft die Ladung, die Anlage meldet von sich aus WW-Betrieb.
+  element._hass.states[BETRIEBSART].state = "Warmwasser Einmalladung";
+  element._hass.states[BETRIEBSWAHL].state = "WW-Betrieb";
+  element._ladungAnnahmen = {};
+  gerufen.length = 0;
+  element._bindungen.forEach((bindung) => bindung());
+  taste.ausloesen("click");
+  await abwarten();
+  if (!gerufen.some((r) => r.dienst === "turn_off" && r.daten.entity_id === AUSLOESER)) {
+    throw new Error("Abbruch nahm die Freigabe nicht zurück");
+  }
+  if (gerufen.some((r) => r.dienst === "select_option")) {
+    throw new Error("Abbruch schickte eine überflüssige Betriebswahl hinterher");
+  }
+  faelle.push("Abbruch aus einem Programm: nur die Freigabe zurück");
 }
 
 console.log(JSON.stringify({ faelle }, null, 1));
