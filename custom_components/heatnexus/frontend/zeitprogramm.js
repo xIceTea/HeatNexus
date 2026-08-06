@@ -512,6 +512,13 @@ export function editorKnoten(bloecke, optionen = {}) {
       else zeit.value = uhrzeit(punkt.zeit);
     });
 
+    // Die Einheit hinter der Uhrzeit. Ohne sie steht im Editor eine nackte
+    // Zeit neben einer nackten Zahl, und beim ersten Hinsehen ist nicht klar,
+    // welches Feld was ist.
+    const zeitEinheit = document.createElement("span");
+    zeitEinheit.className = "zp-einheit";
+    zeitEinheit.textContent = "Uhr";
+
     let wert;
     if (grenzen.schalt) {
       wert = document.createElement("select");
@@ -563,7 +570,7 @@ export function editorKnoten(bloecke, optionen = {}) {
       zeichnen();
     });
 
-    zeile.append(zeit, wert, einheiten, weg);
+    zeile.append(zeit, zeitEinheit, wert, einheiten, weg);
     return zeile;
   };
 
