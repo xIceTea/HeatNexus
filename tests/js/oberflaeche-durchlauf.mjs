@@ -45,7 +45,7 @@ const zeitprogramme = new Set(
 
 // Werte, die nur über null etwas bedeuten – die Wärmeanforderung des
 // Pumpen-/Relaismoduls. Sie stehen im Durchlauf auf null, damit sich prüfen
-// lässt, dass dort dann der Klartext steht.
+// lässt, dass dort dann ein Strich steht.
 const ohneAnforderung = new Set(
   (daten.anlagen || []).flatMap((anlage) =>
     (anlage.kennwerte || []).filter((k) => k.ersatz_unter_null).map((k) => k.entity)
@@ -123,10 +123,14 @@ REITER.forEach((reiter) => {
     bindungen: flaeche._bindungen.length,
     zeilen: zeilen.length,
     versteckteZeilen: zeilen.filter((zeile) => zeile.hidden).length,
-    // Statt zu verschwinden sagt die Zeile jetzt, dass nichts angefordert ist.
+    // Statt zu verschwinden steht in der Zeile jetzt ein Strich.
     ohneAnforderung: [...flaeche.shadowRoot.querySelectorAll(".wert")].filter(
-      (knoten) => String(knoten.textContent || "").includes("keine Anforderung")
+      (knoten) => String(knoten.textContent || "").trim() === "–"
     ).length,
+    // Die Schaltzeiten unter dem Wochenraster: Uhrzeit, Strich, Wert.
+    schaltzeiten: [...flaeche.shadowRoot.querySelectorAll(".schaltzeit")].map((knoten) =>
+      String(knoten.textContent || "").trim()
+    ),
   };
 });
 

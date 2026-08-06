@@ -362,7 +362,10 @@ export function rasterKnoten(bloecke) {
         const punktfarbe = document.createElement("i");
         punktfarbe.style.background = farbe(punkt.wert, grenzen);
         const text = document.createElement("span");
-        text.textContent = `${uhrzeit(punkt.zeit)} ${wertText(punkt.wert, grenzen)}`;
+        // Strich zwischen Uhrzeit und Wert. Ohne ihn standen „06:00" und
+        // „21,0 °C" nur durch ein Leerzeichen getrennt nebeneinander und
+        // lasen sich wie eine einzige Angabe.
+        text.textContent = `${uhrzeit(punkt.zeit)} – ${wertText(punkt.wert, grenzen)}`;
         marke.append(punktfarbe, text);
         zeiten.appendChild(marke);
       });

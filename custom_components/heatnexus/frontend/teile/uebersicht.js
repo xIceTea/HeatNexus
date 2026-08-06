@@ -87,9 +87,9 @@ export const UebersichtMixin = (Basis) =>
           kennwert.untertitel,
           kennwert.symbol,
           // Was statt einer Zahl dasteht, solange der Wert nicht über null
-          // liegt – bei der Wärmeanforderung des Pumpen-/Relaismoduls etwa
-          // „keine Anforderung". Ein „0,0 °C" behauptete dort eine Anforderung
-          // mit null Grad.
+          // liegt – bei der Wärmeanforderung des Pumpen-/Relaismoduls ein
+          // Strich. Ein „0,0 °C" behauptete dort eine Anforderung mit null
+          // Grad.
           kennwert.ersatz_unter_null
         )
       );
@@ -125,21 +125,13 @@ export const UebersichtMixin = (Basis) =>
     zeile.append(text, rechts);
     this._bindungen.push(() => {
       // Werte, die nur über null etwas bedeuten – die Wärmeanforderung des
-      // Pumpen-/Relaismoduls. Liegt keine an, steht dort der Zustand im
-      // Klartext statt einer Zahl; das Anlagenteil bleibt sichtbar. Bis
-      // 1.5.0-beta.9 verschwand die Zeile stattdessen ganz, und mit ihr das
-      // Anlagenteil aus der Liste.
-      if (ersatzUnterNull) {
-        const zahl = this._zahl(entity);
-        if (!(zahl !== null && zahl > 0)) {
-          wert.textContent = ersatzUnterNull;
-          wert.classList.add("lang");
-          unten.textContent = bezeichnung || "";
-          return;
-        }
-        wert.classList.remove("lang");
-      }
-      wert.textContent = this._text(entity);
+      // Pumpen-/Relaismoduls. Liegt keine an, steht dort ein Strich statt
+      // einer Zahl; das Anlagenteil bleibt sichtbar. Bis 1.5.0-beta.9
+      // verschwand die Zeile stattdessen ganz, und mit ihr das Anlagenteil
+      // aus der Liste.
+      const zahl = ersatzUnterNull ? this._zahl(entity) : null;
+      const ohneAnforderung = ersatzUnterNull && !(zahl !== null && zahl > 0);
+      wert.textContent = ohneAnforderung ? ersatzUnterNull : this._text(entity);
       unten.textContent = bezeichnung || "";
       // Lange Texte („Betriebsbereit") umbrechen statt zu schrumpfen.
       wert.classList.toggle("lang", wert.textContent.length > 8);

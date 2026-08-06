@@ -569,10 +569,13 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                 }
                 # Ein Sollwert von null heißt: keine Anforderung. Statt „0 °C"
                 # zu behaupten oder die Zeile verschwinden zu lassen, steht
-                # dort dann der Zustand im Klartext – das Anlagenteil bleibt
-                # sichtbar.
+                # dort dann ein Strich – das Anlagenteil bleibt sichtbar.
+                #
+                # Bewusst kein Klartext: Darunter steht bereits „Anforderung",
+                # und ein „keine Anforderung / Anforderung" übereinander las
+                # sich wie ein Fehler.
                 if teil.get("fct_type") == FCT_ZSP:
-                    eintrag["ersatz_unter_null"] = "keine Anforderung"
+                    eintrag["ersatz_unter_null"] = "–"
                 kennwerte.append(eintrag)
                 break
 

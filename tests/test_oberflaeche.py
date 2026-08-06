@@ -167,15 +167,22 @@ def test_anordnen_gibt_jeder_karte_einen_griff(durchlauf):
     assert durchlauf["anordnen"]["griffe"] > 0
 
 
-def test_ohne_waermeanforderung_sagt_die_zeile_das_auch(durchlauf):
-    """Das Pumpen-/Relaismodul steht nicht mit einem „–" in der Übersicht.
+def test_ohne_waermeanforderung_steht_ein_strich(durchlauf):
+    """Liegt keine Wärmeanforderung an, steht in der Zeile ein Strich.
 
-    Liegt keine Wärmeanforderung an, stand dort bis 1.5.0-beta.9 gar nichts –
-    die Zeile verschwand und mit ihr das Anlagenteil aus der Liste. Jetzt steht
-    der Zustand im Klartext; ein „0,0 °C" behauptete eine Anforderung mit null
-    Grad, ein Verschwinden ein Anlagenteil, das es nicht gibt.
+    Bis 1.5.0-beta.9 verschwand die Zeile ganz und mit ihr das Anlagenteil aus
+    der Liste; danach stand dort „keine Anforderung" – und direkt darunter
+    noch einmal „Anforderung". Ein „0,0 °C" wiederum behauptete eine
+    Anforderung mit null Grad.
     """
     assert durchlauf["uebersicht"]["ohneAnforderung"] > 0
+
+
+def test_zwischen_schaltzeit_und_wert_steht_ein_strich(durchlauf):
+    """Sonst standen „06:00" und „21,0 °C" nur durch ein Leerzeichen getrennt da."""
+    schaltzeiten = durchlauf["zeitprogramme"]["schaltzeiten"]
+    assert schaltzeiten, "Das Wochenraster zeigt keine Schaltzeiten"
+    assert all(" – " in text for text in schaltzeiten), schaltzeiten
 
 
 # ---------------------------------------------------------------------------
