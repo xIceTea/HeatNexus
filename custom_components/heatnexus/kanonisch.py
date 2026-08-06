@@ -93,6 +93,10 @@ KANONISCH: dict[str, str] = {
     # bereitet. Die übrigen WW-Parameter beweisen das nicht: Sie stehen auch
     # an einem Heizkreis ohne Speicher in der Liste.
     "5/76": "dhw_circuit",
+    # Die Betriebswahl des Puffers (`20/15`) heißt schlicht „Betriebswahl" –
+    # genau wie die des Heizkreises (`3/50`). Am Namen sind sie nicht zu
+    # trennen; an ihr hängt, ob das Zeitprogramm des Puffers überhaupt greift.
+    "20/15": "buffer_mode_selection",
     # Puffer. Zwei Adresspaare für denselben Messwert: Die Baureihen mit
     # eigenem Puffermodul melden ihn unter `21/65`/`21/66` (TPE/TPA), die mit
     # angebautem Fühler unter `0/15`/`0/16`. Es ist derselbe Begriff.

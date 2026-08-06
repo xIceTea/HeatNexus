@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner_small.png" alt="HeatNexus" width="820">
+  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png" alt="HeatNexus" width="820">
 </p>
 
 <p align="center">
@@ -31,10 +31,7 @@ Assistant matches what you read on the boiler. This page exists so you can
 decide whether the integration fits before you install it.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/anlagenschema_animation.gif">
-    <img src="assets/anlagenschema_animation_hell.gif" alt="Animated plant diagram: boiler starts, buffer charges, heating circuit and hot water warm up" width="820">
-  </picture>
+  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif" alt="Animated plant diagram: boiler starts, buffer charges, heating circuit and hot water warm up" width="820">
 </p>
 
 <p align="center">
@@ -45,7 +42,7 @@ decide whether the integration fits before you install it.
 </p>
 
 <p align="center">
-  <a href="docs/OBERFLAECHE.md"><img src="assets/panel_rundgang.gif" alt="Tour of the panel: overview, fault, controls, maintenance, time programmes" width="820"></a>
+  <a href="docs/OBERFLAECHE.md"><img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif" alt="Tour of the panel: overview, fault, controls, maintenance, time programmes" width="820"></a>
 </p>
 
 <p align="center">

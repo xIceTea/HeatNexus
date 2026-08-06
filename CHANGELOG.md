@@ -8,6 +8,27 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+## [1.5.0-beta.7] - 2026-08-06
+
+Vorabversion.
+
+### Behoben
+
+- **Im HACS-Fenster fehlten alle Bilder.** Sie standen als `<picture>` mit
+  zwei Farbsätzen im README. HACS setzt beim Anzeigen nur die Adresse im
+  `src` auf das Repository um, nicht die im `srcset` – und genau die zog der
+  Browser im dunklen Erscheinungsbild. Jetzt steht überall eine vollständige
+  Adresse; dafür entfällt der helle Satz im README.
+
+### Geändert
+
+- **Das Zeitprogramm des Puffers sagt, wann es wirkt.** Der Puffer folgt ihm
+  nur in der Betriebswahl „Auto mit Zeitprogramm"; in Standby, Automatik-,
+  Festbrennstoff-, Hand- oder Kaminkehrerbetrieb läuft es ins Leere. Die Karte
+  trägt jetzt denselben Hinweis wie das Zirkulationsprogramm. Versteckt wird
+  sie nicht – anders als bei der Zirkulation gibt es kein zweites Programm,
+  das stattdessen gälte.
+
 ## [1.5.0-beta.6] - 2026-08-06
 
 Vorabversion.

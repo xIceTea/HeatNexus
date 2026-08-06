@@ -16,6 +16,7 @@ import contextlib
 import re
 from typing import Any
 
+from ..const import FCT_BUFFER
 from ..dashboard import (
     WARTUNG_RESTLAUFZEIT,
     WARTUNG_RESTLAUFZEIT_SCHLUESSEL,
@@ -395,15 +396,43 @@ def _zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
             }
             if text := hilfe(eintrag["name"]):
                 programm["hilfe"] = text
-            if (wirkung := _wirkt_nur_wenn(eintrag, teil["entitaeten"])) is not None:
+            if (wirkung := _wirkt_nur_wenn(eintrag, teil)) is not None:
                 programm["wirkung"] = wirkung
             programme.append(programm)
     return programme
 
 
-def _wirkt_nur_wenn(
-    programm: dict[str, Any], geschwister: list[dict[str, Any]]
-) -> dict[str, str] | None:
+def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
+    """Das Zeitprogramm des Puffers greift nur in einer Betriebswahl.
+
+    `20/15` kennt Standby, Automatikbetrieb, Festbrennstoff-, Pufferbetrieb,
+    **Auto mit Zeitprogramm**, Hand- und Kaminkehrerbetrieb. Nur in „Auto mit
+    Zeitprogramm" richtet sich der Puffer nach seinem Programm; in allen
+    anderen läuft das schönste Programm ins Leere.
+
+    Versteckt wird die Karte trotzdem nicht: Anders als bei der Zirkulation
+    gibt es hier kein zweites Programm, das stattdessen gilt – es gäbe also
+    nichts zu sehen, und vorbereiten können muss man es.
+    """
+    wahl = next(
+        (
+            e
+            for e in teil["entitaeten"]
+            if e["bereich"] in ("select", "sensor")
+            and _trifft(e, BETRIEBSWAHL, "buffer_mode_selection")
+        ),
+        None,
+    )
+    if wahl is None:
+        return None
+    return {
+        "entity": wahl["entity_id"],
+        "muster": "zeitprogramm",
+        "hinweis": "Wirkt erst, wenn die Betriebswahl auf „Auto mit Zeitprogramm“ steht.",
+    }
+
+
+def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str, str] | None:
     """Der Datenpunkt, an dem hängt, ob ein Programm überhaupt etwas bewirkt.
 
     **Die Anlage führt zwei Zirkulationsprogramme.** In der Herstellerdatei
@@ -421,11 +450,13 @@ def _wirkt_nur_wenn(
     bevor man die Steuerung umstellt.
     """
     if not _passt(programm["name"], ZIRKULATIONSPROGRAMM):
-        return None
+        # Kein Zirkulationsprogramm – am Puffer entscheidet stattdessen seine
+        # eigene Betriebswahl, ob das Programm greift.
+        return _puffer_wirkung(teil) if teil.get("fct_type") == FCT_BUFFER else None
     pumpe = next(
         (
             e
-            for e in geschwister
+            for e in teil["entitaeten"]
             if e["bereich"] in ("select", "sensor")
             # `5/6` ist der Modus, an dem hängt, ob das Programm überhaupt
             # greift – nicht `1/65`, der nur meldet, ob die Pumpe gerade läuft.

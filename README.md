@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner_small.png" alt="HeatNexus" width="820">
+  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png" alt="HeatNexus" width="820">
 </p>
 
 <p align="center">
@@ -25,10 +25,7 @@ Abgedeckt sind Kessel, Heizkreise, Puffer, Warmwasser und Zirkulation,
 einschließlich Info-, Betreiber- und Serviceebene.
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/anlagenschema_animation.gif">
-    <img src="assets/anlagenschema_animation_hell.gif" alt="Anlagenschaubild in Bewegung: Kessel startet, Puffer lädt, Heizkreis und Warmwasser werden warm" width="820">
-  </picture>
+  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif" alt="Anlagenschaubild in Bewegung: Kessel startet, Puffer lädt, Heizkreis und Warmwasser werden warm" width="820">
 </p>
 
 <p align="center">
@@ -40,7 +37,7 @@ einschließlich Info-, Betreiber- und Serviceebene.
 </p>
 
 <p align="center">
-  <a href="docs/OBERFLAECHE.md"><img src="assets/panel_rundgang.gif" alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme" width="820"></a>
+  <a href="docs/OBERFLAECHE.md"><img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif" alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme" width="820"></a>
 </p>
 
 <p align="center">

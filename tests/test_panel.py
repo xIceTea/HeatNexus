@@ -375,9 +375,7 @@ def test_von_zwei_zirkulationsprogrammen_bleibt_das_wirksame(panel):
             ),
         ],
     )
-    programme = {
-        p["entity"]: p for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]
-    }
+    programme = {p["entity"]: p for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]}
     nach_zeit = programme["sensor.zirkulationsprogramm_zeit"]["wirkung"]
     nach_temperatur = programme["sensor.zirkulationsprogramm_temperatur"]["wirkung"]
 
@@ -467,3 +465,31 @@ def test_leere_anlage_ergibt_leere_aufteilung(panel):
     assert daten["kennwerte"] == []
     assert daten["heizkreise"] == []
     assert daten["schema"] is None
+
+
+def test_das_pufferprogramm_nennt_seine_betriebswahl(panel):
+    """`20/15` entscheidet, ob der Puffer seinem Zeitprogramm folgt.
+
+    Es kennt Standby, Automatik-, Festbrennstoff-, Puffer-, Hand- und
+    Kaminkehrerbetrieb – und „Auto mit Zeitprogramm". Nur dort greift das
+    Programm. Versteckt wird die Karte trotzdem nicht: Anders als bei der
+    Zirkulation gibt es kein zweites Programm, das stattdessen gälte.
+    """
+    puffer = teil(
+        "B-PLMi PUFFER",
+        16,
+        [
+            entitaet("sensor.pufferprogramm", "Programm Puffer"),
+            entitaet(
+                "select.puffer_betriebswahl",
+                "Betriebswahl",
+                schluessel="buffer_mode_selection",
+            ),
+        ],
+    )
+    programme = {p["titel"]: p for p in panel._anlage_daten(anlage(puffer))["zeitprogramme"]}
+    wirkung = programme["Programm Puffer"]["wirkung"]
+    assert wirkung["entity"] == "select.puffer_betriebswahl"
+    assert wirkung["muster"] == "zeitprogramm"
+    # Kein Verstecken – es gibt kein konkurrierendes zweites Programm.
+    assert "verbergen_bei" not in wirkung
