@@ -64,6 +64,52 @@ def requires_ha():
     )
 
 
+def frontend_fehlt() -> bool:
+    """Ob das ausgelieferte Frontend-Paket fehlt.
+
+    `manifest.json` nennt `frontend` als Abhängigkeit – ohne die kommt keine
+    Einrichtung über `hass.config_entries.async_setup` zustande. Das Paket
+    heißt `hass_frontend` und wird mit Home Assistant selbst installiert; eine
+    von Hand zusammengesteckte Testumgebung hat es womöglich nicht.
+    """
+    return importlib.util.find_spec("hass_frontend") is None
+
+
+def requires_frontend():
+    """Skip-Marker für alles, was eine vollständige Einrichtung braucht."""
+    return pytest.mark.skipif(
+        frontend_fehlt(),
+        reason="hass_frontend fehlt – die Abhängigkeit `frontend` lässt sich nicht aufbauen",
+    )
+
+
+def registry_zu_alt() -> bool:
+    """Ob die Entitäts-Registry dieser Umgebung zu alt für die Integration ist.
+
+    `migration.async_entity_ids_umstellen` ruft
+    `async_generate_entity_id(..., current_entity_id=…)` auf. Den Parameter gibt
+    es erst in neueren Home-Assistant-Fassungen; `hacs.json` verlangt ohnehin
+    eine neuere. Eine ältere Umgebung scheitert hier also nicht am Produkt,
+    sondern an sich selbst – deshalb wird sauber übersprungen statt rot.
+    """
+    try:
+        import inspect
+
+        from homeassistant.helpers.entity_registry import EntityRegistry
+    except ImportError:
+        return True
+    unterschrift = inspect.signature(EntityRegistry.async_generate_entity_id)
+    return "current_entity_id" not in unterschrift.parameters
+
+
+def requires_moderne_ha():
+    """Skip-Marker für Tests, die die vollständige Einrichtung durchlaufen."""
+    return pytest.mark.skipif(
+        registry_zu_alt(),
+        reason="Home Assistant älter als die Mindestfassung der Integration – siehe hacs.json",
+    )
+
+
 def digest_fehlt() -> bool:
     """Ob die vorhandene aiohttp die Digest-Anmeldung noch nicht mitbringt."""
     try:
