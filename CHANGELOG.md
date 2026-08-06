@@ -6,7 +6,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unveröffentlicht]
+## [1.6.0] - 2026-08-06
+
+Bedienen, das ankommt: Eco und Comfort wirken jetzt auch aus dem Warmwasser-
+und Standby-Betrieb heraus, die Warmwasserladung lässt sich wieder abbrechen,
+und das Schaubild zeigt, wohin die Wärme gerade fließt. Dazu der Wechsel auf
+die GPL-3.0.
 
 ### Neu
 
