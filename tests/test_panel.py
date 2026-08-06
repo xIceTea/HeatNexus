@@ -107,6 +107,46 @@ def test_zeilen_entstehen_auch_ohne_werte(panel, kessel_und_heizkreis):
     assert daten["schnellzugriff"], "Schnellzugriff fehlt"
 
 
+def test_die_oberflaeche_findet_auch_ohne_deutsche_namen(panel):
+    """Der eigentliche Zweck der kanonischen Schlüssel.
+
+    Liefert die Anlage ihre Namen in einer anderen Sprache, greift kein
+    einziges Muster mehr. Die Adresse bleibt dieselbe – also muss die
+    Aufteilung allein daraus entstehen können. Ohne diesen Nachweis fiele die
+    Umstellung erst auf, wenn jemand die zweite Sprache einschaltet, und dann
+    nur als leere Karte ohne Fehlermeldung.
+    """
+    kessel = teil(
+        "PuroWIN",
+        25,
+        [
+            entitaet(
+                "sensor.boiler_temperature",
+                "Boiler temperature",
+                schluessel="boiler_temperature",
+            ),
+            entitaet("sensor.operating_phase", "Operating phase", schluessel="operating_phase"),
+            entitaet("sensor.boiler_power", "Boiler output", schluessel="boiler_power"),
+            entitaet(
+                "sensor.outdoor_temperature",
+                "Outdoor temperature",
+                schluessel="outdoor_temperature",
+            ),
+        ],
+    )
+
+    daten = panel._anlage_daten(anlage(kessel))
+
+    assert [k["untertitel"] for k in daten["kennwerte"]] == ["Kesseltemperatur"]
+    assert [z["titel"] for z in daten["status"]] == [
+        "Betriebszustand",
+        "Außentemperatur",
+        "Kesselleistung",
+    ]
+    assert daten["aussentemperatur"] == "sensor.outdoor_temperature"
+    assert "sensor.boiler_temperature" in daten["verlauf"]
+
+
 def test_wert_hat_vorrang_vor_wertloser_entitaet(panel):
     """Gibt es beide, gewinnt die Entität mit Wert."""
     anlagenteil = teil(

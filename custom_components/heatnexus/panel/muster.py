@@ -12,56 +12,77 @@ from __future__ import annotations
 from ..dashboard import _muster
 from ..schema import ANALOG_SOLLWERT
 
+# Aufbau einer Zeile: **Muster, Beschriftung, Symbol, kanonische Schlüssel.**
+#
+# Der Schlüssel steht hinten, weil er der Zusatz ist und nicht die Regel: Es
+# gibt ihn längst nicht für jeden Datenpunkt (`kanonisch.KANONISCH`), und wo er
+# fehlt, bleibt das Muster die einzige Auskunft. Wo er steht, gewinnt er – das
+# ist der Weg zu den übrigen Sprachen der Anlage, denn die Adresse eines
+# Datenpunkts ändert sich mit der Sprache nicht, sein Name schon.
+Zeile = tuple[str, str, str, tuple[str, ...]]
+
 # Der wichtigste Wert eines Anlagenteils, für die Liste links.
 #
 # Die Anlage selbst zeigt je Funktion **einen** Leitwert: am Kessel die
 # Kesseltemperatur, am Heizkreis die Raumtemperatur, am Puffer die obere
 # Temperatur. Ohne diese Trennung gewann bisher die Kesseltemperatur auch am
 # Heizkreis – der meldet sie nämlich ebenfalls.
-KENNWERT_JE_FCT: dict[int, tuple[tuple[str, str, str], ...]] = {
+KENNWERT_JE_FCT: dict[int, tuple[Zeile, ...]] = {
     14: (  # Heizkreis
-        (r"raumtemperatur ist", "Raumtemperatur", "mdi:home-thermometer"),
-        (r"vorlauftemperatur ist", "Vorlauf", "mdi:radiator"),
+        (r"raumtemperatur ist", "Raumtemperatur", "mdi:home-thermometer", ("room_temperature",)),
+        (r"vorlauftemperatur ist", "Vorlauf", "mdi:radiator", ("flow_temperature",)),
     ),
     16: (  # Puffer
-        (r"puffer oben", "Puffer oben", "mdi:storage-tank"),
-        (r"^temperatur ist$", "Temperatur", "mdi:thermometer"),
+        (r"puffer oben", "Puffer oben", "mdi:storage-tank", ("buffer_top",)),
+        # „Temperatur ist" ohne Zusatz: Welche Adresse dahintersteht, hängt an
+        # der Baureihe. Ohne Beleg kein Schlüssel.
+        (r"^temperatur ist$", "Temperatur", "mdi:thermometer", ()),
     ),
     # Das Pumpen-/Relaismodul zeigt seine **Anforderung**, nicht seinen Fühler.
     # Dessen Kesseltemperatur (0/7) misst bei einer Fernwärmeübergabe den
     # Speicher auf der anderen Seite – in der Übersicht sagt sie nichts. Der
     # Sollwert erscheint erst über null; darunter liegt keine Anforderung an.
     20: (  # ZSP Pumpen-/Relaismodul
-        (ANALOG_SOLLWERT, "Anforderung", "mdi:thermometer-alert"),
+        (ANALOG_SOLLWERT, "Anforderung", "mdi:thermometer-alert", ("analog_setpoint",)),
     ),
     25: (  # Kessel
-        (r"kesseltemperatur ist", "Kesseltemperatur", "mdi:fire"),
+        (r"kesseltemperatur ist", "Kesseltemperatur", "mdi:fire", ("boiler_temperature",)),
     ),
 }
 
 # Rückfall für Funktionstypen ohne eigene Liste.
-KENNWERT = (
-    (r"kesseltemperatur ist", "Kesseltemperatur", "mdi:fire"),
-    (r"puffer oben", "Puffer oben", "mdi:storage-tank"),
-    (r"warmwassertemperatur", "Warmwasser", "mdi:water-boiler"),
-    (r"raumtemperatur ist", "Raumtemperatur", "mdi:home-thermometer"),
-    (r"vorlauftemperatur ist", "Vorlauf", "mdi:radiator"),
-    (r"^temperatur ist$", "Temperatur", "mdi:thermometer"),
-    (r"r(ü|ue)cklauf temperatur", "Rücklauf", "mdi:pipe"),
+KENNWERT: tuple[Zeile, ...] = (
+    (r"kesseltemperatur ist", "Kesseltemperatur", "mdi:fire", ("boiler_temperature",)),
+    (r"puffer oben", "Puffer oben", "mdi:storage-tank", ("buffer_top",)),
+    (r"warmwassertemperatur", "Warmwasser", "mdi:water-boiler", ("dhw_temperature",)),
+    (r"raumtemperatur ist", "Raumtemperatur", "mdi:home-thermometer", ("room_temperature",)),
+    (r"vorlauftemperatur ist", "Vorlauf", "mdi:radiator", ("flow_temperature",)),
+    (r"^temperatur ist$", "Temperatur", "mdi:thermometer", ()),
+    (r"r(ü|ue)cklauf temperatur", "Rücklauf", "mdi:pipe", ("return_temperature",)),
 )
 
 # Systemstatus rechts: Zeile für Zeile, in dieser Reihenfolge.
-STATUS = (
-    (r"betriebsphase", "Betriebszustand", "mdi:state-machine"),
-    (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer"),
-    (r"kesselleistung", "Kesselleistung", "mdi:fire"),
-    (r"brennerkammertemperatur", "Brennkammertemperatur", "mdi:fireplace"),
-    (r"abgastemperatur", "Abgastemperatur", "mdi:smoke"),
-    (r"aktueller brennstoff", "Brennstoff", "mdi:sack"),
-    (r"vorratsbeh", "Vorratsbehälter", "mdi:battery-70"),
-    (r"brennerstarts", "Brennerstarts", "mdi:restart"),
-    (r"betriebsstunden", "Betriebsstunden", "mdi:clock-outline"),
-    (r"laufzeit bis ascheentleerung", "Bis Ascheentleerung", "mdi:delete-clock-outline"),
+STATUS: tuple[Zeile, ...] = (
+    (r"betriebsphase", "Betriebszustand", "mdi:state-machine", ("operating_phase",)),
+    (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer", ("outdoor_temperature",)),
+    (r"kesselleistung", "Kesselleistung", "mdi:fire", ("boiler_power",)),
+    (
+        r"brennerkammertemperatur",
+        "Brennkammertemperatur",
+        "mdi:fireplace",
+        ("combustion_chamber_temperature",),
+    ),
+    (r"abgastemperatur", "Abgastemperatur", "mdi:smoke", ("flue_gas_temperature",)),
+    (r"aktueller brennstoff", "Brennstoff", "mdi:sack", ("fuel_current",)),
+    (r"vorratsbeh", "Vorratsbehälter", "mdi:battery-70", ("fuel_storage_status",)),
+    (r"brennerstarts", "Brennerstarts", "mdi:restart", ("burner_starts",)),
+    (r"betriebsstunden", "Betriebsstunden", "mdi:clock-outline", ("operating_hours",)),
+    (
+        r"laufzeit bis ascheentleerung",
+        "Bis Ascheentleerung",
+        "mdi:delete-clock-outline",
+        ("maintenance_ash_hours",),
+    ),
 )
 
 # Warmwasser hat keine eigene Funktion: Die Datenpunkte hängen am Heizkreis.
@@ -71,6 +92,14 @@ WARMWASSER = _muster(
     r"\bwarmwasser",
     r"\bww[- ]",
     r"\bzirkulation",
+)
+WARMWASSER_SCHLUESSEL = (
+    "dhw_temperature",
+    "dhw_temperature_target",
+    "dhw_charge_pump",
+    "dhw_circulation_pump",
+    "dhw_circulation_mode",
+    "dhw_circulation_temperature",
 )
 
 # Ob überhaupt Warmwasser bereitet wird, verraten diese beiden: eine gemessene
@@ -109,6 +138,18 @@ VERLAUF = _muster(
     r"r(ü|ue)cklauf temperatur",
     r"au(ß|ss)entemperatur",
     r"kesselleistung",
+)
+VERLAUF_SCHLUESSEL = (
+    "boiler_temperature",
+    "flue_gas_temperature",
+    "combustion_chamber_temperature",
+    "buffer_top",
+    "buffer_bottom",
+    "flow_temperature",
+    "room_temperature",
+    "return_temperature",
+    "outdoor_temperature",
+    "boiler_power",
 )
 
 # Wie viele Linien der Verlauf höchstens von allein anschaltet.
@@ -201,12 +242,12 @@ AUSSENTEMPERATUR = _muster(r"au(ß|ss)entemperatur")
 # Kesseltemperatur bzw. Vorratsbehälter-Status, Restlaufzeit, der Freigabe
 # („freigegeben"/„gesperrt") und der Betriebsphase – in dieser Reihenfolge.
 LAGERRAUM_ANFORDERN = _muster(r"lagerraumbef(ü|ue)llung anfordern")
-LAGERRAUM_ZEILEN = (
-    (r"kesseltemperatur ist", "Kesseltemperatur"),
-    (r"vorratsbeh", "Vorratsbehälter"),
-    (r"lagerraumbef(ü|ue)llung restlaufzeit", "Restlaufzeit"),
-    (r"lagerraum bef(ü|ue)llen freigabe", "Lagerraum befüllen"),
-    (r"betriebsphase", "Betriebsphase"),
+LAGERRAUM_ZEILEN: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    (r"kesseltemperatur ist", "Kesseltemperatur", ("boiler_temperature",)),
+    (r"vorratsbeh", "Vorratsbehälter", ("fuel_storage_status",)),
+    (r"lagerraumbef(ü|ue)llung restlaufzeit", "Restlaufzeit", ()),
+    (r"lagerraum bef(ü|ue)llen freigabe", "Lagerraum befüllen", ()),
+    (r"betriebsphase", "Betriebsphase", ("operating_phase",)),
 )
 
 # Bedienbares am Kessel, in dieser Reihenfolge.

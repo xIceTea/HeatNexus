@@ -45,6 +45,7 @@ from .muster import (
     STATUS,
     VERLAUF,
     VERLAUF_MAX,
+    VERLAUF_SCHLUESSEL,
     WARMWASSER,
     WARMWASSER_ABSTAND,
     WARMWASSER_HYSTERESE,
@@ -54,36 +55,41 @@ from .muster import (
     WARMWASSER_LADEPUMPE,
     WARMWASSER_LAEDT,
     WARMWASSER_MAX,
+    WARMWASSER_SCHLUESSEL,
     WARMWASSER_SOLL,
     WARTUNG_BRENNSTOFF,
     ZEITPROGRAMM,
     ZIRKULATION_IST_KENNWERT,
     ZIRKULATIONSPROGRAMM,
     ZIRKULATIONSPUMPE,
+    Zeile,
 )
 
 
-def _erster(entitaeten: list[dict[str, Any]], muster: str) -> dict[str, Any] | None:
+def _erster(
+    entitaeten: list[dict[str, Any]], muster: str, *schluessel: str
+) -> dict[str, Any] | None:
     """Erste passende Entität; eine mit Wert hat Vorrang.
 
     Ein vorhandener Wert darf keine Bedingung sein: Beim ersten Aufbau ist die
     Anlage noch nicht fertig eingelesen. Was jetzt noch leer ist, bekommt
     trotzdem seine Zeile und füllt sich mit dem nächsten Abruf.
+
+    Sind kanonische Schlüssel angegeben, zählen sie zuerst; das Muster bleibt
+    der Rückfall (siehe `dashboard._trifft`).
     """
     regex = re.compile(muster, re.IGNORECASE)
-    treffer = [e for e in entitaeten if regex.search(e["name"])]
+    treffer = [e for e in entitaeten if _trifft(e, (regex,), *schluessel)]
     if not treffer:
         return None
     return next((e for e in treffer if e.get("hat_wert")), treffer[0])
 
 
-def _zeilen(
-    entitaeten: list[dict[str, Any]], vorlage: tuple[tuple[str, str, str], ...]
-) -> list[dict[str, str]]:
+def _zeilen(entitaeten: list[dict[str, Any]], vorlage: tuple[Zeile, ...]) -> list[dict[str, str]]:
     """Aus einer Mustervorlage die vorhandenen Entitäten als Zeilen."""
     zeilen = []
-    for muster, beschriftung, symbol in vorlage:
-        if (treffer := _erster(entitaeten, muster)) is not None:
+    for muster, beschriftung, symbol, schluessel in vorlage:
+        if (treffer := _erster(entitaeten, muster, *schluessel)) is not None:
             zeilen.append(
                 {
                     "entity": treffer["entity_id"],
@@ -117,7 +123,9 @@ def _warmwasser(entitaeten: list[dict[str, Any]]) -> list[dict[str, str]]:
     return [
         {"entity": e["entity_id"], "titel": e["name"]}
         for e in entitaeten
-        if e["kategorie"] is None and e["bereich"] != "climate" and _passt(e["name"], WARMWASSER)
+        if e["kategorie"] is None
+        and e["bereich"] != "climate"
+        and _trifft(e, WARMWASSER, *WARMWASSER_SCHLUESSEL)
     ][:WARMWASSER_MAX]
 
 
@@ -137,9 +145,9 @@ def _ladeschwelle(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
       einem Bereich von 1 bis 20 K; meldet die Anlage den Parameter (``5/0``,
       Serviceebene), gilt ihr eigener Wert.
     """
-    ist = _erster(entitaeten, WARMWASSER_IST_KENNWERT)
+    ist = _erster(entitaeten, WARMWASSER_IST_KENNWERT, "dhw_temperature")
     soll = _kennung(entitaeten, EINMALLADUNG_TEMPERATUR, ("number", "sensor")) or _kennung(
-        entitaeten, WARMWASSER_SOLL, ("number", "sensor")
+        entitaeten, WARMWASSER_SOLL, ("number", "sensor"), "dhw_temperature_target"
     )
     abstand = WARMWASSER_ABSTAND
     if (hysterese := _erster(entitaeten, WARMWASSER_HYSTERESE)) is not None:
@@ -172,13 +180,15 @@ def _warmwasser_bedienung(
       Einmalladung", und dort steht auch „Urlaubsprogramm".
     """
     return {
-        "zustand_an": _kennung(alle, BETRIEBSART, ("sensor",)),
+        "zustand_an": _kennung(alle, BETRIEBSART, ("sensor",), "operating_mode"),
         "zustand_wenn": list(WARMWASSER_LAEDT),
         # Zweiter Beleg für „lädt gerade": die Ladepumpe. Die Betriebsart
         # allein genügt nicht – sie meldet je nach Baureihe andere Worte, und
         # an einem Kreis mit nur einem zulässigen Wert (`allowed: [0]`) meldet
         # sie den Ladezustand gar nicht.
-        "zustand_pumpe": _kennung(alle, WARMWASSER_LADEPUMPE, ("binary_sensor",)),
+        "zustand_pumpe": _kennung(
+            alle, WARMWASSER_LADEPUMPE, ("binary_sensor",), "dhw_charge_pump"
+        ),
         # Die Betriebswahl gehört zur Ladung dazu: Auf Standby ist der Kreis
         # abgeschaltet und nimmt den Auftrag nicht an, im Urlaubsprogramm
         # ebenso wenig. Nur dann wird auf WW-Betrieb umgeschaltet – und
@@ -255,7 +265,11 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                 ),
                 "vorlauf": (
                     v["entity_id"]
-                    if (v := _erster(teil["entitaeten"], r"vorlauftemperatur ist"))
+                    if (
+                        v := _erster(
+                            teil["entitaeten"], r"vorlauftemperatur ist", "flow_temperature"
+                        )
+                    )
                     else None
                 ),
             }
@@ -263,14 +277,15 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
 
     warmwasser = None
     if _bereitet_warmwasser(alle):
-        ist = _erster(alle, r"\bww[- ]temperatur aktueller|\bwarmwasser ist")
+        ist = _erster(alle, r"\bww[- ]temperatur aktueller|\bwarmwasser ist", "dhw_temperature")
         # Der Kreis, an dem das Warmwasser hängt – seine Betriebswahl ist die,
         # die für die Ladung umgeschaltet und hinterher wiederhergestellt wird.
         kreis = next(
             (
                 teil["entitaeten"]
                 for teil in anlage["teile"]
-                if _erster(teil["entitaeten"], WARMWASSER_IST_KENNWERT) is not None
+                if _erster(teil["entitaeten"], WARMWASSER_IST_KENNWERT, "dhw_temperature")
+                is not None
             ),
             alle,
         )
@@ -335,8 +350,8 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
             "hilfe": HILFE_KARTEN.get("Lagerraum befüllen", ""),
             "zeilen": [
                 {"entity": treffer["entity_id"], "titel": beschriftung}
-                for muster, beschriftung in LAGERRAUM_ZEILEN
-                if (treffer := _erster(alle, muster)) is not None
+                for muster, beschriftung, schluessel in LAGERRAUM_ZEILEN
+                if (treffer := _erster(alle, muster, *schluessel)) is not None
             ],
         }
 
@@ -449,8 +464,8 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     kennwerte = []
     for teil in anlage["teile"]:
         vorlage = KENNWERT_JE_FCT.get(teil.get("fct_type")) or KENNWERT
-        for muster, beschriftung, symbol in vorlage:
-            if (treffer := _erster(teil["entitaeten"], muster)) is not None:
+        for muster, beschriftung, symbol, schluessel in vorlage:
+            if (treffer := _erster(teil["entitaeten"], muster, *schluessel)) is not None:
                 eintrag = {
                     "entity": treffer["entity_id"],
                     "titel": teil["name"],
@@ -466,11 +481,16 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
 
         # Warmwasser und Zirkulation hängen als Datenpunkte am Heizkreis,
         # gehören in der Übersicht aber eigene Zeilen – man liest sie täglich.
-        for muster, beschriftung, symbol in (
-            (WARMWASSER_IST_KENNWERT, "Warmwasser", "mdi:water-boiler"),
-            (ZIRKULATION_IST_KENNWERT, "Zirkulation", "mdi:reload"),
+        for muster, beschriftung, symbol, schluessel in (
+            (WARMWASSER_IST_KENNWERT, "Warmwasser", "mdi:water-boiler", ("dhw_temperature",)),
+            (
+                ZIRKULATION_IST_KENNWERT,
+                "Zirkulation",
+                "mdi:reload",
+                ("dhw_circulation_temperature",),
+            ),
         ):
-            if (treffer := _erster(teil["entitaeten"], muster)) is not None:
+            if (treffer := _erster(teil["entitaeten"], muster, *schluessel)) is not None:
                 kennwerte.append(
                     {
                         "entity": treffer["entity_id"],
@@ -494,7 +514,11 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                 "titel": teil["name"],
                 "vorlauf": (
                     v["entity_id"]
-                    if (v := _erster(teil["entitaeten"], r"vorlauftemperatur ist"))
+                    if (
+                        v := _erster(
+                            teil["entitaeten"], r"vorlauftemperatur ist", "flow_temperature"
+                        )
+                    )
                     else None
                 ),
             }
@@ -564,7 +588,9 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         "warmwasser": warmwasser,
         "stoerungen": stoerungen,
         "schnellzugriff": schnellzugriff[:6],
-        "verlauf": [e["entity_id"] for e in alle if _passt(e["name"], VERLAUF)][:VERLAUF_MAX],
+        "verlauf": [e["entity_id"] for e in alle if _trifft(e, VERLAUF, *VERLAUF_SCHLUESSEL)][
+            :VERLAUF_MAX
+        ],
         # Alles, was sich sonst noch als Linie eignet – in der Ansicht
         # dazuwaehlbar.
         "verlauf_moeglich": [
