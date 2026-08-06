@@ -92,7 +92,12 @@ const faelle = [];
   faelle.push("laufende Ladung: zurück auf den Zustand von vorher");
 }
 
-// --- Ohne gemerkten Zustand: die aktuelle Wahl erneut schreiben -------------
+// --- Ohne gemerkten Zustand: den Auslöser zurücknehmen ---------------------
+//
+// Der gemeldete Fehler „geht erst beim zweiten Klick". Ist der Zustand von vor
+// der Ladung unbekannt, fällt `_rueckkehrWahl` auf die *aktuelle* Betriebswahl
+// zurück – und die noch einmal zu schreiben ändert an der Anlage nichts. Bis
+// 1.5.0-beta.10 war das der ganze Abbruch: ein Schreibvorgang ohne Wirkung.
 {
   const { taste, gerufen } = panelBauen({
     laedt: true,
@@ -100,11 +105,17 @@ const faelle = [];
   });
   taste.ausloesen("click");
   await abwarten();
-  const wahl = gerufen.find((r) => r.dienst === "select_option");
-  if (!wahl || wahl.daten.option !== "WW-Betrieb") {
-    throw new Error(`unbekannter Rückkehrpunkt führte zu ${wahl && wahl.daten.option}`);
+  if (!gerufen.some((r) => r.dienst === "turn_off" && r.daten.entity_id === AUSLOESER)) {
+    throw new Error("unbekannter Rückkehrpunkt nahm den Auslöser nicht zurück");
   }
-  faelle.push("unbekannter Rückkehrpunkt: aktuelle Wahl erneut geschrieben");
+  const wahl = gerufen.find((r) => r.dienst === "select_option");
+  if (wahl) {
+    throw new Error(`wirkungsloser Schreibvorgang auf ${wahl.daten.option}`);
+  }
+  if (gerufen.some((r) => r.dienst === "turn_on" || r.dienst === "press")) {
+    throw new Error("Abbruch löste die Ladung erneut aus");
+  }
+  faelle.push("unbekannter Rückkehrpunkt: Auslöser zurückgenommen");
 }
 
 // --- Ohne Betriebswahl darf die Ladung nicht erneut starten -----------------
@@ -112,13 +123,16 @@ const faelle = [];
   const { taste, gerufen } = panelBauen({ laedt: true, optionen: [], betriebswahl: null });
   taste.ausloesen("click");
   await abwarten();
-  if (gerufen.length) {
-    throw new Error(`ohne Betriebswahl wurde ${gerufen[0].dienst} gerufen`);
+  if (gerufen.some((r) => r.dienst === "turn_on" || r.dienst === "press")) {
+    throw new Error("ohne Betriebswahl wurde die Ladung erneut ausgelöst");
   }
-  faelle.push("ohne Betriebswahl: kein Dienst, kein zweiter Start");
+  if (!gerufen.some((r) => r.dienst === "turn_off")) {
+    throw new Error("ohne Betriebswahl blieb der Auslöser stehen");
+  }
+  faelle.push("ohne Betriebswahl: Auslöser zurück, kein zweiter Start");
 }
 
-// --- Betriebswahl ohne lesbaren Zustand: lieber gar nichts ------------------
+// --- Betriebswahl ohne lesbaren Zustand: nur der Auslöser ------------------
 {
   const { element, taste, gerufen } = panelBauen({
     laedt: true,
@@ -127,10 +141,13 @@ const faelle = [];
   element._hass.states[BETRIEBSWAHL].state = "unavailable";
   taste.ausloesen("click");
   await abwarten();
-  if (gerufen.length) {
-    throw new Error(`ohne lesbaren Zustand wurde ${gerufen[0].dienst} gerufen`);
+  if (gerufen.some((r) => r.dienst === "select_option")) {
+    throw new Error("ohne lesbaren Zustand wurde die Betriebswahl geschrieben");
   }
-  faelle.push("Betriebswahl ohne Zustand: kein Dienst, kein zweiter Start");
+  if (gerufen.some((r) => r.dienst === "turn_on" || r.dienst === "press")) {
+    throw new Error("ohne lesbaren Zustand wurde die Ladung erneut ausgelöst");
+  }
+  faelle.push("Betriebswahl ohne Zustand: nur der Auslöser, kein zweiter Start");
 }
 
 // --- Steht sie still, löst dieselbe Taste die Ladung aus --------------------

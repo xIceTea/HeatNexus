@@ -524,21 +524,38 @@ export const UebersichtMixin = (Basis) =>
   /**
    * Eine laufende Warmwasserladung beenden.
    *
-   * Beendet wird über die **Betriebswahl**. Der Auslöser (`2/16`) taugt dafür
-   * nicht: Er fällt zurück, sobald die Anlage den Auftrag angenommen hat, und
-   * hat danach keinen Zustand mehr, den man zurücknehmen könnte.
+   * Beendet wird über **beides**: den Auslöser (`2/16`) zurücknehmen und, wenn
+   * bekannt, die Betriebswahl auf den Stand von vor der Ladung stellen. Als
+   * Anzeige taugt der Auslöser nicht – er fällt zurück, sobald die Anlage den
+   * Auftrag angenommen hat –, als Gegenbewegung schon: Er hat die Ladung
+   * gestartet.
    *
    * Geht es nicht, sagt die Taste warum. Ein stummes Nichts ist hier das
    * Schlimmste – es sieht aus wie eine kaputte Oberfläche und war es bis
    * 1.5.0 auch: Der Druck landete beim Auslöser und lud erneut.
    */
   async _ladungAbbrechen(eintrag, taste, rueckmeldung) {
-    if (!eintrag.betriebswahl) {
+    // **Der Auslöser wird immer zurückgenommen.** Er hat die Ladung gestartet;
+    // ihn auszuschalten ist die unmittelbare Gegenbewegung und kann nichts
+    // verstellen.
+    const ausloeser =
+      eintrag.entity && eintrag.entity.startsWith("switch.") ? eintrag.entity : null;
+    const ziel = eintrag.betriebswahl ? this._rueckkehrWahl(eintrag) : null;
+    const steht = eintrag.betriebswahl ? this._zustand(eintrag.betriebswahl) : null;
+    // **Denselben Wert noch einmal zu schreiben ändert an der Anlage nichts.**
+    // Ist der Zustand von vor der Ladung unbekannt – Seite neu geladen, oder
+    // am Gerät gestartet –, fällt `_rueckkehrWahl` auf die *aktuelle*
+    // Betriebswahl zurück. Bis 1.5.0-beta.10 war das der ganze Abbruch: ein
+    // Schreibvorgang ohne Wirkung. Die Ladung lief weiter, „wird ausgeführt …"
+    // stand daneben, und erst ein zweiter Druck tat etwas. Genau so war es
+    // gemeldet.
+    const wahlWirkt = !!ziel && !(steht && steht.state === ziel);
+
+    if (!ausloeser && !eintrag.betriebswahl) {
       this._abgelehnt(taste, rueckmeldung, "keine Betriebswahl gefunden");
       return;
     }
-    const ziel = this._rueckkehrWahl(eintrag);
-    if (!ziel) {
+    if (!ausloeser && !wahlWirkt) {
       this._abgelehnt(taste, rueckmeldung, "kein Programm in der Betriebswahl");
       return;
     }
@@ -546,11 +563,17 @@ export const UebersichtMixin = (Basis) =>
     try {
       await this._uebertragen(
         rueckmeldung,
-        () =>
-          this._hass.callService("select", "select_option", {
-            entity_id: eintrag.betriebswahl,
-            option: ziel,
-          }),
+        async () => {
+          if (ausloeser) {
+            await this._hass.callService("switch", "turn_off", { entity_id: ausloeser });
+          }
+          if (wahlWirkt) {
+            await this._hass.callService("select", "select_option", {
+              entity_id: eintrag.betriebswahl,
+              option: ziel,
+            });
+          }
+        },
         // **Ohne die Ladepumpe.** Die läuft nach (`5/5` „Modus
         // Ladepumpennachlauf"), und solange sie läuft, gälte die Ladung als
         // aktiv: Die Rückmeldung hinge auf „wird ausgeführt …", obwohl das

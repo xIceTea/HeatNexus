@@ -272,14 +272,15 @@ def test_eine_laufende_ladung_wird_beendet_statt_neu_gestartet(abbruch):
     assert "laufende Ladung: zurück auf den Zustand von vorher" in abbruch["faelle"]
 
 
-def test_ohne_rueckkehrpunkt_passiert_lieber_nichts(abbruch):
-    """Kein zweiter Start, wenn der Abbruch nicht geht.
+def test_ohne_rueckkehrpunkt_bleibt_der_ausloeser_nicht_stehen(abbruch):
+    """Kein zweiter Start – aber auch kein stummes Nichts.
 
     Ein stummer Neustart ist das Schlimmste: Er sieht aus wie eine kaputte
-    Oberfläche und heizt trotzdem weiter.
+    Oberfläche und heizt trotzdem weiter. Gar nichts zu tun war die zweite
+    Stufe desselben Fehlers.
     """
-    assert "ohne Betriebswahl: kein Dienst, kein zweiter Start" in abbruch["faelle"]
-    assert "Betriebswahl ohne Zustand: kein Dienst, kein zweiter Start" in abbruch["faelle"]
+    assert "ohne Betriebswahl: Auslöser zurück, kein zweiter Start" in abbruch["faelle"]
+    assert "Betriebswahl ohne Zustand: nur der Auslöser, kein zweiter Start" in abbruch["faelle"]
 
 
 def test_ohne_laufende_ladung_loest_die_taste_aus(abbruch):
@@ -296,4 +297,14 @@ def test_der_zweite_druck_raet_kein_programm(abbruch):
     gestellt – ein Programm, das nie jemand gewählt hatte.
     """
     assert "zweiter Druck: kein geratenes Programm" in abbruch["faelle"]
-    assert "unbekannter Rückkehrpunkt: aktuelle Wahl erneut geschrieben" in abbruch["faelle"]
+
+
+def test_der_erste_druck_wirkt_auch_ohne_gemerkten_zustand(abbruch):
+    """Der gemeldete Fehler „geht erst beim zweiten Klick".
+
+    Ist der Zustand von vor der Ladung unbekannt – Seite neu geladen oder am
+    Gerät gestartet –, schrieb der Abbruch die Betriebswahl auf den Wert, der
+    dort schon stand. Ein Schreibvorgang ohne Wirkung: Die Ladung lief weiter,
+    „wird ausgeführt …" blieb daneben stehen.
+    """
+    assert "unbekannter Rückkehrpunkt: Auslöser zurückgenommen" in abbruch["faelle"]

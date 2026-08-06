@@ -12,6 +12,11 @@ wenn dort Vorabversionen zugelassen sind.
 
 Vorabversion.
 
+### Behoben
+
+- *Warmwasser laden abbrechen* wirkte erst beim zweiten Druck, wenn die Ladung
+  am Gerät gestartet oder die Seite zwischendurch neu geladen wurde.
+
 ### Geändert
 
 - Uhrzeiten und Datumsfelder werden nicht mehr von selbst angelegt. Es sind
