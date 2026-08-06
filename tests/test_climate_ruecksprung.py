@@ -30,19 +30,33 @@ def climate():
 class _Anlage:
     """Ein Thermostat, reduziert auf das, was der Rücksprung anfasst."""
 
-    def __init__(self, climate, *, restzeit: int, betriebswahl: int | None, gemerkt: int | None):
+    def __init__(
+        self,
+        climate,
+        *,
+        restzeit: int | None,
+        betriebswahl: int | None,
+        gemerkt: int | None,
+        gesehen: bool = True,
+    ):
         self._restzeit = restzeit
         self._betriebswahl = betriebswahl
         self._modus_davor = gemerkt
+        # Ob die Vorgabe schon einmal als laufend gelesen wurde. Ohne das darf
+        # eine Restzeit von 0 nicht als „abgelaufen" gelten – sie kann auch
+        # heißen, dass der Wert noch gar nicht nachgezogen ist.
+        self._vorgabe_gesehen = gesehen
         self.geschrieben: list[int] = []
         self.optimistisch: list[int] = []
         self._pruefen = climate.WindhagerBaseThermostat._ruecksprung_pruefen.__get__(self)
 
     # --- was die echte Entität liefert -------------------------------------
     def raw_custom_temp_remaining_time(self) -> int:
-        return self._restzeit
+        return self._restzeit or 0
 
     def get_oid_value(self, oid: str):
+        if oid == "/2/10/0":
+            return self._restzeit
         assert oid == "/3/50/0"
         return self._betriebswahl
 
@@ -97,6 +111,56 @@ def test_eigene_umstellung_wird_nicht_ueberschrieben(climate):
     a.pruefen()
     assert a.geschrieben == []
     assert a._modus_davor is None, "der Merker verfällt, ohne zu schreiben"
+
+
+def test_frisch_gesetzte_vorgabe_wird_nicht_sofort_zurueckgenommen(climate):
+    """Die halb frischen Daten unmittelbar nach dem Setzen.
+
+    Wer eine Vorgabe setzt, löst ein gezieltes Nachlesen der Betriebswahl aus.
+    Eine Sekunde später steht `3/50` bereits auf dem Heizprogramm, `2/10` aber
+    noch auf dem alten Stand – hier 0, weil vorher keine Vorgabe lief. Beides
+    zusammen las sich wie „umgeschaltet und schon abgelaufen": Der Rücksprung
+    schrieb die eigene Bedienung sofort wieder zurück, und an der Anlage blieb
+    alles beim Alten.
+    """
+    a = _Anlage(
+        climate,
+        restzeit=0,
+        betriebswahl=climate.HEIZPROGRAMM,
+        gemerkt=6,
+        gesehen=False,
+    )
+    a.pruefen()
+    assert a.geschrieben == [], "die eigene Vorgabe darf nicht zurückgenommen werden"
+    assert a._modus_davor == 6, "der Merker wird noch gebraucht"
+
+
+def test_laufende_vorgabe_macht_den_ruecksprung_scharf(climate):
+    """Einmal laufend gelesen – danach zählt eine Restzeit von 0."""
+    a = _Anlage(
+        climate,
+        restzeit=42,
+        betriebswahl=climate.HEIZPROGRAMM,
+        gemerkt=6,
+        gesehen=False,
+    )
+    a.pruefen()
+    assert a._vorgabe_gesehen is True
+    a._restzeit = 0
+    a.pruefen()
+    assert a.geschrieben == [6]
+
+
+def test_unbekannte_restzeit_gilt_nicht_als_abgelaufen(climate):
+    """Ohne gelesenen Wert wird nicht geschrieben.
+
+    Fehlt `2/10`, ist nicht bekannt, ob eine Vorgabe läuft. Eine 0 daraus zu
+    machen hieße: zurückschalten, obwohl die Anlage nichts gesagt hat.
+    """
+    a = _Anlage(climate, restzeit=None, betriebswahl=climate.HEIZPROGRAMM, gemerkt=6)
+    a.pruefen()
+    assert a.geschrieben == []
+    assert a._modus_davor == 6
 
 
 def test_ohne_merker_passiert_nichts(climate):

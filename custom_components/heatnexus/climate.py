@@ -139,6 +139,9 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         # Betriebswahl, in die nach Ablauf einer befristeten Vorgabe
         # zurückgesprungen wird. None heißt: kein Rücksprung vorgemerkt.
         self._modus_davor: int | None = None
+        # Wurde die vorgemerkte Vorgabe überhaupt schon einmal als laufend
+        # gelesen? Vorher kann sie nicht abgelaufen sein.
+        self._vorgabe_gesehen = False
         self._device_info = geraet_info(coordinator, device_info)
 
     @callback
@@ -181,15 +184,32 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         umgeschaltet wurde. Hat jemand die Betriebswahl inzwischen selbst
         verstellt, ist das eine Entscheidung; sie zu überschreiben wäre
         übergriffig. Der Merker fällt dann einfach weg.
+
+        **Erst wenn die Vorgabe einmal laufend gelesen wurde.** Die Werte
+        kommen nicht immer gemeinsam an: Wer eine Vorgabe setzt, löst ein
+        gezieltes Nachlesen der Betriebswahl aus (`entity.async_update`), und
+        das meldet `3/50` frisch, während `2/10` noch auf dem alten Stand
+        steht. Beides zusammen las sich wie „umgeschaltet, aber schon
+        abgelaufen" – der Rücksprung schrieb die eigene Bedienung eine Sekunde
+        später wieder zurück, und an der Anlage blieb alles beim Alten.
         """
         if self._modus_davor is None:
             return
-        if self.raw_custom_temp_remaining_time() > 0:
+        # Unbekannt ist nicht abgelaufen: `raw_custom_temp_remaining_time`
+        # macht aus einem fehlenden Wert eine 0, und die hieße hier „vorbei".
+        rest = self.get_oid_value("/2/10/0")
+        if rest is None:
+            return
+        if rest > 0:
+            self._vorgabe_gesehen = True
+            return
+        if not self._vorgabe_gesehen:
             return
 
         roh = self.get_oid_value("/3/50/0")
         jetzt = int(roh) if roh is not None else None
         ziel, self._modus_davor = self._modus_davor, None
+        self._vorgabe_gesehen = False
         if jetzt != HEIZPROGRAMM:
             _LOGGER.debug("Rücksprung entfällt: Betriebswahl steht auf %s", jetzt)
             return
@@ -220,6 +240,14 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
             self._modus_davor = int(gemerkt)
         except (TypeError, ValueError):
             _LOGGER.debug("Vorgemerkter Modus %r unlesbar", gemerkt)
+            return
+        # Über einen Neustart hinweg gilt die Vorgabe als gesehen: Der Merker
+        # entstand nur, weil eine lief, und der erste Abruf danach liest alle
+        # Werte gemeinsam – die halb frischen Daten, gegen die die Sperre oben
+        # schützt, kann es hier gar nicht geben. Ohne das bliebe ein Kreis,
+        # dessen Vorgabe während des Neustarts abläuft, für immer im
+        # Heizprogramm stehen.
+        self._vorgabe_gesehen = True
 
     @property
     def unique_id(self) -> str:
@@ -413,6 +441,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
             )
         if mode in self.OFF_MODES:
             self._modus_davor = mode
+            self._vorgabe_gesehen = False
             self._set_optimistic_mode(HEIZPROGRAMM)
             await self.client.update(f"{self._prefix}/3/50/0", str(HEIZPROGRAMM))
             _LOGGER.debug(
