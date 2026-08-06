@@ -432,150 +432,24 @@ CLIMATE_FUNCTION_TYPE = FCT_CLIMATE
 HEATER_FUNCTION_TYPE = 9
 
 # ---------------------------------------------------------------------------
-# Enum tables (generated from Windhager de-parameters.json, keyed by "gn/mn")
-# Keys are integers because enums can contain gaps (e.g. 20/15 has no 5).
+# Auswahltabellen, die von der Geräte-Datenbank abweichen
+#
+# **Normalerweise steht hier nichts.** Die Tabellen kommen aus
+# `device_db.json`, erzeugt aus den offiziellen Windhager-Dateien; sie decken
+# 167 Datenpunkte ab. Bis 1.5.0 standen dreizehn davon zusätzlich hier – Wort
+# für Wort dieselben, nur eben von Hand gepflegt. Zwei Quellen für dieselbe
+# Auskunft laufen irgendwann auseinander, und welche dann gilt, sieht man dem
+# Code nicht an.
+#
+# Was hier einzutragen ist: eine Tabelle, deren Text an der **echten Anlage**
+# nachweislich anders lautet als in der Herstellerdatei. Sie geht der
+# erzeugten dann vor (`entity._enum_map`, `client._apply_metadata`). Mit
+# Begründung, sonst wandert sie beim nächsten Aufräumen wieder hinaus.
+#
+# Schlüssel sind "gn/mn", die Werte ganzzahlig: Echte Auswahllisten haben
+# Lücken (Betriebswahl Puffer `20/15` kennt keine 5).
 # ---------------------------------------------------------------------------
-ENUMS: dict[str, dict[int, str]] = {
-    "2/1": {  # Betriebsphase Kessel
-        0: "Brenner gesperrt",
-        1: "Selbsttest",
-        2: "WE ausschalten",
-        3: "Standby",
-        4: "Brenner AUS",
-        5: "Vorspülen",
-        6: "Zündphase",
-        7: "Stabilisierung",
-        8: "Modulation",
-        9: "Gerät gesperrt",
-        10: "Standby Sperrzeit",
-        11: "Gebläse AUS",
-        12: "Verkleidungstür offen",
-        13: "Zündung bereit",
-        14: "Abbruch Zündung",
-        15: "Anheizvorgang",
-        16: "Schichtladung",
-        17: "Ausbrand",
-    },
-    "2/9": {  # Betriebsart (Statusanzeige)
-        0: "Standby",
-        1: "Heizbetrieb",
-        2: "Absenkbetrieb",
-        3: "WW-Ladung",
-        4: "Eco / Comfort",
-        5: "Urlaubsprogramm",
-        6: "Estrich",
-        7: "Frostschutz",
-        8: "Standby",
-        9: "Handbetrieb",
-        10: "Testbetrieb",
-        11: "Kaminkehrer",
-        12: "Brenner AUS",
-        13: "Brenner EIN",
-        14: "Automatikkessel",
-        15: "FB-Kessel",
-        16: "Pufferspeicher",
-        17: "Warmwasser Hygiene-Programm",
-        18: "Warmwasser Einmalladung",
-        19: "Automatikbetrieb",
-        20: "Kühlen",
-        21: "Standby",
-    },
-    "2/59": {  # Betriebsart Zuführung/Kessel (Übersicht)
-        0: "Ausgeschaltet",
-        1: "Abschaltvorgang",
-        2: "Festbrennstoff-/Pufferbetrieb",
-        3: "Brennstoffzuführung in Betrieb",
-        4: "Brennstoffzuführung",
-        5: "Kessel-Temperatur",
-        6: "Brennstoffzuführung in Betrieb",
-        7: "Brennstoffzuführung",
-        8: "Handbetrieb",
-        9: "Kaminkehrerfunktion",
-        10: "Aktorentest",
-        11: "Installationsvorgang aktiv",
-        12: "Brennstoffzuführung in Betrieb",
-        13: "Inbetriebnahme",
-        14: "Lagerraum befüllen",
-        15: "Lagerraum befüllen",
-        16: "Grundeinstellungen",
-    },
-    "3/50": {  # Betriebswahl Heizkreis
-        0: "Standby",
-        1: "Programm 1",
-        2: "Programm 2",
-        3: "Programm 3",
-        4: "Heizbetrieb",
-        5: "Absenkbetrieb",
-        6: "WW-Betrieb",
-        7: "Handbetrieb",
-        8: "Kühlen",
-    },
-    "20/15": {  # Betriebswahl Puffer (B-PLMi) - Achtung Lücke bei 5!
-        0: "Standby",
-        1: "Automatikbetrieb",
-        2: "Festbrennstoffbetrieb",
-        3: "Pufferbetrieb",
-        4: "Auto mit Zeitprogramm",
-        6: "Handbetrieb",
-        7: "Kaminkehrerfunktion",
-    },
-    "7/12": {  # Drehzahlregelung
-        0: "AUS",
-        1: "0..10V",
-        2: "PWM",
-        3: "PWM",
-        4: "ohne",
-        5: "LIN",
-    },
-    "14/19": {  # Betriebsart Zuführung
-        0: "ausgeschaltet",
-        1: "ohne Zeitsteuerung",
-        2: "mit Freigabezeit",
-        3: "mit Startzeit",
-    },
-    "38/126": {  # Gewählter Brennstoff
-        0: "Hackgut normal",
-        1: "Hackgut feucht",
-        2: "Pellets",
-        3: "Hackgut normal schlackend",
-        4: "Hackgut feucht schlackend",
-    },
-    "38/127": {  # Aktueller Brennstoff
-        0: "Hackgut normal",
-        1: "Hackgut feucht",
-        2: "Pellets",
-        3: "Hackgut normal schlackend",
-        4: "Hackgut feucht schlackend",
-    },
-    "39/94": {  # Reinigung bestätigen
-        0: "Nein",
-        1: "Reinigung",
-        2: "Hauptreinigung",
-        3: "Wartung",
-        4: "Hauptreinigung und Aschetonnen entleeren",
-    },
-    "43/34": {  # Sonde (Saugzuführung)
-        0: "Aus",
-        1: "Ein",
-        2: "Leer",
-    },
-    "9/75": {  # Betriebswahl Kessel / Sonderfunktionen
-        0: "AUS",
-        1: "EIN",
-        2: "Handbetrieb",
-        3: "Kaminkehrer",
-        4: "Aktorentest",
-        5: "Inbetriebnahme",
-        6: "Serviceausbrand",
-        7: "Lagerraum befüllen",
-    },
-    "39/76": {  # Vorratsbehälter Status
-        0: "Fehler Vorratsbehälter",
-        1: "Vorratsbehälter leer",
-        2: "Vorratsbehälter teilgefüllt",
-        3: "Vorratsbehälter voll",
-    },
-}
+ENUMS: dict[str, dict[int, str]] = {}
 
 # ---------------------------------------------------------------------------
 # Declarative entity definitions per function type.

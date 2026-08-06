@@ -178,8 +178,9 @@ def enums(db: dict) -> str:
         "im Feld `enum` ihrer Metadaten, welche Werte sie tatsächlich zulässt – erst",
         "das ergibt die Auswahl, die HeatNexus anbietet.",
         "",
-        "Einige Tabellen pflegt `const.ENUMS` abweichend: Dort stehen an der Anlage",
-        "geprüfte Texte, die den erzeugten vorgehen.",
+        "Weicht ein Text an der echten Anlage nachweislich ab, steht die",
+        "berichtigte Tabelle in `const.ENUMS` und geht der erzeugten vor.",
+        "Derzeit ist das bei keiner nötig.",
         "",
     ]
     for oid in sorted(tabellen, key=_sortierschluessel):

@@ -25,6 +25,73 @@ def test_enum_keys_are_ints(device_db):
     assert all(isinstance(k, int) for k in enum)
 
 
+# Die dreizehn Tabellen, die bis 1.5.0 zusätzlich von Hand in `const.ENUMS`
+# standen. Sie sind dort entfernt worden – die Geräte-Datenbank muss sie also
+# liefern, sonst stünden Betriebsphase, Betriebswahl und Brennstoff plötzlich
+# als nackte Zahlen da.
+FRUEHER_KURATIERT = (
+    "2/1",
+    "2/9",
+    "2/59",
+    "3/50",
+    "20/15",
+    "7/12",
+    "14/19",
+    "38/126",
+    "38/127",
+    "39/94",
+    "43/34",
+    "9/75",
+    "39/76",
+)
+
+
+@pytest.mark.parametrize("gnmn", FRUEHER_KURATIERT)
+def test_die_frueher_kuratierten_tabellen_kommen_aus_der_datenbank(device_db, gnmn):
+    """Was aus `const.ENUMS` verschwunden ist, muss hier ankommen."""
+    tabelle = device_db.get_enum(gnmn)
+    assert tabelle, f"{gnmn} liefert keine Auswahlwerte mehr"
+    assert all(isinstance(k, int) for k in tabelle)
+    assert all(v.strip() for v in tabelle.values())
+
+
+def test_enum_texte_tragen_keine_leerzeichen(device_db):
+    """In der Herstellerdatei hängt an einzelnen Texten ein Leerzeichen.
+
+    `39/76` „Fehler Vorratsbehälter " ist der bekannte Fall. Als Zustand einer
+    Entität wäre das sichtbar, und ein Vergleich in einer Automation ginge
+    daneben, ohne dass jemand sieht warum.
+    """
+    for wert in device_db.get_enum("39/76").values():
+        assert wert == wert.strip(), repr(wert)
+
+
+def test_die_kuratierte_tabelle_wiederholt_die_erzeugte_nicht():
+    """`const.ENUMS` ist für Abweichungen da, nicht für Kopien.
+
+    Bis 1.5.0 standen dort dreizehn Tabellen, die Wort für Wort schon in der
+    Geräte-Datenbank standen. Zwei Quellen für dieselbe Auskunft laufen
+    auseinander; welche dann gilt, sieht man dem Code nicht an. Wer hier
+    einträgt, muss also wirklich abweichen.
+    """
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    wurzel = Path(__file__).parent.parent / "custom_components" / "heatnexus"
+    spec = importlib.util.spec_from_file_location("const_pruef", wurzel / "const.py")
+    const = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(const)
+    erzeugt = json.loads((wurzel / "device_db.json").read_text(encoding="utf-8"))["enums"]
+
+    doppelt = [
+        schluessel
+        for schluessel, tabelle in const.ENUMS.items()
+        if tabelle == {int(k): str(v).strip() for k, v in (erzeugt.get(schluessel) or {}).items()}
+    ]
+    assert doppelt == [], f"identisch zur Geräte-Datenbank, gehört gelöscht: {doppelt}"
+
+
 @pytest.mark.parametrize("fct", [FCT_HEIZKREIS, FCT_PUFFER, FCT_PUROWIN, FCT_BIOWIN])
 def test_layers_present(device_db, fct):
     layers = device_db.get_layers(fct)

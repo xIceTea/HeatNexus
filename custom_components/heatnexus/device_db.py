@@ -27,11 +27,17 @@ def get_name(gnmn: str) -> str | None:
 
 
 def get_enum(gnmn: str) -> dict[int, str] | None:
-    """Enum value->text mapping for a 'gn/mn' datapoint, if any."""
+    """Enum value->text mapping for a 'gn/mn' datapoint, if any.
+
+    Die Texte werden beschnitten: In der Herstellerdatei hängt an einzelnen
+    Einträgen ein Leerzeichen (`"Fehler Vorratsbehälter "`). Als Zustand einer
+    Entität ist das sichtbar – und es macht aus einem Zustand zwei, sobald
+    jemand in einer Automation darauf vergleicht.
+    """
     e = _db()["enums"].get(gnmn)
     if not e:
         return None
-    return {int(k): v for k, v in e.items()}
+    return {int(k): str(v).strip() for k, v in e.items()}
 
 
 def get_layers(fct_type: int) -> dict | None:
