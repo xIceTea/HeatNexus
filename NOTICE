@@ -7,7 +7,7 @@ entwickelt wurde (siehe LICENSE).
 Herkunftsnachweise
 ------------------
 
-Keine. HeatNexus enthält seit 1.6.0 ausschließlich eigenen Code; die frühere
+Keine. HeatNexus enthält seit 1.5.0 ausschließlich eigenen Code; die frühere
 Digest-Authentifizierung (abgeleitet vom Projekt "requests", Apache License
 2.0) ist entfallen, weil aiohttp diese Aufgabe selbst übernimmt.
 

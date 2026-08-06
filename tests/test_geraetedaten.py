@@ -1,6 +1,6 @@
 """Was auf der Geräteseite in Home Assistant steht.
 
-Bis 1.6.0 waren die Geräte nackt: kein Software-, kein Hardwarestand, keine
+Bis 1.5.0 waren die Geräte nackt: kein Software-, kein Hardwarestand, keine
 Seriennummer, und als Modell stand der von Hand vergebene Anlagenname („KFZ
 Werkstatt"). Dabei liefert die Anlage all das – die Seriennummer bildet sogar
 schon jede Entitätskennung.

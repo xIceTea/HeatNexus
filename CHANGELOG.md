@@ -16,10 +16,18 @@ Vorabversion.
 
 - Warmwasser- und Zirkulationsprogramm trugen im Reiter Zeitprogramme das
   Symbol des Heizkreises.
+- Nach einem Neustart oder einem *Neu einlesen* standen alle Entitäten still
+  und die Anlage zeigte keinen einzigen Wert mehr. Ein Abruf, der in die
+  Zeitüberschreitung lief, galt als „Anlage meldet keine Datenpunkte mehr".
+- Der erste Abruf nach dem Start liest jeden Wert auf einmal und passte auf
+  größeren Anlagen nicht in sein Zeitfenster. Er bekommt jetzt mehr Zeit; der
+  Takt danach bleibt unverändert.
 - Ein Pumpen-/Relaismodul ohne Aufgabe stand mit einer Wärmeanforderung in der
   Heizungsübersicht, die es nie geben wird.
 - Liegt keine Wärmeanforderung an, verschwand die Zeile ganz und mit ihr das
-  Anlagenteil; jetzt steht dort „keine Anforderung".
+  Anlagenteil; jetzt steht dort ein Strich.
+- Im Wochenraster standen Schaltzeit und Wert ohne Trennung nebeneinander
+  („06:00 21,0 °C"); dazwischen steht jetzt ein Strich.
 - Zahlenfelder übertrugen jede getippte Ziffer einzeln zur Anlage.
 - Das Zahlenfeld trug eine fremde Schrift, die Pfeilchen lagen über der Einheit.
 - Im Zeitprogramm-Editor fehlte „Uhr" hinter der Schaltzeit.

@@ -1,6 +1,6 @@
 """Digest-Anmeldung an der Anlage.
 
-Bis 1.6.0 lag dafür eine eigene Datei im Projekt, abgeleitet von `requests`.
+Bis 1.5.0 lag dafür eine eigene Datei im Projekt, abgeleitet von `requests`.
 Jetzt macht es aiohttp selbst — und das ist der Grund für diesen Test: Die
 Anmeldung ist der einzige Weg zur Anlage. Fällt sie aus, antwortet die
 Steuerung auf **jede** Anfrage mit `401`, und die Integration steht still.
