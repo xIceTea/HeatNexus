@@ -18,7 +18,9 @@ from typing import Any
 
 from ..dashboard import (
     WARTUNG_RESTLAUFZEIT,
+    WARTUNG_RESTLAUFZEIT_SCHLUESSEL,
     WARTUNG_WEITERE,
+    WARTUNG_WEITERE_SCHLUESSEL,
     _muster,
     _passt,
     _trifft,
@@ -58,6 +60,7 @@ from .muster import (
     WARMWASSER_SCHLUESSEL,
     WARMWASSER_SOLL,
     WARTUNG_BRENNSTOFF,
+    WARTUNG_BRENNSTOFF_SCHLUESSEL,
     ZEITPROGRAMM,
     ZIRKULATION_IST_KENNWERT,
     ZIRKULATIONSPROGRAMM,
@@ -111,7 +114,7 @@ def _bereitet_warmwasser(entitaeten: list[dict[str, Any]]) -> bool:
     for eintrag in entitaeten:
         if _trifft(eintrag, WARMWASSER_IST, "dhw_temperature"):
             return True
-        if _passt(eintrag["name"], WARMWASSER_KREIS) and (eintrag.get("wert") or 0) != 0:
+        if _trifft(eintrag, WARMWASSER_KREIS, "dhw_circuit") and (eintrag.get("wert") or 0) != 0:
             return True
     return False
 
@@ -319,13 +322,13 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
 
     kessel = []
     for teil in anlage["teile"]:
-        for muster, beschriftung, symbol in KESSEL_BEDIENUNG:
+        for muster, beschriftung, symbol, schluessel in KESSEL_BEDIENUNG:
             treffer = next(
                 (
                     e
                     for e in teil["entitaeten"]
                     if e["bereich"] in ("switch", "button", "select")
-                    and re.search(muster, e["name"], re.IGNORECASE)
+                    and _trifft(e, _muster(muster), *schluessel)
                 ),
                 None,
             )
@@ -412,7 +415,10 @@ def _wirkt_nur_wenn(
         (
             e
             for e in geschwister
-            if e["bereich"] in ("select", "sensor") and _passt(e["name"], ZIRKULATIONSPUMPE)
+            if e["bereich"] in ("select", "sensor")
+            # `5/6` ist der Modus, an dem hängt, ob das Programm überhaupt
+            # greift – nicht `1/65`, der nur meldet, ob die Pumpe gerade läuft.
+            and _trifft(e, ZIRKULATIONSPUMPE, "dhw_circulation_mode")
         ),
         None,
     )
@@ -437,20 +443,22 @@ def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:
         ]
 
     return {
-        "restlaufzeiten": zeilen(lambda e: _passt(e["name"], WARTUNG_RESTLAUFZEIT)),
+        "restlaufzeiten": zeilen(
+            lambda e: _trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
+        ),
         "brennstoff": zeilen(
             lambda e: (
-                _passt(e["name"], WARTUNG_BRENNSTOFF)
-                and not _passt(e["name"], WARTUNG_RESTLAUFZEIT)
+                _trifft(e, WARTUNG_BRENNSTOFF, *WARTUNG_BRENNSTOFF_SCHLUESSEL)
+                and not _trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
             )
         ),
         # Zählerstände erkennt man an der Statistikklasse, nicht am Namen.
         "zaehler": zeilen(lambda e: e.get("state_class") == "total_increasing"),
         "weitere": zeilen(
             lambda e: (
-                _passt(e["name"], WARTUNG_WEITERE)
-                and not _passt(e["name"], WARTUNG_RESTLAUFZEIT)
-                and not _passt(e["name"], WARTUNG_BRENNSTOFF)
+                _trifft(e, WARTUNG_WEITERE, *WARTUNG_WEITERE_SCHLUESSEL)
+                and not _trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
+                and not _trifft(e, WARTUNG_BRENNSTOFF, *WARTUNG_BRENNSTOFF_SCHLUESSEL)
                 and e.get("state_class") != "total_increasing"
             )
         ),
@@ -537,7 +545,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     hat_warmwasser = _bereitet_warmwasser(alle)
     schnellzugriff = []
     for teil in anlage["teile"]:
-        for muster, beschriftung, symbol in SCHNELLZUGRIFF:
+        for muster, beschriftung, symbol, schluessel in SCHNELLZUGRIFF:
             if not hat_warmwasser and _passt(beschriftung, WARMWASSER):
                 continue
             treffer = next(
@@ -545,7 +553,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                     e
                     for e in teil["entitaeten"]
                     if e["bereich"] in ("switch", "button", "select")
-                    and re.search(muster, e["name"], re.IGNORECASE)
+                    and _trifft(e, _muster(muster), *schluessel)
                 ),
                 None,
             )

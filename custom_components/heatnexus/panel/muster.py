@@ -158,13 +158,20 @@ VERLAUF_MAX = 8
 # Schnellzugriff: bedienbare Datenpunkte, die man wirklich anfasst.
 # Ob vor dem Auslösen nachgefragt wird, entscheidet `dashboard.rueckfrage` –
 # dieselbe Tabelle gilt für die Kacheln im Dashboard.
-SCHNELLZUGRIFF = (
-    (r"ww einmalladung", "Warmwasser laden", "mdi:water-boiler"),
-    (r"^reinigung durchgef", "Reinigung erledigt", "mdi:broom"),
-    (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom"),
-    (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off"),
-    (r"betriebswahl", "Betriebswahl", "mdi:tune"),
-    (r"gew(ä|ae)hlter brennstoff", "Brennstoff wählen", "mdi:sack"),
+#
+# **Hier hilft die Adresse am wenigsten.** Die Anlage legt mehrere Tasten auf
+# **dieselbe** Adresse und unterscheidet sie am geschriebenen Wert: Reinigung,
+# Hauptreinigung, Wartung und „Hauptreinigung und Aschetonnen" sind alle vier
+# `39/94`, Serviceausbrand und Lagerraumbefüllung beide `9/75`. Ein kanonischer
+# Schlüssel träfe dort jedes Mal alle Geschwister und stellte die falsche Taste
+# in die Kachel. Diese Zeilen bleiben deshalb am Namen – als einzige.
+SCHNELLZUGRIFF: tuple[Zeile, ...] = (
+    (r"ww einmalladung", "Warmwasser laden", "mdi:water-boiler", ()),
+    (r"^reinigung durchgef", "Reinigung erledigt", "mdi:broom", ()),
+    (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom", ()),
+    (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ()),
+    (r"betriebswahl", "Betriebswahl", "mdi:tune", ("mode_selection",)),
+    (r"gew(ä|ae)hlter brennstoff", "Brennstoff wählen", "mdi:sack", ("fuel_selected",)),
 )
 
 # Höchstzahl der Warmwasserzeilen; mehr sprengt die Karte.
@@ -251,20 +258,24 @@ LAGERRAUM_ZEILEN: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 )
 
 # Bedienbares am Kessel, in dieser Reihenfolge.
-KESSEL_BEDIENUNG = (
-    (r"gew(ä|ae)hlter brennstoff", "Brennstoff", "mdi:sack"),
-    (r"^reinigung durchgef", "Reinigung erledigt", "mdi:broom"),
-    (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom"),
+# Dieselbe Einschränkung wie beim Schnellzugriff: Vier dieser Tasten teilen
+# sich `39/94`, der Serviceausbrand liegt auf `9/75`.
+KESSEL_BEDIENUNG: tuple[Zeile, ...] = (
+    (r"gew(ä|ae)hlter brennstoff", "Brennstoff", "mdi:sack", ("fuel_selected",)),
+    (r"^reinigung durchgef", "Reinigung erledigt", "mdi:broom", ()),
+    (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom", ()),
     (
         r"hauptreinigung und aschetonnen durchgef",
         "Hauptreinigung + Aschetonnen",
         "mdi:delete-empty-outline",
+        (),
     ),
-    (r"wartung durchgef", "Wartung erledigt", "mdi:wrench-check-outline"),
-    (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off"),
+    (r"wartung durchgef", "Wartung erledigt", "mdi:wrench-check-outline", ()),
+    (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ()),
 )
 
 # ---------------------------------------------------------------------------
 # Reiter „Wartung"
 # ---------------------------------------------------------------------------
 WARTUNG_BRENNSTOFF = _muster(r"vorratsbeh", r"aktueller brennstoff", r"brennstoff")
+WARTUNG_BRENNSTOFF_SCHLUESSEL = ("fuel_storage_status", "fuel_current", "fuel_selected")

@@ -75,6 +75,10 @@ KANONISCH: dict[str, str] = {
     "1/65": "dhw_circulation_pump",
     "5/6": "dhw_circulation_mode",
     "0/118": "dhw_circulation_temperature",
+    # `5/76` „WW-Kreis" – daran hängt, ob eine Anlage überhaupt Warmwasser
+    # bereitet. Die übrigen WW-Parameter beweisen das nicht: Sie stehen auch
+    # an einem Heizkreis ohne Speicher in der Liste.
+    "5/76": "dhw_circuit",
     # Puffer. Zwei Adresspaare für denselben Messwert: Die Baureihen mit
     # eigenem Puffermodul melden ihn unter `21/65`/`21/66` (TPE/TPA), die mit
     # angebautem Fühler unter `0/15`/`0/16`. Es ist derselbe Begriff.

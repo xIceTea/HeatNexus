@@ -101,7 +101,8 @@ def test_bedientasten_haben_eine_erklaerung():
                 return text
         return ""
 
-    for _muster, beschriftung, _symbol in _konstante("KESSEL_BEDIENUNG"):
+    for zeile in _konstante("KESSEL_BEDIENUNG"):
+        beschriftung = zeile[1]
         assert text_zu(beschriftung), beschriftung
 
 
