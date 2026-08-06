@@ -65,6 +65,20 @@ export const ANNAHME_MS = 45 * 1000;
  */
 export const SPERRE_MS = 5 * 1000;
 
+/**
+ * Wie oft und in welchem Abstand nach einer Bedienung nachgelesen wird.
+ *
+ * Ein einzelner Abruf direkt nach dem Schreiben trifft die Anlage oft noch
+ * beim Abarbeiten: Die Betriebsart steht dann bereits richtig, Pumpe und
+ * Ladezustand ziehen erst Sekunden später nach. Bis zum nächsten regulären
+ * Durchlauf sind das dreißig Sekunden, in denen das Schaubild einen Zustand
+ * zeigt, den es nicht mehr gibt.
+ *
+ * Gelesen werden nur die beteiligten Adressen, nicht das ganze Abrufwerk.
+ */
+export const NACHFASS_ANZAHL = 4;
+export const NACHFASS_MS = 4 * 1000;
+
 export const REITER = [
   { schluessel: "uebersicht", titel: "Übersicht", symbol: "mdi:view-dashboard-outline" },
   { schluessel: "steuerung", titel: "Steuerung", symbol: "mdi:tune-vertical" },

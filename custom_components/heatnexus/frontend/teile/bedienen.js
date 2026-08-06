@@ -9,7 +9,12 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { BESTAETIGUNG_MAX_MS, RUECKMELDUNG_MS } from "../ordnung.js";
+import {
+  BESTAETIGUNG_MAX_MS,
+  NACHFASS_ANZAHL,
+  NACHFASS_MS,
+  RUECKMELDUNG_MS,
+} from "../ordnung.js";
 
 export const BedienenMixin = (Basis) =>
   class extends Basis {
@@ -28,9 +33,20 @@ export const BedienenMixin = (Basis) =>
       eintrag.entity,
     ].filter(Boolean);
     if (!entitaeten.length) return;
-    this._hass
-      .callService("homeassistant", "update_entity", { entity_id: entitaeten })
-      .catch((err) => console.warn("HeatNexus: Nachfassen fehlgeschlagen", err));
+    // **Mehrmals, nicht einmal.** Der erste Abruf kommt zurück, während die
+    // Anlage den Auftrag noch abarbeitet: Die Betriebsart steht dann schon
+    // richtig, die Ladepumpe meldet aber weiter ihren alten Zustand. Mit nur
+    // einem Abruf blieb sie im Schaubild bis zum nächsten Durchlauf in
+    // Bewegung – eine halbe Minute, in der das Bild etwas zeigte, was nicht
+    // mehr stimmte.
+    const lesen = () =>
+      this._hass
+        .callService("homeassistant", "update_entity", { entity_id: entitaeten })
+        .catch((err) => console.warn("HeatNexus: Nachfassen fehlgeschlagen", err));
+    lesen();
+    for (let runde = 1; runde < NACHFASS_ANZAHL; runde++) {
+      window.setTimeout(lesen, runde * NACHFASS_MS);
+    }
   }
 
   /**
