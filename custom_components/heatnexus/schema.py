@@ -1157,6 +1157,34 @@ def anlagenschema(
                     }
                 )
 
+    # **Der Wärmeerzeuger meldet keine eigene Pumpe.** Sein Wasser bewegt die
+    # Pufferladepumpe; die gehört zum Puffer und trug bisher nur dessen
+    # Stichleitung. Am Kessel stand die senkrechte Leitung dadurch in jedem
+    # Zustand still, während daneben alles strömte – es sah aus wie eine
+    # vergessene Bewegung. Nur die Leitung, keine Pumpenmarke: An dieser Stelle
+    # sitzt keine Pumpe, und ein Symbol dort behauptete Technik, die es nicht
+    # gibt.
+    ladepumpe = next((m["pumpe"] for m in module if m["art"] == "puffer" and m.get("pumpe")), None)
+    if ladepumpe:
+        for platz, modul in enumerate(module):
+            if modul["art"] != "kessel" or modul.get("pumpe"):
+                continue
+            mitte = RAND + platz * MODUL_BREITE + MODUL_BREITE // 2
+            oben, unten = KANTEN_JE_ART.get("kessel", KANTEN_STANDARD)
+            pumpen.append(
+                {
+                    "entity": ladepumpe,
+                    "left": f"{mitte / breite * 100:.2f}%",
+                    "top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
+                    "titel": modul["titel"],
+                    "nur_strang": True,
+                    "vorlauf_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
+                    "vorlauf_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
+                    "ruecklauf_top": f"{unten / HOEHE * 100:.2f}%",
+                    "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
+                }
+            )
+
     # Wer dem Speicher Wärme entnimmt: alle Pumpen der Verbraucher.
     entnahme = [m["pumpe"] for m in module if m.get("pumpe") and m["art"] in ENTNAHME_ARTEN]
     # Die Lampen des Pumpen-/Relaismoduls. Sie hängen am Analog-Sollwert: über

@@ -364,6 +364,10 @@ export const SchaubildMixin = (Basis) =>
     });
 
     (anlage.schema_pumpen || []).forEach((eintrag) => {
+      // Der Kessel führt die Pufferladepumpe nur, um seine Stichleitung in
+      // Bewegung zu bringen. Eine Pumpenmarke gehört dort nicht hin: An der
+      // Stelle sitzt keine.
+      if (eintrag.nur_strang) return;
       const marke = document.createElement("div");
       marke.className = "pumpe";
       marke.title = `${eintrag.titel} – Pumpe`;
