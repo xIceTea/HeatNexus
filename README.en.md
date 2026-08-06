@@ -320,6 +320,16 @@ This integration writes to a heating system. Controllable operator-level
 datapoints are verified; service parameters are deliberately disabled. Use at
 your own risk.
 
+## Support
+
+HeatNexus is built in my spare time against a real heating system. If you would
+like to support the work:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/xicetea)
+
+Just as helpful and free: a bug report with the diagnostics export, especially
+from hardware listed here as *supported, unverified*.
+
 ## License
 
 HeatNexus is licensed under the [GNU General Public License v3.0](LICENSE).

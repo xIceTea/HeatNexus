@@ -1,0 +1,4 @@
+# Blendet den "Sponsor"-Knopf in der rechten Leiste des Repositorys ein.
+# Die Schlüssel sind von GitHub vorgegeben; buy_me_a_coffee erwartet den
+# Benutzernamen, nicht die vollständige Adresse.
+buy_me_a_coffee: xicetea

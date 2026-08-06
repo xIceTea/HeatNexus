@@ -330,6 +330,16 @@ Die Integration schreibt auf eine Heizungsanlage. Steuerbare Datenpunkte der
 Betreiberebene sind geprüft, Serviceparameter sind bewusst deaktiviert.
 Nutzung auf eigene Verantwortung.
 
+## Unterstützen
+
+HeatNexus entsteht in der Freizeit an einer echten Anlage. Wer die Arbeit
+unterstützen möchte:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-unterst%C3%BCtzen-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/xicetea)
+
+Genauso hilfreich und kostenlos: ein Fehlerbericht mit Diagnose-Export,
+besonders von Anlagentypen, die hier als *unterstützt, ungeprüft* stehen.
+
 ## Lizenz
 
 HeatNexus steht unter der [GNU General Public License v3.0](LICENSE). Wer die
