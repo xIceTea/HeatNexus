@@ -18,6 +18,11 @@ export const OHNE_WERT = ["unavailable", "unknown", "none", ""];
 // `ReferenceError`, und „wird ausgeführt …" blieb für immer stehen.
 export const RUECKMELDUNG_MS = 4000;
 
+/** Wie lange ein Zahlenfeld nach der letzten Eingabe wartet, bevor es
+ *  überträgt. Ohne die Pause ginge jede getippte Ziffer einzeln zur
+ *  Anlage - bei "15" erst die 1, dann die 15. */
+export const ZAHL_VERZOEGERUNG_MS = 2500;
+
 // Wie lange auf die Bestätigung der Anlage gewartet wird, bevor die
 // Rückmeldung aufgibt. Die Anlage wird nur alle 30 s abgefragt – drei
 // Minuten reichen also für mehrere Versuche. Länger zu warten hilft nicht:

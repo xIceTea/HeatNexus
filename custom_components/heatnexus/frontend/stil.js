@@ -663,6 +663,28 @@ export const STIL = `
   .zp-anlagenteil ha-icon { --mdc-icon-size: 15px; }
   /* Die Einheit hinter dem Eingabefeld: leise, aber da. */
   .zp-einheit { font-size: 12px; opacity: 0.6; min-width: 20px; }
+
+  /* Zahlenfeld in einer Statuszeile - es soll aussehen wie der Wert daneben,
+     nicht wie ein Formularfeld. Die Pfeilchen des Browsers sind abgeschaltet:
+     Sie sassen ueber der Einheit und trafen die Schrittweite der Anlage
+     ohnehin nicht. */
+  .zahl-feld { display: flex; align-items: baseline; gap: 5px; }
+  .zahl-feld input {
+    width: 74px; text-align: right;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
+    padding: 4px 8px;
+    font: inherit; font-size: 14px; font-weight: 600;
+    color: var(--primary-text-color, #e6edf3);
+  }
+  .zahl-feld input:focus {
+    outline: none; border-color: #6fb2f5;
+    background: rgba(111, 178, 245, 0.12);
+  }
+  .zahl-feld input::-webkit-outer-spin-button,
+  .zahl-feld input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .zahl-feld input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  .zahl-einheit { font-size: 13px; opacity: 0.6; }
   .zeitraster { display: flex; flex-direction: column; gap: 4px; }
   .zeitraster-skala {
     display: flex; justify-content: space-between;

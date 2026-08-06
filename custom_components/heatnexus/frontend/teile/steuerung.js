@@ -9,7 +9,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { OHNE_WERT } from "../ordnung.js";
+import { OHNE_WERT, ZAHL_VERZOEGERUNG_MS } from "../ordnung.js";
 
 export const SteuerungMixin = (Basis) =>
   class extends Basis {
@@ -365,18 +365,24 @@ export const SteuerungMixin = (Basis) =>
     links.className = "titel";
     links.textContent = titel;
     const rechts = document.createElement("div");
-    rechts.className = "wert";
+    rechts.className = "zahl-feld";
     const feld = document.createElement("input");
     feld.type = "number";
-    feld.className = "zp-wert";
+    feld.inputMode = "decimal";
     const einheit = document.createElement("span");
-    einheit.className = "zp-einheit";
+    einheit.className = "zahl-einheit";
     const rueckmeldung = document.createElement("div");
     rueckmeldung.className = "rueckmeldung";
     rechts.append(feld, einheit);
     zeile.append(links, rechts, rueckmeldung);
 
-    feld.addEventListener("change", async () => {
+    // **Erst tippen, dann senden.** Jede Zahl einzeln zu übertragen hieß bei
+    // „15" zwei Fahrten zur Anlage – erst die 1, dann die 15 –, und wer die
+    // Pfeiltaste hielt, schickte jeden Schritt mit. Gesendet wird deshalb
+    // eine kurze Weile nach der letzten Eingabe; jede weitere setzt sie neu.
+    let warteschlange = null;
+    const senden = async () => {
+      warteschlange = null;
       const wert = Number(feld.value);
       if (!Number.isFinite(wert)) return;
       await this._uebertragen(
@@ -388,6 +394,16 @@ export const SteuerungMixin = (Basis) =>
         },
         entity
       );
+    };
+    const anstossen = () => {
+      if (warteschlange) window.clearTimeout(warteschlange);
+      warteschlange = window.setTimeout(senden, ZAHL_VERZOEGERUNG_MS);
+    };
+    feld.addEventListener("input", anstossen);
+    // Wer das Feld verlässt oder Enter drückt, will nicht warten.
+    feld.addEventListener("change", () => {
+      if (warteschlange) window.clearTimeout(warteschlange);
+      senden();
     });
 
     this._bindungen.push(() => {
@@ -399,8 +415,9 @@ export const SteuerungMixin = (Basis) =>
       if (merkmale.max !== undefined) feld.max = String(merkmale.max);
       if (merkmale.step !== undefined) feld.step = String(merkmale.step);
       einheit.textContent = merkmale.unit_of_measurement || "";
-      // Nicht überschreiben, während jemand tippt.
-      if (document.activeElement !== feld) feld.value = zustand.state;
+      // Weder während des Tippens noch während einer laufenden Übertragung
+      // überschreiben – sonst springt der Wert unter den Fingern zurück.
+      if (document.activeElement !== feld && !warteschlange) feld.value = zustand.state;
     });
     return zeile;
   }
