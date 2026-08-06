@@ -1066,6 +1066,11 @@ def anlagenschema(
     schichtung: list[dict[str, Any]] = []
     speicher: list[dict[str, Any]] = []
     lampen: list[dict[str, Any]] = []
+    # Wer dem Speicher Wärme entnimmt: alle Pumpen der Verbraucher. Wird
+    # gleich zweimal gebraucht – für die Marke am Speicher und für seine
+    # Stichleitung.
+    entnahme = [m["pumpe"] for m in module if m.get("pumpe") and m["art"] in ENTNAHME_ARTEN]
+
     for platz, modul in enumerate(module):
         x = RAND + platz * MODUL_BREITE
         elemente += _beschriftungen(x, modul, breite)
@@ -1088,6 +1093,13 @@ def anlagenschema(
                     "vorlauf_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
                     "ruecklauf_top": f"{unten / HOEHE * 100:.2f}%",
                     "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
+                    # **Ein Speicher strömt in beide Richtungen.** Seine eigene
+                    # Pumpe lädt ihn; entnommen wird ihm von den Pumpen der
+                    # Verbraucher, und dabei dreht die Ladepumpe gerade nicht.
+                    # Hing die Stichleitung allein an ihr, stand sie beim
+                    # Entladen still, obwohl daneben „entlädt" stand und die
+                    # Wärme nach oben abfloss.
+                    "entnahme": entnahme if modul["art"] == "puffer" else [],
                 }
             )
         # Der Mischer zeigt seine Stellung, nicht Bewegung: Ein dauernd
@@ -1185,8 +1197,6 @@ def anlagenschema(
                 }
             )
 
-    # Wer dem Speicher Wärme entnimmt: alle Pumpen der Verbraucher.
-    entnahme = [m["pumpe"] for m in module if m.get("pumpe") and m["art"] in ENTNAHME_ARTEN]
     # Die Lampen des Pumpen-/Relaismoduls. Sie hängen am Analog-Sollwert: über
     # null fordert das Modul Wärme an.
     for platz, modul in enumerate(module):

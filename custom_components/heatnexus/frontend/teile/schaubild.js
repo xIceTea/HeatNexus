@@ -358,7 +358,14 @@ export const SchaubildMixin = (Basis) =>
         band.style.height = hoehe;
         huelle.appendChild(band);
         this._bindungen.push(() => {
-          band.classList.toggle("laeuft", this._foerdert(eintrag.entity));
+          // Am Speicher zählen beide Richtungen: Seine eigene Pumpe lädt ihn,
+          // die Pumpen der Verbraucher entnehmen ihm – und dabei steht die
+          // Ladepumpe. Hing das Band allein an ihr, stand es beim Entladen
+          // still, während daneben „entlädt" stand.
+          const stroemt =
+            this._foerdert(eintrag.entity) ||
+            (eintrag.entnahme || []).some((e) => this._foerdert(e));
+          band.classList.toggle("laeuft", stroemt);
         });
       });
     });
