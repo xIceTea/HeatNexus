@@ -52,6 +52,52 @@ def anlage():
     ]
 
 
+def test_das_schaubild_entsteht_auch_ohne_deutsche_namen(schema):
+    """Der Zweck der kanonischen Schlüssel, hier fürs Schaubild.
+
+    Liefert die Anlage englische Namen, greift kein Muster mehr – das Bild
+    hätte dann Kästen ohne Werte. Die Adresse bleibt dieselbe, also muss sie
+    allein genügen.
+    """
+
+    def fremd(eid: str, name: str, schluessel: str) -> dict:
+        return {
+            "entity_id": eid,
+            "name": name,
+            "hat_wert": True,
+            "bereich": eid.split(".")[0],
+            "schluessel": schluessel,
+        }
+
+    teile = [
+        {
+            "name": "PuroWIN",
+            "fct_type": 25,
+            "entitaeten": [
+                fremd("sensor.boiler_temperature", "Boiler temperature", "boiler_temperature"),
+                fremd("sensor.boiler_power", "Boiler output", "boiler_power"),
+            ],
+        },
+        {
+            "name": "Buffer",
+            "fct_type": 16,
+            "entitaeten": [
+                fremd("sensor.buffer_top", "Buffer top", "buffer_top"),
+                fremd("sensor.buffer_bottom", "Buffer bottom", "buffer_bottom"),
+            ],
+        },
+    ]
+
+    karte = schema.anlagenschema(teile)
+
+    assert {e["entity"] for e in karte["elements"]} == {
+        "sensor.boiler_temperature",
+        "sensor.boiler_power",
+        "sensor.buffer_top",
+        "sensor.buffer_bottom",
+    }
+
+
 def test_karte_ist_ein_bild_mit_beschriftungen(schema, anlage):
     karte = schema.anlagenschema(anlage)
     assert karte["type"] == "picture-elements"
@@ -129,8 +175,9 @@ def test_anlagenteil_ohne_passenden_messwert_faellt_weg(schema):
 def test_muster_enthalten_keine_steuerzeichen(schema):
     """Ein Suchmuster darf nie ein Steuerzeichen enthalten."""
     muster = [schema.WARMWASSER_IST, schema.ZIRKULATION_IST]
-    muster += [m for eintraege in schema.WERTE_JE_ART.values() for m, _ in eintraege]
-    muster += list(schema.PUMPE_JE_ART.values())
+    muster += [m for eintraege in schema.WERTE_JE_ART.values() for m, _, _ in eintraege]
+    muster += [m for m, _ in schema.PUMPE_JE_ART.values()]
+    muster += [m for m, _ in schema.MODUL_AUFGABE]
     for einzeln in muster:
         assert not any(ord(z) < 32 for z in einzeln), f"Steuerzeichen in {einzeln!r}"
 

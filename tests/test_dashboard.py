@@ -42,7 +42,15 @@ def test_unbekannter_funktionstyp_kommt_zuletzt(dashboard):
 
 
 def test_betriebsphase_steht_vor_beliebigem_wert(dashboard):
-    assert dashboard._vorrang("Betriebsphase") < dashboard._vorrang("Nachstellzeit")
+    assert dashboard._vorrang({"name": "Betriebsphase"}) < dashboard._vorrang(
+        {"name": "Nachstellzeit"}
+    )
+
+
+def test_der_vorrang_gilt_auch_ohne_deutschen_namen(dashboard):
+    """Sonst rutschte die Betriebsphase in einer fremden Sprache ans Ende."""
+    fremd = {"name": "Operating phase", "schluessel": "operating_phase"}
+    assert dashboard._vorrang(fremd) < dashboard._vorrang({"name": "Nachstellzeit"})
 
 
 def test_thermostat_bekommt_eigene_karte(dashboard):

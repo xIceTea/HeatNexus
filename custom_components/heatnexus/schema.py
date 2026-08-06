@@ -155,24 +155,28 @@ BRENNKAMMER_KALT = 100
 BRENNKAMMER_HEISS = 500
 
 # Welcher Wert eines Anlagenteils wo im Schaubild steht.
-# (Muster, Beschriftung) – die Reihenfolge bestimmt die Position von oben.
-WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
+# (Muster, Beschriftung, kanonische Schlüssel) – die Reihenfolge bestimmt die
+# Position von oben. Der Schlüssel steht hinten und gewinnt, wo es ihn gibt;
+# ohne ihn bliebe das Schaubild in einer fremden Sprache leer.
+Wert = tuple[str, str, tuple[str, ...]]
+
+WERTE_JE_ART: dict[str, tuple[Wert, ...]] = {
     # Der zweite Wert am Kessel ist wählbar (Option „kesselwert"); hier steht
     # die Vorgabe. `_werte_je_art` tauscht ihn gegebenenfalls aus.
     "kessel": (
-        (r"kesseltemperatur ist", "Kessel"),
-        (r"kesselleistung", "Leistung"),
+        (r"kesseltemperatur ist", "Kessel", ("boiler_temperature",)),
+        (r"kesselleistung", "Leistung", ("boiler_power",)),
     ),
     # Zwei Schreibweisen: die kuratierte Tabelle nennt sie „Puffer oben
     # Temperatur (TPE)", die Geräte-Datenbank „Puffertemperatur TPE" bzw.
     # „Puffertemperatur oben". Beide müssen treffen.
     "puffer": (
-        (r"puffer(temperatur)?[ -]?oben|puffertemperatur tpe", "oben"),
-        (r"puffer(temperatur)?[ -]?unten|puffertemperatur tpa", "unten"),
+        (r"puffer(temperatur)?[ -]?oben|puffertemperatur tpe", "oben", ("buffer_top",)),
+        (r"puffer(temperatur)?[ -]?unten|puffertemperatur tpa", "unten", ("buffer_bottom",)),
     ),
     "heizkreis": (
-        (r"vorlauftemperatur ist", "Vorlauf"),
-        (r"raumtemperatur ist", "Raum"),
+        (r"vorlauftemperatur ist", "Vorlauf", ("flow_temperature",)),
+        (r"raumtemperatur ist", "Raum", ("room_temperature",)),
     ),
     # Das Pumpen-/Relaismodul (ZSP, fctType 20). Es ist keine Zirkulation: Es
     # kann eine Pumpe regeln, eine externe Wärmeanforderung entgegennehmen oder
@@ -182,32 +186,42 @@ WERTE_JE_ART: dict[str, tuple[tuple[str, str], ...]] = {
     # Nur der Istwert. Ein Sollwert an der Stelle, an der beim Puffer die
     # zweite *gemessene* Temperatur steht, liest sich wie ein Messwert und
     # verwirrt mehr, als er nützt.
-    "wasser": ((r"\bww[- ]temperatur aktueller|\bwarmwasser ist", "Warmwasser"),),
+    "wasser": (
+        (r"\bww[- ]temperatur aktueller|\bwarmwasser ist", "Warmwasser", ("dhw_temperature",)),
+    ),
     # Die Warmwasser-Zirkulation.
-    "zirkulation": ((ZIRKULATION_IST, "Zirkulation"),),
+    "zirkulation": ((ZIRKULATION_IST, "Zirkulation", ("dhw_circulation_temperature",)),),
     "solar": (
-        (r"kollektortemperatur", "Kollektor"),
-        (r"ww[- ]temperatur solar|puffertemperatur tps", "Speicher"),
+        (r"kollektortemperatur", "Kollektor", ("collector_temperature",)),
+        (
+            r"ww[- ]temperatur solar|puffertemperatur tps",
+            "Speicher",
+            ("solar_storage_temperature",),
+        ),
     ),
     # Weiche bzw. Umschaltung: was hereinkommt und was im Speicher steht.
     "umschaltung": (
-        (r"kesseltemperatur(?!.*soll)", "Kessel"),
-        (r"puffertemperatur (oben|tpe)", "Puffer"),
+        (r"kesseltemperatur(?!.*soll)", "Kessel", ("boiler_temperature",)),
+        (r"puffertemperatur (oben|tpe)", "Puffer", ("buffer_top",)),
     ),
 }
 
 # Die Pumpe eines Anlagenteils. Sie steht im Schaubild in der Leitung und
 # dreht sich, solange sie läuft – im Standbild ist nicht zu erkennen, ob
 # gerade etwas fließt.
-PUMPE_JE_ART: dict[str, str] = {
-    "kessel": r"kesselpumpe|\bpumpe\b",
-    "puffer": r"pufferladepumpe",
-    "heizkreis": r"heizkreispumpe",
-    "wasser": r"\bww-ladepumpe",
+#
+# Kessel-, Puffer- und Solarpumpe haben (noch) keinen kanonischen Schlüssel:
+# Ihre Adressen unterscheiden sich je Baureihe und sind nicht belegt. Dort
+# bleibt es beim Namen.
+PUMPE_JE_ART: dict[str, tuple[str, tuple[str, ...]]] = {
+    "kessel": (r"kesselpumpe|\bpumpe\b", ()),
+    "puffer": (r"pufferladepumpe", ()),
+    "heizkreis": (r"heizkreispumpe", ("circuit_pump",)),
+    "wasser": (r"\bww-ladepumpe", ("dhw_charge_pump",)),
     # Das ZSP-Modul meldet keinen Pumpenzustand, sondern seine Drehzahl.
-    "pumpenmodul": r"pumpendrehzahl|zirkulationspumpe(?!.*modus)",
-    "zirkulation": r"\bww-zirkulationspumpe(?!.*modus)",
-    "solar": r"solarpumpe|pumpensteuerung drehzahl",
+    "pumpenmodul": (r"pumpendrehzahl|zirkulationspumpe(?!.*modus)", ("pump_speed",)),
+    "zirkulation": (r"\bww-zirkulationspumpe(?!.*modus)", ("dhw_circulation_pump",)),
+    "solar": (r"solarpumpe|pumpensteuerung drehzahl", ()),
 }
 
 # Manche Pumpen melden keinen Zustand, sondern ihre Drehzahl in Prozent – die
@@ -360,26 +374,36 @@ def _escape(text: str) -> str:
     )
 
 
-def _finde(entitaeten: list[dict[str, Any]], muster: str) -> dict[str, Any] | None:
-    """Erste Entität, deren Name zum Muster passt; eine mit Wert hat Vorrang.
+def _finde(
+    entitaeten: list[dict[str, Any]], muster: str, *schluessel: str
+) -> dict[str, Any] | None:
+    """Erste passende Entität; eine mit Wert hat Vorrang.
 
     Ein Wert darf keine Bedingung sein. Das Schaubild wird gebaut, während die
     Anlage noch eingelesen wird – wäre der Wert Pflicht, bliebe es leer und
     füllte sich auch später nicht mehr.
+
+    **Der kanonische Schlüssel gewinnt, der Name bleibt der Rückfall** – wie in
+    `dashboard._trifft`, aber eigenständig: Dieses Modul importiert nichts aus
+    Home Assistant, damit es sich ohne dessen Installation prüfen lässt.
     """
     regex = re.compile(muster, re.IGNORECASE)
-    treffer = [e for e in entitaeten if regex.search(e["name"])]
+    treffer = [
+        e
+        for e in entitaeten
+        if (schluessel and e.get("schluessel") in schluessel) or regex.search(e["name"] or "")
+    ]
     if not treffer:
         return None
     return next((e for e in treffer if e.get("hat_wert")), treffer[0])
 
 
-def _werte_je_art(art: str, kesselwert: str | None) -> tuple[tuple[str, str], ...]:
+def _werte_je_art(art: str, kesselwert: str | None) -> tuple[Wert, ...]:
     """Die Wertevorlage einer Art, mit dem gewählten zweiten Kesselwert."""
     vorlage = WERTE_JE_ART.get(art, ())
     if art != "kessel" or kesselwert != "brennkammer":
         return vorlage
-    return (vorlage[0], (BRENNKAMMER_IST, "Brennkammer"))
+    return (vorlage[0], (BRENNKAMMER_IST, "Brennkammer", ("combustion_chamber_temperature",)))
 
 
 def _werte(
@@ -387,18 +411,20 @@ def _werte(
 ) -> list[dict[str, Any]]:
     """Die Messwerte eines Anlagenteils in der Reihenfolge des Schaubilds."""
     werte = []
-    for muster, beschriftung in _werte_je_art(art, kesselwert):
-        if (treffer := _finde(entitaeten, muster)) is not None:
+    for muster, beschriftung, schluessel in _werte_je_art(art, kesselwert):
+        if (treffer := _finde(entitaeten, muster, *schluessel)) is not None:
             werte.append({"entity_id": treffer["entity_id"], "beschriftung": beschriftung})
     return werte
 
 
 def _pumpe(entitaeten: list[dict[str, Any]], art: str) -> str | None:
     """Die Pumpe eines Anlagenteils, sofern sie als Zustand gemeldet wird."""
-    muster = PUMPE_JE_ART.get(art)
+    muster, schluessel = PUMPE_JE_ART.get(art, ("", ()))
     if not muster:
         return None
-    treffer = _finde([e for e in entitaeten if e.get("bereich") in PUMPE_BEREICHE], muster)
+    treffer = _finde(
+        [e for e in entitaeten if e.get("bereich") in PUMPE_BEREICHE], muster, *schluessel
+    )
     return treffer["entity_id"] if treffer else None
 
 
@@ -411,6 +437,7 @@ def _mischer(entitaeten: list[dict[str, Any]]) -> str | None:
     treffer = _finde(
         [e for e in entitaeten if (e.get("unit") or "") == "%" or e.get("bereich") == "sensor"],
         MISCHER_IST,
+        "mixer_position",
     )
     return treffer["entity_id"] if treffer else None
 
@@ -421,12 +448,12 @@ def _mischer(entitaeten: list[dict[str, Any]]) -> str | None:
 # „Digital-Sollwert WWK" meldet auch ein Modul, an dem nichts hängt. Deshalb
 # sind alle Muster verankert: unverankert fischte
 # `ext. wärmeanforderung` genau diesen Sollwert mit heraus.
-MODUL_AUFGABE = (
-    r"^kesseltemperatur$",
-    r"^temperatur ist$",
-    r"^ext\.? w(ä|ae)rmeanforderung$",
-    r"^pumpensteuerung$",
-    r"^relaisfunktion$",
+MODUL_AUFGABE: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (r"^kesseltemperatur$", ("boiler_temperature",)),
+    (r"^temperatur ist$", ()),
+    (r"^ext\.? w(ä|ae)rmeanforderung$", ()),
+    (r"^pumpensteuerung$", ()),
+    (r"^relaisfunktion$", ()),
 )
 
 
@@ -455,7 +482,7 @@ def _modul_in_betrieb(entitaeten: list[dict[str, Any]]) -> bool:
     fließt, mit Lampen, die nie angehen.
     """
     return _pumpe(entitaeten, "pumpenmodul") is not None or any(
-        _finde(entitaeten, muster) is not None for muster in MODUL_AUFGABE
+        _finde(entitaeten, muster, *schluessel) is not None for muster, schluessel in MODUL_AUFGABE
     )
 
 
@@ -490,7 +517,8 @@ def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[
                     # der Kreis abgeschaltet ist und der Körper kalt hängt.
                     "vorlauf": (
                         e["entity_id"]
-                        if art == "heizkreis" and (e := _finde(teil["entitaeten"], VORLAUF_IST))
+                        if art == "heizkreis"
+                        and (e := _finde(teil["entitaeten"], VORLAUF_IST, "flow_temperature"))
                         else None
                     ),
                     # Für Auswertungen, die über die angezeigten Werte
@@ -500,19 +528,30 @@ def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[
                     # steht: Leistung zuerst, Brennkammertemperatur als Ersatz.
                     "leistung": (
                         e["entity_id"]
-                        if art == "kessel" and (e := _finde(teil["entitaeten"], KESSELLEISTUNG_IST))
+                        if art == "kessel"
+                        and (e := _finde(teil["entitaeten"], KESSELLEISTUNG_IST, "boiler_power"))
                         else None
                     ),
                     "brennkammer": (
                         e["entity_id"]
-                        if art == "kessel" and (e := _finde(teil["entitaeten"], BRENNKAMMER_IST))
+                        if art == "kessel"
+                        and (
+                            e := _finde(
+                                teil["entitaeten"],
+                                BRENNKAMMER_IST,
+                                "combustion_chamber_temperature",
+                            )
+                        )
                         else None
                     ),
                 }
             )
         # Hängt an diesem Kreis eine Warmwasserbereitung, wird sie als eigener
         # Anlagenteil dahinter gezeichnet.
-        if art == "heizkreis" and _finde(teil["entitaeten"], WARMWASSER_IST) is not None:
+        if (
+            art == "heizkreis"
+            and _finde(teil["entitaeten"], WARMWASSER_IST, "dhw_temperature") is not None
+        ):
             wasser = _werte(teil["entitaeten"], "wasser")
             if wasser:
                 module.append(
@@ -525,7 +564,9 @@ def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[
                 )
         # Auch an einer eigenständigen Warmwasserfunktion (fctType 2) hängt die
         # Zirkulation als Datenpunkt, nicht als eigene Funktion.
-        if art in ("heizkreis", "wasser") and _finde(teil["entitaeten"], ZIRKULATION_IST):
+        if art in ("heizkreis", "wasser") and _finde(
+            teil["entitaeten"], ZIRKULATION_IST, "dhw_circulation_temperature"
+        ):
             kreis = _werte(teil["entitaeten"], "zirkulation")
             if kreis:
                 module.append(
@@ -1125,7 +1166,7 @@ def anlagenschema(
     for platz, modul in enumerate(module):
         if modul["art"] != "pumpenmodul":
             continue
-        soll = _finde(modul.get("entitaeten") or [], ANALOG_SOLLWERT)
+        soll = _finde(modul.get("entitaeten") or [], ANALOG_SOLLWERT, "analog_setpoint")
         if soll is None:
             continue
         x = RAND + platz * MODUL_BREITE

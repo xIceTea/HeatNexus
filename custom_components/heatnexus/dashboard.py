@@ -102,45 +102,58 @@ def _muster(*ausdruecke: str) -> tuple[re.Pattern, ...]:
 
 
 # Werte, die in der Übersicht zuerst stehen sollen.
-UEBERSICHT_VORRANG = _muster(
-    r"betriebsphase",
-    r"betriebsart",
-    r"betriebswahl",
-    r"kesseltemperatur ist",
-    r"kesselleistung",
-    r"aktueller brennstoff",
-    r"vorratsbeh",
-    r"puffer oben",
-    r"puffer unten",
-    r"au(ß|ss)entemperatur",
-    r"raumtemperatur ist",
-    r"raumtemperatur soll",
-    r"vorlauftemperatur ist",
-    r"warmwasser",
-    r"heizkreispumpe",
-    r"pumpe",
-    r"temperatur ist",
+# Je Zeile: Muster und die kanonischen Schlüssel, die dasselbe meinen.
+UEBERSICHT_VORRANG: tuple[tuple[re.Pattern, tuple[str, ...]], ...] = (
+    (re.compile(r"betriebsphase", re.IGNORECASE), ("operating_phase",)),
+    (re.compile(r"betriebsart", re.IGNORECASE), ("operating_mode",)),
+    (re.compile(r"betriebswahl", re.IGNORECASE), ("mode_selection",)),
+    (re.compile(r"kesseltemperatur ist", re.IGNORECASE), ("boiler_temperature",)),
+    (re.compile(r"kesselleistung", re.IGNORECASE), ("boiler_power",)),
+    (re.compile(r"aktueller brennstoff", re.IGNORECASE), ("fuel_current",)),
+    (re.compile(r"vorratsbeh", re.IGNORECASE), ("fuel_storage_status",)),
+    (re.compile(r"puffer oben", re.IGNORECASE), ("buffer_top",)),
+    (re.compile(r"puffer unten", re.IGNORECASE), ("buffer_bottom",)),
+    (re.compile(r"au(ß|ss)entemperatur", re.IGNORECASE), ("outdoor_temperature",)),
+    (re.compile(r"raumtemperatur ist", re.IGNORECASE), ("room_temperature",)),
+    (re.compile(r"raumtemperatur soll", re.IGNORECASE), ("room_temperature_target",)),
+    (re.compile(r"vorlauftemperatur ist", re.IGNORECASE), ("flow_temperature",)),
+    (re.compile(r"warmwasser", re.IGNORECASE), ("dhw_temperature",)),
+    (re.compile(r"heizkreispumpe", re.IGNORECASE), ("circuit_pump",)),
+    (re.compile(r"pumpe", re.IGNORECASE), ()),
+    (re.compile(r"temperatur ist", re.IGNORECASE), ()),
 )
 
 # Werte, die als Rundinstrument mehr sagen als eine Kachel.
-RUNDINSTRUMENT: tuple[tuple[re.Pattern, dict], ...] = (
+RUNDINSTRUMENT: tuple[tuple[re.Pattern, tuple[str, ...], dict], ...] = (
     (
         re.compile(r"kesseltemperatur ist", re.IGNORECASE),
+        ("boiler_temperature",),
         {"min": 0, "max": 95, "severity": {"green": 55, "yellow": 80, "red": 88}},
     ),
-    (re.compile(r"kesselleistung", re.IGNORECASE), {"min": 0, "max": 100}),
+    (re.compile(r"kesselleistung", re.IGNORECASE), ("boiler_power",), {"min": 0, "max": 100}),
     (
         re.compile(r"puffer oben", re.IGNORECASE),
+        ("buffer_top",),
         {"min": 0, "max": 95, "severity": {"green": 60, "yellow": 80, "red": 90}},
     ),
     (
         re.compile(r"puffer unten", re.IGNORECASE),
+        ("buffer_bottom",),
         {"min": 0, "max": 95, "severity": {"green": 40, "yellow": 70, "red": 85}},
     ),
 )
 
 # Wartungsansicht: Restlaufzeiten, Zähler, Brennstoff.
+#
+# Zu jeder Musterliste gehört eine Liste kanonischer Schlüssel. Sie steht
+# daneben statt darin, weil die Muster hier als Liste ausgewertet werden und
+# nicht Zeile für Zeile: Getroffen wird, was **eines** von beiden erfüllt.
 WARTUNG_RESTLAUFZEIT = _muster(r"laufzeit bis")
+WARTUNG_RESTLAUFZEIT_SCHLUESSEL = (
+    "maintenance_ash_hours",
+    "maintenance_cleaning_hours",
+    "maintenance_service_hours",
+)
 WARTUNG_WEITERE = _muster(
     r"vorratsbeh",
     r"aktueller brennstoff",
@@ -149,6 +162,14 @@ WARTUNG_WEITERE = _muster(
     r"betriebsstunden",
     r"brennerstarts",
     r"serviceausbrand",
+)
+WARTUNG_WEITERE_SCHLUESSEL = (
+    "fuel_storage_status",
+    "fuel_current",
+    "fuel_selected",
+    "cleaning_confirm",
+    "operating_hours",
+    "burner_starts",
 )
 
 # Schaubild-Ansicht: der Zustand der Anlage in Kurzform.
@@ -159,6 +180,15 @@ ZUSTAND = _muster(
     r"kesselleistung",
     r"aktueller brennstoff",
     r"vorratsbeh",
+)
+# „Meldung Klartext" hat keine Adresse: Der Text entsteht aus `FE01msg` und
+# steht in keiner Datenpunkttabelle. Dort bleibt es beim Namen.
+ZUSTAND_SCHLUESSEL = (
+    "operating_phase",
+    "outdoor_temperature",
+    "boiler_power",
+    "fuel_current",
+    "fuel_storage_status",
 )
 
 # Auswertung: was in einen Verlauf gehört.
@@ -172,6 +202,17 @@ VERLAUF = _muster(
     r"au(ß|ss)entemperatur",
     r"kesselleistung",
     r"r(ü|ue)cklauf temperatur",
+)
+VERLAUF_SCHLUESSEL = (
+    "boiler_temperature",
+    "flue_gas_temperature",
+    "buffer_top",
+    "buffer_bottom",
+    "flow_temperature",
+    "room_temperature",
+    "outdoor_temperature",
+    "boiler_power",
+    "return_temperature",
 )
 
 # Plattformen, die der Nutzer bedient statt nur abliest.
@@ -281,10 +322,10 @@ def _symbol(fct_type: Any) -> str:
         return SYMBOL_UNBEKANNT
 
 
-def _vorrang(name: str) -> int:
+def _vorrang(eintrag: dict) -> int:
     """Position eines Werts in der Übersicht; kleiner heißt weiter oben."""
-    for platz, muster in enumerate(UEBERSICHT_VORRANG):
-        if muster.search(name):
+    for platz, (muster, schluessel) in enumerate(UEBERSICHT_VORRANG):
+        if _trifft(eintrag, (muster,), *schluessel):
             return platz
     return len(UEBERSICHT_VORRANG)
 
@@ -496,8 +537,8 @@ def _karte(eintrag: dict[str, Any], rundinstrument: bool = False) -> dict[str, A
     if eintrag["bereich"] == "climate":
         return {"type": "thermostat", "entity": eintrag["entity_id"]}
     if rundinstrument:
-        for muster, form in RUNDINSTRUMENT:
-            if muster.search(eintrag["name"]):
+        for muster, schluessel, form in RUNDINSTRUMENT:
+            if _trifft(eintrag, (muster,), *schluessel):
                 return {
                     "type": "gauge",
                     "entity": eintrag["entity_id"],
@@ -576,7 +617,7 @@ def _uebersicht(anlagen: list[dict[str, Any]]) -> dict[str, Any]:
                 and e["hat_wert"]
                 and e["bereich"] not in ("button", "time", "date")
             ]
-            messwerte.sort(key=lambda e: (_vorrang(e["name"]), e["name"]))
+            messwerte.sort(key=lambda e: (_vorrang(e), e["name"]))
             abschnitte += _abschnitt(
                 _voller_name(anlage, teil),
                 [_karte(e, rundinstrument=True) for e in messwerte[:UEBERSICHT_MAX]],
@@ -614,7 +655,7 @@ def _anlagenbild(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
             e
             for teil in anlage["teile"]
             for e in teil["entitaeten"]
-            if e["hat_wert"] and _passt(e["name"], ZUSTAND)
+            if e["hat_wert"] and _trifft(e, ZUSTAND, *ZUSTAND_SCHLUESSEL)
         ]
         abschnitte += _abschnitt(
             "Zustand", [_karte(e) for e in zustand], "mdi:information-outline", stil="subtitle"
@@ -633,12 +674,13 @@ def _wartung(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
             restlaufzeit = [
                 e
                 for e in teil["entitaeten"]
-                if e["hat_wert"] and _passt(e["name"], WARTUNG_RESTLAUFZEIT)
+                if e["hat_wert"]
+                and _trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
             ]
             weitere = [
                 e
                 for e in teil["entitaeten"]
-                if e["hat_wert"] and _passt(e["name"], WARTUNG_WEITERE)
+                if e["hat_wert"] and _trifft(e, WARTUNG_WEITERE, *WARTUNG_WEITERE_SCHLUESSEL)
             ]
             if not restlaufzeit and not weitere:
                 continue
@@ -700,7 +742,9 @@ def _auswertung(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
             verlauf = [
                 e
                 for e in teil["entitaeten"]
-                if e["hat_wert"] and e["bereich"] == "sensor" and _passt(e["name"], VERLAUF)
+                if e["hat_wert"]
+                and e["bereich"] == "sensor"
+                and _trifft(e, VERLAUF, *VERLAUF_SCHLUESSEL)
             ]
             if not verlauf:
                 continue
