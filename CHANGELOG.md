@@ -18,6 +18,10 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Beschriftung „Warmwasser laden abbrechen" war auf dunklem Grund kaum zu
   lesen. Sie hebt sich jetzt ab und zeigt in eigener Farbe, dass ein Druck den
   laufenden Auftrag beendet.
+- Nach einem Druck blieb eine Taste bis zu dreiviertel Minuten gesperrt, wenn
+  die Anlage den Auftrag nicht übernahm — der Mauszeiger stand auf
+  „beschäftigt", weitere Drucke fielen wortlos weg. Die Sperre dauert jetzt nur
+  noch, solange der Befehl unterwegs ist.
 
 ### Geändert
 
