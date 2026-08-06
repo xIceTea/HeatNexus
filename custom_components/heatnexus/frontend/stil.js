@@ -562,6 +562,21 @@ export const STIL = `
   .taste .beschriftung { font-size: 13px; font-weight: 600; }
   .taste.an { border-color: rgba(111, 178, 245, 0.5); color: #6fb2f5; }
   .taste.an .beschriftung { text-shadow: 0 0 12px rgba(111, 178, 245, 0.6); }
+  /* Läuft die Ladung, bricht dieselbe Taste sie ab. Dafür fehlte die Regel:
+     Die Zeile erbte Farbe und Schein von „an", und beides zusammen – Blau auf
+     dunklem Grund, dazu ein Schein in derselben Farbe – ließ die Schrift
+     absacken, gerade dort, wo sie am deutlichsten sein muss. Warm statt blau
+     sagt außerdem, was ein Druck jetzt bewirkt: Es ist keine Bestätigung
+     mehr, sondern ein Gegenbefehl. */
+  .taste.abbrechen { border-color: rgba(255, 176, 122, 0.55); color: #ffc9a3; }
+  .taste.abbrechen .beschriftung { text-shadow: none; }
+  /* Zweimal rot aufblitzen, wenn die Anlage einen Eingriff gar nicht annimmt.
+     Der Grund steht klein darunter; ohne das Blitzen überliest man ihn. */
+  @keyframes taste-abgewiesen {
+    0%, 100% { border-color: rgba(255, 138, 128, 0.15); }
+    50% { border-color: #ff8a80; background: rgba(255, 138, 128, 0.12); }
+  }
+  .taste.blinkt { animation: taste-abgewiesen 0.6s ease-in-out 2; }
   .taste[disabled] { opacity: 0.6; cursor: progress; }
   select {
     width: 100%; padding: 9px 10px; border-radius: 10px;
