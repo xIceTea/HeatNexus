@@ -372,6 +372,14 @@ export const UebersichtMixin = (Basis) =>
     const gitter = document.createElement("div");
     gitter.className = "gitter";
 
+    // **Eine einzelne Taste nimmt die ganze Zeile.** Welche Tasten eine Anlage
+    // hergibt, entscheidet sie selbst: Am Kessel sind es Reinigung, Wartung
+    // und Serviceausbrand, an einem reinen Heizkreis bleibt „Warmwasser laden"
+    // allein übrig. Im zweispaltigen Raster stand sie dann als halbe Kachel
+    // neben einem leeren Platz.
+    const tasten = eintraege.filter((eintrag) => eintrag.entity.split(".")[0] !== "select");
+    const alleinstehend = tasten.length === 1;
+
     eintraege.forEach((eintrag) => {
       if (eintrag.entity.split(".")[0] === "select") {
         const huelle = this._auswahlFeld(eintrag.titel, eintrag.entity, eintrag.hilfe);
@@ -379,7 +387,9 @@ export const UebersichtMixin = (Basis) =>
         gitter.appendChild(huelle);
         return;
       }
-      gitter.appendChild(this._bedientaste(eintrag, false));
+      const taste = this._bedientaste(eintrag, false);
+      if (alleinstehend) taste.style.gridColumn = "1 / -1";
+      gitter.appendChild(taste);
     });
 
     karte.appendChild(gitter);
@@ -392,16 +402,23 @@ export const UebersichtMixin = (Basis) =>
     // Manche Bedienungen melden ihren Zustand woanders: Die Warmwasserladung
     // steht in der Betriebsart, ihr Auslöser fällt sofort zurück.
     const lautAnlage = () => {
-      // Die Ladepumpe ist der handfeste Beleg: Sie läuft, solange geladen
-      // wird. Die Betriebsart meldet je nach Baureihe andere Worte und an
-      // manchen Kreisen gar nichts.
-      if (eintrag.zustand_pumpe && this._istAn(eintrag.zustand_pumpe)) return true;
+      // **Die Betriebsart hat das letzte Wort.** Sie sagt, was die Anlage
+      // gerade tut. Die Ladepumpe ist nur ein Indiz: Sie **läuft nach**
+      // (`5/5` „Modus Ladepumpennachlauf") und drehte sich nach einem
+      // beendeten Auftrag noch minutenlang weiter. Solange sie hier vorne
+      // stand, meldete die Taste erneut „läuft", bot ein zweites Mal
+      // Abbrechen an – und der Nutzer brach eine Ladung ab, die es nicht
+      // mehr gab.
       if (eintrag.zustand_an) {
         const zustand = this._zustand(eintrag.zustand_an);
         if (zustand && !OHNE_WERT.includes(String(zustand.state).toLowerCase())) {
           return (eintrag.zustand_wenn || []).includes(zustand.state);
         }
       }
+      // Erst wenn die Betriebsart nichts hergibt, zählt die Pumpe. An einem
+      // Kreis mit nur einem zulässigen Wert (`allowed: [0]`) meldet die
+      // Betriebsart den Ladezustand gar nicht.
+      if (eintrag.zustand_pumpe && this._istAn(eintrag.zustand_pumpe)) return true;
       return this._istAn(eintrag.entity);
     };
     // Zwischen Druck und Antwort der Anlage liegt ein Abrufabstand. Bis dahin

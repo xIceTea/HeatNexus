@@ -247,6 +247,37 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
             self.coordinator.client.unregister_poll_oid(self._oid)
         await super().async_will_remove_from_hass()
 
+    async def async_update(self) -> None:
+        """Nur diesen einen Datenpunkt neu lesen.
+
+        `homeassistant.update_entity` landet über `CoordinatorEntity` sonst bei
+        `async_request_refresh` – und das ist ein **vollständiger** Durchlauf
+        über alle aktiven OIDs. Auf einer Anlage mit knapp zwei Sekunden
+        Antwortzeit dauert der zwanzig Sekunden und mehr.
+
+        Genau darauf wartet aber die Oberfläche, wenn sie nach einer Bedienung
+        nachfasst: Nach dem Beenden einer Warmwasserladung lief die Ladepumpe
+        im Schaubild weiter, obwohl die Anlage längst umgeschaltet hatte. Ein
+        gezielter Abruf braucht eine Anfrage.
+
+        Dieselbe Bauart benutzt das Thermostat schon für seinen Nachlade-Burst.
+        """
+        if not self._oid or self.coordinator.data is None:
+            await super().async_update()
+            return
+        try:
+            gelesen = await self.coordinator.client.fetch_oids([self._oid])
+        except Exception as err:
+            # Nachfassen ist eine Beschleunigung, keine Pflicht: Der reguläre
+            # Durchlauf holt den Wert ohnehin.
+            _LOGGER.debug("Gezieltes Nachlesen von %s fehlgeschlagen: %s", self._oid, err)
+            return
+        if not gelesen:
+            return
+        self.coordinator.data.setdefault("oids", {}).update(gelesen)
+        # Nur die Zuhörer wecken – kein zweiter Durchlauf durch die Anlage.
+        self.coordinator.async_update_listeners()
+
     @property
     def raw_value(self) -> str | None:
         """Raw string value of this entity's OID."""

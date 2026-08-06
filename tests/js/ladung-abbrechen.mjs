@@ -28,6 +28,7 @@ if (!klasse) throw new Error("Die Oberfläche hat kein Element angemeldet");
 const BETRIEBSWAHL = "select.betriebswahl";
 const AUSLOESER = "switch.ww_einmalladung";
 const BETRIEBSART = "sensor.betriebsart";
+const LADEPUMPE = "binary_sensor.ww_ladepumpe";
 
 /** Ein Panel mit nachgebildeten Zuständen und mitschreibendem Dienstaufruf. */
 function panelBauen({ laedt, optionen, betriebswahl = BETRIEBSWAHL }) {
@@ -46,6 +47,7 @@ function panelBauen({ laedt, optionen, betriebswahl = BETRIEBSWAHL }) {
         attributes: { options: optionen },
       },
       [AUSLOESER]: { entity_id: AUSLOESER, state: "off", attributes: {} },
+      [LADEPUMPE]: { entity_id: LADEPUMPE, state: laedt ? "on" : "off", attributes: {} },
     },
     callService: async (bereich, dienst, daten) => {
       gerufen.push({ bereich, dienst, daten });
@@ -60,6 +62,7 @@ function panelBauen({ laedt, optionen, betriebswahl = BETRIEBSWAHL }) {
     betriebswahl_zurueck: "^programm",
     zustand_an: BETRIEBSART,
     zustand_wenn: ["WW-Ladung", "Warmwasser Einmalladung"],
+    zustand_pumpe: LADEPUMPE,
   };
   const taste = element._bedientaste(eintrag, false);
   return { element, taste, gerufen };
@@ -245,6 +248,48 @@ const faelle = [];
     throw new Error("Taste blieb gesperrt, obwohl die Anlage bestaetigt hat");
   }
   faelle.push("bestaetigte Bedienung gibt die Taste sofort wieder frei");
+}
+
+// --- Die nachlaufende Ladepumpe ist keine laufende Ladung ------------------
+//
+// Der gemeldete Fehler: Nach dem Abbrechen schaltete die Anlage sofort um, die
+// Ladepumpe lief aber weiter (`5/5` Modus Ladepumpennachlauf). Weil die Pumpe
+// vor der Betriebsart abgefragt wurde, meldete die Taste wieder "laeuft" und
+// bot ein zweites Mal Abbrechen an - fuer eine Ladung, die es nicht mehr gab.
+{
+  const { element, taste } = panelBauen({
+    laedt: false,
+    optionen: ["Standby", "Programm 1", "WW-Betrieb"],
+  });
+  // Anlage: Heizbetrieb. Pumpe: laeuft noch nach.
+  element._hass.states[LADEPUMPE].state = "on";
+  element._bindungen.forEach((bindung) => bindung());
+
+  const beschriftung = taste.querySelector(".beschriftung").textContent;
+  if (beschriftung !== "Warmwasser laden") {
+    throw new Error(`Nachlaufende Pumpe gilt als Ladung: "${beschriftung}"`);
+  }
+  faelle.push("nachlaufende Pumpe gilt nicht als laufende Ladung");
+}
+
+// --- Ohne lesbare Betriebsart bleibt die Pumpe der Beleg -------------------
+//
+// An einem Kreis mit nur einem zulaessigen Wert meldet die Betriebsart den
+// Ladezustand gar nicht. Dann ist die Pumpe alles, was es gibt.
+{
+  const { element, taste } = panelBauen({
+    laedt: false,
+    optionen: ["Standby", "WW-Betrieb"],
+  });
+  element._hass.states[BETRIEBSART].state = "unavailable";
+  element._hass.states[LADEPUMPE].state = "on";
+  element._bindungen.forEach((bindung) => bindung());
+
+  const beschriftung = taste.querySelector(".beschriftung").textContent;
+  if (beschriftung !== "Warmwasser laden abbrechen") {
+    throw new Error(`Ohne Betriebsart zaehlt die Pumpe nicht: "${beschriftung}"`);
+  }
+  faelle.push("ohne lesbare Betriebsart bleibt die Pumpe der Beleg");
 }
 
 console.log(JSON.stringify({ faelle }, null, 1));

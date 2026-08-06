@@ -8,6 +8,50 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+## [1.5.0] - 2026-08-06
+
+Zeitprogramme lassen sich jetzt bedienen statt nur ablesen, die Anlage meldet
+sich, wenn etwas nicht stimmt, und der Abruf holt ganze Menü-Fenster statt
+einzelner Datenpunkte. Die Abschnitte der zehn Vorabversionen darunter führen
+jede Änderung einzeln auf; hier stehen die Neuerungen gegenüber 1.4.2.
+
+> **Diese Fassung setzt Home Assistant 2025.6 oder neuer voraus.** Die
+> Anmeldung an der Anlage übernimmt Home Assistants eigene HTTP-Bibliothek;
+> die dafür nötige Fassung liegt ab 2025.6 bei.
+
+### Neu
+
+- **Zeitprogramme bedienen.** Eigener Reiter, Wochenraster, Editor. Das
+  Programm öffnet sich zum Lesen — die Zeiten stehen als *von – bis* wie im
+  Bediengerät —, und *Bearbeiten* holt die Startpunkte.
+- **Meldungsliste je Anlage** und eine Geräteseite, die sagt, was das Gerät ist.
+- **Automations-Vorlage Legionellenschutz nachbilden** für Regler ohne eigene
+  Legionellenschutzfunktion.
+- Einschalthysterese und Ladetemperatur der Warmwasserladung sind in der
+  Steuerung einstellbar.
+- Der Puffer zeigt seine Schichtung, das Schaubild folgt dem Erscheinungsbild.
+- Probleme melden sich in den Reparaturen, statt still zu bleiben.
+- `heatnexus.rediscover` sagt, was dabei herausgekommen ist.
+
+### Geändert
+
+- Der Abruf holt Menü-Fenster statt einzelner Datenpunkte — deutlich weniger
+  Anfragen an die Anlage.
+- Uhrzeiten und Datumsfelder werden nicht mehr von selbst angelegt.
+- Bei Störungen wird langsamer gefragt, statt die Anlage im gleichen Takt
+  weiter zu belasten.
+
+### Behoben
+
+- Nach einem Neustart oder einem *Neu einlesen* standen alle Entitäten still
+  und die Anlage zeigte keinen einzigen Wert mehr.
+- *Warmwasser laden abbrechen* wirkte erst beim zweiten Druck, zeigte den
+  Druck erst beim nächsten Abruf und hielt die nachlaufende Ladepumpe für eine
+  laufende Ladung.
+- Die Integration ließ sich unter Home Assistant 2026.7 nicht mehr laden.
+- „wird ausgeführt …" blieb für immer stehen.
+- Das Pumpen-/Relaismodul zeigte eine Wärmeanforderung, wo es nie eine gibt.
+
 ## [1.5.0-beta.10] - 2026-08-06
 
 Vorabversion.

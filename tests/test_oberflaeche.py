@@ -350,3 +350,18 @@ def test_der_druck_wirkt_sofort_und_sperrt_die_taste(abbruch):
 def test_die_bestaetigung_gibt_die_taste_wieder_frei(abbruch):
     """Sonst bliebe sie nach jeder Bedienung eine dreiviertel Minute tot."""
     assert "bestaetigte Bedienung gibt die Taste sofort wieder frei" in abbruch["faelle"]
+
+
+def test_die_nachlaufende_ladepumpe_ist_keine_ladung(abbruch):
+    """`5/5` „Modus Ladepumpennachlauf" – die Pumpe dreht nach dem Auftrag weiter.
+
+    Stand sie vor der Betriebsart, meldete die Taste nach einem Abbruch wieder
+    „läuft" und bot ein zweites Mal Abbrechen an – für eine Ladung, die es
+    nicht mehr gab. Genau so war es gemeldet.
+    """
+    assert "nachlaufende Pumpe gilt nicht als laufende Ladung" in abbruch["faelle"]
+
+
+def test_ohne_betriebsart_zaehlt_weiter_die_pumpe(abbruch):
+    """Die Gegenprobe: An manchen Kreisen meldet die Betriebsart gar nichts."""
+    assert "ohne lesbare Betriebsart bleibt die Pumpe der Beleg" in abbruch["faelle"]
