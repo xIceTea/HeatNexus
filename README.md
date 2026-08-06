@@ -26,14 +26,17 @@ einschließlich Info-, Betreiber- und Serviceebene.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/anlagenschema_beispiel.svg">
-    <img src="assets/anlagenschema_beispiel_hell.svg" alt="Anlagenschaubild mit Kessel, Puffer, Heizkreis und Zirkulation" width="820">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/anlagenschema_animation.gif">
+    <img src="assets/anlagenschema_animation_hell.gif" alt="Anlagenschaubild in Bewegung: Kessel startet, Puffer lädt, Heizkreis und Warmwasser werden warm" width="820">
   </picture>
 </p>
 
 <p align="center">
   <em>Das Anlagenschaubild wird aus den erkannten Anlagenteilen zusammengesetzt –
-  wer zwei Puffer hat, sieht zwei. Beispielwerte.</em>
+  wer zwei Puffer hat, sieht zwei. Es steht nicht still: Die Pumpen drehen sich,
+  die Bänder auf Vor- und Rücklauf zeigen die Förderrichtung, der Puffer meldet
+  „lädt“ und „entlädt“, Speicher und Heizkörper färben sich nach ihren Fühlern.
+  Beispielwerte.</em>
 </p>
 
 <p align="center">

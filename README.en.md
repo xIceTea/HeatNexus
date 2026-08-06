@@ -32,14 +32,16 @@ decide whether the integration fits before you install it.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/anlagenschema_beispiel.svg">
-    <img src="assets/anlagenschema_beispiel_hell.svg" alt="Plant diagram with boiler, buffer tank, heating circuit and circulation" width="820">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/anlagenschema_animation.gif">
+    <img src="assets/anlagenschema_animation_hell.gif" alt="Animated plant diagram: boiler starts, buffer charges, heating circuit and hot water warm up" width="820">
   </picture>
 </p>
 
 <p align="center">
   <em>The plant diagram is assembled from the parts that were discovered —
-  two buffer tanks give you two. Example values.</em>
+  two buffer tanks give you two. And it moves: pumps spin, the bands on flow and
+  return show the direction, the buffer reports “charging” and “discharging”,
+  tanks and radiators take the colour of their sensors. Example values.</em>
 </p>
 
 <p align="center">

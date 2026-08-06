@@ -100,6 +100,33 @@ Umfangs-Fingerabdruck, ein Wechsel liest die Anlage also nicht neu ein.
 
 `schema.py` importiert nichts aus Home Assistant und ist ohne HA testbar.
 
+Die Bewegung steckt **nicht** in der Zeichnung: Sie liegt als eigene Ebene
+darüber (`frontend/teile/schaubild.js` mit den Regeln aus `frontend/stil.js`) –
+strömende Bänder auf den Leitungen, drehende Pumpen, das Glutbett nach
+Kesselleistung, die Schichtung des Puffers zwischen seinen beiden Fühlern.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="../assets/anlagenschema_beispiel.svg">
+    <img src="../assets/anlagenschema_beispiel_hell.svg" alt="Anlagenschaubild als Standbild" width="760">
+  </picture>
+</p>
+
+Die Bilder für README und Dokumentation entstehen aus derselben Quelle wie das
+Schaubild der Anlage, nicht von Hand:
+
+| Werkzeug | Ergebnis |
+|---|---|
+| `tools/build_schaubild_beispiel.py` | Standbild je Farbsatz (`assets/anlagenschema_beispiel*.svg`) |
+| `tools/build_schaubild_animation.py` | Bewegtbild je Farbsatz (`assets/anlagenschema_animation*.gif`) |
+
+Beide beschreiben dieselbe Beispielanlage (`tools/beispielanlage.py`). Das
+Bewegtbild hält die Bewegung der Oberfläche an und stellt sie Bild für Bild
+weiter (`animation-delay` plus `animation-play-state: paused`); aufgenommen
+wird mit einem kopflosen Browser, zusammengelegt mit Pillow. Es benutzt dabei
+**dasselbe Stylesheet** wie die Oberfläche – ändert sich dort die Bewegung,
+ändert sie sich beim nächsten Lauf im Bild mit.
+
 ## Automations-Vorlagen
 
 `blueprints.py` legt die mitgelieferten Vorlagen aus
