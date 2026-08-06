@@ -426,6 +426,7 @@ FCT_BOILER_SWITCH = 15  # Umschaltung Automatikkessel/Festbrennstoff/Puffer
 FCT_BUFFER = 16  # B-PLMi Pufferspeicher
 FCT_ZSP = 20  # ZSP Pumpen-/Relaismodul (Pumpe, ext. Wärmeanforderung, Sammelalarm)
 FCT_PUROWIN = 25  # PuroWIN Hackgutkessel
+FCT_BIOWIN = 9  # BioWIN Pelletskessel
 
 # Legacy names kept for compatibility
 CLIMATE_FUNCTION_TYPE = FCT_CLIMATE
@@ -1029,8 +1030,108 @@ ZSP_ENTITIES = [
 ]
 
 # fctType -> entity definition table
+# ---------------------------------------------------------------------------
+# BioWIN Pelletskessel (fctType 9)
+#
+# **Ohne eigene Hardware zusammengestellt – aber nicht geraten.** Jeder
+# Datenpunkt hier ist doppelt belegt:
+#
+# 1. Er steht in der `overview`-Ebene, die Windhager selbst in
+#    `parameterLayer.json` für `default/9` führt – die Herstellerantwort auf
+#    „was gehört auf die Titelseite des Kessels".
+# 2. Er wird von einem öffentlichen BioWIN-II-Projekt an einer laufenden
+#    Anlage tatsächlich abgefragt (siehe `_intern/research/biowin/`).
+#
+# Beide Listen decken sich bis auf die Reihenfolge. Was nur in einer von
+# beiden steht, ist hier nicht aufgenommen.
+#
+# Der Unterschied zum PuroWIN steckt in den Wartungszählern: Der BioWIN führt
+# sie unter `20/61..20/63`, der PuroWIN unter `39/91..39/93`. Wer das
+# verwechselt, bekommt an beiden Anlagen leere Zeilen.
+#
+# Einheiten bleiben beim Brennstoffverbrauch bewusst offen: Die Anlage meldet
+# sie selbst (kg oder t), und `helpers.messgroesse` macht daraus den
+# Zählerstand. Ein fest eingetragener Wert wäre eine Behauptung über eine
+# Anlage, die hier niemand hat.
+# ---------------------------------------------------------------------------
+BIOWIN_ENTITIES = [
+    # --- Titelbild / Infoebene (read only) ---
+    {"oid": "/0/7/0", "name": "Kesseltemperatur Ist", "platform": "temperature"},
+    {"oid": "/1/7/0", "name": "Kesseltemperatur Soll", "platform": "temperature"},
+    {
+        "oid": "/0/9/0",
+        "name": "Kesselleistung",
+        "platform": "sensor",
+        "unit": "%",
+        "state_class": "measurement",
+    },
+    {"oid": "/0/11/0", "name": "Abgastemperatur", "platform": "temperature"},
+    {"oid": "/2/1/0", "name": "Betriebsphase", "platform": "enum_sensor", "enum": "2/1"},
+    {"oid": "/2/59/0", "name": "Betriebsart", "platform": "enum_sensor", "enum": "2/59"},
+    {
+        "oid": "/2/80/0",
+        "name": "Brennerstarts",
+        "platform": "sensor",
+        "state_class": "total_increasing",
+    },
+    {
+        "oid": "/2/81/0",
+        "name": "Betriebsstunden",
+        "platform": "sensor",
+        "unit": "h",
+        "state_class": "total_increasing",
+    },
+    {
+        "oid": "/0/22/0",
+        "name": "Pumpensteuerung Drehzahl",
+        "platform": "sensor",
+        "unit": "%",
+        "state_class": "measurement",
+    },
+    # Restlaufzeiten: "measurement" wie beim PuroWIN – nur so entsteht ein
+    # Langzeitverlauf, aus dem sich ablesen lässt, wann zuletzt gereinigt
+    # wurde. Die Adressen sind die des BioWIN, nicht die des PuroWIN.
+    {
+        "oid": "/20/61/0",
+        "name": "Laufzeit bis Reinigung",
+        "platform": "sensor",
+        "unit": "h",
+        "state_class": "measurement",
+        "icon": "mdi:broom",
+    },
+    {
+        "oid": "/20/62/0",
+        "name": "Laufzeit bis Hauptreinigung",
+        "platform": "sensor",
+        "unit": "h",
+        "state_class": "measurement",
+        "icon": "mdi:broom",
+    },
+    {
+        "oid": "/20/63/0",
+        "name": "Laufzeit bis Wartung",
+        "platform": "sensor",
+        "unit": "h",
+        "state_class": "measurement",
+        "icon": "mdi:wrench-clock",
+    },
+    {
+        "oid": "/23/100/0",
+        "name": "Brennstoffverbrauch seit Befüllung",
+        "platform": "sensor",
+        "icon": "mdi:sack",
+    },
+    {
+        "oid": "/23/103/0",
+        "name": "Brennstoffverbrauch gesamt",
+        "platform": "sensor",
+        "icon": "mdi:sack",
+    },
+]
+
 FCT_ENTITY_MAP = {
     FCT_PUROWIN: PUROWIN_ENTITIES,
+    FCT_BIOWIN: BIOWIN_ENTITIES,
     FCT_CLIMATE: CLIMATE_EXTRA_ENTITIES,
     FCT_BUFFER: BUFFER_ENTITIES,
     FCT_ZSP: ZSP_ENTITIES,

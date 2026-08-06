@@ -45,7 +45,10 @@ KENNWERT_JE_FCT: dict[int, tuple[Zeile, ...]] = {
     20: (  # ZSP Pumpen-/Relaismodul
         (ANALOG_SOLLWERT, "Anforderung", "mdi:thermometer-alert", ("analog_setpoint",)),
     ),
-    25: (  # Kessel
+    25: (  # PuroWIN Hackgutkessel
+        (r"kesseltemperatur ist", "Kesseltemperatur", "mdi:fire", ("boiler_temperature",)),
+    ),
+    9: (  # BioWIN Pelletskessel – derselbe Leitwert, andere Baureihe
         (r"kesseltemperatur ist", "Kesseltemperatur", "mdi:fire", ("boiler_temperature",)),
     ),
 }
@@ -82,6 +85,14 @@ STATUS: tuple[Zeile, ...] = (
         "Bis Ascheentleerung",
         "mdi:delete-clock-outline",
         ("maintenance_ash_hours",),
+    ),
+    # Der BioWIN kennt keine Aschetonne, aber eine Reinigung. Die Zeile
+    # erscheint nur, wo es den Datenpunkt gibt – am PuroWIN bleibt sie weg.
+    (
+        r"laufzeit bis reinigung",
+        "Bis Reinigung",
+        "mdi:broom",
+        ("maintenance_cleaning_hours",),
     ),
 )
 

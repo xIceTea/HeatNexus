@@ -50,10 +50,17 @@ KANONISCH: dict[str, str] = {
     "38/126": "fuel_selected",
     "38/127": "fuel_current",
     "39/76": "fuel_storage_status",
-    # Wartungszähler: Restlaufzeiten bis zur nächsten fälligen Arbeit.
+    # Wartungszähler: Restlaufzeiten bis zur nächsten fälligen Arbeit. Die
+    # Baureihen führen sie an verschiedenen Adressen – der PuroWIN unter
+    # `39/9x`, der BioWIN unter `20/6x`. Hauptreinigung und Wartung sind
+    # dieselbe Arbeit und bekommen denselben Schlüssel; „Asche entleeren"
+    # (PuroWIN) und „Reinigung" (BioWIN) sind zwei verschiedene.
     "39/91": "maintenance_ash_hours",
-    "39/92": "maintenance_cleaning_hours",
+    "39/92": "maintenance_main_cleaning_hours",
     "39/93": "maintenance_service_hours",
+    "20/61": "maintenance_cleaning_hours",
+    "20/62": "maintenance_main_cleaning_hours",
+    "20/63": "maintenance_service_hours",
     "39/94": "cleaning_confirm",
     # Heizkreis
     "0/0": "outdoor_temperature",

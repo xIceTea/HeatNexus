@@ -152,6 +152,7 @@ WARTUNG_RESTLAUFZEIT = _muster(r"laufzeit bis")
 WARTUNG_RESTLAUFZEIT_SCHLUESSEL = (
     "maintenance_ash_hours",
     "maintenance_cleaning_hours",
+    "maintenance_main_cleaning_hours",
     "maintenance_service_hours",
 )
 WARTUNG_WEITERE = _muster(

@@ -113,7 +113,13 @@ def test_ein_schluessel_gilt_nur_dort_mehrfach_wo_es_begruendet_ist(kanonisch):
     einen weiteren Schlüssel doppelt vergibt, muss ihn hier eintragen und
     begründen; genau das soll auffallen.
     """
-    mehrfach = {"buffer_top", "buffer_bottom"}
+    mehrfach = {
+        "buffer_top",
+        "buffer_bottom",
+        # PuroWIN `39/92`/`39/93`, BioWIN `20/62`/`20/63` – dieselbe Arbeit.
+        "maintenance_main_cleaning_hours",
+        "maintenance_service_hours",
+    }
     werte = [w for w in kanonisch.KANONISCH.values() if w not in mehrfach]
     doppelt = sorted({w for w in werte if werte.count(w) > 1})
     assert doppelt == [], f"doppelt vergeben: {doppelt}"
