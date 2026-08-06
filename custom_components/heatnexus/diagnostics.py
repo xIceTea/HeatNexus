@@ -15,9 +15,9 @@ from .const import DOMAIN
 #
 # `alt_id` und `alt_device_id` sind die früheren, **adressgebundenen**
 # Kennungen (`192-168-178-100-1-60-0-0-7-0`). Sie tragen die Adresse in
-# Bindestrichform, und die erkennt kein Muster, das nach Punkten sucht – so
-# stand sie bis 1.5.0-beta.4 in jeder Zeile des Exports. Zur Fehlersuche sind
-# sie ohnehin wertlos: Sie existieren allein für `migration.py`.
+# Bindestrichform, und die erkennt kein Muster, das nach Punkten sucht. Zur
+# Fehlersuche sind sie ohnehin wertlos: Sie existieren allein für
+# `migration.py`.
 ZU_SCHWAERZEN = {"password", "host", "neuronId", "programId", "alt_id", "alt_device_id"}
 
 # IPv4-Adresse als ganzer Wert bzw. irgendwo im Text.

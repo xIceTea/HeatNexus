@@ -126,9 +126,8 @@ export const UebersichtMixin = (Basis) =>
     this._bindungen.push(() => {
       // Werte, die nur über null etwas bedeuten – die Wärmeanforderung des
       // Pumpen-/Relaismoduls. Liegt keine an, steht dort ein Strich statt
-      // einer Zahl; das Anlagenteil bleibt sichtbar. Bis 1.5.0-beta.9
-      // verschwand die Zeile stattdessen ganz, und mit ihr das Anlagenteil
-      // aus der Liste.
+      // einer Zahl. Die Zeile verschwinden zu lassen nähme das Anlagenteil
+      // ganz aus der Liste.
       const zahl = ersatzUnterNull ? this._zahl(entity) : null;
       const ohneAnforderung = ersatzUnterNull && !(zahl !== null && zahl > 0);
       wert.textContent = ohneAnforderung ? ersatzUnterNull : this._text(entity);
@@ -297,8 +296,8 @@ export const UebersichtMixin = (Basis) =>
   /**
    * Der Systemstatus – **ohne** die Störungskarte.
    *
-   * Beide standen bis 1.2.0-beta.4 in einer gemeinsamen Hülle. In einer Spalte
-   * wären sie damit ein einziger Block und könnten nicht getrennt aufrücken.
+   * In einer gemeinsamen Hülle wären beide in einer Spalte ein einziger
+   * Block und könnten nicht getrennt aufrücken.
    *
    * Kein dritter Störungshinweis: Derselbe Zustand steht in der
    * Anlagenübersicht („Anlage in Ordnung") und in der Störungskarte.
@@ -448,12 +447,10 @@ export const UebersichtMixin = (Basis) =>
     taste.addEventListener("click", async () => {
       if (taste.disabled) return;
       // **Läuft die Ladung, bricht dieselbe Taste sie ab – und tut sonst
-      // nichts.** Bis 1.5.0 hing diese Bedingung zusätzlich an der
-      // Betriebswahl und ihrem Rückkehrmuster. Fehlte eines von beiden, fiel
-      // der Druck durch bis zum Auslöser und startete die Ladung **noch
-      // einmal**. Von außen sah das aus, als passierte gar nichts: „lädt
-      // gerade" stand sofort wieder da, ohne Rückfrage, ohne Meldung. Genau
-      // so war es gemeldet worden.
+      // nichts.** Die Bedingung darf nicht zusätzlich an der Betriebswahl
+      // hängen: Fehlt die, fällt der Druck durch bis zum Auslöser und startet
+      // die Ladung **noch einmal**. Von außen sieht das aus, als passiere gar
+      // nichts – „lädt gerade" steht sofort wieder da.
       if (laeuft()) {
         await this._ladungAbbrechen(eintrag, taste, rueckmeldung);
         return;
@@ -618,10 +615,9 @@ export const UebersichtMixin = (Basis) =>
     // **Denselben Wert noch einmal zu schreiben ändert an der Anlage nichts.**
     // Ist der Zustand von vor der Ladung unbekannt – Seite neu geladen, oder
     // am Gerät gestartet –, fällt `_rueckkehrWahl` auf die *aktuelle*
-    // Betriebswahl zurück. Bis 1.5.0-beta.10 war das der ganze Abbruch: ein
-    // Schreibvorgang ohne Wirkung. Die Ladung lief weiter, „wird ausgeführt …"
-    // stand daneben, und erst ein zweiter Druck tat etwas. Genau so war es
-    // gemeldet.
+    // Betriebswahl zurück. Als alleiniger Abbruch wäre das ein Schreibvorgang
+    // ohne Wirkung: Die Ladung liefe weiter und „wird ausgeführt …" stünde
+    // daneben, bis jemand ein zweites Mal drückt.
     const wahlWirkt = !!ziel && !(steht && steht.state === ziel);
 
     if (!ausloeser && !eintrag.betriebswahl) {
@@ -678,12 +674,11 @@ export const UebersichtMixin = (Basis) =>
   _rueckkehrWahl(eintrag) {
     const gemerkt = this._wahlVorLadung[eintrag.betriebswahl];
     if (gemerkt) return gemerkt;
-    // **Nie ein Programm raten.** Bis 1.5.0-beta.5 suchte diese Stelle den
-    // ersten Eintrag, der wie ein Zeitprogramm aussah. Das ging genau so
-    // lange gut, bis jemand ein zweites Mal drückte: Der gemerkte Zustand war
-    // schon verbraucht, die Ladung nach dem ersten Druck noch als laufend
-    // gemeldet – und die Taste stellte die Anlage kommentarlos auf
-    // „Heizprogramm 1", das der Nutzer nie gewählt hatte.
+    // **Nie ein Programm raten.** Den ersten Eintrag zu nehmen, der wie ein
+    // Zeitprogramm aussieht, geht bis zum zweiten Druck gut: Dann ist der
+    // gemerkte Zustand verbraucht, die Ladung aber noch als laufend gemeldet –
+    // und die Taste stellte die Anlage kommentarlos auf ein Programm, das
+    // niemand gewählt hat.
     //
     // Ist der Zustand von vor der Ladung unbekannt, wird stattdessen die
     // **aktuelle** Betriebswahl erneut geschrieben. Sie ist die dauerhafte

@@ -103,10 +103,10 @@ def panel_js_pfad(version: str) -> str:
 def panel_verzeichnis(version: str) -> str:
     """Adresse des Ordners, in dem die Oberflächendateien liegen.
 
-    Ausgeliefert wird seit 1.5.0 der ganze Ordner, nicht mehr die eine Datei:
-    Die Oberfläche besteht aus mehreren ES-Modulen, die einander über relative
+    Ausgeliefert wird der ganze Ordner, nicht die einzelne Datei: Die
+    Oberfläche besteht aus mehreren ES-Modulen, die einander über relative
     Adressen laden (``./stil.js``). Die Fassung bleibt im Pfad – aus demselben
-    Grund wie zuvor.
+    Grund wie bei der Datei.
     """
     return f"/heatnexus-frontend/{panel_fassung(version)}"
 
@@ -447,11 +447,10 @@ HEATER_FUNCTION_TYPE = 9
 # Auswahltabellen, die von der Geräte-Datenbank abweichen
 #
 # **Normalerweise steht hier nichts.** Die Tabellen kommen aus
-# `device_db.json`, erzeugt aus den offiziellen Windhager-Dateien; sie decken
-# 167 Datenpunkte ab. Bis 1.5.0 standen dreizehn davon zusätzlich hier – Wort
-# für Wort dieselben, nur eben von Hand gepflegt. Zwei Quellen für dieselbe
-# Auskunft laufen irgendwann auseinander, und welche dann gilt, sieht man dem
-# Code nicht an.
+# `device_db.json`, erzeugt aus den offiziellen Windhager-Dateien. Eine
+# Tabelle zusätzlich von Hand hier zu führen heißt zwei Quellen für dieselbe
+# Auskunft; die laufen irgendwann auseinander, und welche dann gilt, sieht man
+# dem Code nicht an.
 #
 # Was hier einzutragen ist: eine Tabelle, deren Text an der **echten Anlage**
 # nachweislich anders lautet als in der Herstellerdatei. Sie geht der
@@ -563,7 +562,7 @@ PUROWIN_ENTITIES = [
     },
     # --- Betreiberebene (operate, schreibbar) ---
     # „Reinigung bestätigen" gibt es weiter unten als einzelne Tasten je Arbeit
-    # statt als Auswahlliste – die Liste stand hier bis 1.1.0-beta.5.
+    # statt als Auswahlliste.
     {
         "oid": "/39/57/0",
         "name": "Aschetonne entleeren",
@@ -1057,9 +1056,9 @@ BUFFER_ENTITIES = [
 
 # Die Namen sind die des Herstellers. `0/7` heißt bei fctType 20
 # „Kesseltemperatur" – gemeint ist der eigene Fühlereingang des Moduls, nicht
-# der Kessel im Heizhaus. Bis 1.3.0-beta.2 stand hier „Temperatur Ist"; das war
-# kürzer, verschwieg aber, worum es geht, und war in keiner Unterlage
-# nachschlagbar. Was der Fühler misst, erklärt der Hilfetext in `panel.py`.
+# der Kessel dahinter. Ein kürzeres „Temperatur Ist" verschwiege, worum es
+# geht, und wäre in keiner Unterlage nachschlagbar. Was der Fühler misst,
+# erklärt der Hilfetext in `panel.py`.
 ZSP_ENTITIES = [
     {"oid": "/0/7/0", "name": "Kesseltemperatur", "platform": "temperature"},
     {"oid": "/1/7/0", "name": "Kesseltemperatur Soll", "platform": "temperature"},
@@ -1083,7 +1082,7 @@ ZSP_ENTITIES = [
 #    `parameterLayer.json` für `default/9` führt – die Herstellerantwort auf
 #    „was gehört auf die Titelseite des Kessels".
 # 2. Er wird von einem öffentlichen BioWIN-II-Projekt an einer laufenden
-#    Anlage tatsächlich abgefragt (siehe `_intern/research/biowin/`).
+#    Anlage tatsächlich abgefragt.
 #
 # Beide Listen decken sich bis auf die Reihenfolge. Was nur in einer von
 # beiden steht, ist hier nicht aufgenommen.

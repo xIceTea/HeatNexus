@@ -384,9 +384,8 @@ def test_unbekannte_kesselart_faellt_auf_die_neutrale_zeichnung(schema):
 # ---------------------------------------------------------------------------
 # Funktionstypen
 #
-# Bis 1.2.0 waren fünf Zuordnungen falsch, weil sie aus Namen abgeleitet waren
-# statt aus der Parameterliste des Herstellers. Der Beleg für jede Zeile steht
-# in `_intern/HERSTELLER-REFERENZ.md` 5.3; hier wird er festgehalten, damit ihn
+# Aus Namen abgeleitet gerät die Zuordnung falsch; sie stammt aus der
+# Parameterliste des Herstellers. Hier wird sie festgehalten, damit sie
 # niemand versehentlich zurückdreht.
 # ---------------------------------------------------------------------------
 def test_funktionstypen_stimmen_mit_der_parameterliste_ueberein(schema):

@@ -27,7 +27,7 @@ Die Adressen sind gegen `device_db.json` geprüft, nicht abgeschrieben.
 
 from __future__ import annotations
 
-# gn/mn -> kanonischer Schlüssel. Herkunft: `_intern/NAMING-MODEL.md`, Abschnitt 4.
+# gn/mn -> kanonischer Schlüssel.
 #
 # **Was hier bewusst fehlt.** Zu allgemein benannte Adressen bleiben draußen,
 # auch wenn ein Muster sie gebrauchen könnte: `2/16` heißt in der
@@ -78,7 +78,7 @@ KANONISCH: dict[str, str] = {
     "1/66": "dhw_charge_pump",
     # Zirkulation: `1/65` meldet, ob die Pumpe läuft, `5/6` wonach sie sich
     # richtet (Aus, Zeit-, Temperatur-, Impulssteuerung, EIN). Zwei Begriffe,
-    # zwei Schlüssel – bis 1.5.0-beta.4 trug der Modus den Namen der Pumpe.
+    # zwei Schlüssel – sonst trägt der Modus den Namen der Pumpe.
     "1/65": "dhw_circulation_pump",
     "5/6": "dhw_circulation_mode",
     # Zwei Zirkulationsprogramme, in der Herstellerdatei **wortgleich**

@@ -35,8 +35,8 @@ import urllib.request
 
 # Zugang ab Werk. Die Steuerung kennt zwei: `USER` sieht Info- und
 # Betreiberebene, `Service` zusätzlich die Fachparameter. Welcher gilt,
-# entscheidet `--user`; fest eingebaut war er bis 1.4.2, und damit blieb
-# alles unsichtbar, was Service verlangt.
+# entscheidet `--user` – fest eingebaut bliebe unsichtbar, was `Service`
+# verlangt.
 USERNAME = "USER"
 TIMEOUT = 30  # große Menü-Ebenen brauchen deutlich länger als eine Einzelabfrage
 DEFAULT_WORKERS = 3  # mehr Parallelität quittieren die Geräte mit Abbrüchen
@@ -582,12 +582,10 @@ def nv_bewerten(snvt: str | None, wert: str | None) -> str:
 def suche_nv_werte(probe: Probe, menus: dict) -> dict:
     """Jeden LON-Eintrag lesen und einordnen.
 
-    **Ohne Stichprobe.** Bis 1.5.0 gab es dafür einen Schalter `--alle`, und
-    die Vorgabe war eine Stichprobe je Datentyp. Das war richtig, solange die
-    Adressform unklar war – sie ist geklärt. Geblieben wäre nur eine
-    Fehlerquelle: Der geführte Modus reichte den Schalter nicht durch, und
-    dreimal hintereinander stand hinterher dieselbe Stichprobe in der Datei,
-    obwohl der Vollabzug gemeint war.
+    **Ohne Stichprobe.** Eine Stichprobe je Datentyp war richtig, solange die
+    Adressform unklar war – sie ist geklärt. Ein Schalter dafür wäre nur noch
+    eine Fehlerquelle: Wird er im geführten Modus nicht durchgereicht, steht
+    hinterher eine Stichprobe in der Datei, obwohl der Vollabzug gemeint war.
     """
     ziele = [
         (fct, eintrag)

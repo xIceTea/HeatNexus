@@ -240,11 +240,9 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
     def _optimistisch_gueltig(self, seit: float) -> bool:
         """Ob eine optimistische Anzeige noch gelten darf.
 
-        **Zeit statt Takt.** Bis 1.5.0 wurde der Ablauf nur in
-        `_handle_coordinator_update` geprüft – also nur, wenn der Coordinator
-        die Zuhörer benachrichtigt. Seit der Coordinator unveränderte Daten
-        stillschweigend verwirft (`always_update=False`), gibt es diesen Takt
-        nicht mehr zwangsläufig: Nimmt die Anlage einen Schreibvorgang nicht
+        **Zeit statt Takt.** Der Coordinator verwirft unveränderte Daten
+        stillschweigend (`always_update=False`); auf seine Benachrichtigung ist
+        deshalb kein Verlass. Nimmt die Anlage einen Schreibvorgang nicht
         an, ändert sich nichts, es feuert nichts, und die optimistische
         Anzeige bliebe für immer stehen. Genau der Fall, den die Zeitgrenze
         abfangen soll.
@@ -394,23 +392,20 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         3/51 ("Heizbetrieb") ist NICHT der aktive Sollwert (blieb in der Probe
         konstant) – das war der Fehler in v0.6.2.
 
-        **Eco und Comfort gehen denselben Weg.** Bis 1.3.1 schrieben die beiden
-        Tasten der Oberfläche `3/4` und `2/10` als Zahlenwerte direkt an der
-        Klimaentität vorbei. Damit fehlte ihnen genau das, was hier darunter
-        steht: die Umschaltung aus einem Aus-Modus. Im WW-Betrieb setzte die
-        Anlage daraufhin nur den Timer, nicht die Temperatur – es lief eine
-        Vorgabe, aber keine Wärmeanforderung, und die Rückmeldung wartete auf
-        eine Bestätigung, die nie kam.
+        **Eco und Comfort gehen denselben Weg.** Sie schreiben nicht `3/4` und
+        `2/10` an der Klimaentität vorbei, sondern hier hindurch – sonst fehlte
+        ihnen die Umschaltung aus einem Aus-Modus, und die Anlage setzte im
+        WW-Betrieb nur den Timer statt der Temperatur.
 
         Hinweis: Ohne angeschlossenen Raumfühler regelt die Anlage über die
         Heizkurve; der Override verschiebt den Raum-Sollwert befristet, eine
         echte Raumtemperaturregelung ist ohne Fühler aber nicht möglich.
         """
         # Im Aus/WW-Betrieb ist der Heizkreis aus: Das Gerät setzt dann nur den
-        # Timer und übernimmt die Temperatur nicht. Bis 1.3.1 wurde der Versuch
-        # deshalb abgelehnt – nur hilft das niemandem, der aus dem WW-Betrieb
-        # heraus kurz heizen will. Stattdessen wird für die Dauer der Vorgabe
-        # in ein Heizprogramm geschaltet und danach zurückgesprungen.
+        # Timer und übernimmt die Temperatur nicht. Den Versuch abzulehnen hilft
+        # niemandem, der aus dem WW-Betrieb heraus kurz heizen will – deshalb
+        # wird für die Dauer der Vorgabe in ein Heizprogramm geschaltet und
+        # danach zurückgesprungen.
         mode = self.raw_selected_mode()
         if mode is None:
             raise WindhagerValueError(

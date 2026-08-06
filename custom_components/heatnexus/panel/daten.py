@@ -137,15 +137,14 @@ def _warmwasser(entitaeten: list[dict[str, Any]]) -> list[dict[str, str]]:
 def _ladeschwelle(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
     """Ab wann die Anlage eine Einmalladung überhaupt annimmt.
 
-    Drei Werte, und der mittlere war bis 1.3.1 der falsche:
+    Drei Werte, und der mittlere ist leicht zu verwechseln:
 
     * **Ist** – die gemessene Warmwassertemperatur.
-    * **Soll** – die Temperatur, auf die die *Einmalladung* lädt (``5/51``,
-      an der geprüften Anlage 65 °C). Verglichen wurde bisher mit dem
-      gewöhnlichen Warmwasser-Sollwert (``1/4``, dort 49,5 °C). Bei 61 °C im
-      Speicher meldete die Taste deshalb „schon 61 °C – erst ab 45 °C" und
-      verweigerte eine Ladung, die die Anlage klaglos ausgeführt hätte. Der
-      Abstand sah nach 16 K aus, war aber die Differenz der beiden Sollwerte.
+    * **Soll** – die Temperatur, auf die die *Einmalladung* lädt (``5/51``).
+      **Nicht** der gewöhnliche Warmwasser-Sollwert (``1/4``): Der liegt
+      niedriger, und die Taste verweigerte damit Ladungen, die die Anlage
+      klaglos ausgeführt hätte. Der Abstand sah dann nach der Hysterese aus,
+      war aber die Differenz der beiden Sollwerte.
     * **Abstand** – „Hysterese EIN". Die Anleitung nennt 5 K als Werkswert bei
       einem Bereich von 1 bis 20 K; meldet die Anlage den Parameter (``5/0``,
       Serviceebene), gilt ihr eigener Wert.
@@ -171,10 +170,10 @@ def _warmwasser_bedienung(
 ) -> dict[str, Any]:
     """Alles, was die Taste „Warmwasser laden" über die Anlage wissen muss.
 
-    **Eine Beschreibung für beide Tasten.** Bis 1.3.1 baute die Übersicht ihre
-    Taste aus diesen Angaben, die Steuerung dagegen aus einer eigenen, ärmeren
-    Fassung: Dort fehlten Ladeschwelle, Betriebswahl und Abbruch, und dieselbe
-    Ladung ließ sich in der einen Ansicht beenden und in der anderen nicht.
+    **Eine Beschreibung für beide Tasten.** Übersicht und Steuerung bauen ihre
+    Taste aus denselben Angaben. Zwei getrennte Fassungen hießen: Ladeschwelle,
+    Betriebswahl oder Abbruch fehlen in einer davon, und dieselbe Ladung ließe
+    sich in der einen Ansicht beenden und in der anderen nicht.
 
     Die Anlage trennt dabei dreierlei:
 
@@ -664,9 +663,8 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     bild = anlagenschema(anlage["teile"], anlage.get("kesselart"), anlage.get("kesselwert"))
     # **Jede Anlage behält ihren eigenen Messwert.** Die in den Optionen
     # gewählte Entität gilt nur für die Ansicht „Alle" – dort gibt es keine
-    # einzelne Anlage, deren Fühler man nehmen könnte. Bis 1.2.0-beta.3
-    # überschrieb die Auswahl jede Anlage, und das Heizhaus zeigte plötzlich
-    # den Fühler des Wohnhauses.
+    # einzelne Anlage, deren Fühler man nehmen könnte. Überschriebe sie jede
+    # Anlage, zeigte eine plötzlich den Fühler der anderen.
     aussen = _kennung(alle, AUSSENTEMPERATUR, (), "outdoor_temperature") or aussen_gewaehlt
     return {
         # Die Anordnung der Karten wird je Anlage gespeichert. Ohne eigene

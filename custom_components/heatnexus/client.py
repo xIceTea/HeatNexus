@@ -182,8 +182,7 @@ class WindhagerHttpClient:
         """Sitzung mit Digest-Authentifizierung bereitstellen.
 
         Die Anmeldung übernimmt aiohttp selbst (ab 3.12, in Home Assistant ab
-        2025.6). Bis 1.5.0 lag dafür eine eigene, von `requests` abgeleitete
-        Datei im Projekt; sie ist ersatzlos entfallen.
+        2025.6).
 
         `preemptive=True` schickt die Anmeldung nach der ersten Antwort gleich
         mit, statt sich jedes Mal einen `401` abzuholen. Bei einer Steuerung,

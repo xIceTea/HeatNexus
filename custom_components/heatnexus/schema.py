@@ -233,9 +233,7 @@ PUMPE_BEREICHE = ("binary_sensor", "switch", "sensor")
 # **Diese Zuordnung ist nicht geraten.** Sie stammt aus den offiziellen
 # Windhager-Dateien: `parameterLayer.json` führt je Funktionstyp die Liste
 # seiner Datenpunkte, `de-parameters.json` deren Namen. Wer sie ändern will,
-# lese sie dort nach – der Weg steht in `_intern/HERSTELLER-REFERENZ.md` 5.3.
-# Bis 1.2.0 standen hier fünf Zuordnungen falsch, weil sie aus Namen abgeleitet
-# waren statt aus der Parameterliste.
+# lese sie dort nach – aus Namen abgeleitet gerät die Zuordnung falsch.
 #
 # Kurzform des Belegs je Typ:
 #   1  Heizkurve, Kühlgrenzen, Estrich; Zeitprogramme 3/61..3/63 (Heizprogramme)
@@ -326,7 +324,7 @@ BRENNSTOFF_ART: tuple[tuple[str, str], ...] = (
 )
 
 # Dritte Quelle: der Name der Funktion. Die Windhager-Baureihen sind sprechend
-# genug, und bei fremden Anlagen ist es oft das Einzige, was wir haben.
+# genug, und bei fremden Anlagen ist es oft das Einzige, was vorliegt.
 NAME_ART: tuple[tuple[str, str], ...] = (
     (r"aerowin|w(ä|ae)rmepumpe|heat\s?pump", "waermepumpe"),
     (r"purowin", "hackgut"),

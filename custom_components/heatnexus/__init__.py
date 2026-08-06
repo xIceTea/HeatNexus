@@ -165,9 +165,9 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             name=f"{DOMAIN} {host}",
             update_interval=timedelta(seconds=update_interval),
             # Unveränderte Daten lösen keinen Durchlauf durch alle Entitäten
-            # aus. Eine Anlage im Standby meldet minutenlang dieselben Werte;
-            # bei 167 Entitäten ist das jedes Mal ein vollständiger Rundlauf
-            # ohne Ergebnis.
+            # aus. Eine Anlage im Standby meldet minutenlang dieselben Werte –
+            # bei dreistelliger Entitätszahl jedes Mal ein vollständiger
+            # Rundlauf ohne Ergebnis.
             #
             # Achtung, das hat eine Nebenwirkung: Was sich nur *mit der Zeit*
             # ändert, darf nicht am Takt des Coordinators hängen. Die
@@ -307,10 +307,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _anlage_vorbereiten(system: dict) -> tuple:
         """Eine Anlage verbinden und ihren ersten Abruf machen.
 
-        Bewusst als eigene Aufgabe: Die Anlagen wurden bisher nacheinander
-        eingerichtet – bei zwei Anlagen wartete die zweite, bis die erste ihren
-        vollständigen Erstabruf hinter sich hatte. Da beide über getrennte
-        Verbindungen laufen, gibt es keinen Grund dafür.
+        Bewusst als eigene Aufgabe: Nacheinander eingerichtet wartet jede
+        Anlage, bis die vorige ihren vollständigen Erstabruf hinter sich hat.
+        Da sie über getrennte Verbindungen laufen, gibt es keinen Grund dafür.
         """
         host = system[CONF_HOST]
         label = system.get(CONF_LABEL) or host
@@ -482,7 +481,7 @@ def meldung_erwuenscht(optionen) -> bool:
     Beide Meldungen – „liest die Anlage ein" und „ist bereit" – hängen an
     derselben Option und teilen sich eine Kennung: Die zweite *ersetzt* die
     erste. Prüft nur eine von beiden die Option, erscheint die andere aus dem
-    Nichts. Genau das passierte bis 1.2.0-beta.4 mit der Abschlussmeldung.
+    Nichts.
     """
     return bool((optionen or {}).get(CONF_MELDUNG_EINLESEN, False))
 
@@ -596,9 +595,8 @@ def _abgewaehlte_entitaeten_stilllegen(
     # eingelesen – der erste Abruf kann trotzdem in die Zeitüberschreitung
     # laufen, und `data` bleibt leer. Ohne diese Prüfung ist die Liste der
     # bekannten Datenpunkte dann leer und **jede** Entität des Eintrags gilt
-    # als abgewählt: In 1.5.0-beta.9 lagen danach 285 Entitäten still und die
-    # Anlage stand ohne einen einzigen Wert da. Aufgeräumt wird erst, wenn
-    # jede Anlage tatsächlich etwas gemeldet hat.
+    # als abgewählt – die ganze Anlage läge still und zeigte keinen Wert mehr.
+    # Aufgeräumt wird deshalb erst, wenn jede Anlage etwas gemeldet hat.
     if any(not (coordinator.data or {}).get("devices") for coordinator in coordinators.values()):
         _LOGGER.debug("Abruf noch ohne Daten – es wird nichts stillgelegt")
         return

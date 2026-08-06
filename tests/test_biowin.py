@@ -8,7 +8,7 @@ auf zwei voneinander unabhängige Quellen:
   `default/9` führt und die als `layers["9"]["overview"]` in
   `device_db.json` landet,
 * ein öffentliches BioWIN-II-Projekt, das an einer laufenden Anlage genau
-  diese Adressen abfragt (`_intern/research/biowin/`).
+  diese Adressen abfragt.
 
 Was diese Tests halten, ist deshalb nicht „stimmt der Wert", sondern: **weicht
 die Tabelle von den Quellen ab, fällt es auf.** Ohne das wäre sie eine

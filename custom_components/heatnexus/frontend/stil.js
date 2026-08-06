@@ -1,12 +1,10 @@
 /**
  * Das Aussehen der Oberfläche.
  *
- * Steht als eigene Datei, weil es der größte zusammenhängende Block war und
- * mit der Logik nichts zu tun hat: 638 Zeilen CSS in derselben Datei wie
- * neunzig Methoden. Zweimal ist mir darin derselbe Fehler unterlaufen –
- * ein Backtick im Kommentar beendet das Template-Literal, und die ganze
- * Datei ist kein gültiges JavaScript mehr. In einer Datei, die nur Stil
- * enthält, fällt das sofort auf.
+ * Steht als eigene Datei, weil es der größte zusammenhängende Block ist und
+ * mit der Logik nichts zu tun hat. Der Stil liegt in einem Template-Literal:
+ * Ein Backtick im Kommentar beendet es, und die ganze Datei ist kein gültiges
+ * JavaScript mehr. In einer Datei, die nur Stil enthält, fällt das auf.
  *
  * **Keine Backticks in Kommentaren.** Der Test `test_browser_rechnet_genauso`
  * lädt die Module in Node und fängt es ab.
@@ -92,11 +90,9 @@ export const STIL = `
   .anlagen-trenner:first-of-type { border-top: none; padding-top: 4px; }
 
   /* --- Kartenraster ---------------------------------------------------- */
-  /* Ein Raster für alle vier Reiter. Bis 1.2.0 hatte die Übersicht ein
-     eigenes mit drei festen Spalten und je Spalte einem Stapel Karten. Damit
-     ließ sich nichts umsortieren: Die Reihenfolge steckte im Stapel und
-     nicht in einer Liste. Jetzt liegt jede Karte einzeln im Raster, und die
-     Reihenfolge ist genau die, die der Nutzer wählt.
+  /* Ein Raster für alle vier Reiter. Jede Karte liegt einzeln darin, nicht
+     in einem Spaltenstapel: Sonst steckte die Reihenfolge im Stapel statt in
+     einer Liste, und umsortieren ginge nicht.
 
      "align-items: stretch" ist Absicht. Vorher richtete sich jede Karte nach
      ihrem eigenen Inhalt, und in der Steuerung stand die Heizkreiskarte

@@ -34,8 +34,7 @@ ZIEL_ENUMS = WURZEL / "docs" / "ENUMS.md"
 
 # Was ein Funktionstyp ist, steht in keiner Datei – die Anlage liefert nur die
 # Zahl. Die Zuordnung ist aus der Parameterliste des Herstellers abgeleitet:
-# Welche Datenpunkte ein Typ führt, sagt, was er ist. Der Beleg je Zeile steht
-# in `_intern/HERSTELLER-REFERENZ.md`.
+# Welche Datenpunkte ein Typ führt, sagt, was er ist.
 FUNKTIONEN: dict[str, tuple[str, str]] = {
     "1": ("Heizkreis (Infinity PLUS)", "Heizkurve, Kühlgrenzen, Estrichprogramm"),
     "2": ("Warmwasser", "WW-Programm, Hygiene-Programm, Zirkulationspumpe"),

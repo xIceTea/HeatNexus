@@ -36,8 +36,8 @@ export const SchaubildMixin = (Basis) =>
       let gezeigt = anlage.schema;
       this._bindungen.push(() => {
         const themen = this._hass && this._hass.themes;
-        // Ohne Auskunft bleibt es beim dunklen Satz: Er war es bis 1.5.0
-        // immer, und ein falsch geratenes Hell fiele stärker auf.
+        // Ohne Auskunft bleibt es beim dunklen Satz – ein falsch geratenes
+        // Hell fiele stärker auf.
         const gewuenscht = themen && themen.darkMode === false ? anlage.schema_hell : anlage.schema;
         if (gewuenscht !== gezeigt) {
           gezeigt = gewuenscht;
