@@ -360,8 +360,7 @@ export const SchaubildMixin = (Basis) =>
         this._bindungen.push(() => {
           // Am Speicher zählen beide Richtungen: Seine eigene Pumpe lädt ihn,
           // die Pumpen der Verbraucher entnehmen ihm – und dabei steht die
-          // Ladepumpe. Hing das Band allein an ihr, stand es beim Entladen
-          // still, während daneben „entlädt" stand.
+          // Ladepumpe.
           const stroemt =
             this._foerdert(eintrag.entity) ||
             (eintrag.entnahme || []).some((e) => this._foerdert(e));
@@ -371,9 +370,8 @@ export const SchaubildMixin = (Basis) =>
     });
 
     (anlage.schema_pumpen || []).forEach((eintrag) => {
-      // Der Kessel führt die Pufferladepumpe nur, um seine Stichleitung in
-      // Bewegung zu bringen. Eine Pumpenmarke gehört dort nicht hin: An der
-      // Stelle sitzt keine.
+      // Der Kessel führt die Pufferladepumpe nur für seine Stichleitung. Eine
+      // Pumpenmarke gehört dort nicht hin: An der Stelle sitzt keine.
       if (eintrag.nur_strang) return;
       const marke = document.createElement("div");
       marke.className = "pumpe";

@@ -1093,12 +1093,9 @@ def anlagenschema(
                     "vorlauf_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
                     "ruecklauf_top": f"{unten / HOEHE * 100:.2f}%",
                     "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
-                    # **Ein Speicher strömt in beide Richtungen.** Seine eigene
-                    # Pumpe lädt ihn; entnommen wird ihm von den Pumpen der
-                    # Verbraucher, und dabei dreht die Ladepumpe gerade nicht.
-                    # Hing die Stichleitung allein an ihr, stand sie beim
-                    # Entladen still, obwohl daneben „entlädt" stand und die
-                    # Wärme nach oben abfloss.
+                    # Ein Speicher strömt in beide Richtungen: Seine eigene
+                    # Pumpe lädt ihn, entnommen wird ihm von den Pumpen der
+                    # Verbraucher – und dabei dreht die Ladepumpe nicht.
                     "entnahme": entnahme if modul["art"] == "puffer" else [],
                 }
             )
@@ -1169,13 +1166,9 @@ def anlagenschema(
                     }
                 )
 
-    # **Der Wärmeerzeuger meldet keine eigene Pumpe.** Sein Wasser bewegt die
-    # Pufferladepumpe; die gehört zum Puffer und trug bisher nur dessen
-    # Stichleitung. Am Kessel stand die senkrechte Leitung dadurch in jedem
-    # Zustand still, während daneben alles strömte – es sah aus wie eine
-    # vergessene Bewegung. Nur die Leitung, keine Pumpenmarke: An dieser Stelle
-    # sitzt keine Pumpe, und ein Symbol dort behauptete Technik, die es nicht
-    # gibt.
+    # Der Wärmeerzeuger meldet keine eigene Pumpe – sein Wasser bewegt die
+    # Pufferladepumpe. Nur die Leitung, keine Pumpenmarke: An dieser Stelle
+    # sitzt keine Pumpe.
     ladepumpe = next((m["pumpe"] for m in module if m["art"] == "puffer" and m.get("pumpe")), None)
     if ladepumpe:
         for platz, modul in enumerate(module):

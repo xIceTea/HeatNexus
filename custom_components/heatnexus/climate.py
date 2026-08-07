@@ -185,18 +185,16 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         verstellt, ist das eine Entscheidung; sie zu überschreiben wäre
         übergriffig. Der Merker fällt dann einfach weg.
 
-        **Erst wenn die Vorgabe einmal laufend gelesen wurde.** Die Werte
-        kommen nicht immer gemeinsam an: Wer eine Vorgabe setzt, löst ein
-        gezieltes Nachlesen der Betriebswahl aus (`entity.async_update`), und
-        das meldet `3/50` frisch, während `2/10` noch auf dem alten Stand
-        steht. Beides zusammen las sich wie „umgeschaltet, aber schon
-        abgelaufen" – der Rücksprung schrieb die eigene Bedienung eine Sekunde
-        später wieder zurück, und an der Anlage blieb alles beim Alten.
+        Vorausgesetzt wird, dass die Vorgabe einmal laufend gelesen wurde:
+        `3/50` und `2/10` erreichen die Entität nicht zwangsläufig gemeinsam
+        (`entity.async_update` liest gezielt einzelne Adressen). Eine frische
+        Betriebswahl neben einer alten Restzeit sähe sonst aus wie eine bereits
+        abgelaufene Vorgabe.
         """
         if self._modus_davor is None:
             return
-        # Unbekannt ist nicht abgelaufen: `raw_custom_temp_remaining_time`
-        # macht aus einem fehlenden Wert eine 0, und die hieße hier „vorbei".
+        # Unbekannt heißt nicht abgelaufen: `raw_custom_temp_remaining_time`
+        # macht aus einem fehlenden Wert eine 0.
         rest = self.get_oid_value("/2/10/0")
         if rest is None:
             return
@@ -242,11 +240,8 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
             _LOGGER.debug("Vorgemerkter Modus %r unlesbar", gemerkt)
             return
         # Über einen Neustart hinweg gilt die Vorgabe als gesehen: Der Merker
-        # entstand nur, weil eine lief, und der erste Abruf danach liest alle
-        # Werte gemeinsam – die halb frischen Daten, gegen die die Sperre oben
-        # schützt, kann es hier gar nicht geben. Ohne das bliebe ein Kreis,
-        # dessen Vorgabe während des Neustarts abläuft, für immer im
-        # Heizprogramm stehen.
+        # entsteht nur mit einer laufenden Vorgabe, und der erste Abruf danach
+        # liest alle Werte gemeinsam.
         self._vorgabe_gesehen = True
 
     @property

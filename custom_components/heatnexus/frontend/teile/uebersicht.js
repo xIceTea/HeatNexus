@@ -501,14 +501,11 @@ export const UebersichtMixin = (Basis) =>
                     entity_id: eintrag.betriebswahl,
                     option: ww,
                   });
-                  // **Nur was hier verstellt wurde, wird später zurückgestellt.**
+                  // Nur was hier verstellt wurde, wird später zurückgestellt.
                   // Während einer Ladung meldet die Anlage von sich aus
-                  // WW-Betrieb und kehrt nach deren Ende allein zum vorherigen
-                  // Stand zurück – auch das Bediengerät schreibt zum Abbrechen
-                  // nichts weiter als die Freigabe auf Nein. Wurde der Merker
-                  // dagegen bei jedem Start gesetzt, schickte das Abbrechen
-                  // hinter der Freigabe noch eine Betriebswahl her, und die
-                  // Ladung lief weiter.
+                  // WW-Betrieb und kehrt danach allein zum vorherigen Stand
+                  // zurück; das Bediengerät schreibt zum Abbrechen ebenfalls
+                  // nur die Freigabe auf Nein.
                   this._wahlVorLadung[eintrag.betriebswahl] = jetzt.state;
                 }
               }
@@ -577,12 +574,9 @@ export const UebersichtMixin = (Basis) =>
   /**
    * Ist der letzte Druck noch unterwegs? Dann bleibt die Taste gesperrt.
    *
-   * **Nicht an die Annahme gekoppelt.** Die hält bis zu 45 s, und zwar auch
-   * dann, wenn die Anlage den Auftrag gar nicht angenommen hat – sie wird ja
-   * erst verbraucht, wenn die Anlage dasselbe meldet. Beim Abbrechen einer
-   * laufenden Warmwasserladung sperrte sich die Taste dadurch selbst, solange
-   * die Ladung weiterlief: Mauszeiger auf „beschäftigt", jeder weitere Druck
-   * lautlos verworfen.
+   * Nicht an die Annahme gekoppelt: Die hält bis zu 45 s und wird erst
+   * verbraucht, wenn die Anlage dasselbe meldet. Übernimmt sie den Auftrag
+   * nicht, bliebe die Taste die ganze Zeit gesperrt.
    */
   _ladungWartet(entity) {
     const merk = this._ladungAnnahmen && this._ladungAnnahmen[entity];
@@ -690,23 +684,17 @@ export const UebersichtMixin = (Basis) =>
   /**
    * Einen Abbruch nachsetzen, den die Anlage überging.
    *
-   * Nicht jeder Befehl kommt an – gemeldet wurde, dass die Ladung nach dem
-   * Abbrechen manchmal weiterlief und erst ein zweiter Druck sie beendete.
-   * Statt blind ein zweites Mal zu schreiben wird **erst gelesen**: Meldet die
-   * Betriebsart weiter eine Ladung, geht die Freigabe noch einmal auf Nein.
+   * Erst lesen, dann schreiben: Meldet die Betriebsart weiter eine Ladung,
+   * geht die Freigabe noch einmal auf Nein. Nur die Freigabe – sie ist ein
+   * Zustand (`2/16`, Nein/Ja) und gefahrlos wiederholbar, ein zusätzlicher
+   * Betriebswahl-Befehl macht den Abbruch dagegen unwirksam.
    *
-   * Nur die Freigabe, nie die Betriebswahl. Die Freigabe ist ein Zustand
-   * (`2/16`, Nein/Ja) und lässt sich gefahrlos wiederholen; ein zusätzlicher
-   * Betriebswahl-Befehl war es, der das Abbrechen vorher unwirksam machte.
-   *
-   * Die Ladepumpe zählt hier nicht mit: Sie läuft nach und wäre kein Beleg
-   * für eine weiterlaufende Ladung.
+   * Die Ladepumpe zählt nicht mit: Sie läuft nach und belegt keine Ladung.
    */
   async _abbruchNachsetzen(eintrag, ausloeser) {
     if (!ausloeser) return;
-    // Wer inzwischen erneut gedrückt hat, hat das letzte Wort. Ohne diese
-    // Marke beendete ein alter Nachsetzer eine gerade frisch gestartete
-    // Ladung.
+    // Wer inzwischen erneut gedrückt hat, hat das letzte Wort – sonst
+    // beendet ein altes Nachsetzen eine frisch gestartete Ladung.
     this._abbruchLauf = this._abbruchLauf || {};
     const marke = (this._abbruchLauf[ausloeser] || 0) + 1;
     this._abbruchLauf[ausloeser] = marke;

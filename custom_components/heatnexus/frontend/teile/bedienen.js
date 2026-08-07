@@ -33,12 +33,9 @@ export const BedienenMixin = (Basis) =>
       eintrag.entity,
     ].filter(Boolean);
     if (!entitaeten.length) return;
-    // **Mehrmals, nicht einmal.** Der erste Abruf kommt zurück, während die
-    // Anlage den Auftrag noch abarbeitet: Die Betriebsart steht dann schon
-    // richtig, die Ladepumpe meldet aber weiter ihren alten Zustand. Mit nur
-    // einem Abruf blieb sie im Schaubild bis zum nächsten Durchlauf in
-    // Bewegung – eine halbe Minute, in der das Bild etwas zeigte, was nicht
-    // mehr stimmte.
+    // Mehrmals, nicht einmal: Der erste Abruf kommt zurück, während die
+    // Anlage den Auftrag noch abarbeitet. Die Betriebsart steht dann schon
+    // richtig, die Ladepumpe meldet weiter ihren alten Zustand.
     const lesen = () =>
       this._hass
         .callService("homeassistant", "update_entity", { entity_id: entitaeten })

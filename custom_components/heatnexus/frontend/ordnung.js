@@ -52,45 +52,30 @@ export const ANNAHME_MS = 45 * 1000;
 /**
  * Wie lange eine Taste nach einem Druck gesperrt bleibt.
  *
- * **Deutlich kürzer als die Annahme.** Die Sperre soll nur verhindern, dass
- * ein zweiter Druck den ersten überholt, solange der noch unterwegs ist. An
- * die Annahme gekoppelt war sie eine Falle: Nimmt die Anlage den Auftrag
- * nicht an, wird die Annahme nie verbraucht – „Warmwasser laden abbrechen"
- * sperrte sich danach dreiviertel Minuten lang selbst, ohne ein Wort dazu.
- * Der Mauszeiger stand auf „beschäftigt", jeder weitere Druck fiel lautlos
- * weg.
- *
- * Ein gezieltes Nachlesen ist nach gut einer Sekunde zurück; fünf Sekunden
- * sind reichlich Abstand und stehen niemandem im Weg.
+ * Bewusst kürzer als die Annahme: Die Sperre soll nur verhindern, dass ein
+ * zweiter Druck den ersten überholt. An die Annahme gekoppelt hielte sie auch
+ * dann, wenn die Anlage den Auftrag nie übernimmt – die Annahme wird in dem
+ * Fall nicht verbraucht. Ein gezieltes Nachlesen ist nach gut einer Sekunde
+ * zurück.
  */
 export const SPERRE_MS = 5 * 1000;
 
 /**
  * Wie oft und in welchem Abstand nach einer Bedienung nachgelesen wird.
  *
- * Ein einzelner Abruf direkt nach dem Schreiben trifft die Anlage oft noch
- * beim Abarbeiten: Die Betriebsart steht dann bereits richtig, Pumpe und
- * Ladezustand ziehen erst Sekunden später nach. Bis zum nächsten regulären
- * Durchlauf sind das dreißig Sekunden, in denen das Schaubild einen Zustand
- * zeigt, den es nicht mehr gibt.
- *
- * Gelesen werden nur die beteiligten Adressen, nicht das ganze Abrufwerk.
+ * Ein einzelner Abruf trifft die Anlage oft noch beim Abarbeiten: Die
+ * Betriebsart steht dann schon richtig, Pumpe und Ladezustand ziehen Sekunden
+ * später nach. Gelesen werden nur die beteiligten Adressen.
  */
 export const NACHFASS_ANZAHL = 4;
 export const NACHFASS_MS = 4 * 1000;
 
 /**
- * Wie oft ein Abbruch nachgesetzt wird, wenn die Anlage ihn überging.
+ * Wie oft ein Abbruch nachgesetzt wird, den die Anlage überging.
  *
- * Nicht jeder Befehl kommt an: Manchmal lief die Ladung nach dem Abbrechen
- * weiter, und erst ein zweiter Druck beendete sie. Statt das dem Nutzer
- * aufzubürden, wird **geprüft und nur dann erneut geschickt** – blind ein
- * zweites Mal zu schreiben wäre genau der Fehler, der das Abbrechen vorher
- * unwirksam gemacht hat.
- *
- * Wiederholt wird ausschließlich die Freigabe auf Nein. Sie ist ein Zustand,
- * kein Auslöser: Sie ein zweites Mal zu setzen kann nichts anrichten und
- * nichts doppelt auslösen. Die Betriebswahl bleibt außen vor.
+ * Wiederholt wird ausschließlich die Freigabe auf Nein – ein Zustand, kein
+ * Auslöser, und damit gefahrlos wiederholbar. Die Betriebswahl bleibt außen
+ * vor: Ein zusätzlicher Befehl dorthin macht den Abbruch unwirksam.
  */
 export const ABBRUCH_VERSUCHE = 2;
 export const ABBRUCH_PAUSE_MS = 6 * 1000;

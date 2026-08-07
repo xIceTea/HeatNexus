@@ -295,12 +295,10 @@ const faelle = [];
 
 // --- Aus einem Programm heraus wird nichts gemerkt -------------------------
 //
-// Der gemeldete Fehler: Ladung aus „Programm 1" gestartet, Abbrechen ohne
-// Wirkung – auch in der Windhager-App lief sie weiter. Die Anlage stellt die
-// Betriebswahl während einer Ladung selbst auf WW-Betrieb und kehrt danach
-// allein zurück; das Bediengerät schreibt zum Abbrechen nur die Freigabe auf
-// Nein. Weil hier bei **jedem** Start gemerkt wurde, schickte das Abbrechen
-// hinterher noch eine Betriebswahl – und die Ladung lief weiter.
+// Die Anlage stellt die Betriebswahl während einer Ladung selbst auf WW-Betrieb
+// und kehrt danach allein zurück; zum Abbrechen genügt die Freigabe auf Nein.
+// Ein gemerkter Rückkehrpunkt schickte hinterher noch eine Betriebswahl und
+// machte den Abbruch damit unwirksam.
 {
   const zusatz = { betriebswahl_aus: "^standby", betriebswahl_ww: "ww" };
   const { element, taste, gerufen } = panelBauen({
@@ -338,10 +336,9 @@ const faelle = [];
 
 // --- Übergangener Abbruch wird nachgesetzt ---------------------------------
 //
-// Gemeldet: Manchmal lief die Ladung nach dem Abbrechen weiter, und erst ein
-// zweiter Druck beendete sie. Nachgesetzt wird nur nach einer Prüfung und nur
-// die Freigabe – ein zusätzlicher Betriebswahl-Befehl war es, der das
-// Abbrechen vorher unwirksam machte.
+// Übernimmt die Anlage den Abbruch nicht, lief die Ladung bis zu einem zweiten
+// Druck weiter. Nachgesetzt wird nur nach einer Prüfung und nur die Freigabe;
+// ein zusätzlicher Betriebswahl-Befehl macht den Abbruch unwirksam.
 const abschaltungen = (gerufen) =>
   gerufen.filter((r) => r.dienst === "turn_off" && r.daten.entity_id === AUSLOESER).length;
 
