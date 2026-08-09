@@ -351,5 +351,3 @@ HeatNexus steht unter der [GNU General Public License v3.0](LICENSE). Wer die
 Integration abwandelt und weitergibt, gibt sie unter derselben Lizenz weiter —
 mit Quelltext. Name und Logo sind davon ausgenommen, siehe [`NOTICE`](NOTICE).
 
-Bis einschließlich 1.5.0 galt die Apache License 2.0; ältere Fassungen bleiben
-unter den Bedingungen, unter denen sie erschienen sind.
