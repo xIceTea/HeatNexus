@@ -41,7 +41,11 @@ from xml.etree import ElementTree
 # verlangt.
 USERNAME = "USER"
 TIMEOUT = 30  # große Menü-Ebenen brauchen deutlich länger als eine Einzelabfrage
-DEFAULT_WORKERS = 3  # mehr Parallelität quittieren die Geräte mit Abbrüchen
+# An der Anlage gemessen: derselbe Menü-Abzug mit 3 und mit 6 Worker braucht
+# gleich lang (174,6 s gegen 179,4 s bei 690 Datenpunkten), ohne Abbrüche. Die
+# Steuerung serialisiert; zusätzliche Threads warten nur woanders. Mehr als 3
+# lohnt nicht.
+DEFAULT_WORKERS = 3
 RETRIES = 2  # Wiederholungen bei Zeitüberschreitung/Verbindungsabbruch
 RETRY_PAUSE = 1.5
 PAGE_SIZE = 10  # das Gerät liefert je Menü-Abruf höchstens 10 Datenpunkte
