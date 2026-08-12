@@ -880,19 +880,18 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
 
     def read(ziel):
         oid, praefix, gnmn = ziel
-        # Erst der object-Endpunkt: Ein Störspeicher ist eine Liste, kein
-        # Einzelwert.
+        # **Beide Endpunkte, immer.** Ein Störspeicher ist eine Liste und
+        # spricht damit für `object` – die Weboberfläche der Anlage liest ihn
+        # aber über `lookup` (`'api/1.0/' + 'lookup' + <OID> + '?count='`).
+        # Die Endpunkte antworten unabhängig voneinander: Ein `409 – invalid
+        # Identifier` von `object` besagt über `lookup` nichts. Wer nach dem
+        # ersten 409 aufhört, hält eine ungestellte Frage für beantwortet.
         data, status = probe.obj(oid)
         wie = "object"
-        # `409 – invalid Identifier` ist die endgültige Antwort der Anlage:
-        # Diese Adresse führt sie nicht. Ein zweiter Versuch über `lookup`
-        # brächte dieselbe Auskunft und kostet nur Zeit. Nachgefasst wird
-        # deshalb nur, wenn die erste Antwort *keine* Auskunft war.
-        endgueltig = (
-            status == 409 and "invalid identifier" in str((data or {}).get("reason", "")).lower()
-        )
-        if status != 200 and not endgueltig:
+        antworten = {"object": status}
+        if status != 200:
             data2, status2 = probe.lookup(f"/{oid.lstrip('/')}")
+            antworten["lookup"] = status2
             if status2 == 200:
                 data, status, wie = data2, status2, "lookup"
         return {
@@ -901,6 +900,7 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
             "gnmn": gnmn,
             "status": status,
             "endpunkt": wie,
+            "antworten": antworten,
             "data": data,
         }
 
@@ -1125,13 +1125,20 @@ def fetch_objects(probe: Probe, menus: dict) -> dict:
         return {}
 
     def read(oid):
+        # Auch hier beide Endpunkte: Die statischen Positionen stehen in keiner
+        # Menü-Ebene, und welcher der beiden sie führt, ist je Position offen.
         data, status = probe.obj(oid)
-        return oid, data, status
+        wie = "object"
+        if status != 200:
+            data2, status2 = probe.lookup(f"/{oid.lstrip('/')}")
+            if status2 == 200:
+                data, status, wie = data2, status2, "lookup"
+        return oid, data, status, wie
 
     objects = {}
     ok = 0
-    for oid, data, status in probe.map(read, targets):
-        objects[oid] = {"status": status, "data": data}
+    for oid, data, status, wie in probe.map(read, targets):
+        objects[oid] = {"status": status, "endpunkt": wie, "data": data}
         if status == 200 and isinstance(data, dict) and "value" in data:
             ok += 1
     print(f"    {ok} von {len(targets)} Objekten lesbar")
