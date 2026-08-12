@@ -6,6 +6,21 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.7.0-beta.1] - 2026-08-12
+
+### Neu
+
+- Datenpunkte außerhalb der Menü-Ebenen werden erkannt.
+- Systemuhr und Systemdatum lassen sich per Haken anlegen.
+
+### Geändert
+
+- Nur noch Systemuhr und Systemdatum sind vorab deaktiviert.
+
+### Behoben
+
+- Zeitprogramme sind gleich nach der Einrichtung verfügbar.
+
 ## [1.6.0] - 2026-08-06
 
 Bedienen, das ankommt: Eco und Comfort wirken jetzt auch aus dem Warmwasser-
