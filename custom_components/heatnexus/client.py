@@ -6,6 +6,7 @@ import json
 import logging
 import re as _re
 import time
+from xml.etree import ElementTree
 
 import aiohttp
 from yarl import URL
@@ -53,6 +54,35 @@ NAME_OVERRIDES = {
     "5/70": "WW-Zirkulation Einschaltzeit",
     "5/71": "WW-Zirkulation Ausschaltzeit",
 }
+
+
+# Adressangaben in der statischen Navigation der Steuerung. Zwei Schreibweisen
+# für dasselbe: `oidextension="4/80/0"` in der Zuordnung, `gnmn="03:61"` in der
+# Navigation selbst.
+_STATISCHE_ADRESSE = _re.compile(r"^0*(\d+)[:/]0*(\d+)(?:/\d+)?$")
+
+
+def _statische_positionen(xml: str) -> set[str]:
+    """Adressen aus einer Ressourcendatei der statischen Navigation lesen.
+
+    Die Steuerung führt einige Datenpunkte ausschließlich hier – der Menü-Abzug
+    kennt sie nicht. Gelesen wird jedes Element, das eine Adresse trägt; welche
+    Art dahinter steckt, entscheidet später die Metadatenabfrage.
+
+    Fehlt oder taugt die Datei nichts, bleibt die Menge leer: Die Erkennung
+    verliert dann nur diese Ergänzung, statt abzubrechen.
+    """
+    try:
+        wurzel = ElementTree.fromstring(xml)
+    except ElementTree.ParseError:
+        return set()
+
+    positionen = set()
+    for element in wurzel.iter():
+        for schluessel in ("oidextension", "gnmn"):
+            if (treffer := _STATISCHE_ADRESSE.match(element.get(schluessel, ""))) is not None:
+                positionen.add(f"{treffer.group(1)}/{treffer.group(2)}")
+    return positionen
 
 
 def _ist_zeitprogramm(wert) -> bool:
@@ -271,6 +301,46 @@ class WindhagerHttpClient:
             return json.loads(self._decode(raw)), ret.status
         except ValueError:
             return None, ret.status
+
+    # Ressourcendateien der statischen Navigation. Die erste ordnet die
+    # Positionen den Funktionsarten zu, die zweite benennt sie; welche eine
+    # Steuerung ausliefert, hängt an ihrer Fassung.
+    _STATISCHE_RESSOURCEN = ("xml/StaticNavAssignment.xml", "xml/StaticNav.xml")
+
+    async def _ressource(self, pfad: str) -> str | None:
+        """Eine Ressourcendatei der Anlage als Text lesen (`/res/<pfad>`).
+
+        Gibt ``None`` zurück, wenn die Anlage sie nicht kennt – diese Dateien
+        sind eine Zugabe, kein Teil der Datenschnittstelle.
+        """
+        try:
+            await self._ensure_session()
+            async with self._semaphore:
+                ret = await self._session.request("GET", f"http://{self.host}/res/{pfad}")
+                if ret.status != 200:
+                    return None
+                return self._decode(await ret.read())
+        except Exception as fehler:
+            _LOGGER.debug("Ressource %s nicht lesbar: %s", pfad, fehler)
+            return None
+
+    async def _statische_adressen(self) -> set[str]:
+        """Positionen ermitteln, die die Anlage außerhalb der Menüs führt.
+
+        Die Menü-Abfrage ist die Hauptquelle der Erkennung, aber nicht die
+        einzige: Sonderzeitprogramm, Störspeicher und Passwort stehen in keiner
+        Menü-Ebene. Die Anlage benennt sie selbst, deshalb steht hier keine
+        gepflegte Liste – eine neuere Fassung bringt ihre Ergänzungen mit.
+        """
+        dateien = await asyncio.gather(
+            *(self._ressource(pfad) for pfad in self._STATISCHE_RESSOURCEN)
+        )
+        adressen: set[str] = set()
+        for xml in dateien:
+            if xml:
+                adressen |= _statische_positionen(xml)
+        _LOGGER.debug("Statische Navigation nennt %d Positionen", len(adressen))
+        return adressen
 
     async def fetch(self, url, semaphore=None):
         """GET /api/1.0/lookup<url> and return the parsed JSON."""
@@ -496,6 +566,7 @@ class WindhagerHttpClient:
         self.oids = set()
         self.devices = []
         json_devices = await self.fetch("/1")
+        statisch = set() if nur_kern else await self._statische_adressen()
 
         # Erst die Seriennummern einsammeln – alle Kennungen hängen daran.
         for device in json_devices:
@@ -564,7 +635,12 @@ class WindhagerHttpClient:
                 # wegen derer man beim Befüllen überhaupt hinschaut.
                 ergaenzt: set[str] = set()
                 if not nur_kern:
-                    for gnmn in EXTRA_OIDS_BY_FCT.get(fct_type, ()):
+                    # Die statische Navigation gilt für die ganze Anlage und
+                    # nennt nicht, an welcher Funktion eine Position tatsächlich
+                    # sitzt. Sie wird deshalb überall angeboten; wo es sie nicht
+                    # gibt, antwortet die Anlage mit 404 oder 409 und die
+                    # Metadatenabfrage wirft den Datenpunkt wieder heraus.
+                    for gnmn in (*EXTRA_OIDS_BY_FCT.get(fct_type, ()), *statisch):
                         candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
                         ergaenzt.add(gnmn)
 
