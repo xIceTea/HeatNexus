@@ -690,8 +690,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     aussen = _kennung(alle, AUSSENTEMPERATUR, (), "outdoor_temperature") or aussen_gewaehlt
     nutzdaten = {
         # Die Anordnung der Karten wird je Anlage gespeichert. Ohne eigene
-        # Kennung teilten sich Heizhaus und Wohnhaus eine Reihenfolge – wer
-        # im Heizhaus etwas verschob, verschob es im Wohnhaus mit.
+        # Kennung teilten sich zwei Anlagen eines Eintrags eine Reihenfolge.
         "id": anlage.get("id") or anlage["name"],
         "name": anlage["name"],
         # Erklärungen je Karte – im Browser als „?" neben der Überschrift.

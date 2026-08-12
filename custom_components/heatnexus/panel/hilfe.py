@@ -52,7 +52,7 @@ HILFE: tuple[tuple[str, str], ...] = (
     ),
     (
         r"^kesseltemperatur$",
-        "Der eigene Fühlereingang des Pumpen-/Relaismoduls — nicht der Kessel im Heizhaus.\n\nDas Modul misst hier die Temperatur der Leitung, an der es sitzt, und regelt danach: Kommt an seinem Eingang eine externe Wärmeanforderung an, fordert es Wärme an, bis dieser Wert die eingestellte Solltemperatur erreicht.\n\nWas der Fühler physisch misst, legt die Verdrahtung fest; die Anlage kann es nicht melden. Welche Aufgabe das Modul hat — Pumpensteuerung, externe Wärmeanforderung oder Sammelstörmeldung — steht in den Datenpunkten der Gruppe 29 auf der Serviceebene.",
+        "Der eigene Fühlereingang des Pumpen-/Relaismoduls — nicht der Kessel selbst.\n\nDas Modul misst hier die Temperatur der Leitung, an der es sitzt, und regelt danach: Kommt an seinem Eingang eine externe Wärmeanforderung an, fordert es Wärme an, bis dieser Wert die eingestellte Solltemperatur erreicht.\n\nWas der Fühler physisch misst, legt die Verdrahtung fest; die Anlage kann es nicht melden. Welche Aufgabe das Modul hat — Pumpensteuerung, externe Wärmeanforderung oder Sammelstörmeldung — steht in den Datenpunkten der Gruppe 29 auf der Serviceebene.",
     ),
     (
         r"stellwert|^mischer$",
