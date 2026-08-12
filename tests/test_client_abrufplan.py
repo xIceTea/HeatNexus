@@ -123,6 +123,53 @@ def test_zeitprogramme_laufen_nicht_ueber_den_abruf(client):
     assert len(client.time_programs) == 1
 
 
+async def test_neu_hinzugekommene_zeitprogramme_werden_sofort_gelesen(client, monkeypatch):
+    """Zeitprogramme entstehen erst im Vollabzug, also nach dem ersten Durchlauf.
+
+    Sie laufen im trägen Takt mit. Ohne den Vorgriff blieben sie bis zum
+    nächsten trägen Durchlauf – bei 30 s Intervall eine Viertelstunde – ohne
+    Wert und damit in Home Assistant nicht verfügbar.
+    """
+    programm = [{"weekdays": ["Mo"], "switchPoints": [{"time": "06:00", "value": 21}]}]
+    abrufe = []
+
+    async def fetch_object(oid):
+        abrufe.append(oid)
+        return {"value": programm}, 200
+
+    monkeypatch.setattr(client, "fetch_object", fetch_object)
+    client.oids = set()
+    client._tick = 3  # kein träger Durchlauf
+    client.time_programs = [{"oid": "/1/15/0/5/64/0", "type": "time_program"}]
+
+    daten = await client.fetch_all()
+
+    assert abrufe == ["/1/15/0/5/64/0"]
+    assert daten["objects"] == {"/1/15/0/5/64/0": programm}
+
+
+async def test_gelesene_zeitprogramme_warten_wieder_auf_den_traegen_takt(client, monkeypatch):
+    """Der Vorgriff gilt dem Nachzügler, nicht jedem Durchlauf.
+
+    Sonst kostete jedes Zeitprogramm in jedem Durchlauf eine eigene Anfrage.
+    """
+    abrufe = []
+
+    async def fetch_object(oid):
+        abrufe.append(oid)
+        return {"value": [{"weekdays": ["Mo"], "switchPoints": []}]}, 200
+
+    monkeypatch.setattr(client, "fetch_object", fetch_object)
+    client.oids = set()
+    client._tick = 3
+    client.time_programs = [{"oid": "/1/15/0/5/64/0", "type": "time_program"}]
+
+    await client.fetch_all()
+    await client.fetch_all()
+
+    assert abrufe == ["/1/15/0/5/64/0"]
+
+
 def test_eine_eingeschaltete_entitaet_meldet_sich_selbst_an(client):
     client.devices = [{"oid": "/1/60/0/9/31/0", "name": "X", "enabled_default": False}]
     client._compute_poll_oids()

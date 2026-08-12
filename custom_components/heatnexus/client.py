@@ -1497,6 +1497,11 @@ class WindhagerHttpClient:
         # eigene Anfrage – sie laufen im langsamen Takt mit.
         langsamer_takt = self._takte()[POLL_SLOW]
         langsam_faellig = self._tick == 0 or self._tick % langsamer_takt == 0
+        # Zeitprogramme entstehen erst im Vollabzug, also nach dem ersten
+        # Durchlauf. Ohne diesen Vorgriff stünden sie bis zum nächsten trägen
+        # Durchlauf ohne Wert da und wären so lange nicht verfügbar.
+        if self.time_programs and not self._letzte_objekte:
+            langsam_faellig = True
         if langsam_faellig:
             self._letzte_objekte = await self._fetch_time_programs()
         status = await self._fetch_status()
