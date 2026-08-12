@@ -26,12 +26,14 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import sys
 import threading
 import time
 import urllib.error
 import urllib.request
+from xml.etree import ElementTree
 
 # Zugang ab Werk. Die Steuerung kennt zwei: `USER` sieht Info- und
 # Betreiberebene, `Service` zusätzlich die Fachparameter. Welcher gilt,
@@ -186,6 +188,24 @@ class Probe:
     def obj(self, full_oid: str):
         """GET /api/1.0/object?OID=<vollständige OID>."""
         return self.get(f"{self.base}/api/1.0/object?OID={full_oid}")
+
+    def ressource(self, pfad: str):
+        """GET /res/<pfad> als Text; gibt (text_oder_None, status) zurück.
+
+        Die Ressourcendateien der Steuerung sind XML, kein JSON – `get` würde
+        sie als unlesbar verwerfen.
+        """
+        with self._lock:
+            self.requests += 1
+        try:
+            with self.opener.open(f"{self.base}/res/{pfad}", timeout=TIMEOUT) as resp:
+                return self._decode(resp.read()), resp.status
+        except urllib.error.HTTPError as err:
+            return None, err.code
+        except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+            with self._lock:
+                self.errors += 1
+            return None, 0
 
     def post(self, url: str, rumpf: bytes, typ: str = "text/xml; charset=utf-8"):
         """POST mit derselben Anmeldung; gibt (Text, Status) zurück.
@@ -358,11 +378,72 @@ def fetch_structure(probe: Probe):
 # sich nur durch Ausprobieren feststellen, und genau das macht `suche_statisch`:
 # Sie klappert jeden Knoten und jede Funktion ab, auch die sonst übersprungenen
 # (`NV's` mit fctType −1, gesperrte) und den Knoten ohne Funktionsangabe.
+#
+# Die Liste kommt von der Anlage selbst (`statische_navigation`); dieser Satz
+# ist nur der Rückfall für eine Fassung, die die Dateien nicht ausliefert.
 STATISCHE_NAV = {
     "2/90/0": "Störspeicher (errorlog)",
     "4/80/0": "Sonderzeitprogramm",
     "4/42/0": "Passwort",
 }
+
+# Die Ressourcendateien führen dieselbe Adresse in zwei Schreibweisen:
+# `oidextension="4/80/0"` in der Zuordnung, `gnmn="04:80"` in der Navigation.
+_ADRESSE = re.compile(r"^0*(\d+)[:/]0*(\d+)(?:/\d+)?$")
+
+RESSOURCEN_STATISCH = ("xml/StaticNavAssignment.xml", "xml/StaticNav.xml")
+
+
+def _entzerrt(text: str) -> str:
+    """Doppelt kodierte Umlaute zurückholen („StÃ¶rspeicher" -> „Störspeicher").
+
+    Die Dateien geben UTF-8 an, enthalten aber UTF-8-Bytes eines bereits
+    dekodierten Textes. Lässt sich der Text nicht zurückrechnen, bleibt er wie
+    er ist – ein Anzeigename ist keinen Abbruch wert.
+    """
+    try:
+        return text.encode("latin-1").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+
+
+def statische_navigation(probe: Probe) -> dict:
+    """Die statischen Positionen von der Anlage lesen statt sie zu raten.
+
+    Liefert `{"<gruppe>/<member>/0": "<Beschreibung>"}`. Der Name kommt aus dem
+    deutschen Text der Navigationsdatei, sonst aus dem Elementnamen der
+    Zuordnung (`errorlog`, `timeprogram`, `parameter`). Antwortet die Anlage
+    auf keine der Dateien, bleibt es beim eingebauten Rückfall.
+    """
+    gefunden: dict[str, str] = {}
+    for pfad in RESSOURCEN_STATISCH:
+        text, status = probe.ressource(pfad)
+        if status != 200 or not text:
+            print(f"    {pfad}: HTTP {status}")
+            continue
+        try:
+            wurzel = ElementTree.fromstring(text)
+        except ElementTree.ParseError as fehler:
+            print(f"    {pfad}: nicht lesbar ({fehler})")
+            continue
+        neu = 0
+        for element in wurzel.iter():
+            for schluessel in ("oidextension", "gnmn"):
+                treffer = _ADRESSE.match(element.get(schluessel, ""))
+                if treffer is None:
+                    continue
+                adresse = f"{treffer.group(1)}/{treffer.group(2)}/0"
+                benannt = element.find("text/de")
+                name = _entzerrt((benannt.text or "").strip()) if benannt is not None else ""
+                # Der eigene Text gewinnt: Der Elementname sagt nur die Art.
+                if name or adresse not in gefunden:
+                    gefunden[adresse] = name or element.get("type") or element.tag
+                    neu += 1
+        print(f"    {pfad}: {neu} Positionen")
+    if not gefunden:
+        print("    keine Ressourcendatei lesbar – eingebauter Rückfall")
+        return dict(STATISCHE_NAV)
+    return gefunden
 
 
 # ------------------------------------------------------------- Störspeicher
@@ -790,8 +871,12 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
             if kandidat not in praefixe:
                 praefixe.append(kandidat)
 
-    ziele = [(f"{p}/{gnmn}", p, gnmn) for p in praefixe for gnmn in STATISCHE_NAV]
-    print(f"    {len(ziele)} Kombinationen aus {len(praefixe)} Präfixen werden geprüft")
+    positionen = statische_navigation(probe)
+    ziele = [(f"{p}/{gnmn}", p, gnmn) for p in praefixe for gnmn in positionen]
+    print(
+        f"    {len(ziele)} Kombinationen aus {len(praefixe)} Präfixen und "
+        f"{len(positionen)} Positionen werden geprüft"
+    )
 
     def read(ziel):
         oid, praefix, gnmn = ziel
@@ -832,7 +917,7 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
     for nummer, ziel in enumerate(ziele, start=1):
         eintrag = read(ziel)
         ergebnisse.append(eintrag)
-        beschreibung = STATISCHE_NAV[eintrag["gnmn"]]
+        beschreibung = positionen[eintrag["gnmn"]]
         print(
             f"    [{nummer:2}/{len(ziele)}] {eintrag['oid']:22} "
             f"HTTP {eintrag['status']:>3}  {beschreibung}",
@@ -1012,7 +1097,8 @@ def run_diagnose(probe: Probe, menus: dict) -> dict:
 #     <staticentry type="parameter"  oidextension="4/42/0"/>
 #
 # `2/90` ist der **Störspeicher** – die Meldungsliste des Bediengeräts. Weil
-# sie in keinem Menü steht, hat der Menü-Abzug sie nie gefunden.
+# sie in keinem Menü steht, hat der Menü-Abzug sie nie gefunden. Die vollständige
+# Liste holt `statische_navigation` von der Anlage; das hier ist der Rückfall.
 STATISCHE_OBJEKTE = ("2/90/0", "4/80/0")
 
 
@@ -1024,10 +1110,14 @@ def fetch_objects(probe: Probe, menus: dict) -> dict:
         for oid, item in fct["datapoints"].items()
         if item.get("typeId") == 30
     ]
+    # Die Zeitprogramme stehen in keiner Menü-Ebene: Ohne die statischen
+    # Positionen prüfte dieser Abzug nur die Textobjekte und meldete „keine
+    # Zeitprogramme" an einer Anlage, die sieben davon führt.
+    statisch = statische_navigation(probe)
     targets += [
         f"{fct['prefix']}/{gnmn}"
         for fct in menus["functions"]
-        for gnmn in STATISCHE_OBJEKTE
+        for gnmn in statisch
         if f"{fct['prefix']}/{gnmn}" not in targets
     ]
     if not targets:
