@@ -860,6 +860,18 @@ def suche_endpunkte(probe: Probe) -> dict:
     return {"vorhanden": gefunden, "unklar": offen, "alle": ergebnisse}
 
 
+def _ist_nv_antwort(data) -> bool:
+    """Ob die Antwort eine LON-Netzwerkvariable statt des gefragten Datenpunkts ist.
+
+    An einer NV-Funktion (`fctType -1`, Präfix `/1/<knoten>/32`) deutet die
+    Steuerung die Adresse um: Die Gruppe wird ignoriert, der Member gilt als
+    `nvIndex`. `/1/16/32/3/61/0` beantwortet deshalb nicht „Gruppe 3,
+    Member 61", sondern liefert die Netzwerkvariable Nummer 61. Ohne diese
+    Prüfung zählt jede geprüfte Position an jeder NV-Funktion als Treffer.
+    """
+    return isinstance(data, dict) and "nvName" in data
+
+
 def suche_statisch(probe: Probe, structure: list) -> dict:
     """Die statischen Navigationseinträge an allen Knoten und Funktionen suchen."""
     praefixe: list[str] = []
@@ -901,6 +913,7 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
             "status": status,
             "endpunkt": wie,
             "antworten": antworten,
+            "umgedeutet": _ist_nv_antwort(data),
             "data": data,
         }
 
@@ -913,6 +926,7 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
     # stumm durch – bei einer Anlage, die auf nicht vorhandene Adressen
     # langsam antwortet, sah ein laufender Suchlauf wie ein hängender aus.
     treffer = []
+    umgedeutet = []
     ergebnisse = []
     for nummer, ziel in enumerate(ziele, start=1):
         eintrag = read(ziel)
@@ -923,12 +937,17 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
             f"HTTP {eintrag['status']:>3}  {beschreibung}",
             flush=True,
         )
-        if eintrag["status"] == 200:
+        if eintrag["status"] == 200 and not eintrag["umgedeutet"]:
             treffer.append(eintrag)
             print(f"    TREFFER  {eintrag['oid']:22} {beschreibung} (ueber {eintrag['endpunkt']})")
+        elif eintrag["umgedeutet"]:
+            umgedeutet.append(eintrag)
+            print(f"    (Netzwerkvariable statt Datenpunkt: {eintrag['data'].get('nvName')})")
     if not treffer:
         print("    kein statischer Eintrag lesbar – die Anlage führt sie woanders")
-    return {"treffer": treffer, "alle": ergebnisse}
+    if umgedeutet:
+        print(f"    {len(umgedeutet)} Antworten waren umgedeutete Netzwerkvariablen, keine Treffer")
+    return {"treffer": treffer, "umgedeutet": umgedeutet, "alle": ergebnisse}
 
 
 def fetch_menus(probe: Probe, structure: list) -> dict:
