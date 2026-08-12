@@ -826,4 +826,24 @@ export const STIL = `
   .mitte ha-icon { --mdc-icon-size: 46px; opacity: 0.8; }
   .mitte .haupt { font-size: 16px; font-weight: 600; margin-top: 10px; }
   .mitte .neben { font-size: 13px; opacity: 0.6; margin-top: 4px; }
+
+  .hilfe-suche {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.05);
+    color: inherit;
+    font: inherit;
+  }
+  .hilfe-suche:focus-visible { outline: 2px solid #6fb2f5; outline-offset: 2px; }
+  .hilfe-eintrag { padding: 6px 0; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+  .hilfe-eintrag:first-child { border-top: none; }
+  .hilfe-eintrag summary { cursor: pointer; font-weight: 500; }
+  .hilfe-eintrag summary:focus-visible { outline: 2px solid #6fb2f5; outline-offset: 2px; }
+  /* Die Texte tragen Absätze und Aufzählungen als Zeilenumbruch, kein Markup. */
+  .hilfe-eintrag p { margin: 6px 0 0; opacity: 0.85; white-space: pre-line; }
+  .hilfe-leer { opacity: 0.6; padding: 6px 0; }
 `;

@@ -86,6 +86,7 @@ export const REITER = [
   { schluessel: "wartung", titel: "Wartung", symbol: "mdi:wrench-outline" },
   { schluessel: "verlauf", titel: "Verlauf", symbol: "mdi:chart-line" },
   { schluessel: "zeitprogramme", titel: "Zeitprogramme", symbol: "mdi:calendar-clock" },
+  { schluessel: "hilfe", titel: "Hilfe", symbol: "mdi:help-circle-outline" },
 ];
 
 // Wochentage, wie die Anlage sie schreibt, mit deutscher Beschriftung. Die

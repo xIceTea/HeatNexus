@@ -28,6 +28,7 @@ import { OHNE_WERT, REITER } from "./ordnung.js";
 import { AnordnenMixin } from "./teile/anordnen.js";
 import { BausteineMixin } from "./teile/bausteine.js";
 import { BedienenMixin } from "./teile/bedienen.js";
+import { HilfeMixin } from "./teile/hilfe.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { SteuerungMixin } from "./teile/steuerung.js";
 import { UebersichtMixin } from "./teile/uebersicht.js";
@@ -35,11 +36,15 @@ import { VerlaufMixin } from "./teile/verlauf.js";
 import { WartungMixin } from "./teile/wartung.js";
 import { ZeitprogrammeMixin } from "./teile/zeitprogramme.js";
 
-const Grundlage = ZeitprogrammeMixin(
-  WartungMixin(
-    VerlaufMixin(
-      SteuerungMixin(
-        UebersichtMixin(SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(HTMLElement)))))
+const Grundlage = HilfeMixin(
+  ZeitprogrammeMixin(
+    WartungMixin(
+      VerlaufMixin(
+        SteuerungMixin(
+          UebersichtMixin(
+            SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(HTMLElement))))
+          )
+        )
       )
     )
   )
@@ -409,6 +414,9 @@ class HeatNexusPanel extends Grundlage {
         this._zeitprogrammeReiter(anlage),
         "Diese Anlage meldet keine Zeitprogramme."
       );
+    }
+    if (this._reiter === "hilfe") {
+      return this._raster(anlage, this._hilfeReiter(anlage), "Keine Erklärungen gefunden.");
     }
     return this._raster(anlage, this._uebersicht(anlage), "Keine Werte gefunden.");
   }
