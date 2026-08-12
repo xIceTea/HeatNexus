@@ -543,3 +543,32 @@ def test_jedes_zeitprogramm_traegt_sein_eigenes_symbol(panel):
     assert symbole["WW-Zirkulationsprogramm"] == "mdi:reload"
     assert symbole["WW-Programm"] == "mdi:water-boiler"
     assert symbole["Heizprogramm 1"] == "mdi:radiator"
+
+
+# ---------------------------------------------------------------------------
+# Hilfe-Reiter
+# ---------------------------------------------------------------------------
+def test_hilfe_liste_zeigt_nur_was_die_anlage_fuehrt(panel):
+    """Ein Reiter, der nicht verbaute Technik erklärt, schickt in die Irre."""
+    daten = panel._anlage_daten(
+        anlage(teil("PuroWIN", 25, [entitaet("button.serviceausbrand", "Serviceausbrand")]))
+    )
+    titel = [e["titel"] for e in daten["hilfe_liste"]]
+    assert "Serviceausbrand" in titel
+    # „Lagerraum befüllen" hat einen Kartentext, aber diese Anlage baut die
+    # Karte nicht.
+    assert "Lagerraum befüllen" not in titel
+
+
+def test_hilfe_liste_ist_sortiert_und_ohne_dubletten(panel, kessel_und_heizkreis):
+    daten = panel._anlage_daten(kessel_und_heizkreis)
+    titel = [e["titel"] for e in daten["hilfe_liste"]]
+    assert titel == sorted(titel)
+    assert len(titel) == len(set(titel))
+    assert all(set(e) == {"titel", "text"} for e in daten["hilfe_liste"])
+
+
+def test_hilfe_liste_bleibt_leer_statt_zu_scheitern(panel):
+    """Eine Anlage ohne passende Datenpunkte ist kein Fehlerfall."""
+    daten = panel._anlage_daten(anlage(teil("Unbekannt", 99, [])))
+    assert isinstance(daten["hilfe_liste"], list)

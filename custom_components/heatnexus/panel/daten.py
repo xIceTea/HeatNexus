@@ -28,7 +28,7 @@ from ..dashboard import (
     rueckfrage,
 )
 from ..schema import anlagenschema, modul_in_betrieb
-from .hilfe import HILFE_KARTEN, hilfe
+from .hilfe import HILFE_KARTEN, KARTE_BEDINGUNG, hilfe
 from .muster import (
     AUSSENTEMPERATUR,
     BETRIEBSART,
@@ -545,6 +545,28 @@ def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _hilfe_liste(anlage: dict[str, Any], nutzdaten: dict[str, Any]) -> list[dict[str, str]]:
+    """Alle Erklärungen, die an dieser Anlage überhaupt greifen.
+
+    Zwei Quellen: die Muster, die auf einen erkannten Datenpunkt passen, und
+    die Kartentexte, deren Karte hier auch gebaut wird. Beides über dieselbe
+    Zuordnung wie das Fragezeichen an der Karte – ein zweiter Weg liefe
+    auseinander.
+    """
+    gefunden: dict[str, str] = {}
+    for teil in anlage["teile"]:
+        for eintrag in teil["entitaeten"]:
+            name = eintrag["name"]
+            if name not in gefunden and (text := hilfe(name)):
+                gefunden[name] = text
+    for titel, text in HILFE_KARTEN.items():
+        feld = KARTE_BEDINGUNG.get(titel)
+        if feld is not None and not nutzdaten.get(feld):
+            continue
+        gefunden.setdefault(titel, text)
+    return [{"titel": titel, "text": gefunden[titel]} for titel in sorted(gefunden)]
+
+
 def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) -> dict[str, Any]:
     """Alles, was die Oberfläche für eine Anlage braucht."""
     alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
@@ -666,7 +688,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     # einzelne Anlage, deren Fühler man nehmen könnte. Überschriebe sie jede
     # Anlage, zeigte eine plötzlich den Fühler der anderen.
     aussen = _kennung(alle, AUSSENTEMPERATUR, (), "outdoor_temperature") or aussen_gewaehlt
-    return {
+    nutzdaten = {
         # Die Anordnung der Karten wird je Anlage gespeichert. Ohne eigene
         # Kennung teilten sich Heizhaus und Wohnhaus eine Reihenfolge – wer
         # im Heizhaus etwas verschob, verschob es im Wohnhaus mit.
@@ -727,3 +749,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         "schema_lampen": bild.get("lampen", []) if bild else [],
         "schema_speicher": bild.get("speicher", []) if bild else [],
     }
+    # Braucht die fertigen Nutzdaten: Ob eine Karte gebaut wird, steht erst
+    # darin.
+    nutzdaten["hilfe_liste"] = _hilfe_liste(anlage, nutzdaten)
+    return nutzdaten

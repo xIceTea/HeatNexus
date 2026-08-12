@@ -161,3 +161,19 @@ def hilfe(name: str) -> str:
         if re.search(muster, name or "", re.IGNORECASE):
             return text
     return ""
+
+
+# Welche Karte an welchem Feld der Nutzdaten hängt. Nur Karten, die es nicht an
+# jeder Anlage gibt, stehen hier; alle übrigen gelten als vorhanden. Das ist die
+# einzige von Hand gepflegte Zuordnung des Hilfe-Reiters – die Titel müssen mit
+# den Schlüsseln von HILFE_KARTEN übereinstimmen.
+KARTE_BEDINGUNG = {
+    "Heizkreise": "heizkreise",
+    "Warmwasser": "warmwasser",
+    "Lagerraum befüllen": "lagerraum",
+    "Störungen": "stoerungen",
+    "Schnellzugriff": "schnellzugriff",
+    "Restlaufzeiten": "wartung",
+    "Brennstoff": "wartung",
+    "Zählerstände": "wartung",
+}
