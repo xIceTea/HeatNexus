@@ -6,11 +6,15 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unreleased]
+## [1.7.0-beta.2] - 2026-08-13
 
 ### Neu
 
 - Neuer Reiter „Hilfe" im Panel, durchsuchbar.
+
+### Behoben
+
+- 29 fehlende Datenpunktnamen ergänzt.
 
 ## [1.7.0-beta.1] - 2026-08-12
 
