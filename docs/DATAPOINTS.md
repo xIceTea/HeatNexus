@@ -155,9 +155,9 @@ Datenpunkte und werden übersprungen.
 | `51/109` | Zeitprogramm WW | Betreiber |
 | `51/112` | Betriebswahl | Betreiber |
 | `51/123` | AEW Evo Message ID of the top temperature sensor | Werk |
-| `51/124` | – | Werk |
-| `52/115` | – | Werk |
-| `52/116` | – | Werk |
+| `51/124` | AEW Evo Excess energy target temp | Werk |
+| `52/115` | TerraWIN Hot Water Tank Use Excess Energy | Werk |
+| `52/116` | TerraWIN Hot Water reduced Set temperature | Werk |
 | `58/38` | Betriebswahl | Betreiber |
 | `58/52` | WW-Ladepumpe | Info |
 | `58/89` | WW-Temperatur Maximalwert | Service |
@@ -360,15 +360,15 @@ Datenpunkte und werden übersprungen.
 | `51/101` | Status | Info |
 | `51/113` | Wärmepumpentyp | Info |
 | `51/114` | Fernzugriff aktivieren | Service |
-| `51/125` | – | Werk |
-| `51/126` | – | Werk |
+| `51/125` | AEW Evo Total accumulated heating energy | Werk |
+| `51/126` | AEW Evo Total accumulated electrical energy | Werk |
 | `51/127` | AEW Evo Message ID of the flow temperature sensor | Werk |
-| `52/0` | – | Werk |
-| `52/1` | – | Werk |
-| `52/2` | – | Werk |
-| `52/3` | – | Werk |
-| `52/4` | – | Werk |
-| `52/5` | – | Werk |
+| `52/0` | AEW Evo Actual power consumtion | Werk |
+| `52/1` | AEW Evo Actual power consumtion electrical energy | Werk |
+| `52/2` | AEW Evo Actual Source In temperature | Werk |
+| `52/3` | AEW Evo Actual Source Out temperature | Werk |
+| `52/4` | AEW Evo Source side actuator | Werk |
+| `52/5` | AEW Evo Source side actuator | Werk |
 | `52/11` | Fortlufttemperatur | Service |
 | `52/12` | Aussentemperatur Wärmepumpe | Service |
 | `52/13` | Temperatur Einspritzung | Service |
@@ -411,14 +411,14 @@ Datenpunkte und werden übersprungen.
 | `52/107` | AP440 Alarm 8 | Service |
 | `52/108` | AP440 Alarm 9 | Service |
 | `52/109` | AP440 Alarm 10 | Service |
-| `52/117` | – | Werk |
-| `52/118` | – | Werk |
-| `52/119` | – | Werk |
-| `52/120` | – | Werk |
+| `52/117` | TerraWIN Heat pump operating mode | Werk |
+| `52/118` | TerraWIN sDiagnosisData.heatpump[0].excessEnergy | Werk |
+| `52/119` | TerraWIN Total accumulated heating energy | Werk |
+| `52/120` | Total accumulated electrical energy | Werk |
 | `52/121` | Vorlauftemperatur Soll | Info |
-| `52/122` | – | Werk |
-| `52/123` | – | Werk |
-| `52/124` | – | Werk |
+| `52/122` | TerraWIN Consuming Excess Energy | Werk |
+| `52/123` | TerraWIN Set value compressor | Werk |
+| `52/124` | TerraWIN Set temperature heat pump | Werk |
 | `55/20` | Inverterbegrenzung | Service |
 | `56/4` | Anzahl Stufen E-Heizung | Service, Werk |
 
@@ -1094,16 +1094,16 @@ Datenpunkte und werden übersprungen.
 | `51/115` | Konfiguration | Info |
 | `51/116` | AEW Evo Message ID of the room temperature sensor | Werk |
 | `51/117` | AEW Evo Message ID of the humidity sensor | Werk |
-| `51/118` | – | Werk |
+| `51/118` | AEW Evo Actual room humidity | Werk |
 | `51/119` | AEW Evo Cool request set by external controller | Werk |
 | `51/120` | AEW Evo Heat request set by external controller | Werk |
 | `51/121` | AEW Evo Flow set temperature from external controller | Werk |
-| `51/122` | – | Werk |
-| `52/110` | – | Werk |
-| `52/111` | – | Werk |
-| `52/112` | – | Werk |
-| `52/113` | – | Werk |
-| `52/114` | – | Werk |
+| `51/122` | AEW Evo Excess energy target temp | Werk |
+| `52/110` | TerraWIN Actual heat circuit reflux temperature | Werk |
+| `52/111` | TerraWIN Actual heat circuit mixer position | Werk |
+| `52/112` | TerraWIN Actual value of the heat circuit pump | Werk |
+| `52/113` | TerraWIN Heat Circuit Use Excess Energy | Werk |
+| `52/114` | TerraWIN Excess energy target cool temp | Werk |
 | `58/28` | Heizkurve Niveau | Service |
 | `58/29` | Heizkurve Neigung | Service |
 | `58/48` | Heizkreispumpe | Info |
@@ -1470,7 +1470,7 @@ Datenpunkte und werden übersprungen.
 | `38/23` | SLK Stellung max. Primärausbrand | Werk |
 | `38/24` | SLK Stellung min. Sekundärausbrand | Werk |
 | `38/25` | SLK Stellung max. Sekundärausbrand | Werk |
-| `38/28` | – | Werk |
+| `38/28` | Maximale Änderungsgeschwindigkeit/sec Saugzuggebläse in Moduation | Werk |
 | `38/29` | Glutbettschieber Laufzeit Endlage - Endlage | Werk |
 | `38/30` | Glutbettschieber Nachlaufzeit Endlage geschlossen | Werk |
 | `38/31` | Ascheschieber Laufzeit Endlage - Endlage | Werk |
@@ -1486,7 +1486,7 @@ Datenpunkte und werden übersprungen.
 | `38/43` | Mindestlaufzeit Flammenstabilisierung | Werk |
 | `38/44` | RAS-Saugschnecke Mindeststrom relativ | Werk |
 | `38/45` | RAS-Saugschnecke Spitzenststrom relativ | Werk |
-| `38/46` | – | Werk |
+| `38/46` | RAS-Saugschnecke Frequenz Max | Werk |
 | `38/47` | RAS-Saugschnecke Frequenz Min | Werk |
 | `38/48` | Pause Ascheaustragung nach Entaschung | Werk |
 | `38/49` | Zeit Primärluftmenge im Vorspülen | Werk |

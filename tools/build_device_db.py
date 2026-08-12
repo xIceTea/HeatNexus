@@ -67,10 +67,22 @@ def sammle_namen(parameter: dict, oem: dict, geraetetexte: Path | None = None) -
     """
     namen: dict[str, str] = {}
     if geraetetexte and geraetetexte.exists():
-        namen.update(lade_geraetetexte(geraetetexte))
-    namen.update(oem.get("oids_oem", {}))
-    namen.update(parameter.get("oids", {}))
-    return {k: v for k, v in namen.items() if isinstance(v, str) and v.strip()}
+        _uebernehmen(namen, lade_geraetetexte(geraetetexte))
+    _uebernehmen(namen, oem.get("oids_oem", {}))
+    _uebernehmen(namen, parameter.get("oids", {}))
+    return namen
+
+
+def _uebernehmen(namen: dict[str, str], quelle: dict) -> None:
+    """Namen einer Liste übernehmen; leere Einträge übergehen.
+
+    Die verlässlichere Liste hat Vorrang, aber nur dort, wo sie etwas sagt.
+    Einige Adressen führt sie ohne Namen, während eine nachrangige Liste einen
+    brauchbaren trägt.
+    """
+    for adresse, text in quelle.items():
+        if isinstance(text, str) and text.strip():
+            namen[adresse] = text
 
 
 def lade_geraetetexte(pfad: Path) -> dict[str, str]:
