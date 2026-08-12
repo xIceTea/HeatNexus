@@ -544,8 +544,26 @@ ENDPUNKT_KANDIDATEN = (
     "user",
     "user/group",
     # Aufzeichnung – laut Quelltext unter `dprecorder/api/1.0/`
+    #
+    # Die vollständige Liste steht im Quelltext des Herstellerportals: Es
+    # spricht dieselbe Steuerung über einen Weiterleiter an, und die Pfade
+    # bilden die lokalen Dienste ab (`/remote/<dienst>/<pfad>` entspricht
+    # `/<Dienst>/api/1.0/<pfad>`; belegt an `wsadmin/systemtime/interval` und
+    # `dprecorder/settings`, die lokal beide antworten).
+    #
+    #     /remote/dprecorder/settings   /remote/dprecorder/datalogs
+    #     /remote/dprecorder/datalogs/<id>   /remote/dprecorder/interval
+    #     /remote/dprecorder/start      /remote/dprecorder/stop
+    #     /remote/info/deviceinfo
+    #
+    # Nur die lesenden Pfade stehen hier. `start`, `stop` und `interval`
+    # schreiben in die Gerätekonfiguration und gehören nicht in einen Suchlauf.
     "recorder/oids",
     "recorder/settings",
+    "recorder/datalogs",
+    "recorder/datalogs/0",
+    "deviceinfo",
+    "info/deviceinfo",
     # Vermutungen zum Störspeicher
     "errorlog",
     "error",
@@ -584,6 +602,9 @@ ENDPUNKT_BASEN = (
     "/WsFUP7030/api/1.0/",
     "/DcmRC7030/api/1.0/",
     "/InfoWinFehlerlog/api/1.0/",
+    # Das Portal spricht `info/deviceinfo` als eigenen Dienst an; welcher Mount
+    # das lokal ist, steht nicht fest.
+    "/info/api/1.0/",
 )
 
 # Wie oft ein 401 mit frischer Anmeldung wiederholt wird, bevor der Kandidat
