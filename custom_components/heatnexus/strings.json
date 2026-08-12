@@ -41,7 +41,8 @@
           "writable_advanced": "Allow writing service/factory parameters",
           "update_interval": "Polling interval",
           "dashboard": "Create dashboard",
-          "panel": "Own interface"
+          "panel": "Own interface",
+          "zeitwerte": "Systemuhr und Systemdatum anlegen"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
@@ -49,7 +50,8 @@
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "update_interval": "How often the system is queried.",
           "dashboard": "Adds a dashboard that builds itself from the discovered devices.",
-          "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions."
+          "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
+          "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt."
         }
       },
       "reauth_confirm": {
@@ -115,14 +117,16 @@
           "enable_advanced": "Enable service/factory level right away",
           "writable_advanced": "Allow writing service/factory parameters",
           "username": "Access",
-          "kesselart": "Heat generator (diagram)"
+          "kesselart": "Heat generator (diagram)",
+          "zeitwerte": "Systemuhr und Systemdatum anlegen"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
-          "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes."
+          "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes.",
+          "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt."
         }
       }
     }

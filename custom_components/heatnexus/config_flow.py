@@ -56,6 +56,7 @@ from .const import (
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_WRITABLE_ADVANCED,
+    CONF_ZEITWERTE,
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
     DOMAIN,
@@ -168,6 +169,11 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
         vol.Required(
             CONF_WRITABLE_ADVANCED, default=bool(defaults.get(CONF_WRITABLE_ADVANCED, False))
         ): bool,
+        # Schaltzeiten, Urlaubsende, Systemuhr: Einstellwerte, die man einmal
+        # anfasst. Ohne Haken werden sie deaktiviert angelegt und kosten keinen
+        # Abruf; wer sie alle braucht, setzt ihn hier statt jede Entität
+        # einzeln einzuschalten.
+        vol.Required(CONF_ZEITWERTE, default=bool(defaults.get(CONF_ZEITWERTE, False))): bool,
         # Wirkt nur auf die Zeichnung im Schaubild. Steht trotzdem hier bei
         # der Anlage und nicht in den allgemeinen Einstellungen: Zwei Anlagen
         # in einem Eintrag können verschiedene Wärmeerzeuger haben.
@@ -254,6 +260,7 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         CONF_LEVELS: [lvl for lvl in ALL_LEVELS if lvl in levels],
         CONF_ENABLE_ADVANCED: bool(raw.get(CONF_ENABLE_ADVANCED, False)),
         CONF_WRITABLE_ADVANCED: bool(raw.get(CONF_WRITABLE_ADVANCED, False)),
+        CONF_ZEITWERTE: bool(raw.get(CONF_ZEITWERTE, False)),
         CONF_KESSELART: kesselart if kesselart in KESSELARTEN else KESSELART_AUTO,
         CONF_KESSELWERT: (kesselwert if kesselwert in KESSELWERTE else KESSELWERT_LEISTUNG),
     }

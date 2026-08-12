@@ -31,6 +31,7 @@ from .const import (
     SAMMEL_MAX,
     SAMMEL_MAX_LEERLAUF,
     SAMMEL_MIN_TREFFER,
+    SYSTEMZEIT_NAMEN,
     UPDATE_INTERVAL,
 )
 from .const import (
@@ -111,6 +112,7 @@ class WindhagerHttpClient:
         levels: list | None = None,
         enable_advanced: bool = False,
         writable_advanced: bool = False,
+        zeitwerte: bool = False,
         username: str | None = None,
         update_interval: int = UPDATE_INTERVAL,
     ) -> None:
@@ -130,6 +132,8 @@ class WindhagerHttpClient:
         self.levels = list(levels or DEFAULT_LEVELS)
         self.enable_advanced = enable_advanced
         self.writable_advanced = writable_advanced
+        # Ob Uhrzeit- und Datumsfelder von sich aus aktiv sind.
+        self.zeitwerte = zeitwerte
         self.oids: set | None = None
         self.devices: list[dict] = []
         # nodeId -> neuronId (Seriennummer des Bausteins). Grundlage aller
@@ -907,15 +911,19 @@ class WindhagerHttpClient:
                     "level"
                 ) in ("operate", "service"):
                     d["category"] = "config"
-                if d["type"] in ("time", "date"):
-                    # **Uhrzeiten und Datumsfelder sind Einstellwerte, keine
-                    # Messwerte.** Schaltzeiten, Urlaubsende, Systemuhr – man
-                    # fasst sie einmal an und danach jahrelang nicht mehr.
-                    # Standardmäßig angelegt füllten sie die Entitätsliste und
-                    # kosteten in jedem Durchlauf eine Anfrage an eine Anlage,
-                    # die ohnehin knapp zwei Sekunden je Anfrage braucht. Wer
-                    # sie braucht, schaltet sie in Home Assistant einzeln ein.
-                    d["enabled_default"] = False
+                if d["type"] in ("time", "date") and d.get("name") in SYSTEMZEIT_NAMEN:
+                    # **Systemuhr und Systemdatum sind Einstellwerte, keine
+                    # Messwerte.** Man stellt sie einmal und danach jahrelang
+                    # nicht mehr. Standardmäßig angelegt füllten sie die
+                    # Entitätsliste und kosteten in jedem Durchlauf eine
+                    # Anfrage an eine Anlage, die ohnehin knapp zwei Sekunden
+                    # je Anfrage braucht.
+                    #
+                    # Nur diese beiden: Ein Feld mit Datum darin ist noch kein
+                    # Systemdatum. „Urlaubsprogramm bis" und die
+                    # Zirkulationszeiten stellt man ein, um sie danach
+                    # anzusehen.
+                    d["enabled_default"] = self.zeitwerte
             if m:
                 # Device reports the actually allowed enum values, e.g. "[1,2]"
                 enum_raw = m.get("enum")

@@ -21,6 +21,15 @@ MAX_SYSTEMS = 6
 CONF_LEVELS = "levels"
 CONF_ENABLE_ADVANCED = "enable_advanced"
 CONF_WRITABLE_ADVANCED = "writable_advanced"
+# Systemuhr und Systemdatum der Steuerung werden deaktiviert angelegt; der
+# Haken legt sie aktiv an.
+CONF_ZEITWERTE = "zeitwerte"
+
+# Genau die beiden Datenpunkte, die die Steuerung selbst stellt (2/70 und
+# 2/72). Erkannt wird am Namen, nicht an der Adresse: Ein Feld mit Datum darin
+# ist noch lange kein Systemdatum – „Urlaubsprogramm bis" und die
+# Zirkulationszeiten sind Betriebswerte und bleiben sichtbar.
+SYSTEMZEIT_NAMEN = frozenset({"Uhrzeit", "Datum"})
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_DASHBOARD = "dashboard"
 

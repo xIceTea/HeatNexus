@@ -41,7 +41,8 @@
           "writable_advanced": "Allow writing service/factory parameters",
           "update_interval": "Polling interval",
           "dashboard": "Create dashboard",
-          "panel": "Own interface"
+          "panel": "Own interface",
+          "zeitwerte": "Create system clock and system date"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
@@ -49,7 +50,8 @@
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "update_interval": "How often the system is queried.",
           "dashboard": "Adds a “Heating” dashboard to the sidebar that builds itself from the discovered devices.",
-          "panel": "Adds a “HeatNexus” entry to the sidebar with a plant diagram, status, heating circuits and quick actions."
+          "panel": "Adds a “HeatNexus” entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
+          "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected."
         }
       },
       "reauth_confirm": {
@@ -116,7 +118,8 @@
           "writable_advanced": "Allow writing service/factory parameters",
           "username": "Access",
           "kesselart": "Heat generator (diagram)",
-          "kesselwert": "Boiler value (diagram)"
+          "kesselwert": "Boiler value (diagram)",
+          "zeitwerte": "Create system clock and system date"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
@@ -124,7 +127,8 @@
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
           "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes.",
-          "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature."
+          "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature.",
+          "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected."
         }
       }
     }

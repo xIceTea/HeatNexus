@@ -96,6 +96,31 @@ def test_schalter_und_intervall_werden_uebernommen(flow):
     assert options[CONF_UPDATE_INTERVAL] == 45
 
 
+def test_zeitwerte_sind_abwaehlbar_und_standardmaessig_aus(flow):
+    """Uhrzeiten und Datumsfelder sind Einstellwerte, keine Messwerte.
+
+    Wer sie doch alle haben will, setzt den Haken einmal, statt jede Entität
+    einzeln in Home Assistant einzuschalten.
+    """
+    from custom_components.heatnexus.const import CONF_ZEITWERTE
+
+    assert flow.normalize_options({})[CONF_ZEITWERTE] is False
+    assert flow.normalize_options({CONF_ZEITWERTE: True})[CONF_ZEITWERTE] is True
+
+
+def test_zeitwerte_aendern_den_umfang(flow):
+    """Sie entscheiden, was abgefragt wird – der Erkennungsstand gilt dann nicht mehr."""
+    from custom_components.heatnexus import _scope_fingerprint
+
+    umfang = {
+        "levels": ["info", "operate"],
+        "enable_advanced": False,
+        "writable_advanced": False,
+        "username": "USER",
+    }
+    assert _scope_fingerprint(umfang) != _scope_fingerprint({**umfang, "zeitwerte": True})
+
+
 def test_kesselart_wird_uebernommen_und_geprueft(flow):
     """Die Kesselart wirkt nur auf das Schaubild – aber sie muss ankommen."""
     from custom_components.heatnexus.const import CONF_KESSELART, KESSELART_AUTO

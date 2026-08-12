@@ -45,35 +45,72 @@ def test_eine_arbeitseinheit_wird_traege_gelesen(client_module):
     assert client_module.WindhagerHttpClient._poll_klasse({"unit": "kWh"}) == "slow"
 
 
-async def test_uhrzeit_und_datum_werden_nicht_von_selbst_angelegt(client, client_module):
+async def test_systemuhr_und_systemdatum_werden_nicht_von_selbst_angelegt(client):
     """Einstellwerte, die man einmal im Leben anfasst.
 
     Standardmäßig angelegt füllten sie die Entitätsliste und kosteten in jedem
     Durchlauf eine Anfrage an eine Anlage, die knapp zwei Sekunden je Anfrage
     braucht. Wer sie braucht, schaltet sie einzeln ein.
     """
-    client.oids = {"/1/15/0/3/78/0", "/1/15/0/5/61/0", "/1/15/0/0/7/0"}
+    client.oids = {"/1/15/0/2/70/0", "/1/15/0/2/72/0"}
+    client.menu_meta = {
+        "/1/15/0/2/70/0": {"writeProt": False, "value": "24.12.2026"},
+        "/1/15/0/2/72/0": {"writeProt": False, "value": "06:30"},
+    }
+    client.devices = [
+        {"oid": oid, "name": name, "type": "auto", "level": "operate"}
+        for oid, name in (("/1/15/0/2/70/0", "Datum"), ("/1/15/0/2/72/0", "Uhrzeit"))
+    ]
+
+    await client._apply_metadata()
+
+    assert {d["type"] for d in client.devices} == {"date", "time"}
+    assert all(d["enabled_default"] is False for d in client.devices)
+
+
+async def test_ein_betriebswert_mit_datum_bleibt_an(client):
+    """Nur die Systemuhr wird ausgeblendet, nicht jedes Feld mit Datum darin.
+
+    „Urlaubsprogramm bis" und die Zirkulationszeiten sind Betriebswerte: Wer
+    sie einstellt, will sie danach auch sehen.
+    """
+    client.oids = {"/1/15/0/3/78/0", "/1/15/0/5/70/0", "/1/15/0/0/7/0"}
     client.menu_meta = {
         "/1/15/0/3/78/0": {"writeProt": False, "value": "24.12.2026"},
-        "/1/15/0/5/61/0": {"writeProt": False, "value": "06:30"},
+        "/1/15/0/5/70/0": {"writeProt": False, "value": "06:30"},
         "/1/15/0/0/7/0": {"writeProt": True, "unit": "°C", "value": "45.7"},
     }
     client.devices = [
         {"oid": oid, "name": name, "type": "auto", "level": "operate"}
         for oid, name in (
             ("/1/15/0/3/78/0", "Urlaubsprogramm bis Datum"),
-            ("/1/15/0/5/61/0", "Schaltzeit"),
+            ("/1/15/0/5/70/0", "WW-Zirkulation Einschaltzeit"),
             ("/1/15/0/0/7/0", "Kesseltemperatur Ist"),
         )
     ]
 
     await client._apply_metadata()
 
-    nach_typ = {d["type"]: d for d in client.devices}
-    assert nach_typ["date"]["enabled_default"] is False
-    assert nach_typ["time"]["enabled_default"] is False
-    # Die Gegenprobe: ein Messwert bleibt selbstverständlich an.
-    assert nach_typ["temperature"].get("enabled_default", True) is True
+    assert all(d.get("enabled_default", True) is True for d in client.devices)
+
+
+async def test_wer_die_systemzeit_will_bekommt_sie(client_module):
+    """Ein Haken bei der Einrichtung statt beide Entitäten einzeln einschalten."""
+    client = client_module.WindhagerHttpClient("192.168.178.100", "geheim", zeitwerte=True)
+    client.neuron_by_node = {"15": "0000ABCD5678"}
+    client.oids = {"/1/15/0/2/70/0", "/1/15/0/2/72/0"}
+    client.menu_meta = {
+        "/1/15/0/2/70/0": {"writeProt": False, "value": "24.12.2026"},
+        "/1/15/0/2/72/0": {"writeProt": False, "value": "06:30"},
+    }
+    client.devices = [
+        {"oid": oid, "name": name, "type": "auto", "level": "operate"}
+        for oid, name in (("/1/15/0/2/70/0", "Datum"), ("/1/15/0/2/72/0", "Uhrzeit"))
+    ]
+
+    await client._apply_metadata()
+
+    assert all(d["enabled_default"] is True for d in client.devices)
 
 
 def test_ein_abgewaehlter_fachparameter_wird_traege_gelesen(client_module):
