@@ -10,8 +10,8 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
-- Anlagen mit vielen Datenpunkten hörten dauerhaft auf, Werte zu lesen.
-- Datenpunkte, die die Anlage ablehnt, wurden in jedem Durchlauf erneut abgefragt.
+- Anlagen mit vielen Datenpunkten hörten dauerhaft auf, Werte zu lesen ([#2](https://github.com/xIceTea/HeatNexus/issues/2)).
+- Datenpunkte, die die Anlage ablehnt, wurden in jedem Durchlauf erneut abgefragt ([#2](https://github.com/xIceTea/HeatNexus/issues/2)).
 
 ## [1.8.0-beta.2] - 2026-08-13
 
