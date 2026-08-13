@@ -315,9 +315,12 @@ def schritt(name: str):
     stünde ohne das hier alles Vorherige umsonst da – gemessen an einer
     fremden BioWIN, wo der letzte Schritt an einer Menü-Ebene ohne
     Datenpunktadresse ausstieg und der ganze Lauf ohne Zusammenfassung endete.
+    Bei mehreren Anlagen in einem Aufruf riss derselbe Fehler auch die
+    folgenden Anlagen mit.
 
-    Die Datenbeschaffung davor (Struktur, Menüs) läuft bewusst ungeschützt:
-    Scheitert sie, gibt es nichts zu retten.
+    Geschützt ist alles, was auf der Datenbeschaffung aufsetzt. Struktur und
+    Menü-Ebenen selbst laufen ungeschützt: Scheitern sie, gibt es nichts zu
+    retten.
     """
     try:
         yield
@@ -325,26 +328,29 @@ def schritt(name: str):
         print(f"    {name} abgebrochen: {type(fehler).__name__}: {fehler}")
 
 
-def _eintrag_schluessel(item) -> str | None:
+def _eintrag_schluessel(item, praefix: str = "") -> str | None:
     """Was einen Eintrag einer Menü-Ebene unterscheidbar macht.
 
     An einer NV-Funktion führt ein Eintrag keine `OID`, sondern einen
     `nvIndex` – die Steuerung deutet die Adresse dort um. Ohne Rückfall
     darauf gilt eine solche Ebene als leer: Der Seitenvergleich findet nie
     etwas Neues, und die Zusammenfassung greift auf ein leeres Ergebnis zu.
+
+    Mit `praefix` entsteht daraus die Adresse, unter der der Eintrag im Abzug
+    steht; ohne ihn genügt der Index, weil dort nur innerhalb einer Ebene
+    verglichen wird.
     """
     if not isinstance(item, dict):
         return None
     if item.get("OID"):
         return item["OID"]
     if item.get("nvIndex") is not None:
-        return f"nv/{item['nvIndex']}"
+        return f"{praefix}/{item['nvIndex']}" if praefix else f"nv/{item['nvIndex']}"
     return None
 
 
 def _oids_of(items) -> list[str]:
-    schluessel = (_eintrag_schluessel(i) for i in items)
-    return [s for s in schluessel if s]
+    return [s for i in items if (s := _eintrag_schluessel(i))]
 
 
 def detect_pagination(probe: Probe, menu_url: str, first_page: list) -> tuple[str, object] | None:
@@ -1277,9 +1283,7 @@ def fetch_menus(probe: Probe, structure: list) -> dict:
                             #
                             # Ihre Adresse ist der Menü-Eintrag selbst; als
                             # Schlüssel dient deshalb der Pfad mit dem Index.
-                            oid = item.get("OID")
-                            if not oid and item.get("nvIndex") is not None:
-                                oid = f"{entry['prefix']}/{menu_id}/{item['nvIndex']}"
+                            oid = _eintrag_schluessel(item, f"{entry['prefix']}/{menu_id}")
                             if oid:
                                 item["_menu"] = menu_id
                                 entry["datapoints"][oid] = item
@@ -1664,40 +1668,46 @@ def run_host(
         written.append(path)
 
     if menus and actions & {"objects", "report"}:
-        print("    Zeitprogramme werden gelesen …")
-        objects = fetch_objects(probe, menus)
-        if objects:
-            path = out_dir / f"{stem}_objekte.json"
-            path.write_text(json.dumps(objects, indent=2, ensure_ascii=False), encoding="utf-8")
-            written.append(path)
+        with schritt("Zeitprogramme"):
+            print("    Zeitprogramme werden gelesen …")
+            objects = fetch_objects(probe, menus)
+            if objects:
+                path = out_dir / f"{stem}_objekte.json"
+                path.write_text(json.dumps(objects, indent=2, ensure_ascii=False), encoding="utf-8")
+                written.append(path)
 
     nv = None
     if menus and actions & {"nv", "vergleich"}:
-        print("    LON-Netzwerkvariablen: Adressform wird gesucht …")
-        nv = suche_nv_werte(probe, menus)
-        path = out_dir / f"{stem}_nv.json"
-        path.write_text(json.dumps(nv, indent=2, ensure_ascii=False), encoding="utf-8")
-        written.append(path)
+        with schritt("LON-Netzwerkvariablen"):
+            print("    LON-Netzwerkvariablen: Adressform wird gesucht …")
+            nv = suche_nv_werte(probe, menus)
+            path = out_dir / f"{stem}_nv.json"
+            path.write_text(json.dumps(nv, indent=2, ensure_ascii=False), encoding="utf-8")
+            written.append(path)
 
     if menus and nv and "vergleich" in actions:
-        print("    LON gegen OID …")
-        ergebnis = vergleich_lon_oid(menus, nv)
-        print(
-            f"    {len(ergebnis['ohne_oid'])} LON-Werte ohne OID-Entsprechung, "
-            f"{len(ergebnis['mit_oid'])} mit"
-        )
-        for eintrag in ergebnis["ohne_oid"][:15]:
-            print(f"      {str(eintrag['nvName'])[:30]:32} {eintrag['unit']:6} {eintrag['value']}")
-        path = out_dir / f"{stem}_vergleich.json"
-        path.write_text(json.dumps(ergebnis, indent=2, ensure_ascii=False), encoding="utf-8")
-        written.append(path)
+        with schritt("LON gegen OID"):
+            print("    LON gegen OID …")
+            ergebnis = vergleich_lon_oid(menus, nv)
+            print(
+                f"    {len(ergebnis['ohne_oid'])} LON-Werte ohne OID-Entsprechung, "
+                f"{len(ergebnis['mit_oid'])} mit"
+            )
+            for eintrag in ergebnis["ohne_oid"][:15]:
+                print(
+                    f"      {str(eintrag['nvName'])[:30]:32} {eintrag['unit']:6} {eintrag['value']}"
+                )
+            path = out_dir / f"{stem}_vergleich.json"
+            path.write_text(json.dumps(ergebnis, indent=2, ensure_ascii=False), encoding="utf-8")
+            written.append(path)
 
     if "endpunkte" in actions:
-        print("    Endpunkte der Steuerung werden aufgezählt …")
-        punkte = suche_endpunkte(probe)
-        path = out_dir / f"{stem}_endpunkte.json"
-        path.write_text(json.dumps(punkte, indent=2, ensure_ascii=False), encoding="utf-8")
-        written.append(path)
+        with schritt("Endpunktsuche"):
+            print("    Endpunkte der Steuerung werden aufgezählt …")
+            punkte = suche_endpunkte(probe)
+            path = out_dir / f"{stem}_endpunkte.json"
+            path.write_text(json.dumps(punkte, indent=2, ensure_ascii=False), encoding="utf-8")
+            written.append(path)
 
     if "vollabzug" in actions:
         with schritt("Vollabzug"):
@@ -1763,17 +1773,21 @@ def run_host(
     seconds = time.monotonic() - started
 
     if menus and "compare" in actions:
-        for row in compare(menus):
-            print(
-                f"    {row['prefix']:<12} fctType {row['fct_type']:>3}: "
-                f"Anlage {len(row['found']):>3} | DB {len(row['known']):>3} | "
-                f"nur Anlage {len(row['only_device']):>3} | nur DB {len(row['only_db']):>3}"
-            )
+        with schritt("Gegenprobe"):
+            for row in compare(menus):
+                print(
+                    f"    {row['prefix']:<12} fctType {row['fct_type']:>3}: "
+                    f"Anlage {len(row['found']):>3} | DB {len(row['known']):>3} | "
+                    f"nur Anlage {len(row['only_device']):>3} | nur DB {len(row['only_db']):>3}"
+                )
 
     if menus and "report" in actions:
-        path = out_dir / f"{stem}_bericht.md"
-        write_report(path, menus, objects or {}, {"requests": probe.requests, "seconds": seconds})
-        written.append(path)
+        with schritt("Bericht"):
+            path = out_dir / f"{stem}_bericht.md"
+            write_report(
+                path, menus, objects or {}, {"requests": probe.requests, "seconds": seconds}
+            )
+            written.append(path)
 
     total = sum(len(f["datapoints"]) for f in menus["functions"]) if menus else 0
     print(f"    fertig: {total} Datenpunkte, {probe.requests} Requests, {seconds:.1f} s")
