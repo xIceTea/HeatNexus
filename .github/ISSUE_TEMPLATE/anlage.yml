@@ -1,0 +1,78 @@
+name: Anlage beisteuern
+description: Abzug einer Anlage, die hier nicht steht – Kessel, Module, Heizkreise
+labels: ["anlage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        HeatNexus entsteht an einer einzigen Anlage. Jede andere Hardware ist
+        blind unterstützt, bis jemand einen Abzug beisteuert – das hier ist der
+        wertvollste Beitrag zum Projekt.
+
+        Der Lauf fragt die Steuerung einmalig ab und schreibt alles nach
+        `probe/`. Er ändert nichts an der Anlage und läuft nicht im Betrieb.
+
+        ```
+        python tools/heatnexus_probe.py all <IP-der-Anlage>
+        ```
+
+        Das Werkzeug ist eine einzelne Datei und braucht nur Python:
+        <https://raw.githubusercontent.com/xIceTea/HeatNexus/main/tools/heatnexus_probe.py>
+
+        **Vor dem Hochladen:** IP-Adressen und Seriennummern (`neuronId`)
+        ersetzen. Passwörter tauchen im Abzug nicht auf.
+  - type: input
+    id: kessel
+    attributes:
+      label: Kessel
+      description: Typ und Bedieneinheit
+      placeholder: "BioWIN 2 Touch mit InfoWIN Touch"
+    validations:
+      required: true
+  - type: input
+    id: regelung
+    attributes:
+      label: Regelung und Firmware
+      description: Steht am Gerät unter Info bzw. Service
+      placeholder: "MES INFINITY, RC7030, Firmware S 1.0.2"
+  - type: textarea
+    id: module
+    attributes:
+      label: Module und Kreise
+      description: Was sonst noch verbaut ist – Heizkreise, Puffer, Solar, Pumpenmodule
+      placeholder: |
+        3 Heizkreise (UML), 1 Pufferspeicher, kein Solar
+    validations:
+      required: true
+  - type: checkboxes
+    id: dateien
+    attributes:
+      label: Welche Dateien hängen an
+      description: Alles aus `probe/`, was entstanden ist. Fehlt etwas, gern trotzdem melden.
+      options:
+        - label: "`*_menus.json` und `*_datenpunkte.csv` (Datenpunkte je Funktion)"
+        - label: "`*_nv.json` (Netzwerkvariablen)"
+        - label: "`*_objekte.json` (Zeitprogramme)"
+        - label: "`*_vollabzug.json`"
+        - label: "`*_bericht.md`"
+        - label: "Diagnose-Export der Integration, falls sie schon läuft"
+  - type: textarea
+    id: auffaelligkeiten
+    attributes:
+      label: Was beim Lauf aufgefallen ist
+      description: |
+        Meldungen der Sonde, hängende Knoten, Abbrüche. Besonders die Zeilen
+        `… nicht in der Struktur gemeldet: …` und `… ohne Katalog – Blindlauf …`.
+      render: text
+  - type: textarea
+    id: abweichung
+    attributes:
+      label: Was die Integration falsch oder gar nicht zeigt
+      description: Nur ausfüllen, wenn HeatNexus an dieser Anlage schon läuft.
+  - type: checkboxes
+    id: datenschutz
+    attributes:
+      label: Vor dem Absenden
+      options:
+        - label: IP-Adressen und Seriennummern sind aus den Dateien entfernt
+          required: true

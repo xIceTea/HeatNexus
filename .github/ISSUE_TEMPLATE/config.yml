@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Frage stellen
+    url: https://github.com/xIceTea/HeatNexus/discussions/new?category=q-a
+    about: Verständnisfragen zu Einrichtung, Entitäten oder Dashboard – kein Fehler.
+  - name: Idee vorschlagen
+    url: https://github.com/xIceTea/HeatNexus/discussions/new?category=ideas
+    about: Wünsche und Vorschläge, bevor daraus eine Aufgabe wird.
+  - name: Anlagen-Probe ausführen
+    url: https://github.com/xIceTea/HeatNexus/blob/main/docs/API.md
+    about: Wie der Abzug entsteht, den fast jede Meldung braucht.

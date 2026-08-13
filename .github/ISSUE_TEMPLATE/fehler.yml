@@ -6,11 +6,16 @@ body:
     attributes:
       value: |
         Bitte keine Passwörter, Seriennummern oder vollständigen IP-Adressen posten.
+
+        Am schnellsten geklärt ist eine Meldung mit **Diagnose-Export**:
+        Einstellungen → Geräte & Dienste → HeatNexus → ⋮ → Diagnose
+        herunterladen. Darin steht, was die Integration an deiner Anlage
+        erkannt hat; IP, Passwort und Seriennummer sind geschwärzt.
   - type: input
     id: version
     attributes:
       label: Version der Integration
-      placeholder: "1.0.0"
+      placeholder: "1.7.0"
     validations:
       required: true
   - type: input
@@ -27,6 +32,18 @@ body:
       description: Kessel und Module, z. B. PuroWIN 40 mit B-PLMi und zwei UML-Heizkreisen
     validations:
       required: true
+  - type: dropdown
+    id: umfang
+    attributes:
+      label: Gewählter Umfang
+      description: In den Einstellungen der Integration unter „Ebenen"
+      multiple: true
+      options:
+        - Info
+        - Betreiber
+        - Service
+        - OEM
+        - weiß ich nicht
   - type: textarea
     id: erwartet
     attributes:
@@ -52,3 +69,11 @@ body:
       label: Protokollauszug
       description: Einstellungen → System → Protokolle, gefiltert nach "heatnexus"
       render: text
+  - type: checkboxes
+    id: anhaenge
+    attributes:
+      label: Was noch anhängt
+      options:
+        - label: Diagnose-Export der Integration
+        - label: Abzug aus `tools/heatnexus_probe.py`
+        - label: Der Fehler tritt auch nach `heatnexus.rediscover` noch auf

@@ -5,8 +5,16 @@ body:
   - type: markdown
     attributes:
       value: |
-        Am hilfreichsten ist ein Auszug aus `tools/heatnexus_probe.py`
-        (Aktion „Menü-Ebenen"). Bitte vorher IP-Adressen entfernen.
+        Am hilfreichsten ist ein Abzug aus `tools/heatnexus_probe.py`:
+
+        ```
+        python tools/heatnexus_probe.py all <IP-der-Anlage>
+        ```
+
+        Geht es um eine ganze Anlage statt um einzelne Werte, passt die
+        Vorlage **Anlage beisteuern** besser.
+
+        Bitte vorher IP-Adressen und Seriennummern entfernen.
   - type: input
     id: geraet
     attributes:
@@ -23,10 +31,23 @@ body:
     id: erwartung
     attributes:
       label: Was der Wert am InfoWIN anzeigt
+      description: Bezeichnung, Wert und Einheit, so wie sie am Gerät stehen
+    validations:
+      required: true
+  - type: dropdown
+    id: art
+    attributes:
+      label: Worum geht es
+      options:
+        - Der Wert fehlt ganz
+        - Der Wert ist da, heißt aber falsch
+        - Der Wert ist da, Einheit oder Nachkommastellen stimmen nicht
+        - Der Wert lässt sich nicht ändern, obwohl er am Gerät änderbar ist
     validations:
       required: true
   - type: textarea
     id: probe
     attributes:
       label: Auszug aus der Anlagen-Probe
+      description: Die Zeile aus `*_datenpunkte.csv` oder der Eintrag aus `*_menus.json`
       render: json
