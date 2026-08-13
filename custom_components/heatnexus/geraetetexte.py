@@ -10,11 +10,15 @@ Rückruf hereingereicht, gelesen wird reiner Text.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 import logging
 from xml.etree import ElementTree as ET
 
 _LOGGER = logging.getLogger(__name__)
+
+SPRACHEN = ("de", "en", "fr", "it")
+SPRACHE_AUTO = "auto"
 
 
 @dataclass(frozen=True)
@@ -105,3 +109,45 @@ def stoerungen_lesen(xml: str) -> dict[int, str]:
         except (TypeError, ValueError):
             continue
     return texte
+
+
+# Auf Deutsch trägt nur die Namensdatei etwas bei: Aufzählungs- und
+# Ebenentexte stehen in der Datenbank, und die Störungstexte der Steuerung
+# sind eine Teilmenge der gepflegten Tabelle.
+_DATEIEN = {
+    "namen": ("VarIdentTexte", namen_lesen),
+    "enums": ("AufzaehlTexte", enums_lesen),
+    "ebenen": ("EbenenTexte", ebenen_lesen),
+    "stoerungen": ("ErrorTexte", stoerungen_lesen),
+}
+_NUR_NAMEN = ("namen",)
+
+
+def sprache_aufloesen(gewaehlt: str | None, ha_sprache: str | None) -> str:
+    """Die Sprache bestimmen, in der die Steuerung gelesen wird.
+
+    Die Wahl des Nutzers hat Vorrang; ohne Wahl gilt die Sprache von Home
+    Assistant. Was die Steuerung nicht führt, fällt auf Deutsch zurück.
+    """
+    if gewaehlt and gewaehlt != SPRACHE_AUTO:
+        return gewaehlt if gewaehlt in SPRACHEN else "de"
+    kurz = (ha_sprache or "").split("-")[0].lower()
+    return kurz if kurz in SPRACHEN else "de"
+
+
+async def laden(hole, sprache: str) -> Texte:
+    """Textwerk der Steuerung lesen.
+
+    ``hole`` liest eine Datei unterhalb von ``/res/`` und gibt ``None``
+    zurück, wenn die Anlage sie nicht kennt. Fehlt eine Datei oder ist sie
+    unlesbar, fehlt nur ihr Anteil – der Erkennungslauf geht weiter.
+    """
+    schluessel = _NUR_NAMEN if sprache == "de" else tuple(_DATEIEN)
+    pfade = [f"xml/{_DATEIEN[s][0]}_{sprache}.xml" for s in schluessel]
+    try:
+        rohdaten = await asyncio.gather(*(hole(p) for p in pfade))
+    except Exception as fehler:
+        _LOGGER.debug("Textwerk der Steuerung nicht abrufbar: %s", fehler)
+        return Texte()
+    teile = {s: _DATEIEN[s][1](roh or "") for s, roh in zip(schluessel, rohdaten, strict=True)}
+    return Texte(**teile)

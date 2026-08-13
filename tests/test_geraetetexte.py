@@ -72,3 +72,70 @@ def test_unlesbares_xml_ergibt_leeres_ergebnis(geraetetexte, kaputt):
     assert geraetetexte.enums_lesen(kaputt) == {}
     assert geraetetexte.ebenen_lesen(kaputt) == {}
     assert geraetetexte.stoerungen_lesen(kaputt) == {}
+
+
+@pytest.mark.parametrize(
+    ("gewaehlt", "ha", "erwartet"),
+    [
+        (None, "fr", "fr"),
+        ("auto", "en-GB", "en"),
+        ("auto", "es", "de"),
+        ("auto", None, "de"),
+        ("it", "de", "it"),
+        ("klingonisch", "fr", "de"),
+    ],
+)
+def test_sprache_aufloesen(geraetetexte, gewaehlt, ha, erwartet):
+    assert geraetetexte.sprache_aufloesen(gewaehlt, ha) == erwartet
+
+
+async def test_deutsch_holt_nur_die_namensdatei(geraetetexte):
+    # Aufzählungs-, Ebenen- und Störungstexte stehen auf Deutsch bereits in
+    # der mitgelieferten Datenbank. Ein Abruf dafür trüge nichts bei.
+    geholt = []
+
+    async def hole(pfad):
+        geholt.append(pfad)
+        return VARIDENT
+
+    texte = await geraetetexte.laden(hole, "de")
+
+    assert geholt == ["xml/VarIdentTexte_de.xml"]
+    assert texte.namen["0/7"] == "Boiler temperature"
+    assert texte.enums == {}
+
+
+async def test_fremde_sprache_holt_alle_vier(geraetetexte):
+    inhalte = {
+        "xml/VarIdentTexte_fr.xml": VARIDENT,
+        "xml/AufzaehlTexte_fr.xml": AUFZAEHL,
+        "xml/EbenenTexte_fr.xml": EBENEN,
+        "xml/ErrorTexte_fr.xml": FEHLER,
+    }
+
+    async def hole(pfad):
+        return inhalte.get(pfad)
+
+    texte = await geraetetexte.laden(hole, "fr")
+
+    assert texte.namen and texte.enums and texte.ebenen and texte.stoerungen
+
+
+async def test_fehlende_datei_kostet_nur_ihren_teil(geraetetexte):
+    async def hole(pfad):
+        return VARIDENT if pfad.startswith("xml/VarIdent") else None
+
+    texte = await geraetetexte.laden(hole, "en")
+
+    assert texte.namen
+    assert texte.enums == {}
+    assert texte.stoerungen == {}
+
+
+async def test_abruffehler_ergibt_leeres_ergebnis(geraetetexte):
+    async def hole(pfad):
+        raise OSError("Netz weg")
+
+    texte = await geraetetexte.laden(hole, "en")
+
+    assert not texte
