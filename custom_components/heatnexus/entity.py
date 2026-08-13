@@ -66,7 +66,7 @@ def async_setup_entities(
     vollständige Abzug der Anlage läuft im Hintergrund weiter. Sobald er
     fertig ist, werden die zusätzlich gefundenen Entitäten nachgereicht.
     """
-    coordinators = hass.data[DOMAIN][entry.entry_id]["coordinators"]
+    coordinators = entry.runtime_data["coordinators"]
     bekannt: set[str] = set()
 
     @callback
@@ -89,14 +89,36 @@ def async_setup_entities(
     )
 
 
+def _funktionspraefix(beschreibung: dict) -> str | None:
+    """Der Funktionspräfix `/1/<Knoten>/<Funktion>` einer Beschreibung.
+
+    Das Feld ``prefix`` führt nur die Thermostat-Beschreibung; alle übrigen
+    tragen ihre Adresse allein in der OID. Sie hat die Form
+    `/1/<Knoten>/<Funktion>/<gn>/<mn>/<idx>` – ein knotenweiter Datenpunkt
+    dagegen `/1/<Knoten>/<gn>/<mn>/<idx>` und damit **keinen** Funktionsteil.
+    Genau daran wird unterschieden.
+    """
+    if prefix := beschreibung.get("prefix"):
+        return prefix
+    teile = str(beschreibung.get("oid") or "").strip("/").split("/")
+    return "/" + "/".join(teile[:3]) if len(teile) == 6 else None
+
+
+def _knoten(beschreibung: dict) -> str | None:
+    """Die Knotennummer, an der diese Beschreibung hängt."""
+    quelle = beschreibung.get("prefix") or beschreibung.get("oid") or ""
+    teile = str(quelle).strip("/").split("/")
+    return teile[1] if len(teile) >= 2 else None
+
+
 def _modulwert(coordinator: Any, beschreibung: dict, gn_mn: str) -> str | None:
     """Einen Datenpunkt lesen, den jedes Modul über sich selbst führt.
 
-    Software- und Hardwarestand kommen über den `object`-Endpunkt und stehen
-    als Text im Abruf. Fehlt der Wert – etwa weil die Anlage noch eingelesen
-    wird –, bleibt das Feld leer, statt eine Null zu behaupten.
+    Software- und Hardwarestand stehen als Text im Abruf. Fehlt der Wert – etwa
+    weil die Anlage noch eingelesen wird –, bleibt das Feld leer, statt eine
+    Null zu behaupten.
     """
-    prefix = beschreibung.get("prefix")
+    prefix = _funktionspraefix(beschreibung)
     if not prefix or not getattr(coordinator, "data", None):
         return None
     wert = coordinator.data.get("oids", {}).get(f"{prefix}/{gn_mn}/0")
@@ -109,11 +131,16 @@ def _seriennummer(coordinator: Any, beschreibung: dict) -> str | None:
     Sie bildet ohnehin schon jede Entitätskennung – sie steht nur bisher
     nirgends, wo man sie ablesen könnte.
     """
-    prefix = beschreibung.get("prefix") or ""
-    teile = prefix.split("/")
-    if len(teile) < 3:
+    if (knoten := _knoten(beschreibung)) is None:
         return None
-    return (getattr(coordinator.client, "neuron_by_node", None) or {}).get(teile[2])
+    return (getattr(coordinator.client, "neuron_by_node", None) or {}).get(knoten)
+
+
+def _werksbezeichnung(coordinator: Any, beschreibung: dict) -> str | None:
+    """Wie der Hersteller den Baustein nennt, an dem diese Funktion hängt."""
+    if (knoten := _knoten(beschreibung)) is None:
+        return None
+    return (getattr(coordinator.client, "werksbezeichnung", None) or {}).get(knoten)
 
 
 def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
@@ -133,8 +160,10 @@ def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
         name=name,
         manufacturer="Windhager",
         # Der von Hand vergebene Anlagenname steht schon oben; als Modell
-        # gehört dorthin, **was** das Gerät ist.
-        model=FCT_MODELL.get(fct_type) or funktion,
+        # gehört dorthin, **was** das Gerät ist. Kennt die kuratierte Tabelle
+        # den Funktionstyp nicht, nennt die Anlage selbst die Werksbezeichnung
+        # ihres Bausteins – für fremde Baureihen die einzige belastbare Angabe.
+        model=FCT_MODELL.get(fct_type) or _werksbezeichnung(coordinator, beschreibung) or funktion,
         via_device=(DOMAIN, steuerung_kennung(coordinator)),
     )
     if seriennummer := _seriennummer(coordinator, beschreibung):
@@ -143,6 +172,21 @@ def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
         info["sw_version"] = software
     if hardware := _modulwert(coordinator, beschreibung, OID_HARDWAREVERSION):
         info["hw_version"] = hardware
+    return info
+
+
+def steuerung_info(coordinator: Any) -> dict[str, str]:
+    """Modell und Firmwarestand der Steuerung für ihre Geräteseite.
+
+    Die Angaben stammen aus `info/deviceinfo`. Die dort ebenfalls gelieferte
+    Seriennummer bleibt bewusst draußen: Sie identifiziert die Anlage und
+    stünde damit auf einer Seite, von der Bildschirmabzüge in Fehlerberichte
+    wandern. In der Diagnose steht sie geschwärzt.
+    """
+    auskunft = getattr(coordinator.client, "geraeteinfo", None) or {}
+    info = {"model": str(auskunft.get("device") or "").strip() or "Steuerung"}
+    if fassung := str(auskunft.get("version") or "").strip():
+        info["sw_version"] = fassung
     return info
 
 

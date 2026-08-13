@@ -77,7 +77,13 @@ def test_eine_unlesbare_datei_kostet_keine_erkennung(client_module):
 # ---------------------------------------------------------------------------
 @pytest.fixture
 def client(client_module):
-    return client_module.WindhagerHttpClient("192.168.178.100", "geheim")
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    # Die Erkennung fragt die Steuerung einmal nach sich selbst und einmal nach
+    # ihren Knoten. Beides ist hier nicht der Prüfgegenstand; ein gefüllter
+    # Stand überspringt die Anfragen.
+    c.geraeteinfo = {"device": "MB66xx"}
+    c.werksbezeichnung = {"15": "UMUMLZ"}
+    return c
 
 
 async def test_beide_ressourcen_zusammen_ergeben_die_positionen(client, monkeypatch):

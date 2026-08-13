@@ -9,8 +9,6 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
-
 # Zugangsdaten und eindeutige Gerätekennungen bleiben draußen.
 #
 # `alt_id` und `alt_device_id` sind die früheren, **adressgebundenen**
@@ -18,7 +16,17 @@ from .const import DOMAIN
 # Bindestrichform, und die erkennt kein Muster, das nach Punkten sucht. Zur
 # Fehlersuche sind sie ohnehin wertlos: Sie existieren allein für
 # `migration.py`.
-ZU_SCHWAERZEN = {"password", "host", "neuronId", "programId", "alt_id", "alt_device_id"}
+ZU_SCHWAERZEN = {
+    "password",
+    "host",
+    "neuronId",
+    "programId",
+    "alt_id",
+    "alt_device_id",
+    # aus `info/deviceinfo`: identifiziert die Anlage eindeutig
+    "serialnumber",
+    "checknumber",
+}
 
 # IPv4-Adresse als ganzer Wert bzw. irgendwo im Text.
 _ADRESSE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
@@ -36,7 +44,7 @@ async def async_get_config_entry_diagnostics(
     steckt, wird durch einen gleichbleibenden Platzhalter ersetzt. Wer zwei
     Anlagen vergleicht, kann sie weiterhin auseinanderhalten.
     """
-    eintrag = hass.data[DOMAIN][entry.entry_id]
+    eintrag = entry.runtime_data
     anlagen = {}
     for nummer, coordinator in enumerate(eintrag["coordinators"].values(), start=1):
         anlagen[f"anlage_{nummer}"] = _anlage(coordinator)
@@ -130,6 +138,11 @@ def _anlage(coordinator) -> dict[str, Any]:
 
     return {
         "bezeichnung": coordinator.label,
+        # Modell und Firmwarestand der Steuerung: Ohne sie ist bei einem
+        # Fehlerbericht offen, welche Baureihe überhaupt antwortet.
+        "steuerung": async_redact_data(
+            dict(getattr(client, "geraeteinfo", {}) or {}), ZU_SCHWAERZEN
+        ),
         "anlage": {
             "vollstaendig_eingelesen": getattr(client, "_vollstaendig", None),
             "datenpunkte": len(client.oids or []),
@@ -147,9 +160,9 @@ def _anlage(coordinator) -> dict[str, Any]:
         "abrufverhalten": client.statistik() if hasattr(client, "statistik") else {},
         "entitaeten_nach_typ": dict(sorted(nach_typ.items())),
         "entitaeten_nach_ebene": dict(sorted(nach_ebene.items())),
-        # Je Gerät eine Zeile, nicht je Datenpunkt: Sonst füllten die ersten
-        # zwanzig Beschreibungen desselben Geräts die ganze Liste, und man sah
-        # zwanzigmal "ZSP-PTS" statt der vier Anlagenteile.
+        # Je Gerät eine Zeile, nicht je Datenpunkt: Sonst füllen die
+        # Beschreibungen eines einzigen Geräts die ganze Liste, und die übrigen
+        # Anlagenteile stehen gar nicht darin.
         "geraete": async_redact_data(_geraete(beschreibungen), ZU_SCHWAERZEN),
         "meldungen": daten.get("status", {}),
         "beschreibungen": async_redact_data(beschreibungen, ZU_SCHWAERZEN),

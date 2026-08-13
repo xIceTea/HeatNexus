@@ -136,6 +136,11 @@ class WindhagerHttpClient:
         self.zeitwerte = zeitwerte
         self.oids: set | None = None
         self.devices: list[dict] = []
+        # Was die Steuerung über sich selbst sagt (Modell, Firmwarestand).
+        # Leer, solange sie nicht gefragt wurde oder den Endpunkt nicht kennt.
+        self.geraeteinfo: dict = {}
+        # nodeId -> Werksbezeichnung des Bausteins, aus `nodes`.
+        self.werksbezeichnung: dict[str, str] = {}
         # nodeId -> neuronId (Seriennummer des Bausteins). Grundlage aller
         # dauerhaften Kennungen; wird bei der Discovery aus /1 gefüllt.
         self.neuron_by_node: dict[str, str] = {}
@@ -249,8 +254,8 @@ class WindhagerHttpClient:
 
     # Zeichensätze in der Reihenfolge, in der sie ausprobiert werden.
     # cp850 ist die DOS-Codepage der Steuerung: dort liegt „ü" auf 0x81,
-    # einem in CP1252 gar nicht belegten Byte. Genau daran scheiterte die
-    # frühere Kette und machte aus „Hebebühne" ein „Hebeb?hne".
+    # einem in CP1252 gar nicht belegten Byte. Ohne cp850 in der Kette
+    # verlieren von Hand vergebene Namen ihre Umlaute.
     _ZEICHENSAETZE = ("utf-8", "cp1252", "cp850")
 
     @classmethod
@@ -351,6 +356,37 @@ class WindhagerHttpClient:
         data, _status = await self._get(f"http://{self.host}/api/1.0/lookup{url}", semaphore)
         _LOGGER.debug("Fetched data for %s: %s", url, data)
         return data
+
+    async def _lese_geraeteinfo(self) -> None:
+        """Modell und Firmwarestand der Steuerung holen.
+
+        Eine Anfrage, und die einzige Stelle, an der sich die Steuerung
+        maschinenlesbar zu erkennen gibt: `lookup /1` nennt nur die Knoten.
+        Ältere Fassungen kennen den Endpunkt nicht – dann bleibt die Auskunft
+        leer und die Geräteseite zeigt weiterhin nur „Steuerung".
+        """
+        daten, status = await self._get(f"http://{self.host}/api/1.0/info/deviceinfo")
+        self.geraeteinfo = daten if status == 200 and isinstance(daten, dict) else {}
+
+    async def _lese_knotendaten(self) -> None:
+        """Die Werksbezeichnung je Knoten holen.
+
+        `lookup /1` nennt unter `device` nur eine Zahl und unter `name` den
+        vergebenen Namen; `nodes` nennt zusätzlich, wie der Hersteller den
+        Baustein nennt. Für Baureihen, die die kuratierte Tabelle nicht kennt,
+        ist das die einzige belastbare Modellangabe.
+        """
+        daten, status = await self._get(f"http://{self.host}/api/1.0/nodes")
+        if status != 200 or not isinstance(daten, list):
+            self.werksbezeichnung = {}
+            return
+        self.werksbezeichnung = {
+            str(knoten["nodeId"]): str(bezeichnung).strip()
+            for knoten in daten
+            if isinstance(knoten, dict)
+            and knoten.get("nodeId") is not None
+            and (bezeichnung := (knoten.get("device") or {}).get("name"))
+        }
 
     async def probe(self):
         """Verbindung prüfen: Anlagenstruktur und HTTP-Status zurückgeben.
@@ -570,6 +606,10 @@ class WindhagerHttpClient:
         self.oids = set()
         self.devices = []
         json_devices = await self.fetch("/1")
+        if not self.geraeteinfo:
+            await self._lese_geraeteinfo()
+        if not self.werksbezeichnung:
+            await self._lese_knotendaten()
         statisch = set() if nur_kern else await self._statische_adressen()
 
         # Erst die Seriennummern einsammeln – alle Kennungen hängen daran.
@@ -1174,6 +1214,8 @@ class WindhagerHttpClient:
             "poll_oids": sorted(self.poll_oids),
             "objects_supported": self._objects_supported,
             "neuron_by_node": dict(self.neuron_by_node),
+            "geraeteinfo": dict(self.geraeteinfo),
+            "werksbezeichnung": dict(self.werksbezeichnung),
             # Positionen der Datenpunkte in ihren Menü-Ebenen. Ohne sie fällt
             # der Poll auf Einzelabrufe zurück – langsamer, aber richtig.
             # Listen statt Tupel, weil JSON keine Tupel kennt.
@@ -1189,6 +1231,8 @@ class WindhagerHttpClient:
         # wiederholbar und ändert an einem aktuellen Stand nichts.
         self.devices = [messgroesse(dict(d)) for d in data.get("devices", [])]
         self.neuron_by_node = dict(data.get("neuron_by_node") or {})
+        self.geraeteinfo = dict(data.get("geraeteinfo") or {})
+        self.werksbezeichnung = dict(data.get("werksbezeichnung") or {})
         self.poll_oids = set(data.get("poll_oids", set()))
         # Ein Cache aus einer Fassung ohne Sammelabruf bringt keine Positionen
         # mit. Dann bleibt die Liste leer und der Poll läuft wie bisher; der
