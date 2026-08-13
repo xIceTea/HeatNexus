@@ -129,7 +129,7 @@ views:
       - type: grid
         cards:
           - type: heading
-            heading: Puffer 2 – KFZ-Werkstatt
+            heading: Puffer 2 – Nebengebäude
             heading_style: title
             icon: mdi:storage-tank
           - type: gauge
@@ -208,7 +208,7 @@ views:
       - type: grid
         cards:
           - type: heading
-            heading: Heizkreis 2 – KFZ-Werkstatt
+            heading: Heizkreis 2 – Nebengebäude
             heading_style: title
             icon: mdi:radiator
           - type: thermostat

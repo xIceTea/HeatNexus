@@ -244,8 +244,8 @@ UPDATE_INTERVAL = 30
 
 # Was für ein Anlagenteil das ist – für die Geräteseite in Home Assistant.
 #
-# Der Gerätename kommt von der Anlage selbst und ist oft von Hand vergeben
-# („Hebebühne", „KFZ Werkstatt"). Als Modell taugt er deshalb nicht: Dort
+# Der Gerätename kommt von der Anlage selbst und ist oft von Hand vergeben —
+# er beschreibt dann den Raum oder die Nutzung. Als Modell taugt er nicht: Dort
 # gehört hin, um was für ein Gerät es sich handelt. Die Nummern sind dieselben
 # `fctType`-Werte wie in `dashboard.FCT_RANG`.
 FCT_MODELL: dict[int, str] = {

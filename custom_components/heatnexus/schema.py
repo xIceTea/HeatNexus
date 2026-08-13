@@ -465,19 +465,11 @@ def modul_in_betrieb(entitaeten: list[dict[str, Any]]) -> bool:
     sie überhaupt beantwortet**. Fehlende beantwortet sie mit 404 bzw. 409, und
     die fliegen schon in `client._apply_metadata` heraus.
 
-    An den beiden geprüften Anlagen ist der Unterschied eindeutig:
-
-    ==================  ================================  ===================
-    Datenpunkt          Heizhaus (ZSP-PTS, in Betrieb)    Wohnhaus (ZSP-PWA)
-    ==================  ================================  ===================
-    ``0/7``  Kessel-T.  74,3 °C                           nicht vorhanden
-    ``0/22`` Drehzahl   0 %                               nicht vorhanden
-    ``29/2`` ext. Anf.  1 (Ja)                            nicht vorhanden
-    ==================  ================================  ===================
-
-    Das Wohnhaus-Modul meldet nur noch Sollwerte und den Aktorentest. Es stand
-    trotzdem im Schaubild – als Kasten in der Leitung, durch den nichts
-    fließt, mit Lampen, die nie angehen.
+    Ein verdrahtetes Modul führt Kesseltemperatur (``0/7``), Pumpendrehzahl
+    (``0/22``) oder externe Anforderung (``29/2``); ein unbenutztes meldet
+    davon keinen einzigen, sondern nur Sollwerte und den Aktorentest. Ohne
+    diese Unterscheidung stünde es im Schaubild als Kasten in der Leitung, durch
+    den nichts fließt, mit Lampen, die nie angehen.
     """
     return _pumpe(entitaeten, "pumpenmodul") is not None or any(
         _finde(entitaeten, muster, *schluessel) is not None for muster, schluessel in MODUL_AUFGABE

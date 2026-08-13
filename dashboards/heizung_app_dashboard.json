@@ -72,7 +72,7 @@
         {
           "type": "grid",
           "cards": [
-            {"type": "heading", "heading": "Heizkreis Werkstatt / Hebebühne", "icon": "mdi:radiator"},
+            {"type": "heading", "heading": "Heizkreis 2", "icon": "mdi:radiator"},
             {"type": "thermostat", "entity": "climate.hebebuhne_heizkreis"},
             {"type": "tile", "entity": "sensor.hebebuhne_aussentemperatur", "name": "Außentemperatur"},
             {"type": "tile", "entity": "sensor.hebebuhne_vorlauftemperatur_ist", "name": "Vorlauf"},
