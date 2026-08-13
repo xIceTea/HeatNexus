@@ -149,6 +149,48 @@ def test_csv_nennt_bei_netzwerkvariablen_den_nv_namen(probe_modul, tmp_path):
     assert zeile["schreibbar"] == ""
 
 
+class EbeneOhneOid:
+    """Eine Menü-Ebene, deren Einträge nur einen `nvIndex` führen."""
+
+    base = "http://192.0.2.10"
+
+    def __init__(self, anzahl: int = 12):
+        self.eintraege = [
+            {"nvIndex": i, "nvName": f"WET_nv{i}", "value": "0.0"} for i in range(anzahl)
+        ]
+
+    def get(self, _url: str):
+        return self.eintraege, 200
+
+
+def _menus_mit_grosser_nv_ebene(anzahl: int = 12) -> dict:
+    return {
+        "functions": [
+            {"prefix": PRAEFIX_NV, "fct_type": -1, "name": "NV's", "menus": {"0": anzahl}}
+        ]
+    }
+
+
+def test_diagnose_uebersteht_ebene_ohne_datenpunktadresse(probe_modul):
+    """Die größte Ebene ist an einer BioWIN die der Netzwerkvariablen.
+
+    Deren Einträge führen keine `OID`. Ohne Rückfall auf den Index steht die
+    Ebene für jeden Vergleich leer da – und der Lauf brach an der Stelle ab,
+    an der er den ersten Eintrag nennen wollte.
+    """
+    ergebnis = probe_modul.run_diagnose(EbeneOhneOid(), _menus_mit_grosser_nv_ebene())
+
+    assert ergebnis["grundabruf"] == 12
+    assert ergebnis["ebene"] == f"{PRAEFIX_NV}/0"
+
+
+def test_schluessel_faellt_auf_den_index_zurueck(probe_modul):
+    """Ohne Schlüssel zählt jede Seite als neu und das Nachladen läuft leer."""
+    eintraege = [{"nvIndex": 7, "nvName": "WET_nvoTist"}, {"OID": "/1/60/0/0/7/0"}]
+
+    assert probe_modul._oids_of(eintraege) == ["nv/7", "/1/60/0/0/7/0"]
+
+
 def test_knoten_ohne_funktion_bekommt_kandidaten(probe_modul):
     """Ein Kessel, der nur seinen LON-Adressraum meldet, wird trotzdem gefragt."""
     knoten = {"nodeId": 60, "functions": [{"fctId": 32, "fctType": -1, "name": "NV's"}]}

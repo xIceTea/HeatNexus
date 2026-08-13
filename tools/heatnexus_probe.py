@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+import contextlib
 import csv
 import datetime as dt
 import getpass
@@ -306,8 +307,44 @@ PAGE_STRATEGIES = [
 ]
 
 
+@contextlib.contextmanager
+def schritt(name: str):
+    """Ein Prüfschritt, der den Lauf nicht mitnimmt, wenn er scheitert.
+
+    Ein Abzug kostet an der Anlage Minuten. Bricht ein später Schritt ab,
+    stünde ohne das hier alles Vorherige umsonst da – gemessen an einer
+    fremden BioWIN, wo der letzte Schritt an einer Menü-Ebene ohne
+    Datenpunktadresse ausstieg und der ganze Lauf ohne Zusammenfassung endete.
+
+    Die Datenbeschaffung davor (Struktur, Menüs) läuft bewusst ungeschützt:
+    Scheitert sie, gibt es nichts zu retten.
+    """
+    try:
+        yield
+    except Exception as fehler:  # noqa: BLE001 – der Lauf wiegt mehr als der Schritt
+        print(f"    {name} abgebrochen: {type(fehler).__name__}: {fehler}")
+
+
+def _eintrag_schluessel(item) -> str | None:
+    """Was einen Eintrag einer Menü-Ebene unterscheidbar macht.
+
+    An einer NV-Funktion führt ein Eintrag keine `OID`, sondern einen
+    `nvIndex` – die Steuerung deutet die Adresse dort um. Ohne Rückfall
+    darauf gilt eine solche Ebene als leer: Der Seitenvergleich findet nie
+    etwas Neues, und die Zusammenfassung greift auf ein leeres Ergebnis zu.
+    """
+    if not isinstance(item, dict):
+        return None
+    if item.get("OID"):
+        return item["OID"]
+    if item.get("nvIndex") is not None:
+        return f"nv/{item['nvIndex']}"
+    return None
+
+
 def _oids_of(items) -> list[str]:
-    return [i.get("OID") for i in items if isinstance(i, dict) and i.get("OID")]
+    schluessel = (_eintrag_schluessel(i) for i in items)
+    return [s for s in schluessel if s]
 
 
 def detect_pagination(probe: Probe, menu_url: str, first_page: list) -> tuple[str, object] | None:
@@ -353,7 +390,7 @@ def fetch_menu_all(
         page, pstatus = probe.get(build(menu_url, offset))
         if pstatus != 200 or not isinstance(page, list) or not page:
             break
-        fresh = [i for i in page if i.get("OID") not in seen]
+        fresh = [i for i in page if _eintrag_schluessel(i) not in seen]
         if not fresh:
             break
         items.extend(fresh)
@@ -1301,7 +1338,8 @@ def run_diagnose(probe: Probe, menus: dict) -> dict:
         print(f"    Grundabruf fehlgeschlagen (HTTP {status})")
         return {"status": status}
     known = set(_oids_of(first))
-    print(f"    Grundabruf liefert {len(first)} Einträge, erster: {sorted(known)[0]}")
+    erster = f", erster: {sorted(known)[0]}" if known else ""
+    print(f"    Grundabruf liefert {len(first)} Einträge{erster}")
 
     findings = {
         "ebene": f"{fct['prefix']}/{menu}",
@@ -1662,55 +1700,65 @@ def run_host(
         written.append(path)
 
     if "vollabzug" in actions:
-        print("    Vollabzug /api/1.0/datapoints wird gelesen …")
-        abzug = hole_vollabzug(probe)
-        path = out_dir / f"{stem}_vollabzug.json"
-        path.write_text(json.dumps(abzug, indent=2, ensure_ascii=False), encoding="utf-8")
-        written.append(path)
+        with schritt("Vollabzug"):
+            print("    Vollabzug /api/1.0/datapoints wird gelesen …")
+            abzug = hole_vollabzug(probe)
+            path = out_dir / f"{stem}_vollabzug.json"
+            path.write_text(json.dumps(abzug, indent=2, ensure_ascii=False), encoding="utf-8")
+            written.append(path)
 
     if "stapel" in actions:
-        print("    Stapelabruf gegen Einzelabrufe …")
-        # Adressen dieser Anlage statt einer gepflegten Liste: Der
-        # Zwischenspeicher nennt nur, was es hier wirklich gibt.
-        vorrat, _status = probe.get(f"{probe.base}/api/1.0/datapoints")
-        kandidaten = [
-            str(e["OID"])
-            for e in (vorrat if isinstance(vorrat, list) else [])
-            if isinstance(e, dict) and e.get("OID")
-        ][:STAPEL_PROBE]
-        if not kandidaten:
-            print("    keine Adressen für die Messung gefunden")
-        else:
-            messung = miss_stapelabruf(probe, kandidaten)
-            path = out_dir / f"{stem}_stapel.json"
-            path.write_text(json.dumps(messung, indent=2, ensure_ascii=False), encoding="utf-8")
-            written.append(path)
+        with schritt("Stapelabruf"):
+            print("    Stapelabruf gegen Einzelabrufe …")
+            # Adressen dieser Anlage statt einer gepflegten Liste: Der
+            # Zwischenspeicher nennt nur, was es hier wirklich gibt.
+            vorrat, _status = probe.get(f"{probe.base}/api/1.0/datapoints")
+            kandidaten = [
+                str(e["OID"])
+                for e in (vorrat if isinstance(vorrat, list) else [])
+                if isinstance(e, dict) and e.get("OID")
+            ][:STAPEL_PROBE]
+            if not kandidaten:
+                print("    keine Adressen für die Messung gefunden")
+            else:
+                messung = miss_stapelabruf(probe, kandidaten)
+                path = out_dir / f"{stem}_stapel.json"
+                path.write_text(
+                    json.dumps(messung, indent=2, ensure_ascii=False), encoding="utf-8"
+                )
+                written.append(path)
 
     if "stoerspeicher" in actions:
-        print("    Störspeicher wird über den SOAP-Dienst gesucht …")
-        speicher = suche_stoerspeicher(probe, structure)
-        path = out_dir / f"{stem}_stoerspeicher.json"
-        path.write_text(json.dumps(speicher, indent=2, ensure_ascii=False), encoding="utf-8")
-        written.append(path)
+        with schritt("Störspeichersuche"):
+            print("    Störspeicher wird über den SOAP-Dienst gesucht …")
+            speicher = suche_stoerspeicher(probe, structure)
+            path = out_dir / f"{stem}_stoerspeicher.json"
+            path.write_text(json.dumps(speicher, indent=2, ensure_ascii=False), encoding="utf-8")
+            written.append(path)
 
     if "statisch" in actions:
-        print("    Statische Navigationseinträge werden gesucht …")
-        statisch = suche_statisch(probe, structure)
-        path = out_dir / f"{stem}_statisch.json"
-        path.write_text(json.dumps(statisch, indent=2, ensure_ascii=False), encoding="utf-8")
-        written.append(path)
+        with schritt("Statische Navigation"):
+            print("    Statische Navigationseinträge werden gesucht …")
+            statisch = suche_statisch(probe, structure)
+            path = out_dir / f"{stem}_statisch.json"
+            path.write_text(json.dumps(statisch, indent=2, ensure_ascii=False), encoding="utf-8")
+            written.append(path)
 
     if "texte" in actions:
-        print("    Namensdateien werden gesucht …")
-        written.extend(run_texte(probe, out_dir, stem))
+        with schritt("Namensdateien"):
+            print("    Namensdateien werden gesucht …")
+            written.extend(run_texte(probe, out_dir, stem))
 
     if menus and "diag" in actions:
-        print("    Nachlade-Varianten werden getestet …")
-        findings = run_diagnose(probe, menus)
-        if findings:
-            path = out_dir / f"{stem}_seitenmodus.json"
-            path.write_text(json.dumps(findings, indent=2, ensure_ascii=False), encoding="utf-8")
-            written.append(path)
+        with schritt("Nachlade-Varianten"):
+            print("    Nachlade-Varianten werden getestet …")
+            findings = run_diagnose(probe, menus)
+            if findings:
+                path = out_dir / f"{stem}_seitenmodus.json"
+                path.write_text(
+                    json.dumps(findings, indent=2, ensure_ascii=False), encoding="utf-8"
+                )
+                written.append(path)
 
     seconds = time.monotonic() - started
 
