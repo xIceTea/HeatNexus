@@ -27,7 +27,8 @@ wählbar.
 | Anlagenstruktur | `GET /api/1.0/lookup/1` |
 | Funktions-Root (Menü-IDs) | `GET /api/1.0/lookup/1/<node>/<fct>` |
 | Menü-Ebene (Sammelabruf) | `GET /api/1.0/lookup/1/<node>/<fct>/<menuId>` |
-| Einzelner Datenpunkt | `GET /api/1.0/lookup/<OID>` |
+| Einzelner Datenpunkt mit Metadaten | `GET /api/1.0/lookup/<OID>` |
+| Einzelner Datenpunkt, nur der Wert | `GET /api/1.0/datapoint/<OID>` |
 | Datenpunkt schreiben | `PUT /api/1.0/datapoint`, Body `{"OID":"…","value":"…"}` |
 | Strukturiertes Objekt | `GET`/`PUT` `/api/1.0/object?OID=<OID>` |
 | Gerätekennung der Steuerung | `GET /api/1.0/info/deviceinfo` |
@@ -180,6 +181,23 @@ ohne Anmeldung ladbar. Sie gehören zur Firmware, nicht zur einzelnen Anlage:
 Eine dort deklarierte Position kann an dieser Installation trotzdem mit `404`
 oder `409` antworten. Ob es sie gibt, klärt erst die Abfrage.
 
+### Zwei Wege zum Wert
+
+`lookup` und `datapoint` liefern denselben Wert derselben Adresse. Der
+Unterschied ist der Umfang der Antwort: `lookup` gibt den ganzen
+Metadatensatz her — Einheit, Grenzen, Schrittweite, Aufzählung,
+Schreibschutz —, `datapoint` nur den Wert. Entsprechend ist `datapoint`
+deutlich schneller.
+
+Für die Erkennung ist `lookup` der richtige Weg: Genau diese Metadaten
+bestimmen, welche Art von Entität entsteht. Beim zyklischen Abruf wird nichts
+davon gebraucht, weil es längst im Deskriptor steht.
+
+Beide Wege lesen aus dem Zwischenspeicher der Steuerung. `cacheCtl=0` umgeht
+ihn und holt den Wert frisch vom Bus; das kostet spürbar Zeit und ist nur
+sinnvoll, wo es auf Frische ankommt — etwa direkt nach einem Schreibvorgang.
+`lookup` nimmt den Parameter nicht an.
+
 ### Textwerk der Steuerung
 
 Neben der statischen Navigation liegen unter `/res/xml/` die Klartexte, mit
@@ -207,7 +225,7 @@ Datenschnittstelle, und jeder Fehlschlag muss folgenlos bleiben.
 
 | Aufruf | Warum nicht |
 |---|---|
-| `GET /api/1.0/datapoints` | Cache der zuletzt gelesenen Datenpunkte, kein Inventar – enthält nur, was vorher schon abgefragt wurde, und ist damit als Erkennungsquelle wie als Abkürzung zirkulär |
+| `GET /api/1.0/datapoints` | Abzug des Datenzwischenspeichers, kein Inventar – enthält nur, was vorher schon abgefragt wurde, und ist damit als Erkennungsquelle wie als Abkürzung zirkulär. Der dokumentierte Filter `?OID=…` wird zwar ausgewertet – er unterscheidet vorhandene von unbekannten Adressen –, liefert bei einem Treffer aber ein leeres Ergebnis. Ein gefilterter Sammelabruf ist damit nicht zu haben |
 | `GET /api/1.0/recorder/oids`, `…/datalogs` | `501`, solange die Datenaufzeichnung nicht läuft; `recorder/settings` antwortet mit `enabled: false` |
 | LON-Netzwerkvariablen unter `/1/<node>/32` | Die Steuerung deutet die Adresse dort um: der Member gilt als `nvIndex`, die Gruppe wird ignoriert. Jeder Wert kostet eine eigene Anfrage |
 
