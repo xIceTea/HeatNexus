@@ -337,10 +337,6 @@ EINHEITEN: dict[str, tuple[str, str | None, str, int]] = {
     "V": ("V", "voltage", "measurement", 1),
     "Hz": ("Hz", "frequency", "measurement", 1),
     "U/min": ("rpm", None, "measurement", 0),
-    # Dieselben Größen in der Schreibweise des LON-Adressraums: Dort meldet
-    # die Anlage „rpm" und „Std" statt „U/min" und „h".
-    "rpm": ("rpm", None, "measurement", 0),
-    "Std": ("h", "duration", "measurement", 0),
     "m^3/h": ("m³/h", "volume_flow_rate", "measurement", 1),
     "m³/h": ("m³/h", "volume_flow_rate", "measurement", 1),
     # Liter je Stunde ohne Geräteklasse: Home Assistant kennt für den
@@ -362,6 +358,11 @@ EINHEITEN: dict[str, tuple[str, str | None, str, int]] = {
     "mbar": ("mbar", "pressure", "measurement", 1),
     "Pa": ("Pa", "pressure", "measurement", 0),
 }
+
+# Dieselben Größen in der Schreibweise des LON-Adressraums. Als Verweis statt
+# als zweiter Eintrag: Ändert sich die Umrechnung, ändert sie sich für beide.
+EINHEITEN["rpm"] = EINHEITEN["U/min"]
+EINHEITEN["Std"] = EINHEITEN["h"]
 
 # Namensbestandteile, die einen Zählerstand kennzeichnen: Sie laufen nur nach
 # oben und gehören damit in die Langzeitstatistik als Summe, nicht als Messwert.
