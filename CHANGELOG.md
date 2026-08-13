@@ -6,6 +6,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Behoben
+
+- Anlagen mit vielen Datenpunkten hörten dauerhaft auf, Werte zu lesen.
+- Datenpunkte, die die Anlage ablehnt, wurden in jedem Durchlauf erneut abgefragt.
+
 ## [1.8.0-beta.2] - 2026-08-13
 
 ### Neu
