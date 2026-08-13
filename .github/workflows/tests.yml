@@ -31,4 +31,18 @@ jobs:
           python-version: "3.14"
           cache: pip
       - run: pip install -r requirements_test.txt
+      # `manifest.json` nennt `frontend` als Abhängigkeit; ohne das Paket
+      # `hass_frontend` kommt keine Einrichtung zustande und die Tests des
+      # gesamten Einrichtungspfads überspringen sich still. Die Fassung steht
+      # in der Home-Assistant-Fassung selbst - fest eingetragen liefe sie ihr
+      # beim nächsten Anheben davon.
+      - name: Frontend-Paket passend zur Home-Assistant-Fassung
+        run: |
+          pip install "$(python - <<'PY'
+          import json
+          from pathlib import Path
+          import homeassistant.components.frontend as f
+          print(json.loads((Path(f.__file__).parent / "manifest.json").read_text())["requirements"][0])
+          PY
+          )"
       - run: pytest --cov=custom_components/heatnexus --cov-report=term-missing
