@@ -15,7 +15,6 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Geändert
 
-- Werte werden deutlich schneller abgerufen.
 - Diese Fassung liest jede Anlage einmalig vollständig neu ein.
 
 ### Behoben
