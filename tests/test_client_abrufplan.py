@@ -243,6 +243,105 @@ def test_der_takt_folgt_dem_eingestellten_intervall(client_module):
 
 
 # ---------------------------------------------------------------------------
+# Zeitbudget: ein Durchlauf, der nicht fertig wird, muss trotzdem vorankommen
+# ---------------------------------------------------------------------------
+@pytest.fixture
+def uhr(client_module, monkeypatch):
+    """Eine gestellte Uhr. Sonst hinge die Prüfung an echter Wartezeit."""
+    stand = [1000.0]
+    monkeypatch.setattr(client_module.time, "monotonic", lambda: stand[0])
+    return stand
+
+
+@pytest.fixture
+def langsame_anlage(client, monkeypatch, uhr):
+    """Eine Anlage, die für jeden Datenpunkt eine Sekunde braucht."""
+    gelesen: list[str] = []
+
+    async def fetch_oid(oid):
+        uhr[0] += 1.0
+        gelesen.append(oid)
+        return oid, "1"
+
+    monkeypatch.setattr(client, "_fetch_oid", fetch_oid)
+    client.oids = set()
+    client.poll_oids = {f"/oid/{nummer:02d}" for nummer in range(40)}
+    client.poll_class = dict.fromkeys(client.poll_oids, "fast")
+    return gelesen
+
+
+async def test_ein_zu_grosser_durchlauf_behaelt_was_er_gelesen_hat(
+    client, client_module, langsame_anlage
+):
+    """Der Fall aus #2: mehr Datenpunkte, als in das Zeitfenster passen.
+
+    Vorher lief der Abruf in die Zeitüberschreitung des Coordinators. Damit
+    war alles Gelesene verloren *und* der Zähler der Poll-Klassen blieb
+    stehen – derselbe zu große Durchlauf stand danach unverändert wieder an,
+    dauerhaft. Jetzt hört der Abruf von selbst auf und zählt weiter.
+    """
+    daten = await client.fetch_all(budget=10)
+
+    assert len(langsame_anlage) == client_module.POLL_BLOCK
+    assert client._rest == client.poll_oids - set(langsame_anlage)
+    assert client._tick == 1
+    assert len(daten["oids"]) == client_module.POLL_BLOCK
+
+
+async def test_der_rest_kommt_im_naechsten_durchlauf_zuerst(client, client_module, langsame_anlage):
+    """Ohne Vorrang stünden dieselben Werte immer wieder hinten an."""
+    await client.fetch_all(budget=10)
+    rest = set(client._rest)
+
+    await client.fetch_all(budget=10)
+
+    zweiter_durchlauf = langsame_anlage[client_module.POLL_BLOCK :]
+    assert set(zweiter_durchlauf) <= rest
+
+
+async def test_ohne_zeitgrenze_wird_alles_gelesen(client, langsame_anlage):
+    """Die Grenze ist eine Notbremse, keine Drosselung."""
+    await client.fetch_all()
+
+    assert len(langsame_anlage) == 40
+    assert client._rest == set()
+
+
+# ---------------------------------------------------------------------------
+# Abgelehnte Datenpunkte
+# ---------------------------------------------------------------------------
+async def test_ein_abgelehnter_datenpunkt_wird_nicht_wieder_gefragt(client, monkeypatch):
+    """Die Anlage lehnt Positionen ab, die sie nicht führt.
+
+    Beim Einlesen der Metadaten wurden sie schon bisher verworfen. Positionen
+    aus den Menü-Ebenen liefen daran vorbei und wurden anschließend in jedem
+    Durchlauf erneut angefragt, obwohl die Antwort feststeht (#2).
+    """
+
+    async def _get(url, semaphore=None):
+        return {"code": 409, "reason": "Target returns invalid Identifier: 63-127"}, 409
+
+    monkeypatch.setattr(client, "_get", _get)
+    client.poll_oids = {"/1/15/0/1/20/0"}
+    client.poll_class = {"/1/15/0/1/20/0": "fast"}
+
+    oid, wert = await client._fetch_oid("/1/15/0/1/20/0")
+
+    assert (oid, wert) == ("/1/15/0/1/20/0", None)
+    assert client.poll_oids == set()
+    assert client._faellig() == set()
+
+
+async def test_eine_entitaet_kann_einen_abgelehnten_datenpunkt_nicht_zurueckholen(client):
+    """Sonst meldete sie ihn beim nächsten Start gleich wieder an."""
+    client._abgemeldet = {"/1/16/0/1/20/0"}
+
+    client.register_poll_oid("/1/16/0/1/20/0")
+
+    assert client._faellig() == set()
+
+
+# ---------------------------------------------------------------------------
 # Namen und Kennungen
 # ---------------------------------------------------------------------------
 def test_gleichnamige_datenpunkte_bekommen_ihre_adresse(client):

@@ -377,6 +377,11 @@ ZAEHLER_WOERTER = (
 FETCH_CONCURRENCY = 3
 POLL_CONCURRENCY = 3
 
+# Nach je so vielen gelesenen Datenpunkten prüft der Abruf, ob seine Zeit noch
+# reicht. Klein genug, um das Zeitfenster nicht zu überziehen, groß genug, dass
+# die Warteschlange nicht leerläuft.
+POLL_BLOCK = POLL_CONCURRENCY * 5
+
 # Ein Menü-Abruf liefert höchstens so viele Datenpunkte; der Rest kommt über
 # ?offset=<n> nach.
 MENU_PAGE_SIZE = 10
@@ -429,6 +434,12 @@ INIT_TIMEOUT = 240
 # der reguläre Takt das Fenster locker ein.
 ABRUF_TIMEOUT = 30
 ERSTABRUF_TIMEOUT = 180
+
+# Abstand, den der Abruf zum Zeitfenster hält. Er hört von selbst auf, sobald
+# das Budget aufgebraucht ist, und nimmt den Rest in den nächsten Durchlauf
+# mit. Ein abgebrochener Abruf dagegen verliert alles Gelesene und stellt
+# denselben Durchlauf unverändert wieder an.
+ABRUF_RESERVE = 5
 
 # Persistenter Discovery-Cache (überlebt HA-Neustart -> schneller Start).
 DISCOVERY_STORE_VERSION = 1

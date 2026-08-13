@@ -12,6 +12,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
+    ABRUF_RESERVE,
     ABRUF_TIMEOUT,
     AUTH_FEHLER_GRENZE,
     BACKOFF_MAX,
@@ -125,9 +126,13 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         if getattr(self.client, "auth_errors", 0) >= AUTH_FEHLER_GRENZE:
             raise ConfigEntryAuthFailed(f"Anlage {self.host} weist die Anmeldung ab")
         erster = bool(getattr(self.client, "erster_abruf", False))
+        fenster = ERSTABRUF_TIMEOUT if erster else ABRUF_TIMEOUT
         try:
-            async with asyncio.timeout(ERSTABRUF_TIMEOUT if erster else ABRUF_TIMEOUT):
-                data = await self.client.fetch_all()
+            # Der Abruf bekommt sein Zeitfenster mit und hört von selbst
+            # rechtzeitig auf. Die Zeitüberschreitung bleibt der Notnagel für
+            # eine Anlage, die gar nicht mehr antwortet.
+            async with asyncio.timeout(fenster):
+                data = await self.client.fetch_all(budget=fenster - ABRUF_RESERVE)
                 self.consecutive_timeouts = 0
                 self._wieder_normal_fragen()
                 self._rueckkehr_protokollieren()

@@ -24,6 +24,7 @@ from .const import (
     FETCH_CONCURRENCY,
     FINGERABDRUCK_MIN_TREFFER,
     MENU_PAGE_SIZE,
+    POLL_BLOCK,
     POLL_CONCURRENCY,
     POLL_EINHEITEN_TRAEGE,
     POLL_FAST,
@@ -171,6 +172,12 @@ class WindhagerHttpClient:
         # sie dafür, dass träge Werte nicht im 30-Sekunden-Takt gelesen werden.
         self.poll_class: dict[str, str] = {}
         self._tick = 0
+        # Was im letzten Durchlauf nicht mehr in die Zeit passte. Es kommt im
+        # nächsten zuerst dran, sonst stünden dieselben Werte immer hinten an.
+        self._rest: set[str] = set()
+        # Datenpunkte, die die Anlage ablehnt (404, oder 409 mit unbekannter
+        # Kennung). Sie werden nicht wieder angefragt.
+        self._abgemeldet: set[str] = set()
         self._letzte_werte: dict[str, str | None] = {}
         self._letzte_objekte: dict = {}
         # Anzahl der Anfragen an die Anlage (für die Startmeldung)
@@ -214,7 +221,7 @@ class WindhagerHttpClient:
     # ------------------------------------------------------------------
     def register_poll_oid(self, oid: str) -> None:
         """Eine Entity meldet ihre OID zum zyklischen Polling an."""
-        if oid:
+        if oid and oid not in self._abgemeldet:
             self._dynamic_oids.add(oid)
 
     def unregister_poll_oid(self, oid: str) -> None:
@@ -1426,14 +1433,36 @@ class WindhagerHttpClient:
         den Wert. Beim Abruf ist davon nichts nötig, das steht im Deskriptor.
         """
         try:
-            data, _status = await self._get(
+            data, status = await self._get(
                 f"http://{self.host}/api/1.0/datapoint{oid}", self._poll_semaphore
             )
+            if self._abmelden(oid, data, status):
+                return oid, None
             value = data.get("value") if isinstance(data, dict) else None
             return oid, self._wert_oder_none(value)
         except Exception as e:
             _LOGGER.warning("Error while fetching OID %s: %s", oid, e)
             return oid, None
+
+    def _abmelden(self, oid: str, data, status: int) -> bool:
+        """Einen abgelehnten Datenpunkt aus dem zyklischen Abruf nehmen.
+
+        Die Anlage antwortet auf Positionen, die sie nicht führt, mit `404`
+        oder mit `409` und unbekannter Kennung. Beim Einlesen der Metadaten
+        wurden sie schon bisher verworfen – Positionen aus den Menü-Ebenen
+        laufen daran jedoch vorbei und wurden anschließend in jedem Durchlauf
+        erneut angefragt, obwohl die Antwort feststeht.
+        """
+        grund = (data or {}).get("reason", "") if isinstance(data, dict) else ""
+        if status != 404 and not (status == 409 and "invalid Identifier" in grund):
+            return False
+        if oid not in self._abgemeldet:
+            self._abgemeldet.add(oid)
+            _LOGGER.info("Datenpunkt %s wird nicht mehr abgefragt: %s", oid, grund or status)
+        self.poll_oids.discard(oid)
+        self._dynamic_oids.discard(oid)
+        self._rest.discard(oid)
+        return True
 
     def _object_url(self, full_oid: str) -> URL:
         """Build the object-endpoint URL.
@@ -1613,6 +1642,10 @@ class WindhagerHttpClient:
             "gleichzeitige_abfragen": POLL_CONCURRENCY,
             # Was der letzte Durchlauf gekostet hat.
             "anfragen_je_abruf": self._poll_anfragen,
+            # Was er nicht mehr geschafft hat. Dauerhaft hohe Werte heißen:
+            # Das Zeitfenster ist für diese Anlage zu knapp.
+            "noch_offen": len(self._rest),
+            "abgemeldet": len(self._abgemeldet),
         }
 
     def _takte(self) -> dict[str, int]:
@@ -1631,16 +1664,18 @@ class WindhagerHttpClient:
         """
         takte = self._takte()
         faellig = set()
-        for oid in self.poll_oids | self._dynamic_oids:
+        for oid in (self.poll_oids | self._dynamic_oids) - self._abgemeldet:
             takt = takte.get(self.poll_class.get(oid, POLL_NORMAL), 1)
             # Beim ersten Durchlauf ist alles fällig, sonst stünde eine
             # langsame Entität bis zu 15 Minuten ohne Wert da.
             if self._tick == 0 or self._tick % takt == 0:
                 faellig.add(oid)
-        return faellig
+        # Was beim letzten Mal nicht mehr in die Zeit passte, ist weiterhin
+        # fällig – unabhängig von seiner Klasse.
+        return faellig | (self._rest - self._abgemeldet)
 
-    async def _lese_faellige(self, faellig: set) -> list:
-        """Die fälligen OIDs lesen – jede einzeln.
+    async def _lese_faellige(self, faellig: set, ende: float | None = None) -> tuple[list, set]:
+        """Die fälligen OIDs lesen – jede einzeln, bis die Zeit aufgebraucht ist.
 
         Eine Menü-Ebene lässt sich mit `count`/`offset` in einer Anfrage
         lesen, und lange galt das als der schnelle Weg. Gemessen ist es der
@@ -1648,32 +1683,59 @@ class WindhagerHttpClient:
         zehn Einzelabrufen über `datapoint`. Nicht die Zahl der Anfragen
         kostet, sondern das Zusammenstellen der Metadaten, die dabei
         anfallen und beim Abruf niemand braucht.
-        """
-        gelesen = await asyncio.gather(*(self._fetch_oid(oid) for oid in faellig))
-        self._poll_anfragen = len(faellig)
-        _LOGGER.debug("Poll: %d OIDs einzeln", len(faellig))
-        return list(gelesen)
 
-    async def fetch_all(self):
+        Gelesen wird in Blöcken, damit zwischendurch die Zeit geprüft werden
+        kann. Reicht sie nicht, endet der Durchlauf mit dem, was er hat, und
+        gibt den Rest zurück. Zurückgegeben wird ``(Gelesenes, Rest)``.
+        """
+        # Der Rest des letzten Durchlaufs zuerst: Seine Werte sind die
+        # ältesten, und ohne Vorrang käme er bei knapper Zeit nie an die Reihe.
+        reihenfolge = sorted(faellig, key=lambda oid: (oid not in self._rest, oid))
+        gelesen: list = []
+        offen = set(faellig)
+        for anfang in range(0, len(reihenfolge), POLL_BLOCK):
+            block = reihenfolge[anfang : anfang + POLL_BLOCK]
+            gelesen += await asyncio.gather(*(self._fetch_oid(oid) for oid in block))
+            offen.difference_update(block)
+            if offen and ende is not None and time.monotonic() >= ende:
+                _LOGGER.debug(
+                    "Poll: Zeit reicht für %d von %d OIDs, %d bleiben offen",
+                    len(gelesen),
+                    len(faellig),
+                    len(offen),
+                )
+                break
+        self._poll_anfragen = len(gelesen)
+        _LOGGER.debug("Poll: %d OIDs einzeln", len(gelesen))
+        return gelesen, offen - self._abgemeldet
+
+    async def fetch_all(self, budget: float | None = None):
         """Poll the currently relevant OIDs in parallel and return coordinator data.
 
         Es werden nur die statisch aktiven (poll_oids) plus die von aktivierten
         Entities dynamisch angemeldeten OIDs abgefragt – nicht mehr blind alle
-        entdeckten OIDs. Das hält jeden Poll deutlich unter dem Coordinator-
-        Timeout, auch wenn Hunderte Service-Datenpunkte bekannt sind.
+        entdeckten OIDs. Aus diesem Satz kommt je Durchlauf nur dran, was nach
+        seiner Poll-Klasse fällig ist; der Rest behält seinen letzten Wert.
 
-        Aus diesem Satz kommt je Durchlauf nur dran, was nach seiner
-        Poll-Klasse fällig ist; der Rest behält seinen letzten Wert.
+        `budget` ist die Zeit in Sekunden, die der Durchlauf haben darf. Ist
+        sie aufgebraucht, endet er mit dem, was er gelesen hat, und nimmt den
+        Rest in den nächsten Durchlauf mit. Ohne diese Grenze bricht der
+        Coordinator einen zu großen Durchlauf ab: Alles Gelesene ist verloren,
+        der Zähler der Poll-Klassen bleibt stehen – und derselbe zu große
+        Durchlauf steht unverändert wieder an. Auf einer Anlage mit
+        Serviceebene und mehreren Heizkreisen hörte das Abfragen so dauerhaft
+        auf (#2).
         """
         if self.oids is None:
             # Fallback, falls async_init noch nicht lief (sollte nicht passieren).
             await self.async_init()
 
         poll_begonnen = time.monotonic()
-        faellig = self._faellig()
-        results = await self._lese_faellige(faellig)
+        ende = poll_begonnen + budget if budget else None
         # Zeitprogramme und Status ändern sich selten und kosten je eine
-        # eigene Anfrage – sie laufen im langsamen Takt mit.
+        # eigene Anfrage – sie laufen im langsamen Takt mit. Sie kommen vor den
+        # Werten an die Reihe: Sonst bliebe bei knapper Zeit für sie nie
+        # welche übrig.
         langsamer_takt = self._takte()[POLL_SLOW]
         langsam_faellig = self._tick == 0 or self._tick % langsamer_takt == 0
         # Zeitprogramme entstehen erst im Vollabzug, also nach dem ersten
@@ -1684,6 +1746,8 @@ class WindhagerHttpClient:
         if langsam_faellig:
             self._letzte_objekte = await self._fetch_time_programs()
         status = await self._fetch_status()
+        faellig = self._faellig()
+        results, self._rest = await self._lese_faellige(faellig, ende)
 
         self._letzte_werte.update(dict(results))
         # Abgemeldete Entities dürfen nicht ewig als alter Wert weiterleben.
