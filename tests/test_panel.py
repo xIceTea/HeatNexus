@@ -175,10 +175,10 @@ def test_ohne_warmwasser_bleibt_die_karte_leer(panel):
     """Ein Heizkreis ohne Warmwasserbereitung darf nichts vortäuschen."""
     ohne = anlage(
         teil(
-            "Hebebühne",
+            "Südbau",
             14,
             [
-                entitaet("climate.hebebuehne", "Hebebühne"),
+                entitaet("climate.hebebuehne", "Südbau"),
                 entitaet("sensor.vorlauftemperatur_ist", "Vorlauftemperatur Ist"),
             ],
         )
@@ -195,10 +195,10 @@ def test_reine_parameter_beweisen_kein_warmwasser(panel):
     """
     ohne = anlage(
         teil(
-            "Hebebühne",
+            "Südbau",
             14,
             [
-                entitaet("climate.hebebuehne", "Hebebühne"),
+                entitaet("climate.hebebuehne", "Südbau"),
                 entitaet("number.ww_ueberhoehung", "WW-Überhöhung"),
                 entitaet("binary_sensor.ww_ladepumpe", "WW-Ladepumpe"),
                 entitaet("number.ww_ladevorrang", "WW-Ladung max. Ladevorrang"),
@@ -260,7 +260,7 @@ def test_steuerung_findet_heizkreis_und_warmwasser(panel, kessel_und_heizkreis):
 
 
 def test_steuerung_ohne_warmwasser_bleibt_leer(panel):
-    ohne = anlage(teil("Hebebühne", 14, [entitaet("climate.hebebuehne", "Hebebühne")]))
+    ohne = anlage(teil("Südbau", 14, [entitaet("climate.hebebuehne", "Südbau")]))
     assert panel._anlage_daten(ohne)["steuerung"]["warmwasser"] is None
 
 
@@ -543,6 +543,81 @@ def test_jedes_zeitprogramm_traegt_sein_eigenes_symbol(panel):
     assert symbole["WW-Zirkulationsprogramm"] == "mdi:reload"
     assert symbole["WW-Programm"] == "mdi:water-boiler"
     assert symbole["Heizprogramm 1"] == "mdi:radiator"
+
+
+# ---------------------------------------------------------------------------
+# Kennwert einer fremden Baureihe
+# ---------------------------------------------------------------------------
+def test_ein_unbekanntes_anlagenteil_bekommt_seinen_leitwert(panel):
+    """Der Hersteller sagt selbst, was auf die Übersicht gehört.
+
+    Für Baureihen ohne Namensmuster in `muster.py` bliebe die Zeile sonst leer.
+    Die Übersichtsebene der Geräte-Datenbank ist der Rückfall: Was dort für
+    diesen Funktionstyp steht, ist die Antwort des Herstellers auf dieselbe
+    Frage.
+    """
+    daten = panel._anlage_daten(
+        anlage(
+            teil(
+                "Fremdkessel",
+                9,
+                [
+                    entitaet("sensor.irgendwas", "Ein Wert ohne Muster", adresse="12/38"),
+                    # `2/59` steht in der Übersichtsebene des Funktionstyps 9.
+                    entitaet("sensor.leitwert", "Kesselleistung Ist", adresse="2/59", wert=42.0),
+                ],
+            )
+        )
+    )
+    kennwerte = [k for k in daten["kennwerte"] if k["titel"] == "Fremdkessel"]
+    assert [k["entity"] for k in kennwerte] == ["sensor.leitwert"]
+
+
+def test_das_namensmuster_geht_der_uebersichtsebene_vor(panel):
+    """Es ist an einer echten Anlage entstanden, die Ebene nur abgeleitet."""
+    daten = panel._anlage_daten(
+        anlage(
+            teil(
+                "PuroWIN",
+                25,
+                [
+                    entitaet("sensor.leistung", "Kesselleistung Ist", adresse="2/59"),
+                    entitaet("sensor.kessel", "Kesseltemperatur Ist", adresse="0/7"),
+                ],
+            )
+        )
+    )
+    assert [k["entity"] for k in daten["kennwerte"]] == ["sensor.kessel"]
+
+
+def test_der_leitwert_nimmt_lieber_einen_gefuellten_wert(panel):
+    """Beim ersten Aufbau ist erst ein Teil der Anlage gelesen.
+
+    Steht der leere Eintrag in der Herstellerliste vorn, zeigte die Zeile
+    nichts, obwohl daneben schon ein Wert derselben Liste bereitstand.
+    """
+    daten = panel._anlage_daten(
+        anlage(
+            teil(
+                "Fremdkessel",
+                9,
+                [
+                    # `2/1` steht in der Übersichtsebene vor `0/7`.
+                    entitaet("sensor.leer", "Betriebsphase", adresse="2/1", hat_wert=False),
+                    entitaet("sensor.warm", "Kesseltemperatur", adresse="0/7", wert=64.0),
+                ],
+            )
+        )
+    )
+    assert [k["entity"] for k in daten["kennwerte"]] == ["sensor.warm"]
+
+
+def test_ohne_uebersichtsebene_bleibt_es_beim_bisherigen(panel):
+    """Ein unbekannter Funktionstyp ohne Beleg erfindet nichts."""
+    daten = panel._anlage_daten(
+        anlage(teil("Unbekannt", 99, [entitaet("sensor.x", "Irgendwas", adresse="99/99")]))
+    )
+    assert daten["kennwerte"] == []
 
 
 # ---------------------------------------------------------------------------

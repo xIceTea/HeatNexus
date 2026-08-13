@@ -27,6 +27,7 @@ from ..dashboard import (
     _trifft,
     rueckfrage,
 )
+from ..device_db import get_layers
 from ..schema import anlagenschema, modul_in_betrieb
 from .hilfe import HILFE_KARTEN, KARTE_BEDINGUNG, hilfe
 from .muster import (
@@ -567,6 +568,33 @@ def _hilfe_liste(anlage: dict[str, Any], nutzdaten: dict[str, Any]) -> list[dict
     return [{"titel": titel, "text": gefunden[titel]} for titel in sorted(gefunden)]
 
 
+def _leitwert_aus_uebersicht(teil: dict[str, Any]) -> dict[str, Any] | None:
+    """Der Leitwert einer Baureihe, für die es kein Namensmuster gibt.
+
+    `parameterLayer.json` führt je Funktionstyp eine Übersichtsebene – die
+    Antwort des Herstellers auf „was gehört auf die Titelseite". Sie steht als
+    `overview` in der Geräte-Datenbank und dient hier als Rückfall, in ihrer
+    eigenen Reihenfolge. Ohne sie bliebe die Zeile eines fremden Anlagenteils
+    leer, obwohl die Anlage Werte liefert.
+    """
+    ebenen = get_layers(teil.get("fct_type")) or {}
+    uebersicht = ebenen.get("overview") or []
+    if not uebersicht:
+        return None
+    je_adresse = {
+        eintrag["adresse"]: eintrag
+        for eintrag in reversed(teil["entitaeten"])
+        if eintrag.get("adresse") and eintrag.get("kategorie") is None
+    }
+    treffer = [je_adresse[a] for a in uebersicht if a in je_adresse]
+    if not treffer:
+        return None
+    # Ein gefüllter Wert hat Vorrang – wie in `_erster`. Beim ersten Aufbau ist
+    # erst ein Teil der Anlage gelesen; die Reihenfolge des Herstellers allein
+    # zeigte dann eine leere Zeile, obwohl daneben schon ein Wert bereitstand.
+    return next((e for e in treffer if e.get("hat_wert")), treffer[0])
+
+
 def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) -> dict[str, Any]:
     """Alles, was die Oberfläche für eine Anlage braucht."""
     alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
@@ -580,8 +608,10 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         if teil.get("fct_type") == FCT_ZSP and not modul_in_betrieb(teil["entitaeten"]):
             continue
         vorlage = KENNWERT_JE_FCT.get(teil.get("fct_type")) or KENNWERT
+        gefunden = False
         for muster, beschriftung, symbol, schluessel in vorlage:
             if (treffer := _erster(teil["entitaeten"], muster, *schluessel)) is not None:
+                gefunden = True
                 eintrag = {
                     "entity": treffer["entity_id"],
                     "titel": teil["name"],
@@ -599,6 +629,16 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                     eintrag["ersatz_unter_null"] = "–"
                 kennwerte.append(eintrag)
                 break
+
+        if not gefunden and (treffer := _leitwert_aus_uebersicht(teil)) is not None:
+            kennwerte.append(
+                {
+                    "entity": treffer["entity_id"],
+                    "titel": teil["name"],
+                    "untertitel": treffer["name"],
+                    "symbol": "mdi:gauge",
+                }
+            )
 
         # Warmwasser und Zirkulation hängen als Datenpunkte am Heizkreis,
         # gehören in der Übersicht aber eigene Zeilen – man liest sie täglich.

@@ -37,6 +37,7 @@ from .const import (
     KESSELART_AUTO,
     KESSELWERT_LEISTUNG,
 )
+from .kanonisch import gnmn
 from .kanonisch import schluessel as kanonischer_schluessel
 from .schema import anlagenschema, kesselart_erkennen
 
@@ -361,7 +362,8 @@ def _skala(wert: float | None) -> int:
 def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
     """Funktionstyp je Gerätekennung aus den Beschreibungen der Anlagen."""
     zuordnung: dict[str, Any] = {}
-    for eintrag in hass.data.get(DOMAIN, {}).values():
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        eintrag = getattr(entry, "runtime_data", None)
         if not isinstance(eintrag, dict):
             continue
         for coordinator in (eintrag.get("coordinators") or {}).values():
@@ -380,11 +382,11 @@ def _kesselart_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str]]:
     Zuordnung wie beim Funktionstyp.
     """
     zuordnung: dict[str, str] = {}
-    for entry_id, eintrag in hass.data.get(DOMAIN, {}).items():
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        eintrag = getattr(entry, "runtime_data", None)
         if not isinstance(eintrag, dict):
             continue
-        entry = hass.config_entries.async_get_entry(entry_id)
-        optionen = (entry.options if entry else None) or {}
+        optionen = entry.options or {}
         for host, coordinator in (eintrag.get("coordinators") or {}).items():
             je_host = optionen.get(host) or {}
             wahl = (
@@ -455,6 +457,10 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
                 # dem Namen – siehe `kanonisch.py`. Wo er fehlt, bleibt es beim
                 # Namensmuster.
                 "schluessel": kanonischer_schluessel(eintrag.unique_id),
+                # Die rohe Datenpunktadresse. Sie erlaubt den Abgleich mit den
+                # Ebenenlisten der Geräte-Datenbank – dort steht auch für
+                # Baureihen etwas, für die es hier kein Namensmuster gibt.
+                "adresse": gnmn(eintrag.unique_id),
                 "kategorie": eintrag.entity_category,
                 "bereich": eintrag.entity_id.split(".")[0],
                 "hat_wert": hat_wert,
