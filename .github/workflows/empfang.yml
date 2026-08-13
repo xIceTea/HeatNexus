@@ -38,17 +38,17 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.payload.issue.number,
               body: [
-                'Danke für den Abzug — fremde Anlagen sind der einzige Weg, wie HeatNexus über die eine Anlage hinauswächst, an der es entsteht.',
+                'Danke für den Abzug. HeatNexus entsteht an einer einzigen Anlage — über die hinaus wächst es nur, wenn jemand seine eigene beisteuert.',
                 '',
-                '**Bitte vor dem Hochladen prüfen**, dass in den Dateien nichts steht, was nicht öffentlich sein soll:',
+                '**Ein Blick in die Dateien lohnt sich, bevor sie hochgehen.** Der Abzug enthält ein paar Angaben, die nicht öffentlich sein müssen:',
                 '',
-                '- `*_endpunkte.json` enthält Netzkonfiguration, MAC-Adresse und Seriennummer der Steuerung',
-                '- `*_structure.json` und `*_menus.json` enthalten die `neuronId` jedes Moduls',
-                '- Die Dateinamen tragen die IP-Adresse der Anlage',
+                '- in `*_endpunkte.json` stehen Netzwerkeinstellungen, MAC-Adresse und Seriennummer der Steuerung',
+                '- in `*_structure.json` und `*_menus.json` steht die `neuronId` jedes Moduls',
+                '- die Dateinamen enthalten die IP-Adresse der Anlage',
                 '',
-                'Nichts davon ist ein Passwort, und nichts davon braucht das Projekt. Wer mag, ersetzt es vorher.',
+                'Ein Passwort ist nichts davon, und gebraucht wird auch nichts davon. Wer die Angaben lieber ersetzt, tut das am besten vorher.',
                 '',
-                'Der Diagnose-Export der Integration ist davon nicht betroffen — dort sind IP, Passwort und Seriennummer bereits geschwärzt.',
+                'Für den Diagnose-Export der Integration gilt das nicht: Dort sind IP-Adresse, Passwort und Seriennummer bereits geschwärzt.',
               ].join('\n'),
             });
 
@@ -65,11 +65,11 @@ jobs:
             const body = [
               'Danke für den Vorschlag.',
               '',
-              '- Zustimmung bitte als 👍 **am Ursprungsbeitrag**, nicht in den Kommentaren — danach richtet sich die Reihenfolge',
-              '- Was viele Anlagen betrifft, kommt früher; was nur an einer bestimmten Anlage greift, wird es womöglich gar nicht',
-              '- Passt der Vorschlag nicht ins Projekt, kommt hier ein Weg drumherum statt eines stillen Schließens',
+              'Wer eine Idee unterstützen möchte, setzt das 👍 bitte **an den ersten Beitrag** und nicht unter einen Kommentar. Daran sehe ich, was am meisten gebraucht wird, und in dieser Reihenfolge arbeite ich die Vorschläge ab.',
               '',
-              'Details und Gegenvorschläge gern darunter.',
+              'Was auf vielen Anlagen etwas ändert, kommt zuerst. Was nur an einer bestimmten Anlage greift, schafft es unter Umständen nicht in die Integration — dann steht hier aber, wie es sich anders lösen lässt. Kommentarlos geschlossen wird nichts.',
+              '',
+              'Rückfragen, Einwände und andere Vorschläge gehören darunter.',
             ].join('\n');
             await github.graphql(
               `mutation($discussionId: ID!, $body: String!) {
