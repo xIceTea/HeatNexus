@@ -6,10 +6,18 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unveröffentlicht]
+## [1.7.0] - 2026-08-13
+
+Ein eigener Hilfe-Reiter, Geräteseiten, die sagen womit man es zu tun hat, und
+eine Erkennung, die auch Datenpunkte außerhalb der Menü-Ebenen findet. Die
+Abschnitte der beiden Vorabversionen darunter führen jede Änderung einzeln
+auf; hier stehen die Neuerungen gegenüber 1.6.0.
 
 ### Neu
 
+- Neuer Reiter „Hilfe" im Panel, durchsuchbar.
+- Datenpunkte außerhalb der Menü-Ebenen werden erkannt.
+- Systemuhr und Systemdatum lassen sich per Haken anlegen.
 - Die Steuerung zeigt Modell und Firmwarestand.
 - Unbekannte Anlagenteile zeigen die Bezeichnung ab Werk als Modell.
 - Anlagenteile ohne bekanntes Muster bekommen ihren Leitwert in der Übersicht.
@@ -17,10 +25,13 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Geändert
 
+- Nur noch Systemuhr und Systemdatum sind vorab deaktiviert.
 - Eine nicht erreichbare Anlage wird nur noch einmal protokolliert.
 
 ### Behoben
 
+- Zeitprogramme sind gleich nach der Einrichtung verfügbar.
+- 29 fehlende Datenpunktnamen ergänzt.
 - Seriennummer und Softwarestand standen nur an Heizkreisen.
 - Der Dienst „Behaglichkeitskorrektur" war englisch beschriftet.
 
