@@ -11,6 +11,7 @@ from xml.etree import ElementTree
 import aiohttp
 from yarl import URL
 
+from . import geraetetexte
 from .const import (
     ADVANCED_LEVELS,
     DEFAULT_LEVELS,
@@ -118,6 +119,7 @@ class WindhagerHttpClient:
         zeitwerte: bool = False,
         username: str | None = None,
         update_interval: int = UPDATE_INTERVAL,
+        sprache: str = "de",
     ) -> None:
         self.host = host
         self.password = password
@@ -137,6 +139,10 @@ class WindhagerHttpClient:
         self.writable_advanced = writable_advanced
         # Ob Uhrzeit- und Datumsfelder von sich aus aktiv sind.
         self.zeitwerte = zeitwerte
+        # In welcher Sprache das Textwerk der Steuerung gelesen wird, und was
+        # sie geliefert hat. Vor dem ersten Erkennungslauf ist es leer.
+        self.sprache = sprache or "de"
+        self._texte = geraetetexte.Texte()
         self.oids: set | None = None
         self.devices: list[dict] = []
         # Was die Steuerung über sich selbst sagt (Modell, Firmwarestand).
@@ -640,6 +646,18 @@ class WindhagerHttpClient:
         rest = oid[len(prefix) :].strip("/").split("/")
         return f"{rest[0]}/{rest[1]}" if len(rest) >= 2 else oid
 
+    def _name_fuer(self, gnmn: str, vorgabe: str | None) -> str | None:
+        """Anzeigename eines Datenpunkts.
+
+        Auf Deutsch führt die gepflegte Bezeichnung; der Gerätetext springt nur
+        dort ein, wo keine vorliegt. Bei fremder Sprache ist es umgekehrt –
+        sonst stünde die halbe Oberfläche weiter deutsch da.
+        """
+        geraet = self._texte.namen.get(gnmn)
+        if self.sprache == "de":
+            return vorgabe or geraet
+        return geraet or vorgabe
+
     # ------------------------------------------------------------------
     # Discovery
     # ------------------------------------------------------------------
@@ -656,7 +674,10 @@ class WindhagerHttpClient:
             "id": unique_id,
             "alt_id": alt,
             "oid": oid,
-            "name": definition["name"],
+            # `base`, nicht `prefix`: Knotenweite Datenpunkte hängen am Gerät,
+            # nicht an der Funktion – sonst schneidet `_gnmn` die falsche
+            # Länge ab.
+            "name": self._name_fuer(self._gnmn(base, oid), definition["name"]),
             "type": definition["platform"],
             "unit": definition.get("unit"),
             "enum": definition.get("enum"),
@@ -686,6 +707,10 @@ class WindhagerHttpClient:
         self.oids = set()
         self.devices = []
         json_devices = await self.fetch("/1")
+        # Die Steuerung führt die Klartexte ihrer Datenpunkte selbst mit. Sie
+        # passen zu ihrer Fassung und zur gewählten Sprache; die mitgelieferte
+        # Datenbank kennt nur Deutsch.
+        self._texte = await geraetetexte.laden(self._ressource, self.sprache)
         if not self.geraeteinfo:
             await self._lese_geraeteinfo()
         if not self.werksbezeichnung:
@@ -811,8 +836,7 @@ class WindhagerHttpClient:
                             "alt_id": self._alte_kennung(oid),
                             "oid": oid,
                             "name": (
-                                NAME_OVERRIDES.get(gnmn)
-                                or get_name(gnmn)
+                                self._name_fuer(gnmn, NAME_OVERRIDES.get(gnmn) or get_name(gnmn))
                                 or (f"{gruppe_of[gnmn]} {gnmn}" if gnmn in gruppe_of else None)
                                 or f"Datenpunkt {gnmn}"
                             ),

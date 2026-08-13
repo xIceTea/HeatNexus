@@ -235,3 +235,33 @@ def test_leermarken_der_anlage_werden_none(client_module):
     assert umwandeln("") is None
     assert umwandeln("0") == "0"
     assert umwandeln("21.5") == "21.5"
+
+
+def _mit_texten(client_module, sprache, namen):
+    """Ein Client, dessen Anlage die genannten Bezeichnungen geliefert hat."""
+    from custom_components.heatnexus import geraetetexte
+
+    client = client_module.WindhagerHttpClient("192.0.2.1", "secret", sprache=sprache)
+    client._texte = geraetetexte.Texte(namen=namen)
+    return client
+
+
+def test_auf_deutsch_fuehrt_die_gepflegte_bezeichnung(client_module):
+    client = _mit_texten(client_module, "de", {"0/7": "Kesseltemperatur Istwert"})
+    assert client._name_fuer("0/7", "Kesseltemperatur") == "Kesseltemperatur"
+
+
+def test_auf_deutsch_fuellt_die_anlage_nur_luecken(client_module):
+    client = _mit_texten(client_module, "de", {"0/7": "Kesseltemperatur Istwert"})
+    assert client._name_fuer("0/7", None) == "Kesseltemperatur Istwert"
+
+
+def test_bei_fremder_sprache_fuehrt_die_anlage(client_module):
+    client = _mit_texten(client_module, "fr", {"0/7": "Temp. chaudière"})
+    assert client._name_fuer("0/7", "Kesseltemperatur") == "Temp. chaudière"
+
+
+def test_ohne_gerätetext_bleibt_die_gepflegte_bezeichnung(client_module):
+    """Eine Anlage, die ihre Textdateien nicht ausliefert, verliert nichts."""
+    client = _mit_texten(client_module, "fr", {})
+    assert client._name_fuer("0/7", "Kesseltemperatur") == "Kesseltemperatur"

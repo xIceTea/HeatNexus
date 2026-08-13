@@ -236,6 +236,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             writable_advanced=scope["writable_advanced"],
             zeitwerte=scope["zeitwerte"],
             update_interval=scope["update_interval"],
+            sprache=scope["sprache"],
         )
 
         # Erkennungsstand: erst Arbeitsspeicher, dann Platte, sonst neu lesen.
