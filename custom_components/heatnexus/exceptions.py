@@ -1,6 +1,6 @@
 """Exceptions for Windhager integration."""
 
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 
 class WindhagerError(HomeAssistantError):
@@ -21,7 +21,13 @@ class InvalidAuth(WindhagerError):
     pass
 
 
-class WindhagerValueError(WindhagerError):
-    """Error to indicate invalid values."""
+class WindhagerValueError(ServiceValidationError):
+    """Eine Eingabe, die so nicht an die Anlage gehen kann.
+
+    Bewusst `ServiceValidationError` und nicht `HomeAssistantError`: Ein
+    falscher Wochentag oder eine Uhrzeit ohne Doppelpunkt ist keine Störung der
+    Integration. Home Assistant zeigt die Meldung dann als Hinweis am Dienst,
+    statt einen Stapelauszug ins Protokoll zu schreiben.
+    """
 
     pass

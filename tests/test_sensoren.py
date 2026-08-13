@@ -352,6 +352,19 @@ def test_zeitprogramm_meldet_keine_oid_zum_polling(sensoren):
     assert sensoren.WindhagerTimeProgramSensor._register_poll_oid is False
 
 
+async def test_ein_falscher_wochentag_ist_ein_hinweis_kein_absturz(sensoren):
+    """Eine Fehleingabe am Dienst ist keine Störung der Integration.
+
+    Home Assistant zeigt `ServiceValidationError` als Hinweis am Dienst an,
+    statt einen Stapelauszug ins Protokoll zu schreiben.
+    """
+    from homeassistant.exceptions import ServiceValidationError
+
+    entity = _zeitprogramm(sensoren, [{"weekdays": ["Mo"], "switchPoints": []}])
+    with pytest.raises(ServiceValidationError):
+        await entity.async_set_time_program(weekdays=["Montag"], switch_points=[])
+
+
 # ---------------------------------------------------------------------------
 # Zeichenketten
 # ---------------------------------------------------------------------------
