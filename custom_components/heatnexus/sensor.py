@@ -63,6 +63,12 @@ _BLOCK_SCHEMA = vol.Schema(
 )
 
 
+# Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
+# begrenzt der Client über seine eigene Warteschlange. Eine zweite Bremse in
+# Home Assistant würde nur den Abruf verzögern, den es gar nicht gibt.
+PARALLEL_UPDATES = 0
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager sensors from a config entry."""
     platform = entity_platform.async_get_current_platform()

@@ -25,6 +25,11 @@ from .entity import async_setup_entities, geraet_info
 from .exceptions import WindhagerValueError
 from .helpers import get_oid_value
 
+# Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
+# begrenzt der Client über seine eigene Warteschlange. Eine zweite Bremse in
+# Home Assistant würde nur den Abruf verzögern, den es gar nicht gibt.
+PARALLEL_UPDATES = 0
+
 _LOGGER = logging.getLogger(__name__)
 
 # Raumtemperatur-Sollwertgrenzen laut Betreiberebene (3/51, 3/53: 10..30 °C)
@@ -290,8 +295,8 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
     # Thermostat als "Aus" gelten soll:
     #   0 = Standby (Frostschutz, Sollwert ~5 °C)
     #   6 = WW-Betrieb (nur Warmwasser, Heizkörper aus)
-    # So zeigt z.B. das Wohnhaus im WW-Betrieb korrekt "Aus" statt "Leerlauf",
-    # während der Modus (preset) weiterhin "WW-Betrieb" anzeigt.
+    # Ein Kreis im WW-Betrieb zeigt damit "Aus" statt "Leerlauf", während der
+    # Modus (preset) weiterhin "WW-Betrieb" nennt.
     OFF_MODES = {0, 6}
 
     @property

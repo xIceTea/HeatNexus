@@ -8,6 +8,11 @@ from homeassistant.core import HomeAssistant
 
 from .entity import WindhagerEntity, async_setup_entities
 
+# Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
+# begrenzt der Client über seine eigene Warteschlange. Eine zweite Bremse in
+# Home Assistant würde nur den Abruf verzögern, den es gar nicht gibt.
+PARALLEL_UPDATES = 0
+
 # Die Einheitentabelle liefert Geräteklassen für alle Plattformen; das
 # Zahlenfeld kennt davon weniger als der Sensor (keine Dauer, keine Energie).
 DEVICE_CLASSES = {klasse.value for klasse in NumberDeviceClass}

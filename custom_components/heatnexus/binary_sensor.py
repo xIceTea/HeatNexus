@@ -11,6 +11,11 @@ from homeassistant.core import HomeAssistant
 
 from .entity import WindhagerEntity, async_setup_entities
 
+# Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
+# begrenzt der Client über seine eigene Warteschlange. Eine zweite Bremse in
+# Home Assistant würde nur den Abruf verzögern, den es gar nicht gibt.
+PARALLEL_UPDATES = 0
+
 DEVICE_CLASS_MAP = {
     "problem": BinarySensorDeviceClass.PROBLEM,
     "running": BinarySensorDeviceClass.RUNNING,
