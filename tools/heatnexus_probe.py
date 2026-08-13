@@ -49,6 +49,9 @@ DEFAULT_WORKERS = 3
 RETRIES = 2  # Wiederholungen bei Zeitüberschreitung/Verbindungsabbruch
 RETRY_PAUSE = 1.5
 PAGE_SIZE = 10  # das Gerät liefert je Menü-Abruf höchstens 10 Datenpunkte
+# Adressen, mit denen der Stapelabruf gemessen wird. Genug für einen
+# belastbaren Vergleich, wenig genug, dass der Lauf Sekunden dauert.
+STAPEL_PROBE = 20
 REPO = Path(__file__).resolve().parent.parent
 HOSTS_FILE = "hosts.txt"
 
@@ -933,6 +936,54 @@ def hole_vollabzug(probe: Probe) -> dict:
     }
 
 
+def miss_stapelabruf(probe: Probe, oids: list[str]) -> dict:
+    """Prüfen, ob `/api/1.0/datapoints?OID=…` mehrere Adressen auf einmal liest.
+
+    Die Herstellerbeschreibung führt den Parameter als Liste im CSV-Format und
+    sagt zum Aufruf ohne Parameter: er gibt zurück, was gerade im
+    Datenzwischenspeicher liegt. Das erklärt dessen feste Obergrenze und macht
+    ihn zu etwas anderem als einem Sammelabruf.
+
+    Gemessen wird beides gegeneinander: dieselben Adressen einzeln über
+    ``lookup``, dann in einem Zug. Verglichen werden Anzahl, Werte und Dauer –
+    ein Stapel, der schneller ist, aber andere Werte liefert, taugt nichts.
+    """
+    einzeln: dict[str, str | None] = {}
+    begonnen = time.monotonic()
+    for oid in oids:
+        data, status = probe.lookup(oid)
+        einzeln[oid] = data.get("value") if status == 200 and isinstance(data, dict) else None
+    dauer_einzeln = time.monotonic() - begonnen
+
+    begonnen = time.monotonic()
+    data, status = probe.get(f"{probe.base}/api/1.0/datapoints?OID={','.join(oids)}")
+    dauer_stapel = time.monotonic() - begonnen
+
+    gestapelt: dict[str, str | None] = {}
+    if status == 200 and isinstance(data, list):
+        for eintrag in data:
+            if isinstance(eintrag, dict) and eintrag.get("OID"):
+                gestapelt[str(eintrag["OID"])] = eintrag.get("value")
+
+    abweichend = sorted(o for o in oids if str(einzeln.get(o)) != str(gestapelt.get(o)))
+    print(f"    einzeln:  {len(oids)} Anfragen, {dauer_einzeln:.2f} s")
+    print(
+        f"    Stapel:   1 Anfrage, HTTP {status}, {len(gestapelt)} Adressen, {dauer_stapel:.2f} s"
+    )
+    if abweichend:
+        print(f"    abweichende Werte: {len(abweichend)} von {len(oids)}")
+    return {
+        "status": status,
+        "angefragt": len(oids),
+        "geliefert": len(gestapelt),
+        "sekunden_einzeln": round(dauer_einzeln, 3),
+        "sekunden_stapel": round(dauer_stapel, 3),
+        "abweichend": abweichend,
+        "einzeln": einzeln,
+        "stapel": gestapelt,
+    }
+
+
 def suche_endpunkte(probe: Probe) -> dict:
     """Aufzählen, welche Endpunkte die Steuerung kennt.
 
@@ -1617,6 +1668,24 @@ def run_host(
         path.write_text(json.dumps(abzug, indent=2, ensure_ascii=False), encoding="utf-8")
         written.append(path)
 
+    if "stapel" in actions:
+        print("    Stapelabruf gegen Einzelabrufe …")
+        # Adressen dieser Anlage statt einer gepflegten Liste: Der
+        # Zwischenspeicher nennt nur, was es hier wirklich gibt.
+        vorrat, _status = probe.get(f"{probe.base}/api/1.0/datapoints")
+        kandidaten = [
+            str(e["OID"])
+            for e in (vorrat if isinstance(vorrat, list) else [])
+            if isinstance(e, dict) and e.get("OID")
+        ][:STAPEL_PROBE]
+        if not kandidaten:
+            print("    keine Adressen für die Messung gefunden")
+        else:
+            messung = miss_stapelabruf(probe, kandidaten)
+            path = out_dir / f"{stem}_stapel.json"
+            path.write_text(json.dumps(messung, indent=2, ensure_ascii=False), encoding="utf-8")
+            written.append(path)
+
     if "stoerspeicher" in actions:
         print("    Störspeicher wird über den SOAP-Dienst gesucht …")
         speicher = suche_stoerspeicher(probe, structure)
@@ -1727,6 +1796,7 @@ ACTIONS = {
     "11": ("nv", "Test: wie sich der Wert einer LON-Netzwerkvariablen lesen lässt"),
     "12": ("vollabzug", "Vollabzug: alle Datenpunkte über /api/1.0/datapoints"),
     "13": ("vergleich", "Vergleich: liefern LON-Werte etwas, das es als OID nicht gibt"),
+    "14": ("stapel", "Messung: liest /api/1.0/datapoints?OID= mehrere Adressen auf einmal"),
 }
 
 
@@ -1865,6 +1935,7 @@ def main() -> int:
             "nv",
             "vollabzug",
             "vergleich",
+            "stapel",
         ],
         help="Aktion (Standard: geführter Modus)",
     )

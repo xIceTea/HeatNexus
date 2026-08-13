@@ -45,6 +45,7 @@ Abfrage. Eine Anlage darf auch als `192.0.2.10:8080` angegeben werden.
 | `nv` | liest LON-Netzwerkvariablen einzeln aus |
 | `vollabzug` | holt `/api/1.0/datapoints`, den Cache der zuletzt gelesenen Werte |
 | `vergleich` | stellt die LON-Werte den Datenpunkten gegenüber: liefert LON etwas, das es als OID nicht gibt |
+| `stapel` | misst, ob `/api/1.0/datapoints?OID=` mehrere Adressen in einer Anfrage liest, und vergleicht Werte und Dauer mit Einzelabrufen |
 | `oid`, `objekt` | einzelnen Datenpunkt bzw. ein strukturiertes Objekt lesen |
 | `all` | alles nacheinander |
 
