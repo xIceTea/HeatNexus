@@ -62,6 +62,7 @@ def _stand(modul, const, **abweichend):
         "scope": modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST)),
         "saved": dt_util.utcnow().isoformat(),
         "version": "1.5.0",
+        "sprache": "de",
     }
     stand.update(abweichend)
     return stand
@@ -110,12 +111,32 @@ def test_ein_anderer_zugang_ergibt_eine_andere_kennung(modul, const):
     assert mit_user != mit_service
 
 
-def test_eine_andere_sprache_ergibt_eine_andere_kennung(modul, const):
-    # Die Bezeichnungen stehen in den Deskriptoren; eine andere Sprache
-    # bedeutet andere Deskriptoren.
+def test_eine_andere_sprache_verwirft_den_stand_nicht(modul, const):
+    """Sie ändert Bezeichnungen, nicht den Bestand an Datenpunkten.
+
+    Stünde sie im Fingerabdruck, läse jede Anlage bei der Umstellung minutenlang
+    neu ein – genau das Verhalten, das seit 1.1.0-beta.2 abgeschafft ist.
+    """
     deutsch = modul._scope_fingerprint(modul._scope(_hass("de"), _eintrag(modul, const), HOST))
     franzoesisch = modul._scope_fingerprint(modul._scope(_hass("fr"), _eintrag(modul, const), HOST))
-    assert deutsch != franzoesisch
+    assert deutsch == franzoesisch
+
+
+def test_eine_andere_sprache_loest_den_abgleich_aus(modul, const):
+    """Sofort da sein und nachziehen – wie bei einem Fassungswechsel."""
+    stand = _stand(modul, const, sprache="de")
+
+    assert modul._abgleich_noetig(stand, "1.5.0", "fr")
+    assert not modul._abgleich_noetig(stand, "1.5.0", "de")
+
+
+def test_ein_stand_ohne_sprache_gilt_als_deutsch(modul, const):
+    """Stände aus einer Fassung vor der Sprachwahl tragen den Schlüssel nicht."""
+    ohne = _stand(modul, const)
+    ohne.pop("sprache", None)
+
+    assert not modul._abgleich_noetig(ohne, "1.5.0", "de")
+    assert modul._abgleich_noetig(ohne, "1.5.0", "en")
 
 
 def test_die_gewaehlte_sprache_schlaegt_die_von_home_assistant(modul, const):
@@ -147,8 +168,8 @@ def test_eine_neue_fassung_verwirft_den_stand_nicht(modul, const):
     alt = _stand(modul, const, version="0.9.0")
     assert modul._discovery_cache_valid(alt, HOST, kennung)
     # Sie löst aber einen Abgleich im Hintergrund aus.
-    assert modul._veraltet(alt, "1.5.0")
-    assert not modul._veraltet(_stand(modul, const), "1.5.0")
+    assert modul._abgleich_noetig(alt, "1.5.0", "de")
+    assert not modul._abgleich_noetig(_stand(modul, const), "1.5.0", "de")
 
 
 def test_eine_andere_anlage_verwirft_den_stand(modul, const):

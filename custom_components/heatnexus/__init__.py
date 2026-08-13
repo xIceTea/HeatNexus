@@ -120,15 +120,15 @@ def _scope_fingerprint(scope: dict) -> str:
     „Service" zwar dasselbe, für andere ist das nicht belegt – ein Wechsel
     liest deshalb neu ein, statt sich auf eine ungeprüfte Annahme zu stützen.
 
-    Die Sprache gehört ebenfalls dazu: Sie bestimmt, welche Bezeichnungen die
-    Steuerung liefert, und die stehen in den Deskriptoren.
+    Die Sprache gehört nicht dazu. Sie ändert die Bezeichnungen, nicht den
+    Bestand an Datenpunkten. Ein Wechsel löst deshalb den Abgleich im
+    Hintergrund aus (siehe `_abgleich_noetig`) und kein Neueinlesen.
     """
     return (
         ",".join(scope["levels"])
         + f"|{int(scope['enable_advanced'])}{int(scope['writable_advanced'])}"
         + f"{int(scope.get('zeitwerte', False))}"
         + f"|{scope.get('username', DEFAULT_USERNAME)}"
-        + f"|{scope.get('sprache', 'de')}"
     )
 
 
@@ -139,8 +139,9 @@ def _discovery_cache_valid(stored, host: str, fingerprint: str) -> bool:
     Sonst läse HeatNexus nach jeder Aktualisierung die ganze Anlage neu ein –
     30 bis 120 Sekunden, in denen kaum etwas dasteht, obwohl sich an der
     Anlage nichts geändert hat. Ein Versionswechsel löst stattdessen einen
-    Abgleich im Hintergrund aus (siehe `_veraltet`): Die bekannten Werte sind
-    sofort da, Neues kommt nach.
+    Abgleich im Hintergrund aus (siehe `_abgleich_noetig`): Die bekannten Werte
+    sind sofort da, Neues kommt nach. Dasselbe gilt für einen Sprachwechsel –
+    er ändert Bezeichnungen, nicht den Bestand.
 
     Was den Stand weiterhin verwirft: eine andere Anlage, ein geänderter
     Umfang (Ebenen, Freigaben, Zugang), zu hohes Alter – und der Dienst
@@ -158,9 +159,17 @@ def _discovery_cache_valid(stored, host: str, fingerprint: str) -> bool:
     return (dt_util.utcnow() - saved).days <= DISCOVERY_MAX_AGE_DAYS
 
 
-def _veraltet(stored, version: str) -> bool:
-    """Prüfen, ob der Stand aus einer anderen Fassung der Integration stammt."""
-    return isinstance(stored, dict) and stored.get("version") != version
+def _abgleich_noetig(stored, version: str, sprache: str) -> bool:
+    """Prüfen, ob der Stand im Hintergrund gegen die Anlage abzugleichen ist.
+
+    Zwei Gründe: Er stammt aus einer anderen Fassung der Integration, oder aus
+    einer anderen Sprache. Beide ändern nur, was in den Deskriptoren steht –
+    nicht, welche Datenpunkte es gibt. Der gespeicherte Stand bleibt also
+    gültig und ist sofort da; was sich geändert hat, kommt nach.
+    """
+    if not isinstance(stored, dict):
+        return False
+    return stored.get("version") != version or stored.get("sprache", "de") != sprache
 
 
 def laufzeitdaten(entry: ConfigEntry) -> dict | None:
@@ -241,7 +250,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Erkennungsstand: erst Arbeitsspeicher, dann Platte, sonst neu lesen.
         store = Store(hass, DISCOVERY_STORE_VERSION, _store_key(entry, host))
-        cache_key = f"{host}|{fingerprint}"
+        # Die Sprache gehört in den Schlüssel, nicht in den Fingerabdruck: Ein
+        # Wechsel soll den Stand von der Platte holen und abgleichen, statt
+        # den Stand im Arbeitsspeicher unverändert weiterzureichen.
+        cache_key = f"{host}|{fingerprint}|{scope['sprache']}"
         restored = False
         # Nach einer Aktualisierung wird der bekannte Stand zwar benutzt, im
         # Hintergrund aber gegen die Anlage abgeglichen.
@@ -255,13 +267,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 client.restore_discovery(stored["data"])
                 mem_cache[cache_key] = stored["data"]
                 restored = True
-                abgleichen = _veraltet(stored, version)
+                abgleichen = _abgleich_noetig(stored, version, scope["sprache"])
                 if abgleichen:
                     _LOGGER.info(
-                        "%s: Erkennungsstand stammt aus Fassung %s – die Werte sind sofort "
-                        "da, der Abgleich mit der Anlage läuft im Hintergrund.",
+                        "%s: Erkennungsstand stammt aus Fassung %s und Sprache %s – die "
+                        "Werte sind sofort da, der Abgleich mit der Anlage läuft im "
+                        "Hintergrund.",
                         host,
                         stored.get("version"),
+                        stored.get("sprache", "de"),
                     )
 
         if not restored:
@@ -677,6 +691,9 @@ async def _vollabzug(
             "version": version,
             "host": host,
             "scope": fingerprint,
+            # Die Sprache steht hier und nicht im Fingerabdruck: Ein Wechsel
+            # macht den Stand nicht ungültig, er löst nur den Abgleich aus.
+            "sprache": client.sprache,
             "saved": dt_util.utcnow().isoformat(),
             "data": data,
         }
