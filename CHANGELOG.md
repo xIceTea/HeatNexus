@@ -16,7 +16,8 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Geändert
 
-- Diese Fassung liest jede Anlage einmalig vollständig neu ein.
+- Ein Sprachwechsel ändert auch die Zustandstexte von Aufzählungen.
+- Nach einem Sprachwechsel meldet HeatNexus den nötigen Neustart.
 
 ### Behoben
 
