@@ -10,8 +10,9 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Bezeichnungen kommen auf Wunsch aus der Anlage statt aus der Datenbank.
-- Sprache der Bezeichnungen in den Optionen wählbar.
+- Datenpunkte ohne Namen in der Datenbank heißen jetzt wie an der Anlage.
+- Bezeichnungen folgen der Sprache von Home Assistant: Deutsch, Englisch, Französisch, Italienisch.
+- Die Sprache der Bezeichnungen lässt sich in den Einstellungen festlegen.
 
 ### Geändert
 
@@ -20,6 +21,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Behoben
 
 - Beim Automatik-/Zusatzkessel fehlten Betriebswahl und Alarmcode.
+- Bei nur einer Anlage fehlte der Zugang zu den allgemeinen Einstellungen.
 
 ## [1.8.0-beta.1] - 2026-08-13
 
