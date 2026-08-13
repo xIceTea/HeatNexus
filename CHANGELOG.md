@@ -25,7 +25,8 @@ auf; hier stehen die Neuerungen gegenüber 1.6.0.
 
 ### Geändert
 
-- Nur noch Systemuhr und Systemdatum sind vorab deaktiviert.
+- Zeitfelder außer Systemuhr und Systemdatum sind nicht mehr vorab deaktiviert.
+- Systemuhr und Systemdatum entfallen ab Werk — weniger Abfragen und Verlaufsdaten.
 - Eine nicht erreichbare Anlage wird nur noch einmal protokolliert.
 
 ### Behoben
