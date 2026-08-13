@@ -33,6 +33,7 @@ wählbar.
 | Gerätekennung der Steuerung | `GET /api/1.0/info/deviceinfo` |
 | Knotenliste mit Werksbezeichnung | `GET /api/1.0/nodes` |
 | Statische Positionen | `GET /res/xml/StaticNav.xml`, `GET /res/xml/StaticNavAssignment.xml` |
+| Textwerk der Steuerung | `GET /res/xml/<Name>_<Sprache>.xml` |
 
 ## OID-Aufbau
 
@@ -178,6 +179,29 @@ die in **keiner** Menü-Ebene stehen (Zeitprogramme, Störspeicher). Beide sind
 ohne Anmeldung ladbar. Sie gehören zur Firmware, nicht zur einzelnen Anlage:
 Eine dort deklarierte Position kann an dieser Installation trotzdem mit `404`
 oder `409` antworten. Ob es sie gibt, klärt erst die Abfrage.
+
+### Textwerk der Steuerung
+
+Neben der statischen Navigation liegen unter `/res/xml/` die Klartexte, mit
+denen das Bedienteil arbeitet – je Datei in vier Sprachen (`_de`, `_en`,
+`_fr`, `_it`), alle ohne Anmeldung ladbar:
+
+| Datei | Inhalt | Aufbau |
+|---|---|---|
+| `VarIdentTexte_<L>.xml` | Datenpunktnamen | `<gn id><mn id>Text` |
+| `AufzaehlTexte_<L>.xml` | Aufzählungstexte | `<gn id><mn id><enum id>Text` |
+| `EbenenTexte_<L>.xml` | Ebenenbezeichnungen | `<fcttyp id><ebene id>Text` |
+| `ErrorTexte_<L>.xml` | Störungstexte | `<error code text>` |
+
+Damit lassen sich Bezeichnungen aus der Anlage selbst nehmen statt aus einer
+mitgelieferten Datenbank. Der Gewinn liegt bei fremder Sprache und bei
+Baureihen, für die keine Datenbank gepflegt wird: Die Steuerung antwortet in
+ihrer Fassung und mit ihren Adressen.
+
+Die Namen der Dateien sind nicht überall gleich; ein Verzeichnislisting unter
+`/res/xml/` nennt die tatsächlich vorhandenen. Der Endpunkt steht in keiner
+Beschreibung des Herstellers – er ist eine Zugabe, kein Teil der
+Datenschnittstelle, und jeder Fehlschlag muss folgenlos bleiben.
 
 ### Endpunkte, die nichts einbringen
 

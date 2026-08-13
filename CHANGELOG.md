@@ -6,6 +6,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Neu
+
+- Bezeichnungen kommen auf Wunsch aus der Anlage statt aus der Datenbank.
+- Sprache der Bezeichnungen in den Optionen wählbar.
+
 ## [1.8.0-beta.1] - 2026-08-13
 
 ### Neu
