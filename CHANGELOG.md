@@ -6,6 +6,24 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Neu
+
+- Die Steuerung zeigt Modell und Firmwarestand.
+- Unbekannte Anlagenteile zeigen die Bezeichnung ab Werk als Modell.
+- Anlagenteile ohne bekanntes Muster bekommen ihren Leitwert in der Übersicht.
+- Zählerstände ohne Einheit bekommen einen Langzeitverlauf.
+
+### Geändert
+
+- Eine nicht erreichbare Anlage wird nur noch einmal protokolliert.
+
+### Behoben
+
+- Seriennummer und Softwarestand standen nur an Heizkreisen.
+- Der Dienst „Behaglichkeitskorrektur" war englisch beschriftet.
+
 ## [1.7.0-beta.2] - 2026-08-13
 
 ### Neu
@@ -633,7 +651,7 @@ Erste ausgereifte Fassung der eigenen Oberfläche. Inhaltlich entspricht sie
 - Der Diagnose-Export listete unter *Geräte* zwanzigmal dasselbe Gerät statt
   der vorhandenen Anlagenteile.
 - Die Gerätesonde (`tools/heatnexus_probe.py`) las Umlaute anders als die
-  Integration und machte aus „Hebebühne" ein „Hebeb�hne".
+  Integration und zerlegte damit von Hand vergebene Namen.
 
 ## [1.1.1] - 2026-08-02
 
