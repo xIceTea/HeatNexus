@@ -17,6 +17,15 @@ Digest-Authentifizierung (abgeleitet vom Projekt "requests", Apache License
 2.0) ist mit 1.5.0-beta.4 entfallen, weil aiohttp diese Aufgabe selbst
 übernimmt.
 
+Dank
+----
+
+HeatNexus entsteht an einer einzigen Anlage. Alles darüber hinaus beruht
+darauf, dass jemand einen Abzug seiner eigenen beisteuert.
+
+@wiesi12 – Abzug einer BioWIN 2 Touch mit MES INFINITY. Er hat gezeigt, dass
+ein Kessel antworten kann, ohne sich in der Anlagenstruktur anzukündigen.
+
 Geräteangaben
 -------------
 

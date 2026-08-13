@@ -6,6 +6,16 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.8.0-beta.1] - 2026-08-13
+
+### Neu
+
+- Anlagenteile, die sich nicht selbst ankündigen, werden trotzdem erkannt.
+
+### Behoben
+
+- Die Anordnung der Karten im Reiter „Hilfe" wurde nicht gespeichert.
+
 ## [1.7.0] - 2026-08-13
 
 Ein eigener Hilfe-Reiter, Geräteseiten, die sagen womit man es zu tun hat, und
