@@ -1,0 +1,81 @@
+name: Empfang
+
+# Was neu hereinkommt, bekommt sofort eine Antwort – nicht als Ersatz für eine
+# echte, sondern damit niemand im Ungewissen wartet und damit die Angaben
+# vollständig werden, bevor jemand nachfragen muss.
+#
+# Zwei Fälle, beide mit eigenem Grund:
+#
+# * Ein Abzug einer fremden Anlage ist der wertvollste Beitrag zum Projekt –
+#   und der einzige, bei dem der Melder ungewollt eigene Daten veröffentlicht.
+#   Die Erinnerung an IP, Seriennummer und `neuronId` muss kommen, bevor sie
+#   jemand liest.
+# * Ideen sammeln sich schneller an, als sie umgesetzt werden. Wonach sich die
+#   Reihenfolge richtet, sollte dort stehen, wo die Idee entsteht.
+
+on:
+  issues:
+    types: [labeled]
+  discussion:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  anlage:
+    name: Hinweis zum Abzug
+    if: github.event_name == 'issues' && github.event.label.name == 'anlage'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: [
+                'Danke für den Abzug — fremde Anlagen sind der einzige Weg, wie HeatNexus über die eine Anlage hinauswächst, an der es entsteht.',
+                '',
+                '**Bitte vor dem Hochladen prüfen**, dass in den Dateien nichts steht, was nicht öffentlich sein soll:',
+                '',
+                '- `*_endpunkte.json` enthält Netzkonfiguration, MAC-Adresse und Seriennummer der Steuerung',
+                '- `*_structure.json` und `*_menus.json` enthalten die `neuronId` jedes Moduls',
+                '- Die Dateinamen tragen die IP-Adresse der Anlage',
+                '',
+                'Nichts davon ist ein Passwort, und nichts davon braucht das Projekt. Wer mag, ersetzt es vorher.',
+                '',
+                'Der Diagnose-Export der Integration ist davon nicht betroffen — dort sind IP, Passwort und Seriennummer bereits geschwärzt.',
+              ].join('\n'),
+            });
+
+  idee:
+    name: Hinweis zur Reihenfolge
+    if: github.event_name == 'discussion' && github.event.discussion.category.name == 'Ideas'
+    runs-on: ubuntu-latest
+    permissions:
+      discussions: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              'Danke für den Vorschlag.',
+              '',
+              '- Zustimmung bitte als 👍 **am Ursprungsbeitrag**, nicht in den Kommentaren — danach richtet sich die Reihenfolge',
+              '- Was viele Anlagen betrifft, kommt früher; was nur an einer bestimmten Anlage greift, wird es womöglich gar nicht',
+              '- Passt der Vorschlag nicht ins Projekt, kommt hier ein Weg drumherum statt eines stillen Schließens',
+              '',
+              'Details und Gegenvorschläge gern darunter.',
+            ].join('\n');
+            await github.graphql(
+              `mutation($discussionId: ID!, $body: String!) {
+                 addDiscussionComment(input: {discussionId: $discussionId, body: $body}) {
+                   comment { id }
+                 }
+               }`,
+              { discussionId: context.payload.discussion.node_id, body },
+            );
