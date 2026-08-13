@@ -23,6 +23,13 @@ from .conftest import requires_ha
 pytestmark = requires_ha()
 
 
+async def keine_geraetetexte():
+    """Das Textwerk der Steuerung spielt in diesen Tests keine Rolle."""
+    from custom_components.heatnexus import geraetetexte
+
+    return geraetetexte.Texte()
+
+
 @pytest.fixture(scope="module")
 def client_module():
     from custom_components.heatnexus import client
@@ -84,6 +91,7 @@ async def _erkennen(client_module, monkeypatch, levels=("info", "operate"), menu
     monkeypatch.setattr(c, "fetch", fetch)
     monkeypatch.setattr(c, "_read_function_menus", read_function_menus)
     monkeypatch.setattr(c, "_statische_adressen", statische_adressen)
+    monkeypatch.setattr(c, "_lade_geraetetexte", keine_geraetetexte)
     await c._discover()
     return c
 
@@ -192,6 +200,7 @@ async def _erkennen_ungemeldet(client_module, monkeypatch, levels=("info", "oper
     monkeypatch.setattr(c, "fetch", fetch)
     monkeypatch.setattr(c, "_read_function_menus", read_function_menus)
     monkeypatch.setattr(c, "_statische_adressen", statische_adressen)
+    monkeypatch.setattr(c, "_lade_geraetetexte", keine_geraetetexte)
     await c._discover()
     return c, gelesen
 
@@ -257,6 +266,7 @@ async def test_ein_knoten_mit_gemeldeter_funktion_wird_nicht_geraten(client_modu
     monkeypatch.setattr(c, "fetch", fetch)
     monkeypatch.setattr(c, "_read_function_menus", read_function_menus)
     monkeypatch.setattr(c, "_statische_adressen", statische_adressen)
+    monkeypatch.setattr(c, "_lade_geraetetexte", keine_geraetetexte)
     await c._discover()
 
     assert gelesen == ["/1/60/0"], f"zusätzlich abgefragt: {gelesen}"

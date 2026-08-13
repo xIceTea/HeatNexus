@@ -337,6 +337,17 @@ class WindhagerHttpClient:
             _LOGGER.debug("Ressource %s nicht lesbar: %s", pfad, fehler)
             return None
 
+    async def _lade_geraetetexte(self) -> geraetetexte.Texte:
+        """Das Textwerk der Steuerung lesen.
+
+        Die Klartexte der Datenpunkte passen zur Fassung der Anlage und zur
+        gewählten Sprache; die mitgelieferte Datenbank kennt nur Deutsch.
+
+        Wie die statischen Positionen gehört das **nicht** in den
+        Kurzdurchlauf: Der soll mit wenigen Anfragen stehen.
+        """
+        return await geraetetexte.laden(self._ressource, self.sprache)
+
     async def _statische_adressen(self) -> set[str]:
         """Positionen ermitteln, die die Anlage außerhalb der Menüs führt.
 
@@ -724,15 +735,15 @@ class WindhagerHttpClient:
         self.oids = set()
         self.devices = []
         json_devices = await self.fetch("/1")
-        # Die Steuerung führt die Klartexte ihrer Datenpunkte selbst mit. Sie
-        # passen zu ihrer Fassung und zur gewählten Sprache; die mitgelieferte
-        # Datenbank kennt nur Deutsch.
-        self._texte = await geraetetexte.laden(self._ressource, self.sprache)
         if not self.geraeteinfo:
             await self._lese_geraeteinfo()
         if not self.werksbezeichnung:
             await self._lese_knotendaten()
-        statisch = set() if nur_kern else await self._statische_adressen()
+        if nur_kern:
+            statisch = set()
+        else:
+            statisch = await self._statische_adressen()
+            self._texte = await self._lade_geraetetexte()
 
         # Erst die Seriennummern einsammeln – alle Kennungen hängen daran.
         for device in json_devices:

@@ -19,6 +19,13 @@ from .conftest import requires_ha
 pytestmark = requires_ha()
 
 
+async def keine_geraetetexte():
+    """Das Textwerk der Steuerung spielt in diesen Tests keine Rolle."""
+    from custom_components.heatnexus import geraetetexte
+
+    return geraetetexte.Texte()
+
+
 @pytest.fixture(scope="module")
 def client_module():
     from custom_components.heatnexus import client
@@ -136,6 +143,7 @@ async def test_die_positionen_werden_je_erkennung_einmal_geholt(client, monkeypa
     monkeypatch.setattr(client, "fetch", fetch)
     monkeypatch.setattr(client, "_read_function_menus", read_function_menus)
     monkeypatch.setattr(client, "_statische_adressen", statische_adressen)
+    monkeypatch.setattr(client, "_lade_geraetetexte", keine_geraetetexte)
 
     await client._discover()
 
@@ -173,6 +181,7 @@ async def test_eine_statische_position_wird_zum_datenpunkt(client, monkeypatch):
     monkeypatch.setattr(client, "fetch", fetch)
     monkeypatch.setattr(client, "_read_function_menus", read_function_menus)
     monkeypatch.setattr(client, "_statische_adressen", statische_adressen)
+    monkeypatch.setattr(client, "_lade_geraetetexte", keine_geraetetexte)
 
     await client._discover()
 
@@ -188,7 +197,11 @@ async def test_der_kurzdurchlauf_liest_keine_ressourcen(client, monkeypatch):
     async def statische_adressen():
         raise AssertionError("darf im Kurzdurchlauf nicht aufgerufen werden")
 
+    async def geraetetexte():
+        raise AssertionError("darf im Kurzdurchlauf nicht aufgerufen werden")
+
     monkeypatch.setattr(client, "fetch", fetch)
     monkeypatch.setattr(client, "_statische_adressen", statische_adressen)
+    monkeypatch.setattr(client, "_lade_geraetetexte", geraetetexte)
 
     await client._discover(nur_kern=True)
