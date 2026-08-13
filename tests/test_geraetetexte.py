@@ -180,3 +180,33 @@ async def test_ohne_listing_bleibt_es_beim_leeren_ergebnis(geraetetexte):
         return None
 
     assert not await geraetetexte.laden(hole, "en")
+
+
+# Zwei Schreibweisen sind belegt; welche kommt, hängt an der Fassung der
+# Steuerung. Beide müssen dasselbe ergeben.
+FEHLER_ALS_INHALT = """<?xml version="1.0" encoding="UTF-8"?>
+<ErrorTexte lang="de">
+  <err id="1">Primärluftklappe blockiert.</err>
+  <err id="15">Netzspannung nicht vorhanden</err>
+</ErrorTexte>
+"""
+
+AUFZAEHL_ALS_VAL = """<?xml version="1.0" encoding="UTF-8"?>
+<AufzaehlTexte lang="de">
+  <gn id="2"><mn id="1">
+    <val id="0">Aus</val>
+    <val id="8">Automatik</val>
+  </mn></gn>
+</AufzaehlTexte>
+"""
+
+
+def test_stoerungstexte_auch_als_elementinhalt(geraetetexte):
+    texte = geraetetexte.stoerungen_lesen(FEHLER_ALS_INHALT)
+
+    assert texte[15] == "Netzspannung nicht vorhanden"
+    assert texte[1].startswith("Primärluftklappe")
+
+
+def test_aufzaehltexte_unabhaengig_vom_elementnamen(geraetetexte):
+    assert geraetetexte.enums_lesen(AUFZAEHL_ALS_VAL)["2/1"] == {0: "Aus", 8: "Automatik"}

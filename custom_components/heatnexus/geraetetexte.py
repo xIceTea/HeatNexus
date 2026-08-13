@@ -96,17 +96,26 @@ def ebenen_lesen(xml: str) -> dict[str, str]:
 
 
 def stoerungen_lesen(xml: str) -> dict[int, str]:
-    """Störungstexte als Code -> Text."""
+    """Störungstexte als Code -> Text.
+
+    Zwei Schreibweisen sind belegt: der Code steht als ``code`` oder als
+    ``id``, der Text als Attribut ``text`` oder als Inhalt des Elements.
+    Gelesen werden beide – welche eine Steuerung liefert, hängt an ihrer
+    Fassung.
+    """
     wurzel = _wurzel(xml)
     if wurzel is None:
         return {}
     texte: dict[int, str] = {}
     for eintrag in wurzel:
-        text = (eintrag.get("text") or "").strip()
+        text = (eintrag.get("text") or eintrag.text or "").strip()
         if not text:
             continue
+        kennung = eintrag.get("code")
+        if kennung is None:
+            kennung = eintrag.get("id")
         try:
-            texte[int(eintrag.get("code"))] = text
+            texte[int(kennung)] = text
         except (TypeError, ValueError):
             continue
     return texte
