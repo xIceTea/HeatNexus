@@ -261,7 +261,7 @@ def test_bei_fremder_sprache_fuehrt_die_anlage(client_module):
     assert client._name_fuer("0/7", "Kesseltemperatur") == "Temp. chaudière"
 
 
-def test_ohne_gerätetext_bleibt_die_gepflegte_bezeichnung(client_module):
+def test_ohne_geraetetext_bleibt_die_gepflegte_bezeichnung(client_module):
     """Eine Anlage, die ihre Textdateien nicht ausliefert, verliert nichts."""
     client = _mit_texten(client_module, "fr", {})
     assert client._name_fuer("0/7", "Kesseltemperatur") == "Kesseltemperatur"
