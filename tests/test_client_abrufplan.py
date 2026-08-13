@@ -27,7 +27,7 @@ def client_module():
 
 @pytest.fixture
 def client(client_module):
-    c = client_module.WindhagerHttpClient("192.168.178.100", "geheim")
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
     c.neuron_by_node = {"60": "0000ABCD1234", "15": "0000ABCD5678"}
     return c
 
@@ -96,7 +96,7 @@ async def test_ein_betriebswert_mit_datum_bleibt_an(client):
 
 async def test_wer_die_systemzeit_will_bekommt_sie(client_module):
     """Ein Haken bei der Einrichtung statt beide Entitäten einzeln einschalten."""
-    client = client_module.WindhagerHttpClient("192.168.178.100", "geheim", zeitwerte=True)
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim", zeitwerte=True)
     client.neuron_by_node = {"15": "0000ABCD5678"}
     client.oids = {"/1/15/0/2/70/0", "/1/15/0/2/72/0"}
     client.menu_meta = {
@@ -306,7 +306,7 @@ def test_eine_kuratierte_beschreibung_traegt_beide_kennungen(client):
     (beschreibung,) = client.devices
     assert beschreibung["oid"] == "/1/60/0/0/7/0"
     assert beschreibung["id"] == "0000ABCD1234-0-0-7-0"
-    assert beschreibung["alt_id"] == "192-168-178-100-1-60-0-0-7-0"
+    assert beschreibung["alt_id"] == "192-0-2-10-1-60-0-0-7-0"
     assert beschreibung["device_id"] == "0000ABCD1234-0"
     assert beschreibung["fct_type"] == 25
     assert client.oids == {"/1/60/0/0/7/0"}

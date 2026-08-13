@@ -60,14 +60,14 @@ def test_time_program_without_value(client_module):
 
 
 def test_umlaut_aus_der_dos_codepage(client_module):
-    """Der Funktionsname „Hebebühne" kommt mit 0x81 – nur CP850 kennt das."""
-    roh = b'{"name": "Hebeb\x81hne"}'
-    assert "Hebebühne" in client_module.WindhagerHttpClient._decode(roh)
+    """Ein von Hand vergebener Name bringt „ü" als 0x81 – nur CP850 kennt das."""
+    roh = b'{"name": "S\x81dbau"}'
+    assert "Südbau" in client_module.WindhagerHttpClient._decode(roh)
 
 
 def test_umlaut_aus_cp1252(client_module):
-    roh = b'{"name": "Hebeb\xfchne"}'
-    assert "Hebebühne" in client_module.WindhagerHttpClient._decode(roh)
+    roh = b'{"name": "S\xfcdbau"}'
+    assert "Südbau" in client_module.WindhagerHttpClient._decode(roh)
 
 
 def test_utf8_bleibt_unangetastet(client_module):

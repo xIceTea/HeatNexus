@@ -115,7 +115,7 @@ def aufteilung() -> dict:
     # Das Pumpen-/Relaismodul: Sein Leitwert ist die Wärmeanforderung, und die
     # gibt es an einer Anlage, die das Modul nur als Relais benutzt, nie.
     zsp = _teil(
-        "ZSP-PWA",
+        "ZSP-2",
         20,
         [
             _entitaet("sensor.analog_sollwert", "Analog-Sollwert", wert=0.0, text="0"),

@@ -22,7 +22,7 @@ from .conftest import requires_ha
 
 pytestmark = requires_ha()
 
-HOST = "192.168.178.100"
+HOST = "192.0.2.10"
 
 
 @pytest.fixture(scope="module")
@@ -78,10 +78,10 @@ def test_die_optionen_haengen_an_der_anlage_nicht_am_eintrag(modul, const):
         modul,
         const,
         optionen={HOST: {const.CONF_LEVELS: ["info"], const.CONF_ENABLE_ADVANCED: True}},
-        systeme=[{modul.CONF_HOST: HOST}, {modul.CONF_HOST: "192.168.178.102"}],
+        systeme=[{modul.CONF_HOST: HOST}, {modul.CONF_HOST: "192.0.2.11"}],
     )
     assert modul._scope(eintrag, HOST)["levels"] == ["info"]
-    assert modul._scope(eintrag, "192.168.178.102")["levels"] == list(const.DEFAULT_LEVELS)
+    assert modul._scope(eintrag, "192.0.2.11")["levels"] == list(const.DEFAULT_LEVELS)
 
 
 def test_der_zugang_gehoert_zum_umfang(modul, const):
@@ -123,7 +123,7 @@ def test_eine_neue_fassung_verwirft_den_stand_nicht(modul, const):
 
 def test_eine_andere_anlage_verwirft_den_stand(modul, const):
     kennung = modul._scope_fingerprint(modul._scope(_eintrag(modul, const), HOST))
-    assert not modul._discovery_cache_valid(_stand(modul, const), "192.168.178.102", kennung)
+    assert not modul._discovery_cache_valid(_stand(modul, const), "192.0.2.11", kennung)
 
 
 def test_ein_geaenderter_umfang_verwirft_den_stand(modul, const):
@@ -273,8 +273,8 @@ def test_beide_einlesemeldungen_haengen_an_derselben_option(modul, const):
 def test_jeder_eintrag_hat_seinen_eigenen_ablageort(modul, const):
     """Die Adresse steckt mit drin: Ein Eintrag kann mehrere Anlagen führen."""
     eintrag = _eintrag(modul, const)
-    assert modul._store_key(eintrag, HOST) != modul._store_key(eintrag, "192.168.178.102")
-    assert "192_168_178_100" in modul._store_key(eintrag, HOST)
+    assert modul._store_key(eintrag, HOST) != modul._store_key(eintrag, "192.0.2.11")
+    assert "192_0_2_10" in modul._store_key(eintrag, HOST)
 
 
 def test_die_anlagen_kommen_aus_den_eintragsdaten(modul, const):

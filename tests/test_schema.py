@@ -159,7 +159,7 @@ def test_beschriftungen_liegen_im_bild(schema, anlage):
 
 def test_ohne_messwerte_kein_schaubild(schema):
     assert schema.anlagenschema([]) is None
-    ohne = [_teil("ZSP-PTS", 20, [("sensor.x", "Pumpendrehzahl")])]
+    ohne = [_teil("ZSP-1", 20, [("sensor.x", "Pumpendrehzahl")])]
     assert schema.anlagenschema(ohne) is None
 
 
@@ -228,7 +228,7 @@ def test_warmwasser_wird_eigener_anlagenteil(schema):
 
 def test_ohne_warmwasser_kein_eigener_anlagenteil(schema):
     heizkreis = _teil(
-        "Hebebuehne",
+        "Suedbau",
         14,
         [("sensor.vorlauf", "Vorlauftemperatur Ist"), ("sensor.raum", "Raumtemperatur Ist")],
     )
@@ -458,7 +458,7 @@ def test_zsp_und_zirkulation_sehen_verschieden_aus(schema):
     Beide hingen bis 1.2.0 an derselben Zeichnung; im Schaubild einer Anlage
     mit beidem standen zwei gleiche Kreise nebeneinander.
     """
-    zsp = _teil("ZSP-PWA", 20, [("sensor.t", "Temperatur Ist")])
+    zsp = _teil("ZSP-2", 20, [("sensor.t", "Temperatur Ist")])
     heizkreis = _teil(
         "UMLZ HEIZKREIS",
         14,
@@ -477,7 +477,7 @@ def test_zsp_und_zirkulation_sehen_verschieden_aus(schema):
 def test_zsp_meldet_seine_pumpe_ueber_die_drehzahl(schema):
     """Das ZSP hat keinen Pumpenzustand, nur „Pumpendrehzahl" in Prozent."""
     zsp = _teil(
-        "ZSP-PWA",
+        "ZSP-2",
         20,
         [("sensor.t", "Temperatur Ist"), ("sensor.dz", "Pumpendrehzahl")],
     )
@@ -588,16 +588,14 @@ def test_ohne_vorlaufmessung_kein_gefaerbter_heizkoerper(schema):
 def test_zsp_ohne_aufgabe_kommt_nicht_ins_schaubild(schema):
     """Ein Pumpenmodul, an dem nichts hängt, gehört nicht in die Leitung.
 
-    Der Fall stammt aus dem Wohnhaus: Dort meldet das ZSP-PWA nur noch
-    Sollwerte (``0/95`` Analog-Sollwert, ``9/57`` Solltemperatur ext.
-    Wärmeanforderung, ``20/23`` Digital-Sollwert WWK) und den Aktorentest.
-    Kesseltemperatur, Pumpendrehzahl und die ganze Gruppe 29 beantwortet die
-    Anlage dort nicht – das Modul hat keine Aufgabe. Im Heizhaus dagegen
-    liefert dasselbe Bauteil ``0/7`` und ``0/22`` und steht mit „Ext.
-    Wärmeanforderung = Ja" mitten im Betrieb.
+    Ein unbenutztes Modul meldet nur Sollwerte (``0/95`` Analog-Sollwert,
+    ``9/57`` Solltemperatur ext. Wärmeanforderung, ``20/23`` Digital-Sollwert
+    WWK) und den Aktorentest. Kesseltemperatur, Pumpendrehzahl und die ganze
+    Gruppe 29 beantwortet die Anlage dann nicht – dasselbe Bauteil im Betrieb
+    liefert ``0/7``, ``0/22`` und die externe Wärmeanforderung.
     """
     ohne_aufgabe = _teil(
-        "ZSP-PWA",
+        "ZSP-2",
         20,
         [
             ("sensor.analog", "Analog-Sollwert"),
@@ -607,7 +605,7 @@ def test_zsp_ohne_aufgabe_kommt_nicht_ins_schaubild(schema):
         ],
     )
     in_betrieb = _teil(
-        "ZSP-PTS",
+        "ZSP-1",
         20,
         [
             ("sensor.analog", "Analog-Sollwert"),
@@ -722,7 +720,7 @@ def test_mischerstellung_wird_gemeldet(schema):
     """Der Heizkreismischer bekommt Anzeiger und eingefärbtes Vorlaufstück."""
     teile = [
         _teil(
-            "Hebebühne",
+            "Südbau",
             14,
             [
                 ("sensor.vl", "Vorlauftemperatur Ist"),
@@ -746,7 +744,7 @@ def test_mischerlaufzeit_ist_kein_stellwert(schema):
     """
     teile = [
         _teil(
-            "Hebebühne",
+            "Südbau",
             14,
             [
                 ("sensor.vl", "Vorlauftemperatur Ist"),
@@ -766,14 +764,14 @@ def test_pumpenmodul_wird_ohne_messwert_gezeichnet(schema):
     Heizhaus. Dass das Modul in der Leitung sitzt, muss man trotzdem sehen;
     seinen Zustand zeigen die Lampen.
     """
-    module = schema._module([_teil("ZSP-PTS", 20, [("sensor.t", "Kesseltemperatur")])])
+    module = schema._module([_teil("ZSP-1", 20, [("sensor.t", "Kesseltemperatur")])])
     assert [m["art"] for m in module] == ["pumpenmodul"]
     assert module[0]["werte"] == []
 
 
 def test_ohne_einen_einzigen_messwert_kein_schaubild(schema):
     """Ein Bild aus lauter leeren Kästen hilft niemandem."""
-    nur_modul = [_teil("ZSP-PTS", 20, [("sensor.t", "Kesseltemperatur")])]
+    nur_modul = [_teil("ZSP-1", 20, [("sensor.t", "Kesseltemperatur")])]
     assert schema.anlagenschema(nur_modul) is None
 
     # Zusammen mit einem messenden Anlagenteil erscheint es sehr wohl.
