@@ -1703,7 +1703,7 @@ class WindhagerHttpClient:
             offen.difference_update(block)
             if offen and ende is not None and time.monotonic() >= ende:
                 _LOGGER.debug(
-                    "Poll: Zeit reicht für %d von %d OIDs, %d bleiben offen",
+                    "Poll: Zeit reicht für %d von %d OIDs, %d kommen im nächsten Durchlauf zuerst",
                     len(gelesen),
                     len(faellig),
                     len(offen),

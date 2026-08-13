@@ -339,12 +339,20 @@ EINHEITEN: dict[str, tuple[str, str | None, str, int]] = {
     "U/min": ("rpm", None, "measurement", 0),
     "m^3/h": ("m³/h", "volume_flow_rate", "measurement", 1),
     "m³/h": ("m³/h", "volume_flow_rate", "measurement", 1),
-    "l/h": ("L/h", "volume_flow_rate", "measurement", 1),
+    # Liter je Stunde ohne Geräteklasse: Home Assistant kennt für den
+    # Volumenstrom nur L/min, mL/s, m³/h, ft³/min und gal/min. Die Anlage
+    # meldet L/h; umgerechnet stünde eine andere Zahl da als am InfoWIN.
+    "l/h": ("L/h", None, "measurement", 1),
     "s": ("s", "duration", "measurement", 0),
     "min": ("min", "duration", "measurement", 0),
     "h": ("h", "duration", "measurement", 0),
     "d": ("d", "duration", "measurement", 0),
-    "t": ("t", "weight", "total_increasing", 2),
+    # Tonnen ohne Geräteklasse: Home Assistant lässt für `weight` nur bis
+    # Kilogramm zu und weist `t` mit einer Warnung ab. Die Anlage meldet den
+    # Brennstoffverbrauch aber in Tonnen; umgerechnet stünde in der Anzeige
+    # eine andere Zahl als am InfoWIN. Der Langzeitverlauf hängt an der
+    # Statistikklasse, nicht an der Geräteklasse, und bleibt erhalten.
+    "t": ("t", None, "total_increasing", 2),
     "kg": ("kg", "weight", "total_increasing", 1),
     "bar": ("bar", "pressure", "measurement", 2),
     "mbar": ("mbar", "pressure", "measurement", 1),

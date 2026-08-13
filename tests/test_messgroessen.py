@@ -61,6 +61,49 @@ def test_kelvin_ist_keine_temperatur(helpers):
     assert beschreibung["state_class"] == "measurement"
 
 
+def test_jede_einheit_passt_zu_ihrer_geraeteklasse():
+    """Die ganze Tabelle gegen die Vorgaben von Home Assistant halten.
+
+    Eine Geräteklasse erlaubt nur bestimmte Einheiten. Passt beides nicht
+    zusammen, meldet Home Assistant das erst beim Start einer echten Anlage
+    als Warnung — hier fiel es niemandem auf, weil unsere Prüfungen die
+    Tabelle nur gegen sich selbst hielten. Diese Prüfung vergleicht sie mit
+    dem, was Home Assistant tatsächlich zulässt.
+    """
+    from homeassistant.components.sensor.const import DEVICE_CLASS_UNITS, SensorDeviceClass
+
+    from custom_components.heatnexus.const import EINHEITEN
+
+    for geraeteeinheit, (einheit, klasse, _statistik, _stellen) in EINHEITEN.items():
+        if klasse is None:
+            continue
+        erlaubt = DEVICE_CLASS_UNITS.get(SensorDeviceClass(klasse))
+        if erlaubt is None:
+            continue
+        assert einheit in {str(e) for e in erlaubt}, (
+            f"{geraeteeinheit} -> {einheit} ist für die Geräteklasse {klasse} nicht zulässig"
+        )
+
+
+def test_tonnen_bleiben_ohne_geraeteklasse(helpers):
+    """Home Assistant lässt für `weight` nur bis Kilogramm zu.
+
+    Mit Geräteklasse wies es den Brennstoffverbrauch beim Start mit einer
+    Warnung ab. Die Einheit der Anlage bleibt trotzdem stehen, sonst zeigte
+    Home Assistant eine andere Zahl an als das InfoWIN.
+    """
+    beschreibung = helpers.messgroesse(_sensor(name="Brennstoffverbrauch gesamt", unit="t"))
+    assert beschreibung["unit"] == "t"
+    assert beschreibung["device_class"] is None
+    assert beschreibung["state_class"] == "total_increasing"
+
+
+def test_kilogramm_behaelt_seine_geraeteklasse(helpers):
+    """Die Grenze liegt bei der Einheit, nicht bei der Größe."""
+    beschreibung = helpers.messgroesse(_sensor(name="Pelletsvorrat", unit="kg"))
+    assert beschreibung["device_class"] == "weight"
+
+
 def test_zaehler_wird_zur_summe(helpers):
     beschreibung = helpers.messgroesse(_sensor(name="Betriebsstunden gesamt", unit="h"))
     assert beschreibung["state_class"] == "total_increasing"
