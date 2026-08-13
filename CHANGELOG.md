@@ -6,6 +6,18 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Neu
+
+- LON-Netzwerkvariablen werden erkannt und benannt.
+- Das Bedienteil erscheint als eigenes Gerät.
+- Der BioWIN kennt die Betriebsart der Zuführung.
+
+### Behoben
+
+- Der Sondenlauf brach an Anlagen ab, deren größte Menü-Ebene keine Datenpunktadressen führt.
+
 ## [1.8.0] - 2026-08-14
 
 Bezeichnungen in der Sprache von Home Assistant und eine Erkennung, die auch

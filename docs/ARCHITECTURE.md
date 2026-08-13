@@ -77,6 +77,34 @@ Wird der Umfang verkleinert, werden die betroffenen Entities **stillgelegt,
 nicht gelöscht** – eigene Namen, Bereichszuordnung und Verlauf bleiben damit
 erhalten und leben beim Wiederdazuwählen weiter.
 
+## LON-Netzwerkvariablen
+
+Jeder Knoten meldet neben seinen Funktionen einen Bereich `NV's` mit
+`fctType -1`: den LON-Adressraum unter `/1/<knoten>/32`. Dort **deutet die
+Steuerung die Adresse um** – der Member ist der `nvIndex`, die Gruppe fällt
+weg, und die Einträge führen keine `OID`. Deshalb läuft er nicht durch die
+gewöhnliche Erkennung, sondern über `client._lese_nv`.
+
+Was ihn wertvoll macht: Die Namen kommen aus den Funktionsblöcken des Bus
+(`WET` Wärmeerzeuger, `LX` Kreis, `M` Mischer, `GB` Gebläse, `PMX`
+Verbrennungsregler, `OXY` Lambdasonde, `FS` Förderung, `FWN` Wartung) und
+bedeuten an jeder Baureihe dasselbe. Eine Anlage, für die es keine kuratierte
+Adresstabelle gibt, bekommt darüber trotzdem benannte Werte.
+
+`lon.py` hält die Zuordnung Name → Klarname, Klassen und kanonischer
+Schlüssel. Was dort nicht steht, wird trotzdem angelegt: mit dem Namen der
+Anlage und ab Werk deaktiviert. Ein Wert, dessen kanonischer Schlüssel schon
+von einem Datenpunkt belegt ist, bleibt ebenfalls deaktiviert – entschieden
+wird nach `_apply_metadata`, weil erst dann feststeht, welche Datenpunkte die
+Anlage wirklich führt.
+
+Geschrieben wird nichts: `nvi`-Variablen sind Eingänge der Regelung zwischen
+den Knoten.
+
+Ein Knoten ohne brauchbare Funktion besteht nur aus diesem Bereich – das
+Bedienteil (`MB6611 LOP`) ist so einer. Er bekommt sein eigenes Gerät; Knoten
+mit Funktion hängen ihre Netzwerkvariablen an deren Gerät.
+
 ## Zeichensatz
 
 Die Steuerung antwortet nicht in UTF-8. Von Hand vergebene Namen kommen in der
