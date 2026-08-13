@@ -39,6 +39,11 @@ def const():
     return const
 
 
+def _hass(sprache: str = "de"):
+    """Home Assistant nur so weit, wie der Umfang davon braucht."""
+    return SimpleNamespace(config=SimpleNamespace(language=sprache))
+
+
 def _eintrag(modul, const, optionen=None, systeme=None):
     return SimpleNamespace(
         entry_id="eintrag1",
@@ -54,7 +59,7 @@ def _stand(modul, const, **abweichend):
     stand = {
         "data": {"devices": []},
         "host": HOST,
-        "scope": modul._scope_fingerprint(modul._scope(_eintrag(modul, const), HOST)),
+        "scope": modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST)),
         "saved": dt_util.utcnow().isoformat(),
         "version": "1.5.0",
     }
@@ -66,7 +71,7 @@ def _stand(modul, const, **abweichend):
 # Umfang
 # ---------------------------------------------------------------------------
 def test_ohne_optionen_gilt_die_voreinstellung(modul, const):
-    umfang = modul._scope(_eintrag(modul, const), HOST)
+    umfang = modul._scope(_hass(), _eintrag(modul, const), HOST)
     assert umfang["levels"] == list(const.DEFAULT_LEVELS)
     assert umfang["enable_advanced"] is False
     assert umfang["username"] == const.DEFAULT_USERNAME
@@ -80,8 +85,8 @@ def test_die_optionen_haengen_an_der_anlage_nicht_am_eintrag(modul, const):
         optionen={HOST: {const.CONF_LEVELS: ["info"], const.CONF_ENABLE_ADVANCED: True}},
         systeme=[{modul.CONF_HOST: HOST}, {modul.CONF_HOST: "192.0.2.11"}],
     )
-    assert modul._scope(eintrag, HOST)["levels"] == ["info"]
-    assert modul._scope(eintrag, "192.0.2.11")["levels"] == list(const.DEFAULT_LEVELS)
+    assert modul._scope(_hass(), eintrag, HOST)["levels"] == ["info"]
+    assert modul._scope(_hass(), eintrag, "192.0.2.11")["levels"] == list(const.DEFAULT_LEVELS)
 
 
 def test_der_zugang_gehoert_zum_umfang(modul, const):
@@ -89,31 +94,56 @@ def test_der_zugang_gehoert_zum_umfang(modul, const):
     eintrag = _eintrag(
         modul, const, systeme=[{modul.CONF_HOST: HOST, modul.CONF_USERNAME: "Service"}]
     )
-    assert modul._scope(eintrag, HOST)["username"] == "Service"
-    assert "Service" in modul._scope_fingerprint(modul._scope(eintrag, HOST))
+    assert modul._scope(_hass(), eintrag, HOST)["username"] == "Service"
+    assert "Service" in modul._scope_fingerprint(modul._scope(_hass(), eintrag, HOST))
 
 
 def test_ein_anderer_zugang_ergibt_eine_andere_kennung(modul, const):
-    mit_user = modul._scope_fingerprint(modul._scope(_eintrag(modul, const), HOST))
+    mit_user = modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST))
     mit_service = modul._scope_fingerprint(
         modul._scope(
-            _eintrag(modul, const, systeme=[{modul.CONF_HOST: HOST, "username": "Service"}]), HOST
+            _hass(),
+            _eintrag(modul, const, systeme=[{modul.CONF_HOST: HOST, "username": "Service"}]),
+            HOST,
         )
     )
     assert mit_user != mit_service
+
+
+def test_eine_andere_sprache_ergibt_eine_andere_kennung(modul, const):
+    # Die Bezeichnungen stehen in den Deskriptoren; eine andere Sprache
+    # bedeutet andere Deskriptoren.
+    deutsch = modul._scope_fingerprint(modul._scope(_hass("de"), _eintrag(modul, const), HOST))
+    franzoesisch = modul._scope_fingerprint(modul._scope(_hass("fr"), _eintrag(modul, const), HOST))
+    assert deutsch != franzoesisch
+
+
+def test_die_gewaehlte_sprache_schlaegt_die_von_home_assistant(modul, const):
+    eintrag = _eintrag(modul, const, optionen={const.CONF_SPRACHE: "it"})
+    assert modul._scope(_hass("fr"), eintrag, HOST)["sprache"] == "it"
+
+
+def test_automatisch_auf_dieselbe_sprache_aendert_die_kennung_nicht(modul, const):
+    # „auto" wird aufgelöst gespeichert. Wer von „auto" auf genau die Sprache
+    # umstellt, die ohnehin galt, soll keinen Neuabzug auslösen.
+    automatisch = modul._scope_fingerprint(modul._scope(_hass("fr"), _eintrag(modul, const), HOST))
+    ausdruecklich = modul._scope_fingerprint(
+        modul._scope(_hass("fr"), _eintrag(modul, const, optionen={const.CONF_SPRACHE: "fr"}), HOST)
+    )
+    assert automatisch == ausdruecklich
 
 
 # ---------------------------------------------------------------------------
 # Gültigkeit des gespeicherten Stands
 # ---------------------------------------------------------------------------
 def test_ein_frischer_stand_derselben_anlage_gilt(modul, const):
-    kennung = modul._scope_fingerprint(modul._scope(_eintrag(modul, const), HOST))
+    kennung = modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST))
     assert modul._discovery_cache_valid(_stand(modul, const), HOST, kennung)
 
 
 def test_eine_neue_fassung_verwirft_den_stand_nicht(modul, const):
     """Sonst läge die Anlage nach jeder Aktualisierung minutenlang brach."""
-    kennung = modul._scope_fingerprint(modul._scope(_eintrag(modul, const), HOST))
+    kennung = modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST))
     alt = _stand(modul, const, version="0.9.0")
     assert modul._discovery_cache_valid(alt, HOST, kennung)
     # Sie löst aber einen Abgleich im Hintergrund aus.
@@ -122,7 +152,7 @@ def test_eine_neue_fassung_verwirft_den_stand_nicht(modul, const):
 
 
 def test_eine_andere_anlage_verwirft_den_stand(modul, const):
-    kennung = modul._scope_fingerprint(modul._scope(_eintrag(modul, const), HOST))
+    kennung = modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST))
     assert not modul._discovery_cache_valid(_stand(modul, const), "192.0.2.11", kennung)
 
 
@@ -133,7 +163,7 @@ def test_ein_geaenderter_umfang_verwirft_den_stand(modul, const):
 def test_ein_zu_alter_stand_verwirft_sich_selbst(modul, const):
     from homeassistant.util import dt as dt_util
 
-    kennung = modul._scope_fingerprint(modul._scope(_eintrag(modul, const), HOST))
+    kennung = modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST))
     zu_alt = dt_util.utcnow() - timedelta(days=const.DISCOVERY_MAX_AGE_DAYS + 1)
     assert not modul._discovery_cache_valid(
         _stand(modul, const, saved=zu_alt.isoformat()), HOST, kennung

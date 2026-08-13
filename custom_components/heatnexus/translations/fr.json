@@ -98,7 +98,8 @@
           "panel": "Interface dédiée",
           "meldung_einlesen": "Notifier pendant la lecture",
           "aussentemperatur": "Température extérieure",
-          "hilfe": "Afficher les explications"
+          "hilfe": "Afficher les explications",
+          "sprache": "Langue des libellés"
         },
         "data_description": {
           "update_interval": "Fréquence d'interrogation de l'installation.",
@@ -106,7 +107,8 @@
           "panel": "Ajoute une entrée « HeatNexus » dans la barre latérale : schéma de l’installation, état, circuits de chauffage et accès rapide.",
           "meldung_einlesen": "Affiche une notification pendant que HeatNexus lit l'installation. Désactivé par défaut.",
           "aussentemperatur": "Quel capteur sert de température extérieure dans l'en-tête. Vide : HeatNexus la cherche dans l'installation.",
-          "hilfe": "Ajoute un « ? » à côté des cartes et des commandes."
+          "hilfe": "Ajoute un « ? » à côté des cartes et des commandes.",
+          "sprache": "D’où viennent les noms des points de données. « Automatique » suit la langue de Home Assistant ; la régulation embarque ses textes en allemand, anglais, français et italien."
         }
       },
       "system": {
@@ -157,6 +159,15 @@
       "options": {
         "leistung": "Puissance de la chaudière",
         "brennkammer": "Température de la chambre de combustion"
+      }
+    },
+    "sprache": {
+      "options": {
+        "auto": "Automatique",
+        "de": "Allemand",
+        "en": "Anglais",
+        "fr": "Français",
+        "it": "Italien"
       }
     }
   },

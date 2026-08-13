@@ -98,7 +98,8 @@
           "panel": "Eigene Oberfläche",
           "meldung_einlesen": "Beim Einlesen benachrichtigen",
           "aussentemperatur": "Außentemperatur",
-          "hilfe": "Erklärungen anzeigen"
+          "hilfe": "Erklärungen anzeigen",
+          "sprache": "Sprache der Bezeichnungen"
         },
         "data_description": {
           "update_interval": "Wie oft die Anlage abgefragt wird.",
@@ -106,7 +107,8 @@
           "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff.",
           "meldung_einlesen": "Meldet sich, während HeatNexus die Anlage einliest. Standardmäßig aus – ab dem zweiten Start steht ohnehin alles sofort da.",
           "aussentemperatur": "Welcher Sensor in der Kopfzeile als Außentemperatur gilt. Leer: HeatNexus sucht sie sich in der Anlage selbst.",
-          "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst."
+          "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
+          "sprache": "Woher die Namen der Datenpunkte kommen. „Automatisch“ folgt der Sprache von Home Assistant; die Steuerung führt ihr Textwerk in Deutsch, Englisch, Französisch und Italienisch."
         }
       },
       "system": {
@@ -157,6 +159,15 @@
       "options": {
         "leistung": "Kesselleistung",
         "brennkammer": "Brennkammertemperatur"
+      }
+    },
+    "sprache": {
+      "options": {
+        "auto": "Automatisch",
+        "de": "Deutsch",
+        "en": "Englisch",
+        "fr": "Französisch",
+        "it": "Italienisch"
       }
     }
   },

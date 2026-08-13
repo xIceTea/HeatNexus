@@ -38,6 +38,7 @@ from .const import (
     CONF_LEVELS,
     CONF_MELDUNG_EINLESEN,
     CONF_PANEL,
+    CONF_SPRACHE,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_WRITABLE_ADVANCED,
@@ -54,6 +55,7 @@ from .const import (
 from .coordinator import WindhagerDataUpdateCoordinator
 from .dashboard import async_remove_dashboard, async_setup_dashboard
 from .entity import steuerung_info, steuerung_kennung
+from .geraetetexte import sprache_aufloesen
 from .migration import async_entity_ids_umstellen, async_kennungen_umstellen
 
 _LOGGER = logging.getLogger(__name__)
@@ -91,7 +93,7 @@ def _systems(entry: ConfigEntry) -> list[dict]:
     return list(entry.data.get(CONF_SYSTEMS, []))
 
 
-def _scope(entry: ConfigEntry, host: str) -> dict:
+def _scope(hass: HomeAssistant, entry: ConfigEntry, host: str) -> dict:
     """Gewählter Umfang einer Anlage (Ebenen, Freigaben, Intervall, Zugang)."""
     options = entry.options or {}
     je_anlage = options.get(host) or {}
@@ -103,6 +105,11 @@ def _scope(entry: ConfigEntry, host: str) -> dict:
         "zeitwerte": bool(je_anlage.get(CONF_ZEITWERTE, False)),
         "update_interval": int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),
         "username": system.get(CONF_USERNAME) or DEFAULT_USERNAME,
+        # Aufgelöst, nicht „auto": Sonst läse die Wahl von „auto" auf die
+        # gleiche Sprache neu ein, obwohl sich nichts ändert.
+        "sprache": sprache_aufloesen(
+            options.get(CONF_SPRACHE), getattr(hass.config, "language", None)
+        ),
     }
 
 
@@ -112,12 +119,16 @@ def _scope_fingerprint(scope: dict) -> str:
     Der Zugang gehört dazu. An der geprüften Baureihe liefern „USER" und
     „Service" zwar dasselbe, für andere ist das nicht belegt – ein Wechsel
     liest deshalb neu ein, statt sich auf eine ungeprüfte Annahme zu stützen.
+
+    Die Sprache gehört ebenfalls dazu: Sie bestimmt, welche Bezeichnungen die
+    Steuerung liefert, und die stehen in den Deskriptoren.
     """
     return (
         ",".join(scope["levels"])
         + f"|{int(scope['enable_advanced'])}{int(scope['writable_advanced'])}"
         + f"{int(scope.get('zeitwerte', False))}"
         + f"|{scope.get('username', DEFAULT_USERNAME)}"
+        + f"|{scope.get('sprache', 'de')}"
     )
 
 
@@ -213,7 +224,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         """
         host = system[CONF_HOST]
         label = system.get(CONF_LABEL) or host
-        scope = _scope(entry, host)
+        scope = _scope(hass, entry, host)
         fingerprint = _scope_fingerprint(scope)
 
         client = WindhagerHttpClient(
@@ -336,7 +347,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "hintergrund": hintergrund,
         # Der Umfang, mit dem dieser Eintrag geladen wurde. Ändert der Nutzer
         # ihn, lässt sich daran erkennen, ob er etwas abgewählt hat.
-        "umfang": {system[CONF_HOST]: _scope(entry, system[CONF_HOST]) for system in systeme},
+        "umfang": {system[CONF_HOST]: _scope(hass, entry, system[CONF_HOST]) for system in systeme},
         # Anlagen, deren Vollabzug noch läuft – für die Meldung an den Nutzer.
         "einlesen_offen": {eintrag[3] for eintrag in nachzuladen},
     }
@@ -727,7 +738,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
     der nächste Ladevorgang die betroffenen Entitäten wirklich entfernen.
     """
     alt = (laufzeitdaten(entry) or {}).get("umfang") or {}
-    neu = {system[CONF_HOST]: _scope(entry, system[CONF_HOST]) for system in _systems(entry)}
+    neu = {system[CONF_HOST]: _scope(hass, entry, system[CONF_HOST]) for system in _systems(entry)}
     if alt and _umfang_verkleinert(alt, neu):
         _abwahl_vormerken(hass, entry)
     await hass.config_entries.async_reload(entry.entry_id)

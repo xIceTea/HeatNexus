@@ -53,6 +53,7 @@ from .const import (
     CONF_LEVELS,
     CONF_MELDUNG_EINLESEN,
     CONF_PANEL,
+    CONF_SPRACHE,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_WRITABLE_ADVANCED,
@@ -73,10 +74,12 @@ from .const import (
     MAX_SYSTEMS,
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
+    SPRACHE_BESCHRIFTUNG,
     UEBERSTEUERUNG_DAUER_STANDARD,
     UPDATE_INTERVAL,
 )
 from .exceptions import CannotConnect, InvalidAuth
+from .geraetetexte import SPRACHE_AUTO, SPRACHEN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -584,6 +587,7 @@ class WindhagerOptionsFlow(OptionsFlow):
             # „Unknown error occurred“ abbrechen lassen.
             options[CONF_MELDUNG_EINLESEN] = bool(user_input.get(CONF_MELDUNG_EINLESEN, False))
             options[CONF_HILFE] = bool(user_input.get(CONF_HILFE, True))
+            options[CONF_SPRACHE] = user_input.get(CONF_SPRACHE, SPRACHE_AUTO)
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
             if gewaehlt:
                 options[CONF_AUSSENTEMPERATUR] = gewaehlt
@@ -608,6 +612,21 @@ class WindhagerOptionsFlow(OptionsFlow):
                         CONF_AUSSENTEMPERATUR,
                         description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
                     ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+                    # Woher die Bezeichnungen kommen. Die Steuerung führt ihr
+                    # Textwerk in mehreren Sprachen mit; „auto" folgt der
+                    # Sprache von Home Assistant.
+                    vol.Required(
+                        CONF_SPRACHE, default=options.get(CONF_SPRACHE, SPRACHE_AUTO)
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(value=wahl, label=SPRACHE_BESCHRIFTUNG[wahl])
+                                for wahl in (SPRACHE_AUTO, *SPRACHEN)
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                            translation_key="sprache",
+                        )
+                    ),
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
                         default=int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),

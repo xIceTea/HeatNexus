@@ -50,6 +50,17 @@ CONF_AUSSENTEMPERATUR = "aussentemperatur"
 # Erklärungen („?") in der eigenen Oberfläche. Standardmäßig an – wer die
 # Anlage kennt, schaltet sie ab.
 CONF_HILFE = "hilfe"
+# Sprache der Bezeichnungen, die die Steuerung selbst mitführt. „auto" folgt
+# der Spracheinstellung von Home Assistant. Die Wahl entscheidet, welche
+# Textdateien der Anlage gelesen werden.
+CONF_SPRACHE = "sprache"
+SPRACHE_BESCHRIFTUNG: dict[str, str] = {
+    "auto": "Automatisch",
+    "de": "Deutsch",
+    "en": "Englisch",
+    "fr": "Französisch",
+    "it": "Italienisch",
+}
 # Art des Wärmeerzeugers. Wirkt **nur auf die Zeichnung im Schaubild** – keine
 # Entität, keine Einheit, kein Datenpunkt hängt davon ab. „auto" leitet sie aus
 # dem gemeldeten Brennstoff und dem Funktionsnamen ab; die Auswahl ist dafür
