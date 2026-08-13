@@ -6,6 +6,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.8.0-beta.4] - 2026-08-13
+
+### Behoben
+
+- Abgelehnte Datenpunkte standen nach einem Neustart wieder im Abruf ([#2](https://github.com/xIceTea/HeatNexus/issues/2)).
+
 ## [1.8.0-beta.3] - 2026-08-13
 
 ### Behoben
