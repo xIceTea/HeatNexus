@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 import logging
+import re
 from xml.etree import ElementTree as ET
 
 _LOGGER = logging.getLogger(__name__)
@@ -123,6 +124,19 @@ _DATEIEN = {
 _NUR_NAMEN = ("namen",)
 
 
+_HREF = re.compile(r'href="([^"/?][^"]*\.xml)"', re.IGNORECASE)
+
+
+def dateinamen_lesen(html: str) -> set[str]:
+    """Dateinamen aus einem Verzeichnislisting von ``/res/xml/`` lesen.
+
+    Der Endpunkt ist in keiner Herstellerbeschreibung genannt. Er dient nur
+    dazu, abweichende Benennungen zu finden, wenn der erwartete Name ins Leere
+    läuft.
+    """
+    return set(_HREF.findall(html or ""))
+
+
 def sprache_aufloesen(gewaehlt: str | None, ha_sprache: str | None) -> str:
     """Die Sprache bestimmen, in der die Steuerung gelesen wird.
 
@@ -143,11 +157,40 @@ async def laden(hole, sprache: str) -> Texte:
     unlesbar, fehlt nur ihr Anteil – der Erkennungslauf geht weiter.
     """
     schluessel = _NUR_NAMEN if sprache == "de" else tuple(_DATEIEN)
-    pfade = [f"xml/{_DATEIEN[s][0]}_{sprache}.xml" for s in schluessel]
+    pfade = {s: f"xml/{_DATEIEN[s][0]}_{sprache}.xml" for s in schluessel}
+    texte = await _holen(hole, pfade)
+    if texte:
+        return texte
+    # Nichts unter den erwarteten Namen. Manche Steuerungen führen ihre
+    # Textdateien mit einem Vorsatz; das Verzeichnis nennt die tatsächlichen.
+    # Ein Nachschlag, keine Schleife.
+    return await _holen(hole, await _gefundene_pfade(hole, schluessel, sprache))
+
+
+async def _holen(hole, pfade: dict[str, str]) -> Texte:
+    """Die genannten Dateien lesen und auswerten."""
+    if not pfade:
+        return Texte()
     try:
-        rohdaten = await asyncio.gather(*(hole(p) for p in pfade))
+        rohdaten = await asyncio.gather(*(hole(p) for p in pfade.values()))
     except Exception as fehler:
         _LOGGER.debug("Textwerk der Steuerung nicht abrufbar: %s", fehler)
         return Texte()
-    teile = {s: _DATEIEN[s][1](roh or "") for s, roh in zip(schluessel, rohdaten, strict=True)}
-    return Texte(**teile)
+    return Texte(**{s: _DATEIEN[s][1](roh or "") for s, roh in zip(pfade, rohdaten, strict=True)})
+
+
+async def _gefundene_pfade(hole, schluessel, sprache: str) -> dict[str, str]:
+    """Im Verzeichnislisting nach den Textdateien dieser Sprache suchen."""
+    try:
+        listing = await hole("xml/")
+    except Exception as fehler:
+        _LOGGER.debug("Verzeichnis der Textdateien nicht lesbar: %s", fehler)
+        return {}
+    vorhanden = dateinamen_lesen(listing or "")
+    gefunden: dict[str, str] = {}
+    for s in schluessel:
+        ende = f"{_DATEIEN[s][0]}_{sprache}.xml"
+        treffer = next((n for n in sorted(vorhanden) if n.endswith(ende)), None)
+        if treffer:
+            gefunden[s] = f"xml/{treffer}"
+    return gefunden

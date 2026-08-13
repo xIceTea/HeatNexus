@@ -139,3 +139,44 @@ async def test_abruffehler_ergibt_leeres_ergebnis(geraetetexte):
     texte = await geraetetexte.laden(hole, "en")
 
     assert not texte
+
+
+LISTING = """<html><head><title>Index of /res/xml</title></head><body>
+<a href="../">Parent</a>
+<a href="VarIdentTexte_en.xml">VarIdentTexte_en.xml</a>
+<a href="ErrorTexte_en.xml">ErrorTexte_en.xml</a>
+<a href="StaticNav.xml">StaticNav.xml</a>
+</body></html>
+"""
+
+
+def test_dateinamen_aus_dem_verzeichnislisting(geraetetexte):
+    namen = geraetetexte.dateinamen_lesen(LISTING)
+
+    assert "VarIdentTexte_en.xml" in namen
+    assert "../" not in namen
+
+
+def test_kein_listing_ergibt_leere_menge(geraetetexte):
+    assert geraetetexte.dateinamen_lesen("") == set()
+
+
+async def test_abweichende_dateinamen_werden_aufgelistet(geraetetexte):
+    # Eine Steuerung, die ihre Textdateien mit Baureihen-Vorsatz führt: Der
+    # erwartete Name läuft ins Leere, das Verzeichnis nennt den richtigen.
+    listing = '<a href="../">up</a><a href="PW_VarIdentTexte_en.xml">x</a>'
+    inhalte = {"xml/": listing, "xml/PW_VarIdentTexte_en.xml": VARIDENT}
+
+    async def hole(pfad):
+        return inhalte.get(pfad)
+
+    texte = await geraetetexte.laden(hole, "en")
+
+    assert texte.namen["0/7"] == "Boiler temperature"
+
+
+async def test_ohne_listing_bleibt_es_beim_leeren_ergebnis(geraetetexte):
+    async def hole(pfad):
+        return None
+
+    assert not await geraetetexte.laden(hole, "en")
