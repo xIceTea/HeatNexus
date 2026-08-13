@@ -8,16 +8,19 @@ rediscover:
     Datenpunkte und Zeitprogramme gefunden wurden.
 
 set_current_temp_compensation:
-  name: Set Current Temperature Compensation
-  description: Change the compensation for current temperature mesurement
+  name: Behaglichkeitskorrektur setzen
+  description: >-
+    Verschiebt die gemessene Raumtemperatur eines Heizkreises um einen festen
+    Betrag. Gedacht für Fühler, die dauerhaft zu warm oder zu kalt messen, weil
+    sie ungünstig hängen.
   target:
     entity:
       integration: heatnexus
       domain: climate
   fields:
     compensation:
-      name: Thermostat bias
-      description: Added to the current temperature
+      name: Korrektur
+      description: Wird auf die gemessene Raumtemperatur aufgeschlagen.
       required: true
       selector:
         number:
