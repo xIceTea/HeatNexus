@@ -86,6 +86,9 @@ class AttrappenClient:
         self.geraeteinfo: dict[str, Any] = {}
         self.werksbezeichnung: dict[str, str] = {}
         self.geraeteinfo_abrufe = 0
+        # Die Sprache wandert in den gespeicherten Stand; fehlt sie, scheitert
+        # der Hintergrundlauf und der Eintrag lässt sich nicht mehr entladen.
+        self.sprache = kwargs.get("sprache", "de")
         AttrappenClient.letzte = self
 
     async def _lese_geraeteinfo(self) -> None:
