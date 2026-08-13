@@ -80,7 +80,20 @@ class AttrappenClient:
         self.geschlossen = False
         self.gepollt: set[str] = set()
         self.exportiert = {"devices": DESKRIPTOREN}
+        # Was die Steuerung über sich selbst sagt. Ein aus dem Zwischenspeicher
+        # wiederhergestellter Stand holt beides nach; ohne die Felder liefe die
+        # Einrichtung hier in einen AttributeError.
+        self.geraeteinfo: dict[str, Any] = {}
+        self.werksbezeichnung: dict[str, str] = {}
+        self.geraeteinfo_abrufe = 0
         AttrappenClient.letzte = self
+
+    async def _lese_geraeteinfo(self) -> None:
+        self.geraeteinfo_abrufe += 1
+        self.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
+
+    async def _lese_knotendaten(self) -> None:
+        self.werksbezeichnung = {"15": "UMUMLZ"}
 
     async def async_init_basic(self) -> None:
         self.basic_aufgerufen += 1

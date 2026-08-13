@@ -271,6 +271,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             with contextlib.suppress(Exception):
                 await client._lese_geraeteinfo()
                 await client._lese_knotendaten()
+                # Gleich in den Zwischenspeicher zurück, sonst zahlt jedes
+                # weitere Laden dieselben zwei Anfragen erneut.
+                mem_cache[cache_key] = client.export_discovery()
 
         coordinator = WindhagerDataUpdateCoordinator(
             hass, client, entry, host, label, scope["update_interval"]
