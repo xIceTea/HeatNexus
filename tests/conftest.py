@@ -208,3 +208,9 @@ def helpers() -> ModuleType:
 def device_db() -> ModuleType:
     """Modul device_db (Zugriff auf die Geräte-Datenbank)."""
     return load_standalone("device_db")
+
+
+@pytest.fixture(scope="session")
+def geraetetexte() -> ModuleType:
+    """Modul geraetetexte (Textwerk der Steuerung)."""
+    return load_standalone("geraetetexte")
