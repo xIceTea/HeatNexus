@@ -639,6 +639,10 @@ ENDPUNKT_ANLAEUFE = 3
 # rund 172 Anfragen und anderthalb Minuten – einmal, nicht im Betrieb.
 NV_GRUPPEN = (0,)
 
+# Der fctType, unter dem eine Steuerung ihren LON-Adressraum führt. Er ist kein
+# Gerätetyp: Wo er steht, sind `gn/mn` Gruppe und nvIndex, nicht Datenpunkt.
+FCT_TYPE_NV = -1
+
 # Wieviele Indizes ein Blindlauf abklopft, wenn die Funktion keinen Katalog
 # liefert. Die vier bekannten Funktionen führen 16 bis 68 Einträge; 80 deckt
 # das mit Rand ab und bleibt eine Anfragezahl, die eine Anlage wegsteckt.
@@ -1327,6 +1331,12 @@ def write_csv(path: Path, menus: dict) -> None:
             ]
         )
         for fct in menus["functions"]:
+            # An einer NV-Funktion ist `gn/mn` der nvIndex, kein Datenpunkt.
+            # Die Namenstabelle darf hier nicht greifen: `0/0` hieße sonst
+            # „Aussentemperatur", obwohl der Eintrag `nviRequest` ist. Aus
+            # demselben Grund bleibt die Schreibbarkeit leer – `writeProt`
+            # kommt am Katalog nicht vor, „ja" wäre geraten.
+            ist_nv = fct["fct_type"] == FCT_TYPE_NV
             for oid, item in sorted(fct["datapoints"].items()):
                 gnmn = gnmn_of(fct["prefix"], oid)
                 writer.writerow(
@@ -1338,13 +1348,13 @@ def write_csv(path: Path, menus: dict) -> None:
                         item.get("_menu", ""),
                         oid,
                         gnmn,
-                        db_name(gnmn),
+                        item.get("nvName", "") if ist_nv else db_name(gnmn),
                         item.get("value", ""),
                         item.get("unit", ""),
                         item.get("minValue", ""),
                         item.get("maxValue", ""),
                         item.get("step", ""),
-                        "nein" if item.get("writeProt") else "ja",
+                        "" if ist_nv else ("nein" if item.get("writeProt") else "ja"),
                         item.get("enum", ""),
                         item.get("typeId", ""),
                         item.get("nvIndex", ""),
