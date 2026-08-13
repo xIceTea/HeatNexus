@@ -8,8 +8,8 @@ unbekannt bleibt statt geraten zu werden.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
+import sys
 
 QUELLE = Path(__file__).parent.parent / "custom_components"
 if str(QUELLE) not in sys.path:

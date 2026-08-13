@@ -42,8 +42,9 @@ from .const import (
 )
 from .device_db import get_enum, get_layers, get_name
 from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
-from .kanonisch import schluessel
-from .lon import kennungsteil as lon_kennungsteil, zuordnen as lon_zuordnen
+from .kanonisch import schluessel as kanonischer_schluessel
+from .lon import kennungsteil as lon_kennungsteil
+from .lon import zuordnen as lon_zuordnen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -653,7 +654,7 @@ class WindhagerHttpClient:
         gelesen = await asyncio.gather(
             *(self._lese_nv_ebene(prefix, menu_id, anzahl) for menu_id, anzahl in ebenen.items())
         )
-        for menu_id, items in zip(ebenen, gelesen):
+        for menu_id, items in zip(ebenen, gelesen, strict=True):
             for item in items:
                 self._nv_deskriptor(prefix, fct, menu_id, item, ziel_prefix, ziel_name, ziel_typ)
 
@@ -741,7 +742,7 @@ class WindhagerHttpClient:
         nicht gibt.
         """
         belegt = {
-            schluessel(d.get("id"))
+            kanonischer_schluessel(d.get("id"))
             for d in self.devices
             if not d.get("nv_name") and d.get("oid")
         }

@@ -155,6 +155,7 @@ class EbeneOhneOid:
     base = "http://192.0.2.10"
 
     def __init__(self, anzahl: int = 12):
+        """Eine Ebene mit `anzahl` Einträgen, alle nur mit `nvIndex`."""
         self.eintraege = [
             {"nvIndex": i, "nvName": f"WET_nv{i}", "value": "0.0"} for i in range(anzahl)
         ]

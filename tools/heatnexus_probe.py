@@ -321,7 +321,7 @@ def schritt(name: str):
     """
     try:
         yield
-    except Exception as fehler:  # noqa: BLE001 – der Lauf wiegt mehr als der Schritt
+    except Exception as fehler:  # der Lauf wiegt mehr als der einzelne Schritt
         print(f"    {name} abgebrochen: {type(fehler).__name__}: {fehler}")
 
 
