@@ -100,6 +100,20 @@ LON_NAMEN: dict[str, dict] = {
 }
 
 
+def kennungsteil(nv_name: str | None, menu_id: str, index) -> str:
+    """Der Teil der Kennung, der eine Netzwerkvariable unterscheidbar macht.
+
+    **Warum nicht die Adresse.** Eine Kennung aus vier Zahlen liest
+    `kanonisch.gnmn` als Datenpunktadresse: Aus `…-32-0-7-0` würde `0/7`, die
+    Kesseltemperatur – an einer Netzwerkvariablen, die nichts damit zu tun
+    hat. Schaubild und Kennwerte hingen sich daran. Der Name unterbricht den
+    Zahlenlauf und ist zugleich das Beständigere: Er benennt den
+    Funktionsblock, während der Index von der Firmware vergeben wird.
+    """
+    rumpf = re.sub(r"[^a-z0-9]+", "-", str(nv_name or "").lower()).strip("-")
+    return f"nv-{menu_id}-{index}-{rumpf}" if rumpf else f"nv-{menu_id}-{index}"
+
+
 def zuordnen(nv_name: str | None) -> dict | None:
     """Kuratierter Eintrag zu einem Namen aus dem LON-Adressraum.
 

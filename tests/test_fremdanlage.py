@@ -197,7 +197,13 @@ async def _erkennen_ungemeldet(client_module, monkeypatch, levels=("info", "oper
     async def statische_adressen():
         return set()
 
+    async def get(url, semaphore=None):
+        # Der LON-Adressraum ist hier nicht der Gegenstand: Geprüft wird, ob
+        # der Kessel darunter gefunden wird. Er antwortet deshalb nicht.
+        return None, 404
+
     monkeypatch.setattr(c, "fetch", fetch)
+    monkeypatch.setattr(c, "_get", get)
     monkeypatch.setattr(c, "_read_function_menus", read_function_menus)
     monkeypatch.setattr(c, "_statische_adressen", statische_adressen)
     monkeypatch.setattr(c, "_lade_geraetetexte", keine_geraetetexte)
@@ -263,7 +269,11 @@ async def test_ein_knoten_mit_gemeldeter_funktion_wird_nicht_geraten(client_modu
     async def statische_adressen():
         return set()
 
+    async def get(url, semaphore=None):
+        return None, 404
+
     monkeypatch.setattr(c, "fetch", fetch)
+    monkeypatch.setattr(c, "_get", get)
     monkeypatch.setattr(c, "_read_function_menus", read_function_menus)
     monkeypatch.setattr(c, "_statische_adressen", statische_adressen)
     monkeypatch.setattr(c, "_lade_geraetetexte", keine_geraetetexte)

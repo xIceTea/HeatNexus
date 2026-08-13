@@ -21,6 +21,7 @@ from .const import (
     FCT_ENTITY_MAP,
     FCT_IDS_UNGEMELDET,
     FCT_MODELL,
+    FCT_NV,
     FETCH_CONCURRENCY,
     FINGERABDRUCK_MIN_TREFFER,
     MENU_PAGE_SIZE,
@@ -41,6 +42,8 @@ from .const import (
 )
 from .device_db import get_enum, get_layers, get_name
 from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
+from .kanonisch import schluessel
+from .lon import kennungsteil as lon_kennungsteil, zuordnen as lon_zuordnen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -584,6 +587,149 @@ class WindhagerHttpClient:
         _LOGGER.debug("%s: %d Datenpunkte aus %d Menü-Ebenen", prefix, len(datapoints), len(menus))
         return datapoints
 
+    async def _lese_nv_ebene(self, prefix: str, menu_id: str, erwartet: int) -> list:
+        """Eine Ebene des LON-Adressraums lesen.
+
+        Wie bei den Menü-Ebenen: erst der Versuch, alles auf einmal zu holen,
+        sonst seitenweise. Unterschieden werden die Einträge über ihren
+        `nvIndex` – eine `OID` führen sie nicht.
+        """
+        base = f"http://{self.host}/api/1.0/lookup{prefix}/{menu_id}"
+        if erwartet > MENU_PAGE_SIZE:
+            data, status = await self._get(f"{base}?count=-1&offset=0")
+            if status == 200 and isinstance(data, list) and len(data) > MENU_PAGE_SIZE:
+                return [i for i in data if isinstance(i, dict) and i.get("nvIndex") is not None]
+
+        items: list = []
+        gesehen: set = set()
+        offset = 0
+        while True:
+            url = base if offset == 0 else f"{base}?offset={offset}"
+            data, status = await self._get(url)
+            if status != 200 or not isinstance(data, list) or not data:
+                break
+            frisch = [
+                i
+                for i in data
+                if isinstance(i, dict)
+                and i.get("nvIndex") is not None
+                and i["nvIndex"] not in gesehen
+            ]
+            if not frisch:
+                break
+            items.extend(frisch)
+            gesehen.update(i["nvIndex"] for i in frisch)
+            if len(items) >= erwartet or len(data) < MENU_PAGE_SIZE:
+                break
+            offset += MENU_PAGE_SIZE
+        return items
+
+    async def _lese_nv(self, prefix: str, fct: dict) -> None:
+        """Die Netzwerkvariablen eines Knotens als Deskriptoren anlegen.
+
+        Was die Anlage hier führt, hängt nicht an ihrer Baureihe: Die Namen
+        kommen aus den Funktionsblöcken des Bus und bedeuten überall dasselbe.
+        Für eine Steuerung, für die es keine gepflegte Adresstabelle gibt, ist
+        das die einzige Quelle benannter Werte.
+
+        Ab Werk aktiv ist nur, was `lon.py` kennt; alles andere wird angelegt
+        und bleibt deaktiviert. Geschrieben wird nichts – die `nvi`-Variablen
+        sind Eingänge der Regelung zwischen den Knoten, keine Bedienung.
+        """
+        root, status = await self._get(f"http://{self.host}/api/1.0/lookup{prefix}")
+        if status != 200 or not isinstance(root, list) or not root:
+            return
+        if not isinstance(root[0], dict) or "id" not in root[0]:
+            return
+
+        ebenen = {str(m.get("id")): int(m.get("count") or 0) for m in root}
+        gelesen = await asyncio.gather(
+            *(self._lese_nv_ebene(prefix, menu_id, anzahl) for menu_id, anzahl in ebenen.items())
+        )
+        for menu_id, items in zip(ebenen, gelesen):
+            for item in items:
+                self._nv_deskriptor(prefix, fct, menu_id, item)
+
+    def _nv_deskriptor(self, prefix: str, fct: dict, menu_id: str, item: dict) -> None:
+        """Einen Deskriptor aus einem Eintrag des LON-Adressraums bauen."""
+        index = item.get("nvIndex")
+        oid = f"{prefix}/{menu_id}/{index}/0"
+        if oid in self.oids:
+            return
+        nv_name = item.get("nvName") or ""
+        eintrag = lon_zuordnen(nv_name)
+        knoten = prefix.strip("/").split("/")[1]
+
+        # Die Metadaten stehen schon im Eintrag; ein Einzelabruf entfällt
+        # damit. `writeProt` setzt der Client selbst – die Anlage meldet für
+        # Netzwerkvariablen keinen Schreibschutz, geschrieben wird trotzdem
+        # nicht.
+        self.menu_meta[oid] = {**item, "writeProt": True}
+
+        self.devices.append(
+            {
+                "id": f"{self._neuron(knoten)}-{lon_kennungsteil(nv_name, menu_id, index)}",
+                "alt_id": self._alte_kennung(oid),
+                "oid": oid,
+                "name": eintrag["name"] if eintrag else (nv_name or f"Netzwerkvariable {index}"),
+                "type": "auto",
+                # Netzwerkvariablen stehen in keiner Bedienebene der Anlage.
+                # Sie hier als Werksebene zu führen hieße, sie bei der
+                # üblichen Umfangsauswahl herauszufiltern; über ihre Sichtbar-
+                # keit entscheidet stattdessen `enabled_default`.
+                "level": "info",
+                "enabled_default": bool(eintrag),
+                "enum": None,
+                "enum_texte": None,
+                "unit": None,
+                "device_class": eintrag["device_class"] if eintrag else None,
+                "state_class": eintrag["state_class"] if eintrag else None,
+                "poll_class": eintrag["poll_class"] if eintrag else POLL_SLOW,
+                "kanonisch": eintrag["kanonisch"] if eintrag else None,
+                "category": None if eintrag else "diagnostic",
+                "icon": None,
+                "min": None,
+                "max": None,
+                "step": None,
+                "press_value": None,
+                "write_prot": True,
+                "nv_name": nv_name,
+                "nv_index": index,
+                "device_id": self._geraetekennung(prefix),
+                "alt_device_id": self._alte_kennung(prefix),
+                "device_name": fct.get("name") or "Netzwerkvariablen",
+                "fct_type": FCT_NV,
+            }
+        )
+        self.oids.add(oid)
+
+    def _nv_doppelte_stilllegen(self) -> None:
+        """Netzwerkvariablen abschalten, deren Begriff schon einen Datenpunkt hat.
+
+        Von 95 brauchbaren Werten einer fremden BioWIN hatten 46 eine
+        Entsprechung im OID-Raum. Beide anzuzeigen hieße, dieselbe Größe
+        zweimal zu führen – und niemand könnte sagen, welche der beiden gilt.
+
+        Entschieden wird über den kanonischen Schlüssel, nicht über einen
+        Wertevergleich: Zwei Zahlen sind auch dann gleich, wenn die Anlage
+        gerade steht.
+
+        Läuft **nach** den Metadaten, nicht am Ende der Erkennung: Bis dahin
+        stehen auch die kuratierten Datenpunkte in der Liste, die diese Anlage
+        gar nicht führt. Ein Kessel ohne den Zähler `2/81` verlöre sonst die
+        Betriebsstunden aus dem LON-Raum an einen Datenpunkt, den es hier
+        nicht gibt.
+        """
+        belegt = {
+            schluessel(d.get("id"))
+            for d in self.devices
+            if d.get("fct_type") != FCT_NV and d.get("oid")
+        }
+        belegt.discard(None)
+        for d in self.devices:
+            if d.get("fct_type") == FCT_NV and d.get("kanonisch") in belegt:
+                d["enabled_default"] = False
+
     async def update(self, oid, value):
         """PUT a new value to a datapoint."""
         await self._ensure_session()
@@ -776,6 +922,14 @@ class WindhagerHttpClient:
             for fct in funktionen:
                 fct_type = fct.get("fctType")
                 if fct.get("lock"):
+                    continue
+                if fct_type == FCT_NV:
+                    # Der LON-Adressraum kennt keine Bedienebenen und keine
+                    # kuratierte Tabelle; er läuft über seinen eigenen Weg.
+                    # Beim Kurzdurchlauf bleibt er außen vor – die Einrichtung
+                    # soll nicht länger werden als bisher.
+                    if not nur_kern:
+                        await self._lese_nv(f"{device_id}/{fct['fctId']}", fct)
                     continue
                 if fct_type not in FCT_ENTITY_MAP and not get_layers(fct_type):
                     continue
@@ -1199,6 +1353,7 @@ class WindhagerHttpClient:
             kept.append(d)
         self.devices = kept
         self.oids -= missing
+        self._nv_doppelte_stilllegen()
         self._namen_vereindeutigen()
 
     def _namen_vereindeutigen(self) -> None:
@@ -1251,6 +1406,12 @@ class WindhagerHttpClient:
         und Betriebszustände in Sekunden. Im Zweifel bleibt es beim mittleren
         Takt – lieber einmal zu oft gelesen als eine Anzeige, die nachhinkt.
         """
+        # Ein Deskriptor, der seinen Takt selbst mitbringt, behält ihn: Bei
+        # Netzwerkvariablen steht er in der Namenstabelle, weil der Name mehr
+        # über den Wert sagt als Einheit und Typ.
+        if vorgabe := beschreibung.get("poll_class"):
+            return vorgabe
+
         typ = beschreibung.get("type") or ""
         if typ in POLL_TYPEN_SCHNELL:
             return POLL_FAST

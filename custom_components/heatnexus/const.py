@@ -460,6 +460,11 @@ DISCOVERY_MAX_AGE_DAYS = 30
 
 # Function types (fctType) as reported by /api/1.0/lookup/1
 FCT_CLIMATE = 14  # Heizkreis (UML+ / UMLZ)
+# Der LON-Adressraum eines Knotens. Er meldet sich als Funktion `NV's` ohne
+# Funktionstyp; die Steuerung deutet dort die Adresse um (der Member ist der
+# `nvIndex`, die Gruppe fällt weg). Deshalb läuft er nicht durch die
+# gewöhnliche Erkennung, sondern über einen eigenen Weg.
+FCT_NV = -1
 FCT_BOILER_SWITCH = 15  # Umschaltung Automatikkessel/Festbrennstoff/Puffer
 FCT_BUFFER = 16  # B-PLMi Pufferspeicher
 FCT_ZSP = 20  # ZSP Pumpen-/Relaismodul (Pumpe, ext. Wärmeanforderung, Sammelalarm)
