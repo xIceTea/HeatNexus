@@ -624,9 +624,13 @@ ENDPUNKT_ANLAEUFE = 3
 # Drei Dinge sind daran geklärt:
 #
 # 1. Die Menü-Liste ist ein **Katalog**: Sie nennt `nvIndex`, `nvName` und den
-#    LON-Datentyp `snvtName`, der Wert steht durchgängig auf `"-"`.
+#    LON-Datentyp `snvtName`, der Wert steht durchgängig auf `"-"`. Ein leerer
+#    Wert im Katalog heißt deshalb nicht, dass der Eintrag keine Daten führt.
 # 2. Einzeln gelesen liefert `/1/<node>/32/<gruppe>/<nvIndex>/0` einen Wert –
 #    und die **Gruppe wird ignoriert**: `…/0/3/0` und `…/4/3/0` geben dasselbe.
+#    Daneben ist die kürzere Form ohne abschließendes `/0`, dafür mit
+#    `?count=&offset=`, belegt. Welche eine Steuerung beantwortet, hängt an
+#    ihrer Generation – der Lauf probiert beide und behält die, die trägt.
 # 3. Die Werte sind **rohe LON-Nutzlasten**, keine Zahlen: `"0 0"`,
 #    sechsundzwanzig Nullen, `"2026 8 5 10 19 10"`.
 #
@@ -642,6 +646,13 @@ NV_GRUPPEN = (0,)
 # Der fctType, unter dem eine Steuerung ihren LON-Adressraum führt. Er ist kein
 # Gerätetyp: Wo er steht, sind `gn/mn` Gruppe und nvIndex, nicht Datenpunkt.
 FCT_TYPE_NV = -1
+
+# Die belegten Adressformen für den Einzelabruf einer Netzwerkvariablen, in der
+# Reihenfolge, in der sie probiert werden.
+NV_ADRESSFORMEN = (
+    "{prefix}/{gruppe}/{index}/0",
+    "{prefix}/{gruppe}/{index}?count=10&offset=0",
+)
 
 # Wieviele Indizes ein Blindlauf abklopft, wenn die Funktion keinen Katalog
 # liefert. Die vier bekannten Funktionen führen 16 bis 68 Einträge; 80 deckt
@@ -689,6 +700,32 @@ def nv_bewerten(snvt: str | None, wert: str | None) -> str:
     return "brauchbar"
 
 
+def _nv_lesen(probe: Probe, prefix: str, index, form: str):
+    """Eine Netzwerkvariable in der angegebenen Adressform lesen."""
+    pfad = form.format(prefix=prefix, gruppe=NV_GRUPPEN[0], index=index)
+    data, status = probe.lookup(pfad)
+    # Die kurze Form antwortet je nach Firmware mit einem einelementigen Array
+    # statt mit dem Objekt.
+    if isinstance(data, list):
+        data = data[0] if data else None
+    wert = data.get("value") if isinstance(data, dict) else None
+    return pfad, status, wert
+
+
+def _nv_form_bestimmen(probe: Probe, prefix: str, index) -> str:
+    """Die Adressform ermitteln, die diese Funktion beantwortet.
+
+    Einmal je Funktion, an einem einzigen Eintrag. Antwortet keine Form mit
+    einem Wert, bleibt es bei der ersten – dann steht in der Datei ein
+    ehrliches „leer" statt einer stillen Umschaltung.
+    """
+    for form in NV_ADRESSFORMEN:
+        _, status, wert = _nv_lesen(probe, prefix, index, form)
+        if status == 200 and wert not in (None, "", "-"):
+            return form
+    return NV_ADRESSFORMEN[0]
+
+
 def suche_nv_werte(probe: Probe, menus: dict) -> dict:
     """Jeden LON-Eintrag lesen und einordnen.
 
@@ -719,13 +756,16 @@ def suche_nv_werte(probe: Probe, menus: dict) -> dict:
 
     print(f"    {len(ziele)} Einträge werden gelesen")
     versuche = []
+    formen: dict[str, str] = {}
     for nummer, (fct, eintrag) in enumerate(ziele, start=1):
         index = eintrag.get("nvIndex")
         if index is None:
             continue
-        oid = f"{fct['prefix']}/{NV_GRUPPEN[0]}/{index}/0"
-        data, status = probe.lookup(oid)
-        wert = data.get("value") if isinstance(data, dict) else None
+        prefix = fct["prefix"]
+        if prefix not in formen:
+            formen[prefix] = _nv_form_bestimmen(probe, prefix, index)
+            print(f"    {prefix} Adressform: {formen[prefix]}")
+        oid, status, wert = _nv_lesen(probe, prefix, index, formen[prefix])
         urteil = nv_bewerten(eintrag.get("snvtName"), wert) if status == 200 else "Fehler"
         versuche.append(
             {
@@ -755,7 +795,12 @@ def suche_nv_werte(probe: Probe, menus: dict) -> dict:
         print("    Beispiele:")
         for v in brauchbar[:12]:
             print(f"      {str(v['nvName'])[:26]:28} {v['unit'] or ''!s:8} {v['value']}")
-    return {"brauchbar": brauchbar, "zaehler": zaehler, "alle": versuche}
+    return {
+        "brauchbar": brauchbar,
+        "zaehler": zaehler,
+        "adressformen": formen,
+        "alle": versuche,
+    }
 
 
 # Toleranz beim Zuordnen eines LON-Werts zu einem Datenpunkt derselben Anlage.
@@ -1047,6 +1092,36 @@ def suche_statisch(probe: Probe, structure: list) -> dict:
     return {"treffer": treffer, "umgedeutet": umgedeutet, "alle": ergebnisse}
 
 
+# Welche Funktions-Ids an einem Knoten probiert werden, der in `GET /1` keine
+# gewöhnliche Funktion meldet. Bei einem Kessel ist es die 0; mehr zu probieren
+# hieße raten, und jeder Versuch kostet eine Anfrage.
+FCT_IDS_UNGEMELDET = (0,)
+
+
+def _funktionen_eines_knotens(node: dict) -> list[dict]:
+    """Die Funktionen, die an diesem Knoten gelesen werden – gemeldete und nicht.
+
+    **Ein Knoten kann antworten, ohne sich anzukündigen.** Es gibt Anlagen,
+    deren Kessel in `GET /1` ausschließlich seinen LON-Adressraum führt und
+    keine Funktion mit `fctType`. Die Datenpunkte darunter antworten trotzdem –
+    öffentliche Auslesungen derselben Kesselreihe lesen genau diese Adressen.
+
+    Wer nur die gemeldeten Funktionen liest, hält so einen Knoten für leer.
+    Deshalb bekommt jeder Knoten ohne gewöhnliche Funktion die Kandidaten aus
+    `FCT_IDS_UNGEMELDET` mit; ob es sie gibt, beantwortet der Abruf selbst.
+    """
+    gemeldet = [f for f in node.get("functions", []) if not f.get("lock")]
+    if any(isinstance(f.get("fctType"), int) and f["fctType"] >= 0 for f in gemeldet):
+        return gemeldet
+
+    vergeben = {f.get("fctId") for f in gemeldet}
+    return gemeldet + [
+        {"fctId": fct_id, "fctType": None, "name": "(nicht gemeldet)", "_ungemeldet": True}
+        for fct_id in FCT_IDS_UNGEMELDET
+        if fct_id not in vergeben
+    ]
+
+
 def fetch_menus(probe: Probe, structure: list) -> dict:
     """Alle Menü-Ebenen je Funktion einlesen (Sammelabruf)."""
     result = {
@@ -1058,7 +1133,7 @@ def fetch_menus(probe: Probe, structure: list) -> dict:
 
     for node in structure:
         node_id = node.get("nodeId")
-        for fct in node.get("functions", []):
+        for fct in _funktionen_eines_knotens(node):
             # `fctType -1` ist die Funktion `NV's`: der LON-Adressraum des
             # Knotens. Bis heute wurde sie hier übersprungen – und damit auch
             # in der Integration, die denselben Filter hat. Zwei fremde
@@ -1083,6 +1158,7 @@ def fetch_menus(probe: Probe, structure: list) -> dict:
                 "device_id": (node.get("device") or {}).get("id"),
                 "program_id": node.get("programId"),
                 "root_status": status,
+                "ungemeldet": bool(fct.get("_ungemeldet")),
                 "menus": {},
                 "menu_errors": {},
                 "datapoints": {},
@@ -1485,6 +1561,12 @@ def run_host(
     if actions & {"menus", "objects", "compare", "report", "diag", "nv", "vergleich"}:
         print("    Menü-Ebenen werden gelesen …")
         menus = fetch_menus(probe, structure)
+        for fct in menus["functions"]:
+            if not fct.get("ungemeldet"):
+                continue
+            anzahl = len(fct["datapoints"])
+            befund = f"{anzahl} Datenpunkte" if anzahl else f"HTTP {fct['root_status']}"
+            print(f"      {fct['prefix']} nicht in der Struktur gemeldet: {befund}")
         path = out_dir / f"{stem}_menus.json"
         path.write_text(json.dumps(menus, indent=2, ensure_ascii=False), encoding="utf-8")
         written.append(path)
