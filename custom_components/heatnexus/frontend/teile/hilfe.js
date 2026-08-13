@@ -12,6 +12,8 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
+import { BREITE_MAX } from "../ordnung.js";
+
 /**
  * Einträge auf eine Suche eingrenzen.
  *
@@ -78,6 +80,8 @@ export const HilfeMixin = (Basis) =>
       suchfeld.addEventListener("input", zeichnen);
       zeichnen();
 
-      return [{ id: "hilfe", titel: "Hilfe", knoten: karte }];
+      // Die einzige Karte ihres Reiters, und ihr Inhalt ist Fließtext. Auf
+      // einer Spalte stünde sie schmal neben leerer Fläche.
+      return [{ id: "hilfe", titel: "Hilfe", knoten: karte, breite: BREITE_MAX }];
     }
   };

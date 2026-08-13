@@ -14,6 +14,7 @@ laufen, wären schlimmer als eine falsche.
 
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 import shutil
@@ -173,6 +174,49 @@ def test_browser_rechnet_genauso(helpers, tmp_path):
     )
     erwartet = [helpers.ordnung_anwenden(standard, gespeichert) for standard, gespeichert in FAELLE]
     assert json.loads(ausgabe.stdout) == erwartet
+
+
+ANORDNUNG_PY = (
+    Path(__file__).resolve().parents[1] / "custom_components" / "heatnexus" / "anordnung.py"
+)
+
+
+def _reiter_der_serverseite() -> list[str]:
+    """`REITER` aus ``anordnung.py`` lesen, ohne das Modul zu laden.
+
+    Das Modul zieht Home Assistant nach; hier geht es allein um eine Liste
+    von Zeichenketten. Über den Syntaxbaum gelesen läuft die Prüfung auch
+    ohne installierte Umgebung.
+    """
+    baum = ast.parse(ANORDNUNG_PY.read_text(encoding="utf-8"))
+    for knoten in baum.body:
+        if isinstance(knoten, ast.Assign) and getattr(knoten.targets[0], "id", "") == "REITER":
+            return list(ast.literal_eval(knoten.value))
+    raise AssertionError("REITER steht nicht mehr in anordnung.py")
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_jeder_reiter_der_oberflaeche_darf_gespeichert_werden(tmp_path):
+    """Ein Reiter, den nur der Browser kennt, verliert jede Einstellung.
+
+    Die Serverseite prüft mit ``vol.In(REITER)``. Fehlt dort ein Reiter, den
+    die Oberfläche anbietet, weist der Befehl die Anordnung ab: Karte
+    verschieben und verbreitern geht, gespeichert wird nichts.
+    """
+    skript = tmp_path / "reiter.mjs"
+    skript.write_text(
+        f'import {{ REITER }} from "{ORDNUNG_JS.resolve().as_uri()}";\n'
+        "console.log(JSON.stringify(REITER.map((r) => r.schluessel)));\n",
+        encoding="utf-8",
+    )
+    ausgabe = subprocess.run(["node", str(skript)], capture_output=True, text=True, check=True)
+    im_browser = json.loads(ausgabe.stdout)
+    am_server = _reiter_der_serverseite()
+
+    assert not set(im_browser) - set(am_server), (
+        "Reiter der Oberfläche ohne Gegenstück in anordnung.REITER: "
+        f"{sorted(set(im_browser) - set(am_server))}"
+    )
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")

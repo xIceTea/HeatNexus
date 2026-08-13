@@ -38,7 +38,13 @@ ANORDNUNG_STORE_VERSION = 1
 ANORDNUNG_STORE_KEY = f"{DOMAIN}.anordnung"
 
 # Reiter, die eine eigene Anordnung haben.
-REITER = ("uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme")
+#
+# **Muss zu `frontend/ordnung.js` passen.** Die Liste ist nicht nur Aufzählung,
+# sondern Prüfung: `vol.In(REITER)` weist eine Anordnung für einen unbekannten
+# Reiter ab. Steht dort einer, den die Oberfläche anbietet, der hier aber
+# fehlt, lässt sich seine Karte zwar verschieben und verbreitern – gespeichert
+# wird nichts, und beim nächsten Öffnen steht wieder der Standard.
+REITER = ("uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme", "hilfe")
 
 # 0 heißt „automatisch": so viele Spalten, wie nebeneinander passen.
 SPALTEN_AUTO = 0
