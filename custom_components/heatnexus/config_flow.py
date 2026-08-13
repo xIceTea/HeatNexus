@@ -565,13 +565,14 @@ class WindhagerOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Auswahl: allgemeine Einstellungen oder eine bestimmte Anlage."""
         systeme = self._systeme()
-        if len(systeme) <= 1:
-            self._host = systeme[0][CONF_HOST] if systeme else ""
-            return await self.async_step_system()
-
-        auswahl = {"allgemein": "Allgemein (Oberfläche, Erklärungen, Abfrage)"}
+        # Das Menü erscheint auch bei einer einzigen Anlage. Sprang der Dialog
+        # dort direkt zur Anlage, war der Schritt „Allgemeine Einstellungen"
+        # nach der Einrichtung nie wieder erreichbar – und mit ihm Sprache,
+        # Dashboard, Panel, Erklärungen, Außentemperatur und Abfrageintervall.
+        auswahl = {"allgemein": "Allgemein (Oberfläche, Sprache, Abfrage)"}
         for i, system in enumerate(systeme):
-            auswahl[f"anlage_{i}"] = f"{system[CONF_LABEL]} ({system[CONF_HOST]})"
+            bezeichnung = system.get(CONF_LABEL) or system[CONF_HOST]
+            auswahl[f"anlage_{i}"] = f"{bezeichnung} ({system[CONF_HOST]})"
         return self.async_show_menu(step_id="init", menu_options=auswahl)
 
     async def async_step_allgemein(

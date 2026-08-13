@@ -148,3 +148,21 @@ def test_kesselart_aendert_den_umfang_nicht(flow):
         "username": "USER",
     }
     assert _scope_fingerprint(umfang) == _scope_fingerprint({**umfang, "kesselart": "pellets"})
+
+
+async def test_allgemeine_einstellungen_auch_bei_einer_anlage(flow, monkeypatch):
+    """Sonst wären sie nach der Einrichtung nie wieder erreichbar.
+
+    Bei einer einzigen Anlage sprang der Dialog direkt zu deren Ebenen – und
+    damit an Sprache, Dashboard, Panel, Erklärungen und Abfrageintervall
+    vorbei.
+    """
+    from homeassistant.const import CONF_HOST
+
+    optionen = flow.WindhagerOptionsFlow()
+    monkeypatch.setattr(optionen, "_systeme", lambda: [{CONF_HOST: "192.0.2.10"}])
+
+    ergebnis = await optionen.async_step_init()
+
+    assert "allgemein" in ergebnis["menu_options"]
+    assert "anlage_0" in ergebnis["menu_options"]
