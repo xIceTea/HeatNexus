@@ -341,6 +341,22 @@ async def test_eine_entitaet_kann_einen_abgelehnten_datenpunkt_nicht_zurueckhole
     assert client._faellig() == set()
 
 
+def test_ein_neues_einlesen_holt_abgelehnte_datenpunkte_nicht_zurueck(client):
+    """Die Climate-Endungen kommen ungeprüft dazu, auch die Heizkreispumpe.
+
+    Führt eine Anlage sie nicht, lehnt sie jede Anfrage darauf ab. Ohne diesen
+    Abzug stünde die Position nach jedem Neustart und jedem `rediscover`
+    wieder im Abruf.
+    """
+    client.devices = [{"prefix": "/1/16/0", "name": "HK2", "type": "climate"}]
+    client._abgemeldet = {"/1/16/0/1/20/0"}
+
+    client._compute_poll_oids()
+
+    assert "/1/16/0/1/20/0" not in client.poll_oids
+    assert "/1/16/0/0/1/0" in client.poll_oids
+
+
 # ---------------------------------------------------------------------------
 # Namen und Kennungen
 # ---------------------------------------------------------------------------

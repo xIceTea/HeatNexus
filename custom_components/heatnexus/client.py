@@ -1298,7 +1298,11 @@ class WindhagerHttpClient:
             klassen.setdefault(d["oid"], self._poll_klasse(d))
             if d.get("enabled_default", True):
                 poll.add(d["oid"])
-        self.poll_oids = poll
+        # Die Climate-Endungen kommen ungeprüft dazu – ob eine Anlage die
+        # Heizkreispumpe führt, weiß erst ihre Antwort. Ohne diesen Abzug
+        # stünden abgelehnte Positionen nach jedem Neustart und jedem neuen
+        # Einlesen wieder im Abruf, bis die Anlage sie erneut ablehnt.
+        self.poll_oids = poll - self._abgemeldet
         self.poll_class = klassen
         self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
 
