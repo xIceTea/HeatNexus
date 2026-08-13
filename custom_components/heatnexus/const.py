@@ -1201,6 +1201,19 @@ BIOWIN_ENTITIES = [
         "platform": "sensor",
         "icon": "mdi:sack",
     },
+    # Aus dem Abgleich zweier unabhängiger BioWIN-Quellen nachgetragen
+    # (sessl3r BioWin102, FKW9 BioWIN2 Touch). Von 18 Adressen, die in beiden
+    # stehen und hier fehlten, bleibt diese eine übrig: Der Rest steht in
+    # Ebenen, die der Hersteller für diesen Funktionstyp nicht als Info- oder
+    # Betreiberebene führt, oder ist ein Zeitwert, den die Erkennung ohnehin
+    # anlegt. Ein fremder Abzug belegt, dass es eine Adresse *gibt* – nicht,
+    # dass sie an diesen Funktionstyp gehört.
+    {
+        "oid": "/14/19/0",
+        "name": "Betriebsart Zuführung",
+        "platform": "enum_sensor",
+        "icon": "mdi:transfer",
+    },
 ]
 
 FCT_ENTITY_MAP = {
