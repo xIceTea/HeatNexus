@@ -337,6 +337,10 @@ EINHEITEN: dict[str, tuple[str, str | None, str, int]] = {
     "V": ("V", "voltage", "measurement", 1),
     "Hz": ("Hz", "frequency", "measurement", 1),
     "U/min": ("rpm", None, "measurement", 0),
+    # Dieselben Größen in der Schreibweise des LON-Adressraums: Dort meldet
+    # die Anlage „rpm" und „Std" statt „U/min" und „h".
+    "rpm": ("rpm", None, "measurement", 0),
+    "Std": ("h", "duration", "measurement", 0),
     "m^3/h": ("m³/h", "volume_flow_rate", "measurement", 1),
     "m³/h": ("m³/h", "volume_flow_rate", "measurement", 1),
     # Liter je Stunde ohne Geräteklasse: Home Assistant kennt für den
