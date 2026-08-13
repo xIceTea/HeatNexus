@@ -381,22 +381,6 @@ POLL_CONCURRENCY = 3
 # ?offset=<n> nach.
 MENU_PAGE_SIZE = 10
 
-# Sammelabruf im Poll: Statt jede OID einzeln zu lesen, wird je Menü-Ebene ein
-# Fenster von der ersten bis zur letzten gebrauchten Position gelesen
-# (`?count=<n>&offset=<m>`) – dieselbe Form, die das Bedienteil benutzt.
-#
-# An der Anlage gemessen (78 gepollte OIDs, 28 Menü-Ebenen):
-#
-#     je OID einzeln     78 Anfragen,  78 Datenpunkte am Bus
-#     ganzes Menü        29 Anfragen, 190 Datenpunkte am Bus
-#     Fenster lo..hi     28 Anfragen,  80 Datenpunkte am Bus
-#
-# Das ganze Menü zu ziehen halbiert die Anfragen, verdreifacht aber die Last
-# auf dem Anlagenbus. Das Fenster kostet beides nicht.
-SAMMEL_MAX = 50  # größte Fenstergröße, die die Steuerung beantwortet
-SAMMEL_MIN_TREFFER = 2  # darunter ist ein Einzelabruf billiger
-SAMMEL_MAX_LEERLAUF = 4  # mehr ungenutzte Positionen im Fenster lohnen nicht
-
 # Datenpunkte, die in keiner Menü-Ebene auftauchen, aber vorhanden und für die
 # Bedienung nötig sind. Sie werden zusätzlich einzeln gelesen.
 # (An zwei Anlagen erhoben: Zeitprogramme, Warmwasser- und Zirkulationswerte,

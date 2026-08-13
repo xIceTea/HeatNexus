@@ -32,9 +32,6 @@ from .const import (
     POLL_TYPEN_SCHNELL,
     POLL_WOERTER_SCHNELL,
     POLL_WOERTER_TRAEGE,
-    SAMMEL_MAX,
-    SAMMEL_MAX_LEERLAUF,
-    SAMMEL_MIN_TREFFER,
     SYSTEMZEIT_NAMEN,
     UPDATE_INTERVAL,
 )
@@ -157,7 +154,6 @@ class WindhagerHttpClient:
         # Damit entfällt für diese OIDs die einzelne Metadaten-Abfrage.
         self.menu_meta: dict = {}
         # OID -> (prefix, menu_id, Position in der Ebene) für den Sammelabruf.
-        self.menu_pos: dict = {}
         # Statisch immer gepollte OIDs (aktive Entities + Climate).
         self.poll_oids: set = set()
         # Dynamisch von tatsächlich aktivierten Entities registrierte OIDs
@@ -191,7 +187,6 @@ class WindhagerHttpClient:
         self.poll_count = 0
         self.poll_seconds = 0.0
         # Was der letzte Durchlauf gekostet hat – geht in die Diagnose ein.
-        self._poll_gebuendelt = 0
         self._poll_anfragen = 0
         self.gestartet = time.monotonic()
         # Ist der vollständige Abzug (Menü-Ebenen) bereits gelaufen?
@@ -563,15 +558,11 @@ class WindhagerHttpClient:
             *(self._read_menu(prefix, menu_id, count, pruefer) for menu_id, count in menus.items())
         )
         datapoints: dict = {}
-        for menu_id, items in zip(menus, results, strict=True):
-            for position, item in enumerate(items):
+        for items in results:
+            for item in items:
                 oid = item.get("OID")
                 if oid:
                     datapoints[oid] = item
-                    # Für den Sammelabruf im Poll: Wo in seiner Ebene steht
-                    # dieser Datenpunkt? Ohne die Position lässt sich kein
-                    # Fenster (`offset`/`count`) bilden.
-                    self.menu_pos[oid] = (prefix, str(menu_id), position)
         _LOGGER.debug("%s: %d Datenpunkte aus %d Menü-Ebenen", prefix, len(datapoints), len(menus))
         return datapoints
 
@@ -1367,10 +1358,6 @@ class WindhagerHttpClient:
             "neuron_by_node": dict(self.neuron_by_node),
             "geraeteinfo": dict(self.geraeteinfo),
             "werksbezeichnung": dict(self.werksbezeichnung),
-            # Positionen der Datenpunkte in ihren Menü-Ebenen. Ohne sie fällt
-            # der Poll auf Einzelabrufe zurück – langsamer, aber richtig.
-            # Listen statt Tupel, weil JSON keine Tupel kennt.
-            "menu_pos": {oid: list(stelle) for oid, stelle in self.menu_pos.items()},
         }
 
     def restore_discovery(self, data: dict) -> None:
@@ -1385,14 +1372,6 @@ class WindhagerHttpClient:
         self.geraeteinfo = dict(data.get("geraeteinfo") or {})
         self.werksbezeichnung = dict(data.get("werksbezeichnung") or {})
         self.poll_oids = set(data.get("poll_oids", set()))
-        # Ein Cache aus einer Fassung ohne Sammelabruf bringt keine Positionen
-        # mit. Dann bleibt die Liste leer und der Poll läuft wie bisher; der
-        # Hintergrundlauf füllt sie nach.
-        self.menu_pos = {
-            oid: (stelle[0], str(stelle[1]), int(stelle[2]))
-            for oid, stelle in (data.get("menu_pos") or {}).items()
-            if isinstance(stelle, (list, tuple)) and len(stelle) == 3
-        }
         # Die Poll-Klassen leiten sich aus den Deskriptoren ab und werden
         # deshalb nicht mitgespeichert, sondern neu bestimmt. So wirkt eine
         # geänderte Einstufung sofort und nicht erst nach neuer Erkennung.
@@ -1425,91 +1404,21 @@ class WindhagerHttpClient:
         # zerlegen den Wert selbst.
         return str(value)
 
-    def sammel_plan(self, oids: set) -> tuple[list, set]:
-        """Fällige OIDs in Menü-Fenster bündeln.
-
-        Gibt (Fenster, Einzeln) zurück. Ein Fenster ist
-        ``(prefix, menu_id, offset, count, erwartete_oids)`` und wird mit
-        *einer* Anfrage gelesen.
-
-        Gebündelt wird nur, wo es sich rechnet: Ein Fenster muss mindestens
-        SAMMEL_MIN_TREFFER gebrauchte Datenpunkte enthalten und darf höchstens
-        SAMMEL_MAX_LEERLAUF ungebrauchte mitschleppen. Sonst bleibt der
-        Einzelabruf billiger – für die Anlage wie für uns.
-        """
-        nach_ebene: dict = {}
-        einzeln: set = set()
-        for oid in oids:
-            stelle = self.menu_pos.get(oid)
-            if stelle is None:
-                # Kein bekannter Platz in einer Ebene (kuratierte OID, die in
-                # keinem Menü auftaucht, oder ein Cache ohne Positionen).
-                einzeln.add(oid)
-                continue
-            prefix, menu_id, position = stelle
-            nach_ebene.setdefault((prefix, menu_id), []).append((position, oid))
-
-        fenster = []
-        for (prefix, menu_id), eintraege in nach_ebene.items():
-            eintraege.sort()
-            gruppe: list = []
-            for position, oid in eintraege:
-                # Eine neue Gruppe beginnen, sobald das Fenster zu groß würde
-                # oder zu viel Leerlauf mitliefe.
-                if gruppe and (
-                    position - gruppe[0][0] >= SAMMEL_MAX
-                    or position - gruppe[-1][0] - 1 > SAMMEL_MAX_LEERLAUF
-                ):
-                    self._fenster_anfuegen(fenster, einzeln, prefix, menu_id, gruppe)
-                    gruppe = []
-                gruppe.append((position, oid))
-            self._fenster_anfuegen(fenster, einzeln, prefix, menu_id, gruppe)
-        return fenster, einzeln
-
-    @staticmethod
-    def _fenster_anfuegen(fenster: list, einzeln: set, prefix: str, menu_id: str, gruppe: list):
-        """Eine fertige Gruppe als Fenster ablegen – oder als Einzelabrufe."""
-        if not gruppe:
-            return
-        if len(gruppe) < SAMMEL_MIN_TREFFER:
-            einzeln.update(oid for _, oid in gruppe)
-            return
-        offset = gruppe[0][0]
-        count = gruppe[-1][0] - offset + 1
-        fenster.append((prefix, menu_id, offset, count, {oid for _, oid in gruppe}))
-
-    async def _fetch_fenster(self, prefix: str, menu_id: str, offset: int, count: int, erwartet):
-        """Ein Menü-Fenster in einer Anfrage lesen.
-
-        Rückgabe ist ein dict OID -> Wert für die erwarteten OIDs. Fehlt eine
-        davon in der Antwort, kommt sie als None zurück und der Aufrufer holt
-        sie einzeln nach: Eine verschobene Position darf keine Entität
-        stillegen.
-        """
-        url = f"http://{self.host}/api/1.0/lookup{prefix}/{menu_id}?count={count}&offset={offset}"
-        try:
-            data, status = await self._get(url, self._poll_semaphore)
-        # Ein einzelnes Fenster darf den ganzen Durchlauf nicht abbrechen.
-        except Exception as e:
-            _LOGGER.warning("Sammelabruf %s/%s fehlgeschlagen: %s", prefix, menu_id, e)
-            return {}
-        if status != 200 or not isinstance(data, list):
-            _LOGGER.debug("Sammelabruf %s/%s: HTTP %s", prefix, menu_id, status)
-            return {}
-        werte = {}
-        for item in data:
-            if not isinstance(item, dict):
-                continue
-            oid = item.get("OID")
-            if oid in erwartet:
-                werte[oid] = self._wert_oder_none(item.get("value"))
-        return werte
-
     async def _fetch_oid(self, oid):
-        """Fetch a single OID, returning (oid, value-or-None)."""
+        """Einen Wert lesen; Rückgabe ``(oid, Wert oder None)``.
+
+        Gelesen wird über `datapoint`, nicht über `lookup`. Beide liefern
+        denselben Wert derselben Adresse und antworten gleich auf fehlende,
+        nur schreibbare und unbekannte Positionen. Der Unterschied ist der
+        Umfang: `lookup` stellt den ganzen Metadatensatz zusammen – Einheit,
+        Grenzen, Schrittweite, Aufzählung, Schreibschutz –, `datapoint` nur
+        den Wert. Beim Abruf ist davon nichts nötig, das steht im Deskriptor.
+        """
         try:
-            json = await self.fetch(oid, self._poll_semaphore)
-            value = json.get("value") if isinstance(json, dict) else None
+            data, _status = await self._get(
+                f"http://{self.host}/api/1.0/datapoint{oid}", self._poll_semaphore
+            )
+            value = data.get("value") if isinstance(data, dict) else None
             return oid, self._wert_oder_none(value)
         except Exception as e:
             _LOGGER.warning("Error while fetching OID %s: %s", oid, e)
@@ -1691,11 +1600,8 @@ class WindhagerHttpClient:
             "laufzeit_min": round(laufzeit / 60, 1),
             "gleichzeitige_anfragen": FETCH_CONCURRENCY,
             "gleichzeitige_abfragen": POLL_CONCURRENCY,
-            # Sammelabruf: wie viele Werte der letzte Durchlauf gebündelt
-            # gelesen hat und wie viele Anfragen er insgesamt gekostet hat.
-            "gebuendelte_werte": self._poll_gebuendelt,
+            # Was der letzte Durchlauf gekostet hat.
             "anfragen_je_abruf": self._poll_anfragen,
-            "positionen_bekannt": len(self.menu_pos),
         }
 
     def _takte(self) -> dict[str, int]:
@@ -1723,36 +1629,19 @@ class WindhagerHttpClient:
         return faellig
 
     async def _lese_faellige(self, faellig: set) -> list:
-        """Die fälligen OIDs lesen – gebündelt, wo es sich lohnt.
+        """Die fälligen OIDs lesen – jede einzeln.
 
-        Der Sammelabruf ist eine reine Beschleunigung, kein neues Verhalten:
-        Was ein Fenster nicht liefert, wird einzeln nachgeholt. Fällt die
-        Bündelung ganz aus (alter Cache ohne Positionen, ältere Firmware ohne
-        Menü-Ebenen), läuft alles über den bisherigen Weg.
+        Eine Menü-Ebene lässt sich mit `count`/`offset` in einer Anfrage
+        lesen, und lange galt das als der schnelle Weg. Gemessen ist es der
+        langsame: Ein Fenster mit zehn Positionen kostet ein Vielfaches von
+        zehn Einzelabrufen über `datapoint`. Nicht die Zahl der Anfragen
+        kostet, sondern das Zusammenstellen der Metadaten, die dabei
+        anfallen und beim Abruf niemand braucht.
         """
-        fenster, einzeln = self.sammel_plan(faellig)
-        if not fenster:
-            return await asyncio.gather(*(self._fetch_oid(oid) for oid in einzeln))
-
-        gelesen = await asyncio.gather(*(self._fetch_fenster(*f) for f in fenster))
-        werte: dict = {}
-        for (_, _, _, _, erwartet), teil in zip(fenster, gelesen, strict=True):
-            werte.update(teil)
-            # Was das Fenster nicht hergab, kommt einzeln nach. Das deckt
-            # verschobene Positionen und Ebenen ab, die die Anlage gerade
-            # nicht beantwortet.
-            einzeln.update(erwartet - teil.keys())
-
-        nachgeholt = await asyncio.gather(*(self._fetch_oid(oid) for oid in einzeln))
-        self._poll_gebuendelt = len(werte)
-        self._poll_anfragen = len(fenster) + len(einzeln)
-        _LOGGER.debug(
-            "Poll: %d OIDs über %d Fenster + %d Einzelabrufe",
-            len(faellig),
-            len(fenster),
-            len(einzeln),
-        )
-        return list(werte.items()) + list(nachgeholt)
+        gelesen = await asyncio.gather(*(self._fetch_oid(oid) for oid in faellig))
+        self._poll_anfragen = len(faellig)
+        _LOGGER.debug("Poll: %d OIDs einzeln", len(faellig))
+        return list(gelesen)
 
     async def fetch_all(self):
         """Poll the currently relevant OIDs in parallel and return coordinator data.

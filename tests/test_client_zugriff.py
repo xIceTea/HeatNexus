@@ -251,27 +251,29 @@ async def test_ein_abgelehntes_zeitprogramm_bleibt_nicht_still(client):
 
 
 # ---------------------------------------------------------------------------
-# Sammelabruf
+# Werte lesen
 # ---------------------------------------------------------------------------
-async def test_ein_fenster_liefert_nur_die_gebrauchten_werte(client):
-    """Mitgelesen ist nicht angefordert.
+async def test_ein_wert_kommt_ueber_den_datapoint_endpunkt(client):
+    """Der Abruf braucht den Wert, nicht den Metadatensatz."""
+    c = client(_Antwort(200, json.dumps({"OID": "/1/60/0/0/7/0", "value": "63.5"}).encode()))
 
-    Ein Fenster schleppt ungenutzte Positionen mit. Sie gehören nicht ins
-    Ergebnis, sonst stünden Werte in der Anzeige, die niemand wollte.
-    """
-    rohdaten = json.dumps(
-        [
-            {"OID": "/1/60/0/0/7/0", "value": "63.5"},
-            {"OID": "/1/60/0/0/8/0", "value": "12"},
-            {"OID": "/1/60/0/0/9/0", "value": "-.-"},
-        ]
-    ).encode("utf-8")
-    c = client(_Antwort(200, rohdaten))
-    werte = await c._fetch_fenster("/1/60/0", "0", 7, 3, {"/1/60/0/0/7/0", "/1/60/0/0/9/0"})
-    assert werte == {"/1/60/0/0/7/0": "63.5", "/1/60/0/0/9/0": None}
+    oid, wert = await c._fetch_oid("/1/60/0/0/7/0")
+
+    assert (oid, wert) == ("/1/60/0/0/7/0", "63.5")
+    methode, url, _rumpf = c._session.anfragen[-1]
+    assert methode == "GET"
+    assert url.endswith("/api/1.0/datapoint/1/60/0/0/7/0")
 
 
-async def test_ein_gescheitertes_fenster_bricht_den_durchlauf_nicht_ab(client):
+async def test_eine_leermarke_wird_kein_messwert(client):
+    """`-.-` heißt „kein Wert", nicht 0."""
+    c = client(_Antwort(200, json.dumps({"value": "-.-"}).encode()))
+
+    assert await c._fetch_oid("/1/60/0/0/9/0") == ("/1/60/0/0/9/0", None)
+
+
+async def test_ein_gescheiterter_wert_bricht_den_durchlauf_nicht_ab(client):
     """Sonst risse ein einzelner Aussetzer den ganzen Abruf mit."""
     c = client(_Antwort(500, b"kaputt"))
-    assert await c._fetch_fenster("/1/60/0", "0", 0, 10, {"/1/60/0/0/7/0"}) == {}
+
+    assert await c._fetch_oid("/1/60/0/0/7/0") == ("/1/60/0/0/7/0", None)
