@@ -13,6 +13,10 @@ wenn dort Vorabversionen zugelassen sind.
 - Bezeichnungen kommen auf Wunsch aus der Anlage statt aus der Datenbank.
 - Sprache der Bezeichnungen in den Optionen wählbar.
 
+### Geändert
+
+- Werte werden deutlich schneller abgerufen.
+
 ### Behoben
 
 - Beim Automatik-/Zusatzkessel fehlten Betriebswahl und Alarmcode.
