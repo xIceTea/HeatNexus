@@ -48,7 +48,7 @@ rules:
   reauthentication-flow: done
   test-coverage:
     status: todo
-    comment: Rund die Hälfte des Codes ist geprüft, verlangt sind 95 Prozent.
+    comment: Drei Viertel des Codes sind geprüft, verlangt sind 95 Prozent.
 
   # ------------------------------------------------------------------ Gold
   devices: done
