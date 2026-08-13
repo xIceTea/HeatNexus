@@ -106,7 +106,7 @@ class AttrappenClient:
         self.devices = list(ZUSAETZLICH)
         self.exportiert = {"devices": ZUSAETZLICH}
 
-    async def fetch_all(self) -> dict[str, Any]:
+    async def fetch_all(self, budget: float | None = None) -> dict[str, Any]:
         return {
             "devices": self.devices,
             "oids": {"/1/15/0/0/7/0": "63.5"},
