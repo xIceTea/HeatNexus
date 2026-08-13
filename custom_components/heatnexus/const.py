@@ -1188,6 +1188,23 @@ FCT_ENTITY_MAP = {
     FCT_ZSP: ZSP_ENTITIES,
 }
 
+# Welche Funktions-Ids an einem Knoten geprüft werden, der in `GET /1` keine
+# gewöhnliche Funktion meldet. Bei einem Kessel ist es die 0; mehr zu prüfen
+# hieße raten, und jeder Versuch kostet eine Anfrage an eine träge Steuerung.
+FCT_IDS_UNGEMELDET: tuple[int, ...] = (0,)
+
+# Wieviele Adressen einer kuratierten Tabelle mindestens zutreffen müssen,
+# damit sie als Fingerabdruck zählt.
+#
+# **Ohne diese Schwelle gewinnt die kleinste Tabelle.** Der Typ einer nicht
+# gemeldeten Funktion wird über den Anteil ihrer Adressen bestimmt, die sich
+# wiederfinden. Eine Tabelle mit drei Einträgen erreicht schon bei zwei
+# Treffern zwei Drittel – mehr als eine große Tabelle je erreicht, und ein
+# Heizkreis wäre als Pumpenmodul erkannt worden. Umgekehrt reicht die reine
+# Trefferzahl nicht: An einem BioWIN treffen mehr PuroWIN-Adressen zu als
+# BioWIN-Adressen, weil die PuroWIN-Tabelle dreimal so groß ist.
+FINGERABDRUCK_MIN_TREFFER = 5
+
 # Fehler-/Meldetexte (aus Windhager ErrorTexte, lang=de)
 ERROR_TEXTS: dict[int, str] = {
     1: "Primärluftklappe blockiert oder defekt.",

@@ -13,6 +13,9 @@ fremde Nutzer.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from .conftest import requires_ha
@@ -147,3 +150,113 @@ async def test_der_kessel_bekommt_kein_thermostat(client_module, monkeypatch):
     """Climate gehört an den Heizkreis, nicht an den Wärmeerzeuger."""
     c = await _erkennen(client_module, monkeypatch)
     assert "climate" not in {d["type"] for d in c.devices}
+
+
+# ---------------------------------------------------------------------------
+# Ein Knoten, der antwortet, ohne sich anzukündigen
+# ---------------------------------------------------------------------------
+# Die Metadaten stammen von einer echten BioWIN-2-Anlage, deren Kessel in
+# `GET /1` ausschließlich seinen LON-Adressraum meldet – keine Funktion mit
+# `fctType`. Bis dahin entstand für so einen Kessel keine einzige Entität.
+# Adressen, Einheiten, Grenzen und Schreibschutz sind übernommen, die Werte
+# ersetzt.
+UNGEMELDET = json.loads(
+    (Path(__file__).parent / "daten" / "biowin_ungemeldet.json").read_text(encoding="utf-8")
+)
+
+
+async def _erkennen_ungemeldet(client_module, monkeypatch, levels=("info", "operate")):
+    """Erkennung an einem Knoten, der nur seinen LON-Adressraum meldet."""
+    c = _anlage(client_module, levels)
+    gelesen: list[str] = []
+
+    async def fetch(url, semaphore=None):
+        return [
+            {
+                "nodeId": 60,
+                "neuronId": "0000BIOWIN01",
+                "name": "BioWIN",
+                "device": {"id": 1},
+                # Genau das ist der Fall: nur die Netzwerkvariablen.
+                "functions": [{"fctId": 32, "fctType": -1, "lock": False, "name": "NV's"}],
+            }
+        ]
+
+    async def read_function_menus(prefix, fct_type):
+        gelesen.append(prefix)
+        return dict(UNGEMELDET["datenpunkte"]) if prefix == UNGEMELDET["praefix"] else {}
+
+    async def statische_adressen():
+        return set()
+
+    monkeypatch.setattr(c, "fetch", fetch)
+    monkeypatch.setattr(c, "_read_function_menus", read_function_menus)
+    monkeypatch.setattr(c, "_statische_adressen", statische_adressen)
+    await c._discover()
+    return c, gelesen
+
+
+async def test_ein_nicht_gemeldeter_kessel_wird_gefunden(client_module, monkeypatch):
+    """Ohne diesen Griff bliebe die Anlage ein Kessel ohne einen einzigen Wert."""
+    c, _ = await _erkennen_ungemeldet(client_module, monkeypatch)
+    assert c.devices, "der Kessel blieb unsichtbar"
+    assert {d["fct_type"] for d in c.devices} == {9}
+
+
+async def test_der_typ_kommt_aus_den_datenpunkten(client_module, monkeypatch):
+    """Die Struktur nennt keinen `fctType` – die Adressen sind kennzeichnend genug."""
+    from custom_components.heatnexus.const import BIOWIN_ENTITIES
+
+    c, _ = await _erkennen_ungemeldet(
+        client_module, monkeypatch, levels=("info", "operate", "service", "oem")
+    )
+    erkannt = {d["oid"] for d in c.devices}
+    kuratiert = {
+        f"{UNGEMELDET['praefix']}{e['oid']}" for e in BIOWIN_ENTITIES if not e.get("node_level")
+    }
+    fehlend = sorted(kuratiert - erkannt)
+    assert fehlend == [], f"kuratierte Adressen fehlen: {fehlend}"
+
+    # Und die Ebenenzuordnung greift: `0/96` steht in keiner kuratierten
+    # Tabelle, führt die Geräte-Datenbank aber als Infoebene des Typs 9. Ohne
+    # aufgelösten Typ wäre die Adresse als Werksebene herausgefallen.
+    assert f"{UNGEMELDET['praefix']}/0/96/0" in erkannt
+
+
+async def test_die_funktion_wird_nur_einmal_gelesen(client_module, monkeypatch):
+    """Der Typ stammt aus denselben Datenpunkten – ein zweiter Abruf wäre umsonst."""
+    _, gelesen = await _erkennen_ungemeldet(client_module, monkeypatch)
+    assert gelesen.count(UNGEMELDET["praefix"]) == 1
+
+
+async def test_ein_knoten_mit_gemeldeter_funktion_wird_nicht_geraten(client_module, monkeypatch):
+    """Wo die Struktur eine Funktion nennt, wird nichts dazuerfunden."""
+    c = _anlage(client_module)
+    gelesen: list[str] = []
+
+    async def fetch(url, semaphore=None):
+        return [
+            {
+                "nodeId": 60,
+                "neuronId": "0000BIOWIN01",
+                "name": "BioWIN",
+                "functions": [
+                    {"fctId": 0, "fctType": 9, "lock": False, "name": "BioWIN"},
+                    {"fctId": 32, "fctType": -1, "lock": False, "name": "NV's"},
+                ],
+            }
+        ]
+
+    async def read_function_menus(prefix, fct_type):
+        gelesen.append(prefix)
+        return dict(MENUE_DATEN)
+
+    async def statische_adressen():
+        return set()
+
+    monkeypatch.setattr(c, "fetch", fetch)
+    monkeypatch.setattr(c, "_read_function_menus", read_function_menus)
+    monkeypatch.setattr(c, "_statische_adressen", statische_adressen)
+    await c._discover()
+
+    assert gelesen == ["/1/60/0"], f"zusätzlich abgefragt: {gelesen}"

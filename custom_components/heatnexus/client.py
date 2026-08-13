@@ -18,7 +18,10 @@ from .const import (
     EXTRA_OIDS_BY_FCT,
     FCT_CLIMATE,
     FCT_ENTITY_MAP,
+    FCT_IDS_UNGEMELDET,
+    FCT_MODELL,
     FETCH_CONCURRENCY,
+    FINGERABDRUCK_MIN_TREFFER,
     MENU_PAGE_SIZE,
     POLL_CONCURRENCY,
     POLL_EINHEITEN_TRAEGE,
@@ -454,7 +457,84 @@ class WindhagerHttpClient:
             )
         return items
 
-    async def _read_function_menus(self, prefix: str, fct_type: int) -> dict:
+    def _typ_aus_datenpunkten(self, prefix: str, menu_data: dict) -> int | None:
+        """Den Funktionstyp aus den gefundenen Adressen erschließen.
+
+        Für eine Funktion, die `GET /1` nicht meldet, gibt es keinen `fctType`
+        – und ohne ihn greift weder die kuratierte Tabelle noch die
+        Ebenenzuordnung. Die Datenpunkte selbst sind aber kennzeichnend genug:
+        Verglichen wird, welcher Anteil einer kuratierten Tabelle sich
+        wiederfindet.
+
+        Entschieden wird nach Anteil, nicht nach Trefferzahl, und erst ab
+        `FINGERABDRUCK_MIN_TREFFER` Treffern – die Begründung für beides steht
+        an der Konstanten.
+        """
+        vorhanden = {self._gnmn(prefix, oid) for oid in menu_data}
+        if not vorhanden:
+            return None
+
+        bester: tuple[float, int, int] | None = None
+        for fct_type, eintraege in FCT_ENTITY_MAP.items():
+            tabelle = {d["oid"].strip("/").rsplit("/", 1)[0] for d in eintraege}
+            treffer = len(tabelle & vorhanden)
+            if treffer < FINGERABDRUCK_MIN_TREFFER:
+                continue
+            wertung = (treffer / len(tabelle), treffer, fct_type)
+            if bester is None or wertung > bester:
+                bester = wertung
+        if bester is None:
+            return None
+
+        anteil, treffer, fct_type = bester
+        _LOGGER.info(
+            "%s ist in der Struktur nicht gemeldet, nach seinen Datenpunkten "
+            "aber Funktionstyp %s (%s von %s Adressen, %.0f %%)",
+            prefix,
+            fct_type,
+            treffer,
+            len(FCT_ENTITY_MAP[fct_type]),
+            anteil * 100,
+        )
+        return fct_type
+
+    async def _ungemeldete_funktionen(self, device_id: str, gemeldet: list[dict]) -> list[dict]:
+        """Funktionen suchen, die der Knoten hat, aber nicht meldet.
+
+        **Ein Knoten kann antworten, ohne sich anzukündigen.** Es gibt Anlagen,
+        deren Kessel in `GET /1` ausschließlich seinen LON-Adressraum führt und
+        keine Funktion mit `fctType`. Die Datenpunkte darunter antworten
+        trotzdem – vollständig, mit Metadaten und Werten. Wer nur die
+        gemeldeten Funktionen liest, hält so einen Kessel für nicht vorhanden
+        und legt für ihn keine einzige Entität an.
+
+        Geprüft wird nur, wenn der Knoten gar keine brauchbare Funktion meldet;
+        an einem Knoten mit gemeldeter Funktion wäre es geraten.
+        """
+        vergeben = {f.get("fctId") for f in gemeldet}
+        gefunden = []
+        for fct_id in FCT_IDS_UNGEMELDET:
+            if fct_id in vergeben:
+                continue
+            prefix = f"{device_id}/{fct_id}"
+            menu_data = await self._read_function_menus(prefix, None)
+            if not menu_data:
+                continue
+            fct_type = self._typ_aus_datenpunkten(prefix, menu_data)
+            if fct_type is None:
+                _LOGGER.debug("%s antwortet, passt aber zu keiner bekannten Bauart", prefix)
+                continue
+            gefunden.append(
+                {
+                    "fctId": fct_id,
+                    "fctType": fct_type,
+                    "name": FCT_MODELL.get(fct_type, f"Funktion {fct_type}"),
+                    "_menus": menu_data,
+                }
+            )
+        return gefunden
+
+    async def _read_function_menus(self, prefix: str, fct_type: int | None) -> dict:
         """Alle Datenpunkte einer Funktion über ihre Menü-Ebenen einlesen."""
         root, status = await self._get(f"http://{self.host}/api/1.0/lookup{prefix}")
         if status != 200 or not isinstance(root, list) or not root:
@@ -623,7 +703,17 @@ class WindhagerHttpClient:
             primary_prefix = None
             primary_name = None
             primary_type = None
-            for fct in device.get("functions", []):
+
+            funktionen = list(device.get("functions", []))
+            brauchbar = any(
+                not f.get("lock")
+                and (f.get("fctType") in FCT_ENTITY_MAP or get_layers(f.get("fctType")))
+                for f in funktionen
+            )
+            if not brauchbar and not nur_kern:
+                funktionen += await self._ungemeldete_funktionen(device_id, funktionen)
+
+            for fct in funktionen:
                 fct_type = fct.get("fctType")
                 if fct.get("lock"):
                     continue
@@ -649,7 +739,14 @@ class WindhagerHttpClient:
                 # Sammel-Lesezugriff: Die Menü-Ebenen der Funktion liefern
                 # sämtliche vorhandenen Datenpunkte inklusive Metadaten in
                 # wenigen Anfragen. Das ist die Hauptquelle der Erkennung.
-                menu_data = {} if nur_kern else await self._read_function_menus(prefix, fct_type)
+                # Eine nicht gemeldete Funktion wurde schon gelesen – ihr Typ
+                # stammt aus genau diesen Datenpunkten. Ein zweiter Abruf
+                # brächte nichts und kostete die Anlage ein Menü mehr.
+                menu_data = fct.get("_menus")
+                if menu_data is None:
+                    menu_data = (
+                        {} if nur_kern else await self._read_function_menus(prefix, fct_type)
+                    )
                 self.menu_meta.update(menu_data)
 
                 layers = get_layers(fct_type) or {}
