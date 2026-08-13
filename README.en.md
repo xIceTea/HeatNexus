@@ -112,17 +112,20 @@ need the IP address of the system, the account and its password.
 The interface is the same one the system's own web front end uses. Out of the
 factory the controller knows two accounts:
 
-| Account | Factory password | Scope |
-|---|---|---|
-| `USER` | `123` | info and operator level |
-| `Service` | `123` | plus the OEM parameters |
+| Account | Factory password |
+|---|---|
+| `USER` | `123` |
+| `Service` | `123` |
+
+On the system measured, **both accounts see the same thing over the interface**,
+including the OEM parameters. The split into operating levels applies at the
+control panel; what shows up in Home Assistant is decided by the scope in the
+next step. This has not been verified on other series, so the account stays
+selectable.
 
 You can check the credentials without Home Assistant: open `http://<IP of the
 system>` in a browser. If the InfoWIN Touch web interface appears, the
-combination is right.
-
-To read or write OEM parameters, pick `Service` during setup. A different user
-name can be typed into the same field.
+combination is right. A different user name can be typed into the same field.
 
 **Changing the password** is possible in two places, both writing the same
 parameter: on the InfoWIN Touch itself, or in its web interface under
@@ -188,8 +191,11 @@ A notification accompanies the process and reports the final count. So there is
 no reason to worry if only a few values are visible right after setup.
 
 The result is stored and survives restarts; on the next start everything is
-there at once. A fresh read happens only after a change of scope, after a new
-version, or through the `heatnexus.rediscover` service.
+there at once. A full re-read happens after a change of scope or through the
+`heatnexus.rediscover` service. A new release of HeatNexus does **not** trigger
+one — otherwise every update would cost the full waiting time again. Instead
+the stored state is there immediately and whatever is new is added in the
+background.
 
 ## Services
 
@@ -198,6 +204,7 @@ version, or through the `heatnexus.rediscover` service.
 | `heatnexus.set_time_program` | set a time program (`switch_points` with `weekdays`, or `blocks` for separate weekly plans) |
 | `heatnexus.set_vorgabe` | timed room temperature override for a heating circuit ("Eco / Comfort") |
 | `heatnexus.set_current_temp_compensation` | comfort correction of a heating circuit |
+| `heatnexus.meldungen_loeschen` | clear the collected message list of a system |
 | `heatnexus.rediscover` | re-read the system, e.g. after modifications |
 
 ```yaml

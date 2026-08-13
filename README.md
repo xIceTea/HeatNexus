@@ -111,10 +111,15 @@ zugehörige Passwort.
 Die Schnittstelle ist dieselbe, die auch die Weboberfläche der Anlage benutzt.
 Ab Werk kennt die Steuerung zwei Zugänge:
 
-| Zugang | Passwort ab Werk | Umfang |
-|---|---|---|
-| `USER` | `123` | Info- und Betreiberebene |
-| `Service` | `123` | zusätzlich die Fachparameter |
+| Zugang | Passwort ab Werk |
+|---|---|
+| `USER` | `123` |
+| `Service` | `123` |
+
+An der geprüften Anlage sehen **beide Zugänge über die Schnittstelle dasselbe**,
+auch die Fachparameter. Die Trennung in Bedienebenen gilt am Bediengerät; was
+in Home Assistant erscheint, entscheidet der Umfang im nächsten Schritt. Für
+andere Baureihen ist das nicht belegt, deshalb bleibt der Zugang wählbar.
 
 Ob der Zugang stimmt, lässt sich ohne Home Assistant prüfen: `http://<IP der
 Anlage>` im Browser öffnen. Kommt die Weboberfläche des InfoWIN Touch, passt die
@@ -192,8 +197,11 @@ Anzahl. Es ist also kein Grund zur Sorge, wenn direkt nach dem Einrichten erst
 wenige Werte zu sehen sind.
 
 Das Ergebnis wird gespeichert und übersteht Neustarts; beim nächsten Start ist
-alles sofort da. Neu eingelesen wird nur nach einer Änderung des Umfangs, nach
-einer neuen Version oder über den Dienst `heatnexus.rediscover`.
+alles sofort da. Vollständig neu eingelesen wird nach einer Änderung des Umfangs
+oder über den Dienst `heatnexus.rediscover`. Eine neue Fassung von HeatNexus
+löst das **nicht** aus – sonst kostete jede Aktualisierung die volle Wartezeit
+von vorn. Stattdessen ist der gespeicherte Stand sofort da, und was neu
+dazugekommen ist, ergänzt HeatNexus im Hintergrund.
 
 ## Dienste
 

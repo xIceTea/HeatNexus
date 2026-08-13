@@ -20,7 +20,8 @@
 `client.py` kapselt das gesamte Gerätewissen und erzeugt flache Beschreibungen:
 
 ```python
-{"id": "192-168-178-100-1-60-0-0-7-0",   # unique_id
+{"id": "0702bb000002-0-0-7-0",            # unique_id: <neuronId>-<fctId>-<gn>-<mn>-<idx>
+ "alt_id": "…",                           # frühere Kennung, nur für die Umstellung
  "oid": "/1/60/0/0/7/0",
  "name": "Kesseltemperatur Ist",
  "type": "temperature",                   # bestimmt die Plattform
@@ -28,10 +29,16 @@
  "category": None, "icon": None,
  "min": None, "max": None, "step": None,
  "write_prot": True,
- "device_id": "192-168-178-100-1-60-0",   # HA-Gerät
+ "device_id": "0702bb000002-0",           # HA-Gerät
  "device_name": "PuroWIN",
  "fct_type": 25}                          # Funktionstyp, ordnet das Dashboard
 ```
+
+Die Kennung hängt an der **`neuronId`** – der Seriennummer des Bausteins, die
+jeder Knoten in der Struktur meldet. Sie übersteht einen Adresswechsel der
+Anlage; nur wenn ein Knoten keine meldet, tritt die Adresse als Notnagel ein.
+Das `alt_id` jedes Deskriptors trägt die frühere, adressgebundene Kennung, mit
+der `migration.py` bestehende Registrierungseinträge umschreibt.
 
 Jede Plattform filtert `coordinator.data["devices"]` nach `type`. Eine neue
 Plattform benötigt daher nur einen neuen `type` im Client, ein Modul, das darauf
@@ -40,8 +47,15 @@ filtert, und den Eintrag in `PLATFORMS`.
 ## Ablauf beim Start
 
 1. **Cache** – RAM (Reload) → Platte (`Store`, Neustart) → vollständige Discovery.
-   Der Cache wird verworfen bei Versionswechsel, Alter über 30 Tage oder durch
-   den Dienst `heatnexus.rediscover`.
+   Verworfen wird der Stand bei geändertem Umfang (Bedienebenen, Zugang,
+   Schalter), bei einem Alter über 30 Tagen oder durch den Dienst
+   `heatnexus.rediscover`. Eine **neue Fassung der Integration verwirft ihn
+   bewusst nicht**: Das kostete nach jeder Aktualisierung einen vollen Neuabzug
+   von 30 bis 120 Sekunden. Der gespeicherte Stand wird sofort hergestellt, ein
+   vollständiger Abzug läuft im Hintergrund nach und ergänzt, was neu ist.
+   Deskriptoren laufen beim Wiederherstellen durch `helpers.messgroesse` –
+   geänderte Einheiten und Geräteklassen wirken damit ohne Neuabzug, eine
+   geänderte Plattformauflösung nicht.
 2. **Discovery** – `/1` liefert Knoten und Funktionen. Je Funktion entstehen
    Entities aus den kuratierten Tabellen in `const.py` (`FCT_ENTITY_MAP`) und aus
    der Geräte-Datenbank (`device_db.json`, Ebenen `info`/`operate`/`service`).
@@ -147,6 +161,24 @@ ab und frischt sie beim Versionswechsel auf.
 Werte bleiben Strings und werden von den Entities selbst geparst. Fehlende Werte
 sind `None`, nie `0`.
 
+### Gestaffelter Takt
+
+Nicht jeder Wert bewegt sich gleich schnell. Jeder Datenpunkt bekommt eine
+Poll-Klasse, der Coordinator zählt seine Durchläufe und nimmt die trägen
+Klassen nur jeden *n*-ten mit:
+
+| Klasse | Ziel | Inhalt |
+|---|---|---|
+| `fast` | 30 s | Climate, Ist- und Solltemperaturen, Pumpen, Betriebsphase, Meldungen |
+| `normal` | 2 min | alles ohne besonderes Merkmal |
+| `slow` | 15 min | Zähler und Restlaufzeiten, `total`/`total_increasing`, träge Einheiten, deaktiviert angelegte Fachparameter |
+
+Eingestuft wird nach dem, was der Wert **ist** – Plattform, Name, `state_class`
+und Einheit –, nicht danach, in welcher Bedienebene er steht. Im Zweifel bleibt
+es beim mittleren Takt: eine Anfrage zu viel ist harmloser als eine Anzeige,
+die nachhinkt. Die Ziele sind Sollwerte; der tatsächliche Takt ergibt sich aus
+dem eingestellten Abfrageintervall.
+
 ## Enums
 
 Enum-Tabellen sind `dict[int, str]`, da die Wertebereiche Lücken enthalten
@@ -191,8 +223,11 @@ von Hand gepflegt.
 | `const.py` | kuratierte Entity-Tabellen, Enums, Zeitkonstanten |
 | `device_db.py` | Zugriff auf die Geräte-Datenbank |
 | `error_texts.py` | Dekodierung der Gerätemeldungen |
-| `helpers.py` | Wertparsing |
-| `config_flow.py` | Einrichtung (Host, Passwort) |
+| `helpers.py` | Wertparsing, Messgrößen (Einheit, Geräteklasse, Zustandsklasse) |
+| `kanonisch.py` | herstellerunabhängige Schlüssel je Datenpunkt (`boiler_temperature`, …) |
+| `migration.py` | schreibt Registrierungseinträge auf das aktuelle Kennungsschema um |
+| `anordnung.py` | Anordnung der Karten je Nutzer, über WebSocket gespeichert |
+| `config_flow.py` | Einrichtung (Host, Zugang, Passwort), Umfang, Optionen |
 | `climate.py` … `date.py` | Plattformen |
 
 ## Die Oberfläche
