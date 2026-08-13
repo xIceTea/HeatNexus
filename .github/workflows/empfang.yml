@@ -40,7 +40,7 @@ jobs:
               body: [
                 'Danke für den Abzug. HeatNexus entsteht an einer einzigen Anlage — über die hinaus wächst es nur, wenn jemand seine eigene beisteuert.',
                 '',
-                '**Ein Blick in die Dateien lohnt sich, bevor sie hochgehen.** Der Abzug enthält ein paar Angaben, die nicht öffentlich sein müssen:',
+                '**Bitte vor dem Hochladen prüfen**, dass in den Dateien nichts steht, was nicht öffentlich sein soll:',
                 '',
                 '- in `*_endpunkte.json` stehen Netzwerkeinstellungen, MAC-Adresse und Seriennummer der Steuerung',
                 '- in `*_structure.json` und `*_menus.json` steht die `neuronId` jedes Moduls',
