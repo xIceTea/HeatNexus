@@ -262,6 +262,24 @@ async def test_der_eintrag_laesst_sich_wieder_entladen(hass, eintrag):
     assert eintrag.state is ConfigEntryState.NOT_LOADED
 
 
+async def test_beim_entladen_bleiben_keine_laufzeitdaten_stehen(hass, eintrag):
+    """Ein entladener Eintrag darf nirgends mehr mitgezählt werden.
+
+    An den Laufzeitdaten hängen der Zeitgeber der Einlese-Meldung und die
+    Geräteliste des Dashboards. Bleiben sie stehen, meldet HeatNexus eine
+    Anlage als bereit, die es nicht mehr gibt.
+    """
+    import custom_components.heatnexus as modul
+
+    assert await _einrichten(hass, eintrag) is True
+    assert modul.laufzeitdaten(eintrag) is not None
+
+    assert await hass.config_entries.async_unload(eintrag.entry_id) is True
+    await hass.async_block_till_done()
+
+    assert modul.laufzeitdaten(eintrag) is None
+
+
 # ---------------------------------------------------------------------------
 # Vollabzug
 # ---------------------------------------------------------------------------

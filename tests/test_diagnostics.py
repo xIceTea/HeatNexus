@@ -18,7 +18,7 @@ from .conftest import requires_ha
 pytestmark = requires_ha()
 
 SERIENNUMMER = "0000ABCD1234"
-ADRESSE = "192.168.178.100"
+ADRESSE = "192.0.2.10"
 
 
 @pytest.fixture(scope="module")
@@ -87,15 +87,11 @@ def _coordinator():
 @pytest.fixture
 def export(diagnostics, hass):
     """Der fertige Diagnoseexport eines Eintrags mit einer Anlage."""
-    from custom_components.heatnexus.const import DOMAIN
-
-    hass.data[DOMAIN] = {
-        "eintrag1": {"name": "HeatNexus", "coordinators": {ADRESSE: _coordinator()}}
-    }
     eintrag = SimpleNamespace(
         entry_id="eintrag1",
         version=1,
         options={ADRESSE: {"levels": ["info"]}, "password": "geheim"},
+        runtime_data={"name": "HeatNexus", "coordinators": {ADRESSE: _coordinator()}},
     )
     return diagnostics.async_get_config_entry_diagnostics(hass, eintrag)
 
@@ -158,6 +154,6 @@ async def test_das_abrufverhalten_geht_mit(export):
 
 
 def test_eine_adresse_wird_als_schluessel_erkannt(diagnostics):
-    assert diagnostics._ist_adresse("192.168.178.100")
+    assert diagnostics._ist_adresse("192.0.2.10")
     assert not diagnostics._ist_adresse("levels")
     assert not diagnostics._ist_adresse(42)

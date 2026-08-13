@@ -26,8 +26,8 @@ if not ha_fehlt():
     from homeassistant.helpers import issue_registry as ir
     from homeassistant.helpers.update_coordinator import UpdateFailed
 
-    from custom_components.heatnexus import WindhagerDataUpdateCoordinator
     from custom_components.heatnexus.const import AUTH_FEHLER_GRENZE, DOMAIN
+    from custom_components.heatnexus.coordinator import WindhagerDataUpdateCoordinator
 
 
 @pytest.fixture
@@ -88,6 +88,45 @@ async def test_der_eintrag_verschwindet_von_selbst(hass, coordinator):
 
 
 # ---------------------------------------------------------------------------
+# Was im Protokoll landet
+# ---------------------------------------------------------------------------
+async def test_eine_stumme_anlage_wird_einmal_gemeldet(coordinator, caplog):
+    """Eine Anlage, die eine Nacht lang weg ist, füllt sonst das Protokoll.
+
+    Beim ersten Fehlschlag eine Warnung, danach nur noch auf Debug-Ebene.
+    """
+    coordinator.client.fetch_all.side_effect = TimeoutError("keine Antwort")
+    with caplog.at_level("WARNING"):
+        for _ in range(5):
+            with contextlib.suppress(UpdateFailed):
+                await coordinator._async_update_data()
+
+    warnungen = [satz for satz in caplog.messages if "192.0.2.1" in satz]
+    assert len(warnungen) == 1
+
+
+async def test_die_rueckkehr_steht_im_protokoll(coordinator, caplog):
+    """Ohne diese Zeile bleibt offen, wann die Anlage wieder da war."""
+    coordinator.client.fetch_all.side_effect = TimeoutError("keine Antwort")
+    with contextlib.suppress(UpdateFailed):
+        await coordinator._async_update_data()
+
+    coordinator.client.fetch_all.side_effect = None
+    with caplog.at_level("INFO"):
+        caplog.clear()
+        await coordinator._async_update_data()
+
+    assert any("wieder" in satz for satz in caplog.messages)
+
+
+async def test_ohne_stoerung_bleibt_das_protokoll_still(coordinator, caplog):
+    with caplog.at_level("INFO"):
+        await coordinator._async_update_data()
+        await coordinator._async_update_data()
+    assert not [satz for satz in caplog.messages if "192.0.2.1" in satz]
+
+
+# ---------------------------------------------------------------------------
 # Zeitfenster eines Abrufs
 # ---------------------------------------------------------------------------
 async def test_der_erste_abruf_bekommt_mehr_zeit(coordinator, monkeypatch):
@@ -97,7 +136,7 @@ async def test_der_erste_abruf_bekommt_mehr_zeit(coordinator, monkeypatch):
     dreißig Sekunden; der Abruf lief in die Zeitüberschreitung und es stand
     kein einziger Wert da.
     """
-    import custom_components.heatnexus as modul
+    from custom_components.heatnexus import coordinator as modul
 
     fenster = []
     monkeypatch.setattr(modul.asyncio, "timeout", lambda s: fenster.append(s) or _offen())

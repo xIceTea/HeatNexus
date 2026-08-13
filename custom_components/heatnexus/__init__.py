@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from datetime import timedelta
 import logging
 
 # Nur die Funktion, nicht das Modul: Diese Datei *ist* der Namensraum des
@@ -20,14 +19,12 @@ from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.storage import Store
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
@@ -35,9 +32,6 @@ from . import device_db, error_texts
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
-    ABRUF_TIMEOUT,
-    AUTH_FEHLER_GRENZE,
-    BACKOFF_MAX,
     CONF_DASHBOARD,
     CONF_ENABLE_ADVANCED,
     CONF_LABEL,
@@ -53,13 +47,13 @@ from .const import (
     DISCOVERY_MAX_AGE_DAYS,
     DISCOVERY_STORE_VERSION,
     DOMAIN,
-    ERSTABRUF_TIMEOUT,
     INIT_TIMEOUT,
     SIGNAL_NEUE_ENTITAETEN,
     UPDATE_INTERVAL,
 )
+from .coordinator import WindhagerDataUpdateCoordinator
 from .dashboard import async_remove_dashboard, async_setup_dashboard
-from .entity import steuerung_kennung
+from .entity import steuerung_info, steuerung_kennung
 from .migration import async_entity_ids_umstellen, async_kennungen_umstellen
 
 _LOGGER = logging.getLogger(__name__)
@@ -115,8 +109,9 @@ def _scope(entry: ConfigEntry, host: str) -> dict:
 def _scope_fingerprint(scope: dict) -> str:
     """Kennung des Umfangs – ändert er sich, ist der Erkennungsstand ungültig.
 
-    Der Zugang gehört dazu: „Service" sieht Datenpunkte, die „USER" gar nicht
-    erst geliefert bekommt. Ein Wechsel muss die Anlage neu einlesen.
+    Der Zugang gehört dazu. An der geprüften Baureihe liefern „USER" und
+    „Service" zwar dasselbe, für andere ist das nicht belegt – ein Wechsel
+    liest deshalb neu ein, statt sich auf eine ungeprüfte Annahme zu stützen.
     """
     return (
         ",".join(scope["levels"])
@@ -157,127 +152,29 @@ def _veraltet(stored, version: str) -> bool:
     return isinstance(stored, dict) and stored.get("version") != version
 
 
-class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
-    """Fragt eine Anlage zyklisch ab."""
+def laufzeitdaten(entry: ConfigEntry) -> dict | None:
+    """Die Laufzeitdaten eines Konfigurationseintrags, falls er geladen ist.
 
-    def __init__(self, hass, client, entry, host, label, update_interval=UPDATE_INTERVAL):
-        """Coordinator für genau eine Anlage."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=f"{DOMAIN} {host}",
-            update_interval=timedelta(seconds=update_interval),
-            # Unveränderte Daten lösen keinen Durchlauf durch alle Entitäten
-            # aus. Eine Anlage im Standby meldet minutenlang dieselben Werte –
-            # bei dreistelliger Entitätszahl jedes Mal ein vollständiger
-            # Rundlauf ohne Ergebnis.
-            #
-            # Achtung, das hat eine Nebenwirkung: Was sich nur *mit der Zeit*
-            # ändert, darf nicht am Takt des Coordinators hängen. Die
-            # optimistische Anzeige des Thermostats prüft ihren Ablauf deshalb
-            # seither in der Eigenschaft selbst (`_optimistisch_gueltig`) und
-            # nicht mehr nur beim Eintreffen neuer Daten.
-            always_update=False,
-        )
-        self.client = client
-        self.entry = entry
-        self.host = host
-        self.label = label
-        self.hub_name = entry.data.get(CONF_NAME) or entry.title
-        self.consecutive_timeouts = 0
-        # Der gewählte Takt. Bei Störungen wird langsamer gefragt, danach
-        # wieder genau hierauf zurückgestellt.
-        self._takt = update_interval
-        self._fehlschlaege = 0
+    `runtime_data` gibt es erst, wenn `async_setup_entry` durchgelaufen ist –
+    ein direkter Zugriff scheitert vorher mit `AttributeError`. Aufgerufen wird
+    das auch aus Pfaden, die während des Ladens laufen (Dashboard, Panel,
+    Meldung nach dem Einlesen).
+    """
+    daten = getattr(entry, "runtime_data", None)
+    return daten if isinstance(daten, dict) else None
 
-    def _langsamer_fragen(self) -> None:
-        """Nach einem Fehlschlag den Abstand verdoppeln.
 
-        Eine Anlage, die nicht antwortet, antwortet auch dreißig Sekunden
-        später nicht – sie bekommt dann aber trotzdem alle dreißig Sekunden
-        eine volle Runde Anfragen. Ist die Steuerung nur überlastet, hält der
-        gleichbleibende Takt sie genau darin fest.
-        """
-        self._fehlschlaege += 1
-        neu = min(self._takt * 2**self._fehlschlaege, BACKOFF_MAX)
-        if self.update_interval != timedelta(seconds=neu):
-            _LOGGER.debug("Abruf von %s vorerst alle %d s", self.host, neu)
-            self.update_interval = timedelta(seconds=neu)
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Die Dienste anmelden, bevor eine Anlage eingerichtet ist.
 
-    def _wieder_normal_fragen(self) -> None:
-        """Zurück auf den gewählten Takt, sobald die Anlage wieder antwortet."""
-        self._fehlschlaege = 0
-        if self.update_interval != timedelta(seconds=self._takt):
-            _LOGGER.debug("Abruf von %s wieder alle %d s", self.host, self._takt)
-            self.update_interval = timedelta(seconds=self._takt)
-
-    def _stoerung_melden(self, grund: str) -> None:
-        """Ein Problem in die Reparaturen von Home Assistant eintragen.
-
-        Eine Benachrichtigung verschwindet mit einem Klick und kommt nie
-        wieder; ein Reparatureintrag bleibt stehen, bis das Problem weg ist,
-        und **löst sich von selbst auf**, sobald die Anlage wieder antwortet.
-        """
-        ir.async_create_issue(
-            self.hass,
-            DOMAIN,
-            f"nicht_erreichbar_{self.entry.entry_id}_{self.host}",
-            is_fixable=False,
-            severity=ir.IssueSeverity.ERROR,
-            translation_key="nicht_erreichbar",
-            translation_placeholders={"anlage": self.label or self.host, "grund": grund},
-        )
-
-    def _stoerung_zuruecknehmen(self) -> None:
-        ir.async_delete_issue(
-            self.hass, DOMAIN, f"nicht_erreichbar_{self.entry.entry_id}_{self.host}"
-        )
-
-    async def _async_update_data(self):
-        """Werte der Anlage holen."""
-        # Mehrere abgewiesene Anfragen hintereinander heißen: Das Passwort
-        # stimmt nicht mehr. Home Assistant fragt dann von sich aus danach,
-        # statt die Anlage still als „nicht verfügbar" stehen zu lassen.
-        if getattr(self.client, "auth_errors", 0) >= AUTH_FEHLER_GRENZE:
-            raise ConfigEntryAuthFailed(f"Anlage {self.host} weist die Anmeldung ab")
-        erster = bool(getattr(self.client, "erster_abruf", False))
-        try:
-            async with asyncio.timeout(ERSTABRUF_TIMEOUT if erster else ABRUF_TIMEOUT):
-                data = await self.client.fetch_all()
-                self.consecutive_timeouts = 0
-                self._wieder_normal_fragen()
-                self._stoerung_zuruecknehmen()
-                return data
-        except TimeoutError as err:
-            self.consecutive_timeouts += 1
-            self._langsamer_fragen()
-            _LOGGER.warning(
-                "Zeitüberschreitung beim Abruf von %s (Versuch %d)",
-                self.host,
-                self.consecutive_timeouts,
-            )
-            if self.consecutive_timeouts >= 3:
-                self._stoerung_melden("Sie antwortet nicht mehr.")
-                raise UpdateFailed(f"Anlage {self.host} antwortet wiederholt nicht: {err}") from err
-            # Ein verpasster Abruf lässt die zuletzt gelesenen Werte stehen.
-            # Gibt es noch keine, ist nichts zu halten – dann muss der
-            # Fehlschlag auch als Fehlschlag gelten. Ein leeres Ergebnis als
-            # *Erfolg* abzulegen hieß, dass jeder Leser der Koordinatordaten
-            # eine Anlage ohne Datenpunkte sah; daran hing in 1.5.0-beta.9 die
-            # Stilllegung sämtlicher Entitäten.
-            if not self.data:
-                raise UpdateFailed(
-                    f"Anlage {self.host} hat noch keine Werte geliefert: {err}"
-                ) from err
-            return self.data
-        except ConfigEntryAuthFailed:
-            raise
-        except Exception as err:
-            self._langsamer_fragen()
-            _LOGGER.error("Fehler beim Abruf von %s: %s", self.host, err)
-            if self._fehlschlaege >= 3:
-                self._stoerung_melden(str(err))
-            raise UpdateFailed(f"Fehler bei der Abfrage von {self.host}: {err}") from err
+    Sie hängen nicht an einem einzelnen Konfigurationseintrag: `rediscover`
+    liest alle ein. Angemeldet in `async_setup_entry` gäbe es den Dienst ohne
+    eingerichtete Anlage gar nicht – eine Automation, die ihn aufruft, wäre
+    schon beim Speichern ungültig.
+    """
+    hass.data.setdefault(DOMAIN, {})
+    _async_register_rediscover_service(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -367,6 +264,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 await client.close()
                 raise ConfigEntryNotReady(f"Fehler beim Verbinden mit {host}: {err}") from err
 
+        # Ein Erkennungsstand aus einer Fassung ohne diese Abfrage trägt sie
+        # nicht mit. Zwei Anfragen holen sie nach, statt bis zum nächsten
+        # Neu-Einlesen ein Gerät ohne Modell und Firmwarestand zu zeigen.
+        if restored and not client.geraeteinfo:
+            with contextlib.suppress(Exception):
+                await client._lese_geraeteinfo()
+                await client._lese_knotendaten()
+
         coordinator = WindhagerDataUpdateCoordinator(
             hass, client, entry, host, label, scope["update_interval"]
         )
@@ -404,8 +309,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             identifiers={(DOMAIN, kennung)},
             name=label,
             manufacturer="Windhager",
-            model="Steuerung",
             via_device=(DOMAIN, entry.entry_id),
+            **steuerung_info(coordinator),
         )
 
         if not restored or abgleichen:
@@ -419,7 +324,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     hintergrund: list = []
-    hass.data[DOMAIN][entry.entry_id] = {
+    # Am Konfigurationseintrag, nicht in `hass.data`: Der Eintrag räumt seine
+    # Laufzeitdaten selbst ab. In `hass.data` bleibt nur, was mehreren
+    # Einträgen gehört (Erkennungsstände, vorgemerkte Abwahl).
+    entry.runtime_data = {
         "name": hub_name,
         "coordinators": coordinators,
         "hintergrund": hintergrund,
@@ -518,7 +426,7 @@ def _einlesen_melden(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 def _einlesen_abgeschlossen(hass: HomeAssistant, entry: ConfigEntry, host: str) -> None:
     """Eine Anlage ist durch; sind alle durch, das Ergebnis melden."""
-    daten = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    daten = laufzeitdaten(entry)
     if not isinstance(daten, dict):
         return
     offen = daten.get("einlesen_offen")
@@ -736,7 +644,7 @@ async def _vollabzug(
 
     await coordinator.async_refresh()
     async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id))
-    daten = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    daten = laufzeitdaten(entry)
     if daten:
         _abgewaehlte_entitaeten_stilllegen(hass, entry, daten["coordinators"])
 
@@ -773,15 +681,20 @@ def _async_register_rediscover_service(hass: HomeAssistant) -> None:
         oder dasselbe meldet, musste man sich aus der Entitätsliste
         zusammensuchen.
         """
+        eintraege = hass.config_entries.async_entries(DOMAIN)
+        if not eintraege:
+            raise ServiceValidationError(
+                "Es ist keine Anlage eingerichtet, die neu eingelesen werden könnte."
+            )
         hass.data.get(DOMAIN, {}).get("_discovery_cache", {}).clear()
         anlagen: list[dict[str, Any]] = []
-        for eintrag in hass.config_entries.async_entries(DOMAIN):
+        for eintrag in eintraege:
             for system in _systems(eintrag):
                 await Store(
                     hass, DISCOVERY_STORE_VERSION, _store_key(eintrag, system[CONF_HOST])
                 ).async_remove()
             await hass.config_entries.async_reload(eintrag.entry_id)
-            daten = hass.data.get(DOMAIN, {}).get(eintrag.entry_id) or {}
+            daten = laufzeitdaten(eintrag) or {}
             for host, coordinator in (daten.get("coordinators") or {}).items():
                 client = getattr(coordinator, "client", None)
                 if client is None:
@@ -810,7 +723,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
     Vorher wird festgehalten, ob dabei etwas *abgewählt* wurde: Nur dann darf
     der nächste Ladevorgang die betroffenen Entitäten wirklich entfernen.
     """
-    alt = (hass.data.get(DOMAIN, {}).get(entry.entry_id) or {}).get("umfang") or {}
+    alt = (laufzeitdaten(entry) or {}).get("umfang") or {}
     neu = {system[CONF_HOST]: _scope(entry, system[CONF_HOST]) for system in _systems(entry)}
     if alt and _umfang_verkleinert(alt, neu):
         _abwahl_vormerken(hass, entry)
@@ -821,7 +734,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Einen Konfigurationseintrag entladen."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        daten = hass.data[DOMAIN].pop(entry.entry_id, {})
+        daten = laufzeitdaten(entry) or {}
         # Erst den Vollabzug beenden, dann die Verbindung schließen. Andersherum
         # läuft die Hintergrundaufgabe in eine geschlossene Verbindung und
         # meldet „Connector is closed".
@@ -832,6 +745,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 await aufgabe
         for coordinator in daten.get("coordinators", {}).values():
             await coordinator.client.close()
+        # Die Laufzeitdaten ausdrücklich abräumen. An ihnen hängen der
+        # Zeitgeber der Einlese-Meldung und die Geräteliste des Dashboards;
+        # bleiben sie stehen, meldet HeatNexus eine Anlage als bereit, die es
+        # nicht mehr gibt.
+        entry.runtime_data = None
     return unload_ok
 
 

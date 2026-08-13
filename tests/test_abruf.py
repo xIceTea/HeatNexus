@@ -24,8 +24,8 @@ pytestmark = requires_ha()
 # läuft, zeigt `custom_components` auf das Testverzeichnis der Testumgebung,
 # und die eigene Integration ist von dort aus nicht mehr zu finden.
 if not ha_fehlt():
-    from custom_components.heatnexus import WindhagerDataUpdateCoordinator
     from custom_components.heatnexus.const import BACKOFF_MAX
+    from custom_components.heatnexus.coordinator import WindhagerDataUpdateCoordinator
 
 
 @pytest.fixture
