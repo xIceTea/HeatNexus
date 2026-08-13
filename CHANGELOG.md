@@ -6,6 +6,17 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.8.0-beta.5] - 2026-08-13
+
+### Behoben
+
+- Der Brennstoffverbrauch in Tonnen löste beim Start eine Warnung aus ([#3](https://github.com/xIceTea/HeatNexus/issues/3)).
+- Werte in Litern je Stunde lösten dieselbe Warnung aus.
+
+### Geändert
+
+- Die Protokollzeile zum Zeitfenster sagt jetzt, dass der Rest zuerst nachgeholt wird.
+
 ## [1.8.0-beta.4] - 2026-08-13
 
 ### Behoben
