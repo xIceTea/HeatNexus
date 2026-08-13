@@ -624,7 +624,14 @@ class WindhagerHttpClient:
             offset += MENU_PAGE_SIZE
         return items
 
-    async def _lese_nv(self, prefix: str, fct: dict) -> None:
+    async def _lese_nv(
+        self,
+        prefix: str,
+        fct: dict,
+        ziel_prefix: str | None = None,
+        ziel_name: str | None = None,
+        ziel_typ: int | None = None,
+    ) -> None:
         """Die Netzwerkvariablen eines Knotens als Deskriptoren anlegen.
 
         Was die Anlage hier führt, hängt nicht an ihrer Baureihe: Die Namen
@@ -648,9 +655,18 @@ class WindhagerHttpClient:
         )
         for menu_id, items in zip(ebenen, gelesen):
             for item in items:
-                self._nv_deskriptor(prefix, fct, menu_id, item)
+                self._nv_deskriptor(prefix, fct, menu_id, item, ziel_prefix, ziel_name, ziel_typ)
 
-    def _nv_deskriptor(self, prefix: str, fct: dict, menu_id: str, item: dict) -> None:
+    def _nv_deskriptor(
+        self,
+        prefix: str,
+        fct: dict,
+        menu_id: str,
+        item: dict,
+        ziel_prefix: str | None = None,
+        ziel_name: str | None = None,
+        ziel_typ: int | None = None,
+    ) -> None:
         """Einen Deskriptor aus einem Eintrag des LON-Adressraums bauen."""
         index = item.get("nvIndex")
         oid = f"{prefix}/{menu_id}/{index}/0"
@@ -695,10 +711,14 @@ class WindhagerHttpClient:
                 "write_prot": True,
                 "nv_name": nv_name,
                 "nv_index": index,
-                "device_id": self._geraetekennung(prefix),
-                "alt_device_id": self._alte_kennung(prefix),
-                "device_name": fct.get("name") or "Netzwerkvariablen",
-                "fct_type": FCT_NV,
+                "device_id": self._geraetekennung(ziel_prefix or prefix),
+                "alt_device_id": self._alte_kennung(ziel_prefix or prefix),
+                # Ein Knoten ohne brauchbare Funktion trägt keinen Namen, den
+                # man anzeigen möchte („NV's"). Dann nennt ihn die Anlage
+                # selbst: die Werksbezeichnung des Bausteins, beim Bedienteil
+                # „MB6611 LOP".
+                "device_name": ziel_name or self.werksbezeichnung.get(knoten) or "Bedienteil",
+                "fct_type": ziel_typ if ziel_prefix else FCT_NV,
             }
         )
         self.oids.add(oid)
@@ -723,11 +743,11 @@ class WindhagerHttpClient:
         belegt = {
             schluessel(d.get("id"))
             for d in self.devices
-            if d.get("fct_type") != FCT_NV and d.get("oid")
+            if not d.get("nv_name") and d.get("oid")
         }
         belegt.discard(None)
         for d in self.devices:
-            if d.get("fct_type") == FCT_NV and d.get("kanonisch") in belegt:
+            if d.get("nv_name") and d.get("kanonisch") in belegt:
                 d["enabled_default"] = False
 
     async def update(self, oid, value):
@@ -910,6 +930,7 @@ class WindhagerHttpClient:
             primary_name = None
             primary_type = None
 
+            nv_funktionen: list[dict] = []
             funktionen = list(device.get("functions", []))
             brauchbar = any(
                 not f.get("lock")
@@ -925,11 +946,11 @@ class WindhagerHttpClient:
                     continue
                 if fct_type == FCT_NV:
                     # Der LON-Adressraum kennt keine Bedienebenen und keine
-                    # kuratierte Tabelle; er läuft über seinen eigenen Weg.
-                    # Beim Kurzdurchlauf bleibt er außen vor – die Einrichtung
-                    # soll nicht länger werden als bisher.
-                    if not nur_kern:
-                        await self._lese_nv(f"{device_id}/{fct['fctId']}", fct)
+                    # kuratierte Tabelle; er läuft über seinen eigenen Weg –
+                    # und erst, wenn die Funktionen dieses Knotens gelesen
+                    # sind: Seine Werte gehören an das Gerät der Funktion,
+                    # nicht in ein zweites daneben.
+                    nv_funktionen.append(fct)
                     continue
                 if fct_type not in FCT_ENTITY_MAP and not get_layers(fct_type):
                     continue
@@ -1080,6 +1101,19 @@ class WindhagerHttpClient:
                             f"{prefix}/2/10/0",  # Dauer Eco/Party (Resthandzeit)
                             f"{prefix}/3/58/0",  # Behaglichkeitskorrektur
                         ]
+                    )
+
+            # Der LON-Adressraum, jetzt mit bekanntem Primärgerät. Ein Knoten
+            # ohne brauchbare Funktion – das Bedienteil – bekommt darüber sein
+            # eigenes Gerät; einen Kessel ergänzen die Werte an seinem.
+            if not nur_kern:
+                for fct in nv_funktionen:
+                    await self._lese_nv(
+                        f"{device_id}/{fct['fctId']}",
+                        fct,
+                        primary_prefix,
+                        primary_name,
+                        primary_type,
                     )
 
             # Geräte-Meldung (FE01msg, z.B. "PUR 09  OK") als Sensor je Knoten,

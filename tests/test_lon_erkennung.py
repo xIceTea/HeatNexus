@@ -140,6 +140,55 @@ async def test_kennung_wird_nicht_als_datenpunktadresse_gelesen(client_module, m
     assert schluessel(_nv(c, "WET_nvoTist")["id"]) is None
 
 
+async def test_werte_eines_kessels_haengen_an_seinem_geraet(client_module, monkeypatch):
+    """Sonst stünde neben dem Kessel ein zweites Gerät namens „NV's"."""
+    c = await _erkennen(client_module, monkeypatch)
+
+    kessel = next(d for d in c.devices if d.get("oid") == f"{PRAEFIX_FKT}/0/7/0")
+    assert _nv(c, "PMX_eeBetrStd")["device_id"] == kessel["device_id"]
+
+
+async def test_knoten_ohne_funktion_wird_zum_bedienteil(client_module, monkeypatch):
+    """Das Bedienteil meldet nur seinen LON-Adressraum – sonst gäbe es es nicht."""
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info", "operate"])
+    c.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
+    c.werksbezeichnung = {"90": "MB6611 LOP"}
+
+    async def fetch(url, semaphore=None):
+        return [
+            {
+                "nodeId": 90,
+                "neuronId": "0000BEDIEN01",
+                "name": "n.a.",
+                "functions": [{"fctId": 32, "fctType": -1, "lock": False, "name": "NV's"}],
+            }
+        ]
+
+    async def get(url, semaphore=None):
+        if url.endswith("lookup/1/90/32"):
+            return [{"id": 0, "count": 1}], 200
+        if "lookup/1/90/32/0" in url:
+            return [{"nvIndex": 3, "nvName": "nvoStatus", "unit": "", "value": "0"}], 200
+        return None, 404
+
+    async def read_function_menus(prefix, fct_type):
+        return {}
+
+    async def statische_adressen():
+        return set()
+
+    monkeypatch.setattr(c, "fetch", fetch)
+    monkeypatch.setattr(c, "_get", get)
+    monkeypatch.setattr(c, "_read_function_menus", read_function_menus)
+    monkeypatch.setattr(c, "_statische_adressen", statische_adressen)
+    monkeypatch.setattr(c, "_lade_geraetetexte", keine_geraetetexte)
+    await c._discover()
+
+    bedienteil = _nv(c, "nvoStatus")
+    assert bedienteil["device_name"] == "MB6611 LOP"
+    assert bedienteil["device_id"] == c._geraetekennung("/1/90/32")
+
+
 async def test_der_kurzdurchlauf_liest_keine_netzwerkvariablen(client_module, monkeypatch):
     """Die Einrichtung darf davon nicht länger werden."""
     c = client_module.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info"])
