@@ -371,3 +371,27 @@ def test_bedienbare_entitaeten_bleiben_ohne_rueckmeldung_verfuegbar():
 
     for klasse in (WindhagerButton, WindhagerNumber, WindhagerSelect, WindhagerSwitch):
         assert klasse._require_value_for_available is False, klasse.__name__
+
+
+def test_select_nimmt_die_zustandstexte_der_anlage(select_klasse):
+    """Bei fremder Sprache benennt die Steuerung ihre Zustände selbst."""
+    entity, _ = _entitaet(
+        select_klasse,
+        {"/1/60/0/9/75/0": "6"},
+        type="select",
+        enum="20/15",
+        enum_texte={4: "Auto with timer", 6: "Manual"},
+    )
+    assert entity.current_option == "Manual"
+
+
+def test_zustandstexte_ueberstehen_den_erkennungsstand(select_klasse):
+    """Nach dem Ablegen als JSON sind die Schlüssel Text, nicht Zahl."""
+    entity, _ = _entitaet(
+        select_klasse,
+        {"/1/60/0/9/75/0": "6"},
+        type="select",
+        enum="20/15",
+        enum_texte={"4": "Auto with timer", "6": "Manual"},
+    )
+    assert entity.current_option == "Manual"

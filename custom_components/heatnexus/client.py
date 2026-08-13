@@ -658,6 +658,16 @@ class WindhagerHttpClient:
             return vorgabe or geraet
         return geraet or vorgabe
 
+    def _enum_texte_fuer(self, gnmn: str) -> dict[int, str] | None:
+        """Zustandstexte, die die Anlage selbst für diesen Datenpunkt führt.
+
+        Nur bei fremder Sprache: Auf Deutsch gilt die gepflegte Tabelle, die
+        mehr Datenpunkte abdeckt als das Textwerk der Steuerung.
+        """
+        if self.sprache == "de":
+            return None
+        return self._texte.enums.get(gnmn)
+
     # ------------------------------------------------------------------
     # Discovery
     # ------------------------------------------------------------------
@@ -681,6 +691,7 @@ class WindhagerHttpClient:
             "type": definition["platform"],
             "unit": definition.get("unit"),
             "enum": definition.get("enum"),
+            "enum_texte": self._enum_texte_fuer(self._gnmn(base, oid)),
             "device_class": definition.get("device_class"),
             "state_class": definition.get("state_class"),
             "category": definition.get("category"),
@@ -849,6 +860,7 @@ class WindhagerHttpClient:
                                 level not in ADVANCED_LEVELS or self.enable_advanced
                             ),
                             "enum": gnmn if get_enum(gnmn) else None,
+                            "enum_texte": self._enum_texte_fuer(gnmn),
                             "unit": None,
                             "device_class": None,
                             "state_class": None,
