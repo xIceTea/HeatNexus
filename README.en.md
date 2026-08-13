@@ -42,7 +42,7 @@ decide whether the integration fits before you install it.
 | UML / UMLZ heating circuit module | verified against real hardware |
 | B-PLMi buffer charging module | verified against real hardware |
 | ZSP pump and relay module | verified against real hardware |
-| BioWIN, BioWIN 2 — pellets | supported, unverified |
+| BioWIN, BioWIN 2 — pellets | verified on a contributed system |
 | Heat pump, electric heater | supported, unverified |
 | Gas and oil boilers | supported, unverified |
 | Solar, cascade, changeover | supported, unverified |
@@ -50,9 +50,15 @@ decide whether the integration fits before you install it.
 
 *Supported, unverified* means the function is described in the bundled device
 database and is recognised with its names, units and enumerations — there simply
-was no such system available to measure against. Which function type is what and
-which datapoints it carries is documented in full in
-[`docs/DATAPOINTS.md`](docs/DATAPOINTS.md).
+was no such system available to measure against.
+
+*Verified on a contributed system* means someone shared a dump of their own
+system, discovery is proven against it and the values show up in Home Assistant.
+What is not verified is control: switches, setpoints and time programs of that
+component have not been exercised on real hardware.
+
+Which function type is what and which datapoints it carries is documented in
+full in [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md).
 
 Everything else is picked up by the generic discovery: whatever the controller
 reports shows up in Home Assistant. Reports about hardware not listed here are

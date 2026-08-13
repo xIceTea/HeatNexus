@@ -37,7 +37,7 @@ einschließlich Info-, Betreiber- und Serviceebene.
 | UML / UMLZ Heizkreismodul | an der Anlage geprüft |
 | B-PLMi Pufferlademodul | an der Anlage geprüft |
 | ZSP Pumpen- und Relaismodul | an der Anlage geprüft |
-| BioWIN, BioWIN 2 – Pellets | eingebunden, ungeprüft |
+| BioWIN, BioWIN 2 – Pellets | an einer fremden Anlage geprüft |
 | Wärmepumpe, E-Heizung | eingebunden, ungeprüft |
 | Gas- und Ölkessel | eingebunden, ungeprüft |
 | Solar, Kaskade, Umschaltung | eingebunden, ungeprüft |
@@ -45,9 +45,16 @@ einschließlich Info-, Betreiber- und Serviceebene.
 
 „Eingebunden" heißt: Die Funktion ist in der mitgelieferten Datenbank
 beschrieben und wird mit Namen, Einheiten und Auswahlwerten erkannt – nur stand
-noch keine solche Anlage zum Nachmessen bereit. Welcher Funktionstyp was ist und
-welche Datenpunkte er führt, steht vollständig in
-[`docs/DATAPOINTS.md`](docs/DATAPOINTS.md).
+noch keine solche Anlage zum Nachmessen bereit.
+
+„An einer fremden Anlage geprüft" heißt: Jemand hat einen Abzug seiner Anlage
+beigesteuert, die Erkennung ist daran belegt und die Werte stehen in Home
+Assistant. Nicht geprüft ist das Bedienen – Schalter, Sollwerte und
+Zeitprogramme dieses Anlagenteils sind an echter Hardware noch nicht
+ausprobiert.
+
+Welcher Funktionstyp was ist und welche Datenpunkte er führt, steht vollständig
+in [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md).
 
 Alles Weitere wird über die allgemeine Erkennung eingebunden: Was die Steuerung
 liefert, erscheint auch in Home Assistant. Rückmeldungen zu nicht gelisteten
