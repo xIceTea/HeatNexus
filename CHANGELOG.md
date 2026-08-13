@@ -13,6 +13,10 @@ wenn dort Vorabversionen zugelassen sind.
 - Bezeichnungen kommen auf Wunsch aus der Anlage statt aus der Datenbank.
 - Sprache der Bezeichnungen in den Optionen wählbar.
 
+### Behoben
+
+- Beim Automatik-/Zusatzkessel fehlten Betriebswahl und Alarmcode.
+
 ## [1.8.0-beta.1] - 2026-08-13
 
 ### Neu
