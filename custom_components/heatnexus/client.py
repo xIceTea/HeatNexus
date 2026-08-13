@@ -43,6 +43,7 @@ from .const import (
 from .device_db import get_enum, get_layers, get_name
 from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
 from .kanonisch import schluessel as kanonischer_schluessel
+from .lon import ist_eingang as lon_ist_eingang
 from .lon import kennungsteil as lon_kennungsteil
 from .lon import zuordnen as lon_zuordnen
 
@@ -628,7 +629,6 @@ class WindhagerHttpClient:
     async def _lese_nv(
         self,
         prefix: str,
-        fct: dict,
         ziel_prefix: str | None = None,
         ziel_name: str | None = None,
         ziel_typ: int | None = None,
@@ -656,12 +656,11 @@ class WindhagerHttpClient:
         )
         for menu_id, items in zip(ebenen, gelesen, strict=True):
             for item in items:
-                self._nv_deskriptor(prefix, fct, menu_id, item, ziel_prefix, ziel_name, ziel_typ)
+                self._nv_deskriptor(prefix, menu_id, item, ziel_prefix, ziel_name, ziel_typ)
 
     def _nv_deskriptor(
         self,
         prefix: str,
-        fct: dict,
         menu_id: str,
         item: dict,
         ziel_prefix: str | None = None,
@@ -690,19 +689,23 @@ class WindhagerHttpClient:
                 "oid": oid,
                 "name": eintrag["name"] if eintrag else (nv_name or f"Netzwerkvariable {index}"),
                 "type": "auto",
-                # Netzwerkvariablen stehen in keiner Bedienebene der Anlage.
-                # Sie hier als Werksebene zu führen hieße, sie bei der
-                # üblichen Umfangsauswahl herauszufiltern; über ihre Sichtbar-
-                # keit entscheidet stattdessen `enabled_default`.
-                "level": "info",
-                "enabled_default": bool(eintrag),
+                # Netzwerkvariablen stehen in keiner Bedienebene der Anlage –
+                # weder Info noch Service. Sie eine zu nennen, um durch den
+                # Umfangsfilter zu kommen, wäre eine falsche Auskunft an alles,
+                # was später nach Ebenen unterscheidet; den Filter durchlaufen
+                # sie ohnehin nicht. Über ihre Sichtbarkeit entscheidet
+                # `enabled_default`.
+                "level": None,
+                # Ab Werk aktiv ist nur ein benannter **Ausgang**. Der Eingang
+                # daneben führt dieselbe Zahl, und Unbenanntes taugt ohne
+                # Nachsehen zu nichts.
+                "enabled_default": bool(eintrag) and not lon_ist_eingang(nv_name),
                 "enum": None,
                 "enum_texte": None,
                 "unit": None,
-                "device_class": eintrag["device_class"] if eintrag else None,
-                "state_class": eintrag["state_class"] if eintrag else None,
-                "poll_class": eintrag["poll_class"] if eintrag else POLL_SLOW,
-                "kanonisch": eintrag["kanonisch"] if eintrag else None,
+                "device_class": None,
+                "state_class": eintrag.get("state_class") if eintrag else None,
+                "kanonisch": eintrag.get("kanonisch") if eintrag else None,
                 "category": None if eintrag else "diagnostic",
                 "icon": None,
                 "min": None,
@@ -711,14 +714,15 @@ class WindhagerHttpClient:
                 "press_value": None,
                 "write_prot": True,
                 "nv_name": nv_name,
-                "nv_index": index,
                 "device_id": self._geraetekennung(ziel_prefix or prefix),
                 "alt_device_id": self._alte_kennung(ziel_prefix or prefix),
                 # Ein Knoten ohne brauchbare Funktion trägt keinen Namen, den
                 # man anzeigen möchte („NV's"). Dann nennt ihn die Anlage
                 # selbst: die Werksbezeichnung des Bausteins, beim Bedienteil
-                # „MB6611 LOP".
-                "device_name": ziel_name or self.werksbezeichnung.get(knoten) or "Bedienteil",
+                # „MB6611 LOP". Fehlt auch die, bleibt die Knotennummer – sie
+                # ist wenigstens wahr, während „Bedienteil" bei jedem zweiten
+                # Busgerät danebenläge.
+                "device_name": ziel_name or self.werksbezeichnung.get(knoten) or f"Knoten {knoten}",
                 "fct_type": ziel_typ if ziel_prefix else FCT_NV,
             }
         )
@@ -1111,7 +1115,6 @@ class WindhagerHttpClient:
                 for fct in nv_funktionen:
                     await self._lese_nv(
                         f"{device_id}/{fct['fctId']}",
-                        fct,
                         primary_prefix,
                         primary_name,
                         primary_type,
@@ -1441,11 +1444,14 @@ class WindhagerHttpClient:
         und Betriebszustände in Sekunden. Im Zweifel bleibt es beim mittleren
         Takt – lieber einmal zu oft gelesen als eine Anzeige, die nachhinkt.
         """
-        # Ein Deskriptor, der seinen Takt selbst mitbringt, behält ihn: Bei
-        # Netzwerkvariablen steht er in der Namenstabelle, weil der Name mehr
-        # über den Wert sagt als Einheit und Typ.
-        if vorgabe := beschreibung.get("poll_class"):
-            return vorgabe
+        # Netzwerkvariablen sind die zweite Quelle, nie die erste: Was sie
+        # führen, steht meist schon als Datenpunkt da. Sie laufen deshalb
+        # langsam, außer die Namenstabelle nennt einen anderen Takt – Pumpe
+        # und Ventil zeigt das Schaubild. Ohne diese Regel griffe die
+        # Einstufung unten: „Temperatur" und „Pumpe" gälten als laufende
+        # Betriebswerte und kämen auf 120 Anfragen je Stunde und Wert.
+        if nv_name := beschreibung.get("nv_name"):
+            return (lon_zuordnen(nv_name) or {}).get("poll_class", POLL_SLOW)
 
         typ = beschreibung.get("type") or ""
         if typ in POLL_TYPEN_SCHNELL:

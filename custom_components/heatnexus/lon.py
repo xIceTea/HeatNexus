@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import re
 
-from .const import POLL_NORMAL, POLL_SLOW
+from .const import POLL_NORMAL
 
 # Der Index steht am Namen (`LX_nvoPump[0]`) und nennt den Kreis.
 _INDEX = re.compile(r"^(?P<name>.+?)\[(?P<index>\d+)\]$")
@@ -84,16 +84,30 @@ LON_NAMEN: dict[str, dict] = {
     "nviTaFb": {"name": "Außentemperatur (Rückmeldung)"},
     "nvoTi": {"name": "Raumtemperatur", "kanonisch": "room_temperature"},
     "nvoTiStpt": {"name": "Raumtemperatur Soll", "kanonisch": "room_temperature_target"},
-    # Mischerkreis.
-    "M_nvoPump": {"name": "Mischerkreis Pumpe", "poll_class": POLL_NORMAL},
-    "M_nvoValve": {"name": "Mischerventil", "poll_class": POLL_NORMAL},
+    # Mischerkreis. Pumpe und Ventil zeigt das Schaubild – sie laufen im
+    # mittleren Takt statt im langsamen und tragen die Schlüssel ihrer
+    # Datenpunkt-Gegenstücke, damit sie schweigen, wo es die schon gibt.
+    "M_nvoPump": {
+        "name": "Mischerkreis Pumpe",
+        "poll_class": POLL_NORMAL,
+        "kanonisch": "circuit_pump",
+    },
+    "M_nvoValve": {
+        "name": "Mischerventil",
+        "poll_class": POLL_NORMAL,
+        "kanonisch": "mixer_position",
+    },
     "M_nviTVist": {"name": "Vorlauftemperatur Mischerkreis"},
     "M_nviTVsoll": {"name": "Vorlauftemperatur Soll Mischerkreis"},
     # Kreise mit Index. `LX` ist am Namen nicht eindeutig einem Heizkreis
     # zuzuordnen – der Index nennt den Kreis, der Begriff bleibt neutral und
     # ohne kanonischen Schlüssel, bis eine zweite Anlage ihn belegt.
-    "LX_nvoPump": {"name": "Kreis Pumpe", "poll_class": POLL_NORMAL},
-    "LX_nvoValve": {"name": "Kreis Ventil", "poll_class": POLL_NORMAL},
+    "LX_nvoPump": {"name": "Kreis Pumpe", "poll_class": POLL_NORMAL, "kanonisch": "circuit_pump"},
+    "LX_nvoValve": {
+        "name": "Kreis Ventil",
+        "poll_class": POLL_NORMAL,
+        "kanonisch": "mixer_position",
+    },
     "LX_nviTist": {"name": "Kreis Temperatur Ist"},
     "LX_nviTsoll": {"name": "Kreis Temperatur Soll"},
     "LX_nvoSetPt": {"name": "Kreis Sollwert"},
@@ -114,13 +128,31 @@ def kennungsteil(nv_name: str | None, menu_id: str, index) -> str:
     return f"nv-{menu_id}-{index}-{rumpf}" if rumpf else f"nv-{menu_id}-{index}"
 
 
+def ist_eingang(nv_name: str | None) -> bool:
+    """Ob der Name einen Bus-**Eingang** benennt (`nvi`) statt einen Ausgang.
+
+    Ein Knoten führt dieselbe Größe zweimal: als Ausgang, den er meldet, und
+    als Eingang, den er von einem anderen Knoten bekommt. `WET_nviTist` und
+    `WET_nvoTist` standen im Abzug beide auf 78,27 °C. Beide ab Werk zu lesen
+    kostet die Anlage jede Stunde Anfragen für Zahlen, die schon dastehen –
+    der Eingang wird deshalb angelegt, aber nicht eingeschaltet.
+    """
+    rumpf = _INDEX.sub(r"\g<name>", str(nv_name or "").strip())
+    return rumpf.rsplit("_", 1)[-1].lower().startswith("nvi")
+
+
 def zuordnen(nv_name: str | None) -> dict | None:
     """Kuratierter Eintrag zu einem Namen aus dem LON-Adressraum.
 
     Gibt ``None`` zurück, wenn der Name nicht in der Tabelle steht – dann
     bleibt es beim Namen der Anlage. Der Index in eckigen Klammern zählt den
-    Kreis und steht als ``index`` in der Rückgabe; er gehört zum Namen, nicht
-    zur Bedeutung, und wird für den Tabellenzugriff abgeschnitten.
+    Kreis; er gehört zum Namen, nicht zur Bedeutung, und wird für den
+    Tabellenzugriff abgeschnitten.
+
+    Der Takt steht nur dort, wo die Tabelle ihn nennt. Sonst fehlt er
+    absichtlich: Die Einstufung aus Einheit, Typ und Zustandsklasse ist die
+    allgemeine Regel des Clients, und eine Tabelle mit Vorgabewert für jeden
+    Eintrag würde sie für den ganzen LON-Raum abschalten.
     """
     if not nv_name:
         return None
@@ -132,14 +164,7 @@ def zuordnen(nv_name: str | None) -> dict | None:
     eintrag = LON_NAMEN.get(rest)
     if eintrag is None:
         return None
-    name = eintrag["name"]
+    ergebnis = dict(eintrag)
     if index is not None:
-        name = f"{name} {index + 1}"
-    return {
-        "name": name,
-        "device_class": eintrag.get("device_class"),
-        "state_class": eintrag.get("state_class"),
-        "poll_class": eintrag.get("poll_class", POLL_SLOW),
-        "kanonisch": eintrag.get("kanonisch"),
-        "index": index,
-    }
+        ergebnis["name"] = f"{eintrag['name']} {index + 1}"
+    return ergebnis

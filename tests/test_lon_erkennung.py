@@ -124,6 +124,33 @@ async def test_doppelter_begriff_bleibt_deaktiviert(client_module, monkeypatch):
     assert _nv(c, "WET_nvoTist")["enabled_default"] is False
 
 
+async def test_netzwerkvariablen_laufen_im_langsamen_takt(client_module, monkeypatch):
+    """Ohne eigene Regel gälte eine LON-Temperatur als laufender Betriebswert.
+
+    `_poll_klasse` stuft nach Typ und Name ein: „Temperatur" und „Pumpe"
+    bedeuten dort den schnellen Takt, also 120 Anfragen je Stunde und Wert.
+    Für die zweite Quelle wäre das verschwendet.
+    """
+    c = await _erkennen(client_module, monkeypatch)
+
+    assert client_module.WindhagerHttpClient._poll_klasse(_nv(c, "WET_nvoTist")) == "slow"
+
+
+async def test_bus_eingaenge_kommen_deaktiviert(client_module, monkeypatch):
+    """`WET_nviTist` und `WET_nvoTist` standen im Abzug auf demselben Wert."""
+    c = await _erkennen(
+        client_module,
+        monkeypatch,
+        nv_eintraege=[
+            {"nvIndex": 6, "nvName": "WET_nviTist", "unit": "°C", "value": "78.27", "typeId": 13},
+            {"nvIndex": 28, "nvName": "PMX_eeBetrStd", "unit": "Std", "value": "14203"},
+        ],
+    )
+
+    assert _nv(c, "WET_nviTist")["enabled_default"] is False
+    assert _nv(c, "PMX_eeBetrStd")["enabled_default"] is True
+
+
 async def test_netzwerkvariablen_werden_nie_geschrieben(client_module, monkeypatch):
     """`nvi`-Variablen sind Eingänge der Regelung zwischen den Knoten."""
     c = await _erkennen(client_module, monkeypatch)

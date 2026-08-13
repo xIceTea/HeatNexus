@@ -25,10 +25,17 @@ def test_klarname_statt_rohname():
 
 def test_index_zaehlt_den_kreis_und_trifft_denselben_eintrag():
     """`LX_nvoPump[0]` ist derselbe Begriff wie `LX_nvoPump`, nur der erste Kreis."""
-    eintrag = lon.zuordnen("LX_nvoPump[0]")
+    assert lon.zuordnen("LX_nvoPump[0]")["name"] == "Kreis Pumpe 1"
+    assert lon.zuordnen("LX_nvoPump[1]")["name"] == "Kreis Pumpe 2"
 
-    assert eintrag["index"] == 0
-    assert eintrag["name"] == "Kreis Pumpe 1"
+
+def test_bus_eingaenge_werden_erkannt():
+    """Eingang und Ausgang führen dieselbe Zahl; nur der Ausgang wird gelesen."""
+    assert lon.ist_eingang("WET_nviTist") is True
+    assert lon.ist_eingang("nviTaFb") is True
+    assert lon.ist_eingang("LX_nviTsoll[0]") is True
+    assert lon.ist_eingang("WET_nvoTist") is False
+    assert lon.ist_eingang("PMX_eeBetrStd") is False
 
 
 def test_unbekannter_name_bleibt_unbekannt():
@@ -37,10 +44,15 @@ def test_unbekannter_name_bleibt_unbekannt():
     assert lon.zuordnen(None) is None
 
 
-def test_traege_werte_bleiben_in_der_langsamen_klasse():
-    """Betriebsstunden brauchen keinen Halbminutentakt."""
-    assert lon.zuordnen("PMX_eeBetrStd")["poll_class"] == "slow"
-    # Pumpe und Ventil zeigt das Schaubild – sie laufen im mittleren Takt.
+def test_nur_abweichende_takte_stehen_in_der_tabelle():
+    """Sonst schaltete die Tabelle die Einstufung des Clients ganz ab.
+
+    Der Takt fehlt bei den meisten Einträgen absichtlich: `_poll_klasse`
+    setzt für Netzwerkvariablen ohnehin den langsamen an. Genannt wird er
+    nur, wo er davon abweicht – bei Pumpe und Ventil, die das Schaubild
+    zeigt.
+    """
+    assert "poll_class" not in lon.zuordnen("PMX_eeBetrStd")
     assert lon.zuordnen("M_nvoPump")["poll_class"] == "normal"
 
 
