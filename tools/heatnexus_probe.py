@@ -35,10 +35,10 @@ import urllib.error
 import urllib.request
 from xml.etree import ElementTree
 
-# Zugang ab Werk. Die Steuerung kennt zwei: `USER` sieht Info- und
-# Betreiberebene, `Service` zusätzlich die Fachparameter. Welcher gilt,
-# entscheidet `--user` – fest eingebaut bliebe unsichtbar, was `Service`
-# verlangt.
+# Zugang ab Werk. Die Steuerung kennt zwei Benutzer, `USER` und `Service`; der
+# Name wird geprüft, der Umfang hängt aber nicht daran – über die Schnittstelle
+# liefern beide dieselben Datenpunkte samt Fachparametern. `--user` bleibt
+# trotzdem wählbar, weil das nur an einer Baureihe gemessen ist.
 USERNAME = "USER"
 TIMEOUT = 30  # große Menü-Ebenen brauchen deutlich länger als eine Einzelabfrage
 # An der Anlage gemessen: derselbe Menü-Abzug mit 3 und mit 6 Worker braucht
@@ -754,6 +754,74 @@ def suche_nv_werte(probe: Probe, menus: dict) -> dict:
     return {"brauchbar": brauchbar, "zaehler": zaehler, "alle": versuche}
 
 
+# Toleranz beim Zuordnen eines LON-Werts zu einem Datenpunkt derselben Anlage.
+VERGLEICH_TOLERANZ = 0.05
+
+
+def vergleich_lon_oid(menus: dict, nv: dict) -> dict:
+    """LON-Werte gegen die OID-Datenpunkte derselben Anlage stellen.
+
+    Die Frage ist nicht das Tempo – ein Menü-Fenster liefert zehn Werte je
+    Anfrage, eine Netzwerkvariable einen. Die Frage ist, ob LON etwas liefert,
+    das es als OID nicht gibt.
+
+    Zugeordnet wird über Einheit und Wert am selben Knoten, mit Toleranz. Das
+    ist eine **Heuristik**: Zwei Fühler mit gleichem Messwert sind nicht zu
+    unterscheiden. Sie taugt für die Frage „hat dieser LON-Wert überhaupt eine
+    Entsprechung", nicht für „welche".
+
+    Beide Seiten müssen aus **demselben Lauf** stammen. Ein Messwert, der sich
+    zwischen Menü-Abzug und LON-Abruf bewegt hat – eine Außentemperatur etwa –
+    findet sonst keine Entsprechung mehr und steht fälschlich in `ohne_oid`.
+    """
+
+    def _zahl(wert) -> float | None:
+        try:
+            return float(str(wert).replace(",", "."))
+        except (TypeError, ValueError):
+            return None
+
+    je_knoten: dict[str, list[tuple[str, float]]] = {}
+    for fct in menus["functions"]:
+        if fct.get("fct_type", 0) == -1:
+            continue
+        teile = fct["prefix"].strip("/").split("/")
+        knoten = teile[1] if len(teile) > 1 else ""
+        for eintrag in (fct.get("datapoints") or {}).values():
+            wert = _zahl(eintrag.get("value"))
+            if wert is not None:
+                je_knoten.setdefault(knoten, []).append((eintrag.get("unit") or "", wert))
+
+    ohne, mit = [], []
+    for eintrag in nv.get("brauchbar", []):
+        wert = _zahl(eintrag.get("value"))
+        if wert is None:
+            continue
+        teile = str(eintrag.get("funktion", "")).strip("/").split("/")
+        kandidaten = je_knoten.get(teile[1] if len(teile) > 1 else "", [])
+        einheit = eintrag.get("unit") or ""
+        treffer = any(e == einheit and abs(w - wert) <= VERGLEICH_TOLERANZ for e, w in kandidaten)
+        (mit if treffer else ohne).append(
+            {
+                "nvName": eintrag.get("nvName"),
+                "snvtName": eintrag.get("snvtName"),
+                "unit": einheit,
+                "value": eintrag.get("value"),
+                "oid": eintrag.get("oid"),
+            }
+        )
+
+    return {
+        "mit_oid": mit,
+        "ohne_oid": ohne,
+        "hinweis": (
+            "Zuordnung über Einheit und Wert am selben Knoten, Toleranz "
+            f"{VERGLEICH_TOLERANZ}. Gleiche Messwerte sind nicht unterscheidbar – "
+            "die Liste beantwortet 'hat eine Entsprechung', nicht 'welche'."
+        ),
+    }
+
+
 # Wieviel vom Antwortkörper eines gefundenen Endpunkts abgelegt wird.
 ENDPUNKT_INHALT_MAX = 4000
 
@@ -1404,7 +1472,7 @@ def run_host(
         written.append(path)
 
     menus = objects = None
-    if actions & {"menus", "objects", "compare", "report", "diag", "nv"}:
+    if actions & {"menus", "objects", "compare", "report", "diag", "nv", "vergleich"}:
         print("    Menü-Ebenen werden gelesen …")
         menus = fetch_menus(probe, structure)
         path = out_dir / f"{stem}_menus.json"
@@ -1422,11 +1490,25 @@ def run_host(
             path.write_text(json.dumps(objects, indent=2, ensure_ascii=False), encoding="utf-8")
             written.append(path)
 
-    if menus and "nv" in actions:
+    nv = None
+    if menus and actions & {"nv", "vergleich"}:
         print("    LON-Netzwerkvariablen: Adressform wird gesucht …")
         nv = suche_nv_werte(probe, menus)
         path = out_dir / f"{stem}_nv.json"
         path.write_text(json.dumps(nv, indent=2, ensure_ascii=False), encoding="utf-8")
+        written.append(path)
+
+    if menus and nv and "vergleich" in actions:
+        print("    LON gegen OID …")
+        ergebnis = vergleich_lon_oid(menus, nv)
+        print(
+            f"    {len(ergebnis['ohne_oid'])} LON-Werte ohne OID-Entsprechung, "
+            f"{len(ergebnis['mit_oid'])} mit"
+        )
+        for eintrag in ergebnis["ohne_oid"][:15]:
+            print(f"      {str(eintrag['nvName'])[:30]:32} {eintrag['unit']:6} {eintrag['value']}")
+        path = out_dir / f"{stem}_vergleich.json"
+        path.write_text(json.dumps(ergebnis, indent=2, ensure_ascii=False), encoding="utf-8")
         written.append(path)
 
     if "endpunkte" in actions:
@@ -1552,6 +1634,7 @@ ACTIONS = {
     "10": ("endpunkte", "Aufzählen: welche Endpunkte die Steuerung überhaupt kennt"),
     "11": ("nv", "Test: wie sich der Wert einer LON-Netzwerkvariablen lesen lässt"),
     "12": ("vollabzug", "Vollabzug: alle Datenpunkte über /api/1.0/datapoints"),
+    "13": ("vergleich", "Vergleich: liefern LON-Werte etwas, das es als OID nicht gibt"),
 }
 
 
@@ -1689,6 +1772,7 @@ def main() -> int:
             "endpunkte",
             "nv",
             "vollabzug",
+            "vergleich",
         ],
         help="Aktion (Standard: geführter Modus)",
     )

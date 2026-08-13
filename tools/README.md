@@ -38,8 +38,19 @@ Abfrage. Eine Anlage darf auch als `192.0.2.10:8080` angegeben werden.
 | `compare` | Abgleich mit der mitgelieferten Geräte-Datenbank |
 | `report` | Markdown-Bericht mit Kennzahlen und Abgleich → `<host>_bericht.md` |
 | `diag` | testet, wie sich Menüs mit mehr als zehn Datenpunkten nachladen lassen |
-| `oid` | einzelnen Datenpunkt lesen (Wert und Metadaten) |
+| `texte` | prüft, ob die Anlage ihre Datenpunktnamen als Datei ausliefert |
+| `statisch` | sucht die statischen Positionen (Störspeicher, Sonderzeitprogramm) |
+| `stoerspeicher` | fragt den Störspeicher über den SOAP-Dienst der Steuerung |
+| `endpunkte` | zählt auf, welche Endpunkte die Steuerung kennt |
+| `nv` | liest LON-Netzwerkvariablen einzeln aus |
+| `vollabzug` | holt `/api/1.0/datapoints`, den Cache der zuletzt gelesenen Werte |
+| `vergleich` | stellt die LON-Werte den Datenpunkten gegenüber: liefert LON etwas, das es als OID nicht gibt |
+| `oid`, `objekt` | einzelnen Datenpunkt bzw. ein strukturiertes Objekt lesen |
 | `all` | alles nacheinander |
+
+Der Zugang wählt sich über `--user`. An der geprüften Baureihe liefern `USER`
+und `Service` denselben Umfang; der Schalter ist da, weil das für andere
+Baureihen nicht belegt ist.
 
 Die CSV ist mit Semikolon getrennt und öffnet sich direkt in Excel: OID, gn/mn,
 Name aus der Datenbank, Wert, Einheit, Wertebereich, schreibbar, Enum, Typ.
@@ -52,6 +63,7 @@ Name aus der Datenbank, Wert, Einheit, Wertebereich, schreibbar, Enum, Typ.
 - Der Bericht stellt „erwartet" und „gelesen" gegenüber. Bleibt eine Lücke,
   zeigt die Aktion `diag`, woran es liegt.
 - Standard sind drei parallele Anfragen mit 30 s Zeitlimit und zwei
-  Wiederholungen; mehr Parallelität quittieren die Geräte mit Abbrüchen.
+  Wiederholungen. Mehr Parallelität bringt nichts: Die Steuerung beantwortet
+  Anfragen der Reihe nach, zusätzliche Anfragen warten nur woanders.
 - Der Zielordner enthält Anlagendaten (IP-Adressen, Messwerte) und ist über die
   `.gitignore` vom Repository ausgeschlossen.
