@@ -331,3 +331,31 @@ def test_jeder_eintrag_hat_seinen_eigenen_ablageort(modul, const):
 def test_die_anlagen_kommen_aus_den_eintragsdaten(modul, const):
     assert modul._systems(_eintrag(modul, const)) == [{modul.CONF_HOST: HOST}]
     assert modul._systems(_eintrag(modul, const, systeme=[])) == []
+
+
+# ---------------------------------------------------------------------------
+# Hinweis auf den nötigen Neustart
+# ---------------------------------------------------------------------------
+def test_der_neustart_hinweis_kommt_und_geht(modul, monkeypatch):
+    """Er erscheint beim Sprachwechsel und löst sich beim nächsten Start auf.
+
+    Ein Entitätsname entsteht bei der Erzeugung; der Abgleich im Hintergrund
+    schreibt ihn nur in den Erkennungsstand.
+    """
+    angelegt: list[str] = []
+    geloescht: list[str] = []
+    monkeypatch.setattr(
+        modul.ir,
+        "async_create_issue",
+        lambda hass, bereich, kennung, **rest: angelegt.append(kennung),
+    )
+    monkeypatch.setattr(
+        modul.ir, "async_delete_issue", lambda hass, bereich, kennung: geloescht.append(kennung)
+    )
+    eintrag = SimpleNamespace(entry_id="eintrag1")
+
+    modul._neustart_hinweis(None, eintrag, HOST, True)
+    modul._neustart_hinweis(None, eintrag, HOST, False)
+
+    assert angelegt == [f"sprache_neustart_eintrag1_{HOST}"]
+    assert geloescht == [f"sprache_neustart_eintrag1_{HOST}"]

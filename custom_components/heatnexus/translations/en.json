@@ -108,7 +108,7 @@
           "meldung_einlesen": "Shows a notification while HeatNexus reads the plant. Off by default – from the second start everything is there immediately.",
           "aussentemperatur": "Which sensor counts as the outside temperature in the header. Empty: HeatNexus finds it in the plant itself.",
           "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does.",
-          "sprache": "Where the datapoint names come from. “Automatic” follows the Home Assistant language; the controller carries its texts in German, English, French and Italian."
+          "sprache": "Where the datapoint names come from. “Automatic” follows the Home Assistant language; the controller carries its texts in German, English, French and Italian. The new language becomes visible after a restart of Home Assistant."
         }
       },
       "system": {
@@ -195,6 +195,10 @@
     "nicht_erreichbar": {
       "title": "{anlage} cannot be reached",
       "description": "HeatNexus no longer receives values from **{anlage}**.\n\nReported: {grund}\n\nPlease check that the controller is powered on and reachable on the network. This message disappears by itself once the system responds again."
+    },
+    "sprache_neustart": {
+      "title": "Language changed – restart required",
+      "description": "The language of the labels was changed. HeatNexus already reads the new names from the controller; they become visible after a restart of Home Assistant.\n\nThis message then disappears by itself."
     }
   }
 }

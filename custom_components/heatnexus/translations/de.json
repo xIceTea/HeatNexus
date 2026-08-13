@@ -108,7 +108,7 @@
           "meldung_einlesen": "Meldet sich, während HeatNexus die Anlage einliest. Standardmäßig aus – ab dem zweiten Start steht ohnehin alles sofort da.",
           "aussentemperatur": "Welcher Sensor in der Kopfzeile als Außentemperatur gilt. Leer: HeatNexus sucht sie sich in der Anlage selbst.",
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
-          "sprache": "Woher die Namen der Datenpunkte kommen. „Automatisch“ folgt der Sprache von Home Assistant; die Steuerung führt ihr Textwerk in Deutsch, Englisch, Französisch und Italienisch."
+          "sprache": "Woher die Namen der Datenpunkte kommen. „Automatisch“ folgt der Sprache von Home Assistant; die Steuerung führt ihr Textwerk in Deutsch, Englisch, Französisch und Italienisch. Die neue Sprache wird nach einem Neustart von Home Assistant sichtbar."
         }
       },
       "system": {
@@ -195,6 +195,10 @@
     "nicht_erreichbar": {
       "title": "{anlage} ist nicht erreichbar",
       "description": "HeatNexus bekommt von der Anlage **{anlage}** keine Werte mehr.\n\nGemeldet wird: {grund}\n\nBitte prüfen, ob die Steuerung eingeschaltet und im Netz erreichbar ist. Diese Meldung verschwindet von selbst, sobald die Anlage wieder antwortet."
+    },
+    "sprache_neustart": {
+      "title": "Sprache geändert – Neustart erforderlich",
+      "description": "Die Sprache der Bezeichnungen wurde geändert. Die neuen Namen liest HeatNexus bereits von der Anlage; sichtbar werden sie nach einem Neustart von Home Assistant.\n\nDiese Meldung verschwindet dann von selbst."
     }
   }
 }

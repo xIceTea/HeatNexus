@@ -22,6 +22,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.storage import Store
@@ -172,6 +173,28 @@ def _abgleich_noetig(stored, version: str, sprache: str) -> bool:
     return stored.get("version") != version or stored.get("sprache", "de") != sprache
 
 
+def _neustart_hinweis(hass: HomeAssistant, entry: ConfigEntry, host: str, faellig: bool) -> None:
+    """Reparatureintrag: Die Sprache wurde gewechselt, ein Neustart fehlt noch.
+
+    Ein Entitätsname entsteht bei der Erzeugung. Der Abgleich im Hintergrund
+    schreibt die neuen Bezeichnungen in den Erkennungsstand; sichtbar werden
+    sie erst, wenn die Entitäten das nächste Mal entstehen. Der Eintrag löst
+    sich beim nächsten Start von selbst auf.
+    """
+    kennung = f"sprache_neustart_{entry.entry_id}_{host}"
+    if not faellig:
+        ir.async_delete_issue(hass, DOMAIN, kennung)
+        return
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        kennung,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="sprache_neustart",
+    )
+
+
 def laufzeitdaten(entry: ConfigEntry) -> dict | None:
     """Die Laufzeitdaten eines Konfigurationseintrags, falls er geladen ist.
 
@@ -268,6 +291,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 mem_cache[cache_key] = stored["data"]
                 restored = True
                 abgleichen = _abgleich_noetig(stored, version, scope["sprache"])
+                _neustart_hinweis(
+                    hass, entry, host, stored.get("sprache", "de") != scope["sprache"]
+                )
                 if abgleichen:
                     _LOGGER.info(
                         "%s: Erkennungsstand stammt aus Fassung %s und Sprache %s – die "
