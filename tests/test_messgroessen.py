@@ -66,6 +66,21 @@ def test_zaehler_wird_zur_summe(helpers):
     assert beschreibung["state_class"] == "total_increasing"
 
 
+def test_ein_zaehler_ohne_einheit_zaehlt_trotzdem(helpers):
+    """Brennerstarts haben keine Einheit – und sind trotzdem ein Zählerstand.
+
+    Ohne Statistikklasse führt der Rekorder keinen Langzeitverlauf; „wie oft
+    hat der Kessel diesen Monat gestartet" wäre dann nicht zu beantworten.
+    """
+    beschreibung = helpers.messgroesse(_sensor(name="Brennerstarts", unit=None))
+    assert beschreibung["state_class"] == "total_increasing"
+
+
+def test_ein_messwert_ohne_einheit_bleibt_ohne_statistik(helpers):
+    """Ein Zustand ohne Einheit ist kein Zähler."""
+    assert helpers.messgroesse(_sensor(name="Betriebsphase", unit=None)).get("state_class") is None
+
+
 def test_restlaufzeit_bleibt_messwert(helpers):
     """Sie zählt herunter – als Summe wäre ihr Verlauf unbrauchbar."""
     beschreibung = helpers.messgroesse(_sensor(name="Laufzeit bis Ascheentleerung", unit="h"))

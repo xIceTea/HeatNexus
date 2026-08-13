@@ -134,6 +134,13 @@ def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
         return beschreibung
     roh = (beschreibung.get("unit") or "").strip()
     if not roh:
+        # Ein Zählerstand braucht keine Einheit, um einer zu sein: Brennerstarts
+        # zählt Vorgänge. Ohne Statistikklasse führt der Rekorder für ihn keinen
+        # Langzeitverlauf.
+        if beschreibung.get("type") == "sensor" and beschreibung.get("state_class") is None:
+            name = (beschreibung.get("name") or "").lower()
+            if any(wort in name for wort in ZAEHLER_WOERTER):
+                beschreibung["state_class"] = "total_increasing"
         return beschreibung
     # „20" und „21" meldet die Anlage als Einheit von Datum und Uhrzeit – das
     # sind Formatkennungen, keine Maßeinheiten.
