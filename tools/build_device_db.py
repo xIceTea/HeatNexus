@@ -142,8 +142,22 @@ def _gruppen(eintraege, texte: dict) -> dict[str, list[str]]:
 # 518 Datenpunkten); wo die Bedienungsanleitung denselben Parameter nennt,
 # steht ihr Wertebereich daneben und stimmt mit dem der Anlage überein.
 #
+# Für Baureihen ohne eigenen Abzug gilt derselbe Maßstab: Beleg ist ein
+# Datenpunktkatalog, der an einer laufenden Anlage dieser Baureihe erhoben
+# wurde. Aus einer Anleitung abgeleitete oder aus einer anderen Baureihe
+# übertragene Adressen zählen nicht.
+#
 # Neue Zeilen nur mit Messbeleg. Der Rest gehört auf die Werksebene.
 UEBERSTEUERUNG: dict[str, dict[str, list[str]]] = {
+    # Automatik-/Zusatzkessel (LogWIN)
+    "10": {
+        # Die Betriebswahl ist der Schalter, mit dem der Kessel überhaupt
+        # bedient wird – schreibbar, und in keiner Ebenenliste des Herstellers.
+        # Ohne Eintrag zählt sie als Werksebene und ist damit unsichtbar.
+        "operate": ["9/75"],
+        # Der Alarmcode gehört zur Diagnose und steht ebenfalls in keiner Ebene.
+        "info": ["2/0"],
+    },
     # Heizkreis (UML / UMLZ)
     "14": {
         # Frostschutzgrenzen – am Gerät die Ebene 119 „Frostschutzgrenzen".

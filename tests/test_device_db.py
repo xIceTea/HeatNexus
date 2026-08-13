@@ -9,6 +9,7 @@ FCT_HEIZKREIS = 14
 FCT_PUFFER = 16
 FCT_PUROWIN = 25
 FCT_BIOWIN = 9
+FCT_ZUSATZKESSEL = 10  # LogWIN und andere Automatikkessel
 
 
 def test_names_resolve(device_db):
@@ -92,7 +93,9 @@ def test_die_kuratierte_tabelle_wiederholt_die_erzeugte_nicht():
     assert doppelt == [], f"identisch zur Geräte-Datenbank, gehört gelöscht: {doppelt}"
 
 
-@pytest.mark.parametrize("fct", [FCT_HEIZKREIS, FCT_PUFFER, FCT_PUROWIN, FCT_BIOWIN])
+@pytest.mark.parametrize(
+    "fct", [FCT_HEIZKREIS, FCT_PUFFER, FCT_PUROWIN, FCT_BIOWIN, FCT_ZUSATZKESSEL]
+)
 def test_layers_present(device_db, fct):
     layers = device_db.get_layers(fct)
     assert layers, f"Funktionstyp {fct} fehlt in der Geräte-DB"
@@ -149,3 +152,15 @@ def test_jeder_funktionstyp_hat_einen_namen():
     db = json.loads(doku.DB.read_text(encoding="utf-8"))
     ohne = sorted(set(db["layers"]) - set(doku.FUNKTIONEN), key=int)
     assert not ohne, f"Funktionstypen ohne Namen: {ohne}"
+
+
+def test_der_zusatzkessel_kann_bedient_werden(device_db):
+    """Die Betriebswahl steht in keiner Ebenenliste des Herstellers.
+
+    Ohne Eintrag zählt sie als Werksebene und ist damit unsichtbar – der
+    Schalter, mit dem der Kessel überhaupt bedient wird.
+    """
+    ebenen = device_db.get_layers(FCT_ZUSATZKESSEL)
+
+    assert "9/75" in ebenen["operate"]
+    assert "2/0" in ebenen["info"]

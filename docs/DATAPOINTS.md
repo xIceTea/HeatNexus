@@ -29,7 +29,7 @@ hat.
 | 7 | Wärmepumpe | COP, Silentmode, Betriebsstunden Heizen/Warmwasser | 23 | 10 | 50 | 74 |
 | 8 | E-Heizung / Zusatzheizung | Aktuelle Stufe, Betriebsstunden Stufe 1–3 | 9 | – | 10 | 23 |
 | 9 | Kessel (BioWIN) | Laufzeit bis Reinigung, Brennstoffverbrauch, Sonden | 21 | 27 | 103 | 376 |
-| 10 | Kessel (Automatik-/Zusatzkessel) | Startverzögerung, O2-Signal | 17 | 5 | 39 | – |
+| 10 | Kessel (Automatik-/Zusatzkessel) | Startverzögerung, O2-Signal | 18 | 6 | 39 | – |
 | 14 | Heizkreis (UML / UMLZ) | wie 1, ältere Baureihe, Warmwasser inbegriffen | 19 | 28 | 49 | 13 |
 | 15 | Umschaltung | Automatikkessel / Festbrennstoff / Puffer, Umschaltventil | 8 | 1 | 20 | – |
 | 16 | Puffer (B-PLMi) | TPE, TPA, TPT, Pufferladepumpe | 15 | 2 | 16 | – |
@@ -956,6 +956,7 @@ Datenpunkte und werden übersprungen.
 | `0/45` | Brennkammertemperatur | Info, Service |
 | `1/7` | Kesseltemperatur Soll | Info |
 | `1/8` | Rücklauftemperatur Sollwert | Service |
+| `2/0` | Alarmcode | Info |
 | `2/1` | Betriebsphase | Info |
 | `2/70` | Datum | Info, Betreiber |
 | `2/72` | Uhrzeit | Info, Betreiber |
@@ -963,6 +964,7 @@ Datenpunkte und werden übersprungen.
 | `4/92` | Softwareversion | Info |
 | `4/93` | Hardwareversion | Info |
 | `9/57` | Solltemperatur ext. Wärmeanforderung | Service |
+| `9/75` | Betriebswahl | Betreiber |
 | `12/38` | Gerätetyp | Info |
 | `12/40` | Kesseltemperatur für Neustart | Service |
 | `12/42` | Startverzögerung Automatikkessel | Betreiber |
