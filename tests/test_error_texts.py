@@ -43,3 +43,24 @@ def test_unknown_code_falls_back(error_texts):
 
 def test_none_input(error_texts):
     assert error_texts.parse_messages(None) == []
+
+
+def test_zusatztabelle_schlaegt_die_mitgelieferte(error_texts):
+    """Die Steuerung benennt ihre Störungen selbst und in ihrer Sprache."""
+    meldungen = error_texts.parse_messages("XXX 01E346", zusatz={346: "Casing door open"})
+
+    assert meldungen[0]["text"] == "Casing door open"
+
+
+def test_zusatztabelle_aus_dem_erkennungsstand_hat_textschluessel(error_texts):
+    """Nach dem Ablegen als JSON sind die Schlüssel Text, nicht Zahl."""
+    meldungen = error_texts.parse_messages("XXX 01E346", zusatz={"346": "Casing door open"})
+
+    assert meldungen[0]["text"] == "Casing door open"
+
+
+def test_zusatztabelle_ohne_treffer_aendert_nichts(error_texts):
+    ohne = error_texts.parse_messages("XXX 01E346")
+    mit = error_texts.parse_messages("XXX 01E346", zusatz={999: "irgendwas"})
+
+    assert ohne == mit

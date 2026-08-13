@@ -668,6 +668,21 @@ class WindhagerHttpClient:
             return None
         return self._texte.enums.get(gnmn)
 
+    def _stoerungstexte(self) -> dict[int, str] | None:
+        """Störungstexte der Anlage, für die Meldungssensoren.
+
+        Nur bei fremder Sprache. Die gepflegte deutsche Tabelle führt deutlich
+        mehr Codes als das Textwerk der Steuerung; auf Deutsch wäre der
+        Wechsel ein Rückschritt.
+
+        Sie hängt am Deskriptor und nicht an einem eigenen Speicher: So trägt
+        der Erkennungsstand sie mit, und nach einem Neustart aus dem
+        Zwischenspeicher steht sie ohne neuen Abruf wieder da.
+        """
+        if self.sprache == "de":
+            return None
+        return self._texte.stoerungen or None
+
     # ------------------------------------------------------------------
     # Discovery
     # ------------------------------------------------------------------
@@ -914,6 +929,7 @@ class WindhagerHttpClient:
                         "type": "device_status",
                         "node_id": str(node_id),
                         "name": "Meldung",
+                        "stoerungstexte": self._stoerungstexte(),
                         "category": "diagnostic",
                         "icon": "mdi:message-alert-outline",
                         "enabled_default": True,
@@ -932,6 +948,7 @@ class WindhagerHttpClient:
                         "type": "message_text",
                         "node_id": str(node_id),
                         "name": "Meldung Klartext",
+                        "stoerungstexte": self._stoerungstexte(),
                         "category": "diagnostic",
                         "icon": "mdi:alert-circle-outline",
                         "enabled_default": True,
@@ -961,6 +978,7 @@ class WindhagerHttpClient:
                         "type": "message_list",
                         "node_id": str(node_id),
                         "name": "Meldungsliste",
+                        "stoerungstexte": self._stoerungstexte(),
                         "category": "diagnostic",
                         "icon": "mdi:format-list-bulleted",
                         "enabled_default": True,

@@ -42,16 +42,23 @@ def _lookup(cat: str, code: int) -> dict:
     return {}
 
 
-def parse_messages(raw: str | None) -> list[dict]:
+def parse_messages(raw: str | None, zusatz: dict | None = None) -> list[dict]:
     """Aktive Störungen aus einem FE01msg-String extrahieren.
 
     'PUR 09E346' -> [{'code': 346, 'kind': 'Fehler',
                       'text': 'Verkleidungstür offen',
                       'info': 'Verkleidungstür schließen, ...'}]
     'PUR 09  OK' -> []
+
+    ``zusatz`` sind die Störungstexte, die die Anlage selbst mitführt. Sie
+    gelten vor der mitgelieferten Tabelle, weil sie zur Fassung der Steuerung
+    und zur eingestellten Sprache passen. Eine Handlungsempfehlung führt die
+    Steuerung nicht mit; die bleibt aus der Tabelle.
     """
     out: list[dict] = []
     seen: set[int] = set()
+    # Nach dem Ablegen als JSON sind die Schlüssel Text statt Zahl.
+    vom_geraet = {int(code): text for code, text in (zusatz or {}).items()}
     for letter, num in _CODE_RE.findall(raw or ""):
         code = int(num)
         if code in seen:
@@ -63,7 +70,7 @@ def parse_messages(raw: str | None) -> list[dict]:
             {
                 "code": code,
                 "kind": word,
-                "text": entry.get("text", "Unbekannter Code"),
+                "text": vom_geraet.get(code) or entry.get("text", "Unbekannter Code"),
                 "info": entry.get("info"),
             }
         )

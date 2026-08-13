@@ -329,7 +329,7 @@ class WindhagerMessageTextSensor(WindhagerEntity, SensorEntity):
     def native_value(self) -> str | None:
         if self._raw is None:
             return None
-        msgs = parse_messages(self._raw)
+        msgs = parse_messages(self._raw, self._descriptor.get("stoerungstexte"))
         if not msgs:
             return "Keine Störung"
         # Nur der Klartext (Code/Art stehen im Attribut 'meldungen').
@@ -340,7 +340,7 @@ class WindhagerMessageTextSensor(WindhagerEntity, SensorEntity):
     def extra_state_attributes(self):
         if self._raw is None:
             return None
-        msgs = parse_messages(self._raw)
+        msgs = parse_messages(self._raw, self._descriptor.get("stoerungstexte"))
         return {
             "anzahl": len(msgs),
             "stoerung_aktiv": len(msgs) > 0,
@@ -407,7 +407,7 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
         if roh is None:
             return
         jetzt = dt_util.utcnow().isoformat(timespec="seconds")
-        for meldung in parse_messages(roh):
+        for meldung in parse_messages(roh, self._descriptor.get("stoerungstexte")):
             vorhanden = self._eintraege.get(meldung["code"])
             if vorhanden is None:
                 self._eintraege[meldung["code"]] = {
