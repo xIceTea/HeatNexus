@@ -46,9 +46,9 @@ jobs:
                 '- in `*_structure.json` und `*_menus.json` steht die `neuronId` jedes Moduls',
                 '- die Dateinamen enthalten die IP-Adresse der Anlage',
                 '',
-                'Passwörter stehen nicht darin, und für die Auswertung braucht es diese Angaben ohnehin nicht — wer sie ersetzen möchte, tut das am besten vor dem Hochladen.',
+                'Passwörter stehen nicht darin, und für die Auswertung braucht es diese Angaben ohnehin nicht — sie lassen sich gefahrlos durch Platzhalter ersetzen.',
                 '',
-                'Für den Diagnose-Export der Integration gilt das nicht: Dort sind IP-Adresse, Passwort und Seriennummer bereits geschwärzt.',
+                'Der Diagnose-Export der Integration ist davon ausgenommen: Dort sind IP-Adresse, Passwort und Seriennummer bereits geschwärzt.',
               ].join('\n'),
             });
 
