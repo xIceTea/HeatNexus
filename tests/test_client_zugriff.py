@@ -277,3 +277,29 @@ async def test_ein_gescheiterter_wert_bricht_den_durchlauf_nicht_ab(client):
     c = client(_Antwort(500, b"kaputt"))
 
     assert await c._fetch_oid("/1/60/0/0/7/0") == ("/1/60/0/0/7/0", None)
+
+
+# ---------------------------------------------------------------------------
+# Ein Knoten, der nicht antwortet
+# ---------------------------------------------------------------------------
+class _StummeSitzung:
+    """Nimmt die Verbindung an und antwortet nie."""
+
+    def __init__(self):
+        self.anfragen: list[tuple] = []
+
+    async def request(self, methode, url, data=None):
+        self.anfragen.append((methode, str(url), data))
+        raise TimeoutError
+
+    async def close(self):
+        return None
+
+
+async def test_ein_schweigender_knoten_wird_uebergangen(client_module):
+    """Sonst stünde die Einrichtung, bis das Zeitfenster der Anlage abläuft."""
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    c._session = _StummeSitzung()
+
+    assert await c._menue_ebenen("/1/90/0") is None
+    assert await c._ungemeldete_funktionen("/1/90", []) == []

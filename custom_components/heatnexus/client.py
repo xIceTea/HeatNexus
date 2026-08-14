@@ -14,6 +14,7 @@ from yarl import URL
 from . import geraetetexte
 from .const import (
     ADVANCED_LEVELS,
+    ANFRAGE_TIMEOUT,
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
     ERKENNUNG_MIN_ANTEIL,
@@ -44,6 +45,7 @@ from .const import (
     TAGESWERTE,
     TAGESZAEHLER,
     UPDATE_INTERVAL,
+    VERBINDUNG_TIMEOUT,
 )
 from .const import (
     ENUMS as ENUMS_FALLBACK,
@@ -332,6 +334,12 @@ class WindhagerHttpClient:
         """
         if self._session is None:
             self._session = aiohttp.ClientSession(
+                # Ohne eigene Grenze wartet aiohttp fünf Minuten auf eine
+                # Antwort. `sock_connect` trennt dabei die nicht erreichbare
+                # Anlage von der, die annimmt und dann schweigt.
+                timeout=aiohttp.ClientTimeout(
+                    total=ANFRAGE_TIMEOUT, sock_connect=VERBINDUNG_TIMEOUT
+                ),
                 connector=aiohttp.TCPConnector(
                     # Mehr Verbindungen als gleichzeitige Anfragen bringen
                     # nichts: Die Steuerung ist der Engpass, nicht das Netz.
@@ -660,7 +668,13 @@ class WindhagerHttpClient:
         ``None``, wenn die Funktion keine Menüliste liefert – ältere Firmware
         kennt sie nicht, dann greifen Einzelabfragen.
         """
-        root, status = await self._get(f"http://{self.host}/api/1.0/lookup{prefix}")
+        # Ein Knoten, der die Verbindung annimmt und dann schweigt, gilt als
+        # ohne Menüliste. Der Rest der Anlage wird deswegen nicht aufgegeben.
+        try:
+            root, status = await self._get(f"http://{self.host}/api/1.0/lookup{prefix}")
+        except TimeoutError:
+            _LOGGER.warning("%s antwortet nicht und wird übergangen", prefix)
+            return None
         if status != 200 or not isinstance(root, list) or not root:
             return None
         if not isinstance(root[0], dict) or "id" not in root[0]:
