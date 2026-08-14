@@ -33,6 +33,7 @@ from homeassistant.helpers.selector import (
 )
 import voluptuous as vol
 
+from .blueprints import verfuegbare as verfuegbare_vorlagen
 from .client import WindhagerHttpClient
 from .const import (
     ALL_LEVELS,
@@ -57,6 +58,7 @@ from .const import (
     CONF_SPRACHE,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
+    CONF_VORLAGEN,
     CONF_WRITABLE_ADVANCED,
     CONF_ZEITWERTE,
     DEFAULT_LEVELS,
@@ -597,6 +599,9 @@ class WindhagerOptionsFlow(OptionsFlow):
             options[CONF_MELDUNG_EINLESEN] = bool(user_input.get(CONF_MELDUNG_EINLESEN, False))
             options[CONF_HILFE] = bool(user_input.get(CONF_HILFE, True))
             options[CONF_SPRACHE] = user_input.get(CONF_SPRACHE, "de")
+            options[CONF_VORLAGEN] = [
+                v for v in user_input.get(CONF_VORLAGEN, []) if v in verfuegbare_vorlagen()
+            ]
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
             if gewaehlt:
                 options[CONF_AUSSENTEMPERATUR] = gewaehlt
@@ -617,6 +622,22 @@ class WindhagerOptionsFlow(OptionsFlow):
                         CONF_MELDUNG_EINLESEN,
                         default=bool(options.get(CONF_MELDUNG_EINLESEN, False)),
                     ): bool,
+                    # Vorlagen erscheinen unter Einstellungen → Automationen.
+                    # Ohne gespeicherte Auswahl gelten alle als gewählt, damit
+                    # eine Aktualisierung keine wegnimmt.
+                    vol.Optional(
+                        CONF_VORLAGEN,
+                        default=list(options.get(CONF_VORLAGEN, verfuegbare_vorlagen())),
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(value=kennung, label=name)
+                                for kennung, name in verfuegbare_vorlagen().items()
+                            ],
+                            multiple=True,
+                            mode=SelectSelectorMode.LIST,
+                        )
+                    ),
                     vol.Optional(
                         CONF_AUSSENTEMPERATUR,
                         description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},

@@ -43,6 +43,7 @@ from .const import (
     CONF_SPRACHE,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
+    CONF_VORLAGEN,
     CONF_WRITABLE_ADVANCED,
     CONF_ZEITWERTE,
     DEFAULT_LEVELS,
@@ -235,7 +236,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     integration = await async_get_integration(hass, DOMAIN)
     version = str(integration.version)
-    await async_install_blueprints(hass, version)
+    await async_install_blueprints(hass, version, (entry.options or {}).get(CONF_VORLAGEN))
     mem_cache = hass.data[DOMAIN].setdefault("_discovery_cache", {})
     hub_name = entry.data.get(CONF_NAME) or entry.title
 

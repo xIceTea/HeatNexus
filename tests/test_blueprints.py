@@ -136,3 +136,57 @@ def test_die_verbruehungsgefahr_steht_in_der_beschreibung(legionellen):
 def test_nur_ein_lauf_gleichzeitig(legionellen):
     """Zwei Läufe stellten einander die Ladetemperatur unter den Händen weg."""
     assert legionellen["mode"] == "single"
+
+
+# ---------------------------------------------------------------------------
+# Auswahl der mitgelieferten Vorlagen
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def modul():
+    pfad = VORLAGEN.parent.parent.parent / "blueprints.py"
+    quelle = pfad.read_text(encoding="utf-8")
+    # Ohne Home Assistant laden: Nur die Dateiarbeit wird geprüft.
+    quelle = quelle.replace("from homeassistant.core import HomeAssistant", "HomeAssistant = object")
+    quelle = quelle.replace("from .const import DOMAIN", "DOMAIN = 'heatnexus'")
+    raum: dict = {"__file__": str(pfad), "__name__": "hn_blueprints"}
+    exec(compile(quelle, str(pfad), "exec"), raum)
+    return type("Modul", (), raum)
+
+
+def test_jede_vorlage_hat_einen_anzeigenamen(modul):
+    namen = modul.verfuegbare()
+    assert set(namen) == {p.stem for p in VORLAGEN.glob("*.yaml")}
+    assert all(n.startswith("HeatNexus") for n in namen.values())
+
+
+def test_nur_gewaehlte_vorlagen_werden_abgelegt(modul, tmp_path):
+    ziel = tmp_path / "bp"
+    geschrieben, entfernt = modul._kopieren(ziel, "1.0.0", {"stoerung_melden"}, tmp_path / "a.yaml")
+
+    assert geschrieben == 1
+    assert entfernt == 0
+    assert [p.name for p in ziel.glob("*.yaml")] == ["stoerung_melden.yaml"]
+
+
+def test_eine_abgewaehlte_vorlage_wird_entfernt(modul, tmp_path):
+    ziel = tmp_path / "bp"
+    modul._kopieren(ziel, "1.0.0", {"stoerung_melden"}, tmp_path / "a.yaml")
+    _, entfernt = modul._kopieren(ziel, "1.0.1", set(), tmp_path / "a.yaml")
+
+    assert entfernt == 1
+    assert not list(ziel.glob("*.yaml"))
+
+
+def test_eine_benutzte_vorlage_bleibt_liegen(modul, tmp_path):
+    """Sonst stünde die Automation des Nutzers ohne ihren Bauplan da."""
+    ziel = tmp_path / "bp"
+    automationen = tmp_path / "automations.yaml"
+    modul._kopieren(ziel, "1.0.0", {"stoerung_melden"}, automationen)
+    automationen.write_text(
+        "- use_blueprint:\n    path: heatnexus/stoerung_melden.yaml\n", encoding="utf-8"
+    )
+
+    _, entfernt = modul._kopieren(ziel, "1.0.1", set(), automationen)
+
+    assert entfernt == 0
+    assert (ziel / "stoerung_melden.yaml").is_file()

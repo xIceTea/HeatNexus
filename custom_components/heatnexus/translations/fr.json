@@ -99,6 +99,7 @@
           "dashboard": "Créer un tableau de bord",
           "panel": "Panneau HeatNexus",
           "meldung_einlesen": "Notifier pendant la lecture",
+          "vorlagen": "Modèles d’automatisation",
           "aussentemperatur": "Température extérieure",
           "hilfe": "Afficher les explications",
           "sprache": "Langue des libellés"
@@ -108,6 +109,7 @@
           "dashboard": "Ajoute un tableau de bord « Chauffage » qui se construit à partir des appareils détectés.",
           "panel": "Ajoute une entrée « HeatNexus » dans la barre latérale : schéma de l’installation, état, circuits de chauffage et accès rapide.",
           "meldung_einlesen": "Affiche une notification pendant que HeatNexus lit l'installation.",
+          "vorlagen": "Quels modèles apparaissent sous Paramètres → Automatisations. Un modèle utilisé par une automatisation reste en place.",
           "aussentemperatur": "Quel capteur sert de température extérieure dans l'en-tête. Vide : HeatNexus la cherche dans l'installation.",
           "hilfe": "Ajoute un « ? » à côté des cartes et des commandes.",
           "sprache": "D’où viennent les noms des points de données. Les cartes du panneau restent en allemand."

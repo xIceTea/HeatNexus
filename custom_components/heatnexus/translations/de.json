@@ -99,6 +99,7 @@
           "dashboard": "Dashboard einrichten",
           "panel": "HeatNexus-Panel",
           "meldung_einlesen": "Beim Einlesen benachrichtigen",
+          "vorlagen": "Automations-Vorlagen",
           "aussentemperatur": "Außentemperatur",
           "hilfe": "Erklärungen anzeigen",
           "sprache": "Sprache der Bezeichnungen"
@@ -108,6 +109,7 @@
           "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut.",
           "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff.",
           "meldung_einlesen": "Zeigt eine Meldung, solange HeatNexus die Anlage einliest.",
+          "vorlagen": "Welche Vorlagen unter Einstellungen → Automationen bereitstehen. Eine Vorlage, die eine Automation benutzt, bleibt auch abgewählt liegen.",
           "aussentemperatur": "Welcher Sensor in der Kopfzeile als Außentemperatur gilt. Leer: HeatNexus sucht sie sich in der Anlage selbst.",
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
           "sprache": "Woher die Namen der Datenpunkte kommen. Die Karten des Panels bleiben deutsch beschriftet."

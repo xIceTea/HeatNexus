@@ -54,6 +54,9 @@ CONF_AUSSENTEMPERATUR = "aussentemperatur"
 # Erklärungen („?") in der eigenen Oberfläche. Standardmäßig an – wer die
 # Anlage kennt, schaltet sie ab.
 CONF_HILFE = "hilfe"
+# Welche Automations-Vorlagen mitgeliefert werden. Fehlt die Angabe, kommen
+# alle mit – eine Aktualisierung ändert an einer bestehenden Anlage nichts.
+CONF_VORLAGEN = "vorlagen"
 # Sprache der Bezeichnungen, die die Steuerung selbst mitführt. „auto" folgt
 # der Spracheinstellung von Home Assistant. Die Wahl entscheidet, welche
 # Textdateien der Anlage gelesen werden.
