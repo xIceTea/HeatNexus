@@ -113,9 +113,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "total_increasing": WindhagerPelletSensor,
             "zaehler_heute": WindhagerAbleitungSensor,
             "zaehler_start": WindhagerAbleitungSensor,
-            "betriebsdauer": WindhagerBetriebsdauerSensor,
-            "betriebsdauer_letzte": WindhagerBetriebsdauerSensor,
-            "betriebsdauer_heute": WindhagerBetriebsdauerSensor,
+            "laufzeit": WindhagerLaufzeitSensor,
+            "laufzeit_heute": WindhagerLaufzeitSensor,
         },
     )
 
@@ -328,8 +327,8 @@ class WindhagerAbleitungSensor(WindhagerEntity, SensorEntity):
         }
 
 
-class WindhagerBetriebsdauerSensor(WindhagerEntity, SensorEntity):
-    """Dauer des Brands – laufend, zuletzt beendet oder als Tagessumme.
+class WindhagerLaufzeitSensor(WindhagerEntity, SensorEntity):
+    """Wie lange das Aggregat läuft: der laufende Lauf oder die Tagessumme.
 
     Gemessen wird an der Betriebsphase: Verlässt sie die Ruhe, läuft die Uhr;
     kehrt sie zurück, steht sie. Verglichen werden die Zahlencodes der
@@ -343,8 +342,7 @@ class WindhagerBetriebsdauerSensor(WindhagerEntity, SensorEntity):
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
         self._laufphasen = set(device_info.get("laufphasen") or ())
-        self._typ = device_info.get("type")
-        self._tageswert = self._typ == "betriebsdauer_heute"
+        self._tageswert = device_info.get("type") == "laufzeit_heute"
         self._attr_state_class = (
             SensorStateClass.TOTAL if self._tageswert else SensorStateClass.MEASUREMENT
         )
@@ -405,9 +403,9 @@ class WindhagerBetriebsdauerSensor(WindhagerEntity, SensorEntity):
         laufend = self._minuten()
         if self._tageswert:
             return round(self._heute + laufend, 1)
-        # Der laufende Brand fällt im Stillstand auf null; wie lange der letzte
-        # dauerte, führt die eigene Entität daneben.
-        return self._letzte if self._typ == "betriebsdauer_letzte" else laufend
+        # Läuft gerade nichts, bleibt der letzte Lauf stehen – eine Null sagte
+        # nur, dass es still ist, und das steht im Attribut.
+        return laufend if self._beginn else self._letzte
 
     @property
     def extra_state_attributes(self):

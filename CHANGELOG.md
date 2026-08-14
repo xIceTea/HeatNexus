@@ -18,8 +18,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Jedes Anlagenteil hat eine Taste, die seine Werte sofort liest.
 - Automations-Vorlagen lassen sich einzeln abwählen.
 - Jedes Anlagenteil meldet seine Störung als eigenen Sensor.
-- Zu jedem Zählerstand gibt es den Zuwachs heute und seit dem letzten Brennerstart.
-- Der Kessel meldet, wie lange er läuft, wie lange der letzte Lauf dauerte und wie lange er heute lief.
+- Zähler zeigen, was heute und was seit dem letzten Start dazugekommen ist.
+- Kessel und Wärmepumpe melden die letzte Laufzeit und die Laufzeit heute.
 - Zusatzwerte lassen sich in den Optionen je Anlage einschalten, nach Gruppen oder einzeln.
 - Die Oberfläche hat drei Farbsätze: Dunkel, Hell und Terrakotta.
 - Die Diagnose nennt, wie viele Entitäten Home Assistant führt und wie viele davon abgeschaltet sind.

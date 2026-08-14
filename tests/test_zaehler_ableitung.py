@@ -303,3 +303,21 @@ def test_eine_geaenderte_auswahl_wirkt_ohne_neues_einlesen(client):
     }
     assert je_kennung["SN1-stunden-start"]["enabled_default"] is True
     assert je_kennung["SN1-stunden-heute"]["enabled_default"] is False
+
+
+def test_der_stundenzaehler_tritt_zurueck_wo_die_phase_misst(client):
+    """Minutengenau schlägt stundengenau – sonst stünden zwei Antworten da."""
+    client.devices.append(
+        {
+            "id": "SN1-phase",
+            "oid": "/1/60/0/2/1/0",
+            "name": "Betriebsphase",
+            "enum": "2/1",
+            "device_id": "SN1-3-0",
+        }
+    )
+    client._abgeleitete_zaehler()
+    neue = {d["id"] for d in client.devices if str(d.get("type", "")).startswith("zaehler_")}
+    assert not any(k.startswith("SN1-stunden") for k in neue)
+    # Der Zähler ohne Einheit bleibt: Startzahlen misst keine Phase.
+    assert "SN1-starts-heute" in neue

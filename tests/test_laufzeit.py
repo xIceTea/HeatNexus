@@ -1,4 +1,4 @@
-"""Betriebsdauer: wie lange der Kessel läuft, gemessen an der Betriebsphase.
+"""Laufzeit: wie lange das Aggregat läuft, gemessen an der Betriebsphase.
 
 Der Stundenzähler der Anlage steht in ganzen Stunden und wird träge gelesen –
 für einen Brand von vierzig Minuten taugt er nicht. Gemessen wird deshalb an
@@ -29,13 +29,13 @@ def sensoren():
     return sensor
 
 
-def _betriebsdauer(sensoren, wert, typ="betriebsdauer"):
+def _laufzeit(sensoren, wert, typ="laufzeit"):
     entity, koordinator = _entitaet(
-        sensoren.WindhagerBetriebsdauerSensor,
+        sensoren.WindhagerLaufzeitSensor,
         {PHASE: wert},
         oid=PHASE,
         type=typ,
-        name="Aktuelle Betriebsdauer",
+        name="Letzte Laufzeit",
         laufphasen=[5, 6, 7, 8, 15, 16, 17],
     )
     return entity, koordinator
@@ -52,20 +52,20 @@ def _vorspulen(entity, minuten):
 
 
 def test_ohne_phase_gibt_es_keine_dauer(sensoren):
-    entity, _ = _betriebsdauer(sensoren, None)
+    entity, _ = _laufzeit(sensoren, None)
     entity._fortschreiben()
     assert entity.native_value is None
 
 
 def test_im_stillstand_beginnt_nichts(sensoren):
-    entity, _ = _betriebsdauer(sensoren, RUHE)
+    entity, _ = _laufzeit(sensoren, RUHE)
     entity._fortschreiben()
     assert entity.native_value == 0
     assert entity.extra_state_attributes["laeuft"] is False
 
 
 def test_der_lauf_beginnt_beim_verlassen_der_ruhe(sensoren):
-    entity, koordinator = _betriebsdauer(sensoren, RUHE)
+    entity, koordinator = _laufzeit(sensoren, RUHE)
     entity._fortschreiben()
     _phase(entity, koordinator, LAUF)
     _vorspulen(entity, 40)
@@ -73,33 +73,21 @@ def test_der_lauf_beginnt_beim_verlassen_der_ruhe(sensoren):
     assert entity.extra_state_attributes["laeuft"] is True
 
 
-def test_die_rueckkehr_in_die_ruhe_setzt_den_laufenden_wert_auf_null(sensoren):
-    """Im Verlauf entsteht so eine lesbare Sägezahnkurve."""
-    entity, koordinator = _betriebsdauer(sensoren, RUHE)
+def test_nach_dem_abschalten_steht_der_letzte_lauf(sensoren):
+    """Ein Wert für beides: laufend steigt er, danach bleibt er stehen."""
+    entity, koordinator = _laufzeit(sensoren, RUHE)
     entity._fortschreiben()
     _phase(entity, koordinator, LAUF)
     _vorspulen(entity, 40)
-    _phase(entity, koordinator, RUHE)
-    assert entity.native_value == 0
-    assert entity.extra_state_attributes["laeuft"] is False
-
-
-def test_der_letzte_brand_bleibt_stehen(sensoren):
-    """Die eigene Entität dafür beantwortet „wie lange lief er zuletzt"."""
-    entity, koordinator = _betriebsdauer(sensoren, RUHE, typ="betriebsdauer_letzte")
-    entity._fortschreiben()
-    assert entity.native_value == 0
-    _phase(entity, koordinator, LAUF)
-    _vorspulen(entity, 40)
-    # Solange er läuft, steht dort noch der Brand davor.
-    assert entity.native_value == 0
+    assert entity.native_value == pytest.approx(40, abs=0.2)
     _phase(entity, koordinator, RUHE)
     assert entity.native_value == pytest.approx(40, abs=0.2)
+    assert entity.extra_state_attributes["laeuft"] is False
 
 
 def test_ausbrand_zaehlt_noch_zum_brand(sensoren):
     """17 ist Ausbrand – die Anlage arbeitet, also läuft die Uhr weiter."""
-    entity, koordinator = _betriebsdauer(sensoren, LAUF)
+    entity, koordinator = _laufzeit(sensoren, LAUF)
     entity._fortschreiben()
     beginn = entity._beginn
     _phase(entity, koordinator, "17")
@@ -107,7 +95,7 @@ def test_ausbrand_zaehlt_noch_zum_brand(sensoren):
 
 
 def test_der_tageswert_summiert_die_braende(sensoren):
-    entity, koordinator = _betriebsdauer(sensoren, RUHE, typ="betriebsdauer_heute")
+    entity, koordinator = _laufzeit(sensoren, RUHE, typ="laufzeit_heute")
     entity._fortschreiben()
     for minuten in (40, 20):
         _phase(entity, koordinator, LAUF)
@@ -117,7 +105,7 @@ def test_der_tageswert_summiert_die_braende(sensoren):
 
 
 def test_der_laufende_brand_zaehlt_im_tageswert_mit(sensoren):
-    entity, koordinator = _betriebsdauer(sensoren, RUHE, typ="betriebsdauer_heute")
+    entity, koordinator = _laufzeit(sensoren, RUHE, typ="laufzeit_heute")
     entity._fortschreiben()
     _phase(entity, koordinator, LAUF)
     _vorspulen(entity, 15)
@@ -128,7 +116,7 @@ def test_der_laufende_brand_zaehlt_im_tageswert_mit(sensoren):
 
 
 def test_ein_neuer_tag_beginnt_bei_null(sensoren):
-    entity, koordinator = _betriebsdauer(sensoren, RUHE, typ="betriebsdauer_heute")
+    entity, koordinator = _laufzeit(sensoren, RUHE, typ="laufzeit_heute")
     entity._fortschreiben()
     _phase(entity, koordinator, LAUF)
     _vorspulen(entity, 40)
@@ -140,7 +128,7 @@ def test_ein_neuer_tag_beginnt_bei_null(sensoren):
 
 def test_der_stand_steht_im_zustand(sensoren):
     """Nur so übersteht ein angefangener Brand den Neustart."""
-    entity, koordinator = _betriebsdauer(sensoren, RUHE)
+    entity, koordinator = _laufzeit(sensoren, RUHE)
     entity._fortschreiben()
     _phase(entity, koordinator, LAUF)
     attribute = entity.extra_state_attributes
@@ -170,31 +158,26 @@ def client():
     return c
 
 
-def test_die_betriebsphase_bekommt_drei_dauern(client):
-    client._betriebsdauer()
-    neue = {
-        d["id"]: d for d in client.devices if str(d.get("type", "")).startswith("betriebsdauer")
-    }
-    assert set(neue) == {
-        "SN1-phase-betriebsdauer",
-        "SN1-phase-betriebsdauer-letzte",
-        "SN1-phase-betriebsdauer-heute",
-    }
-    assert neue["SN1-phase-betriebsdauer"]["laufphasen"] == [5, 6, 7, 8, 15, 16, 17]
+def test_die_betriebsphase_bekommt_zwei_laufzeiten(client):
+    client._laufzeit()
+    neue = {d["id"]: d for d in client.devices if str(d.get("type", "")).startswith("laufzeit")}
+    assert set(neue) == {"SN1-phase-laufzeit", "SN1-phase-laufzeit-heute"}
+    assert neue["SN1-phase-laufzeit"]["name"] == "Letzte Laufzeit"
+    assert neue["SN1-phase-laufzeit"]["laufphasen"] == [5, 6, 7, 8, 15, 16, 17]
     assert all(d["enabled_default"] is False for d in neue.values())
 
 
 def test_ohne_bekannte_laufphasen_entsteht_nichts(client):
     """Eine unbekannte Tabelle wird nicht geraten."""
     client.devices[0]["enum"] = "99/99"
-    client._betriebsdauer()
-    assert not any(str(d.get("type", "")).startswith("betriebsdauer") for d in client.devices)
+    client._laufzeit()
+    assert not any(str(d.get("type", "")).startswith("laufzeit") for d in client.devices)
 
 
 def test_auch_die_waermepumpe_bekommt_ihre_dauer(client):
     """Ihre Zustandstabelle ist `50/6`: Heizen, Kühlen, Abtauen, Silentmode."""
     client.devices[0]["enum"] = "50/6"
-    client._betriebsdauer()
-    neue = [d for d in client.devices if str(d.get("type", "")).startswith("betriebsdauer")]
-    assert len(neue) == 3
+    client._laufzeit()
+    neue = [d for d in client.devices if str(d.get("type", "")).startswith("laufzeit")]
+    assert len(neue) == 2
     assert neue[0]["laufphasen"] == [4, 5, 6, 7, 8, 9]

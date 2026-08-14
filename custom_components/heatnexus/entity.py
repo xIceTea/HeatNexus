@@ -55,9 +55,8 @@ NUR_LESEND = {
     "total_increasing",
     "zaehler_heute",
     "zaehler_start",
-    "betriebsdauer",
-    "betriebsdauer_letzte",
-    "betriebsdauer_heute",
+    "laufzeit",
+    "laufzeit_heute",
 }
 
 

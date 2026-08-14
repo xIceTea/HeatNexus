@@ -26,7 +26,6 @@ from .const import (
     FCT_NV,
     FETCH_CONCURRENCY,
     FINGERABDRUCK_MIN_TREFFER,
-    GRUPPE_DAUER,
     GRUPPE_LAUFZEIT,
     GRUPPE_ZAEHLER,
     LAUFPHASEN,
@@ -1511,7 +1510,7 @@ class WindhagerHttpClient:
         self._nv_doppelte_stilllegen()
         self.zusatzkandidaten = []
         self._abgeleitete_zaehler()
-        self._betriebsdauer()
+        self._laufzeit()
         self._namen_vereindeutigen()
 
     # Zählerstände, aus denen sich ein Zuwachs bilden lässt.
@@ -1552,6 +1551,13 @@ class WindhagerHttpClient:
             for d in self.devices
             if d.get("device_id") and self._kennung_aus_oid(d.get("oid")) in STARTZAEHLER
         }
+        # Geräte, deren Zustand die Laufzeit minutengenau hergibt. Dort ist der
+        # Stundenzähler die schlechtere Antwort und bekommt keine Ableitung.
+        mit_laufzeit = {
+            d.get("device_id")
+            for d in self.devices
+            if LAUFPHASEN.get(str(d.get("enum") or "")) and d.get("device_id")
+        }
         # Tageswerte, die die Anlage selbst führt, je Gerät.
         vom_geraet = {
             (d.get("device_id"), kennung)
@@ -1569,7 +1575,10 @@ class WindhagerHttpClient:
             if kennung in TAGESWERTE:
                 continue
             # Stunden sind Laufzeit, alles andere zählt Stück oder Menge.
-            gruppe = GRUPPE_LAUFZEIT if (d.get("unit") or "") == "h" else GRUPPE_ZAEHLER
+            stunden = (d.get("unit") or "") == "h"
+            if stunden and d.get("device_id") in mit_laufzeit:
+                continue
+            gruppe = GRUPPE_LAUFZEIT if stunden else GRUPPE_ZAEHLER
             gemeinsam = {
                 "unit": d.get("unit"),
                 "device_class": d.get("device_class"),
@@ -1589,14 +1598,13 @@ class WindhagerHttpClient:
                 neu.append(self._ableitung(d, "heute", "zaehler_heute", "heute", **gemeinsam))
         self._zusatzwerte_uebernehmen(neu)
 
-    # Endung der Kennung -> Zusatz zum Namen des Zustandssensors.
-    _DAUERN = {
-        "betriebsdauer": "Aktuelle Betriebsdauer",
-        "betriebsdauer-letzte": "Letzte Betriebsdauer",
-        "betriebsdauer-heute": "Betriebsdauer heute",
+    # Endung der Kennung -> Name des Werts, der daraus entsteht.
+    _LAUFZEITEN = {
+        "laufzeit": "Letzte Laufzeit",
+        "laufzeit-heute": "Laufzeit heute",
     }
 
-    def _betriebsdauer(self) -> None:
+    def _laufzeit(self) -> None:
         """Wie lange das Aggregat läuft – aus dem Zustand, nicht aus Stunden.
 
         Der Stundenzähler der Anlage steht in ganzen Stunden und wird träge
@@ -1608,7 +1616,7 @@ class WindhagerHttpClient:
             phasen = LAUFPHASEN.get(str(d.get("enum") or ""))
             if not phasen or not d.get("oid"):
                 continue
-            for endung, name in self._DAUERN.items():
+            for endung, name in self._LAUFZEITEN.items():
                 neu.append(
                     self._ableitung(
                         {**d, "name": ""},
@@ -1618,7 +1626,7 @@ class WindhagerHttpClient:
                         unit="min",
                         laufphasen=sorted(phasen),
                         icon="mdi:fire-circle",
-                        gruppe=GRUPPE_DAUER,
+                        gruppe=GRUPPE_LAUFZEIT,
                     )
                 )
         self._zusatzwerte_uebernehmen(neu)
@@ -1627,9 +1635,8 @@ class WindhagerHttpClient:
     ZUSATZTYPEN = (
         "zaehler_heute",
         "zaehler_start",
-        "betriebsdauer",
-        "betriebsdauer_letzte",
-        "betriebsdauer_heute",
+        "laufzeit",
+        "laufzeit_heute",
     )
 
     def _zusatzwerte_uebernehmen(self, kandidaten: list[dict]) -> None:

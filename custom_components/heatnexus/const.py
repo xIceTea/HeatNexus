@@ -31,12 +31,10 @@ CONF_ZUSATZGRUPPEN = "zusatzgruppen"
 # Auswahl in den Optionen kreuzt Gruppen an, nicht Einzelwerte.
 GRUPPE_LAUFZEIT = "laufzeit"
 GRUPPE_ZAEHLER = "zaehler"
-GRUPPE_DAUER = "dauer"
 GRUPPE_INDIVIDUELL = "individuell"
 ZUSATZGRUPPEN = {
-    GRUPPE_LAUFZEIT: "Laufzeiten",
+    GRUPPE_LAUFZEIT: "Laufzeit",
     GRUPPE_ZAEHLER: "Zähler",
-    GRUPPE_DAUER: "Betriebsdauer",
 }
 # Ob der LON-Adressraum überhaupt gelesen wird. Er lohnt sich, wo der
 # OID-Raum dünn ist (BioWIN: 49 Werte ohne Entsprechung) und kaum, wo er
