@@ -108,7 +108,7 @@
           "meldung_einlesen": "Affiche une notification pendant que HeatNexus lit l'installation.",
           "aussentemperatur": "Quel capteur sert de température extérieure dans l'en-tête. Vide : HeatNexus la cherche dans l'installation.",
           "hilfe": "Ajoute un « ? » à côté des cartes et des commandes.",
-          "sprache": "D’où viennent les noms des points de données. « Automatique » suit la langue de Home Assistant ; la régulation embarque ses textes en allemand, anglais, français et italien. La nouvelle langue apparaît après un redémarrage de Home Assistant."
+          "sprache": "D’où viennent les noms des points de données. Les cartes du panneau restent en allemand."
         }
       },
       "system": {

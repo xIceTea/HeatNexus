@@ -107,6 +107,16 @@ def benutzer_auswahl() -> SelectSelector:
     )
 
 
+def _sprache_vorwahl(gespeichert: str | None) -> str:
+    """Vorbelegung des Auswahlfelds für die Sprache.
+
+    Bestehende Einträge tragen dort „auto", das im Feld nicht mehr steht. Es
+    bedeutet Deutsch und wird dorthin aufgelöst; ohne diese Umsetzung stünde
+    das Feld ohne Vorauswahl da.
+    """
+    return gespeichert if gespeichert in SPRACHEN else "de"
+
+
 async def validate_connection(host: str, password: str, username: str = DEFAULT_USERNAME) -> list:
     """Prüfen, ob die Anlage antwortet, und ihre Struktur zurückgeben."""
     client = WindhagerHttpClient(host=host, password=password, username=username)
@@ -614,15 +624,17 @@ class WindhagerOptionsFlow(OptionsFlow):
                         description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
                     ): EntitySelector(EntitySelectorConfig(domain="sensor")),
                     # Woher die Bezeichnungen kommen. Die Steuerung führt ihr
-                    # Textwerk in mehreren Sprachen mit; „auto" folgt der
-                    # Sprache von Home Assistant.
+                    # Textwerk in mehreren Sprachen mit. „Automatisch" steht
+                    # nicht zur Wahl, weil es dasselbe bedeutet wie Deutsch;
+                    # als gespeicherter Wert bestehender Einträge gilt es
+                    # weiter.
                     vol.Required(
-                        CONF_SPRACHE, default=options.get(CONF_SPRACHE, SPRACHE_AUTO)
+                        CONF_SPRACHE, default=_sprache_vorwahl(options.get(CONF_SPRACHE))
                     ): SelectSelector(
                         SelectSelectorConfig(
                             options=[
                                 SelectOptionDict(value=wahl, label=SPRACHE_BESCHRIFTUNG[wahl])
-                                for wahl in (SPRACHE_AUTO, *SPRACHEN)
+                                for wahl in SPRACHEN
                             ],
                             mode=SelectSelectorMode.DROPDOWN,
                             translation_key="sprache",

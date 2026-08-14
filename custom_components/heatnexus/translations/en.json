@@ -108,7 +108,7 @@
           "meldung_einlesen": "Shows a notification while HeatNexus reads the plant.",
           "aussentemperatur": "Which sensor counts as the outside temperature in the header. Empty: HeatNexus finds it in the plant itself.",
           "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does.",
-          "sprache": "Where the datapoint names come from. “Automatic” follows the Home Assistant language; the controller carries its texts in German, English, French and Italian. The new language becomes visible after a restart of Home Assistant."
+          "sprache": "Where the datapoint names come from. The panel cards stay labelled in German."
         }
       },
       "system": {
