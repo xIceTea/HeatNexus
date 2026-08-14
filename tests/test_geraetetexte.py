@@ -77,11 +77,16 @@ def test_unlesbares_xml_ergibt_leeres_ergebnis(geraetetexte, kaputt):
 @pytest.mark.parametrize(
     ("gewaehlt", "ha", "erwartet"),
     [
-        (None, "fr", "fr"),
-        ("auto", "en-GB", "en"),
+        # Ohne ausdrückliche Wahl bleibt es bei Deutsch, gleich welche Sprache
+        # Home Assistant führt: Die Kartenmuster der Oberfläche erkennen einen
+        # Datenpunkt am deutschen Namen und fänden ihn sonst nicht mehr.
+        (None, "fr", "de"),
+        ("auto", "en-GB", "de"),
         ("auto", "es", "de"),
         ("auto", None, "de"),
+        # Die ausdrückliche Wahl gilt weiterhin.
         ("it", "de", "it"),
+        ("en", "de", "en"),
         ("klingonisch", "fr", "de"),
     ],
 )

@@ -80,7 +80,7 @@ from .const import (
     UPDATE_INTERVAL,
 )
 from .exceptions import CannotConnect, InvalidAuth
-from .geraetetexte import SPRACHE_AUTO, SPRACHEN
+from .geraetetexte import SPRACHEN, sprache_aufloesen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -596,7 +596,7 @@ class WindhagerOptionsFlow(OptionsFlow):
             # „Unknown error occurred“ abbrechen lassen.
             options[CONF_MELDUNG_EINLESEN] = bool(user_input.get(CONF_MELDUNG_EINLESEN, False))
             options[CONF_HILFE] = bool(user_input.get(CONF_HILFE, True))
-            options[CONF_SPRACHE] = user_input.get(CONF_SPRACHE, SPRACHE_AUTO)
+            options[CONF_SPRACHE] = user_input.get(CONF_SPRACHE, "de")
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
             if gewaehlt:
                 options[CONF_AUSSENTEMPERATUR] = gewaehlt
@@ -621,16 +621,17 @@ class WindhagerOptionsFlow(OptionsFlow):
                         CONF_AUSSENTEMPERATUR,
                         description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
                     ): EntitySelector(EntitySelectorConfig(domain="sensor")),
-                    # Woher die Bezeichnungen kommen. Die Steuerung führt ihr
-                    # Textwerk in mehreren Sprachen mit; „auto" folgt der
-                    # Sprache von Home Assistant.
+                    # Woher die Bezeichnungen kommen. „Automatisch" steht nicht
+                    # zur Wahl, gilt als gespeicherter Wert aber weiter und
+                    # bedeutet Deutsch – dafür die Auflösung in der Vorwahl.
                     vol.Required(
-                        CONF_SPRACHE, default=options.get(CONF_SPRACHE, SPRACHE_AUTO)
+                        CONF_SPRACHE,
+                        default=sprache_aufloesen(options.get(CONF_SPRACHE), None),
                     ): SelectSelector(
                         SelectSelectorConfig(
                             options=[
                                 SelectOptionDict(value=wahl, label=SPRACHE_BESCHRIFTUNG[wahl])
-                                for wahl in (SPRACHE_AUTO, *SPRACHEN)
+                                for wahl in SPRACHEN
                             ],
                             mode=SelectSelectorMode.DROPDOWN,
                             translation_key="sprache",

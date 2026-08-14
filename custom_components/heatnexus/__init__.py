@@ -515,15 +515,24 @@ def _umfang_verkleinert(alt: dict[str, dict], neu: dict[str, dict]) -> bool:
     Nur dann werden Entitäten wirklich gelöscht. Fällt dagegen ein Datenpunkt
     weg, weil ihn die Anlage nicht mehr liefert, steckt keine Entscheidung
     dahinter – dort wird nur stillgelegt.
+
+    Als Abwahl gilt jeder Schalter des Umfangs, der von an auf aus ging, und
+    jede Liste, aus der etwas verschwand. Was `_scope` sonst führt – Intervall,
+    Zugang, Sprache – ist weder Schalter noch Liste und entfernt auch keinen
+    Datenpunkt.
     """
     for host, alt_umfang in alt.items():
         neu_umfang = neu.get(host)
         if neu_umfang is None:
             return True
-        if set(neu_umfang["levels"]) < set(alt_umfang["levels"]):
-            return True
-        if alt_umfang["enable_advanced"] and not neu_umfang["enable_advanced"]:
-            return True
+        for schluessel, alt_wert in alt_umfang.items():
+            neu_wert = neu_umfang.get(schluessel)
+            if isinstance(alt_wert, bool) and alt_wert and not neu_wert:
+                return True
+            # Die Differenz statt der echten Teilmenge: Wer eine Ebene abwählt
+            # und gleichzeitig eine andere hinzunimmt, hat trotzdem abgewählt.
+            if isinstance(alt_wert, list) and set(alt_wert) - set(neu_wert or ()):
+                return True
     return False
 
 

@@ -1,0 +1,34 @@
+title: "[Wunsch] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Schön, dass du eine Idee hast. Beschreib sie ruhig kurz. Wichtiger als
+        eine fertige Lösung ist, an welcher Anlage dir etwas gefehlt hat.
+  - type: textarea
+    id: wunsch
+    attributes:
+      label: Was fehlt dir?
+      description: Was willst du machen, und was steht dir dabei im Weg?
+    validations:
+      required: true
+  - type: input
+    id: anlage
+    attributes:
+      label: Welche Anlage hast du?
+      placeholder: BioWIN 2 Touch mit MB6621
+  - type: textarea
+    id: wert
+    attributes:
+      label: Weißt du, welcher Wert dahintersteckt?
+      description: >
+        Wenn du die Adresse oder den Namen aus dem Sondenlauf hast, schreib ihn
+        dazu. Wenn nicht, ist das kein Problem. Wir bauen nur ein, was wir an
+        einer echten Anlage gesehen haben, also schauen wir zuerst nach, ob
+        deine Steuerung den Wert überhaupt liefert.
+  - type: checkboxes
+    id: nachgesehen
+    attributes:
+      label: Kurz nachgesehen
+      options:
+        - label: Ich habe geschaut, ob es das im Panel schon gibt.

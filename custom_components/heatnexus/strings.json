@@ -106,7 +106,7 @@
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
           "dashboard": "Adds a dashboard that builds itself from the discovered devices.",
           "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
-          "meldung_einlesen": "Shows a notification while HeatNexus reads the plant. Off by default – from the second start everything is there immediately.",
+          "meldung_einlesen": "Shows a notification while HeatNexus reads the plant.",
           "aussentemperatur": "Which sensor counts as the outside temperature in the header. Empty: HeatNexus finds it in the plant itself.",
           "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does."
         }

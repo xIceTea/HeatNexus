@@ -20,6 +20,17 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Der Sondenlauf brach an Anlagen ab, deren größte Menü-Ebene keine Datenpunktadressen führt.
 
+## [1.8.1] - 2026-08-14
+
+### Geändert
+
+- Bezeichnungen bleiben deutsch, bis eine andere Sprache gewählt wird.
+- Kürzere Erklärungen in den allgemeinen Einstellungen.
+
+### Behoben
+
+- Eine abgewählte Systemuhr ließ ihre Entitäten als abgeschaltete Zeilen zurück.
+
 ## [1.8.0] - 2026-08-14
 
 Bezeichnungen in der Sprache von Home Assistant und eine Erkennung, die auch

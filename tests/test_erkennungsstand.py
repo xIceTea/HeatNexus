@@ -203,8 +203,25 @@ def test_ein_unbrauchbarer_stand_gilt_nicht(modul, kaputt):
 # ---------------------------------------------------------------------------
 # Abwahl: löschen oder nur stilllegen
 # ---------------------------------------------------------------------------
-def _umfang(levels, erweitert=False):
-    return {"levels": levels, "enable_advanced": erweitert, "writable_advanced": False}
+def _umfang(levels, **schalter):
+    """Umfang in der Form, die `_scope` liefert.
+
+    Die Schalter stehen vollständig da, auch wenn ein Test nur einen davon
+    verstellt: Die Prüfung leitet die Abwahl aus dem Umfang selbst ab, und ein
+    fehlender Schlüssel wäre etwas anderes als ein abgeschalteter.
+    """
+    umfang = {
+        "levels": levels,
+        "enable_advanced": False,
+        "writable_advanced": False,
+        "zeitwerte": False,
+        "lon": False,
+        "update_interval": 30,
+        "username": "USER",
+        "sprache": "de",
+    }
+    umfang.update(schalter)
+    return umfang
 
 
 def test_eine_abgewaehlte_ebene_ist_eine_entscheidung(modul):
@@ -219,10 +236,42 @@ def test_eine_zusaetzliche_ebene_ist_keine_abwahl(modul):
     assert not modul._umfang_verkleinert(alt, neu)
 
 
-def test_abgeschaltete_fachparameter_zaehlen_als_abwahl(modul):
-    alt = {HOST: _umfang(["info"], erweitert=True)}
-    neu = {HOST: _umfang(["info"])}
+@pytest.mark.parametrize(
+    "schalter", ["enable_advanced", "writable_advanced", "zeitwerte", "lon", "kuenftige_option"]
+)
+def test_ein_abgeschalteter_schalter_zaehlt_als_abwahl(modul, schalter):
+    """Jeder Schalter zählt, auch einer, den der Umfang hier noch nicht führt."""
+    alt = {HOST: _umfang(["info"], **{schalter: True})}
+    neu = {HOST: _umfang(["info"], **{schalter: False})}
     assert modul._umfang_verkleinert(alt, neu)
+
+
+@pytest.mark.parametrize("schalter", ["enable_advanced", "writable_advanced", "zeitwerte", "lon"])
+def test_ein_eingeschalteter_schalter_ist_keine_abwahl(modul, schalter):
+    alt = {HOST: _umfang(["info"], **{schalter: False})}
+    neu = {HOST: _umfang(["info"], **{schalter: True})}
+    assert not modul._umfang_verkleinert(alt, neu)
+
+
+def test_eine_ebene_getauscht_bleibt_eine_abwahl(modul):
+    """Gleichzeitig abwählen und hinzunehmen ist trotzdem eine Abwahl."""
+    alt = {HOST: _umfang(["info", "operate"])}
+    neu = {HOST: _umfang(["operate", "service"])}
+    assert modul._umfang_verkleinert(alt, neu)
+
+
+@pytest.mark.parametrize(
+    ("feld", "wert"), [("update_interval", 120), ("username", "Service"), ("sprache", "en")]
+)
+def test_was_keinen_datenpunkt_entfernt_ist_keine_abwahl(modul, feld, wert):
+    """Intervall, Zugang und Sprache ändern den Bestand nicht.
+
+    Sie stehen im selben Umfang und dürfen die Ableitung nicht auslösen –
+    sonst löschte ein Sprachwechsel die Anlage.
+    """
+    alt = {HOST: _umfang(["info"])}
+    neu = {HOST: _umfang(["info"], **{feld: wert})}
+    assert not modul._umfang_verkleinert(alt, neu)
 
 
 def test_eine_entfernte_anlage_zaehlt_als_abwahl(modul):

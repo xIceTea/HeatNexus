@@ -149,13 +149,15 @@ def dateinamen_lesen(html: str) -> set[str]:
 def sprache_aufloesen(gewaehlt: str | None, ha_sprache: str | None) -> str:
     """Die Sprache bestimmen, in der die Steuerung gelesen wird.
 
-    Die Wahl des Nutzers hat Vorrang; ohne Wahl gilt die Sprache von Home
-    Assistant. Was die Steuerung nicht führt, fällt auf Deutsch zurück.
+    Nur die ausdrückliche Wahl zählt, alles andere ist Deutsch: Schaubild,
+    Kennwerte und Schnellzugriff erkennen einen Datenpunkt zum Teil an seinem
+    deutschen Namen und blieben mit fremden Namen leer. ``ha_sprache`` wird
+    deshalb nicht ausgewertet und bleibt für den Tag, an dem jeder Datenpunkt
+    der Muster einen kanonischen Schlüssel trägt.
     """
     if gewaehlt and gewaehlt != SPRACHE_AUTO:
         return gewaehlt if gewaehlt in SPRACHEN else "de"
-    kurz = (ha_sprache or "").split("-")[0].lower()
-    return kurz if kurz in SPRACHEN else "de"
+    return "de"
 
 
 async def laden(hole, sprache: str) -> Texte:
