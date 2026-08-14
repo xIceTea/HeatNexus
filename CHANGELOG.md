@@ -18,9 +18,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Je Anlagenteil eine Taste, die seine Werte sofort neu abruft.
 - Automations-Vorlagen lassen sich einzeln abwählen.
 - Jedes Anlagenteil meldet seine Störung als eigenen Sensor.
-- Zu jedem Zählerstand gibt es den Tageswert und den Wert seit dem letzten Start.
-- Kessel und Wärmepumpe melden die letzte Laufzeit und die Laufzeit heute.
-- Zusatzwerte lassen sich in den Optionen je Anlage einschalten, nach Gruppen oder einzeln.
+- Neue Zusatzwerte, in den Optionen wählbar: Tageswert, Wert seit dem letzten Start, Laufzeiten.
 - Die Oberfläche hat drei Farbsätze: Dunkel, Hell und Terrakotta.
 - Die Diagnose nennt die Zahl der geführten und der abgeschalteten Entitäten.
 
