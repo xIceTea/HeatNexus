@@ -345,8 +345,7 @@ export const UebersichtMixin = (Basis) =>
       karte.appendChild(this._klickbar(zeile, eintrag.entity));
       this._bindungen.push(() => {
         links.textContent = this._name(eintrag.entity).replace(" Meldung Klartext", "");
-        const zustand = this._zustand(eintrag.entity);
-        const aktiv = zustand && zustand.attributes.stoerung_aktiv === true;
+        const aktiv = this._stoerungAktiv(eintrag);
         wert.textContent = this._text(eintrag.entity);
         wert.className = `wert ${aktiv ? "schlecht" : "gut"}`;
         // Ohne Störung sagt der Kasten oben schon alles; die Zeilen sind dann

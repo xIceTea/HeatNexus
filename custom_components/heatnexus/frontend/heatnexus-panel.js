@@ -204,11 +204,18 @@ class HeatNexusPanel extends Grundlage {
     return (anlage.schema_pumpen || []).some((eintrag) => this._foerdert(eintrag.entity));
   }
 
+  // Ob eine Störung ansteht, sagt der Ja/Nein-Sensor. Das Attribut des
+  // Klartextsensors bleibt als Rückfall, bis ein alter Erkennungsstand den
+  // neuen Sensor nachgezogen hat.
+  _stoerungAktiv(eintrag) {
+    const melder = eintrag.melder && this._zustand(eintrag.melder);
+    if (melder) return melder.state === "on";
+    const zustand = this._zustand(eintrag.entity);
+    return !!zustand && zustand.attributes.stoerung_aktiv === true;
+  }
+
   _stoerung(anlage) {
-    return (anlage.stoerungen || []).some((s) => {
-      const zustand = this._zustand(s.entity);
-      return zustand && zustand.attributes.stoerung_aktiv === true;
-    });
+    return (anlage.stoerungen || []).some((s) => this._stoerungAktiv(s));
   }
 
   // -------------------------------------------------------------------
