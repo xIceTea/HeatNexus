@@ -19,6 +19,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Automations-Vorlagen lassen sich einzeln abwählen.
 - Jedes Anlagenteil meldet seine Störung als eigenen Sensor.
 - Zu jedem Zählerstand gibt es den Zuwachs heute und seit dem letzten Brennerstart.
+- Der Kessel meldet, wie lange er brennt, wie lange der letzte Brand dauerte und wie lange er heute lief.
 - Die Farben des Schaubilds sind wählbar, neu mit einem Kontrastsatz.
 - Die Diagnose nennt, wie viele Entitäten Home Assistant führt und wie viele davon abgeschaltet sind.
 
