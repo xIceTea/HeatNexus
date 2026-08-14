@@ -133,7 +133,9 @@ def _anlage(coordinator) -> dict[str, Any]:
     for beschreibung in beschreibungen:
         typ = beschreibung.get("type", "unbekannt")
         nach_typ[typ] = nach_typ.get(typ, 0) + 1
-        ebene = beschreibung.get("level", "kuratiert")
+        # Ohne Ebene: aus einer kuratierten Tabelle. Der Deskriptor führt das
+        # Feld seit der gemeinsamen Vorgabe immer, dann eben mit `None`.
+        ebene = beschreibung.get("level") or "kuratiert"
         nach_ebene[ebene] = nach_ebene.get(ebene, 0) + 1
 
     return {

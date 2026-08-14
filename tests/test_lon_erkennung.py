@@ -292,6 +292,24 @@ async def test_knoten_ohne_funktion_wird_zum_bedienteil(client_module, monkeypat
     assert bedienteil["device_id"] == c._geraetekennung("/1/90/32")
 
 
+async def test_alle_deskriptoren_haben_dieselbe_form(client_module, monkeypatch):
+    """Kuratierte Tabelle, Menü-Erkennung und LON bauen dieselbe Beschreibung.
+
+    Sie liefen auseinander: Die eine Stelle führte `level` und
+    `enabled_default`, die andere nicht — und wer ein Feld hinzufügte, musste
+    an drei Stellen daran denken.
+    """
+    from custom_components.heatnexus.client import DESKRIPTOR_VORGABE
+
+    c = await _erkennen(client_module, monkeypatch)
+    datenpunkte = [d for d in c.devices if d.get("oid") and d["type"] != "climate"]
+
+    assert datenpunkte
+    for d in datenpunkte:
+        fehlend = set(DESKRIPTOR_VORGABE) - set(d)
+        assert fehlend == set(), f"{d['name']}: {sorted(fehlend)}"
+
+
 async def test_der_kurzdurchlauf_liest_keine_netzwerkvariablen(client_module, monkeypatch):
     """Die Einrichtung darf davon nicht länger werden."""
     c = client_module.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info"])

@@ -50,6 +50,38 @@ from .lon import zuordnen as lon_zuordnen
 
 _LOGGER = logging.getLogger(__name__)
 
+# Die Felder eines Datenpunkt-Deskriptors und ihre Vorgabe. Plattformen, Panel,
+# Dashboard und Diagnose lesen sie; fehlt eines, fällt das erst dort auf.
+DESKRIPTOR_VORGABE: dict = {
+    "id": None,
+    "alt_id": None,
+    "oid": None,
+    "name": None,
+    "type": "auto",
+    # Die Bedienebene, aus der der Datenpunkt stammt. `None` heißt: aus einer
+    # kuratierten Tabelle, nicht aus einer Ebene der Anlage.
+    "level": None,
+    "enabled_default": True,
+    "enum": None,
+    "enum_texte": None,
+    "unit": None,
+    "device_class": None,
+    "state_class": None,
+    "kanonisch": None,
+    "category": None,
+    "icon": None,
+    "min": None,
+    "max": None,
+    "step": None,
+    "press_value": None,
+    "write_prot": None,
+    "nv_name": None,
+    "device_id": None,
+    "alt_device_id": None,
+    "device_name": None,
+    "fct_type": None,
+}
+
 # Klarere, gruppierende Namen für einzelne auto-entdeckte Datenpunkte.
 # HA sortiert Entities auf der Geräteseite nach dem Namen – mit gemeinsamem
 # Präfix landen zusammengehörige Werte (z.B. WW-Zirkulation) beieinander.
@@ -678,12 +710,11 @@ class WindhagerHttpClient:
         self.menu_meta[oid] = meta
 
         self.devices.append(
-            {
-                "id": f"{self._neuron(knoten)}-{lon_kennungsteil(nv_name, menu_id, index)}",
-                "alt_id": self._alte_kennung(oid),
-                "oid": oid,
-                "name": eintrag["name"] if eintrag else (nv_name or f"Netzwerkvariable {index}"),
-                "type": "auto",
+            self._deskriptor(
+                id=f"{self._neuron(knoten)}-{lon_kennungsteil(nv_name, menu_id, index)}",
+                alt_id=self._alte_kennung(oid),
+                oid=oid,
+                name=eintrag["name"] if eintrag else (nv_name or f"Netzwerkvariable {index}"),
                 # Netzwerkvariablen stehen in keiner Bedienebene der Anlage –
                 # weder Info noch Service. Sie eine zu nennen, um durch den
                 # Umfangsfilter zu kommen, wäre eine falsche Auskunft an alles,
@@ -691,36 +722,27 @@ class WindhagerHttpClient:
                 # sie ohnehin nicht. Über ihre Sichtbarkeit entscheidet
                 # `enabled_default`. Eine eigene Herkunft statt gar keiner:
                 # `None` zählte die Diagnose unter dem Schlüssel `null`.
-                "level": "lon",
+                level="lon",
                 # Ab Werk aktiv ist nur ein benannter **Ausgang**. Der Eingang
                 # daneben führt dieselbe Zahl, und Unbenanntes taugt ohne
                 # Nachsehen zu nichts.
-                "enabled_default": bool(eintrag) and not lon_ist_eingang(nv_name),
-                "enum": None,
-                "enum_texte": None,
-                "unit": None,
-                "device_class": None,
-                "state_class": (eintrag or {}).get("state_class") or typ.get("state_class"),
-                "kanonisch": eintrag.get("kanonisch") if eintrag else None,
-                "category": None if eintrag and not typ.get("diagnose") else "diagnostic",
-                "icon": None,
-                "min": None,
-                "max": None,
-                "step": None,
-                "press_value": None,
-                "write_prot": True,
-                "nv_name": nv_name,
-                "device_id": self._geraetekennung(ziel_prefix or prefix),
-                "alt_device_id": self._alte_kennung(ziel_prefix or prefix),
+                enabled_default=bool(eintrag) and not lon_ist_eingang(nv_name),
+                state_class=(eintrag or {}).get("state_class") or typ.get("state_class"),
+                kanonisch=eintrag.get("kanonisch") if eintrag else None,
+                category=None if eintrag and not typ.get("diagnose") else "diagnostic",
+                write_prot=True,
+                nv_name=nv_name,
+                device_id=self._geraetekennung(ziel_prefix or prefix),
+                alt_device_id=self._alte_kennung(ziel_prefix or prefix),
                 # Ein Knoten ohne brauchbare Funktion trägt keinen Namen, den
                 # man anzeigen möchte („NV's"). Dann nennt ihn die Anlage
                 # selbst: die Werksbezeichnung des Bausteins, beim Bedienteil
                 # „MB6611 LOP". Fehlt auch die, bleibt die Knotennummer – sie
                 # ist wenigstens wahr, während „Bedienteil" bei jedem zweiten
                 # Busgerät danebenläge.
-                "device_name": ziel_name or self.werksbezeichnung.get(knoten) or f"Knoten {knoten}",
-                "fct_type": ziel_typ if ziel_prefix else FCT_NV,
-            }
+                device_name=ziel_name or self.werksbezeichnung.get(knoten) or f"Knoten {knoten}",
+                fct_type=ziel_typ if ziel_prefix else FCT_NV,
+            )
         )
         self.oids.add(oid)
 
@@ -862,6 +884,21 @@ class WindhagerHttpClient:
     # ------------------------------------------------------------------
     # Discovery
     # ------------------------------------------------------------------
+    @staticmethod
+    def _deskriptor(**felder) -> dict:
+        """Ein Datenpunkt-Deskriptor mit allen Feldern, die er führen muss.
+
+        Die Beschreibung entstand an drei Stellen – kuratierte Tabelle, Menü-
+        Erkennung, LON-Adressraum – und lief auseinander: Die eine führte
+        `level` und `enabled_default`, die andere nicht. Ein neues Feld musste
+        dreimal nachgezogen werden, und wer eines vergaß, merkte es erst an
+        einer Anlage.
+
+        Was hier steht, ist die Form. Was ein Aufrufer nicht nennt, bleibt auf
+        der Vorgabe.
+        """
+        return {**DESKRIPTOR_VORGABE, **felder}
+
     def _add_entity(self, definition: dict, prefix: str, device_id: str, fct: dict):
         """Create a device/entity descriptor from a const.py definition."""
         base = device_id if definition.get("node_level") else prefix
@@ -871,32 +908,31 @@ class WindhagerHttpClient:
         if definition.get("key_suffix"):
             unique_id = f"{unique_id}-{definition['key_suffix']}"
             alt = f"{alt}-{definition['key_suffix']}"
-        descriptor = {
-            "id": unique_id,
-            "alt_id": alt,
-            "oid": oid,
+        descriptor = self._deskriptor(
+            id=unique_id,
+            alt_id=alt,
+            oid=oid,
             # `base`, nicht `prefix`: Knotenweite Datenpunkte hängen am Gerät,
             # nicht an der Funktion – sonst schneidet `_gnmn` die falsche
             # Länge ab.
-            "name": self._name_fuer(self._gnmn(base, oid), definition["name"]),
-            "type": definition["platform"],
-            "unit": definition.get("unit"),
-            "enum": definition.get("enum"),
-            "enum_texte": self._enum_texte_fuer(self._gnmn(base, oid)),
-            "device_class": definition.get("device_class"),
-            "state_class": definition.get("state_class"),
-            "category": definition.get("category"),
-            "icon": definition.get("icon"),
-            "min": definition.get("min"),
-            "max": definition.get("max"),
-            "step": definition.get("step"),
-            "press_value": definition.get("press_value"),
-            "write_prot": None,
-            "device_id": self._geraetekennung(prefix),
-            "alt_device_id": self._alte_kennung(prefix),
-            "device_name": fct["name"],
-            "fct_type": fct.get("fctType"),
-        }
+            name=self._name_fuer(self._gnmn(base, oid), definition["name"]),
+            type=definition["platform"],
+            unit=definition.get("unit"),
+            enum=definition.get("enum"),
+            enum_texte=self._enum_texte_fuer(self._gnmn(base, oid)),
+            device_class=definition.get("device_class"),
+            state_class=definition.get("state_class"),
+            category=definition.get("category"),
+            icon=definition.get("icon"),
+            min=definition.get("min"),
+            max=definition.get("max"),
+            step=definition.get("step"),
+            press_value=definition.get("press_value"),
+            device_id=self._geraetekennung(prefix),
+            alt_device_id=self._alte_kennung(prefix),
+            device_name=fct["name"],
+            fct_type=fct.get("fctType"),
+        )
         self.devices.append(descriptor)
         self.oids.add(oid)
 
@@ -1042,40 +1078,29 @@ class WindhagerHttpClient:
                     if level not in self.levels:
                         continue
                     self.devices.append(
-                        {
-                            "id": self._kennung(oid),
-                            "alt_id": self._alte_kennung(oid),
-                            "oid": oid,
-                            "name": (
+                        self._deskriptor(
+                            id=self._kennung(oid),
+                            alt_id=self._alte_kennung(oid),
+                            oid=oid,
+                            name=(
                                 self._name_fuer(gnmn, NAME_OVERRIDES.get(gnmn) or get_name(gnmn))
                                 or (f"{gruppe_of[gnmn]} {gnmn}" if gnmn in gruppe_of else None)
                                 or f"Datenpunkt {gnmn}"
                             ),
-                            "type": "auto",
-                            "level": level,
+                            level=level,
                             # Service- und Werksebene sind vorhanden, aber
                             # standardmäßig deaktiviert (pro Entity in Home
                             # Assistant aktivierbar oder über die Optionen).
-                            "enabled_default": (
+                            enabled_default=(
                                 level not in ADVANCED_LEVELS or self.enable_advanced
                             ),
-                            "enum": gnmn if get_enum(gnmn) else None,
-                            "enum_texte": self._enum_texte_fuer(gnmn),
-                            "unit": None,
-                            "device_class": None,
-                            "state_class": None,
-                            "category": None,
-                            "icon": None,
-                            "min": None,
-                            "max": None,
-                            "step": None,
-                            "press_value": None,
-                            "write_prot": None,
-                            "device_id": self._geraetekennung(prefix),
-                            "alt_device_id": self._alte_kennung(prefix),
-                            "device_name": fct["name"],
-                            "fct_type": fct_type,
-                        }
+                            enum=gnmn if get_enum(gnmn) else None,
+                            enum_texte=self._enum_texte_fuer(gnmn),
+                            device_id=self._geraetekennung(prefix),
+                            alt_device_id=self._alte_kennung(prefix),
+                            device_name=fct["name"],
+                            fct_type=fct_type,
+                        )
                     )
                     self.oids.add(oid)
 
