@@ -6,7 +6,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unveröffentlicht]
+## [1.9.0-beta.1] - 2026-08-14
 
 ### Neu
 
@@ -22,12 +22,13 @@ wenn dort Vorabversionen zugelassen sind.
 - Kessel und Wärmepumpe melden die letzte Laufzeit und die Laufzeit heute.
 - Zusatzwerte lassen sich in den Optionen je Anlage einschalten, nach Gruppen oder einzeln.
 - Die Oberfläche hat drei Farbsätze: Dunkel, Hell und Terrakotta.
-- Die Diagnose nennt, wie viele Entitäten Home Assistant führt und wie viele davon abgeschaltet sind.
+- Die Diagnose nennt die Zahl der geführten und der abgeschalteten Entitäten.
 
 ### Geändert
 
 - Die Vorlage „Störung melden" führt zum Störungssensor statt zu jedem Sensor.
 - Das undekodierte Statusregister des Kessels heißt nicht mehr „Störung aktiv".
+- Datenpunkte, die beim Einlesen keinen Wert liefern, entstehen abgeschaltet.
 
 ### Behoben
 
@@ -37,6 +38,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Meldungsliste stand dauerhaft auf „nicht verfügbar".
 - Eine Abwahl wirkte nur bis zum nächsten Neustart.
 - Ein abgeschalteter Bus lässt keine abgeschalteten Zeilen mehr zurück.
+- Ein unvollständiger Erkennungslauf überschrieb den bekannten Stand.
 
 ## [1.8.1] - 2026-08-14
 
