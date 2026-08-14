@@ -623,6 +623,14 @@ def _abgewaehlte_entitaeten_stilllegen(
         for coordinator in coordinators.values()
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
+    # Die selbst gebildeten Werte: Nur bei ihnen schlägt die Auswahl eine
+    # Einschaltung von Hand.
+    zusatzwerte = {
+        beschreibung.get("id")
+        for coordinator in coordinators.values()
+        for beschreibung in (coordinator.data or {}).get("devices", [])
+        if beschreibung.get("type") in WindhagerHttpClient.ZUSATZTYPEN
+    }
     umfaenge = (laufzeitdaten(entry) or {}).get("umfang") or {}
     registry = er.async_get(hass)
     entfernt = 0
@@ -636,6 +644,20 @@ def _abgewaehlte_entitaeten_stilllegen(
                 registry.async_update_entity(
                     eintrag.entity_id, disabled_by=er.RegistryEntryDisabler.INTEGRATION
                 )
+        elif eintrag.unique_id in zusatzwerte and eintrag.disabled_by in (
+            None,
+            er.RegistryEntryDisabler.INTEGRATION,
+        ):
+            # Zusatzwerte folgen der Auswahl in den Optionen, auch wenn sie
+            # jemand von Hand eingeschaltet hat: Das Häkchen ist die
+            # Entscheidung, und ohne diesen Zweig ließe es sich nie zurücknehmen.
+            gewuenscht = (
+                None
+                if standardmaessig_an[eintrag.unique_id]
+                else er.RegistryEntryDisabler.INTEGRATION
+            )
+            if eintrag.disabled_by is not gewuenscht:
+                registry.async_update_entity(eintrag.entity_id, disabled_by=gewuenscht)
         elif (
             standardmaessig_an[eintrag.unique_id]
             and eintrag.disabled_by is er.RegistryEntryDisabler.INTEGRATION

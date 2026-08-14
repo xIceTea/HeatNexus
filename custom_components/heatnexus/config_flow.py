@@ -273,7 +273,9 @@ def zusatzgruppen_feld(kandidaten: list[dict], gewaehlt: list[str]) -> dict:
     if not vorhanden:
         return {}
     optionen = [SelectOptionDict(value=g, label=ZUSATZGRUPPEN[g]) for g in vorhanden]
-    optionen.append(SelectOptionDict(value=GRUPPE_INDIVIDUELL, label="Individuell"))
+    optionen.append(
+        SelectOptionDict(value=GRUPPE_INDIVIDUELL, label="Individuell – weiter zur Einzelauswahl")
+    )
     return {
         vol.Optional(CONF_ZUSATZGRUPPEN, default=gewaehlt): SelectSelector(
             SelectSelectorConfig(options=optionen, multiple=True, mode=SelectSelectorMode.LIST)

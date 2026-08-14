@@ -16,6 +16,8 @@ from .const import (
     ADVANCED_LEVELS,
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
+    ERKENNUNG_MIN_ANTEIL,
+    ERKENNUNG_MIN_DATENPUNKTE,
     EXTRA_OIDS_BY_FCT,
     FCT_CLIMATE,
     FCT_ENTITY_MAP,
@@ -92,6 +94,8 @@ DESKRIPTOR_VORGABE: dict = {
     "ausloeser_oid": None,
     "laufphasen": None,
     "gruppe": None,
+    # Beim Einlesen meldete die Anlage keinen Wert – der Eingang ist frei.
+    "leer_beim_einlesen": None,
     "device_id": None,
     "alt_device_id": None,
     "device_name": None,
@@ -1463,6 +1467,16 @@ class WindhagerHttpClient:
                     if d.get("category") == "config":
                         d["category"] = None
                 d["write_prot"] = m.get("writeProt")
+                # Ein Fühlereingang ohne Fühler meldet die Leermarke. Die
+                # Entität entsteht abgeschaltet statt dauerhaft „nicht
+                # verfügbar"; wer sie einmal einschaltet, behält sie.
+                if (
+                    m.get("value") in ("-.-", "-")
+                    and d["type"] not in ("select", "number", "switch", "time", "date", "button")
+                    and d.get("enabled_default", True)
+                ):
+                    d["enabled_default"] = False
+                    d["leer_beim_einlesen"] = True
                 # read-only-Punkt ganz ohne Wert (z.B. Softwareversion ohne value-Feld)
                 if (
                     "value" not in m
@@ -1771,6 +1785,28 @@ class WindhagerHttpClient:
             time.monotonic() - begonnen,
         )
 
+    def _erkennung_zu_mager(self, vorheriger: dict | None) -> bool:
+        """Prüfen, ob dieser Lauf deutlich weniger fand als der Stand davor.
+
+        Eine Steuerung, die gerade schwächelt, meldet weniger Datenpunkte;
+        dieser Lauf räumte sonst still die halbe Anlage ab. Der alte Stand
+        bleibt dann stehen, der nächste Lauf versucht es erneut.
+        """
+        vorher = len(vorheriger.get("oids") or ()) if vorheriger else 0
+        if vorher < ERKENNUNG_MIN_DATENPUNKTE:
+            return False
+        jetzt = len(self.oids or ())
+        if jetzt >= vorher * ERKENNUNG_MIN_ANTEIL:
+            return False
+        _LOGGER.warning(
+            "%s meldet nur %d von zuvor %d Datenpunkten – der bekannte Stand bleibt. "
+            "Bleibt es dabei, hilft der Dienst heatnexus.rediscover.",
+            self.host,
+            jetzt,
+            vorher,
+        )
+        return True
+
     async def async_init(self, erzwingen: bool = False) -> None:
         """Anlage vollständig einlesen (getrennt vom zyklischen Abruf).
 
@@ -1783,12 +1819,18 @@ class WindhagerHttpClient:
 
         begonnen = time.monotonic()
         self.request_count = 0
+        # Der bisherige Stand als Rückfall, solange er vollständig war.
+        vorheriger = self.export_discovery() if self._vollstaendig else None
         self.oids = None
         await self._discover()
         nach_discovery = self.request_count
         await self._apply_metadata()
         self._compute_poll_oids()
         self._vollstaendig = True
+
+        if self._erkennung_zu_mager(vorheriger):
+            self.restore_discovery(vorheriger)
+            return
 
         _LOGGER.info(
             "%s eingelesen: %d Datenpunkte, %d Entitäten, davon %d aktiv – "

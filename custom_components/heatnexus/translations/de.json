@@ -138,7 +138,7 @@
           "kesselwert": "Welcher zweite Wert am Kessel steht. Das Glutbett folgt weiterhin der Leistung – fehlt sie, richtet es sich nach der Brennkammertemperatur.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
           "lon": "Die Steuerung führt neben den Datenpunkten einen Bus-Adressraum. Empfohlen bei Anlagen, deren Kessel wenige Datenpunkte meldet — dort ist es der einzige Weg zu Gebläsedrehzahl, Lambdasonden-Heizung und Pelletsvorrat. Bei PuroWIN und Infinity bringt er kaum etwas, weil dieselben Werte schon als Datenpunkt dastehen.",
-          "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. „Individuell“ öffnet die Einzelauswahl."
+          "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. Mit „Individuell“ folgt nach OK ein zweiter Schritt mit den Einzelwerten."
         }
       },
       "zusatzwerte": {

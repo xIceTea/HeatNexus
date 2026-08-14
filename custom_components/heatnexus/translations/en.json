@@ -138,7 +138,7 @@
           "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature.",
           "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
           "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
-          "zusatzgruppen": "Values HeatNexus derives from existing counters and states: running times (today, since the last start), counters (starts, consumption, heat) and the running duration. Unticked ones are created disabled. Pick “Individuell” for the per-value selection."
+          "zusatzgruppen": "Values HeatNexus derives from existing counters and states: running times (today, since the last start), counters (starts, consumption, heat) and the running duration. Unticked ones are created disabled. With “Individuell”, pressing OK opens a second step listing the individual values."
         }
       },
       "zusatzwerte": {

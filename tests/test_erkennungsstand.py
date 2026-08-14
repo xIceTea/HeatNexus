@@ -459,3 +459,43 @@ def test_eine_zweite_anlage_mit_bus_schuetzt_die_kennungen(modul):
 def test_ein_gewoehnlicher_datenpunkt_wird_nur_stillgelegt(modul, kennung):
     """Kein Bus-Wert – über ihn entscheidet allein der Umfangsvergleich."""
     assert not modul._quelle_abgeschaltet(kennung, {HOST: _umfang(["info"], lon=False)})
+
+
+# ---------------------------------------------------------------------------
+# Eine magere Erkennung darf den bekannten Stand nicht abräumen
+# ---------------------------------------------------------------------------
+def test_ein_magerer_lauf_wird_verworfen():
+    """Eine schwächelnde Steuerung meldet weniger – der alte Stand bleibt."""
+    from custom_components.heatnexus.client import WindhagerHttpClient
+
+    client = WindhagerHttpClient("192.0.2.10", "geheim")
+    client.oids = {f"/1/60/0/9/{n}/0" for n in range(30)}
+    vorher = {"oids": sorted(f"/1/60/0/9/{n}/0" for n in range(100))}
+    assert client._erkennung_zu_mager(vorher) is True
+
+
+def test_ein_vollstaendiger_lauf_gilt():
+    from custom_components.heatnexus.client import WindhagerHttpClient
+
+    client = WindhagerHttpClient("192.0.2.10", "geheim")
+    client.oids = {f"/1/60/0/9/{n}/0" for n in range(95)}
+    vorher = {"oids": sorted(f"/1/60/0/9/{n}/0" for n in range(100))}
+    assert client._erkennung_zu_mager(vorher) is False
+
+
+def test_ohne_vorherigen_stand_gilt_jeder_lauf():
+    """Beim Ersteinlesen gibt es nichts zu vergleichen."""
+    from custom_components.heatnexus.client import WindhagerHttpClient
+
+    client = WindhagerHttpClient("192.0.2.10", "geheim")
+    client.oids = {"/1/60/0/0/7/0"}
+    assert client._erkennung_zu_mager(None) is False
+
+
+def test_eine_kleine_anlage_wird_nicht_geschuetzt():
+    """Unter der Mindestzahl ist jeder Vergleich Zufall."""
+    from custom_components.heatnexus.client import WindhagerHttpClient
+
+    client = WindhagerHttpClient("192.0.2.10", "geheim")
+    client.oids = {"/1/60/0/0/7/0"}
+    assert client._erkennung_zu_mager({"oids": ["/1/60/0/0/7/0", "/1/60/0/0/8/0"]}) is False

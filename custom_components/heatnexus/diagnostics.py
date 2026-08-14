@@ -79,14 +79,25 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
     Erkennung stammt.
     """
     entitaeten = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    # Kennung -> ob die Erkennung sie ab Werk einschaltet.
     bekannt = {
-        beschreibung.get("id")
+        beschreibung.get("id"): beschreibung.get("enabled_default", True)
         for coordinator in eintrag.get("coordinators", {}).values()
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
     je_bereich = Counter(e.entity_id.split(".")[0] for e in entitaeten)
     abgeschaltet = Counter(str(e.disabled_by) for e in entitaeten if e.disabled_by is not None)
     verwaist = sorted(e.unique_id for e in entitaeten if e.unique_id not in bekannt)
+    # Verwaist und trotzdem aktiv: Diese Zeilen stehen wirklich im Weg.
+    verwaist_aktiv = [
+        e.unique_id for e in entitaeten if e.unique_id not in bekannt and e.disabled_by is None
+    ]
+    # Ab Werk aus, aber eingeschaltet – das war jemand von Hand.
+    manuell = sorted(
+        e.unique_id
+        for e in entitaeten
+        if e.disabled_by is None and bekannt.get(e.unique_id) is False
+    )
     return {
         "entitaeten": len(entitaeten),
         "abgeschaltet": sum(abgeschaltet.values()),
@@ -96,7 +107,10 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
         "geraete": len(dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)),
         # Registrierte Entitäten ohne Entsprechung im aktuellen Stand.
         "verwaist": len(verwaist),
+        "verwaist_aktiv": len(verwaist_aktiv),
         "verwaiste_kennungen": verwaist[:20],
+        "manuell_eingeschaltet": len(manuell),
+        "manuelle_kennungen": manuell[:20],
     }
 
 

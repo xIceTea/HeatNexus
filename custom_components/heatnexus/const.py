@@ -486,6 +486,12 @@ DISCOVERY_STORE_VERSION = 1
 # Cache nach dieser Zeit verwerfen und neu erkennen (fängt geänderte Anlagen ab).
 DISCOVERY_MAX_AGE_DAYS = 30
 
+# Wann ein Erkennungslauf als misslungen gilt: Findet er deutlich weniger als
+# der bekannte Stand, schwächelt die Steuerung – der alte Stand bleibt stehen.
+# Unterhalb der Mindestzahl ist der Vergleich sinnlos, dort zählt jeder Wert.
+ERKENNUNG_MIN_ANTEIL = 0.8
+ERKENNUNG_MIN_DATENPUNKTE = 20
+
 # Function types (fctType) as reported by /api/1.0/lookup/1
 FCT_CLIMATE = 14  # Heizkreis (UML+ / UMLZ)
 # Der LON-Adressraum eines Knotens. Er meldet sich als Funktion `NV's` ohne

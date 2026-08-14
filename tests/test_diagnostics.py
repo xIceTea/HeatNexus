@@ -188,6 +188,32 @@ async def test_die_registrierung_zaehlt_was_home_assistant_fuehrt(diagnostics, h
     assert zahlen["nach_bereich"] == {"sensor": 2}
     assert zahlen["verwaist"] == 1
     assert zahlen["verwaiste_kennungen"] == ["fremde-kennung"]
+    # Die verwaiste Zeile ist abgeschaltet, steht also niemandem im Weg.
+    assert zahlen["verwaist_aktiv"] == 0
+
+
+async def test_die_diagnose_nennt_manuell_eingeschaltete(diagnostics, hass):
+    """Ab Werk aus und trotzdem aktiv: Das war jemand von Hand."""
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    konfig = MockConfigEntry(domain="heatnexus", entry_id="eintrag2", data={}, options={})
+    konfig.add_to_hass(hass)
+    registrierung = er.async_get(hass)
+    registrierung.async_get_or_create(
+        "sensor", "heatnexus", f"{SERIENNUMMER}-0-7-0", config_entry=konfig
+    )
+
+    koordinator = _coordinator()
+    koordinator.data["devices"][0]["enabled_default"] = False
+    eintrag = SimpleNamespace(
+        entry_id="eintrag2",
+        version=1,
+        options={},
+        runtime_data={"name": "HeatNexus", "coordinators": {ADRESSE: koordinator}},
+    )
+    zahlen = (await diagnostics.async_get_config_entry_diagnostics(hass, eintrag))["registrierung"]
+    assert zahlen["manuell_eingeschaltet"] == 1
 
 
 def test_eine_adresse_wird_als_schluessel_erkannt(diagnostics):
