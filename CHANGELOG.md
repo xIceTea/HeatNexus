@@ -32,13 +32,13 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
-- Der Sondenlauf brach an Anlagen ab, deren größte Menü-Ebene keine Datenpunktadressen führt.
-- Zählerstände und Restlaufzeiten fehlten nach dem Einlesen eine Viertelstunde lang.
-- Ein einzelner misslungener Abruf löschte den zuletzt gelesenen Wert.
-- Die Meldungsliste stand dauerhaft auf „nicht verfügbar".
-- Eine Abwahl wirkte nur bis zum nächsten Neustart.
-- Ein abgeschalteter Bus ließ abgeschaltete Zeilen zurück.
-- Ein unvollständiger Erkennungslauf überschrieb den bekannten Stand.
+- Der Sondenlauf kommt auch durch, wenn die größte Menü-Ebene keine Adressen führt.
+- Zählerstände und Restlaufzeiten stehen gleich nach dem Einlesen.
+- Ein misslungener Abruf löscht den zuletzt gelesenen Wert nicht mehr.
+- Die Meldungsliste ist wieder verfügbar.
+- Eine Abwahl überlebt den Neustart.
+- Ein abgeschalteter Bus lässt keine abgeschalteten Zeilen zurück.
+- Ein unvollständiger Erkennungslauf überschreibt den bekannten Stand nicht mehr.
 
 ## [1.8.1] - 2026-08-14
 
