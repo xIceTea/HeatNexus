@@ -105,7 +105,7 @@
           "update_interval": "Wie oft die Anlage abgefragt wird.",
           "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut.",
           "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff.",
-          "meldung_einlesen": "Meldet sich, während HeatNexus die Anlage einliest. Standardmäßig aus – ab dem zweiten Start steht ohnehin alles sofort da.",
+          "meldung_einlesen": "Zeigt eine Meldung, solange HeatNexus die Anlage einliest.",
           "aussentemperatur": "Welcher Sensor in der Kopfzeile als Außentemperatur gilt. Leer: HeatNexus sucht sie sich in der Anlage selbst.",
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
           "sprache": "Woher die Namen der Datenpunkte kommen. „Automatisch“ folgt der Sprache von Home Assistant; die Steuerung führt ihr Textwerk in Deutsch, Englisch, Französisch und Italienisch. Die neue Sprache wird nach einem Neustart von Home Assistant sichtbar."
