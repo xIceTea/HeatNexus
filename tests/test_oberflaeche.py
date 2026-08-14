@@ -266,11 +266,21 @@ def test_das_schaubild_folgt_dem_erscheinungsbild(durchlauf, aufteilung):
     assert schaubild["hell"] != schaubild["dunkel"]
 
 
+def test_der_farbsatz_faerbt_auch_die_oberflaeche(durchlauf):
+    """Nicht nur das Bild: Die Karten, Reiter und Linien folgen mit.
+
+    Gesetzt werden die Variablen am Wirtselement; „Automatisch" räumt sie ab
+    und überlässt das Feld wieder Home Assistant.
+    """
+    assert durchlauf["palette"]["terrakotta"] == "#d98e46"
+    assert durchlauf["palette"]["auto"] == ""
+
+
 def test_die_eigene_wahl_schlaegt_das_erscheinungsbild(durchlauf, aufteilung):
     """Wer einen Farbsatz wählt, bekommt ihn – auch gegen das helle Thema."""
     anlage = aufteilung["anlagen"][0]
     schaubild = durchlauf["schaubild"]
-    assert schaubild["kontrast"] == anlage["schema_kontrast"]
+    assert schaubild["terrakotta"] == anlage["schema_terrakotta"]
     assert schaubild["wahlDunkel"] == anlage["schema"]
 
 

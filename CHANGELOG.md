@@ -21,7 +21,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Zu jedem Zählerstand gibt es den Zuwachs heute und seit dem letzten Brennerstart.
 - Der Kessel meldet, wie lange er läuft, wie lange der letzte Lauf dauerte und wie lange er heute lief.
 - Zusatzwerte lassen sich in den Optionen je Anlage einschalten, nach Gruppen oder einzeln.
-- Die Farben des Schaubilds sind wählbar, neu mit einem Kontrastsatz.
+- Die Oberfläche hat drei Farbsätze: Dunkel, Hell und Terrakotta.
 - Die Diagnose nennt, wie viele Entitäten Home Assistant führt und wie viele davon abgeschaltet sind.
 
 ### Geändert

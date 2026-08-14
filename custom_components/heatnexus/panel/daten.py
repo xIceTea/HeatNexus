@@ -762,7 +762,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         # nicht neu berechnet.
         "schema": bild["dark_mode_image"] if bild else None,
         "schema_hell": bild["image"] if bild else None,
-        "schema_kontrast": bild.get("kontrast_image") if bild else None,
+        "schema_terrakotta": bild.get("terrakotta_image") if bild else None,
         "schema_werte": (
             [
                 {

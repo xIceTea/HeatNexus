@@ -101,33 +101,32 @@ FARBEN_HELL: dict[str, str] = {
     "schrift": SCHRIFT,
 }
 
-# Dritter Satz: kräftige Farben und dunkle Kanten auf hellem Grund, für
-# Bildschirme im Heizraum und für Augen, denen die feinen Abstufungen der
-# beiden anderen Sätze zerfließen.
-FARBEN_KONTRAST: dict[str, str] = {
-    "vorlauf": "#b3130b",
-    "ruecklauf": "#0b3ea8",
-    "rahmen": "#2b3440",
-    "text": "#101820",
-    "titel": "#000000",
-    "korpus": "#ffffff",
-    "korpus_hell": "#ffffff",
-    "korpus_dunkel": "#d7dee6",
-    "warm": "#8f1108",
+# Dritter Satz: warmes Dunkel mit Terrakotta, passend zum gleichnamigen
+# Farbsatz der Oberfläche.
+FARBEN_TERRAKOTTA: dict[str, str] = {
+    "vorlauf": "#d98e46",
+    "ruecklauf": "#6b8fb5",
+    "rahmen": "#3a3630",
+    "text": "#b8b0a8",
+    "titel": "#ece8e4",
+    "korpus": "#242220",
+    "korpus_hell": "#322f2b",
+    "korpus_dunkel": "#1a1816",
+    "warm": "#b3541f",
     # Muss `vorlauf` entsprechen – siehe `FARBEN_HELL`.
-    "glut": "#b3130b",
-    "kalt": "#0b3ea8",
+    "glut": "#d98e46",
+    "kalt": "#4f6f96",
     "schrift": SCHRIFT,
 }
 
 THEMA_DUNKEL = "dunkel"
 THEMA_HELL = "hell"
-THEMA_KONTRAST = "kontrast"
+THEMA_TERRAKOTTA = "terrakotta"
 
 # Was die Oberfläche anbieten darf. `auto` folgt dem Erscheinungsbild von Home
 # Assistant, die übrigen legen den Satz fest.
 FARBSATZ_AUTO = "auto"
-FARBSAETZE = (FARBSATZ_AUTO, THEMA_DUNKEL, THEMA_HELL, THEMA_KONTRAST)
+FARBSAETZE = (FARBSATZ_AUTO, THEMA_DUNKEL, THEMA_HELL, THEMA_TERRAKOTTA)
 
 # Lage der Live-Werte je Anlagenart. Zwei Werte stehen ober- und unterhalb der
 # Mitte, einer mittig. Bauteile mit anderer Form dürfen abweichen.
@@ -1025,7 +1024,7 @@ def _entsprechung(ziel: dict[str, str]) -> dict[str, str]:
 
 _ENTSPRECHUNGEN = {
     THEMA_HELL: _entsprechung(FARBEN_HELL),
-    THEMA_KONTRAST: _entsprechung(FARBEN_KONTRAST),
+    THEMA_TERRAKOTTA: _entsprechung(FARBEN_TERRAKOTTA),
 }
 _FARBSTELLE = re.compile(
     "|".join(sorted(map(re.escape, _ENTSPRECHUNGEN[THEMA_HELL]), reverse=True))
@@ -1326,7 +1325,7 @@ def anlagenschema(
         "dark_mode_image": _datenadresse(svg),
         # Der dritte Satz gilt nur in der eigenen Oberfläche; die
         # `picture-elements`-Karte kennt nur hell und dunkel.
-        "kontrast_image": _datenadresse(farben_umstellen(svg, THEMA_KONTRAST)),
+        "terrakotta_image": _datenadresse(farben_umstellen(svg, THEMA_TERRAKOTTA)),
         "elements": elemente,
         "leitungen": leitungen,
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht

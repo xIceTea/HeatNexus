@@ -206,6 +206,19 @@ export function browserAttrappe() {
   globalThis.HTMLElement = class {
     constructor() {
       this._hoerer = new Map();
+      // Wie am echten Element: Die Oberfläche setzt hier ihre Farbvariablen.
+      this.style = {
+        _werte: new Map(),
+        setProperty(name, wert) {
+          this._werte.set(name, wert);
+        },
+        removeProperty(name) {
+          this._werte.delete(name);
+        },
+        getPropertyValue(name) {
+          return this._werte.get(name) || "";
+        },
+      };
     }
     attachShadow() {
       this.shadowRoot = new Knoten("shadow-root");

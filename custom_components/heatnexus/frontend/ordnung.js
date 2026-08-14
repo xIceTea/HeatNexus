@@ -89,15 +89,52 @@ export const REITER = [
   { schluessel: "hilfe", titel: "Hilfe", symbol: "mdi:help-circle-outline" },
 ];
 
-// Farbsätze des Schaubilds. Die Schlüssel decken sich mit `schema.FARBSAETZE`
+// Farbsätze der Oberfläche. Die Schlüssel decken sich mit `schema.FARBSAETZE`
 // auf der Serverseite - was hier gewählt wird, muss dort gespeichert werden
-// können.
+// können. Die Werte stehen in `PALETTEN` und gelten für Oberfläche und
+// Schaubild gemeinsam.
 export const FARBSAETZE = [
   { schluessel: "auto", titel: "Auto", hinweis: "Folgt dem Erscheinungsbild von Home Assistant" },
-  { schluessel: "dunkel", titel: "Dunkel", hinweis: "Immer der dunkle Satz" },
-  { schluessel: "hell", titel: "Hell", hinweis: "Immer der helle Satz" },
-  { schluessel: "kontrast", titel: "Kontrast", hinweis: "Kräftige Farben auf hellem Grund" },
+  { schluessel: "dunkel", titel: "Dunkel", hinweis: "Graphit mit blauem Akzent" },
+  { schluessel: "hell", titel: "Hell", hinweis: "Kühles Weiß mit blauem Akzent" },
+  { schluessel: "terrakotta", titel: "Terrakotta", hinweis: "Warmes Dunkel mit Terrakotta" },
 ];
+
+// Was ein fester Satz an der Oberfläche setzt. `auto` steht nicht darin: Dann
+// gelten die Vorgaben aus `stil.js`, die den Variablen von Home Assistant
+// folgen.
+export const PALETTEN = {
+  dunkel: {
+    "--hn-grund": "#14171c",
+    "--hn-karte": "#1e232b",
+    "--hn-text": "#eceff1",
+    "--hn-gedaempft": "#9aa3ad",
+    "--hn-akzent": "#5b8def",
+    "--hn-akzent-text": "#0e1116",
+    "--hn-linie": "#262b33",
+    "--hn-flaeche": "#262b33",
+  },
+  hell: {
+    "--hn-grund": "#f4f5f7",
+    "--hn-karte": "#ffffff",
+    "--hn-text": "#1c1f24",
+    "--hn-gedaempft": "#6b7480",
+    "--hn-akzent": "#2e6de0",
+    "--hn-akzent-text": "#ffffff",
+    "--hn-linie": "#e0e3e8",
+    "--hn-flaeche": "#eef1f5",
+  },
+  terrakotta: {
+    "--hn-grund": "#1a1816",
+    "--hn-karte": "#242220",
+    "--hn-text": "#ece8e4",
+    "--hn-gedaempft": "#a39a90",
+    "--hn-akzent": "#d98e46",
+    "--hn-akzent-text": "#1a1210",
+    "--hn-linie": "#2c2926",
+    "--hn-flaeche": "#2c2926",
+  },
+};
 
 // Wochentage, wie die Anlage sie schreibt, mit deutscher Beschriftung. Die
 // Reihenfolge ist die der Woche - die Anlage liefert sie unsortiert.

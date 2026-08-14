@@ -24,6 +24,7 @@
  */
 
 import { STIL } from "./stil.js";
+import { PALETTEN } from "./ordnung.js";
 import { OHNE_WERT, REITER } from "./ordnung.js";
 import { AnordnenMixin } from "./teile/anordnen.js";
 import { BausteineMixin } from "./teile/bausteine.js";
@@ -236,6 +237,16 @@ class HeatNexusPanel extends Grundlage {
     return anlagen[Math.min(this._anlageIndex, anlagen.length - 1)];
   }
 
+  /** Den gewählten Farbsatz am Wirtselement setzen; `auto` räumt ihn ab. */
+  _paletteAnwenden() {
+    const palette = PALETTEN[this._farbsatz()] || null;
+    const bekannt = new Set(Object.keys(PALETTEN.dunkel));
+    bekannt.forEach((name) => {
+      if (palette) this.style.setProperty(name, palette[name]);
+      else this.style.removeProperty(name);
+    });
+  }
+
   _aufbauen() {
     this._bindungen = [];
     this._verlaufskarten = [];
@@ -244,6 +255,7 @@ class HeatNexusPanel extends Grundlage {
     const anlage = this._aktuelleAnlage();
     const stil = document.createElement("style");
     stil.textContent = STIL;
+    this._paletteAnwenden();
     if (!anlage) {
       this.shadowRoot.replaceChildren(stil);
       return;

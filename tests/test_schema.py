@@ -1007,30 +1007,30 @@ def test_geteilte_dunkle_farbe_muss_hell_geteilt_bleiben(schema, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Dritter Farbsatz: Kontrast
+# Dritter Farbsatz: Terrakotta
 # ---------------------------------------------------------------------------
-def test_jede_rolle_hat_eine_kontrastentsprechung(schema):
-    assert set(schema.FARBEN) == set(schema.FARBEN_KONTRAST)
+def test_jede_rolle_hat_eine_terrakottaentsprechung(schema):
+    assert set(schema.FARBEN) == set(schema.FARBEN_TERRAKOTTA)
 
 
-def test_das_kontrastbild_liegt_der_karte_bei(schema, anlage):
+def test_das_terrakottabild_liegt_der_karte_bei(schema, anlage):
     karte = schema.anlagenschema(anlage)
-    assert karte["kontrast_image"] not in (karte["image"], karte["dark_mode_image"])
+    assert karte["terrakotta_image"] not in (karte["image"], karte["dark_mode_image"])
 
 
-def test_im_kontrastbild_bleibt_kein_dunkler_farbwert(schema, anlage):
-    kontrast = schema.farben_umstellen(_svg_von(schema, anlage), schema.THEMA_KONTRAST)
+def test_im_terrakottabild_bleibt_kein_dunkler_farbwert(schema, anlage):
+    terrakotta = schema.farben_umstellen(_svg_von(schema, anlage), schema.THEMA_TERRAKOTTA)
     for rolle, farbe in schema.FARBEN.items():
         if rolle == "schrift":
             continue
-        assert farbe not in kontrast, f"{rolle} steht noch mit {farbe} im Bild"
+        assert farbe not in terrakotta, f"{rolle} steht noch mit {farbe} im Bild"
 
 
-def test_der_kontrastwechsel_aendert_nur_farben(schema, anlage):
+def test_der_terrakottawechsel_aendert_nur_farben(schema, anlage):
     dunkel = _svg_von(schema, anlage)
-    kontrast = schema.farben_umstellen(dunkel, schema.THEMA_KONTRAST)
+    terrakotta = schema.farben_umstellen(dunkel, schema.THEMA_TERRAKOTTA)
     ohne_farben = re.compile(r"#[0-9a-f]{6}\b")
-    assert ohne_farben.sub("#", dunkel) == ohne_farben.sub("#", kontrast)
+    assert ohne_farben.sub("#", dunkel) == ohne_farben.sub("#", terrakotta)
 
 
 def test_ein_unbekannter_satz_laesst_das_bild_unveraendert(schema, anlage):

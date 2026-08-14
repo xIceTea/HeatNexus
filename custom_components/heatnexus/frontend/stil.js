@@ -11,10 +11,25 @@
  */
 
 export const STIL = `
+  /* Farbsätze der Oberfläche.
+
+     Die Vorgabe folgt Home Assistant; wählt jemand einen festen Satz, setzt
+     die Oberfläche dieselben Variablen am Wirtselement neu. */
+  :host {
+    --hn-grund: var(--primary-background-color, #0e1419);
+    --hn-karte: var(--card-background-color, #151d26);
+    --hn-text: var(--primary-text-color, #e6edf3);
+    --hn-gedaempft: color-mix(in srgb, var(--hn-text) 65%, transparent);
+    --hn-akzent: #6fb2f5;
+    --hn-akzent-text: #0e1419;
+    --hn-linie: rgba(255, 255, 255, 0.1);
+    --hn-flaeche: rgba(255, 255, 255, 0.05);
+  }
+
   :host {
     display: block;
-    background: var(--primary-background-color, #0e1419);
-    color: var(--primary-text-color, #e6edf3);
+    background: var(--hn-grund);
+    color: var(--hn-text);
     min-height: 100%;
     box-sizing: border-box;
   }
@@ -31,8 +46,8 @@ export const STIL = `
      Leiste im hellen wie im dunklen Erscheinungsbild nicht auffällt. */
   .leiste {
     position: sticky; top: 0; z-index: 5;
-    background: var(--primary-background-color, #0e1419);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--hn-grund);
+    border-bottom: 1px solid var(--hn-flaeche);
   }
   .kopfleiste {
     display: flex; align-items: center; gap: 12px;
@@ -44,31 +59,31 @@ export const STIL = `
     align-items: center; justify-content: center;
     width: 40px; height: 40px; flex: none;
     border-radius: 12px; cursor: pointer;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
     color: inherit;
   }
-  .menue-taste:hover { background: rgba(255, 255, 255, 0.1); }
+  .menue-taste:hover { background: var(--hn-linie); }
   .kopfleiste .marke { font-size: 20px; font-weight: 700; }
   .kopfleiste .abstand { flex: 1; }
   .aussen {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 600;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--hn-flaeche);
   }
   .aussen ha-icon { --mdc-icon-size: 18px; }
   .waehler { display: flex; gap: 6px; flex-wrap: wrap; }
   .waehler button {
     padding: 8px 14px; border-radius: 999px; font: inherit; font-size: 13px;
     font-weight: 600; cursor: pointer; color: inherit;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
   }
-  .waehler button:hover { background: rgba(255, 255, 255, 0.1); }
+  .waehler button:hover { background: var(--hn-linie); }
   .waehler button[aria-selected="true"] {
-    background: rgba(111, 178, 245, 0.18);
-    border-color: rgba(111, 178, 245, 0.5);
-    color: #6fb2f5;
+    background: color-mix(in srgb, var(--hn-akzent) 18%, transparent);
+    border-color: color-mix(in srgb, var(--hn-akzent) 50%, transparent);
+    color: var(--hn-akzent);
   }
   .reiter { display: flex; gap: 4px; padding: 12px 16px 0; overflow-x: auto; }
   .reiter button {
@@ -79,13 +94,13 @@ export const STIL = `
   }
   .reiter button:hover { opacity: 0.85; }
   .reiter button[aria-selected="true"] {
-    opacity: 1; color: #6fb2f5; border-bottom-color: #6fb2f5;
+    opacity: 1; color: var(--hn-akzent); border-bottom-color: var(--hn-akzent);
   }
   .anlagen-trenner {
     display: flex; align-items: center; gap: 12px;
     margin: 8px 16px 0; padding-top: 16px;
     font-size: 15px; font-weight: 700; letter-spacing: 0.3px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--hn-linie);
   }
   .anlagen-trenner:first-of-type { border-top: none; padding-top: 4px; }
 
@@ -129,22 +144,22 @@ export const STIL = `
   .anordnen-leiste {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
     margin: 12px 16px 0; padding: 10px 14px; border-radius: 14px;
-    background: rgba(111, 178, 245, 0.12);
-    border: 1px solid rgba(111, 178, 245, 0.35);
+    background: color-mix(in srgb, var(--hn-akzent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--hn-akzent) 35%, transparent);
   }
-  .anordnen-leiste .titel { font-weight: 700; font-size: 15px; color: #6fb2f5; }
+  .anordnen-leiste .titel { font-weight: 700; font-size: 15px; color: var(--hn-akzent); }
   .anordnen-leiste .hinweis { font-size: 12px; opacity: 0.7; flex: 1; min-width: 180px; }
   .anordnen-leiste .abstand { flex: 1; }
   .anordnen-taste {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 8px 14px; border-radius: 999px; cursor: pointer;
     font: inherit; font-size: 13px; font-weight: 600; color: inherit;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
   }
-  .anordnen-taste:hover { background: rgba(255, 255, 255, 0.12); }
+  .anordnen-taste:hover { background: var(--hn-linie); }
   .anordnen-taste.fertig {
-    background: rgba(111, 178, 245, 0.25); border-color: rgba(111, 178, 245, 0.5);
+    background: color-mix(in srgb, var(--hn-akzent) 25%, transparent); border-color: color-mix(in srgb, var(--hn-akzent) 50%, transparent);
     color: #cfe6ff;
   }
   .anordnen-taste ha-icon { --mdc-icon-size: 18px; }
@@ -154,13 +169,13 @@ export const STIL = `
     min-width: 34px; padding: 7px 10px; border-radius: 999px;
     font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
     color: inherit; opacity: 0.6;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
   }
   .spaltenwahl button[aria-pressed="true"] {
-    opacity: 1; color: #6fb2f5;
-    background: rgba(111, 178, 245, 0.15);
-    border-color: rgba(111, 178, 245, 0.45);
+    opacity: 1; color: var(--hn-akzent);
+    background: color-mix(in srgb, var(--hn-akzent) 15%, transparent);
+    border-color: color-mix(in srgb, var(--hn-akzent) 45%, transparent);
   }
 
   /* Die Hülle, die im Anordnen-Modus um jede Karte liegt. Ohne sie müsste die
@@ -169,15 +184,15 @@ export const STIL = `
   .anordner { display: flex; flex-direction: column; min-width: 0; }
   .anordner > .karte, .anordner > .klappkarte {
     flex: 1;
-    border-color: rgba(111, 178, 245, 0.35);
+    border-color: color-mix(in srgb, var(--hn-akzent) 35%, transparent);
     border-top-left-radius: 0; border-top-right-radius: 0;
   }
   .anordner-griff {
     display: flex; align-items: center; gap: 4px;
     padding: 6px 8px; cursor: grab;
-    border: 1px solid rgba(111, 178, 245, 0.35); border-bottom: none;
+    border: 1px solid color-mix(in srgb, var(--hn-akzent) 35%, transparent); border-bottom: none;
     border-radius: 14px 14px 0 0;
-    background: rgba(111, 178, 245, 0.16);
+    background: color-mix(in srgb, var(--hn-akzent) 16%, transparent);
   }
   .anordner-griff .name {
     flex: 1; min-width: 0; font-size: 12px; font-weight: 600;
@@ -186,10 +201,10 @@ export const STIL = `
   .anordner-griff button {
     display: inline-flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; flex: none; border-radius: 8px;
-    background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--hn-flaeche); border: 1px solid var(--hn-linie);
     color: inherit; font: inherit; cursor: pointer;
   }
-  .anordner-griff button:hover { background: rgba(255, 255, 255, 0.14); }
+  .anordner-griff button:hover { background: var(--hn-linie); }
   .anordner-griff button:disabled { opacity: 0.3; cursor: default; }
   .anordner-griff button ha-icon { --mdc-icon-size: 16px; }
   /* Die Breite ist eine Anzeige, keine Taste – geklickt wird links und rechts
@@ -200,8 +215,8 @@ export const STIL = `
     font-variant-numeric: tabular-nums;
   }
   .anordner.gezogen { opacity: 0.4; }
-  .anordner.ziel-vor { box-shadow: -3px 0 0 0 #6fb2f5; }
-  .anordner.ziel-nach { box-shadow: 3px 0 0 0 #6fb2f5; }
+  .anordner.ziel-vor { box-shadow: -3px 0 0 0 var(--hn-akzent); }
+  .anordner.ziel-nach { box-shadow: 3px 0 0 0 var(--hn-akzent); }
   /* Versteckte Karten verschwinden nur außerhalb des Anordnen-Modus. Drin
      bleiben sie blass stehen – sonst wüsste niemand mehr, wo sie hinkommen. */
   .anordner.versteckt > .karte, .anordner.versteckt > .klappkarte {
@@ -227,8 +242,8 @@ export const STIL = `
   .klappkarte[open] > summary { margin-bottom: 12px; }
   .klappkarte[open] > summary .pfeil { transform: rotate(180deg); }
   .karte {
-    background: var(--card-background-color, #151d26);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--hn-karte);
+    border: 1px solid var(--hn-flaeche);
     border-radius: 16px;
     padding: 14px 16px;
   }
@@ -238,13 +253,13 @@ export const STIL = `
   .fragezeichen {
     width: 22px; height: 22px; flex: none; border-radius: 50%;
     font: inherit; font-size: 13px; font-weight: 700; line-height: 1;
-    cursor: pointer; color: #6fb2f5;
-    background: rgba(111, 178, 245, 0.12);
-    border: 1px solid rgba(111, 178, 245, 0.35);
+    cursor: pointer; color: var(--hn-akzent);
+    background: color-mix(in srgb, var(--hn-akzent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--hn-akzent) 35%, transparent);
   }
   .fragezeichen:hover {
-    background: rgba(111, 178, 245, 0.28);
-    border-color: rgba(111, 178, 245, 0.7);
+    background: color-mix(in srgb, var(--hn-akzent) 28%, transparent);
+    border-color: color-mix(in srgb, var(--hn-akzent) 70%, transparent);
   }
   .fragezeichen.auf-taste { position: absolute; top: 6px; right: 6px; }
   .taste { position: relative; }
@@ -273,7 +288,7 @@ export const STIL = `
   .zeile {
     display: flex; align-items: center; gap: 12px;
     padding: 10px 12px; border-radius: 12px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--hn-flaeche);
   }
   .zeile + .zeile { margin-top: 6px; }
   .zeile .text { flex: 1; min-width: 0; }
@@ -289,14 +304,14 @@ export const STIL = `
   .zeile .bezeichnung { font-size: 11px; opacity: 0.5; margin-top: 2px; }
   .betriebsart-klein { font-size: 12px; font-weight: 600; margin-top: 2px; }
   .betriebsart-klein.heizt { color: #ffab6f; }
-  .betriebsart-klein.abgesenkt { color: #6fb2f5; }
+  .betriebsart-klein.abgesenkt { color: var(--hn-akzent); }
   .kreis-symbole { display: flex; gap: 10px; margin-left: 12px; }
   .kreis-symbole ha-icon { --mdc-icon-size: 20px; opacity: 0.7; }
   .kreis-symbole ha-icon.heizt { color: #ffab6f; opacity: 1; }
-  .kreis-symbole ha-icon.abgesenkt { color: #6fb2f5; opacity: 1; }
+  .kreis-symbole ha-icon.abgesenkt { color: var(--hn-akzent); opacity: 1; }
   .status-zeile {
     display: flex; align-items: center; gap: 12px; padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--hn-flaeche);
   }
   .status-zeile:last-child { border-bottom: none; }
   .status-zeile .titel {
@@ -307,7 +322,7 @@ export const STIL = `
      zwanzig Zeilen. Sie werden gekürzt; der volle Text steht im Tooltip und
      in der Detailansicht. */
   .status-zeile .wert {
-    font-weight: 600; font-size: 14px; color: #6fb2f5;
+    font-weight: 600; font-size: 14px; color: var(--hn-akzent);
     max-width: 60%; text-align: right;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
@@ -411,7 +426,7 @@ export const STIL = `
     transform-origin: 50% 50%;
     transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .schaubild .mischer:hover .zeiger { background: #6fb2f5; }
+  .schaubild .mischer:hover .zeiger { background: var(--hn-akzent); }
 
   /* Der Heizkörper, eingefärbt nach seiner Vorlauftemperatur.
 
@@ -476,7 +491,7 @@ export const STIL = `
     opacity: 0; transition: opacity 0.4s ease;
   }
   .schaubild .speicher.laedt { opacity: 1; color: #ffab6f; }
-  .schaubild .speicher.entlaedt { opacity: 1; color: #6fb2f5; }
+  .schaubild .speicher.entlaedt { opacity: 1; color: var(--hn-akzent); }
 
   /* Lampen des Pumpen-/Relaismoduls. Ohne Anforderung unsichtbar – dann steht
      im Bild die gezeichnete Lampe. Mit Anforderung liegt Grün darüber; die
@@ -515,13 +530,13 @@ export const STIL = `
     width: 30px; height: 30px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     background: rgba(10, 14, 19, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.35);
+    border: 1px solid var(--hn-linie);
+    color: var(--hn-linie);
   }
   .schaubild .pumpe ha-icon { --mdc-icon-size: 18px; opacity: 1; }
   .schaubild .pumpe.laeuft {
-    color: #6fb2f5; border-color: rgba(111, 178, 245, 0.6);
-    box-shadow: 0 0 10px rgba(111, 178, 245, 0.35);
+    color: var(--hn-akzent); border-color: color-mix(in srgb, var(--hn-akzent) 60%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--hn-akzent) 35%, transparent);
   }
   .schaubild .pumpe.laeuft ha-icon { animation: dreht 1.6s linear infinite; }
   @keyframes dreht { to { transform: rotate(360deg); } }
@@ -539,14 +554,14 @@ export const STIL = `
   .linie {
     padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px;
     font-weight: 600; cursor: pointer; color: inherit; opacity: 0.45;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
   }
   .linie:hover { opacity: 0.8; }
   .linie[aria-pressed="true"] {
-    opacity: 1; color: #6fb2f5;
-    background: rgba(111, 178, 245, 0.15);
-    border-color: rgba(111, 178, 245, 0.45);
+    opacity: 1; color: var(--hn-akzent);
+    background: color-mix(in srgb, var(--hn-akzent) 15%, transparent);
+    border-color: color-mix(in srgb, var(--hn-akzent) 45%, transparent);
   }
   .gitter { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 
@@ -554,14 +569,14 @@ export const STIL = `
   .taste {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
     padding: 16px 10px; border-radius: 14px; cursor: pointer;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-flaeche);
     color: inherit; font: inherit; text-align: center;
   }
-  .taste:hover { background: rgba(255, 255, 255, 0.08); }
+  .taste:hover { background: var(--hn-linie); }
   .taste .beschriftung { font-size: 13px; font-weight: 600; }
-  .taste.an { border-color: rgba(111, 178, 245, 0.5); color: #6fb2f5; }
-  .taste.an .beschriftung { text-shadow: 0 0 12px rgba(111, 178, 245, 0.6); }
+  .taste.an { border-color: color-mix(in srgb, var(--hn-akzent) 50%, transparent); color: var(--hn-akzent); }
+  .taste.an .beschriftung { text-shadow: 0 0 12px color-mix(in srgb, var(--hn-akzent) 60%, transparent); }
   /* Läuft die Ladung, bricht dieselbe Taste sie ab. Eigene Farbe statt der
      von „an": Blau mit gleichfarbigem Schein sackt auf dunklem Grund ab, und
      warm sagt, dass ein Druck hier einen Gegenbefehl auslöst. */
@@ -579,11 +594,11 @@ export const STIL = `
   .taste[disabled] { opacity: 0.6; cursor: default; }
   select {
     width: 100%; padding: 9px 10px; border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05); color: inherit;
-    border: 1px solid rgba(255, 255, 255, 0.1); font: inherit;
+    background: var(--hn-flaeche); color: inherit;
+    border: 1px solid var(--hn-linie); font: inherit;
   }
   .rueckmeldung { font-size: 11px; opacity: 0.5; min-height: 14px; }
-  .rueckmeldung.laeuft { opacity: 0.9; color: #6fb2f5; }
+  .rueckmeldung.laeuft { opacity: 0.9; color: var(--hn-akzent); }
   .rueckmeldung.erfolg { opacity: 1; color: #7bd88f; }
   .rueckmeldung.fehler { opacity: 1; color: #ff8a80; }
   .rueckmeldung.wartet { opacity: 0.9; color: #ffab6f; }
@@ -593,21 +608,21 @@ export const STIL = `
   .regler button {
     width: 42px; height: 42px; border-radius: 12px; font: inherit;
     font-size: 20px; font-weight: 600; cursor: pointer; color: inherit;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
   }
-  .regler button:hover { background: rgba(255, 255, 255, 0.1); }
+  .regler button:hover { background: var(--hn-linie); }
   .regler .sollwert { flex: 1; text-align: center; }
   .regler .sollwert .zahl { font-size: 30px; font-weight: 700; line-height: 1.1; }
   .regler .sollwert .beschriftung { font-size: 11px; opacity: 0.5; }
   .betriebsart {
-    font-size: 13px; font-weight: 600; color: #6fb2f5;
+    font-size: 13px; font-weight: 600; color: var(--hn-akzent);
     margin-bottom: 4px; min-height: 16px;
   }
   .gross { display: flex; align-items: baseline; gap: 10px; }
   .gross .zahl { font-size: 32px; font-weight: 700; }
   .gross .beschriftung { font-size: 12px; opacity: 0.55; }
-  .trenner { height: 1px; background: rgba(255, 255, 255, 0.07); margin: 14px 0; }
+  .trenner { height: 1px; background: var(--hn-flaeche); margin: 14px 0; }
   .laufzeit-abbruch {
     margin-left: 4px; padding: 2px 8px; border-radius: 999px;
     font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
@@ -639,8 +654,8 @@ export const STIL = `
     background: rgba(0, 0, 0, 0.55); padding: 16px;
   }
   .dialog {
-    background: var(--card-background-color, #151d26);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--hn-karte);
+    border: 1px solid var(--hn-linie);
     border-radius: 16px; padding: 22px 24px; max-width: 420px; width: 100%;
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   }
@@ -655,10 +670,10 @@ export const STIL = `
   .dialog-taste {
     padding: 9px 16px; border-radius: 10px; font: inherit; font-weight: 600;
     cursor: pointer; color: inherit;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
   }
-  .dialog-taste:hover { background: rgba(255, 255, 255, 0.12); }
+  .dialog-taste:hover { background: var(--hn-linie); }
   .dialog-taste.betont { background: rgba(229, 57, 53, 0.2); border-color: rgba(229, 57, 53, 0.5);
     color: #ff8a80; }
 
@@ -681,15 +696,15 @@ export const STIL = `
   .zahl-feld { display: flex; align-items: baseline; gap: 5px; }
   .zahl-feld input {
     width: 74px; text-align: right;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie); border-radius: 8px;
     padding: 4px 8px;
     font: inherit; font-size: 14px; font-weight: 600;
-    color: var(--primary-text-color, #e6edf3);
+    color: var(--hn-text);
   }
   .zahl-feld input:focus {
-    outline: none; border-color: #6fb2f5;
-    background: rgba(111, 178, 245, 0.12);
+    outline: none; border-color: var(--hn-akzent);
+    background: color-mix(in srgb, var(--hn-akzent) 12%, transparent);
   }
   .zahl-feld input::-webkit-outer-spin-button,
   .zahl-feld input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -701,20 +716,20 @@ export const STIL = `
   .zahl-pfeil {
     width: 22px; height: 15px; padding: 0; line-height: 1;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 5px;
-    color: var(--primary-text-color, #e6edf3);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie); border-radius: 5px;
+    color: var(--hn-text);
     font-size: 9px; cursor: pointer;
   }
-  .zahl-pfeil:hover { background: rgba(111, 178, 245, 0.18); border-color: #6fb2f5; }
-  .zahl-pfeil:active { background: rgba(111, 178, 245, 0.3); }
+  .zahl-pfeil:hover { background: color-mix(in srgb, var(--hn-akzent) 18%, transparent); border-color: var(--hn-akzent); }
+  .zahl-pfeil:active { background: color-mix(in srgb, var(--hn-akzent) 30%, transparent); }
   .zeitraster { display: flex; flex-direction: column; gap: 4px; }
   .zeitraster-skala {
     display: flex; justify-content: space-between;
     margin-left: 92px; font-size: 10px; opacity: 0.45;
   }
   .zeitraster-block { padding: 6px 0; }
-  .zeitraster-block + .zeitraster-block { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+  .zeitraster-block + .zeitraster-block { border-top: 1px solid var(--hn-flaeche); }
   .zeitraster-zeile { display: flex; align-items: center; gap: 8px; }
   .zeitraster-zeile .tag {
     width: 84px; flex: none; font-size: 12px; font-weight: 600; opacity: 0.75;
@@ -731,7 +746,7 @@ export const STIL = `
   }
   .zeitraster .spur {
     position: relative; flex: 1; height: 16px; border-radius: 5px;
-    background: rgba(255, 255, 255, 0.05); overflow: hidden;
+    background: var(--hn-flaeche); overflow: hidden;
   }
   .zeitraster .spur.leer { opacity: 0.5; }
   .zeitraster .balken { position: absolute; top: 0; bottom: 0; }
@@ -752,13 +767,13 @@ export const STIL = `
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 12px; border-radius: 10px; font: inherit; font-size: 13px;
     font-weight: 600; cursor: pointer; color: inherit;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
   }
   .zp-taste ha-icon { --mdc-icon-size: 18px; }
-  .zp-taste:hover { background: rgba(255, 255, 255, 0.12); }
+  .zp-taste:hover { background: var(--hn-linie); }
   .zp-taste:disabled { opacity: 0.4; cursor: default; }
-  .zp-taste.betont { background: rgba(111, 178, 245, 0.16); border-color: rgba(111, 178, 245, 0.4); }
+  .zp-taste.betont { background: color-mix(in srgb, var(--hn-akzent) 16%, transparent); border-color: color-mix(in srgb, var(--hn-akzent) 40%, transparent); }
 
   .dialog.zp-dialog { max-width: 560px; }
   .zp-editor { max-height: 58vh; overflow-y: auto; display: flex;
@@ -779,7 +794,7 @@ export const STIL = `
     text-transform: uppercase; letter-spacing: 0.04em;
   }
   .zp-block {
-    border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px;
+    border: 1px solid var(--hn-linie); border-radius: 12px; padding: 12px;
   }
   .zp-blockkopf {
     font-size: 12px; font-weight: 600; opacity: 0.6; margin-bottom: 8px;
@@ -788,25 +803,25 @@ export const STIL = `
   .zp-tag {
     width: 36px; padding: 6px 0; border-radius: 8px; font: inherit; font-size: 12px;
     font-weight: 600; cursor: pointer; color: inherit;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
   }
   .zp-tag[aria-pressed="true"] {
-    background: rgba(111, 178, 245, 0.2); border-color: rgba(111, 178, 245, 0.5);
+    background: color-mix(in srgb, var(--hn-akzent) 20%, transparent); border-color: color-mix(in srgb, var(--hn-akzent) 50%, transparent);
   }
   .zp-punkte { display: flex; flex-direction: column; gap: 6px; }
   .zp-punkt { display: flex; align-items: center; gap: 8px; }
   .zp-punkt input, .zp-punkt select {
     padding: 6px 8px; border-radius: 8px; font: inherit; font-size: 13px;
-    color: inherit; background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: inherit; background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
   }
   .zp-punkt .zp-wert { width: 92px; }
   .zp-weg {
     display: inline-flex; align-items: center; justify-content: center;
     width: 32px; height: 32px; border-radius: 8px; font: inherit;
-    cursor: pointer; color: inherit; background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer; color: inherit; background: var(--hn-flaeche);
+    border: 1px solid var(--hn-linie);
   }
   .zp-weg ha-icon { --mdc-icon-size: 18px; }
   .zp-weg:hover { background: rgba(229, 57, 53, 0.25); color: #ff8a80; }
@@ -815,10 +830,10 @@ export const STIL = `
   .zp-meldung.fehler { color: #ff8a80; }
 
   .klickbar { cursor: pointer; }
-  .klickbar:hover { background: rgba(255, 255, 255, 0.07); }
-  .status-zeile.klickbar:hover { background: rgba(255, 255, 255, 0.05); border-radius: 8px; }
+  .klickbar:hover { background: var(--hn-flaeche); }
+  .status-zeile.klickbar:hover { background: var(--hn-flaeche); border-radius: 8px; }
   .marke-wert.klickbar:hover { background: rgba(10, 14, 19, 0.92); }
-  .klickbar:focus-visible { outline: 2px solid #6fb2f5; outline-offset: 2px; }
+  .klickbar:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 2px; }
   .hinweis { opacity: 0.6; font-size: 14px; padding: 6px 0; }
   .gut { color: #7bd88f; }
   .schlecht { color: #ff8a80; }
@@ -833,16 +848,16 @@ export const STIL = `
     margin-bottom: 12px;
     padding: 8px 10px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--hn-linie);
+    background: var(--hn-flaeche);
     color: inherit;
     font: inherit;
   }
-  .hilfe-suche:focus-visible { outline: 2px solid #6fb2f5; outline-offset: 2px; }
-  .hilfe-eintrag { padding: 6px 0; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+  .hilfe-suche:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 2px; }
+  .hilfe-eintrag { padding: 6px 0; border-top: 1px solid var(--hn-flaeche); }
   .hilfe-eintrag:first-child { border-top: none; }
   .hilfe-eintrag summary { cursor: pointer; font-weight: 500; }
-  .hilfe-eintrag summary:focus-visible { outline: 2px solid #6fb2f5; outline-offset: 2px; }
+  .hilfe-eintrag summary:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 2px; }
   /* Die Texte tragen Absätze und Aufzählungen als Zeilenumbruch, kein Markup. */
   .hilfe-eintrag p { margin: 6px 0 0; opacity: 0.85; white-space: pre-line; }
   .hilfe-leer { opacity: 0.6; padding: 6px 0; }

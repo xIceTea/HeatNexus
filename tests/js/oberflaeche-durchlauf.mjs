@@ -157,9 +157,9 @@ hass.themes = { darkMode: false };
 flaeche._aktualisieren();
 const beiHell = schaubild ? schaubild.src : null;
 // Eine eigene Wahl schlägt das Erscheinungsbild: dunkles Bild trotz hellem HA.
-flaeche._anordnung = { ...flaeche._anordnung, einstellungen: { farbsatz: "kontrast" } };
+flaeche._anordnung = { ...flaeche._anordnung, einstellungen: { farbsatz: "terrakotta" } };
 flaeche._aktualisieren();
-const beiKontrast = schaubild ? schaubild.src : null;
+const beiTerrakotta = schaubild ? schaubild.src : null;
 flaeche._anordnung = { ...flaeche._anordnung, einstellungen: { farbsatz: "dunkel" } };
 flaeche._aktualisieren();
 const beiWahlDunkel = schaubild ? schaubild.src : null;
@@ -168,9 +168,20 @@ flaeche._aktualisieren();
 bilanz.schaubild = {
   dunkel: beiDunkel,
   hell: beiHell,
-  kontrast: beiKontrast,
+  terrakotta: beiTerrakotta,
   wahlDunkel: beiWahlDunkel,
 };
+
+// Der Farbsatz färbt auch die Oberfläche, nicht nur das Bild: gesetzt werden
+// die Variablen am Wirtselement.
+flaeche._anordnung = { ...flaeche._anordnung, einstellungen: { farbsatz: "terrakotta" } };
+flaeche._gebaut = false;
+flaeche._zeichnen();
+const beiWahl = flaeche.style.getPropertyValue("--hn-akzent");
+flaeche._anordnung = { ...flaeche._anordnung, einstellungen: {} };
+flaeche._gebaut = false;
+flaeche._zeichnen();
+bilanz.palette = { terrakotta: beiWahl, auto: flaeche.style.getPropertyValue("--hn-akzent") };
 
 // Anordnen-Modus: eigener Zweig mit Griffen, Menü und Speicherauftrag.
 flaeche._reiter = "uebersicht";
