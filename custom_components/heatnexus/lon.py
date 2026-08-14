@@ -28,8 +28,6 @@ from __future__ import annotations
 
 import re
 
-from .const import POLL_NORMAL
-
 # Der Index steht am Namen (`LX_nvoPump[0]`) und nennt den Kreis.
 _INDEX = re.compile(r"^(?P<name>.+?)\[(?P<index>\d+)\]$")
 
@@ -84,17 +82,14 @@ LON_NAMEN: dict[str, dict] = {
     "nviTaFb": {"name": "Außentemperatur (Rückmeldung)"},
     "nvoTi": {"name": "Raumtemperatur", "kanonisch": "room_temperature"},
     "nvoTiStpt": {"name": "Raumtemperatur Soll", "kanonisch": "room_temperature_target"},
-    # Mischerkreis. Pumpe und Ventil zeigt das Schaubild – sie laufen im
-    # mittleren Takt statt im langsamen und tragen die Schlüssel ihrer
+    # Mischerkreis. Pumpe und Ventil tragen die Schlüssel ihrer
     # Datenpunkt-Gegenstücke, damit sie schweigen, wo es die schon gibt.
     "M_nvoPump": {
         "name": "Mischerkreis Pumpe",
-        "poll_class": POLL_NORMAL,
         "kanonisch": "circuit_pump",
     },
     "M_nvoValve": {
         "name": "Mischerventil",
-        "poll_class": POLL_NORMAL,
         "kanonisch": "mixer_position",
     },
     "M_nviTVist": {"name": "Vorlauftemperatur Mischerkreis"},
@@ -109,24 +104,23 @@ LON_NAMEN: dict[str, dict] = {
     "B1_nviTPM": {"name": "Puffer Mitte"},
     "B1_nviTKist": {"name": "Kesseltemperatur Ist (Bus-Eingang)"},
     "B1_nviTKsoll": {"name": "Kesseltemperatur Soll (Bus-Eingang)"},
-    "B1_nvoPump": {"name": "Kesselpumpe", "poll_class": POLL_NORMAL},
+    "B1_nvoPump": {"name": "Kesselpumpe"},
     "B1_nvoHeat": {"name": "Kesselanforderung"},
     "PTF_nvoTPO2": {"name": "Puffer oben (Transfer)"},
     "PTF_nvoTPM": {"name": "Puffer Mitte (Transfer)"},
-    "PTF_nvoPump": {"name": "Transferpumpe", "poll_class": POLL_NORMAL},
+    "PTF_nvoPump": {"name": "Transferpumpe"},
     "WVF_nvoTPO": {"name": "Puffer oben (Verteiler)"},
     "WVF_nvoTPU": {"name": "Puffer unten (Verteiler)"},
     # Der Ladezustand des Puffers in Prozent – im OID-Raum gibt es ihn nicht.
     "BUF_nvoLoadLvl": {"name": "Pufferladung", "state_class": "measurement"},
-    "BUF_nvoPumpXfer": {"name": "Umladepumpe", "poll_class": POLL_NORMAL},
+    "BUF_nvoPumpXfer": {"name": "Umladepumpe"},
     # Rücklaufhochhaltung.
     "RLH_nviTemp": {"name": "Rücklaufanhebung Temperatur"},
     "RLH_nvoStpt": {"name": "Rücklaufanhebung Sollwert"},
-    "RLH_nvoValve": {"name": "Rücklaufanhebung Ventil", "poll_class": POLL_NORMAL},
+    "RLH_nvoValve": {"name": "Rücklaufanhebung Ventil"},
     # Warmwasser-Zirkulation.
     "WZP_nvoPump": {
         "name": "Zirkulationspumpe",
-        "poll_class": POLL_NORMAL,
         "kanonisch": "dhw_circulation_pump",
     },
     "WZP_nviTemp": {
@@ -141,16 +135,15 @@ LON_NAMEN: dict[str, dict] = {
         "kanonisch": "room_temperature_target",
     },
     # Verteiler.
-    "WVF_nvoPump": {"name": "Verteilerpumpe", "poll_class": POLL_NORMAL},
-    "WVF_nvoValve": {"name": "Verteilerventil", "poll_class": POLL_NORMAL},
+    "WVF_nvoPump": {"name": "Verteilerpumpe"},
+    "WVF_nvoValve": {"name": "Verteilerventil"},
     "WVF_nvoTKsoll": {"name": "Kesseltemperatur Soll (Verteiler)"},
     # Kreise mit Index. `LX` ist am Namen nicht eindeutig einem Heizkreis
     # zuzuordnen – der Index nennt den Kreis, der Begriff bleibt neutral und
     # ohne kanonischen Schlüssel, bis eine zweite Anlage ihn belegt.
-    "LX_nvoPump": {"name": "Kreis Pumpe", "poll_class": POLL_NORMAL, "kanonisch": "circuit_pump"},
+    "LX_nvoPump": {"name": "Kreis Pumpe", "kanonisch": "circuit_pump"},
     "LX_nvoValve": {
         "name": "Kreis Ventil",
-        "poll_class": POLL_NORMAL,
         "kanonisch": "mixer_position",
     },
     "LX_nviTist": {"name": "Kreis Temperatur Ist"},
@@ -195,6 +188,23 @@ SNVT_TYPEN: dict[str, dict] = {
 def snvt(snvt_name: str | None) -> dict:
     """Was der LonMark-Typ über einen Wert sagt. Leer, wenn er unbekannt ist."""
     return SNVT_TYPEN.get(str(snvt_name or "").strip(), {})
+
+
+# Die Ungültig-Marken des Standards. Ein nicht angeschlossener Fühler meldet
+# nicht „nichts", sondern den größten darstellbaren Wert seines Typs:
+# 0x7FFF bei 0,01 °C Auflösung ergibt 327,67, 0xFFFF bei 0,0025 % ergibt
+# 163,835. An der eigenen Anlage standen so vier Pufferfühler und zwei
+# Raumtemperaturen – als Messwert gelesen ein Alarm ohne Anlass.
+UNGUELTIG = (327.67, 163.835, 3276.7)
+
+
+def ungueltig(wert) -> bool:
+    """Ob ein Rohwert die Ungültig-Marke seines LonMark-Typs trägt."""
+    try:
+        zahl = float(str(wert).strip())
+    except (TypeError, ValueError):
+        return False
+    return any(abs(zahl - marke) < 0.001 for marke in UNGUELTIG)
 
 
 def _rumpf(nv_name: str | None) -> str:

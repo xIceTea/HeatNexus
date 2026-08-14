@@ -44,16 +44,15 @@ def test_unbekannter_name_bleibt_unbekannt():
     assert lon.zuordnen(None) is None
 
 
-def test_nur_abweichende_takte_stehen_in_der_tabelle():
-    """Sonst schaltete die Tabelle die Einstufung des Clients ganz ab.
+def test_kein_eintrag_setzt_einen_eigenen_takt():
+    """Netzwerkvariablen sind die zweite Quelle und laufen langsam.
 
-    Der Takt fehlt bei den meisten Einträgen absichtlich: `_poll_klasse`
-    setzt für Netzwerkvariablen ohnehin den langsamen an. Genannt wird er
-    nur, wo er davon abweicht – bei Pumpe und Ventil, die das Schaubild
-    zeigt.
+    An der eigenen PuroWIN wären elf Pumpen und Ventile im mittleren Takt
+    gelandet: 478 Abfragen je Stunde für Werte, die es zum großen Teil schon
+    als Datenpunkt gibt. Wer einen schnelleren Takt braucht, schaltet die
+    Entität ein und HA fragt sie mit an.
     """
-    assert "poll_class" not in lon.zuordnen("PMX_eeBetrStd")
-    assert lon.zuordnen("M_nvoPump")["poll_class"] == "normal"
+    assert not [name for name, e in lon.LON_NAMEN.items() if e.get("poll_class")]
 
 
 def test_kanonische_schluessel_gibt_es_wirklich():
@@ -68,6 +67,20 @@ def test_kanonische_schluessel_gibt_es_wirklich():
     }
 
     assert verwendet <= bekannt, verwendet - bekannt
+
+
+def test_ungueltige_marken_gelten_als_kein_wert():
+    """Ein nicht angeschlossener Fühler meldet die größte darstellbare Zahl.
+
+    An der eigenen Anlage standen so vier Pufferfühler und zwei
+    Raumtemperaturen auf 327,67 °C. Als Messwert gelesen wäre das ein Alarm
+    ohne Anlass — und im Langzeitverlauf eine Spitze, die nie stattfand.
+    """
+    assert lon.ungueltig("327.67") is True
+    assert lon.ungueltig("163.835") is True
+    assert lon.ungueltig("42.78") is False
+    assert lon.ungueltig(None) is False
+    assert lon.ungueltig("-.-") is False
 
 
 def test_der_schluessel_findet_aus_der_kennung_zurueck():

@@ -28,6 +28,7 @@ from .const import (
 )
 from .device_db import get_enum
 from .helpers import parse_value
+from .lon import ungueltig as lon_ungueltig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -324,10 +325,20 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
 
     @property
     def raw_value(self) -> str | None:
-        """Raw string value of this entity's OID."""
+        """Raw string value of this entity's OID.
+
+        Netzwerkvariablen melden einen fehlenden Fühler nicht als leeren Wert,
+        sondern mit der Ungültig-Marke ihres LonMark-Typs: 327,67 °C und
+        163,835 %. An der eigenen Anlage standen so vier „Puffer"-Fühler und
+        zwei Raumtemperaturen auf 327,67 – als Messwert gelesen wäre das eine
+        Anlage kurz vor dem Schmelzen. Sie gelten deshalb als kein Wert.
+        """
         if not self.coordinator.data:
             return None
-        return self.coordinator.data.get("oids", {}).get(self._oid)
+        wert = self.coordinator.data.get("oids", {}).get(self._oid)
+        if self._descriptor.get("nv_name") and lon_ungueltig(wert):
+            return None
+        return wert
 
     @property
     def float_value(self) -> float | None:
