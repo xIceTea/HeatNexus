@@ -170,12 +170,20 @@ async def test_netzwerkvariablen_werden_nie_geschrieben(client_module, monkeypat
 
 
 async def test_kennung_wird_nicht_als_datenpunktadresse_gelesen(client_module, monkeypatch):
-    """Aus `…-32-0-7-0` würde sonst `0/7`, die Kesseltemperatur."""
-    from custom_components.heatnexus.kanonisch import schluessel
+    """Aus `…-32-0-7-0` würde sonst `0/7` – eine Adresse, die hier nichts meint.
+
+    Der Begriff kommt bei Netzwerkvariablen aus dem Namen, nicht aus der
+    Adresse. Beides zusammen wäre gefährlich: Der Index einer Variablen sähe
+    aus wie eine Datenpunktadresse und träfe zufällig einen fremden Begriff.
+    """
+    from custom_components.heatnexus.kanonisch import gnmn, schluessel
 
     c = await _erkennen(client_module, monkeypatch)
+    kennung = _nv(c, "WET_nvoTist")["id"]
 
-    assert schluessel(_nv(c, "WET_nvoTist")["id"]) is None
+    assert gnmn(kennung) is None
+    # Über den Namen dagegen trägt der Begriff – dafür ist er da.
+    assert schluessel(kennung) == "boiler_temperature"
 
 
 async def test_werte_eines_kessels_haengen_an_seinem_geraet(client_module, monkeypatch):
