@@ -32,11 +32,11 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
-- Der Sondenlauf kommt auch durch, wenn die größte Menü-Ebene keine Adressen führt.
+- Die Sonde bricht nicht mehr ab, wenn eine Menü-Ebene keine Datenpunkte führt.
 - Zählerstände und Restlaufzeiten stehen gleich nach dem Einlesen.
 - Ein misslungener Abruf löscht den zuletzt gelesenen Wert nicht mehr.
 - Die Meldungsliste ist wieder verfügbar.
-- Eine Abwahl überlebt den Neustart.
+- Eine abgewählte Option kommt nach einem Neustart nicht zurück.
 - Ein abgeschalteter Bus lässt keine abgeschalteten Zeilen zurück.
 - Ein unvollständiger Erkennungslauf überschreibt den bekannten Stand nicht mehr.
 
