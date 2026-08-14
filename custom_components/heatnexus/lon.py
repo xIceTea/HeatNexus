@@ -99,6 +99,51 @@ LON_NAMEN: dict[str, dict] = {
     },
     "M_nviTVist": {"name": "Vorlauftemperatur Mischerkreis"},
     "M_nviTVsoll": {"name": "Vorlauftemperatur Soll Mischerkreis"},
+    # --- an der eigenen PuroWIN gemessen (14.08.2026) -------------------
+    # Die Anlage führt 133 Namen, teils andere als die BioWIN. Aufgenommen ist,
+    # was die Abkürzung eindeutig hergibt und wofür ein Wert anlag.
+    #
+    # Puffer. `B1` ist der Wärmeerzeuger-Block, `TPO`/`TPM`/`TPU` sind die
+    # Fühler oben, Mitte, unten – dieselbe Schreibweise wie bei `WVF`.
+    "B1_nviTPO": {"name": "Puffer oben", "kanonisch": "buffer_top"},
+    "B1_nviTPM": {"name": "Puffer Mitte"},
+    "B1_nviTKist": {"name": "Kesseltemperatur Ist (Bus-Eingang)"},
+    "B1_nviTKsoll": {"name": "Kesseltemperatur Soll (Bus-Eingang)"},
+    "B1_nvoPump": {"name": "Kesselpumpe", "poll_class": POLL_NORMAL},
+    "B1_nvoHeat": {"name": "Kesselanforderung"},
+    "PTF_nvoTPO2": {"name": "Puffer oben (Transfer)"},
+    "PTF_nvoTPM": {"name": "Puffer Mitte (Transfer)"},
+    "PTF_nvoPump": {"name": "Transferpumpe", "poll_class": POLL_NORMAL},
+    "WVF_nvoTPO": {"name": "Puffer oben (Verteiler)"},
+    "WVF_nvoTPU": {"name": "Puffer unten (Verteiler)"},
+    # Der Ladezustand des Puffers in Prozent – im OID-Raum gibt es ihn nicht.
+    "BUF_nvoLoadLvl": {"name": "Pufferladung", "state_class": "measurement"},
+    "BUF_nvoPumpXfer": {"name": "Umladepumpe", "poll_class": POLL_NORMAL},
+    # Rücklaufhochhaltung.
+    "RLH_nviTemp": {"name": "Rücklaufanhebung Temperatur"},
+    "RLH_nvoStpt": {"name": "Rücklaufanhebung Sollwert"},
+    "RLH_nvoValve": {"name": "Rücklaufanhebung Ventil", "poll_class": POLL_NORMAL},
+    # Warmwasser-Zirkulation.
+    "WZP_nvoPump": {
+        "name": "Zirkulationspumpe",
+        "poll_class": POLL_NORMAL,
+        "kanonisch": "dhw_circulation_pump",
+    },
+    "WZP_nviTemp": {
+        "name": "Zirkulationstemperatur",
+        "kanonisch": "dhw_circulation_temperature",
+    },
+    "WZP_nvoStpt": {"name": "Zirkulation Sollwert"},
+    # Raumtemperatur je Kreis.
+    "TVSTPT_nvoTi": {"name": "Raumtemperatur", "kanonisch": "room_temperature"},
+    "TVSTPT_nvoTiStpt": {
+        "name": "Raumtemperatur Soll",
+        "kanonisch": "room_temperature_target",
+    },
+    # Verteiler.
+    "WVF_nvoPump": {"name": "Verteilerpumpe", "poll_class": POLL_NORMAL},
+    "WVF_nvoValve": {"name": "Verteilerventil", "poll_class": POLL_NORMAL},
+    "WVF_nvoTKsoll": {"name": "Kesseltemperatur Soll (Verteiler)"},
     # Kreise mit Index. `LX` ist am Namen nicht eindeutig einem Heizkreis
     # zuzuordnen – der Index nennt den Kreis, der Begriff bleibt neutral und
     # ohne kanonischen Schlüssel, bis eine zweite Anlage ihn belegt.
@@ -130,6 +175,7 @@ SNVT_TYPEN: dict[str, dict] = {
     "SNVT_mass_kilo": {"unit": "kg", "state_class": "measurement"},
     "SNVT_time_hour": {"unit": "Std"},
     "SNVT_time_min": {"unit": "min"},
+    "SNVT_time_sec": {"unit": "s"},
     # Ein Zähler zählt nach oben – ohne Statistikklasse führt der Rekorder
     # keinen Langzeitverlauf.
     "SNVT_count": {"state_class": "total_increasing"},
