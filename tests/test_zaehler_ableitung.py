@@ -51,10 +51,12 @@ def _fortschreiben(entity, koordinator, wert, starts=None):
 # ---------------------------------------------------------------------------
 def test_der_erste_wert_setzt_den_bezugspunkt(sensoren):
     """Vor dem ersten Abruf gibt es keinen Zuwachs, nur einen Anfang."""
+    vorher = date.today().isoformat()
     entity, _ = _ableitung(sensoren, {ZAEHLER: "1200"}, type="zaehler_heute")
     entity._bezugspunkt_pruefen()
     assert entity.native_value == 0
-    assert entity._marke == date.today().isoformat()
+    # Läuft der Test über Mitternacht, ist beides richtig.
+    assert entity._marke in {vorher, date.today().isoformat()}
 
 
 def test_der_zuwachs_zaehlt_ab_dem_bezugspunkt(sensoren):
@@ -111,11 +113,12 @@ def test_ein_neuer_brennerstart_setzt_den_bezugspunkt_neu(sensoren):
 
 def test_der_bezugspunkt_steht_im_zustand(sensoren):
     """Nur so übersteht er einen Neustart von Home Assistant."""
+    vorher = date.today().isoformat()
     entity, _ = _ableitung(sensoren, {ZAEHLER: "1200"}, type="zaehler_heute")
     entity._bezugspunkt_pruefen()
     attribute = entity.extra_state_attributes
     assert attribute["basis"] == 1200
-    assert attribute["marke"] == date.today().isoformat()
+    assert attribute["marke"] in {vorher, date.today().isoformat()}
     assert attribute["last_reset"]
 
 
