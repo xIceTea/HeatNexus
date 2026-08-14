@@ -44,6 +44,12 @@ Jede Plattform filtert `coordinator.data["devices"]` nach `type`. Eine neue
 Plattform benötigt daher nur einen neuen `type` im Client, ein Modul, das darauf
 filtert, und den Eintrag in `PLATFORMS`.
 
+Die Felder und ihre Vorgaben stehen an **einer** Stelle
+(`client.DESKRIPTOR_VORGABE`); die drei Quellen — kuratierte Tabelle,
+Menü-Erkennung, LON-Adressraum — bauen ihre Beschreibung über
+`client._deskriptor()`. Vorher standen sie dreimal nebeneinander und liefen
+auseinander: Zwei führten `level` und `enabled_default`, die dritte nicht.
+
 ## Ablauf beim Start
 
 1. **Cache** – RAM (Reload) → Platte (`Store`, Neustart) → vollständige Discovery.
@@ -93,7 +99,19 @@ Adresstabelle gibt, bekommt darüber trotzdem benannte Werte.
 
 `lon.py` hält die Zuordnung Name → Klarname, Klassen und kanonischer
 Schlüssel. Was dort nicht steht, wird trotzdem angelegt: mit dem Namen der
-Anlage und ab Werk deaktiviert. Ein Wert, dessen kanonischer Schlüssel schon
+Anlage und ab Werk deaktiviert.
+
+**Die Größe kommt vom Standard, der Begriff aus der Tabelle.** Jeder Eintrag
+führt einen `snvtName` – den LonMark-Typ. Er sagt Einheit und Statistikklasse,
+ohne dass der Name bekannt sein muss: `SNVT_temp_p` ist eine Temperatur,
+`SNVT_count` ein Zählerstand. Damit bekommt auch ein unbenannter Wert eine
+brauchbare Anzeige. `SNVT_address` und `SNVT_obj_request` sind Innenleben des
+Bus und werden gar nicht erst angelegt; `SNVT_obj_status` bleibt als Diagnose,
+weil er an manchen Knoten die einzige Auskunft ist.
+
+Gemessen: eine fremde BioWIN führt 99 Namen, die eigene PuroWIN 133 – mit
+teils anderen Blöcken (`BUF` Pufferladung, `RLH` Rücklaufanhebung, `WZP`
+Zirkulation, `TVSTPT` Raumtemperatur). Ein Wert, dessen kanonischer Schlüssel schon
 von einem Datenpunkt belegt ist, bleibt ebenfalls deaktiviert – entschieden
 wird nach `_apply_metadata`, weil erst dann feststeht, welche Datenpunkte die
 Anlage wirklich führt.

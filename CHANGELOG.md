@@ -11,8 +11,10 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - LON-Netzwerkvariablen werden erkannt und benannt.
+- Einheit und Statistik unbenannter Netzwerkvariablen kommen aus dem LonMark-Typ.
 - Das Bedienteil erscheint als eigenes Gerät.
 - Der BioWIN kennt die Betriebsart der Zuführung.
+- Pufferladung, Rücklaufanhebung und Zirkulation erscheinen, wo die Anlage sie über den Bus meldet.
 
 ### Behoben
 
