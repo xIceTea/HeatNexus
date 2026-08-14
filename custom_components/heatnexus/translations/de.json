@@ -48,7 +48,7 @@
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
           "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
           "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",
-          "update_interval": "Wie oft die Anlage abgefragt wird.",
+          "update_interval": "Wie oft die Anlage gefragt wird. Der Wert gilt für die schnellen Werte (Thermostat, Temperaturen, Pumpen); träge Werte behalten ihren Abstand — 2 Minuten für Betriebswerte, 15 Minuten für Zähler. Empfohlen: 30 Sekunden für eine Anlage, 60 Sekunden für mehrere oder für Anlagen mit vielen Datenpunkten.",
           "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut.",
           "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt."
@@ -102,7 +102,7 @@
           "sprache": "Sprache der Bezeichnungen"
         },
         "data_description": {
-          "update_interval": "Wie oft die Anlage abgefragt wird.",
+          "update_interval": "Wie oft die Anlage gefragt wird. Der Wert gilt für die schnellen Werte (Thermostat, Temperaturen, Pumpen); träge Werte behalten ihren Abstand — 2 Minuten für Betriebswerte, 15 Minuten für Zähler. Empfohlen: 30 Sekunden für eine Anlage, 60 Sekunden für mehrere oder für Anlagen mit vielen Datenpunkten.",
           "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut.",
           "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff.",
           "meldung_einlesen": "Meldet sich, während HeatNexus die Anlage einliest. Standardmäßig aus – ab dem zweiten Start steht ohnehin alles sofort da.",

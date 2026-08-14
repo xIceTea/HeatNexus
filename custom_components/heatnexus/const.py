@@ -199,7 +199,13 @@ KESSELART_BESCHRIFTUNG = {
     KESSELART_STANDARD: "Neutral (ohne Brennstoffbezug)",
 }
 
-MIN_UPDATE_INTERVAL = 15
+# Das Grundintervall ist die **Untergrenze** der schnellen Klasse, kein
+# Multiplikator: `poll_takte` rechnet `Ziel / Intervall`, und das Ziel der
+# schnellen Klasse sind 30 Sekunden. Ein kürzeres Intervall weckt den
+# Coordinator öfter, ohne dass ein Wert häufiger gelesen würde – gemessen
+# blieb `fast` bei 15 s ebenfalls auf 30 s. Deshalb beginnt die Auswahl dort,
+# wo sie auch wirkt.
+MIN_UPDATE_INTERVAL = 30
 MAX_UPDATE_INTERVAL = 300
 
 # Poll-Klassen: nicht jeder Datenpunkt gehört in denselben Takt.
