@@ -14,7 +14,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Unbenannte Netzwerkvariablen bekommen Einheit und Langzeitverlauf aus dem LonMark-Typ.
 - Das Bedienteil erscheint als eigenes Gerät.
 - Beim BioWIN erscheint die Betriebsart der Zuführung.
-- Pufferladung, Rücklaufanhebung und Zirkulation erscheinen, wo die Anlage sie über den Bus meldet.
+- Pufferladung, Rücklaufanhebung und Zirkulation werden über den Bus erkannt.
 - Je Anlagenteil eine Taste, die seine Werte sofort neu abruft.
 - Automations-Vorlagen lassen sich einzeln abwählen.
 - Jedes Anlagenteil meldet seine Störung als eigenen Sensor.
