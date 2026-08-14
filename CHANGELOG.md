@@ -11,11 +11,11 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - LON-Netzwerkvariablen werden erkannt und benannt.
-- Einheit und Statistik unbenannter Netzwerkvariablen kommen aus dem LonMark-Typ.
+- Unbenannte Netzwerkvariablen bekommen Einheit und Langzeitverlauf aus dem LonMark-Typ.
 - Das Bedienteil erscheint als eigenes Gerät.
-- Der BioWIN kennt die Betriebsart der Zuführung.
+- Beim BioWIN erscheint die Betriebsart der Zuführung.
 - Pufferladung, Rücklaufanhebung und Zirkulation erscheinen, wo die Anlage sie über den Bus meldet.
-- Jedes Anlagenteil hat eine Taste, die seine Werte sofort liest.
+- Je Anlagenteil eine Taste, die seine Werte sofort neu abruft.
 - Automations-Vorlagen lassen sich einzeln abwählen.
 - Jedes Anlagenteil meldet seine Störung als eigenen Sensor.
 - Zähler zeigen, was heute und was seit dem letzten Start dazugekommen ist.
@@ -26,7 +26,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Geändert
 
-- Die Vorlage „Störung melden" führt zum Störungssensor statt zu jedem Sensor.
+- Die Vorlage „Störung melden" bietet nur noch den Störungssensor zur Auswahl.
 - Das undekodierte Statusregister des Kessels heißt nicht mehr „Störung aktiv".
 - Datenpunkte, die beim Einlesen keinen Wert liefern, entstehen abgeschaltet.
 
@@ -37,7 +37,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein einzelner misslungener Abruf löschte den zuletzt gelesenen Wert.
 - Die Meldungsliste stand dauerhaft auf „nicht verfügbar".
 - Eine Abwahl wirkte nur bis zum nächsten Neustart.
-- Ein abgeschalteter Bus lässt keine abgeschalteten Zeilen mehr zurück.
+- Ein abgeschalteter Bus ließ abgeschaltete Zeilen zurück.
 - Ein unvollständiger Erkennungslauf überschrieb den bekannten Stand.
 
 ## [1.8.1] - 2026-08-14
