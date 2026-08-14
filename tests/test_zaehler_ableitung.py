@@ -269,3 +269,37 @@ def test_ein_tageswert_der_anlage_bekommt_keine_ableitung(waermepumpe):
     waermepumpe._abgeleitete_zaehler()
     neue = {d["id"] for d in waermepumpe.devices if str(d.get("type", "")).startswith("zaehler_")}
     assert not any(kennung.startswith("SN1-heizen-tag") for kennung in neue)
+
+
+# ---------------------------------------------------------------------------
+# Auswahl: was angekreuzt ist, entsteht eingeschaltet
+# ---------------------------------------------------------------------------
+def test_ohne_auswahl_entstehen_alle_abgeschaltet(client):
+    client._abgeleitete_zaehler()
+    abgeleitet = [d for d in client.devices if str(d.get("type", "")).startswith("zaehler_")]
+    assert abgeleitet and not any(d["enabled_default"] for d in abgeleitet)
+    assert {k["id"] for k in client.zusatzkandidaten} == {d["id"] for d in abgeleitet}
+
+
+def test_angekreuztes_entsteht_eingeschaltet(client):
+    client.zusatzwerte = {"SN1-stunden-heute"}
+    client._abgeleitete_zaehler()
+    je_kennung = {
+        d["id"]: d for d in client.devices if str(d.get("type", "")).startswith("zaehler_")
+    }
+    assert je_kennung["SN1-stunden-heute"]["enabled_default"] is True
+    assert je_kennung["SN1-stunden-start"]["enabled_default"] is False
+
+
+def test_eine_geaenderte_auswahl_wirkt_ohne_neues_einlesen(client):
+    """Der Zwischenspeicher trägt alle Kandidaten; das Häkchen entscheidet beim Laden."""
+    client._abgeleitete_zaehler()
+    stand = client.export_discovery()
+
+    frisch = type(client)("192.0.2.10", "geheim", zusatzwerte=["SN1-stunden-start"])
+    frisch.restore_discovery(stand)
+    je_kennung = {
+        d["id"]: d for d in frisch.devices if str(d.get("type", "")).startswith("zaehler_")
+    }
+    assert je_kennung["SN1-stunden-start"]["enabled_default"] is True
+    assert je_kennung["SN1-stunden-heute"]["enabled_default"] is False

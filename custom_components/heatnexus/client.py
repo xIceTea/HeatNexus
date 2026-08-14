@@ -24,6 +24,9 @@ from .const import (
     FCT_NV,
     FETCH_CONCURRENCY,
     FINGERABDRUCK_MIN_TREFFER,
+    GRUPPE_DAUER,
+    GRUPPE_LAUFZEIT,
+    GRUPPE_ZAEHLER,
     LAUFPHASEN,
     MENU_PAGE_SIZE,
     POLL_BLOCK,
@@ -88,6 +91,7 @@ DESKRIPTOR_VORGABE: dict = {
     # Abgeleitete Werte: Bezugsadresse bzw. die Codes, die als Lauf gelten.
     "ausloeser_oid": None,
     "laufphasen": None,
+    "gruppe": None,
     "device_id": None,
     "alt_device_id": None,
     "device_name": None,
@@ -165,6 +169,7 @@ class WindhagerHttpClient:
         enable_advanced: bool = False,
         writable_advanced: bool = False,
         zeitwerte: bool = False,
+        zusatzwerte: list[str] | None = None,
         lon: bool = False,
         username: str | None = None,
         update_interval: int = UPDATE_INTERVAL,
@@ -188,6 +193,11 @@ class WindhagerHttpClient:
         self.writable_advanced = writable_advanced
         # Ob Uhrzeit- und Datumsfelder von sich aus aktiv sind.
         self.zeitwerte = zeitwerte
+        # Kennungen der abgeleiteten Werte, die der Nutzer angekreuzt hat.
+        self.zusatzwerte = set(zusatzwerte or ())
+        # Was zur Auswahl stünde – auch das Nichtgewählte, sonst bliebe der
+        # Auswahldialog leer.
+        self.zusatzkandidaten: list[dict] = []
         self.lon = lon
         # In welcher Sprache das Textwerk der Steuerung gelesen wird, und was
         # sie geliefert hat. Vor dem ersten Erkennungslauf ist es leer.
@@ -1485,6 +1495,7 @@ class WindhagerHttpClient:
         self.oids -= missing
         await self._nv_ohne_fuehler_verwerfen()
         self._nv_doppelte_stilllegen()
+        self.zusatzkandidaten = []
         self._abgeleitete_zaehler()
         self._betriebsdauer()
         self._namen_vereindeutigen()
@@ -1543,7 +1554,13 @@ class WindhagerHttpClient:
             # Ein Tageswert der Anlage braucht keine Ableitung seiner selbst.
             if kennung in TAGESWERTE:
                 continue
-            gemeinsam = {"unit": d.get("unit"), "device_class": d.get("device_class")}
+            # Stunden sind Laufzeit, alles andere zählt Stück oder Menge.
+            gruppe = GRUPPE_LAUFZEIT if (d.get("unit") or "") == "h" else GRUPPE_ZAEHLER
+            gemeinsam = {
+                "unit": d.get("unit"),
+                "device_class": d.get("device_class"),
+                "gruppe": gruppe,
+            }
             bezug = ausloeser.get(d.get("device_id"))
             # Der Bezugszähler selbst bekommt keinen Bezug auf sich: Jeder
             # Start setzte die Basis neu, der Wert bliebe immer null.
@@ -1556,7 +1573,7 @@ class WindhagerHttpClient:
             # Führt die Anlage den Tageswert selbst, gilt ihrer.
             if (d.get("device_id"), TAGESZAEHLER.get(kennung)) not in vom_geraet:
                 neu.append(self._ableitung(d, "heute", "zaehler_heute", "heute", **gemeinsam))
-        self.devices += neu
+        self._zusatzwerte_uebernehmen(neu)
 
     # Endung der Kennung -> Zusatz zum Namen des Zustandssensors.
     _DAUERN = {
@@ -1587,9 +1604,30 @@ class WindhagerHttpClient:
                         unit="min",
                         laufphasen=sorted(phasen),
                         icon="mdi:fire-circle",
+                        gruppe=GRUPPE_DAUER,
                     )
                 )
-        self.devices += neu
+        self._zusatzwerte_uebernehmen(neu)
+
+    # Deskriptorarten, die aus einem anderen Wert abgeleitet sind.
+    ZUSATZTYPEN = (
+        "zaehler_heute",
+        "zaehler_start",
+        "betriebsdauer",
+        "betriebsdauer_letzte",
+        "betriebsdauer_heute",
+    )
+
+    def _zusatzwerte_uebernehmen(self, kandidaten: list[dict]) -> None:
+        """Angekreuzte Werte einschalten, die übrigen abgeschaltet anlegen.
+
+        Wie beim Schalter für die Zeitwerte: Ein weggenommenes Häkchen schaltet
+        ab und wirft nichts weg – Verlauf und eigener Name bleiben.
+        """
+        for kandidat in kandidaten:
+            kandidat["enabled_default"] = kandidat["id"] in self.zusatzwerte
+        self.zusatzkandidaten += kandidaten
+        self.devices += kandidaten
 
     def _namen_vereindeutigen(self) -> None:
         """Gleichnamige Datenpunkte eines Geräts unterscheidbar machen.
@@ -1783,6 +1821,7 @@ class WindhagerHttpClient:
             "neuron_by_node": dict(self.neuron_by_node),
             "geraeteinfo": dict(self.geraeteinfo),
             "werksbezeichnung": dict(self.werksbezeichnung),
+            "zusatzkandidaten": list(self.zusatzkandidaten),
         }
 
     def restore_discovery(self, data: dict) -> None:
@@ -1796,6 +1835,11 @@ class WindhagerHttpClient:
         self.neuron_by_node = dict(data.get("neuron_by_node") or {})
         self.geraeteinfo = dict(data.get("geraeteinfo") or {})
         self.werksbezeichnung = dict(data.get("werksbezeichnung") or {})
+        self.zusatzkandidaten = [dict(k) for k in data.get("zusatzkandidaten") or []]
+        # Die Auswahl kann sich seit dem Speichern geändert haben.
+        for d in self.devices:
+            if d.get("type") in self.ZUSATZTYPEN:
+                d["enabled_default"] = d["id"] in self.zusatzwerte
         self.poll_oids = set(data.get("poll_oids", set()))
         # Die Poll-Klassen leiten sich aus den Deskriptoren ab und werden
         # deshalb nicht mitgespeichert, sondern neu bestimmt. So wirkt eine

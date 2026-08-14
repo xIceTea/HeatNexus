@@ -61,10 +61,13 @@ from .const import (
     CONF_VORLAGEN,
     CONF_WRITABLE_ADVANCED,
     CONF_ZEITWERTE,
+    CONF_ZUSATZGRUPPEN,
+    CONF_ZUSATZWERTE,
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
     DOMAIN,
     ECO_TEMP_STANDARD,
+    GRUPPE_INDIVIDUELL,
     KESSELART_AUTO,
     KESSELART_BESCHRIFTUNG,
     KESSELARTEN,
@@ -80,6 +83,7 @@ from .const import (
     SPRACHE_BESCHRIFTUNG,
     UEBERSTEUERUNG_DAUER_STANDARD,
     UPDATE_INTERVAL,
+    ZUSATZGRUPPEN,
 )
 from .exceptions import CannotConnect, InvalidAuth
 from .geraetetexte import SPRACHEN, sprache_aufloesen
@@ -259,6 +263,69 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
     return vol.Schema(felder)
 
 
+def zusatzgruppen_feld(kandidaten: list[dict], gewaehlt: list[str]) -> dict:
+    """Auswahl der abgeleiteten Werte, nach Herkunft gruppiert.
+
+    Angeboten wird nur, was diese Anlage hergibt; „Individuell" öffnet den
+    zweiten Schritt mit den Einzelwerten.
+    """
+    vorhanden = [g for g in ZUSATZGRUPPEN if any(k.get("gruppe") == g for k in kandidaten)]
+    if not vorhanden:
+        return {}
+    optionen = [SelectOptionDict(value=g, label=ZUSATZGRUPPEN[g]) for g in vorhanden]
+    optionen.append(SelectOptionDict(value=GRUPPE_INDIVIDUELL, label="Individuell"))
+    return {
+        vol.Optional(CONF_ZUSATZGRUPPEN, default=gewaehlt): SelectSelector(
+            SelectSelectorConfig(options=optionen, multiple=True, mode=SelectSelectorMode.LIST)
+        )
+    }
+
+
+def zusatzwerte_feld(kandidaten: list[dict], gewaehlt: list[str]) -> dict:
+    """Die Einzelwerte zum Ankreuzen – der zweite Schritt hinter „Individuell"."""
+    if not kandidaten:
+        return {}
+    bekannt = {k["id"] for k in kandidaten}
+    return {
+        vol.Optional(
+            CONF_ZUSATZWERTE, default=[k for k in gewaehlt if k in bekannt]
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=k["id"], label=k["name"])
+                    for k in sorted(kandidaten, key=lambda k: k["name"])
+                ],
+                multiple=True,
+                mode=SelectSelectorMode.LIST,
+            )
+        )
+    }
+
+
+def gruppen_aufloesen(kandidaten: list[dict], gruppen: list[str]) -> list[str]:
+    """Welche Einzelwerte die angekreuzten Gruppen ergeben."""
+    return [k["id"] for k in kandidaten if k.get("gruppe") in gruppen]
+
+
+def gruppen_ableiten(kandidaten: list[dict], gewaehlt: list[str]) -> list[str]:
+    """Welche Gruppen zu einer gespeicherten Auswahl passen.
+
+    Vollständig angekreuzte Gruppen erscheinen wieder als Gruppe; bleibt etwas
+    übrig, steht zusätzlich „Individuell".
+    """
+    aktiv = set(gewaehlt)
+    gruppen = []
+    abgedeckt: set[str] = set()
+    for gruppe in ZUSATZGRUPPEN:
+        kennungen = {k["id"] for k in kandidaten if k.get("gruppe") == gruppe}
+        if kennungen and kennungen <= aktiv:
+            gruppen.append(gruppe)
+            abgedeckt |= kennungen
+    if aktiv - abgedeckt:
+        gruppen.append(GRUPPE_INDIVIDUELL)
+    return gruppen
+
+
 def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
     """Eingaben zu den Bedienebenen prüfen und vereinheitlichen."""
     levels = [lvl for lvl in raw.get(CONF_LEVELS, DEFAULT_LEVELS) if lvl in ALL_LEVELS]
@@ -274,6 +341,8 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         CONF_WRITABLE_ADVANCED: bool(raw.get(CONF_WRITABLE_ADVANCED, False)),
         CONF_ZEITWERTE: bool(raw.get(CONF_ZEITWERTE, False)),
         CONF_LON: bool(raw.get(CONF_LON, False)),
+        # Kennungen der abgeleiteten Werte, die eingeschaltet sein sollen.
+        CONF_ZUSATZWERTE: [str(k) for k in raw.get(CONF_ZUSATZWERTE, [])][:200],
         CONF_KESSELART: kesselart if kesselart in KESSELARTEN else KESSELART_AUTO,
         CONF_KESSELWERT: (kesselwert if kesselwert in KESSELWERTE else KESSELWERT_LEISTUNG),
     }
@@ -568,6 +637,9 @@ class WindhagerOptionsFlow(OptionsFlow):
     def __init__(self) -> None:
         """Zwischenstand."""
         self._host: str | None = None
+        # Anlage, Zugang und schon geprüfte Optionen, während der zweite
+        # Schritt für die Einzelwerte offen ist.
+        self._offen: tuple[str, str, dict[str, Any]] | None = None
 
     def _systeme(self) -> list[dict[str, Any]]:
         return self.config_entry.data.get(CONF_SYSTEMS, [])
@@ -689,21 +761,21 @@ class WindhagerOptionsFlow(OptionsFlow):
 
         if user_input is not None:
             benutzer = (user_input.pop(CONF_USERNAME, None) or DEFAULT_USERNAME).strip()
+            gruppen = user_input.pop(CONF_ZUSATZGRUPPEN, [])
+            kandidaten = self._zusatzkandidaten(host)
+            user_input[CONF_ZUSATZWERTE] = gruppen_aufloesen(kandidaten, gruppen)
+            if GRUPPE_INDIVIDUELL in gruppen:
+                # Der zweite Schritt zeigt die Einzelwerte, vorbelegt mit dem,
+                # was die Gruppen ergeben.
+                self._offen = (host, benutzer, normalize_options(user_input))
+                return await self.async_step_zusatzwerte()
             options[host] = normalize_options(user_input)
-            if benutzer != (system.get(CONF_USERNAME) or DEFAULT_USERNAME):
-                # Der Zugang steht in den Anlagendaten, nicht in den Optionen –
-                # er gehört zur Anmeldung. Ein Wechsel ändert den Umfang und
-                # lässt die Anlage neu einlesen.
-                neue_systeme = [
-                    {**s, CONF_USERNAME: benutzer} if s[CONF_HOST] == host else s for s in systeme
-                ]
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry, data={**self.config_entry.data, CONF_SYSTEMS: neue_systeme}
-                )
+            self._zugang_uebernehmen(host, benutzer)
             return self.async_create_entry(data=options)
 
         label = system.get(CONF_LABEL) or host
-        schema = level_schema(options.get(host, {}), mit_intervall=False)
+        je_anlage = options.get(host, {})
+        schema = level_schema(je_anlage, mit_intervall=False)
         schema = schema.extend(
             {
                 vol.Required(
@@ -711,11 +783,67 @@ class WindhagerOptionsFlow(OptionsFlow):
                 ): benutzer_auswahl()
             }
         )
+        kandidaten = self._zusatzkandidaten(host)
+        schema = schema.extend(
+            zusatzgruppen_feld(
+                kandidaten, gruppen_ableiten(kandidaten, list(je_anlage.get(CONF_ZUSATZWERTE, [])))
+            )
+        )
         return self.async_show_form(
             step_id="system",
             data_schema=schema,
             description_placeholders={"anlage": f"{label} ({host})".strip()},
         )
+
+    def _zugang_uebernehmen(self, host: str, benutzer: str) -> None:
+        """Einen geänderten Zugang in die Anlagendaten schreiben.
+
+        Er gehört zur Anmeldung, nicht zu den Optionen. Ein Wechsel ändert den
+        Umfang und lässt die Anlage neu einlesen.
+        """
+        systeme = self._systeme()
+        vorher = next((s for s in systeme if s[CONF_HOST] == host), {})
+        if benutzer == (vorher.get(CONF_USERNAME) or DEFAULT_USERNAME):
+            return
+        neue = [{**s, CONF_USERNAME: benutzer} if s[CONF_HOST] == host else s for s in systeme]
+        self.hass.config_entries.async_update_entry(
+            self.config_entry, data={**self.config_entry.data, CONF_SYSTEMS: neue}
+        )
+
+    async def async_step_zusatzwerte(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Einzelne abgeleitete Werte ankreuzen."""
+        host, benutzer, vorgemerkt = self._offen
+        kandidaten = self._zusatzkandidaten(host)
+        if user_input is not None:
+            options = dict(self.config_entry.options)
+            options[host] = {
+                **vorgemerkt,
+                CONF_ZUSATZWERTE: [
+                    k
+                    for k in user_input.get(CONF_ZUSATZWERTE, [])
+                    if k in {c["id"] for c in kandidaten}
+                ],
+            }
+            self._zugang_uebernehmen(host, benutzer)
+            return self.async_create_entry(data=options)
+        return self.async_show_form(
+            step_id="zusatzwerte",
+            data_schema=vol.Schema(
+                zusatzwerte_feld(kandidaten, list(vorgemerkt.get(CONF_ZUSATZWERTE, [])))
+            ),
+        )
+
+    def _zusatzkandidaten(self, host: str) -> list[dict]:
+        """Was diese Anlage an abgeleiteten Werten hergibt.
+
+        Vor dem ersten vollständigen Einlesen ist die Liste leer; das Feld
+        entfällt dann, statt eine leere Auswahl zu zeigen.
+        """
+        daten = getattr(self.config_entry, "runtime_data", None) or {}
+        coordinator = (daten.get("coordinators") or {}).get(host)
+        return list(getattr(getattr(coordinator, "client", None), "zusatzkandidaten", []) or [])
 
     def __getattr__(self, name: str):
         """Schritt ``anlage_<n>`` zu jeder eingerichteten Anlage bereitstellen.

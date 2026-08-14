@@ -126,7 +126,8 @@
           "kesselart": "Heat generator (diagram)",
           "kesselwert": "Boiler value (diagram)",
           "zeitwerte": "Create system clock and system date",
-          "lon": "Read values from the LON bus"
+          "lon": "Read values from the LON bus",
+          "zusatzgruppen": "Derived values"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
@@ -136,7 +137,15 @@
           "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes.",
           "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature.",
           "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
-          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints."
+          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
+          "zusatzgruppen": "Values HeatNexus derives from existing counters and states: running times (today, since the last start), counters (starts, consumption, heat) and the running duration. Unticked ones are created disabled. Pick “Individuell” for the per-value selection."
+        }
+      },
+      "zusatzwerte": {
+        "title": "Derived values in detail",
+        "description": "Tick the values that should be enabled.",
+        "data": {
+          "zusatzwerte": "Values"
         }
       }
     }

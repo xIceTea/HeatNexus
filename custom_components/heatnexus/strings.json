@@ -123,7 +123,8 @@
           "username": "Access",
           "kesselart": "Heat generator (diagram)",
           "zeitwerte": "Systemuhr und Systemdatum anlegen",
-          "lon": "Read values from the LON bus"
+          "lon": "Read values from the LON bus",
+          "zusatzgruppen": "Zusatzwerte"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
@@ -132,7 +133,15 @@
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
           "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
-          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints."
+          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
+          "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. „Individuell“ öffnet die Einzelauswahl."
+        }
+      },
+      "zusatzwerte": {
+        "title": "Zusatzwerte einzeln",
+        "description": "Ankreuzen, welche Werte eingeschaltet sein sollen.",
+        "data": {
+          "zusatzwerte": "Werte"
         }
       }
     }
