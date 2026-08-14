@@ -146,7 +146,9 @@ def modul():
     pfad = VORLAGEN.parent.parent.parent / "blueprints.py"
     quelle = pfad.read_text(encoding="utf-8")
     # Ohne Home Assistant laden: Nur die Dateiarbeit wird geprüft.
-    quelle = quelle.replace("from homeassistant.core import HomeAssistant", "HomeAssistant = object")
+    quelle = quelle.replace(
+        "from homeassistant.core import HomeAssistant", "HomeAssistant = object"
+    )
     quelle = quelle.replace("from .const import DOMAIN", "DOMAIN = 'heatnexus'")
     raum: dict = {"__file__": str(pfad), "__name__": "hn_blueprints"}
     exec(compile(quelle, str(pfad), "exec"), raum)
