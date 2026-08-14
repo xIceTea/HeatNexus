@@ -51,6 +51,10 @@ from .lon import zuordnen as lon_zuordnen
 
 _LOGGER = logging.getLogger(__name__)
 
+# Rückgabe eines Abrufs, der die Anlage nicht erreicht hat. Zu unterscheiden
+# von ``None``: Das ist die Auskunft der Anlage, dass sie keinen Wert führt.
+FEHLGESCHLAGEN = object()
+
 # Die Felder eines Datenpunkt-Deskriptors und ihre Vorgabe. Plattformen, Panel,
 # Dashboard und Diagnose lesen sie; fehlt eines, fällt das erst dort auf.
 DESKRIPTOR_VORGABE: dict = {
@@ -1482,9 +1486,14 @@ class WindhagerHttpClient:
         return [f"{prefix}{s}" for s in self._CLIMATE_POLL_SUFFIXES]
 
     async def fetch_oids(self, oids) -> dict:
-        """Nur eine gezielte OID-Menge abfragen (für schnellen Burst-Refresh)."""
+        """Nur eine gezielte OID-Menge abfragen (für schnellen Burst-Refresh).
+
+        Was die Anlage nicht beantwortet hat, fehlt im Ergebnis. Die Aufrufer
+        tragen es in den Bestand des Abrufs ein; ein leerer Wert überschriebe
+        dort einen gültigen.
+        """
         results = await asyncio.gather(*(self._fetch_oid(o) for o in oids))
-        return dict(results)
+        return {oid: wert for oid, wert in results if wert is not FEHLGESCHLAGEN}
 
     @staticmethod
     def _poll_klasse(beschreibung: dict) -> str:
@@ -1688,6 +1697,10 @@ class WindhagerHttpClient:
         Umfang: `lookup` stellt den ganzen Metadatensatz zusammen – Einheit,
         Grenzen, Schrittweite, Aufzählung, Schreibschutz –, `datapoint` nur
         den Wert. Beim Abruf ist davon nichts nötig, das steht im Deskriptor.
+
+        Erreicht die Anfrage die Anlage nicht, kommt ``FEHLGESCHLAGEN`` zurück
+        und nicht ``None``: Der Aufrufer lässt den zuletzt gelesenen Wert
+        stehen, statt die Anzeige zu leeren.
         """
         try:
             data, status = await self._get(
@@ -1699,7 +1712,7 @@ class WindhagerHttpClient:
             return oid, self._wert_oder_none(value)
         except Exception as e:
             _LOGGER.warning("Error while fetching OID %s: %s", oid, e)
-            return oid, None
+            return oid, FEHLGESCHLAGEN
 
     def _abmelden(self, oid: str, data, status: int) -> bool:
         """Einen abgelehnten Datenpunkt aus dem zyklischen Abruf nehmen.
@@ -2006,7 +2019,16 @@ class WindhagerHttpClient:
         faellig = self._faellig()
         results, self._rest = await self._lese_faellige(faellig, ende)
 
-        self._letzte_werte.update(dict(results))
+        # **Ein misslungener Abruf ist kein Messwert.** Er lässt den zuletzt
+        # gelesenen Wert stehen und wird im nächsten Durchlauf wiederholt,
+        # unabhängig von seiner Poll-Klasse. Würde er als leerer Wert
+        # eingetragen, verschwände die Anzeige bis zum nächsten Durchlauf
+        # dieser Klasse – bei der trägen für eine Viertelstunde.
+        misslungen = {oid for oid, wert in results if wert is FEHLGESCHLAGEN}
+        self._letzte_werte.update(
+            {oid: wert for oid, wert in results if wert is not FEHLGESCHLAGEN}
+        )
+        self._rest |= misslungen - self._abgemeldet
         # Abgemeldete Entities dürfen nicht ewig als alter Wert weiterleben.
         aktuell = self.poll_oids | self._dynamic_oids
         for oid in list(self._letzte_werte):

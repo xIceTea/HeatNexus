@@ -491,3 +491,97 @@ def test_die_statistik_mittelt_ueber_die_anfragen(client):
     zahlen = client.statistik()
     assert zahlen["dauer_je_anfrage_ms"] == 500.0
     assert zahlen["wartezeit_je_anfrage_ms"] == 100.0
+
+
+# ---------------------------------------------------------------------------
+# Ein misslungener Abruf ist kein Messwert
+# ---------------------------------------------------------------------------
+async def _einen_wert(client, monkeypatch, antwort):
+    """Einen Durchlauf über genau eine OID fahren, mit vorgegebener Antwort."""
+
+    async def get(url, semaphore=None):
+        return antwort()
+
+    monkeypatch.setattr(client, "_get", get)
+    client.oids = {"/1/60/0/2/81/0"}
+    client.devices = [{"oid": "/1/60/0/2/81/0", "name": "Betriebsstunden", "type": "sensor"}]
+    client._compute_poll_oids()
+    return await client.fetch_all()
+
+
+async def test_eine_zeitueberschreitung_loescht_den_bekannten_wert_nicht(client, monkeypatch):
+    """Sonst steht ein träger Wert bis zum nächsten trägen Durchlauf leer da.
+
+    Die Steuerung antwortet eine Anfrage nach der anderen; läuft daneben der
+    Vollabzug, geht ein Abruf schon einmal in die Zeitüberschreitung. Wird
+    daraus ein leerer Wert, verschwindet die Anzeige – bei der trägen Klasse
+    für eine Viertelstunde.
+    """
+    zustand = {"antworten": True}
+
+    def antwort():
+        if not zustand["antworten"]:
+            raise TimeoutError("keine Antwort")
+        return {"value": "18116"}, 200
+
+    daten = await _einen_wert(client, monkeypatch, antwort)
+    assert daten["oids"]["/1/60/0/2/81/0"] == "18116"
+
+    zustand["antworten"] = False
+    client._tick = 0  # auch ein träger Wert ist wieder fällig
+    daten = await client.fetch_all()
+
+    assert daten["oids"]["/1/60/0/2/81/0"] == "18116"
+
+
+async def test_ein_misslungener_abruf_wird_sofort_wiederholt(client, monkeypatch):
+    """Nicht erst im eigenen Takt – sonst dauert die Erholung eine Viertelstunde."""
+
+    async def get(url, semaphore=None):
+        raise TimeoutError("keine Antwort")
+
+    monkeypatch.setattr(client, "_get", get)
+    client.oids = {"/1/60/0/2/81/0"}
+    client.devices = [
+        {"oid": "/1/60/0/2/81/0", "name": "Betriebsstunden", "state_class": "total_increasing"}
+    ]
+    client._compute_poll_oids()
+
+    await client.fetch_all()
+    client._tick = 1  # kein träger Durchlauf
+
+    assert "/1/60/0/2/81/0" in client._faellig()
+
+
+async def test_ein_abgelehnter_datenpunkt_bleibt_ohne_wert(client, monkeypatch):
+    """Die Anlage sagt, dass es ihn nicht gibt – das ist eine Auskunft, kein Ausfall."""
+
+    def antwort():
+        return {"value": "18116"}, 200
+
+    daten = await _einen_wert(client, monkeypatch, antwort)
+    assert daten["oids"]["/1/60/0/2/81/0"] == "18116"
+
+    async def get(url, semaphore=None):
+        return {"reason": "invalid Identifier"}, 409
+
+    monkeypatch.setattr(client, "_get", get)
+    client._tick = 0
+    daten = await client.fetch_all()
+
+    assert daten["oids"].get("/1/60/0/2/81/0") is None
+
+
+async def test_gezieltes_nachlesen_meldet_nur_was_ankam(client, monkeypatch):
+    """Sonst überschriebe das Nachfassen einen gültigen Wert mit einem leeren."""
+
+    async def get(url, semaphore=None):
+        if url.endswith("/1/60/0/2/81/0"):
+            raise TimeoutError("keine Antwort")
+        return {"value": "42"}, 200
+
+    monkeypatch.setattr(client, "_get", get)
+
+    gelesen = await client.fetch_oids(["/1/60/0/2/81/0", "/1/60/0/0/7/0"])
+
+    assert gelesen == {"/1/60/0/0/7/0": "42"}
