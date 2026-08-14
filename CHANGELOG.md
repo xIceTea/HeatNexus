@@ -29,7 +29,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
-- Eine abgewählte Systemuhr ließ ihre Entitäten als abgeschaltete Zeilen zurück.
+- Abgewählte Optionen lassen keine abgeschalteten Zeilen mehr zurück.
 
 ## [1.8.0] - 2026-08-14
 
