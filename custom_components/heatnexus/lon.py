@@ -114,6 +114,43 @@ LON_NAMEN: dict[str, dict] = {
 }
 
 
+# Typen des LonMark-Standards. Sie stehen an jedem Eintrag als `snvtName` und
+# sagen, **was für eine Größe** der Wert ist – ohne dass sein Name bekannt sein
+# muss. Im Abzug tragen 161 von 201 Einträgen einen. Das ist die automatische
+# Hälfte der Erschließung: Einheit und Statistik kommen von hier, der Begriff
+# aus `LON_NAMEN`.
+#
+# `verwaltung` heißt: kein Messwert, sondern Innenleben des Bus.
+SNVT_TYPEN: dict[str, dict] = {
+    "SNVT_temp_p": {"unit": "°C"},
+    "SNVT_temp": {"unit": "°C"},
+    "SNVT_lev_cont": {"unit": "%"},
+    "SNVT_lev_percent": {"unit": "%"},
+    "SNVT_rpm": {"unit": "rpm"},
+    "SNVT_mass_kilo": {"unit": "kg", "state_class": "measurement"},
+    "SNVT_time_hour": {"unit": "Std"},
+    "SNVT_time_min": {"unit": "min"},
+    # Ein Zähler zählt nach oben – ohne Statistikklasse führt der Rekorder
+    # keinen Langzeitverlauf.
+    "SNVT_count": {"state_class": "total_increasing"},
+    # Zustandsbericht des Knotenobjekts: `in_alarm`, `comm_failure`,
+    # `out_of_service` und weitere Bits. Kein Messwert, aber die einzige
+    # Auskunft mancher Knoten über sich selbst – deshalb Diagnose statt
+    # Wegwerfen. Am Bedienteil ist es der einzige Eintrag überhaupt.
+    "SNVT_obj_status": {"diagnose": True},
+    "SNVT_state": {"diagnose": True},
+    # Reines Innenleben: ein Dateiverzeichnis und ein Anforderungs-Eingang.
+    # Beide tragen für niemanden etwas bei.
+    "SNVT_address": {"verwaltung": True},
+    "SNVT_obj_request": {"verwaltung": True},
+}
+
+
+def snvt(snvt_name: str | None) -> dict:
+    """Was der LonMark-Typ über einen Wert sagt. Leer, wenn er unbekannt ist."""
+    return SNVT_TYPEN.get(str(snvt_name or "").strip(), {})
+
+
 def _rumpf(nv_name: str | None) -> str:
     """Der Name als Kennungsteil: klein, ohne Sonderzeichen."""
     return re.sub(r"[^a-z0-9]+", "-", str(nv_name or "").lower()).strip("-")

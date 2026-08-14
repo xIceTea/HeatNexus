@@ -151,6 +151,63 @@ async def test_bus_eingaenge_kommen_deaktiviert(client_module, monkeypatch):
     assert _nv(c, "PMX_eeBetrStd")["enabled_default"] is True
 
 
+async def test_verwaltung_des_bus_wird_nicht_angelegt(client_module, monkeypatch):
+    """Ein Dateiverzeichnis ist kein Messwert, auch nicht deaktiviert."""
+    c = await _erkennen(
+        client_module,
+        monkeypatch,
+        nv_eintraege=[
+            {
+                "nvIndex": 3,
+                "nvName": "nvoFileDirectory",
+                "snvtName": "SNVT_address",
+                "value": "16744",
+            },
+            {"nvIndex": 28, "nvName": "PMX_eeBetrStd", "unit": "Std", "value": "14203"},
+        ],
+    )
+
+    assert [d["nv_name"] for d in c.devices if d.get("nv_name")] == ["PMX_eeBetrStd"]
+
+
+async def test_der_typ_kommt_aus_dem_standard(client_module, monkeypatch):
+    """Ohne Namen in der Tabelle trägt der LonMark-Typ die Größe.
+
+    Genau das macht eine Baureihe erschließbar, die hier nie stand: Die
+    Anlage nennt den Typ, auch wenn niemand den Namen kennt.
+    """
+    c = await _erkennen(
+        client_module,
+        monkeypatch,
+        nv_eintraege=[
+            # Unbenannt, ohne Einheit von der Anlage – der Typ sagt beides.
+            {"nvIndex": 41, "nvName": "RUE_cntError", "snvtName": "SNVT_count", "value": "3"},
+            {"nvIndex": 9, "nvName": "FA_nvoTk", "snvtName": "SNVT_temp_p", "value": "44.5"},
+        ],
+    )
+
+    zaehler = _nv(c, "RUE_cntError")
+    assert zaehler["state_class"] == "total_increasing"
+    # Ohne den Typ wäre das ein Zahlensensor ohne Geräteklasse gewesen; die
+    # Anlage nennt für diesen Eintrag keine Einheit.
+    assert _nv(c, "FA_nvoTk")["type"] == "temperature"
+
+
+async def test_zustandsbericht_bleibt_als_diagnose(client_module, monkeypatch):
+    """Das Bedienteil trägt nur ihn – ohne ihn verschwände auch das Gerät."""
+    c = await _erkennen(
+        client_module,
+        monkeypatch,
+        nv_eintraege=[
+            {"nvIndex": 3, "nvName": "nvoStatus", "snvtName": "SNVT_obj_status", "value": "0"}
+        ],
+    )
+
+    bericht = _nv(c, "nvoStatus")
+    assert bericht["category"] == "diagnostic"
+    assert bericht["enabled_default"] is False
+
+
 async def test_herkunft_steht_am_deskriptor(client_module, monkeypatch):
     """Die Diagnose zählt nach Ebene – ohne eigene stünden sie unter `null`.
 

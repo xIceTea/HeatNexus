@@ -45,6 +45,7 @@ from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
 from .kanonisch import schluessel as kanonischer_schluessel
 from .lon import ist_eingang as lon_ist_eingang
 from .lon import kennungsteil as lon_kennungsteil
+from .lon import snvt as lon_snvt
 from .lon import zuordnen as lon_zuordnen
 
 _LOGGER = logging.getLogger(__name__)
@@ -657,11 +658,24 @@ class WindhagerHttpClient:
         eintrag = lon_zuordnen(nv_name)
         knoten = prefix.strip("/").split("/")[1]
 
+        # Was der LonMark-Typ über den Wert sagt. Er steht an jedem Eintrag und
+        # gilt über Baureihen hinweg – die Namenstabelle entscheidet nur noch
+        # über den Begriff, die Größe kommt von hier.
+        typ = lon_snvt(item.get("snvtName"))
+        if typ.get("verwaltung"):
+            # Dateiverzeichnis und Anforderungs-Eingang sind Innenleben des
+            # Bus. Als Entität wären sie eine Zeile, die niemand deuten kann.
+            return
+
         # Die Metadaten stehen schon im Eintrag; ein Einzelabruf entfällt
         # damit. `writeProt` setzt der Client selbst – die Anlage meldet für
         # Netzwerkvariablen keinen Schreibschutz, geschrieben wird trotzdem
-        # nicht.
-        self.menu_meta[oid] = {**item, "writeProt": True}
+        # nicht. Die Einheit aus dem Typ springt nur ein, wo die Anlage keine
+        # nennt.
+        meta = {**item, "writeProt": True}
+        if not meta.get("unit") and typ.get("unit"):
+            meta["unit"] = typ["unit"]
+        self.menu_meta[oid] = meta
 
         self.devices.append(
             {
@@ -686,9 +700,9 @@ class WindhagerHttpClient:
                 "enum_texte": None,
                 "unit": None,
                 "device_class": None,
-                "state_class": eintrag.get("state_class") if eintrag else None,
+                "state_class": (eintrag or {}).get("state_class") or typ.get("state_class"),
                 "kanonisch": eintrag.get("kanonisch") if eintrag else None,
-                "category": None if eintrag else "diagnostic",
+                "category": None if eintrag and not typ.get("diagnose") else "diagnostic",
                 "icon": None,
                 "min": None,
                 "max": None,
