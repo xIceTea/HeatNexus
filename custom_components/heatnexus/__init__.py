@@ -289,6 +289,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             restored = True
         else:
             stored = await store.async_load()
+            # Ein Umfang, der kleiner geworden ist, verwirft den Stand – und
+            # genau dann ist die Abwahl noch ablesbar. Ohne diese Stelle wäre
+            # sie nach einem Neustart vergessen, und die Entitäten der
+            # abgewählten Option blieben abgeschaltet stehen.
+            if _abwahl_im_stand(stored, scope):
+                _abwahl_vormerken(hass, entry)
             if _discovery_cache_valid(stored, host, fingerprint):
                 client.restore_discovery(stored["data"])
                 mem_cache[cache_key] = stored["data"]
@@ -536,6 +542,41 @@ def _umfang_verkleinert(alt: dict[str, dict], neu: dict[str, dict]) -> bool:
     return False
 
 
+def _abwahl_im_stand(stored, scope: dict) -> bool:
+    """Ob der gespeicherte Stand einen größeren Umfang nennt als der aktuelle.
+
+    Der Vergleich im Arbeitsspeicher (`_umfang_verkleinert` über
+    `laufzeitdaten`) kennt nur den Moment der Änderung. Nach einem Neustart ist
+    er vergessen, und die Entitäten einer abgewählten Option blieben für immer
+    als abgeschaltete Zeilen stehen. Der Stand auf der Platte überlebt dagegen.
+
+    Ein Stand ohne `umfang` stammt aus einer Fassung vor dieser Prüfung; er
+    beweist nichts und löst nichts aus.
+    """
+    if not isinstance(stored, dict):
+        return False
+    alt = stored.get("umfang")
+    if not isinstance(alt, dict):
+        return False
+    return _umfang_verkleinert({"anlage": alt}, {"anlage": scope})
+
+
+def _quelle_abgeschaltet(unique_id: str | None, umfaenge: dict[str, dict]) -> bool:
+    """Ob eine Waise zu einer Quelle gehört, die der Nutzer abgeschaltet hat.
+
+    Netzwerkvariablen tragen `-nv-` in ihrer Kennung (siehe
+    `lon.kennungsteil`). Ist der Bus abgewählt, kann keine von ihnen noch zum
+    Bestand gehören: Sie sind kein weggefallener Datenpunkt, sondern der Rest
+    einer Entscheidung, und werden deshalb gelöscht statt stillgelegt.
+
+    Sie ist die einzige Quelle, die sich allein an der Kennung erkennen lässt.
+    Für alles andere entscheidet der Umfangsvergleich.
+    """
+    if "-nv-" not in (unique_id or ""):
+        return False
+    return not any(umfang.get("lon") for umfang in umfaenge.values())
+
+
 def _abwahl_vormerken(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Merken, dass der nächste Ladevorgang nach einer Abwahl aufräumen darf."""
     hass.data.setdefault(DOMAIN, {}).setdefault("_abwahl", set()).add(entry.entry_id)
@@ -589,11 +630,12 @@ def _abgewaehlte_entitaeten_stilllegen(
         for coordinator in coordinators.values()
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
+    umfaenge = (laufzeitdaten(entry) or {}).get("umfang") or {}
     registry = er.async_get(hass)
     entfernt = 0
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
         if eintrag.unique_id not in standardmaessig_an:
-            if loeschen:
+            if loeschen or _quelle_abgeschaltet(eintrag.unique_id, umfaenge):
                 registry.async_remove(eintrag.entity_id)
                 entfernt += 1
             elif eintrag.disabled_by is None:
@@ -729,6 +771,10 @@ async def _vollabzug(
             "version": version,
             "host": host,
             "scope": fingerprint,
+            # Der Umfang zusätzlich zum Fingerabdruck: Aus der Zeichenkette
+            # lässt sich nicht ablesen, *was* sich geändert hat. Beim nächsten
+            # Laden entscheidet er, ob eine Option abgewählt wurde.
+            "umfang": _scope(hass, entry, host),
             # Die Sprache steht hier und nicht im Fingerabdruck: Ein Wechsel
             # macht den Stand nicht ungültig, er löst nur den Abgleich aus.
             "sprache": client.sprache,

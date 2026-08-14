@@ -408,3 +408,54 @@ def test_der_neustart_hinweis_kommt_und_geht(modul, monkeypatch):
 
     assert angelegt == [f"sprache_neustart_eintrag1_{HOST}"]
     assert geloescht == [f"sprache_neustart_eintrag1_{HOST}"]
+
+
+# ---------------------------------------------------------------------------
+# Abwahl über den Neustart hinaus
+# ---------------------------------------------------------------------------
+def test_ein_stand_mit_groesserem_umfang_zeigt_die_abwahl(modul):
+    """Der Vergleich im Arbeitsspeicher kennt nur den Moment der Änderung.
+
+    Nach einem Neustart entscheidet der Stand auf der Platte – sonst blieben
+    die Entitäten der abgewählten Option für immer abgeschaltet stehen.
+    """
+    stand = {"umfang": _umfang(["info", "operate"], lon=True)}
+    assert modul._abwahl_im_stand(stand, _umfang(["info", "operate"], lon=False))
+    assert modul._abwahl_im_stand(stand, _umfang(["info"], lon=True))
+
+
+def test_ein_stand_mit_kleinerem_umfang_ist_keine_abwahl(modul):
+    stand = {"umfang": _umfang(["info"])}
+    assert not modul._abwahl_im_stand(stand, _umfang(["info", "operate"]))
+    assert not modul._abwahl_im_stand(stand, _umfang(["info"]))
+
+
+@pytest.mark.parametrize("stand", [None, {}, {"umfang": "kein Wörterbuch"}, "kaputt"])
+def test_ein_stand_ohne_umfang_loest_nichts_aus(modul, stand):
+    """Stände aus einer Fassung vor dieser Prüfung beweisen nichts."""
+    assert not modul._abwahl_im_stand(stand, _umfang(["info"]))
+
+
+# ---------------------------------------------------------------------------
+# Waisen einer abgeschalteten Quelle
+# ---------------------------------------------------------------------------
+def test_netzwerkvariablen_bei_abgeschaltetem_bus_gelten_als_abgewaehlt(modul):
+    umfaenge = {HOST: _umfang(["info"], lon=False)}
+    assert modul._quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
+
+
+def test_netzwerkvariablen_bei_eingeschaltetem_bus_bleiben(modul):
+    """Sie fehlen dann aus einem anderen Grund und behalten Name und Verlauf."""
+    umfaenge = {HOST: _umfang(["info"], lon=True)}
+    assert not modul._quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
+
+
+def test_eine_zweite_anlage_mit_bus_schuetzt_die_kennungen(modul):
+    umfaenge = {HOST: _umfang(["info"], lon=False), "192.0.2.11": _umfang(["info"], lon=True)}
+    assert not modul._quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
+
+
+@pytest.mark.parametrize("kennung", [None, "", "070269ad1601-0-39-91-0"])
+def test_ein_gewoehnlicher_datenpunkt_wird_nur_stillgelegt(modul, kennung):
+    """Kein Bus-Wert – über ihn entscheidet allein der Umfangsvergleich."""
+    assert not modul._quelle_abgeschaltet(kennung, {HOST: _umfang(["info"], lon=False)})
