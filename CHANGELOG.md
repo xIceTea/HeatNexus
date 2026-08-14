@@ -15,10 +15,14 @@ wenn dort Vorabversionen zugelassen sind.
 - Das Bedienteil erscheint als eigenes Gerät.
 - Der BioWIN kennt die Betriebsart der Zuführung.
 - Pufferladung, Rücklaufanhebung und Zirkulation erscheinen, wo die Anlage sie über den Bus meldet.
+- Jedes Anlagenteil hat eine Taste, die seine Werte sofort liest.
 
 ### Behoben
 
 - Der Sondenlauf brach an Anlagen ab, deren größte Menü-Ebene keine Datenpunktadressen führt.
+- Zählerstände und Restlaufzeiten fehlten nach dem Einlesen eine Viertelstunde lang.
+- Eine Abwahl wirkte nur bis zum nächsten Neustart.
+- Ein abgeschalteter Bus lässt keine abgeschalteten Zeilen mehr zurück.
 
 ## [1.8.1] - 2026-08-14
 
