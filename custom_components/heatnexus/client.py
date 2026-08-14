@@ -37,6 +37,7 @@ from .const import (
     POLL_WOERTER_TRAEGE,
     STARTZAEHLER,
     SYSTEMZEIT_NAMEN,
+    TAGESWERTE,
     TAGESZAEHLER,
     UPDATE_INTERVAL,
 )
@@ -84,6 +85,9 @@ DESKRIPTOR_VORGABE: dict = {
     "press_value": None,
     "write_prot": None,
     "nv_name": None,
+    # Abgeleitete Werte: Bezugsadresse bzw. die Codes, die als Lauf gelten.
+    "ausloeser_oid": None,
+    "laufphasen": None,
     "device_id": None,
     "alt_device_id": None,
     "device_name": None,
@@ -269,6 +273,20 @@ class WindhagerHttpClient:
     # ------------------------------------------------------------------
     # Dynamische Poll-Registrierung
     # ------------------------------------------------------------------
+
+    # Je schneller die Klasse, desto kleiner der Rang.
+    _KLASSEN_RANG = {POLL_FAST: 0, POLL_NORMAL: 1, POLL_SLOW: 2}
+
+    @classmethod
+    def _klasse_eintragen(cls, klassen: dict[str, str], oid: str, klasse: str) -> None:
+        """Teilen sich mehrere Deskriptoren eine Adresse, gilt die schnellste.
+
+        Ein abgeleiteter Wert ist abgeschaltet und damit träge eingestuft; er
+        darf seine Quelle nicht ausbremsen.
+        """
+        if cls._KLASSEN_RANG.get(klasse, 9) < cls._KLASSEN_RANG.get(klassen.get(oid, ""), 9):
+            klassen[oid] = klasse
+
     def register_poll_oid(self, oid: str) -> None:
         """Eine Entity meldet ihre OID zum zyklischen Polling an."""
         if oid and oid not in self._abgemeldet:
@@ -1468,24 +1486,33 @@ class WindhagerHttpClient:
         await self._nv_ohne_fuehler_verwerfen()
         self._nv_doppelte_stilllegen()
         self._abgeleitete_zaehler()
+        self._betriebsdauer()
         self._namen_vereindeutigen()
 
     # Zählerstände, aus denen sich ein Zuwachs bilden lässt.
     _ZAEHLERKLASSEN = ("total", "total_increasing")
-    _ABLEITUNGEN = (
-        ("heute", "zaehler_heute", "heute"),
-        ("start", "zaehler_start", "seit Start"),
-    )
 
     @staticmethod
     def _kennung_aus_oid(oid: str | None) -> str:
-        """Die Datenpunktkennung `gn/mn` aus einer vollständigen Adresse.
-
-        Anders als `_gnmn` ohne Präfix: Hier steht die fertige Adresse eines
-        Deskriptors, nicht Präfix und Rest getrennt.
-        """
+        """`gn/mn` aus einer vollständigen Adresse, ohne Präfix."""
         teile = str(oid or "").strip("/").split("/")
         return "/".join(teile[-3:-1]) if len(teile) >= 3 else ""
+
+    def _ableitung(self, quelle: dict, endung: str, typ: str, zusatz: str, **felder) -> dict:
+        """Ein Deskriptor, der von einem anderen lebt: gleiche Adresse, eigener Name."""
+        return self._deskriptor(
+            id=f"{quelle['id']}-{endung}",
+            alt_id=f"{quelle.get('alt_id') or quelle['id']}-{endung}",
+            oid=quelle["oid"],
+            type=typ,
+            name=f"{quelle['name']} {zusatz}".strip(),
+            enabled_default=False,
+            device_id=quelle.get("device_id"),
+            alt_device_id=quelle.get("alt_device_id"),
+            device_name=quelle.get("device_name"),
+            fct_type=quelle.get("fct_type"),
+            **felder,
+        )
 
     def _abgeleitete_zaehler(self) -> None:
         """Je Zählerstand zwei Zuwächse: heute und seit dem letzten Start.
@@ -1500,11 +1527,11 @@ class WindhagerHttpClient:
             for d in self.devices
             if d.get("device_id") and self._kennung_aus_oid(d.get("oid")) in STARTZAEHLER
         }
-        # Tageswerte, die die Anlage selbst führt – je Gerät.
-        eigene_tageswerte = {
-            (d.get("device_id"), self._kennung_aus_oid(d.get("oid")))
+        # Tageswerte, die die Anlage selbst führt, je Gerät.
+        vom_geraet = {
+            (d.get("device_id"), kennung)
             for d in self.devices
-            if d.get("oid")
+            if (kennung := self._kennung_aus_oid(d.get("oid"))) in TAGESWERTE
         }
         neu = []
         for d in self.devices:
@@ -1514,79 +1541,52 @@ class WindhagerHttpClient:
                 continue
             kennung = self._kennung_aus_oid(d["oid"])
             # Ein Tageswert der Anlage braucht keine Ableitung seiner selbst.
-            if kennung in TAGESZAEHLER.values():
+            if kennung in TAGESWERTE:
                 continue
-            for endung, typ, zusatz in self._ABLEITUNGEN:
-                bezug = ausloeser.get(d.get("device_id"))
-                # Der Bezugszähler selbst bekommt keinen Bezug auf sich: Jeder
-                # Start setzte die Basis neu, der Wert bliebe immer null.
-                if typ == "zaehler_start" and (not bezug or bezug == d["oid"]):
-                    continue
-                # Führt die Anlage den Tageswert selbst, gilt ihrer.
-                if (
-                    typ == "zaehler_heute"
-                    and (
-                        d.get("device_id"),
-                        TAGESZAEHLER.get(kennung),
-                    )
-                    in eigene_tageswerte
-                ):
-                    continue
+            gemeinsam = {"unit": d.get("unit"), "device_class": d.get("device_class")}
+            bezug = ausloeser.get(d.get("device_id"))
+            # Der Bezugszähler selbst bekommt keinen Bezug auf sich: Jeder
+            # Start setzte die Basis neu, der Wert bliebe immer null.
+            if bezug and bezug != d["oid"]:
                 neu.append(
-                    self._deskriptor(
-                        id=f"{d['id']}-{endung}",
-                        alt_id=f"{d.get('alt_id') or d['id']}-{endung}",
-                        oid=d["oid"],
-                        type=typ,
-                        name=f"{d['name']} {zusatz}",
-                        unit=d.get("unit"),
-                        device_class=d.get("device_class"),
-                        ausloeser_oid=bezug,
-                        icon=d.get("icon"),
-                        enabled_default=False,
-                        device_id=d.get("device_id"),
-                        alt_device_id=d.get("alt_device_id"),
-                        device_name=d.get("device_name"),
-                        fct_type=d.get("fct_type"),
+                    self._ableitung(
+                        d, "start", "zaehler_start", "seit Start", ausloeser_oid=bezug, **gemeinsam
                     )
                 )
+            # Führt die Anlage den Tageswert selbst, gilt ihrer.
+            if (d.get("device_id"), TAGESZAEHLER.get(kennung)) not in vom_geraet:
+                neu.append(self._ableitung(d, "heute", "zaehler_heute", "heute", **gemeinsam))
         self.devices += neu
-        self._betriebsdauer()
 
-    _BRENNDAUER = (
-        ("betriebsdauer", "betriebsdauer", "Betriebsdauer"),
-        ("betriebsdauer-letzte", "betriebsdauer_letzte", "Letzte Betriebsdauer"),
-        ("betriebsdauer-heute", "betriebsdauer_heute", "Betriebsdauer heute"),
-    )
+    # Endung der Kennung -> Zusatz zum Namen des Zustandssensors.
+    _DAUERN = {
+        "betriebsdauer": "Aktuelle Betriebsdauer",
+        "betriebsdauer-letzte": "Letzte Betriebsdauer",
+        "betriebsdauer-heute": "Betriebsdauer heute",
+    }
 
     def _betriebsdauer(self) -> None:
-        """Wie lange der Brand läuft – aus der Betriebsphase, nicht aus Stunden.
+        """Wie lange das Aggregat läuft – aus dem Zustand, nicht aus Stunden.
 
         Der Stundenzähler der Anlage steht in ganzen Stunden und wird träge
-        gelesen; die Betriebsphase kommt alle 30 s. Verglichen werden ihre
-        Zahlencodes, nicht die Beschriftungen.
+        gelesen; der Zustand kommt alle 30 s. Verglichen werden Zahlencodes,
+        nicht Beschriftungen.
         """
         neu = []
         for d in self.devices:
             phasen = LAUFPHASEN.get(str(d.get("enum") or ""))
             if not phasen or not d.get("oid"):
                 continue
-            for endung, typ, name in self._BRENNDAUER:
+            for endung, name in self._DAUERN.items():
                 neu.append(
-                    self._deskriptor(
-                        id=f"{d['id']}-{endung}",
-                        alt_id=f"{d.get('alt_id') or d['id']}-{endung}",
-                        oid=d["oid"],
-                        type=typ,
-                        name=name,
+                    self._ableitung(
+                        {**d, "name": ""},
+                        endung,
+                        endung.replace("-", "_"),
+                        name,
                         unit="min",
                         laufphasen=sorted(phasen),
                         icon="mdi:fire-circle",
-                        enabled_default=False,
-                        device_id=d.get("device_id"),
-                        alt_device_id=d.get("alt_device_id"),
-                        device_name=d.get("device_name"),
-                        fct_type=d.get("fct_type"),
                     )
                 )
         self.devices += neu
@@ -1698,7 +1698,7 @@ class WindhagerHttpClient:
                 continue
             if not d.get("oid"):
                 continue
-            klassen.setdefault(d["oid"], self._poll_klasse(d))
+            self._klasse_eintragen(klassen, d["oid"], self._poll_klasse(d))
             if d.get("enabled_default", True):
                 poll.add(d["oid"])
         # Die Climate-Endungen kommen ungeprüft dazu – ob eine Anlage die
@@ -1800,7 +1800,10 @@ class WindhagerHttpClient:
         # Die Poll-Klassen leiten sich aus den Deskriptoren ab und werden
         # deshalb nicht mitgespeichert, sondern neu bestimmt. So wirkt eine
         # geänderte Einstufung sofort und nicht erst nach neuer Erkennung.
-        self.poll_class = {d["oid"]: self._poll_klasse(d) for d in self.devices if d.get("oid")}
+        self.poll_class = {}
+        for d in self.devices:
+            if d.get("oid"):
+                self._klasse_eintragen(self.poll_class, d["oid"], self._poll_klasse(d))
         for d in self.devices:
             if d.get("type") == "climate":
                 prefix = d.get("prefix", "")

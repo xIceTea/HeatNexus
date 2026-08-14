@@ -35,7 +35,7 @@ def _betriebsdauer(sensoren, wert, typ="betriebsdauer"):
         {PHASE: wert},
         oid=PHASE,
         type=typ,
-        name="Betriebsdauer",
+        name="Aktuelle Betriebsdauer",
         laufphasen=[5, 6, 7, 8, 15, 16, 17],
     )
     return entity, koordinator

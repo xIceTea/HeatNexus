@@ -524,9 +524,6 @@ ENUMS: dict[str, dict[int, str]] = {}
 # (verified against connect.windhager.com and the local device).
 # ---------------------------------------------------------------------------
 
-# Zählerstand der Brennerstarts, relativ zum Funktionspräfix.
-BRENNERSTARTS_OID = "/2/80/0"
-
 # Zähler, die Läufe zählen – Bezugspunkt für „seit Start". Angegeben als
 # Datenpunktkennung des Herstellers (`gn/mn`), nicht als Baureihe: Was diese
 # Adresse führt, führt sie an jedem Aggregat, das sie kennt.
@@ -546,16 +543,20 @@ TAGESZAEHLER: dict[str, str] = {
     "52/52": "52/53",  # Betriebsstunden Warmwasser -> … heute
     "52/54": "52/55",  # Betriebsstunden Kühlen -> … heute
 }
+# Dieselbe Auskunft als Menge: Ist dieser Datenpunkt selbst schon ein Tageswert?
+TAGESWERTE = frozenset(TAGESZAEHLER.values())
 
 # Welche Betriebszustände als Lauf gelten, je Zustandstabelle und als
 # **Zahlen**: Beschriftungen wechseln mit Sprache und Baureihe, die Codes
 # nicht. Ohne Eintrag entsteht keine Betriebsdauer – geraten wird nichts.
+_WP_LAUF = frozenset({4, 5, 6, 7, 8, 9})
+
 LAUFPHASEN: dict[str, frozenset[int]] = {
     # Kessel: Vorspülen bis Modulation, Anheizen, Schichtladung, Ausbrand.
     "2/1": frozenset({5, 6, 7, 8, 15, 16, 17}),
     # Wärmepumpe und Kaskadenstufe: Heizen, Kühlen, Abtauen, Silentmode.
-    "50/6": frozenset({4, 5, 6, 7, 8, 9}),
-    "56/6": frozenset({4, 5, 6, 7, 8, 9}),
+    "50/6": _WP_LAUF,
+    "56/6": _WP_LAUF,
     # Wärmepumpenmodul: Vorwärmen zählt zum Lauf, Pausenzeit nicht.
     "50/70": frozenset({3, 4, 5, 6}),
     "59/17": frozenset({1}),
@@ -584,7 +585,7 @@ PUROWIN_ENTITIES = [
     {"oid": "/2/1/0", "name": "Betriebsphase", "platform": "enum_sensor", "enum": "2/1"},
     {"oid": "/2/59/0", "name": "Betriebsart", "platform": "enum_sensor", "enum": "2/59"},
     {
-        "oid": BRENNERSTARTS_OID,
+        "oid": "/2/80/0",
         "name": "Brennerstarts",
         "platform": "sensor",
         "state_class": "total_increasing",
@@ -1197,7 +1198,7 @@ BIOWIN_ENTITIES = [
     {"oid": "/2/1/0", "name": "Betriebsphase", "platform": "enum_sensor", "enum": "2/1"},
     {"oid": "/2/59/0", "name": "Betriebsart", "platform": "enum_sensor", "enum": "2/59"},
     {
-        "oid": BRENNERSTARTS_OID,
+        "oid": "/2/80/0",
         "name": "Brennerstarts",
         "platform": "sensor",
         "state_class": "total_increasing",

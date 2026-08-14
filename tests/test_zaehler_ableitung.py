@@ -167,6 +167,37 @@ def test_ableitungen_entstehen_abgeschaltet(client):
     assert abgeleitet and all(d["enabled_default"] is False for d in abgeleitet)
 
 
+def test_eine_ableitung_bremst_ihre_quelle_nicht_aus(client):
+    """Teilen sich zwei Deskriptoren eine Adresse, gilt die schnellste Klasse.
+
+    Die Ableitung entsteht abgeschaltet und damit träge; ihre Quelle wird alle
+    30 s gelesen und muss das bleiben.
+    """
+    client.devices = [
+        {
+            "id": "SN1-phase",
+            "oid": "/1/60/0/2/1/0",
+            "name": "Betriebsphase",
+            "device_id": "SN1-3-0",
+        },
+        {
+            "id": "SN1-phase-betriebsdauer",
+            "oid": "/1/60/0/2/1/0",
+            "name": "Betriebsdauer",
+            "type": "betriebsdauer",
+            "enabled_default": False,
+            "device_id": "SN1-3-0",
+        },
+    ]
+    client.oids = {"/1/60/0/2/1/0"}
+    client._compute_poll_oids()
+    assert client.poll_class["/1/60/0/2/1/0"] == "fast"
+
+    # Derselbe Stand aus dem Zwischenspeicher darf nichts anderes ergeben.
+    client.restore_discovery({"devices": client.devices, "poll_oids": list(client.poll_oids)})
+    assert client.poll_class["/1/60/0/2/1/0"] == "fast"
+
+
 def test_ein_messwert_bekommt_keine_ableitung(client):
     client._abgeleitete_zaehler()
     assert not any(d["id"].startswith("SN1-kessel-") for d in client.devices)

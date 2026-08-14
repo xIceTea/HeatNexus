@@ -150,24 +150,20 @@ def _git(*argumente: str, wurzel: Path) -> str:
 def main(argv: list[str] | None = None) -> int:
     """Befunde ausgeben; 1 heißt: es gibt welche."""
     zerleger = argparse.ArgumentParser(description="Kommentarlänge neuer Zeilen prüfen")
-    zerleger.add_argument("--datei", help="eine Datei gegen HEAD prüfen")
+    zerleger.add_argument("--datei", help="nur diese Datei prüfen, repo-relativ")
     zerleger.add_argument("--gestaged", action="store_true", help="den vorgemerkten Stand prüfen")
     zerleger.add_argument("--bereich", help="einen Commit-Bereich prüfen, z.B. origin/main...HEAD")
     zerleger.add_argument("--wurzel", default=".", help="Wurzel des Repos")
     argumente = zerleger.parse_args(argv)
 
     wurzel = Path(argumente.wurzel).resolve()
-    # `-M` erkennt Umbenennungen; ohne das gilt eine verschobene Datei als neu,
-    # und ihr ganzer Bestand schlüge an. Deshalb auch ohne Pfadfilter: Die
+    # `-M` erkennt Umbenennungen; ohne das gilt eine verschobene Datei als neu
+    # und ihr ganzer Bestand schlüge an. Gefiltert wird erst danach, denn die
     # Erkennung braucht beide Seiten im Diff.
-    if argumente.gestaged:
-        diff = _git("diff", "--cached", "--unified=0", "-M", "--", "*.py", wurzel=wurzel)
-    elif argumente.bereich:
-        diff = _git("diff", argumente.bereich, "--unified=0", "-M", "--", "*.py", wurzel=wurzel)
-    else:
-        diff = _git("diff", "HEAD", "--unified=0", "-M", "--", "*.py", wurzel=wurzel)
-
-    befunde = pruefe_diff(diff, wurzel, nur=argumente.datei)
+    auswahl = "--cached" if argumente.gestaged else (argumente.bereich or "HEAD")
+    diff = _git("diff", auswahl, "--unified=0", "-M", "--", "*.py", wurzel=wurzel)
+    nur = Path(argumente.datei).as_posix() if argumente.datei else None
+    befunde = pruefe_diff(diff, wurzel, nur=nur)
     for befund in befunde:
         print(befund)
     return 1 if befunde else 0

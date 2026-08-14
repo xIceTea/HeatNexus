@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 import re
 from typing import Any
 
@@ -83,17 +84,9 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
         for coordinator in eintrag.get("coordinators", {}).values()
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
-    je_bereich: dict[str, int] = {}
-    abgeschaltet: dict[str, int] = {}
-    verwaist = []
-    for gefuehrt in entitaeten:
-        bereich = gefuehrt.entity_id.split(".")[0]
-        je_bereich[bereich] = je_bereich.get(bereich, 0) + 1
-        if gefuehrt.disabled_by is not None:
-            grund = str(gefuehrt.disabled_by)
-            abgeschaltet[grund] = abgeschaltet.get(grund, 0) + 1
-        if gefuehrt.unique_id not in bekannt:
-            verwaist.append(gefuehrt.unique_id)
+    je_bereich = Counter(e.entity_id.split(".")[0] for e in entitaeten)
+    abgeschaltet = Counter(str(e.disabled_by) for e in entitaeten if e.disabled_by is not None)
+    verwaist = sorted(e.unique_id for e in entitaeten if e.unique_id not in bekannt)
     return {
         "entitaeten": len(entitaeten),
         "abgeschaltet": sum(abgeschaltet.values()),
@@ -103,7 +96,7 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
         "geraete": len(dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)),
         # Registrierte Entitäten ohne Entsprechung im aktuellen Stand.
         "verwaist": len(verwaist),
-        "verwaiste_kennungen": sorted(verwaist)[:20],
+        "verwaiste_kennungen": verwaist[:20],
     }
 
 

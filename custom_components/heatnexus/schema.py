@@ -1027,7 +1027,9 @@ _ENTSPRECHUNGEN = {
     THEMA_HELL: _entsprechung(FARBEN_HELL),
     THEMA_KONTRAST: _entsprechung(FARBEN_KONTRAST),
 }
-_FARBSTELLE = re.compile("|".join(sorted(map(re.escape, FARBEN.values()), reverse=True)))
+_FARBSTELLE = re.compile(
+    "|".join(sorted(map(re.escape, _ENTSPRECHUNGEN[THEMA_HELL]), reverse=True))
+)
 
 
 def farben_umstellen(svg: str, thema: str | None) -> str:
@@ -1040,7 +1042,7 @@ def farben_umstellen(svg: str, thema: str | None) -> str:
     abbildung = _ENTSPRECHUNGEN.get(thema or "")
     if abbildung is None:
         return svg
-    return _FARBSTELLE.sub(lambda treffer: abbildung.get(treffer.group(0), treffer.group(0)), svg)
+    return _FARBSTELLE.sub(lambda treffer: abbildung[treffer.group(0)], svg)
 
 
 def _datenadresse(svg: str) -> str:

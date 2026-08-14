@@ -20,10 +20,13 @@ export const SchaubildMixin = (Basis) =>
    * Satz, denn ein falsch geratenes Hell fiele stärker auf.
    */
   _schemaBild(anlage) {
-    const wahl = this._farbsatz ? this._farbsatz() : "auto";
-    if (wahl === "kontrast" && anlage.schema_kontrast) return anlage.schema_kontrast;
-    if (wahl === "hell") return anlage.schema_hell || anlage.schema;
-    if (wahl === "dunkel") return anlage.schema;
+    const bilder = {
+      kontrast: anlage.schema_kontrast,
+      hell: anlage.schema_hell,
+      dunkel: anlage.schema,
+    };
+    const gewaehlt = bilder[this._farbsatz()];
+    if (gewaehlt) return gewaehlt;
     const themen = this._hass && this._hass.themes;
     return themen && themen.darkMode === false ? anlage.schema_hell : anlage.schema;
   }

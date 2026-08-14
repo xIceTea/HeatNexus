@@ -299,9 +299,9 @@ class WindhagerAbleitungSensor(WindhagerEntity, SensorEntity):
         wert = self.float_value
         if wert is None:
             return
+        # Ohne gelesenen Auslöser gibt es keinen Bezugspunkt.
         marke = self._bezugsmarke
-        if marke is None and self._ausloeser_oid:
-            # Der Auslöser ist noch nicht gelesen; ohne ihn kein Bezugspunkt.
+        if marke is None:
             return
         # Ein kleinerer Stand heißt: Der Zähler der Anlage hat neu begonnen.
         if self._basis is None or marke != self._marke or wert < self._basis:
@@ -342,10 +342,9 @@ class WindhagerBetriebsdauerSensor(WindhagerEntity, SensorEntity):
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
-        self._laufphasen = {int(p) for p in device_info.get("laufphasen") or ()}
-        typ = device_info.get("type")
-        self._tageswert = typ == "betriebsdauer_heute"
-        self._letzter = typ == "betriebsdauer_letzte"
+        self._laufphasen = set(device_info.get("laufphasen") or ())
+        self._typ = device_info.get("type")
+        self._tageswert = self._typ == "betriebsdauer_heute"
         self._attr_state_class = (
             SensorStateClass.TOTAL if self._tageswert else SensorStateClass.MEASUREMENT
         )
@@ -368,8 +367,8 @@ class WindhagerBetriebsdauerSensor(WindhagerEntity, SensorEntity):
             return
         with contextlib.suppress(TypeError, ValueError):
             self._beginn = dt_util.parse_datetime(alt.attributes.get("beginn") or "")
-        self._letzte = float(_zahl(alt.attributes.get("letzte_dauer")) or 0.0)
-        self._heute = float(_zahl(alt.attributes.get("heute")) or 0.0)
+        self._letzte = _zahl(alt.attributes.get("letzte_dauer")) or 0.0
+        self._heute = _zahl(alt.attributes.get("heute")) or 0.0
         self._tag = alt.attributes.get("tag")
 
     @callback
@@ -390,23 +389,25 @@ class WindhagerBetriebsdauerSensor(WindhagerEntity, SensorEntity):
         if laeuft and self._beginn is None:
             self._beginn = jetzt
         elif not laeuft and self._beginn is not None:
-            self._letzte = self._minuten(jetzt)
+            self._letzte = self._minuten()
             self._heute += self._letzte
             self._beginn = None
 
-    def _minuten(self, jetzt: datetime) -> float:
-        return round((jetzt - self._beginn).total_seconds() / 60, 1) if self._beginn else 0.0
+    def _minuten(self) -> float:
+        if not self._beginn:
+            return 0.0
+        return round((dt_util.utcnow() - self._beginn).total_seconds() / 60, 1)
 
     @property
     def native_value(self) -> float | None:
         if self._laeuft is None:
             return None
-        laufend = self._minuten(dt_util.utcnow())
+        laufend = self._minuten()
         if self._tageswert:
             return round(self._heute + laufend, 1)
         # Der laufende Brand fällt im Stillstand auf null; wie lange der letzte
         # dauerte, führt die eigene Entität daneben.
-        return self._letzte if self._letzter else laufend
+        return self._letzte if self._typ == "betriebsdauer_letzte" else laufend
 
     @property
     def extra_state_attributes(self):
