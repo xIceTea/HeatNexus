@@ -43,7 +43,9 @@ def kommentarbloecke(quelle: str) -> list[tuple[int, int, str]]:
     except (tokenize.TokenError, IndentationError, SyntaxError):
         return bloecke
     for marke in marken:
-        if marke.type != tokenize.COMMENT:
+        # Nur Kommentare, die eine Zeile für sich haben. Was hinter Code steht,
+        # gehört zu dieser Zeile und bildet keinen Block.
+        if marke.type != tokenize.COMMENT or marke.line[: marke.start[1]].strip():
             continue
         zeile = marke.start[0]
         if start and zeile == letzte + 1:

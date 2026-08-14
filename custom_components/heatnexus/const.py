@@ -524,14 +524,42 @@ ENUMS: dict[str, dict[int, str]] = {}
 # (verified against connect.windhager.com and the local device).
 # ---------------------------------------------------------------------------
 
-# Zählerstand der Brennerstarts, relativ zum Funktionspräfix. Er ist zugleich
-# der Bezugspunkt der abgeleiteten Zähler: Steigt er, beginnt ein neuer Brand.
+# Zählerstand der Brennerstarts, relativ zum Funktionspräfix.
 BRENNERSTARTS_OID = "/2/80/0"
 
-# Welche Betriebsphasen als Lauf gelten, je Enum-Tabelle und als **Zahlen**.
-# Beschriftungen wechseln mit Sprache und Baureihe, die Codes nicht: 5 Vorspülen
-# bis 8 Modulation, dazu Anheizvorgang, Schichtladung und Ausbrand.
-LAUFPHASEN: dict[str, frozenset[int]] = {"2/1": frozenset({5, 6, 7, 8, 15, 16, 17})}
+# Zähler, die Läufe zählen – Bezugspunkt für „seit Start". Angegeben als
+# Datenpunktkennung des Herstellers (`gn/mn`), nicht als Baureihe: Was diese
+# Adresse führt, führt sie an jedem Aggregat, das sie kennt.
+STARTZAEHLER = frozenset(
+    {
+        "2/80",  # Anzahl der Brennerstarts
+        "52/56",  # Anzahl Starts (Wärmepumpe)
+        "52/49",  # Anzahl Starts Heizen
+        "52/57",  # Anzahl Starts Kühlen
+    }
+)
+
+# Tageswerte, die die Anlage selbst führt. Sie bekommen keine Ableitung, und
+# ihr Gesamtzähler bekommt kein zweites „heute" daneben.
+TAGESZAEHLER: dict[str, str] = {
+    "52/50": "52/51",  # Betriebsstunden Heizen -> … heute
+    "52/52": "52/53",  # Betriebsstunden Warmwasser -> … heute
+    "52/54": "52/55",  # Betriebsstunden Kühlen -> … heute
+}
+
+# Welche Betriebszustände als Lauf gelten, je Zustandstabelle und als
+# **Zahlen**: Beschriftungen wechseln mit Sprache und Baureihe, die Codes
+# nicht. Ohne Eintrag entsteht keine Betriebsdauer – geraten wird nichts.
+LAUFPHASEN: dict[str, frozenset[int]] = {
+    # Kessel: Vorspülen bis Modulation, Anheizen, Schichtladung, Ausbrand.
+    "2/1": frozenset({5, 6, 7, 8, 15, 16, 17}),
+    # Wärmepumpe und Kaskadenstufe: Heizen, Kühlen, Abtauen, Silentmode.
+    "50/6": frozenset({4, 5, 6, 7, 8, 9}),
+    "56/6": frozenset({4, 5, 6, 7, 8, 9}),
+    # Wärmepumpenmodul: Vorwärmen zählt zum Lauf, Pausenzeit nicht.
+    "50/70": frozenset({3, 4, 5, 6}),
+    "59/17": frozenset({1}),
+}
 
 PUROWIN_ENTITIES = [
     # --- Infoebene / Übersicht (read only) ---

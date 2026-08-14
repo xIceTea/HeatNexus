@@ -154,7 +154,7 @@ def test_je_zaehler_entstehen_beide_ableitungen(client):
     neue = {d["id"]: d for d in client.devices if str(d.get("type", "")).startswith("zaehler_")}
     assert set(neue) == {"SN1-stunden-heute", "SN1-stunden-start", "SN1-starts-heute"}
     assert neue["SN1-stunden-heute"]["name"] == "Betriebsstunden heute"
-    assert neue["SN1-stunden-start"]["name"] == "Betriebsstunden seit Brennerstart"
+    assert neue["SN1-stunden-start"]["name"] == "Betriebsstunden seit Start"
     assert neue["SN1-stunden-start"]["ausloeser_oid"] == STARTS
 
 
@@ -172,9 +172,69 @@ def test_ein_messwert_bekommt_keine_ableitung(client):
     assert not any(d["id"].startswith("SN1-kessel-") for d in client.devices)
 
 
-def test_ohne_brennerstarts_gibt_es_nur_den_tageswert(client):
-    """An einem Gerät ohne Brennerstarts fehlt der Bezugspunkt."""
+def test_ohne_startzaehler_gibt_es_nur_den_tageswert(client):
+    """An einem Gerät ohne Startzähler fehlt der Bezugspunkt."""
     client.devices = [d for d in client.devices if d["id"] != "SN1-starts"]
     client._abgeleitete_zaehler()
     neue = [d["id"] for d in client.devices if str(d.get("type", "")).startswith("zaehler_")]
     assert neue == ["SN1-stunden-heute"]
+
+
+# ---------------------------------------------------------------------------
+# Andere Aggregate: Der Bezug hängt an der Datenpunktkennung, nicht am Kessel
+# ---------------------------------------------------------------------------
+@pytest.fixture
+def waermepumpe():
+    from custom_components.heatnexus import client as modul
+
+    c = modul.WindhagerHttpClient("192.0.2.10", "geheim")
+    c.devices = [
+        {
+            "id": "SN1-heizen",
+            "oid": "/1/70/0/52/50/0",
+            "name": "Betriebsstunden Heizen",
+            "state_class": "total_increasing",
+            "unit": "h",
+            "device_id": "SN1-70-0",
+        },
+        {
+            "id": "SN1-heizen-tag",
+            "oid": "/1/70/0/52/51/0",
+            "name": "Betriebsstunden Heizen heute",
+            "state_class": "total_increasing",
+            "unit": "h",
+            "device_id": "SN1-70-0",
+        },
+        {
+            "id": "SN1-starts",
+            "oid": "/1/70/0/52/56/0",
+            "name": "Anzahl Starts",
+            "state_class": "total_increasing",
+            "device_id": "SN1-70-0",
+        },
+    ]
+    return c
+
+
+def test_der_startzaehler_der_waermepumpe_ist_der_bezug(waermepumpe):
+    """`52/56` zählt dort die Läufe, nicht `2/80`."""
+    waermepumpe._abgeleitete_zaehler()
+    neue = {
+        d["id"]: d for d in waermepumpe.devices if str(d.get("type", "")).startswith("zaehler_")
+    }
+    assert neue["SN1-heizen-start"]["ausloeser_oid"] == "/1/70/0/52/56/0"
+
+
+def test_kein_zweiter_tageswert_neben_dem_der_anlage(waermepumpe):
+    """Die Wärmepumpe führt „Betriebsstunden Heizen heute" selbst."""
+    waermepumpe._abgeleitete_zaehler()
+    neue = {d["id"] for d in waermepumpe.devices if str(d.get("type", "")).startswith("zaehler_")}
+    assert "SN1-heizen-heute" not in neue
+    assert "SN1-heizen-start" in neue
+
+
+def test_ein_tageswert_der_anlage_bekommt_keine_ableitung(waermepumpe):
+    """Er beginnt ohnehin jeden Tag von vorn."""
+    waermepumpe._abgeleitete_zaehler()
+    neue = {d["id"] for d in waermepumpe.devices if str(d.get("type", "")).startswith("zaehler_")}
+    assert not any(kennung.startswith("SN1-heizen-tag") for kennung in neue)

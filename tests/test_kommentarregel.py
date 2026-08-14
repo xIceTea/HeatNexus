@@ -49,6 +49,15 @@ def test_bestehender_block_bleibt_unangetastet():
     assert regel.pruefe("a.py", LANGER_BLOCK, neue_zeilen={7}) == []
 
 
+def test_kommentare_hinter_code_bilden_keinen_block():
+    """Eine Tabelle mit erklärter Zeile je Eintrag ist kein Fließtext."""
+    regel = _regel()
+    quelle = (
+        'werte = {\n    "a",  # eins\n    "b",  # zwei\n    "c",  # drei\n    "d",  # vier\n}\n'
+    )
+    assert regel.pruefe("a.py", quelle, neue_zeilen={1, 2, 3, 4, 5, 6}) == []
+
+
 def test_drei_zeilen_sind_erlaubt():
     regel = _regel()
     quelle = "# eins\n# zwei\n# drei\nwert = 1\n"

@@ -14,7 +14,6 @@ from yarl import URL
 from . import geraetetexte
 from .const import (
     ADVANCED_LEVELS,
-    BRENNERSTARTS_OID,
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
     EXTRA_OIDS_BY_FCT,
@@ -36,7 +35,9 @@ from .const import (
     POLL_TYPEN_SCHNELL,
     POLL_WOERTER_SCHNELL,
     POLL_WOERTER_TRAEGE,
+    STARTZAEHLER,
     SYSTEMZEIT_NAMEN,
+    TAGESZAEHLER,
     UPDATE_INTERVAL,
 )
 from .const import (
@@ -1473,20 +1474,37 @@ class WindhagerHttpClient:
     _ZAEHLERKLASSEN = ("total", "total_increasing")
     _ABLEITUNGEN = (
         ("heute", "zaehler_heute", "heute"),
-        ("start", "zaehler_start", "seit Brennerstart"),
+        ("start", "zaehler_start", "seit Start"),
     )
 
+    @staticmethod
+    def _kennung_aus_oid(oid: str | None) -> str:
+        """Die Datenpunktkennung `gn/mn` aus einer vollständigen Adresse.
+
+        Anders als `_gnmn` ohne Präfix: Hier steht die fertige Adresse eines
+        Deskriptors, nicht Präfix und Rest getrennt.
+        """
+        teile = str(oid or "").strip("/").split("/")
+        return "/".join(teile[-3:-1]) if len(teile) >= 3 else ""
+
     def _abgeleitete_zaehler(self) -> None:
-        """Je Zählerstand zwei Zuwächse: heute und seit dem letzten Brennerstart.
+        """Je Zählerstand zwei Zuwächse: heute und seit dem letzten Start.
 
         Die Anlage führt nur Gesamtstände. Der Zuwachs entsteht deshalb hier,
         aus derselben Adresse – ohne einen zusätzlichen Abruf.
         """
-        # Brennerstarts sind der Bezugspunkt: Steigt der Stand, brennt es neu.
+        # Startzähler des Geräts sind der Bezugspunkt: Steigt der Stand, läuft
+        # ein neuer Lauf. Welche Adresse das ist, sagt die kuratierte Tabelle.
         ausloeser = {
             d["device_id"]: d["oid"]
             for d in self.devices
-            if d.get("device_id") and str(d.get("oid") or "").endswith(BRENNERSTARTS_OID)
+            if d.get("device_id") and self._kennung_aus_oid(d.get("oid")) in STARTZAEHLER
+        }
+        # Tageswerte, die die Anlage selbst führt – je Gerät.
+        eigene_tageswerte = {
+            (d.get("device_id"), self._kennung_aus_oid(d.get("oid")))
+            for d in self.devices
+            if d.get("oid")
         }
         neu = []
         for d in self.devices:
@@ -1494,11 +1512,25 @@ class WindhagerHttpClient:
                 continue
             if d.get("state_class") not in self._ZAEHLERKLASSEN:
                 continue
+            kennung = self._kennung_aus_oid(d["oid"])
+            # Ein Tageswert der Anlage braucht keine Ableitung seiner selbst.
+            if kennung in TAGESZAEHLER.values():
+                continue
             for endung, typ, zusatz in self._ABLEITUNGEN:
                 bezug = ausloeser.get(d.get("device_id"))
-                # Der Bezugszähler selbst bekommt keinen Bezug auf sich: Jede
-                # Zündung setzte die Basis neu, der Wert bliebe immer null.
+                # Der Bezugszähler selbst bekommt keinen Bezug auf sich: Jeder
+                # Start setzte die Basis neu, der Wert bliebe immer null.
                 if typ == "zaehler_start" and (not bezug or bezug == d["oid"]):
+                    continue
+                # Führt die Anlage den Tageswert selbst, gilt ihrer.
+                if (
+                    typ == "zaehler_heute"
+                    and (
+                        d.get("device_id"),
+                        TAGESZAEHLER.get(kennung),
+                    )
+                    in eigene_tageswerte
+                ):
                     continue
                 neu.append(
                     self._deskriptor(
@@ -1519,15 +1551,15 @@ class WindhagerHttpClient:
                     )
                 )
         self.devices += neu
-        self._brenndauer()
+        self._betriebsdauer()
 
     _BRENNDAUER = (
-        ("brenndauer", "brenndauer", "Brenndauer"),
-        ("brenndauer-letzte", "brenndauer_letzte", "Letzte Brenndauer"),
-        ("brenndauer-heute", "brenndauer_heute", "Brenndauer heute"),
+        ("betriebsdauer", "betriebsdauer", "Betriebsdauer"),
+        ("betriebsdauer-letzte", "betriebsdauer_letzte", "Letzte Betriebsdauer"),
+        ("betriebsdauer-heute", "betriebsdauer_heute", "Betriebsdauer heute"),
     )
 
-    def _brenndauer(self) -> None:
+    def _betriebsdauer(self) -> None:
         """Wie lange der Brand läuft – aus der Betriebsphase, nicht aus Stunden.
 
         Der Stundenzähler der Anlage steht in ganzen Stunden und wird träge

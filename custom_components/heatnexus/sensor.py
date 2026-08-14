@@ -113,9 +113,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "total_increasing": WindhagerPelletSensor,
             "zaehler_heute": WindhagerAbleitungSensor,
             "zaehler_start": WindhagerAbleitungSensor,
-            "brenndauer": WindhagerBrenndauerSensor,
-            "brenndauer_letzte": WindhagerBrenndauerSensor,
-            "brenndauer_heute": WindhagerBrenndauerSensor,
+            "betriebsdauer": WindhagerBetriebsdauerSensor,
+            "betriebsdauer_letzte": WindhagerBetriebsdauerSensor,
+            "betriebsdauer_heute": WindhagerBetriebsdauerSensor,
         },
     )
 
@@ -328,7 +328,7 @@ class WindhagerAbleitungSensor(WindhagerEntity, SensorEntity):
         }
 
 
-class WindhagerBrenndauerSensor(WindhagerEntity, SensorEntity):
+class WindhagerBetriebsdauerSensor(WindhagerEntity, SensorEntity):
     """Dauer des Brands – laufend, zuletzt beendet oder als Tagessumme.
 
     Gemessen wird an der Betriebsphase: Verlässt sie die Ruhe, läuft die Uhr;
@@ -344,8 +344,8 @@ class WindhagerBrenndauerSensor(WindhagerEntity, SensorEntity):
         super().__init__(coordinator, device_info)
         self._laufphasen = {int(p) for p in device_info.get("laufphasen") or ()}
         typ = device_info.get("type")
-        self._tageswert = typ == "brenndauer_heute"
-        self._letzter = typ == "brenndauer_letzte"
+        self._tageswert = typ == "betriebsdauer_heute"
+        self._letzter = typ == "betriebsdauer_letzte"
         self._attr_state_class = (
             SensorStateClass.TOTAL if self._tageswert else SensorStateClass.MEASUREMENT
         )
