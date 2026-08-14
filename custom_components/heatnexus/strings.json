@@ -41,7 +41,7 @@
           "writable_advanced": "Allow writing service/factory parameters",
           "update_interval": "Polling interval",
           "dashboard": "Create dashboard",
-          "panel": "Own interface",
+          "panel": "HeatNexus panel",
           "zeitwerte": "Systemuhr und Systemdatum anlegen",
           "lon": "Read values from the LON bus"
         },
@@ -97,7 +97,7 @@
         "data": {
           "update_interval": "Polling interval",
           "dashboard": "Create dashboard",
-          "panel": "Own interface",
+          "panel": "HeatNexus panel",
           "meldung_einlesen": "Notify while reading in",
           "aussentemperatur": "Outside temperature",
           "hilfe": "Show explanations"

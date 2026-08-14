@@ -41,7 +41,7 @@
           "writable_advanced": "Service-/Werksebene bedienbar machen",
           "update_interval": "Abfrageintervall",
           "dashboard": "Dashboard einrichten",
-          "panel": "Eigene Oberfläche",
+          "panel": "HeatNexus-Panel",
           "zeitwerte": "Systemuhr und Systemdatum anlegen",
           "lon": "Werte vom LON-Bus lesen"
         },
@@ -97,7 +97,7 @@
         "data": {
           "update_interval": "Abfrageintervall",
           "dashboard": "Dashboard einrichten",
-          "panel": "Eigene Oberfläche",
+          "panel": "HeatNexus-Panel",
           "meldung_einlesen": "Beim Einlesen benachrichtigen",
           "aussentemperatur": "Außentemperatur",
           "hilfe": "Erklärungen anzeigen",

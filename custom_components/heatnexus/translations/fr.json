@@ -41,7 +41,7 @@
           "writable_advanced": "Rendre modifiables les paramètres Service/Usine",
           "update_interval": "Intervalle d'interrogation",
           "dashboard": "Créer un tableau de bord",
-          "panel": "Interface dédiée",
+          "panel": "Panneau HeatNexus",
           "zeitwerte": "Créer l'horloge et la date système",
           "lon": "Read values from the LON bus"
         },
@@ -97,7 +97,7 @@
         "data": {
           "update_interval": "Intervalle d'interrogation",
           "dashboard": "Créer un tableau de bord",
-          "panel": "Interface dédiée",
+          "panel": "Panneau HeatNexus",
           "meldung_einlesen": "Notifier pendant la lecture",
           "aussentemperatur": "Température extérieure",
           "hilfe": "Afficher les explications",

@@ -111,7 +111,7 @@ async def test_kuratierter_name_ersetzt_den_rohnamen(client_module, monkeypatch)
     c = await _erkennen(client_module, monkeypatch)
 
     eintrag = _nv(c, "PMX_eeBetrStd")
-    assert eintrag["name"] == "Betriebsstunden"
+    assert eintrag["name"] == "Betriebsstunden (LON)"
     assert eintrag["enabled_default"] is True
     assert eintrag["oid"] == f"{PRAEFIX_NV}/0/28/0"
 
@@ -121,7 +121,7 @@ async def test_unbekannter_name_kommt_deaktiviert_mit_rohnamen(client_module, mo
     c = await _erkennen(client_module, monkeypatch)
 
     eintrag = _nv(c, "nvoFileDirectory")
-    assert eintrag["name"] == "nvoFileDirectory"
+    assert eintrag["name"] == "nvoFileDirectory (LON)"
     assert eintrag["enabled_default"] is False
 
 
@@ -237,6 +237,17 @@ async def test_zustandsbericht_bleibt_als_diagnose(client_module, monkeypatch):
     bericht = _nv(c, "nvoStatus")
     assert bericht["category"] == "diagnostic"
     assert bericht["enabled_default"] is False
+
+
+async def test_der_name_sagt_woher_der_wert_kommt(client_module, monkeypatch):
+    """Wer den Bus einschaltet, will danach schnell aufräumen können.
+
+    Das Kürzel steht am Namen und damit auch in der Entitäts-ID; in der
+    Entitätsliste genügt „LON" im Suchfeld.
+    """
+    c = await _erkennen(client_module, monkeypatch)
+
+    assert all(d["name"].endswith(" (LON)") for d in c.devices if d.get("nv_name"))
 
 
 async def test_herkunft_steht_am_deskriptor(client_module, monkeypatch):

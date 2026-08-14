@@ -717,7 +717,11 @@ class WindhagerHttpClient:
                 id=f"{self._neuron(knoten)}-{lon_kennungsteil(nv_name, menu_id, index)}",
                 alt_id=self._alte_kennung(oid),
                 oid=oid,
-                name=eintrag["name"] if eintrag else (nv_name or f"Netzwerkvariable {index}"),
+                # Das Kürzel bleibt am Namen, auch beim kuratierten Wert: Wer
+                # den Bus einschaltet und danach aufräumen will, filtert in der
+                # Entitätsliste nach „LON" und sieht auf einen Blick, was von
+                # dort kommt. Es steht auch in der Entitäts-ID.
+                name=f"{eintrag['name'] if eintrag else nv_name or f'Netzwerkvariable {index}'} (LON)",
                 # Netzwerkvariablen stehen in keiner Bedienebene der Anlage –
                 # weder Info noch Service. Sie eine zu nennen, um durch den
                 # Umfangsfilter zu kommen, wäre eine falsche Auskunft an alles,
