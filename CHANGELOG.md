@@ -20,6 +20,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Jedes Anlagenteil meldet seine Störung als eigenen Sensor.
 - Zu jedem Zählerstand gibt es den Zuwachs heute und seit dem letzten Brennerstart.
 - Die Farben des Schaubilds sind wählbar, neu mit einem Kontrastsatz.
+- Die Diagnose nennt, wie viele Entitäten Home Assistant führt und wie viele davon abgeschaltet sind.
 
 ### Geändert
 

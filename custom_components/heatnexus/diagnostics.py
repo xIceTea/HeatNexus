@@ -8,6 +8,8 @@ from typing import Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
 # Zugangsdaten und eindeutige Gerätekennungen bleiben draußen.
 #
@@ -62,9 +64,47 @@ async def async_get_config_entry_diagnostics(
             "optionen": optionen,
             "anlagen": len(anlagen),
         },
+        "registrierung": _registrierung(hass, entry, eintrag),
         "anlagen": async_redact_data(anlagen, ZU_SCHWAERZEN),
     }
     return _anonymisieren(daten, _seriennummern(eintrag))
+
+
+def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, Any]) -> dict:
+    """Was Home Assistant tatsächlich führt – nicht, was die Erkennung fand.
+
+    Erst der Vergleich beider Zahlen zeigt, ob eine vermisste Entität gar nicht
+    entstanden ist, abgeschaltet wurde oder als Karteileiche aus einer früheren
+    Erkennung stammt.
+    """
+    entitaeten = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    bekannt = {
+        beschreibung.get("id")
+        for coordinator in eintrag.get("coordinators", {}).values()
+        for beschreibung in (coordinator.data or {}).get("devices", [])
+    }
+    je_bereich: dict[str, int] = {}
+    abgeschaltet: dict[str, int] = {}
+    verwaist = []
+    for gefuehrt in entitaeten:
+        bereich = gefuehrt.entity_id.split(".")[0]
+        je_bereich[bereich] = je_bereich.get(bereich, 0) + 1
+        if gefuehrt.disabled_by is not None:
+            grund = str(gefuehrt.disabled_by)
+            abgeschaltet[grund] = abgeschaltet.get(grund, 0) + 1
+        if gefuehrt.unique_id not in bekannt:
+            verwaist.append(gefuehrt.unique_id)
+    return {
+        "entitaeten": len(entitaeten),
+        "abgeschaltet": sum(abgeschaltet.values()),
+        "abgeschaltet_wodurch": dict(sorted(abgeschaltet.items())),
+        "versteckt": sum(1 for e in entitaeten if e.hidden_by is not None),
+        "nach_bereich": dict(sorted(je_bereich.items())),
+        "geraete": len(dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)),
+        # Registrierte Entitäten ohne Entsprechung im aktuellen Stand.
+        "verwaist": len(verwaist),
+        "verwaiste_kennungen": sorted(verwaist)[:20],
+    }
 
 
 def _ist_adresse(wert: Any) -> bool:

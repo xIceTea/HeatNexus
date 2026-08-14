@@ -153,6 +153,43 @@ async def test_das_abrufverhalten_geht_mit(export):
     assert (await export)["anlagen"]["anlage_1"]["abrufverhalten"]["anfragen"] == 42
 
 
+async def test_die_registrierung_zaehlt_was_home_assistant_fuehrt(diagnostics, hass):
+    """Zwei Entitäten sind registriert, eine davon abgeschaltet und verwaist.
+
+    Erst diese Zahlen zeigen, ob eine vermisste Entität gar nicht entstand,
+    abgeschaltet wurde oder aus einer früheren Erkennung übrig ist.
+    """
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    konfig = MockConfigEntry(domain="heatnexus", entry_id="eintrag1", data={}, options={})
+    konfig.add_to_hass(hass)
+    registrierung = er.async_get(hass)
+    registrierung.async_get_or_create(
+        "sensor", "heatnexus", f"{SERIENNUMMER}-0-7-0", config_entry=konfig
+    )
+    registrierung.async_get_or_create(
+        "sensor",
+        "heatnexus",
+        "fremde-kennung",
+        config_entry=konfig,
+        disabled_by=er.RegistryEntryDisabler.INTEGRATION,
+    )
+
+    eintrag = SimpleNamespace(
+        entry_id="eintrag1",
+        version=1,
+        options={},
+        runtime_data={"name": "HeatNexus", "coordinators": {ADRESSE: _coordinator()}},
+    )
+    zahlen = (await diagnostics.async_get_config_entry_diagnostics(hass, eintrag))["registrierung"]
+    assert zahlen["entitaeten"] == 2
+    assert zahlen["abgeschaltet"] == 1
+    assert zahlen["nach_bereich"] == {"sensor": 2}
+    assert zahlen["verwaist"] == 1
+    assert zahlen["verwaiste_kennungen"] == ["fremde-kennung"]
+
+
 def test_eine_adresse_wird_als_schluessel_erkannt(diagnostics):
     assert diagnostics._ist_adresse("192.0.2.10")
     assert not diagnostics._ist_adresse("levels")
