@@ -22,6 +22,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Geändert
 
 - Die Vorlage „Störung melden" führt zum Störungssensor statt zu jedem Sensor.
+- Das undekodierte Statusregister des Kessels heißt nicht mehr „Störung aktiv".
 
 ### Behoben
 

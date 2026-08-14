@@ -586,11 +586,14 @@ PUROWIN_ENTITIES = [
         "state_class": "measurement",
         "icon": "mdi:wrench-clock",
     },
+    # Gepacktes Statusregister, Bedeutung der Bits unbekannt. Ohne Deutung ist
+    # es kein Störungsmelder: Die Geräteklasse `problem` gehört an den Sensor
+    # aus `FExxmsg`, der die Meldung im Klartext führt.
     {
         "oid": "/32/0/14",
-        "name": "Störung aktiv",
+        "name": "Statusregister",
         "platform": "binary_sensor",
-        "device_class": "problem",
+        "category": "diagnostic",
     },
     {"oid": "/0/97/0", "name": "Alarmcode", "platform": "sensor", "category": "diagnostic"},
     {
