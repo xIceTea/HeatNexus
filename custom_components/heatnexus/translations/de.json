@@ -42,7 +42,8 @@
           "update_interval": "Abfrageintervall",
           "dashboard": "Dashboard einrichten",
           "panel": "Eigene Oberfläche",
-          "zeitwerte": "Systemuhr und Systemdatum anlegen"
+          "zeitwerte": "Systemuhr und Systemdatum anlegen",
+          "lon": "Werte vom LON-Bus lesen"
         },
         "data_description": {
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
@@ -51,7 +52,8 @@
           "update_interval": "Wie oft die Anlage gefragt wird. Der Wert gilt für die schnellen Werte (Thermostat, Temperaturen, Pumpen); träge Werte behalten ihren Abstand — 2 Minuten für Betriebswerte, 15 Minuten für Zähler. Empfohlen: 30 Sekunden für eine Anlage, 60 Sekunden für mehrere oder für Anlagen mit vielen Datenpunkten.",
           "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut.",
           "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff.",
-          "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt."
+          "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
+          "lon": "Die Steuerung führt neben den Datenpunkten einen Bus-Adressraum. Empfohlen bei Anlagen, deren Kessel wenige Datenpunkte meldet — dort ist es der einzige Weg zu Gebläsedrehzahl, Lambdasonden-Heizung und Pelletsvorrat. Bei PuroWIN und Infinity bringt er kaum etwas, weil dieselben Werte schon als Datenpunkt dastehen."
         }
       },
       "reauth_confirm": {
@@ -121,7 +123,8 @@
           "username": "Zugang",
           "kesselart": "Wärmeerzeuger (Schaubild)",
           "kesselwert": "Kesselwert (Schaubild)",
-          "zeitwerte": "Systemuhr und Systemdatum anlegen"
+          "zeitwerte": "Systemuhr und Systemdatum anlegen",
+          "lon": "Werte vom LON-Bus lesen"
         },
         "data_description": {
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
@@ -130,7 +133,8 @@
           "username": "„USER“ sieht Info- und Betreiberebene, „Service“ zusätzlich die Fachparameter. Ein Wechsel liest die Anlage neu ein.",
           "kesselart": "Welches Gerät das Anlagenschaubild zeichnet. Wirkt nur auf die Zeichnung – keine Entität, kein Wert ändert sich.",
           "kesselwert": "Welcher zweite Wert am Kessel steht. Das Glutbett folgt weiterhin der Leistung – fehlt sie, richtet es sich nach der Brennkammertemperatur.",
-          "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt."
+          "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
+          "lon": "Die Steuerung führt neben den Datenpunkten einen Bus-Adressraum. Empfohlen bei Anlagen, deren Kessel wenige Datenpunkte meldet — dort ist es der einzige Weg zu Gebläsedrehzahl, Lambdasonden-Heizung und Pelletsvorrat. Bei PuroWIN und Infinity bringt er kaum etwas, weil dieselben Werte schon als Datenpunkt dastehen."
         }
       }
     }

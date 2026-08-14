@@ -46,7 +46,9 @@ def client_module():
 
 
 async def _erkennen(client_module, monkeypatch, nv_eintraege=None, oid_werte=None):
-    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info", "operate"])
+    c = client_module.WindhagerHttpClient(
+        "192.0.2.10", "geheim", levels=["info", "operate"], lon=True
+    )
     c.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
     c.werksbezeichnung = {"60": "BioWIN"}
 
@@ -282,7 +284,9 @@ async def test_werte_eines_kessels_haengen_an_seinem_geraet(client_module, monke
 
 async def test_knoten_ohne_funktion_wird_zum_bedienteil(client_module, monkeypatch):
     """Das Bedienteil meldet nur seinen LON-Adressraum – sonst gäbe es es nicht."""
-    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info", "operate"])
+    c = client_module.WindhagerHttpClient(
+        "192.0.2.10", "geheim", levels=["info", "operate"], lon=True
+    )
     c.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
     c.werksbezeichnung = {"90": "MB6611 LOP"}
 
@@ -341,7 +345,7 @@ async def test_alle_deskriptoren_haben_dieselbe_form(client_module, monkeypatch)
 
 async def test_der_kurzdurchlauf_liest_keine_netzwerkvariablen(client_module, monkeypatch):
     """Die Einrichtung darf davon nicht länger werden."""
-    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info"])
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info"], lon=True)
     c.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
     c.werksbezeichnung = {"60": "BioWIN"}
     gefragt = []

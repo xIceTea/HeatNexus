@@ -51,6 +51,7 @@ from .const import (
     CONF_KESSELWERT,
     CONF_LABEL,
     CONF_LEVELS,
+    CONF_LON,
     CONF_MELDUNG_EINLESEN,
     CONF_PANEL,
     CONF_SPRACHE,
@@ -177,6 +178,12 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
         # Abruf; wer sie alle braucht, setzt ihn hier statt jede Entität
         # einzeln einzuschalten.
         vol.Required(CONF_ZEITWERTE, default=bool(defaults.get(CONF_ZEITWERTE, False))): bool,
+        # Der LON-Adressraum. Ab Werk aus: Wo der Kessel viele Datenpunkte
+        # meldet, ergänzt der Bus fast nichts (gemessen: PuroWIN 12 Werte
+        # ohne Entsprechung, davon die meisten Bus-Verwaltung). Wo er wenige
+        # meldet, ist es der einzige Weg zu Gebläsedrehzahl, Lambdasonde
+        # und Pelletsvorrat.
+        vol.Required(CONF_LON, default=bool(defaults.get(CONF_LON, False))): bool,
         # Wirkt nur auf die Zeichnung im Schaubild. Steht trotzdem hier bei
         # der Anlage und nicht in den allgemeinen Einstellungen: Zwei Anlagen
         # in einem Eintrag können verschiedene Wärmeerzeuger haben.
@@ -264,6 +271,7 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         CONF_ENABLE_ADVANCED: bool(raw.get(CONF_ENABLE_ADVANCED, False)),
         CONF_WRITABLE_ADVANCED: bool(raw.get(CONF_WRITABLE_ADVANCED, False)),
         CONF_ZEITWERTE: bool(raw.get(CONF_ZEITWERTE, False)),
+        CONF_LON: bool(raw.get(CONF_LON, False)),
         CONF_KESSELART: kesselart if kesselart in KESSELARTEN else KESSELART_AUTO,
         CONF_KESSELWERT: (kesselwert if kesselwert in KESSELWERTE else KESSELWERT_LEISTUNG),
     }

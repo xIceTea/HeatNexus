@@ -42,7 +42,8 @@
           "update_interval": "Intervalle d'interrogation",
           "dashboard": "Créer un tableau de bord",
           "panel": "Interface dédiée",
-          "zeitwerte": "Créer l'horloge et la date système"
+          "zeitwerte": "Créer l'horloge et la date système",
+          "lon": "Read values from the LON bus"
         },
         "data_description": {
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
@@ -51,7 +52,8 @@
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
           "dashboard": "Ajoute un tableau de bord « Chauffage » qui se construit à partir des appareils détectés.",
           "panel": "Ajoute une entrée « HeatNexus » dans la barre latérale : schéma de l’installation, état, circuits de chauffage et accès rapide.",
-          "zeitwerte": "L'horloge de la régulation. Sans la case cochée, elles sont créées désactivées ; les autres champs d'heure et de date ne sont pas concernés."
+          "zeitwerte": "L'horloge de la régulation. Sans la case cochée, elles sont créées désactivées ; les autres champs d'heure et de date ne sont pas concernés.",
+          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints."
         }
       },
       "reauth_confirm": {
@@ -121,7 +123,8 @@
           "username": "Accès",
           "kesselart": "Générateur de chaleur (schéma)",
           "kesselwert": "Valeur de la chaudière (schéma)",
-          "zeitwerte": "Créer l'horloge et la date système"
+          "zeitwerte": "Créer l'horloge et la date système",
+          "lon": "Read values from the LON bus"
         },
         "data_description": {
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
@@ -130,7 +133,8 @@
           "username": "USER voit les niveaux info et exploitant, Service en plus les paramètres spécialisés. Un changement relit l'installation.",
           "kesselart": "Quel appareil le schéma de l'installation dessine. N'affecte que le dessin – aucune entité, aucune valeur ne change.",
           "kesselwert": "Quelle deuxième valeur figure sur la chaudière. Le lit de braises suit toujours la puissance ; à défaut, il se règle sur la température de la chambre de combustion.",
-          "zeitwerte": "L'horloge de la régulation. Sans la case cochée, elles sont créées désactivées ; les autres champs d'heure et de date ne sont pas concernés."
+          "zeitwerte": "L'horloge de la régulation. Sans la case cochée, elles sont créées désactivées ; les autres champs d'heure et de date ne sont pas concernés.",
+          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints."
         }
       }
     }

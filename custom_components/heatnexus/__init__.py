@@ -105,7 +105,7 @@ def _scope(hass: HomeAssistant, entry: ConfigEntry, host: str) -> dict:
         "enable_advanced": bool(je_anlage.get(CONF_ENABLE_ADVANCED, False)),
         "writable_advanced": bool(je_anlage.get(CONF_WRITABLE_ADVANCED, False)),
         "zeitwerte": bool(je_anlage.get(CONF_ZEITWERTE, False)),
-        "lon": bool(je_anlage.get(CONF_LON, True)),
+        "lon": bool(je_anlage.get(CONF_LON, False)),
         "update_interval": int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),
         "username": system.get(CONF_USERNAME) or DEFAULT_USERNAME,
         # Aufgelöst, nicht „auto": Sonst läse die Wahl von „auto" auf die
@@ -130,7 +130,7 @@ def _scope_fingerprint(scope: dict) -> str:
     return (
         ",".join(scope["levels"])
         + f"|{int(scope['enable_advanced'])}{int(scope['writable_advanced'])}"
-        + f"{int(scope.get('zeitwerte', False))}{int(scope.get('lon', True))}"
+        + f"{int(scope.get('zeitwerte', False))}{int(scope.get('lon', False))}"
         + f"|{scope.get('username', DEFAULT_USERNAME)}"
     )
 

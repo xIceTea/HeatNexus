@@ -154,7 +154,7 @@ class WindhagerHttpClient:
         enable_advanced: bool = False,
         writable_advanced: bool = False,
         zeitwerte: bool = False,
-        lon: bool = True,
+        lon: bool = False,
         username: str | None = None,
         update_interval: int = UPDATE_INTERVAL,
         sprache: str = "de",

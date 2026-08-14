@@ -42,7 +42,8 @@
           "update_interval": "Polling interval",
           "dashboard": "Create dashboard",
           "panel": "Own interface",
-          "zeitwerte": "Create system clock and system date"
+          "zeitwerte": "Create system clock and system date",
+          "lon": "Read values from the LON bus"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
@@ -51,7 +52,8 @@
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
           "dashboard": "Adds a “Heating” dashboard to the sidebar that builds itself from the discovered devices.",
           "panel": "Adds a “HeatNexus” entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
-          "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected."
+          "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
+          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints."
         }
       },
       "reauth_confirm": {
@@ -121,7 +123,8 @@
           "username": "Access",
           "kesselart": "Heat generator (diagram)",
           "kesselwert": "Boiler value (diagram)",
-          "zeitwerte": "Create system clock and system date"
+          "zeitwerte": "Create system clock and system date",
+          "lon": "Read values from the LON bus"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
@@ -130,7 +133,8 @@
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
           "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes.",
           "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature.",
-          "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected."
+          "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
+          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints."
         }
       }
     }
