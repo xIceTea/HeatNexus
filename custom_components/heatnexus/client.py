@@ -1262,8 +1262,9 @@ class WindhagerHttpClient:
                     "id": f"{kennung}-abfragen",
                     "alt_id": f"{muster.get('alt_device_id') or kennung}-abfragen",
                     "type": "refresh",
-                    "name": "Jetzt abfragen",
-                    "category": "config",
+                    "name": "Werte jetzt abfragen",
+                    # Ohne Kategorie steht die Taste im Abschnitt Steuerung,
+                    # und der liegt auf der Geräteseite ganz oben.
                     "icon": "mdi:refresh",
                     "enabled_default": True,
                     "device_id": kennung,

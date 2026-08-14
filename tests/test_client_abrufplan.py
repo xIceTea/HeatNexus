@@ -600,7 +600,9 @@ def test_jedes_anlagenteil_bekommt_eine_abfragetaste(client):
 
     tasten = [d for d in client.devices if d.get("type") == "refresh"]
     assert [t["device_id"] for t in tasten] == ["abcd-0", "abcd-1"]
-    assert {t["name"] for t in tasten} == {"Jetzt abfragen"}
+    assert {t["name"] for t in tasten} == {"Werte jetzt abfragen"}
+    # Ohne Kategorie steht sie im Abschnitt Steuerung, nicht in der Konfiguration.
+    assert all(t.get("category") is None for t in tasten)
     assert {t["id"] for t in tasten} == {"abcd-0-abfragen", "abcd-1-abfragen"}
 
 
