@@ -9,7 +9,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .entity import WindhagerEntity, async_setup_entities
+from .entity import MeldungsQuelle, WindhagerEntity, async_setup_entities
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
 # begrenzt der Client über seine eigene Warteschlange. Eine zweite Bremse in
@@ -25,7 +25,15 @@ DEVICE_CLASS_MAP = {
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager binary sensors from a config entry."""
-    async_setup_entities(hass, entry, async_add_entities, {"binary_sensor": WindhagerBinarySensor})
+    async_setup_entities(
+        hass,
+        entry,
+        async_add_entities,
+        {
+            "binary_sensor": WindhagerBinarySensor,
+            "stoerung": WindhagerStoerungBinarySensor,
+        },
+    )
 
 
 class WindhagerBinarySensor(WindhagerEntity, BinarySensorEntity):
@@ -47,3 +55,31 @@ class WindhagerBinarySensor(WindhagerEntity, BinarySensorEntity):
         if value is None:
             return None
         return value != 0
+
+
+class WindhagerStoerungBinarySensor(MeldungsQuelle, WindhagerEntity, BinarySensorEntity):
+    """Ein an: an diesem Anlagenteil steht eine Störung an.
+
+    Dieselbe Quelle wie der Klartext-Sensor (``FExxmsg``), nur als Ja/Nein mit
+    der Geräteklasse ``problem``.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    @property
+    def is_on(self) -> bool | None:
+        if self._raw is None:
+            return None
+        return bool(self._meldungen)
+
+    @property
+    def extra_state_attributes(self):
+        if self._raw is None:
+            return None
+        msgs = self._meldungen
+        # Nur, was eine Meldung braucht. Codes und Rohwert führt der
+        # Klartext-Sensor desselben Anlagenteils.
+        return {
+            "anzahl": len(msgs),
+            "stoerungstext": " | ".join(m["text"] for m in msgs),
+        }

@@ -207,11 +207,11 @@ def test_meldungsliste_wird_nicht_gepollt(sensoren):
     assert sensoren.WindhagerMessageListSensor._register_poll_oid is False
 
 
-def test_die_automationsvorlage_haengt_am_attribut_nicht_am_text(sensoren):
+def test_der_zustand_steht_im_attribut_nicht_im_text(sensoren):
     """`stoerung_aktiv` ist die Wahrheit, der angezeigte Text nur Anzeige.
 
-    Die mitgelieferte Vorlage wertet ausdrücklich das Attribut aus – sonst
-    hinge sie an einer Formulierung, die sich mit jeder Baureihe ändert.
+    Die Oberfläche wertet das Attribut aus – sonst hinge sie an einer
+    Formulierung, die sich mit jeder Baureihe ändert.
     """
     entity = _meldung(sensoren, "PUR 09  OK")
     assert "stoerung_aktiv" in entity.extra_state_attributes

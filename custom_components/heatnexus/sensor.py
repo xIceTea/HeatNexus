@@ -20,7 +20,7 @@ from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
 from .const import ERROR_TEXTS
-from .entity import WindhagerEntity, async_setup_entities
+from .entity import MeldungsQuelle, WindhagerEntity, async_setup_entities
 from .error_texts import parse_messages
 from .exceptions import WindhagerValueError
 
@@ -257,7 +257,7 @@ class WindhagerErrorTextSensor(WindhagerEntity, SensorEntity):
         return {"code": self.int_value}
 
 
-class WindhagerDeviceStatusSensor(WindhagerEntity, SensorEntity):
+class WindhagerDeviceStatusSensor(MeldungsQuelle, WindhagerEntity, SensorEntity):
     """Per-device status/notification from the FE01msg field.
 
     Die /1-Discovery liefert je Gerät ein FE01msg, z.B. "PUR 09  OK" oder
@@ -267,39 +267,23 @@ class WindhagerDeviceStatusSensor(WindhagerEntity, SensorEntity):
     """
 
     _attr_icon = "mdi:message-alert-outline"
-    # kommt aus der /1-Discovery, nicht aus dem OID-Polling
-    _register_poll_oid = False
-
-    def __init__(self, coordinator: Any, device_info: dict) -> None:
-        super().__init__(coordinator, device_info)
-        self._node_id = str(device_info.get("node_id"))
-
-    @property
-    def _message(self) -> str | None:
-        if not self.coordinator.data:
-            return None
-        return self.coordinator.data.get("status", {}).get(self._node_id)
-
-    @property
-    def available(self) -> bool:
-        return self.coordinator.last_update_success and self._message is not None
 
     @property
     def native_value(self) -> str | None:
-        msg = self._message
+        msg = self._raw
         if msg is None:
             return None
         return msg.strip()[:255]
 
     @property
     def extra_state_attributes(self):
-        msg = self._message
+        msg = self._raw
         if msg is None:
             return None
         return {"ok": msg.strip().upper().endswith("OK"), "raw": msg}
 
 
-class WindhagerMessageTextSensor(WindhagerEntity, SensorEntity):
+class WindhagerMessageTextSensor(MeldungsQuelle, WindhagerEntity, SensorEntity):
     """Klartext der aktiven Störungen aus dem FE01msg (Code -> Text).
 
     State zeigt nur den Klartext, z.B. "Verkleidungstür offen" (mehrere getrennt
@@ -309,27 +293,12 @@ class WindhagerMessageTextSensor(WindhagerEntity, SensorEntity):
     """
 
     _attr_icon = "mdi:alert-circle-outline"
-    _register_poll_oid = False
-
-    def __init__(self, coordinator: Any, device_info: dict) -> None:
-        super().__init__(coordinator, device_info)
-        self._node_id = str(device_info.get("node_id"))
-
-    @property
-    def _raw(self) -> str | None:
-        if not self.coordinator.data:
-            return None
-        return self.coordinator.data.get("status", {}).get(self._node_id)
-
-    @property
-    def available(self) -> bool:
-        return self.coordinator.last_update_success and self._raw is not None
 
     @property
     def native_value(self) -> str | None:
         if self._raw is None:
             return None
-        msgs = parse_messages(self._raw, self._descriptor.get("stoerungstexte"))
+        msgs = self._meldungen
         if not msgs:
             return "Keine Störung"
         # Nur der Klartext (Code/Art stehen im Attribut 'meldungen').
@@ -340,7 +309,7 @@ class WindhagerMessageTextSensor(WindhagerEntity, SensorEntity):
     def extra_state_attributes(self):
         if self._raw is None:
             return None
-        msgs = parse_messages(self._raw, self._descriptor.get("stoerungstexte"))
+        msgs = self._meldungen
         return {
             "anzahl": len(msgs),
             "stoerung_aktiv": len(msgs) > 0,

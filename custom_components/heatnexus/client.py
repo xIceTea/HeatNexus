@@ -969,6 +969,16 @@ class WindhagerHttpClient:
         self.devices.append(descriptor)
         self.oids.add(oid)
 
+    # Was ein Knoten aus seiner Meldung (`FExxmsg`) hergibt: Kennungs-Endung,
+    # Typ, Name, Symbol. Das Ja/Nein neben dem Klartext macht die Störung für
+    # Automationen auswählbar – eine Entitätsauswahl filtert nach Geräteklasse.
+    _MELDUNGS_SENSOREN = (
+        ("fe01", "device_status", "Meldung", "mdi:message-alert-outline"),
+        ("fe01text", "message_text", "Meldung Klartext", "mdi:alert-circle-outline"),
+        ("fe01stoerung", "stoerung", "Störung gemeldet", "mdi:alert"),
+        ("fe01liste", "message_list", "Meldungsliste", "mdi:format-list-bulleted"),
+    )
+
     async def _discover(self, nur_kern: bool = False):
         """Geräte und Datenpunkte der Anlage ermitteln.
 
@@ -1124,9 +1134,7 @@ class WindhagerHttpClient:
                             # Service- und Werksebene sind vorhanden, aber
                             # standardmäßig deaktiviert (pro Entity in Home
                             # Assistant aktivierbar oder über die Optionen).
-                            enabled_default=(
-                                level not in ADVANCED_LEVELS or self.enable_advanced
-                            ),
+                            enabled_default=(level not in ADVANCED_LEVELS or self.enable_advanced),
                             enum=gnmn if get_enum(gnmn) else None,
                             enum_texte=self._enum_texte_fuer(gnmn),
                             device_id=self._geraetekennung(prefix),
@@ -1174,75 +1182,26 @@ class WindhagerHttpClient:
                         primary_type,
                     )
 
-            # Geräte-Meldung (FE01msg, z.B. "PUR 09  OK") als Sensor je Knoten,
+            # Geräte-Meldung (FE01msg, z.B. "PUR 09  OK") als Sensoren je Knoten,
             # angehängt an das Primärgerät. Quelle ist die /1-Discovery selbst.
             if device.get("FE01msg") is not None and primary_prefix is not None:
-                self.devices.append(
-                    {
-                        "id": f"{self._neuron(node_id)}-fe01",
-                        "alt_id": self._alte_kennung(f"{device_id}-fe01"),
-                        "type": "device_status",
-                        "node_id": str(node_id),
-                        "name": "Meldung",
-                        "stoerungstexte": self._stoerungstexte(),
-                        "category": "diagnostic",
-                        "icon": "mdi:message-alert-outline",
-                        "enabled_default": True,
-                        "device_id": self._geraetekennung(primary_prefix),
-                        "alt_device_id": self._alte_kennung(primary_prefix),
-                        "device_name": primary_name,
-                        "fct_type": primary_type,
-                    }
-                )
-                # Zweiter Sensor: Fehlercode -> Klartext (z.B. "Fehler 346 –
-                # Verkleidungstür offen"), Liste aller aktiven Störungen im Attribut.
-                self.devices.append(
-                    {
-                        "id": f"{self._neuron(node_id)}-fe01text",
-                        "alt_id": self._alte_kennung(f"{device_id}-fe01text"),
-                        "type": "message_text",
-                        "node_id": str(node_id),
-                        "name": "Meldung Klartext",
-                        "stoerungstexte": self._stoerungstexte(),
-                        "category": "diagnostic",
-                        "icon": "mdi:alert-circle-outline",
-                        "enabled_default": True,
-                        "device_id": self._geraetekennung(primary_prefix),
-                        "alt_device_id": self._alte_kennung(primary_prefix),
-                        "device_name": primary_name,
-                        "fct_type": primary_type,
-                    }
-                )
-                # Dritter Sensor: die **Meldungsliste**.
-                #
-                # `FE01msg` nennt nur, was *gerade* anliegt. Wer die
-                # Verkleidungstür öffnet und wieder schließt, sieht die Meldung
-                # kommen und gehen – nachher steht nirgends, dass sie da war.
-                # Das Bediengerät führt dafür eine fortlaufende Liste; über die
-                # Schnittstelle ist sie nicht zu bekommen (geprüft: `2/96`
-                # antwortet an jeder Funktion mit 409, und die Steuerung kennt
-                # keinen der acht denkbaren Endpunkte). Also führt Home
-                # Assistant sie selbst.
-                #
-                # Ausdrücklich **unsere** Liste, nicht die des Kessels: Löschen
-                # räumt hier auf, nicht dort.
-                self.devices.append(
-                    {
-                        "id": f"{self._neuron(node_id)}-fe01liste",
-                        "alt_id": self._alte_kennung(f"{device_id}-fe01liste"),
-                        "type": "message_list",
-                        "node_id": str(node_id),
-                        "name": "Meldungsliste",
-                        "stoerungstexte": self._stoerungstexte(),
-                        "category": "diagnostic",
-                        "icon": "mdi:format-list-bulleted",
-                        "enabled_default": True,
-                        "device_id": self._geraetekennung(primary_prefix),
-                        "alt_device_id": self._alte_kennung(primary_prefix),
-                        "device_name": primary_name,
-                        "fct_type": primary_type,
-                    }
-                )
+                for suffix, typ, name, icon in self._MELDUNGS_SENSOREN:
+                    self.devices.append(
+                        self._deskriptor(
+                            id=f"{self._neuron(node_id)}-{suffix}",
+                            alt_id=self._alte_kennung(f"{device_id}-{suffix}"),
+                            type=typ,
+                            node_id=str(node_id),
+                            name=name,
+                            stoerungstexte=self._stoerungstexte(),
+                            category="diagnostic",
+                            icon=icon,
+                            device_id=self._geraetekennung(primary_prefix),
+                            alt_device_id=self._alte_kennung(primary_prefix),
+                            device_name=primary_name,
+                            fct_type=primary_type,
+                        )
+                    )
 
         self._abfragetasten()
 
@@ -1904,7 +1863,8 @@ class WindhagerHttpClient:
         Quelle ist die /1-Discovery, die je Gerät FE01msg (+ ggf. weitere)
         mitliefert. Nur nötig, wenn ein Meldungs-/Klartext-Sensor existiert.
         """
-        if not any(d.get("type") in ("device_status", "message_text") for d in self.devices):
+        typen = {typ for _, typ, _, _ in self._MELDUNGS_SENSOREN}
+        if not any(d.get("type") in typen for d in self.devices):
             return {}
         try:
             devs = await self.fetch("/1")

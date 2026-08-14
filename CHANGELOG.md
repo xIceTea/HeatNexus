@@ -16,11 +16,18 @@ wenn dort Vorabversionen zugelassen sind.
 - Der BioWIN kennt die Betriebsart der Zuführung.
 - Pufferladung, Rücklaufanhebung und Zirkulation erscheinen, wo die Anlage sie über den Bus meldet.
 - Jedes Anlagenteil hat eine Taste, die seine Werte sofort liest.
+- Automations-Vorlagen lassen sich einzeln abwählen.
+- Jedes Anlagenteil meldet seine Störung als eigenen Sensor.
+
+### Geändert
+
+- Die Vorlage „Störung melden" führt zum Störungssensor statt zu jedem Sensor.
 
 ### Behoben
 
 - Der Sondenlauf brach an Anlagen ab, deren größte Menü-Ebene keine Datenpunktadressen führt.
 - Zählerstände und Restlaufzeiten fehlten nach dem Einlesen eine Viertelstunde lang.
+- Ein einzelner misslungener Abruf löschte den zuletzt gelesenen Wert.
 - Eine Abwahl wirkte nur bis zum nächsten Neustart.
 - Ein abgeschalteter Bus lässt keine abgeschalteten Zeilen mehr zurück.
 

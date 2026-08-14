@@ -27,6 +27,7 @@ from .const import (
     SIGNAL_NEUE_ENTITAETEN,
 )
 from .device_db import get_enum
+from .error_texts import parse_messages
 from .helpers import parse_value
 from .lon import ungueltig as lon_ungueltig
 
@@ -48,6 +49,7 @@ NUR_LESEND = {
     "time_program",
     "device_status",
     "message_text",
+    "stoerung",
     "binary_sensor",
     "total",
     "total_increasing",
@@ -201,6 +203,41 @@ def steuerung_kennung(coordinator: Any) -> str:
     if callable(eigene) and (kennung := eigene()):
         return kennung
     return f"{coordinator.entry.entry_id}_{coordinator.host}"
+
+
+class MeldungsQuelle:
+    """Entitäten, deren Wert aus der Gerätemeldung (`FExxmsg`) entsteht.
+
+    Der Rohtext kommt aus der /1-Discovery, nicht aus dem OID-Abruf, und wird
+    je Abruf einmal ausgewertet. Vor `WindhagerEntity` einordnen, damit
+    `available` hier greift.
+    """
+
+    _register_poll_oid = False
+
+    def __init__(self, coordinator: Any, device_info: dict) -> None:
+        super().__init__(coordinator, device_info)
+        self._node_id = str(device_info.get("node_id"))
+        self._roh_zuletzt: str | None = None
+        self._meldungen_zuletzt: list[dict] = []
+
+    @property
+    def _raw(self) -> str | None:
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.data.get("status", {}).get(self._node_id)
+
+    @property
+    def _meldungen(self) -> list[dict]:
+        roh = self._raw
+        if roh != self._roh_zuletzt:
+            self._roh_zuletzt = roh
+            self._meldungen_zuletzt = parse_messages(roh, self._descriptor.get("stoerungstexte"))
+        return self._meldungen_zuletzt
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.last_update_success and self._raw is not None
 
 
 class WindhagerEntity(CoordinatorEntity, RestoreEntity):

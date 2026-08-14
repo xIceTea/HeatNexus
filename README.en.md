@@ -292,7 +292,7 @@ Automations & Scenes → Blueprints* after setup — no import from the internet
 
 What happens on an event is up to the individual automation — notification,
 announcement, phone call, any action. The fault blueprint evaluates the
-`stoerung_aktiv` attribute, not the displayed text, so it does not depend on any
+"Störung gemeldet" sensor, not the displayed text, so it does not depend on any
 particular wording.
 
 ## Documentation

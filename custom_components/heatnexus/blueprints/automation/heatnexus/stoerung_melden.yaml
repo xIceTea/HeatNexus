@@ -4,10 +4,9 @@ blueprint:
     Meldet sich, sobald die Anlage eine Störung anzeigt, wiederholt die Meldung
     auf Wunsch in einem festen Abstand und meldet die Entwarnung.
 
-    Ausgewertet wird das Attribut `stoerung_aktiv` des Sensors
-    **Meldung Klartext** – nicht der angezeigte Text. Damit hängt die
-    Automation nicht an einer Formulierung und läuft auch bei mehreren
-    gleichzeitigen Störungen richtig.
+    Ausgewertet wird der Sensor **Störung gemeldet**, nicht der angezeigte
+    Text. Damit hängt die Automation nicht an einer Formulierung und läuft
+    auch bei mehreren gleichzeitigen Störungen richtig.
 
     Jeder Anlagenteil hat einen eigenen Sensor dieser Art (Kessel, Heizkreis,
     Puffer, Zirkulation). Für den Kessel genügt meist einer.
@@ -16,13 +15,14 @@ blueprint:
   source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/stoerung_melden.yaml
   input:
     meldung:
-      name: Meldung im Klartext
-      description: Der Sensor „Meldung Klartext" des Anlagenteils.
+      name: Störung
+      description: Der Sensor „Störung gemeldet" des Anlagenteils.
       selector:
         entity:
           filter:
             - integration: heatnexus
-              domain: sensor
+              domain: binary_sensor
+              device_class: problem
     aktion_stoerung:
       name: Bei Störung
       description: >
@@ -61,6 +61,14 @@ blueprint:
 mode: restart
 
 triggers:
+  # Nur der Zustandswechsel, nicht jede Änderung an den Attributen: sonst löst
+  # jeder Abruf die Meldung neu aus.
+  - trigger: state
+    entity_id: !input meldung
+    to:
+      - "on"
+      - "off"
+  # Für den Klartext-Sensor, der den Zustand im Attribut führt.
   - trigger: state
     entity_id: !input meldung
     attribute: stoerung_aktiv
@@ -70,43 +78,37 @@ triggers:
 variables:
   sensor: !input meldung
   soll_erinnern: !input erinnern
-  stoerung: "{{ state_attr(sensor, 'stoerung_aktiv') | default(false, true) }}"
+  # Der Störungssensor meldet an/aus. Wer noch den Klartext-Sensor eingetragen
+  # hat, wird über dessen Attribut ausgewertet – die Automation läuft weiter.
+  stoerung: "{{ state_attr(sensor, 'stoerung_aktiv') or is_state(sensor, 'on') }}"
   anzahl: "{{ state_attr(sensor, 'anzahl') | default(0, true) }}"
-  stoerungstext: "{{ states(sensor) }}"
+  stoerungstext: "{{ state_attr(sensor, 'stoerungstext') or states(sensor) }}"
   anlagenteil: "{{ device_attr(sensor, 'name_by_user') or device_attr(sensor, 'name') or '' }}"
 
 conditions:
   - condition: template
     value_template: "{{ states(sensor) not in ['unknown', 'unavailable'] }}"
+  # Die Entwarnung meldet der Durchlauf, der auf sie wartet; ein Durchlauf
+  # ohne anstehende Störung hat nichts zu tun.
+  - condition: template
+    value_template: "{{ stoerung }}"
 
 actions:
-  - choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ stoerung }}"
-        sequence:
-          - sequence: !input aktion_stoerung
-          - repeat:
-              sequence:
-                - wait_for_trigger:
-                    - trigger: state
-                      entity_id: !input meldung
-                      attribute: stoerung_aktiv
-                      to: false
-                  timeout: !input abstand
-                  continue_on_timeout: true
-                # Kein Auslöser heißt: die Wartezeit ist abgelaufen und die
-                # Störung steht immer noch an.
-                - if:
-                    - condition: template
-                      value_template: "{{ soll_erinnern and wait.trigger is none }}"
-                  then: !input aktion_erinnerung
-              # Verlassen wird die Schleife erst mit der Entwarnung – auch
-              # ohne Erinnerungen, sonst käme die Entwarnung zu spät.
-              until:
-                - condition: template
-                  value_template: "{{ wait.trigger is not none }}"
-          - if:
-              - condition: template
-                value_template: "{{ not state_attr(sensor, 'stoerung_aktiv') }}"
-            then: !input aktion_entwarnung
+  - sequence: !input aktion_stoerung
+  - repeat:
+      sequence:
+        - wait_template: >-
+            {{ not (state_attr(sensor, 'stoerung_aktiv') or is_state(sensor, 'on')) }}
+          timeout: !input abstand
+        # Nicht erfüllt heißt: die Wartezeit ist abgelaufen und die Störung
+        # steht immer noch an.
+        - if:
+            - condition: template
+              value_template: "{{ soll_erinnern and not wait.completed }}"
+          then: !input aktion_erinnerung
+      # Verlassen wird die Schleife erst mit der Entwarnung – auch ohne
+      # Erinnerungen, sonst käme die Entwarnung zu spät.
+      until:
+        - condition: template
+          value_template: "{{ wait.completed }}"
+  - sequence: !input aktion_entwarnung

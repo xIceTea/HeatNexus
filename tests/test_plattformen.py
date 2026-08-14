@@ -320,6 +320,52 @@ def test_binaersensor_zaehlt_jeden_wert_ueber_null_als_an(wert, erwartet):
 
 
 # ---------------------------------------------------------------------------
+# Störungssensor – daran hängt die Automationsvorlage
+# ---------------------------------------------------------------------------
+def _stoerung(roh: str | None):
+    from custom_components.heatnexus.binary_sensor import WindhagerStoerungBinarySensor
+
+    entity, koordinator = _entitaet(
+        WindhagerStoerungBinarySensor, {}, type="stoerung", node_id="60"
+    )
+    koordinator.data["status"] = {"60": roh}
+    koordinator.last_update_success = True
+    return entity
+
+
+@pytest.mark.parametrize(
+    ("roh", "an", "anzahl"),
+    [("PUR 09  OK", False, 0), ("PUR 09E346", True, 1), (None, None, None)],
+)
+def test_stoerungssensor_folgt_der_meldung_der_anlage(roh, an, anzahl):
+    """Kein FE01msg heißt: nichts wissen, nicht „keine Störung"."""
+    entity = _stoerung(roh)
+    assert entity.is_on is an
+    assert (entity.extra_state_attributes or {}).get("anzahl") == anzahl
+
+
+def test_stoerungssensor_nennt_den_klartext_im_attribut():
+    """Die Vorlage schickt `stoerungstext` in die Benachrichtigung."""
+    assert (
+        _stoerung("PUR 09E346").extra_state_attributes["stoerungstext"] == "Verkleidungstür offen"
+    )
+
+
+def test_stoerungssensor_traegt_die_geraeteklasse_problem():
+    """Nur damit lässt sich die Auswahl in der Vorlage darauf einschränken."""
+    from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+
+    assert _stoerung("PUR 09  OK").device_class is BinarySensorDeviceClass.PROBLEM
+
+
+def test_stoerungssensor_wird_nicht_gepollt():
+    """Die Quelle ist die /1-Discovery; eine OID hat dieser Wert nicht."""
+    from custom_components.heatnexus.binary_sensor import WindhagerStoerungBinarySensor
+
+    assert WindhagerStoerungBinarySensor._register_poll_oid is False
+
+
+# ---------------------------------------------------------------------------
 # Gemeinsames Verhalten aller schreibenden Plattformen
 # ---------------------------------------------------------------------------
 def test_schreiben_stoesst_immer_einen_abruf_an():

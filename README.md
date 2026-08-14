@@ -303,7 +303,7 @@ dem Netz:
 
 Was bei einem Ereignis passieren soll, gibt die jeweilige Automation vor –
 Benachrichtigung, Ansage, Anruf, beliebige Aktion. Die Störungsvorlage wertet
-das Attribut `stoerung_aktiv` aus, nicht den angezeigten Text; sie hängt damit
+den Sensor „Störung gemeldet" aus, nicht den angezeigten Text; sie hängt damit
 an keiner Formulierung.
 
 ## Dokumentation
