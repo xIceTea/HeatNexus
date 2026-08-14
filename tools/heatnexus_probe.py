@@ -801,33 +801,47 @@ def suche_nv_werte(probe: Probe, menus: dict) -> dict:
         ziele.extend((fct, {"nvIndex": i}) for i in range(NV_BLIND_MAX))
 
     print(f"    {len(ziele)} Einträge werden gelesen")
-    versuche = []
+
+    # Die Adressform je Funktion zuerst, seriell: Sie ist die Voraussetzung
+    # für alles Weitere und kostet zwei Anfragen.
     formen: dict[str, str] = {}
-    for nummer, (fct, eintrag) in enumerate(ziele, start=1):
-        index = eintrag.get("nvIndex")
-        if index is None:
-            continue
+    for fct, eintrag in ziele:
         prefix = fct["prefix"]
-        if prefix not in formen:
-            formen[prefix] = _nv_form_bestimmen(probe, prefix, index)
+        if prefix not in formen and eintrag.get("nvIndex") is not None:
+            formen[prefix] = _nv_form_bestimmen(probe, prefix, eintrag["nvIndex"])
             print(f"    {prefix} Adressform: {formen[prefix]}")
+
+    # **Ein Wert, eine Anfrage.** Die Menü-Ebene liefert für Netzwerkvariablen
+    # Namen und Typ, aber keinen Wert (`"value": "-"`); anders als bei
+    # Datenpunkten hilft der Sammelabruf hier nicht. An der eigenen Anlage
+    # sind das 252 Anfragen – seriell über eine halbe Stunde, in der niemand
+    # weiß, ob der Lauf noch lebt. Nebenläufig mit derselben Zahl Arbeiter wie
+    # der Menü-Abruf ist es ein Drittel davon; mehr bringt an dieser Steuerung
+    # nichts (gemessen 12.08.: drei gegen sechs Arbeiter, 2,7 % Unterschied).
+    def lesen(auftrag):
+        fct, eintrag = auftrag
+        index = eintrag.get("nvIndex")
+        prefix = fct["prefix"]
         oid, status, wert = _nv_lesen(probe, prefix, index, formen[prefix])
-        urteil = nv_bewerten(eintrag.get("snvtName"), wert) if status == 200 else "Fehler"
-        versuche.append(
-            {
-                "oid": oid,
-                "funktion": fct["prefix"],
-                "nvIndex": index,
-                "nvName": eintrag.get("nvName"),
-                "snvtName": eintrag.get("snvtName"),
-                "unit": eintrag.get("unit"),
-                "status": status,
-                "value": wert,
-                "urteil": urteil,
-            }
-        )
-        if nummer % 20 == 0 or nummer == len(ziele):
-            print(f"      {nummer}/{len(ziele)} …", flush=True)
+        return {
+            "oid": oid,
+            "funktion": prefix,
+            "nvIndex": index,
+            "nvName": eintrag.get("nvName"),
+            "snvtName": eintrag.get("snvtName"),
+            "unit": eintrag.get("unit"),
+            "status": status,
+            "value": wert,
+            "urteil": nv_bewerten(eintrag.get("snvtName"), wert) if status == 200 else "Fehler",
+        }
+
+    auftraege = [z for z in ziele if z[1].get("nvIndex") is not None and z[0]["prefix"] in formen]
+    versuche = []
+    with ThreadPoolExecutor(max_workers=probe.workers) as pool:
+        for nummer, ergebnis in enumerate(pool.map(lesen, auftraege), start=1):
+            versuche.append(ergebnis)
+            if nummer % 20 == 0 or nummer == len(auftraege):
+                print(f"      {nummer}/{len(auftraege)} …", flush=True)
 
     zaehler: dict[str, int] = {}
     for v in versuche:

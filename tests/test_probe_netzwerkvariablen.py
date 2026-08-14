@@ -38,6 +38,10 @@ def probe_modul():
 class SteuerungAttrappe:
     """Antwortet nur auf die eine Adressform, die ihr mitgegeben wurde."""
 
+    # Wie `Probe`: Der Lauf liest die Werte nebenläufig. Hier einer nach dem
+    # anderen, damit die Reihenfolge der Aufrufe prüfbar bleibt.
+    workers = 1
+
     def __init__(self, antwortet_auf: str | None, *, als_liste: bool = False):
         """`antwortet_auf`: "lang", "kurz" oder None für „gar keine"."""
         self.antwortet_auf = antwortet_auf
