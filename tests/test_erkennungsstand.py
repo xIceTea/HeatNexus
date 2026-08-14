@@ -215,7 +215,6 @@ def _umfang(levels, **schalter):
         "enable_advanced": False,
         "writable_advanced": False,
         "zeitwerte": False,
-        "lon": False,
         "update_interval": 30,
         "username": "USER",
         "sprache": "de",
@@ -237,27 +236,27 @@ def test_eine_zusaetzliche_ebene_ist_keine_abwahl(modul):
 
 
 @pytest.mark.parametrize(
-    "schalter", ["enable_advanced", "writable_advanced", "zeitwerte", "lon", "kuenftige_option"]
+    "schalter", ["enable_advanced", "writable_advanced", "zeitwerte", "kuenftige_option"]
 )
 def test_ein_abgeschalteter_schalter_zaehlt_als_abwahl(modul, schalter):
-    """Jeder Schalter, nicht nur die beiden namentlich bekannten.
-
-    Die Prüfung nannte einmal `levels` und `enable_advanced` und musste bei
-    jeder neuen Option nachgezogen werden. Wo das ausblieb, blieben die
-    Entitäten der abgewählten Option dauerhaft als abgeschaltete Zeilen stehen.
-    `kuenftige_option` steht für genau diesen Fall: eine Option, die es zur
-    Entstehungszeit dieser Prüfung noch nicht gibt.
-    """
+    """Jeder Schalter zählt, auch einer, den der Umfang hier noch nicht führt."""
     alt = {HOST: _umfang(["info"], **{schalter: True})}
     neu = {HOST: _umfang(["info"], **{schalter: False})}
     assert modul._umfang_verkleinert(alt, neu)
 
 
-@pytest.mark.parametrize("schalter", ["enable_advanced", "zeitwerte", "lon"])
+@pytest.mark.parametrize("schalter", ["enable_advanced", "writable_advanced", "zeitwerte"])
 def test_ein_eingeschalteter_schalter_ist_keine_abwahl(modul, schalter):
     alt = {HOST: _umfang(["info"], **{schalter: False})}
     neu = {HOST: _umfang(["info"], **{schalter: True})}
     assert not modul._umfang_verkleinert(alt, neu)
+
+
+def test_eine_ebene_getauscht_bleibt_eine_abwahl(modul):
+    """Gleichzeitig abwählen und hinzunehmen ist trotzdem eine Abwahl."""
+    alt = {HOST: _umfang(["info", "operate"])}
+    neu = {HOST: _umfang(["operate", "service"])}
+    assert modul._umfang_verkleinert(alt, neu)
 
 
 @pytest.mark.parametrize(

@@ -149,17 +149,11 @@ def dateinamen_lesen(html: str) -> set[str]:
 def sprache_aufloesen(gewaehlt: str | None, ha_sprache: str | None) -> str:
     """Die Sprache bestimmen, in der die Steuerung gelesen wird.
 
-    Nur die ausdrückliche Wahl zählt. Was die Steuerung nicht führt, fällt auf
-    Deutsch zurück.
-
-    **Ohne Wahl bleibt es bei Deutsch, auch wenn Home Assistant eine andere
-    Sprache führt.** Schaubild, Kennwerte und Schnellzugriff erkennen einen
-    Datenpunkt zum Teil noch an seinem deutschen Namen; mit fremden Namen
-    fänden sie ihn nicht und blieben leer. Solange das so ist, darf die
-    Sprache der Oberfläche das nicht ungefragt auslösen. Sobald jeder
-    Datenpunkt der Muster einen kanonischen Schlüssel trägt, folgt „automatisch"
-    wieder der Sprache von Home Assistant – ``ha_sprache`` steht dafür bereits
-    in der Aufrufkette.
+    Nur die ausdrückliche Wahl zählt, alles andere ist Deutsch: Schaubild,
+    Kennwerte und Schnellzugriff erkennen einen Datenpunkt zum Teil an seinem
+    deutschen Namen und blieben mit fremden Namen leer. ``ha_sprache`` wird
+    deshalb nicht ausgewertet und bleibt für den Tag, an dem jeder Datenpunkt
+    der Muster einen kanonischen Schlüssel trägt.
     """
     if gewaehlt and gewaehlt != SPRACHE_AUTO:
         return gewaehlt if gewaehlt in SPRACHEN else "de"

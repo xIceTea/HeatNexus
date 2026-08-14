@@ -79,7 +79,7 @@ from .const import (
     UPDATE_INTERVAL,
 )
 from .exceptions import CannotConnect, InvalidAuth
-from .geraetetexte import SPRACHE_AUTO, SPRACHEN
+from .geraetetexte import SPRACHEN, sprache_aufloesen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -105,16 +105,6 @@ def benutzer_auswahl() -> SelectSelector:
             mode=SelectSelectorMode.DROPDOWN,
         )
     )
-
-
-def _sprache_vorwahl(gespeichert: str | None) -> str:
-    """Vorbelegung des Auswahlfelds für die Sprache.
-
-    Bestehende Einträge tragen dort „auto", das im Feld nicht mehr steht. Es
-    bedeutet Deutsch und wird dorthin aufgelöst; ohne diese Umsetzung stünde
-    das Feld ohne Vorauswahl da.
-    """
-    return gespeichert if gespeichert in SPRACHEN else "de"
 
 
 async def validate_connection(host: str, password: str, username: str = DEFAULT_USERNAME) -> list:
@@ -598,7 +588,7 @@ class WindhagerOptionsFlow(OptionsFlow):
             # „Unknown error occurred“ abbrechen lassen.
             options[CONF_MELDUNG_EINLESEN] = bool(user_input.get(CONF_MELDUNG_EINLESEN, False))
             options[CONF_HILFE] = bool(user_input.get(CONF_HILFE, True))
-            options[CONF_SPRACHE] = user_input.get(CONF_SPRACHE, SPRACHE_AUTO)
+            options[CONF_SPRACHE] = user_input.get(CONF_SPRACHE, "de")
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
             if gewaehlt:
                 options[CONF_AUSSENTEMPERATUR] = gewaehlt
@@ -623,13 +613,12 @@ class WindhagerOptionsFlow(OptionsFlow):
                         CONF_AUSSENTEMPERATUR,
                         description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
                     ): EntitySelector(EntitySelectorConfig(domain="sensor")),
-                    # Woher die Bezeichnungen kommen. Die Steuerung führt ihr
-                    # Textwerk in mehreren Sprachen mit. „Automatisch" steht
-                    # nicht zur Wahl, weil es dasselbe bedeutet wie Deutsch;
-                    # als gespeicherter Wert bestehender Einträge gilt es
-                    # weiter.
+                    # Woher die Bezeichnungen kommen. „Automatisch" steht nicht
+                    # zur Wahl, gilt als gespeicherter Wert aber weiter und
+                    # bedeutet Deutsch – dafür die Auflösung in der Vorwahl.
                     vol.Required(
-                        CONF_SPRACHE, default=_sprache_vorwahl(options.get(CONF_SPRACHE))
+                        CONF_SPRACHE,
+                        default=sprache_aufloesen(options.get(CONF_SPRACHE), None),
                     ): SelectSelector(
                         SelectSelectorConfig(
                             options=[

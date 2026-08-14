@@ -513,12 +513,9 @@ def _umfang_verkleinert(alt: dict[str, dict], neu: dict[str, dict]) -> bool:
     weg, weil ihn die Anlage nicht mehr liefert, steckt keine Entscheidung
     dahinter – dort wird nur stillgelegt.
 
-    **Abgeleitet, nicht aufgezählt.** Als Abwahl gilt jeder Schalter, der von
-    an auf aus ging, und jede Liste, die kürzer wurde. Eine Aufzählung der
-    einzelnen Optionen müsste bei jeder neuen nachgezogen werden; wo das
-    ausbleibt, bleiben deren Entitäten dauerhaft als abgeschaltete Zeilen in
-    der Übersicht stehen. Intervall, Zugang und Sprache sind weder Schalter
-    noch Liste und lösen deshalb nichts aus – sie entfernen auch keinen
+    Als Abwahl gilt jeder Schalter des Umfangs, der von an auf aus ging, und
+    jede Liste, aus der etwas verschwand. Was `_scope` sonst führt – Intervall,
+    Zugang, Sprache – ist weder Schalter noch Liste und entfernt auch keinen
     Datenpunkt.
     """
     for host, alt_umfang in alt.items():
@@ -527,10 +524,11 @@ def _umfang_verkleinert(alt: dict[str, dict], neu: dict[str, dict]) -> bool:
             return True
         for schluessel, alt_wert in alt_umfang.items():
             neu_wert = neu_umfang.get(schluessel)
-            if isinstance(alt_wert, bool):
-                if alt_wert and not neu_wert:
-                    return True
-            elif isinstance(alt_wert, (list, tuple, set)) and set(neu_wert or ()) < set(alt_wert):
+            if isinstance(alt_wert, bool) and alt_wert and not neu_wert:
+                return True
+            # Die Differenz statt der echten Teilmenge: Wer eine Ebene abwählt
+            # und gleichzeitig eine andere hinzunimmt, hat trotzdem abgewählt.
+            if isinstance(alt_wert, list) and set(alt_wert) - set(neu_wert or ()):
                 return True
     return False
 
