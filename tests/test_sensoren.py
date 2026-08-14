@@ -207,6 +207,17 @@ def test_meldungsliste_wird_nicht_gepollt(sensoren):
     assert sensoren.WindhagerMessageListSensor._register_poll_oid is False
 
 
+def test_meldungsliste_ist_verfuegbar_ohne_eigenen_datenpunkt(sensoren):
+    """Ihr Zustand ist die Länge der Liste, nicht ein Wert der Anlage.
+
+    Als wertlose Entität gälte sie dauerhaft als nicht verfügbar und zeigte
+    ihre Einträge nie an.
+    """
+    entity, koordinator = _liste(sensoren)
+    koordinator.last_update_success = True
+    assert entity.available is True
+
+
 def test_der_zustand_steht_im_attribut_nicht_im_text(sensoren):
     """`stoerung_aktiv` ist die Wahrheit, der angezeigte Text nur Anzeige.
 

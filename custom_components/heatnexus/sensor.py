@@ -436,6 +436,10 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
     _attr_native_unit_of_measurement = "Meldungen"
     # Quelle ist die /1-Discovery, nicht das OID-Polling.
     _register_poll_oid = False
+    # Der Zustand ist die Länge der eigenen Liste, kein Wert der Anlage. Ohne
+    # das gälte die Entität als wertlos und damit dauerhaft als nicht
+    # verfügbar – auch dann, wenn sie Einträge führt.
+    _require_value_for_available = False
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
