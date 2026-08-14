@@ -6,6 +6,35 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.8.0] - 2026-08-14
+
+Bezeichnungen in der Sprache von Home Assistant und eine Erkennung, die auch
+Anlagenteile findet, die sich nicht selbst ankündigen. Die Abschnitte der fünf
+Vorabversionen darunter führen jede Änderung einzeln auf; hier stehen die
+Neuerungen gegenüber 1.7.0.
+
+### Neu
+
+- Bezeichnungen folgen der Sprache von Home Assistant: Deutsch, Englisch, Französisch, Italienisch.
+- Die Sprache der Bezeichnungen lässt sich in den Einstellungen festlegen.
+- Datenpunkte ohne Namen in der Datenbank heißen jetzt wie an der Anlage.
+- Anlagenteile, die sich nicht selbst ankündigen, werden trotzdem erkannt.
+
+### Geändert
+
+- Ein Sprachwechsel ändert auch die Zustandstexte von Aufzählungen.
+- Nach einem Sprachwechsel meldet HeatNexus den nötigen Neustart.
+
+### Behoben
+
+- Anlagen mit vielen Datenpunkten hörten dauerhaft auf, Werte zu lesen ([#2](https://github.com/xIceTea/HeatNexus/issues/2)).
+- Abgelehnte Datenpunkte standen nach einem Neustart wieder im Abruf ([#2](https://github.com/xIceTea/HeatNexus/issues/2)).
+- Der Brennstoffverbrauch in Tonnen löste beim Start eine Warnung aus ([#3](https://github.com/xIceTea/HeatNexus/issues/3)).
+- Werte in Litern je Stunde lösten dieselbe Warnung aus.
+- Beim Automatik-/Zusatzkessel fehlten Betriebswahl und Alarmcode.
+- Bei nur einer Anlage fehlte der Zugang zu den allgemeinen Einstellungen.
+- Die Anordnung der Karten im Reiter „Hilfe" wurde nicht gespeichert.
+
 ## [1.8.0-beta.5] - 2026-08-13
 
 ### Behoben
