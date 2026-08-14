@@ -23,6 +23,7 @@ from .const import ERROR_TEXTS
 from .entity import MeldungsQuelle, WindhagerEntity, async_setup_entities
 from .error_texts import parse_messages
 from .exceptions import WindhagerValueError
+from .helpers import get_oid_value
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,6 +110,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "message_list": WindhagerMessageListSensor,
             "total": WindhagerPelletSensor,
             "total_increasing": WindhagerPelletSensor,
+            "zaehler_heute": WindhagerAbleitungSensor,
+            "zaehler_start": WindhagerAbleitungSensor,
         },
     )
 
@@ -233,6 +236,92 @@ class WindhagerPelletSensor(WindhagerEntity, SensorEntity):
     def native_value(self) -> float | None:
         wert = self.float_value
         return wert if wert is not None else _zahl(self.letzter_zustand)
+
+
+class WindhagerAbleitungSensor(WindhagerEntity, SensorEntity):
+    """Zuwachs eines Zählerstands seit einem Bezugspunkt.
+
+    Bezug ist der Tagesbeginn oder der letzte Brennerstart; die Anlage selbst
+    führt nur Gesamtstände. Gelesen wird die Adresse des Zählers, ohne einen
+    zusätzlichen Abruf.
+    """
+
+    _attr_state_class = SensorStateClass.TOTAL
+
+    def __init__(self, coordinator: Any, device_info: dict) -> None:
+        super().__init__(coordinator, device_info)
+        self._attr_native_unit_of_measurement = device_info.get("unit")
+        device_class = device_info.get("device_class")
+        if device_class in DEVICE_CLASSES:
+            self._attr_device_class = SensorDeviceClass(device_class)
+        self._ausloeser_oid = device_info.get("ausloeser_oid")
+        self._basis: float | None = None
+        self._marke: str | None = None
+
+    @property
+    def _bezugsmarke(self) -> str | None:
+        """Woran der Bezugspunkt hängt: Tagesdatum oder Stand der Brennerstarts."""
+        if self._ausloeser_oid is None:
+            return dt_util.now().date().isoformat()
+        stand = get_oid_value(self.coordinator, self._ausloeser_oid)
+        return None if stand is None else str(stand)
+
+    async def async_added_to_hass(self) -> None:
+        """Bezugspunkt aus dem letzten Zustand übernehmen, Auslöser anmelden."""
+        await super().async_added_to_hass()
+        if self._ausloeser_oid:
+            self.coordinator.client.register_poll_oid(self._ausloeser_oid)
+        alt = await self.async_get_last_state()
+        if alt is None:
+            return
+        self._basis = _zahl(alt.attributes.get("basis"))
+        self._marke = alt.attributes.get("marke")
+        with contextlib.suppress(TypeError, ValueError):
+            self._attr_last_reset = dt_util.parse_datetime(alt.attributes.get("last_reset") or "")
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Den Auslöser wieder abmelden."""
+        if self._ausloeser_oid:
+            self.coordinator.client.unregister_poll_oid(self._ausloeser_oid)
+        await super().async_will_remove_from_hass()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Vor dem Schreiben prüfen, ob der Bezugspunkt weiterrückt."""
+        self._bezugspunkt_pruefen()
+        super()._handle_coordinator_update()
+
+    def _bezugspunkt_pruefen(self) -> None:
+        wert = self.float_value
+        if wert is None:
+            return
+        marke = self._bezugsmarke
+        if marke is None and self._ausloeser_oid:
+            # Der Auslöser ist noch nicht gelesen; ohne ihn kein Bezugspunkt.
+            return
+        # Ein kleinerer Stand heißt: Der Zähler der Anlage hat neu begonnen.
+        if self._basis is None or marke != self._marke or wert < self._basis:
+            self._basis = wert
+            self._marke = marke
+            self._attr_last_reset = (
+                dt_util.utcnow() if self._ausloeser_oid else dt_util.start_of_local_day()
+            )
+
+    @property
+    def native_value(self) -> float | None:
+        wert = self.float_value
+        if wert is None or self._basis is None:
+            return None
+        return round(wert - self._basis, 3)
+
+    @property
+    def extra_state_attributes(self):
+        """Der Bezugspunkt überlebt einen Neustart nur, wenn er im Zustand steht."""
+        return {
+            "basis": self._basis,
+            "marke": self._marke,
+            "last_reset": self._attr_last_reset.isoformat() if self._attr_last_reset else None,
+        }
 
 
 class WindhagerErrorTextSensor(WindhagerEntity, SensorEntity):

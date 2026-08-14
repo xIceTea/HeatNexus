@@ -14,6 +14,7 @@ from yarl import URL
 from . import geraetetexte
 from .const import (
     ADVANCED_LEVELS,
+    BRENNERSTARTS_OID,
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
     EXTRA_OIDS_BY_FCT,
@@ -205,6 +206,8 @@ class WindhagerHttpClient:
         # Dynamisch von tatsächlich aktivierten Entities registrierte OIDs
         # (z.B. eine vom Nutzer eingeschaltete Service-Entity).
         self._dynamic_oids: set = set()
+        # Wie viele Entitäten eine dynamisch angemeldete Adresse brauchen.
+        self._oid_nutzer: dict[str, int] = {}
         # Zeitprogramme (typeId 30) werden nicht über lookup, sondern über den
         # object-Endpunkt gelesen. Liste der Programm-Deskriptoren + Flag, ob
         # das Gerät den object-Endpunkt lokal unterstützt (None = noch ungetestet).
@@ -268,9 +271,20 @@ class WindhagerHttpClient:
         """Eine Entity meldet ihre OID zum zyklischen Polling an."""
         if oid and oid not in self._abgemeldet:
             self._dynamic_oids.add(oid)
+            self._oid_nutzer[oid] = self._oid_nutzer.get(oid, 0) + 1
 
     def unregister_poll_oid(self, oid: str) -> None:
-        """Eine entfernte/deaktivierte Entity meldet ihre OID ab."""
+        """Eine entfernte/deaktivierte Entity meldet ihre OID ab.
+
+        Gezählt wird, wer sie braucht: Ein Zählerstand und seine Ableitungen
+        lesen dieselbe Adresse, und die eine abzuschalten darf die andere nicht
+        blind stellen.
+        """
+        offen = self._oid_nutzer.get(oid, 0) - 1
+        if offen > 0:
+            self._oid_nutzer[oid] = offen
+            return
+        self._oid_nutzer.pop(oid, None)
         self._dynamic_oids.discard(oid)
 
     async def _ensure_session(self):
@@ -1451,7 +1465,54 @@ class WindhagerHttpClient:
         self.oids -= missing
         await self._nv_ohne_fuehler_verwerfen()
         self._nv_doppelte_stilllegen()
+        self._abgeleitete_zaehler()
         self._namen_vereindeutigen()
+
+    # Zählerstände, aus denen sich ein Zuwachs bilden lässt.
+    _ZAEHLERKLASSEN = ("total", "total_increasing")
+    _ABLEITUNGEN = (("heute", "zaehler_heute", "heute"), ("start", "zaehler_start", "seit Start"))
+
+    def _abgeleitete_zaehler(self) -> None:
+        """Je Zählerstand zwei Zuwächse: heute und seit dem letzten Brennerstart.
+
+        Die Anlage führt nur Gesamtstände. Der Zuwachs entsteht deshalb hier,
+        aus derselben Adresse – ohne einen zusätzlichen Abruf.
+        """
+        # Brennerstarts sind der Bezugspunkt: Steigt der Stand, brennt es neu.
+        ausloeser = {
+            d["device_id"]: d["oid"]
+            for d in self.devices
+            if d.get("device_id") and str(d.get("oid") or "").endswith(BRENNERSTARTS_OID)
+        }
+        neu = []
+        for d in self.devices:
+            if not d.get("oid") or not d.get("name"):
+                continue
+            if d.get("state_class") not in self._ZAEHLERKLASSEN:
+                continue
+            for endung, typ, zusatz in self._ABLEITUNGEN:
+                bezug = ausloeser.get(d.get("device_id"))
+                if typ == "zaehler_start" and not bezug:
+                    continue
+                neu.append(
+                    self._deskriptor(
+                        id=f"{d['id']}-{endung}",
+                        alt_id=f"{d.get('alt_id') or d['id']}-{endung}",
+                        oid=d["oid"],
+                        type=typ,
+                        name=f"{d['name']} {zusatz}",
+                        unit=d.get("unit"),
+                        device_class=d.get("device_class"),
+                        ausloeser_oid=bezug,
+                        icon=d.get("icon"),
+                        enabled_default=False,
+                        device_id=d.get("device_id"),
+                        alt_device_id=d.get("alt_device_id"),
+                        device_name=d.get("device_name"),
+                        fct_type=d.get("fct_type"),
+                    )
+                )
+        self.devices += neu
 
     def _namen_vereindeutigen(self) -> None:
         """Gleichnamige Datenpunkte eines Geräts unterscheidbar machen.
@@ -1734,6 +1795,7 @@ class WindhagerHttpClient:
             _LOGGER.info("Datenpunkt %s wird nicht mehr abgefragt: %s", oid, grund or status)
         self.poll_oids.discard(oid)
         self._dynamic_oids.discard(oid)
+        self._oid_nutzer.pop(oid, None)
         self._rest.discard(oid)
         return True
 

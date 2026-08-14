@@ -53,6 +53,8 @@ NUR_LESEND = {
     "binary_sensor",
     "total",
     "total_increasing",
+    "zaehler_heute",
+    "zaehler_start",
 }
 
 

@@ -524,6 +524,10 @@ ENUMS: dict[str, dict[int, str]] = {}
 # (verified against connect.windhager.com and the local device).
 # ---------------------------------------------------------------------------
 
+# Zählerstand der Brennerstarts, relativ zum Funktionspräfix. Er ist zugleich
+# der Bezugspunkt der abgeleiteten Zähler: Steigt er, beginnt ein neuer Brand.
+BRENNERSTARTS_OID = "/2/80/0"
+
 PUROWIN_ENTITIES = [
     # --- Infoebene / Übersicht (read only) ---
     {"oid": "/0/7/0", "name": "Kesseltemperatur Ist", "platform": "temperature"},
@@ -547,7 +551,7 @@ PUROWIN_ENTITIES = [
     {"oid": "/2/1/0", "name": "Betriebsphase", "platform": "enum_sensor", "enum": "2/1"},
     {"oid": "/2/59/0", "name": "Betriebsart", "platform": "enum_sensor", "enum": "2/59"},
     {
-        "oid": "/2/80/0",
+        "oid": BRENNERSTARTS_OID,
         "name": "Brennerstarts",
         "platform": "sensor",
         "state_class": "total_increasing",
@@ -1160,7 +1164,7 @@ BIOWIN_ENTITIES = [
     {"oid": "/2/1/0", "name": "Betriebsphase", "platform": "enum_sensor", "enum": "2/1"},
     {"oid": "/2/59/0", "name": "Betriebsart", "platform": "enum_sensor", "enum": "2/59"},
     {
-        "oid": "/2/80/0",
+        "oid": BRENNERSTARTS_OID,
         "name": "Brennerstarts",
         "platform": "sensor",
         "state_class": "total_increasing",
