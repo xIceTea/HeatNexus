@@ -31,6 +31,7 @@ import voluptuous as vol
 
 from .const import DOMAIN
 from .helpers import ordnung_anwenden  # noqa: F401  (Teil der Schnittstelle dieses Moduls)
+from .schema import FARBSAETZE
 
 # Fassung des Speicherformats. Wird sie erhöht, muss `_async_migrate_func`
 # eines Stores die alten Daten übersetzen – bis dahin gibt es nur die 1.
@@ -45,6 +46,10 @@ ANORDNUNG_STORE_KEY = f"{DOMAIN}.anordnung"
 # fehlt, lässt sich seine Karte zwar verschieben und verbreitern – gespeichert
 # wird nichts, und beim nächsten Öffnen steht wieder der Standard.
 REITER = ("uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme", "hilfe")
+
+# Neben den Reitern steht je Benutzer ein Satz Einstellungen, die für die
+# ganze Oberfläche gelten. Der Schlüssel darf keinem Reiter gleichen.
+EINSTELLUNGEN = "einstellungen"
 
 # 0 heißt „automatisch": so viele Spalten, wie nebeneinander passen.
 SPALTEN_AUTO = 0
@@ -78,6 +83,9 @@ REITER_SCHEMA = vol.Schema(
         ),
     }
 )
+
+
+EINSTELLUNGEN_SCHEMA = vol.Schema({vol.Optional("farbsatz"): vol.In(FARBSAETZE)})
 
 
 def _store(hass: HomeAssistant) -> Store:
@@ -117,6 +125,17 @@ async def anordnung_setzen(
     alle = dict(await _laden(hass))
     eigene = dict(alle.get(benutzer_id) or {})
     eigene[reiter] = anordnung
+    alle[benutzer_id] = eigene
+    await _sichern(hass, alle)
+
+
+async def einstellungen_setzen(
+    hass: HomeAssistant, benutzer_id: str, einstellungen: dict[str, Any]
+) -> None:
+    """Die Einstellungen eines Benutzers ergänzen – Reiter bleiben unberührt."""
+    alle = dict(await _laden(hass))
+    eigene = dict(alle.get(benutzer_id) or {})
+    eigene[EINSTELLUNGEN] = {**(eigene.get(EINSTELLUNGEN) or {}), **einstellungen}
     alle[benutzer_id] = eigene
     await _sichern(hass, alle)
 
@@ -164,6 +183,19 @@ async def _ws_setzen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> No
 
 @websocket_api.websocket_command(
     {
+        vol.Required("type"): f"{DOMAIN}/anordnung/einstellungen",
+        vol.Required("einstellungen"): EINSTELLUNGEN_SCHEMA,
+    }
+)
+@websocket_api.async_response
+async def _ws_einstellungen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
+    """Eine Einstellung der Oberfläche übernehmen."""
+    await einstellungen_setzen(hass, connection.user.id, msg["einstellungen"])
+    connection.send_result(msg["id"], {"gespeichert": True})
+
+
+@websocket_api.websocket_command(
+    {
         vol.Required("type"): f"{DOMAIN}/anordnung/zuruecksetzen",
         vol.Optional("reiter"): vol.In(REITER),
     }
@@ -177,10 +209,11 @@ async def _ws_zuruecksetzen(hass: HomeAssistant, connection, msg: dict[str, Any]
 
 @callback
 def async_register_anordnung(hass: HomeAssistant) -> None:
-    """Die drei Befehle anmelden – einmal je Start."""
+    """Die Befehle anmelden – einmal je Start."""
     if hass.data.get(f"{DOMAIN}_anordnung_ws"):
         return
     websocket_api.async_register_command(hass, _ws_lesen)
     websocket_api.async_register_command(hass, _ws_setzen)
+    websocket_api.async_register_command(hass, _ws_einstellungen)
     websocket_api.async_register_command(hass, _ws_zuruecksetzen)
     hass.data[f"{DOMAIN}_anordnung_ws"] = True

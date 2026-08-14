@@ -18,6 +18,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Jedes Anlagenteil hat eine Taste, die seine Werte sofort liest.
 - Automations-Vorlagen lassen sich einzeln abwählen.
 - Jedes Anlagenteil meldet seine Störung als eigenen Sensor.
+- Zu jedem Zählerstand gibt es den Zuwachs heute und seit dem letzten Brennerstart.
+- Die Farben des Schaubilds sind wählbar, neu mit einem Kontrastsatz.
 
 ### Geändert
 
@@ -29,6 +31,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Sondenlauf brach an Anlagen ab, deren größte Menü-Ebene keine Datenpunktadressen führt.
 - Zählerstände und Restlaufzeiten fehlten nach dem Einlesen eine Viertelstunde lang.
 - Ein einzelner misslungener Abruf löschte den zuletzt gelesenen Wert.
+- Die Meldungsliste stand dauerhaft auf „nicht verfügbar".
 - Eine Abwahl wirkte nur bis zum nächsten Neustart.
 - Ein abgeschalteter Bus lässt keine abgeschalteten Zeilen mehr zurück.
 

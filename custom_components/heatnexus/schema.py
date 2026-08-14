@@ -101,8 +101,33 @@ FARBEN_HELL: dict[str, str] = {
     "schrift": SCHRIFT,
 }
 
+# Dritter Satz: kräftige Farben und dunkle Kanten auf hellem Grund, für
+# Bildschirme im Heizraum und für Augen, denen die feinen Abstufungen der
+# beiden anderen Sätze zerfließen.
+FARBEN_KONTRAST: dict[str, str] = {
+    "vorlauf": "#b3130b",
+    "ruecklauf": "#0b3ea8",
+    "rahmen": "#2b3440",
+    "text": "#101820",
+    "titel": "#000000",
+    "korpus": "#ffffff",
+    "korpus_hell": "#ffffff",
+    "korpus_dunkel": "#d7dee6",
+    "warm": "#8f1108",
+    # Muss `vorlauf` entsprechen – siehe `FARBEN_HELL`.
+    "glut": "#b3130b",
+    "kalt": "#0b3ea8",
+    "schrift": SCHRIFT,
+}
+
 THEMA_DUNKEL = "dunkel"
 THEMA_HELL = "hell"
+THEMA_KONTRAST = "kontrast"
+
+# Was die Oberfläche anbieten darf. `auto` folgt dem Erscheinungsbild von Home
+# Assistant, die übrigen legen den Satz fest.
+FARBSATZ_AUTO = "auto"
+FARBSAETZE = (FARBSATZ_AUTO, THEMA_DUNKEL, THEMA_HELL, THEMA_KONTRAST)
 
 # Lage der Live-Werte je Anlagenart. Zwei Werte stehen ober- und unterhalb der
 # Mitte, einer mittig. Bauteile mit anderer Form dürfen abweichen.
@@ -978,41 +1003,44 @@ def _svg(module: list[dict[str, Any]], kesselart: str | None) -> tuple[str, int]
     return "".join(teile), breite
 
 
-def _helle_entsprechung() -> dict[str, str]:
-    """Dunkle Farbe -> helle Farbe, für den Austausch im fertigen Bild.
+def _entsprechung(ziel: dict[str, str]) -> dict[str, str]:
+    """Dunkle Farbe -> Farbe des Zielsatzes, für den Austausch im fertigen Bild.
 
     Zwei Rollen dürfen sich einen dunklen Wert teilen (``vorlauf`` und ``glut``
-    sind beide ``#e2543a``) – dann müssen sie sich auch den hellen teilen. Sonst
-    entschiede die Reihenfolge im Wörterbuch darüber, welche Farbe gewinnt, und
-    eine der beiden Rollen bekäme still die falsche.
+    sind beide ``#e2543a``); dann teilen sie sich auch den neuen, sonst
+    entscheidet die Reihenfolge im Wörterbuch, welche Rolle die falsche bekommt.
     """
     abbildung: dict[str, str] = {}
     for name, dunkel in FARBEN.items():
         if name == "schrift":
             continue
-        hell = FARBEN_HELL[name]
-        if abbildung.setdefault(dunkel, hell) != hell:
+        neu = ziel[name]
+        if abbildung.setdefault(dunkel, neu) != neu:
             raise ValueError(
-                f"{dunkel} soll gleichzeitig {abbildung[dunkel]} und {hell} werden "
+                f"{dunkel} soll gleichzeitig {abbildung[dunkel]} und {neu} werden "
                 f"(Rolle {name}) – im fertigen Bild ist das nicht zu unterscheiden."
             )
     return abbildung
 
 
-_HELLE_ENTSPRECHUNG = _helle_entsprechung()
-_FARBSTELLE = re.compile("|".join(sorted(map(re.escape, _HELLE_ENTSPRECHUNG), reverse=True)))
+_ENTSPRECHUNGEN = {
+    THEMA_HELL: _entsprechung(FARBEN_HELL),
+    THEMA_KONTRAST: _entsprechung(FARBEN_KONTRAST),
+}
+_FARBSTELLE = re.compile("|".join(sorted(map(re.escape, FARBEN.values()), reverse=True)))
 
 
 def farben_umstellen(svg: str, thema: str | None) -> str:
-    """Ein fertiges Schaubild auf den hellen Farbsatz umstellen.
+    """Ein fertiges Schaubild auf einen anderen Farbsatz umstellen.
 
     In **einem** Durchgang, nicht als Kette einzelner Ersetzungen: Sonst könnte
-    eine gerade eingesetzte helle Farbe von der nächsten Regel noch einmal
-    getroffen werden.
+    eine gerade eingesetzte Farbe von der nächsten Regel noch einmal getroffen
+    werden. Der dunkle Satz steht schon im Bild.
     """
-    if thema != THEMA_HELL:
+    abbildung = _ENTSPRECHUNGEN.get(thema or "")
+    if abbildung is None:
         return svg
-    return _FARBSTELLE.sub(lambda treffer: _HELLE_ENTSPRECHUNG[treffer.group(0)], svg)
+    return _FARBSTELLE.sub(lambda treffer: abbildung.get(treffer.group(0), treffer.group(0)), svg)
 
 
 def _datenadresse(svg: str) -> str:
@@ -1294,6 +1322,9 @@ def anlagenschema(
         "type": "picture-elements",
         "image": _datenadresse(farben_umstellen(svg, THEMA_HELL)),
         "dark_mode_image": _datenadresse(svg),
+        # Der dritte Satz gilt nur in der eigenen Oberfläche; die
+        # `picture-elements`-Karte kennt nur hell und dunkel.
+        "kontrast_image": _datenadresse(farben_umstellen(svg, THEMA_KONTRAST)),
         "elements": elemente,
         "leitungen": leitungen,
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht

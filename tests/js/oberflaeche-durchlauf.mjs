@@ -155,7 +155,22 @@ const schaubild = huelle ? huelle.querySelector("img") : null;
 const beiDunkel = schaubild ? schaubild.src : null;
 hass.themes = { darkMode: false };
 flaeche._aktualisieren();
-bilanz.schaubild = { dunkel: beiDunkel, hell: schaubild ? schaubild.src : null };
+const beiHell = schaubild ? schaubild.src : null;
+// Eine eigene Wahl schlägt das Erscheinungsbild: dunkles Bild trotz hellem HA.
+flaeche._anordnung = { ...flaeche._anordnung, einstellungen: { farbsatz: "kontrast" } };
+flaeche._aktualisieren();
+const beiKontrast = schaubild ? schaubild.src : null;
+flaeche._anordnung = { ...flaeche._anordnung, einstellungen: { farbsatz: "dunkel" } };
+flaeche._aktualisieren();
+const beiWahlDunkel = schaubild ? schaubild.src : null;
+flaeche._anordnung = { ...flaeche._anordnung, einstellungen: {} };
+flaeche._aktualisieren();
+bilanz.schaubild = {
+  dunkel: beiDunkel,
+  hell: beiHell,
+  kontrast: beiKontrast,
+  wahlDunkel: beiWahlDunkel,
+};
 
 // Anordnen-Modus: eigener Zweig mit Griffen, Menü und Speicherauftrag.
 flaeche._reiter = "uebersicht";

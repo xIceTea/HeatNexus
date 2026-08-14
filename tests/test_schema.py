@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from pathlib import Path
 import re
 from xml.etree import ElementTree
 
@@ -996,11 +997,50 @@ def test_ohne_helles_thema_bleibt_das_bild_wie_es_ist(schema, anlage):
 def test_geteilte_dunkle_farbe_muss_hell_geteilt_bleiben(schema, monkeypatch):
     """`vorlauf` und `glut` sind beide `#e2543a`.
 
-    Im fertigen Bild ist nicht mehr zu erkennen, welche Rolle eine Farbe hatte.
-    Bekämen die beiden verschiedene helle Werte, entschiede die Reihenfolge im
-    Wörterbuch – und eine der beiden Rollen bekäme still die falsche Farbe.
+    Im fertigen Bild ist nicht mehr zu erkennen, welche Rolle eine Farbe hatte;
+    verschiedene helle Werte gäben einer der beiden still die falsche Farbe.
     """
     assert schema.FARBEN["vorlauf"] == schema.FARBEN["glut"]
     monkeypatch.setitem(schema.FARBEN_HELL, "glut", "#123456")
     with pytest.raises(ValueError, match="nicht zu unterscheiden"):
-        schema._helle_entsprechung()
+        schema._entsprechung(schema.FARBEN_HELL)
+
+
+# ---------------------------------------------------------------------------
+# Dritter Farbsatz: Kontrast
+# ---------------------------------------------------------------------------
+def test_jede_rolle_hat_eine_kontrastentsprechung(schema):
+    assert set(schema.FARBEN) == set(schema.FARBEN_KONTRAST)
+
+
+def test_das_kontrastbild_liegt_der_karte_bei(schema, anlage):
+    karte = schema.anlagenschema(anlage)
+    assert karte["kontrast_image"] not in (karte["image"], karte["dark_mode_image"])
+
+
+def test_im_kontrastbild_bleibt_kein_dunkler_farbwert(schema, anlage):
+    kontrast = schema.farben_umstellen(_svg_von(schema, anlage), schema.THEMA_KONTRAST)
+    for rolle, farbe in schema.FARBEN.items():
+        if rolle == "schrift":
+            continue
+        assert farbe not in kontrast, f"{rolle} steht noch mit {farbe} im Bild"
+
+
+def test_der_kontrastwechsel_aendert_nur_farben(schema, anlage):
+    dunkel = _svg_von(schema, anlage)
+    kontrast = schema.farben_umstellen(dunkel, schema.THEMA_KONTRAST)
+    ohne_farben = re.compile(r"#[0-9a-f]{6}\b")
+    assert ohne_farben.sub("#", dunkel) == ohne_farben.sub("#", kontrast)
+
+
+def test_ein_unbekannter_satz_laesst_das_bild_unveraendert(schema, anlage):
+    """Nur so bleibt eine falsche Angabe folgenlos statt farblos."""
+    dunkel = _svg_von(schema, anlage)
+    assert schema.farben_umstellen(dunkel, "gibtsnicht") == dunkel
+
+
+def test_die_oberflaeche_kennt_dieselben_saetze(schema):
+    """`ordnung.js` bietet an, was `anordnung.py` speichern darf."""
+    text = (Path(schema.__file__).parent / "frontend" / "ordnung.js").read_text(encoding="utf-8")
+    for satz in schema.FARBSAETZE:
+        assert f'schluessel: "{satz}"' in text, f"{satz} fehlt in ordnung.js"

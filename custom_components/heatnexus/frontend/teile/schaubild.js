@@ -13,13 +13,29 @@ export const SchaubildMixin = (Basis) =>
   // -------------------------------------------------------------------
   // Schaubild
   // -------------------------------------------------------------------
+  /**
+   * Welcher Farbsatz gezeigt wird.
+   *
+   * `auto` folgt Home Assistant; ohne dessen Auskunft bleibt es beim dunklen
+   * Satz, denn ein falsch geratenes Hell fiele stärker auf.
+   */
+  _schemaBild(anlage) {
+    const wahl = this._farbsatz ? this._farbsatz() : "auto";
+    if (wahl === "kontrast" && anlage.schema_kontrast) return anlage.schema_kontrast;
+    if (wahl === "hell") return anlage.schema_hell || anlage.schema;
+    if (wahl === "dunkel") return anlage.schema;
+    const themen = this._hass && this._hass.themes;
+    return themen && themen.darkMode === false ? anlage.schema_hell : anlage.schema;
+  }
+
   _schaubild(anlage) {
     if (!anlage.schema) return null;
     const karte = this._karte("Anlagenübersicht");
     const huelle = document.createElement("div");
     huelle.className = "schaubild";
     const bild = document.createElement("img");
-    bild.src = anlage.schema;
+    const anfangsbild = this._schemaBild(anlage);
+    bild.src = anfangsbild;
     bild.alt = "Anlagenschaubild";
     huelle.appendChild(bild);
 
@@ -33,12 +49,9 @@ export const SchaubildMixin = (Basis) =>
       // Gemerkt statt am Bild abgelesen: Ein `<img>` macht aus der Daten-URL
       // beim Zurücklesen nicht zwingend dieselbe Zeichenfolge, und ein
       // vermeintlicher Unterschied setzte die Quelle bei jedem Abgleich neu.
-      let gezeigt = anlage.schema;
+      let gezeigt = anfangsbild;
       this._bindungen.push(() => {
-        const themen = this._hass && this._hass.themes;
-        // Ohne Auskunft bleibt es beim dunklen Satz – ein falsch geratenes
-        // Hell fiele stärker auf.
-        const gewuenscht = themen && themen.darkMode === false ? anlage.schema_hell : anlage.schema;
+        const gewuenscht = this._schemaBild(anlage);
         if (gewuenscht !== gezeigt) {
           gezeigt = gewuenscht;
           bild.src = gewuenscht;

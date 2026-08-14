@@ -9,7 +9,14 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { BREITE_MAX, REITER, SPEICHERN_MS, ordnungAnwenden, reihenfolgeMischen } from "../ordnung.js";
+import {
+  BREITE_MAX,
+  FARBSAETZE,
+  REITER,
+  SPEICHERN_MS,
+  ordnungAnwenden,
+  reihenfolgeMischen,
+} from "../ordnung.js";
 
 export const AnordnenMixin = (Basis) =>
   class extends Basis {
@@ -19,6 +26,27 @@ export const AnordnenMixin = (Basis) =>
   /** Die gespeicherte Anordnung des aktuellen Reiters. */
   _reiterAnordnung() {
     return (this._anordnung && this._anordnung[this._reiter]) || {};
+  }
+
+  /** Die Einstellungen der Oberfläche – sie gelten über alle Reiter. */
+  _einstellungen() {
+    return (this._anordnung && this._anordnung.einstellungen) || {};
+  }
+
+  /** Der gewählte Farbsatz des Schaubilds. */
+  _farbsatz() {
+    return this._einstellungen().farbsatz || "auto";
+  }
+
+  /** Einen Farbsatz wählen, sofort anzeigen und sichern. */
+  _farbsatzSetzen(farbsatz) {
+    const einstellungen = { ...this._einstellungen(), farbsatz };
+    this._anordnung = { ...this._anordnung, einstellungen };
+    this._gebaut = false;
+    this._zeichnen();
+    this._hass
+      .callWS({ type: "heatnexus/anordnung/einstellungen", einstellungen: { farbsatz } })
+      .catch((err) => console.warn("HeatNexus: Farbsatz konnte nicht gespeichert werden", err));
   }
 
   /**
@@ -351,6 +379,25 @@ export const AnordnenMixin = (Basis) =>
       wahl.appendChild(taste);
     });
     leiste.appendChild(wahl);
+
+    // Der Farbsatz des Schaubilds gilt für die ganze Oberfläche, nicht nur
+    // für diesen Reiter. Er steht hier, weil es der Ort ist, an dem man die
+    // Ansicht einrichtet.
+    const farben = document.createElement("div");
+    farben.className = "spaltenwahl farbwahl";
+    farben.setAttribute("role", "group");
+    farben.setAttribute("aria-label", "Farben des Schaubilds");
+    const gewaehlt = this._farbsatz();
+    FARBSAETZE.forEach(({ schluessel, titel, hinweis }) => {
+      const taste = document.createElement("button");
+      taste.type = "button";
+      taste.textContent = titel;
+      taste.title = hinweis;
+      taste.setAttribute("aria-pressed", String(schluessel === gewaehlt));
+      taste.addEventListener("click", () => this._farbsatzSetzen(schluessel));
+      farben.appendChild(taste);
+    });
+    leiste.appendChild(farben);
 
     const fertig = document.createElement("button");
     fertig.type = "button";

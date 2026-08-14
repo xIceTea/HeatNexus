@@ -266,6 +266,14 @@ def test_das_schaubild_folgt_dem_erscheinungsbild(durchlauf, aufteilung):
     assert schaubild["hell"] != schaubild["dunkel"]
 
 
+def test_die_eigene_wahl_schlaegt_das_erscheinungsbild(durchlauf, aufteilung):
+    """Wer einen Farbsatz wählt, bekommt ihn – auch gegen das helle Thema."""
+    anlage = aufteilung["anlagen"][0]
+    schaubild = durchlauf["schaubild"]
+    assert schaubild["kontrast"] == anlage["schema_kontrast"]
+    assert schaubild["wahlDunkel"] == anlage["schema"]
+
+
 # ---------------------------------------------------------------------------
 # Warmwasserladung abbrechen
 #

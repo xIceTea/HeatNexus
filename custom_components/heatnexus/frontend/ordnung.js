@@ -89,6 +89,16 @@ export const REITER = [
   { schluessel: "hilfe", titel: "Hilfe", symbol: "mdi:help-circle-outline" },
 ];
 
+// Farbsätze des Schaubilds. Die Schlüssel decken sich mit `schema.FARBSAETZE`
+// auf der Serverseite - was hier gewählt wird, muss dort gespeichert werden
+// können.
+export const FARBSAETZE = [
+  { schluessel: "auto", titel: "Auto", hinweis: "Folgt dem Erscheinungsbild von Home Assistant" },
+  { schluessel: "dunkel", titel: "Dunkel", hinweis: "Immer der dunkle Satz" },
+  { schluessel: "hell", titel: "Hell", hinweis: "Immer der helle Satz" },
+  { schluessel: "kontrast", titel: "Kontrast", hinweis: "Kräftige Farben auf hellem Grund" },
+];
+
 // Wochentage, wie die Anlage sie schreibt, mit deutscher Beschriftung. Die
 // Reihenfolge ist die der Woche - die Anlage liefert sie unsortiert.
 export const WOCHENTAGE = [
