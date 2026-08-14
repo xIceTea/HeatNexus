@@ -147,6 +147,69 @@ def test_die_oberflaeche_findet_auch_ohne_deutsche_namen(panel):
     assert "sensor.boiler_temperature" in daten["verlauf"]
 
 
+def test_die_laufzeit_verdraengt_den_betriebszustand_nicht(panel):
+    """Beide sitzen auf derselben Adresse, gesucht ist die Betriebsphase.
+
+    Die Ableitung stand alphabetisch vor ihrer Quelle und hatte einen Wert –
+    damit gewann sie die Zeile, und der Betriebszustand zeigte Minuten.
+    """
+    kessel = teil(
+        "PuroWIN",
+        25,
+        [
+            entitaet(
+                "sensor.aktuelle_laufzeit",
+                "Aktuelle Laufzeit",
+                schluessel="operating_phase_runtime",
+            ),
+            entitaet("sensor.betriebsphase", "Betriebsphase", schluessel="operating_phase"),
+        ],
+    )
+
+    zeilen = {z["titel"]: z["entity"] for z in panel._anlage_daten(anlage(kessel))["status"]}
+
+    assert zeilen["Betriebszustand"] == "sensor.betriebsphase"
+
+
+def test_die_stoerung_nennt_ihren_melder(panel):
+    """Der Klartext sagt was, der Ja/Nein-Sensor daneben sagt ob."""
+    kessel = teil(
+        "PuroWIN",
+        25,
+        [
+            entitaet("sensor.meldung_klartext", "Meldung Klartext", kategorie="diagnostic"),
+            entitaet(
+                "binary_sensor.stoerung_gemeldet",
+                "Störung gemeldet",
+                kategorie="diagnostic",
+            ),
+        ],
+    )
+
+    stoerungen = panel._anlage_daten(anlage(kessel))["stoerungen"]
+
+    assert stoerungen == [
+        {
+            "entity": "sensor.meldung_klartext",
+            "titel": "Meldung Klartext",
+            "melder": "binary_sensor.stoerung_gemeldet",
+        }
+    ]
+
+
+def test_ohne_melder_bleibt_die_stoerung_bestehen(panel):
+    """Ein Erkennungsstand von vor dem Ja/Nein-Sensor führt ihn nicht."""
+    kessel = teil(
+        "PuroWIN",
+        25,
+        [entitaet("sensor.meldung_klartext", "Meldung Klartext", kategorie="diagnostic")],
+    )
+
+    stoerungen = panel._anlage_daten(anlage(kessel))["stoerungen"]
+
+    assert stoerungen[0]["melder"] is None
+
+
 def test_wert_hat_vorrang_vor_wertloser_entitaet(panel):
     """Gibt es beide, gewinnt die Entität mit Wert."""
     anlagenteil = teil(

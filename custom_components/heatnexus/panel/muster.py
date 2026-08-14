@@ -67,6 +67,16 @@ KENNWERT: tuple[Zeile, ...] = (
 # Systemstatus rechts: Zeile für Zeile, in dieser Reihenfolge.
 STATUS: tuple[Zeile, ...] = (
     (r"betriebsphase", "Betriebszustand", "mdi:state-machine", ("operating_phase",)),
+    # Die Laufzeit entsteht aus dem Zustand und steht deshalb direkt darunter.
+    # Sie zählt mit, solange das Aggregat läuft, und bleibt danach als Dauer
+    # des letzten Laufs stehen.
+    (r"^letzte laufzeit$", "Laufzeit", "mdi:timer-play-outline", ("operating_phase_runtime",)),
+    (
+        r"^laufzeit heute$",
+        "Laufzeit heute",
+        "mdi:timer-outline",
+        ("operating_phase_runtime_today",),
+    ),
     (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer", ("outdoor_temperature",)),
     (r"kesselleistung", "Kesselleistung", "mdi:fire", ("boiler_power",)),
     (
@@ -79,7 +89,14 @@ STATUS: tuple[Zeile, ...] = (
     (r"aktueller brennstoff", "Brennstoff", "mdi:sack", ("fuel_current",)),
     (r"vorratsbeh", "Vorratsbehälter", "mdi:battery-70", ("fuel_storage_status",)),
     (r"brennerstarts", "Brennerstarts", "mdi:restart", ("burner_starts",)),
+    (r"^brennerstarts heute$", "Brennerstarts heute", "mdi:restart", ("burner_starts_today",)),
     (r"betriebsstunden", "Betriebsstunden", "mdi:clock-outline", ("operating_hours",)),
+    (
+        r"^betriebsstunden heute$",
+        "Betriebsstunden heute",
+        "mdi:clock-outline",
+        ("operating_hours_today",),
+    ),
     (
         r"laufzeit bis ascheentleerung",
         "Bis Ascheentleerung",
@@ -269,6 +286,10 @@ BETRIEBSART_URLAUB = r"^urlaub"
 # Die Außentemperatur gehört an der Anlage in die Kopfzeile und nicht in eine
 # Kachel – sie gilt für die ganze Anlage, nicht für einen Anlagenteil.
 AUSSENTEMPERATUR = _muster(r"au(ß|ss)entemperatur")
+
+# Der Ja/Nein-Sensor neben dem Klartext. Ob eine Störung ansteht, sagt er;
+# der Klartext sagt, welche.
+STOERUNGSMELDER = _muster(r"st(ö|oe)rung gemeldet")
 
 # Lagerraumbefüllung. Die Anlage zeigt dazu eine eigene Seite mit
 # Kesseltemperatur bzw. Vorratsbehälter-Status, Restlaufzeit, der Freigabe
