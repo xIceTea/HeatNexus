@@ -45,7 +45,7 @@ def client_module():
     return client
 
 
-async def _erkennen(client_module, monkeypatch, nv_eintraege=None):
+async def _erkennen(client_module, monkeypatch, nv_eintraege=None, oid_werte=None):
     c = client_module.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info", "operate"])
     c.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
     c.werksbezeichnung = {"60": "BioWIN"}
@@ -81,6 +81,12 @@ async def _erkennen(client_module, monkeypatch, nv_eintraege=None):
     monkeypatch.setattr(c, "_read_function_menus", read_function_menus)
     monkeypatch.setattr(c, "_statische_adressen", statische_adressen)
     monkeypatch.setattr(c, "_lade_geraetetexte", keine_geraetetexte)
+
+    async def fetch_oids(oids):
+        # Der Einzelabruf, mit dem die Erkennung prüft, ob ein Fühler hängt.
+        return {o: (oid_werte or {}).get(o, "0.0") for o in oids}
+
+    monkeypatch.setattr(c, "fetch_oids", fetch_oids)
     await c._discover()
     # Erst danach steht fest, welche Datenpunkte die Anlage wirklich führt –
     # und damit, welcher LON-Wert eine Entsprechung hat.
@@ -149,6 +155,29 @@ async def test_bus_eingaenge_kommen_deaktiviert(client_module, monkeypatch):
 
     assert _nv(c, "WET_nviTist")["enabled_default"] is False
     assert _nv(c, "PMX_eeBetrStd")["enabled_default"] is True
+
+
+async def test_ohne_fuehler_entsteht_keine_entitaet(client_module, monkeypatch):
+    """Vier von siebzehn standen an der eigenen Anlage dauerhaft auf 327,67.
+
+    Die Menü-Ebene sagt das nicht — sie liefert für Netzwerkvariablen keinen
+    Wert. Erst der Einzelabruf zeigt, ob ein Fühler daranhängt.
+    """
+    c = await _erkennen(
+        client_module,
+        monkeypatch,
+        nv_eintraege=[
+            {"nvIndex": 22, "nvName": "WVF_nvoTPO", "unit": "°C", "value": "-"},
+            {"nvIndex": 28, "nvName": "PMX_eeBetrStd", "unit": "Std", "value": "-"},
+        ],
+        oid_werte={
+            f"{PRAEFIX_NV}/0/22/0": "327.67",
+            f"{PRAEFIX_NV}/0/28/0": "14203",
+        },
+    )
+
+    namen = [d["nv_name"] for d in c.devices if d.get("nv_name")]
+    assert namen == ["PMX_eeBetrStd"]
 
 
 async def test_verwaltung_des_bus_wird_nicht_angelegt(client_module, monkeypatch):

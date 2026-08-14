@@ -44,6 +44,7 @@ from .device_db import get_enum, get_layers, get_name
 from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
 from .kanonisch import schluessel as kanonischer_schluessel
 from .lon import ist_eingang as lon_ist_eingang
+from .lon import ungueltig as lon_ungueltig
 from .lon import kennungsteil as lon_kennungsteil
 from .lon import snvt as lon_snvt
 from .lon import zuordnen as lon_zuordnen
@@ -153,6 +154,7 @@ class WindhagerHttpClient:
         enable_advanced: bool = False,
         writable_advanced: bool = False,
         zeitwerte: bool = False,
+        lon: bool = True,
         username: str | None = None,
         update_interval: int = UPDATE_INTERVAL,
         sprache: str = "de",
@@ -175,6 +177,7 @@ class WindhagerHttpClient:
         self.writable_advanced = writable_advanced
         # Ob Uhrzeit- und Datumsfelder von sich aus aktiv sind.
         self.zeitwerte = zeitwerte
+        self.lon = lon
         # In welcher Sprache das Textwerk der Steuerung gelesen wird, und was
         # sie geliefert hat. Vor dem ersten Erkennungslauf ist es leer.
         self.sprache = sprache or "de"
@@ -746,6 +749,28 @@ class WindhagerHttpClient:
         )
         self.oids.add(oid)
 
+    async def _nv_ohne_fuehler_verwerfen(self) -> None:
+        """Netzwerkvariablen ohne angeschlossenen Fühler gar nicht erst anlegen.
+
+        Die Menü-Ebene liefert für sie keinen Wert (`"value": "-"`); erst ein
+        Einzelabruf zeigt, ob etwas daranhängt. An der eigenen Anlage standen
+        vier von siebzehn dauerhaft auf der Ungültig-Marke – in der Geräteliste
+        Zeilen, die für immer „nicht verfügbar" sagen.
+
+        Kostet einmalig eine Anfrage je Netzwerkvariable und läuft im
+        Hintergrundabzug, nie in der Einrichtung.
+        """
+        nv = [d for d in self.devices if d.get("nv_name") and d.get("oid")]
+        if not nv:
+            return
+        werte = await self.fetch_oids([d["oid"] for d in nv])
+        ohne_fuehler = {d["oid"] for d in nv if lon_ungueltig(werte.get(d["oid"]))}
+        if not ohne_fuehler:
+            return
+        _LOGGER.debug("%d Netzwerkvariablen ohne Fühler verworfen", len(ohne_fuehler))
+        self.devices = [d for d in self.devices if d.get("oid") not in ohne_fuehler]
+        self.oids -= ohne_fuehler
+
     def _nv_doppelte_stilllegen(self) -> None:
         """Netzwerkvariablen abschalten, deren Begriff schon einen Datenpunkt hat.
 
@@ -1132,7 +1157,7 @@ class WindhagerHttpClient:
             # Der LON-Adressraum, jetzt mit bekanntem Primärgerät. Ein Knoten
             # ohne brauchbare Funktion – das Bedienteil – bekommt darüber sein
             # eigenes Gerät; einen Kessel ergänzen die Werte an seinem.
-            if not nur_kern:
+            if not nur_kern and self.lon:
                 for fct in nv_funktionen:
                     await self._lese_nv(
                         f"{device_id}/{fct['fctId']}",
@@ -1412,6 +1437,7 @@ class WindhagerHttpClient:
             kept.append(d)
         self.devices = kept
         self.oids -= missing
+        await self._nv_ohne_fuehler_verwerfen()
         self._nv_doppelte_stilllegen()
         self._namen_vereindeutigen()
 

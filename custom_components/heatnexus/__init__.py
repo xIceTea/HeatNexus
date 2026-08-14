@@ -43,6 +43,7 @@ from .const import (
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_WRITABLE_ADVANCED,
+    CONF_LON,
     CONF_ZEITWERTE,
     DEFAULT_LEVELS,
     DEFAULT_USERNAME,
@@ -104,6 +105,7 @@ def _scope(hass: HomeAssistant, entry: ConfigEntry, host: str) -> dict:
         "enable_advanced": bool(je_anlage.get(CONF_ENABLE_ADVANCED, False)),
         "writable_advanced": bool(je_anlage.get(CONF_WRITABLE_ADVANCED, False)),
         "zeitwerte": bool(je_anlage.get(CONF_ZEITWERTE, False)),
+        "lon": bool(je_anlage.get(CONF_LON, True)),
         "update_interval": int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),
         "username": system.get(CONF_USERNAME) or DEFAULT_USERNAME,
         # Aufgelöst, nicht „auto": Sonst läse die Wahl von „auto" auf die
@@ -128,7 +130,7 @@ def _scope_fingerprint(scope: dict) -> str:
     return (
         ",".join(scope["levels"])
         + f"|{int(scope['enable_advanced'])}{int(scope['writable_advanced'])}"
-        + f"{int(scope.get('zeitwerte', False))}"
+        + f"{int(scope.get('zeitwerte', False))}{int(scope.get('lon', True))}"
         + f"|{scope.get('username', DEFAULT_USERNAME)}"
     )
 
@@ -267,6 +269,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             enable_advanced=scope["enable_advanced"],
             writable_advanced=scope["writable_advanced"],
             zeitwerte=scope["zeitwerte"],
+            lon=scope["lon"],
             update_interval=scope["update_interval"],
             sprache=scope["sprache"],
         )
