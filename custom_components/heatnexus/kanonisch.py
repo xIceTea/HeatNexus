@@ -27,6 +27,8 @@ Die Adressen sind gegen `device_db.json` geprüft, nicht abgeschrieben.
 
 from __future__ import annotations
 
+from .lon import schluessel_aus_kennung as lon_schluessel
+
 # gn/mn -> kanonischer Schlüssel.
 #
 # **Was hier bewusst fehlt.** Zu allgemein benannte Adressen bleiben draußen,
@@ -159,6 +161,13 @@ def schluessel(unique_id: str | None) -> str | None:
 
     Datenpunkte ohne kanonische Entsprechung behalten den Herstellernamen; sie
     sind der Grund, warum die Muster nicht ersatzlos verschwinden können.
+
+    Netzwerkvariablen haben keine Datenpunktadresse in ihrer Kennung – dort
+    entscheidet der Name des Funktionsblocks. Beide Wege enden hier, damit
+    Schaubild, Kennwerte und Dashboard denselben Begriff sehen, gleich aus
+    welcher Quelle der Wert kommt.
     """
     adresse = gnmn(unique_id)
-    return KANONISCH.get(adresse) if adresse else None
+    if adresse and (treffer := KANONISCH.get(adresse)):
+        return treffer
+    return lon_schluessel(unique_id)

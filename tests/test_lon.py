@@ -70,6 +70,29 @@ def test_kanonische_schluessel_gibt_es_wirklich():
     assert verwendet <= bekannt, verwendet - bekannt
 
 
+def test_der_schluessel_findet_aus_der_kennung_zurueck():
+    """Schaubild und Kennwerte kennen nur die `unique_id`, nicht den Deskriptor.
+
+    Ohne den Rückweg käme dort für jede Netzwerkvariable `None` an – und der
+    Wert stünde in der Entitätsliste, aber in keiner Karte.
+    """
+    from heatnexus.kanonisch import schluessel
+
+    assert schluessel("0702bb000002-nv-0-7-wet-nvotist") == "boiler_temperature"
+    # Indizierte Namen: Der Index unterscheidet die Kreise, nicht den Begriff.
+    assert schluessel("0702bb000002-nv-0-12-lx-nvopump-0") == "circuit_pump"
+    # Unbenannte bleiben ohne Schlüssel.
+    assert schluessel("0702bb000002-nv-0-3-nvofiledirectory") is None
+
+
+def test_datenpunkte_behalten_ihren_weg():
+    """Der Rückweg über den Namen darf die Adresse nicht verdrängen."""
+    from heatnexus.kanonisch import schluessel
+
+    assert schluessel("0702bb000002-0-0-7-0") == "boiler_temperature"
+    assert schluessel("0702bb000002-0-99-99-0") is None
+
+
 def test_kein_eintrag_traegt_seinen_index_im_schluessel():
     """Sonst greift die Tabelle für den zweiten Kreis nicht mehr."""
     assert not [name for name in lon.LON_NAMEN if name.endswith("]")]

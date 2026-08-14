@@ -114,6 +114,41 @@ LON_NAMEN: dict[str, dict] = {
 }
 
 
+def _rumpf(nv_name: str | None) -> str:
+    """Der Name als Kennungsteil: klein, ohne Sonderzeichen."""
+    return re.sub(r"[^a-z0-9]+", "-", str(nv_name or "").lower()).strip("-")
+
+
+# Rückweg vom Kennungsteil zum kanonischen Schlüssel. Gebraucht von
+# `kanonisch.schluessel`: Schaubild und Kennwerte kennen nur die `unique_id`
+# einer Entität, nicht den Deskriptor, aus dem sie entstanden ist.
+_RUMPF_ZU_SCHLUESSEL = {
+    _rumpf(name): eintrag["kanonisch"]
+    for name, eintrag in LON_NAMEN.items()
+    if eintrag.get("kanonisch")
+}
+
+
+def schluessel_aus_kennung(unique_id: str | None) -> str | None:
+    """Der kanonische Schlüssel einer Netzwerkvariablen aus ihrer Kennung.
+
+    Die Kennung lautet `<neuronId>-nv-<ebene>-<index>-<name>`. Ebene und Index
+    fallen weg, der Name entscheidet. Ein indizierter Name trägt seinen Index
+    hinten (`lx-nvopump-0`) – für die Bedeutung zählt er nicht, für die
+    Unterscheidung der Kreise schon.
+    """
+    if not unique_id or "-nv-" not in str(unique_id):
+        return None
+    teile = str(unique_id).split("-nv-", 1)[1].split("-")
+    if len(teile) < 3:
+        return None
+    rumpf = "-".join(teile[2:])
+    if (treffer := _RUMPF_ZU_SCHLUESSEL.get(rumpf)) is not None:
+        return treffer
+    kopf, _, letztes = rumpf.rpartition("-")
+    return _RUMPF_ZU_SCHLUESSEL.get(kopf) if letztes.isdigit() else None
+
+
 def kennungsteil(nv_name: str | None, menu_id: str, index) -> str:
     """Der Teil der Kennung, der eine Netzwerkvariable unterscheidbar macht.
 
@@ -124,7 +159,7 @@ def kennungsteil(nv_name: str | None, menu_id: str, index) -> str:
     Zahlenlauf und ist zugleich das Beständigere: Er benennt den
     Funktionsblock, während der Index von der Firmware vergeben wird.
     """
-    rumpf = re.sub(r"[^a-z0-9]+", "-", str(nv_name or "").lower()).strip("-")
+    rumpf = _rumpf(nv_name)
     return f"nv-{menu_id}-{index}-{rumpf}" if rumpf else f"nv-{menu_id}-{index}"
 
 
