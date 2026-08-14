@@ -6,8 +6,7 @@ weiterrückt und wann er stehen bleibt – daran hängt, ob die Zahl stimmt.
 
 from __future__ import annotations
 
-from datetime import date
-
+from homeassistant.util import dt as dt_util
 import pytest
 
 from .conftest import requires_ha
@@ -51,12 +50,12 @@ def _fortschreiben(entity, koordinator, wert, starts=None):
 # ---------------------------------------------------------------------------
 def test_der_erste_wert_setzt_den_bezugspunkt(sensoren):
     """Vor dem ersten Abruf gibt es keinen Zuwachs, nur einen Anfang."""
-    vorher = date.today().isoformat()
     entity, _ = _ableitung(sensoren, {ZAEHLER: "1200"}, type="zaehler_heute")
     entity._bezugspunkt_pruefen()
     assert entity.native_value == 0
-    # Läuft der Test über Mitternacht, ist beides richtig.
-    assert entity._marke in {vorher, date.today().isoformat()}
+    # Der Tag richtet sich nach der Zeitzone von Home Assistant, nicht nach der
+    # des Rechners – sonst schlägt der Test abends um zwei Stunden fehl.
+    assert entity._marke == dt_util.now().date().isoformat()
 
 
 def test_der_zuwachs_zaehlt_ab_dem_bezugspunkt(sensoren):
@@ -113,12 +112,11 @@ def test_ein_neuer_brennerstart_setzt_den_bezugspunkt_neu(sensoren):
 
 def test_der_bezugspunkt_steht_im_zustand(sensoren):
     """Nur so übersteht er einen Neustart von Home Assistant."""
-    vorher = date.today().isoformat()
     entity, _ = _ableitung(sensoren, {ZAEHLER: "1200"}, type="zaehler_heute")
     entity._bezugspunkt_pruefen()
     attribute = entity.extra_state_attributes
     assert attribute["basis"] == 1200
-    assert attribute["marke"] in {vorher, date.today().isoformat()}
+    assert attribute["marke"] == dt_util.now().date().isoformat()
     assert attribute["last_reset"]
 
 
