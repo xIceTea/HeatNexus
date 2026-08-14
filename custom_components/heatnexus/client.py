@@ -2066,10 +2066,17 @@ class WindhagerHttpClient:
         # bleibt stehen, und die Adresse ist im nächsten Durchlauf wieder
         # fällig – unabhängig von ihrer Poll-Klasse.
         misslungen = {oid for oid, wert in results if wert is FEHLGESCHLAGEN}
-        self._letzte_werte.update(
-            {oid: wert for oid, wert in results if wert is not FEHLGESCHLAGEN}
-        )
-        self._rest |= misslungen - self._abgemeldet
+        gelesen = {oid: wert for oid, wert in results if wert is not FEHLGESCHLAGEN}
+        # Dasselbe für einen Wert, der von bekannt auf leer springt: Unter Last
+        # antwortet die Steuerung auf eine gültige Adresse schon einmal mit
+        # ihrer Leermarke. Nachgelesen wird einmal; bleibt es leer, gilt es.
+        verloren = {
+            oid
+            for oid, wert in gelesen.items()
+            if wert is None and self._letzte_werte.get(oid) is not None
+        }
+        self._letzte_werte.update(gelesen)
+        self._rest |= (misslungen | verloren) - self._abgemeldet
         # Abgemeldete Entities dürfen nicht ewig als alter Wert weiterleben.
         aktuell = self.poll_oids | self._dynamic_oids
         for oid in list(self._letzte_werte):

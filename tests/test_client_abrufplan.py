@@ -649,3 +649,115 @@ async def test_die_taste_fragt_nicht_ab_was_der_abruf_auslaesst(client, monkeypa
     client._compute_poll_oids()
 
     assert await client.geraet_abfragen("abcd-0") == {}
+
+
+# ---------------------------------------------------------------------------
+# Abgleich im Hintergrund
+# ---------------------------------------------------------------------------
+async def test_der_abgleich_laesst_traege_werte_stehen(client, monkeypatch):
+    """Ein Abgleich liest den Bestand neu ein, nicht die Werte.
+
+    Träge Adressen sind danach bis zu eine Viertelstunde nicht fällig; fällt
+    ihr Wert dabei aus dem Bestand, steht die Entität so lange leer da.
+    """
+    beschreibungen = [
+        {
+            "oid": "/1/60/0/2/81/0",
+            "id": "abcd-0-2-81-0",
+            "name": "Betriebsstunden",
+            "type": "sensor",
+            "state_class": "total_increasing",
+            "device_id": "abcd-0",
+            "device_name": "PuroWIN",
+        },
+        {
+            "oid": "/1/60/0/0/7/0",
+            "id": "abcd-0-0-7-0",
+            "name": "Kesseltemperatur",
+            "type": "temperature",
+            "device_id": "abcd-0",
+            "device_name": "PuroWIN",
+        },
+    ]
+
+    async def get(url, semaphore=None):
+        return {"value": "18116"}, 200
+
+    monkeypatch.setattr(client, "_get", get)
+    client.restore_discovery(
+        {
+            "oids": [d["oid"] for d in beschreibungen],
+            "devices": [dict(d) for d in beschreibungen],
+            "poll_oids": [d["oid"] for d in beschreibungen],
+        }
+    )
+
+    daten = await client.fetch_all()
+    assert daten["oids"]["/1/60/0/2/81/0"] == "18116"
+
+    # Der Abgleich baut Deskriptoren und Abrufsatz neu auf, wie `_discover`
+    # und `_apply_metadata` es tun.
+    async def discover(nur_kern=False):
+        client.devices = [dict(d) for d in beschreibungen]
+        client.oids = {d["oid"] for d in beschreibungen}
+
+    async def apply_metadata():
+        client.devices = [dict(d) for d in client.devices]
+
+    monkeypatch.setattr(client, "_discover", discover)
+    monkeypatch.setattr(client, "_apply_metadata", apply_metadata)
+    await client.async_init(erzwingen=True)
+
+    daten = await client.fetch_all()
+
+    assert daten["oids"].get("/1/60/0/2/81/0") == "18116"
+
+
+async def test_ein_leer_gewordener_wert_wird_einmal_nachgelesen(client, monkeypatch):
+    """Die Leermarke der Anlage darf einen trägen Wert nicht für eine Viertelstunde tilgen.
+
+    `-` und `-.-` heißen „kein Messwert". Antwortet die Steuerung unter Last
+    so auf eine Adresse, die eben noch einen Wert hatte, ist die Anzeige sonst
+    bis zum nächsten Durchlauf ihrer Klasse leer.
+    """
+    antwort = {"wert": "18116"}
+
+    async def get(url, semaphore=None):
+        return {"value": antwort["wert"]}, 200
+
+    monkeypatch.setattr(client, "_get", get)
+    client.oids = {"/1/60/0/2/81/0"}
+    client.devices = [
+        {"oid": "/1/60/0/2/81/0", "name": "Betriebsstunden", "state_class": "total_increasing"}
+    ]
+    client._compute_poll_oids()
+
+    await client.fetch_all()
+    antwort["wert"] = "-"
+    client._tick = 0
+    daten = await client.fetch_all()
+
+    assert daten["oids"]["/1/60/0/2/81/0"] is None
+    client._tick = 1  # kein träger Durchlauf
+    assert "/1/60/0/2/81/0" in client._faellig()
+
+
+async def test_ein_dauerhaft_leerer_wert_wird_nicht_ewig_nachgelesen(client, monkeypatch):
+    """Ein nicht angeschlossener Fühler bleibt leer – ein Nachlesen genügt."""
+
+    async def get(url, semaphore=None):
+        return {"value": "-.-"}, 200
+
+    monkeypatch.setattr(client, "_get", get)
+    client.oids = {"/1/60/0/2/81/0"}
+    client.devices = [
+        {"oid": "/1/60/0/2/81/0", "name": "Betriebsstunden", "state_class": "total_increasing"}
+    ]
+    client._compute_poll_oids()
+
+    await client.fetch_all()
+    client._tick = 0
+    await client.fetch_all()
+
+    client._tick = 1
+    assert "/1/60/0/2/81/0" not in client._faellig()
