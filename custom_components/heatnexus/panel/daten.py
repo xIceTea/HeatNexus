@@ -692,22 +692,21 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     # sagt, ob etwas ansteht. Zwei Entitäten, eine Auskunft je Zweck.
     stoerungen = []
     for teil in anlage["teile"]:
-        klartext = _erster(teil["entitaeten"], r"klartext")
-        if klartext is None or klartext["kategorie"] != "diagnostic":
-            continue
-        melder = next(
+        klartext = next(
             (
                 e
                 for e in teil["entitaeten"]
-                if e["bereich"] == "binary_sensor" and _passt(e["name"], STOERUNGSMELDER)
+                if e["kategorie"] == "diagnostic" and "klartext" in e["name"].lower()
             ),
             None,
         )
+        if klartext is None:
+            continue
         stoerungen.append(
             {
                 "entity": klartext["entity_id"],
                 "titel": klartext["name"],
-                "melder": melder["entity_id"] if melder else None,
+                "melder": _kennung(teil["entitaeten"], STOERUNGSMELDER, ("binary_sensor",)),
             }
         )
 
