@@ -11,6 +11,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - LON-Netzwerkvariablen werden erkannt und benannt.
+- Die Werte vom LON-Bus lassen sich je Anlage einschalten.
 - Unbenannte Netzwerkvariablen bekommen Einheit und Langzeitverlauf aus dem LonMark-Typ.
 - Das Bedienteil erscheint als eigenes Gerät.
 - Beim BioWIN erscheint die Betriebsart der Zuführung.
@@ -27,12 +28,14 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Vorlage „Störung melden" bietet nur noch den Störungssensor zur Auswahl.
 - Das undekodierte Statusregister des Kessels heißt nicht mehr „Störung aktiv".
 - Datenpunkte, die beim Einlesen keinen Wert liefern, entstehen abgeschaltet.
+- Das Abfrageintervall beginnt bei 30 Sekunden und erklärt sich im Dialog.
 
 ### Behoben
 
 - Die Sonde bricht nicht mehr ab, wenn eine Menü-Ebene keine Datenpunkte führt.
 - Zählerstände und Restlaufzeiten stehen gleich nach dem Einlesen.
-- Ein misslungener Abruf löscht den zuletzt gelesenen Wert nicht mehr.
+- Ein misslungener Abruf und eine Leermarke löschen den gelesenen Wert nicht mehr.
+- Ungültige Marken vom Bus gelten nicht mehr als Messwert.
 - Die Meldungsliste ist wieder verfügbar.
 - Eine abgewählte Option kommt nach einem Neustart nicht zurück.
 - Ein abgeschalteter Bus lässt keine abgeschalteten Zeilen zurück.
