@@ -55,6 +55,9 @@ NUR_LESEND = {
     "total_increasing",
     "zaehler_heute",
     "zaehler_start",
+    "brenndauer",
+    "brenndauer_letzte",
+    "brenndauer_heute",
 }
 
 

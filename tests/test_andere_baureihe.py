@@ -1,14 +1,8 @@
-"""Die Erkennung an einer Anlage, die hier nicht steht.
+"""Die Erkennung an einer Baureihe, die hier nicht steht.
 
-Getestet wird gegen einen **BioWIN-Kessel** (fctType 9). Es gibt keinen zum
-Nachmessen; deshalb bekommt die Erkennung hier eine erfundene Anlage
-vorgesetzt, deren Antworten der Form entsprechen, die jede Steuerung liefert.
-
-Was das trägt: Der ganze Weg von der Anlagenstruktur bis zur fertigen
-Beschreibung läuft durch – kuratierte Tabelle, Ebenenzuordnung aus der
-Geräte-Datenbank, Auflösung des Typs aus den Metadaten, Aussortieren dessen,
-was die Anlage nicht kennt. Bricht daran etwas, merkt es sonst erst der erste
-fremde Nutzer.
+Geprüft wird gegen einen erfundenen BioWIN (fctType 9): der ganze Weg von der
+Anlagenstruktur bis zur fertigen Beschreibung, samt Ebenenzuordnung und dem
+Aussortieren dessen, was die Anlage nicht kennt.
 """
 
 from __future__ import annotations

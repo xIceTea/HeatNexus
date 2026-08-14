@@ -125,12 +125,14 @@ def neue_zeilen(diff: str) -> dict[str, set[int]]:
     return je_datei
 
 
-def pruefe_diff(diff: str, wurzel: Path) -> list[Befund]:
-    """Alle Python-Dateien eines Diffs prüfen."""
+def pruefe_diff(diff: str, wurzel: Path, nur: str | None = None) -> list[Befund]:
+    """Alle Python-Dateien eines Diffs prüfen, wahlweise nur eine davon."""
     befunde: list[Befund] = []
     for datei, zeilen in sorted(neue_zeilen(diff).items()):
         pfad = wurzel / datei
         if not datei.endswith(".py") or not pfad.is_file():
+            continue
+        if nur and datei != nur:
             continue
         befunde += pruefe(datei, pfad.read_text(encoding="utf-8"), zeilen)
     return befunde
@@ -153,16 +155,17 @@ def main(argv: list[str] | None = None) -> int:
     argumente = zerleger.parse_args(argv)
 
     wurzel = Path(argumente.wurzel).resolve()
+    # `-M` erkennt Umbenennungen; ohne das gilt eine verschobene Datei als neu,
+    # und ihr ganzer Bestand schlüge an. Deshalb auch ohne Pfadfilter: Die
+    # Erkennung braucht beide Seiten im Diff.
     if argumente.gestaged:
-        diff = _git("diff", "--cached", "--unified=0", "--", "*.py", wurzel=wurzel)
+        diff = _git("diff", "--cached", "--unified=0", "-M", "--", "*.py", wurzel=wurzel)
     elif argumente.bereich:
-        diff = _git("diff", argumente.bereich, "--unified=0", "--", "*.py", wurzel=wurzel)
-    elif argumente.datei:
-        diff = _git("diff", "HEAD", "--unified=0", "--", argumente.datei, wurzel=wurzel)
+        diff = _git("diff", argumente.bereich, "--unified=0", "-M", "--", "*.py", wurzel=wurzel)
     else:
-        diff = _git("diff", "HEAD", "--unified=0", "--", "*.py", wurzel=wurzel)
+        diff = _git("diff", "HEAD", "--unified=0", "-M", "--", "*.py", wurzel=wurzel)
 
-    befunde = pruefe_diff(diff, wurzel)
+    befunde = pruefe_diff(diff, wurzel, nur=argumente.datei)
     for befund in befunde:
         print(befund)
     return 1 if befunde else 0

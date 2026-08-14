@@ -528,6 +528,11 @@ ENUMS: dict[str, dict[int, str]] = {}
 # der Bezugspunkt der abgeleiteten Zähler: Steigt er, beginnt ein neuer Brand.
 BRENNERSTARTS_OID = "/2/80/0"
 
+# Welche Betriebsphasen als Lauf gelten, je Enum-Tabelle und als **Zahlen**.
+# Beschriftungen wechseln mit Sprache und Baureihe, die Codes nicht: 5 Vorspülen
+# bis 8 Modulation, dazu Anheizvorgang, Schichtladung und Ausbrand.
+LAUFPHASEN: dict[str, frozenset[int]] = {"2/1": frozenset({5, 6, 7, 8, 15, 16, 17})}
+
 PUROWIN_ENTITIES = [
     # --- Infoebene / Übersicht (read only) ---
     {"oid": "/0/7/0", "name": "Kesseltemperatur Ist", "platform": "temperature"},

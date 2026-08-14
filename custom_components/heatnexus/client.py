@@ -25,6 +25,7 @@ from .const import (
     FCT_NV,
     FETCH_CONCURRENCY,
     FINGERABDRUCK_MIN_TREFFER,
+    LAUFPHASEN,
     MENU_PAGE_SIZE,
     POLL_BLOCK,
     POLL_CONCURRENCY,
@@ -1510,6 +1511,45 @@ class WindhagerHttpClient:
                         device_class=d.get("device_class"),
                         ausloeser_oid=bezug,
                         icon=d.get("icon"),
+                        enabled_default=False,
+                        device_id=d.get("device_id"),
+                        alt_device_id=d.get("alt_device_id"),
+                        device_name=d.get("device_name"),
+                        fct_type=d.get("fct_type"),
+                    )
+                )
+        self.devices += neu
+        self._brenndauer()
+
+    _BRENNDAUER = (
+        ("brenndauer", "brenndauer", "Brenndauer"),
+        ("brenndauer-letzte", "brenndauer_letzte", "Letzte Brenndauer"),
+        ("brenndauer-heute", "brenndauer_heute", "Brenndauer heute"),
+    )
+
+    def _brenndauer(self) -> None:
+        """Wie lange der Brand läuft – aus der Betriebsphase, nicht aus Stunden.
+
+        Der Stundenzähler der Anlage steht in ganzen Stunden und wird träge
+        gelesen; die Betriebsphase kommt alle 30 s. Verglichen werden ihre
+        Zahlencodes, nicht die Beschriftungen.
+        """
+        neu = []
+        for d in self.devices:
+            phasen = LAUFPHASEN.get(str(d.get("enum") or ""))
+            if not phasen or not d.get("oid"):
+                continue
+            for endung, typ, name in self._BRENNDAUER:
+                neu.append(
+                    self._deskriptor(
+                        id=f"{d['id']}-{endung}",
+                        alt_id=f"{d.get('alt_id') or d['id']}-{endung}",
+                        oid=d["oid"],
+                        type=typ,
+                        name=name,
+                        unit="min",
+                        laufphasen=sorted(phasen),
+                        icon="mdi:fire-circle",
                         enabled_default=False,
                         device_id=d.get("device_id"),
                         alt_device_id=d.get("alt_device_id"),

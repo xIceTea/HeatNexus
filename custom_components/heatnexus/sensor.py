@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+from datetime import datetime
 import logging
 from typing import Any
 
@@ -112,6 +113,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "total_increasing": WindhagerPelletSensor,
             "zaehler_heute": WindhagerAbleitungSensor,
             "zaehler_start": WindhagerAbleitungSensor,
+            "brenndauer": WindhagerBrenndauerSensor,
+            "brenndauer_letzte": WindhagerBrenndauerSensor,
+            "brenndauer_heute": WindhagerBrenndauerSensor,
         },
     )
 
@@ -321,6 +325,98 @@ class WindhagerAbleitungSensor(WindhagerEntity, SensorEntity):
             "basis": self._basis,
             "marke": self._marke,
             "last_reset": self._attr_last_reset.isoformat() if self._attr_last_reset else None,
+        }
+
+
+class WindhagerBrenndauerSensor(WindhagerEntity, SensorEntity):
+    """Dauer des Brands – laufend, zuletzt beendet oder als Tagessumme.
+
+    Gemessen wird an der Betriebsphase: Verlässt sie die Ruhe, läuft die Uhr;
+    kehrt sie zurück, steht sie. Verglichen werden die Zahlencodes der
+    Enum-Tabelle, weil Beschriftungen mit Sprache und Baureihe wechseln.
+    """
+
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = "min"
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, coordinator: Any, device_info: dict) -> None:
+        super().__init__(coordinator, device_info)
+        self._laufphasen = {int(p) for p in device_info.get("laufphasen") or ()}
+        typ = device_info.get("type")
+        self._tageswert = typ == "brenndauer_heute"
+        self._letzter = typ == "brenndauer_letzte"
+        self._attr_state_class = (
+            SensorStateClass.TOTAL if self._tageswert else SensorStateClass.MEASUREMENT
+        )
+        self._beginn: datetime | None = None
+        self._letzte: float = 0.0
+        self._heute: float = 0.0
+        self._tag: str | None = None
+
+    @property
+    def _laeuft(self) -> bool | None:
+        """Ob die Anlage gerade brennt – None, solange keine Phase vorliegt."""
+        wert = self.int_value
+        return None if wert is None else wert in self._laufphasen
+
+    async def async_added_to_hass(self) -> None:
+        """Den angefangenen Brand und die Tagessumme wieder aufnehmen."""
+        await super().async_added_to_hass()
+        alt = await self.async_get_last_state()
+        if alt is None:
+            return
+        with contextlib.suppress(TypeError, ValueError):
+            self._beginn = dt_util.parse_datetime(alt.attributes.get("beginn") or "")
+        self._letzte = float(_zahl(alt.attributes.get("letzte_dauer")) or 0.0)
+        self._heute = float(_zahl(alt.attributes.get("heute")) or 0.0)
+        self._tag = alt.attributes.get("tag")
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Den Lauf fortschreiben, bevor der Zustand geschrieben wird."""
+        self._fortschreiben()
+        super()._handle_coordinator_update()
+
+    def _fortschreiben(self) -> None:
+        laeuft = self._laeuft
+        if laeuft is None:
+            return
+        jetzt = dt_util.utcnow()
+        tag = dt_util.now().date().isoformat()
+        if tag != self._tag:
+            self._tag = tag
+            self._heute = 0.0
+        if laeuft and self._beginn is None:
+            self._beginn = jetzt
+        elif not laeuft and self._beginn is not None:
+            self._letzte = self._minuten(jetzt)
+            self._heute += self._letzte
+            self._beginn = None
+
+    def _minuten(self, jetzt: datetime) -> float:
+        return round((jetzt - self._beginn).total_seconds() / 60, 1) if self._beginn else 0.0
+
+    @property
+    def native_value(self) -> float | None:
+        if self._laeuft is None:
+            return None
+        laufend = self._minuten(dt_util.utcnow())
+        if self._tageswert:
+            return round(self._heute + laufend, 1)
+        # Der laufende Brand fällt im Stillstand auf null; wie lange der letzte
+        # dauerte, führt die eigene Entität daneben.
+        return self._letzte if self._letzter else laufend
+
+    @property
+    def extra_state_attributes(self):
+        """Der Stand überlebt einen Neustart nur, wenn er im Zustand steht."""
+        return {
+            "laeuft": bool(self._beginn),
+            "beginn": self._beginn.isoformat() if self._beginn else None,
+            "letzte_dauer": self._letzte,
+            "heute": round(self._heute, 1),
+            "tag": self._tag,
         }
 
 
