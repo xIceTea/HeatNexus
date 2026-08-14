@@ -55,11 +55,16 @@ def parse_messages(raw: str | None, zusatz: dict | None = None) -> list[dict]:
     und zur eingestellten Sprache passen. Eine Handlungsempfehlung führt die
     Steuerung nicht mit; die bleibt aus der Tabelle.
     """
+    treffer = _CODE_RE.findall(raw or "")
+    if not treffer:
+        return []
     out: list[dict] = []
     seen: set[int] = set()
-    # Nach dem Ablegen als JSON sind die Schlüssel Text statt Zahl.
+    # Nach dem Ablegen als JSON sind die Schlüssel Text statt Zahl. Die Tabelle
+    # der Anlage umfasst alle Codes ihrer Baureihe; sie erst hier umzuschreiben
+    # hält den Normalfall – keine Störung – frei von dieser Arbeit.
     vom_geraet = {int(code): text for code, text in (zusatz or {}).items()}
-    for letter, num in _CODE_RE.findall(raw or ""):
+    for letter, num in treffer:
         code = int(num)
         if code in seen:
             continue
