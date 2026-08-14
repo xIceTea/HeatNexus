@@ -512,15 +512,26 @@ def _umfang_verkleinert(alt: dict[str, dict], neu: dict[str, dict]) -> bool:
     Nur dann werden Entitäten wirklich gelöscht. Fällt dagegen ein Datenpunkt
     weg, weil ihn die Anlage nicht mehr liefert, steckt keine Entscheidung
     dahinter – dort wird nur stillgelegt.
+
+    **Abgeleitet, nicht aufgezählt.** Als Abwahl gilt jeder Schalter, der von
+    an auf aus ging, und jede Liste, die kürzer wurde. Eine Aufzählung der
+    einzelnen Optionen müsste bei jeder neuen nachgezogen werden; wo das
+    ausbleibt, bleiben deren Entitäten dauerhaft als abgeschaltete Zeilen in
+    der Übersicht stehen. Intervall, Zugang und Sprache sind weder Schalter
+    noch Liste und lösen deshalb nichts aus – sie entfernen auch keinen
+    Datenpunkt.
     """
     for host, alt_umfang in alt.items():
         neu_umfang = neu.get(host)
         if neu_umfang is None:
             return True
-        if set(neu_umfang["levels"]) < set(alt_umfang["levels"]):
-            return True
-        if alt_umfang["enable_advanced"] and not neu_umfang["enable_advanced"]:
-            return True
+        for schluessel, alt_wert in alt_umfang.items():
+            neu_wert = neu_umfang.get(schluessel)
+            if isinstance(alt_wert, bool):
+                if alt_wert and not neu_wert:
+                    return True
+            elif isinstance(alt_wert, (list, tuple, set)) and set(neu_wert or ()) < set(alt_wert):
+                return True
     return False
 
 
