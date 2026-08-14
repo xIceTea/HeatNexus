@@ -202,6 +202,7 @@ class StummeSteuerung:
     workers = 1
 
     def __init__(self):
+        """Merkt sich, wonach gefragt wurde – die Zahl ist der Gegenstand."""
         self.pfade: list[str] = []
 
     def lookup(self, pfad: str):
