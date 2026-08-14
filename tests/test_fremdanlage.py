@@ -108,7 +108,7 @@ async def test_die_kuratierte_tabelle_greift(client_module, monkeypatch):
     from custom_components.heatnexus.const import BIOWIN_ENTITIES
 
     c = await _erkennen(client_module, monkeypatch)
-    erkannt = {d["oid"] for d in c.devices}
+    erkannt = {d["oid"] for d in c.devices if d.get("oid")}
     kuratiert = {f"{PRAEFIX}{e['oid']}" for e in BIOWIN_ENTITIES if not e.get("node_level")}
     fehlend = sorted(kuratiert - erkannt)
     assert fehlend == [], f"kuratierte Adressen fehlen: {fehlend}"
@@ -128,7 +128,7 @@ async def test_die_gewaehlten_bedienebenen_entscheiden(client_module, monkeypatc
     bekommt sie – sonst wäre die Auswahl wirkungslos.
     """
     schmal = await _erkennen(client_module, monkeypatch)
-    erkannt = {d["oid"] for d in schmal.devices}
+    erkannt = {d["oid"] for d in schmal.devices if d.get("oid")}
     assert INFO in erkannt
     assert SERVICE not in erkannt
     assert WERK not in erkannt
@@ -136,7 +136,7 @@ async def test_die_gewaehlten_bedienebenen_entscheiden(client_module, monkeypatc
     breit = await _erkennen(
         client_module, monkeypatch, levels=("info", "operate", "service", "oem")
     )
-    erkannt = {d["oid"] for d in breit.devices}
+    erkannt = {d["oid"] for d in breit.devices if d.get("oid")}
     assert SERVICE in erkannt
     assert WERK in erkannt
 
@@ -144,7 +144,7 @@ async def test_die_gewaehlten_bedienebenen_entscheiden(client_module, monkeypatc
 async def test_fachparameter_sind_vorab_abgeschaltet(client_module, monkeypatch):
     """Angelegt, aber deaktiviert: Sonst kostet jeder von ihnen eine Anfrage."""
     c = await _erkennen(client_module, monkeypatch, levels=("info", "operate", "service"))
-    service = next(d for d in c.devices if d["oid"] == SERVICE)
+    service = next(d for d in c.devices if d.get("oid") == SERVICE)
     assert service.get("enabled_default") is False
 
 
@@ -225,7 +225,7 @@ async def test_der_typ_kommt_aus_den_datenpunkten(client_module, monkeypatch):
     c, _ = await _erkennen_ungemeldet(
         client_module, monkeypatch, levels=("info", "operate", "service", "oem")
     )
-    erkannt = {d["oid"] for d in c.devices}
+    erkannt = {d["oid"] for d in c.devices if d.get("oid")}
     kuratiert = {
         f"{UNGEMELDET['praefix']}{e['oid']}" for e in BIOWIN_ENTITIES if not e.get("node_level")
     }

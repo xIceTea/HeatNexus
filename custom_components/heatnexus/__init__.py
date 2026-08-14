@@ -289,10 +289,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             restored = True
         else:
             stored = await store.async_load()
-            # Ein Umfang, der kleiner geworden ist, verwirft den Stand – und
-            # genau dann ist die Abwahl noch ablesbar. Ohne diese Stelle wäre
-            # sie nach einem Neustart vergessen, und die Entitäten der
-            # abgewählten Option blieben abgeschaltet stehen.
+            # Ein kleiner gewordener Umfang verwirft den Stand – und genau
+            # hier ist die Abwahl noch ablesbar.
             if _abwahl_im_stand(stored, scope):
                 _abwahl_vormerken(hass, entry)
             if _discovery_cache_valid(stored, host, fingerprint):
@@ -523,9 +521,8 @@ def _umfang_verkleinert(alt: dict[str, dict], neu: dict[str, dict]) -> bool:
     dahinter – dort wird nur stillgelegt.
 
     Als Abwahl gilt jeder Schalter des Umfangs, der von an auf aus ging, und
-    jede Liste, aus der etwas verschwand. Was `_scope` sonst führt – Intervall,
-    Zugang, Sprache – ist weder Schalter noch Liste und entfernt auch keinen
-    Datenpunkt.
+    jede Liste, aus der etwas verschwand. Intervall, Zugang und Sprache sind
+    weder Schalter noch Liste und entfernen auch keinen Datenpunkt.
     """
     for host, alt_umfang in alt.items():
         neu_umfang = neu.get(host)
@@ -545,13 +542,9 @@ def _umfang_verkleinert(alt: dict[str, dict], neu: dict[str, dict]) -> bool:
 def _abwahl_im_stand(stored, scope: dict) -> bool:
     """Ob der gespeicherte Stand einen größeren Umfang nennt als der aktuelle.
 
-    Der Vergleich im Arbeitsspeicher (`_umfang_verkleinert` über
-    `laufzeitdaten`) kennt nur den Moment der Änderung. Nach einem Neustart ist
-    er vergessen, und die Entitäten einer abgewählten Option blieben für immer
-    als abgeschaltete Zeilen stehen. Der Stand auf der Platte überlebt dagegen.
-
-    Ein Stand ohne `umfang` stammt aus einer Fassung vor dieser Prüfung; er
-    beweist nichts und löst nichts aus.
+    Der Vergleich im Arbeitsspeicher kennt nur den Moment der Änderung, der
+    Stand auf der Platte überlebt den Neustart. Ein Stand ohne `umfang` stammt
+    aus einer älteren Fassung und löst nichts aus.
     """
     if not isinstance(stored, dict):
         return False
@@ -564,12 +557,8 @@ def _abwahl_im_stand(stored, scope: dict) -> bool:
 def _quelle_abgeschaltet(unique_id: str | None, umfaenge: dict[str, dict]) -> bool:
     """Ob eine Waise zu einer Quelle gehört, die der Nutzer abgeschaltet hat.
 
-    Netzwerkvariablen tragen `-nv-` in ihrer Kennung (siehe
-    `lon.kennungsteil`). Ist der Bus abgewählt, kann keine von ihnen noch zum
-    Bestand gehören: Sie sind kein weggefallener Datenpunkt, sondern der Rest
-    einer Entscheidung, und werden deshalb gelöscht statt stillgelegt.
-
-    Sie ist die einzige Quelle, die sich allein an der Kennung erkennen lässt.
+    Netzwerkvariablen tragen `-nv-` in der Kennung (`lon.kennungsteil`); bei
+    abgewähltem Bus sind sie der Rest einer Entscheidung und werden gelöscht.
     Für alles andere entscheidet der Umfangsvergleich.
     """
     if "-nv-" not in (unique_id or ""):
@@ -771,9 +760,8 @@ async def _vollabzug(
             "version": version,
             "host": host,
             "scope": fingerprint,
-            # Der Umfang zusätzlich zum Fingerabdruck: Aus der Zeichenkette
-            # lässt sich nicht ablesen, *was* sich geändert hat. Beim nächsten
-            # Laden entscheidet er, ob eine Option abgewählt wurde.
+            # Der Umfang zusätzlich zum Fingerabdruck: Die Zeichenkette sagt,
+            # *dass* sich etwas geändert hat, das Wörterbuch sagt *was*.
             "umfang": _scope(hass, entry, host),
             # Die Sprache steht hier und nicht im Fingerabdruck: Ein Wechsel
             # macht den Stand nicht ungültig, er löst nur den Abgleich aus.

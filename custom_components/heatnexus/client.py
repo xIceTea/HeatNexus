@@ -1244,6 +1244,50 @@ class WindhagerHttpClient:
                     }
                 )
 
+        self._abfragetasten()
+
+    def _abfragetasten(self) -> None:
+        """Je Anlagenteil eine Taste, die seine Werte sofort liest.
+
+        Der zyklische Abruf staffelt nach Poll-Klasse; ein Zählerstand ist erst
+        nach einer Viertelstunde wieder frisch.
+        """
+        for kennung, muster in {
+            d["device_id"]: d
+            for d in self.devices
+            if d.get("device_id") and d.get("device_name") and d.get("oid")
+        }.items():
+            self.devices.append(
+                {
+                    "id": f"{kennung}-abfragen",
+                    "alt_id": f"{muster.get('alt_device_id') or kennung}-abfragen",
+                    "type": "refresh",
+                    "name": "Jetzt abfragen",
+                    "category": "config",
+                    "icon": "mdi:refresh",
+                    "enabled_default": True,
+                    "device_id": kennung,
+                    "alt_device_id": muster.get("alt_device_id"),
+                    "device_name": muster["device_name"],
+                    "fct_type": muster.get("fct_type"),
+                }
+            )
+
+    async def geraet_abfragen(self, device_id: str) -> dict:
+        """Die zyklisch abgefragten Werte eines Anlagenteils sofort lesen.
+
+        Nur diese, nicht jeden Datenpunkt: Ein Kessel führt mehrere hundert.
+        """
+        aktiv = (self.poll_oids | self._dynamic_oids) - self._abgemeldet
+        oids = [
+            d["oid"]
+            for d in self.devices
+            if d.get("device_id") == device_id and d.get("oid") in aktiv
+        ]
+        if not oids:
+            return {}
+        return await self.fetch_oids(oids)
+
     # ------------------------------------------------------------------
     # Metadata (min/max/step/unit/writeProt from the device itself)
     # ------------------------------------------------------------------
@@ -1488,9 +1532,8 @@ class WindhagerHttpClient:
     async def fetch_oids(self, oids) -> dict:
         """Nur eine gezielte OID-Menge abfragen (für schnellen Burst-Refresh).
 
-        Was die Anlage nicht beantwortet hat, fehlt im Ergebnis. Die Aufrufer
-        tragen es in den Bestand des Abrufs ein; ein leerer Wert überschriebe
-        dort einen gültigen.
+        Was die Anlage nicht beantwortet hat, fehlt im Ergebnis: Die Aufrufer
+        tragen es in den Bestand des Abrufs ein.
         """
         results = await asyncio.gather(*(self._fetch_oid(o) for o in oids))
         return {oid: wert for oid, wert in results if wert is not FEHLGESCHLAGEN}
@@ -2019,11 +2062,9 @@ class WindhagerHttpClient:
         faellig = self._faellig()
         results, self._rest = await self._lese_faellige(faellig, ende)
 
-        # **Ein misslungener Abruf ist kein Messwert.** Er lässt den zuletzt
-        # gelesenen Wert stehen und wird im nächsten Durchlauf wiederholt,
-        # unabhängig von seiner Poll-Klasse. Würde er als leerer Wert
-        # eingetragen, verschwände die Anzeige bis zum nächsten Durchlauf
-        # dieser Klasse – bei der trägen für eine Viertelstunde.
+        # Ein misslungener Abruf ist kein Messwert: Der zuletzt gelesene Wert
+        # bleibt stehen, und die Adresse ist im nächsten Durchlauf wieder
+        # fällig – unabhängig von ihrer Poll-Klasse.
         misslungen = {oid for oid, wert in results if wert is FEHLGESCHLAGEN}
         self._letzte_werte.update(
             {oid: wert for oid, wert in results if wert is not FEHLGESCHLAGEN}

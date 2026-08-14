@@ -20,7 +20,12 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager buttons from a config entry."""
-    async_setup_entities(hass, entry, async_add_entities, {"button": WindhagerButton})
+    async_setup_entities(
+        hass,
+        entry,
+        async_add_entities,
+        {"button": WindhagerButton, "refresh": WindhagerAbfrageTaste},
+    )
 
 
 class WindhagerButton(WindhagerEntity, ButtonEntity):
@@ -51,3 +56,18 @@ class WindhagerButton(WindhagerEntity, ButtonEntity):
             self._oid,
         )
         await self._async_write(self._press_value)
+
+
+class WindhagerAbfrageTaste(WindhagerEntity, ButtonEntity):
+    """Liest die Werte eines Anlagenteils sofort, statt auf den Takt zu warten."""
+
+    _require_value_for_available = False
+
+    async def async_press(self) -> None:
+        kennung = self._descriptor.get("device_id")
+        gelesen = await self.coordinator.client.geraet_abfragen(kennung)
+        if not gelesen:
+            return
+        self.coordinator.data.setdefault("oids", {}).update(gelesen)
+        # Nur die Zuhörer wecken – kein zweiter Durchlauf durch die Anlage.
+        self.coordinator.async_update_listeners()
