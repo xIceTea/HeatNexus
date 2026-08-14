@@ -156,18 +156,36 @@ def gnmn(unique_id: str | None) -> str | None:
     return f"{gn}/{mn}"
 
 
+# Zusatz an der Kennung -> was er aus dem Begriff der Quelle macht. Eine
+# Ableitung sitzt auf der Adresse ihrer Quelle, bedeutet aber etwas anderes;
+# ohne eigenen Schlüssel entschiede die Namensreihenfolge, welche gefunden wird.
+ZUSATZ_SCHLUESSEL: dict[str, str] = {
+    "laufzeit-heute": "runtime_today",
+    "laufzeit": "runtime",
+    "heute": "today",
+    "start": "since_start",
+}
+
+
+def _zerlegen(unique_id: str | None) -> tuple[str | None, str | None]:
+    """Kennung ohne Ableitungszusatz, und der Zusatz selbst."""
+    kennung = str(unique_id or "")
+    for zusatz in ZUSATZ_SCHLUESSEL:
+        if kennung.endswith(f"-{zusatz}"):
+            return kennung[: -len(zusatz) - 1], zusatz
+    return unique_id, None
+
+
 def schluessel(unique_id: str | None) -> str | None:
     """Kanonischer Schlüssel eines Datenpunkts – oder nichts.
 
-    Datenpunkte ohne kanonische Entsprechung behalten den Herstellernamen; sie
-    sind der Grund, warum die Muster nicht ersatzlos verschwinden können.
-
-    Netzwerkvariablen haben keine Datenpunktadresse in ihrer Kennung – dort
-    entscheidet der Name des Funktionsblocks. Beide Wege enden hier, damit
-    Schaubild, Kennwerte und Dashboard denselben Begriff sehen, gleich aus
-    welcher Quelle der Wert kommt.
+    Ohne Adresse in der Kennung entscheidet der Name des Funktionsblocks
+    (Netzwerkvariablen). Abgeleitete Werte tragen den Schlüssel ihrer Quelle
+    mit dem Zusatz, der sie von ihr unterscheidet.
     """
-    adresse = gnmn(unique_id)
-    if adresse and (treffer := KANONISCH.get(adresse)):
-        return treffer
-    return lon_schluessel(unique_id)
+    kennung, zusatz = _zerlegen(unique_id)
+    adresse = gnmn(kennung)
+    basis = KANONISCH.get(adresse or "") or lon_schluessel(kennung)
+    if not basis or not zusatz:
+        return basis
+    return f"{basis}_{ZUSATZ_SCHLUESSEL[zusatz]}"

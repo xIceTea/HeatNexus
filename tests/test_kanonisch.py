@@ -105,6 +105,39 @@ def test_ein_datenpunkt_ohne_entsprechung_bleibt_ohne_schluessel(kanonisch):
     assert kanonisch.schluessel("0000ABCD1234-0-9-31-0") is None
 
 
+def test_eine_ableitung_traegt_nicht_den_schluessel_ihrer_quelle(kanonisch):
+    """Sie sitzt auf derselben Adresse, meint aber etwas anderes.
+
+    Ohne eigenen Schlüssel stünde die Betriebsdauer überall dort, wo die
+    Betriebsphase gesucht wird; welche von beiden erscheint, entschiede die
+    alphabetische Reihenfolge ihrer Namen.
+    """
+    assert kanonisch.schluessel("0000ABCD1234-0-2-1-0-laufzeit") == "operating_phase_runtime"
+    assert (
+        kanonisch.schluessel("0000ABCD1234-0-2-1-0-laufzeit-heute")
+        == "operating_phase_runtime_today"
+    )
+    assert kanonisch.schluessel("0000ABCD1234-0-2-81-0-heute") == "operating_hours_today"
+    assert kanonisch.schluessel("0000ABCD1234-0-2-80-0-start") == "burner_starts_since_start"
+
+
+def test_die_adresse_der_ableitung_bleibt_die_der_quelle(kanonisch):
+    """Sie liest denselben Datenpunkt – die Ebenenzuordnung gilt weiter."""
+    assert kanonisch.gnmn("0000ABCD1234-0-2-81-0-heute") == "2/81"
+
+
+def test_ohne_schluessel_der_quelle_bekommt_auch_die_ableitung_keinen(kanonisch):
+    assert kanonisch.schluessel("0000ABCD1234-0-9-31-0-heute") is None
+
+
+def test_auch_eine_netzwerkvariable_leitet_ihren_schluessel_weiter(kanonisch):
+    """Dort steht der Name des Funktionsblocks statt einer Adresse."""
+    assert kanonisch.schluessel("0000ABCD1234-nv-32-0-pmx-eebetrstd") == "operating_hours"
+    assert (
+        kanonisch.schluessel("0000ABCD1234-nv-32-0-pmx-eebetrstd-heute") == "operating_hours_today"
+    )
+
+
 def test_ein_schluessel_gilt_nur_dort_mehrfach_wo_es_begruendet_ist(kanonisch):
     """Sonst suchte die Oberfläche einen Begriff und fände zwei Datenpunkte.
 
