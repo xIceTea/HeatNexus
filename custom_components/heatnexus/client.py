@@ -675,8 +675,9 @@ class WindhagerHttpClient:
                 # Umfangsfilter zu kommen, wäre eine falsche Auskunft an alles,
                 # was später nach Ebenen unterscheidet; den Filter durchlaufen
                 # sie ohnehin nicht. Über ihre Sichtbarkeit entscheidet
-                # `enabled_default`.
-                "level": None,
+                # `enabled_default`. Eine eigene Herkunft statt gar keiner:
+                # `None` zählte die Diagnose unter dem Schlüssel `null`.
+                "level": "lon",
                 # Ab Werk aktiv ist nur ein benannter **Ausgang**. Der Eingang
                 # daneben führt dieselbe Zahl, und Unbenanntes taugt ohne
                 # Nachsehen zu nichts.

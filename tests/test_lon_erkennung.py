@@ -151,6 +151,17 @@ async def test_bus_eingaenge_kommen_deaktiviert(client_module, monkeypatch):
     assert _nv(c, "PMX_eeBetrStd")["enabled_default"] is True
 
 
+async def test_herkunft_steht_am_deskriptor(client_module, monkeypatch):
+    """Die Diagnose zählt nach Ebene – ohne eigene stünden sie unter `null`.
+
+    Und eine der vorhandenen Ebenen zu behaupten wäre falsch: Der
+    LON-Adressraum ist keine Bedienebene der Anlage.
+    """
+    c = await _erkennen(client_module, monkeypatch)
+
+    assert {d["level"] for d in c.devices if d.get("nv_name")} == {"lon"}
+
+
 async def test_netzwerkvariablen_werden_nie_geschrieben(client_module, monkeypatch):
     """`nvi`-Variablen sind Eingänge der Regelung zwischen den Knoten."""
     c = await _erkennen(client_module, monkeypatch)
