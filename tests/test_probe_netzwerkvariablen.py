@@ -196,6 +196,40 @@ def test_schluessel_faellt_auf_den_index_zurueck(probe_modul):
     assert probe_modul._oids_of(eintraege) == ["nv/7", "/1/60/0/0/7/0"]
 
 
+class StummeSteuerung:
+    """Antwortet auf keine einzige Netzwerkvariable."""
+
+    workers = 1
+
+    def __init__(self):
+        self.pfade: list[str] = []
+
+    def lookup(self, pfad: str):
+        self.pfade.append(pfad)
+        return {"code": 500}, 500
+
+
+def test_blindlauf_bricht_ab_wenn_nichts_antwortet(probe_modul):
+    """Knoten 90 der eigenen Anlage: 80 Versuche, 80 Fehler, neun Minuten.
+
+    Fünf Proben genügen für die Auskunft „hier ist nichts". Die übrigen 75
+    kosten an einer Steuerung mit knapp zwei Sekunden je Anfrage nur Zeit.
+    """
+    steuerung = StummeSteuerung()
+    menus = {
+        "host": "192.0.2.10",
+        "functions": [
+            {"prefix": PRAEFIX_NV, "fct_type": -1, "name": "NV's", "datapoints": {}},
+        ],
+    }
+
+    ergebnis = probe_modul.suche_nv_werte(steuerung, menus)
+
+    assert ergebnis["alle"] == []
+    # Zwei Anfragen für die Adressform, fünf Proben – nicht 80.
+    assert len(steuerung.pfade) < 10
+
+
 def test_knoten_ohne_funktion_bekommt_kandidaten(probe_modul):
     """Ein Kessel, der nur seinen LON-Adressraum meldet, wird trotzdem gefragt."""
     knoten = {"nodeId": 60, "functions": [{"fctId": 32, "fctType": -1, "name": "NV's"}]}

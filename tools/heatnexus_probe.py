@@ -705,6 +705,10 @@ NV_ADRESSFORMEN = (
 # das mit Rand ab und bleibt eine Anfragezahl, die eine Anlage wegsteckt.
 NV_BLIND_MAX = 80
 
+# Wieviele davon zuerst geprüft werden. Antwortet keine, hat die Funktion
+# keine Netzwerkvariablen und die restlichen Versuche kosten nur Zeit.
+NV_BLIND_PROBE = 5
+
 # Werte, die „nicht verdrahtet" heißen, nicht „gemessen". Sie stehen so in der
 # LON-Norm: Jeder SNVT hat eine Marke am Rand seines Wertebereichs.
 NV_UNGUELTIG = {
@@ -798,7 +802,7 @@ def suche_nv_werte(probe: Probe, menus: dict) -> dict:
         if fct.get("fct_type", 0) != -1 or fct.get("datapoints"):
             continue
         print(f"    {fct['prefix']} ohne Katalog – Blindlauf über {NV_BLIND_MAX} Indizes")
-        ziele.extend((fct, {"nvIndex": i}) for i in range(NV_BLIND_MAX))
+        ziele.extend((fct, {"nvIndex": i, "_blind": True}) for i in range(NV_BLIND_MAX))
 
     print(f"    {len(ziele)} Einträge werden gelesen")
 
@@ -834,6 +838,23 @@ def suche_nv_werte(probe: Probe, menus: dict) -> dict:
             "value": wert,
             "urteil": nv_bewerten(eintrag.get("snvtName"), wert) if status == 200 else "Fehler",
         }
+
+    # **Blindlauf abbrechen, wenn nichts antwortet.** Knoten 90 der eigenen
+    # Anlage – das Bedienteil – beantwortet keine einzige NV-Adresse: 80
+    # Versuche, 80 Fehler, neun Minuten von 34. Wer auf die ersten fünf nicht
+    # antwortet, antwortet auf keine.
+    blind_je_funktion: dict[str, list] = {}
+    for fct, eintrag in ziele:
+        if eintrag.get("_blind"):
+            blind_je_funktion.setdefault(fct["prefix"], []).append(eintrag)
+    stumm = set()
+    for prefix, eintraege in blind_je_funktion.items():
+        proben = eintraege[:NV_BLIND_PROBE]
+        if all(_nv_lesen(probe, prefix, e["nvIndex"], formen[prefix])[1] != 200 for e in proben):
+            stumm.add(prefix)
+            print(f"    {prefix} antwortet auf keine Netzwerkvariable – Blindlauf abgebrochen")
+    if stumm:
+        ziele = [z for z in ziele if not (z[1].get("_blind") and z[0]["prefix"] in stumm)]
 
     auftraege = [z for z in ziele if z[1].get("nvIndex") is not None and z[0]["prefix"] in formen]
     versuche = []
