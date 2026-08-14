@@ -1470,7 +1470,10 @@ class WindhagerHttpClient:
 
     # Zählerstände, aus denen sich ein Zuwachs bilden lässt.
     _ZAEHLERKLASSEN = ("total", "total_increasing")
-    _ABLEITUNGEN = (("heute", "zaehler_heute", "heute"), ("start", "zaehler_start", "seit Start"))
+    _ABLEITUNGEN = (
+        ("heute", "zaehler_heute", "heute"),
+        ("start", "zaehler_start", "seit Brennerstart"),
+    )
 
     def _abgeleitete_zaehler(self) -> None:
         """Je Zählerstand zwei Zuwächse: heute und seit dem letzten Brennerstart.
@@ -1492,7 +1495,9 @@ class WindhagerHttpClient:
                 continue
             for endung, typ, zusatz in self._ABLEITUNGEN:
                 bezug = ausloeser.get(d.get("device_id"))
-                if typ == "zaehler_start" and not bezug:
+                # Der Bezugszähler selbst bekommt keinen Bezug auf sich: Jede
+                # Zündung setzte die Basis neu, der Wert bliebe immer null.
+                if typ == "zaehler_start" and (not bezug or bezug == d["oid"]):
                     continue
                 neu.append(
                     self._deskriptor(

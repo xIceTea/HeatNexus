@@ -149,15 +149,12 @@ def client():
 
 
 def test_je_zaehler_entstehen_beide_ableitungen(client):
+    """Nur der Bezugszähler selbst bekommt keinen Bezug auf sich."""
     client._abgeleitete_zaehler()
     neue = {d["id"]: d for d in client.devices if str(d.get("type", "")).startswith("zaehler_")}
-    assert set(neue) == {
-        "SN1-stunden-heute",
-        "SN1-stunden-start",
-        "SN1-starts-heute",
-        "SN1-starts-start",
-    }
+    assert set(neue) == {"SN1-stunden-heute", "SN1-stunden-start", "SN1-starts-heute"}
     assert neue["SN1-stunden-heute"]["name"] == "Betriebsstunden heute"
+    assert neue["SN1-stunden-start"]["name"] == "Betriebsstunden seit Brennerstart"
     assert neue["SN1-stunden-start"]["ausloeser_oid"] == STARTS
 
 
