@@ -19,6 +19,20 @@ jobs:
       - run: ruff check custom_components tests tools
       - run: ruff format --check custom_components tests tools
 
+  kommentare:
+    name: Kommentarlänge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Die Prüfung braucht den Vergleichsstand, nicht nur den letzten Commit.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: git fetch origin main --depth=50
+      - run: python tools/kommentarregel.py --bereich origin/main...HEAD
+
   pytest:
     name: pytest
     runs-on: ubuntu-latest
