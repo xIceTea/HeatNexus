@@ -44,9 +44,9 @@ from .device_db import get_enum, get_layers, get_name
 from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
 from .kanonisch import schluessel as kanonischer_schluessel
 from .lon import ist_eingang as lon_ist_eingang
-from .lon import ungueltig as lon_ungueltig
 from .lon import kennungsteil as lon_kennungsteil
 from .lon import snvt as lon_snvt
+from .lon import ungueltig as lon_ungueltig
 from .lon import zuordnen as lon_zuordnen
 
 _LOGGER = logging.getLogger(__name__)
