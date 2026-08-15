@@ -482,11 +482,6 @@ export const SteuerungMixin = (Basis) =>
     anstossen();
   }
 
-  _istAn(entity) {
-    const zustand = this._zustand(entity);
-    return !!zustand && zustand.state === "on";
-  }
-
   _auswahlFeld(titel, entity, hilfe) {
     const feld = document.createElement("div");
     feld.className = "feld";

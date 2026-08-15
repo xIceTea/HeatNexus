@@ -25,7 +25,7 @@
 
 import { STIL } from "./stil.js";
 import { PALETTEN } from "./ordnung.js";
-import { OHNE_WERT, REITER } from "./ordnung.js";
+import { REITER } from "./ordnung.js";
 import { AnordnenMixin } from "./teile/anordnen.js";
 import { BausteineMixin } from "./teile/bausteine.js";
 import { BedienenMixin } from "./teile/bedienen.js";
@@ -35,6 +35,7 @@ import { SteuerungMixin } from "./teile/steuerung.js";
 import { UebersichtMixin } from "./teile/uebersicht.js";
 import { VerlaufMixin } from "./teile/verlauf.js";
 import { WartungMixin } from "./teile/wartung.js";
+import { WerteMixin } from "./teile/werte.js";
 import { ZeitprogrammeMixin } from "./teile/zeitprogramme.js";
 
 const Grundlage = HilfeMixin(
@@ -43,7 +44,7 @@ const Grundlage = HilfeMixin(
       VerlaufMixin(
         SteuerungMixin(
           UebersichtMixin(
-            SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(HTMLElement))))
+            SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
           )
         )
       )
@@ -133,77 +134,6 @@ class HeatNexusPanel extends Grundlage {
   // -------------------------------------------------------------------
   // Werte
   // -------------------------------------------------------------------
-  _zustand(entity) {
-    return this._hass && this._hass.states ? this._hass.states[entity] : undefined;
-  }
-
-  _hatWert(entity) {
-    const zustand = this._zustand(entity);
-    return !!zustand && !OHNE_WERT.includes(String(zustand.state).toLowerCase());
-  }
-
-  _text(entity) {
-    const zustand = this._zustand(entity);
-    if (!this._hatWert(entity)) return "–";
-    if (this._hass.formatEntityState) return this._hass.formatEntityState(zustand);
-    const einheit = zustand.attributes.unit_of_measurement;
-    return einheit ? `${zustand.state} ${einheit}` : zustand.state;
-  }
-
-  _zahl(entity) {
-    const zustand = this._zustand(entity);
-    if (!this._hatWert(entity)) return null;
-    const wert = Number.parseFloat(zustand.state);
-    return Number.isNaN(wert) ? null : wert;
-  }
-
-  _name(entity) {
-    const zustand = this._zustand(entity);
-    return (zustand && zustand.attributes.friendly_name) || entity;
-  }
-
-  /**
-   * Ein Element zur Entität führen: Klick öffnet die Detailansicht.
-   *
-   * `hass-more-info` ist das Ereignis, das auch die Lovelace-Karten benutzen.
-   * Es muss den Schattenbaum verlassen, sonst hört Home Assistant es nicht –
-   * daher `composed`.
-   */
-  _klickbar(element, entity) {
-    if (!entity) return element;
-    element.classList.add("klickbar");
-    element.setAttribute("role", "button");
-    element.setAttribute("tabindex", "0");
-    const oeffnen = () => {
-      this.dispatchEvent(
-        new CustomEvent("hass-more-info", {
-          detail: { entityId: entity },
-          bubbles: true,
-          composed: true,
-        })
-      );
-    };
-    element.addEventListener("click", oeffnen);
-    element.addEventListener("keydown", (ereignis) => {
-      if (ereignis.key === "Enter" || ereignis.key === " ") {
-        ereignis.preventDefault();
-        oeffnen();
-      }
-    });
-    return element;
-  }
-
-  /** Ob eine Pumpe fördert. Manche melden keinen Zustand, sondern ihre Drehzahl. */
-  _foerdert(entity) {
-    const zahl = this._zahl(entity);
-    return zahl !== null ? zahl > 0 : this._istAn(entity);
-  }
-
-  /** Ob an dieser Anlage gerade irgendeine Pumpe fördert. */
-  _foerdertEtwas(anlage) {
-    return (anlage.schema_pumpen || []).some((eintrag) => this._foerdert(eintrag.entity));
-  }
-
   // Ob eine Störung ansteht, sagt der Ja/Nein-Sensor. Das Attribut des
   // Klartextsensors bleibt als Rückfall, bis ein alter Erkennungsstand den
   // neuen Sensor nachgezogen hat.
