@@ -104,18 +104,18 @@ FARBEN_HELL: dict[str, str] = {
 # Dritter Satz: warmes Dunkel mit Terrakotta, passend zum gleichnamigen
 # Farbsatz der Oberfläche.
 FARBEN_TERRAKOTTA: dict[str, str] = {
-    "vorlauf": "#d98e46",
-    "ruecklauf": "#6b8fb5",
+    "vorlauf": "#d2603a",
+    "ruecklauf": "#5b8ab8",
     "rahmen": "#3a3630",
     "text": "#b8b0a8",
     "titel": "#ece8e4",
     "korpus": "#242220",
     "korpus_hell": "#322f2b",
     "korpus_dunkel": "#1a1816",
-    "warm": "#b3541f",
+    "warm": "#a8431f",
     # Muss `vorlauf` entsprechen – siehe `FARBEN_HELL`.
-    "glut": "#d98e46",
-    "kalt": "#4f6f96",
+    "glut": "#d2603a",
+    "kalt": "#436f9c",
     "schrift": SCHRIFT,
 }
 
@@ -123,7 +123,7 @@ FARBEN_TERRAKOTTA: dict[str, str] = {
 # Strömungsrichtung liest man an der Farbe, nicht an der Lage.
 FARBEN_PETROL: dict[str, str] = {
     "vorlauf": "#e0714d",
-    "ruecklauf": "#4a86c4",
+    "ruecklauf": "#3f8fb8",
     "rahmen": "#2e3c3f",
     "text": "#93a3a3",
     "titel": "#e4ecec",
@@ -140,7 +140,7 @@ FARBEN_PETROL: dict[str, str] = {
 # Fünfter Satz: dunkles Violett mit Pflaume.
 FARBEN_PFLAUME: dict[str, str] = {
     "vorlauf": "#d9705f",
-    "ruecklauf": "#6f86c8",
+    "ruecklauf": "#6b7fd2",
     "rahmen": "#3a3145",
     "text": "#a297ad",
     "titel": "#ece7f0",
