@@ -544,7 +544,71 @@ def modul_in_betrieb(entitaeten: list[dict[str, Any]]) -> bool:
     )
 
 
-def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[dict[str, Any]]:
+# Bereiche, deren Zustand sich als Beschriftung im Bild lesen lässt.
+WERT_BEREICHE = ("sensor", "number", "binary_sensor", "select")
+
+
+def teil_kennung(teil: dict[str, Any]) -> str:
+    """Stabile Kennung eines Anlagenteils für die Auswahl."""
+    return str(teil.get("id") or teil.get("name") or "")
+
+
+def waehlbare_werte(
+    teile: list[dict[str, Any]], kesselwert: str | None = None
+) -> list[dict[str, Any]]:
+    """Je Anlagenteil die Werte, die zur Auswahl stehen, samt Vorgabe.
+
+    Die Liste kommt aus der Erkennung, nicht aus einer gepflegten Tabelle – nur
+    so trägt sie auch auf Baureihen, für die es hier kein Namensmuster gibt.
+    """
+    liste = []
+    for teil in teile:
+        art = _art(teil.get("fct_type"))
+        werte = [
+            {"entity": e["entity_id"], "name": e.get("name") or e["entity_id"]}
+            for e in teil["entitaeten"]
+            if e.get("bereich") in WERT_BEREICHE and e.get("kategorie") != "config"
+        ]
+        if not werte:
+            continue
+        liste.append(
+            {
+                "id": teil_kennung(teil),
+                "titel": teil.get("name") or "",
+                "art": art,
+                "werte": sorted(werte, key=lambda w: w["name"]),
+                "vorgabe": [w["entity_id"] for w in _werte(teil["entitaeten"], art, kesselwert)],
+            }
+        )
+    return liste
+
+
+def _gewaehlte_werte(
+    teil: dict[str, Any], art: str, kesselwert: str | None, gewaehlt: list[str]
+) -> list[dict[str, Any]]:
+    """Die gewählten Werte in ihrer Reihenfolge, mit bekannter Beschriftung.
+
+    Was das Schaubild ohnehin kennt, behält seine Rolle (`oben`, `unten`); alles
+    Übrige bekommt seinen Namen. Ohne die Rolle wüsste der Puffer nicht mehr,
+    welcher Fühler oben sitzt.
+    """
+    bekannt = {w["entity_id"]: w for w in _werte(teil["entitaeten"], art, kesselwert)}
+    namen = {e["entity_id"]: e.get("name") or e["entity_id"] for e in teil["entitaeten"]}
+    werte = []
+    for entity in gewaehlt:
+        if entity in bekannt:
+            werte.append(bekannt[entity])
+        elif entity in namen:
+            werte.append({"entity_id": entity, "beschriftung": namen[entity]})
+    return werte
+
+
+def _module(
+    teile: list[dict[str, Any]],
+    kesselwert: str | None = None,
+    auswahl: dict[str, list[str]] | None = None,
+    teile_aus: list[str] | tuple[str, ...] = (),
+) -> list[dict[str, Any]]:
     """Anlagenteile, die sich zeichnen lassen, mit ihren Werten.
 
     Warmwasser bekommt einen eigenen Kasten, obwohl seine Datenpunkte am
@@ -553,7 +617,15 @@ def _module(teile: list[dict[str, Any]], kesselwert: str | None = None) -> list[
     module: list[dict[str, Any]] = []
     for teil in teile:
         art = _art(teil.get("fct_type"))
-        werte = _werte(teil["entitaeten"], art, kesselwert)
+        kennung = teil_kennung(teil)
+        if kennung in set(teile_aus or ()):
+            continue
+        gewaehlt = (auswahl or {}).get(kennung)
+        werte = (
+            _gewaehlte_werte(teil, art, kesselwert, gewaehlt)
+            if gewaehlt is not None
+            else _werte(teil["entitaeten"], art, kesselwert)
+        )
         # Das Pumpen-/Relaismodul wird auch ohne Messwert gezeichnet: Seine
         # Kesseltemperatur misst bei einer Fernwärmeübergabe den Speicher auf
         # der anderen Seite – im Schaubild sagt die Zahl nichts. Dass das Modul
@@ -1101,6 +1173,8 @@ def anlagenschema(
     teile: list[dict[str, Any]],
     kesselart: str | None = None,
     kesselwert: str | None = None,
+    auswahl: dict[str, list[str]] | None = None,
+    teile_aus: list[str] | tuple[str, ...] = (),
 ) -> dict[str, Any] | None:
     """Eine `picture-elements`-Karte für eine Anlage – oder nichts.
 
@@ -1117,7 +1191,7 @@ def anlagenschema(
     `picture-elements`-Karte. Die eigene Oberfläche wählt mit derselben Angabe
     (`panel/daten.py`).
     """
-    module = _module(teile, kesselwert)
+    module = _module(teile, kesselwert, auswahl, teile_aus)
     # Ein Bild aus lauter leeren Kästen hilft niemandem: Mindestens ein
     # Anlagenteil muss etwas messen.
     if not any(m["werte"] for m in module):
@@ -1393,27 +1467,47 @@ def anlagenschema(
     }
 
 
-def schaubild_daten(anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def schaubild_daten(
+    anlagen: list[dict[str, Any]],
+    auswahl: dict[str, list[str]] | None = None,
+    teile_aus: list[str] | tuple[str, ...] = (),
+) -> list[dict[str, Any]]:
     """Schaubild je Anlage, wie die Lovelace-Karte es bekommt.
 
     Die Kennung entscheidet, welche Anlage eine Karte zeigt – nicht die Reihenfolge.
     """
     return [
-        {"id": anlage.get("id") or anlage["name"], "name": anlage["name"], **schaubild_nutzdaten(anlage)}
+        {
+            "id": anlage.get("id") or anlage["name"],
+            "name": anlage["name"],
+            **schaubild_nutzdaten(anlage, auswahl, teile_aus),
+        }
         for anlage in anlagen
     ]
 
 
-def schaubild_nutzdaten(anlage: dict[str, Any]) -> dict[str, Any]:
+def schaubild_nutzdaten(
+    anlage: dict[str, Any],
+    auswahl: dict[str, list[str]] | None = None,
+    teile_aus: list[str] | tuple[str, ...] = (),
+) -> dict[str, Any]:
     """Die Schaubild-Felder einer Anlage – Bilder, Lagen, Bewegung.
 
     Oberfläche und Karte lesen dieselben Felder; zwei Aufbauwege wären zwei Quellen.
     """
-    bild = anlagenschema(anlage["teile"], anlage.get("kesselart"), anlage.get("kesselwert"))
+    bild = anlagenschema(
+        anlage["teile"],
+        anlage.get("kesselart"),
+        anlage.get("kesselwert"),
+        auswahl,
+        teile_aus,
+    )
     return {
         # Die Zeichnung geht **einmal** hinaus, dazu die Farbtabellen. Welcher
         # Satz gilt, weiß erst der Browser; er tauscht die Werte selbst.
         "schema_svg": bild["svg"] if bild else None,
+        # Was sich einstellen lässt: je Anlagenteil die Werte dieser Anlage.
+        "schema_teile": waehlbare_werte(anlage["teile"], anlage.get("kesselwert")),
         # Die Grundfarben für die Überlagerungen – Mischer, Heizkörper,
         # Schichtung. Sie liegen über dem Bild und erben dessen Farben nicht.
         "schema_grundfarben": {

@@ -241,3 +241,46 @@ def test_die_ueberlagerungen_folgen_dem_farbsatz(durchlauf):
     assert durchlauf["grundfarbenMitgeliefert"] == 4
     assert durchlauf["stutzenVorhanden"] is True
     assert durchlauf["stutzenOhneDunkelwert"] is True
+
+
+# ---------------------------------------------------------------------------
+# Eigene Werteauswahl
+# ---------------------------------------------------------------------------
+def test_waehlbare_werte_nennen_was_die_anlage_fuehrt(schema, anlage):
+    """Die Liste kommt aus der Erkennung, nicht aus einer gepflegten Tabelle."""
+    teile = schema.waehlbare_werte(anlage["teile"])
+    assert [t["titel"] for t in teile] == ["PuroWIN", "B-PLMi PUFFER"]
+    kessel = teile[0]
+    assert {w["entity"] for w in kessel["werte"]} == {"sensor.kessel_ist", "sensor.leistung"}
+    assert all(w["name"] for w in kessel["werte"])
+    assert kessel["id"]
+
+
+def test_jeder_teil_nennt_seine_vorgabe(schema, anlage):
+    """Ohne eigene Auswahl gilt, was das Schaubild bisher gezeigt hat."""
+    teile = schema.waehlbare_werte(anlage["teile"])
+    assert teile[0]["vorgabe"]
+    assert set(teile[0]["vorgabe"]) <= {w["entity"] for w in teile[0]["werte"]}
+
+
+def test_die_auswahl_bestimmt_die_beschriftungen(schema, anlage):
+    """Gewählt heißt gezeichnet – und nichts anderes."""
+    teile = schema.waehlbare_werte(anlage["teile"])
+    auswahl = {teile[0]["id"]: ["sensor.leistung"]}
+    bild = schema.anlagenschema(anlage["teile"], auswahl=auswahl)
+    kessel = [e for e in bild["elements"] if e["entity"].startswith("sensor.kessel")]
+    assert not kessel
+    assert any(e["entity"] == "sensor.leistung" for e in bild["elements"])
+
+
+def test_ein_abgewaehlter_anlagenteil_verschwindet(schema, anlage):
+    teile = schema.waehlbare_werte(anlage["teile"])
+    bild = schema.anlagenschema(anlage["teile"], teile_aus=[teile[1]["id"]])
+    assert not any(e["entity"].startswith("sensor.tp") for e in bild["elements"])
+
+
+def test_ohne_auswahl_bleibt_alles_wie_bisher(schema, anlage):
+    """Der Gleichstand: Wer nichts einstellt, merkt von alledem nichts."""
+    assert schema.anlagenschema(anlage["teile"]) == schema.anlagenschema(
+        anlage["teile"], auswahl={}, teile_aus=[]
+    )
