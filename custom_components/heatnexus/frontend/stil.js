@@ -64,6 +64,24 @@ export const STIL = `
     color: inherit;
   }
   .menue-taste:hover { background: var(--hn-linie); }
+  /* Werkzeuge der Kopfzeile: ein Knopf, darunter die Liste. */
+  .werkzeuge { position: relative; flex: none; }
+  .werkzeugliste {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
+    min-width: 220px; padding: 6px; border-radius: 12px;
+    background: var(--hn-karte);
+    border: 1px solid var(--hn-linie);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+  .werkzeugliste[hidden] { display: none; }
+  .werkzeugliste button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 9px 10px; border-radius: 9px; cursor: pointer;
+    background: none; border: none; color: inherit; text-align: left;
+    font: inherit; font-size: 14px; font-weight: 600;
+  }
+  .werkzeugliste button:hover { background: var(--hn-flaeche); }
+  .werkzeugliste ha-icon { --mdc-icon-size: 20px; }
   .kopfleiste .marke { font-size: 20px; font-weight: 700; }
   .kopfleiste .abstand { flex: 1; }
   .aussen {

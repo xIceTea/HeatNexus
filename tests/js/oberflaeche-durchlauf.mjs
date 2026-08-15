@@ -140,29 +140,52 @@ REITER.forEach((reiter) => {
 });
 
 // ---------------------------------------------------------------------------
-// Dashboard-Vorlage
+// Werkzeugmenü der Kopfzeile
 //
-// Das mitgelieferte Dashboard entsteht bei jedem Öffnen neu und ist deshalb
-// nicht zu bearbeiten. Der Reiter „Hilfe" gibt seinen Text zum Kopieren heraus.
+// Anordnen und Dashboard-Vorlage stehen dort gemeinsam. Die Vorlage nur für
+// Verwalter: Wer keine Dashboards anlegen darf, kann damit nichts anfangen.
 // ---------------------------------------------------------------------------
 hass.user = { is_admin: true };
 hass.callWS = async (anfrage) =>
   anfrage.type === "heatnexus/dashboard_yaml"
     ? { yaml: "title: Heizung\nviews: []\n" }
     : {};
-flaeche._reiter = "hilfe";
+flaeche._reiter = "uebersicht";
 flaeche._gebaut = false;
 flaeche._zeichnen();
-const vorlageTaste = [...flaeche.shadowRoot.querySelectorAll("button")].find(
-  (taste) => String(taste.textContent || "") === "YAML anzeigen"
+
+const werkzeugliste = flaeche.shadowRoot.querySelector(".werkzeugliste");
+bilanz.werkzeugmenueDa = !!werkzeugliste;
+bilanz.werkzeugeZu = !!werkzeugliste && werkzeugliste.hidden === true;
+bilanz.werkzeuge = werkzeugliste
+  ? werkzeugliste.children.map((punkt) => String(punkt.textContent || "").trim())
+  : [];
+const werkzeugTaste = flaeche.shadowRoot
+  .querySelector(".werkzeuge")
+  .querySelector("button");
+werkzeugTaste.ausloesen("click");
+bilanz.werkzeugeOffen = werkzeugliste.hidden === false;
+
+const vorlagePunkt = werkzeugliste.children.find(
+  (punkt) => String(punkt.textContent || "").trim() === "Dashboard-Vorlage"
 );
-bilanz.vorlageFuerVerwalter = !!vorlageTaste;
-if (vorlageTaste) {
-  vorlageTaste.ausloesen("click");
+bilanz.vorlageFuerVerwalter = !!vorlagePunkt;
+if (vorlagePunkt) {
+  vorlagePunkt.ausloesen("click");
   for (let runde = 0; runde < 5; runde++) await Promise.resolve();
 }
+bilanz.werkzeugeNachKlickZu = werkzeugliste.hidden === true;
 const yamlFeld = flaeche.shadowRoot.querySelector(".yaml-feld");
 bilanz.yamlImFenster = !!yamlFeld && String(yamlFeld.value || "").includes("views");
+
+// Ohne Verwalterrecht fehlt der Eintrag, das Anordnen bleibt.
+hass.user = { is_admin: false };
+flaeche._gebaut = false;
+flaeche._zeichnen();
+bilanz.werkzeugeOhneRecht = flaeche.shadowRoot
+  .querySelector(".werkzeugliste")
+  .children.map((punkt) => String(punkt.textContent || "").trim());
+hass.user = { is_admin: true };
 
 // ---------------------------------------------------------------------------
 // Farbsatz des Schaubilds

@@ -271,10 +271,24 @@ def test_das_schaubild_folgt_dem_erscheinungsbild(durchlauf, aufteilung):
     assert unquote(schaubild["hell"]).count(dunkler_wert) == 0
 
 
+def test_die_werkzeuge_liegen_hinter_einem_knopf(durchlauf):
+    """Einzelne Symbole wachsen mit jedem Werkzeug in die Kopfzeile hinein."""
+    assert durchlauf["werkzeugmenueDa"] is True
+    assert durchlauf["werkzeugeZu"] is True
+    assert durchlauf["werkzeugeOffen"] is True
+    assert durchlauf["werkzeuge"] == ["Karten anordnen", "Dashboard-Vorlage"]
+    assert durchlauf["werkzeugeNachKlickZu"] is True
+
+
 def test_die_dashboard_vorlage_steht_zum_kopieren_bereit(durchlauf):
     """Das mitgelieferte Dashboard ist nicht zu bearbeiten – sein Text schon."""
     assert durchlauf["vorlageFuerVerwalter"] is True
     assert durchlauf["yamlImFenster"] is True
+
+
+def test_ohne_verwalterrecht_keine_dashboard_vorlage(durchlauf):
+    """Wer keine Dashboards anlegen darf, kann mit der Vorlage nichts anfangen."""
+    assert durchlauf["werkzeugeOhneRecht"] == ["Karten anordnen"]
 
 
 def test_der_farbsatz_faerbt_auch_die_oberflaeche(durchlauf):

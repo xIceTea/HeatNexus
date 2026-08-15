@@ -36,39 +36,19 @@ export const HilfeMixin = (Basis) =>
     // Reiter „Hilfe"
     // -------------------------------------------------------------------
     /**
-     * Das mitgelieferte Dashboard als Text.
+     * Das mitgelieferte Dashboard als Text holen und zeigen.
      *
      * Es entsteht bei jedem Öffnen neu; Home Assistant sperrt dort Editor und
-     * Rohkonfiguration. Wer es abwandeln will, kopiert diesen Text in ein
-     * eigenes Dashboard.
+     * Rohkonfiguration. Wer es abwandeln will, legt mit diesem Text ein
+     * eigenes Dashboard an.
      */
-    _dashboardVorlage() {
-      const karte = this._karte("Dashboard-Vorlage");
-      const text = document.createElement("p");
-      text.className = "hinweis";
-      text.textContent =
-        "Das mitgelieferte Dashboard baut sich bei jedem Öffnen neu aus der " +
-        "Anlage auf und lässt sich deshalb nicht bearbeiten. Der Text hier ist " +
-        "sein heutiger Stand – eingefügt in ein neues Dashboard gehört er dir.";
-      karte.appendChild(text);
-
-      const taste = document.createElement("button");
-      taste.type = "button";
-      taste.className = "dialog-taste";
-      taste.textContent = "YAML anzeigen";
-      taste.addEventListener("click", async () => {
-        taste.disabled = true;
-        try {
-          const antwort = await this._hass.callWS({ type: "heatnexus/dashboard_yaml" });
-          this._yamlZeigen(antwort.yaml || "");
-        } catch (err) {
-          this._erklaeren("Dashboard-Vorlage", `Nicht abrufbar: ${err.message || err}`);
-        } finally {
-          taste.disabled = false;
-        }
-      });
-      karte.appendChild(taste);
-      return karte;
+    async _dashboardVorlageOeffnen() {
+      try {
+        const antwort = await this._hass.callWS({ type: "heatnexus/dashboard_yaml" });
+        this._yamlZeigen(antwort.yaml || "");
+      } catch (err) {
+        this._erklaeren("Dashboard-Vorlage", `Nicht abrufbar: ${err.message || err}`);
+      }
     }
 
     /** Der Text in einem Fenster, mit Knopf zum Kopieren. */
@@ -82,6 +62,13 @@ export const HilfeMixin = (Basis) =>
       const ueberschrift = document.createElement("h3");
       ueberschrift.className = "dialog-titel";
       ueberschrift.textContent = "Dashboard-Vorlage";
+
+      const hinweis = document.createElement("p");
+      hinweis.className = "dialog-text";
+      hinweis.textContent =
+        "Das mitgelieferte Dashboard baut sich bei jedem Öffnen neu aus der " +
+        "Anlage auf und lässt sich deshalb nicht bearbeiten. Dieser Text ist " +
+        "sein heutiger Stand – eingefügt in ein neues Dashboard gehört er dir.";
 
       // Ein Textfeld statt eines Absatzes: So lässt sich der Inhalt auch dort
       // markieren, wo die Zwischenablage gesperrt ist.
@@ -102,7 +89,7 @@ export const HilfeMixin = (Basis) =>
       schliessen.textContent = "Schließen";
       leiste.append(kopieren, schliessen);
 
-      dialog.append(ueberschrift, feld, leiste);
+      dialog.append(ueberschrift, hinweis, feld, leiste);
       schleier.appendChild(dialog);
 
       const weg = () => {
@@ -132,11 +119,7 @@ export const HilfeMixin = (Basis) =>
 
     _hilfeReiter(anlage) {
       const eintraege = anlage.hilfe_liste || [];
-      const vorlage = { id: "dashboard-vorlage", titel: "Dashboard-Vorlage", knoten: null };
-      if (this._hass && this._hass.user && this._hass.user.is_admin) {
-        vorlage.knoten = this._dashboardVorlage();
-      }
-      if (!eintraege.length) return [{ id: "hilfe", titel: "Hilfe", knoten: null }, vorlage];
+      if (!eintraege.length) return [{ id: "hilfe", titel: "Hilfe", knoten: null }];
 
       const karte = this._karte("Hilfe");
 
@@ -181,6 +164,6 @@ export const HilfeMixin = (Basis) =>
 
       // Fließtext über die volle Breite. Auf einer Spalte stünde die Karte
       // schmal neben leerer Fläche.
-      return [{ id: "hilfe", titel: "Hilfe", knoten: karte, breite: BREITE_MAX }, vorlage];
+      return [{ id: "hilfe", titel: "Hilfe", knoten: karte, breite: BREITE_MAX }];
     }
   };

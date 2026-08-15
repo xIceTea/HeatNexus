@@ -300,22 +300,81 @@ class HeatNexusPanel extends Grundlage {
       leiste.appendChild(waehler);
     }
 
-    // Anordnen steht ganz außen: Es gehört nicht zum Ablesen, sondern zum
-    // Einrichten. Zwischen Außentemperatur und Anlagenwahl stand es mitten in
-    // den Angaben, die man ständig liest.
-    const anordnen = document.createElement("button");
-    anordnen.className = "menue-taste";
-    anordnen.type = "button";
-    anordnen.title = this._anordnen ? "Anordnen beenden" : "Karten anordnen";
-    anordnen.setAttribute("aria-label", anordnen.title);
-    anordnen.setAttribute("aria-pressed", String(this._anordnen));
-    anordnen.appendChild(
-      this._symbolKnoten(this._anordnen ? "mdi:check" : "mdi:view-dashboard-edit-outline")
-    );
-    anordnen.addEventListener("click", () => this._anordnenUmschalten());
-    leiste.appendChild(anordnen);
+    // Die Werkzeuge stehen ganz außen: Sie gehören nicht zum Ablesen, sondern
+    // zum Einrichten. Zwischen Außentemperatur und Anlagenwahl stünden sie
+    // mitten in den Angaben, die man ständig liest.
+    leiste.appendChild(this._werkzeugmenue());
 
     return leiste;
+  }
+
+  /**
+   * Die Werkzeuge der Oberfläche hinter einem Knopf.
+   *
+   * Einzelne Symbole nebeneinander wachsen mit jedem weiteren Werkzeug in die
+   * Kopfzeile hinein; ein Menü bleibt gleich breit.
+   */
+  _werkzeugmenue() {
+    const huelle = document.createElement("div");
+    huelle.className = "werkzeuge";
+
+    const taste = document.createElement("button");
+    taste.className = "menue-taste";
+    taste.type = "button";
+    taste.title = "Werkzeuge";
+    taste.setAttribute("aria-label", "Werkzeuge");
+    taste.setAttribute("aria-haspopup", "menu");
+    taste.setAttribute("aria-expanded", "false");
+    taste.appendChild(this._symbolKnoten("mdi:dots-vertical"));
+
+    const liste = document.createElement("div");
+    liste.className = "werkzeugliste";
+    liste.setAttribute("role", "menu");
+    liste.hidden = true;
+
+    const zu = () => {
+      liste.hidden = true;
+      taste.setAttribute("aria-expanded", "false");
+    };
+    const eintrag = (titel, symbol, ruf) => {
+      const punkt = document.createElement("button");
+      punkt.type = "button";
+      punkt.setAttribute("role", "menuitem");
+      punkt.appendChild(this._symbolKnoten(symbol));
+      const text = document.createElement("span");
+      text.textContent = titel;
+      punkt.appendChild(text);
+      punkt.addEventListener("click", () => {
+        zu();
+        ruf();
+      });
+      liste.appendChild(punkt);
+    };
+
+    eintrag(
+      this._anordnen ? "Anordnen beenden" : "Karten anordnen",
+      this._anordnen ? "mdi:check" : "mdi:view-dashboard-edit-outline",
+      () => this._anordnenUmschalten()
+    );
+    // Die Vorlage taugt nur dem, der Dashboards anlegen darf.
+    if (this._hass && this._hass.user && this._hass.user.is_admin) {
+      eintrag("Dashboard-Vorlage", "mdi:code-braces", () => this._dashboardVorlageOeffnen());
+    }
+
+    taste.addEventListener("click", (ereignis) => {
+      ereignis.stopPropagation();
+      liste.hidden = !liste.hidden;
+      taste.setAttribute("aria-expanded", String(!liste.hidden));
+    });
+    // Ein Klick daneben schließt. Gehorcht wird dem Schattenbaum, nicht dem
+    // Dokument: Von dort aus zeigt jedes Ereignis auf das Wirtselement.
+    this.shadowRoot.addEventListener("click", (ereignis) => {
+      const pfad = ereignis.composedPath ? ereignis.composedPath() : [];
+      if (!liste.hidden && !pfad.includes(huelle)) zu();
+    });
+
+    huelle.append(taste, liste);
+    return huelle;
   }
 
   _reiterleiste() {
