@@ -43,6 +43,8 @@ class WindhagerButton(WindhagerEntity, ButtonEntity):
     """
 
     _require_value_for_available = False
+    # Ihr Wert wird nie angezeigt; zyklisch gelesen kostet er nur eine Anfrage.
+    _register_poll_oid = False
 
     def __init__(self, coordinator, device_info: dict) -> None:
         super().__init__(coordinator, device_info)

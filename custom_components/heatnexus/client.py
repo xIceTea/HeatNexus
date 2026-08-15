@@ -1801,6 +1801,9 @@ class WindhagerHttpClient:
             if d.get("type") == "time_program":
                 # wird über den object-Endpunkt gelesen, nicht über lookup
                 continue
+            if d.get("type") == "button":
+                # Eine Taste zeigt nichts an; ihre Adresse wird nur beschrieben.
+                continue
             if not d.get("oid"):
                 continue
             self._klasse_eintragen(klassen, d["oid"], self._poll_klasse(d))

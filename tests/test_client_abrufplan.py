@@ -828,3 +828,15 @@ async def test_die_sammelseite_wird_nur_einmal_ausprobiert(client, monkeypatch):
         await client._read_menu("/1/60/0", menu, 50, None)
 
     assert sum(1 for u in anfragen if "count=-1" in u) == 1
+
+
+def test_eine_taste_kostet_keinen_abruf(client):
+    """Sie zeigt nichts an; ihre Adresse wird nur beschrieben."""
+    client.devices = [
+        {"oid": "/1/60/0/0/7/0", "name": "Kesseltemperatur Ist", "type": "temperature"},
+        {"oid": "/1/60/0/9/75/0", "name": "Serviceausbrand starten", "type": "button"},
+    ]
+
+    client._compute_poll_oids()
+
+    assert client.poll_oids == {"/1/60/0/0/7/0"}
