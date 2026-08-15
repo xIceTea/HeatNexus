@@ -13,6 +13,7 @@ import { STIL } from "./stil.js";
 import { FARBSAETZE } from "./ordnung.js";
 
 const ELEMENT = "heatnexus-schaubild";
+const ALLE = "alle";
 const EDITOR = "heatnexus-schaubild-editor";
 
 const Grundlage = SchaubildMixin(BausteineMixin(WerteMixin(HTMLElement)));
@@ -52,8 +53,13 @@ class HeatNexusSchaubildKarte extends Grundlage {
     if (config && config.farbsatz && !FARBSAETZE.some((s) => s.schluessel === config.farbsatz)) {
       throw new Error(`Unbekannter Farbsatz: ${config.farbsatz}`);
     }
+    const vorher = JSON.stringify([this._config.werte, this._config.teile_aus]);
     this._config = { farbsatz: "auto", animation: true, ...(config || {}) };
     this._gebaut = false;
+    if (this._hass && vorher !== JSON.stringify([this._config.werte, this._config.teile_aus])) {
+      this._laden = this._datenHolen();
+      return;
+    }
     this._zeichnen();
   }
 
@@ -75,7 +81,10 @@ class HeatNexusSchaubildKarte extends Grundlage {
 
   async _datenHolen() {
     try {
-      this._anlagen = await this._hass.callWS({ type: "heatnexus/schaubild" });
+      const anfrage = { type: "heatnexus/schaubild" };
+      if (this._config.werte) anfrage.auswahl = this._config.werte;
+      if (this._config.teile_aus) anfrage.teile_aus = this._config.teile_aus;
+      this._anlagen = await this._hass.callWS(anfrage);
     } catch (err) {
       console.warn("HeatNexus: Schaubild konnte nicht geladen werden", err);
       this._anlagen = [];
@@ -86,11 +95,26 @@ class HeatNexusSchaubildKarte extends Grundlage {
 
   // Ohne Angabe die erste Anlage: Eine Karte, die ohne Konfiguration leer
   // bleibt, wirkt kaputt.
-  _anlage() {
-    if (!this._anlagen.length) return null;
+  _gewaehlteAnlagen() {
+    if (!this._anlagen.length) return [];
     const gewuenscht = this._config.anlage;
-    if (!gewuenscht) return this._anlagen[0];
-    return this._anlagen.find((a) => a.id === gewuenscht || a.name === gewuenscht) || null;
+    if (gewuenscht === ALLE) return this._anlagen;
+    if (!gewuenscht) return this._anlagen.slice(0, 1);
+    const treffer = this._anlagen.find((a) => a.id === gewuenscht || a.name === gewuenscht);
+    return treffer ? [treffer] : [];
+  }
+
+  /** Alle Werte aller gewählten Anlagen, für die Liste daneben. */
+  _wertevorrat() {
+    const vorrat = new Map();
+    this._gewaehlteAnlagen().forEach((anlage) => {
+      (anlage.schema_teile || []).forEach((teil) => {
+        teil.werte.forEach((wert) => {
+          if (!vorrat.has(wert.entity)) vorrat.set(wert.entity, { ...wert, teil: teil.titel });
+        });
+      });
+    });
+    return vorrat;
   }
 
   _zeichnen() {
@@ -101,15 +125,50 @@ class HeatNexusSchaubildKarte extends Grundlage {
     stil.textContent = STIL;
     this.shadowRoot.appendChild(stil);
 
-    const anlage = this._anlage();
-    const bild = anlage && this._schaubild(anlage);
-    this.shadowRoot.appendChild(bild || this._hinweis());
-    if (bild && this._config.animation === false) {
-      const huelle = bild.querySelector(".schaubild");
-      if (huelle) huelle.classList.add("ruhig");
+    const anlagen = this._gewaehlteAnlagen();
+    const bilder = anlagen.map((a) => this._schaubild(a)).filter(Boolean);
+    if (!bilder.length && !this._zusatzwerte().length) {
+      this.shadowRoot.appendChild(this._hinweis());
+      this._gebaut = true;
+      this._aktualisieren();
+      return;
     }
+    if (this._config.animation === false) {
+      bilder.forEach((bild) => {
+        const huelle = bild.querySelector(".schaubild");
+        if (huelle) huelle.classList.add("ruhig");
+      });
+    }
+    const liste = this._werteliste();
+    const stelle = liste ? this._config.liste || "rechts" : "aus";
+    const rahmen = document.createElement("div");
+    rahmen.className = `karte-zweispaltig lage-${stelle}`;
+    const links = document.createElement("div");
+    bilder.forEach((bild) => links.appendChild(bild));
+    rahmen.appendChild(links);
+    if (liste) rahmen.appendChild(liste);
+    this.shadowRoot.appendChild(rahmen);
     this._gebaut = true;
     this._aktualisieren();
+  }
+
+  _zusatzwerte() {
+    const vorrat = this._wertevorrat();
+    return (this._config.zusatzwerte || []).filter((entity) => vorrat.has(entity));
+  }
+
+  // Die Liste behauptet nichts über Rohre – hier darf frei gewählt werden,
+  // quer über alle Anlagenteile.
+  _werteliste() {
+    const gewaehlt = this._zusatzwerte();
+    if (!gewaehlt.length) return null;
+    const vorrat = this._wertevorrat();
+    const karte = this._karte("Werte");
+    gewaehlt.forEach((entity) => {
+      const eintrag = vorrat.get(entity);
+      karte.appendChild(this._wertzeile(entity, eintrag.teil || "", eintrag.name));
+    });
+    return karte;
   }
 
   _hinweis() {
@@ -144,4 +203,4 @@ if (!window.customCards.some((k) => k.type === ELEMENT)) {
   });
 }
 
-export { HeatNexusSchaubildKarte, ELEMENT, EDITOR };
+export { HeatNexusSchaubildKarte, ELEMENT, EDITOR, ALLE };

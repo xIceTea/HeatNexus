@@ -458,6 +458,13 @@ export const STIL = `
     transition: background 1.2s ease;
   }
   .schaubild .heizkoerper.da { opacity: 1; }
+  /* Karte: Schaubild und Werteliste nebeneinander, am Handy untereinander. */
+  .karte-zweispaltig { display: grid; gap: 12px; }
+  .karte-zweispaltig.lage-rechts { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+  .karte-zweispaltig.lage-unten { grid-template-columns: minmax(0, 1fr); }
+  @media (max-width: 700px) {
+    .karte-zweispaltig.lage-rechts { grid-template-columns: minmax(0, 1fr); }
+  }
   /* Die Karte kann die Bewegung abschalten; die Zustände bleiben sichtbar. */
   .schaubild.ruhig * { animation: none !important; }
   /* Heiß genug, um zu arbeiten: ein ruhiges Pulsieren, dieselbe Geste wie am

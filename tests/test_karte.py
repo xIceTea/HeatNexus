@@ -195,8 +195,8 @@ def test_die_karte_bringt_eine_erstkonfiguration_mit(durchlauf):
 def test_der_editor_stellt_die_anlagen_zur_auswahl(durchlauf):
     """Ein Textfeld zwang zum Abtippen und meldete bei jedem Buchstaben Unsinn."""
     assert durchlauf["editorElement"] == "heatnexus-schaubild-editor"
-    assert durchlauf["editorFelder"] == ["anlage", "farbsatz", "animation"]
-    assert durchlauf["editorAnlagen"] == ["Heizhaus", "Wohnhaus"]
+    assert durchlauf["editorFelder"] == ["anlage", "darstellung", "liste_ab", "bild_ab"]
+    assert durchlauf["editorAnlagen"][1:] == ["Heizhaus", "Wohnhaus"]
 
 
 def test_groesse_kommt_ohne_hass_aus(durchlauf):
@@ -284,3 +284,19 @@ def test_ohne_auswahl_bleibt_alles_wie_bisher(schema, anlage):
     assert schema.anlagenschema(anlage["teile"]) == schema.anlagenschema(
         anlage["teile"], auswahl={}, teile_aus=[]
     )
+
+
+def test_der_editor_gliedert_nach_anlagenteilen(durchlauf):
+    """Überkategorien wie bei den Flusskarten: Abschnitt je Anlagenteil."""
+    assert durchlauf["abschnitteJeTeil"] == ["PuroWIN", "B-PLMi PUFFER", "UML Heizkreis"]
+    assert durchlauf["werteAuswaehlbar"] is True
+    assert durchlauf["vorbelegt"] is True
+
+
+def test_die_liste_zieht_aus_der_ganzen_anlage(durchlauf):
+    """Die Liste behauptet nichts über Rohre – dort darf frei gewählt werden."""
+    assert durchlauf["zusatzwerteVorrat"] >= 6
+
+
+def test_alle_anlagen_stehen_zur_wahl(durchlauf):
+    assert durchlauf["editorAnlagen"][0] == "Alle Anlagen"

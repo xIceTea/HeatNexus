@@ -28,6 +28,17 @@ editor.hass = { states: {}, callWS: async () => anlagen };
 await editor._laden;
 bilanz.editorFelder = editor._schema().map((f) => f.name);
 bilanz.editorAnlagen = editor._schema()[0].selector.select.options.map((o) => o.label);
+// Je Anlagenteil ein Abschnitt mit Kästchen, vorbelegt mit der Vorgabe.
+editor.setConfig({ anlage: anlagen[0].id });
+const bildAb = editor._schema().find((f) => f.name === "bild_ab");
+const jeTeil = bildAb.schema.find((f) => f.name === "werte");
+bilanz.abschnitteJeTeil = jeTeil.schema.map((f) => editor._beschriftung(f));
+bilanz.werteAuswaehlbar = jeTeil.schema[0].selector.select.multiple === true;
+bilanz.vorbelegt = (editor._daten().werte[jeTeil.schema[0].name] || []).length > 0;
+bilanz.zusatzwerteVorrat = editor
+  ._schema()
+  .find((f) => f.name === "liste_ab")
+  .schema[0].selector.select.options.length;
 
 const karte = new Klasse();
 // Reihenfolge wie in Home Assistant: erst die Konfiguration, dann `hass`.
