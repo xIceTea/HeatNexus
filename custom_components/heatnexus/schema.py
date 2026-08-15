@@ -123,7 +123,7 @@ FARBEN_TERRAKOTTA: dict[str, str] = {
 # Strömungsrichtung liest man an der Farbe, nicht an der Lage.
 FARBEN_PETROL: dict[str, str] = {
     "vorlauf": "#e0714d",
-    "ruecklauf": "#3fa89a",
+    "ruecklauf": "#4a86c4",
     "rahmen": "#2e3c3f",
     "text": "#93a3a3",
     "titel": "#e4ecec",
@@ -133,14 +133,14 @@ FARBEN_PETROL: dict[str, str] = {
     "warm": "#b34a2a",
     # Muss `vorlauf` entsprechen – siehe `FARBEN_HELL`.
     "glut": "#e0714d",
-    "kalt": "#2f6f8f",
+    "kalt": "#2a5c94",
     "schrift": SCHRIFT,
 }
 
 # Fünfter Satz: dunkles Violett mit Pflaume.
 FARBEN_PFLAUME: dict[str, str] = {
     "vorlauf": "#d9705f",
-    "ruecklauf": "#a878e0",
+    "ruecklauf": "#6f86c8",
     "rahmen": "#3a3145",
     "text": "#a297ad",
     "titel": "#ece7f0",
@@ -150,7 +150,7 @@ FARBEN_PFLAUME: dict[str, str] = {
     "warm": "#b34a4a",
     # Muss `vorlauf` entsprechen – siehe `FARBEN_HELL`.
     "glut": "#d9705f",
-    "kalt": "#6f5fc0",
+    "kalt": "#4d5aa8",
     "schrift": SCHRIFT,
 }
 
@@ -1414,6 +1414,11 @@ def schaubild_nutzdaten(anlage: dict[str, Any]) -> dict[str, Any]:
         # Die Zeichnung geht **einmal** hinaus, dazu die Farbtabellen. Welcher
         # Satz gilt, weiß erst der Browser; er tauscht die Werte selbst.
         "schema_svg": bild["svg"] if bild else None,
+        # Die Grundfarben für die Überlagerungen – Mischer, Heizkörper,
+        # Schichtung. Sie liegen über dem Bild und erben dessen Farben nicht.
+        "schema_grundfarben": {
+            rolle: FARBEN[rolle] for rolle in ("vorlauf", "ruecklauf", "warm", "kalt")
+        },
         # Je Thema eine eigene Kopie: Eine flache reichte die Tabellen selbst
         # heraus, und wer sie änderte, änderte den Modulzustand mit.
         "schema_farben": (

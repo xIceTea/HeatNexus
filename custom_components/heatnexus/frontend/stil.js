@@ -369,6 +369,10 @@ export const STIL = `
      ein zweites Umdrehen ließ sie in das Bauteil hineinfließen. */
   .schaubild .fluss.ruecklauf.laeuft { animation-direction: reverse; }
   .schaubild .fluss.senkrecht.ruecklauf.laeuft { animation-direction: normal; }
+  /* Wird dem Speicher entnommen, dreht sich beides um: Oben verlässt die Wärme
+     ihn, unten kommt sie zurück. */
+  .schaubild .fluss.senkrecht.rueckwaerts.laeuft { animation-direction: reverse; }
+  .schaubild .fluss.senkrecht.ruecklauf.rueckwaerts.laeuft { animation-direction: reverse; }
   @keyframes stroemen {
     from { background-position: 0 0; }
     to { background-position: 26px 0; }

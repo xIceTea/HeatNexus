@@ -23,12 +23,45 @@ export const SchaubildMixin = (Basis) =>
    */
   _schemaBild(anlage) {
     const farben = anlage.schema_farben || {};
-    let satz = this._farbsatz();
-    if (!satz || satz === "auto") {
-      const themen = this._hass && this._hass.themes;
-      satz = themen && themen.darkMode === false ? "hell" : "dunkel";
-    }
-    return schaubildAdresse(farbenUmstellen(anlage.schema_svg, farben[satz]));
+    return schaubildAdresse(farbenUmstellen(anlage.schema_svg, farben[this._farbsatzGilt()]));
+  }
+
+  /** Der Satz, der gerade gilt – `auto` folgt dem Erscheinungsbild. */
+  _farbsatzGilt() {
+    const satz = this._farbsatz();
+    if (satz && satz !== "auto") return satz;
+    const themen = this._hass && this._hass.themes;
+    return themen && themen.darkMode === false ? "hell" : "dunkel";
+  }
+
+  /**
+   * Eine Grundfarbe im gerade geltenden Satz.
+   *
+   * Die Überlagerungen liegen über dem Bild und erben dessen Farben nicht;
+   * sie müssen denselben Austausch mitmachen.
+   */
+  _farbe(anlage, rolle) {
+    const dunkel = (anlage.schema_grundfarben || {})[rolle];
+    if (!dunkel) return null;
+    const tabelle = (anlage.schema_farben || {})[this._farbsatzGilt()];
+    return (tabelle && tabelle[dunkel]) || dunkel;
+  }
+
+  /**
+   * Ob ein Speicher gerade geladen oder entnommen wird.
+   *
+   * Die Ladepumpe allein genügt nicht: Sie läuft auch, wenn der Kessel direkt
+   * in einen Heizkreis fährt. Wärme geht nur in den Speicher, wenn der Kessel
+   * wärmer ist als dessen oberer Bereich.
+   */
+  _speicherzustand(eintrag) {
+    const pumpe = eintrag.laden ? this._foerdert(eintrag.laden) : false;
+    const kessel = eintrag.kessel ? this._zahl(eintrag.kessel) : null;
+    const oben = eintrag.oben ? this._zahl(eintrag.oben) : null;
+    const waermer =
+      kessel === null || oben === null ? true : kessel > oben + (Number(eintrag.hysterese) || 0);
+    const laedt = pumpe && waermer;
+    return { laedt, zieht: (eintrag.entnahme || []).some((e) => this._foerdert(e)) };
   }
 
   _schaubild(anlage) {
@@ -146,9 +179,10 @@ export const SchaubildMixin = (Basis) =>
         const anteil = Math.max(0, Math.min(100, stellwert)) / 100;
         // −60° steht auf dem Rücklaufschenkel, +60° auf dem Vorlauf.
         zeiger.style.transform = `rotate(${-60 + anteil * 120}deg)`;
-        stutzen.style.background = `color-mix(in oklab, #e2543a ${Math.round(
-          anteil * 100
-        )}%, #3a7fe2)`;
+        stutzen.style.background = `color-mix(in oklab, ${this._farbe(
+          anlage,
+          "vorlauf"
+        )} ${Math.round(anteil * 100)}%, ${this._farbe(anlage, "ruecklauf")})`;
         marke.title = `${eintrag.titel} – Mischer ${Math.round(stellwert)} %`;
       });
     });
@@ -188,8 +222,14 @@ export const SchaubildMixin = (Basis) =>
           spanne > 0 ? Math.max(0, Math.min(1, (grad - Number(eintrag.kalt)) / spanne)) : 0;
         // Oben etwas wärmer als unten – so wirkt das Glied rund, wie in der
         // Zeichnung, und der Übergang bleibt an derselben Stelle.
-        const warm = `color-mix(in oklab, #e2543a ${Math.round(anteil * 100)}%, #3a7fe2)`;
-        const kuehl = `color-mix(in oklab, #b3341f ${Math.round(anteil * 100)}%, #25508f)`;
+        const teil = Math.round(anteil * 100);
+        const vor = this._farbe(anlage, "vorlauf");
+        const rueck = this._farbe(anlage, "ruecklauf");
+        const warm = `color-mix(in oklab, ${vor} ${teil}%, ${rueck})`;
+        const kuehl = `color-mix(in oklab, ${this._farbe(anlage, "warm")} ${teil}%, ${this._farbe(
+          anlage,
+          "kalt"
+        )})`;
         // Zwei Lagen je Glied: links die Glanzkante, die das Glied rund
         // wirken lässt, darunter der Verlauf von warm nach kühl.
         const glanz =
@@ -246,7 +286,9 @@ export const SchaubildMixin = (Basis) =>
         const farbe = (grad) => {
           const anteil =
             spanne > 0 ? Math.max(0, Math.min(1, (grad - Number(eintrag.kalt)) / spanne)) : 0;
-          return `color-mix(in oklab, #b3341f ${Math.round(anteil * 100)}%, #25508f)`;
+          return `color-mix(in oklab, ${this._farbe(anlage, "warm")} ${Math.round(
+            anteil * 100
+          )}%, ${this._farbe(anlage, "kalt")})`;
         };
         if (!geschichtet) {
           koerper.style.background = farbe(oben);
@@ -320,18 +362,7 @@ export const SchaubildMixin = (Basis) =>
       marke.style.top = eintrag.top;
       huelle.appendChild(marke);
       this._bindungen.push(() => {
-        // Die Ladepumpe allein genügt nicht: Sie läuft auch, wenn der Kessel
-        // gerade direkt in einen Heizkreis fährt. Wärme geht nur dann in den
-        // Puffer, wenn der Kessel wärmer ist als dessen oberer Bereich.
-        const pumpe = eintrag.laden ? this._foerdert(eintrag.laden) : false;
-        const kessel = eintrag.kessel ? this._zahl(eintrag.kessel) : null;
-        const oben = eintrag.oben ? this._zahl(eintrag.oben) : null;
-        const waermer =
-          kessel === null || oben === null
-            ? true
-            : kessel > oben + (Number(eintrag.hysterese) || 0);
-        const laedt = pumpe && waermer;
-        const zieht = (eintrag.entnahme || []).some((e) => this._foerdert(e));
+        const { laedt, zieht } = this._speicherzustand(eintrag);
         marke.classList.toggle("laedt", laedt);
         marke.classList.toggle("entlaedt", !laedt && zieht);
         marke.textContent = laedt ? "lädt" : zieht ? "entlädt" : "";
@@ -371,6 +402,7 @@ export const SchaubildMixin = (Basis) =>
         band.style.top = eintrag[`${richtung}_top`];
         band.style.height = hoehe;
         huelle.appendChild(band);
+        const speicher = (anlage.schema_speicher || []).find((s) => s.titel === eintrag.titel);
         this._bindungen.push(() => {
           // Am Speicher zählen beide Richtungen: Seine eigene Pumpe lädt ihn,
           // die Pumpen der Verbraucher entnehmen ihm – und dabei steht die
@@ -379,6 +411,10 @@ export const SchaubildMixin = (Basis) =>
             this._foerdert(eintrag.entity) ||
             (eintrag.entnahme || []).some((e) => this._foerdert(e));
           band.classList.toggle("laeuft", stroemt);
+          // Beim Entnehmen kehrt sich die Strömung um: Oben verlässt die Wärme
+          // den Speicher, unten kommt sie zurück.
+          const zustand = speicher && this._speicherzustand(speicher);
+          band.classList.toggle("rueckwaerts", !!zustand && !zustand.laedt && zustand.zieht);
         });
       });
     });
