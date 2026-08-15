@@ -64,11 +64,35 @@ export const SchaubildMixin = (Basis) =>
     return { laedt, zieht: (eintrag.entnahme || []).some((e) => this._foerdert(e)) };
   }
 
+  /**
+   * Ein Laufrad als eigene Zeichnung statt eines Symbols.
+   *
+   * Der Kasten liegt symmetrisch um den Nullpunkt, und die drei Schaufeln
+   * stehen exakt 120 Grad auseinander – so dreht es sich rund statt zu eiern.
+   */
+  _laufrad() {
+    const rad = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    rad.setAttribute("viewBox", "-12 -12 24 24");
+    rad.innerHTML =
+      '<g fill="currentColor">' +
+      '<path d="M 0 0 L -1.74 -9.85 A 10 10 0 0 1 7.88 -6.16 Z"/>' +
+      '<path d="M 0 0 L 9.40 3.42 A 10 10 0 0 1 1.39 9.90 Z"/>' +
+      '<path d="M 0 0 L -7.66 6.43 A 10 10 0 0 1 -9.27 -3.75 Z"/>' +
+      '<circle r="2.4"/></g>';
+    return rad;
+  }
+
   _schaubild(anlage) {
     if (!anlage.schema_svg) return null;
     const karte = this._karte("Anlagenübersicht");
     const huelle = document.createElement("div");
     huelle.className = "schaubild";
+    // Eine Einheit der Zeichnung, ausgedrückt in der Breite der Karte. Alles
+    // Aufgesetzte rechnet damit und wächst mit dem Bild – in der schmalen
+    // Vorschau wie im breiten Dashboard.
+    if (anlage.schema_breite) {
+      huelle.style.setProperty("--hn-einheit", `${(100 / anlage.schema_breite).toFixed(4)}cqw`);
+    }
     const bild = document.createElement("img");
     const anfangsbild = this._schemaBild(anlage);
     bild.src = anfangsbild;
@@ -428,8 +452,7 @@ export const SchaubildMixin = (Basis) =>
       marke.title = `${eintrag.titel} – Pumpe`;
       marke.style.left = eintrag.left;
       marke.style.top = eintrag.top;
-      const ikone = this._symbolKnoten("mdi:fan");
-      marke.appendChild(ikone);
+      marke.appendChild(this._laufrad());
       huelle.appendChild(this._klickbar(marke, eintrag.entity));
       this._bindungen.push(() => {
         // Manche Pumpen melden keinen Zustand, sondern ihre Drehzahl.

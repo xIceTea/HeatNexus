@@ -335,7 +335,14 @@ export const STIL = `
      die Farbflaeche des Speichers mit ihrem negativen z-index nicht nur
      hinter das Bild rutschen, sondern hinter die ganze Karte - und waere
      verschwunden. */
-  .schaubild { width: 100%; position: relative; isolation: isolate; }
+  /* Die Hülle ist der Bezug für Behälterbreiten. Die Oberfläche setzt darauf
+     eine Einheit der Zeichnung, in Kartenbreite ausgedrückt; alles Aufgesetzte
+     rechnet damit und wächst mit dem Bild statt in Bildpunkten zu verharren. */
+  .schaubild {
+    width: 100%; position: relative; isolation: isolate;
+    container-type: inline-size;
+    --hn-einheit: 0.1cqw;
+  }
   .schaubild img { width: 100%; display: block; border-radius: 12px; }
 
   /* --- Bewegung im Schaubild ------------------------------------------- */
@@ -346,11 +353,13 @@ export const STIL = `
      Bewegt wird ausschließlich die Hintergrundposition – das läuft im
      Compositor und kostet kein Neuzeichnen. */
   .schaubild .fluss {
-    position: absolute; height: 6px; transform: translateY(-50%);
-    border-radius: 3px; pointer-events: none;
+    position: absolute;
+    height: calc(var(--hn-einheit) * 6);
+    transform: translateY(-50%);
+    border-radius: 999px; pointer-events: none;
     opacity: 0; transition: opacity 0.4s ease;
     background-repeat: repeat-x;
-    background-size: 26px 6px;
+    background-size: calc(var(--hn-einheit) * 26) 100%;
   }
   .schaubild .fluss.laeuft { opacity: 1; animation: stroemen 1.1s linear infinite; }
   .schaubild .fluss.vorlauf {
@@ -375,16 +384,16 @@ export const STIL = `
   .schaubild .fluss.senkrecht.ruecklauf.rueckwaerts.laeuft { animation-direction: reverse; }
   @keyframes stroemen {
     from { background-position: 0 0; }
-    to { background-position: 26px 0; }
+    to { background-position: calc(var(--hn-einheit) * 26) 0; }
   }
 
   /* Die Stichleitung hinunter zum Anlagenteil: dieselben Bänder, gekippt.
      Der Vorlauf läuft hinunter zum Verbraucher, der Rücklauf hinauf. */
   .schaubild .fluss.senkrecht {
-    width: 6px; height: auto;
+    width: calc(var(--hn-einheit) * 6); height: auto;
     transform: translateX(-50%);
     background-repeat: repeat-y;
-    background-size: 6px 26px;
+    background-size: 100% calc(var(--hn-einheit) * 26);
   }
   .schaubild .fluss.senkrecht.vorlauf {
     background-image: linear-gradient(
@@ -399,12 +408,14 @@ export const STIL = `
   .schaubild .fluss.senkrecht.laeuft { animation-name: stroemen-senkrecht; }
   @keyframes stroemen-senkrecht {
     from { background-position: 0 0; }
-    to { background-position: 0 26px; }
+    to { background-position: 0 calc(var(--hn-einheit) * 26); }
   }
 
   .schaubild .glut {
-    position: absolute; height: 26px; transform: translate(-50%, -50%);
-    border-radius: 13px; pointer-events: auto; cursor: pointer;
+    position: absolute;
+    height: calc(var(--hn-einheit) * 26);
+    transform: translate(-50%, -50%);
+    border-radius: 999px; pointer-events: auto; cursor: pointer;
     opacity: 0; transition: opacity 0.6s ease;
     background: radial-gradient(
       ellipse at center, #ffb347 0%, #e2543a 45%, rgba(226, 84, 58, 0) 75%);
@@ -414,8 +425,10 @@ export const STIL = `
   /* Mischer: Stellung, nicht Bewegung. Der Zeiger schwenkt beim Wechsel des
      Werts an seine neue Stelle und bleibt dort stehen. */
   .schaubild .mischer-stutzen {
-    position: absolute; width: 4px; transform: translateX(-50%);
-    pointer-events: none; border-radius: 2px; opacity: 0.85;
+    position: absolute;
+    width: calc(var(--hn-einheit) * 4);
+    transform: translateX(-50%);
+    pointer-events: none; border-radius: 999px; opacity: 0.85;
     transition: background 0.8s ease;
   }
   .schaubild .mischer {
@@ -424,7 +437,7 @@ export const STIL = `
     cursor: pointer;
   }
   .schaubild .mischer .zeiger {
-    width: 3px; height: 62%; border-radius: 2px;
+    width: calc(var(--hn-einheit) * 3); height: 62%; border-radius: 999px;
     background: #f2f6fa;
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
     transform-origin: 50% 50%;
@@ -512,8 +525,9 @@ export const STIL = `
   /* Ladezustand des Puffers, zwischen seinen beiden Temperaturen. */
   .schaubild .speicher {
     position: absolute; transform: translate(-50%, -50%);
-    padding: 2px 8px; border-radius: 999px;
-    font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+    padding: 0.2em 0.7em; border-radius: 999px;
+    font-size: clamp(8px, calc(var(--hn-einheit) * 10), 14px);
+    font-weight: 700; letter-spacing: 0.3px;
     background: rgba(10, 14, 19, 0.78);
     pointer-events: none; white-space: nowrap;
     opacity: 0; transition: opacity 0.4s ease;
@@ -555,27 +569,36 @@ export const STIL = `
   }
   .schaubild .pumpe {
     position: absolute; transform: translate(-50%, -50%);
-    width: 30px; height: 30px; border-radius: 50%;
+    width: clamp(18px, calc(var(--hn-einheit) * 28), 40px);
+    aspect-ratio: 1; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     background: rgba(10, 14, 19, 0.9);
     border: 1px solid var(--hn-linie);
     color: var(--hn-linie);
   }
-  .schaubild .pumpe ha-icon { --mdc-icon-size: 18px; opacity: 1; }
+  /* Das Laufrad ist eine eigene Zeichnung mit dem Nullpunkt in der Mitte des
+     Kastens. Ein Symbolzeichensatz gibt diese Mitte nicht her: Die Nabe lag
+     neben dem Drehpunkt, und das Rad eierte beim Drehen. */
+  .schaubild .pumpe svg {
+    display: block; width: 62%; height: 62%;
+    transform-origin: 50% 50%;
+  }
   .schaubild .pumpe.laeuft {
     color: var(--hn-akzent); border-color: color-mix(in srgb, var(--hn-akzent) 60%, transparent);
     box-shadow: 0 0 10px color-mix(in srgb, var(--hn-akzent) 35%, transparent);
   }
-  .schaubild .pumpe.laeuft ha-icon { animation: dreht 1.6s linear infinite; }
+  .schaubild .pumpe.laeuft svg { animation: dreht 1.6s linear infinite; }
   @keyframes dreht { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) {
-    .schaubild .pumpe.laeuft ha-icon { animation: none; }
+    .schaubild .pumpe.laeuft svg { animation: none; }
   }
   .schaubild .marke-wert {
     position: absolute; transform: translate(-50%, -50%);
     background: rgba(10, 14, 19, 0.72); color: #fff;
-    font-size: 15px; font-weight: 600; padding: 3px 9px;
-    border-radius: 8px; white-space: nowrap;
+    font-size: clamp(9px, calc(var(--hn-einheit) * 12), 17px);
+    font-weight: 600;
+    padding: 0.22em 0.6em;
+    border-radius: 0.55em; white-space: nowrap;
   }
 
   .linienwahl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
@@ -863,6 +886,14 @@ export const STIL = `
   .marke-wert.klickbar:hover { background: rgba(10, 14, 19, 0.92); }
   .klickbar:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 2px; }
   .hinweis { opacity: 0.6; font-size: 14px; padding: 6px 0; }
+  .yaml-feld {
+    width: 100%; min-height: 46vh; resize: vertical;
+    margin: 10px 0; padding: 10px; border-radius: 10px;
+    background: var(--hn-flaeche); color: inherit;
+    border: 1px solid var(--hn-linie);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px; line-height: 1.45; white-space: pre;
+  }
   .gut { color: #7bd88f; }
   .schlecht { color: #ff8a80; }
   .mitte { text-align: center; padding: 18px 0; }

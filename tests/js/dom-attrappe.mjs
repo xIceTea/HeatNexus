@@ -96,6 +96,14 @@ class Knoten {
     this.children = [];
     this[TEXT] = wert === null || wert === undefined ? "" : String(wert);
   }
+  // Nur ablegen, nicht auswerten: Geprüft wird, dass der Aufbau läuft, nicht
+  // dass die Attrappe einen Parser hat.
+  set innerHTML(wert) {
+    this[TEXT] = wert === null || wert === undefined ? "" : String(wert);
+  }
+  get innerHTML() {
+    return this[TEXT];
+  }
   get firstChild() {
     return this.children[0] || null;
   }
@@ -211,6 +219,8 @@ export function browserAttrappe() {
       knoten.tagName = String(name).toUpperCase();
       return knoten;
     },
+    // Das Schaubild zeichnet sein Laufrad selbst; dafür braucht es SVG-Knoten.
+    createElementNS: (_raum, name) => new Knoten(name),
     addEventListener() {},
     removeEventListener() {},
   };

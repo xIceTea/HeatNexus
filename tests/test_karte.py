@@ -210,6 +210,16 @@ def test_die_karte_zeigt_das_schaubild(durchlauf):
     assert durchlauf["bildAdresse"].startswith("data:image/svg+xml")
 
 
+def test_die_ueberlagerungen_haengen_am_massstab_der_zeichnung(durchlauf):
+    """Sonst bleibt die Schrift in der schmalen Vorschau so groß wie im Dashboard."""
+    assert durchlauf["einheitGesetzt"] is True
+
+
+def test_das_laufrad_ist_eine_eigene_zeichnung(durchlauf):
+    """Nur so liegt der Drehpunkt in der Mitte des Rades."""
+    assert durchlauf["laufradIstZeichnung"] is True
+
+
 def test_die_gewaehlte_anlage_gilt(durchlauf):
     assert durchlauf["zweiteAnlageAnders"] is True
 
