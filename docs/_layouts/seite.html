@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{% comment %}
+Der Seitentitel steht hier und nicht als Vorspann in den Anleitungen: Die
+Dateien unter `docs/` werden auch im Repo gelesen, und GitHub zeigt einen
+YAML-Vorspann dort als Tabelle über dem Text.
+{% endcomment %}
+{% assign titel = page.titel %}
+{% unless titel %}
+  {% case page.name %}
+    {% when 'OBERFLAECHE.md' %}{% assign titel = 'Die eigene Oberfläche' %}
+    {% when 'KARTE.md' %}{% assign titel = 'Anlagenschaubild als Karte' %}
+    {% when 'DATAPOINTS.md' %}{% assign titel = 'Datenpunkte' %}
+    {% when 'ENUMS.md' %}{% assign titel = 'Aufzählungen' %}
+    {% when 'ARCHITECTURE.md' %}{% assign titel = 'Aufbau' %}
+    {% when 'API.md' %}{% assign titel = 'Geräteschnittstelle' %}
+  {% endcase %}
+{% endunless %}
+<title>{% if titel %}{{ titel }} · {% endif %}{{ site.title }}</title>
+<meta name="description" content="{{ page.beschreibung | default: site.description }}">
+<link rel="icon" href="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/icon.png">
+<link rel="stylesheet" href="{{ '/assets/css/heatnexus.css' | relative_url }}">
+<meta property="og:title" content="{{ titel | default: site.title }}">
+<meta property="og:description" content="{{ page.beschreibung | default: site.description }}">
+<meta property="og:image" content="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png">
+</head>
+<body>
+
+<header class="kopf">
+  <a class="marke" href="{{ '/' | relative_url }}">
+    <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/icon.png" alt="" width="28" height="28">
+    <span>HeatNexus</span>
+  </a>
+  <nav class="wege">
+    <a href="{{ '/' | relative_url }}">Start</a>
+    <a href="{{ '/OBERFLAECHE' | relative_url }}">Oberfläche</a>
+    <a href="{{ '/KARTE' | relative_url }}">Karte</a>
+    <a href="{{ '/DATAPOINTS' | relative_url }}">Datenpunkte</a>
+    <a href="{{ '/ARCHITECTURE' | relative_url }}">Aufbau</a>
+    <a class="aussen" href="https://github.com/xIceTea/HeatNexus">GitHub</a>
+  </nav>
+</header>
+
+<main class="{% if page.start %}start{% else %}text{% endif %}">
+{{ content }}
+</main>
+
+<footer class="fuss">
+  <p>
+    HeatNexus ist ein freies Projekt ohne Verbindung zur Windhager Zentralheizung GmbH.
+    Windhager, PuroWIN und BioWIN sind Marken ihrer jeweiligen Inhaber.
+  </p>
+  <p>
+    <a href="https://github.com/xIceTea/HeatNexus">Quelltext</a> ·
+    <a href="https://github.com/xIceTea/HeatNexus/blob/main/CHANGELOG.md">Änderungen</a> ·
+    <a href="https://github.com/xIceTea/HeatNexus/discussions">Diskussionen</a> ·
+    <a href="https://github.com/xIceTea/HeatNexus/blob/main/LICENSE">GPL-3.0</a>
+  </p>
+</footer>
+
+</body>
+</html>

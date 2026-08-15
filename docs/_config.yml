@@ -1,0 +1,27 @@
+title: HeatNexus
+description: Windhager-Heizungen in Home Assistant — lokal, ohne Cloud.
+lang: de
+
+# Kein fertiges Thema: Das Aussehen steht in `_layouts` und `assets/css`.
+# Ein Thema brächte eigene Schriften und ein eigenes Raster mit, die mit der
+# Oberfläche der Integration nichts zu tun haben.
+theme: null
+plugins: []
+
+# Die Anleitungen unter `docs/` sind gewöhnliche Markdown-Dateien, damit sie
+# auch im Repo lesbar bleiben. Das Layout kommt von hier, nicht aus einem
+# Vorspann in jeder Datei.
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: seite
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+exclude:
+  - Gemfile
+  - Gemfile.lock

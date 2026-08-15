@@ -10,6 +10,8 @@
 
 Heizungen in Home Assistant – lokal, vollständig, ohne Cloud.
 
+**Projektseite mit allen Anleitungen: [xicetea.github.io/HeatNexus](https://xicetea.github.io/HeatNexus/)**
+
 Die Anlage wird direkt über ihre HTTP-API im Netzwerk gelesen und gesteuert.
 Abgedeckt sind Kessel, Heizkreise, Puffer, Warmwasser und Zirkulation,
 einschließlich Info-, Betreiber- und Serviceebene.
