@@ -12,6 +12,12 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Der Systemstatus zeigt Laufzeit, Laufzeit heute und die Tageswerte.
 
+### Geändert
+
+- Einstellwerte werden alle zwei Minuten gelesen statt laufend.
+- Nach einem Neustart stehen die Werte sofort statt nach dem ersten Abruf.
+- Tasten werden nicht mehr zyklisch abgefragt.
+
 ### Behoben
 
 - Der Betriebszustand zeigt wieder die Betriebsphase statt einer Laufzeit.
