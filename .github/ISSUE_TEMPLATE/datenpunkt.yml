@@ -1,6 +1,7 @@
 name: Datenpunkt oder Gerät fehlt
 description: Ein Wert der Anlage taucht nicht auf oder ist falsch benannt
-labels: ["datapoint"]
+title: "[Datenpunkt] "
+labels: ["triage"]
 body:
   - type: markdown
     attributes:

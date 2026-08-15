@@ -1,6 +1,7 @@
 name: Fehler melden
 description: Etwas funktioniert nicht wie erwartet
-labels: ["bug"]
+title: "[Fehler] "
+labels: ["triage"]
 body:
   - type: markdown
     attributes:

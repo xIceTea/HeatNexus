@@ -1,6 +1,7 @@
 name: Anlage beisteuern
 description: Abzug einer Anlage, die hier nicht steht – Kessel, Module, Heizkreise
-labels: ["devices"]
+title: "[Anlage] "
+labels: ["triage"]
 body:
   - type: markdown
     attributes:
