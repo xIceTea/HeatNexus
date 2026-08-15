@@ -710,3 +710,19 @@ def test_hilfe_liste_bleibt_leer_statt_zu_scheitern(panel):
     """Eine Anlage ohne passende Datenpunkte ist kein Fehlerfall."""
     daten = panel._anlage_daten(anlage(teil("Unbekannt", 99, [])))
     assert isinstance(daten["hilfe_liste"], list)
+
+
+def test_die_karte_liegt_unter_einem_festen_pfad():
+    """Eine offene Seite muss die Adresse von gestern noch erreichen.
+
+    Beim Panel steht die Fassung im Pfad; es lädt bei jedem Öffnen neu. Eine
+    Karte bleibt dagegen in einer Seite stehen, die tagelang offen ist.
+    """
+    from custom_components.heatnexus.const import KARTE_VERZEICHNIS, karte_js_pfad
+
+    alt = karte_js_pfad("1.9.0")
+    neu = karte_js_pfad("1.10.0")
+    assert alt.split("?")[0] == neu.split("?")[0]
+    assert alt.split("?")[0].startswith(KARTE_VERZEICHNIS)
+    assert alt != neu
+    assert "?v=1-10-0" in neu

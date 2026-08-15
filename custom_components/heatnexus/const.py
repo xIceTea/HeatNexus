@@ -139,9 +139,18 @@ def panel_js_pfad(version: str) -> str:
     return f"{panel_verzeichnis(version)}/heatnexus-panel.js"
 
 
+# Die Karte liegt unter einem **festen** Pfad, anders als das Panel.
+KARTE_VERZEICHNIS = "/heatnexus-karte"
+
+
 def karte_js_pfad(version: str) -> str:
-    """Adresse des Kartenmoduls – dieselbe Fassungsregel wie beim Panel."""
-    return f"{panel_verzeichnis(version)}/heatnexus-schaubild-karte.js"
+    """Adresse des Kartenmoduls: fester Pfad, Fassung als Anhang.
+
+    Eine Karte hängt an einer Seite, die tagelang offen bleibt. Stünde die
+    Fassung im Pfad, liefe diese Seite nach einer Aktualisierung ins Leere –
+    den Ordner der alten Fassung gibt es dann nicht mehr.
+    """
+    return f"{KARTE_VERZEICHNIS}/heatnexus-schaubild-karte.js?v={panel_fassung(version)}"
 
 
 def panel_verzeichnis(version: str) -> str:

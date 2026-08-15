@@ -15,7 +15,7 @@ from homeassistant.components import frontend
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, karte_js_pfad, panel_verzeichnis
+from .const import DOMAIN, KARTE_VERZEICHNIS, karte_js_pfad, panel_verzeichnis
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,15 +23,22 @@ _FRONTEND = Path(__file__).parent / "frontend"
 
 
 async def async_dateien_ausliefern(hass: HomeAssistant, version: str = "") -> None:
-    """Den Ordner unter seinem Fassungspfad anbieten – einmal je Fassung."""
-    ordner = panel_verzeichnis(version)
+    """Den Ordner anbieten – unter dem Fassungspfad und unter dem festen.
+
+    Das Panel lädt bei jedem Öffnen neu und verträgt den Fassungspfad. Die
+    Karte steht in einer Seite, die offen bleibt; für sie muss die Adresse von
+    gestern weiter antworten.
+    """
     registriert: set[str] = hass.data.setdefault(f"{DOMAIN}_panel_dateien", set())
-    if ordner in registriert:
+    neu = [
+        StaticPathConfig(ordner, str(_FRONTEND), cache_headers=False)
+        for ordner in (panel_verzeichnis(version), KARTE_VERZEICHNIS)
+        if ordner not in registriert
+    ]
+    if not neu:
         return
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(ordner, str(_FRONTEND), cache_headers=False)]
-    )
-    registriert.add(ordner)
+    await hass.http.async_register_static_paths(neu)
+    registriert.update(pfad.url_path for pfad in neu)
 
 
 def karte_anmelden(hass: HomeAssistant, version: str = "") -> None:
