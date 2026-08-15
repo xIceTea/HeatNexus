@@ -11,6 +11,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Die Übersicht der Oberfläche zeigt Laufzeit und Tageswerte des Kessels.
+- Die Diagnose nennt je Datenpunkt den Takt und ob er abgerufen wird.
 
 ### Geändert
 
@@ -22,7 +23,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Der Betriebszustand zeigt wieder die Betriebsphase statt einer Laufzeit.
 - Ein Anlagenteil, das nicht antwortet, hält die Einrichtung nicht mehr auf.
-- Nach einem abgebrochenen Einlesen fehlten Werte dauerhaft.
+- Nach einem abgebrochenen Einlesen werden wieder alle Werte abgerufen.
 - Systemuhr und Systemdatum erscheinen nicht mehr ungefragt.
 
 ## [1.9.0-beta.1] - 2026-08-14
