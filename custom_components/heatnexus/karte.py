@@ -48,9 +48,7 @@ WERTE_MAX = 30
 @callback
 def _ws_schaubild(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     """Die Schaubilder aller Anlagen zurückgeben, nach eigener Auswahl."""
-    connection.send_result(
-        msg["id"], kartendaten(hass, msg.get("auswahl"), msg.get("teile_aus"))
-    )
+    connection.send_result(msg["id"], kartendaten(hass, msg.get("auswahl"), msg.get("teile_aus")))
 
 
 async def async_setup_karte(hass: HomeAssistant, version: str = "") -> None:

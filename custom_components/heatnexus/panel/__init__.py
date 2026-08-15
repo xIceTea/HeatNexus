@@ -66,6 +66,7 @@ __all__ = [
 
 _LOGGER = logging.getLogger(__name__)
 
+
 def _uebersteuerung(hass: HomeAssistant) -> dict[str, dict[str, float]]:
     """Die eingestellten Werte für Eco und Comfort.
 
