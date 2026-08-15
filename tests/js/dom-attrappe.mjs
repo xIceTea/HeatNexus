@@ -12,6 +12,10 @@
  * importierte Konstante zeigen sich erst dabei.
  */
 
+// Ein Symbol, damit das Feld keine gleichnamige Methode der Oberfläche
+// verdeckt: Am echten Element gibt es diese Ablage gar nicht.
+const TEXT = Symbol("textinhalt");
+
 class KlassenListe {
   constructor() {
     this._werte = new Set();
@@ -53,7 +57,7 @@ class Knoten {
         } }
     );
     this._klassen = new KlassenListe();
-    this._text = "";
+    this[TEXT] = "";
     this._hoerer = new Map();
   }
 
@@ -83,14 +87,14 @@ class Knoten {
   // --- Inhalt -------------------------------------------------------------
   get textContent() {
     if (this.children.length) return this.children.map((kind) => kind.textContent).join("");
-    return this._text;
+    return this[TEXT];
   }
   set textContent(wert) {
     this.children.forEach((kind) => {
       kind.parentElement = null;
     });
     this.children = [];
-    this._text = wert === null || wert === undefined ? "" : String(wert);
+    this[TEXT] = wert === null || wert === undefined ? "" : String(wert);
   }
   get firstChild() {
     return this.children[0] || null;
@@ -105,7 +109,7 @@ class Knoten {
     if (kind.parentElement) kind.parentElement.removeChild(kind);
     kind.parentElement = this;
     this.children.push(kind);
-    this._text = "";
+    this[TEXT] = "";
     return kind;
   }
   append(...kinder) {
@@ -199,12 +203,20 @@ class Knoten {
 export function browserAttrappe() {
   const auftraege = [];
   globalThis.document = {
-    createElement: (name) => new Knoten(name),
+    // Registrierte eigene Elemente werden aufgewertet, wie im Browser.
+    createElement: (name) => {
+      const Klasse = globalThis.customElements && globalThis.customElements.get(name);
+      if (!Klasse) return new Knoten(name);
+      const knoten = new Klasse();
+      knoten.tagName = String(name).toUpperCase();
+      return knoten;
+    },
     addEventListener() {},
     removeEventListener() {},
   };
-  globalThis.HTMLElement = class {
+  globalThis.HTMLElement = class extends Knoten {
     constructor() {
+      super("html-element");
       this._hoerer = new Map();
       // Wie am echten Element: Die Oberfläche setzt hier ihre Farbvariablen.
       this.style = {
@@ -245,6 +257,20 @@ export function browserAttrappe() {
     },
     define(name, klasse) {
       this._klassen.set(name, klasse);
+      (this._warten.get(name) || []).forEach((loesen) => loesen(klasse));
+      this._warten.delete(name);
+    },
+    // Registrierte Elemente stehen sofort bereit; auf die übrigen wird
+    // gewartet, wie es der Browser auch tut.
+    _warten: new Map(),
+    whenDefined(name) {
+      const da = this._klassen.get(name);
+      if (da) return Promise.resolve(da);
+      return new Promise((loesen) => {
+        const liste = this._warten.get(name) || [];
+        liste.push(loesen);
+        this._warten.set(name, liste);
+      });
     },
   };
   globalThis.window = globalThis;
