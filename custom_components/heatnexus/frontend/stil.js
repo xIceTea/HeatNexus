@@ -459,7 +459,22 @@ export const STIL = `
   }
   .schaubild .heizkoerper.da { opacity: 1; }
   /* Karte: Schaubild und Werteliste nebeneinander, am Handy untereinander. */
-  .karte-zweispaltig { display: grid; gap: 12px; }
+  /* Die Karte richtet sich nach ihrer **eigenen** Breite, nicht nach dem
+     Fenster: In der Editor-Vorschau steht sie schmal in einem breiten Fenster,
+     und feste Schriftgrößen liefen dort ineinander. */
+  .karte-zweispaltig { display: grid; gap: 12px; container-type: inline-size; }
+  @container (max-width: 620px) {
+    .karte-zweispaltig .zeile .wert { font-size: 17px; }
+    .karte-zweispaltig .zeile .wert.lang { font-size: 13px; }
+    .karte-zweispaltig .zeile .titel { font-size: 12px; }
+    .karte-zweispaltig .zeile .bezeichnung { font-size: 10px; }
+    .karte-zweispaltig .kartenkopf h2 { font-size: 15px; }
+  }
+  @container (max-width: 420px) {
+    .karte-zweispaltig .zeile .wert { font-size: 14px; }
+    .karte-zweispaltig .zeile .wert.lang { font-size: 11px; }
+    .karte-zweispaltig .zeile { gap: 6px; }
+  }
   .karte-zweispaltig.lage-rechts { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
   .karte-zweispaltig.lage-unten { grid-template-columns: minmax(0, 1fr); }
   @media (max-width: 700px) {
