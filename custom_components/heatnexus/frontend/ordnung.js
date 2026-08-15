@@ -98,6 +98,8 @@ export const FARBSAETZE = [
   { schluessel: "dunkel", titel: "Dunkel", hinweis: "Graphit mit blauem Akzent" },
   { schluessel: "hell", titel: "Hell", hinweis: "Kühles Weiß mit blauem Akzent" },
   { schluessel: "terrakotta", titel: "Terrakotta", hinweis: "Warmes Dunkel mit Terrakotta" },
+  { schluessel: "petrol", titel: "Petrol", hinweis: "Ruhiges Dunkel mit Petrolgrün" },
+  { schluessel: "pflaume", titel: "Pflaume", hinweis: "Dunkles Violett mit Pflaume" },
 ];
 
 // Was ein fester Satz an der Oberfläche setzt. `auto` steht nicht darin: Dann
@@ -133,6 +135,26 @@ export const PALETTEN = {
     "--hn-akzent-text": "#1a1210",
     "--hn-linie": "#2c2926",
     "--hn-flaeche": "#2c2926",
+  },
+  petrol: {
+    "--hn-grund": "#10171a",
+    "--hn-karte": "#192226",
+    "--hn-text": "#e4ecec",
+    "--hn-gedaempft": "#93a3a3",
+    "--hn-akzent": "#3fa89a",
+    "--hn-akzent-text": "#08120f",
+    "--hn-linie": "#222d31",
+    "--hn-flaeche": "#222d31",
+  },
+  pflaume: {
+    "--hn-grund": "#16121c",
+    "--hn-karte": "#211b2a",
+    "--hn-text": "#ece7f0",
+    "--hn-gedaempft": "#a297ad",
+    "--hn-akzent": "#a878e0",
+    "--hn-akzent-text": "#150e1c",
+    "--hn-linie": "#2b2336",
+    "--hn-flaeche": "#2b2336",
   },
 };
 

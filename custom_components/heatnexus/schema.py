@@ -119,14 +119,58 @@ FARBEN_TERRAKOTTA: dict[str, str] = {
     "schrift": SCHRIFT,
 }
 
+# Vierter Satz: ruhiges Dunkel mit Petrol. `vorlauf` bleibt warm – die
+# Strömungsrichtung liest man an der Farbe, nicht an der Lage.
+FARBEN_PETROL: dict[str, str] = {
+    "vorlauf": "#e0714d",
+    "ruecklauf": "#3fa89a",
+    "rahmen": "#2e3c3f",
+    "text": "#93a3a3",
+    "titel": "#e4ecec",
+    "korpus": "#192226",
+    "korpus_hell": "#26312f",
+    "korpus_dunkel": "#10171a",
+    "warm": "#b34a2a",
+    # Muss `vorlauf` entsprechen – siehe `FARBEN_HELL`.
+    "glut": "#e0714d",
+    "kalt": "#2f6f8f",
+    "schrift": SCHRIFT,
+}
+
+# Fünfter Satz: dunkles Violett mit Pflaume.
+FARBEN_PFLAUME: dict[str, str] = {
+    "vorlauf": "#d9705f",
+    "ruecklauf": "#a878e0",
+    "rahmen": "#3a3145",
+    "text": "#a297ad",
+    "titel": "#ece7f0",
+    "korpus": "#211b2a",
+    "korpus_hell": "#2e2639",
+    "korpus_dunkel": "#16121c",
+    "warm": "#b34a4a",
+    # Muss `vorlauf` entsprechen – siehe `FARBEN_HELL`.
+    "glut": "#d9705f",
+    "kalt": "#6f5fc0",
+    "schrift": SCHRIFT,
+}
+
 THEMA_DUNKEL = "dunkel"
 THEMA_HELL = "hell"
 THEMA_TERRAKOTTA = "terrakotta"
+THEMA_PETROL = "petrol"
+THEMA_PFLAUME = "pflaume"
 
 # Was die Oberfläche anbieten darf. `auto` folgt dem Erscheinungsbild von Home
 # Assistant, die übrigen legen den Satz fest.
 FARBSATZ_AUTO = "auto"
-FARBSAETZE = (FARBSATZ_AUTO, THEMA_DUNKEL, THEMA_HELL, THEMA_TERRAKOTTA)
+FARBSAETZE = (
+    FARBSATZ_AUTO,
+    THEMA_DUNKEL,
+    THEMA_HELL,
+    THEMA_TERRAKOTTA,
+    THEMA_PETROL,
+    THEMA_PFLAUME,
+)
 
 # Lage der Live-Werte je Anlagenart. Zwei Werte stehen ober- und unterhalb der
 # Mitte, einer mittig. Bauteile mit anderer Form dürfen abweichen.
@@ -1025,6 +1069,8 @@ def _entsprechung(ziel: dict[str, str]) -> dict[str, str]:
 _ENTSPRECHUNGEN = {
     THEMA_HELL: _entsprechung(FARBEN_HELL),
     THEMA_TERRAKOTTA: _entsprechung(FARBEN_TERRAKOTTA),
+    THEMA_PETROL: _entsprechung(FARBEN_PETROL),
+    THEMA_PFLAUME: _entsprechung(FARBEN_PFLAUME),
 }
 _FARBSTELLE = re.compile(
     "|".join(sorted(map(re.escape, _ENTSPRECHUNGEN[THEMA_HELL]), reverse=True))
@@ -1326,6 +1372,8 @@ def anlagenschema(
         # Der dritte Satz gilt nur in der eigenen Oberfläche; die
         # `picture-elements`-Karte kennt nur hell und dunkel.
         "terrakotta_image": _datenadresse(farben_umstellen(svg, THEMA_TERRAKOTTA)),
+        "petrol_image": _datenadresse(farben_umstellen(svg, THEMA_PETROL)),
+        "pflaume_image": _datenadresse(farben_umstellen(svg, THEMA_PFLAUME)),
         "elements": elemente,
         "leitungen": leitungen,
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht
@@ -1358,6 +1406,8 @@ def schaubild_nutzdaten(anlage: dict[str, Any]) -> dict[str, Any]:
         "schema": bild["dark_mode_image"] if bild else None,
         "schema_hell": bild["image"] if bild else None,
         "schema_terrakotta": bild.get("terrakotta_image") if bild else None,
+        "schema_petrol": bild.get("petrol_image") if bild else None,
+        "schema_pflaume": bild.get("pflaume_image") if bild else None,
         "schema_werte": (
             [
                 {

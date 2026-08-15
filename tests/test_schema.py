@@ -1039,6 +1039,55 @@ def test_ein_unbekannter_satz_laesst_das_bild_unveraendert(schema, anlage):
     assert schema.farben_umstellen(dunkel, "gibtsnicht") == dunkel
 
 
+# ---------------------------------------------------------------------------
+# Weitere Farbsätze: Petrol und Pflaume
+# ---------------------------------------------------------------------------
+def _weitere(schema):
+    return (
+        (schema.THEMA_PETROL, schema.FARBEN_PETROL, "petrol_image"),
+        (schema.THEMA_PFLAUME, schema.FARBEN_PFLAUME, "pflaume_image"),
+    )
+
+
+def test_jeder_weitere_satz_kennt_alle_rollen(schema):
+    """Eine fehlende Rolle fiele still auf ihren dunklen Wert zurück."""
+    for _thema, farben, _feld in _weitere(schema):
+        assert set(schema.FARBEN) == set(farben)
+
+
+def test_jeder_weitere_satz_liegt_der_karte_bei(schema, anlage):
+    karte = schema.anlagenschema(anlage)
+    bekannt = {karte["image"], karte["dark_mode_image"], karte["terrakotta_image"]}
+    for _thema, _farben, feld in _weitere(schema):
+        assert karte[feld] not in bekannt
+        bekannt.add(karte[feld])
+
+
+def test_in_weiteren_saetzen_bleibt_kein_dunkler_farbwert(schema, anlage):
+    dunkel = _svg_von(schema, anlage)
+    for thema, _farben, _feld in _weitere(schema):
+        gewechselt = schema.farben_umstellen(dunkel, thema)
+        for rolle, farbe in schema.FARBEN.items():
+            if rolle == "schrift":
+                continue
+            assert farbe not in gewechselt, f"{thema}: {rolle} steht noch mit {farbe} im Bild"
+
+
+def test_weitere_wechsel_aendern_nur_farben(schema, anlage):
+    dunkel = _svg_von(schema, anlage)
+    ohne_farben = re.compile(r"#[0-9a-f]{6}\b")
+    for thema, _farben, _feld in _weitere(schema):
+        gewechselt = schema.farben_umstellen(dunkel, thema)
+        assert ohne_farben.sub("#", dunkel) == ohne_farben.sub("#", gewechselt)
+
+
+def test_die_nutzdaten_fuehren_jeden_satz(schema, anlage):
+    """Die Oberfläche wählt aus den Feldern; ein fehlendes hieße dunkel."""
+    nutzdaten = schema.schaubild_nutzdaten({"id": "a", "name": "X", "teile": anlage})
+    for feld in ("schema", "schema_hell", "schema_terrakotta", "schema_petrol", "schema_pflaume"):
+        assert nutzdaten[feld], feld
+
+
 def test_die_oberflaeche_kennt_dieselben_saetze(schema):
     """`ordnung.js` bietet an, was `anordnung.py` speichern darf."""
     text = (Path(schema.__file__).parent / "frontend" / "ordnung.js").read_text(encoding="utf-8")

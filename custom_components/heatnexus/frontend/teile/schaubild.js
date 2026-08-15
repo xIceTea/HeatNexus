@@ -22,6 +22,8 @@ export const SchaubildMixin = (Basis) =>
   _schemaBild(anlage) {
     const bilder = {
       terrakotta: anlage.schema_terrakotta,
+      petrol: anlage.schema_petrol,
+      pflaume: anlage.schema_pflaume,
       hell: anlage.schema_hell,
       dunkel: anlage.schema,
     };
