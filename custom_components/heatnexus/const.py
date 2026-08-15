@@ -241,6 +241,10 @@ POLL_ZIEL_SEKUNDEN = {POLL_FAST: 30, POLL_NORMAL: 120, POLL_SLOW: 900}
 POLL_TYPEN_SCHNELL = frozenset(
     {"climate", "temperature", "device_status", "message_text", "binary_sensor"}
 )
+# Stellwerte ändern sich nur, wenn jemand sie ändert – im Haus oder am
+# Bediengerät. Sie laufen deshalb höchstens im mittleren Takt, auch wenn ihr
+# Name nach Messwert klingt („Raumtemperatur Heizbetrieb").
+POLL_TYPEN_STELLWERT = frozenset({"number", "select", "switch", "date", "time"})
 # Namensbestandteile träger Werte (Zählerstände, Wartungsfristen, Kennungen).
 POLL_WOERTER_TRAEGE = (
     "betriebsstunden",

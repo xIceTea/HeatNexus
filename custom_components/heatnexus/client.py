@@ -38,6 +38,7 @@ from .const import (
     POLL_NORMAL,
     POLL_SLOW,
     POLL_TYPEN_SCHNELL,
+    POLL_TYPEN_STELLWERT,
     POLL_WOERTER_SCHNELL,
     POLL_WOERTER_TRAEGE,
     STARTZAEHLER,
@@ -1775,6 +1776,11 @@ class WindhagerHttpClient:
         if not beschreibung.get("enabled_default", True):
             return POLL_SLOW
 
+        # Vor der Namensprüfung: „Raumtemperatur Heizbetrieb" ist ein Sollwert,
+        # kein Messwert. Der eigene Schreibvorgang liest sofort nach, eine
+        # Änderung am Bediengerät steht im mittleren Takt an.
+        if typ in POLL_TYPEN_STELLWERT:
+            return POLL_NORMAL
         if any(wort in name for wort in POLL_WOERTER_SCHNELL):
             return POLL_FAST
         return POLL_NORMAL
@@ -2257,6 +2263,34 @@ class WindhagerHttpClient:
         _LOGGER.debug("Poll: %d OIDs einzeln", len(gelesen))
         return gelesen, offen - self._abgemeldet
 
+    async def _startwerte_lesen(self) -> None:
+        """Den Lesespeicher der Anlage einmal auswerten.
+
+        Er liefert bis zu 256 zuletzt gelesene Werte in einer Anfrage. Selbst
+        füllt er sich nicht und taugt deshalb nicht als Abrufquelle – wohl aber
+        als erster Stand, damit die Anzeige nicht leer beginnt.
+        """
+        try:
+            daten, status = await self._get(f"http://{self.host}/api/1.0/datapoints")
+        except Exception as err:
+            _LOGGER.debug("Lesespeicher nicht verfügbar: %s", err)
+            return
+        if status != 200 or not isinstance(daten, list):
+            return
+        gebraucht = self.poll_oids | self._dynamic_oids
+        for eintrag in daten:
+            if not isinstance(eintrag, dict):
+                continue
+            oid = eintrag.get("OID")
+            if oid in gebraucht and oid not in self._letzte_werte:
+                self._letzte_werte[oid] = self._wert_oder_none(eintrag.get("value"))
+        _LOGGER.info(
+            "%s: %d von %d Werten aus dem Lesespeicher der Anlage",
+            self.host,
+            len(self._letzte_werte),
+            len(gebraucht),
+        )
+
     async def fetch_all(self, budget: float | None = None):
         """Poll the currently relevant OIDs in parallel and return coordinator data.
 
@@ -2277,6 +2311,9 @@ class WindhagerHttpClient:
         if self.oids is None:
             # Fallback, falls async_init noch nicht lief (sollte nicht passieren).
             await self.async_init()
+
+        if not self._letzte_werte:
+            await self._startwerte_lesen()
 
         poll_begonnen = time.monotonic()
         ende = poll_begonnen + budget if budget else None

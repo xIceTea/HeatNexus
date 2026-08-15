@@ -29,6 +29,13 @@ def client_module():
 def client(client_module):
     c = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
     c.neuron_by_node = {"60": "0000ABCD1234", "15": "0000ABCD5678"}
+
+    # Ohne Anlage im Netz: Jeder Zugriff, den ein Test nicht selbst vorgibt,
+    # läuft ins Leere statt in eine echte Verbindung.
+    async def ohne_anlage(url, semaphore=None):
+        return None, 599
+
+    c._get = ohne_anlage
     return c
 
 
@@ -840,3 +847,41 @@ def test_eine_taste_kostet_keinen_abruf(client):
     client._compute_poll_oids()
 
     assert client.poll_oids == {"/1/60/0/0/7/0"}
+
+
+async def test_der_erste_abruf_nimmt_den_lesespeicher_mit(client, monkeypatch):
+    """Sonst steht die Anzeige zwanzig Sekunden lang leer."""
+    client.devices = [{"oid": "/1/60/0/0/7/0", "name": "Kesseltemperatur Ist"}]
+    client.oids = {"/1/60/0/0/7/0"}
+    client._compute_poll_oids()
+
+    async def speicher(url, semaphore=None):
+        assert url.endswith("/api/1.0/datapoints")
+        return [{"OID": "/1/60/0/0/7/0", "value": "63.5"}], 200
+
+    monkeypatch.setattr(client, "_get", speicher)
+    await client._startwerte_lesen()
+
+    assert client._letzte_werte == {"/1/60/0/0/7/0": "63.5"}
+
+
+async def test_der_lesespeicher_ueberschreibt_nichts(client, monkeypatch):
+    """Was der Abruf gelesen hat, gilt – der Speicher ist nur der Anfang."""
+    client.devices = [{"oid": "/1/60/0/0/7/0", "name": "Kesseltemperatur Ist"}]
+    client.oids = {"/1/60/0/0/7/0"}
+    client._compute_poll_oids()
+    client._letzte_werte["/1/60/0/0/7/0"] = "70.0"
+
+    async def speicher(url, semaphore=None):
+        return [{"OID": "/1/60/0/0/7/0", "value": "63.5"}], 200
+
+    monkeypatch.setattr(client, "_get", speicher)
+    await client._startwerte_lesen()
+
+    assert client._letzte_werte["/1/60/0/0/7/0"] == "70.0"
+
+
+def test_ein_sollwert_laeuft_nicht_im_schnellen_takt(client_module):
+    """Sein Name klingt nach Messwert, geändert wird er trotzdem nur von Hand."""
+    beschreibung = {"name": "Raumtemperatur Heizbetrieb", "type": "number"}
+    assert client_module.WindhagerHttpClient._poll_klasse(beschreibung) == "normal"
