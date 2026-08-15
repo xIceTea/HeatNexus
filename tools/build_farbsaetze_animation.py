@@ -48,10 +48,10 @@ NAMEN = {
 # lang genug zum Hinsehen, kurz genug, dass der Film nicht zieht.
 JE_SATZ = 12
 
-# Der Zustand, in dem die Anlage gezeigt wird: Kessel warm, Puffer lädt,
-# Heizkreis und Warmwasser nehmen ab. Ein stehendes Bild zeigte weder
-# Strömung noch drehende Pumpen.
-SZENE = 46
+# Der Zustand, in dem die Anlage gezeigt wird. Gewählt ist der einzige
+# Augenblick, in dem **alle fünf** Pumpen fördern: Steht eine still, sieht es
+# im Standbild nach einem Fehler aus statt nach Betrieb.
+SZENE = 50
 
 
 def _paletten() -> dict[str, dict[str, str]]:
@@ -136,7 +136,6 @@ def _seite(
         "html,body{margin:0;padding:0}"
         f".rahmen{{width:{bewegung.BREITE}px;height:{bewegung.HOEHE}px;"
         "overflow:hidden;position:relative}"
-        ".pumpe ha-icon{display:flex;align-items:center;justify-content:center}"
         ".satzname{position:absolute;left:24px;top:18px;"
         "font:600 20px/1 system-ui,-apple-system,Roboto,sans-serif;"
         "color:var(--hn-text);opacity:0.7;letter-spacing:0.02em}"

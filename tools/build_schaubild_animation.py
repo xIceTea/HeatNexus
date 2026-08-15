@@ -18,9 +18,8 @@ Oberfläche, ändert sie sich beim nächsten Lauf hier mit.
 
     python tools/build_schaubild_animation.py
 
-Zwei Näherungen bleiben: Das Pumpensymbol ist selbst gezeichnet, weil
-`ha-icon` außerhalb von Home Assistant nicht existiert, und `color-mix` löst
-der Browser auf – im GIF steht das Ergebnis, nicht die Rechnung.
+Eine Näherung bleibt: `color-mix` löst der Browser auf – im GIF steht das
+Ergebnis, nicht die Rechnung.
 """
 
 from __future__ import annotations
@@ -58,20 +57,21 @@ BILD_DAUER_MS = 100
 # der kopflose Browser sie abschneidet.
 JE_SEITE = 10
 
-# Das gezeichnete Pumpensymbol. `ha-icon` gibt es außerhalb von Home Assistant
-# nicht; drei Flügel um eine Nabe lesen sich an dieser Stelle genauso.
-PUMPENSYMBOL = (
-    '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">'
-    '<g fill="currentColor">'
-    '<path d="M12 3c2.6 0 4 1.5 4 3.2 0 1.6-1.3 2.6-2.6 3.1'
-    'l-.9.3-.5-2.6C11.7 5.6 11.6 4.3 12 3Z"/>'
-    '<path d="M20.8 15c-1.3 2.2-3.3 2.6-4.8 1.8-1.4-.8-1.7-2.4-1.5-3.8'
-    'l.2-.9 2.5.8c1.4.4 2.6 1 3.6 2.1Z"/>'
-    '<path d="M3.2 15c1-1.1 2.2-1.7 3.6-2.1l2.5-.8.2.9c.2 1.4-.1 3-1.5 3.8'
-    'C6.5 17.6 4.5 17.2 3.2 15Z"/>'
-    '<circle cx="12" cy="12" r="2.1"/>'
-    "</g></svg>"
-)
+SCHAUBILD_DATEI = KOMPONENTE / "frontend" / "teile" / "schaubild.js"
+
+
+def _laufrad() -> str:
+    """Das Laufrad der Oberfläche, aus `teile/schaubild.js` gelesen.
+
+    Abgeschrieben liefe es auseinander: Der Drehpunkt liegt im Nullpunkt des
+    Kastens, und genau daran hängt, ob das Rad rund läuft oder eiert.
+    """
+    quelle = SCHAUBILD_DATEI.read_text(encoding="utf-8")
+    treffer = re.search(r"rad\.innerHTML =\s*(.*?);", quelle, re.S)
+    if not treffer:
+        raise SystemExit("Das Laufrad in teile/schaubild.js nicht gefunden.")
+    inhalt = "".join(re.findall(r"'([^']*)'", treffer.group(1)))
+    return f'<svg viewBox="-12 -12 24 24" aria-hidden="true">{inhalt}</svg>'
 
 
 # ---------------------------------------------------------------------------
@@ -189,7 +189,7 @@ def _pumpen(karte_daten: dict, lage: dict) -> str:
         laeuft = "laeuft" if lage["pumpen"].get(eintrag["entity"]) else ""
         teile.append(
             f'<div class="pumpe {laeuft}" style="left:{eintrag["left"]};top:{eintrag["top"]}">'
-            f"<ha-icon>{PUMPENSYMBOL}</ha-icon></div>"
+            f"{_laufrad()}</div>"
         )
     return "".join(teile)
 
@@ -336,7 +336,6 @@ def seite(karte_daten: dict, nummern: list[int], farbsatz: str) -> str:
         f"html,body{{margin:0;padding:0;background:{grund}}}"
         f".rahmen{{width:{BREITE}px;height:{HOEHE}px;background:{grund};"
         "overflow:hidden;position:relative}"
-        ".pumpe ha-icon{display:flex;align-items:center;justify-content:center}"
         f"{_stil()}</style>{bloecke}"
     )
 
