@@ -6,6 +6,54 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.9.0] - 2026-08-15
+
+Der LON-Bus als zweite Quelle, ein Anlagenschaubild als eigene Lovelace-Karte
+und ein sparsamerer Abruf. Die Abschnitte der beiden Vorabversionen darunter
+führen jede Änderung einzeln auf; hier stehen die Neuerungen gegenüber 1.8.1.
+
+### Neu
+
+- Das Anlagenschaubild gibt es als Lovelace-Karte für eigene Dashboards.
+- Die Karte zeigt eine Anlage oder alle, mit Werteliste daneben oder darunter.
+- Werte und Anlagenteile im Schaubild lassen sich einzeln wählen.
+- Fünf Farbsätze für Oberfläche und Schaubild: Dunkel, Hell, Terrakotta, Petrol, Pflaume.
+- Die Schriftgröße im Schaubild ist in der Karte einstellbar.
+- Das mitgelieferte Dashboard lässt sich als YAML ausgeben und kopieren.
+- LON-Netzwerkvariablen werden erkannt und benannt, je Anlage zuschaltbar.
+- Das Bedienteil erscheint als eigenes Gerät.
+- Pufferladung, Rücklaufanhebung und Zirkulation werden über den Bus erkannt.
+- Jedes Anlagenteil meldet seine Störung als eigenen Sensor.
+- Je Anlagenteil eine Taste, die die Werte sofort neu abruft.
+- Neue Zusatzwerte, in den Optionen wählbar: Tageswert, Wert seit dem letzten Start, Laufzeiten.
+- Die Übersicht der Oberfläche zeigt Laufzeit und Tageswerte des Kessels.
+- Automations-Vorlagen lassen sich einzeln abwählen.
+- Beim BioWIN erscheint die Betriebsart der Zuführung.
+- Die Diagnose nennt je Datenpunkt den Takt und ob er abgerufen wird.
+
+### Geändert
+
+- Einstellwerte werden alle zwei Minuten gelesen statt laufend.
+- Tasten werden nicht mehr zyklisch abgefragt.
+- Nach einem Neustart stehen die Werte sofort statt nach dem ersten Abruf.
+- Karten anordnen und Dashboard-Vorlage stehen im Werkzeugmenü der Kopfzeile.
+- Datenpunkte, die beim Einlesen keinen Wert liefern, entstehen abgeschaltet.
+- Das Abfrageintervall beginnt bei 30 Sekunden und erklärt sich im Dialog.
+
+### Behoben
+
+- Die Laufräder der Pumpen sitzen mittig und drehen rund.
+- Werte im Schaubild bleiben in jeder Kartenbreite lesbar.
+- Der Betriebszustand zeigt wieder die Betriebsphase statt einer Laufzeit.
+- Ein Anlagenteil, das nicht antwortet, hält die Einrichtung nicht mehr auf.
+- Nach einem abgebrochenen Einlesen werden wieder alle Werte abgerufen.
+- Zählerstände und Restlaufzeiten stehen gleich nach dem Einlesen.
+- Ein misslungener Abruf löscht den gelesenen Wert nicht mehr.
+- Die Meldungsliste ist wieder verfügbar.
+- Eine abgewählte Option kommt nach einem Neustart nicht zurück.
+- Ein unvollständiger Erkennungslauf überschreibt den bekannten Stand nicht mehr.
+- Systemuhr und Systemdatum erscheinen nicht mehr ungefragt.
+
 ## [1.9.0-beta.2] - 2026-08-15
 
 ### Neu
