@@ -60,6 +60,7 @@ from .coordinator import WindhagerDataUpdateCoordinator
 from .dashboard import async_remove_dashboard, async_setup_dashboard
 from .entity import steuerung_info, steuerung_kennung
 from .geraetetexte import sprache_aufloesen
+from .karte import async_setup_karte
 from .migration import async_entity_ids_umstellen, async_kennungen_umstellen
 
 _LOGGER = logging.getLogger(__name__)
@@ -416,6 +417,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         # Abgewählt: der Seitenleisten-Eintrag verschwindet beim nächsten Laden.
         await async_remove_dashboard(hass)
+
+    # Die Karte hängt **nicht** am Panel-Schalter: Der steht ab Werk aus, und
+    # ohne Modul gäbe es die Karte für die meisten Anlagen gar nicht.
+    await async_setup_karte(hass, version)
 
     await _oberflaeche_anwenden(hass, bool((entry.options or {}).get(CONF_PANEL, False)), version)
 

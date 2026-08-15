@@ -454,6 +454,8 @@ export const STIL = `
     transition: background 1.2s ease;
   }
   .schaubild .heizkoerper.da { opacity: 1; }
+  /* Die Karte kann die Bewegung abschalten; die Zustände bleiben sichtbar. */
+  .schaubild.ruhig * { animation: none !important; }
   /* Heiß genug, um zu arbeiten: ein ruhiges Pulsieren, dieselbe Geste wie am
      Glutbett des Kessels. Nichts blinkt – es soll auffallen, nicht nerven. */
   .schaubild .heizkoerper.heiss { animation: glimmen 3.2s ease-in-out infinite; }

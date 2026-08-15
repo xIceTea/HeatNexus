@@ -24,15 +24,14 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from pathlib import Path
 from typing import Any
 
 from homeassistant.components import frontend, websocket_api
-from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant, callback
 import voluptuous as vol
 
 from ..anordnung import async_register_anordnung
+from ..auslieferung import async_dateien_ausliefern
 from ..const import (
     COMFORT_TEMP_STANDARD,
     CONF_AUSSENTEMPERATUR,
@@ -48,7 +47,6 @@ from ..const import (
     UEBERSTEUERUNG_DAUER_STANDARD,
     panel_element,
     panel_js_pfad,
-    panel_verzeichnis,
 )
 from ..dashboard import _anlagen
 from .daten import _anlage_daten, _erster
@@ -67,9 +65,6 @@ __all__ = [
 ]
 
 _LOGGER = logging.getLogger(__name__)
-
-_FRONTEND = Path(__file__).parent.parent / "frontend"
-
 
 def _uebersteuerung(hass: HomeAssistant) -> dict[str, dict[str, float]]:
     """Die eingestellten Werte für Eco und Comfort.
@@ -172,13 +167,7 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
     # **Der Ordner, nicht die Datei.** Die Oberfläche besteht aus mehreren
     # ES-Modulen, die einander relativ laden (`./stil.js`); ein einzeln
     # angemeldeter Pfad ließe die Nachbardateien ins Leere laufen.
-    ordner = panel_verzeichnis(version)
-    registriert: set[str] = hass.data.setdefault(f"{DOMAIN}_panel_dateien", set())
-    if ordner not in registriert:
-        await hass.http.async_register_static_paths(
-            [StaticPathConfig(ordner, str(_FRONTEND), cache_headers=False)]
-        )
-        registriert.add(ordner)
+    await async_dateien_ausliefern(hass, version)
     if not hass.data.get(f"{DOMAIN}_panel_datei"):
         websocket_api.async_register_command(hass, _ws_panel_daten)
         hass.data[f"{DOMAIN}_panel_datei"] = True

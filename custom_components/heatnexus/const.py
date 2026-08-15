@@ -139,6 +139,11 @@ def panel_js_pfad(version: str) -> str:
     return f"{panel_verzeichnis(version)}/heatnexus-panel.js"
 
 
+def karte_js_pfad(version: str) -> str:
+    """Adresse des Kartenmoduls – dieselbe Fassungsregel wie beim Panel."""
+    return f"{panel_verzeichnis(version)}/heatnexus-schaubild-karte.js"
+
+
 def panel_verzeichnis(version: str) -> str:
     """Adresse des Ordners, in dem die Oberflächendateien liegen.
 

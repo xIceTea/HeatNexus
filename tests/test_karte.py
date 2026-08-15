@@ -2,9 +2,23 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+import shutil
+import subprocess
+
 import pytest
 
 from .conftest import load_standalone
+
+KARTE_JS = (
+    Path(__file__).resolve().parents[1]
+    / "custom_components"
+    / "heatnexus"
+    / "frontend"
+    / "heatnexus-schaubild-karte.js"
+)
+DURCHLAUF = Path(__file__).resolve().parent / "js" / "karte-durchlauf.mjs"
 
 
 @pytest.fixture(scope="module")
@@ -115,3 +129,74 @@ def test_anlage_ohne_messwert_bleibt_leer(schema):
     assert nutzdaten["schema_svg"] is None
     assert nutzdaten["schema_werte"] == []
     assert nutzdaten["schema_leitungen"] is None
+
+
+# ---------------------------------------------------------------------------
+# Die Karte im Browser
+# ---------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def durchlauf(schema, tmp_path_factory):
+    """Die Karte einmal in Node aufbauen und die Bilanz zurückgeben."""
+    if shutil.which("node") is None:
+        pytest.skip("node nicht vorhanden")
+    teile = [
+        _teil("PuroWIN", 25, [("sensor.kessel", "Kesseltemperatur Ist")]),
+        _teil("B-PLMi PUFFER", 16, [("sensor.tpe", "Puffer oben Temperatur (TPE)")]),
+    ]
+    anlagen = schema.schaubild_daten(
+        [
+            {"id": "anlage-1", "name": "Heizhaus", "teile": teile},
+            {"id": "anlage-2", "name": "Wohnhaus", "teile": teile},
+        ]
+    )
+    daten = tmp_path_factory.mktemp("karte") / "anlagen.json"
+    daten.write_text(json.dumps(anlagen), encoding="utf-8")
+    ausgabe = subprocess.run(
+        ["node", str(DURCHLAUF), KARTE_JS.as_uri(), str(daten)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    assert ausgabe.returncode == 0, ausgabe.stderr
+    return json.loads(ausgabe.stdout)
+
+
+def test_die_karte_meldet_sich_beim_laden_an(durchlauf):
+    """Home Assistant wartet nicht: Das Element muss sofort dastehen."""
+    assert durchlauf["sofortRegistriert"] is True
+    assert durchlauf["inKartenauswahl"] is True
+
+
+def test_die_karte_bringt_eine_erstkonfiguration_mit(durchlauf):
+    assert durchlauf["stubHatTyp"] is True
+    assert durchlauf["formularFelder"] == ["anlage", "farbsatz", "animation"]
+
+
+def test_groesse_kommt_ohne_hass_aus(durchlauf):
+    """`getCardSize` und `getGridOptions` laufen vor dem ersten `hass`."""
+    assert durchlauf["groesseOhneHass"] > 0
+    assert durchlauf["rasterOhneHass"]["columns"] == 12
+
+
+def test_die_karte_zeigt_das_schaubild(durchlauf):
+    assert durchlauf["bildVorhanden"] is True
+    assert durchlauf["bildAdresse"].startswith("data:image/svg+xml")
+
+
+def test_die_gewaehlte_anlage_gilt(durchlauf):
+    assert durchlauf["zweiteAnlageAnders"] is True
+
+
+def test_ein_unbekannter_farbsatz_wird_abgewiesen(durchlauf):
+    """Erst der Fehler lässt Home Assistant auf den YAML-Editor zurückfallen."""
+    assert durchlauf["unbekannterSatzWirft"] is True
+
+
+def test_ohne_anlage_steht_ein_hinweis(durchlauf):
+    assert durchlauf["hinweisOhneAnlage"] is True
+
+
+def test_die_bewegung_laesst_sich_abschalten(durchlauf):
+    """Wer es ruhig will, behält trotzdem alle Zustände."""
+    assert durchlauf["ohneAnimationRuhig"] is True
+    assert durchlauf["mitAnimationBewegt"] is True

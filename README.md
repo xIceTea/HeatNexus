@@ -311,6 +311,7 @@ an keiner Formulierung.
 | Datei | Inhalt |
 |---|---|
 | [`docs/OBERFLAECHE.md`](docs/OBERFLAECHE.md) | die eigene Oberfläche, Reiter für Reiter |
+| [`docs/KARTE.md`](docs/KARTE.md) | das Anlagenschaubild als Lovelace-Karte |
 | [`docs/API.md`](docs/API.md) | Geräte-API und OID-Aufbau |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Aufbau der Integration |
 | [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md) | alle Datenpunkte je Funktionstyp, mit Bedienebene |
