@@ -1343,3 +1343,44 @@ def anlagenschema(
         # Die Lampen des Pumpen-/Relaismoduls, siehe ZSP_KLEMMEN.
         "lampen": lampen,
     }
+
+
+def schaubild_nutzdaten(anlage: dict[str, Any]) -> dict[str, Any]:
+    """Die Schaubild-Felder einer Anlage – Bilder, Lagen, Bewegung.
+
+    Oberfläche und Karte lesen dieselben Felder; zwei Aufbauwege wären zwei Quellen.
+    """
+    bild = anlagenschema(anlage["teile"], anlage.get("kesselart"), anlage.get("kesselwert"))
+    return {
+        # Alle Farbsätze. Welcher gilt, weiß erst der Browser – die Aufteilung
+        # entsteht serverseitig und wird beim Umschalten des Erscheinungsbildes
+        # nicht neu berechnet.
+        "schema": bild["dark_mode_image"] if bild else None,
+        "schema_hell": bild["image"] if bild else None,
+        "schema_terrakotta": bild.get("terrakotta_image") if bild else None,
+        "schema_werte": (
+            [
+                {
+                    "entity": el["entity"],
+                    "left": el["style"]["left"],
+                    "top": el["style"]["top"],
+                }
+                for el in bild["elements"]
+            ]
+            if bild
+            else []
+        ),
+        "schema_pumpen": bild.get("pumpen", []) if bild else [],
+        # Bewegung im Schaubild: die Leitungen strömen, solange eine Pumpe
+        # läuft, das Glutbett glimmt, solange der Kessel Leistung bringt.
+        "schema_leitungen": bild.get("leitungen") if bild else None,
+        "schema_brenner": bild.get("brenner", []) if bild else [],
+        "schema_anforderung": bild.get("anforderung", []) if bild else [],
+        "schema_mischer": bild.get("mischer", []) if bild else [],
+        # Der Heizkörper färbt sich nach seiner Vorlauftemperatur.
+        "schema_heizkoerper": bild.get("heizkoerper", []) if bild else [],
+        # Die Schichtung des Puffers – oben und unten je nach Messwert.
+        "schema_schichtung": bild.get("schichtung", []) if bild else [],
+        "schema_lampen": bild.get("lampen", []) if bild else [],
+        "schema_speicher": bild.get("speicher", []) if bild else [],
+    }

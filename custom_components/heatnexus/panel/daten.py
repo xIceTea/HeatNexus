@@ -28,7 +28,7 @@ from ..dashboard import (
     rueckfrage,
 )
 from ..device_db import get_layers
-from ..schema import anlagenschema, modul_in_betrieb
+from ..schema import modul_in_betrieb, schaubild_nutzdaten
 from .hilfe import HILFE_KARTEN, KARTE_BEDINGUNG, hilfe
 from .muster import (
     AUSSENTEMPERATUR,
@@ -728,7 +728,6 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                     eintrag.update(_warmwasser_bedienung(alle, teil["entitaeten"]))
                 schnellzugriff.append(eintrag)
 
-    bild = anlagenschema(anlage["teile"], anlage.get("kesselart"), anlage.get("kesselwert"))
     # **Jede Anlage behält ihren eigenen Messwert.** Die in den Optionen
     # gewählte Entität gilt nur für die Ansicht „Alle" – dort gibt es keine
     # einzelne Anlage, deren Fühler man nehmen könnte. Überschriebe sie jede
@@ -763,37 +762,9 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
             for e in alle
             if e["kategorie"] is None and e["bereich"] == "sensor"
         ],
-        # Alle Farbsätze. Welcher gilt, weiß erst der Browser – die Aufteilung
-        # entsteht serverseitig und wird beim Umschalten des Erscheinungsbildes
-        # nicht neu berechnet.
-        "schema": bild["dark_mode_image"] if bild else None,
-        "schema_hell": bild["image"] if bild else None,
-        "schema_terrakotta": bild.get("terrakotta_image") if bild else None,
-        "schema_werte": (
-            [
-                {
-                    "entity": el["entity"],
-                    "left": el["style"]["left"],
-                    "top": el["style"]["top"],
-                }
-                for el in bild["elements"]
-            ]
-            if bild
-            else []
-        ),
-        "schema_pumpen": bild.get("pumpen", []) if bild else [],
-        # Bewegung im Schaubild: die Leitungen strömen, solange eine Pumpe
-        # läuft, das Glutbett glimmt, solange der Kessel Leistung bringt.
-        "schema_leitungen": bild.get("leitungen") if bild else None,
-        "schema_brenner": bild.get("brenner", []) if bild else [],
-        "schema_anforderung": bild.get("anforderung", []) if bild else [],
-        "schema_mischer": bild.get("mischer", []) if bild else [],
-        # Der Heizkörper färbt sich nach seiner Vorlauftemperatur.
-        "schema_heizkoerper": bild.get("heizkoerper", []) if bild else [],
-        # Die Schichtung des Puffers – oben und unten je nach Messwert.
-        "schema_schichtung": bild.get("schichtung", []) if bild else [],
-        "schema_lampen": bild.get("lampen", []) if bild else [],
-        "schema_speicher": bild.get("speicher", []) if bild else [],
+        # Bilder, Lagen und Bewegung des Schaubilds. Dieselben Felder bekommt
+        # die Lovelace-Karte.
+        **schaubild_nutzdaten(anlage),
     }
     # Braucht die fertigen Nutzdaten: Ob eine Karte gebaut wird, steht erst
     # darin.
