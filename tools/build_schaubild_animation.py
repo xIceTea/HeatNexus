@@ -58,6 +58,23 @@ BILD_DAUER_MS = 100
 JE_SEITE = 10
 
 SCHAUBILD_DATEI = KOMPONENTE / "frontend" / "teile" / "schaubild.js"
+ORDNUNG_DATEI = KOMPONENTE / "frontend" / "ordnung.js"
+
+
+def paletten() -> dict[str, dict[str, str]]:
+    """Die Farbvariablen der Oberfläche aus `ordnung.js` lesen.
+
+    Sie stehen dort unter `:host` und gelten nur im Schattenbaum. Auf einer
+    nackten Seite fehlen sie, und was daran hängt, fällt auf Schwarz zurück.
+    """
+    quelle = ORDNUNG_DATEI.read_text(encoding="utf-8")
+    treffer = re.search(r"export const PALETTEN = \{(.*?)\n\};", quelle, re.S)
+    if not treffer:
+        raise SystemExit("PALETTEN in ordnung.js nicht gefunden.")
+    gefunden: dict[str, dict[str, str]] = {}
+    for name, block in re.findall(r"(\w+):\s*\{(.*?)\}", treffer.group(1), re.S):
+        gefunden[name] = dict(re.findall(r'"(--[\w-]+)":\s*"([^"]+)"', block))
+    return gefunden
 
 
 def _laufrad() -> str:
@@ -350,10 +367,11 @@ def seite(karte_daten: dict, nummern: list[int], farbsatz: str) -> str:
     """Mehrere Aufnahmen untereinander – eine Browseraufnahme reicht dann."""
     grund = UNTERGRUND[farbsatz]
     bloecke = "".join(aufnahme(karte_daten, n, n * BILD_DAUER_MS / 1000, farbsatz) for n in nummern)
+    werte = "".join(f"{name}:{wert};" for name, wert in paletten()[farbsatz].items())
     return (
         "<!doctype html><meta charset='utf-8'><style>"
         f"html,body{{margin:0;padding:0;background:{grund}}}"
-        f".rahmen{{width:{BREITE}px;height:{HOEHE}px;background:{grund};"
+        f".rahmen{{{werte}width:{BREITE}px;height:{HOEHE}px;background:{grund};"
         "overflow:hidden;position:relative}"
         f"{_stil()}</style>{bloecke}"
     )

@@ -21,18 +21,16 @@ from __future__ import annotations
 import base64
 import json
 from pathlib import Path
-import re
 import subprocess
 import sys
 import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from beispielanlage import KOMPONENTE, WURZEL, karte, schema_modul
+from beispielanlage import WURZEL, karte, schema_modul
 import build_schaubild_animation as bewegung
 
 ZIEL = WURZEL / "assets" / "anlagenschema_farbsaetze.gif"
-ORDNUNG_DATEI = KOMPONENTE / "frontend" / "ordnung.js"
 
 # Reihenfolge im Film. Dunkel steht am Anfang: Es ist die Vorgabe.
 SAETZE = ["dunkel", "hell", "terrakotta", "petrol", "pflaume"]
@@ -52,22 +50,6 @@ JE_SATZ = 12
 # Augenblick, in dem **alle fünf** Pumpen fördern: Steht eine still, sieht es
 # im Standbild nach einem Fehler aus statt nach Betrieb.
 SZENE = 50
-
-
-def _paletten() -> dict[str, dict[str, str]]:
-    """Die Farbvariablen der Oberfläche aus `ordnung.js` lesen.
-
-    Gelesen statt abgeschrieben: Sonst laufen die Farben des Films und die der
-    Oberfläche auseinander, sobald jemand einen Satz nachschärft.
-    """
-    quelle = ORDNUNG_DATEI.read_text(encoding="utf-8")
-    treffer = re.search(r"export const PALETTEN = \{(.*?)\n\};", quelle, re.S)
-    if not treffer:
-        raise SystemExit("PALETTEN in ordnung.js nicht gefunden.")
-    paletten: dict[str, dict[str, str]] = {}
-    for name, block in re.findall(r"(\w+):\s*\{(.*?)\}", treffer.group(1), re.S):
-        paletten[name] = dict(re.findall(r'"(--[\w-]+)":\s*"([^"]+)"', block))
-    return paletten
 
 
 def _temperaturfarben() -> dict[str, dict[str, str]]:
@@ -149,7 +131,7 @@ def _aufnehmen(daten: dict, browser: str, arbeit: Path) -> list:
     from PIL import Image
 
     auftraege = [(nr, satz) for satz in SAETZE for nr in range(JE_SATZ)]
-    paletten = _paletten()
+    paletten = bewegung.paletten()
     temperaturen = _temperaturfarben()
     bilder: list[Image.Image] = []
     for anfang in range(0, len(auftraege), bewegung.JE_SEITE):

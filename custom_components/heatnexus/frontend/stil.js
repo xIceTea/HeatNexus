@@ -607,7 +607,9 @@ export const STIL = `
     display: flex; align-items: center; justify-content: center;
     background: rgba(10, 14, 19, 0.9);
     border: 1px solid var(--hn-linie);
-    color: var(--hn-linie);
+    /* Die stehende Pumpe soll als Pumpe lesbar bleiben. In der Linienfarbe
+       verschwand sie auf dunklem Grund und sah nach einem Fehler aus. */
+    color: var(--hn-gedaempft);
     transition: transform 0.5s ease, color 0.4s ease, border-color 0.4s ease,
       box-shadow 0.4s ease;
   }
