@@ -140,6 +140,31 @@ REITER.forEach((reiter) => {
 });
 
 // ---------------------------------------------------------------------------
+// Dashboard-Vorlage
+//
+// Das mitgelieferte Dashboard entsteht bei jedem Öffnen neu und ist deshalb
+// nicht zu bearbeiten. Der Reiter „Hilfe" gibt seinen Text zum Kopieren heraus.
+// ---------------------------------------------------------------------------
+hass.user = { is_admin: true };
+hass.callWS = async (anfrage) =>
+  anfrage.type === "heatnexus/dashboard_yaml"
+    ? { yaml: "title: Heizung\nviews: []\n" }
+    : {};
+flaeche._reiter = "hilfe";
+flaeche._gebaut = false;
+flaeche._zeichnen();
+const vorlageTaste = [...flaeche.shadowRoot.querySelectorAll("button")].find(
+  (taste) => String(taste.textContent || "") === "YAML anzeigen"
+);
+bilanz.vorlageFuerVerwalter = !!vorlageTaste;
+if (vorlageTaste) {
+  vorlageTaste.ausloesen("click");
+  for (let runde = 0; runde < 5; runde++) await Promise.resolve();
+}
+const yamlFeld = flaeche.shadowRoot.querySelector(".yaml-feld");
+bilanz.yamlImFenster = !!yamlFeld && String(yamlFeld.value || "").includes("views");
+
+// ---------------------------------------------------------------------------
 // Farbsatz des Schaubilds
 //
 // Die Zeichnung liegt als Daten-URL in einem `<img>` und erbt darin kein CSS.

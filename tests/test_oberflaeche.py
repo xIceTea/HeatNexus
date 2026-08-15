@@ -271,6 +271,12 @@ def test_das_schaubild_folgt_dem_erscheinungsbild(durchlauf, aufteilung):
     assert unquote(schaubild["hell"]).count(dunkler_wert) == 0
 
 
+def test_die_dashboard_vorlage_steht_zum_kopieren_bereit(durchlauf):
+    """Das mitgelieferte Dashboard ist nicht zu bearbeiten – sein Text schon."""
+    assert durchlauf["vorlageFuerVerwalter"] is True
+    assert durchlauf["yamlImFenster"] is True
+
+
 def test_der_farbsatz_faerbt_auch_die_oberflaeche(durchlauf):
     """Nicht nur das Bild: Die Karten, Reiter und Linien folgen mit.
 

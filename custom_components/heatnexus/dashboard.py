@@ -23,10 +23,11 @@ import logging
 import re
 from typing import Any
 
-from homeassistant.components import frontend
-from homeassistant.core import HomeAssistant
+from homeassistant.components import frontend, websocket_api
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+import voluptuous as vol
 import yaml
 
 from .const import (
@@ -849,6 +850,17 @@ def dashboard_als_yaml(hass: HomeAssistant) -> str:
     return als_yaml(dashboard_konfiguration(hass))
 
 
+# Das mitgelieferte Dashboard entsteht bei jedem Öffnen neu; Home Assistant
+# sperrt Editor und Rohkonfiguration deshalb. Wer es abwandeln will, holt sich
+# hier den Text und legt damit ein eigenes Dashboard an.
+@websocket_api.require_admin
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/dashboard_yaml"})
+@callback
+def _ws_dashboard_yaml(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
+    """Das erzeugte Dashboard als Text zum Kopieren."""
+    connection.send_result(msg["id"], {"yaml": dashboard_als_yaml(hass)})
+
+
 async def async_setup_dashboard(hass: HomeAssistant) -> None:
     """Dashboard in der Seitenleiste anmelden.
 
@@ -865,6 +877,10 @@ async def _async_setup_dashboard(hass: HomeAssistant) -> None:
     """Eigentliche Anmeldung."""
     if hass.data.get(f"{DOMAIN}_dashboard"):
         return
+
+    if not hass.data.get(f"{DOMAIN}_dashboard_ws"):
+        websocket_api.async_register_command(hass, _ws_dashboard_yaml)
+        hass.data[f"{DOMAIN}_dashboard_ws"] = True
 
     try:
         from homeassistant.components.lovelace.const import (
