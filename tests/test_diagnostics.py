@@ -233,3 +233,21 @@ async def test_jede_beschreibung_nennt_ihre_klasse_und_ob_sie_gelesen_wird(expor
     assert nach_oid["/1/60/0/0/7/0"]["im_abruf"] is True
     assert nach_oid["/1/60/0/2/1/0"]["im_abruf"] is False
     assert anlage["anlage"]["abrufklassen"] == {"fast": 1}
+
+
+def test_ein_zeitprogramm_wird_nicht_als_fehlend_gelesen(diagnostics):
+    """Es läuft über den object-Endpunkt; die Frage nach dem Abruf entfällt."""
+    koordinator = _coordinator()
+    koordinator.data["devices"] = [
+        {
+            "id": f"{SERIENNUMMER}-5-64-0",
+            "device_id": f"{SERIENNUMMER}-0",
+            "device_name": "PuroWIN",
+            "type": "time_program",
+            "oid": "/1/60/0/5/64/0",
+        }
+    ]
+
+    anlage = diagnostics._anlage(koordinator)
+
+    assert anlage["beschreibungen"][0]["im_abruf"] is None

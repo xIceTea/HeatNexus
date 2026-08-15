@@ -19,6 +19,9 @@ from homeassistant.helpers import entity_registry as er
 # Bindestrichform, und die erkennt kein Muster, das nach Punkten sucht. Zur
 # Fehlersuche sind sie ohnehin wertlos: Sie existieren allein für
 # `migration.py`.
+ANDERS = {"time_program", "button", "refresh"}
+"""Arten, die nicht über den zyklischen Abruf laufen; `im_abruf` bleibt leer."""
+
 ZU_SCHWAERZEN = {
     "password",
     "host",
@@ -182,7 +185,11 @@ def _anlage(coordinator) -> dict[str, Any]:
         {
             **b,
             "poll_klasse": client.poll_class.get(b.get("oid")),
-            "im_abruf": (b.get("oid") in plan) if b.get("oid") else None,
+            # `None` heißt „gehört nicht in den Abrufplan": Zeitprogramme
+            # kommen über den object-Endpunkt, eine Taste zeigt nichts an.
+            "im_abruf": (
+                (b.get("oid") in plan) if b.get("oid") and b.get("type") not in ANDERS else None
+            ),
         }
         for b in daten.get("devices", [])
     ]
