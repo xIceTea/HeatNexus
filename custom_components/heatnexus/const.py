@@ -473,10 +473,10 @@ INIT_TIMEOUT = 240
 ABRUF_TIMEOUT = 30
 ERSTABRUF_TIMEOUT = 180
 
-# Zeitfenster (s) für eine einzelne Anfrage an die Anlage. Es gibt Knoten, die
-# eine Verbindung annehmen und dann nicht mehr antworten; ohne eigene Grenze
-# wartet aiohttp fünf Minuten und die Einrichtung steht so lange.
-ANFRAGE_TIMEOUT = 30
+# Zeitfenster (s) für eine einzelne Anfrage. Ohne eigene Grenze wartet aiohttp
+# fünf Minuten auf einen Knoten, der annimmt und dann schweigt. Großzügig
+# bemessen: Eine Menü-Ebene liefert bis zu hundert Datenpunkte auf einmal.
+ANFRAGE_TIMEOUT = 120
 VERBINDUNG_TIMEOUT = 10
 
 # Abstand, den der Abruf zum Zeitfenster hält. Er hört von selbst auf, sobald

@@ -696,11 +696,18 @@ class WindhagerHttpClient:
         interessant.update(EXTRA_OIDS_BY_FCT.get(fct_type, ()))
         pruefer = interessant.__contains__ if interessant else None
 
+        # Eine Ebene, die nicht antwortet, kostet ihre Datenpunkte – nicht die
+        # der ganzen Funktion. Ob der Rest reicht, entscheidet danach
+        # `_erkennung_zu_mager`; der bekannte Stand bleibt sonst stehen.
         results = await asyncio.gather(
-            *(self._read_menu(prefix, menu_id, count, pruefer) for menu_id, count in menus.items())
+            *(self._read_menu(prefix, menu_id, count, pruefer) for menu_id, count in menus.items()),
+            return_exceptions=True,
         )
         datapoints: dict = {}
-        for items in results:
+        for menu_id, items in zip(menus, results, strict=True):
+            if isinstance(items, BaseException):
+                _LOGGER.warning("Menü %s/%s nicht gelesen: %r", prefix, menu_id, items)
+                continue
             for item in items:
                 oid = item.get("OID")
                 if oid:
@@ -734,9 +741,13 @@ class WindhagerHttpClient:
             *(
                 self._read_menu(prefix, menu_id, anzahl, None, schluessel="nvIndex")
                 for menu_id, anzahl in ebenen.items()
-            )
+            ),
+            return_exceptions=True,
         )
         for menu_id, items in zip(ebenen, gelesen, strict=True):
+            if isinstance(items, BaseException):
+                _LOGGER.warning("Netzwerkvariablen %s/%s nicht gelesen: %r", prefix, menu_id, items)
+                continue
             for item in items:
                 self._nv_deskriptor(prefix, menu_id, item, ziel_prefix, ziel_name, ziel_typ)
 

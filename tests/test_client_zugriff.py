@@ -303,3 +303,23 @@ async def test_ein_schweigender_knoten_wird_uebergangen(client_module):
 
     assert await c._menue_ebenen("/1/90/0") is None
     assert await c._ungemeldete_funktionen("/1/90", []) == []
+
+
+async def test_eine_stumme_menue_ebene_kostet_nur_ihre_datenpunkte(client_module, monkeypatch):
+    """Sonst verliert eine einzelne Zeitüberschreitung die ganze Funktion."""
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+
+    async def ebenen(prefix):
+        return {"1": 2, "2": 2}
+
+    async def lesen(prefix, menu_id, count, pruefer=None, schluessel="OID"):
+        if menu_id == "1":
+            raise TimeoutError
+        return [{"OID": f"{prefix}/{menu_id}/7/0"}]
+
+    monkeypatch.setattr(c, "_menue_ebenen", ebenen)
+    monkeypatch.setattr(c, "_read_menu", lesen)
+
+    datenpunkte = await c._read_function_menus("/1/60/0", 25)
+
+    assert list(datenpunkte) == ["/1/60/0/2/7/0"]
