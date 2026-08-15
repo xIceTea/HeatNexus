@@ -68,6 +68,24 @@ async def test_systemuhr_und_systemdatum_werden_nicht_von_selbst_angelegt(client
     assert all(d["enabled_default"] is False for d in client.devices)
 
 
+async def test_auch_die_schreibgeschuetzte_systemuhr_bleibt_aus(client):
+    """Schreibgeschützt wird sie als Text gelesen – die Auswahl gilt trotzdem."""
+    client.oids = {"/1/15/0/2/70/0", "/1/15/0/2/72/0"}
+    client.menu_meta = {
+        "/1/15/0/2/70/0": {"writeProt": True, "value": "24.12.2026"},
+        "/1/15/0/2/72/0": {"writeProt": True, "value": "06:30"},
+    }
+    client.devices = [
+        {"oid": oid, "name": name, "type": "auto", "level": "operate"}
+        for oid, name in (("/1/15/0/2/70/0", "Datum"), ("/1/15/0/2/72/0", "Uhrzeit"))
+    ]
+
+    await client._apply_metadata()
+
+    assert {d["type"] for d in client.devices} == {"string_sensor"}
+    assert all(d["enabled_default"] is False for d in client.devices)
+
+
 async def test_ein_betriebswert_mit_datum_bleibt_an(client):
     """Nur die Systemuhr wird ausgeblendet, nicht jedes Feld mit Datum darin.
 

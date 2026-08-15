@@ -1433,7 +1433,11 @@ class WindhagerHttpClient:
                     "level"
                 ) in ("operate", "service"):
                     d["category"] = "config"
-                if d["type"] in ("time", "date") and d.get("name") in SYSTEMZEIT_NAMEN:
+                # `string_sensor` gehört dazu: Eine schreibgeschützte Systemuhr
+                # wird als Text gelesen und liefe sonst an der Auswahl vorbei.
+                if d["type"] in ("time", "date", "string_sensor") and (
+                    d.get("name") in SYSTEMZEIT_NAMEN
+                ):
                     # **Systemuhr und Systemdatum sind Einstellwerte, keine
                     # Messwerte.** Man stellt sie einmal und danach jahrelang
                     # nicht mehr. Standardmäßig angelegt füllten sie die
@@ -1625,7 +1629,7 @@ class WindhagerHttpClient:
 
     # Endung der Kennung -> Name des Werts, der daraus entsteht.
     _LAUFZEITEN = {
-        "laufzeit": "Letzte Laufzeit",
+        "laufzeit": "Laufzeit aktuell",
         "laufzeit-heute": "Laufzeit heute",
     }
 
