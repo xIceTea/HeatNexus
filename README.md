@@ -83,8 +83,12 @@ Geräten sind willkommen – der Diagnose-Export der Integration reicht dafür.
   laufenden Pumpen und den Live-Werten darauf. Die Art des Wärmeerzeugers –
   Hackgut, Pellets, Scheitholz, Wärmepumpe, Gas/Öl – wird erkannt und lässt
   sich je Anlage übersteuern.
+- **Anlagenschaubild als Lovelace-Karte** für eigene Dashboards, mit Werteliste
+  daneben, wählbaren Anlagenteilen und fünf Farbsätzen.
 - **Dashboard und Automations-Vorlagen** kommen mit und bauen sich aus dem,
   was die Anlage liefert.
+- **LON-Bus als zweite Quelle**: Netzwerkvariablen werden erkannt, benannt und
+  je Anlage zugeschaltet.
 - Mehrere Anlagen parallel.
 
 ## Installation
@@ -254,6 +258,11 @@ Ein „?" neben Karten und Bedienelementen erklärt, was ein Wert bedeutet und w
 eine Aktion auslöst. Beides – Oberfläche und Erklärungen – lässt sich unter
 *Konfigurieren → Allgemein* abschalten.
 
+Über das Werkzeugmenü (⋮) rechts in der Kopfzeile lassen sich die Karten
+umsortieren und die Dashboard-Vorlage abrufen. Der Farbsatz – Dunkel, Hell,
+Terrakotta, Petrol oder Pflaume – steht in den Einstellungen der Anordnung und
+gilt für Oberfläche und Schaubild gemeinsam.
+
 Die Aufteilung entsteht in Home Assistant, nicht im Browser: Was die Anlage
 liefert, erscheint; was fehlt, entfällt.
 
@@ -286,12 +295,24 @@ unter *Konfigurieren → Allgemein*.
 Wer lieber selbst baut: Vorlagen für Gesamtübersicht, Bedienkarten und ein
 Anlagenschaubild liegen unter [`dashboards/`](dashboards/).
 
+### Das Anlagenschaubild als eigene Karte
+
+Für ein selbst gebautes Dashboard gibt es das Schaubild als Lovelace-Karte.
+Sie steht nach der Einrichtung in der Kartenauswahl unter **HeatNexus
+Anlagenschaubild** – kein Hinzufügen als Ressource nötig.
+
+Einstellbar sind: welche Anlage (oder alle), der Farbsatz, die Schriftgröße der
+Werte, ob sich Pumpen und Strömung bewegen, welche Anlagenteile gezeichnet
+werden, welche Werte im Bild stehen und welche in einer Liste daneben oder
+darunter.
+
 ### Ein eigenes Dashboard daraus machen
 
 Das mitgelieferte Dashboard entsteht bei jedem Öffnen neu; eigene Änderungen
 daran überleben das nicht, auch nicht über den YAML-Editor. Wer es als
-Ausgangspunkt nehmen will, lässt es sich als Text ausgeben:
+Ausgangspunkt nehmen will, bekommt es als Text:
 
+*Eigene Oberfläche → ⋮ → **Dashboard-Vorlage*** – oder, ohne die Oberfläche,
 *Entwicklerwerkzeuge → Aktionen → **HeatNexus: Dashboard als YAML ausgeben***
 
 Den zurückgegebenen Text in ein neues, leeres Dashboard einfügen

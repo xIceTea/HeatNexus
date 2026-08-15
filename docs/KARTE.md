@@ -22,11 +22,19 @@ type: custom:heatnexus-schaubild
 
 | Feld | Bedeutung | Vorgabe |
 |---|---|---|
-| `anlage` | Kennung oder Name der Anlage | die erste gefundene |
+| `anlage` | Kennung oder Name der Anlage, `alle` für sämtliche | die erste gefundene |
 | `farbsatz` | `auto`, `dunkel`, `hell`, `terrakotta`, `petrol`, `pflaume` | `auto` |
+| `schrift` | `klein`, `normal`, `gross`, `sehr_gross` | `normal` |
 | `animation` | Pumpen und Leitungen bewegen sich | `true` |
+| `liste` | `rechts` oder `unten` – wo die Werteliste steht | `rechts` |
+| `zusatzwerte` | Entitäten für die Werteliste neben dem Bild | leer |
+| `teile_aus` | Anlagenteile, die nicht gezeichnet werden | leer |
+| `werte` | je Anlagenteil die Werte, die im Bild stehen | Vorgabe der Anlage |
 
-`auto` folgt dem Erscheinungsbild von Home Assistant.
+`auto` folgt dem Erscheinungsbild von Home Assistant. Die Schrift der Marken
+wächst mit der Kartenbreite; `schrift` verschiebt das Maß nach oben oder unten.
+
+Alles davon lässt sich im Karteneditor einstellen, YAML ist nicht nötig.
 
 Beispiel mit zwei Anlagen nebeneinander:
 
@@ -68,6 +76,8 @@ nachgeladen wird.
 - **„Diese Anlage gibt es nicht mehr."** – Der Wert unter `anlage` passt zu
   keiner vorhandenen Anlage. Ohne Angabe nimmt die Karte die erste.
 
-Nach einer Aktualisierung von HeatNexus wird das Modul unter einem neuen Pfad
-ausgeliefert; ein gewöhnliches Neuladen genügt, ein harter Neustart des
-Browsers ist nicht nötig.
+Nach einer Aktualisierung von HeatNexus zeigt eine bereits offene Seite
+weiterhin die alte Fassung der Karte: Ein Browser nimmt einen Kartentyp je
+Seitensitzung nur einmal an, und der Typ heißt in jeder Fassung gleich – er
+steht so in den Dashboards der Nutzer. Ein Neuladen mit Strg+Umschalt+R
+(macOS: Cmd+Umschalt+R) holt die neue.
