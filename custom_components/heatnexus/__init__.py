@@ -57,7 +57,7 @@ from .const import (
     UPDATE_INTERVAL,
 )
 from .coordinator import WindhagerDataUpdateCoordinator
-from .dashboard import async_remove_dashboard, async_setup_dashboard
+from .dashboard import async_remove_dashboard, async_setup_dashboard, dashboard_als_yaml
 from .entity import steuerung_info, steuerung_kennung
 from .geraetetexte import sprache_aufloesen
 from .karte import async_setup_karte
@@ -223,6 +223,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """
     hass.data.setdefault(DOMAIN, {})
     _async_register_rediscover_service(hass)
+    _async_register_dashboard_export(hass)
     return True
 
 
@@ -234,6 +235,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})
     _async_register_rediscover_service(hass)
+    _async_register_dashboard_export(hass)
     await hass.async_add_executor_job(_preload_data)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
@@ -800,6 +802,29 @@ async def _vollabzug(
             "saved": dt_util.utcnow().isoformat(),
             "data": data,
         }
+    )
+
+
+def _async_register_dashboard_export(hass: HomeAssistant) -> None:
+    """Dienst heatnexus.dashboard_ausgeben: das Dashboard als YAML zum Kopieren."""
+    if hass.services.has_service(DOMAIN, "dashboard_ausgeben"):
+        return
+
+    async def _handle_export(call: ServiceCall) -> dict[str, Any]:
+        """Das erzeugte Dashboard als Text zurückgeben.
+
+        Es entsteht bei jedem Öffnen neu und lässt sich deshalb nicht bearbeiten.
+        Wer es anpassen will, legt mit diesem Text ein eigenes Dashboard an.
+        """
+        if not hass.config_entries.async_entries(DOMAIN):
+            raise ServiceValidationError("Es ist keine Anlage eingerichtet.")
+        return {"yaml": dashboard_als_yaml(hass)}
+
+    hass.services.async_register(
+        DOMAIN,
+        "dashboard_ausgeben",
+        _handle_export,
+        supports_response=SupportsResponse.ONLY,
     )
 
 

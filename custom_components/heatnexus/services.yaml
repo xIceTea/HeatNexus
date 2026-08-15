@@ -118,3 +118,11 @@ set_time_program:
         [{"time":"07:00","value":21},{"time":"23:00","value":18}]}]
       selector:
         object:
+
+dashboard_ausgeben:
+  name: Dashboard als YAML ausgeben
+  description: >-
+    Gibt das mitgelieferte Dashboard als YAML-Text zurück. Es wird bei jedem
+    Öffnen neu gebaut und lässt sich deshalb nicht bearbeiten – mit diesem Text
+    legst du ein eigenes Dashboard an, das dir gehört: neues Dashboard
+    anlegen, Rohkonfigurations-Editor öffnen, Text einfügen.

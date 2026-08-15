@@ -27,6 +27,7 @@ from homeassistant.components import frontend
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+import yaml
 
 from .const import (
     CONF_KESSELART,
@@ -830,6 +831,22 @@ def dashboard_konfiguration(hass: HomeAssistant) -> dict[str, Any]:
         _geraeteansicht(anlage, teil, mehrdeutig) for anlage in anlagen for teil in anlage["teile"]
     ]
     return {"title": DASHBOARD_TITEL, "views": views}
+
+
+def als_yaml(konfiguration: dict[str, Any]) -> str:
+    """Eine Lovelace-Konfiguration als YAML zum Einfügen.
+
+    Ohne Sortierung und ohne entwichene Zeichen: Der Text landet im
+    Rohkonfigurations-Editor und wird dort gelesen.
+    """
+    return yaml.safe_dump(
+        konfiguration, allow_unicode=True, sort_keys=False, default_flow_style=False
+    )
+
+
+def dashboard_als_yaml(hass: HomeAssistant) -> str:
+    """Das erzeugte Dashboard als YAML – Grundlage für ein eigenes."""
+    return als_yaml(dashboard_konfiguration(hass))
 
 
 async def async_setup_dashboard(hass: HomeAssistant) -> None:

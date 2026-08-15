@@ -286,6 +286,19 @@ unter *Konfigurieren → Allgemein*.
 Wer lieber selbst baut: Vorlagen für Gesamtübersicht, Bedienkarten und ein
 Anlagenschaubild liegen unter [`dashboards/`](dashboards/).
 
+### Ein eigenes Dashboard daraus machen
+
+Das mitgelieferte Dashboard entsteht bei jedem Öffnen neu; eigene Änderungen
+daran überleben das nicht, auch nicht über den YAML-Editor. Wer es als
+Ausgangspunkt nehmen will, lässt es sich als Text ausgeben:
+
+*Entwicklerwerkzeuge → Aktionen → **HeatNexus: Dashboard als YAML ausgeben***
+
+Den zurückgegebenen Text in ein neues, leeres Dashboard einfügen
+(*Einstellungen → Dashboards → Hinzufügen*, dann ⋮ → *Rohkonfigurations-Editor*).
+Ab da gehört es dir und bleibt, wie du es einrichtest — es wächst allerdings
+auch nicht mehr mit, wenn die Anlage sich ändert.
+
 ## Automations-Vorlagen
 
 Sechs Blueprints werden mitgeliefert und liegen nach der Einrichtung unter

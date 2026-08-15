@@ -152,3 +152,37 @@ def test_ohne_schaltbare_plattform_keine_bestaetigung(dashboard):
         "bereich": "sensor",
     }
     assert "icon_tap_action" not in dashboard._karte(eintrag)
+
+
+# ---------------------------------------------------------------------------
+# Export: das erzeugte Dashboard zum Selberbauen
+# ---------------------------------------------------------------------------
+def test_der_export_ist_gueltiges_yaml():
+    """Der Text muss sich unverändert wieder einlesen lassen."""
+    import yaml
+
+    from custom_components.heatnexus.dashboard import als_yaml
+
+    konfiguration = {
+        "title": "Heizung",
+        "views": [
+            {"title": "Übersicht", "path": "uebersicht", "cards": [{"type": "tile"}]},
+        ],
+    }
+    text = als_yaml(konfiguration)
+    assert yaml.safe_load(text) == konfiguration
+
+
+def test_der_export_behaelt_die_reihenfolge():
+    """Alphabetisch sortiert stünde `views` vor `title` – schlecht zu lesen."""
+    from custom_components.heatnexus.dashboard import als_yaml
+
+    text = als_yaml({"title": "Heizung", "views": []})
+    assert text.index("title:") < text.index("views:")
+
+
+def test_der_export_schreibt_umlaute_aus():
+    """Entwichene Zeichen wären im Rohkonfigurations-Editor unlesbar."""
+    from custom_components.heatnexus.dashboard import als_yaml
+
+    assert "Übersicht" in als_yaml({"title": "Übersicht"})
