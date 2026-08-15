@@ -781,3 +781,30 @@ async def test_ein_dauerhaft_leerer_wert_wird_nicht_ewig_nachgelesen(client, mon
 
     client._tick = 1
     assert "/1/60/0/2/81/0" not in client._faellig()
+
+
+def test_ein_lueckenhafter_abrufplan_ueberlebt_den_neustart_nicht(client_module):
+    """Der Plan entsteht aus den Deskriptoren, nicht aus dem Zwischenspeicher.
+
+    Ein abgebrochener Erkennungslauf hinterlässt einen halben Plan; übernommen
+    statt neu bestimmt, blieben seine Datenpunkte dauerhaft ungelesen.
+    """
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+
+    c.restore_discovery(
+        {
+            "oids": ["/1/60/0/2/81/0"],
+            "devices": [
+                {
+                    "id": "SN1-3-0-2-81-0",
+                    "oid": "/1/60/0/2/81/0",
+                    "name": "Betriebsstunden",
+                    "type": "sensor",
+                    "enabled_default": True,
+                }
+            ],
+            "poll_oids": [],
+        }
+    )
+
+    assert "/1/60/0/2/81/0" in c.poll_oids

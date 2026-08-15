@@ -1918,20 +1918,10 @@ class WindhagerHttpClient:
         for d in self.devices:
             if d.get("type") in self.ZUSATZTYPEN:
                 d["enabled_default"] = d["id"] in self.zusatzwerte
-        self.poll_oids = set(data.get("poll_oids", set()))
-        # Die Poll-Klassen leiten sich aus den Deskriptoren ab und werden
-        # deshalb nicht mitgespeichert, sondern neu bestimmt. So wirkt eine
-        # geänderte Einstufung sofort und nicht erst nach neuer Erkennung.
-        self.poll_class = {}
-        for d in self.devices:
-            if d.get("oid"):
-                self._klasse_eintragen(self.poll_class, d["oid"], self._poll_klasse(d))
-        for d in self.devices:
-            if d.get("type") == "climate":
-                prefix = d.get("prefix", "")
-                for suffix in self._CLIMATE_POLL_SUFFIXES:
-                    self.poll_class[f"{prefix}{suffix}"] = POLL_FAST
-        self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
+        # Abrufplan, Poll-Klassen und Zeitprogramme leiten sich aus den
+        # Deskriptoren ab und werden deshalb neu bestimmt. Aus dem Zwischen-
+        # speicher übernommen überlebte ein lückenhafter Plan jeden Neustart.
+        self._compute_poll_oids()
         # object-Unterstützung aus dem Cache übernehmen (kein erneutes Probing).
         self._objects_supported = data.get("objects_supported")
         self._vollstaendig = True
