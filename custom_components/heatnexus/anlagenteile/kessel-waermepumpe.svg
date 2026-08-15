@@ -27,11 +27,12 @@
   <circle cx="110" cy="196" r="24"/>
   <circle cx="110" cy="196" r="14"/>
 </g>
-<!-- Flügel -->
+<!-- Flügel: drei gleiche, um 120 Grad versetzt, alle Ecken auf demselben
+     Radius wie das Gitter darunter. -->
 <g fill="{{titel}}" opacity="0.32">
-  <path d="M 110 196 L 138 178 A 34 34 0 0 0 110 162 Z"/>
-  <path d="M 110 196 L 96 229 A 34 34 0 0 0 128 220 Z"/>
-  <path d="M 110 196 L 78 176 A 34 34 0 0 0 82 213 Z"/>
+  <path d="M 110 196 L 104.10 162.52 A 34 34 0 0 1 136.79 175.07 Z"/>
+  <path d="M 110 196 L 141.95 207.63 A 34 34 0 0 1 114.73 229.67 Z"/>
+  <path d="M 110 196 L 83.95 217.85 A 34 34 0 0 1 78.48 183.26 Z"/>
 </g>
 <circle cx="110" cy="196" r="6" fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.5"/>
 

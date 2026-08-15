@@ -25,10 +25,12 @@
 <!-- Pumpe als Kreis mit Laufrad, wie im Hydraulikplan -->
 <circle cx="100" cy="212" r="26" fill="{{korpus_dunkel}}" stroke="{{rahmen}}"
         stroke-width="2"/>
+<!-- Drei gleiche Schaufeln um 120 Grad versetzt, alle Ecken auf demselben
+     Radius: Sonst sitzt das Laufrad sichtbar neben seiner Nabe. -->
 <g fill="{{titel}}" opacity="0.4">
-  <path d="M 100 212 L 124 204 A 25 25 0 0 0 108 192 Z"/>
-  <path d="M 100 212 L 92 236 A 25 25 0 0 0 116 230 Z"/>
-  <path d="M 100 212 L 78 199 A 25 25 0 0 0 78 226 Z"/>
+  <path d="M 100 212 L 95.83 188.36 A 24 24 0 0 1 118.91 197.22 Z"/>
+  <path d="M 100 212 L 122.55 220.21 A 24 24 0 0 1 103.34 235.77 Z"/>
+  <path d="M 100 212 L 81.61 227.43 A 24 24 0 0 1 77.75 203.01 Z"/>
 </g>
 <circle cx="100" cy="212" r="5" fill="{{rahmen}}"/>
 

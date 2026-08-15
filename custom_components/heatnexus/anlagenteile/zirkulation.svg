@@ -21,8 +21,10 @@
 <!-- Pumpe in der Mitte -->
 <circle cx="100" cy="206" r="18" fill="{{korpus_dunkel}}" stroke="{{rahmen}}"
         stroke-width="1.5"/>
+<!-- Drei gleiche Schaufeln um 120 Grad versetzt, alle Ecken auf demselben
+     Radius: Sonst sitzt das Laufrad sichtbar neben seiner Nabe. -->
 <g fill="{{titel}}" opacity="0.35">
-  <path d="M 100 206 L 116 200 A 17 17 0 0 0 105 190 Z"/>
-  <path d="M 100 206 L 92 222 A 17 17 0 0 0 108 219 Z"/>
-  <path d="M 100 206 L 85 196 A 17 17 0 0 0 85 214 Z"/>
+  <path d="M 100 206 L 97.22 190.24 A 16 16 0 0 1 112.61 196.15 Z"/>
+  <path d="M 100 206 L 115.04 211.47 A 16 16 0 0 1 102.23 221.84 Z"/>
+  <path d="M 100 206 L 87.74 216.28 A 16 16 0 0 1 85.17 200.01 Z"/>
 </g>
