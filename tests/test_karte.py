@@ -96,6 +96,19 @@ def test_werte_tragen_entitaet_und_lage(schema, anlage):
         assert eintrag["top"].endswith("%")
 
 
+def test_kartendaten_nennen_jede_anlage(schema, anlage):
+    """Die Karte wählt ihre Anlage über die Kennung, nicht über die Reihenfolge."""
+    zweite = {"id": "anlage-2", "name": "Wohnhaus", "teile": anlage["teile"]}
+    daten = schema.schaubild_daten([anlage, zweite])
+    assert [a["id"] for a in daten] == ["anlage-1", "anlage-2"]
+    assert [a["name"] for a in daten] == ["Heizhaus", "Wohnhaus"]
+    assert all(a["schema"] for a in daten)
+
+
+def test_kartendaten_ohne_anlage_bleiben_leer(schema):
+    assert schema.schaubild_daten([]) == []
+
+
 def test_anlage_ohne_messwert_bleibt_leer(schema):
     """Ein Bild aus leeren Kästen hilft niemandem."""
     leer = {"id": "anlage-2", "name": "Wohnhaus", "teile": [_teil("PuroWIN", 25, [])]}

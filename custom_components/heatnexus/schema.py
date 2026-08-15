@@ -1393,6 +1393,17 @@ def anlagenschema(
     }
 
 
+def schaubild_daten(anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Schaubild je Anlage, wie die Lovelace-Karte es bekommt.
+
+    Die Kennung entscheidet, welche Anlage eine Karte zeigt – nicht die Reihenfolge.
+    """
+    return [
+        {"id": anlage.get("id") or anlage["name"], "name": anlage["name"], **schaubild_nutzdaten(anlage)}
+        for anlage in anlagen
+    ]
+
+
 def schaubild_nutzdaten(anlage: dict[str, Any]) -> dict[str, Any]:
     """Die Schaubild-Felder einer Anlage – Bilder, Lagen, Bewegung.
 
