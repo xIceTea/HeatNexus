@@ -102,6 +102,21 @@ export const FARBSAETZE = [
   { schluessel: "pflaume", titel: "Pflaume", hinweis: "Dunkles Violett mit Pflaume" },
 ];
 
+// Wie groß die Marken im Schaubild stehen. Der Faktor wirkt auf die Schrift,
+// nicht auf die Zeichnung – die bleibt im Maßstab der Karte.
+export const SCHRIFTMASSE = [
+  { schluessel: "klein", titel: "Klein", faktor: 0.85 },
+  { schluessel: "normal", titel: "Normal", faktor: 1 },
+  { schluessel: "gross", titel: "Groß", faktor: 1.25 },
+  { schluessel: "sehr_gross", titel: "Sehr groß", faktor: 1.5 },
+];
+
+/** Der Faktor zu einem Schlüssel; unbekannte Angaben gelten als „normal". */
+export function schriftmass(schluessel) {
+  const treffer = SCHRIFTMASSE.find((m) => m.schluessel === schluessel);
+  return treffer ? treffer.faktor : 1;
+}
+
 // Was ein fester Satz an der Oberfläche setzt. `auto` steht nicht darin: Dann
 // gelten die Vorgaben aus `stil.js`, die den Variablen von Home Assistant
 // folgen.

@@ -342,6 +342,9 @@ export const STIL = `
     width: 100%; position: relative; isolation: isolate;
     container-type: inline-size;
     --hn-einheit: 0.1cqw;
+    /* Schriftmaß der Marken. Die Karte stellt es ein; die Zeichnung selbst
+       bleibt davon unberührt. */
+    --hn-schrift: 1;
   }
   .schaubild img { width: 100%; display: block; border-radius: 12px; }
 
@@ -475,18 +478,26 @@ export const STIL = `
   /* Die Karte richtet sich nach ihrer **eigenen** Breite, nicht nach dem
      Fenster: In der Editor-Vorschau steht sie schmal in einem breiten Fenster,
      und feste Schriftgrößen liefen dort ineinander. */
-  .karte-zweispaltig { display: grid; gap: 12px; container-type: inline-size; }
-  @container (max-width: 620px) {
-    .karte-zweispaltig .zeile .wert { font-size: 17px; }
-    .karte-zweispaltig .zeile .wert.lang { font-size: 13px; }
+  .karte-zweispaltig { display: grid; gap: 12px; }
+  /* **Jede Spalte ist ihr eigener Bezug.** Die Werteliste steht in einem
+     Drittel der Kartenbreite; nach der ganzen Karte gemessen blieb sie groß
+     und Titel und Wert liefen ineinander. */
+  .karte-zweispaltig > * { container-type: inline-size; min-width: 0; }
+  @container (max-width: 340px) {
+    .karte-zweispaltig .zeile .wert { font-size: 16px; }
+    .karte-zweispaltig .zeile .wert.lang { font-size: 12px; }
     .karte-zweispaltig .zeile .titel { font-size: 12px; }
     .karte-zweispaltig .zeile .bezeichnung { font-size: 10px; }
+    .karte-zweispaltig .zeile { gap: 8px; padding: 8px 10px; }
     .karte-zweispaltig .kartenkopf h2 { font-size: 15px; }
   }
-  @container (max-width: 420px) {
-    .karte-zweispaltig .zeile .wert { font-size: 14px; }
-    .karte-zweispaltig .zeile .wert.lang { font-size: 11px; }
-    .karte-zweispaltig .zeile { gap: 6px; }
+  /* Noch schmaler passen Titel und Wert nicht mehr nebeneinander. Dann
+     untereinander statt in immer kleinerer Schrift. */
+  @container (max-width: 230px) {
+    .karte-zweispaltig .zeile { flex-direction: column; align-items: flex-start; gap: 2px; }
+    .karte-zweispaltig .zeile .rechts { text-align: left; }
+    .karte-zweispaltig .zeile .wert { font-size: 15px; }
+    .karte-zweispaltig .zeile .wert.lang { font-size: 12px; }
   }
   .karte-zweispaltig.lage-rechts { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
   .karte-zweispaltig.lage-unten { grid-template-columns: minmax(0, 1fr); }
@@ -526,7 +537,11 @@ export const STIL = `
   .schaubild .speicher {
     position: absolute; transform: translate(-50%, -50%);
     padding: 0.2em 0.7em; border-radius: 999px;
-    font-size: clamp(8px, calc(var(--hn-einheit) * 10), 14px);
+    font-size: clamp(
+      calc(9px * var(--hn-schrift)),
+      calc(var(--hn-einheit) * 12 * var(--hn-schrift)),
+      calc(18px * var(--hn-schrift))
+    );
     font-weight: 700; letter-spacing: 0.3px;
     background: rgba(10, 14, 19, 0.78);
     pointer-events: none; white-space: nowrap;
@@ -575,6 +590,8 @@ export const STIL = `
     background: rgba(10, 14, 19, 0.9);
     border: 1px solid var(--hn-linie);
     color: var(--hn-linie);
+    transition: transform 0.5s ease, color 0.4s ease, border-color 0.4s ease,
+      box-shadow 0.4s ease;
   }
   /* Das Laufrad ist eine eigene Zeichnung mit dem Nullpunkt in der Mitte des
      Kastens. Ein Symbolzeichensatz gibt diese Mitte nicht her: Die Nabe lag
@@ -583,9 +600,12 @@ export const STIL = `
     display: block; width: 62%; height: 62%;
     transform-origin: 50% 50%;
   }
+  /* Die laufende Pumpe tritt hervor. Der Faktor bleibt klein: Eine Marke, die
+     doppelt so groß wird, ragte in Kessel und Speicher hinein. */
   .schaubild .pumpe.laeuft {
     color: var(--hn-akzent); border-color: color-mix(in srgb, var(--hn-akzent) 60%, transparent);
     box-shadow: 0 0 10px color-mix(in srgb, var(--hn-akzent) 35%, transparent);
+    transform: translate(-50%, -50%) scale(1.18);
   }
   .schaubild .pumpe.laeuft svg { animation: dreht 1.6s linear infinite; }
   @keyframes dreht { to { transform: rotate(360deg); } }
@@ -595,7 +615,11 @@ export const STIL = `
   .schaubild .marke-wert {
     position: absolute; transform: translate(-50%, -50%);
     background: rgba(10, 14, 19, 0.72); color: #fff;
-    font-size: clamp(9px, calc(var(--hn-einheit) * 12), 17px);
+    font-size: clamp(
+      calc(10px * var(--hn-schrift)),
+      calc(var(--hn-einheit) * 15 * var(--hn-schrift)),
+      calc(22px * var(--hn-schrift))
+    );
     font-weight: 600;
     padding: 0.22em 0.6em;
     border-radius: 0.55em; white-space: nowrap;

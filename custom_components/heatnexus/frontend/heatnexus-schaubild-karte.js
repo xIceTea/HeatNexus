@@ -10,7 +10,7 @@ import { BausteineMixin } from "./teile/bausteine.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { WerteMixin } from "./teile/werte.js";
 import { STIL } from "./stil.js";
-import { FARBSAETZE } from "./ordnung.js";
+import { FARBSAETZE, SCHRIFTMASSE, schriftmass } from "./ordnung.js";
 
 const ELEMENT = "heatnexus-schaubild";
 const ALLE = "alle";
@@ -37,7 +37,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
   }
 
   static getStubConfig() {
-    return { type: `custom:${ELEMENT}`, farbsatz: "auto", animation: true };
+    return { type: `custom:${ELEMENT}`, farbsatz: "auto", schrift: "normal", animation: true };
   }
 
   /** Elf Rasterzeilen sind gut zwei Drittel Breite bei voller Zeichnung. */
@@ -53,8 +53,11 @@ class HeatNexusSchaubildKarte extends Grundlage {
     if (config && config.farbsatz && !FARBSAETZE.some((s) => s.schluessel === config.farbsatz)) {
       throw new Error(`Unbekannter Farbsatz: ${config.farbsatz}`);
     }
+    if (config && config.schrift && !SCHRIFTMASSE.some((m) => m.schluessel === config.schrift)) {
+      throw new Error(`Unbekanntes Schriftmaß: ${config.schrift}`);
+    }
     const vorher = JSON.stringify([this._config.werte, this._config.teile_aus]);
-    this._config = { farbsatz: "auto", animation: true, ...(config || {}) };
+    this._config = { farbsatz: "auto", schrift: "normal", animation: true, ...(config || {}) };
     this._gebaut = false;
     if (this._hass && vorher !== JSON.stringify([this._config.werte, this._config.teile_aus])) {
       this._laden = this._datenHolen();
@@ -77,6 +80,11 @@ class HeatNexusSchaubildKarte extends Grundlage {
   /** Der im Editor gewählte Satz gilt; das Panel fragt hier seine Anordnung. */
   _farbsatz() {
     return this._config.farbsatz;
+  }
+
+  /** Das im Editor gewählte Schriftmaß der Marken. */
+  _schriftmass() {
+    return schriftmass(this._config.schrift);
   }
 
   async _datenHolen() {

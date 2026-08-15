@@ -6,7 +6,7 @@
  * ein Schema wird ohne `hass` gebaut und kennt sie nicht.
  */
 
-import { FARBSAETZE } from "./ordnung.js";
+import { FARBSAETZE, SCHRIFTMASSE } from "./ordnung.js";
 
 const ELEMENT = "heatnexus-schaubild-editor";
 const ALLE = "alle";
@@ -14,6 +14,7 @@ const ALLE = "alle";
 const BESCHRIFTUNG = {
   anlage: "Anlage",
   farbsatz: "Farbsatz",
+  schrift: "Schriftgröße im Schaubild",
   animation: "Animation",
   liste: "Werteliste",
   zusatzwerte: "Werte in der Liste",
@@ -111,6 +112,15 @@ class HeatNexusSchaubildEditor extends HTMLElement {
             },
           },
           {
+            name: "schrift",
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: SCHRIFTMASSE.map((m) => ({ value: m.schluessel, label: m.titel })),
+              },
+            },
+          },
+          {
             name: "liste",
             selector: {
               select: {
@@ -176,6 +186,7 @@ class HeatNexusSchaubildEditor extends HTMLElement {
     return {
       anlage: this._config.anlage || ALLE,
       farbsatz: "auto",
+      schrift: "normal",
       animation: true,
       liste: "rechts",
       zusatzwerte: [],

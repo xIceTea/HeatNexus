@@ -220,6 +220,16 @@ def test_das_laufrad_ist_eine_eigene_zeichnung(durchlauf):
     assert durchlauf["laufradIstZeichnung"] is True
 
 
+def test_die_schriftgroesse_der_marken_ist_einstellbar(durchlauf):
+    """Ein Maßstab passt nicht jeder Kartenbreite; der Faktor gehört dem Nutzer."""
+    assert durchlauf["schriftmass"] == "1.25"
+
+
+def test_ein_unbekanntes_schriftmass_wird_abgewiesen(durchlauf):
+    """Sonst stünde eine falsche Angabe still auf dem Normalmaß."""
+    assert durchlauf["unbekanntesMassWirft"] is True
+
+
 def test_die_gewaehlte_anlage_gilt(durchlauf):
     assert durchlauf["zweiteAnlageAnders"] is True
 

@@ -26,6 +26,11 @@ export const SchaubildMixin = (Basis) =>
     return schaubildAdresse(farbenUmstellen(anlage.schema_svg, farben[this._farbsatzGilt()]));
   }
 
+  /** Wie groß die Marken im Schaubild stehen. Die Karte überschreibt das. */
+  _schriftmass() {
+    return 1;
+  }
+
   /** Der Satz, der gerade gilt – `auto` folgt dem Erscheinungsbild. */
   _farbsatzGilt() {
     const satz = this._farbsatz();
@@ -93,6 +98,9 @@ export const SchaubildMixin = (Basis) =>
     if (anlage.schema_breite) {
       huelle.style.setProperty("--hn-einheit", `${(100 / anlage.schema_breite).toFixed(4)}cqw`);
     }
+    // Das Schriftmaß der Marken. Die Karte gibt es vor, die Oberfläche bleibt
+    // beim Normalmaß.
+    huelle.style.setProperty("--hn-schrift", String(this._schriftmass()));
     const bild = document.createElement("img");
     const anfangsbild = this._schemaBild(anlage);
     bild.src = anfangsbild;

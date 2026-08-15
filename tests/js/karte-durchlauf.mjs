@@ -86,6 +86,18 @@ try {
 } catch {
   bilanz.unbekannterSatzWirft = true;
 }
+try {
+  karte.setConfig({ schrift: "gibtsnicht" });
+  bilanz.unbekanntesMassWirft = false;
+} catch {
+  bilanz.unbekanntesMassWirft = true;
+}
+
+// Das Schriftmaß der Marken: eine Einstellung der Karte, kein fester Wert.
+karte.setConfig({ schrift: "gross" });
+const grosseSchrift = karte.shadowRoot.querySelector(".schaubild");
+bilanz.schriftmass = grosseSchrift ? grosseSchrift.style["--hn-schrift"] : null;
+karte.setConfig({ schrift: "normal" });
 
 // Ohne Anlage bleibt ein Hinweis stehen, keine leere Fläche.
 const leer = new Klasse();
