@@ -135,6 +135,12 @@ def _stil() -> str:
     return treffer.group(1)
 
 
+# Die Temperaturfarben des dunklen Satzes. Sie stehen als Vorgabe hier, weil
+# `build_farbsaetze_animation.py` dieselben Ebenen mit anderen Werten zeichnet.
+TEMPERATURFARBEN = {"warm": "#b3341f", "kalt": "#25508f"}
+LEITUNGSFARBEN = {"vorlauf": "#e2543a", "ruecklauf": "#3a7fe2"}
+
+
 def _grad(wert: float, kalt: float, heiss: float) -> float:
     spanne = heiss - kalt
     return max(0.0, min(1.0, (wert - kalt) / spanne)) if spanne > 0 else 0.0
@@ -204,8 +210,9 @@ def _glut(karte_daten: dict, lage: dict) -> str:
     return "".join(teile)
 
 
-def _schichtung(karte_daten: dict, lage: dict) -> str:
+def _schichtung(karte_daten: dict, lage: dict, temperatur: dict | None = None) -> str:
     """Speicherfüllung: oben und unten getrennt, Grenze wandert mit."""
+    temperatur = temperatur or TEMPERATURFARBEN
     teile = []
     for eintrag in karte_daten["schichtung"]:
         oben = lage["werte"].get(eintrag["oben"])
@@ -213,7 +220,7 @@ def _schichtung(karte_daten: dict, lage: dict) -> str:
         kalt, heiss = float(eintrag["kalt"]), float(eintrag["heiss"])
 
         def farbe(grad: float, kalt: float = kalt, heiss: float = heiss) -> str:
-            return _farbe(_grad(grad, kalt, heiss), "#b3341f", "#25508f")
+            return _farbe(_grad(grad, kalt, heiss), temperatur["warm"], temperatur["kalt"])
 
         if eintrag.get("unten"):
             grund = (
@@ -230,13 +237,14 @@ def _schichtung(karte_daten: dict, lage: dict) -> str:
     return "".join(teile)
 
 
-def _heizkoerper(karte_daten: dict, lage: dict) -> str:
+def _heizkoerper(karte_daten: dict, lage: dict, temperatur: dict | None = None) -> str:
+    temperatur = temperatur or TEMPERATURFARBEN
     teile = []
     for eintrag in karte_daten["heizkoerper"]:
         grad = lage["werte"].get(eintrag["entity"])
         anteil = _grad(grad, float(eintrag["kalt"]), float(eintrag["heiss"]))
-        warm = _farbe(anteil, "#e2543a", "#3a7fe2")
-        kuehl = _farbe(anteil, "#b3341f", "#25508f")
+        warm = _farbe(anteil, LEITUNGSFARBEN["vorlauf"], LEITUNGSFARBEN["ruecklauf"])
+        kuehl = _farbe(anteil, temperatur["warm"], temperatur["kalt"])
         glanz = (
             "linear-gradient(to right, transparent 0 18%, "
             "rgba(255, 255, 255, 0.18) 18% 46%, transparent 46%)"

@@ -34,6 +34,11 @@ type: custom:heatnexus-schaubild
 `auto` folgt dem Erscheinungsbild von Home Assistant. Die Schrift der Marken
 wächst mit der Kartenbreite; `schrift` verschiebt das Maß nach oben oder unten.
 
+![Dieselbe Anlage in allen fünf Farbsätzen: Dunkel, Hell, Terrakotta, Petrol, Pflaume](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_farbsaetze.gif)
+
+Ein Farbsatz färbt Gehäuse, Rahmen und Schrift. Vor- und Rücklauf bleiben in
+jedem Satz rot und blau — das ist eine Auskunft, keine Gestaltung.
+
 Alles davon lässt sich im Karteneditor einstellen, YAML ist nicht nötig.
 
 Beispiel mit zwei Anlagen nebeneinander:

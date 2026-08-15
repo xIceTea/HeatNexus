@@ -66,6 +66,16 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
 </div>
 
 <figure class="bild" markdown="0">
+  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_farbsaetze.gif"
+       alt="Dieselbe Anlage in fünf Farbsätzen: Dunkel, Hell, Terrakotta, Petrol, Pflaume">
+  <figcaption>
+    Fünf Farbsätze für Oberfläche und Karte. Sie färben Gehäuse, Rahmen und
+    Schrift — Vor- und Rücklauf bleiben überall rot und blau, denn das ist
+    eine Auskunft und keine Gestaltung.
+  </figcaption>
+</figure>
+
+<figure class="bild" markdown="0">
   <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif"
        alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme">
   <figcaption>
@@ -76,23 +86,55 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
 
 ## Passt das zu meiner Anlage?
 
-HeatNexus wurde an einem **PuroWIN** mit B-PLMi-Puffer und UML-Heizkreisen
-entwickelt und an weiteren Anlagen anderer Nutzer geprüft. Grundlage ist die
-Netzwerkschnittstelle der Windhager-Regelung, nicht ein einzelnes Kesselmodell
-— erkannt wird, was die Steuerung meldet.
+HeatNexus spricht die Netzwerkschnittstelle der **Windhager**-Regelung an, nicht
+ein einzelnes Kesselmodell. Erkannt wird, was die Steuerung meldet — die
+Baureihe entscheidet nur darüber, welche Zeichnung im Schaubild erscheint.
 
-Gute Aussichten hast du mit **PuroWIN**, **BioWIN**, **Wärmepumpen** sowie
-Gas- und Ölkesseln an derselben Regelung, jeweils mit dem Netzwerkmodul
-INFOWIN Touch oder einer angebundenen Steuerung.
+**Voraussetzung** ist ein **InfoWIN Touch** mit Netzwerkanschluss (oder eine
+gleichwertig angebundene Regelung), erreichbar im eigenen Netz, plus das
+Service-Passwort. Ob es passt, siehst du in einer halben Minute: `http://<IP der
+Anlage>` im Browser öffnen — kommt die Weboberfläche des InfoWIN Touch, ist der
+Weg frei.
 
-Voraussetzung ist ein Zugang mit Service-Passwort und die Erreichbarkeit der
-Steuerung im eigenen Netz.
+### Wärmeerzeuger
+
+Diese Baureihen erkennt HeatNexus namentlich und zeichnet sie passend:
+
+| Baureihe | Brennstoff | Stand |
+|---|---|---|
+| **PuroWIN** | Hackgut, wahlweise Pellets | an der Anlage geprüft |
+| **BioWIN**, **BioWIN 2**, **PelletsWIN** | Pellets | an einer fremden Anlage geprüft |
+| **LogWIN**, **VarioWIN** | Scheitholz | eingebunden, ungeprüft |
+| **AeroWIN** und andere Wärmepumpen | Strom | eingebunden, ungeprüft |
+| **DuoWIN**, Gas- und Ölkessel, Brennwerttherme | Gas, Öl | eingebunden, ungeprüft |
+| E-Heizung, Automatik- und Zusatzkessel | — | eingebunden, ungeprüft |
+
+### Module und Kreise
+
+| Anlagenteil | Stand |
+|---|---|
+| **UML** / **UMLZ** Heizkreismodul | an der Anlage geprüft |
+| **B-PLMi** Pufferlademodul | an der Anlage geprüft |
+| **ZSP** Pumpen- und Relaismodul | an der Anlage geprüft |
+| **Infinity PLUS** Heizkreis und Warmwasser | eingebunden, ungeprüft |
+| Solar, Kaskade, Umschaltung, weitere Puffer | eingebunden, ungeprüft |
+
+„Eingebunden" heißt: Die Funktion steht mit Namen, Einheiten und Auswahlwerten
+in der mitgelieferten Datenbank und wird erkannt — es stand nur noch keine
+solche Anlage zum Nachmessen bereit. „An einer fremden Anlage geprüft" heißt:
+Jemand hat einen Abzug beigesteuert, das Auslesen ist daran belegt, das
+Bedienen noch nicht.
+
+Was hier nicht steht, fällt trotzdem nicht durch: Die allgemeine Erkennung
+nimmt jeden Datenpunkt mit, den die Steuerung führt. Welcher Funktionstyp was
+ist, steht vollständig unter [Datenpunkte](DATAPOINTS).
 
 <div class="hinweis" markdown="1">
 Unsicher, ob deine Anlage mitspielt? Leg in den
 [Diskussionen](https://github.com/xIceTea/HeatNexus/discussions) einen Beitrag
 an und schreib dazu, welches Gerät du hast. Es gibt ein Sondenwerkzeug, das
-deine Anlage ausliest, ohne etwas zu verändern.
+deine Anlage ausliest, ohne etwas zu verändern — eine einzelne Python-Datei,
+die nichts an der Anlage verändert und im Betrieb nicht mitläuft.
 </div>
 
 ## Installation
