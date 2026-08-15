@@ -183,9 +183,16 @@ def schluessel(unique_id: str | None) -> str | None:
     (Netzwerkvariablen). Abgeleitete Werte tragen den Schlüssel ihrer Quelle
     mit dem Zusatz, der sie von ihr unterscheidet.
     """
+
+    def _basis(kennung: str | None) -> str | None:
+        return KANONISCH.get(gnmn(kennung) or "") or lon_schluessel(kennung)
+
     kennung, zusatz = _zerlegen(unique_id)
-    adresse = gnmn(kennung)
-    basis = KANONISCH.get(adresse or "") or lon_schluessel(kennung)
-    if not basis or not zusatz:
+    basis = _basis(kennung)
+    if not zusatz:
         return basis
+    # Ein Funktionsblock darf „Start" heißen. Trägt der gekürzte Rumpf keinen
+    # Begriff, war der Zusatz Teil des Namens und nicht die Ableitung.
+    if not basis:
+        return _basis(unique_id)
     return f"{basis}_{ZUSATZ_SCHLUESSEL[zusatz]}"

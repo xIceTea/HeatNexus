@@ -170,3 +170,13 @@ def test_die_schluessel_sind_englisch_und_kleingeschrieben(kanonisch):
     for schluessel in kanonisch.KANONISCH.values():
         assert schluessel == schluessel.lower()
         assert " " not in schluessel
+
+
+def test_ein_funktionsblock_darf_start_heissen(kanonisch):
+    """Der Zusatz gehört zur Ableitung – hier ist er Teil des Namens."""
+    assert kanonisch.schluessel("0000ABCD1234-nv-32-0-pmx-eebetrstd-start") == (
+        "operating_hours_since_start"
+    )
+    # Ohne Entsprechung im Rumpf bleibt es beim ungekürzten Namen: kein
+    # Schlüssel ist besser als der falsche.
+    assert kanonisch.schluessel("0000ABCD1234-nv-32-0-unbekannt-start") is None

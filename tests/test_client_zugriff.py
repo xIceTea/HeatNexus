@@ -323,3 +323,39 @@ async def test_eine_stumme_menue_ebene_kostet_nur_ihre_datenpunkte(client_module
     datenpunkte = await c._read_function_menus("/1/60/0", 25)
 
     assert list(datenpunkte) == ["/1/60/0/2/7/0"]
+
+
+class _EinmalStumm:
+    """Eine Ebene läuft in die Zeitüberschreitung, die andere antwortet."""
+
+    def __init__(self, fehler):
+        self.fehler = fehler
+        self.anfragen: list[str] = []
+
+    async def request(self, methode, url, data=None):
+        self.anfragen.append(str(url))
+        raise self.fehler
+
+    async def close(self):
+        return None
+
+
+async def test_ein_verbindungsfehler_beendet_den_erkennungslauf(client_module, monkeypatch):
+    """Nur eine Zeitüberschreitung wird übergangen – ein Fehler nicht.
+
+    Sonst gälte ein halber Erkennungsstand als vollständig und würde in dieser
+    Form gespeichert.
+    """
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+
+    async def ebenen(prefix):
+        return {"1": 2}
+
+    async def lesen(prefix, menu_id, count, pruefer=None, schluessel="OID"):
+        raise OSError("Leitung weg")
+
+    monkeypatch.setattr(c, "_menue_ebenen", ebenen)
+    monkeypatch.setattr(c, "_read_menu", lesen)
+
+    with pytest.raises(OSError):
+        await c._read_function_menus("/1/60/0", 25)

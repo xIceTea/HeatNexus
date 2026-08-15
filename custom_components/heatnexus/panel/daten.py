@@ -692,23 +692,12 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     # sagt, ob etwas ansteht. Zwei Entitäten, eine Auskunft je Zweck.
     stoerungen = []
     for teil in anlage["teile"]:
-        klartext = next(
-            (
-                e
-                for e in teil["entitaeten"]
-                if e["kategorie"] == "diagnostic" and "klartext" in e["name"].lower()
-            ),
-            None,
-        )
-        if klartext is None:
-            continue
-        stoerungen.append(
-            {
-                "entity": klartext["entity_id"],
-                "titel": klartext["name"],
-                "melder": _kennung(teil["entitaeten"], STOERUNGSMELDER, ("binary_sensor",)),
-            }
-        )
+        melder = _kennung(teil["entitaeten"], STOERUNGSMELDER, ("binary_sensor",))
+        stoerungen += [
+            {"entity": e["entity_id"], "titel": e["name"], "melder": melder}
+            for e in teil["entitaeten"]
+            if e["kategorie"] == "diagnostic" and "klartext" in e["name"].lower()
+        ]
 
     # Ohne Warmwasserbereitung hat auch die Taste „Warmwasser laden" nichts
     # verloren – der Datenpunkt existiert am Heizkreis trotzdem.

@@ -555,10 +555,12 @@ class WindhagerHttpClient:
         # Liste antworten; dort wird nach dem ersten Versuch geblättert.
         if expected > MENU_PAGE_SIZE and self._sammelseite is not False:
             data, status = await self._get(f"{base}?count=-1&offset=0")
-            if status == 200 and isinstance(data, list) and len(data) > MENU_PAGE_SIZE:
-                self._sammelseite = True
-                return [i for i in data if brauchbar(i)]
-            self._sammelseite = False
+            if status == 200 and isinstance(data, list):
+                # Eine Antwort zählt, ein Fehler nicht: Sonst schaltete eine
+                # einzelne Störung das Sammeln dauerhaft ab.
+                self._sammelseite = len(data) > MENU_PAGE_SIZE
+                if self._sammelseite:
+                    return [i for i in data if brauchbar(i)]
 
         while True:
             url = base if offset == 0 else f"{base}?offset={offset}"
@@ -590,6 +592,18 @@ class WindhagerHttpClient:
                 "Menü %s/%s: %d von %d Datenpunkten gelesen", prefix, menu_id, len(items), expected
             )
         return items
+
+    @staticmethod
+    def _ebene_ohne_antwort(prefix: str, menu_id: str, fehler: BaseException) -> None:
+        """Eine Menü-Ebene ohne Antwort: übergehen oder den Lauf abbrechen.
+
+        Eine Zeitüberschreitung kostet nur ihre Ebene. Alles andere ist ein
+        Fehler der Verbindung; ihn zu verschlucken hieße, einen halben
+        Erkennungsstand als vollständig zu speichern.
+        """
+        if not isinstance(fehler, TimeoutError):
+            raise fehler
+        _LOGGER.warning("Menü %s/%s antwortet nicht und wird übergangen", prefix, menu_id)
 
     def _typ_aus_datenpunkten(self, prefix: str, menu_data: dict) -> int | None:
         """Den Funktionstyp aus den gefundenen Adressen erschließen.
@@ -702,9 +716,6 @@ class WindhagerHttpClient:
         interessant.update(EXTRA_OIDS_BY_FCT.get(fct_type, ()))
         pruefer = interessant.__contains__ if interessant else None
 
-        # Eine Ebene, die nicht antwortet, kostet ihre Datenpunkte – nicht die
-        # der ganzen Funktion. Ob der Rest reicht, entscheidet danach
-        # `_erkennung_zu_mager`; der bekannte Stand bleibt sonst stehen.
         results = await asyncio.gather(
             *(self._read_menu(prefix, menu_id, count, pruefer) for menu_id, count in menus.items()),
             return_exceptions=True,
@@ -712,7 +723,7 @@ class WindhagerHttpClient:
         datapoints: dict = {}
         for menu_id, items in zip(menus, results, strict=True):
             if isinstance(items, BaseException):
-                _LOGGER.warning("Menü %s/%s nicht gelesen: %r", prefix, menu_id, items)
+                self._ebene_ohne_antwort(prefix, menu_id, items)
                 continue
             for item in items:
                 oid = item.get("OID")
@@ -752,7 +763,7 @@ class WindhagerHttpClient:
         )
         for menu_id, items in zip(ebenen, gelesen, strict=True):
             if isinstance(items, BaseException):
-                _LOGGER.warning("Netzwerkvariablen %s/%s nicht gelesen: %r", prefix, menu_id, items)
+                self._ebene_ohne_antwort(prefix, menu_id, items)
                 continue
             for item in items:
                 self._nv_deskriptor(prefix, menu_id, item, ziel_prefix, ziel_name, ziel_typ)
