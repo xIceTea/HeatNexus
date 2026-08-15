@@ -10,7 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Der Systemstatus zeigt Laufzeit, Laufzeit heute und die Tageswerte.
+- Die Übersicht der Oberfläche zeigt Laufzeit und Tageswerte des Kessels.
 
 ### Geändert
 

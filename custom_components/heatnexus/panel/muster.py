@@ -70,7 +70,12 @@ STATUS: tuple[Zeile, ...] = (
     # Die Laufzeit entsteht aus dem Zustand und steht deshalb direkt darunter.
     # Sie zählt mit, solange das Aggregat läuft, und bleibt danach als Dauer
     # des letzten Laufs stehen.
-    (r"^laufzeit aktuell$", "Laufzeit", "mdi:timer-play-outline", ("operating_phase_runtime",)),
+    (
+        r"^laufzeit aktuell$",
+        "Laufzeit aktuell",
+        "mdi:timer-play-outline",
+        ("operating_phase_runtime",),
+    ),
     (
         r"^laufzeit heute$",
         "Laufzeit heute",
