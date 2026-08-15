@@ -430,6 +430,7 @@ export const SchaubildMixin = (Basis) =>
         if (!hoehe) return;
         const band = document.createElement("div");
         band.className = `fluss senkrecht ${richtung}`;
+        band.dataset.teil = eintrag.titel;
         band.style.left = eintrag.left;
         band.style.top = eintrag[`${richtung}_top`];
         band.style.height = hoehe;
@@ -443,10 +444,12 @@ export const SchaubildMixin = (Basis) =>
             this._foerdert(eintrag.entity) ||
             (eintrag.entnahme || []).some((e) => this._foerdert(e));
           band.classList.toggle("laeuft", stroemt);
-          // Beim Entnehmen kehrt sich die Strömung um: Oben verlässt die Wärme
-          // den Speicher, unten kommt sie zurück.
+          // Ein Wärmeerzeuger strömt andersherum als ein Verbraucher: Das kalte
+          // Wasser kommt von unten herauf, das heiße verlässt ihn nach oben in
+          // den Vorlauf. Beim Speicher hängt es davon ab, ob er gerade lädt.
           const zustand = speicher && this._speicherzustand(speicher);
-          band.classList.toggle("rueckwaerts", !!zustand && !zustand.laedt && zustand.zieht);
+          const entnimmt = !!zustand && !zustand.laedt && zustand.zieht;
+          band.classList.toggle("rueckwaerts", !!eintrag.erzeuger || entnimmt);
         });
       });
     });

@@ -256,6 +256,16 @@ def test_die_stichleitungen_kehren_beim_entnehmen_um(durchlauf):
     assert durchlauf["beimLadenVorwaerts"] is True
 
 
+def test_der_waermeerzeuger_stroemt_nach_oben(durchlauf):
+    """Kaltes Wasser kommt von unten herauf, heißes verlässt den Kessel oben.
+
+    Ein Verbraucher macht es umgekehrt: Bei ihm laufen beide Stichleitungen
+    abwärts, von der Vorlaufleitung hinein und unten in den Rücklauf.
+    """
+    assert durchlauf["kesselImmerAufwaerts"] is True
+    assert durchlauf["verbraucherAbwaerts"] is True
+
+
 def test_die_ueberlagerungen_folgen_dem_farbsatz(durchlauf):
     """Mischer, Heizkörper und Schichtung liegen über dem Bild, nicht darin.
 

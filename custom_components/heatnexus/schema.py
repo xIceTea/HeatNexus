@@ -357,6 +357,11 @@ ART_UNBEKANNT = "modul"
 # Heizkreises.
 ALLE_ARTEN = set(ART_JE_FCT.values()) | {"zirkulation", ART_UNBEKANNT}
 
+# Wer Wärme erzeugt, strömt andersherum als wer sie abnimmt: Beim Kessel kommt
+# das kalte Wasser von unten herauf und das heiße verlässt ihn nach oben in den
+# Vorlauf. Der Puffer entscheidet es je Zustand und steht deshalb nicht hier.
+ERZEUGER_ARTEN = {"kessel", "solar"}
+
 
 def _art(fct_type: Any) -> str:
     try:
@@ -1237,6 +1242,7 @@ def anlagenschema(
                     # Pumpe lädt ihn, entnommen wird ihm von den Pumpen der
                     # Verbraucher – und dabei dreht die Ladepumpe nicht.
                     "entnahme": entnahme if modul["art"] == "puffer" else [],
+                    "erzeuger": modul["art"] in ERZEUGER_ARTEN,
                 }
             )
         # Der Mischer zeigt seine Stellung, nicht Bewegung: Ein dauernd
@@ -1323,6 +1329,7 @@ def anlagenschema(
                     "top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
                     "titel": modul["titel"],
                     "nur_strang": True,
+                    "erzeuger": True,
                     "vorlauf_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
                     "vorlauf_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
                     "ruecklauf_top": f"{unten / HOEHE * 100:.2f}%",

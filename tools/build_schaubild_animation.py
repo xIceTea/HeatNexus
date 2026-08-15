@@ -168,19 +168,46 @@ def _fluss(karte_daten: dict, lage: dict) -> str:
 
 
 def _senkrecht(karte_daten: dict, lage: dict) -> str:
-    """Die Stichleitungen: Sie strömen nur, wo die Pumpe des Teils fördert."""
+    """Die Stichleitungen: Sie strömen nur, wo die Pumpe des Teils fördert.
+
+    Ein Wärmeerzeuger strömt dabei nach oben, ein Verbraucher nach unten – wie
+    in `teile/schaubild.js`. Der Speicher richtet sich danach, ob er lädt.
+    """
     teile = []
     for eintrag in karte_daten["pumpen"]:
         laeuft = "laeuft" if lage["pumpen"].get(eintrag["entity"]) else ""
+        speicher = next(
+            (s for s in karte_daten["speicher"] if s["titel"] == eintrag["titel"]), None
+        )
+        entnimmt = bool(speicher) and not _laedt(speicher, lage) and _zieht(speicher, lage)
+        umkehr = "rueckwaerts" if eintrag.get("erzeuger") or entnimmt else ""
         for richtung in ("vorlauf", "ruecklauf"):
             if not (hoehe := eintrag.get(f"{richtung}_hoehe")):
                 continue
             teile.append(
-                f'<div class="fluss senkrecht {richtung} {laeuft}" '
+                f'<div class="fluss senkrecht {richtung} {laeuft} {umkehr}" '
                 f'style="left:{eintrag["left"]};top:{eintrag[f"{richtung}_top"]};'
                 f'height:{hoehe}"></div>'
             )
     return "".join(teile)
+
+
+def _laedt(eintrag: dict, lage: dict) -> bool:
+    """Ob dem Speicher gerade Wärme zugeht."""
+    pumpe = bool(lage["pumpen"].get(eintrag.get("laden")))
+    kessel = lage["werte"].get(eintrag.get("kessel"))
+    oben = lage["werte"].get(eintrag.get("oben"))
+    waermer = (
+        True
+        if kessel is None or oben is None
+        else kessel > oben + float(eintrag.get("hysterese") or 0)
+    )
+    return pumpe and waermer
+
+
+def _zieht(eintrag: dict, lage: dict) -> bool:
+    """Ob gerade jemand aus dem Speicher entnimmt."""
+    return any(lage["pumpen"].get(e) for e in eintrag.get("entnahme") or [])
 
 
 def _pumpen(karte_daten: dict, lage: dict) -> str:
@@ -269,16 +296,8 @@ def _speicher(karte_daten: dict, lage: dict) -> str:
     """„lädt" / „entlädt" – dieselbe Rechnung wie in der Oberfläche."""
     teile = []
     for eintrag in karte_daten["speicher"]:
-        pumpe = bool(lage["pumpen"].get(eintrag.get("laden")))
-        kessel = lage["werte"].get(eintrag.get("kessel"))
-        oben = lage["werte"].get(eintrag.get("oben"))
-        waermer = (
-            True
-            if kessel is None or oben is None
-            else kessel > oben + float(eintrag.get("hysterese") or 0)
-        )
-        laedt = pumpe and waermer
-        zieht = any(lage["pumpen"].get(e) for e in eintrag.get("entnahme") or [])
+        laedt = _laedt(eintrag, lage)
+        zieht = _zieht(eintrag, lage)
         klasse = "laedt" if laedt else ("entlaedt" if zieht else "")
         text = "lädt" if laedt else ("entlädt" if zieht else "")
         teile.append(

@@ -118,21 +118,24 @@ const zustaende = {
 };
 strom.hass = { states: zustaende, themes: { darkMode: true }, callWS: async () => anlagen };
 await strom._laden;
-const senkrechte = () =>
-  Array.from(strom.shadowRoot.querySelectorAll(".fluss")).filter((b) =>
-    String(b.className).includes("senkrecht")
+const senkrechte = (teil) =>
+  Array.from(strom.shadowRoot.querySelectorAll(".fluss")).filter(
+    (b) =>
+      String(b.className).includes("senkrecht") && (!teil || b.dataset.teil === teil)
   );
+const rueckwaerts = (teil) =>
+  senkrechte(teil).map((b) => String(b.className).includes("rueckwaerts"));
 bilanz.senkrechteVorhanden = senkrechte().length;
-bilanz.beimEntnehmenRueckwaerts = senkrechte().some((b) =>
-  String(b.className).includes("rueckwaerts")
-);
+bilanz.beimEntnehmenRueckwaerts = rueckwaerts("B-PLMi PUFFER").some(Boolean);
 // Jetzt lädt der Kessel den Puffer: keine Umkehr mehr.
 zustaende["switch.pufferladepumpe"].state = "on";
 zustaende["switch.heizkreispumpe"].state = "off";
 strom.hass = { states: zustaende, themes: { darkMode: true }, callWS: async () => anlagen };
-bilanz.beimLadenVorwaerts = senkrechte().every(
-  (b) => !String(b.className).includes("rueckwaerts")
-);
+bilanz.beimLadenVorwaerts = rueckwaerts("B-PLMi PUFFER").every((r) => !r);
+// Der Wärmeerzeuger strömt immer nach oben – ob der Puffer lädt oder nicht.
+bilanz.kesselImmerAufwaerts =
+  rueckwaerts("PuroWIN").length > 0 && rueckwaerts("PuroWIN").every(Boolean);
+bilanz.verbraucherAbwaerts = rueckwaerts("UML Heizkreis").every((r) => !r);
 
 
 
