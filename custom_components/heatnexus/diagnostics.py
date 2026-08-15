@@ -174,9 +174,24 @@ def _anlage(coordinator) -> dict[str, Any]:
     client = coordinator.client
     daten = coordinator.data or {}
 
-    beschreibungen = daten.get("devices", [])
+    # Klasse und Abrufplan gehören an den Deskriptor: Ob eine Adresse
+    # tatsächlich gelesen wird und in welchem Takt, steht in ihm selbst nicht –
+    # und genau daran hängt die Frage, warum ein Wert fehlt.
+    plan = set(client.poll_oids) | set(client._dynamic_oids)
+    beschreibungen = [
+        {
+            **b,
+            "poll_klasse": client.poll_class.get(b.get("oid")),
+            "im_abruf": (b.get("oid") in plan) if b.get("oid") else None,
+        }
+        for b in daten.get("devices", [])
+    ]
     nach_typ: dict[str, int] = {}
     nach_ebene: dict[str, int] = {}
+    nach_klasse: dict[str, int] = {}
+    for oid in plan:
+        klasse = client.poll_class.get(oid) or "unbekannt"
+        nach_klasse[klasse] = nach_klasse.get(klasse, 0) + 1
     for beschreibung in beschreibungen:
         typ = beschreibung.get("type", "unbekannt")
         nach_typ[typ] = nach_typ.get(typ, 0) + 1
@@ -198,6 +213,7 @@ def _anlage(coordinator) -> dict[str, Any]:
             "entitaeten": len(beschreibungen),
             "zyklisch_abgefragt": len(client.poll_oids),
             "zusaetzlich_angemeldet": len(client._dynamic_oids),
+            "abrufklassen": dict(sorted(nach_klasse.items())),
             "zeitprogramme": len(client.time_programs),
             "objekt_endpunkt": client._objects_supported,
             "anfragen_seit_start": client.request_count,

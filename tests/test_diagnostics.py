@@ -33,6 +33,7 @@ def _client():
         neuron_by_node={"60": SERIENNUMMER},
         oids={"/1/60/0/0/7/0", "/1/60/0/2/1/0"},
         poll_oids={"/1/60/0/0/7/0"},
+        poll_class={"/1/60/0/0/7/0": "fast", "/1/60/0/2/1/0": "slow"},
         _dynamic_oids=set(),
         time_programs=[],
         _objects_supported=True,
@@ -220,3 +221,14 @@ def test_eine_adresse_wird_als_schluessel_erkannt(diagnostics):
     assert diagnostics._ist_adresse("192.0.2.10")
     assert not diagnostics._ist_adresse("levels")
     assert not diagnostics._ist_adresse(42)
+
+
+async def test_jede_beschreibung_nennt_ihre_klasse_und_ob_sie_gelesen_wird(export):
+    """Ohne beides ist bei einem Fehlerbericht offen, warum ein Wert fehlt."""
+    anlage = (await export)["anlagen"]["anlage_1"]
+    nach_oid = {b["oid"]: b for b in anlage["beschreibungen"]}
+
+    assert nach_oid["/1/60/0/0/7/0"]["poll_klasse"] == "fast"
+    assert nach_oid["/1/60/0/0/7/0"]["im_abruf"] is True
+    assert nach_oid["/1/60/0/2/1/0"]["im_abruf"] is False
+    assert anlage["anlage"]["abrufklassen"] == {"fast": 1}
