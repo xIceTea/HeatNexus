@@ -247,6 +247,9 @@ class WindhagerHttpClient:
         # Datenpunkte, die die Anlage ablehnt (404, oder 409 mit unbekannter
         # Kennung). Sie werden nicht wieder angefragt.
         self._abgemeldet: set[str] = set()
+        # Ob diese Steuerung eine ganze Menü-Ebene auf einmal liefert. Unbekannt
+        # bis zum ersten Versuch; danach wird nicht mehr vergeblich gefragt.
+        self._sammelseite: bool | None = None
         self._letzte_werte: dict[str, str | None] = {}
         self._letzte_objekte: dict = {}
         # Anzahl der Anfragen an die Anlage (für die Startmeldung)
@@ -548,11 +551,14 @@ class WindhagerHttpClient:
             return isinstance(eintrag, dict) and eintrag.get(schluessel) is not None
 
         # Das Bedienteil der Anlage fordert mit count=-1 alle Einträge einer
-        # Ebene auf einmal an. Klappt das, entfällt das seitenweise Nachladen.
-        if expected > MENU_PAGE_SIZE:
+        # Ebene auf einmal an. Es gibt Steuerungen, die darauf mit einer leeren
+        # Liste antworten; dort wird nach dem ersten Versuch geblättert.
+        if expected > MENU_PAGE_SIZE and self._sammelseite is not False:
             data, status = await self._get(f"{base}?count=-1&offset=0")
             if status == 200 and isinstance(data, list) and len(data) > MENU_PAGE_SIZE:
+                self._sammelseite = True
                 return [i for i in data if brauchbar(i)]
+            self._sammelseite = False
 
         while True:
             url = base if offset == 0 else f"{base}?offset={offset}"

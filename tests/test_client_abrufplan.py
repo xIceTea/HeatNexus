@@ -808,3 +808,23 @@ def test_ein_lueckenhafter_abrufplan_ueberlebt_den_neustart_nicht(client_module)
     )
 
     assert "/1/60/0/2/81/0" in c.poll_oids
+
+
+async def test_die_sammelseite_wird_nur_einmal_ausprobiert(client, monkeypatch):
+    """Antwortet die Steuerung leer, kostet jeder weitere Versuch eine Anfrage."""
+    anfragen: list[str] = []
+
+    async def antwort(url, semaphore=None):
+        anfragen.append(url)
+        if "count=-1" in url:
+            return [], 200
+        if "offset=" in url:
+            return [], 200
+        return [{"OID": f"{url[-2:]}/0"}], 200
+
+    monkeypatch.setattr(client, "_get", antwort)
+
+    for menu in ("97", "98"):
+        await client._read_menu("/1/60/0", menu, 50, None)
+
+    assert sum(1 for u in anfragen if "count=-1" in u) == 1
