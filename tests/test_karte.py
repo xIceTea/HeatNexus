@@ -140,8 +140,29 @@ def durchlauf(schema, tmp_path_factory):
     if shutil.which("node") is None:
         pytest.skip("node nicht vorhanden")
     teile = [
-        _teil("PuroWIN", 25, [("sensor.kessel", "Kesseltemperatur Ist")]),
-        _teil("B-PLMi PUFFER", 16, [("sensor.tpe", "Puffer oben Temperatur (TPE)")]),
+        _teil(
+            "PuroWIN",
+            25,
+            [("sensor.kessel", "Kesseltemperatur Ist"), ("sensor.leistung", "Kesselleistung")],
+        ),
+        _teil(
+            "B-PLMi PUFFER",
+            16,
+            [
+                ("sensor.tpe", "Puffer oben Temperatur (TPE)"),
+                ("sensor.tpa", "Puffer unten Temperatur (TPA)"),
+                ("switch.pufferladepumpe", "Pufferladepumpe"),
+            ],
+        ),
+        _teil(
+            "UML Heizkreis",
+            14,
+            [
+                ("sensor.vorlauf", "Vorlauftemperatur Ist"),
+                ("switch.heizkreispumpe", "Heizkreispumpe"),
+                ("sensor.mischer", "Mischer Stellwert"),
+            ],
+        ),
     ]
     anlagen = schema.schaubild_daten(
         [
@@ -169,7 +190,13 @@ def test_die_karte_meldet_sich_beim_laden_an(durchlauf):
 
 def test_die_karte_bringt_eine_erstkonfiguration_mit(durchlauf):
     assert durchlauf["stubHatTyp"] is True
-    assert durchlauf["formularFelder"] == ["anlage", "farbsatz", "animation"]
+
+
+def test_der_editor_stellt_die_anlagen_zur_auswahl(durchlauf):
+    """Ein Textfeld zwang zum Abtippen und meldete bei jedem Buchstaben Unsinn."""
+    assert durchlauf["editorElement"] == "heatnexus-schaubild-editor"
+    assert durchlauf["editorFelder"] == ["anlage", "farbsatz", "animation"]
+    assert durchlauf["editorAnlagen"] == ["Heizhaus", "Wohnhaus"]
 
 
 def test_groesse_kommt_ohne_hass_aus(durchlauf):
@@ -200,3 +227,17 @@ def test_die_bewegung_laesst_sich_abschalten(durchlauf):
     """Wer es ruhig will, behält trotzdem alle Zustände."""
     assert durchlauf["ohneAnimationRuhig"] is True
     assert durchlauf["mitAnimationBewegt"] is True
+
+
+def test_die_stichleitungen_kehren_beim_entnehmen_um(durchlauf):
+    """Beim Entladen verlässt die Wärme den Speicher oben, nicht andersherum."""
+    assert durchlauf["senkrechteVorhanden"] > 0
+    assert durchlauf["beimEntnehmenRueckwaerts"] is True
+    assert durchlauf["beimLadenVorwaerts"] is True
+
+
+def test_die_ueberlagerungen_folgen_dem_farbsatz(durchlauf):
+    """Mischer, Heizkörper und Schichtung liegen über dem Bild, nicht darin."""
+    assert durchlauf["grundfarbenMitgeliefert"] == 4
+    assert durchlauf["stutzenVorhanden"] is True
+    assert durchlauf["stutzenOhneDunkelwert"] is True

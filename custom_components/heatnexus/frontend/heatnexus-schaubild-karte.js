@@ -27,19 +27,12 @@ class HeatNexusSchaubildKarte extends Grundlage {
     this._gebaut = false;
   }
 
-  // Ein Formularschema statt eines eigenen Editors: Home Assistant lädt
-  // `ha-form` dafür selbst, und der YAML-Rückfall kommt geschenkt.
-  static getConfigForm() {
-    return {
-      schema: [
-        { name: "anlage", selector: { text: {} } },
-        {
-          name: "farbsatz",
-          selector: { select: { mode: "dropdown", options: FARBSAETZE.map((s) => s.schluessel) } },
-        },
-        { name: "animation", selector: { boolean: {} } },
-      ],
-    };
+  // Eigener Editor statt eines festen Schemas: Nur er kann die Anlagen zur
+  // Auswahl stellen – ein Schema wird ohne `hass` gebaut und kennt sie nicht.
+  static async getConfigElement() {
+    await import("./heatnexus-schaubild-editor.js");
+    await customElements.whenDefined(EDITOR);
+    return document.createElement(EDITOR);
   }
 
   static getStubConfig() {

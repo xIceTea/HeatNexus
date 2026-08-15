@@ -1157,3 +1157,29 @@ def test_die_oberflaeche_kennt_dieselben_saetze(schema):
     text = (Path(schema.__file__).parent / "frontend" / "ordnung.js").read_text(encoding="utf-8")
     for satz in schema.FARBSAETZE:
         assert f'schluessel: "{satz}"' in text, f"{satz} fehlt in ordnung.js"
+
+
+def test_warm_bleibt_warm_und_kalt_bleibt_kalt(schema):
+    """Die Temperatur liest man an der Farbe, nicht an der Lage im Bild.
+
+    Ein Farbsatz darf seine Handschrift überall zeigen – nur nicht am Vorlauf
+    und am Rücklauf: Dort trüge sie eine falsche Auskunft.
+    """
+
+    def kanaele(wert: str) -> tuple[int, int, int]:
+        return tuple(int(wert[i : i + 2], 16) for i in (1, 3, 5))
+
+    saetze = {
+        "dunkel": schema.FARBEN,
+        "hell": schema.FARBEN_HELL,
+        "terrakotta": schema.FARBEN_TERRAKOTTA,
+        "petrol": schema.FARBEN_PETROL,
+        "pflaume": schema.FARBEN_PFLAUME,
+    }
+    for name, farben in saetze.items():
+        for rolle in ("vorlauf", "glut", "warm"):
+            rot, gruen, blau = kanaele(farben[rolle])
+            assert rot > blau and rot > gruen, f"{name}/{rolle} ist nicht warm"
+        for rolle in ("ruecklauf", "kalt"):
+            rot, gruen, blau = kanaele(farben[rolle])
+            assert blau > rot and blau > gruen, f"{name}/{rolle} ist nicht kalt"
