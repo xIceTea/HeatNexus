@@ -306,6 +306,15 @@ class WindhagerHttpClient:
         if cls._KLASSEN_RANG.get(klasse, 9) < cls._KLASSEN_RANG.get(klassen.get(oid, ""), 9):
             klassen[oid] = klasse
 
+    @property
+    def abrufplan(self) -> set[str]:
+        """Alle Adressen, die zyklisch gelesen werden.
+
+        Fest angemeldete, von Entitäten nachgemeldete, abzüglich der von der
+        Anlage abgelehnten. Die eine Stelle, an der das steht.
+        """
+        return (self.poll_oids | self._dynamic_oids) - self._abgemeldet
+
     def register_poll_oid(self, oid: str) -> None:
         """Eine Entity meldet ihre OID zum zyklischen Polling an."""
         if oid and oid not in self._abgemeldet:
@@ -1328,7 +1337,7 @@ class WindhagerHttpClient:
 
         Nur diese, nicht jeden Datenpunkt: Ein Kessel führt mehrere hundert.
         """
-        aktiv = (self.poll_oids | self._dynamic_oids) - self._abgemeldet
+        aktiv = self.abrufplan
         oids = [
             d["oid"]
             for d in self.devices
@@ -2218,7 +2227,7 @@ class WindhagerHttpClient:
         """
         takte = self._takte()
         faellig = set()
-        for oid in (self.poll_oids | self._dynamic_oids) - self._abgemeldet:
+        for oid in self.abrufplan:
             takt = takte.get(self.poll_class.get(oid, POLL_NORMAL), 1)
             # Beim ersten Durchlauf ist alles fällig, sonst stünde eine
             # langsame Entität bis zu 15 Minuten ohne Wert da.
@@ -2277,7 +2286,7 @@ class WindhagerHttpClient:
             return
         if status != 200 or not isinstance(daten, list):
             return
-        gebraucht = self.poll_oids | self._dynamic_oids
+        gebraucht = self.abrufplan
         for eintrag in daten:
             if not isinstance(eintrag, dict):
                 continue
@@ -2350,7 +2359,7 @@ class WindhagerHttpClient:
         self._letzte_werte.update(gelesen)
         self._rest |= (misslungen | verloren) - self._abgemeldet
         # Abgemeldete Entities dürfen nicht ewig als alter Wert weiterleben.
-        aktuell = self.poll_oids | self._dynamic_oids
+        aktuell = self.abrufplan
         for oid in list(self._letzte_werte):
             if oid not in aktuell and oid not in self._object_texts:
                 del self._letzte_werte[oid]

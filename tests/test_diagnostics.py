@@ -34,6 +34,7 @@ def _client():
         oids={"/1/60/0/0/7/0", "/1/60/0/2/1/0"},
         poll_oids={"/1/60/0/0/7/0"},
         poll_class={"/1/60/0/0/7/0": "fast", "/1/60/0/2/1/0": "slow"},
+        abrufplan={"/1/60/0/0/7/0"},
         _dynamic_oids=set(),
         time_programs=[],
         _objects_supported=True,

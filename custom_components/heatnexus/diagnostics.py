@@ -177,7 +177,7 @@ def _anlage(coordinator) -> dict[str, Any]:
     # Klasse und Abrufplan gehören an den Deskriptor: Ob eine Adresse
     # tatsächlich gelesen wird und in welchem Takt, steht in ihm selbst nicht –
     # und genau daran hängt die Frage, warum ein Wert fehlt.
-    plan = set(client.poll_oids) | set(client._dynamic_oids)
+    plan = client.abrufplan
     beschreibungen = [
         {
             **b,
