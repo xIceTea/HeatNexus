@@ -105,45 +105,6 @@ export const UebersichtMixin = (Basis) =>
     return karte;
   }
 
-  /**
-   * Kennwertzeile wie im Muster: links Anlagenteil, rechts der große Wert und
-   * darunter klein, worum es sich handelt („Kesseltemperatur").
-   */
-  _wertzeile(entity, titel, bezeichnung, symbol, ersatzUnterNull) {
-    const zeile = document.createElement("div");
-    zeile.className = "zeile";
-    if (symbol) zeile.appendChild(this._symbolKnoten(symbol));
-    const text = document.createElement("div");
-    text.className = "text";
-    const oben = document.createElement("div");
-    oben.className = "titel";
-    oben.textContent = titel;
-    text.appendChild(oben);
-
-    const rechts = document.createElement("div");
-    rechts.className = "rechts";
-    const wert = document.createElement("div");
-    wert.className = "wert";
-    const unten = document.createElement("div");
-    unten.className = "bezeichnung";
-    unten.textContent = bezeichnung || "";
-    rechts.append(wert, unten);
-
-    zeile.append(text, rechts);
-    this._bindungen.push(() => {
-      // Werte, die nur über null etwas bedeuten – die Wärmeanforderung des
-      // Pumpen-/Relaismoduls. Liegt keine an, steht dort ein Strich statt
-      // einer Zahl. Die Zeile verschwinden zu lassen nähme das Anlagenteil
-      // ganz aus der Liste.
-      const zahl = ersatzUnterNull ? this._zahl(entity) : null;
-      const ohneAnforderung = ersatzUnterNull && !(zahl !== null && zahl > 0);
-      wert.textContent = ohneAnforderung ? ersatzUnterNull : this._text(entity);
-      unten.textContent = bezeichnung || "";
-      // Lange Texte („Betriebsbereit") umbrechen statt zu schrumpfen.
-      wert.classList.toggle("lang", wert.textContent.length > 8);
-    });
-    return this._klickbar(zeile, entity);
-  }
 
   // -------------------------------------------------------------------
   // Heizkreise und Warmwasser
