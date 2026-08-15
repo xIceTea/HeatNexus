@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import base64
+import json
 from pathlib import Path
 import re
+import shutil
+import subprocess
+from urllib.parse import unquote
 from xml.etree import ElementTree
 
 import pytest
@@ -1013,9 +1017,10 @@ def test_jede_rolle_hat_eine_terrakottaentsprechung(schema):
     assert set(schema.FARBEN) == set(schema.FARBEN_TERRAKOTTA)
 
 
-def test_das_terrakottabild_liegt_der_karte_bei(schema, anlage):
+def test_die_karte_traegt_die_rohzeichnung(schema, anlage):
+    """Aus ihr stellt der Browser jeden weiteren Satz selbst her."""
     karte = schema.anlagenschema(anlage)
-    assert karte["terrakotta_image"] not in (karte["image"], karte["dark_mode_image"])
+    assert karte["svg"].startswith("<svg")
 
 
 def test_im_terrakottabild_bleibt_kein_dunkler_farbwert(schema, anlage):
@@ -1044,28 +1049,26 @@ def test_ein_unbekannter_satz_laesst_das_bild_unveraendert(schema, anlage):
 # ---------------------------------------------------------------------------
 def _weitere(schema):
     return (
-        (schema.THEMA_PETROL, schema.FARBEN_PETROL, "petrol_image"),
-        (schema.THEMA_PFLAUME, schema.FARBEN_PFLAUME, "pflaume_image"),
+        (schema.THEMA_PETROL, schema.FARBEN_PETROL),
+        (schema.THEMA_PFLAUME, schema.FARBEN_PFLAUME),
     )
 
 
 def test_jeder_weitere_satz_kennt_alle_rollen(schema):
     """Eine fehlende Rolle fiele still auf ihren dunklen Wert zurück."""
-    for _thema, farben, _feld in _weitere(schema):
+    for _thema, farben in _weitere(schema):
         assert set(schema.FARBEN) == set(farben)
 
 
-def test_jeder_weitere_satz_liegt_der_karte_bei(schema, anlage):
-    karte = schema.anlagenschema(anlage)
-    bekannt = {karte["image"], karte["dark_mode_image"], karte["terrakotta_image"]}
-    for _thema, _farben, feld in _weitere(schema):
-        assert karte[feld] not in bekannt
-        bekannt.add(karte[feld])
+def test_jeder_satz_hat_eine_farbtabelle(schema):
+    """Ohne Tabelle könnte der Browser den Satz nicht herstellen."""
+    for thema, _farben in _weitere(schema):
+        assert schema.FARBABBILDUNGEN[thema]
 
 
 def test_in_weiteren_saetzen_bleibt_kein_dunkler_farbwert(schema, anlage):
     dunkel = _svg_von(schema, anlage)
-    for thema, _farben, _feld in _weitere(schema):
+    for thema, _farben in _weitere(schema):
         gewechselt = schema.farben_umstellen(dunkel, thema)
         for rolle, farbe in schema.FARBEN.items():
             if rolle == "schrift":
@@ -1076,16 +1079,77 @@ def test_in_weiteren_saetzen_bleibt_kein_dunkler_farbwert(schema, anlage):
 def test_weitere_wechsel_aendern_nur_farben(schema, anlage):
     dunkel = _svg_von(schema, anlage)
     ohne_farben = re.compile(r"#[0-9a-f]{6}\b")
-    for thema, _farben, _feld in _weitere(schema):
+    for thema, _farben in _weitere(schema):
         gewechselt = schema.farben_umstellen(dunkel, thema)
         assert ohne_farben.sub("#", dunkel) == ohne_farben.sub("#", gewechselt)
 
 
-def test_die_nutzdaten_fuehren_jeden_satz(schema, anlage):
-    """Die Oberfläche wählt aus den Feldern; ein fehlendes hieße dunkel."""
+def _im_browser(schema, tmp_path, rumpf: str, nutzlast):
+    """Ein Stück JavaScript gegen `ordnung.js` laufen lassen.
+
+    Die Nutzlast geht über eine Datei: Ein Schaubild ist mehrere Kilobyte groß,
+    und Umlaute überstehen den Weg nur als UTF-8 in beide Richtungen.
+    """
+    ordnung_js = (Path(schema.__file__).parent / "frontend" / "ordnung.js").resolve()
+    eingabe = tmp_path / "eingabe.json"
+    eingabe.write_text(json.dumps(nutzlast), encoding="utf-8")
+    skript = tmp_path / "pruefung.mjs"
+    skript.write_text(
+        f'import {{ farbenUmstellen, schaubildAdresse }} from "{ordnung_js.as_uri()}";\n'
+        'import { readFileSync } from "node:fs";\n'
+        f'const daten = JSON.parse(readFileSync({json.dumps(str(eingabe))}, "utf-8"));\n'
+        f"{rumpf}\n",
+        encoding="utf-8",
+    )
+    ausgabe = subprocess.run(
+        ["node", str(skript)], capture_output=True, text=True, encoding="utf-8", check=True
+    )
+    return json.loads(ausgabe.stdout)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_der_browser_tauscht_dieselben_farben(schema, anlage, tmp_path):
+    """Der Austausch geschieht im Browser – er muss dasselbe ergeben wie hier."""
+    dunkel = _svg_von(schema, anlage)
+    themen = [schema.THEMA_HELL, schema.THEMA_TERRAKOTTA, schema.THEMA_PETROL, schema.THEMA_PFLAUME]
+    ergebnis = _im_browser(
+        schema,
+        tmp_path,
+        "console.log(JSON.stringify(daten[1].map((a) => farbenUmstellen(daten[0], a))));",
+        [dunkel, [schema.FARBABBILDUNGEN[t] for t in themen]],
+    )
+    assert ergebnis == [schema.farben_umstellen(dunkel, t) for t in themen]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_ohne_abbildung_bleibt_das_bild_im_browser_stehen(schema, anlage, tmp_path):
+    """Ein unbekannter Satz darf folgenlos bleiben, nicht farblos."""
+    ergebnis = _im_browser(
+        schema,
+        tmp_path,
+        "console.log(JSON.stringify(farbenUmstellen(daten, null) === daten));",
+        _svg_von(schema, anlage),
+    )
+    assert ergebnis is True
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_die_adresse_traegt_umlaute_unbeschadet(schema, anlage, tmp_path):
+    """Die Beschriftungen tragen Umlaute; eine kaputte Adresse zeigt gar nichts."""
+    dunkel = _svg_von(schema, anlage)
+    adresse = _im_browser(
+        schema, tmp_path, "console.log(JSON.stringify(schaubildAdresse(daten)));", dunkel
+    )
+    assert adresse.startswith("data:image/svg+xml;charset=utf-8,")
+    assert unquote(adresse.split(",", 1)[1]) == dunkel
+
+
+def test_die_nutzdaten_schicken_das_bild_einmal(schema, anlage):
+    """Ein Bild je Farbsatz wäre fünfmal dieselbe Zeichnung."""
     nutzdaten = schema.schaubild_nutzdaten({"id": "a", "name": "X", "teile": anlage})
-    for feld in ("schema", "schema_hell", "schema_terrakotta", "schema_petrol", "schema_pflaume"):
-        assert nutzdaten[feld], feld
+    assert nutzdaten["schema_svg"].startswith("<svg")
+    assert set(nutzdaten["schema_farben"]) == {"hell", "terrakotta", "petrol", "pflaume"}
+    assert not any(schluessel.endswith("_image") for schluessel in nutzdaten)
 
 
 def test_die_oberflaeche_kennt_dieselben_saetze(schema):

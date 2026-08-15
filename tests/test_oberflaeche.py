@@ -18,6 +18,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+from urllib.parse import unquote
 
 import pytest
 
@@ -261,9 +262,11 @@ def test_das_schaubild_folgt_dem_erscheinungsbild(durchlauf, aufteilung):
     """
     anlage = aufteilung["anlagen"][0]
     schaubild = durchlauf["schaubild"]
-    assert schaubild["dunkel"] == anlage["schema"]
-    assert schaubild["hell"] == anlage["schema_hell"]
-    assert schaubild["hell"] != schaubild["dunkel"]
+    assert schaubild["dunkel"] != schaubild["hell"]
+    # Der dunkle Satz steht unverändert in der Zeichnung, der helle nicht mehr.
+    dunkler_wert = next(iter(anlage["schema_farben"]["hell"]))
+    assert unquote(schaubild["dunkel"]).count(dunkler_wert) > 0
+    assert unquote(schaubild["hell"]).count(dunkler_wert) == 0
 
 
 def test_der_farbsatz_faerbt_auch_die_oberflaeche(durchlauf):
@@ -280,8 +283,11 @@ def test_die_eigene_wahl_schlaegt_das_erscheinungsbild(durchlauf, aufteilung):
     """Wer einen Farbsatz wählt, bekommt ihn – auch gegen das helle Thema."""
     anlage = aufteilung["anlagen"][0]
     schaubild = durchlauf["schaubild"]
-    assert schaubild["terrakotta"] == anlage["schema_terrakotta"]
-    assert schaubild["wahlDunkel"] == anlage["schema"]
+    # Trotz hellem Erscheinungsbild: der gewählte Satz gilt.
+    assert schaubild["terrakotta"] not in (schaubild["hell"], schaubild["dunkel"])
+    assert schaubild["wahlDunkel"] == schaubild["dunkel"]
+    terrakotta = anlage["schema_farben"]["terrakotta"]
+    assert unquote(schaubild["terrakotta"]).count(next(iter(terrakotta.values()))) > 0
 
 
 # ---------------------------------------------------------------------------

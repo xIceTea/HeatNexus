@@ -1066,14 +1066,16 @@ def _entsprechung(ziel: dict[str, str]) -> dict[str, str]:
     return abbildung
 
 
-_ENTSPRECHUNGEN = {
+# Dunkler Farbwert -> Wert des Zielsatzes, je Thema. Der Browser bekommt
+# diese Tabellen und tauscht damit selbst; das spart je Satz ein volles Bild.
+FARBABBILDUNGEN = {
     THEMA_HELL: _entsprechung(FARBEN_HELL),
     THEMA_TERRAKOTTA: _entsprechung(FARBEN_TERRAKOTTA),
     THEMA_PETROL: _entsprechung(FARBEN_PETROL),
     THEMA_PFLAUME: _entsprechung(FARBEN_PFLAUME),
 }
 _FARBSTELLE = re.compile(
-    "|".join(sorted(map(re.escape, _ENTSPRECHUNGEN[THEMA_HELL]), reverse=True))
+    "|".join(sorted(map(re.escape, FARBABBILDUNGEN[THEMA_HELL]), reverse=True))
 )
 
 
@@ -1084,7 +1086,7 @@ def farben_umstellen(svg: str, thema: str | None) -> str:
     eine gerade eingesetzte Farbe von der nächsten Regel noch einmal getroffen
     werden. Der dunkle Satz steht schon im Bild.
     """
-    abbildung = _ENTSPRECHUNGEN.get(thema or "")
+    abbildung = FARBABBILDUNGEN.get(thema or "")
     if abbildung is None:
         return svg
     return _FARBSTELLE.sub(lambda treffer: abbildung[treffer.group(0)], svg)
@@ -1369,11 +1371,9 @@ def anlagenschema(
         "type": "picture-elements",
         "image": _datenadresse(farben_umstellen(svg, THEMA_HELL)),
         "dark_mode_image": _datenadresse(svg),
-        # Der dritte Satz gilt nur in der eigenen Oberfläche; die
-        # `picture-elements`-Karte kennt nur hell und dunkel.
-        "terrakotta_image": _datenadresse(farben_umstellen(svg, THEMA_TERRAKOTTA)),
-        "petrol_image": _datenadresse(farben_umstellen(svg, THEMA_PETROL)),
-        "pflaume_image": _datenadresse(farben_umstellen(svg, THEMA_PFLAUME)),
+        # Die `picture-elements`-Karte kennt nur hell und dunkel. Wer mehr
+        # Farbsätze braucht, stellt die Zeichnung selbst um.
+        "svg": svg,
         "elements": elemente,
         "leitungen": leitungen,
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht
@@ -1411,14 +1411,14 @@ def schaubild_nutzdaten(anlage: dict[str, Any]) -> dict[str, Any]:
     """
     bild = anlagenschema(anlage["teile"], anlage.get("kesselart"), anlage.get("kesselwert"))
     return {
-        # Alle Farbsätze. Welcher gilt, weiß erst der Browser – die Aufteilung
-        # entsteht serverseitig und wird beim Umschalten des Erscheinungsbildes
-        # nicht neu berechnet.
-        "schema": bild["dark_mode_image"] if bild else None,
-        "schema_hell": bild["image"] if bild else None,
-        "schema_terrakotta": bild.get("terrakotta_image") if bild else None,
-        "schema_petrol": bild.get("petrol_image") if bild else None,
-        "schema_pflaume": bild.get("pflaume_image") if bild else None,
+        # Die Zeichnung geht **einmal** hinaus, dazu die Farbtabellen. Welcher
+        # Satz gilt, weiß erst der Browser; er tauscht die Werte selbst.
+        "schema_svg": bild["svg"] if bild else None,
+        # Je Thema eine eigene Kopie: Eine flache reichte die Tabellen selbst
+        # heraus, und wer sie änderte, änderte den Modulzustand mit.
+        "schema_farben": (
+            {thema: dict(werte) for thema, werte in FARBABBILDUNGEN.items()} if bild else {}
+        ),
         "schema_werte": (
             [
                 {

@@ -158,6 +158,32 @@ export const PALETTEN = {
   },
 };
 
+/**
+ * Ein Schaubild auf einen anderen Farbsatz umstellen.
+ *
+ * In **einem** Durchgang, nicht als Kette einzelner Ersetzungen: Sonst traefe
+ * die naechste Regel eine gerade eingesetzte Farbe noch einmal. Die Tabelle
+ * kommt vom Server (`schema.FARBABBILDUNGEN`), der dunkle Satz steht im Bild.
+ */
+export function farbenUmstellen(svg, abbildung) {
+  if (!svg || !abbildung) return svg;
+  const werte = Object.keys(abbildung);
+  if (!werte.length) return svg;
+  const stellen = new RegExp(werte.sort().reverse().join("|"), "g");
+  return svg.replace(stellen, (treffer) => abbildung[treffer]);
+}
+
+/**
+ * Ein Schaubild als `data:`-Adresse fuer ein `<img>`.
+ *
+ * Ohne Base64: Der Umweg ueber `btoa` verlangt eine eigene UTF-8-Behandlung,
+ * und die Beschriftungen tragen Umlaute.
+ */
+export function schaubildAdresse(svg) {
+  if (!svg) return null;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 // Wochentage, wie die Anlage sie schreibt, mit deutscher Beschriftung. Die
 // Reihenfolge ist die der Woche - die Anlage liefert sie unsortiert.
 export const WOCHENTAGE = [

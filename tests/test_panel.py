@@ -527,7 +527,7 @@ def test_leere_anlage_ergibt_leere_aufteilung(panel):
     daten = panel._anlage_daten(anlage())
     assert daten["kennwerte"] == []
     assert daten["heizkreise"] == []
-    assert daten["schema"] is None
+    assert daten["schema_svg"] is None
 
 
 def test_das_pufferprogramm_nennt_seine_betriebswahl(panel):

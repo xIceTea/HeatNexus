@@ -8,6 +8,8 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
+import { farbenUmstellen, schaubildAdresse } from "../ordnung.js";
+
 export const SchaubildMixin = (Basis) =>
   class extends Basis {
   // -------------------------------------------------------------------
@@ -20,21 +22,17 @@ export const SchaubildMixin = (Basis) =>
    * Satz, denn ein falsch geratenes Hell fiele stärker auf.
    */
   _schemaBild(anlage) {
-    const bilder = {
-      terrakotta: anlage.schema_terrakotta,
-      petrol: anlage.schema_petrol,
-      pflaume: anlage.schema_pflaume,
-      hell: anlage.schema_hell,
-      dunkel: anlage.schema,
-    };
-    const gewaehlt = bilder[this._farbsatz()];
-    if (gewaehlt) return gewaehlt;
-    const themen = this._hass && this._hass.themes;
-    return themen && themen.darkMode === false ? anlage.schema_hell : anlage.schema;
+    const farben = anlage.schema_farben || {};
+    let satz = this._farbsatz();
+    if (!satz || satz === "auto") {
+      const themen = this._hass && this._hass.themes;
+      satz = themen && themen.darkMode === false ? "hell" : "dunkel";
+    }
+    return schaubildAdresse(farbenUmstellen(anlage.schema_svg, farben[satz]));
   }
 
   _schaubild(anlage) {
-    if (!anlage.schema) return null;
+    if (!anlage.schema_svg) return null;
     const karte = this._karte("Anlagenübersicht");
     const huelle = document.createElement("div");
     huelle.className = "schaubild";
@@ -45,12 +43,10 @@ export const SchaubildMixin = (Basis) =>
     huelle.appendChild(bild);
 
     // **Der Farbsatz wird hier gewählt, nicht serverseitig.** Die Zeichnung
-    // liegt als Daten-URL in einem `<img>` und erbt darin kein CSS; die
-    // Aufteilung wiederum entsteht in Python, lange bevor jemand das
-    // Erscheinungsbild umschaltet. Deshalb kommen beide Fassungen mit, und die
-    // Auswahl hängt an einer Bindung – die läuft bei jedem Abgleich mit, also
-    // auch nach einem Wechsel von Hell auf Dunkel.
-    if (anlage.schema_hell) {
+    // kommt einmal und wird hier eingefärbt; die Aufteilung entsteht in
+    // Python, lange bevor jemand das Erscheinungsbild umschaltet. Die Auswahl
+    // hängt deshalb an einer Bindung, die bei jedem Abgleich mitläuft.
+    if (anlage.schema_farben) {
       // Gemerkt statt am Bild abgelesen: Ein `<img>` macht aus der Daten-URL
       // beim Zurücklesen nicht zwingend dieselbe Zeichenfolge, und ein
       // vermeintlicher Unterschied setzte die Quelle bei jedem Abgleich neu.

@@ -56,9 +56,8 @@ def anlage():
 
 
 FELDER = (
-    "schema",
-    "schema_hell",
-    "schema_terrakotta",
+    "schema_svg",
+    "schema_farben",
     "schema_werte",
     "schema_pumpen",
     "schema_leitungen",
@@ -79,11 +78,11 @@ def test_nutzdaten_fuehren_alle_felder(schema, anlage):
         assert feld in nutzdaten, feld
 
 
-def test_bilder_liegen_in_allen_farbsaetzen_bei(schema, anlage):
-    """Welcher Farbsatz gilt, weiß erst der Browser."""
+def test_die_zeichnung_geht_einmal_hinaus(schema, anlage):
+    """Welcher Farbsatz gilt, weiß erst der Browser – er stellt selbst um."""
     nutzdaten = schema.schaubild_nutzdaten(anlage)
-    for feld in ("schema", "schema_hell", "schema_terrakotta"):
-        assert nutzdaten[feld].startswith("data:image/svg+xml;base64,")
+    assert nutzdaten["schema_svg"].startswith("<svg")
+    assert set(nutzdaten["schema_farben"]) == {"hell", "terrakotta", "petrol", "pflaume"}
 
 
 def test_werte_tragen_entitaet_und_lage(schema, anlage):
@@ -102,7 +101,7 @@ def test_kartendaten_nennen_jede_anlage(schema, anlage):
     daten = schema.schaubild_daten([anlage, zweite])
     assert [a["id"] for a in daten] == ["anlage-1", "anlage-2"]
     assert [a["name"] for a in daten] == ["Heizhaus", "Wohnhaus"]
-    assert all(a["schema"] for a in daten)
+    assert all(a["schema_svg"] for a in daten)
 
 
 def test_kartendaten_ohne_anlage_bleiben_leer(schema):
@@ -113,6 +112,6 @@ def test_anlage_ohne_messwert_bleibt_leer(schema):
     """Ein Bild aus leeren Kästen hilft niemandem."""
     leer = {"id": "anlage-2", "name": "Wohnhaus", "teile": [_teil("PuroWIN", 25, [])]}
     nutzdaten = schema.schaubild_nutzdaten(leer)
-    assert nutzdaten["schema"] is None
+    assert nutzdaten["schema_svg"] is None
     assert nutzdaten["schema_werte"] == []
     assert nutzdaten["schema_leitungen"] is None
