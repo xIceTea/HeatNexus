@@ -263,8 +263,10 @@ def test_das_schaubild_folgt_dem_erscheinungsbild(durchlauf, aufteilung):
     anlage = aufteilung["anlagen"][0]
     schaubild = durchlauf["schaubild"]
     assert schaubild["dunkel"] != schaubild["hell"]
-    # Der dunkle Satz steht unverändert in der Zeichnung, der helle nicht mehr.
-    dunkler_wert = next(iter(anlage["schema_farben"]["hell"]))
+    # Ein Wert, den der helle Satz wirklich austauscht. Vor- und Rücklauf
+    # stehen in jedem Satz gleich und taugen dafür nicht.
+    tabelle = anlage["schema_farben"]["hell"]
+    dunkler_wert = next(alt for alt, neu in tabelle.items() if alt != neu)
     assert unquote(schaubild["dunkel"]).count(dunkler_wert) > 0
     assert unquote(schaubild["hell"]).count(dunkler_wert) == 0
 

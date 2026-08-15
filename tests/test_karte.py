@@ -237,10 +237,14 @@ def test_die_stichleitungen_kehren_beim_entnehmen_um(durchlauf):
 
 
 def test_die_ueberlagerungen_folgen_dem_farbsatz(durchlauf):
-    """Mischer, Heizkörper und Schichtung liegen über dem Bild, nicht darin."""
+    """Mischer, Heizkörper und Schichtung liegen über dem Bild, nicht darin.
+
+    Warm und kalt gehen mit dem Satz; Vor- und Rücklauf bleiben, wo sie sind.
+    """
     assert durchlauf["grundfarbenMitgeliefert"] == 4
     assert durchlauf["stutzenVorhanden"] is True
-    assert durchlauf["stutzenOhneDunkelwert"] is True
+    assert durchlauf["stutzenMitLeitungsfarben"] is True
+    assert durchlauf["schichtungOhneDunkelwert"] is True
 
 
 # ---------------------------------------------------------------------------

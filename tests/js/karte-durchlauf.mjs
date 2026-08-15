@@ -123,11 +123,21 @@ bunt.setConfig({ farbsatz: "terrakotta" });
 bunt.hass = { states: { "sensor.mischer": { state: "50", attributes: {} } },
   themes: { darkMode: true }, callWS: async () => anlagen };
 await bunt._laden;
-const dunkelwerte = Object.values(anlagen[0].schema_grundfarben || {});
+const grundfarben = anlagen[0].schema_grundfarben || {};
 const stutzen = bunt.shadowRoot.querySelector(".mischer-stutzen");
 bilanz.stutzenVorhanden = !!stutzen;
-bilanz.stutzenOhneDunkelwert =
-  !!stutzen && !dunkelwerte.some((w) => String(stutzen.style.background || "").includes(w));
-bilanz.grundfarbenMitgeliefert = dunkelwerte.length;
+// Der Stutzen mischt Vor- und Rücklauf. Beide sind in jedem Satz derselbe
+// Wert – hier muss also genau der dunkle Wert stehen.
+const stutzenfarbe = String((stutzen && stutzen.style.background) || "");
+bilanz.stutzenMitLeitungsfarben =
+  stutzenfarbe.includes(grundfarben.vorlauf) && stutzenfarbe.includes(grundfarben.ruecklauf);
+// Die Schichtung mischt warm und kalt – die folgen dem Satz.
+const schichtung = bunt.shadowRoot.querySelector(".schichtung");
+const schichtfarbe = String((schichtung && schichtung.style.background) || "");
+bilanz.schichtungOhneDunkelwert =
+  !!schichtung &&
+  !schichtfarbe.includes(grundfarben.warm) &&
+  !schichtfarbe.includes(grundfarben.kalt);
+bilanz.grundfarbenMitgeliefert = Object.keys(grundfarben).length;
 
 console.log(JSON.stringify(bilanz));

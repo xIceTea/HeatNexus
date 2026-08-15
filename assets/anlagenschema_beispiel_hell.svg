@@ -1,12 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1048 392" width="1048" height="392"><rect width="100%" height="100%" rx="16" fill="#f4f6f9"/><rect x="24" y="89" width="1000" height="6" rx="3" fill="#c8412a" opacity="0.85"/><rect x="24" y="315" width="1000" height="6" rx="3" fill="#2b63b8" opacity="0.85"/><g transform="translate(24,0)"><rect x="98" y="92" width="4" height="34" fill="#c8412a" opacity="0.7"/><rect x="98" y="288" width="4" height="30" fill="#2b63b8" opacity="0.7"/><defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1048 392" width="1048" height="392"><rect width="100%" height="100%" rx="16" fill="#f4f6f9"/><rect x="24" y="89" width="1000" height="6" rx="3" fill="#e2543a" opacity="0.85"/><rect x="24" y="315" width="1000" height="6" rx="3" fill="#3a7fe2" opacity="0.85"/><g transform="translate(24,0)"><rect x="98" y="92" width="4" height="34" fill="#e2543a" opacity="0.7"/><rect x="98" y="288" width="4" height="30" fill="#3a7fe2" opacity="0.7"/><defs>
   <linearGradient id="t0-gehaeuse" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0%" stop-color="#eef2f7"/>
     <stop offset="100%" stop-color="#c2ccd8"/>
   </linearGradient>
   <linearGradient id="t0-glutbett" x1="0" y1="1" x2="0" y2="0">
-    <stop offset="0%" stop-color="#c8412a"/>
-    <stop offset="55%" stop-color="#c8412a" stop-opacity="0.55"/>
-    <stop offset="100%" stop-color="#c8412a" stop-opacity="0"/>
+    <stop offset="0%" stop-color="#e2543a"/>
+    <stop offset="55%" stop-color="#e2543a" stop-opacity="0.55"/>
+    <stop offset="100%" stop-color="#e2543a" stop-opacity="0"/>
   </linearGradient>
 </defs>
 
@@ -27,7 +27,7 @@
 <rect x="56" y="134" width="88" height="26" rx="6" fill="#c2ccd8"
       stroke="#7d8b9a" stroke-width="1"/>
 <rect x="64" y="142" width="44" height="10" rx="5" fill="#16202b" opacity="0.25"/>
-<circle cx="132" cy="147" r="4" fill="#c8412a" opacity="0.8"/>
+<circle cx="132" cy="147" r="4" fill="#e2543a" opacity="0.8"/>
 
 <!-- Wärmetauscher: senkrechte Rauchrohre -->
 <g fill="#c2ccd8" opacity="0.8">
@@ -42,7 +42,7 @@
 <rect x="56" y="230" width="88" height="52" rx="8" fill="#c2ccd8"
       stroke="#7d8b9a" stroke-width="1.5"/>
 <rect x="64" y="244" width="72" height="30" rx="6" fill="url(#t0-glutbett)"/>
-<rect x="64" y="268" width="72" height="6" rx="3" fill="#c8412a"/><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">PuroWIN</text></g><g transform="translate(224,0)"><rect x="98" y="92" width="4" height="24" fill="#c8412a" opacity="0.7"/><rect x="98" y="296" width="4" height="22" fill="#2b63b8" opacity="0.7"/><defs>
+<rect x="64" y="268" width="72" height="6" rx="3" fill="#e2543a"/><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">PuroWIN</text></g><g transform="translate(224,0)"><rect x="98" y="92" width="4" height="24" fill="#e2543a" opacity="0.7"/><rect x="98" y="296" width="4" height="22" fill="#3a7fe2" opacity="0.7"/><defs>
   <!-- Neutral, wie beim Heizkoerper.
 
        Bis 1.4.2 stand hier ein fester Verlauf von warm nach kalt - ein
@@ -160,7 +160,7 @@
 <g fill="#16202b" opacity="0.55">
   <circle cx="40" cy="167.5" r="2.2"/>
   <circle cx="40" cy="257.5" r="2.2"/>
-</g><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">B-PLMi PUFFER</text></g><g transform="translate(424,0)"><rect x="98" y="92" width="4" height="40" fill="#c8412a" opacity="0.7"/><rect x="98" y="278" width="4" height="40" fill="#2b63b8" opacity="0.7"/><!-- Der Koerper ist bewusst neutral gefaerbt.
+</g><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">B-PLMi PUFFER</text></g><g transform="translate(424,0)"><rect x="98" y="92" width="4" height="40" fill="#e2543a" opacity="0.7"/><rect x="98" y="278" width="4" height="40" fill="#3a7fe2" opacity="0.7"/><!-- Der Koerper ist bewusst neutral gefaerbt.
 
      Bis 1.4.1 stand hier ein Verlauf von Glut nach Warm - ein
      Heizkoerper, der immer glueht, auch bei 27 Grad Vorlauf. Die Waerme legt
@@ -211,7 +211,7 @@
   <path d="M 114 104 L 114 120 L 100 112 Z"/>
   <path d="M 92 126 L 108 126 L 100 112 Z"/>
 </g>
-<circle cx="100" cy="112" r="2.5" fill="#16202b" opacity="0.55"/><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">UMLZ HEIZKREIS</text></g><g transform="translate(624,0)"><rect x="98" y="92" width="4" height="32" fill="#c8412a" opacity="0.7"/><rect x="98" y="292" width="4" height="26" fill="#2b63b8" opacity="0.7"/><defs>
+<circle cx="100" cy="112" r="2.5" fill="#16202b" opacity="0.55"/><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">UMLZ HEIZKREIS</text></g><g transform="translate(624,0)"><rect x="98" y="92" width="4" height="32" fill="#e2543a" opacity="0.7"/><rect x="98" y="292" width="4" height="26" fill="#3a7fe2" opacity="0.7"/><defs>
   <!-- Neutral. Der Boiler meldet nur einen Istwert - liegt der vor, faerbt
        die Oberflaeche den Inhalt gleichmaessig ein und legt die Farbe *unter*
        diese Zeichnung. Eine zweite Temperatur zu erfinden waere schlimmer als
@@ -308,7 +308,7 @@
 <g fill="#c2ccd8" stroke="#7d8b9a" stroke-width="1.5">
   <rect x="40" y="201" width="16" height="9" rx="2.5"/>
 </g>
-<circle cx="46" cy="205.5" r="2.2" fill="#16202b" opacity="0.55"/><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">Warmwasser</text></g><g transform="translate(824,0)"><rect x="98" y="92" width="4" height="56" fill="#c8412a" opacity="0.7"/><rect x="98" y="264" width="4" height="54" fill="#2b63b8" opacity="0.7"/><defs>
+<circle cx="46" cy="205.5" r="2.2" fill="#16202b" opacity="0.55"/><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">Warmwasser</text></g><g transform="translate(824,0)"><rect x="98" y="92" width="4" height="56" fill="#e2543a" opacity="0.7"/><rect x="98" y="264" width="4" height="54" fill="#3a7fe2" opacity="0.7"/><defs>
   <linearGradient id="t4-ring" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0%" stop-color="#eef2f7"/>
     <stop offset="100%" stop-color="#c2ccd8"/>
@@ -321,12 +321,12 @@
         opacity="0.5"/>
 
 <!-- Umlaufpfeile: oben warm hin, unten kühler zurück -->
-<path d="M 100 164 a 42 42 0 0 1 36 21" fill="none" stroke="#c8412a"
+<path d="M 100 164 a 42 42 0 0 1 36 21" fill="none" stroke="#e2543a"
       stroke-width="6" stroke-linecap="round"/>
-<path d="M 136 185 l 6 -14 l -15 2 Z" fill="#c8412a"/>
-<path d="M 100 248 a 42 42 0 0 1 -36 -21" fill="none" stroke="#2b63b8"
+<path d="M 136 185 l 6 -14 l -15 2 Z" fill="#e2543a"/>
+<path d="M 100 248 a 42 42 0 0 1 -36 -21" fill="none" stroke="#3a7fe2"
       stroke-width="6" stroke-linecap="round"/>
-<path d="M 64 227 l -6 14 l 15 -2 Z" fill="#2b63b8"/>
+<path d="M 64 227 l -6 14 l 15 -2 Z" fill="#3a7fe2"/>
 
 <!-- Pumpe in der Mitte -->
 <circle cx="100" cy="206" r="18" fill="#c2ccd8" stroke="#7d8b9a"

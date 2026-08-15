@@ -973,9 +973,35 @@ def test_jede_rolle_hat_eine_helle_entsprechung(schema):
 def test_im_hellen_bild_bleibt_kein_dunkler_farbwert(schema, anlage):
     hell = _svg_hell_von(schema, anlage)
     for rolle, farbe in schema.FARBEN.items():
-        if rolle == "schrift":
+        if rolle == "schrift" or rolle in schema.FESTE_ROLLEN:
             continue
         assert farbe not in hell, f"{rolle} steht noch mit dem dunklen Wert {farbe} im Bild"
+
+
+def test_die_leitungsfarben_gelten_in_jedem_satz(schema):
+    """Rot heißt Vorlauf, Blau heißt Rücklauf – in jedem Farbsatz derselbe Wert."""
+    for farben in (
+        schema.FARBEN_HELL,
+        schema.FARBEN_TERRAKOTTA,
+        schema.FARBEN_PETROL,
+        schema.FARBEN_PFLAUME,
+    ):
+        for rolle in schema.FESTE_ROLLEN:
+            assert farben[rolle] == schema.FARBEN[rolle], f"{rolle} weicht ab"
+
+
+def test_die_leitungen_ueberstehen_jeden_wechsel(schema, anlage):
+    """Am fertigen Bild darf der Austausch die Rohre nicht mitnehmen."""
+    dunkel = _svg_von(schema, anlage)
+    for thema in (
+        schema.THEMA_HELL,
+        schema.THEMA_TERRAKOTTA,
+        schema.THEMA_PETROL,
+        schema.THEMA_PFLAUME,
+    ):
+        gewechselt = schema.farben_umstellen(dunkel, thema)
+        assert schema.FARBE_VORLAUF in gewechselt, f"{thema}: der Vorlauf ist umgefärbt"
+        assert schema.FARBE_RUECKLAUF in gewechselt, f"{thema}: der Rücklauf ist umgefärbt"
 
 
 def test_das_helle_bild_traegt_die_hellen_werte(schema, anlage):
@@ -1026,7 +1052,7 @@ def test_die_karte_traegt_die_rohzeichnung(schema, anlage):
 def test_im_terrakottabild_bleibt_kein_dunkler_farbwert(schema, anlage):
     terrakotta = schema.farben_umstellen(_svg_von(schema, anlage), schema.THEMA_TERRAKOTTA)
     for rolle, farbe in schema.FARBEN.items():
-        if rolle == "schrift":
+        if rolle == "schrift" or rolle in schema.FESTE_ROLLEN:
             continue
         assert farbe not in terrakotta, f"{rolle} steht noch mit {farbe} im Bild"
 
@@ -1071,7 +1097,7 @@ def test_in_weiteren_saetzen_bleibt_kein_dunkler_farbwert(schema, anlage):
     for thema, _farben in _weitere(schema):
         gewechselt = schema.farben_umstellen(dunkel, thema)
         for rolle, farbe in schema.FARBEN.items():
-            if rolle == "schrift":
+            if rolle == "schrift" or rolle in schema.FESTE_ROLLEN:
                 continue
             assert farbe not in gewechselt, f"{thema}: {rolle} steht noch mit {farbe} im Bild"
 

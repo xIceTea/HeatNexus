@@ -68,6 +68,11 @@ FARBEN: dict[str, str] = {
     "schrift": SCHRIFT,
 }
 
+# Rollen, die in jedem Farbsatz denselben Wert behalten: Rot ist der Vorlauf,
+# Blau der Rücklauf – eine Auskunft, keine Gestaltung. `glut` teilt sich den
+# Wert mit `vorlauf`.
+FESTE_ROLLEN = ("vorlauf", "ruecklauf", "glut")
+
 # Derselbe Satz für eine helle Oberfläche.
 #
 # **Warum überhaupt zwei Sätze.** Das Schaubild steckt als `data:`-Adresse in
@@ -83,8 +88,8 @@ FARBEN: dict[str, str] = {
 # Zeichenfunktionen wäre die Stelle, an der später einer von beiden vergessen
 # wird.
 FARBEN_HELL: dict[str, str] = {
-    "vorlauf": "#c8412a",
-    "ruecklauf": "#2b63b8",
+    "vorlauf": FARBE_VORLAUF,
+    "ruecklauf": FARBE_RUECKLAUF,
     "rahmen": "#7d8b9a",
     "text": "#3d4854",
     "titel": "#16202b",
@@ -92,11 +97,7 @@ FARBEN_HELL: dict[str, str] = {
     "korpus_hell": "#eef2f7",
     "korpus_dunkel": "#c2ccd8",
     "warm": "#c0402a",
-    # Muss denselben Wert haben wie `vorlauf`: Im dunklen Satz sind beide
-    # `#e2543a`, und der Austausch geschieht am fertigen Bild – dort ist nicht
-    # mehr zu unterscheiden, welche Rolle eine Farbe hatte. Die Prüfung
-    # darunter besteht darauf.
-    "glut": "#c8412a",
+    "glut": FARBE_VORLAUF,
     "kalt": "#3f78c9",
     "schrift": SCHRIFT,
 }
@@ -104,8 +105,8 @@ FARBEN_HELL: dict[str, str] = {
 # Dritter Satz: warmes Dunkel mit Terrakotta, passend zum gleichnamigen
 # Farbsatz der Oberfläche.
 FARBEN_TERRAKOTTA: dict[str, str] = {
-    "vorlauf": "#d2603a",
-    "ruecklauf": "#5b8ab8",
+    "vorlauf": FARBE_VORLAUF,
+    "ruecklauf": FARBE_RUECKLAUF,
     "rahmen": "#3a3630",
     "text": "#b8b0a8",
     "titel": "#ece8e4",
@@ -113,17 +114,15 @@ FARBEN_TERRAKOTTA: dict[str, str] = {
     "korpus_hell": "#322f2b",
     "korpus_dunkel": "#1a1816",
     "warm": "#a8431f",
-    # Muss `vorlauf` entsprechen – siehe `FARBEN_HELL`.
-    "glut": "#d2603a",
+    "glut": FARBE_VORLAUF,
     "kalt": "#436f9c",
     "schrift": SCHRIFT,
 }
 
-# Vierter Satz: ruhiges Dunkel mit Petrol. `vorlauf` bleibt warm – die
-# Strömungsrichtung liest man an der Farbe, nicht an der Lage.
+# Vierter Satz: ruhiges Dunkel mit Petrol.
 FARBEN_PETROL: dict[str, str] = {
-    "vorlauf": "#e0714d",
-    "ruecklauf": "#3f8fb8",
+    "vorlauf": FARBE_VORLAUF,
+    "ruecklauf": FARBE_RUECKLAUF,
     "rahmen": "#2e3c3f",
     "text": "#93a3a3",
     "titel": "#e4ecec",
@@ -131,16 +130,15 @@ FARBEN_PETROL: dict[str, str] = {
     "korpus_hell": "#26312f",
     "korpus_dunkel": "#10171a",
     "warm": "#b34a2a",
-    # Muss `vorlauf` entsprechen – siehe `FARBEN_HELL`.
-    "glut": "#e0714d",
+    "glut": FARBE_VORLAUF,
     "kalt": "#2a5c94",
     "schrift": SCHRIFT,
 }
 
 # Fünfter Satz: dunkles Violett mit Pflaume.
 FARBEN_PFLAUME: dict[str, str] = {
-    "vorlauf": "#d9705f",
-    "ruecklauf": "#6b7fd2",
+    "vorlauf": FARBE_VORLAUF,
+    "ruecklauf": FARBE_RUECKLAUF,
     "rahmen": "#3a3145",
     "text": "#a297ad",
     "titel": "#ece7f0",
@@ -148,8 +146,7 @@ FARBEN_PFLAUME: dict[str, str] = {
     "korpus_hell": "#2e2639",
     "korpus_dunkel": "#16121c",
     "warm": "#b34a4a",
-    # Muss `vorlauf` entsprechen – siehe `FARBEN_HELL`.
-    "glut": "#d9705f",
+    "glut": FARBE_VORLAUF,
     "kalt": "#4d5aa8",
     "schrift": SCHRIFT,
 }
@@ -1448,6 +1445,9 @@ def anlagenschema(
         # Die `picture-elements`-Karte kennt nur hell und dunkel. Wer mehr
         # Farbsätze braucht, stellt die Zeichnung selbst um.
         "svg": svg,
+        # Die Breite der Zeichnung. Damit rechnet die Oberfläche ihre
+        # Überlagerungen auf denselben Maßstab wie das Bild.
+        "breite": breite,
         "elements": elemente,
         "leitungen": leitungen,
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht
@@ -1506,6 +1506,9 @@ def schaubild_nutzdaten(
         # Die Zeichnung geht **einmal** hinaus, dazu die Farbtabellen. Welcher
         # Satz gilt, weiß erst der Browser; er tauscht die Werte selbst.
         "schema_svg": bild["svg"] if bild else None,
+        # Maßstab der Überlagerungen: Sie sollen mit dem Bild wachsen und
+        # schrumpfen, nicht in Bildpunkten stehenbleiben.
+        "schema_breite": bild.get("breite") if bild else None,
         # Was sich einstellen lässt: je Anlagenteil die Werte dieser Anlage.
         "schema_teile": waehlbare_werte(anlage["teile"], anlage.get("kesselwert")),
         # Die Grundfarben für die Überlagerungen – Mischer, Heizkörper,
