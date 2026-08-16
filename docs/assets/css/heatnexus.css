@@ -82,9 +82,10 @@ html {
   scroll-behavior: smooth; scroll-padding-top: 96px;
   overflow-x: clip; overscroll-behavior-x: none;
 }
-/* Unter 940 px steht zusätzlich die Abschnittsleiste fest — Sprungmarken
-   müssen unter beiden landen. */
-@media (max-width: 940px) { html { scroll-padding-top: 148px; } }
+/* Unter 940 px stehen Kopfzeile und Abschnittsleiste fest, zusammen 110 px.
+   Der Wert muss darüber liegen und zugleich unter der Grenze, ab der
+   `wegweiser.js` einen Abschnitt als erreicht zählt. */
+@media (max-width: 940px) { html { scroll-padding-top: 122px; } }
 
 body {
   margin: 0;

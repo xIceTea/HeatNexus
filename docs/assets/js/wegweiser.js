@@ -4,7 +4,11 @@
 (function () {
   "use strict";
 
-  var GRENZE = 140; // Höhe der Kopfzeile plus etwas Luft
+  // Ab hier gilt ein Abschnitt als erreicht. Der Wert muss über dem
+  // `scroll-padding-top` beider Ansichten liegen (96 px breit, 122 px schmal),
+  // sonst zählt ein angesprungener Abschnitt noch als nicht erreicht und die
+  // Markierung bleibt auf dem vorherigen stehen.
+  var GRENZE = 150;
   var SCHMAL = 940; // ab hier steht die Abschnittsleiste statt der Spalte
   var wurzel = document.documentElement;
 
@@ -181,6 +185,9 @@
 
   addEventListener("scroll", angestossen, { passive: true });
   addEventListener("resize", angestossen, { passive: true });
+  // Ein Sprung auf dieselbe Marke löst kein Scrollen aus — die Markierung muss
+  // trotzdem nachziehen.
+  addEventListener("hashchange", angestossen);
   rand();
   abschnitte();
 })();
