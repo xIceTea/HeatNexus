@@ -5,10 +5,23 @@ sortiert.
 
 ## Die Einrichtung schlägt fehl
 
-**„Anmeldung fehlgeschlagen"** — der Benutzername ist immer `USER`, auch wenn
-das Bediengerät etwas anderes anzeigt. Abgefragt wird das
-**Service-Passwort**, nicht das des Kundendienstportals. Wer es nicht hat,
-bekommt es beim Installateur.
+**„Anmeldung abgelehnt"** — gefragt ist der Zugang der Weboberfläche der
+Anlage, nicht der eines Portals. Ab Werk kennt die Steuerung zwei Zugänge,
+`USER` und `Service`, beide mit dem Passwort `123`. Über die Schnittstelle
+sehen beide dasselbe; `USER` genügt.
+
+Wurde das Passwort einmal geändert, gilt das neue sofort auch hier. Ändern und
+nachsehen lässt es sich am InfoWIN Touch selbst oder in dessen Weboberfläche
+unter *Passwort*.
+
+**Passwort unbekannt?** Ist die Anlage bei Windhager Connect registriert, steht
+es dort im Klartext: anmelden, Anlage auswählen, in der Adresse `/management`
+durch `/settings` ersetzen.
+
+**Nach dem Verbinden mit myComfort geht nichts mehr?** Windhager vergibt dabei
+ein eigenes Passwort, die Werksangabe gilt dann nicht mehr. Das ist kein
+dauerhafter Ausschluss — auf demselben Weg ablesen oder neu setzen, danach
+laufen App und HeatNexus wieder.
 
 **„Verbindung nicht möglich"** — vorher im Browser prüfen: Unter
 `http://192.0.2.10` (die IP der eigenen Anlage) muss die Weboberfläche des

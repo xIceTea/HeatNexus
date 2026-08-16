@@ -1,5 +1,4 @@
 ---
-start: true
 titel: Windhager-Heizungen in Home Assistant
 beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto — mit Oberfläche, Dashboard, Anlagenschaubild und Zeitprogrammen.
 ---
@@ -287,7 +286,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       <li>
         <span class="nr">03</span>
         <h3>Einrichten</h3>
-        <p>Unter <em>Einstellungen → Geräte &amp; Dienste → Integration hinzufügen → HeatNexus</em>. Gebraucht werden die IP der Steuerung und das Service-Passwort; der Benutzer heißt immer <code>USER</code>.</p>
+        <p>Unter <em>Einstellungen → Geräte &amp; Dienste → Integration hinzufügen → HeatNexus</em>. Gebraucht werden die IP der Steuerung und der Zugang zu ihrer Weboberfläche — ab Werk <code>USER</code> mit dem Passwort <code>123</code>.</p>
       </li>
       <li>
         <span class="nr">04</span>

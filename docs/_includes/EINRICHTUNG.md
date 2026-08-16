@@ -5,10 +5,11 @@ umstellbar ist, und was die einzelnen Schalter bewirken.
 
 ## Zugang
 
-Gebraucht werden die **IP der Steuerung** und das **Service-Passwort**. Der
-Benutzername ist immer `USER` und wird nicht abgefragt. Ob der Weg frei ist,
-zeigt ein Blick in den Browser: Unter `http://<IP der Anlage>` muss die
-Weboberfläche des InfoWIN Touch erscheinen.
+Gebraucht werden die **IP der Steuerung** und der Zugang zu ihrer
+Weboberfläche. Ab Werk kennt die Steuerung zwei Zugänge, `USER` und `Service`,
+beide mit dem Passwort `123`. Über die Schnittstelle sehen beide dasselbe,
+`USER` genügt also. Ob der Weg frei ist, zeigt ein Blick in den Browser: Unter
+`http://<IP der Anlage>` muss die Weboberfläche des InfoWIN Touch erscheinen.
 
 Ein Konfigurationseintrag kann **mehrere Anlagen** führen — bis zu sechs. Jede
 bekommt eine eigene Bezeichnung, etwa `Heizhaus` und `Wohnhaus`. Diese
@@ -59,9 +60,9 @@ gelesen.
 | normal | 2 min | alles Übrige |
 | langsam | 15 min | Zähler, Laufzeiten, träge Einheiten, deaktiviert angelegte Werte |
 
-Die Klasse ergibt sich daraus, *was* der Wert ist — Plattform, Name,
-Zustandsklasse, Einheit — nicht daraus, auf welcher Ebene er liegt.
-Betriebsstunden ändern sich nicht in dreißig Sekunden.
+Welcher Klasse ein Wert zufällt, entscheidet die Art des Werts: Plattform,
+Name, Zustandsklasse und Einheit. Die Bedienebene spielt dabei keine Rolle.
+Betriebsstunden ändern sich nicht in dreißig Sekunden, egal wo sie stehen.
 
 Ein kürzeres Intervall bringt deshalb wenig und kostet: Die Steuerung
 beantwortet Anfragen nacheinander, mehr Gleichzeitigkeit verkürzt einen

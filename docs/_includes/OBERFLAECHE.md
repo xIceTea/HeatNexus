@@ -1,7 +1,8 @@
 # Die Oberfläche
 
 HeatNexus bringt eine eigene Seite in der Seitenleiste von Home Assistant mit.
-Diese Seite zeigt, was darin steht — bevor man die Integration installiert.
+Hier steht, was darauf zu sehen ist — damit man es beurteilen kann, ohne die
+Integration erst installieren zu müssen.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif" alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme" width="900">
@@ -55,9 +56,9 @@ der Brennstoff, die Zählerstände.
 „Sa, So", darin die Schaltzeiten als Balken, darunter als Text. Bearbeitet wird
 in Blöcken und gespeichert als ganzes Programm — so, wie die Anlage es führt.
 
-Der Reiter **Verlauf** fehlt im Rundgang. Er zeichnet mit der Verlaufskarte von
-Home Assistant, und die gibt es nur in einer laufenden Instanz; eine leere
-Karte im Bild wäre eine Falschaussage.
+Der Reiter **Verlauf** fehlt im Rundgang. Er benutzt die Verlaufskarte von
+Home Assistant, und die zeichnet nur mit einer laufenden Anlage dahinter. Eine
+leere Karte im Bild würde also etwas Falsches zeigen.
 
 ## Wie das Bild entsteht
 
