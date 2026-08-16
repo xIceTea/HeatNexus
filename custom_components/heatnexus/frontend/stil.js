@@ -928,15 +928,14 @@ export const STIL = `
   /* Nur die Farbe, nicht die ganze Kurzschreibweise: Sonst verlöre das
      Glutbett beim Überfahren seinen Verlauf. */
   .klickbar:hover { background-color: var(--hn-flaeche); }
-  /* Die Teile des Schaubilds bringen ihre eigene Fläche mit. Die helle
-     Zeilenfarbe darüber ließ sie durchsichtig wirken. */
-  .schaubild .glut.klickbar:hover,
-  .schaubild .mischer.klickbar:hover { background-color: transparent; }
-  .schaubild .pumpe.klickbar:hover {
-    background-color: rgba(34, 42, 52, 0.96);
-    color: var(--hn-text);
-    border-color: color-mix(in srgb, var(--hn-akzent) 70%, transparent);
-  }
+  /* Die Marken des Schaubilds bringen ihre eigene Fläche mit; die helle
+     Zeilenfarbe darüber ließ sie durchsichtig wirken. Die Sperre gilt für
+     alle Marken, nicht je Bauteil – die Werteliste hängt daneben, nicht darin. */
+  .schaubild .klickbar:hover { background-color: transparent; }
+  /* Die Pumpe behält ihre Scheibe und tritt nur etwas hervor. Farbe und Rand
+     bleiben dem Zustand überlassen, sonst sähe eine laufende Pumpe beim
+     Überfahren wie eine stehende aus. */
+  .schaubild .pumpe.klickbar:hover { background-color: rgba(34, 42, 52, 0.96); }
   .status-zeile.klickbar:hover { background: var(--hn-flaeche); border-radius: 8px; }
   .marke-wert.klickbar:hover { background: rgba(10, 14, 19, 0.92); }
   .klickbar:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 2px; }
