@@ -4,22 +4,43 @@
 (function () {
   "use strict";
 
-  // Ab hier gilt ein Abschnitt als erreicht. Der Wert muss über dem
-  // `scroll-padding-top` beider Ansichten liegen (96 px breit, 122 px schmal),
-  // sonst zählt ein angesprungener Abschnitt noch als nicht erreicht und die
-  // Markierung bleibt auf dem vorherigen stehen.
-  var GRENZE = 150;
-  var SCHMAL = 940; // ab hier steht die Abschnittsleiste statt der Spalte
   var wurzel = document.documentElement;
+  // Die Umbruchpunkte stehen im Stilblatt; hier wird nur gefragt, welcher gilt.
+  var schmal = matchMedia("(max-width: 940px)");
+  var mitSpalte = matchMedia("(min-width: 1241px)");
 
-  // ---- Verweise auf eigene Seiten ----------------------------------------
-  // Trifft einer die gerade offene Seite, wird er markiert — sonst bliebe die
-  // Startseite ohne Hinweis in der Kopfzeile.
+  /**
+   * Ab welcher Höhe ein Abschnitt als erreicht gilt. Grundlage ist `--anker`
+   * aus dem Stilblatt — derselbe Wert, der auch das `scroll-padding-top`
+   * setzt. Ohne diesen Gleichlauf zählte ein angesprungener Abschnitt noch
+   * als nicht erreicht und die Markierung blieb auf dem vorherigen stehen.
+   */
+  var GRENZE = 0;
+  function grenzeLesen() {
+    var anker = parseFloat(getComputedStyle(wurzel).getPropertyValue("--anker"));
+    GRENZE = (anker || 96) + 28;
+  }
+  grenzeLesen();
+
+  // ---- Verweise -----------------------------------------------------------
+  // Ein Punkt der Kopfzeile vertritt mehrere Abschnitte und trägt sie in
+  // `data-deckt`; im Baum steht je Abschnitt eine eigene Sprungmarke. Verweise
+  // ohne Sprungmarke zeigen auf eine eigene Seite — trifft einer die gerade
+  // offene, wird er markiert, sonst bliebe die Startseite ohne Hinweis.
+  var verweise = {};
   var seite = location.pathname.replace(/index\.html$/, "");
-  Array.prototype.forEach.call(document.querySelectorAll(".wege a, .baum a"), function (a) {
-    if ((a.getAttribute("href") || "").indexOf("#") !== -1) return;
-    if (a.hostname !== location.hostname) return;
-    if (a.pathname.replace(/index\.html$/, "") === seite) a.setAttribute("aria-current", "true");
+  document.querySelectorAll(".wege a, .baum a").forEach(function (a) {
+    var ziel = a.getAttribute("href") || "";
+    if (ziel.indexOf("#") === -1) {
+      if (a.hostname === location.hostname && a.pathname.replace(/index\.html$/, "") === seite) {
+        a.setAttribute("aria-current", "true");
+      }
+      return;
+    }
+    var deckt = a.getAttribute("data-deckt");
+    (deckt ? deckt.split(/\s+/) : [ziel.split("#")[1]]).forEach(function (marke) {
+      if (marke) (verweise[marke] = verweise[marke] || []).push(a);
+    });
   });
 
   // ---- Gliederung auf schmalen Geräten -----------------------------------
@@ -35,49 +56,50 @@
     });
   }
 
+  function offen() {
+    return wurzel.classList.contains("baum-offen");
+  }
+
   // Wer die Leiste von Hand verschiebt, darf sie verschoben lassen — sobald er
   // aber weiterliest, holt sie den Abschnitt zurück, in dem er steht.
   function nachfuehren(sofort) {
-    if (!leiste || window.innerWidth > SCHMAL) return;
-    if (wurzel.classList.contains("baum-offen")) return;
-    // Im Spaltensatz stehen alle Einträge links; dort ergäbe die Rechnung Null.
-    if (getComputedStyle(leiste).flexDirection !== "row") return;
+    if (!leiste || !schmal.matches || offen()) return;
     if (!sofort && Date.now() - letzteHand < 1500) return;
     var weg = leiste.querySelector('a[aria-current="true"]');
     if (!weg) return;
     var links = weg.offsetLeft - leiste.scrollLeft;
     if (sofort || links < 12 || links + weg.offsetWidth > leiste.clientWidth - 12) {
-      var ziel = weg.offsetLeft - leiste.clientWidth / 2 + weg.offsetWidth / 2;
-      // Nach einem Sprung oder dem Zuklappen sofort, beim stillen Nachziehen weich.
-      if (leiste.scrollTo) leiste.scrollTo({ left: ziel, behavior: sofort ? "auto" : "smooth" });
-      else leiste.scrollLeft = ziel;
+      // `block: "nearest"` hält die Seite still, nur die Leiste rückt nach.
+      weg.scrollIntoView({
+        block: "nearest",
+        inline: "center",
+        behavior: sofort ? "auto" : "smooth",
+      });
     }
   }
 
   function klappen(auf) {
+    if (auf === offen()) return;
     // Der Bezugspunkt muss sofort stehen, sonst hält der nächste Scroll-Takt
     // das eben geöffnete Menü für weggescrollt und schließt es wieder.
-    offenBei = window.scrollY || 0;
+    if (auf) offenBei = window.scrollY || 0;
     wurzel.classList.toggle("baum-offen", auf);
     if (!leiste) return;
     // Der Wechsel zwischen Zeile und Spalte setzt die Rollposition zurück;
     // der markierte Eintrag muss danach wieder in Sicht.
     requestAnimationFrame(function () {
       var weg = leiste.querySelector('a[aria-current="true"]');
-      if (auf) {
-        if (weg) leiste.scrollTop = Math.max(0, weg.offsetTop - leiste.clientHeight / 2);
-      } else {
-        nachfuehren(true);
-        setTimeout(function () { nachfuehren(true); }, 90);
-      }
+      if (!weg) return;
+      if (auf) weg.scrollIntoView({ block: "nearest", behavior: "auto" });
+      else nachfuehren(true);
     });
   }
 
   if (leiste) {
     leiste.addEventListener("click", function (e) {
-      var weg = e.target.closest ? e.target.closest("a") : null;
-      if (!weg || window.innerWidth > SCHMAL) return;
-      if (weg.getAttribute("aria-current") === "true" && !wurzel.classList.contains("baum-offen")) {
+      var weg = e.target.closest("a");
+      if (!weg || !schmal.matches) return;
+      if (weg.getAttribute("aria-current") === "true" && !offen()) {
         e.preventDefault();
         klappen(true);
         return;
@@ -94,19 +116,12 @@
     var y = window.scrollY || 0;
     if (hochKnopf) hochKnopf.classList.toggle("sichtbar", y > 700);
     // Wer weiterliest, hat die Gliederung nicht mehr im Sinn.
-    if (wurzel.classList.contains("baum-offen") && Math.abs(y - offenBei) > 60) klappen(false);
-    nachfuehren(false);
+    if (offen() && Math.abs(y - offenBei) > 60) klappen(false);
 
     // Die Kopfzeile weicht nur dort, wo sie Platz kostet.
-    if (window.innerWidth > SCHMAL) {
-      wurzel.classList.remove("kopf-weg");
-    } else if (y < 140) {
-      wurzel.classList.remove("kopf-weg");
-    } else if (y > vorher + 10) {
-      wurzel.classList.add("kopf-weg");
-    } else if (y < vorher - 10) {
-      wurzel.classList.remove("kopf-weg");
-    }
+    if (!schmal.matches || y < 140) wurzel.classList.remove("kopf-weg");
+    else if (y > vorher + 10) wurzel.classList.add("kopf-weg");
+    else if (y < vorher - 10) wurzel.classList.remove("kopf-weg");
     vorher = y;
   }
 
@@ -114,81 +129,104 @@
   var aufsatz = document.querySelector(".aufsatz");
   var kasten = document.getElementById("wegweiser");
   var teile = aufsatz ? Array.prototype.slice.call(aufsatz.querySelectorAll(".teil")) : [];
-
-  var verweise = {};
   var liste = null;
-  var offen = null;
-  var punkte = [];
 
-  if (teile.length) {
-    // Ein Punkt der Kopfzeile vertritt mehrere Abschnitte und trägt sie in
-    // `data-deckt`; im Baum steht je Abschnitt eine eigene Sprungmarke.
-    Array.prototype.forEach.call(document.querySelectorAll(".wege a, .baum a"), function (a) {
-      var deckt = a.getAttribute("data-deckt");
-      var marken = deckt ? deckt.split(/\s+/) : [(a.getAttribute("href") || "").split("#")[1]];
-      marken.forEach(function (marke) {
-        if (marke) (verweise[marke] = verweise[marke] || []).push(a);
-      });
-    });
-
+  if (teile.length && kasten) {
+    var titel = document.createElement("h2");
+    titel.textContent = "In diesem Abschnitt";
     liste = document.createElement("ul");
-    if (kasten) {
-      var titel = document.createElement("h2");
-      titel.textContent = "In diesem Abschnitt";
-      kasten.appendChild(titel);
-      kasten.appendChild(liste);
-    }
+    kasten.appendChild(titel);
+    kasten.appendChild(liste);
   }
 
-  function oberhalb(elemente) {
-    var treffer = elemente[0] || null;
-    for (var i = 0; i < elemente.length; i++) {
-      if (elemente[i].getBoundingClientRect().top <= GRENZE) treffer = elemente[i];
+  var geoeffnet = null;
+  var punkte = [];
+  var teilOben = [];
+  var punktOben = [];
+  var neuVermessen = true;
+
+  /**
+   * Dokumentkoordinaten statt Messung je Takt. Ein Abschnitt der Anleitung
+   * führt bis zu 167 Überschriften; die einzeln zu vermessen erzwänge in
+   * jedem Bild einen Neuaufbau der 176 000 px hohen Seite.
+   */
+  function vermessen() {
+    var y = window.scrollY || 0;
+    teilOben = teile.map(function (t) { return t.getBoundingClientRect().top + y; });
+    punktOben = punkte.map(function (p) { return p.kopf.getBoundingClientRect().top + y; });
+    neuVermessen = false;
+  }
+
+  /** Der letzte Eintrag, dessen Oberkante über der Grenze liegt. */
+  function oberhalb(oben, linie) {
+    var treffer = oben.length ? 0 : -1;
+    for (var i = 0; i < oben.length; i++) {
+      if (oben[i] <= linie) treffer = i;
       else break;
     }
     return treffer;
   }
 
   function inhaltAufbauen(teil) {
-    liste.textContent = "";
     punkte = [];
+    // Ohne sichtbare Spalte gibt es nichts zu füllen und nichts zu verfolgen.
+    if (!liste || !mitSpalte.matches) {
+      if (kasten) kasten.hidden = true;
+      return;
+    }
     // Abschnitte ohne Zwischenebene (die Auswahlwerte) führen nur h3.
     var koepfe = teil.querySelectorAll("h2");
     if (koepfe.length < 2) koepfe = teil.querySelectorAll("h3");
-    Array.prototype.forEach.call(koepfe, function (kopf, i) {
+    var sammlung = document.createDocumentFragment();
+    koepfe.forEach(function (kopf, i) {
       if (!kopf.id) kopf.id = teil.id + "-" + i;
       var punkt = document.createElement("li");
       var weg = document.createElement("a");
       weg.href = "#" + kopf.id;
       weg.textContent = kopf.textContent.trim();
       punkt.appendChild(weg);
-      liste.appendChild(punkt);
+      sammlung.appendChild(punkt);
       punkte.push({ kopf: kopf, weg: weg });
     });
-    if (kasten) kasten.hidden = punkte.length < 2;
+    liste.textContent = "";
+    liste.appendChild(sammlung);
+    kasten.hidden = punkte.length < 2;
   }
 
+  var letzterPunkt = -1;
 
   function abschnitte() {
     if (!teile.length) return;
-    var teil = oberhalb(teile);
-    if (teil && teil !== offen) {
-      offen = teil;
+    if (neuVermessen) vermessen();
+    var linie = (window.scrollY || 0) + GRENZE;
+
+    var i = oberhalb(teilOben, linie);
+    var teil = i >= 0 ? teile[i] : null;
+    if (teil && teil !== geoeffnet) {
+      geoeffnet = teil;
       // Erst alles abräumen, dann setzen: Ein Punkt der Kopfzeile steht unter
       // mehreren Abschnitten und würde sich sonst selbst wieder löschen.
       for (var marke in verweise) {
         verweise[marke].forEach(function (a) { a.removeAttribute("aria-current"); });
       }
       (verweise[teil.id] || []).forEach(function (a) { a.setAttribute("aria-current", "true"); });
-      if (kasten && liste) {
-        inhaltAufbauen(teil);
-        kasten.scrollTop = 0;
-      }
-      nachfuehren(true);
+      inhaltAufbauen(teil);
+      if (kasten) kasten.scrollTop = 0;
+      letzterPunkt = -1;
+      // Nach dem Umbau der Liste erst messen lassen, dann nachführen.
+      requestAnimationFrame(function () {
+        vermessen();
+        nachfuehren(true);
+      });
+      return;
     }
+
     if (!punkte.length) return;
-    var jetzt = oberhalb(punkte.map(function (p) { return p.kopf; }));
-    punkte.forEach(function (p) { p.weg.classList.toggle("hier", p.kopf === jetzt); });
+    var j = oberhalb(punktOben, linie);
+    if (j === letzterPunkt) return;
+    if (letzterPunkt >= 0 && punkte[letzterPunkt]) punkte[letzterPunkt].weg.classList.remove("hier");
+    if (j >= 0) punkte[j].weg.classList.add("hier");
+    letzterPunkt = j;
   }
 
   var laeuft = false;
@@ -198,15 +236,27 @@
     requestAnimationFrame(function () {
       laeuft = false;
       rand();
+      if (teile.length) nachfuehren(false);
       abschnitte();
     });
   }
 
+  function umgebaut() {
+    grenzeLesen();
+    neuVermessen = true;
+    // Die Spalte kann durch die Breitenänderung dazugekommen oder weggefallen sein.
+    if (geoeffnet) inhaltAufbauen(geoeffnet);
+    angestossen();
+  }
+
   addEventListener("scroll", angestossen, { passive: true });
-  addEventListener("resize", angestossen, { passive: true });
+  addEventListener("resize", umgebaut, { passive: true });
   // Ein Sprung auf dieselbe Marke löst kein Scrollen aus — die Markierung muss
   // trotzdem nachziehen.
   addEventListener("hashchange", angestossen);
+  // Nachgeladene Bilder verschieben alles darunter.
+  addEventListener("load", umgebaut);
+
   rand();
   abschnitte();
 })();

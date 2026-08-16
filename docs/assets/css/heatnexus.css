@@ -51,7 +51,8 @@
 }
 
 /* Rot ist der Vorlauf, Blau der Rücklauf — dieselbe Bedeutung wie im
-   Anlagenschaubild der Integration. */
+   Anlagenschaubild der Integration. Das Rot ist auch derselbe Ton; das
+   Blau ist für Text auf dunklem Grund aufgehellt. */
 :root {
   --grund: #0c0d10;
   --flaeche: #15171b;
@@ -70,6 +71,13 @@
   --breite: 1180px;
   --radius: 14px;
 
+  /* Die Höhen der festen Kopfelemente und der Abstand, den ein Sprung über
+     eine Marke einhalten muss. `wegweiser.js` liest `--anker` aus, statt die
+     Rechnung ein zweites Mal zu führen. */
+  --kopf: 75px;
+  --leiste: 0px;
+  --anker: 96px;
+
   --sans: "Inter Tight", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
@@ -79,13 +87,18 @@
 /* `clip` statt `hidden`: verhindert das seitliche Wegziehen der Seite, ohne
    einen Scrollbereich zu erzeugen, an dem `sticky` zerbräche. */
 html {
-  scroll-behavior: smooth; scroll-padding-top: 96px;
+  scroll-behavior: smooth; scroll-padding-top: var(--anker);
   overflow-x: clip; overscroll-behavior-x: none;
 }
-/* Unter 940 px stehen Kopfzeile und Abschnittsleiste fest, zusammen 110 px.
-   Der Wert muss darüber liegen und zugleich unter der Grenze, ab der
-   `wegweiser.js` einen Abschnitt als erreicht zählt. */
-@media (max-width: 940px) { html { scroll-padding-top: 122px; } }
+/* Unter 940 px steht zusätzlich die Abschnittsleiste fest; der Anker muss
+   unter beiden landen. */
+@media (max-width: 940px) {
+  :root {
+    --kopf: 54px;
+    --leiste: 56px;
+    --anker: calc(var(--kopf) + var(--leiste) + 12px);
+  }
+}
 
 body {
   margin: 0;
@@ -180,7 +193,7 @@ a { color: var(--ruecklauf-hell); }
 @media (max-width: 940px) {
   .kopf {
     top: 0; left: 0; right: 0; transform: none; max-width: none;
-    height: 54px; padding: 0 20px; gap: 0; justify-content: space-between;
+    height: var(--kopf); padding: 0 20px; gap: 0; justify-content: space-between;
     border: 0; border-bottom: 1px solid var(--linie); border-radius: 0;
     background: var(--grund);
     box-shadow: none;
@@ -346,15 +359,14 @@ a { color: var(--ruecklauf-hell); }
 
 /* Der Abstand zwischen den Feldern ist die Linie. */
 .gitter {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  --spalten: 4;
+  display: grid; grid-template-columns: repeat(var(--spalten), 1fr); gap: 1px;
   background: var(--linie); border: 1px solid var(--linie);
   border-radius: var(--radius); overflow: hidden;
 }
-@media (max-width: 980px) { .gitter { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 560px) { .gitter { grid-template-columns: 1fr; } }
-.gitter.drei { grid-template-columns: repeat(3, 1fr); }
-@media (max-width: 860px) { .gitter.drei { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 560px) { .gitter.drei { grid-template-columns: 1fr; } }
+.gitter.drei { --spalten: 3; }
+@media (max-width: 980px) { .gitter { --spalten: 2; } }
+@media (max-width: 560px) { .gitter { --spalten: 1; } }
 
 .feld {
   display: flex; flex-direction: column; background: var(--grund);
@@ -384,10 +396,12 @@ a { color: var(--ruecklauf-hell); }
   font-size: 14px; line-height: 1.6; color: var(--gedaempft);
 }
 .zwei-tafeln { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 22px; }
-@media (max-width: 860px) { .zwei-tafeln { grid-template-columns: 1fr; } }
+@media (max-width: 860px) {
+  .zwei-tafeln { grid-template-columns: 1fr; }
+  .zwei-spalten { grid-template-columns: 1fr; gap: 8px; }
+}
 
 .zwei-spalten { display: grid; grid-template-columns: 1.18fr 1fr; gap: 48px; }
-@media (max-width: 860px) { .zwei-spalten { grid-template-columns: 1fr; gap: 8px; } }
 .zwei-spalten h4 { margin: 0 0 4px; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
 
 .tabelle { width: 100%; border-collapse: collapse; margin: 26px 0 8px; font-size: 14.5px; }
@@ -473,17 +487,6 @@ a { color: var(--ruecklauf-hell); }
 }
 @keyframes tippen { 0%, 100% { transform: translateY(-3px); } 50% { transform: translateY(3px); } }
 
-.abschluss {
-  position: relative; overflow: hidden; text-align: center;
-  padding: 96px 32px; margin: 40px 0 96px;
-  border: 1px solid var(--linie-stark); border-radius: 22px;
-  background: radial-gradient(ellipse 70% 120% at 50% 120%, rgba(226, 84, 58, 0.18), transparent 62%), var(--flaeche);
-}
-.abschluss .marke-zeile { justify-content: center; }
-.abschluss .marke-zeile::before { display: none; }
-.abschluss h2 { margin-bottom: 14px; }
-.abschluss .blei { margin: 0 auto 30px; max-width: 520px; }
-.abschluss .tasten { justify-content: center; }
 
 /* --- Textseiten --------------------------------------------------------- */
 .text {
@@ -495,17 +498,22 @@ a { color: var(--ruecklauf-hell); }
 @media (max-width: 1240px) { .text { grid-template-columns: 200px minmax(0, 1fr); gap: 40px; } }
 /* Auf schmalen Geräten stehen Kopfzeile und Leiste fest übereinander; der
    Platz dafür kommt aus dem Abstand oben. */
-@media (max-width: 940px) { .text { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 110px; } }
+@media (max-width: 940px) {
+  .text {
+    grid-template-columns: minmax(0, 1fr); gap: 0;
+    padding-top: calc(var(--kopf) + var(--leiste));
+  }
+}
 
 /* Seitenbaum. Breite Fenster bekommen die Spalte, schmale eine waagerechte
    Leiste über dem Text — ohne Aufklappen, damit nichts von JavaScript abhängt. */
-.baum { position: sticky; top: 104px; }
+.baum { position: sticky; top: calc(var(--kopf) + 29px); }
 .baum-inhalt { display: flex; flex-direction: column; }
 /* Die Leiste der Startseite gibt es nur dort, wo die Reiter fehlen. */
 .baum.nur-schmal { display: none; }
 @media (max-width: 940px) {
   .baum.nur-schmal { display: block; }
-  .start { padding-top: 110px; }
+  .start { padding-top: calc(var(--kopf) + var(--leiste)); }
   .held { padding-top: 24px; }
 }
 .baum .gruppe {
@@ -534,14 +542,13 @@ a { color: var(--ruecklauf-hell); }
      Safari beim Schwungscrollen nicht mit — die Leiste blieb dann auf halbem
      Weg stehen. Fest verankert fährt sie zusammen mit der Kopfzeile. */
   .baum {
-    position: fixed; top: 54px; left: 0; right: 0; z-index: 30;
-    height: 56px; margin: 0; padding: 10px 20px;
+    position: fixed; top: var(--kopf); left: 0; right: 0; z-index: 30;
+    height: var(--leiste); padding: 10px 20px;
     background: var(--grund);
     border-bottom: 1px solid var(--linie);
-    transform: translateY(0);
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  html.kopf-weg .baum { transform: translateY(-54px); }
+  html.kopf-weg .baum { transform: translateY(calc(-1 * var(--kopf))); }
   /* Die Ränder laufen aus, statt hart abzuschneiden — so sieht man, dass die
      Leiste weitergeht, und ein halber Reiter wirkt nicht wie ein Fehler. */
   .baum-inhalt {
@@ -579,13 +586,13 @@ a { color: var(--ruecklauf-hell); }
   /* Die Höhe rechnet mit der ungünstigeren Lage — Leiste unter der Kopfzeile.
      Sonst wird der letzte Eintrag abgeschnitten, wenn die Kopfzeile steht. */
   html.baum-offen .baum {
-    height: auto; max-height: calc(100svh - 54px); padding-bottom: 16px;
+    height: auto; max-height: calc(100svh - var(--kopf)); padding-bottom: 16px;
   }
   html.baum-offen .baum-inhalt {
     flex-direction: column; gap: 2px;
     overflow-x: hidden; overflow-y: auto;
     overscroll-behavior: contain;
-    max-height: calc(100svh - 82px);
+    max-height: calc(100svh - var(--kopf) - 28px);
   }
   html.baum-offen .baum .gruppe {
     display: block; margin: 16px 0 6px; padding-left: 4px;
@@ -597,7 +604,7 @@ a { color: var(--ruecklauf-hell); }
 }
 
 .inhalt {
-  position: sticky; top: 104px; max-height: calc(100vh - 140px);
+  position: sticky; top: calc(var(--kopf) + 29px); max-height: calc(100vh - 140px);
   overflow-y: auto; overscroll-behavior: contain;
   padding-right: 8px; border-left: 1px solid var(--linie);
 }
@@ -615,7 +622,6 @@ a { color: var(--ruecklauf-hell); }
 }
 .inhalt a:hover { color: var(--text); }
 .inhalt a.hier { color: var(--vorlauf-hell); border-left-color: var(--vorlauf); }
-.inhalt .tief { padding-left: 28px; font-size: 13px; color: var(--leise); }
 
 .aufsatz { min-width: 0; max-width: 780px; }
 .aufsatz > *:first-child { margin-top: 0; }
@@ -625,7 +631,6 @@ a { color: var(--ruecklauf-hell); }
 .teil + .teil { margin-top: 120px; }
 .teil > h1 {
   position: relative; padding-top: 40px;
-  scroll-margin-top: 96px;
 }
 .teil > h1::before {
   content: ""; position: absolute; top: 0; left: 0;

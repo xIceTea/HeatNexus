@@ -30,11 +30,11 @@ so im Repo lesbar und werden hier nur zusammengesetzt.
 {% include VORLAGEN.md %}
 </section>
 
-<section id="datenpunkte" class="teil gross" markdown="1">
+<section id="datenpunkte" class="teil" markdown="1">
 {% include DATAPOINTS.md %}
 </section>
 
-<section id="aufzaehlungen" class="teil gross" markdown="1">
+<section id="aufzaehlungen" class="teil" markdown="1">
 {% include ENUMS.md %}
 </section>
 

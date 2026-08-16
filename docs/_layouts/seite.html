@@ -47,7 +47,13 @@ einer Änderung tagelang die alte Datei aus.
   <a class="taste voll klein" href="https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&amp;repository=HeatNexus&amp;category=integration">In HACS öffnen</a>
 </header>
 
-{% if page.start %}
+{% comment %}
+Die Verzweigung hängt an `page.anleitung`, nicht am Umkehrschluss „nicht die
+Startseite": Der Baum führt fest verdrahtete Anker der Anleitung, und die
+rechte Spalte lebt von deren Abschnitten. Eine dritte Seite bekäme sonst
+stillschweigend die falsche Navigation.
+{% endcomment %}
+{% unless page.anleitung %}
   {% comment %}
   Auf schmalen Geräten sind die Reiter der Kopfzeile ausgeblendet. Ohne diese
   Leiste hätte die Startseite dort keinen Weg in die Anleitung.
@@ -68,7 +74,7 @@ einer Änderung tagelang die alte Datei aus.
     </article>
     <aside class="inhalt" id="wegweiser" aria-label="In diesem Abschnitt"></aside>
   </main>
-{% endif %}
+{% endunless %}
 
 <a class="hoch" href="#inhalt" title="Nach oben" aria-label="Nach oben">
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
