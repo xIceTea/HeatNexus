@@ -12,12 +12,12 @@ Heizungen in Home Assistant – lokal, vollständig, ohne Cloud.
 
 ## Erste Schritte
 
-**[→ Loslegen mit HeatNexus](https://xicetea.github.io/HeatNexus/ANLEITUNG#einrichtung)**
+**[→ Loslegen mit HeatNexus](https://xicetea.github.io/HeatNexus/)**
 
 Alle Anleitungen stehen auf der Projektseite: Einrichtung, Bedienung,
 Fehlersuche und die vollständige Referenz auf einer Seite.
 
-[Projektseite](https://xicetea.github.io/HeatNexus/) ·
+[Einrichtung](https://xicetea.github.io/HeatNexus/ANLEITUNG#einrichtung) ·
 [Passt das zu meiner Anlage?](https://xicetea.github.io/HeatNexus/#anlagen) ·
 [Fehlersuche](https://xicetea.github.io/HeatNexus/ANLEITUNG#fehlersuche) ·
 [Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte)
