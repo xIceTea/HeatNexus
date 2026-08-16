@@ -7,5 +7,5 @@ contact_links:
     url: https://github.com/xIceTea/HeatNexus/discussions/new?category=ideas
     about: Wünsche und Vorschläge, bevor daraus eine Aufgabe wird.
   - name: Anlagen-Probe ausführen
-    url: https://github.com/xIceTea/HeatNexus/blob/main/docs/API.md
+    url: https://xicetea.github.io/HeatNexus/ANLEITUNG#geraeteschnittstelle
     about: Wie der Abzug entsteht, den fast jede Meldung braucht.

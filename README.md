@@ -24,11 +24,11 @@ einschließlich Info-, Betreiber- und Serviceebene.
   „lädt“ und „entlädt“, Speicher und Heizkörper färben sich nach ihren Fühlern.
   Beispielwerte.*
 
-[![Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](docs/OBERFLAECHE.md)
+[![Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche)
 
 *Die eigene Oberfläche in der Seitenleiste: Übersicht, anliegende Störung,
   Steuerung mit laufender Warmwasserladung, Wartung, Zeitprogramme. Ausführlich
-  in [docs/OBERFLAECHE.md](docs/OBERFLAECHE.md) – Beispielwerte,
+  in [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) – Beispielwerte,
   aufgenommen aus der ausgelieferten Oberfläche.*
 
 ## Unterstützte Geräte
@@ -56,7 +56,7 @@ Zeitprogramme dieses Anlagenteils sind an echter Hardware noch nicht
 ausprobiert.
 
 Welcher Funktionstyp was ist und welche Datenpunkte er führt, steht vollständig
-in [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md).
+in [Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte).
 
 Alles Weitere wird über die allgemeine Erkennung eingebunden: Was die Steuerung
 liefert, erscheint auch in Home Assistant. Rückmeldungen zu nicht gelisteten
@@ -240,7 +240,7 @@ data:
 
 Neben dem Dashboard bringt HeatNexus eine eigene Seite in der Seitenleiste mit.
 Sie zeigt die Anlage als Ganzes statt als Kachelsammlung – im Bild ganz oben,
-Reiter für Reiter in [docs/OBERFLAECHE.md](docs/OBERFLAECHE.md):
+Reiter für Reiter in [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche):
 
 - **Anlagenschaubild** mit Vor- und Rücklauf, den Live-Werten und Pumpen, die
   sich drehen, solange sie laufen.
@@ -344,17 +344,17 @@ an keiner Formulierung.
 
 ## Dokumentation
 
-| Datei | Inhalt |
+| Seite | Inhalt |
 |---|---|
-| [`docs/OBERFLAECHE.md`](docs/OBERFLAECHE.md) | die eigene Oberfläche, Reiter für Reiter |
-| [`docs/KARTE.md`](docs/KARTE.md) | das Anlagenschaubild als Lovelace-Karte |
-| [`docs/API.md`](docs/API.md) | Geräte-API und OID-Aufbau |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Aufbau der Integration |
-| [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md) | alle Datenpunkte je Funktionstyp, mit Bedienebene |
-| [`docs/ENUMS.md`](docs/ENUMS.md) | alle Auswahlwerte mit ihrer Bedeutung |
+| [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) | die eigene Oberfläche, Reiter für Reiter |
+| [Schaubild als Karte](https://xicetea.github.io/HeatNexus/ANLEITUNG#karte) | das Anlagenschaubild als Lovelace-Karte |
+| [Geräteschnittstelle](https://xicetea.github.io/HeatNexus/ANLEITUNG#geraeteschnittstelle) | Geräte-API und OID-Aufbau |
+| [Aufbau](https://xicetea.github.io/HeatNexus/ANLEITUNG#aufbau) | Aufbau der Integration |
+| [Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte) | alle Datenpunkte je Funktionstyp, mit Bedienebene |
+| [Auswahlwerte](https://xicetea.github.io/HeatNexus/ANLEITUNG#aufzaehlungen) | alle Auswahlwerte mit ihrer Bedeutung |
 | [`CHANGELOG.md`](CHANGELOG.md) | Versionshistorie |
 
-`DATAPOINTS.md` und `ENUMS.md` werden aus der mitgelieferten Geräte-Datenbank
+Datenpunkte und Auswahlwerte werden aus der mitgelieferten Geräte-Datenbank
 erzeugt (`python tools/build_datenpunkte_doku.py`) und von einem Test gegen sie
 geprüft – sie können also nicht veralten.
 

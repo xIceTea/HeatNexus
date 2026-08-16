@@ -1,19 +1,6 @@
 # Architektur
 
-```
-                    ┌────────────────────────────────────────────┐
-   Heizung (LAN) ──►│ client.py   Discovery · Metadaten · Polling │
-                    │             erzeugt Descriptor-Liste        │
-                    └───────────────┬────────────────────────────┘
-                                    │ coordinator.data
-                    ┌───────────────▼────────────────────────────┐
-                    │ __init__.py  DataUpdateCoordinator, Cache,  │
-                    │              Dienste                        │
-                    └───────────────┬────────────────────────────┘
-                                    │ filtert nach descriptor["type"]
-   climate · sensor · binary_sensor · select · number · switch · button · time · date
-                    (alle über entity.py / WindhagerEntity)
-```
+![Aufbau: die Heizung liefert über HTTP an client.py, das die Descriptor-Liste erzeugt; __init__.py führt Coordinator, Cache und Dienste; die Plattformen filtern die Liste nach dem Feld type](assets/aufbau.svg)
 
 ## Descriptor-Liste als zentrale Schnittstelle
 
@@ -167,8 +154,8 @@ Kesselleistung, die Schichtung des Puffers zwischen seinen beiden Fühlern.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="../assets/anlagenschema_beispiel.svg">
-    <img src="../assets/anlagenschema_beispiel_hell.svg" alt="Anlagenschaubild als Standbild" width="760">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_beispiel.svg">
+    <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_beispiel_hell.svg" alt="Anlagenschaubild als Standbild" width="760">
   </picture>
 </p>
 

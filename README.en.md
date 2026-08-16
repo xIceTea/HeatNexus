@@ -27,11 +27,11 @@ decide whether the integration fits before you install it.
   return show the direction, the buffer reports “charging” and “discharging”,
   tanks and radiators take the colour of their sensors. Example values.*
 
-[![Tour of the panel: overview, fault, controls, maintenance, time programmes](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](docs/OBERFLAECHE.md)
+[![Tour of the panel: overview, fault, controls, maintenance, time programmes](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche)
 
 *The integration's own page in the sidebar: overview, an active fault,
   controls with a hot-water charge running, maintenance, time programmes. In
-  detail in [docs/OBERFLAECHE.md](docs/OBERFLAECHE.md) (German) –
+  detail in [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) (German) –
   example values, recorded from the shipped interface.*
 
 ## Supported hardware
@@ -58,7 +58,7 @@ What is not verified is control: switches, setpoints and time programs of that
 component have not been exercised on real hardware.
 
 Which function type is what and which datapoints it carries is documented in
-full in [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md).
+full in [Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte).
 
 Everything else is picked up by the generic discovery: whatever the controller
 reports shows up in Home Assistant. Reports about hardware not listed here are
@@ -297,15 +297,15 @@ particular wording.
 
 ## Documentation
 
-| File | Contents |
+| Page | Contents |
 |---|---|
-| [`docs/API.md`](docs/API.md) | device API and OID structure |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | how the integration is built |
-| [`docs/DATAPOINTS.md`](docs/DATAPOINTS.md) | every datapoint per function type, with its level |
-| [`docs/ENUMS.md`](docs/ENUMS.md) | every enumeration value and its meaning |
+| [Geräteschnittstelle](https://xicetea.github.io/HeatNexus/ANLEITUNG#geraeteschnittstelle) | device API and OID structure |
+| [Aufbau](https://xicetea.github.io/HeatNexus/ANLEITUNG#aufbau) | how the integration is built |
+| [Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte) | every datapoint per function type, with its level |
+| [Auswahlwerte](https://xicetea.github.io/HeatNexus/ANLEITUNG#aufzaehlungen) | every enumeration value and its meaning |
 | [`CHANGELOG.md`](CHANGELOG.md) | version history |
 
-`DATAPOINTS.md` and `ENUMS.md` are generated from the bundled device database
+Datapoints and enumerations are generated from the bundled device database
 (`python tools/build_datenpunkte_doku.py`) and checked against it by a test — so
 they cannot go stale.
 

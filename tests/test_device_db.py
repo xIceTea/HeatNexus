@@ -111,7 +111,7 @@ def test_layer_entries_are_gn_mn(device_db):
 # ---------------------------------------------------------------------------
 # Erzeugte Referenz
 #
-# `docs/DATAPOINTS.md` und `docs/ENUMS.md` werden aus `device_db.json` erzeugt.
+# `docs/_includes/DATAPOINTS.md` und `docs/_includes/ENUMS.md` werden aus `device_db.json` erzeugt.
 # Ohne diesen Test fällt niemandem auf, dass sie nach einem neuen Datenbestand
 # veraltet sind – und eine veraltete Referenz ist schlimmer als keine.
 # ---------------------------------------------------------------------------

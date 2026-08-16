@@ -50,7 +50,7 @@ _LOGGER = logging.getLogger(__name__)
 # dazwischen – hier bestimmt der Funktionstyp die Reihenfolge.
 #
 # Welche Zahl welche Funktion ist, steht belegt in `schema.ART_JE_FCT` und in
-# `docs/DATAPOINTS.md`. **Nicht nach Namen raten** – die Zuordnung stammt aus
+# `docs/_includes/DATAPOINTS.md`. **Nicht nach Namen raten** – die Zuordnung stammt aus
 # der Parameterliste des Herstellers. Typen ohne Beleg stehen nicht in der
 # Liste und landen hinten.
 FCT_RANG: dict[int, int] = {

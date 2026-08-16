@@ -10,7 +10,7 @@ davon tatsächlich angelegt werden, entscheidet die Anlage: Nicht vorhandene
 werden entfernt, schreibgeschützte nur lesend angelegt.
 
 Eine OID ist `<gn>/<mn>`; die vollständige Adresse lautet
-`/1/<nodeId>/<fctId>/<gn>/<mn>/0`. Siehe [API.md](API.md).
+`/1/<nodeId>/<fctId>/<gn>/<mn>/0`. Siehe [Geräteschnittstelle](#geraeteschnittstelle).
 
 ## Funktionstypen
 

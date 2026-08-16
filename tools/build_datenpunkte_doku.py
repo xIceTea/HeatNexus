@@ -29,8 +29,8 @@ import sys
 WURZEL = Path(__file__).resolve().parent.parent
 DB = WURZEL / "custom_components" / "heatnexus" / "device_db.json"
 FEHLERTEXTE = WURZEL / "custom_components" / "heatnexus" / "error_texts_de.json"
-ZIEL_DATENPUNKTE = WURZEL / "docs" / "DATAPOINTS.md"
-ZIEL_ENUMS = WURZEL / "docs" / "ENUMS.md"
+ZIEL_DATENPUNKTE = WURZEL / "docs" / "_includes" / "DATAPOINTS.md"
+ZIEL_ENUMS = WURZEL / "docs" / "_includes" / "ENUMS.md"
 
 # Was ein Funktionstyp ist, steht in keiner Datei – die Anlage liefert nur die
 # Zahl. Die Zuordnung ist aus der Parameterliste des Herstellers abgeleitet:
@@ -99,7 +99,7 @@ def datenpunkte(db: dict) -> str:
         "werden entfernt, schreibgeschützte nur lesend angelegt.",
         "",
         "Eine OID ist `<gn>/<mn>`; die vollständige Adresse lautet",
-        "`/1/<nodeId>/<fctId>/<gn>/<mn>/0`. Siehe [API.md](API.md).",
+        "`/1/<nodeId>/<fctId>/<gn>/<mn>/0`. Siehe [Geräteschnittstelle](#geraeteschnittstelle).",
         "",
         "## Funktionstypen",
         "",

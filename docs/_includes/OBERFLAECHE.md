@@ -4,7 +4,7 @@ HeatNexus bringt eine eigene Seite in der Seitenleiste von Home Assistant mit.
 Diese Seite zeigt, was darin steht — bevor man die Integration installiert.
 
 <p align="center">
-  <img src="../assets/panel_rundgang.gif" alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme" width="900">
+  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif" alt="Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme" width="900">
 </p>
 
 <p align="center">
@@ -26,6 +26,8 @@ die Bänder auf Vor- und Rücklauf zeigen die Richtung. Im Rundgang läuft neben
 Kessel, Puffer und Heizkreis auch die Zirkulation — an den senkrechten
 Stichleitungen sieht man, wohin die Wärme gerade geht.
 
+<a id="stoerung"></a>
+
 **Störung.** Liegt eine Meldung an, wechselt der Balken oben von „Anlage in
 Ordnung" auf „Störung anliegend", und die Störungskarte nennt den Klartext des
 Herstellers samt Abhilfe. Verschwindet die Meldung an der Anlage, verschwindet
@@ -46,6 +48,8 @@ Auftrag angenommen hat.
 
 **Wartung.** Restlaufzeiten bis Ascheentleerung, Hauptreinigung und Wartung,
 der Brennstoff, die Zählerstände.
+
+<a id="zeitprogramme"></a>
 
 **Zeitprogramme.** Je Programm ein Wochenraster: Blöcke wie „Mo–Fr" und
 „Sa, So", darin die Schaltzeiten als Balken, darunter als Text. Bearbeitet wird

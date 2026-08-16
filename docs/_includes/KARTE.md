@@ -1,5 +1,11 @@
 # Anlagenschaubild als Karte
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif"
+       alt="Anlagenschaubild in Bewegung: der Kessel startet, der Puffer lädt, Heizkreis und Warmwasser werden warm"
+       width="900">
+</p>
+
 Das Anlagenschaubild gibt es nicht nur in der mitgelieferten Oberfläche,
 sondern auch als Lovelace-Karte. Damit lässt es sich in ein selbst gebautes
 Dashboard hängen – mit Werten, laufenden Pumpen und Glutbett wie in der
