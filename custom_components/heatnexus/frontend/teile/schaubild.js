@@ -8,7 +8,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { farbenUmstellen, schaubildAdresse } from "../ordnung.js";
+import { farbenUmstellen, schaubildAdresse, schriftmass } from "../ordnung.js";
 
 export const SchaubildMixin = (Basis) =>
   class extends Basis {
@@ -26,9 +26,13 @@ export const SchaubildMixin = (Basis) =>
     return schaubildAdresse(farbenUmstellen(anlage.schema_svg, farben[this._farbsatzGilt()]));
   }
 
-  /** Wie groß die Marken im Schaubild stehen. Die Karte überschreibt das. */
+  /**
+   * Wie groß die Marken im Schaubild stehen. Die Karte überschreibt das.
+   * Die Oberfläche zeigt das Bild über die volle Breite, dort tragen die
+   * Werte die größere Stufe.
+   */
   _schriftmass() {
-    return 1;
+    return schriftmass("gross");
   }
 
   /** Der Satz, der gerade gilt – `auto` folgt dem Erscheinungsbild. */
