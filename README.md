@@ -10,11 +10,17 @@
 
 Heizungen in Home Assistant – lokal, vollständig, ohne Cloud.
 
-**Projektseite mit allen Anleitungen: [xicetea.github.io/HeatNexus](https://xicetea.github.io/HeatNexus/)**
+## Erste Schritte
 
-Die Anlage wird direkt über ihre HTTP-API im Netzwerk gelesen und gesteuert.
-Abgedeckt sind Kessel, Heizkreise, Puffer, Warmwasser und Zirkulation,
-einschließlich Info-, Betreiber- und Serviceebene.
+**[→ Loslegen mit HeatNexus](https://xicetea.github.io/HeatNexus/ANLEITUNG#einrichtung)**
+
+Alle Anleitungen stehen auf der Projektseite: Einrichtung, Bedienung,
+Fehlersuche und die vollständige Referenz auf einer Seite.
+
+[Projektseite](https://xicetea.github.io/HeatNexus/) ·
+[Passt das zu meiner Anlage?](https://xicetea.github.io/HeatNexus/#anlagen) ·
+[Fehlersuche](https://xicetea.github.io/HeatNexus/ANLEITUNG#fehlersuche) ·
+[Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte)
 
 ![Anlagenschaubild in Bewegung: Kessel startet, Puffer lädt, Heizkreis und Warmwasser werden warm](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif)
 
@@ -31,19 +37,32 @@ einschließlich Info-, Betreiber- und Serviceebene.
   in [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) – Beispielwerte,
   aufgenommen aus der ausgelieferten Oberfläche.*
 
-## Unterstützte Geräte
+## Für welche Anlagen
 
-| Anlagenteil | Stand |
-|---|---|
-| PuroWIN – Hackgut | an der Anlage geprüft |
-| UML / UMLZ Heizkreismodul | an der Anlage geprüft |
-| B-PLMi Pufferlademodul | an der Anlage geprüft |
-| ZSP Pumpen- und Relaismodul | an der Anlage geprüft |
-| BioWIN, BioWIN 2 – Pellets | an einer fremden Anlage geprüft |
-| Wärmepumpe, E-Heizung | eingebunden, ungeprüft |
-| Gas- und Ölkessel | eingebunden, ungeprüft |
-| Solar, Kaskade, Umschaltung | eingebunden, ungeprüft |
-| Infinity PLUS Heizkreis und Warmwasser | eingebunden, ungeprüft |
+> **HeatNexus spricht die Regelung von Windhager an** – nicht ein einzelnes
+> Kesselmodell. Voraussetzung ist ein **InfoWIN Touch** mit Netzwerkanschluss,
+> erreichbar im eigenen Netz. Gelesen und gesteuert wird direkt über dessen
+> HTTP-Schnittstelle: Kessel, Heizkreise, Puffer, Warmwasser und Zirkulation,
+> einschließlich Info-, Betreiber- und Serviceebene.
+>
+> **Der Test dauert eine halbe Minute:** `http://<IP der Anlage>` im Browser
+> öffnen. Kommt die Weboberfläche des InfoWIN Touch, ist der Weg frei.
+
+**Geprüft heißt geprüft.** Die Tabelle unterscheidet drei Stufen — was an
+echter Hardware läuft, was ein fremder Abzug belegt, und was bisher nur in der
+Datenbank steht:
+
+| | Anlagenteil | Stand |
+|---|---|---|
+| 🟢 | PuroWIN – Hackgut | an der Anlage geprüft |
+| 🟢 | UML / UMLZ Heizkreismodul | an der Anlage geprüft |
+| 🟢 | B-PLMi Pufferlademodul | an der Anlage geprüft |
+| 🟢 | ZSP Pumpen- und Relaismodul | an der Anlage geprüft |
+| 🔵 | BioWIN, BioWIN 2 – Pellets | an einer fremden Anlage geprüft |
+| ⚪ | Wärmepumpe, E-Heizung | eingebunden, ungeprüft |
+| ⚪ | Gas- und Ölkessel | eingebunden, ungeprüft |
+| ⚪ | Solar, Kaskade, Umschaltung | eingebunden, ungeprüft |
+| ⚪ | Infinity PLUS Heizkreis und Warmwasser | eingebunden, ungeprüft |
 
 „Eingebunden" heißt: Die Funktion ist in der mitgelieferten Datenbank
 beschrieben und wird mit Namen, Einheiten und Auswahlwerten erkannt – nur stand

@@ -10,6 +10,27 @@
 
 Heating systems in Home Assistant — local, complete, no cloud.
 
+## Getting started
+
+**[→ Get started with HeatNexus](https://xicetea.github.io/HeatNexus/ANLEITUNG#einrichtung)**
+
+Every guide lives on the project site: setup, operation, troubleshooting and
+the full reference, all on one page. German only — see the note below.
+
+[Project site](https://xicetea.github.io/HeatNexus/) ·
+[Will it work with my system?](https://xicetea.github.io/HeatNexus/#anlagen) ·
+[Troubleshooting](https://xicetea.github.io/HeatNexus/ANLEITUNG#fehlersuche) ·
+[Datapoints](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte)
+
+## Which systems
+
+> **HeatNexus talks to the Windhager control system** — not to one specific
+> boiler model. It needs an **InfoWIN Touch** with a network connection,
+> reachable on your own network.
+>
+> **The test takes half a minute:** open `http://<system IP>` in a browser. If
+> the InfoWIN Touch web interface appears, you are good to go.
+
 The system is read and controlled directly over its HTTP API on your network.
 Boilers, heating circuits, buffer tanks, domestic hot water and circulation are
 covered, including the info, operator and service levels.
