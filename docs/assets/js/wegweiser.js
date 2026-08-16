@@ -40,18 +40,37 @@
   function nachfuehren(sofort) {
     if (!leiste || window.innerWidth > SCHMAL) return;
     if (wurzel.classList.contains("baum-offen")) return;
+    // Im Spaltensatz stehen alle Einträge links; dort ergäbe die Rechnung Null.
+    if (getComputedStyle(leiste).flexDirection !== "row") return;
     if (!sofort && Date.now() - letzteHand < 1500) return;
     var weg = leiste.querySelector('a[aria-current="true"]');
     if (!weg) return;
     var links = weg.offsetLeft - leiste.scrollLeft;
     if (sofort || links < 12 || links + weg.offsetWidth > leiste.clientWidth - 12) {
-      leiste.scrollLeft = weg.offsetLeft - leiste.clientWidth / 2 + weg.offsetWidth / 2;
+      var ziel = weg.offsetLeft - leiste.clientWidth / 2 + weg.offsetWidth / 2;
+      // Nach einem Sprung oder dem Zuklappen sofort, beim stillen Nachziehen weich.
+      if (leiste.scrollTo) leiste.scrollTo({ left: ziel, behavior: sofort ? "auto" : "smooth" });
+      else leiste.scrollLeft = ziel;
     }
   }
 
   function klappen(auf) {
+    // Der Bezugspunkt muss sofort stehen, sonst hält der nächste Scroll-Takt
+    // das eben geöffnete Menü für weggescrollt und schließt es wieder.
+    offenBei = window.scrollY || 0;
     wurzel.classList.toggle("baum-offen", auf);
-    if (auf) offenBei = window.scrollY || 0;
+    if (!leiste) return;
+    // Der Wechsel zwischen Zeile und Spalte setzt die Rollposition zurück;
+    // der markierte Eintrag muss danach wieder in Sicht.
+    requestAnimationFrame(function () {
+      var weg = leiste.querySelector('a[aria-current="true"]');
+      if (auf) {
+        if (weg) leiste.scrollTop = Math.max(0, weg.offsetTop - leiste.clientHeight / 2);
+      } else {
+        nachfuehren(true);
+        setTimeout(function () { nachfuehren(true); }, 90);
+      }
+    });
   }
 
   if (leiste) {
