@@ -186,7 +186,6 @@ a { color: var(--ruecklauf-hell); }
   /* Beim Abwärtslesen räumt die Kopfzeile das Feld; die Abschnittsleiste rückt
      nach. Ein Stück zurückscrollen holt sie wieder. */
   html.kopf-weg .kopf { transform: translateY(-100%); }
-  html.kopf-weg .baum { top: 0; }
 }
 
 /* Zurück nach oben. Ohne JavaScript bleibt der Knopf verborgen — der Sprung
@@ -393,6 +392,20 @@ a { color: var(--ruecklauf-hell); }
 .tabelle td { padding: 15px 14px 15px 0; border-bottom: 1px solid var(--linie); vertical-align: top; }
 .tabelle td:first-child { font-weight: 600; }
 .tabelle td:last-child { padding-right: 0; white-space: nowrap; }
+/* Drei Spalten passen auf ein Telefon nicht. Statt zu quetschen wird aus
+   jeder Zeile ein Block: Baureihe, Brennstoff, Stand untereinander. */
+@media (max-width: 620px) {
+  .tabelle, .tabelle tbody, .tabelle tr, .tabelle td { display: block; width: 100%; }
+  .tabelle thead { display: none; }
+  .tabelle { margin-top: 14px; }
+  .tabelle tr { padding: 14px 0; border-bottom: 1px solid var(--linie); }
+  .tabelle tr:last-child { border-bottom: 0; }
+  .tabelle td { padding: 0; border: 0; }
+  .tabelle td:first-child { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; }
+  .tabelle td + td { margin-top: 4px; color: var(--gedaempft); font-size: 14px; }
+  .tabelle td:last-child { margin-top: 8px; white-space: normal; }
+}
+
 .stand { display: inline-flex; align-items: center; gap: 8px; font: 400 12.5px/1 var(--mono); color: var(--gedaempft); }
 .stand::before { content: ""; width: 6px; height: 6px; border-radius: 50%; flex: none; }
 .stand.geprueft::before { background: var(--gruen); }
@@ -463,10 +476,9 @@ a { color: var(--ruecklauf-hell); }
   gap: 48px; align-items: start;
 }
 @media (max-width: 1240px) { .text { grid-template-columns: 200px minmax(0, 1fr); gap: 40px; } }
-/* Die Leiste schließt oben direkt an die Kopfzeile an — sie beginnt genau
-   dort, wo die Kopfzeile aufhört, und bleibt beim Scrollen an derselben
-   Stelle stehen. */
-@media (max-width: 940px) { .text { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 54px; } }
+/* Auf schmalen Geräten stehen Kopfzeile und Leiste fest übereinander; der
+   Platz dafür kommt aus dem Abstand oben. */
+@media (max-width: 940px) { .text { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 110px; } }
 
 /* Seitenbaum. Breite Fenster bekommen die Spalte, schmale eine waagerechte
    Leiste über dem Text — ohne Aufklappen, damit nichts von JavaScript abhängt. */
@@ -475,9 +487,9 @@ a { color: var(--ruecklauf-hell); }
 /* Die Leiste der Startseite gibt es nur dort, wo die Reiter fehlen. */
 .baum.nur-schmal { display: none; }
 @media (max-width: 940px) {
-  .baum.nur-schmal { display: block; margin: 0; padding: 11px 20px; }
-  .start { padding-top: 54px; }
-  .held { padding-top: 40px; }
+  .baum.nur-schmal { display: block; }
+  .start { padding-top: 110px; }
+  .held { padding-top: 24px; }
 }
 .baum .gruppe {
   margin: 22px 0 8px; padding-left: 14px;
@@ -501,15 +513,18 @@ a { color: var(--ruecklauf-hell); }
   border-left-color: var(--vorlauf); background: rgba(226, 84, 58, 0.07);
 }
 @media (max-width: 940px) {
-  /* Ohne Spalte und ohne Reiter in der Kopfzeile ist diese Leiste die einzige
-     Orientierung. Sie bleibt deshalb unter der Kopfzeile stehen. */
+  /* Fest statt klebend: Ein `sticky`-Element, dessen `top` sich ändert, zieht
+     Safari beim Schwungscrollen nicht mit — die Leiste blieb dann auf halbem
+     Weg stehen. Fest verankert fährt sie zusammen mit der Kopfzeile. */
   .baum {
-    position: sticky; top: 54px; z-index: 30;
-    transition: top 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-    margin: 0 -28px 32px; padding: 11px 28px;
+    position: fixed; top: 54px; left: 0; right: 0; z-index: 30;
+    height: 56px; margin: 0; padding: 10px 20px;
     background: var(--grund);
     border-bottom: 1px solid var(--linie);
+    transform: translateY(0);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   }
+  html.kopf-weg .baum { transform: translateY(-54px); }
   .baum-inhalt {
     flex-direction: row; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain;
     scrollbar-width: none;
@@ -529,11 +544,13 @@ a { color: var(--ruecklauf-hell); }
   }
   html.baum-offen .baum a[aria-current="true"]::after { transform: rotate(180deg); }
 
-  html.baum-offen .baum { padding-bottom: 14px; }
+  html.baum-offen .baum {
+    height: auto; max-height: calc(100svh - 54px); padding-bottom: 14px;
+  }
   html.baum-offen .baum-inhalt {
     flex-direction: column; gap: 2px;
     overflow-x: hidden; overflow-y: auto;
-    max-height: calc(100svh - 150px);
+    max-height: calc(100svh - 100px);
   }
   html.baum-offen .baum .gruppe {
     display: block; margin: 16px 0 6px; padding-left: 4px;

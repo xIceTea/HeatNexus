@@ -12,7 +12,7 @@
   // Trifft einer die gerade offene Seite, wird er markiert — sonst bliebe die
   // Startseite ohne Hinweis in der Kopfzeile.
   var seite = location.pathname.replace(/index\.html$/, "");
-  Array.prototype.forEach.call(document.querySelectorAll(".wege a"), function (a) {
+  Array.prototype.forEach.call(document.querySelectorAll(".wege a, .baum a"), function (a) {
     if ((a.getAttribute("href") || "").indexOf("#") !== -1) return;
     if (a.hostname !== location.hostname) return;
     if (a.pathname.replace(/index\.html$/, "") === seite) a.setAttribute("aria-current", "true");
