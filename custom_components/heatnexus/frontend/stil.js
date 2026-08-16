@@ -605,10 +605,10 @@ export const STIL = `
     width: clamp(18px, calc(var(--hn-einheit) * 28), 40px);
     aspect-ratio: 1; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(10, 14, 19, 0.9);
-    border: 1px solid var(--hn-linie);
-    /* Die stehende Pumpe soll als Pumpe lesbar bleiben. In der Linienfarbe
-       verschwand sie auf dunklem Grund und sah nach einem Fehler aus. */
+    /* Die stehende Pumpe soll als Pumpe lesbar bleiben. Auf der Leitung wirkte
+       die fast schwarze Scheibe wie ein Loch, nicht wie ein Bauteil. */
+    background: rgba(26, 32, 40, 0.92);
+    border: 1px solid color-mix(in srgb, var(--hn-gedaempft) 45%, transparent);
     color: var(--hn-gedaempft);
     transition: transform 0.5s ease, color 0.4s ease, border-color 0.4s ease,
       box-shadow 0.4s ease;
@@ -925,7 +925,18 @@ export const STIL = `
   .zp-meldung.fehler { color: #ff8a80; }
 
   .klickbar { cursor: pointer; }
-  .klickbar:hover { background: var(--hn-flaeche); }
+  /* Nur die Farbe, nicht die ganze Kurzschreibweise: Sonst verlöre das
+     Glutbett beim Überfahren seinen Verlauf. */
+  .klickbar:hover { background-color: var(--hn-flaeche); }
+  /* Die Teile des Schaubilds bringen ihre eigene Fläche mit. Die helle
+     Zeilenfarbe darüber ließ sie durchsichtig wirken. */
+  .schaubild .glut.klickbar:hover,
+  .schaubild .mischer.klickbar:hover { background-color: transparent; }
+  .schaubild .pumpe.klickbar:hover {
+    background-color: rgba(34, 42, 52, 0.96);
+    color: var(--hn-text);
+    border-color: color-mix(in srgb, var(--hn-akzent) 70%, transparent);
+  }
   .status-zeile.klickbar:hover { background: var(--hn-flaeche); border-radius: 8px; }
   .marke-wert.klickbar:hover { background: rgba(10, 14, 19, 0.92); }
   .klickbar:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 2px; }
