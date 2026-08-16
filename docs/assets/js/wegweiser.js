@@ -1,13 +1,16 @@
-// Führt beim Scrollen mit: markiert den Abschnitt in Kopfzeile und Seitenbaum
-// und füllt die rechte Spalte mit den Zwischenüberschriften des Abschnitts,
-// in dem man gerade liest.
+// Führt beim Scrollen mit: markiert den Abschnitt in Kopfzeile und Seitenbaum,
+// füllt die rechte Spalte mit den Zwischenüberschriften des offenen Abschnitts
+// und blendet den Knopf nach oben ein.
 (function () {
   "use strict";
 
   var GRENZE = 140; // Höhe der Kopfzeile plus etwas Luft
+  var SCHMAL = 940; // ab hier steht die Abschnittsleiste statt der Spalte
+  var wurzel = document.documentElement;
 
-  // Verweise ohne Sprungmarke zeigen auf eine eigene Seite. Trifft einer die
-  // gerade offene, wird er markiert — sonst bliebe die Startseite ohne Hinweis.
+  // ---- Verweise auf eigene Seiten ----------------------------------------
+  // Trifft einer die gerade offene Seite, wird er markiert — sonst bliebe die
+  // Startseite ohne Hinweis in der Kopfzeile.
   var seite = location.pathname.replace(/index\.html$/, "");
   Array.prototype.forEach.call(document.querySelectorAll(".wege a"), function (a) {
     if ((a.getAttribute("href") || "").indexOf("#") !== -1) return;
@@ -15,34 +18,56 @@
     if (a.pathname.replace(/index\.html$/, "") === seite) a.setAttribute("aria-current", "true");
   });
 
-  var aufsatz = document.querySelector(".aufsatz");
-  var kasten = document.getElementById("wegweiser");
-  if (!aufsatz) return;
+  // ---- Knopf nach oben und Kopfzeile -------------------------------------
+  var hochKnopf = document.querySelector(".hoch");
+  var vorher = window.scrollY || 0;
 
-  var teile = Array.prototype.slice.call(aufsatz.querySelectorAll(".teil"));
-  if (!teile.length) return;
+  function rand() {
+    var y = window.scrollY || 0;
+    if (hochKnopf) hochKnopf.classList.toggle("sichtbar", y > 700);
 
-  // Alle Verweise, die auf einen Abschnitt dieser Seite zeigen. Ein Punkt der
-  // Kopfzeile vertritt mehrere Abschnitte und trägt sie in `data-deckt`.
-  var verweise = {};
-  Array.prototype.forEach.call(document.querySelectorAll(".wege a, .baum a"), function (a) {
-    var deckt = a.getAttribute("data-deckt");
-    var marken = deckt ? deckt.split(/\s+/) : [(a.getAttribute("href") || "").split("#")[1]];
-    marken.forEach(function (marke) {
-      if (marke) (verweise[marke] = verweise[marke] || []).push(a);
-    });
-  });
-
-  var titel = document.createElement("h2");
-  titel.textContent = "In diesem Abschnitt";
-  var liste = document.createElement("ul");
-  if (kasten) {
-    kasten.appendChild(titel);
-    kasten.appendChild(liste);
+    // Die Kopfzeile weicht nur dort, wo sie Platz kostet.
+    if (window.innerWidth > SCHMAL) {
+      wurzel.classList.remove("kopf-weg");
+    } else if (y < 140) {
+      wurzel.classList.remove("kopf-weg");
+    } else if (y > vorher + 10) {
+      wurzel.classList.add("kopf-weg");
+    } else if (y < vorher - 10) {
+      wurzel.classList.remove("kopf-weg");
+    }
+    vorher = y;
   }
 
+  // ---- Abschnitte --------------------------------------------------------
+  var aufsatz = document.querySelector(".aufsatz");
+  var kasten = document.getElementById("wegweiser");
+  var teile = aufsatz ? Array.prototype.slice.call(aufsatz.querySelectorAll(".teil")) : [];
+
+  var verweise = {};
+  var liste = null;
   var offen = null;
   var punkte = [];
+
+  if (teile.length) {
+    // Ein Punkt der Kopfzeile vertritt mehrere Abschnitte und trägt sie in
+    // `data-deckt`; im Baum steht je Abschnitt eine eigene Sprungmarke.
+    Array.prototype.forEach.call(document.querySelectorAll(".wege a, .baum a"), function (a) {
+      var deckt = a.getAttribute("data-deckt");
+      var marken = deckt ? deckt.split(/\s+/) : [(a.getAttribute("href") || "").split("#")[1]];
+      marken.forEach(function (marke) {
+        if (marke) (verweise[marke] = verweise[marke] || []).push(a);
+      });
+    });
+
+    liste = document.createElement("ul");
+    if (kasten) {
+      var titel = document.createElement("h2");
+      titel.textContent = "In diesem Abschnitt";
+      kasten.appendChild(titel);
+      kasten.appendChild(liste);
+    }
+  }
 
   function oberhalb(elemente) {
     var treffer = elemente[0] || null;
@@ -72,7 +97,20 @@
     if (kasten) kasten.hidden = punkte.length < 2;
   }
 
-  function pruefen() {
+  // Bei der waagerechten Leiste den markierten Eintrag in Sicht halten.
+  function mitfuehren(marke) {
+    var baum = document.querySelector(".baum-inhalt");
+    var weg = verweise[marke] && verweise[marke].filter(function (a) {
+      return baum && baum.contains(a);
+    })[0];
+    if (!baum || !weg) return;
+    if (getComputedStyle(baum).flexDirection === "row") {
+      baum.scrollLeft = weg.offsetLeft - baum.clientWidth / 2 + weg.offsetWidth / 2;
+    }
+  }
+
+  function abschnitte() {
+    if (!teile.length) return;
     var teil = oberhalb(teile);
     if (teil && teil !== offen) {
       offen = teil;
@@ -82,7 +120,7 @@
         verweise[marke].forEach(function (a) { a.removeAttribute("aria-current"); });
       }
       (verweise[teil.id] || []).forEach(function (a) { a.setAttribute("aria-current", "true"); });
-      if (kasten) {
+      if (kasten && liste) {
         inhaltAufbauen(teil);
         kasten.scrollTop = 0;
       }
@@ -93,23 +131,19 @@
     punkte.forEach(function (p) { p.weg.classList.toggle("hier", p.kopf === jetzt); });
   }
 
-  // Bei langem Baum den markierten Eintrag in Sicht halten.
-  function mitfuehren(marke) {
-    var baum = document.querySelector(".baum-inhalt");
-    var weg = verweise[marke] && verweise[marke].filter(function (a) { return baum && baum.contains(a); })[0];
-    if (!baum || !weg) return;
-    var waagerecht = getComputedStyle(baum).flexDirection === "row";
-    if (waagerecht) baum.scrollLeft = weg.offsetLeft - baum.clientWidth / 2 + weg.offsetWidth / 2;
-  }
-
   var laeuft = false;
   function angestossen() {
     if (laeuft) return;
     laeuft = true;
-    requestAnimationFrame(function () { laeuft = false; pruefen(); });
+    requestAnimationFrame(function () {
+      laeuft = false;
+      rand();
+      abschnitte();
+    });
   }
 
   addEventListener("scroll", angestossen, { passive: true });
   addEventListener("resize", angestossen, { passive: true });
-  pruefen();
+  rand();
+  abschnitte();
 })();

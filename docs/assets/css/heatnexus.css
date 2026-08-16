@@ -178,8 +178,37 @@ a { color: var(--ruecklauf-hell); }
     -webkit-backdrop-filter: blur(12px);
     -webkit-mask-image: linear-gradient(#000 76%, transparent);
     mask-image: linear-gradient(#000 76%, transparent);
+    transition: opacity 0.28s ease;
+  }
+  .kopf { transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
+
+  /* Beim Abwärtslesen räumt die Kopfzeile das Feld; die Abschnittsleiste rückt
+     nach oben nach. Ein Stück zurückscrollen holt sie wieder. */
+  html.kopf-weg .kopf { transform: translate(-50%, -170%); }
+  html.kopf-weg body::before { opacity: 0; }
+  /* Bündig an die Kante und deckend: Ein Spalt darüber ließe den Text
+     durchlaufen. */
+  html.kopf-weg .baum {
+    top: 0; padding-top: 14px;
+    background: var(--grund);
   }
 }
+
+/* Zurück nach oben. Ohne JavaScript bleibt der Knopf verborgen — der Sprung
+   ginge zwar, aber ein dauerhaft schwebender Knopf stört mehr, als er nützt. */
+.hoch {
+  position: fixed; right: 20px; bottom: 20px; z-index: 45;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(21, 23, 27, 0.86); color: var(--gedaempft);
+  border: 1px solid var(--linie-stark);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.9);
+  opacity: 0; visibility: hidden; transform: translateY(10px);
+  transition: opacity 0.24s, transform 0.24s, visibility 0.24s, color 0.2s, border-color 0.2s;
+}
+.hoch.sichtbar { opacity: 1; visibility: visible; transform: none; }
+.hoch:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.3); }
 
 /* --- Tasten ------------------------------------------------------------- */
 .taste {
@@ -462,6 +491,7 @@ a { color: var(--ruecklauf-hell); }
      Orientierung. Sie bleibt deshalb unter der Kopfzeile stehen. */
   .baum {
     position: sticky; top: 72px; z-index: 30;
+    transition: top 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     margin: 0 -28px 32px; padding: 12px 28px;
     background: color-mix(in srgb, var(--grund) 92%, transparent);
     backdrop-filter: blur(14px) saturate(140%);
