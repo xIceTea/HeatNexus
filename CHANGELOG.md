@@ -6,6 +6,22 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.9.1] - 2026-08-16
+
+### Neu
+
+- Projektseite mit allen Anleitungen: https://xicetea.github.io/HeatNexus/
+
+### Geändert
+
+- Werte im Schaubild der Oberfläche stehen größer.
+
+### Behoben
+
+- Pumpen und Glutbett blichen beim Überfahren aus.
+- Stehende Pumpen und der Ladezustand des Puffers waren kaum zu erkennen.
+- Kessel und Solar zeigten die Strömungsrichtung verkehrt.
+
 ## [1.9.0] - 2026-08-15
 
 Der LON-Bus als zweite Quelle, ein Anlagenschaubild als eigene Lovelace-Karte
