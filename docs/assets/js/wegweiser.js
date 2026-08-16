@@ -5,6 +5,16 @@
   "use strict";
 
   var GRENZE = 140; // Höhe der Kopfzeile plus etwas Luft
+
+  // Verweise ohne Sprungmarke zeigen auf eine eigene Seite. Trifft einer die
+  // gerade offene, wird er markiert — sonst bliebe die Startseite ohne Hinweis.
+  var seite = location.pathname.replace(/index\.html$/, "");
+  Array.prototype.forEach.call(document.querySelectorAll(".wege a"), function (a) {
+    if ((a.getAttribute("href") || "").indexOf("#") !== -1) return;
+    if (a.hostname !== location.hostname) return;
+    if (a.pathname.replace(/index\.html$/, "") === seite) a.setAttribute("aria-current", "true");
+  });
+
   var aufsatz = document.querySelector(".aufsatz");
   var kasten = document.getElementById("wegweiser");
   if (!aufsatz) return;
