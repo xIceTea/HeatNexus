@@ -76,7 +76,12 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 96px; }
+/* `clip` statt `hidden`: verhindert das seitliche Wegziehen der Seite, ohne
+   einen Scrollbereich zu erzeugen, an dem `sticky` zerbräche. */
+html {
+  scroll-behavior: smooth; scroll-padding-top: 96px;
+  overflow-x: clip; overscroll-behavior-x: none;
+}
 /* Unter 940 px steht zusätzlich die Abschnittsleiste fest — Sprungmarken
    müssen unter beiden landen. */
 @media (max-width: 940px) { html { scroll-padding-top: 148px; } }
@@ -88,7 +93,7 @@ body {
   font: 400 16px/1.65 var(--sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 img { max-width: 100%; display: block; }
@@ -406,6 +411,17 @@ a { color: var(--ruecklauf-hell); }
   .tabelle td:last-child { margin-top: 8px; white-space: normal; }
 }
 
+/* Kleine Zeichen vor den Anlagenteilen: Wärmepumpe und Solar findet man damit
+   ohne zu lesen. Sie liegen als Vorrat einmal im Dokument. */
+.symbolvorrat { display: none; }
+.sym {
+  width: 17px; height: 17px; flex: none;
+  margin-right: 10px; vertical-align: -3.5px;
+  fill: none; stroke: #fff; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0.72;
+}
+
 .stand { display: inline-flex; align-items: center; gap: 8px; font: 400 12.5px/1 var(--mono); color: var(--gedaempft); }
 .stand::before { content: ""; width: 6px; height: 6px; border-radius: 50%; flex: none; }
 .stand.geprueft::before { background: var(--gruen); }
@@ -525,11 +541,16 @@ a { color: var(--ruecklauf-hell); }
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   }
   html.kopf-weg .baum { transform: translateY(-54px); }
+  /* Die Ränder laufen aus, statt hart abzuschneiden — so sieht man, dass die
+     Leiste weitergeht, und ein halber Reiter wirkt nicht wie ein Fehler. */
   .baum-inhalt {
     flex-direction: row; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain;
-    scrollbar-width: none;
+    scrollbar-width: none; scroll-behavior: smooth;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 26px), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 26px), transparent);
   }
   .baum-inhalt::-webkit-scrollbar { display: none; }
+  html.baum-offen .baum-inhalt { -webkit-mask-image: none; mask-image: none; }
   .baum .gruppe { display: none; }
   .baum a {
     flex: none; padding: 8px 14px; white-space: nowrap;
@@ -538,19 +559,29 @@ a { color: var(--ruecklauf-hell); }
   .baum a[aria-current="true"] { border-color: var(--vorlauf); }
   /* Der markierte Eintrag sagt, wo man ist, und ist zugleich der Griff für
      die ganze Gliederung. Das Winkelzeichen zeigt, dass er sich öffnen lässt. */
+  /* Winkel aus Rändern statt aus einem Zeichen: Die Schriftteilmenge führt
+     keine Pfeilsymbole, die fielen sonst auf eine fremde Schrift zurück. */
   .baum a[aria-current="true"]::after {
-    content: "⌄"; margin-left: 8px; display: inline-block;
-    color: var(--vorlauf-hell); transition: transform 0.24s ease;
+    content: ""; display: inline-block; width: 6px; height: 6px;
+    margin: -3px 2px 0 9px; vertical-align: middle;
+    border-right: 2px solid var(--vorlauf-hell);
+    border-bottom: 2px solid var(--vorlauf-hell);
+    transform: rotate(45deg); transition: transform 0.24s ease;
   }
-  html.baum-offen .baum a[aria-current="true"]::after { transform: rotate(180deg); }
+  html.baum-offen .baum a[aria-current="true"]::after {
+    margin-top: 2px; transform: rotate(-135deg);
+  }
 
+  /* Die Höhe rechnet mit der ungünstigeren Lage — Leiste unter der Kopfzeile.
+     Sonst wird der letzte Eintrag abgeschnitten, wenn die Kopfzeile steht. */
   html.baum-offen .baum {
-    height: auto; max-height: calc(100svh - 54px); padding-bottom: 14px;
+    height: auto; max-height: calc(100svh - 54px); padding-bottom: 16px;
   }
   html.baum-offen .baum-inhalt {
     flex-direction: column; gap: 2px;
     overflow-x: hidden; overflow-y: auto;
-    max-height: calc(100svh - 100px);
+    overscroll-behavior: contain;
+    max-height: calc(100svh - 82px);
   }
   html.baum-offen .baum .gruppe {
     display: block; margin: 16px 0 6px; padding-left: 4px;

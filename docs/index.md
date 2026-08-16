@@ -185,18 +185,47 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       </p>
     </div>
 
+    <svg class="symbolvorrat" aria-hidden="true" focusable="false">
+      <symbol id="sym-flamme" viewBox="0 0 24 24">
+        <path d="M12 21a5.5 5.5 0 0 0 5.5-5.5c0-4-3.5-6-5.5-10.5-2 4.5-5.5 6.5-5.5 10.5A5.5 5.5 0 0 0 12 21Z"/>
+        <path d="M12 17.5a2.2 2.2 0 0 0 2.2-2.2c0-1.6-1.1-2.4-2.2-4-1.1 1.6-2.2 2.4-2.2 4a2.2 2.2 0 0 0 2.2 2.2Z"/>
+      </symbol>
+      <symbol id="sym-scheit" viewBox="0 0 24 24">
+        <path d="M16 7H7a5 5 0 0 0 0 10h9a5 5 0 0 0 0-10Z"/>
+        <path d="M7 7a5 5 0 0 1 0 10"/><path d="M9.6 10.8a2 2 0 0 0 0 2.4"/>
+      </symbol>
+      <symbol id="sym-waermepumpe" viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="16" rx="2.5"/>
+        <circle cx="12" cy="12" r="4"/><path d="M12 8v4l3.2 2"/>
+      </symbol>
+      <symbol id="sym-blitz" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5 9-11.5h-6.5L13 2Z"/></symbol>
+      <symbol id="sym-heizkoerper" viewBox="0 0 24 24">
+        <path d="M4 8h16M4 16h16"/><path d="M7.5 6v12M12 6v12M16.5 6v12"/>
+      </symbol>
+      <symbol id="sym-puffer" viewBox="0 0 24 24">
+        <rect x="6" y="3" width="12" height="18" rx="3"/><path d="M6 12h12"/>
+      </symbol>
+      <symbol id="sym-rotor" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8"/><path d="M12 6v12M7 9l10 6M7 15l10-6"/>
+      </symbol>
+      <symbol id="sym-sonne" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19"/>
+      </symbol>
+    </svg>
+
     <div class="zwei-spalten">
       <div>
         <h4>Wärmeerzeuger</h4>
         <table class="tabelle">
           <thead><tr><th>Baureihe</th><th>Brennstoff</th><th>Stand</th></tr></thead>
           <tbody>
-            <tr><td>PuroWIN</td><td>Hackgut, wahlweise Pellets</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
-            <tr><td>BioWIN, BioWIN 2, PelletsWIN</td><td>Pellets</td><td><span class="stand fremd">fremde Anlage geprüft</span></td></tr>
-            <tr><td>LogWIN, VarioWIN</td><td>Scheitholz</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
-            <tr><td>AeroWIN und andere Wärmepumpen</td><td>Strom</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
-            <tr><td>DuoWIN, Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
-            <tr><td>E-Heizung, Automatik- und Zusatzkessel</td><td>—</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-flamme"/></svg>PuroWIN</td><td>Hackgut, wahlweise Pellets</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-flamme"/></svg>BioWIN, BioWIN 2, PelletsWIN</td><td>Pellets</td><td><span class="stand fremd">fremde Anlage geprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-scheit"/></svg>LogWIN, VarioWIN</td><td>Scheitholz</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-waermepumpe"/></svg>AeroWIN und andere Wärmepumpen</td><td>Strom</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-flamme"/></svg>DuoWIN, Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-blitz"/></svg>E-Heizung, Automatik- und Zusatzkessel</td><td>—</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -205,11 +234,11 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
         <table class="tabelle">
           <thead><tr><th>Anlagenteil</th><th>Stand</th></tr></thead>
           <tbody>
-            <tr><td>UML / UMLZ Heizkreismodul</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
-            <tr><td>B-PLMi Pufferlademodul</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
-            <tr><td>ZSP Pumpen- und Relaismodul</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
-            <tr><td>Infinity PLUS Heizkreis und Warmwasser</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
-            <tr><td>Solar, Kaskade, Umschaltung, weitere Puffer</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-heizkoerper"/></svg>UML / UMLZ Heizkreismodul</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-puffer"/></svg>B-PLMi Pufferlademodul</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-rotor"/></svg>ZSP Pumpen- und Relaismodul</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-heizkoerper"/></svg>Infinity PLUS Heizkreis und Warmwasser</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-sonne"/></svg>Solar, Kaskade, Umschaltung, weitere Puffer</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
           </tbody>
         </table>
       </div>

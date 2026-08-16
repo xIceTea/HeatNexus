@@ -23,6 +23,27 @@
   // faltet die ganze Gliederung mit ihren Gruppen aus.
   var leiste = document.querySelector(".baum-inhalt");
   var offenBei = 0;
+  var letzteHand = 0;
+
+  if (leiste) {
+    ["touchstart", "touchmove", "pointerdown", "wheel"].forEach(function (art) {
+      leiste.addEventListener(art, function () { letzteHand = Date.now(); }, { passive: true });
+    });
+  }
+
+  // Wer die Leiste von Hand verschiebt, darf sie verschoben lassen — sobald er
+  // aber weiterliest, holt sie den Abschnitt zurück, in dem er steht.
+  function nachfuehren(sofort) {
+    if (!leiste || window.innerWidth > SCHMAL) return;
+    if (wurzel.classList.contains("baum-offen")) return;
+    if (!sofort && Date.now() - letzteHand < 1500) return;
+    var weg = leiste.querySelector('a[aria-current="true"]');
+    if (!weg) return;
+    var links = weg.offsetLeft - leiste.scrollLeft;
+    if (sofort || links < 12 || links + weg.offsetWidth > leiste.clientWidth - 12) {
+      leiste.scrollLeft = weg.offsetLeft - leiste.clientWidth / 2 + weg.offsetWidth / 2;
+    }
+  }
 
   function klappen(auf) {
     wurzel.classList.toggle("baum-offen", auf);
@@ -51,6 +72,7 @@
     if (hochKnopf) hochKnopf.classList.toggle("sichtbar", y > 700);
     // Wer weiterliest, hat die Gliederung nicht mehr im Sinn.
     if (wurzel.classList.contains("baum-offen") && Math.abs(y - offenBei) > 60) klappen(false);
+    nachfuehren(false);
 
     // Die Kopfzeile weicht nur dort, wo sie Platz kostet.
     if (window.innerWidth > SCHMAL) {
@@ -123,17 +145,6 @@
     if (kasten) kasten.hidden = punkte.length < 2;
   }
 
-  // Bei der waagerechten Leiste den markierten Eintrag in Sicht halten.
-  function mitfuehren(marke) {
-    var baum = document.querySelector(".baum-inhalt");
-    var weg = verweise[marke] && verweise[marke].filter(function (a) {
-      return baum && baum.contains(a);
-    })[0];
-    if (!baum || !weg) return;
-    if (getComputedStyle(baum).flexDirection === "row") {
-      baum.scrollLeft = weg.offsetLeft - baum.clientWidth / 2 + weg.offsetWidth / 2;
-    }
-  }
 
   function abschnitte() {
     if (!teile.length) return;
@@ -150,7 +161,7 @@
         inhaltAufbauen(teil);
         kasten.scrollTop = 0;
       }
-      mitfuehren(teil.id);
+      nachfuehren(true);
     }
     if (!punkte.length) return;
     var jetzt = oberhalb(punkte.map(function (p) { return p.kopf; }));
