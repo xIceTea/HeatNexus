@@ -8,7 +8,7 @@
 
 # HeatNexus
 
-Heizungen in Home Assistant – lokal, vollständig, ohne Cloud.
+Windhager Heizungen in Home Assistant – lokal, vollständig, ohne Cloud.
 
 ## Erste Schritte
 
