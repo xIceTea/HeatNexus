@@ -415,11 +415,11 @@ a { color: var(--ruecklauf-hell); }
    ohne zu lesen. Sie liegen als Vorrat einmal im Dokument. */
 .symbolvorrat { display: none; }
 .sym {
-  width: 17px; height: 17px; flex: none;
-  margin-right: 10px; vertical-align: -3.5px;
-  fill: none; stroke: #fff; stroke-width: 1.6;
+  width: 20px; height: 20px; flex: none;
+  margin-right: 11px; vertical-align: -4.5px;
+  fill: none; stroke: #fff; stroke-width: 1.7;
   stroke-linecap: round; stroke-linejoin: round;
-  opacity: 0.72;
+  opacity: 0.82;
 }
 
 .stand { display: inline-flex; align-items: center; gap: 8px; font: 400 12.5px/1 var(--mono); color: var(--gedaempft); }

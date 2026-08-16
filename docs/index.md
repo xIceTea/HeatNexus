@@ -187,16 +187,16 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto â€
 
     <svg class="symbolvorrat" aria-hidden="true" focusable="false">
       <symbol id="sym-flamme" viewBox="0 0 24 24">
-        <path d="M12 21a5.5 5.5 0 0 0 5.5-5.5c0-4-3.5-6-5.5-10.5-2 4.5-5.5 6.5-5.5 10.5A5.5 5.5 0 0 0 12 21Z"/>
-        <path d="M12 17.5a2.2 2.2 0 0 0 2.2-2.2c0-1.6-1.1-2.4-2.2-4-1.1 1.6-2.2 2.4-2.2 4a2.2 2.2 0 0 0 2.2 2.2Z"/>
+        <path d="M12.5 2c.6 3.2-1.8 4.4-3.2 6.6C8 10.6 7 12.5 7 14.5a5 5 0 0 0 10 0c0-2.4-1.4-4-2.4-6.2-.5 1-1 1.6-1.8 2 .5-2.6-.3-6-.3-8.3Z"/>
       </symbol>
       <symbol id="sym-scheit" viewBox="0 0 24 24">
-        <path d="M16 7H7a5 5 0 0 0 0 10h9a5 5 0 0 0 0-10Z"/>
-        <path d="M7 7a5 5 0 0 1 0 10"/><path d="M9.6 10.8a2 2 0 0 0 0 2.4"/>
+        <path d="M8 4.5h9a3.5 3.5 0 0 1 0 7H8a3.5 3.5 0 0 1 0-7Z"/>
+        <path d="M8 12.5h9a3.5 3.5 0 0 1 0 7H8a3.5 3.5 0 0 1 0-7Z"/>
       </symbol>
       <symbol id="sym-waermepumpe" viewBox="0 0 24 24">
-        <rect x="3" y="4" width="18" height="16" rx="2.5"/>
-        <circle cx="12" cy="12" r="4"/><path d="M12 8v4l3.2 2"/>
+        <rect x="2.5" y="4.5" width="19" height="15" rx="2"/>
+        <circle cx="12" cy="12" r="4.6"/>
+        <path d="M12 12 9.2 8.4M12 12l4.5 1.1M12 12l-1.9 4.3"/>
       </symbol>
       <symbol id="sym-blitz" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11l-1 8.5 9-11.5h-6.5L13 2Z"/></symbol>
       <symbol id="sym-heizkoerper" viewBox="0 0 24 24">
