@@ -6,10 +6,61 @@ umstellbar ist, und was die einzelnen Schalter bewirken.
 ## Zugang
 
 Gebraucht werden die **IP der Steuerung** und der Zugang zu ihrer
-Weboberfläche. Ab Werk kennt die Steuerung zwei Zugänge, `USER` und `Service`,
-beide mit dem Passwort `123`. Über die Schnittstelle sehen beide dasselbe,
-`USER` genügt also. Ob der Weg frei ist, zeigt ein Blick in den Browser: Unter
+Weboberfläche. Es ist derselbe Zugang, mit dem man sich auch im Browser an der
+Anlage anmeldet — kein Konto bei Windhager, kein Portal.
+
+Ob der Weg frei ist, zeigt ein Blick in den Browser: Unter
 `http://<IP der Anlage>` muss die Weboberfläche des InfoWIN Touch erscheinen.
+Kommt sie, stimmen IP und Zugang.
+
+### Welches Passwort
+
+Ab Werk kennt die Steuerung zwei Zugänge:
+
+| Zugang | Passwort ab Werk |
+|---|---|
+| `USER` | `123` |
+| `Service` | `123` |
+
+An der geprüften Anlage sehen **beide über die Schnittstelle dasselbe**, auch
+die Fachparameter. Die Trennung in Bedienebenen gilt am Bediengerät; was in
+Home Assistant erscheint, entscheiden die Bedienebenen weiter unten. `USER`
+genügt also. Für andere Baureihen ist das nicht belegt, deshalb bleibt der
+Zugang wählbar — ein abweichender Benutzername lässt sich eintippen.
+
+### Passwort herausfinden
+
+Wurde das Passwort einmal geändert, gilt das neue sofort auch für die
+Schnittstelle. Drei Wege, es wiederzufinden:
+
+1. **Am Gerät nachsehen.** Am InfoWIN Touch unter *Passwort*. Dort steht es im
+   Klartext und lässt sich auch neu setzen.
+2. **In der Weboberfläche der Anlage.** `http://<IP der Anlage>` öffnen,
+   anmelden, unter *Passwort* nachsehen. Führt zum selben Parameter wie der Weg
+   über das Gerät.
+3. **Über Windhager Connect**, falls die Anlage dort registriert ist. Anmelden,
+   Anlage auswählen — die Adresse endet dann auf `/management`. Dieses Wort
+   durch `settings` ersetzen:
+
+   ```text
+   https://connect.windhager.com/systems/<Kennung der Anlage>/management
+   https://connect.windhager.com/systems/<Kennung der Anlage>/settings
+   ```
+
+   Auf der Einstellungsseite steht das Webserver-Passwort im Klartext und lässt
+   sich dort auch ändern.
+
+### Passwort ändern
+
+Am InfoWIN Touch oder in dessen Weboberfläche unter *Passwort* — beide Wege
+führen zum selben Parameter. Ein dort gesetztes Passwort gilt sofort auch für
+die Schnittstelle. Danach muss es in Home Assistant über **Neu anmelden**
+nachgezogen werden, sonst meldet die Integration eine abgelehnte Anmeldung.
+
+> **Nach dem Verbinden mit myComfort geht nichts mehr?** Windhager vergibt dabei
+> ein eigenes Passwort, die Werksangabe gilt dann nicht mehr. Kein dauerhafter
+> Ausschluss: auf einem der drei Wege oben ablesen oder neu setzen, danach
+> laufen App und HeatNexus wieder.
 
 Ein Konfigurationseintrag kann **mehrere Anlagen** führen — bis zu sechs. Jede
 bekommt eine eigene Bezeichnung, etwa `Heizhaus` und `Wohnhaus`. Diese
