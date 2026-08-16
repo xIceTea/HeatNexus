@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560" role="img" aria-labelledby="t d">
+<title id="t">Aufbau von HeatNexus</title>
+<desc id="d">Die Heizung liefert über das Netz an client.py; dieser erzeugt die Descriptor-Liste, __init__.py führt Coordinator, Cache und Dienste, und die Plattformen filtern die Liste nach dem Feld type.</desc>
+
+<style>
+  .flaeche { fill: #15171b; stroke: #23262c; }
+  .kasten  { fill: #1b1e23; stroke: #2a2e35; }
+  .chip    { fill: #101216; stroke: #2a2e35; }
+  .titel   { font: 600 17px ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; fill: #edeff2; }
+  .mono    { font: 400 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #edeff2; }
+  .klein   { font: 400 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #8a8f98; }
+  .marke   { font: 500 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #5f646c; letter-spacing: 1.4px; }
+  .fluss   { font: 400 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #e2543a; }
+  .kante   { fill: none; stroke: #e2543a; stroke-width: 2; }
+</style>
+
+<defs>
+  <marker id="spitze" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#e2543a"/>
+  </marker>
+</defs>
+
+<rect class="flaeche" x="0.5" y="0.5" width="999" height="559" rx="16"/>
+
+<!-- Reihe 1: Anlage und Client -->
+<rect class="kasten" x="48" y="60" width="190" height="92" rx="12"/>
+<text class="marke" x="68" y="88">ANLAGE</text>
+<text class="titel" x="68" y="114">Heizung im Netz</text>
+<text class="klein" x="68" y="136">HTTP · Digest</text>
+
+<path class="kante" d="M238,106 H286" marker-end="url(#spitze)"/>
+
+<rect class="kasten" x="298" y="60" width="654" height="92" rx="12"/>
+<text class="mono" x="322" y="92" style="font-size:15px">client.py</text>
+<text class="klein" x="322" y="114">Discovery · Metadaten · Polling</text>
+<text class="klein" x="322" y="134">erzeugt die Descriptor-Liste</text>
+<text class="marke" x="928" y="88" text-anchor="end">GERÄTEWISSEN</text>
+
+<!-- Übergang 1 -->
+<path class="kante" d="M625,152 V208" marker-end="url(#spitze)"/>
+<text class="fluss" x="645" y="185">coordinator.data</text>
+
+<!-- Reihe 2: Koordinator -->
+<rect class="kasten" x="298" y="220" width="654" height="92" rx="12"/>
+<text class="mono" x="322" y="252" style="font-size:15px">__init__.py</text>
+<text class="klein" x="322" y="274">DataUpdateCoordinator · Cache · Dienste</text>
+<text class="klein" x="322" y="294">verteilt einen Abzug an alle Plattformen</text>
+<text class="marke" x="928" y="248" text-anchor="end">TAKT</text>
+
+<!-- Übergang 2 -->
+<path class="kante" d="M625,312 V366" marker-end="url(#spitze)"/>
+<text class="fluss" x="645" y="344">filtert nach descriptor["type"]</text>
+
+<!-- Reihe 3: Plattformen -->
+<rect class="kasten" x="48" y="378" width="904" height="146" rx="12"/>
+<text class="marke" x="72" y="404">PLATTFORMEN</text>
+
+<g class="mono" text-anchor="middle" style="font-size:12.5px; fill:#c3cad2">
+  <rect class="chip" x="72"  y="416" width="158" height="34" rx="8"/><text x="151" y="438">climate</text>
+  <rect class="chip" x="246" y="416" width="158" height="34" rx="8"/><text x="325" y="438">sensor</text>
+  <rect class="chip" x="420" y="416" width="158" height="34" rx="8"/><text x="499" y="438">binary_sensor</text>
+  <rect class="chip" x="594" y="416" width="158" height="34" rx="8"/><text x="673" y="438">select</text>
+  <rect class="chip" x="768" y="416" width="158" height="34" rx="8"/><text x="847" y="438">number</text>
+
+  <rect class="chip" x="160" y="460" width="158" height="34" rx="8"/><text x="239" y="482">switch</text>
+  <rect class="chip" x="334" y="460" width="158" height="34" rx="8"/><text x="413" y="482">button</text>
+  <rect class="chip" x="508" y="460" width="158" height="34" rx="8"/><text x="587" y="482">time</text>
+  <rect class="chip" x="682" y="460" width="158" height="34" rx="8"/><text x="761" y="482">date</text>
+</g>
+
+<text class="klein" x="500" y="514" text-anchor="middle">alle über entity.py · WindhagerEntity</text>
+</svg>

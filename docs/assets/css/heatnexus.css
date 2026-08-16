@@ -1,170 +1,583 @@
-/* Die Farben des Anlagenschaubilds: Rot ist der Vorlauf, Blau der Rücklauf.
-   Sie tragen hier dieselbe Bedeutung wie in der Integration. */
-:root {
-  --vorlauf: #e2543a;
-  --ruecklauf: #3a7fe2;
-  --grund: #10151b;
-  --karte: #171e26;
-  --linie: rgba(255, 255, 255, 0.09);
-  --text: #e6edf3;
-  --gedaempft: #9aa6b2;
-  --akzent: #6fb2f5;
-  --breite: 1080px;
+/* Die Schriften liegen unter assets/fonts/ und werden selbst ausgeliefert.
+   Kein CDN: die Projektseite spricht ebenso wenig nach draußen wie die
+   Integration. Lizenzen stehen als OFL-*.txt daneben. */
+@font-face {
+  font-family: "Inter Tight";
+  src: url("../fonts/InterTight-latin.woff2") format("woff2");
+  font-weight: 400 800; font-style: normal; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter Tight";
+  src: url("../fonts/InterTight-latin-ext.woff2") format("woff2");
+  font-weight: 400 800; font-style: normal; font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("../fonts/InstrumentSerif-Italic-latin.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("../fonts/InstrumentSerif-Italic-latin-ext.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../fonts/JetBrainsMono-latin.woff2") format("woff2");
+  font-weight: 400 600; font-style: normal; font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../fonts/JetBrainsMono-latin-ext.woff2") format("woff2");
+  font-weight: 400 600; font-style: normal; font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --grund: #f6f7f9;
-    --karte: #ffffff;
-    --linie: rgba(0, 0, 0, 0.1);
-    --text: #16202b;
-    --gedaempft: #5b6672;
-    --akzent: #1e6fd9;
-  }
+/* Rot ist der Vorlauf, Blau der Rücklauf — dieselbe Bedeutung wie im
+   Anlagenschaubild der Integration. */
+:root {
+  --grund: #0c0d10;
+  --flaeche: #15171b;
+  --flaeche-2: #1b1e23;
+  --linie: rgba(255, 255, 255, 0.085);
+  --linie-stark: rgba(255, 255, 255, 0.16);
+  --text: #edeff2;
+  --gedaempft: #8a8f98;
+  --leise: #5f646c;
+  --vorlauf: #e2543a;
+  --vorlauf-hell: #ff7a5c;
+  --ruecklauf: #5b93d6;
+  --ruecklauf-hell: #8fbcea;
+  --gruen: #3fa971;
+
+  --breite: 1180px;
+  --radius: 14px;
+
+  --sans: "Inter Tight", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "Cascadia Mono", Menlo, monospace;
 }
 
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 96px; }
 
 body {
   margin: 0;
   background: var(--grund);
   color: var(--text);
-  font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 400 16px/1.65 var(--sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
-a { color: var(--akzent); }
+img { max-width: 100%; display: block; }
+a { color: var(--ruecklauf-hell); }
+
+:focus-visible {
+  outline: 2px solid var(--vorlauf-hell);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.zum-inhalt {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  padding: 12px 18px; border-radius: 0 0 10px 0;
+  background: var(--vorlauf); color: #170804; font-weight: 600; text-decoration: none;
+}
+.zum-inhalt:focus { left: 0; }
+
+/* Feines Raster, nach unten ausgeblendet — der Ersatz für eine Verlaufsfläche. */
+.raster {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 72px 72px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, #000 20%, transparent 78%);
+  mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, #000 20%, transparent 78%);
+}
+.glut {
+  position: fixed; top: -320px; left: 50%; transform: translateX(-50%);
+  width: 1200px; height: 760px; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse at center,
+    rgba(226, 84, 58, 0.16), rgba(226, 84, 58, 0.05) 42%, transparent 68%);
+  filter: blur(20px);
+}
+
+.huelle { position: relative; z-index: 1; max-width: var(--breite); margin: 0 auto; padding: 0 28px; }
+@media (max-width: 600px) { .huelle { padding: 0 20px; } }
 
 /* --- Kopfzeile ---------------------------------------------------------- */
 .kopf {
-  position: sticky; top: 0; z-index: 10;
-  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
-  padding: 14px 24px;
-  background: color-mix(in srgb, var(--grund) 88%, transparent);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--linie);
+  position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+  z-index: 50; display: flex; align-items: center; gap: 6px;
+  padding: 7px 8px 7px 16px; border-radius: 999px;
+  background: rgba(21, 23, 27, 0.78);
+  border: 1px solid var(--linie);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  max-width: calc(100vw - 32px);
 }
 .marke {
-  display: inline-flex; align-items: center; gap: 10px;
-  font-weight: 700; font-size: 18px; color: inherit; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 9px;
+  margin-right: 18px; padding-right: 18px;
+  border-right: 1px solid var(--linie);
+  font-weight: 700; font-size: 16px; letter-spacing: -0.02em;
+  color: inherit; text-decoration: none;
 }
-.wege { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+.marke img { width: 22px; height: 22px; border-radius: 5px; }
+.wege { display: flex; gap: 2px; }
 .wege a {
-  padding: 7px 12px; border-radius: 999px;
-  color: var(--gedaempft); text-decoration: none; font-size: 14px; font-weight: 600;
+  position: relative; padding: 8px 13px; border-radius: 999px; text-decoration: none;
+  font-size: 14px; font-weight: 500; color: var(--gedaempft);
+  transition: color 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.wege a:hover { background: var(--karte); color: var(--text); }
-.wege a.aussen { color: var(--akzent); }
+.wege a:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+.wege a[aria-current="true"] { color: var(--text); background: rgba(255, 255, 255, 0.07); }
+/* Der Punkt unter dem aktiven Eintrag wächst ein, statt zu springen. */
+.wege a::after {
+  content: ""; position: absolute; left: 50%; bottom: 2px;
+  width: 4px; height: 4px; margin-left: -2px; border-radius: 50%;
+  background: var(--vorlauf); opacity: 0; transform: scale(0.3);
+  transition: opacity 0.32s ease, transform 0.32s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.wege a[aria-current="true"]::after { opacity: 1; transform: scale(1); }
+.kopf .taste { margin-left: 6px; }
+@media (max-width: 900px) { .wege { display: none; } }
 
-/* --- Startseite --------------------------------------------------------- */
-main { max-width: var(--breite); margin: 0 auto; padding: 40px 24px 72px; }
-
-.held { text-align: center; padding: 24px 0 8px; }
-.held h1 {
-  margin: 0 0 12px;
-  font-size: clamp(32px, 6vw, 52px); line-height: 1.1; letter-spacing: -0.02em;
-}
-.held .unter {
-  margin: 0 auto 28px; max-width: 620px;
-  font-size: clamp(17px, 2.4vw, 20px); color: var(--gedaempft);
-}
-/* Der Balken zitiert Vor- und Rücklauf des Schaubilds. */
-.held h1::after {
-  content: ""; display: block; width: 96px; height: 4px; margin: 18px auto 0;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--vorlauf), var(--ruecklauf));
-}
-
-.tasten { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+/* --- Tasten ------------------------------------------------------------- */
 .taste {
-  display: inline-block; padding: 12px 22px; border-radius: 999px;
-  font-weight: 600; text-decoration: none;
-  background: var(--akzent); color: #08121d;
-  border: 1px solid transparent;
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 12px 20px; border-radius: 999px; text-decoration: none;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+  border: 1px solid transparent; white-space: nowrap;
+  transition: transform 0.18s, box-shadow 0.18s, background 0.18s, border-color 0.18s;
 }
-.taste.leer { background: none; color: var(--text); border-color: var(--linie); }
-.taste:hover { filter: brightness(1.08); }
+.taste.voll {
+  background: linear-gradient(180deg, var(--vorlauf-hell), var(--vorlauf));
+  color: #1a0b07;
+  box-shadow: 0 10px 30px -10px rgba(226, 84, 58, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.taste.voll:hover { transform: translateY(-1px); }
+.taste.leer { background: rgba(255, 255, 255, 0.04); border-color: var(--linie-stark); color: var(--text); }
+.taste.leer:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.26); }
+.taste.klein { padding: 8px 15px; font-size: 14px; }
 
-.bild {
-  margin: 44px 0;
-  border-radius: 16px; overflow: hidden;
-  border: 1px solid var(--linie);
-  background: var(--karte);
+/* --- Startseite: Held --------------------------------------------------- */
+.held {
+  padding: 170px 0 96px;
+  display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center;
 }
-.bild img { display: block; width: 100%; height: auto; }
-.bild figcaption {
-  padding: 12px 16px; font-size: 14px; color: var(--gedaempft);
-  border-top: 1px solid var(--linie);
-}
+@media (max-width: 980px) { .held { grid-template-columns: 1fr; gap: 44px; padding-top: 132px; } }
 
-h2 { font-size: 26px; margin: 56px 0 18px; letter-spacing: -0.01em; }
-h3 { font-size: 19px; margin: 32px 0 10px; }
+.pille {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 7px 15px 7px 12px; border-radius: 999px; margin-bottom: 30px;
+  border: 1px solid var(--linie); background: rgba(255, 255, 255, 0.03);
+  font: 500 11.5px/1 var(--mono); letter-spacing: 0.08em;
+  color: var(--gedaempft); text-transform: uppercase;
+}
+.pille b { color: var(--text); font-weight: 500; }
+.punkt {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--gruen);
+  box-shadow: 0 0 0 3px rgba(63, 169, 113, 0.18);
+  animation: puls 2.4s ease-in-out infinite;
+}
+@keyframes puls { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-.gitter {
-  display: grid; gap: 16px;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+.held h1 {
+  margin: 0 0 24px;
+  font-size: clamp(40px, 5.6vw, 74px); line-height: 1.02;
+  letter-spacing: -0.035em; font-weight: 800;
 }
-.feld {
-  padding: 20px; border-radius: 14px;
-  background: var(--karte); border: 1px solid var(--linie);
+.held h1 em, h2 em, .gross em {
+  font-family: var(--serif); font-style: italic; font-weight: 400;
+  letter-spacing: -0.01em; color: var(--vorlauf-hell);
 }
-.feld h3 { margin: 0 0 8px; font-size: 17px; }
-.feld p { margin: 0; color: var(--gedaempft); font-size: 15px; }
+.unter {
+  margin: 0 0 34px; max-width: 520px;
+  font-size: clamp(16.5px, 1.6vw, 18.5px); line-height: 1.62; color: var(--gedaempft);
+}
+.tasten { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.beleg { margin: 0; font: 400 12.5px/1.7 var(--mono); color: var(--leise); }
 
-.schritte { counter-reset: schritt; list-style: none; padding: 0; }
-.schritte li {
-  counter-increment: schritt;
-  position: relative; padding: 0 0 0 44px; margin-bottom: 18px;
+/* --- Startseite: Anlagenkarte ------------------------------------------- */
+.karte {
+  position: relative; border-radius: 18px; padding: 22px;
+  background: linear-gradient(180deg, #1c1f25, #15171b);
+  border: 1px solid var(--linie-stark);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.9),
+              0 0 0 1px rgba(226, 84, 58, 0.07),
+              inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
-.schritte li::before {
-  content: counter(schritt);
-  position: absolute; left: 0; top: 1px;
+.karte-kopf {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 14px;
+  padding-bottom: 16px; border-bottom: 1px solid var(--linie);
+}
+.karte-titel { font-weight: 700; font-size: 19px; letter-spacing: -0.02em; }
+.karte-unter { margin-top: 4px; font: 400 11.5px/1.5 var(--mono); color: var(--leise); }
+.hilfe {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
   width: 28px; height: 28px; border-radius: 50%;
-  display: grid; place-items: center;
-  font-size: 14px; font-weight: 700;
-  background: var(--karte); border: 1px solid var(--linie); color: var(--akzent);
+  border: 1px solid var(--linie-stark); color: var(--gedaempft);
+  font: 500 14px/1 var(--sans);
 }
+/* Werteliste wie die Systemstatus-Karte der Oberfläche: Zustände grün,
+   Zahlen blau, die Leistung in der Farbe des Vorlaufs. */
+.werte { display: grid; margin: 6px 0 0; }
+.werte .zeile {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 11px 0; border-bottom: 1px solid var(--linie);
+}
+.werte .zeile:last-child { border-bottom: 0; }
+.werte dt { font-size: 14.5px; color: #cfd5dc; }
+.werte dd { margin: 0; font: 600 14.5px/1 var(--mono); letter-spacing: -0.01em; white-space: nowrap; }
+.zustand { color: var(--gruen); }
+.zahl { color: var(--ruecklauf-hell); }
+.last { color: var(--vorlauf-hell); }
+.karte-fuss {
+  margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--linie);
+  font: 400 11.5px/1.5 var(--mono); color: var(--leise);
+}
+
+/* --- Startseite: Laufband ----------------------------------------------- */
+.laufband {
+  position: relative; z-index: 1; overflow: hidden; padding: 16px 0;
+  border-top: 1px solid var(--linie); border-bottom: 1px solid var(--linie);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.band { display: flex; width: max-content; animation: schieben 42s linear infinite; }
+.band span {
+  display: inline-flex; align-items: center; gap: 30px; padding: 0 30px; white-space: nowrap;
+  font: 500 12px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--leise);
+}
+.band span::after { content: "•"; color: var(--vorlauf); opacity: 0.75; }
+@keyframes schieben { to { transform: translateX(-50%); } }
+
+/* --- Startseite: Abschnitte --------------------------------------------- */
+.start section { padding: 104px 0; }
+.kopfzeile { max-width: 660px; margin-bottom: 52px; }
+.marke-zeile {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+  font: 500 11.5px/1 var(--mono); letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--vorlauf);
+}
+.marke-zeile::before { content: ""; width: 22px; height: 1px; background: var(--vorlauf); }
+.start h2 {
+  margin: 0 0 16px; font-size: clamp(28px, 3.6vw, 44px);
+  line-height: 1.1; letter-spacing: -0.03em; font-weight: 700;
+}
+.blei { margin: 0; font-size: 17px; line-height: 1.65; color: var(--gedaempft); }
+
+/* Der Abstand zwischen den Feldern ist die Linie. */
+.gitter {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  background: var(--linie); border: 1px solid var(--linie);
+  border-radius: var(--radius); overflow: hidden;
+}
+@media (max-width: 980px) { .gitter { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .gitter { grid-template-columns: 1fr; } }
+.gitter.drei { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 860px) { .gitter.drei { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .gitter.drei { grid-template-columns: 1fr; } }
+
+.feld {
+  display: flex; flex-direction: column; background: var(--grund);
+  padding: 26px 22px 28px; color: inherit; text-decoration: none;
+  transition: background 0.2s;
+}
+.feld:hover { background: var(--flaeche); }
+.feld .nr { font: 500 11px/1 var(--mono); letter-spacing: 0.1em; color: var(--leise); }
+.feld h3 { margin: 16px 0 9px; font-size: 16.5px; font-weight: 650; letter-spacing: -0.015em; }
+.feld p { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--gedaempft); }
+.feld .weiter {
+  margin-top: auto; padding-top: 18px;
+  font: 500 12px/1 var(--mono); color: var(--leise);
+  transition: color 0.2s;
+}
+.feld .weiter::after { content: " →"; }
+.feld:hover .weiter { color: var(--vorlauf-hell); }
+
+.tafel {
+  margin: 0; overflow: hidden; background: var(--flaeche);
+  border: 1px solid var(--linie); border-radius: 18px;
+  box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.9);
+}
+.tafel img { width: 100%; }
+.tafel figcaption {
+  padding: 18px 22px; border-top: 1px solid var(--linie); background: var(--flaeche-2);
+  font-size: 14px; line-height: 1.6; color: var(--gedaempft);
+}
+.zwei-tafeln { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 22px; }
+@media (max-width: 860px) { .zwei-tafeln { grid-template-columns: 1fr; } }
+
+.zwei-spalten { display: grid; grid-template-columns: 1.18fr 1fr; gap: 48px; }
+@media (max-width: 860px) { .zwei-spalten { grid-template-columns: 1fr; gap: 8px; } }
+.zwei-spalten h4 { margin: 0 0 4px; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+
+.tabelle { width: 100%; border-collapse: collapse; margin: 26px 0 8px; font-size: 14.5px; }
+.tabelle th {
+  padding: 0 0 12px; text-align: left; border-bottom: 1px solid var(--linie-stark);
+  font: 500 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--leise);
+}
+.tabelle td { padding: 15px 14px 15px 0; border-bottom: 1px solid var(--linie); vertical-align: top; }
+.tabelle td:first-child { font-weight: 600; }
+.tabelle td:last-child { padding-right: 0; white-space: nowrap; }
+.stand { display: inline-flex; align-items: center; gap: 8px; font: 400 12.5px/1 var(--mono); color: var(--gedaempft); }
+.stand::before { content: ""; width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.stand.geprueft::before { background: var(--gruen); }
+.stand.fremd::before { background: var(--ruecklauf); }
+.stand.offen::before { background: var(--leise); }
 
 .hinweis {
-  margin: 24px 0; padding: 14px 18px; border-radius: 12px;
-  background: var(--karte);
-  border: 1px solid var(--linie);
-  border-left: 3px solid var(--vorlauf);
-  color: var(--gedaempft); font-size: 15px;
+  margin-top: 34px; padding: 22px 24px; border-radius: var(--radius);
+  background: rgba(91, 147, 214, 0.06); border: 1px solid rgba(91, 147, 214, 0.2);
+  font-size: 14.5px; line-height: 1.65; color: var(--gedaempft);
+}
+.hinweis strong { color: var(--text); }
+
+.schritte {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  margin: 0; padding: 0; list-style: none;
+  background: var(--linie); border: 1px solid var(--linie);
+  border-radius: var(--radius); overflow: hidden;
+}
+@media (max-width: 900px) { .schritte { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .schritte { grid-template-columns: 1fr; } }
+.schritte li { background: var(--grund); padding: 26px 22px 30px; }
+.schritte .nr { font: 800 30px/1 var(--sans); letter-spacing: -0.04em; color: rgba(255, 255, 255, 0.13); }
+.schritte h3 { margin: 14px 0 8px; font-size: 16px; font-weight: 650; }
+.schritte p { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--gedaempft); }
+.nachsatz { margin-top: 24px; font-size: 14.5px; color: var(--gedaempft); }
+
+/* Übergang von der Startseite in die Anleitung. */
+.weiterlesen {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  margin: 72px auto 0; padding: 44px 32px 38px; max-width: 620px;
+  border: 1px solid var(--linie); border-radius: 20px; text-decoration: none;
+  background: radial-gradient(ellipse 80% 130% at 50% 130%, rgba(226, 84, 58, 0.13), transparent 66%);
+  transition: border-color 0.22s, background 0.22s;
+}
+.weiterlesen:hover { border-color: rgba(226, 84, 58, 0.45); }
+.weiterlesen-text { font-size: 22px; font-weight: 700; letter-spacing: -0.025em; color: var(--text); }
+.weiterlesen-unter { font-size: 14.5px; color: var(--gedaempft); text-align: center; }
+.weiterlesen-pfeil {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; margin-top: 18px; border-radius: 50%;
+  border: 1px solid var(--linie-stark); color: var(--vorlauf-hell);
+  animation: tippen 2.6s ease-in-out infinite;
+  transition: background 0.22s, border-color 0.22s, color 0.22s;
+}
+.weiterlesen:hover .weiterlesen-pfeil {
+  background: var(--vorlauf); border-color: var(--vorlauf); color: #1a0b07; animation: none;
+}
+@keyframes tippen { 0%, 100% { transform: translateY(-3px); } 50% { transform: translateY(3px); } }
+
+.abschluss {
+  position: relative; overflow: hidden; text-align: center;
+  padding: 96px 32px; margin: 40px 0 96px;
+  border: 1px solid var(--linie-stark); border-radius: 22px;
+  background: radial-gradient(ellipse 70% 120% at 50% 120%, rgba(226, 84, 58, 0.18), transparent 62%), var(--flaeche);
+}
+.abschluss .marke-zeile { justify-content: center; }
+.abschluss .marke-zeile::before { display: none; }
+.abschluss h2 { margin-bottom: 14px; }
+.abschluss .blei { margin: 0 auto 30px; max-width: 520px; }
+.abschluss .tasten { justify-content: center; }
+
+/* --- Textseiten --------------------------------------------------------- */
+.text {
+  position: relative; z-index: 1;
+  max-width: 1340px; margin: 0 auto; padding: 128px 28px 80px;
+  display: grid; grid-template-columns: 214px minmax(0, 1fr) 210px;
+  gap: 48px; align-items: start;
+}
+@media (max-width: 1240px) { .text { grid-template-columns: 200px minmax(0, 1fr); gap: 40px; } }
+@media (max-width: 940px) { .text { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 104px; } }
+
+/* Seitenbaum. Breite Fenster bekommen die Spalte, schmale eine waagerechte
+   Leiste über dem Text — ohne Aufklappen, damit nichts von JavaScript abhängt. */
+.baum { position: sticky; top: 104px; }
+.baum-inhalt { display: flex; flex-direction: column; }
+.baum .gruppe {
+  margin: 22px 0 8px; padding-left: 14px;
+  font: 500 10.5px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--leise);
+}
+.baum .gruppe:first-child { margin-top: 0; }
+.baum a {
+  padding: 7px 12px 7px 14px; border-left: 1px solid var(--linie);
+  font-size: 14px; color: var(--gedaempft); text-decoration: none;
+  transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.baum a:hover { color: var(--text); background: rgba(255, 255, 255, 0.04); }
+/* Verweise, die diese Seite verlassen. */
+.baum a.fort { color: var(--leise); }
+.baum a.fort::after { content: " ↗"; font-size: 11px; }
+.baum a.fort:hover { color: var(--gedaempft); }
+.baum a[aria-current="true"] {
+  color: var(--text); font-weight: 600;
+  border-left-color: var(--vorlauf); background: rgba(226, 84, 58, 0.07);
+}
+@media (max-width: 940px) {
+  .baum {
+    position: static; margin: 0 -28px 36px; padding: 0 28px 14px;
+    border-bottom: 1px solid var(--linie);
+  }
+  .baum-inhalt {
+    flex-direction: row; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .baum-inhalt::-webkit-scrollbar { display: none; }
+  .baum .gruppe { display: none; }
+  .baum a {
+    flex: none; padding: 8px 14px; white-space: nowrap;
+    border: 1px solid var(--linie); border-radius: 999px; font-size: 13.5px;
+  }
+  .baum a[aria-current="true"] { border-color: var(--vorlauf); }
 }
 
-/* --- Textseiten (die Anleitungen aus dem Repo) --------------------------- */
-main.text { max-width: 820px; }
-main.text h1 { font-size: 34px; margin: 8px 0 24px; letter-spacing: -0.02em; }
-main.text img { max-width: 100%; height: auto; border-radius: 12px; }
-
-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px; }
-th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--linie); }
-th { color: var(--gedaempft); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
-
-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.9em;
-  background: var(--karte); padding: 2px 6px; border-radius: 6px;
+.inhalt {
+  position: sticky; top: 104px; max-height: calc(100vh - 140px);
+  overflow-y: auto; overscroll-behavior: contain;
+  padding-right: 8px; border-left: 1px solid var(--linie);
 }
-pre {
-  padding: 16px; border-radius: 12px; overflow-x: auto;
-  background: var(--karte); border: 1px solid var(--linie);
+@media (max-width: 1240px) { .inhalt { display: none; } }
+.inhalt h2 {
+  margin: 0 0 14px; padding-left: 16px;
+  font: 500 11px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--leise);
 }
-pre code { background: none; padding: 0; }
-
-blockquote {
-  margin: 20px 0; padding: 2px 18px;
-  border-left: 3px solid var(--linie); color: var(--gedaempft);
+.inhalt ul { margin: 0; padding: 0; list-style: none; }
+.inhalt a {
+  display: block; padding: 6px 12px 6px 16px; margin-left: -1px;
+  border-left: 1px solid transparent;
+  font-size: 13.5px; line-height: 1.45; color: var(--gedaempft); text-decoration: none;
+  transition: color 0.18s, border-color 0.18s;
 }
+.inhalt a:hover { color: var(--text); }
+.inhalt a.hier { color: var(--vorlauf-hell); border-left-color: var(--vorlauf); }
+.inhalt .tief { padding-left: 28px; font-size: 13px; color: var(--leise); }
 
-/* Breite Tabellen und Codeblöcke scrollen in sich, nie die Seite. */
-.rollbar { overflow-x: auto; }
+.aufsatz { min-width: 0; max-width: 780px; }
+.aufsatz > *:first-child { margin-top: 0; }
+
+/* Ein Abschnitt je eingebundener Anleitung. Die Trennung ist großzügig, damit
+   beim Durchscrollen klar wird, dass ein neues Kapitel beginnt. */
+.teil + .teil { margin-top: 120px; }
+.teil > h1 {
+  position: relative; padding-top: 40px;
+  scroll-margin-top: 96px;
+}
+.teil > h1::before {
+  content: ""; position: absolute; top: 0; left: 0;
+  width: 72px; height: 3px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--vorlauf), var(--ruecklauf));
+}
+.teil:first-child > h1 { padding-top: 0; }
+.teil:first-child > h1::before { display: none; }
+
+.aufsatz h1 {
+  margin: 0 0 28px; padding-bottom: 26px; border-bottom: 1px solid var(--linie);
+  font-size: clamp(34px, 4.6vw, 52px); line-height: 1.05; letter-spacing: -0.035em; font-weight: 800;
+}
+.aufsatz h2 {
+  margin: 64px 0 18px; padding-top: 26px; border-top: 1px solid var(--linie);
+  font-size: clamp(24px, 2.8vw, 31px); line-height: 1.15; letter-spacing: -0.025em; font-weight: 700;
+}
+.aufsatz h3 { margin: 40px 0 14px; font-size: 19px; letter-spacing: -0.015em; font-weight: 650; }
+.aufsatz h4 { margin: 30px 0 10px; font-size: 16px; font-weight: 650; color: var(--gedaempft); }
+.aufsatz p { margin: 0 0 20px; color: #cfd5dc; }
+.aufsatz strong { color: var(--text); font-weight: 650; }
+.aufsatz ul, .aufsatz ol { margin: 0 0 22px; padding-left: 22px; color: #cfd5dc; }
+.aufsatz li { margin-bottom: 8px; }
+.aufsatz li::marker { color: var(--leise); }
+.aufsatz hr { margin: 48px 0; border: 0; border-top: 1px solid var(--linie); }
+.aufsatz blockquote {
+  margin: 26px 0; padding: 2px 0 2px 22px;
+  border-left: 2px solid var(--ruecklauf); color: var(--gedaempft);
+}
+.aufsatz blockquote p:last-child { margin-bottom: 0; }
+.aufsatz img { margin: 26px 0; border: 1px solid var(--linie); border-radius: 12px; }
+/* Die Zeichnungen bringen ihre eigene Fläche mit und brauchen keinen Rahmen. */
+.aufsatz img[src$=".svg"] { border: 0; border-radius: 0; }
+
+.aufsatz code {
+  font: 400 0.88em/1.5 var(--mono);
+  background: rgba(255, 255, 255, 0.07); color: #f0d9c8;
+  padding: 2px 6px; border-radius: 5px;
+}
+.aufsatz pre {
+  margin: 0 0 24px; padding: 18px 20px; overflow-x: auto;
+  background: #101216; border: 1px solid var(--linie); border-radius: 12px;
+  font: 400 13.5px/1.65 var(--mono);
+}
+.aufsatz pre code { background: none; padding: 0; color: #d7dde4; font-size: 13.5px; }
+
+/* Breite Tabellen scrollen in sich selbst, statt die Seite zu sprengen. */
+.aufsatz table {
+  display: block; width: 100%; max-width: 100%; overflow-x: auto;
+  border-collapse: collapse; margin: 0 0 26px; font-size: 14.5px;
+}
+.aufsatz th {
+  padding: 10px 16px 10px 0; text-align: left; white-space: nowrap;
+  border-bottom: 1px solid var(--linie-stark);
+  font: 500 11px/1.4 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--leise);
+}
+.aufsatz td { padding: 12px 16px 12px 0; border-bottom: 1px solid var(--linie); vertical-align: top; color: #cfd5dc; }
+.aufsatz tr:last-child td { border-bottom: 0; }
+
+.highlight .c, .highlight .cm, .highlight .c1 { color: #6b7280; font-style: italic; }
+.highlight .k, .highlight .kd, .highlight .kn, .highlight .kc { color: #ff9d7a; }
+.highlight .s, .highlight .s1, .highlight .s2, .highlight .sb { color: #9fd3a4; }
+.highlight .n, .highlight .nn, .highlight .nx { color: #d7dde4; }
+.highlight .nt, .highlight .nc, .highlight .nf { color: #8fbcea; }
+.highlight .m, .highlight .mi, .highlight .mf { color: #e0b978; }
+.highlight .o, .highlight .p { color: #9aa1a9; }
+.highlight .err { color: var(--vorlauf-hell); }
 
 /* --- Fußzeile ----------------------------------------------------------- */
 .fuss {
-  border-top: 1px solid var(--linie);
-  padding: 28px 24px 48px;
-  color: var(--gedaempft); font-size: 14px; text-align: center;
+  position: relative; z-index: 1;
+  border-top: 1px solid var(--linie); padding: 44px 0 60px;
+  font-size: 13.5px; line-height: 1.7; color: var(--leise);
 }
-.fuss p { max-width: var(--breite); margin: 0 auto 8px; }
+.fuss p { margin: 0; max-width: 70ch; }
+.fuss-wege { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; }
+.fuss-wege a { color: var(--gedaempft); text-decoration: none; }
+.fuss-wege a:hover { color: var(--text); }
+
+.kaffee {
+  display: inline-flex; align-items: center; gap: 10px; margin-top: 28px;
+  padding: 11px 20px; border-radius: 10px;
+  background: #ffdd00; color: #14130c; text-decoration: none;
+  font: 600 14.5px/1 var(--sans); letter-spacing: -0.01em;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.kaffee:hover { transform: translateY(-1px); box-shadow: 0 10px 26px -10px rgba(255, 221, 0, 0.55); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+}

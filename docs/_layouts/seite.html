@@ -3,63 +3,122 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-{% comment %}
-Der Seitentitel steht hier und nicht als Vorspann in den Anleitungen: Die
-Dateien unter `docs/` werden auch im Repo gelesen, und GitHub zeigt einen
-YAML-Vorspann dort als Tabelle über dem Text.
-{% endcomment %}
-{% assign titel = page.titel %}
-{% unless titel %}
-  {% case page.name %}
-    {% when 'OBERFLAECHE.md' %}{% assign titel = 'Die eigene Oberfläche' %}
-    {% when 'KARTE.md' %}{% assign titel = 'Anlagenschaubild als Karte' %}
-    {% when 'DATAPOINTS.md' %}{% assign titel = 'Datenpunkte' %}
-    {% when 'ENUMS.md' %}{% assign titel = 'Aufzählungen' %}
-    {% when 'ARCHITECTURE.md' %}{% assign titel = 'Aufbau' %}
-    {% when 'API.md' %}{% assign titel = 'Geräteschnittstelle' %}
-  {% endcase %}
-{% endunless %}
-<title>{% if titel %}{{ titel }} · {% endif %}{{ site.title }}</title>
+<title>{% if page.titel %}{{ page.titel }} · {% endif %}{{ site.title }}</title>
 <meta name="description" content="{{ page.beschreibung | default: site.description }}">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0c0d10">
 <link rel="icon" href="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/icon.png">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="{{ '/assets/fonts/InterTight-latin.woff2' | relative_url }}">
 <link rel="stylesheet" href="{{ '/assets/css/heatnexus.css' | relative_url }}">
-<meta property="og:title" content="{{ titel | default: site.title }}">
+<meta property="og:title" content="{{ page.titel | default: site.title }}">
 <meta property="og:description" content="{{ page.beschreibung | default: site.description }}">
 <meta property="og:image" content="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/banner_small.png">
 </head>
 <body>
 
+<a class="zum-inhalt" href="#inhalt">Zum Inhalt</a>
+<div class="raster" aria-hidden="true"></div>
+<div class="glut" aria-hidden="true"></div>
+
+{% assign anleitung = '/ANLEITUNG' | relative_url %}
+
 <header class="kopf">
   <a class="marke" href="{{ '/' | relative_url }}">
-    <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/icon.png" alt="" width="28" height="28">
+    <img src="https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/icon.png" alt="" width="22" height="22">
     <span>HeatNexus</span>
   </a>
-  <nav class="wege">
+  {% comment %}
+  `data-deckt` sagt, welche Abschnitte ein Punkt der Kopfzeile vertritt. Ohne
+  das bliebe die Zeile in „Fehlersuche" oder „Karte" ohne Markierung.
+  {% endcomment %}
+  <nav class="wege" aria-label="Hauptbereiche">
     <a href="{{ '/' | relative_url }}">Start</a>
-    <a href="{{ '/OBERFLAECHE' | relative_url }}">Oberfläche</a>
-    <a href="{{ '/KARTE' | relative_url }}">Karte</a>
-    <a href="{{ '/DATAPOINTS' | relative_url }}">Datenpunkte</a>
-    <a href="{{ '/ARCHITECTURE' | relative_url }}">Aufbau</a>
-    <a class="aussen" href="https://github.com/xIceTea/HeatNexus">GitHub</a>
+    <a href="{{ anleitung }}#einrichtung" data-deckt="einrichtung fehlersuche">Einrichtung</a>
+    <a href="{{ anleitung }}#oberflaeche" data-deckt="oberflaeche karte vorlagen">Oberfläche</a>
+    <a href="{{ anleitung }}#datenpunkte" data-deckt="datenpunkte aufzaehlungen geraeteschnittstelle">Datenpunkte</a>
+    <a href="{{ anleitung }}#aufbau" data-deckt="aufbau">Aufbau</a>
+    <a href="https://github.com/xIceTea/HeatNexus">GitHub</a>
   </nav>
+  <a class="taste voll klein" href="https://my.home-assistant.io/redirect/hacs_repository/?owner=xIceTea&amp;repository=HeatNexus&amp;category=integration">In HACS öffnen</a>
 </header>
 
-<main class="{% if page.start %}start{% else %}text{% endif %}">
-{{ content }}
-</main>
+{% if page.start %}
+  <main class="start" id="inhalt">
+    {{ content }}
+  </main>
+{% else %}
+  <main class="text" id="inhalt">
+    {% comment %}
+    Der Baum zeigt auf Abschnitte einer einzigen Seite. Die Markierung setzt
+    `wegweiser.js` beim Scrollen, nicht das Template.
+    {% endcomment %}
+    <div class="baum">
+      <nav class="baum-inhalt" aria-label="Anleitung">
+        <p class="gruppe">Einstieg</p>
+        <a href="{{ '/' | relative_url }}" class="fort">Start</a>
+        <a href="#einrichtung">Einrichtung</a>
+        <a href="#fehlersuche">Fehlersuche</a>
+
+        <p class="gruppe">Bedienung</p>
+        <a href="#oberflaeche">Die Oberfläche</a>
+        <a href="#karte">Schaubild als Karte</a>
+        <a href="#vorlagen">Vorlagen und Dienste</a>
+
+        <p class="gruppe">Referenz</p>
+        <a href="#datenpunkte">Datenpunkte</a>
+        <a href="#aufzaehlungen">Auswahlwerte</a>
+        <a href="#geraeteschnittstelle">Geräteschnittstelle</a>
+
+        <p class="gruppe">Innen</p>
+        <a href="#aufbau">Aufbau</a>
+        <a class="fort" href="https://github.com/xIceTea/HeatNexus/blob/main/CHANGELOG.md">Änderungen</a>
+        <a class="fort" href="https://github.com/xIceTea/HeatNexus/blob/main/CONTRIBUTING.md">Mitwirken</a>
+      </nav>
+    </div>
+    <article class="aufsatz">
+      {{ content }}
+    </article>
+    <aside class="inhalt" id="wegweiser" aria-label="In diesem Abschnitt"></aside>
+  </main>
+{% endif %}
 
 <footer class="fuss">
-  <p>
-    HeatNexus ist ein freies Projekt ohne Verbindung zur Windhager Zentralheizung GmbH.
-    Windhager, PuroWIN und BioWIN sind Marken ihrer jeweiligen Inhaber.
-  </p>
-  <p>
-    <a href="https://github.com/xIceTea/HeatNexus">Quelltext</a> ·
-    <a href="https://github.com/xIceTea/HeatNexus/blob/main/CHANGELOG.md">Änderungen</a> ·
-    <a href="https://github.com/xIceTea/HeatNexus/discussions">Diskussionen</a> ·
-    <a href="https://github.com/xIceTea/HeatNexus/blob/main/LICENSE">GPL-3.0</a>
-  </p>
+  <div class="huelle">
+    <p>
+      HeatNexus ist ein freies Projekt ohne Verbindung zur Windhager Zentralheizung GmbH.
+      Windhager, PuroWIN und BioWIN sind Marken ihrer jeweiligen Inhaber.
+    </p>
+    <nav class="fuss-wege" aria-label="Weitere Seiten">
+      <a href="{{ anleitung }}#einrichtung">Einrichtung</a>
+      <a href="{{ anleitung }}#fehlersuche">Fehlersuche</a>
+      <a href="{{ anleitung }}#oberflaeche">Oberfläche</a>
+      <a href="{{ anleitung }}#karte">Karte</a>
+      <a href="{{ anleitung }}#vorlagen">Vorlagen und Dienste</a>
+      <a href="{{ anleitung }}#datenpunkte">Datenpunkte</a>
+      <a href="{{ anleitung }}#aufzaehlungen">Auswahlwerte</a>
+      <a href="{{ anleitung }}#geraeteschnittstelle">Geräteschnittstelle</a>
+      <a href="{{ anleitung }}#aufbau">Aufbau</a>
+      <a href="https://github.com/xIceTea/HeatNexus/blob/main/CHANGELOG.md">Änderungen</a>
+      <a href="https://github.com/xIceTea/HeatNexus/discussions">Diskussionen</a>
+      <a href="https://github.com/xIceTea/HeatNexus/blob/main/LICENSE">GPL-3.0</a>
+    </nav>
+
+    {% comment %}
+    Der Knopf ist nachgebaut statt von buymeacoffee.com geladen: Ein fremdes
+    Bild meldete jeden Seitenaufruf dorthin, auch ohne Klick.
+    {% endcomment %}
+    <a class="kaffee" href="https://buymeacoffee.com/xicetea" rel="noopener">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none"
+           stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 8h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/>
+        <path d="M16 9h1.5a2.5 2.5 0 0 1 0 5H16"/>
+        <path d="M7 3.5v2M11 3v2.5"/>
+      </svg>
+      <span>Kaffee ausgeben</span>
+    </a>
+  </div>
 </footer>
 
+<script src="{{ '/assets/js/wegweiser.js' | relative_url }}" defer></script>
 </body>
 </html>
