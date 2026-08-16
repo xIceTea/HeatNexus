@@ -8,7 +8,8 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto 鈥
   <div class="held">
     <div>
       <p class="pille">
-        <i class="punkt"></i> Lokal 路 <b>0</b> Verbindungen nach au脽en 路 Abfrageintervall einstellbar
+        <i class="punkt"></i>
+        <span>Lokal&nbsp;路 <b>0</b>&nbsp;Verbindungen&nbsp;nach&nbsp;au脽en&nbsp;路 Abfrageintervall&nbsp;einstellbar</span>
       </p>
       <h1>Deine Windhager&#8209;Heizung in Home&nbsp;Assistant</h1>
       <p class="unter">

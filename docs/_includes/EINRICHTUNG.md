@@ -76,7 +76,7 @@ Durchlauf nicht.
 | Erklärungen | an | Die „?"-Knöpfe in der eigenen Oberfläche. |
 | Systemuhr und Systemdatum | aus | Uhrzeit und Datum der Steuerung als eigene Entitäten. |
 | Meldung beim Einlesen | aus | Benachrichtigung, während die Anlage gelesen wird. |
-| LON-Adressraum | je nach Gerät | Lohnt sich, wo der OID-Raum dünn ist, und kaum, wo er reich ist. |
+| LON-Adressraum | je nach Gerät | Liest einen zweiten Adressraum mit. Bringt nur dort zusätzliche Werte, wo die Steuerung auf dem normalen Weg wenig meldet. |
 | Zusatzwerte | Laufzeit, Zähler | Abgeleitete Werte, gruppenweise an- und abwählbar. |
 | Automations-Vorlagen | alle | Welche Blueprints mitgeliefert werden. |
 

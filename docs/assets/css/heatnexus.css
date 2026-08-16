@@ -167,31 +167,26 @@ a { color: var(--ruecklauf-hell); }
 .wege a[aria-current="true"]::after { opacity: 1; transform: scale(1); }
 .kopf .taste { margin-left: 6px; }
 @media (max-width: 900px) { .wege { display: none; } }
-/* Auf schmalen Geräten schwebt die Pille nicht mehr frei: Der Text lief sonst
-   sichtbar an ihr vorbei. Ein Streifen dahinter deckt ihn ab. */
+
+/* Schmale Geräte bekommen statt der schwebenden Pille eine durchgehende
+   Leiste: Ohne Reiter steht die Pille halb leer, und der Text lief an ihr
+   vorbei, weil sie die Breite nicht ausfüllt. */
 @media (max-width: 940px) {
-  body::before {
-    content: ""; position: fixed; top: 0; left: 0; right: 0; height: 74px;
-    z-index: 40; pointer-events: none;
-    background: color-mix(in srgb, var(--grund) 90%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    -webkit-mask-image: linear-gradient(#000 76%, transparent);
-    mask-image: linear-gradient(#000 76%, transparent);
-    transition: opacity 0.28s ease;
+  .kopf {
+    top: 0; left: 0; right: 0; transform: none; max-width: none;
+    height: 54px; padding: 0 20px; gap: 0; justify-content: space-between;
+    border: 0; border-bottom: 1px solid var(--linie); border-radius: 0;
+    background: var(--grund);
+    box-shadow: none;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .kopf { transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
+  .marke { margin-right: 0; padding-right: 0; border-right: 0; }
+  .kopf .taste { margin-left: 0; }
 
   /* Beim Abwärtslesen räumt die Kopfzeile das Feld; die Abschnittsleiste rückt
-     nach oben nach. Ein Stück zurückscrollen holt sie wieder. */
-  html.kopf-weg .kopf { transform: translate(-50%, -170%); }
-  html.kopf-weg body::before { opacity: 0; }
-  /* Bündig an die Kante und deckend: Ein Spalt darüber ließe den Text
-     durchlaufen. */
-  html.kopf-weg .baum {
-    top: 0; padding-top: 14px;
-    background: var(--grund);
-  }
+     nach. Ein Stück zurückscrollen holt sie wieder. */
+  html.kopf-weg .kopf { transform: translateY(-100%); }
+  html.kopf-weg .baum { top: 0; }
 }
 
 /* Zurück nach oben. Ohne JavaScript bleibt der Knopf verborgen — der Sprung
@@ -244,9 +239,18 @@ a { color: var(--ruecklauf-hell); }
 }
 .pille b { color: var(--text); font-weight: 500; }
 .punkt {
-  width: 7px; height: 7px; border-radius: 50%; background: var(--gruen);
+  flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--gruen);
   box-shadow: 0 0 0 3px rgba(63, 169, 113, 0.18);
   animation: puls 2.4s ease-in-out infinite;
+}
+/* Auf schmalen Geräten bricht die Zeile um. Als Lozenge sähe das kaputt aus,
+   also wird daraus ein Kästchen mit dem Punkt an der ersten Zeile. */
+@media (max-width: 620px) {
+  .pille {
+    align-items: flex-start; border-radius: 12px;
+    padding: 10px 14px; line-height: 1.75; letter-spacing: 0.05em;
+  }
+  .punkt { margin-top: 7px; }
 }
 @keyframes puls { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
@@ -459,12 +463,22 @@ a { color: var(--ruecklauf-hell); }
   gap: 48px; align-items: start;
 }
 @media (max-width: 1240px) { .text { grid-template-columns: 200px minmax(0, 1fr); gap: 40px; } }
-@media (max-width: 940px) { .text { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 104px; } }
+/* Die Leiste schließt oben direkt an die Kopfzeile an — sie beginnt genau
+   dort, wo die Kopfzeile aufhört, und bleibt beim Scrollen an derselben
+   Stelle stehen. */
+@media (max-width: 940px) { .text { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 54px; } }
 
 /* Seitenbaum. Breite Fenster bekommen die Spalte, schmale eine waagerechte
    Leiste über dem Text — ohne Aufklappen, damit nichts von JavaScript abhängt. */
 .baum { position: sticky; top: 104px; }
 .baum-inhalt { display: flex; flex-direction: column; }
+/* Die Leiste der Startseite gibt es nur dort, wo die Reiter fehlen. */
+.baum.nur-schmal { display: none; }
+@media (max-width: 940px) {
+  .baum.nur-schmal { display: block; margin: 0; padding: 11px 20px; }
+  .start { padding-top: 54px; }
+  .held { padding-top: 40px; }
+}
 .baum .gruppe {
   margin: 22px 0 8px; padding-left: 14px;
   font: 500 10.5px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--leise);
@@ -490,12 +504,10 @@ a { color: var(--ruecklauf-hell); }
   /* Ohne Spalte und ohne Reiter in der Kopfzeile ist diese Leiste die einzige
      Orientierung. Sie bleibt deshalb unter der Kopfzeile stehen. */
   .baum {
-    position: sticky; top: 72px; z-index: 30;
+    position: sticky; top: 54px; z-index: 30;
     transition: top 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-    margin: 0 -28px 32px; padding: 12px 28px;
-    background: color-mix(in srgb, var(--grund) 92%, transparent);
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    margin: 0 -28px 32px; padding: 11px 28px;
+    background: var(--grund);
     border-bottom: 1px solid var(--linie);
   }
   .baum-inhalt {
@@ -509,6 +521,27 @@ a { color: var(--ruecklauf-hell); }
     border: 1px solid var(--linie); border-radius: 999px; font-size: 13.5px;
   }
   .baum a[aria-current="true"] { border-color: var(--vorlauf); }
+  /* Der markierte Eintrag sagt, wo man ist, und ist zugleich der Griff für
+     die ganze Gliederung. Das Winkelzeichen zeigt, dass er sich öffnen lässt. */
+  .baum a[aria-current="true"]::after {
+    content: "⌄"; margin-left: 8px; display: inline-block;
+    color: var(--vorlauf-hell); transition: transform 0.24s ease;
+  }
+  html.baum-offen .baum a[aria-current="true"]::after { transform: rotate(180deg); }
+
+  html.baum-offen .baum { padding-bottom: 14px; }
+  html.baum-offen .baum-inhalt {
+    flex-direction: column; gap: 2px;
+    overflow-x: hidden; overflow-y: auto;
+    max-height: calc(100svh - 150px);
+  }
+  html.baum-offen .baum .gruppe {
+    display: block; margin: 16px 0 6px; padding-left: 4px;
+  }
+  html.baum-offen .baum .gruppe:first-child { margin-top: 4px; }
+  html.baum-offen .baum a {
+    white-space: normal; border-radius: 10px; padding: 10px 14px;
+  }
 }
 
 .inhalt {

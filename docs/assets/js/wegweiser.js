@@ -18,6 +18,30 @@
     if (a.pathname.replace(/index\.html$/, "") === seite) a.setAttribute("aria-current", "true");
   });
 
+  // ---- Gliederung auf schmalen Geräten -----------------------------------
+  // Der markierte Eintrag der Leiste ist zugleich der Griff: Ein Tipp darauf
+  // faltet die ganze Gliederung mit ihren Gruppen aus.
+  var leiste = document.querySelector(".baum-inhalt");
+  var offenBei = 0;
+
+  function klappen(auf) {
+    wurzel.classList.toggle("baum-offen", auf);
+    if (auf) offenBei = window.scrollY || 0;
+  }
+
+  if (leiste) {
+    leiste.addEventListener("click", function (e) {
+      var weg = e.target.closest ? e.target.closest("a") : null;
+      if (!weg || window.innerWidth > SCHMAL) return;
+      if (weg.getAttribute("aria-current") === "true" && !wurzel.classList.contains("baum-offen")) {
+        e.preventDefault();
+        klappen(true);
+        return;
+      }
+      klappen(false);
+    });
+  }
+
   // ---- Knopf nach oben und Kopfzeile -------------------------------------
   var hochKnopf = document.querySelector(".hoch");
   var vorher = window.scrollY || 0;
@@ -25,6 +49,8 @@
   function rand() {
     var y = window.scrollY || 0;
     if (hochKnopf) hochKnopf.classList.toggle("sichtbar", y > 700);
+    // Wer weiterliest, hat die Gliederung nicht mehr im Sinn.
+    if (wurzel.classList.contains("baum-offen") && Math.abs(y - offenBei) > 60) klappen(false);
 
     // Die Kopfzeile weicht nur dort, wo sie Platz kostet.
     if (window.innerWidth > SCHMAL) {

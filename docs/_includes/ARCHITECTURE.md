@@ -133,8 +133,9 @@ ist das nicht der Fall.
 zusammen und übergibt es als `data:`-URL an eine `picture-elements`-Karte; die
 Live-Werte liegen als eigene Marken darüber. Jede Datei zeichnet ein Bauteil in
 ein Feld von 200 × 392 mit der Mitte bei x = 100, dem Vorlauf auf y = 92 und dem
-Rücklauf auf y = 318. Farben stehen darin als Platzhalter (`{{korpus}}`,
-`{{glut}}`, …) und werden beim Zusammensetzen eingesetzt; Kennungen bekommen je
+Rücklauf auf y = 318. Farben stehen darin als Platzhalter
+({% raw %}`{{korpus}}`, `{{glut}}`{% endraw %}, …) und werden beim
+Zusammensetzen eingesetzt; Kennungen bekommen je
 Anlagenteil einen eigenen Präfix, damit zwei Puffer sich nicht denselben Verlauf
 teilen. Fehlt eine Datei, greift eine schlichte gezeichnete Ersatzform.
 

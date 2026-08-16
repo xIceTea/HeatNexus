@@ -48,38 +48,21 @@ einer Änderung tagelang die alte Datei aus.
 </header>
 
 {% if page.start %}
+  {% comment %}
+  Auf schmalen Geräten sind die Reiter der Kopfzeile ausgeblendet. Ohne diese
+  Leiste hätte die Startseite dort keinen Weg in die Anleitung.
+  {% endcomment %}
   <main class="start" id="inhalt">
+    <div class="baum nur-schmal">{% include baum.html %}</div>
     {{ content }}
   </main>
 {% else %}
   <main class="text" id="inhalt">
     {% comment %}
-    Der Baum zeigt auf Abschnitte einer einzigen Seite. Die Markierung setzt
-    `wegweiser.js` beim Scrollen, nicht das Template.
+    Die Markierung im Baum setzt `wegweiser.js` beim Scrollen, nicht das
+    Template.
     {% endcomment %}
-    <div class="baum">
-      <nav class="baum-inhalt" aria-label="Anleitung">
-        <p class="gruppe">Einstieg</p>
-        <a href="{{ '/' | relative_url }}" class="fort">Start</a>
-        <a href="#einrichtung">Einrichtung</a>
-        <a href="#fehlersuche">Fehlersuche</a>
-
-        <p class="gruppe">Bedienung</p>
-        <a href="#oberflaeche">Die Oberfläche</a>
-        <a href="#karte">Schaubild als Karte</a>
-        <a href="#vorlagen">Vorlagen und Dienste</a>
-
-        <p class="gruppe">Referenz</p>
-        <a href="#datenpunkte">Datenpunkte</a>
-        <a href="#aufzaehlungen">Auswahlwerte</a>
-        <a href="#geraeteschnittstelle">Geräteschnittstelle</a>
-
-        <p class="gruppe">Innen</p>
-        <a href="#aufbau">Aufbau</a>
-        <a class="fort" href="https://github.com/xIceTea/HeatNexus/blob/main/CHANGELOG.md">Änderungen</a>
-        <a class="fort" href="https://github.com/xIceTea/HeatNexus/blob/main/CONTRIBUTING.md">Mitwirken</a>
-      </nav>
-    </div>
+    <div class="baum">{% include baum.html %}</div>
     <article class="aufsatz">
       {{ content }}
     </article>

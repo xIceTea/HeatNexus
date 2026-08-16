@@ -1,0 +1,22 @@
+{% assign anleitung = '/ANLEITUNG' | relative_url %}
+<nav class="baum-inhalt" aria-label="Anleitung">
+  <p class="gruppe">Einstieg</p>
+  <a href="{{ '/' | relative_url }}" class="fort">Start</a>
+  <a href="{{ anleitung }}#einrichtung">Einrichtung</a>
+  <a href="{{ anleitung }}#fehlersuche">Fehlersuche</a>
+
+  <p class="gruppe">Bedienung</p>
+  <a href="{{ anleitung }}#oberflaeche">Die Oberfläche</a>
+  <a href="{{ anleitung }}#karte">Schaubild als Karte</a>
+  <a href="{{ anleitung }}#vorlagen">Vorlagen und Dienste</a>
+
+  <p class="gruppe">Referenz</p>
+  <a href="{{ anleitung }}#datenpunkte">Datenpunkte</a>
+  <a href="{{ anleitung }}#aufzaehlungen">Auswahlwerte</a>
+  <a href="{{ anleitung }}#geraeteschnittstelle">Geräteschnittstelle</a>
+
+  <p class="gruppe">Innen</p>
+  <a href="{{ anleitung }}#aufbau">Aufbau</a>
+  <a class="fort" href="https://github.com/xIceTea/HeatNexus/blob/main/CHANGELOG.md">Änderungen</a>
+  <a class="fort" href="https://github.com/xIceTea/HeatNexus/blob/main/CONTRIBUTING.md">Mitwirken</a>
+</nav>
