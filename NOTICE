@@ -12,10 +12,18 @@ wurden; ab 1.6.0 gilt die GPL-3.0.
 Herkunftsnachweise
 ------------------
 
-Keine. HeatNexus enthält ausschließlich eigenen Code. Die frühere
+Der ausgelieferte Code ist ausschließlich eigener. Die frühere
 Digest-Authentifizierung (abgeleitet vom Projekt "requests", Apache License
 2.0) ist mit 1.5.0-beta.4 entfallen, weil aiohttp diese Aufgabe selbst
 übernimmt.
+
+Die Projektseite unter docs/ liefert drei Schriften mit. Sie stehen unter der
+SIL Open Font License 1.1; die Lizenztexte liegen als OFL-*.txt neben den
+Schriftdateien in docs/assets/fonts/.
+
+  Inter Tight        Copyright 2022 The Inter Project Authors
+  Instrument Serif   Copyright 2022 The Instrument Serif Project Authors
+  JetBrains Mono     Copyright 2020 The JetBrains Mono Project Authors
 
 Dank
 ----
