@@ -27,7 +27,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Behoben
 
 - Der Karteneditor zeigt nach einer Aktualisierung die neue Fassung.
-- Abschnitte im Karteneditor bleiben aufgeschlagen.
+- Abschnitte im Karteneditor schließen sich nicht mehr von selbst.
 
 ## [1.9.1] - 2026-08-16
 
