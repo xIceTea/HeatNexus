@@ -26,6 +26,15 @@ export const WerteMixin = (Basis) =>
       return einheit ? `${zustand.state} ${einheit}` : zustand.state;
     }
 
+    /** Derselbe Text ohne seine Einheit, für eine Zeile, die sie nicht führt. */
+    _textOhneEinheit(entity) {
+      const text = this._text(entity);
+      const zustand = this._zustand(entity);
+      const einheit = zustand && zustand.attributes.unit_of_measurement;
+      if (!einheit || !text.endsWith(einheit)) return text;
+      return text.slice(0, -einheit.length).trim();
+    }
+
     _zahl(entity) {
       const zustand = this._zustand(entity);
       if (!this._hatWert(entity)) return null;
@@ -79,19 +88,27 @@ export const WerteMixin = (Basis) =>
     }
 
     /**
-     * Kennwertzeile wie im Muster: links Anlagenteil, rechts der große Wert und
-     * darunter klein, worum es sich handelt („Kesseltemperatur").
+     * Kennwertzeile. Ohne `aufbau` wie im Muster: links Anlagenteil, rechts der
+     * große Wert und darunter klein, worum es sich handelt.
      */
-    _wertzeile(entity, titel, bezeichnung, symbol, ersatzUnterNull) {
+    _wertzeile(entity, titel, bezeichnung, symbol, ersatzUnterNull, aufbau) {
+      const form = aufbau || {};
+      const art = form.aufbau || "wert_rechts";
+      const ort = form.teil || (art === "kompakt" ? "aus" : "unter_name");
       const zeile = document.createElement("div");
-      zeile.className = "zeile";
-      if (symbol) zeile.appendChild(this._symbolKnoten(symbol));
+      zeile.className = art === "kompakt" ? "zeile knapp" : "zeile";
+      if (symbol) {
+        const knoten = this._symbolKnoten(symbol);
+        // Ohne Farbe folgt das Symbol dem Text; ein Farbname wird zur Marke.
+        if (form.farbe) knoten.style.color = `var(--${form.farbe}-color)`;
+        zeile.appendChild(knoten);
+      }
       const text = document.createElement("div");
       text.className = "text";
       const oben = document.createElement("div");
       oben.className = "titel";
-      oben.textContent = titel;
-      text.appendChild(oben);
+      const unter = document.createElement("div");
+      unter.className = "unter";
 
       const rechts = document.createElement("div");
       rechts.className = "rechts";
@@ -99,7 +116,21 @@ export const WerteMixin = (Basis) =>
       wert.className = "wert";
       const unten = document.createElement("div");
       unten.className = "bezeichnung";
-      unten.textContent = bezeichnung || "";
+
+      // Was oben steht, dreht sich mit dem Aufbau: entweder das Anlagenteil
+      // und der Datenpunkt klein am Wert, oder umgekehrt.
+      let untenText = "";
+      if (art === "wert_rechts") {
+        oben.textContent = titel;
+        untenText = bezeichnung || "";
+      } else {
+        oben.textContent = bezeichnung || titel;
+        if (art !== "kompakt" && ort === "unter_name") unter.textContent = titel;
+        if (art !== "kompakt" && ort === "unter_wert") untenText = titel;
+      }
+      unten.textContent = untenText;
+      text.append(oben);
+      if (unter.textContent) text.append(unter);
       rechts.append(wert, unten);
 
       zeile.append(text, rechts);
@@ -110,12 +141,13 @@ export const WerteMixin = (Basis) =>
         // ganz aus der Liste.
         const zahl = ersatzUnterNull ? this._zahl(entity) : null;
         const ohneAnforderung = ersatzUnterNull && !(zahl !== null && zahl > 0);
-        wert.textContent = ohneAnforderung ? ersatzUnterNull : this._text(entity);
-        unten.textContent = bezeichnung || "";
+        const gemessen = form.einheit === false ? this._textOhneEinheit(entity) : this._text(entity);
+        wert.textContent = ohneAnforderung ? ersatzUnterNull : gemessen;
+        unten.textContent = untenText;
         // Lange Texte („Betriebsbereit") umbrechen statt zu schrumpfen.
         wert.classList.toggle("lang", wert.textContent.length > 8);
       });
-      return this._klickbar(zeile, entity);
+      return form.klick === false ? zeile : this._klickbar(zeile, entity);
     }
 
     /** Ob an dieser Anlage gerade irgendeine Pumpe fördert. */

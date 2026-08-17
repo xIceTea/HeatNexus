@@ -501,18 +501,26 @@ export const STIL = `
      Drittel der Kartenbreite; nach der ganzen Karte gemessen blieb sie groß
      und Titel und Wert liefen ineinander. */
   .karte-zweispaltig > * { container-type: inline-size; min-width: 0; }
+  /* Gleich hohe Zeilen, auch wo Anlagenteil oder Wert fehlen. Die kompakte
+     Ansicht ist durchgehend flacher, nicht einzelne Zeilen darin. */
+  .karte-zweispaltig .zeile { min-height: 56px; }
+  .karte-zweispaltig .zeile.knapp { min-height: 40px; }
   @container (max-width: 340px) {
     .karte-zweispaltig .zeile .wert { font-size: 16px; }
     .karte-zweispaltig .zeile .wert.lang { font-size: 12px; }
     .karte-zweispaltig .zeile .titel { font-size: 12px; }
     .karte-zweispaltig .zeile .bezeichnung { font-size: 10px; }
-    .karte-zweispaltig .zeile { gap: 8px; padding: 8px 10px; }
+    .karte-zweispaltig .zeile { gap: 8px; padding: 8px 10px; min-height: 48px; }
+    .karte-zweispaltig .zeile.knapp { min-height: 36px; }
     .karte-zweispaltig .kartenkopf h2 { font-size: 15px; }
   }
   /* Noch schmaler passen Titel und Wert nicht mehr nebeneinander. Dann
      untereinander statt in immer kleinerer Schrift. */
   @container (max-width: 230px) {
-    .karte-zweispaltig .zeile { flex-direction: column; align-items: flex-start; gap: 2px; }
+    .karte-zweispaltig .zeile {
+      flex-direction: column; align-items: flex-start; gap: 2px; min-height: 0;
+    }
+    .karte-zweispaltig .zeile.knapp { min-height: 0; }
     .karte-zweispaltig .zeile .rechts { text-align: left; }
     .karte-zweispaltig .zeile .wert { font-size: 15px; }
     .karte-zweispaltig .zeile .wert.lang { font-size: 12px; }

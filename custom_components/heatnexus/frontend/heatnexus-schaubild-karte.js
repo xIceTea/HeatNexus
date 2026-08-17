@@ -40,9 +40,10 @@ class HeatNexusSchaubildKarte extends Grundlage {
     return { type: `custom:${ELEMENT}`, farbsatz: "auto", schrift: "normal", animation: true };
   }
 
-  /** Elf Rasterzeilen sind gut zwei Drittel Breite bei voller Zeichnung. */
+  // Die Höhe folgt dem Inhalt: Wie hoch die Karte ausfällt, hängt an der Zahl
+  // der Anlagenteile und der Werte daneben.
   getGridOptions() {
-    return { columns: 12, rows: 6, min_columns: 6, min_rows: 4 };
+    return { columns: 12, rows: "auto", min_columns: 6, min_rows: 4 };
   }
 
   getCardSize() {
@@ -56,10 +57,21 @@ class HeatNexusSchaubildKarte extends Grundlage {
     if (config && config.schrift && !SCHRIFTMASSE.some((m) => m.schluessel === config.schrift)) {
       throw new Error(`Unbekanntes Schriftmaß: ${config.schrift}`);
     }
-    const vorher = JSON.stringify([this._config.werte, this._config.teile_aus]);
+    const vorher = JSON.stringify([
+      this._config.werte,
+      this._config.teile_aus,
+      this._config.zeichnungen,
+      this._config.mischer,
+    ]);
     this._config = { farbsatz: "auto", schrift: "normal", animation: true, ...(config || {}) };
     this._gebaut = false;
-    if (this._hass && vorher !== JSON.stringify([this._config.werte, this._config.teile_aus])) {
+    const jetzt = JSON.stringify([
+      this._config.werte,
+      this._config.teile_aus,
+      this._config.zeichnungen,
+      this._config.mischer,
+    ]);
+    if (this._hass && vorher !== jetzt) {
       this._laden = this._datenHolen();
       return;
     }
@@ -87,11 +99,32 @@ class HeatNexusSchaubildKarte extends Grundlage {
     return schriftmass(this._config.schrift);
   }
 
+  _zeigtPumpen() {
+    return this._config.pumpen !== false;
+  }
+
+  _zeigtMischer() {
+    return this._config.mischer !== false;
+  }
+
+  // Eine leere Überschrift blendet sie aus; ohne Angabe bleibt die gewohnte.
+  _bildtitel() {
+    const titel = this._config.titel_bild;
+    return titel === undefined ? "Anlagenübersicht" : titel;
+  }
+
+  _listentitel() {
+    const titel = this._config.titel_liste;
+    return titel === undefined ? "Werte" : titel;
+  }
+
   async _datenHolen() {
     try {
       const anfrage = { type: "heatnexus/schaubild" };
       if (this._config.werte) anfrage.auswahl = this._config.werte;
       if (this._config.teile_aus) anfrage.teile_aus = this._config.teile_aus;
+      if (this._config.zeichnungen) anfrage.zeichnungen = this._config.zeichnungen;
+      if (this._config.mischer === false) anfrage.mischer = false;
       this._anlagen = await this._hass.callWS(anfrage);
     } catch (err) {
       console.warn("HeatNexus: Schaubild konnte nicht geladen werden", err);
@@ -160,21 +193,63 @@ class HeatNexusSchaubildKarte extends Grundlage {
     this._aktualisieren();
   }
 
-  _zusatzwerte() {
+  // Ein Eintrag ist die Entität allein oder ein Satz eigener Angaben. Beides
+  // steht nebeneinander in derselben Liste, damit ältere Karten weiterlaufen.
+  _eintraege() {
     const vorrat = this._wertevorrat();
-    return (this._config.zusatzwerte || []).filter((entity) => vorrat.has(entity));
+    return (this._config.zusatzwerte || [])
+      .map((eintrag) => (typeof eintrag === "string" ? { entity: eintrag } : eintrag || {}))
+      .filter(
+        (eintrag) => eintrag.entity && (vorrat.has(eintrag.entity) || this._zustand(eintrag.entity))
+      );
+  }
+
+  /** Was zu einem Wert bekannt ist – aus der Anlage oder aus dem Zustand. */
+  _wertangaben(entity) {
+    const bekannt = this._wertevorrat().get(entity);
+    if (bekannt) return bekannt;
+    const zustand = this._zustand(entity);
+    const attribute = (zustand && zustand.attributes) || {};
+    return { name: this._name(entity), teil: "", symbol: attribute.icon || null };
+  }
+
+  _zusatzwerte() {
+    return this._eintraege().map((eintrag) => eintrag.entity);
+  }
+
+  /** Der Aufbau der Zeile: Vorgabe der Karte, je Eintrag überschreibbar. */
+  _zeilenform(eintrag) {
+    const vorgabe = this._config.zeilen || {};
+    const gilt = (feld) => (eintrag[feld] !== undefined ? eintrag[feld] : vorgabe[feld]);
+    return {
+      aufbau: eintrag.aufbau || vorgabe.aufbau || "name_links",
+      teil: eintrag.teil || vorgabe.teil || "unter_wert",
+      farbe: eintrag.farbe || vorgabe.farbe || "",
+      einheit: gilt("einheit") !== false,
+      klick: gilt("klick") !== false,
+    };
   }
 
   // Die Liste behauptet nichts über Rohre – hier darf frei gewählt werden,
   // quer über alle Anlagenteile.
   _werteliste() {
-    const gewaehlt = this._zusatzwerte();
+    const gewaehlt = this._eintraege();
     if (!gewaehlt.length) return null;
-    const vorrat = this._wertevorrat();
-    const karte = this._karte("Werte");
-    gewaehlt.forEach((entity) => {
-      const eintrag = vorrat.get(entity);
-      karte.appendChild(this._wertzeile(entity, eintrag.teil || "", eintrag.name));
+    const karte = this._karte(this._listentitel());
+    const symbole = (this._config.zeilen || {}).symbol !== "aus";
+    gewaehlt.forEach((eintrag) => {
+      const bekannt = this._wertangaben(eintrag.entity);
+      const symbol = eintrag.symbol || (symbole ? bekannt.symbol : null);
+      karte.appendChild(
+        this._wertzeile(
+          eintrag.entity,
+          eintrag.beschriftung || bekannt.teil || "",
+          eintrag.name || bekannt.name,
+          symbol,
+          null,
+          this._zeilenform(eintrag)
+        )
+      );
     });
     return karte;
   }
