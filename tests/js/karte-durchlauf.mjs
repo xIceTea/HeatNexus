@@ -162,4 +162,102 @@ bilanz.schichtungOhneDunkelwert =
   !schichtfarbe.includes(grundfarben.kalt);
 bilanz.grundfarbenMitgeliefert = Object.keys(grundfarben).length;
 
+// Die Werteliste: Aufbau der Zeile, eigene Angaben je Wert, fremde Entität.
+const liste = new Klasse();
+liste.setConfig({
+  anlage: anlagen[0].id,
+  titel_bild: "",
+  titel_liste: "Meine Werte",
+  pumpen: false,
+  zusatzwerte: [
+    "sensor.kessel",
+    { entity: "sensor.leistung", name: "Leistung oben", symbol: "mdi:gauge", teil: "aus" },
+    { entity: "sensor.fremd", beschriftung: "Heizhaus" },
+  ],
+});
+liste.hass = {
+  states: {
+    "sensor.kessel": { state: "68", attributes: { unit_of_measurement: "°C" } },
+    "sensor.leistung": { state: "40", attributes: { unit_of_measurement: "%" } },
+    "sensor.fremd": {
+      state: "7",
+      attributes: { friendly_name: "Solarertrag", icon: "mdi:solar-power" },
+    },
+  },
+  themes: { darkMode: true },
+  callWS: async () => anlagen,
+};
+await liste._laden;
+const zeilen = liste.shadowRoot.querySelectorAll(".zeile");
+const inhalt = (zeile, wahl) => {
+  const knoten = zeile.querySelector(wahl);
+  return knoten ? knoten.textContent : null;
+};
+bilanz.zeilenAnzahl = zeilen.length;
+bilanz.nameLinks = inhalt(zeilen[0], ".titel");
+bilanz.teilAmWert = inhalt(zeilen[0], ".bezeichnung");
+bilanz.zeileMitSymbol = !!zeilen[0].querySelector("ha-icon");
+bilanz.eigenerName = inhalt(zeilen[1], ".titel");
+bilanz.teilAbgewaehlt = inhalt(zeilen[1], ".bezeichnung") === "";
+bilanz.fremdeEntitaet = inhalt(zeilen[2], ".titel");
+bilanz.eigeneBeschriftung = inhalt(zeilen[2], ".bezeichnung");
+bilanz.ueberschriften = liste.shadowRoot.querySelectorAll("h2").map((h) => h.textContent);
+bilanz.ohnePumpenmarke = !liste.shadowRoot.querySelector(".pumpe");
+
+// Der alte Aufbau bleibt erreichbar: Anlagenteil links, Datenpunkt am Wert.
+liste.setConfig({
+  anlage: anlagen[0].id,
+  zeilen: { aufbau: "wert_rechts" },
+  zusatzwerte: ["sensor.kessel"],
+});
+const altezeile = liste.shadowRoot.querySelector(".zeile");
+bilanz.altTeilLinks = inhalt(altezeile, ".titel");
+bilanz.altNameAmWert = inhalt(altezeile, ".bezeichnung");
+
+// Einheit, Symbolfarbe und Klick je Zeile.
+liste.setConfig({
+  anlage: anlagen[0].id,
+  zusatzwerte: [
+    { entity: "sensor.kessel", einheit: false, klick: false, farbe: "red" },
+  ],
+});
+const knapp = liste.shadowRoot.querySelector(".zeile");
+bilanz.ohneEinheit = knapp.querySelector(".wert").textContent;
+bilanz.ohneKlick = !String(knapp.className).includes("klickbar");
+bilanz.symbolfarbe = knapp.querySelector("ha-icon").style.color;
+
+// Umsortieren im Editor: der Eintrag wandert, die Angaben bleiben.
+editor.setConfig({
+  anlage: anlagen[0].id,
+  zusatzwerte: ["sensor.kessel", { entity: "sensor.leistung", name: "Leistung" }],
+});
+editor._verschieben(1, 0);
+bilanz.umsortiert = editor._config.zusatzwerte.map((e) => (typeof e === "string" ? e : e.entity));
+bilanz.umsortiertName = editor._config.zusatzwerte[0].name;
+
+// Eigene Zeichnung je Anlagenteil und der Mischer als Schalter.
+const gezeichnet = new Klasse();
+gezeichnet.setConfig({ anlage: anlagen[0].id, mischer: false });
+let gefragt = null;
+gezeichnet.hass = {
+  states: {},
+  themes: { darkMode: true },
+  callWS: async (anfrage) => {
+    gefragt = anfrage;
+    return anlagen;
+  },
+};
+await gezeichnet._laden;
+bilanz.ohneMischermarke = !gezeichnet.shadowRoot.querySelector(".mischer");
+gezeichnet.setConfig({ anlage: anlagen[0].id, zeichnungen: { "PuroWIN": "kessel-pellets" } });
+await gezeichnet._laden;
+bilanz.zeichnungGefragt = gefragt && gefragt.zeichnungen ? gefragt.zeichnungen.PuroWIN : null;
+
+// Der Editor kennt die gezeichneten Teile und die vorhandenen Zeichnungen.
+editor.setConfig({ anlage: anlagen[0].id });
+const bildAb2 = editor._schema().find((f) => f.name === "bild_ab");
+const zeichnungen = bildAb2.schema.find((f) => f.name === "zeichnungen");
+bilanz.zeichenbareTeile = zeichnungen.schema.map((f) => editor._beschriftung(f));
+bilanz.zeichnungenZurWahl = zeichnungen.schema[0].selector.select.options.length;
+
 console.log(JSON.stringify(bilanz));

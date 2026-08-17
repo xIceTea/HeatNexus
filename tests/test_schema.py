@@ -85,6 +85,19 @@ def test_das_beispielbild_im_readme_ist_aktuell():
         )
 
 
+def test_der_mischer_laesst_sich_aus_der_zeichnung_nehmen(schema):
+    """Das Stellglied steckt in der Zeichnung, nicht in einer Überlagerung."""
+    teil = _teil(
+        "UML Heizkreis",
+        14,
+        [("sensor.vorlauf", "Vorlauftemperatur Ist"), ("sensor.mischer", "Mischer Stellwert")],
+    )
+    mit = schema.anlagenschema([teil])
+    ohne = schema.anlagenschema([teil], mischer=False)
+    assert "M 86 104" in mit["svg"]
+    assert "M 86 104" not in ohne["svg"]
+
+
 def test_das_schaubild_entsteht_auch_ohne_deutsche_namen(schema):
     """Der Zweck der kanonischen Schlüssel, hier fürs Schaubild.
 

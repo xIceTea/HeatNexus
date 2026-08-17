@@ -195,14 +195,79 @@ def test_die_karte_bringt_eine_erstkonfiguration_mit(durchlauf):
 def test_der_editor_stellt_die_anlagen_zur_auswahl(durchlauf):
     """Ein Textfeld zwang zum Abtippen und meldete bei jedem Buchstaben Unsinn."""
     assert durchlauf["editorElement"] == "heatnexus-schaubild-editor"
-    assert durchlauf["editorFelder"] == ["anlage", "darstellung", "liste_ab", "bild_ab"]
+    assert durchlauf["editorFelder"] == [
+        "anlage",
+        "allgemein",
+        "darstellung",
+        "liste_ab",
+        "eigene_ab",
+        "zeilen_ab",
+        "bild_ab",
+    ]
     assert durchlauf["editorAnlagen"][1:] == ["Heizhaus", "Wohnhaus"]
+
+
+def test_die_zeile_nennt_zuerst_den_datenpunkt(durchlauf):
+    """Links der Datenpunkt, rechts der Wert, das Anlagenteil klein darunter."""
+    assert durchlauf["nameLinks"] == "Kesseltemperatur Ist"
+    assert durchlauf["teilAmWert"] == "PuroWIN"
+    assert durchlauf["zeileMitSymbol"] is True
+
+
+def test_der_alte_aufbau_bleibt_waehlbar(durchlauf):
+    assert durchlauf["altTeilLinks"] == "PuroWIN"
+    assert durchlauf["altNameAmWert"] == "Kesseltemperatur Ist"
+
+
+def test_je_wert_eigener_name_und_abgewaehltes_anlagenteil(durchlauf):
+    assert durchlauf["eigenerName"] == "Leistung oben"
+    assert durchlauf["teilAbgewaehlt"] is True
+
+
+def test_die_liste_nimmt_auch_fremde_entitaeten(durchlauf):
+    """Was nicht von der Anlage kommt, behält Namen und Symbol aus dem Zustand."""
+    assert durchlauf["zeilenAnzahl"] == 3
+    assert durchlauf["fremdeEntitaet"] == "Solarertrag"
+
+
+def test_das_anlagenteil_laesst_sich_selbst_beschriften(durchlauf):
+    """Ein fremder Fühler hängt trotzdem an einem Anlagenteil."""
+    assert durchlauf["eigeneBeschriftung"] == "Heizhaus"
+
+
+def test_ueberschriften_und_pumpen_lassen_sich_abschalten(durchlauf):
+    assert durchlauf["ueberschriften"] == ["Meine Werte"]
+    assert durchlauf["ohnePumpenmarke"] is True
+
+
+def test_einheit_farbe_und_klick_je_zeile(durchlauf):
+    """Ohne Einheit bleibt die Zahl, ohne Klick bleibt die Detailansicht zu."""
+    assert durchlauf["ohneEinheit"] == "68"
+    assert durchlauf["ohneKlick"] is True
+    assert durchlauf["symbolfarbe"] == "var(--red-color)"
+
+
+def test_umsortieren_behaelt_die_eigenen_angaben(durchlauf):
+    assert durchlauf["umsortiert"] == ["sensor.leistung", "sensor.kessel"]
+    assert durchlauf["umsortiertName"] == "Leistung"
+
+
+def test_zeichnung_je_anlagenteil_waehlbar(durchlauf):
+    """Wer am Hackgutkessel die Pelletszeichnung will, bekommt sie."""
+    assert durchlauf["zeichnungGefragt"] == "kessel-pellets"
+    assert durchlauf["zeichenbareTeile"] == ["PuroWIN", "B-PLMi PUFFER", "UML Heizkreis"]
+    assert durchlauf["zeichnungenZurWahl"] > 10
+
+
+def test_mischer_laesst_sich_abwaehlen(durchlauf):
+    assert durchlauf["ohneMischermarke"] is True
 
 
 def test_groesse_kommt_ohne_hass_aus(durchlauf):
     """`getCardSize` und `getGridOptions` laufen vor dem ersten `hass`."""
     assert durchlauf["groesseOhneHass"] > 0
     assert durchlauf["rasterOhneHass"]["columns"] == 12
+    assert durchlauf["rasterOhneHass"]["rows"] == "auto"
 
 
 def test_die_karte_zeigt_das_schaubild(durchlauf):
