@@ -32,8 +32,14 @@ type: custom:heatnexus-schaubild
 | `farbsatz` | `auto`, `dunkel`, `hell`, `terrakotta`, `petrol`, `pflaume` | `auto` |
 | `schrift` | `klein`, `normal`, `gross`, `sehr_gross` | `normal` |
 | `animation` | Pumpen und Leitungen bewegen sich | `true` |
+| `pumpen` | Pumpen stehen als Marke im Bild | `true` |
+| `mischer` | Mischerstellung steht im Bild | `true` |
+| `zeichnungen` | je Anlagenteil eine andere Bauteilzeichnung | wie erkannt |
 | `liste` | `rechts` oder `unten` – wo die Werteliste steht | `rechts` |
 | `zusatzwerte` | Entitäten für die Werteliste neben dem Bild | leer |
+| `zeilen` | Aufbau der Zeilen in der Liste | siehe unten |
+| `titel_bild` | Überschrift über dem Bild, leer blendet sie aus | `Anlagenübersicht` |
+| `titel_liste` | Überschrift über der Liste, leer blendet sie aus | `Werte` |
 | `teile_aus` | Anlagenteile, die nicht gezeichnet werden | leer |
 | `werte` | je Anlagenteil die Werte, die im Bild stehen | Vorgabe der Anlage |
 
@@ -59,6 +65,57 @@ cards:
     anlage: Wohnhaus
     farbsatz: petrol
 ```
+
+## Eigene Zeichnungen
+
+Welche Zeichnung ein Anlagenteil bekommt, entscheidet die Erkennung — Hackgut,
+Pellets, Scheitholz, Gas/Öl, Wärmepumpe. Wer eine andere will, wählt sie im
+Editor unter *Werte im Schaubild → Zeichnungen*; Warmwasser und Zirkulation
+stehen dort ebenfalls.
+
+```yaml
+zeichnungen:
+  PuroWIN: kessel-pellets
+  UML Heizkreis-zirkulation: modul
+```
+
+## Die Werteliste
+
+Neben dem Bild steht eine Liste, die frei zusammengestellt wird — Werte der
+Anlage und beliebige andere Entitäten nebeneinander. Im Karteneditor führt ein
+Klick auf eine Zeile zu ihren Einzelheiten: Name, Symbol, Aufbau und wo das
+Anlagenteil steht.
+
+| Feld unter `zeilen` | Bedeutung | Vorgabe |
+|---|---|---|
+| `aufbau` | `name_links`, `wert_rechts` oder `kompakt` | `name_links` |
+| `teil` | `unter_wert`, `unter_name` oder `aus` | `unter_wert` |
+| `symbol` | `an` oder `aus` | `an` |
+
+Je Eintrag lässt sich das überschreiben, dazu kommen `name`, `beschriftung`
+(das Anlagenteil), `symbol`, `farbe`, `einheit` und `klick`. Ein Eintrag ist
+entweder die Entität allein oder ein Satz eigener Angaben:
+
+```yaml
+type: custom:heatnexus-schaubild
+zeilen:
+  aufbau: name_links
+  teil: unter_wert
+zusatzwerte:
+  - sensor.purowin_kesseltemperatur
+  - entity: sensor.heizkreis_vorlauftemperatur
+    name: Vorlauf oben
+    symbol: mdi:radiator
+    teil: aus
+  - entity: sensor.pv_ertrag_heute
+    name: PV heute
+    beschriftung: Heizhaus
+    symbol: mdi:solar-power
+    einheit: false
+```
+
+Das Symbol kommt ohne Angabe von HeatNexus: Flamme am Kessel, Heizkörper am
+Vorlauf, Tank am Puffer. Fremde Entitäten behalten ihr eigenes.
 
 ## Was die Karte zeigt
 

@@ -91,7 +91,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       <a class="feld" href="ANLEITUNG#karte">
         <span class="nr">04</span>
         <h3>Schaubild als Karte</h3>
-        <p>Das Anlagenschaubild gibt es als Lovelace-Karte für selbst gebaute Dashboards — mit Werteliste, Farbsätzen und wählbaren Anlagenteilen.</p>
+        <p>Das Anlagenschaubild gibt es als Lovelace-Karte für selbst gebaute Dashboards — mit einstellbarer Werteliste, Farbsätzen und wählbaren Anlagenteilen.</p>
         <span class="weiter">Karte einrichten</span>
       </a>
       <a class="feld" href="ANLEITUNG#zeitprogramme">
