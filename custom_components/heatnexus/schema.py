@@ -29,6 +29,8 @@ from pathlib import Path
 import re
 from typing import Any
 
+from .symbole import symbol_fuer_wert, symbol_je_fct
+
 # Maße des Schaubilds. Die Karte skaliert es auf ihre Breite, die Angaben
 # sind also Verhältnisse, keine Bildpunkte.
 HOEHE = 392
@@ -567,7 +569,11 @@ def waehlbare_werte(
     for teil in teile:
         art = _art(teil.get("fct_type"))
         werte = [
-            {"entity": e["entity_id"], "name": e.get("name") or e["entity_id"]}
+            {
+                "entity": e["entity_id"],
+                "name": e.get("name") or e["entity_id"],
+                "symbol": symbol_fuer_wert(e, teil.get("fct_type")),
+            }
             for e in teil["entitaeten"]
             if e.get("bereich") in WERT_BEREICHE and e.get("kategorie") != "config"
         ]
@@ -578,6 +584,7 @@ def waehlbare_werte(
                 "id": teil_kennung(teil),
                 "titel": teil.get("name") or "",
                 "art": art,
+                "symbol": symbol_je_fct(teil.get("fct_type")),
                 "werte": sorted(werte, key=lambda w: w["name"]),
                 "vorgabe": [w["entity_id"] for w in _werte(teil["entitaeten"], art, kesselwert)],
             }
@@ -610,6 +617,7 @@ def _module(
     kesselwert: str | None = None,
     auswahl: dict[str, list[str]] | None = None,
     teile_aus: list[str] | tuple[str, ...] = (),
+    zeichnungen: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """Anlagenteile, die sich zeichnen lassen, mit ihren Werten.
 
@@ -639,6 +647,8 @@ def _module(
         if werte or art == "pumpenmodul":
             module.append(
                 {
+                    "kennung": kennung,
+                    "zeichnung": (zeichnungen or {}).get(kennung),
                     "titel": teil["name"],
                     "art": art,
                     "werte": werte,
@@ -688,6 +698,8 @@ def _module(
             if wasser:
                 module.append(
                     {
+                        "kennung": f"{kennung}-wasser",
+                        "zeichnung": (zeichnungen or {}).get(f"{kennung}-wasser"),
                         "titel": "Warmwasser",
                         "art": "wasser",
                         "werte": wasser,
@@ -703,6 +715,8 @@ def _module(
             if kreis:
                 module.append(
                     {
+                        "kennung": f"{kennung}-zirkulation",
+                        "zeichnung": (zeichnungen or {}).get(f"{kennung}-zirkulation"),
                         "titel": "Zirkulation",
                         "art": "zirkulation",
                         "werte": kreis,
@@ -746,6 +760,11 @@ def _alle_bauteile() -> dict[str, str]:
 
 
 BAUTEILE: dict[str, str] = _alle_bauteile()
+
+
+def bauteilnamen() -> list[str]:
+    """Alle Bauteilzeichnungen, die zur Wahl stehen."""
+    return sorted(name.removesuffix(".svg") for name in BAUTEILE)
 
 
 def _bauteil(dateiname: str) -> str | None:
@@ -795,15 +814,23 @@ def _ids_eindeutig(fragment: str, praefix: str) -> str:
 ZUSATZ_PLATZHALTER = frozenset({"koerper"})
 
 
-def _bauteil_dateien(art: str, kesselart: str | None) -> tuple[str, ...]:
+def _bauteil_dateien(
+    art: str, kesselart: str | None, zeichnung: str | None = None
+) -> tuple[str, ...]:
     """Dateinamen für ein Anlagenteil, in der Reihenfolge der Bevorzugung."""
+    if zeichnung:
+        return (f"{zeichnung}.svg", f"{art}.svg")
     if art == "kessel" and kesselart:
         return (f"kessel-{kesselart}.svg", "kessel.svg")
     return (f"{art}.svg",)
 
 
 def _aus_datei(
-    art: str, kesselart: str | None, praefix: str, zusatz: dict[str, str] | None = None
+    art: str,
+    kesselart: str | None,
+    praefix: str,
+    zusatz: dict[str, str] | None = None,
+    zeichnung: str | None = None,
 ) -> str | None:
     """Bauteilzeichnung, fertig eingefärbt und mit eindeutigen Kennungen.
 
@@ -812,7 +839,7 @@ def _aus_datei(
     Fühlern abhängt. Sie wird vor ``_ids_eindeutig`` eingesetzt, damit ein
     darin genannter Verlauf mit umbenannt wird.
     """
-    for dateiname in _bauteil_dateien(art, kesselart):
+    for dateiname in _bauteil_dateien(art, kesselart, zeichnung):
         if (fragment := _bauteil(dateiname)) is not None:
             for name, wert in (zusatz or {}).items():
                 fragment = fragment.replace("{{" + name + "}}", wert)
@@ -1042,7 +1069,9 @@ def _ersatzform(art: str) -> str:
     )
 
 
-def _kasten(x: int, platz: int, modul: dict[str, Any], kesselart: str | None) -> str:
+def _kasten(
+    x: int, platz: int, modul: dict[str, Any], kesselart: str | None, mischer: bool = True
+) -> str:
     """Ein Anlagenteil an seinem Platz im Gesamtbild."""
     art = modul["art"]
     # Der Speicherkörper bleibt leer, wenn die Oberfläche die gemessene
@@ -1050,9 +1079,24 @@ def _kasten(x: int, platz: int, modul: dict[str, Any], kesselart: str | None) ->
     zusatz = {}
     if (masse := SPEICHER_ARTEN.get(art)) is not None:
         zusatz["koerper"] = "none" if hat_speicherfarbe(modul) else masse["fuellung"]
-    inhalt = _aus_datei(art, kesselart if art == "kessel" else None, f"t{platz}-", zusatz)
+    inhalt = _aus_datei(
+        art,
+        kesselart if art == "kessel" else None,
+        f"t{platz}-",
+        zusatz,
+        modul.get("zeichnung"),
+    )
     if inhalt is None:
         inhalt = _ersatzform(art)
+    # Das Stellglied des Heizkreises steht in einer eigenen Datei: Wer es nicht
+    # sehen will, bekommt den Kreis ohne Ventil.
+    if (
+        mischer
+        and art == "heizkreis"
+        and modul.get("mischer")
+        and (zeichen := _aus_datei(art, None, f"t{platz}-m", None, "heizkreis-mischer")) is not None
+    ):
+        inhalt += zeichen
 
     oben, unten = KANTEN_JE_ART.get(art, KANTEN_STANDARD)
     anschluss = (
@@ -1106,7 +1150,9 @@ def _beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str
     return elemente
 
 
-def _svg(module: list[dict[str, Any]], kesselart: str | None) -> tuple[str, int]:
+def _svg(
+    module: list[dict[str, Any]], kesselart: str | None, mischer: bool = True
+) -> tuple[str, int]:
     """Das Schaubild als SVG-Text und seine Breite."""
     breite = max(2 * RAND + len(module) * MODUL_BREITE, 400)
     teile = [
@@ -1115,7 +1161,7 @@ def _svg(module: list[dict[str, Any]], kesselart: str | None) -> tuple[str, int]
         _rohre(breite),
     ]
     for platz, modul in enumerate(module):
-        teile.append(_kasten(RAND + platz * MODUL_BREITE, platz, modul, kesselart))
+        teile.append(_kasten(RAND + platz * MODUL_BREITE, platz, modul, kesselart, mischer))
     teile.append("</svg>")
     return "".join(teile), breite
 
@@ -1177,6 +1223,8 @@ def anlagenschema(
     kesselwert: str | None = None,
     auswahl: dict[str, list[str]] | None = None,
     teile_aus: list[str] | tuple[str, ...] = (),
+    zeichnungen: dict[str, str] | None = None,
+    mischer: bool = True,
 ) -> dict[str, Any] | None:
     """Eine `picture-elements`-Karte für eine Anlage – oder nichts.
 
@@ -1193,7 +1241,7 @@ def anlagenschema(
     `picture-elements`-Karte. Die eigene Oberfläche wählt mit derselben Angabe
     (`panel/daten.py`).
     """
-    module = _module(teile, kesselwert, auswahl, teile_aus)
+    module = _module(teile, kesselwert, auswahl, teile_aus, zeichnungen)
     # Ein Bild aus lauter leeren Kästen hilft niemandem: Mindestens ein
     # Anlagenteil muss etwas messen.
     if not any(m["werte"] for m in module):
@@ -1201,7 +1249,7 @@ def anlagenschema(
 
     if kesselart is None:
         kesselart = kesselart_erkennen(teile)
-    svg, breite = _svg(module, kesselart)
+    svg, breite = _svg(module, kesselart, mischer)
 
     elemente: list[dict[str, Any]] = []
     pumpen: list[dict[str, Any]] = []
@@ -1456,6 +1504,11 @@ def anlagenschema(
         # Überlagerungen auf denselben Maßstab wie das Bild.
         "breite": breite,
         "elements": elemente,
+        # Welche Anlagenteile gezeichnet sind – für die Wahl der Zeichnung.
+        "zeichenbar": [
+            {"id": m.get("kennung") or m["titel"], "titel": m["titel"], "art": m["art"]}
+            for m in module
+        ],
         "leitungen": leitungen,
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht
         # drehen. Sie werden als eigene Marken darübergelegt.
@@ -1478,6 +1531,8 @@ def schaubild_daten(
     anlagen: list[dict[str, Any]],
     auswahl: dict[str, list[str]] | None = None,
     teile_aus: list[str] | tuple[str, ...] = (),
+    zeichnungen: dict[str, str] | None = None,
+    mischer: bool = True,
 ) -> list[dict[str, Any]]:
     """Schaubild je Anlage, wie die Lovelace-Karte es bekommt.
 
@@ -1487,7 +1542,7 @@ def schaubild_daten(
         {
             "id": anlage.get("id") or anlage["name"],
             "name": anlage["name"],
-            **schaubild_nutzdaten(anlage, auswahl, teile_aus),
+            **schaubild_nutzdaten(anlage, auswahl, teile_aus, zeichnungen, mischer),
         }
         for anlage in anlagen
     ]
@@ -1497,6 +1552,8 @@ def schaubild_nutzdaten(
     anlage: dict[str, Any],
     auswahl: dict[str, list[str]] | None = None,
     teile_aus: list[str] | tuple[str, ...] = (),
+    zeichnungen: dict[str, str] | None = None,
+    mischer: bool = True,
 ) -> dict[str, Any]:
     """Die Schaubild-Felder einer Anlage – Bilder, Lagen, Bewegung.
 
@@ -1508,6 +1565,8 @@ def schaubild_nutzdaten(
         anlage.get("kesselwert"),
         auswahl,
         teile_aus,
+        zeichnungen,
+        mischer,
     )
     return {
         # Die Zeichnung geht **einmal** hinaus, dazu die Farbtabellen. Welcher
@@ -1518,6 +1577,9 @@ def schaubild_nutzdaten(
         "schema_breite": bild.get("breite") if bild else None,
         # Was sich einstellen lässt: je Anlagenteil die Werte dieser Anlage.
         "schema_teile": waehlbare_werte(anlage["teile"], anlage.get("kesselwert")),
+        # Die gezeichneten Anlagenteile und die Zeichnungen, die zur Wahl stehen.
+        "schema_zeichenbar": bild.get("zeichenbar") if bild else [],
+        "schema_bauteile": bauteilnamen(),
         # Die Grundfarben für die Überlagerungen – Mischer, Heizkörper,
         # Schichtung. Sie liegen über dem Bild und erben dessen Farben nicht.
         "schema_grundfarben": {

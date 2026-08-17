@@ -1,0 +1,12 @@
+<!-- Mischer im Vorlauf: das Stellglied des Kreises.
+
+     Das uebliche Schaltzeichen: drei Dreiecke, die sich in der Mitte treffen -
+     zwei im Durchgang, eines zum dritten Weg. Bis 1.3.0-beta.2 stand hier ein
+     Kreis mit Kreuz darin; das las sich wie eine Plus-Taste und niemand
+     erkannte ein Ventil. -->
+<g fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.5" stroke-linejoin="round">
+  <path d="M 86 104 L 86 120 L 100 112 Z"/>
+  <path d="M 114 104 L 114 120 L 100 112 Z"/>
+  <path d="M 92 126 L 108 126 L 100 112 Z"/>
+</g>
+<circle cx="100" cy="112" r="2.5" fill="{{titel}}" opacity="0.55"/>

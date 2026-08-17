@@ -26,9 +26,11 @@ def kartendaten(
     hass: HomeAssistant,
     auswahl: dict[str, list[str]] | None = None,
     teile_aus: list[str] | None = None,
+    zeichnungen: dict[str, str] | None = None,
+    mischer: bool = True,
 ) -> list[dict[str, Any]]:
     """Alle Anlagen mit ihrem Schaubild, frisch aus der Registrierung."""
-    return schaubild_daten(_anlagen(hass), auswahl, teile_aus or [])
+    return schaubild_daten(_anlagen(hass), auswahl, teile_aus or [], zeichnungen, mischer)
 
 
 # Obergrenzen, damit eine fehlerhafte Gegenstelle den Aufbau nicht sprengt.
@@ -43,12 +45,23 @@ WERTE_MAX = 30
             {str: vol.All([str], vol.Length(max=WERTE_MAX))}, vol.Length(max=AUSWAHL_MAX)
         ),
         vol.Optional("teile_aus"): vol.All([str], vol.Length(max=AUSWAHL_MAX)),
+        vol.Optional("zeichnungen"): vol.All({str: str}, vol.Length(max=AUSWAHL_MAX)),
+        vol.Optional("mischer"): bool,
     }
 )
 @callback
 def _ws_schaubild(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     """Die Schaubilder aller Anlagen zurückgeben, nach eigener Auswahl."""
-    connection.send_result(msg["id"], kartendaten(hass, msg.get("auswahl"), msg.get("teile_aus")))
+    connection.send_result(
+        msg["id"],
+        kartendaten(
+            hass,
+            msg.get("auswahl"),
+            msg.get("teile_aus"),
+            msg.get("zeichnungen"),
+            msg.get("mischer", True),
+        ),
+    )
 
 
 async def async_setup_karte(hass: HomeAssistant, version: str = "") -> None:

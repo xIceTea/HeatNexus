@@ -35,6 +35,21 @@ export const SchaubildMixin = (Basis) =>
     return schriftmass("gross");
   }
 
+  /** Ob die Pumpen als Marke im Bild stehen. Die Karte darf sie abwählen. */
+  _zeigtPumpen() {
+    return true;
+  }
+
+  /** Ob der Mischer im Bild steht. Die Karte darf ihn abwählen. */
+  _zeigtMischer() {
+    return true;
+  }
+
+  /** Überschrift über dem Bild. Die Karte setzt eine eigene oder gar keine. */
+  _bildtitel() {
+    return "Anlagenübersicht";
+  }
+
   /** Der Satz, der gerade gilt – `auto` folgt dem Erscheinungsbild. */
   _farbsatzGilt() {
     const satz = this._farbsatz();
@@ -93,7 +108,7 @@ export const SchaubildMixin = (Basis) =>
 
   _schaubild(anlage) {
     if (!anlage.schema_svg) return null;
-    const karte = this._karte("Anlagenübersicht");
+    const karte = this._karte(this._bildtitel());
     const huelle = document.createElement("div");
     huelle.className = "schaubild";
     // Eine Einheit der Zeichnung, ausgedrückt in der Breite der Karte. Alles
@@ -187,7 +202,7 @@ export const SchaubildMixin = (Basis) =>
     // Pumpe, und die dreht sich daneben schon. Der Anzeiger schwenkt zwischen
     // Rücklauf (0 %) und Vorlauf (100 %), das Stück Leitung darüber färbt sich
     // nach der Beimischung. Bewegt wird nur der Übergang.
-    (anlage.schema_mischer || []).forEach((eintrag) => {
+    (this._zeigtMischer() ? anlage.schema_mischer || [] : []).forEach((eintrag) => {
       const stutzen = document.createElement("div");
       stutzen.className = "mischer-stutzen";
       stutzen.style.left = eintrag.left;
@@ -458,7 +473,7 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
-    (anlage.schema_pumpen || []).forEach((eintrag) => {
+    (this._zeigtPumpen() ? anlage.schema_pumpen || [] : []).forEach((eintrag) => {
       // Der Kessel führt die Pufferladepumpe nur für seine Stichleitung. Eine
       // Pumpenmarke gehört dort nicht hin: An der Stelle sitzt keine.
       if (eintrag.nur_strang) return;

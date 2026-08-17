@@ -198,20 +198,7 @@
   <rect x="97" y="146" width="4" height="120" rx="2"/>
   <rect x="119" y="146" width="4" height="120" rx="2"/>
   <rect x="141" y="146" width="4" height="120" rx="2"/>
-</g>
-
-<!-- Mischer im Vorlauf: das Stellglied des Kreises.
-
-     Das uebliche Schaltzeichen: drei Dreiecke, die sich in der Mitte treffen -
-     zwei im Durchgang, eines zum dritten Weg. Bis 1.3.0-beta.2 stand hier ein
-     Kreis mit Kreuz darin; das las sich wie eine Plus-Taste und niemand
-     erkannte ein Ventil. -->
-<g fill="#c2ccd8" stroke="#7d8b9a" stroke-width="1.5" stroke-linejoin="round">
-  <path d="M 86 104 L 86 120 L 100 112 Z"/>
-  <path d="M 114 104 L 114 120 L 100 112 Z"/>
-  <path d="M 92 126 L 108 126 L 100 112 Z"/>
-</g>
-<circle cx="100" cy="112" r="2.5" fill="#16202b" opacity="0.55"/><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">UMLZ HEIZKREIS</text></g><g transform="translate(624,0)"><rect x="98" y="92" width="4" height="32" fill="#e2543a" opacity="0.7"/><rect x="98" y="292" width="4" height="26" fill="#3a7fe2" opacity="0.7"/><defs>
+</g><text x="100" y="376" text-anchor="middle" fill="#16202b" font-size="19" font-weight="600" font-family="system-ui, -apple-system, Roboto, sans-serif">UMLZ HEIZKREIS</text></g><g transform="translate(624,0)"><rect x="98" y="92" width="4" height="32" fill="#e2543a" opacity="0.7"/><rect x="98" y="292" width="4" height="26" fill="#3a7fe2" opacity="0.7"/><defs>
   <!-- Neutral. Der Boiler meldet nur einen Istwert - liegt der vor, faerbt
        die Oberflaeche den Inhalt gleichmaessig ein und legt die Farbe *unter*
        diese Zeichnung. Eine zweite Temperatur zu erfinden waere schlimmer als
