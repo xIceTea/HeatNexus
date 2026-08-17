@@ -6,6 +6,29 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.10.0-beta.1] - 2026-08-17
+
+### Neu
+
+- Werteliste der Karte: Name links, Wert rechts, Anlagenteil darunter.
+- Aufbau der Zeilen wählbar, auch kompakt in einer Zeile.
+- Je Wert Name, Anlagenteil, Symbol, Farbe, Einheit und Klick einstellbar.
+- Eigene Sensoren in der Werteliste, in einem eigenen Abschnitt.
+- Reihenfolge der Werte per Ziehen änderbar.
+- Pumpen und Mischer im Schaubild abschaltbar.
+- Bauteilzeichnung je Anlagenteil wählbar.
+- Überschriften der Karte änderbar oder ausblendbar.
+
+### Geändert
+
+- Die Karte richtet die Höhe nach dem Inhalt.
+- Alle Zeilen der Werteliste sind gleich hoch.
+
+### Behoben
+
+- Der Karteneditor zeigt nach einer Aktualisierung die neue Fassung.
+- Abschnitte im Karteneditor bleiben aufgeschlagen.
+
 ## [1.9.1] - 2026-08-16
 
 ### Neu
