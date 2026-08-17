@@ -101,7 +101,7 @@ def test_anlage_steht_vor_dem_anlagenteil(dashboard):
 def test_symbol_je_anlagenteil(dashboard):
     assert dashboard._symbol(25) == "mdi:fire"
     assert dashboard._symbol(16) == "mdi:storage-tank"
-    assert dashboard._symbol(None) == dashboard.SYMBOL_UNBEKANNT
+    assert dashboard._symbol(None) == "mdi:heating-coil"
 
 
 # ---------------------------------------------------------------------------

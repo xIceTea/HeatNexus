@@ -42,6 +42,7 @@ from .const import (
 from .kanonisch import gnmn
 from .kanonisch import schluessel as kanonischer_schluessel
 from .schema import anlagenschema, kesselart_erkennen
+from .symbole import symbol_je_fct
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,28 +76,6 @@ FCT_RANG: dict[int, int] = {
 }
 RANG_UNBEKANNT = 80
 
-# Symbol je Anlagenteil für die Überschriften.
-FCT_SYMBOL: dict[int, str] = {
-    25: "mdi:fire",
-    9: "mdi:fire",
-    10: "mdi:fire",
-    7: "mdi:heat-pump",
-    26: "mdi:heat-pump",
-    27: "mdi:heat-pump",
-    6: "mdi:fire",
-    8: "mdi:heating-coil",
-    4: "mdi:layers-triple",
-    15: "mdi:valve",
-    16: "mdi:storage-tank",
-    21: "mdi:storage-tank",
-    24: "mdi:pump",
-    1: "mdi:radiator",
-    14: "mdi:radiator",
-    2: "mdi:water-boiler",
-    5: "mdi:solar-power-variant",
-    20: "mdi:pump",
-}
-SYMBOL_UNBEKANNT = "mdi:heating-coil"
 
 
 def _muster(*ausdruecke: str) -> tuple[re.Pattern, ...]:
@@ -319,10 +298,7 @@ def _rang(fct_type: Any) -> int:
 
 def _symbol(fct_type: Any) -> str:
     """Symbol eines Anlagenteils."""
-    try:
-        return FCT_SYMBOL.get(int(fct_type), SYMBOL_UNBEKANNT)
-    except (TypeError, ValueError):
-        return SYMBOL_UNBEKANNT
+    return symbol_je_fct(fct_type)
 
 
 def _vorrang(eintrag: dict) -> int:
