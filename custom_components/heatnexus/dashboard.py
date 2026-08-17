@@ -77,7 +77,6 @@ FCT_RANG: dict[int, int] = {
 RANG_UNBEKANNT = 80
 
 
-
 def _muster(*ausdruecke: str) -> tuple[re.Pattern, ...]:
     return tuple(re.compile(a, re.IGNORECASE) for a in ausdruecke)
 
