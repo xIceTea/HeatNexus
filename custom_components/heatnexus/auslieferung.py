@@ -15,7 +15,13 @@ from homeassistant.components import frontend
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, KARTE_VERZEICHNIS, karte_js_pfad, panel_verzeichnis
+from .const import (
+    DOMAIN,
+    KARTE_VERZEICHNIS,
+    karte_js_pfad,
+    karte_verzeichnis,
+    panel_verzeichnis,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +38,7 @@ async def async_dateien_ausliefern(hass: HomeAssistant, version: str = "") -> No
     registriert: set[str] = hass.data.setdefault(f"{DOMAIN}_panel_dateien", set())
     neu = [
         StaticPathConfig(ordner, str(_FRONTEND), cache_headers=False)
-        for ordner in (panel_verzeichnis(version), KARTE_VERZEICHNIS)
+        for ordner in (panel_verzeichnis(version), karte_verzeichnis(version), KARTE_VERZEICHNIS)
         if ordner not in registriert
     ]
     if not neu:

@@ -712,17 +712,15 @@ def test_hilfe_liste_bleibt_leer_statt_zu_scheitern(panel):
     assert isinstance(daten["hilfe_liste"], list)
 
 
-def test_die_karte_liegt_unter_einem_festen_pfad():
-    """Eine offene Seite muss die Adresse von gestern noch erreichen.
+def test_die_karte_traegt_ihre_fassung_im_pfad():
+    """Der Editor wird relativ nachgeladen und braucht denselben Ordner.
 
-    Beim Panel steht die Fassung im Pfad; es lädt bei jedem Öffnen neu. Eine
-    Karte bleibt dagegen in einer Seite stehen, die tagelang offen ist.
+    Stünde die Fassung als Anhang, bliebe die Nachbardatei im Zwischenspeicher.
     """
     from custom_components.heatnexus.const import KARTE_VERZEICHNIS, karte_js_pfad
 
     alt = karte_js_pfad("1.9.0")
     neu = karte_js_pfad("1.10.0")
-    assert alt.split("?")[0] == neu.split("?")[0]
-    assert alt.split("?")[0].startswith(KARTE_VERZEICHNIS)
     assert alt != neu
-    assert "?v=1-10-0" in neu
+    assert "?" not in neu
+    assert neu.startswith(f"{KARTE_VERZEICHNIS}-1-10-0/")
