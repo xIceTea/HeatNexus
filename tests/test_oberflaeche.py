@@ -276,7 +276,7 @@ def test_die_werkzeuge_liegen_hinter_einem_knopf(durchlauf):
     assert durchlauf["werkzeugmenueDa"] is True
     assert durchlauf["werkzeugeZu"] is True
     assert durchlauf["werkzeugeOffen"] is True
-    assert durchlauf["werkzeuge"] == ["Karten anordnen", "Dashboard-Vorlage"]
+    assert durchlauf["werkzeuge"] == ["Ansicht bearbeiten", "Dashboard-Vorlage"]
     assert durchlauf["werkzeugeNachKlickZu"] is True
 
 
@@ -288,7 +288,7 @@ def test_die_dashboard_vorlage_steht_zum_kopieren_bereit(durchlauf):
 
 def test_ohne_verwalterrecht_keine_dashboard_vorlage(durchlauf):
     """Wer keine Dashboards anlegen darf, kann mit der Vorlage nichts anfangen."""
-    assert durchlauf["werkzeugeOhneRecht"] == ["Karten anordnen"]
+    assert durchlauf["werkzeugeOhneRecht"] == ["Ansicht bearbeiten"]
 
 
 def test_ein_misslungenes_speichern_wird_gemeldet(durchlauf):

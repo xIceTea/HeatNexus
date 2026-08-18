@@ -354,7 +354,7 @@ class HeatNexusPanel extends Grundlage {
     };
 
     eintrag(
-      this._anordnen ? "Anordnen beenden" : "Karten anordnen",
+      this._anordnen ? "Bearbeiten beenden" : "Ansicht bearbeiten",
       this._anordnen ? "mdi:check" : "mdi:view-dashboard-edit-outline",
       () => this._anordnenUmschalten()
     );

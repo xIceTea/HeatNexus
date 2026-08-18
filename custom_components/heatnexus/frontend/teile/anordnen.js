@@ -352,14 +352,15 @@ export const AnordnenMixin = (Basis) =>
 
     const titel = document.createElement("div");
     titel.className = "titel";
-    titel.textContent = "Anordnen";
+    titel.textContent = "Ansicht bearbeiten";
     leiste.appendChild(titel);
 
     const hinweis = document.createElement("div");
     hinweis.className = "hinweis";
     hinweis.textContent =
-      "Karten am Griff ziehen oder mit den Pfeilen verschieben. Die Anordnung gilt " +
-      "nur für dich und nur für diesen Reiter.";
+      "Karten am Griff ziehen, in der Breite ändern oder ausblenden; dazu die " +
+      "Spaltenzahl. Das gilt nur für dich und nur für diesen Reiter. Der Farbsatz " +
+      "unten gilt für die ganze Oberfläche.";
     leiste.appendChild(hinweis);
 
     const wahl = document.createElement("div");
@@ -419,8 +420,8 @@ export const AnordnenMixin = (Basis) =>
     const mehr = document.createElement("button");
     mehr.type = "button";
     mehr.className = "anordnen-taste";
-    mehr.title = "Weitere Möglichkeiten";
-    mehr.setAttribute("aria-label", "Weitere Möglichkeiten");
+    mehr.title = "Weitere Optionen";
+    mehr.setAttribute("aria-label", "Weitere Optionen");
     mehr.appendChild(this._symbolKnoten("mdi:dots-vertical"));
     mehr.addEventListener("click", () => this._anordnenMenue());
     leiste.appendChild(mehr);

@@ -8,6 +8,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Geändert
+
+- „Karten anordnen" heißt „Ansicht bearbeiten" und nennt Spalten und Farben.
+
 ### Behoben
 
 - Die Schaubild-Karte nennt einen Ladefehler, statt „noch nichts eingelesen".
