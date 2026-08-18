@@ -1328,6 +1328,27 @@ FCT_ENTITY_MAP = {
 # Manche Module tragen einen Parameter, der ihre Aufgabe festlegt. Was er nicht
 # einschließt, ist nicht verdrahtet: Der Datenpunkt antwortet und meldet null.
 # `nur_bei` nennt je Adresse die Werte, bei denen sie dazugehört.
+# Schaltpunkte, die die Anlage nicht anzeigt, aber aus zwei ihrer Werte
+# hervorgehen. `bezug` ist der Sollwert, `hysterese` der Aufschlag, `anteil`
+# sein Vorzeichen und Bruchteil.
+SCHALTPUNKTE: tuple[dict[str, object], ...] = (
+    {
+        "fct_type": 16,
+        "bezug": "1/15",
+        "hysterese": "9/35",
+        "anteil": -0.5,
+        "name": "Ladung ab",
+    },
+    {
+        "fct_type": 16,
+        "bezug": "9/57",
+        "hysterese": "9/35",
+        "anteil": 1.0,
+        "name": "Anforderung liefert",
+    },
+)
+
+
 ROLLEN_FILTER: dict[int, dict[str, object]] = {
     FCT_BUFFER: {
         "quelle": "20/4",

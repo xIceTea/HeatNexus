@@ -190,6 +190,48 @@ def test_unbekannte_rolle_nimmt_nichts_weg(client_module):
     assert len(client.devices) == 4
 
 
+def _puffer_mit_sollwert(client_module):
+    """Ein Puffermodul mit Sollwert und Hysterese, wie es die Anlage meldet."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            id=f"SN-1-{a.replace('/', '-')}-0",
+            oid=f"/1/16/1/{a}/0",
+            fct_type=16,
+            name=n,
+            type="temperature",
+        )
+        for a, n in (("1/15", "Puffertemperatur Sollwert"), ("9/35", "Hysterese"),
+                     ("9/57", "Solltemperatur ext. Wärmeanforderung"))
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    return client
+
+
+def test_schaltpunkte_entstehen_aus_sollwert_und_hysterese(client_module):
+    """Zwei Schaltpunkte je Puffer: wann geladen wird und was geliefert wird."""
+    client = _puffer_mit_sollwert(client_module)
+    client._schaltpunkte()
+
+    punkte = {d["name"]: d for d in client.devices if d["type"] == "schaltpunkt"}
+    assert set(punkte) == {"Ladung ab", "Anforderung liefert"}
+    # Der Schaltpunkt hängt am Sollwert, die Hysterese kommt als Auslöser dazu.
+    assert punkte["Ladung ab"]["oid"] == "/1/16/1/1/15/0"
+    assert punkte["Ladung ab"]["ausloeser_oid"] == "/1/16/1/9/35/0"
+    assert punkte["Ladung ab"]["anteil"] == -0.5
+    assert punkte["Anforderung liefert"]["anteil"] == 1.0
+    assert all(not d["enabled_default"] for d in punkte.values())
+
+
+def test_ohne_hysterese_kein_schaltpunkt(client_module):
+    """Fehlt einer der beiden Werte, entsteht kein Schaltpunkt."""
+    client = _puffer_mit_sollwert(client_module)
+    client.devices = [d for d in client.devices if not d["oid"].endswith("/9/35/0")]
+    client._schaltpunkte()
+
+    assert not [d for d in client.devices if d["type"] == "schaltpunkt"]
+
+
 def test_umlaut_aus_der_dos_codepage(client_module):
     """Ein von Hand vergebener Name bringt „ü" als 0x81 – nur CP850 kennt das."""
     roh = b'{"name": "S\x81dbau"}'

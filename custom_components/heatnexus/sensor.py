@@ -113,6 +113,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "total_increasing": WindhagerPelletSensor,
             "zaehler_heute": WindhagerAbleitungSensor,
             "zaehler_start": WindhagerAbleitungSensor,
+            "schaltpunkt": WindhagerSchaltpunktSensor,
             "laufzeit": WindhagerLaufzeitSensor,
             "laufzeit_heute": WindhagerLaufzeitSensor,
         },
@@ -416,6 +417,55 @@ class WindhagerLaufzeitSensor(WindhagerEntity, SensorEntity):
             "letzte_dauer": self._letzte,
             "heute": round(self._heute, 1),
             "tag": self._tag,
+        }
+
+
+class WindhagerSchaltpunktSensor(WindhagerEntity, SensorEntity):
+    """Die Temperatur, bei der die Anlage schaltet.
+
+    Sollwert und Hysterese führt die Steuerung getrennt; wann tatsächlich
+    geschaltet wird, ergibt sich erst aus beiden.
+    """
+
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    def __init__(self, coordinator: Any, device_info: dict) -> None:
+        super().__init__(coordinator, device_info)
+        self._hysterese_oid = device_info.get("ausloeser_oid")
+        self._anteil = float(device_info.get("anteil") or 0)
+
+    async def async_added_to_hass(self) -> None:
+        """Die Hysterese mit abrufen, sie steht sonst auf der Serviceebene still."""
+        await super().async_added_to_hass()
+        if self._hysterese_oid:
+            self.coordinator.client.register_poll_oid(self._hysterese_oid)
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._hysterese_oid:
+            self.coordinator.client.unregister_poll_oid(self._hysterese_oid)
+        await super().async_will_remove_from_hass()
+
+    @property
+    def native_value(self) -> float | None:
+        """Sollwert plus Anteil der Hysterese, auf ein Zehntel gerundet."""
+        soll = self.float_value
+        hysterese = _zahl(get_oid_value(self.coordinator, self._hysterese_oid))
+        if soll is None or hysterese is None:
+            return None
+        # Ohne Sollwert fordert nichts an; ein Schaltpunkt von 0 wäre irreführend.
+        if soll == 0:
+            return None
+        return round(soll + self._anteil * hysterese, 1)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Woraus sich der Wert ergibt, damit er nachvollziehbar bleibt."""
+        return {
+            "sollwert": self.float_value,
+            "hysterese": _zahl(get_oid_value(self.coordinator, self._hysterese_oid)),
+            "anteil": self._anteil,
         }
 
 

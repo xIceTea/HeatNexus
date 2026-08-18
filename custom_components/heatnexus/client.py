@@ -42,6 +42,7 @@ from .const import (
     POLL_WOERTER_SCHNELL,
     POLL_WOERTER_TRAEGE,
     ROLLEN_FILTER,
+    SCHALTPUNKTE,
     STARTZAEHLER,
     SYSTEMZEIT_NAMEN,
     TAGESWERTE,
@@ -95,6 +96,8 @@ DESKRIPTOR_VORGABE: dict = {
     "nv_name": None,
     # Abgeleitete Werte: Bezugsadresse bzw. die Codes, die als Lauf gelten.
     "ausloeser_oid": None,
+    # Bruchteil und Vorzeichen der Hysterese bei einem Schaltpunkt.
+    "anteil": None,
     "laufphasen": None,
     "gruppe": None,
     # Beim Einlesen meldete die Anlage keinen Wert – der Eingang ist frei.
@@ -1580,6 +1583,7 @@ class WindhagerHttpClient:
         self._nv_doppelte_stilllegen()
         self.zusatzkandidaten = []
         self._abgeleitete_zaehler()
+        self._schaltpunkte()
         self._laufzeit()
         self._namen_vereindeutigen()
 
@@ -1660,13 +1664,18 @@ class WindhagerHttpClient:
         return "/" + "/".join(teile[:3]) if len(teile) >= 6 else ""
 
     def _ableitung(self, quelle: dict, endung: str, typ: str, zusatz: str, **felder) -> dict:
-        """Ein Deskriptor, der von einem anderen lebt: gleiche Adresse, eigener Name."""
+        """Ein Deskriptor, der von einem anderen lebt: gleiche Adresse, eigener Name.
+
+        `name_ersetzen` setzt einen eigenen Namen, statt den der Quelle zu
+        verlängern — ein Schaltpunkt heißt nicht „Puffertemperatur Sollwert ab".
+        """
+        eigener = felder.pop("name_ersetzen", None)
         return self._deskriptor(
             id=f"{quelle['id']}-{endung}",
             alt_id=f"{quelle.get('alt_id') or quelle['id']}-{endung}",
             oid=quelle["oid"],
             type=typ,
-            name=f"{quelle['name']} {zusatz}".strip(),
+            name=eigener or f"{quelle['name']} {zusatz}".strip(),
             enabled_default=False,
             device_id=quelle.get("device_id"),
             alt_device_id=quelle.get("alt_device_id"),
@@ -1674,6 +1683,44 @@ class WindhagerHttpClient:
             fct_type=quelle.get("fct_type"),
             **felder,
         )
+
+    def _schaltpunkte(self) -> None:
+        """Die Temperatur, bei der die Anlage schaltet, als eigener Wert.
+
+        Sollwert und Hysterese stehen getrennt; der Schaltpunkt ergibt sich
+        erst aus beiden. Siehe `SCHALTPUNKTE`.
+        """
+        nach_praefix: dict[str, dict[str, dict]] = {}
+        for d in self.devices:
+            if not d.get("oid"):
+                continue
+            praefix = self._praefix_aus_oid(d["oid"])
+            if praefix:
+                nach_praefix.setdefault(praefix, {})[self._kennung_aus_oid(d["oid"])] = d
+
+        neu = []
+        for regel in SCHALTPUNKTE:
+            for adressen in nach_praefix.values():
+                quelle = adressen.get(regel["bezug"])
+                hysterese = adressen.get(regel["hysterese"])
+                if not quelle or not hysterese or quelle.get("fct_type") != regel["fct_type"]:
+                    continue
+                neu.append(
+                    self._ableitung(
+                        quelle,
+                        "schaltpunkt",
+                        "schaltpunkt",
+                        "",
+                        name_ersetzen=str(regel["name"]),
+                        ausloeser_oid=hysterese["oid"],
+                        anteil=regel["anteil"],
+                        unit="°C",
+                        device_class="temperature",
+                    )
+                )
+        self.devices.extend(neu)
+        for d in neu:
+            self.oids.add(d["oid"])
 
     def _abgeleitete_zaehler(self) -> None:
         """Je Zählerstand zwei Zuwächse: heute und seit dem letzten Start.

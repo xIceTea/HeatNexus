@@ -11,6 +11,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Der Wärmeübergabepunkt zeigt im Schaubild an, dass er Wärme abgibt.
+- Zwei Werte je Puffer: ab welcher Temperatur geladen und was geliefert wird.
 
 ### Geändert
 
