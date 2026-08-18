@@ -430,6 +430,9 @@ class WindhagerSchaltpunktSensor(WindhagerEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    # Der Sollwert steht nur an, solange etwas angefordert wird. Dazwischen
+    # bleibt der Schaltpunkt leer, die Entität aber bedienbar.
+    _require_value_for_available = False
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
