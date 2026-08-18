@@ -363,6 +363,8 @@ export const STIL = `
     /* Pumpenmarke und Leitung teilen sich eine Begrenzung, damit ihr
        Größenverhältnis in jeder Breite dasselbe bleibt. Ohne sie steht die
        Marke auf schmalen Anzeigen als Klecks auf einem Haarstrich. */
+    --hn-marke: clamp(16px, calc(var(--hn-einheit) * 28), 40px);
+    --hn-strang: clamp(3.43px, calc(var(--hn-einheit) * 6), 8.57px);
     /* Farbe der Wärmeübergabe. Dieselbe, in der die Vorlaufbänder strömen.
        Ein Laufrad sind drei Schaufeln um eine Nabe; in Signalgelb liest sich
        diese Form als Warnzeichen für Strahlung. */
@@ -382,7 +384,7 @@ export const STIL = `
      Compositor und kostet kein Neuzeichnen. */
   .schaubild .fluss {
     position: absolute;
-    height: calc(var(--hn-einheit) * 6);
+    height: var(--hn-strang);
     transform: translateY(-50%);
     border-radius: 999px; pointer-events: none;
     opacity: 0; transition: opacity 0.4s ease;
@@ -418,7 +420,7 @@ export const STIL = `
   /* Die Stichleitung hinunter zum Anlagenteil: dieselben Bänder, gekippt.
      Der Vorlauf läuft hinunter zum Verbraucher, der Rücklauf hinauf. */
   .schaubild .fluss.senkrecht {
-    width: calc(var(--hn-einheit) * 6); height: auto;
+    width: var(--hn-strang); height: auto;
     transform: translateX(-50%);
     background-repeat: repeat-y;
     background-size: 100% calc(var(--hn-einheit) * 26);
@@ -680,7 +682,7 @@ export const STIL = `
 
   .schaubild .pumpe {
     position: absolute; transform: translate(-50%, -50%);
-    width: clamp(18px, calc(var(--hn-einheit) * 28), 40px);
+    width: var(--hn-marke);
     aspect-ratio: 1; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     /* Die stehende Pumpe soll als Pumpe lesbar bleiben. Auf der Leitung wirkte
