@@ -1605,8 +1605,7 @@ class WindhagerHttpClient:
             praefixe = {
                 p
                 for d in self.devices
-                if d.get("fct_type") == fct_type
-                and (p := self._praefix_aus_oid(d.get("oid")))
+                if d.get("fct_type") == fct_type and (p := self._praefix_aus_oid(d.get("oid")))
             }
             bedingungen = get_conditions(fct_type)
             regel = ROLLEN_FILTER.get(fct_type)
@@ -1629,9 +1628,7 @@ class WindhagerHttpClient:
                 except (TypeError, ValueError):
                     continue
                 weg |= {
-                    adresse
-                    for adresse, erlaubt in regel["nur_bei"].items()
-                    if rolle not in erlaubt
+                    adresse for adresse, erlaubt in regel["nur_bei"].items() if rolle not in erlaubt
                 }
 
         if not any(weg_je_praefix.values()):
@@ -1640,7 +1637,9 @@ class WindhagerHttpClient:
         for d in self.devices:
             praefix = self._praefix_aus_oid(d.get("oid"))
             if self._kennung_aus_oid(d.get("oid")) in weg_je_praefix.get(praefix, ()):
-                _LOGGER.info("%s (%s) entfällt: an dieser Anlage ohne Aufgabe", d["name"], d.get("oid"))
+                _LOGGER.info(
+                    "%s (%s) entfällt: an dieser Anlage ohne Aufgabe", d["name"], d.get("oid")
+                )
                 self.oids.discard(d.get("oid"))
                 continue
             behalten.append(d)
@@ -1689,12 +1688,8 @@ class WindhagerHttpClient:
     def _schaltpunkte(self, meta: dict) -> None:
         """Die Temperatur, bei der die Anlage schaltet, als eigener Wert.
 
-        Sollwert und Hysterese stehen getrennt; der Schaltpunkt ergibt sich
-        erst aus beiden. Siehe `SCHALTPUNKTE`.
-
         Die Hysterese wird beim Einlesen mitgenommen: Sie liegt auf der
-        Serviceebene und käme sonst erst nach dem ersten langsamen Durchlauf,
-        bis dahin bliebe der Schaltpunkt leer.
+        Serviceebene und käme sonst erst nach dem ersten langsamen Durchlauf.
         """
         nach_praefix: dict[str, dict[str, dict]] = {}
         for d in self.devices:

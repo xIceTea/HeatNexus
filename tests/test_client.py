@@ -201,8 +201,11 @@ def _puffer_mit_sollwert(client_module):
             name=n,
             type="temperature",
         )
-        for a, n in (("1/15", "Puffertemperatur Sollwert"), ("9/35", "Hysterese"),
-                     ("9/57", "Solltemperatur ext. Wärmeanforderung"))
+        for a, n in (
+            ("1/15", "Puffertemperatur Sollwert"),
+            ("9/35", "Hysterese"),
+            ("9/57", "Solltemperatur ext. Wärmeanforderung"),
+        )
     ]
     client.oids = {d["oid"] for d in client.devices}
     return client

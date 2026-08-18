@@ -1325,9 +1325,6 @@ FCT_ENTITY_MAP = {
     FCT_ZSP: ZSP_ENTITIES,
 }
 
-# Manche Module tragen einen Parameter, der ihre Aufgabe festlegt. Was er nicht
-# einschließt, ist nicht verdrahtet: Der Datenpunkt antwortet und meldet null.
-# `nur_bei` nennt je Adresse die Werte, bei denen sie dazugehört.
 # Schaltpunkte, die die Anlage nicht anzeigt, aber aus zwei ihrer Werte
 # hervorgehen. `bezug` ist der Sollwert, `hysterese` der Aufschlag, `anteil`
 # sein Vorzeichen und Bruchteil.
@@ -1349,6 +1346,8 @@ SCHALTPUNKTE: tuple[dict[str, object], ...] = (
 )
 
 
+# Was der Rollenparameter eines Moduls nicht einschließt, ist nicht verdrahtet.
+# `nur_bei` nennt je Adresse die Werte, bei denen sie dazugehört.
 ROLLEN_FILTER: dict[int, dict[str, object]] = {
     FCT_BUFFER: {
         "quelle": "20/4",
