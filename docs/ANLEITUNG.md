@@ -26,6 +26,10 @@ so im Repo lesbar und werden hier nur zusammengesetzt.
 {% include KARTE.md %}
 </section>
 
+<section id="regelung" class="teil" markdown="1">
+{% include REGELUNG.md %}
+</section>
+
 <section id="vorlagen" class="teil" markdown="1">
 {% include VORLAGEN.md %}
 </section>
