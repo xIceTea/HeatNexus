@@ -6,6 +6,24 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.10.0-beta.2] - 2026-08-18
+
+### Neu
+
+- Der Wärmeübergabepunkt zeigt im Schaubild an, dass er Wärme abgibt.
+
+### Geändert
+
+- Pumpenmarke und Leitung behalten auf schmalen Anzeigen ihr Größenverhältnis.
+- Das Puffermodul zeigt nur noch, was seine Modulfunktion auch schaltet.
+- Schaltausgänge erscheinen als Ja/Nein statt als Zahl 0 oder 1.
+- Datenpunkte ohne Aufgabe an der Anlage werden nicht mehr angelegt.
+- Die Anleitung erklärt die Regelungslogik mit Beispielen.
+
+### Behoben
+
+- Die Klemmenreihe des Pumpenmoduls sitzt mittig über dem Bauteil.
+
 ## [1.10.0-beta.1] - 2026-08-17
 
 ### Neu
