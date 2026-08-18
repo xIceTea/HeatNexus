@@ -50,6 +50,12 @@ SYSTEMZEIT_NAMEN = frozenset({"Uhrzeit", "Datum"})
 # wird das Alter der Startwerte gegen die Serverzeit gerechnet.
 UHR_TIMEOUT = 3
 
+# Wie alt ein Wert aus dem Lesespeicher der Anlage höchstens sein darf, um
+# beim Start übernommen zu werden. 0 schaltet die Übernahme ab.
+CONF_STARTWERTE = "startwerte"
+STARTWERTE_VORGABE = 15
+STARTWERTE_WAHL = ("0", "5", "15", "60")
+
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_DASHBOARD = "dashboard"
 

@@ -56,6 +56,7 @@ from .const import (
     CONF_MELDUNG_EINLESEN,
     CONF_PANEL,
     CONF_SPRACHE,
+    CONF_STARTWERTE,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_VORLAGEN,
@@ -81,6 +82,8 @@ from .const import (
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
     SPRACHE_BESCHRIFTUNG,
+    STARTWERTE_VORGABE,
+    STARTWERTE_WAHL,
     UEBERSTEUERUNG_DAUER_STANDARD,
     UPDATE_INTERVAL,
     ZUSATZGRUPPEN,
@@ -666,6 +669,7 @@ class WindhagerOptionsFlow(OptionsFlow):
         options = dict(self.config_entry.options)
         if user_input is not None:
             options[CONF_UPDATE_INTERVAL] = int(user_input[CONF_UPDATE_INTERVAL])
+            options[CONF_STARTWERTE] = int(user_input.get(CONF_STARTWERTE, STARTWERTE_VORGABE))
             options[CONF_DASHBOARD] = bool(user_input[CONF_DASHBOARD])
             options[CONF_PANEL] = bool(user_input[CONF_PANEL])
             # .get statt [] – ein fehlendes Feld darf den Dialog nicht mit
@@ -742,6 +746,18 @@ class WindhagerOptionsFlow(OptionsFlow):
                             step=5,
                             unit_of_measurement="s",
                             mode=NumberSelectorMode.BOX,
+                        )
+                    ),
+                    # Startwerte aus dem Lesespeicher der Anlage: wie alt ein
+                    # Wert höchstens sein darf, um beim Start zu gelten.
+                    vol.Required(
+                        CONF_STARTWERTE,
+                        default=str(options.get(CONF_STARTWERTE, STARTWERTE_VORGABE)),
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=list(STARTWERTE_WAHL),
+                            mode=SelectSelectorMode.DROPDOWN,
+                            translation_key="startwerte",
                         )
                     ),
                 }

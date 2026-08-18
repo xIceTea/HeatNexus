@@ -101,7 +101,8 @@
           "meldung_einlesen": "Notify while reading in",
           "vorlagen": "Automation blueprints",
           "aussentemperatur": "Outside temperature",
-          "hilfe": "Show explanations"
+          "hilfe": "Show explanations",
+          "startwerte": "Take over start values from the system"
         },
         "data_description": {
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
@@ -164,6 +165,14 @@
         "waermepumpe": "Heat pump",
         "gas_oel": "Gas or oil boiler",
         "standard": "Neutral (no fuel reference)"
+      }
+    },
+    "startwerte": {
+      "options": {
+        "0": "off",
+        "5": "up to 5 minutes old",
+        "15": "up to 15 minutes old",
+        "60": "up to 60 minutes old"
       }
     }
   },

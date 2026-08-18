@@ -102,7 +102,8 @@
           "vorlagen": "Automations-Vorlagen",
           "aussentemperatur": "Außentemperatur",
           "hilfe": "Erklärungen anzeigen",
-          "sprache": "Sprache der Bezeichnungen"
+          "sprache": "Sprache der Bezeichnungen",
+          "startwerte": "Startwerte von der Anlage übernehmen"
         },
         "data_description": {
           "update_interval": "Wie oft die Anlage gefragt wird. Der Wert gilt für die schnellen Werte (Thermostat, Temperaturen, Pumpen); träge Werte behalten ihren Abstand — 2 Minuten für Betriebswerte, 15 Minuten für Zähler. Empfohlen: 30 Sekunden für eine Anlage, 60 Sekunden für mehrere oder für Anlagen mit vielen Datenpunkten.",
@@ -183,6 +184,14 @@
         "en": "Englisch",
         "fr": "Französisch",
         "it": "Italienisch"
+      }
+    },
+    "startwerte": {
+      "options": {
+        "0": "aus",
+        "5": "bis 5 Minuten alt",
+        "15": "bis 15 Minuten alt",
+        "60": "bis 60 Minuten alt"
       }
     }
   },

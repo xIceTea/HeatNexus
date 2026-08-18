@@ -167,3 +167,22 @@ async def test_die_steuerungsuhr_schlaegt_die_serverzeit(client):
     # die Zusicherung, weil die Adresse schon gelesen ist.
     client._letzte_werte.clear()
     assert await client._startwerte_lesen(15, JETZT) == 0
+
+
+def test_die_option_steht_nicht_im_umfang():
+    """Sonst zählte ein Abschalten als Abwahl und löschte Entitäten."""
+    from types import SimpleNamespace
+
+    import custom_components.heatnexus as heatnexus
+    from custom_components.heatnexus.const import CONF_STARTWERTE
+
+    eintrag = SimpleNamespace(
+        entry_id="eintrag1",
+        data={heatnexus.CONF_SYSTEMS: [{heatnexus.CONF_HOST: "192.0.2.10"}]},
+        options={CONF_STARTWERTE: 0},
+    )
+    umfang = heatnexus._scope(
+        SimpleNamespace(config=SimpleNamespace(language="de")), eintrag, "192.0.2.10"
+    )
+
+    assert CONF_STARTWERTE not in umfang
