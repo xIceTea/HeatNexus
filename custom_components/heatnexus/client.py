@@ -1164,11 +1164,13 @@ class WindhagerHttpClient:
                 self.menu_meta.update(menu_data)
 
                 layers = get_layers(fct_type) or {}
-                level_of = {
-                    gnmn: level
-                    for level in ("info", "operate", "service", "oem")
-                    for gnmn in layers.get(level, [])
-                }
+                # Die Herstellerliste führt Datenpunkte mehrfach: `9/57` steht
+                # an der Serviceebene *und* an der Werksebene. Es gilt die
+                # zugänglichste, sonst verschluckt die Werksebene sie alle.
+                level_of: dict[str, str] = {}
+                for level in ("info", "operate", "service", "oem"):
+                    for gnmn in layers.get(level, []):
+                        level_of.setdefault(gnmn, level)
                 # Bereichsnamen der Bedienebenen als Rückfall für Datenpunkte
                 # ohne eigenen Namen (z.B. "Zündung 39/4").
                 gruppe_of = {
@@ -1577,6 +1579,7 @@ class WindhagerHttpClient:
         """`gn/mn` aus einer vollständigen Adresse, ohne Präfix."""
         teile = str(oid or "").strip("/").split("/")
         return "/".join(teile[-3:-1]) if len(teile) >= 3 else ""
+
 
     def _ableitung(self, quelle: dict, endung: str, typ: str, zusatz: str, **felder) -> dict:
         """Ein Deskriptor, der von einem anderen lebt: gleiche Adresse, eigener Name."""
