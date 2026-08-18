@@ -211,7 +211,7 @@ def _puffer_mit_sollwert(client_module):
 def test_schaltpunkte_entstehen_aus_sollwert_und_hysterese(client_module):
     """Zwei Schaltpunkte je Puffer: wann geladen wird und was geliefert wird."""
     client = _puffer_mit_sollwert(client_module)
-    client._schaltpunkte()
+    client._schaltpunkte({})
 
     punkte = {d["name"]: d for d in client.devices if d["type"] == "schaltpunkt"}
     assert set(punkte) == {"Ladung ab", "Anforderung liefert"}
@@ -223,11 +223,20 @@ def test_schaltpunkte_entstehen_aus_sollwert_und_hysterese(client_module):
     assert all(not d["enabled_default"] for d in punkte.values())
 
 
+def test_hysterese_wird_beim_einlesen_mitgenommen(client_module):
+    """Sie liegt auf der Serviceebene; ohne Vorgabe bliebe der Wert stundenlang leer."""
+    client = _puffer_mit_sollwert(client_module)
+    client._schaltpunkte({"/1/16/1/9/35/0": {"value": "16.0"}})
+
+    punkte = {d["name"]: d for d in client.devices if d["type"] == "schaltpunkt"}
+    assert punkte["Ladung ab"]["hysterese_vorgabe"] == 16.0
+
+
 def test_ohne_hysterese_kein_schaltpunkt(client_module):
     """Fehlt einer der beiden Werte, entsteht kein Schaltpunkt."""
     client = _puffer_mit_sollwert(client_module)
     client.devices = [d for d in client.devices if not d["oid"].endswith("/9/35/0")]
-    client._schaltpunkte()
+    client._schaltpunkte({})
 
     assert not [d for d in client.devices if d["type"] == "schaltpunkt"]
 

@@ -96,8 +96,10 @@ DESKRIPTOR_VORGABE: dict = {
     "nv_name": None,
     # Abgeleitete Werte: Bezugsadresse bzw. die Codes, die als Lauf gelten.
     "ausloeser_oid": None,
-    # Bruchteil und Vorzeichen der Hysterese bei einem Schaltpunkt.
+    # Bruchteil und Vorzeichen der Hysterese bei einem Schaltpunkt, dazu ihr
+    # beim Einlesen gelesener Wert als Rückfall.
     "anteil": None,
+    "hysterese_vorgabe": None,
     "laufphasen": None,
     "gruppe": None,
     # Beim Einlesen meldete die Anlage keinen Wert – der Eingang ist frei.
@@ -1583,7 +1585,7 @@ class WindhagerHttpClient:
         self._nv_doppelte_stilllegen()
         self.zusatzkandidaten = []
         self._abgeleitete_zaehler()
-        self._schaltpunkte()
+        self._schaltpunkte(meta)
         self._laufzeit()
         self._namen_vereindeutigen()
 
@@ -1684,11 +1686,15 @@ class WindhagerHttpClient:
             **felder,
         )
 
-    def _schaltpunkte(self) -> None:
+    def _schaltpunkte(self, meta: dict) -> None:
         """Die Temperatur, bei der die Anlage schaltet, als eigener Wert.
 
         Sollwert und Hysterese stehen getrennt; der Schaltpunkt ergibt sich
         erst aus beiden. Siehe `SCHALTPUNKTE`.
+
+        Die Hysterese wird beim Einlesen mitgenommen: Sie liegt auf der
+        Serviceebene und käme sonst erst nach dem ersten langsamen Durchlauf,
+        bis dahin bliebe der Schaltpunkt leer.
         """
         nach_praefix: dict[str, dict[str, dict]] = {}
         for d in self.devices:
@@ -1705,6 +1711,11 @@ class WindhagerHttpClient:
                 hysterese = adressen.get(regel["hysterese"])
                 if not quelle or not hysterese or quelle.get("fct_type") != regel["fct_type"]:
                     continue
+                gelesen = (meta.get(hysterese["oid"]) or {}).get("value")
+                try:
+                    vorgabe = float(gelesen)
+                except (TypeError, ValueError):
+                    vorgabe = None
                 neu.append(
                     self._ableitung(
                         quelle,
@@ -1714,6 +1725,7 @@ class WindhagerHttpClient:
                         name_ersetzen=str(regel["name"]),
                         ausloeser_oid=hysterese["oid"],
                         anteil=regel["anteil"],
+                        hysterese_vorgabe=vorgabe,
                         unit="°C",
                         device_class="temperature",
                     )

@@ -438,6 +438,7 @@ class WindhagerSchaltpunktSensor(WindhagerEntity, SensorEntity):
         super().__init__(coordinator, device_info)
         self._hysterese_oid = device_info.get("ausloeser_oid")
         self._anteil = float(device_info.get("anteil") or 0)
+        self._hysterese_vorgabe = _zahl(device_info.get("hysterese_vorgabe"))
 
     async def async_added_to_hass(self) -> None:
         """Die Hysterese mit abrufen, sie steht sonst auf der Serviceebene still."""
@@ -451,10 +452,16 @@ class WindhagerSchaltpunktSensor(WindhagerEntity, SensorEntity):
         await super().async_will_remove_from_hass()
 
     @property
+    def _hysterese(self) -> float | None:
+        """Der abgerufene Wert, sonst der beim Einlesen gelesene."""
+        live = _zahl(get_oid_value(self.coordinator, self._hysterese_oid))
+        return live if live is not None else self._hysterese_vorgabe
+
+    @property
     def native_value(self) -> float | None:
         """Sollwert plus Anteil der Hysterese, auf ein Zehntel gerundet."""
         soll = self.float_value
-        hysterese = _zahl(get_oid_value(self.coordinator, self._hysterese_oid))
+        hysterese = self._hysterese
         if soll is None or hysterese is None:
             return None
         # Ohne Sollwert fordert nichts an; ein Schaltpunkt von 0 wäre irreführend.
@@ -467,7 +474,7 @@ class WindhagerSchaltpunktSensor(WindhagerEntity, SensorEntity):
         """Woraus sich der Wert ergibt, damit er nachvollziehbar bleibt."""
         return {
             "sollwert": self.float_value,
-            "hysterese": _zahl(get_oid_value(self.coordinator, self._hysterese_oid)),
+            "hysterese": self._hysterese,
             "anteil": self._anteil,
         }
 
