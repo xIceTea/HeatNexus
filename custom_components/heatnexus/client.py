@@ -2454,6 +2454,24 @@ class WindhagerHttpClient:
         )
         return uebernommen
 
+    async def vorabstand(self, max_alter_min: int):
+        """Erster Stand aus dem Lesespeicher, noch vor dem ersten Abruf.
+
+        Zeitprogramme und Meldungen bleiben leer – sie stehen nicht im
+        Speicher und kommen mit dem ersten Durchlauf.
+        """
+        if max_alter_min <= 0:
+            return None
+        bezugszeit = await self._steuerungszeit()
+        if await self._startwerte_lesen(max_alter_min, bezugszeit) == 0:
+            return None
+        return {
+            "devices": self.devices,
+            "oids": dict(self._letzte_werte),
+            "objects": {},
+            "status": {},
+        }
+
     # Die Steuerung liefert Datum und Uhrzeit als Text. Welche Schreibweise
     # sie wählt, ist nicht für jede Baureihe belegt; deshalb mehrere.
     _DATUMSFORMATE = ("%d.%m.%Y", "%Y-%m-%d", "%d.%m.%y")

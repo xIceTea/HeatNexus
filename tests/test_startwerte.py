@@ -186,3 +186,42 @@ def test_die_option_steht_nicht_im_umfang():
     )
 
     assert CONF_STARTWERTE not in umfang
+
+
+def _eintrag_jetzt(oid, wert, alter_min):
+    """Wie `_eintrag`, aber gegen die laufende Uhr.
+
+    `vorabstand` findet ohne Anlage keine Steuerungsuhr und rechnet dann
+    gegen die Serverzeit.
+    """
+    zeit = datetime.now() - timedelta(minutes=alter_min)
+    return {"OID": oid, "value": wert, "timestamp": zeit.strftime("%Y-%m-%d %H:%M:%S")}
+
+
+async def test_ohne_brauchbare_werte_gibt_es_keinen_vorabstand(client):
+    _speicher(client, [_eintrag_jetzt("/1/60/0/0/7/0", "62.4", 90)])
+    client.devices = []
+
+    assert await client.vorabstand(15) is None
+
+
+async def test_der_vorabstand_hat_die_form_des_abrufs(client):
+    _speicher(client, [_eintrag_jetzt("/1/60/0/0/7/0", "62.4", 2)])
+    client.devices = []
+
+    stand = await client.vorabstand(15)
+
+    assert set(stand) == {"devices", "oids", "objects", "status"}
+    assert stand["oids"]["/1/60/0/0/7/0"] == "62.4"
+    assert stand["objects"] == {}
+    assert stand["status"] == {}
+
+
+async def test_abgeschaltet_gibt_es_keinen_vorabstand(client):
+    async def darf_nicht(url, semaphore=None):
+        raise AssertionError("Der Lesespeicher wurde trotz Abschaltung abgefragt")
+
+    client._get = darf_nicht
+    client.devices = []
+
+    assert await client.vorabstand(0) is None

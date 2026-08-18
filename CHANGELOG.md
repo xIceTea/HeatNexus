@@ -8,6 +8,11 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Neu
+
+- Nach einem Neustart stehen die Werte sofort, sofern sie jung genug sind.
+- Einstellbar, wie alt übernommene Startwerte höchstens sein dürfen.
+
 ### Geändert
 
 - „Karten anordnen" heißt „Ansicht bearbeiten" und nennt Spalten und Farben.

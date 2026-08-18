@@ -41,6 +41,7 @@ from .const import (
     CONF_MELDUNG_EINLESEN,
     CONF_PANEL,
     CONF_SPRACHE,
+    CONF_STARTWERTE,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_VORLAGEN,
@@ -54,6 +55,7 @@ from .const import (
     DOMAIN,
     INIT_TIMEOUT,
     SIGNAL_NEUE_ENTITAETEN,
+    STARTWERTE_VORGABE,
     UPDATE_INTERVAL,
 )
 from .coordinator import WindhagerDataUpdateCoordinator
@@ -344,6 +346,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator = WindhagerDataUpdateCoordinator(
             hass, client, entry, host, label, scope["update_interval"]
         )
+        # Der erste Stand kommt aus dem Lesespeicher der Anlage, damit die
+        # Entitäten gleich mit Wert entstehen. Der erste Abruf überschreibt
+        # ihn wenige Sekunden später.
+        with contextlib.suppress(Exception):
+            stand = await client.vorabstand(
+                int((entry.options or {}).get(CONF_STARTWERTE, STARTWERTE_VORGABE))
+            )
+            if stand:
+                coordinator.async_set_updated_data(stand)
+
         await coordinator.async_config_entry_first_refresh()
         return host, label, coordinator, client, store, fingerprint, cache_key, restored, abgleichen
 
