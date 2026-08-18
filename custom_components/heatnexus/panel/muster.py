@@ -85,7 +85,7 @@ STATUS: tuple[Zeile, ...] = (
     (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer", ("outdoor_temperature",)),
     (r"kesselleistung", "Kesselleistung", "mdi:fire", ("boiler_power",)),
     (
-        r"brennerkammertemperatur",
+        r"brenn(er)?kammertemperatur",
         "Brennkammertemperatur",
         "mdi:fireplace",
         ("combustion_chamber_temperature",),
@@ -163,7 +163,7 @@ ZIRKULATION_IST_KENNWERT = r"\bww-zirkulations?[- ]?(ist[- ])?temperatur(?!.*sol
 VERLAUF = _muster(
     r"kesseltemperatur ist",
     r"abgastemperatur",
-    r"brennerkammertemperatur",
+    r"brenn(er)?kammertemperatur",
     r"puffer oben",
     r"puffer unten",
     r"vorlauftemperatur ist",

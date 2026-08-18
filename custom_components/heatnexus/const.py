@@ -620,7 +620,7 @@ PUROWIN_ENTITIES = [
         "state_class": "measurement",
     },
     {"oid": "/0/11/0", "name": "Abgastemperatur", "platform": "temperature"},
-    {"oid": "/0/45/0", "name": "Brennerkammertemperatur", "platform": "temperature"},
+    {"oid": "/0/45/0", "name": "Brennkammertemperatur", "platform": "temperature"},
     {
         "oid": "/0/42/0",
         "name": "O2 Signal",
@@ -1098,9 +1098,11 @@ BUFFER_ENTITIES = [
         "unit": "%",
         "state_class": "measurement",
     },
+    # Stellwert der Rücklaufhochhaltung, kein Kesselmischer. Deren Bauart
+    # steht in `20/124` und trägt denselben Namen ohne Zusatz.
     {
         "oid": "/1/102/0",
-        "name": "Mischer Kessel",
+        "name": "Rücklaufhochhaltung Stellwert",
         "platform": "sensor",
         "unit": "%",
         "state_class": "measurement",

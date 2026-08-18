@@ -20,10 +20,12 @@ wenn dort Vorabversionen zugelassen sind.
 - Schaltausgänge erscheinen als Ja/Nein statt als Zahl 0 oder 1.
 - Datenpunkte ohne Aufgabe an der Anlage werden nicht mehr angelegt.
 - Die Anleitung erklärt die Regelungslogik mit Beispielen.
+- „Mischer Kessel" heißt „Rücklaufhochhaltung Stellwert", die Entitäts-ID folgt.
 
 ### Behoben
 
 - Die Klemmenreihe des Pumpenmoduls sitzt mittig über dem Bauteil.
+- „Brennerkammertemperatur" heißt richtig „Brennkammertemperatur".
 
 ## [1.10.0-beta.1] - 2026-08-17
 
