@@ -26,6 +26,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Behoben
 
 - Die Klemmenreihe des Pumpenmoduls sitzt mittig über dem Bauteil.
+- Datenpunkte aus mehreren Bedienebenen erscheinen in der zugänglichsten.
 - „Brennerkammertemperatur" heißt richtig „Brennkammertemperatur".
 
 ## [1.10.0-beta.1] - 2026-08-17
