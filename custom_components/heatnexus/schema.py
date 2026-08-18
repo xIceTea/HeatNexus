@@ -1039,7 +1039,7 @@ LADE_HYSTERESE = 2.0
 # Die Radien sind größer als die gezeichneten Punkte darunter: Die grüne
 # Lampe muss die rote vollständig verdecken, sonst schimmert Rot am Rand
 # durch.
-ZSP_KLEMMEN = ((74, 164, 4), (88, 164, 4), (102, 164, 4), (116, 164, 4), (130, 164, 4))
+ZSP_KLEMMEN = ((72, 164, 4), (86, 164, 4), (100, 164, 4), (114, 164, 4), (128, 164, 4))
 ZSP_BETRIEBSLAMPE = (136, 252, 6)
 
 

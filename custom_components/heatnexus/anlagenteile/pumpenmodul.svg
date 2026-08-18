@@ -15,11 +15,11 @@
   <rect x="62" y="158" width="76" height="12" rx="4"/>
 </g>
 <g fill="{{rahmen}}">
-  <circle cx="74" cy="164" r="2.5"/>
-  <circle cx="88" cy="164" r="2.5"/>
-  <circle cx="102" cy="164" r="2.5"/>
-  <circle cx="116" cy="164" r="2.5"/>
-  <circle cx="130" cy="164" r="2.5"/>
+  <circle cx="72" cy="164" r="2.5"/>
+  <circle cx="86" cy="164" r="2.5"/>
+  <circle cx="100" cy="164" r="2.5"/>
+  <circle cx="114" cy="164" r="2.5"/>
+  <circle cx="128" cy="164" r="2.5"/>
 </g>
 
 <!-- Pumpe als Kreis mit Laufrad, wie im Hydraulikplan -->
