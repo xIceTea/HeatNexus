@@ -59,6 +59,48 @@ def test_time_program_without_value(client_module):
     assert _resolve(client_module, meta) == "time_program"
 
 
+def test_schaltzustand_wird_ja_nein_sensor(client_module):
+    """Bereich 0…1 ohne Einheit: ein Ausgang, der nur schaltet."""
+    meta = {"writeProt": True, "typeId": 1, "minValue": "0", "maxValue": "1", "value": "0"}
+    assert _resolve(client_module, meta) == "binary_sensor"
+
+
+def test_drehzahl_bleibt_messwert(client_module):
+    """Dieselbe typeId, aber Bereich 0…100 mit Einheit."""
+    meta = {
+        "writeProt": True,
+        "typeId": 1,
+        "minValue": "0",
+        "maxValue": "100",
+        "unit": "%",
+        "value": "0",
+    }
+    assert _resolve(client_module, meta) == "sensor"
+
+
+def test_schreibbarer_schalter_bleibt_zahl(client_module):
+    """Ein schreibbarer Bereich wird zur Zahl - der Typwechsel bräche Bestehendes."""
+    meta = {"writeProt": False, "typeId": 1, "minValue": "0", "maxValue": "1", "value": "0"}
+    assert _resolve(client_module, meta) == "number"
+
+
+def test_mehrfach_gefuehrte_adresse_bekommt_die_zugaenglichste_ebene():
+    """`9/57` steht am PuroWIN in Service- und Werksebene – Service gewinnt."""
+    from custom_components.heatnexus.device_db import get_layers
+
+    for fct_type, adresse in ((25, "9/57"), (9, "9/57")):
+        layers = get_layers(fct_type) or {}
+        ebenen = [e for e in ("info", "operate", "service", "oem") if adresse in layers.get(e, [])]
+        assert "oem" in ebenen and len(ebenen) > 1, f"fctType {fct_type}: Vorbedingung"
+
+        level_of: dict[str, str] = {}
+        for level in ("info", "operate", "service", "oem"):
+            for gnmn in layers.get(level, []):
+                level_of.setdefault(gnmn, level)
+
+        assert level_of[adresse] != "oem"
+
+
 def test_umlaut_aus_der_dos_codepage(client_module):
     """Ein von Hand vergebener Name bringt „ü" als 0x81 – nur CP850 kennt das."""
     roh = b'{"name": "S\x81dbau"}'

@@ -1400,6 +1400,16 @@ class WindhagerHttpClient:
                 pass
         if m.get("typeId") == 30:
             return "string_sensor"
+        # Ein Ausgang, der nur 0 oder 1 kennt, ist ein Schaltzustand. Die
+        # Steuerung führt Schaltzustände und Drehzahlen unter derselben
+        # `typeId`; erst Bereich und fehlende Einheit trennen sie.
+        if (
+            not writable
+            and not unit
+            and str(m.get("minValue")) == "0"
+            and str(m.get("maxValue")) == "1"
+        ):
+            return "binary_sensor"
         try:
             if value not in (None, "-.-", "-", ""):
                 float(value)
