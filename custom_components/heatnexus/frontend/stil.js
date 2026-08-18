@@ -360,6 +360,13 @@ export const STIL = `
     width: 100%; position: relative; isolation: isolate;
     container-type: inline-size;
     --hn-einheit: 0.1cqw;
+    /* Pumpenmarke und Leitung teilen sich eine Begrenzung, damit ihr
+       Größenverhältnis in jeder Breite dasselbe bleibt. Ohne sie steht die
+       Marke auf schmalen Anzeigen als Klecks auf einem Haarstrich. */
+    /* Farbe der Wärmeübergabe. Dieselbe, in der die Vorlaufbänder strömen.
+       Ein Laufrad sind drei Schaufeln um eine Nabe; in Signalgelb liest sich
+       diese Form als Warnzeichen für Strahlung. */
+    --hn-uebergabe: #ffd9c2;
     /* Schriftmaß der Marken. Die Karte stellt es ein; die Zeichnung selbst
        bleibt davon unberührt. */
     --hn-schrift: 1;
@@ -608,6 +615,69 @@ export const STIL = `
   @media (prefers-reduced-motion: reduce) {
     .schaubild .fluss.laeuft, .schaubild .glut.brennt { animation: none; }
   }
+  /* Der Wärmeübergabepunkt in Betrieb: Glut im Gehäuse, Abgabe nach außen,
+     dazu das drehende Laufrad darunter. Ohne Anforderung ist alles
+     unsichtbar, dann steht im Bild das gezeichnete Modul. */
+  .schaubild .uebergabe {
+    position: absolute; pointer-events: none; overflow: hidden;
+    opacity: 0; transition: opacity 0.8s ease;
+  }
+  .schaubild .uebergabe.an { opacity: 1; }
+  .schaubild .uebergabe .glut {
+    position: absolute; left: 50%; top: 53%; width: 112%; aspect-ratio: 1.15;
+    transform: translate(-50%, -50%); border-radius: 50%;
+    background: radial-gradient(circle, var(--hn-uebergabe) 0%,
+      color-mix(in srgb, var(--hn-uebergabe) 55%, transparent) 45%,
+      transparent 72%);
+    animation: uebergabe-glimmen 3.4s ease-in-out infinite;
+  }
+  .schaubild .uebergabe .glut.zwei {
+    left: 32%; top: 40%; width: 74%;
+    animation-duration: 2.1s; animation-direction: reverse;
+  }
+  @keyframes uebergabe-glimmen {
+    0%, 100% { opacity: 0.12; }
+    45% { opacity: 0.40; }
+    70% { opacity: 0.22; }
+  }
+  /* Die Wellen liegen im Gehäuse und werden am Rand beschnitten: Sie sollen
+     die Abgabe andeuten, nicht über die Nachbarn im Bild laufen. */
+  .schaubild .uebergabe .welle {
+    position: absolute; left: 50%; top: 53%; width: 90%; aspect-ratio: 1;
+    transform: translate(-50%, -50%); border-radius: 50%;
+    border: 2px solid var(--hn-uebergabe); opacity: 0;
+    animation: uebergabe-abgabe 3s ease-out infinite;
+  }
+  .schaubild .uebergabe .welle:nth-child(4) { animation-delay: 1s; }
+  .schaubild .uebergabe .welle:nth-child(5) { animation-delay: 2s; }
+  @keyframes uebergabe-abgabe {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    25% { opacity: 0.5; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.45); }
+  }
+  /* Das eigene Laufrad über dem gezeichneten. Es dreht sich viel langsamer
+     als eine Pumpe: Hier fließt keine Fördermenge, hier geht Wärme über. */
+  .schaubild .uebergabe-rad {
+    position: absolute; transform: translate(-50%, -50%);
+    aspect-ratio: 1; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--hn-karte, #151d26);
+    color: var(--hn-gedaempft);
+    opacity: 0; transition: opacity 0.8s ease, color 0.6s ease;
+  }
+  .schaubild .uebergabe-rad.an { opacity: 1; color: var(--hn-uebergabe); }
+  .schaubild .uebergabe-rad svg {
+    display: block; width: 78%; height: 78%; transform-origin: 50% 50%;
+  }
+  .schaubild .uebergabe-rad.an svg { animation: dreht 16s linear infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .schaubild .uebergabe .glut,
+    .schaubild .uebergabe .welle,
+    .schaubild .uebergabe-rad.an svg { animation: none; }
+    .schaubild .uebergabe .glut { opacity: 0.3; }
+    .schaubild .uebergabe .welle { opacity: 0; }
+  }
+
   .schaubild .pumpe {
     position: absolute; transform: translate(-50%, -50%);
     width: clamp(18px, calc(var(--hn-einheit) * 28), 40px);

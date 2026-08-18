@@ -1042,6 +1042,12 @@ LADE_HYSTERESE = 2.0
 ZSP_KLEMMEN = ((72, 164, 4), (86, 164, 4), (100, 164, 4), (114, 164, 4), (128, 164, 4))
 ZSP_BETRIEBSLAMPE = (136, 252, 6)
 
+# Gehäuse und gezeichnete Pumpe des Moduls, wörtlich aus `pumpenmodul.svg`.
+# Liegt eine Wärmeanforderung an, legt die Oberfläche darüber die Wärme im
+# Gehäuse, ein langsam drehendes Laufrad und die Abgabe nach außen.
+ZSP_GEHAEUSE = (52, 150, 96, 116)
+ZSP_PUMPE = (100, 212, 26)
+
 
 # Arten, deren Pumpe dem Speicher Wärme entnimmt.
 ENTNAHME_ARTEN = ("heizkreis", "wasser", "zirkulation", "pumpenmodul")
@@ -1259,6 +1265,7 @@ def anlagenschema(
     schichtung: list[dict[str, Any]] = []
     speicher: list[dict[str, Any]] = []
     lampen: list[dict[str, Any]] = []
+    uebergabe: list[dict[str, Any]] = []
     # Wer dem Speicher Wärme entnimmt: alle Pumpen der Verbraucher. Wird
     # gleich zweimal gebraucht – für die Marke am Speicher und für seine
     # Stichleitung.
@@ -1405,6 +1412,24 @@ def anlagenschema(
                     "titel": modul["titel"],
                 }
             )
+        gx, gy, gb, gh = ZSP_GEHAEUSE
+        px, py, pr = ZSP_PUMPE
+        uebergabe.append(
+            {
+                "entity": soll["entity_id"],
+                "left": f"{(x + gx) / breite * 100:.2f}%",
+                "top": f"{gy / HOEHE * 100:.2f}%",
+                "breite": f"{gb / breite * 100:.2f}%",
+                "hoehe": f"{gh / HOEHE * 100:.2f}%",
+                "ecke": f"{12 / gb * 100:.2f}% / {12 / gh * 100:.2f}%",
+                # Das gezeichnete Laufrad steht still. Darüber liegt ein eigenes,
+                # das sich dreht, solange angefordert wird.
+                "rad_left": f"{(x + px) / breite * 100:.2f}%",
+                "rad_top": f"{py / HOEHE * 100:.2f}%",
+                "rad_groesse": f"{(2 * pr) / breite * 100:.2f}%",
+                "titel": modul["titel"],
+            }
+        )
 
     # Die Kesseltemperatur des ersten Wärmeerzeugers. Ohne sie liesse sich
     # nicht sagen, ob die laufende Ladepumpe wirklich Wärme in den Puffer
@@ -1524,6 +1549,9 @@ def anlagenschema(
         "speicher": speicher,
         # Die Lampen des Pumpen-/Relaismoduls, siehe ZSP_KLEMMEN.
         "lampen": lampen,
+        # Wärme im Gehäuse, drehendes Laufrad und Abgabe nach außen, solange
+        # das Modul Wärme anfordert.
+        "uebergabe": uebergabe,
     }
 
 
@@ -1614,5 +1642,6 @@ def schaubild_nutzdaten(
         # Die Schichtung des Puffers – oben und unten je nach Messwert.
         "schema_schichtung": bild.get("schichtung", []) if bild else [],
         "schema_lampen": bild.get("lampen", []) if bild else [],
+        "schema_uebergabe": bild.get("uebergabe", []) if bild else [],
         "schema_speicher": bild.get("speicher", []) if bild else [],
     }
