@@ -48,6 +48,7 @@ from .const import (
     SYSTEMZEIT_NAMEN,
     TAGESWERTE,
     TAGESZAEHLER,
+    UHR_TIMEOUT,
     UPDATE_INTERVAL,
     VERBINDUNG_TIMEOUT,
 )
@@ -2452,6 +2453,58 @@ class WindhagerHttpClient:
             len(gebraucht),
         )
         return uebernommen
+
+    # Die Steuerung liefert Datum und Uhrzeit als Text. Welche Schreibweise
+    # sie wählt, ist nicht für jede Baureihe belegt; deshalb mehrere.
+    _DATUMSFORMATE = ("%d.%m.%Y", "%Y-%m-%d", "%d.%m.%y")
+    _UHRZEITFORMATE = ("%H:%M:%S", "%H:%M")
+
+    async def _steuerungszeit(self):
+        """Datum und Uhrzeit der Steuerung als ein Zeitpunkt.
+
+        Die Zeitstempel des Lesespeichers stammen aus dieser Uhr. Gegen sie
+        gerechnet stimmt das Alter auch dann, wenn sie falsch gestellt ist.
+        """
+        adressen = {
+            d.get("name"): d.get("oid")
+            for d in self.devices
+            if d.get("name") in SYSTEMZEIT_NAMEN and d.get("oid")
+        }
+        if len(adressen) < 2:
+            return None
+        try:
+            # Frist für beide zusammen: Der Vorabstand darf die Einrichtung
+            # nicht aufhalten. Läuft sie ab, gilt die Serverzeit.
+            gelesen = await asyncio.wait_for(
+                asyncio.gather(
+                    self._fetch_oid(adressen["Datum"]),
+                    self._fetch_oid(adressen["Uhrzeit"]),
+                ),
+                timeout=UHR_TIMEOUT,
+            )
+        except Exception as err:
+            _LOGGER.debug("Uhr der Steuerung nicht lesbar: %s", err)
+            return None
+
+        werte = {oid: wert for oid, wert in gelesen}
+        tag = self._nach_format(werte.get(adressen["Datum"]), self._DATUMSFORMATE)
+        stunde = self._nach_format(werte.get(adressen["Uhrzeit"]), self._UHRZEITFORMATE)
+        if tag is None or stunde is None:
+            _LOGGER.debug("Uhr der Steuerung in unbekannter Schreibweise")
+            return None
+        return datetime.combine(tag.date(), stunde.time())
+
+    @staticmethod
+    def _nach_format(roh, formate):
+        """Text in ein Datum wandeln, das erste passende Format gewinnt."""
+        if not isinstance(roh, str):
+            return None
+        for form in formate:
+            try:
+                return datetime.strptime(roh.strip(), form)
+            except ValueError:
+                continue
+        return None
 
     @classmethod
     def _zeitstempel(cls, roh):

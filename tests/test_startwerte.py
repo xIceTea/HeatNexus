@@ -94,3 +94,76 @@ async def test_abgeschaltet_fragt_den_speicher_nicht(client):
     client._get = darf_nicht
 
     assert await client._startwerte_lesen(0, JETZT) == 0
+
+
+def _uhr_deskriptoren():
+    return [
+        {"name": "Datum", "oid": "/1/15/0/2/70/0", "type": "string_sensor"},
+        {"name": "Uhrzeit", "oid": "/1/15/0/2/72/0", "type": "string_sensor"},
+    ]
+
+
+async def test_die_uhr_der_steuerung_wird_zusammengesetzt(client):
+    client.devices = _uhr_deskriptoren()
+    werte = {"/1/15/0/2/70/0": "18.08.2026", "/1/15/0/2/72/0": "12:30:00"}
+
+    async def lesen(oid):
+        return oid, werte[oid]
+
+    client._fetch_oid = lesen
+
+    assert await client._steuerungszeit() == datetime(2026, 8, 18, 12, 30, 0)
+
+
+async def test_ohne_uhr_gibt_es_keine_bezugszeit(client):
+    client.devices = []
+
+    assert await client._steuerungszeit() is None
+
+
+async def test_eine_unlesbare_uhr_gibt_keine_bezugszeit(client):
+    client.devices = _uhr_deskriptoren()
+
+    async def lesen(oid):
+        return oid, "kaputt"
+
+    client._fetch_oid = lesen
+
+    assert await client._steuerungszeit() is None
+
+
+async def test_die_steuerungsuhr_schlaegt_die_serverzeit(client):
+    """Zeitstempel und Bezugszeit stammen aus derselben Uhr."""
+    client.devices = _uhr_deskriptoren()
+    # Die Steuerung geht zwei Stunden vor. Ihr Zeitstempel ist zwei Minuten
+    # alt – gegen die Serverzeit sähe er zwei Stunden alt aus.
+    steuerung = JETZT + timedelta(hours=2)
+    werte = {
+        "/1/15/0/2/70/0": steuerung.strftime("%d.%m.%Y"),
+        "/1/15/0/2/72/0": steuerung.strftime("%H:%M:%S"),
+    }
+
+    async def lesen(oid):
+        return oid, werte[oid]
+
+    client._fetch_oid = lesen
+    stempel = steuerung - timedelta(minutes=2)
+    _speicher(
+        client,
+        [
+            {
+                "OID": "/1/60/0/0/7/0",
+                "value": "62.4",
+                "timestamp": stempel.strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        ],
+    )
+
+    bezug = await client._steuerungszeit()
+
+    assert await client._startwerte_lesen(15, bezug) == 1
+
+    # Gegenprobe gegen die Serverzeit, mit leerem Speicher: Sonst bestünde
+    # die Zusicherung, weil die Adresse schon gelesen ist.
+    client._letzte_werte.clear()
+    assert await client._startwerte_lesen(15, JETZT) == 0

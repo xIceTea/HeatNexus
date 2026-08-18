@@ -46,6 +46,10 @@ CONF_LON = "lon"
 # ist noch lange kein Systemdatum – „Urlaubsprogramm bis" und die
 # Zirkulationszeiten sind Betriebswerte und bleiben sichtbar.
 SYSTEMZEIT_NAMEN = frozenset({"Uhrzeit", "Datum"})
+# Frist für Datum und Uhrzeit der Steuerung zusammen. Reicht sie nicht,
+# wird das Alter der Startwerte gegen die Serverzeit gerechnet.
+UHR_TIMEOUT = 3
+
 CONF_UPDATE_INTERVAL = "update_interval"
 CONF_DASHBOARD = "dashboard"
 
