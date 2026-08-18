@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+from datetime import datetime, timedelta
 import json
 import logging
 import re as _re
@@ -2407,33 +2408,60 @@ class WindhagerHttpClient:
         _LOGGER.debug("Poll: %d OIDs einzeln", len(gelesen))
         return gelesen, offen - self._abgemeldet
 
-    async def _startwerte_lesen(self) -> None:
+    _ZEITSTEMPEL = "%Y-%m-%d %H:%M:%S"
+
+    async def _startwerte_lesen(self, max_alter_min: int, bezugszeit=None) -> int:
         """Den Lesespeicher der Anlage einmal auswerten.
 
-        Er liefert bis zu 256 zuletzt gelesene Werte in einer Anfrage. Selbst
-        füllt er sich nicht und taugt deshalb nicht als Abrufquelle – wohl aber
-        als erster Stand, damit die Anzeige nicht leer beginnt.
+        Er liefert bis zu 256 zuletzt gelesene Werte in einer Anfrage, jeden
+        mit Zeitstempel. Übernommen wird nur, was jünger ist als die Grenze:
+        Der Speicher füllt sich nicht selbst, seine Werte können alt sein.
         """
+        if max_alter_min <= 0:
+            return 0
         try:
             daten, status = await self._get(f"http://{self.host}/api/1.0/datapoints")
         except Exception as err:
             _LOGGER.debug("Lesespeicher nicht verfügbar: %s", err)
-            return
+            return 0
         if status != 200 or not isinstance(daten, list):
-            return
+            return 0
+
+        jetzt = bezugszeit or datetime.now()
+        grenze = timedelta(minutes=max_alter_min)
         gebraucht = self.abrufplan
+        uebernommen = 0
         for eintrag in daten:
             if not isinstance(eintrag, dict):
                 continue
             oid = eintrag.get("OID")
-            if oid in gebraucht and oid not in self._letzte_werte:
-                self._letzte_werte[oid] = self._wert_oder_none(eintrag.get("value"))
+            if oid not in gebraucht or oid in self._letzte_werte:
+                continue
+            gemessen = self._zeitstempel(eintrag.get("timestamp"))
+            # Ein Zeitstempel in der Zukunft ist keine Frische, sondern eine
+            # Uhr, die vorgeht. Der Wert bleibt liegen.
+            if gemessen is None or not timedelta(0) <= jetzt - gemessen <= grenze:
+                continue
+            self._letzte_werte[oid] = self._wert_oder_none(eintrag.get("value"))
+            uebernommen += 1
+
         _LOGGER.info(
             "%s: %d von %d Werten aus dem Lesespeicher der Anlage",
             self.host,
-            len(self._letzte_werte),
+            uebernommen,
             len(gebraucht),
         )
+        return uebernommen
+
+    @classmethod
+    def _zeitstempel(cls, roh):
+        """Zeitstempel des Lesespeichers in ein Datum wandeln."""
+        if not isinstance(roh, str):
+            return None
+        try:
+            return datetime.strptime(roh.strip(), cls._ZEITSTEMPEL)
+        except ValueError:
+            return None
 
     async def fetch_all(self, budget: float | None = None):
         """Poll the currently relevant OIDs in parallel and return coordinator data.
@@ -2455,9 +2483,6 @@ class WindhagerHttpClient:
         if self.oids is None:
             # Fallback, falls async_init noch nicht lief (sollte nicht passieren).
             await self.async_init()
-
-        if not self._letzte_werte:
-            await self._startwerte_lesen()
 
         poll_begonnen = time.monotonic()
         ende = poll_begonnen + budget if budget else None

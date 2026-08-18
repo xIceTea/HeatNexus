@@ -851,32 +851,49 @@ def test_eine_taste_kostet_keinen_abruf(client):
 
 async def test_der_erste_abruf_nimmt_den_lesespeicher_mit(client, monkeypatch):
     """Sonst steht die Anzeige zwanzig Sekunden lang leer."""
+    from datetime import datetime
+
     client.devices = [{"oid": "/1/60/0/0/7/0", "name": "Kesseltemperatur Ist"}]
     client.oids = {"/1/60/0/0/7/0"}
     client._compute_poll_oids()
+    jetzt = datetime(2026, 8, 18, 12, 0, 0)
 
     async def speicher(url, semaphore=None):
         assert url.endswith("/api/1.0/datapoints")
-        return [{"OID": "/1/60/0/0/7/0", "value": "63.5"}], 200
+        return [
+            {
+                "OID": "/1/60/0/0/7/0",
+                "value": "63.5",
+                "timestamp": "2026-08-18 11:58:00",
+            }
+        ], 200
 
     monkeypatch.setattr(client, "_get", speicher)
-    await client._startwerte_lesen()
+    await client._startwerte_lesen(15, jetzt)
 
     assert client._letzte_werte == {"/1/60/0/0/7/0": "63.5"}
 
 
 async def test_der_lesespeicher_ueberschreibt_nichts(client, monkeypatch):
     """Was der Abruf gelesen hat, gilt – der Speicher ist nur der Anfang."""
+    from datetime import datetime
+
     client.devices = [{"oid": "/1/60/0/0/7/0", "name": "Kesseltemperatur Ist"}]
     client.oids = {"/1/60/0/0/7/0"}
     client._compute_poll_oids()
     client._letzte_werte["/1/60/0/0/7/0"] = "70.0"
 
     async def speicher(url, semaphore=None):
-        return [{"OID": "/1/60/0/0/7/0", "value": "63.5"}], 200
+        return [
+            {
+                "OID": "/1/60/0/0/7/0",
+                "value": "63.5",
+                "timestamp": "2026-08-18 11:58:00",
+            }
+        ], 200
 
     monkeypatch.setattr(client, "_get", speicher)
-    await client._startwerte_lesen()
+    await client._startwerte_lesen(15, datetime(2026, 8, 18, 12, 0, 0))
 
     assert client._letzte_werte["/1/60/0/0/7/0"] == "70.0"
 
