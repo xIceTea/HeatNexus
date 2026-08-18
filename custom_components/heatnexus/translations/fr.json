@@ -215,7 +215,7 @@
       "title": "Langue modifiée – redémarrage nécessaire",
       "description": "La langue des libellés a été modifiée. HeatNexus lit déjà les nouveaux noms depuis la régulation ; ils apparaissent après un redémarrage de Home Assistant.\n\nCe message disparaît alors de lui-même."
     },
-    "karteileichen": {
+    "verwaiste_entitaeten": {
       "title": "{anzahl} entités sans point de données",
       "fix_flow": {
         "step": {

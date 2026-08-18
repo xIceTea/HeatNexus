@@ -29,7 +29,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
-from . import device_db, error_texts, karteileichen
+from . import device_db, error_texts, verwaiste
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
@@ -619,13 +619,16 @@ def _abgewaehlte_entitaeten_stilllegen(
     # Aufgeräumt wird deshalb erst, wenn jede Anlage etwas gemeldet hat.
     if any(not (coordinator.data or {}).get("devices") for coordinator in coordinators.values()):
         _LOGGER.debug("Abruf noch ohne Daten – es wird nichts stillgelegt")
+        # Ein Hinweis aus einem früheren Lauf nennt eine Zahl, die hier
+        # niemand nachrechnen kann. Kein Hinweis ist besser als ein falscher.
+        verwaiste.hinweis_pflegen(hass, entry, 0)
         return
 
     loeschen = _abwahl_abholen(hass, entry)
 
     # Entitäten der Serviceebene sind absichtlich deaktiviert angelegt; sie
     # dürfen beim Wiederdazuwählen nicht versehentlich eingeschaltet werden.
-    standardmaessig_an = karteileichen.bekannte_kennungen(coordinators)
+    standardmaessig_an = verwaiste.bekannte_kennungen(coordinators)
     # Die selbst gebildeten Werte: Nur bei ihnen schlägt die Auswahl eine
     # Einschaltung von Hand.
     zusatzwerte = {
@@ -682,7 +685,7 @@ def _abgewaehlte_entitaeten_stilllegen(
 
     # Stillgelegte ohne Datenpunkt bleiben stehen. Ob sie verschwinden, ist
     # eine Entscheidung des Nutzers – der Reparatureintrag holt sie ein.
-    karteileichen.hinweis_pflegen(hass, entry, ohne_datenpunkt)
+    verwaiste.hinweis_pflegen(hass, entry, ohne_datenpunkt)
 
 
 async def _oberflaeche_anwenden(hass: HomeAssistant, gewuenscht: bool, version: str = "") -> None:
@@ -919,7 +922,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Gespeicherten Erkennungsstand und Dashboard abräumen."""
     persistent_notification.async_dismiss(hass, _meldungs_id(entry))
-    karteileichen.hinweis_pflegen(hass, entry, 0)
+    verwaiste.hinweis_pflegen(hass, entry, 0)
     for system in _systems(entry):
         await Store(
             hass, DISCOVERY_STORE_VERSION, _store_key(entry, system[CONF_HOST])

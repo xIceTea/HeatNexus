@@ -46,9 +46,9 @@ von selbst.
 
 ## Entitäten ohne Datenpunkt
 
-Liefert die Anlage einen Wert nicht mehr, wird die Entität abgeschaltet und
-bleibt stehen. Name, Symbol, Bereich und Verlauf bleiben damit erhalten. Kommt
-der Wert zurück, ist die Entität sofort wieder da.
+Liefert die Anlage einen Wert nicht mehr, werden die betroffenen Entitäten
+abgeschaltet und bleiben stehen. Name, Symbol, Bereich und Verlauf bleiben damit
+erhalten. Kommt der Wert zurück, sind sie sofort wieder da.
 
 Sollen sie ganz verschwinden, steht unter *Einstellungen → System →
 Reparaturen* ein Eintrag mit ihrer Anzahl. Auf Bestätigung löscht er sie samt

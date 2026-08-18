@@ -1,6 +1,6 @@
 """Registrierte Entitäten ohne Datenpunkt finden, melden und entfernen.
 
-Eine Karteileiche entsteht, wenn die Anlage einen Datenpunkt nicht mehr
+Eine verwaiste Entität entsteht, wenn die Anlage einen Datenpunkt nicht mehr
 liefert oder eine neue Fassung ihn nicht mehr anlegt. Stillgelegt wird sie
 sofort, entfernt erst auf Ansage: Löschen kostet Name, Bereich und Verlauf.
 """
@@ -18,7 +18,8 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-HINWEIS = "karteileichen_{entry_id}"
+SCHLUESSEL = "verwaiste_entitaeten"
+HINWEIS = SCHLUESSEL + "_{entry_id}"
 
 
 @callback
@@ -73,7 +74,7 @@ def hinweis_pflegen(hass: HomeAssistant, entry: ConfigEntry, anzahl: int) -> Non
         kennung,
         is_fixable=True,
         severity=ir.IssueSeverity.WARNING,
-        translation_key="karteileichen",
+        translation_key=SCHLUESSEL,
         translation_placeholders={"anzahl": str(anzahl)},
         data={"entry_id": entry.entry_id},
     )
@@ -81,7 +82,7 @@ def hinweis_pflegen(hass: HomeAssistant, entry: ConfigEntry, anzahl: int) -> Non
 
 @callback
 def entfernen(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> int:
-    """Die Karteileichen löschen und den Hinweis zurücknehmen.
+    """Die Verwaiste löschen und den Hinweis zurücknehmen.
 
     Der Bestand wird dabei neu ermittelt: Zwischen Hinweis und Klick können
     Datenpunkte zurückgekommen sein.

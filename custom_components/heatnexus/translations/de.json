@@ -215,7 +215,7 @@
       "title": "Sprache geändert – Neustart erforderlich",
       "description": "Die Sprache der Bezeichnungen wurde geändert. Die neuen Namen liest HeatNexus bereits von der Anlage; sichtbar werden sie nach einem Neustart von Home Assistant.\n\nDiese Meldung verschwindet dann von selbst."
     },
-    "karteileichen": {
+    "verwaiste_entitaeten": {
       "title": "{anzahl} Entitäten ohne Datenpunkt",
       "fix_flow": {
         "step": {

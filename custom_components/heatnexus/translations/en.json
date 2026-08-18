@@ -215,7 +215,7 @@
       "title": "Language changed – restart required",
       "description": "The language of the labels was changed. HeatNexus already reads the new names from the controller; they become visible after a restart of Home Assistant.\n\nThis message then disappears by itself."
     },
-    "karteileichen": {
+    "verwaiste_entitaeten": {
       "title": "{anzahl} entities without a datapoint",
       "fix_flow": {
         "step": {

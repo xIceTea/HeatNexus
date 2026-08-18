@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from . import karteileichen
+from . import verwaiste
 
 # Zugangsdaten und eindeutige Gerätekennungen bleiben draußen.
 #
@@ -80,11 +80,11 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
     """Was Home Assistant tatsächlich führt – nicht, was die Erkennung fand.
 
     Erst der Vergleich beider Zahlen zeigt, ob eine vermisste Entität gar nicht
-    entstanden ist, abgeschaltet wurde oder als Karteileiche aus einer früheren
+    entstanden ist, abgeschaltet wurde oder als verwaiste Entität aus einer früheren
     Erkennung stammt.
     """
     entitaeten = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
-    bekannt = karteileichen.bekannte_kennungen(eintrag.get("coordinators", {}))
+    bekannt = verwaiste.bekannte_kennungen(eintrag.get("coordinators", {}))
     je_bereich = Counter(e.entity_id.split(".")[0] for e in entitaeten)
     abgeschaltet = Counter(str(e.disabled_by) for e in entitaeten if e.disabled_by is not None)
     verwaist = sorted(e.unique_id for e in entitaeten if e.unique_id not in bekannt)
