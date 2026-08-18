@@ -119,6 +119,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
   }
 
   async _datenHolen() {
+    this._abrufFehler = false;
     try {
       const anfrage = { type: "heatnexus/schaubild" };
       if (this._config.werte) anfrage.auswahl = this._config.werte;
@@ -129,6 +130,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
     } catch (err) {
       console.warn("HeatNexus: Schaubild konnte nicht geladen werden", err);
       this._anlagen = [];
+      this._abrufFehler = true;
     }
     this._gebaut = false;
     this._zeichnen();
@@ -258,9 +260,15 @@ class HeatNexusSchaubildKarte extends Grundlage {
     const karte = this._karte("Anlagenschaubild");
     const zeile = document.createElement("div");
     zeile.className = "hinweis";
-    zeile.textContent = this._anlagen.length
-      ? "Diese Anlage gibt es nicht mehr."
-      : "Noch keine Anlage eingelesen.";
+    // Ein misslungener Abruf ist etwas anderes als eine Anlage, die noch
+    // nicht eingelesen ist – der Satz darf das nicht vertauschen.
+    if (this._abrufFehler) {
+      zeile.textContent = "Das Schaubild konnte nicht geladen werden.";
+    } else {
+      zeile.textContent = this._anlagen.length
+        ? "Diese Anlage gibt es nicht mehr."
+        : "Noch keine Anlage eingelesen.";
+    }
     karte.appendChild(zeile);
     return karte;
   }

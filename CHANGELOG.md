@@ -6,6 +6,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Behoben
+
+- Die Schaubild-Karte nennt einen Ladefehler, statt „noch nichts eingelesen".
+
 ## [1.10.0-beta.2] - 2026-08-18
 
 ### Neu
