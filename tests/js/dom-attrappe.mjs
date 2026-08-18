@@ -246,13 +246,6 @@ export function browserAttrappe() {
       this.shadowRoot = new Knoten("shadow-root");
       return this.shadowRoot;
     }
-    addEventListener(art, ruf) {
-      if (!this._hoerer.has(art)) this._hoerer.set(art, []);
-      this._hoerer.get(art).push(ruf);
-    }
-    dispatchEvent() {
-      return true;
-    }
   };
   globalThis.CustomEvent = class {
     constructor(art, angaben = {}) {

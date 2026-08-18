@@ -113,6 +113,7 @@ class HeatNexusPanel extends Grundlage {
     } catch (err) {
       // Ohne frische Daten bleibt der Stand aus der Panel-Konfiguration.
       console.warn("HeatNexus: Aufteilung konnte nicht geladen werden", err);
+      this._melden("Die Anlagendaten konnten nicht geladen werden.");
     }
   }
 
@@ -124,6 +125,7 @@ class HeatNexusPanel extends Grundlage {
       this._zeichnen();
     } catch (err) {
       console.warn("HeatNexus: Anordnung konnte nicht geladen werden", err);
+      this._melden("Die eigene Anordnung konnte nicht geladen werden.");
     }
   }
 

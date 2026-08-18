@@ -291,6 +291,11 @@ def test_ohne_verwalterrecht_keine_dashboard_vorlage(durchlauf):
     assert durchlauf["werkzeugeOhneRecht"] == ["Karten anordnen"]
 
 
+def test_ein_misslungenes_speichern_wird_gemeldet(durchlauf):
+    """Sonst bleibt der Fehlschlag in der Entwicklerkonsole stehen."""
+    assert durchlauf["meldungBeimSpeichern"] == ["Die Farbwahl konnte nicht gespeichert werden."]
+
+
 def test_der_farbsatz_faerbt_auch_die_oberflaeche(durchlauf):
     """Nicht nur das Bild: Die Karten, Reiter und Linien folgen mit.
 

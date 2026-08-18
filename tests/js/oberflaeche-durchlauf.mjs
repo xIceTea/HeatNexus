@@ -307,4 +307,22 @@ if (einProgramm) {
 }
 bilanz.zeitprogrammDialog = zeitprogrammDialog;
 
+// ---------------------------------------------------------------------------
+// Misslungenes Speichern
+//
+// Die Attrappe wirft bei jedem `callWS`. Wer die Farbwahl anfasst, muss das
+// erfahren – sonst springt die Ansicht beim nächsten Laden zurück.
+// ---------------------------------------------------------------------------
+const meldungen = [];
+flaeche.addEventListener("hass-notification", (ereignis) => {
+  meldungen.push(ereignis.detail && ereignis.detail.message);
+});
+hass.callWS = async () => {
+  throw new Error("kein Server im Test");
+};
+flaeche._farbsatzSetzen("kontrast");
+await Promise.resolve();
+await Promise.resolve();
+bilanz.meldungBeimSpeichern = meldungen;
+
 console.log(JSON.stringify(bilanz));

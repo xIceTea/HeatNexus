@@ -46,7 +46,10 @@ export const AnordnenMixin = (Basis) =>
     this._zeichnen();
     this._hass
       .callWS({ type: "heatnexus/anordnung/einstellungen", einstellungen: { farbsatz } })
-      .catch((err) => console.warn("HeatNexus: Farbsatz konnte nicht gespeichert werden", err));
+      .catch((err) => {
+        console.warn("HeatNexus: Farbsatz konnte nicht gespeichert werden", err);
+        this._melden("Die Farbwahl konnte nicht gespeichert werden.");
+      });
   }
 
   /**
@@ -331,6 +334,7 @@ export const AnordnenMixin = (Basis) =>
         });
       } catch (err) {
         console.warn("HeatNexus: Anordnung konnte nicht gespeichert werden", err);
+        this._melden("Die Anordnung konnte nicht gespeichert werden.");
       }
     }, SPEICHERN_MS);
   }
@@ -466,6 +470,7 @@ export const AnordnenMixin = (Basis) =>
       });
     } catch (err) {
       console.warn("HeatNexus: Anordnung konnte nicht zurückgesetzt werden", err);
+      this._melden("Die Anordnung konnte nicht zurückgesetzt werden.");
     }
   }
 

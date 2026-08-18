@@ -11,6 +11,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Behoben
 
 - Die Schaubild-Karte nennt einen Ladefehler, statt „noch nichts eingelesen".
+- Misslingt das Speichern der Ansicht, erscheint eine Meldung.
 
 ## [1.10.0-beta.2] - 2026-08-18
 

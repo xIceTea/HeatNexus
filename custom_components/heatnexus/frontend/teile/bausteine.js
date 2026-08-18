@@ -119,6 +119,22 @@ export const BausteineMixin = (Basis) =>
     return ikone;
   }
 
+  /**
+   * Eine Meldung in die Leiste von Home Assistant geben.
+   *
+   * Ohne sie bleibt ein misslungenes Speichern in der Entwicklerkonsole
+   * stehen: Die Karte springt zurück, beim nächsten Laden ist sie weg.
+   */
+  _melden(text) {
+    this.dispatchEvent(
+      new CustomEvent("hass-notification", {
+        detail: { message: text },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
   _hinweisKnoten(text) {
     const hinweis = document.createElement("div");
     hinweis.className = "hinweis";
