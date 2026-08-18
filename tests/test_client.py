@@ -101,6 +101,95 @@ def test_mehrfach_gefuehrte_adresse_bekommt_die_zugaenglichste_ebene():
         assert level_of[adresse] != "oem"
 
 
+def _puffer_client(client_module, modulfunktion):
+    """Ein Puffermodul mit den drei Adressen, die an der Rolle hängen.
+
+    Bewusst ohne `prefix`: Den führt der Deskriptor nicht, und ein Test, der
+    ihn setzt, prüft eine Form, die es im Betrieb nicht gibt.
+    """
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    adressen = ["1/22", "21/65", "21/66", "22/75"]
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid=f"/1/16/1/{a}/0", fct_type=16, name=a, type="sensor"
+        )
+        for a in adressen
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    meta = {"/1/16/1/20/4/0": {"value": str(modulfunktion)}}
+    return client, meta
+
+
+def test_transferpumpe_faellt_bei_pufferladung_weg(client_module):
+    """Modulfunktion 3 lädt den Puffer über TPE/TPA – ohne Transferpumpe."""
+    client, meta = _puffer_client(client_module, 3)
+    client._rollen_filter(meta)
+
+    namen = {d["name"] for d in client.devices}
+    assert namen == {"1/22", "21/65", "21/66"}
+    assert "/1/16/1/22/75/0" not in client.oids
+
+
+def test_zweiter_fuehler_faellt_bei_nur_tpe_weg(client_module):
+    """Modulfunktion 2 kennt nur TPE, TPA ist dort nicht verdrahtet."""
+    client, meta = _puffer_client(client_module, 2)
+    client._rollen_filter(meta)
+
+    assert {d["name"] for d in client.devices} == {"1/22", "21/65"}
+
+
+def test_transferpumpe_bleibt_bei_modulfunktion_null(client_module):
+    """Bei 0 fördert die Transferpumpe, dafür entfällt die Pumpe zum Erzeuger."""
+    client, meta = _puffer_client(client_module, 0)
+    client._rollen_filter(meta)
+
+    assert {d["name"] for d in client.devices} == {"21/65", "22/75"}
+
+
+def test_pumpenmodul_ohne_pumpensteuerung_verliert_seine_drehzahl(client_module):
+    """Die Herstellerdatei knüpft `0/22` an `29/1` – steht der auf Nein, entfällt sie."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    adressen = ["0/22", "0/7", "0/95", "9/57"]
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid=f"/1/14/0/{a}/0", fct_type=20, name=a, type="sensor"
+        )
+        for a in adressen
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    client._rollen_filter(
+        {
+            "/1/14/0/29/1/0": {"value": "0"},  # keine Pumpensteuerung
+            "/1/14/0/29/2/0": {"value": "1"},  # aber externe Wärmeanforderung
+        }
+    )
+
+    # 0/22 und 0/7 hängen an 29/1, 0/95 an 29/2. 9/57 trägt am ZSP keine Bedingung.
+    assert {d["name"] for d in client.devices} == {"0/95", "9/57"}
+
+
+def test_bedingung_ohne_lesbaren_schaltwert_nimmt_nichts_weg(client_module):
+    """Ohne den Schaltwert bleibt alles stehen – Unwissen darf nichts löschen."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            oid="/1/14/0/0/22/0", fct_type=20, name="0/22", type="sensor"
+        )
+    ]
+    client.oids = {"/1/14/0/0/22/0"}
+    client._rollen_filter({})
+
+    assert len(client.devices) == 1
+
+
+def test_unbekannte_rolle_nimmt_nichts_weg(client_module):
+    """Ohne lesbaren Parameter bleibt jeder Datenpunkt stehen."""
+    client, _ = _puffer_client(client_module, 3)
+    client._rollen_filter({})
+
+    assert len(client.devices) == 4
+
+
 def test_umlaut_aus_der_dos_codepage(client_module):
     """Ein von Hand vergebener Name bringt „ü" als 0x81 – nur CP850 kennt das."""
     roh = b'{"name": "S\x81dbau"}'

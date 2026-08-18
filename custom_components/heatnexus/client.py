@@ -41,6 +41,7 @@ from .const import (
     POLL_TYPEN_STELLWERT,
     POLL_WOERTER_SCHNELL,
     POLL_WOERTER_TRAEGE,
+    ROLLEN_FILTER,
     STARTZAEHLER,
     SYSTEMZEIT_NAMEN,
     TAGESWERTE,
@@ -51,7 +52,7 @@ from .const import (
 from .const import (
     ENUMS as ENUMS_FALLBACK,
 )
-from .device_db import get_enum, get_layers, get_name
+from .device_db import get_conditions, get_enum, get_layers, get_name
 from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
 from .kanonisch import schluessel as kanonischer_schluessel
 from .lon import ist_eingang as lon_ist_eingang
@@ -1574,12 +1575,70 @@ class WindhagerHttpClient:
             kept.append(d)
         self.devices = kept
         self.oids -= missing
+        self._rollen_filter(meta)
         await self._nv_ohne_fuehler_verwerfen()
         self._nv_doppelte_stilllegen()
         self.zusatzkandidaten = []
         self._abgeleitete_zaehler()
         self._laufzeit()
         self._namen_vereindeutigen()
+
+    def _rollen_filter(self, meta: dict) -> None:
+        """Datenpunkte verwerfen, die an dieser Anlage keine Aufgabe haben.
+
+        Zwei Quellen: die Bedingungen der Herstellerdatei und `ROLLEN_FILTER`
+        für das, was dort fehlt. Beide brauchen einen lesbaren Schaltwert —
+        ohne ihn bleibt alles stehen.
+        """
+        weg_je_praefix: dict[str, set[str]] = {}
+
+        def wert(praefix: str, adresse: str) -> str | None:
+            return (meta.get(f"{praefix}/{adresse}/0") or {}).get("value")
+
+        for fct_type in {d.get("fct_type") for d in self.devices if d.get("fct_type")}:
+            praefixe = {
+                p
+                for d in self.devices
+                if d.get("fct_type") == fct_type
+                and (p := self._praefix_aus_oid(d.get("oid")))
+            }
+            bedingungen = get_conditions(fct_type)
+            regel = ROLLEN_FILTER.get(fct_type)
+            for praefix in praefixe:
+                weg = weg_je_praefix.setdefault(praefix, set())
+                # Die Herstellerdatei nennt je Adresse, welche Einstellung sie
+                # freischaltet. Trifft kein Satz zu, ist sie ohne Aufgabe.
+                for adresse, saetze in bedingungen.items():
+                    geprueft = [
+                        (str(wert(praefix, s["oid"])), s["values"])
+                        for s in saetze
+                        if wert(praefix, s["oid"]) is not None
+                    ]
+                    if geprueft and not any(ist in erlaubt for ist, erlaubt in geprueft):
+                        weg.add(adresse)
+                if not regel:
+                    continue
+                try:
+                    rolle = int(float(wert(praefix, regel["quelle"])))
+                except (TypeError, ValueError):
+                    continue
+                weg |= {
+                    adresse
+                    for adresse, erlaubt in regel["nur_bei"].items()
+                    if rolle not in erlaubt
+                }
+
+        if not any(weg_je_praefix.values()):
+            return
+        behalten = []
+        for d in self.devices:
+            praefix = self._praefix_aus_oid(d.get("oid"))
+            if self._kennung_aus_oid(d.get("oid")) in weg_je_praefix.get(praefix, ()):
+                _LOGGER.info("%s (%s) entfällt: an dieser Anlage ohne Aufgabe", d["name"], d.get("oid"))
+                self.oids.discard(d.get("oid"))
+                continue
+            behalten.append(d)
+        self.devices = behalten
 
     # Zählerstände, aus denen sich ein Zuwachs bilden lässt.
     _ZAEHLERKLASSEN = ("total", "total_increasing")
@@ -1590,6 +1649,15 @@ class WindhagerHttpClient:
         teile = str(oid or "").strip("/").split("/")
         return "/".join(teile[-3:-1]) if len(teile) >= 3 else ""
 
+    @staticmethod
+    def _praefix_aus_oid(oid: str | None) -> str:
+        """Knoten und Funktion aus einer Adresse, also `/1/16/1`.
+
+        Der Deskriptor selbst führt kein Präfix — nur der Heizkreis-Thermostat
+        hat eines.
+        """
+        teile = str(oid or "").strip("/").split("/")
+        return "/" + "/".join(teile[:3]) if len(teile) >= 6 else ""
 
     def _ableitung(self, quelle: dict, endung: str, typ: str, zusatz: str, **felder) -> dict:
         """Ein Deskriptor, der von einem anderen lebt: gleiche Adresse, eigener Name."""

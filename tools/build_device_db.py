@@ -117,6 +117,53 @@ def _adressen(eintraege) -> list[str]:
     return gefunden
 
 
+def _bedingungen(eintraege) -> dict[str, list[dict]]:
+    """Sichtbarkeitsbedingungen einsammeln: Adresse -> Bedingungen.
+
+    Die Herstellerdatei vermerkt an einzelnen Datenpunkten, von welcher
+    Einstellung sie abhängen. Ein Pumpenmodul ohne Pumpensteuerung führt seine
+    Drehzahl zwar, meldet aber dauerhaft null.
+    """
+    ergebnis: dict[str, list[dict]] = {}
+    for eintrag in eintraege or []:
+        if not isinstance(eintrag, dict):
+            continue
+        adresse, bedingung = eintrag.get("oid"), eintrag.get("condition")
+        if adresse and isinstance(bedingung, dict):
+            for satz in _bedingungssaetze(bedingung):
+                if satz not in ergebnis.setdefault(adresse, []):
+                    ergebnis[adresse].append(satz)
+        for adr, saetze in _bedingungen(eintrag.get("parameters")).items():
+            for satz in saetze:
+                if satz not in ergebnis.setdefault(adr, []):
+                    ergebnis[adr].append(satz)
+    return ergebnis
+
+
+def _bedingungssaetze(bedingung: dict) -> list[dict]:
+    """Eine Bedingung in Paare aus Adresse und erlaubten Werten auflösen.
+
+    Zwei Formen kommen vor: eine einzelne Bedingung und `or-condition` mit
+    einer Liste von Paaren. Die Oder-Form wird zu mehreren Sätzen, von denen
+    einer zutreffen muss.
+    """
+    if bedingung.get("type") == "or-condition":
+        saetze = []
+        for teil in bedingung.get("conditions") or []:
+            if isinstance(teil, list) and len(teil) == 2:
+                saetze.append({"oid": teil[0], "values": [str(v) for v in teil[1]]})
+            elif isinstance(teil, dict) and teil.get("oid"):
+                saetze.append(
+                    {"oid": teil["oid"], "values": [str(v) for v in teil.get("values") or []]}
+                )
+        return saetze
+    if bedingung.get("oid"):
+        return [
+            {"oid": bedingung["oid"], "values": [str(v) for v in bedingung.get("values") or []]}
+        ]
+    return []
+
+
 def _gruppen(eintraege, texte: dict) -> dict[str, list[str]]:
     """Benannte Gruppen einer Ebene: Klartext -> Datenpunkte."""
     ergebnis: dict[str, list[str]] = {}
@@ -219,6 +266,9 @@ def sammle_ebenen(layer: dict, texte: dict) -> dict[str, dict]:
             gruppen = _gruppen(inhalt.get(ebene), texte)
             if gruppen:
                 ziel.setdefault("groups", {}).update(gruppen)
+            for adresse, saetze in _bedingungen(inhalt.get(ebene)).items():
+                vorhandene = ziel.setdefault("conditions", {}).setdefault(adresse, [])
+                vorhandene.extend(s for s in saetze if s not in vorhandene)
         if geraet != "default":
             geraete = ziel.setdefault("devices", [])
             if geraet not in geraete:

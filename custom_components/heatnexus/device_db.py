@@ -45,6 +45,15 @@ def get_layers(fct_type: int) -> dict | None:
     return _db()["layers"].get(str(fct_type))
 
 
+def get_conditions(fct_type: int) -> dict[str, list[dict]]:
+    """Sichtbarkeitsbedingungen eines Funktionstyps: Adresse -> Bedingungssätze.
+
+    Trifft keiner der Sätze zu, führt die Anlage den Datenpunkt zwar, er bleibt
+    aber ohne Funktion.
+    """
+    return (_db()["layers"].get(str(fct_type)) or {}).get("conditions") or {}
+
+
 def preload() -> None:
     """Datenbank einlesen.
 

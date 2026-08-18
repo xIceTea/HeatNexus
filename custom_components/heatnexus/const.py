@@ -1325,6 +1325,23 @@ FCT_ENTITY_MAP = {
     FCT_ZSP: ZSP_ENTITIES,
 }
 
+# Manche Module tragen einen Parameter, der ihre Aufgabe festlegt. Was er nicht
+# einschließt, ist nicht verdrahtet: Der Datenpunkt antwortet und meldet null.
+# `nur_bei` nennt je Adresse die Werte, bei denen sie dazugehört.
+ROLLEN_FILTER: dict[int, dict[str, object]] = {
+    FCT_BUFFER: {
+        "quelle": "20/4",
+        "nur_bei": {
+            # Die Transferpumpe nennt allein Modulfunktion 0.
+            "22/75": (0,),
+            # Der zweite Pufferfühler kommt erst mit „TPE/TPA" dazu.
+            "21/66": (3, 4, 5),
+            # Bei 0 fördert die Transferpumpe, sonst die Pumpe zum Erzeuger.
+            "1/22": (1, 2, 3, 4, 5),
+        },
+    },
+}
+
 # Welche Funktions-Ids an einem Knoten geprüft werden, der in `GET /1` keine
 # gewöhnliche Funktion meldet. Bei einem Kessel ist es die 0; mehr zu prüfen
 # hieße raten, und jeder Versuch kostet eine Anfrage an eine träge Steuerung.
