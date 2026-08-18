@@ -29,7 +29,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
-from . import device_db, error_texts
+from . import device_db, error_texts, karteileichen
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
@@ -625,11 +625,7 @@ def _abgewaehlte_entitaeten_stilllegen(
 
     # Entitäten der Serviceebene sind absichtlich deaktiviert angelegt; sie
     # dürfen beim Wiederdazuwählen nicht versehentlich eingeschaltet werden.
-    standardmaessig_an = {
-        beschreibung.get("id"): beschreibung.get("enabled_default", True)
-        for coordinator in coordinators.values()
-        for beschreibung in (coordinator.data or {}).get("devices", [])
-    }
+    standardmaessig_an = karteileichen.bekannte_kennungen(coordinators)
     # Die selbst gebildeten Werte: Nur bei ihnen schlägt die Auswahl eine
     # Einschaltung von Hand.
     zusatzwerte = {
@@ -641,12 +637,15 @@ def _abgewaehlte_entitaeten_stilllegen(
     umfaenge = (laufzeitdaten(entry) or {}).get("umfang") or {}
     registry = er.async_get(hass)
     entfernt = 0
+    ohne_datenpunkt = 0
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
         if eintrag.unique_id not in standardmaessig_an:
             if loeschen or _quelle_abgeschaltet(eintrag.unique_id, umfaenge):
                 registry.async_remove(eintrag.entity_id)
                 entfernt += 1
-            elif eintrag.disabled_by is None:
+                continue
+            ohne_datenpunkt += 1
+            if eintrag.disabled_by is None:
                 _LOGGER.debug("Lege abgewählte Entität %s still", eintrag.entity_id)
                 registry.async_update_entity(
                     eintrag.entity_id, disabled_by=er.RegistryEntryDisabler.INTEGRATION
@@ -680,6 +679,10 @@ def _abgewaehlte_entitaeten_stilllegen(
             "Beim Wiederdazuwählen werden sie neu angelegt.",
             entfernt,
         )
+
+    # Stillgelegte ohne Datenpunkt bleiben stehen. Ob sie verschwinden, ist
+    # eine Entscheidung des Nutzers – der Reparatureintrag holt sie ein.
+    karteileichen.hinweis_pflegen(hass, entry, ohne_datenpunkt)
 
 
 async def _oberflaeche_anwenden(hass: HomeAssistant, gewuenscht: bool, version: str = "") -> None:
@@ -916,6 +919,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Gespeicherten Erkennungsstand und Dashboard abräumen."""
     persistent_notification.async_dismiss(hass, _meldungs_id(entry))
+    karteileichen.hinweis_pflegen(hass, entry, 0)
     for system in _systems(entry):
         await Store(
             hass, DISCOVERY_STORE_VERSION, _store_key(entry, system[CONF_HOST])

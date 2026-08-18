@@ -44,6 +44,19 @@ alles neu.
 sofort hergestellt und im Hintergrund abgeglichen. Neue Entitäten melden sich
 von selbst.
 
+## Entitäten ohne Datenpunkt
+
+Liefert die Anlage einen Wert nicht mehr, wird die Entität abgeschaltet und
+bleibt stehen. Name, Symbol, Bereich und Verlauf bleiben damit erhalten. Kommt
+der Wert zurück, ist die Entität sofort wieder da.
+
+Sollen sie ganz verschwinden, steht unter *Einstellungen → System →
+Reparaturen* ein Eintrag mit ihrer Anzahl. Auf Bestätigung löscht er sie samt
+Verlauf.
+
+Eine **abgewählte Bedienebene** ist etwas anderes: Das ist eine Entscheidung,
+ihre Entitäten werden gleich entfernt und beim Wiederdazuwählen neu angelegt.
+
 ## Ein Wert bleibt leer
 
 Antwortet die Steuerung auf einen Datenpunkt mit `404` oder mit `409` und

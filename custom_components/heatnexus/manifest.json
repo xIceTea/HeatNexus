@@ -10,6 +10,7 @@
     "http",
     "lovelace",
     "persistent_notification",
+    "repairs",
     "websocket_api"
   ],
   "documentation": "https://github.com/xIceTea/HeatNexus",

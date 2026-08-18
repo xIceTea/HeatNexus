@@ -12,6 +12,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
+from . import karteileichen
+
 # Zugangsdaten und eindeutige Gerätekennungen bleiben draußen.
 #
 # `alt_id` und `alt_device_id` sind die früheren, **adressgebundenen**
@@ -82,12 +84,7 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
     Erkennung stammt.
     """
     entitaeten = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
-    # Kennung -> ob die Erkennung sie ab Werk einschaltet.
-    bekannt = {
-        beschreibung.get("id"): beschreibung.get("enabled_default", True)
-        for coordinator in eintrag.get("coordinators", {}).values()
-        for beschreibung in (coordinator.data or {}).get("devices", [])
-    }
+    bekannt = karteileichen.bekannte_kennungen(eintrag.get("coordinators", {}))
     je_bereich = Counter(e.entity_id.split(".")[0] for e in entitaeten)
     abgeschaltet = Counter(str(e.disabled_by) for e in entitaeten if e.disabled_by is not None)
     verwaist = sorted(e.unique_id for e in entitaeten if e.unique_id not in bekannt)

@@ -214,6 +214,20 @@
     "sprache_neustart": {
       "title": "Language changed – restart required",
       "description": "The language of the labels was changed. HeatNexus already reads the new names from the controller; they become visible after a restart of Home Assistant.\n\nThis message then disappears by itself."
+    },
+    "karteileichen": {
+      "title": "{anzahl} entities without a datapoint",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Remove entities without a datapoint",
+            "description": "The system no longer provides a value for {anzahl} entities. They are already disabled and cost no request.\n\nRemoving them discards your own name, icon, area and history. If the system delivers the value again, the entity is created anew."
+          }
+        },
+        "abort": {
+          "nicht_geladen": "The system is not loaded right now. Please try again later."
+        }
+      }
     }
   }
 }
