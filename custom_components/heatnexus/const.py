@@ -620,6 +620,15 @@ LAUFPHASEN: dict[str, frozenset[int]] = {
     "59/17": frozenset({1}),
 }
 
+# Welchen Stundenzähler die Laufzeit aus dem Zustand ersetzt, je
+# Zustandstabelle. Nur diesen: Ein Wartungszähler auf demselben Gerät zählt
+# etwas anderes und behält seine Ableitung.
+LAUFZEIT_ERSETZT: dict[str, frozenset[str]] = {
+    "2/1": frozenset({"2/81"}),
+    "50/6": frozenset({"52/50", "52/52", "52/54"}),
+    "56/6": frozenset({"52/50", "52/52", "52/54"}),
+}
+
 PUROWIN_ENTITIES = [
     # --- Infoebene / Übersicht (read only) ---
     {"oid": "/0/7/0", "name": "Kesseltemperatur Ist", "platform": "temperature"},

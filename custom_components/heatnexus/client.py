@@ -32,6 +32,7 @@ from .const import (
     GRUPPE_SCHALTPUNKT,
     GRUPPE_ZAEHLER,
     LAUFPHASEN,
+    LAUFZEIT_ERSETZT,
     MENU_PAGE_SIZE,
     POLL_BLOCK,
     POLL_CONCURRENCY,
@@ -1815,13 +1816,14 @@ class WindhagerHttpClient:
             for d in self.devices
             if d.get("device_id") and self._kennung_aus_oid(d.get("oid")) in STARTZAEHLER
         }
-        # Geräte, deren Zustand die Laufzeit minutengenau hergibt. Dort ist der
-        # Stundenzähler die schlechtere Antwort und bekommt keine Ableitung.
-        mit_laufzeit = {
-            d.get("device_id")
-            for d in self.devices
-            if LAUFPHASEN.get(str(d.get("enum") or "")) and d.get("device_id")
-        }
+        # Je Gerät die Stundenzähler, die die Laufzeit aus dem Zustand ersetzt.
+        # Sie ist minutengenau und damit die bessere Antwort; jeder andere
+        # Stundenzähler desselben Geräts misst etwas anderes und bleibt.
+        ersetzt: dict[str, set[str]] = {}
+        for d in self.devices:
+            kennungen = LAUFZEIT_ERSETZT.get(str(d.get("enum") or ""))
+            if kennungen and d.get("device_id"):
+                ersetzt.setdefault(d["device_id"], set()).update(kennungen)
         # Tageswerte, die die Anlage selbst führt, je Gerät.
         vom_geraet = {
             (d.get("device_id"), kennung)
@@ -1840,7 +1842,7 @@ class WindhagerHttpClient:
                 continue
             # Stunden sind Laufzeit, alles andere zählt Stück oder Menge.
             stunden = (d.get("unit") or "") == "h"
-            if stunden and d.get("device_id") in mit_laufzeit:
+            if kennung in ersetzt.get(d.get("device_id"), ()):
                 continue
             gruppe = GRUPPE_LAUFZEIT if stunden else GRUPPE_ZAEHLER
             gemeinsam = {

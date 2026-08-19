@@ -428,3 +428,52 @@ def test_ein_angekreuzter_schaltpunkt_entsteht_eingeschaltet(client_module):
 
     gewaehlt = next(d for d in client.devices if d["id"] == kennung)
     assert gewaehlt["enabled_default"] is True
+
+
+def _kessel_mit_zaehlern(client_module):
+    """Ein Kessel mit Betriebsphase, Betriebsstunden und Wartungszähler."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            id=f"SN-0-{a.replace('/', '-')}-0",
+            oid=f"/1/60/0/{a}/0",
+            device_id="SN-0",
+            fct_type=25,
+            name=n,
+            type=t,
+            unit=u,
+            state_class=s,
+            enum=e,
+        )
+        for a, n, t, u, s, e in (
+            ("2/1", "Betriebsphase", "enum_sensor", None, None, "2/1"),
+            ("2/81", "Betriebsstunden", "sensor", "h", "total_increasing", None),
+            (
+                "37/17",
+                "Betriebsstunden bis Reinigungsausbrand",
+                "sensor",
+                "h",
+                "total_increasing",
+                None,
+            ),
+        )
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    return client
+
+
+def test_der_betriebsstundenzaehler_weicht_der_laufzeit(client_module):
+    """Sie misst denselben Lauf minutengenau; zwei Antworten wären eine zu viel."""
+    client = _kessel_mit_zaehlern(client_module)
+    client._abgeleitete_zaehler()
+
+    assert not [d for d in client.devices if d["oid"].endswith("/2/81/0") and d.get("gruppe")]
+
+
+def test_ein_wartungszaehler_behaelt_seine_ableitung(client_module):
+    """Er zählt bis zum Ausbrand, nicht den Lauf – die Laufzeit ersetzt ihn nicht."""
+    client = _kessel_mit_zaehlern(client_module)
+    client._abgeleitete_zaehler()
+
+    abgeleitet = [d for d in client.devices if d["oid"].endswith("/37/17/0") and d.get("gruppe")]
+    assert [d["type"] for d in abgeleitet] == ["zaehler_heute"]
