@@ -196,3 +196,11 @@ def test_eine_ableitung_ist_als_solche_erkennbar(kanonisch):
     assert kanonisch.ist_ableitung("0000ABCD1234-0-0-4-0-ww-abstand")
     assert kanonisch.ist_ableitung("0000ABCD1234-0-2-81-0-heute")
     assert not kanonisch.ist_ableitung("0000ABCD1234-0-0-4-0")
+
+
+def test_der_ww_einschaltpunkt_erbt_nicht_den_schluessel_des_sollwerts(kanonisch):
+    """Sonst stünde er dort, wo die Oberfläche den Sollwert sucht."""
+    assert (
+        kanonisch.schluessel("0000ABCD1234-0-1-4-0-ww-schaltpunkt")
+        == "dhw_temperature_target_switch_point"
+    )

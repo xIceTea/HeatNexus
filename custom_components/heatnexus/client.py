@@ -1801,6 +1801,24 @@ class WindhagerHttpClient:
                         gruppe=GRUPPE_SCHALTPUNKT,
                     )
                 )
+                # Der Abstand nennt einen Punkt – den soll man auch ablesen
+                # können. Er entsteht aus denselben zwei Adressen.
+                if regel.get("schaltpunkt_name"):
+                    neu.append(
+                        self._ableitung(
+                            teile["soll"],
+                            "ww-schaltpunkt",
+                            "schaltpunkt",
+                            "",
+                            name_ersetzen=str(regel["schaltpunkt_name"]),
+                            ausloeser_oid=teile["hysterese"]["oid"],
+                            anteil=-1.0,
+                            hysterese_vorgabe=vorgabe,
+                            unit="°C",
+                            device_class="temperature",
+                            gruppe=GRUPPE_SCHALTPUNKT,
+                        )
+                    )
         self._zusatzwerte_uebernehmen(neu)
         for d in neu:
             self.oids.add(d["oid"])

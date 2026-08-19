@@ -163,6 +163,9 @@ ZUSATZ_SCHLUESSEL: dict[str, str] = {
     "laufzeit-heute": "runtime_today",
     "laufzeit": "runtime",
     "schaltpunkt-abstand": "switch_delta",
+    # Vor "schaltpunkt": `_zerlegen` prüft mit `endswith`, und eine Kennung auf
+    # "-ww-schaltpunkt" endet auch auf "-schaltpunkt".
+    "ww-schaltpunkt": "switch_point",
     "ww-abstand": "switch_delta",
     "schaltpunkt": "switch_point",
     "heute": "today",

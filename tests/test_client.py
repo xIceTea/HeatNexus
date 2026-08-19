@@ -487,3 +487,16 @@ def test_der_abstand_traegt_das_delta_symbol(client_module):
     abstand = next(d for d in client.devices if d["type"] == "schaltpunkt_abstand")
     assert abstand["name"] == "Einschaltpunkt Delta"
     assert abstand["icon"] == "mdi:delta"
+
+
+def test_der_ww_einschaltpunkt_entsteht_aus_soll_und_hysterese(client_module):
+    """Der Abstand nennt einen Punkt – den soll man auch ablesen können."""
+    client = _heizkreis_mit_warmwasser(client_module)
+    client._verbraucherabstand({})
+
+    punkt = next(d for d in client.devices if d["type"] == "schaltpunkt")
+    assert punkt["name"] == "WW-Einschaltpunkt"
+    assert punkt["anteil"] == -1.0
+    assert punkt["oid"] == "/1/14/0/1/4/0"
+    assert punkt["id"].endswith("-ww-schaltpunkt")
+    assert punkt["enabled_default"] is False

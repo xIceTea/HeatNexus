@@ -1389,6 +1389,7 @@ VERBRAUCHER_ABSTAND: tuple[dict[str, object], ...] = (
         "hysterese": "5/0",
         "zustand": "1/66",
         "name": "WW-Einschaltpunkt Delta",
+        "schaltpunkt_name": "WW-Einschaltpunkt",
     },
 )
 
