@@ -1812,7 +1812,7 @@ class WindhagerHttpClient:
                             "",
                             name_ersetzen=str(regel["schaltpunkt_name"]),
                             ausloeser_oid=teile["hysterese"]["oid"],
-                            anteil=-1.0,
+                            anteil=regel["schaltpunkt_anteil"],
                             hysterese_vorgabe=vorgabe,
                             unit="°C",
                             device_class="temperature",
@@ -1839,11 +1839,12 @@ class WindhagerHttpClient:
         # Je Gerät die Stundenzähler, die die Laufzeit aus dem Zustand ersetzt.
         # Sie ist minutengenau und damit die bessere Antwort; jeder andere
         # Stundenzähler desselben Geräts misst etwas anderes und bleibt.
-        ersetzt: dict[str, set[str]] = {}
-        for d in self.devices:
-            kennungen = LAUFZEIT_ERSETZT.get(str(d.get("enum") or ""))
-            if kennungen and d.get("device_id"):
-                ersetzt.setdefault(d["device_id"], set()).update(kennungen)
+        ersetzt = {
+            (d["device_id"], kennung)
+            for d in self.devices
+            if d.get("device_id")
+            for kennung in LAUFZEIT_ERSETZT.get(str(d.get("enum") or ""), ())
+        }
         # Tageswerte, die die Anlage selbst führt, je Gerät.
         vom_geraet = {
             (d.get("device_id"), kennung)
@@ -1862,7 +1863,7 @@ class WindhagerHttpClient:
                 continue
             # Stunden sind Laufzeit, alles andere zählt Stück oder Menge.
             stunden = (d.get("unit") or "") == "h"
-            if kennung in ersetzt.get(d.get("device_id"), ()):
+            if (d.get("device_id"), kennung) in ersetzt:
                 continue
             gruppe = GRUPPE_LAUFZEIT if stunden else GRUPPE_ZAEHLER
             gemeinsam = {

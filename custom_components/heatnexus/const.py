@@ -623,10 +623,12 @@ LAUFPHASEN: dict[str, frozenset[int]] = {
 # Welchen Stundenzähler die Laufzeit aus dem Zustand ersetzt, je
 # Zustandstabelle. Nur diesen: Ein Wartungszähler auf demselben Gerät zählt
 # etwas anderes und behält seine Ableitung.
+_WP_STUNDEN = frozenset(TAGESZAEHLER)
+
 LAUFZEIT_ERSETZT: dict[str, frozenset[str]] = {
     "2/1": frozenset({"2/81"}),
-    "50/6": frozenset({"52/50", "52/52", "52/54"}),
-    "56/6": frozenset({"52/50", "52/52", "52/54"}),
+    "50/6": _WP_STUNDEN,
+    "56/6": _WP_STUNDEN,
 }
 
 PUROWIN_ENTITIES = [
@@ -1390,6 +1392,7 @@ VERBRAUCHER_ABSTAND: tuple[dict[str, object], ...] = (
         "zustand": "1/66",
         "name": "WW-Einschaltpunkt Delta",
         "schaltpunkt_name": "WW-Einschaltpunkt",
+        "schaltpunkt_anteil": -1.0,
     },
 )
 

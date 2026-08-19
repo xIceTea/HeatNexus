@@ -163,8 +163,6 @@ ZUSATZ_SCHLUESSEL: dict[str, str] = {
     "laufzeit-heute": "runtime_today",
     "laufzeit": "runtime",
     "schaltpunkt-abstand": "switch_delta",
-    # Vor "schaltpunkt": `_zerlegen` prüft mit `endswith`, und eine Kennung auf
-    # "-ww-schaltpunkt" endet auch auf "-schaltpunkt".
     "ww-schaltpunkt": "switch_point",
     "ww-abstand": "switch_delta",
     "schaltpunkt": "switch_point",
@@ -176,7 +174,9 @@ ZUSATZ_SCHLUESSEL: dict[str, str] = {
 def _zerlegen(unique_id: str | None) -> tuple[str | None, str | None]:
     """Kennung ohne Ableitungszusatz, und der Zusatz selbst."""
     kennung = str(unique_id or "")
-    for zusatz in ZUSATZ_SCHLUESSEL:
+    # Der längste Zusatz zuerst: „-ww-schaltpunkt" endet auch auf
+    # „-schaltpunkt", und die Reihenfolge im Wörterbuch soll nichts entscheiden.
+    for zusatz in sorted(ZUSATZ_SCHLUESSEL, key=len, reverse=True):
         if kennung.endswith(f"-{zusatz}"):
             return kennung[: -len(zusatz) - 1], zusatz
     return unique_id, None

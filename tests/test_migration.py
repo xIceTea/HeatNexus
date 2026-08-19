@@ -284,7 +284,7 @@ def test_entitaet_ohne_geraet_wird_uebergangen(migration, hass):
     assert migration._entity_ids_umstellen(hass, eintrag) == 0
 
 
-def test_die_angleichung_laeuft_auch_ohne_die_neuere_funktion(migration, hass):
+def test_die_angleichung_laeuft_auch_ohne_die_neuere_funktion(migration, hass, monkeypatch):
     """Ältere Fassungen kennen die eigene Kennung nicht als Ausnahme."""
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
@@ -307,6 +307,8 @@ def test_die_angleichung_laeuft_auch_ohne_die_neuere_funktion(migration, hass):
         original_name="Kesseltemperatur Ist",
         suggested_object_id="irgendwas_altes",
     )
+
+    monkeypatch.delattr(type(registry), "async_get_available_entity_id", raising=False)
 
     assert migration._entity_ids_umstellen(hass, eintrag) == 1
     assert registry.async_get("sensor.beispielhaus_musterkessel_kesseltemperatur_ist") is not None
