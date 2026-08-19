@@ -357,14 +357,16 @@
    "1": "Hackgut feucht",
    "2": "Pellets",
    "3": "Hackgut normal schlackend",
-   "4": "Hackgut feucht schlackend"
+   "4": "Hackgut feucht schlackend",
+   "5": "Hackgut trocken"
   },
   "38/127": {
    "0": "Hackgut normal",
    "1": "Hackgut feucht",
    "2": "Pellets",
    "3": "Hackgut normal schlackend",
-   "4": "Hackgut feucht schlackend"
+   "4": "Hackgut feucht schlackend",
+   "5": "Hackgut trocken"
   },
   "38/89": {
    "0": "ohne",
@@ -3575,7 +3577,7 @@
     "Messwerte": [
      "60/35",
      "0/7",
-     "1/7",
+     "63/10",
      "52/16",
      "0/9",
      "0/11",
@@ -3584,7 +3586,7 @@
      "60/29",
      "60/30",
      "0/4",
-     "2/81",
+     "60/34",
      "60/33"
     ],
     "Modulinfo": [
@@ -3597,7 +3599,7 @@
    "info": [
     "59/17",
     "0/7",
-    "1/7",
+    "63/10",
     "0/9",
     "60/27",
     "60/29",
@@ -3609,7 +3611,7 @@
    "service": [
     "60/35",
     "0/7",
-    "1/7",
+    "63/10",
     "52/16",
     "0/9",
     "0/11",
@@ -3618,7 +3620,7 @@
     "60/29",
     "60/30",
     "0/4",
-    "2/81",
+    "60/34",
     "60/33"
    ]
   },
@@ -7705,6 +7707,7 @@
   "60/31": "Plattenwärmetauscher Durchfluss",
   "60/32": "Pumpendrehzahl",
   "60/33": "Netzbetriebsstunden",
+  "60/34": "Brennerstunden",
   "60/35": "Interner Fehlercode",
   "60/4": "Aktueller Offset Kältekreis Energy Pilot",
   "60/5": "Energy Pilot aktivieren",
@@ -7713,6 +7716,7 @@
   "60/9": "Ventil Inneneinheit",
   "63/0": "Laufzeitoptimierung",
   "63/1": "Steuersignal invertiert",
+  "63/10": "Kesseltemperatur Sollwert",
   "63/127": "Texteintrag",
   "63/17": "Rücklauf Umschalter",
   "63/2": "Mischer",

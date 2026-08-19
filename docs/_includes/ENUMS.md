@@ -645,6 +645,7 @@ Derzeit ist das bei keiner nötig.
 | 2 | Pellets |
 | 3 | Hackgut normal schlackend |
 | 4 | Hackgut feucht schlackend |
+| 5 | Hackgut trocken |
 
 ### `38/127`
 
@@ -655,6 +656,7 @@ Derzeit ist das bei keiner nötig.
 | 2 | Pellets |
 | 3 | Hackgut normal schlackend |
 | 4 | Hackgut feucht schlackend |
+| 5 | Hackgut trocken |
 
 ### `39/57`
 

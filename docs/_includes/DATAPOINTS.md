@@ -262,10 +262,8 @@ Datenpunkte und werden übersprungen.
 | `0/7` | Kesseltemperatur | Info, Service |
 | `0/9` | Kesselleistung | Info, Service |
 | `0/11` | Abgastemperatur | Service |
-| `1/7` | Kesseltemperatur Soll | Info, Service |
 | `2/70` | Datum | Info |
 | `2/72` | Uhrzeit | Info |
-| `2/81` | Betriebsstunden | Service |
 | `4/92` | Softwareversion | Info |
 | `4/93` | Hardwareversion | Info |
 | `52/16` | Rücklauftemperatur | Service |
@@ -275,7 +273,9 @@ Datenpunkte und werden übersprungen.
 | `60/30` | Ionisationsstrom | Service |
 | `60/32` | Pumpendrehzahl | Service |
 | `60/33` | Netzbetriebsstunden | Service |
+| `60/34` | Brennerstunden | Service |
 | `60/35` | Interner Fehlercode | Service |
+| `63/10` | Kesseltemperatur Sollwert | Info, Service |
 
 ### fctType 7 – Wärmepumpe
 

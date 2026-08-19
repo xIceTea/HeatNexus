@@ -12,6 +12,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Nach einem Neustart stehen die Werte sofort, sofern sie jung genug sind.
 - Einstellbar, wie alt übernommene Startwerte höchstens sein dürfen.
+- Brennstoffart kennt zusätzlich Hackgut trocken.
 
 ### Geändert
 
@@ -21,6 +22,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Die Schaubild-Karte nennt einen Ladefehler, statt „noch nichts eingelesen".
 - Misslingt das Speichern der Ansicht, erscheint eine Meldung.
+- Störung 338 nennt jetzt auch die Abhilfe.
 
 ## [1.10.0-beta.2] - 2026-08-18
 

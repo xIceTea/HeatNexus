@@ -612,6 +612,7 @@
   "text": "Brennraumtemperatur zu gering"
  },
  "FE338": {
+  "info": "Bedienungsanleitung beachten",
   "text": "Kommunikation zu Staubabscheider unterbrochen"
  },
  "FE345": {
@@ -713,9 +714,6 @@
  "FE396": {
   "info": "Verkleidungstür schliessen.",
   "text": "Verkleidungstür offen"
- },
- "IN338": {
-  "info": "Bedienungsanleitung beachten"
  },
  "IN408": {
   "info": "Bedienungsanleitung beachten",
