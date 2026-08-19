@@ -1,12 +1,8 @@
 """Die Temperaturen, bei denen die Anlage schaltet.
 
-Die Steuerung führt Sollwert und Hysterese getrennt; wann tatsächlich
-geschaltet wird, ergibt sich erst aus beiden. Belegt am Rekorder beider
-Anlagen: Die Ladung beginnt, wenn die Puffertemperatur oben unter
-``Sollwert − halbe Hysterese`` fällt.
-
-Die Zahlen hier stammen aus einer echten Anforderung: Sollwert 59,5 °C,
-Hysterese 16 K, Ladung ab 51,5 °C.
+Sollwert und Hysterese führt die Steuerung getrennt; der Schaltpunkt ergibt
+sich erst aus beiden. Die Ladung beginnt, wenn die Puffertemperatur oben
+unter ``Sollwert − halbe Hysterese`` fällt.
 """
 
 from __future__ import annotations
@@ -45,7 +41,7 @@ def _schaltpunkt(sensoren, werte, **felder):
 
 
 def test_die_ladung_beginnt_bei_sollwert_minus_halber_hysterese(sensoren):
-    """Vier Pumpenstarts an zwei Anlagen treffen diese Schwelle auf ein Zehntel."""
+    """Unter dieser Schwelle beginnt die Ladung."""
     entity, _ = _schaltpunkt(sensoren, {SOLLWERT: "59.5", HYSTERESE: "16"})
 
     assert entity.native_value == 51.5
@@ -99,7 +95,7 @@ def test_der_abstand_zaehlt_bis_zum_einschaltpunkt_herunter(sensoren):
 
 
 def test_unter_der_schwelle_wird_der_abstand_negativ(sensoren):
-    """Beim gemessenen Pumpenstart stand TPE auf 51,3 – knapp darunter."""
+    """Läuft die Ladung bereits, ist die Schwelle überschritten."""
     entity, _ = _abstand(sensoren, {TPE: "51.3", SOLLWERT: "59.5", HYSTERESE: "16"})
 
     assert entity.native_value == -0.2
@@ -110,3 +106,16 @@ def test_ohne_anforderung_gibt_es_keinen_abstand(sensoren):
     entity, _ = _abstand(sensoren, {TPE: "54.7", SOLLWERT: "0", HYSTERESE: "16"})
 
     assert entity.native_value is None
+
+
+# Der Kaminkehrer meldet eine Restlaufzeit, keinen Schaltzustand. Als Schalter
+# deklariert verlor er bei der Herabstufung seine Einheit und zeigte „0.0“.
+def test_der_kaminkehrer_ist_ein_minutenwert(sensoren):
+    """`9/90` meldet min mit `typeId 4`, schreibgeschützt."""
+    from custom_components.heatnexus.const import PUROWIN_ENTITIES
+
+    eintrag = next(d for d in PUROWIN_ENTITIES if d["oid"] == "/9/90/0")
+
+    assert eintrag["platform"] == "sensor"
+    assert eintrag["unit"] == "min"
+    assert eintrag["device_class"] == "duration"

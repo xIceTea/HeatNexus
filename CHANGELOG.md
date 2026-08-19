@@ -26,6 +26,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Misslingt das Speichern der Ansicht, erscheint eine Meldung.
 - Störung 338 nennt jetzt auch die Abhilfe.
 - Tageswerte und Zähler verlieren ihren Bezugspunkt nicht mehr.
+- Der Kaminkehrer zeigt seine Restlaufzeit in Minuten.
 
 ## [1.10.0-beta.2] - 2026-08-18
 

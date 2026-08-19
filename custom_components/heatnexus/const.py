@@ -786,11 +786,16 @@ PUROWIN_ENTITIES = [
         "enum": "38/126",
         "category": "config",
     },
+    # Die Anlage meldet hier eine Restlaufzeit in Minuten, keinen Schalter:
+    # `typeId 4`, Einheit min, schreibgeschützt. 0 heißt, die Funktion steht.
     {
         "oid": "/9/90/0",
         "name": "Kaminkehrer",
-        "platform": "switch",
-        "category": "config",
+        "platform": "sensor",
+        "unit": "min",
+        "device_class": "duration",
+        "state_class": "measurement",
+        "category": "diagnostic",
         "icon": "mdi:account-hard-hat",
     },
     {
