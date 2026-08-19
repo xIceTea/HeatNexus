@@ -28,6 +28,10 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Kennungsendungen, deren ``entity_id`` bleibt. Ihr Anzeigename darf sich
+# ändern, ihre Kennung nicht: Sie steckt in fremden Automationen und Karten.
+BLEIBENDE_KENNUNGEN = ("-laufzeit", "-laufzeit-heute")
+
 
 def _beschreibungen(coordinators: dict) -> list[dict[str, Any]]:
     return [
@@ -117,6 +121,8 @@ def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
     umbenannt = 0
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
         if eintrag.name:
+            continue
+        if str(eintrag.unique_id or "").endswith(BLEIBENDE_KENNUNGEN):
             continue
         geraet = geraete.async_get(eintrag.device_id) if eintrag.device_id else None
         if geraet is None:

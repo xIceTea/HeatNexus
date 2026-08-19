@@ -311,3 +311,31 @@ def test_die_angleichung_laeuft_auch_ohne_die_neuere_funktion(migration, hass):
     assert migration._entity_ids_umstellen(hass, eintrag) == 1
     assert registry.async_get("sensor.beispielhaus_musterkessel_kesseltemperatur_ist") is not None
     assert registry.async_get(entitaet.entity_id) is None
+
+
+def test_die_laufzeit_behaelt_ihre_entity_id(migration, hass):
+    """Sie steckt in fremden Automationen und darf nicht wandern."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = _config_entry(hass)
+    geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-3-0")},
+        name="Beispielhaus · Musterkessel",
+    )
+    registry = er.async_get(hass)
+    entitaet = registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "SN1-3-0-2-1-0-laufzeit",
+        config_entry=eintrag,
+        device_id=geraet.id,
+        original_name="Laufzeit Zyklus",
+        suggested_object_id="beispielhaus_musterkessel_laufzeit",
+    )
+
+    assert migration._entity_ids_umstellen(hass, eintrag) == 0
+    assert registry.async_get(entitaet.entity_id) is not None
