@@ -841,6 +841,10 @@ export const STIL = `
   .dialog-text { font-size: 14px; line-height: 1.5; opacity: 0.8; white-space: pre-line; }
   .dialog.erklaerung { max-width: 520px; }
   .dialog.erklaerung .dialog-text { max-height: 62vh; overflow-y: auto; }
+  .dialog-zahl-zeile { display: flex; align-items: center; gap: 10px; margin-top: 18px; font-size: 14px; }
+  .dialog-zahl { width: 96px; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--divider-color); background: var(--card-background-color);
+    color: var(--primary-text-color); font-size: 15px; }
   .dialog-leiste { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
   .dialog-taste {
     padding: 9px 16px; border-radius: 10px; font: inherit; font-weight: 600;

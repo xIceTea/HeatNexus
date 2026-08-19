@@ -765,3 +765,37 @@ def test_ein_abstand_verdraengt_die_warmwassertemperatur_nicht(panel, kessel_und
 
     assert "WW-Einschaltpunkt Delta" not in namen
     assert "Warmwasser Ist-Temperatur" in namen
+
+
+def test_der_kaminkehrer_fragt_nach_der_leistung(panel, kessel_und_heizkreis):
+    """Die Messung gilt für genau diesen Wert, also steht er vorher fest."""
+    for anlagenteil in kessel_und_heizkreis["teile"]:
+        if anlagenteil["fct_type"] != 25:
+            continue
+        anlagenteil["entitaeten"] += [
+            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
+            entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
+        ]
+
+    daten = panel._anlage_daten(kessel_und_heizkreis)
+    taste = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
+
+    assert taste["leistung"] == "number.kaminkehrer_leistung"
+    assert "Abgasmessung" in taste["hilfe"]
+    assert taste["frage"]
+
+
+def test_der_kaminkehrer_steht_auch_in_der_steuerung(panel, kessel_und_heizkreis):
+    """Er gehört zu dem, was man an der Anlage wirklich verstellt."""
+    for anlagenteil in kessel_und_heizkreis["teile"]:
+        if anlagenteil["fct_type"] != 25:
+            continue
+        anlagenteil["entitaeten"] += [
+            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
+            entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
+        ]
+
+    kessel = panel._anlage_daten(kessel_und_heizkreis)["steuerung"]["kessel"]
+    taste = next(e for e in kessel if e["titel"] == "Kaminkehrer")
+
+    assert taste["leistung"] == "number.kaminkehrer_leistung"

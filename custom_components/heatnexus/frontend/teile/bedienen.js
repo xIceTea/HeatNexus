@@ -69,8 +69,9 @@ export const BedienenMixin = (Basis) =>
    * Bewusst ein eigener Dialog statt `window.confirm`: Der blockiert den
    * Browser und sieht in Home Assistant wie ein Fremdkörper aus.
    */
-  _bestaetigen(titel, frage) {
+  _bestaetigen(titel, frage, zahl) {
     return new Promise((antworten) => {
+      let dialogZahl = null;
       const schleier = document.createElement("div");
       schleier.className = "schleier";
       const dialog = document.createElement("div");
@@ -84,6 +85,24 @@ export const BedienenMixin = (Basis) =>
       text.className = "dialog-text";
       text.textContent = frage;
 
+      // Ein Wert, der zum Vorgang gehört und vorher feststehen muss – die
+      // Kaminkehrer-Leistung etwa gilt für die ganze Messung.
+      let feld = null;
+      if (zahl) {
+        feld = document.createElement("input");
+        feld.type = "number";
+        feld.className = "dialog-zahl";
+        if (zahl.min != null) feld.min = zahl.min;
+        if (zahl.max != null) feld.max = zahl.max;
+        feld.step = zahl.step != null ? zahl.step : 1;
+        feld.value = zahl.wert != null ? zahl.wert : "";
+        const beschriftung = document.createElement("label");
+        beschriftung.className = "dialog-zahl-zeile";
+        beschriftung.append(zahl.beschriftung || "Wert", feld);
+        if (zahl.einheit) beschriftung.append(" " + zahl.einheit);
+        dialogZahl = beschriftung;
+      }
+
       const leiste = document.createElement("div");
       leiste.className = "dialog-leiste";
       const abbrechen = document.createElement("button");
@@ -96,7 +115,9 @@ export const BedienenMixin = (Basis) =>
       ausloesen.textContent = "Ja, ausführen";
       leiste.append(abbrechen, ausloesen);
 
-      dialog.append(ueberschrift, text, leiste);
+      dialog.append(ueberschrift, text);
+      if (dialogZahl) dialog.appendChild(dialogZahl);
+      dialog.appendChild(leiste);
       schleier.appendChild(dialog);
 
       const schliessen = (antwort) => {
@@ -104,13 +125,19 @@ export const BedienenMixin = (Basis) =>
         document.removeEventListener("keydown", beiTaste);
         antworten(antwort);
       };
-      const beiTaste = (ereignis) => {
-        if (ereignis.key === "Escape") schliessen(false);
+      const abgebrochen = () => (zahl ? null : false);
+      const bestaetigt = () => {
+        if (!zahl) return true;
+        const wert = Number(feld.value);
+        return Number.isFinite(wert) ? wert : null;
       };
-      abbrechen.addEventListener("click", () => schliessen(false));
-      ausloesen.addEventListener("click", () => schliessen(true));
+      const beiTaste = (ereignis) => {
+        if (ereignis.key === "Escape") schliessen(abgebrochen());
+      };
+      abbrechen.addEventListener("click", () => schliessen(abgebrochen()));
+      ausloesen.addEventListener("click", () => schliessen(bestaetigt()));
       schleier.addEventListener("click", (ereignis) => {
-        if (ereignis.target === schleier) schliessen(false);
+        if (ereignis.target === schleier) schliessen(abgebrochen());
       });
       document.addEventListener("keydown", beiTaste);
 

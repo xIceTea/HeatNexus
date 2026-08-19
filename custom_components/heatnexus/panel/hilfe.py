@@ -31,6 +31,10 @@ HILFE: tuple[tuple[str, str], ...] = (
         "Brennt den Kessel gezielt aus, bis weder Glut noch unverbrannter Brennstoff im Brenner liegt — danach ist er zur Reinigung bereit. Vor Reinigungs-, Wartungs- und Servicearbeiten schaltet man den Kessel so ab. Der Vorgang dauert und lässt sich nicht abbrechen.",
     ),
     (
+        r"kaminkehrer",
+        "Fährt den Kessel auf eine feste Leistung und hält sie, damit die Abgasmessung unter gleichbleibenden Bedingungen läuft. Ohne diese Funktion moduliert der Kessel während der Messung, und das Ergebnis taugt nichts.\n\nDie Leistung wird vor dem Start abgefragt; welcher Wert gilt, sagt der Kaminkehrer. Wie lange die Funktion noch läuft, steht unter „Kaminkehrer“ — null heißt, sie läuft nicht.\n\nDanach kehrt der Kessel von selbst in den normalen Betrieb zurück.",
+    ),
+    (
         r"lagerraum|bef(ü|ue)llung anfordern",
         "Nimmt Kessel und Rührwerk in Betrieb, damit sich das Rührwerk beim Befüllen dreht.\n\nOhne drehendes Rührwerk darf der Lagerraum nur bis etwa einen Meter Schütthöhe befüllt werden — darüber kann das Rührwerk Schaden nehmen, und dafür besteht keine Garantie. Erst wenn hier „freigegeben“ steht, darf weiter eingeblasen werden.\n\nBei pneumatischer Zuführung wird erst freigegeben, wenn der Vorratsbehälter leer ist; er muss also zuerst leergefahren werden.",
     ),

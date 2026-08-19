@@ -440,9 +440,32 @@ export const UebersichtMixin = (Basis) =>
         }
       }
 
-      if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) return;
+      // Gehört ein Wert zum Vorgang, wird er im selben Dialog abgefragt und
+      // vor dem Auslösen geschrieben – die Messung gilt für genau diesen Wert.
+      let leistung = null;
+      if (eintrag.leistung) {
+        const zustand = this._zustand(eintrag.leistung);
+        const merkmale = (zustand && zustand.attributes) || {};
+        leistung = await this._bestaetigen(eintrag.titel, eintrag.frage || "", {
+          beschriftung: "Leistung",
+          einheit: merkmale.unit_of_measurement || "%",
+          min: merkmale.min,
+          max: merkmale.max,
+          step: merkmale.step,
+          wert: this._zahl(eintrag.leistung),
+        });
+        if (leistung === null) return;
+      } else if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) {
+        return;
+      }
       taste.disabled = true;
       try {
+        if (leistung !== null) {
+          await this._hass.callService("number", "set_value", {
+            entity_id: eintrag.leistung,
+            value: leistung,
+          });
+        }
         await this._uebertragen(
           rueckmeldung,
           async () => {

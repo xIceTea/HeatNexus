@@ -40,6 +40,8 @@ from .muster import (
     BETRIEBSWAHL_ZURUECK,
     EINMALLADUNG,
     EINMALLADUNG_TEMPERATUR,
+    KAMINKEHRER,
+    KAMINKEHRER_LEISTUNG,
     KENNWERT,
     KENNWERT_JE_FCT,
     KESSEL_BEDIENUNG,
@@ -214,6 +216,16 @@ def _warmwasser_bedienung(
     }
 
 
+def _kaminkehrer_bedienung(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
+    """Die Leistung, mit der die Kaminkehrerfunktion fährt.
+
+    Sie wird vor dem Auslösen abgefragt: Die Abgasmessung gilt für genau
+    diesen Wert, und nachträglich verstellen hieße neu messen.
+    """
+    leistung = _kennung(entitaeten, KAMINKEHRER_LEISTUNG, ("number",))
+    return {"leistung": leistung} if leistung else {}
+
+
 def _kennung(
     entitaeten: list[dict[str, Any]],
     muster: tuple,
@@ -342,15 +354,16 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                 None,
             )
             if treffer is not None:
-                kessel.append(
-                    {
-                        "entity": treffer["entity_id"],
-                        "titel": beschriftung,
-                        "symbol": symbol,
-                        "frage": rueckfrage(treffer["name"]),
-                        "hilfe": hilfe(treffer["name"]) or hilfe(beschriftung),
-                    }
-                )
+                eintrag = {
+                    "entity": treffer["entity_id"],
+                    "titel": beschriftung,
+                    "symbol": symbol,
+                    "frage": rueckfrage(treffer["name"]),
+                    "hilfe": hilfe(treffer["name"]) or hilfe(beschriftung),
+                }
+                if _passt(treffer["name"], KAMINKEHRER):
+                    eintrag.update(_kaminkehrer_bedienung(teil["entitaeten"]))
+                kessel.append(eintrag)
 
     # Lagerraumbefüllung: anfordern und dann ablesen, ob freigegeben ist.
     # Ohne die Anforderungstaste hat die Karte keinen Zweck.
@@ -729,6 +742,8 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
                 }
                 if _passt(beschriftung, WARMWASSER):
                     eintrag.update(_warmwasser_bedienung(alle, teil["entitaeten"]))
+                if _passt(treffer["name"], KAMINKEHRER):
+                    eintrag.update(_kaminkehrer_bedienung(teil["entitaeten"]))
                 schnellzugriff.append(eintrag)
 
     # **Jede Anlage behält ihren eigenen Messwert.** Die in den Optionen
