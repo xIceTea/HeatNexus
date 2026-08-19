@@ -616,8 +616,8 @@ class WindhagerSchaltpunktAbstandSensor(WindhagerEntity, SensorEntity):
 class WindhagerWarmwasserAbstandSensor(WindhagerEntity, SensorEntity):
     """Abstand bis zum nächsten Schaltpunkt der Warmwasserbereitung.
 
-    Negativ, solange das Wasser noch abkühlen muss, positiv während der
-    Ladung. Die Null ist in beiden Richtungen der Schaltpunkt.
+    Positiv heißt: so viele Kelvin bis zum nächsten Schaltpunkt. Negativ
+    heißt: Die Schwelle ist überschritten.
     """
 
     _attr_state_class = SensorStateClass.MEASUREMENT

@@ -188,7 +188,12 @@ def ist_ableitung(unique_id: str | None) -> bool:
     Abgeleitete Werte sind dazuwählbar und gehören nicht in die festen Listen
     der Oberfläche: Sie säßen dort auf dem Platz eines Messwerts der Anlage.
     """
-    return _zerlegen(unique_id)[1] is not None
+    kennung, zusatz = _zerlegen(unique_id)
+    if zusatz is None:
+        return False
+    # Ein Funktionsblock darf „Start" heißen. Trägt der gekürzte Rumpf keine
+    # Adresse, war der Zusatz Teil des Namens und nicht die Ableitung.
+    return gnmn(kennung) is not None or lon_schluessel(kennung) is not None
 
 
 def schluessel(unique_id: str | None) -> str | None:

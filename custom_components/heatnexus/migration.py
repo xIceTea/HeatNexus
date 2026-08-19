@@ -16,6 +16,7 @@ alle Anpassungen des Nutzers bleiben damit erhalten.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import Any
 
@@ -99,14 +100,13 @@ def _freie_kennung(registry: er.EntityRegistry, eintrag: Any, gewuenscht: str) -
     Drei Bauarten sind im Umlauf: mit eigener Kennung als Ausnahme, ohne sie,
     und unter neuem Namen. Ohne alle drei bricht die Angleichung beim Start.
     """
-    if (neuere := getattr(registry, "async_get_available_entity_id", None)) is not None:
-        return neuere(eintrag.domain, gewuenscht, current_entity_id=eintrag.entity_id)
-    try:
-        return registry.async_generate_entity_id(
-            eintrag.domain, gewuenscht, current_entity_id=eintrag.entity_id
-        )
-    except TypeError:
-        return registry.async_generate_entity_id(eintrag.domain, gewuenscht)
+    neuere = getattr(registry, "async_get_available_entity_id", None)
+    for aufruf in (neuere, registry.async_generate_entity_id):
+        if aufruf is None:
+            continue
+        with contextlib.suppress(TypeError):
+            return aufruf(eintrag.domain, gewuenscht, current_entity_id=eintrag.entity_id)
+    return registry.async_generate_entity_id(eintrag.domain, gewuenscht)
 
 
 def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:

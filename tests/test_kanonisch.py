@@ -204,3 +204,8 @@ def test_der_ww_einschaltpunkt_erbt_nicht_den_schluessel_des_sollwerts(kanonisch
         kanonisch.schluessel("0000ABCD1234-0-1-4-0-ww-schaltpunkt")
         == "dhw_temperature_target_switch_point"
     )
+
+
+def test_ein_funktionsblock_namens_start_ist_keine_ableitung(kanonisch):
+    """Ohne Adresse im Rumpf war die Endung Teil des Namens."""
+    assert not kanonisch.ist_ableitung("0000ABCD1234-nv-32-0-pmx-start")
