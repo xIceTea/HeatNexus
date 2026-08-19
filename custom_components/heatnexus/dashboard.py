@@ -257,6 +257,12 @@ RUECKFRAGE: tuple[tuple[re.Pattern, str], ...] = (
         "Die Legionellenschaltung heizt den Speicher auf hohe Temperatur. Wirklich auslösen?",
     ),
     (
+        re.compile(r"kaminkehrer starten", re.IGNORECASE),
+        "Der Kessel fährt auf die eingestellte Kaminkehrer-Leistung und hält "
+        "sie für die Abgasmessung. Die Restzeit steht danach unter "
+        "„Kaminkehrer”. Wirklich starten?",
+    ),
+    (
         re.compile(r"lagerraumbef(ü|ue)llung anfordern|lagerraum bef(ü|ue)llen", re.IGNORECASE),
         "Soll die Lagerraumbefüllung jetzt durchgeführt werden? Die Anlage "
         "gibt sie nur frei, wenn ihr Zustand das zulässt – ob sie freigegeben "

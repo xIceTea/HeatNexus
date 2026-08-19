@@ -15,6 +15,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Brennstoffart kennt zusätzlich Hackgut trocken.
 - Neuer Wert je Puffer: Abstand bis zur nächsten Ladung in Kelvin.
 - Neuer Wert je Warmwasserkreis: WW-Einschaltpunkt und sein Delta.
+- Neue Taste: Kaminkehrerfunktion starten.
 - Schaltpunkte und Abstände lassen sich in den Optionen dazuwählen.
 
 ### Geändert

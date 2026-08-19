@@ -441,3 +441,12 @@ def test_zustandstexte_ueberstehen_den_erkennungsstand(select_klasse):
         enum_texte={"4": "Auto with timer", "6": "Manual"},
     )
     assert entity.current_option == "Manual"
+
+
+def test_der_kaminkehrer_schreibt_drei_auf_die_betriebswahl():
+    """Betriebswahl 3 startet die Funktion; 6 und 7 sind andere Vorgänge."""
+    from custom_components.heatnexus.button import WindhagerButton
+
+    entity, koordinator = _entitaet(WindhagerButton, {}, type="button", press_value="3")
+    asyncio.run(entity.async_press())
+    assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "3")]

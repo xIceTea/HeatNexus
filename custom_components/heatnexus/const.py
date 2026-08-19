@@ -917,6 +917,18 @@ PUROWIN_ENTITIES = [
         "category": "config",
         "icon": "mdi:power",
     },
+    # Die Kaminkehrerfunktion gehört zu „Kaminkehrer Leistung" und
+    # „Kaminkehrer": Sie hält die eingestellte Leistung, damit die Abgasmessung
+    # unter festen Bedingungen läuft, und zählt die Restzeit herunter.
+    {
+        "oid": "/9/75/0",
+        "name": "Kaminkehrer starten",
+        "platform": "button",
+        "press_value": "3",
+        "key_suffix": "kaminkehrer",
+        "category": "config",
+        "icon": "mdi:account-hard-hat",
+    },
     {
         "oid": "/9/75/0",
         "name": "Lagerraumbefüllung anfordern",
