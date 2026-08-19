@@ -1753,6 +1753,7 @@ class WindhagerHttpClient:
                             anteil=regel["anteil"],
                             hysterese_vorgabe=vorgabe,
                             unit="K",
+                            icon="mdi:delta",
                             gruppe=GRUPPE_SCHALTPUNKT,
                         )
                     )
@@ -1796,6 +1797,7 @@ class WindhagerHttpClient:
                         zustand_oid=teile["zustand"]["oid"],
                         hysterese_vorgabe=vorgabe,
                         unit="K",
+                        icon="mdi:delta",
                         gruppe=GRUPPE_SCHALTPUNKT,
                     )
                 )
@@ -1866,7 +1868,7 @@ class WindhagerHttpClient:
 
     # Endung der Kennung -> Name des Werts, der daraus entsteht.
     _LAUFZEITEN = {
-        "laufzeit": "Laufzeit",
+        "laufzeit": "Laufzeit Zyklus",
         "laufzeit-heute": "Laufzeit heute",
     }
 

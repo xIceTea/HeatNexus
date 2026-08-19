@@ -218,12 +218,12 @@ def test_schaltpunkte_entstehen_aus_sollwert_und_hysterese(client_module):
     client._schaltpunkte({})
 
     punkte = {d["name"]: d for d in client.devices if d["type"] == "schaltpunkt"}
-    assert set(punkte) == {"Letzte Einschalttemperatur", "Anforderung liefert"}
+    assert set(punkte) == {"Einschaltpunkt", "Anforderungstemperatur"}
     # Der Schaltpunkt hängt am Sollwert, die Hysterese kommt als Auslöser dazu.
-    assert punkte["Letzte Einschalttemperatur"]["oid"] == "/1/16/1/1/15/0"
-    assert punkte["Letzte Einschalttemperatur"]["ausloeser_oid"] == "/1/16/1/9/35/0"
-    assert punkte["Letzte Einschalttemperatur"]["anteil"] == -0.5
-    assert punkte["Anforderung liefert"]["anteil"] == 1.0
+    assert punkte["Einschaltpunkt"]["oid"] == "/1/16/1/1/15/0"
+    assert punkte["Einschaltpunkt"]["ausloeser_oid"] == "/1/16/1/9/35/0"
+    assert punkte["Einschaltpunkt"]["anteil"] == -0.5
+    assert punkte["Anforderungstemperatur"]["anteil"] == 1.0
     assert all(not d["enabled_default"] for d in punkte.values())
 
 
@@ -233,7 +233,7 @@ def test_hysterese_wird_beim_einlesen_mitgenommen(client_module):
     client._schaltpunkte({"/1/16/1/9/35/0": {"value": "16.0"}})
 
     punkte = {d["name"]: d for d in client.devices if d["type"] == "schaltpunkt"}
-    assert punkte["Letzte Einschalttemperatur"]["hysterese_vorgabe"] == 16.0
+    assert punkte["Einschaltpunkt"]["hysterese_vorgabe"] == 16.0
 
 
 def test_ohne_hysterese_kein_schaltpunkt(client_module):
@@ -348,8 +348,8 @@ def test_der_abstand_entsteht_an_der_gemessenen_temperatur(client_module):
     client._schaltpunkte({"/1/16/1/9/35/0": {"value": "16.0"}})
 
     abstaende = {d["name"]: d for d in client.devices if d["type"] == "schaltpunkt_abstand"}
-    assert set(abstaende) == {"Abstand bis Ladung"}
-    abstand = abstaende["Abstand bis Ladung"]
+    assert set(abstaende) == {"Einschaltpunkt Delta"}
+    abstand = abstaende["Einschaltpunkt Delta"]
     assert abstand["oid"] == "/1/16/1/21/65/0"
     assert abstand["bezugs_oid"] == "/1/16/1/1/15/0"
     assert abstand["ausloeser_oid"] == "/1/16/1/9/35/0"
@@ -477,3 +477,13 @@ def test_ein_wartungszaehler_behaelt_seine_ableitung(client_module):
 
     abgeleitet = [d for d in client.devices if d["oid"].endswith("/37/17/0") and d.get("gruppe")]
     assert [d["type"] for d in abgeleitet] == ["zaehler_heute"]
+
+
+def test_der_abstand_traegt_das_delta_symbol(client_module):
+    """Er ist kein Messwert der Anlage – das Symbol trennt ihn sichtbar."""
+    client = _puffer_mit_sollwert(client_module)
+    client._schaltpunkte({})
+
+    abstand = next(d for d in client.devices if d["type"] == "schaltpunkt_abstand")
+    assert abstand["name"] == "Einschaltpunkt Delta"
+    assert abstand["icon"] == "mdi:delta"

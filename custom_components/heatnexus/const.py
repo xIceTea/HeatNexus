@@ -1362,18 +1362,18 @@ SCHALTPUNKTE: tuple[dict[str, object], ...] = (
         "bezug": "1/15",
         "hysterese": "9/35",
         "anteil": -0.5,
-        "name": "Letzte Einschalttemperatur",
+        "name": "Einschaltpunkt",
         # Gegen diese Temperatur läuft die Schwelle: Fällt sie darunter,
         # beginnt die Ladung. Daraus entsteht zusätzlich der Abstand in Kelvin.
         "messwert": "21/65",
-        "abstand_name": "Abstand bis Ladung",
+        "abstand_name": "Einschaltpunkt Delta",
     },
     {
         "fct_type": 16,
         "bezug": "9/57",
         "hysterese": "9/35",
         "anteil": 1.0,
-        "name": "Anforderung liefert",
+        "name": "Anforderungstemperatur",
     },
 )
 
@@ -1388,7 +1388,7 @@ VERBRAUCHER_ABSTAND: tuple[dict[str, object], ...] = (
         "soll": "1/4",
         "hysterese": "5/0",
         "zustand": "1/66",
-        "name": "Abstand Warmwasser",
+        "name": "WW-Einschaltpunkt Delta",
     },
 )
 

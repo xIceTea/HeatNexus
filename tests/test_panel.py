@@ -757,10 +757,11 @@ def test_ein_abstand_verdraengt_die_warmwassertemperatur_nicht(panel, kessel_und
         if anlagenteil["fct_type"] != 14:
             continue
         anlagenteil["entitaeten"].insert(
-            0, entitaet("sensor.abstand_warmwasser", "Abstand Warmwasser", abgeleitet=True)
+            0,
+            entitaet("sensor.ww_einschaltpunkt_delta", "WW-Einschaltpunkt Delta", abgeleitet=True),
         )
 
     namen = [w["titel"] for w in panel._anlage_daten(kessel_und_heizkreis)["warmwasser"]]
 
-    assert "Abstand Warmwasser" not in namen
+    assert "WW-Einschaltpunkt Delta" not in namen
     assert "Warmwasser Ist-Temperatur" in namen

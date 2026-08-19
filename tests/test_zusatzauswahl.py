@@ -26,7 +26,7 @@ def _kandidaten():
         {"id": "a", "name": "Laufzeit", "gruppe": "laufzeit"},
         {"id": "b", "name": "Laufzeit heute", "gruppe": "laufzeit"},
         {"id": "c", "name": "Brennerstarts heute", "gruppe": "zaehler"},
-        {"id": "d", "name": "Abstand bis Ladung", "gruppe": "schaltpunkt"},
+        {"id": "d", "name": "Einschaltpunkt Delta", "gruppe": "schaltpunkt"},
     ]
 
 
