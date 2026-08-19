@@ -349,10 +349,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Der erste Stand kommt aus dem Lesespeicher der Anlage, damit die
         # Entitäten gleich mit Wert entstehen. Der erste Abruf überschreibt
         # ihn wenige Sekunden später.
-        with contextlib.suppress(Exception):
+        try:
             stand = await client.vorabstand(
                 int((entry.options or {}).get(CONF_STARTWERTE, STARTWERTE_VORGABE))
             )
+        except Exception as fehler:
+            # Der Vorabstand ist eine Beigabe; ein Fehler darf die Einrichtung
+            # nicht anhalten, aber auch nicht spurlos bleiben.
+            _LOGGER.debug("%s: kein Vorabstand: %s", host, fehler)
+        else:
             if stand:
                 coordinator.async_set_updated_data(stand)
 
@@ -653,8 +658,11 @@ def _abgewaehlte_entitaeten_stilllegen(
     registry = er.async_get(hass)
     entfernt = 0
     ohne_datenpunkt = 0
+    # Dieselbe Regel wie der Reparatureintrag: Kennung **und** Domäne. Sonst
+    # gilt eine Zeile hier als vorhanden, die dort verwaist heißt.
+    verwaiste_ids = {e.entity_id for e in verwaiste.finden(hass, entry, coordinators)}
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
-        if eintrag.unique_id not in standardmaessig_an:
+        if eintrag.entity_id in verwaiste_ids:
             if loeschen or _quelle_abgeschaltet(eintrag.unique_id, umfaenge):
                 registry.async_remove(eintrag.entity_id)
                 entfernt += 1

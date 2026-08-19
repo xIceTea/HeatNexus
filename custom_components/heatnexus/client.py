@@ -1690,19 +1690,24 @@ class WindhagerHttpClient:
             **felder,
         )
 
+    def _nach_praefix(self) -> dict[str, dict[str, dict]]:
+        """Deskriptoren nach Funktionspräfix und Kennung sortiert."""
+        sortiert: dict[str, dict[str, dict]] = {}
+        for d in self.devices:
+            if not d.get("oid"):
+                continue
+            praefix = self._praefix_aus_oid(d["oid"])
+            if praefix:
+                sortiert.setdefault(praefix, {})[self._kennung_aus_oid(d["oid"])] = d
+        return sortiert
+
     def _schaltpunkte(self, meta: dict) -> None:
         """Die Temperatur, bei der die Anlage schaltet, als eigener Wert.
 
         Die Hysterese wird beim Einlesen mitgenommen: Sie liegt auf der
         Serviceebene und käme sonst erst nach dem ersten langsamen Durchlauf.
         """
-        nach_praefix: dict[str, dict[str, dict]] = {}
-        for d in self.devices:
-            if not d.get("oid"):
-                continue
-            praefix = self._praefix_aus_oid(d["oid"])
-            if praefix:
-                nach_praefix.setdefault(praefix, {})[self._kennung_aus_oid(d["oid"])] = d
+        nach_praefix = self._nach_praefix()
 
         neu = []
         for regel in SCHALTPUNKTE:
@@ -1734,7 +1739,7 @@ class WindhagerHttpClient:
                 # Der Abstand hängt an der gemessenen Temperatur, nicht am
                 # Sollwert – deshalb eine eigene Ableitung von dort.
                 messwert = adressen.get(regel.get("messwert"))
-                if messwert:
+                if messwert and regel.get("abstand_name"):
                     neu.append(
                         self._ableitung(
                             messwert,
@@ -1760,13 +1765,7 @@ class WindhagerHttpClient:
         Entsteht nur, wo alle vier Adressen der Regel vorhanden sind — ein
         Heizkreis ohne Warmwasserfühler bekommt den Wert nicht.
         """
-        nach_praefix: dict[str, dict[str, dict]] = {}
-        for d in self.devices:
-            if not d.get("oid"):
-                continue
-            praefix = self._praefix_aus_oid(d["oid"])
-            if praefix:
-                nach_praefix.setdefault(praefix, {})[self._kennung_aus_oid(d["oid"])] = d
+        nach_praefix = self._nach_praefix()
 
         neu = []
         for regel in VERBRAUCHER_ABSTAND:
@@ -2558,12 +2557,20 @@ class WindhagerHttpClient:
         Die Zeitstempel des Lesespeichers stammen aus dieser Uhr. Gegen sie
         gerechnet stimmt das Alter auch dann, wenn sie falsch gestellt ist.
         """
-        adressen = {
-            d.get("name"): d.get("oid")
-            for d in self.devices
-            if d.get("name") in SYSTEMZEIT_NAMEN and d.get("oid")
-        }
-        if len(adressen) < 2:
+        # Beide aus derselben Funktion: Eine Anlage mit mehreren Heizkreisen
+        # führt den Namen mehrfach, und zwei Hälften verschiedener Herkunft
+        # ergäben einen zusammengesetzten Zeitpunkt.
+        adressen = {}
+        for teile in self._nach_praefix().values():
+            paar = {
+                d["name"]: d["oid"]
+                for d in teile.values()
+                if d.get("name") in SYSTEMZEIT_NAMEN and d.get("oid")
+            }
+            if len(paar) == 2:
+                adressen = paar
+                break
+        if not adressen:
             return None
         try:
             # Frist für beide zusammen: Der Vorabstand darf die Einrichtung

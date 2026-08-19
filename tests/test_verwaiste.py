@@ -243,6 +243,9 @@ def test_eine_zeile_der_falschen_domaene_gilt_als_verwaist(modul, hass):
     from custom_components.heatnexus.const import DOMAIN
     from custom_components.heatnexus.entity import TYP_DOMAENE
 
+    # Die Zuordnung ist Modulzustand; ohne Aufräumen wirkte sie in jeden
+    # folgenden Test hinein.
+    vorher = dict(TYP_DOMAENE)
     TYP_DOMAENE["sensor"] = "sensor"
     eintrag = MockConfigEntry(domain=DOMAIN, title="HeatNexus", data={}, options={})
     eintrag.add_to_hass(hass)
@@ -255,6 +258,9 @@ def test_eine_zeile_der_falschen_domaene_gilt_als_verwaist(modul, hass):
         client=SimpleNamespace(_vollstaendig=True),
     )
     gefunden = [e.entity_id for e in modul.finden(hass, eintrag, {"a": koordinator})]
+
+    TYP_DOMAENE.clear()
+    TYP_DOMAENE.update(vorher)
 
     assert alt.entity_id in gefunden
     assert neu.entity_id not in gefunden
@@ -272,3 +278,33 @@ def test_ein_unbekannter_typ_gilt_nicht_als_verwaist(modul, hass):
     )
 
     assert not modul.finden(hass, eintrag, {"a": koordinator})
+
+
+def test_die_stilllegung_zaehlt_die_falsche_domaene_mit(hass, modul):
+    """Sonst meldet der Hinweis null, während die alte Zeile stehen bleibt."""
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    import custom_components.heatnexus as heatnexus
+    from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.entity import TYP_DOMAENE
+
+    vorher = dict(TYP_DOMAENE)
+    TYP_DOMAENE["sensor"] = "sensor"
+    eintrag = MockConfigEntry(domain=DOMAIN, title="HeatNexus", data={}, options={})
+    eintrag.add_to_hass(hass)
+    registry = er.async_get(hass)
+    registry.async_get_or_create("switch", DOMAIN, "SN1-0-0-9-90-0", config_entry=eintrag)
+    registry.async_get_or_create("sensor", DOMAIN, "SN1-0-0-9-90-0", config_entry=eintrag)
+    koordinator = SimpleNamespace(
+        data={"devices": [{"id": "SN1-0-0-9-90-0", "type": "sensor", "enabled_default": True}]},
+        client=SimpleNamespace(_vollstaendig=True),
+    )
+
+    heatnexus._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+
+    TYP_DOMAENE.clear()
+    TYP_DOMAENE.update(vorher)
+    hinweis = _hinweis(hass, eintrag, modul)
+    assert hinweis is not None
+    assert hinweis.translation_placeholders == {"anzahl": "1"}

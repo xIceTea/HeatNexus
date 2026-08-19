@@ -32,6 +32,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Kaminkehrer zeigt seine Restlaufzeit in Minuten.
 - Wechselt ein Wert die Plattform, wird die alte Zeile als verwaist erkannt.
 - Tageswerte stehen im Panel bei den Zählerständen.
+- Der Reparatureintrag findet auch Zeilen, die die Plattform gewechselt haben.
 
 ## [1.10.0-beta.2] - 2026-08-18
 
