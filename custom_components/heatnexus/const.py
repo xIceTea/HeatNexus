@@ -1346,7 +1346,11 @@ SCHALTPUNKTE: tuple[dict[str, object], ...] = (
         "bezug": "1/15",
         "hysterese": "9/35",
         "anteil": -0.5,
-        "name": "Ladung ab",
+        "name": "Letzte Einschalttemperatur",
+        # Gegen diese Temperatur läuft die Schwelle: Fällt sie darunter,
+        # beginnt die Ladung. Daraus entsteht zusätzlich der Abstand in Kelvin.
+        "messwert": "21/65",
+        "abstand_name": "Abstand bis Ladung",
     },
     {
         "fct_type": 16,

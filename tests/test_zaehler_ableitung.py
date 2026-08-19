@@ -324,14 +324,9 @@ def test_der_stundenzaehler_tritt_zurueck_wo_die_phase_misst(client):
     assert "SN1-starts-heute" in neue
 
 
-# ---------------------------------------------------------------------------
-# Der Bezugspunkt überlebt eine Lücke
-#
-# Home Assistant schreibt Attribute nur, solange eine Entität verfügbar ist
-# (`entity.py`: `if available: attr.update(...)`). Wird sie ohne Wert entfernt
-# und wieder angelegt – etwa bei `rediscover` –, trägt der gesicherte Zustand
-# weder `basis` noch `marke`, und die Ableitung beginnt bei null.
-# ---------------------------------------------------------------------------
+# Home Assistant schreibt Attribute nur, solange eine Entität verfügbar ist.
+# Ohne Wert entfernt und neu angelegt, fehlten `basis` und `marke` – die
+# Ableitung begänne bei null.
 def test_eine_ableitung_ohne_frischen_wert_bleibt_verfuegbar(sensoren):
     """Sonst verliert sie beim Wiederanlegen ihren Bezugspunkt."""
     entity, koordinator = _ableitung(sensoren, {ZAEHLER: "1200"}, type="zaehler_heute")

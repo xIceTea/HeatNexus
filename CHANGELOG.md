@@ -13,10 +13,12 @@ wenn dort Vorabversionen zugelassen sind.
 - Nach einem Neustart stehen die Werte sofort, sofern sie jung genug sind.
 - Einstellbar, wie alt übernommene Startwerte höchstens sein dürfen.
 - Brennstoffart kennt zusätzlich Hackgut trocken.
+- Neuer Wert je Puffer: Abstand bis zur nächsten Ladung in Kelvin.
 
 ### Geändert
 
 - „Karten anordnen" heißt „Ansicht bearbeiten" und nennt Spalten und Farben.
+- „Ladung ab" heißt „Letzte Einschalttemperatur".
 
 ### Behoben
 

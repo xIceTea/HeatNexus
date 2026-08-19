@@ -114,6 +114,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "zaehler_heute": WindhagerAbleitungSensor,
             "zaehler_start": WindhagerAbleitungSensor,
             "schaltpunkt": WindhagerSchaltpunktSensor,
+            "schaltpunkt_abstand": WindhagerSchaltpunktAbstandSensor,
             "laufzeit": WindhagerLaufzeitSensor,
             "laufzeit_heute": WindhagerLaufzeitSensor,
         },
@@ -481,6 +482,65 @@ class WindhagerSchaltpunktSensor(WindhagerEntity, SensorEntity):
             "hysterese": self._hysterese,
             "anteil": self._anteil,
         }
+
+
+class WindhagerSchaltpunktAbstandSensor(WindhagerEntity, SensorEntity):
+    """Wie weit die gemessene Temperatur noch vom Schaltpunkt entfernt ist.
+
+    Der Schaltpunkt sagt, *wo* geschaltet wird; für eine Automation zählt,
+    *wie weit* es noch dahin ist. Negativ heißt: Die Schwelle ist überschritten.
+    """
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "K"
+    _attr_suggested_display_precision = 1
+    # Der Bezug steht nur an, solange angefordert wird. Ohne ihn bleibt der
+    # Abstand leer, die Entität aber bedienbar.
+    _require_value_for_available = False
+
+    def __init__(self, coordinator: Any, device_info: dict) -> None:
+        super().__init__(coordinator, device_info)
+        self._bezugs_oid = device_info.get("bezugs_oid")
+        self._hysterese_oid = device_info.get("ausloeser_oid")
+        self._anteil = float(device_info.get("anteil") or 0)
+        self._hysterese_vorgabe = _zahl(device_info.get("hysterese_vorgabe"))
+
+    async def async_added_to_hass(self) -> None:
+        """Bezug und Hysterese mit abrufen, sie liegen auf der Serviceebene."""
+        await super().async_added_to_hass()
+        for oid in (self._bezugs_oid, self._hysterese_oid):
+            if oid:
+                self.coordinator.client.register_poll_oid(oid)
+
+    async def async_will_remove_from_hass(self) -> None:
+        for oid in (self._bezugs_oid, self._hysterese_oid):
+            if oid:
+                self.coordinator.client.unregister_poll_oid(oid)
+        await super().async_will_remove_from_hass()
+
+    @property
+    def _schaltpunkt(self) -> float | None:
+        """Bezugswert plus Anteil der Hysterese – dieselbe Rechnung wie dort."""
+        bezug = _zahl(get_oid_value(self.coordinator, self._bezugs_oid))
+        hysterese = _zahl(get_oid_value(self.coordinator, self._hysterese_oid))
+        if hysterese is None:
+            hysterese = self._hysterese_vorgabe
+        if bezug is None or hysterese is None or bezug == 0:
+            return None
+        return bezug + self._anteil * hysterese
+
+    @property
+    def native_value(self) -> float | None:
+        gemessen = self.float_value
+        schaltpunkt = self._schaltpunkt
+        if gemessen is None or schaltpunkt is None:
+            return None
+        return round(gemessen - schaltpunkt, 1)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Woraus sich der Abstand ergibt."""
+        return {"gemessen": self.float_value, "schaltpunkt": self._schaltpunkt}
 
 
 class WindhagerErrorTextSensor(WindhagerEntity, SensorEntity):

@@ -205,6 +205,7 @@ def _puffer_mit_sollwert(client_module):
             ("1/15", "Puffertemperatur Sollwert"),
             ("9/35", "Hysterese"),
             ("9/57", "Solltemperatur ext. Wärmeanforderung"),
+            ("21/65", "Puffer oben Temperatur (TPE)"),
         )
     ]
     client.oids = {d["oid"] for d in client.devices}
@@ -217,11 +218,11 @@ def test_schaltpunkte_entstehen_aus_sollwert_und_hysterese(client_module):
     client._schaltpunkte({})
 
     punkte = {d["name"]: d for d in client.devices if d["type"] == "schaltpunkt"}
-    assert set(punkte) == {"Ladung ab", "Anforderung liefert"}
+    assert set(punkte) == {"Letzte Einschalttemperatur", "Anforderung liefert"}
     # Der Schaltpunkt hängt am Sollwert, die Hysterese kommt als Auslöser dazu.
-    assert punkte["Ladung ab"]["oid"] == "/1/16/1/1/15/0"
-    assert punkte["Ladung ab"]["ausloeser_oid"] == "/1/16/1/9/35/0"
-    assert punkte["Ladung ab"]["anteil"] == -0.5
+    assert punkte["Letzte Einschalttemperatur"]["oid"] == "/1/16/1/1/15/0"
+    assert punkte["Letzte Einschalttemperatur"]["ausloeser_oid"] == "/1/16/1/9/35/0"
+    assert punkte["Letzte Einschalttemperatur"]["anteil"] == -0.5
     assert punkte["Anforderung liefert"]["anteil"] == 1.0
     assert all(not d["enabled_default"] for d in punkte.values())
 
@@ -232,7 +233,7 @@ def test_hysterese_wird_beim_einlesen_mitgenommen(client_module):
     client._schaltpunkte({"/1/16/1/9/35/0": {"value": "16.0"}})
 
     punkte = {d["name"]: d for d in client.devices if d["type"] == "schaltpunkt"}
-    assert punkte["Ladung ab"]["hysterese_vorgabe"] == 16.0
+    assert punkte["Letzte Einschalttemperatur"]["hysterese_vorgabe"] == 16.0
 
 
 def test_ohne_hysterese_kein_schaltpunkt(client_module):
@@ -339,3 +340,17 @@ def test_ohne_geraetetext_bleibt_die_gepflegte_bezeichnung(client_module):
     """Eine Anlage, die ihre Textdateien nicht ausliefert, verliert nichts."""
     client = _mit_texten(client_module, "fr", {})
     assert client._name_fuer("0/7", "Kesseltemperatur") == "Kesseltemperatur"
+
+
+def test_der_abstand_entsteht_an_der_gemessenen_temperatur(client_module):
+    """Der Schaltpunkt hängt am Sollwert, der Abstand an TPE."""
+    client = _puffer_mit_sollwert(client_module)
+    client._schaltpunkte({"/1/16/1/9/35/0": {"value": "16.0"}})
+
+    abstaende = {d["name"]: d for d in client.devices if d["type"] == "schaltpunkt_abstand"}
+    assert set(abstaende) == {"Abstand bis Ladung"}
+    abstand = abstaende["Abstand bis Ladung"]
+    assert abstand["oid"] == "/1/16/1/21/65/0"
+    assert abstand["bezugs_oid"] == "/1/16/1/1/15/0"
+    assert abstand["ausloeser_oid"] == "/1/16/1/9/35/0"
+    assert abstand["unit"] == "K"

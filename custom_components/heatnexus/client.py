@@ -1727,6 +1727,24 @@ class WindhagerHttpClient:
                         device_class="temperature",
                     )
                 )
+                # Der Abstand hängt an der gemessenen Temperatur, nicht am
+                # Sollwert – deshalb eine eigene Ableitung von dort.
+                messwert = adressen.get(regel.get("messwert"))
+                if messwert:
+                    neu.append(
+                        self._ableitung(
+                            messwert,
+                            "schaltpunkt-abstand",
+                            "schaltpunkt_abstand",
+                            "",
+                            name_ersetzen=str(regel["abstand_name"]),
+                            bezugs_oid=quelle["oid"],
+                            ausloeser_oid=hysterese["oid"],
+                            anteil=regel["anteil"],
+                            hysterese_vorgabe=vorgabe,
+                            unit="K",
+                        )
+                    )
         self.devices.extend(neu)
         for d in neu:
             self.oids.add(d["oid"])
