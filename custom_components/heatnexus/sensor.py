@@ -449,12 +449,36 @@ class WindhagerSchaltpunktSensor(WindhagerEntity, SensorEntity):
         self._hysterese_oid = device_info.get("ausloeser_oid")
         self._anteil = float(device_info.get("anteil") or 0)
         self._hysterese_vorgabe = _zahl(device_info.get("hysterese_vorgabe"))
+        self._gehalten: float | None = None
+        self._seit: datetime | None = None
 
     async def async_added_to_hass(self) -> None:
-        """Die Hysterese mit abrufen, sie steht sonst auf der Serviceebene still."""
+        """Die Hysterese mit abrufen und den letzten Bezug wieder aufnehmen."""
         await super().async_added_to_hass()
         if self._hysterese_oid:
             self.coordinator.client.register_poll_oid(self._hysterese_oid)
+        alt = await self.async_get_last_state()
+        if alt is None:
+            return
+        self._gehalten = _zahl(alt.attributes.get("bezug"))
+        with contextlib.suppress(TypeError, ValueError):
+            self._seit = dt_util.parse_datetime(alt.attributes.get("seit") or "")
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self._bezug_merken()
+        super()._handle_coordinator_update()
+
+    def _bezug_merken(self) -> None:
+        """Den letzten Sollwert ungleich null behalten.
+
+        Ohne Anforderung meldet die Anlage null; der Schaltpunkt der letzten
+        Ladung bleibt trotzdem die beste Auskunft.
+        """
+        wert = self.float_value
+        if wert and wert != self._gehalten:
+            self._gehalten = wert
+            self._seit = dt_util.utcnow()
 
     async def async_will_remove_from_hass(self) -> None:
         if self._hysterese_oid:
@@ -468,24 +492,29 @@ class WindhagerSchaltpunktSensor(WindhagerEntity, SensorEntity):
         return live if live is not None else self._hysterese_vorgabe
 
     @property
+    def _bezug(self) -> float | None:
+        """Der anstehende Sollwert, sonst der zuletzt gesehene."""
+        return self.float_value or self._gehalten
+
+    @property
     def native_value(self) -> float | None:
-        """Sollwert plus Anteil der Hysterese, auf ein Zehntel gerundet."""
-        soll = self.float_value
+        """Bezug plus Anteil der Hysterese, auf ein Zehntel gerundet."""
+        bezug = self._bezug
         hysterese = self._hysterese
-        if soll is None or hysterese is None:
+        if not bezug or hysterese is None:
             return None
-        # Ohne Sollwert fordert nichts an; ein Schaltpunkt von 0 wäre irreführend.
-        if soll == 0:
-            return None
-        return round(soll + self._anteil * hysterese, 1)
+        return round(bezug + self._anteil * hysterese, 1)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Woraus sich der Wert ergibt, damit er nachvollziehbar bleibt."""
         return {
             "sollwert": self.float_value,
+            "bezug": self._bezug,
             "hysterese": self._hysterese,
             "anteil": self._anteil,
+            "gehalten": not self.float_value and self._gehalten is not None,
+            "seit": self._seit.isoformat() if self._seit else None,
         }
 
 
@@ -509,13 +538,37 @@ class WindhagerSchaltpunktAbstandSensor(WindhagerEntity, SensorEntity):
         self._hysterese_oid = device_info.get("ausloeser_oid")
         self._anteil = float(device_info.get("anteil") or 0)
         self._hysterese_vorgabe = _zahl(device_info.get("hysterese_vorgabe"))
+        self._gehalten: float | None = None
+        self._seit: datetime | None = None
 
     async def async_added_to_hass(self) -> None:
-        """Bezug und Hysterese mit abrufen, sie liegen auf der Serviceebene."""
+        """Bezug und Hysterese mit abrufen, den letzten Bezug aufnehmen."""
         await super().async_added_to_hass()
         for oid in (self._bezugs_oid, self._hysterese_oid):
             if oid:
                 self.coordinator.client.register_poll_oid(oid)
+        alt = await self.async_get_last_state()
+        if alt is None:
+            return
+        self._gehalten = _zahl(alt.attributes.get("bezug"))
+        with contextlib.suppress(TypeError, ValueError):
+            self._seit = dt_util.parse_datetime(alt.attributes.get("seit") or "")
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self._bezug_merken()
+        super()._handle_coordinator_update()
+
+    def _bezug_merken(self) -> None:
+        """Denselben Merksatz wie der Schaltpunkt, auf eigener Adresse.
+
+        Der Abstand greift nicht auf die Nachbarentität zu: Sie ist
+        dazuwählbar und kann abgeschaltet sein.
+        """
+        wert = _zahl(get_oid_value(self.coordinator, self._bezugs_oid))
+        if wert and wert != self._gehalten:
+            self._gehalten = wert
+            self._seit = dt_util.utcnow()
 
     async def async_will_remove_from_hass(self) -> None:
         for oid in (self._bezugs_oid, self._hysterese_oid):
@@ -524,13 +577,18 @@ class WindhagerSchaltpunktAbstandSensor(WindhagerEntity, SensorEntity):
         await super().async_will_remove_from_hass()
 
     @property
+    def _bezug(self) -> float | None:
+        """Der anstehende Bezugswert, sonst der zuletzt gesehene."""
+        return _zahl(get_oid_value(self.coordinator, self._bezugs_oid)) or self._gehalten
+
+    @property
     def _schaltpunkt(self) -> float | None:
         """Bezugswert plus Anteil der Hysterese – dieselbe Rechnung wie dort."""
-        bezug = _zahl(get_oid_value(self.coordinator, self._bezugs_oid))
+        bezug = self._bezug
         hysterese = _zahl(get_oid_value(self.coordinator, self._hysterese_oid))
         if hysterese is None:
             hysterese = self._hysterese_vorgabe
-        if bezug is None or hysterese is None or bezug == 0:
+        if not bezug or hysterese is None:
             return None
         return bezug + self._anteil * hysterese
 
@@ -545,7 +603,14 @@ class WindhagerSchaltpunktAbstandSensor(WindhagerEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Woraus sich der Abstand ergibt."""
-        return {"gemessen": self.float_value, "schaltpunkt": self._schaltpunkt}
+        anstehend = _zahl(get_oid_value(self.coordinator, self._bezugs_oid))
+        return {
+            "gemessen": self.float_value,
+            "schaltpunkt": self._schaltpunkt,
+            "bezug": self._bezug,
+            "gehalten": not anstehend and self._gehalten is not None,
+            "seit": self._seit.isoformat() if self._seit else None,
+        }
 
 
 class WindhagerWarmwasserAbstandSensor(WindhagerEntity, SensorEntity):

@@ -198,3 +198,49 @@ def test_die_pumpe_wird_als_rohwert_gelesen(sensoren):
     )
 
     assert entity.native_value == 1.4
+
+
+# ---------------------------------------------------------------------------
+# Der Bezug bleibt stehen, wenn nichts angefordert wird
+# ---------------------------------------------------------------------------
+def test_der_einschaltpunkt_bleibt_ohne_anforderung_stehen(sensoren):
+    """Ohne Anforderung meldet die Anlage null; der letzte Punkt gilt weiter."""
+    entity, koordinator = _schaltpunkt(sensoren, {SOLLWERT: "59.5", HYSTERESE: "16"})
+    entity._bezug_merken()
+    koordinator.data["oids"][SOLLWERT] = "0"
+    entity._bezug_merken()
+
+    assert entity.native_value == 51.5
+    assert entity.extra_state_attributes["gehalten"] is True
+
+
+def test_ohne_je_gesehenen_bezug_bleibt_der_einschaltpunkt_leer(sensoren):
+    """Eine erfundene Null behauptete, die Schwelle sei jetzt erreicht."""
+    entity, _ = _schaltpunkt(sensoren, {SOLLWERT: "0", HYSTERESE: "16"})
+    entity._bezug_merken()
+
+    assert entity.native_value is None
+    assert entity.extra_state_attributes["gehalten"] is False
+
+
+def test_ein_neuer_bezug_setzt_den_zeitpunkt_neu(sensoren):
+    """Wann der Punkt zuletzt anstand, gehört zum Wert dazu."""
+    entity, koordinator = _schaltpunkt(sensoren, {SOLLWERT: "59.5", HYSTERESE: "16"})
+    entity._bezug_merken()
+    erster = entity.extra_state_attributes["seit"]
+    koordinator.data["oids"][SOLLWERT] = "57.0"
+    entity._bezug_merken()
+
+    assert entity.extra_state_attributes["seit"] >= erster
+    assert entity.native_value == 49.0
+
+
+def test_der_abstand_haelt_seinen_bezug_selbst(sensoren):
+    """Er greift nicht auf die Nachbarentität zu – sie kann abgeschaltet sein."""
+    entity, koordinator = _abstand(sensoren, {TPE: "70.0", SOLLWERT: "59.5", HYSTERESE: "16"})
+    entity._bezug_merken()
+    koordinator.data["oids"][SOLLWERT] = "0"
+    entity._bezug_merken()
+
+    assert entity.native_value == 18.5
+    assert entity.extra_state_attributes["gehalten"] is True
