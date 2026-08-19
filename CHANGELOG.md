@@ -36,6 +36,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Dazugewählte Werte erscheinen sofort, nicht erst beim nächsten Laden.
 - Eine teilweise gewählte Gruppe verliert beim Bestätigen nichts mehr.
 - Wartungszähler behalten ihre Tages- und Startwerte.
+- Die Abstände stehen nicht mehr anstelle der Temperaturen im Panel.
 - Die Diagnose zählt verwaiste Zeilen wie der Reparatureintrag.
 
 ## [1.10.0-beta.2] - 2026-08-18
