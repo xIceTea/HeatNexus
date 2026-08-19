@@ -345,6 +345,10 @@ class WindhagerLaufzeitSensor(WindhagerEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.DURATION
     _attr_native_unit_of_measurement = "min"
     _attr_suggested_display_precision = 0
+    # Stand und Tagesmarke stehen in den Attributen, und die schreibt Home
+    # Assistant nur bei verfügbarer Entität. Ohne dies ginge die Tagessumme
+    # verloren, sobald die Anlage einen Abruf lang schweigt.
+    _require_value_for_available = False
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)

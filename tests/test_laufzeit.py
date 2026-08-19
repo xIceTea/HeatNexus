@@ -181,3 +181,18 @@ def test_auch_die_waermepumpe_bekommt_ihre_dauer(client):
     neue = [d for d in client.devices if str(d.get("type", "")).startswith("laufzeit")]
     assert len(neue) == 2
     assert neue[0]["laufphasen"] == [4, 5, 6, 7, 8, 9]
+
+
+# Home Assistant schreibt Attribute nur, solange eine Entität verfügbar ist.
+# Ohne Wert entfernt und neu angelegt, fehlten `heute` und `tag` – die
+# Tagessumme begänne bei null.
+def test_die_laufzeit_ohne_phase_bleibt_verfuegbar(sensoren):
+    """Sonst verliert die Tagessumme ihren Stand."""
+    entity, koordinator = _laufzeit(sensoren, LAUF, typ="laufzeit_heute")
+    _phase(entity, koordinator, RUHE)
+
+    koordinator.data["oids"][PHASE] = None
+    koordinator.last_update_success = True
+
+    assert entity.available, "Ohne Verfügbarkeit gehen heute und tag verloren"
+    assert entity.extra_state_attributes["tag"] is not None

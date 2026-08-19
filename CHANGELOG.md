@@ -27,7 +27,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Schaubild-Karte nennt einen Ladefehler, statt „noch nichts eingelesen".
 - Misslingt das Speichern der Ansicht, erscheint eine Meldung.
 - Störung 338 nennt jetzt auch die Abhilfe.
-- Tageswerte und Zähler verlieren ihren Bezugspunkt nicht mehr.
+- Tageswerte, Zähler und Laufzeiten verlieren ihren Bezugspunkt nicht mehr.
 - Der Kaminkehrer zeigt seine Restlaufzeit in Minuten.
 - Wechselt ein Wert die Plattform, wird die alte Zeile als verwaist erkannt.
 - Tageswerte stehen im Panel bei den Zählerständen.
