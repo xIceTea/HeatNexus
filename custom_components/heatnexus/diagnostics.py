@@ -87,11 +87,12 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
     bekannt = verwaiste.bekannte_kennungen(eintrag.get("coordinators", {}))
     je_bereich = Counter(e.entity_id.split(".")[0] for e in entitaeten)
     abgeschaltet = Counter(str(e.disabled_by) for e in entitaeten if e.disabled_by is not None)
-    verwaist = sorted(e.unique_id for e in entitaeten if e.unique_id not in bekannt)
+    # Dieselbe Regel wie der Reparatureintrag, sonst weichen beide Zahlen ab:
+    # Ein Datenpunkt, der die Plattform gewechselt hat, behält seine Kennung.
+    ohne_datenpunkt = verwaiste.finden(hass, entry, eintrag.get("coordinators", {}))
+    verwaist = sorted(e.unique_id for e in ohne_datenpunkt)
     # Verwaist und trotzdem aktiv: Diese Zeilen stehen wirklich im Weg.
-    verwaist_aktiv = [
-        e.unique_id for e in entitaeten if e.unique_id not in bekannt and e.disabled_by is None
-    ]
+    verwaist_aktiv = [e.unique_id for e in ohne_datenpunkt if e.disabled_by is None]
     # Ab Werk aus, aber eingeschaltet – das war jemand von Hand.
     manuell = sorted(
         e.unique_id
