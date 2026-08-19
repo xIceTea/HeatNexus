@@ -315,16 +315,21 @@ def gruppen_aufloesen(kandidaten: list[dict], gruppen: list[str]) -> list[str]:
 def gruppen_ableiten(kandidaten: list[dict], gewaehlt: list[str]) -> list[str]:
     """Welche Gruppen zu einer gespeicherten Auswahl passen.
 
-    Vollständig angekreuzte Gruppen erscheinen wieder als Gruppe; bleibt etwas
-    übrig, steht zusätzlich „Individuell".
+    Eine Gruppe erscheint, sobald **einer** ihrer Werte gewählt ist. Nur die
+    vollständig gewählten sind damit erledigt; bleibt etwas übrig, steht
+    zusätzlich „Individuell".
     """
     aktiv = set(gewaehlt)
     gruppen = []
     abgedeckt: set[str] = set()
     for gruppe in ZUSATZGRUPPEN:
         kennungen = {k["id"] for k in kandidaten if k.get("gruppe") == gruppe}
-        if kennungen and kennungen <= aktiv:
-            gruppen.append(gruppe)
+        if not kennungen or not kennungen & aktiv:
+            continue
+        # Auch bei einer Teilauswahl vorangekreuzt: Bliebe die Gruppe leer,
+        # schriebe das nächste Bestätigen ihren Inhalt weg.
+        gruppen.append(gruppe)
+        if kennungen <= aktiv:
             abgedeckt |= kennungen
     if aktiv - abgedeckt:
         gruppen.append(GRUPPE_INDIVIDUELL)

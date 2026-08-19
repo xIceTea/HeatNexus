@@ -308,3 +308,39 @@ def test_die_stilllegung_zaehlt_die_falsche_domaene_mit(hass, modul):
     hinweis = _hinweis(hass, eintrag, modul)
     assert hinweis is not None
     assert hinweis.translation_placeholders == {"anzahl": "1"}
+
+
+def test_ein_wieder_eingeschalteter_wert_wird_sofort_gemeldet(hass):
+    """Sonst entstünde er erst beim nächsten Laden des Eintrags."""
+    from homeassistant.helpers import entity_registry as er
+    from homeassistant.helpers.dispatcher import async_dispatcher_connect
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    import custom_components.heatnexus as heatnexus
+    from custom_components.heatnexus.const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
+
+    eintrag = MockConfigEntry(domain=DOMAIN, title="HeatNexus", data={}, options={})
+    eintrag.add_to_hass(hass)
+    registry = er.async_get(hass)
+    entitaet = registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "SN1-0-2-1-0-laufzeit",
+        config_entry=eintrag,
+        disabled_by=er.RegistryEntryDisabler.INTEGRATION,
+    )
+    koordinator = SimpleNamespace(
+        data={
+            "devices": [{"id": "SN1-0-2-1-0-laufzeit", "type": "laufzeit", "enabled_default": True}]
+        },
+        client=SimpleNamespace(_vollstaendig=True),
+    )
+
+    gerufen = []
+    async_dispatcher_connect(
+        hass, SIGNAL_NEUE_ENTITAETEN.format(eintrag.entry_id), lambda: gerufen.append(1)
+    )
+    heatnexus._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+
+    assert registry.async_get(entitaet.entity_id).disabled_by is None
+    assert gerufen, "Die Plattformen wurden nicht benachrichtigt"

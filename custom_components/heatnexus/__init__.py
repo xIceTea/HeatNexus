@@ -658,6 +658,7 @@ def _abgewaehlte_entitaeten_stilllegen(
     registry = er.async_get(hass)
     entfernt = 0
     ohne_datenpunkt = 0
+    wieder_an = 0
     # Dieselbe Regel wie der Reparatureintrag: Kennung **und** Domäne. Sonst
     # gilt eine Zeile hier als vorhanden, die dort verwaist heißt.
     verwaiste_ids = {e.entity_id for e in verwaiste.finden(hass, entry, coordinators)}
@@ -687,6 +688,7 @@ def _abgewaehlte_entitaeten_stilllegen(
             )
             if eintrag.disabled_by is not gewuenscht:
                 registry.async_update_entity(eintrag.entity_id, disabled_by=gewuenscht)
+                wieder_an += gewuenscht is None
         elif (
             standardmaessig_an[eintrag.unique_id]
             and eintrag.disabled_by is er.RegistryEntryDisabler.INTEGRATION
@@ -695,6 +697,7 @@ def _abgewaehlte_entitaeten_stilllegen(
             # Eine Abschaltung durch den Nutzer (disabled_by USER) bleibt.
             _LOGGER.debug("Nehme %s wieder in Betrieb", eintrag.entity_id)
             registry.async_update_entity(eintrag.entity_id, disabled_by=None)
+            wieder_an += 1
 
     if entfernt:
         _LOGGER.info(
@@ -702,6 +705,11 @@ def _abgewaehlte_entitaeten_stilllegen(
             "Beim Wiederdazuwählen werden sie neu angelegt.",
             entfernt,
         )
+
+    # Die Plattformen stehen zu diesem Zeitpunkt schon; eine gerade
+    # eingeschaltete Entität entstünde sonst erst beim nächsten Laden.
+    if wieder_an:
+        async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id))
 
     # Stillgelegte ohne Datenpunkt bleiben stehen. Ob sie verschwinden, ist
     # eine Entscheidung des Nutzers – der Reparatureintrag holt sie ein.

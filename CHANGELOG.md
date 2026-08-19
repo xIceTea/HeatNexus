@@ -33,6 +33,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Wechselt ein Wert die Plattform, wird die alte Zeile als verwaist erkannt.
 - Tageswerte stehen im Panel bei den Zählerständen.
 - Der Reparatureintrag findet auch Zeilen, die die Plattform gewechselt haben.
+- Dazugewählte Werte erscheinen sofort, nicht erst beim nächsten Laden.
+- Eine teilweise gewählte Gruppe verliert beim Bestätigen nichts mehr.
 
 ## [1.10.0-beta.2] - 2026-08-18
 
