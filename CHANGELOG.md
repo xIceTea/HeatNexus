@@ -14,14 +14,14 @@ wenn dort Vorabversionen zugelassen sind.
 - Einstellbar, wie alt übernommene Startwerte höchstens sein dürfen.
 - Brennstoffart kennt zusätzlich Hackgut trocken.
 - Neuer Wert je Puffer: Abstand bis zur nächsten Ladung in Kelvin.
-- Neuer Wert: Abstand bis zum nächsten Schaltpunkt der Warmwasserbereitung.
+- Neuer Wert je Warmwasserkreis: WW-Einschaltpunkt und sein Delta.
 - Schaltpunkte und Abstände lassen sich in den Optionen dazuwählen.
 
 ### Geändert
 
 - „Karten anordnen" heißt „Ansicht bearbeiten" und nennt Spalten und Farben.
-- „Ladung ab" heißt „Letzte Einschalttemperatur".
-- „Laufzeit aktuell" heißt „Laufzeit" – sie zeigt auch den letzten Lauf.
+- Die Schaltpunkte heißen Einschaltpunkt, Delta und Anforderungstemperatur.
+- „Laufzeit aktuell" heißt „Laufzeit Zyklus" und zeigt auch den letzten Lauf.
 
 ### Behoben
 
@@ -36,6 +36,9 @@ wenn dort Vorabversionen zugelassen sind.
 - Dazugewählte Werte erscheinen sofort, nicht erst beim nächsten Laden.
 - Eine teilweise gewählte Gruppe verliert beim Bestätigen nichts mehr.
 - Wartungszähler behalten ihre Tages- und Startwerte.
+- Der Einschaltpunkt bleibt stehen, wenn nichts angefordert wird.
+- Beide Abstände zählen gleich herum; negativ heißt überschritten.
+- Die Angleichung der Entitätskennungen läuft auf jeder HA-Fassung.
 - Die Abstände stehen nicht mehr anstelle der Temperaturen im Panel.
 - Die Diagnose zählt verwaiste Zeilen wie der Reparatureintrag.
 
