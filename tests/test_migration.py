@@ -284,8 +284,8 @@ def test_entitaet_ohne_geraet_wird_uebergangen(migration, hass):
     assert migration._entity_ids_umstellen(hass, eintrag) == 0
 
 
-def test_die_angleichung_laeuft_auch_ohne_die_neuere_funktion(migration, hass, monkeypatch):
-    """Ältere Fassungen kennen die eigene Kennung nicht als Ausnahme."""
+def test_die_angleichung_benennt_die_entitaet_um(migration, hass):
+    """Der Zielname ist frei, also zieht die Kennung nach."""
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 
@@ -307,8 +307,6 @@ def test_die_angleichung_laeuft_auch_ohne_die_neuere_funktion(migration, hass, m
         original_name="Kesseltemperatur Ist",
         suggested_object_id="irgendwas_altes",
     )
-
-    monkeypatch.delattr(type(registry), "async_get_available_entity_id", raising=False)
 
     assert migration._entity_ids_umstellen(hass, eintrag) == 1
     assert registry.async_get("sensor.beispielhaus_musterkessel_kesseltemperatur_ist") is not None
@@ -341,3 +339,27 @@ def test_die_laufzeit_behaelt_ihre_entity_id(migration, hass):
 
     assert migration._entity_ids_umstellen(hass, eintrag) == 0
     assert registry.async_get(entitaet.entity_id) is not None
+
+
+class AlteRegistry:
+    """Eine Registry ohne die neuere Funktion und ohne das Schlüsselwort."""
+
+    def async_generate_entity_id(self, domain, gewuenscht, **rest):
+        """Ältere Fassungen kennen `current_entity_id` nicht."""
+        if rest:
+            raise TypeError("current_entity_id")
+        return f"{domain}.{gewuenscht.lower().replace(' ', '_')}"
+
+
+class AlterEintrag:
+    """Nur die zwei Felder, die `_freie_kennung` liest."""
+
+    domain = "sensor"
+    entity_id = "sensor.irgendwas_altes"
+
+
+def test_eine_aeltere_registry_bekommt_den_aufruf_ohne_schluesselwort(migration):
+    """Sonst bräche die Angleichung auf älteren Fassungen beim Start."""
+    kennung = migration._freie_kennung(AlteRegistry(), AlterEintrag(), "Musterkessel Temperatur")
+
+    assert kennung == "sensor.musterkessel_temperatur"
