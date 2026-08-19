@@ -40,11 +40,16 @@ Die Ladung beginnt nicht beim Sollwert, sondern eine halbe Hysterese darunter:
 ```
 Puffer-Sollwert  60 °C
 − Hysterese/2    − 8 K
-= Ladung ab      52 °C   am oberen Fühler (TPE)
+= Einschaltpunkt 52 °C   am oberen Fühler (TPE)
 ```
 
 Sinkt der obere Fühler unter diesen Wert, wird Wärme angefordert. Der untere
 Fühler (TPA) hat auf den Beginn der Ladung keinen Einfluss.
+
+HeatNexus legt beide Größen als eigene Werte an: **Einschaltpunkt** ist die
+Temperatur aus der Rechnung oben, **Einschaltpunkt Delta** der Abstand des
+Fühlers dahin in Kelvin. Das Delta ist der Wert, auf den sich eine Automation
+setzen lässt: „in zwei Kelvin fordert die Anlage an".
 
 ## Wann die Ladung endet
 
