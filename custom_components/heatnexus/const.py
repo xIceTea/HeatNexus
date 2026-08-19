@@ -1367,6 +1367,20 @@ SCHALTPUNKTE: tuple[dict[str, object], ...] = (
 )
 
 
+# Wie weit es bis zum nächsten Schaltpunkt eines Verbrauchers ist. Alle vier
+# Adressen liegen auf derselben Funktion; eine weitere Baureihe braucht eine
+# Zeile, keinen Umbau.
+VERBRAUCHER_ABSTAND: tuple[dict[str, object], ...] = (
+    {
+        "fct_type": 14,
+        "ist": "0/4",
+        "soll": "1/4",
+        "hysterese": "5/0",
+        "zustand": "1/66",
+        "name": "Abstand Warmwasser",
+    },
+)
+
 # Was der Rollenparameter eines Moduls nicht einschließt, ist nicht verdrahtet.
 # `nur_bei` nennt je Adresse die Werte, bei denen sie dazugehört.
 ROLLEN_FILTER: dict[int, dict[str, object]] = {

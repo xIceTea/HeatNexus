@@ -14,6 +14,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Einstellbar, wie alt übernommene Startwerte höchstens sein dürfen.
 - Brennstoffart kennt zusätzlich Hackgut trocken.
 - Neuer Wert je Puffer: Abstand bis zur nächsten Ladung in Kelvin.
+- Neuer Wert: Abstand bis zum nächsten Schaltpunkt der Warmwasserbereitung.
 
 ### Geändert
 

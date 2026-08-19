@@ -354,3 +354,50 @@ def test_der_abstand_entsteht_an_der_gemessenen_temperatur(client_module):
     assert abstand["bezugs_oid"] == "/1/16/1/1/15/0"
     assert abstand["ausloeser_oid"] == "/1/16/1/9/35/0"
     assert abstand["unit"] == "K"
+
+
+def _heizkreis_mit_warmwasser(client_module):
+    """Ein Heizkreis mit den vier Adressen der Warmwasserbereitung."""
+    client = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    client.devices = [
+        client_module.WindhagerHttpClient._deskriptor(
+            id=f"SN-1-{a.replace('/', '-')}-0",
+            oid=f"/1/14/0/{a}/0",
+            fct_type=14,
+            name=n,
+            type="temperature",
+        )
+        for a, n in (
+            ("0/4", "Warmwasser Ist-Temperatur"),
+            ("1/4", "Warmwasser Soll-Temperatur"),
+            ("5/0", "Hysterese Ein"),
+            ("1/66", "WW-Ladepumpe"),
+        )
+    ]
+    client.oids = {d["oid"] for d in client.devices}
+    return client
+
+
+def test_der_warmwasser_abstand_entsteht_am_istwert(client_module):
+    """Er hängt am Istwert und zieht Soll, Hysterese und Pumpe dazu."""
+    client = _heizkreis_mit_warmwasser(client_module)
+    client._verbraucherabstand({"/1/14/0/5/0/0": {"value": "1.0"}})
+
+    abstaende = [d for d in client.devices if d["type"] == "ww_abstand"]
+    assert len(abstaende) == 1
+    abstand = abstaende[0]
+    assert abstand["oid"] == "/1/14/0/0/4/0"
+    assert abstand["soll_oid"] == "/1/14/0/1/4/0"
+    assert abstand["hysterese_oid"] == "/1/14/0/5/0/0"
+    assert abstand["zustand_oid"] == "/1/14/0/1/66/0"
+    assert abstand["hysterese_vorgabe"] == 1.0
+    assert abstand["unit"] == "K"
+
+
+def test_ohne_warmwasser_entsteht_kein_abstand(client_module):
+    """Ein Heizkreis ohne Warmwasserfühler bekommt den Wert nicht."""
+    client = _heizkreis_mit_warmwasser(client_module)
+    client.devices = [d for d in client.devices if not d["oid"].endswith("/0/4/0")]
+    client._verbraucherabstand({})
+
+    assert not [d for d in client.devices if d["type"] == "ww_abstand"]

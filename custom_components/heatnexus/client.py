@@ -51,6 +51,7 @@ from .const import (
     UHR_TIMEOUT,
     UPDATE_INTERVAL,
     VERBINDUNG_TIMEOUT,
+    VERBRAUCHER_ABSTAND,
 )
 from .const import (
     ENUMS as ENUMS_FALLBACK,
@@ -1588,6 +1589,7 @@ class WindhagerHttpClient:
         self.zusatzkandidaten = []
         self._abgeleitete_zaehler()
         self._schaltpunkte(meta)
+        self._verbraucherabstand(meta)
         self._laufzeit()
         self._namen_vereindeutigen()
 
@@ -1745,6 +1747,54 @@ class WindhagerHttpClient:
                             unit="K",
                         )
                     )
+        self.devices.extend(neu)
+        for d in neu:
+            self.oids.add(d["oid"])
+
+    def _verbraucherabstand(self, meta: dict) -> None:
+        """Der Abstand bis zum nächsten Schaltpunkt eines Verbrauchers.
+
+        Entsteht nur, wo alle vier Adressen der Regel vorhanden sind — ein
+        Heizkreis ohne Warmwasserfühler bekommt den Wert nicht.
+        """
+        nach_praefix: dict[str, dict[str, dict]] = {}
+        for d in self.devices:
+            if not d.get("oid"):
+                continue
+            praefix = self._praefix_aus_oid(d["oid"])
+            if praefix:
+                nach_praefix.setdefault(praefix, {})[self._kennung_aus_oid(d["oid"])] = d
+
+        neu = []
+        for regel in VERBRAUCHER_ABSTAND:
+            for adressen in nach_praefix.values():
+                teile = {
+                    rolle: adressen.get(regel[rolle])
+                    for rolle in ("ist", "soll", "hysterese", "zustand")
+                }
+                if not all(teile.values()):
+                    continue
+                if teile["ist"].get("fct_type") != regel["fct_type"]:
+                    continue
+                gelesen = (meta.get(teile["hysterese"]["oid"]) or {}).get("value")
+                try:
+                    vorgabe = float(gelesen)
+                except (TypeError, ValueError):
+                    vorgabe = None
+                neu.append(
+                    self._ableitung(
+                        teile["ist"],
+                        "ww-abstand",
+                        "ww_abstand",
+                        "",
+                        name_ersetzen=str(regel["name"]),
+                        soll_oid=teile["soll"]["oid"],
+                        hysterese_oid=teile["hysterese"]["oid"],
+                        zustand_oid=teile["zustand"]["oid"],
+                        hysterese_vorgabe=vorgabe,
+                        unit="K",
+                    )
+                )
         self.devices.extend(neu)
         for d in neu:
             self.oids.add(d["oid"])
