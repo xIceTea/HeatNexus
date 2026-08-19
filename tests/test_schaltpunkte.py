@@ -142,13 +142,13 @@ def _ww_abstand(sensoren, werte, **felder):
     )
 
 
-def test_vor_der_anforderung_zaehlt_der_abstand_negativ(sensoren):
+def test_vor_der_anforderung_bleibt_der_abstand_positiv(sensoren):
     """Das Wasser muss erst unter Soll minus Hysterese fallen."""
     entity, _ = _ww_abstand(
         sensoren, {WW_IST: "50.2", WW_SOLL: "47.0", WW_HYST: "1.0", WW_PUMPE: "off"}
     )
 
-    assert entity.native_value == -4.2
+    assert entity.native_value == 4.2
 
 
 def test_waehrend_der_anforderung_zaehlt_er_positiv(sensoren):
@@ -160,22 +160,22 @@ def test_waehrend_der_anforderung_zaehlt_er_positiv(sensoren):
     assert entity.native_value == 1.4
 
 
-def test_am_ende_der_ladung_bleibt_er_bei_null(sensoren):
-    """Der Sollwert wird knapp überschritten – das ist Messtoleranz."""
+def test_am_ende_der_ladung_wird_er_negativ(sensoren):
+    """Der Sollwert ist überschritten, und das soll man sehen."""
     entity, _ = _ww_abstand(
         sensoren, {WW_IST: "49.6", WW_SOLL: "49.5", WW_HYST: "1.0", WW_PUMPE: "on"}
     )
 
-    assert entity.native_value == 0.0
+    assert entity.native_value == -0.1
 
 
-def test_vor_dem_anlauf_der_pumpe_bleibt_er_bei_null(sensoren):
+def test_vor_dem_anlauf_der_pumpe_wird_er_negativ(sensoren):
     """Zwischen Unterschreiten und Anlauf liegt ein Abrufintervall."""
     entity, _ = _ww_abstand(
         sensoren, {WW_IST: "45.5", WW_SOLL: "47.0", WW_HYST: "1.0", WW_PUMPE: "off"}
     )
 
-    assert entity.native_value == 0.0
+    assert entity.native_value == -0.5
 
 
 def test_ohne_sollwert_bleibt_er_leer(sensoren):
@@ -188,7 +188,7 @@ def test_ohne_pumpenwert_gilt_die_wartende_phase(sensoren):
     """Die harmlosere Annahme: Es wird nicht geladen."""
     entity, _ = _ww_abstand(sensoren, {WW_IST: "50.2", WW_SOLL: "47.0", WW_HYST: "1.0"})
 
-    assert entity.native_value == -4.2
+    assert entity.native_value == 4.2
 
 
 def test_die_pumpe_wird_als_rohwert_gelesen(sensoren):
@@ -244,3 +244,14 @@ def test_der_abstand_haelt_seinen_bezug_selbst(sensoren):
 
     assert entity.native_value == 18.5
     assert entity.extra_state_attributes["gehalten"] is True
+
+
+def test_beide_abstaende_zaehlen_gleich_herum(sensoren):
+    """Eine Automationsregel muss auf beide passen."""
+    puffer, _ = _abstand(sensoren, {TPE: "54.7", SOLLWERT: "59.5", HYSTERESE: "16"})
+    wasser, _ = _ww_abstand(
+        sensoren, {WW_IST: "50.7", WW_SOLL: "49.5", WW_HYST: "1.0", WW_PUMPE: "off"}
+    )
+
+    assert puffer.native_value > 0
+    assert wasser.native_value > 0

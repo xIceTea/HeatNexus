@@ -664,14 +664,17 @@ class WindhagerWarmwasserAbstandSensor(WindhagerEntity, SensorEntity):
         soll = _zahl(get_oid_value(self.coordinator, self._soll_oid))
         if ist is None or soll is None:
             return None
+        # Eine Regel für beide Abstände: Kelvin bis zum nächsten Schaltpunkt,
+        # negativ heißt überschritten. Während der Ladung ist das der Sollwert,
+        # davor der Sollwert abzüglich der Hysterese.
         if self._laedt:
-            return round(max(0.0, soll - ist), 1)
+            return round(soll - ist, 1)
         hysterese = _zahl(get_oid_value(self.coordinator, self._hysterese_oid))
         if hysterese is None:
             hysterese = self._hysterese_vorgabe
         if hysterese is None:
             return None
-        return round(min(0.0, (soll - hysterese) - ist), 1)
+        return round(ist - (soll - hysterese), 1)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
