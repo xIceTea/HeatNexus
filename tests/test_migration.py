@@ -282,3 +282,32 @@ def test_entitaet_ohne_geraet_wird_uebergangen(migration, hass):
     eintrag = _config_entry(hass)
     er.async_get(hass).async_get_or_create("sensor", DOMAIN, "SN1-3-0-0-7-0", config_entry=eintrag)
     assert migration._entity_ids_umstellen(hass, eintrag) == 0
+
+
+def test_die_angleichung_laeuft_auch_ohne_die_neuere_funktion(migration, hass):
+    """Ältere Fassungen kennen die eigene Kennung nicht als Ausnahme."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = _config_entry(hass)
+    geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-3-0")},
+        name="Beispielhaus · Musterkessel",
+    )
+    registry = er.async_get(hass)
+    entitaet = registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "SN1-3-0-0-7-0",
+        config_entry=eintrag,
+        device_id=geraet.id,
+        original_name="Kesseltemperatur Ist",
+        suggested_object_id="irgendwas_altes",
+    )
+
+    assert migration._entity_ids_umstellen(hass, eintrag) == 1
+    assert registry.async_get("sensor.beispielhaus_musterkessel_kesseltemperatur_ist") is not None
+    assert registry.async_get(entitaet.entity_id) is None

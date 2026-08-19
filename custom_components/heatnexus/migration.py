@@ -89,17 +89,27 @@ def _entitaeten_umstellen(
     return umgestellt
 
 
+def _freie_kennung(registry: er.EntityRegistry, eintrag: Any, gewuenscht: str) -> str:
+    """Eine freie ``entity_id`` vorschlagen, über die Fassungen hinweg.
+
+    Drei Bauarten sind im Umlauf: mit eigener Kennung als Ausnahme, ohne sie,
+    und unter neuem Namen. Ohne alle drei bricht die Angleichung beim Start.
+    """
+    if (neuere := getattr(registry, "async_get_available_entity_id", None)) is not None:
+        return neuere(eintrag.domain, gewuenscht, current_entity_id=eintrag.entity_id)
+    try:
+        return registry.async_generate_entity_id(
+            eintrag.domain, gewuenscht, current_entity_id=eintrag.entity_id
+        )
+    except TypeError:
+        return registry.async_generate_entity_id(eintrag.domain, gewuenscht)
+
+
 def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
     """Entitäts-IDs auf das Schema „Gerät + Datenpunkt" bringen.
 
-    Ohne ``has_entity_name`` vergab Home Assistant die ``entity_id`` aus dem
-    Gerätenamen, wie er beim allerersten Anlegen aussah. Über die Zeit ergab
-    das ein Durcheinander: ``sensor.heizhaus_hebebuhne_meldung`` neben
-    ``sensor.b_plmi_puffer_meldung_4``. Hier wird einmalig aufgeräumt.
-
-    Umbenannt wird nur, wenn der Zielname frei ist. Eine Entität, die der
-    Nutzer selbst umbenannt hat (``name`` gesetzt), bleibt unangetastet –
-    dort steckt eine bewusste Entscheidung drin.
+    Umbenannt wird nur bei freiem Zielnamen; eine vom Nutzer benannte Entität
+    bleibt unangetastet, dort steckt eine Entscheidung drin.
     """
     registry = er.async_get(hass)
     geraete = dr.async_get(hass)
@@ -118,13 +128,7 @@ def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
         # `async_generate_entity_id` ist seit HA 2027.2 abgekündigt; die neue
         # Funktion heißt anders und gibt es in älteren Fassungen noch nicht.
         # Deshalb erst die neue versuchen, dann die alte.
-        gewuenscht = " ".join(t for t in teile if t)
-        if (neuere := getattr(registry, "async_get_available_entity_id", None)) is not None:
-            vorschlag = neuere(eintrag.domain, gewuenscht, current_entity_id=eintrag.entity_id)
-        else:
-            vorschlag = registry.async_generate_entity_id(
-                eintrag.domain, gewuenscht, current_entity_id=eintrag.entity_id
-            )
+        vorschlag = _freie_kennung(registry, eintrag, " ".join(t for t in teile if t))
         if vorschlag == eintrag.entity_id:
             continue
         # Ein angehängter Zähler heißt: Der eigentliche Name ist belegt. Dann
