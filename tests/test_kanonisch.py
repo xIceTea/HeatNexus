@@ -180,3 +180,19 @@ def test_ein_funktionsblock_darf_start_heissen(kanonisch):
     # Ohne Entsprechung im Rumpf bleibt es beim ungekürzten Namen: kein
     # Schlüssel ist besser als der falsche.
     assert kanonisch.schluessel("0000ABCD1234-nv-32-0-unbekannt-start") is None
+
+
+def test_ein_abstand_traegt_nicht_den_schluessel_seines_messwerts(kanonisch):
+    """Sonst stünde er dort, wo die Oberfläche die Temperatur sucht."""
+    assert (
+        kanonisch.schluessel("0000ABCD1234-1-21-65-0-schaltpunkt-abstand")
+        == "buffer_top_switch_delta"
+    )
+    assert kanonisch.schluessel("0000ABCD1234-0-0-4-0-ww-abstand") == "dhw_temperature_switch_delta"
+
+
+def test_eine_ableitung_ist_als_solche_erkennbar(kanonisch):
+    """Die festen Listen der Oberfläche übergehen sie daran."""
+    assert kanonisch.ist_ableitung("0000ABCD1234-0-0-4-0-ww-abstand")
+    assert kanonisch.ist_ableitung("0000ABCD1234-0-2-81-0-heute")
+    assert not kanonisch.ist_ableitung("0000ABCD1234-0-0-4-0")

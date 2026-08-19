@@ -132,6 +132,7 @@ def _warmwasser(entitaeten: list[dict[str, Any]]) -> list[dict[str, str]]:
         for e in entitaeten
         if e["kategorie"] is None
         and e["bereich"] != "climate"
+        and not e.get("abgeleitet")
         and _trifft(e, WARMWASSER, *WARMWASSER_SCHLUESSEL)
     ][:WARMWASSER_MAX]
 

@@ -745,3 +745,22 @@ def test_wartung_zaehlt_tageswerte_zu_den_zaehlerstaenden(panel):
         "Laufzeit heute",
     ]
     assert not wartung["weitere"]
+
+
+def test_ein_abstand_verdraengt_die_warmwassertemperatur_nicht(panel, kessel_und_heizkreis):
+    """Dazugewählte Ableitungen gehören nicht in die feste Karte.
+
+    Der Abstand sitzt auf der Adresse des Messwerts und trägt „Warmwasser" im
+    Namen; ohne die Kennzeichnung stünde er an dessen Stelle.
+    """
+    for anlagenteil in kessel_und_heizkreis["teile"]:
+        if anlagenteil["fct_type"] != 14:
+            continue
+        anlagenteil["entitaeten"].insert(
+            0, entitaet("sensor.abstand_warmwasser", "Abstand Warmwasser", abgeleitet=True)
+        )
+
+    namen = [w["titel"] for w in panel._anlage_daten(kessel_und_heizkreis)["warmwasser"]]
+
+    assert "Abstand Warmwasser" not in namen
+    assert "Warmwasser Ist-Temperatur" in namen

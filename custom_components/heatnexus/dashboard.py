@@ -39,7 +39,7 @@ from .const import (
     KESSELART_AUTO,
     KESSELWERT_LEISTUNG,
 )
-from .kanonisch import gnmn
+from .kanonisch import gnmn, ist_ableitung
 from .kanonisch import schluessel as kanonischer_schluessel
 from .schema import anlagenschema, kesselart_erkennen
 from .symbole import symbol_je_fct
@@ -438,6 +438,9 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
                 # Ebenenlisten der Geräte-Datenbank – dort steht auch für
                 # Baureihen etwas, für die es hier kein Namensmuster gibt.
                 "adresse": gnmn(eintrag.unique_id),
+                # Dazugewählte Ableitung statt eines Messwerts der Anlage. Die
+                # festen Listen der Oberfläche übergehen sie.
+                "abgeleitet": ist_ableitung(eintrag.unique_id),
                 "kategorie": eintrag.entity_category,
                 "bereich": eintrag.entity_id.split(".")[0],
                 "hat_wert": hat_wert,

@@ -162,6 +162,9 @@ def gnmn(unique_id: str | None) -> str | None:
 ZUSATZ_SCHLUESSEL: dict[str, str] = {
     "laufzeit-heute": "runtime_today",
     "laufzeit": "runtime",
+    "schaltpunkt-abstand": "switch_delta",
+    "ww-abstand": "switch_delta",
+    "schaltpunkt": "switch_point",
     "heute": "today",
     "start": "since_start",
 }
@@ -174,6 +177,15 @@ def _zerlegen(unique_id: str | None) -> tuple[str | None, str | None]:
         if kennung.endswith(f"-{zusatz}"):
             return kennung[: -len(zusatz) - 1], zusatz
     return unique_id, None
+
+
+def ist_ableitung(unique_id: str | None) -> bool:
+    """Ob die Kennung einen abgeleiteten Wert nennt.
+
+    Abgeleitete Werte sind dazuwählbar und gehören nicht in die festen Listen
+    der Oberfläche: Sie säßen dort auf dem Platz eines Messwerts der Anlage.
+    """
+    return _zerlegen(unique_id)[1] is not None
 
 
 def schluessel(unique_id: str | None) -> str | None:
