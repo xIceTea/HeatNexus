@@ -251,6 +251,10 @@ class WindhagerAbleitungSensor(WindhagerEntity, SensorEntity):
     """
 
     _attr_state_class = SensorStateClass.TOTAL
+    # Der Bezugspunkt steht in den Attributen, und Home Assistant schreibt
+    # Attribute nur, solange eine Entität verfügbar ist. Ohne dies verlöre sie
+    # ihn, sobald die Anlage einen Abruf lang keinen Wert liefert.
+    _require_value_for_available = False
 
     def __init__(self, coordinator: Any, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
