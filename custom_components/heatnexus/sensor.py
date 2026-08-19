@@ -24,7 +24,7 @@ from .const import ERROR_TEXTS
 from .entity import MeldungsQuelle, WindhagerEntity, async_setup_entities
 from .error_texts import parse_messages
 from .exceptions import WindhagerValueError
-from .helpers import get_oid_value
+from .helpers import get_oid_raw, get_oid_value
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -115,6 +115,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "zaehler_start": WindhagerAbleitungSensor,
             "schaltpunkt": WindhagerSchaltpunktSensor,
             "schaltpunkt_abstand": WindhagerSchaltpunktAbstandSensor,
+            "ww_abstand": WindhagerWarmwasserAbstandSensor,
             "laufzeit": WindhagerLaufzeitSensor,
             "laufzeit_heute": WindhagerLaufzeitSensor,
         },
@@ -541,6 +542,76 @@ class WindhagerSchaltpunktAbstandSensor(WindhagerEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Woraus sich der Abstand ergibt."""
         return {"gemessen": self.float_value, "schaltpunkt": self._schaltpunkt}
+
+
+class WindhagerWarmwasserAbstandSensor(WindhagerEntity, SensorEntity):
+    """Abstand bis zum nächsten Schaltpunkt der Warmwasserbereitung.
+
+    Negativ, solange das Wasser noch abkühlen muss, positiv während der
+    Ladung. Die Null ist in beiden Richtungen der Schaltpunkt.
+    """
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "K"
+    _attr_suggested_display_precision = 1
+    # Ohne Sollwert bleibt der Wert leer, die Entität aber bedienbar.
+    _require_value_for_available = False
+
+    def __init__(self, coordinator: Any, device_info: dict) -> None:
+        super().__init__(coordinator, device_info)
+        self._soll_oid = device_info.get("soll_oid")
+        self._hysterese_oid = device_info.get("hysterese_oid")
+        self._zustand_oid = device_info.get("zustand_oid")
+        self._hysterese_vorgabe = _zahl(device_info.get("hysterese_vorgabe"))
+
+    async def async_added_to_hass(self) -> None:
+        """Die drei Hilfsadressen mit abrufen."""
+        await super().async_added_to_hass()
+        for oid in (self._soll_oid, self._hysterese_oid, self._zustand_oid):
+            if oid:
+                self.coordinator.client.register_poll_oid(oid)
+
+    async def async_will_remove_from_hass(self) -> None:
+        for oid in (self._soll_oid, self._hysterese_oid, self._zustand_oid):
+            if oid:
+                self.coordinator.client.unregister_poll_oid(oid)
+        await super().async_will_remove_from_hass()
+
+    @property
+    def _laedt(self) -> bool:
+        """Ob die Ladepumpe läuft. Ohne Wert gilt die wartende Phase.
+
+        Der Rohwert, nicht die Zahl: Die Anlage meldet `0`/`1`, und daraus
+        eine Fließkommazahl zu machen verlöre den Vergleich.
+        """
+        roh = get_oid_raw(self.coordinator, self._zustand_oid)
+        if roh is None:
+            return False
+        return str(roh).strip().lower() in ("1", "on", "true", "ja")
+
+    @property
+    def native_value(self) -> float | None:
+        ist = self.float_value
+        soll = _zahl(get_oid_value(self.coordinator, self._soll_oid))
+        if ist is None or soll is None:
+            return None
+        if self._laedt:
+            return round(max(0.0, soll - ist), 1)
+        hysterese = _zahl(get_oid_value(self.coordinator, self._hysterese_oid))
+        if hysterese is None:
+            hysterese = self._hysterese_vorgabe
+        if hysterese is None:
+            return None
+        return round(min(0.0, (soll - hysterese) - ist), 1)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Woraus sich der Abstand ergibt."""
+        return {
+            "ist": self.float_value,
+            "soll": _zahl(get_oid_value(self.coordinator, self._soll_oid)),
+            "laedt": self._laedt,
+        }
 
 
 class WindhagerErrorTextSensor(WindhagerEntity, SensorEntity):
