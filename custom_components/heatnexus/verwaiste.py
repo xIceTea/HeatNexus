@@ -48,17 +48,43 @@ def abzug_steht(coordinators: dict) -> bool:
 
 
 @callback
+def erwartete_domaenen(coordinators: dict) -> dict[str, str]:
+    """Kennung -> Domäne, in der sie heute entsteht.
+
+    Nur für Arten, deren Plattform schon angelegt ist. Was `TYP_DOMAENE` noch
+    nicht kennt, bleibt draußen – sonst gälte es beim ersten Start als verwaist.
+    """
+    from .entity import TYP_DOMAENE
+
+    return {
+        beschreibung.get("id"): TYP_DOMAENE[beschreibung["type"]]
+        for coordinator in coordinators.values()
+        for beschreibung in (coordinator.data or {}).get("devices", [])
+        if beschreibung.get("id") and beschreibung.get("type") in TYP_DOMAENE
+    }
+
+
+@callback
 def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[er.RegistryEntry]:
-    """Alle Einträge des Eintrags, deren Kennung im Bestand fehlt."""
+    """Einträge, deren Kennung fehlt oder in einer anderen Domäne steht.
+
+    Der Plattformwechsel eines Datenpunkts lässt die alte Zeile stehen: Die
+    Kennung gibt es weiter, nur unter `switch.` statt `sensor.`.
+    """
     if not coordinators or not abzug_steht(coordinators):
         return []
     bekannt = bekannte_kennungen(coordinators)
+    domaenen = erwartete_domaenen(coordinators)
     registry = er.async_get(hass)
-    return [
-        eintrag
-        for eintrag in er.async_entries_for_config_entry(registry, entry.entry_id)
-        if eintrag.unique_id not in bekannt
-    ]
+    verwaist = []
+    for eintrag in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if eintrag.unique_id not in bekannt:
+            verwaist.append(eintrag)
+            continue
+        erwartet = domaenen.get(eintrag.unique_id)
+        if erwartet and eintrag.domain != erwartet:
+            verwaist.append(eintrag)
+    return verwaist
 
 
 @callback

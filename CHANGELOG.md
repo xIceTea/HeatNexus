@@ -27,6 +27,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Störung 338 nennt jetzt auch die Abhilfe.
 - Tageswerte und Zähler verlieren ihren Bezugspunkt nicht mehr.
 - Der Kaminkehrer zeigt seine Restlaufzeit in Minuten.
+- Wechselt ein Wert die Plattform, wird die alte Zeile als verwaist erkannt.
 
 ## [1.10.0-beta.2] - 2026-08-18
 

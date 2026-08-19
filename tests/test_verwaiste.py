@@ -231,3 +231,44 @@ async def test_eine_fremde_kennung_bekommt_keinen_ablauf(hass):
 
     with _pytest.raises(ValueError):
         await repairs.async_create_fix_flow(hass, "irgendein_anderer_hinweis", {})
+
+
+# Wechselt ein Datenpunkt die Plattform, bleibt die Zeile der alten Domäne
+# liegen: Die Kennung steht weiter im Bestand, nur unter `switch.` statt
+# `sensor.`. Ohne Domänenvergleich sieht der Reparatureintrag sie nie.
+def test_eine_zeile_der_falschen_domaene_gilt_als_verwaist(modul, hass):
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.entity import TYP_DOMAENE
+
+    TYP_DOMAENE["sensor"] = "sensor"
+    eintrag = MockConfigEntry(domain=DOMAIN, title="HeatNexus", data={}, options={})
+    eintrag.add_to_hass(hass)
+    registry = er.async_get(hass)
+    alt = registry.async_get_or_create("switch", DOMAIN, "SN1-0-0-9-90-0", config_entry=eintrag)
+    neu = registry.async_get_or_create("sensor", DOMAIN, "SN1-0-0-9-90-0", config_entry=eintrag)
+
+    koordinator = SimpleNamespace(
+        data={"devices": [{"id": "SN1-0-0-9-90-0", "type": "sensor", "enabled_default": True}]},
+        client=SimpleNamespace(_vollstaendig=True),
+    )
+    gefunden = [e.entity_id for e in modul.finden(hass, eintrag, {"a": koordinator})]
+
+    assert alt.entity_id in gefunden
+    assert neu.entity_id not in gefunden
+
+
+def test_ein_unbekannter_typ_gilt_nicht_als_verwaist(modul, hass):
+    """Ist die Plattform noch nicht angelegt, wird nichts unterstellt."""
+    from custom_components.heatnexus.entity import TYP_DOMAENE
+
+    TYP_DOMAENE.pop("kuenftig", None)
+    eintrag, _entitaet = _eintrag_mit_entitaet(hass, "SN1-0-0-7-0")
+    koordinator = SimpleNamespace(
+        data={"devices": [{"id": "SN1-0-0-7-0", "type": "kuenftig", "enabled_default": True}]},
+        client=SimpleNamespace(_vollstaendig=True),
+    )
+
+    assert not modul.finden(hass, eintrag, {"a": koordinator})

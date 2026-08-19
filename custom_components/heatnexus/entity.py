@@ -60,6 +60,11 @@ NUR_LESEND = {
 }
 
 
+# Welche Domäne eine Art von Datenpunkt bekommt. Wird beim Anlegen der
+# Plattformen gefüllt, damit die Zuordnung nicht doppelt gepflegt wird.
+TYP_DOMAENE: dict[str, str] = {}
+
+
 @callback
 def async_setup_entities(
     hass: HomeAssistant,
@@ -73,6 +78,10 @@ def async_setup_entities(
     vollständige Abzug der Anlage läuft im Hintergrund weiter. Sobald er
     fertig ist, werden die zusätzlich gefundenen Entitäten nachgereicht.
     """
+    # Die Klasse steht in der Datei ihrer Plattform – daraus kommt die Domäne.
+    for typ, klasse in klassen.items():
+        TYP_DOMAENE[typ] = klasse.__module__.rsplit(".", 1)[-1]
+
     coordinators = entry.runtime_data["coordinators"]
     bekannt: set[str] = set()
 
