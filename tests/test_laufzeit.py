@@ -35,7 +35,7 @@ def _laufzeit(sensoren, wert, typ="laufzeit"):
         {PHASE: wert},
         oid=PHASE,
         type=typ,
-        name="Laufzeit aktuell",
+        name="Laufzeit",
         laufphasen=[5, 6, 7, 8, 15, 16, 17],
     )
     return entity, koordinator
@@ -162,7 +162,7 @@ def test_die_betriebsphase_bekommt_zwei_laufzeiten(client):
     client._laufzeit()
     neue = {d["id"]: d for d in client.devices if str(d.get("type", "")).startswith("laufzeit")}
     assert set(neue) == {"SN1-phase-laufzeit", "SN1-phase-laufzeit-heute"}
-    assert neue["SN1-phase-laufzeit"]["name"] == "Laufzeit aktuell"
+    assert neue["SN1-phase-laufzeit"]["name"] == "Laufzeit"
     assert neue["SN1-phase-laufzeit"]["laufphasen"] == [5, 6, 7, 8, 15, 16, 17]
     assert all(d["enabled_default"] is False for d in neue.values())
 

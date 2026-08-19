@@ -21,6 +21,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 - „Karten anordnen" heißt „Ansicht bearbeiten" und nennt Spalten und Farben.
 - „Ladung ab" heißt „Letzte Einschalttemperatur".
+- „Laufzeit aktuell" heißt „Laufzeit" – sie zeigt auch den letzten Lauf.
 
 ### Behoben
 

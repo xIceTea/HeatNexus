@@ -1865,7 +1865,7 @@ class WindhagerHttpClient:
 
     # Endung der Kennung -> Name des Werts, der daraus entsteht.
     _LAUFZEITEN = {
-        "laufzeit": "Laufzeit aktuell",
+        "laufzeit": "Laufzeit",
         "laufzeit-heute": "Laufzeit heute",
     }
 

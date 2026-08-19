@@ -33,7 +33,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       </div>
       <dl class="werte">
         <div class="zeile"><dt>Betriebszustand</dt><dd class="zustand">Modulation</dd></div>
-        <div class="zeile"><dt>Laufzeit aktuell</dt><dd class="zahl">214 Min.</dd></div>
+        <div class="zeile"><dt>Laufzeit</dt><dd class="zahl">214 Min.</dd></div>
         <div class="zeile"><dt>Außentemperatur</dt><dd class="zahl">2,6 °C</dd></div>
         <div class="zeile"><dt>Kesselleistung</dt><dd class="last">82 %</dd></div>
         <div class="zeile"><dt>Brennkammertemperatur</dt><dd class="zahl">738,4 °C</dd></div>

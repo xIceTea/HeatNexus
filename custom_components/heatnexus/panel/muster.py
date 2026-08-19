@@ -71,8 +71,8 @@ STATUS: tuple[Zeile, ...] = (
     # Sie zählt mit, solange das Aggregat läuft, und bleibt danach als Dauer
     # des letzten Laufs stehen.
     (
-        r"^laufzeit aktuell$",
-        "Laufzeit aktuell",
+        r"^laufzeit(?: aktuell)?$",
+        "Laufzeit",
         "mdi:timer-play-outline",
         ("operating_phase_runtime",),
     ),
