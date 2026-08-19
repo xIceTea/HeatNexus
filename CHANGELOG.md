@@ -35,6 +35,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Reparatureintrag findet auch Zeilen, die die Plattform gewechselt haben.
 - Dazugewählte Werte erscheinen sofort, nicht erst beim nächsten Laden.
 - Eine teilweise gewählte Gruppe verliert beim Bestätigen nichts mehr.
+- Wartungszähler behalten ihre Tages- und Startwerte.
+- Die Diagnose zählt verwaiste Zeilen wie der Reparatureintrag.
 
 ## [1.10.0-beta.2] - 2026-08-18
 
