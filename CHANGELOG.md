@@ -15,6 +15,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Brennstoffart kennt zusätzlich Hackgut trocken.
 - Neuer Wert je Puffer: Abstand bis zur nächsten Ladung in Kelvin.
 - Neuer Wert: Abstand bis zum nächsten Schaltpunkt der Warmwasserbereitung.
+- Schaltpunkte und Abstände lassen sich in den Optionen dazuwählen.
 
 ### Geändert
 
@@ -29,6 +30,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Tageswerte und Zähler verlieren ihren Bezugspunkt nicht mehr.
 - Der Kaminkehrer zeigt seine Restlaufzeit in Minuten.
 - Wechselt ein Wert die Plattform, wird die alte Zeile als verwaist erkannt.
+- Tageswerte stehen im Panel bei den Zählerständen.
 
 ## [1.10.0-beta.2] - 2026-08-18
 

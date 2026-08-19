@@ -32,9 +32,11 @@ CONF_ZUSATZGRUPPEN = "zusatzgruppen"
 GRUPPE_LAUFZEIT = "laufzeit"
 GRUPPE_ZAEHLER = "zaehler"
 GRUPPE_INDIVIDUELL = "individuell"
+GRUPPE_SCHALTPUNKT = "schaltpunkt"
 ZUSATZGRUPPEN = {
     GRUPPE_LAUFZEIT: "Laufzeit",
     GRUPPE_ZAEHLER: "Zähler",
+    GRUPPE_SCHALTPUNKT: "Schaltpunkte",
 }
 # Ob der LON-Adressraum überhaupt gelesen wird. Er lohnt sich, wo der
 # OID-Raum dünn ist (BioWIN: 49 Werte ohne Entsprechung) und kaum, wo er

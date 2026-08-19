@@ -401,3 +401,30 @@ def test_ohne_warmwasser_entsteht_kein_abstand(client_module):
     client._verbraucherabstand({})
 
     assert not [d for d in client.devices if d["type"] == "ww_abstand"]
+
+
+def test_schaltpunkte_sind_in_den_optionen_waehlbar(client_module):
+    """Ohne Gruppe erschienen sie in keiner Auswahl und blieben für immer aus."""
+    client = _puffer_mit_sollwert(client_module)
+    client._schaltpunkte({})
+
+    abgeleitet = [d for d in client.devices if d["type"] in ("schaltpunkt", "schaltpunkt_abstand")]
+    assert abgeleitet
+    assert all(d.get("gruppe") for d in abgeleitet)
+    assert all(d["id"] in {k["id"] for k in client.zusatzkandidaten} for d in abgeleitet)
+
+
+def test_ein_angekreuzter_schaltpunkt_entsteht_eingeschaltet(client_module):
+    client = _puffer_mit_sollwert(client_module)
+    client._schaltpunkte({})
+    kennung = next(d["id"] for d in client.devices if d["type"] == "schaltpunkt_abstand")
+
+    client.devices = [
+        d for d in client.devices if d["type"] not in ("schaltpunkt", "schaltpunkt_abstand")
+    ]
+    client.zusatzkandidaten = []
+    client.zusatzwerte = {kennung}
+    client._schaltpunkte({})
+
+    gewaehlt = next(d for d in client.devices if d["id"] == kennung)
+    assert gewaehlt["enabled_default"] is True

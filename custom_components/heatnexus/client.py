@@ -29,6 +29,7 @@ from .const import (
     FETCH_CONCURRENCY,
     FINGERABDRUCK_MIN_TREFFER,
     GRUPPE_LAUFZEIT,
+    GRUPPE_SCHALTPUNKT,
     GRUPPE_ZAEHLER,
     LAUFPHASEN,
     MENU_PAGE_SIZE,
@@ -1727,6 +1728,7 @@ class WindhagerHttpClient:
                         hysterese_vorgabe=vorgabe,
                         unit="°C",
                         device_class="temperature",
+                        gruppe=GRUPPE_SCHALTPUNKT,
                     )
                 )
                 # Der Abstand hängt an der gemessenen Temperatur, nicht am
@@ -1745,9 +1747,10 @@ class WindhagerHttpClient:
                             anteil=regel["anteil"],
                             hysterese_vorgabe=vorgabe,
                             unit="K",
+                            gruppe=GRUPPE_SCHALTPUNKT,
                         )
                     )
-        self.devices.extend(neu)
+        self._zusatzwerte_uebernehmen(neu)
         for d in neu:
             self.oids.add(d["oid"])
 
@@ -1793,9 +1796,10 @@ class WindhagerHttpClient:
                         zustand_oid=teile["zustand"]["oid"],
                         hysterese_vorgabe=vorgabe,
                         unit="K",
+                        gruppe=GRUPPE_SCHALTPUNKT,
                     )
                 )
-        self.devices.extend(neu)
+        self._zusatzwerte_uebernehmen(neu)
         for d in neu:
             self.oids.add(d["oid"])
 
@@ -1898,6 +1902,9 @@ class WindhagerHttpClient:
         "zaehler_start",
         "laufzeit",
         "laufzeit_heute",
+        "schaltpunkt",
+        "schaltpunkt_abstand",
+        "ww_abstand",
     )
 
     def _zusatzwerte_uebernehmen(self, kandidaten: list[dict]) -> None:

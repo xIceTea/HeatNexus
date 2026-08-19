@@ -724,3 +724,24 @@ def test_die_karte_traegt_ihre_fassung_im_pfad():
     assert alt != neu
     assert "?" not in neu
     assert neu.startswith(f"{KARTE_VERZEICHNIS}-1-10-0/")
+
+
+def test_wartung_zaehlt_tageswerte_zu_den_zaehlerstaenden(panel):
+    """Ein Tageswert ist ein Zählerstand; er trägt nur `total` statt `total_increasing`."""
+    anlagenteil = teil(
+        "PuroWIN",
+        25,
+        [
+            entitaet("sensor.betriebsstunden", "Betriebsstunden", state_class="total_increasing"),
+            entitaet("sensor.starts_heute", "Brennerstarts heute", state_class="total"),
+            entitaet("sensor.laufzeit_heute", "Laufzeit heute", state_class="total"),
+        ],
+    )
+    wartung = panel._anlage_daten(anlage(anlagenteil))["wartung"]
+
+    assert [z["titel"] for z in wartung["zaehler"]] == [
+        "Betriebsstunden",
+        "Brennerstarts heute",
+        "Laufzeit heute",
+    ]
+    assert not wartung["weitere"]

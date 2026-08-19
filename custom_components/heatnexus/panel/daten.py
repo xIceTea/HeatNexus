@@ -535,13 +535,15 @@ def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:
             )
         ),
         # Zählerstände erkennt man an der Statistikklasse, nicht am Namen.
-        "zaehler": zeilen(lambda e: e.get("state_class") == "total_increasing"),
+        # `total` gehört dazu: Ein Tageswert ist ein Zählerstand, er beginnt
+        # nur jeden Tag neu.
+        "zaehler": zeilen(lambda e: e.get("state_class") in ("total_increasing", "total")),
         "weitere": zeilen(
             lambda e: (
                 _trifft(e, WARTUNG_WEITERE, *WARTUNG_WEITERE_SCHLUESSEL)
                 and not _trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
                 and not _trifft(e, WARTUNG_BRENNSTOFF, *WARTUNG_BRENNSTOFF_SCHLUESSEL)
-                and e.get("state_class") != "total_increasing"
+                and e.get("state_class") not in ("total_increasing", "total")
             )
         ),
     }
