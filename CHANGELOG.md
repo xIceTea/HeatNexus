@@ -8,6 +8,15 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [1.10.0-beta.3] - 2026-08-19
 
+### Beim Aktualisieren
+
+- Mehrere Werte heißen neu; ihre Entitäts-IDs ändern sich beim ersten Start mit.
+- Automationen und Karten mit einer alten ID funktionieren danach nicht mehr.
+- Entitäten mit einem selbst vergebenen Namen behalten ihre ID.
+- Der Kaminkehrer ist jetzt ein Sensor statt ein Schalter.
+- Entitäten ohne Datenpunkt lassen sich über den Reparatureintrag entfernen.
+- Neue Schaltpunkte und Abstände erscheinen, wenn die Optionen einmal bestätigt werden.
+
 ### Neu
 
 - Nach einem Neustart stehen die Werte sofort, sofern sie jung genug sind.
