@@ -15,9 +15,9 @@ Neuerungen gegenüber 1.9.1.
 
 ### Beim Aktualisieren
 
-- Mehrere Werte heißen neu; ihre Entitäts-IDs ändern sich beim ersten Start mit.
+- Mehrere Werte heißen neu; die Entitäts-IDs ändern sich beim ersten Start mit.
 - Automationen und Karten mit einer alten ID funktionieren danach nicht mehr.
-- Entitäten mit einem selbst vergebenen Namen behalten ihre ID.
+- Eine selbst benannte Entität behält die bisherige ID.
 - Der Kaminkehrer ist jetzt ein Sensor statt ein Schalter.
 - Entitäten ohne Datenpunkt lassen sich über den Reparatureintrag entfernen.
 - Neue Schaltpunkte und Abstände erscheinen, wenn die Optionen einmal bestätigt werden.
@@ -55,7 +55,7 @@ Neuerungen gegenüber 1.9.1.
 - „Mischer Kessel" heißt „Rücklaufhochhaltung Stellwert", die Entitäts-ID folgt.
 - „Laufzeit aktuell" heißt „Laufzeit Zyklus" und zeigt auch den letzten Lauf.
 - „Hysterese Ein" heißt „WW-Hysterese Ein", die Entitäts-ID folgt.
-- „Dauer" und „Temperatur" heißen jetzt nach ihrer Funktion Eco/Comfort.
+- „Dauer" und „Temperatur" heißen nach der Funktion Eco/Comfort.
 
 ### Behoben
 
@@ -68,8 +68,8 @@ Neuerungen gegenüber 1.9.1.
 - „Brennerkammertemperatur" heißt richtig „Brennkammertemperatur".
 - Störung 338 nennt jetzt auch die Abhilfe.
 - Der Kaminkehrer zeigt seine Restlaufzeit in Minuten.
-- Tageswerte, Zähler und Laufzeiten verlieren ihren Bezugspunkt nicht mehr.
-- Wartungszähler behalten ihre Tages- und Startwerte.
+- Tageswerte, Zähler und Laufzeiten behalten den Bezugspunkt.
+- Wartungszähler behalten Tages- und Startwerte.
 - Tageswerte stehen im Panel bei den Zählerständen.
 - Wechselt ein Wert die Plattform, wird die alte Zeile als verwaist erkannt.
 - Die Diagnose zählt verwaiste Zeilen wie der Reparatureintrag.
