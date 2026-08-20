@@ -1,6 +1,6 @@
 # Regelung
 
-Warum wird der Kessel auf 74 °C geheizt, wenn für den Puffer 59 °C eingestellt
+Warum wird der Kessel auf 76 °C geheizt, wenn für den Puffer 60 °C eingestellt
 sind? Warum bleibt die Pufferladung aus, obwohl unten nur 40 °C gemessen werden?
 
 Die Anlage zeigt viele Temperaturen, aber nicht, wie sie zusammenhängen.
@@ -173,9 +173,9 @@ Messwert; in HeatNexus erscheint es als Ja/Nein-Sensor.
 Kesseltemperatur wird daraus mit der **vollen** Hysterese berechnet:
 
 ```
-Solltemperatur ext. Wärmeanforderung   16/9/57    57 °C
-+ Hysterese                            16/9/35   +17 K
-= Analog-Sollwert am ZSP               20/0/95    74 °C
+Solltemperatur ext. Wärmeanforderung   16/9/57    60 °C
++ Hysterese                            16/9/35   +16 K
+= Analog-Sollwert am ZSP               20/0/95    76 °C
 ```
 
 Beide Seiten rechnen also unterschiedlich. Auf der anfordernden Seite beginnt
