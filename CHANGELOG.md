@@ -27,7 +27,7 @@ Abschnitt nennt die Neuerungen gegenüber 1.9.1.
 ### Neu
 
 - Lovelace-Karte: Werteliste mit Name links, Wert rechts und Anlagenteil darunter.
-- Lovelace-Karte: Aufbau der Zeilen wählbar, auch kompakt in einer Zeile.
+- Lovelace-Karte: Zeilenaufbau wählbar, auch kompakt nebeneinander.
 - Lovelace-Karte: Name, Anlagenteil, Symbol, Farbe, Einheit und Klick je Wert einstellbar.
 - Lovelace-Karte: beliebige Sensoren in einem zusätzlichen Abschnitt der Werteliste.
 - Lovelace-Karte: Reihenfolge der Werte per Ziehen änderbar.
