@@ -6,7 +6,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [1.10.0-beta.3] - 2026-08-19
+## [1.10.0] - 2026-08-20
+
+Eine frei aufgebaute Werteliste in der Karte, die Schaltpunkte der Regelung als
+eigene Werte und ein Start, der die Werte sofort zeigt. Die Abschnitte der drei
+Vorabversionen darunter führen jede Änderung einzeln auf; hier stehen die
+Neuerungen gegenüber 1.9.1.
 
 ### Beim Aktualisieren
 
@@ -16,6 +21,66 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Kaminkehrer ist jetzt ein Sensor statt ein Schalter.
 - Entitäten ohne Datenpunkt lassen sich über den Reparatureintrag entfernen.
 - Neue Schaltpunkte und Abstände erscheinen, wenn die Optionen einmal bestätigt werden.
+
+### Neu
+
+- Werteliste der Karte: Name links, Wert rechts, Anlagenteil darunter.
+- Aufbau der Zeilen wählbar, auch kompakt in einer Zeile.
+- Je Wert Name, Anlagenteil, Symbol, Farbe, Einheit und Klick einstellbar.
+- Eigene Sensoren in der Werteliste, in einem eigenen Abschnitt.
+- Reihenfolge der Werte per Ziehen änderbar.
+- Pumpen und Mischer im Schaubild abschaltbar.
+- Bauteilzeichnung je Anlagenteil wählbar.
+- Überschriften der Karte änderbar oder ausblendbar.
+- Der Wärmeübergabepunkt zeigt im Schaubild an, dass er Wärme abgibt.
+- Neue Werte je Puffer: Einschaltpunkt, Anforderungstemperatur und Abstand dazu.
+- Neue Werte je Warmwasserkreis: WW-Einschaltpunkt und sein Abstand.
+- Schaltpunkte und Abstände lassen sich in den Optionen dazuwählen.
+- Neue Taste: Kaminkehrerfunktion starten, mit Abfrage der Leistung.
+- Reparatureintrag entfernt auf Wunsch Entitäten ohne Datenpunkt.
+- Nach einem Neustart stehen die Werte sofort, sofern sie jung genug sind.
+- Einstellbar, wie alt übernommene Startwerte höchstens sein dürfen.
+- Brennstoffart kennt zusätzlich Hackgut trocken.
+
+### Geändert
+
+- Die Karte richtet die Höhe nach dem Inhalt.
+- Alle Zeilen der Werteliste sind gleich hoch.
+- Pumpenmarke und Leitung behalten auf schmalen Anzeigen ihr Größenverhältnis.
+- Das Puffermodul zeigt nur noch, was seine Modulfunktion auch schaltet.
+- Schaltausgänge erscheinen als Ja/Nein statt als Zahl 0 oder 1.
+- Datenpunkte ohne Aufgabe an der Anlage werden nicht mehr angelegt.
+- Die Anleitung erklärt die Regelungslogik mit Beispielen.
+- „Karten anordnen" heißt „Ansicht bearbeiten" und nennt Spalten und Farben.
+- „Mischer Kessel" heißt „Rücklaufhochhaltung Stellwert", die Entitäts-ID folgt.
+- „Laufzeit aktuell" heißt „Laufzeit Zyklus" und zeigt auch den letzten Lauf.
+- „Hysterese Ein" heißt „WW-Hysterese Ein", die Entitäts-ID folgt.
+- „Dauer" und „Temperatur" heißen jetzt nach ihrer Funktion Eco/Comfort.
+
+### Behoben
+
+- Der Karteneditor zeigt nach einer Aktualisierung die neue Fassung.
+- Abschnitte im Karteneditor schließen sich nicht mehr von selbst.
+- Die Schaubild-Karte nennt einen Ladefehler, statt „noch nichts eingelesen".
+- Misslingt das Speichern der Ansicht, erscheint eine Meldung.
+- Die Klemmenreihe des Pumpenmoduls sitzt mittig über dem Bauteil.
+- Datenpunkte aus mehreren Bedienebenen erscheinen in der zugänglichsten.
+- „Brennerkammertemperatur" heißt richtig „Brennkammertemperatur".
+- Störung 338 nennt jetzt auch die Abhilfe.
+- Der Kaminkehrer zeigt seine Restlaufzeit in Minuten.
+- Tageswerte, Zähler und Laufzeiten verlieren ihren Bezugspunkt nicht mehr.
+- Wartungszähler behalten ihre Tages- und Startwerte.
+- Tageswerte stehen im Panel bei den Zählerständen.
+- Wechselt ein Wert die Plattform, wird die alte Zeile als verwaist erkannt.
+- Die Diagnose zählt verwaiste Zeilen wie der Reparatureintrag.
+- Dazugewählte Werte erscheinen sofort, nicht erst beim nächsten Laden.
+- Eine teilweise gewählte Gruppe verliert beim Bestätigen nichts mehr.
+- Der Einschaltpunkt bleibt stehen, wenn nichts angefordert wird.
+- Beide Abstände zählen gleich herum; negativ heißt überschritten.
+- Die Abstände stehen nicht mehr anstelle der Temperaturen im Panel.
+- Die Angleichung der Entitätskennungen läuft auf jeder HA-Fassung.
+
+## [1.10.0-beta.3] - 2026-08-19
 
 ### Neu
 
