@@ -8,50 +8,52 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [1.10.0] - 2026-08-20
 
-Eine frei aufgebaute Werteliste in der Karte, die Schaltpunkte der Regelung als
-eigene Werte und ein Start, der die Werte sofort zeigt. Die Abschnitte der drei
-Vorabversionen darunter führen jede Änderung einzeln auf; hier stehen die
-Neuerungen gegenüber 1.9.1.
+Die Werteliste der Karte lässt sich frei aufbauen, die Schaltpunkte der
+Regelung gibt es als eigene Werte, und nach einem Neustart stehen die Zahlen
+sofort.
+
+Darunter führen die drei Vorabversionen jede Änderung einzeln auf; dieser
+Abschnitt nennt die Neuerungen gegenüber 1.9.1.
 
 ### Beim Aktualisieren
 
 - Mehrere Werte heißen neu; die Entitäts-IDs ändern sich beim ersten Start mit.
 - Automationen und Karten mit einer alten ID funktionieren danach nicht mehr.
 - Eine selbst benannte Entität behält die bisherige ID.
-- Der Kaminkehrer ist jetzt ein Sensor statt ein Schalter.
+- Der Kaminkehrer ist jetzt ein Sensor statt eines Schalters.
 - Entitäten ohne Datenpunkt lassen sich über den Reparatureintrag entfernen.
 - Neue Schaltpunkte und Abstände erscheinen, wenn die Optionen einmal bestätigt werden.
 
 ### Neu
 
-- Werteliste der Karte: Name links, Wert rechts, Anlagenteil darunter.
-- Aufbau der Zeilen wählbar, auch kompakt in einer Zeile.
-- Je Wert Name, Anlagenteil, Symbol, Farbe, Einheit und Klick einstellbar.
-- Eigene Sensoren in der Werteliste, in einem eigenen Abschnitt.
-- Reihenfolge der Werte per Ziehen änderbar.
-- Pumpen und Mischer im Schaubild abschaltbar.
-- Bauteilzeichnung je Anlagenteil wählbar.
-- Überschriften der Karte änderbar oder ausblendbar.
-- Der Wärmeübergabepunkt zeigt im Schaubild an, dass er Wärme abgibt.
-- Neue Werte je Puffer: Einschaltpunkt, Anforderungstemperatur und Abstand dazu.
-- Neue Werte je Warmwasserkreis: WW-Einschaltpunkt und sein Abstand.
+- Lovelace-Karte: Werteliste mit Name links, Wert rechts und Anlagenteil darunter.
+- Lovelace-Karte: Aufbau der Zeilen wählbar, auch kompakt in einer Zeile.
+- Lovelace-Karte: Name, Anlagenteil, Symbol, Farbe, Einheit und Klick je Wert einstellbar.
+- Lovelace-Karte: beliebige Sensoren in einem zusätzlichen Abschnitt der Werteliste.
+- Lovelace-Karte: Reihenfolge der Werte per Ziehen änderbar.
+- Lovelace-Karte: Überschriften änderbar oder ausblendbar.
+- Lovelace-Karte: Pumpen und Mischer im Schaubild abschaltbar.
+- Lovelace-Karte: Bauteilzeichnung je Anlagenteil wählbar.
+- Im Schaubild ist zu sehen, welcher Wärmeübergabepunkt Wärme abgibt.
+- Neu je Puffer: Einschaltpunkt, Anforderungstemperatur und der Abstand dazu.
+- Neu je Warmwasserkreis: WW-Einschaltpunkt und der Abstand dazu.
 - Schaltpunkte und Abstände lassen sich in den Optionen dazuwählen.
-- Neue Taste: Kaminkehrerfunktion starten, mit Abfrage der Leistung.
+- Neue Taste für die Kaminkehrerfunktion, mit Abfrage der Leistung.
 - Reparatureintrag entfernt auf Wunsch Entitäten ohne Datenpunkt.
 - Nach einem Neustart stehen die Werte sofort, sofern sie jung genug sind.
 - Einstellbar, wie alt übernommene Startwerte höchstens sein dürfen.
-- Brennstoffart kennt zusätzlich Hackgut trocken.
+- Bei der Brennstoffart steht zusätzlich Hackgut trocken zur Wahl.
 
 ### Geändert
 
-- Die Karte richtet die Höhe nach dem Inhalt.
-- Alle Zeilen der Werteliste sind gleich hoch.
-- Pumpenmarke und Leitung behalten auf schmalen Anzeigen ihr Größenverhältnis.
-- Das Puffermodul zeigt nur noch, was seine Modulfunktion auch schaltet.
+- Lovelace-Karte: die Höhe richtet sich nach dem Inhalt.
+- Lovelace-Karte: alle Zeilen der Werteliste sind gleich hoch.
+- Lovelace-Karte: Pumpenmarke und Leitung bleiben auf schmalen Anzeigen im Verhältnis.
+- Vom Puffermodul erscheint nur noch, was die eingestellte Modulfunktion schaltet.
 - Schaltausgänge erscheinen als Ja/Nein statt als Zahl 0 oder 1.
 - Datenpunkte ohne Aufgabe an der Anlage werden nicht mehr angelegt.
 - Die Anleitung erklärt die Regelungslogik mit Beispielen.
-- „Karten anordnen" heißt „Ansicht bearbeiten" und nennt Spalten und Farben.
+- „Karten anordnen" heißt „Ansicht bearbeiten" und regelt auch Spalten und Farben.
 - „Mischer Kessel" heißt „Rücklaufhochhaltung Stellwert", die Entitäts-ID folgt.
 - „Laufzeit aktuell" heißt „Laufzeit Zyklus" und zeigt auch den letzten Lauf.
 - „Hysterese Ein" heißt „WW-Hysterese Ein", die Entitäts-ID folgt.
@@ -61,13 +63,13 @@ Neuerungen gegenüber 1.9.1.
 
 - Der Karteneditor zeigt nach einer Aktualisierung die neue Fassung.
 - Abschnitte im Karteneditor schließen sich nicht mehr von selbst.
-- Die Schaubild-Karte nennt einen Ladefehler, statt „noch nichts eingelesen".
+- Bei einem Ladefehler nennt die Schaubild-Karte den Fehler statt „noch nichts eingelesen".
 - Misslingt das Speichern der Ansicht, erscheint eine Meldung.
 - Die Klemmenreihe des Pumpenmoduls sitzt mittig über dem Bauteil.
 - Datenpunkte aus mehreren Bedienebenen erscheinen in der zugänglichsten.
 - „Brennerkammertemperatur" heißt richtig „Brennkammertemperatur".
-- Störung 338 nennt jetzt auch die Abhilfe.
-- Der Kaminkehrer zeigt seine Restlaufzeit in Minuten.
+- Bei Störung 338 steht jetzt auch die Abhilfe.
+- Beim Kaminkehrer steht die Restlaufzeit in Minuten.
 - Tageswerte, Zähler und Laufzeiten behalten den Bezugspunkt.
 - Wartungszähler behalten Tages- und Startwerte.
 - Tageswerte stehen im Panel bei den Zählerständen.
