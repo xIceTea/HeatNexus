@@ -29,6 +29,7 @@ CHANGELOG = Path(__file__).resolve().parents[1] / "CHANGELOG.md"
 # tatsächlich benutzt; unbekannte Abschnitte bleiben unverändert, statt ein
 # beliebiges Zeichen zu bekommen.
 SYMBOLE = {
+    "Beim Aktualisieren": "⚠️",
     "Neu": "✨",
     "Geändert": "🔧",
     "Behoben": "🐛",
