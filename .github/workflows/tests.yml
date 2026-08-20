@@ -32,6 +32,7 @@ jobs:
           python-version: "3.12"
       - run: git fetch origin main --depth=50
       - run: python tools/kommentarregel.py --bereich origin/main...HEAD
+      - run: python tools/changelogregel.py --bereich origin/main...HEAD
 
   pytest:
     name: pytest
