@@ -23,6 +23,8 @@ wenn dort Vorabversionen zugelassen sind.
 - „Karten anordnen" heißt „Ansicht bearbeiten" und nennt Spalten und Farben.
 - Die Schaltpunkte heißen Einschaltpunkt, Delta und Anforderungstemperatur.
 - „Laufzeit aktuell" heißt „Laufzeit Zyklus" und zeigt auch den letzten Lauf.
+- „Hysterese Ein" heißt „WW-Hysterese Ein", die Entitäts-ID folgt.
+- „Dauer" und „Temperatur" heißen jetzt nach ihrer Funktion Eco/Comfort.
 
 ### Behoben
 

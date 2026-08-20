@@ -127,6 +127,14 @@ NAME_OVERRIDES = {
     "39/5": "Lagerraumbefüllung Restlaufzeit",
     "5/70": "WW-Zirkulation Einschaltzeit",
     "5/71": "WW-Zirkulation Ausschaltzeit",
+    # Die Herstellertabelle nennt 5/0 nur „Hysterese Ein". Sie gehört zur
+    # Warmwasserladung: Geladen wird ab Sollwert minus diesem Wert.
+    "5/0": "WW-Hysterese Ein",
+    # 2/10 und 3/4 heißen in der Tabelle nur „Dauer" und „Temperatur". Sie sind
+    # die beiden Einsteller der Funktion, die die Anleitung „Eco / Comfort"
+    # nennt: eine Raumtemperatur, die für die eingestellte Zeit gilt.
+    "2/10": "Eco/Comfort Dauer",
+    "3/4": "Eco/Comfort Temperatur",
 }
 
 

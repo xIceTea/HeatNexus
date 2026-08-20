@@ -342,6 +342,21 @@ def test_ohne_geraetetext_bleibt_die_gepflegte_bezeichnung(client_module):
     assert client._name_fuer("0/7", "Kesseltemperatur") == "Kesseltemperatur"
 
 
+def test_die_ww_hysterese_steht_bei_den_warmwasserwerten(client_module):
+    """Der Herstellername „Hysterese Ein" nennt seinen Bezug nicht."""
+    client = _mit_texten(client_module, "de", {"5/0": "Hysterese Ein"})
+    name = client_module.NAME_OVERRIDES["5/0"]
+    assert client._name_fuer("5/0", name).startswith("WW-")
+
+
+def test_die_beiden_einsteller_von_eco_comfort_stehen_beieinander(client_module):
+    """„Dauer" und „Temperatur" allein nennen ihre Funktion nicht."""
+    client = _mit_texten(client_module, "de", {})
+    for gnmn in ("2/10", "3/4"):
+        name = client_module.NAME_OVERRIDES[gnmn]
+        assert client._name_fuer(gnmn, name).startswith("Eco/Comfort ")
+
+
 def test_der_abstand_entsteht_an_der_gemessenen_temperatur(client_module):
     """Der Schaltpunkt hängt am Sollwert, der Abstand an TPE."""
     client = _puffer_mit_sollwert(client_module)
