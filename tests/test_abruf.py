@@ -92,3 +92,26 @@ async def test_die_erste_antwort_stellt_den_takt_zurueck(coordinator):
     await coordinator._async_update_data()
     assert coordinator.update_interval == timedelta(seconds=30)
     assert coordinator.consecutive_timeouts == 0
+
+
+async def test_ein_einzelner_fehler_haelt_die_werte(coordinator):
+    """Ein Fehlschlag darf die Entitäten nicht stilllegen, solange Werte dastehen."""
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
+    daten = await coordinator._async_update_data()
+    coordinator.data = daten
+
+    coordinator.client.fetch_all.side_effect = OSError("Verbindung abgebrochen")
+    assert await coordinator._async_update_data() is daten
+    assert await coordinator._async_update_data() is daten
+
+    with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()
+
+
+async def test_ohne_werte_bleibt_der_fehler_ein_fehler(coordinator):
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
+    coordinator.client.fetch_all.side_effect = OSError("Verbindung abgebrochen")
+    with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()

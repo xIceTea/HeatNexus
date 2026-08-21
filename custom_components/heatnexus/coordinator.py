@@ -167,4 +167,10 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             self._ausfall_protokollieren("Fehler beim Abruf von %s: %s", self.host, err)
             if self._fehlschlaege >= 3:
                 self._stoerung_melden(str(err))
-            raise UpdateFailed(f"Fehler bei der Abfrage von {self.host}: {err}") from err
+                raise UpdateFailed(f"Fehler bei der Abfrage von {self.host}: {err}") from err
+            # Ein einzelner Fehlschlag lässt die zuletzt gelesenen Werte stehen.
+            # Alle Entitäten für einen Takt auf „nicht verfügbar" zu setzen
+            # reißt jede Statistik auf. Ohne Werte bleibt es ein Fehlschlag.
+            if not self.data:
+                raise UpdateFailed(f"Fehler bei der Abfrage von {self.host}: {err}") from err
+            return self.data
