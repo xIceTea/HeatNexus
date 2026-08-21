@@ -6,6 +6,24 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.10.1] - 2026-08-21
+
+### Neu
+
+- Betriebslampe am Wärmeerzeuger im Schaubild, sichtbar solange er läuft.
+- Einstellung, ob am Pumpen-/Relaismodul eine Pumpe angeschlossen ist.
+
+### Geändert
+
+- Die Pumpe am Pumpen-/Relaismodul steht erst nach Bestätigung im Schaubild.
+- Einstellungen zum Schaubild wirken ohne Neuladen der Anlage.
+
+### Behoben
+
+- Ein einzelner Fehler beim Abrufen lässt die zuletzt gelesenen Werte stehen.
+- Das Laufrad der Pumpen dreht auf Mobilgeräten rund.
+- Die Ladeanzeige am Puffer bleibt bis zum Ende der Ladung stehen.
+
 ## [1.10.0] - 2026-08-20
 
 Die Werteliste der Karte lässt sich frei aufbauen, die Schaltpunkte der
