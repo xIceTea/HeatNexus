@@ -11,11 +11,11 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Betriebslampe am Wärmeerzeuger im Schaubild, sichtbar solange er läuft.
-- Einstellung, ob am Pumpen-/Relaismodul eine Pumpe angeschlossen ist.
+- Einstellung, ob am ZSP eine Pumpe angeschlossen ist.
 
 ### Geändert
 
-- Die Pumpe am Pumpen-/Relaismodul steht erst nach Bestätigung im Schaubild.
+- Am ZSP steht die Pumpe erst nach Bestätigung im Schaubild.
 - Einstellungen zum Schaubild wirken ohne Neuladen der Anlage.
 
 ### Behoben
