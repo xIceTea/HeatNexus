@@ -75,15 +75,20 @@ export const SchaubildMixin = (Basis) =>
    * Ob ein Speicher gerade geladen oder entnommen wird.
    *
    * Die Ladepumpe allein genügt nicht: Sie läuft auch, wenn der Kessel direkt
-   * in einen Heizkreis fährt. Wärme geht in den Speicher, solange der Kessel
-   * den oberen Bereich hält – gegen Ende der Ladung liegen beide gleichauf.
+   * in einen Heizkreis fährt. Maßgeblich ist der untere Fühler – dort holt die
+   * Pumpe ihr Wasser, und alles darüber trägt Wärme in den Speicher ein.
    */
   _speicherzustand(eintrag) {
     const pumpe = eintrag.laden ? this._foerdert(eintrag.laden) : false;
     const kessel = eintrag.kessel ? this._zahl(eintrag.kessel) : null;
-    const oben = eintrag.oben ? this._zahl(eintrag.oben) : null;
+    // Der untere Fühler ist der Bezug; ohne ihn bleibt der obere als Rückfall.
+    const bezug = eintrag.unten
+      ? this._zahl(eintrag.unten)
+      : eintrag.oben
+        ? this._zahl(eintrag.oben)
+        : null;
     const waermer =
-      kessel === null || oben === null ? true : kessel > oben - (Number(eintrag.toleranz) || 0);
+      kessel === null || bezug === null ? true : kessel > bezug + (Number(eintrag.toleranz) || 0);
     const laedt = pumpe && waermer;
     return { laedt, zieht: (eintrag.entnahme || []).some((e) => this._foerdert(e)) };
   }

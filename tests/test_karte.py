@@ -399,3 +399,12 @@ def test_die_liste_zieht_aus_der_ganzen_anlage(durchlauf):
 
 def test_alle_anlagen_stehen_zur_wahl(durchlauf):
     assert durchlauf["editorAnlagen"][0] == "Alle Anlagen"
+
+
+def test_die_ladung_zaehlt_gegen_den_unteren_fuehler(durchlauf):
+    """Im Nachlauf ist der obere Bereich wärmer als der Kessel – geladen wird trotzdem."""
+    assert durchlauf["laedtImNachlauf"] is True
+
+
+def test_ein_kalter_kessel_laedt_nicht(durchlauf):
+    assert durchlauf["kalterKesselLaedtNicht"] is True

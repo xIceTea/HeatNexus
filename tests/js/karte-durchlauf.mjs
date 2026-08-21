@@ -130,6 +130,26 @@ const senkrechte = (teil) =>
 const rueckwaerts = (teil) =>
   senkrechte(teil).map((b) => String(b.className).includes("rueckwaerts"));
 bilanz.senkrechteVorhanden = senkrechte().length;
+// Die Ladung zählt gegen den unteren Fühler: Dort holt die Pumpe ihr Wasser.
+// Im Nachlauf ist der obere Bereich längst wärmer als der Kessel.
+zustaende["sensor.tpa"] = { state: "71.2", attributes: {} };
+const speicher = {
+  laden: "switch.pufferladepumpe",
+  kessel: "sensor.kessel",
+  oben: "sensor.tpe",
+  unten: "sensor.tpa",
+  toleranz: 0.5,
+  entnahme: [],
+};
+zustaende["switch.pufferladepumpe"].state = "on";
+zustaende["sensor.kessel"].state = "77.4";
+zustaende["sensor.tpe"].state = "77.9";
+bilanz.laedtImNachlauf = strom._speicherzustand(speicher).laedt;
+zustaende["sensor.kessel"].state = "60";
+bilanz.kalterKesselLaedtNicht = strom._speicherzustand(speicher).laedt === false;
+zustaende["sensor.kessel"].state = "80";
+zustaende["sensor.tpe"].state = "50";
+zustaende["switch.pufferladepumpe"].state = "off";
 bilanz.beimEntnehmenRueckwaerts = rueckwaerts("B-PLMi PUFFER").some(Boolean);
 // Jetzt lädt der Kessel den Puffer: keine Umkehr mehr.
 zustaende["switch.pufferladepumpe"].state = "on";

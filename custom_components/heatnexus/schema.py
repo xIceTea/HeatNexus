@@ -1062,9 +1062,9 @@ SPEICHER_ARTEN: dict[str, dict[str, Any]] = {
 # `WERT_HOEHEN["puffer"]` setzt sie auf 168 und 258.
 SPEICHER_Y = 213
 
-# Wie weit der Kessel unter dem oberen Fühler liegen darf und die Ladung
-# trotzdem gilt. Gegen Ende gleichen sich beide Werte an, während der untere
-# Bereich noch kalt ist – ein Aufschlag verstummte genau dann.
+# Wie viel wärmer als der untere Fühler der Kessel sein muss, damit die Ladung
+# gilt. Dort holt die Ladepumpe ihr Wasser; liegt der Kessel darüber, trägt sie
+# Wärme ein – auch wenn der obere Bereich längst wärmer ist als der Kessel.
 LADE_TOLERANZ = 0.5
 
 # Die Lampen des Pumpen-/Relaismoduls, aus `pumpenmodul.svg`: fünf Klemmen
@@ -1541,6 +1541,10 @@ def anlagenschema(
             (w["entity_id"] for w in modul["werte"] if w.get("beschriftung") == "oben"),
             None,
         )
+        unten = next(
+            (w["entity_id"] for w in modul["werte"] if w.get("beschriftung") == "unten"),
+            None,
+        )
         speicher.append(
             {
                 # „lädt" heißt: Die Ladepumpe fördert **und** der Kessel ist
@@ -1555,6 +1559,7 @@ def anlagenschema(
                 "laden": modul.get("pumpe"),
                 "kessel": kessel_ist,
                 "oben": oben,
+                "unten": unten,
                 "toleranz": LADE_TOLERANZ,
                 "entnahme": entnahme,
                 "left": f"{mitte / breite * 100:.2f}%",

@@ -869,6 +869,7 @@ def test_puffer_kennt_kessel_und_obere_temperatur(schema):
     assert speicher[0]["kessel"] == "sensor.kessel"
     assert speicher[0]["oben"] == "sensor.tpe"
     assert speicher[0]["toleranz"] > 0
+    assert speicher[0]["unten"], "ohne den unteren Fühler fehlt der Bezug der Ladung"
 
 
 # ------------------------------------------------- Schichtung und Zeichnung
