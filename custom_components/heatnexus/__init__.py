@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+from copy import deepcopy
 import logging
 
 # Nur die Funktion, nicht das Modul: Diese Datei *ist* der Namensraum des
@@ -35,10 +36,13 @@ from .client import WindhagerHttpClient
 from .const import (
     CONF_DASHBOARD,
     CONF_ENABLE_ADVANCED,
+    CONF_KESSELART,
+    CONF_KESSELWERT,
     CONF_LABEL,
     CONF_LEVELS,
     CONF_LON,
     CONF_MELDUNG_EINLESEN,
+    CONF_MODULPUMPE,
     CONF_PANEL,
     CONF_SPRACHE,
     CONF_STARTWERTE,
@@ -98,6 +102,11 @@ def _store_key(entry: ConfigEntry, host: str) -> str:
 def _systems(entry: ConfigEntry) -> list[dict]:
     """Anlagen dieses Eintrags."""
     return list(entry.data.get(CONF_SYSTEMS, []))
+
+
+# Optionen, die allein das Schaubild betreffen: Sie ändern keine Entität und
+# keinen Abruf, also braucht ihre Änderung kein Neuladen.
+NUR_ANZEIGE_OPTIONEN = frozenset({CONF_KESSELART, CONF_KESSELWERT, CONF_MODULPUMPE})
 
 
 def _scope(hass: HomeAssistant, entry: ConfigEntry, host: str) -> dict:
@@ -420,6 +429,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Der Umfang, mit dem dieser Eintrag geladen wurde. Ändert der Nutzer
         # ihn, lässt sich daran erkennen, ob er etwas abgewählt hat.
         "umfang": {system[CONF_HOST]: _scope(hass, entry, system[CONF_HOST]) for system in systeme},
+        # Die Optionen, mit denen geladen wurde. Daran hängt die Entscheidung,
+        # ob eine Änderung ein Neuladen wert ist.
+        "optionen": deepcopy(dict(entry.options or {})),
         # Anlagen, deren Vollabzug noch läuft – für die Meldung an den Nutzer.
         "einlesen_offen": {eintrag[3] for eintrag in nachzuladen},
     }
@@ -911,13 +923,41 @@ def _async_register_rediscover_service(hass: HomeAssistant) -> None:
     )
 
 
+def _nur_anzeige_geaendert(alt: dict, neu: dict) -> bool:
+    """Ob sich ausschließlich Optionen des Schaubilds geändert haben.
+
+    Sie ändern kein Entität und keinen Abruf – nur die Zeichnung. Ein
+    Neuladen dafür risse jeden Verlauf für einen Takt auf „nicht verfügbar".
+    """
+    if not alt or set(alt) != set(neu):
+        return False
+    nur_anzeige = True
+    for schluessel, wert in neu.items():
+        vorher = alt.get(schluessel)
+        if wert == vorher:
+            continue
+        if not isinstance(wert, dict) or not isinstance(vorher, dict):
+            return False
+        geaendert = {k for k in set(wert) | set(vorher) if wert.get(k) != vorher.get(k)}
+        if geaendert - NUR_ANZEIGE_OPTIONEN:
+            return False
+        nur_anzeige = nur_anzeige and bool(geaendert)
+    return nur_anzeige
+
+
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Nach geänderten Optionen neu laden (anderer Umfang = andere Entitäten).
 
     Vorher wird festgehalten, ob dabei etwas *abgewählt* wurde: Nur dann darf
     der nächste Ladevorgang die betroffenen Entitäten wirklich entfernen.
     """
-    alt = (laufzeitdaten(entry) or {}).get("umfang") or {}
+    daten = laufzeitdaten(entry) or {}
+    if _nur_anzeige_geaendert(daten.get("optionen") or {}, dict(entry.options or {})):
+        # Das Schaubild wird bei jedem Öffnen neu gebaut; die neue Wahl steht
+        # dort schon. Die Entitäten bleiben unangetastet.
+        daten["optionen"] = deepcopy(dict(entry.options or {}))
+        return
+    alt = daten.get("umfang") or {}
     neu = {system[CONF_HOST]: _scope(hass, entry, system[CONF_HOST]) for system in _systems(entry)}
     if alt and _umfang_verkleinert(alt, neu):
         _abwahl_vormerken(hass, entry)

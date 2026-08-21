@@ -28,7 +28,14 @@ pytestmark = [requires_ha(), requires_frontend(), requires_moderne_ha()]
 # ein Import aus dem Test heraus scheitert dann mit `ModuleNotFoundError`. Beim
 # Einsammeln der Datei läuft noch keine Instanz – hier geht er.
 if not ha_fehlt():  # pragma: no branch - ohne HA wird die Datei übersprungen
-    from custom_components.heatnexus.const import CONF_SYSTEMS, DOMAIN
+    from custom_components.heatnexus import _nur_anzeige_geaendert
+    from custom_components.heatnexus.const import (
+        CONF_KESSELART,
+        CONF_LEVELS,
+        CONF_MODULPUMPE,
+        CONF_SYSTEMS,
+        DOMAIN,
+    )
 
 
 DESKRIPTOREN = [
@@ -380,3 +387,26 @@ async def test_ein_bekannter_erkennungsstand_spart_das_neue_einlesen(hass, eintr
     assert zweiter.init_aufgerufen == 0
     # Die Entitäten stehen trotzdem sofort bereit.
     assert len(zweiter.devices) == len(ZUSAETZLICH)
+
+
+def test_eine_schaubildoption_allein_laedt_nicht_neu():
+    """Ein Neuladen risse jeden Verlauf für einen Takt auf „nicht verfügbar"."""
+    alt = {"192.0.2.10": {CONF_LEVELS: ["info"], CONF_MODULPUMPE: False}}
+    neu = {"192.0.2.10": {CONF_LEVELS: ["info"], CONF_MODULPUMPE: True}}
+    assert _nur_anzeige_geaendert(alt, neu) is True
+
+
+def test_ein_geaenderter_umfang_laedt_neu():
+    alt = {"192.0.2.10": {CONF_LEVELS: ["info"], CONF_KESSELART: "auto"}}
+    neu = {"192.0.2.10": {CONF_LEVELS: ["info", "service"], CONF_KESSELART: "hackgut"}}
+    assert _nur_anzeige_geaendert(alt, neu) is False
+
+
+def test_ohne_bekannten_vorzustand_wird_neu_geladen():
+    assert _nur_anzeige_geaendert({}, {"192.0.2.10": {CONF_MODULPUMPE: True}}) is False
+
+
+def test_eine_neue_anlage_laedt_neu():
+    alt = {"192.0.2.10": {CONF_MODULPUMPE: True}}
+    neu = dict(alt, **{"192.0.2.11": {CONF_MODULPUMPE: True}})
+    assert _nur_anzeige_geaendert(alt, neu) is False
