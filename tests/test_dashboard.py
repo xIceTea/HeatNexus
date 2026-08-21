@@ -186,3 +186,57 @@ def test_der_export_schreibt_umlaute_aus():
     from custom_components.heatnexus.dashboard import als_yaml
 
     assert "Übersicht" in als_yaml({"title": "Übersicht"})
+
+
+def _anlage_mit_teilen():
+    return {
+        "id": "anlage-1",
+        "name": "Heizhaus",
+        "kesselart": "hackgut",
+        "teile": [
+            {
+                "name": "PuroWIN",
+                "id": "teil-1",
+                "fct_type": 25,
+                "entitaeten": [
+                    {
+                        "entity_id": "sensor.purowin_betriebsphase",
+                        "name": "Betriebsphase",
+                        "bereich": "sensor",
+                        "hat_wert": True,
+                    },
+                    {
+                        "entity_id": "sensor.purowin_kesseltemperatur_ist",
+                        "name": "Kesseltemperatur Ist",
+                        "bereich": "sensor",
+                        "hat_wert": True,
+                    },
+                ],
+            }
+        ],
+    }
+
+
+def test_der_text_zum_kopieren_setzt_die_eigene_karte(dashboard):
+    """Nur als Karte lässt sich das Schaubild im Editor bearbeiten."""
+    ansicht = dashboard._anlagenbild([_anlage_mit_teilen()], als_karte=True)
+    karten = [k for abschnitt in ansicht["sections"] for k in abschnitt["cards"]]
+    schaubild = [k for k in karten if k.get("type", "").startswith("custom:")]
+    assert len(schaubild) == 1
+    assert schaubild[0]["anlage"] == "anlage-1"
+    assert schaubild[0]["liste"] == "rechts"
+    assert "sensor.purowin_betriebsphase" in schaubild[0]["zusatzwerte"]
+
+
+def test_das_mitgelieferte_dashboard_bleibt_bei_der_zeichnung(dashboard):
+    """Es darf kein Modul im Browser voraussetzen."""
+    ansicht = dashboard._anlagenbild([_anlage_mit_teilen()])
+    karten = [k for abschnitt in ansicht["sections"] for k in abschnitt["cards"]]
+    assert not [k for k in karten if str(k.get("type", "")).startswith("custom:")]
+    assert [k for k in karten if k.get("type") == "picture-elements"]
+
+
+def test_das_schaubild_bekommt_zwei_spalten(dashboard):
+    """Neben dem Bild steht die Werteliste – in einer Spalte wird beides eng."""
+    ansicht = dashboard._anlagenbild([_anlage_mit_teilen()], als_karte=True)
+    assert ansicht["sections"][0]["column_span"] == 2

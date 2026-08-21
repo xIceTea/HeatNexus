@@ -37,6 +37,7 @@ from .const import (
     DASHBOARD_TITEL,
     DASHBOARD_URL,
     DOMAIN,
+    KARTE_ELEMENT,
     KESSELART_AUTO,
     KESSELWERT_LEISTUNG,
 )
@@ -578,12 +579,23 @@ def _ueberschrift(titel: str, symbol: str | None = None, stil: str = "title") ->
 
 
 def _abschnitt(
-    titel: str, karten: list[dict[str, Any]], symbol: str | None = None, stil: str = "title"
+    titel: str,
+    karten: list[dict[str, Any]],
+    symbol: str | None = None,
+    stil: str = "title",
+    spanne: int = 0,
 ) -> list[dict[str, Any]]:
-    """Ein Abschnitt mit Überschrift – oder gar keiner, wenn nichts drin ist."""
+    """Ein Abschnitt mit Überschrift – oder gar keiner, wenn nichts drin ist.
+
+    ``spanne`` gibt dem Abschnitt mehrere Spalten der Ansicht. Das Schaubild
+    braucht sie: Neben dem Bild steht die Werteliste.
+    """
     if not karten:
         return []
-    return [{"type": "grid", "cards": [_ueberschrift(titel, symbol, stil), *karten]}]
+    grid: dict[str, Any] = {"type": "grid", "cards": [_ueberschrift(titel, symbol, stil), *karten]}
+    if spanne > 1:
+        grid["column_span"] = spanne
+    return [grid]
 
 
 def _ansicht(
@@ -635,14 +647,48 @@ def _uebersicht(anlagen: list[dict[str, Any]]) -> dict[str, Any]:
     return _ansicht("Übersicht", "uebersicht", "mdi:view-dashboard-outline", abschnitte)
 
 
-def _anlagenbild(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
+def _zustandswerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
+    """Der Zustand einer Anlage in Kurzform – Meldung, Betriebsphase, Außentemperatur."""
+    return [
+        e
+        for teil in anlage["teile"]
+        for e in teil["entitaeten"]
+        if e["hat_wert"] and _trifft(e, ZUSTAND, *ZUSTAND_SCHLUESSEL)
+    ]
+
+
+def _anlagenbild(anlagen: list[dict[str, Any]], als_karte: bool = False) -> dict[str, Any] | None:
     """Ansicht „Anlage": das Schaubild mit den Werten darauf.
 
-    Je Anlage ein Schaubild, darunter der Zustand in Kurzform – Meldung,
-    Betriebsphase, Außentemperatur.
+    Je Anlage ein Schaubild, dazu der Zustand in Kurzform. ``als_karte`` setzt
+    statt der fertigen Zeichnung die eigene Lovelace-Karte ein: Die lässt sich
+    im Editor bearbeiten und trägt die Werte gleich neben dem Bild. Das
+    mitgelieferte Dashboard bleibt bei der Zeichnung – sie braucht kein Modul
+    im Browser.
     """
     abschnitte: list[dict[str, Any]] = []
     for anlage in anlagen:
+        zustand = _zustandswerte(anlage)
+        if als_karte:
+            karte: dict[str, Any] = {
+                "type": f"custom:{KARTE_ELEMENT}",
+                "anlage": anlage["id"],
+                "farbsatz": "auto",
+                "schrift": "normal",
+                "animation": True,
+                "liste": "rechts",
+                "titel_bild": "",
+                "titel_liste": "Zustand",
+                # Volle Breite: Bild und Werteliste stehen nebeneinander.
+                "grid_options": {"columns": 24, "rows": "auto"},
+            }
+            if zustand:
+                karte["zusatzwerte"] = [e["entity_id"] for e in zustand]
+            abschnitte += _abschnitt(
+                anlage["name"] or "Anlage", [karte], "mdi:sitemap-outline", spanne=2
+            )
+            continue
+
         bild = anlagenschema(
             anlage["teile"],
             anlage.get("kesselart"),
@@ -651,13 +697,6 @@ def _anlagenbild(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
         if bild is None:
             continue
         abschnitte += _abschnitt(anlage["name"] or "Anlage", [bild], "mdi:sitemap-outline")
-
-        zustand = [
-            e
-            for teil in anlage["teile"]
-            for e in teil["entitaeten"]
-            if e["hat_wert"] and _trifft(e, ZUSTAND, *ZUSTAND_SCHLUESSEL)
-        ]
         abschnitte += _abschnitt(
             "Zustand", [_karte(e) for e in zustand], "mdi:information-outline", stil="subtitle"
         )
@@ -793,8 +832,12 @@ def _geraeteansicht(
     )
 
 
-def dashboard_konfiguration(hass: HomeAssistant) -> dict[str, Any]:
-    """Die vollständige Lovelace-Konfiguration des Dashboards."""
+def dashboard_konfiguration(hass: HomeAssistant, als_karte: bool = False) -> dict[str, Any]:
+    """Die vollständige Lovelace-Konfiguration des Dashboards.
+
+    ``als_karte`` ist für den Text zum Kopieren: Dort steht das Schaubild als
+    eigene Karte statt als fertige Zeichnung.
+    """
     anlagen = _anlagen(hass)
     if not anlagen:
         return {
@@ -818,7 +861,7 @@ def dashboard_konfiguration(hass: HomeAssistant) -> dict[str, Any]:
 
     mehrdeutig = _mehrfach_vergebene_namen(anlagen)
     views: list[dict[str, Any]] = [_uebersicht(anlagen)]
-    for ansicht in (_anlagenbild(anlagen), _wartung(anlagen), _auswertung(anlagen)):
+    for ansicht in (_anlagenbild(anlagen, als_karte), _wartung(anlagen), _auswertung(anlagen)):
         if ansicht:
             views.append(ansicht)
     views += [
@@ -839,8 +882,13 @@ def als_yaml(konfiguration: dict[str, Any]) -> str:
 
 
 def dashboard_als_yaml(hass: HomeAssistant) -> str:
-    """Das erzeugte Dashboard als YAML – Grundlage für ein eigenes."""
-    return als_yaml(dashboard_konfiguration(hass))
+    """Das erzeugte Dashboard als YAML – Grundlage für ein eigenes.
+
+    Das Schaubild steht hier als eigene Karte: Sie lässt sich im Editor
+    bearbeiten, und der Text bleibt lesbar statt eine eingebettete Zeichnung
+    über Zehntausende Zeichen zu führen.
+    """
+    return als_yaml(dashboard_konfiguration(hass, als_karte=True))
 
 
 # Das mitgelieferte Dashboard entsteht bei jedem Öffnen neu; Home Assistant

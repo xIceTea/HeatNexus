@@ -266,7 +266,10 @@ def test_mischer_laesst_sich_abwaehlen(durchlauf):
 def test_groesse_kommt_ohne_hass_aus(durchlauf):
     """`getCardSize` und `getGridOptions` laufen vor dem ersten `hass`."""
     assert durchlauf["groesseOhneHass"] > 0
-    assert durchlauf["rasterOhneHass"]["columns"] == 12
+    # Volle Breite des Rasters: Auf halber Spur bleibt für die Werteliste
+    # neben dem Bild nur eine schmale Spalte.
+    assert durchlauf["rasterOhneHass"]["columns"] == 24
+    assert durchlauf["rasterOhneHass"]["min_columns"] == 12
     assert durchlauf["rasterOhneHass"]["rows"] == "auto"
 
 

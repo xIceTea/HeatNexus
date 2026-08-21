@@ -40,10 +40,11 @@ class HeatNexusSchaubildKarte extends Grundlage {
     return { type: `custom:${ELEMENT}`, farbsatz: "auto", schrift: "normal", animation: true };
   }
 
-  // Die Höhe folgt dem Inhalt: Wie hoch die Karte ausfällt, hängt an der Zahl
-  // der Anlagenteile und der Werte daneben.
+  // Volle Breite im Raster der Ansicht: Neben dem Bild steht die Werteliste,
+  // auf halber Spur bleibt für sie nur eine Spalte übrig. Die Höhe folgt dem
+  // Inhalt – sie hängt an der Zahl der Anlagenteile und der Werte daneben.
   getGridOptions() {
-    return { columns: 12, rows: "auto", min_columns: 6, min_rows: 4 };
+    return { columns: 24, rows: "auto", min_columns: 12, min_rows: 4 };
   }
 
   getCardSize() {

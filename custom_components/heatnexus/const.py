@@ -164,6 +164,11 @@ def karte_verzeichnis(version: str) -> str:
     return f"{KARTE_VERZEICHNIS}-{panel_fassung(version)}"
 
 
+# Der Name der eigenen Lovelace-Karte. Das Dashboard setzt ihn in den Text zum
+# Kopieren ein, die Karte meldet sich unter demselben Namen an.
+KARTE_ELEMENT = "heatnexus-schaubild"
+
+
 def karte_js_pfad(version: str) -> str:
     """Adresse des Kartenmoduls, Fassung im Pfad.
 
