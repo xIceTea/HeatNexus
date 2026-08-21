@@ -335,10 +335,18 @@ class WindhagerHttpClient:
         return (self.poll_oids | self._dynamic_oids) - self._abgemeldet
 
     def register_poll_oid(self, oid: str) -> None:
-        """Eine Entity meldet ihre OID zum zyklischen Polling an."""
+        """Eine Entity meldet ihre OID zum zyklischen Polling an.
+
+        Eine eben angemeldete Adresse wird einmal gelesen, gleich welcher
+        Klasse: Entities melden sich erst nach dem ersten Durchlauf an, und ein
+        träger Wert stünde sonst bis zum nächsten langsamen Takt ohne Zahl da.
+        """
         if oid and oid not in self._abgemeldet:
+            neu = oid not in self._dynamic_oids
             self._dynamic_oids.add(oid)
             self._oid_nutzer[oid] = self._oid_nutzer.get(oid, 0) + 1
+            if neu and oid not in self._letzte_werte:
+                self._rest.add(oid)
 
     def unregister_poll_oid(self, oid: str) -> None:
         """Eine entfernte/deaktivierte Entity meldet ihre OID ab.
@@ -353,6 +361,8 @@ class WindhagerHttpClient:
             return
         self._oid_nutzer.pop(oid, None)
         self._dynamic_oids.discard(oid)
+        # Auch das vorgemerkte Erstlesen entfällt: Niemand wartet mehr darauf.
+        self._rest.discard(oid)
 
     async def _ensure_session(self):
         """Sitzung mit Digest-Authentifizierung bereitstellen.

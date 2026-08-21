@@ -902,3 +902,16 @@ def test_ein_sollwert_laeuft_nicht_im_schnellen_takt(client_module):
     """Sein Name klingt nach Messwert, geändert wird er trotzdem nur von Hand."""
     beschreibung = {"name": "Raumtemperatur Heizbetrieb", "type": "number"}
     assert client_module.WindhagerHttpClient._poll_klasse(beschreibung) == "normal"
+
+
+def test_eine_neu_angemeldete_adresse_wird_sofort_gelesen(client):
+    """Sonst stünde ein träger Wert nach dem Start bis zum nächsten Takt leer."""
+    client.register_poll_oid("/1/16/1/9/35/0")
+    assert "/1/16/1/9/35/0" in client._faellig()
+
+
+def test_eine_bekannte_adresse_draengelt_sich_nicht_vor(client):
+    """Wer schon einen Wert hat, wartet auf seinen Takt."""
+    client._letzte_werte["/1/16/1/9/35/0"] = "17.0"
+    client.register_poll_oid("/1/16/1/9/35/0")
+    assert "/1/16/1/9/35/0" not in (client._rest or set())
