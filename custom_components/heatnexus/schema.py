@@ -822,6 +822,33 @@ def _ids_eindeutig(fragment: str, praefix: str) -> str:
 ZUSATZ_PLATZHALTER = frozenset({"koerper"})
 
 
+# Der Punkt in der Glutfarbe, den jede Kesselzeichnung trägt: im Bild eine rote
+# Lampe. Wo genau er sitzt, sagt die Zeichnung selbst – so trägt es auch für
+# eine eigene Zeichnung, die hier niemand kennt.
+_LAMPENPUNKT = re.compile(
+    r'<circle[^>]*\s+cx="(?P<x>[\d.]+)"[^>]*\s+cy="(?P<y>[\d.]+)"[^>]*\s+r="(?P<r>[\d.]+)"'
+    r'[^>]*fill="\{\{glut\}\}"'
+)
+
+
+def kessellampe(
+    kesselart: str | None, zeichnung: str | None = None
+) -> tuple[float, float, float] | None:
+    """Stelle und Größe der Betriebslampe in der gewählten Kesselzeichnung."""
+    for dateiname in _bauteil_dateien("kessel", kesselart, zeichnung):
+        fragment = _bauteil(dateiname)
+        if fragment is None:
+            continue
+        if treffer := _LAMPENPUNKT.search(fragment):
+            return (
+                float(treffer.group("x")),
+                float(treffer.group("y")),
+                float(treffer.group("r")),
+            )
+        return None
+    return None
+
+
 def _bauteil_dateien(
     art: str, kesselart: str | None, zeichnung: str | None = None
 ) -> tuple[str, ...]:
@@ -1375,6 +1402,24 @@ def anlagenschema(
                         "titel": modul["titel"],
                     }
                 )
+                # Die Betriebslampe über dem gezeichneten roten Punkt. Sie
+                # leuchtet grün, solange der Erzeuger läuft, und deckt das Rot
+                # dabei ab.
+                if (stelle := kessellampe(kesselart, modul.get("zeichnung"))) is not None:
+                    lx, ly, lr = stelle
+                    lampen.append(
+                        {
+                            "entity": leistung,
+                            "ersatz": ersatz,
+                            "ersatz_min": BRENNKAMMER_KALT,
+                            "left": f"{(x + lx) / breite * 100:.2f}%",
+                            "top": f"{ly / HOEHE * 100:.2f}%",
+                            "groesse": f"{(2 * lr) / breite * 100:.2f}%",
+                            "art": "betrieb",
+                            "zweck": "erzeuger",
+                            "titel": modul["titel"],
+                        }
+                    )
 
     # Der Wärmeerzeuger meldet keine eigene Pumpe – sein Wasser bewegt die
     # Pufferladepumpe. Nur die Leitung, keine Pumpenmarke: An dieser Stelle
@@ -1418,6 +1463,7 @@ def anlagenschema(
                     "top": f"{ly / HOEHE * 100:.2f}%",
                     "groesse": f"{(2 * r) / breite * 100:.2f}%",
                     "art": "betrieb" if (lx, ly, r) == ZSP_BETRIEBSLAMPE else "klemme",
+                    "zweck": "anforderung",
                     "titel": modul["titel"],
                 }
             )

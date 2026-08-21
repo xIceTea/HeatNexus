@@ -367,13 +367,12 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
-    // Die Lampen des Pumpen-/Relaismoduls. Liegt eine Wärmeanforderung an,
-    // blinken die Klemmen grün und die Betriebslampe wechselt von Rot auf
-    // Grün. Sie liegen als eigene Ebene über dem Bild – die Zeichnung im
-    // <img> kennt keine Zustände.
+    // Betriebslampen: am Pumpen-/Relaismodul die Klemmen und die Lampe des
+    // Gehäuses, am Wärmeerzeuger der Punkt in seiner Zeichnung. Sie liegen als
+    // eigene Ebene über dem Bild – die Zeichnung im <img> kennt keine Zustände.
     (anlage.schema_lampen || []).forEach((eintrag) => {
       const lampe = document.createElement("div");
-      lampe.className = `lampe ${eintrag.art}`;
+      lampe.className = ["lampe", eintrag.art, eintrag.zweck].filter(Boolean).join(" ");
       lampe.style.left = eintrag.left;
       lampe.style.top = eintrag.top;
       // Nur die Breite setzen: „groesse" ist ein Anteil der Bild*breite*.
@@ -382,12 +381,23 @@ export const SchaubildMixin = (Basis) =>
       lampe.style.width = eintrag.groesse;
       huelle.appendChild(lampe);
       this._bindungen.push(() => {
-        const soll = this._zahl(eintrag.entity);
-        const an = soll !== null && soll > 0;
+        // Am Modul zählt der Analog-Sollwert, am Erzeuger die Leistung. Fehlt
+        // sie, dient die Brennkammertemperatur als Ersatz.
+        let wert = eintrag.entity ? this._zahl(eintrag.entity) : null;
+        let schwelle = 0;
+        if (wert === null && eintrag.ersatz) {
+          wert = this._zahl(eintrag.ersatz);
+          schwelle = Number(eintrag.ersatz_min) || 0;
+        }
+        const an = wert !== null && wert > schwelle;
         lampe.classList.toggle("an", an);
-        lampe.title = an
-          ? `${eintrag.titel} – fordert ${Math.round(soll)} °C`
-          : `${eintrag.titel} – keine Anforderung`;
+        if (eintrag.zweck === "erzeuger") {
+          lampe.title = `${eintrag.titel} – ${an ? "in Betrieb" : "aus"}`;
+        } else {
+          lampe.title = an
+            ? `${eintrag.titel} – fordert ${Math.round(wert)} °C`
+            : `${eintrag.titel} – keine Anforderung`;
+        }
       });
     });
 

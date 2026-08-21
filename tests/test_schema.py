@@ -1259,3 +1259,32 @@ def test_warm_bleibt_warm_und_kalt_bleibt_kalt(schema):
         for rolle in ("ruecklauf", "kalt"):
             rot, gruen, blau = kanaele(farben[rolle])
             assert blau > rot and blau > gruen, f"{name}/{rolle} ist nicht kalt"
+
+
+def test_jede_kesselzeichnung_traegt_eine_betriebslampe(schema):
+    """Ohne Fundstelle in der Zeichnung bliebe der rote Punkt im Bild rot."""
+    for kesselart in (None, "hackgut", "pellets", "scheitholz", "gas-oel", "waermepumpe"):
+        stelle = schema.kessellampe(kesselart)
+        assert stelle is not None, kesselart
+        x, y, r = stelle
+        assert 0 < x < schema.MODUL_BREITE
+        assert 0 < y < schema.HOEHE
+        assert r > 0
+
+
+def test_die_betriebslampe_haengt_an_der_leistung(schema):
+    kessel = _teil(
+        "PuroWIN",
+        25,
+        [
+            ("sensor.kessel_ist", "Kesseltemperatur Ist"),
+            ("sensor.leistung", "Kesselleistung"),
+            ("sensor.brennkammer", "Brennkammertemperatur"),
+        ],
+    )
+    daten = schema.schaubild_daten([{"name": "Test", "teile": [kessel]}])[0]
+    lampen = [la for la in daten["schema_lampen"] if la.get("zweck") == "erzeuger"]
+    assert len(lampen) == 1
+    assert lampen[0]["entity"] == "sensor.leistung"
+    assert lampen[0]["ersatz"] == "sensor.brennkammer"
+    assert lampen[0]["art"] == "betrieb"

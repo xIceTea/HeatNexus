@@ -601,12 +601,16 @@ export const STIL = `
   .schaubild .lampe.klemme { box-shadow: 0 0 7px 2px rgba(74, 222, 106, 0.7); }
   .schaubild .lampe.an { opacity: 1; }
   .schaubild .lampe.klemme.an { animation: lampe-blinken 1.8s ease-in-out infinite; }
+  /* Am Wärmeerzeuger pulst die Lampe langsamer: Sie steht für den laufenden
+     Betrieb, nicht für eine anliegende Anforderung. */
+  .schaubild .lampe.erzeuger.an { animation: lampe-blinken 2.6s ease-in-out infinite; }
   @keyframes lampe-blinken {
     0%, 100% { opacity: 0.45; }
     50% { opacity: 1; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .schaubild .lampe.klemme.an { animation: none; opacity: 1; }
+    .schaubild .lampe.klemme.an,
+    .schaubild .lampe.erzeuger.an { animation: none; opacity: 1; }
   }
   @keyframes glimmen {
     0%, 100% { filter: brightness(0.85); }
