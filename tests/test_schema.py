@@ -268,6 +268,43 @@ def test_pumpe_je_anlagenteil(schema):
     assert module[0]["pumpe"] == "binary_sensor.hkp"
 
 
+def _pumpenmodul(schema):
+    return _teil(
+        "ZSP",
+        20,
+        [
+            ("sensor.zsp_drehzahl", "Pumpendrehzahl"),
+            ("sensor.zsp_anforderung", "Ext. Wärmeanforderung"),
+        ],
+    )
+
+
+def test_modulpumpe_steht_ohne_angabe_im_bild(schema):
+    module = schema._module([_pumpenmodul(schema)])
+    assert module[0]["pumpe"] == "sensor.zsp_drehzahl"
+
+
+def test_abgewaehlte_modulpumpe_faellt_weg(schema):
+    """Ohne angeschlossene Pumpe bleibt das Modul, seine Pumpenmarke nicht."""
+    module = schema._module([_pumpenmodul(schema)], modulpumpe=False)
+    assert module[0]["art"] == "pumpenmodul"
+    assert module[0]["pumpe"] is None
+
+
+def test_abwahl_trifft_nur_das_pumpenmodul(schema):
+    heizkreis = _teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            ("sensor.raum", "Raumtemperatur Ist"),
+            ("binary_sensor.hkp", "Heizkreispumpe"),
+        ],
+    )
+    module = schema._module([heizkreis, _pumpenmodul(schema)], modulpumpe=False)
+    assert module[0]["pumpe"] == "binary_sensor.hkp"
+    assert module[1]["pumpe"] is None
+
+
 # ---------------------------------------------------------------------------
 # Bauteildateien
 #

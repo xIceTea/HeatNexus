@@ -618,6 +618,7 @@ def _module(
     auswahl: dict[str, list[str]] | None = None,
     teile_aus: list[str] | tuple[str, ...] = (),
     zeichnungen: dict[str, str] | None = None,
+    modulpumpe: bool = True,
 ) -> list[dict[str, Any]]:
     """Anlagenteile, die sich zeichnen lassen, mit ihren Werten.
 
@@ -652,7 +653,14 @@ def _module(
                     "titel": teil["name"],
                     "art": art,
                     "werte": werte,
-                    "pumpe": _pumpe(teil["entitaeten"], art),
+                    # Am Pumpen-/Relaismodul ist die Drehzahl nur dann eine
+                    # Pumpe, wenn auch eine angeschlossen ist. Das entscheidet
+                    # die Option, nicht der Datenpunkt.
+                    "pumpe": (
+                        _pumpe(teil["entitaeten"], art)
+                        if modulpumpe or art != "pumpenmodul"
+                        else None
+                    ),
                     "mischer": _mischer(teil["entitaeten"]) if art == "heizkreis" else None,
                     # Die Temperatur, die tatsächlich in den Heizkörper geht.
                     # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn
@@ -1231,6 +1239,7 @@ def anlagenschema(
     teile_aus: list[str] | tuple[str, ...] = (),
     zeichnungen: dict[str, str] | None = None,
     mischer: bool = True,
+    modulpumpe: bool = True,
 ) -> dict[str, Any] | None:
     """Eine `picture-elements`-Karte für eine Anlage – oder nichts.
 
@@ -1247,7 +1256,7 @@ def anlagenschema(
     `picture-elements`-Karte. Die eigene Oberfläche wählt mit derselben Angabe
     (`panel/daten.py`).
     """
-    module = _module(teile, kesselwert, auswahl, teile_aus, zeichnungen)
+    module = _module(teile, kesselwert, auswahl, teile_aus, zeichnungen, modulpumpe)
     # Ein Bild aus lauter leeren Kästen hilft niemandem: Mindestens ein
     # Anlagenteil muss etwas messen.
     if not any(m["werte"] for m in module):
@@ -1595,6 +1604,7 @@ def schaubild_nutzdaten(
         teile_aus,
         zeichnungen,
         mischer,
+        anlage.get("modulpumpe", True),
     )
     return {
         # Die Zeichnung geht **einmal** hinaus, dazu die Farbtabellen. Welcher

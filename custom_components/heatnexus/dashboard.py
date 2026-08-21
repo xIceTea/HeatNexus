@@ -33,6 +33,7 @@ import yaml
 from .const import (
     CONF_KESSELART,
     CONF_KESSELWERT,
+    CONF_MODULPUMPE,
     DASHBOARD_TITEL,
     DASHBOARD_URL,
     DOMAIN,
@@ -357,8 +358,12 @@ def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
     return zuordnung
 
 
-def _kesselart_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str]]:
-    """Eingestellte Kesselart je Gerätekennung.
+# Vorgabe, solange eine Anlage noch keine eigene Wahl gespeichert hat.
+_SCHAUBILD_STANDARD = (KESSELART_AUTO, KESSELWERT_LEISTUNG, True)
+
+
+def _schaubildwahl_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str, bool]]:
+    """Eingestellte Schaubild-Optionen je Gerätekennung.
 
     Die Option liegt je Anlage unter deren Adresse; die Geräte tragen sie nicht.
     Der Umweg über die Koordinatoren stellt die Verbindung her – dieselbe
@@ -375,6 +380,7 @@ def _kesselart_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str]]:
             wahl = (
                 je_host.get(CONF_KESSELART) or KESSELART_AUTO,
                 je_host.get(CONF_KESSELWERT) or KESSELWERT_LEISTUNG,
+                bool(je_host.get(CONF_MODULPUMPE, True)),
             )
             for beschreibung in (coordinator.data or {}).get("devices", []):
                 if kennung := beschreibung.get("device_id"):
@@ -393,7 +399,7 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
     geraete_registry = dr.async_get(hass)
     entitaeten_registry = er.async_get(hass)
     fct_je_geraet = _fct_je_geraet(hass)
-    kesselart_je_geraet = _kesselart_je_geraet(hass)
+    schaubildwahl_je_geraet = _schaubildwahl_je_geraet(hass)
 
     teile: dict[str, dict[str, Any]] = {}
     for geraet in geraete_registry.devices.values():
@@ -408,12 +414,9 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
             "fct_type": fct,
             "rang": _rang(fct),
             "symbol": _symbol(fct),
-            "kesselart_wahl": kesselart_je_geraet.get(
-                kennung, (KESSELART_AUTO, KESSELWERT_LEISTUNG)
-            )[0],
-            "kesselwert_wahl": kesselart_je_geraet.get(
-                kennung, (KESSELART_AUTO, KESSELWERT_LEISTUNG)
-            )[1],
+            "kesselart_wahl": schaubildwahl_je_geraet.get(kennung, _SCHAUBILD_STANDARD)[0],
+            "kesselwert_wahl": schaubildwahl_je_geraet.get(kennung, _SCHAUBILD_STANDARD)[1],
+            "modulpumpe_wahl": schaubildwahl_je_geraet.get(kennung, _SCHAUBILD_STANDARD)[2],
             "entitaeten": [],
         }
 
@@ -499,6 +502,8 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
             (t["kesselwert_wahl"] for t in gruppe["teile"] if t.get("kesselwert_wahl")),
             KESSELWERT_LEISTUNG,
         )
+        # Ohne Haken bleibt die Pumpe des Pumpen-/Relaismoduls im Bild weg.
+        gruppe["modulpumpe"] = all(t.get("modulpumpe_wahl", True) for t in gruppe["teile"])
 
     return sorted(anlagen.values(), key=lambda a: a["name"])
 
@@ -638,7 +643,11 @@ def _anlagenbild(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
     """
     abschnitte: list[dict[str, Any]] = []
     for anlage in anlagen:
-        bild = anlagenschema(anlage["teile"], anlage.get("kesselart"))
+        bild = anlagenschema(
+            anlage["teile"],
+            anlage.get("kesselart"),
+            modulpumpe=anlage.get("modulpumpe", True),
+        )
         if bild is None:
             continue
         abschnitte += _abschnitt(anlage["name"] or "Anlage", [bild], "mdi:sitemap-outline")

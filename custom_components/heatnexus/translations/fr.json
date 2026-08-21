@@ -126,6 +126,7 @@
           "username": "Accès",
           "kesselart": "Générateur de chaleur (schéma)",
           "kesselwert": "Valeur de la chaudière (schéma)",
+          "modulpumpe": "Afficher la pompe du module pompe/relais (schéma)",
           "zeitwerte": "Créer l'horloge et la date système",
           "lon": "Read values from the LON bus",
           "zusatzgruppen": "Valeurs dérivées"
@@ -137,6 +138,7 @@
           "username": "USER voit les niveaux info et exploitant, Service en plus les paramètres spécialisés. Un changement relit l'installation.",
           "kesselart": "Quel appareil le schéma de l'installation dessine. N'affecte que le dessin – aucune entité, aucune valeur ne change.",
           "kesselwert": "Quelle deuxième valeur figure sur la chaudière. Le lit de braises suit toujours la puissance ; à défaut, il se règle sur la température de la chambre de combustion.",
+          "modulpumpe": "Sans la case cochée, le repère de pompe du module n'apparaît pas dans le schéma. Utile si le module ne commute qu'une demande externe sans pompe raccordée.",
           "zeitwerte": "L'horloge de la régulation. Sans la case cochée, elles sont créées désactivées ; les autres champs d'heure et de date ne sont pas concernés.",
           "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
           "zusatzgruppen": "Valeurs calculées par HeatNexus à partir des compteurs et états existants : durées de fonctionnement (aujourd’hui, depuis le dernier démarrage), compteurs (démarrages, consommation, chaleur) et durée en cours. Les valeurs non cochées sont créées désactivées. Avec « Individuell », OK ouvre une seconde étape listant les valeurs individuelles."
