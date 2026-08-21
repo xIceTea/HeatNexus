@@ -660,11 +660,9 @@ def _zustandswerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
 def _anlagenbild(anlagen: list[dict[str, Any]], als_karte: bool = False) -> dict[str, Any] | None:
     """Ansicht „Anlage": das Schaubild mit den Werten darauf.
 
-    Je Anlage ein Schaubild, dazu der Zustand in Kurzform. ``als_karte`` setzt
-    statt der fertigen Zeichnung die eigene Lovelace-Karte ein: Die lässt sich
-    im Editor bearbeiten und trägt die Werte gleich neben dem Bild. Das
-    mitgelieferte Dashboard bleibt bei der Zeichnung – sie braucht kein Modul
-    im Browser.
+    ``als_karte`` setzt die eigene Lovelace-Karte ein statt der fertigen
+    Zeichnung: Sie lässt sich im Editor bearbeiten. Das mitgelieferte
+    Dashboard bleibt bei der Zeichnung, die kein Modul im Browser braucht.
     """
     abschnitte: list[dict[str, Any]] = []
     for anlage in anlagen:
