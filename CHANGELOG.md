@@ -6,6 +6,17 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Geändert
+
+- Das Schaubild steht im Text zum Kopieren als eigene Karte statt als Zeichnung.
+- Schaubild und Werteliste nutzen die volle Breite der Ansicht.
+
+### Behoben
+
+- Ein eingeschalteter Wert erscheint sofort statt erst im nächsten trägen Takt.
+
 ## [1.10.1] - 2026-08-21
 
 ### Neu
