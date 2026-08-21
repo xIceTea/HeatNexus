@@ -618,7 +618,7 @@ def _module(
     auswahl: dict[str, list[str]] | None = None,
     teile_aus: list[str] | tuple[str, ...] = (),
     zeichnungen: dict[str, str] | None = None,
-    modulpumpe: bool = True,
+    modulpumpe: bool = False,
 ) -> list[dict[str, Any]]:
     """Anlagenteile, die sich zeichnen lassen, mit ihren Werten.
 
@@ -1035,10 +1035,10 @@ SPEICHER_ARTEN: dict[str, dict[str, Any]] = {
 # `WERT_HOEHEN["puffer"]` setzt sie auf 168 und 258.
 SPEICHER_Y = 213
 
-# Wie viel wärmer der Kessel sein muss, damit wirklich in den Puffer geladen
-# wird. Ohne diesen Abstand gälte schon ein Zehntelgrad Messrauschen als
-# Ladung.
-LADE_HYSTERESE = 2.0
+# Wie weit der Kessel unter dem oberen Fühler liegen darf und die Ladung
+# trotzdem gilt. Gegen Ende gleichen sich beide Werte an, während der untere
+# Bereich noch kalt ist – ein Aufschlag verstummte genau dann.
+LADE_TOLERANZ = 0.5
 
 # Die Lampen des Pumpen-/Relaismoduls, aus `pumpenmodul.svg`: fünf Klemmen
 # oben, eine Betriebslampe rechts unten. Liegt eine Wärmeanforderung an,
@@ -1239,7 +1239,7 @@ def anlagenschema(
     teile_aus: list[str] | tuple[str, ...] = (),
     zeichnungen: dict[str, str] | None = None,
     mischer: bool = True,
-    modulpumpe: bool = True,
+    modulpumpe: bool = False,
 ) -> dict[str, Any] | None:
     """Eine `picture-elements`-Karte für eine Anlage – oder nichts.
 
@@ -1509,7 +1509,7 @@ def anlagenschema(
                 "laden": modul.get("pumpe"),
                 "kessel": kessel_ist,
                 "oben": oben,
-                "hysterese": LADE_HYSTERESE,
+                "toleranz": LADE_TOLERANZ,
                 "entnahme": entnahme,
                 "left": f"{mitte / breite * 100:.2f}%",
                 "top": f"{SPEICHER_Y / HOEHE * 100:.2f}%",
@@ -1604,7 +1604,7 @@ def schaubild_nutzdaten(
         teile_aus,
         zeichnungen,
         mischer,
-        anlage.get("modulpumpe", True),
+        anlage.get("modulpumpe", False),
     )
     return {
         # Die Zeichnung geht **einmal** hinaus, dazu die Farbtabellen. Welcher

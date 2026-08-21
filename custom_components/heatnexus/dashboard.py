@@ -359,7 +359,7 @@ def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
 
 
 # Vorgabe, solange eine Anlage noch keine eigene Wahl gespeichert hat.
-_SCHAUBILD_STANDARD = (KESSELART_AUTO, KESSELWERT_LEISTUNG, True)
+_SCHAUBILD_STANDARD = (KESSELART_AUTO, KESSELWERT_LEISTUNG, False)
 
 
 def _schaubildwahl_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str, bool]]:
@@ -380,7 +380,7 @@ def _schaubildwahl_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str, b
             wahl = (
                 je_host.get(CONF_KESSELART) or KESSELART_AUTO,
                 je_host.get(CONF_KESSELWERT) or KESSELWERT_LEISTUNG,
-                bool(je_host.get(CONF_MODULPUMPE, True)),
+                bool(je_host.get(CONF_MODULPUMPE, False)),
             )
             for beschreibung in (coordinator.data or {}).get("devices", []):
                 if kennung := beschreibung.get("device_id"):
@@ -502,8 +502,8 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
             (t["kesselwert_wahl"] for t in gruppe["teile"] if t.get("kesselwert_wahl")),
             KESSELWERT_LEISTUNG,
         )
-        # Ohne Haken bleibt die Pumpe des Pumpen-/Relaismoduls im Bild weg.
-        gruppe["modulpumpe"] = all(t.get("modulpumpe_wahl", True) for t in gruppe["teile"])
+        # Erst wenn eine Anlage eine Pumpe am Modul bestätigt, steht sie im Bild.
+        gruppe["modulpumpe"] = any(t.get("modulpumpe_wahl") for t in gruppe["teile"])
 
     return sorted(anlagen.values(), key=lambda a: a["name"])
 
@@ -646,7 +646,7 @@ def _anlagenbild(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
         bild = anlagenschema(
             anlage["teile"],
             anlage.get("kesselart"),
-            modulpumpe=anlage.get("modulpumpe", True),
+            modulpumpe=anlage.get("modulpumpe", False),
         )
         if bild is None:
             continue

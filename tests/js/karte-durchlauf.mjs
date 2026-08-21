@@ -59,11 +59,15 @@ bilanz.bildVorhanden = !!bild;
 bilanz.bildAdresse = bild ? String(bild.src).slice(0, 30) : null;
 
 // Maßstab und Laufrad: Die Überlagerungen sollen mit dem Bild wachsen, und
-// das Rad ist eine eigene Zeichnung statt eines Symbols.
+// das Rad ist eine eigene Zeichnung in einem Kasten, der die Drehung trägt.
 const huelle = karte.shadowRoot.querySelector(".schaubild");
 bilanz.einheitGesetzt = !!huelle && String(huelle.style["--hn-einheit"] || "").endsWith("cqw");
 const pumpe = karte.shadowRoot.querySelector(".pumpe");
-bilanz.laufradIstZeichnung = !!pumpe && pumpe.children[0].tagName === "SVG";
+const drehkasten = pumpe && pumpe.children[0];
+bilanz.laufradIstZeichnung =
+  !!drehkasten &&
+  drehkasten.className === "rad" &&
+  drehkasten.children[0].tagName === "SVG";
 
 // Eine zweite Anlage wird über die Kennung gewählt, nicht über die Lage.
 karte.setConfig({ anlage: anlagen[1].id, farbsatz: "dunkel" });

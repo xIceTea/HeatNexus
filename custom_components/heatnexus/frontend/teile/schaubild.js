@@ -75,15 +75,15 @@ export const SchaubildMixin = (Basis) =>
    * Ob ein Speicher gerade geladen oder entnommen wird.
    *
    * Die Ladepumpe allein genügt nicht: Sie läuft auch, wenn der Kessel direkt
-   * in einen Heizkreis fährt. Wärme geht nur in den Speicher, wenn der Kessel
-   * wärmer ist als dessen oberer Bereich.
+   * in einen Heizkreis fährt. Wärme geht in den Speicher, solange der Kessel
+   * den oberen Bereich hält – gegen Ende der Ladung liegen beide gleichauf.
    */
   _speicherzustand(eintrag) {
     const pumpe = eintrag.laden ? this._foerdert(eintrag.laden) : false;
     const kessel = eintrag.kessel ? this._zahl(eintrag.kessel) : null;
     const oben = eintrag.oben ? this._zahl(eintrag.oben) : null;
     const waermer =
-      kessel === null || oben === null ? true : kessel > oben + (Number(eintrag.hysterese) || 0);
+      kessel === null || oben === null ? true : kessel > oben - (Number(eintrag.toleranz) || 0);
     const laedt = pumpe && waermer;
     return { laedt, zieht: (eintrag.entnahme || []).some((e) => this._foerdert(e)) };
   }
@@ -95,6 +95,9 @@ export const SchaubildMixin = (Basis) =>
    * stehen exakt 120 Grad auseinander – so dreht es sich rund statt zu eiern.
    */
   _laufrad() {
+    // Der Kasten aus HTML trägt die Drehung, das SVG nur die Zeichnung.
+    const huelle = document.createElement("span");
+    huelle.className = "rad";
     const rad = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     rad.setAttribute("viewBox", "-12 -12 24 24");
     rad.innerHTML =
@@ -103,7 +106,8 @@ export const SchaubildMixin = (Basis) =>
       '<path d="M 0 0 L 9.40 3.42 A 10 10 0 0 1 1.39 9.90 Z"/>' +
       '<path d="M 0 0 L -7.66 6.43 A 10 10 0 0 1 -9.27 -3.75 Z"/>' +
       '<circle r="2.4"/></g>';
-    return rad;
+    huelle.appendChild(rad);
+    return huelle;
   }
 
   _schaubild(anlage) {

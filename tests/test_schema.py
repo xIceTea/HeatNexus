@@ -279,16 +279,16 @@ def _pumpenmodul(schema):
     )
 
 
-def test_modulpumpe_steht_ohne_angabe_im_bild(schema):
+def test_modulpumpe_bleibt_ohne_angabe_weg(schema):
+    """Ohne bestätigte Pumpe bleibt das Modul im Bild, seine Pumpenmarke nicht."""
     module = schema._module([_pumpenmodul(schema)])
-    assert module[0]["pumpe"] == "sensor.zsp_drehzahl"
-
-
-def test_abgewaehlte_modulpumpe_faellt_weg(schema):
-    """Ohne angeschlossene Pumpe bleibt das Modul, seine Pumpenmarke nicht."""
-    module = schema._module([_pumpenmodul(schema)], modulpumpe=False)
     assert module[0]["art"] == "pumpenmodul"
     assert module[0]["pumpe"] is None
+
+
+def test_bestaetigte_modulpumpe_steht_im_bild(schema):
+    module = schema._module([_pumpenmodul(schema)], modulpumpe=True)
+    assert module[0]["pumpe"] == "sensor.zsp_drehzahl"
 
 
 def test_abwahl_trifft_nur_das_pumpenmodul(schema):
@@ -536,7 +536,7 @@ def test_zsp_meldet_seine_pumpe_ueber_die_drehzahl(schema):
         20,
         [("sensor.t", "Temperatur Ist"), ("sensor.dz", "Pumpendrehzahl")],
     )
-    assert schema._module([zsp])[0]["pumpe"] == "sensor.dz"
+    assert schema._module([zsp], modulpumpe=True)[0]["pumpe"] == "sensor.dz"
 
 
 def test_heizkoerper_haengt_an_der_vorlauftemperatur(schema):
@@ -868,7 +868,7 @@ def test_puffer_kennt_kessel_und_obere_temperatur(schema):
     assert speicher[0]["laden"] == "sensor.plp"
     assert speicher[0]["kessel"] == "sensor.kessel"
     assert speicher[0]["oben"] == "sensor.tpe"
-    assert speicher[0]["hysterese"] > 0
+    assert speicher[0]["toleranz"] > 0
 
 
 # ------------------------------------------------- Schichtung und Zeichnung

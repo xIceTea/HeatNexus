@@ -104,9 +104,9 @@ CONF_KESSELART = "kesselart"
 # davon unabhaengig weiter nach der Leistung - erst wenn die fehlt, springt
 # sie auf die Brennkammertemperatur um.
 CONF_KESSELWERT = "kesselwert"
-# Ob die Pumpe eines Pumpen-/Relaismoduls im Schaubild steht. Das Modul rechnet
-# seine Drehzahl auch dann, wenn nichts angeschlossen ist – ob eine Pumpe daran
-# hängt, weiß nur die Anlage vor Ort.
+# Ob am Pumpen-/Relaismodul wirklich eine Pumpe hängt. Das Modul rechnet seine
+# Drehzahl auch ohne angeschlossene Pumpe; ohne Bestätigung bleibt sie deshalb
+# aus dem Schaubild draußen.
 CONF_MODULPUMPE = "modulpumpe"
 KESSELWERT_LEISTUNG = "leistung"
 KESSELWERT_BRENNKAMMER = "brennkammer"

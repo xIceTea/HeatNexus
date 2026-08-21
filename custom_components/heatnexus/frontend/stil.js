@@ -668,10 +668,11 @@ export const STIL = `
     opacity: 0; transition: opacity 0.8s ease, color 0.6s ease;
   }
   .schaubild .uebergabe-rad.an { opacity: 1; color: var(--hn-uebergabe); }
-  .schaubild .uebergabe-rad svg {
-    display: block; width: 78%; height: 78%; transform-origin: 50% 50%;
+  .schaubild .uebergabe-rad .rad {
+    display: block; width: 78%; aspect-ratio: 1; transform-origin: 50% 50%;
   }
-  .schaubild .uebergabe-rad.an svg { animation: dreht 16s linear infinite; }
+  .schaubild .uebergabe-rad .rad svg { display: block; width: 100%; height: 100%; }
+  .schaubild .uebergabe-rad.an .rad { animation: dreht 16s linear infinite; }
   @media (prefers-reduced-motion: reduce) {
     .schaubild .uebergabe .glut,
     .schaubild .uebergabe .welle,
@@ -696,10 +697,13 @@ export const STIL = `
   /* Das Laufrad ist eine eigene Zeichnung mit dem Nullpunkt in der Mitte des
      Kastens. Ein Symbolzeichensatz gibt diese Mitte nicht her: Die Nabe lag
      neben dem Drehpunkt, und das Rad eierte beim Drehen. */
-  .schaubild .pumpe svg {
-    display: block; width: 62%; height: 62%;
+  /* Gedreht wird der Kasten aus HTML, nicht das SVG selbst: WebKit legt den
+     Drehpunkt eines SVG sonst an die Ecke seiner viewBox, und das Rad eiert. */
+  .schaubild .pumpe .rad {
+    display: block; width: 62%; aspect-ratio: 1;
     transform-origin: 50% 50%;
   }
+  .schaubild .pumpe .rad svg { display: block; width: 100%; height: 100%; }
   /* Die laufende Pumpe tritt hervor. Der Faktor bleibt klein: Eine Marke, die
      doppelt so groß wird, ragte in Kessel und Speicher hinein. */
   .schaubild .pumpe.laeuft {
@@ -707,10 +711,10 @@ export const STIL = `
     box-shadow: 0 0 10px color-mix(in srgb, var(--hn-akzent) 35%, transparent);
     transform: translate(-50%, -50%) scale(1.18);
   }
-  .schaubild .pumpe.laeuft svg { animation: dreht 1.6s linear infinite; }
+  .schaubild .pumpe.laeuft .rad { animation: dreht 1.6s linear infinite; }
   @keyframes dreht { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) {
-    .schaubild .pumpe.laeuft svg { animation: none; }
+    .schaubild .pumpe.laeuft .rad { animation: none; }
   }
   .schaubild .marke-wert {
     position: absolute; transform: translate(-50%, -50%);

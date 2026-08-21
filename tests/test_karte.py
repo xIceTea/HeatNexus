@@ -281,7 +281,7 @@ def test_die_ueberlagerungen_haengen_am_massstab_der_zeichnung(durchlauf):
 
 
 def test_das_laufrad_ist_eine_eigene_zeichnung(durchlauf):
-    """Nur so liegt der Drehpunkt in der Mitte des Rades."""
+    """Der Kasten aus HTML trägt die Drehung, das SVG die Zeichnung."""
     assert durchlauf["laufradIstZeichnung"] is True
 
 

@@ -224,9 +224,9 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
             )
         ),
         # Ein Pumpen-/Relaismodul meldet seine Drehzahl auch dann, wenn keine
-        # Pumpe daran hängt. Ohne Haken bleibt die Pumpenmarke im Schaubild
-        # weg; das Modul selbst und seine Lampen bleiben stehen.
-        vol.Required(CONF_MODULPUMPE, default=bool(defaults.get(CONF_MODULPUMPE, True))): bool,
+        # Pumpe daran hängt. Erst der Haken bringt sie ins Schaubild; das Modul
+        # selbst und seine Lampen stehen unabhängig davon im Bild.
+        vol.Required(CONF_MODULPUMPE, default=bool(defaults.get(CONF_MODULPUMPE, False))): bool,
     }
     if mit_intervall:
         felder[vol.Required(CONF_DASHBOARD, default=bool(defaults.get(CONF_DASHBOARD, True)))] = (
@@ -360,7 +360,7 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         CONF_ZUSATZWERTE: [str(k) for k in raw.get(CONF_ZUSATZWERTE, [])][:200],
         CONF_KESSELART: kesselart if kesselart in KESSELARTEN else KESSELART_AUTO,
         CONF_KESSELWERT: (kesselwert if kesselwert in KESSELWERTE else KESSELWERT_LEISTUNG),
-        CONF_MODULPUMPE: bool(raw.get(CONF_MODULPUMPE, True)),
+        CONF_MODULPUMPE: bool(raw.get(CONF_MODULPUMPE, False)),
     }
     if CONF_UPDATE_INTERVAL in raw:
         ergebnis[CONF_UPDATE_INTERVAL] = int(raw[CONF_UPDATE_INTERVAL])
