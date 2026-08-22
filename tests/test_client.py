@@ -515,3 +515,18 @@ def test_der_ww_einschaltpunkt_entsteht_aus_soll_und_hysterese(client_module):
     assert punkt["oid"] == "/1/14/0/1/4/0"
     assert punkt["id"].endswith("-ww-schaltpunkt")
     assert punkt["enabled_default"] is False
+
+
+def test_die_frostschutzgrenze_heisst_nicht_wie_ihr_messwert(client_module):
+    """Am Heizkreis führt die Herstellertabelle beide Adressen gleich benannt."""
+    assert client_module._name_override(14, "3/23") == "Frostschutzgrenze Außentemperatur"
+
+
+def test_dieselbe_adresse_bleibt_an_anderer_funktion_unberuehrt(client_module):
+    """Die Übersteuerung gilt nur dort, wo sie belegt ist."""
+    assert client_module._name_override(25, "3/23") is None
+
+
+def test_die_flache_tabelle_gilt_weiterhin(client_module):
+    """Ohne Eintrag je Funktionstyp bleibt es beim gepflegten Namen."""
+    assert client_module._name_override(25, "5/0") == "WW-Hysterese Ein"

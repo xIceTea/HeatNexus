@@ -137,6 +137,24 @@ NAME_OVERRIDES = {
     "3/4": "Eco/Comfort Temperatur",
 }
 
+# Dasselbe je Funktionstyp, wo eine Adresse nur dort eindeutig ist. Die
+# Herstellertabelle führt Namen ohne den Menütitel, unter dem sie am Gerät
+# stehen – am Heizkreis heißt der Grenzwert sonst wie sein Messwert.
+NAME_OVERRIDES_JE_FCT: dict[int, dict[str, str]] = {
+    14: {  # Heizkreis, Menü „Frostschutzgrenzen"
+        "3/0": "Frostschutzgrenze Raumtemperatur",
+        "3/23": "Frostschutzgrenze Außentemperatur",
+        "7/45": "Frostschutzgrenze Vorlauftemperatur",
+        "5/58": "Frostschutzgrenze WW-Speicher",
+    },
+}
+
+
+def _name_override(fct_type: object, gnmn: str) -> str | None:
+    """Gepflegter Name eines Datenpunkts, Funktionstyp vor flacher Tabelle."""
+    je_fct = NAME_OVERRIDES_JE_FCT.get(fct_type) or {}
+    return je_fct.get(gnmn) or NAME_OVERRIDES.get(gnmn)
+
 
 # Adressangaben in der statischen Navigation der Steuerung. Zwei Schreibweisen
 # für dasselbe: `oidextension="4/80/0"` in der Zuordnung, `gnmn="03:61"` in der
@@ -1256,7 +1274,9 @@ class WindhagerHttpClient:
                             alt_id=self._alte_kennung(oid),
                             oid=oid,
                             name=(
-                                self._name_fuer(gnmn, NAME_OVERRIDES.get(gnmn) or get_name(gnmn))
+                                self._name_fuer(
+                                    gnmn, _name_override(fct_type, gnmn) or get_name(gnmn)
+                                )
                                 or (f"{gruppe_of[gnmn]} {gnmn}" if gnmn in gruppe_of else None)
                                 or f"Datenpunkt {gnmn}"
                             ),
@@ -1970,7 +1990,11 @@ class WindhagerHttpClient:
         for d in self.devices:
             if not d.get("oid") or not d.get("name"):
                 continue
-            namen_je_geraet.setdefault((d.get("device_id"), d["name"]), []).append(d)
+            # Verglichen wird vereinheitlicht: Die kuratierte Tabelle schreibt
+            # „Außentemperatur", die Gerätetabelle „Aussentemperatur" – für den
+            # Leser derselbe Name, für einen Zeichenvergleich nicht.
+            schluessel = (d.get("device_id"), d["name"].casefold().replace("ß", "ss"))
+            namen_je_geraet.setdefault(schluessel, []).append(d)
 
         for (_geraet, _name), gruppe in namen_je_geraet.items():
             if len(gruppe) < 2:
