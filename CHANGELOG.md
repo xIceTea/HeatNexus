@@ -8,6 +8,11 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unveröffentlicht]
 
+### Neu
+
+- Brennkammertemperatur, Gebläsedrehzahl und Pelletsvorrat am Pelletskessel über den LON-Bus.
+- Betriebswahl, Alarmcode und Aschetonne des Pelletskessels ohne Werksebene.
+
 ### Geändert
 
 - Das Schaubild steht im Text zum Kopieren als eigene Karte statt als Zeichnung.
@@ -19,10 +24,13 @@ wenn dort Vorabversionen zugelassen sind.
 - Kopfzeile und Systemstatus zeigen wieder die gemessene Außentemperatur ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
 - Die Frostschutzgrenzen des Heizkreises tragen einen eigenen Namen.
 - Namen von Datenpunkten enden nicht mehr auf einem Leerzeichen.
+- Parameter des Pelletskessels tragen sprechende Namen statt „Bereich" oder „Istwert".
 - Ein nicht angeschlossener Temperaturfühler zeigt keinen Messwert mehr an.
 - „Reinigung bestätigen" erscheint im Schnellzugriff und in der Kesselbedienung.
 - Geänderte Schaubildoptionen wirken sofort in der eigenen Oberfläche.
 - Die Oberfläche öffnet gleich im gewählten Farbsatz statt kurz im Standard.
+- Der Gerätetyp des Kessels erscheint wieder als eigener Wert.
+- Ein Fühler ohne Anschluss meldet keinen Wert mehr statt einer Scheintemperatur.
 
 ## [1.10.1] - 2026-08-21
 
