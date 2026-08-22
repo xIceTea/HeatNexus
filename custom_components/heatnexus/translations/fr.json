@@ -43,7 +43,8 @@
           "dashboard": "Créer un tableau de bord",
           "panel": "Panneau HeatNexus",
           "zeitwerte": "Créer l'horloge et la date système",
-          "lon": "Read values from the LON bus"
+          "lon": "Read values from the LON bus",
+          "lon_grundumfang": "Compléter les valeurs de base par le bus LON"
         },
         "data_description": {
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
@@ -53,7 +54,8 @@
           "dashboard": "Ajoute un tableau de bord « Chauffage » qui se construit à partir des appareils détectés.",
           "panel": "Ajoute une entrée « HeatNexus » dans la barre latérale : schéma de l’installation, état, circuits de chauffage et accès rapide.",
           "zeitwerte": "L'horloge de la régulation. Sans la case cochée, elles sont créées désactivées ; les autres champs d'heure et de date ne sont pas concernés.",
-          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints."
+          "lon": "La régulation gère un espace d'adressage bus complet à côté des points de données. Pour aller en profondeur : vitesse du ventilateur, chauffage de la sonde lambda, stock de granulés et le reste. Sur PuroWIN et Infinity, il n'apporte guère, ces valeurs existant déjà comme points de données.",
+          "lon_grundumfang": "Récupère la pompe, le mélangeur et les mesures principales de la chaudière depuis le bus lorsque l'installation n'en fournit pas de point de données — sinon ils manquent sur le schéma. Aucun doublon : le point de données prime."
         }
       },
       "reauth_confirm": {
@@ -129,6 +131,7 @@
           "modulpumpe": "Pompe raccordée au module pompe/relais",
           "zeitwerte": "Créer l'horloge et la date système",
           "lon": "Read values from the LON bus",
+          "lon_grundumfang": "Compléter les valeurs de base par le bus LON",
           "zusatzgruppen": "Valeurs dérivées"
         },
         "data_description": {
@@ -140,7 +143,8 @@
           "kesselwert": "Quelle deuxième valeur figure sur la chaudière. Le lit de braises suit toujours la puissance ; à défaut, il se règle sur la température de la chambre de combustion.",
           "modulpumpe": "La pompe du module n'apparaît dans le schéma que si la case est cochée. Le module indique une vitesse même sans pompe raccordée ; le module et ses voyants restent affichés dans tous les cas.",
           "zeitwerte": "L'horloge de la régulation. Sans la case cochée, elles sont créées désactivées ; les autres champs d'heure et de date ne sont pas concernés.",
-          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
+          "lon": "La régulation gère un espace d'adressage bus complet à côté des points de données. Pour aller en profondeur : vitesse du ventilateur, chauffage de la sonde lambda, stock de granulés et le reste. Sur PuroWIN et Infinity, il n'apporte guère, ces valeurs existant déjà comme points de données.",
+          "lon_grundumfang": "Récupère la pompe, le mélangeur et les mesures principales de la chaudière depuis le bus lorsque l'installation n'en fournit pas de point de données — sinon ils manquent sur le schéma. Aucun doublon : le point de données prime.",
           "zusatzgruppen": "Valeurs calculées par HeatNexus à partir des compteurs et états existants : durées de fonctionnement (aujourd’hui, depuis le dernier démarrage), compteurs (démarrages, consommation, chaleur) et durée en cours. Les valeurs non cochées sont créées désactivées. Avec « Individuell », OK ouvre une seconde étape listant les valeurs individuelles."
         }
       },

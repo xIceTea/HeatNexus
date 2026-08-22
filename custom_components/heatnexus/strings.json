@@ -43,7 +43,8 @@
           "dashboard": "Create dashboard",
           "panel": "HeatNexus panel",
           "zeitwerte": "Systemuhr und Systemdatum anlegen",
-          "lon": "Read values from the LON bus"
+          "lon": "Read values from the LON bus",
+          "lon_grundumfang": "Add basic values from the LON bus"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
@@ -53,7 +54,8 @@
           "dashboard": "Adds a dashboard that builds itself from the discovered devices.",
           "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
-          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints."
+          "lon": "The controller keeps a full bus address space alongside the datapoints. For a deep look: fan speed, lambda probe heating, pellet stock and everything else. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
+          "lon_grundumfang": "Fetches pump, mixer and the boiler's core readings from the bus where the system has no datapoint for them — otherwise they are missing from the diagram. No duplicates: where a datapoint exists, it wins."
         }
       },
       "reauth_confirm": {
@@ -125,6 +127,7 @@
           "kesselart": "Heat generator (diagram)",
           "zeitwerte": "Systemuhr und Systemdatum anlegen",
           "lon": "Read values from the LON bus",
+          "lon_grundumfang": "Add basic values from the LON bus",
           "zusatzgruppen": "Zusatzwerte"
         },
         "data_description": {
@@ -134,7 +137,8 @@
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
           "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
-          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
+          "lon": "The controller keeps a full bus address space alongside the datapoints. For a deep look: fan speed, lambda probe heating, pellet stock and everything else. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
+          "lon_grundumfang": "Fetches pump, mixer and the boiler's core readings from the bus where the system has no datapoint for them — otherwise they are missing from the diagram. No duplicates: where a datapoint exists, it wins.",
           "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. Mit „Individuell“ folgt nach OK ein zweiter Schritt mit den Einzelwerten."
         }
       },

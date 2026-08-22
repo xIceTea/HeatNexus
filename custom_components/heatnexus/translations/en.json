@@ -43,7 +43,8 @@
           "dashboard": "Create dashboard",
           "panel": "HeatNexus panel",
           "zeitwerte": "Create system clock and system date",
-          "lon": "Read values from the LON bus"
+          "lon": "Read values from the LON bus",
+          "lon_grundumfang": "Add basic values from the LON bus"
         },
         "data_description": {
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
@@ -53,7 +54,8 @@
           "dashboard": "Adds a “Heating” dashboard to the sidebar that builds itself from the discovered devices.",
           "panel": "Adds a “HeatNexus” entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
           "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
-          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints."
+          "lon": "The controller keeps a full bus address space alongside the datapoints. For a deep look: fan speed, lambda probe heating, pellet stock and everything else. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
+          "lon_grundumfang": "Fetches pump, mixer and the boiler's core readings from the bus where the system has no datapoint for them — otherwise they are missing from the diagram. No duplicates: where a datapoint exists, it wins."
         }
       },
       "reauth_confirm": {
@@ -129,6 +131,7 @@
           "modulpumpe": "Pump connected to the pump/relay module",
           "zeitwerte": "Create system clock and system date",
           "lon": "Read values from the LON bus",
+          "lon_grundumfang": "Add basic values from the LON bus",
           "zusatzgruppen": "Derived values"
         },
         "data_description": {
@@ -140,7 +143,8 @@
           "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature.",
           "modulpumpe": "Only with the tick does the module's pump appear in the diagram. The module reports a speed even when nothing is wired to it; the module itself and its lamps are shown either way.",
           "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
-          "lon": "Besides its datapoints the controller keeps a bus address space. Recommended for systems whose boiler reports few datapoints — there it is the only way to fan speed, lambda probe heating and pellet stock. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
+          "lon": "The controller keeps a full bus address space alongside the datapoints. For a deep look: fan speed, lambda probe heating, pellet stock and everything else. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
+          "lon_grundumfang": "Fetches pump, mixer and the boiler's core readings from the bus where the system has no datapoint for them — otherwise they are missing from the diagram. No duplicates: where a datapoint exists, it wins.",
           "zusatzgruppen": "Values HeatNexus derives from existing counters and states: running times (today, since the last start), counters (starts, consumption, heat) and the running duration. Unticked ones are created disabled. With “Individuell”, pressing OK opens a second step listing the individual values."
         }
       },

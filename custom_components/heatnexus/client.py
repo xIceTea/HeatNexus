@@ -61,6 +61,7 @@ from .const import (
 from .device_db import get_conditions, get_enum, get_layers, get_name
 from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
 from .kanonisch import schluessel as kanonischer_schluessel
+from .lon import im_grundumfang as lon_im_grundumfang
 from .lon import ist_eingang as lon_ist_eingang
 from .lon import kennungsteil as lon_kennungsteil
 from .lon import snvt as lon_snvt
@@ -226,6 +227,7 @@ class WindhagerHttpClient:
         zeitwerte: bool = False,
         zusatzwerte: list[str] | None = None,
         lon: bool = False,
+        lon_grundumfang: bool = True,
         username: str | None = None,
         update_interval: int = UPDATE_INTERVAL,
         sprache: str = "de",
@@ -254,6 +256,10 @@ class WindhagerHttpClient:
         # Auswahldialog leer.
         self.zusatzkandidaten: list[dict] = []
         self.lon = lon
+        # Der Aufbau der Anlage kommt auch ohne den vollen Adressraum: Pumpe,
+        # Mischer und die Kernmesswerte des Erzeugers, und nur dort, wo kein
+        # Datenpunkt dieselbe Größe schon führt.
+        self.lon_grundumfang = lon_grundumfang
         # In welcher Sprache das Textwerk der Steuerung gelesen wird, und was
         # sie geliefert hat. Vor dem ersten Erkennungslauf ist es leer.
         self.sprache = sprache or "de"
@@ -859,6 +865,9 @@ class WindhagerHttpClient:
         # gilt über Baureihen hinweg – die Namenstabelle entscheidet nur noch
         # über den Begriff, die Größe kommt von hier.
         typ = lon_snvt(item.get("snvtName"))
+        # Ohne den Schalter kommt nur, was den Aufbau der Anlage betrifft.
+        if not self.lon and not lon_im_grundumfang((eintrag or {}).get("kanonisch")):
+            return
         if typ.get("verwaltung"):
             # Dateiverzeichnis und Anforderungs-Eingang sind Innenleben des
             # Bus. Als Entität wären sie eine Zeile, die niemand deuten kann.
@@ -963,6 +972,18 @@ class WindhagerHttpClient:
         for d in self.devices:
             if d.get("nv_name") and d.get("kanonisch") in belegt:
                 d["enabled_default"] = False
+        if self.lon:
+            return
+        # Ohne den Schalter stünde eine abgeschaltete Zeile ohne Zweck da: Der
+        # Grundumfang springt nur ein, wo der Datenpunkt fehlt.
+        weg = {
+            d["oid"]
+            for d in self.devices
+            if d.get("nv_name") and d.get("kanonisch") in belegt and d.get("oid")
+        }
+        if weg:
+            self.devices = [d for d in self.devices if d.get("oid") not in weg]
+            self.oids -= weg
 
     async def update(self, oid, value):
         """PUT a new value to a datapoint."""
@@ -1335,7 +1356,7 @@ class WindhagerHttpClient:
             # Der LON-Adressraum, jetzt mit bekanntem Primärgerät. Ein Knoten
             # ohne brauchbare Funktion – das Bedienteil – bekommt darüber sein
             # eigenes Gerät; einen Kessel ergänzen die Werte an seinem.
-            if not nur_kern and self.lon:
+            if not nur_kern and (self.lon or self.lon_grundumfang):
                 for fct in nv_funktionen:
                     await self._lese_nv(
                         f"{device_id}/{fct['fctId']}",

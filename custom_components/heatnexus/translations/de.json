@@ -43,7 +43,8 @@
           "dashboard": "Dashboard einrichten",
           "panel": "HeatNexus-Panel",
           "zeitwerte": "Systemuhr und Systemdatum anlegen",
-          "lon": "Werte vom LON-Bus lesen"
+          "lon": "Werte vom LON-Bus lesen",
+          "lon_grundumfang": "Grundumfang aus dem LON-Bus ergänzen"
         },
         "data_description": {
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
@@ -53,7 +54,8 @@
           "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut.",
           "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
-          "lon": "Die Steuerung führt neben den Datenpunkten einen Bus-Adressraum. Empfohlen bei Anlagen, deren Kessel wenige Datenpunkte meldet — dort ist es der einzige Weg zu Gebläsedrehzahl, Lambdasonden-Heizung und Pelletsvorrat. Bei PuroWIN und Infinity bringt er kaum etwas, weil dieselben Werte schon als Datenpunkt dastehen."
+          "lon": "Die Steuerung führt neben den Datenpunkten einen vollständigen Bus-Adressraum. Für tiefe Einblicke: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und alles Übrige. Bei PuroWIN und Infinity bringt er kaum etwas, weil dieselben Werte schon als Datenpunkt dastehen.",
+          "lon_grundumfang": "Holt Pumpe, Mischer und die Kernmesswerte des Kessels aus dem Bus, wenn die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Doppelte Werte entstehen dabei nicht: Wo es den Datenpunkt gibt, gilt er."
         }
       },
       "reauth_confirm": {
@@ -129,6 +131,7 @@
           "modulpumpe": "Pumpe am Pumpen-/Relaismodul angeschlossen",
           "zeitwerte": "Systemuhr und Systemdatum anlegen",
           "lon": "Werte vom LON-Bus lesen",
+          "lon_grundumfang": "Grundumfang aus dem LON-Bus ergänzen",
           "zusatzgruppen": "Zusatzwerte"
         },
         "data_description": {
@@ -140,7 +143,8 @@
           "kesselwert": "Welcher zweite Wert am Kessel steht. Das Glutbett folgt weiterhin der Leistung – fehlt sie, richtet es sich nach der Brennkammertemperatur.",
           "modulpumpe": "Nur mit Haken erscheint die Pumpe des Moduls im Schaubild. Das Modul meldet seine Drehzahl auch dann, wenn nichts angeklemmt ist – das Modul selbst und seine Lampen stehen unabhängig davon im Bild.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
-          "lon": "Die Steuerung führt neben den Datenpunkten einen Bus-Adressraum. Empfohlen bei Anlagen, deren Kessel wenige Datenpunkte meldet — dort ist es der einzige Weg zu Gebläsedrehzahl, Lambdasonden-Heizung und Pelletsvorrat. Bei PuroWIN und Infinity bringt er kaum etwas, weil dieselben Werte schon als Datenpunkt dastehen.",
+          "lon": "Die Steuerung führt neben den Datenpunkten einen vollständigen Bus-Adressraum. Für tiefe Einblicke: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und alles Übrige. Bei PuroWIN und Infinity bringt er kaum etwas, weil dieselben Werte schon als Datenpunkt dastehen.",
+          "lon_grundumfang": "Holt Pumpe, Mischer und die Kernmesswerte des Kessels aus dem Bus, wenn die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Doppelte Werte entstehen dabei nicht: Wo es den Datenpunkt gibt, gilt er.",
           "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. Mit „Individuell“ folgt nach OK ein zweiter Schritt mit den Einzelwerten."
         }
       },

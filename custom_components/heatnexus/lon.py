@@ -174,6 +174,31 @@ LON_NAMEN: dict[str, dict] = {
 }
 
 
+# Begriffe, die auch ohne den Bus-Schalter aus dem Adressraum kommen. Ob eine
+# Anlage ihre Heizkreispumpe als Datenpunkt führt, hängt am Modul; ohne sie
+# fehlte im Schaubild ein Bauteil, das es gibt. Neue Zeilen nur zum Aufbau.
+GRUNDUMFANG: frozenset[str] = frozenset(
+    {
+        # Aufbau: was das Schaubild zeichnet.
+        "circuit_pump",
+        "mixer_position",
+        "buffer_top",
+        "buffer_bottom",
+        "dhw_circulation_pump",
+        # Kernmesswerte des Wärmeerzeugers.
+        "boiler_temperature",
+        "boiler_power",
+        "flue_gas_temperature",
+        "combustion_chamber_temperature",
+    }
+)
+
+
+def im_grundumfang(kanonisch: str | None) -> bool:
+    """Ob ein Begriff auch ohne den Bus-Schalter angelegt wird."""
+    return bool(kanonisch) and kanonisch in GRUNDUMFANG
+
+
 # Typen des LonMark-Standards. Sie stehen an jedem Eintrag als `snvtName` und
 # sagen, **was für eine Größe** der Wert ist – ohne dass sein Name bekannt sein
 # muss. Im Abzug tragen 161 von 201 Einträgen einen. Das ist die automatische

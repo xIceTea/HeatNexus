@@ -128,3 +128,16 @@ def test_die_marke_am_unteren_ende_zaehlt_auch():
 def test_die_brennkammertemperatur_traegt_ihren_schluessel():
     """An dieser Baureihe gibt es sie nur im Bus-Adressraum."""
     assert lon.LON_NAMEN["PMX_avgTb_Tk"]["kanonisch"] == "combustion_chamber_temperature"
+
+
+def test_der_grundumfang_deckt_den_aufbau_ab():
+    """Was das Schaubild zeichnet, muss auch ohne den Bus-Schalter kommen."""
+    assert lon.im_grundumfang("circuit_pump") is True
+    assert lon.im_grundumfang("mixer_position") is True
+    assert lon.im_grundumfang("combustion_chamber_temperature") is True
+
+
+def test_alles_uebrige_bleibt_hinter_dem_schalter():
+    """Sonst wäre der Schalter ohne Wirkung."""
+    assert lon.im_grundumfang("operating_hours") is False
+    assert lon.im_grundumfang(None) is False

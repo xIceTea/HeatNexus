@@ -42,6 +42,7 @@ ZUSATZGRUPPEN = {
 # OID-Raum dünn ist (BioWIN: 49 Werte ohne Entsprechung) und kaum, wo er
 # reich ist (PuroWIN: 12, davon die meisten Bus-Verwaltung).
 CONF_LON = "lon"
+CONF_LON_GRUNDUMFANG = "lon_grundumfang"
 
 # Genau die beiden Datenpunkte, die die Steuerung selbst stellt (2/70 und
 # 2/72). Erkannt wird am Namen, nicht an der Adresse: Ein Feld mit Datum darin

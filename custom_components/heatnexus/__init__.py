@@ -41,6 +41,7 @@ from .const import (
     CONF_LABEL,
     CONF_LEVELS,
     CONF_LON,
+    CONF_LON_GRUNDUMFANG,
     CONF_MELDUNG_EINLESEN,
     CONF_MODULPUMPE,
     CONF_PANEL,
@@ -121,6 +122,7 @@ def _scope(hass: HomeAssistant, entry: ConfigEntry, host: str) -> dict:
         "zeitwerte": bool(je_anlage.get(CONF_ZEITWERTE, False)),
         "zusatzwerte": list(je_anlage.get(CONF_ZUSATZWERTE, [])),
         "lon": bool(je_anlage.get(CONF_LON, False)),
+        "lon_grundumfang": bool(je_anlage.get(CONF_LON_GRUNDUMFANG, True)),
         "update_interval": int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),
         "username": system.get(CONF_USERNAME) or DEFAULT_USERNAME,
         # Aufgelöst, nicht „auto": Sonst läse die Wahl von „auto" auf die
@@ -288,6 +290,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             zeitwerte=scope["zeitwerte"],
             zusatzwerte=scope["zusatzwerte"],
             lon=scope["lon"],
+            lon_grundumfang=scope["lon_grundumfang"],
             update_interval=scope["update_interval"],
             sprache=scope["sprache"],
         )

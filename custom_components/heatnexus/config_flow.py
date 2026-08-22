@@ -53,6 +53,7 @@ from .const import (
     CONF_LABEL,
     CONF_LEVELS,
     CONF_LON,
+    CONF_LON_GRUNDUMFANG,
     CONF_MELDUNG_EINLESEN,
     CONF_MODULPUMPE,
     CONF_PANEL,
@@ -194,6 +195,13 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
         # meldet, ist es der einzige Weg zu Gebläsedrehzahl, Lambdasonde
         # und Pelletsvorrat.
         vol.Required(CONF_LON, default=bool(defaults.get(CONF_LON, False))): bool,
+        # Der Aufbau der Anlage gehört zum Grundumfang: Ob ein Modul seine
+        # Pumpe als Datenpunkt führt, entscheidet die Baureihe, und ohne sie
+        # fehlte im Schaubild ein Bauteil, das es gibt.
+        vol.Required(
+            CONF_LON_GRUNDUMFANG,
+            default=bool(defaults.get(CONF_LON_GRUNDUMFANG, True)),
+        ): bool,
         # Wirkt nur auf die Zeichnung im Schaubild. Steht trotzdem hier bei
         # der Anlage und nicht in den allgemeinen Einstellungen: Zwei Anlagen
         # in einem Eintrag können verschiedene Wärmeerzeuger haben.
@@ -356,6 +364,7 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         CONF_WRITABLE_ADVANCED: bool(raw.get(CONF_WRITABLE_ADVANCED, False)),
         CONF_ZEITWERTE: bool(raw.get(CONF_ZEITWERTE, False)),
         CONF_LON: bool(raw.get(CONF_LON, False)),
+        CONF_LON_GRUNDUMFANG: bool(raw.get(CONF_LON_GRUNDUMFANG, True)),
         # Kennungen der abgeleiteten Werte, die eingeschaltet sein sollen.
         CONF_ZUSATZWERTE: [str(k) for k in raw.get(CONF_ZUSATZWERTE, [])][:200],
         CONF_KESSELART: kesselart if kesselart in KESSELARTEN else KESSELART_AUTO,
