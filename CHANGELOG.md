@@ -21,6 +21,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Namen von Datenpunkten enden nicht mehr auf einem Leerzeichen.
 - Ein nicht angeschlossener Temperaturfühler zeigt keinen Messwert mehr an.
 - „Reinigung bestätigen" erscheint im Schnellzugriff und in der Kesselbedienung.
+- Geänderte Schaubildoptionen wirken sofort in der eigenen Oberfläche.
+- Die Oberfläche öffnet gleich im gewählten Farbsatz statt kurz im Standard.
 
 ## [1.10.1] - 2026-08-21
 
