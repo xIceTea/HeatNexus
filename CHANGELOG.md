@@ -6,6 +6,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unveröffentlicht]
+
+### Behoben
+
+- Softwareversion, Hardwareversion und Gerätetyp zeigen wieder ihren Wert.
+
 ## [1.11.0-beta.1] - 2026-08-22
 
 ### Neu

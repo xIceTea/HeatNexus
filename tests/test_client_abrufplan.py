@@ -931,4 +931,53 @@ async def test_ein_textobjekt_ueberlebt_den_fehlenden_wert(client):
 
     await client._apply_metadata()
 
-    assert [d["type"] for d in client.devices] == ["time_program"]
+    assert [d["type"] for d in client.devices] == ["string_sensor"]
+
+
+async def test_ein_textobjekt_wird_nicht_ueber_lookup_gelesen(client):
+    """Der Gerätetyp steht im Objekt, nicht im Datenpunkt.
+
+    Über lookup käme er ohne Wert zurück und kostete in jedem Durchlauf eine
+    Anfrage.
+    """
+    client.oids = {"/1/60/0/12/38/0"}
+    client.menu_meta = {"/1/60/0/12/38/0": {"writeProt": True, "typeId": 30, "subtypeId": 9}}
+    client.devices = [
+        {"oid": "/1/60/0/12/38/0", "name": "Gerätetyp", "type": "auto", "level": "info"}
+    ]
+
+    await client._apply_metadata()
+    client._compute_poll_oids()
+
+    assert [d["type"] for d in client.devices] == ["string_sensor"]
+    assert client.devices[0]["objekt"] is True
+    assert client.poll_oids == set()
+    assert [d["oid"] for d in client.objekt_texte] == ["/1/60/0/12/38/0"]
+
+
+async def test_ein_neues_textobjekt_wartet_nicht_auf_den_traegen_takt(client):
+    """Zeitprogramme kommen früher herein als die Textobjekte.
+
+    Zählt nur, ob überhaupt schon ein Objekt gelesen wurde, bleibt der später
+    entdeckte Textwert bis zum nächsten trägen Durchlauf leer.
+    """
+    client.oids = set()
+    client.devices = [
+        {"oid": "/1/15/0/3/61/0", "name": "Programm 1", "type": "time_program"},
+        {"oid": "/1/60/0/12/38/0", "name": "Gerätetyp", "type": "string_sensor", "objekt": True},
+    ]
+    client._compute_poll_oids()
+
+    async def objekt(oid):
+        if oid.endswith("12/38/0"):
+            return {"value": "PW 400"}, 200
+        return {"value": [{"weekdays": [1], "switchPoints": [{"time": "06:00", "value": 1}]}]}, 200
+
+    client.fetch_object = objekt
+    client._letzte_objekte = {"/1/15/0/3/61/0": "gelesen"}
+    client._objekte_versucht = {"/1/15/0/3/61/0"}
+    client._tick = 1
+
+    daten = await client.fetch_all()
+
+    assert daten["oids"]["/1/60/0/12/38/0"] == "PW 400"

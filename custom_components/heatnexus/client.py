@@ -293,6 +293,10 @@ class WindhagerHttpClient:
         # Objekte mit einfachem Textwert (z.B. Modulinfo, Softwarestand).
         # Sie werden wie normale Werte behandelt, nicht als Zeitprogramm.
         self._object_texts: dict = {}
+        # Textobjekte als Deskriptoren, dazu die Adressen, die schon einmal
+        # über den object-Endpunkt versucht wurden.
+        self.objekt_texte: list[dict] = []
+        self._objekte_versucht: set[str] = set()
         # Poll-Klasse je OID und Zähler der Abrufdurchläufe. Zusammen sorgen
         # sie dafür, dass träge Werte nicht im 30-Sekunden-Takt gelesen werden.
         self.poll_class: dict[str, str] = {}
@@ -1453,22 +1457,13 @@ class WindhagerHttpClient:
         if isinstance(value, str) and _re.fullmatch(r"\d{2}\.\d{2}\.\d{4}", value):
             return "date" if writable else "string_sensor"
         if m.get("typeId") == 30 and "value" not in m:
-            # `typeId 30` heißt „über den object-Endpunkt lesen", **nicht**
-            # „Zeitprogramm". Was drinsteht, sagt erst `subtypeId`. An der
-            # Anlage gemessen (PuroWIN, 518 Datenpunkte):
-            #   14  Zeitprogramm – Blöcke aus Wochentagen und Schaltpunkten
-            #    9  Text – Gerätetyp „PW 400", Funktionsbezeichnung „PuroWIN",
-            #        Softwarestände „V 0.13"
-            #   10  Funktionsliste – [{"fctType": 25, "lock": false}]
-            # Alle drei kommen über `lookup` ohne Wert.
-            #
-            # Text (9) erkennt `_fetch_time_programs` beim ersten Abruf selbst
-            # und macht einen Textsensor daraus – so kommt der Gerätetyp
-            # überhaupt erst herein. Die Funktionsliste (10) dagegen *ist* eine
-            # Liste von Objekten und käme dort als Zeitprogramm durch. Sie ist
-            # der einzige Fall, der hier heraus muss.
+            # `typeId 30` heißt „über den object-Endpunkt lesen", was drinsteht
+            # sagt erst `subtypeId`: 9 Text, 10 Funktionsliste (unlesbar),
+            # sonst Zeitprogramm. Alle kommen über `lookup` ohne Wert.
             if m.get("subtypeId") == 10:
                 return None
+            if m.get("subtypeId") == 9:
+                return "string_sensor"
             return "time_program"
         if writable:
             try:
@@ -1545,6 +1540,14 @@ class WindhagerHttpClient:
                     # für den PUT-Envelope beim Schreiben merken
                     d["typeId"] = m.get("typeId", 30)
                     d["subtypeId"] = m.get("subtypeId", 14)
+                    d["write_prot"] = m.get("writeProt")
+                elif d["type"] == "string_sensor" and m.get("typeId") == 30:
+                    # Text aus dem object-Endpunkt. Die Marke bleibt im
+                    # Erkennungsstand stehen, sonst liefe der Wert nach einem
+                    # Neustart über lookup und käme leer zurück.
+                    d["objekt"] = True
+                    d["typeId"] = 30
+                    d["subtypeId"] = m.get("subtypeId", 9)
                     d["write_prot"] = m.get("writeProt")
                 elif d["type"] in ("select", "number", "switch", "time", "date") and d.get(
                     "level"
@@ -1623,11 +1626,12 @@ class WindhagerHttpClient:
                     d["enabled_default"] = False
                     d["leer_beim_einlesen"] = True
                 # read-only-Punkt ganz ohne Wert (z.B. Softwareversion).
-                # `time_program` ausgenommen: Ein Objekt trägt im lookup nie einen
-                # Wert; ohne die Ausnahme fiele der Gerätetyp jeder Baureihe weg.
+                # Objekte ausgenommen: Sie tragen im lookup nie einen Wert;
+                # ohne die Ausnahme fiele der Gerätetyp jeder Baureihe weg.
                 if (
                     "value" not in m
                     and m.get("writeProt") is True
+                    and not d.get("objekt")
                     and d["type"]
                     not in ("select", "number", "switch", "time", "button", "time_program")
                 ):
@@ -2124,7 +2128,7 @@ class WindhagerHttpClient:
                     # nicht hinterherlaufen.
                     klassen[oid] = POLL_FAST
                 continue
-            if d.get("type") == "time_program":
+            if d.get("type") == "time_program" or d.get("objekt"):
                 # wird über den object-Endpunkt gelesen, nicht über lookup
                 continue
             if d.get("type") == "button":
@@ -2142,6 +2146,9 @@ class WindhagerHttpClient:
         self.poll_oids = poll - self._abgemeldet
         self.poll_class = klassen
         self.time_programs = [d for d in self.devices if d.get("type") == "time_program"]
+        self.objekt_texte = [
+            d for d in self.devices if d.get("objekt") and d.get("type") != "time_program"
+        ]
 
     async def async_init_basic(self) -> None:
         """Grunddaten lesen: Anlagenstruktur und die wichtigsten Datenpunkte.
@@ -2399,13 +2406,15 @@ class WindhagerHttpClient:
         lokal überhaupt beherrscht. Falls nicht, werden die Zeitprogramm-
         Entities verworfen (keine toten Sensoren) und nicht mehr abgefragt.
         """
-        if self._objects_supported is False or not self.time_programs:
+        objekte = self.time_programs + self.objekt_texte
+        if self._objects_supported is False or not objekte:
             return {}
 
-        results = await asyncio.gather(*(self.fetch_object(tp["oid"]) for tp in self.time_programs))
+        results = await asyncio.gather(*(self.fetch_object(tp["oid"]) for tp in objekte))
         objects: dict = {}
         any_ok = False
-        for tp, (data, status) in zip(self.time_programs, results, strict=False):
+        for tp, (data, status) in zip(objekte, results, strict=False):
+            self._objekte_versucht.add(tp["oid"])
             if status != 200 or not isinstance(data, dict) or "value" not in data:
                 continue
             any_ok = True
@@ -2417,6 +2426,7 @@ class WindhagerHttpClient:
             # Software-/Hardwarestand). Als Textsensor führen.
             self._object_texts[tp["oid"]] = str(wert)
             tp["type"] = "string_sensor"
+            tp["objekt"] = True
             _LOGGER.debug(
                 "%s (%s) ist kein Zeitprogramm, sondern ein Textwert", tp.get("name"), tp["oid"]
             )
@@ -2427,10 +2437,11 @@ class WindhagerHttpClient:
                 _LOGGER.info(
                     "object-Endpunkt lokal nicht verfügbar – Zeitprogramme werden übersprungen"
                 )
-                tp_oids = {tp["oid"] for tp in self.time_programs}
+                tp_oids = {tp["oid"] for tp in objekte}
                 self.devices = [d for d in self.devices if d.get("oid") not in tp_oids]
-                self.time_programs = []
-        self.time_programs = [tp for tp in self.time_programs if tp.get("type") == "time_program"]
+                objekte = []
+        self.time_programs = [tp for tp in objekte if tp.get("type") == "time_program"]
+        self.objekt_texte = [tp for tp in objekte if tp.get("type") != "time_program"]
         return objects
 
     async def refresh_object(self, oid: str):
@@ -2745,10 +2756,12 @@ class WindhagerHttpClient:
         # welche übrig.
         langsamer_takt = self._takte()[POLL_SLOW]
         langsam_faellig = self._tick == 0 or self._tick % langsamer_takt == 0
-        # Zeitprogramme entstehen erst im Vollabzug, also nach dem ersten
-        # Durchlauf. Ohne diesen Vorgriff stünden sie bis zum nächsten trägen
-        # Durchlauf ohne Wert da und wären so lange nicht verfügbar.
-        if self.time_programs and not self._letzte_objekte:
+        # Objekte entstehen erst im Vollabzug, also nach dem ersten Durchlauf.
+        # Gezählt wird jede Adresse einzeln: Ein gelesenes Zeitprogramm sagt
+        # nichts über einen Textwert, der erst später dazukommt.
+        if any(
+            d["oid"] not in self._objekte_versucht for d in self.time_programs + self.objekt_texte
+        ):
             langsam_faellig = True
         if langsam_faellig:
             self._letzte_objekte = await self._fetch_time_programs()

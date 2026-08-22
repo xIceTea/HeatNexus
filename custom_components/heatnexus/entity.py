@@ -310,7 +310,7 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         „nicht verfügbar".
         """
         await super().async_added_to_hass()
-        if self._register_poll_oid and self._oid:
+        if self._register_poll_oid and self._oid and not self._descriptor.get("objekt"):
             self.coordinator.client.register_poll_oid(self._oid)
             # **Den einen Wert sofort holen, nicht erst beim nächsten Takt.**
             # Wer eine abgeschaltete Entität einschaltet, lädt damit den ganzen
@@ -338,7 +338,7 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
 
     async def async_will_remove_from_hass(self) -> None:
         """Beim Entfernen/Deaktivieren die OID wieder abmelden."""
-        if self._register_poll_oid and self._oid:
+        if self._register_poll_oid and self._oid and not self._descriptor.get("objekt"):
             self.coordinator.client.unregister_poll_oid(self._oid)
         await super().async_will_remove_from_hass()
 
