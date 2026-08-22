@@ -205,6 +205,20 @@ UEBERSTEUERUNG: dict[str, dict[str, list[str]]] = {
         # Der Alarmcode gehört zur Diagnose und steht ebenfalls in keiner Ebene.
         "info": ["2/0"],
     },
+    # Pelletskessel (BioWIN). Belegt durch einen Vollabzug einer laufenden
+    # Anlage dieser Baureihe; sie meldet 64 Datenpunkte, die Ebenenlisten des
+    # Herstellers erfassen davon siebzehn nicht.
+    "9": {
+        # Die Betriebswahl ist der Schalter, mit dem der Kessel bedient wird –
+        # ohne Eintrag zählt sie als Werksebene und wäre unsichtbar.
+        "operate": ["9/75"],
+        # Ablesbares: Alarmcode, Restlaufzeit der Kaminkehrerfunktion und die
+        # Aufforderung, die Aschetonne zu entleeren.
+        "info": ["2/0", "9/90", "39/57"],
+        # Einstellbares der Serviceebene: Kaminkehrerleistung, Brennstoffmenge
+        # und die Soll-Drehzahl des Saugzuggebläses.
+        "service": ["10/110", "23/99", "39/23"],
+    },
     # Heizkreis (UML / UMLZ)
     "14": {
         # Frostschutzgrenzen – am Gerät die Ebene 119 „Frostschutzgrenzen".

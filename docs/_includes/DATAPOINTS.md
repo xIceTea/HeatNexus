@@ -28,7 +28,7 @@ hat.
 | 6 | Kessel (Gas / Öl) | Ionisationsstrom, Anlagendruck, Netzbetriebsstunden | 10 | – | 13 | – |
 | 7 | Wärmepumpe | COP, Silentmode, Betriebsstunden Heizen/Warmwasser | 23 | 10 | 50 | 74 |
 | 8 | E-Heizung / Zusatzheizung | Aktuelle Stufe, Betriebsstunden Stufe 1–3 | 9 | – | 10 | 23 |
-| 9 | Kessel (BioWIN) | Laufzeit bis Reinigung, Brennstoffverbrauch, Sonden | 21 | 27 | 103 | 376 |
+| 9 | Kessel (BioWIN) | Laufzeit bis Reinigung, Brennstoffverbrauch, Sonden | 24 | 28 | 106 | 376 |
 | 10 | Kessel (Automatik-/Zusatzkessel) | Startverzögerung, O2-Signal | 18 | 6 | 39 | – |
 | 14 | Heizkreis (UML / UMLZ) | wie 1, ältere Baureihe, Warmwasser inbegriffen | 19 | 28 | 49 | 13 |
 | 15 | Umschaltung | Automatikkessel / Festbrennstoff / Puffer, Umschaltventil | 8 | 1 | 20 | – |
@@ -481,6 +481,7 @@ Datenpunkte und werden übersprungen.
 | `0/96` | Weichen-/Puffertemperatur | Info |
 | `1/7` | Kesseltemperatur Soll | Info |
 | `1/8` | Rücklauftemperatur Sollwert | Service |
+| `2/0` | Alarmcode | Info |
 | `2/1` | Betriebsphase | Service |
 | `2/70` | Datum | Info, Betreiber |
 | `2/72` | Uhrzeit | Info, Betreiber |
@@ -494,6 +495,9 @@ Datenpunkte und werden übersprungen.
 | `9/31` | Mindestlaufzeit mit Pufferspeicher | Service |
 | `9/32` | Minimalwert | Service |
 | `9/57` | Solltemperatur ext. Wärmeanforderung | Service, Werk |
+| `9/75` | Betriebswahl | Betreiber |
+| `9/90` | Kaminkehrer | Info |
+| `10/110` | Kaminkehrer Leistung | Service |
 | `11/27` | WEZ-Nummer | Info, Service, Werk |
 | `12/38` | Gerätetyp | Info |
 | `12/39` | Maximalwert der Solltemperatur | Service, Werk |
@@ -549,6 +553,7 @@ Datenpunkte und werden übersprungen.
 | `23/95` | Endschalter Sekundärluftklappe | Service |
 | `23/97` | Druckschalter | Service |
 | `23/98` | O2 Heizstrom | Service |
+| `23/99` | Brennstoffmenge nach IN 581 | Service |
 | `23/100` | Brennstoffverbrauch seit Befüllung | Betreiber |
 | `23/103` | Brennstoffverbrauch gesamt | Info |
 | `29/30` | Summenstörmeldung Alarm | Service |
@@ -614,6 +619,8 @@ Datenpunkte und werden übersprungen.
 | `38/103` | Laufzeit Ascheaustragung | Werk |
 | `38/104` | Laufzeit Ascheaustragung Standschutz | Werk |
 | `39/18` | Restlaufzeit im Modulationsbetrieb bis HFR | Werk |
+| `39/23` | Saugzuggebläse Soll-Drehzahl | Service |
+| `39/57` | Aschetonne entleeren | Info |
 | `39/66` | Interner Fehler | Service |
 | `39/90` | Brenner sperren | Service |
 | `39/94` | Reinigung bestätigen | Betreiber |
