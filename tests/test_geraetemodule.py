@@ -14,19 +14,6 @@ from .conftest import load_standalone
 
 ORDNER = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "geraete"
 
-# Felder, die jedes Modul führt – auch leer, damit der Zusammenbau sie liest.
-FELDER = (
-    "FCT_TYPE",
-    "MODELL",
-    "RANG",
-    "SYMBOL",
-    "SCHAUBILD",
-    "KESSELART",
-    "NAMEN",
-    "EXTRA_OIDS",
-    "NUR_BUS",
-)
-
 # Bauteile, die das Schaubild zeichnen kann.
 ARTEN = {"kessel", "puffer", "heizkreis", "wasser", "solar", "pumpenmodul", "umschaltung"}
 
@@ -53,7 +40,7 @@ def test_kein_funktionstyp_ist_doppelt_vergeben(geraete):
 def test_jedes_modul_nennt_die_gleichen_felder(geraete):
     """Der Zusammenbau greift auf jedes Feld zu, auch bei leeren Baureihen."""
     for modul in geraete.MODULE:
-        for feld in FELDER:
+        for feld in geraete.PFLICHTFELDER:
             assert hasattr(modul, feld), f"{modul.__name__} ohne {feld}"
         assert isinstance(modul.ENTITAETEN, list)
 
@@ -107,3 +94,11 @@ def test_uebersteuerte_namen_gehoeren_zu_einer_baureihe(geraete):
     for fct_type, namen in geraete.NAMEN.items():
         assert fct_type in typen
         assert all("/" in adresse for adresse in namen)
+
+
+def test_kein_modul_fuehrt_ein_unbekanntes_feld(geraete):
+    """Ein Tippfehler im Feldnamen bliebe sonst ohne Wirkung und ohne Meldung."""
+    erlaubt = set(geraete.PFLICHTFELDER) | set(geraete.KANNFELDER)
+    for modul in geraete.MODULE:
+        eigene = {n for n in vars(modul) if n.isupper()}
+        assert eigene <= erlaubt, f"{modul.__name__}: {sorted(eigene - erlaubt)}"

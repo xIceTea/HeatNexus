@@ -1095,7 +1095,7 @@ class WindhagerHttpClient:
         return {**DESKRIPTOR_VORGABE, **felder}
 
     def _add_entity(self, definition: dict, prefix: str, device_id: str, fct: dict):
-        """Create a device/entity descriptor from a const.py definition."""
+        """Create a device/entity descriptor from a curated table entry."""
         base = device_id if definition.get("node_level") else prefix
         oid = f"{base}{definition['oid']}"
         unique_id = self._kennung(oid)

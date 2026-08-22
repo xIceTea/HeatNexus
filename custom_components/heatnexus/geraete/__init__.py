@@ -31,6 +31,21 @@ from . import (
     zusatzheizung,
 )
 
+# Felder, die jedes Modul führt, und die, die nur einige brauchen.
+PFLICHTFELDER = (
+    "FCT_TYPE",
+    "MODELL",
+    "RANG",
+    "SYMBOL",
+    "SCHAUBILD",
+    "KESSELART",
+    "NAMEN",
+    "EXTRA_OIDS",
+    "NUR_BUS",
+    "ENTITAETEN",
+)
+KANNFELDER = ("SCHALTPUNKTE", "VERBRAUCHER_ABSTAND", "ROLLEN")
+
 MODULE: tuple[ModuleType, ...] = (
     purowin,
     biowin,
