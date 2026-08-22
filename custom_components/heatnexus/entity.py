@@ -384,8 +384,8 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         if not self.coordinator.data:
             return None
         wert = self.coordinator.data.get("oids", {}).get(self._oid)
-        marke_moeglich = self._descriptor.get("nv_name") or self._descriptor.get("type") in (
-            "temperature",
+        marke_moeglich = (
+            self._descriptor.get("nv_name") or self._descriptor.get("type") == "temperature"
         )
         if marke_moeglich and lon_ungueltig(wert):
             return None

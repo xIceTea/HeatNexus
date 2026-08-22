@@ -200,8 +200,7 @@ VERLAUF_MAX = 8
 # in die Kachel. Diese Zeilen bleiben deshalb am Namen – als einzige.
 SCHNELLZUGRIFF: tuple[Zeile, ...] = (
     (r"ww einmalladung", "Warmwasser laden", "mdi:water-boiler", ()),
-    (r"^reinigung durchgef", "Reinigung erledigt", "mdi:broom", ()),
-    (r"^reinigung best(ä|ae)tigen", "Reinigung erledigt", "mdi:broom", ()),
+    (r"^reinigung (durchgef|best(ä|ae)tigen)", "Reinigung erledigt", "mdi:broom", ()),
     (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom", ()),
     (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ()),
     (r"kaminkehrer starten", "Kaminkehrer", "mdi:account-hard-hat", ()),
@@ -320,10 +319,9 @@ LAGERRAUM_ZEILEN: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 # sich `39/94`, der Serviceausbrand liegt auf `9/75`.
 KESSEL_BEDIENUNG: tuple[Zeile, ...] = (
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff", "mdi:sack", ("fuel_selected",)),
-    (r"^reinigung durchgef", "Reinigung erledigt", "mdi:broom", ()),
-    # Dieselbe Quittung, andere Baureihe: Wo der Kessel keine Auswahl je Arbeit
-    # führt, steht dafür ein Ja/Nein-Wert unter diesem Namen.
-    (r"^reinigung best(ä|ae)tigen", "Reinigung erledigt", "mdi:broom", ()),
+    # Dieselbe Quittung, zwei Schreibweisen: Wo der Kessel keine Auswahl je
+    # Arbeit führt, steht dafür ein Ja/Nein-Wert unter „Reinigung bestätigen".
+    (r"^reinigung (durchgef|best(ä|ae)tigen)", "Reinigung erledigt", "mdi:broom", ()),
     (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom", ()),
     (
         r"hauptreinigung und aschetonnen durchgef",

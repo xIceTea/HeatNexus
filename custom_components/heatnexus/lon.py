@@ -179,12 +179,18 @@ LON_NAMEN: dict[str, dict] = {
 # fehlte im Schaubild ein Bauteil, das es gibt. Neue Zeilen nur zum Aufbau.
 GRUNDUMFANG: frozenset[str] = frozenset(
     {
-        # Aufbau: was das Schaubild zeichnet.
+        # Aufbau: die Bauteile, die das Schaubild zeichnet.
         "circuit_pump",
         "mixer_position",
+        "dhw_charge_pump",
+        "dhw_circulation_pump",
+        "pump_speed",
+        # Temperaturen, ohne die ein gezeichnetes Bauteil leer bliebe.
         "buffer_top",
         "buffer_bottom",
-        "dhw_circulation_pump",
+        "flow_temperature",
+        "dhw_temperature",
+        "dhw_circulation_temperature",
         # Kernmesswerte des Wärmeerzeugers.
         "boiler_temperature",
         "boiler_power",
@@ -196,7 +202,7 @@ GRUNDUMFANG: frozenset[str] = frozenset(
 
 def im_grundumfang(kanonisch: str | None) -> bool:
     """Ob ein Begriff auch ohne den Bus-Schalter angelegt wird."""
-    return bool(kanonisch) and kanonisch in GRUNDUMFANG
+    return kanonisch in GRUNDUMFANG
 
 
 # Typen des LonMark-Standards. Sie stehen an jedem Eintrag als `snvtName` und
