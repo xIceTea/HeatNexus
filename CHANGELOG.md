@@ -11,6 +11,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Behoben
 
 - Softwareversion, Hardwareversion und Gerätetyp zeigen wieder ihren Wert.
+- Die Karte erscheint nach einer Aktualisierung ohne Leeren des Zwischenspeichers.
 
 ## [1.11.0-beta.1] - 2026-08-22
 
