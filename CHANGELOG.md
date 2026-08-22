@@ -16,6 +16,9 @@ wenn dort Vorabversionen zugelassen sind.
 ### Behoben
 
 - Ein eingeschalteter Wert erscheint sofort statt erst im nächsten trägen Takt.
+- Kopfzeile und Systemstatus zeigen wieder die gemessene Außentemperatur ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
+- Die Frostschutzgrenzen des Heizkreises tragen einen eigenen Namen.
+- Namen von Datenpunkten enden nicht mehr auf einem Leerzeichen.
 
 ## [1.10.1] - 2026-08-21
 
