@@ -34,9 +34,15 @@ export const AnordnenMixin = (Basis) =>
     return (this._anordnung && this._anordnung.einstellungen) || {};
   }
 
-  /** Der gewählte Farbsatz des Schaubilds. */
+  /**
+   * Der gewählte Farbsatz des Schaubilds.
+   *
+   * Die Einstellungen kommen erst über WebSocket; bis dahin gilt der zuletzt
+   * gemerkte Satz. Ohne ihn stünde der erste Aufbau im Standardanstrich und
+   * wechselte die Farbe vor den Augen des Nutzers.
+   */
   _farbsatz() {
-    return this._einstellungen().farbsatz || "auto";
+    return this._einstellungen().farbsatz || this._farbsatzGemerkt() || "auto";
   }
 
   /** Der zuletzt gewählte Farbsatz aus dem Browserspeicher. */
@@ -51,7 +57,8 @@ export const AnordnenMixin = (Basis) =>
   /** Ihn dort ablegen; ein gesperrter Speicher darf nichts umwerfen. */
   _farbsatzMerken(farbsatz) {
     try {
-      window.localStorage.setItem(FARBSATZ_SPEICHER, farbsatz || "auto");
+      if (farbsatz) window.localStorage.setItem(FARBSATZ_SPEICHER, farbsatz);
+      else window.localStorage.removeItem(FARBSATZ_SPEICHER);
     } catch (err) {
       /* Ohne Browserspeicher bleibt es beim Flackern, nicht bei einem Fehler. */
     }

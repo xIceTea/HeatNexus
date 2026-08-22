@@ -70,12 +70,7 @@ class HeatNexusPanel extends Grundlage {
     // Laufende Bedienvorgänge: Anzeige -> wann begonnen, wann bestätigt.
     this._wartend = [];
     // Selbst gewählte Anordnung je Reiter; leer heißt: Standard.
-    //
-    // Der Farbsatz steht vorab aus dem Browserspeicher darin: Die Einstellungen
-    // kommen erst über WebSocket, und ohne ihn stünde der erste Aufbau im
-    // Standardanstrich und wechselte die Farbe vor den Augen des Nutzers.
-    const gemerkt = this._farbsatzGemerkt();
-    this._anordnung = gemerkt ? { einstellungen: { farbsatz: gemerkt } } : {};
+    this._anordnung = {};
     this._anordnen = false;
     this._speicherAuftrag = null;
     // Welche Karte gerade gezogen wird; null, solange niemand zieht.
@@ -141,7 +136,7 @@ class HeatNexusPanel extends Grundlage {
   async _anordnungHolen() {
     try {
       this._anordnung = (await this._hass.callWS({ type: "heatnexus/anordnung" })) || {};
-      this._farbsatzMerken(this._einstellungen().farbsatz || "auto");
+      this._farbsatzMerken(this._einstellungen().farbsatz);
       this._gebaut = false;
       this._zeichnen();
     } catch (err) {
