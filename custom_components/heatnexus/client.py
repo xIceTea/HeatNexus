@@ -34,6 +34,8 @@ from .const import (
     LAUFPHASEN,
     LAUFZEIT_ERSETZT,
     MENU_PAGE_SIZE,
+    OID_HARDWAREVERSION,
+    OID_SOFTWAREVERSION,
     POLL_BLOCK,
     POLL_CONCURRENCY,
     POLL_EINHEITEN_TRAEGE,
@@ -1473,6 +1475,10 @@ class WindhagerHttpClient:
                 pass
         if m.get("typeId") == 30:
             return "string_sensor"
+        # Eine Fassungsnummer ist keine Messgröße. Manche Baureihen melden sie
+        # als gewöhnlichen Datenpunkt, dessen Wert wie eine Kommazahl aussieht.
+        if d.get("oid", "").endswith((f"/{OID_SOFTWAREVERSION}/0", f"/{OID_HARDWAREVERSION}/0")):
+            return "string_sensor"
         # Ein Ausgang, der nur 0 oder 1 kennt, ist ein Schaltzustand. Die
         # Steuerung führt Schaltzustände und Drehzahlen unter derselben
         # `typeId`; erst Bereich und fehlende Einheit trennen sie.
@@ -1541,14 +1547,6 @@ class WindhagerHttpClient:
                     d["typeId"] = m.get("typeId", 30)
                     d["subtypeId"] = m.get("subtypeId", 14)
                     d["write_prot"] = m.get("writeProt")
-                elif d["type"] == "string_sensor" and m.get("typeId") == 30:
-                    # Text aus dem object-Endpunkt. Die Marke bleibt im
-                    # Erkennungsstand stehen, sonst liefe der Wert nach einem
-                    # Neustart über lookup und käme leer zurück.
-                    d["objekt"] = True
-                    d["typeId"] = 30
-                    d["subtypeId"] = m.get("subtypeId", 9)
-                    d["write_prot"] = m.get("writeProt")
                 elif d["type"] in ("select", "number", "switch", "time", "date") and d.get(
                     "level"
                 ) in ("operate", "service"):
@@ -1571,6 +1569,14 @@ class WindhagerHttpClient:
                     # anzusehen.
                     d["enabled_default"] = self.zeitwerte
             if m:
+                # Text aus dem object-Endpunkt, gleich ob der Typ aus der
+                # kuratierten Tabelle oder aus den Metadaten stammt. Die Marke
+                # hält die Adresse aus dem lookup-Abruf heraus.
+                if d["type"] == "string_sensor" and m.get("typeId") == 30:
+                    d["objekt"] = True
+                    d["typeId"] = 30
+                    d["subtypeId"] = m.get("subtypeId", 9)
+                    d["write_prot"] = m.get("writeProt")
                 # Device reports the actually allowed enum values, e.g. "[1,2]"
                 enum_raw = m.get("enum")
                 if enum_raw and d["type"] in ("select", "enum_sensor", "switch"):

@@ -955,6 +955,50 @@ async def test_ein_textobjekt_wird_nicht_ueber_lookup_gelesen(client):
     assert [d["oid"] for d in client.objekt_texte] == ["/1/60/0/12/38/0"]
 
 
+async def test_ein_kuratierter_text_wird_ebenfalls_ueber_das_objekt_gelesen(client):
+    """Die Softwareversion des Kessels steht in der kuratierten Tabelle.
+
+    Ihr Typ steht damit schon fest, die Marke für den Objektabruf fehlt ihr
+    aber. Über lookup kommt sie ohne Wert zurück und fiele als leerer Messwert
+    aus dem Bestand.
+    """
+    client.oids = {"/1/60/0/4/92/0"}
+    client.menu_meta = {"/1/60/0/4/92/0": {"writeProt": True, "typeId": 30, "subtypeId": 9}}
+    client.devices = [
+        {
+            "oid": "/1/60/0/4/92/0",
+            "name": "Softwareversion",
+            "type": "string_sensor",
+            "level": "info",
+        }
+    ]
+
+    await client._apply_metadata()
+    client._compute_poll_oids()
+
+    assert [d["oid"] for d in client.devices] == ["/1/60/0/4/92/0"]
+    assert client.devices[0]["objekt"] is True
+    assert client.poll_oids == set()
+    assert [d["oid"] for d in client.objekt_texte] == ["/1/60/0/4/92/0"]
+
+
+async def test_eine_version_als_zahl_bleibt_text(client):
+    """Andere Baureihen führen die Version als gewöhnlichen Datenpunkt.
+
+    Der Wert sieht aus wie eine Kommazahl und stünde sonst als Messwert da.
+    """
+    client.oids = {"/1/60/0/4/92/0"}
+    client.menu_meta = {"/1/60/0/4/92/0": {"writeProt": True, "typeId": 16, "value": "6.21"}}
+    client.devices = [
+        {"oid": "/1/60/0/4/92/0", "name": "Softwareversion", "type": "auto", "level": "info"}
+    ]
+
+    await client._apply_metadata()
+
+    assert [d["type"] for d in client.devices] == ["string_sensor"]
+    assert client.devices[0].get("objekt") is not True
+
+
 async def test_ein_neues_textobjekt_wartet_nicht_auf_den_traegen_takt(client):
     """Zeitprogramme kommen früher herein als die Textobjekte.
 
