@@ -127,3 +127,36 @@ async def test_jede_entitaet_traegt_ihren_schluessel(
     assert je_kennung["sensor.kesseltemperatur"] == "boiler_temperature"
     # Ohne kanonische Entsprechung bleibt das Feld leer – und der Name gilt.
     assert je_kennung["sensor.mindestlaufzeit"] is None
+
+
+# ---------------------------------------------------------------------------
+# _treffer: unter mehreren Kandidaten gewinnt die Adresse
+# ---------------------------------------------------------------------------
+def test_der_messwert_gewinnt_gegen_den_gleichnamigen_einsteller(dashboard):
+    """Der Fall, für den die Rangfolge gebaut ist.
+
+    Am Heizkreis heißt die Frostschutzgrenze wie die Außentemperatur. Ohne
+    Rangfolge entschiede die Reihenfolge der Registry, welche gefunden wird.
+    """
+    grenze = {"name": "Aussentemperatur", "schluessel": None, "bereich": "number"}
+    messwert = {"name": "Außentemperatur", "schluessel": "outdoor_temperature"}
+
+    treffer = dashboard._treffer([grenze, messwert], AUSSEN, "outdoor_temperature")
+
+    assert treffer[0] is messwert
+    assert grenze in treffer
+
+
+def test_ohne_schluessel_bleibt_die_reihenfolge_wie_gefunden(dashboard):
+    """Wo keiner der Kandidaten eine Adresse trägt, entscheidet weiter das Muster."""
+    erst = {"name": "Aussentemperatur", "schluessel": None}
+    dann = {"name": "Außentemperatur", "schluessel": None}
+
+    assert dashboard._treffer([erst, dann], AUSSEN, "outdoor_temperature") == [erst, dann]
+
+
+def test_wer_weder_passt_noch_traegt_bleibt_draussen(dashboard):
+    """Die Rangfolge sortiert, sie nimmt nichts zusätzlich auf."""
+    fremd = {"name": "Kesseltemperatur Ist", "schluessel": "boiler_temperature"}
+
+    assert dashboard._treffer([fremd], AUSSEN, "outdoor_temperature") == []

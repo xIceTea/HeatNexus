@@ -24,6 +24,7 @@ from ..dashboard import (
     WARTUNG_WEITERE_SCHLUESSEL,
     _muster,
     _passt,
+    _treffer,
     _trifft,
     rueckfrage,
 )
@@ -85,10 +86,10 @@ def _erster(
     trotzdem seine Zeile und füllt sich mit dem nächsten Abruf.
 
     Sind kanonische Schlüssel angegeben, zählen sie zuerst; das Muster bleibt
-    der Rückfall (siehe `dashboard._trifft`).
+    der Rückfall (siehe `dashboard._treffer`).
     """
     regex = re.compile(muster, re.IGNORECASE)
-    treffer = [e for e in entitaeten if _trifft(e, (regex,), *schluessel)]
+    treffer = _treffer(entitaeten, (regex,), *schluessel)
     if not treffer:
         return None
     return next((e for e in treffer if e.get("hat_wert")), treffer[0])
@@ -235,14 +236,11 @@ def _kennung(
     """Entity-ID der ersten passenden Entität, optional auf Plattformen begrenzt.
 
     Sind kanonische Schlüssel angegeben, zählen sie zuerst; das Muster bleibt
-    der Rückfall (siehe `dashboard._trifft`).
+    der Rückfall (siehe `dashboard._treffer`).
     """
-    for eintrag in entitaeten:
-        if bereiche and eintrag["bereich"] not in bereiche:
-            continue
-        if _trifft(eintrag, muster, *schluessel):
-            return eintrag["entity_id"]
-    return None
+    kommt_infrage = [e for e in entitaeten if not bereiche or e["bereich"] in bereiche]
+    treffer = _treffer(kommt_infrage, muster, *schluessel)
+    return treffer[0]["entity_id"] if treffer else None
 
 
 def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
@@ -750,7 +748,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
     # gewählte Entität gilt nur für die Ansicht „Alle" – dort gibt es keine
     # einzelne Anlage, deren Fühler man nehmen könnte. Überschriebe sie jede
     # Anlage, zeigte eine plötzlich den Fühler der anderen.
-    aussen = _kennung(alle, AUSSENTEMPERATUR, (), "outdoor_temperature") or aussen_gewaehlt
+    aussen = _kennung(alle, AUSSENTEMPERATUR, ("sensor",), "outdoor_temperature") or aussen_gewaehlt
     nutzdaten = {
         # Die Anordnung der Karten wird je Anlage gespeichert. Ohne eigene
         # Kennung teilten sich zwei Anlagen eines Eintrags eine Reihenfolge.
@@ -770,9 +768,13 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         "warmwasser": warmwasser,
         "stoerungen": stoerungen,
         "schnellzugriff": schnellzugriff[:6],
-        "verlauf": [e["entity_id"] for e in alle if _trifft(e, VERLAUF, *VERLAUF_SCHLUESSEL)][
-            :VERLAUF_MAX
-        ],
+        # Nur Messwerte: Ein Einsteller trägt oft denselben Namen wie der
+        # Wert, den er begrenzt, und gehört nicht als Linie in den Verlauf.
+        "verlauf": [
+            e["entity_id"]
+            for e in alle
+            if e["kategorie"] is None and _trifft(e, VERLAUF, *VERLAUF_SCHLUESSEL)
+        ][:VERLAUF_MAX],
         # Alles, was sich sonst noch als Linie eignet – in der Ansicht
         # dazuwaehlbar.
         "verlauf_moeglich": [

@@ -337,6 +337,25 @@ def _trifft(eintrag: dict, muster: tuple[re.Pattern, ...], *schluessel: str) -> 
     return _passt(eintrag.get("name") or "", muster)
 
 
+def _treffer(
+    entitaeten: list[dict], muster: tuple[re.Pattern, ...], *schluessel: str
+) -> list[dict]:
+    """Passende Einträge, die verlässlichsten zuerst.
+
+    Die Adresse eines Datenpunkts ist eindeutig, sein Name nicht: Ein
+    Einsteller der Serviceebene kann so heißen wie der Messwert, den er
+    begrenzt. Wer über den Schlüssel passt, steht deshalb vorn.
+    """
+    ueber_schluessel: list[dict] = []
+    ueber_namen: list[dict] = []
+    for eintrag in entitaeten:
+        if schluessel and eintrag.get("schluessel") in schluessel:
+            ueber_schluessel.append(eintrag)
+        elif _passt(eintrag.get("name") or "", muster):
+            ueber_namen.append(eintrag)
+    return ueber_schluessel + ueber_namen
+
+
 def _skala(wert: float | None) -> int:
     """Obere Grenze einer Restlaufzeit-Skala, auf 100 aufgerundet."""
     if not wert or wert <= 0:
@@ -653,7 +672,9 @@ def _zustandswerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
         e
         for teil in anlage["teile"]
         for e in teil["entitaeten"]
-        if e["hat_wert"] and _trifft(e, ZUSTAND, *ZUSTAND_SCHLUESSEL)
+        # Einsteller bleiben draußen: Ein Grenzwert der Serviceebene heißt
+        # mitunter wie der Messwert, den er begrenzt.
+        if e["hat_wert"] and e.get("kategorie") is None and _trifft(e, ZUSTAND, *ZUSTAND_SCHLUESSEL)
     ]
 
 
