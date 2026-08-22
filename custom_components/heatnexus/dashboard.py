@@ -44,6 +44,8 @@ from .const import (
 from .kanonisch import gnmn, ist_ableitung
 from .kanonisch import schluessel as kanonischer_schluessel
 from .schema import anlagenschema, kesselart_erkennen
+from .schema import passt as _passt
+from .schema import traegt as _traegt
 from .symbole import symbol_je_fct
 
 _LOGGER = logging.getLogger(__name__)
@@ -309,51 +311,28 @@ def _symbol(fct_type: Any) -> str:
 
 
 def _vorrang(eintrag: dict) -> int:
-    """Position eines Werts in der Übersicht; kleiner heißt weiter oben."""
-    for platz, (muster, schluessel) in enumerate(UEBERSICHT_VORRANG):
-        if _trifft(eintrag, (muster,), *schluessel):
+    """Position eines Werts in der Übersicht; kleiner heißt weiter oben.
+
+    Auch hier gewinnt die Adresse: „Heizkreispumpe Nachlauf" träfe sonst die
+    Zeile der Pumpe, bevor die Pumpe selbst an ihre kommt.
+    """
+    for platz, zeile in enumerate(UEBERSICHT_VORRANG):
+        if _traegt(eintrag, zeile[1]):
+            return platz
+    for platz, zeile in enumerate(UEBERSICHT_VORRANG):
+        if _passt(eintrag.get("name") or "", (zeile[0],)):
             return platz
     return len(UEBERSICHT_VORRANG)
-
-
-def _passt(name: str, muster: tuple[re.Pattern, ...]) -> bool:
-    return any(m.search(name) for m in muster)
 
 
 def _trifft(eintrag: dict, muster: tuple[re.Pattern, ...], *schluessel: str) -> bool:
     """Erst am kanonischen Schlüssel, sonst am Namen.
 
-    **Der Schlüssel gewinnt, der Name bleibt als Rückfall.** So erkennt die
-    Oberfläche einen Datenpunkt auch dann, wenn die Anlage ihre Namen in einer
-    anderen Sprache liefert – und trotzdem bricht nichts weg, wo es noch keinen
-    Schlüssel gibt (`kanonisch.KANONISCH` deckt bei weitem nicht alles ab).
-
-    Umgekehrt darf der fehlende Schlüssel nicht als „passt nicht" gelten: Auf
-    der Serviceebene gibt es Datenpunkte, die dieselbe Adresse an einer anderen
+    Der fehlende Schlüssel darf nicht als „passt nicht" gelten: Auf der
+    Serviceebene gibt es Datenpunkte, die dieselbe Adresse an einer anderen
     Funktion tragen, und die Muster sind dort bisher die einzige Auskunft.
     """
-    if schluessel and eintrag.get("schluessel") in schluessel:
-        return True
-    return _passt(eintrag.get("name") or "", muster)
-
-
-def _treffer(
-    entitaeten: list[dict], muster: tuple[re.Pattern, ...], *schluessel: str
-) -> list[dict]:
-    """Passende Einträge, die verlässlichsten zuerst.
-
-    Die Adresse eines Datenpunkts ist eindeutig, sein Name nicht: Ein
-    Einsteller der Serviceebene kann so heißen wie der Messwert, den er
-    begrenzt. Wer über den Schlüssel passt, steht deshalb vorn.
-    """
-    ueber_schluessel: list[dict] = []
-    ueber_namen: list[dict] = []
-    for eintrag in entitaeten:
-        if schluessel and eintrag.get("schluessel") in schluessel:
-            ueber_schluessel.append(eintrag)
-        elif _passt(eintrag.get("name") or "", muster):
-            ueber_namen.append(eintrag)
-    return ueber_schluessel + ueber_namen
+    return _traegt(eintrag, schluessel) or _passt(eintrag.get("name") or "", muster)
 
 
 def _skala(wert: float | None) -> int:
@@ -554,15 +533,18 @@ def _karte(eintrag: dict[str, Any], rundinstrument: bool = False) -> dict[str, A
     if eintrag["bereich"] == "climate":
         return {"type": "thermostat", "entity": eintrag["entity_id"]}
     if rundinstrument:
-        for muster, schluessel, form in RUNDINSTRUMENT:
-            if _trifft(eintrag, (muster,), *schluessel):
-                return {
-                    "type": "gauge",
-                    "entity": eintrag["entity_id"],
-                    "name": eintrag["name"],
-                    "needle": True,
-                    **form,
-                }
+        # Die Adresse zuerst, der Name als Rückfall – wie überall sonst.
+        zeilen = [z for z in RUNDINSTRUMENT if _traegt(eintrag, z[1])] or [
+            z for z in RUNDINSTRUMENT if _passt(eintrag.get("name") or "", (z[0],))
+        ]
+        if zeilen:
+            return {
+                "type": "gauge",
+                "entity": eintrag["entity_id"],
+                "name": eintrag["name"],
+                "needle": True,
+                **zeilen[0][2],
+            }
     karte: dict[str, Any] = {
         "type": "tile",
         "entity": eintrag["entity_id"],

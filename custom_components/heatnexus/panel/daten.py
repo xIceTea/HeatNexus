@@ -24,12 +24,13 @@ from ..dashboard import (
     WARTUNG_WEITERE_SCHLUESSEL,
     _muster,
     _passt,
-    _treffer,
     _trifft,
     rueckfrage,
 )
 from ..device_db import get_layers
 from ..schema import modul_in_betrieb, schaubild_nutzdaten
+from ..schema import traegt as _traegt
+from ..schema import treffer as _treffer
 from .hilfe import HILFE_KARTEN, KARTE_BEDINGUNG, hilfe
 from .muster import (
     AUSSENTEMPERATUR,
@@ -227,20 +228,33 @@ def _kaminkehrer_bedienung(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
     return {"leistung": leistung} if leistung else {}
 
 
+def _eintrag(
+    entitaeten: list[dict[str, Any]],
+    muster: tuple,
+    bereiche: tuple = (),
+    *schluessel: str,
+) -> dict[str, Any] | None:
+    """Die erste passende Entität, optional auf Plattformen begrenzt.
+
+    Sind kanonische Schlüssel angegeben, zählen sie zuerst; das Muster bleibt
+    der Rückfall (siehe `schema.treffer`). Beide Durchläufe halten beim ersten
+    Treffer an – die Liste einer Anlage wird oft durchsucht.
+    """
+    infrage = [e for e in entitaeten if e["bereich"] in bereiche] if bereiche else entitaeten
+    return next((e for e in infrage if _traegt(e, schluessel)), None) or next(
+        (e for e in infrage if _passt(e.get("name") or "", muster)), None
+    )
+
+
 def _kennung(
     entitaeten: list[dict[str, Any]],
     muster: tuple,
     bereiche: tuple = (),
     *schluessel: str,
 ) -> str | None:
-    """Entity-ID der ersten passenden Entität, optional auf Plattformen begrenzt.
-
-    Sind kanonische Schlüssel angegeben, zählen sie zuerst; das Muster bleibt
-    der Rückfall (siehe `dashboard._treffer`).
-    """
-    kommt_infrage = [e for e in entitaeten if not bereiche or e["bereich"] in bereiche]
-    treffer = _treffer(kommt_infrage, muster, *schluessel)
-    return treffer[0]["entity_id"] if treffer else None
+    """Entity-ID der ersten passenden Entität."""
+    treffer = _eintrag(entitaeten, muster, bereiche, *schluessel)
+    return treffer["entity_id"] if treffer else None
 
 
 def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
@@ -342,14 +356,8 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
     kessel = []
     for teil in anlage["teile"]:
         for muster, beschriftung, symbol, schluessel in KESSEL_BEDIENUNG:
-            treffer = next(
-                (
-                    e
-                    for e in teil["entitaeten"]
-                    if e["bereich"] in ("switch", "button", "select")
-                    and _trifft(e, _muster(muster), *schluessel)
-                ),
-                None,
+            treffer = _eintrag(
+                teil["entitaeten"], _muster(muster), ("switch", "button", "select"), *schluessel
             )
             if treffer is not None:
                 eintrag = {
@@ -721,14 +729,8 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         for muster, beschriftung, symbol, schluessel in SCHNELLZUGRIFF:
             if not hat_warmwasser and _passt(beschriftung, WARMWASSER):
                 continue
-            treffer = next(
-                (
-                    e
-                    for e in teil["entitaeten"]
-                    if e["bereich"] in ("switch", "button", "select")
-                    and _trifft(e, _muster(muster), *schluessel)
-                ),
-                None,
+            treffer = _eintrag(
+                teil["entitaeten"], _muster(muster), ("switch", "button", "select"), *schluessel
             )
             if treffer is not None:
                 eintrag = {

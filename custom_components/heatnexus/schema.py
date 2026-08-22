@@ -444,27 +444,44 @@ def _escape(text: str) -> str:
     )
 
 
+def passt(name: str, muster: tuple[re.Pattern, ...]) -> bool:
+    """Ob einer der Namensausdrücke greift."""
+    return any(m.search(name) for m in muster)
+
+
+def traegt(eintrag: dict, schluessel: tuple[str, ...]) -> bool:
+    """Ob der Eintrag einen der gesuchten kanonischen Schlüssel trägt."""
+    return bool(schluessel) and eintrag.get("schluessel") in schluessel
+
+
+def treffer(
+    entitaeten: list[dict[str, Any]], muster: tuple[re.Pattern, ...], *schluessel: str
+) -> list[dict[str, Any]]:
+    """Passende Einträge, die verlässlichsten zuerst.
+
+    Die Adresse eines Datenpunkts ist eindeutig, sein Name nicht: Ein Einsteller
+    der Serviceebene kann so heißen wie der Messwert, den er begrenzt. Wer über
+    den Schlüssel passt, steht deshalb vorn.
+    """
+    ueber_schluessel = [e for e in entitaeten if traegt(e, schluessel)]
+    ueber_namen = [
+        e for e in entitaeten if not traegt(e, schluessel) and passt(e.get("name") or "", muster)
+    ]
+    return ueber_schluessel + ueber_namen
+
+
 def _finde(
     entitaeten: list[dict[str, Any]], muster: str, *schluessel: str
 ) -> dict[str, Any] | None:
     """Erste passende Entität; eine mit Wert hat Vorrang.
 
-    Der Schlüssel gewinnt über die ganze Liste, der Name bleibt der Rückfall.
     Ein Wert ist keine Bedingung: Das Schaubild entsteht, während die Anlage
     noch eingelesen wird, und bliebe sonst leer.
     """
-    regex = re.compile(muster, re.IGNORECASE)
-    ueber_schluessel: list[dict[str, Any]] = []
-    ueber_namen: list[dict[str, Any]] = []
-    for e in entitaeten:
-        if schluessel and e.get("schluessel") in schluessel:
-            ueber_schluessel.append(e)
-        elif regex.search(e["name"] or ""):
-            ueber_namen.append(e)
-    treffer = ueber_schluessel + ueber_namen
-    if not treffer:
+    gefunden = treffer(entitaeten, (re.compile(muster, re.IGNORECASE),), *schluessel)
+    if not gefunden:
         return None
-    return next((e for e in treffer if e.get("hat_wert")), treffer[0])
+    return next((e for e in gefunden if e.get("hat_wert")), gefunden[0])
 
 
 def _werte_je_art(art: str, kesselwert: str | None) -> tuple[Wert, ...]:

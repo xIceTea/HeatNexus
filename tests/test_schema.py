@@ -1299,3 +1299,36 @@ def test_der_schluessel_gewinnt_gegen_einen_frueheren_namenstreffer(schema):
     treffer = schema._finde([einsteller, messwert], r"heizkreispumpe", "circuit_pump")
 
     assert treffer["entity_id"] == "b"
+
+
+AUSSEN_MUSTER = (re.compile(r"au(ß|ss)entemperatur", re.IGNORECASE),)
+
+
+def test_der_messwert_gewinnt_gegen_den_gleichnamigen_einsteller(schema):
+    """Der Fall, für den die Rangfolge gebaut ist.
+
+    Am Heizkreis heißt die Frostschutzgrenze wie die Außentemperatur. Ohne
+    Rangfolge entschiede die Reihenfolge der Registry, welche gefunden wird.
+    """
+    grenze = {"name": "Aussentemperatur", "schluessel": None, "bereich": "number"}
+    messwert = {"name": "Außentemperatur", "schluessel": "outdoor_temperature"}
+
+    treffer = schema.treffer([grenze, messwert], AUSSEN_MUSTER, "outdoor_temperature")
+
+    assert treffer[0] is messwert
+    assert grenze in treffer
+
+
+def test_ohne_schluessel_bleibt_die_reihenfolge_wie_gefunden(schema):
+    """Wo keiner der Kandidaten eine Adresse trägt, entscheidet weiter das Muster."""
+    erst = {"name": "Aussentemperatur", "schluessel": None}
+    dann = {"name": "Außentemperatur", "schluessel": None}
+
+    assert schema.treffer([erst, dann], AUSSEN_MUSTER, "outdoor_temperature") == [erst, dann]
+
+
+def test_wer_weder_passt_noch_traegt_bleibt_draussen(schema):
+    """Die Rangfolge sortiert, sie nimmt nichts zusätzlich auf."""
+    fremd = {"name": "Kesseltemperatur Ist", "schluessel": "boiler_temperature"}
+
+    assert schema.treffer([fremd], AUSSEN_MUSTER, "outdoor_temperature") == []
