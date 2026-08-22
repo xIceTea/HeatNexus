@@ -953,9 +953,13 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
     """
     daten = laufzeitdaten(entry) or {}
     if _nur_anzeige_geaendert(daten.get("optionen") or {}, dict(entry.options or {})):
-        # Das Schaubild wird bei jedem Öffnen neu gebaut; die neue Wahl steht
-        # dort schon. Die Entitäten bleiben unangetastet.
+        # Das Dashboard wird bei jedem Öffnen neu gebaut, die Oberfläche nicht:
+        # Sie trägt einen Abzug aus dem Augenblick der Anmeldung. Ohne
+        # Auffrischen zeigte ihr erster Aufbau noch die alte Zeichnung.
         daten["optionen"] = deepcopy(dict(entry.options or {}))
+        if (entry.options or {}).get(CONF_PANEL, False):
+            integration = await async_get_integration(hass, DOMAIN)
+            await _oberflaeche_anwenden(hass, True, str(integration.version))
         return
     alt = daten.get("umfang") or {}
     neu = {system[CONF_HOST]: _scope(hass, entry, system[CONF_HOST]) for system in _systems(entry)}
