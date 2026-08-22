@@ -50,7 +50,7 @@ auseinander: Zwei führten `level` und `enabled_default`, die dritte nicht.
    geänderte Einheiten und Geräteklassen wirken damit ohne Neuabzug, eine
    geänderte Plattformauflösung nicht.
 2. **Discovery** – `/1` liefert Knoten und Funktionen. Je Funktion entstehen
-   Entities aus den kuratierten Tabellen in `const.py` (`FCT_ENTITY_MAP`) und aus
+   Entities aus den kuratierten Tabellen der Gerätemodule (`geraete/`) und aus
    der Geräte-Datenbank (`device_db.json`, Ebenen `info`/`operate`/`service`).
    Heizkreise erhalten zusätzlich eine Climate-Entity, Knoten mit `FE01msg`
    je einen Meldungs- und Klartextsensor.
@@ -254,7 +254,8 @@ von Hand gepflegt.
 | `blueprints.py` | Automations-Vorlagen bereitstellen |
 | `diagnostics.py` | Diagnosedaten für Fehlerberichte |
 | `entity.py` | Basisklasse: unique_id, Gerätezuordnung, Poll-Registrierung |
-| `const.py` | kuratierte Entity-Tabellen, Enums, Zeitkonstanten |
+| `const.py` | Enums, Zeitkonstanten, Einstellungsnamen |
+| `geraete/` | ein Modul je Baureihe: Name, Rang, Symbol, Schaubildteil, Datenpunkte |
 | `device_db.py` | Zugriff auf die Geräte-Datenbank |
 | `error_texts.py` | Dekodierung der Gerätemeldungen |
 | `helpers.py` | Wertparsing, Messgrößen (Einheit, Geräteklasse, Zustandsklasse) |

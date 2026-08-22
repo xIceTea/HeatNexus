@@ -4,7 +4,7 @@
 Neu erzeugen mit `python tools/build_datenpunkte_doku.py`.
 
 Die Integration erkennt Datenpunkte auf zwei Wegen: über kuratierte Tabellen
-in `const.py` (fester Name, Einheit, Kategorie, Symbol) und über diese
+in `geraete/` (fester Name, Einheit, Kategorie, Symbol) und über diese
 Geräte-Datenbank, die die Bedienebenen je Funktionstyp beschreibt. Welche
 davon tatsächlich angelegt werden, entscheidet die Anlage: Nicht vorhandene
 werden entfernt, schreibgeschützte nur lesend angelegt.

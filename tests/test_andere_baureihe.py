@@ -99,7 +99,7 @@ async def test_die_anlage_wird_ueberhaupt_erkannt(client_module, monkeypatch):
 
 async def test_die_kuratierte_tabelle_greift(client_module, monkeypatch):
     """Sie hat Vorrang vor dem, was die Menü-Ebenen hergeben."""
-    from custom_components.heatnexus.const import BIOWIN_ENTITIES
+    from custom_components.heatnexus.geraete.biowin import ENTITAETEN as BIOWIN_ENTITIES
 
     c = await _erkennen(client_module, monkeypatch)
     erkannt = {d["oid"] for d in c.devices if d.get("oid")}
@@ -214,7 +214,7 @@ async def test_ein_nicht_gemeldeter_kessel_wird_gefunden(client_module, monkeypa
 
 async def test_der_typ_kommt_aus_den_datenpunkten(client_module, monkeypatch):
     """Die Struktur nennt keinen `fctType` – die Adressen sind kennzeichnend genug."""
-    from custom_components.heatnexus.const import BIOWIN_ENTITIES
+    from custom_components.heatnexus.geraete.biowin import ENTITAETEN as BIOWIN_ENTITIES
 
     c, _ = await _erkennen_ungemeldet(
         client_module, monkeypatch, levels=("info", "operate", "service", "oem")

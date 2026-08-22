@@ -9,27 +9,10 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from . import geraete
+
 # Symbol je Funktionstyp, für Überschriften und als Rückfall einer Zeile.
-FCT_SYMBOL: dict[int, str] = {
-    25: "mdi:fire",
-    9: "mdi:fire",
-    10: "mdi:fire",
-    7: "mdi:heat-pump",
-    26: "mdi:heat-pump",
-    27: "mdi:heat-pump",
-    6: "mdi:fire",
-    8: "mdi:heating-coil",
-    4: "mdi:layers-triple",
-    15: "mdi:valve",
-    16: "mdi:storage-tank",
-    21: "mdi:storage-tank",
-    24: "mdi:pump",
-    1: "mdi:radiator",
-    14: "mdi:radiator",
-    2: "mdi:water-boiler",
-    5: "mdi:solar-power-variant",
-    20: "mdi:pump",
-}
+FCT_SYMBOL: dict[int, str] = geraete.SYMBOLE
 SYMBOL_UNBEKANNT = "mdi:heating-coil"
 
 # Je Zeile: Muster, kanonische Schlüssel, Symbol. Der Schlüssel gewinnt, das

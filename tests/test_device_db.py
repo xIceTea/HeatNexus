@@ -75,14 +75,13 @@ def test_die_kuratierte_tabelle_wiederholt_die_erzeugte_nicht():
     auseinander; welche dann gilt, sieht man dem Code nicht an. Wer hier
     einträgt, muss also wirklich abweichen.
     """
-    import importlib.util
     import json
     from pathlib import Path
 
+    from .conftest import load_standalone
+
     wurzel = Path(__file__).parent.parent / "custom_components" / "heatnexus"
-    spec = importlib.util.spec_from_file_location("const_pruef", wurzel / "const.py")
-    const = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(const)
+    const = load_standalone("const")
     erzeugt = json.loads((wurzel / "device_db.json").read_text(encoding="utf-8"))["enums"]
 
     doppelt = [

@@ -12,7 +12,7 @@ from xml.etree import ElementTree
 import aiohttp
 from yarl import URL
 
-from . import geraetetexte
+from . import geraete, geraetetexte
 from .const import (
     ADVANCED_LEVELS,
     ANFRAGE_TIMEOUT,
@@ -143,26 +143,7 @@ NAME_OVERRIDES = {
 # Dasselbe je Funktionstyp, wo eine Adresse nur dort eindeutig ist. Die
 # Herstellertabelle führt Namen ohne den Menütitel, unter dem sie am Gerät
 # stehen – am Heizkreis heißt der Grenzwert sonst wie sein Messwert.
-NAME_OVERRIDES_JE_FCT: dict[int, dict[str, str]] = {
-    14: {  # Heizkreis, Menü „Frostschutzgrenzen"
-        "3/0": "Frostschutzgrenze Raumtemperatur",
-        "3/23": "Frostschutzgrenze Außentemperatur",
-        "7/45": "Frostschutzgrenze Vorlauftemperatur",
-        "5/58": "Frostschutzgrenze WW-Speicher",
-    },
-    # Pelletskessel. Die Tabelle nennt hier nur den Messgrößenteil; wozu er
-    # gehört, sagt erst die Einheit und der Bereich, den die Anlage meldet.
-    9: {
-        "9/90": "Kaminkehrer Restlaufzeit",
-        "12/98": "Saugzuggebläse Drehzahl Minimum",
-        "12/99": "Saugzuggebläse Drehzahl Maximum",
-        "12/100": "Fördermenge Bereich",
-        "12/101": "Fördermenge Istwert",
-        "12/104": "Fördermenge Korrektur",
-        "14/79": "Heizflächenreinigung Beginn Sperrzeit",
-        "14/80": "Heizflächenreinigung Dauer",
-    },
-}
+NAME_OVERRIDES_JE_FCT: dict[int, dict[str, str]] = geraete.NAMEN
 
 
 def _name_override(fct_type: object, gnmn: str) -> str | None:

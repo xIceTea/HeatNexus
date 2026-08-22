@@ -42,8 +42,15 @@ def load_standalone(module_name: str) -> ModuleType:
         return vorhanden
 
     _paket()
-    path = COMPONENT_DIR / f"{module_name}.py"
-    spec = importlib.util.spec_from_file_location(voller_name, path)
+    ordner = COMPONENT_DIR.joinpath(*module_name.split("."))
+    # Ein Unterpaket wird über seine `__init__.py` geladen; seine eigenen
+    # relativen Importe finden die Nachbardateien dann selbst.
+    if ordner.is_dir():
+        spec = importlib.util.spec_from_file_location(
+            voller_name, ordner / "__init__.py", submodule_search_locations=[str(ordner)]
+        )
+    else:
+        spec = importlib.util.spec_from_file_location(voller_name, ordner.with_suffix(".py"))
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[voller_name] = module

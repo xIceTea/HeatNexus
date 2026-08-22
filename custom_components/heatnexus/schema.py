@@ -29,6 +29,7 @@ from pathlib import Path
 import re
 from typing import Any
 
+from . import geraete
 from .symbole import symbol_fuer_wert, symbol_je_fct
 
 # Maße des Schaubilds. Die Karte skaliert es auf ihre Breite, die Angaben
@@ -323,35 +324,7 @@ PUMPE_BEREICHE = ("binary_sensor", "switch", "sensor")
 #  26  Kosten Strom, PV-Eingang, SG Ready, Bivalenztemperatur (Wärmepumpe)
 #  27  50/70 Betriebsphase, Wärmemenge Heizen/Kühlen, E-Heizung (Wärmepumpe)
 #
-ART_JE_FCT: dict[int, str] = {
-    # Wärmeerzeuger. Auch Wärmepumpe und E-Heizung stehen hier: Im Schaubild
-    # sitzen sie an derselben Stelle wie ein Kessel. Welche Zeichnung es wird,
-    # entscheidet die Kesselart.
-    6: "kessel",  # Gas-/Ölbrennwertgerät
-    7: "kessel",  # Wärmepumpe
-    8: "kessel",  # E-Heizung / Zusatzheizung
-    9: "kessel",  # BioWIN Pelletskessel
-    10: "kessel",  # Automatik-/Zusatzkessel
-    25: "kessel",  # PuroWIN
-    26: "kessel",  # Wärmepumpe (Energiemanagement)
-    27: "kessel",  # Wärmepumpe
-    # Speicher
-    16: "puffer",  # B-PLMi
-    21: "puffer",  # Pufferspeicher neuerer Bauart
-    # Heizkreise
-    1: "heizkreis",  # Infinity PLUS
-    14: "heizkreis",  # UML / UMLZ
-    # Warmwasser als eigene Funktion. Bei fctType 14 hängt es dagegen am
-    # Heizkreis – daraus macht `_module` ebenfalls ein eigenes Anlagenteil.
-    2: "wasser",
-    5: "solar",
-    13: "solar",  # „Solar ES"
-    # Module in der Leitung
-    20: "pumpenmodul",  # ZSP
-    24: "pumpenmodul",  # Pumpe Wärmeerzeuger / Schichtladung
-    4: "umschaltung",  # Kaskade: hydraulische Weiche mit Folgeschaltung
-    15: "umschaltung",  # Automatikkessel / Festbrennstoff / Puffer
-}
+ART_JE_FCT: dict[int, str] = geraete.SCHAUBILD_ARTEN
 ART_UNBEKANNT = "modul"
 
 # Alle Arten, für die es eine Bauteilzeichnung geben muss. `zirkulation` steht
@@ -378,12 +351,7 @@ def _art(fct_type: Any) -> str:
 # Erste Quelle: der Funktionstyp, wo er die Art schon festlegt. Eine
 # Wärmepumpe verbrennt nichts – bei ihr braucht es keinen Brennstoff und keinen
 # Namen, um die Zeichnung zu wählen.
-KESSELART_JE_FCT: dict[int, str] = {
-    6: "gas_oel",
-    7: "waermepumpe",
-    26: "waermepumpe",
-    27: "waermepumpe",
-}
+KESSELART_JE_FCT: dict[int, str] = geraete.KESSELARTEN
 
 # Zweite Quelle: der Brennstoff, den die Anlage selbst meldet (`38/126`,
 # `38/127`). Er ist eindeutig – ein PuroWIN kann Hackgut *oder* Pellets

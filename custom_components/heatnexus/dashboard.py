@@ -30,6 +30,7 @@ from homeassistant.helpers import entity_registry as er
 import voluptuous as vol
 import yaml
 
+from . import geraete
 from .const import (
     CONF_KESSELART,
     CONF_KESSELWERT,
@@ -58,26 +59,7 @@ _LOGGER = logging.getLogger(__name__)
 # `docs/_includes/DATAPOINTS.md`. **Nicht nach Namen raten** – die Zuordnung stammt aus
 # der Parameterliste des Herstellers. Typen ohne Beleg stehen nicht in der
 # Liste und landen hinten.
-FCT_RANG: dict[int, int] = {
-    25: 10,  # PuroWIN Hackgutkessel
-    9: 10,  # BioWIN Pelletskessel
-    7: 10,  # Wärmepumpe
-    26: 10,  # Wärmepumpe (Energiemanagement)
-    27: 10,  # Wärmepumpe
-    6: 12,  # Gas-/Ölkessel
-    8: 12,  # E-Heizung / Zusatzheizung
-    10: 14,  # Automatik-/Zusatzkessel
-    4: 16,  # Kaskade ("KAS")
-    15: 18,  # Umschaltung Automatikkessel / Festbrennstoff / Puffer
-    16: 20,  # Puffer (B-PLMi)
-    21: 22,  # Puffer
-    24: 24,  # Pumpe Wärmeerzeuger / Schichtladung
-    1: 30,  # Heizkreis (Infinity PLUS)
-    14: 30,  # Heizkreis (UML / UMLZ)
-    2: 42,  # Warmwasser
-    5: 44,  # Solar
-    20: 50,  # ZSP Pumpen-/Relaismodul
-}
+FCT_RANG: dict[int, int] = geraete.RANG
 RANG_UNBEKANNT = 80
 
 

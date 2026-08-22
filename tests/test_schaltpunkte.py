@@ -112,7 +112,7 @@ def test_ohne_anforderung_gibt_es_keinen_abstand(sensoren):
 # deklariert verlor er bei der Herabstufung seine Einheit und zeigte „0.0“.
 def test_der_kaminkehrer_ist_ein_minutenwert(sensoren):
     """`9/90` meldet min mit `typeId 4`, schreibgeschützt."""
-    from custom_components.heatnexus.const import PUROWIN_ENTITIES
+    from custom_components.heatnexus.geraete.purowin import ENTITAETEN as PUROWIN_ENTITIES
 
     eintrag = next(d for d in PUROWIN_ENTITIES if d["oid"] == "/9/90/0")
 

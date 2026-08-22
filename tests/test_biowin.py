@@ -18,23 +18,21 @@ Zeilen wundert.
 
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
 import pytest
+
+from .conftest import load_standalone
 
 KOMPONENTE = Path(__file__).parent.parent / "custom_components" / "heatnexus"
 FCT_BIOWIN = "9"
 
 
 @pytest.fixture(scope="module")
-def const():
-    """`const.py` kommt ohne Home Assistant aus und wird direkt geladen."""
-    spec = importlib.util.spec_from_file_location("const_biowin", KOMPONENTE / "const.py")
-    modul = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(modul)
-    return modul
+def geraete():
+    """Die Gerätemodule kommen ohne Home Assistant aus."""
+    return load_standalone("geraete")
 
 
 @pytest.fixture(scope="module")
@@ -51,18 +49,18 @@ def _adressen(eintraege) -> list[str]:
     return adressen
 
 
-def test_der_biowin_hat_ueberhaupt_eine_tabelle(const):
+def test_der_biowin_hat_ueberhaupt_eine_tabelle(geraete):
     """Ohne sie fiele der Kessel auf die reine Menü-Erkennung zurück."""
-    assert const.FCT_ENTITY_MAP.get(const.FCT_BIOWIN), "fctType 9 ohne kuratierte Tabelle"
+    assert geraete.ENTITAETEN.get(int(FCT_BIOWIN)), "fctType 9 ohne kuratierte Tabelle"
 
 
-def test_jede_adresse_steht_in_der_geraete_datenbank(const, db):
+def test_jede_adresse_steht_in_der_geraete_datenbank(geraete, db):
     """Eine erfundene Adresse fiele hier auf, nicht erst an der Anlage."""
-    fehlend = [a for a in _adressen(const.BIOWIN_ENTITIES) if a not in db["names"]]
+    fehlend = [a for a in _adressen(geraete.biowin.ENTITAETEN) if a not in db["names"]]
     assert fehlend == [], f"nicht in device_db.json: {fehlend}"
 
 
-def test_die_tabelle_deckt_die_uebersicht_des_herstellers_ab(const, db):
+def test_die_tabelle_deckt_die_uebersicht_des_herstellers_ab(geraete, db):
     """Was Windhager selbst auf die Titelseite legt, muss vorkommen.
 
     Die `overview`-Ebene ist die Herstellerantwort auf „was gehört auf die
@@ -70,12 +68,12 @@ def test_die_tabelle_deckt_die_uebersicht_des_herstellers_ab(const, db):
     nachweisbar, nicht nach Gefühl.
     """
     uebersicht = set(db["layers"][FCT_BIOWIN]["overview"])
-    vorhanden = set(_adressen(const.BIOWIN_ENTITIES))
+    vorhanden = set(_adressen(geraete.biowin.ENTITAETEN))
     fehlend = sorted(uebersicht - vorhanden)
     assert fehlend == [], f"aus der Übersichtsebene nicht abgedeckt: {fehlend}"
 
 
-def test_nichts_steht_darin_das_der_hersteller_nicht_nennt(const, db):
+def test_nichts_steht_darin_das_der_hersteller_nicht_nennt(geraete, db):
     """Die Gegenrichtung: keine Adresse ohne Beleg.
 
     Erlaubt ist, was in der Übersichts-, Info- oder Betreiberebene des
@@ -84,45 +82,45 @@ def test_nichts_steht_darin_das_der_hersteller_nicht_nennt(const, db):
     """
     ebenen = db["layers"][FCT_BIOWIN]
     belegt = set(ebenen["overview"]) | set(ebenen["info"]) | set(ebenen["operate"])
-    ueberzaehlig = sorted(set(_adressen(const.BIOWIN_ENTITIES)) - belegt)
+    ueberzaehlig = sorted(set(_adressen(geraete.biowin.ENTITAETEN)) - belegt)
     assert ueberzaehlig == [], f"ohne Beleg in den Ebenen des fctType 9: {ueberzaehlig}"
 
 
-def test_die_wartungszaehler_sind_die_des_biowin(const):
+def test_die_wartungszaehler_sind_die_des_biowin(geraete):
     """Der häufigste Fehlgriff: die PuroWIN-Adressen übernehmen.
 
     BioWIN zählt unter `20/61..20/63`, PuroWIN unter `39/91..39/93`. Beide
     heißen „Laufzeit bis …". Wer sie verwechselt, bekommt an der einen Anlage
     leere Zeilen und an der anderen keine Wartungsansicht.
     """
-    adressen = set(_adressen(const.BIOWIN_ENTITIES))
+    adressen = set(_adressen(geraete.biowin.ENTITAETEN))
     assert {"20/61", "20/62", "20/63"} <= adressen
     assert not adressen & {"39/91", "39/92", "39/93"}
 
 
-def test_der_purowin_behaelt_seine_eigenen_zaehler(const):
+def test_der_purowin_behaelt_seine_eigenen_zaehler(geraete):
     """Gegenprobe – die Trennung muss in beide Richtungen halten."""
-    adressen = set(_adressen(const.PUROWIN_ENTITIES))
+    adressen = set(_adressen(geraete.purowin.ENTITAETEN))
     assert {"39/91", "39/92", "39/93"} <= adressen
     assert not adressen & {"20/61", "20/62", "20/63"}
 
 
-def test_jeder_eintrag_nennt_eine_plattform(const):
+def test_jeder_eintrag_nennt_eine_plattform(geraete):
     """Ohne Plattform legt der Client keine Entität an."""
-    for eintrag in const.BIOWIN_ENTITIES:
+    for eintrag in geraete.biowin.ENTITAETEN:
         assert eintrag.get("platform"), eintrag
         assert eintrag.get("name"), eintrag
 
 
-def test_die_genannten_auswahltabellen_gibt_es(const, db):
+def test_die_genannten_auswahltabellen_gibt_es(geraete, db):
     """`enum` zeigt auf eine Tabelle – zeigt sie ins Leere, bleibt die Zahl."""
-    for eintrag in const.BIOWIN_ENTITIES:
+    for eintrag in geraete.biowin.ENTITAETEN:
         if schluessel := eintrag.get("enum"):
             assert schluessel in db["enums"], f"{schluessel} fehlt in der Geräte-Datenbank"
 
 
-def test_keine_adresse_steht_zweimal(const):
+def test_keine_adresse_steht_zweimal(geraete):
     """Zwei Entitäten auf derselben Adresse brauchten einen Namenszusatz."""
-    adressen = _adressen(const.BIOWIN_ENTITIES)
+    adressen = _adressen(geraete.biowin.ENTITAETEN)
     doppelt = sorted({a for a in adressen if adressen.count(a) > 1})
     assert doppelt == [], f"doppelt: {doppelt}"
