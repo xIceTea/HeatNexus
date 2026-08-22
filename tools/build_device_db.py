@@ -82,7 +82,7 @@ def _uebernehmen(namen: dict[str, str], quelle: dict) -> None:
     """
     for adresse, text in quelle.items():
         if isinstance(text, str) and text.strip():
-            namen[adresse] = text
+            namen[adresse] = text.strip()
 
 
 def lade_geraetetexte(pfad: Path) -> dict[str, str]:

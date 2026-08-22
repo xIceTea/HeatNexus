@@ -22,13 +22,8 @@ def _db() -> dict:
 
 
 def get_name(gnmn: str) -> str | None:
-    """German display name for a 'gn/mn' datapoint.
-
-    Beschnitten wie die Aufzählungstexte: An einzelnen Namen der
-    Herstellerdatei hängt ein Leerzeichen, und als Entitätsname ist es sichtbar.
-    """
-    name = _db()["names"].get(gnmn)
-    return name.strip() if name else name
+    """German display name for a 'gn/mn' datapoint."""
+    return _db()["names"].get(gnmn)
 
 
 def get_enum(gnmn: str) -> dict[int, str] | None:
