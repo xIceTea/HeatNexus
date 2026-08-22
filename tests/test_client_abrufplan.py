@@ -915,3 +915,20 @@ def test_eine_bekannte_adresse_draengelt_sich_nicht_vor(client):
     client._letzte_werte["/1/16/1/9/35/0"] = "17.0"
     client.register_poll_oid("/1/16/1/9/35/0")
     assert "/1/16/1/9/35/0" not in (client._rest or set())
+
+
+async def test_ein_textobjekt_ueberlebt_den_fehlenden_wert(client):
+    """Der Gerätetyp kommt über den object-Endpunkt, nicht über lookup.
+
+    Die Metadaten nennen deshalb keinen Wert. Wer ihn wie einen leeren
+    Messwert behandelt, wirft die Baureihenkennung jeder Anlage weg.
+    """
+    client.oids = {"/1/60/0/12/38/0"}
+    client.menu_meta = {"/1/60/0/12/38/0": {"writeProt": True, "typeId": 30, "subtypeId": 9}}
+    client.devices = [
+        {"oid": "/1/60/0/12/38/0", "name": "Gerätetyp", "type": "auto", "level": "info"}
+    ]
+
+    await client._apply_metadata()
+
+    assert [d["type"] for d in client.devices] == ["time_program"]

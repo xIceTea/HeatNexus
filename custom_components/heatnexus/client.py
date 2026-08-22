@@ -147,6 +147,18 @@ NAME_OVERRIDES_JE_FCT: dict[int, dict[str, str]] = {
         "7/45": "Frostschutzgrenze Vorlauftemperatur",
         "5/58": "Frostschutzgrenze WW-Speicher",
     },
+    # Pelletskessel. Die Tabelle nennt hier nur den Messgrößenteil; wozu er
+    # gehört, sagt erst die Einheit und der Bereich, den die Anlage meldet.
+    9: {
+        "9/90": "Kaminkehrer Restlaufzeit",
+        "12/98": "Saugzuggebläse Drehzahl Minimum",
+        "12/99": "Saugzuggebläse Drehzahl Maximum",
+        "12/100": "Fördermenge Bereich",
+        "12/101": "Fördermenge Istwert",
+        "12/104": "Fördermenge Korrektur",
+        "14/79": "Heizflächenreinigung Beginn Sperrzeit",
+        "14/80": "Heizflächenreinigung Dauer",
+    },
 }
 
 
@@ -1593,11 +1605,14 @@ class WindhagerHttpClient:
                 ):
                     d["enabled_default"] = False
                     d["leer_beim_einlesen"] = True
-                # read-only-Punkt ganz ohne Wert (z.B. Softwareversion ohne value-Feld)
+                # read-only-Punkt ganz ohne Wert (z.B. Softwareversion).
+                # `time_program` ausgenommen: Ein Objekt trägt im lookup nie einen
+                # Wert; ohne die Ausnahme fiele der Gerätetyp jeder Baureihe weg.
                 if (
                     "value" not in m
                     and m.get("writeProt") is True
-                    and d["type"] not in ("select", "number", "switch", "time", "button")
+                    and d["type"]
+                    not in ("select", "number", "switch", "time", "button", "time_program")
                 ):
                     _LOGGER.info("Dropping %s (%s): no value delivered", d["name"], oid)
                     continue
