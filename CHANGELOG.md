@@ -6,16 +6,16 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unveröffentlicht]
+## [1.11.0-beta.1] - 2026-08-22
 
 ### Neu
 
-- Brennkammertemperatur, Gebläsedrehzahl und Pelletsvorrat am Pelletskessel über den LON-Bus.
-- Betriebswahl, Alarmcode und Aschetonne des Pelletskessels ohne Werksebene.
+- Der Pelletskessel liefert Brennkammertemperatur, Gebläsedrehzahl und Pelletsvorrat über den LON-Bus.
+- Betriebswahl, Alarmcode und Aschetonne des Pelletskessels sind ohne Werksebene sichtbar.
 
 ### Geändert
 
-- Das Schaubild steht im Text zum Kopieren als eigene Karte statt als Zeichnung.
+- Im Text zum Kopieren steht das Schaubild als Lovelace-Karte, nicht als fertiges Bild.
 - Schaubild und Werteliste nutzen die volle Breite der Ansicht.
 
 ### Behoben
@@ -24,13 +24,13 @@ wenn dort Vorabversionen zugelassen sind.
 - Kopfzeile und Systemstatus zeigen wieder die gemessene Außentemperatur ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
 - Die Frostschutzgrenzen des Heizkreises tragen einen eigenen Namen.
 - Namen von Datenpunkten enden nicht mehr auf einem Leerzeichen.
-- Parameter des Pelletskessels tragen sprechende Namen statt „Bereich" oder „Istwert".
+- Parameter des Pelletskessels heißen nicht mehr nur „Bereich" oder „Istwert".
 - Ein nicht angeschlossener Temperaturfühler zeigt keinen Messwert mehr an.
 - „Reinigung bestätigen" erscheint im Schnellzugriff und in der Kesselbedienung.
 - Geänderte Schaubildoptionen wirken sofort in der eigenen Oberfläche.
-- Die Oberfläche öffnet gleich im gewählten Farbsatz statt kurz im Standard.
-- Der Gerätetyp des Kessels erscheint wieder als eigener Wert.
-- Ein Fühler ohne Anschluss meldet keinen Wert mehr statt einer Scheintemperatur.
+- Die Oberfläche öffnet sofort im gewählten Farbsatz.
+- Nach einer Unterbrechung zeigt die Oberfläche den aktuellen Stand statt des alten.
+- Der Gerätetyp des Kessels erscheint als eigener Wert.
 
 ## [1.10.1] - 2026-08-21
 
