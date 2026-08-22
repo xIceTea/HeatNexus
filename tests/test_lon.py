@@ -109,3 +109,10 @@ def test_datenpunkte_behalten_ihren_weg():
 def test_kein_eintrag_traegt_seinen_index_im_schluessel():
     """Sonst greift die Tabelle für den zweiten Kreis nicht mehr."""
     assert not [name for name in lon.LON_NAMEN if name.endswith("]")]
+
+
+def test_die_gekuerzte_marke_zaehlt_ebenso():
+    """Über den lookup-Endpunkt kommt dieselbe Marke auf eine Stelle gekürzt."""
+    assert lon.ungueltig("327.6") is True
+    assert lon.ungueltig("163.8") is True
+    assert lon.ungueltig("62.92") is False

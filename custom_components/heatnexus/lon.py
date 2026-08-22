@@ -198,13 +198,19 @@ def snvt(snvt_name: str | None) -> dict:
 UNGUELTIG = (327.67, 163.835, 3276.7)
 
 
+# Wie weit ein Wert von der Marke abweichen darf und sie trotzdem meint. Über
+# den lookup-Endpunkt kommt dieselbe Marke auf eine Stelle gekürzt (327,6), und
+# keiner der Messwerte dahinter erreicht diesen Bereich je im Betrieb.
+UNGUELTIG_TOLERANZ = 0.1
+
+
 def ungueltig(wert) -> bool:
     """Ob ein Rohwert die Ungültig-Marke seines LonMark-Typs trägt."""
     try:
         zahl = float(str(wert).strip())
     except (TypeError, ValueError):
         return False
-    return any(abs(zahl - marke) < 0.001 for marke in UNGUELTIG)
+    return any(abs(zahl - marke) < UNGUELTIG_TOLERANZ for marke in UNGUELTIG)
 
 
 def _rumpf(nv_name: str | None) -> str:

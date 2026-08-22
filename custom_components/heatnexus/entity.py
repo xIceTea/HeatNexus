@@ -377,16 +377,17 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
     def raw_value(self) -> str | None:
         """Raw string value of this entity's OID.
 
-        Netzwerkvariablen melden einen fehlenden Fühler nicht als leeren Wert,
-        sondern mit der Ungültig-Marke ihres LonMark-Typs: 327,67 °C und
-        163,835 %. An der eigenen Anlage standen so vier „Puffer"-Fühler und
-        zwei Raumtemperaturen auf 327,67 – als Messwert gelesen wäre das eine
-        Anlage kurz vor dem Schmelzen. Sie gelten deshalb als kein Wert.
+        Ein nicht angeschlossener Fühler meldet keinen leeren Wert, sondern die
+        Ungültig-Marke seines LonMark-Typs (327,67 °C, 163,835 %). Sie gilt
+        deshalb als kein Wert – bei Netzwerkvariablen wie bei Temperaturen.
         """
         if not self.coordinator.data:
             return None
         wert = self.coordinator.data.get("oids", {}).get(self._oid)
-        if self._descriptor.get("nv_name") and lon_ungueltig(wert):
+        marke_moeglich = self._descriptor.get("nv_name") or self._descriptor.get("type") in (
+            "temperature",
+        )
+        if marke_moeglich and lon_ungueltig(wert):
             return None
         return wert
 
