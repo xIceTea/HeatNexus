@@ -10,8 +10,8 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
-- Softwareversion, Hardwareversion und Gerätetyp zeigen wieder ihren Wert.
-- Die Karte erscheint nach einer Aktualisierung ohne Leeren des Zwischenspeichers.
+- Softwareversion, Hardwareversion und Gerätetyp zeigen wieder ihren Wert ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
+- Die Karte erscheint nach einer Aktualisierung ohne Leeren des Zwischenspeichers ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
 
 ## [1.11.0-beta.1] - 2026-08-22
 
