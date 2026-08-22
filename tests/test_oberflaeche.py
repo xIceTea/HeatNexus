@@ -312,6 +312,11 @@ def test_der_farbsatz_steht_vor_den_einstellungen_bereit(durchlauf):
     assert durchlauf["gemerkt"]["beimAufbau"] == "petrol"
 
 
+def test_der_abzug_der_anmeldung_ueberschreibt_nichts_frisches(durchlauf):
+    """Nach einem Verbindungsabriss käme sonst der Stand der Einrichtung zurück."""
+    assert durchlauf["wiederverbunden"]["name"] == "frisch"
+
+
 def test_die_eigene_wahl_schlaegt_das_erscheinungsbild(durchlauf, aufteilung):
     """Wer einen Farbsatz wählt, bekommt ihn – auch gegen das helle Thema."""
     anlage = aufteilung["anlagen"][0]

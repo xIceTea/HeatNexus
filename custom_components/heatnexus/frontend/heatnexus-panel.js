@@ -58,6 +58,9 @@ class HeatNexusPanel extends Grundlage {
     this.attachShadow({ mode: "open" });
     this._gebaut = false;
     this._daten = null;
+    // Ob die Aufteilung schon selbst geholt wurde. Danach gilt sie und nicht
+    // mehr der Abzug aus der Panel-Anmeldung.
+    this._eigeneDaten = false;
     this._bindungen = [];
     this._verlaufskarten = [];
     // „Alle" ist der Standard: Wer zwei Anlagen hat, will beide sehen, nicht
@@ -86,8 +89,19 @@ class HeatNexusPanel extends Grundlage {
     this._zeitprogrammStand = new Map();
   }
 
+  /**
+   * Die Aufteilung aus der Panel-Anmeldung.
+   *
+   * Sie ist ein Abzug aus dem Augenblick der Anmeldung und wird auch nach
+   * einem Verbindungsabriss wieder zugestellt. Selbst geholte Daten sind
+   * jünger und dürfen davon nicht überschrieben werden.
+   */
   set panel(panel) {
     const daten = panel && panel.config ? panel.config.daten : null;
+    if (this._eigeneDaten) {
+      this._datenHolen();
+      return;
+    }
     if (daten !== this._daten) {
       this._daten = daten;
       this._gebaut = false;
@@ -112,6 +126,7 @@ class HeatNexusPanel extends Grundlage {
     try {
       const daten = await this._hass.callWS({ type: "heatnexus/panel_daten" });
       if (!daten || !daten.anlagen || !daten.anlagen.length) return;
+      this._eigeneDaten = true;
       this._daten = daten;
       this._gebaut = false;
       this._zeichnen();

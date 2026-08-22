@@ -237,6 +237,20 @@ flaeche._farbsatzSetzen("petrol");
 const zweite = new (customElements.get("heatnexus-panel"))();
 bilanz.gemerkt = { gesetzt: flaeche._farbsatzGemerkt(), beimAufbau: zweite._farbsatz() };
 
+// Nach einem Verbindungsabriss stellt Home Assistant die Panel-Anmeldung
+// erneut zu. Der Abzug darin ist älter als das, was schon geholt wurde.
+const frisch = new (customElements.get("heatnexus-panel"))();
+const frischeDaten = { anlagen: [{ ...daten.anlagen[0], name: "frisch" }] };
+frisch.hass = {
+  ...hass,
+  callWS: async (anfrage) =>
+    anfrage.type === "heatnexus/panel_daten" ? frischeDaten : {},
+};
+await Promise.resolve();
+await Promise.resolve();
+frisch.panel = { config: { daten: { anlagen: [{ ...daten.anlagen[0], name: "veraltet" }] } } };
+bilanz.wiederverbunden = { name: frisch._daten && frisch._daten.anlagen[0].name };
+
 // Anordnen-Modus: eigener Zweig mit Griffen, Menü und Speicherauftrag.
 flaeche._reiter = "uebersicht";
 flaeche._anordnen = true;
