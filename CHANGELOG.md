@@ -6,6 +6,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.11.0-beta.3] - 2026-08-24
+
+### Behoben
+
+- Die Softwareversion des Kessels wird wieder angezeigt ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
+- Fassungsnummern anderer Baureihen erscheinen als Text statt als Messwert.
+
 ## [1.11.0-beta.2] - 2026-08-23
 
 ### Behoben
