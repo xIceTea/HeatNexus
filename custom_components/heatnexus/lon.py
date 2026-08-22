@@ -149,6 +149,28 @@ LON_NAMEN: dict[str, dict] = {
     "LX_nviTist": {"name": "Kreis Temperatur Ist"},
     "LX_nviTsoll": {"name": "Kreis Temperatur Soll"},
     "LX_nvoSetPt": {"name": "Kreis Sollwert"},
+    # --- an einer fremden BioWIN gemessen (22.08.2026) ------------------
+    # Wo es das Gegenstück im OID-Raum gibt, trägt der Eintrag dessen
+    # kanonischen Schlüssel; die Brennkammertemperatur gibt es nur hier.
+    "PMX_avgTb_Tk": {
+        "name": "Brennkammertemperatur Mittelwert",
+        "kanonisch": "combustion_chamber_temperature",
+    },
+    # Rauchgas. `RG_nviSetP` steht ohne Anforderung auf der Ungültig-Marke.
+    "RG_nvoTemp": {"name": "Abgastemperatur", "kanonisch": "flue_gas_temperature"},
+    "RG_nviSetP": {"name": "Abgastemperatur Sollwert"},
+    # Kesselkreis TK. `nvoTemp` ist derselbe Fühler wie `WET_nvoTist`.
+    "TK_nvoTemp": {"name": "Kesseltemperatur Ist (Kesselkreis)"},
+    "TK_nviSetP": {"name": "Kesseltemperatur Sollwert (Kesselkreis)"},
+    "TK_nviExtSetP": {"name": "Kesseltemperatur Sollwert extern"},
+    "TK_Stpt": {"name": "Kesseltemperatur Sollwert (gültig)"},
+    "TK_nvoNSollBP": {"name": "Leistungsvorgabe Kesselkreis"},
+    # Reglerplatine. Nicht die Anlage, sondern die Elektronik selbst.
+    "NIC_nvoTboard": {"name": "Platinentemperatur"},
+    "NIC_nvoValue": {"name": "Platinentemperatur Messwert"},
+    "NIC_nvoAvgVal": {"name": "Platinentemperatur Mittelwert"},
+    # Brennstoffsumme in Hundertstel Tonnen – dieselbe Zahl wie am Datenpunkt.
+    "FS_ioMsum": {"name": "Brennstoffmenge gesamt", "state_class": "total_increasing"},
 }
 
 
@@ -195,7 +217,10 @@ def snvt(snvt_name: str | None) -> dict:
 # 0x7FFF bei 0,01 °C Auflösung ergibt 327,67, 0xFFFF bei 0,0025 % ergibt
 # 163,835. An der eigenen Anlage standen so vier Pufferfühler und zwei
 # Raumtemperaturen – als Messwert gelesen ein Alarm ohne Anlass.
-UNGUELTIG = (327.67, 163.835, 3276.7)
+
+# Am unteren Ende dasselbe: -274,0 und -3276,8 sind die Kleinstwerte der
+# Temperaturtypen und liegen unter dem absoluten Nullpunkt.
+UNGUELTIG = (327.67, 163.835, 3276.7, -274.0, -3276.8)
 
 
 # Wie weit ein Wert von der Marke abweichen darf und sie trotzdem meint. Über

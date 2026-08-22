@@ -116,3 +116,15 @@ def test_die_gekuerzte_marke_zaehlt_ebenso():
     assert lon.ungueltig("327.6") is True
     assert lon.ungueltig("163.8") is True
     assert lon.ungueltig("62.92") is False
+
+
+def test_die_marke_am_unteren_ende_zaehlt_auch():
+    """Unterhalb des absoluten Nullpunkts liegt kein Messwert, sondern nichts."""
+    assert lon.ungueltig("-274.0") is True
+    assert lon.ungueltig("-3276.8") is True
+    assert lon.ungueltig("-15.5") is False
+
+
+def test_die_brennkammertemperatur_traegt_ihren_schluessel():
+    """An dieser Baureihe gibt es sie nur im Bus-Adressraum."""
+    assert lon.LON_NAMEN["PMX_avgTb_Tk"]["kanonisch"] == "combustion_chamber_temperature"
