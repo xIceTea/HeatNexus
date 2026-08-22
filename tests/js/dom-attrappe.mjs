@@ -277,6 +277,13 @@ export function browserAttrappe() {
     },
   };
   globalThis.window = globalThis;
+  // Der Browserspeicher, in dem der zuletzt gewählte Farbsatz liegt.
+  const speicher = new Map();
+  globalThis.localStorage = {
+    getItem: (schluessel) => (speicher.has(schluessel) ? speicher.get(schluessel) : null),
+    setItem: (schluessel, wert) => speicher.set(schluessel, String(wert)),
+    removeItem: (schluessel) => speicher.delete(schluessel),
+  };
   globalThis.setTimeout = (ruf, ms) => {
     auftraege.push({ ruf, ms });
     return auftraege.length;

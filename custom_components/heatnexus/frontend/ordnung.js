@@ -93,6 +93,11 @@ export const REITER = [
 // auf der Serverseite - was hier gewählt wird, muss dort gespeichert werden
 // können. Die Werte stehen in `PALETTEN` und gelten für Oberfläche und
 // Schaubild gemeinsam.
+// Wo der zuletzt gewählte Farbsatz im Browser liegt. Er wird gebraucht, bevor
+// die Einstellungen vom Server da sind – der erste Aufbau soll nicht im
+// Standardanstrich stehen und dann umspringen.
+export const FARBSATZ_SPEICHER = "heatnexus.farbsatz";
+
 export const FARBSAETZE = [
   { schluessel: "auto", titel: "Auto", hinweis: "Folgt dem Erscheinungsbild von Home Assistant" },
   { schluessel: "dunkel", titel: "Dunkel", hinweis: "Graphit mit blauem Akzent" },

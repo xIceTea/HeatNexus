@@ -12,6 +12,7 @@
 import {
   BREITE_MAX,
   FARBSAETZE,
+  FARBSATZ_SPEICHER,
   REITER,
   SPEICHERN_MS,
   ordnungAnwenden,
@@ -38,10 +39,29 @@ export const AnordnenMixin = (Basis) =>
     return this._einstellungen().farbsatz || "auto";
   }
 
+  /** Der zuletzt gewählte Farbsatz aus dem Browserspeicher. */
+  _farbsatzGemerkt() {
+    try {
+      return window.localStorage.getItem(FARBSATZ_SPEICHER) || "";
+    } catch (err) {
+      return "";
+    }
+  }
+
+  /** Ihn dort ablegen; ein gesperrter Speicher darf nichts umwerfen. */
+  _farbsatzMerken(farbsatz) {
+    try {
+      window.localStorage.setItem(FARBSATZ_SPEICHER, farbsatz || "auto");
+    } catch (err) {
+      /* Ohne Browserspeicher bleibt es beim Flackern, nicht bei einem Fehler. */
+    }
+  }
+
   /** Einen Farbsatz wählen, sofort anzeigen und sichern. */
   _farbsatzSetzen(farbsatz) {
     const einstellungen = { ...this._einstellungen(), farbsatz };
     this._anordnung = { ...this._anordnung, einstellungen };
+    this._farbsatzMerken(farbsatz);
     this._gebaut = false;
     this._zeichnen();
     this._hass

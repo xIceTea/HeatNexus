@@ -306,6 +306,12 @@ def test_der_farbsatz_faerbt_auch_die_oberflaeche(durchlauf):
     assert durchlauf["palette"]["auto"] == ""
 
 
+def test_der_farbsatz_steht_vor_den_einstellungen_bereit(durchlauf):
+    """Sonst zeigt der erste Aufbau den Standardanstrich und springt dann um."""
+    assert durchlauf["gemerkt"]["gesetzt"] == "petrol"
+    assert durchlauf["gemerkt"]["beimAufbau"] == "petrol"
+
+
 def test_die_eigene_wahl_schlaegt_das_erscheinungsbild(durchlauf, aufteilung):
     """Wer einen Farbsatz wählt, bekommt ihn – auch gegen das helle Thema."""
     anlage = aufteilung["anlagen"][0]

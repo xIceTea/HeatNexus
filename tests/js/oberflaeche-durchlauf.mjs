@@ -231,6 +231,12 @@ flaeche._gebaut = false;
 flaeche._zeichnen();
 bilanz.palette = { terrakotta: beiWahl, auto: flaeche.style.getPropertyValue("--hn-akzent") };
 
+// Eine gewählte Farbe wird im Browser gemerkt: Die nächste Oberfläche steht
+// damit vom ersten Aufbau an richtig, ohne auf die Einstellungen zu warten.
+flaeche._farbsatzSetzen("petrol");
+const zweite = new (customElements.get("heatnexus-panel"))();
+bilanz.gemerkt = { gesetzt: flaeche._farbsatzGemerkt(), beimAufbau: zweite._farbsatz() };
+
 // Anordnen-Modus: eigener Zweig mit Griffen, Menü und Speicherauftrag.
 flaeche._reiter = "uebersicht";
 flaeche._anordnen = true;
