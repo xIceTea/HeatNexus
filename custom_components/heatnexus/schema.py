@@ -449,20 +449,19 @@ def _finde(
 ) -> dict[str, Any] | None:
     """Erste passende Entität; eine mit Wert hat Vorrang.
 
-    Ein Wert darf keine Bedingung sein. Das Schaubild wird gebaut, während die
-    Anlage noch eingelesen wird – wäre der Wert Pflicht, bliebe es leer und
-    füllte sich auch später nicht mehr.
-
-    **Der kanonische Schlüssel gewinnt, der Name bleibt der Rückfall** – wie in
-    `dashboard._trifft`, aber eigenständig: Dieses Modul importiert nichts aus
-    Home Assistant, damit es sich ohne dessen Installation prüfen lässt.
+    Der Schlüssel gewinnt über die ganze Liste, der Name bleibt der Rückfall.
+    Ein Wert ist keine Bedingung: Das Schaubild entsteht, während die Anlage
+    noch eingelesen wird, und bliebe sonst leer.
     """
     regex = re.compile(muster, re.IGNORECASE)
-    treffer = [
-        e
-        for e in entitaeten
-        if (schluessel and e.get("schluessel") in schluessel) or regex.search(e["name"] or "")
-    ]
+    ueber_schluessel: list[dict[str, Any]] = []
+    ueber_namen: list[dict[str, Any]] = []
+    for e in entitaeten:
+        if schluessel and e.get("schluessel") in schluessel:
+            ueber_schluessel.append(e)
+        elif regex.search(e["name"] or ""):
+            ueber_namen.append(e)
+    treffer = ueber_schluessel + ueber_namen
     if not treffer:
         return None
     return next((e for e in treffer if e.get("hat_wert")), treffer[0])

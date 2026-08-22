@@ -1289,3 +1289,13 @@ def test_die_betriebslampe_haengt_an_der_leistung(schema):
     assert lampen[0]["entity"] == "sensor.leistung"
     assert lampen[0]["ersatz"] == "sensor.brennkammer"
     assert lampen[0]["art"] == "betrieb"
+
+
+def test_der_schluessel_gewinnt_gegen_einen_frueheren_namenstreffer(schema):
+    """Ein Einsteller kann heißen wie der Messwert, den er begrenzt."""
+    einsteller = {"name": "Heizkreispumpe Nachlauf", "schluessel": None, "entity_id": "a"}
+    messwert = {"name": "Kreis Pumpe (LON)", "schluessel": "circuit_pump", "entity_id": "b"}
+
+    treffer = schema._finde([einsteller, messwert], r"heizkreispumpe", "circuit_pump")
+
+    assert treffer["entity_id"] == "b"
