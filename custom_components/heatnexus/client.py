@@ -969,18 +969,14 @@ class WindhagerHttpClient:
             if not d.get("nv_name") and d.get("oid")
         }
         belegt.discard(None)
-        for d in self.devices:
-            if d.get("nv_name") and d.get("kanonisch") in belegt:
-                d["enabled_default"] = False
+        doppelt = [d for d in self.devices if d.get("nv_name") and d.get("kanonisch") in belegt]
         if self.lon:
+            for d in doppelt:
+                d["enabled_default"] = False
             return
         # Ohne den Schalter stünde eine abgeschaltete Zeile ohne Zweck da: Der
         # Grundumfang springt nur ein, wo der Datenpunkt fehlt.
-        weg = {
-            d["oid"]
-            for d in self.devices
-            if d.get("nv_name") and d.get("kanonisch") in belegt and d.get("oid")
-        }
+        weg = {d["oid"] for d in doppelt if d.get("oid")}
         if weg:
             self.devices = [d for d in self.devices if d.get("oid") not in weg]
             self.oids -= weg
@@ -1660,8 +1656,11 @@ class WindhagerHttpClient:
         self.devices = kept
         self.oids -= missing
         self._rollen_filter(meta)
-        await self._nv_ohne_fuehler_verwerfen()
+        # Erst die Doppelten heraus, dann der Fühlertest: Er kostet eine Anfrage
+        # je Netzwerkvariable, und was ein Datenpunkt schon führt, wird nicht
+        # erst gemessen und dann verworfen.
         self._nv_doppelte_stilllegen()
+        await self._nv_ohne_fuehler_verwerfen()
         self.zusatzkandidaten = []
         self._abgeleitete_zaehler()
         self._schaltpunkte(meta)
