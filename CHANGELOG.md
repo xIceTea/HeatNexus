@@ -12,6 +12,8 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Der Pelletskessel liefert Brennkammertemperatur, Gebläsedrehzahl und Pelletsvorrat über den LON-Bus.
 - Betriebswahl, Alarmcode und Aschetonne des Pelletskessels sind ohne Werksebene sichtbar.
+- Pumpe und Mischer erscheinen auch dort, wo die Anlage sie nur über den Bus meldet.
+- Neue Einstellung „Grundumfang aus dem LON-Bus ergänzen", ab Werk eingeschaltet.
 
 ### Geändert
 
