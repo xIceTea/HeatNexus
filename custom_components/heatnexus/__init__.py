@@ -149,6 +149,10 @@ def _scope_fingerprint(scope: dict) -> str:
         + f"|{int(scope['enable_advanced'])}{int(scope['writable_advanced'])}"
         + f"{int(scope.get('zeitwerte', False))}{int(scope.get('lon', False))}"
         + f"|{scope.get('username', DEFAULT_USERNAME)}"
+        # Nur die Abwahl steht drin. Angehakt ist der Normalfall; stünde er
+        # ebenfalls hier, verlöre jede vorhandene Anlage beim Aktualisieren
+        # ihren Erkennungsstand und läse minutenlang neu ein.
+        + ("" if scope.get("lon_grundumfang", True) else "|ohne-grundumfang")
     )
 
 
