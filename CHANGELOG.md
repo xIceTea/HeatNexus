@@ -19,6 +19,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Kopfzeile und Systemstatus zeigen wieder die gemessene Außentemperatur ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
 - Die Frostschutzgrenzen des Heizkreises tragen einen eigenen Namen.
 - Namen von Datenpunkten enden nicht mehr auf einem Leerzeichen.
+- Ein nicht angeschlossener Temperaturfühler zeigt keinen Messwert mehr an.
+- „Reinigung bestätigen" erscheint im Schnellzugriff und in der Kesselbedienung.
 
 ## [1.10.1] - 2026-08-21
 
