@@ -24,6 +24,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Ein eingeschalteter Wert erscheint sofort statt erst im nächsten trägen Takt.
 - Kopfzeile und Systemstatus zeigen wieder die gemessene Außentemperatur ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
+- Auch das Schaubild greift den Messwert ab, nicht den gleichnamigen Einsteller.
 - Die Frostschutzgrenzen des Heizkreises tragen einen eigenen Namen.
 - Namen von Datenpunkten enden nicht mehr auf einem Leerzeichen.
 - Parameter des Pelletskessels heißen nicht mehr nur „Bereich" oder „Istwert".
