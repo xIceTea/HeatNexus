@@ -13,6 +13,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Marken aus Home Assistant erscheinen als eigene Karten in der Oberfläche.
 - Der Optionsdialog nennt die Werte, die nur der LON-Bus liefert.
 - Solar ES und IO5500 werden beim Namen des Herstellers genannt.
+- Taste, die den Kaminkehrer vorzeitig beendet.
 
 ### Geändert
 
