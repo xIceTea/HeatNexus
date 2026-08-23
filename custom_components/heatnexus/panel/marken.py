@@ -54,3 +54,24 @@ def karten(
             {"id": f"marke:{kennung}", "titel": marke.name, "zeilen": zeilen[:MARKEN_MAX_ZEILEN]}
         )
     return gebaut[:MARKEN_MAX_KARTEN]
+
+
+def zeilen(
+    hass: HomeAssistant, freigegeben: list[str], benutzer: Any = None
+) -> list[dict[str, str]]:
+    """Die Werte dieser Labels als einzelne Zeilen, ohne eigene Karte.
+
+    Für Labels, die einer vorhandenen Gruppe zugeordnet sind. Jede Adresse
+    erscheint einmal, auch wenn sie mehrere der Labels trägt.
+    """
+    registry = er.async_get(hass)
+    gesehen: set[str] = set()
+    gesammelt: list[dict[str, str]] = []
+    for kennung in freigegeben:
+        for eintrag in er.async_entries_for_label(registry, kennung):
+            if eintrag.entity_id in gesehen or not darf_lesen(benutzer, eintrag.entity_id):
+                continue
+            gesehen.add(eintrag.entity_id)
+            gesammelt.append(_zeile(hass, eintrag))
+    gesammelt.sort(key=lambda z: z["titel"].casefold())
+    return gesammelt[:MARKEN_MAX_ZEILEN]

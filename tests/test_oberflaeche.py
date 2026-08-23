@@ -123,28 +123,30 @@ def aufteilung() -> dict:
             _entitaet("sensor.pumpendrehzahl", "Pumpendrehzahl"),
         ],
     )
+    labelkarte = [
+        {
+            "id": "marke:solar",
+            "titel": "Solarthermie",
+            "zeilen": [
+                {
+                    "entity": "sensor.kollektor",
+                    "titel": "Kollektor",
+                    "symbol": "mdi:solar-power-variant",
+                }
+            ],
+        }
+    ]
     return {
         "anlagen": [
-            modul._anlage_daten({"name": "Heizhaus", "teile": [kessel, heizkreis, puffer, zsp]})
+            modul._anlage_daten(
+                {"name": "Heizhaus", "teile": [kessel, heizkreis, puffer, zsp]}, None, labelkarte
+            )
         ],
         "uebersteuerung": {
             "eco": {"temperatur": 18, "dauer": 120},
             "comfort": {"temperatur": 22, "dauer": 180},
         },
         "aussentemperatur": "sensor.aussentemperatur",
-        "marken": [
-            {
-                "id": "marke:solar",
-                "titel": "Solarthermie",
-                "zeilen": [
-                    {
-                        "entity": "sensor.kollektor",
-                        "titel": "Kollektor",
-                        "symbol": "mdi:solar-power-variant",
-                    }
-                ],
-            }
-        ],
     }
 
 
@@ -442,6 +444,6 @@ def test_ohne_betriebsart_zaehlt_weiter_die_pumpe(abbruch):
     assert "ohne lesbare Betriebsart bleibt die Pumpe der Beleg" in abbruch["faelle"]
 
 
-def test_die_markenkarte_steht_in_der_uebersicht(durchlauf):
-    """Ohne sie käme die Freigabe im Browser nicht an."""
+def test_die_labelkarte_steht_in_der_uebersicht(durchlauf):
+    """Sie hängt an der Anlage; global geführt erschiene sie an jeder."""
     assert "Solarthermie" in durchlauf["uebersicht"]["titel"]

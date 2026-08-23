@@ -28,6 +28,7 @@ from typing import Any
 
 from homeassistant.components import frontend, websocket_api
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 import voluptuous as vol
 
 from ..anordnung import async_register_anordnung
@@ -41,6 +42,7 @@ from ..const import (
     CONF_ECO_TEMP,
     CONF_HILFE,
     CONF_MARKEN,
+    CONF_MARKEN_STATUS,
     DOMAIN,
     ECO_TEMP_STANDARD,
     PANEL_TITEL,
@@ -50,6 +52,7 @@ from ..const import (
     panel_js_pfad,
 )
 from ..dashboard import _anlagen
+from ..entity import steuerung_kennung
 from . import marken as markenmodul
 from .daten import _anlage_daten, _erster
 from .hilfe import hilfe
@@ -112,12 +115,32 @@ def _hilfe_gewuenscht(hass: HomeAssistant) -> bool:
     return True
 
 
-def _freigegebene_marken(hass: HomeAssistant) -> list[str]:
-    """Die in den Optionen gewählten Marken, über alle Einträge zusammen."""
-    gewaehlt: list[str] = []
-    for optionen in _optionen(hass):
-        gewaehlt.extend(optionen.get(CONF_MARKEN, []))
-    return list(dict.fromkeys(gewaehlt))
+def _marken_je_anlage(
+    hass: HomeAssistant, benutzer: Any = None
+) -> dict[str, tuple[list[dict], list[dict]]]:
+    """Karten und Statuszeilen aus den Labels, je Anlage.
+
+    Die Auswahl steht in den Optionen der Anlage; ein Label, das dem
+    Systemstatus zugeordnet ist, wird keine eigene Karte.
+    """
+    geraete = dr.async_get(hass)
+    je_anlage: dict[str, tuple[list[dict], list[dict]]] = {}
+    for eintrag in hass.config_entries.async_entries(DOMAIN):
+        daten = getattr(eintrag, "runtime_data", None) or {}
+        for host, coordinator in (daten.get("coordinators") or {}).items():
+            optionen = (eintrag.options or {}).get(host) or {}
+            gewaehlt = optionen.get(CONF_MARKEN) or []
+            if not gewaehlt:
+                continue
+            geraet = geraete.async_get_device({(DOMAIN, steuerung_kennung(coordinator))})
+            if geraet is None:
+                continue
+            im_status = set(optionen.get(CONF_MARKEN_STATUS) or [])
+            je_anlage[geraet.id] = (
+                markenmodul.karten(hass, [k for k in gewaehlt if k not in im_status], benutzer),
+                markenmodul.zeilen(hass, [k for k in gewaehlt if k in im_status], benutzer),
+            )
+    return je_anlage
 
 
 def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
@@ -127,15 +150,17 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     der Markenkarten. Ohne ihn gilt keine Einschränkung.
     """
     aussen = _gewaehlte_aussentemperatur(hass)
+    marken = _marken_je_anlage(hass, benutzer)
     daten = {
-        "anlagen": [_anlage_daten(anlage, aussen) for anlage in _anlagen(hass, benutzer)],
+        "anlagen": [
+            _anlage_daten(anlage, aussen, *marken.get(anlage.get("id"), ((), ())))
+            for anlage in _anlagen(hass, benutzer)
+        ],
         # Eco und Comfort gelten für alle Anlagen gemeinsam.
         "uebersteuerung": _uebersteuerung(hass),
         # Die Außentemperatur der Ansicht „Alle". Dort steht keine einzelne
         # Anlage im Vordergrund, also gilt die gewählte Entität – und nur dort.
         "aussentemperatur": aussen,
-        # Fremde Werte, die der Einrichter über Marken hereingeholt hat.
-        "marken": markenmodul.karten(hass, _freigegebene_marken(hass), benutzer),
     }
     if not _hilfe_gewuenscht(hass):
         # Abgewählt: Die Texte gar nicht erst mitschicken.

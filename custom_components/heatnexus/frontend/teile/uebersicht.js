@@ -56,24 +56,24 @@ export const UebersichtMixin = (Basis) =>
         breite: 2,
       },
     ];
-    return [...fest, ...this._markenkarten()];
+    return [...fest, ...this._markenkarten(anlage)];
   }
 
   /**
-   * Karten aus Marken, die der Einrichter freigegeben hat.
+   * Karten aus den Labels dieser Anlage.
    *
    * Sie hängen hinten an und tragen die Kennung `marke:<id>`; damit greifen
    * Anordnen, Breite und Ausblenden wie bei jeder anderen Karte.
    */
-  _markenkarten() {
-    return (this._daten?.marken || []).map((marke) => ({
+  _markenkarten(anlage) {
+    return (anlage?.marken || []).map((marke) => ({
       id: marke.id,
       titel: marke.titel,
       knoten: this._markenkarte(marke),
     }));
   }
 
-  /** Eine Karte aus einer Marke: Überschrift und Wertzeilen, sonst nichts. */
+  /** Eine Karte aus einem Label: Überschrift und Wertzeilen, sonst nichts. */
   _markenkarte(marke) {
     const karte = this._karte(marke.titel);
     (marke.zeilen || []).forEach((zeile) => {

@@ -43,6 +43,7 @@ from .const import (
     CONF_LEVELS,
     CONF_LON,
     CONF_LON_GRUNDUMFANG,
+    CONF_MARKEN,
     CONF_MELDUNG_EINLESEN,
     CONF_MODULPUMPE,
     CONF_PANEL,
@@ -245,11 +246,33 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
+def _marken_je_anlage_uebernehmen(
+    hass: HomeAssistant, entry: ConfigEntry, systeme: list[dict]
+) -> None:
+    """Eine allgemeine Labelauswahl in die Anlagen übernehmen.
+
+    Die Auswahl gehört zur Anlage; gemeinsam gewählt stünde dieselbe Karte
+    an jeder Anlage.
+    """
+    optionen = dict(entry.options or {})
+    gewaehlt = optionen.pop(CONF_MARKEN, None)
+    if not gewaehlt:
+        return
+    for system in systeme:
+        host = system.get(CONF_HOST)
+        je_anlage = dict(optionen.get(host) or {})
+        je_anlage.setdefault(CONF_MARKEN, list(gewaehlt))
+        optionen[host] = je_anlage
+    hass.config_entries.async_update_entry(entry, options=optionen)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Einen Konfigurationseintrag mit einer oder mehreren Anlagen einrichten."""
     systeme = _systems(entry)
     if not systeme:
         raise ConfigEntryNotReady("Keine Anlage im Konfigurationseintrag hinterlegt")
+
+    _marken_je_anlage_uebernehmen(hass, entry, systeme)
 
     hass.data.setdefault(DOMAIN, {})
     _async_register_rediscover_service(hass)

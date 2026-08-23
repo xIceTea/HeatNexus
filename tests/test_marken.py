@@ -132,3 +132,86 @@ async def test_mehr_zeilen_als_erlaubt_werden_abgeschnitten(hass, marken):
         _entitaet(hass, kennung, f"viele{nummer}", f"Wert {nummer:03d}")
 
     assert len(marken.karten(hass, [kennung])[0]["zeilen"]) == MARKEN_MAX_ZEILEN
+
+
+async def test_zugeordnete_labels_werden_zu_zeilen(hass, marken):
+    """Ein zugeordnetes Label bekommt keine Karte, sondern Zeilen."""
+    kennung = _marke(hass, "Strom")
+    adresse = _entitaet(hass, kennung, "zaehler", "Stromzähler")
+    hass.states.async_set(adresse, "7", {"friendly_name": "Stromzähler"})
+
+    zeilen = marken.zeilen(hass, [kennung])
+
+    assert [z["entity"] for z in zeilen] == [adresse]
+    assert set(zeilen[0]) == {"entity", "titel", "symbol"}
+
+
+async def test_dieselbe_adresse_erscheint_einmal(hass, marken):
+    """Trägt eine Entität zwei zugeordnete Labels, bleibt es eine Zeile."""
+    eins = _marke(hass, "Haus")
+    zwei = _marke(hass, "Keller")
+    adresse = _entitaet(hass, eins, "doppelt", "Doppelt")
+    from homeassistant.helpers import entity_registry as er
+
+    er.async_get(hass).async_update_entity(adresse, labels={eins, zwei})
+    hass.states.async_set(adresse, "1")
+
+    assert len(marken.zeilen(hass, [eins, zwei])) == 1
+
+
+async def test_ohne_leserecht_bleibt_die_zeile_weg(hass, marken):
+    """Dieselbe Schranke wie bei den Karten."""
+    kennung = _marke(hass, "Geheim")
+    adresse = _entitaet(hass, kennung, "geheim", "Geheim")
+    hass.states.async_set(adresse, "1")
+
+    assert marken.zeilen(hass, [kennung], OhneRecht()) == []
+
+
+# ---------------------------------------------------------------------------
+# Übernahme einer früher gemeinsamen Auswahl
+# ---------------------------------------------------------------------------
+def _eintrag(hass, optionen: dict):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    eintrag = MockConfigEntry(
+        domain="heatnexus", version=2, title="Heizhaus", data={}, options=optionen
+    )
+    eintrag.add_to_hass(hass)
+    return eintrag
+
+
+async def test_die_gemeinsame_auswahl_wandert_in_die_anlage(hass, marken):
+    """Ohne die Übernahme verlöre jede vorhandene Anlage ihre Labelkarten."""
+    from custom_components.heatnexus import _marken_je_anlage_uebernehmen
+    from custom_components.heatnexus.const import CONF_MARKEN
+
+    eintrag = _eintrag(hass, {CONF_MARKEN: ["abc123"]})
+
+    _marken_je_anlage_uebernehmen(hass, eintrag, [{"host": "192.0.2.10"}])
+
+    assert eintrag.options["192.0.2.10"][CONF_MARKEN] == ["abc123"]
+    assert CONF_MARKEN not in eintrag.options
+
+
+async def test_eine_auswahl_bei_der_anlage_bleibt_stehen(hass, marken):
+    """Was bei der Anlage steht, ist die jüngere Entscheidung."""
+    from custom_components.heatnexus import _marken_je_anlage_uebernehmen
+    from custom_components.heatnexus.const import CONF_MARKEN
+
+    eintrag = _eintrag(hass, {CONF_MARKEN: ["abc123"], "192.0.2.10": {CONF_MARKEN: ["def456"]}})
+
+    _marken_je_anlage_uebernehmen(hass, eintrag, [{"host": "192.0.2.10"}])
+
+    assert eintrag.options["192.0.2.10"][CONF_MARKEN] == ["def456"]
+
+
+async def test_ohne_gemeinsame_auswahl_bleibt_der_eintrag_unberührt(hass, marken):
+    """Der Normalfall darf den Eintrag bei jeder Einrichtung nicht anfassen."""
+    from custom_components.heatnexus import _marken_je_anlage_uebernehmen
+
+    eintrag = _eintrag(hass, {"192.0.2.10": {}})
+
+    _marken_je_anlage_uebernehmen(hass, eintrag, [{"host": "192.0.2.10"}])
+
+    assert eintrag.options == {"192.0.2.10": {}}

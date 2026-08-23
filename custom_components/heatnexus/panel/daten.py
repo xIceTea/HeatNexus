@@ -618,8 +618,17 @@ def _leitwert_aus_uebersicht(teil: dict[str, Any]) -> dict[str, Any] | None:
     return next((e for e in treffer if e.get("hat_wert")), treffer[0])
 
 
-def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) -> dict[str, Any]:
-    """Alles, was die Oberfläche für eine Anlage braucht."""
+def _anlage_daten(
+    anlage: dict[str, Any],
+    aussen_gewaehlt: str | None = None,
+    marken: list[dict[str, Any]] | None = None,
+    marken_status: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Alles, was die Oberfläche für eine Anlage braucht.
+
+    `marken` sind die Karten aus den Labels, die für genau diese Anlage
+    gewählt sind.
+    """
     alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
 
     kennwerte = []
@@ -756,6 +765,9 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         # Kennung teilten sich zwei Anlagen eines Eintrags eine Reihenfolge.
         "id": anlage.get("id") or anlage["name"],
         "name": anlage["name"],
+        # Karten aus den Labels dieser Anlage. Die Auswahl gehört zur Anlage,
+        # nicht zum Abzug als Ganzem.
+        "marken": marken or [],
         # Erklärungen je Karte – im Browser als „?" neben der Überschrift.
         "hilfe": dict(HILFE_KARTEN),
         # Die Außentemperatur gilt für die ganze Anlage und steht deshalb oben,
@@ -765,7 +777,7 @@ def _anlage_daten(anlage: dict[str, Any], aussen_gewaehlt: str | None = None) ->
         "zeitprogramme": _zeitprogramme(anlage),
         "wartung": _wartung(anlage),
         "kennwerte": kennwerte,
-        "status": _zeilen(alle, STATUS),
+        "status": _zeilen(alle, STATUS) + list(marken_status or []),
         "heizkreise": heizkreise,
         "warmwasser": warmwasser,
         "stoerungen": stoerungen,

@@ -57,6 +57,7 @@ from .const import (
     CONF_LON,
     CONF_LON_GRUNDUMFANG,
     CONF_MARKEN,
+    CONF_MARKEN_STATUS,
     CONF_MELDUNG_EINLESEN,
     CONF_MODULPUMPE,
     CONF_PANEL,
@@ -363,6 +364,10 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
             levels.append(pflicht)
     kesselart = raw.get(CONF_KESSELART, KESSELART_AUTO)
     kesselwert = raw.get(CONF_KESSELWERT, KESSELWERT_LEISTUNG)
+    # Labels gelten je Anlage; in den Systemstatus kommt nur, was die
+    # Kartenauswahl auch zeigt.
+    marken = [str(k) for k in raw.get(CONF_MARKEN, [])][:MARKEN_MAX_KARTEN]
+    im_status = {str(k) for k in raw.get(CONF_MARKEN_STATUS, [])}
     ergebnis: dict[str, Any] = {
         CONF_LEVELS: [lvl for lvl in ALL_LEVELS if lvl in levels],
         CONF_ENABLE_ADVANCED: bool(raw.get(CONF_ENABLE_ADVANCED, False)),
@@ -375,6 +380,8 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         CONF_KESSELART: kesselart if kesselart in KESSELARTEN else KESSELART_AUTO,
         CONF_KESSELWERT: (kesselwert if kesselwert in KESSELWERTE else KESSELWERT_LEISTUNG),
         CONF_MODULPUMPE: bool(raw.get(CONF_MODULPUMPE, False)),
+        CONF_MARKEN: marken,
+        CONF_MARKEN_STATUS: [k for k in marken if k in im_status],
     }
     if CONF_UPDATE_INTERVAL in raw:
         ergebnis[CONF_UPDATE_INTERVAL] = int(raw[CONF_UPDATE_INTERVAL])
@@ -705,9 +712,6 @@ class WindhagerOptionsFlow(OptionsFlow):
             options[CONF_VORLAGEN] = [
                 v for v in user_input.get(CONF_VORLAGEN, []) if v in verfuegbare_vorlagen()
             ]
-            options[CONF_MARKEN] = [str(k) for k in user_input.get(CONF_MARKEN, [])][
-                :MARKEN_MAX_KARTEN
-            ]
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
             if gewaehlt:
                 options[CONF_AUSSENTEMPERATUR] = gewaehlt
@@ -748,12 +752,6 @@ class WindhagerOptionsFlow(OptionsFlow):
                         CONF_AUSSENTEMPERATUR,
                         description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
                     ): EntitySelector(EntitySelectorConfig(domain="sensor")),
-                    # Fremde Werte gehören nicht in die selbstgebauten Karten;
-                    # je Marke entsteht eine eigene, abwählbar wie jede andere.
-                    vol.Optional(
-                        CONF_MARKEN,
-                        default=list(options.get(CONF_MARKEN, [])),
-                    ): LabelSelector(LabelSelectorConfig(multiple=True)),
                     # Woher die Bezeichnungen kommen. „Automatisch" steht nicht
                     # zur Wahl, gilt als gespeicherter Wert aber weiter und
                     # bedeutet Deutsch – dafür die Auflösung in der Vorwahl.
@@ -808,6 +806,7 @@ class WindhagerOptionsFlow(OptionsFlow):
         """
         options = dict(self.config_entry.options)
         host = self._host or ""
+        je_anlage = options.get(host) or {}
         systeme = self._systeme()
         system = next((s for s in systeme if s[CONF_HOST] == host), {})
 
@@ -831,7 +830,6 @@ class WindhagerOptionsFlow(OptionsFlow):
             return self.async_create_entry(data=options)
 
         label = system.get(CONF_LABEL) or host
-        je_anlage = options.get(host, {})
         schema = level_schema(je_anlage, mit_intervall=False)
         schema = schema.extend(
             {

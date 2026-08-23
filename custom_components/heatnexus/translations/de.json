@@ -105,8 +105,7 @@
           "aussentemperatur": "Außentemperatur",
           "hilfe": "Erklärungen anzeigen",
           "sprache": "Sprache der Bezeichnungen",
-          "startwerte": "Startwerte von der Anlage übernehmen",
-          "marken": "Labels in der Oberfläche zeigen"
+          "startwerte": "Startwerte von der Anlage übernehmen"
         },
         "data_description": {
           "update_interval": "Wie oft die Anlage gefragt wird. Der Wert gilt für die schnellen Werte (Thermostat, Temperaturen, Pumpen); träge Werte behalten ihren Abstand — 2 Minuten für Betriebswerte, 15 Minuten für Zähler. Empfohlen: 30 Sekunden für eine Anlage, 60 Sekunden für mehrere oder für Anlagen mit vielen Datenpunkten.",
@@ -116,8 +115,7 @@
           "vorlagen": "Welche Vorlagen unter Einstellungen → Automationen bereitstehen. Eine Vorlage, die eine Automation benutzt, bleibt auch abgewählt liegen.",
           "aussentemperatur": "Welcher Sensor in der Kopfzeile als Außentemperatur gilt. Leer: HeatNexus sucht sie sich in der Anlage selbst.",
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
-          "sprache": "Woher die Namen der Datenpunkte kommen. Die Karten des Panels bleiben deutsch beschriftet.",
-          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant."
+          "sprache": "Woher die Namen der Datenpunkte kommen. Die Karten des Panels bleiben deutsch beschriftet."
         }
       },
       "system": {
@@ -134,7 +132,9 @@
           "zeitwerte": "Systemuhr und Systemdatum anlegen",
           "lon": "Werte vom LON-Bus lesen",
           "lon_grundumfang": "Grundumfang aus dem LON-Bus ergänzen",
-          "zusatzgruppen": "Zusatzwerte"
+          "zusatzgruppen": "Zusatzwerte",
+          "marken": "Labels in der Oberfläche zeigen",
+          "marken_status": "Diese Labels in den Systemstatus"
         },
         "data_description": {
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
@@ -147,7 +147,9 @@
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
           "lon": "Liest zusätzlich den Bus-Adressraum der Steuerung: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und was sonst nur dort steht. An PuroWIN und Infinity bringt das wenig, weil dieselben Werte schon als Datenpunkt kommen.",
           "lon_grundumfang": "Holt Pumpe, Mischer und die Kernwerte des Kessels aus dem Bus, wo die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Dafür muss „Werte vom LON-Bus lesen“ nicht eingeschaltet sein. Wo es den Datenpunkt gibt, gilt der Datenpunkt.",
-          "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. Mit „Individuell“ folgt nach OK ein zweiter Schritt mit den Einzelwerten."
+          "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. Mit „Individuell“ folgt nach OK ein zweiter Schritt mit den Einzelwerten.",
+          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant.",
+          "marken_status": "Werte dieser Labels stehen im Systemstatus statt in einer eigenen Karte. Gewählt werden kann nur, was oben auch gezeigt wird."
         }
       },
       "zusatzwerte": {

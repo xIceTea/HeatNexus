@@ -105,8 +105,7 @@
           "aussentemperatur": "Température extérieure",
           "hilfe": "Afficher les explications",
           "sprache": "Langue des libellés",
-          "startwerte": "Reprendre les valeurs de départ de l'installation",
-          "marken": "Labels in der Oberfläche zeigen"
+          "startwerte": "Reprendre les valeurs de départ de l'installation"
         },
         "data_description": {
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
@@ -116,8 +115,7 @@
           "vorlagen": "Quels modèles apparaissent sous Paramètres → Automatisations. Un modèle utilisé par une automatisation reste en place.",
           "aussentemperatur": "Quel capteur sert de température extérieure dans l'en-tête. Vide : HeatNexus la cherche dans l'installation.",
           "hilfe": "Ajoute un « ? » à côté des cartes et des commandes.",
-          "sprache": "D’où viennent les noms des points de données. Les cartes du panneau restent en allemand.",
-          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant."
+          "sprache": "D’où viennent les noms des points de données. Les cartes du panneau restent en allemand."
         }
       },
       "system": {
@@ -134,7 +132,9 @@
           "zeitwerte": "Créer l'horloge et la date système",
           "lon": "Read values from the LON bus",
           "lon_grundumfang": "Compléter les valeurs de base par le bus LON",
-          "zusatzgruppen": "Valeurs dérivées"
+          "zusatzgruppen": "Valeurs dérivées",
+          "marken": "Labels in der Oberfläche zeigen",
+          "marken_status": "Diese Labels in den Systemstatus"
         },
         "data_description": {
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
@@ -147,7 +147,9 @@
           "zeitwerte": "L'horloge de la régulation. Sans la case cochée, elles sont créées désactivées ; les autres champs d'heure et de date ne sont pas concernés.",
           "lon": "Liest zusätzlich den Bus-Adressraum der Steuerung: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und was sonst nur dort steht. An PuroWIN und Infinity bringt das wenig, weil dieselben Werte schon als Datenpunkt kommen.",
           "lon_grundumfang": "Holt Pumpe, Mischer und die Kernwerte des Kessels aus dem Bus, wo die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Dafür muss „Werte vom LON-Bus lesen“ nicht eingeschaltet sein. Wo es den Datenpunkt gibt, gilt der Datenpunkt.",
-          "zusatzgruppen": "Valeurs calculées par HeatNexus à partir des compteurs et états existants : durées de fonctionnement (aujourd’hui, depuis le dernier démarrage), compteurs (démarrages, consommation, chaleur) et durée en cours. Les valeurs non cochées sont créées désactivées. Avec « Individuell », OK ouvre une seconde étape listant les valeurs individuelles."
+          "zusatzgruppen": "Valeurs calculées par HeatNexus à partir des compteurs et états existants : durées de fonctionnement (aujourd’hui, depuis le dernier démarrage), compteurs (démarrages, consommation, chaleur) et durée en cours. Les valeurs non cochées sont créées désactivées. Avec « Individuell », OK ouvre une seconde étape listant les valeurs individuelles.",
+          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant.",
+          "marken_status": "Werte dieser Labels stehen im Systemstatus statt in einer eigenen Karte. Gewählt werden kann nur, was oben auch gezeigt wird."
         }
       },
       "zusatzwerte": {

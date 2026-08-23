@@ -206,64 +206,70 @@ def test_ohne_eigene_busbegriffe_bleibt_der_hinweis_leer(flow, monkeypatch):
     assert optionen._bus_hinweis("192.0.2.10") == ""
 
 
-async def test_gewaehlte_marken_werden_gespeichert(flow, monkeypatch):
-    """Gespeichert wird die Id der Marke, nicht ihr Name.
+def test_labels_stehen_bei_der_anlage(flow):
+    """Gespeichert wird die Id des Labels, nicht sein Name.
 
-    Ein umbenanntes Etikett behielte sonst seine Karte nicht.
+    Ein umbenanntes Label behielte sonst seine Karte nicht.
+    """
+    from custom_components.heatnexus.const import CONF_MARKEN
+
+    optionen = flow.normalize_options({CONF_MARKEN: ["abc123", "def456"]})
+
+    assert optionen[CONF_MARKEN] == ["abc123", "def456"]
+
+
+def test_zugeordnet_gilt_nur_was_gezeigt_wird(flow):
+    """Ein Label im Systemstatus, das gar nicht gewählt ist, hätte keine Wirkung."""
+    from custom_components.heatnexus.const import CONF_MARKEN, CONF_MARKEN_STATUS
+
+    optionen = flow.normalize_options(
+        {CONF_MARKEN: ["abc123"], CONF_MARKEN_STATUS: ["abc123", "fremd"]}
+    )
+
+    assert optionen[CONF_MARKEN_STATUS] == ["abc123"]
+
+
+def test_mehr_labels_als_karten_werden_abgeschnitten(flow):
+    """Die Auswahl darf den Abzug nicht beliebig aufblähen."""
+    from custom_components.heatnexus.const import CONF_MARKEN, MARKEN_MAX_KARTEN
+
+    optionen = flow.normalize_options(
+        {CONF_MARKEN: [f"label{n}" for n in range(MARKEN_MAX_KARTEN + 4)]}
+    )
+
+    assert len(optionen[CONF_MARKEN]) == MARKEN_MAX_KARTEN
+
+
+async def test_ohne_kandidaten_bleibt_die_auswahl_stehen(flow, monkeypatch):
+    """Der schwerste Fall: Das Feld fehlt, die Auswahl steht in den Optionen.
+
+    Während des Einlesens gibt es keine Kandidaten, das Feld erscheint nicht —
+    und ein Bestätigen ohne dieses Feld löschte bisher die gespeicherte Wahl.
     """
     from types import SimpleNamespace
 
-    from custom_components.heatnexus.const import CONF_MARKEN
+    from custom_components.heatnexus.const import CONF_ZUSATZWERTE
 
-    optionen = flow.WindhagerOptionsFlow()
-    monkeypatch.setattr(
-        type(optionen), "config_entry", property(lambda _self: SimpleNamespace(options={}))
-    )
     gespeichert = {}
+    optionen = flow.WindhagerOptionsFlow()
+    optionen._host = "192.0.2.10"
+    monkeypatch.setattr(
+        type(optionen),
+        "config_entry",
+        property(
+            lambda _self: SimpleNamespace(
+                options={"192.0.2.10": {CONF_ZUSATZWERTE: ["wert-a", "wert-b"]}},
+                data={},
+            )
+        ),
+    )
+    monkeypatch.setattr(type(optionen), "_systeme", lambda _self: [{"host": "192.0.2.10"}])
+    monkeypatch.setattr(type(optionen), "_zusatzkandidaten", lambda _self, host: [])
+    monkeypatch.setattr(type(optionen), "_zugang_uebernehmen", lambda _self, host, benutzer: None)
     monkeypatch.setattr(
         type(optionen), "async_create_entry", lambda _self, data: gespeichert.update(data) or {}
     )
 
-    await optionen.async_step_allgemein(
-        {
-            "update_interval": 30,
-            "startwerte": "15",
-            "dashboard": True,
-            "panel": True,
-            "hilfe": True,
-            "sprache": "de",
-            CONF_MARKEN: ["abc123", "def456"],
-        }
-    )
+    await optionen.async_step_system({"levels": ["info", "operate"]})
 
-    assert gespeichert[CONF_MARKEN] == ["abc123", "def456"]
-
-
-async def test_mehr_marken_als_karten_werden_abgeschnitten(flow, monkeypatch):
-    """Die Auswahl darf den Abzug nicht beliebig aufblähen."""
-    from types import SimpleNamespace
-
-    from custom_components.heatnexus.const import CONF_MARKEN, MARKEN_MAX_KARTEN
-
-    optionen = flow.WindhagerOptionsFlow()
-    monkeypatch.setattr(
-        type(optionen), "config_entry", property(lambda _self: SimpleNamespace(options={}))
-    )
-    gespeichert = {}
-    monkeypatch.setattr(
-        type(optionen), "async_create_entry", lambda _self, data: gespeichert.update(data) or {}
-    )
-
-    await optionen.async_step_allgemein(
-        {
-            "update_interval": 30,
-            "startwerte": "15",
-            "dashboard": True,
-            "panel": True,
-            "hilfe": True,
-            "sprache": "de",
-            CONF_MARKEN: [f"marke{n}" for n in range(MARKEN_MAX_KARTEN + 4)],
-        }
-    )
-
-    assert len(gespeichert[CONF_MARKEN]) == MARKEN_MAX_KARTEN
+    assert gespeichert["192.0.2.10"][CONF_ZUSATZWERTE] == ["wert-a", "wert-b"]

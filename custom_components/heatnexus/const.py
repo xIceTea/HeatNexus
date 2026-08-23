@@ -49,6 +49,9 @@ CONF_LON_GRUNDUMFANG = "lon_grundumfang"
 # Marken aus Home Assistant als eigene Karten der Oberfläche. Leer heißt aus.
 CONF_MARKEN = "marken"
 
+# Labels, deren Werte in den Systemstatus wandern statt in eine eigene Karte.
+CONF_MARKEN_STATUS = "marken_status"
+
 # Die Auswahl trifft der Einrichter; die Decken schützen nur den Abzug, der
 # über WebSocket an jede offene Seite geht.
 MARKEN_MAX_KARTEN = 12
