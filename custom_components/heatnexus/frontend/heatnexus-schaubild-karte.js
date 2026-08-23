@@ -10,7 +10,7 @@ import { BausteineMixin } from "./teile/bausteine.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { WerteMixin } from "./teile/werte.js";
 import { STIL } from "./stil.js";
-import { FARBSAETZE, SCHRIFTMASSE, schriftmass } from "./ordnung.js";
+import { FARBSAETZE, SCHAUBILD_SPEICHER, SCHRIFTMASSE, schriftmass } from "./ordnung.js";
 
 const ELEMENT = "heatnexus-schaubild";
 const ALLE = "alle";
@@ -119,8 +119,54 @@ class HeatNexusSchaubildKarte extends Grundlage {
     return titel === undefined ? "Werte" : titel;
   }
 
+  /**
+   * Wo der zuletzt gelesene Aufbau dieser Karte liegt.
+   *
+   * Je Zuschnitt ein eigener Platz: Zwei Karten im selben Dashboard zeigen
+   * unterschiedliche Anlagen und Werte.
+   */
+  _speicherSchluessel() {
+    const zuschnitt = [
+      this._config.anlage,
+      this._config.werte,
+      this._config.teile_aus,
+      this._config.zeichnungen,
+      this._config.mischer,
+    ];
+    return `${SCHAUBILD_SPEICHER}.${JSON.stringify(zuschnitt)}`;
+  }
+
+  /** Der zuletzt gelesene Aufbau, damit die Karte nicht leer aufgeht. */
+  _ausSpeicher() {
+    try {
+      const roh = window.localStorage.getItem(this._speicherSchluessel());
+      const anlagen = roh ? JSON.parse(roh) : null;
+      return Array.isArray(anlagen) ? anlagen : null;
+    } catch {
+      return null;
+    }
+  }
+
+  _inSpeicher(anlagen) {
+    try {
+      window.localStorage.setItem(this._speicherSchluessel(), JSON.stringify(anlagen));
+    } catch {
+      // Ein voller oder gesperrter Speicher darf die Karte nicht aufhalten.
+    }
+  }
+
   async _datenHolen() {
     this._abrufFehler = false;
+    // Der Aufbau von vorhin, bis der frische da ist. Die Werte darin stammen
+    // ohnehin aus `hass.states`, es steht also nichts Altes in den Zeilen.
+    if (!this._anlagen.length) {
+      const gemerkt = this._ausSpeicher();
+      if (gemerkt) {
+        this._anlagen = gemerkt;
+        this._gebaut = false;
+        this._zeichnen();
+      }
+    }
     try {
       const anfrage = { type: "heatnexus/schaubild" };
       if (this._config.werte) anfrage.auswahl = this._config.werte;
@@ -128,6 +174,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
       if (this._config.zeichnungen) anfrage.zeichnungen = this._config.zeichnungen;
       if (this._config.mischer === false) anfrage.mischer = false;
       this._anlagen = await this._hass.callWS(anfrage);
+      if (this._anlagen.length) this._inSpeicher(this._anlagen);
     } catch (err) {
       console.warn("HeatNexus: Schaubild konnte nicht geladen werden", err);
       this._anlagen = [];

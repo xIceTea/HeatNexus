@@ -54,6 +54,19 @@ const hass = {
 karte.hass = hass;
 await karte._laden;
 
+// Eine zweite Karte mit demselben Zuschnitt: Sie zeichnet aus dem gemerkten
+// Aufbau, bevor ihre eigene Abfrage zurück ist.
+const zweite = new Klasse();
+zweite.setConfig({ farbsatz: "petrol" });
+let freigeben;
+const langsam = new Promise((aufloesen) => {
+  freigeben = aufloesen;
+});
+zweite.hass = { states: {}, themes: { darkMode: true }, callWS: () => langsam };
+bilanz.sofortAusSpeicher = !!zweite.shadowRoot.querySelector("img");
+freigeben(anlagen);
+await zweite._laden;
+
 const bild = karte.shadowRoot.querySelector("img");
 bilanz.bildVorhanden = !!bild;
 bilanz.bildAdresse = bild ? String(bild.src).slice(0, 30) : null;

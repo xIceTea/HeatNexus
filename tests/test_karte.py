@@ -411,3 +411,8 @@ def test_die_ladung_zaehlt_gegen_den_unteren_fuehler(durchlauf):
 
 def test_ein_kalter_kessel_laedt_nicht(durchlauf):
     assert durchlauf["kalterKesselLaedtNicht"] is True
+
+
+def test_die_karte_zeichnet_sofort_aus_dem_gemerkten_aufbau(durchlauf):
+    """Ohne den gemerkten Stand steht die Karte leer, bis die Abfrage zurück ist."""
+    assert durchlauf["sofortAusSpeicher"] is True

@@ -98,6 +98,10 @@ export const REITER = [
 // Standardanstrich stehen und dann umspringen.
 export const FARBSATZ_SPEICHER = "heatnexus.farbsatz";
 
+// Wo der zuletzt gelesene Aufbau der Schaubild-Karte liegt. Ohne ihn steht die
+// Karte beim Öffnen leer, bis die Anlagendaten über WebSocket da sind.
+export const SCHAUBILD_SPEICHER = "heatnexus.schaubild";
+
 export const FARBSAETZE = [
   { schluessel: "auto", titel: "Auto", hinweis: "Folgt dem Erscheinungsbild von Home Assistant" },
   { schluessel: "dunkel", titel: "Dunkel", hinweis: "Graphit mit blauem Akzent" },
