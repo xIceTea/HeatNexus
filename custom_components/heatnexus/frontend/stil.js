@@ -65,7 +65,9 @@ export const STIL = `
   }
   .menue-taste:hover { background: var(--hn-linie); }
   /* Werkzeuge der Kopfzeile: ein Knopf, darunter die Liste. */
-  .werkzeuge { position: relative; flex: none; }
+  /* Ganz nach rechts, auch wenn die Kopfzeile umbricht: Sonst klebt der
+     Knopf an der letzten Anlagentaste statt am Rand. */
+  .werkzeuge { position: relative; flex: none; margin-left: auto; }
   .werkzeugliste {
     position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
     min-width: 220px; padding: 6px; border-radius: 12px;
@@ -182,7 +184,9 @@ export const STIL = `
   }
   .anordnen-taste ha-icon { --mdc-icon-size: 18px; }
   /* Die Spaltenwahl sieht aus wie die Anlagenwahl oben – gleiche Geste. */
-  .spaltenwahl { display: inline-flex; gap: 4px; }
+  /* Umbrechend statt überlaufend: Auf einem Telefon stehen sechs Farbsätze
+     nicht nebeneinander, und was rechts hinausläuft, ist nicht erreichbar. */
+  .spaltenwahl { display: flex; flex-wrap: wrap; gap: 4px; max-width: 100%; }
   .spaltenwahl button {
     min-width: 34px; padding: 7px 10px; border-radius: 999px;
     font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
