@@ -10,6 +10,9 @@ body:
         blind unterstützt, bis jemand einen Abzug beisteuert – das hier ist der
         wertvollste Beitrag zum Projekt.
 
+        Bitte lass die Meldung offen: Sie wird geschlossen, sobald die Fassung
+        erschienen ist, die den Punkt behebt – dann steht hier, welche das ist.
+
         Der Lauf fragt die Steuerung einmalig ab und schreibt alles nach
         `probe/`. Er ändert nichts an der Anlage und läuft nicht im Betrieb.
 

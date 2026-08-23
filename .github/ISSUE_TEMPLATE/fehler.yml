@@ -12,6 +12,9 @@ body:
         Einstellungen → Geräte & Dienste → HeatNexus → ⋮ → Diagnose
         herunterladen. Darin steht, was die Integration an deiner Anlage
         erkannt hat; IP, Passwort und Seriennummer sind geschwärzt.
+
+        Bitte lass die Meldung offen: Sie wird geschlossen, sobald die Fassung
+        erschienen ist, die den Punkt behebt – dann steht hier, welche das ist.
   - type: input
     id: version
     attributes:

@@ -1,0 +1,86 @@
+name: Wiederaufnahme
+
+# Wer ein Issue selbst eröffnet hat, darf es bei GitHub jederzeit schließen –
+# unabhängig von seinen Rechten am Projekt und ohne dass sich das abstellen
+# lässt.
+#
+# Trägt die Meldung die Marke `implemented`, ist die Behebung geschrieben, aber
+# noch nicht veröffentlicht. Geschlossen bekäme niemand mehr mit, in welcher
+# Fassung sie erscheint; deshalb wird sie einmal wieder geöffnet und der Grund
+# dazugeschrieben. Einmal: Wer danach erneut schließt, meint es so. Wer als
+# „nicht geplant" schließt, ebenfalls – dann bleibt es zu.
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  wiedereroeffnen:
+    name: Behobenes bleibt offen bis zur Fassung
+    if: >-
+      contains(github.event.issue.labels.*.name, 'implemented')
+      && github.event.issue.state_reason == 'completed'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const nummer = context.payload.issue.number;
+            const akteur = context.payload.sender.login;
+
+            // Wer am Projekt schreiben darf, schließt bewusst.
+            let rolle = "none";
+            try {
+              const antwort = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: akteur,
+              });
+              rolle = antwort.data.role_name || antwort.data.permission;
+            } catch (fehler) {
+              core.info(`${akteur} ist kein Mitarbeiter: ${fehler.status}`);
+            }
+            if (["admin", "maintain", "write"].includes(rolle)) {
+              core.info(`${akteur} hat Schreibrecht (${rolle}) – bleibt geschlossen.`);
+              return;
+            }
+
+            // Nur beim ersten Mal. Sonst entstünde ein Hin und Her mit jemandem,
+            // der seine Meldung erklärtermaßen geschlossen haben will.
+            const verlauf = await github.paginate(github.rest.issues.listEvents, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: nummer,
+              per_page: 100,
+            });
+            const schon = verlauf.some(
+              (e) => e.event === "reopened" && e.actor && e.actor.login === "github-actions[bot]",
+            );
+            if (schon) {
+              core.info("Wurde hier schon einmal wieder geöffnet – bleibt geschlossen.");
+              return;
+            }
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: nummer,
+              state: "open",
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: nummer,
+              body: [
+                "Danke – die Behebung ist geschrieben, steht aber noch in keiner veröffentlichten Fassung.",
+                "",
+                "Ich lasse die Meldung so lange offen und schließe sie mit dem Hinweis, in welcher Fassung sie erscheint. So bekommst du und jeder mit demselben Fehler es mit.",
+                "",
+                "Wenn sie trotzdem geschlossen bleiben soll: einfach noch einmal schließen, dann bleibt es dabei.",
+              ].join("\n"),
+            });

@@ -16,6 +16,9 @@ body:
         Vorlage **Anlage beisteuern** besser.
 
         Bitte vorher IP-Adressen und Seriennummern entfernen.
+
+        Bitte lass die Meldung offen: Sie wird geschlossen, sobald die Fassung
+        erschienen ist, die den Punkt behebt – dann steht hier, welche das ist.
   - type: input
     id: geraet
     attributes:
