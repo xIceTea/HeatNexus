@@ -10,21 +10,21 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Marken aus Home Assistant erscheinen als eigene Karten in der Oberfläche.
-- Der Optionsdialog nennt die Werte, die nur der LON-Bus liefert.
-- Solar ES und IO5500 werden beim Namen des Herstellers genannt.
-- Taste, die den Kaminkehrer vorzeitig beendet.
+- Labels aus Home Assistant werden zu eigenen Karten in der Oberfläche.
+- Die Einstellungen nennen die Werte, die nur der LON-Bus liefert.
+- Solar ES und IO5500 heißen jetzt wie beim Hersteller.
+- Eine Taste beendet den Kaminkehrer vorzeitig.
 
 ### Geändert
 
-- Die Oberfläche zeigt nur Werte, die der Benutzer in Home Assistant lesen darf.
+- Jeder sieht in der Oberfläche nur Werte, die er in Home Assistant lesen darf.
 
 ### Behoben
 
-- Die Softwareversion des Kessels wird wieder angezeigt ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
-- Fassungsnummern anderer Baureihen erscheinen als Text statt als Messwert.
-- Entitäts-Kennungen werden ohne zweiten Neustart angeglichen.
-- Die Schaubild-Karte zeigt beim Öffnen sofort den zuletzt gelesenen Aufbau.
+- Die Softwareversion des Kessels erscheint wieder ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
+- Versionen anderer Baureihen erscheinen als Text statt als Messwert.
+- Die Kennungen der Entitäten stimmen schon nach dem ersten Neustart.
+- Die Schaubild-Karte erscheint beim Öffnen sofort vollständig.
 
 ## [1.11.0-beta.2] - 2026-08-23
 

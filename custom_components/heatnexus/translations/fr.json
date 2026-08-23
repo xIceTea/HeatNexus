@@ -106,7 +106,7 @@
           "hilfe": "Afficher les explications",
           "sprache": "Langue des libellés",
           "startwerte": "Reprendre les valeurs de départ de l'installation",
-          "marken": "Marken in der Oberfläche zeigen"
+          "marken": "Labels in der Oberfläche zeigen"
         },
         "data_description": {
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
@@ -117,7 +117,7 @@
           "aussentemperatur": "Quel capteur sert de température extérieure dans l'en-tête. Vide : HeatNexus la cherche dans l'installation.",
           "hilfe": "Ajoute un « ? » à côté des cartes et des commandes.",
           "sprache": "D’où viennent les noms des points de données. Les cartes du panneau restent en allemand.",
-          "marken": "Jede gewählte Marke wird eine eigene Karte in der Übersicht. Wer sie nicht sehen will, blendet sie dort aus. Was ein Benutzer darin sieht, richtet sich nach seinen Rechten in Home Assistant."
+          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant."
         }
       },
       "system": {
@@ -145,8 +145,8 @@
           "kesselwert": "Quelle deuxième valeur figure sur la chaudière. Le lit de braises suit toujours la puissance ; à défaut, il se règle sur la température de la chambre de combustion.",
           "modulpumpe": "La pompe du module n'apparaît dans le schéma que si la case est cochée. Le module indique une vitesse même sans pompe raccordée ; le module et ses voyants restent affichés dans tous les cas.",
           "zeitwerte": "L'horloge de la régulation. Sans la case cochée, elles sont créées désactivées ; les autres champs d'heure et de date ne sont pas concernés.",
-          "lon": "La régulation gère un espace d'adressage bus complet à côté des points de données. Pour aller en profondeur : vitesse du ventilateur, chauffage de la sonde lambda, stock de granulés et le reste. Sur PuroWIN et Infinity, il n'apporte guère, ces valeurs existant déjà comme points de données.",
-          "lon_grundumfang": "Récupère la pompe, le mélangeur et les mesures principales de la chaudière depuis le bus lorsque l'installation n'en fournit pas de point de données — sinon ils manquent sur le schéma. Aucun doublon : le point de données prime.",
+          "lon": "Liest zusätzlich den Bus-Adressraum der Steuerung: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und was sonst nur dort steht. An PuroWIN und Infinity bringt das wenig, weil dieselben Werte schon als Datenpunkt kommen.",
+          "lon_grundumfang": "Holt Pumpe, Mischer und die Kernwerte des Kessels aus dem Bus, wo die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Dafür muss „Werte vom LON-Bus lesen“ nicht eingeschaltet sein. Wo es den Datenpunkt gibt, gilt der Datenpunkt.",
           "zusatzgruppen": "Valeurs calculées par HeatNexus à partir des compteurs et états existants : durées de fonctionnement (aujourd’hui, depuis le dernier démarrage), compteurs (démarrages, consommation, chaleur) et durée en cours. Les valeurs non cochées sont créées désactivées. Avec « Individuell », OK ouvre une seconde étape listant les valeurs individuelles."
         }
       },

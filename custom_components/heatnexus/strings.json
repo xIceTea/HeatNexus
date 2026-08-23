@@ -105,7 +105,7 @@
           "aussentemperatur": "Outside temperature",
           "hilfe": "Show explanations",
           "startwerte": "Take over start values from the system",
-          "marken": "Marken in der Oberfläche zeigen"
+          "marken": "Labels in der Oberfläche zeigen"
         },
         "data_description": {
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
@@ -115,7 +115,7 @@
           "vorlagen": "Which blueprints appear under Settings → Automations. A blueprint an automation still uses stays in place.",
           "aussentemperatur": "Which sensor counts as the outside temperature in the header. Empty: HeatNexus finds it in the plant itself.",
           "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does.",
-          "marken": "Jede gewählte Marke wird eine eigene Karte in der Übersicht. Wer sie nicht sehen will, blendet sie dort aus. Was ein Benutzer darin sieht, richtet sich nach seinen Rechten in Home Assistant."
+          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant."
         }
       },
       "system": {
@@ -139,8 +139,8 @@
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
           "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
-          "lon": "The controller keeps a full bus address space alongside the datapoints. For a deep look: fan speed, lambda probe heating, pellet stock and everything else. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
-          "lon_grundumfang": "Fetches pump, mixer and the boiler's core readings from the bus where the system has no datapoint for them — otherwise they are missing from the diagram. No duplicates: where a datapoint exists, it wins.",
+          "lon": "Liest zusätzlich den Bus-Adressraum der Steuerung: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und was sonst nur dort steht. An PuroWIN und Infinity bringt das wenig, weil dieselben Werte schon als Datenpunkt kommen.",
+          "lon_grundumfang": "Holt Pumpe, Mischer und die Kernwerte des Kessels aus dem Bus, wo die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Dafür muss „Werte vom LON-Bus lesen“ nicht eingeschaltet sein. Wo es den Datenpunkt gibt, gilt der Datenpunkt.",
           "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. Mit „Individuell“ folgt nach OK ein zweiter Schritt mit den Einzelwerten."
         }
       },

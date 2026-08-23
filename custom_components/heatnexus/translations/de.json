@@ -106,7 +106,7 @@
           "hilfe": "Erklärungen anzeigen",
           "sprache": "Sprache der Bezeichnungen",
           "startwerte": "Startwerte von der Anlage übernehmen",
-          "marken": "Marken in der Oberfläche zeigen"
+          "marken": "Labels in der Oberfläche zeigen"
         },
         "data_description": {
           "update_interval": "Wie oft die Anlage gefragt wird. Der Wert gilt für die schnellen Werte (Thermostat, Temperaturen, Pumpen); träge Werte behalten ihren Abstand — 2 Minuten für Betriebswerte, 15 Minuten für Zähler. Empfohlen: 30 Sekunden für eine Anlage, 60 Sekunden für mehrere oder für Anlagen mit vielen Datenpunkten.",
@@ -117,7 +117,7 @@
           "aussentemperatur": "Welcher Sensor in der Kopfzeile als Außentemperatur gilt. Leer: HeatNexus sucht sie sich in der Anlage selbst.",
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
           "sprache": "Woher die Namen der Datenpunkte kommen. Die Karten des Panels bleiben deutsch beschriftet.",
-          "marken": "Jede gewählte Marke wird eine eigene Karte in der Übersicht. Wer sie nicht sehen will, blendet sie dort aus. Was ein Benutzer darin sieht, richtet sich nach seinen Rechten in Home Assistant."
+          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant."
         }
       },
       "system": {
@@ -145,8 +145,8 @@
           "kesselwert": "Welcher zweite Wert am Kessel steht. Das Glutbett folgt weiterhin der Leistung – fehlt sie, richtet es sich nach der Brennkammertemperatur.",
           "modulpumpe": "Nur mit Haken erscheint die Pumpe des Moduls im Schaubild. Das Modul meldet seine Drehzahl auch dann, wenn nichts angeklemmt ist – das Modul selbst und seine Lampen stehen unabhängig davon im Bild.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
-          "lon": "Die Steuerung führt neben den Datenpunkten einen vollständigen Bus-Adressraum. Für tiefe Einblicke: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und alles Übrige. Bei PuroWIN und Infinity bringt er kaum etwas, weil dieselben Werte schon als Datenpunkt dastehen.",
-          "lon_grundumfang": "Holt Pumpe, Mischer und die Kernmesswerte des Kessels aus dem Bus, wenn die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Doppelte Werte entstehen dabei nicht: Wo es den Datenpunkt gibt, gilt er.",
+          "lon": "Liest zusätzlich den Bus-Adressraum der Steuerung: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und was sonst nur dort steht. An PuroWIN und Infinity bringt das wenig, weil dieselben Werte schon als Datenpunkt kommen.",
+          "lon_grundumfang": "Holt Pumpe, Mischer und die Kernwerte des Kessels aus dem Bus, wo die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Dafür muss „Werte vom LON-Bus lesen“ nicht eingeschaltet sein. Wo es den Datenpunkt gibt, gilt der Datenpunkt.",
           "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. Mit „Individuell“ folgt nach OK ein zweiter Schritt mit den Einzelwerten."
         }
       },

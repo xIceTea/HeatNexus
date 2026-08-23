@@ -56,17 +56,17 @@ der Brennstoff, die Zählerstände.
 „Sa, So", darin die Schaltzeiten als Balken, darunter als Text. Bearbeitet wird
 in Blöcken und gespeichert als ganzes Programm — so, wie die Anlage es führt.
 
-## Eigene Werte über Marken
+## Eigene Werte über Labels
 
-Was nicht von der Heizung kommt, lässt sich trotzdem hereinholen: Vergib der
-Entität in Home Assistant eine Marke (Einstellungen → Bereiche, Kennungen &
-Marken) und gib die Marke in den Einstellungen der Integration unter
-„Marken in der Oberfläche zeigen" frei. Jede freigegebene Marke wird eine
-eigene Karte in der Übersicht — verschiebbar, verbreiterbar und ausblendbar
-wie jede andere.
+Auch Werte, die nicht von der Heizung stammen, lassen sich anzeigen. Vergib der
+Entität in Home Assistant ein Label (Einstellungen → Bereiche, Labels & Zonen)
+und wähle dieses Label in den Einstellungen der Integration unter „Labels in
+der Oberfläche zeigen". Jedes gewählte Label wird zu einer eigenen Karte in der
+Übersicht. Sie lässt sich verschieben, verbreitern und ausblenden wie jede
+andere Karte.
 
-Was ein Benutzer darin sieht, richtet sich nach seinen Rechten in Home
-Assistant: Adressen, die er nicht lesen darf, stehen nicht in seiner Karte.
+Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant:
+Werte, die er nicht lesen darf, stehen nicht darin.
 
 Der Reiter **Verlauf** fehlt im Rundgang. Er benutzt die Verlaufskarte von
 Home Assistant, und die zeichnet nur mit einer laufenden Anlage dahinter. Eine
