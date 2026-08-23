@@ -806,3 +806,60 @@ async def test_der_abzug_fuehrt_die_markenkarten(hass, panel):
     daten = panel.panel_daten(hass)
 
     assert daten["marken"] == []
+
+
+class OhneRecht:
+    """Ein Benutzer, dem Home Assistant jede Adresse verwehrt."""
+
+    class permissions:
+        """Die Rechte, die Home Assistant an jedem Benutzer führt."""
+
+        @staticmethod
+        def check_entity(entity_id: str, schluessel: str) -> bool:
+            return False
+
+
+def _anlage_ins_register(hass) -> None:
+    """Eine Steuerung mit einem Kessel und einem Messwert anlegen."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = MockConfigEntry(domain=DOMAIN, entry_id="pruefeintrag", data={}, options={})
+    eintrag.add_to_hass(hass)
+    geraete = dr.async_get(hass)
+    steuerung = geraete.async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1")},
+        name="Beispielhaus",
+    )
+    kessel = geraete.async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-3-0")},
+        name="Beispielhaus · Musterkessel",
+        via_device=(DOMAIN, "SN1"),
+    )
+    registry = er.async_get(hass)
+    entitaet = registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "SN1-3-0-0-7-0",
+        config_entry=eintrag,
+        device_id=kessel.id,
+        original_name="Kesseltemperatur Ist",
+    )
+    hass.states.async_set(entitaet.entity_id, "62.0", {"unit_of_measurement": "°C"})
+    assert steuerung.id
+
+
+async def test_ohne_rechte_bleibt_der_abzug_leer(hass, panel):
+    """Die Oberfläche steht auch Nicht-Verwaltern offen.
+
+    Was Home Assistant einem Benutzer verwehrt, darf sie nicht nachreichen.
+    """
+    _anlage_ins_register(hass)
+
+    assert panel.panel_daten(hass)["anlagen"], "Vorbedingung: mit Rechten steht die Anlage da"
+    assert panel.panel_daten(hass, OhneRecht())["anlagen"] == []

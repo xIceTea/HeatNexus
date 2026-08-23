@@ -44,6 +44,7 @@ from .const import (
 )
 from .kanonisch import gnmn, ist_ableitung
 from .kanonisch import schluessel as kanonischer_schluessel
+from .rechte import darf_lesen
 from .schema import anlagenschema, kesselart_erkennen
 from .schema import passt as _passt
 from .schema import traegt as _traegt
@@ -364,8 +365,11 @@ def _schaubildwahl_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str, b
     return zuordnung
 
 
-def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
+def _anlagen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:
     """Anlagen mit ihren Anlagenteilen und deren sichtbaren Entitäten.
+
+    `benutzer` ist der Anfragende, wo es einen gibt: Was Home Assistant ihm
+    verwehrt, steht auch hier nicht.
 
     Der Aufbau der Geräte spiegelt die Anlage wider: Heizungsanlage →
     Steuerung (eine Adresse) → Funktion. Die Steuerung trägt den Namen, den
@@ -400,6 +404,8 @@ def _anlagen(hass: HomeAssistant) -> list[dict[str, Any]]:
         if eintrag.platform != DOMAIN:
             continue
         if eintrag.disabled_by is not None or eintrag.hidden_by is not None:
+            continue
+        if not darf_lesen(benutzer, eintrag.entity_id):
             continue
         teil = teile.get(eintrag.device_id)
         if teil is None:

@@ -8,25 +8,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.auth.permissions.const import POLICY_READ
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import label_registry as lr
 
 from ..const import MARKEN_MAX_KARTEN, MARKEN_MAX_ZEILEN
+from ..rechte import darf_lesen
 from ..symbole import symbol_fuer_wert
-
-
-def _darf_lesen(benutzer: Any, entity_id: str) -> bool:
-    """Ob dieser Benutzer die Adresse lesen darf.
-
-    Ohne Benutzer gilt keine Einschränkung: Dann kommt der Aufruf nicht von
-    einer Verbindung, sondern aus der Integration selbst.
-    """
-    rechte = getattr(benutzer, "permissions", None)
-    if rechte is None:
-        return True
-    return bool(rechte.check_entity(entity_id, POLICY_READ))
 
 
 def _zeile(hass: HomeAssistant, eintrag: er.RegistryEntry) -> dict[str, str]:
@@ -57,7 +45,7 @@ def karten(
         eintraege = {
             e.entity_id: e
             for e in er.async_entries_for_label(registry, kennung)
-            if _darf_lesen(benutzer, e.entity_id)
+            if darf_lesen(benutzer, e.entity_id)
         }
         zeilen = [_zeile(hass, e) for e in eintraege.values()]
         zeilen.sort(key=lambda z: z["titel"].casefold())

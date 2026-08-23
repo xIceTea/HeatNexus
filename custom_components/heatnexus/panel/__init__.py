@@ -123,7 +123,7 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     """
     aussen = _gewaehlte_aussentemperatur(hass)
     daten = {
-        "anlagen": [_anlage_daten(anlage, aussen) for anlage in _anlagen(hass)],
+        "anlagen": [_anlage_daten(anlage, aussen) for anlage in _anlagen(hass, benutzer)],
         # Eco und Comfort gelten für alle Anlagen gemeinsam.
         "uebersteuerung": _uebersteuerung(hass),
         # Die Außentemperatur der Ansicht „Alle". Dort steht keine einzelne
