@@ -10,7 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Labels aus Home Assistant werden zu eigenen Karten in der Oberfläche.
+- Labels aus Home Assistant werden je Anlage zu eigenen Karten in der Oberfläche.
 - Werte eines Labels lassen sich auch in den Systemstatus legen.
 - Die Einstellungen nennen die Werte, die nur der LON-Bus liefert.
 - Solar ES und IO5500 heißen jetzt wie beim Hersteller.
@@ -19,7 +19,6 @@ wenn dort Vorabversionen zugelassen sind.
 ### Geändert
 
 - Jeder sieht in der Oberfläche nur Werte, die er in Home Assistant lesen darf.
-- Die Labels werden je Anlage gewählt, nicht mehr für alle gemeinsam.
 
 ### Behoben
 
@@ -28,6 +27,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Kennungen der Entitäten stimmen schon nach dem ersten Neustart.
 - Die Schaubild-Karte erscheint beim Öffnen sofort vollständig.
 - Gewählte Zusatzwerte gehen beim Öffnen der Einstellungen nicht mehr verloren.
+- Schaltpunkte und Abstände beziehen sich wieder auf den gemessenen Wert.
 - Auf dem Telefon bricht die Farbauswahl um und bleibt erreichbar.
 
 ## [1.11.0-beta.2] - 2026-08-23
