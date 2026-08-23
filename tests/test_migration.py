@@ -363,3 +363,37 @@ def test_eine_aeltere_registry_bekommt_den_aufruf_ohne_schluesselwort(migration)
     kennung = migration._freie_kennung(AlteRegistry(), AlterEintrag(), "Musterkessel Temperatur")
 
     assert kennung == "sensor.musterkessel_temperatur"
+
+
+def test_der_name_kommt_spaeter_und_die_angleichung_holt_ihn(migration, hass):
+    """Beim ersten Lauf steht der Anzeigename noch nicht in der Registrierung.
+
+    Deshalb läuft die Angleichung ein zweites Mal, sobald Home Assistant steht.
+    """
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = _config_entry(hass)
+    geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-3-0")},
+        name="Beispielhaus · Musterkessel",
+    )
+    registry = er.async_get(hass)
+    entitaet = registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "SN1-3-0-0-11-0",
+        config_entry=eintrag,
+        device_id=geraet.id,
+        suggested_object_id="beispielhaus_musterkessel",
+    )
+
+    assert migration._entity_ids_umstellen(hass, eintrag) == 0
+
+    registry.async_update_entity(entitaet.entity_id, original_name="Abgastemperatur")
+
+    assert migration._entity_ids_umstellen(hass, eintrag) == 1
+    assert "abgastemperatur" in registry.async_get_entity_id("sensor", DOMAIN, "SN1-3-0-0-11-0")

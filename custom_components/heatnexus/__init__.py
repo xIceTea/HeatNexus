@@ -26,6 +26,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.storage import Store
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
@@ -448,6 +449,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _geraetenamen_angleichen(registry, entry, coordinators)
     async_entity_ids_umstellen(hass, entry)
+    # Beim ersten Lauf steht in der Registrierung noch der alte Anzeigename –
+    # die Plattformen melden ihn erst danach an. Ein zweiter Lauf, sobald Home
+    # Assistant steht, spart den Umweg über einen weiteren Start.
+    entry.async_on_unload(
+        async_at_started(hass, lambda _hass: async_entity_ids_umstellen(hass, entry))
+    )
     _abgewaehlte_entitaeten_stilllegen(hass, entry, coordinators)
 
     if (entry.options or {}).get(CONF_DASHBOARD, True):
