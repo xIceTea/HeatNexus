@@ -815,7 +815,12 @@ class WindhagerOptionsFlow(OptionsFlow):
             benutzer = (user_input.pop(CONF_USERNAME, None) or DEFAULT_USERNAME).strip()
             gruppen = user_input.pop(CONF_ZUSATZGRUPPEN, [])
             kandidaten = self._zusatzkandidaten(host)
-            user_input[CONF_ZUSATZWERTE] = gruppen_aufloesen(kandidaten, gruppen)
+            # Ohne Kandidaten stand das Feld nicht im Formular. Die gespeicherte
+            # Auswahl bleibt dann stehen, statt beim Bestätigen wegzufallen.
+            if kandidaten:
+                user_input[CONF_ZUSATZWERTE] = gruppen_aufloesen(kandidaten, gruppen)
+            else:
+                user_input[CONF_ZUSATZWERTE] = list(je_anlage.get(CONF_ZUSATZWERTE, []))
             if GRUPPE_INDIVIDUELL in gruppen:
                 # Der zweite Schritt zeigt die Einzelwerte, vorbelegt mit dem,
                 # was die Gruppen ergeben.
@@ -833,6 +838,19 @@ class WindhagerOptionsFlow(OptionsFlow):
                 vol.Required(
                     CONF_USERNAME, default=system.get(CONF_USERNAME) or DEFAULT_USERNAME
                 ): benutzer_auswahl()
+            }
+        )
+        schema = schema.extend(
+            {
+                # Fremde Werte gehören nicht in die selbstgebauten Karten. Je
+                # Label entsteht eine eigene, abwählbar wie jede andere; wer
+                # sie lieber im Systemstatus hat, wählt sie unten dazu.
+                vol.Optional(
+                    CONF_MARKEN, default=list(je_anlage.get(CONF_MARKEN, []))
+                ): LabelSelector(LabelSelectorConfig(multiple=True)),
+                vol.Optional(
+                    CONF_MARKEN_STATUS, default=list(je_anlage.get(CONF_MARKEN_STATUS, []))
+                ): LabelSelector(LabelSelectorConfig(multiple=True)),
             }
         )
         kandidaten = self._zusatzkandidaten(host)

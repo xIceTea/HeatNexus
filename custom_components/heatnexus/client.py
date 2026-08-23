@@ -239,6 +239,8 @@ class WindhagerHttpClient:
         # Was zur Auswahl stünde – auch das Nichtgewählte, sonst bliebe der
         # Auswahldialog leer.
         self.zusatzkandidaten: list[dict] = []
+        self._zusatz_neu: list[dict] = []
+        self._zusatz_lauft = False
         self.lon = lon
         # Der Aufbau der Anlage kommt auch ohne den vollen Adressraum: Pumpe,
         # Mischer und die Kernmesswerte des Erzeugers, und nur dort, wo kein
@@ -1653,12 +1655,21 @@ class WindhagerHttpClient:
         # erst gemessen und dann verworfen.
         self._nv_doppelte_stilllegen()
         await self._nv_ohne_fuehler_verwerfen()
-        self.zusatzkandidaten = []
-        self._abgeleitete_zaehler()
-        self._schaltpunkte(meta)
-        self._verbraucherabstand(meta)
-        self._laufzeit()
-        self._namen_vereindeutigen()
+        # Die alte Liste bleibt stehen, bis die neue vollständig ist: Ein
+        # Optionsdialog, der währenddessen offen ist, sähe sonst keine
+        # Zusatzwerte und verlöre beim Bestätigen die Auswahl.
+        self._zusatz_neu, self._zusatz_lauft = [], True
+        try:
+            self._abgeleitete_zaehler()
+            self._schaltpunkte(meta)
+            self._verbraucherabstand(meta)
+            self._laufzeit()
+            self._namen_vereindeutigen()
+        finally:
+            self._zusatz_lauft = False
+        # Erst nach dem letzten Schritt: Bricht einer ab, bleibt die alte
+        # Liste stehen statt einer halben.
+        self.zusatzkandidaten = self._zusatz_neu
 
     def _rollen_filter(self, meta: dict) -> None:
         """Datenpunkte verwerfen, die an dieser Anlage keine Aufgabe haben.
@@ -2006,7 +2017,11 @@ class WindhagerHttpClient:
         """
         for kandidat in kandidaten:
             kandidat["enabled_default"] = kandidat["id"] in self.zusatzwerte
-        self.zusatzkandidaten += kandidaten
+        self._zusatz_neu += kandidaten
+        # Während eines Einlesens sammelt `_zusatz_neu`; ein einzelner Aufruf
+        # schreibt sofort in die gültige Liste.
+        if not self._zusatz_lauft:
+            self.zusatzkandidaten += kandidaten
         self.devices += kandidaten
 
     def _namen_vereindeutigen(self) -> None:
