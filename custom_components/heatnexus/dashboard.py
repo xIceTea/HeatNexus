@@ -374,9 +374,6 @@ def _schaubildwahl_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str, b
 def _anlagen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:
     """Anlagen mit ihren Anlagenteilen und deren sichtbaren Entitäten.
 
-    `benutzer` ist der Anfragende, wo es einen gibt: Was Home Assistant ihm
-    verwehrt, steht auch hier nicht.
-
     Der Aufbau der Geräte spiegelt die Anlage wider: Heizungsanlage →
     Steuerung (eine Adresse) → Funktion. Die Steuerung trägt den Namen, den
     der Nutzer bei der Einrichtung vergeben hat ("Heizhaus", "Wohnhaus"), und
@@ -411,6 +408,7 @@ def _anlagen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:
             continue
         if eintrag.disabled_by is not None or eintrag.hidden_by is not None:
             continue
+        # Was Home Assistant dem Anfragenden verwehrt, steht auch hier nicht.
         if not darf_lesen(benutzer, eintrag.entity_id):
             continue
         teil = teile.get(eintrag.device_id)
