@@ -239,6 +239,12 @@ RUECKFRAGE: tuple[tuple[re.Pattern, str], ...] = (
         "Die Legionellenschaltung heizt den Speicher auf hohe Temperatur. Wirklich auslösen?",
     ),
     (
+        re.compile(r"kaminkehrer beenden", re.IGNORECASE),
+        "Damit geht die Betriebswahl des Kessels zurück auf EIN und die "
+        "Abgasmessung endet. Ohne Abbruch endet sie nach 60 Minuten von "
+        "selbst. Wirklich beenden?",
+    ),
+    (
         re.compile(r"kaminkehrer starten", re.IGNORECASE),
         "Der Kessel fährt auf die eingestellte Kaminkehrer-Leistung und hält "
         "sie für die Abgasmessung. Die Restzeit steht danach unter "

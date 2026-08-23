@@ -321,6 +321,17 @@ ENTITAETEN: list[dict] = [
         "category": "config",
         "icon": "mdi:account-hard-hat",
     },
+    # Der Hersteller beendet die Messung mit einer Abbruchtaste oder nach
+    # 60 min von selbst. Der Abbruch ist die Betriebswahl zurück auf EIN.
+    {
+        "oid": "/9/75/0",
+        "name": "Kaminkehrer beenden",
+        "platform": "button",
+        "press_value": "1",
+        "key_suffix": "kaminkehrer_aus",
+        "category": "config",
+        "icon": "mdi:stop-circle-outline",
+    },
     {
         "oid": "/9/75/0",
         "name": "Lagerraumbefüllung anfordern",

@@ -31,8 +31,12 @@ HILFE: tuple[tuple[str, str], ...] = (
         "Brennt den Kessel gezielt aus, bis weder Glut noch unverbrannter Brennstoff im Brenner liegt — danach ist er zur Reinigung bereit. Vor Reinigungs-, Wartungs- und Servicearbeiten schaltet man den Kessel so ab. Der Vorgang dauert und lässt sich nicht abbrechen.",
     ),
     (
+        r"kaminkehrer beenden",
+        "Beendet die Abgasmessung vorzeitig: Die Betriebswahl des Kessels geht zurück auf EIN.\n\nOhne Abbruch läuft die Messung 60 Minuten und endet dann von selbst; wie lange noch, steht unter „Kaminkehrer“.",
+    ),
+    (
         r"kaminkehrer",
-        "Fährt den Kessel auf eine feste Leistung und hält sie, damit die Abgasmessung unter gleichbleibenden Bedingungen läuft. Ohne diese Funktion moduliert der Kessel während der Messung, und das Ergebnis taugt nichts.\n\nDie Leistung wird vor dem Start abgefragt; welcher Wert gilt, sagt der Kaminkehrer. Wie lange die Funktion noch läuft, steht unter „Kaminkehrer“ — null heißt, sie läuft nicht.\n\nDanach kehrt der Kessel von selbst in den normalen Betrieb zurück.",
+        "Fährt den Kessel auf eine feste Leistung und hält sie, damit die Abgasmessung unter gleichbleibenden Bedingungen läuft. Ohne diese Funktion moduliert der Kessel während der Messung, und das Ergebnis taugt nichts.\n\nDie Leistung wird vor dem Start abgefragt; welcher Wert gilt, sagt der Kaminkehrer. Wie lange die Funktion noch läuft, steht unter „Kaminkehrer“ — null heißt, sie läuft nicht.\n\nNach 60 Minuten kehrt der Kessel von selbst in den normalen Betrieb zurück; früher beendet ihn die Taste „Kaminkehrer beenden“.",
     ),
     (
         r"lagerraum|bef(ü|ue)llung anfordern",

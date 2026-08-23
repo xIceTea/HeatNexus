@@ -204,6 +204,7 @@ SCHNELLZUGRIFF: tuple[Zeile, ...] = (
     (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom", ()),
     (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ()),
     (r"kaminkehrer starten", "Kaminkehrer", "mdi:account-hard-hat", ()),
+    (r"kaminkehrer beenden", "Kaminkehrer beenden", "mdi:stop-circle-outline", ()),
     (r"betriebswahl", "Betriebswahl", "mdi:tune", ("mode_selection",)),
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff wählen", "mdi:sack", ("fuel_selected",)),
 )
@@ -332,6 +333,7 @@ KESSEL_BEDIENUNG: tuple[Zeile, ...] = (
     (r"wartung durchgef", "Wartung erledigt", "mdi:wrench-check-outline", ()),
     (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ()),
     (r"kaminkehrer starten", "Kaminkehrer", "mdi:account-hard-hat", ()),
+    (r"kaminkehrer beenden", "Kaminkehrer beenden", "mdi:stop-circle-outline", ()),
 )
 
 # ---------------------------------------------------------------------------
