@@ -62,6 +62,7 @@ from .const import (
 )
 from .device_db import get_conditions, get_enum, get_layers, get_name
 from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
+from .kanonisch import ist_ableitung
 from .kanonisch import schluessel as kanonischer_schluessel
 from .lon import im_grundumfang as lon_im_grundumfang
 from .lon import ist_eingang as lon_ist_eingang
@@ -1756,10 +1757,14 @@ class WindhagerHttpClient:
         )
 
     def _nach_praefix(self) -> dict[str, dict[str, dict]]:
-        """Deskriptoren nach Funktionspräfix und Kennung sortiert."""
+        """Deskriptoren nach Funktionspräfix und Kennung sortiert.
+
+        Ableitungen bleiben draußen: Sie tragen die Adresse ihrer Quelle und
+        verdrängten sie sonst unter demselben Schlüssel.
+        """
         sortiert: dict[str, dict[str, dict]] = {}
         for d in self.devices:
-            if not d.get("oid"):
+            if not d.get("oid") or ist_ableitung(d.get("id")):
                 continue
             praefix = self._praefix_aus_oid(d["oid"])
             if praefix:

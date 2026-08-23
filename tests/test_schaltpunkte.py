@@ -255,3 +255,30 @@ def test_beide_abstaende_zaehlen_gleich_herum(sensoren):
 
     assert puffer.native_value > 0
     assert wasser.native_value > 0
+
+
+def test_eine_ableitung_verdraengt_ihre_quelle_nicht(client_modul):
+    """Der Index sucht Adressen; eine Ableitung trägt die ihrer Quelle.
+
+    Ohne die Trennung stünde unter `1/15` der Schaltpunkt statt des Sollwerts,
+    und die nächste Regel läse den falschen Deskriptor.
+    """
+    c = client_modul.WindhagerHttpClient("192.0.2.10", "geheim")
+    quelle = {"id": "0000ABCD1234-1-1-15-0", "oid": SOLLWERT, "name": "Sollwert"}
+    ableitung = {
+        "id": "0000ABCD1234-1-1-15-0-schaltpunkt",
+        "oid": SOLLWERT,
+        "name": "Einschaltpunkt",
+    }
+    c.devices = [quelle, ableitung]
+
+    index = c._nach_praefix()
+
+    assert [d["name"] for teile in index.values() for d in teile.values()] == ["Sollwert"]
+
+
+@pytest.fixture(scope="module")
+def client_modul():
+    from custom_components.heatnexus import client
+
+    return client
