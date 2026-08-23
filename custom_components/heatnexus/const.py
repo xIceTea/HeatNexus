@@ -43,6 +43,14 @@ ZUSATZGRUPPEN = {
 # Ob der LON-Adressraum überhaupt gelesen wird. Er lohnt sich, wo der
 # OID-Raum dünn ist (BioWIN: 49 Werte ohne Entsprechung) und kaum, wo er
 # reich ist (PuroWIN: 12, davon die meisten Bus-Verwaltung).
+# Marken aus Home Assistant als eigene Karten der Oberfläche. Leer heißt aus.
+CONF_MARKEN = "marken"
+
+# Die Auswahl trifft der Einrichter; die Decken schützen nur den Abzug, der
+# über WebSocket an jede offene Seite geht.
+MARKEN_MAX_KARTEN = 12
+MARKEN_MAX_ZEILEN = 30
+
 CONF_LON = "lon"
 CONF_LON_GRUNDUMFANG = "lon_grundumfang"
 
