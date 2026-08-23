@@ -14,6 +14,10 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Optionsdialog nennt die Werte, die nur der LON-Bus liefert.
 - Solar ES und IO5500 werden beim Namen des Herstellers genannt.
 
+### Geändert
+
+- Die Oberfläche zeigt nur Werte, die der Benutzer in Home Assistant lesen darf.
+
 ### Behoben
 
 - Die Softwareversion des Kessels wird wieder angezeigt ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
