@@ -8,10 +8,15 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [1.11.0-beta.3] - 2026-08-24
 
+### Neu
+
+- Der Optionsdialog nennt die Werte, die nur der LON-Bus liefert.
+
 ### Behoben
 
 - Die Softwareversion des Kessels wird wieder angezeigt ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
 - Fassungsnummern anderer Baureihen erscheinen als Text statt als Messwert.
+- Entitäts-Kennungen werden ohne zweiten Neustart angeglichen.
 
 ## [1.11.0-beta.2] - 2026-08-23
 
