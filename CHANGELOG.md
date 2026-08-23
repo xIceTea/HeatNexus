@@ -11,13 +11,15 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Labels aus Home Assistant werden zu eigenen Karten in der Oberfläche.
+- Werte eines Labels lassen sich auch in den Systemstatus legen.
 - Die Einstellungen nennen die Werte, die nur der LON-Bus liefert.
 - Solar ES und IO5500 heißen jetzt wie beim Hersteller.
-- Eine Taste beendet den Kaminkehrer vorzeitig.
+- Der Kaminkehrer ist ein Schalter: einschalten und wieder ausschalten.
 
 ### Geändert
 
 - Jeder sieht in der Oberfläche nur Werte, die er in Home Assistant lesen darf.
+- Die Labels werden je Anlage gewählt, nicht mehr für alle gemeinsam.
 
 ### Behoben
 
@@ -25,6 +27,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Versionen anderer Baureihen erscheinen als Text statt als Messwert.
 - Die Kennungen der Entitäten stimmen schon nach dem ersten Neustart.
 - Die Schaubild-Karte erscheint beim Öffnen sofort vollständig.
+- Gewählte Zusatzwerte gehen beim Öffnen der Einstellungen nicht mehr verloren.
+- Auf dem Telefon bricht die Farbauswahl um und bleibt erreichbar.
 
 ## [1.11.0-beta.2] - 2026-08-23
 
