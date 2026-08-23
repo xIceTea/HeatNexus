@@ -12,12 +12,14 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Marken aus Home Assistant erscheinen als eigene Karten in der Oberfläche.
 - Der Optionsdialog nennt die Werte, die nur der LON-Bus liefert.
+- Solar ES und IO5500 werden beim Namen des Herstellers genannt.
 
 ### Behoben
 
 - Die Softwareversion des Kessels wird wieder angezeigt ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
 - Fassungsnummern anderer Baureihen erscheinen als Text statt als Messwert.
 - Entitäts-Kennungen werden ohne zweiten Neustart angeglichen.
+- Die Schaubild-Karte zeigt beim Öffnen sofort den zuletzt gelesenen Aufbau.
 
 ## [1.11.0-beta.2] - 2026-08-23
 
