@@ -10,6 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
+- Marken aus Home Assistant erscheinen als eigene Karten in der Oberfläche.
 - Der Optionsdialog nennt die Werte, die nur der LON-Bus liefert.
 
 ### Behoben

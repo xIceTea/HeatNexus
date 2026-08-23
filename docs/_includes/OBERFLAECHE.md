@@ -56,6 +56,18 @@ der Brennstoff, die Zählerstände.
 „Sa, So", darin die Schaltzeiten als Balken, darunter als Text. Bearbeitet wird
 in Blöcken und gespeichert als ganzes Programm — so, wie die Anlage es führt.
 
+## Eigene Werte über Marken
+
+Was nicht von der Heizung kommt, lässt sich trotzdem hereinholen: Vergib der
+Entität in Home Assistant eine Marke (Einstellungen → Bereiche, Kennungen &
+Marken) und gib die Marke in den Einstellungen der Integration unter
+„Marken in der Oberfläche zeigen" frei. Jede freigegebene Marke wird eine
+eigene Karte in der Übersicht — verschiebbar, verbreiterbar und ausblendbar
+wie jede andere.
+
+Was ein Benutzer darin sieht, richtet sich nach seinen Rechten in Home
+Assistant: Adressen, die er nicht lesen darf, stehen nicht in seiner Karte.
+
 Der Reiter **Verlauf** fehlt im Rundgang. Er benutzt die Verlaufskarte von
 Home Assistant, und die zeichnet nur mit einer laufenden Anlage dahinter. Eine
 leere Karte im Bild würde also etwas Falsches zeigen.
