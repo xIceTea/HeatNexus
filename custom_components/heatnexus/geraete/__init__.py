@@ -16,6 +16,7 @@ from . import (
     gas_oel_kessel,
     heizkreis,
     heizkreis_infinity,
+    io5500,
     kaskade,
     puffer,
     pufferspeicher,
@@ -65,6 +66,7 @@ MODULE: tuple[ModuleType, ...] = (
     warmwasser,
     solar,
     solar_es,
+    io5500,
     zsp,
 )
 

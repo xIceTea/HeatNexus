@@ -1,15 +1,15 @@
 """Solar ES (fctType 13).
 
-Nur im Schaubild belegt: Der Hersteller führt die Funktion dort als Solarteil,
-einen Modellnamen und einen Rang nennt er nicht.
+Der Name steht wörtlich in `MapToInstance.xml` des Herstellers, dazu die
+Ebenen „Kollektor 1/2" und „Speicher 1–4".
 """
 
 from __future__ import annotations
 
 FCT_TYPE = 13
-MODELL = None
-RANG = None
-SYMBOL = None
+MODELL = "Solar ES"
+RANG = 44
+SYMBOL = "mdi:solar-power-variant"
 SCHAUBILD = "solar"
 
 EXTRA_OIDS: tuple[str, ...] = ()
