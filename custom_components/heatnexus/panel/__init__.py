@@ -40,6 +40,7 @@ from ..const import (
     CONF_ECO_DAUER,
     CONF_ECO_TEMP,
     CONF_HILFE,
+    CONF_MARKEN,
     DOMAIN,
     ECO_TEMP_STANDARD,
     PANEL_TITEL,
@@ -49,6 +50,7 @@ from ..const import (
     panel_js_pfad,
 )
 from ..dashboard import _anlagen
+from . import marken as markenmodul
 from .daten import _anlage_daten, _erster
 from .hilfe import hilfe
 
@@ -105,8 +107,20 @@ def _hilfe_gewuenscht(hass: HomeAssistant) -> bool:
     return True
 
 
-def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
-    """Die vollständige Struktur für die Oberfläche."""
+def _freigegebene_marken(hass: HomeAssistant) -> list[str]:
+    """Die in den Optionen gewählten Marken, über alle Einträge zusammen."""
+    gewaehlt: list[str] = []
+    for eintrag in hass.config_entries.async_entries(DOMAIN):
+        gewaehlt.extend((eintrag.options or {}).get(CONF_MARKEN, []))
+    return list(dict.fromkeys(gewaehlt))
+
+
+def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
+    """Die vollständige Struktur für die Oberfläche.
+
+    `benutzer` ist der Anfragende; seine Rechte entscheiden über die Zeilen
+    der Markenkarten. Ohne ihn gilt keine Einschränkung.
+    """
     aussen = _gewaehlte_aussentemperatur(hass)
     daten = {
         "anlagen": [_anlage_daten(anlage, aussen) for anlage in _anlagen(hass)],
@@ -115,6 +129,8 @@ def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
         # Die Außentemperatur der Ansicht „Alle". Dort steht keine einzelne
         # Anlage im Vordergrund, also gilt die gewählte Entität – und nur dort.
         "aussentemperatur": aussen,
+        # Fremde Werte, die der Einrichter über Marken hereingeholt hat.
+        "marken": markenmodul.karten(hass, _freigegebene_marken(hass), benutzer),
     }
     if not _hilfe_gewuenscht(hass):
         # Abgewählt: Die Texte gar nicht erst mitschicken.
@@ -139,7 +155,7 @@ def panel_daten(hass: HomeAssistant) -> dict[str, Any]:
 @callback
 def _ws_panel_daten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     """Die Aufteilung frisch berechnen, so wie sie gerade gilt."""
-    connection.send_result(msg["id"], panel_daten(hass))
+    connection.send_result(msg["id"], panel_daten(hass, connection.user))
 
 
 async def async_setup_panel(hass: HomeAssistant, version: str = "") -> None:

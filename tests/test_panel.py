@@ -799,3 +799,10 @@ def test_der_kaminkehrer_steht_auch_in_der_steuerung(panel, kessel_und_heizkreis
     taste = next(e for e in kessel if e["titel"] == "Kaminkehrer")
 
     assert taste["leistung"] == "number.kaminkehrer_leistung"
+
+
+async def test_der_abzug_fuehrt_die_markenkarten(hass, panel):
+    """Ohne den Schlüssel fände die Oberfläche nichts zum Zeichnen."""
+    daten = panel.panel_daten(hass)
+
+    assert daten["marken"] == []
