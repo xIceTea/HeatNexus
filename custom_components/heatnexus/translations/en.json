@@ -105,7 +105,8 @@
           "aussentemperatur": "Outside temperature",
           "hilfe": "Show explanations",
           "sprache": "Language of the labels",
-          "startwerte": "Take over start values from the system"
+          "startwerte": "Take over start values from the system",
+          "marken": "Marken in der Oberfläche zeigen"
         },
         "data_description": {
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
@@ -115,7 +116,8 @@
           "vorlagen": "Which blueprints appear under Settings → Automations. A blueprint an automation still uses stays in place.",
           "aussentemperatur": "Which sensor counts as the outside temperature in the header. Empty: HeatNexus finds it in the plant itself.",
           "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does.",
-          "sprache": "Where the datapoint names come from. The panel cards stay labelled in German."
+          "sprache": "Where the datapoint names come from. The panel cards stay labelled in German.",
+          "marken": "Jede gewählte Marke wird eine eigene Karte in der Übersicht. Wer sie nicht sehen will, blendet sie dort aus. Was ein Benutzer darin sieht, richtet sich nach seinen Rechten in Home Assistant."
         }
       },
       "system": {

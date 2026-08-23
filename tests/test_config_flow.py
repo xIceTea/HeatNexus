@@ -204,3 +204,66 @@ def test_ohne_eigene_busbegriffe_bleibt_der_hinweis_leer(flow, monkeypatch):
     )
 
     assert optionen._bus_hinweis("192.0.2.10") == ""
+
+
+async def test_gewaehlte_marken_werden_gespeichert(flow, monkeypatch):
+    """Gespeichert wird die Id der Marke, nicht ihr Name.
+
+    Ein umbenanntes Etikett behielte sonst seine Karte nicht.
+    """
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.const import CONF_MARKEN
+
+    optionen = flow.WindhagerOptionsFlow()
+    monkeypatch.setattr(
+        type(optionen), "config_entry", property(lambda _self: SimpleNamespace(options={}))
+    )
+    gespeichert = {}
+    monkeypatch.setattr(
+        type(optionen), "async_create_entry", lambda _self, data: gespeichert.update(data) or {}
+    )
+
+    await optionen.async_step_allgemein(
+        {
+            "update_interval": 30,
+            "startwerte": "15",
+            "dashboard": True,
+            "panel": True,
+            "hilfe": True,
+            "sprache": "de",
+            CONF_MARKEN: ["abc123", "def456"],
+        }
+    )
+
+    assert gespeichert[CONF_MARKEN] == ["abc123", "def456"]
+
+
+async def test_mehr_marken_als_karten_werden_abgeschnitten(flow, monkeypatch):
+    """Die Auswahl darf den Abzug nicht beliebig aufblähen."""
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.const import CONF_MARKEN, MARKEN_MAX_KARTEN
+
+    optionen = flow.WindhagerOptionsFlow()
+    monkeypatch.setattr(
+        type(optionen), "config_entry", property(lambda _self: SimpleNamespace(options={}))
+    )
+    gespeichert = {}
+    monkeypatch.setattr(
+        type(optionen), "async_create_entry", lambda _self, data: gespeichert.update(data) or {}
+    )
+
+    await optionen.async_step_allgemein(
+        {
+            "update_interval": 30,
+            "startwerte": "15",
+            "dashboard": True,
+            "panel": True,
+            "hilfe": True,
+            "sprache": "de",
+            CONF_MARKEN: [f"marke{n}" for n in range(MARKEN_MAX_KARTEN + 4)],
+        }
+    )
+
+    assert len(gespeichert[CONF_MARKEN]) == MARKEN_MAX_KARTEN

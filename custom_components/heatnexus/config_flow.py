@@ -23,6 +23,8 @@ from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
+    LabelSelector,
+    LabelSelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -54,6 +56,7 @@ from .const import (
     CONF_LEVELS,
     CONF_LON,
     CONF_LON_GRUNDUMFANG,
+    CONF_MARKEN,
     CONF_MELDUNG_EINLESEN,
     CONF_MODULPUMPE,
     CONF_PANEL,
@@ -80,6 +83,7 @@ from .const import (
     LEVEL_BESCHRIFTUNG,
     LEVEL_INFO,
     LEVEL_OPERATE,
+    MARKEN_MAX_KARTEN,
     MAX_SYSTEMS,
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
@@ -701,6 +705,9 @@ class WindhagerOptionsFlow(OptionsFlow):
             options[CONF_VORLAGEN] = [
                 v for v in user_input.get(CONF_VORLAGEN, []) if v in verfuegbare_vorlagen()
             ]
+            options[CONF_MARKEN] = [str(k) for k in user_input.get(CONF_MARKEN, [])][
+                :MARKEN_MAX_KARTEN
+            ]
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
             if gewaehlt:
                 options[CONF_AUSSENTEMPERATUR] = gewaehlt
@@ -741,6 +748,12 @@ class WindhagerOptionsFlow(OptionsFlow):
                         CONF_AUSSENTEMPERATUR,
                         description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
                     ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+                    # Fremde Werte gehören nicht in die selbstgebauten Karten;
+                    # je Marke entsteht eine eigene, abwählbar wie jede andere.
+                    vol.Optional(
+                        CONF_MARKEN,
+                        default=list(options.get(CONF_MARKEN, [])),
+                    ): LabelSelector(LabelSelectorConfig(multiple=True)),
                     # Woher die Bezeichnungen kommen. „Automatisch" steht nicht
                     # zur Wahl, gilt als gespeicherter Wert aber weiter und
                     # bedeutet Deutsch – dafür die Auflösung in der Vorwahl.

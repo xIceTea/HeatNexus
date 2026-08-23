@@ -105,7 +105,8 @@
           "aussentemperatur": "Température extérieure",
           "hilfe": "Afficher les explications",
           "sprache": "Langue des libellés",
-          "startwerte": "Reprendre les valeurs de départ de l'installation"
+          "startwerte": "Reprendre les valeurs de départ de l'installation",
+          "marken": "Marken in der Oberfläche zeigen"
         },
         "data_description": {
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
@@ -115,7 +116,8 @@
           "vorlagen": "Quels modèles apparaissent sous Paramètres → Automatisations. Un modèle utilisé par une automatisation reste en place.",
           "aussentemperatur": "Quel capteur sert de température extérieure dans l'en-tête. Vide : HeatNexus la cherche dans l'installation.",
           "hilfe": "Ajoute un « ? » à côté des cartes et des commandes.",
-          "sprache": "D’où viennent les noms des points de données. Les cartes du panneau restent en allemand."
+          "sprache": "D’où viennent les noms des points de données. Les cartes du panneau restent en allemand.",
+          "marken": "Jede gewählte Marke wird eine eigene Karte in der Übersicht. Wer sie nicht sehen will, blendet sie dort aus. Was ein Benutzer darin sieht, richtet sich nach seinen Rechten in Home Assistant."
         }
       },
       "system": {
