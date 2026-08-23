@@ -37,10 +37,7 @@ def _zeile(hass: HomeAssistant, eintrag: er.RegistryEntry) -> dict[str, str]:
     zustand = hass.states.get(eintrag.entity_id)
     attribute = dict(zustand.attributes) if zustand else {}
     name = (
-        attribute.get("friendly_name")
-        or eintrag.name
-        or eintrag.original_name
-        or eintrag.entity_id
+        attribute.get("friendly_name") or eintrag.name or eintrag.original_name or eintrag.entity_id
     )
     symbol = attribute.get("icon") or eintrag.icon or symbol_fuer_wert({"name": name})
     return {"entity": eintrag.entity_id, "titel": name, "symbol": symbol}
