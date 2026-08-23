@@ -34,7 +34,7 @@ export const UebersichtMixin = (Basis) =>
    */
   _uebersicht(anlage) {
     const wasser = this._warmwasserkarte(anlage);
-    return [
+    const fest = [
       { id: "seite", titel: "Heizungsübersicht", knoten: this._seite(anlage) },
       { id: "schaubild", titel: "Anlagenübersicht", knoten: this._schaubild(anlage), breite: 2 },
       { id: "status", titel: "Systemstatus", knoten: this._statuskarte(anlage) },
@@ -56,6 +56,30 @@ export const UebersichtMixin = (Basis) =>
         breite: 2,
       },
     ];
+    return [...fest, ...this._markenkarten()];
+  }
+
+  /**
+   * Karten aus Marken, die der Einrichter freigegeben hat.
+   *
+   * Sie hängen hinten an und tragen die Kennung `marke:<id>`; damit greifen
+   * Anordnen, Breite und Ausblenden wie bei jeder anderen Karte.
+   */
+  _markenkarten() {
+    return (this._daten?.marken || []).map((marke) => ({
+      id: marke.id,
+      titel: marke.titel,
+      knoten: this._markenkarte(marke),
+    }));
+  }
+
+  /** Eine Karte aus einer Marke: Überschrift und Wertzeilen, sonst nichts. */
+  _markenkarte(marke) {
+    const karte = this._karte(marke.titel);
+    (marke.zeilen || []).forEach((zeile) => {
+      karte.appendChild(this._statuszeile(zeile.entity, zeile.titel, zeile.symbol));
+    });
+    return karte;
   }
 
   // -------------------------------------------------------------------

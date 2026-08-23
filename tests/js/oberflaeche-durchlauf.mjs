@@ -120,6 +120,9 @@ REITER.forEach((reiter) => {
   const zeilen = flaeche.shadowRoot.querySelectorAll(".zeile");
   bilanz[reiter] = {
     karten: flaeche.shadowRoot.querySelectorAll(".karte").length,
+    titel: [...flaeche.shadowRoot.querySelectorAll(".kartenkopf")].map((kopf) =>
+      String(kopf.textContent || "").trim()
+    ),
     bindungen: flaeche._bindungen.length,
     zeilen: zeilen.length,
     versteckteZeilen: zeilen.filter((zeile) => zeile.hidden).length,

@@ -132,6 +132,19 @@ def aufteilung() -> dict:
             "comfort": {"temperatur": 22, "dauer": 180},
         },
         "aussentemperatur": "sensor.aussentemperatur",
+        "marken": [
+            {
+                "id": "marke:solar",
+                "titel": "Solarthermie",
+                "zeilen": [
+                    {
+                        "entity": "sensor.kollektor",
+                        "titel": "Kollektor",
+                        "symbol": "mdi:solar-power-variant",
+                    }
+                ],
+            }
+        ],
     }
 
 
@@ -427,3 +440,8 @@ def test_die_nachlaufende_ladepumpe_ist_keine_ladung(abbruch):
 def test_ohne_betriebsart_zaehlt_weiter_die_pumpe(abbruch):
     """Die Gegenprobe: An manchen Kreisen meldet die Betriebsart gar nichts."""
     assert "ohne lesbare Betriebsart bleibt die Pumpe der Beleg" in abbruch["faelle"]
+
+
+def test_die_markenkarte_steht_in_der_uebersicht(durchlauf):
+    """Ohne sie käme die Freigabe im Browser nicht an."""
+    assert "Solarthermie" in durchlauf["uebersicht"]["titel"]
