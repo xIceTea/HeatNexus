@@ -20,19 +20,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 class WindhagerSwitch(WindhagerEntity, SwitchEntity):
-    """Writable Ja/Nein (1/0) datapoint."""
+    """Schreibbarer Datenpunkt mit zwei Zuständen.
+
+    Ab Werk 1 und 0. Eine Betriebswahl kennt andere Werte: Der Kaminkehrer
+    steht auf 3 und kehrt mit 1 in den normalen Betrieb zurück.
+    """
 
     _require_value_for_available = False
+
+    def __init__(self, coordinator, device_info: dict) -> None:
+        super().__init__(coordinator, device_info)
+        self._ein = str(device_info.get("ein_wert", "1"))
+        self._aus = str(device_info.get("aus_wert", "0"))
 
     @property
     def is_on(self) -> bool | None:
         value = self.int_value
         if value is None:
             return None
-        return value != 0
+        if self._ein == "1" and self._aus == "0":
+            return value != 0
+        return str(value) == self._ein
 
     async def async_turn_on(self, **kwargs) -> None:
-        await self._async_write("1")
+        await self._async_write(self._ein)
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self._async_write("0")
+        await self._async_write(self._aus)

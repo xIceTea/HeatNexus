@@ -309,28 +309,18 @@ ENTITAETEN: list[dict] = [
         "category": "config",
         "icon": "mdi:power",
     },
-    # Die Kaminkehrerfunktion gehört zu „Kaminkehrer Leistung" und
-    # „Kaminkehrer": Sie hält die eingestellte Leistung, damit die Abgasmessung
-    # unter festen Bedingungen läuft, und zählt die Restzeit herunter.
+    # Ein Schalter, kein Auslöser: Die Anlage bleibt in Betriebswahl 3, bis
+    # jemand zurückschaltet oder die 60 min ablaufen. Ausschalten heißt
+    # Betriebswahl 1, also normaler Betrieb.
     {
         "oid": "/9/75/0",
-        "name": "Kaminkehrer starten",
-        "platform": "button",
-        "press_value": "3",
+        "name": "Kaminkehrerbetrieb",
+        "platform": "switch",
+        "ein_wert": "3",
+        "aus_wert": "1",
         "key_suffix": "kaminkehrer",
         "category": "config",
         "icon": "mdi:account-hard-hat",
-    },
-    # Der Hersteller beendet die Messung mit einer Abbruchtaste oder nach
-    # 60 min von selbst. Der Abbruch ist die Betriebswahl zurück auf EIN.
-    {
-        "oid": "/9/75/0",
-        "name": "Kaminkehrer beenden",
-        "platform": "button",
-        "press_value": "1",
-        "key_suffix": "kaminkehrer_aus",
-        "category": "config",
-        "icon": "mdi:stop-circle-outline",
     },
     {
         "oid": "/9/75/0",

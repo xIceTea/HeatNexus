@@ -450,3 +450,47 @@ def test_der_kaminkehrer_schreibt_drei_auf_die_betriebswahl():
     entity, koordinator = _entitaet(WindhagerButton, {}, type="button", press_value="3")
     asyncio.run(entity.async_press())
     assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "3")]
+
+
+async def test_ein_schalter_mit_eigenen_werten(schalter_modul):
+    """Der Kaminkehrer ist eine Betriebswahl: 3 heißt ein, 1 heißt aus."""
+    entitaet, koordinator = _entitaet(
+        schalter_modul.WindhagerSwitch,
+        {"/1/60/0/9/75/0": "3"},
+        oid="/1/60/0/9/75/0",
+        name="Kaminkehrerbetrieb",
+        type="switch",
+        ein_wert="3",
+        aus_wert="1",
+    )
+
+    assert entitaet.is_on is True
+
+    await entitaet.async_turn_off()
+    assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "1")]
+
+    await entitaet.async_turn_on()
+    assert koordinator.client.geschrieben[-1] == ("/1/60/0/9/75/0", "3")
+
+
+async def test_ein_gewoehnlicher_schalter_bleibt_bei_eins_und_null(schalter_modul):
+    """Ohne eigene Werte gilt weiterhin 1 und 0."""
+    entitaet, koordinator = _entitaet(
+        schalter_modul.WindhagerSwitch,
+        {"/1/60/0/39/57/0": "0"},
+        oid="/1/60/0/39/57/0",
+        name="Aschetonne entleeren",
+        type="switch",
+    )
+
+    assert entitaet.is_on is False
+
+    await entitaet.async_turn_on()
+    assert koordinator.client.geschrieben == [("/1/60/0/39/57/0", "1")]
+
+
+@pytest.fixture(scope="module")
+def schalter_modul():
+    from custom_components.heatnexus import switch
+
+    return switch

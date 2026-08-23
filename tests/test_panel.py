@@ -773,7 +773,7 @@ def test_der_kaminkehrer_fragt_nach_der_leistung(panel, kessel_und_heizkreis):
         if anlagenteil["fct_type"] != 25:
             continue
         anlagenteil["entitaeten"] += [
-            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
+            entitaet("switch.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
             entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
         ]
 
@@ -791,7 +791,7 @@ def test_der_kaminkehrer_steht_auch_in_der_steuerung(panel, kessel_und_heizkreis
         if anlagenteil["fct_type"] != 25:
             continue
         anlagenteil["entitaeten"] += [
-            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
+            entitaet("switch.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
             entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
         ]
 
@@ -801,11 +801,22 @@ def test_der_kaminkehrer_steht_auch_in_der_steuerung(panel, kessel_und_heizkreis
     assert taste["leistung"] == "number.kaminkehrer_leistung"
 
 
-async def test_der_abzug_fuehrt_die_markenkarten(hass, panel):
-    """Ohne den Schlüssel fände die Oberfläche nichts zum Zeichnen."""
-    daten = panel.panel_daten(hass)
+async def test_jede_anlage_fuehrt_ihre_labelkarten(hass, panel):
+    """Die Karten hängen an der Anlage, nicht am Abzug als Ganzem.
 
-    assert daten["marken"] == []
+    Global geführt erschien dieselbe Karte an jeder Anlage noch einmal.
+    """
+    _anlage_ins_register(hass)
+
+    anlagen = panel.panel_daten(hass)["anlagen"]
+
+    assert anlagen and all("marken" in a for a in anlagen)
+    assert all(a["marken"] == [] for a in anlagen)
+
+
+async def test_ohne_auswahl_bekommt_keine_anlage_karten(hass, panel):
+    """Ab Werk ist nichts gewählt, also entsteht auch nichts."""
+    assert panel._marken_je_anlage(hass) == {}
 
 
 class OhneRecht:

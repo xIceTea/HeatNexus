@@ -203,15 +203,14 @@ SCHNELLZUGRIFF: tuple[Zeile, ...] = (
     (r"^reinigung (durchgef|best(ä|ae)tigen)", "Reinigung erledigt", "mdi:broom", ()),
     (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom", ()),
     (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ()),
-    (r"kaminkehrer starten", "Kaminkehrer", "mdi:account-hard-hat", ()),
-    (r"kaminkehrer beenden", "Kaminkehrer beenden", "mdi:stop-circle-outline", ()),
+    (r"kaminkehrerbetrieb", "Kaminkehrer", "mdi:account-hard-hat", ()),
     (r"betriebswahl", "Betriebswahl", "mdi:tune", ("mode_selection",)),
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff wählen", "mdi:sack", ("fuel_selected",)),
 )
 
 # Die Leistung, mit der die Kaminkehrerfunktion fährt. Sie wird vor dem
 # Auslösen abgefragt, weil die Messung an genau diesem Wert hängt.
-KAMINKEHRER = _muster(r"kaminkehrer starten")
+KAMINKEHRER = _muster(r"kaminkehrerbetrieb")
 KAMINKEHRER_LEISTUNG = _muster(r"kaminkehrer leistung")
 
 # Höchstzahl der Warmwasserzeilen; mehr sprengt die Karte.
@@ -332,8 +331,7 @@ KESSEL_BEDIENUNG: tuple[Zeile, ...] = (
     ),
     (r"wartung durchgef", "Wartung erledigt", "mdi:wrench-check-outline", ()),
     (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ()),
-    (r"kaminkehrer starten", "Kaminkehrer", "mdi:account-hard-hat", ()),
-    (r"kaminkehrer beenden", "Kaminkehrer beenden", "mdi:stop-circle-outline", ()),
+    (r"kaminkehrerbetrieb", "Kaminkehrer", "mdi:account-hard-hat", ()),
 )
 
 # ---------------------------------------------------------------------------
