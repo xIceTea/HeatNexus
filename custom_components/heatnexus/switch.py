@@ -30,8 +30,10 @@ class WindhagerSwitch(WindhagerEntity, SwitchEntity):
 
     def __init__(self, coordinator, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
-        self._ein = str(device_info.get("ein_wert", "1"))
-        self._aus = str(device_info.get("aus_wert", "0"))
+        # Jede Beschreibung führt die Felder, meist leer – deshalb `or`
+        # statt eines Vorgabewerts im Zugriff.
+        self._ein = str(device_info.get("ein_wert") or "1")
+        self._aus = str(device_info.get("aus_wert") or "0")
 
     @property
     def is_on(self) -> bool | None:

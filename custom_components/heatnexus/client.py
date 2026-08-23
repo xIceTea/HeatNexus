@@ -101,6 +101,10 @@ DESKRIPTOR_VORGABE: dict = {
     "max": None,
     "step": None,
     "press_value": None,
+    # Schaltwerte eines Schalters auf einer Betriebswahl. Ohne Angabe gelten
+    # 1 und 0.
+    "ein_wert": None,
+    "aus_wert": None,
     "write_prot": None,
     "nv_name": None,
     # Abgeleitete Werte: Bezugsadresse bzw. die Codes, die als Lauf gelten.
@@ -1126,6 +1130,8 @@ class WindhagerHttpClient:
             max=definition.get("max"),
             step=definition.get("step"),
             press_value=definition.get("press_value"),
+            ein_wert=definition.get("ein_wert"),
+            aus_wert=definition.get("aus_wert"),
             device_id=self._geraetekennung(prefix),
             alt_device_id=self._alte_kennung(prefix),
             device_name=fct["name"],

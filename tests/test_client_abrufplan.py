@@ -452,6 +452,27 @@ def test_eine_kuratierte_beschreibung_traegt_beide_kennungen(client):
     assert client.oids == {"/1/60/0/0/7/0"}
 
 
+def test_eigene_schaltwerte_ueberstehen_die_beschreibung(client):
+    """Ohne sie fiele ein Schalter auf 1/0 zurück und schriebe den falschen Wert."""
+    client.oids = set()
+    client.devices = []
+    client._add_entity(
+        {
+            "oid": "/9/75/0",
+            "name": "Kaminkehrerbetrieb",
+            "platform": "switch",
+            "ein_wert": "3",
+            "aus_wert": "1",
+        },
+        "/1/60/0",
+        "/1/60",
+        {"name": "PuroWIN", "fctType": 25},
+    )
+    (beschreibung,) = client.devices
+    assert beschreibung["ein_wert"] == "3"
+    assert beschreibung["aus_wert"] == "1"
+
+
 def test_ein_knotenweiter_datenpunkt_haengt_am_knoten_nicht_an_der_funktion(client):
     """Sonst bekäme jede Funktion desselben Knotens ihre eigene Meldung."""
     client.oids = set()
