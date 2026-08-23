@@ -166,3 +166,41 @@ async def test_allgemeine_einstellungen_auch_bei_einer_anlage(flow, monkeypatch)
 
     assert "allgemein" in ergebnis["menu_options"]
     assert "anlage_0" in ergebnis["menu_options"]
+
+
+def test_der_dialog_nennt_die_werte_die_nur_der_bus_hergibt(flow, monkeypatch):
+    """Sonst steht dort eine Sammelaussage, die je Baureihe stimmt oder nicht."""
+    from types import SimpleNamespace
+
+    optionen = flow.WindhagerOptionsFlow()
+    koordinator = SimpleNamespace(client=SimpleNamespace(devices=[{"fct_type": 9}]))
+    monkeypatch.setattr(
+        type(optionen),
+        "config_entry",
+        property(
+            lambda _self: SimpleNamespace(
+                runtime_data={"coordinators": {"192.0.2.10": koordinator}}
+            )
+        ),
+    )
+
+    assert "Brennkammertemperatur" in optionen._bus_hinweis("192.0.2.10")
+
+
+def test_ohne_eigene_busbegriffe_bleibt_der_hinweis_leer(flow, monkeypatch):
+    """Am PuroWIN trägt der Bus nichts bei, was nicht schon Datenpunkt wäre."""
+    from types import SimpleNamespace
+
+    optionen = flow.WindhagerOptionsFlow()
+    koordinator = SimpleNamespace(client=SimpleNamespace(devices=[{"fct_type": 25}]))
+    monkeypatch.setattr(
+        type(optionen),
+        "config_entry",
+        property(
+            lambda _self: SimpleNamespace(
+                runtime_data={"coordinators": {"192.0.2.10": koordinator}}
+            )
+        ),
+    )
+
+    assert optionen._bus_hinweis("192.0.2.10") == ""

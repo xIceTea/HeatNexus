@@ -120,7 +120,7 @@
       },
       "system": {
         "title": "Levels",
-        "description": "Settings for {anlage}.",
+        "description": "Settings for {anlage}. {bus_hinweis}",
         "data": {
           "levels": "Levels",
           "enable_advanced": "Enable service/factory level right away",

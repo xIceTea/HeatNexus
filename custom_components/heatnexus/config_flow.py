@@ -83,6 +83,7 @@ from .const import (
     MAX_SYSTEMS,
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
+    NUR_BUS_JE_FCT,
     SPRACHE_BESCHRIFTUNG,
     STARTWERTE_VORGABE,
     STARTWERTE_WAHL,
@@ -830,8 +831,29 @@ class WindhagerOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="system",
             data_schema=schema,
-            description_placeholders={"anlage": f"{label} ({host})".strip()},
+            description_placeholders={
+                "anlage": f"{label} ({host})".strip(),
+                "bus_hinweis": self._bus_hinweis(host),
+            },
         )
+
+    def _bus_hinweis(self, host: str) -> str:
+        """Was die Baureihen dieser Anlage nur über den LON-Bus hergeben.
+
+        Ohne die Aufzählung bliebe im Dialog eine Sammelaussage stehen, die an
+        der einen Anlage zutrifft und an der nächsten nicht.
+        """
+        daten = getattr(self.config_entry, "runtime_data", None) or {}
+        coordinator = (daten.get("coordinators") or {}).get(host)
+        beschreibungen = getattr(getattr(coordinator, "client", None), "devices", []) or []
+        typen = {d.get("fct_type") for d in beschreibungen}
+        begriffe: list[str] = []
+        for fct_type in sorted(t for t in typen if isinstance(t, int)):
+            begriffe.extend(NUR_BUS_JE_FCT.get(fct_type, ()))
+        einmalig = list(dict.fromkeys(begriffe))
+        if not einmalig:
+            return ""
+        return "Diese Anlage liefert nur über den Bus: " + ", ".join(einmalig) + "."
 
     def _zugang_uebernehmen(self, host: str, benutzer: str) -> None:
         """Einen geänderten Zugang in die Anlagendaten schreiben.
