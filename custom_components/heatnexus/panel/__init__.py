@@ -77,8 +77,8 @@ def _uebersteuerung(hass: HomeAssistant) -> dict[str, dict[str, float]]:
     worin sie stehen könnten.
     """
     optionen: dict[str, Any] = {}
-    for eintrag in hass.config_entries.async_entries(DOMAIN):
-        optionen = {**(eintrag.options or {}), **optionen}
+    for eigene in _optionen(hass):
+        optionen = {**eigene, **optionen}
     return {
         "eco": {
             "temperatur": float(optionen.get(CONF_ECO_TEMP, ECO_TEMP_STANDARD)),
@@ -91,27 +91,32 @@ def _uebersteuerung(hass: HomeAssistant) -> dict[str, dict[str, float]]:
     }
 
 
+def _optionen(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Die Optionen jedes Eintrags dieser Integration, in ihrer Reihenfolge."""
+    return [dict(eintrag.options or {}) for eintrag in hass.config_entries.async_entries(DOMAIN)]
+
+
 def _gewaehlte_aussentemperatur(hass: HomeAssistant) -> str | None:
     """In den Optionen festgelegte Außentemperatur, falls vorhanden."""
-    for eintrag in hass.config_entries.async_entries(DOMAIN):
-        if gewaehlt := (eintrag.options or {}).get(CONF_AUSSENTEMPERATUR):
+    for optionen in _optionen(hass):
+        if gewaehlt := optionen.get(CONF_AUSSENTEMPERATUR):
             return str(gewaehlt)
     return None
 
 
 def _hilfe_gewuenscht(hass: HomeAssistant) -> bool:
     """Ob die Erklärungen angezeigt werden sollen (Standard: ja)."""
-    for eintrag in hass.config_entries.async_entries(DOMAIN):
-        if CONF_HILFE in (eintrag.options or {}):
-            return bool(eintrag.options[CONF_HILFE])
+    for optionen in _optionen(hass):
+        if CONF_HILFE in optionen:
+            return bool(optionen[CONF_HILFE])
     return True
 
 
 def _freigegebene_marken(hass: HomeAssistant) -> list[str]:
     """Die in den Optionen gewählten Marken, über alle Einträge zusammen."""
     gewaehlt: list[str] = []
-    for eintrag in hass.config_entries.async_entries(DOMAIN):
-        gewaehlt.extend((eintrag.options or {}).get(CONF_MARKEN, []))
+    for optionen in _optionen(hass):
+        gewaehlt.extend(optionen.get(CONF_MARKEN, []))
     return list(dict.fromkeys(gewaehlt))
 
 

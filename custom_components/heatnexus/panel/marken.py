@@ -42,12 +42,11 @@ def karten(
         marke = marken.async_get_label(kennung)
         if marke is None:
             continue
-        eintraege = {
-            e.entity_id: e
-            for e in er.async_entries_for_label(registry, kennung)
-            if darf_lesen(benutzer, e.entity_id)
-        }
-        zeilen = [_zeile(hass, e) for e in eintraege.values()]
+        zeilen = [
+            _zeile(hass, eintrag)
+            for eintrag in er.async_entries_for_label(registry, kennung)
+            if darf_lesen(benutzer, eintrag.entity_id)
+        ]
         zeilen.sort(key=lambda z: z["titel"].casefold())
         if not zeilen:
             continue
