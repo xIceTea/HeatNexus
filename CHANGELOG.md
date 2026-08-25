@@ -6,6 +6,24 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.11.0] - 2026-08-24
+
+### Neu
+
+- Von der Geräteseite der Steuerung führt ein Verweis zur Weboberfläche.
+- Der Diagnoseexport nennt die Fassung von HeatNexus und von Home Assistant.
+
+### Geändert
+
+- Gewöhnliche Bedienung schreibt keine Warnungen mehr ins Protokoll.
+- Zwischenstände der Zähler- und Laufzeitsensoren landen nicht in der Datenbank.
+- Meldungen im Protokoll stehen durchgehend auf Deutsch.
+
+### Behoben
+
+- Ein von der Anlage abgelehnter Wert erscheint als Meldung an der Entität.
+- Eine unbekannte Auswahl wird gemeldet statt stillschweigend verworfen.
+
 ## [1.11.0-beta.3] - 2026-08-23
 
 ### Neu
