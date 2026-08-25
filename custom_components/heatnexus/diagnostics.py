@@ -55,13 +55,17 @@ async def async_get_config_entry_diagnostics(
     """
     eintrag = entry.runtime_data
     anlagen = {}
-    for nummer, coordinator in enumerate(eintrag["coordinators"].values(), start=1):
+    nummer_je_host: dict[str, str] = {}
+    for nummer, (host, coordinator) in enumerate(eintrag["coordinators"].items(), start=1):
         anlagen[f"anlage_{nummer}"] = _anlage(coordinator)
+        nummer_je_host[host] = f"anlage_{nummer}"
 
     optionen = async_redact_data(dict(entry.options), ZU_SCHWAERZEN)
-    # Die Optionen sind je Anlage unter deren Adresse abgelegt.
+    # Die Optionen sind je Anlage unter deren Adresse abgelegt. Sie bekommen
+    # dieselbe Nummer wie oben – ein gemeinsamer Platzhalter ließe von zwei
+    # Anlagen nur eine übrig, und Abweichungen wären nicht mehr zu sehen.
     optionen = {
-        (schluessel if not _ist_adresse(schluessel) else "anlage"): wert
+        (nummer_je_host.get(schluessel, "anlage") if _ist_adresse(schluessel) else schluessel): wert
         for schluessel, wert in optionen.items()
     }
     daten = {

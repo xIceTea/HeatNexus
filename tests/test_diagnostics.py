@@ -130,8 +130,36 @@ async def test_keine_adresse_im_export(export):
     # als `192-168-178-100-…`; ein Muster, das nach Punkten sucht, sieht sie
     # nicht. Bis 1.5.0-beta.4 stand sie deshalb in jeder Zeile des Exports.
     assert ADRESSE.replace(".", "-") not in text
-    # Der Optionsschlüssel ist die Adresse der Anlage; er wird zu „anlage".
-    assert "anlage" in daten["eintrag"]["optionen"]
+    # Der Optionsschlüssel ist die Adresse der Anlage; er wird durchnummeriert
+    # wie der Abschnitt darunter.
+    assert "anlage_1" in daten["eintrag"]["optionen"]
+
+
+async def test_jede_anlage_behaelt_ihre_eigenen_optionen(diagnostics, hass):
+    """Ein gemeinsamer Platzhalter ließe von zwei Anlagen nur eine übrig.
+
+    Genau daran war nicht mehr zu sehen, dass eine Option nur an einer der
+    beiden gesetzt war.
+    """
+    zweite = "192.0.2.11"
+    eintrag = SimpleNamespace(
+        entry_id="eintrag1",
+        version=1,
+        options={
+            ADRESSE: {"modulpumpe": False},
+            zweite: {"modulpumpe": True},
+        },
+        runtime_data={
+            "name": "HeatNexus",
+            "fassung": "1.11.1",
+            "coordinators": {ADRESSE: _coordinator(), zweite: _coordinator()},
+        },
+    )
+    daten = await diagnostics.async_get_config_entry_diagnostics(hass, eintrag)
+
+    optionen = daten["eintrag"]["optionen"]
+    assert optionen["anlage_1"] == {"modulpumpe": False}
+    assert optionen["anlage_2"] == {"modulpumpe": True}
 
 
 async def test_das_passwort_bleibt_draussen(export):
