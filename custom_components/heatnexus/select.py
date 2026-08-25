@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .entity import WindhagerEntity, async_setup_entities
+from .exceptions import WindhagerValueError
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
 # begrenzt der Client über seine eigene Warteschlange. Eine zweite Bremse in
@@ -60,6 +61,7 @@ class WindhagerSelect(WindhagerEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         value = self._label_to_value.get(option)
         if value is None:
-            _LOGGER.error("Unknown option %s for %s", option, self.name)
-            return
+            # Stillschweigend zurückspringen sähe aus wie ein verschluckter
+            # Klick; als Hinweis steht die Ablehnung an der Entität.
+            raise WindhagerValueError(f"{self.name} kennt die Einstellung {option} nicht.")
         await self._async_write(str(value))

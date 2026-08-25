@@ -143,14 +143,17 @@ def test_select_beschraenkt_sich_auf_die_gemeldeten_werte(select_klasse):
 
 
 def test_select_schreibt_nichts_bei_unbekannter_option(select_klasse):
-    """Eine Option, die es nicht gibt, darf nichts an die Anlage schicken."""
+    """Eine Option, die es nicht gibt, geht nicht an die Anlage und wird gemeldet."""
+    from custom_components.heatnexus.exceptions import WindhagerValueError
+
     entity, koordinator = _entitaet(
         select_klasse,
         {"/1/60/0/9/75/0": "0"},
         type="select",
         enum="3/50",
     )
-    asyncio.run(entity.async_select_option("Gibt es nicht"))
+    with pytest.raises(WindhagerValueError):
+        asyncio.run(entity.async_select_option("Gibt es nicht"))
     assert koordinator.client.geschrieben == []
 
 
