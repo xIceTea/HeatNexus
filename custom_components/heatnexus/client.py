@@ -61,6 +61,7 @@ from .const import (
     ENUMS as ENUMS_FALLBACK,
 )
 from .device_db import get_conditions, get_enum, get_layers, get_name
+from .exceptions import WindhagerWriteError
 from .helpers import READONLY_FALLBACK, lesetyp, messgroesse, poll_takte
 from .kanonisch import ist_ableitung
 from .kanonisch import schluessel as kanonischer_schluessel
@@ -986,12 +987,9 @@ class WindhagerHttpClient:
             )
             if ret.status >= 400:
                 body = await ret.text()
-                _LOGGER.error("Write to %s failed with HTTP %s: %s", oid, ret.status, body)
-                raise aiohttp.ClientResponseError(
-                    ret.request_info,
-                    ret.history,
-                    status=ret.status,
-                    message=f"Write to {oid} rejected by device",
+                _LOGGER.debug("Schreiben auf %s scheitert mit HTTP %s: %s", oid, ret.status, body)
+                raise WindhagerWriteError(
+                    f"Die Anlage hat den Wert für {oid} abgelehnt (HTTP {ret.status})."
                 )
         _LOGGER.debug("Wrote %s = %s", oid, value)
 
@@ -2398,17 +2396,14 @@ class WindhagerHttpClient:
             )
             if ret.status >= 400:
                 body = await ret.text()
-                _LOGGER.error(
-                    "Write to object %s failed with HTTP %s: %s",
+                _LOGGER.debug(
+                    "Schreiben auf Objekt %s scheitert mit HTTP %s: %s",
                     full_oid,
                     ret.status,
                     body,
                 )
-                raise aiohttp.ClientResponseError(
-                    ret.request_info,
-                    ret.history,
-                    status=ret.status,
-                    message=f"Write to time program {full_oid} rejected by device",
+                raise WindhagerWriteError(
+                    f"Die Anlage hat das Zeitprogramm {full_oid} abgelehnt (HTTP {ret.status})."
                 )
         _LOGGER.debug("Wrote object %s = %s", full_oid, payload)
 

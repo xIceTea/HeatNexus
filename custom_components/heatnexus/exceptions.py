@@ -31,3 +31,13 @@ class WindhagerValueError(ServiceValidationError):
     """
 
     pass
+
+
+class WindhagerWriteError(WindhagerError):
+    """Die Anlage hat einen Schreibvorgang abgelehnt.
+
+    Bewusst ein `HomeAssistantError`: Sonst erscheint der Fehlschlag als
+    Stapelauszug von aiohttp statt als Meldung an der bedienten Entität.
+    """
+
+    pass

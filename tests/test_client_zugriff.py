@@ -191,11 +191,15 @@ async def test_ein_wert_wird_geschrieben(client):
 
 
 async def test_ein_abgelehnter_schreibvorgang_bleibt_nicht_still(client):
-    """Sonst meldete die Oberfläche „übernommen", und nichts wäre übernommen."""
-    import aiohttp
+    """Sonst meldete die Oberfläche „übernommen", und nichts wäre übernommen.
+
+    Als `HomeAssistantError`, damit an der Entität ein Satz steht und kein
+    Stapelauszug von aiohttp.
+    """
+    from custom_components.heatnexus.exceptions import WindhagerWriteError
 
     c = client(_Antwort(409, b"invalid Identifier"))
-    with pytest.raises(aiohttp.ClientResponseError):
+    with pytest.raises(WindhagerWriteError):
         await c.update("/1/15/0/3/51/0", "21.5")
 
 
@@ -243,10 +247,10 @@ async def test_ein_zeitprogramm_wird_geschrieben(client):
 
 
 async def test_ein_abgelehntes_zeitprogramm_bleibt_nicht_still(client):
-    import aiohttp
+    from custom_components.heatnexus.exceptions import WindhagerWriteError
 
     c = client(_Antwort(400, b"bad request"))
-    with pytest.raises(aiohttp.ClientResponseError):
+    with pytest.raises(WindhagerWriteError):
         await c.write_object("/1/15/0/5/64/0", {"value": []})
 
 
