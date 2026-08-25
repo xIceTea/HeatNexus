@@ -55,7 +55,9 @@ class WindhagerSelect(WindhagerEntity, SelectEntity):
             return None
         label = self._value_to_label.get(raw)
         if label is None:
-            _LOGGER.debug("Unknown enum value %s for %s (%s)", raw, self.name, self._oid)
+            _LOGGER.debug(
+                "Enum-Wert %s steht nicht in der Tabelle für %s (%s)", raw, self.name, self._oid
+            )
         return label
 
     async def async_select_option(self, option: str) -> None:

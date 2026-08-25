@@ -51,8 +51,8 @@ class WindhagerButton(WindhagerEntity, ButtonEntity):
         self._press_value = device_info.get("press_value", "1")
 
     async def async_press(self) -> None:
-        _LOGGER.warning(
-            "Button %s pressed, writing %s to %s",
+        _LOGGER.debug(
+            "Taste %s schreibt %s auf %s",
             self.name,
             self._press_value,
             self._oid,

@@ -549,7 +549,7 @@ class WindhagerHttpClient:
     async def fetch(self, url, semaphore=None):
         """GET /api/1.0/lookup<url> and return the parsed JSON."""
         data, _status = await self._get(f"http://{self.host}/api/1.0/lookup{url}", semaphore)
-        _LOGGER.debug("Fetched data for %s: %s", url, data)
+        _LOGGER.debug("Antwort von %s: %s", url, data)
         return data
 
     async def _lese_geraeteinfo(self) -> None:
@@ -991,7 +991,7 @@ class WindhagerHttpClient:
                 raise WindhagerWriteError(
                     f"Die Anlage hat den Wert für {oid} abgelehnt (HTTP {ret.status})."
                 )
-        _LOGGER.debug("Wrote %s = %s", oid, value)
+        _LOGGER.debug("Auf %s geschrieben: %s", oid, value)
 
     @staticmethod
     def slugify(identifier_str):
@@ -1430,7 +1430,7 @@ class WindhagerHttpClient:
             data, status = await self._get(f"http://{self.host}/api/1.0/lookup{oid}")
             return oid, data, status
         except Exception as e:
-            _LOGGER.debug("Metadata fetch failed for %s: %s", oid, e)
+            _LOGGER.debug("Metadaten zu %s nicht lesbar: %s", oid, e)
             return oid, None, 0
 
     @staticmethod
@@ -1516,16 +1516,16 @@ class WindhagerHttpClient:
         for d in self.devices:
             oid = d.get("oid")
             if oid in missing and d["type"] != "climate":
-                _LOGGER.info("Dropping %s (%s): OID not present on device", d["name"], oid)
+                _LOGGER.debug("%s (%s) entfällt: an dieser Anlage nicht vorhanden", d["name"], oid)
                 continue
             m = meta.get(oid)
             if d["type"] == "auto":
                 if not m:
-                    _LOGGER.info("Dropping %s (%s): no metadata", d["name"], oid)
+                    _LOGGER.debug("%s (%s) entfällt: keine Metadaten", d["name"], oid)
                     continue
                 resolved = self._resolve_auto_type(d, m)
                 if not resolved:
-                    _LOGGER.info("Dropping %s (%s): unreadable datapoint type", d["name"], oid)
+                    _LOGGER.debug("%s (%s) entfällt: unlesbare Datenpunktart", d["name"], oid)
                     continue
                 d["type"] = resolved
                 if d["type"] == "time_program":
@@ -1573,7 +1573,7 @@ class WindhagerHttpClient:
                         if allowed:
                             d["allowed"] = allowed
                     except (ValueError, TypeError):
-                        _LOGGER.debug("Unparseable enum %r for %s", enum_raw, oid)
+                        _LOGGER.debug("Enum-Tabelle %r für %s unlesbar", enum_raw, oid)
                 if d["type"] in ("select", "enum_sensor") and not d.get("allowed"):
                     # Gerät meldet zwar keine Enum-Liste, aber einen Wertebereich
                     with contextlib.suppress(TypeError, ValueError, KeyError):
@@ -1599,7 +1599,7 @@ class WindhagerHttpClient:
                     d["unit"] = m["unit"]
                 if m.get("writeProt") is True and d["type"] in self._READONLY_FALLBACK:
                     fallback = lesetyp(d["type"], m.get("unit") or d.get("unit"))
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "%s (%s) ist schreibgeschützt und wird nur angezeigt", d["name"], oid
                     )
                     d["type"] = fallback
@@ -1629,7 +1629,7 @@ class WindhagerHttpClient:
                     and d["type"]
                     not in ("select", "number", "switch", "time", "button", "time_program")
                 ):
-                    _LOGGER.info("Dropping %s (%s): no value delivered", d["name"], oid)
+                    _LOGGER.debug("%s (%s) entfällt: kein Wert geliefert", d["name"], oid)
                     continue
             # Service- und Werksebene bleiben nur lesbar, solange der Nutzer sie
             # in den Optionen nicht ausdrücklich freigegeben hat.
@@ -1723,7 +1723,7 @@ class WindhagerHttpClient:
         for d in self.devices:
             praefix = self._praefix_aus_oid(d.get("oid"))
             if self._kennung_aus_oid(d.get("oid")) in weg_je_praefix.get(praefix, ()):
-                _LOGGER.info(
+                _LOGGER.debug(
                     "%s (%s) entfällt: an dieser Anlage ohne Aufgabe", d["name"], d.get("oid")
                 )
                 self.oids.discard(d.get("oid"))
@@ -2331,7 +2331,7 @@ class WindhagerHttpClient:
             value = data.get("value") if isinstance(data, dict) else None
             return oid, self._wert_oder_none(value)
         except Exception as e:
-            _LOGGER.warning("Error while fetching OID %s: %s", oid, e)
+            _LOGGER.warning("Fehler beim Lesen von %s: %s", oid, e)
             return oid, FEHLGESCHLAGEN
 
     def _abmelden(self, oid: str, data, status: int) -> bool:
@@ -2382,7 +2382,7 @@ class WindhagerHttpClient:
                     data = None
             return data, status
         except Exception as e:
-            _LOGGER.debug("Object fetch failed for %s: %s", full_oid, e)
+            _LOGGER.debug("Objekt %s nicht lesbar: %s", full_oid, e)
             return None, 0
 
     async def write_object(self, full_oid, payload: dict):
@@ -2405,7 +2405,7 @@ class WindhagerHttpClient:
                 raise WindhagerWriteError(
                     f"Die Anlage hat das Zeitprogramm {full_oid} abgelehnt (HTTP {ret.status})."
                 )
-        _LOGGER.debug("Wrote object %s = %s", full_oid, payload)
+        _LOGGER.debug("Auf Objekt %s geschrieben: %s", full_oid, payload)
 
     async def _fetch_time_programs(self) -> dict:
         """Read all known time programs via the object endpoint.
@@ -2488,7 +2488,7 @@ class WindhagerHttpClient:
         try:
             devs = await self.fetch("/1")
         except Exception as e:
-            _LOGGER.debug("Status fetch failed: %s", e)
+            _LOGGER.debug("Meldungen nicht lesbar: %s", e)
             return {}
         out: dict = {}
         if isinstance(devs, list):

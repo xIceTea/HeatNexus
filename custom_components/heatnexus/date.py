@@ -44,7 +44,7 @@ class WindhagerDate(WindhagerEntity, DateEntity):
     def native_value(self) -> dt_date | None:
         value = parse_date(self.raw_value)
         if value is None and self.raw_value not in (None, "-"):
-            _LOGGER.debug("Unparseable date %r for %s (%s)", self.raw_value, self.name, self._oid)
+            _LOGGER.debug("Datum %r von %s (%s) nicht lesbar", self.raw_value, self.name, self._oid)
         return value
 
     async def async_set_value(self, value: dt_date) -> None:

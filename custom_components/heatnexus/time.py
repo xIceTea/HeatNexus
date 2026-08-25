@@ -47,7 +47,7 @@ class WindhagerTime(WindhagerEntity, TimeEntity):
         value = parse_time(self.raw_value)
         if value is None and self.raw_value is not None:
             _LOGGER.debug(
-                "Unparseable time value %r for %s (%s)",
+                "Uhrzeit %r von %s (%s) nicht lesbar",
                 self.raw_value,
                 self.name,
                 self._oid,

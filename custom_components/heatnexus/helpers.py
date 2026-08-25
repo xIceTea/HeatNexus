@@ -63,7 +63,7 @@ def parse_value(value: Any, as_type: type = float, oid: str | None = None) -> An
             return int(float(value))
         return as_type(value)
     except (ValueError, TypeError):
-        _LOGGER.debug("Invalid value %r for %s", value, oid)
+        _LOGGER.debug("Wert %r von %s nicht lesbar", value, oid)
         return None
 
 
