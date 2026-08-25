@@ -69,7 +69,7 @@ export const BedienenMixin = (Basis) =>
    * Bewusst ein eigener Dialog statt `window.confirm`: Der blockiert den
    * Browser und sieht in Home Assistant wie ein Fremdkörper aus.
    */
-  _bestaetigen(titel, frage, zahl) {
+  _bestaetigen(titel, frage, zahl, tastentext) {
     return new Promise((antworten) => {
       let dialogZahl = null;
       const schleier = document.createElement("div");
@@ -112,7 +112,7 @@ export const BedienenMixin = (Basis) =>
       const ausloesen = document.createElement("button");
       ausloesen.type = "button";
       ausloesen.className = "dialog-taste betont";
-      ausloesen.textContent = "Ja, ausführen";
+      ausloesen.textContent = tastentext || "Ja, ausführen";
       leiste.append(abbrechen, ausloesen);
 
       dialog.append(ueberschrift, text);

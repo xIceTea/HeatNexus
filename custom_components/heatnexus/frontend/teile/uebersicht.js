@@ -443,6 +443,19 @@ export const UebersichtMixin = (Basis) =>
       // die Ladung **noch einmal**. Von außen sieht das aus, als passiere gar
       // nichts – „lädt gerade" steht sofort wieder da.
       if (laeuft()) {
+        // Ein Eingriff, den das Beenden wirklich etwas kostet, fragt zurück.
+        // Eine Warmwasserladung abzubrechen ist harmlos und bleibt ein Druck.
+        if (
+          eintrag.frage_abbrechen &&
+          !(await this._bestaetigen(
+            eintrag.titel_abbrechen || eintrag.titel,
+            eintrag.frage_abbrechen,
+            null,
+            eintrag.titel_abbrechen || "Ja, beenden"
+          ))
+        ) {
+          return;
+        }
         await this._ladungAbbrechen(eintrag, taste, rueckmeldung);
         return;
       }

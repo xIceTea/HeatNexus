@@ -785,6 +785,24 @@ def test_der_kaminkehrer_fragt_nach_der_leistung(panel, kessel_und_heizkreis):
     assert taste["frage"]
 
 
+def test_das_beenden_eines_eingriffs_kuendigt_sich_an(panel, kessel_und_heizkreis):
+    """Ohne zweite Beschriftung beendet der zweite Druck unbemerkt."""
+    for anlagenteil in kessel_und_heizkreis["teile"]:
+        if anlagenteil["fct_type"] != 25:
+            continue
+        anlagenteil["entitaeten"] += [
+            entitaet("switch.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
+            entitaet("switch.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
+        ]
+
+    daten = panel._anlage_daten(kessel_und_heizkreis)
+    kaminkehrer = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
+
+    assert kaminkehrer["titel_abbrechen"] == "Kaminkehrer beenden"
+    assert "Abgasmessung" in kaminkehrer["frage_abbrechen"]
+    assert daten["steuerung"]["lagerraum"]["frage_abbrechen"]
+
+
 def test_die_lagerraumkarte_nimmt_auch_einen_schalter(panel, kessel_und_heizkreis):
     """Der Eingriff ist ein Zustand der Betriebswahl, also ein Schalter.
 

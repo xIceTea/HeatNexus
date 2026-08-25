@@ -224,8 +224,18 @@ def _kaminkehrer_bedienung(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
     Sie wird vor dem Auslösen abgefragt: Die Abgasmessung gilt für genau
     diesen Wert, und nachträglich verstellen hieße neu messen.
     """
-    leistung = _kennung(entitaeten, KAMINKEHRER_LEISTUNG, ("number",))
-    return {"leistung": leistung} if leistung else {}
+    # Solange die Messung läuft, beendet ein Druck sie. Ohne die zweite
+    # Beschriftung steht auf der Kachel weiter „Kaminkehrer".
+    bedienung: dict[str, Any] = {
+        "titel_abbrechen": "Kaminkehrer beenden",
+        "frage_abbrechen": (
+            "Der Kessel kehrt in den normalen Betrieb zurück. "
+            "Eine laufende Abgasmessung gilt danach nicht mehr."
+        ),
+    }
+    if leistung := _kennung(entitaeten, KAMINKEHRER_LEISTUNG, ("number",)):
+        bedienung["leistung"] = leistung
+    return bedienung
 
 
 def _eintrag(
@@ -378,6 +388,10 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
         lagerraum = {
             "anfordern": anfordern,
             "titel_abbrechen": "Befüllung beenden",
+            "frage_abbrechen": (
+                "Erst beenden, wenn die Befüllung abgeschlossen ist. "
+                "Das Rührwerk steht danach still."
+            ),
             "frage": rueckfrage("Lagerraumbefüllung anfordern"),
             "hilfe": HILFE_KARTEN.get("Lagerraum befüllen", ""),
             "zeilen": [
