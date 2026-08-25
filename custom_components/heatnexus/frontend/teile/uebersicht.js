@@ -451,7 +451,7 @@ export const UebersichtMixin = (Basis) =>
             eintrag.titel_abbrechen || eintrag.titel,
             eintrag.frage_abbrechen,
             null,
-            eintrag.titel_abbrechen || "Ja, beenden"
+            { ja: eintrag.titel_abbrechen || "Ja, beenden", zurueck: "Zurück" }
           ))
         ) {
           return;
