@@ -497,15 +497,18 @@ export const UebersichtMixin = (Basis) =>
       }
       taste.disabled = true;
       try {
-        if (leistung !== null) {
-          await this._hass.callService("number", "set_value", {
-            entity_id: eintrag.leistung,
-            value: leistung,
-          });
-        }
         await this._uebertragen(
           rueckmeldung,
           async () => {
+            // Der Wert gehört in dieselbe Rückmeldung wie der Auslöser: Als
+            // eigener Aufruf davor lief er stumm, und bis „wird übertragen …"
+            // erschien, vergingen die Anfragen an die Anlage ohne Anzeige.
+            if (leistung !== null) {
+              await this._hass.callService("number", "set_value", {
+                entity_id: eintrag.leistung,
+                value: leistung,
+              });
+            }
             // Auf Standby ist der Kreis abgeschaltet und nimmt den
             // Ladeauftrag nicht an. Nur dann wird vorher umgeschaltet – wer
             // im Heiz- oder Absenkbetrieb lädt, soll den nicht verlieren.
