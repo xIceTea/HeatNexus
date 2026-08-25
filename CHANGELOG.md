@@ -10,6 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
+- Die Lagerraumbefüllung ist ein Schalter: anfordern und wieder beenden.
 - Von der Geräteseite der Steuerung führt ein Verweis zur Weboberfläche.
 - Der Diagnoseexport nennt die Fassung von HeatNexus und von Home Assistant.
 
