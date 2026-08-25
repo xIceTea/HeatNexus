@@ -203,6 +203,10 @@ def steuerung_info(coordinator: Any) -> dict[str, str]:
     info = {"model": str(auskunft.get("device") or "").strip() or "Steuerung"}
     if fassung := str(auskunft.get("version") or "").strip():
         info["sw_version"] = fassung
+    # Die Steuerung bringt eine eigene Weboberfläche mit. Der Verweis führt von
+    # der Geräteseite dorthin.
+    if host := (getattr(coordinator, "host", "") or "").strip():
+        info["configuration_url"] = f"http://{host}"
     return info
 
 
