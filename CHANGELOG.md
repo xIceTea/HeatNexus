@@ -8,22 +8,66 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [1.11.0] - 2026-08-24
 
+Der Pelletskessel liefert zusätzliche Werte über den LON-Bus, Labels aus Home
+Assistant erscheinen als eigene Karten, und die Eingriffe in die Betriebswahl
+lassen sich wieder beenden.
+
+Darunter führen die drei Vorabversionen jede Änderung einzeln auf; dieser
+Abschnitt nennt die Neuerungen gegenüber 1.10.1.
+
+### Beim Aktualisieren
+
+- Kaminkehrer und Lagerraumbefüllung sind Schalter statt Tasten.
+- Automationen darauf brauchen `switch.turn_on` statt `button.press`.
+- Die alten Tasten entfernt der Reparatureintrag auf Wunsch.
+
 ### Neu
 
+- Der Pelletskessel liefert Brennkammertemperatur, Gebläsedrehzahl und Pelletsvorrat über den LON-Bus.
+- Betriebswahl, Alarmcode und Aschetonne des Pelletskessels sind ohne Werksebene sichtbar.
+- Pumpe und Mischer werden auch über den LON-Bus erkannt.
+- Neue Einstellung „Grundumfang aus dem LON-Bus ergänzen", ab Werk eingeschaltet.
+- Die Einstellungen nennen die Werte, die nur der LON-Bus liefert.
+- Labels aus Home Assistant werden je Anlage zu eigenen Karten in der Oberfläche.
+- Werte eines Labels lassen sich auch in den Systemstatus legen.
+- Solar ES und IO5500 heißen jetzt wie beim Hersteller.
+- Der Kaminkehrer ist ein Schalter: einschalten und wieder ausschalten.
 - Die Lagerraumbefüllung ist ein Schalter: anfordern und wieder beenden.
 - Von der Geräteseite der Steuerung führt ein Verweis zur Weboberfläche.
 - Der Diagnoseexport nennt die Fassung von HeatNexus und von Home Assistant.
 
 ### Geändert
 
+- Im Text zum Kopieren steht das Schaubild als Lovelace-Karte, nicht als fertiges Bild.
+- Schaubild und Werteliste nutzen die volle Breite der Ansicht.
+- Jeder sieht in der Oberfläche nur Werte, die er in Home Assistant lesen darf.
 - Gewöhnliche Bedienung schreibt keine Warnungen mehr ins Protokoll.
 - Zwischenstände der Zähler- und Laufzeitsensoren landen nicht in der Datenbank.
 - Meldungen im Protokoll stehen durchgehend auf Deutsch.
 
 ### Behoben
 
+- Softwareversion, Hardwareversion und Gerätetyp der Steuerung erscheinen wieder ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
+- Versionen anderer Baureihen erscheinen als Text statt als Messwert.
+- Kopfzeile und Systemstatus zeigen wieder die gemessene Außentemperatur ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
+- Die Karte erscheint nach einer Aktualisierung ohne Leeren des Zwischenspeichers ([#7](https://github.com/xIceTea/HeatNexus/issues/7)).
+- Die Schaubild-Karte erscheint beim Öffnen sofort vollständig.
+- Auch das Schaubild greift den Messwert ab, nicht den gleichnamigen Einsteller.
+- Geänderte Schaubildoptionen wirken sofort in der eigenen Oberfläche.
+- Die Oberfläche öffnet sofort im gewählten Farbsatz.
+- Nach einer Unterbrechung zeigt die Oberfläche den aktuellen Stand statt des alten.
+- Auf dem Telefon bricht die Farbauswahl um und bleibt erreichbar.
+- Die Kennungen der Entitäten stimmen schon nach dem ersten Neustart.
+- Gewählte Zusatzwerte gehen beim Öffnen der Einstellungen nicht mehr verloren.
+- Schaltpunkte und Abstände beziehen sich wieder auf den gemessenen Wert.
+- Ein eingeschalteter Wert erscheint sofort statt erst im nächsten trägen Takt.
 - Ein von der Anlage abgelehnter Wert erscheint als Meldung an der Entität.
 - Eine unbekannte Auswahl wird gemeldet statt stillschweigend verworfen.
+- Die Frostschutzgrenzen des Heizkreises tragen einen eigenen Namen.
+- Parameter des Pelletskessels heißen nicht mehr nur „Bereich" oder „Istwert".
+- Namen von Datenpunkten enden nicht mehr auf einem Leerzeichen.
+- Ein nicht angeschlossener Temperaturfühler zeigt keinen Messwert mehr an.
+- „Reinigung bestätigen" erscheint im Schnellzugriff und in der Kesselbedienung.
 
 ## [1.11.0-beta.3] - 2026-08-23
 
