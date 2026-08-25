@@ -363,3 +363,39 @@ async def test_ein_verbindungsfehler_beendet_den_erkennungslauf(client_module, m
 
     with pytest.raises(OSError):
         await c._read_function_menus("/1/60/0", 25)
+
+
+# ---------------------------------------------------------------------------
+# Vorgemerkte Werte: was geschrieben wurde, steht sofort da
+# ---------------------------------------------------------------------------
+async def test_ein_geschriebener_wert_steht_sofort_im_bestand(client):
+    """Sonst springt ein Schalter zurück und Sekunden später wieder um."""
+    c = client(_Antwort(200, b"{}"))
+    await c.update("/1/60/0/9/75/0", "3")
+
+    # Die Anlage meldet noch den alten Wert.
+    assert c.ueberlagern({"/1/60/0/9/75/0": "1"}) == {"/1/60/0/9/75/0": "3"}
+
+
+async def test_die_vormerkung_endet_mit_der_bestaetigung(client):
+    """Meldet die Anlage denselben Wert, ist nichts mehr vorzumerken."""
+    c = client(_Antwort(200, b"{}"))
+    await c.update("/1/60/0/9/75/0", "3")
+
+    assert c.ueberlagern({"/1/60/0/9/75/0": "3"}) == {"/1/60/0/9/75/0": "3"}
+    assert c._vorgemerkt == {}
+    # Danach gilt wieder, was die Anlage meldet – auch ein Rückfall auf 1.
+    assert c.ueberlagern({"/1/60/0/9/75/0": "1"}) == {"/1/60/0/9/75/0": "1"}
+
+
+async def test_die_vormerkung_verfaellt(client, client_module, monkeypatch):
+    """Ohne Frist bliebe ein nie bestätigter Wert für immer stehen."""
+    from custom_components.heatnexus.const import VORMERK_MAX_ALTER_S
+
+    c = client(_Antwort(200, b"{}"))
+    await c.update("/1/60/0/9/75/0", "3")
+    ((_wert, gesetzt),) = c._vorgemerkt.values()
+
+    monkeypatch.setattr(client_module.time, "monotonic", lambda: gesetzt + VORMERK_MAX_ALTER_S + 1)
+    assert c.ueberlagern({"/1/60/0/9/75/0": "1"}) == {"/1/60/0/9/75/0": "1"}
+    assert c._vorgemerkt == {}

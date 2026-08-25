@@ -284,6 +284,7 @@ MAX_UPDATE_INTERVAL = 300
 POLL_FAST = "fast"
 POLL_NORMAL = "normal"
 POLL_SLOW = "slow"
+POLL_KLASSEN = frozenset({POLL_FAST, POLL_NORMAL, POLL_SLOW})
 # Angestrebter Abstand zweier Abrufe je Klasse, in Sekunden. Daraus wird der
 # Takt am tatsächlich eingestellten Intervall berechnet – eine feste Vielfache
 # stimmte nur bei den voreingestellten 30 s: Bei 300 s wären aus den 15 Minuten
@@ -321,6 +322,10 @@ POLL_WOERTER_SCHNELL = (
     "temperatur",
     "betriebsphase",
     "betriebsart",
+    # Die Betriebswahl sagt, was die Anlage gerade tut, und der Kaminkehrer
+    # zählt seine Restlaufzeit in Minuten herunter.
+    "betriebswahl",
+    "kaminkehrer",
     "pumpe",
     "leistung",
     "meldung",
@@ -367,6 +372,10 @@ BACKOFF_MAX = 300
 # Poll-Set: Das kostet sechs Anfragen statt sechsmal siebzig.
 NACHFASS_ANZAHL = 6
 NACHFASS_INTERVALL = 3
+
+# Wie lange ein geschriebener Wert angezeigt wird, bevor die Anlage ihn
+# bestätigt hat. Bestätigt sie früher, endet die Vormerkung sofort.
+VORMERK_MAX_ALTER_S = 60
 
 # ---------------------------------------------------------------------------
 # Einheiten der Anlage -> Home-Assistant-Konvention

@@ -40,6 +40,7 @@ from .const import (
     POLL_CONCURRENCY,
     POLL_EINHEITEN_TRAEGE,
     POLL_FAST,
+    POLL_KLASSEN,
     POLL_NORMAL,
     POLL_SLOW,
     POLL_TYPEN_SCHNELL,
@@ -56,6 +57,7 @@ from .const import (
     UPDATE_INTERVAL,
     VERBINDUNG_TIMEOUT,
     VERBRAUCHER_ABSTAND,
+    VORMERK_MAX_ALTER_S,
 )
 from .const import (
     ENUMS as ENUMS_FALLBACK,
@@ -108,6 +110,10 @@ DESKRIPTOR_VORGABE: dict = {
     "aus_wert": None,
     "write_prot": None,
     "nv_name": None,
+    # Abruftakt, wo die Einstufung nach Art und Name danebenliegt: Ein
+    # Eingriff in die Betriebswahl ist ein Stellwert und zugleich der
+    # Zustand, den man nach dem Schalten sofort sehen will.
+    "poll_class": None,
     # Abgeleitete Werte: Bezugsadresse bzw. die Codes, die als Lauf gelten.
     "ausloeser_oid": None,
     # Bruchteil und Vorzeichen der Hysterese bei einem Schaltpunkt, dazu ihr
@@ -243,6 +249,8 @@ class WindhagerHttpClient:
         self.zusatzwerte = set(zusatzwerte or ())
         # Was zur Auswahl stünde – auch das Nichtgewählte, sonst bliebe der
         # Auswahldialog leer.
+        # Geschriebene Werte, bis die Anlage sie bestaetigt: OID -> (Wert, Zeit).
+        self._vorgemerkt: dict[str, tuple[str, float]] = {}
         self.zusatzkandidaten: list[dict] = []
         self._zusatz_neu: list[dict] = []
         self._zusatz_lauft = False
@@ -991,6 +999,7 @@ class WindhagerHttpClient:
                 raise WindhagerWriteError(
                     f"Die Anlage hat den Wert für {oid} abgelehnt (HTTP {ret.status})."
                 )
+        self.vormerken(oid, value)
         _LOGGER.debug("Auf %s geschrieben: %s", oid, value)
 
     @staticmethod
@@ -2075,7 +2084,33 @@ class WindhagerHttpClient:
         tragen es in den Bestand des Abrufs ein.
         """
         results = await asyncio.gather(*(self._fetch_oid(o) for o in oids))
-        return {oid: wert for oid, wert in results if wert is not FEHLGESCHLAGEN}
+        return self.ueberlagern({oid: wert for oid, wert in results if wert is not FEHLGESCHLAGEN})
+
+    def vormerken(self, oid: str, wert: str) -> None:
+        """Einen geschriebenen Wert bis zur Bestätigung durch die Anlage anzeigen.
+
+        Die Anlage nimmt den Auftrag entgegen und arbeitet ihn ab; bis dahin
+        meldet sie den alten Wert. Ohne Vormerkung springt ein Schalter erst
+        zurück und Sekunden später wieder um.
+        """
+        self._vorgemerkt[oid] = (str(wert), time.monotonic())
+
+    def ueberlagern(self, werte: dict[str, str | None]) -> dict[str, str | None]:
+        """Vorgemerkte Werte über die gelesenen legen.
+
+        Die Vormerkung endet, sobald die Anlage denselben Wert meldet oder
+        `VORMERK_MAX_ALTER_S` verstrichen ist. Sie sitzt an der Adresse, weil
+        auf der Betriebswahl des Kessels mehrere Entitäten hängen.
+        """
+        if not self._vorgemerkt:
+            return werte
+        jetzt = time.monotonic()
+        for oid, (wert, seit) in list(self._vorgemerkt.items()):
+            if jetzt - seit > VORMERK_MAX_ALTER_S or (oid in werte and str(werte[oid]) == wert):
+                del self._vorgemerkt[oid]
+                continue
+            werte[oid] = wert
+        return werte
 
     @staticmethod
     def _poll_klasse(beschreibung: dict) -> str:
@@ -2086,6 +2121,10 @@ class WindhagerHttpClient:
         und Betriebszustände in Sekunden. Im Zweifel bleibt es beim mittleren
         Takt – lieber einmal zu oft gelesen als eine Anzeige, die nachhinkt.
         """
+        # Was die kuratierte Tabelle selbst festlegt, gilt: Art und Name
+        # treffen einen Eingriff in die Betriebswahl nicht.
+        if (vorgabe := beschreibung.get("poll_class")) in POLL_KLASSEN:
+            return vorgabe
         # Netzwerkvariablen sind die zweite Quelle, nie die erste: Was sie
         # führen, steht meist schon als Datenpunkt da. Sie laufen deshalb
         # langsam, außer die Namenstabelle nennt einen anderen Takt – Pumpe
@@ -2803,6 +2842,7 @@ class WindhagerHttpClient:
         self.poll_seconds += time.monotonic() - poll_begonnen
         werte = dict(self._letzte_werte)
         werte.update(self._object_texts)
+        werte = self.ueberlagern(werte)
         return {
             "devices": self.devices,
             "oids": werte,

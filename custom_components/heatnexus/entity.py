@@ -434,8 +434,22 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
     async def _async_write(self, value: str) -> None:
         """Write a value to this entity's OID and refresh."""
         await self.coordinator.client.update(self._oid, value)
+        self._sofort_anzeigen(value)
         await self.coordinator.async_request_refresh()
         self._nachfassen(value)
+
+    def _sofort_anzeigen(self, value: str) -> None:
+        """Den geschriebenen Wert in den Bestand des Abrufs legen.
+
+        Die Vormerkung im Client hält ihn dort, bis die Anlage ihn bestätigt;
+        hier steht er ohne Wartezeit, auch für die Entitäten derselben Adresse.
+        """
+        daten = self.coordinator.data
+        if daten is None or not self._oid:
+            return
+        daten.setdefault("oids", {})[self._oid] = str(value)
+        with contextlib.suppress(Exception):
+            self.coordinator.async_update_listeners()
 
     # ------------------------------------------------------------------
     def _wert_sofort_holen(self) -> None:
