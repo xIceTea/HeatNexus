@@ -8,6 +8,7 @@ from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import __version__ as HA_VERSION
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -66,6 +67,11 @@ async def async_get_config_entry_diagnostics(
     daten = {
         "eintrag": {
             "name": eintrag["name"],
+            # Die Fassung der Integration ist die erste Frage zu jedem
+            # Fehlerbericht. `entry.version` ist die Fassung des
+            # Eintragsschemas und beantwortet sie nicht.
+            "fassung": eintrag.get("fassung"),
+            "home_assistant": HA_VERSION,
             "version": entry.version,
             "optionen": optionen,
             "anlagen": len(anlagen),

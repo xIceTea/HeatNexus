@@ -93,9 +93,20 @@ def export(diagnostics, hass):
         entry_id="eintrag1",
         version=1,
         options={ADRESSE: {"levels": ["info"]}, "password": "geheim"},
-        runtime_data={"name": "HeatNexus", "coordinators": {ADRESSE: _coordinator()}},
+        runtime_data={
+            "name": "HeatNexus",
+            "fassung": "1.11.0",
+            "coordinators": {ADRESSE: _coordinator()},
+        },
     )
     return diagnostics.async_get_config_entry_diagnostics(hass, eintrag)
+
+
+async def test_der_export_nennt_die_fassung_der_integration(export):
+    """`version` ist die Fassung des Eintragsschemas und beantwortet die Frage nicht."""
+    daten = await export
+    assert daten["eintrag"]["fassung"] == "1.11.0"
+    assert daten["eintrag"]["home_assistant"]
 
 
 async def test_der_export_nennt_die_anlagen_durchnummeriert(export):

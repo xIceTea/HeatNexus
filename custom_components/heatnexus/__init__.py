@@ -455,6 +455,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Einträgen gehört (Erkennungsstände, vorgemerkte Abwahl).
     entry.runtime_data = {
         "name": hub_name,
+        # Die Fassung, mit der dieser Eintrag geladen wurde. Die Diagnose
+        # nennt sie; ohne sie ist bei einem Fehlerbericht offen, welcher
+        # Stand antwortet.
+        "fassung": version,
         "coordinators": coordinators,
         "hintergrund": hintergrund,
         # Der Umfang, mit dem dieser Eintrag geladen wurde. Ändert der Nutzer
