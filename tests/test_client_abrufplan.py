@@ -1046,3 +1046,27 @@ async def test_ein_neues_textobjekt_wartet_nicht_auf_den_traegen_takt(client):
     daten = await client.fetch_all()
 
     assert daten["oids"]["/1/60/0/12/38/0"] == "PW 400"
+
+
+def test_die_tabelle_darf_den_takt_selbst_setzen(client_module):
+    """Ein Eingriff in die Betriebswahl ist Stellwert und Zustand zugleich.
+
+    Nach Art allein käme er auf den mittleren Takt und stünde nach dem
+    Schalten zwei Minuten falsch da.
+    """
+    klasse = client_module.WindhagerHttpClient._poll_klasse
+    assert klasse({"type": "switch", "name": "Kaminkehrerbetrieb"}) == "normal"
+    assert klasse({"type": "switch", "name": "Kaminkehrerbetrieb", "poll_class": "fast"}) == "fast"
+    # Unbekannte Angaben werden übergangen, nicht durchgereicht.
+    assert klasse({"type": "switch", "name": "Kaminkehrerbetrieb", "poll_class": "sofort"}) == (
+        "normal"
+    )
+
+
+def test_betriebswahl_und_restlaufzeit_laufen_schnell(client_module):
+    """Beides sagt, was die Anlage gerade tut."""
+    klasse = client_module.WindhagerHttpClient._poll_klasse
+    assert klasse({"type": "enum_sensor", "name": "Betriebswahl Kessel"}) == "fast"
+    assert klasse({"type": "sensor", "name": "Kaminkehrer", "unit": "min"}) == "fast"
+    # Die Leistung ist ein Stellwert und ändert sich nicht von allein.
+    assert klasse({"type": "number", "name": "Kaminkehrer Leistung", "unit": "%"}) == "normal"

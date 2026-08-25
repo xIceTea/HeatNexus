@@ -306,12 +306,13 @@ ENTITAETEN: list[dict] = [
         "name": "Kessel",
         "platform": "switch",
         "key_suffix": "ein_aus",
+        "poll_class": "fast",
         "category": "config",
         "icon": "mdi:power",
     },
     # Ein Schalter, kein Auslöser: Die Anlage bleibt in Betriebswahl 3, bis
-    # jemand zurückschaltet oder die 60 min ablaufen. Ausschalten heißt
-    # Betriebswahl 1, also normaler Betrieb.
+    # jemand zurückschaltet oder die Laufzeit aus `37/53` abgelaufen ist.
+    # Ausschalten heißt Betriebswahl 1, also normaler Betrieb.
     {
         "oid": "/9/75/0",
         "name": "Kaminkehrerbetrieb",
@@ -319,6 +320,7 @@ ENTITAETEN: list[dict] = [
         "ein_wert": "3",
         "aus_wert": "1",
         "key_suffix": "kaminkehrer",
+        "poll_class": "fast",
         "category": "config",
         "icon": "mdi:account-hard-hat",
     },
@@ -332,6 +334,7 @@ ENTITAETEN: list[dict] = [
         "ein_wert": "7",
         "aus_wert": "1",
         "key_suffix": "befuellen",
+        "poll_class": "fast",
         "category": "config",
         "icon": "mdi:warehouse",
     },
