@@ -565,6 +565,7 @@ export const SteuerungMixin = (Basis) =>
         {
           entity: lagerraum.anfordern,
           titel: "Befüllung anfordern",
+          titel_abbrechen: lagerraum.titel_abbrechen,
           symbol: "mdi:warehouse",
           frage: lagerraum.frage,
         },

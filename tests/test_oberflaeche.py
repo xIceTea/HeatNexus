@@ -77,7 +77,7 @@ def aufteilung() -> dict:
             _entitaet("sensor.laufzeit_asche", "Laufzeit bis Ascheentleerung"),
             _entitaet("sensor.betriebsstunden", "Betriebsstunden", state_class="total_increasing"),
             _entitaet("button.serviceausbrand", "Serviceausbrand"),
-            _entitaet("button.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
+            _entitaet("switch.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
             _entitaet("select.gewaehlter_brennstoff", "Gewählter Brennstoff"),
             _entitaet("switch.kaminkehrer", "Kaminkehrer"),
             _entitaet("sensor.meldung_klartext", "Meldung Klartext", kategorie="diagnostic"),

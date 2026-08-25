@@ -374,9 +374,10 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
     # Lagerraumbefüllung: anfordern und dann ablesen, ob freigegeben ist.
     # Ohne die Anforderungstaste hat die Karte keinen Zweck.
     lagerraum = None
-    if (anfordern := _kennung(alle, LAGERRAUM_ANFORDERN, ("button",))) is not None:
+    if (anfordern := _kennung(alle, LAGERRAUM_ANFORDERN, ("switch", "button"))) is not None:
         lagerraum = {
             "anfordern": anfordern,
+            "titel_abbrechen": "Befüllung beenden",
             "frage": rueckfrage("Lagerraumbefüllung anfordern"),
             "hilfe": HILFE_KARTEN.get("Lagerraum befüllen", ""),
             "zeilen": [

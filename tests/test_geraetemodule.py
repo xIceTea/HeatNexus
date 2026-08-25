@@ -102,3 +102,21 @@ def test_kein_modul_fuehrt_ein_unbekanntes_feld(geraete):
     for modul in geraete.MODULE:
         eigene = {n for n in vars(modul) if n.isupper()}
         assert eigene <= erlaubt, f"{modul.__name__}: {sorted(eigene - erlaubt)}"
+
+
+def test_eingriffe_in_die_betriebswahl_sind_schalter(geraete):
+    """`9/75` kennt Zustände, keine Auslöser: Ohne Schalter fehlt der Weg zurück.
+
+    Kaminkehrer (3) und Lagerraumbefüllung (7) bleiben stehen, bis jemand die
+    Betriebswahl auf 1 zurücksetzt.
+    """
+    eintraege = {
+        e["key_suffix"]: e
+        for e in geraete.ENTITAETEN[25]
+        if e.get("oid") == "/9/75/0" and e.get("key_suffix") in ("kaminkehrer", "befuellen")
+    }
+    assert set(eintraege) == {"kaminkehrer", "befuellen"}
+    assert [eintraege[k]["platform"] for k in ("kaminkehrer", "befuellen")] == ["switch"] * 2
+    assert eintraege["kaminkehrer"]["ein_wert"] == "3"
+    assert eintraege["befuellen"]["ein_wert"] == "7"
+    assert {eintraege[k]["aus_wert"] for k in eintraege} == {"1"}

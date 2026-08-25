@@ -785,6 +785,26 @@ def test_der_kaminkehrer_fragt_nach_der_leistung(panel, kessel_und_heizkreis):
     assert taste["frage"]
 
 
+def test_die_lagerraumkarte_nimmt_auch_einen_schalter(panel, kessel_und_heizkreis):
+    """Der Eingriff ist ein Zustand der Betriebswahl, also ein Schalter.
+
+    Suchte die Karte weiterhin nur nach einer Taste, bliebe sie leer.
+    """
+    for anlagenteil in kessel_und_heizkreis["teile"]:
+        if anlagenteil["fct_type"] != 25:
+            continue
+        anlagenteil["entitaeten"] += [
+            entitaet("switch.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
+            entitaet("sensor.lagerraum_restlaufzeit", "Lagerraumbefüllung Restlaufzeit"),
+        ]
+
+    lagerraum = panel._anlage_daten(kessel_und_heizkreis)["steuerung"]["lagerraum"]
+
+    assert lagerraum["anfordern"] == "switch.lagerraumbefuellung"
+    assert lagerraum["titel_abbrechen"]
+    assert "Restlaufzeit" in [z["titel"] for z in lagerraum["zeilen"]]
+
+
 def test_der_kaminkehrer_steht_auch_in_der_steuerung(panel, kessel_und_heizkreis):
     """Er gehört zu dem, was man an der Anlage wirklich verstellt."""
     for anlagenteil in kessel_und_heizkreis["teile"]:

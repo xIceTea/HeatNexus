@@ -322,11 +322,15 @@ ENTITAETEN: list[dict] = [
         "category": "config",
         "icon": "mdi:account-hard-hat",
     },
+    # Wie der Kaminkehrer ein Zustand der Betriebswahl, kein Auslöser: Die
+    # Anlage bleibt auf 7, bis jemand zurückschaltet. Ausschalten heißt
+    # Betriebswahl 1, also normaler Betrieb.
     {
         "oid": "/9/75/0",
         "name": "Lagerraumbefüllung anfordern",
-        "platform": "button",
-        "press_value": "7",
+        "platform": "switch",
+        "ein_wert": "7",
+        "aus_wert": "1",
         "key_suffix": "befuellen",
         "category": "config",
         "icon": "mdi:warehouse",
