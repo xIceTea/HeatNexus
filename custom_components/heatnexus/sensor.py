@@ -253,6 +253,10 @@ class WindhagerAbleitungSensor(WindhagerEntity, SensorEntity):
     """
 
     _attr_state_class = SensorStateClass.TOTAL
+    # Angaben für den Neustart, nicht für den Verlauf: Sie ändern sich bei
+    # jedem Abruf. Angezeigt werden sie weiterhin, den Stand nach einem
+    # Neustart holt `RestoreEntity` und nicht die Datenbank.
+    _unrecorded_attributes = frozenset({"basis", "marke"})
     # Der Bezugspunkt steht in den Attributen, und Home Assistant schreibt
     # Attribute nur, solange eine Entität verfügbar ist. Ohne dies verlöre sie
     # ihn, sobald die Anlage einen Abruf lang keinen Wert liefert.
@@ -345,6 +349,7 @@ class WindhagerLaufzeitSensor(WindhagerEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.DURATION
     _attr_native_unit_of_measurement = "min"
     _attr_suggested_display_precision = 0
+    _unrecorded_attributes = frozenset({"laeuft", "beginn", "letzte_dauer", "heute", "tag"})
     # Stand und Tagesmarke stehen in den Attributen, und die schreibt Home
     # Assistant nur bei verfügbarer Entität. Ohne dies ginge die Tagessumme
     # verloren, sobald die Anlage einen Abruf lang schweigt.
@@ -494,6 +499,9 @@ class WindhagerSchaltpunktSensor(_BezugMerker, WindhagerEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _unrecorded_attributes = frozenset(
+        {"sollwert", "hysterese", "anteil", "bezug", "gehalten", "seit"}
+    )
     # Der Sollwert steht nur an, solange etwas angefordert wird. Dazwischen
     # bleibt der Schaltpunkt leer, die Entität aber bedienbar.
     _require_value_for_available = False
@@ -555,6 +563,7 @@ class WindhagerSchaltpunktAbstandSensor(_BezugMerker, WindhagerEntity, SensorEnt
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = "K"
     _attr_suggested_display_precision = 1
+    _unrecorded_attributes = frozenset({"gemessen", "schaltpunkt", "bezug", "gehalten", "seit"})
     # Der Bezug steht nur an, solange angefordert wird. Ohne ihn bleibt der
     # Abstand leer, die Entität aber bedienbar.
     _require_value_for_available = False

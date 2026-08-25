@@ -392,3 +392,27 @@ def test_beschreibung_ist_gemeinsam_nutzbar():
     grund = _beschreibung()
     for feld in ("id", "oid", "name", "device_id", "device_name"):
         assert feld in grund
+
+
+# ---------------------------------------------------------------------------
+# Rekorder – was in die Datenbank geht und was nicht
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    ("klasse", "felder", "werte", "behalten"),
+    [
+        ("WindhagerAbleitungSensor", {"type": "ableitung"}, {}, {"last_reset"}),
+        ("WindhagerLaufzeitSensor", {"type": "laufzeit"}, {}, set()),
+        ("WindhagerSchaltpunktSensor", {"type": "schaltpunkt"}, {}, set()),
+        ("WindhagerSchaltpunktAbstandSensor", {"type": "schaltpunkt_abstand"}, {}, set()),
+    ],
+)
+def test_nur_der_neustartstand_bleibt_aus_dem_rekorder(sensoren, klasse, felder, werte, behalten):
+    """Die Namen der Attribute und die Ausnahmeliste dürfen nicht auseinanderlaufen.
+
+    Ein umbenanntes Attribut liefe sonst still wieder in die Datenbank.
+    """
+    entity, _ = _entitaet(getattr(sensoren, klasse), werte, **felder)
+    # `last_reset` setzt erst `async_added_to_hass`; hier zählt allein der Name.
+    entity._attr_last_reset = None
+    vorhanden = set(entity.extra_state_attributes)
+    assert vorhanden - entity._unrecorded_attributes == behalten
