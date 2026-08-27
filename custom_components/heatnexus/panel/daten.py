@@ -43,6 +43,7 @@ from .muster import (
     EINMALLADUNG,
     EINMALLADUNG_TEMPERATUR,
     KAMINKEHRER,
+    KAMINKEHRER_LAUFZEIT,
     KAMINKEHRER_LEISTUNG,
     KENNWERT,
     KENNWERT_JE_FCT,
@@ -236,6 +237,10 @@ def _kaminkehrer_bedienung(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
     }
     if leistung := _kennung(entitaeten, KAMINKEHRER_LEISTUNG, ("number",)):
         bedienung["leistung"] = leistung
+    # Die Laufzeit steht nur dann als Feld im Dialog, wenn die Anlage sie
+    # schreiben lässt; sonst demotiert die Erkennung sie zum Sensor.
+    if laufzeit := _kennung(entitaeten, KAMINKEHRER_LAUFZEIT, ("number",)):
+        bedienung["laufzeit"] = laufzeit
     return bedienung
 
 

@@ -114,6 +114,13 @@ class Knoten {
   // --- Baum ---------------------------------------------------------------
   appendChild(kind) {
     if (!kind) return kind;
+    // Wie im Browser: Ein String wird zum Textknoten. Beschriftungen im
+    // Dialog stehen so neben ihrem Feld.
+    if (typeof kind === "string") {
+      const text = new Knoten("#text");
+      text.textContent = kind;
+      kind = text;
+    }
     if (kind.parentElement) kind.parentElement.removeChild(kind);
     kind.parentElement = this;
     this.children.push(kind);

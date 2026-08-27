@@ -215,6 +215,7 @@ SCHNELLZUGRIFF: tuple[Zeile, ...] = (
 # Auslösen abgefragt, weil die Messung an genau diesem Wert hängt.
 KAMINKEHRER = _muster(r"kaminkehrerbetrieb")
 KAMINKEHRER_LEISTUNG = _muster(r"kaminkehrer leistung")
+KAMINKEHRER_LAUFZEIT = _muster(r"kaminkehrer laufzeit")
 
 # Höchstzahl der Warmwasserzeilen; mehr sprengt die Karte.
 WARMWASSER_MAX = 6

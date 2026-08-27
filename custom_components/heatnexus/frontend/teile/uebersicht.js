@@ -477,21 +477,19 @@ export const UebersichtMixin = (Basis) =>
         }
       }
 
-      // Gehört ein Wert zum Vorgang, wird er im selben Dialog abgefragt und
-      // vor dem Auslösen geschrieben – die Messung gilt für genau diesen Wert.
-      let leistung = null;
+      // Werte, die zum Vorgang gehören, werden im selben Dialog abgefragt und
+      // vor dem Auslösen geschrieben – die Messung gilt für genau diese Werte.
+      const felder = [];
       if (eintrag.leistung) {
-        const zustand = this._zustand(eintrag.leistung);
-        const merkmale = (zustand && zustand.attributes) || {};
-        leistung = await this._bestaetigen(eintrag.titel, eintrag.frage || "", {
-          beschriftung: "Leistung",
-          einheit: merkmale.unit_of_measurement || "%",
-          min: merkmale.min,
-          max: merkmale.max,
-          step: merkmale.step,
-          wert: this._zahl(eintrag.leistung),
-        });
-        if (leistung === null) return;
+        felder.push(this._zahlenfeld(eintrag.leistung, "Leistung", "%"));
+      }
+      if (eintrag.laufzeit) {
+        felder.push(this._zahlenfeld(eintrag.laufzeit, "Laufzeit", "min"));
+      }
+      let werte = null;
+      if (felder.length) {
+        werte = await this._bestaetigen(eintrag.titel, eintrag.frage || "", felder);
+        if (werte === null) return;
       } else if (eintrag.frage && !(await this._bestaetigen(eintrag.titel, eintrag.frage))) {
         return;
       }
@@ -503,10 +501,10 @@ export const UebersichtMixin = (Basis) =>
             // Der Wert gehört in dieselbe Rückmeldung wie der Auslöser: Als
             // eigener Aufruf davor lief er stumm, und bis „wird übertragen …"
             // erschien, vergingen die Anfragen an die Anlage ohne Anzeige.
-            if (leistung !== null) {
+            for (const [i, { entity }] of felder.entries()) {
               await this._hass.callService("number", "set_value", {
-                entity_id: eintrag.leistung,
-                value: leistung,
+                entity_id: entity,
+                value: werte[i],
               });
             }
             // Auf Standby ist der Kreis abgeschaltet und nimmt den
@@ -580,6 +578,26 @@ export const UebersichtMixin = (Basis) =>
     taste._zeichnen = zeichnen;
     this._bindungen.push(zeichnen);
     return taste;
+  }
+
+  /**
+   * Ein Zahlenfeld für den Rückfragedialog, gefüllt aus der Entität.
+   *
+   * Grenzen, Schrittweite und Einheit stellt die Anlage; die Vorgaben hier
+   * greifen nur, solange sie noch nichts gemeldet hat.
+   */
+  _zahlenfeld(entity, beschriftung, einheit) {
+    const zustand = this._zustand(entity);
+    const merkmale = (zustand && zustand.attributes) || {};
+    return {
+      entity,
+      beschriftung,
+      einheit: merkmale.unit_of_measurement || einheit,
+      min: merkmale.min,
+      max: merkmale.max,
+      step: merkmale.step,
+      wert: this._zahl(entity),
+    };
   }
 
   /**

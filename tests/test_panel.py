@@ -785,6 +785,40 @@ def test_der_kaminkehrer_fragt_nach_der_leistung(panel, kessel_und_heizkreis):
     assert taste["frage"]
 
 
+def test_der_kaminkehrer_fragt_auch_nach_der_laufzeit(panel, kessel_und_heizkreis):
+    """Die Frist gehört in dieselbe Rückfrage wie die Leistung."""
+    for anlagenteil in kessel_und_heizkreis["teile"]:
+        if anlagenteil["fct_type"] != 25:
+            continue
+        anlagenteil["entitaeten"] += [
+            entitaet("switch.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
+            entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
+            entitaet("number.kaminkehrer_laufzeit", "Kaminkehrer Laufzeit"),
+        ]
+
+    daten = panel._anlage_daten(kessel_und_heizkreis)
+    taste = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
+
+    assert taste["laufzeit"] == "number.kaminkehrer_laufzeit"
+    assert taste["leistung"] == "number.kaminkehrer_leistung"
+
+
+def test_eine_schreibgeschuetzte_laufzeit_bleibt_aus_dem_dialog(panel, kessel_und_heizkreis):
+    """Meldet die Anlage Schreibschutz, wird aus der Zahl ein Sensor."""
+    for anlagenteil in kessel_und_heizkreis["teile"]:
+        if anlagenteil["fct_type"] != 25:
+            continue
+        anlagenteil["entitaeten"] += [
+            entitaet("switch.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
+            entitaet("sensor.kaminkehrer_laufzeit", "Kaminkehrer Laufzeit"),
+        ]
+
+    daten = panel._anlage_daten(kessel_und_heizkreis)
+    taste = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
+
+    assert "laufzeit" not in taste
+
+
 def test_das_beenden_eines_eingriffs_kuendigt_sich_an(panel, kessel_und_heizkreis):
     """Ohne zweite Beschriftung beendet der zweite Druck unbemerkt."""
     for anlagenteil in kessel_und_heizkreis["teile"]:

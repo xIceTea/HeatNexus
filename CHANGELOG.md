@@ -13,6 +13,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Kaminkehrer und Lagerraumbefüllung fragen vor dem Beenden zurück.
 - Wärmequellen ohne Anschluss an die Steuerung lassen sich anlegen.
 - Solaranlage, Heizstab und Fernwärme erscheinen im Schaubild und in der Übersicht.
+- Der Kaminkehrer fragt Leistung und Laufzeit in einer Rückfrage ab.
 
 ### Behoben
 

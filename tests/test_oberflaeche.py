@@ -447,3 +447,35 @@ def test_ohne_betriebsart_zaehlt_weiter_die_pumpe(abbruch):
 def test_die_labelkarte_steht_in_der_uebersicht(durchlauf):
     """Sie hängt an der Anlage; global geführt erschiene sie an jeder."""
     assert "Solarthermie" in durchlauf["uebersicht"]["titel"]
+
+# Der Rückfragedialog mit mehreren Zahlenfeldern: Leistung und Laufzeit gelten
+# beide für die ganze Abgasmessung.
+DIALOG = Path(__file__).parent / "js" / "kaminkehrer-dialog.mjs"
+
+
+@pytest.fixture(scope="module")
+def dialog() -> dict:
+    """Den Dialog in Node fahren – ohne Browser, ohne Anlage."""
+    lauf = subprocess.run(
+        ["node", str(DIALOG), str(PANEL_JS)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert lauf.returncode == 0, lauf.stderr or lauf.stdout
+    return json.loads(lauf.stdout)
+
+
+def test_beide_werte_werden_vor_dem_ausloesen_geschrieben(dialog):
+    """Ein Feld allein hieße: messen mit einer Vorgabe, die nicht gilt."""
+    assert "zwei Felder: beide Werte geschrieben, dann ausgelöst" in dialog["faelle"]
+
+
+def test_ein_abgebrochener_dialog_schreibt_nichts(dialog):
+    assert "Abbruch: kein Schreibvorgang" in dialog["faelle"]
+
+
+def test_ohne_schreibbare_laufzeit_bleibt_ein_feld(dialog):
+    """Meldet die Anlage Schreibschutz, fehlt das zweite Feld."""
+    assert "ohne Laufzeit: nur die Leistung" in dialog["faelle"]

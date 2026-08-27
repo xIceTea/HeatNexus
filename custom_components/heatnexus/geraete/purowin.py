@@ -215,6 +215,21 @@ ENTITAETEN: list[dict] = [
         "step": 1,
         "category": "config",
     },
+    # Die Frist, nach der die Kaminkehrerfunktion von selbst endet; `9/90`
+    # zählt von hier herunter. Grenzen und Einheit meldet die Anlage selbst,
+    # den Schreibschutz ebenso.
+    {
+        "oid": "/37/53/0",
+        "name": "Kaminkehrer Laufzeit",
+        "platform": "number",
+        "unit": "min",
+        "device_class": "duration",
+        "min": 0,
+        "max": 240,
+        "step": 1,
+        "category": "config",
+        "poll_class": "slow",
+    },
     # Sondenumschaltung (nur bei Saugzuführung mit Sonden vorhanden,
     # nicht vorhandene OIDs werden bei der Discovery automatisch entfernt)
     {

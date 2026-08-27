@@ -70,8 +70,12 @@ export const BedienenMixin = (Basis) =>
    * Browser und sieht in Home Assistant wie ein Fremdkörper aus.
    */
   _bestaetigen(titel, frage, zahl, tasten) {
+    // Ein einzelnes Feld darf weiter als Objekt kommen; mehrere stehen als
+    // Liste. Die Antwort hat dieselbe Form wie die Vorgabe.
+    const mehrere = Array.isArray(zahl);
+    const vorgaben = zahl ? (mehrere ? zahl : [zahl]) : [];
     return new Promise((antworten) => {
-      let dialogZahl = null;
+      const eingaben = [];
       const schleier = document.createElement("div");
       schleier.className = "schleier";
       const dialog = document.createElement("div");
@@ -85,22 +89,21 @@ export const BedienenMixin = (Basis) =>
       text.className = "dialog-text";
       text.textContent = frage;
 
-      // Ein Wert, der zum Vorgang gehört und vorher feststehen muss – die
+      // Werte, die zum Vorgang gehören und vorher feststehen müssen – die
       // Kaminkehrer-Leistung etwa gilt für die ganze Messung.
-      let feld = null;
-      if (zahl) {
-        feld = document.createElement("input");
+      for (const vorgabe of vorgaben) {
+        const feld = document.createElement("input");
         feld.type = "number";
         feld.className = "dialog-zahl";
-        if (zahl.min != null) feld.min = zahl.min;
-        if (zahl.max != null) feld.max = zahl.max;
-        feld.step = zahl.step != null ? zahl.step : 1;
-        feld.value = zahl.wert != null ? zahl.wert : "";
+        if (vorgabe.min != null) feld.min = vorgabe.min;
+        if (vorgabe.max != null) feld.max = vorgabe.max;
+        feld.step = vorgabe.step != null ? vorgabe.step : 1;
+        feld.value = vorgabe.wert != null ? vorgabe.wert : "";
         const beschriftung = document.createElement("label");
         beschriftung.className = "dialog-zahl-zeile";
-        beschriftung.append(zahl.beschriftung || "Wert", feld);
-        if (zahl.einheit) beschriftung.append(" " + zahl.einheit);
-        dialogZahl = beschriftung;
+        beschriftung.append(vorgabe.beschriftung || "Wert", feld);
+        if (vorgabe.einheit) beschriftung.append(" " + vorgabe.einheit);
+        eingaben.push({ feld, zeile: beschriftung });
       }
 
       const leiste = document.createElement("div");
@@ -118,7 +121,7 @@ export const BedienenMixin = (Basis) =>
       leiste.append(abbrechen, ausloesen);
 
       dialog.append(ueberschrift, text);
-      if (dialogZahl) dialog.appendChild(dialogZahl);
+      for (const { zeile } of eingaben) dialog.appendChild(zeile);
       dialog.appendChild(leiste);
       schleier.appendChild(dialog);
 
@@ -130,8 +133,9 @@ export const BedienenMixin = (Basis) =>
       const abgebrochen = () => (zahl ? null : false);
       const bestaetigt = () => {
         if (!zahl) return true;
-        const wert = Number(feld.value);
-        return Number.isFinite(wert) ? wert : null;
+        const werte = eingaben.map(({ feld }) => Number(feld.value));
+        if (werte.some((wert) => !Number.isFinite(wert))) return null;
+        return mehrere ? werte : werte[0];
       };
       const beiTaste = (ereignis) => {
         if (ereignis.key === "Escape") schliessen(abgebrochen());
