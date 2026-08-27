@@ -370,7 +370,7 @@ def _dialog(flow, monkeypatch, quellen=(), gespeichert=None):
     monkeypatch.setattr(
         type(optionen),
         "_systeme",
-        lambda _self: [{"host": "192.0.2.10", "label": "Heizhaus"}],
+        lambda _self: [{"host": "192.0.2.10", "label": "Anlage 1"}],
     )
     monkeypatch.setattr(
         type(optionen), "async_show_menu", lambda _self, step_id, menu_options: menu_options
@@ -395,7 +395,7 @@ async def test_das_menue_fuehrt_je_anlage_eine_zeile_fuer_quellen(flow, monkeypa
     auswahl = await optionen.async_step_init()
 
     assert "anlage_0" in auswahl
-    assert auswahl["quellen_0"].startswith("Heizhaus")
+    assert auswahl["quellen_0"].startswith("Anlage 1")
 
 
 async def test_das_quellenmenue_zeigt_jede_quelle_und_den_weg_zur_neuen(flow, monkeypatch):

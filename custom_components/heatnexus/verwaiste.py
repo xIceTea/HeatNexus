@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 
+from . import waermequelle
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,13 +24,18 @@ HINWEIS = SCHLUESSEL + "_{entry_id}"
 
 
 @callback
-def bekannte_kennungen(coordinators: dict) -> dict[str, bool]:
-    """Kennung -> ob die Erkennung sie ab Werk einschaltet."""
-    return {
+def bekannte_kennungen(entry: ConfigEntry, coordinators: dict) -> dict[str, bool]:
+    """Kennung -> ob die Erkennung sie ab Werk einschaltet.
+
+    Wärmequellen stehen nicht im Abzug der Anlage; ohne sie hier gälte jede
+    von ihnen als verwaist.
+    """
+    bekannt = {
         beschreibung.get("id"): beschreibung.get("enabled_default", True)
         for coordinator in coordinators.values()
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
+    return bekannt | dict.fromkeys(waermequelle.kennungen(entry, coordinators), True)
 
 
 @callback
@@ -48,7 +54,7 @@ def abzug_steht(coordinators: dict) -> bool:
 
 
 @callback
-def erwartete_domaenen(coordinators: dict) -> dict[str, str]:
+def erwartete_domaenen(entry: ConfigEntry, coordinators: dict) -> dict[str, str]:
     """Kennung -> Domäne, in der sie heute entsteht.
 
     Nur für Arten, deren Plattform schon angelegt ist. Was `TYP_DOMAENE` noch
@@ -56,12 +62,13 @@ def erwartete_domaenen(coordinators: dict) -> dict[str, str]:
     """
     from .entity import TYP_DOMAENE
 
-    return {
+    domaenen = {
         beschreibung.get("id"): TYP_DOMAENE[beschreibung["type"]]
         for coordinator in coordinators.values()
         for beschreibung in (coordinator.data or {}).get("devices", [])
         if beschreibung.get("id") and beschreibung.get("type") in TYP_DOMAENE
     }
+    return domaenen | dict.fromkeys(waermequelle.kennungen(entry, coordinators), "binary_sensor")
 
 
 @callback
@@ -73,8 +80,8 @@ def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[
     """
     if not coordinators or not abzug_steht(coordinators):
         return []
-    bekannt = bekannte_kennungen(coordinators)
-    domaenen = erwartete_domaenen(coordinators)
+    bekannt = bekannte_kennungen(entry, coordinators)
+    domaenen = erwartete_domaenen(entry, coordinators)
     registry = er.async_get(hass)
     verwaist = []
     for eintrag in er.async_entries_for_config_entry(registry, entry.entry_id):

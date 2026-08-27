@@ -94,7 +94,7 @@ def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, A
     Erkennung stammt.
     """
     entitaeten = er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
-    bekannt = verwaiste.bekannte_kennungen(eintrag.get("coordinators", {}))
+    bekannt = verwaiste.bekannte_kennungen(entry, eintrag.get("coordinators", {}))
     je_bereich = Counter(e.entity_id.split(".")[0] for e in entitaeten)
     abgeschaltet = Counter(str(e.disabled_by) for e in entitaeten if e.disabled_by is not None)
     # Dieselbe Regel wie der Reparatureintrag, sonst weichen beide Zahlen ab:
