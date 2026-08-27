@@ -16,7 +16,9 @@ from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
+    ConfigSubentryFlow,
     OptionsFlow,
+    SubentryFlowResult,
 )
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
@@ -35,7 +37,7 @@ from homeassistant.helpers.selector import (
 )
 import voluptuous as vol
 
-from . import bedingung
+from . import bedingung, waermequelle
 from .blueprints import verfuegbare as verfuegbare_vorlagen
 from .client import WindhagerHttpClient
 from .const import (
@@ -62,7 +64,6 @@ from .const import (
     CONF_MELDUNG_EINLESEN,
     CONF_MODULPUMPE,
     CONF_PANEL,
-    CONF_QUELLEN,
     CONF_SPRACHE,
     CONF_STARTWERTE,
     CONF_SYSTEMS,
@@ -97,6 +98,7 @@ from .const import (
     SPRACHE_BESCHRIFTUNG,
     STARTWERTE_VORGABE,
     STARTWERTE_WAHL,
+    SUBEINTRAG_QUELLE,
     UEBERSTEUERUNG_DAUER_STANDARD,
     UPDATE_INTERVAL,
     ZUSATZGRUPPEN,
@@ -360,55 +362,84 @@ def gruppen_ableiten(kandidaten: list[dict], gewaehlt: list[str]) -> list[str]:
     return gruppen
 
 
-def quelle_id(vorhandene: list[dict[str, Any]]) -> str:
-    """Eine Kennung, die es noch nicht gibt.
+def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
+    """Das Formular einer Wärmequelle."""
+    regel = dict(vorhanden.get("bedingung") or {})
+    return vol.Schema(
+        {
+            vol.Required("name", default=vorhanden.get("name", "")): str,
+            vol.Required("art", default=vorhanden.get("art", QUELLE_SOLAR)): SelectSelector(
+                SelectSelectorConfig(
+                    options=[
+                        SelectOptionDict(value=kennung, label=text)
+                        for kennung, text in QUELLEN_ARTEN.items()
+                    ],
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
+            vol.Required(
+                "bedingung_art", default=regel.get("art", bedingung.ART_ZUSTAND)
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=[
+                        SelectOptionDict(value=kennung, label=text)
+                        for kennung, text in bedingung.ARTEN_BESCHRIFTUNG.items()
+                    ],
+                    mode=SelectSelectorMode.LIST,
+                )
+            ),
+            vol.Required(
+                "quelle", description={"suggested_value": regel.get("quelle")}
+            ): EntitySelector(),
+            vol.Optional(
+                "gegen", description={"suggested_value": regel.get("gegen")}
+            ): EntitySelector(),
+            vol.Optional("ein", description={"suggested_value": regel.get("ein")}): (
+                NumberSelector(NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any"))
+            ),
+            vol.Optional("aus", description={"suggested_value": regel.get("aus")}): (
+                NumberSelector(NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any"))
+            ),
+        }
+    )
 
-    Sie hängt an der Entität und darf sich nie wiederholen; beim Entfernen
-    einer Quelle rücken die übrigen deshalb nicht nach.
-    """
-    genommen = {str(q.get("id") or "") for q in vorhandene}
-    nummer = 1
-    while f"q{nummer}" in genommen:
-        nummer += 1
-    return f"q{nummer}"
+
+def eingabe_als_stand(user_input: Mapping[str, Any]) -> dict[str, Any]:
+    """Die Eingabe in die Form bringen, die das Formular als Vorgabe liest."""
+    return {
+        "name": user_input.get("name", ""),
+        "art": user_input.get("art", QUELLE_SOLAR),
+        "bedingung": {
+            "art": user_input.get("bedingung_art"),
+            "quelle": user_input.get("quelle"),
+            "gegen": user_input.get("gegen"),
+            "ein": user_input.get("ein"),
+            "aus": user_input.get("aus"),
+        },
+    }
 
 
-def quellen_pruefen(roh: Any) -> list[dict[str, Any]]:
-    """Gespeicherte Wärmequellen auf ihre Form bringen.
-
-    Eine Quelle ohne Kennung, Namen oder auswertbare Bedingung fällt weg —
-    sonst entstünde eine Entität, die nie etwas anderes als Nein sagen kann.
-    """
-    ergebnis: list[dict[str, Any]] = []
-    for eintrag in roh if isinstance(roh, list) else []:
-        if not isinstance(eintrag, Mapping):
-            continue
-        kennung = str(eintrag.get("id") or "").strip()
-        name = str(eintrag.get("name") or "").strip()
-        art = eintrag.get("art")
-        regel = eintrag.get("bedingung")
-        if not kennung or not name or art not in QUELLEN_ARTEN:
-            continue
-        if not isinstance(regel, Mapping) or not bedingung.vollstaendig(dict(regel)):
-            continue
-        ergebnis.append(
-            {"id": kennung, "name": name, "art": art, "bedingung": bedingung_pruefen(regel)}
-        )
-    return ergebnis[:QUELLEN_MAX]
-
-
-def bedingung_pruefen(roh: Mapping[str, Any]) -> dict[str, Any]:
-    """Nur die Felder übernehmen, die die Auswertung kennt."""
-    regel: dict[str, Any] = {"art": roh["art"], "quelle": str(roh["quelle"])}
-    if gegen := roh.get("gegen"):
-        regel["gegen"] = str(gegen)
-    for grenze in ("ein", "aus"):
-        wert = roh.get(grenze)
-        if wert is not None and str(wert) != "":
-            regel[grenze] = float(wert)
-    if zustaende := roh.get("zustaende"):
-        regel["zustaende"] = [str(z) for z in zustaende]
-    return regel
+def quelle_aus_eingabe(
+    user_input: Mapping[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, str]]:
+    """Die Eingabe zu einer Wärmequelle machen, oder die Fehler nennen."""
+    name = (user_input.get("name") or "").strip()
+    if not name:
+        return None, {"name": "name_fehlt"}
+    regel = {
+        "art": user_input.get("bedingung_art"),
+        "quelle": user_input.get("quelle"),
+        "gegen": user_input.get("gegen"),
+        "ein": user_input.get("ein"),
+        "aus": user_input.get("aus"),
+    }
+    if not bedingung.vollstaendig(regel):
+        return None, {"base": "bedingung_unvollstaendig"}
+    return {
+        "name": name,
+        "art": user_input.get("art", QUELLE_SOLAR),
+        "bedingung": waermequelle.bedingung_pruefen(regel),
+    }, {}
 
 
 def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
@@ -438,7 +469,6 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         CONF_MODULPUMPE: bool(raw.get(CONF_MODULPUMPE, False)),
         CONF_MARKEN: marken,
         CONF_MARKEN_STATUS: [k for k in marken if k in im_status],
-        CONF_QUELLEN: quellen_pruefen(raw.get(CONF_QUELLEN, [])),
     }
     if CONF_UPDATE_INTERVAL in raw:
         ergebnis[CONF_UPDATE_INTERVAL] = int(raw[CONF_UPDATE_INTERVAL])
@@ -456,6 +486,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
     """Führt durch Name, Anzahl der Anlagen, deren Adressen und den Umfang."""
 
     VERSION = 2
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         """Zwischenstand des Dialogs."""
@@ -724,6 +755,122 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         """Optionen dieser Integration."""
         return WindhagerOptionsFlow()
 
+    @classmethod
+    @callback
+    def async_get_supported_subentry_types(
+        cls, config_entry: ConfigEntry
+    ) -> dict[str, type[ConfigSubentryFlow]]:
+        """Eine Wärmequelle wird als eigenes Gerät hinzugefügt."""
+        return {SUBEINTRAG_QUELLE: WaermequelleSubentryFlow}
+
+
+class WaermequelleSubentryFlow(ConfigSubentryFlow):
+    """Eine Wärmequelle anlegen oder ändern.
+
+    Sie gehört zu einer Anlage; steht nur eine im Eintrag, entfällt die Frage.
+    """
+
+    def __init__(self) -> None:
+        """Anlage und Richtung des Ablaufs."""
+        self._host: str = ""
+        self._aendern: bool = False
+
+    def _systeme(self) -> list[dict[str, Any]]:
+        return self._get_entry().data.get(CONF_SYSTEMS, [])
+
+    def _vorhandene_quellen(self) -> list[dict[str, Any]]:
+        """Die schon angelegten Quellen – ihre Kennungen bleiben vergeben."""
+        return [
+            dict(sub.data or {})
+            for sub in self._get_entry().subentries.values()
+            if sub.subentry_type == SUBEINTRAG_QUELLE
+        ]
+
+    def _quellen_der_anlage(self) -> list[dict[str, Any]]:
+        """Die Quellen dieser Anlage – mehr fasst ihr Schaubild nicht."""
+        return [q for q in self._vorhandene_quellen() if q.get(CONF_HOST) == self._host]
+
+    def _bezeichnung(self, host: str) -> str:
+        system = next((s for s in self._systeme() if s[CONF_HOST] == host), {})
+        return system.get(CONF_LABEL) or host
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        """Zu welcher Anlage die neue Quelle gehört."""
+        systeme = self._systeme()
+        if len(systeme) == 1:
+            self._host = systeme[0][CONF_HOST]
+            return await self.async_step_quelle()
+        if user_input is not None:
+            self._host = user_input[CONF_HOST]
+            return await self.async_step_quelle()
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_HOST): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(
+                                    value=system[CONF_HOST],
+                                    label=self._bezeichnung(system[CONF_HOST]),
+                                )
+                                for system in systeme
+                            ],
+                            mode=SelectSelectorMode.LIST,
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Eine vorhandene Quelle ändern."""
+        self._aendern = True
+        self._host = str(self._get_reconfigure_subentry().data.get(CONF_HOST) or "")
+        return await self.async_step_quelle(user_input)
+
+    async def async_step_quelle(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Bauart und Bedingung der Quelle."""
+        eintrag = self._get_entry()
+        vorhanden: dict[str, Any] = {}
+        if self._aendern:
+            sub = self._get_reconfigure_subentry()
+            vorhanden = {"name": sub.title, **(sub.data or {})}
+        elif len(self._quellen_der_anlage()) >= QUELLEN_MAX:
+            return self.async_abort(reason="zu_viele")
+
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            quelle, errors = quelle_aus_eingabe(user_input)
+            if quelle is not None:
+                daten = {
+                    CONF_HOST: self._host,
+                    "id": vorhanden.get("id") or waermequelle.quelle_id(self._vorhandene_quellen()),
+                    "art": quelle["art"],
+                    "bedingung": quelle["bedingung"],
+                }
+                if self._aendern:
+                    return self.async_update_and_abort(
+                        eintrag,
+                        self._get_reconfigure_subentry(),
+                        title=quelle["name"],
+                        data=daten,
+                    )
+                return self.async_create_entry(title=quelle["name"], data=daten)
+            # Nach einem Fehler steht wieder da, was eingegeben wurde.
+            vorhanden = {**vorhanden, **eingabe_als_stand(user_input)}
+
+        return self.async_show_form(
+            step_id="quelle",
+            data_schema=quellen_schema(vorhanden),
+            errors=errors,
+            description_placeholders={"anlage": self._bezeichnung(self._host)},
+        )
+
 
 class WindhagerOptionsFlow(OptionsFlow):
     """Umfang je Anlage und Abfrageintervall nachträglich ändern."""
@@ -734,12 +881,6 @@ class WindhagerOptionsFlow(OptionsFlow):
         # Anlage, Zugang und schon geprüfte Optionen, während der zweite
         # Schritt für die Einzelwerte offen ist.
         self._offen: tuple[str, str, dict[str, Any]] | None = None
-        # Welche Wärmequelle das offene Formular zeigt. Der Schritt heißt für
-        # alle gleich, damit seine Beschriftungen aus den Übersetzungen kommen.
-        self._quelle_index: int | None = None
-        # Welche Anlage das offene Quellenmenü führt. Home Assistant ruft den
-        # Schritt beim Zurückkehren ohne Nummer auf.
-        self._quellen_index: int = 0
 
     def _systeme(self) -> list[dict[str, Any]]:
         return self.config_entry.data.get(CONF_SYSTEMS, [])
@@ -755,7 +896,6 @@ class WindhagerOptionsFlow(OptionsFlow):
         for i, system in enumerate(systeme):
             bezeichnung = system.get(CONF_LABEL) or system[CONF_HOST]
             auswahl[f"anlage_{i}"] = f"{bezeichnung} ({system[CONF_HOST]})"
-            auswahl[f"quellen_{i}"] = f"{bezeichnung} — Wärmequellen"
         return self.async_show_menu(step_id="init", menu_options=auswahl)
 
     async def async_step_allgemein(
@@ -1001,15 +1141,10 @@ class WindhagerOptionsFlow(OptionsFlow):
     def __getattr__(self, name: str):
         """Nummerierte Schritte des Menüs bereitstellen.
 
-        Das Menü führt Zeilen je Anlage und je Wärmequelle; feste Methoden
-        würden deren Zahl begrenzen und bei einer mehr mit „unbekannter
-        Schritt" abbrechen.
+        Das Menü führt eine Zeile je Anlage; feste Methoden würden deren Zahl
+        begrenzen und bei einer mehr mit „unbekannter Schritt" abbrechen.
         """
-        for praefix, ziel in (
-            ("async_step_anlage_", self._anlage),
-            ("async_step_quellen_", self._quellen),
-            ("async_step_bearbeiten_", self._quelle),
-        ):
+        for praefix, ziel in (("async_step_anlage_", self._anlage),):
             if not name.startswith(praefix):
                 continue
             rest = name.removeprefix(praefix)
@@ -1028,142 +1163,3 @@ class WindhagerOptionsFlow(OptionsFlow):
         if index < len(systeme):
             self._host = systeme[index][CONF_HOST]
         return await self.async_step_system(user_input)
-
-    # -----------------------------------------------------------------
-    # Wärmequellen ohne Anschluss an die Steuerung
-    # -----------------------------------------------------------------
-    def _quellen_liste(self) -> list[dict[str, Any]]:
-        """Die Wärmequellen der gerade gewählten Anlage."""
-        je_anlage = self.config_entry.options.get(self._host or "") or {}
-        return list(je_anlage.get(CONF_QUELLEN, []))
-
-    async def _quellen(self, index: int, user_input=None) -> ConfigFlowResult:
-        """Menü über die Wärmequellen einer Anlage."""
-        systeme = self._systeme()
-        if index < len(systeme):
-            self._host = systeme[index][CONF_HOST]
-        self._quellen_index = index
-        quellen = self._quellen_liste()
-        auswahl = {
-            f"bearbeiten_{i}": f"{q['name']} ({QUELLEN_ARTEN.get(q['art'], q['art'])})"
-            for i, q in enumerate(quellen)
-        }
-        if len(quellen) < QUELLEN_MAX:
-            auswahl["neu"] = "Neue Wärmequelle anlegen"
-        return self.async_show_menu(step_id="quellen", menu_options=auswahl)
-
-    async def async_step_quellen(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Das Menü der Wärmequellen zur zuletzt gewählten Anlage.
-
-        Home Assistant prüft, ob es zu einem gezeigten Schritt eine Methode
-        gibt, und weist das Menü sonst ab.
-        """
-        return await self._quellen(self._quellen_index, user_input)
-
-    async def async_step_neu(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Eine Wärmequelle anlegen."""
-        return await self._quelle(None, user_input)
-
-    async def async_step_quelle(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Das abgesendete Formular derselben Quelle wieder zuordnen."""
-        return await self._quelle(self._quelle_index, user_input)
-
-    async def _quelle(self, index: int | None, user_input=None) -> ConfigFlowResult:
-        """Eine Wärmequelle anlegen, ändern oder entfernen."""
-        host = self._host or ""
-        self._quelle_index = index
-        quellen = self._quellen_liste()
-        vorhanden = quellen[index] if index is not None and index < len(quellen) else {}
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            neue, errors = self._quelle_uebernehmen(quellen, vorhanden, user_input)
-            if not errors:
-                options = dict(self.config_entry.options)
-                options[host] = {**(options.get(host) or {}), CONF_QUELLEN: quellen_pruefen(neue)}
-                return self.async_create_entry(data=options)
-
-        regel = dict(vorhanden.get("bedingung") or {})
-        schema = vol.Schema(
-            {
-                vol.Required("name", default=vorhanden.get("name", "")): str,
-                vol.Required("art", default=vorhanden.get("art", QUELLE_SOLAR)): SelectSelector(
-                    SelectSelectorConfig(
-                        options=[
-                            SelectOptionDict(value=kennung, label=text)
-                            for kennung, text in QUELLEN_ARTEN.items()
-                        ],
-                        mode=SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Required(
-                    "bedingung_art", default=regel.get("art", bedingung.ART_ZUSTAND)
-                ): SelectSelector(
-                    SelectSelectorConfig(
-                        options=[
-                            SelectOptionDict(value=kennung, label=text)
-                            for kennung, text in bedingung.ARTEN_BESCHRIFTUNG.items()
-                        ],
-                        mode=SelectSelectorMode.LIST,
-                    )
-                ),
-                vol.Required(
-                    "quelle", description={"suggested_value": regel.get("quelle")}
-                ): EntitySelector(),
-                vol.Optional(
-                    "gegen", description={"suggested_value": regel.get("gegen")}
-                ): EntitySelector(),
-                vol.Optional("ein", description={"suggested_value": regel.get("ein")}): (
-                    NumberSelector(NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any"))
-                ),
-                vol.Optional("aus", description={"suggested_value": regel.get("aus")}): (
-                    NumberSelector(NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any"))
-                ),
-            }
-        )
-        if vorhanden:
-            schema = schema.extend({vol.Required("entfernen", default=False): bool})
-
-        system = next((s for s in self._systeme() if s[CONF_HOST] == host), {})
-        return self.async_show_form(
-            step_id="quelle",
-            data_schema=schema,
-            errors=errors,
-            description_placeholders={"anlage": system.get(CONF_LABEL) or host},
-        )
-
-    def _quelle_uebernehmen(
-        self,
-        quellen: list[dict[str, Any]],
-        vorhanden: dict[str, Any],
-        user_input: dict[str, Any],
-    ) -> tuple[list[dict[str, Any]], dict[str, str]]:
-        """Die Eingabe in die Liste einarbeiten, oder die Fehler nennen."""
-        if user_input.get("entfernen") and vorhanden:
-            return [q for q in quellen if q.get("id") != vorhanden.get("id")], {}
-
-        name = (user_input.get("name") or "").strip()
-        if not name:
-            return quellen, {"name": "name_fehlt"}
-
-        regel = {
-            "art": user_input.get("bedingung_art"),
-            "quelle": user_input.get("quelle"),
-            "gegen": user_input.get("gegen"),
-            "ein": user_input.get("ein"),
-            "aus": user_input.get("aus"),
-        }
-        if not bedingung.vollstaendig(regel):
-            return quellen, {"base": "bedingung_unvollstaendig"}
-
-        eintrag = {
-            "id": vorhanden.get("id") or quelle_id(quellen),
-            "name": name,
-            "art": user_input.get("art", QUELLE_SOLAR),
-            "bedingung": bedingung_pruefen(regel),
-        }
-        if any(q.get("id") == eintrag["id"] for q in quellen):
-            return [eintrag if q.get("id") == eintrag["id"] else q for q in quellen], {}
-        return [*quellen, eintrag], {}

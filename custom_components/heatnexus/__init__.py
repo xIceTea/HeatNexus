@@ -14,10 +14,11 @@ import logging
 # Plattformdatei und der Aufruf scheitert. Ob das passiert, hing bisher am
 # Wettlauf zwischen Plattform-Import und Einrichtung.
 from time import monotonic
+from types import MappingProxyType
 from typing import Any
 
 from homeassistant.components import persistent_notification
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
@@ -31,7 +32,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
-from . import device_db, error_texts, verwaiste
+from . import device_db, error_texts, verwaiste, waermequelle
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
@@ -47,6 +48,7 @@ from .const import (
     CONF_MELDUNG_EINLESEN,
     CONF_MODULPUMPE,
     CONF_PANEL,
+    CONF_QUELLEN,
     CONF_SPRACHE,
     CONF_STARTWERTE,
     CONF_SYSTEMS,
@@ -63,6 +65,7 @@ from .const import (
     INIT_TIMEOUT,
     SIGNAL_NEUE_ENTITAETEN,
     STARTWERTE_VORGABE,
+    SUBEINTRAG_QUELLE,
     UPDATE_INTERVAL,
 )
 from .coordinator import WindhagerDataUpdateCoordinator
@@ -230,6 +233,42 @@ def laufzeitdaten(entry: ConfigEntry) -> dict | None:
     """
     daten = getattr(entry, "runtime_data", None)
     return daten if isinstance(daten, dict) else None
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Wärmequellen aus den Optionen in eigene Subeinträge überführen.
+
+    Ihre Kennung wandert mit; an ihr hängt die Entität, und ein neuer Wert
+    würde Name, Bereich und Verlauf verlieren.
+    """
+    if entry.version != 2 or entry.minor_version >= 2:
+        return True
+
+    optionen = dict(entry.options)
+    for host, je_anlage in list(optionen.items()):
+        if not isinstance(je_anlage, dict) or CONF_QUELLEN not in je_anlage:
+            continue
+        for quelle in waermequelle.quellen_pruefen(je_anlage.get(CONF_QUELLEN)):
+            hass.config_entries.async_add_subentry(
+                entry,
+                ConfigSubentry(
+                    data=MappingProxyType(
+                        {
+                            CONF_HOST: host,
+                            "id": quelle["id"],
+                            "art": quelle["art"],
+                            "bedingung": quelle["bedingung"],
+                        }
+                    ),
+                    subentry_type=SUBEINTRAG_QUELLE,
+                    title=quelle["name"],
+                    unique_id=None,
+                ),
+            )
+        optionen[host] = {k: v for k, v in je_anlage.items() if k != CONF_QUELLEN}
+
+    hass.config_entries.async_update_entry(entry, options=optionen, minor_version=2)
+    return True
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:

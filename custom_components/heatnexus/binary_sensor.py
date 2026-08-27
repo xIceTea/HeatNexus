@@ -39,13 +39,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "stoerung": WindhagerStoerungBinarySensor,
         },
     )
-    # Wärmequellen stehen in den Optionen, nicht im Abzug der Anlage. Ein
-    # Neuladen nach geänderten Optionen legt sie neu an.
-    async_add_entities(
-        WaermequelleBinarySensor(coordinator, beschreibung)
-        for coordinator in entry.runtime_data["coordinators"].values()
-        for beschreibung in waermequelle.beschreibungen(entry, coordinator)
-    )
+    # Eine Wärmequelle steht in einem eigenen Subeintrag, nicht im Abzug der
+    # Anlage. Ihre Entität gehört zu diesem Subeintrag – nur so führt die
+    # Geräteseite zu seinem Ändern-Dialog.
+    for coordinator in entry.runtime_data["coordinators"].values():
+        for beschreibung in waermequelle.beschreibungen(entry, coordinator):
+            async_add_entities(
+                [WaermequelleBinarySensor(coordinator, beschreibung)],
+                config_subentry_id=beschreibung["subentry_id"],
+            )
 
 
 class WindhagerBinarySensor(WindhagerEntity, BinarySensorEntity):

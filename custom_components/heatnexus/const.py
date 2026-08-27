@@ -61,6 +61,9 @@ MARKEN_MAX_ZEILEN = 30
 # Anlage angelegt; ein Bedingungssatz entscheidet, wann sie Wärme liefern.
 CONF_QUELLEN = "quellen"
 
+# Art des Subeintrags, unter dem eine Wärmequelle steht.
+SUBEINTRAG_QUELLE = "waermequelle"
+
 QUELLE_SOLAR = "solar"
 QUELLE_HEIZSTAB = "heizstab"
 QUELLE_FREMD = "fremdquelle"

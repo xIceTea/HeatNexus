@@ -1,8 +1,8 @@
 """Wärmequellen, die nicht an der Steuerung hängen.
 
-Sie entstehen aus den Optionen und lesen fremde Entitäten. Geprüft wird, dass
-ihre Kennung stabil bleibt und dass die Anzeige nur behauptet, was gemessen
-wurde.
+Jede steht in einem eigenen Subeintrag und liest fremde Entitäten. Geprüft
+wird, dass ihre Kennung stabil bleibt und dass die Anzeige nur behauptet, was
+gemessen wurde.
 """
 
 from __future__ import annotations
@@ -45,10 +45,25 @@ def _koordinator(host="192.0.2.10", label="Anlage 1"):
     )
 
 
-def _eintrag(quellen):
-    from custom_components.heatnexus.const import CONF_QUELLEN
+def _eintrag(quellen, host="192.0.2.10"):
+    """Ein Eintrag, dessen Quellen als Subeinträge daranhängen."""
+    from custom_components.heatnexus.const import SUBEINTRAG_QUELLE
 
-    return SimpleNamespace(options={"192.0.2.10": {CONF_QUELLEN: list(quellen)}})
+    subeintraege = {
+        f"sub{i}": SimpleNamespace(
+            subentry_id=f"sub{i}",
+            subentry_type=SUBEINTRAG_QUELLE,
+            title=q["name"],
+            data={
+                "host": host,
+                "id": q["id"],
+                "art": q["art"],
+                "bedingung": q["bedingung"],
+            },
+        )
+        for i, q in enumerate(quellen)
+    }
+    return SimpleNamespace(subentries=subeintraege, options={})
 
 
 def test_jede_quelle_wird_zu_einer_beschreibung(modul):
@@ -84,6 +99,13 @@ def test_die_quelle_haengt_unter_ihrer_steuerung(modul):
     assert info["identifiers"] == {(DOMAIN, "SN1-waermequelle-q1")}
     assert info["name"] == "Anlage 1 · Solaranlage"
     assert info["via_device"] == (DOMAIN, "SN1")
+
+
+def test_die_beschreibung_nennt_ihren_subeintrag(modul):
+    """Ohne ihn hinge die Entität am Eintrag statt am Gerät der Quelle."""
+    beschreibung = modul.beschreibungen(_eintrag([SOLAR]), _koordinator())[0]
+
+    assert beschreibung["subentry_id"] == "sub0"
 
 
 def test_alle_kennungen_zaehlen_zum_bestand(modul):
@@ -167,3 +189,81 @@ async def test_ein_zustand_als_bedingung_braucht_keine_schwelle(hass):
     hass.states.async_set("switch.heizstab", "off")
     entitaet._auswerten()
     assert entitaet.is_on is False
+
+
+# ---------------------------------------------------------------------------
+# Vom Optionseintrag zum Subeintrag
+# ---------------------------------------------------------------------------
+def _mock_eintrag(hass, optionen):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import CONF_SYSTEMS, DOMAIN
+
+    eintrag = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        minor_version=1,
+        data={CONF_SYSTEMS: [{"host": "192.0.2.10", "label": "Anlage 1"}]},
+        options=optionen,
+    )
+    eintrag.add_to_hass(hass)
+    return eintrag
+
+
+async def test_die_alte_auswahl_wandert_in_einen_subeintrag(hass):
+    """Die Kennung wandert mit; an ihr hängt die vorhandene Entität."""
+    from custom_components.heatnexus import async_migrate_entry
+    from custom_components.heatnexus.const import CONF_QUELLEN, SUBEINTRAG_QUELLE
+
+    eintrag = _mock_eintrag(hass, {"192.0.2.10": {CONF_QUELLEN: [SOLAR], "modulpumpe": True}})
+
+    assert await async_migrate_entry(hass, eintrag) is True
+
+    quellen = [s for s in eintrag.subentries.values() if s.subentry_type == SUBEINTRAG_QUELLE]
+    assert len(quellen) == 1
+    assert quellen[0].title == "Solaranlage"
+    assert quellen[0].data["id"] == "q1"
+    assert quellen[0].data["host"] == "192.0.2.10"
+    assert quellen[0].data["bedingung"]["ein"] == 8
+    assert CONF_QUELLEN not in eintrag.options["192.0.2.10"]
+    assert eintrag.options["192.0.2.10"]["modulpumpe"] is True
+    assert eintrag.minor_version == 2
+
+
+async def test_ein_zweiter_lauf_legt_nichts_doppelt_an(hass):
+    from custom_components.heatnexus import async_migrate_entry
+    from custom_components.heatnexus.const import CONF_QUELLEN, SUBEINTRAG_QUELLE
+
+    eintrag = _mock_eintrag(hass, {"192.0.2.10": {CONF_QUELLEN: [SOLAR]}})
+    await async_migrate_entry(hass, eintrag)
+
+    assert await async_migrate_entry(hass, eintrag) is True
+
+    quellen = [s for s in eintrag.subentries.values() if s.subentry_type == SUBEINTRAG_QUELLE]
+    assert len(quellen) == 1
+
+
+async def test_eine_neue_quelle_entsteht_als_subeintrag(hass):
+    from homeassistant.data_entry_flow import FlowResultType
+
+    from custom_components.heatnexus.const import SUBEINTRAG_QUELLE
+
+    eintrag = _mock_eintrag(hass, {})
+    ablauf = await hass.config_entries.subentries.async_init(
+        (eintrag.entry_id, SUBEINTRAG_QUELLE), context={"source": "user"}
+    )
+
+    ergebnis = await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"],
+        {
+            "name": "Fernwärme",
+            "art": "fremdquelle",
+            "bedingung_art": "zustand",
+            "quelle": "binary_sensor.uebergabe",
+        },
+    )
+
+    assert ergebnis["type"] is FlowResultType.CREATE_ENTRY
+    assert ergebnis["title"] == "Fernwärme"
+    assert ergebnis["data"]["id"] == "q1"
+    assert ergebnis["data"]["host"] == "192.0.2.10"

@@ -158,35 +158,9 @@
         "data": {
           "zusatzwerte": "Values"
         }
-      },
-      "quellen": {
-        "title": "Heat sources",
-        "description": "Heat sources that are not connected to the controller. What do you want to change?"
-      },
-      "quelle": {
-        "title": "Heat source",
-        "description": "The source appears in the diagram of {anlage}. The condition decides when it delivers heat.",
-        "data": {
-          "name": "Name",
-          "art": "Type",
-          "bedingung_art": "Condition",
-          "quelle": "Entity",
-          "gegen": "Second entity (difference only)",
-          "ein": "Switch-on value",
-          "aus": "Switch-off value",
-          "entfernen": "Remove this heat source"
-        },
-        "data_description": {
-          "quelle": "The value that decides about the source.",
-          "ein": "From this value on the source counts as delivering.",
-          "aus": "Only below it counts as off again. Empty means the same value."
-        }
       }
     },
-    "error": {
-      "name_fehlt": "The source needs a name.",
-      "bedingung_unvollstaendig": "The condition is incomplete. Threshold and difference need a switch-on value, the difference also a second entity."
-    }
+    "error": {}
   },
   "selector": {
     "levels": {
@@ -273,6 +247,51 @@
         "abort": {
           "nicht_geladen": "The system is not loaded right now. Please try again later."
         }
+      }
+    }
+  },
+  "config_subentries": {
+    "waermequelle": {
+      "title": "Heat source",
+      "entry_type": "Heat source",
+      "initiate_flow": {
+        "user": "Add heat source",
+        "reconfigure": "Edit heat source"
+      },
+      "step": {
+        "user": {
+          "title": "System",
+          "description": "Which system does the heat source belong to?",
+          "data": {
+            "host": "System"
+          }
+        },
+        "quelle": {
+          "title": "Heat source",
+          "description": "The source appears in the diagram of {anlage}. The condition decides when it delivers heat.",
+          "data": {
+            "name": "Name",
+            "art": "Type",
+            "bedingung_art": "Condition",
+            "quelle": "Entity",
+            "gegen": "Second entity (difference only)",
+            "ein": "Switch-on value",
+            "aus": "Switch-off value"
+          },
+          "data_description": {
+            "quelle": "The value that decides about the source.",
+            "ein": "From this value the source counts as delivering.",
+            "aus": "Only below this it counts as off again. Empty means the same value."
+          }
+        }
+      },
+      "error": {
+        "name_fehlt": "The source needs a name.",
+        "bedingung_unvollstaendig": "The condition is incomplete. Threshold and difference need a switch-on value, difference also a second entity."
+      },
+      "abort": {
+        "reconfigure_successful": "The heat source was changed.",
+        "zu_viele": "The diagram cannot hold more heat sources."
       }
     }
   }

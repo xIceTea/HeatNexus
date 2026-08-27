@@ -7,25 +7,94 @@ liefert, entscheidet `bedingung`.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import CONF_QUELLEN, DOMAIN, QUELLEN_ARTEN
+from . import bedingung
+from .const import DOMAIN, QUELLEN_ARTEN, QUELLEN_MAX, SUBEINTRAG_QUELLE
 from .entity import steuerung_kennung
 
-TYP = "waermequelle"
+TYP = SUBEINTRAG_QUELLE
+
+
+def quelle_id(vorhandene: list[dict[str, Any]]) -> str:
+    """Eine Kennung, die es noch nicht gibt.
+
+    Sie hängt an der Entität und darf sich nie wiederholen; beim Entfernen
+    einer Quelle rücken die übrigen deshalb nicht nach.
+    """
+    genommen = {str(q.get("id") or "") for q in vorhandene}
+    nummer = 1
+    while f"q{nummer}" in genommen:
+        nummer += 1
+    return f"q{nummer}"
+
+
+def quellen_pruefen(roh: Any) -> list[dict[str, Any]]:
+    """Gespeicherte Wärmequellen auf ihre Form bringen.
+
+    Eine Quelle ohne Kennung, Namen oder auswertbare Bedingung fällt weg —
+    sonst entstünde eine Entität, die nie etwas anderes als Nein sagen kann.
+    """
+    ergebnis: list[dict[str, Any]] = []
+    for eintrag in roh if isinstance(roh, list) else []:
+        if not isinstance(eintrag, Mapping):
+            continue
+        kennung = str(eintrag.get("id") or "").strip()
+        name = str(eintrag.get("name") or "").strip()
+        art = eintrag.get("art")
+        regel = eintrag.get("bedingung")
+        if not kennung or not name or art not in QUELLEN_ARTEN:
+            continue
+        if not isinstance(regel, Mapping) or not bedingung.vollstaendig(dict(regel)):
+            continue
+        ergebnis.append(
+            {"id": kennung, "name": name, "art": art, "bedingung": bedingung_pruefen(regel)}
+        )
+    return ergebnis[:QUELLEN_MAX]
+
+
+def bedingung_pruefen(roh: Mapping[str, Any]) -> dict[str, Any]:
+    """Nur die Felder übernehmen, die die Auswertung kennt."""
+    regel: dict[str, Any] = {"art": roh["art"], "quelle": str(roh["quelle"])}
+    if gegen := roh.get("gegen"):
+        regel["gegen"] = str(gegen)
+    for grenze in ("ein", "aus"):
+        wert = roh.get(grenze)
+        if wert is not None and str(wert) != "":
+            regel[grenze] = float(wert)
+    if zustaende := roh.get("zustaende"):
+        regel["zustaende"] = [str(z) for z in zustaende]
+    return regel
+
+
+def subeintraege(entry: ConfigEntry) -> list[Any]:
+    """Die Subeinträge, die eine Wärmequelle beschreiben."""
+    return [s for s in (entry.subentries or {}).values() if s.subentry_type == TYP]
 
 
 def der_anlage(entry: ConfigEntry, host: str) -> list[dict[str, Any]]:
-    """Die Wärmequellen einer Anlage aus den Optionen."""
-    je_anlage = (entry.options or {}).get(host) or {}
-    return [
-        q
-        for q in je_anlage.get(CONF_QUELLEN, [])
-        if isinstance(q, dict) and q.get("id") and q.get("art") in QUELLEN_ARTEN
-    ]
+    """Die Wärmequellen einer Anlage aus ihren Subeinträgen."""
+    quellen = []
+    for sub in subeintraege(entry):
+        daten = sub.data or {}
+        if daten.get("host") != host or daten.get("art") not in QUELLEN_ARTEN:
+            continue
+        if not daten.get("id"):
+            continue
+        quellen.append(
+            {
+                "id": daten["id"],
+                "name": sub.title,
+                "art": daten["art"],
+                "bedingung": dict(daten.get("bedingung") or {}),
+                "subentry_id": sub.subentry_id,
+            }
+        )
+    return quellen
 
 
 def kennung(coordinator: Any, quelle: dict[str, Any]) -> str:
@@ -59,6 +128,7 @@ def beschreibungen(entry: ConfigEntry, coordinator: Any) -> list[dict[str, Any]]
             "name": q.get("name"),
             "art": q["art"],
             "bedingung": dict(q.get("bedingung") or {}),
+            "subentry_id": q.get("subentry_id"),
         }
         for q in der_anlage(entry, getattr(coordinator, "host", "") or "")
     ]

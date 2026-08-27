@@ -135,8 +135,10 @@ Durchlauf nicht.
 ## Wärmequellen ohne Anschluss an die Steuerung
 
 Eine Solaranlage, ein Heizstab oder eine Fernwärmeübergabe meldet der
-Windhager-Steuerung nichts. Wer solche Werte in Home Assistant hat, hängt sie
-unter *Optionen → ‹Anlage› → Wärmequellen* ein — bis zu acht je Anlage.
+Windhager-Steuerung nichts. Wer solche Werte in Home Assistant hat, legt sie
+unter *Einstellungen → Geräte & Dienste → HeatNexus → Gerät hinzufügen* an —
+bis zu acht je Anlage. Jede Quelle wird ein eigenes Gerät; „Ändern" auf ihrer
+Geräteseite öffnet dieselben Angaben wieder, „Löschen" entfernt sie.
 
 Je Quelle werden angegeben:
 

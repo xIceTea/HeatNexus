@@ -17,6 +17,11 @@ wenn dort Vorabversionen zugelassen sind.
 - Eine Wärmequelle lässt ihre Leitung strömen und ihre Lampe leuchten.
 - Der Puffer zeigt „lädt", solange eine Wärmequelle liefert.
 
+### Geändert
+
+- Eine Wärmequelle wird als eigenes Gerät angelegt und dort geändert.
+- Vorhandene Wärmequellen wandern beim Aktualisieren mit.
+
 ### Behoben
 
 - Ein geschalteter Wert erscheint sofort statt erst im nächsten Takt.

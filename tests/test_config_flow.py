@@ -291,12 +291,10 @@ SOLAR = {
 }
 
 
-def test_eine_vollstaendige_quelle_bleibt_erhalten(flow):
-    from custom_components.heatnexus.const import CONF_QUELLEN
+def test_eine_vollstaendige_quelle_bleibt_erhalten():
+    from custom_components.heatnexus import waermequelle
 
-    optionen = flow.normalize_options({CONF_QUELLEN: [SOLAR]})
-
-    assert optionen[CONF_QUELLEN] == [SOLAR]
+    assert waermequelle.quellen_pruefen([SOLAR]) == [SOLAR]
 
 
 @pytest.mark.parametrize(
@@ -310,23 +308,20 @@ def test_eine_vollstaendige_quelle_bleibt_erhalten(flow):
         {"bedingung": {"art": "unfug", "quelle": "sensor.kollektor", "ein": 8}},
     ],
 )
-def test_eine_unvollstaendige_quelle_faellt_weg(flow, abweichung):
+def test_eine_unvollstaendige_quelle_faellt_weg(abweichung):
     """Eine Quelle ohne auswertbare Bedingung ergäbe eine Entität, die nie an ist."""
-    from custom_components.heatnexus.const import CONF_QUELLEN
+    from custom_components.heatnexus import waermequelle
 
-    optionen = flow.normalize_options({CONF_QUELLEN: [{**SOLAR, **abweichung}]})
-
-    assert optionen[CONF_QUELLEN] == []
+    assert waermequelle.quellen_pruefen([{**SOLAR, **abweichung}]) == []
 
 
-def test_mehr_quellen_als_das_schaubild_fasst_werden_abgeschnitten(flow):
-    from custom_components.heatnexus.const import CONF_QUELLEN, QUELLEN_MAX
+def test_mehr_quellen_als_das_schaubild_fasst_werden_abgeschnitten():
+    from custom_components.heatnexus import waermequelle
+    from custom_components.heatnexus.const import QUELLEN_MAX
 
     viele = [{**SOLAR, "id": f"q{i}"} for i in range(QUELLEN_MAX + 3)]
 
-    optionen = flow.normalize_options({CONF_QUELLEN: viele})
-
-    assert len(optionen[CONF_QUELLEN]) == QUELLEN_MAX
+    assert len(waermequelle.quellen_pruefen(viele)) == QUELLEN_MAX
 
 
 def test_die_bedingung_traegt_nur_bekannte_felder(flow):

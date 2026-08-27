@@ -158,35 +158,9 @@
         "data": {
           "zusatzwerte": "Werte"
         }
-      },
-      "quellen": {
-        "title": "Wärmequellen",
-        "description": "Wärmequellen, die nicht an der Steuerung hängen. Was soll geändert werden?"
-      },
-      "quelle": {
-        "title": "Wärmequelle",
-        "description": "Die Quelle erscheint im Schaubild von {anlage}. Die Bedingung entscheidet, wann sie Wärme liefert.",
-        "data": {
-          "name": "Name",
-          "art": "Bauart",
-          "bedingung_art": "Bedingung",
-          "quelle": "Entität",
-          "gegen": "Zweite Entität (nur bei Differenz)",
-          "ein": "Einschaltwert",
-          "aus": "Ausschaltwert",
-          "entfernen": "Diese Wärmequelle entfernen"
-        },
-        "data_description": {
-          "quelle": "Der Wert, der über die Quelle entscheidet.",
-          "ein": "Ab diesem Wert gilt die Quelle als liefernd.",
-          "aus": "Erst darunter gilt sie wieder als aus. Leer heißt: derselbe Wert."
-        }
       }
     },
-    "error": {
-      "name_fehlt": "Die Quelle braucht einen Namen.",
-      "bedingung_unvollstaendig": "Die Bedingung ist unvollständig. Schwelle und Differenz brauchen einen Einschaltwert, die Differenz zusätzlich eine zweite Entität."
-    }
+    "error": {}
   },
   "selector": {
     "levels": {
@@ -273,6 +247,51 @@
         "abort": {
           "nicht_geladen": "Die Anlage ist gerade nicht geladen. Bitte später erneut versuchen."
         }
+      }
+    }
+  },
+  "config_subentries": {
+    "waermequelle": {
+      "title": "Wärmequelle",
+      "entry_type": "Wärmequelle",
+      "initiate_flow": {
+        "user": "Wärmequelle hinzufügen",
+        "reconfigure": "Wärmequelle ändern"
+      },
+      "step": {
+        "user": {
+          "title": "Anlage",
+          "description": "Zu welcher Anlage gehört die Wärmequelle?",
+          "data": {
+            "host": "Anlage"
+          }
+        },
+        "quelle": {
+          "title": "Wärmequelle",
+          "description": "Die Quelle erscheint im Schaubild von {anlage}. Die Bedingung entscheidet, wann sie Wärme liefert.",
+          "data": {
+            "name": "Name",
+            "art": "Bauart",
+            "bedingung_art": "Bedingung",
+            "quelle": "Entität",
+            "gegen": "Zweite Entität (nur bei Differenz)",
+            "ein": "Einschaltwert",
+            "aus": "Ausschaltwert"
+          },
+          "data_description": {
+            "quelle": "Der Wert, der über die Quelle entscheidet.",
+            "ein": "Ab diesem Wert gilt die Quelle als liefernd.",
+            "aus": "Erst darunter gilt sie wieder als aus. Leer heißt: derselbe Wert."
+          }
+        }
+      },
+      "error": {
+        "name_fehlt": "Die Quelle braucht einen Namen.",
+        "bedingung_unvollstaendig": "Die Bedingung ist unvollständig. Schwelle und Differenz brauchen einen Einschaltwert, die Differenz zusätzlich eine zweite Entität."
+      },
+      "abort": {
+        "reconfigure_successful": "Die Wärmequelle wurde geändert.",
+        "zu_viele": "Mehr Wärmequellen fasst das Schaubild nicht."
       }
     }
   }

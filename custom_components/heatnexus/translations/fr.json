@@ -158,35 +158,9 @@
         "data": {
           "zusatzwerte": "Valeurs"
         }
-      },
-      "quellen": {
-        "title": "Sources de chaleur",
-        "description": "Sources de chaleur non reliées à la régulation. Que faut-il modifier ?"
-      },
-      "quelle": {
-        "title": "Source de chaleur",
-        "description": "La source apparaît dans le schéma de {anlage}. La condition détermine quand elle fournit de la chaleur.",
-        "data": {
-          "name": "Nom",
-          "art": "Type",
-          "bedingung_art": "Condition",
-          "quelle": "Entité",
-          "gegen": "Deuxième entité (différence uniquement)",
-          "ein": "Valeur d'enclenchement",
-          "aus": "Valeur de coupure",
-          "entfernen": "Supprimer cette source de chaleur"
-        },
-        "data_description": {
-          "quelle": "La valeur qui décide de la source.",
-          "ein": "À partir de cette valeur, la source est considérée comme fournissant.",
-          "aus": "Elle n'est de nouveau à l'arrêt qu'en dessous. Vide signifie la même valeur."
-        }
       }
     },
-    "error": {
-      "name_fehlt": "La source a besoin d'un nom.",
-      "bedingung_unvollstaendig": "La condition est incomplète. Le seuil et la différence exigent une valeur d'enclenchement, la différence en plus une deuxième entité."
-    }
+    "error": {}
   },
   "selector": {
     "levels": {
@@ -273,6 +247,51 @@
         "abort": {
           "nicht_geladen": "L'installation n'est pas chargée actuellement. Veuillez réessayer plus tard."
         }
+      }
+    }
+  },
+  "config_subentries": {
+    "waermequelle": {
+      "title": "Source de chaleur",
+      "entry_type": "Source de chaleur",
+      "initiate_flow": {
+        "user": "Ajouter une source de chaleur",
+        "reconfigure": "Modifier la source de chaleur"
+      },
+      "step": {
+        "user": {
+          "title": "Installation",
+          "description": "À quelle installation appartient la source de chaleur ?",
+          "data": {
+            "host": "Installation"
+          }
+        },
+        "quelle": {
+          "title": "Source de chaleur",
+          "description": "La source apparaît dans le schéma de {anlage}. La condition décide quand elle fournit de la chaleur.",
+          "data": {
+            "name": "Nom",
+            "art": "Type",
+            "bedingung_art": "Condition",
+            "quelle": "Entité",
+            "gegen": "Deuxième entité (différence uniquement)",
+            "ein": "Valeur d’enclenchement",
+            "aus": "Valeur de coupure"
+          },
+          "data_description": {
+            "quelle": "La valeur qui décide de la source.",
+            "ein": "À partir de cette valeur, la source est considérée comme fournissant.",
+            "aus": "Elle n’est à l’arrêt qu’en dessous. Vide signifie la même valeur."
+          }
+        }
+      },
+      "error": {
+        "name_fehlt": "La source a besoin d’un nom.",
+        "bedingung_unvollstaendig": "La condition est incomplète. Le seuil et la différence exigent une valeur d’enclenchement, la différence aussi une deuxième entité."
+      },
+      "abort": {
+        "reconfigure_successful": "La source de chaleur a été modifiée.",
+        "zu_viele": "Le schéma ne peut pas contenir plus de sources de chaleur."
       }
     }
   }
