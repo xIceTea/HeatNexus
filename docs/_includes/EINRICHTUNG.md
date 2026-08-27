@@ -132,6 +132,27 @@ Durchlauf nicht.
 | Zusatzwerte | Laufzeit, Zähler | Abgeleitete Werte, gruppenweise an- und abwählbar. |
 | Automations-Vorlagen | alle | Welche Blueprints mitgeliefert werden. |
 
+## Wärmequellen ohne Anschluss an die Steuerung
+
+Eine Solaranlage, ein Heizstab oder eine Fernwärmeübergabe meldet der
+Windhager-Steuerung nichts. Wer solche Werte in Home Assistant hat, hängt sie
+unter *Optionen → ‹Anlage› → Wärmequellen* ein — bis zu acht je Anlage.
+
+Je Quelle werden angegeben:
+
+- **Name** und **Bauart** (Solaranlage, Heizstab, Fernwärme oder sonstige
+  Quelle). Die Bauart wählt das Symbol und den Platz im Schaubild: Der Heizstab
+  liegt auf der Pufferzeichnung, alles Übrige bekommt einen eigenen Kasten.
+- **Bedingung**, wann die Quelle Wärme liefert — ein Zustand („an"), eine
+  Schwelle (ab diesem Wert) oder die Differenz zweier Entitäten, etwa Kollektor
+  minus Puffer.
+- **Ein- und Ausschaltwert** getrennt. Bleibt der Ausschaltwert leer, gilt
+  derselbe Wert für beides; im Grenzbereich flattert die Anzeige dann.
+
+Daraus entsteht je Quelle ein eigenes Gerät mit einer Entität
+*Wärmelieferung*. Sie erscheint im Schaubild, in der Übersicht der eigenen
+Oberfläche und lässt sich wie jede andere Entität in Automationen verwenden.
+
 ## Darstellung
 
 - **Sprache** der Bezeichnungen, die die Steuerung selbst führt. `Automatisch`
