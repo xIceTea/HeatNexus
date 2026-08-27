@@ -57,6 +57,26 @@ CONF_MARKEN_STATUS = "marken_status"
 MARKEN_MAX_KARTEN = 12
 MARKEN_MAX_ZEILEN = 30
 
+# Wärmequellen, die nicht an der Windhager-Steuerung hängen. Sie werden je
+# Anlage angelegt; ein Bedingungssatz entscheidet, wann sie Wärme liefern.
+CONF_QUELLEN = "quellen"
+
+QUELLE_SOLAR = "solar"
+QUELLE_HEIZSTAB = "heizstab"
+QUELLE_FREMD = "fremdquelle"
+QUELLEN_ARTEN = {
+    QUELLE_SOLAR: "Solaranlage",
+    QUELLE_HEIZSTAB: "Heizstab",
+    QUELLE_FREMD: "Fernwärme oder sonstige Quelle",
+}
+
+# Der Heizstab sitzt im Puffer und wird auf dessen Zeichnung gelegt; die
+# übrigen Arten bekommen einen eigenen Kasten neben der Anlage.
+QUELLE_IM_PUFFER = frozenset({QUELLE_HEIZSTAB})
+
+# Deckel gegen eine Liste, die das Schaubild nicht mehr fassen kann.
+QUELLEN_MAX = 8
+
 # Genau die beiden Datenpunkte, die die Steuerung selbst stellt (2/70 und
 # 2/72). Erkannt wird am Namen, nicht an der Adresse: Ein Feld mit Datum darin
 # ist noch lange kein Systemdatum – „Urlaubsprogramm bis" und die

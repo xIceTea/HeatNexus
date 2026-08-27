@@ -158,7 +158,34 @@
         "data": {
           "zusatzwerte": "Werte"
         }
+      },
+      "quellen": {
+        "title": "Wärmequellen",
+        "description": "Wärmequellen, die nicht an der Steuerung hängen. Was soll geändert werden?"
+      },
+      "quelle": {
+        "title": "Wärmequelle",
+        "description": "Die Quelle erscheint im Schaubild von {anlage}. Die Bedingung entscheidet, wann sie Wärme liefert.",
+        "data": {
+          "name": "Name",
+          "art": "Bauart",
+          "bedingung_art": "Bedingung",
+          "quelle": "Entität",
+          "gegen": "Zweite Entität (nur bei Differenz)",
+          "ein": "Einschaltwert",
+          "aus": "Ausschaltwert",
+          "entfernen": "Diese Wärmequelle entfernen"
+        },
+        "data_description": {
+          "quelle": "Der Wert, der über die Quelle entscheidet.",
+          "ein": "Ab diesem Wert gilt die Quelle als liefernd.",
+          "aus": "Erst darunter gilt sie wieder als aus. Leer heißt: derselbe Wert."
+        }
       }
+    },
+    "error": {
+      "name_fehlt": "Die Quelle braucht einen Namen.",
+      "bedingung_unvollstaendig": "Die Bedingung ist unvollständig. Schwelle und Differenz brauchen einen Einschaltwert, die Differenz zusätzlich eine zweite Entität."
     }
   },
   "selector": {

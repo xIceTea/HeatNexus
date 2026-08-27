@@ -158,7 +158,34 @@
         "data": {
           "zusatzwerte": "Valeurs"
         }
+      },
+      "quellen": {
+        "title": "Sources de chaleur",
+        "description": "Sources de chaleur non reliées à la régulation. Que faut-il modifier ?"
+      },
+      "quelle": {
+        "title": "Source de chaleur",
+        "description": "La source apparaît dans le schéma de {anlage}. La condition détermine quand elle fournit de la chaleur.",
+        "data": {
+          "name": "Nom",
+          "art": "Type",
+          "bedingung_art": "Condition",
+          "quelle": "Entité",
+          "gegen": "Deuxième entité (différence uniquement)",
+          "ein": "Valeur d'enclenchement",
+          "aus": "Valeur de coupure",
+          "entfernen": "Supprimer cette source de chaleur"
+        },
+        "data_description": {
+          "quelle": "La valeur qui décide de la source.",
+          "ein": "À partir de cette valeur, la source est considérée comme fournissant.",
+          "aus": "Elle n'est de nouveau à l'arrêt qu'en dessous. Vide signifie la même valeur."
+        }
       }
+    },
+    "error": {
+      "name_fehlt": "La source a besoin d'un nom.",
+      "bedingung_unvollstaendig": "La condition est incomplète. Le seuil et la différence exigent une valeur d'enclenchement, la différence en plus une deuxième entité."
     }
   },
   "selector": {

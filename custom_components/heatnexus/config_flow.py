@@ -35,6 +35,7 @@ from homeassistant.helpers.selector import (
 )
 import voluptuous as vol
 
+from . import bedingung
 from .blueprints import verfuegbare as verfuegbare_vorlagen
 from .client import WindhagerHttpClient
 from .const import (
@@ -61,6 +62,7 @@ from .const import (
     CONF_MELDUNG_EINLESEN,
     CONF_MODULPUMPE,
     CONF_PANEL,
+    CONF_QUELLEN,
     CONF_SPRACHE,
     CONF_STARTWERTE,
     CONF_SYSTEMS,
@@ -89,6 +91,9 @@ from .const import (
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
     NUR_BUS_JE_FCT,
+    QUELLE_SOLAR,
+    QUELLEN_ARTEN,
+    QUELLEN_MAX,
     SPRACHE_BESCHRIFTUNG,
     STARTWERTE_VORGABE,
     STARTWERTE_WAHL,
@@ -355,6 +360,57 @@ def gruppen_ableiten(kandidaten: list[dict], gewaehlt: list[str]) -> list[str]:
     return gruppen
 
 
+def quelle_id(vorhandene: list[dict[str, Any]]) -> str:
+    """Eine Kennung, die es noch nicht gibt.
+
+    Sie hängt an der Entität und darf sich nie wiederholen; beim Entfernen
+    einer Quelle rücken die übrigen deshalb nicht nach.
+    """
+    genommen = {str(q.get("id") or "") for q in vorhandene}
+    nummer = 1
+    while f"q{nummer}" in genommen:
+        nummer += 1
+    return f"q{nummer}"
+
+
+def quellen_pruefen(roh: Any) -> list[dict[str, Any]]:
+    """Gespeicherte Wärmequellen auf ihre Form bringen.
+
+    Eine Quelle ohne Kennung, Namen oder auswertbare Bedingung fällt weg —
+    sonst entstünde eine Entität, die nie etwas anderes als Nein sagen kann.
+    """
+    ergebnis: list[dict[str, Any]] = []
+    for eintrag in roh if isinstance(roh, list) else []:
+        if not isinstance(eintrag, Mapping):
+            continue
+        kennung = str(eintrag.get("id") or "").strip()
+        name = str(eintrag.get("name") or "").strip()
+        art = eintrag.get("art")
+        regel = eintrag.get("bedingung")
+        if not kennung or not name or art not in QUELLEN_ARTEN:
+            continue
+        if not isinstance(regel, Mapping) or not bedingung.vollstaendig(dict(regel)):
+            continue
+        ergebnis.append(
+            {"id": kennung, "name": name, "art": art, "bedingung": bedingung_pruefen(regel)}
+        )
+    return ergebnis[:QUELLEN_MAX]
+
+
+def bedingung_pruefen(roh: Mapping[str, Any]) -> dict[str, Any]:
+    """Nur die Felder übernehmen, die die Auswertung kennt."""
+    regel: dict[str, Any] = {"art": roh["art"], "quelle": str(roh["quelle"])}
+    if gegen := roh.get("gegen"):
+        regel["gegen"] = str(gegen)
+    for grenze in ("ein", "aus"):
+        wert = roh.get(grenze)
+        if wert is not None and str(wert) != "":
+            regel[grenze] = float(wert)
+    if zustaende := roh.get("zustaende"):
+        regel["zustaende"] = [str(z) for z in zustaende]
+    return regel
+
+
 def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
     """Eingaben zu den Bedienebenen prüfen und vereinheitlichen."""
     levels = [lvl for lvl in raw.get(CONF_LEVELS, DEFAULT_LEVELS) if lvl in ALL_LEVELS]
@@ -382,6 +438,7 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         CONF_MODULPUMPE: bool(raw.get(CONF_MODULPUMPE, False)),
         CONF_MARKEN: marken,
         CONF_MARKEN_STATUS: [k for k in marken if k in im_status],
+        CONF_QUELLEN: quellen_pruefen(raw.get(CONF_QUELLEN, [])),
     }
     if CONF_UPDATE_INTERVAL in raw:
         ergebnis[CONF_UPDATE_INTERVAL] = int(raw[CONF_UPDATE_INTERVAL])
@@ -677,6 +734,9 @@ class WindhagerOptionsFlow(OptionsFlow):
         # Anlage, Zugang und schon geprüfte Optionen, während der zweite
         # Schritt für die Einzelwerte offen ist.
         self._offen: tuple[str, str, dict[str, Any]] | None = None
+        # Welche Wärmequelle das offene Formular zeigt. Der Schritt heißt für
+        # alle gleich, damit seine Beschriftungen aus den Übersetzungen kommen.
+        self._quelle_index: int | None = None
 
     def _systeme(self) -> list[dict[str, Any]]:
         return self.config_entry.data.get(CONF_SYSTEMS, [])
@@ -692,6 +752,7 @@ class WindhagerOptionsFlow(OptionsFlow):
         for i, system in enumerate(systeme):
             bezeichnung = system.get(CONF_LABEL) or system[CONF_HOST]
             auswahl[f"anlage_{i}"] = f"{bezeichnung} ({system[CONF_HOST]})"
+            auswahl[f"quellen_{i}"] = f"{bezeichnung} — Wärmequellen"
         return self.async_show_menu(step_id="init", menu_options=auswahl)
 
     async def async_step_allgemein(
@@ -935,22 +996,28 @@ class WindhagerOptionsFlow(OptionsFlow):
         return list(getattr(getattr(coordinator, "client", None), "zusatzkandidaten", []) or [])
 
     def __getattr__(self, name: str):
-        """Schritt ``anlage_<n>`` zu jeder eingerichteten Anlage bereitstellen.
+        """Nummerierte Schritte des Menüs bereitstellen.
 
-        Das Menü führt eine Zeile je Anlage; feste Methoden würden die Zahl
-        der Anlagen künstlich begrenzen und bei einer mehr mit „unbekannter
+        Das Menü führt Zeilen je Anlage und je Wärmequelle; feste Methoden
+        würden deren Zahl begrenzen und bei einer mehr mit „unbekannter
         Schritt" abbrechen.
         """
-        if not name.startswith("async_step_anlage_"):
-            raise AttributeError(name)
-        rest = name.removeprefix("async_step_anlage_")
-        if not rest.isdigit():
-            raise AttributeError(name)
+        for praefix, ziel in (
+            ("async_step_anlage_", self._anlage),
+            ("async_step_quellen_", self._quellen),
+            ("async_step_bearbeiten_", self._quelle),
+        ):
+            if not name.startswith(praefix):
+                continue
+            rest = name.removeprefix(praefix)
+            if not rest.isdigit():
+                break
 
-        async def schritt(user_input=None) -> ConfigFlowResult:
-            return await self._anlage(int(rest), user_input)
+            async def schritt(user_input=None, _ziel=ziel, _index=int(rest)) -> ConfigFlowResult:
+                return await _ziel(_index, user_input)
 
-        return schritt
+            return schritt
+        raise AttributeError(name)
 
     async def _anlage(self, index: int, user_input) -> ConfigFlowResult:
         """Menüauswahl auf den gemeinsamen Schritt lenken."""
@@ -958,3 +1025,131 @@ class WindhagerOptionsFlow(OptionsFlow):
         if index < len(systeme):
             self._host = systeme[index][CONF_HOST]
         return await self.async_step_system(user_input)
+
+    # -----------------------------------------------------------------
+    # Wärmequellen ohne Anschluss an die Steuerung
+    # -----------------------------------------------------------------
+    def _quellen_liste(self) -> list[dict[str, Any]]:
+        """Die Wärmequellen der gerade gewählten Anlage."""
+        je_anlage = self.config_entry.options.get(self._host or "") or {}
+        return list(je_anlage.get(CONF_QUELLEN, []))
+
+    async def _quellen(self, index: int, user_input=None) -> ConfigFlowResult:
+        """Menü über die Wärmequellen einer Anlage."""
+        systeme = self._systeme()
+        if index < len(systeme):
+            self._host = systeme[index][CONF_HOST]
+        quellen = self._quellen_liste()
+        auswahl = {
+            f"bearbeiten_{i}": f"{q['name']} ({QUELLEN_ARTEN.get(q['art'], q['art'])})"
+            for i, q in enumerate(quellen)
+        }
+        if len(quellen) < QUELLEN_MAX:
+            auswahl["neu"] = "Neue Wärmequelle anlegen"
+        return self.async_show_menu(step_id="quellen", menu_options=auswahl)
+
+    async def async_step_neu(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Eine Wärmequelle anlegen."""
+        return await self._quelle(None, user_input)
+
+    async def async_step_quelle(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Das abgesendete Formular derselben Quelle wieder zuordnen."""
+        return await self._quelle(self._quelle_index, user_input)
+
+    async def _quelle(self, index: int | None, user_input=None) -> ConfigFlowResult:
+        """Eine Wärmequelle anlegen, ändern oder entfernen."""
+        host = self._host or ""
+        self._quelle_index = index
+        quellen = self._quellen_liste()
+        vorhanden = quellen[index] if index is not None and index < len(quellen) else {}
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            neue, errors = self._quelle_uebernehmen(quellen, vorhanden, user_input)
+            if not errors:
+                options = dict(self.config_entry.options)
+                options[host] = {**(options.get(host) or {}), CONF_QUELLEN: quellen_pruefen(neue)}
+                return self.async_create_entry(data=options)
+
+        regel = dict(vorhanden.get("bedingung") or {})
+        schema = vol.Schema(
+            {
+                vol.Required("name", default=vorhanden.get("name", "")): str,
+                vol.Required("art", default=vorhanden.get("art", QUELLE_SOLAR)): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            SelectOptionDict(value=kennung, label=text)
+                            for kennung, text in QUELLEN_ARTEN.items()
+                        ],
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(
+                    "bedingung_art", default=regel.get("art", bedingung.ART_ZUSTAND)
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            SelectOptionDict(value=kennung, label=text)
+                            for kennung, text in bedingung.ARTEN_BESCHRIFTUNG.items()
+                        ],
+                        mode=SelectSelectorMode.LIST,
+                    )
+                ),
+                vol.Required(
+                    "quelle", description={"suggested_value": regel.get("quelle")}
+                ): EntitySelector(),
+                vol.Optional(
+                    "gegen", description={"suggested_value": regel.get("gegen")}
+                ): EntitySelector(),
+                vol.Optional("ein", description={"suggested_value": regel.get("ein")}): (
+                    NumberSelector(NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any"))
+                ),
+                vol.Optional("aus", description={"suggested_value": regel.get("aus")}): (
+                    NumberSelector(NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any"))
+                ),
+            }
+        )
+        if vorhanden:
+            schema = schema.extend({vol.Required("entfernen", default=False): bool})
+
+        system = next((s for s in self._systeme() if s[CONF_HOST] == host), {})
+        return self.async_show_form(
+            step_id="quelle",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={"anlage": system.get(CONF_LABEL) or host},
+        )
+
+    def _quelle_uebernehmen(
+        self,
+        quellen: list[dict[str, Any]],
+        vorhanden: dict[str, Any],
+        user_input: dict[str, Any],
+    ) -> tuple[list[dict[str, Any]], dict[str, str]]:
+        """Die Eingabe in die Liste einarbeiten, oder die Fehler nennen."""
+        if user_input.get("entfernen") and vorhanden:
+            return [q for q in quellen if q.get("id") != vorhanden.get("id")], {}
+
+        name = (user_input.get("name") or "").strip()
+        if not name:
+            return quellen, {"name": "name_fehlt"}
+
+        regel = {
+            "art": user_input.get("bedingung_art"),
+            "quelle": user_input.get("quelle"),
+            "gegen": user_input.get("gegen"),
+            "ein": user_input.get("ein"),
+            "aus": user_input.get("aus"),
+        }
+        if not bedingung.vollstaendig(regel):
+            return quellen, {"base": "bedingung_unvollstaendig"}
+
+        eintrag = {
+            "id": vorhanden.get("id") or quelle_id(quellen),
+            "name": name,
+            "art": user_input.get("art", QUELLE_SOLAR),
+            "bedingung": bedingung_pruefen(regel),
+        }
+        if any(q.get("id") == eintrag["id"] for q in quellen):
+            return [eintrag if q.get("id") == eintrag["id"] else q for q in quellen], {}
+        return [*quellen, eintrag], {}
