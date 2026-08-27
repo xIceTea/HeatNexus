@@ -448,6 +448,7 @@ def test_die_labelkarte_steht_in_der_uebersicht(durchlauf):
     """Sie hängt an der Anlage; global geführt erschiene sie an jeder."""
     assert "Solarthermie" in durchlauf["uebersicht"]["titel"]
 
+
 # Der Rückfragedialog mit mehreren Zahlenfeldern: Leistung und Laufzeit gelten
 # beide für die ganze Abgasmessung.
 DIALOG = Path(__file__).parent / "js" / "kaminkehrer-dialog.mjs"
