@@ -11,12 +11,16 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Kaminkehrer und Lagerraumbefüllung fragen vor dem Beenden zurück.
+- Wärmequellen ohne Anschluss an die Steuerung lassen sich anlegen.
+- Solaranlage, Heizstab und Fernwärme erscheinen im Schaubild und in der Übersicht.
 
 ### Behoben
 
 - Ein geschalteter Wert erscheint sofort statt erst im nächsten Takt.
 - Betriebswahl und Kaminkehrer-Restlaufzeit erscheinen im schnellen Takt.
 - Beim laufenden Kaminkehrer nennt die Kachel den nächsten Druck als Beenden.
+
+- Die Anschlüsse des Warmwasserspeichers sitzen am Körper statt daneben.
 
 ## [1.11.0] - 2026-08-24
 

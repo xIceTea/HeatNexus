@@ -16,7 +16,7 @@ import contextlib
 import re
 from typing import Any
 
-from ..const import FCT_BUFFER, FCT_ZSP
+from ..const import FCT_BUFFER, FCT_ZSP, QUELLEN_SYMBOLE
 from ..dashboard import (
     WARTUNG_RESTLAUFZEIT,
     WARTUNG_RESTLAUFZEIT_SCHLUESSEL,
@@ -46,6 +46,7 @@ from .muster import (
     KAMINKEHRER_LEISTUNG,
     KENNWERT,
     KENNWERT_JE_FCT,
+    KENNWERT_QUELLE,
     KESSEL_BEDIENUNG,
     LAGERRAUM_ANFORDERN,
     LAGERRAUM_ZEILEN,
@@ -654,6 +655,21 @@ def _anlage_daten(
         # Anforderung, die es nie geben wird.
         if teil.get("fct_type") == FCT_ZSP and not modul_in_betrieb(teil["entitaeten"]):
             continue
+        # Eine Wärmequelle hat keinen Funktionstyp und kein Namensmuster der
+        # Baureihe; ihre Zeile zeigt, ob sie gerade Wärme liefert.
+        if (art := teil.get("art")) in QUELLEN_SYMBOLE:
+            muster, beschriftung, _, schluessel = KENNWERT_QUELLE
+            if (treffer := _erster(teil["entitaeten"], muster, *schluessel)) is not None:
+                kennwerte.append(
+                    {
+                        "entity": treffer["entity_id"],
+                        "titel": teil["name"],
+                        "untertitel": beschriftung,
+                        "symbol": QUELLEN_SYMBOLE[art],
+                    }
+                )
+            continue
+
         vorlage = KENNWERT_JE_FCT.get(teil.get("fct_type")) or KENNWERT
         gefunden = False
         for muster, beschriftung, symbol, schluessel in vorlage:

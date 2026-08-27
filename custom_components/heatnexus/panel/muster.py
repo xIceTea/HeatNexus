@@ -54,6 +54,9 @@ KENNWERT_JE_FCT: dict[int, tuple[Zeile, ...]] = {
 }
 
 # Rückfall für Funktionstypen ohne eigene Liste.
+# Eine Wärmequelle meldet keinen Messwert, sondern ob sie gerade liefert.
+KENNWERT_QUELLE: Zeile = (r"wärmelieferung", "Wärme", "mdi:heat-wave", ())
+
 KENNWERT: tuple[Zeile, ...] = (
     (r"kesseltemperatur ist", "Kesseltemperatur", "mdi:fire", ("boiler_temperature",)),
     (r"puffer oben", "Puffer oben", "mdi:storage-tank", ("buffer_top",)),

@@ -912,3 +912,37 @@ async def test_ohne_rechte_bleibt_der_abzug_leer(hass, panel):
 
     assert panel.panel_daten(hass)["anlagen"], "Vorbedingung: mit Rechten steht die Anlage da"
     assert panel.panel_daten(hass, OhneRecht())["anlagen"] == []
+
+
+# ---------------------------------------------------------------------------
+# Wärmequellen ohne Anschluss an die Steuerung
+# ---------------------------------------------------------------------------
+def quelle(name: str, art: str):
+    """Ein Anlagenteil, das seine Bauart statt eines Funktionstyps trägt."""
+    eintrag = teil(name, None, [entitaet("binary_sensor.q_waerme", "Wärmelieferung")])
+    eintrag["art"] = art
+    return eintrag
+
+
+def test_eine_waermequelle_bekommt_ihre_zeile(panel):
+    daten = panel._anlage_daten(anlage(quelle("Solaranlage", "solar")))
+
+    zeilen = daten["kennwerte"]
+    assert [z["titel"] for z in zeilen] == ["Solaranlage"]
+    assert zeilen[0]["untertitel"] == "Wärme"
+    assert zeilen[0]["entity"] == "binary_sensor.q_waerme"
+
+
+def test_jede_bauart_bringt_ihr_eigenes_symbol(panel):
+    solar = panel._anlage_daten(anlage(quelle("Solaranlage", "solar")))["kennwerte"][0]
+    stab = panel._anlage_daten(anlage(quelle("Heizstab", "heizstab")))["kennwerte"][0]
+
+    assert solar["symbol"] != stab["symbol"]
+
+
+def test_ohne_lieferungsmeldung_bleibt_die_zeile_weg(panel):
+    """Eine Quelle ohne ihre Entität darf keine leere Zeile erzeugen."""
+    ohne = quelle("Solaranlage", "solar")
+    ohne["entitaeten"] = []
+
+    assert panel._anlage_daten(anlage(ohne))["kennwerte"] == []
