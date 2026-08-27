@@ -407,6 +407,24 @@ async def test_das_quellenmenue_zeigt_jede_quelle_und_den_weg_zur_neuen(flow, mo
     assert "neu" in auswahl
 
 
+async def test_jedes_menue_nennt_einen_schritt_den_es_gibt(flow, monkeypatch):
+    """Home Assistant weist ein Menü ab, dessen Schritt keine Methode hat."""
+    optionen = _dialog(flow, monkeypatch, quellen=[SOLAR])
+    gezeigt: list[str] = []
+    monkeypatch.setattr(
+        type(optionen),
+        "async_show_menu",
+        lambda _self, step_id, menu_options: gezeigt.append(step_id) or menu_options,
+    )
+
+    await optionen.async_step_init()
+    await optionen.async_step_quellen_0()
+
+    assert gezeigt == ["init", "quellen"]
+    for schritt in gezeigt:
+        assert callable(getattr(optionen, f"async_step_{schritt}", None))
+
+
 async def test_ohne_platz_entfaellt_der_weg_zur_neuen_quelle(flow, monkeypatch):
     from custom_components.heatnexus.const import QUELLEN_MAX
 

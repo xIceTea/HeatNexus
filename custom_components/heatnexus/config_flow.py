@@ -737,6 +737,9 @@ class WindhagerOptionsFlow(OptionsFlow):
         # Welche Wärmequelle das offene Formular zeigt. Der Schritt heißt für
         # alle gleich, damit seine Beschriftungen aus den Übersetzungen kommen.
         self._quelle_index: int | None = None
+        # Welche Anlage das offene Quellenmenü führt. Home Assistant ruft den
+        # Schritt beim Zurückkehren ohne Nummer auf.
+        self._quellen_index: int = 0
 
     def _systeme(self) -> list[dict[str, Any]]:
         return self.config_entry.data.get(CONF_SYSTEMS, [])
@@ -1039,6 +1042,7 @@ class WindhagerOptionsFlow(OptionsFlow):
         systeme = self._systeme()
         if index < len(systeme):
             self._host = systeme[index][CONF_HOST]
+        self._quellen_index = index
         quellen = self._quellen_liste()
         auswahl = {
             f"bearbeiten_{i}": f"{q['name']} ({QUELLEN_ARTEN.get(q['art'], q['art'])})"
@@ -1047,6 +1051,16 @@ class WindhagerOptionsFlow(OptionsFlow):
         if len(quellen) < QUELLEN_MAX:
             auswahl["neu"] = "Neue Wärmequelle anlegen"
         return self.async_show_menu(step_id="quellen", menu_options=auswahl)
+
+    async def async_step_quellen(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Das Menü der Wärmequellen zur zuletzt gewählten Anlage.
+
+        Home Assistant prüft, ob es zu einem gezeigten Schritt eine Methode
+        gibt, und weist das Menü sonst ab.
+        """
+        return await self._quellen(self._quellen_index, user_input)
 
     async def async_step_neu(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Eine Wärmequelle anlegen."""
