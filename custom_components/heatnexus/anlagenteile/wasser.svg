@@ -35,11 +35,11 @@
       stroke="{{rahmen}}" stroke-width="1" opacity="0.7"/>
 
 <!-- Anschlussstutzen rechts: Warmwasser oben hinaus, Kaltwasser unten hinein.
-     Sie beginnen innerhalb des Koerpers und enden buendig mit dem Daemmmantel,
-     damit sie am Speicher sitzen und nicht daneben schweben. -->
+     Sie sitzen im geraden Teil des Zylinders (y 172 bis 244); an der Kalotte
+     haengen sie neben der Wand in der Luft. -->
 <g fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.5">
-  <rect x="142" y="153" width="18" height="9" rx="2.5"/>
-  <rect x="142" y="253" width="18" height="9" rx="2.5"/>
+  <rect x="142" y="178" width="19" height="9" rx="2.5"/>
+  <rect x="142" y="228" width="19" height="9" rx="2.5"/>
 </g>
 
 <!-- Speicherkoerper, oben und unten gewoelbt. Fuellung als Platzhalter,

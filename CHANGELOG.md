@@ -18,7 +18,8 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Ein geschalteter Wert erscheint sofort statt erst im nächsten Takt.
 - Betriebswahl und Kaminkehrer-Restlaufzeit erscheinen im schnellen Takt.
-- Beim laufenden Kaminkehrer nennt die Kachel den nächsten Druck als Beenden.
+- Beim laufenden Kaminkehrer nennt die Kachel den nächsten Druck als Beenden.
+- Die Anschlüsse des Warmwasserspeichers sitzen am Körper statt daneben.
 
 - Die Anschlüsse des Warmwasserspeichers sitzen am Körper statt daneben.
 
