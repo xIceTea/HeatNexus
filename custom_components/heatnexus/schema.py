@@ -30,6 +30,7 @@ import re
 from typing import Any
 
 from . import geraete
+from .const import QUELLEN_ARTEN
 from .symbole import symbol_fuer_wert, symbol_je_fct
 
 # Maße des Schaubilds. Die Karte skaliert es auf ihre Breite, die Angaben
@@ -335,7 +336,7 @@ ALLE_ARTEN = set(ART_JE_FCT.values()) | {"zirkulation", ART_UNBEKANNT}
 # Wer Wärme erzeugt, strömt andersherum als wer sie abnimmt: Beim Kessel kommt
 # das kalte Wasser von unten herauf und das heiße verlässt ihn nach oben in den
 # Vorlauf. Der Puffer entscheidet es je Zustand und steht deshalb nicht hier.
-ERZEUGER_ARTEN = {"kessel", "solar"}
+ERZEUGER_ARTEN = {"kessel", "solar"} | set(QUELLEN_ARTEN)
 
 
 def _art(fct_type: Any) -> str:
@@ -611,7 +612,9 @@ def _module(
     """
     module: list[dict[str, Any]] = []
     for teil in teile:
-        art = _art(teil.get("fct_type"))
+        # Eine Wärmequelle bringt ihre Bauart selbst mit; sie hat keinen
+        # Funktionstyp, weil sie nicht an der Steuerung hängt.
+        art = teil.get("art") or _art(teil.get("fct_type"))
         kennung = teil_kennung(teil)
         if kennung in set(teile_aus or ()):
             continue
@@ -629,7 +632,9 @@ def _module(
         # `modul_in_betrieb`.
         if art == "pumpenmodul" and not modul_in_betrieb(teil["entitaeten"]):
             continue
-        if werte or art == "pumpenmodul":
+        # Eine Wärmequelle wird auch ohne Messwert gezeichnet: Dass sie in der
+        # Anlage steht, ist die Aussage; ob sie liefert, sagt ihre Lampe.
+        if werte or art == "pumpenmodul" or art in QUELLEN_ARTEN:
             module.append(
                 {
                     "kennung": kennung,
@@ -940,6 +945,8 @@ KANTEN_JE_ART: dict[str, tuple[int, int]] = {
     "solar": (158, 244),
     "umschaltung": (132, 284),
     "modul": (132, 280),
+    "heizstab": (150, 270),
+    "fremdquelle": (152, 264),
 }
 KANTEN_STANDARD = (126, 288)
 

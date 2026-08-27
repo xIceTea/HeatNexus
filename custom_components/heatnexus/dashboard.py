@@ -30,7 +30,7 @@ from homeassistant.helpers import entity_registry as er
 import voluptuous as vol
 import yaml
 
-from . import geraete
+from . import geraete, waermequelle
 from .const import (
     CONF_KESSELART,
     CONF_KESSELWERT,
@@ -41,6 +41,8 @@ from .const import (
     KARTE_ELEMENT,
     KESSELART_AUTO,
     KESSELWERT_LEISTUNG,
+    QUELLEN_RANG,
+    QUELLEN_SYMBOLE,
 )
 from .kanonisch import gnmn, ist_ableitung
 from .kanonisch import schluessel as kanonischer_schluessel
@@ -275,16 +277,20 @@ def _kurzname(name: str | None) -> str:
     return (name or "").split(" · ")[-1].strip()
 
 
-def _rang(fct_type: Any) -> int:
+def _rang(fct_type: Any, art: str | None = None) -> int:
     """Platz eines Anlagenteils in der fachlichen Reihenfolge."""
+    if art in QUELLEN_RANG:
+        return QUELLEN_RANG[art]
     try:
         return FCT_RANG.get(int(fct_type), RANG_UNBEKANNT)
     except (TypeError, ValueError):
         return RANG_UNBEKANNT
 
 
-def _symbol(fct_type: Any) -> str:
+def _symbol(fct_type: Any, art: str | None = None) -> str:
     """Symbol eines Anlagenteils."""
+    if art in QUELLEN_SYMBOLE:
+        return QUELLEN_SYMBOLE[art]
     return symbol_je_fct(fct_type)
 
 
@@ -335,6 +341,23 @@ def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
     return zuordnung
 
 
+def _quellenart_je_geraet(hass: HomeAssistant) -> dict[str, str]:
+    """Bauart je Gerätekennung der Wärmequellen.
+
+    Sie stehen in den Optionen, nicht im Abzug der Anlage, und tragen deshalb
+    keinen Funktionstyp.
+    """
+    zuordnung: dict[str, str] = {}
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        eintrag = getattr(entry, "runtime_data", None)
+        if not isinstance(eintrag, dict):
+            continue
+        for coordinator in (eintrag.get("coordinators") or {}).values():
+            for beschreibung in waermequelle.beschreibungen(entry, coordinator):
+                zuordnung.setdefault(beschreibung["id"], beschreibung["art"])
+    return zuordnung
+
+
 # Vorgabe, solange eine Anlage noch keine eigene Wahl gespeichert hat.
 _SCHAUBILD_STANDARD = (KESSELART_AUTO, KESSELWERT_LEISTUNG, False)
 
@@ -376,6 +399,7 @@ def _anlagen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:
     geraete_registry = dr.async_get(hass)
     entitaeten_registry = er.async_get(hass)
     fct_je_geraet = _fct_je_geraet(hass)
+    quellenart_je_geraet = _quellenart_je_geraet(hass)
     schaubildwahl_je_geraet = _schaubildwahl_je_geraet(hass)
 
     teile: dict[str, dict[str, Any]] = {}
@@ -384,13 +408,15 @@ def _anlagen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:
         if kennung is None:
             continue
         fct = fct_je_geraet.get(kennung)
+        art = quellenart_je_geraet.get(kennung)
         teile[geraet.id] = {
             "name": _kurzname(geraet.name_by_user or geraet.name),
             "id": geraet.id,
             "anlage_id": geraet.via_device_id,
             "fct_type": fct,
-            "rang": _rang(fct),
-            "symbol": _symbol(fct),
+            "art": art,
+            "rang": _rang(fct, art),
+            "symbol": _symbol(fct, art),
             "kesselart_wahl": schaubildwahl_je_geraet.get(kennung, _SCHAUBILD_STANDARD)[0],
             "kesselwert_wahl": schaubildwahl_je_geraet.get(kennung, _SCHAUBILD_STANDARD)[1],
             "modulpumpe_wahl": schaubildwahl_je_geraet.get(kennung, _SCHAUBILD_STANDARD)[2],

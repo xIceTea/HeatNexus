@@ -1332,3 +1332,57 @@ def test_wer_weder_passt_noch_traegt_bleibt_draussen(schema):
     fremd = {"name": "Kesseltemperatur Ist", "schluessel": "boiler_temperature"}
 
     assert schema.treffer([fremd], AUSSEN_MUSTER, "outdoor_temperature") == []
+
+
+# ---------------------------------------------------------------------------
+# Wärmequellen ohne Anschluss an die Steuerung
+# ---------------------------------------------------------------------------
+def _quelle(name: str, art: str) -> dict:
+    """Ein Anlagenteil, das seine Bauart selbst mitbringt."""
+    return {
+        "name": name,
+        "fct_type": None,
+        "art": art,
+        "entitaeten": [
+            {
+                "entity_id": "binary_sensor.solar_waermelieferung",
+                "name": "Wärmelieferung",
+                "hat_wert": True,
+                "bereich": "binary_sensor",
+            }
+        ],
+    }
+
+
+@pytest.mark.parametrize("art", ["solar", "heizstab", "fremdquelle"])
+def test_eine_quelle_wird_ohne_messwert_gezeichnet(schema, art):
+    """Dass die Quelle in der Anlage steht, ist die Aussage."""
+    module = schema._module([_quelle("Solaranlage", art)])
+
+    assert [m["art"] for m in module] == [art]
+
+
+def test_die_bauart_der_quelle_sticht_den_funktionstyp(schema):
+    teil = {**_quelle("Heizstab", "heizstab"), "fct_type": 16}
+
+    module = schema._module([teil])
+
+    assert module[0]["art"] == "heizstab"
+
+
+@pytest.mark.parametrize("art", ["heizstab", "fremdquelle"])
+def test_jede_bauart_hat_ihre_zeichnung(schema, art):
+    assert f"{art}.svg" in schema.BAUTEILE
+
+
+def test_eine_quelle_speist_ein_statt_abzunehmen(schema):
+    """Die Strömung läuft von der Quelle weg, nicht zu ihr hin."""
+    assert {"heizstab", "fremdquelle", "solar"} <= schema.ERZEUGER_ARTEN
+
+
+def test_das_schaubild_zeigt_die_quelle_neben_der_anlage(schema, anlage):
+    bild = schema.anlagenschema([*anlage, _quelle("Heizstab", "heizstab")])
+
+    assert bild is not None
+    roh = base64.b64decode(bild["image"].split(",", 1)[1]).decode("utf-8")
+    assert "Heizstab" in roh

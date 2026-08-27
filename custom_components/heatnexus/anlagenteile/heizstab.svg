@@ -1,0 +1,30 @@
+<defs>
+  <linearGradient id="heizstab-kasten" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+</defs>
+
+<!-- Anschlusskasten: der Heizstab hängt am Stromnetz, nicht am Kessel -->
+<rect x="72" y="150" width="56" height="34" rx="6" fill="url(#heizstab-kasten)"
+      stroke="{{rahmen}}" stroke-width="2"/>
+<g stroke="{{rahmen}}" stroke-width="2" stroke-linecap="round">
+  <line x1="86" y1="150" x2="86" y2="138"/>
+  <line x1="114" y1="150" x2="114" y2="138"/>
+</g>
+<path d="M 104 158 L 94 170 L 101 170 L 96 180 L 108 166 L 100 166 Z"
+      fill="{{glut}}" opacity="0.9"/>
+
+<!-- Einschraubflansch -->
+<rect x="64" y="184" width="72" height="14" rx="3" fill="{{korpus_dunkel}}"
+      stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Heizwendel im Wasser -->
+<g stroke="{{glut}}" stroke-width="7" fill="none" stroke-linecap="round">
+  <path d="M 82 198 L 82 240 Q 82 254 94 254 Q 106 254 106 240 L 106 198"/>
+  <path d="M 94 198 L 94 226 Q 94 238 106 238 Q 118 238 118 226 L 118 198"/>
+</g>
+<g stroke="{{warm}}" stroke-width="2" fill="none" opacity="0.55">
+  <path d="M 70 262 Q 78 254 86 262 Q 94 270 102 262"/>
+  <path d="M 96 274 Q 104 266 112 274 Q 120 282 128 274"/>
+</g>

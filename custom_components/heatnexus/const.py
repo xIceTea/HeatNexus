@@ -77,6 +77,17 @@ QUELLE_IM_PUFFER = frozenset({QUELLE_HEIZSTAB})
 # Deckel gegen eine Liste, die das Schaubild nicht mehr fassen kann.
 QUELLEN_MAX = 8
 
+# Platz im Schaubild und in der Geräteliste. Die Solaranlage steht neben der
+# gleichnamigen Windhager-Funktion, der Heizstab beim Puffer, alles Übrige
+# hinter dem Kessel.
+QUELLEN_RANG = {QUELLE_SOLAR: 44, QUELLE_HEIZSTAB: 22, QUELLE_FREMD: 16}
+
+QUELLEN_SYMBOLE = {
+    QUELLE_SOLAR: "mdi:solar-power-variant",
+    QUELLE_HEIZSTAB: "mdi:heating-coil",
+    QUELLE_FREMD: "mdi:heat-wave",
+}
+
 # Genau die beiden Datenpunkte, die die Steuerung selbst stellt (2/70 und
 # 2/72). Erkannt wird am Namen, nicht an der Adresse: Ein Feld mit Datum darin
 # ist noch lange kein Systemdatum – „Urlaubsprogramm bis" und die

@@ -1,0 +1,32 @@
+<defs>
+  <linearGradient id="fremdquelle-gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+</defs>
+
+<!-- Übergabestation: eine Wärmequelle außerhalb der Anlage speist ein -->
+<rect x="50" y="152" width="100" height="112" rx="10" fill="url(#fremdquelle-gehaeuse)"
+      stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Wärmetauscher: gestapelte Platten -->
+<g stroke="{{rahmen}}" stroke-width="2" opacity="0.5">
+  <line x1="66" y1="176" x2="134" y2="176"/>
+  <line x1="66" y1="190" x2="134" y2="190"/>
+  <line x1="66" y1="204" x2="134" y2="204"/>
+  <line x1="66" y1="218" x2="134" y2="218"/>
+</g>
+
+<!-- Der warme Strang von außen -->
+<g stroke="{{warm}}" stroke-width="5" fill="none" stroke-linecap="round">
+  <path d="M 28 196 L 50 196"/>
+</g>
+<g stroke="{{kalt}}" stroke-width="5" fill="none" stroke-linecap="round">
+  <path d="M 28 222 L 50 222"/>
+</g>
+
+<!-- Wärme, die im Tauscher übergeht -->
+<g stroke="{{glut}}" stroke-width="3" fill="none" opacity="0.75" stroke-linecap="round">
+  <path d="M 78 240 Q 86 230 94 240 Q 102 250 110 240"/>
+  <path d="M 86 252 Q 94 242 102 252 Q 110 262 118 252"/>
+</g>
