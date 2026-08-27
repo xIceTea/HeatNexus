@@ -89,7 +89,10 @@ export const SchaubildMixin = (Basis) =>
         : null;
     const waermer =
       kessel === null || bezug === null ? true : kessel > bezug + (Number(eintrag.toleranz) || 0);
-    const laedt = pumpe && waermer;
+    // Eine Wärmequelle ohne Anschluss an die Steuerung führt Wärme zu, ohne
+    // dass die Ladepumpe läuft. Liefert sie, lädt der Speicher.
+    const quelle = (eintrag.quellen || []).some((e) => this._istAn(e));
+    const laedt = (pumpe && waermer) || quelle;
     return { laedt, zieht: (eintrag.entnahme || []).some((e) => this._foerdert(e)) };
   }
 
@@ -394,9 +397,13 @@ export const SchaubildMixin = (Basis) =>
           wert = this._zahl(eintrag.ersatz);
           schwelle = Number(eintrag.ersatz_min) || 0;
         }
-        const an = wert !== null && wert > schwelle;
+        // Eine Wärmequelle meldet keinen Messwert, sondern ihren Zustand.
+        const an =
+          wert !== null ? wert > schwelle : eintrag.entity ? this._istAn(eintrag.entity) : false;
         lampe.classList.toggle("an", an);
-        if (eintrag.zweck === "erzeuger") {
+        if (eintrag.zweck === "quelle") {
+          lampe.title = `${eintrag.titel} – ${an ? "liefert Wärme" : "liefert nicht"}`;
+        } else if (eintrag.zweck === "erzeuger") {
           lampe.title = `${eintrag.titel} – ${an ? "in Betrieb" : "aus"}`;
         } else {
           lampe.title = an

@@ -15,6 +15,9 @@
 <path d="M 104 158 L 94 170 L 101 170 L 96 180 L 108 166 L 100 166 Z"
       fill="{{glut}}" opacity="0.9"/>
 
+<!-- Betriebslampe: leuchtet, solange die Quelle liefert -->
+<circle data-lampe="1" cx="120" cy="158" r="5" fill="{{glut}}" opacity="0.85"/>
+
 <!-- Einschraubflansch -->
 <rect x="64" y="184" width="72" height="14" rx="3" fill="{{korpus_dunkel}}"
       stroke="{{rahmen}}" stroke-width="2"/>

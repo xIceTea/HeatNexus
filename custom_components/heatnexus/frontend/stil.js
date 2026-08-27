@@ -608,12 +608,15 @@ export const STIL = `
   /* Am Wärmeerzeuger pulst die Lampe langsamer: Sie steht für den laufenden
      Betrieb, nicht für eine anliegende Anforderung. */
   .schaubild .lampe.erzeuger.an { animation: lampe-blinken 2.6s ease-in-out infinite; }
+  /* Eine Wärmequelle pulst wie ein Erzeuger: Sie liefert, sie fordert nicht an. */
+  .schaubild .lampe.quelle.an { animation: lampe-blinken 2.6s ease-in-out infinite; }
   @keyframes lampe-blinken {
     0%, 100% { opacity: 0.45; }
     50% { opacity: 1; }
   }
   @media (prefers-reduced-motion: reduce) {
     .schaubild .lampe.klemme.an,
+    .schaubild .lampe.quelle.an,
     .schaubild .lampe.erzeuger.an { animation: none; opacity: 1; }
   }
   @keyframes glimmen {

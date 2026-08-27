@@ -14,6 +14,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Wärmequellen ohne Anschluss an die Steuerung lassen sich anlegen.
 - Solaranlage, Heizstab und Fernwärme erscheinen im Schaubild und in der Übersicht.
 - Der Kaminkehrer fragt Leistung und Laufzeit in einer Rückfrage ab.
+- Eine Wärmequelle lässt ihre Leitung strömen und ihre Lampe leuchten.
+- Der Puffer zeigt „lädt", solange eine Wärmequelle liefert.
 
 ### Behoben
 

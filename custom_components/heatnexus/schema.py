@@ -219,6 +219,10 @@ BRENNKAMMER_IST = r"brennerkammertemperatur|brennkammertemperatur"
 ANALOG_SOLLWERT = r"^analog[- ]sollwert$"
 KESSELLEISTUNG_IST = r"kesselleistung"
 
+# Eine Wärmequelle meldet keinen Messwert, sondern ob sie gerade liefert.
+# Daran hängen ihre Lampe und der Fluss in ihrer Stichleitung.
+LIEFERUNG = r"wärmelieferung"
+
 # Unter dieser Temperatur glimmt nichts, darüber wird es voll.
 BRENNKAMMER_KALT = 100
 BRENNKAMMER_HEISS = 500
@@ -650,6 +654,14 @@ def _module(
                         if modulpumpe or art != "pumpenmodul"
                         else None
                     ),
+                    # Die Wärmelieferung tritt bei einer Quelle an die Stelle der
+                    # Pumpe: An ihr hängen Lampe und Fluss. Gezeichnet wird kein
+                    # Laufrad – dort sitzt keine Pumpe.
+                    "lieferung": (
+                        e["entity_id"]
+                        if art in QUELLEN_ARTEN and (e := _finde(teil["entitaeten"], LIEFERUNG))
+                        else None
+                    ),
                     "mischer": _mischer(teil["entitaeten"]) if art == "heizkreis" else None,
                     # Die Temperatur, die tatsächlich in den Heizkörper geht.
                     # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn
@@ -819,15 +831,32 @@ _LAMPENPUNKT = re.compile(
     r'[^>]*fill="\{\{glut\}\}"'
 )
 
+# Trägt eine Zeichnung mehrere Punkte in der Glutfarbe, benennt `data-lampe`
+# den einen, der die Betriebslampe ist.
+_LAMPENMARKE = re.compile(r"<circle[^>]*\sdata-lampe[^>]*>")
 
-def kessellampe(
-    kesselart: str | None, zeichnung: str | None = None
+
+def _kreismasse(tag: str) -> tuple[float, float, float] | None:
+    """Mittelpunkt und Halbmesser eines gezeichneten Kreises."""
+    masse = []
+    for name in ("cx", "cy", "r"):
+        wert = re.search(rf'\s{name}="([\d.]+)"', tag)
+        if wert is None:
+            return None
+        masse.append(float(wert.group(1)))
+    return masse[0], masse[1], masse[2]
+
+
+def lampenpunkt(
+    art: str, kesselart: str | None = None, zeichnung: str | None = None
 ) -> tuple[float, float, float] | None:
-    """Stelle und Größe der Betriebslampe in der gewählten Kesselzeichnung."""
-    for dateiname in _bauteil_dateien("kessel", kesselart, zeichnung):
+    """Stelle und Größe der Betriebslampe in der Zeichnung eines Anlagenteils."""
+    for dateiname in _bauteil_dateien(art, kesselart, zeichnung):
         fragment = _bauteil(dateiname)
         if fragment is None:
             continue
+        if (marke := _LAMPENMARKE.search(fragment)) and (stelle := _kreismasse(marke.group(0))):
+            return stelle
         if treffer := _LAMPENPUNKT.search(fragment):
             return (
                 float(treffer.group("x")),
@@ -836,6 +865,13 @@ def kessellampe(
             )
         return None
     return None
+
+
+def kessellampe(
+    kesselart: str | None, zeichnung: str | None = None
+) -> tuple[float, float, float] | None:
+    """Stelle und Größe der Betriebslampe in der gewählten Kesselzeichnung."""
+    return lampenpunkt("kessel", kesselart, zeichnung)
 
 
 def _bauteil_dateien(
@@ -1297,6 +1333,9 @@ def anlagenschema(
     # gleich zweimal gebraucht – für die Marke am Speicher und für seine
     # Stichleitung.
     entnahme = [m["pumpe"] for m in module if m.get("pumpe") and m["art"] in ENTNAHME_ARTEN]
+    # Wer dem Speicher Wärme zuführt, ohne an der Steuerung zu hängen. Eine
+    # liefernde Quelle lädt ihn, auch wenn die Ladepumpe steht.
+    lieferungen = [m["lieferung"] for m in module if m.get("lieferung")]
 
     for platz, modul in enumerate(module):
         x = RAND + platz * MODUL_BREITE
@@ -1327,6 +1366,40 @@ def anlagenschema(
                     "erzeuger": modul["art"] in ERZEUGER_ARTEN,
                 }
             )
+        # Eine Wärmequelle hat keine Pumpe, speist aber ein. Stichleitung und
+        # Lampe hängen deshalb an ihrer Wärmelieferung; ein Laufrad wird nicht
+        # gezeichnet, an dieser Stelle sitzt keine Pumpe.
+        if modul.get("lieferung"):
+            mitte = x + MODUL_BREITE // 2
+            oben, unten = KANTEN_JE_ART.get(modul["art"], KANTEN_STANDARD)
+            pumpen.append(
+                {
+                    "entity": modul["lieferung"],
+                    "left": f"{mitte / breite * 100:.2f}%",
+                    "top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
+                    "titel": modul["titel"],
+                    "nur_strang": True,
+                    "erzeuger": True,
+                    "vorlauf_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
+                    "vorlauf_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
+                    "ruecklauf_top": f"{unten / HOEHE * 100:.2f}%",
+                    "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
+                }
+            )
+            stelle = lampenpunkt(modul["art"], zeichnung=modul.get("zeichnung"))
+            if stelle is not None:
+                lx, ly, lr = stelle
+                lampen.append(
+                    {
+                        "entity": modul["lieferung"],
+                        "left": f"{(x + lx) / breite * 100:.2f}%",
+                        "top": f"{ly / HOEHE * 100:.2f}%",
+                        "groesse": f"{(2 * lr) / breite * 100:.2f}%",
+                        "art": "betrieb",
+                        "zweck": "quelle",
+                        "titel": modul["titel"],
+                    }
+                )
         # Der Mischer zeigt seine Stellung, nicht Bewegung: Ein dauernd
         # drehendes Ventil läse sich wie eine Pumpe, und die dreht sich im
         # Bild schon. Der Anzeiger schwenkt, das Stück Vorlauf darüber färbt
@@ -1548,6 +1621,7 @@ def anlagenschema(
                 # überwiegt, hängt vom Massenstrom ab, und den misst die
                 # Anlage nicht.
                 "laden": modul.get("pumpe"),
+                "quellen": lieferungen,
                 "kessel": kessel_ist,
                 "oben": oben,
                 "unten": unten,

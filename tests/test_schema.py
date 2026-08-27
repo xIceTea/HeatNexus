@@ -1380,6 +1380,33 @@ def test_eine_quelle_speist_ein_statt_abzunehmen(schema):
     assert {"heizstab", "fremdquelle", "solar"} <= schema.ERZEUGER_ARTEN
 
 
+@pytest.mark.parametrize("art", ["solar", "heizstab", "fremdquelle"])
+def test_jede_bauart_nennt_ihre_betriebslampe(schema, art):
+    assert schema.lampenpunkt(art) is not None
+
+
+def test_die_lieferung_treibt_stich_und_lampe(schema, anlage):
+    """Ohne Pumpe kein Strang – die Quelle hängt an ihrer Wärmelieferung."""
+    bild = schema.anlagenschema([*anlage, _quelle("Solaranlage", "solar")])
+
+    lieferung = "binary_sensor.solar_waermelieferung"
+    strang = [p for p in bild["pumpen"] if p["entity"] == lieferung]
+    lampe = [e for e in bild["lampen"] if e["entity"] == lieferung]
+
+    assert strang and strang[0]["nur_strang"] and strang[0]["erzeuger"]
+    assert strang[0]["vorlauf_hoehe"] and strang[0]["ruecklauf_hoehe"]
+    assert lampe and lampe[0]["zweck"] == "quelle"
+
+
+def test_der_puffer_zaehlt_die_lieferung_als_ladung(schema, anlage):
+    bild = schema.anlagenschema([*anlage, _quelle("Solaranlage", "solar")])
+
+    puffer = [s for s in bild["speicher"] if s["titel"].startswith("B-PLMi")]
+
+    assert puffer
+    assert "binary_sensor.solar_waermelieferung" in puffer[0]["quellen"]
+
+
 def test_das_schaubild_zeigt_die_quelle_neben_der_anlage(schema, anlage):
     bild = schema.anlagenschema([*anlage, _quelle("Heizstab", "heizstab")])
 
