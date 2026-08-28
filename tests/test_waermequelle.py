@@ -29,6 +29,12 @@ SOLAR = {
 }
 
 
+@pytest.fixture(autouse=True)
+def eigene_integration(enable_custom_integrations):
+    """Ohne diese Freigabe findet Home Assistant den Ablauf der Quelle nicht."""
+    return None
+
+
 @pytest.fixture(scope="module")
 def modul():
     from custom_components.heatnexus import waermequelle

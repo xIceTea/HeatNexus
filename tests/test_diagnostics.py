@@ -92,6 +92,7 @@ def export(diagnostics, hass):
     eintrag = SimpleNamespace(
         entry_id="eintrag1",
         version=1,
+        subentries={},
         options={ADRESSE: {"levels": ["info"]}, "password": "geheim"},
         runtime_data={
             "name": "HeatNexus",
@@ -145,6 +146,7 @@ async def test_jede_anlage_behaelt_ihre_eigenen_optionen(diagnostics, hass):
     eintrag = SimpleNamespace(
         entry_id="eintrag1",
         version=1,
+        subentries={},
         options={
             ADRESSE: {"modulpumpe": False},
             zweite: {"modulpumpe": True},
@@ -220,6 +222,7 @@ async def test_die_registrierung_zaehlt_was_home_assistant_fuehrt(diagnostics, h
     eintrag = SimpleNamespace(
         entry_id="eintrag1",
         version=1,
+        subentries={},
         options={},
         runtime_data={"name": "HeatNexus", "coordinators": {ADRESSE: _coordinator()}},
     )

@@ -294,7 +294,7 @@ SOLAR = {
 def test_eine_vollstaendige_quelle_bleibt_erhalten():
     from custom_components.heatnexus import waermequelle
 
-    assert waermequelle.quellen_pruefen([SOLAR]) == [SOLAR]
+    assert waermequelle.quellen_pruefen([SOLAR]) == [{**SOLAR, "pumpe": False}]
 
 
 @pytest.mark.parametrize(
@@ -324,8 +324,10 @@ def test_mehr_quellen_als_das_schaubild_fasst_werden_abgeschnitten():
     assert len(waermequelle.quellen_pruefen(viele)) == QUELLEN_MAX
 
 
-def test_die_bedingung_traegt_nur_bekannte_felder(flow):
-    regel = flow.bedingung_pruefen(
+def test_die_bedingung_traegt_nur_bekannte_felder():
+    from custom_components.heatnexus import waermequelle
+
+    regel = waermequelle.bedingung_pruefen(
         {
             "art": "schwelle",
             "quelle": "sensor.kollektor",
@@ -338,12 +340,14 @@ def test_die_bedingung_traegt_nur_bekannte_felder(flow):
     assert regel == {"art": "schwelle", "quelle": "sensor.kollektor", "ein": 60.0}
 
 
-def test_eine_entfernte_kennung_wird_nicht_neu_vergeben(flow):
+def test_eine_entfernte_kennung_wird_nicht_neu_vergeben():
     """Die Kennung hängt an der Entität; eine zweite Quelle darf sie nie erben."""
+    from custom_components.heatnexus import waermequelle
+
     quellen = [{**SOLAR, "id": "q1"}, {**SOLAR, "id": "q3"}]
 
-    assert flow.quelle_id(quellen) == "q2"
-    assert flow.quelle_id([*quellen, {**SOLAR, "id": "q2"}]) == "q4"
+    assert waermequelle.quelle_id(quellen) == "q2"
+    assert waermequelle.quelle_id([*quellen, {**SOLAR, "id": "q2"}]) == "q4"
 
 
 def test_das_formular_fragt_nur_die_felder_seiner_bedingung(flow):
@@ -366,199 +370,3 @@ def test_ein_zustand_im_klartext_ist_pflicht(flow):
     with pytest.raises(vol.Invalid):
         klartext({})
     assert binaer({}) == {}
-
-
-def _dialog(flow, monkeypatch, quellen=(), gespeichert=None):
-    """Ein Optionsdialog mit einer Anlage und den übergebenen Quellen."""
-    from types import SimpleNamespace
-
-    from custom_components.heatnexus.const import CONF_QUELLEN
-
-    optionen = flow.WindhagerOptionsFlow()
-    monkeypatch.setattr(
-        type(optionen),
-        "config_entry",
-        property(
-            lambda _self: SimpleNamespace(
-                options={"192.0.2.10": {CONF_QUELLEN: list(quellen)}}, data={}
-            )
-        ),
-    )
-    monkeypatch.setattr(
-        type(optionen),
-        "_systeme",
-        lambda _self: [{"host": "192.0.2.10", "label": "Anlage 1"}],
-    )
-    monkeypatch.setattr(
-        type(optionen), "async_show_menu", lambda _self, step_id, menu_options: menu_options
-    )
-    monkeypatch.setattr(
-        type(optionen),
-        "async_show_form",
-        lambda _self, step_id, **rest: {"step_id": step_id, **rest},
-    )
-    if gespeichert is not None:
-        monkeypatch.setattr(
-            type(optionen),
-            "async_create_entry",
-            lambda _self, data: gespeichert.update(data) or {},
-        )
-    return optionen
-
-
-async def test_das_menue_fuehrt_je_anlage_eine_zeile_fuer_quellen(flow, monkeypatch):
-    optionen = _dialog(flow, monkeypatch)
-
-    auswahl = await optionen.async_step_init()
-
-    assert "anlage_0" in auswahl
-    assert auswahl["quellen_0"].startswith("Anlage 1")
-
-
-async def test_das_quellenmenue_zeigt_jede_quelle_und_den_weg_zur_neuen(flow, monkeypatch):
-    optionen = _dialog(flow, monkeypatch, quellen=[SOLAR])
-
-    auswahl = await optionen.async_step_quellen_0()
-
-    assert auswahl["bearbeiten_0"].startswith("Solaranlage")
-    assert "neu" in auswahl
-
-
-async def test_jedes_menue_nennt_einen_schritt_den_es_gibt(flow, monkeypatch):
-    """Home Assistant weist ein Menü ab, dessen Schritt keine Methode hat."""
-    optionen = _dialog(flow, monkeypatch, quellen=[SOLAR])
-    gezeigt: list[str] = []
-    monkeypatch.setattr(
-        type(optionen),
-        "async_show_menu",
-        lambda _self, step_id, menu_options: gezeigt.append(step_id) or menu_options,
-    )
-
-    await optionen.async_step_init()
-    await optionen.async_step_quellen_0()
-
-    assert gezeigt == ["init", "quellen"]
-    for schritt in gezeigt:
-        assert callable(getattr(optionen, f"async_step_{schritt}", None))
-
-
-async def test_ohne_platz_entfaellt_der_weg_zur_neuen_quelle(flow, monkeypatch):
-    from custom_components.heatnexus.const import QUELLEN_MAX
-
-    voll = [{**SOLAR, "id": f"q{i}"} for i in range(QUELLEN_MAX)]
-    optionen = _dialog(flow, monkeypatch, quellen=voll)
-
-    auswahl = await optionen.async_step_quellen_0()
-
-    assert "neu" not in auswahl
-
-
-async def test_das_abgesendete_formular_trifft_dieselbe_quelle(flow, monkeypatch):
-    """Home Assistant ruft nach dem Absenden den Schritt, nicht den Menüeintrag."""
-    from custom_components.heatnexus.const import CONF_QUELLEN
-
-    gespeichert = {}
-    optionen = _dialog(flow, monkeypatch, quellen=[SOLAR], gespeichert=gespeichert)
-
-    formular = await optionen.async_step_quellen_0()
-    assert "bearbeiten_0" in formular
-    await optionen.async_step_bearbeiten_0()
-    await optionen.async_step_quelle(
-        {
-            "name": "Solar Dach",
-            "art": "solar",
-            "bedingung_art": "zustand",
-            "quelle": "switch.solar",
-        }
-    )
-
-    quellen = gespeichert["192.0.2.10"][CONF_QUELLEN]
-    assert [q["id"] for q in quellen] == ["q1"]
-    assert quellen[0]["name"] == "Solar Dach"
-
-
-def test_menueschritt_fuer_jede_quelle(flow):
-    optionen = flow.WindhagerOptionsFlow()
-
-    assert callable(optionen.async_step_quellen_0)
-    assert callable(optionen.async_step_bearbeiten_7)
-    for unbekannt in ("async_step_quellen_x", "async_step_bearbeiten_", "async_step_quelle_0"):
-        with pytest.raises(AttributeError):
-            getattr(optionen, unbekannt)
-
-
-def test_eine_neue_quelle_kommt_an_die_liste(flow):
-    optionen = flow.WindhagerOptionsFlow()
-
-    neue, fehler = optionen._quelle_uebernehmen(
-        [SOLAR],
-        {},
-        {
-            "name": "Heizstab",
-            "art": "heizstab",
-            "bedingung_art": "zustand",
-            "quelle": "switch.heizstab",
-        },
-    )
-
-    assert fehler == {}
-    assert [q["id"] for q in neue] == ["q1", "q2"]
-    assert neue[1]["bedingung"] == {"art": "zustand", "quelle": "switch.heizstab"}
-
-
-def test_eine_geaenderte_quelle_behaelt_ihre_kennung(flow):
-    optionen = flow.WindhagerOptionsFlow()
-
-    neue, fehler = optionen._quelle_uebernehmen(
-        [SOLAR],
-        SOLAR,
-        {
-            "name": "Solar Dach",
-            "art": "solar",
-            "bedingung_art": "schwelle",
-            "quelle": "sensor.kollektor",
-            "ein": 60,
-            "aus": 50,
-        },
-    )
-
-    assert fehler == {}
-    assert len(neue) == 1
-    assert neue[0]["id"] == "q1"
-    assert neue[0]["name"] == "Solar Dach"
-    assert neue[0]["bedingung"]["aus"] == 50
-
-
-def test_entfernen_nimmt_nur_die_gewaehlte_quelle(flow):
-    optionen = flow.WindhagerOptionsFlow()
-    zweite = {**SOLAR, "id": "q2", "name": "Heizstab"}
-
-    neue, fehler = optionen._quelle_uebernehmen([SOLAR, zweite], zweite, {"entfernen": True})
-
-    assert fehler == {}
-    assert [q["id"] for q in neue] == ["q1"]
-
-
-def test_ohne_namen_bleibt_die_liste_stehen(flow):
-    optionen = flow.WindhagerOptionsFlow()
-
-    neue, fehler = optionen._quelle_uebernehmen(
-        [SOLAR],
-        {},
-        {"name": "  ", "art": "solar", "bedingung_art": "zustand", "quelle": "switch.x"},
-    )
-
-    assert fehler == {"name": "name_fehlt"}
-    assert neue == [SOLAR]
-
-
-def test_eine_unvollstaendige_eingabe_wird_gemeldet(flow):
-    """Ohne Einschaltwert lässt sich eine Schwelle nicht auswerten."""
-    optionen = flow.WindhagerOptionsFlow()
-
-    neue, fehler = optionen._quelle_uebernehmen(
-        [], {}, {"name": "Solar", "art": "solar", "bedingung_art": "schwelle", "quelle": "sensor.k"}
-    )
-
-    assert fehler == {"base": "bedingung_unvollstaendig"}
-    assert neue == []
