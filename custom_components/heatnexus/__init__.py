@@ -257,6 +257,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                             CONF_HOST: host,
                             "id": quelle["id"],
                             "art": quelle["art"],
+                            "pumpe": quelle["pumpe"],
                             "bedingung": quelle["bedingung"],
                         }
                     ),

@@ -35,6 +35,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Verlauf einer Wärmequelle zeigt nur echte Wechsel.
 - Ein Solarkreis der Steuerung erscheint nicht mehr als eigene Wärmequelle.
 - Die Auswahllisten der Wärmequelle folgen der eingestellten Sprache.
+- Die Pumpenwahl bleibt beim Übernehmen einer Wärmequelle erhalten.
 
 ## [1.11.0] - 2026-08-24
 
