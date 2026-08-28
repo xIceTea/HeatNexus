@@ -119,20 +119,31 @@ def geraete_entflechten(registry: Any, entry: ConfigEntry) -> int:
     Haupteintrag, steht es zweimal in der Übersicht der Integration.
     """
     kennungen = {sub.subentry_id for sub in subeintraege(entry)}
-    if not kennungen:
-        return 0
     geloest = 0
     for geraet in dr.async_entries_for_config_entry(registry, entry.entry_id):
         zuordnung = geraet.config_entries_subentries.get(entry.entry_id) or set()
-        if None not in zuordnung or not zuordnung & kennungen:
+        if None not in zuordnung:
             continue
-        registry.async_update_device(
-            geraet.id,
-            remove_config_entry_id=entry.entry_id,
-            remove_config_subentry_id=None,
-        )
-        geloest += 1
+        if zuordnung & kennungen:
+            registry.async_update_device(
+                geraet.id,
+                remove_config_entry_id=entry.entry_id,
+                remove_config_subentry_id=None,
+            )
+            geloest += 1
+        elif _ist_quellengeraet(geraet):
+            # Eine entfernte Quelle lässt ihr Gerät zurück, solange es am
+            # Haupteintrag hängt. Ohne Entitäten stünde es leer da.
+            registry.async_remove_device(geraet.id)
+            geloest += 1
     return geloest
+
+
+def _ist_quellengeraet(geraet: Any) -> bool:
+    """Ob das Gerät zu einer Wärmequelle gehört – seine Kennung sagt es."""
+    return any(
+        bereich == DOMAIN and f"-{TYP}-" in str(wert) for bereich, wert in geraet.identifiers
+    )
 
 
 def kennung(coordinator: Any, quelle: dict[str, Any]) -> str:
