@@ -253,6 +253,7 @@ async def test_die_diagnose_nennt_manuell_eingeschaltete(diagnostics, hass):
     eintrag = SimpleNamespace(
         entry_id="eintrag2",
         version=1,
+        subentries={},
         options={},
         runtime_data={"name": "HeatNexus", "coordinators": {ADRESSE: koordinator}},
     )
