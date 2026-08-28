@@ -1,13 +1,8 @@
 """Wann ein Vorgang als laufend gilt.
 
-Gebraucht an drei Stellen, die dasselbe Problem haben: eine unabhängige
-Wärmequelle, die Übergabepumpe der Nachbaranlage und die Frage, ob an einem
-Pumpen-/Relaismodul gerade Wärme abgenommen wird. Keine davon meldet einen
-fertigen Zustand; alle drei lassen sich aus Werten ableiten.
-
-Das Modul kommt ohne Home Assistant aus: Es bekommt Werte als Zeichenketten
-und gibt ein Ja oder Nein zurück. Die Entitäten dazu baut `binary_sensor.py`,
-die Auswahl trifft der Optionsdialog.
+Gebraucht für Wärmequelle, Übergabepumpe und Abnahme am Pumpenmodul: Keine
+meldet einen fertigen Zustand, alle drei lassen sich aus Werten ableiten. Das
+Modul kommt ohne Home Assistant aus und beantwortet Zeichenketten mit Ja oder Nein.
 """
 
 from __future__ import annotations

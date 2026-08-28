@@ -15,7 +15,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Eine Wärmequelle erkennt Zustände im Klartext, etwa „Solaranlage aktiv“.
 - Solaranlage, Heizstab und Fernwärme erscheinen im Schaubild und in der Übersicht.
 - Der Kaminkehrer fragt Leistung und Laufzeit in einer Rückfrage ab.
-- Eine Wärmequelle lässt ihre Leitung strömen und ihre Lampe leuchten.
+- Die Leitung einer liefernden Wärmequelle strömt, die Lampe leuchtet.
 - Der Puffer zeigt „lädt", solange eine Wärmequelle liefert.
 - Das Schaubild zeigt auf Wunsch die Pumpe einer Wärmequelle.
 - Eine liefernde Wärmequelle wird im Schaubild warm.
