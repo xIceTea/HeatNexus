@@ -618,8 +618,11 @@ def _module(
     for teil in teile:
         # Eine Wärmequelle bringt ihre Bauart selbst mit; sie hat keinen
         # Funktionstyp, weil sie nicht an der Steuerung hängt.
-        art = teil.get("art") or _art(teil.get("fct_type"))
-        ist_quelle = bool(teil.get("quelle"))
+        eigene_art = teil.get("art")
+        art = eigene_art or _art(teil.get("fct_type"))
+        # Ein Solarkreis der Steuerung trägt dieselbe Bauart wie eine
+        # angelegte Solaranlage. Nur die mitgebrachte Bauart trennt beide.
+        ist_quelle = bool(eigene_art)
         kennung = teil_kennung(teil)
         if kennung in set(teile_aus or ()):
             continue

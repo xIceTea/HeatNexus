@@ -33,6 +33,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Anschlüsse des Warmwasserspeichers sitzen am Körper statt daneben.
 - Die Stichleitung des Puffers strömt, solange eine Wärmequelle liefert.
 - Der Verlauf einer Wärmequelle zeigt nur echte Wechsel.
+- Ein Solarkreis der Steuerung erscheint nicht mehr als eigene Wärmequelle.
 
 ## [1.11.0] - 2026-08-24
 

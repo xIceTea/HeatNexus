@@ -419,9 +419,6 @@ def _anlagen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:
             "anlage_id": geraet.via_device_id,
             "fct_type": fct,
             "art": art,
-            # Ein Windhager-Solarkreis zeichnet dieselbe „solar"-Bauart wie
-            # eine eigene Solaranlage. Nur die Marke unterscheidet sie.
-            "quelle": art is not None,
             "quellenpumpe": bool(quelle.get("pumpe")),
             "rang": _rang(fct, art),
             "symbol": _symbol(fct, art),

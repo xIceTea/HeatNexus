@@ -1343,7 +1343,6 @@ def _quelle(name: str, art: str) -> dict:
         "name": name,
         "fct_type": None,
         "art": art,
-        "quelle": True,
         "entitaeten": [
             {
                 "entity_id": "binary_sensor.solar_waermelieferung",
