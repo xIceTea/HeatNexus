@@ -10,30 +10,30 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Wärmequellen ohne Anschluss an die Steuerung lassen sich anlegen.
-- Als Bedingung einer Wärmequelle lassen sich Zustände im Klartext wählen.
-- Solaranlage, Heizstab und Fernwärme erscheinen im Schaubild und in der Übersicht.
-- Im Schaubild leuchtet eine liefernde Wärmequelle, die Leitung strömt, die Fläche wird warm.
+- Solaranlage, Heizstab oder Fernwärme lassen sich als eigene Wärmequelle anlegen.
+- Als Bedingung dient auch ein Text wie „Solaranlage aktiv".
+- Jede Wärmequelle erscheint im Schaubild und in der Übersicht.
+- Liefert eine Wärmequelle, strömt die Leitung und die Fläche wird warm.
 - Das Schaubild zeichnet auf Wunsch die Pumpe einer Wärmequelle.
-- Der Puffer zeigt „lädt", solange eine Wärmequelle Wärme liefert.
-- Vor dem Beenden von Kaminkehrer und Lagerraumbefüllung erscheint eine Rückfrage.
-- Der Kaminkehrer fragt Leistung und Laufzeit in einem Schritt ab.
+- Der Puffer zeigt „lädt", solange eine Wärmequelle liefert.
+- Kaminkehrer und Lagerraumbefüllung lassen sich erst nach einer Rückfrage beenden.
+- Der Kaminkehrer startet mit einer Rückfrage nach Leistung und Laufzeit.
 
 ### Geändert
 
-- Eine Wärmequelle wird als eigenes Gerät angelegt und dort geändert.
+- Jede Wärmequelle steht als eigenes Gerät und wird dort geändert.
 - Beim Aktualisieren bleiben vorhandene Wärmequellen erhalten.
 
 ### Behoben
 
 - Ein geschalteter Wert erscheint sofort statt erst beim nächsten Abruf.
 - Betriebswahl und Restlaufzeit des Kaminkehrers werden häufiger abgerufen.
-- Während der Kaminkehrer läuft, beschriftet die Kachel den Knopf mit „Beenden".
+- Während der Kaminkehrer läuft, heißt der Knopf auf der Kachel „Beenden".
 - Die Anschlüsse des Warmwasserspeichers sitzen am Speicher statt daneben.
-- Die Stichleitung des Puffers strömt, solange eine Wärmequelle Wärme liefert.
-- Der Verlauf einer Wärmequelle verzeichnet nur echte Wechsel.
+- Die Stichleitung des Puffers strömt, solange eine Wärmequelle liefert.
+- Im Verlauf einer Wärmequelle stehen nur echte Wechsel.
 - Ein Solarkreis der Steuerung erscheint nicht mehr als eigene Wärmequelle.
-- Die Auswahllisten der Wärmequelle folgen der eingestellten Sprache.
+- Die Auswahllisten der Wärmequelle erscheinen in der eingestellten Sprache.
 - Beim Aktualisieren bleibt auch die Pumpenwahl einer Wärmequelle erhalten.
 - Das Gerät einer entfernten Wärmequelle verschwindet aus der Übersicht.
 - Die Diagnose zeigt die Optionen jeder Anlage getrennt.
