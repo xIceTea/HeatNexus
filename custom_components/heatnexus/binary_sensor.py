@@ -129,8 +129,12 @@ class WaermequelleBinarySensor(RestoreEntity, BinarySensorEntity):
 
     @callback
     def _quelle_geaendert(self, event) -> None:
+        # Nur ein echter Wechsel gehört in den Verlauf: Ein Leistungssensor
+        # meldet im Sekundentakt, ohne dass die Quelle an- oder ausgeht.
+        vorher = self._laeuft
         self._auswerten()
-        self.async_write_ha_state()
+        if self._laeuft != vorher:
+            self.async_write_ha_state()
 
     @callback
     def _auswerten(self) -> None:
