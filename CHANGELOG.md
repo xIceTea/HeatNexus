@@ -32,6 +32,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Beim laufenden Kaminkehrer nennt die Kachel den nächsten Druck als Beenden.
 - Die Anschlüsse des Warmwasserspeichers sitzen am Körper statt daneben.
 - Die Stichleitung des Puffers strömt, solange eine Wärmequelle liefert.
+- Der Verlauf einer Wärmequelle zeigt nur echte Wechsel.
 
 ## [1.11.0] - 2026-08-24
 

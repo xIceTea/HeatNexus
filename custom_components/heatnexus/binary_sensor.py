@@ -110,6 +110,9 @@ class WaermequelleBinarySensor(RestoreEntity, BinarySensorEntity):
     _attr_has_entity_name = True
     _attr_device_class = BinarySensorDeviceClass.RUNNING
     _attr_name = "Wärmelieferung"
+    # Die Entität hängt an Zustandsereignissen, nicht an einem Takt.
+    # Abgefragt gäbe es nichts zu holen, geschrieben würde trotzdem.
+    _attr_should_poll = False
 
     def __init__(self, coordinator: Any, beschreibung: dict) -> None:
         self._regel = dict(beschreibung.get("bedingung") or {})
