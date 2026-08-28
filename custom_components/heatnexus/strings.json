@@ -42,7 +42,7 @@
           "update_interval": "Polling interval",
           "dashboard": "Create dashboard",
           "panel": "HeatNexus panel",
-          "zeitwerte": "Systemuhr und Systemdatum anlegen",
+          "zeitwerte": "Create system clock and system date",
           "lon": "Read values from the LON bus",
           "lon_grundumfang": "Add basic values from the LON bus"
         },
@@ -51,9 +51,9 @@
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
-          "dashboard": "Adds a dashboard that builds itself from the discovered devices.",
-          "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
-          "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
+          "dashboard": "Adds a “Heating” dashboard to the sidebar that builds itself from the discovered devices.",
+          "panel": "Adds a “HeatNexus” entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
+          "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
           "lon": "The controller keeps a full bus address space alongside the datapoints. For a deep look: fan speed, lambda probe heating, pellet stock and everything else. On PuroWIN and Infinity it adds little, because the same values already exist as datapoints.",
           "lon_grundumfang": "Fetches pump, mixer and the boiler's core readings from the bus where the system has no datapoint for them — otherwise they are missing from the diagram. No duplicates: where a datapoint exists, it wins."
         }
@@ -104,16 +104,18 @@
           "vorlagen": "Automation blueprints",
           "aussentemperatur": "Outside temperature",
           "hilfe": "Show explanations",
+          "sprache": "Language of the labels",
           "startwerte": "Take over start values from the system"
         },
         "data_description": {
           "update_interval": "How often the system is queried. The value applies to fast values (thermostat, temperatures, pumps); slower values keep their own spacing — 2 minutes for operating values, 15 minutes for meters. Recommended: 30 seconds for one system, 60 seconds for several or for systems with many datapoints.",
-          "dashboard": "Adds a dashboard that builds itself from the discovered devices.",
-          "panel": "Adds a HeatNexus entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
+          "dashboard": "Adds a “Heating” dashboard to the sidebar that builds itself from the discovered devices.",
+          "panel": "Adds a “HeatNexus” entry to the sidebar with a plant diagram, status, heating circuits and quick actions.",
           "meldung_einlesen": "Shows a notification while HeatNexus reads the plant.",
           "vorlagen": "Which blueprints appear under Settings → Automations. A blueprint an automation still uses stays in place.",
           "aussentemperatur": "Which sensor counts as the outside temperature in the header. Empty: HeatNexus finds it in the plant itself.",
-          "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does."
+          "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does.",
+          "sprache": "Where the datapoint names come from. The panel cards stay labelled in German."
         }
       },
       "system": {
@@ -125,10 +127,12 @@
           "writable_advanced": "Allow writing service/factory parameters",
           "username": "Access",
           "kesselart": "Heat generator (diagram)",
-          "zeitwerte": "Systemuhr und Systemdatum anlegen",
+          "kesselwert": "Boiler value (diagram)",
+          "modulpumpe": "Pump connected to the pump/relay module",
+          "zeitwerte": "Create system clock and system date",
           "lon": "Read values from the LON bus",
           "lon_grundumfang": "Add basic values from the LON bus",
-          "zusatzgruppen": "Zusatzwerte",
+          "zusatzgruppen": "Derived values",
           "marken": "Labels in der Oberfläche zeigen",
           "marken_status": "Diese Labels in den Systemstatus"
         },
@@ -138,22 +142,25 @@
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
           "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes.",
-          "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
+          "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature.",
+          "modulpumpe": "Only with the tick does the module's pump appear in the diagram. The module reports a speed even when nothing is wired to it; the module itself and its lamps are shown either way.",
+          "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
           "lon": "Liest zusätzlich den Bus-Adressraum der Steuerung: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und was sonst nur dort steht. An PuroWIN und Infinity bringt das wenig, weil dieselben Werte schon als Datenpunkt kommen.",
           "lon_grundumfang": "Holt Pumpe, Mischer und die Kernwerte des Kessels aus dem Bus, wo die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Dafür muss „Werte vom LON-Bus lesen“ nicht eingeschaltet sein. Wo es den Datenpunkt gibt, gilt der Datenpunkt.",
-          "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. Mit „Individuell“ folgt nach OK ein zweiter Schritt mit den Einzelwerten.",
+          "zusatzgruppen": "Values HeatNexus derives from existing counters and states: running times (today, since the last start), counters (starts, consumption, heat) and the running duration. Unticked ones are created disabled. With “Individuell”, pressing OK opens a second step listing the individual values.",
           "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant.",
           "marken_status": "Werte dieser Labels stehen im Systemstatus statt in einer eigenen Karte. Gewählt werden kann nur, was oben auch gezeigt wird."
         }
       },
       "zusatzwerte": {
-        "title": "Zusatzwerte einzeln",
-        "description": "Ankreuzen, welche Werte eingeschaltet sein sollen.",
+        "title": "Derived values in detail",
+        "description": "Tick the values that should be enabled.",
         "data": {
-          "zusatzwerte": "Werte"
+          "zusatzwerte": "Values"
         }
       }
-    }
+    },
+    "error": {}
   },
   "selector": {
     "levels": {
@@ -175,12 +182,41 @@
         "standard": "Neutral (no fuel reference)"
       }
     },
+    "kesselwert": {
+      "options": {
+        "leistung": "Boiler output",
+        "brennkammer": "Combustion chamber temperature"
+      }
+    },
+    "sprache": {
+      "options": {
+        "auto": "Automatic",
+        "de": "German",
+        "en": "English",
+        "fr": "French",
+        "it": "Italian"
+      }
+    },
     "startwerte": {
       "options": {
         "0": "off",
         "5": "up to 5 minutes old",
         "15": "up to 15 minutes old",
         "60": "up to 60 minutes old"
+      }
+    },
+    "quellenart": {
+      "options": {
+        "solar": "Solar system",
+        "heizstab": "Heating element",
+        "fremdquelle": "District heating or other source"
+      }
+    },
+    "bedingungsart": {
+      "options": {
+        "zustand": "State (on/off)",
+        "schwelle": "Threshold (value above or below a limit)",
+        "differenz": "Difference between two sensors"
       }
     }
   },
@@ -225,6 +261,64 @@
         "abort": {
           "nicht_geladen": "The system is not loaded right now. Please try again later."
         }
+      }
+    }
+  },
+  "config_subentries": {
+    "waermequelle": {
+      "title": "Heat source",
+      "entry_type": "Heat source",
+      "initiate_flow": {
+        "user": "Add heat source",
+        "reconfigure": "Edit heat source"
+      },
+      "step": {
+        "user": {
+          "title": "System",
+          "description": "Which system does the heat source belong to?",
+          "data": {
+            "host": "System"
+          }
+        },
+        "quelle": {
+          "title": "Heat source",
+          "description": "The source appears in the diagram of {anlage}. The condition decides when it delivers heat.",
+          "data": {
+            "name": "Name",
+            "art": "Type",
+            "pumpe": "Show pump in the diagram",
+            "bedingung_art": "Condition",
+            "quelle": "Entity"
+          },
+          "data_description": {
+            "quelle": "The value that decides about the source.",
+            "pumpe": "Draws an impeller in the pipe of the source while it delivers heat."
+          }
+        },
+        "regel": {
+          "title": "Condition",
+          "description": "When does the source deliver heat? {quelle} decides.",
+          "data": {
+            "zustaende": "States that count as on",
+            "gegen": "Second entity",
+            "ein": "Switch-on value",
+            "aus": "Switch-off value"
+          },
+          "data_description": {
+            "zustaende": "Only these states count as delivering, every other one as off. If one is missing from the list, type it in.",
+            "gegen": "Its value is subtracted from the first entity.",
+            "ein": "From this value the source counts as delivering.",
+            "aus": "Only below this it counts as off again. Empty means the same value."
+          }
+        }
+      },
+      "error": {
+        "name_fehlt": "The source needs a name.",
+        "bedingung_unvollstaendig": "The condition is incomplete. Threshold and difference need a switch-on value, difference also a second entity."
+      },
+      "abort": {
+        "reconfigure_successful": "The heat source was changed.",
+        "zu_viele": "The diagram cannot hold more heat sources."
       }
     }
   }
