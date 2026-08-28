@@ -147,9 +147,17 @@ Je Quelle werden angegeben:
   liegt auf der Pufferzeichnung, alles Übrige bekommt einen eigenen Kasten.
 - **Bedingung**, wann die Quelle Wärme liefert — ein Zustand („an"), eine
   Schwelle (ab diesem Wert) oder die Differenz zweier Entitäten, etwa Kollektor
-  minus Puffer.
-- **Ein- und Ausschaltwert** getrennt. Bleibt der Ausschaltwert leer, gilt
-  derselbe Wert für beides; im Grenzbereich flattert die Anzeige dann.
+  minus Puffer — und die Entität, die darüber entscheidet.
+
+Der zweite Schritt fragt nur ab, was zur gewählten Bedingung gehört:
+
+- Beim **Zustand** die Zustände, die als an gelten. Meldet die Entität Klartext
+  statt „an" und „aus", ist die Auswahl Pflicht: „Solaranlage aktiv" gilt dann
+  als liefernd, jeder andere Text als aus. Fehlt ein Zustand in der Liste,
+  lässt er sich eintragen.
+- Bei **Schwelle** und **Differenz** den Ein- und den Ausschaltwert getrennt.
+  Bleibt der Ausschaltwert leer, gilt derselbe Wert für beides; im Grenzbereich
+  flattert die Anzeige dann.
 
 Daraus entsteht je Quelle ein eigenes Gerät mit einer Entität
 *Wärmelieferung*. Sie erscheint im Schaubild, in der Übersicht der eigenen
