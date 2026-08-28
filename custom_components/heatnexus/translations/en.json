@@ -272,14 +272,27 @@
           "data": {
             "name": "Name",
             "art": "Type",
+            "pumpe": "Show pump in the diagram",
             "bedingung_art": "Condition",
-            "quelle": "Entity",
-            "gegen": "Second entity (difference only)",
+            "quelle": "Entity"
+          },
+          "data_description": {
+            "quelle": "The value that decides about the source.",
+            "pumpe": "Draws an impeller in the pipe of the source while it delivers heat."
+          }
+        },
+        "regel": {
+          "title": "Condition",
+          "description": "When does the source deliver heat? {quelle} decides.",
+          "data": {
+            "zustaende": "States that count as on",
+            "gegen": "Second entity",
             "ein": "Switch-on value",
             "aus": "Switch-off value"
           },
           "data_description": {
-            "quelle": "The value that decides about the source.",
+            "zustaende": "Only these states count as delivering, every other one as off. If one is missing from the list, type it in.",
+            "gegen": "Its value is subtracted from the first entity.",
             "ein": "From this value the source counts as delivering.",
             "aus": "Only below this it counts as off again. Empty means the same value."
           }

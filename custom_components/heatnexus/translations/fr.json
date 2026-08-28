@@ -272,14 +272,27 @@
           "data": {
             "name": "Nom",
             "art": "Type",
+            "pumpe": "Afficher la pompe sur le schéma",
             "bedingung_art": "Condition",
-            "quelle": "Entité",
-            "gegen": "Deuxième entité (différence uniquement)",
+            "quelle": "Entité"
+          },
+          "data_description": {
+            "quelle": "La valeur qui décide de la source.",
+            "pumpe": "Dessine une roue dans la conduite de la source tant qu'elle fournit de la chaleur."
+          }
+        },
+        "regel": {
+          "title": "Condition",
+          "description": "Quand la source fournit-elle de la chaleur ? {quelle} décide.",
+          "data": {
+            "zustaende": "États considérés comme actifs",
+            "gegen": "Deuxième entité",
             "ein": "Valeur d’enclenchement",
             "aus": "Valeur de coupure"
           },
           "data_description": {
-            "quelle": "La valeur qui décide de la source.",
+            "zustaende": "Seuls ces états comptent comme fournissant, tous les autres comme arrêt. S’il en manque un dans la liste, saisissez-le.",
+            "gegen": "Sa valeur est soustraite de celle de la première entité.",
             "ein": "À partir de cette valeur, la source est considérée comme fournissant.",
             "aus": "Elle n’est à l’arrêt qu’en dessous. Vide signifie la même valeur."
           }

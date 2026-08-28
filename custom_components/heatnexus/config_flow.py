@@ -362,8 +362,13 @@ def gruppen_ableiten(kandidaten: list[dict], gewaehlt: list[str]) -> list[str]:
     return gruppen
 
 
+# Zustände, die für sich schon an oder aus bedeuten. Alles andere ist
+# Klartext: Dort entscheidet die Auswahl, welcher Text als liefernd gilt.
+BINAERE_ZUSTAENDE = frozenset({"on", "off", "true", "false"})
+
+
 def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
-    """Das Formular einer Wärmequelle."""
+    """Der erste Schritt: Bauart der Quelle und woran man sie erkennt."""
     regel = dict(vorhanden.get("bedingung") or {})
     return vol.Schema(
         {
@@ -377,6 +382,7 @@ def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
                     mode=SelectSelectorMode.DROPDOWN,
                 )
             ),
+            vol.Required("pumpe", default=bool(vorhanden.get("pumpe", False))): bool,
             vol.Required(
                 "bedingung_art", default=regel.get("art", bedingung.ART_ZUSTAND)
             ): SelectSelector(
@@ -391,17 +397,57 @@ def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
             vol.Required(
                 "quelle", description={"suggested_value": regel.get("quelle")}
             ): EntitySelector(),
-            vol.Optional(
-                "gegen", description={"suggested_value": regel.get("gegen")}
-            ): EntitySelector(),
-            vol.Optional("ein", description={"suggested_value": regel.get("ein")}): (
-                NumberSelector(NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any"))
-            ),
-            vol.Optional("aus", description={"suggested_value": regel.get("aus")}): (
-                NumberSelector(NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any"))
-            ),
         }
     )
+
+
+def zustandsvorschlaege(hass: Any, entity_id: str | None) -> list[str]:
+    """Die Zustände, die eine Entität kennt – als Vorschlag, nicht als Grenze."""
+    zustand = hass.states.get(entity_id) if entity_id else None
+    if zustand is None:
+        return []
+    vorschlaege = [str(wert) for wert in (zustand.attributes.get("options") or [])]
+    if zustand.state and str(zustand.state) not in vorschlaege:
+        vorschlaege.append(str(zustand.state))
+    return vorschlaege
+
+
+def regel_schema(art: str, vorhanden: Mapping[str, Any], vorschlaege: list[str]) -> vol.Schema:
+    """Der zweite Schritt: nur die Felder, die zur gewählten Bedingung gehören."""
+    regel = dict(vorhanden.get("bedingung") or {})
+    if art == bedingung.ART_ZUSTAND:
+        gewaehlt = [str(wert) for wert in (regel.get("zustaende") or [])]
+        optionen = list(dict.fromkeys([*vorschlaege, *gewaehlt]))
+        # Meldet die Entität Klartext, ist die Auswahl Pflicht: Sonst gälte
+        # jeder Text als an, auch einer, der „aus" bedeutet.
+        klartext = any(wert.lower() not in BINAERE_ZUSTAENDE for wert in optionen)
+        feld = vol.Required if klartext else vol.Optional
+        return vol.Schema(
+            {
+                feld(
+                    "zustaende", description={"suggested_value": regel.get("zustaende")}
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[SelectOptionDict(value=wert, label=wert) for wert in optionen],
+                        mode=SelectSelectorMode.DROPDOWN,
+                        multiple=True,
+                        custom_value=True,
+                    )
+                )
+            }
+        )
+    felder: dict[Any, Any] = {}
+    if art == bedingung.ART_DIFFERENZ:
+        felder[vol.Required("gegen", description={"suggested_value": regel.get("gegen")})] = (
+            EntitySelector()
+        )
+    felder[vol.Required("ein", description={"suggested_value": regel.get("ein")})] = NumberSelector(
+        NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any")
+    )
+    felder[vol.Optional("aus", description={"suggested_value": regel.get("aus")})] = NumberSelector(
+        NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any")
+    )
+    return vol.Schema(felder)
 
 
 def eingabe_als_stand(user_input: Mapping[str, Any]) -> dict[str, Any]:
@@ -409,13 +455,47 @@ def eingabe_als_stand(user_input: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "name": user_input.get("name", ""),
         "art": user_input.get("art", QUELLE_SOLAR),
+        "pumpe": bool(user_input.get("pumpe", False)),
         "bedingung": {
             "art": user_input.get("bedingung_art"),
             "quelle": user_input.get("quelle"),
             "gegen": user_input.get("gegen"),
             "ein": user_input.get("ein"),
             "aus": user_input.get("aus"),
+            "zustaende": user_input.get("zustaende"),
         },
+    }
+
+
+def stand_zusammenfuehren(
+    vorhanden: Mapping[str, Any], user_input: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Die Eingabe über den bisherigen Stand legen, ohne ihn zu leeren.
+
+    Der erste Schritt fragt die Grenzen nicht ab; beim Ändern stünden sie
+    sonst leer im zweiten.
+    """
+    stand = {**vorhanden, **eingabe_als_stand(user_input)}
+    stand["bedingung"] = {
+        **dict(vorhanden.get("bedingung") or {}),
+        **{name: wert for name, wert in stand["bedingung"].items() if wert is not None},
+    }
+    return stand
+
+
+def stand_als_eingabe(stand: Mapping[str, Any]) -> dict[str, Any]:
+    """Der gemerkte Stand in der flachen Form des Formulars."""
+    regel = dict(stand.get("bedingung") or {})
+    return {
+        "name": stand.get("name", ""),
+        "art": stand.get("art", QUELLE_SOLAR),
+        "pumpe": bool(stand.get("pumpe", False)),
+        "bedingung_art": regel.get("art"),
+        "quelle": regel.get("quelle"),
+        "gegen": regel.get("gegen"),
+        "ein": regel.get("ein"),
+        "aus": regel.get("aus"),
+        "zustaende": regel.get("zustaende"),
     }
 
 
@@ -432,12 +512,14 @@ def quelle_aus_eingabe(
         "gegen": user_input.get("gegen"),
         "ein": user_input.get("ein"),
         "aus": user_input.get("aus"),
+        "zustaende": user_input.get("zustaende"),
     }
     if not bedingung.vollstaendig(regel):
         return None, {"base": "bedingung_unvollstaendig"}
     return {
         "name": name,
         "art": user_input.get("art", QUELLE_SOLAR),
+        "pumpe": bool(user_input.get("pumpe", False)),
         "bedingung": waermequelle.bedingung_pruefen(regel),
     }, {}
 
@@ -771,9 +853,10 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
     """
 
     def __init__(self) -> None:
-        """Anlage und Richtung des Ablaufs."""
+        """Anlage, Richtung des Ablaufs und was der erste Schritt ergab."""
         self._host: str = ""
         self._aendern: bool = False
+        self._stand: dict[str, Any] = {}
 
     def _systeme(self) -> list[dict[str, Any]]:
         return self._get_entry().data.get(CONF_SYSTEMS, [])
@@ -834,8 +917,7 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
     async def async_step_quelle(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Bauart und Bedingung der Quelle."""
-        eintrag = self._get_entry()
+        """Bauart der Quelle und die Entität, an der man sie erkennt."""
         vorhanden: dict[str, Any] = {}
         if self._aendern:
             sub = self._get_reconfigure_subentry()
@@ -845,24 +927,11 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
 
         errors: dict[str, str] = {}
         if user_input is not None:
-            quelle, errors = quelle_aus_eingabe(user_input)
-            if quelle is not None:
-                daten = {
-                    CONF_HOST: self._host,
-                    "id": vorhanden.get("id") or waermequelle.quelle_id(self._vorhandene_quellen()),
-                    "art": quelle["art"],
-                    "bedingung": quelle["bedingung"],
-                }
-                if self._aendern:
-                    return self.async_update_and_abort(
-                        eintrag,
-                        self._get_reconfigure_subentry(),
-                        title=quelle["name"],
-                        data=daten,
-                    )
-                return self.async_create_entry(title=quelle["name"], data=daten)
-            # Nach einem Fehler steht wieder da, was eingegeben wurde.
-            vorhanden = {**vorhanden, **eingabe_als_stand(user_input)}
+            self._stand = stand_zusammenfuehren(vorhanden, user_input)
+            if str(self._stand.get("name") or "").strip():
+                return await self.async_step_regel()
+            errors = {"name": "name_fehlt"}
+            vorhanden = self._stand
 
         return self.async_show_form(
             step_id="quelle",
@@ -870,6 +939,58 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
             errors=errors,
             description_placeholders={"anlage": self._bezeichnung(self._host)},
         )
+
+    async def async_step_regel(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Wann die Quelle liefert. Jede Bedingungsart fragt eigene Felder ab."""
+        regel = dict(self._stand.get("bedingung") or {})
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            eingabe = {**stand_als_eingabe(self._stand), **user_input}
+            quelle, errors = quelle_aus_eingabe(eingabe)
+            if quelle is not None:
+                return self._sichern(quelle)
+            # Nach einem Fehler steht wieder da, was eingegeben wurde.
+            self._stand = stand_zusammenfuehren(self._stand, eingabe)
+            regel = dict(self._stand.get("bedingung") or {})
+
+        return self.async_show_form(
+            step_id="regel",
+            data_schema=regel_schema(
+                str(regel.get("art") or ""),
+                self._stand,
+                zustandsvorschlaege(self.hass, regel.get("quelle")),
+            ),
+            errors=errors,
+            description_placeholders={"quelle": self._quellenname(regel.get("quelle"))},
+        )
+
+    def _quellenname(self, entity_id: str | None) -> str:
+        """Wie die Entität heißt, die über die Quelle entscheidet."""
+        zustand = self.hass.states.get(entity_id) if entity_id else None
+        if zustand is None:
+            return str(entity_id or "")
+        return str(zustand.attributes.get("friendly_name") or entity_id)
+
+    def _sichern(self, quelle: dict[str, Any]) -> SubentryFlowResult:
+        """Die fertige Quelle als Subeintrag ablegen."""
+        vorhanden = dict(self._get_reconfigure_subentry().data or {}) if self._aendern else {}
+        daten = {
+            CONF_HOST: self._host,
+            "id": vorhanden.get("id") or waermequelle.quelle_id(self._vorhandene_quellen()),
+            "art": quelle["art"],
+            "pumpe": quelle["pumpe"],
+            "bedingung": quelle["bedingung"],
+        }
+        if self._aendern:
+            return self.async_update_and_abort(
+                self._get_entry(),
+                self._get_reconfigure_subentry(),
+                title=quelle["name"],
+                data=daten,
+            )
+        return self.async_create_entry(title=quelle["name"], data=daten)
 
 
 class WindhagerOptionsFlow(OptionsFlow):

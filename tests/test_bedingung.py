@@ -46,6 +46,16 @@ def test_benannte_zustaende_schliessen_alles_andere_aus(bedingung):
     assert bedingung.erfuellt(regel, {"sensor.art": "Bereitschaft"}) is False
 
 
+def test_ein_klartext_ohne_benannte_zustaende_kennt_kein_aus(bedingung):
+    """Ein Statustext heißt weder on noch off: Ohne Auswahl gilt jeder als an."""
+    ohne = {"art": "zustand", "quelle": "sensor.status"}
+    mit = {**ohne, "zustaende": ["Solaranlage aktiv"]}
+
+    assert bedingung.erfuellt(ohne, {"sensor.status": "Solaranlage inaktiv"}) is True
+    assert bedingung.erfuellt(mit, {"sensor.status": "Solaranlage inaktiv"}) is False
+    assert bedingung.erfuellt(mit, {"sensor.status": "Solaranlage aktiv"}) is True
+
+
 # ---------------------------------------------------------------------------
 # Schwelle mit getrennter Ein- und Ausschaltgrenze
 # ---------------------------------------------------------------------------

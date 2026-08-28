@@ -272,14 +272,27 @@
           "data": {
             "name": "Name",
             "art": "Bauart",
+            "pumpe": "Pumpe im Schaubild zeigen",
             "bedingung_art": "Bedingung",
-            "quelle": "Entität",
-            "gegen": "Zweite Entität (nur bei Differenz)",
+            "quelle": "Entität"
+          },
+          "data_description": {
+            "quelle": "Der Wert, der über die Quelle entscheidet.",
+            "pumpe": "Zeichnet ein Laufrad in die Leitung der Quelle, solange sie liefert."
+          }
+        },
+        "regel": {
+          "title": "Bedingung",
+          "description": "Wann liefert die Quelle Wärme? Maßgeblich ist {quelle}.",
+          "data": {
+            "zustaende": "Zustände, die als an gelten",
+            "gegen": "Zweite Entität",
             "ein": "Einschaltwert",
             "aus": "Ausschaltwert"
           },
           "data_description": {
-            "quelle": "Der Wert, der über die Quelle entscheidet.",
+            "zustaende": "Nur diese Zustände gelten als liefernd, jeder andere als aus. Fehlt einer in der Liste, trage ihn ein.",
+            "gegen": "Ihr Wert wird von der ersten Entität abgezogen.",
             "ein": "Ab diesem Wert gilt die Quelle als liefernd.",
             "aus": "Erst darunter gilt sie wieder als aus. Leer heißt: derselbe Wert."
           }

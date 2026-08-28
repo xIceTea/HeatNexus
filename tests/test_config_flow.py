@@ -346,6 +346,28 @@ def test_eine_entfernte_kennung_wird_nicht_neu_vergeben(flow):
     assert flow.quelle_id([*quellen, {**SOLAR, "id": "q2"}]) == "q4"
 
 
+def test_das_formular_fragt_nur_die_felder_seiner_bedingung(flow):
+    zustand = flow.regel_schema("zustand", {}, ["Solaranlage aktiv"])
+    schwelle = flow.regel_schema("schwelle", {}, [])
+    differenz = flow.regel_schema("differenz", {}, [])
+
+    assert [str(feld) for feld in zustand.schema] == ["zustaende"]
+    assert [str(feld) for feld in schwelle.schema] == ["ein", "aus"]
+    assert [str(feld) for feld in differenz.schema] == ["gegen", "ein", "aus"]
+
+
+def test_ein_zustand_im_klartext_ist_pflicht(flow):
+    """Ohne Auswahl gälte jeder Text als an, auch einer, der aus bedeutet."""
+    import voluptuous as vol
+
+    klartext = flow.regel_schema("zustand", {}, ["Solaranlage inaktiv"])
+    binaer = flow.regel_schema("zustand", {}, ["on"])
+
+    with pytest.raises(vol.Invalid):
+        klartext({})
+    assert binaer({}) == {}
+
+
 def _dialog(flow, monkeypatch, quellen=(), gespeichert=None):
     """Ein Optionsdialog mit einer Anlage und den übergebenen Quellen."""
     from types import SimpleNamespace

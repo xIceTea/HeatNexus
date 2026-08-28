@@ -58,6 +58,7 @@ def _eintrag(quellen, host="192.0.2.10"):
                 "host": host,
                 "id": q["id"],
                 "art": q["art"],
+                "pumpe": q.get("pumpe", False),
                 "bedingung": q["bedingung"],
             },
         )
@@ -73,6 +74,15 @@ def test_jede_quelle_wird_zu_einer_beschreibung(modul):
     assert beschreibungen[0]["id"] == "SN1-waermequelle-q1"
     assert beschreibungen[0]["name"] == "Solaranlage"
     assert beschreibungen[0]["bedingung"]["ein"] == 8
+
+
+def test_die_beschreibung_traegt_die_wahl_zum_laufrad(modul):
+    """Ob die Quelle eine Pumpe zeichnet, steht in ihrem Subeintrag."""
+    mit = modul.beschreibungen(_eintrag([{**SOLAR, "pumpe": True}]), _koordinator())
+    ohne = modul.beschreibungen(_eintrag([SOLAR]), _koordinator())
+
+    assert mit[0]["pumpe"] is True
+    assert ohne[0]["pumpe"] is False
 
 
 def test_eine_quelle_unbekannter_bauart_wird_nicht_gebaut(modul):
@@ -253,7 +263,7 @@ async def test_eine_neue_quelle_entsteht_als_subeintrag(hass):
         (eintrag.entry_id, SUBEINTRAG_QUELLE), context={"source": "user"}
     )
 
-    ergebnis = await hass.config_entries.subentries.async_configure(
+    regel = await hass.config_entries.subentries.async_configure(
         ablauf["flow_id"],
         {
             "name": "Fernwärme",
@@ -262,8 +272,71 @@ async def test_eine_neue_quelle_entsteht_als_subeintrag(hass):
             "quelle": "binary_sensor.uebergabe",
         },
     )
+    assert regel["step_id"] == "regel"
+
+    ergebnis = await hass.config_entries.subentries.async_configure(ablauf["flow_id"], {})
 
     assert ergebnis["type"] is FlowResultType.CREATE_ENTRY
     assert ergebnis["title"] == "Fernwärme"
     assert ergebnis["data"]["id"] == "q1"
     assert ergebnis["data"]["host"] == "192.0.2.10"
+
+
+async def test_ein_zustand_im_klartext_wird_zum_schaltpunkt(hass):
+    """Ein Sensor mit Klartext liefert nur bei den gewählten Zuständen."""
+    from custom_components.heatnexus.const import SUBEINTRAG_QUELLE
+
+    hass.states.async_set("sensor.solarstatus", "Solaranlage inaktiv")
+    eintrag = _mock_eintrag(hass, {})
+    ablauf = await hass.config_entries.subentries.async_init(
+        (eintrag.entry_id, SUBEINTRAG_QUELLE), context={"source": "user"}
+    )
+
+    await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"],
+        {
+            "name": "Solaranlage",
+            "art": "solar",
+            "bedingung_art": "zustand",
+            "quelle": "sensor.solarstatus",
+        },
+    )
+    ergebnis = await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"], {"zustaende": ["Solaranlage aktiv"]}
+    )
+
+    assert ergebnis["data"]["bedingung"] == {
+        "art": "zustand",
+        "quelle": "sensor.solarstatus",
+        "zustaende": ["Solaranlage aktiv"],
+    }
+
+
+async def test_eine_schwelle_traegt_keine_zustaende(hass):
+    """Der Wechsel der Bedingungsart lässt nichts von der vorigen stehen."""
+    from custom_components.heatnexus.const import SUBEINTRAG_QUELLE
+
+    eintrag = _mock_eintrag(hass, {})
+    ablauf = await hass.config_entries.subentries.async_init(
+        (eintrag.entry_id, SUBEINTRAG_QUELLE), context={"source": "user"}
+    )
+
+    await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"],
+        {
+            "name": "Heizstab",
+            "art": "heizstab",
+            "bedingung_art": "schwelle",
+            "quelle": "sensor.leistung",
+        },
+    )
+    ergebnis = await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"], {"ein": 500, "aus": 200}
+    )
+
+    assert ergebnis["data"]["bedingung"] == {
+        "art": "schwelle",
+        "quelle": "sensor.leistung",
+        "ein": 500.0,
+        "aus": 200.0,
+    }

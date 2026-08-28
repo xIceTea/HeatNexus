@@ -52,22 +52,35 @@ def quellen_pruefen(roh: Any) -> list[dict[str, Any]]:
         if not isinstance(regel, Mapping) or not bedingung.vollstaendig(dict(regel)):
             continue
         ergebnis.append(
-            {"id": kennung, "name": name, "art": art, "bedingung": bedingung_pruefen(regel)}
+            {
+                "id": kennung,
+                "name": name,
+                "art": art,
+                "pumpe": bool(eintrag.get("pumpe")),
+                "bedingung": bedingung_pruefen(regel),
+            }
         )
     return ergebnis[:QUELLEN_MAX]
 
 
 def bedingung_pruefen(roh: Mapping[str, Any]) -> dict[str, Any]:
-    """Nur die Felder übernehmen, die die Auswertung kennt."""
+    """Nur die Felder übernehmen, die zu dieser Bedingungsart gehören.
+
+    Ein Wechsel der Art lässt sonst die Grenzen der vorigen stehen, und die
+    Auswertung liest sie weiter.
+    """
     regel: dict[str, Any] = {"art": roh["art"], "quelle": str(roh["quelle"])}
-    if gegen := roh.get("gegen"):
+    if regel["art"] == bedingung.ART_ZUSTAND:
+        if zustaende := roh.get("zustaende"):
+            regel["zustaende"] = [str(z) for z in zustaende]
+        return regel
+    if regel["art"] == bedingung.ART_DIFFERENZ and (gegen := roh.get("gegen")):
         regel["gegen"] = str(gegen)
     for grenze in ("ein", "aus"):
-        wert = roh.get(grenze)
-        if wert is not None and str(wert) != "":
-            regel[grenze] = float(wert)
-    if zustaende := roh.get("zustaende"):
-        regel["zustaende"] = [str(z) for z in zustaende]
+        try:
+            regel[grenze] = float(roh[grenze])
+        except (KeyError, TypeError, ValueError):
+            continue
     return regel
 
 
@@ -90,6 +103,7 @@ def der_anlage(entry: ConfigEntry, host: str) -> list[dict[str, Any]]:
                 "id": daten["id"],
                 "name": sub.title,
                 "art": daten["art"],
+                "pumpe": bool(daten.get("pumpe")),
                 "bedingung": dict(daten.get("bedingung") or {}),
                 "subentry_id": sub.subentry_id,
             }
@@ -127,6 +141,7 @@ def beschreibungen(entry: ConfigEntry, coordinator: Any) -> list[dict[str, Any]]
             "type": TYP,
             "name": q.get("name"),
             "art": q["art"],
+            "pumpe": bool(q.get("pumpe")),
             "bedingung": dict(q.get("bedingung") or {}),
             "subentry_id": q.get("subentry_id"),
         }

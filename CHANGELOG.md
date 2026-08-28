@@ -12,10 +12,13 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Kaminkehrer und Lagerraumbefüllung fragen vor dem Beenden zurück.
 - Wärmequellen ohne Anschluss an die Steuerung lassen sich anlegen.
+- Eine Wärmequelle erkennt Zustände im Klartext, etwa „Solaranlage aktiv“.
 - Solaranlage, Heizstab und Fernwärme erscheinen im Schaubild und in der Übersicht.
 - Der Kaminkehrer fragt Leistung und Laufzeit in einer Rückfrage ab.
 - Eine Wärmequelle lässt ihre Leitung strömen und ihre Lampe leuchten.
 - Der Puffer zeigt „lädt", solange eine Wärmequelle liefert.
+- Das Schaubild zeigt auf Wunsch die Pumpe einer Wärmequelle.
+- Eine liefernde Wärmequelle wird im Schaubild warm.
 
 ### Geändert
 
@@ -28,6 +31,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Betriebswahl und Kaminkehrer-Restlaufzeit erscheinen im schnellen Takt.
 - Beim laufenden Kaminkehrer nennt die Kachel den nächsten Druck als Beenden.
 - Die Anschlüsse des Warmwasserspeichers sitzen am Körper statt daneben.
+- Die Stichleitung des Puffers strömt, solange eine Wärmequelle liefert.
 
 ## [1.11.0] - 2026-08-24
 
