@@ -341,20 +341,23 @@ def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
     return zuordnung
 
 
-def _quellenart_je_geraet(hass: HomeAssistant) -> dict[str, str]:
-    """Bauart je Gerätekennung der Wärmequellen.
+def _quellen_je_geraet(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
+    """Bauart und Laufrad je Gerätekennung der Wärmequellen.
 
-    Sie stehen in den Optionen, nicht im Abzug der Anlage, und tragen deshalb
-    keinen Funktionstyp.
+    Sie stehen in den Subeinträgen, nicht im Abzug der Anlage, und tragen
+    deshalb keinen Funktionstyp.
     """
-    zuordnung: dict[str, str] = {}
+    zuordnung: dict[str, dict[str, Any]] = {}
     for entry in hass.config_entries.async_entries(DOMAIN):
         eintrag = getattr(entry, "runtime_data", None)
         if not isinstance(eintrag, dict):
             continue
         for coordinator in (eintrag.get("coordinators") or {}).values():
             for beschreibung in waermequelle.beschreibungen(entry, coordinator):
-                zuordnung.setdefault(beschreibung["id"], beschreibung["art"])
+                zuordnung.setdefault(
+                    beschreibung["id"],
+                    {"art": beschreibung["art"], "pumpe": bool(beschreibung.get("pumpe"))},
+                )
     return zuordnung
 
 
@@ -399,7 +402,7 @@ def _anlagen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:
     geraete_registry = dr.async_get(hass)
     entitaeten_registry = er.async_get(hass)
     fct_je_geraet = _fct_je_geraet(hass)
-    quellenart_je_geraet = _quellenart_je_geraet(hass)
+    quellen_je_geraet = _quellen_je_geraet(hass)
     schaubildwahl_je_geraet = _schaubildwahl_je_geraet(hass)
 
     teile: dict[str, dict[str, Any]] = {}
@@ -408,13 +411,15 @@ def _anlagen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:
         if kennung is None:
             continue
         fct = fct_je_geraet.get(kennung)
-        art = quellenart_je_geraet.get(kennung)
+        quelle = quellen_je_geraet.get(kennung) or {}
+        art = quelle.get("art")
         teile[geraet.id] = {
             "name": _kurzname(geraet.name_by_user or geraet.name),
             "id": geraet.id,
             "anlage_id": geraet.via_device_id,
             "fct_type": fct,
             "art": art,
+            "quellenpumpe": bool(quelle.get("pumpe")),
             "rang": _rang(fct, art),
             "symbol": _symbol(fct, art),
             "kesselart_wahl": schaubildwahl_je_geraet.get(kennung, _SCHAUBILD_STANDARD)[0],

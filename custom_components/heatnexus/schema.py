@@ -655,13 +655,15 @@ def _module(
                         else None
                     ),
                     # Die Wärmelieferung tritt bei einer Quelle an die Stelle der
-                    # Pumpe: An ihr hängen Lampe und Fluss. Gezeichnet wird kein
-                    # Laufrad – dort sitzt keine Pumpe.
+                    # Pumpe: An ihr hängen Lampe und Fluss.
                     "lieferung": (
                         e["entity_id"]
                         if art in QUELLEN_ARTEN and (e := _finde(teil["entitaeten"], LIEFERUNG))
                         else None
                     ),
+                    # Ob die Quelle ein Laufrad bekommt, sagt ihre Einstellung:
+                    # Eine Solaranlage hat eine Pumpe, ein Heizstab nicht.
+                    "quellenpumpe": art in QUELLEN_ARTEN and bool(teil.get("quellenpumpe")),
                     "mischer": _mischer(teil["entitaeten"]) if art == "heizkreis" else None,
                     # Die Temperatur, die tatsächlich in den Heizkörper geht.
                     # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn
@@ -864,6 +866,35 @@ def lampenpunkt(
                 float(treffer.group("r")),
             )
         return None
+    return None
+
+
+# Trägt eine Zeichnung eine Fläche, die sich im Betrieb erwärmt, benennt
+# `data-waerme` ihr Rechteck; `data-dreh` neigt es wie das Bauteil darunter.
+_WAERMEMARKE = re.compile(r"<rect[^>]*\sdata-waerme[^>]*?/>", re.S)
+
+
+def waermeflaeche(art: str, zeichnung: str | None = None) -> dict[str, float] | None:
+    """Fläche einer Bauteilzeichnung, die sich im Betrieb erwärmt."""
+    for dateiname in _bauteil_dateien(art, None, zeichnung):
+        fragment = _bauteil(dateiname)
+        if fragment is None or (marke := _WAERMEMARKE.search(fragment)) is None:
+            continue
+        masse: dict[str, float] = {}
+        for name, schluessel in (
+            ("x", "x"),
+            ("y", "y"),
+            ("width", "breite"),
+            ("height", "hoehe"),
+            ("rx", "ecke"),
+            ("data-dreh", "dreh"),
+        ):
+            wert = re.search(rf'\s{name}="(-?[\d.]+)"', marke.group(0))
+            if wert is None and schluessel in ("x", "y", "breite", "hoehe"):
+                break
+            masse[schluessel] = float(wert.group(1)) if wert else 0.0
+        else:
+            return masse
     return None
 
 
@@ -1328,6 +1359,7 @@ def anlagenschema(
     schichtung: list[dict[str, Any]] = []
     speicher: list[dict[str, Any]] = []
     lampen: list[dict[str, Any]] = []
+    waerme: list[dict[str, Any]] = []
     uebergabe: list[dict[str, Any]] = []
     # Wer dem Speicher Wärme entnimmt: alle Pumpen der Verbraucher. Wird
     # gleich zweimal gebraucht – für die Marke am Speicher und für seine
@@ -1363,12 +1395,15 @@ def anlagenschema(
                     # Pumpe lädt ihn, entnommen wird ihm von den Pumpen der
                     # Verbraucher – und dabei dreht die Ladepumpe nicht.
                     "entnahme": entnahme if modul["art"] == "puffer" else [],
+                    # Eine Quelle lädt den Speicher, ohne dass seine Ladepumpe
+                    # fördert. Ohne sie stünde die Stichleitung still, während
+                    # der Speicher „lädt" anzeigt.
+                    "quellen": lieferungen if modul["art"] == "puffer" else [],
                     "erzeuger": modul["art"] in ERZEUGER_ARTEN,
                 }
             )
-        # Eine Wärmequelle hat keine Pumpe, speist aber ein. Stichleitung und
-        # Lampe hängen deshalb an ihrer Wärmelieferung; ein Laufrad wird nicht
-        # gezeichnet, an dieser Stelle sitzt keine Pumpe.
+        # Eine Wärmequelle führt keinen Pumpendatenpunkt, speist aber ein.
+        # Stichleitung, Lampe und Laufrad hängen deshalb an ihrer Wärmelieferung.
         if modul.get("lieferung"):
             mitte = x + MODUL_BREITE // 2
             oben, unten = KANTEN_JE_ART.get(modul["art"], KANTEN_STANDARD)
@@ -1378,7 +1413,7 @@ def anlagenschema(
                     "left": f"{mitte / breite * 100:.2f}%",
                     "top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
                     "titel": modul["titel"],
-                    "nur_strang": True,
+                    "nur_strang": not modul.get("quellenpumpe"),
                     "erzeuger": True,
                     "vorlauf_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
                     "vorlauf_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
@@ -1386,6 +1421,24 @@ def anlagenschema(
                     "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
                 }
             )
+            # Die Wärme im Bauteil selbst, wie am Pumpen-/Relaismodul: Sie sagt,
+            # dass die Quelle arbeitet, ohne eine Temperatur zu behaupten.
+            if (flaeche := waermeflaeche(modul["art"], modul.get("zeichnung"))) is not None:
+                waerme.append(
+                    {
+                        "entity": modul["lieferung"],
+                        "left": f"{(x + flaeche['x']) / breite * 100:.2f}%",
+                        "top": f"{flaeche['y'] / HOEHE * 100:.2f}%",
+                        "breite": f"{flaeche['breite'] / breite * 100:.2f}%",
+                        "hoehe": f"{flaeche['hoehe'] / HOEHE * 100:.2f}%",
+                        "ecke": (
+                            f"{flaeche['ecke'] / flaeche['breite'] * 100:.2f}% /"
+                            f" {flaeche['ecke'] / flaeche['hoehe'] * 100:.2f}%"
+                        ),
+                        "dreh": flaeche["dreh"],
+                        "titel": modul["titel"],
+                    }
+                )
             stelle = lampenpunkt(modul["art"], zeichnung=modul.get("zeichnung"))
             if stelle is not None:
                 lx, ly, lr = stelle
@@ -1677,6 +1730,8 @@ def anlagenschema(
         # Wärme im Gehäuse, drehendes Laufrad und Abgabe nach außen, solange
         # das Modul Wärme anfordert.
         "uebergabe": uebergabe,
+        # Wärme im Bauteil einer Quelle, solange sie liefert.
+        "waerme": waerme,
     }
 
 
@@ -1769,5 +1824,6 @@ def schaubild_nutzdaten(
         "schema_schichtung": bild.get("schichtung", []) if bild else [],
         "schema_lampen": bild.get("lampen", []) if bild else [],
         "schema_uebergabe": bild.get("uebergabe", []) if bild else [],
+        "schema_waerme": bild.get("waerme", []) if bild else [],
         "schema_speicher": bild.get("speicher", []) if bild else [],
     }

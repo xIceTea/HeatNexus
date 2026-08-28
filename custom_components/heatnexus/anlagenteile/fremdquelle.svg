@@ -9,6 +9,9 @@
 <rect x="50" y="152" width="100" height="112" rx="10" fill="url(#fremdquelle-gehaeuse)"
       stroke="{{rahmen}}" stroke-width="2"/>
 
+<!-- Gehäusefläche, die sich erwärmt, solange die Quelle liefert. -->
+<rect data-waerme="1" x="50" y="152" width="100" height="112" rx="10" fill="none"/>
+
 <!-- Betriebslampe: leuchtet, solange die Quelle liefert -->
 <circle data-lampe="1" cx="132" cy="166" r="6" fill="{{glut}}" opacity="0.85"/>
 

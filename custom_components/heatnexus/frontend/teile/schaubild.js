@@ -448,6 +448,24 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
+    // Eine Wärmequelle wärmt ihr Bauteil, solange sie liefert: dieselbe Glut
+    // wie am Pumpen-/Relaismodul, aber ohne Abgabe nach außen und ohne Laufrad.
+    (anlage.schema_waerme || []).forEach((eintrag) => {
+      const feld = document.createElement("div");
+      feld.className = "uebergabe";
+      feld.style.left = eintrag.left;
+      feld.style.top = eintrag.top;
+      feld.style.width = eintrag.breite;
+      feld.style.height = eintrag.hoehe;
+      feld.style.borderRadius = eintrag.ecke;
+      if (eintrag.dreh) feld.style.transform = `rotate(${eintrag.dreh}deg)`;
+      feld.innerHTML = '<span class="glut"></span><span class="glut zwei"></span>';
+      huelle.appendChild(feld);
+      this._bindungen.push(() => {
+        feld.classList.toggle("an", this._istAn(eintrag.entity));
+      });
+    });
+
     // Wärmeanforderung: Steht der Analog-Sollwert über null, fordert das
     // Modul gerade Wärme an – und mit welcher Temperatur.
     (anlage.schema_anforderung || []).forEach((eintrag) => {
@@ -522,7 +540,8 @@ export const SchaubildMixin = (Basis) =>
           // Ladepumpe.
           const stroemt =
             this._foerdert(eintrag.entity) ||
-            (eintrag.entnahme || []).some((e) => this._foerdert(e));
+            (eintrag.entnahme || []).some((e) => this._foerdert(e)) ||
+            (eintrag.quellen || []).some((e) => this._istAn(e));
           band.classList.toggle("laeuft", stroemt);
           // Ein Wärmeerzeuger strömt andersherum als ein Verbraucher: Das kalte
           // Wasser kommt von unten herauf, das heiße verlässt ihn nach oben in

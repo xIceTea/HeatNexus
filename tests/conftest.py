@@ -59,8 +59,13 @@ def load_standalone(module_name: str) -> ModuleType:
 
 
 def ha_fehlt() -> bool:
-    """Prüfen, ob die Home-Assistant-Umgebung fehlt."""
-    return importlib.util.find_spec("homeassistant") is None
+    """Prüfen, ob die Home-Assistant-Umgebung fehlt oder hier nicht trägt."""
+    if importlib.util.find_spec("homeassistant") is None:
+        return True
+    # Home Assistant baut auf POSIX auf: `homeassistant.runner` importiert
+    # `fcntl`, das es außerhalb von Unix nicht gibt. Die Umgebung ist dort
+    # nicht lauffähig – das liegt am Betriebssystem, nicht an der Integration.
+    return importlib.util.find_spec("fcntl") is None
 
 
 def requires_ha():
@@ -144,10 +149,11 @@ def requires_digest_auth():
 # schweigend. Genau so ist in 1.0.0 ein falscher Erwartungswert bis in die CI
 # durchgerutscht. Der Hinweis steht deshalb am Anfang **und** am Ende.
 _WARNUNG = (
-    "Home Assistant ist nicht installiert: alle Tests der Integration werden "
+    "Die Home-Assistant-Testumgebung steht hier nicht zur Verfügung: alle Tests "
+    "der Integration werden "
     "übersprungen. Ein grüner Lauf beweist hier nichts. "
-    "Abhilfe: pip install -r requirements_test.txt. "
-    "Verlass dich sonst auf die CI."
+    "Unter Linux hilft `pip install -r requirements_test.txt`; unter Windows "
+    "fehlt Home Assistant das POSIX-Modul `fcntl`. Dort entscheidet die CI."
 )
 
 
@@ -221,3 +227,20 @@ def device_db() -> ModuleType:
 def geraetetexte() -> ModuleType:
     """Modul geraetetexte (Textwerk der Steuerung)."""
     return load_standalone("geraetetexte")
+
+
+# Ohne tragfähige Umgebung werden die Testdateien, die das Paket importieren,
+# gar nicht erst gesammelt: Ihr Import zieht Home Assistant nach und scheitert,
+# bevor irgendein Skip-Marker greifen kann.
+collect_ignore = (
+    [
+        datei.name
+        for datei in sorted(Path(__file__).parent.glob("test_*.py"))
+        if any(
+            marke in datei.read_text(encoding="utf-8")
+            for marke in ("custom_components.heatnexus", "from heatnexus")
+        )
+    ]
+    if ha_fehlt()
+    else []
+)

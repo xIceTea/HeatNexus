@@ -1407,6 +1407,81 @@ def test_der_puffer_zaehlt_die_lieferung_als_ladung(schema, anlage):
     assert "binary_sensor.solar_waermelieferung" in puffer[0]["quellen"]
 
 
+def _anlage_mit_ladepumpe() -> list:
+    """Anlage, deren Puffer eine Ladepumpe führt – sonst gibt es keinen Strang."""
+    return [
+        _teil("PuroWIN", 25, [("sensor.kessel_ist", "Kesseltemperatur Ist")]),
+        _teil(
+            "B-PLMi PUFFER",
+            16,
+            [
+                ("sensor.tpe", "Puffer oben Temperatur (TPE)"),
+                ("sensor.tpa", "Puffer unten Temperatur (TPA)"),
+                ("sensor.plp", "Pufferladepumpe Drehzahl"),
+            ],
+        ),
+    ]
+
+
+def test_die_stichleitung_des_puffers_haengt_an_der_quelle(schema):
+    """Der Speicher lädt aus der Quelle, also strömt auch seine Stichleitung."""
+    teile = [*_anlage_mit_ladepumpe(), _quelle("Solaranlage", "solar")]
+
+    strang = [p for p in schema.anlagenschema(teile)["pumpen"] if p["titel"].startswith("B-PLMi")]
+
+    assert strang
+    assert "binary_sensor.solar_waermelieferung" in strang[0]["quellen"]
+
+
+def test_die_quelle_zeichnet_ihr_laufrad_nur_auf_wunsch(schema):
+    """Eine Solaranlage hat eine Pumpe, ein Heizstab nicht – das sagt die Wahl."""
+    lieferung = "binary_sensor.solar_waermelieferung"
+    mit = schema.anlagenschema(
+        [*_anlage_mit_ladepumpe(), {**_quelle("Solaranlage", "solar"), "quellenpumpe": True}]
+    )
+    ohne = schema.anlagenschema([*_anlage_mit_ladepumpe(), _quelle("Heizstab", "heizstab")])
+
+    strang = [p for p in mit["pumpen"] if p["entity"] == lieferung]
+    stumpf = [p for p in ohne["pumpen"] if p["entity"] == lieferung]
+
+    assert strang and not strang[0]["nur_strang"]
+    assert stumpf and stumpf[0]["nur_strang"]
+
+
+@pytest.mark.parametrize("art", ["solar", "heizstab", "fremdquelle"])
+def test_jede_bauart_nennt_ihre_waermeflaeche(schema, art):
+    """Ohne markierte Fläche bliebe die Quelle im Bild unbeteiligt."""
+    flaeche = schema.waermeflaeche(art)
+
+    assert flaeche is not None
+    assert flaeche["breite"] > 0 and flaeche["hoehe"] > 0
+
+
+def test_die_flaeche_der_quelle_haengt_an_der_lieferung(schema):
+    """Sie glüht nach demselben Zeichen wie die Lampe, nicht nach einem Messwert."""
+    teile = [*_anlage_mit_ladepumpe(), _quelle("Solaranlage", "solar")]
+
+    waerme = schema.anlagenschema(teile)["waerme"]
+
+    assert len(waerme) == 1
+    assert waerme[0]["entity"] == "binary_sensor.solar_waermelieferung"
+    assert waerme[0]["dreh"] == -14
+
+
+def test_ohne_quelle_bleibt_die_flaeche_leer(schema):
+    assert schema.anlagenschema(_anlage_mit_ladepumpe())["waerme"] == []
+
+
+def test_der_kesselstrang_zaehlt_die_quelle_nicht(schema):
+    """Die Quelle lädt den Speicher; am Kessel ändert sie nichts."""
+    teile = [*_anlage_mit_ladepumpe(), _quelle("Solaranlage", "solar")]
+
+    kessel = [p for p in schema.anlagenschema(teile)["pumpen"] if p["titel"] == "PuroWIN"]
+
+    assert kessel
+    assert not kessel[0].get("quellen")
+
+
 def test_das_schaubild_zeigt_die_quelle_neben_der_anlage(schema, anlage):
     bild = schema.anlagenschema([*anlage, _quelle("Heizstab", "heizstab")])
 

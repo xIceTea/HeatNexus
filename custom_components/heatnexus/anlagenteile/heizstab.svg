@@ -22,6 +22,9 @@
 <rect x="64" y="184" width="72" height="14" rx="3" fill="{{korpus_dunkel}}"
       stroke="{{rahmen}}" stroke-width="2"/>
 
+<!-- Fläche über der Heizwendel: Sie glüht, solange der Stab heizt. -->
+<rect data-waerme="1" x="74" y="194" width="50" height="66" rx="12" fill="none"/>
+
 <!-- Heizwendel im Wasser -->
 <g stroke="{{glut}}" stroke-width="7" fill="none" stroke-linecap="round">
   <path d="M 82 198 L 82 240 Q 82 254 94 254 Q 106 254 106 240 L 106 198"/>
