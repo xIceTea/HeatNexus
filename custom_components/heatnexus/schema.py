@@ -619,6 +619,7 @@ def _module(
         # Eine Wärmequelle bringt ihre Bauart selbst mit; sie hat keinen
         # Funktionstyp, weil sie nicht an der Steuerung hängt.
         art = teil.get("art") or _art(teil.get("fct_type"))
+        ist_quelle = bool(teil.get("quelle"))
         kennung = teil_kennung(teil)
         if kennung in set(teile_aus or ()):
             continue
@@ -638,7 +639,7 @@ def _module(
             continue
         # Eine Wärmequelle wird auch ohne Messwert gezeichnet: Dass sie in der
         # Anlage steht, ist die Aussage; ob sie liefert, sagt ihre Lampe.
-        if werte or art == "pumpenmodul" or art in QUELLEN_ARTEN:
+        if werte or art == "pumpenmodul" or ist_quelle:
             module.append(
                 {
                     "kennung": kennung,
@@ -658,12 +659,12 @@ def _module(
                     # Pumpe: An ihr hängen Lampe und Fluss.
                     "lieferung": (
                         e["entity_id"]
-                        if art in QUELLEN_ARTEN and (e := _finde(teil["entitaeten"], LIEFERUNG))
+                        if ist_quelle and (e := _finde(teil["entitaeten"], LIEFERUNG))
                         else None
                     ),
                     # Ob die Quelle ein Laufrad bekommt, sagt ihre Einstellung:
                     # Eine Solaranlage hat eine Pumpe, ein Heizstab nicht.
-                    "quellenpumpe": art in QUELLEN_ARTEN and bool(teil.get("quellenpumpe")),
+                    "quellenpumpe": ist_quelle and bool(teil.get("quellenpumpe")),
                     "mischer": _mischer(teil["entitaeten"]) if art == "heizkreis" else None,
                     # Die Temperatur, die tatsächlich in den Heizkörper geht.
                     # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn

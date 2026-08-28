@@ -1343,6 +1343,7 @@ def _quelle(name: str, art: str) -> dict:
         "name": name,
         "fct_type": None,
         "art": art,
+        "quelle": True,
         "entitaeten": [
             {
                 "entity_id": "binary_sensor.solar_waermelieferung",
@@ -1368,6 +1369,24 @@ def test_die_bauart_der_quelle_sticht_den_funktionstyp(schema):
     module = schema._module([teil])
 
     assert module[0]["art"] == "heizstab"
+
+
+def test_ein_solarkreis_der_steuerung_traegt_keine_lieferung(schema):
+    """Nur eine angelegte Wärmequelle bekommt Lampe und Strang."""
+    teil = _teil("Solarkreis", 5, [("sensor.kollektor", "Kollektortemperatur")])
+    teil["entitaeten"].append(
+        {
+            "entity_id": "binary_sensor.solar_waermelieferung",
+            "name": "Wärmelieferung",
+            "hat_wert": True,
+            "bereich": "binary_sensor",
+        }
+    )
+
+    module = schema._module([teil])
+
+    assert module[0]["art"] == "solar"
+    assert module[0]["lieferung"] is None
 
 
 @pytest.mark.parametrize("art", ["heizstab", "fremdquelle"])
