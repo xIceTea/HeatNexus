@@ -509,9 +509,12 @@ def quelle_aus_eingabe(
     }
     if not bedingung.vollstaendig(regel):
         return None, {"base": "bedingung_unvollstaendig"}
+    art = user_input.get("art", QUELLE_SOLAR)
     return {
-        "name": (user_input.get("name") or "").strip(),
-        "art": user_input.get("art", QUELLE_SOLAR),
+        # Ein leerer Name ließe den Subeintrag ohne Titel in der Übersicht
+        # stehen. Die Bauart benennt die Quelle dann für ihn.
+        "name": (user_input.get("name") or "").strip() or QUELLEN_ARTEN.get(art, "Wärmequelle"),
+        "art": art,
         "pumpe": bool(user_input.get("pumpe", False)),
         "bedingung": waermequelle.bedingung_pruefen(regel),
     }, {}
