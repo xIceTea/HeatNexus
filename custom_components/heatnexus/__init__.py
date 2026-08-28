@@ -512,6 +512,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Erst die Kennungen umstellen, dann die Plattformen anlegen: Sonst
     # entstünden neben den umbenannten Einträgen zusätzlich neue.
     async_kennungen_umstellen(hass, entry, coordinators)
+    # Vor den Plattformen: Ein Gerät, das noch am Haupteintrag hängt, stünde
+    # sonst neben seinem Subeintrag ein zweites Mal in der Übersicht.
+    waermequelle.geraete_entflechten(registry, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _geraetenamen_angleichen(registry, entry, coordinators)
     async_entity_ids_umstellen(hass, entry)

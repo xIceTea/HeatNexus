@@ -346,3 +346,53 @@ async def test_eine_schwelle_traegt_keine_zustaende(hass):
         "ein": 500.0,
         "aus": 200.0,
     }
+
+
+async def test_das_geraet_einer_quelle_haengt_nur_am_subeintrag(hass):
+    """Zwei Zuordnungen zeigen dasselbe Gerät zweimal in der Übersicht."""
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.heatnexus import async_migrate_entry, waermequelle
+    from custom_components.heatnexus.const import CONF_QUELLEN, DOMAIN, SUBEINTRAG_QUELLE
+
+    eintrag = _mock_eintrag(hass, {"192.0.2.10": {CONF_QUELLEN: [SOLAR]}})
+    await async_migrate_entry(hass, eintrag)
+    sub = next(s for s in eintrag.subentries.values() if s.subentry_type == SUBEINTRAG_QUELLE)
+
+    registrierung = dr.async_get(hass)
+    geraet = registrierung.async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-waermequelle-q1")},
+        name="Anlage 1 · Solaranlage",
+    )
+    registrierung.async_update_device(
+        geraet.id,
+        add_config_entry_id=eintrag.entry_id,
+        add_config_subentry_id=sub.subentry_id,
+    )
+
+    assert waermequelle.geraete_entflechten(registrierung, eintrag) == 1
+
+    zuordnung = registrierung.async_get(geraet.id).config_entries_subentries[eintrag.entry_id]
+    assert zuordnung == {sub.subentry_id}
+
+
+async def test_ein_geraet_der_anlage_bleibt_am_haupteintrag(hass):
+    """Nur Geräte einer Quelle werden gelöst, nicht die der Anlage."""
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.heatnexus import async_migrate_entry, waermequelle
+    from custom_components.heatnexus.const import CONF_QUELLEN, DOMAIN
+
+    eintrag = _mock_eintrag(hass, {"192.0.2.10": {CONF_QUELLEN: [SOLAR]}})
+    await async_migrate_entry(hass, eintrag)
+
+    registrierung = dr.async_get(hass)
+    geraet = registrierung.async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-0")},
+        name="Anlage 1 · PuroWIN",
+    )
+
+    assert waermequelle.geraete_entflechten(registrierung, eintrag) == 0
+    assert registrierung.async_get(geraet.id) is not None

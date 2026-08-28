@@ -974,7 +974,12 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
         return str(zustand.attributes.get("friendly_name") or entity_id)
 
     def _sichern(self, quelle: dict[str, Any]) -> SubentryFlowResult:
-        """Die fertige Quelle als Subeintrag ablegen."""
+        """Die fertige Quelle ablegen und die Anlage neu laden.
+
+        Die Plattformen lesen die Subeinträge beim Einrichten. Ohne Neuladen
+        entstünde die Entität der Quelle erst beim nächsten Start.
+        """
+        eintrag = self._get_entry()
         vorhanden = dict(self._get_reconfigure_subentry().data or {}) if self._aendern else {}
         daten = {
             CONF_HOST: self._host,
@@ -984,13 +989,16 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
             "bedingung": quelle["bedingung"],
         }
         if self._aendern:
-            return self.async_update_and_abort(
-                self._get_entry(),
+            ergebnis = self.async_update_and_abort(
+                eintrag,
                 self._get_reconfigure_subentry(),
                 title=quelle["name"],
                 data=daten,
             )
-        return self.async_create_entry(title=quelle["name"], data=daten)
+        else:
+            ergebnis = self.async_create_entry(title=quelle["name"], data=daten)
+        self.hass.config_entries.async_schedule_reload(eintrag.entry_id)
+        return ergebnis
 
 
 class WindhagerOptionsFlow(OptionsFlow):
