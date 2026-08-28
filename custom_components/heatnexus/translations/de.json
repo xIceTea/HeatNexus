@@ -204,6 +204,20 @@
         "15": "bis 15 Minuten alt",
         "60": "bis 60 Minuten alt"
       }
+    },
+    "quellenart": {
+      "options": {
+        "solar": "Solaranlage",
+        "heizstab": "Heizstab",
+        "fremdquelle": "Fernwärme oder sonstige Quelle"
+      }
+    },
+    "bedingungsart": {
+      "options": {
+        "zustand": "Zustand (an/aus)",
+        "schwelle": "Schwelle (Wert über oder unter einer Grenze)",
+        "differenz": "Differenz zweier Fühler"
+      }
     }
   },
   "entity": {

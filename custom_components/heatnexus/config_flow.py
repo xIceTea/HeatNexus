@@ -380,6 +380,7 @@ def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
                         for kennung, text in QUELLEN_ARTEN.items()
                     ],
                     mode=SelectSelectorMode.DROPDOWN,
+                    translation_key="quellenart",
                 )
             ),
             vol.Required("pumpe", default=bool(vorhanden.get("pumpe", False))): bool,
@@ -392,6 +393,7 @@ def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
                         for kennung, text in bedingung.ARTEN_BESCHRIFTUNG.items()
                     ],
                     mode=SelectSelectorMode.LIST,
+                    translation_key="bedingungsart",
                 )
             ),
             vol.Required(

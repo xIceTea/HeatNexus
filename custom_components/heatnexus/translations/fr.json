@@ -204,6 +204,20 @@
         "15": "jusqu'à 15 minutes",
         "60": "jusqu'à 60 minutes"
       }
+    },
+    "quellenart": {
+      "options": {
+        "solar": "Installation solaire",
+        "heizstab": "Résistance électrique",
+        "fremdquelle": "Chauffage urbain ou autre source"
+      }
+    },
+    "bedingungsart": {
+      "options": {
+        "zustand": "État (marche/arrêt)",
+        "schwelle": "Seuil (valeur au-dessus ou en dessous d’une limite)",
+        "differenz": "Différence entre deux sondes"
+      }
     }
   },
   "entity": {

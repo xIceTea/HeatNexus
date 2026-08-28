@@ -204,6 +204,20 @@
         "15": "up to 15 minutes old",
         "60": "up to 60 minutes old"
       }
+    },
+    "quellenart": {
+      "options": {
+        "solar": "Solar system",
+        "heizstab": "Heating element",
+        "fremdquelle": "District heating or other source"
+      }
+    },
+    "bedingungsart": {
+      "options": {
+        "zustand": "State (on/off)",
+        "schwelle": "Threshold (value above or below a limit)",
+        "differenz": "Difference between two sensors"
+      }
     }
   },
   "entity": {
