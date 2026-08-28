@@ -240,3 +240,43 @@ def test_das_schaubild_bekommt_zwei_spalten(dashboard):
     """Neben dem Bild steht die Werteliste – in einer Spalte wird beides eng."""
     ansicht = dashboard._anlagenbild([_anlage_mit_teilen()], als_karte=True)
     assert ansicht["sections"][0]["column_span"] == 2
+
+
+async def test_das_geraet_einer_quelle_traegt_ihre_bauart(hass, dashboard):
+    """Ohne die Bauart zeichnete das Schaubild die Quelle wie einen Anlagenteil."""
+    from types import SimpleNamespace
+
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus import async_migrate_entry
+    from custom_components.heatnexus.const import CONF_QUELLEN, CONF_SYSTEMS, DOMAIN
+
+    quelle = {
+        "id": "q1",
+        "name": "Solaranlage",
+        "art": "solar",
+        "pumpe": True,
+        "bedingung": {"art": "zustand", "quelle": "binary_sensor.solar"},
+    }
+    eintrag = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        minor_version=1,
+        data={CONF_SYSTEMS: [{"host": "192.0.2.10", "label": "Anlage 1"}]},
+        options={"192.0.2.10": {CONF_QUELLEN: [quelle]}},
+    )
+    eintrag.add_to_hass(hass)
+    await async_migrate_entry(hass, eintrag)
+    eintrag.runtime_data = {
+        "coordinators": {
+            "192.0.2.10": SimpleNamespace(
+                host="192.0.2.10",
+                label="Anlage 1",
+                client=SimpleNamespace(steuerung_kennung=lambda: "SN1"),
+            )
+        }
+    }
+
+    zuordnung = dashboard._quellen_je_geraet(hass)
+
+    assert zuordnung["SN1-waermequelle-q1"] == {"art": "solar", "pumpe": True}

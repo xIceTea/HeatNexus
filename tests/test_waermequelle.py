@@ -396,3 +396,55 @@ async def test_ein_geraet_der_anlage_bleibt_am_haupteintrag(hass):
 
     assert waermequelle.geraete_entflechten(registrierung, eintrag) == 0
     assert registrierung.async_get(geraet.id) is not None
+
+
+async def test_das_geraet_einer_entfernten_quelle_verschwindet(hass):
+    """Ohne Subeintrag bliebe ein Gerät ohne Entitäten in der Übersicht."""
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.heatnexus import waermequelle
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = _mock_eintrag(hass, {"192.0.2.10": {}})
+
+    registrierung = dr.async_get(hass)
+    geraet = registrierung.async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-waermequelle-q1")},
+        name="Anlage 1 · Solaranlage",
+    )
+
+    assert waermequelle.geraete_entflechten(registrierung, eintrag) == 1
+    assert registrierung.async_get(geraet.id) is None
+
+
+async def test_ohne_wechsel_schreibt_die_quelle_keinen_zustand(hass, monkeypatch):
+    """Ein Melder im Sekundentakt gehört nicht in den Verlauf."""
+    hass.states.async_set("sensor.kollektor", "70")
+    hass.states.async_set("sensor.puffer", "50")
+    entitaet = _sensor(hass)
+    entitaet._laeuft = True
+    geschrieben = []
+    monkeypatch.setattr(entitaet, "async_write_ha_state", lambda: geschrieben.append(True))
+
+    entitaet._quelle_geaendert(None)
+
+    assert geschrieben == []
+
+
+async def test_ein_echter_wechsel_schreibt_den_zustand(hass, monkeypatch):
+    hass.states.async_set("sensor.kollektor", "70")
+    hass.states.async_set("sensor.puffer", "50")
+    entitaet = _sensor(hass)
+    geschrieben = []
+    monkeypatch.setattr(entitaet, "async_write_ha_state", lambda: geschrieben.append(True))
+
+    entitaet._quelle_geaendert(None)
+
+    assert geschrieben == [True]
+    assert entitaet.is_on is True
+
+
+async def test_die_quelle_haengt_an_ereignissen_statt_am_takt(hass):
+    """Abgefragt gäbe es nichts zu holen; der Takt schriebe nur fort."""
+    assert _sensor(hass).should_poll is False
