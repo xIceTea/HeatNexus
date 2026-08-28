@@ -505,9 +505,6 @@ def quelle_aus_eingabe(
     user_input: Mapping[str, Any],
 ) -> tuple[dict[str, Any] | None, dict[str, str]]:
     """Die Eingabe zu einer Wärmequelle machen, oder die Fehler nennen."""
-    name = (user_input.get("name") or "").strip()
-    if not name:
-        return None, {"name": "name_fehlt"}
     regel = {
         "art": user_input.get("bedingung_art"),
         "quelle": user_input.get("quelle"),
@@ -519,7 +516,7 @@ def quelle_aus_eingabe(
     if not bedingung.vollstaendig(regel):
         return None, {"base": "bedingung_unvollstaendig"}
     return {
-        "name": name,
+        "name": (user_input.get("name") or "").strip(),
         "art": user_input.get("art", QUELLE_SOLAR),
         "pumpe": bool(user_input.get("pumpe", False)),
         "bedingung": waermequelle.bedingung_pruefen(regel),
@@ -865,11 +862,7 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
 
     def _vorhandene_quellen(self) -> list[dict[str, Any]]:
         """Die schon angelegten Quellen – ihre Kennungen bleiben vergeben."""
-        return [
-            dict(sub.data or {})
-            for sub in self._get_entry().subentries.values()
-            if sub.subentry_type == SUBEINTRAG_QUELLE
-        ]
+        return [dict(sub.data or {}) for sub in waermequelle.subeintraege(self._get_entry())]
 
     def _quellen_der_anlage(self) -> list[dict[str, Any]]:
         """Die Quellen dieser Anlage – mehr fasst ihr Schaubild nicht."""

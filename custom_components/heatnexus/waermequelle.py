@@ -119,6 +119,8 @@ def geraete_entflechten(registry: Any, entry: ConfigEntry) -> int:
     Haupteintrag, steht es zweimal in der Übersicht der Integration.
     """
     kennungen = {sub.subentry_id for sub in subeintraege(entry)}
+    if not kennungen:
+        return 0
     geloest = 0
     for geraet in dr.async_entries_for_config_entry(registry, entry.entry_id):
         zuordnung = geraet.config_entries_subentries.get(entry.entry_id) or set()
