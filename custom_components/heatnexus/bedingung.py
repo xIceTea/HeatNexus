@@ -14,12 +14,6 @@ ART_SCHWELLE = "schwelle"
 ART_DIFFERENZ = "differenz"
 ARTEN = (ART_ZUSTAND, ART_SCHWELLE, ART_DIFFERENZ)
 
-ARTEN_BESCHRIFTUNG = {
-    ART_ZUSTAND: "Zustand (an/aus)",
-    ART_SCHWELLE: "Schwelle (Wert über oder unter einer Grenze)",
-    ART_DIFFERENZ: "Differenz zweier Fühler",
-}
-
 # Zustände, die Home Assistant für „kein Wert" vergibt, plus die üblichen
 # Aus-Zustände. Sie gelten nie als laufend.
 AUS_ZUSTAENDE = frozenset({"off", "unavailable", "unknown", "none", "", "0", "0.0", "aus", "nein"})

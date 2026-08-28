@@ -375,10 +375,7 @@ def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
             vol.Required("name", default=vorhanden.get("name", "")): str,
             vol.Required("art", default=vorhanden.get("art", QUELLE_SOLAR)): SelectSelector(
                 SelectSelectorConfig(
-                    options=[
-                        SelectOptionDict(value=kennung, label=text)
-                        for kennung, text in QUELLEN_ARTEN.items()
-                    ],
+                    options=list(QUELLEN_ARTEN),
                     mode=SelectSelectorMode.DROPDOWN,
                     translation_key="quellenart",
                 )
@@ -388,10 +385,7 @@ def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
                 "bedingung_art", default=regel.get("art", bedingung.ART_ZUSTAND)
             ): SelectSelector(
                 SelectSelectorConfig(
-                    options=[
-                        SelectOptionDict(value=kennung, label=text)
-                        for kennung, text in bedingung.ARTEN_BESCHRIFTUNG.items()
-                    ],
+                    options=list(bedingung.ARTEN),
                     mode=SelectSelectorMode.LIST,
                     translation_key="bedingungsart",
                 )

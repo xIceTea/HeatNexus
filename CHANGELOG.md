@@ -34,6 +34,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Stichleitung des Puffers strömt, solange eine Wärmequelle liefert.
 - Der Verlauf einer Wärmequelle zeigt nur echte Wechsel.
 - Ein Solarkreis der Steuerung erscheint nicht mehr als eigene Wärmequelle.
+- Die Auswahllisten der Wärmequelle folgen der eingestellten Sprache.
 
 ## [1.11.0] - 2026-08-24
 
