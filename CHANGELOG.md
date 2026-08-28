@@ -10,33 +10,33 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Kaminkehrer und Lagerraumbefüllung fragen vor dem Beenden zurück.
 - Wärmequellen ohne Anschluss an die Steuerung lassen sich anlegen.
-- Eine Wärmequelle erkennt Zustände im Klartext, etwa „Solaranlage aktiv“.
+- Als Bedingung einer Wärmequelle lassen sich Zustände im Klartext wählen.
 - Solaranlage, Heizstab und Fernwärme erscheinen im Schaubild und in der Übersicht.
-- Der Kaminkehrer fragt Leistung und Laufzeit in einer Rückfrage ab.
-- Die Leitung einer liefernden Wärmequelle strömt, die Lampe leuchtet.
-- Der Puffer zeigt „lädt", solange eine Wärmequelle liefert.
-- Das Schaubild zeigt auf Wunsch die Pumpe einer Wärmequelle.
-- Eine liefernde Wärmequelle wird im Schaubild warm.
+- Im Schaubild leuchtet eine liefernde Wärmequelle, die Leitung strömt, die Fläche wird warm.
+- Das Schaubild zeichnet auf Wunsch die Pumpe einer Wärmequelle.
+- Der Puffer zeigt „lädt", solange eine Wärmequelle Wärme liefert.
+- Vor dem Beenden von Kaminkehrer und Lagerraumbefüllung erscheint eine Rückfrage.
+- Der Kaminkehrer fragt Leistung und Laufzeit in einem Schritt ab.
 
 ### Geändert
 
 - Eine Wärmequelle wird als eigenes Gerät angelegt und dort geändert.
-- Vorhandene Wärmequellen wandern beim Aktualisieren mit.
+- Beim Aktualisieren bleiben vorhandene Wärmequellen erhalten.
 
 ### Behoben
 
-- Ein geschalteter Wert erscheint sofort statt erst im nächsten Takt.
-- Betriebswahl und Kaminkehrer-Restlaufzeit erscheinen im schnellen Takt.
-- Beim laufenden Kaminkehrer nennt die Kachel den nächsten Druck als Beenden.
-- Die Anschlüsse des Warmwasserspeichers sitzen am Körper statt daneben.
-- Die Stichleitung des Puffers strömt, solange eine Wärmequelle liefert.
-- Der Verlauf einer Wärmequelle zeigt nur echte Wechsel.
+- Ein geschalteter Wert erscheint sofort statt erst beim nächsten Abruf.
+- Betriebswahl und Restlaufzeit des Kaminkehrers werden häufiger abgerufen.
+- Während der Kaminkehrer läuft, beschriftet die Kachel den Knopf mit „Beenden".
+- Die Anschlüsse des Warmwasserspeichers sitzen am Speicher statt daneben.
+- Die Stichleitung des Puffers strömt, solange eine Wärmequelle Wärme liefert.
+- Der Verlauf einer Wärmequelle verzeichnet nur echte Wechsel.
 - Ein Solarkreis der Steuerung erscheint nicht mehr als eigene Wärmequelle.
 - Die Auswahllisten der Wärmequelle folgen der eingestellten Sprache.
-- Die Pumpenwahl bleibt beim Übernehmen einer Wärmequelle erhalten.
+- Beim Aktualisieren bleibt auch die Pumpenwahl einer Wärmequelle erhalten.
 - Das Gerät einer entfernten Wärmequelle verschwindet aus der Übersicht.
+- Die Diagnose zeigt die Optionen jeder Anlage getrennt.
 
 ## [1.11.0] - 2026-08-24
 
