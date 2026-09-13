@@ -448,3 +448,131 @@ async def test_ein_echter_wechsel_schreibt_den_zustand(hass, monkeypatch):
 async def test_die_quelle_haengt_an_ereignissen_statt_am_takt(hass):
     """Abgefragt gäbe es nichts zu holen; der Takt schriebe nur fort."""
     assert _sensor(hass).should_poll is False
+
+
+KLARTEXT = {
+    "id": "q1",
+    "name": "Solaranlage",
+    "art": "solar",
+    "pumpe": True,
+    "bedingung": {
+        "art": "zustand",
+        "quelle": "sensor.solarstatus",
+        "zustaende": ["Solaranlage aktiv"],
+    },
+}
+
+
+def _vorbelegung(schema, feld):
+    """Was das Formular in einem Feld anbietet - Vorschlag oder Vorgabe."""
+    import voluptuous as vol
+
+    for marker in schema.schema:
+        if marker != feld:
+            continue
+        vorschlag = (marker.description or {}).get("suggested_value")
+        if vorschlag is not None:
+            return vorschlag
+        if marker.default is vol.UNDEFINED:
+            return None
+        return marker.default()
+    raise AssertionError(f"Das Formular kennt kein Feld {feld}.")
+
+
+async def _aenderung_beginnen(hass, quelle):
+    """Eine vorhandene Quelle anlegen und ihren Änderungsablauf starten."""
+    from custom_components.heatnexus import async_migrate_entry
+    from custom_components.heatnexus.const import CONF_QUELLEN, SUBEINTRAG_QUELLE
+
+    eintrag = _mock_eintrag(hass, {"192.0.2.10": {CONF_QUELLEN: [quelle]}})
+    await async_migrate_entry(hass, eintrag)
+    sub = next(s for s in eintrag.subentries.values() if s.subentry_type == SUBEINTRAG_QUELLE)
+    ablauf = await hass.config_entries.subentries.async_init(
+        (eintrag.entry_id, SUBEINTRAG_QUELLE),
+        context={"source": "reconfigure", "subentry_id": sub.subentry_id},
+    )
+    return eintrag, sub, ablauf
+
+
+async def test_beim_aendern_steht_die_quelle_schon_im_formular(hass):
+    """Der erste Schritt zeigt, was gespeichert ist, statt leerer Felder."""
+    _, _, ablauf = await _aenderung_beginnen(hass, SOLAR)
+
+    assert ablauf["step_id"] == "quelle"
+    schema = ablauf["data_schema"]
+    assert _vorbelegung(schema, "name") == "Solaranlage"
+    assert _vorbelegung(schema, "art") == "solar"
+    assert _vorbelegung(schema, "bedingung_art") == "differenz"
+    assert _vorbelegung(schema, "quelle") == "sensor.kollektor"
+
+
+async def test_beim_aendern_stehen_die_grenzen_im_zweiten_schritt(hass):
+    """Der erste Schritt fragt die Grenzen nicht ab und darf sie nicht leeren."""
+    _, _, ablauf = await _aenderung_beginnen(hass, SOLAR)
+
+    regel = await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"],
+        {
+            "name": "Solaranlage",
+            "art": "solar",
+            "pumpe": False,
+            "bedingung_art": "differenz",
+            "quelle": "sensor.kollektor",
+        },
+    )
+
+    assert regel["step_id"] == "regel"
+    assert _vorbelegung(regel["data_schema"], "gegen") == "sensor.puffer"
+    assert _vorbelegung(regel["data_schema"], "ein") == 8
+    assert _vorbelegung(regel["data_schema"], "aus") == 3
+
+
+async def test_beim_aendern_stehen_die_zustaende_zur_wahl(hass):
+    """Eine Klartext-Quelle behält ihre gewählten Zustände im zweiten Schritt."""
+    hass.states.async_set("sensor.solarstatus", "Solaranlage inaktiv")
+    _, _, ablauf = await _aenderung_beginnen(hass, KLARTEXT)
+
+    assert _vorbelegung(ablauf["data_schema"], "pumpe") is True
+    regel = await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"],
+        {
+            "name": "Solaranlage",
+            "art": "solar",
+            "pumpe": True,
+            "bedingung_art": "zustand",
+            "quelle": "sensor.solarstatus",
+        },
+    )
+
+    assert _vorbelegung(regel["data_schema"], "zustaende") == ["Solaranlage aktiv"]
+
+
+async def test_beim_aendern_bleibt_die_kennung_der_quelle(hass):
+    """Eine neue Kennung ließe Verlauf und Entitäts-ID der Quelle zurück."""
+    from homeassistant.data_entry_flow import FlowResultType
+
+    hass.states.async_set("sensor.solarstatus", "Solaranlage aktiv")
+    eintrag, sub, ablauf = await _aenderung_beginnen(hass, KLARTEXT)
+
+    await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"],
+        {
+            "name": "Solar Dach",
+            "art": "solar",
+            "pumpe": False,
+            "bedingung_art": "zustand",
+            "quelle": "sensor.solarstatus",
+        },
+    )
+    ergebnis = await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"], {"zustaende": ["Solaranlage aktiv"]}
+    )
+    await hass.async_block_till_done()
+
+    assert ergebnis["type"] is FlowResultType.ABORT
+    geaendert = eintrag.subentries[sub.subentry_id]
+    assert geaendert.title == "Solar Dach"
+    assert geaendert.data["id"] == "q1"
+    assert geaendert.data["host"] == "192.0.2.10"
+    assert geaendert.data["pumpe"] is False
+    assert geaendert.data["bedingung"]["zustaende"] == ["Solaranlage aktiv"]
