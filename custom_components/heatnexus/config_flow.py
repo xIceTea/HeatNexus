@@ -366,6 +366,10 @@ def gruppen_ableiten(kandidaten: list[dict], gewaehlt: list[str]) -> list[str]:
 # Klartext: Dort entscheidet die Auswahl, welcher Text als liefernd gilt.
 BINAERE_ZUSTAENDE = frozenset({"on", "off", "true", "false"})
 
+# Ersatzzustände von Home Assistant. Als Bedingung gewählt stünde die Quelle
+# auf einem Zustand, den sie im Betrieb nie meldet.
+OHNE_WAHL = frozenset({"unavailable", "unknown", "none", ""})
+
 
 def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
     """Der erste Schritt: Bauart der Quelle und woran man sie erkennt."""
@@ -402,9 +406,14 @@ def zustandsvorschlaege(hass: Any, entity_id: str | None) -> list[str]:
     zustand = hass.states.get(entity_id) if entity_id else None
     if zustand is None:
         return []
-    vorschlaege = [str(wert) for wert in (zustand.attributes.get("options") or [])]
-    if zustand.state and str(zustand.state) not in vorschlaege:
-        vorschlaege.append(str(zustand.state))
+    vorschlaege = [
+        str(wert)
+        for wert in (zustand.attributes.get("options") or [])
+        if str(wert).strip().lower() not in OHNE_WAHL
+    ]
+    jetzt = str(zustand.state)
+    if jetzt.strip().lower() not in OHNE_WAHL and jetzt not in vorschlaege:
+        vorschlaege.append(jetzt)
     return vorschlaege
 
 

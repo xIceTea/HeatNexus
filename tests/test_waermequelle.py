@@ -576,3 +576,40 @@ async def test_beim_aendern_bleibt_die_kennung_der_quelle(hass):
     assert geaendert.data["host"] == "192.0.2.10"
     assert geaendert.data["pumpe"] is False
     assert geaendert.data["bedingung"]["zustaende"] == ["Solaranlage aktiv"]
+
+
+async def test_ein_ersatzzustand_steht_nicht_zur_wahl(hass):
+    """Eine nicht erreichbare Entität bietet keinen Zustand an."""
+    from custom_components.heatnexus.config_flow import zustandsvorschlaege
+
+    hass.states.async_set("binary_sensor.solarpumpe", "unavailable")
+
+    assert zustandsvorschlaege(hass, "binary_sensor.solarpumpe") == []
+
+
+async def test_die_liste_nennt_die_zustaende_der_entitaet(hass):
+    """Die gemeldeten Zustände stehen zur Wahl, der Ersatzzustand nicht."""
+    from custom_components.heatnexus.config_flow import zustandsvorschlaege
+
+    hass.states.async_set(
+        "sensor.solarstatus",
+        "unknown",
+        {"options": ["Solaranlage aktiv", "Solaranlage inaktiv"]},
+    )
+
+    assert zustandsvorschlaege(hass, "sensor.solarstatus") == [
+        "Solaranlage aktiv",
+        "Solaranlage inaktiv",
+    ]
+
+
+async def test_ohne_erreichbare_entitaet_bleibt_die_wahl_freiwillig(hass):
+    """Ohne Vorschlag gilt die Entität nicht als Klartext und wird nicht erzwungen."""
+    import voluptuous as vol
+
+    from custom_components.heatnexus.config_flow import regel_schema
+
+    schema = regel_schema("zustand", {"bedingung": {"art": "zustand"}}, [])
+    marker = next(m for m in schema.schema if m == "zustaende")
+
+    assert isinstance(marker, vol.Optional)
