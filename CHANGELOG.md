@@ -6,11 +6,34 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unveröffentlicht]
+## [1.12.0] - 2026-09-13
+
+Wärmequellen, die nicht an der Windhager-Steuerung hängen, lassen sich anlegen
+und erscheinen im Schaubild. Der Kaminkehrer fragt vor dem Start nach Leistung
+und Laufzeit und vor dem Ende noch einmal nach.
+
+Darunter führt die Vorabversion jede Änderung einzeln auf; dieser Abschnitt
+nennt die Neuerungen gegenüber 1.11.0.
+
+### Neu
+
+- Solaranlage, Heizstab oder Fernwärme lassen sich als eigene Wärmequelle anlegen.
+- Jede Wärmequelle steht als eigenes Gerät und erscheint im Schaubild und in der Übersicht.
+- Als Bedingung dient eine Schwelle, eine Differenz oder ein Text wie „Solaranlage aktiv".
+- Eine Entität je Wärmequelle meldet, ob sie liefert.
+- Liefert eine Wärmequelle, strömt die Leitung und die Fläche wird warm.
+- Der Puffer zeigt „lädt", solange eine Wärmequelle liefert.
+- Das Schaubild zeichnet auf Wunsch die Pumpe einer Wärmequelle.
+- Der Kaminkehrer startet mit einer Rückfrage nach Leistung und Laufzeit.
+- Kaminkehrer und Lagerraumbefüllung lassen sich erst nach einer Rückfrage beenden.
 
 ### Behoben
 
-- Eine nicht erreichbare Entität bietet keinen Zustand als Bedingung an.
+- Ein geschalteter Wert erscheint sofort statt erst beim nächsten Abruf.
+- Betriebswahl und Restlaufzeit des Kaminkehrers werden häufiger abgerufen.
+- Während der Kaminkehrer läuft, heißt der Knopf auf der Kachel „Beenden".
+- Die Anschlüsse des Warmwasserspeichers sitzen am Speicher statt daneben.
+- Die Diagnose zeigt die Optionen jeder Anlage getrennt.
 
 ## [1.12.0-beta.1] - 2026-08-27
 

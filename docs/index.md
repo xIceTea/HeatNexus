@@ -94,26 +94,32 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
         <p>Das Anlagenschaubild gibt es als Lovelace-Karte für selbst gebaute Dashboards — mit einstellbarer Werteliste, Farbsätzen und wählbaren Anlagenteilen.</p>
         <span class="weiter">Karte einrichten</span>
       </a>
-      <a class="feld" href="ANLEITUNG#zeitprogramme">
+      <a class="feld" href="ANLEITUNG#einrichtung">
         <span class="nr">05</span>
+        <h3>Eigene Wärmequellen</h3>
+        <p>Solaranlage, Heizstab oder Fernwärme hängen nicht an der Steuerung. Angelegt erscheinen sie im Schaubild und melden, wann sie liefern.</p>
+        <span class="weiter">Wärmequelle anlegen</span>
+      </a>
+      <a class="feld" href="ANLEITUNG#zeitprogramme">
+        <span class="nr">06</span>
         <h3>Zeitprogramme</h3>
         <p>Heizung, Warmwasser und Zirkulation als Wochenraster — lesen und schreiben, so wie die Anlage sie führt.</p>
         <span class="weiter">Wochenraster</span>
       </a>
       <a class="feld" href="ANLEITUNG#stoerung">
-        <span class="nr">06</span>
+        <span class="nr">07</span>
         <h3>Störungen im Klartext</h3>
         <p>Code, Art und Handlungsempfehlung statt einer Zahl. Über 200 Meldungen hinterlegt.</p>
         <span class="weiter">Störungsanzeige</span>
       </a>
       <a class="feld" href="ANLEITUNG#vorlagen">
-        <span class="nr">07</span>
+        <span class="nr">08</span>
         <h3>Automations-Vorlagen</h3>
         <p>Fertige Blueprints für Störungsmeldung, Wartungserinnerung und Vorratswarnung — einzeln abwählbar.</p>
         <span class="weiter">Vorlagen und Dienste</span>
       </a>
       <a class="feld" href="ANLEITUNG#geraeteschnittstelle">
-        <span class="nr">08</span>
+        <span class="nr">09</span>
         <h3>Lokal, ohne Abhängigkeiten</h3>
         <p>Nur HTTP zur Steuerung im eigenen Netz. Keine Fremdbibliothek, keine Verbindung nach draußen.</p>
         <span class="weiter">Geräteschnittstelle</span>
