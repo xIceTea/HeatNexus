@@ -223,7 +223,8 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
             <tr><td><svg class="sym"><use href="#sym-flamme"/></svg>BioWIN, BioWIN 2, PelletsWIN</td><td>Pellets</td><td><span class="stand fremd">fremde Anlage geprüft</span></td></tr>
             <tr><td><svg class="sym"><use href="#sym-scheit"/></svg>LogWIN, VarioWIN</td><td>Scheitholz</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
             <tr><td><svg class="sym"><use href="#sym-waermepumpe"/></svg>AeroWIN und andere Wärmepumpen</td><td>Strom</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
-            <tr><td><svg class="sym"><use href="#sym-flamme"/></svg>DuoWIN, Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-scheit"/></svg>DuoWIN</td><td>Pellets und Scheitholz</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-flamme"/></svg>Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
             <tr><td><svg class="sym"><use href="#sym-blitz"/></svg>E-Heizung, Automatik- und Zusatzkessel</td><td>—</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
           </tbody>
         </table>
