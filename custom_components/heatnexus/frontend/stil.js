@@ -722,7 +722,13 @@ export const STIL = `
     box-shadow: 0 0 10px color-mix(in srgb, var(--hn-akzent) 35%, transparent);
     transform: translate(-50%, -50%) scale(1.18);
   }
-  .schaubild .pumpe.laeuft .rad { animation: dreht 1.6s linear infinite; }
+  /* Das drehende Rad bekommt eine eigene Ebene. Ohne sie rastert WebKit es in
+     den mit 1.18 skalierten Elternkasten hinein und rundet dabei je Bild auf
+     ganze Pixel – das Rad eiert dann, je nach Position der Pumpe. */
+  .schaubild .pumpe.laeuft .rad {
+    animation: dreht 1.6s linear infinite;
+    will-change: transform;
+  }
   @keyframes dreht { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) {
     .schaubild .pumpe.laeuft .rad { animation: none; }
