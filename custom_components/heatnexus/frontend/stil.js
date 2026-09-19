@@ -697,9 +697,9 @@ export const STIL = `
     width: var(--hn-marke);
     aspect-ratio: 1; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    /* Die stehende Pumpe soll als Pumpe lesbar bleiben. Auf der Leitung wirkte
-       die fast schwarze Scheibe wie ein Loch, nicht wie ein Bauteil. */
-    background: rgba(26, 32, 40, 0.92);
+    /* Die stehende Pumpe nimmt den Grund der Karte an. Eine feste dunkle
+       Scheibe wirkt im hellen Farbsatz wie ein Loch in der Leitung. */
+    background: var(--hn-karte, #151d26);
     border: 1px solid color-mix(in srgb, var(--hn-gedaempft) 45%, transparent);
     color: var(--hn-gedaempft);
     transition: transform 0.5s ease, color 0.4s ease, border-color 0.4s ease,
