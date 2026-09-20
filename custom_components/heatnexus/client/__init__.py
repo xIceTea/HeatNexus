@@ -6,12 +6,12 @@ zusammen. Was hier steht, ist die Schnittstelle nach außen.
 
 from __future__ import annotations
 
-from .abruf import _ist_zeitprogramm
+from .abruf import ist_zeitprogramm
 from .erkennung import (
     DESKRIPTOR_VORGABE,
     NAME_OVERRIDES,
-    _name_override,
-    _statische_positionen,
+    name_override,
+    statische_positionen,
 )
 from .kern import WindhagerHttpClient
 
@@ -19,7 +19,7 @@ __all__ = [
     "DESKRIPTOR_VORGABE",
     "NAME_OVERRIDES",
     "WindhagerHttpClient",
-    "_ist_zeitprogramm",
-    "_name_override",
-    "_statische_positionen",
+    "ist_zeitprogramm",
+    "name_override",
+    "statische_positionen",
 ]

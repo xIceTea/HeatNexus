@@ -532,17 +532,17 @@ def test_ein_namenszusatz_landet_in_beiden_kennungen(client):
 # ---------------------------------------------------------------------------
 def test_ein_zeitprogramm_wird_erkannt(client_module):
     wert = [{"weekdays": ["Mo"], "switchPoints": [{"time": "06:00", "value": 21}]}]
-    assert client_module._ist_zeitprogramm(wert)
+    assert client_module.ist_zeitprogramm(wert)
 
 
 def test_die_funktionsliste_eines_knotens_ist_keins(client_module):
     """Auch sie ist eine Liste von Objekten und ging vorher als Programm durch."""
-    assert not client_module._ist_zeitprogramm([{"fctType": 25, "lock": False}])
+    assert not client_module.ist_zeitprogramm([{"fctType": 25, "lock": False}])
 
 
 def test_ein_text_ist_kein_zeitprogramm(client_module):
-    assert not client_module._ist_zeitprogramm("PW 400")
-    assert not client_module._ist_zeitprogramm([])
+    assert not client_module.ist_zeitprogramm("PW 400")
+    assert not client_module.ist_zeitprogramm([])
 
 
 # ---------------------------------------------------------------------------

@@ -56,7 +56,7 @@ NAVIGATION = """<?xml version="1.0" encoding="utf-8"?>
 
 
 def test_die_zuordnungsdatei_nennt_ihre_positionen(client_module):
-    assert client_module._statische_positionen(ZUORDNUNG) == {"2/90", "4/80", "4/42"}
+    assert client_module.statische_positionen(ZUORDNUNG) == {"2/90", "4/80", "4/42"}
 
 
 def test_zweistellige_adressen_werden_wie_im_menue_geschrieben(client_module):
@@ -66,7 +66,7 @@ def test_zweistellige_adressen_werden_wie_im_menue_geschrieben(client_module):
     führende Null durch, entstünde eine zweite Kennung für denselben
     Datenpunkt.
     """
-    assert client_module._statische_positionen(NAVIGATION) == {"3/61", "5/62"}
+    assert client_module.statische_positionen(NAVIGATION) == {"3/61", "5/62"}
 
 
 def test_eine_unlesbare_datei_kostet_keine_erkennung(client_module):
@@ -75,8 +75,8 @@ def test_eine_unlesbare_datei_kostet_keine_erkennung(client_module):
     Dann werden eben keine zusätzlichen Positionen geprüft – die Erkennung
     darf daran nicht scheitern.
     """
-    assert client_module._statische_positionen("<html>404</html>") == set()
-    assert client_module._statische_positionen("") == set()
+    assert client_module.statische_positionen("<html>404</html>") == set()
+    assert client_module.statische_positionen("") == set()
 
 
 # ---------------------------------------------------------------------------

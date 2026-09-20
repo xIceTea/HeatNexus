@@ -37,7 +37,7 @@ from .gemeinsam import FEHLGESCHLAGEN, MELDUNGS_SENSOREN
 _LOGGER = logging.getLogger(__name__)
 
 
-def _ist_zeitprogramm(wert) -> bool:
+def ist_zeitprogramm(wert) -> bool:
     """Prüfen, ob die Antwort ein Zeitprogramm ist und nicht irgendeine Liste.
 
     Der object-Endpunkt liefert für `typeId 30` je nach `subtypeId`
@@ -303,7 +303,7 @@ class AbrufMixin:
                 # Eine leere Antwort ist kein Textwert; `str(None)` stünde
                 # sonst als Zustand „None" in der Entität.
                 continue
-            if _ist_zeitprogramm(wert):
+            if ist_zeitprogramm(wert):
                 objects[tp["oid"]] = wert
                 continue
             # Kein Zeitprogramm, sondern ein einfacher Wert (Modulinfo,
@@ -343,7 +343,7 @@ class AbrufMixin:
         if status != 200 or not isinstance(data, dict) or "value" not in data:
             return None
         wert = data["value"]
-        if not _ist_zeitprogramm(wert):
+        if not ist_zeitprogramm(wert):
             return None
         self._letzte_objekte[oid] = wert
         return wert

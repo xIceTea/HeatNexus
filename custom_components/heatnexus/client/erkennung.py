@@ -101,7 +101,7 @@ NAME_OVERRIDES = {
 NAME_OVERRIDES_JE_FCT: dict[int, dict[str, str]] = geraete.NAMEN
 
 
-def _name_override(fct_type: object, gnmn: str) -> str | None:
+def name_override(fct_type: object, gnmn: str) -> str | None:
     """Gepflegter Name eines Datenpunkts, Funktionstyp vor flacher Tabelle."""
     je_fct = NAME_OVERRIDES_JE_FCT.get(fct_type) or {}
     return je_fct.get(gnmn) or NAME_OVERRIDES.get(gnmn)
@@ -113,7 +113,7 @@ def _name_override(fct_type: object, gnmn: str) -> str | None:
 _STATISCHE_ADRESSE = _re.compile(r"^0*(\d+)[:/]0*(\d+)(?:/\d+)?$")
 
 
-def _statische_positionen(xml: str) -> set[str]:
+def statische_positionen(xml: str) -> set[str]:
     """Adressen aus einer Ressourcendatei der statischen Navigation lesen.
 
     Die Steuerung führt einige Datenpunkte ausschließlich hier – der Menü-Abzug
@@ -169,7 +169,7 @@ class ErkennungMixin:
         adressen: set[str] = set()
         for xml in dateien:
             if xml:
-                adressen |= _statische_positionen(xml)
+                adressen |= statische_positionen(xml)
         _LOGGER.debug("Statische Navigation nennt %d Positionen", len(adressen))
         return adressen
 
@@ -445,7 +445,7 @@ class ErkennungMixin:
                             oid=oid,
                             name=(
                                 self._name_fuer(
-                                    gnmn, _name_override(fct_type, gnmn) or get_name(gnmn)
+                                    gnmn, name_override(fct_type, gnmn) or get_name(gnmn)
                                 )
                                 or (f"{gruppe_of[gnmn]} {gnmn}" if gnmn in gruppe_of else None)
                                 or f"Datenpunkt {gnmn}"

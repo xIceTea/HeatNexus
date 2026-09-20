@@ -87,7 +87,7 @@ def test_init_importiert_kein_modul_wie_eine_eigene_datei():
 def test_nur_echte_zeitprogramme_gelten_als_zeitprogramm():
     from .conftest import load_standalone
 
-    ist_zeitprogramm = load_standalone("client")._ist_zeitprogramm
+    ist_zeitprogramm = load_standalone("client").ist_zeitprogramm
 
     assert ist_zeitprogramm(
         [{"weekdays": ["Mo"], "switchPoints": [{"time": "06:00", "value": 21}]}]
