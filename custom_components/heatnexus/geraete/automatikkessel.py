@@ -1,7 +1,7 @@
 """Automatik- und Zusatzkessel (fctType 10).
 
-Ohne gepflegte Datenpunkttabelle: Name, Rang, Symbol und Schaubildteil sind
-belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage.
+Die Tabelle führt nur, was Windhager auf die Titelseite legt, in keiner
+Bedienebene aber nennt. Alles Übrige kommt aus den Menü-Ebenen der Anlage.
 """
 
 from __future__ import annotations
@@ -19,4 +19,10 @@ KESSELART: str | None = None
 NAMEN: dict[str, str] = {}
 
 NUR_BUS: tuple[str, ...] = ()
-ENTITAETEN: list[dict] = []
+# `0/7` und `2/59` stehen in der Übersichtsebene des Herstellers, in keiner
+# Bedienebene aber drin. Ohne Eintrag hier blieben beide abgeschaltet, und
+# ohne Kesseltemperatur fällt der Kessel aus dem Schaubild.
+ENTITAETEN: list[dict] = [
+    {"oid": "/0/7/0", "name": "Kesseltemperatur Ist", "platform": "temperature"},
+    {"oid": "/2/59/0", "name": "Betriebsart", "platform": "enum_sensor", "enum": "2/59"},
+]
