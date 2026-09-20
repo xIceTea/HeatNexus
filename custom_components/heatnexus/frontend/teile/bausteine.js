@@ -51,8 +51,10 @@ export const BausteineMixin = (Basis) =>
       if (!kinder || !kinder.length) {
         // Geschrieben wird nur bei einem Treffer: Sonst ginge der Abstand
         // um den Text verloren, den `trim` hier abschneidet.
+        // Zwei Zeichen sind kein Wort: Wochentagskürzel setzen ihre Erbauer
+        // selbst um, ein fremdes „So" oder „Do" bleibt stehen.
         const text = (knoten.textContent || "").trim();
-        const ersatz = text && this._t(text);
+        const ersatz = text.length > 2 && this._t(text);
         if (ersatz && ersatz !== text) knoten.textContent = ersatz;
         return;
       }
