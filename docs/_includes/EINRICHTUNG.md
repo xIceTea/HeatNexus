@@ -165,9 +165,19 @@ Oberfläche und lässt sich wie jede andere Entität in Automationen verwenden.
 
 ## Darstellung
 
-- **Sprache** der Bezeichnungen, die die Steuerung selbst führt. `Automatisch`
-  folgt Home Assistant; Deutsch, Englisch, Französisch und Italienisch lassen
-  sich erzwingen.
+- **Sprache** wirkt auf zweierlei. Die Namen der Datenpunkte kommen dann aus
+  dem Textwerk der Steuerung; sie führt Deutsch, Englisch, Französisch und
+  Italienisch. Die eigene Oberfläche, das Dashboard und das Schaubild gibt es
+  auf Deutsch und Englisch — bei jeder anderen Wahl erscheinen sie englisch.
+  `Automatisch` lässt die Datenpunkte deutsch und richtet die Oberfläche nach
+  Home Assistant.
+
+  Zwei Dinge ändern sich dabei nicht. Die Bezeichner der Entitäten
+  (`sensor.kesseltemperatur_ist`) vergibt Home Assistant einmal und behält sie;
+  daran hängen Verlauf und Automationen. Wer einen davon übersetzt haben will,
+  ändert ihn einzeln in den Entitätseinstellungen. Und die neuen Namen der
+  Datenpunkte erscheinen erst nach einem Neustart — die Oberfläche dagegen
+  sofort.
 - **Außentemperatur** — welche Entität in der Kopfzeile der eigenen Oberfläche
   gilt. Leer heißt: HeatNexus sucht sie sich in der Anlage. Nötig, weil der
   Außenfühler oft an einem anderen Gerät hängt als an dem, das ihn meldet.
