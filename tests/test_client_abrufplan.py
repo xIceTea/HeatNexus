@@ -210,6 +210,26 @@ async def test_neu_hinzugekommene_zeitprogramme_werden_sofort_gelesen(client, mo
     assert daten["objects"] == {"/1/15/0/5/64/0": programm}
 
 
+async def test_leere_objektantwort_wird_kein_text(client, monkeypatch):
+    """Antwortet die Anlage mit einem leeren Wert, entsteht kein Textsensor.
+
+    Als Text geführt stünde dort der Zustand „None"; die Entität soll
+    stattdessen leer bleiben, bis ein Wert kommt.
+    """
+
+    async def fetch_object(oid):
+        return {"value": None}, 200
+
+    monkeypatch.setattr(client, "fetch_object", fetch_object)
+    client.oids = set()
+    client._tick = 3
+    client.objekt_texte = [{"oid": "/1/15/0/3/61/0", "type": "string_sensor", "objekt": True}]
+
+    daten = await client.fetch_all()
+
+    assert "/1/15/0/3/61/0" not in daten["oids"]
+
+
 async def test_gelesene_zeitprogramme_warten_wieder_auf_den_traegen_takt(client, monkeypatch):
     """Der Vorgriff gilt dem Nachzügler, nicht jedem Durchlauf.
 

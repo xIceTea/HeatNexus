@@ -2466,6 +2466,10 @@ class WindhagerHttpClient:
                 continue
             any_ok = True
             wert = data["value"]
+            if wert is None:
+                # Eine leere Antwort ist kein Textwert; `str(None)` stünde
+                # sonst als Zustand „None" in der Entität.
+                continue
             if _ist_zeitprogramm(wert):
                 objects[tp["oid"]] = wert
                 continue
