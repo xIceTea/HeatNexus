@@ -10,7 +10,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 import logging
 from typing import Any
-from urllib.parse import urlparse
 
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -18,7 +17,6 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     ConfigSubentryFlow,
     OptionsFlow,
-    SubentryFlowResult,
 )
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
@@ -37,536 +35,55 @@ from homeassistant.helpers.selector import (
 )
 import voluptuous as vol
 
-from . import bedingung, waermequelle
 from .blueprints import verfuegbare as verfuegbare_vorlagen
-from .client import WindhagerHttpClient
 from .const import (
-    ALL_LEVELS,
-    BEKANNTE_BENUTZER,
-    COMFORT_TEMP_STANDARD,
     CONF_AUSSENTEMPERATUR,
-    CONF_COMFORT_DAUER,
-    CONF_COMFORT_TEMP,
     CONF_COUNT,
     CONF_DASHBOARD,
-    CONF_ECO_DAUER,
-    CONF_ECO_TEMP,
-    CONF_ENABLE_ADVANCED,
     CONF_HILFE,
-    CONF_KESSELART,
-    CONF_KESSELWERT,
     CONF_LABEL,
-    CONF_LEVELS,
-    CONF_LON,
-    CONF_LON_GRUNDUMFANG,
     CONF_MARKEN,
     CONF_MARKEN_STATUS,
     CONF_MELDUNG_EINLESEN,
-    CONF_MODULPUMPE,
     CONF_PANEL,
     CONF_SPRACHE,
     CONF_STARTWERTE,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_VORLAGEN,
-    CONF_WRITABLE_ADVANCED,
-    CONF_ZEITWERTE,
     CONF_ZUSATZGRUPPEN,
     CONF_ZUSATZWERTE,
-    DEFAULT_LEVELS,
     DEFAULT_USERNAME,
     DOMAIN,
-    ECO_TEMP_STANDARD,
     GRUPPE_INDIVIDUELL,
-    KESSELART_AUTO,
-    KESSELART_BESCHRIFTUNG,
-    KESSELARTEN,
-    KESSELWERT_BESCHRIFTUNG,
-    KESSELWERT_LEISTUNG,
-    KESSELWERTE,
-    LEVEL_BESCHRIFTUNG,
-    LEVEL_INFO,
-    LEVEL_OPERATE,
-    MARKEN_MAX_KARTEN,
     MAX_SYSTEMS,
     MAX_UPDATE_INTERVAL,
     MIN_UPDATE_INTERVAL,
     NUR_BUS_JE_FCT,
-    QUELLE_SOLAR,
-    QUELLEN_ARTEN,
-    QUELLEN_MAX,
     SPRACHE_BESCHRIFTUNG,
     STARTWERTE_VORGABE,
     STARTWERTE_WAHL,
     SUBEINTRAG_QUELLE,
-    UEBERSTEUERUNG_DAUER_STANDARD,
     UPDATE_INTERVAL,
-    ZUSATZGRUPPEN,
 )
 from .exceptions import CannotConnect, InvalidAuth
+from .formulare import (
+    anlagenkennung,
+    benutzer_auswahl,
+    beschreibe,
+    clean_host,
+    gruppen_ableiten,
+    gruppen_aufloesen,
+    level_schema,
+    normalize_options,
+    validate_connection,
+    zusatzgruppen_feld,
+    zusatzwerte_feld,
+)
 from .geraetetexte import SPRACHEN, sprache_aufloesen
+from .waermequelle_flow import WaermequelleSubentryFlow
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def clean_host(raw: str) -> str:
-    """Aus einer Eingabe die reine Adresse gewinnen (URL, Port, Pfad entfernen)."""
-    host = raw.strip().rstrip("/")
-    if "://" in host:
-        parsed = urlparse(host)
-        host = parsed.netloc or parsed.path
-    host = host.split("/")[0]
-    if ":" in host:
-        host = host.split(":")[0]
-    return host.strip("/")
-
-
-def benutzer_auswahl() -> SelectSelector:
-    """Auswahlfeld für den Zugang; ein eigener Name bleibt möglich."""
-    return SelectSelector(
-        SelectSelectorConfig(
-            options=[SelectOptionDict(value=b, label=b) for b in BEKANNTE_BENUTZER],
-            custom_value=True,
-            mode=SelectSelectorMode.DROPDOWN,
-        )
-    )
-
-
-async def validate_connection(host: str, password: str, username: str = DEFAULT_USERNAME) -> list:
-    """Prüfen, ob die Anlage antwortet, und ihre Struktur zurückgeben."""
-    client = WindhagerHttpClient(host=host, password=password, username=username)
-    try:
-        data, status = await client.probe()
-    finally:
-        await client.close()
-
-    if status in (401, 403):
-        raise InvalidAuth
-    if status != 200 or not isinstance(data, list):
-        raise CannotConnect
-    return data
-
-
-def anlagenkennung(struktur: list) -> str:
-    """Dauerhafte Kennung einer Steuerung aus ihren Seriennummern.
-
-    Jeder Knoten meldet eine ``neuronId``; die kleinste davon kennzeichnet die
-    Steuerung. Anders als die IP-Adresse bleibt sie gleich, wenn die Anlage im
-    Netz umzieht – erst dadurch erkennt Home Assistant eine bereits
-    eingerichtete Anlage unter neuer Adresse wieder.
-    """
-    neuronen = sorted(str(k["neuronId"]) for k in struktur if k.get("neuronId"))
-    return neuronen[0] if neuronen else ""
-
-
-def beschreibe(struktur: list) -> str:
-    """Kurzfassung dessen, was die Anlage meldet."""
-    namen = []
-    for knoten in struktur:
-        for funktion in knoten.get("functions", []):
-            if not funktion.get("lock") and funktion.get("fctType", -1) >= 0:
-                namen.append(str(funktion.get("name", "")).strip())
-    return ", ".join(dict.fromkeys(n for n in namen if n)) or "keine Funktionen gemeldet"
-
-
-def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol.Schema:
-    """Auswahl der Bedienebenen (und des Abfrageintervalls)."""
-    felder: dict = {
-        vol.Required(
-            CONF_LEVELS, default=list(defaults.get(CONF_LEVELS, DEFAULT_LEVELS))
-        ): SelectSelector(
-            SelectSelectorConfig(
-                # Beschriftung *und* Übersetzungsschlüssel: Findet die
-                # Oberfläche die Übersetzung, gewinnt sie; findet sie keine,
-                # steht hier der deutsche Text statt der rohen Schlüssel
-                # „info", „operate", „service", „oem". Im Einrichtungsdialog
-                # lädt Home Assistant die Übersetzungen der Auswahlfelder
-                # einer eigenen Integration nicht zuverlässig mit – ohne
-                # Beschriftung blieben die Schlüssel stehen.
-                options=[
-                    SelectOptionDict(value=lvl, label=LEVEL_BESCHRIFTUNG[lvl]) for lvl in ALL_LEVELS
-                ],
-                multiple=True,
-                mode=SelectSelectorMode.LIST,
-                translation_key="levels",
-            )
-        ),
-        vol.Required(
-            CONF_ENABLE_ADVANCED, default=bool(defaults.get(CONF_ENABLE_ADVANCED, False))
-        ): bool,
-        vol.Required(
-            CONF_WRITABLE_ADVANCED, default=bool(defaults.get(CONF_WRITABLE_ADVANCED, False))
-        ): bool,
-        # Schaltzeiten, Urlaubsende, Systemuhr: Einstellwerte, die man einmal
-        # anfasst. Ohne Haken werden sie deaktiviert angelegt und kosten keinen
-        # Abruf; wer sie alle braucht, setzt ihn hier statt jede Entität
-        # einzeln einzuschalten.
-        vol.Required(CONF_ZEITWERTE, default=bool(defaults.get(CONF_ZEITWERTE, False))): bool,
-        # Der LON-Adressraum. Ab Werk aus: Wo der Kessel viele Datenpunkte
-        # meldet, ergänzt der Bus fast nichts (gemessen: PuroWIN 12 Werte
-        # ohne Entsprechung, davon die meisten Bus-Verwaltung). Wo er wenige
-        # meldet, ist es der einzige Weg zu Gebläsedrehzahl, Lambdasonde
-        # und Pelletsvorrat.
-        vol.Required(CONF_LON, default=bool(defaults.get(CONF_LON, False))): bool,
-        # Der Aufbau der Anlage gehört zum Grundumfang: Ob ein Modul seine
-        # Pumpe als Datenpunkt führt, entscheidet die Baureihe, und ohne sie
-        # fehlte im Schaubild ein Bauteil, das es gibt.
-        vol.Required(
-            CONF_LON_GRUNDUMFANG,
-            default=bool(defaults.get(CONF_LON_GRUNDUMFANG, True)),
-        ): bool,
-        # Wirkt nur auf die Zeichnung im Schaubild. Steht trotzdem hier bei
-        # der Anlage und nicht in den allgemeinen Einstellungen: Zwei Anlagen
-        # in einem Eintrag können verschiedene Wärmeerzeuger haben.
-        vol.Required(
-            CONF_KESSELART, default=defaults.get(CONF_KESSELART, KESSELART_AUTO)
-        ): SelectSelector(
-            SelectSelectorConfig(
-                options=[
-                    SelectOptionDict(value=art, label=KESSELART_BESCHRIFTUNG[art])
-                    for art in KESSELARTEN
-                ],
-                mode=SelectSelectorMode.DROPDOWN,
-                translation_key="kesselart",
-            )
-        ),
-        # Welcher zweite Wert am Kessel steht. Das Glutbett richtet sich
-        # weiterhin nach der Leistung; die Wahl betrifft nur die Anzeige.
-        vol.Required(
-            CONF_KESSELWERT, default=defaults.get(CONF_KESSELWERT, KESSELWERT_LEISTUNG)
-        ): SelectSelector(
-            SelectSelectorConfig(
-                options=[
-                    SelectOptionDict(value=wert, label=KESSELWERT_BESCHRIFTUNG[wert])
-                    for wert in KESSELWERTE
-                ],
-                mode=SelectSelectorMode.DROPDOWN,
-                translation_key="kesselwert",
-            )
-        ),
-        # Ein Pumpen-/Relaismodul meldet seine Drehzahl auch dann, wenn keine
-        # Pumpe daran hängt. Erst der Haken bringt sie ins Schaubild; das Modul
-        # selbst und seine Lampen stehen unabhängig davon im Bild.
-        vol.Required(CONF_MODULPUMPE, default=bool(defaults.get(CONF_MODULPUMPE, False))): bool,
-    }
-    if mit_intervall:
-        felder[vol.Required(CONF_DASHBOARD, default=bool(defaults.get(CONF_DASHBOARD, True)))] = (
-            bool
-        )
-        felder[vol.Required(CONF_PANEL, default=bool(defaults.get(CONF_PANEL, False)))] = bool
-        # Eco und Comfort: die befristete Übersteuerung, die auch das
-        # Bediengerät schreibt. Die Werte gelten für alle Heizkreise – die
-        # Anlage kennt je Kreis nur einen Übersteuerungswert, zwei getrennte
-        # Vorgaben je Kreis hätten dort nichts, worin sie stehen könnten.
-        for schluessel, vorgabe, einheit, kleinst, groesst in (
-            (CONF_ECO_TEMP, ECO_TEMP_STANDARD, "°C", 6, 30),
-            (CONF_ECO_DAUER, UEBERSTEUERUNG_DAUER_STANDARD, "min", 0, 400),
-            (CONF_COMFORT_TEMP, COMFORT_TEMP_STANDARD, "°C", 6, 30),
-            (CONF_COMFORT_DAUER, UEBERSTEUERUNG_DAUER_STANDARD, "min", 0, 400),
-        ):
-            felder[vol.Required(schluessel, default=float(defaults.get(schluessel, vorgabe)))] = (
-                NumberSelector(
-                    NumberSelectorConfig(
-                        min=kleinst,
-                        max=groesst,
-                        step=0.5 if einheit == "°C" else 5,
-                        unit_of_measurement=einheit,
-                        mode=NumberSelectorMode.BOX,
-                    )
-                )
-            )
-        felder[
-            vol.Required(
-                CONF_UPDATE_INTERVAL,
-                default=int(defaults.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),
-            )
-        ] = NumberSelector(
-            NumberSelectorConfig(
-                min=MIN_UPDATE_INTERVAL,
-                max=MAX_UPDATE_INTERVAL,
-                step=5,
-                unit_of_measurement="s",
-                mode=NumberSelectorMode.BOX,
-            )
-        )
-    return vol.Schema(felder)
-
-
-def zusatzgruppen_feld(kandidaten: list[dict], gewaehlt: list[str]) -> dict:
-    """Auswahl der abgeleiteten Werte, nach Herkunft gruppiert.
-
-    Angeboten wird nur, was diese Anlage hergibt; „Individuell" öffnet den
-    zweiten Schritt mit den Einzelwerten.
-    """
-    vorhanden = [g for g in ZUSATZGRUPPEN if any(k.get("gruppe") == g for k in kandidaten)]
-    if not vorhanden:
-        return {}
-    optionen = [SelectOptionDict(value=g, label=ZUSATZGRUPPEN[g]) for g in vorhanden]
-    optionen.append(
-        SelectOptionDict(value=GRUPPE_INDIVIDUELL, label="Individuell – weiter zur Einzelauswahl")
-    )
-    return {
-        vol.Optional(CONF_ZUSATZGRUPPEN, default=gewaehlt): SelectSelector(
-            SelectSelectorConfig(options=optionen, multiple=True, mode=SelectSelectorMode.LIST)
-        )
-    }
-
-
-def zusatzwerte_feld(kandidaten: list[dict], gewaehlt: list[str]) -> dict:
-    """Die Einzelwerte zum Ankreuzen – der zweite Schritt hinter „Individuell"."""
-    if not kandidaten:
-        return {}
-    bekannt = {k["id"] for k in kandidaten}
-    return {
-        vol.Optional(
-            CONF_ZUSATZWERTE, default=[k for k in gewaehlt if k in bekannt]
-        ): SelectSelector(
-            SelectSelectorConfig(
-                options=[
-                    SelectOptionDict(value=k["id"], label=k["name"])
-                    for k in sorted(kandidaten, key=lambda k: k["name"])
-                ],
-                multiple=True,
-                mode=SelectSelectorMode.LIST,
-            )
-        )
-    }
-
-
-def gruppen_aufloesen(kandidaten: list[dict], gruppen: list[str]) -> list[str]:
-    """Welche Einzelwerte die angekreuzten Gruppen ergeben."""
-    return [k["id"] for k in kandidaten if k.get("gruppe") in gruppen]
-
-
-def gruppen_ableiten(kandidaten: list[dict], gewaehlt: list[str]) -> list[str]:
-    """Welche Gruppen zu einer gespeicherten Auswahl passen.
-
-    Eine Gruppe erscheint, sobald **einer** ihrer Werte gewählt ist. Nur die
-    vollständig gewählten sind damit erledigt; bleibt etwas übrig, steht
-    zusätzlich „Individuell".
-    """
-    aktiv = set(gewaehlt)
-    gruppen = []
-    abgedeckt: set[str] = set()
-    for gruppe in ZUSATZGRUPPEN:
-        kennungen = {k["id"] for k in kandidaten if k.get("gruppe") == gruppe}
-        if not kennungen or not kennungen & aktiv:
-            continue
-        # Auch bei einer Teilauswahl vorangekreuzt: Bliebe die Gruppe leer,
-        # schriebe das nächste Bestätigen ihren Inhalt weg.
-        gruppen.append(gruppe)
-        if kennungen <= aktiv:
-            abgedeckt |= kennungen
-    if aktiv - abgedeckt:
-        gruppen.append(GRUPPE_INDIVIDUELL)
-    return gruppen
-
-
-# Zustände, die für sich schon an oder aus bedeuten. Alles andere ist
-# Klartext: Dort entscheidet die Auswahl, welcher Text als liefernd gilt.
-BINAERE_ZUSTAENDE = frozenset({"on", "off", "true", "false"})
-
-# Ersatzzustände von Home Assistant. Als Bedingung gewählt stünde die Quelle
-# auf einem Zustand, den sie im Betrieb nie meldet.
-OHNE_WAHL = frozenset({"unavailable", "unknown", "none", ""})
-
-
-def quellen_schema(vorhanden: Mapping[str, Any]) -> vol.Schema:
-    """Der erste Schritt: Bauart der Quelle und woran man sie erkennt."""
-    regel = dict(vorhanden.get("bedingung") or {})
-    return vol.Schema(
-        {
-            vol.Required("name", default=vorhanden.get("name", "")): str,
-            vol.Required("art", default=vorhanden.get("art", QUELLE_SOLAR)): SelectSelector(
-                SelectSelectorConfig(
-                    options=list(QUELLEN_ARTEN),
-                    mode=SelectSelectorMode.DROPDOWN,
-                    translation_key="quellenart",
-                )
-            ),
-            vol.Required("pumpe", default=bool(vorhanden.get("pumpe", False))): bool,
-            vol.Required(
-                "bedingung_art", default=regel.get("art", bedingung.ART_ZUSTAND)
-            ): SelectSelector(
-                SelectSelectorConfig(
-                    options=list(bedingung.ARTEN),
-                    mode=SelectSelectorMode.LIST,
-                    translation_key="bedingungsart",
-                )
-            ),
-            vol.Required(
-                "quelle", description={"suggested_value": regel.get("quelle")}
-            ): EntitySelector(),
-        }
-    )
-
-
-def zustandsvorschlaege(hass: Any, entity_id: str | None) -> list[str]:
-    """Die Zustände, die eine Entität kennt – als Vorschlag, nicht als Grenze."""
-    zustand = hass.states.get(entity_id) if entity_id else None
-    if zustand is None:
-        return []
-    vorschlaege = [
-        str(wert)
-        for wert in (zustand.attributes.get("options") or [])
-        if str(wert).strip().lower() not in OHNE_WAHL
-    ]
-    jetzt = str(zustand.state)
-    if jetzt.strip().lower() not in OHNE_WAHL and jetzt not in vorschlaege:
-        vorschlaege.append(jetzt)
-    return vorschlaege
-
-
-def regel_schema(art: str, vorhanden: Mapping[str, Any], vorschlaege: list[str]) -> vol.Schema:
-    """Der zweite Schritt: nur die Felder, die zur gewählten Bedingung gehören."""
-    regel = dict(vorhanden.get("bedingung") or {})
-    if art == bedingung.ART_ZUSTAND:
-        gewaehlt = [str(wert) for wert in (regel.get("zustaende") or [])]
-        optionen = list(dict.fromkeys([*vorschlaege, *gewaehlt]))
-        # Meldet die Entität Klartext, ist die Auswahl Pflicht: Sonst gälte
-        # jeder Text als an, auch einer, der „aus" bedeutet.
-        klartext = any(wert.lower() not in BINAERE_ZUSTAENDE for wert in optionen)
-        feld = vol.Required if klartext else vol.Optional
-        return vol.Schema(
-            {
-                feld(
-                    "zustaende", description={"suggested_value": regel.get("zustaende")}
-                ): SelectSelector(
-                    SelectSelectorConfig(
-                        options=[SelectOptionDict(value=wert, label=wert) for wert in optionen],
-                        mode=SelectSelectorMode.DROPDOWN,
-                        multiple=True,
-                        custom_value=True,
-                    )
-                )
-            }
-        )
-    felder: dict[Any, Any] = {}
-    if art == bedingung.ART_DIFFERENZ:
-        felder[vol.Required("gegen", description={"suggested_value": regel.get("gegen")})] = (
-            EntitySelector()
-        )
-    felder[vol.Required("ein", description={"suggested_value": regel.get("ein")})] = NumberSelector(
-        NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any")
-    )
-    felder[vol.Optional("aus", description={"suggested_value": regel.get("aus")})] = NumberSelector(
-        NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any")
-    )
-    return vol.Schema(felder)
-
-
-def eingabe_als_stand(user_input: Mapping[str, Any]) -> dict[str, Any]:
-    """Die Eingabe in die Form bringen, die das Formular als Vorgabe liest."""
-    return {
-        "name": user_input.get("name", ""),
-        "art": user_input.get("art", QUELLE_SOLAR),
-        "pumpe": bool(user_input.get("pumpe", False)),
-        "bedingung": {
-            "art": user_input.get("bedingung_art"),
-            "quelle": user_input.get("quelle"),
-            "gegen": user_input.get("gegen"),
-            "ein": user_input.get("ein"),
-            "aus": user_input.get("aus"),
-            "zustaende": user_input.get("zustaende"),
-        },
-    }
-
-
-def stand_zusammenfuehren(
-    vorhanden: Mapping[str, Any], user_input: Mapping[str, Any]
-) -> dict[str, Any]:
-    """Die Eingabe über den bisherigen Stand legen, ohne ihn zu leeren.
-
-    Der erste Schritt fragt die Grenzen nicht ab; beim Ändern stünden sie
-    sonst leer im zweiten.
-    """
-    stand = {**vorhanden, **eingabe_als_stand(user_input)}
-    stand["bedingung"] = {
-        **dict(vorhanden.get("bedingung") or {}),
-        **{name: wert for name, wert in stand["bedingung"].items() if wert is not None},
-    }
-    return stand
-
-
-def stand_als_eingabe(stand: Mapping[str, Any]) -> dict[str, Any]:
-    """Der gemerkte Stand in der flachen Form des Formulars."""
-    regel = dict(stand.get("bedingung") or {})
-    return {
-        "name": stand.get("name", ""),
-        "art": stand.get("art", QUELLE_SOLAR),
-        "pumpe": bool(stand.get("pumpe", False)),
-        "bedingung_art": regel.get("art"),
-        "quelle": regel.get("quelle"),
-        "gegen": regel.get("gegen"),
-        "ein": regel.get("ein"),
-        "aus": regel.get("aus"),
-        "zustaende": regel.get("zustaende"),
-    }
-
-
-def quelle_aus_eingabe(
-    user_input: Mapping[str, Any],
-) -> tuple[dict[str, Any] | None, dict[str, str]]:
-    """Die Eingabe zu einer Wärmequelle machen, oder die Fehler nennen."""
-    regel = {
-        "art": user_input.get("bedingung_art"),
-        "quelle": user_input.get("quelle"),
-        "gegen": user_input.get("gegen"),
-        "ein": user_input.get("ein"),
-        "aus": user_input.get("aus"),
-        "zustaende": user_input.get("zustaende"),
-    }
-    if not bedingung.vollstaendig(regel):
-        return None, {"base": "bedingung_unvollstaendig"}
-    art = user_input.get("art", QUELLE_SOLAR)
-    return {
-        # Ein leerer Name ließe den Subeintrag ohne Titel in der Übersicht
-        # stehen. Die Bauart benennt die Quelle dann für ihn.
-        "name": (user_input.get("name") or "").strip() or QUELLEN_ARTEN.get(art, "Wärmequelle"),
-        "art": art,
-        "pumpe": bool(user_input.get("pumpe", False)),
-        "bedingung": waermequelle.bedingung_pruefen(regel),
-    }, {}
-
-
-def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
-    """Eingaben zu den Bedienebenen prüfen und vereinheitlichen."""
-    levels = [lvl for lvl in raw.get(CONF_LEVELS, DEFAULT_LEVELS) if lvl in ALL_LEVELS]
-    # Ohne Info- und Betreiberebene bliebe die Anlage stumm bzw. unbedienbar.
-    for pflicht in (LEVEL_INFO, LEVEL_OPERATE):
-        if pflicht not in levels:
-            levels.append(pflicht)
-    kesselart = raw.get(CONF_KESSELART, KESSELART_AUTO)
-    kesselwert = raw.get(CONF_KESSELWERT, KESSELWERT_LEISTUNG)
-    # Labels gelten je Anlage; in den Systemstatus kommt nur, was die
-    # Kartenauswahl auch zeigt.
-    marken = [str(k) for k in raw.get(CONF_MARKEN, [])][:MARKEN_MAX_KARTEN]
-    im_status = {str(k) for k in raw.get(CONF_MARKEN_STATUS, [])}
-    ergebnis: dict[str, Any] = {
-        CONF_LEVELS: [lvl for lvl in ALL_LEVELS if lvl in levels],
-        CONF_ENABLE_ADVANCED: bool(raw.get(CONF_ENABLE_ADVANCED, False)),
-        CONF_WRITABLE_ADVANCED: bool(raw.get(CONF_WRITABLE_ADVANCED, False)),
-        CONF_ZEITWERTE: bool(raw.get(CONF_ZEITWERTE, False)),
-        CONF_LON: bool(raw.get(CONF_LON, False)),
-        CONF_LON_GRUNDUMFANG: bool(raw.get(CONF_LON_GRUNDUMFANG, True)),
-        # Kennungen der abgeleiteten Werte, die eingeschaltet sein sollen.
-        CONF_ZUSATZWERTE: [str(k) for k in raw.get(CONF_ZUSATZWERTE, [])][:200],
-        CONF_KESSELART: kesselart if kesselart in KESSELARTEN else KESSELART_AUTO,
-        CONF_KESSELWERT: (kesselwert if kesselwert in KESSELWERTE else KESSELWERT_LEISTUNG),
-        CONF_MODULPUMPE: bool(raw.get(CONF_MODULPUMPE, False)),
-        CONF_MARKEN: marken,
-        CONF_MARKEN_STATUS: [k for k in marken if k in im_status],
-    }
-    if CONF_UPDATE_INTERVAL in raw:
-        ergebnis[CONF_UPDATE_INTERVAL] = int(raw[CONF_UPDATE_INTERVAL])
-    if CONF_DASHBOARD in raw:
-        ergebnis[CONF_DASHBOARD] = bool(raw[CONF_DASHBOARD])
-    if CONF_PANEL in raw:
-        ergebnis[CONF_PANEL] = bool(raw[CONF_PANEL])
-    for schluessel in (CONF_ECO_TEMP, CONF_ECO_DAUER, CONF_COMFORT_TEMP, CONF_COMFORT_DAUER):
-        if schluessel in raw:
-            ergebnis[schluessel] = float(raw[schluessel])
-    return ergebnis
 
 
 class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -849,157 +366,6 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> dict[str, type[ConfigSubentryFlow]]:
         """Eine Wärmequelle wird als eigenes Gerät hinzugefügt."""
         return {SUBEINTRAG_QUELLE: WaermequelleSubentryFlow}
-
-
-class WaermequelleSubentryFlow(ConfigSubentryFlow):
-    """Eine Wärmequelle anlegen oder ändern.
-
-    Sie gehört zu einer Anlage; steht nur eine im Eintrag, entfällt die Frage.
-    """
-
-    def __init__(self) -> None:
-        """Anlage, Richtung des Ablaufs und was der erste Schritt ergab."""
-        self._host: str = ""
-        self._aendern: bool = False
-        self._stand: dict[str, Any] = {}
-
-    def _systeme(self) -> list[dict[str, Any]]:
-        return self._get_entry().data.get(CONF_SYSTEMS, [])
-
-    def _vorhandene_quellen(self) -> list[dict[str, Any]]:
-        """Die schon angelegten Quellen – ihre Kennungen bleiben vergeben."""
-        return [dict(sub.data or {}) for sub in waermequelle.subeintraege(self._get_entry())]
-
-    def _quellen_der_anlage(self) -> list[dict[str, Any]]:
-        """Die Quellen dieser Anlage – mehr fasst ihr Schaubild nicht."""
-        return [q for q in self._vorhandene_quellen() if q.get(CONF_HOST) == self._host]
-
-    def _bezeichnung(self, host: str) -> str:
-        system = next((s for s in self._systeme() if s[CONF_HOST] == host), {})
-        return system.get(CONF_LABEL) or host
-
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        """Zu welcher Anlage die neue Quelle gehört."""
-        systeme = self._systeme()
-        if len(systeme) == 1:
-            self._host = systeme[0][CONF_HOST]
-            return await self.async_step_quelle()
-        if user_input is not None:
-            self._host = user_input[CONF_HOST]
-            return await self.async_step_quelle()
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_HOST): SelectSelector(
-                        SelectSelectorConfig(
-                            options=[
-                                SelectOptionDict(
-                                    value=system[CONF_HOST],
-                                    label=self._bezeichnung(system[CONF_HOST]),
-                                )
-                                for system in systeme
-                            ],
-                            mode=SelectSelectorMode.LIST,
-                        )
-                    )
-                }
-            ),
-        )
-
-    async def async_step_reconfigure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> SubentryFlowResult:
-        """Eine vorhandene Quelle ändern."""
-        self._aendern = True
-        self._host = str(self._get_reconfigure_subentry().data.get(CONF_HOST) or "")
-        return await self.async_step_quelle(user_input)
-
-    async def async_step_quelle(
-        self, user_input: dict[str, Any] | None = None
-    ) -> SubentryFlowResult:
-        """Bauart der Quelle und die Entität, an der man sie erkennt."""
-        vorhanden: dict[str, Any] = {}
-        if self._aendern:
-            sub = self._get_reconfigure_subentry()
-            vorhanden = {"name": sub.title, **(sub.data or {})}
-        elif len(self._quellen_der_anlage()) >= QUELLEN_MAX:
-            return self.async_abort(reason="zu_viele")
-
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            self._stand = stand_zusammenfuehren(vorhanden, user_input)
-            if str(self._stand.get("name") or "").strip():
-                return await self.async_step_regel()
-            errors = {"name": "name_fehlt"}
-            vorhanden = self._stand
-
-        return self.async_show_form(
-            step_id="quelle",
-            data_schema=quellen_schema(vorhanden),
-            errors=errors,
-            description_placeholders={"anlage": self._bezeichnung(self._host)},
-        )
-
-    async def async_step_regel(
-        self, user_input: dict[str, Any] | None = None
-    ) -> SubentryFlowResult:
-        """Wann die Quelle liefert. Jede Bedingungsart fragt eigene Felder ab."""
-        regel = dict(self._stand.get("bedingung") or {})
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            eingabe = {**stand_als_eingabe(self._stand), **user_input}
-            quelle, errors = quelle_aus_eingabe(eingabe)
-            if quelle is not None:
-                return self._sichern(quelle)
-            # Nach einem Fehler steht wieder da, was eingegeben wurde.
-            self._stand = stand_zusammenfuehren(self._stand, eingabe)
-            regel = dict(self._stand.get("bedingung") or {})
-
-        return self.async_show_form(
-            step_id="regel",
-            data_schema=regel_schema(
-                str(regel.get("art") or ""),
-                self._stand,
-                zustandsvorschlaege(self.hass, regel.get("quelle")),
-            ),
-            errors=errors,
-            description_placeholders={"quelle": self._quellenname(regel.get("quelle"))},
-        )
-
-    def _quellenname(self, entity_id: str | None) -> str:
-        """Wie die Entität heißt, die über die Quelle entscheidet."""
-        zustand = self.hass.states.get(entity_id) if entity_id else None
-        if zustand is None:
-            return str(entity_id or "")
-        return str(zustand.attributes.get("friendly_name") or entity_id)
-
-    def _sichern(self, quelle: dict[str, Any]) -> SubentryFlowResult:
-        """Die fertige Quelle ablegen und die Anlage neu laden.
-
-        Die Plattformen lesen die Subeinträge beim Einrichten. Ohne Neuladen
-        entstünde die Entität der Quelle erst beim nächsten Start.
-        """
-        eintrag = self._get_entry()
-        vorhanden = dict(self._get_reconfigure_subentry().data or {}) if self._aendern else {}
-        daten = {
-            CONF_HOST: self._host,
-            "id": vorhanden.get("id") or waermequelle.quelle_id(self._vorhandene_quellen()),
-            "art": quelle["art"],
-            "pumpe": quelle["pumpe"],
-            "bedingung": quelle["bedingung"],
-        }
-        if self._aendern:
-            ergebnis = self.async_update_and_abort(
-                eintrag,
-                self._get_reconfigure_subentry(),
-                title=quelle["name"],
-                data=daten,
-            )
-        else:
-            ergebnis = self.async_create_entry(title=quelle["name"], data=daten)
-        self.hass.config_entries.async_schedule_reload(eintrag.entry_id)
-        return ergebnis
 
 
 class WindhagerOptionsFlow(OptionsFlow):

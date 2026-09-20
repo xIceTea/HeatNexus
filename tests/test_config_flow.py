@@ -16,6 +16,20 @@ def flow():
     return config_flow
 
 
+@pytest.fixture(scope="module")
+def formulare():
+    from custom_components.heatnexus import formulare
+
+    return formulare
+
+
+@pytest.fixture(scope="module")
+def quellenflow():
+    from custom_components.heatnexus import waermequelle_flow
+
+    return waermequelle_flow
+
+
 @pytest.mark.parametrize(
     ("eingabe", "erwartet"),
     [
@@ -26,30 +40,30 @@ def flow():
         ("192.0.2.10/api/1.0", "192.0.2.10"),
     ],
 )
-def test_clean_host(flow, eingabe, erwartet):
-    assert flow.clean_host(eingabe) == erwartet
+def test_clean_host(formulare, eingabe, erwartet):
+    assert formulare.clean_host(eingabe) == erwartet
 
 
-def test_info_und_betreiberebene_sind_pflicht(flow):
+def test_info_und_betreiberebene_sind_pflicht(formulare):
     from custom_components.heatnexus.const import (
         CONF_LEVELS,
         LEVEL_INFO,
         LEVEL_OPERATE,
     )
 
-    options = flow.normalize_options({CONF_LEVELS: ["service"]})
+    options = formulare.normalize_options({CONF_LEVELS: ["service"]})
     assert LEVEL_INFO in options[CONF_LEVELS]
     assert LEVEL_OPERATE in options[CONF_LEVELS]
 
 
-def test_unbekannte_ebene_wird_verworfen(flow):
+def test_unbekannte_ebene_wird_verworfen(formulare):
     from custom_components.heatnexus.const import CONF_LEVELS
 
-    options = flow.normalize_options({CONF_LEVELS: ["info", "quatsch", "oem"]})
+    options = formulare.normalize_options({CONF_LEVELS: ["info", "quatsch", "oem"]})
     assert options[CONF_LEVELS] == ["info", "operate", "oem"]
 
 
-def test_anlagenkennung_kommt_aus_der_seriennummer(flow):
+def test_anlagenkennung_kommt_aus_der_seriennummer(formulare):
     """Die Kennung darf nicht an der Adresse hängen."""
     struktur = [
         {"nodeId": 60, "neuronId": "0702bb000002"},
@@ -58,13 +72,13 @@ def test_anlagenkennung_kommt_aus_der_seriennummer(flow):
     ]
     # Immer die kleinste Seriennummer – unabhängig von der Reihenfolge, in der
     # die Anlage ihre Knoten meldet.
-    assert flow.anlagenkennung(struktur) == "0702aa000001"
-    assert flow.anlagenkennung(list(reversed(struktur))) == "0702aa000001"
+    assert formulare.anlagenkennung(struktur) == "0702aa000001"
+    assert formulare.anlagenkennung(list(reversed(struktur))) == "0702aa000001"
 
 
-def test_anlagenkennung_ohne_seriennummer(flow):
-    assert flow.anlagenkennung([{"nodeId": 1}]) == ""
-    assert flow.anlagenkennung([]) == ""
+def test_anlagenkennung_ohne_seriennummer(formulare):
+    assert formulare.anlagenkennung([{"nodeId": 1}]) == ""
+    assert formulare.anlagenkennung([]) == ""
 
 
 def test_menueschritt_fuer_jede_anlage(flow):
@@ -77,14 +91,14 @@ def test_menueschritt_fuer_jede_anlage(flow):
             getattr(optionen, unbekannt)
 
 
-def test_schalter_und_intervall_werden_uebernommen(flow):
+def test_schalter_und_intervall_werden_uebernommen(formulare):
     from custom_components.heatnexus.const import (
         CONF_ENABLE_ADVANCED,
         CONF_UPDATE_INTERVAL,
         CONF_WRITABLE_ADVANCED,
     )
 
-    options = flow.normalize_options(
+    options = formulare.normalize_options(
         {
             CONF_ENABLE_ADVANCED: True,
             CONF_WRITABLE_ADVANCED: True,
@@ -96,7 +110,7 @@ def test_schalter_und_intervall_werden_uebernommen(flow):
     assert options[CONF_UPDATE_INTERVAL] == 45
 
 
-def test_zeitwerte_sind_abwaehlbar_und_standardmaessig_aus(flow):
+def test_zeitwerte_sind_abwaehlbar_und_standardmaessig_aus(formulare):
     """Uhrzeiten und Datumsfelder sind Einstellwerte, keine Messwerte.
 
     Wer sie doch alle haben will, setzt den Haken einmal, statt jede Entität
@@ -104,11 +118,11 @@ def test_zeitwerte_sind_abwaehlbar_und_standardmaessig_aus(flow):
     """
     from custom_components.heatnexus.const import CONF_ZEITWERTE
 
-    assert flow.normalize_options({})[CONF_ZEITWERTE] is False
-    assert flow.normalize_options({CONF_ZEITWERTE: True})[CONF_ZEITWERTE] is True
+    assert formulare.normalize_options({})[CONF_ZEITWERTE] is False
+    assert formulare.normalize_options({CONF_ZEITWERTE: True})[CONF_ZEITWERTE] is True
 
 
-def test_zeitwerte_aendern_den_umfang(flow):
+def test_zeitwerte_aendern_den_umfang():
     """Sie entscheiden, was abgefragt wird – der Erkennungsstand gilt dann nicht mehr."""
     from custom_components.heatnexus.erkennungsstand import umfang_fingerprint
 
@@ -121,19 +135,19 @@ def test_zeitwerte_aendern_den_umfang(flow):
     assert umfang_fingerprint(umfang) != umfang_fingerprint({**umfang, "zeitwerte": True})
 
 
-def test_kesselart_wird_uebernommen_und_geprueft(flow):
+def test_kesselart_wird_uebernommen_und_geprueft(formulare):
     """Die Kesselart wirkt nur auf das Schaubild – aber sie muss ankommen."""
     from custom_components.heatnexus.const import CONF_KESSELART, KESSELART_AUTO
 
-    assert flow.normalize_options({CONF_KESSELART: "pellets"})[CONF_KESSELART] == "pellets"
+    assert formulare.normalize_options({CONF_KESSELART: "pellets"})[CONF_KESSELART] == "pellets"
     # Fehlt sie oder ist sie unbekannt, wird automatisch erkannt.
-    assert flow.normalize_options({})[CONF_KESSELART] == KESSELART_AUTO
-    assert flow.normalize_options({CONF_KESSELART: "dampfmaschine"})[CONF_KESSELART] == (
+    assert formulare.normalize_options({})[CONF_KESSELART] == KESSELART_AUTO
+    assert formulare.normalize_options({CONF_KESSELART: "dampfmaschine"})[CONF_KESSELART] == (
         KESSELART_AUTO
     )
 
 
-def test_kesselart_aendert_den_umfang_nicht(flow):
+def test_kesselart_aendert_den_umfang_nicht():
     """Eine andere Zeichnung darf die Anlage nicht neu einlesen lassen.
 
     Der Erkennungsstand hängt am Umfang. Käme die Kesselart darin vor, kostete
@@ -206,34 +220,34 @@ def test_ohne_eigene_busbegriffe_bleibt_der_hinweis_leer(flow, monkeypatch):
     assert optionen._bus_hinweis("192.0.2.10") == ""
 
 
-def test_labels_stehen_bei_der_anlage(flow):
+def test_labels_stehen_bei_der_anlage(formulare):
     """Gespeichert wird die Id des Labels, nicht sein Name.
 
     Ein umbenanntes Label behielte sonst seine Karte nicht.
     """
     from custom_components.heatnexus.const import CONF_MARKEN
 
-    optionen = flow.normalize_options({CONF_MARKEN: ["abc123", "def456"]})
+    optionen = formulare.normalize_options({CONF_MARKEN: ["abc123", "def456"]})
 
     assert optionen[CONF_MARKEN] == ["abc123", "def456"]
 
 
-def test_zugeordnet_gilt_nur_was_gezeigt_wird(flow):
+def test_zugeordnet_gilt_nur_was_gezeigt_wird(formulare):
     """Ein Label im Systemstatus, das gar nicht gewählt ist, hätte keine Wirkung."""
     from custom_components.heatnexus.const import CONF_MARKEN, CONF_MARKEN_STATUS
 
-    optionen = flow.normalize_options(
+    optionen = formulare.normalize_options(
         {CONF_MARKEN: ["abc123"], CONF_MARKEN_STATUS: ["abc123", "fremd"]}
     )
 
     assert optionen[CONF_MARKEN_STATUS] == ["abc123"]
 
 
-def test_mehr_labels_als_karten_werden_abgeschnitten(flow):
+def test_mehr_labels_als_karten_werden_abgeschnitten(formulare):
     """Die Auswahl darf den Abzug nicht beliebig aufblähen."""
     from custom_components.heatnexus.const import CONF_MARKEN, MARKEN_MAX_KARTEN
 
-    optionen = flow.normalize_options(
+    optionen = formulare.normalize_options(
         {CONF_MARKEN: [f"label{n}" for n in range(MARKEN_MAX_KARTEN + 4)]}
     )
 
@@ -350,22 +364,22 @@ def test_eine_entfernte_kennung_wird_nicht_neu_vergeben():
     assert waermequelle.quelle_id([*quellen, {**SOLAR, "id": "q2"}]) == "q4"
 
 
-def test_das_formular_fragt_nur_die_felder_seiner_bedingung(flow):
-    zustand = flow.regel_schema("zustand", {}, ["Solaranlage aktiv"])
-    schwelle = flow.regel_schema("schwelle", {}, [])
-    differenz = flow.regel_schema("differenz", {}, [])
+def test_das_formular_fragt_nur_die_felder_seiner_bedingung(quellenflow):
+    zustand = quellenflow.regel_schema("zustand", {}, ["Solaranlage aktiv"])
+    schwelle = quellenflow.regel_schema("schwelle", {}, [])
+    differenz = quellenflow.regel_schema("differenz", {}, [])
 
     assert [str(feld) for feld in zustand.schema] == ["zustaende"]
     assert [str(feld) for feld in schwelle.schema] == ["ein", "aus"]
     assert [str(feld) for feld in differenz.schema] == ["gegen", "ein", "aus"]
 
 
-def test_ein_zustand_im_klartext_ist_pflicht(flow):
+def test_ein_zustand_im_klartext_ist_pflicht(quellenflow):
     """Ohne Auswahl gälte jeder Text als an, auch einer, der aus bedeutet."""
     import voluptuous as vol
 
-    klartext = flow.regel_schema("zustand", {}, ["Solaranlage inaktiv"])
-    binaer = flow.regel_schema("zustand", {}, ["on"])
+    klartext = quellenflow.regel_schema("zustand", {}, ["Solaranlage inaktiv"])
+    binaer = quellenflow.regel_schema("zustand", {}, ["on"])
 
     with pytest.raises(vol.Invalid):
         klartext({})

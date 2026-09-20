@@ -21,6 +21,27 @@ def flow():
     return config_flow
 
 
+@pytest.fixture(scope="module")
+def formulare():
+    from custom_components.heatnexus import formulare
+
+    return formulare
+
+
+@pytest.fixture(scope="module")
+def quellenflow():
+    from custom_components.heatnexus import waermequelle_flow
+
+    return waermequelle_flow
+
+
+@pytest.fixture(scope="module")
+def const():
+    from custom_components.heatnexus import const
+
+    return const
+
+
 def _kandidaten():
     return [
         {"id": "a", "name": "Laufzeit", "gruppe": "laufzeit"},
@@ -30,25 +51,25 @@ def _kandidaten():
     ]
 
 
-def test_eine_teilweise_gewaehlte_gruppe_bleibt_angekreuzt(flow):
+def test_eine_teilweise_gewaehlte_gruppe_bleibt_angekreuzt(formulare):
     """Sonst fällt sie beim nächsten Bestätigen still heraus."""
-    gruppen = flow.gruppen_ableiten(_kandidaten(), ["a"])
+    gruppen = formulare.gruppen_ableiten(_kandidaten(), ["a"])
 
     assert "laufzeit" in gruppen
 
 
-def test_eine_teilauswahl_nennt_zusaetzlich_die_einzelauswahl(flow):
+def test_eine_teilauswahl_nennt_zusaetzlich_die_einzelauswahl(formulare, const):
     """Damit sichtbar bleibt, dass nicht die ganze Gruppe gewählt ist."""
-    gruppen = flow.gruppen_ableiten(_kandidaten(), ["a"])
+    gruppen = formulare.gruppen_ableiten(_kandidaten(), ["a"])
 
-    assert flow.GRUPPE_INDIVIDUELL in gruppen
+    assert const.GRUPPE_INDIVIDUELL in gruppen
 
 
-def test_eine_ganz_gewaehlte_gruppe_braucht_keine_einzelauswahl(flow):
-    gruppen = flow.gruppen_ableiten(_kandidaten(), ["a", "b"])
+def test_eine_ganz_gewaehlte_gruppe_braucht_keine_einzelauswahl(formulare):
+    gruppen = formulare.gruppen_ableiten(_kandidaten(), ["a", "b"])
 
     assert gruppen == ["laufzeit"]
 
 
-def test_ohne_auswahl_bleibt_alles_leer(flow):
-    assert flow.gruppen_ableiten(_kandidaten(), []) == []
+def test_ohne_auswahl_bleibt_alles_leer(formulare):
+    assert formulare.gruppen_ableiten(_kandidaten(), []) == []

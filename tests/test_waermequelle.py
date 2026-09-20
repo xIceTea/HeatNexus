@@ -580,7 +580,7 @@ async def test_beim_aendern_bleibt_die_kennung_der_quelle(hass):
 
 async def test_ein_ersatzzustand_steht_nicht_zur_wahl(hass):
     """Eine nicht erreichbare Entität bietet keinen Zustand an."""
-    from custom_components.heatnexus.config_flow import zustandsvorschlaege
+    from custom_components.heatnexus.waermequelle_flow import zustandsvorschlaege
 
     hass.states.async_set("binary_sensor.solarpumpe", "unavailable")
 
@@ -589,7 +589,7 @@ async def test_ein_ersatzzustand_steht_nicht_zur_wahl(hass):
 
 async def test_die_liste_nennt_die_zustaende_der_entitaet(hass):
     """Die gemeldeten Zustände stehen zur Wahl, der Ersatzzustand nicht."""
-    from custom_components.heatnexus.config_flow import zustandsvorschlaege
+    from custom_components.heatnexus.waermequelle_flow import zustandsvorschlaege
 
     hass.states.async_set(
         "sensor.solarstatus",
@@ -607,7 +607,7 @@ async def test_ohne_erreichbare_entitaet_bleibt_die_wahl_freiwillig(hass):
     """Ohne Vorschlag gilt die Entität nicht als Klartext und wird nicht erzwungen."""
     import voluptuous as vol
 
-    from custom_components.heatnexus.config_flow import regel_schema
+    from custom_components.heatnexus.waermequelle_flow import regel_schema
 
     schema = regel_schema("zustand", {"bedingung": {"art": "zustand"}}, [])
     marker = next(m for m in schema.schema if m == "zustaende")
