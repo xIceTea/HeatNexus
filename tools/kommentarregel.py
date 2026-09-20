@@ -83,16 +83,20 @@ def docstrings(quelle: str) -> list[tuple[int, int, str]]:
     return gefunden
 
 
-def _kern(text: str) -> str:
-    """Text ohne Rand und Unterstriche – ein umbenannter Name bleibt derselbe Block."""
-    return "\n".join(z.strip().replace("_", "") for z in text.splitlines() if z.strip())
+def _kern(text: str) -> list[str]:
+    """Zeilen ohne Rand und Unterstriche – ein umbenannter Name bleibt dieselbe Zeile."""
+    return [z.strip().replace("_", "") for z in text.splitlines() if z.strip()]
 
 
 def _verschoben(quelle: str, erste: int, laenge: int, bestand: str) -> bool:
-    """Ob dieser Block schon in der Vergleichsfassung steht, also nur umgezogen ist."""
-    zeilen = quelle.splitlines()[erste - 1 : erste - 1 + max(laenge, 1)]
-    block = _kern("\n".join(zeilen))
-    return bool(block) and block in _kern(bestand)
+    """Ob der Block im Kern schon in der Vergleichsfassung steht.
+
+    Umgezogen oder um wenige Zeilen geändert zählt nicht als neu; neu ist ein
+    Block erst, wenn mehr als MAX_ZEILEN seiner Zeilen dort fehlen.
+    """
+    zeilen = _kern("\n".join(quelle.splitlines()[erste - 1 : erste - 1 + max(laenge, 1)]))
+    alt = set(_kern(bestand))
+    return bool(zeilen) and sum(z not in alt for z in zeilen) <= MAX_ZEILEN
 
 
 def pruefe(datei: str, quelle: str, neue_zeilen: set[int], bestand: str = "") -> list[Befund]:

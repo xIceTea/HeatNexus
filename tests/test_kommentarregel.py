@@ -55,6 +55,9 @@ def test_ein_umgezogener_block_zaehlt_nicht_als_neu():
     assert regel.pruefe("b.py", LANGER_BLOCK, neue_zeilen={3, 4, 5, 6}, bestand=LANGER_BLOCK) == []
     umbenannt = LANGER_BLOCK.replace("eins", "_eins")
     assert regel.pruefe("b.py", umbenannt, neue_zeilen={3, 4, 5, 6}, bestand=LANGER_BLOCK) == []
+    geaendert = LANGER_BLOCK.replace("# zwei", "# zwo")
+    assert regel.pruefe("b.py", geaendert, neue_zeilen={4}, bestand=LANGER_BLOCK) == []
+    assert regel.pruefe("b.py", LANGER_BLOCK, neue_zeilen={3, 4, 5, 6}, bestand="# fremd") != []
 
 
 def test_kommentare_hinter_code_bilden_keinen_block():
