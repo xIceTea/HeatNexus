@@ -98,7 +98,7 @@
 </g>
 
 <!-- Speicherkoerper. Die Fuellung ist ein Platzhalter: Liegen die Fuehlerwerte
-     vor, setzt `schema.py` sie auf `none` und die Oberflaeche legt die
+     vor, setzt `schema/zeichnung.py` sie auf `none` und die Oberflaeche legt die
      gemessene Temperatur darunter. Alles Weitere bleibt darueber stehen und
      geht nicht mehr unter einem Farbklotz verloren. -->
 <rect x="42" y="116" width="116" height="180" rx="30" fill="none"/>

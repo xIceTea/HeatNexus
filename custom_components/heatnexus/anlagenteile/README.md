@@ -1,6 +1,6 @@
 # Bauteilzeichnungen für das Anlagenschaubild
 
-Jede Datei zeichnet **ein** Anlagenteil. `schema.py` setzt sie zu einem Bild
+Jede Datei zeichnet **ein** Anlagenteil. `schema/zeichnung.py` setzt sie zu einem Bild
 zusammen, färbt sie ein und legt die Live-Werte darüber.
 
 ## Regeln
@@ -14,11 +14,11 @@ XML-Prolog – nur die Formen. `<defs>` ist erlaubt.
 |---|---|---|
 | 92 | Vorlauf | die waagrechte rote Leitung |
 | 318 | Rücklauf | die waagrechte blaue Leitung |
-| 374 | Titel | die Beschriftung setzt `schema.py` selbst |
+| 374 | Titel | die Beschriftung setzt `schema/zeichnung.py` selbst |
 
 Die Mitte liegt bei **x = 100**. Der Körper eines Anlagenteils sollte zwischen
 y = 118 und y = 294 bleiben und höchstens 130 breit sein, sonst stoßen zwei
-Nachbarn aneinander. Die Anschlussstutzen an den Leitungen zeichnet `schema.py`.
+Nachbarn aneinander. Die Anschlussstutzen an den Leitungen zeichnet `schema/zeichnung.py`.
 
 **Farben nur als Platzhalter.** Kein `#rrggbb` in der Datei. Erlaubt sind:
 
@@ -26,7 +26,7 @@ Nachbarn aneinander. Die Anschlussstutzen an den Leitungen zeichnet `schema.py`.
 `{{korpus_hell}}` `{{korpus_dunkel}}` `{{warm}}` `{{glut}}` `{{kalt}}`
 `{{schrift}}`
 
-Wer eine Farbe ändern will, ändert sie in `FARBEN` in `schema.py` – nicht in elf
+Wer eine Farbe ändern will, ändert sie in `FARBEN` in `schema/farben.py` – nicht in elf
 Dateien. Neue Platzhalter dort eintragen, sonst bleiben sie als `{{name}}` im
 Bild stehen.
 
@@ -34,7 +34,7 @@ Ausnahme sind `#ffffff` und `#000000` mit kleiner Deckkraft: Sie liegen als
 Licht und Schatten über einer Form und sind deshalb unabhängig von der Farbe
 darunter. Jede andere feste Farbe lässt den Test fehlschlagen.
 
-**Kennungen dürfen doppelt sein.** `schema.py` stellt jeder `id` einen
+**Kennungen dürfen doppelt sein.** `schema/bauteile.py` stellt jeder `id` einen
 Platzhalter je Anlagenteil voran, damit zwei Puffer im selben Bild nicht
 denselben Verlauf benutzen. Bezüge müssen dafür in einer dieser drei
 Schreibweisen stehen: `id="…"`, `url(#…)`, `href="#…"`.
@@ -72,7 +72,7 @@ Für den Kessel wird `kessel-<art>.svg` gesucht und auf `kessel.svg`
 zurückgefallen. Eine weitere Art braucht nur die Datei und einen Eintrag in
 `KESSELARTEN` in `const.py`.
 
-**Fehlt eine Datei, zeichnet `schema.py` eine schlichte Ersatzform.** Das
+**Fehlt eine Datei, zeichnet `schema/zeichnung.py` eine schlichte Ersatzform.** Das
 Schaubild bleibt heil; es sieht nur langweiliger aus.
 
 ## Was hier nicht hingehört

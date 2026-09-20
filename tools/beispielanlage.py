@@ -39,14 +39,18 @@ __all__ = [
 
 
 def schema_modul() -> ModuleType:
-    """`schema.py` laden – es kommt ohne Home Assistant aus."""
+    """Das Paket `schema` laden – es kommt ohne Home Assistant aus."""
     paket = "heatnexus_beispiel"
     if (fertig := sys.modules.get(f"{paket}.schema")) is not None:
         return fertig
     ersatz = ModuleType(paket)
     ersatz.__path__ = [str(KOMPONENTE)]
     sys.modules[paket] = ersatz
-    spec = importlib.util.spec_from_file_location(f"{paket}.schema", KOMPONENTE / "schema.py")
+    spec = importlib.util.spec_from_file_location(
+        f"{paket}.schema",
+        KOMPONENTE / "schema" / "__init__.py",
+        submodule_search_locations=[str(KOMPONENTE / "schema")],
+    )
     modul = importlib.util.module_from_spec(spec)
     sys.modules[f"{paket}.schema"] = modul
     spec.loader.exec_module(modul)

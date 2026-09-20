@@ -27,6 +27,31 @@ def schema():
     return load_standalone("schema")
 
 
+@pytest.fixture(scope="module")
+def farben(schema):
+    return schema.farben
+
+
+@pytest.fixture(scope="module")
+def werte(schema):
+    return schema.werte
+
+
+@pytest.fixture(scope="module")
+def bauteile(schema):
+    return schema.bauteile
+
+
+@pytest.fixture(scope="module")
+def zeichnung(schema):
+    return schema.zeichnung
+
+
+@pytest.fixture(scope="module")
+def karte(schema):
+    return schema.karte
+
+
 def _teil(name: str, fct: int, werte: list[tuple[str, str]]) -> dict:
     return {
         "name": name,
@@ -85,23 +110,23 @@ FELDER = (
 )
 
 
-def test_nutzdaten_fuehren_alle_felder(schema, anlage):
+def test_nutzdaten_fuehren_alle_felder(karte, anlage):
     """Die Karte bekommt dieselben Felder wie die Oberfläche."""
-    nutzdaten = schema.schaubild_nutzdaten(anlage)
+    nutzdaten = karte.schaubild_nutzdaten(anlage)
     for feld in FELDER:
         assert feld in nutzdaten, feld
 
 
-def test_die_zeichnung_geht_einmal_hinaus(schema, anlage):
+def test_die_zeichnung_geht_einmal_hinaus(karte, anlage):
     """Welcher Farbsatz gilt, weiß erst der Browser – er stellt selbst um."""
-    nutzdaten = schema.schaubild_nutzdaten(anlage)
+    nutzdaten = karte.schaubild_nutzdaten(anlage)
     assert nutzdaten["schema_svg"].startswith("<svg")
     assert set(nutzdaten["schema_farben"]) == {"hell", "terrakotta", "petrol", "pflaume"}
 
 
-def test_werte_tragen_entitaet_und_lage(schema, anlage):
+def test_werte_tragen_entitaet_und_lage(karte, anlage):
     """Ohne Lage kann die Karte die Beschriftung nicht setzen."""
-    werte = schema.schaubild_nutzdaten(anlage)["schema_werte"]
+    werte = karte.schaubild_nutzdaten(anlage)["schema_werte"]
     assert werte
     for eintrag in werte:
         assert eintrag["entity"]
@@ -109,23 +134,23 @@ def test_werte_tragen_entitaet_und_lage(schema, anlage):
         assert eintrag["top"].endswith("%")
 
 
-def test_kartendaten_nennen_jede_anlage(schema, anlage):
+def test_kartendaten_nennen_jede_anlage(karte, anlage):
     """Die Karte wählt ihre Anlage über die Kennung, nicht über die Reihenfolge."""
     zweite = {"id": "anlage-2", "name": "Wohnhaus", "teile": anlage["teile"]}
-    daten = schema.schaubild_daten([anlage, zweite])
+    daten = karte.schaubild_daten([anlage, zweite])
     assert [a["id"] for a in daten] == ["anlage-1", "anlage-2"]
     assert [a["name"] for a in daten] == ["Heizhaus", "Wohnhaus"]
     assert all(a["schema_svg"] for a in daten)
 
 
-def test_kartendaten_ohne_anlage_bleiben_leer(schema):
-    assert schema.schaubild_daten([]) == []
+def test_kartendaten_ohne_anlage_bleiben_leer(karte):
+    assert karte.schaubild_daten([]) == []
 
 
-def test_anlage_ohne_messwert_bleibt_leer(schema):
+def test_anlage_ohne_messwert_bleibt_leer(karte):
     """Ein Bild aus leeren Kästen hilft niemandem."""
     leer = {"id": "anlage-2", "name": "Wohnhaus", "teile": [_teil("PuroWIN", 25, [])]}
-    nutzdaten = schema.schaubild_nutzdaten(leer)
+    nutzdaten = karte.schaubild_nutzdaten(leer)
     assert nutzdaten["schema_svg"] is None
     assert nutzdaten["schema_werte"] == []
     assert nutzdaten["schema_leitungen"] is None
@@ -135,7 +160,7 @@ def test_anlage_ohne_messwert_bleibt_leer(schema):
 # Die Karte im Browser
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="module")
-def durchlauf(schema, tmp_path_factory):
+def durchlauf(karte, tmp_path_factory):
     """Die Karte einmal in Node aufbauen und die Bilanz zurückgeben."""
     if shutil.which("node") is None:
         pytest.skip("node nicht vorhanden")
@@ -164,7 +189,7 @@ def durchlauf(schema, tmp_path_factory):
             ],
         ),
     ]
-    anlagen = schema.schaubild_daten(
+    anlagen = karte.schaubild_daten(
         [
             {"id": "anlage-1", "name": "Heizhaus", "teile": teile},
             {"id": "anlage-2", "name": "Wohnhaus", "teile": teile},
@@ -348,9 +373,9 @@ def test_die_ueberlagerungen_folgen_dem_farbsatz(durchlauf):
 # ---------------------------------------------------------------------------
 # Eigene Werteauswahl
 # ---------------------------------------------------------------------------
-def test_waehlbare_werte_nennen_was_die_anlage_fuehrt(schema, anlage):
+def test_waehlbare_werte_nennen_was_die_anlage_fuehrt(werte, anlage):
     """Die Liste kommt aus der Erkennung, nicht aus einer gepflegten Tabelle."""
-    teile = schema.waehlbare_werte(anlage["teile"])
+    teile = werte.waehlbare_werte(anlage["teile"])
     assert [t["titel"] for t in teile] == ["PuroWIN", "B-PLMi PUFFER"]
     kessel = teile[0]
     assert {w["entity"] for w in kessel["werte"]} == {"sensor.kessel_ist", "sensor.leistung"}
@@ -358,32 +383,32 @@ def test_waehlbare_werte_nennen_was_die_anlage_fuehrt(schema, anlage):
     assert kessel["id"]
 
 
-def test_jeder_teil_nennt_seine_vorgabe(schema, anlage):
+def test_jeder_teil_nennt_seine_vorgabe(werte, anlage):
     """Ohne eigene Auswahl gilt, was das Schaubild bisher gezeigt hat."""
-    teile = schema.waehlbare_werte(anlage["teile"])
+    teile = werte.waehlbare_werte(anlage["teile"])
     assert teile[0]["vorgabe"]
     assert set(teile[0]["vorgabe"]) <= {w["entity"] for w in teile[0]["werte"]}
 
 
-def test_die_auswahl_bestimmt_die_beschriftungen(schema, anlage):
+def test_die_auswahl_bestimmt_die_beschriftungen(werte, karte, anlage):
     """Gewählt heißt gezeichnet – und nichts anderes."""
-    teile = schema.waehlbare_werte(anlage["teile"])
+    teile = werte.waehlbare_werte(anlage["teile"])
     auswahl = {teile[0]["id"]: ["sensor.leistung"]}
-    bild = schema.anlagenschema(anlage["teile"], auswahl=auswahl)
+    bild = karte.anlagenschema(anlage["teile"], auswahl=auswahl)
     kessel = [e for e in bild["elements"] if e["entity"].startswith("sensor.kessel")]
     assert not kessel
     assert any(e["entity"] == "sensor.leistung" for e in bild["elements"])
 
 
-def test_ein_abgewaehlter_anlagenteil_verschwindet(schema, anlage):
-    teile = schema.waehlbare_werte(anlage["teile"])
-    bild = schema.anlagenschema(anlage["teile"], teile_aus=[teile[1]["id"]])
+def test_ein_abgewaehlter_anlagenteil_verschwindet(werte, karte, anlage):
+    teile = werte.waehlbare_werte(anlage["teile"])
+    bild = karte.anlagenschema(anlage["teile"], teile_aus=[teile[1]["id"]])
     assert not any(e["entity"].startswith("sensor.tp") for e in bild["elements"])
 
 
-def test_ohne_auswahl_bleibt_alles_wie_bisher(schema, anlage):
+def test_ohne_auswahl_bleibt_alles_wie_bisher(karte, anlage):
     """Der Gleichstand: Wer nichts einstellt, merkt von alledem nichts."""
-    assert schema.anlagenschema(anlage["teile"]) == schema.anlagenschema(
+    assert karte.anlagenschema(anlage["teile"]) == karte.anlagenschema(
         anlage["teile"], auswahl={}, teile_aus=[]
     )
 
