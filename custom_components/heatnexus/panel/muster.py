@@ -202,7 +202,12 @@ VERLAUF_MAX = 8
 # bildet deshalb Adresse **und** Kennungszusatz (`kanonisch.GESCHWISTER`).
 SCHNELLZUGRIFF: tuple[Zeile, ...] = (
     (r"ww einmalladung", "Warmwasser laden", "mdi:water-boiler", ()),
-    (r"^reinigung (durchgef|best(ä|ae)tigen)", "Reinigung erledigt", "mdi:broom", ("cleaning_done",)),
+    (
+        r"^reinigung (durchgef|best(ä|ae)tigen)",
+        "Reinigung erledigt",
+        "mdi:broom",
+        ("cleaning_done",),
+    ),
     (
         r"hauptreinigung durchgef(?!.*aschetonnen)",
         "Hauptreinigung erledigt",
@@ -329,7 +334,12 @@ KESSEL_BEDIENUNG: tuple[Zeile, ...] = (
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff", "mdi:sack", ("fuel_selected",)),
     # Dieselbe Quittung, zwei Schreibweisen: Wo der Kessel keine Auswahl je
     # Arbeit führt, steht dafür ein Ja/Nein-Wert unter „Reinigung bestätigen".
-    (r"^reinigung (durchgef|best(ä|ae)tigen)", "Reinigung erledigt", "mdi:broom", ("cleaning_done",)),
+    (
+        r"^reinigung (durchgef|best(ä|ae)tigen)",
+        "Reinigung erledigt",
+        "mdi:broom",
+        ("cleaning_done",),
+    ),
     (
         r"hauptreinigung durchgef(?!.*aschetonnen)",
         "Hauptreinigung erledigt",
