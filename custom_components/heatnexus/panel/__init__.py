@@ -51,7 +51,7 @@ from ..const import (
     panel_element,
     panel_js_pfad,
 )
-from ..dashboard import _anlagen
+from ..dashboard.anlagen import anlagen_lesen
 from ..entity import steuerung_kennung
 from ..texte import uebersetze_baum, woerterbuch
 from . import marken as markenmodul
@@ -155,7 +155,7 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     daten = {
         "anlagen": [
             _anlage_daten(anlage, aussen, *marken.get(anlage.get("id"), ((), ())))
-            for anlage in _anlagen(hass, benutzer)
+            for anlage in anlagen_lesen(hass, benutzer)
         ],
         # Eco und Comfort gelten für alle Anlagen gemeinsam.
         "uebersteuerung": _uebersteuerung(hass),

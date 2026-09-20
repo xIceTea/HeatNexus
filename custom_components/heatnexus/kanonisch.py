@@ -2,7 +2,7 @@
 
 **Warum es das gibt.** Schaubild, Dashboard und Oberfläche erkennen einen
 Datenpunkt bisher an seinem *deutschen Namen*: rund fünfzig Suchmuster in
-`panel/muster.py`, `dashboard.py` und `schema/werte.py`. Solange nur Deutsch
+`panel/muster.py`, `dashboard/muster.py` und `schema/werte.py`. Solange nur Deutsch
 ausgeliefert wird, geht das gut. Es ist aber genau der Grund, warum die drei
 anderen Sprachen des Herstellers – sie liegen fertig auf der Anlage – nicht
 eingeschaltet werden können: Mit englischen Namen liefe kein einziges Muster

@@ -20,109 +20,122 @@ def dashboard():
     return modul
 
 
-def test_kurzname_entfernt_steuerungspraefix(dashboard):
-    assert dashboard._kurzname("Heizhaus · PuroWIN") == "PuroWIN"
-    assert dashboard._kurzname("PuroWIN") == "PuroWIN"
-    assert dashboard._kurzname(None) == ""
+@pytest.fixture(scope="module")
+def muster(dashboard):
+    return dashboard.muster
 
 
-def test_kessel_steht_vor_puffer_und_heizkreis(dashboard):
-    kessel = dashboard._rang(25)
-    puffer = dashboard._rang(16)
-    heizkreis = dashboard._rang(14)
-    zirkulation = dashboard._rang(20)
+@pytest.fixture(scope="module")
+def anlagen(dashboard):
+    return dashboard.anlagen
+
+
+@pytest.fixture(scope="module")
+def ansichten(dashboard):
+    return dashboard.ansichten
+
+
+def test_kurzname_entfernt_steuerungspraefix(anlagen):
+    assert anlagen.kurzname("Kesselhaus · PuroWIN") == "PuroWIN"
+    assert anlagen.kurzname("PuroWIN") == "PuroWIN"
+    assert anlagen.kurzname(None) == ""
+
+
+def test_kessel_steht_vor_puffer_und_heizkreis(anlagen):
+    kessel = anlagen.rang(25)
+    puffer = anlagen.rang(16)
+    heizkreis = anlagen.rang(14)
+    zirkulation = anlagen.rang(20)
     assert kessel < puffer < heizkreis < zirkulation
 
 
-def test_unbekannter_funktionstyp_kommt_zuletzt(dashboard):
-    assert dashboard._rang(None) == dashboard.RANG_UNBEKANNT
-    assert dashboard._rang("keine Zahl") == dashboard.RANG_UNBEKANNT
-    assert dashboard._rang(999) == dashboard.RANG_UNBEKANNT
-    assert dashboard._rang(25) < dashboard._rang(999)
+def test_unbekannter_funktionstyp_kommt_zuletzt(muster, anlagen):
+    assert anlagen.rang(None) == muster.RANG_UNBEKANNT
+    assert anlagen.rang("keine Zahl") == muster.RANG_UNBEKANNT
+    assert anlagen.rang(999) == muster.RANG_UNBEKANNT
+    assert anlagen.rang(25) < anlagen.rang(999)
 
 
-def test_betriebsphase_steht_vor_beliebigem_wert(dashboard):
-    assert dashboard._vorrang({"name": "Betriebsphase"}) < dashboard._vorrang(
-        {"name": "Nachstellzeit"}
-    )
+def test_betriebsphase_steht_vor_beliebigem_wert(anlagen):
+    assert anlagen.vorrang({"name": "Betriebsphase"}) < anlagen.vorrang({"name": "Nachstellzeit"})
 
 
-def test_der_vorrang_gilt_auch_ohne_deutschen_namen(dashboard):
+def test_der_vorrang_gilt_auch_ohne_deutschen_namen(anlagen):
     """Sonst rutschte die Betriebsphase in einer fremden Sprache ans Ende."""
     fremd = {"name": "Operating phase", "schluessel": "operating_phase"}
-    assert dashboard._vorrang(fremd) < dashboard._vorrang({"name": "Nachstellzeit"})
+    assert anlagen.vorrang(fremd) < anlagen.vorrang({"name": "Nachstellzeit"})
 
 
-def test_thermostat_bekommt_eigene_karte(dashboard):
+def test_thermostat_bekommt_eigene_karte(ansichten):
     eintrag = {"entity_id": "climate.heizkreis", "name": "Heizkreis", "bereich": "climate"}
-    assert dashboard._karte(eintrag)["type"] == "thermostat"
+    assert ansichten.kachel(eintrag)["type"] == "thermostat"
 
 
-def test_kesseltemperatur_wird_rundinstrument(dashboard):
+def test_kesseltemperatur_wird_rundinstrument(ansichten):
     eintrag = {
         "entity_id": "sensor.kesseltemperatur_ist",
         "name": "Kesseltemperatur Ist",
         "bereich": "sensor",
     }
-    karte = dashboard._karte(eintrag, rundinstrument=True)
+    karte = ansichten.kachel(eintrag, rundinstrument=True)
     assert karte["type"] == "gauge"
     # Ohne ausdrückliche Anforderung bleibt es eine schlichte Kachel.
-    assert dashboard._karte(eintrag)["type"] == "tile"
+    assert ansichten.kachel(eintrag)["type"] == "tile"
 
 
-def test_leerer_abschnitt_entfaellt(dashboard):
-    assert dashboard._abschnitt("Messwerte", []) == []
-    abschnitt = dashboard._abschnitt("Messwerte", [{"type": "tile"}])
+def test_leerer_abschnitt_entfaellt(ansichten):
+    assert ansichten.abschnitt("Messwerte", []) == []
+    abschnitt = ansichten.abschnitt("Messwerte", [{"type": "tile"}])
     assert abschnitt[0]["cards"][0]["heading"] == "Messwerte"
 
 
-def test_skala_rundet_auf_hunderter(dashboard):
-    assert dashboard._skala(None) == 100
-    assert dashboard._skala(0) == 100
-    assert dashboard._skala(37) == 100
-    assert dashboard._skala(101) == 200
-    assert dashboard._skala(1180) == 1200
+def test_skala_rundet_auf_hunderter(anlagen):
+    assert anlagen.skala(None) == 100
+    assert anlagen.skala(0) == 100
+    assert anlagen.skala(37) == 100
+    assert anlagen.skala(101) == 200
+    assert anlagen.skala(1180) == 1200
 
 
-def test_gleichnamige_anlagenteile_werden_erkannt(dashboard):
-    anlagen = [
-        {"name": "Heizhaus", "teile": [{"name": "B-PLMi PUFFER"}, {"name": "PuroWIN"}]},
-        {"name": "Wohnhaus", "teile": [{"name": "B-PLMi PUFFER"}]},
+def test_gleichnamige_anlagenteile_werden_erkannt(anlagen):
+    teile = [
+        {"name": "Kesselhaus", "teile": [{"name": "B-PLMi PUFFER"}, {"name": "PuroWIN"}]},
+        {"name": "Werkstatt", "teile": [{"name": "B-PLMi PUFFER"}]},
     ]
-    assert dashboard._mehrfach_vergebene_namen(anlagen) == {"B-PLMi PUFFER"}
+    assert anlagen.mehrfach_vergebene_namen(teile) == {"B-PLMi PUFFER"}
 
 
-def test_anlage_steht_vor_dem_anlagenteil(dashboard):
-    anlage = {"name": "Heizhaus"}
-    assert dashboard._voller_name(anlage, {"name": "PuroWIN"}) == "Heizhaus · PuroWIN"
-    assert dashboard._voller_name({"name": ""}, {"name": "PuroWIN"}) == "PuroWIN"
+def test_anlage_steht_vor_dem_anlagenteil(anlagen):
+    anlage = {"name": "Kesselhaus"}
+    assert anlagen.voller_name(anlage, {"name": "PuroWIN"}) == "Kesselhaus · PuroWIN"
+    assert anlagen.voller_name({"name": ""}, {"name": "PuroWIN"}) == "PuroWIN"
 
 
-def test_symbol_je_anlagenteil(dashboard):
-    assert dashboard._symbol(25) == "mdi:fire"
-    assert dashboard._symbol(16) == "mdi:storage-tank"
-    assert dashboard._symbol(None) == "mdi:heating-coil"
+def test_symbol_je_anlagenteil(anlagen):
+    assert anlagen.symbol(25) == "mdi:fire"
+    assert anlagen.symbol(16) == "mdi:storage-tank"
+    assert anlagen.symbol(None) == "mdi:heating-coil"
 
 
 # ---------------------------------------------------------------------------
 # Rückfragen vor Eingriffen
 # ---------------------------------------------------------------------------
-def test_rueckfrage_nur_bei_eingriffen(dashboard):
-    assert dashboard.rueckfrage("Serviceausbrand")
-    assert dashboard.rueckfrage("Reinigung bestätigt")
-    assert dashboard.rueckfrage("Gewählter Brennstoff")
+def test_rueckfrage_nur_bei_eingriffen(muster):
+    assert muster.rueckfrage("Serviceausbrand")
+    assert muster.rueckfrage("Reinigung bestätigt")
+    assert muster.rueckfrage("Gewählter Brennstoff")
     # Harmlose Werte bleiben ohne Nachfrage – sonst klickt man sie blind weg.
-    assert dashboard.rueckfrage("WW Einmalladung") == ""
-    assert dashboard.rueckfrage("Kesseltemperatur Ist") == ""
+    assert muster.rueckfrage("WW Einmalladung") == ""
+    assert muster.rueckfrage("Kesseltemperatur Ist") == ""
 
 
-def test_gefaehrliche_taste_bekommt_bestaetigung(dashboard):
+def test_gefaehrliche_taste_bekommt_bestaetigung(ansichten):
     eintrag = {
         "entity_id": "button.serviceausbrand",
         "name": "Serviceausbrand",
         "bereich": "button",
     }
-    karte = dashboard._karte(eintrag)
+    karte = ansichten.kachel(eintrag)
     aktion = karte["icon_tap_action"]
     assert aktion["perform_action"] == "button.press"
     assert aktion["confirmation"]["text"]
@@ -130,28 +143,28 @@ def test_gefaehrliche_taste_bekommt_bestaetigung(dashboard):
     assert "tap_action" not in karte
 
 
-def test_schalter_wird_umgeschaltet_statt_ausgeloest(dashboard):
+def test_schalter_wird_umgeschaltet_statt_ausgeloest(ansichten):
     eintrag = {"entity_id": "switch.estrich", "name": "Estrichprogramm", "bereich": "switch"}
-    assert dashboard._karte(eintrag)["icon_tap_action"]["action"] == "toggle"
+    assert ansichten.kachel(eintrag)["icon_tap_action"]["action"] == "toggle"
 
 
-def test_harmlose_kachel_bleibt_unveraendert(dashboard):
+def test_harmlose_kachel_bleibt_unveraendert(ansichten):
     eintrag = {
         "entity_id": "sensor.kesseltemperatur_ist",
         "name": "Kesseltemperatur Ist",
         "bereich": "sensor",
     }
-    assert "icon_tap_action" not in dashboard._karte(eintrag)
+    assert "icon_tap_action" not in ansichten.kachel(eintrag)
 
 
-def test_ohne_schaltbare_plattform_keine_bestaetigung(dashboard):
+def test_ohne_schaltbare_plattform_keine_bestaetigung(ansichten):
     """Ein Anzeigewert mit brenzligem Namen bekommt keine Schaltaktion."""
     eintrag = {
         "entity_id": "sensor.serviceausbrand_zaehler",
         "name": "Serviceausbrand Zähler",
         "bereich": "sensor",
     }
-    assert "icon_tap_action" not in dashboard._karte(eintrag)
+    assert "icon_tap_action" not in ansichten.kachel(eintrag)
 
 
 # ---------------------------------------------------------------------------
@@ -191,7 +204,7 @@ def test_der_export_schreibt_umlaute_aus():
 def _anlage_mit_teilen():
     return {
         "id": "anlage-1",
-        "name": "Heizhaus",
+        "name": "Kesselhaus",
         "kesselart": "hackgut",
         "teile": [
             {
@@ -217,9 +230,9 @@ def _anlage_mit_teilen():
     }
 
 
-def test_der_text_zum_kopieren_setzt_die_eigene_karte(dashboard):
+def test_der_text_zum_kopieren_setzt_die_eigene_karte(ansichten):
     """Nur als Karte lässt sich das Schaubild im Editor bearbeiten."""
-    ansicht = dashboard._anlagenbild([_anlage_mit_teilen()], als_karte=True)
+    ansicht = ansichten.anlagenbild([_anlage_mit_teilen()], als_karte=True)
     karten = [k for abschnitt in ansicht["sections"] for k in abschnitt["cards"]]
     schaubild = [k for k in karten if k.get("type", "").startswith("custom:")]
     assert len(schaubild) == 1
@@ -228,21 +241,21 @@ def test_der_text_zum_kopieren_setzt_die_eigene_karte(dashboard):
     assert "sensor.purowin_betriebsphase" in schaubild[0]["zusatzwerte"]
 
 
-def test_das_mitgelieferte_dashboard_bleibt_bei_der_zeichnung(dashboard):
+def test_das_mitgelieferte_dashboard_bleibt_bei_der_zeichnung(ansichten):
     """Es darf kein Modul im Browser voraussetzen."""
-    ansicht = dashboard._anlagenbild([_anlage_mit_teilen()])
+    ansicht = ansichten.anlagenbild([_anlage_mit_teilen()])
     karten = [k for abschnitt in ansicht["sections"] for k in abschnitt["cards"]]
     assert not [k for k in karten if str(k.get("type", "")).startswith("custom:")]
     assert [k for k in karten if k.get("type") == "picture-elements"]
 
 
-def test_das_schaubild_bekommt_zwei_spalten(dashboard):
+def test_das_schaubild_bekommt_zwei_spalten(ansichten):
     """Neben dem Bild steht die Werteliste – in einer Spalte wird beides eng."""
-    ansicht = dashboard._anlagenbild([_anlage_mit_teilen()], als_karte=True)
+    ansicht = ansichten.anlagenbild([_anlage_mit_teilen()], als_karte=True)
     assert ansicht["sections"][0]["column_span"] == 2
 
 
-async def test_das_geraet_einer_quelle_traegt_ihre_bauart(hass, dashboard):
+async def test_das_geraet_einer_quelle_traegt_ihre_bauart(hass, anlagen):
     """Ohne die Bauart zeichnete das Schaubild die Quelle wie einen Anlagenteil."""
     from types import SimpleNamespace
 
@@ -277,6 +290,6 @@ async def test_das_geraet_einer_quelle_traegt_ihre_bauart(hass, dashboard):
         }
     }
 
-    zuordnung = dashboard._quellen_je_geraet(hass)
+    zuordnung = anlagen.quellen_nach_geraet(hass)
 
     assert zuordnung["SN1-waermequelle-q1"] == {"art": "solar", "pumpe": True}

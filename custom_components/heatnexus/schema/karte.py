@@ -66,7 +66,7 @@ def anlagenschema(
 ) -> dict[str, Any] | None:
     """Eine `picture-elements`-Karte für eine Anlage – oder nichts.
 
-    Erwartet die Anlagenteile in der Form, die `dashboard._anlagen` liefert.
+    Erwartet die Anlagenteile in der Form, die `dashboard.anlagen_lesen` liefert.
     ``kesselart`` wählt die Kesselzeichnung; ohne Angabe wird sie aus den
     Anlagenteilen abgeleitet.
 

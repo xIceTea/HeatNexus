@@ -17,18 +17,18 @@ import re
 from typing import Any
 
 from ..const import FCT_BUFFER, FCT_ZSP, QUELLEN_SYMBOLE
-from ..dashboard import (
+from ..dashboard.anlagen import trifft
+from ..dashboard.muster import (
     WARTUNG_RESTLAUFZEIT,
     WARTUNG_RESTLAUFZEIT_SCHLUESSEL,
     WARTUNG_WEITERE,
     WARTUNG_WEITERE_SCHLUESSEL,
-    _muster,
-    _passt,
-    _trifft,
+    namensmuster,
     rueckfrage,
 )
 from ..device_db import get_layers
 from ..schema import modul_in_betrieb, schaubild_nutzdaten
+from ..schema import passt as _passt
 from ..schema import traegt as _traegt
 from ..schema import treffer as _treffer
 from .hilfe import HILFE_KARTEN, KARTE_BEDINGUNG, hilfe
@@ -89,7 +89,7 @@ def _erster(
     trotzdem seine Zeile und füllt sich mit dem nächsten Abruf.
 
     Sind kanonische Schlüssel angegeben, zählen sie zuerst; das Muster bleibt
-    der Rückfall (siehe `dashboard._treffer`).
+    der Rückfall (siehe `dashboard.anlagen.trifft`).
     """
     regex = re.compile(muster, re.IGNORECASE)
     treffer = _treffer(entitaeten, (regex,), *schluessel)
@@ -122,9 +122,9 @@ def _bereitet_warmwasser(entitaeten: list[dict[str, Any]]) -> bool:
     deshalb, ein Wert ist nicht nötig.
     """
     for eintrag in entitaeten:
-        if _trifft(eintrag, WARMWASSER_IST, "dhw_temperature"):
+        if trifft(eintrag, WARMWASSER_IST, "dhw_temperature"):
             return True
-        if _trifft(eintrag, WARMWASSER_KREIS, "dhw_circuit") and (eintrag.get("wert") or 0) != 0:
+        if trifft(eintrag, WARMWASSER_KREIS, "dhw_circuit") and (eintrag.get("wert") or 0) != 0:
             return True
     return False
 
@@ -139,7 +139,7 @@ def _warmwasser(entitaeten: list[dict[str, Any]]) -> list[dict[str, str]]:
         if e["kategorie"] is None
         and e["bereich"] != "climate"
         and not e.get("abgeleitet")
-        and _trifft(e, WARMWASSER, *WARMWASSER_SCHLUESSEL)
+        and trifft(e, WARMWASSER, *WARMWASSER_SCHLUESSEL)
     ][:WARMWASSER_MAX]
 
 
@@ -305,10 +305,10 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                 # Comfort heißt, entscheidet sie daran, ob er unter oder über
                 # dem Programmsollwert liegt.
                 "uebersteuerung_temperatur": _kennung(
-                    teil["entitaeten"], _muster(r"^temperatur$"), ("number",)
+                    teil["entitaeten"], namensmuster(r"^temperatur$"), ("number",)
                 ),
                 "uebersteuerung_dauer": _kennung(
-                    teil["entitaeten"], _muster(r"^dauer$"), ("number",)
+                    teil["entitaeten"], namensmuster(r"^dauer$"), ("number",)
                 ),
                 "vorlauf": (
                     v["entity_id"]
@@ -351,7 +351,7 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
             "hysterese": _kennung(alle, WARMWASSER_HYSTERESE_MUSTER, ("number",)),
             # Was die Anlage gerade tut – daran hängt die Rückmeldung.
             "betriebsart": _kennung(alle, BETRIEBSART, ("sensor",)),
-            "programm": _kennung(alle, _muster(r"ww[- ].*programm"), ("sensor",)),
+            "programm": _kennung(alle, namensmuster(r"ww[- ].*programm"), ("sensor",)),
             # **Dieselbe Taste wie in der Übersicht.** Beschreibung, Ladeschwelle
             # und Abbruch kommen aus einer Quelle; die Ansicht baut daraus nur
             # noch die Schaltfläche.
@@ -373,7 +373,10 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
     for teil in anlage["teile"]:
         for muster, beschriftung, symbol, schluessel in KESSEL_BEDIENUNG:
             treffer = _eintrag(
-                teil["entitaeten"], _muster(muster), ("switch", "button", "select"), *schluessel
+                teil["entitaeten"],
+                namensmuster(muster),
+                ("switch", "button", "select"),
+                *schluessel,
             )
             if treffer is not None:
                 eintrag = {
@@ -459,7 +462,7 @@ def _programmsymbol(eintrag: dict[str, Any], teil: dict[str, Any]) -> str | None
     deshalb dessen Heizkörper.
     """
     name = eintrag.get("name") or ""
-    if _passt(name, ZIRKULATIONSPROGRAMM) or _trifft(
+    if _passt(name, ZIRKULATIONSPROGRAMM) or trifft(
         eintrag,
         ZIRKULATIONSPROGRAMM,
         "dhw_circulation_program_time",
@@ -488,7 +491,7 @@ def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
             e
             for e in teil["entitaeten"]
             if e["bereich"] in ("select", "sensor")
-            and _trifft(e, BETRIEBSWAHL, "buffer_mode_selection")
+            and trifft(e, BETRIEBSWAHL, "buffer_mode_selection")
         ),
         None,
     )
@@ -529,7 +532,7 @@ def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str,
             if e["bereich"] in ("select", "sensor")
             # `5/6` ist der Modus, an dem hängt, ob das Programm überhaupt
             # greift – nicht `1/65`, der nur meldet, ob die Pumpe gerade läuft.
-            and _trifft(e, ZIRKULATIONSPUMPE, "dhw_circulation_mode")
+            and trifft(e, ZIRKULATIONSPUMPE, "dhw_circulation_mode")
         ),
         None,
     )
@@ -554,7 +557,7 @@ def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str,
     return wirkung
 
 
-def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:
+def wartung(anlage: dict[str, Any]) -> dict[str, Any]:
     """Der Reiter „Wartung": Restlaufzeiten, Brennstoff, Zählerstände."""
     alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
 
@@ -567,12 +570,12 @@ def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "restlaufzeiten": zeilen(
-            lambda e: _trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
+            lambda e: trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
         ),
         "brennstoff": zeilen(
             lambda e: (
-                _trifft(e, WARTUNG_BRENNSTOFF, *WARTUNG_BRENNSTOFF_SCHLUESSEL)
-                and not _trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
+                trifft(e, WARTUNG_BRENNSTOFF, *WARTUNG_BRENNSTOFF_SCHLUESSEL)
+                and not trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
             )
         ),
         # Zählerstände erkennt man an der Statistikklasse, nicht am Namen.
@@ -581,9 +584,9 @@ def _wartung(anlage: dict[str, Any]) -> dict[str, Any]:
         "zaehler": zeilen(lambda e: e.get("state_class") in ("total_increasing", "total")),
         "weitere": zeilen(
             lambda e: (
-                _trifft(e, WARTUNG_WEITERE, *WARTUNG_WEITERE_SCHLUESSEL)
-                and not _trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
-                and not _trifft(e, WARTUNG_BRENNSTOFF, *WARTUNG_BRENNSTOFF_SCHLUESSEL)
+                trifft(e, WARTUNG_WEITERE, *WARTUNG_WEITERE_SCHLUESSEL)
+                and not trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
+                and not trifft(e, WARTUNG_BRENNSTOFF, *WARTUNG_BRENNSTOFF_SCHLUESSEL)
                 and e.get("state_class") not in ("total_increasing", "total")
             )
         ),
@@ -775,7 +778,10 @@ def _anlage_daten(
             if not hat_warmwasser and _passt(beschriftung, WARMWASSER):
                 continue
             treffer = _eintrag(
-                teil["entitaeten"], _muster(muster), ("switch", "button", "select"), *schluessel
+                teil["entitaeten"],
+                namensmuster(muster),
+                ("switch", "button", "select"),
+                *schluessel,
             )
             if treffer is not None:
                 eintrag = {
@@ -811,7 +817,7 @@ def _anlage_daten(
         "aussentemperatur": aussen,
         "steuerung": _steuerung(anlage),
         "zeitprogramme": _zeitprogramme(anlage),
-        "wartung": _wartung(anlage),
+        "wartung": wartung(anlage),
         "kennwerte": kennwerte,
         "status": _zeilen(alle, STATUS) + list(marken_status or []),
         "heizkreise": heizkreise,
@@ -823,7 +829,7 @@ def _anlage_daten(
         "verlauf": [
             e["entity_id"]
             for e in alle
-            if e["kategorie"] is None and _trifft(e, VERLAUF, *VERLAUF_SCHLUESSEL)
+            if e["kategorie"] is None and trifft(e, VERLAUF, *VERLAUF_SCHLUESSEL)
         ][:VERLAUF_MAX],
         # Alles, was sich sonst noch als Linie eignet – in der Ansicht
         # dazuwaehlbar.

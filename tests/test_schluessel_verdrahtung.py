@@ -25,36 +25,51 @@ def dashboard():
     return dashboard
 
 
-def _muster(*ausdruecke: str) -> tuple[re.Pattern, ...]:
+@pytest.fixture(scope="module")
+def muster(dashboard):
+    return dashboard.muster
+
+
+@pytest.fixture(scope="module")
+def anlagen(dashboard):
+    return dashboard.anlagen
+
+
+@pytest.fixture(scope="module")
+def ansichten(dashboard):
+    return dashboard.ansichten
+
+
+def namensmuster(*ausdruecke: str) -> tuple[re.Pattern, ...]:
     return tuple(re.compile(a, re.IGNORECASE) for a in ausdruecke)
 
 
-AUSSEN = _muster(r"au(ß|ss)entemperatur")
+AUSSEN = namensmuster(r"au(ß|ss)entemperatur")
 
 
 # ---------------------------------------------------------------------------
-# _trifft: Schlüssel zuerst, Name als Rückfall
+# trifft: Schlüssel zuerst, Name als Rückfall
 # ---------------------------------------------------------------------------
-def test_der_schluessel_gewinnt_gegen_einen_fremden_namen(dashboard):
+def test_der_schluessel_gewinnt_gegen_einen_fremden_namen(anlagen):
     """Genau dafür ist er da: englische Namen, deutsche Muster."""
     eintrag = {"name": "Outdoor temperature", "schluessel": "outdoor_temperature"}
-    assert dashboard._trifft(eintrag, AUSSEN, "outdoor_temperature")
+    assert anlagen.trifft(eintrag, AUSSEN, "outdoor_temperature")
 
 
-def test_ohne_schluessel_zaehlt_weiter_der_name(dashboard):
+def test_ohne_schluessel_zaehlt_weiter_der_name(anlagen):
     """Die Tabelle deckt bei weitem nicht alles ab."""
-    assert dashboard._trifft(
+    assert anlagen.trifft(
         {"name": "Außentemperatur", "schluessel": None}, AUSSEN, "outdoor_temperature"
     )
 
 
-def test_ohne_angegebenen_schluessel_bleibt_es_beim_muster(dashboard):
+def test_ohne_angegebenen_schluessel_bleibt_es_beim_muster(anlagen):
     """Aufrufer ohne kanonische Entsprechung verhalten sich wie vorher."""
-    assert dashboard._trifft({"name": "Außentemperatur", "schluessel": None}, AUSSEN)
-    assert not dashboard._trifft({"name": "Kesseltemperatur", "schluessel": None}, AUSSEN)
+    assert anlagen.trifft({"name": "Außentemperatur", "schluessel": None}, AUSSEN)
+    assert not anlagen.trifft({"name": "Kesseltemperatur", "schluessel": None}, AUSSEN)
 
 
-def test_ein_fremder_schluessel_verhindert_den_rueckfall_nicht(dashboard):
+def test_ein_fremder_schluessel_verhindert_den_rueckfall_nicht(anlagen):
     """Bewusst nachsichtig.
 
     Sonst fiele ein Datenpunkt weg, den das Muster bisher gefunden hat — eine
@@ -62,21 +77,21 @@ def test_ein_fremder_schluessel_verhindert_den_rueckfall_nicht(dashboard):
     „Schlüssel vorhanden, aber ein anderer" als „passt nicht" gelten.
     """
     eintrag = {"name": "Außentemperatur", "schluessel": "boiler_temperature"}
-    assert dashboard._trifft(eintrag, AUSSEN, "outdoor_temperature")
+    assert anlagen.trifft(eintrag, AUSSEN, "outdoor_temperature")
 
 
-def test_ein_eintrag_ohne_namen_bricht_nichts(dashboard):
+def test_ein_eintrag_ohne_namen_bricht_nichts(anlagen):
     """Beim ersten Aufbau steht noch nicht alles bereit."""
-    assert not dashboard._trifft({}, AUSSEN, "outdoor_temperature")
+    assert not anlagen.trifft({}, AUSSEN, "outdoor_temperature")
 
 
 # ---------------------------------------------------------------------------
-# _anlagen stempelt den Schlüssel auf jede Entität
+# anlagen stempelt den Schlüssel auf jede Entität
 # ---------------------------------------------------------------------------
 async def test_jede_entitaet_traegt_ihren_schluessel(
-    dashboard, hass, device_registry, entity_registry
+    anlagen, hass, device_registry, entity_registry
 ):
-    """Der Schritt dazwischen: ohne ihn liefe `_trifft` immer ins Muster.
+    """Der Schritt dazwischen: ohne ihn liefe `trifft` immer ins Muster.
 
     Gebaut wird eine echte Registry-Lage, keine Attrappe — die Kennung, aus
     der der Schlüssel entsteht, vergibt Home Assistant selbst.
@@ -120,7 +135,7 @@ async def test_jede_entitaet_traegt_ihren_schluessel(
     hass.states.async_set("sensor.mindestlaufzeit", "20")
     await hass.async_block_till_done()
 
-    anlagen = dashboard._anlagen(hass)
+    anlagen = anlagen.anlagen_lesen(hass)
     entitaeten = [e for anlage in anlagen for teil in anlage["teile"] for e in teil["entitaeten"]]
     je_kennung = {e["entity_id"]: e.get("schluessel") for e in entitaeten}
 

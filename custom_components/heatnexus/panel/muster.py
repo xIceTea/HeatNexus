@@ -9,7 +9,7 @@ und deshalb an einer Stelle statt verstreut über die Aufbereitung.
 
 from __future__ import annotations
 
-from ..dashboard import _muster
+from ..dashboard.muster import namensmuster
 from ..schema import ANALOG_SOLLWERT
 
 # Aufbau einer Zeile: **Muster, Beschriftung, Symbol, kanonische Schlüssel.**
@@ -124,7 +124,7 @@ STATUS: tuple[Zeile, ...] = (
 # Warmwasser hat keine eigene Funktion: Die Datenpunkte hängen am Heizkreis.
 # Die Wortgrenze ist nötig – ohne sie zählte auch die Abgas-Re*zirkulation* des
 # Kessels als Warmwasserwert.
-WARMWASSER = _muster(
+WARMWASSER = namensmuster(
     r"\bwarmwasser",
     r"\bww[- ]",
     r"\bzirkulation",
@@ -147,11 +147,11 @@ WARMWASSER_SCHLUESSEL = (
 # Heizhaus eine Warmwasserkarte, die es dort nie gab.
 # Kuratiert heißt der Datenpunkt „Warmwasser Ist-Temperatur", aus der
 # Menü-Erkennung „WW-Temperatur Aktueller Wert" – beide Schreibweisen zählen.
-WARMWASSER_IST = _muster(
+WARMWASSER_IST = namensmuster(
     r"\bww[- ]temperatur",
     r"\bwarmwasser[- ]?(ist|soll)?[- ]?temperatur",
 )
-WARMWASSER_KREIS = _muster(r"\bww-kreis\b")
+WARMWASSER_KREIS = namensmuster(r"\bww-kreis\b")
 
 # Eigene Zeilen in der Heizungsübersicht. Warmwasser und Zirkulation hängen als
 # Datenpunkte am Heizkreis, liest man aber täglich – sie gehören in die Liste
@@ -163,7 +163,7 @@ ZIRKULATION_IST_KENNWERT = r"\bww-zirkulations?[- ]?(ist[- ])?temperatur(?!.*sol
 
 # Verlauf: Was standardmäßig als Linie erscheint. Der Nutzer kann in der
 # Ansicht jede Linie ab- und weitere dazuwählen; das hier ist nur der Start.
-VERLAUF = _muster(
+VERLAUF = namensmuster(
     r"kesseltemperatur ist",
     r"abgastemperatur",
     r"brenn(er)?kammertemperatur",
@@ -192,7 +192,7 @@ VERLAUF_SCHLUESSEL = (
 VERLAUF_MAX = 8
 
 # Schnellzugriff: bedienbare Datenpunkte. Ob vor dem Auslösen nachgefragt
-# wird, entscheidet `dashboard.rueckfrage`; Tasten auf derselben Adresse
+# wird, entscheidet `dashboard.muster.rueckfrage`; Tasten auf derselben Adresse
 # unterscheidet der Kennungszusatz in `kanonisch.GESCHWISTER`.
 SCHNELLZUGRIFF: tuple[Zeile, ...] = (
     (r"ww einmalladung", "Warmwasser laden", "mdi:water-boiler", ()),
@@ -216,9 +216,9 @@ SCHNELLZUGRIFF: tuple[Zeile, ...] = (
 
 # Die Leistung, mit der die Kaminkehrerfunktion fährt. Sie wird vor dem
 # Auslösen abgefragt, weil die Messung an genau diesem Wert hängt.
-KAMINKEHRER = _muster(r"kaminkehrerbetrieb")
-KAMINKEHRER_LEISTUNG = _muster(r"kaminkehrer leistung")
-KAMINKEHRER_LAUFZEIT = _muster(r"kaminkehrer laufzeit")
+KAMINKEHRER = namensmuster(r"kaminkehrerbetrieb")
+KAMINKEHRER_LEISTUNG = namensmuster(r"kaminkehrer leistung")
+KAMINKEHRER_LAUFZEIT = namensmuster(r"kaminkehrer laufzeit")
 
 # Höchstzahl der Warmwasserzeilen; mehr sprengt die Karte.
 WARMWASSER_MAX = 6
@@ -227,7 +227,7 @@ WARMWASSER_MAX = 6
 # Reiter „Steuerung": die Anlage bedienen statt nur ablesen
 # ---------------------------------------------------------------------------
 # Betriebswahl eines Heizkreises bzw. des Kessels.
-BETRIEBSWAHL = _muster(r"\bbetriebswahl\b")
+BETRIEBSWAHL = namensmuster(r"\bbetriebswahl\b")
 # Zeitprogramm eines Kreises.
 # **Nicht einfach „programm".** Der Heizkreis führt unter `4/60` ein
 # Estrich-Ausheizprogramm, das schlicht „Programm" heißt (beenden,
@@ -235,7 +235,7 @@ BETRIEBSWAHL = _muster(r"\bbetriebswahl\b")
 # Schaltzeiten und gehört weder in die Steuerungsübersicht noch in den Reiter
 # Zeitprogramme. Mit dem bloßen Teilwort stand es dort – und verdrängte als
 # erster Treffer die echten Programme, sobald jemand den Datenpunkt einschaltete.
-ZEITPROGRAMM = _muster(
+ZEITPROGRAMM = namensmuster(
     r"programm\s*\d",
     r"zeitprogramm",
     r"\bww[- ]programm",
@@ -245,14 +245,14 @@ ZEITPROGRAMM = _muster(
 # überhaupt etwas tut: `5/6` „WW-Zirkulationspumpe" mit den Werten Aus, Mit
 # Zeitsteuerung, Mit Temperatursteuerung, Mit Impulssteuerung, EIN. Nur bei
 # „Mit Zeitsteuerung" richtet sich die Pumpe nach dem Programm.
-ZIRKULATIONSPROGRAMM = _muster(r"zirkulations?programm")
-ZIRKULATIONSPUMPE = _muster(r"zirkulationspumpe")
+ZIRKULATIONSPROGRAMM = namensmuster(r"zirkulations?programm")
+ZIRKULATIONSPUMPE = namensmuster(r"zirkulationspumpe")
 # Die Einmalladung: der einzige Warmwasser-Eingriff, den man täglich anfasst.
-EINMALLADUNG = _muster(r"einmalladung")
+EINMALLADUNG = namensmuster(r"einmalladung")
 # Die Anlage kennt zur Einmalladung zwei Einstellungen: auslösen und die
 # Temperatur, auf die dabei geladen wird.
-EINMALLADUNG_TEMPERATUR = _muster(r"einmalladung temperatur", r"ww-ladefreigabe temperatur")
-WARMWASSER_SOLL = _muster(r"\bww[- ]temperatur sollwert", r"\bwarmwasser soll")
+EINMALLADUNG_TEMPERATUR = namensmuster(r"einmalladung temperatur", r"ww-ladefreigabe temperatur")
+WARMWASSER_SOLL = namensmuster(r"\bww[- ]temperatur sollwert", r"\bwarmwasser soll")
 # Die ehrliche Rückmeldung der Einmalladung.
 #
 # Die Anlage trennt sauber zwischen dreierlei:
@@ -269,8 +269,8 @@ WARMWASSER_SOLL = _muster(r"\bww[- ]temperatur sollwert", r"\bwarmwasser soll")
 # die Betriebswahl neu setzt, stellt den Grundzustand wieder her und bricht
 # damit ab. Angezeigt wird deshalb die Betriebsart; die Ladepumpe ist nur der
 # Rückfall für Anlagen, die keine Betriebsart melden.
-BETRIEBSART = _muster(r"^betriebsart$")
-WARMWASSER_LADEPUMPE = _muster(r"\bww-ladepumpe")
+BETRIEBSART = namensmuster(r"^betriebsart$")
+WARMWASSER_LADEPUMPE = namensmuster(r"\bww-ladepumpe")
 
 # Wie weit die Warmwassertemperatur unter dem eingestellten Wert liegen muss,
 # damit die Anlage eine Einmalladung überhaupt annimmt. Der eingestellte Wert
@@ -283,7 +283,7 @@ WARMWASSER_ABSTAND = 5.0
 WARMWASSER_HYSTERESE = r"^hysterese ein$"
 # Dieselbe Adresse als Mustertupel, für die Suche nach der bedienbaren
 # Entität (`_kennung` erwartet ein Tupel, `_erster` eine Zeichenkette).
-WARMWASSER_HYSTERESE_MUSTER = _muster(WARMWASSER_HYSTERESE)
+WARMWASSER_HYSTERESE_MUSTER = namensmuster(WARMWASSER_HYSTERESE)
 
 # Betriebsarten (2/9), die eine laufende Warmwasserladung bedeuten.
 WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-Programm")
@@ -303,16 +303,16 @@ BETRIEBSART_URLAUB = r"^urlaub"
 
 # Die Außentemperatur gehört an der Anlage in die Kopfzeile und nicht in eine
 # Kachel – sie gilt für die ganze Anlage, nicht für einen Anlagenteil.
-AUSSENTEMPERATUR = _muster(r"au(ß|ss)entemperatur")
+AUSSENTEMPERATUR = namensmuster(r"au(ß|ss)entemperatur")
 
 # Der Ja/Nein-Sensor neben dem Klartext. Ob eine Störung ansteht, sagt er;
 # der Klartext sagt, welche.
-STOERUNGSMELDER = _muster(r"st(ö|oe)rung gemeldet")
+STOERUNGSMELDER = namensmuster(r"st(ö|oe)rung gemeldet")
 
 # Lagerraumbefüllung. Die Anlage zeigt dazu eine eigene Seite mit
 # Kesseltemperatur bzw. Vorratsbehälter-Status, Restlaufzeit, der Freigabe
 # („freigegeben"/„gesperrt") und der Betriebsphase – in dieser Reihenfolge.
-LAGERRAUM_ANFORDERN = _muster(r"lagerraumbef(ü|ue)llung anfordern")
+LAGERRAUM_ANFORDERN = namensmuster(r"lagerraumbef(ü|ue)llung anfordern")
 LAGERRAUM_ZEILEN: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (r"kesseltemperatur ist", "Kesseltemperatur", ("boiler_temperature",)),
     (r"vorratsbeh", "Vorratsbehälter", ("fuel_storage_status",)),
@@ -359,5 +359,5 @@ KESSEL_BEDIENUNG: tuple[Zeile, ...] = (
 # ---------------------------------------------------------------------------
 # Reiter „Wartung"
 # ---------------------------------------------------------------------------
-WARTUNG_BRENNSTOFF = _muster(r"vorratsbeh", r"aktueller brennstoff", r"brennstoff")
+WARTUNG_BRENNSTOFF = namensmuster(r"vorratsbeh", r"aktueller brennstoff", r"brennstoff")
 WARTUNG_BRENNSTOFF_SCHLUESSEL = ("fuel_storage_status", "fuel_current", "fuel_selected")

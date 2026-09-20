@@ -16,7 +16,7 @@ import voluptuous as vol
 
 from .auslieferung import async_dateien_ausliefern, karte_anmelden
 from .const import DOMAIN
-from .dashboard import _anlagen
+from .dashboard.anlagen import anlagen_lesen
 from .schema import schaubild_daten
 from .texte import uebersetze_baum, woerterbuch
 
@@ -31,7 +31,7 @@ def kartendaten(
     mischer: bool = True,
 ) -> list[dict[str, Any]]:
     """Alle Anlagen mit ihrem Schaubild, frisch aus der Registrierung."""
-    daten = schaubild_daten(_anlagen(hass), auswahl, teile_aus or [], zeichnungen, mischer)
+    daten = schaubild_daten(anlagen_lesen(hass), auswahl, teile_aus or [], zeichnungen, mischer)
     return uebersetze_baum(daten, woerterbuch(hass))
 
 

@@ -26,7 +26,7 @@ def panel():
 
 
 def entitaet(entity_id: str, name: str, **rest):
-    """Ein Registry-Eintrag in der Form, die `dashboard._anlagen` liefert."""
+    """Ein Registry-Eintrag in der Form, die `dashboard.anlagen_lesen` liefert."""
     eintrag = {
         "entity_id": entity_id,
         "name": name,

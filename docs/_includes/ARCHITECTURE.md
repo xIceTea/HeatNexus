@@ -119,7 +119,7 @@ nicht kennt. `client._decode` probiert deshalb der Reihe nach `utf-8`,
 
 ## Dashboard
 
-`dashboard.py` baut die Lovelace-Konfiguration **in Home Assistant** aus der
+Das Paket `dashboard/` baut die Lovelace-Konfiguration **in Home Assistant** aus der
 Geräte- und Entitätsregistrierung und liefert sie fertig aus; bei jedem Öffnen
 neu. Die Reihenfolge der Abschnitte kommt aus dem Funktionstyp (`FCT_RANG`:
 Kessel, Puffer, Heizkreis, Warmwasser, Zirkulation), unbekannte Typen stehen
@@ -252,7 +252,7 @@ von Hand gepflegt.
 | `einlesen.py` | Vollabzug im Hintergrund und die Meldungen dazu |
 | `stilllegung.py` | Entitäten stilllegen oder löschen, die aus dem Umfang gefallen sind |
 | `dienste.py` | die Dienste `rediscover` und `dashboard_ausgeben` |
-| `dashboard.py` | mitgeliefertes Dashboard, serverseitig gebaut |
+| `dashboard/` | mitgeliefertes Dashboard, serverseitig gebaut: `muster` (was wohin), `anlagen` (die Teile aus den Registrierungen), `ansichten`, Anmeldung in `__init__` |
 | `panel/` | eigener Eintrag in der Seitenleiste: Anmeldung, Aufteilung, Suchmuster, Erklärtexte |
 | `frontend/` | die Oberfläche selbst (siehe unten) |
 | `schema/` | Anlagenschaubild: `farben`, `werte`, `bauteile`, `zeichnung`, `karte` – aus den Bauteildateien in `anlagenteile/` |
