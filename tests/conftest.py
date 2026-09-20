@@ -205,6 +205,17 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config) -> None:
         terminalreporter.write_line(f"ACHTUNG: {_WARNUNG}", yellow=True, bold=True)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _paket_vorab_laden() -> None:
+    """Das Paket vor dem ersten `hass` laden.
+
+    Die Home-Assistant-Fixture verändert den Importpfad; ein Test, der das
+    Paket erst danach importiert, findet es sonst nicht.
+    """
+    if not ha_fehlt():
+        importlib.import_module("custom_components.heatnexus")
+
+
 @pytest.fixture(scope="session")
 def error_texts() -> ModuleType:
     """Modul error_texts (Störungsdekodierung)."""
