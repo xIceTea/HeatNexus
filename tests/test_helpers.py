@@ -169,10 +169,10 @@ def test_meldung_nur_mit_haken():
     import ast
     from pathlib import Path
 
-    pfad = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "__init__.py"
+    pfad = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "einlesen.py"
     quelle = pfad.read_text(encoding="utf-8")
     anfang = quelle.index("def meldung_erwuenscht")
-    ende = quelle.index("def _einlesen_melden")
+    ende = quelle.index("def _entitaeten_anzahl")
     raum: dict = {"CONF_MELDUNG_EINLESEN": "meldung_einlesen"}
     exec(compile(quelle[anfang:ende], str(pfad), "exec"), raum)
     erwuenscht = raum["meldung_erwuenscht"]

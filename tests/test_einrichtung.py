@@ -1,6 +1,6 @@
 """Einrichtung eines Eintrags und der Vollabzug im Hintergrund.
 
-`async_setup_entry` und `_vollabzug` waren die beiden größten ungeprüften
+`async_setup_entry` und `vollabzug` waren die beiden größten ungeprüften
 Abläufe der Integration – und zugleich die, an denen die schwersten Fehler
 hingen: Die v0.5.0-Regression „verbunden, aber keine Daten" entstand genau
 hier, weil die Erkennung im Zeitfenster des Abrufs lief.
@@ -28,7 +28,6 @@ pytestmark = [requires_ha(), requires_frontend(), requires_moderne_ha()]
 # ein Import aus dem Test heraus scheitert dann mit `ModuleNotFoundError`. Beim
 # Einsammeln der Datei läuft noch keine Instanz – hier geht er.
 if not ha_fehlt():  # pragma: no branch - ohne HA wird die Datei übersprungen
-    from custom_components.heatnexus import _nur_anzeige_geaendert
     from custom_components.heatnexus.const import (
         CONF_KESSELART,
         CONF_LEVELS,
@@ -36,6 +35,7 @@ if not ha_fehlt():  # pragma: no branch - ohne HA wird die Datei übersprungen
         CONF_SYSTEMS,
         DOMAIN,
     )
+    from custom_components.heatnexus.erkennungsstand import nur_anzeige_geaendert
 
 
 DESKRIPTOREN = [
@@ -160,7 +160,7 @@ async def _aufraeumen(hass):
     from homeassistant.util import dt as dt_util
     from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
-    from custom_components.heatnexus import MELDUNG_VERZOEGERUNG
+    from custom_components.heatnexus.einlesen import MELDUNG_VERZOEGERUNG
 
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=MELDUNG_VERZOEGERUNG + 1))
     await hass.async_block_till_done()
@@ -393,20 +393,20 @@ def test_eine_schaubildoption_allein_laedt_nicht_neu():
     """Ein Neuladen risse jeden Verlauf für einen Takt auf „nicht verfügbar"."""
     alt = {"192.0.2.10": {CONF_LEVELS: ["info"], CONF_MODULPUMPE: False}}
     neu = {"192.0.2.10": {CONF_LEVELS: ["info"], CONF_MODULPUMPE: True}}
-    assert _nur_anzeige_geaendert(alt, neu) is True
+    assert nur_anzeige_geaendert(alt, neu) is True
 
 
 def test_ein_geaenderter_umfang_laedt_neu():
     alt = {"192.0.2.10": {CONF_LEVELS: ["info"], CONF_KESSELART: "auto"}}
     neu = {"192.0.2.10": {CONF_LEVELS: ["info", "service"], CONF_KESSELART: "hackgut"}}
-    assert _nur_anzeige_geaendert(alt, neu) is False
+    assert nur_anzeige_geaendert(alt, neu) is False
 
 
 def test_ohne_bekannten_vorzustand_wird_neu_geladen():
-    assert _nur_anzeige_geaendert({}, {"192.0.2.10": {CONF_MODULPUMPE: True}}) is False
+    assert nur_anzeige_geaendert({}, {"192.0.2.10": {CONF_MODULPUMPE: True}}) is False
 
 
 def test_eine_neue_anlage_laedt_neu():
     alt = {"192.0.2.10": {CONF_MODULPUMPE: True}}
     neu = dict(alt, **{"192.0.2.11": {CONF_MODULPUMPE: True}})
-    assert _nur_anzeige_geaendert(alt, neu) is False
+    assert nur_anzeige_geaendert(alt, neu) is False

@@ -173,15 +173,17 @@ def test_die_option_steht_nicht_im_umfang():
     """Sonst zählte ein Abschalten als Abwahl und löschte Entitäten."""
     from types import SimpleNamespace
 
-    import custom_components.heatnexus as heatnexus
-    from custom_components.heatnexus.const import CONF_STARTWERTE
+    from homeassistant.const import CONF_HOST
+
+    from custom_components.heatnexus.const import CONF_STARTWERTE, CONF_SYSTEMS
+    from custom_components.heatnexus.erkennungsstand import umfang_der_anlage
 
     eintrag = SimpleNamespace(
         entry_id="eintrag1",
-        data={heatnexus.CONF_SYSTEMS: [{heatnexus.CONF_HOST: "192.0.2.10"}]},
+        data={CONF_SYSTEMS: [{CONF_HOST: "192.0.2.10"}]},
         options={CONF_STARTWERTE: 0},
     )
-    umfang = heatnexus._scope(
+    umfang = umfang_der_anlage(
         SimpleNamespace(config=SimpleNamespace(language="de")), eintrag, "192.0.2.10"
     )
 

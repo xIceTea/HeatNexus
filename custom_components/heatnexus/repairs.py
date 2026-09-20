@@ -10,7 +10,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 import voluptuous as vol
 
-from . import laufzeitdaten, verwaiste
+from . import verwaiste
+from .erkennungsstand import laufzeitdaten
 
 _LOGGER = logging.getLogger(__name__)
 

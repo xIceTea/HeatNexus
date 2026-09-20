@@ -1,6 +1,6 @@
 # Architektur
 
-![Aufbau: die Heizung liefert über HTTP an das Paket client/, das die Descriptor-Liste erzeugt; __init__.py führt Coordinator, Cache und Dienste; die Plattformen filtern die Liste nach dem Feld type](assets/aufbau.svg)
+![Aufbau: die Heizung liefert über HTTP an das Paket client/, das die Descriptor-Liste erzeugt; __init__.py richtet ein, coordinator.py fragt ab, erkennungsstand.py hält den Stand; die Plattformen filtern die Liste nach dem Feld type](assets/aufbau.svg)
 
 ## Descriptor-Liste als zentrale Schnittstelle
 
@@ -246,7 +246,12 @@ von Hand gepflegt.
 | Datei | Aufgabe |
 |---|---|
 | `client/` | Zugriff auf die Anlage, nach Aufgaben geschnitten (siehe unten) |
-| `__init__.py` | Coordinator, Cache, Setup/Unload, Dienste |
+| `__init__.py` | Einrichtung, Entladen, Optionswechsel, Migration eines Eintrags |
+| `coordinator.py` | zyklischer Abruf einer Anlage, Takt bei Störungen |
+| `erkennungsstand.py` | gespeicherte Erkennung je Anlage: Ablage, Umfang, Gültigkeit; Laufzeitdaten |
+| `einlesen.py` | Vollabzug im Hintergrund und die Meldungen dazu |
+| `stilllegung.py` | Entitäten stilllegen oder löschen, die aus dem Umfang gefallen sind |
+| `dienste.py` | die Dienste `rediscover` und `dashboard_ausgeben` |
 | `dashboard.py` | mitgeliefertes Dashboard, serverseitig gebaut |
 | `panel/` | eigener Eintrag in der Seitenleiste: Anmeldung, Aufteilung, Suchmuster, Erklärtexte |
 | `frontend/` | die Oberfläche selbst (siehe unten) |
@@ -260,7 +265,7 @@ von Hand gepflegt.
 | `error_texts.py` | Dekodierung der Gerätemeldungen |
 | `helpers.py` | Wertparsing, Messgrößen (Einheit, Geräteklasse, Zustandsklasse) |
 | `kanonisch.py` | herstellerunabhängige Schlüssel je Datenpunkt (`boiler_temperature`, …) |
-| `migration.py` | schreibt Registrierungseinträge auf das aktuelle Kennungsschema um |
+| `migration.py` | schreibt Registrierungseinträge auf das aktuelle Kennungsschema um, gleicht Gerätenamen an |
 | `anordnung.py` | Anordnung der Karten je Nutzer, über WebSocket gespeichert |
 | `config_flow.py` | Einrichtung (Host, Zugang, Passwort), Umfang, Optionen |
 | `climate.py` … `date.py` | Plattformen |

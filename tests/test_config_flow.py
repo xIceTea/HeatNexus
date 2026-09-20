@@ -110,7 +110,7 @@ def test_zeitwerte_sind_abwaehlbar_und_standardmaessig_aus(flow):
 
 def test_zeitwerte_aendern_den_umfang(flow):
     """Sie entscheiden, was abgefragt wird – der Erkennungsstand gilt dann nicht mehr."""
-    from custom_components.heatnexus import _scope_fingerprint
+    from custom_components.heatnexus.erkennungsstand import umfang_fingerprint
 
     umfang = {
         "levels": ["info", "operate"],
@@ -118,7 +118,7 @@ def test_zeitwerte_aendern_den_umfang(flow):
         "writable_advanced": False,
         "username": "USER",
     }
-    assert _scope_fingerprint(umfang) != _scope_fingerprint({**umfang, "zeitwerte": True})
+    assert umfang_fingerprint(umfang) != umfang_fingerprint({**umfang, "zeitwerte": True})
 
 
 def test_kesselart_wird_uebernommen_und_geprueft(flow):
@@ -139,7 +139,7 @@ def test_kesselart_aendert_den_umfang_nicht(flow):
     Der Erkennungsstand hängt am Umfang. Käme die Kesselart darin vor, kostete
     jede Umstellung einen vollen Neuabzug von 30–120 s.
     """
-    from custom_components.heatnexus import _scope_fingerprint
+    from custom_components.heatnexus.erkennungsstand import umfang_fingerprint
 
     umfang = {
         "levels": ["info", "operate"],
@@ -147,7 +147,7 @@ def test_kesselart_aendert_den_umfang_nicht(flow):
         "writable_advanced": False,
         "username": "USER",
     }
-    assert _scope_fingerprint(umfang) == _scope_fingerprint({**umfang, "kesselart": "pellets"})
+    assert umfang_fingerprint(umfang) == umfang_fingerprint({**umfang, "kesselart": "pellets"})
 
 
 async def test_allgemeine_einstellungen_auch_bei_einer_anlage(flow, monkeypatch):

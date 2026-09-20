@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560" role="img" aria-labelledby="t d">
 <title id="t">Aufbau von HeatNexus</title>
-<desc id="d">Die Heizung liefert über das Netz an das Paket client/; dieser erzeugt die Descriptor-Liste, __init__.py führt Coordinator, Cache und Dienste, und die Plattformen filtern die Liste nach dem Feld type.</desc>
+<desc id="d">Die Heizung liefert über das Netz an das Paket client/; dieser erzeugt die Descriptor-Liste, __init__.py richtet ein, coordinator.py fragt ab, erkennungsstand.py hält den Stand, und die Plattformen filtern die Liste nach dem Feld type.</desc>
 
 <style>
   .flaeche { fill: #15171b; stroke: #23262c; }
@@ -42,8 +42,8 @@
 
 <!-- Reihe 2: Koordinator -->
 <rect class="kasten" x="298" y="220" width="654" height="92" rx="12"/>
-<text class="mono" x="322" y="252" style="font-size:15px">__init__.py</text>
-<text class="klein" x="322" y="274">DataUpdateCoordinator · Cache · Dienste</text>
+<text class="mono" x="322" y="252" style="font-size:15px">__init__.py · coordinator.py</text>
+<text class="klein" x="322" y="274">Einrichtung · Abruf · Erkennungsstand · Dienste</text>
 <text class="klein" x="322" y="294">verteilt einen Abzug an alle Plattformen</text>
 <text class="marke" x="928" y="248" text-anchor="end">TAKT</text>
 

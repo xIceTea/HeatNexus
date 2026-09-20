@@ -25,6 +25,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN
+from .entity import steuerung_kennung
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -175,3 +176,42 @@ def async_entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> None:
             "%d Entitäten umbenannt – die Kennung enthält jetzt Anlage und Anlagenteil.",
             umbenannt,
         )
+
+
+def steuerung_umstellen(registry, alt: str, neu: str) -> None:
+    """Die Kennung des Steuerungs-Geräts auf die Seriennummer umschreiben."""
+    geraet = registry.async_get_device(identifiers={(DOMAIN, alt)})
+    if geraet is None or registry.async_get_device(identifiers={(DOMAIN, neu)}) is not None:
+        return
+    kennungen = {i for i in geraet.identifiers if i != (DOMAIN, alt)}
+    kennungen.add((DOMAIN, neu))
+    registry.async_update_device(geraet.id, new_identifiers=kennungen)
+    _LOGGER.debug("Kennung der Steuerung %s -> %s", alt, neu)
+
+
+def geraetenamen_angleichen(registry, entry: ConfigEntry, coordinators: dict) -> None:
+    """Namen bestehender Geräte an das aktuelle Schema angleichen.
+
+    Home Assistant übernimmt geänderte Gerätenamen nicht immer von selbst.
+    Eine eigene Umbenennung durch den Nutzer bleibt unangetastet.
+    """
+    for coordinator in coordinators.values():
+        steuerung = registry.async_get_device(
+            identifiers={(DOMAIN, steuerung_kennung(coordinator))}
+        )
+        for beschreibung in (coordinator.data or {}).get("devices", []):
+            kennung = beschreibung.get("device_id")
+            funktion = (beschreibung.get("device_name") or "").strip()
+            if not kennung or not funktion:
+                continue
+            geraet = registry.async_get_device(identifiers={(DOMAIN, kennung)})
+            if geraet is None:
+                continue
+            gewuenscht = f"{coordinator.label} · {funktion}"
+            if (
+                coordinator.label
+                and coordinator.label != funktion
+                and geraet.name != gewuenscht
+                and steuerung is not None
+            ):
+                registry.async_update_device(geraet.id, name=gewuenscht, via_device_id=steuerung.id)

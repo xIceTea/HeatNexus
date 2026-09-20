@@ -23,13 +23,30 @@ from .conftest import requires_ha
 pytestmark = requires_ha()
 
 HOST = "192.0.2.10"
+# Schlüssel aus `homeassistant.const`, hier ohne Home-Assistant-Import.
+CONF_HOST = "host"
+CONF_USERNAME = "username"
 
 
 @pytest.fixture(scope="module")
-def modul():
-    import custom_components.heatnexus as heatnexus
+def erkennungsstand():
+    from custom_components.heatnexus import erkennungsstand
 
-    return heatnexus
+    return erkennungsstand
+
+
+@pytest.fixture(scope="module")
+def stilllegung():
+    from custom_components.heatnexus import stilllegung
+
+    return stilllegung
+
+
+@pytest.fixture(scope="module")
+def einlesen():
+    from custom_components.heatnexus import einlesen
+
+    return einlesen
 
 
 @pytest.fixture(scope="module")
@@ -44,22 +61,24 @@ def _hass(sprache: str = "de"):
     return SimpleNamespace(config=SimpleNamespace(language=sprache))
 
 
-def _eintrag(modul, const, optionen=None, systeme=None):
+def _eintrag(const, optionen=None, systeme=None):
     return SimpleNamespace(
         entry_id="eintrag1",
         title="HeatNexus",
-        data={const.CONF_SYSTEMS: systeme if systeme is not None else [{modul.CONF_HOST: HOST}]},
+        data={const.CONF_SYSTEMS: systeme if systeme is not None else [{CONF_HOST: HOST}]},
         options=optionen or {},
     )
 
 
-def _stand(modul, const, **abweichend):
+def _stand(erkennungsstand, const, **abweichend):
     from homeassistant.util import dt as dt_util
 
     stand = {
         "data": {"devices": []},
         "host": HOST,
-        "scope": modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST)),
+        "scope": erkennungsstand.umfang_fingerprint(
+            erkennungsstand.umfang_der_anlage(_hass(), _eintrag(const), HOST)
+        ),
         "saved": dt_util.utcnow().isoformat(),
         "version": "1.5.0",
         "sprache": "de",
@@ -71,85 +90,96 @@ def _stand(modul, const, **abweichend):
 # ---------------------------------------------------------------------------
 # Umfang
 # ---------------------------------------------------------------------------
-def test_ohne_optionen_gilt_die_voreinstellung(modul, const):
-    umfang = modul._scope(_hass(), _eintrag(modul, const), HOST)
+def test_ohne_optionen_gilt_die_voreinstellung(erkennungsstand, const):
+    umfang = erkennungsstand.umfang_der_anlage(_hass(), _eintrag(const), HOST)
     assert umfang["levels"] == list(const.DEFAULT_LEVELS)
     assert umfang["enable_advanced"] is False
     assert umfang["username"] == const.DEFAULT_USERNAME
 
 
-def test_die_optionen_haengen_an_der_anlage_nicht_am_eintrag(modul, const):
+def test_die_optionen_haengen_an_der_anlage_nicht_am_eintrag(erkennungsstand, const):
     """Zwei Anlagen in einem Eintrag: Was für die eine gilt, gilt nicht für die andere."""
     eintrag = _eintrag(
-        modul,
         const,
         optionen={HOST: {const.CONF_LEVELS: ["info"], const.CONF_ENABLE_ADVANCED: True}},
-        systeme=[{modul.CONF_HOST: HOST}, {modul.CONF_HOST: "192.0.2.11"}],
+        systeme=[{CONF_HOST: HOST}, {CONF_HOST: "192.0.2.11"}],
     )
-    assert modul._scope(_hass(), eintrag, HOST)["levels"] == ["info"]
-    assert modul._scope(_hass(), eintrag, "192.0.2.11")["levels"] == list(const.DEFAULT_LEVELS)
+    assert erkennungsstand.umfang_der_anlage(_hass(), eintrag, HOST)["levels"] == ["info"]
+    assert erkennungsstand.umfang_der_anlage(_hass(), eintrag, "192.0.2.11")["levels"] == list(
+        const.DEFAULT_LEVELS
+    )
 
 
-def test_der_zugang_gehoert_zum_umfang(modul, const):
+def test_der_zugang_gehoert_zum_umfang(erkennungsstand, const):
     """„Service" sieht Datenpunkte, die „USER" gar nicht erst geliefert bekommt."""
-    eintrag = _eintrag(
-        modul, const, systeme=[{modul.CONF_HOST: HOST, modul.CONF_USERNAME: "Service"}]
+    eintrag = _eintrag(const, systeme=[{CONF_HOST: HOST, CONF_USERNAME: "Service"}])
+    assert erkennungsstand.umfang_der_anlage(_hass(), eintrag, HOST)["username"] == "Service"
+    assert "Service" in erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(_hass(), eintrag, HOST)
     )
-    assert modul._scope(_hass(), eintrag, HOST)["username"] == "Service"
-    assert "Service" in modul._scope_fingerprint(modul._scope(_hass(), eintrag, HOST))
 
 
-def test_ein_anderer_zugang_ergibt_eine_andere_kennung(modul, const):
-    mit_user = modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST))
-    mit_service = modul._scope_fingerprint(
-        modul._scope(
+def test_ein_anderer_zugang_ergibt_eine_andere_kennung(erkennungsstand, const):
+    mit_user = erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(_hass(), _eintrag(const), HOST)
+    )
+    mit_service = erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(
             _hass(),
-            _eintrag(modul, const, systeme=[{modul.CONF_HOST: HOST, "username": "Service"}]),
+            _eintrag(const, systeme=[{CONF_HOST: HOST, "username": "Service"}]),
             HOST,
         )
     )
     assert mit_user != mit_service
 
 
-def test_eine_andere_sprache_verwirft_den_stand_nicht(modul, const):
+def test_eine_andere_sprache_verwirft_den_stand_nicht(erkennungsstand, const):
     """Sie ändert Bezeichnungen, nicht den Bestand an Datenpunkten.
 
     Stünde sie im Fingerabdruck, läse jede Anlage bei der Umstellung minutenlang
     neu ein – genau das Verhalten, das seit 1.1.0-beta.2 abgeschafft ist.
     """
-    deutsch = modul._scope_fingerprint(modul._scope(_hass("de"), _eintrag(modul, const), HOST))
-    franzoesisch = modul._scope_fingerprint(modul._scope(_hass("fr"), _eintrag(modul, const), HOST))
+    deutsch = erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(_hass("de"), _eintrag(const), HOST)
+    )
+    franzoesisch = erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(_hass("fr"), _eintrag(const), HOST)
+    )
     assert deutsch == franzoesisch
 
 
-def test_eine_andere_sprache_loest_den_abgleich_aus(modul, const):
+def test_eine_andere_sprache_loest_den_abgleich_aus(erkennungsstand, const):
     """Sofort da sein und nachziehen – wie bei einem Fassungswechsel."""
-    stand = _stand(modul, const, sprache="de")
+    stand = _stand(erkennungsstand, const, sprache="de")
 
-    assert modul._abgleich_noetig(stand, "1.5.0", "fr")
-    assert not modul._abgleich_noetig(stand, "1.5.0", "de")
+    assert erkennungsstand.abgleich_noetig(stand, "1.5.0", "fr")
+    assert not erkennungsstand.abgleich_noetig(stand, "1.5.0", "de")
 
 
-def test_ein_stand_ohne_sprache_gilt_als_deutsch(modul, const):
+def test_ein_stand_ohne_sprache_gilt_als_deutsch(erkennungsstand, const):
     """Stände aus einer Fassung vor der Sprachwahl tragen den Schlüssel nicht."""
-    ohne = _stand(modul, const)
+    ohne = _stand(erkennungsstand, const)
     ohne.pop("sprache", None)
 
-    assert not modul._abgleich_noetig(ohne, "1.5.0", "de")
-    assert modul._abgleich_noetig(ohne, "1.5.0", "en")
+    assert not erkennungsstand.abgleich_noetig(ohne, "1.5.0", "de")
+    assert erkennungsstand.abgleich_noetig(ohne, "1.5.0", "en")
 
 
-def test_die_gewaehlte_sprache_schlaegt_die_von_home_assistant(modul, const):
-    eintrag = _eintrag(modul, const, optionen={const.CONF_SPRACHE: "it"})
-    assert modul._scope(_hass("fr"), eintrag, HOST)["sprache"] == "it"
+def test_die_gewaehlte_sprache_schlaegt_die_von_home_assistant(erkennungsstand, const):
+    eintrag = _eintrag(const, optionen={const.CONF_SPRACHE: "it"})
+    assert erkennungsstand.umfang_der_anlage(_hass("fr"), eintrag, HOST)["sprache"] == "it"
 
 
-def test_automatisch_auf_dieselbe_sprache_aendert_die_kennung_nicht(modul, const):
+def test_automatisch_auf_dieselbe_sprache_aendert_die_kennung_nicht(erkennungsstand, const):
     # „auto" wird aufgelöst gespeichert. Wer von „auto" auf genau die Sprache
     # umstellt, die ohnehin galt, soll keinen Neuabzug auslösen.
-    automatisch = modul._scope_fingerprint(modul._scope(_hass("fr"), _eintrag(modul, const), HOST))
-    ausdruecklich = modul._scope_fingerprint(
-        modul._scope(_hass("fr"), _eintrag(modul, const, optionen={const.CONF_SPRACHE: "fr"}), HOST)
+    automatisch = erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(_hass("fr"), _eintrag(const), HOST)
+    )
+    ausdruecklich = erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(
+            _hass("fr"), _eintrag(const, optionen={const.CONF_SPRACHE: "fr"}), HOST
+        )
     )
     assert automatisch == ausdruecklich
 
@@ -157,37 +187,49 @@ def test_automatisch_auf_dieselbe_sprache_aendert_die_kennung_nicht(modul, const
 # ---------------------------------------------------------------------------
 # Gültigkeit des gespeicherten Stands
 # ---------------------------------------------------------------------------
-def test_ein_frischer_stand_derselben_anlage_gilt(modul, const):
-    kennung = modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST))
-    assert modul._discovery_cache_valid(_stand(modul, const), HOST, kennung)
+def test_ein_frischer_stand_derselben_anlage_gilt(erkennungsstand, const):
+    kennung = erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(_hass(), _eintrag(const), HOST)
+    )
+    assert erkennungsstand.discovery_cache_valid(_stand(erkennungsstand, const), HOST, kennung)
 
 
-def test_eine_neue_fassung_verwirft_den_stand_nicht(modul, const):
+def test_eine_neue_fassung_verwirft_den_stand_nicht(erkennungsstand, const):
     """Sonst läge die Anlage nach jeder Aktualisierung minutenlang brach."""
-    kennung = modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST))
-    alt = _stand(modul, const, version="0.9.0")
-    assert modul._discovery_cache_valid(alt, HOST, kennung)
+    kennung = erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(_hass(), _eintrag(const), HOST)
+    )
+    alt = _stand(erkennungsstand, const, version="0.9.0")
+    assert erkennungsstand.discovery_cache_valid(alt, HOST, kennung)
     # Sie löst aber einen Abgleich im Hintergrund aus.
-    assert modul._abgleich_noetig(alt, "1.5.0", "de")
-    assert not modul._abgleich_noetig(_stand(modul, const), "1.5.0", "de")
+    assert erkennungsstand.abgleich_noetig(alt, "1.5.0", "de")
+    assert not erkennungsstand.abgleich_noetig(_stand(erkennungsstand, const), "1.5.0", "de")
 
 
-def test_eine_andere_anlage_verwirft_den_stand(modul, const):
-    kennung = modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST))
-    assert not modul._discovery_cache_valid(_stand(modul, const), "192.0.2.11", kennung)
+def test_eine_andere_anlage_verwirft_den_stand(erkennungsstand, const):
+    kennung = erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(_hass(), _eintrag(const), HOST)
+    )
+    assert not erkennungsstand.discovery_cache_valid(
+        _stand(erkennungsstand, const), "192.0.2.11", kennung
+    )
 
 
-def test_ein_geaenderter_umfang_verwirft_den_stand(modul, const):
-    assert not modul._discovery_cache_valid(_stand(modul, const), HOST, "ganz anders")
+def test_ein_geaenderter_umfang_verwirft_den_stand(erkennungsstand, const):
+    assert not erkennungsstand.discovery_cache_valid(
+        _stand(erkennungsstand, const), HOST, "ganz anders"
+    )
 
 
-def test_ein_zu_alter_stand_verwirft_sich_selbst(modul, const):
+def test_ein_zu_alter_stand_verwirft_sich_selbst(erkennungsstand, const):
     from homeassistant.util import dt as dt_util
 
-    kennung = modul._scope_fingerprint(modul._scope(_hass(), _eintrag(modul, const), HOST))
+    kennung = erkennungsstand.umfang_fingerprint(
+        erkennungsstand.umfang_der_anlage(_hass(), _eintrag(const), HOST)
+    )
     zu_alt = dt_util.utcnow() - timedelta(days=const.DISCOVERY_MAX_AGE_DAYS + 1)
-    assert not modul._discovery_cache_valid(
-        _stand(modul, const, saved=zu_alt.isoformat()), HOST, kennung
+    assert not erkennungsstand.discovery_cache_valid(
+        _stand(erkennungsstand, const, saved=zu_alt.isoformat()), HOST, kennung
     )
 
 
@@ -195,16 +237,16 @@ def test_ein_zu_alter_stand_verwirft_sich_selbst(modul, const):
     "kaputt",
     [None, "kein Wörterbuch", {}, {"data": {}, "host": HOST, "scope": "x", "saved": "gestern"}],
 )
-def test_ein_unbrauchbarer_stand_gilt_nicht(modul, kaputt):
+def test_ein_unbrauchbarer_stand_gilt_nicht(erkennungsstand, kaputt):
     """Lieber neu einlesen als auf halben Daten aufbauen."""
-    assert not modul._discovery_cache_valid(kaputt, HOST, "x")
+    assert not erkennungsstand.discovery_cache_valid(kaputt, HOST, "x")
 
 
 # ---------------------------------------------------------------------------
 # Abwahl: löschen oder nur stilllegen
 # ---------------------------------------------------------------------------
 def _umfang(levels, **schalter):
-    """Umfang in der Form, die `_scope` liefert.
+    """Umfang in der Form, die `scope` liefert.
 
     Die Schalter stehen vollständig da, auch wenn ein Test nur einen davon
     verstellt: Die Prüfung leitet die Abwahl aus dem Umfang selbst ab, und ein
@@ -224,46 +266,46 @@ def _umfang(levels, **schalter):
     return umfang
 
 
-def test_eine_abgewaehlte_ebene_ist_eine_entscheidung(modul):
+def test_eine_abgewaehlte_ebene_ist_eine_entscheidung(stilllegung):
     alt = {HOST: _umfang(["info", "operate", "service"])}
     neu = {HOST: _umfang(["info", "operate"])}
-    assert modul._umfang_verkleinert(alt, neu)
+    assert stilllegung.umfang_verkleinert(alt, neu)
 
 
-def test_eine_zusaetzliche_ebene_ist_keine_abwahl(modul):
+def test_eine_zusaetzliche_ebene_ist_keine_abwahl(stilllegung):
     alt = {HOST: _umfang(["info"])}
     neu = {HOST: _umfang(["info", "operate"])}
-    assert not modul._umfang_verkleinert(alt, neu)
+    assert not stilllegung.umfang_verkleinert(alt, neu)
 
 
 @pytest.mark.parametrize(
     "schalter", ["enable_advanced", "writable_advanced", "zeitwerte", "lon", "kuenftige_option"]
 )
-def test_ein_abgeschalteter_schalter_zaehlt_als_abwahl(modul, schalter):
+def test_ein_abgeschalteter_schalter_zaehlt_als_abwahl(stilllegung, schalter):
     """Jeder Schalter zählt, auch einer, den der Umfang hier noch nicht führt."""
     alt = {HOST: _umfang(["info"], **{schalter: True})}
     neu = {HOST: _umfang(["info"], **{schalter: False})}
-    assert modul._umfang_verkleinert(alt, neu)
+    assert stilllegung.umfang_verkleinert(alt, neu)
 
 
 @pytest.mark.parametrize("schalter", ["enable_advanced", "writable_advanced", "zeitwerte", "lon"])
-def test_ein_eingeschalteter_schalter_ist_keine_abwahl(modul, schalter):
+def test_ein_eingeschalteter_schalter_ist_keine_abwahl(stilllegung, schalter):
     alt = {HOST: _umfang(["info"], **{schalter: False})}
     neu = {HOST: _umfang(["info"], **{schalter: True})}
-    assert not modul._umfang_verkleinert(alt, neu)
+    assert not stilllegung.umfang_verkleinert(alt, neu)
 
 
-def test_eine_ebene_getauscht_bleibt_eine_abwahl(modul):
+def test_eine_ebene_getauscht_bleibt_eine_abwahl(stilllegung):
     """Gleichzeitig abwählen und hinzunehmen ist trotzdem eine Abwahl."""
     alt = {HOST: _umfang(["info", "operate"])}
     neu = {HOST: _umfang(["operate", "service"])}
-    assert modul._umfang_verkleinert(alt, neu)
+    assert stilllegung.umfang_verkleinert(alt, neu)
 
 
 @pytest.mark.parametrize(
     ("feld", "wert"), [("update_interval", 120), ("username", "Service"), ("sprache", "en")]
 )
-def test_was_keinen_datenpunkt_entfernt_ist_keine_abwahl(modul, feld, wert):
+def test_was_keinen_datenpunkt_entfernt_ist_keine_abwahl(stilllegung, feld, wert):
     """Intervall, Zugang und Sprache ändern den Bestand nicht.
 
     Sie stehen im selben Umfang und dürfen die Ableitung nicht auslösen –
@@ -271,20 +313,20 @@ def test_was_keinen_datenpunkt_entfernt_ist_keine_abwahl(modul, feld, wert):
     """
     alt = {HOST: _umfang(["info"])}
     neu = {HOST: _umfang(["info"], **{feld: wert})}
-    assert not modul._umfang_verkleinert(alt, neu)
+    assert not stilllegung.umfang_verkleinert(alt, neu)
 
 
-def test_eine_entfernte_anlage_zaehlt_als_abwahl(modul):
-    assert modul._umfang_verkleinert({HOST: _umfang(["info"])}, {})
+def test_eine_entfernte_anlage_zaehlt_als_abwahl(stilllegung):
+    assert stilllegung.umfang_verkleinert({HOST: _umfang(["info"])}, {})
 
 
-def test_die_vormerkung_gilt_genau_einmal(modul, const, hass):
+def test_die_vormerkung_gilt_genau_einmal(stilllegung, const, hass):
     """Sonst räumte auch der übernächste Ladevorgang noch auf."""
-    eintrag = _eintrag(modul, const)
-    assert not modul._abwahl_abholen(hass, eintrag)
-    modul._abwahl_vormerken(hass, eintrag)
-    assert modul._abwahl_abholen(hass, eintrag)
-    assert not modul._abwahl_abholen(hass, eintrag)
+    eintrag = _eintrag(const)
+    assert not stilllegung.abwahl_abholen(hass, eintrag)
+    stilllegung.abwahl_vormerken(hass, eintrag)
+    assert stilllegung.abwahl_abholen(hass, eintrag)
+    assert not stilllegung.abwahl_abholen(hass, eintrag)
 
 
 def _eintrag_in_hass(hass):
@@ -307,7 +349,7 @@ def _koordinator(daten):
     return SimpleNamespace(data=daten, client=SimpleNamespace(_vollstaendig=True))
 
 
-def test_ein_abruf_ohne_daten_legt_nichts_still(modul, hass):
+def test_ein_abruf_ohne_daten_legt_nichts_still(stilllegung, hass):
     """Eine Zeitüberschreitung ist kein weggefallener Datenpunkt.
 
     Der Erkennungsstand kommt aus dem Zwischenspeicher, die Anlage gilt damit
@@ -321,12 +363,12 @@ def test_ein_abruf_ohne_daten_legt_nichts_still(modul, hass):
 
     eintrag, entitaet = _eintrag_in_hass(hass)
 
-    modul._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(None)})
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(None)})
 
     assert er.async_get(hass).async_get(entitaet).disabled_by is None
 
 
-def test_eine_anlage_ohne_daten_schuetzt_auch_die_andere(modul, hass):
+def test_eine_anlage_ohne_daten_schuetzt_auch_die_andere(stilllegung, hass):
     """Zwei Anlagen: Antwortet eine nicht, wird für keine aufgeräumt.
 
     Die Deskriptoren beider Anlagen landen in derselben Liste. Fehlt die eine,
@@ -341,19 +383,19 @@ def test_eine_anlage_ohne_daten_schuetzt_auch_die_andere(modul, hass):
         "b": _koordinator(None),
     }
 
-    modul._abgewaehlte_entitaeten_stilllegen(hass, eintrag, koordinatoren)
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, koordinatoren)
 
     assert er.async_get(hass).async_get(entitaet).disabled_by is None
 
 
-def test_ein_wirklich_weggefallener_datenpunkt_wird_stillgelegt(modul, hass):
+def test_ein_wirklich_weggefallener_datenpunkt_wird_stillgelegt(stilllegung, hass):
     """Die Gegenprobe: Antwortet die Anlage und fehlt der Datenpunkt, gilt er als weg."""
     from homeassistant.helpers import entity_registry as er
 
     eintrag, entitaet = _eintrag_in_hass(hass)
     koordinator = _koordinator({"devices": [{"id": "ein-anderer", "enabled_default": True}]})
 
-    modul._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
 
     assert (
         er.async_get(hass).async_get(entitaet).disabled_by is er.RegistryEntryDisabler.INTEGRATION
@@ -363,29 +405,31 @@ def test_ein_wirklich_weggefallener_datenpunkt_wird_stillgelegt(modul, hass):
 # ---------------------------------------------------------------------------
 # Meldungen
 # ---------------------------------------------------------------------------
-def test_beide_einlesemeldungen_haengen_an_derselben_option(modul, const):
+def test_beide_einlesemeldungen_haengen_an_derselben_option(einlesen, const):
     """Sonst erschiene die Abschlussmeldung aus dem Nichts – der Fehler aus 1.2.0-beta.4."""
-    assert not modul.meldung_erwuenscht(None)
-    assert not modul.meldung_erwuenscht({})
-    assert modul.meldung_erwuenscht({const.CONF_MELDUNG_EINLESEN: True})
+    assert not einlesen.meldung_erwuenscht(None)
+    assert not einlesen.meldung_erwuenscht({})
+    assert einlesen.meldung_erwuenscht({const.CONF_MELDUNG_EINLESEN: True})
 
 
-def test_jeder_eintrag_hat_seinen_eigenen_ablageort(modul, const):
+def test_jeder_eintrag_hat_seinen_eigenen_ablageort(erkennungsstand, const):
     """Die Adresse steckt mit drin: Ein Eintrag kann mehrere Anlagen führen."""
-    eintrag = _eintrag(modul, const)
-    assert modul._store_key(eintrag, HOST) != modul._store_key(eintrag, "192.0.2.11")
-    assert "192_0_2_10" in modul._store_key(eintrag, HOST)
+    eintrag = _eintrag(const)
+    assert erkennungsstand.store_key(eintrag, HOST) != erkennungsstand.store_key(
+        eintrag, "192.0.2.11"
+    )
+    assert "192_0_2_10" in erkennungsstand.store_key(eintrag, HOST)
 
 
-def test_die_anlagen_kommen_aus_den_eintragsdaten(modul, const):
-    assert modul._systems(_eintrag(modul, const)) == [{modul.CONF_HOST: HOST}]
-    assert modul._systems(_eintrag(modul, const, systeme=[])) == []
+def test_die_anlagen_kommen_aus_den_eintragsdaten(erkennungsstand, const):
+    assert erkennungsstand.systems(_eintrag(const)) == [{CONF_HOST: HOST}]
+    assert erkennungsstand.systems(_eintrag(const, systeme=[])) == []
 
 
 # ---------------------------------------------------------------------------
 # Hinweis auf den nötigen Neustart
 # ---------------------------------------------------------------------------
-def test_der_neustart_hinweis_kommt_und_geht(modul, monkeypatch):
+def test_der_neustart_hinweis_kommt_und_geht(erkennungsstand, monkeypatch):
     """Er erscheint beim Sprachwechsel und löst sich beim nächsten Start auf.
 
     Ein Entitätsname entsteht bei der Erzeugung; der Abgleich im Hintergrund
@@ -394,17 +438,19 @@ def test_der_neustart_hinweis_kommt_und_geht(modul, monkeypatch):
     angelegt: list[str] = []
     geloescht: list[str] = []
     monkeypatch.setattr(
-        modul.ir,
+        erkennungsstand.ir,
         "async_create_issue",
         lambda hass, bereich, kennung, **rest: angelegt.append(kennung),
     )
     monkeypatch.setattr(
-        modul.ir, "async_delete_issue", lambda hass, bereich, kennung: geloescht.append(kennung)
+        erkennungsstand.ir,
+        "async_delete_issue",
+        lambda hass, bereich, kennung: geloescht.append(kennung),
     )
     eintrag = SimpleNamespace(entry_id="eintrag1")
 
-    modul._neustart_hinweis(None, eintrag, HOST, True)
-    modul._neustart_hinweis(None, eintrag, HOST, False)
+    erkennungsstand.neustart_hinweis(None, eintrag, HOST, True)
+    erkennungsstand.neustart_hinweis(None, eintrag, HOST, False)
 
     assert angelegt == [f"sprache_neustart_eintrag1_{HOST}"]
     assert geloescht == [f"sprache_neustart_eintrag1_{HOST}"]
@@ -413,52 +459,52 @@ def test_der_neustart_hinweis_kommt_und_geht(modul, monkeypatch):
 # ---------------------------------------------------------------------------
 # Abwahl über den Neustart hinaus
 # ---------------------------------------------------------------------------
-def test_ein_stand_mit_groesserem_umfang_zeigt_die_abwahl(modul):
+def test_ein_stand_mit_groesserem_umfang_zeigt_die_abwahl(stilllegung):
     """Der Vergleich im Arbeitsspeicher kennt nur den Moment der Änderung.
 
     Nach einem Neustart entscheidet der Stand auf der Platte – sonst blieben
     die Entitäten der abgewählten Option für immer abgeschaltet stehen.
     """
     stand = {"umfang": _umfang(["info", "operate"], lon=True)}
-    assert modul._abwahl_im_stand(stand, _umfang(["info", "operate"], lon=False))
-    assert modul._abwahl_im_stand(stand, _umfang(["info"], lon=True))
+    assert stilllegung.abwahl_im_stand(stand, _umfang(["info", "operate"], lon=False))
+    assert stilllegung.abwahl_im_stand(stand, _umfang(["info"], lon=True))
 
 
-def test_ein_stand_mit_kleinerem_umfang_ist_keine_abwahl(modul):
+def test_ein_stand_mit_kleinerem_umfang_ist_keine_abwahl(stilllegung):
     stand = {"umfang": _umfang(["info"])}
-    assert not modul._abwahl_im_stand(stand, _umfang(["info", "operate"]))
-    assert not modul._abwahl_im_stand(stand, _umfang(["info"]))
+    assert not stilllegung.abwahl_im_stand(stand, _umfang(["info", "operate"]))
+    assert not stilllegung.abwahl_im_stand(stand, _umfang(["info"]))
 
 
 @pytest.mark.parametrize("stand", [None, {}, {"umfang": "kein Wörterbuch"}, "kaputt"])
-def test_ein_stand_ohne_umfang_loest_nichts_aus(modul, stand):
+def test_ein_stand_ohne_umfang_loest_nichts_aus(stilllegung, stand):
     """Stände aus einer Fassung vor dieser Prüfung beweisen nichts."""
-    assert not modul._abwahl_im_stand(stand, _umfang(["info"]))
+    assert not stilllegung.abwahl_im_stand(stand, _umfang(["info"]))
 
 
 # ---------------------------------------------------------------------------
 # Waisen einer abgeschalteten Quelle
 # ---------------------------------------------------------------------------
-def test_netzwerkvariablen_bei_abgeschaltetem_bus_gelten_als_abgewaehlt(modul):
+def test_netzwerkvariablen_bei_abgeschaltetem_bus_gelten_als_abgewaehlt(stilllegung):
     umfaenge = {HOST: _umfang(["info"], lon=False)}
-    assert modul._quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
+    assert stilllegung.quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
 
 
-def test_netzwerkvariablen_bei_eingeschaltetem_bus_bleiben(modul):
+def test_netzwerkvariablen_bei_eingeschaltetem_bus_bleiben(stilllegung):
     """Sie fehlen dann aus einem anderen Grund und behalten Name und Verlauf."""
     umfaenge = {HOST: _umfang(["info"], lon=True)}
-    assert not modul._quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
+    assert not stilllegung.quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
 
 
-def test_eine_zweite_anlage_mit_bus_schuetzt_die_kennungen(modul):
+def test_eine_zweite_anlage_mit_bus_schuetzt_die_kennungen(stilllegung):
     umfaenge = {HOST: _umfang(["info"], lon=False), "192.0.2.11": _umfang(["info"], lon=True)}
-    assert not modul._quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
+    assert not stilllegung.quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
 
 
 @pytest.mark.parametrize("kennung", [None, "", "070269ad1601-0-39-91-0"])
-def test_ein_gewoehnlicher_datenpunkt_wird_nur_stillgelegt(modul, kennung):
+def test_ein_gewoehnlicher_datenpunkt_wird_nur_stillgelegt(stilllegung, kennung):
     """Kein Bus-Wert – über ihn entscheidet allein der Umfangsvergleich."""
-    assert not modul._quelle_abgeschaltet(kennung, {HOST: _umfang(["info"], lon=False)})
+    assert not stilllegung.quelle_abgeschaltet(kennung, {HOST: _umfang(["info"], lon=False)})
 
 
 # ---------------------------------------------------------------------------

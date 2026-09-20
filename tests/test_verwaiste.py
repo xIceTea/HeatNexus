@@ -169,12 +169,12 @@ async def test_der_ablauf_bricht_ab_wenn_der_eintrag_nicht_geladen_ist(hass):
 
 def test_die_stilllegung_meldet_den_hinweis(hass, modul):
     """Der Weg, den der Nutzer wirklich geht: Abgleich beim Laden."""
-    import custom_components.heatnexus as heatnexus
+    from custom_components.heatnexus import stilllegung
 
     eintrag, _entitaet = _eintrag_mit_entitaet(hass)
     koordinatoren = {"a": _koordinator(["ein-anderer"])}
 
-    heatnexus._abgewaehlte_entitaeten_stilllegen(hass, eintrag, koordinatoren)
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, koordinatoren)
 
     hinweis = _hinweis(hass, eintrag, modul)
     assert hinweis is not None
@@ -183,13 +183,13 @@ def test_die_stilllegung_meldet_den_hinweis(hass, modul):
 
 def test_der_hinweis_geht_zurueck_wenn_der_datenpunkt_wiederkommt(hass, modul):
     """Über den echten Weg, nicht über den direkten Aufruf."""
-    import custom_components.heatnexus as heatnexus
+    from custom_components.heatnexus import stilllegung
 
     eintrag, _entitaet = _eintrag_mit_entitaet(hass)
-    heatnexus._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(["fremd"])})
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(["fremd"])})
     assert _hinweis(hass, eintrag, modul) is not None
 
-    heatnexus._abgewaehlte_entitaeten_stilllegen(
+    stilllegung.abgewaehlte_entitaeten_stilllegen(
         hass, eintrag, {"a": _koordinator(["SN1-0-0-7-0"])}
     )
 
@@ -198,14 +198,14 @@ def test_der_hinweis_geht_zurueck_wenn_der_datenpunkt_wiederkommt(hass, modul):
 
 def test_ein_abruf_ohne_daten_nimmt_den_hinweis_zurueck(hass, modul):
     """Eine Zahl, die niemand nachrechnen kann, bleibt nicht stehen."""
-    import custom_components.heatnexus as heatnexus
+    from custom_components.heatnexus import stilllegung
 
     eintrag, _entitaet = _eintrag_mit_entitaet(hass)
-    heatnexus._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(["fremd"])})
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(["fremd"])})
     assert _hinweis(hass, eintrag, modul) is not None
 
     stumm = SimpleNamespace(data=None, client=SimpleNamespace(_vollstaendig=True))
-    heatnexus._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": stumm})
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": stumm})
 
     assert _hinweis(hass, eintrag, modul) is None
 
@@ -285,7 +285,7 @@ def test_die_stilllegung_zaehlt_die_falsche_domaene_mit(hass, modul):
     from homeassistant.helpers import entity_registry as er
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-    import custom_components.heatnexus as heatnexus
+    from custom_components.heatnexus import stilllegung
     from custom_components.heatnexus.const import DOMAIN
     from custom_components.heatnexus.entity import TYP_DOMAENE
 
@@ -301,7 +301,7 @@ def test_die_stilllegung_zaehlt_die_falsche_domaene_mit(hass, modul):
         client=SimpleNamespace(_vollstaendig=True),
     )
 
-    heatnexus._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
 
     TYP_DOMAENE.clear()
     TYP_DOMAENE.update(vorher)
@@ -316,7 +316,7 @@ def test_ein_wieder_eingeschalteter_wert_wird_sofort_gemeldet(hass):
     from homeassistant.helpers.dispatcher import async_dispatcher_connect
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-    import custom_components.heatnexus as heatnexus
+    from custom_components.heatnexus import stilllegung
     from custom_components.heatnexus.const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
 
     eintrag = MockConfigEntry(domain=DOMAIN, title="HeatNexus", data={}, options={})
@@ -340,7 +340,7 @@ def test_ein_wieder_eingeschalteter_wert_wird_sofort_gemeldet(hass):
     async_dispatcher_connect(
         hass, SIGNAL_NEUE_ENTITAETEN.format(eintrag.entry_id), lambda: gerufen.append(1)
     )
-    heatnexus._abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
 
     assert registry.async_get(entitaet.entity_id).disabled_by is None
     assert gerufen, "Die Plattformen wurden nicht benachrichtigt"
