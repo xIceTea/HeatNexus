@@ -270,7 +270,7 @@ von Hand gepflegt.
 | `config_flow.py` | die Abläufe: Einrichtung, erneute Anmeldung, Optionen |
 | `formulare.py` | was ein Schritt anzeigt und wie seine Eingabe geprüft wird |
 | `waermequelle_flow.py` | der Subeintrag für eine Wärmequelle ohne Windhager-Steuerung |
-| `climate.py` … `date.py` | Plattformen |
+| `climate.py` … `date.py` | Plattformen; `sensor/` ist ein Paket: Grundsensoren, `ableitungen`, `meldungen`, `zeitprogramm` |
 
 ## Das Paket `client/`
 
