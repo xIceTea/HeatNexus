@@ -49,6 +49,14 @@ def test_bestehender_block_bleibt_unangetastet():
     assert regel.pruefe("a.py", LANGER_BLOCK, neue_zeilen={7}) == []
 
 
+def test_ein_umgezogener_block_zaehlt_nicht_als_neu():
+    """Ein Block, der in der Vergleichsfassung steht, wurde nur verschoben."""
+    regel = _regel()
+    assert regel.pruefe("b.py", LANGER_BLOCK, neue_zeilen={3, 4, 5, 6}, bestand=LANGER_BLOCK) == []
+    umbenannt = LANGER_BLOCK.replace("eins", "_eins")
+    assert regel.pruefe("b.py", umbenannt, neue_zeilen={3, 4, 5, 6}, bestand=LANGER_BLOCK) == []
+
+
 def test_kommentare_hinter_code_bilden_keinen_block():
     """Eine Tabelle mit erklärter Zeile je Eintrag ist kein Fließtext."""
     regel = _regel()
