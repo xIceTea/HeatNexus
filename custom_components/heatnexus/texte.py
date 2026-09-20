@@ -16,12 +16,13 @@ import logging
 from pathlib import Path
 
 from .const import CONF_SPRACHE, DOMAIN
-from .geraetetexte import sprache_aufloesen
+from .geraetetexte import SPRACHE_AUTO
 
 _LOGGER = logging.getLogger(__name__)
 
-ORDNER = Path(__file__).parent / "texte"
+ORDNER = Path(__file__).parent / "sprachen"
 QUELLSPRACHE = "de"
+RUECKFALL = "en"
 
 
 def _laden(sprache: str) -> dict[str, str]:
@@ -42,7 +43,16 @@ class Woerterbuch:
 
     def __init__(self, sprache: str | None) -> None:
         self.sprache = sprache or QUELLSPRACHE
-        self._eintraege = {} if self.sprache == QUELLSPRACHE else _laden(self.sprache)
+        self._eintraege = {} if self.sprache == QUELLSPRACHE else self._waehlen(self.sprache)
+
+    @staticmethod
+    def _waehlen(sprache: str) -> dict[str, str]:
+        """Das Wörterbuch der Sprache, sonst das englische.
+
+        Wer eine fremde Sprache wählt, versteht die deutsche Quelle in aller
+        Regel nicht; Englisch trägt weiter als der Rückfall auf Deutsch.
+        """
+        return _laden(sprache) or _laden(RUECKFALL)
 
     def __call__(self, text: str) -> str:
         """Kurzform für die Übersetzung eines Textes."""
@@ -92,12 +102,13 @@ def uebersetze_baum(daten, woerterbuch: Woerterbuch, felder=TEXTFELDER):
 
 
 def sprache_der_oberflaeche(hass) -> str:
-    """Die eingestellte Sprache; bei mehreren Anlagen gilt die erste.
+    """Die Sprache der Oberfläche; bei mehreren Anlagen gilt die erste.
 
-    Gelesen wird aus den Optionen, nicht aus den Laufzeitdaten: Die Oberfläche
-    wird auch aufgebaut, während ein Eintrag noch lädt.
+    Gelesen aus den Optionen, nicht aus den Laufzeitdaten: Die Oberfläche
+    entsteht auch, während ein Eintrag noch lädt. Bei „Automatisch" gilt die
+    Sprache von Home Assistant – eigene Texte hängen an keinem Namensmuster.
     """
-    ha_sprache = getattr(hass.config, "language", None)
+    ha_sprache = (getattr(hass.config, "language", None) or QUELLSPRACHE).split("-")[0]
     for eintrag in hass.config_entries.async_entries(DOMAIN):
         optionen = eintrag.options or {}
         gewaehlt = optionen.get(CONF_SPRACHE)
@@ -105,6 +116,7 @@ def sprache_der_oberflaeche(hass) -> str:
             gewaehlt = next(
                 (je.get(CONF_SPRACHE) for je in optionen.values() if isinstance(je, dict)), None
             )
-        if sprache := sprache_aufloesen(gewaehlt, ha_sprache):
-            return sprache
-    return "de"
+        if gewaehlt and gewaehlt != SPRACHE_AUTO:
+            return gewaehlt
+        return ha_sprache
+    return QUELLSPRACHE

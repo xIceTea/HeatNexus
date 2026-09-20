@@ -115,7 +115,7 @@
           "vorlagen": "Welche Vorlagen unter Einstellungen → Automationen bereitstehen. Eine Vorlage, die eine Automation benutzt, bleibt auch abgewählt liegen.",
           "aussentemperatur": "Welcher Sensor in der Kopfzeile als Außentemperatur gilt. Leer: HeatNexus sucht sie sich in der Anlage selbst.",
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
-          "sprache": "Woher die Namen der Datenpunkte kommen. Die Karten des Panels bleiben deutsch beschriftet."
+          "sprache": "Woher die Namen der Datenpunkte kommen. Bei „Automatisch“ bleiben sie deutsch, und die Oberfläche folgt der Sprache von Home Assistant."
         }
       },
       "system": {

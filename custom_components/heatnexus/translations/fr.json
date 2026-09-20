@@ -115,7 +115,7 @@
           "vorlagen": "Quels modèles apparaissent sous Paramètres → Automatisations. Un modèle utilisé par une automatisation reste en place.",
           "aussentemperatur": "Quel capteur sert de température extérieure dans l'en-tête. Vide : HeatNexus la cherche dans l'installation.",
           "hilfe": "Ajoute un « ? » à côté des cartes et des commandes.",
-          "sprache": "D’où viennent les noms des points de données. Les cartes du panneau restent en allemand."
+          "sprache": "D’où viennent les noms des points de données. Avec « Automatique », ils restent en allemand et l’interface suit la langue de Home Assistant."
         }
       },
       "system": {

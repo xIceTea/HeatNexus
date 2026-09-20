@@ -123,6 +123,7 @@ class HeatNexusPanel extends Grundlage {
       if (!daten || !daten.anlagen || !daten.anlagen.length) return;
       this._eigeneDaten = true;
       this._daten = daten;
+      this._texte = daten.texte || {};
       this._gebaut = false;
       this._zeichnen();
     } catch (err) {
@@ -173,6 +174,7 @@ class HeatNexusPanel extends Grundlage {
     if (!this._hass || !this._daten) return;
     if (!this._gebaut) {
       this._aufbauen();
+      this._uebersetzen(this.shadowRoot);
       this._gebaut = true;
     }
     this._aktualisieren();

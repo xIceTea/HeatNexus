@@ -115,7 +115,7 @@
           "vorlagen": "Which blueprints appear under Settings → Automations. A blueprint an automation still uses stays in place.",
           "aussentemperatur": "Which sensor counts as the outside temperature in the header. Empty: HeatNexus finds it in the plant itself.",
           "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does.",
-          "sprache": "Where the datapoint names come from. The panel cards stay labelled in German."
+          "sprache": "Where the datapoint names come from. With “Automatic” they stay German and the interface follows the language of Home Assistant."
         }
       },
       "system": {

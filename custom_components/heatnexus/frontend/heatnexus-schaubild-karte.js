@@ -174,6 +174,9 @@ class HeatNexusSchaubildKarte extends Grundlage {
       if (this._config.zeichnungen) anfrage.zeichnungen = this._config.zeichnungen;
       if (this._config.mischer === false) anfrage.mischer = false;
       this._anlagen = await this._hass.callWS(anfrage);
+      if (!this._texte) {
+        this._texte = await this._hass.callWS({ type: "heatnexus/texte" }).catch(() => ({}));
+      }
       if (this._anlagen.length) this._inSpeicher(this._anlagen);
     } catch (err) {
       console.warn("HeatNexus: Schaubild konnte nicht geladen werden", err);
@@ -220,6 +223,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
     const bilder = anlagen.map((a) => this._schaubild(a)).filter(Boolean);
     if (!bilder.length && !this._zusatzwerte().length) {
       this.shadowRoot.appendChild(this._hinweis());
+      this._uebersetzen(this.shadowRoot);
       this._gebaut = true;
       this._aktualisieren();
       return;
@@ -239,6 +243,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
     rahmen.appendChild(links);
     if (liste) rahmen.appendChild(liste);
     this.shadowRoot.appendChild(rahmen);
+    this._uebersetzen(this.shadowRoot);
     this._gebaut = true;
     this._aktualisieren();
   }

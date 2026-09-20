@@ -12,6 +12,45 @@
 export const BausteineMixin = (Basis) =>
   class extends Basis {
   /**
+   * Ein Text in der eingestellten Sprache.
+   *
+   * Der deutsche Text ist der Schlüssel; ohne Eintrag bleibt er stehen. Das
+   * Wörterbuch kommt vom Server (`texte.py`), hier wird nichts übersetzt.
+   */
+  _t(text) {
+    return (this._texte && this._texte[text]) || text;
+  }
+
+  /**
+   * Den fertigen Baum in die eingestellte Sprache bringen.
+   *
+   * Ein Durchlauf statt eines Aufrufs an jeder Beschriftung. Auf Deutsch ist
+   * das Wörterbuch leer und die Methode kehrt sofort zurück.
+   */
+  _uebersetzen(wurzel) {
+    if (!wurzel || !this._texte || !Object.keys(this._texte).length) return;
+    const merkmale = ["title", "aria-label", "placeholder"];
+    const gehe = (knoten) => {
+      if (knoten.getAttribute) {
+        merkmale.forEach((merkmal) => {
+          const wert = knoten.getAttribute(merkmal);
+          if (wert && this._texte[wert]) knoten.setAttribute(merkmal, this._texte[wert]);
+        });
+      }
+      // Der Browser führt Textknoten in `childNodes`, die Attrappe der Tests
+      // in `children`. Ein Knoten ohne Kinder trägt seinen Text selbst.
+      const kinder = knoten.childNodes || knoten.children;
+      if (!kinder || !kinder.length) {
+        const text = (knoten.textContent || "").trim();
+        if (text && this._texte[text]) knoten.textContent = this._texte[text];
+        return;
+      }
+      Array.from(kinder).forEach(gehe);
+    };
+    gehe(wurzel);
+  }
+
+  /**
    * Eine Karte zuklappbar machen.
    *
    * Der Kartenkopf wird zur Zusammenfassung, der Rest verschwindet, bis man
