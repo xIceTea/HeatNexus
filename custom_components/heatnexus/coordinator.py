@@ -33,6 +33,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=f"{DOMAIN} {host}",
+            config_entry=entry,
             update_interval=timedelta(seconds=update_interval),
             # Unveränderte Daten lösen keinen Durchlauf durch alle Entitäten
             # aus. Eine Anlage im Standby meldet minutenlang dieselben Werte –
