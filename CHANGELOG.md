@@ -17,7 +17,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Laufräder der Pumpen drehen am Telefon rund.
 - Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.
 - Der Automatikkessel erscheint im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
-- Zeitprogramme mit leerem Wertfeld gelten als Zeitprogramm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
+- Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
 
 ## [1.12.0] - 2026-09-13
 
