@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560" role="img" aria-labelledby="t d">
 <title id="t">Aufbau von HeatNexus</title>
-<desc id="d">Die Heizung liefert über das Netz an client.py; dieser erzeugt die Descriptor-Liste, __init__.py führt Coordinator, Cache und Dienste, und die Plattformen filtern die Liste nach dem Feld type.</desc>
+<desc id="d">Die Heizung liefert über das Netz an das Paket client/; dieser erzeugt die Descriptor-Liste, __init__.py führt Coordinator, Cache und Dienste, und die Plattformen filtern die Liste nach dem Feld type.</desc>
 
 <style>
   .flaeche { fill: #15171b; stroke: #23262c; }
@@ -31,7 +31,7 @@
 <path class="kante" d="M238,106 H286" marker-end="url(#spitze)"/>
 
 <rect class="kasten" x="298" y="60" width="654" height="92" rx="12"/>
-<text class="mono" x="322" y="92" style="font-size:15px">client.py</text>
+<text class="mono" x="322" y="92" style="font-size:15px">client/</text>
 <text class="klein" x="322" y="114">Discovery · Metadaten · Polling</text>
 <text class="klein" x="322" y="134">erzeugt die Descriptor-Liste</text>
 <text class="marke" x="928" y="88" text-anchor="end">GERÄTEWISSEN</text>

@@ -11,6 +11,8 @@ Alles hier kommt ohne Netz aus: geprüft wird die Rechnung, nicht die Leitung.
 
 from __future__ import annotations
 
+import time
+
 import pytest
 
 from .conftest import requires_ha
@@ -291,10 +293,10 @@ def test_der_takt_folgt_dem_eingestellten_intervall(client_module):
 # Zeitbudget: ein Durchlauf, der nicht fertig wird, muss trotzdem vorankommen
 # ---------------------------------------------------------------------------
 @pytest.fixture
-def uhr(client_module, monkeypatch):
+def uhr(monkeypatch):
     """Eine gestellte Uhr. Sonst hinge die Prüfung an echter Wartezeit."""
     stand = [1000.0]
-    monkeypatch.setattr(client_module.time, "monotonic", lambda: stand[0])
+    monkeypatch.setattr(time, "monotonic", lambda: stand[0])
     return stand
 
 
@@ -325,22 +327,26 @@ async def test_ein_zu_grosser_durchlauf_behaelt_was_er_gelesen_hat(
     stehen – derselbe zu große Durchlauf stand danach unverändert wieder an,
     dauerhaft. Jetzt hört der Abruf von selbst auf und zählt weiter.
     """
+    from custom_components.heatnexus.const import POLL_BLOCK
+
     daten = await client.fetch_all(budget=10)
 
-    assert len(langsame_anlage) == client_module.POLL_BLOCK
+    assert len(langsame_anlage) == POLL_BLOCK
     assert client._rest == client.poll_oids - set(langsame_anlage)
     assert client._tick == 1
-    assert len(daten["oids"]) == client_module.POLL_BLOCK
+    assert len(daten["oids"]) == POLL_BLOCK
 
 
-async def test_der_rest_kommt_im_naechsten_durchlauf_zuerst(client, client_module, langsame_anlage):
+async def test_der_rest_kommt_im_naechsten_durchlauf_zuerst(client, langsame_anlage):
     """Ohne Vorrang stünden dieselben Werte immer wieder hinten an."""
+    from custom_components.heatnexus.const import POLL_BLOCK
+
     await client.fetch_all(budget=10)
     rest = set(client._rest)
 
     await client.fetch_all(budget=10)
 
-    zweiter_durchlauf = langsame_anlage[client_module.POLL_BLOCK :]
+    zweiter_durchlauf = langsame_anlage[POLL_BLOCK:]
     assert set(zweiter_durchlauf) <= rest
 
 

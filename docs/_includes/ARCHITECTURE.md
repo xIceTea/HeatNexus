@@ -1,10 +1,10 @@
 # Architektur
 
-![Aufbau: die Heizung liefert über HTTP an client.py, das die Descriptor-Liste erzeugt; __init__.py führt Coordinator, Cache und Dienste; die Plattformen filtern die Liste nach dem Feld type](assets/aufbau.svg)
+![Aufbau: die Heizung liefert über HTTP an das Paket client/, das die Descriptor-Liste erzeugt; __init__.py führt Coordinator, Cache und Dienste; die Plattformen filtern die Liste nach dem Feld type](assets/aufbau.svg)
 
 ## Descriptor-Liste als zentrale Schnittstelle
 
-`client.py` kapselt das gesamte Gerätewissen und erzeugt flache Beschreibungen:
+Das Paket `client/` kapselt das gesamte Gerätewissen und erzeugt flache Beschreibungen:
 
 ```python
 {"id": "0702bb000002-0-0-7-0",            # unique_id: <neuronId>-<fctId>-<gn>-<mn>-<idx>
@@ -245,7 +245,7 @@ von Hand gepflegt.
 
 | Datei | Aufgabe |
 |---|---|
-| `client.py` | HTTP, Discovery, Metadaten, Polling, strukturierte Objekte |
+| `client/` | Zugriff auf die Anlage, nach Aufgaben geschnitten (siehe unten) |
 | `__init__.py` | Coordinator, Cache, Setup/Unload, Dienste |
 | `dashboard.py` | mitgeliefertes Dashboard, serverseitig gebaut |
 | `panel/` | eigener Eintrag in der Seitenleiste: Anmeldung, Aufteilung, Suchmuster, Erklärtexte |
@@ -264,6 +264,26 @@ von Hand gepflegt.
 | `anordnung.py` | Anordnung der Karten je Nutzer, über WebSocket gespeichert |
 | `config_flow.py` | Einrichtung (Host, Zugang, Passwort), Umfang, Optionen |
 | `climate.py` … `date.py` | Plattformen |
+
+## Das Paket `client/`
+
+Eine Klasse, `WindhagerHttpClient`, zusammengesetzt aus Mixins – dasselbe
+Muster wie im Frontend. Jedes Modul trägt eine Aufgabe; der Zustand liegt in
+`kern.py`, alles andere greift über `self` darauf zu. Nach außen zählt nur
+`from .client import WindhagerHttpClient`.
+
+| Datei | Aufgabe |
+|---|---|
+| `kern.py` | Zustand, Aufbau aus den Mixins, `async_init_basic` und `async_init` |
+| `transport.py` | Sitzung, Digest-Anmeldung, Dekodierung, die drei Endpunkte |
+| `menues.py` | Sammel-Lesezugriff über die Menü-Ebenen einer Funktion |
+| `netzwerkvariablen.py` | Netzwerkvariablen des LON-Adressraums als Deskriptoren |
+| `kennungen.py` | dauerhafte Kennungen aus `neuronId` und Adresse – eingefroren |
+| `erkennung.py` | Geräte und Datenpunkte ermitteln, `DESKRIPTOR_VORGABE`, Discovery-Cache |
+| `metadaten.py` | Metadaten je Adresse lesen, Plattform auflösen, Namen vereindeutigen |
+| `ableitungen.py` | Schaltpunkte, Abstände, Zählerzuwächse, Laufzeiten |
+| `abruf.py` | Poll-Klassen, Fälligkeit, Zeitbudget, Zeitprogramme, Meldungen |
+| `gemeinsam.py` | was mehrere Module brauchen |
 
 ## Die Oberfläche
 

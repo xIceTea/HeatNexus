@@ -11,6 +11,7 @@ Für jeden dieser Fälle gab es einmal einen Fehlerbericht.
 from __future__ import annotations
 
 import json
+import time
 
 import pytest
 
@@ -388,7 +389,7 @@ async def test_die_vormerkung_endet_mit_der_bestaetigung(client):
     assert c.ueberlagern({"/1/60/0/9/75/0": "1"}) == {"/1/60/0/9/75/0": "1"}
 
 
-async def test_die_vormerkung_verfaellt(client, client_module, monkeypatch):
+async def test_die_vormerkung_verfaellt(client, monkeypatch):
     """Ohne Frist bliebe ein nie bestätigter Wert für immer stehen."""
     from custom_components.heatnexus.const import VORMERK_MAX_ALTER_S
 
@@ -396,6 +397,6 @@ async def test_die_vormerkung_verfaellt(client, client_module, monkeypatch):
     await c.update("/1/60/0/9/75/0", "3")
     ((_wert, gesetzt),) = c._vorgemerkt.values()
 
-    monkeypatch.setattr(client_module.time, "monotonic", lambda: gesetzt + VORMERK_MAX_ALTER_S + 1)
+    monkeypatch.setattr(time, "monotonic", lambda: gesetzt + VORMERK_MAX_ALTER_S + 1)
     assert c.ueberlagern({"/1/60/0/9/75/0": "1"}) == {"/1/60/0/9/75/0": "1"}
     assert c._vorgemerkt == {}

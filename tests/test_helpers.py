@@ -85,16 +85,9 @@ def test_init_importiert_kein_modul_wie_eine_eigene_datei():
 # Zeitprogramm durch.
 # ---------------------------------------------------------------------------
 def test_nur_echte_zeitprogramme_gelten_als_zeitprogramm():
-    from pathlib import Path
+    from .conftest import load_standalone
 
-    pfad = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "client.py"
-    quelle = pfad.read_text(encoding="utf-8")
-    # Nur die Funktion laden – der Rest des Moduls zieht aiohttp nach.
-    anfang = quelle.index("def _ist_zeitprogramm")
-    ende = quelle.index("class WindhagerHttpClient")
-    raum: dict = {}
-    exec(compile(quelle[anfang:ende], str(pfad), "exec"), raum)
-    ist_zeitprogramm = raum["_ist_zeitprogramm"]
+    ist_zeitprogramm = load_standalone("client")._ist_zeitprogramm
 
     assert ist_zeitprogramm(
         [{"weekdays": ["Mo"], "switchPoints": [{"time": "06:00", "value": 21}]}]
