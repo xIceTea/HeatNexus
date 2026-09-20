@@ -1,12 +1,7 @@
 """Oberflächentexte in der gewählten Sprache.
 
-Der deutsche Text ist zugleich der Schlüssel: Die Tabellen in `panel/muster.py`
-und die Ansichten in `dashboard.py` führen ihre Beschriftungen weiter im
-Klartext, und ein fehlender Eintrag fällt auf Deutsch zurück statt auf eine
-leere Kachel.
-
-Die Datenpunktnamen selbst kommen nicht von hier, sondern aus dem Textwerk der
-Steuerung (`geraetetexte.py`).
+Der deutsche Text ist zugleich der Schlüssel; ein fehlender Eintrag fällt auf
+Deutsch zurück. Die Datenpunktnamen kommen aus `geraetetexte.py`.
 """
 
 from __future__ import annotations

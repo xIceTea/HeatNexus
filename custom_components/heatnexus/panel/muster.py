@@ -191,15 +191,9 @@ VERLAUF_SCHLUESSEL = (
 # Wie viele Linien der Verlauf höchstens von allein anschaltet.
 VERLAUF_MAX = 8
 
-# Schnellzugriff: bedienbare Datenpunkte, die man wirklich anfasst.
-# Ob vor dem Auslösen nachgefragt wird, entscheidet `dashboard.rueckfrage` –
-# dieselbe Tabelle gilt für die Kacheln im Dashboard.
-#
-# **Die Adresse allein trägt hier nicht.** Die Anlage legt mehrere Tasten auf
-# **dieselbe** Adresse und unterscheidet sie am geschriebenen Wert: Reinigung,
-# Hauptreinigung, Wartung und „Hauptreinigung und Aschetonnen" sind alle vier
-# `39/94`, Serviceausbrand und Lagerraumbefüllung beide `9/75`. Den Schlüssel
-# bildet deshalb Adresse **und** Kennungszusatz (`kanonisch.GESCHWISTER`).
+# Schnellzugriff: bedienbare Datenpunkte. Ob vor dem Auslösen nachgefragt
+# wird, entscheidet `dashboard.rueckfrage`; Tasten auf derselben Adresse
+# unterscheidet der Kennungszusatz in `kanonisch.GESCHWISTER`.
 SCHNELLZUGRIFF: tuple[Zeile, ...] = (
     (r"ww einmalladung", "Warmwasser laden", "mdi:water-boiler", ()),
     (
