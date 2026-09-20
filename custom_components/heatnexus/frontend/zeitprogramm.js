@@ -38,9 +38,12 @@ const FARBE_KALT = [37, 80, 143];
 const FARBE_WARM = [226, 84, 58];
 const FARBE_AUS = "rgba(255, 255, 255, 0.06)";
 
-/** Beschriftung eines Wochentags. */
-export function tagText(code) {
-  return TAG_TEXT.get(code) || code;
+/** Ohne Wörterbuch bleibt der deutsche Text stehen. */
+const OHNE = (text) => text;
+
+/** Beschriftung eines Wochentags, auf Wunsch übersetzt. */
+export function tagText(code, t = OHNE) {
+  return t(TAG_TEXT.get(code) || code);
 }
 
 /** Wochentag auf den Code der Anlage bringen; unbekannt ergibt `null`. */
@@ -133,10 +136,10 @@ export function wochenraster(bloecke) {
  * nicht auch sagt. Zusammenhängende Tage werden zu einer Spanne, ab drei
  * Tagen mit Gedankenstrich – bei zweien wäre „Sa–So" länger als „Sa, So".
  */
-export function tagesbereich(tage) {
+export function tagesbereich(tage, t = OHNE) {
   const gewaehlt = TAGE.filter((tag) => (tage || []).includes(tag));
-  if (!gewaehlt.length) return "kein Tag";
-  if (gewaehlt.length === 7) return "täglich";
+  if (!gewaehlt.length) return t("kein Tag");
+  if (gewaehlt.length === 7) return t("täglich");
   const spannen = [];
   gewaehlt.forEach((tag) => {
     const stelle = TAGE.indexOf(tag);
@@ -146,9 +149,9 @@ export function tagesbereich(tage) {
   });
   return spannen
     .map(({ von, bis }) => {
-      if (von === bis) return tagText(TAGE[von]);
-      if (bis - von === 1) return `${tagText(TAGE[von])}, ${tagText(TAGE[bis])}`;
-      return `${tagText(TAGE[von])}–${tagText(TAGE[bis])}`;
+      if (von === bis) return tagText(TAGE[von], t);
+      if (bis - von === 1) return `${tagText(TAGE[von], t)}, ${tagText(TAGE[bis], t)}`;
+      return `${tagText(TAGE[von], t)}–${tagText(TAGE[bis], t)}`;
     })
     .join(", ");
 }
@@ -161,11 +164,11 @@ export function tagesbereich(tage) {
  * sieben gleichen. Tage ohne Block bekommen eine eigene, leere Zeile – sonst
  * fiele nicht auf, dass Samstag nirgends vorkommt.
  */
-export function blockraster(bloecke) {
+export function blockraster(bloecke, t = OHNE) {
   const zeilen = (bloecke || [])
     .filter((block) => block.tage.length)
     .map((block) => ({
-      text: tagesbereich(block.tage),
+      text: tagesbereich(block.tage, t),
       tage: [...block.tage],
       abschnitte: abschnitte(block.punkte),
       punkte: [...block.punkte].sort((a, b) => a.zeit - b.zeit),
@@ -173,7 +176,7 @@ export function blockraster(bloecke) {
   const belegt = new Set(zeilen.flatMap((zeile) => zeile.tage));
   const offen = TAGE.filter((tag) => !belegt.has(tag));
   if (offen.length) {
-    zeilen.push({ text: tagesbereich(offen), tage: offen, abschnitte: [], punkte: [] });
+    zeilen.push({ text: tagesbereich(offen, t), tage: offen, abschnitte: [], punkte: [] });
   }
   return zeilen;
 }
@@ -304,7 +307,8 @@ export function gleich(einer, anderer) {
  * so breit wie der Bildschirm und mal ganz. Dasselbe hat beim Heizkörper im
  * Schaubild einmal ein gestreiftes Ergebnis erzeugt.
  */
-export function rasterKnoten(bloecke) {
+export function rasterKnoten(bloecke, optionen = {}) {
+  const t = optionen.t || OHNE;
   const grenzen = bereich(bloecke);
   const raster = document.createElement("div");
   raster.className = "zeitraster";
@@ -318,7 +322,7 @@ export function rasterKnoten(bloecke) {
   });
   raster.appendChild(kopf);
 
-  blockraster(bloecke).forEach((zeile) => {
+  blockraster(bloecke, t).forEach((zeile) => {
     const gruppe = document.createElement("div");
     gruppe.className = "zeitraster-block";
 
@@ -333,7 +337,7 @@ export function rasterKnoten(bloecke) {
     spur.className = "spur";
     if (!zeile.abschnitte.length) {
       spur.classList.add("leer");
-      spur.title = "kein Programm";
+      spur.title = t("kein Programm");
     }
     zeile.abschnitte.forEach((stueck) => {
       const balken = document.createElement("div");
@@ -388,6 +392,7 @@ export function rasterKnoten(bloecke) {
  * Der Umlauf über Mitternacht steckt schon in `abschnitte`.
  */
 export function uebersichtKnoten(bloecke, optionen = {}) {
+  const t = optionen.t || OHNE;
   const grenzen = optionen.grenzen || bereich(bloecke);
   const knoten = document.createElement("div");
   knoten.className = "zp-uebersicht";
@@ -398,7 +403,7 @@ export function uebersichtKnoten(bloecke, optionen = {}) {
 
     const kopf = document.createElement("div");
     kopf.className = "zp-blockkopf";
-    kopf.textContent = tagesbereich(block.tage);
+    kopf.textContent = tagesbereich(block.tage, t);
     kasten.appendChild(kopf);
 
     const liste = document.createElement("div");
@@ -435,6 +440,7 @@ export function uebersichtKnoten(bloecke, optionen = {}) {
  * was nur im DOM stünde, wäre dann weg.
  */
 export function editorKnoten(bloecke, optionen = {}) {
+  const t = optionen.t || OHNE;
   const grenzen = optionen.grenzen || bereich(bloecke);
   // Eine eigene Kopie – solange nicht gespeichert ist, bleibt der Stand der
   // Anlage unangetastet.
@@ -453,8 +459,8 @@ export function editorKnoten(bloecke, optionen = {}) {
     const anfuegen = document.createElement("button");
     anfuegen.type = "button";
     anfuegen.className = "zp-taste";
-    anfuegen.textContent = this._t("+ Block");
-    anfuegen.title = "Ein eigener Wochenplan für weitere Tage";
+    anfuegen.textContent = t("+ Block");
+    anfuegen.title = t("Ein eigener Wochenplan für weitere Tage");
     anfuegen.addEventListener("click", () => {
       const belegt = new Set(modell.flatMap((block) => block.tage));
       modell.push({
@@ -480,7 +486,7 @@ export function editorKnoten(bloecke, optionen = {}) {
 
     const kopf = document.createElement("div");
     kopf.className = "zp-blockkopf";
-    kopf.textContent = `Block ${stelle + 1} · ${tagesbereich(block.tage)}`;
+    kopf.textContent = `${t("Block")} ${stelle + 1} · ${tagesbereich(block.tage, t)}`;
     kasten.appendChild(kopf);
 
     const tage = document.createElement("div");
@@ -489,7 +495,7 @@ export function editorKnoten(bloecke, optionen = {}) {
       const taste = document.createElement("button");
       taste.type = "button";
       taste.className = "zp-tag";
-      taste.textContent = tagText(tag);
+      taste.textContent = tagText(tag, t);
       const gewaehlt = block.tage.includes(tag);
       taste.setAttribute("aria-pressed", String(gewaehlt));
       taste.addEventListener("click", () => {
@@ -515,7 +521,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     // die „von – bis" der Leseansicht und stellt das Falsche ein.
     const wozu = document.createElement("div");
     wozu.className = "zp-punktekopf";
-    wozu.textContent = this._t("Startpunkt");
+    wozu.textContent = t("Startpunkt");
     kasten.appendChild(wozu);
 
     const tabelle = document.createElement("div");
@@ -531,7 +537,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     const mehr = document.createElement("button");
     mehr.type = "button";
     mehr.className = "zp-taste";
-    mehr.textContent = this._t("+ Schaltzeit");
+    mehr.textContent = t("+ Schaltzeit");
     mehr.disabled = block.punkte.length >= SCHALTPUNKTE_MAX;
     mehr.addEventListener("click", () => {
       const letzte = block.punkte[block.punkte.length - 1];
@@ -545,7 +551,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     weg.className = "zp-taste";
     weg.append(symbol("mdi:trash-can-outline"));
     const wegText = document.createElement("span");
-    wegText.textContent = this._t("Block entfernen");
+    wegText.textContent = t("Block entfernen");
     weg.appendChild(wegText);
     weg.disabled = modell.length <= 1;
     weg.addEventListener("click", () => {
@@ -565,7 +571,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     const zeit = document.createElement("input");
     zeit.type = "time";
     zeit.value = uhrzeit(punkt.zeit);
-    zeit.setAttribute("aria-label", "Schaltzeit");
+    zeit.setAttribute("aria-label", t("Schaltzeit"));
     zeit.addEventListener("change", () => {
       const gelesen = minuten(zeit.value);
       if (gelesen !== null) punkt.zeit = gelesen;
@@ -577,7 +583,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     // welches Feld was ist.
     const zeitEinheit = document.createElement("span");
     zeitEinheit.className = "zp-einheit";
-    zeitEinheit.textContent = this._t("Uhr");
+    zeitEinheit.textContent = t("Uhr");
 
     let wert;
     if (grenzen.schalt) {
@@ -588,7 +594,7 @@ export function editorKnoten(bloecke, optionen = {}) {
       ].forEach(([schluessel, text]) => {
         const eintrag = document.createElement("option");
         eintrag.value = schluessel;
-        eintrag.textContent = text;
+        eintrag.textContent = t(text);
         wert.appendChild(eintrag);
       });
       wert.value = punkt.wert >= 0.5 ? "1" : "0";
@@ -608,7 +614,7 @@ export function editorKnoten(bloecke, optionen = {}) {
         else wert.value = String(punkt.wert);
       });
     }
-    wert.setAttribute("aria-label", grenzen.schalt ? "Schaltzustand" : "Solltemperatur");
+    wert.setAttribute("aria-label", t(grenzen.schalt ? "Schaltzustand" : "Solltemperatur"));
     wert.className = "zp-wert";
 
     // Die Einheit hinter das Feld. Ohne sie steht im Editor eine nackte Zahl,
@@ -623,8 +629,8 @@ export function editorKnoten(bloecke, optionen = {}) {
     weg.type = "button";
     weg.className = "zp-weg";
     weg.appendChild(symbol("mdi:trash-can-outline"));
-    weg.title = "Schaltzeit entfernen";
-    weg.setAttribute("aria-label", "Schaltzeit entfernen");
+    weg.title = t("Schaltzeit entfernen");
+    weg.setAttribute("aria-label", t("Schaltzeit entfernen"));
     weg.addEventListener("click", () => {
       block.punkte.splice(nummer, 1);
       zeichnen();

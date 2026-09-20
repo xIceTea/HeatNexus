@@ -62,7 +62,7 @@ export const ZeitprogrammeMixin = (Basis) =>
     }
 
     const platz = document.createElement("div");
-    platz.appendChild(rasterKnoten(bloecke));
+    platz.appendChild(rasterKnoten(bloecke, { t: this._t.bind(this) }));
     karte.appendChild(platz);
 
     // Ein Programm, das gerade nichts bewirkt, wird nicht versteckt, sondern
@@ -110,7 +110,7 @@ export const ZeitprogrammeMixin = (Basis) =>
       const neu = bloeckeLesen(jetzt && jetzt.attributes && jetzt.attributes.blocks);
       if (!neu.length || gleich(neu, this._zeitprogrammStand.get(programm.entity))) return;
       this._zeitprogrammStand.set(programm.entity, neu);
-      platz.replaceChildren(rasterKnoten(neu));
+      platz.replaceChildren(rasterKnoten(neu, { t: this._t.bind(this) }));
     });
     this._zeitprogrammStand.set(programm.entity, bloecke);
 
@@ -148,7 +148,7 @@ export const ZeitprogrammeMixin = (Basis) =>
     ueberschrift.textContent = programm.titel;
 
     const platz = document.createElement("div");
-    platz.appendChild(uebersichtKnoten(bloecke, { grenzen }));
+    platz.appendChild(uebersichtKnoten(bloecke, { grenzen, t: this._t.bind(this) }));
 
     const meldung = document.createElement("div");
     meldung.className = "zp-meldung";
@@ -184,7 +184,7 @@ export const ZeitprogrammeMixin = (Basis) =>
     // Im Lesezustand liegt hier nichts; erst *Bearbeiten* legt den Editor an.
     let editor = null;
     dialog._bearbeiten = () => {
-      editor = editorKnoten(bloecke, { grenzen });
+      editor = editorKnoten(bloecke, { grenzen, t: this._t.bind(this) });
       platz.replaceChildren(editor.knoten);
       meldung.textContent = "";
       abbrechen.textContent = this._t("Verwerfen");
