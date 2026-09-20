@@ -1455,10 +1455,10 @@ class WindhagerHttpClient:
             return "time" if writable else "string_sensor"
         if isinstance(value, str) and _re.fullmatch(r"\d{2}\.\d{2}\.\d{4}", value):
             return "date" if writable else "string_sensor"
-        if m.get("typeId") == 30 and "value" not in m:
-            # `typeId 30` heißt „über den object-Endpunkt lesen", was drinsteht
-            # sagt erst `subtypeId`: 9 Text, 10 Funktionsliste (unlesbar),
-            # sonst Zeitprogramm. Alle kommen über `lookup` ohne Wert.
+        if m.get("typeId") == 30 and ("value" not in m or m.get("subtypeId") == 14):
+            # `typeId 30` heißt „über den object-Endpunkt lesen"; erst
+            # `subtypeId` sagt was: 9 Text, 10 Funktionsliste (unlesbar), 14
+            # Zeitprogramm – auch wo die Baureihe ein leeres `value` mitschickt.
             if m.get("subtypeId") == 10:
                 return None
             if m.get("subtypeId") == 9:

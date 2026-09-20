@@ -59,6 +59,22 @@ def test_time_program_without_value(client_module):
     assert _resolve(client_module, meta) == "time_program"
 
 
+def test_zeitprogramm_trotz_mitgeschicktem_wert(client_module):
+    """Manche Baureihen melden zum Zeitprogramm ein leeres `value` mit.
+
+    Ohne den Subtyp fiele der Datenpunkt bis zur letzten Regel durch und
+    entstünde als Textsensor, der nichts anzeigen kann.
+    """
+    meta = {"writeProt": False, "typeId": 30, "subtypeId": 14, "value": ""}
+    assert _resolve(client_module, meta) == "time_program"
+
+
+def test_text_bleibt_text_auch_mit_wert(client_module):
+    """Gegenprobe: Subtyp 9 ist ein Text, ob mit Wert oder ohne."""
+    meta = {"writeProt": True, "typeId": 30, "subtypeId": 9, "value": "PW 400"}
+    assert _resolve(client_module, meta) == "string_sensor"
+
+
 def test_schaltzustand_wird_ja_nein_sensor(client_module):
     """Bereich 0…1 ohne Einheit: ein Ausgang, der nur schaltet."""
     meta = {"writeProt": True, "typeId": 1, "minValue": "0", "maxValue": "1", "value": "0"}
