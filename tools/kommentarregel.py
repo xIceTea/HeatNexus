@@ -83,8 +83,19 @@ def docstrings(quelle: str) -> list[tuple[int, int, str]]:
     return gefunden
 
 
-def pruefe(datei: str, quelle: str, neue_zeilen: set[int]) -> list[Befund]:
-    """Befunde einer Datei – nur Blöcke, die neue Zeilen enthalten."""
+def _verschoben(quelle: str, erste: int, laenge: int, bestand: str) -> bool:
+    """Ob dieser Block wörtlich schon in der Vergleichsfassung steht."""
+    zeilen = quelle.splitlines()[erste - 1 : erste - 1 + max(laenge, 1)]
+    block = "\n".join(z.strip() for z in zeilen if z.strip())
+    return bool(block) and block in "\n".join(z.strip() for z in bestand.splitlines() if z.strip())
+
+
+def pruefe(datei: str, quelle: str, neue_zeilen: set[int], bestand: str = "") -> list[Befund]:
+    """Befunde einer Datei – nur Blöcke, die neue Zeilen enthalten.
+
+    `bestand` ist der Python-Bestand der Vergleichsfassung. Steht ein Block
+    dort wörtlich, wurde er verschoben und zählt nicht als neu.
+    """
     befunde: list[Befund] = []
     for art, stellen, zugabe in (
         ("Kommentarblock", kommentarbloecke(quelle), 0),
@@ -93,15 +104,13 @@ def pruefe(datei: str, quelle: str, neue_zeilen: set[int]) -> list[Befund]:
     ):
         for erste, laenge, anfang in stellen:
             bereich = set(range(erste, erste + max(laenge + zugabe, 1)))
-            if laenge > MAX_ZEILEN and neue_zeilen & bereich:
-                befunde.append(
-                    Befund(
-                        datei,
-                        erste,
-                        f"{art} mit {laenge} Zeilen (erlaubt {MAX_ZEILEN})",
-                        anfang,
-                    )
-                )
+            if laenge <= MAX_ZEILEN or not (neue_zeilen & bereich):
+                continue
+            if bestand and _verschoben(quelle, erste, laenge + zugabe, bestand):
+                continue
+            befunde.append(
+                Befund(datei, erste, f"{art} mit {laenge} Zeilen (erlaubt {MAX_ZEILEN})", anfang)
+            )
     return befunde
 
 
@@ -127,7 +136,21 @@ def neue_zeilen(diff: str) -> dict[str, set[int]]:
     return je_datei
 
 
-def pruefe_diff(diff: str, wurzel: Path, nur: str | None = None) -> list[Befund]:
+def _bestand(auswahl: str, wurzel: Path) -> str:
+    """Der Python-Bestand der Vergleichsfassung, als ein Text.
+
+    Ein Block, der dort wörtlich schon steht, ist kein neuer Text – er wurde
+    nur verschoben. Eine Aufteilung erkennt `git diff -M` nicht.
+    """
+    basis = auswahl.split("...")[0] if "..." in auswahl else "HEAD"
+    dateien = _git("ls-tree", "-r", "--name-only", basis, wurzel=wurzel).splitlines()
+    teile = [
+        _git("show", f"{basis}:{name}", wurzel=wurzel) for name in dateien if name.endswith(".py")
+    ]
+    return "\n".join(teile)
+
+
+def pruefe_diff(diff: str, wurzel: Path, nur: str | None = None, bestand: str = "") -> list[Befund]:
     """Alle Python-Dateien eines Diffs prüfen, wahlweise nur eine davon."""
     befunde: list[Befund] = []
     for datei, zeilen in sorted(neue_zeilen(diff).items()):
@@ -136,7 +159,7 @@ def pruefe_diff(diff: str, wurzel: Path, nur: str | None = None) -> list[Befund]
             continue
         if nur and datei != nur:
             continue
-        befunde += pruefe(datei, pfad.read_text(encoding="utf-8"), zeilen)
+        befunde += pruefe(datei, pfad.read_text(encoding="utf-8"), zeilen, bestand)
     return befunde
 
 
@@ -163,7 +186,7 @@ def main(argv: list[str] | None = None) -> int:
     auswahl = "--cached" if argumente.gestaged else (argumente.bereich or "HEAD")
     diff = _git("diff", auswahl, "--unified=0", "-M", "--", "*.py", wurzel=wurzel)
     nur = Path(argumente.datei).as_posix() if argumente.datei else None
-    befunde = pruefe_diff(diff, wurzel, nur=nur)
+    befunde = pruefe_diff(diff, wurzel, nur=nur, bestand=_bestand(auswahl, wurzel))
     for befund in befunde:
         print(befund)
     return 1 if befunde else 0
