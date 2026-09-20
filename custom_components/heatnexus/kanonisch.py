@@ -116,6 +116,15 @@ KANONISCH: dict[str, str] = {
 }
 
 
+def _ohne_endung(unique_id: str | None) -> tuple[list[str], str | None]:
+    """Die Teile bis zur letzten Zahl und den Zusatz dahinter."""
+    teile = str(unique_id or "").split("-")
+    ende = len(teile)
+    while ende > 0 and not teile[ende - 1].isdigit():
+        ende -= 1
+    return teile[:ende], "-".join(teile[ende:]) or None
+
+
 def gnmn(unique_id: str | None) -> str | None:
     """Die Datenpunktadresse `gn/mn` aus einer Kennung zurückgewinnen.
 
@@ -132,9 +141,7 @@ def gnmn(unique_id: str | None) -> str | None:
         return None
     teile = str(unique_id).split("-")
     # Von hinten den letzten Block aus mindestens vier Zahlen suchen.
-    ende = len(teile)
-    while ende > 0 and not teile[ende - 1].isdigit():
-        ende -= 1
+    ende = len(_ohne_endung(unique_id)[0])
     zahlen = []
     stelle = ende
     while stelle > 0 and teile[stelle - 1].isdigit():
@@ -185,13 +192,9 @@ GESCHWISTER: dict[tuple[str, str | None], str] = {
 }
 
 
-def endung(unique_id: str | None) -> str | None:
+def _endung(unique_id: str | None) -> str | None:
     """Der Kennungszusatz hinter der Adresse, oder nichts."""
-    teile = str(unique_id or "").split("-")
-    ende = len(teile)
-    while ende > 0 and not teile[ende - 1].isdigit():
-        ende -= 1
-    return "-".join(teile[ende:]) or None
+    return _ohne_endung(unique_id)[1]
 
 
 def _zerlegen(unique_id: str | None) -> tuple[str | None, str | None]:
@@ -229,7 +232,7 @@ def schluessel(unique_id: str | None) -> str | None:
 
     def _basis(kennung: str | None) -> str | None:
         adresse = gnmn(kennung)
-        geschwister = GESCHWISTER.get((adresse or "", endung(kennung)))
+        geschwister = GESCHWISTER.get((adresse or "", _endung(kennung)))
         return geschwister or KANONISCH.get(adresse or "") or lon_schluessel(kennung)
 
     kennung, zusatz = _zerlegen(unique_id)

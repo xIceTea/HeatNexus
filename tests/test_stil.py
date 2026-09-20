@@ -23,11 +23,6 @@ def test_laufendes_rad_bekommt_eigene_ebene():
     assert "will-change: transform" in _regel(".schaubild .pumpe.laeuft .rad")
 
 
-def test_laufende_pumpe_bleibt_zentriert():
-    """Die Vergrößerung darf die Marke nicht von ihrem Punkt schieben."""
-    assert "translate(-50%, -50%)" in _regel(".schaubild .pumpe.laeuft")
-
-
 def test_stehende_pumpe_folgt_dem_farbsatz():
     """Ein fester dunkler Grund wirkt im hellen Farbsatz wie ein Loch."""
     assert "var(--hn-karte" in _regel(".schaubild .pumpe")

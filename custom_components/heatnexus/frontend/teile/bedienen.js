@@ -178,12 +178,12 @@ export const BedienenMixin = (Basis) =>
     });
     anzeige.dataset.belegt = "1";
     anzeige.className = "rueckmeldung laeuft";
-    anzeige.textContent = "wird übertragen …";
+    anzeige.textContent = this._t("wird übertragen …");
     try {
       await aufruf();
     } catch (err) {
       anzeige.className = "rueckmeldung fehler";
-      anzeige.textContent = "nicht übernommen";
+      anzeige.textContent = this._t("nicht übernommen");
       console.warn("HeatNexus: Befehl abgelehnt", err);
       this._freigeben(anzeige, RUECKMELDUNG_MS);
       return;
@@ -191,13 +191,13 @@ export const BedienenMixin = (Basis) =>
 
     if (!bestaetigt) {
       anzeige.className = "rueckmeldung erfolg";
-      anzeige.textContent = "übertragen ✓";
+      anzeige.textContent = this._t("übertragen ✓");
       this._freigeben(anzeige, RUECKMELDUNG_MS);
       return;
     }
 
     anzeige.className = "rueckmeldung wartet";
-    anzeige.textContent = "wird ausgeführt …";
+    anzeige.textContent = this._t("wird ausgeführt …");
     this._wartend.push({ anzeige, bestaetigt, seit: Date.now() });
     this._pruefeWartende();
   }
@@ -245,13 +245,13 @@ export const BedienenMixin = (Basis) =>
       }
       if (fertig) {
         vorgang.anzeige.className = "rueckmeldung erfolg";
-        vorgang.anzeige.textContent = "übernommen ✓";
+        vorgang.anzeige.textContent = this._t("übernommen ✓");
         this._freigeben(vorgang.anzeige, RUECKMELDUNG_MS);
         return;
       }
       if (Date.now() - vorgang.seit > BESTAETIGUNG_MAX_MS) {
         vorgang.anzeige.className = "rueckmeldung";
-        vorgang.anzeige.textContent = "keine Rückmeldung";
+        vorgang.anzeige.textContent = this._t("keine Rückmeldung");
         this._freigeben(vorgang.anzeige, RUECKMELDUNG_MS);
         return;
       }

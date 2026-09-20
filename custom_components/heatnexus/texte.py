@@ -11,6 +11,7 @@ Steuerung (`geraetetexte.py`).
 
 from __future__ import annotations
 
+from functools import lru_cache
 import json
 import logging
 from pathlib import Path
@@ -25,8 +26,13 @@ QUELLSPRACHE = "de"
 RUECKFALL = "en"
 
 
+@lru_cache(maxsize=4)
 def _laden(sprache: str) -> dict[str, str]:
-    """Wörterbuch einer Sprache; unlesbares oder fehlendes ergibt nichts."""
+    """Wörterbuch einer Sprache; unlesbares oder fehlendes ergibt nichts.
+
+    Gelesen wird aus der Ereignisschleife heraus, deshalb nur einmal je
+    Sprache.
+    """
     datei = ORDNER / f"{sprache}.json"
     try:
         inhalt = json.loads(datei.read_text(encoding="utf-8"))
@@ -35,7 +41,7 @@ def _laden(sprache: str) -> dict[str, str]:
     except (OSError, ValueError):
         _LOGGER.warning("Wörterbuch %s ist unlesbar; Texte bleiben deutsch", datei.name)
         return {}
-    return {k: v for k, v in inhalt.items() if isinstance(v, str) and v}
+    return inhalt
 
 
 class Woerterbuch:
@@ -61,7 +67,7 @@ class Woerterbuch:
     @property
     def fuer_frontend(self) -> dict[str, str]:
         """Was die Oberfläche im Browser selbst übersetzen muss."""
-        return dict(self._eintraege)
+        return self._eintraege
 
 
 # Felder der Nutzlast, die Klartext für den Betrachter tragen. Was nicht im
@@ -89,6 +95,8 @@ def uebersetze_baum(daten, woerterbuch: Woerterbuch, felder=TEXTFELDER):
     Läuft einmal über das Ergebnis statt die Sprache durch jede Funktion zu
     reichen. Unbekannte Texte bleiben stehen.
     """
+    if not woerterbuch.fuer_frontend:
+        return daten
     if isinstance(daten, dict):
         return {
             k: woerterbuch(v)
@@ -108,15 +116,16 @@ def sprache_der_oberflaeche(hass) -> str:
     entsteht auch, während ein Eintrag noch lädt. Bei „Automatisch" gilt die
     Sprache von Home Assistant – eigene Texte hängen an keinem Namensmuster.
     """
-    ha_sprache = (getattr(hass.config, "language", None) or QUELLSPRACHE).split("-")[0]
-    for eintrag in hass.config_entries.async_entries(DOMAIN):
-        optionen = eintrag.options or {}
-        gewaehlt = optionen.get(CONF_SPRACHE)
-        if gewaehlt is None:
-            gewaehlt = next(
-                (je.get(CONF_SPRACHE) for je in optionen.values() if isinstance(je, dict)), None
-            )
-        if gewaehlt and gewaehlt != SPRACHE_AUTO:
-            return gewaehlt
-        return ha_sprache
-    return QUELLSPRACHE
+    eintraege = hass.config_entries.async_entries(DOMAIN)
+    if not eintraege:
+        return QUELLSPRACHE
+    gewaehlt = (eintraege[0].options or {}).get(CONF_SPRACHE)
+    if gewaehlt and gewaehlt != SPRACHE_AUTO:
+        return gewaehlt
+    ha_sprache = getattr(hass.config, "language", None) or QUELLSPRACHE
+    return ha_sprache.split("-")[0]
+
+
+def woerterbuch(hass) -> Woerterbuch:
+    """Das Wörterbuch für die eingestellte Sprache."""
+    return Woerterbuch(sprache_der_oberflaeche(hass))

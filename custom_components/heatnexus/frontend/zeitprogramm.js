@@ -453,7 +453,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     const anfuegen = document.createElement("button");
     anfuegen.type = "button";
     anfuegen.className = "zp-taste";
-    anfuegen.textContent = "+ Block";
+    anfuegen.textContent = this._t("+ Block");
     anfuegen.title = "Ein eigener Wochenplan für weitere Tage";
     anfuegen.addEventListener("click", () => {
       const belegt = new Set(modell.flatMap((block) => block.tage));
@@ -515,7 +515,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     // die „von – bis" der Leseansicht und stellt das Falsche ein.
     const wozu = document.createElement("div");
     wozu.className = "zp-punktekopf";
-    wozu.textContent = "Startpunkt";
+    wozu.textContent = this._t("Startpunkt");
     kasten.appendChild(wozu);
 
     const tabelle = document.createElement("div");
@@ -531,7 +531,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     const mehr = document.createElement("button");
     mehr.type = "button";
     mehr.className = "zp-taste";
-    mehr.textContent = "+ Schaltzeit";
+    mehr.textContent = this._t("+ Schaltzeit");
     mehr.disabled = block.punkte.length >= SCHALTPUNKTE_MAX;
     mehr.addEventListener("click", () => {
       const letzte = block.punkte[block.punkte.length - 1];
@@ -545,7 +545,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     weg.className = "zp-taste";
     weg.append(symbol("mdi:trash-can-outline"));
     const wegText = document.createElement("span");
-    wegText.textContent = "Block entfernen";
+    wegText.textContent = this._t("Block entfernen");
     weg.appendChild(wegText);
     weg.disabled = modell.length <= 1;
     weg.addEventListener("click", () => {
@@ -577,7 +577,7 @@ export function editorKnoten(bloecke, optionen = {}) {
     // welches Feld was ist.
     const zeitEinheit = document.createElement("span");
     zeitEinheit.className = "zp-einheit";
-    zeitEinheit.textContent = "Uhr";
+    zeitEinheit.textContent = this._t("Uhr");
 
     let wert;
     if (grenzen.schalt) {

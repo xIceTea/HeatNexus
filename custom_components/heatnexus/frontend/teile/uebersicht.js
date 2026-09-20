@@ -205,7 +205,7 @@ export const UebersichtMixin = (Basis) =>
     this._bindungen.push(() => {
       const zustand = this._zustand(kreis.entity);
       if (!zustand) {
-        wert.textContent = "–";
+        wert.textContent = this._t("–");
         return;
       }
       const ist = zustand.attributes.current_temperature;

@@ -61,7 +61,7 @@ export const HilfeMixin = (Basis) =>
 
       const ueberschrift = document.createElement("h3");
       ueberschrift.className = "dialog-titel";
-      ueberschrift.textContent = "Dashboard-Vorlage";
+      ueberschrift.textContent = this._t("Dashboard-Vorlage");
 
       const hinweis = document.createElement("p");
       hinweis.className = "dialog-text";
@@ -82,11 +82,11 @@ export const HilfeMixin = (Basis) =>
       const kopieren = document.createElement("button");
       kopieren.type = "button";
       kopieren.className = "dialog-taste";
-      kopieren.textContent = "Kopieren";
+      kopieren.textContent = this._t("Kopieren");
       const schliessen = document.createElement("button");
       schliessen.type = "button";
       schliessen.className = "dialog-taste";
-      schliessen.textContent = "Schließen";
+      schliessen.textContent = this._t("Schließen");
       leiste.append(kopieren, schliessen);
 
       dialog.append(ueberschrift, hinweis, feld, leiste);
@@ -102,10 +102,10 @@ export const HilfeMixin = (Basis) =>
       kopieren.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(text);
-          kopieren.textContent = "Kopiert ✓";
+          kopieren.textContent = this._t("Kopiert ✓");
         } catch {
           feld.select();
-          kopieren.textContent = "Markiert – bitte selbst kopieren";
+          kopieren.textContent = this._t("Markiert – bitte selbst kopieren");
         }
       });
       schliessen.addEventListener("click", weg);
@@ -140,7 +140,7 @@ export const HilfeMixin = (Basis) =>
         if (!treffer.length) {
           const leer = document.createElement("p");
           leer.className = "hilfe-leer";
-          leer.textContent = "Kein Eintrag passt zu dieser Suche.";
+          leer.textContent = this._t("Kein Eintrag passt zu dieser Suche.");
           liste.appendChild(leer);
           return;
         }

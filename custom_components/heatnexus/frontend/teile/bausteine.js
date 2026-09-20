@@ -21,28 +21,35 @@ export const BausteineMixin = (Basis) =>
     return (this._texte && this._texte[text]) || text;
   }
 
+  /** Ob überhaupt etwas zu übersetzen ist. */
+  get _uebersetzt() {
+    return Boolean(this._texte && Object.keys(this._texte).length);
+  }
+
   /**
    * Den fertigen Baum in die eingestellte Sprache bringen.
    *
-   * Ein Durchlauf statt eines Aufrufs an jeder Beschriftung. Auf Deutsch ist
-   * das Wörterbuch leer und die Methode kehrt sofort zurück.
+   * Fängt, was beim Aufbau entsteht; später gesetzte Texte gehen einzeln
+   * durch `_t`. Auf Deutsch kehrt die Methode sofort zurück.
    */
   _uebersetzen(wurzel) {
-    if (!wurzel || !this._texte || !Object.keys(this._texte).length) return;
+    if (!wurzel || !this._uebersetzt) return;
     const merkmale = ["title", "aria-label", "placeholder"];
     const gehe = (knoten) => {
+      // Das Stylesheet ist ein Textknoten von zigtausend Zeichen und trägt
+      // nichts zum Lesen bei.
+      if (knoten.tagName === "STYLE" || knoten.tagName === "SCRIPT") return;
       if (knoten.getAttribute) {
         merkmale.forEach((merkmal) => {
           const wert = knoten.getAttribute(merkmal);
-          if (wert && this._texte[wert]) knoten.setAttribute(merkmal, this._texte[wert]);
+          if (wert) knoten.setAttribute(merkmal, this._t(wert));
         });
       }
-      // Der Browser führt Textknoten in `childNodes`, die Attrappe der Tests
-      // in `children`. Ein Knoten ohne Kinder trägt seinen Text selbst.
-      const kinder = knoten.childNodes || knoten.children;
+      // Ein Knoten ohne Kinder trägt seinen Text selbst.
+      const kinder = knoten.childNodes;
       if (!kinder || !kinder.length) {
         const text = (knoten.textContent || "").trim();
-        if (text && this._texte[text]) knoten.textContent = this._texte[text];
+        if (text) knoten.textContent = this._t(text);
         return;
       }
       Array.from(kinder).forEach(gehe);
@@ -100,7 +107,7 @@ export const BausteineMixin = (Basis) =>
     const taste = document.createElement("button");
     taste.type = "button";
     taste.className = "fragezeichen";
-    taste.textContent = "?";
+    taste.textContent = this._t("?");
     taste.title = "Erklärung";
     taste.setAttribute("aria-label", `Erklärung zu ${titel}`);
     taste.addEventListener("click", (ereignis) => {
@@ -130,7 +137,7 @@ export const BausteineMixin = (Basis) =>
     const schliessen = document.createElement("button");
     schliessen.type = "button";
     schliessen.className = "dialog-taste";
-    schliessen.textContent = "Verstanden";
+    schliessen.textContent = this._t("Verstanden");
     leiste.appendChild(schliessen);
 
     dialog.append(ueberschrift, inhalt, leiste);

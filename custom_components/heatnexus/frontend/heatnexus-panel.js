@@ -266,7 +266,7 @@ class HeatNexusPanel extends Grundlage {
 
     const marke = document.createElement("div");
     marke.className = "marke";
-    marke.textContent = "HeatNexus";
+    marke.textContent = this._t("HeatNexus");
     leiste.appendChild(marke);
 
     const abstand = document.createElement("div");

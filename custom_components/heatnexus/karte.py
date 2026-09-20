@@ -18,7 +18,7 @@ from .auslieferung import async_dateien_ausliefern, karte_anmelden
 from .const import DOMAIN
 from .dashboard import _anlagen
 from .schema import schaubild_daten
-from .texte import Woerterbuch, sprache_der_oberflaeche, uebersetze_baum
+from .texte import uebersetze_baum, woerterbuch
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ def kartendaten(
 ) -> list[dict[str, Any]]:
     """Alle Anlagen mit ihrem Schaubild, frisch aus der Registrierung."""
     daten = schaubild_daten(_anlagen(hass), auswahl, teile_aus or [], zeichnungen, mischer)
-    return uebersetze_baum(daten, Woerterbuch(sprache_der_oberflaeche(hass)))
+    return uebersetze_baum(daten, woerterbuch(hass))
 
 
 # Obergrenzen, damit eine fehlerhafte Gegenstelle den Aufbau nicht sprengt.
@@ -74,7 +74,7 @@ def _ws_texte(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     Die Oberfläche bekommt es in ihrer Nutzlast mit; Karte und Karteneditor
     holen es hierüber, weil sie ohne die Oberfläche laufen.
     """
-    connection.send_result(msg["id"], Woerterbuch(sprache_der_oberflaeche(hass)).fuer_frontend)
+    connection.send_result(msg["id"], woerterbuch(hass).fuer_frontend)
 
 
 async def async_setup_karte(hass: HomeAssistant, version: str = "") -> None:

@@ -98,7 +98,7 @@ export const ZeitprogrammeMixin = (Basis) =>
     const oeffnen = document.createElement("button");
     oeffnen.type = "button";
     oeffnen.className = "zp-taste betont";
-    oeffnen.textContent = "Öffnen";
+    oeffnen.textContent = this._t("Öffnen");
     oeffnen.addEventListener("click", () => this._zeitprogrammBearbeiten(programm, rueckmeldung));
     leiste.append(oeffnen, rueckmeldung);
     karte.appendChild(leiste);
@@ -158,11 +158,11 @@ export const ZeitprogrammeMixin = (Basis) =>
     const abbrechen = document.createElement("button");
     abbrechen.type = "button";
     abbrechen.className = "dialog-taste";
-    abbrechen.textContent = "Schließen";
+    abbrechen.textContent = this._t("Schließen");
     const speichern = document.createElement("button");
     speichern.type = "button";
     speichern.className = "dialog-taste betont";
-    speichern.textContent = "Bearbeiten";
+    speichern.textContent = this._t("Bearbeiten");
     leiste.append(abbrechen, speichern);
 
     dialog.append(ueberschrift, platz, meldung, leiste);
@@ -187,8 +187,8 @@ export const ZeitprogrammeMixin = (Basis) =>
       editor = editorKnoten(bloecke, { grenzen });
       platz.replaceChildren(editor.knoten);
       meldung.textContent = "";
-      abbrechen.textContent = "Verwerfen";
-      speichern.textContent = "Übernehmen";
+      abbrechen.textContent = this._t("Verwerfen");
+      speichern.textContent = this._t("Übernehmen");
       speichern.focus();
     };
 

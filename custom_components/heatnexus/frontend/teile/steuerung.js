@@ -139,7 +139,7 @@ export const SteuerungMixin = (Basis) =>
     zahl.className = "zahl";
     const beschriftung = document.createElement("div");
     beschriftung.className = "beschriftung";
-    beschriftung.textContent = "Raumtemperatur";
+    beschriftung.textContent = this._t("Raumtemperatur");
     gross.append(zahl, beschriftung);
     karte.appendChild(this._klickbar(gross, kreis.entity));
 
@@ -155,7 +155,7 @@ export const SteuerungMixin = (Basis) =>
     const abbruch = document.createElement("button");
     abbruch.type = "button";
     abbruch.className = "laufzeit-abbruch";
-    abbruch.textContent = "abbrechen";
+    abbruch.textContent = this._t("abbrechen");
     abbruch.title = "Vorgabe beenden und zum Programm zurückkehren";
     if (kreis.uebersteuerung_dauer) laufzeit.appendChild(abbruch);
     karte.appendChild(laufzeit);
@@ -165,7 +165,7 @@ export const SteuerungMixin = (Basis) =>
     regler.className = "regler";
     const runter = document.createElement("button");
     runter.type = "button";
-    runter.textContent = "−";
+    runter.textContent = this._t("−");
     runter.setAttribute("aria-label", "Sollwert senken");
     const mitte = document.createElement("div");
     mitte.className = "sollwert";
@@ -173,11 +173,11 @@ export const SteuerungMixin = (Basis) =>
     sollZahl.className = "zahl";
     const sollText = document.createElement("div");
     sollText.className = "beschriftung";
-    sollText.textContent = "Sollwert";
+    sollText.textContent = this._t("Sollwert");
     mitte.append(sollZahl, sollText);
     const hoch = document.createElement("button");
     hoch.type = "button";
-    hoch.textContent = "+";
+    hoch.textContent = this._t("+");
     hoch.setAttribute("aria-label", "Sollwert anheben");
     regler.append(runter, mitte, hoch);
     karte.appendChild(regler);
@@ -309,7 +309,7 @@ export const SteuerungMixin = (Basis) =>
     zahl.className = "zahl";
     const beschriftung = document.createElement("div");
     beschriftung.className = "beschriftung";
-    beschriftung.textContent = "Isttemperatur";
+    beschriftung.textContent = this._t("Isttemperatur");
     gross.append(zahl, beschriftung);
     karte.appendChild(wasser.ist ? this._klickbar(gross, wasser.ist) : gross);
     this._bindungen.push(() => {

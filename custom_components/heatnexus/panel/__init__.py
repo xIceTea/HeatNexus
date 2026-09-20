@@ -53,7 +53,7 @@ from ..const import (
 )
 from ..dashboard import _anlagen
 from ..entity import steuerung_kennung
-from ..texte import Woerterbuch, sprache_der_oberflaeche, uebersetze_baum
+from ..texte import uebersetze_baum, woerterbuch
 from . import marken as markenmodul
 from .daten import _anlage_daten, _erster
 from .hilfe import hilfe
@@ -179,11 +179,12 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
                 steuerung["lagerraum"].pop("hilfe", None)
             if (wasser := steuerung.get("warmwasser")) and wasser.get("taste"):
                 wasser["taste"].pop("hilfe", None)
-    woerterbuch = Woerterbuch(sprache_der_oberflaeche(hass))
-    daten = uebersetze_baum(daten, woerterbuch)
-    # Was die Oberfläche im Browser selbst beschriftet, steht dort nicht im
-    # Baum. Sie bekommt das Wörterbuch deshalb mit.
-    daten["texte"] = woerterbuch.fuer_frontend
+    # Übersetzt wird hier, damit die Daten und die Anzeige übereinstimmen –
+    # die Hilfesuche durchsucht die Titel der Nutzlast. Was der Browser
+    # selbst beschriftet, steht nicht im Baum und braucht das Wörterbuch.
+    buch = woerterbuch(hass)
+    daten = uebersetze_baum(daten, buch)
+    daten["texte"] = buch.fuer_frontend
     return daten
 
 

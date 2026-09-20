@@ -51,7 +51,7 @@ from .schema import anlagenschema, kesselart_erkennen
 from .schema import passt as _passt
 from .schema import traegt as _traegt
 from .symbole import symbol_je_fct
-from .texte import LOVELACE_FELDER, Woerterbuch, sprache_der_oberflaeche, uebersetze_baum
+from .texte import LOVELACE_FELDER, uebersetze_baum, woerterbuch
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -852,8 +852,7 @@ def dashboard_konfiguration(hass: HomeAssistant, als_karte: bool = False) -> dic
     ``als_karte`` ist für den Text zum Kopieren: Dort steht das Schaubild als
     eigene Karte statt als fertige Zeichnung.
     """
-    woerterbuch = Woerterbuch(sprache_der_oberflaeche(hass))
-    return uebersetze_baum(_konfiguration(hass, als_karte), woerterbuch, LOVELACE_FELDER)
+    return uebersetze_baum(_konfiguration(hass, als_karte), woerterbuch(hass), LOVELACE_FELDER)
 
 
 def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:

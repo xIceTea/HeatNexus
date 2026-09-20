@@ -379,7 +379,7 @@ export const AnordnenMixin = (Basis) =>
 
     const titel = document.createElement("div");
     titel.className = "titel";
-    titel.textContent = "Ansicht bearbeiten";
+    titel.textContent = this._t("Ansicht bearbeiten");
     leiste.appendChild(titel);
 
     const hinweis = document.createElement("div");
@@ -436,7 +436,7 @@ export const AnordnenMixin = (Basis) =>
     fertig.className = "anordnen-taste fertig";
     fertig.appendChild(this._symbolKnoten("mdi:check"));
     const fertigText = document.createElement("span");
-    fertigText.textContent = "Fertig";
+    fertigText.textContent = this._t("Fertig");
     fertig.appendChild(fertigText);
     fertig.addEventListener("click", () => this._anordnenUmschalten());
     leiste.appendChild(fertig);
@@ -552,7 +552,7 @@ export const AnordnenMixin = (Basis) =>
     const schliessen = document.createElement("button");
     schliessen.type = "button";
     schliessen.className = "dialog-taste";
-    schliessen.textContent = "Schließen";
+    schliessen.textContent = this._t("Schließen");
     schliessen.addEventListener("click", weg);
     leiste.appendChild(schliessen);
     dialog.appendChild(leiste);

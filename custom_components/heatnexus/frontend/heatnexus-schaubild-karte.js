@@ -316,7 +316,7 @@ class HeatNexusSchaubildKarte extends Grundlage {
     // Ein misslungener Abruf ist etwas anderes als eine Anlage, die noch
     // nicht eingelesen ist – der Satz darf das nicht vertauschen.
     if (this._abrufFehler) {
-      zeile.textContent = "Das Schaubild konnte nicht geladen werden.";
+      zeile.textContent = this._t("Das Schaubild konnte nicht geladen werden.");
     } else {
       zeile.textContent = this._anlagen.length
         ? "Diese Anlage gibt es nicht mehr."
