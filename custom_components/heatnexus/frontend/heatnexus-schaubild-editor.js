@@ -73,9 +73,37 @@ class HeatNexusSchaubildEditor extends HTMLElement {
     else this._zeichnen();
   }
 
+  /** Ein Text in der eingestellten Sprache; ohne Eintrag bleibt er stehen. */
+  _t(text) {
+    return (this._texte && this._texte[text]) || text;
+  }
+
+  /**
+   * Beschriftungen eines Formularschemas übersetzen.
+   *
+   * `ha-form` baut seine Felder selbst; ein Durchlauf über den Baum erreicht
+   * sie nicht. Übersetzt wird deshalb das Schema, bevor es hineingeht.
+   */
+  _schemaUebersetzt(schema) {
+    if (!this._texte || !Object.keys(this._texte).length) return schema;
+    const gehe = (wert) => {
+      if (Array.isArray(wert)) return wert.map(gehe);
+      if (wert && typeof wert === "object") {
+        return Object.fromEntries(
+          Object.entries(wert).map(([k, v]) =>
+            (k === "title" || k === "label") && typeof v === "string" ? [k, this._t(v)] : [k, gehe(v)]
+          )
+        );
+      }
+      return wert;
+    };
+    return gehe(schema);
+  }
+
   async _anlagenHolen() {
     try {
       this._anlagen = await this._hass.callWS({ type: "heatnexus/schaubild" });
+      this._texte = await this._hass.callWS({ type: "heatnexus/texte" }).catch(() => ({}));
     } catch (err) {
       console.warn("HeatNexus: Anlagen konnten nicht geladen werden", err);
       this._anlagen = [];
@@ -419,8 +447,8 @@ class HeatNexusSchaubildEditor extends HTMLElement {
   _formular(schema, daten, beiAenderung) {
     const formular = document.createElement("ha-form");
     formular.hass = this._hass;
-    formular.computeLabel = (feld) => this._beschriftung(feld);
-    formular.schema = schema;
+    formular.computeLabel = (feld) => this._t(this._beschriftung(feld));
+    formular.schema = this._schemaUebersetzt(schema);
     formular.data = daten;
     formular.addEventListener("value-changed", (ereignis) => {
       ereignis.stopPropagation();
@@ -529,9 +557,10 @@ class HeatNexusSchaubildEditor extends HTMLElement {
   // sofort wieder zu.
   _pflegen(formular, schema, daten) {
     formular.hass = this._hass;
-    const neu = JSON.stringify(schema);
+    const uebersetzt = this._schemaUebersetzt(schema);
+    const neu = JSON.stringify(uebersetzt);
     if (formular._hnSchema !== neu) {
-      formular.schema = schema;
+      formular.schema = uebersetzt;
       formular._hnSchema = neu;
     }
     formular.data = daten;

@@ -41,7 +41,7 @@ def _laden(sprache: str) -> dict[str, str]:
     except (OSError, ValueError):
         _LOGGER.warning("Wörterbuch %s ist unlesbar; Texte bleiben deutsch", datei.name)
         return {}
-    return inhalt
+    return inhalt if isinstance(inhalt, dict) else {}
 
 
 class Woerterbuch:
@@ -64,10 +64,18 @@ class Woerterbuch:
         """Kurzform für die Übersetzung eines Textes."""
         return self._eintraege.get(text, text)
 
+    def __bool__(self) -> bool:
+        """Wahr, sobald es etwas zu übersetzen gibt."""
+        return bool(self._eintraege)
+
     @property
     def fuer_frontend(self) -> dict[str, str]:
-        """Was die Oberfläche im Browser selbst übersetzen muss."""
-        return self._eintraege
+        """Was die Oberfläche im Browser selbst übersetzen muss.
+
+        Eine Kopie: Das Wörterbuch liegt im Zwischenspeicher und darf von
+        keinem Aufrufer verändert werden.
+        """
+        return dict(self._eintraege)
 
 
 # Felder der Nutzlast, die Klartext für den Betrachter tragen. Was nicht im
@@ -95,7 +103,7 @@ def uebersetze_baum(daten, woerterbuch: Woerterbuch, felder=TEXTFELDER):
     Läuft einmal über das Ergebnis statt die Sprache durch jede Funktion zu
     reichen. Unbekannte Texte bleiben stehen.
     """
-    if not woerterbuch.fuer_frontend:
+    if not woerterbuch:
         return daten
     if isinstance(daten, dict):
         return {

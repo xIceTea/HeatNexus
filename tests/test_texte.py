@@ -72,3 +72,42 @@ def test_jede_kachelbeschriftung_ist_uebersetzt(texte):
     englisch = texte.Woerterbuch("en")
     fehlen = sorted(b for b in beschriftungen - GLEICH if englisch(b) == b)
     assert not fehlen, f"ohne englische Fassung: {fehlen}"
+
+
+class _Eintrag:
+    """Ein Konfigurationseintrag, so weit die Sprachwahl ihn braucht."""
+
+    def __init__(self, optionen):
+        self.options = optionen
+
+
+class _Hass:
+    """Home Assistant, so weit die Sprachwahl es braucht."""
+
+    def __init__(self, sprache, eintraege):
+        self.config = type("Konfig", (), {"language": sprache})()
+        self.config_entries = type(
+            "Eintraege", (), {"async_entries": staticmethod(lambda _domain: eintraege)}
+        )()
+
+
+def test_ohne_eintrag_bleibt_es_deutsch(texte):
+    """Ohne eingerichtete Anlage gibt es nichts zu übersetzen."""
+    assert texte.sprache_der_oberflaeche(_Hass("en", [])) == "de"
+
+
+def test_die_gewaehlte_sprache_sticht(texte):
+    """Eine feste Wahl gilt, auch wenn Home Assistant anders steht."""
+    hass = _Hass("en", [_Eintrag({"sprache": "de"})])
+    assert texte.sprache_der_oberflaeche(hass) == "de"
+
+
+def test_automatisch_folgt_home_assistant(texte):
+    """Ohne Wahl gilt die Sprache von Home Assistant."""
+    assert texte.sprache_der_oberflaeche(_Hass("en", [_Eintrag({"sprache": "auto"})])) == "en"
+    assert texte.sprache_der_oberflaeche(_Hass("fr", [_Eintrag({})])) == "fr"
+
+
+def test_regionalkennung_faellt_weg(texte):
+    """„en-GB" ist Englisch; das Wörterbuch kennt nur den Sprachteil."""
+    assert texte.sprache_der_oberflaeche(_Hass("en-GB", [_Eintrag({})])) == "en"

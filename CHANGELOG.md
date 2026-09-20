@@ -6,6 +6,18 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.13.0] - 2026-09-20
+
+### Neu
+
+- Oberfläche, Dashboard und Schaubild erscheinen auf Englisch.
+
+### Behoben
+
+- Die Laufräder der Pumpen drehen am Telefon rund.
+- Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.
+- Der Automatikkessel erscheint im Schaubild.
+
 ## [1.12.0] - 2026-09-13
 
 Wärmequellen, die nicht an der Windhager-Steuerung hängen, lassen sich anlegen

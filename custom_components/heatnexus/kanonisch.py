@@ -140,7 +140,8 @@ def gnmn(unique_id: str | None) -> str | None:
     if not unique_id:
         return None
     teile = str(unique_id).split("-")
-    # Von hinten den letzten Block aus mindestens vier Zahlen suchen.
+    # Von hinten den letzten Block aus mindestens vier Zahlen suchen. `teile`
+    # bleibt vollständig: Die Prüfung weiter unten braucht auch den Zusatz.
     ende = len(_ohne_endung(unique_id)[0])
     zahlen = []
     stelle = ende

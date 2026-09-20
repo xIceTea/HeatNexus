@@ -42,14 +42,18 @@ export const BausteineMixin = (Basis) =>
       if (knoten.getAttribute) {
         merkmale.forEach((merkmal) => {
           const wert = knoten.getAttribute(merkmal);
-          if (wert) knoten.setAttribute(merkmal, this._t(wert));
+          const ersatz = wert && this._t(wert);
+          if (ersatz && ersatz !== wert) knoten.setAttribute(merkmal, ersatz);
         });
       }
       // Ein Knoten ohne Kinder trägt seinen Text selbst.
       const kinder = knoten.childNodes;
       if (!kinder || !kinder.length) {
+        // Geschrieben wird nur bei einem Treffer: Sonst ginge der Abstand
+        // um den Text verloren, den `trim` hier abschneidet.
         const text = (knoten.textContent || "").trim();
-        if (text) knoten.textContent = this._t(text);
+        const ersatz = text && this._t(text);
+        if (ersatz && ersatz !== text) knoten.textContent = ersatz;
         return;
       }
       Array.from(kinder).forEach(gehe);
