@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback, async_get_current_platform
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -78,9 +78,11 @@ def async_setup_entities(
     vollständige Abzug der Anlage läuft im Hintergrund weiter. Sobald er
     fertig ist, werden die zusätzlich gefundenen Entitäten nachgereicht.
     """
-    # Die Klasse steht in der Datei ihrer Plattform – daraus kommt die Domäne.
-    for typ, klasse in klassen.items():
-        TYP_DOMAENE[typ] = klasse.__module__.rsplit(".", 1)[-1]
+    # Die Domäne kommt von der Plattform, die gerade anlegt – nicht vom Modul
+    # der Klasse, denn das kann in einem Unterpaket der Plattform liegen.
+    domaene = async_get_current_platform().domain
+    for typ in klassen:
+        TYP_DOMAENE[typ] = domaene
 
     coordinators = entry.runtime_data["coordinators"]
     bekannt: set[str] = set()

@@ -224,6 +224,18 @@ async def test_die_einrichtung_gelingt_und_legt_die_geraete_an(hass, eintrag):
     assert "0000ABCD1234-0" in kennungen
 
 
+async def test_jede_art_bekommt_die_domaene_ihrer_plattform(hass, eintrag):
+    """Auch eine Klasse aus einem Unterpaket der Plattform trägt deren Domäne."""
+    from custom_components.heatnexus import PLATFORMS
+    from custom_components.heatnexus.entity import TYP_DOMAENE
+
+    assert await _einrichten(hass, eintrag) is True
+
+    assert set(TYP_DOMAENE.values()) <= {str(plattform) for plattform in PLATFORMS}
+    assert TYP_DOMAENE["laufzeit"] == "sensor"
+    assert TYP_DOMAENE["time_program"] == "sensor"
+
+
 async def test_ohne_anlage_im_eintrag_wird_nicht_eingerichtet(hass):
     """Ein Eintrag ohne Anlage ist kein Grund, halb zu starten."""
     from homeassistant.config_entries import ConfigEntryState
