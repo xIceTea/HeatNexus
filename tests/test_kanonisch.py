@@ -209,3 +209,25 @@ def test_der_ww_einschaltpunkt_erbt_nicht_den_schluessel_des_sollwerts(kanonisch
 def test_ein_funktionsblock_namens_start_ist_keine_ableitung(kanonisch):
     """Ohne Adresse im Rumpf war die Endung Teil des Namens."""
     assert not kanonisch.ist_ableitung("0000ABCD1234-nv-32-0-pmx-start")
+
+
+def test_geschwister_auf_einer_adresse_bleiben_getrennt(kanonisch):
+    """Vier Tasten liegen auf 39/94 und unterscheiden sich nur am Zusatz."""
+    basis = "abc123-1-39-94-0"
+    assert kanonisch.schluessel(f"{basis}-reinigung") == "cleaning_done"
+    assert kanonisch.schluessel(f"{basis}-hauptreinigung") == "main_cleaning_done"
+    assert kanonisch.schluessel(f"{basis}-wartung") == "maintenance_done"
+    assert kanonisch.schluessel(f"{basis}-hauptreinigung_asche") == "main_cleaning_ash_done"
+
+
+def test_geschwister_ohne_zusatz_behalten_ihren_schluessel(kanonisch):
+    """Auf 9/75 trägt der Serviceausbrand keinen Zusatz, die anderen schon."""
+    assert kanonisch.schluessel("abc123-1-9-75-0") == "service_burnout"
+    assert kanonisch.schluessel("abc123-1-9-75-0-kaminkehrer") == "chimney_sweep"
+    assert kanonisch.schluessel("abc123-1-9-75-0-befuellen") == "storage_fill"
+
+
+def test_ableitung_bleibt_von_geschwistern_unberuehrt(kanonisch):
+    """Ein Zusatz aus der Geschwistertabelle ist keine Ableitung."""
+    assert not kanonisch.ist_ableitung("abc123-1-39-94-0-reinigung")
+    assert kanonisch.ist_ableitung("abc123-1-0-7-0-heute")

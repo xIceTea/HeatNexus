@@ -171,6 +171,29 @@ ZUSATZ_SCHLUESSEL: dict[str, str] = {
 }
 
 
+# Adresse **und** Kennungszusatz, wo mehrere Entitäten auf derselben Adresse
+# sitzen und sich nur am geschriebenen Wert unterscheiden. Die Adresse allein
+# träfe dort alle Geschwister; der Zusatz aus `key_suffix` trennt sie.
+GESCHWISTER: dict[tuple[str, str | None], str] = {
+    ("39/94", "reinigung"): "cleaning_done",
+    ("39/94", "hauptreinigung"): "main_cleaning_done",
+    ("39/94", "wartung"): "maintenance_done",
+    ("39/94", "hauptreinigung_asche"): "main_cleaning_ash_done",
+    ("9/75", None): "service_burnout",
+    ("9/75", "kaminkehrer"): "chimney_sweep",
+    ("9/75", "befuellen"): "storage_fill",
+}
+
+
+def endung(unique_id: str | None) -> str | None:
+    """Der Kennungszusatz hinter der Adresse, oder nichts."""
+    teile = str(unique_id or "").split("-")
+    ende = len(teile)
+    while ende > 0 and not teile[ende - 1].isdigit():
+        ende -= 1
+    return "-".join(teile[ende:]) or None
+
+
 def _zerlegen(unique_id: str | None) -> tuple[str | None, str | None]:
     """Kennung ohne Ableitungszusatz, und der Zusatz selbst."""
     kennung = str(unique_id or "")
@@ -205,7 +228,9 @@ def schluessel(unique_id: str | None) -> str | None:
     """
 
     def _basis(kennung: str | None) -> str | None:
-        return KANONISCH.get(gnmn(kennung) or "") or lon_schluessel(kennung)
+        adresse = gnmn(kennung)
+        geschwister = GESCHWISTER.get((adresse or "", endung(kennung)))
+        return geschwister or KANONISCH.get(adresse or "") or lon_schluessel(kennung)
 
     kennung, zusatz = _zerlegen(unique_id)
     basis = _basis(kennung)

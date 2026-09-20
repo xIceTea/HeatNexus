@@ -195,18 +195,22 @@ VERLAUF_MAX = 8
 # Ob vor dem Auslösen nachgefragt wird, entscheidet `dashboard.rueckfrage` –
 # dieselbe Tabelle gilt für die Kacheln im Dashboard.
 #
-# **Hier hilft die Adresse am wenigsten.** Die Anlage legt mehrere Tasten auf
+# **Die Adresse allein trägt hier nicht.** Die Anlage legt mehrere Tasten auf
 # **dieselbe** Adresse und unterscheidet sie am geschriebenen Wert: Reinigung,
 # Hauptreinigung, Wartung und „Hauptreinigung und Aschetonnen" sind alle vier
-# `39/94`, Serviceausbrand und Lagerraumbefüllung beide `9/75`. Ein kanonischer
-# Schlüssel träfe dort jedes Mal alle Geschwister und stellte die falsche Taste
-# in die Kachel. Diese Zeilen bleiben deshalb am Namen – als einzige.
+# `39/94`, Serviceausbrand und Lagerraumbefüllung beide `9/75`. Den Schlüssel
+# bildet deshalb Adresse **und** Kennungszusatz (`kanonisch.GESCHWISTER`).
 SCHNELLZUGRIFF: tuple[Zeile, ...] = (
     (r"ww einmalladung", "Warmwasser laden", "mdi:water-boiler", ()),
-    (r"^reinigung (durchgef|best(ä|ae)tigen)", "Reinigung erledigt", "mdi:broom", ()),
-    (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom", ()),
-    (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ()),
-    (r"kaminkehrerbetrieb", "Kaminkehrer", "mdi:account-hard-hat", ()),
+    (r"^reinigung (durchgef|best(ä|ae)tigen)", "Reinigung erledigt", "mdi:broom", ("cleaning_done",)),
+    (
+        r"hauptreinigung durchgef(?!.*aschetonnen)",
+        "Hauptreinigung erledigt",
+        "mdi:broom",
+        ("main_cleaning_done",),
+    ),
+    (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ("service_burnout",)),
+    (r"kaminkehrerbetrieb", "Kaminkehrer", "mdi:account-hard-hat", ("chimney_sweep",)),
     (r"betriebswahl", "Betriebswahl", "mdi:tune", ("mode_selection",)),
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff wählen", "mdi:sack", ("fuel_selected",)),
 )
@@ -314,28 +318,38 @@ LAGERRAUM_ZEILEN: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (r"kesseltemperatur ist", "Kesseltemperatur", ("boiler_temperature",)),
     (r"vorratsbeh", "Vorratsbehälter", ("fuel_storage_status",)),
     (r"lagerraumbef(ü|ue)llung restlaufzeit", "Restlaufzeit", ()),
-    (r"lagerraum bef(ü|ue)llen freigabe", "Lagerraum befüllen", ()),
+    (r"lagerraum bef(ü|ue)llen freigabe", "Lagerraum befüllen", ("storage_fill",)),
     (r"betriebsphase", "Betriebsphase", ("operating_phase",)),
 )
 
 # Bedienbares am Kessel, in dieser Reihenfolge.
-# Dieselbe Einschränkung wie beim Schnellzugriff: Vier dieser Tasten teilen
-# sich `39/94`, der Serviceausbrand liegt auf `9/75`.
+# Wie beim Schnellzugriff: Vier dieser Tasten teilen sich `39/94`, der
+# Serviceausbrand liegt auf `9/75`. Der Kennungszusatz trennt sie.
 KESSEL_BEDIENUNG: tuple[Zeile, ...] = (
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff", "mdi:sack", ("fuel_selected",)),
     # Dieselbe Quittung, zwei Schreibweisen: Wo der Kessel keine Auswahl je
     # Arbeit führt, steht dafür ein Ja/Nein-Wert unter „Reinigung bestätigen".
-    (r"^reinigung (durchgef|best(ä|ae)tigen)", "Reinigung erledigt", "mdi:broom", ()),
-    (r"hauptreinigung durchgef(?!.*aschetonnen)", "Hauptreinigung erledigt", "mdi:broom", ()),
+    (r"^reinigung (durchgef|best(ä|ae)tigen)", "Reinigung erledigt", "mdi:broom", ("cleaning_done",)),
+    (
+        r"hauptreinigung durchgef(?!.*aschetonnen)",
+        "Hauptreinigung erledigt",
+        "mdi:broom",
+        ("main_cleaning_done",),
+    ),
     (
         r"hauptreinigung und aschetonnen durchgef",
         "Hauptreinigung + Aschetonnen",
         "mdi:delete-empty-outline",
-        (),
+        ("main_cleaning_ash_done",),
     ),
-    (r"wartung durchgef", "Wartung erledigt", "mdi:wrench-check-outline", ()),
-    (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ()),
-    (r"kaminkehrerbetrieb", "Kaminkehrer", "mdi:account-hard-hat", ()),
+    (
+        r"wartung durchgef",
+        "Wartung erledigt",
+        "mdi:wrench-check-outline",
+        ("maintenance_done",),
+    ),
+    (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ("service_burnout",)),
+    (r"kaminkehrerbetrieb", "Kaminkehrer", "mdi:account-hard-hat", ("chimney_sweep",)),
 )
 
 # ---------------------------------------------------------------------------
