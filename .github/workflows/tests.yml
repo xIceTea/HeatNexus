@@ -40,23 +40,32 @@ jobs:
       - run: python tools/importpruefung.py
 
   pytest:
-    name: ${{ matrix.ha == 'fest' && 'pytest' || 'pytest (neueste HA)' }}
+    name: ${{ matrix.titel }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         # „fest": die Fassung aus requirements_test.txt, gegen die ausgeliefert wird.
         # „neueste": was pip heute findet. Die Tests scheitern an jeder Abkündigung.
-        ha: [fest, neueste]
+        # „aelteste": die Mindestfassung aus hacs.json; beide Angaben zusammen bewegen.
+        include:
+          - { ha: fest, python: "3.14", titel: pytest }
+          - { ha: neueste, python: "3.14", titel: "pytest (neueste HA)" }
+          - { ha: aelteste, python: "3.13", titel: "pytest (älteste HA)", paket: "0.13.251" }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          # Muss zur Home-Assistant-Fassung passen, gegen die geprüft wird:
-          # HA 2026.7 verlangt Python 3.14.
-          python-version: "3.14"
+          # Muss zur Home-Assistant-Fassung passen: ab HA 2026.4 Python 3.14.
+          python-version: ${{ matrix.python }}
           cache: pip
-      - run: pip install -r requirements_test.txt
+      - if: matrix.ha != 'aelteste'
+        run: pip install -r requirements_test.txt
+      - name: Mindestfassung von Home Assistant
+        if: matrix.ha == 'aelteste'
+        run: |
+          grep -v '^pytest-homeassistant-custom-component' requirements_test.txt > /tmp/anforderungen.txt
+          pip install -r /tmp/anforderungen.txt "pytest-homeassistant-custom-component==${{ matrix.paket }}"
       - name: Neueste Home-Assistant-Fassung
         if: matrix.ha == 'neueste'
         run: |
