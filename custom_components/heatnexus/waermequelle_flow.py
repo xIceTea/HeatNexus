@@ -71,9 +71,11 @@ def zustandsvorschlaege(hass: Any, entity_id: str | None) -> list[str]:
     zustand = hass.states.get(entity_id) if entity_id else None
     if zustand is None:
         return []
+    # Nur eine Liste gilt: Unter `options` legen fremde Entitäten auch anderes ab.
+    optionen = zustand.attributes.get("options")
     vorschlaege = [
         str(wert)
-        for wert in (zustand.attributes.get("options") or [])
+        for wert in (optionen if isinstance(optionen, (list, tuple)) else [])
         if str(wert).strip().lower() not in OHNE_WAHL
     ]
     jetzt = str(zustand.state)

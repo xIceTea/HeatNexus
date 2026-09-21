@@ -603,6 +603,16 @@ async def test_die_liste_nennt_die_zustaende_der_entitaet(hass):
     ]
 
 
+@pytest.mark.parametrize("optionen", [True, 3, "an"])
+async def test_ein_attribut_options_ohne_liste_bietet_nur_den_zustand(hass, optionen):
+    """Fremde Entitäten dürfen unter `options` ablegen, was sie wollen."""
+    from custom_components.heatnexus.waermequelle_flow import zustandsvorschlaege
+
+    hass.states.async_set("sensor.fremd", "läuft", {"options": optionen})
+
+    assert zustandsvorschlaege(hass, "sensor.fremd") == ["läuft"]
+
+
 async def test_ohne_erreichbare_entitaet_bleibt_die_wahl_freiwillig(hass):
     """Ohne Vorschlag gilt die Entität nicht als Klartext und wird nicht erzwungen."""
     import voluptuous as vol
