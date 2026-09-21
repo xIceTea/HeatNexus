@@ -5,6 +5,10 @@ on:
     branches: [main, "release/**"]
   pull_request:
   workflow_dispatch:
+  # Einmal die Woche gegen die neueste Home-Assistant-Fassung, auch ohne Push:
+  # Eine Abkündigung fällt so auf, bevor sie im Protokoll eines Nutzers steht.
+  schedule:
+    - cron: "17 5 * * 1"
 
 jobs:
   lint:
@@ -36,8 +40,14 @@ jobs:
       - run: python tools/importpruefung.py
 
   pytest:
-    name: pytest
+    name: ${{ matrix.ha == 'fest' && 'pytest' || 'pytest (neueste HA)' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # „fest": die Fassung aus requirements_test.txt, gegen die ausgeliefert wird.
+        # „neueste": was pip heute findet. Die Tests scheitern an jeder Abkündigung.
+        ha: [fest, neueste]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,6 +57,19 @@ jobs:
           python-version: "3.14"
           cache: pip
       - run: pip install -r requirements_test.txt
+      - name: Neueste Home-Assistant-Fassung
+        if: matrix.ha == 'neueste'
+        run: |
+          pip install -U pytest-homeassistant-custom-component
+          # pip nimmt still die neueste Fassung, die zu dieser Python-Fassung passt.
+          python - <<'PY'
+          import json, urllib.request
+          import homeassistant.const as c
+          neu = json.load(urllib.request.urlopen("https://pypi.org/pypi/homeassistant/json"))["info"]["version"]
+          print(f"Home Assistant {c.__version__}, auf PyPI {neu}")
+          if c.__version__ != neu:
+              print(f"::warning::Geprüft gegen {c.__version__}, erschienen ist {neu}")
+          PY
       # `manifest.json` nennt `frontend` als Abhängigkeit; ohne das Paket
       # `hass_frontend` kommt keine Einrichtung zustande und die Tests des
       # gesamten Einrichtungspfads überspringen sich still. Die Fassung steht

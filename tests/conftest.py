@@ -10,6 +10,7 @@ importiert, zieht Home Assistant nach und wird bei fehlender Umgebung
 from __future__ import annotations
 
 import importlib.util
+import logging
 from pathlib import Path
 import sys
 from types import ModuleType
@@ -203,6 +204,32 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config) -> None:
     if ha_fehlt():
         terminalreporter.write_line("")
         terminalreporter.write_line(f"ACHTUNG: {_WARNUNG}", yellow=True, bold=True)
+
+
+class _Abkuendigungen(logging.Handler):
+    """Sammelt, was `homeassistant.helpers.frame` meldet."""
+
+    def __init__(self) -> None:
+        super().__init__(logging.WARNING)
+        self.meldungen: list[str] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.meldungen.append(record.getMessage())
+
+
+@pytest.fixture(autouse=True)
+def keine_abkuendigung_von_home_assistant():
+    """Eine Abkündigungsmeldung von Home Assistant lässt den Test scheitern.
+
+    Sie kündigt den Bruch in einer späteren Fassung an und fällt so vor dem Nutzer auf.
+    """
+    logger = logging.getLogger("homeassistant.helpers.frame")
+    fang = _Abkuendigungen()
+    logger.addHandler(fang)
+    yield
+    logger.removeHandler(fang)
+    if fang.meldungen:
+        pytest.fail("Home Assistant meldet eine Abkündigung:\n" + "\n".join(fang.meldungen))
 
 
 @pytest.fixture(scope="session", autouse=True)
