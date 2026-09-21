@@ -54,6 +54,30 @@ def get_conditions(fct_type: int) -> dict[str, list[dict]]:
     return (_db()["layers"].get(str(fct_type)) or {}).get("conditions") or {}
 
 
+def _merkmal(fct_type: int | None, schluessel: str):
+    return (_db()["layers"].get(str(fct_type)) or {}).get(schluessel)
+
+
+def get_objekte(fct_type: int | None) -> frozenset[str]:
+    """Adressen, die der Hersteller über den object-Endpunkt liest."""
+    return frozenset(_merkmal(fct_type, "objekte") or ())
+
+
+def get_programme(fct_type: int | None) -> frozenset[str]:
+    """Zeitprogramme unter den Objekt-Datenpunkten, erkannt am Herstellernamen."""
+    return frozenset(a for a in get_objekte(fct_type) if "programm" in (get_name(a) or "").lower())
+
+
+def get_ruecksetzwerte(fct_type: int | None) -> dict[str, str]:
+    """Rücksetzbare Datenpunkte: Adresse -> Wert, auf den sie zurückgesetzt werden."""
+    return dict(_merkmal(fct_type, "ruecksetzen") or {})
+
+
+def get_neustart(fct_type: int | None) -> frozenset[str]:
+    """Adressen, deren Änderung einen Neustart der Steuerung auslöst."""
+    return frozenset(_merkmal(fct_type, "neustart") or ())
+
+
 def preload() -> None:
     """Datenbank einlesen.
 

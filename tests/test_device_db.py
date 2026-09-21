@@ -163,3 +163,19 @@ def test_der_zusatzkessel_kann_bedient_werden(device_db):
 
     assert "9/75" in ebenen["operate"]
     assert "2/0" in ebenen["info"]
+
+
+def test_objekt_datenpunkte_je_funktionstyp(device_db):
+    """Der Hersteller nennt die Programme 1–3 des Infinity-Heizkreises als Objekte."""
+    objekte = device_db.get_objekte(1)
+    assert {"3/61", "3/62", "3/63"} <= objekte
+
+
+def test_ruecksetzwert_des_brennstoffzaehlers(device_db):
+    assert device_db.get_ruecksetzwerte(FCT_BIOWIN) == {"23/100": "0.00"}
+    assert device_db.get_ruecksetzwerte(FCT_PUROWIN) == {}
+
+
+def test_neustart_merkmal_je_funktionstyp(device_db):
+    assert "42/18" in device_db.get_neustart(FCT_BIOWIN)
+    assert device_db.get_neustart(FCT_PUFFER) == frozenset()

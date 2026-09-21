@@ -53,3 +53,33 @@ def test_nur_leerzeichen_zaehlt_als_leer(generator):
         {"oids_oem": {"52/0": "AEW Evo Actual power consumtion"}},
     )
     assert namen["52/0"] == "AEW Evo Actual power consumtion"
+
+
+# Eine Ebenendatei in der Form des Herstellers: Datenpunkte einzeln oder in
+# Gruppen, die Merkmale am Eintrag, eine Geräteklasse neben `default`.
+EBENEN_MIT_MERKMALEN = {
+    "default/9": {
+        "info": [
+            {"oid": "4/92", "endpoint": "object"},
+            {"oid": "23/100", "type": "reset", "reset": "0.00"},
+        ],
+        "service": [{"group_name": "G", "parameters": [{"oid": "42/18", "restart": True}]}],
+    },
+    "1415/9": {"operate": [{"oid": "4/93", "endpoint": "object"}]},
+}
+
+
+def test_objekt_datenpunkte_kommen_aus_allen_klassen(generator):
+    """Ob ein Datenpunkt ein Objekt ist, hängt an ihm, nicht an der Klasse."""
+    ebenen = generator.sammle_ebenen(EBENEN_MIT_MERKMALEN, {})
+    assert ebenen["9"]["objekte"] == ["4/92", "4/93"]
+
+
+def test_ruecksetzwerte_werden_uebernommen(generator):
+    ebenen = generator.sammle_ebenen(EBENEN_MIT_MERKMALEN, {})
+    assert ebenen["9"]["ruecksetzen"] == {"23/100": "0.00"}
+
+
+def test_neustart_merkmal_wird_auch_in_gruppen_gefunden(generator):
+    ebenen = generator.sammle_ebenen(EBENEN_MIT_MERKMALEN, {})
+    assert ebenen["9"]["neustart"] == ["42/18"]

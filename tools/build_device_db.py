@@ -164,6 +164,28 @@ def _bedingungssaetze(bedingung: dict) -> list[dict]:
     return []
 
 
+def _eintraege(eintraege):
+    """Jeden Datenpunkt-Eintrag einer Ebene liefern, auch aus Gruppen."""
+    for eintrag in eintraege or []:
+        if not isinstance(eintrag, dict):
+            continue
+        if eintrag.get("oid"):
+            yield eintrag
+        yield from _eintraege(eintrag.get("parameters"))
+
+
+def _merkmale(eintraege, ziel: dict) -> None:
+    """Objekt-Endpunkt, Rücksetzwert und Neustart je Adresse übernehmen."""
+    for eintrag in _eintraege(eintraege):
+        adresse = eintrag["oid"]
+        if eintrag.get("endpoint") == "object" and adresse not in ziel.get("objekte", []):
+            ziel.setdefault("objekte", []).append(adresse)
+        if eintrag.get("type") == "reset" and eintrag.get("reset") is not None:
+            ziel.setdefault("ruecksetzen", {})[adresse] = str(eintrag["reset"])
+        if eintrag.get("restart") and adresse not in ziel.get("neustart", []):
+            ziel.setdefault("neustart", []).append(adresse)
+
+
 def _gruppen(eintraege, texte: dict) -> dict[str, list[str]]:
     """Benannte Gruppen einer Ebene: Klartext -> Datenpunkte."""
     ergebnis: dict[str, list[str]] = {}
@@ -283,6 +305,7 @@ def sammle_ebenen(layer: dict, texte: dict) -> dict[str, dict]:
             for adresse, saetze in _bedingungen(inhalt.get(ebene)).items():
                 vorhandene = ziel.setdefault("conditions", {}).setdefault(adresse, [])
                 vorhandene.extend(s for s in saetze if s not in vorhandene)
+            _merkmale(inhalt.get(ebene), ziel)
         if geraet != "default":
             geraete = ziel.setdefault("devices", [])
             if geraet not in geraete:
