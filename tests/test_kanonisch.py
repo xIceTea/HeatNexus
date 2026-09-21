@@ -152,6 +152,11 @@ def test_ein_schluessel_gilt_nur_dort_mehrfach_wo_es_begruendet_ist(kanonisch):
         # PuroWIN `39/92`/`39/93`, BioWIN `20/62`/`20/63` – dieselbe Arbeit.
         "maintenance_main_cleaning_hours",
         "maintenance_service_hours",
+        # Gas-/Ölkessel `59/17`, `63/10`, `60/34`; Solar `58/56` – derselbe Messwert.
+        "operating_phase",
+        "boiler_temperature_target",
+        "operating_hours",
+        "collector_temperature",
     }
     werte = [w for w in kanonisch.KANONISCH.values() if w not in mehrfach]
     doppelt = sorted({w for w in werte if werte.count(w) > 1})

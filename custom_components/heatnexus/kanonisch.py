@@ -49,6 +49,10 @@ KANONISCH: dict[str, str] = {
     "2/9": "operating_mode",
     "2/80": "burner_starts",
     "2/81": "operating_hours",
+    "58/12": "boiler_pump",
+    "59/17": "operating_phase",
+    "63/10": "boiler_temperature_target",
+    "60/34": "operating_hours",
     "38/126": "fuel_selected",
     "38/127": "fuel_current",
     "39/76": "fuel_storage_status",
@@ -106,8 +110,10 @@ KANONISCH: dict[str, str] = {
     "21/66": "buffer_bottom",
     "0/15": "buffer_top",
     "0/16": "buffer_bottom",
+    "1/22": "buffer_charge_pump",
     # Solar
     "0/14": "collector_temperature",
+    "58/56": "collector_temperature",
     "0/61": "solar_storage_temperature",
     # Pumpen-/Relaismodul (ZSP). Der Analog-Sollwert ist die Temperatur, mit
     # der gerade Wärme angefordert wird; über null heißt: Es liegt etwas an.

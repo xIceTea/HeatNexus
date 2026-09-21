@@ -293,6 +293,40 @@ def test_pumpe_je_anlagenteil(werte):
     assert module[0]["pumpe"] == "binary_sensor.hkp"
 
 
+@pytest.mark.parametrize(
+    ("fct", "messwert", "name", "schluessel"),
+    [
+        (16, "buffer_top", "Buffer charge pump speed", "buffer_charge_pump"),
+        (9, "boiler_temperature", "Heat generator pump", "boiler_pump"),
+        (5, "collector_temperature", "Solar pump speed", "pump_speed"),
+    ],
+)
+def test_die_pumpe_wird_auch_ohne_deutschen_namen_gefunden(werte, fct, messwert, name, schluessel):
+    """Kessel-, Puffer- und Solarpumpe tragen einen Schlüssel; der Name genügt nicht."""
+    teil = {
+        "name": "Teil",
+        "fct_type": fct,
+        "entitaeten": [
+            {
+                "entity_id": "sensor.t",
+                "name": "Temperature",
+                "hat_wert": True,
+                "bereich": "sensor",
+                "schluessel": messwert,
+            },
+            {
+                "entity_id": "sensor.pumpe",
+                "name": name,
+                "hat_wert": True,
+                "bereich": "sensor",
+                "schluessel": schluessel,
+            },
+        ],
+    }
+    module = werte.zeichenbare_module([teil], modulpumpe=True)
+    assert module and module[0]["pumpe"] == "sensor.pumpe"
+
+
 def _pumpenmodul():
     return _teil(
         "ZSP",

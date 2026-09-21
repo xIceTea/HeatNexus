@@ -118,22 +118,17 @@ WERTE_JE_ART: dict[str, tuple[Wert, ...]] = {
 }
 
 
-# Die Pumpe eines Anlagenteils. Sie steht im Schaubild in der Leitung und
-# dreht sich, solange sie läuft – im Standbild ist nicht zu erkennen, ob
-# gerade etwas fließt.
-#
-# Kessel-, Puffer- und Solarpumpe haben (noch) keinen kanonischen Schlüssel:
-# Ihre Adressen unterscheiden sich je Baureihe und sind nicht belegt. Dort
-# bleibt es beim Namen.
+# Die Pumpe eines Anlagenteils; sie dreht sich im Schaubild, solange sie läuft.
+# Der Schlüssel trägt auch ohne deutschen Namen, das Muster fängt den Rest.
 PUMPE_JE_ART: dict[str, tuple[str, tuple[str, ...]]] = {
-    "kessel": (r"kesselpumpe|\bpumpe\b", ()),
-    "puffer": (r"pufferladepumpe", ()),
+    "kessel": (r"kesselpumpe|\bpumpe\b", ("boiler_pump",)),
+    "puffer": (r"pufferladepumpe", ("buffer_charge_pump",)),
     "heizkreis": (r"heizkreispumpe", ("circuit_pump",)),
     "wasser": (r"\bww-ladepumpe", ("dhw_charge_pump",)),
     # Das ZSP-Modul meldet keinen Pumpenzustand, sondern seine Drehzahl.
     "pumpenmodul": (r"pumpendrehzahl|zirkulationspumpe(?!.*modus)", ("pump_speed",)),
     "zirkulation": (r"\bww-zirkulationspumpe(?!.*modus)", ("dhw_circulation_pump",)),
-    "solar": (r"solarpumpe|pumpensteuerung drehzahl", ()),
+    "solar": (r"solarpumpe|pumpensteuerung drehzahl", ("pump_speed",)),
 }
 
 
