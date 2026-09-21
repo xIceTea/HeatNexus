@@ -65,7 +65,8 @@ jobs:
         if: matrix.ha == 'aelteste'
         run: |
           grep -v '^pytest-homeassistant-custom-component' requirements_test.txt > /tmp/anforderungen.txt
-          pip install -r /tmp/anforderungen.txt "pytest-homeassistant-custom-component==${{ matrix.paket }}"
+          # pycares 5 passt nicht zum aiodns dieser Fassung; HA selbst bringt eine Obergrenze mit.
+          pip install -r /tmp/anforderungen.txt "pytest-homeassistant-custom-component==${{ matrix.paket }}" "pycares<5"
       - name: Neueste Home-Assistant-Fassung
         if: matrix.ha == 'neueste'
         run: |
