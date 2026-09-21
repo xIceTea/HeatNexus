@@ -295,6 +295,64 @@ async def test_das_geraet_einer_quelle_traegt_ihre_bauart(hass, anlagen):
     assert zuordnung["SN1-waermequelle-q1"] == {"art": "solar", "pumpe": True}
 
 
+async def test_das_geraet_einer_quelle_steht_in_der_anlage(hass, anlagen):
+    """Die Quelle hängt nur an ihrem Subeintrag und zählt als eigenes Gerät."""
+    from types import SimpleNamespace
+
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus import async_migrate_entry
+    from custom_components.heatnexus.const import CONF_QUELLEN, CONF_SYSTEMS, DOMAIN
+
+    quelle = {
+        "id": "q1",
+        "name": "Solaranlage",
+        "art": "solar",
+        "pumpe": True,
+        "bedingung": {"art": "zustand", "quelle": "binary_sensor.solar"},
+    }
+    eintrag = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        minor_version=1,
+        data={CONF_SYSTEMS: [{"host": "192.0.2.10", "label": "Anlage 1"}]},
+        options={"192.0.2.10": {CONF_QUELLEN: [quelle]}},
+    )
+    eintrag.add_to_hass(hass)
+    await async_migrate_entry(hass, eintrag)
+    eintrag.runtime_data = {
+        "coordinators": {
+            "192.0.2.10": SimpleNamespace(
+                host="192.0.2.10",
+                label="Anlage 1",
+                data={},
+                client=SimpleNamespace(steuerung_kennung=lambda: "SN1"),
+            )
+        }
+    }
+    [sub] = eintrag.subentries.values()
+    geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        config_subentry_id=sub.subentry_id,
+        identifiers={(DOMAIN, "SN1-waermequelle-q1")},
+        name="Anlage 1 · Solaranlage",
+    )
+    er.async_get(hass).async_get_or_create(
+        "binary_sensor",
+        DOMAIN,
+        "SN1-waermequelle-q1",
+        config_entry=eintrag,
+        config_subentry_id=sub.subentry_id,
+        device_id=geraet.id,
+    )
+
+    [anlage] = anlagen.anlagen_lesen(hass)
+    [teil] = anlage["teile"]
+    assert (teil["name"], teil["art"], teil["quellenpumpe"]) == ("Solaranlage", "solar", True)
+
+
 @pytest.mark.parametrize("kennungen", [{("fremd", "a", "b")}, {("fremd",)}, {"fremd", "abc"}])
 async def test_fremde_geraetekennung_ohne_paarform_stoert_nicht(hass, anlagen, kennungen):
     """Home Assistant prüft die Form fremder Gerätekennungen nicht nach."""
