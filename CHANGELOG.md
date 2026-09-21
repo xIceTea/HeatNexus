@@ -11,6 +11,13 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Oberfläche, Dashboard und Schaubild erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
+- Werte der Titelseite des Herstellers erscheinen ohne Freischalten der Serviceebene.
+- Zeitprogramme weiterer Baureihen erscheinen, auch wenn die Navigation sie nicht nennt.
+- Für den Brennstoffzähler seit Befüllung gibt es eine Taste zum Zurücksetzen.
+
+### Geändert
+
+- Kessel-, Puffer- und Solarpumpe erscheinen im Schaubild auch ohne deutschen Namen.
 
 ### Behoben
 
@@ -25,6 +32,14 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Oberfläche, Dashboard und Schaubild erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
 - „Automatisch" folgt der Sprache von Home Assistant; die Datenpunktnamen bleiben deutsch.
+- Werte der Titelseite des Herstellers erscheinen ohne Freischalten der Serviceebene.
+- Zeitprogramme weiterer Baureihen erscheinen, auch wenn die Navigation sie nicht nennt.
+- Für den Brennstoffzähler seit Befüllung gibt es eine Taste zum Zurücksetzen.
+- Einstellungen, die einen Neustart der Steuerung auslösen, sind im Attribut markiert.
+
+### Geändert
+
+- Kessel-, Puffer- und Solarpumpe erscheinen im Schaubild auch ohne deutschen Namen.
 
 ### Behoben
 
