@@ -25,6 +25,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.
 - Der Automatikkessel erscheint im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
 - Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
+- Dashboard, Panel und Schaubild-Karte laden auch bei ungewöhnlichen Gerätekennungen anderer Integrationen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
 
 ## [1.13.0-beta.1] - 2026-09-21
 
@@ -45,6 +46,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Der Automatikkessel erscheint im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
 - Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
+- Dashboard, Panel und Schaubild-Karte laden auch bei ungewöhnlichen Gerätekennungen anderer Integrationen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
 - Die Kacheln treffen Reinigung, Wartung und Kaminkehrer unabhängig vom Namen.
 - Die Laufräder der Pumpen drehen am Telefon rund.
 - Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.

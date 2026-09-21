@@ -166,8 +166,15 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
     quellen_je_geraet = quellen_nach_geraet(hass)
     schaubildwahl_je_geraet = _schaubildwahl_je_geraet(hass)
 
+    # Nur die eigenen Geräte: Home Assistant prüft die Form der Kennungen nicht,
+    # und fremde Integrationen halten sich nicht immer an das Paar.
+    eigene = (
+        geraet
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        for geraet in dr.async_entries_for_config_entry(geraete_registry, entry.entry_id)
+    )
     teile: dict[str, dict[str, Any]] = {}
-    for geraet in geraete_registry.devices.values():
+    for geraet in eigene:
         kennung = next((w for bereich, w in geraet.identifiers if bereich == DOMAIN), None)
         if kennung is None:
             continue

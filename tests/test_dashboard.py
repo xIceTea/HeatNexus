@@ -293,3 +293,29 @@ async def test_das_geraet_einer_quelle_traegt_ihre_bauart(hass, anlagen):
     zuordnung = anlagen.quellen_nach_geraet(hass)
 
     assert zuordnung["SN1-waermequelle-q1"] == {"art": "solar", "pumpe": True}
+
+
+@pytest.mark.parametrize("kennungen", [{("fremd", "a", "b")}, {("fremd",)}, {"fremd", "abc"}])
+async def test_fremde_geraetekennung_ohne_paarform_stoert_nicht(hass, anlagen, kennungen):
+    """Home Assistant prüft die Form fremder Gerätekennungen nicht nach."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    geraete = dr.async_get(hass)
+    fremd = MockConfigEntry(domain="fremd")
+    fremd.add_to_hass(hass)
+    geraete.async_get_or_create(config_entry_id=fremd.entry_id, identifiers=kennungen)
+    eigen = MockConfigEntry(domain=DOMAIN)
+    eigen.add_to_hass(hass)
+    kessel = geraete.async_get_or_create(
+        config_entry_id=eigen.entry_id, identifiers={(DOMAIN, "SN1-0")}, name="Kessel"
+    )
+    er.async_get(hass).async_get_or_create(
+        "sensor", DOMAIN, "SN1-0-0-1-0", config_entry=eigen, device_id=kessel.id
+    )
+
+    [anlage] = anlagen.anlagen_lesen(hass)
+    assert [teil["name"] for teil in anlage["teile"]] == ["Kessel"]
