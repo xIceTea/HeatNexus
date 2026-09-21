@@ -19,6 +19,21 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Automatikkessel erscheint im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
 - Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
 
+## [1.13.0-beta.1] - 2026-09-21
+
+### Neu
+
+- Oberfläche, Dashboard und Schaubild erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
+- „Automatisch" folgt der Sprache von Home Assistant; die Datenpunktnamen bleiben deutsch.
+
+### Behoben
+
+- Der Automatikkessel erscheint im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
+- Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
+- Die Kacheln treffen Reinigung, Wartung und Kaminkehrer unabhängig vom Namen.
+- Die Laufräder der Pumpen drehen am Telefon rund.
+- Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.
+
 ## [1.12.0] - 2026-09-13
 
 Wärmequellen, die nicht an der Windhager-Steuerung hängen, lassen sich anlegen
