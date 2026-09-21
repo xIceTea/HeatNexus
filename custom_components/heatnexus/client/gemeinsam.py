@@ -2,6 +2,29 @@
 
 from __future__ import annotations
 
+# Die Ebenenliste in der Reihenfolge, in der eine Adresse ihre Ebene bekommt.
+# `overview` ist die Titelseite des Herstellers: Sie hebt eine Adresse aus
+# Service- oder Werksebene auf `info`, an info und operate ändert sie nichts.
+EBENENFOLGE: tuple[tuple[str, str], ...] = (
+    ("info", "info"),
+    ("operate", "operate"),
+    ("overview", "info"),
+    ("service", "service"),
+    ("oem", "oem"),
+)
+
+
+def gnmn_aus_oid(oid: str | None) -> str | None:
+    """`gn/mn` aus einer vollständigen OID `/1/<Knoten>/<Funktion>/<gn>/<mn>/<idx>`."""
+    teile = str(oid or "").strip("/").split("/")
+    return f"{teile[3]}/{teile[4]}" if len(teile) >= 5 else None
+
+
+def gelesene_ebenen(levels) -> list[str]:
+    """Die Listen der Datenbank, die zu den gewählten Ebenen gehören."""
+    return [*levels, "overview"] if "info" in levels else list(levels)
+
+
 # Rückgabe eines Abrufs, der die Anlage nicht erreicht hat. Zu unterscheiden
 # von ``None``: Das ist die Auskunft der Anlage, dass sie keinen Wert führt.
 FEHLGESCHLAGEN = object()

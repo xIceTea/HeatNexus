@@ -110,6 +110,16 @@ def test_select_schreibt_die_zahl_nicht_die_beschriftung(select_klasse):
     assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "0")]
 
 
+def test_eine_einstellung_mit_neustart_sagt_es_im_attribut(select_klasse):
+    entity, _ = _entitaet(select_klasse, {"/1/60/0/42/18/0": "1"}, type="select", neustart=True)
+    assert entity.extra_state_attributes == {"neustart_erforderlich": True}
+
+
+def test_eine_gewoehnliche_einstellung_traegt_kein_neustart_attribut(select_klasse):
+    entity, _ = _entitaet(select_klasse, {"/1/60/0/9/75/0": "1"}, type="select")
+    assert not entity.extra_state_attributes
+
+
 def test_select_haelt_die_luecken_im_enum_aus(select_klasse):
     """Betriebswahl Puffer (20/15) kennt keinen Wert 5.
 

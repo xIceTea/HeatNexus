@@ -75,6 +75,20 @@ def test_text_bleibt_text_auch_mit_wert(client_module):
     assert _resolve(client_module, meta) == "string_sensor"
 
 
+def test_programm_laut_herstellerliste_trotz_unbekanntem_subtyp(client_module):
+    """Der Hersteller führt `3/61` am Infinity-Heizkreis als Objekt."""
+    meta = {"writeProt": False, "typeId": 30, "subtypeId": 17, "value": ""}
+    beschreibung = {"oid": "/1/15/0/3/61/0", "fct_type": 1, "name": "Programm 1"}
+    assert _resolve(client_module, meta, beschreibung) == "time_program"
+
+
+def test_ohne_herstellereintrag_bleibt_der_unbekannte_subtyp_text(client_module):
+    """Gegenprobe: Dieselbe Antwort an einer Adresse, die kein Objekt ist."""
+    meta = {"writeProt": False, "typeId": 30, "subtypeId": 17, "value": ""}
+    beschreibung = {"oid": "/1/15/0/0/1/0", "fct_type": 1, "name": "Raumtemperatur"}
+    assert _resolve(client_module, meta, beschreibung) == "string_sensor"
+
+
 def test_schaltzustand_wird_ja_nein_sensor(client_module):
     """Bereich 0…1 ohne Einheit: ein Ausgang, der nur schaltet."""
     meta = {"writeProt": True, "typeId": 1, "minValue": "0", "maxValue": "1", "value": "0"}

@@ -19,6 +19,7 @@ from ..const import (
     MENU_PAGE_SIZE,
 )
 from ..device_db import get_layers
+from .gemeinsam import gelesene_ebenen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -210,7 +211,7 @@ class MenuesMixin:
             return {}
 
         layers = get_layers(fct_type) or {}
-        interessant = {g for lvl in self.levels for g in layers.get(lvl, [])}
+        interessant = {g for lvl in gelesene_ebenen(self.levels) for g in layers.get(lvl, [])}
         # Kuratierte Datenpunkte und bekannte Ausnahmen zählen immer dazu.
         interessant.update(
             d["oid"].strip("/").rsplit("/", 1)[0] for d in FCT_ENTITY_MAP.get(fct_type, [])

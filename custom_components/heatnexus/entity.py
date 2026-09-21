@@ -290,6 +290,8 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
             category = None
         if category in CATEGORY_MAP:
             self._attr_entity_category = CATEGORY_MAP[category]
+        if device_info.get("neustart"):
+            self._attr_extra_state_attributes = {"neustart_erforderlich": True}
         self._attr_device_info = geraet_info(coordinator, device_info)
 
     # Zeitprogramme werden über den object-Endpunkt gelesen, nicht über das

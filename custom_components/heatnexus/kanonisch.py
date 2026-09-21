@@ -176,6 +176,7 @@ ZUSATZ_SCHLUESSEL: dict[str, str] = {
     "schaltpunkt": "switch_point",
     "heute": "today",
     "start": "since_start",
+    "zuruecksetzen": "reset",
 }
 
 

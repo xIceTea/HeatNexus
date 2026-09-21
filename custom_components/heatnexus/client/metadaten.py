@@ -21,11 +21,17 @@ from ..const import (
     SYSTEMZEIT_NAMEN,
 )
 from ..const import ENUMS as ENUMS_FALLBACK
-from ..device_db import get_conditions, get_enum
+from ..device_db import get_conditions, get_enum, get_neustart, get_programme
 from ..helpers import READONLY_FALLBACK, lesetyp, messgroesse
 from ..kanonisch import ist_ableitung
+from .gemeinsam import gnmn_aus_oid
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _herstellerprogramm(d: dict) -> bool:
+    """Ob der Hersteller die Adresse dieses Datenpunkts als Zeitprogramm führt."""
+    return gnmn_aus_oid(d.get("oid")) in get_programme(d.get("fct_type"))
 
 
 class MetadatenMixin:
@@ -200,6 +206,7 @@ class MetadatenMixin:
             kept.append(d)
         self.devices = kept
         self.oids -= missing
+        self._neustart_markieren()
         self._rollen_filter(meta)
         # Erst die Doppelten heraus, dann der Fühlertest: Er kostet eine Anfrage
         # je Netzwerkvariable, und was ein Datenpunkt schon führt, wird nicht
@@ -215,12 +222,19 @@ class MetadatenMixin:
             self._schaltpunkte(meta)
             self._verbraucherabstand(meta)
             self._laufzeit()
+            self._ruecksetztasten(meta)
             self._namen_vereindeutigen()
         finally:
             self._zusatz_lauft = False
         # Erst nach dem letzten Schritt: Bricht einer ab, bleibt die alte
         # Liste stehen statt einer halben.
         self.zusatzkandidaten = self._zusatz_neu
+
+    def _neustart_markieren(self) -> None:
+        """Einstellungen markieren, deren Änderung die Steuerung neu startet."""
+        for d in self.devices:
+            if gnmn_aus_oid(d.get("oid")) in get_neustart(d.get("fct_type")):
+                d["neustart"] = True
 
     @staticmethod
     def _resolve_auto_type(d: dict, m: dict) -> str | None:
@@ -235,7 +249,9 @@ class MetadatenMixin:
             return "time" if writable else "string_sensor"
         if isinstance(value, str) and _re.fullmatch(r"\d{2}\.\d{2}\.\d{4}", value):
             return "date" if writable else "string_sensor"
-        if m.get("typeId") == 30 and ("value" not in m or m.get("subtypeId") == 14):
+        if m.get("typeId") == 30 and (
+            "value" not in m or m.get("subtypeId") == 14 or _herstellerprogramm(d)
+        ):
             # `typeId 30` heißt „über den object-Endpunkt lesen"; erst
             # `subtypeId` sagt was: 9 Text, 10 Funktionsliste (unlesbar), 14
             # Zeitprogramm – auch wo die Baureihe ein leeres `value` mitschickt.

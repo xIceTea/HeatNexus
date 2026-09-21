@@ -19,6 +19,9 @@ from ..const import (
     TAGESZAEHLER,
     VERBRAUCHER_ABSTAND,
 )
+from ..device_db import get_ruecksetzwerte
+from ..kanonisch import ist_ableitung
+from .gemeinsam import gnmn_aus_oid
 
 
 class AbleitungenMixin:
@@ -247,6 +250,31 @@ class AbleitungenMixin:
             if (d.get("device_id"), TAGESZAEHLER.get(kennung)) not in vom_geraet:
                 neu.append(self._ableitung(d, "heute", "zaehler_heute", "heute", **gemeinsam))
         self._zusatzwerte_uebernehmen(neu)
+
+    def _ruecksetztasten(self, meta: dict) -> None:
+        """Eine Taste je rücksetzbarem Zähler, wie der Hersteller sie anbietet.
+
+        Abgeschaltet angelegt: Ein Rücksetzen löscht den Zählerstand endgültig.
+        """
+        neu = []
+        for d in self.devices:
+            if d.get("type") == "button" or ist_ableitung(d.get("id")):
+                continue
+            wert = get_ruecksetzwerte(d.get("fct_type")).get(gnmn_aus_oid(d.get("oid")))
+            if wert is None or (meta.get(d.get("oid")) or {}).get("writeProt") is not False:
+                continue
+            neu.append(
+                self._ableitung(
+                    d,
+                    "zuruecksetzen",
+                    "button",
+                    "zurücksetzen",
+                    press_value=wert,
+                    category="config",
+                    icon="mdi:counter",
+                )
+            )
+        self.devices += neu
 
     def _laufzeit(self) -> None:
         """Wie lange das Aggregat läuft – aus dem Zustand, nicht aus Stunden.

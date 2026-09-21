@@ -14,9 +14,9 @@ from xml.etree import ElementTree
 
 from .. import geraete, geraetetexte
 from ..const import ADVANCED_LEVELS, EXTRA_OIDS_BY_FCT, FCT_CLIMATE, FCT_ENTITY_MAP, FCT_NV
-from ..device_db import get_enum, get_layers, get_name
+from ..device_db import get_enum, get_layers, get_name, get_programme
 from ..helpers import messgroesse
-from .gemeinsam import MELDUNGS_SENSOREN
+from .gemeinsam import EBENENFOLGE, MELDUNGS_SENSOREN, gelesene_ebenen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +50,8 @@ DESKRIPTOR_VORGABE: dict = {
     "ein_wert": None,
     "aus_wert": None,
     "write_prot": None,
+    # Eine Änderung startet die Steuerung neu (Merkmal `restart` des Herstellers).
+    "neustart": None,
     "nv_name": None,
     # Abruftakt, wo die Einstufung nach Art und Name danebenliegt: Ein
     # Eingriff in die Betriebswahl ist ein Stellwert und zugleich der
@@ -385,8 +387,8 @@ class ErkennungMixin:
                 # an der Serviceebene *und* an der Werksebene. Es gilt die
                 # zugänglichste, sonst verschluckt die Werksebene sie alle.
                 level_of: dict[str, str] = {}
-                for level in ("info", "operate", "service", "oem"):
-                    for gnmn in layers.get(level, []):
+                for liste, level in EBENENFOLGE:
+                    for gnmn in layers.get(liste, []):
                         level_of.setdefault(gnmn, level)
                 # Bereichsnamen der Bedienebenen als Rückfall für Datenpunkte
                 # ohne eigenen Namen (z.B. "Zündung 39/4").
@@ -414,15 +416,19 @@ class ErkennungMixin:
                     # sitzt. Sie wird deshalb überall angeboten; wo es sie nicht
                     # gibt, antwortet die Anlage mit 404 oder 409 und die
                     # Metadatenabfrage wirft den Datenpunkt wieder heraus.
-                    for gnmn in (*EXTRA_OIDS_BY_FCT.get(fct_type, ()), *statisch):
+                    for gnmn in (
+                        *EXTRA_OIDS_BY_FCT.get(fct_type, ()),
+                        *statisch,
+                        *sorted(get_programme(fct_type)),
+                    ):
                         candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
                         ergaenzt.add(gnmn)
 
                 if not menu_data and not nur_kern:
                     # Ältere Firmware ohne Menüliste: auf die Datenbank
                     # zurückfallen und jeden Datenpunkt einzeln prüfen.
-                    for level in self.levels:
-                        for gnmn in layers.get(level, []):
+                    for liste in gelesene_ebenen(self.levels):
+                        for gnmn in layers.get(liste, []):
                             candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
 
                 for oid, gnmn in candidates.items():
