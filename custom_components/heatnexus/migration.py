@@ -131,7 +131,7 @@ def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
         teile = [geraetename]
         if eintrag.original_name:
             teile.append(eintrag.original_name)
-        # `async_generate_entity_id` ist seit HA 2027.2 abgekündigt; die neue
+        # `async_generate_entity_id` ist abgekündigt und entfällt mit HA 2027.2; die neue
         # Funktion heißt anders und gibt es in älteren Fassungen noch nicht.
         # Deshalb erst die neue versuchen, dann die alte.
         vorschlag = _freie_kennung(registry, eintrag, " ".join(t for t in teile if t))
