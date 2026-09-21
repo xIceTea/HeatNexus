@@ -30,6 +30,7 @@ from .device_db import get_enum
 from .error_texts import parse_messages
 from .helpers import parse_value
 from .lon import ungueltig as lon_ungueltig
+from .registrierung import uebergeordnet
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -182,7 +183,7 @@ def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
         # den Funktionstyp nicht, nennt die Anlage selbst die Werksbezeichnung
         # ihres Bausteins – für fremde Baureihen die einzige belastbare Angabe.
         model=FCT_MODELL.get(fct_type) or _werksbezeichnung(coordinator, beschreibung) or funktion,
-        via_device=(DOMAIN, steuerung_kennung(coordinator)),
+        **steuerung_verweis(coordinator),
     )
     if seriennummer := _seriennummer(coordinator, beschreibung):
         info["serial_number"] = seriennummer
@@ -222,6 +223,16 @@ def steuerung_kennung(coordinator: Any) -> str:
     if callable(eigene) and (kennung := eigene()):
         return kennung
     return f"{coordinator.entry.entry_id}_{coordinator.host}"
+
+
+def steuerung_verweis(coordinator: Any) -> dict[str, Any]:
+    """Der Verweis eines Anlagenteils auf seine Steuerung, für die Geräteangaben."""
+    eintrag = getattr(coordinator, "entry", None)
+    return uebergeordnet(
+        getattr(coordinator, "hass", None),
+        steuerung_kennung(coordinator),
+        getattr(eintrag, "entry_id", ""),
+    )
 
 
 class MeldungsQuelle:

@@ -66,6 +66,7 @@ from .migration import (
     geraetenamen_angleichen,
     steuerung_umstellen,
 )
+from .registrierung import uebergeordnet
 from .stilllegung import (
     abgewaehlte_entitaeten_stilllegen,
     abwahl_im_stand,
@@ -327,13 +328,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         alte_kennung = f"{entry.entry_id}_{host}"
         kennung = steuerung_kennung(coordinator)
         if kennung != alte_kennung:
-            steuerung_umstellen(registry, alte_kennung, kennung)
+            steuerung_umstellen(registry, entry.entry_id, alte_kennung, kennung)
         registry.async_get_or_create(
             config_entry_id=entry.entry_id,
             identifiers={(DOMAIN, kennung)},
             name=label,
             manufacturer="Windhager",
-            via_device=(DOMAIN, entry.entry_id),
+            **uebergeordnet(hass, entry.entry_id, entry.entry_id),
             **steuerung_info(coordinator),
         )
 

@@ -909,6 +909,7 @@ def _anlage_ins_register(hass) -> None:
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
     from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.registrierung import uebergeordnet
 
     eintrag = MockConfigEntry(domain=DOMAIN, entry_id="pruefeintrag", data={}, options={})
     eintrag.add_to_hass(hass)
@@ -922,7 +923,7 @@ def _anlage_ins_register(hass) -> None:
         config_entry_id=eintrag.entry_id,
         identifiers={(DOMAIN, "SN1-3-0")},
         name="Beispielhaus · Musterkessel",
-        via_device=(DOMAIN, "SN1"),
+        **uebergeordnet(hass, "SN1", eintrag.entry_id),
     )
     registry = er.async_get(hass)
     entitaet = registry.async_get_or_create(

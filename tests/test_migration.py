@@ -114,6 +114,7 @@ def test_geraet_wird_umbenannt_nicht_neu_angelegt(migration, hass):
     from homeassistant.helpers import device_registry as dr
 
     from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.registrierung import geraet_suchen
 
     eintrag = _config_entry(hass)
     registry = dr.async_get(hass)
@@ -125,14 +126,14 @@ def test_geraet_wird_umbenannt_nicht_neu_angelegt(migration, hass):
     vorher = geraet.id
 
     anzahl = migration._geraete_umstellen(
-        hass, [_beschreibung("192-168-178-100-1-60-0", "SN1-3-0", "x", "y")]
+        hass, eintrag.entry_id, [_beschreibung("192-168-178-100-1-60-0", "SN1-3-0", "x", "y")]
     )
 
     assert anzahl == 1
-    nachher = registry.async_get_device(identifiers={(DOMAIN, "SN1-3-0")})
+    nachher = geraet_suchen(registry, "SN1-3-0", eintrag.entry_id)
     assert nachher is not None
     assert nachher.id == vorher, "Das Gerät wurde ersetzt statt umbenannt"
-    assert registry.async_get_device(identifiers={(DOMAIN, "192-168-178-100-1-60-0")}) is None
+    assert geraet_suchen(registry, "192-168-178-100-1-60-0", eintrag.entry_id) is None
 
 
 def test_zweiter_lauf_stellt_nichts_mehr_um(migration, hass):
@@ -149,8 +150,8 @@ def test_zweiter_lauf_stellt_nichts_mehr_um(migration, hass):
     )
     beschreibungen = [_beschreibung("192-168-178-100-1-60-0", "SN1-3-0", "x", "y")]
 
-    assert migration._geraete_umstellen(hass, beschreibungen) == 1
-    assert migration._geraete_umstellen(hass, beschreibungen) == 0
+    assert migration._geraete_umstellen(hass, eintrag.entry_id, beschreibungen) == 1
+    assert migration._geraete_umstellen(hass, eintrag.entry_id, beschreibungen) == 0
 
 
 def test_belegtes_ziel_bleibt_unangetastet(migration, hass):
@@ -162,6 +163,7 @@ def test_belegtes_ziel_bleibt_unangetastet(migration, hass):
     from homeassistant.helpers import device_registry as dr
 
     from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.registrierung import geraet_suchen
 
     eintrag = _config_entry(hass)
     registry = dr.async_get(hass)
@@ -178,16 +180,20 @@ def test_belegtes_ziel_bleibt_unangetastet(migration, hass):
 
     assert (
         migration._geraete_umstellen(
-            hass, [_beschreibung("192-168-178-100-1-60-0", "SN1-3-0", "x", "y")]
+            hass,
+            eintrag.entry_id,
+            [_beschreibung("192-168-178-100-1-60-0", "SN1-3-0", "x", "y")],
         )
         == 0
     )
-    assert registry.async_get_device(identifiers={(DOMAIN, "192-168-178-100-1-60-0")}) is not None
+    assert geraet_suchen(registry, "192-168-178-100-1-60-0", eintrag.entry_id) is not None
 
 
 def test_gleiche_kennung_ist_kein_paar(migration, hass):
     """Alt und neu identisch heißt: nichts zu tun."""
-    assert migration._geraete_umstellen(hass, [_beschreibung("SN1-3-0", "SN1-3-0", "x", "y")]) == 0
+    assert (
+        migration._geraete_umstellen(hass, "", [_beschreibung("SN1-3-0", "SN1-3-0", "x", "y")]) == 0
+    )
 
 
 # ---------------------------------------------------------------------------

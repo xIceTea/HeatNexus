@@ -16,7 +16,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import bedingung
 from .const import DOMAIN, QUELLEN_ARTEN, QUELLEN_MAX, SUBEINTRAG_QUELLE
-from .entity import steuerung_kennung
+from .entity import steuerung_kennung, steuerung_verweis
 
 TYP = SUBEINTRAG_QUELLE
 
@@ -164,7 +164,7 @@ def geraet_info(coordinator: Any, beschreibung: dict[str, Any]) -> DeviceInfo:
         identifiers={(DOMAIN, beschreibung["id"])},
         name=f"{steuerung} · {name}" if steuerung else name,
         model=QUELLEN_ARTEN.get(art, art),
-        via_device=(DOMAIN, steuerung_kennung(coordinator)),
+        **steuerung_verweis(coordinator),
     )
 
 

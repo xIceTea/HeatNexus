@@ -26,6 +26,7 @@ from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN
 from .entity import steuerung_kennung
+from .registrierung import geraet_suchen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,7 +43,9 @@ def _beschreibungen(coordinators: dict) -> list[dict[str, Any]]:
     ]
 
 
-def _geraete_umstellen(hass: HomeAssistant, beschreibungen: list[dict[str, Any]]) -> int:
+def _geraete_umstellen(
+    hass: HomeAssistant, entry_id: str, beschreibungen: list[dict[str, Any]]
+) -> int:
     """Gerätekennungen von der Adresse auf die Seriennummer umstellen."""
     registry = dr.async_get(hass)
     paare = {
@@ -53,10 +56,10 @@ def _geraete_umstellen(hass: HomeAssistant, beschreibungen: list[dict[str, Any]]
 
     umgestellt = 0
     for alt, neu in paare.items():
-        geraet = registry.async_get_device(identifiers={(DOMAIN, alt)})
+        geraet = geraet_suchen(registry, alt, entry_id)
         if geraet is None:
             continue
-        if registry.async_get_device(identifiers={(DOMAIN, neu)}) is not None:
+        if geraet_suchen(registry, neu, entry_id) is not None:
             # Das Ziel gibt es schon – dann ist die Umstellung gelaufen und
             # dies hier ein Überbleibsel.
             continue
@@ -157,7 +160,7 @@ def async_kennungen_umstellen(hass: HomeAssistant, entry: ConfigEntry, coordinat
     if not beschreibungen:
         return
 
-    geraete = _geraete_umstellen(hass, beschreibungen)
+    geraete = _geraete_umstellen(hass, entry.entry_id, beschreibungen)
     entitaeten = _entitaeten_umstellen(hass, entry, beschreibungen)
     if geraete or entitaeten:
         _LOGGER.info(
@@ -178,10 +181,10 @@ def async_entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> None:
         )
 
 
-def steuerung_umstellen(registry, alt: str, neu: str) -> None:
+def steuerung_umstellen(registry, entry_id: str, alt: str, neu: str) -> None:
     """Die Kennung des Steuerungs-Geräts auf die Seriennummer umschreiben."""
-    geraet = registry.async_get_device(identifiers={(DOMAIN, alt)})
-    if geraet is None or registry.async_get_device(identifiers={(DOMAIN, neu)}) is not None:
+    geraet = geraet_suchen(registry, alt, entry_id)
+    if geraet is None or geraet_suchen(registry, neu, entry_id) is not None:
         return
     kennungen = {i for i in geraet.identifiers if i != (DOMAIN, alt)}
     kennungen.add((DOMAIN, neu))
@@ -196,15 +199,13 @@ def geraetenamen_angleichen(registry, entry: ConfigEntry, coordinators: dict) ->
     Eine eigene Umbenennung durch den Nutzer bleibt unangetastet.
     """
     for coordinator in coordinators.values():
-        steuerung = registry.async_get_device(
-            identifiers={(DOMAIN, steuerung_kennung(coordinator))}
-        )
+        steuerung = geraet_suchen(registry, steuerung_kennung(coordinator), entry.entry_id)
         for beschreibung in (coordinator.data or {}).get("devices", []):
             kennung = beschreibung.get("device_id")
             funktion = (beschreibung.get("device_name") or "").strip()
             if not kennung or not funktion:
                 continue
-            geraet = registry.async_get_device(identifiers={(DOMAIN, kennung)})
+            geraet = geraet_suchen(registry, kennung, entry.entry_id)
             if geraet is None:
                 continue
             gewuenscht = f"{coordinator.label} · {funktion}"

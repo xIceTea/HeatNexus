@@ -26,6 +26,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Automatikkessel erscheint im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
 - Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
 - Dashboard, Panel und Schaubild-Karte laden auch bei ungewöhnlichen Gerätekennungen anderer Integrationen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
+- Unter Home Assistant 2026.9 erscheint keine Warnung zur Gerätesuche mehr ([#12](https://github.com/xIceTea/HeatNexus/issues/12)).
 
 ## [1.13.0-beta.1] - 2026-09-21
 
@@ -47,6 +48,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Automatikkessel erscheint im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
 - Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
 - Dashboard, Panel und Schaubild-Karte laden auch bei ungewöhnlichen Gerätekennungen anderer Integrationen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
+- Unter Home Assistant 2026.9 erscheint keine Warnung zur Gerätesuche mehr ([#12](https://github.com/xIceTea/HeatNexus/issues/12)).
 - Die Kacheln treffen Reinigung, Wartung und Kaminkehrer unabhängig vom Namen.
 - Die Laufräder der Pumpen drehen am Telefon rund.
 - Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.

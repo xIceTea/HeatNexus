@@ -350,7 +350,15 @@ async def test_eine_schwelle_traegt_keine_zustaende(hass):
 
 async def test_das_geraet_einer_quelle_haengt_nur_am_subeintrag(hass):
     """Zwei Zuordnungen zeigen dasselbe Gerät zweimal in der Übersicht."""
+    import inspect
+
     from homeassistant.helpers import device_registry as dr
+
+    if (
+        "new_config_subentry_id"
+        in inspect.signature(dr.DeviceRegistry.async_update_device).parameters
+    ):
+        pytest.skip("Ab Home Assistant 2026.9 gehört ein Gerät genau einem Subeintrag")
 
     from custom_components.heatnexus import async_migrate_entry, waermequelle
     from custom_components.heatnexus.const import CONF_QUELLEN, DOMAIN, SUBEINTRAG_QUELLE

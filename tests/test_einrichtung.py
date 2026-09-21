@@ -213,7 +213,7 @@ async def test_die_einrichtung_gelingt_und_legt_die_geraete_an(hass, eintrag):
     registry = dr.async_get(hass)
     kennungen = {
         wert
-        for geraet in registry.devices.values()
+        for geraet in dr.async_entries_for_config_entry(registry, eintrag.entry_id)
         for bereich, wert in geraet.identifiers
         if bereich == DOMAIN
     }
@@ -222,6 +222,22 @@ async def test_die_einrichtung_gelingt_und_legt_die_geraete_an(hass, eintrag):
     assert eintrag.entry_id in kennungen
     assert "0000ABCD1234" in kennungen
     assert "0000ABCD1234-0" in kennungen
+
+
+async def test_die_geraete_haengen_untereinander(hass, eintrag):
+    """Die Funktion hängt an der Steuerung, die Steuerung an der Anlage."""
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.heatnexus.registrierung import geraet_suchen
+
+    assert await _einrichten(hass, eintrag) is True
+
+    registry = dr.async_get(hass)
+    anlage = geraet_suchen(registry, eintrag.entry_id, eintrag.entry_id)
+    steuerung = geraet_suchen(registry, "0000ABCD1234", eintrag.entry_id)
+    funktion = geraet_suchen(registry, "0000ABCD1234-0", eintrag.entry_id)
+    assert steuerung.via_device_id == anlage.id
+    assert funktion.via_device_id == steuerung.id
 
 
 async def test_jede_art_bekommt_die_domaene_ihrer_plattform(hass, eintrag):

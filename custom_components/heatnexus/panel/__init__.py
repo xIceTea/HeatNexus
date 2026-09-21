@@ -53,6 +53,7 @@ from ..const import (
 )
 from ..dashboard.anlagen import anlagen_lesen
 from ..entity import steuerung_kennung
+from ..registrierung import geraet_suchen
 from ..texte import uebersetze_baum, woerterbuch
 from . import marken as markenmodul
 from .daten import _anlage_daten, _erster
@@ -133,7 +134,7 @@ def _marken_je_anlage(
             gewaehlt = optionen.get(CONF_MARKEN) or []
             if not gewaehlt:
                 continue
-            geraet = geraete.async_get_device({(DOMAIN, steuerung_kennung(coordinator))})
+            geraet = geraet_suchen(geraete, steuerung_kennung(coordinator), eintrag.entry_id)
             if geraet is None:
                 continue
             im_status = set(optionen.get(CONF_MARKEN_STATUS) or [])
