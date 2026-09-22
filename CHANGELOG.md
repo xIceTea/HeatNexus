@@ -16,7 +16,7 @@ wenn dort Vorabversionen zugelassen sind.
 - „Automatisch" folgt der Sprache von Home Assistant; die Datenpunktnamen bleiben deutsch.
 - Für den Brennstoffzähler seit Befüllung gibt es eine Taste zum Zurücksetzen.
 - Einstellungen, die einen Neustart der Steuerung auslösen, tragen das Attribut `neustart_erforderlich`.
-- Das gerade gültige Zeitprogramm trägt einen Rahmen in der Akzentfarbe.
+- Das gerade gültige Zeitprogramm trägt einen Rahmen in der Akzentfarbe und die Marke „aktiv“.
 
 ### Geändert
 
@@ -32,10 +32,11 @@ wenn dort Vorabversionen zugelassen sind.
 - Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
 - Dashboard, Panel und Schaubild-Karte laden auch bei ungewöhnlichen Gerätekennungen anderer Integrationen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
 - Unter Home Assistant 2026.9 erscheint keine Warnung zur Gerätesuche mehr ([#12](https://github.com/xIceTea/HeatNexus/issues/12)).
-- Nach einer geänderten Betriebswahl erscheinen Sollwert und Restzeit sofort.
+- Nach einer geänderten Betriebswahl zeigt der Sollwert „lädt …“, bis der neue Wert vorliegt.
 - Eco und Comfort erscheinen wieder im Reiter Steuerung.
 - Die Kacheln für Reinigung, Wartung und Kaminkehrer funktionieren auch bei abweichenden Datenpunktnamen.
 - Die Sonde kennzeichnet einen fehlgeschlagenen Vollabzug im Dateinamen.
+- Das Laufrad im Schaubild dreht sich ohne Bildreste.
 
 ## [1.12.0] - 2026-09-13
 
