@@ -270,11 +270,13 @@ export const STIL = `
     padding: 14px 16px;
   }
   .karte + .karte { margin-top: 16px; }
-  /* Das Programm, nach dem die Anlage gerade faehrt. Nur getoente Flaeche und
-     Rand, keine zweite Schriftfarbe: Die Karte soll auffallen, nicht schreien. */
+  /* Das Programm, nach dem die Anlage gerade faehrt. Voller Akzentrahmen und
+     ein Balken an der Kante; der Ring liegt als Schatten aussen an, damit die
+     Karte nicht um einen Punkt springt. Nicht Rot: Das heisst hier Stoerung. */
   .karte.aktiv {
-    background: color-mix(in srgb, var(--hn-akzent) 10%, var(--hn-karte));
-    border-color: color-mix(in srgb, var(--hn-akzent) 45%, transparent);
+    background: color-mix(in srgb, var(--hn-akzent) 12%, var(--hn-karte));
+    border-color: var(--hn-akzent);
+    box-shadow: inset 5px 0 0 0 var(--hn-akzent), 0 0 0 1px var(--hn-akzent);
   }
   .kartenkopf { display: flex; align-items: center; gap: 8px; }
   .kartenkopf h2 { flex: 1; }

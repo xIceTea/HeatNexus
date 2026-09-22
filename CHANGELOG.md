@@ -14,7 +14,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Werte der Übersicht im Windhager-Portal erscheinen auch ohne freigeschaltete Serviceebene.
 - Zeitprogramme weiterer Baureihen werden erkannt, auch wenn das Menü der Steuerung sie nicht aufführt.
 - Für den Brennstoffzähler seit Befüllung gibt es eine Taste zum Zurücksetzen.
-- Das gerade gültige Zeitprogramm des Heizkreises ist farblich hervorgehoben.
+- Das gerade gültige Zeitprogramm trägt einen Rahmen in der Akzentfarbe.
 
 ### Geändert
 
