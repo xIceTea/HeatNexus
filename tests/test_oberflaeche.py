@@ -94,7 +94,7 @@ def aufteilung() -> dict:
             _entitaet("sensor.warmwasser_ist", "Warmwasser Ist-Temperatur"),
             _entitaet("sensor.programm_1", "Programm 1", adresse="3/61"),
             _entitaet("sensor.programm_2", "Programm 2", adresse="3/62"),
-            _entitaet("sensor.ww_programm", "WW-Programm"),
+            _entitaet("sensor.ww_programm", "WW-Programm", adresse="5/61"),
             _entitaet("select.betriebswahl", "Betriebswahl", adresse="3/50"),
             _entitaet("number.behaglichkeitskorrektur", "Behaglichkeitskorrektur"),
             _entitaet("number.dauer", "Dauer"),
@@ -281,7 +281,9 @@ def test_nach_der_betriebswahl_werden_die_verwandten_werte_gelesen(durchlauf):
 def test_das_aktive_zeitprogramm_hebt_sich_ab(durchlauf):
     """Vier gleich aussehende Karten sagen sonst nicht, welche gerade gilt."""
     aktiv = durchlauf["zeitprogramme"]["aktiveKarten"]
-    assert aktiv == ["Programm 1"], aktiv
+    # Betriebswahl „Programm 1": das Heizprogramm gilt, Warmwasser gilt immer
+    # außer auf Standby, Programm 2 gilt nicht.
+    assert aktiv == ["Programm 1", "WW-Programm"], aktiv
 
 
 def test_ausserhalb_der_zeitprogramme_hebt_sich_keine_karte_ab(durchlauf):

@@ -232,6 +232,7 @@
   "Wirkt erst, wenn die Betriebswahl auf „Auto mit Zeitprogramm“ steht.": "Takes effect only when the operating mode is „Auto with time program“.",
   "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Temperatursteuerung“ steht.": "Takes effect only when the circulation pump is „With temperature control“.",
   "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ steht.": "Takes effect only when the circulation pump is „With time control“.",
+  "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.": "Has no effect while the operating mode is set to „Standby“.",
   "Wochenprogramm von Montag bis Sonntag. Tage lassen sich einzeln verwenden oder zu Blöcken zusammenfassen; je Tag oder Block sind bis zu sechs Schaltzeiten mit je einem Temperaturwert möglich.": "Weekly program from Monday to Sunday. Days can be used individually or combined into blocks; per day or block up to six switching times with one temperature value each are possible.",
   "Wurde die Hauptreinigung durchgeführt und wurden die Aschetonnen entleert? Die Anlage setzt beide Zähler zurück.": "Was the main cleaning carried out and were the ash bins emptied? The system resets both counters.",
   "Wurde die Hauptreinigung durchgeführt? Die Anlage setzt den Zähler für die Hauptreinigung zurück.": "Was the main cleaning carried out? The system resets the counter for the main cleaning.",

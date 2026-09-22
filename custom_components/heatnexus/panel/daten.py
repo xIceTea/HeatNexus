@@ -510,17 +510,31 @@ def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
 # Betriebswahl `3/50` bietet dieselben drei unter ihren eigenen Namen an.
 HEIZPROGRAMM_ADRESSEN = ("3/61", "3/62", "3/63")
 
+# Das Warmwasserprogramm des Kreises.
+WW_PROGRAMM_ADRESSE = "5/61"
+
 
 def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str, str] | None:
-    """Ein Heizprogramm gilt nur, solange die Betriebswahl darauf steht.
+    """Woran hängt, ob ein Programm des Heizkreises gerade gilt.
 
-    Beide Namen stammen aus derselben Quelle und lauten deshalb gleich.
+    Ein Heizprogramm gilt, solange die Betriebswahl darauf steht; beide Namen
+    stammen aus derselben Quelle und lauten deshalb gleich.
     """
-    if programm.get("adresse") not in HEIZPROGRAMM_ADRESSEN:
+    adresse = programm.get("adresse")
+    if adresse not in (*HEIZPROGRAMM_ADRESSEN, WW_PROGRAMM_ADRESSE):
         return None
     wahl = _eintrag(teil["entitaeten"], BETRIEBSWAHL, ("select",), "mode_selection")
     if wahl is None:
         return None
+    if adresse == WW_PROGRAMM_ADRESSE:
+        # „WW-Betrieb" heißt nur Warmwasser, „Programm 1–3", „Heizbetrieb" und
+        # „Absenkbetrieb" heißen Heizung und Warmwasser. Übrig bleibt Standby,
+        # und dort nimmt der Kreis nicht einmal einen Ladebefehl an.
+        return {
+            "entity": wahl["entity_id"],
+            "muster_nicht": "standby",
+            "hinweis": "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.",
+        }
     name = programm.get("name") or ""
     return {
         "entity": wahl["entity_id"],

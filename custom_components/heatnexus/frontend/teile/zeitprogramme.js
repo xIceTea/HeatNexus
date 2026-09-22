@@ -76,7 +76,11 @@ export const ZeitprogrammeMixin = (Basis) =>
       this._bindungen.push(() => {
         const zustand = this._zustand(programm.wirkung.entity);
         const text = zustand ? String(zustand.state).toLowerCase() : "";
-        const gilt = text.includes(programm.wirkung.muster);
+        // Zwei Formen: Das Heizprogramm gilt bei *einer* Betriebswahl, das
+        // Warmwasserprogramm bei allen außer einer.
+        const gilt = programm.wirkung.muster_nicht
+          ? !text.includes(programm.wirkung.muster_nicht)
+          : text.includes(programm.wirkung.muster);
         hinweis.hidden = gilt;
         // Vier Programmkarten sehen einander gleich. Die eine, nach der die
         // Anlage gerade fährt, hebt sich deshalb ab.

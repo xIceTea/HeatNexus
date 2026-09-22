@@ -409,6 +409,28 @@ def test_ein_heizprogramm_nennt_seine_betriebswahl(panel):
     assert "Programm 2" in karte["wirkung"]["hinweis"]
 
 
+def test_das_ww_programm_gilt_ausserhalb_von_standby(panel):
+    """„WW-Betrieb" heißt nur Warmwasser, „Programm 1–3" Heizung und Warmwasser.
+
+    Übrig bleibt Standby: Dort nimmt der Kreis nicht einmal einen Ladebefehl an.
+    """
+    mit = anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [
+                entitaet("select.betriebswahl", "Betriebswahl", adresse="3/50"),
+                entitaet("sensor.ww_programm", "WW-Programm", adresse="5/61"),
+            ],
+        )
+    )
+    (karte,) = panel._anlage_daten(mit)["zeitprogramme"]
+
+    assert karte["wirkung"]["entity"] == "select.betriebswahl"
+    assert karte["wirkung"]["muster_nicht"] == "standby"
+    assert "Standby" in karte["wirkung"]["hinweis"]
+
+
 def test_ohne_betriebswahl_bleibt_das_heizprogramm_ohne_hinweis(panel):
     """Ohne den Datenpunkt ließe sich nicht sagen, wann das Programm greift."""
     ohne = anlage(
