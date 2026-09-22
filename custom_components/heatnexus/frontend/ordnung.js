@@ -73,7 +73,7 @@ export const NACHFASS_PLAN = [0, 4, 8, 12, 20, 30, 45, 60];
  * Wie lange der Sollwert nach einer Betriebswahl „lädt …" zeigt, höchstens.
  * Ändert er sich früher, erscheint der neue Wert sofort.
  */
-export const SOLLWERT_WARTEN_MS = 30 * 1000;
+export const SOLLWERT_WARTEN_MS = 45 * 1000;
 
 /**
  * Wie oft ein Abbruch nachgesetzt wird, den die Anlage überging.
