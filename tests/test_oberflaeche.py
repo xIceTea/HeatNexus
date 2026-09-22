@@ -92,9 +92,10 @@ def aufteilung() -> dict:
             _entitaet("sensor.raumtemperatur_ist", "Raumtemperatur Ist"),
             _entitaet("sensor.vorlauftemperatur_ist", "Vorlauftemperatur Ist"),
             _entitaet("sensor.warmwasser_ist", "Warmwasser Ist-Temperatur"),
-            _entitaet("sensor.programm_1", "Programm 1"),
+            _entitaet("sensor.programm_1", "Programm 1", adresse="3/61"),
+            _entitaet("sensor.programm_2", "Programm 2", adresse="3/62"),
             _entitaet("sensor.ww_programm", "WW-Programm"),
-            _entitaet("select.betriebswahl", "Betriebswahl"),
+            _entitaet("select.betriebswahl", "Betriebswahl", adresse="3/50"),
             _entitaet("number.behaglichkeitskorrektur", "Behaglichkeitskorrektur"),
             _entitaet("number.dauer", "Dauer"),
             _entitaet("number.temperatur", "Temperatur"),
@@ -275,6 +276,17 @@ def test_nach_der_betriebswahl_werden_die_verwandten_werte_gelesen(durchlauf):
     nachgefasst = [a for a in aufrufe if a["dienst"] == "homeassistant.update_entity"]
     assert nachgefasst, "Nach der Auswahl wird nichts nachgelesen"
     assert "climate.heizkreis" in nachgefasst[0]["entitaeten"]
+
+
+def test_das_aktive_zeitprogramm_hebt_sich_ab(durchlauf):
+    """Vier gleich aussehende Karten sagen sonst nicht, welche gerade gilt."""
+    aktiv = durchlauf["zeitprogramme"]["aktiveKarten"]
+    assert aktiv == ["Programm 1"], aktiv
+
+
+def test_ausserhalb_der_zeitprogramme_hebt_sich_keine_karte_ab(durchlauf):
+    """Die Hervorhebung gilt dem Programm, nicht jeder Karte mit einem Hinweis."""
+    assert durchlauf["uebersicht"]["aktiveKarten"] == []
 
 
 def test_das_nachfassen_reicht_ueber_eine_minute(durchlauf):

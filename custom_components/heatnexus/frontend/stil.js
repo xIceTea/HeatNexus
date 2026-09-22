@@ -270,6 +270,12 @@ export const STIL = `
     padding: 14px 16px;
   }
   .karte + .karte { margin-top: 16px; }
+  /* Das Programm, nach dem die Anlage gerade faehrt. Nur getoente Flaeche und
+     Rand, keine zweite Schriftfarbe: Die Karte soll auffallen, nicht schreien. */
+  .karte.aktiv {
+    background: color-mix(in srgb, var(--hn-akzent) 10%, var(--hn-karte));
+    border-color: color-mix(in srgb, var(--hn-akzent) 45%, transparent);
+  }
   .kartenkopf { display: flex; align-items: center; gap: 8px; }
   .kartenkopf h2 { flex: 1; }
   .fragezeichen {

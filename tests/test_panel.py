@@ -384,6 +384,45 @@ def test_wartung_trennt_restlaufzeit_von_zaehler(panel):
 # ---------------------------------------------------------------------------
 # Zeitprogramme
 # ---------------------------------------------------------------------------
+def _kreis_mit_programmen():
+    return anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [
+                entitaet("climate.umlz", "UMLZ HEIZKREIS"),
+                entitaet("select.betriebswahl", "Betriebswahl", adresse="3/50"),
+                entitaet("sensor.programm_2", "Programm 2", adresse="3/62"),
+                entitaet("sensor.programm_3", "Programm 3", adresse="3/63"),
+            ],
+        )
+    )
+
+
+def test_ein_heizprogramm_nennt_seine_betriebswahl(panel):
+    """Sonst sieht man der Karte nicht an, ob dieses Programm gerade gilt."""
+    programme = panel._anlage_daten(_kreis_mit_programmen())["zeitprogramme"]
+    karte = next(p for p in programme if p["titel"] == "Programm 2")
+
+    assert karte["wirkung"]["entity"] == "select.betriebswahl"
+    assert karte["wirkung"]["muster"] == "programm 2"
+    assert "Programm 2" in karte["wirkung"]["hinweis"]
+
+
+def test_ohne_betriebswahl_bleibt_das_heizprogramm_ohne_hinweis(panel):
+    """Ohne den Datenpunkt ließe sich nicht sagen, wann das Programm greift."""
+    ohne = anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [entitaet("sensor.programm_2", "Programm 2", adresse="3/62")],
+        )
+    )
+    (karte,) = panel._anlage_daten(ohne)["zeitprogramme"]
+
+    assert "wirkung" not in karte
+
+
 def test_zeitprogramme_tragen_ihren_anlagenteil(panel):
     """Zwei Anlagen melden gleich benannte Programme.
 

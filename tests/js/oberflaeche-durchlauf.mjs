@@ -112,6 +112,10 @@ const flaeche = new klasse();
 flaeche.hass = hass;
 flaeche.panel = { config: { daten } };
 
+// Die Betriebswahl steht auf einem der Programme – genau dessen Karte soll
+// sich im Reiter Zeitprogramme abheben.
+if (states["select.betriebswahl"]) states["select.betriebswahl"].state = "Programm 1";
+
 const bilanz = {};
 const REITER = ["uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme"];
 REITER.forEach((reiter) => {
@@ -126,6 +130,15 @@ REITER.forEach((reiter) => {
       String(kopf.textContent || "").trim()
     ),
     bindungen: flaeche._bindungen.length,
+    // Die hervorgehobene Karte: das Programm, auf dem die Betriebswahl steht.
+    // Einfache Wähler, keine zusammengesetzten – mehr kann die DOM-Attrappe nicht.
+    aktiveKarten: [...flaeche.shadowRoot.querySelectorAll(".karte")]
+      .filter((karte) => karte.classList.contains("aktiv"))
+      .map((karte) => {
+        // Die Überschrift, nicht den ganzen Kopf: daneben steht das Fragezeichen.
+        const ueberschrift = karte.querySelector("h2");
+        return ueberschrift ? String(ueberschrift.textContent || "").trim() : "";
+      }),
     zeilen: zeilen.length,
     versteckteZeilen: zeilen.filter((zeile) => zeile.hidden).length,
     // Statt zu verschwinden steht in der Zeile jetzt ein Strich.

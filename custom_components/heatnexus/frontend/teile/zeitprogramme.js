@@ -76,7 +76,11 @@ export const ZeitprogrammeMixin = (Basis) =>
       this._bindungen.push(() => {
         const zustand = this._zustand(programm.wirkung.entity);
         const text = zustand ? String(zustand.state).toLowerCase() : "";
-        hinweis.hidden = text.includes(programm.wirkung.muster);
+        const gilt = text.includes(programm.wirkung.muster);
+        hinweis.hidden = gilt;
+        // Vier Programmkarten sehen einander gleich. Die eine, nach der die
+        // Anlage gerade fährt, hebt sich deshalb ab.
+        karte.classList.toggle("aktiv", gilt);
         // **Die Anlage führt zwei Zirkulationsprogramme, eines je Steuerungsart.**
         // Steht die Pumpe auf der anderen, gehört dieses hier nicht auf die
         // Seite – es wirkt nicht und heißt genauso wie das, das wirkt.

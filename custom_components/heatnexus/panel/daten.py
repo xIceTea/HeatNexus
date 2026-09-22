@@ -506,6 +506,31 @@ def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
     }
 
 
+# Die drei Heizprogramme eines Kreises liegen auf `3/61` bis `3/63`, und die
+# Betriebswahl `3/50` bietet dieselben drei unter ihren eigenen Namen an.
+HEIZPROGRAMM_ADRESSEN = ("3/61", "3/62", "3/63")
+
+
+def _heizkreis_wirkung(
+    programm: dict[str, Any], teil: dict[str, Any]
+) -> dict[str, str] | None:
+    """Ein Heizprogramm gilt nur, solange die Betriebswahl darauf steht.
+
+    Beide Namen stammen aus derselben Quelle und lauten deshalb gleich.
+    """
+    if programm.get("adresse") not in HEIZPROGRAMM_ADRESSEN:
+        return None
+    wahl = _eintrag(teil["entitaeten"], BETRIEBSWAHL, ("select",), "mode_selection")
+    if wahl is None:
+        return None
+    name = programm.get("name") or ""
+    return {
+        "entity": wahl["entity_id"],
+        "muster": name.lower(),
+        "hinweis": f"Wirkt erst, wenn die Betriebswahl auf „{name}“ steht.",
+    }
+
+
 def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str, str] | None:
     """Der Datenpunkt, an dem hängt, ob ein Programm überhaupt etwas bewirkt.
 
@@ -524,9 +549,11 @@ def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str,
     bevor man die Steuerung umstellt.
     """
     if not _passt(programm["name"], ZIRKULATIONSPROGRAMM):
-        # Kein Zirkulationsprogramm – am Puffer entscheidet stattdessen seine
-        # eigene Betriebswahl, ob das Programm greift.
-        return _puffer_wirkung(teil) if teil.get("fct_type") == FCT_BUFFER else None
+        # Kein Zirkulationsprogramm – am Puffer entscheidet seine eigene
+        # Betriebswahl, am Heizkreis die des Kreises.
+        if teil.get("fct_type") == FCT_BUFFER:
+            return _puffer_wirkung(teil)
+        return _heizkreis_wirkung(programm, teil)
     pumpe = next(
         (
             e
