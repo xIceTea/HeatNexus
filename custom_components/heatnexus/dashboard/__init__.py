@@ -1,18 +1,8 @@
 """Mitgeliefertes Dashboard.
 
-Das Dashboard wird **in Home Assistant** aus der Geräte- und Entitätsliste
-gebaut und als fertige Lovelace-Konfiguration ausgeliefert. Es gibt weder
-eine Strategie-Datei im Browser noch feste Entitäts-IDs: Was die Anlage
-liefert, erscheint; was fehlt, entfällt.
-
-Der frühere Weg über eine JavaScript-Strategie hing daran, dass der Browser
-das Modul rechtzeitig geladen hatte. Nach einem Neustart oder einer
-Aktualisierung war das nicht der Fall und die Ansicht meldete nur
-"Timeout waiting for strategy element". Serverseitig gebaut entfällt diese
-ganze Fehlerquelle.
-
-Aufbau: Übersicht (nach Anlage gruppiert) – Wartung – Auswertung – je
-Anlagenteil eine Ansicht.
+Gebaut in Home Assistant aus Geräte- und Entitätsliste, ausgeliefert als fertige
+Lovelace-Konfiguration; kein Browsermodul, keine festen Entitäts-IDs. Ansichten:
+Übersicht, Wartung, Auswertung, je Anlagenteil eine.
 """
 
 from __future__ import annotations

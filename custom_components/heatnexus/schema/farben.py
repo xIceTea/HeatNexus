@@ -54,20 +54,9 @@ FARBEN: dict[str, str] = {
 FESTE_ROLLEN = ("vorlauf", "ruecklauf", "glut")
 
 
-# Derselbe Satz für eine helle Oberfläche.
-#
-# **Warum überhaupt zwei Sätze.** Das Schaubild steckt als `data:`-Adresse in
-# einem `<img>`; darin erbt es kein CSS, und das Erscheinungsbild des
-# Betrachters ist beim Zeichnen nicht bekannt. Auf hellem Grund verschwanden
-# die dunklen Gehäuse zwar nicht, aber Rahmen und Beschriftung wurden unlesbar
-# blass – sie waren für einen dunklen Hintergrund gerechnet.
-#
-# Umgesetzt wird der Wechsel als **Austausch der fertigen Farbwerte** im
-# gezeichneten Bild, nicht als zweiter Weg durch den Zeichencode: Jede Farbe
-# kommt aus genau diesem Satz und steht als eindeutige Zeichenfolge (`#e2543a`)
-# im Ergebnis. Ein zweiter Pfad durch elf Bauteildateien und zwanzig
-# Zeichenfunktionen wäre die Stelle, an der später einer von beiden vergessen
-# wird.
+# Derselbe Satz für eine helle Oberfläche. Das Schaubild als `data:`-Bild erbt
+# kein CSS; gewechselt wird deshalb durch Austausch der fertigen Farbwerte im
+# Ergebnis, nicht über einen zweiten Weg durch den Zeichencode.
 FARBEN_HELL: dict[str, str] = {
     "vorlauf": FARBE_VORLAUF,
     "ruecklauf": FARBE_RUECKLAUF,

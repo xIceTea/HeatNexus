@@ -162,11 +162,9 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
         # Abruf; wer sie alle braucht, setzt ihn hier statt jede Entität
         # einzeln einzuschalten.
         vol.Required(CONF_ZEITWERTE, default=bool(defaults.get(CONF_ZEITWERTE, False))): bool,
-        # Der LON-Adressraum. Ab Werk aus: Wo der Kessel viele Datenpunkte
-        # meldet, ergänzt der Bus fast nichts (gemessen: PuroWIN 12 Werte
-        # ohne Entsprechung, davon die meisten Bus-Verwaltung). Wo er wenige
-        # meldet, ist es der einzige Weg zu Gebläsedrehzahl, Lambdasonde
-        # und Pelletsvorrat.
+        # Der LON-Adressraum, ab Werk aus. Meldet der Kessel viele Datenpunkte,
+        # ergänzt der Bus wenig; meldet er wenige, ist der Bus der einzige Weg
+        # zu Gebläsedrehzahl, Lambdasonde und Pelletsvorrat.
         vol.Required(CONF_LON, default=bool(defaults.get(CONF_LON, False))): bool,
         # Der Aufbau der Anlage gehört zum Grundumfang: Ob ein Modul seine
         # Pumpe als Datenpunkt führt, entscheidet die Baureihe, und ohne sie

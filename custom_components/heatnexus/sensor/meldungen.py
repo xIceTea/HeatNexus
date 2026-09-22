@@ -100,25 +100,9 @@ class WindhagerMessageTextSensor(MeldungsQuelle, WindhagerEntity, SensorEntity):
 class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
     """Fortlaufende Liste aller Meldungen, die diese Anlage gezeigt hat.
 
-    **Warum es sie gibt.** ``FE01msg`` nennt nur, was gerade anliegt. Wer die
-    Verkleidungstür öffnet und wieder schließt, sieht die Meldung kommen und
-    gehen – hinterher steht nirgends, dass sie da war. Das Bediengerät führt
-    dafür eine Liste mit Papierkorb; über die Schnittstelle ist sie nicht zu
-    bekommen. Geprüft an der Anlage: ``2/96`` – die Adresse, die die
-    Weboberfläche der Steuerung dafür benutzt – antwortet an jeder Funktion mit
-    ``409 invalid Identifier``, und von 24 denkbaren Endpunktnamen kennt die
-    Steuerung keinen einzigen (``errorlog``, ``errors``, ``message``,
-    ``messages``, ``alarm``, ``alarms``, ``log``, ``history``).
-
-    **Das hier ist deshalb unsere Liste, nicht die des Kessels.** Sie beginnt,
-    wenn die Integration eingerichtet wird, und der Dienst
-    ``heatnexus.meldungen_loeschen`` leert *sie* – am Bediengerät ändert das
-    nichts. Wer das verwechselt, hält eine geleerte Liste für einen
-    quittierten Fehler.
-
-    Je Code ein Eintrag, ohne Dubletten, mit erstem und letztem Auftreten und
-    einem Zähler. Der Zustand ist die Anzahl; die Einträge stehen im Attribut.
-    Sie überleben einen Neustart über ``RestoreEntity``.
+    ``FE01msg`` nennt nur das Anliegende, die Liste des Bediengeräts ist über
+    die Schnittstelle nicht lesbar. Je Code ein Eintrag mit erstem und letztem
+    Auftreten und Zähler; der Zustand ist die Anzahl.
     """
 
     _attr_icon = "mdi:format-list-bulleted"
@@ -175,7 +159,7 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
 
     @callback
     def leeren(self) -> None:
-        """Die Liste verwerfen – nur unsere, nicht die der Anlage."""
+        """Die Liste der Integration verwerfen, nicht die der Anlage."""
         self._eintraege.clear()
         # Wie in `entity._nachfassen`: Ohne angemeldete Entität gibt es
         # nichts zu schreiben. Home Assistant leitet einen Dienst zwar nur an

@@ -113,13 +113,9 @@ def _rohre(breite: int) -> str:
 MITTE = MODUL_BREITE // 2
 
 
-# Ober- und Unterkante der Bauteilzeichnung je Art.
-#
-# Die Anschlussstutzen reichen bis dorthin. Vorher waren sie fest 30 Bildpunkte
-# lang, die Bauteile fangen aber verschieden hoch an: Beim Pumpenmodul (y=150)
-# endete der Stutzen bei 122 und darunter klaffte ein Loch, beim Kessel (y=120)
-# lag er richtig. Ein paar Punkte zu tief schadet nichts – der Stutzen wird vor
-# dem Bauteil gezeichnet und verschwindet dahinter.
+# Ober- und Unterkante der Bauteilzeichnung je Art; die Anschlussstutzen reichen
+# bis dorthin, weil die Bauteile verschieden hoch anfangen. Zu tief schadet nicht:
+# Der Stutzen liegt hinter dem Bauteil.
 KANTEN_JE_ART: dict[str, tuple[int, int]] = {
     "kessel": (126, 288),
     "puffer": (116, 296),

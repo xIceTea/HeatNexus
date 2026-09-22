@@ -25,13 +25,9 @@ _ID = re.compile(r'id="([A-Za-z][\w.:-]*)"')
 def _alle_bauteile() -> dict[str, str]:
     """Alle Bauteilzeichnungen einlesen.
 
-    **Beim Import des Moduls, nicht beim ersten Schaubild.** Home Assistant
-    lädt eine Integration in einem eigenen Thread, dort ist Lesen von der
-    Platte erlaubt; das Schaubild dagegen entsteht in der Ereignisschleife, und
-    ein Dateizugriff blockiert sie. Genau das meldete Home Assistant in
-    1.2.0-beta.1 als „Detected blocking call to read_text".
-
-    Es sind rund zwanzig Kilobyte – die dürfen dauerhaft im Speicher stehen.
+    Beim Import, nicht beim ersten Schaubild: Das Schaubild entsteht in der
+    Ereignisschleife, und ein Dateizugriff dort blockiert sie. Die Dateien sind
+    klein genug, um dauerhaft im Speicher zu bleiben.
     """
     teile: dict[str, str] = {}
     try:

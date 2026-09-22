@@ -360,10 +360,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         return True
 
     async def async_update(self) -> None:
-        """Nur die Werte dieses Heizkreises neu lesen.
-
-        Ein vollständiger Durchlauf dauert auf einer trägen Anlage zwanzig Sekunden.
-        """
+        """Nur die Werte dieses Heizkreises neu lesen, nicht die ganze Anlage."""
         await self._werte_nachlesen()
 
     @property

@@ -166,9 +166,8 @@ class TransportMixin:
         """
         if value in (None, "-.-", "-", ""):
             return None
-        # Rohe Zeichenkette behalten. Ein früheres str(int(float(v))) hat hier
-        # alle Nachkommastellen vernichtet (21.5 °C -> "21"); die Entities
-        # zerlegen den Wert selbst.
+        # Rohe Zeichenkette behalten, sonst gehen Nachkommastellen verloren;
+        # die Entitäten zerlegen den Wert selbst.
         return str(value)
 
     async def _fetch_oid(self, oid):

@@ -1,28 +1,8 @@
 """Kanonische Datenpunktschlüssel – sprachunabhängig statt am Namen erkannt.
 
-**Warum es das gibt.** Schaubild, Dashboard und Oberfläche erkennen einen
-Datenpunkt bisher an seinem *deutschen Namen*: rund fünfzig Suchmuster in
-`panel/muster.py`, `dashboard/muster.py` und `schema/werte.py`. Solange nur Deutsch
-ausgeliefert wird, geht das gut. Es ist aber genau der Grund, warum die drei
-anderen Sprachen des Herstellers – sie liegen fertig auf der Anlage – nicht
-eingeschaltet werden können: Mit englischen Namen liefe kein einziges Muster
-mehr an, und Schaubild, Kennwerte und Dashboard stünden still leer da. Keine
-Fehlermeldung, nur leere Karten.
-
-Sprachunabhängig ist dagegen die **Adresse** des Datenpunkts. `0/7` ist die
-Kesseltemperatur, in jeder Sprache und über die Baureihen hinweg. Sie steckt
-in jeder `unique_id` (`<neuronId>-<fctId>-<gn>-<mn>-<idx>`) und lässt sich
-dort ohne Umweg über die Anlage wieder herausholen.
-
-**Was hier steht und was nicht.** Die Tabelle ist bewusst flach nach `gn/mn`
-geschlüsselt, nicht nach Funktionstyp. Dieselbe Adresse bedeutet an
-verschiedenen Anlagenteilen Verschiedenes – `0/7` ist am Kessel die
-Kesseltemperatur, am Pumpen-/Relaismodul der Fühler auf der anderen Seite
-einer Fernwärmeübergabe. Diese Unterscheidung gehört dorthin, wo der
-Funktionstyp bekannt ist (`KENNWERT_JE_FCT`), nicht hierher: Sonst stünde
-dieselbe Entscheidung an zwei Stellen und liefe auseinander.
-
-Die Adressen sind gegen `device_db.json` geprüft, nicht abgeschrieben.
+Der Schlüssel kommt aus der Adresse `gn/mn` in der `unique_id` und gilt vor den
+Namensmustern. Die Tabelle ist flach nach Adresse; was eine Adresse je
+Funktionstyp bedeutet, entscheidet `KENNWERT_JE_FCT`. Geprüft gegen `device_db.json`.
 """
 
 from __future__ import annotations

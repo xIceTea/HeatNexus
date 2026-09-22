@@ -47,10 +47,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     """Set up Windhager sensors from a config entry."""
     platform = entity_platform.async_get_current_platform()
 
-    # Die Meldungsliste ist **unsere** Liste; dieser Dienst leert sie. Am
-    # Bediengerät der Anlage ändert er nichts – das steht auch in der
-    # Beschreibung, weil eine geleerte Liste sonst wie ein quittierter Fehler
-    # aussieht.
+    # Leert die Meldungsliste der Integration, nicht die des Bediengeräts;
+    # die Dienstbeschreibung sagt das, damit sie nicht wie eine Quittung wirkt.
     platform.async_register_entity_service("meldungen_loeschen", {}, "leeren")
 
     # Service zum Schreiben eines Zeitprogramms (Heiz-/WW-Programm). Ziel ist

@@ -167,19 +167,9 @@ class NetzwerkvariablenMixin:
     def _nv_doppelte_stilllegen(self) -> None:
         """Netzwerkvariablen abschalten, deren Begriff schon einen Datenpunkt hat.
 
-        Von 95 brauchbaren Werten einer fremden BioWIN hatten 46 eine
-        Entsprechung im OID-Raum. Beide anzuzeigen hieße, dieselbe Größe
-        zweimal zu führen – und niemand könnte sagen, welche der beiden gilt.
-
-        Entschieden wird über den kanonischen Schlüssel, nicht über einen
-        Wertevergleich: Zwei Zahlen sind auch dann gleich, wenn die Anlage
-        gerade steht.
-
-        Läuft **nach** den Metadaten, nicht am Ende der Erkennung: Bis dahin
-        stehen auch die kuratierten Datenpunkte in der Liste, die diese Anlage
-        gar nicht führt. Ein Kessel ohne den Zähler `2/81` verlöre sonst die
-        Betriebsstunden aus dem LON-Raum an einen Datenpunkt, den es hier
-        nicht gibt.
+        Entschieden wird über den kanonischen Schlüssel, nicht über den Wert.
+        Läuft nach den Metadaten: Erst dann sind kuratierte Datenpunkte entfernt,
+        die die Anlage nicht führt.
         """
         belegt = {
             kanonischer_schluessel(d.get("id"))
