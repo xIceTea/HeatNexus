@@ -30,8 +30,11 @@ export const BedienenMixin = (Basis) =>
     if (!entitaeten.length) return;
     // Zustand und Sollwert, mehr nicht: Eine laufende Restzeit zählt bei
     // jedem Abruf herunter und beendete das Nachfassen nach der ersten Runde.
+    // Die geschriebene Entität zählt nicht: Ihre Anzeige trifft oft erst nach
+    // dem Aufruf ein und sagt nichts über die nachgezogenen Werte.
     const abbild = () =>
       entitaeten
+        .filter((kennung) => kennung !== eintrag.geschrieben)
         .map((kennung) => {
           const zustand = this._zustand(kennung);
           if (!zustand) return "";

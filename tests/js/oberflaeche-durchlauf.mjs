@@ -343,6 +343,24 @@ bilanz.betriebswahl = {
   geplant: geplanteRunden,
 };
 
+// Die Anzeige der Auswahl selbst kommt erst nach dem Aufruf an, der Sollwert
+// steht noch. Das Nachfassen läuft weiter, bis der Sollwert nachzieht.
+zeit.zeitLaufenLassen();
+states["select.betriebswahl"].state = "Programm 3";
+const vorSpaeterAnzeige = dienstAufrufe.length;
+const spaetesFeld = flaeche._auswahlFeld("Betriebswahl", "select.betriebswahl", null, {
+  entity: "climate.heizkreis",
+});
+const spaeterKnoten = spaetesFeld.querySelector("select");
+spaeterKnoten.value = "Programm 2";
+spaeterKnoten.ausloesen("change");
+for (let runde = 0; runde < 5; runde++) await Promise.resolve();
+states["select.betriebswahl"].state = "Programm 2";
+zeit.zeitLaufenLassen();
+bilanz.betriebswahl.spaeteAnzeige = dienstAufrufe
+  .slice(vorSpaeterAnzeige)
+  .filter((eintrag) => eintrag.dienst === "homeassistant.update_entity").length;
+
 // ---------------------------------------------------------------------------
 // Zeitprogramm-Dialog: erst lesen, dann bearbeiten
 //

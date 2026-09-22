@@ -519,7 +519,7 @@ export const SteuerungMixin = (Basis) =>
       );
       // Die Anlage setzt mit der Betriebswahl auch Sollwert und Restzeit neu.
       // Ohne Nachfassen stünden sie bis zum nächsten Abruf auf dem alten Stand.
-      if (verwandte) this._nachfassen({ ...verwandte, betriebswahl: entity });
+      if (verwandte) this._nachfassen({ ...verwandte, betriebswahl: entity, geschrieben: entity });
     });
 
     this._bindungen.push(() => {

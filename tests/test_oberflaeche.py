@@ -306,6 +306,11 @@ def test_das_nachfassen_endet_sobald_der_wert_nachgezogen_ist(durchlauf):
     assert len(nachgefasst) == 1
 
 
+def test_die_eigene_auswahl_beendet_das_nachfassen_nicht(durchlauf):
+    """Ihre Anzeige kann nach dem Aufruf eintreffen; der Sollwert steht dann noch."""
+    assert durchlauf["betriebswahl"]["spaeteAnzeige"] > 1
+
+
 # ---------------------------------------------------------------------------
 # Farbsatz des Schaubilds
 # ---------------------------------------------------------------------------
