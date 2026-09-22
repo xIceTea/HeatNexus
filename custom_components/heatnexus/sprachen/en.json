@@ -230,6 +230,7 @@
   "Wie lange die aktuelle Freigabe noch gilt. Danach stellt die Anlage von selbst zurück.": "How much longer the current release applies. After that the system resets by itself.",
   "Wieder einblenden": "Show again",
   "Wirkt erst, wenn die Betriebswahl auf „Auto mit Zeitprogramm“ steht.": "Takes effect only when the operating mode is „Auto with time program“.",
+  "Wirkt erst, wenn die Betriebswahl auf diesem Programm steht.": "Takes effect only when the operating mode is set to this program.",
   "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Temperatursteuerung“ steht.": "Takes effect only when the circulation pump is „With temperature control“.",
   "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ steht.": "Takes effect only when the circulation pump is „With time control“.",
   "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.": "Has no effect while the operating mode is set to „Standby“.",

@@ -406,7 +406,16 @@ def test_ein_heizprogramm_nennt_seine_betriebswahl(panel):
 
     assert karte["wirkung"]["entity"] == "select.betriebswahl"
     assert karte["wirkung"]["muster"] == "programm 2"
-    assert "Programm 2" in karte["wirkung"]["hinweis"]
+
+
+def test_der_hinweis_zum_heizprogramm_steht_im_woerterbuch(panel):
+    """Ein Text mit eingesetztem Namen träfe keinen Eintrag und bliebe deutsch."""
+    from custom_components.heatnexus.texte import Woerterbuch
+
+    programme = panel._anlage_daten(_kreis_mit_programmen())["zeitprogramme"]
+    hinweis = next(p for p in programme if p["titel"] == "Programm 2")["wirkung"]["hinweis"]
+
+    assert Woerterbuch("en")(hinweis) != hinweis
 
 
 def test_das_ww_programm_gilt_ausserhalb_von_standby(panel):

@@ -535,11 +535,10 @@ def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[s
             "muster_nicht": "standby",
             "hinweis": "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.",
         }
-    name = programm.get("name") or ""
     return {
         "entity": wahl["entity_id"],
-        "muster": name.lower(),
-        "hinweis": f"Wirkt erst, wenn die Betriebswahl auf „{name}“ steht.",
+        "muster": (programm.get("name") or "").lower(),
+        "hinweis": "Wirkt erst, wenn die Betriebswahl auf diesem Programm steht.",
     }
 
 
