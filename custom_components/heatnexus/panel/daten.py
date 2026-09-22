@@ -530,7 +530,7 @@ def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[s
     adresse = programm.get("adresse")
     if adresse not in (*HEIZPROGRAMM_ADRESSEN, WW_PROGRAMM_ADRESSE):
         return None
-    wahl = _eintrag(teil["entitaeten"], BETRIEBSWAHL, ("select",), "mode_selection")
+    wahl = _eintrag(teil["entitaeten"], BETRIEBSWAHL, ("select", "sensor"), "mode_selection")
     if wahl is None:
         return None
     if adresse == WW_PROGRAMM_ADRESSE:

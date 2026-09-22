@@ -509,6 +509,23 @@ def test_die_pufferwirkung_folgt_dem_auswahltext(panel):
     assert karte["wirkung"]["muster"] == "auto with time program"
 
 
+def test_eine_schreibgeschuetzte_betriebswahl_zeigt_das_gueltige_programm(panel):
+    """Auch nur lesbar sagt sie, welches Programm gilt."""
+    kreis = anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [
+                entitaet("sensor.betriebswahl", "Betriebswahl", adresse="3/50"),
+                entitaet("sensor.programm_2", "Programm 2", adresse="3/62"),
+            ],
+        )
+    )
+    (karte,) = panel._anlage_daten(kreis)["zeitprogramme"]
+
+    assert karte["wirkung"]["entity"] == "sensor.betriebswahl"
+
+
 def test_ohne_betriebswahl_bleibt_das_heizprogramm_ohne_hinweis(panel):
     """Ohne den Datenpunkt ließe sich nicht sagen, wann das Programm greift."""
     ohne = anlage(
