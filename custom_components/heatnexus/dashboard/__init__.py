@@ -35,9 +35,7 @@ from .ansichten import anlagenbild, auswertung, geraeteansicht, uebersicht, wart
 _LOGGER = logging.getLogger(__name__)
 
 
-def dashboard_konfiguration(
-    hass: HomeAssistant, als_karte: bool | None = None
-) -> dict[str, Any]:
+def dashboard_konfiguration(hass: HomeAssistant, als_karte: bool | None = None) -> dict[str, Any]:
     """Die vollständige Lovelace-Konfiguration des Dashboards.
 
     Ohne Angabe entscheidet der Merker aus `auslieferung.karte_anmelden`: Ist

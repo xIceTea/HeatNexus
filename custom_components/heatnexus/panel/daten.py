@@ -511,9 +511,7 @@ def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
 HEIZPROGRAMM_ADRESSEN = ("3/61", "3/62", "3/63")
 
 
-def _heizkreis_wirkung(
-    programm: dict[str, Any], teil: dict[str, Any]
-) -> dict[str, str] | None:
+def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str, str] | None:
     """Ein Heizprogramm gilt nur, solange die Betriebswahl darauf steht.
 
     Beide Namen stammen aus derselben Quelle und lauten deshalb gleich.
