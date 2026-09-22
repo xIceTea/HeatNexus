@@ -42,12 +42,22 @@ export const BedienenMixin = (Basis) =>
         })
         .join(";");
     const anfang = abbild();
-    const lesen = () => {
-      // Sobald sich etwas bewegt hat, ist nichts mehr nachzufassen.
-      if (abbild() !== anfang) return;
-      this._hass
-        .callService("homeassistant", "update_entity", { entity_id: entitaeten })
-        .catch((err) => console.warn("HeatNexus: Nachfassen fehlgeschlagen", err));
+    // Das Thermostat liest Betriebswahl und Restzeit ohnehin mit.
+    const klima = entitaeten.filter((kennung) => kennung.startsWith("climate."));
+    const zuLesen = klima.length ? klima : entitaeten;
+    let laeuft = false;
+    const lesen = async () => {
+      // Nichts mehr nachzufassen, sobald sich etwas bewegt hat; keine zweite
+      // Runde, solange die Steuerung die vorige noch beantwortet.
+      if (laeuft || abbild() !== anfang) return;
+      laeuft = true;
+      try {
+        await this._hass.callService("homeassistant", "update_entity", { entity_id: zuLesen });
+      } catch (err) {
+        console.warn("HeatNexus: Nachfassen fehlgeschlagen", err);
+      } finally {
+        laeuft = false;
+      }
     };
     NACHFASS_PLAN.forEach((sekunden) => {
       if (sekunden === 0) lesen();
