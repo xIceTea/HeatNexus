@@ -35,12 +35,17 @@ from .ansichten import anlagenbild, auswertung, geraeteansicht, uebersicht, wart
 _LOGGER = logging.getLogger(__name__)
 
 
-def dashboard_konfiguration(hass: HomeAssistant, als_karte: bool = False) -> dict[str, Any]:
+def dashboard_konfiguration(
+    hass: HomeAssistant, als_karte: bool | None = None
+) -> dict[str, Any]:
     """Die vollständige Lovelace-Konfiguration des Dashboards.
 
-    ``als_karte`` ist für den Text zum Kopieren: Dort steht das Schaubild als
-    eigene Karte statt als fertige Zeichnung.
+    Ohne Angabe entscheidet der Merker aus `auslieferung.karte_anmelden`: Ist
+    das Kartenmodul angemeldet, steht das Schaubild als eigene Karte da –
+    beweglich und im Editor zu öffnen. Sonst bleibt es die feste Zeichnung.
     """
+    if als_karte is None:
+        als_karte = bool(hass.data.get(f"{DOMAIN}_karte_js"))
     return uebersetze_baum(_konfiguration(hass, als_karte), woerterbuch(hass), LOVELACE_FELDER)
 
 

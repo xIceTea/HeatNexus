@@ -211,18 +211,26 @@ def _anlage_mit_teilen():
                 "name": "PuroWIN",
                 "id": "teil-1",
                 "fct_type": 25,
+                "symbol": "mdi:fire",
+                "rang": 0,
                 "entitaeten": [
                     {
                         "entity_id": "sensor.purowin_betriebsphase",
                         "name": "Betriebsphase",
                         "bereich": "sensor",
                         "hat_wert": True,
+                        "kategorie": None,
+                        "state_class": None,
+                        "abgeleitet": False,
                     },
                     {
                         "entity_id": "sensor.purowin_kesseltemperatur_ist",
                         "name": "Kesseltemperatur Ist",
                         "bereich": "sensor",
                         "hat_wert": True,
+                        "kategorie": None,
+                        "state_class": None,
+                        "abgeleitet": False,
                     },
                 ],
             }
@@ -241,12 +249,47 @@ def test_der_text_zum_kopieren_setzt_die_eigene_karte(ansichten):
     assert "sensor.purowin_betriebsphase" in schaubild[0]["zusatzwerte"]
 
 
-def test_das_mitgelieferte_dashboard_bleibt_bei_der_zeichnung(ansichten):
-    """Es darf kein Modul im Browser voraussetzen."""
+def test_ohne_kartenmodul_bleibt_die_zeichnung(ansichten):
+    """Der Rückfall setzt kein Modul im Browser voraus."""
     ansicht = ansichten.anlagenbild([_anlage_mit_teilen()])
     karten = [k for abschnitt in ansicht["sections"] for k in abschnitt["cards"]]
     assert not [k for k in karten if str(k.get("type", "")).startswith("custom:")]
     assert [k for k in karten if k.get("type") == "picture-elements"]
+
+
+def _kartentypen(konfiguration: dict) -> list[str]:
+    return [
+        str(karte.get("type", ""))
+        for ansicht in konfiguration["views"]
+        for abschnitt in ansicht.get("sections", [])
+        for karte in abschnitt.get("cards", [])
+    ]
+
+
+async def test_das_dashboard_nimmt_die_karte_sobald_das_modul_angemeldet_ist(
+    dashboard, hass, monkeypatch
+):
+    """Sonst bliebe das mitgelieferte Dashboard ohne Animation und ohne Editor."""
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage_mit_teilen()])
+    hass.data["heatnexus_karte_js"] = True
+
+    typen = _kartentypen(dashboard.dashboard_konfiguration(hass))
+
+    assert "custom:heatnexus-schaubild" in typen
+    assert "picture-elements" not in typen
+
+
+async def test_ohne_angemeldetes_modul_baut_das_dashboard_die_zeichnung(
+    dashboard, hass, monkeypatch
+):
+    """Schlägt die Anmeldung fehl, zeigt die Ansicht ein Bild statt eines Fehlers."""
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage_mit_teilen()])
+    hass.data.pop("heatnexus_karte_js", None)
+
+    typen = _kartentypen(dashboard.dashboard_konfiguration(hass))
+
+    assert "picture-elements" in typen
+    assert "custom:heatnexus-schaubild" not in typen
 
 
 def test_das_schaubild_bekommt_zwei_spalten(ansichten):
