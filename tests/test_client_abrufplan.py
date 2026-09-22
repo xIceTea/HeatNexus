@@ -232,6 +232,29 @@ async def test_leere_objektantwort_wird_kein_text(client, monkeypatch):
     assert "/1/15/0/3/61/0" not in daten["oids"]
 
 
+@pytest.mark.parametrize("leer", ["", [], {}])
+async def test_ein_leerer_wert_laesst_das_zeitprogramm_eins_bleiben(client, monkeypatch, leer):
+    """Eine leere Antwort ist kein Textwert.
+
+    Die Umstufung zum Textsensor bliebe sonst dauerhaft bestehen.
+    """
+
+    async def fetch_object(oid):
+        return {"value": leer}, 200
+
+    monkeypatch.setattr(client, "fetch_object", fetch_object)
+    client.oids = set()
+    client._tick = 3
+    beschreibung = {"oid": "/1/15/0/5/64/0", "type": "time_program"}
+    client.time_programs = [beschreibung]
+
+    daten = await client.fetch_all()
+
+    assert beschreibung["type"] == "time_program"
+    assert client.time_programs == [beschreibung]
+    assert daten["objects"] == {}
+
+
 async def test_gelesene_zeitprogramme_warten_wieder_auf_den_traegen_takt(client, monkeypatch):
     """Der Vorgriff gilt dem Nachzügler, nicht jedem Durchlauf.
 

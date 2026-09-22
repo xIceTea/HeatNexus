@@ -299,9 +299,9 @@ class AbrufMixin:
                 continue
             any_ok = True
             wert = data["value"]
-            if wert is None:
-                # Eine leere Antwort ist kein Textwert; `str(None)` stünde
-                # sonst als Zustand „None" in der Entität.
+            if wert is None or (isinstance(wert, str | list | dict) and not wert):
+                # Eine leere Antwort ist kein Textwert. Als Text geführt stünde
+                # „None" in der Entität, und ein Zeitprogramm bliebe umgestuft.
                 continue
             if ist_zeitprogramm(wert):
                 objects[tp["oid"]] = wert
