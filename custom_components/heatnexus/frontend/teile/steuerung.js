@@ -536,6 +536,11 @@ export const SteuerungMixin = (Basis) =>
         },
         entity
       );
+      if (rueckmeldung.classList.contains("fehler") && verwandte && verwandte.entity) {
+        delete (this._sollwertWartet || {})[verwandte.entity];
+        this._aktualisieren();
+        return;
+      }
       // Die Anlage setzt mit der Betriebswahl auch Sollwert und Restzeit neu.
       // Ohne Nachfassen stünden sie bis zum nächsten Abruf auf dem alten Stand.
       if (verwandte) this._nachfassen({ ...verwandte, betriebswahl: entity, geschrieben: entity });

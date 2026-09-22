@@ -319,6 +319,11 @@ def test_nach_der_betriebswahl_laedt_der_sollwert(durchlauf):
     assert sollwert["danach"] == "20 °C"
 
 
+def test_eine_abgelehnte_betriebswahl_laesst_den_sollwert_stehen(durchlauf):
+    """Nach einer Ablehnung kommt kein neuer Sollwert, auf den zu warten wäre."""
+    assert durchlauf["betriebswahl"]["sollwert"]["abgelehnt"] == "20 °C"
+
+
 def test_die_eigene_auswahl_beendet_das_nachfassen_nicht(durchlauf):
     """Ihre Anzeige kann nach dem Aufruf eintreffen; der Sollwert steht dann noch."""
     assert durchlauf["betriebswahl"]["spaeteAnzeige"] > 1

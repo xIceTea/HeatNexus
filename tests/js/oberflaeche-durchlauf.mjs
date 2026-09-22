@@ -383,6 +383,22 @@ bilanz.betriebswahl.sollwert = {
 };
 zeit.zeitLaufenLassen();
 
+// Lehnt die Anlage die Auswahl ab, bleibt nichts zu erwarten.
+const echterAufruf = hass.callService;
+hass.callService = async () => {
+  throw new Error("abgelehnt");
+};
+const abgelehntesFeld = flaeche._auswahlFeld("Betriebswahl", "select.betriebswahl", null, {
+  entity: "climate.heizkreis",
+});
+const abgelehnterKnoten = abgelehntesFeld.querySelector("select");
+abgelehnterKnoten.value = "Programm 3";
+abgelehnterKnoten.ausloesen("change");
+for (let runde = 0; runde < 5; runde++) await Promise.resolve();
+bilanz.betriebswahl.sollwert.abgelehnt = flaeche._sollwertText("climate.heizkreis", 20);
+hass.callService = echterAufruf;
+zeit.zeitLaufenLassen();
+
 // ---------------------------------------------------------------------------
 // Zeitprogramm-Dialog: erst lesen, dann bearbeiten
 //
