@@ -88,32 +88,32 @@ def skala(wert: float | None) -> int:
     return max(100, -(-int(wert) // 100) * 100)
 
 
-def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
-    """Funktionstyp je Gerätekennung aus den Beschreibungen der Anlagen."""
-    zuordnung: dict[str, Any] = {}
+def _beschreibungen(hass: HomeAssistant):
+    """Jede Datenpunktbeschreibung aller geladenen Anlagen."""
     for entry in hass.config_entries.async_entries(DOMAIN):
         eintrag = getattr(entry, "runtime_data", None)
         if not isinstance(eintrag, dict):
             continue
         for coordinator in (eintrag.get("coordinators") or {}).values():
-            for beschreibung in (coordinator.data or {}).get("devices", []):
-                kennung = beschreibung.get("device_id")
-                if kennung and beschreibung.get("fct_type") is not None:
-                    zuordnung.setdefault(kennung, beschreibung["fct_type"])
+            yield from (coordinator.data or {}).get("devices", [])
+
+
+def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
+    """Funktionstyp je Gerätekennung aus den Beschreibungen der Anlagen."""
+    zuordnung: dict[str, Any] = {}
+    for beschreibung in _beschreibungen(hass):
+        kennung = beschreibung.get("device_id")
+        if kennung and beschreibung.get("fct_type") is not None:
+            zuordnung.setdefault(kennung, beschreibung["fct_type"])
     return zuordnung
 
 
 def _auswahltexte(hass: HomeAssistant) -> dict[str, dict[int, str]]:
     """Auswahltexte je Entitätskennung, so wie die Entität sie anzeigt."""
     zuordnung: dict[str, dict[int, str]] = {}
-    for entry in hass.config_entries.async_entries(DOMAIN):
-        eintrag = getattr(entry, "runtime_data", None)
-        if not isinstance(eintrag, dict):
-            continue
-        for coordinator in (eintrag.get("coordinators") or {}).values():
-            for beschreibung in (coordinator.data or {}).get("devices", []):
-                if (kennung := beschreibung.get("id")) and (texte := enum_texte(beschreibung)):
-                    zuordnung.setdefault(kennung, texte)
+    for beschreibung in _beschreibungen(hass):
+        if (kennung := beschreibung.get("id")) and (texte := enum_texte(beschreibung)):
+            zuordnung.setdefault(kennung, texte)
     return zuordnung
 
 
@@ -229,6 +229,7 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
             zahl = float(zustand.state) if hat_wert else None
         except (TypeError, ValueError):
             zahl = None
+        bereich = eintrag.entity_id.split(".")[0]
         teil["entitaeten"].append(
             {
                 "entity_id": eintrag.entity_id,
@@ -237,9 +238,7 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
                 # hat. Er kommt aus der Adresse in der Kennung und nicht aus
                 # dem Namen – siehe `kanonisch.py`. Wo er fehlt, bleibt es beim
                 # Namensmuster.
-                "schluessel": kanonischer_schluessel(
-                    eintrag.unique_id, eintrag.entity_id.split(".")[0]
-                ),
+                "schluessel": kanonischer_schluessel(eintrag.unique_id, bereich),
                 # Die rohe Datenpunktadresse. Sie erlaubt den Abgleich mit den
                 # Ebenenlisten der Geräte-Datenbank – dort steht auch für
                 # Baureihen etwas, für die es hier kein Namensmuster gibt.
@@ -248,7 +247,7 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
                 # festen Listen der Oberfläche übergehen sie.
                 "abgeleitet": ist_ableitung(eintrag.unique_id),
                 "kategorie": eintrag.entity_category,
-                "bereich": eintrag.entity_id.split(".")[0],
+                "bereich": bereich,
                 "hat_wert": hat_wert,
                 "wert": zahl,
                 # Der Zustand als Text: Zahlen stehen in "wert", aber die
