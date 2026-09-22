@@ -686,17 +686,20 @@ export const STIL = `
     background: var(--hn-karte, #151d26);
     color: var(--hn-gedaempft);
     opacity: 0; transition: opacity 0.8s ease, color 0.6s ease;
+    /* Gedreht reicht der Kasten des Rads über die Scheibe; ohne Beschnitt
+       bleiben dort Reste früherer Bilder stehen. */
+    overflow: hidden; contain: paint;
   }
   .schaubild .uebergabe-rad.an { opacity: 1; color: var(--hn-uebergabe); }
   .schaubild .uebergabe-rad .rad {
     display: block; width: 78%; aspect-ratio: 1; transform-origin: 50% 50%;
   }
   .schaubild .uebergabe-rad .rad svg { display: block; width: 100%; height: 100%; }
-  .schaubild .uebergabe-rad.an .rad { animation: dreht 16s linear infinite; }
+  .schaubild .uebergabe-rad.an .rad { animation: dreht 16s linear infinite; will-change: transform; }
   @media (prefers-reduced-motion: reduce) {
     .schaubild .uebergabe .glut,
     .schaubild .uebergabe .welle,
-    .schaubild .uebergabe-rad.an svg { animation: none; }
+    .schaubild .uebergabe-rad.an .rad { animation: none; }
     .schaubild .uebergabe .glut { opacity: 0.3; }
     .schaubild .uebergabe .welle { opacity: 0; }
   }
@@ -709,6 +712,7 @@ export const STIL = `
     /* Die stehende Pumpe nimmt den Grund der Karte an. Eine feste dunkle
        Scheibe wirkt im hellen Farbsatz wie ein Loch in der Leitung. */
     background: var(--hn-karte, #151d26);
+    overflow: hidden; contain: paint;
     border: 1px solid color-mix(in srgb, var(--hn-gedaempft) 45%, transparent);
     color: var(--hn-gedaempft);
     transition: transform 0.5s ease, color 0.4s ease, border-color 0.4s ease,
