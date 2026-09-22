@@ -341,18 +341,30 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         self.hass.async_create_task(self._fast_refresh_burst())
 
     async def _fast_refresh_burst(self) -> None:
-        oids = self.client.climate_oids(self._prefix)
         for _ in range(FAST_REFRESH_COUNT):
             await asyncio.sleep(FAST_REFRESH_INTERVAL)
-            try:
-                updated = await self.client.fetch_oids(oids)
-            except Exception:
+            if not await self._werte_nachlesen():
                 break
-            data = self.coordinator.data
-            if data is not None and updated:
-                data.setdefault("oids", {}).update(updated)
-                # nur die Listener benachrichtigen (kein voller Geräte-Poll)
-                self.coordinator.async_update_listeners()
+
+    async def _werte_nachlesen(self) -> bool:
+        """Die Werte dieses Heizkreises gezielt lesen und eintragen."""
+        try:
+            aktuell = await self.client.fetch_oids(self.client.climate_oids(self._prefix))
+        except Exception:
+            return False
+        daten = self.coordinator.data
+        if daten is not None and aktuell:
+            daten.setdefault("oids", {}).update(aktuell)
+            # nur die Listener benachrichtigen (kein voller Geräte-Poll)
+            self.coordinator.async_update_listeners()
+        return True
+
+    async def async_update(self) -> None:
+        """Nur die Werte dieses Heizkreises neu lesen.
+
+        Ein vollständiger Durchlauf dauert auf einer trägen Anlage zwanzig Sekunden.
+        """
+        await self._werte_nachlesen()
 
     @property
     def preset_mode(self) -> str | None:

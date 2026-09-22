@@ -507,3 +507,38 @@ def schalter_modul():
     from custom_components.heatnexus import switch
 
     return switch
+
+
+# ---------------------------------------------------------------------------
+# Climate: gezielt nachlesen statt vollem Durchlauf
+# ---------------------------------------------------------------------------
+async def test_die_climate_entitaet_liest_nur_ihre_eigenen_werte_nach():
+    """Die Oberfläche fasst nach einer Bedienung mehrfach nach.
+
+    Ein vollständiger Durchlauf dauert auf einer trägen Anlage zwanzig Sekunden.
+    """
+    from custom_components.heatnexus import climate as modul
+
+    entitaet, koordinator = _entitaet(
+        modul.WindhagerThermostatClimate, {}, prefix="/1/15/0", id="SN1-15-0-1-1-0"
+    )
+    gelesen: list[list[str]] = []
+    durchlaeufe: list[int] = []
+
+    async def fetch_oids(oids):
+        gelesen.append(list(oids))
+        return dict.fromkeys(oids, "21")
+
+    async def async_request_refresh():
+        durchlaeufe.append(1)
+
+    koordinator.async_request_refresh = async_request_refresh
+    koordinator.async_update_listeners = lambda: None
+    entitaet.client.climate_oids = lambda prefix: [f"{prefix}/1/1/0"]
+    entitaet.client.fetch_oids = fetch_oids
+
+    await entitaet.async_update()
+
+    assert gelesen == [["/1/15/0/1/1/0"]]
+    assert not durchlaeufe
+    assert koordinator.data["oids"]["/1/15/0/1/1/0"] == "21"
