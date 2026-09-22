@@ -205,20 +205,21 @@ export const BedienenMixin = (Basis) =>
       anzeige.textContent = this._t("nicht übernommen");
       console.warn("HeatNexus: Befehl abgelehnt", err);
       this._freigeben(anzeige, RUECKMELDUNG_MS);
-      return;
+      return false;
     }
 
     if (!bestaetigt) {
       anzeige.className = "rueckmeldung erfolg";
       anzeige.textContent = this._t("übertragen ✓");
       this._freigeben(anzeige, RUECKMELDUNG_MS);
-      return;
+      return true;
     }
 
     anzeige.className = "rueckmeldung wartet";
     anzeige.textContent = this._t("wird ausgeführt …");
     this._wartend.push({ anzeige, bestaetigt, seit: Date.now() });
     this._pruefeWartende();
+    return true;
   }
 
   /** Eine Rückmeldung sofort räumen – ohne Text, ohne Wartezeit. */

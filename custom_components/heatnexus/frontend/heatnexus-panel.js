@@ -69,6 +69,8 @@ class HeatNexusPanel extends Grundlage {
     this._reiter = "uebersicht";
     // Laufende Bedienvorgänge: Anzeige -> wann begonnen, wann bestätigt.
     this._wartend = [];
+    // Sollwerte, die nach einer Betriebswahl noch nachgerechnet werden.
+    this._sollwertWartet = {};
     // Selbst gewählte Anordnung je Reiter; leer heißt: Standard.
     this._anordnung = {};
     this._anordnen = false;

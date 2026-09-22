@@ -487,7 +487,6 @@ export const SteuerungMixin = (Basis) =>
   /** Den Sollwert als „lädt …" zeigen, bis die Steuerung ihn nachgerechnet hat. */
   _sollwertAbwarten(entity) {
     const zustand = this._zustand(entity);
-    this._sollwertWartet = this._sollwertWartet || {};
     this._sollwertWartet[entity] = {
       vorher: zustand ? zustand.attributes.temperature : undefined,
       bis: Date.now() + SOLLWERT_WARTEN_MS,
@@ -497,7 +496,7 @@ export const SteuerungMixin = (Basis) =>
   }
 
   _sollwertText(entity, soll) {
-    const warten = (this._sollwertWartet || {})[entity];
+    const warten = this._sollwertWartet[entity];
     if (warten && soll === warten.vorher && Date.now() < warten.bis) return this._t("lädt …");
     if (warten) delete this._sollwertWartet[entity];
     return soll !== undefined && soll !== null ? `${soll} °C` : "–";
@@ -523,7 +522,7 @@ export const SteuerungMixin = (Basis) =>
     auswahl.addEventListener("change", async () => {
       const gewaehlt = auswahl.value;
       if (verwandte && verwandte.entity) this._sollwertAbwarten(verwandte.entity);
-      await this._uebertragen(
+      const angenommen = await this._uebertragen(
         rueckmeldung,
         () =>
           this._hass.callService("select", "select_option", {
@@ -536,8 +535,8 @@ export const SteuerungMixin = (Basis) =>
         },
         entity
       );
-      if (rueckmeldung.classList.contains("fehler") && verwandte && verwandte.entity) {
-        delete (this._sollwertWartet || {})[verwandte.entity];
+      if (!angenommen && verwandte && verwandte.entity) {
+        delete this._sollwertWartet[verwandte.entity];
         this._aktualisieren();
         return;
       }
