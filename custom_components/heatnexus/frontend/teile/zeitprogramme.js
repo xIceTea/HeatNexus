@@ -73,6 +73,13 @@ export const ZeitprogrammeMixin = (Basis) =>
       hinweis.className = "zp-wirkung";
       hinweis.textContent = programm.wirkung.hinweis;
       karte.appendChild(hinweis);
+      // Zum Rahmen eine Textmarke: Farbe allein trägt keine Aussage.
+      const marke = document.createElement("span");
+      marke.className = "zp-aktiv";
+      marke.textContent = `· ${this._t("aktiv")}`;
+      marke.hidden = true;
+      const ueberschrift = karte.querySelector("h2");
+      if (ueberschrift) ueberschrift.appendChild(marke);
       this._bindungen.push(() => {
         const zustand = this._zustand(programm.wirkung.entity);
         const text = zustand ? String(zustand.state).toLowerCase() : "";
@@ -85,6 +92,7 @@ export const ZeitprogrammeMixin = (Basis) =>
         // Vier Programmkarten sehen einander gleich. Die eine, nach der die
         // Anlage gerade fährt, hebt sich deshalb ab.
         karte.classList.toggle("aktiv", gilt);
+        marke.hidden = !gilt;
         // **Die Anlage führt zwei Zirkulationsprogramme, eines je Steuerungsart.**
         // Steht die Pumpe auf der anderen, gehört dieses hier nicht auf die
         // Seite – es wirkt nicht und heißt genauso wie das, das wirkt.

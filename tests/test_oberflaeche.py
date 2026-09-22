@@ -286,6 +286,11 @@ def test_das_aktive_zeitprogramm_hebt_sich_ab(durchlauf):
     assert aktiv == ["Programm 1", "WW-Programm"], aktiv
 
 
+def test_das_aktive_zeitprogramm_traegt_eine_textmarke(durchlauf):
+    """Farbe allein trägt keine Aussage; die Marke steht bei jeder aktiven Karte."""
+    assert durchlauf["zeitprogramme"]["aktivMarken"] == ["· aktiv", "· aktiv"]
+
+
 def test_ausserhalb_der_zeitprogramme_hebt_sich_keine_karte_ab(durchlauf):
     """Die Hervorhebung gilt dem Programm, nicht jeder Karte mit einem Hinweis."""
     assert durchlauf["uebersicht"]["aktiveKarten"] == []

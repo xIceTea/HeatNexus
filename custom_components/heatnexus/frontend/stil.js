@@ -279,6 +279,7 @@ export const STIL = `
     box-shadow: inset 5px 0 0 0 var(--hn-akzent), 0 0 0 1px var(--hn-akzent);
   }
   .kartenkopf { display: flex; align-items: center; gap: 8px; }
+  .zp-aktiv { margin-left: 6px; color: var(--hn-akzent); font-weight: 600; }
   .kartenkopf h2 { flex: 1; }
   .fragezeichen {
     width: 22px; height: 22px; flex: none; border-radius: 50%;

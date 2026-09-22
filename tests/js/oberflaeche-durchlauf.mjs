@@ -18,6 +18,13 @@ import { browserAttrappe } from "./dom-attrappe.mjs";
 
 const [pfadPanel, pfadDaten] = process.argv.slice(2);
 const zeit = browserAttrappe();
+
+/** Kartentitel ohne die Marke „aktiv", die in derselben Überschrift steht. */
+function titelOhneMarke(ueberschrift) {
+  const marke = ueberschrift.querySelector(".zp-aktiv");
+  const text = String(ueberschrift.textContent || "");
+  return (marke ? text.replace(String(marke.textContent || ""), "") : text).trim();
+}
 const daten = JSON.parse(readFileSync(pfadDaten, "utf-8"));
 
 await import(pathToFileURL(pfadPanel).href);
@@ -137,8 +144,12 @@ REITER.forEach((reiter) => {
       .map((karte) => {
         // Die Überschrift, nicht den ganzen Kopf: daneben steht das Fragezeichen.
         const ueberschrift = karte.querySelector("h2");
-        return ueberschrift ? String(ueberschrift.textContent || "").trim() : "";
+        return ueberschrift ? titelOhneMarke(ueberschrift) : "";
       }),
+    // Die Textmarke „aktiv": Farbe allein trägt keine Aussage.
+    aktivMarken: [...flaeche.shadowRoot.querySelectorAll(".zp-aktiv")]
+      .filter((marke) => !marke.hidden)
+      .map((marke) => String(marke.textContent || "").trim()),
     zeilen: zeilen.length,
     versteckteZeilen: zeilen.filter((zeile) => zeile.hidden).length,
     // Statt zu verschwinden steht in der Zeile jetzt ein Strich.

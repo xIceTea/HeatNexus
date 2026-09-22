@@ -126,6 +126,14 @@ class Knoten {
       text.textContent = kind;
       kind = text;
     }
+    // Wie im Browser: Ein zuvor gesetzter Text bleibt als Textknoten vorn stehen.
+    if (!this.children.length && this[TEXT] && this.tagName !== "#TEXT") {
+      const vorher = new Knoten("#text");
+      vorher.textContent = this[TEXT];
+      vorher.parentElement = this;
+      this.children.push(vorher);
+      this[TEXT] = "";
+    }
     if (kind.parentElement) kind.parentElement.removeChild(kind);
     kind.parentElement = this;
     this.children.push(kind);
