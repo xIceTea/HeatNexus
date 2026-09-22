@@ -107,14 +107,7 @@ def _adressen(eintraege) -> list[str]:
     Eine Ebene enthält entweder einzelne Datenpunkte oder Gruppen mit einem
     Namen und den enthaltenen Datenpunkten.
     """
-    gefunden: list[str] = []
-    for eintrag in eintraege or []:
-        if not isinstance(eintrag, dict):
-            continue
-        if eintrag.get("oid"):
-            gefunden.append(eintrag["oid"])
-        gefunden.extend(_adressen(eintrag.get("parameters")))
-    return gefunden
+    return [eintrag["oid"] for eintrag in _eintraege(eintraege)]
 
 
 def _bedingungen(eintraege) -> dict[str, list[dict]]:
