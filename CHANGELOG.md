@@ -11,8 +11,8 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Oberfläche, Dashboard und Schaubild erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
-- Werte der Titelseite des Herstellers erscheinen ohne Freischalten der Serviceebene.
-- Zeitprogramme weiterer Baureihen erscheinen, auch wenn die Navigation sie nicht nennt.
+- Werte der Übersicht im Windhager-Portal erscheinen auch ohne freigeschaltete Serviceebene.
+- Zeitprogramme weiterer Baureihen werden erkannt, auch wenn das Menü der Steuerung sie nicht aufführt.
 - Für den Brennstoffzähler seit Befüllung gibt es eine Taste zum Zurücksetzen.
 
 ### Geändert
@@ -21,7 +21,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
-- Die Laufräder der Pumpen drehen am Telefon rund.
+- Die Pumpenräder im Schaubild drehen sich in Safari und auf dem iPhone gleichmäßig.
 - Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.
 - Der Automatikkessel erscheint im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
 - Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
@@ -34,10 +34,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Oberfläche, Dashboard und Schaubild erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
 - „Automatisch" folgt der Sprache von Home Assistant; die Datenpunktnamen bleiben deutsch.
-- Werte der Titelseite des Herstellers erscheinen ohne Freischalten der Serviceebene.
-- Zeitprogramme weiterer Baureihen erscheinen, auch wenn die Navigation sie nicht nennt.
+- Werte der Übersicht im Windhager-Portal erscheinen auch ohne freigeschaltete Serviceebene.
+- Zeitprogramme weiterer Baureihen werden erkannt, auch wenn das Menü der Steuerung sie nicht aufführt.
 - Für den Brennstoffzähler seit Befüllung gibt es eine Taste zum Zurücksetzen.
-- Einstellungen, die einen Neustart der Steuerung auslösen, sind im Attribut markiert.
+- Einstellungen, die einen Neustart der Steuerung auslösen, tragen das Attribut `neustart_erforderlich`.
 
 ### Geändert
 
@@ -49,8 +49,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
 - Dashboard, Panel und Schaubild-Karte laden auch bei ungewöhnlichen Gerätekennungen anderer Integrationen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
 - Unter Home Assistant 2026.9 erscheint keine Warnung zur Gerätesuche mehr ([#12](https://github.com/xIceTea/HeatNexus/issues/12)).
-- Die Kacheln treffen Reinigung, Wartung und Kaminkehrer unabhängig vom Namen.
-- Die Laufräder der Pumpen drehen am Telefon rund.
+- Die Kacheln für Reinigung, Wartung und Kaminkehrer funktionieren auch bei abweichenden Datenpunktnamen.
+- Die Pumpenräder im Schaubild drehen sich in Safari und auf dem iPhone gleichmäßig.
 - Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.
 
 ## [1.12.0] - 2026-09-13
