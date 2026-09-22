@@ -54,6 +54,8 @@ from .muster import (
     SCHNELLZUGRIFF,
     STATUS,
     STOERUNGSMELDER,
+    UEBERSTEUERUNG_DAUER,
+    UEBERSTEUERUNG_TEMPERATUR,
     VERLAUF,
     VERLAUF_MAX,
     VERLAUF_SCHLUESSEL,
@@ -305,10 +307,10 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                 # Comfort heißt, entscheidet sie daran, ob er unter oder über
                 # dem Programmsollwert liegt.
                 "uebersteuerung_temperatur": _kennung(
-                    teil["entitaeten"], namensmuster(r"^temperatur$"), ("number",)
+                    teil["entitaeten"], UEBERSTEUERUNG_TEMPERATUR, ("number",)
                 ),
                 "uebersteuerung_dauer": _kennung(
-                    teil["entitaeten"], namensmuster(r"^dauer$"), ("number",)
+                    teil["entitaeten"], UEBERSTEUERUNG_DAUER, ("number",)
                 ),
                 "vorlauf": (
                     v["entity_id"]

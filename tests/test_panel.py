@@ -344,6 +344,27 @@ def test_steuerung_nimmt_die_betriebswahl_des_kreises(panel):
     assert kreis["programm"] == "sensor.heizprogramm"
 
 
+def test_steuerung_findet_die_einsteller_von_eco_und_comfort(panel):
+    """Ohne sie fehlen Eco, Comfort und die Taste zum Beenden.
+
+    Die Erkennung benennt `3/4` und `2/10` in „Eco/Comfort …" um.
+    """
+    mit = anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [
+                entitaet("climate.umlz", "UMLZ HEIZKREIS"),
+                entitaet("number.dauer", "Eco/Comfort Dauer"),
+                entitaet("number.temperatur", "Eco/Comfort Temperatur"),
+            ],
+        )
+    )
+    kreis = panel._anlage_daten(mit)["steuerung"]["heizkreise"][0]
+    assert kreis["uebersteuerung_dauer"] == "number.dauer"
+    assert kreis["uebersteuerung_temperatur"] == "number.temperatur"
+
+
 def test_wartung_trennt_restlaufzeit_von_zaehler(panel):
     anlagenteil = teil(
         "PuroWIN",

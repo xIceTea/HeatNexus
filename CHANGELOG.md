@@ -29,6 +29,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Dashboard, Panel und Schaubild-Karte laden auch bei ungewöhnlichen Gerätekennungen anderer Integrationen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
 - Unter Home Assistant 2026.9 erscheint keine Warnung zur Gerätesuche mehr ([#12](https://github.com/xIceTea/HeatNexus/issues/12)).
 - Nach einer geänderten Betriebswahl erscheinen Sollwert und Restzeit sofort.
+- Eco und Comfort erscheinen wieder im Reiter Steuerung.
 
 ## [1.13.0-beta.1] - 2026-09-21
 

@@ -228,6 +228,11 @@ WARMWASSER_MAX = 6
 # ---------------------------------------------------------------------------
 # Betriebswahl eines Heizkreises bzw. des Kessels.
 BETRIEBSWAHL = namensmuster(r"\bbetriebswahl\b")
+# Die beiden Einsteller der befristeten Vorgabe. Die Erkennung benennt `3/4`
+# und `2/10` in „Eco/Comfort …" um, die Herstellertabelle nennt sie nur
+# „Temperatur" und „Dauer". Beide Schreibweisen gelten.
+UEBERSTEUERUNG_TEMPERATUR = namensmuster(r"^(eco/comfort )?temperatur$")
+UEBERSTEUERUNG_DAUER = namensmuster(r"^(eco/comfort )?dauer$")
 # Zeitprogramm eines Kreises.
 # **Nicht einfach „programm".** Der Heizkreis führt unter `4/60` ein
 # Estrich-Ausheizprogramm, das schlicht „Programm" heißt (beenden,
