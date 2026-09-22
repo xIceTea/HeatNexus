@@ -91,6 +91,7 @@ entitaeten.forEach((entity) => {
 });
 
 const gerufeneDienste = [];
+const dienstAufrufe = [];
 const hass = {
   states,
   callWS: async () => {
@@ -98,6 +99,7 @@ const hass = {
   },
   callService: async (bereich, dienst, angaben) => {
     gerufeneDienste.push(`${bereich}.${dienst}`);
+    dienstAufrufe.push({ dienst: `${bereich}.${dienst}`, angaben });
     return true;
   },
   formatEntityState: (zustand) => `${zustand.state} °C`,
@@ -287,6 +289,30 @@ bilanz.bedienen = {
   waehrend: beiUebertragung,
   bestaetigt: nachBestaetigung,
   aufgeraeumt: anzeige.textContent,
+};
+
+// ---------------------------------------------------------------------------
+// Betriebswahl: verwandte Werte ziehen nicht von allein nach
+//
+// Die Anlage setzt mit der Betriebswahl auch den Sollwert neu. Ohne
+// Nachfassen stünde er bis zum nächsten Abruf auf dem alten Stand.
+// ---------------------------------------------------------------------------
+const vorAuswahl = dienstAufrufe.length;
+const auswahlFeld = flaeche._auswahlFeld("Betriebswahl", "select.betriebswahl", null, {
+  entity: "climate.heizkreis",
+  betriebswahl: "select.betriebswahl",
+});
+const auswahlKnoten = auswahlFeld.querySelector("select");
+auswahlKnoten.value = "Automatik";
+auswahlKnoten.ausloesen("change");
+for (let runde = 0; runde < 5; runde++) await Promise.resolve();
+zeit.zeitLaufenLassen();
+
+bilanz.betriebswahl = {
+  aufrufe: dienstAufrufe.slice(vorAuswahl).map((eintrag) => ({
+    dienst: eintrag.dienst,
+    entitaeten: [].concat((eintrag.angaben || {}).entity_id || []),
+  })),
 };
 
 // ---------------------------------------------------------------------------

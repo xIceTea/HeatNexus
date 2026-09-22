@@ -256,7 +256,10 @@ export const SteuerungMixin = (Basis) =>
 
     if (kreis.betriebswahl) {
       karte.appendChild(
-        this._auswahlFeld("Betriebswahl", kreis.betriebswahl, kreis.betriebswahl_hilfe)
+        this._auswahlFeld("Betriebswahl", kreis.betriebswahl, kreis.betriebswahl_hilfe, {
+          entity: kreis.entity,
+          zustand_an: kreis.uebersteuerung_dauer,
+        })
       );
     }
     if (kreis.programm) {
@@ -482,7 +485,7 @@ export const SteuerungMixin = (Basis) =>
     anstossen();
   }
 
-  _auswahlFeld(titel, entity, hilfe) {
+  _auswahlFeld(titel, entity, hilfe, verwandte) {
     const feld = document.createElement("div");
     feld.className = "feld";
     const beschriftung = document.createElement("div");
@@ -514,6 +517,9 @@ export const SteuerungMixin = (Basis) =>
         },
         entity
       );
+      // Die Anlage setzt mit der Betriebswahl auch Sollwert und Restzeit neu.
+      // Ohne Nachfassen stünden sie bis zum nächsten Abruf auf dem alten Stand.
+      if (verwandte) this._nachfassen({ ...verwandte, betriebswahl: entity });
     });
 
     this._bindungen.push(() => {

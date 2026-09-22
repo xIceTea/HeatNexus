@@ -265,6 +265,18 @@ def test_die_rueckmeldung_durchlaeuft_ihre_drei_stufen(durchlauf):
     assert bedienen["aufgeraeumt"] == ""
 
 
+def test_nach_der_betriebswahl_werden_die_verwandten_werte_gelesen(durchlauf):
+    """Die Anlage setzt mit der Betriebswahl auch den Sollwert neu.
+
+    Ohne Nachfassen stünde er bis zum nächsten Abruf auf dem alten Stand.
+    """
+    aufrufe = durchlauf["betriebswahl"]["aufrufe"]
+    assert aufrufe and aufrufe[0]["dienst"] == "select.select_option"
+    nachgefasst = [a for a in aufrufe if a["dienst"] == "homeassistant.update_entity"]
+    assert nachgefasst, "Nach der Auswahl wird nichts nachgelesen"
+    assert "climate.heizkreis" in nachgefasst[0]["entitaeten"]
+
+
 # ---------------------------------------------------------------------------
 # Farbsatz des Schaubilds
 # ---------------------------------------------------------------------------
