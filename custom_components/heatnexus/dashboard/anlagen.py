@@ -221,7 +221,9 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
                 # hat. Er kommt aus der Adresse in der Kennung und nicht aus
                 # dem Namen – siehe `kanonisch.py`. Wo er fehlt, bleibt es beim
                 # Namensmuster.
-                "schluessel": kanonischer_schluessel(eintrag.unique_id),
+                "schluessel": kanonischer_schluessel(
+                    eintrag.unique_id, eintrag.entity_id.split(".")[0]
+                ),
                 # Die rohe Datenpunktadresse. Sie erlaubt den Abgleich mit den
                 # Ebenenlisten der Geräte-Datenbank – dort steht auch für
                 # Baureihen etwas, für die es hier kein Namensmuster gibt.

@@ -194,9 +194,16 @@ GESCHWISTER: dict[tuple[str, str | None], str] = {
     ("39/94", "hauptreinigung"): "main_cleaning_done",
     ("39/94", "wartung"): "maintenance_done",
     ("39/94", "hauptreinigung_asche"): "main_cleaning_ash_done",
-    ("9/75", None): "service_burnout",
     ("9/75", "kaminkehrer"): "chimney_sweep",
     ("9/75", "befuellen"): "storage_fill",
+}
+
+
+# Adresse und Entitätsart, wo eine Entität ohne Zusatz auf der Adresse eines
+# gewöhnlichen Datenpunkts sitzt. `9/75` ist die Betriebswahl des Kessels –
+# den Serviceausbrand löst allein die Taste darauf aus.
+GESCHWISTER_JE_ART: dict[tuple[str, str], str] = {
+    ("9/75", "button"): "service_burnout",
 }
 
 
@@ -230,7 +237,7 @@ def ist_ableitung(unique_id: str | None) -> bool:
     return gnmn(kennung) is not None or lon_schluessel(kennung) is not None
 
 
-def schluessel(unique_id: str | None) -> str | None:
+def schluessel(unique_id: str | None, bereich: str | None = None) -> str | None:
     """Kanonischer Schlüssel eines Datenpunkts – oder nichts.
 
     Ohne Adresse in der Kennung entscheidet der Name des Funktionsblocks
@@ -239,9 +246,12 @@ def schluessel(unique_id: str | None) -> str | None:
     """
 
     def _basis(kennung: str | None) -> str | None:
-        adresse = gnmn(kennung)
-        geschwister = GESCHWISTER.get((adresse or "", _endung(kennung)))
-        return geschwister or KANONISCH.get(adresse or "") or lon_schluessel(kennung)
+        adresse = gnmn(kennung) or ""
+        endung = _endung(kennung)
+        geschwister = GESCHWISTER.get((adresse, endung))
+        if geschwister is None and endung is None and bereich:
+            geschwister = GESCHWISTER_JE_ART.get((adresse, bereich))
+        return geschwister or KANONISCH.get(adresse) or lon_schluessel(kennung)
 
     kennung, zusatz = _zerlegen(unique_id)
     basis = _basis(kennung)

@@ -225,9 +225,11 @@ def test_geschwister_auf_einer_adresse_bleiben_getrennt(kanonisch):
     assert kanonisch.schluessel(f"{basis}-hauptreinigung_asche") == "main_cleaning_ash_done"
 
 
-def test_geschwister_ohne_zusatz_behalten_ihren_schluessel(kanonisch):
-    """Auf 9/75 trägt der Serviceausbrand keinen Zusatz, die anderen schon."""
-    assert kanonisch.schluessel("abc123-1-9-75-0") == "service_burnout"
+def test_ohne_zusatz_entscheidet_die_art_der_entitaet(kanonisch):
+    """Auf 9/75 sitzt neben dem Serviceausbrand die Betriebswahl des Kessels."""
+    assert kanonisch.schluessel("abc123-1-9-75-0", "button") == "service_burnout"
+    assert kanonisch.schluessel("abc123-1-9-75-0", "select") is None
+    assert kanonisch.schluessel("abc123-1-9-75-0") is None
     assert kanonisch.schluessel("abc123-1-9-75-0-kaminkehrer") == "chimney_sweep"
     assert kanonisch.schluessel("abc123-1-9-75-0-befuellen") == "storage_fill"
 

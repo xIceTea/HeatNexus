@@ -131,8 +131,28 @@ async def test_jede_entitaet_traegt_ihren_schluessel(
         original_name="Mindestlaufzeit",
         config_entry=eintrag,
     )
+    entity_registry.async_get_or_create(
+        "button",
+        DOMAIN,
+        "0000ABCD1234-0-9-75-0",
+        suggested_object_id="serviceausbrand",
+        device_id=geraet.id,
+        original_name="Serviceausbrand starten",
+        config_entry=eintrag,
+    )
+    entity_registry.async_get_or_create(
+        "select",
+        DOMAIN,
+        "0000ABCD5678-0-9-75-0",
+        suggested_object_id="betriebswahl",
+        device_id=geraet.id,
+        original_name="Betriebswahl",
+        config_entry=eintrag,
+    )
     hass.states.async_set("sensor.kesseltemperatur", "63.5")
     hass.states.async_set("sensor.mindestlaufzeit", "20")
+    hass.states.async_set("button.serviceausbrand", "unknown")
+    hass.states.async_set("select.betriebswahl", "Automatik")
     await hass.async_block_till_done()
 
     anlagen = anlagen.anlagen_lesen(hass)
@@ -142,3 +162,6 @@ async def test_jede_entitaet_traegt_ihren_schluessel(
     assert je_kennung["sensor.kesseltemperatur"] == "boiler_temperature"
     # Ohne kanonische Entsprechung bleibt das Feld leer – und der Name gilt.
     assert je_kennung["sensor.mindestlaufzeit"] is None
+    # Dieselbe Adresse, zwei Bedeutungen: Nur die Taste löst den Ausbrand aus.
+    assert je_kennung["button.serviceausbrand"] == "service_burnout"
+    assert je_kennung["select.betriebswahl"] is None
