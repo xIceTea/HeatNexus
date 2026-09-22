@@ -9,7 +9,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { ANNAHME_MS, OHNE_WERT, ZAHL_VERZOEGERUNG_MS } from "../ordnung.js";
+import { ANNAHME_MS, OHNE_WERT, SOLLWERT_WARTEN_MS, ZAHL_VERZOEGERUNG_MS } from "../ordnung.js";
 
 export const SteuerungMixin = (Basis) =>
   class extends Basis {
@@ -275,8 +275,7 @@ export const SteuerungMixin = (Basis) =>
       const zustand = this._zustand(kreis.entity);
       const ist = zustand && zustand.attributes.current_temperature;
       zahl.textContent = ist !== undefined && ist !== null ? `${ist} °C` : "–";
-      const soll = zustand && zustand.attributes.temperature;
-      sollZahl.textContent = soll !== undefined && soll !== null ? `${soll} °C` : "–";
+      sollZahl.textContent = this._sollwertText(kreis.entity, zustand && zustand.attributes.temperature);
       const rest = this._restzeit(zustand);
       laufzeit.style.display = rest ? "inline-flex" : "none";
       laufzeitText.textContent = rest ? `Vorgabe ${rest}` : "";
@@ -485,6 +484,25 @@ export const SteuerungMixin = (Basis) =>
     anstossen();
   }
 
+  /** Den Sollwert als „lädt …" zeigen, bis die Steuerung ihn nachgerechnet hat. */
+  _sollwertAbwarten(entity) {
+    const zustand = this._zustand(entity);
+    this._sollwertWartet = this._sollwertWartet || {};
+    this._sollwertWartet[entity] = {
+      vorher: zustand ? zustand.attributes.temperature : undefined,
+      bis: Date.now() + SOLLWERT_WARTEN_MS,
+    };
+    // Ohne neuen Zustand liefe keine Bindung; die Anzeige kehrte nie zurück.
+    window.setTimeout(() => this._aktualisieren(), SOLLWERT_WARTEN_MS + 100);
+  }
+
+  _sollwertText(entity, soll) {
+    const warten = (this._sollwertWartet || {})[entity];
+    if (warten && soll === warten.vorher && Date.now() < warten.bis) return this._t("lädt …");
+    if (warten) delete this._sollwertWartet[entity];
+    return soll !== undefined && soll !== null ? `${soll} °C` : "–";
+  }
+
   _auswahlFeld(titel, entity, hilfe, verwandte) {
     const feld = document.createElement("div");
     feld.className = "feld";
@@ -504,6 +522,7 @@ export const SteuerungMixin = (Basis) =>
 
     auswahl.addEventListener("change", async () => {
       const gewaehlt = auswahl.value;
+      if (verwandte && verwandte.entity) this._sollwertAbwarten(verwandte.entity);
       await this._uebertragen(
         rueckmeldung,
         () =>

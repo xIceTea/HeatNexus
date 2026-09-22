@@ -372,6 +372,17 @@ bilanz.betriebswahl.spaeteAnzeige = dienstAufrufe
   .slice(vorSpaeterAnzeige)
   .filter((eintrag) => eintrag.dienst === "homeassistant.update_entity").length;
 
+// Die Steuerung rechnet den Sollwert erst Sekunden nach der Betriebswahl neu.
+// Bis dahin steht „lädt …" statt des alten Werts.
+states["climate.heizkreis"].attributes.temperature = 20;
+flaeche._sollwertAbwarten("climate.heizkreis");
+bilanz.betriebswahl.sollwert = {
+  wartet: flaeche._sollwertText("climate.heizkreis", 20),
+  nachgezogen: flaeche._sollwertText("climate.heizkreis", 21.5),
+  danach: flaeche._sollwertText("climate.heizkreis", 20),
+};
+zeit.zeitLaufenLassen();
+
 // ---------------------------------------------------------------------------
 // Zeitprogramm-Dialog: erst lesen, dann bearbeiten
 //

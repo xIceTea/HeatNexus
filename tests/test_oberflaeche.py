@@ -311,6 +311,14 @@ def test_das_nachfassen_endet_sobald_der_wert_nachgezogen_ist(durchlauf):
     assert len(nachgefasst) == 1
 
 
+def test_nach_der_betriebswahl_laedt_der_sollwert(durchlauf):
+    """Der alte Sollwert stünde sonst neben „übernommen ✓", bis die Steuerung nachrechnet."""
+    sollwert = durchlauf["betriebswahl"]["sollwert"]
+    assert sollwert["wartet"] == "lädt …"
+    assert sollwert["nachgezogen"] == "21.5 °C"
+    assert sollwert["danach"] == "20 °C"
+
+
 def test_die_eigene_auswahl_beendet_das_nachfassen_nicht(durchlauf):
     """Ihre Anzeige kann nach dem Aufruf eintreffen; der Sollwert steht dann noch."""
     assert durchlauf["betriebswahl"]["spaeteAnzeige"] > 1
