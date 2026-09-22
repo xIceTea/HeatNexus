@@ -100,7 +100,8 @@ def _mit_zaehler(client_module):
 
 def test_ein_ruecksetzbarer_zaehler_bekommt_eine_taste(client_module):
     c = _mit_zaehler(client_module)
-    c._ruecksetztasten({ZAEHLER: {"writeProt": False}})
+    c.devices[0]["write_prot"] = False
+    c._ruecksetztasten()
     taste = next(d for d in c.devices if d["type"] == "button")
     assert taste["press_value"] == "0.00"
     assert taste["id"].endswith("-zuruecksetzen")
@@ -109,7 +110,8 @@ def test_ein_ruecksetzbarer_zaehler_bekommt_eine_taste(client_module):
 
 def test_ein_schreibgeschuetzter_zaehler_bekommt_keine_taste(client_module):
     c = _mit_zaehler(client_module)
-    c._ruecksetztasten({ZAEHLER: {"writeProt": True}})
+    c.devices[0]["write_prot"] = True
+    c._ruecksetztasten()
     assert all(d["type"] != "button" for d in c.devices)
 
 

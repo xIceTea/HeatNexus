@@ -222,7 +222,7 @@ class MetadatenMixin:
             self._schaltpunkte(meta)
             self._verbraucherabstand(meta)
             self._laufzeit()
-            self._ruecksetztasten(meta)
+            self._ruecksetztasten()
             self._namen_vereindeutigen()
         finally:
             self._zusatz_lauft = False

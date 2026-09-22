@@ -251,7 +251,7 @@ class AbleitungenMixin:
                 neu.append(self._ableitung(d, "heute", "zaehler_heute", "heute", **gemeinsam))
         self._zusatzwerte_uebernehmen(neu)
 
-    def _ruecksetztasten(self, meta: dict) -> None:
+    def _ruecksetztasten(self) -> None:
         """Eine Taste je rücksetzbarem Zähler, wie der Hersteller sie anbietet.
 
         Abgeschaltet angelegt: Ein Rücksetzen löscht den Zählerstand endgültig.
@@ -261,7 +261,7 @@ class AbleitungenMixin:
             if d.get("type") == "button" or ist_ableitung(d.get("id")):
                 continue
             wert = get_ruecksetzwerte(d.get("fct_type")).get(gnmn_aus_oid(d.get("oid")))
-            if wert is None or (meta.get(d.get("oid")) or {}).get("writeProt") is not False:
+            if wert is None or d.get("write_prot") is not False:
                 continue
             neu.append(
                 self._ableitung(
