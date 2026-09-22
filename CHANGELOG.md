@@ -6,7 +6,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [1.13.0] - 2026-09-20
+## [1.13.0-beta.1] - 2026-09-22
 
 ### Neu
 
