@@ -7,6 +7,8 @@ Notnagel. Eine Schemaänderung verwaiste die Entitäten jeder Installation.
 
 from __future__ import annotations
 
+from .gemeinsam import gnmn_aus_oid
+
 
 class KennungenMixin:
     """Dauerhafte Kennungen aus `neuronId` und Adresse."""
@@ -57,8 +59,7 @@ class KennungenMixin:
     @staticmethod
     def _kennung_aus_oid(oid: str | None) -> str:
         """`gn/mn` aus einer vollständigen Adresse, ohne Präfix."""
-        teile = str(oid or "").strip("/").split("/")
-        return "/".join(teile[-3:-1]) if len(teile) >= 3 else ""
+        return gnmn_aus_oid(oid) or ""
 
     @staticmethod
     def _praefix_aus_oid(oid: str | None) -> str:

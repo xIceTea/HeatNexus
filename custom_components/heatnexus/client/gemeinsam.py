@@ -15,9 +15,9 @@ EBENENFOLGE: tuple[tuple[str, str], ...] = (
 
 
 def gnmn_aus_oid(oid: str | None) -> str | None:
-    """`gn/mn` aus einer vollständigen OID `/1/<Knoten>/<Funktion>/<gn>/<mn>/<idx>`."""
+    """`gn/mn` aus einer vollständigen OID, mit oder ohne Funktionsteil."""
     teile = str(oid or "").strip("/").split("/")
-    return f"{teile[3]}/{teile[4]}" if len(teile) >= 5 else None
+    return "/".join(teile[-3:-1]) if len(teile) >= 3 else None
 
 
 def gelesene_ebenen(levels) -> list[str]:
