@@ -18,7 +18,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DOMAIN,
-    ENUMS,
     FCT_MODELL,
     NACHFASS_ANZAHL,
     NACHFASS_INTERVALL,
@@ -26,9 +25,8 @@ from .const import (
     OID_SOFTWAREVERSION,
     SIGNAL_NEUE_ENTITAETEN,
 )
-from .device_db import get_enum
 from .error_texts import parse_messages
-from .helpers import parse_value
+from .helpers import enum_texte, parse_value
 from .lon import ungueltig as lon_ungueltig
 from .registrierung import uebergeordnet
 
@@ -420,17 +418,7 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
 
     @property
     def enum_map(self) -> dict[int, str]:
-        # Was die Anlage selbst benennt, hat Vorrang: Es passt zu ihrer
-        # Fassung und zur eingestellten Sprache. Auf Deutsch ist das Feld
-        # leer, dort führt die gepflegte Tabelle.
-        #
-        # `int(...)`, weil der Erkennungsstand als JSON abgelegt wird und
-        # Schlüssel dabei zu Text werden. Ohne die Umwandlung fände die
-        # Zuordnung nach dem Neustart nichts mehr.
-        if geraet := self._descriptor.get("enum_texte"):
-            return {int(wert): text for wert, text in geraet.items()}
-        key = self._descriptor.get("enum") or ""
-        return ENUMS.get(key) or get_enum(key) or {}
+        return enum_texte(self._descriptor)
 
     # Writable platforms set this to False so write-only datapoints
     # (readable only with 409/Conflict, e.g. 39/95) stay operable.

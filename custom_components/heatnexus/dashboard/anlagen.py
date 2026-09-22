@@ -23,6 +23,7 @@ from ..const import (
     QUELLEN_RANG,
     QUELLEN_SYMBOLE,
 )
+from ..helpers import enum_texte
 from ..kanonisch import gnmn, ist_ableitung
 from ..kanonisch import schluessel as kanonischer_schluessel
 from ..rechte import darf_lesen
@@ -102,6 +103,20 @@ def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
     return zuordnung
 
 
+def _auswahltexte(hass: HomeAssistant) -> dict[str, dict[int, str]]:
+    """Auswahltexte je Entitätskennung, so wie die Entität sie anzeigt."""
+    zuordnung: dict[str, dict[int, str]] = {}
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        eintrag = getattr(entry, "runtime_data", None)
+        if not isinstance(eintrag, dict):
+            continue
+        for coordinator in (eintrag.get("coordinators") or {}).values():
+            for beschreibung in (coordinator.data or {}).get("devices", []):
+                if (kennung := beschreibung.get("id")) and (texte := enum_texte(beschreibung)):
+                    zuordnung.setdefault(kennung, texte)
+    return zuordnung
+
+
 def quellen_nach_geraet(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
     """Bauart und Laufrad je Gerätekennung der Wärmequellen.
 
@@ -165,6 +180,7 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
     fct_je_geraet = _fct_je_geraet(hass)
     quellen_je_geraet = quellen_nach_geraet(hass)
     schaubildwahl_je_geraet = _schaubildwahl_je_geraet(hass)
+    auswahltexte = _auswahltexte(hass)
 
     # Nur die eigenen Geräte: Home Assistant prüft die Form der Kennungen nicht,
     # und fremde Integrationen halten sich nicht immer an das Paar.
@@ -240,6 +256,8 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
                 # ein Wort.
                 "text": zustand.state if hat_wert else None,
                 "state_class": (zustand.attributes.get("state_class") if zustand else None),
+                # Auswahltexte nach Wert: Vergleiche über den Wert gelten in jeder Sprache.
+                "optionen": auswahltexte.get(eintrag.unique_id, {}),
             }
         )
 

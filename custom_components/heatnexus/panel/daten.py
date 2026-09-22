@@ -476,6 +476,14 @@ def _programmsymbol(eintrag: dict[str, Any], teil: dict[str, Any]) -> str | None
     return teil.get("symbol")
 
 
+def _auswahltext(wahl: dict[str, Any], wert: int, ersatz: str) -> str:
+    """Der Text, den die Auswahl für diesen Wert zeigt, klein geschrieben.
+
+    Ohne bekannte Texte bleibt das deutsche Ersatzwort.
+    """
+    return ((wahl.get("optionen") or {}).get(wert) or ersatz).lower()
+
+
 def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
     """Das Zeitprogramm des Puffers greift nur in einer Betriebswahl.
 
@@ -501,7 +509,7 @@ def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
         return None
     return {
         "entity": wahl["entity_id"],
-        "muster": "zeitprogramm",
+        "muster": _auswahltext(wahl, 4, "zeitprogramm"),
         "hinweis": "Wirkt erst, wenn die Betriebswahl auf „Auto mit Zeitprogramm“ steht.",
     }
 
@@ -517,8 +525,7 @@ WW_PROGRAMM_ADRESSE = "5/61"
 def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str, str] | None:
     """Woran hängt, ob ein Programm des Heizkreises gerade gilt.
 
-    Ein Heizprogramm gilt, solange die Betriebswahl darauf steht; beide Namen
-    stammen aus derselben Quelle und lauten deshalb gleich.
+    `3/61`–`3/63` entsprechen den Werten 1–3 der Betriebswahl `3/50`, Standby ist 0.
     """
     adresse = programm.get("adresse")
     if adresse not in (*HEIZPROGRAMM_ADRESSEN, WW_PROGRAMM_ADRESSE):
@@ -532,12 +539,14 @@ def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[s
         # und dort nimmt der Kreis nicht einmal einen Ladebefehl an.
         return {
             "entity": wahl["entity_id"],
-            "muster_nicht": "standby",
+            "muster_nicht": _auswahltext(wahl, 0, "standby"),
             "hinweis": "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.",
         }
     return {
         "entity": wahl["entity_id"],
-        "muster": (programm.get("name") or "").lower(),
+        "muster": _auswahltext(
+            wahl, HEIZPROGRAMM_ADRESSEN.index(adresse) + 1, programm.get("name") or ""
+        ),
         "hinweis": "Wirkt erst, wenn die Betriebswahl auf diesem Programm steht.",
     }
 
@@ -580,17 +589,17 @@ def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str,
         return None
     wirkung = {
         "entity": pumpe["entity_id"],
-        "muster": "zeitsteuerung",
+        "muster": _auswahltext(pumpe, 1, "zeitsteuerung"),
         "hinweis": "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ steht.",
     }
     # Welche Art dieses Programm ist, sagt allein sein Schlüssel – der Name
     # taugt dafür nicht, beide heißen gleich.
     schluessel = programm.get("schluessel")
     if schluessel == "dhw_circulation_program_time":
-        wirkung["verbergen_bei"] = "temperatursteuerung"
+        wirkung["verbergen_bei"] = _auswahltext(pumpe, 2, "temperatursteuerung")
     elif schluessel == "dhw_circulation_program_temperature":
-        wirkung["verbergen_bei"] = "zeitsteuerung"
-        wirkung["muster"] = "temperatursteuerung"
+        wirkung["verbergen_bei"] = _auswahltext(pumpe, 1, "zeitsteuerung")
+        wirkung["muster"] = _auswahltext(pumpe, 2, "temperatursteuerung")
         wirkung["hinweis"] = (
             "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Temperatursteuerung“ steht."
         )

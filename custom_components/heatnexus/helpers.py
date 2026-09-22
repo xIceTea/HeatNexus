@@ -11,9 +11,21 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .const import EINHEITEN, POLL_ZIEL_SEKUNDEN, UPDATE_INTERVAL, ZAEHLER_WOERTER
+from .const import EINHEITEN, ENUMS, POLL_ZIEL_SEKUNDEN, UPDATE_INTERVAL, ZAEHLER_WOERTER
+from .device_db import get_enum
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def enum_texte(beschreibung: dict[str, Any]) -> dict[int, str]:
+    """Auswahltexte eines Datenpunkts: zuerst die der Anlage, sonst die Tabellen.
+
+    Schlüssel werden zu `int`, weil der gespeicherte Erkennungsstand sie als Text führt.
+    """
+    if geraet := beschreibung.get("enum_texte"):
+        return {int(wert): text for wert, text in geraet.items()}
+    schluessel = beschreibung.get("enum") or ""
+    return ENUMS.get(schluessel) or get_enum(schluessel) or {}
 
 
 def reihenfolge_mischen(basis: list[str], rest: list[str]) -> list[str]:

@@ -440,6 +440,75 @@ def test_das_ww_programm_gilt_ausserhalb_von_standby(panel):
     assert "Standby" in karte["wirkung"]["hinweis"]
 
 
+ENGLISCHE_BETRIEBSWAHL = {0: "Stand-by", 1: "Program 1", 2: "Program 2", 3: "Program 3"}
+
+
+def test_die_wirkung_folgt_dem_auswahltext_der_gewaehlten_sprache(panel):
+    """Mit übersetzten Datenpunkten trifft kein deutsches Wort den Zustand."""
+    kreis = anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [
+                entitaet(
+                    "select.betriebswahl",
+                    "Operating mode",
+                    adresse="3/50",
+                    schluessel="mode_selection",
+                    optionen=ENGLISCHE_BETRIEBSWAHL,
+                ),
+                entitaet("sensor.programm_2", "Programm 2", adresse="3/62"),
+                entitaet("sensor.ww_programm", "WW-Programm", adresse="5/61"),
+            ],
+        )
+    )
+    programme = {p["titel"]: p for p in panel._anlage_daten(kreis)["zeitprogramme"]}
+
+    assert programme["Programm 2"]["wirkung"]["muster"] == "program 2"
+    assert programme["WW-Programm"]["wirkung"]["muster_nicht"] == "stand-by"
+
+
+def test_ein_umbenanntes_heizprogramm_behaelt_seine_betriebswahl(panel):
+    """Zugeordnet wird über die Adresse, nicht über den Namen."""
+    kreis = anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [
+                entitaet(
+                    "select.betriebswahl",
+                    "Betriebswahl",
+                    adresse="3/50",
+                    optionen={1: "Programm 1", 2: "Programm 2", 3: "Programm 3"},
+                ),
+                entitaet("sensor.programm_2", "Programm 2 Wochenende", adresse="3/62"),
+            ],
+        )
+    )
+    (karte,) = panel._anlage_daten(kreis)["zeitprogramme"]
+
+    assert karte["wirkung"]["muster"] == "programm 2"
+
+
+def test_die_pufferwirkung_folgt_dem_auswahltext(panel):
+    puffer = teil(
+        "B-PLMi PUFFER",
+        16,
+        [
+            entitaet("sensor.pufferprogramm", "Zeitprogramm"),
+            entitaet(
+                "select.puffer_betriebswahl",
+                "Betriebswahl",
+                schluessel="buffer_mode_selection",
+                optionen={0: "Stand-by", 4: "Auto with time program"},
+            ),
+        ],
+    )
+    (karte,) = panel._anlage_daten(anlage(puffer))["zeitprogramme"]
+
+    assert karte["wirkung"]["muster"] == "auto with time program"
+
+
 def test_ohne_betriebswahl_bleibt_das_heizprogramm_ohne_hinweis(panel):
     """Ohne den Datenpunkt ließe sich nicht sagen, wann das Programm greift."""
     ohne = anlage(
