@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from .conftest import requires_ha
+from .conftest import requires_frontend, requires_ha
 
 pytestmark = requires_ha()
 
@@ -39,3 +39,16 @@ async def test_ein_alter_fassungspfad_bleibt_erreichbar(hass, auslieferung):
 
     pfade = [r.canonical for r in hass.http.app.router.resources()]
     assert "/heatnexus-karte-{fassung}" in " ".join(pfade)
+
+
+@requires_frontend()
+async def test_das_kartenmodul_steht_vor_jeder_anlage_bereit(hass, enable_custom_integrations):
+    """Ohne eingerichtete Anlage ist das Kartenmodul schon angemeldet."""
+    from homeassistant.components import frontend
+    from homeassistant.setup import async_setup_component
+
+    assert await async_setup_component(hass, "heatnexus", {})
+    await hass.async_block_till_done()
+
+    adressen = hass.data[frontend.DATA_EXTRA_MODULE_URL].urls
+    assert any(a.endswith("/heatnexus-schaubild-karte.js") for a in adressen)

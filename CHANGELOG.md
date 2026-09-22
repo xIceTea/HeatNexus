@@ -23,6 +23,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Die Pumpenräder im Schaubild drehen sich in Safari und auf dem iPhone gleichmäßig.
 - Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.
+- Die Schaubild-Karte erscheint auch, wenn die Seite während des Starts von Home Assistant lädt.
 - Der Automatikkessel erscheint im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
 - Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
 - Dashboard, Panel und Schaubild-Karte laden auch bei ungewöhnlichen Gerätekennungen anderer Integrationen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
@@ -52,6 +53,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Kacheln für Reinigung, Wartung und Kaminkehrer funktionieren auch bei abweichenden Datenpunktnamen.
 - Die Pumpenräder im Schaubild drehen sich in Safari und auf dem iPhone gleichmäßig.
 - Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.
+- Die Schaubild-Karte erscheint auch, wenn die Seite während des Starts von Home Assistant lädt.
 
 ## [1.12.0] - 2026-09-13
 

@@ -144,6 +144,10 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     async_register_rediscover_service(hass)
     async_register_dashboard_export(hass)
+    # Das Kartenmodul steht vor jeder Anlage bereit: Eine Seite, die während der
+    # Einrichtung lädt, kennt es sonst nicht. Es hängt nicht am Panel-Schalter.
+    integration = await async_get_integration(hass, DOMAIN)
+    await async_setup_karte(hass, str(integration.version))
     return True
 
 
@@ -394,10 +398,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         # Abgewählt: der Seitenleisten-Eintrag verschwindet beim nächsten Laden.
         await async_remove_dashboard(hass)
-
-    # Die Karte hängt **nicht** am Panel-Schalter: Der steht ab Werk aus, und
-    # ohne Modul gäbe es die Karte für die meisten Anlagen gar nicht.
-    await async_setup_karte(hass, version)
 
     await _oberflaeche_anwenden(hass, bool((entry.options or {}).get(CONF_PANEL, False)), version)
 
