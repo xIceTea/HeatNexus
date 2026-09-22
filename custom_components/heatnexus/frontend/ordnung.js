@@ -61,14 +61,13 @@ export const ANNAHME_MS = 45 * 1000;
 export const SPERRE_MS = 5 * 1000;
 
 /**
- * Wie oft und in welchem Abstand nach einer Bedienung nachgelesen wird.
+ * Wann nach einer Bedienung nachgelesen wird, in Sekunden nach dem Befehl.
  *
- * Ein einzelner Abruf trifft die Anlage oft noch beim Abarbeiten: Die
- * Betriebsart steht dann schon richtig, Pumpe und Ladezustand ziehen Sekunden
- * später nach. Gelesen werden nur die beteiligten Adressen.
+ * Die Steuerung rechnet einen neuen Sollwert unterschiedlich schnell: mal in
+ * Sekunden, mal erst nach einer Minute. Die Abstände wachsen deshalb, und
+ * gelesen wird nur, solange sich noch nichts bewegt hat.
  */
-export const NACHFASS_ANZAHL = 4;
-export const NACHFASS_MS = 4 * 1000;
+export const NACHFASS_PLAN = [0, 4, 8, 12, 20, 30, 45, 60];
 
 /**
  * Wie oft ein Abbruch nachgesetzt wird, den die Anlage überging.

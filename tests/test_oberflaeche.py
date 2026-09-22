@@ -277,6 +277,21 @@ def test_nach_der_betriebswahl_werden_die_verwandten_werte_gelesen(durchlauf):
     assert "climate.heizkreis" in nachgefasst[0]["entitaeten"]
 
 
+def test_das_nachfassen_reicht_ueber_eine_minute(durchlauf):
+    """Die Steuerung rechnet den Sollwert auch mal erst nach über zwölf Sekunden."""
+    assert durchlauf["betriebswahl"]["geplant"] >= 7
+
+
+def test_das_nachfassen_endet_sobald_der_wert_nachgezogen_ist(durchlauf):
+    """Sonst kostete jede Bedienung acht Runden Anfragen an die Anlage."""
+    nachgefasst = [
+        a
+        for a in durchlauf["betriebswahl"]["aufrufe"]
+        if a["dienst"] == "homeassistant.update_entity"
+    ]
+    assert len(nachgefasst) == 1
+
+
 # ---------------------------------------------------------------------------
 # Farbsatz des Schaubilds
 # ---------------------------------------------------------------------------

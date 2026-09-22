@@ -297,15 +297,29 @@ bilanz.bedienen = {
 // Die Anlage setzt mit der Betriebswahl auch den Sollwert neu. Ohne
 // Nachfassen stünde er bis zum nächsten Abruf auf dem alten Stand.
 // ---------------------------------------------------------------------------
+states["climate.heizkreis"] = {
+  entity_id: "climate.heizkreis",
+  state: "heat",
+  attributes: { friendly_name: "Heizkreis", temperature: 20 },
+};
+states["select.betriebswahl"] = {
+  entity_id: "select.betriebswahl",
+  state: "Programm 3",
+  attributes: { friendly_name: "Betriebswahl", options: ["Programm 2", "Programm 3"] },
+};
+
 const vorAuswahl = dienstAufrufe.length;
 const auswahlFeld = flaeche._auswahlFeld("Betriebswahl", "select.betriebswahl", null, {
   entity: "climate.heizkreis",
   betriebswahl: "select.betriebswahl",
 });
 const auswahlKnoten = auswahlFeld.querySelector("select");
-auswahlKnoten.value = "Automatik";
+auswahlKnoten.value = "Programm 2";
 auswahlKnoten.ausloesen("change");
 for (let runde = 0; runde < 5; runde++) await Promise.resolve();
+const geplanteRunden = zeit.offeneAuftraege();
+// Die Anlage zieht nach – ab hier ist nichts mehr nachzufassen.
+states["climate.heizkreis"].attributes.temperature = 23;
 zeit.zeitLaufenLassen();
 
 bilanz.betriebswahl = {
@@ -313,6 +327,7 @@ bilanz.betriebswahl = {
     dienst: eintrag.dienst,
     entitaeten: [].concat((eintrag.angaben || {}).entity_id || []),
   })),
+  geplant: geplanteRunden,
 };
 
 // ---------------------------------------------------------------------------

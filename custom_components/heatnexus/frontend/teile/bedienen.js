@@ -9,12 +9,7 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import {
-  BESTAETIGUNG_MAX_MS,
-  NACHFASS_ANZAHL,
-  NACHFASS_MS,
-  RUECKMELDUNG_MS,
-} from "../ordnung.js";
+import { BESTAETIGUNG_MAX_MS, NACHFASS_PLAN, RUECKMELDUNG_MS } from "../ordnung.js";
 
 export const BedienenMixin = (Basis) =>
   class extends Basis {
@@ -33,17 +28,28 @@ export const BedienenMixin = (Basis) =>
       eintrag.entity,
     ].filter(Boolean);
     if (!entitaeten.length) return;
-    // Mehrmals, nicht einmal: Der erste Abruf kommt zurück, während die
-    // Anlage den Auftrag noch abarbeitet. Die Betriebsart steht dann schon
-    // richtig, die Ladepumpe meldet weiter ihren alten Zustand.
-    const lesen = () =>
+    // Zustand und Sollwert, mehr nicht: Eine laufende Restzeit zählt bei
+    // jedem Abruf herunter und beendete das Nachfassen nach der ersten Runde.
+    const abbild = () =>
+      entitaeten
+        .map((kennung) => {
+          const zustand = this._zustand(kennung);
+          if (!zustand) return "";
+          return `${zustand.state}/${(zustand.attributes || {}).temperature}`;
+        })
+        .join(";");
+    const anfang = abbild();
+    const lesen = () => {
+      // Sobald sich etwas bewegt hat, ist nichts mehr nachzufassen.
+      if (abbild() !== anfang) return;
       this._hass
         .callService("homeassistant", "update_entity", { entity_id: entitaeten })
         .catch((err) => console.warn("HeatNexus: Nachfassen fehlgeschlagen", err));
-    lesen();
-    for (let runde = 1; runde < NACHFASS_ANZAHL; runde++) {
-      window.setTimeout(lesen, runde * NACHFASS_MS);
-    }
+    };
+    NACHFASS_PLAN.forEach((sekunden) => {
+      if (sekunden === 0) lesen();
+      else window.setTimeout(lesen, sekunden * 1000);
+    });
   }
 
   /**
