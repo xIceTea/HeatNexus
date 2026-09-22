@@ -13,7 +13,9 @@ wenn dort Vorabversionen zugelassen sind.
 - Oberfläche, Dashboard und Schaubild erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
 - Werte der Übersicht im Windhager-Portal erscheinen auch ohne freigeschaltete Serviceebene.
 - Zeitprogramme weiterer Baureihen werden erkannt, auch wenn das Menü der Steuerung sie nicht aufführt.
+- „Automatisch" folgt der Sprache von Home Assistant; die Datenpunktnamen bleiben deutsch.
 - Für den Brennstoffzähler seit Befüllung gibt es eine Taste zum Zurücksetzen.
+- Einstellungen, die einen Neustart der Steuerung auslösen, tragen das Attribut `neustart_erforderlich`.
 - Das gerade gültige Zeitprogramm trägt einen Rahmen in der Akzentfarbe.
 
 ### Geändert
@@ -32,32 +34,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Unter Home Assistant 2026.9 erscheint keine Warnung zur Gerätesuche mehr ([#12](https://github.com/xIceTea/HeatNexus/issues/12)).
 - Nach einer geänderten Betriebswahl erscheinen Sollwert und Restzeit sofort.
 - Eco und Comfort erscheinen wieder im Reiter Steuerung.
-
-## [1.13.0-beta.1] - 2026-09-21
-
-### Neu
-
-- Oberfläche, Dashboard und Schaubild erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
-- „Automatisch" folgt der Sprache von Home Assistant; die Datenpunktnamen bleiben deutsch.
-- Werte der Übersicht im Windhager-Portal erscheinen auch ohne freigeschaltete Serviceebene.
-- Zeitprogramme weiterer Baureihen werden erkannt, auch wenn das Menü der Steuerung sie nicht aufführt.
-- Für den Brennstoffzähler seit Befüllung gibt es eine Taste zum Zurücksetzen.
-- Einstellungen, die einen Neustart der Steuerung auslösen, tragen das Attribut `neustart_erforderlich`.
-
-### Geändert
-
-- Kessel-, Puffer- und Solarpumpe erscheinen im Schaubild auch ohne deutschen Namen.
-
-### Behoben
-
-- Der Automatikkessel erscheint im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
-- Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
-- Dashboard, Panel und Schaubild-Karte laden auch bei ungewöhnlichen Gerätekennungen anderer Integrationen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
-- Unter Home Assistant 2026.9 erscheint keine Warnung zur Gerätesuche mehr ([#12](https://github.com/xIceTea/HeatNexus/issues/12)).
 - Die Kacheln für Reinigung, Wartung und Kaminkehrer funktionieren auch bei abweichenden Datenpunktnamen.
-- Die Pumpenräder im Schaubild drehen sich in Safari und auf dem iPhone gleichmäßig.
-- Die stehende Pumpe bleibt im hellen Farbsatz erkennbar.
-- Die Schaubild-Karte erscheint auch, wenn die Seite während des Starts von Home Assistant lädt.
+- Die Sonde kennzeichnet einen fehlgeschlagenen Vollabzug im Dateinamen.
 
 ## [1.12.0] - 2026-09-13
 
