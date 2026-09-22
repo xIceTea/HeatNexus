@@ -972,6 +972,17 @@ def _gekuerzt(data, grenze: int = ENDPUNKT_INHALT_MAX):
     return {"gekuerzt": True, "laenge": len(text), "anfang": text[:grenze]}
 
 
+def abzugsname(out_dir: Path, stem: str, abzug: dict) -> Path:
+    """Der Dateiname sagt, ob der Lauf etwas gelesen hat.
+
+    Ohne den Zusatz sieht eine Fehlerantwort wie ein Abzug aus und wird als
+    solcher weitergereicht.
+    """
+    if abzug.get("status") != 200:
+        return out_dir / f"{stem}_vollabzug-fehlgeschlagen.json"
+    return out_dir / f"{stem}_vollabzug.json"
+
+
 def hole_vollabzug(probe: Probe) -> dict:
     """`/api/1.0/datapoints` ganz lesen und ausmessen.
 
@@ -986,6 +997,9 @@ def hole_vollabzug(probe: Probe) -> dict:
     data, status = probe.get(f"{probe.base}/api/1.0/datapoints")
     if status != 200 or not isinstance(data, list):
         print(f"    Vollabzug nicht lesbar: HTTP {status}")
+        if status == 404:
+            print("    Diese Steuerung kennt den Endpunkt nicht. Das ist kein Bedienfehler;")
+            print("    lies stattdessen `structure` und `menus` – oder gleich `all`.")
         return {"status": status, "data": data}
 
     je_praefix: dict[str, int] = {}
@@ -1748,7 +1762,7 @@ def run_host(
         with schritt("Vollabzug"):
             print("    Vollabzug /api/1.0/datapoints wird gelesen …")
             abzug = hole_vollabzug(probe)
-            path = out_dir / f"{stem}_vollabzug.json"
+            path = abzugsname(out_dir, stem, abzug)
             path.write_text(json.dumps(abzug, indent=2, ensure_ascii=False), encoding="utf-8")
             written.append(path)
 

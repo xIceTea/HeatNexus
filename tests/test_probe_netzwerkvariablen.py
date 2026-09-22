@@ -294,3 +294,22 @@ def test_csv_laesst_echte_datenpunkte_unveraendert(probe_modul, tmp_path):
     zeile = next(iter(csv.DictReader(ziel.open(encoding="utf-8-sig"), delimiter=";")))
     assert zeile["name_db"] == probe_modul.db_name("0/0")
     assert zeile["schreibbar"] == "nein"
+
+
+# ---------------------------------------------------------------------------
+# Ein Lauf, der nichts gelesen hat, darf nicht wie ein Abzug aussehen
+# ---------------------------------------------------------------------------
+def test_ein_misslungener_vollabzug_heisst_auch_so(probe_modul, tmp_path):
+    """Ohne Hinweis im Namen gilt eine Fehlerantwort als Abzug.
+
+    Die Datei enthält dann nur den Statuscode und wird trotzdem weitergegeben.
+    """
+    misslungen = {"status": 404, "data": {"code": 404, "message": "Not Found"}}
+    geglueckt = {"status": 200, "anzahl": 812, "je_praefix": {}}
+
+    assert probe_modul.abzugsname(tmp_path, "192-0-2-10", misslungen).name == (
+        "192-0-2-10_vollabzug-fehlgeschlagen.json"
+    )
+    assert probe_modul.abzugsname(tmp_path, "192-0-2-10", geglueckt).name == (
+        "192-0-2-10_vollabzug.json"
+    )
