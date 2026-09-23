@@ -1,7 +1,7 @@
 """Automatik- und Zusatzkessel (fctType 10).
 
-Die Tabelle führt nur, was Windhager auf die Titelseite legt, in keiner
-Bedienebene aber nennt. Alles Übrige kommt aus den Menü-Ebenen der Anlage.
+Ohne kuratierte Tabelle: Alles kommt aus den Menü-Ebenen der Anlage. Die
+Übersichtsebene des Herstellers hebt Kesseltemperatur und Betriebsart auf info.
 """
 
 from __future__ import annotations
@@ -16,13 +16,7 @@ EXTRA_OIDS: tuple[str, ...] = ()
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
-NAMEN: dict[str, str] = {}
+NAMEN: dict[str, str] = {"0/7": "Kesseltemperatur Ist"}
 
 NUR_BUS: tuple[str, ...] = ()
-# `0/7` und `2/59` stehen in der Übersichtsebene des Herstellers, in keiner
-# Bedienebene aber drin. Ohne Eintrag hier blieben beide abgeschaltet, und
-# ohne Kesseltemperatur fällt der Kessel aus dem Schaubild.
-ENTITAETEN: list[dict] = [
-    {"oid": "/0/7/0", "name": "Kesseltemperatur Ist", "platform": "temperature"},
-    {"oid": "/2/59/0", "name": "Betriebsart", "platform": "enum_sensor", "enum": "2/59"},
-]
+ENTITAETEN: list[dict] = []

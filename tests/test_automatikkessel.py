@@ -1,8 +1,8 @@
-"""Die kuratierte Tabelle für den Automatik-/Zusatzkessel (fctType 10).
+"""Der Automatik-/Zusatzkessel (fctType 10) ohne kuratierte Tabelle.
 
-Diese Baureihe führt ihre Kesseltemperatur in keiner Bedienebene. Die Tabelle
-holt genau das nach, was der Hersteller auf die Titelseite legt und sonst
-nirgends zeigt; die Tests halten sie gegen dieselbe Quelle.
+Diese Baureihe führt ihre Kesseltemperatur in keiner Bedienebene, wohl aber
+auf der Übersichtsseite des Herstellers. Die Tests halten fest, dass sie von
+dort als Infoebene ankommt – eingeschaltet, mit derselben Art wie am PuroWIN.
 """
 
 from __future__ import annotations
@@ -12,16 +12,19 @@ from pathlib import Path
 
 import pytest
 
-from .conftest import load_standalone
+from .conftest import load_standalone, requires_ha
 
 KOMPONENTE = Path(__file__).parent.parent / "custom_components" / "heatnexus"
 FCT_AUTOMATIKKESSEL = "10"
+PRAEFIX = "/1/65/0"
+KESSEL = f"{PRAEFIX}/0/7/0"
+BETRIEBSART = f"{PRAEFIX}/2/59/0"
 
-
-@pytest.fixture(scope="module")
-def geraete():
-    """Die Gerätemodule kommen ohne Home Assistant aus."""
-    return load_standalone("geraete")
+# Metadaten in der Form, die die Steuerung für beide Adressen meldet.
+MENUE = {
+    KESSEL: {"writeProt": True, "typeId": 13, "unit": "°C", "value": "64.2"},
+    BETRIEBSART: {"writeProt": True, "typeId": 9, "enum": "[0,1,2,5]", "value": "5"},
+}
 
 
 @pytest.fixture(scope="module")
@@ -29,72 +32,84 @@ def db():
     return json.loads((KOMPONENTE / "device_db.json").read_text(encoding="utf-8"))
 
 
-def _adressen(eintraege) -> list[str]:
-    """`/gn/mn/idx` -> `gn/mn`, die Form der Geräte-Datenbank."""
-    adressen = []
-    for eintrag in eintraege:
-        teile = eintrag["oid"].strip("/").split("/")
-        adressen.append(f"{teile[0]}/{teile[1]}")
-    return adressen
+@pytest.fixture(scope="module")
+def ebenenfolge():
+    return load_standalone("client.gemeinsam").EBENENFOLGE
 
 
-def test_der_automatikkessel_hat_eine_tabelle(geraete):
-    """Ohne sie bliebe die Kesseltemperatur in der Serviceebene liegen."""
-    assert geraete.ENTITAETEN.get(int(FCT_AUTOMATIKKESSEL)), "fctType 10 ohne kuratierte Tabelle"
+def _ebene(db, ebenenfolge, gnmn: str) -> str | None:
+    """Die Ebene, die die Erkennung einer Adresse gibt."""
+    ebenen = db["layers"][FCT_AUTOMATIKKESSEL]
+    return next((ziel for liste, ziel in ebenenfolge if gnmn in ebenen.get(liste, [])), None)
 
 
-def test_jede_adresse_steht_in_der_geraete_datenbank(geraete, db):
-    """Eine erfundene Adresse fiele hier auf, nicht erst an der Anlage."""
-    fehlend = [a for a in _adressen(geraete.automatikkessel.ENTITAETEN) if a not in db["names"]]
-    assert fehlend == [], f"nicht in device_db.json: {fehlend}"
-
-
-def test_die_kesseltemperatur_steht_darin(geraete):
-    """`0/7` trägt den Kessel im Schaubild.
-
-    Das Schaubild zeichnet einen Anlagenteil nur, wenn er einen seiner Werte
-    liefert. Fehlt die Kesseltemperatur, fällt der ganze Kessel aus dem Bild.
-    """
-    assert "0/7" in _adressen(geraete.automatikkessel.ENTITAETEN)
-
-
-def test_was_der_hersteller_zeigt_aber_nicht_bedienen_laesst(geraete, db):
-    """Die Regel dieser Tabelle, gegen die Herstellerdatei gehalten.
-
-    Was in der Übersichtsebene steht und in keiner Bedienebene, erreicht ohne
-    Eintrag hier niemanden: Es zählt als Werksebene und bleibt abgeschaltet.
-    """
+def test_kesseltemperatur_und_betriebsart_stehen_in_keiner_bedienebene(db):
+    """Die Voraussetzung: Ohne Übersichtsseite blieben beide Werksebene."""
     ebenen = db["layers"][FCT_AUTOMATIKKESSEL]
     bedienbar = set(ebenen["info"]) | set(ebenen["operate"])
-    noetig = set(ebenen["overview"]) - bedienbar
-    fehlend = sorted(noetig - set(_adressen(geraete.automatikkessel.ENTITAETEN)))
-    assert fehlend == [], f"nur in der Übersichtsebene, aber nicht kuratiert: {fehlend}"
+    assert {"0/7", "2/59"} <= set(ebenen["overview"])
+    assert not {"0/7", "2/59"} & bedienbar
 
 
-def test_nichts_steht_darin_das_der_hersteller_nicht_nennt(geraete, db):
-    """Die Gegenrichtung: keine Adresse ohne Beleg im eigenen Funktionstyp."""
-    ebenen = db["layers"][FCT_AUTOMATIKKESSEL]
-    belegt = set(ebenen["overview"]) | set(ebenen["info"]) | set(ebenen["operate"])
-    ueberzaehlig = sorted(set(_adressen(geraete.automatikkessel.ENTITAETEN)) - belegt)
-    assert ueberzaehlig == [], f"ohne Beleg in den Ebenen des fctType 10: {ueberzaehlig}"
+def test_die_uebersichtsseite_hebt_sie_auf_die_infoebene(db, ebenenfolge):
+    assert _ebene(db, ebenenfolge, "0/7") == "info"
+    assert _ebene(db, ebenenfolge, "2/59") == "info"
 
 
-def test_jeder_eintrag_nennt_eine_plattform(geraete):
-    """Ohne Plattform legt der Client keine Entität an."""
-    for eintrag in geraete.automatikkessel.ENTITAETEN:
-        assert eintrag.get("platform"), eintrag
-        assert eintrag.get("name"), eintrag
+@pytest.fixture(scope="module")
+def client_module():
+    from custom_components.heatnexus import client
+
+    return client
 
 
-def test_die_genannten_auswahltabellen_gibt_es(geraete, db):
-    """`enum` zeigt auf eine Tabelle – zeigt sie ins Leere, bleibt die Zahl."""
-    for eintrag in geraete.automatikkessel.ENTITAETEN:
-        if schluessel := eintrag.get("enum"):
-            assert schluessel in db["enums"], f"{schluessel} fehlt in der Geräte-Datenbank"
+async def _erkennen(client_module, monkeypatch):
+    from custom_components.heatnexus import geraetetexte
+
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info", "operate"])
+    c.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
+    c.werksbezeichnung = {"65": "LogWIN"}
+
+    async def fetch(url, semaphore=None):
+        return [
+            {
+                "nodeId": 65,
+                "neuronId": "0000LOGWIN01",
+                "name": "LogWIN",
+                "functions": [{"fctId": 0, "fctType": 10, "lock": False, "name": "LogWIN"}],
+            }
+        ]
+
+    async def read_function_menus(prefix, fct_type):
+        return dict(MENUE)
+
+    async def statische_adressen():
+        return set()
+
+    async def keine_geraetetexte():
+        return geraetetexte.Texte()
+
+    monkeypatch.setattr(c, "fetch", fetch)
+    monkeypatch.setattr(c, "_read_function_menus", read_function_menus)
+    monkeypatch.setattr(c, "_statische_adressen", statische_adressen)
+    monkeypatch.setattr(c, "_lade_geraetetexte", keine_geraetetexte)
+    await c._discover()
+    return {d.get("oid"): d for d in c.devices}, c
 
 
-def test_keine_adresse_steht_zweimal(geraete):
-    """Zwei Entitäten auf derselben Adresse brauchten einen Namenszusatz."""
-    adressen = _adressen(geraete.automatikkessel.ENTITAETEN)
-    doppelt = sorted({a for a in adressen if adressen.count(a) > 1})
-    assert doppelt == [], f"doppelt: {doppelt}"
+@requires_ha()
+async def test_der_kessel_entsteht_eingeschaltet_auf_der_infoebene(client_module, monkeypatch):
+    beschreibungen, _ = await _erkennen(client_module, monkeypatch)
+    for oid in (KESSEL, BETRIEBSART):
+        assert beschreibungen[oid]["level"] == "info", oid
+        assert beschreibungen[oid]["enabled_default"] is True, oid
+    assert beschreibungen[KESSEL]["name"] == "Kesseltemperatur Ist"
+
+
+@requires_ha()
+async def test_die_arten_gleichen_denen_der_anderen_kessel(client_module, monkeypatch):
+    beschreibungen, c = await _erkennen(client_module, monkeypatch)
+    assert c._resolve_auto_type(beschreibungen[KESSEL], MENUE[KESSEL]) == "temperature"
+    art = c._resolve_auto_type(beschreibungen[BETRIEBSART], MENUE[BETRIEBSART])
+    assert art == "enum_sensor"
+    assert beschreibungen[BETRIEBSART]["enum"] == "2/59"
