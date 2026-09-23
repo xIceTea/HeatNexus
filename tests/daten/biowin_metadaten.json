@@ -1,0 +1,248 @@
+{
+ "hinweis": "Metadaten, die zwei BioWIN-Anlagen für die Adressen der kuratierten Tabelle melden, je Geräteklasse (programId). Werte sind entfernt.",
+ "klassen": {
+  "1415/9": {
+   "0/7": {
+    "typeId": 13,
+    "subtypeId": -1,
+    "unit": "°C",
+    "minValue": "-30.0",
+    "maxValue": "150.0",
+    "step": "0.1",
+    "writeProt": true
+   },
+   "1/7": {
+    "typeId": 13,
+    "subtypeId": -1,
+    "unit": "°C",
+    "minValue": "0.0",
+    "maxValue": "100.0",
+    "step": "1",
+    "writeProt": true
+   },
+   "0/9": {
+    "typeId": 0,
+    "subtypeId": -1,
+    "unit": "%",
+    "minValue": "0",
+    "maxValue": "100",
+    "step": "1",
+    "writeProt": true
+   },
+   "0/11": {
+    "typeId": 13,
+    "subtypeId": -1,
+    "unit": "°C",
+    "minValue": "-30.0",
+    "maxValue": "500.0",
+    "step": "0.1",
+    "writeProt": true
+   },
+   "2/1": {
+    "typeId": 9,
+    "subtypeId": -1,
+    "unit": "",
+    "step": "1",
+    "writeProt": true,
+    "enum": "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]"
+   },
+   "2/59": {
+    "typeId": 9,
+    "subtypeId": -1,
+    "unit": "",
+    "step": "1",
+    "writeProt": true,
+    "enum": "[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]"
+   },
+   "2/80": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "unit": "",
+    "minValue": "0",
+    "maxValue": "65534",
+    "step": "1",
+    "writeProt": false
+   },
+   "2/81": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "unit": "h",
+    "minValue": "0",
+    "maxValue": "65534",
+    "step": "1",
+    "writeProt": false
+   },
+   "20/61": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "unit": "h",
+    "minValue": "0",
+    "maxValue": "65534",
+    "step": "1",
+    "writeProt": true
+   },
+   "20/62": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "unit": "h",
+    "minValue": "0",
+    "maxValue": "65534",
+    "step": "1",
+    "writeProt": true
+   },
+   "20/63": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "unit": "h",
+    "minValue": "0",
+    "maxValue": "4216",
+    "step": "1",
+    "writeProt": false
+   },
+   "23/100": {
+    "typeId": 16,
+    "subtypeId": -1,
+    "unit": "t",
+    "minValue": "0.00",
+    "maxValue": "655.00",
+    "step": "0.01",
+    "writeProt": false
+   },
+   "23/103": {
+    "typeId": 16,
+    "subtypeId": -1,
+    "unit": "t",
+    "minValue": "0.00",
+    "maxValue": "655.00",
+    "step": "0.01",
+    "writeProt": false
+   },
+   "14/19": {
+    "typeId": 9,
+    "subtypeId": -1,
+    "unit": "",
+    "step": "1",
+    "writeProt": false,
+    "enum": "[0,1,2,3]"
+   }
+  },
+  "1403/9": {
+   "0/7": {
+    "typeId": 14,
+    "subtypeId": -1,
+    "unit": "°C",
+    "minValue": "-10.50",
+    "maxValue": "95.50",
+    "step": "0.01",
+    "writeProt": true
+   },
+   "1/7": {
+    "typeId": 13,
+    "subtypeId": -1,
+    "unit": "°C",
+    "minValue": "-273.1",
+    "maxValue": "327.6",
+    "step": "0.1",
+    "writeProt": true
+   },
+   "0/9": {
+    "typeId": 0,
+    "subtypeId": -1,
+    "unit": "%",
+    "minValue": "0",
+    "maxValue": "100",
+    "step": "1",
+    "writeProt": true
+   },
+   "0/11": {
+    "typeId": 13,
+    "subtypeId": -1,
+    "unit": "°C",
+    "minValue": "-274.0",
+    "maxValue": "3276.7",
+    "step": "0.1",
+    "writeProt": true
+   },
+   "2/1": {
+    "typeId": 9,
+    "subtypeId": -1,
+    "writeProt": true,
+    "enum": "[0,1,2,3,4,5,6,7,8,17]"
+   },
+   "2/59": {
+    "typeId": 9,
+    "subtypeId": -1,
+    "writeProt": true,
+    "enum": "[0,1,2,3,4,5,6,7,8,9,10,11]"
+   },
+   "2/80": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "minValue": "0",
+    "maxValue": "65535",
+    "step": "1",
+    "writeProt": true
+   },
+   "2/81": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "unit": "h",
+    "minValue": "0",
+    "maxValue": "65535",
+    "step": "1",
+    "writeProt": true
+   },
+   "20/61": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "unit": "h",
+    "minValue": "0",
+    "maxValue": "65535",
+    "step": "1",
+    "writeProt": true
+   },
+   "20/62": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "unit": "h",
+    "minValue": "0",
+    "maxValue": "65535",
+    "step": "1",
+    "writeProt": true
+   },
+   "20/63": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "unit": "h",
+    "minValue": "0",
+    "maxValue": "65535",
+    "step": "1",
+    "writeProt": true
+   },
+   "23/100": {
+    "typeId": 16,
+    "subtypeId": -1,
+    "unit": "t",
+    "minValue": "0.00",
+    "maxValue": "655.34",
+    "step": "0.01",
+    "writeProt": false
+   },
+   "23/103": {
+    "typeId": 16,
+    "subtypeId": -1,
+    "unit": "t",
+    "minValue": "0.00",
+    "maxValue": "655.34",
+    "step": "0.01",
+    "writeProt": true
+   },
+   "14/19": {
+    "typeId": 9,
+    "subtypeId": -1,
+    "writeProt": false,
+    "enum": "[0,1,2,3]"
+   }
+  }
+ }
+}

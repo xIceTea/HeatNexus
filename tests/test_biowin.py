@@ -124,3 +124,54 @@ def test_keine_adresse_steht_zweimal(geraete):
     adressen = _adressen(geraete.biowin.ENTITAETEN)
     doppelt = sorted({a for a in adressen if adressen.count(a) > 1})
     assert doppelt == [], f"doppelt: {doppelt}"
+
+
+@pytest.fixture(scope="module")
+def anlagen():
+    """Metadaten zweier BioWIN-Anlagen, je Geräteklasse."""
+    pfad = Path(__file__).parent / "daten" / "biowin_metadaten.json"
+    return json.loads(pfad.read_text(encoding="utf-8"))["klassen"]
+
+
+def _schreibbar(anlagen, adresse: str) -> bool:
+    return any(klasse.get(adresse, {}).get("writeProt") is False for klasse in anlagen.values())
+
+
+def test_jede_auswahl_nennt_ihre_texte(geraete, db):
+    """Ohne `enum` zeigt die Entität die nackte Zahl."""
+    for eintrag, adresse in zip(
+        geraete.biowin.ENTITAETEN, _adressen(geraete.biowin.ENTITAETEN), strict=True
+    ):
+        if eintrag["platform"] in ("select", "enum_sensor") and adresse in db["enums"]:
+            assert eintrag.get("enum") == adresse, adresse
+
+
+def test_eine_auswahl_folgt_dem_schreibrecht_der_anlage(geraete, anlagen):
+    """Was die Anlage verstellen lässt, ist eine Auswahl, sonst eine Anzeige."""
+    for eintrag, adresse in zip(
+        geraete.biowin.ENTITAETEN, _adressen(geraete.biowin.ENTITAETEN), strict=True
+    ):
+        if eintrag["platform"] not in ("select", "enum_sensor"):
+            continue
+        erwartet = "select" if _schreibbar(anlagen, adresse) else "enum_sensor"
+        assert eintrag["platform"] == erwartet, adresse
+
+
+def test_ein_zaehler_bleibt_anzeige_auch_wenn_er_schreibbar_ist(geraete, anlagen):
+    """Ohne Tabelle entstünde aus einem schreibbaren Zähler ein Eingabefeld."""
+    zaehler = {"2/80", "2/81", "20/63", "23/100", "23/103"}
+    assert all(_schreibbar(anlagen, a) for a in zaehler)
+    plattform = {
+        adresse: eintrag["platform"]
+        for eintrag, adresse in zip(
+            geraete.biowin.ENTITAETEN, _adressen(geraete.biowin.ENTITAETEN), strict=True
+        )
+    }
+    assert {plattform[a] for a in zaehler} == {"sensor"}
+
+
+def test_jede_adresse_meldet_eine_anlage_ausser_der_pumpe(geraete, anlagen):
+    """`0/22` stammt nur aus der Übersicht von `default/9`; keine Anlage meldet sie."""
+    gemeldet = set().union(*(set(klasse) for klasse in anlagen.values()))
+    fehlend = sorted(set(_adressen(geraete.biowin.ENTITAETEN)) - gemeldet)
+    assert fehlend == ["0/22"]

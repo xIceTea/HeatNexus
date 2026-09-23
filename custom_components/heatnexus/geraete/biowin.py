@@ -1,7 +1,7 @@
 """BioWIN Pelletskessel (fctType 9).
 
-Zusammengestellt ohne eigene Hardware, jeder Datenpunkt aus zwei
-unabhängigen Quellen belegt.
+Jeder Datenpunkt ist aus zwei unabhängigen Quellen belegt. Plattform und
+Schreibrecht folgen den Metadaten, die BioWIN-Anlagen tatsächlich melden.
 """
 
 from __future__ import annotations
@@ -111,13 +111,14 @@ ENTITAETEN: list[dict] = [
         "platform": "sensor",
         "icon": "mdi:sack",
     },
-    # Aus dem Abgleich zweier unabhängiger BioWIN-Quellen nachgetragen. Ein
-    # fremder Abzug belegt, dass es eine Adresse gibt – nicht, dass sie an
-    # diesen Funktionstyp gehört.
+    # Betreiberebene beider BioWIN-Geräteklassen, an der Anlage schreibbar.
+    # Meldet die Steuerung Schreibschutz, entsteht daraus die Anzeige.
     {
         "oid": "/14/19/0",
         "name": "Betriebsart Zuführung",
-        "platform": "enum_sensor",
+        "platform": "select",
+        "enum": "14/19",
+        "category": "config",
         "icon": "mdi:transfer",
     },
 ]
