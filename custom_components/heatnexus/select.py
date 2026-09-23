@@ -43,7 +43,7 @@ class WindhagerSelect(WindhagerEntity, SelectEntity):
             # get a generic label so they are still selectable
             self._value_to_label = {v: self.enum_map.get(v, f"Wert {v}") for v in allowed}
         self._label_to_value: dict[str, int] = {}
-        for value, label in self.enum_map.items():
+        for value, label in sorted(self._value_to_label.items()):
             # first value wins if labels are duplicated
             self._label_to_value.setdefault(label, value)
         self._attr_options = [self._value_to_label[v] for v in sorted(self._value_to_label)]
