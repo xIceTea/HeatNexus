@@ -10,14 +10,14 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Störungen zeigen in Dashboard und Panel die Handlungsempfehlung von Windhager.
+- Dashboard und Panel zeigen zu jeder Störung die Handlungsempfehlung von Windhager.
 - Die Sonde prüft auch die Zeitprogramm-Adressen des Herstellers.
 
 ### Geändert
 
 - Die Meldungskarten im Dashboard tragen Anlage und Anlagenteil im Titel.
 - Der Alarmcode des BioWIN steht unter Diagnose statt in der Übersicht.
-- Nach einer Bedienung fragt das Panel weniger oft bei der Anlage nach.
+- Nach einer Bedienung gehen weniger Anfragen an die Anlage.
 
 ### Behoben
 
