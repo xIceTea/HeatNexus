@@ -420,3 +420,29 @@ async def test_fremde_geraetekennung_ohne_paarform_stoert_nicht(hass, anlagen, k
 
     [anlage] = anlagen.anlagen_lesen(hass)
     assert [teil["name"] for teil in anlage["teile"]] == ["Kessel"]
+
+
+def test_meldungen_zeigen_text_und_abhilfe(ansichten):
+    """Die Abhilfe steht nur im Attribut; die Kachel zeigte sie nicht."""
+    anlage = _anlage_mit_teilen()
+    anlage["teile"][0]["entitaeten"].append(
+        {
+            "entity_id": "sensor.purowin_meldung_klartext",
+            "name": "PuroWIN Meldung Klartext",
+            "bereich": "sensor",
+            "hat_wert": True,
+            "kategorie": "diagnostic",
+            "state_class": None,
+            "abgeleitet": False,
+        }
+    )
+    karten = [
+        karte
+        for abschnitt in ansichten.uebersicht([anlage])["sections"]
+        for karte in abschnitt["cards"]
+        if karte.get("type") == "markdown"
+    ]
+    assert len(karten) == 1
+    inhalt = karten[0]["content"]
+    assert "state_attr('sensor.purowin_meldung_klartext', 'meldungen')" in inhalt
+    assert "e.text" in inhalt and "e.info" in inhalt

@@ -123,6 +123,9 @@ flaeche.panel = { config: { daten } };
 // sich im Reiter Zeitprogramme abheben.
 if (states["select.betriebswahl"]) states["select.betriebswahl"].state = "Programm 1";
 
+// Eine anstehende Störung, damit die Störungskarte ihre Zeilen zeigt.
+if (states["sensor.meldung_klartext"]) states["sensor.meldung_klartext"].attributes.stoerung_aktiv = true;
+
 const bilanz = {};
 const REITER = ["uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme"];
 REITER.forEach((reiter) => {
@@ -162,6 +165,10 @@ REITER.forEach((reiter) => {
     ),
     // Eigene Pfeile am Zahlenfeld – die des Browsers sind abgeschaltet.
     zahlPfeile: flaeche.shadowRoot.querySelectorAll(".zahl-pfeil").length,
+    // Unter der aktiven Störung steht die Handlungsempfehlung.
+    abhilfe: [...flaeche.shadowRoot.querySelectorAll(".abhilfe")]
+      .filter((knoten) => knoten.style.display !== "none")
+      .map((knoten) => String(knoten.textContent || "").trim()),
     zahlFelder: [...flaeche.shadowRoot.querySelectorAll(".status-zeile")]
       .filter((zeile) => zeile.querySelector(".zahl-feld"))
       .map((zeile) => String(zeile.querySelector(".titel").textContent || "").trim()),

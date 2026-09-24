@@ -544,3 +544,8 @@ def test_ein_abgebrochener_dialog_schreibt_nichts(dialog):
 def test_ohne_schreibbare_laufzeit_bleibt_ein_feld(dialog):
     """Meldet die Anlage Schreibschutz, fehlt das zweite Feld."""
     assert "ohne Laufzeit: nur die Leistung" in dialog["faelle"]
+
+
+def test_unter_der_stoerung_steht_die_abhilfe(durchlauf):
+    """Der Text sagt, was ansteht; die Abhilfe, was zu tun ist."""
+    assert durchlauf["uebersicht"]["abhilfe"] == ["schließen"]

@@ -328,6 +328,10 @@ export const UebersichtMixin = (Basis) =>
       wert.className = "wert";
       zeile.append(links, wert);
       karte.appendChild(this._klickbar(zeile, eintrag.entity));
+      // Die Handlungsempfehlung des Herstellers, je Störung eine Zeile.
+      const abhilfe = document.createElement("div");
+      abhilfe.className = "abhilfe";
+      karte.appendChild(abhilfe);
       this._bindungen.push(() => {
         links.textContent = this._name(eintrag.entity).replace(" Meldung Klartext", "");
         const aktiv = this._stoerungAktiv(eintrag);
@@ -336,6 +340,12 @@ export const UebersichtMixin = (Basis) =>
         // Ohne Störung sagt der Kasten oben schon alles; die Zeilen sind dann
         // nur Wiederholung.
         zeile.style.display = aktiv ? "flex" : "none";
+        const zustand = this._zustand(eintrag.entity);
+        const hinweise = ((zustand && zustand.attributes.meldungen) || [])
+          .map((meldung) => String(meldung.info || "").replace(/\s+/g, " ").trim())
+          .filter(Boolean);
+        abhilfe.textContent = hinweise.join("\n");
+        abhilfe.style.display = aktiv && hinweise.length ? "block" : "none";
       });
     });
 

@@ -359,6 +359,10 @@ export const STIL = `
   }
   .status-zeile .wert.zustand { color: #7bd88f; }
   .status-zeile .wert.warm { color: #ffab6f; }
+  .abhilfe {
+    font-size: 13px; color: var(--hn-gedaempft);
+    padding: 0 0 8px; white-space: pre-line;
+  }
   ha-icon { --mdc-icon-size: 22px; opacity: 0.85; flex: none; }
 
   /* --- Schaubild ------------------------------------------------------- */
