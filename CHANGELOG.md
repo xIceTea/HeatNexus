@@ -22,7 +22,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Behoben
 
 - Heiz- und Warmwasserprogramme am BioWIN 2 werden erkannt ([#13](https://github.com/xIceTea/HeatNexus/issues/13)).
-- Die Betriebsart Zuführung am BioWIN zeigt ihren Text und lässt sich einstellen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
+- Die Betriebsart Zuführung am BioWIN erscheint als Text und lässt sich einstellen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
 - Ganzzahlige Werte wie Alarmcode und Brennerstarts erscheinen ohne „.0“.
 - Auswahlwerte ohne hinterlegten Text lassen sich wählen.
 - Meldungen bleiben stehen, wenn eine Abfrage der Anlage scheitert.
