@@ -17,7 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from ..entity import WindhagerEntity
 from ..helpers import get_oid_raw, get_oid_value
-from .gemeinsam import DEVICE_CLASSES, zahl_aus_zustand
+from .gemeinsam import DEVICE_CLASSES, anzeigezahl, zahl_aus_zustand
 
 
 class WindhagerAbleitungSensor(WindhagerEntity, SensorEntity):
@@ -98,11 +98,12 @@ class WindhagerAbleitungSensor(WindhagerEntity, SensorEntity):
             )
 
     @property
-    def native_value(self) -> float | None:
-        wert = self.float_value
+    def native_value(self) -> int | float | None:
+        wert = anzeigezahl(self.raw_value)
         if wert is None or self._basis is None:
             return None
-        return round(wert - self._basis, 3)
+        zuwachs = round(wert - self._basis, 3)
+        return int(zuwachs) if isinstance(wert, int) and zuwachs.is_integer() else zuwachs
 
     @property
     def extra_state_attributes(self):

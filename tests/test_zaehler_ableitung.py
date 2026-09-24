@@ -339,3 +339,12 @@ def test_eine_ableitung_ohne_frischen_wert_bleibt_verfuegbar(sensoren):
 
     assert entity.available, "Ohne Verfügbarkeit gehen basis und marke verloren"
     assert entity.extra_state_attributes["basis"] == 1200.0
+
+
+def test_ein_ganzzahliger_zaehler_bleibt_ganzzahlig(sensoren):
+    """Brennerstarts heute: 1, nicht 1.0."""
+    entity, koordinator = _ableitung(sensoren, {ZAEHLER: "1200"}, type="zaehler_heute")
+    entity._bezugspunkt_pruefen()
+    _fortschreiben(entity, koordinator, "1201")
+    assert entity.native_value == 1
+    assert type(entity.native_value) is int
