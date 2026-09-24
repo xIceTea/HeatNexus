@@ -1119,3 +1119,64 @@ def test_betriebswahl_und_restlaufzeit_laufen_schnell(client_module):
     assert klasse({"type": "sensor", "name": "Kaminkehrer", "unit": "min"}) == "fast"
     # Die Leistung ist ein Stellwert und ändert sich nicht von allein.
     assert klasse({"type": "number", "name": "Kaminkehrer Leistung", "unit": "%"}) == "normal"
+
+
+async def test_ein_zeitprogramm_ohne_lookup_kommt_ueber_das_objekt(client):
+    """Manche Steuerungen führen Zeitprogramme nur am object-Endpunkt.
+
+    Unter lookup antworten sie mit 404; das Objekt liefert das Programm.
+    Eine Adresse, die auch dort fehlt, entfällt.
+    """
+    programm = {
+        "value": [{"switchPoints": [{"time": "05:00", "value": 30}], "weekdays": ["Mo"]}],
+        "OID": "/1/60/5/5/61/0",
+        "typeId": 30,
+        "subtypeId": 14,
+        "writeProt": False,
+    }
+
+    async def objekt(oid):
+        return (programm, 200) if oid == "/1/60/5/5/61/0" else (None, 404)
+
+    async def lookup(url, semaphore=None):
+        return {"code": 404}, 404
+
+    client._get = lookup
+    client.fetch_object = objekt
+    oids = ("/1/60/5/5/61/0", "/1/60/5/5/64/0")
+    client.oids = set(oids)
+    client.menu_meta = {}
+    client.devices = [
+        {"oid": oid, "name": "WW-Programm", "type": "auto", "level": "operate", "fct_type": 14}
+        for oid in oids
+    ]
+
+    await client._apply_metadata()
+
+    assert [(d["oid"], d["type"]) for d in client.devices] == [("/1/60/5/5/61/0", "time_program")]
+    assert client.devices[0]["write_prot"] is False
+
+
+async def test_ein_gewoehnlicher_datenpunkt_ohne_lookup_fragt_kein_objekt(client):
+    """Das Objekt wird nur für Zeitprogramm-Adressen des Herstellers gefragt."""
+    gefragt = []
+
+    async def objekt(oid):
+        gefragt.append(oid)
+        return None, 404
+
+    async def lookup(url, semaphore=None):
+        return {"code": 404}, 404
+
+    client._get = lookup
+    client.fetch_object = objekt
+    client.oids = {"/1/60/5/0/4/0"}
+    client.menu_meta = {}
+    client.devices = [
+        {"oid": "/1/60/5/0/4/0", "name": "Wert", "type": "auto", "level": "info", "fct_type": 14}
+    ]
+
+    await client._apply_metadata()
+
+    assert client.devices == []
+    assert gefragt == []

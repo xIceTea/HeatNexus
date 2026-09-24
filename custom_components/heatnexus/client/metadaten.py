@@ -64,6 +64,7 @@ class MetadatenMixin:
                 missing.add(oid)
             elif isinstance(data, dict) and "code" not in data:
                 meta[oid] = data
+        await self._programme_am_objekt(meta, missing)
 
         kept = []
         for d in self.devices:
@@ -229,6 +230,22 @@ class MetadatenMixin:
         # Erst nach dem letzten Schritt: Bricht einer ab, bleibt die alte
         # Liste stehen statt einer halben.
         self.zusatzkandidaten = self._zusatz_neu
+
+    async def _programme_am_objekt(self, meta: dict, missing: set) -> None:
+        """Zeitprogramme ohne lookup-Antwort am object-Endpunkt nachlesen.
+
+        Der Hersteller liest sie dort; manche Steuerungen kennen sie unter lookup nicht.
+        """
+        offen = [
+            d["oid"]
+            for d in self.devices
+            if d.get("type") == "auto" and d.get("oid") not in meta and _herstellerprogramm(d)
+        ]
+        antworten = await asyncio.gather(*(self.fetch_object(oid) for oid in offen))
+        for oid, (data, status) in zip(offen, antworten, strict=True):
+            if status == 200 and isinstance(data, dict) and data.get("typeId") == 30:
+                meta[oid] = data
+                missing.discard(oid)
 
     def _neustart_markieren(self) -> None:
         """Einstellungen markieren, deren Änderung die Steuerung neu startet."""
