@@ -313,6 +313,14 @@ def test_allgemeiner_sensor_uebernimmt_einheit_und_klasse(sensoren):
     assert entity.suggested_display_precision == 0
 
 
+@pytest.mark.parametrize(("roh", "erwartet"), [("245", 245), ("12.5", 12.5), ("0.0", 0.0)])
+def test_ganzzahl_bleibt_ganzzahl(sensoren, roh, erwartet):
+    """Ein Code wie 245 erscheint ohne Nachkommastelle, wie am Bediengerät."""
+    entity, _ = _entitaet(sensoren.WindhagerGenericSensor, {"/1/60/0/9/75/0": roh}, type="sensor")
+    assert entity.native_value == erwartet
+    assert type(entity.native_value) is type(erwartet)
+
+
 # ---------------------------------------------------------------------------
 # Zeitprogramm
 # ---------------------------------------------------------------------------

@@ -25,7 +25,7 @@ from .ableitungen import (
     WindhagerSchaltpunktSensor,
     WindhagerWarmwasserAbstandSensor,
 )
-from .gemeinsam import DEVICE_CLASSES, STATE_CLASS_MAP, zahl_aus_zustand
+from .gemeinsam import DEVICE_CLASSES, STATE_CLASS_MAP, anzeigezahl, zahl_aus_zustand
 from .meldungen import (
     WindhagerDeviceStatusSensor,
     WindhagerErrorTextSensor,
@@ -129,9 +129,9 @@ class WindhagerGenericSensor(WindhagerEntity, SensorEntity):
             self._attr_suggested_display_precision = stellen
 
     @property
-    def native_value(self) -> float | None:
-        wert = self.float_value
-        return wert if wert is not None else zahl_aus_zustand(self.letzter_zustand)
+    def native_value(self) -> int | float | None:
+        wert = anzeigezahl(self.raw_value)
+        return wert if wert is not None else anzeigezahl(self.letzter_zustand)
 
 
 class WindhagerEnumSensor(WindhagerEntity, SensorEntity):

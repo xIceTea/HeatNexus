@@ -23,3 +23,11 @@ def zahl_aus_zustand(zustand: str | None) -> float | None:
         return float(zustand)
     except (TypeError, ValueError):
         return None
+
+
+def anzeigezahl(roh: str | None) -> int | float | None:
+    """Wie `zahl_aus_zustand`; ohne Dezimalpunkt bleibt es eine Ganzzahl („245", nicht „245.0")."""
+    wert = zahl_aus_zustand(roh)
+    if wert is not None and "." not in roh and wert.is_integer():
+        return int(wert)
+    return wert
