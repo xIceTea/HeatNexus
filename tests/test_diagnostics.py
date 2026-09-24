@@ -18,6 +18,12 @@ from .conftest import requires_ha
 pytestmark = requires_ha()
 
 SERIENNUMMER = "0000ABCD1234"
+# `info/deviceinfo` nennt die Seriennummer je nach Steuerung unter zwei Namen.
+GERAETEINFO = {
+    "device": "MB6621",
+    "serialnumber": "00100900000000001",
+    "serialnr": "00100900000000002",
+}
 ADRESSE = "192.0.2.10"
 
 
@@ -44,6 +50,7 @@ def _client():
         enable_advanced=False,
         writable_advanced=False,
         host=ADRESSE,
+        geraeteinfo=dict(GERAETEINFO),
         statistik=lambda: {"anfragen": 42, "anfragen_je_stunde": 120},
     )
 
@@ -121,6 +128,13 @@ async def test_keine_seriennummer_im_export(export):
     """Auch nicht als Teil einer Kennung – dort steckt sie in jeder Zeile."""
     daten = await export
     assert SERIENNUMMER not in json.dumps(daten)
+
+
+async def test_keine_seriennummer_der_steuerung_im_export(export):
+    daten = await export
+    text = json.dumps(daten)
+    assert GERAETEINFO["serialnumber"] not in text
+    assert GERAETEINFO["serialnr"] not in text
 
 
 async def test_keine_adresse_im_export(export):

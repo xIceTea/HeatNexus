@@ -34,6 +34,7 @@ ZU_SCHWAERZEN = {
     "alt_device_id",
     # aus `info/deviceinfo`: identifiziert die Anlage eindeutig
     "serialnumber",
+    "serialnr",
     "checknumber",
 }
 
