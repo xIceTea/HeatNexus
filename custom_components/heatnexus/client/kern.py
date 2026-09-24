@@ -144,6 +144,7 @@ class WindhagerHttpClient(
         self._sammelseite: bool | None = None
         self._letzte_werte: dict[str, str | None] = {}
         self._letzte_objekte: dict = {}
+        self._letzte_meldungen: dict[str, str] = {}
         # Anzahl der Anfragen an die Anlage (für die Startmeldung)
         self.request_count = 0
         # Abfragestatistik: Ohne Zahlen ist jede Optimierung geraten. Gezählt

@@ -361,16 +361,19 @@ class AbrufMixin:
             devs = await self.fetch("/1")
         except Exception as e:
             _LOGGER.debug("Meldungen nicht lesbar: %s", e)
-            return {}
+            devs = None
+        if not isinstance(devs, list):
+            # Wie bei den Werten: Ein Fehlschlag lässt den letzten Stand stehen.
+            return dict(self._letzte_meldungen)
         out: dict = {}
-        if isinstance(devs, list):
-            for dev in devs:
-                nid = dev.get("nodeId")
-                if nid is None:
-                    continue
-                msgs = [str(v) for k, v in dev.items() if self._FEMSG_RE.match(k) and v]
-                if msgs:
-                    out[str(nid)] = "  ".join(msgs)
+        for dev in devs:
+            nid = dev.get("nodeId")
+            if nid is None:
+                continue
+            msgs = [str(v) for k, v in dev.items() if self._FEMSG_RE.match(k) and v]
+            if msgs:
+                out[str(nid)] = "  ".join(msgs)
+        self._letzte_meldungen = out
         return out
 
     def statistik(self) -> dict:

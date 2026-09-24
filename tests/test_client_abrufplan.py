@@ -1180,3 +1180,20 @@ async def test_ein_gewoehnlicher_datenpunkt_ohne_lookup_fragt_kein_objekt(client
 
     assert client.devices == []
     assert gefragt == []
+
+
+async def test_ein_gescheiterter_strukturabruf_laesst_die_meldung_stehen(client):
+    """Wie bei den Werten: Ein Fehlschlag ist keine neue Auskunft."""
+    client.devices = [{"type": "message_text", "node_id": "60"}]
+    antworten = [
+        [{"nodeId": 60, "FE01msg": "FMP 09E245"}],
+        {"code": 504, "reason": "No response from Device"},
+    ]
+
+    async def struktur(url, semaphore=None):
+        return antworten.pop(0)
+
+    client.fetch = struktur
+
+    assert await client._fetch_status() == {"60": "FMP 09E245"}
+    assert await client._fetch_status() == {"60": "FMP 09E245"}
