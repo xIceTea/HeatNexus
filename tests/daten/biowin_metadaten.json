@@ -124,6 +124,15 @@
     "step": "1",
     "writeProt": false,
     "enum": "[0,1,2,3]"
+   },
+   "2/0": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "unit": "",
+    "minValue": "0",
+    "maxValue": "65534",
+    "step": "1",
+    "writeProt": true
    }
   },
   "1403/9": {
@@ -242,6 +251,14 @@
     "subtypeId": -1,
     "writeProt": false,
     "enum": "[0,1,2,3]"
+   },
+   "2/0": {
+    "typeId": 4,
+    "subtypeId": -1,
+    "minValue": "0",
+    "maxValue": "65535",
+    "step": "1",
+    "writeProt": true
    }
   }
  }

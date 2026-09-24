@@ -111,6 +111,14 @@ ENTITAETEN: list[dict] = [
         "platform": "sensor",
         "icon": "mdi:sack",
     },
+    # Der Code gehört zur Diagnose; Text und Abhilfe liefert der Meldungs-Klartext.
+    {
+        "oid": "/2/0/0",
+        "name": "Alarmcode",
+        "platform": "sensor",
+        "category": "diagnostic",
+        "icon": "mdi:alert-circle-outline",
+    },
     # Betreiberebene beider BioWIN-Geräteklassen, an der Anlage schreibbar.
     # Meldet die Steuerung Schreibschutz, entsteht daraus die Anzeige.
     {

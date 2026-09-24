@@ -175,3 +175,9 @@ def test_jede_adresse_meldet_eine_anlage_ausser_der_pumpe(geraete, anlagen):
     gemeldet = set().union(*(set(klasse) for klasse in anlagen.values()))
     fehlend = sorted(set(_adressen(geraete.biowin.ENTITAETEN)) - gemeldet)
     assert fehlend == ["0/22"]
+
+
+def test_der_alarmcode_steht_unter_diagnose(geraete):
+    """Als Messwert stünde der Code in der Übersicht, ohne Text."""
+    eintrag = next(e for e in geraete.biowin.ENTITAETEN if e["oid"] == "/2/0/0")
+    assert eintrag["category"] == "diagnostic"
