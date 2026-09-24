@@ -6,6 +6,30 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.13.0-beta.2] - 2026-09-24
+
+### Neu
+
+- Störungen zeigen in Dashboard und Panel die Handlungsempfehlung von Windhager.
+- Die Sonde prüft auch die Zeitprogramm-Adressen des Herstellers.
+
+### Geändert
+
+- Die Meldungskarten im Dashboard tragen Anlage und Anlagenteil im Titel.
+- Der Alarmcode des BioWIN steht unter Diagnose statt in der Übersicht.
+- Nach einer Bedienung fragt das Panel weniger oft bei der Anlage nach.
+
+### Behoben
+
+- Heiz- und Warmwasserprogramme am BioWIN 2 werden erkannt ([#13](https://github.com/xIceTea/HeatNexus/issues/13)).
+- Die Betriebsart Zuführung am BioWIN zeigt ihren Text und lässt sich einstellen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
+- Ganzzahlige Werte wie Alarmcode und Brennerstarts erscheinen ohne „.0“.
+- Auswahlwerte ohne hinterlegten Text lassen sich wählen.
+- Meldungen bleiben stehen, wenn eine Abfrage der Anlage scheitert.
+- Der Diagnose-Export schwärzt auch die Seriennummer des Bediengeräts.
+- Das aktive Heizprogramm hebt sich auch bei schreibgeschützter Betriebswahl ab.
+- Nach einer abgelehnten Betriebswahl verschwindet „lädt …“ sofort.
+
 ## [1.13.0-beta.1] - 2026-09-22
 
 ### Neu
