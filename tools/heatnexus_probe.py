@@ -1454,25 +1454,32 @@ def fetch_objects(probe: Probe, menus: dict) -> dict:
         for gnmn in statisch
         if f"{fct['prefix']}/{gnmn}" not in targets
     ]
+    # Nicht jede Steuerung nennt ihre Zeitprogramme in der Navigation; die
+    # Adressen, die der Hersteller über den object-Endpunkt liest, kommen dazu.
+    if DEVICE_DB is not None:
+        for fct in menus["functions"]:
+            for gnmn in sorted(DEVICE_DB.get_objekte(fct.get("fct_type"))):
+                if (oid := f"{fct['prefix']}/{gnmn}/0") not in targets:
+                    targets.append(oid)
     if not targets:
         print("    keine strukturierten Objekte gefunden")
         return {}
 
     def read(oid):
-        # Auch hier beide Endpunkte: Die statischen Positionen stehen in keiner
-        # Menü-Ebene, und welcher der beiden sie führt, ist je Position offen.
+        # Beide Endpunkte, und beide Antworten festhalten: Welcher der beiden
+        # eine Position führt, unterscheidet sich je Steuerung.
         data, status = probe.obj(oid)
+        data2, status2 = probe.lookup(f"/{oid.lstrip('/')}")
+        antworten = {"object": status, "lookup": status2}
         wie = "object"
-        if status != 200:
-            data2, status2 = probe.lookup(f"/{oid.lstrip('/')}")
-            if status2 == 200:
-                data, status, wie = data2, status2, "lookup"
-        return oid, data, status, wie
+        if status != 200 and status2 == 200:
+            data, status, wie = data2, status2, "lookup"
+        return oid, data, status, wie, antworten
 
     objects = {}
     ok = 0
-    for oid, data, status, wie in probe.map(read, targets):
-        objects[oid] = {"status": status, "endpunkt": wie, "data": data}
+    for oid, data, status, wie, antworten in probe.map(read, targets):
+        objects[oid] = {"status": status, "endpunkt": wie, "antworten": antworten, "data": data}
         if status == 200 and isinstance(data, dict) and "value" in data:
             ok += 1
     print(f"    {ok} von {len(targets)} Objekten lesbar")
