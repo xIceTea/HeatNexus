@@ -446,3 +446,5 @@ def test_meldungen_zeigen_text_und_abhilfe(ansichten):
     inhalt = karten[0]["content"]
     assert "state_attr('sensor.purowin_meldung_klartext', 'meldungen')" in inhalt
     assert "e.text" in inhalt and "e.info" in inhalt
+    # Zwei Anlagen melden dieselben Teile; der Titel sagt, welches.
+    assert karten[0]["title"] == "Kesselhaus · PuroWIN"

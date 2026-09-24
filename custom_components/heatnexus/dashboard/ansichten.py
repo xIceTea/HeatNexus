@@ -100,7 +100,7 @@ def abschnitt(
     return [grid]
 
 
-def meldungskarte(eintrag: dict[str, Any]) -> dict[str, Any]:
+def meldungskarte(eintrag: dict[str, Any], titel: str) -> dict[str, Any]:
     """Je Störung Art, Code und Text, darunter die Abhilfe; sonst der Zustand."""
     entitaet = eintrag["entity_id"]
     inhalt = (
@@ -109,7 +109,7 @@ def meldungskarte(eintrag: dict[str, Any]) -> dict[str, Any]:
         "{% if e.info %}  \n{{ e.info }}{% endif %}\n\n{% endfor %}"
         f"{{% else %}}{{{{ states('{entitaet}') }}}}{{% endif %}}"
     )
-    return {"type": "markdown", "title": eintrag["name"], "content": inhalt}
+    return {"type": "markdown", "title": titel, "content": inhalt}
 
 
 def _ansicht(
@@ -148,15 +148,13 @@ def uebersicht(anlagen: list[dict[str, Any]]) -> dict[str, Any]:
             )
 
     meldungen = [
-        e
+        meldungskarte(e, voller_name(anlage, teil))
         for anlage in anlagen
         for teil in anlage["teile"]
         for e in teil["entitaeten"]
         if e["kategorie"] == "diagnostic" and "klartext" in e["name"].lower()
     ]
-    abschnitte += abschnitt(
-        "Meldungen", [meldungskarte(e) for e in meldungen], "mdi:alert-circle-outline"
-    )
+    abschnitte += abschnitt("Meldungen", meldungen, "mdi:alert-circle-outline")
 
     return _ansicht("Übersicht", "uebersicht", "mdi:view-dashboard-outline", abschnitte)
 
