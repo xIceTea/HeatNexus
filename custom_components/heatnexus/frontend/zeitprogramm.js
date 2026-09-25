@@ -22,6 +22,15 @@ export const TAG_MINUTEN = 24 * 60;
 /** Die Wochentage in der Reihenfolge der Woche, wie die Anlage sie schreibt. */
 export const TAGE = WOCHENTAGE.map(([code]) => code);
 
+/** Höchstlänge der eigenen Bezeichnung; muss zu `bezeichnung.py` passen. */
+export const BEZEICHNUNG_MAX = 40;
+
+/** „Heizprogramm 3 – Übergangszeit“; ohne Bezeichnung bleibt der Name allein. */
+export function mitBezeichnung(name, bezeichnung) {
+  const zusatz = String(bezeichnung || "").trim();
+  return zusatz ? `${name} – ${zusatz}` : name;
+}
+
 const TAG_TEXT = new Map(WOCHENTAGE);
 
 // Deutsch wie englisch annehmen: Die Anlage liefert "Tu", der Dienst und die

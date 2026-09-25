@@ -93,9 +93,16 @@ def aufteilung() -> dict:
             _entitaet("sensor.vorlauftemperatur_ist", "Vorlauftemperatur Ist"),
             _entitaet("sensor.warmwasser_ist", "Warmwasser Ist-Temperatur"),
             _entitaet("sensor.programm_1", "Programm 1", adresse="3/61"),
-            _entitaet("sensor.programm_2", "Programm 2", adresse="3/62"),
+            _entitaet(
+                "sensor.programm_2", "Programm 2", adresse="3/62", bezeichnung="Übergangszeit"
+            ),
             _entitaet("sensor.ww_programm", "WW-Programm", adresse="5/61"),
-            _entitaet("select.betriebswahl", "Betriebswahl", adresse="3/50"),
+            _entitaet(
+                "select.betriebswahl",
+                "Betriebswahl",
+                adresse="3/50",
+                optionen={0: "Standby", 1: "Programm 1", 2: "Programm 2", 3: "Programm 3"},
+            ),
             _entitaet("number.behaglichkeitskorrektur", "Behaglichkeitskorrektur"),
             _entitaet("number.dauer", "Dauer"),
             _entitaet("number.temperatur", "Temperatur"),
@@ -549,3 +556,29 @@ def test_ohne_schreibbare_laufzeit_bleibt_ein_feld(dialog):
 def test_unter_der_stoerung_steht_die_abhilfe(durchlauf):
     """Der Text sagt, was ansteht; die Abhilfe, was zu tun ist."""
     assert durchlauf["uebersicht"]["abhilfe"] == ["schließen"]
+
+
+# ---------------------------------------------------------------------------
+# Zeitprogramm aktivieren
+# ---------------------------------------------------------------------------
+def test_die_bezeichnung_steht_im_kartentitel(durchlauf):
+    assert any("Programm 2 – Übergangszeit" in t for t in durchlauf["zeitprogramme"]["titel"])
+
+
+def test_aktivieren_steht_nur_an_programmen_die_nicht_gelten(durchlauf):
+    """Programm 1 gilt schon; nur Programm 2 bietet die Taste an."""
+    aktivieren = durchlauf["aktivieren"]
+    assert aktivieren["vorher"] == 1
+    assert aktivieren["nachher"] == 0
+
+
+def test_aktivieren_fragt_vorher_nach(durchlauf):
+    aktivieren = durchlauf["aktivieren"]
+    assert aktivieren["frage"] == (
+        "Betriebswahl von „Programm 1“ auf „Programm 2 – Übergangszeit“ umstellen?"
+    )
+    assert aktivieren["nachNein"] == 0
+
+
+def test_aktivieren_stellt_die_betriebswahl_um(durchlauf):
+    assert durchlauf["aktivieren"]["gesetzt"] == "Programm 2"

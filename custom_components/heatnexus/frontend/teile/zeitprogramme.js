@@ -13,6 +13,7 @@ import {
   bloeckeLesen,
   editorKnoten,
   gleich,
+  mitBezeichnung,
   nachDienst,
   pruefen,
   rasterKnoten,
@@ -36,7 +37,7 @@ export const ZeitprogrammeMixin = (Basis) =>
   _zeitprogrammeReiter(anlage) {
     return (anlage.zeitprogramme || []).map((programm) => ({
       id: `zeitprogramm:${programm.entity}`,
-      titel: programm.titel,
+      titel: this._programmTitel(programm),
       knoten: this._zeitprogrammKarte(programm),
       breite: 2,
     }));
@@ -47,7 +48,7 @@ export const ZeitprogrammeMixin = (Basis) =>
     const bloecke = bloeckeLesen(zustand && zustand.attributes && zustand.attributes.blocks);
     if (!bloecke.length) return null;
 
-    const karte = this._karte(programm.titel, programm.hilfe);
+    const karte = this._karte(this._programmTitel(programm), programm.hilfe);
     if (programm.anlagenteil) {
       const unter = document.createElement("div");
       unter.className = "zp-anlagenteil";
@@ -116,8 +117,18 @@ export const ZeitprogrammeMixin = (Basis) =>
     oeffnen.className = "zp-taste betont";
     oeffnen.textContent = this._t("Öffnen");
     oeffnen.addEventListener("click", () => this._zeitprogrammBearbeiten(programm, rueckmeldung));
-    leiste.append(oeffnen, rueckmeldung);
+    const aktivieren = this._aktivierenTaste(programm, rueckmeldung);
+    leiste.append(...[oeffnen, aktivieren, rueckmeldung].filter(Boolean));
     karte.appendChild(leiste);
+    if (aktivieren) {
+      // Läuft nach der Wirkungsbindung oben, die `aktiv` an der Karte setzt.
+      this._bindungen.push(() => {
+        const { entity, ziel } = programm.wirkung;
+        const laufendeUmstellung = this._wartend.some((vorgang) => vorgang.kennung === entity);
+        aktivieren.hidden =
+          karte.classList.contains("aktiv") || laufendeUmstellung || !this._bietet(entity, ziel);
+      });
+    }
 
     // Das Raster hängt am Zustand: Wird das Programm an der Anlage selbst
     // geändert, steht hier sonst der Stand vom Öffnen.
@@ -131,6 +142,63 @@ export const ZeitprogrammeMixin = (Basis) =>
     this._zeitprogrammStand.set(programm.entity, bloecke);
 
     return karte;
+  }
+
+  _programmTitel(programm) {
+    return mitBezeichnung(programm.titel, programm.bezeichnung);
+  }
+
+  /** Eine Option mit der Bezeichnung des Programms, auf das sie schaltet. */
+  _optionBeschriftung(entity, option) {
+    const programm = ((this._daten && this._daten.anlagen) || [])
+      .flatMap((anlage) => anlage.zeitprogramme || [])
+      .find((p) => p.wirkung && p.wirkung.entity === entity && p.wirkung.ziel === option);
+    return mitBezeichnung(option, programm && programm.bezeichnung);
+  }
+
+  /** Ob die Auswahl diese Option gerade anbietet. */
+  _bietet(entity, option) {
+    const zustand = this._zustand(entity);
+    const optionen = (zustand && zustand.attributes && zustand.attributes.options) || [];
+    return optionen.includes(option);
+  }
+
+  _aktivierenTaste(programm, rueckmeldung) {
+    if (!programm.wirkung || !programm.wirkung.ziel) return null;
+    const taste = document.createElement("button");
+    taste.type = "button";
+    taste.className = "zp-taste zp-aktivieren";
+    taste.textContent = this._t("Aktivieren");
+    taste.hidden = true;
+    taste.addEventListener("click", () => this._zeitprogrammAktivieren(programm, rueckmeldung));
+    return taste;
+  }
+
+  /** Rückfrage, dann die Auswahl auf dieses Programm stellen. */
+  async _zeitprogrammAktivieren(programm, rueckmeldung) {
+    const { entity, ziel, wahl_name: wahlName } = programm.wirkung;
+    const zustand = this._zustand(entity);
+    const frage = this._tMit("{wahl} von „{von}“ auf „{nach}“ umstellen?", {
+      wahl: wahlName,
+      von: zustand ? this._optionBeschriftung(entity, zustand.state) : "–",
+      nach: this._optionBeschriftung(entity, ziel),
+    });
+    const ja = await this._bestaetigen(this._programmTitel(programm), frage, null, {
+      ja: this._t("Aktivieren"),
+      zurueck: this._t("Abbrechen"),
+    });
+    if (!ja) return;
+    const angenommen = await this._uebertragen(
+      rueckmeldung,
+      () => this._hass.callService("select", "select_option", { entity_id: entity, option: ziel }),
+      () => {
+        const jetzt = this._zustand(entity);
+        return !!jetzt && jetzt.state === ziel;
+      },
+      entity
+    );
+    // Endet, sobald die Auswahl den neuen Stand meldet.
+    if (angenommen) this._nachfassen({ betriebswahl: entity });
   }
 
   /**
@@ -161,7 +229,7 @@ export const ZeitprogrammeMixin = (Basis) =>
 
     const ueberschrift = document.createElement("h3");
     ueberschrift.className = "dialog-titel";
-    ueberschrift.textContent = programm.titel;
+    ueberschrift.textContent = this._programmTitel(programm);
 
     const platz = document.createElement("div");
     platz.appendChild(uebersichtKnoten(bloecke, { grenzen, t: this._t.bind(this) }));

@@ -448,6 +448,63 @@ if (einProgramm) {
 bilanz.zeitprogrammDialog = zeitprogrammDialog;
 
 // ---------------------------------------------------------------------------
+// Zeitprogramm aktivieren: Rückfrage, dann die Betriebswahl umstellen
+// ---------------------------------------------------------------------------
+states["select.betriebswahl"] = {
+  entity_id: "select.betriebswahl",
+  state: "Programm 1",
+  attributes: {
+    friendly_name: "Betriebswahl",
+    options: ["Standby", "Programm 1", "Programm 2", "Programm 3"],
+  },
+};
+flaeche._reiter = "zeitprogramme";
+flaeche._gebaut = false;
+flaeche._zeichnen();
+flaeche._aktualisieren();
+const sichtbareAktivieren = () =>
+  flaeche.shadowRoot.querySelectorAll(".zp-aktivieren").filter((taste) => !taste.hidden);
+// Nur die Rückfrage: Ein früher geöffneter Programmdialog kann noch im Baum stehen.
+const rueckfrageDialog = () =>
+  flaeche.shadowRoot
+    .querySelectorAll(".dialog")
+    .find((dialog) => dialog.getAttribute("role") === "alertdialog");
+const dialogTaste = (betont) =>
+  rueckfrageDialog()
+    .querySelectorAll(".dialog-taste")
+    .find((taste) => taste.classList.contains("betont") === betont);
+const vorAktivieren = sichtbareAktivieren().length;
+
+const vorNein = dienstAufrufe.length;
+sichtbareAktivieren()[0].ausloesen("click");
+await Promise.resolve();
+const rueckfrage = rueckfrageDialog() && rueckfrageDialog().querySelector(".dialog-text");
+const frageText = rueckfrage ? String(rueckfrage.textContent) : null;
+dialogTaste(false).ausloesen("click");
+for (let runde = 0; runde < 5; runde++) await Promise.resolve();
+const nachNein = dienstAufrufe.length - vorNein;
+
+const vorJa = dienstAufrufe.length;
+sichtbareAktivieren()[0].ausloesen("click");
+await Promise.resolve();
+dialogTaste(true).ausloesen("click");
+for (let runde = 0; runde < 5; runde++) await Promise.resolve();
+const gesetzt = dienstAufrufe
+  .slice(vorJa)
+  .find((aufruf) => aufruf.dienst === "select.select_option");
+
+states["select.betriebswahl"].state = "Programm 2";
+flaeche._aktualisieren();
+bilanz.aktivieren = {
+  vorher: vorAktivieren,
+  frage: frageText,
+  nachNein,
+  gesetzt: gesetzt ? gesetzt.angaben.option : null,
+  nachher: sichtbareAktivieren().length,
+};
+zeit.zeitLaufenLassen();
+
+// ---------------------------------------------------------------------------
 // Misslungenes Speichern
 //
 // Die Attrappe wirft bei jedem `callWS`. Wer die Farbwahl anfasst, muss das

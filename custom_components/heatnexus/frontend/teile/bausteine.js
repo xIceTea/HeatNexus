@@ -21,6 +21,14 @@ export const BausteineMixin = (Basis) =>
     return (this._texte && this._texte[text]) || text;
   }
 
+  /** Übersetzen und Platzhalter wie `{von}` einsetzen. */
+  _tMit(text, werte) {
+    return Object.entries(werte).reduce(
+      (satz, [schluessel, wert]) => satz.split(`{${schluessel}}`).join(String(wert)),
+      this._t(text)
+    );
+  }
+
   /** Ob überhaupt etwas zu übersetzen ist. */
   get _uebersetzt() {
     return Boolean(this._texte && Object.keys(this._texte).length);
