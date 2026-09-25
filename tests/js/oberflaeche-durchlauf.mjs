@@ -544,12 +544,15 @@ if (programmZwei) {
   const feld = dialog.querySelector(".zp-bezeichnung");
   const vorbelegt = feld ? feld.value : null;
   if (feld) feld.value = "  Winter ";
-  dialog
+  const uebernehmen = dialog
     .querySelectorAll(".dialog-taste")
-    .find((taste) => taste.classList.contains("betont"))
-    .ausloesen("click");
+    .find((taste) => taste.classList.contains("betont"));
+  uebernehmen.ausloesen("click");
+  // Bis die Antwort da ist, nimmt die Taste keinen zweiten Druck an.
+  const gesperrt = uebernehmen.disabled === true;
   for (let runde = 0; runde < 5; runde++) await Promise.resolve();
   bezeichnung = {
+    gesperrt,
     titel,
     imLesen,
     vorbelegt,

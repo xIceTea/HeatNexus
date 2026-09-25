@@ -316,6 +316,8 @@ export const ZeitprogrammeMixin = (Basis) =>
       }
       const bezeichnung = bezeichnungFeld.feld.value.trim();
       const neueBezeichnung = bezeichnung !== (programm.bezeichnung || "");
+      // Ein zweiter Druck während des Speicherns schriebe alles doppelt.
+      speichern.disabled = true;
       if (neueBezeichnung) {
         try {
           await this._hass.callWS({
@@ -327,6 +329,7 @@ export const ZeitprogrammeMixin = (Basis) =>
           console.warn("HeatNexus: Bezeichnung nicht gespeichert", err);
           meldung.className = "zp-meldung fehler";
           meldung.textContent = this._t("Die Bezeichnung konnte nicht gespeichert werden.");
+          speichern.disabled = false;
           return;
         }
       }

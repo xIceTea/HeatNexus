@@ -613,6 +613,10 @@ def test_eine_geaenderte_bezeichnung_schreibt_nur_die_bezeichnung(durchlauf):
     assert bezeichnung["dialogZu"]
 
 
+def test_uebernehmen_ist_waehrend_des_speicherns_gesperrt(durchlauf):
+    assert durchlauf["bezeichnung"]["gesperrt"]
+
+
 def test_bezeichnung_und_zeiten_zugleich_behalten_die_rueckmeldung(durchlauf):
     """Der Neuaufbau ersetzt die Karte; die Rückmeldung steht an der neuen."""
     fall = durchlauf["bezeichnungUndZeiten"]
