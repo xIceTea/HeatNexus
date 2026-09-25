@@ -408,6 +408,60 @@ def test_ein_heizprogramm_nennt_seine_betriebswahl(panel):
     assert karte["wirkung"]["muster"] == "programm 2"
 
 
+BETRIEBSWAHL_TEXTE = {0: "Standby", 1: "Programm 1", 2: "Programm 2", 3: "Programm 3"}
+
+
+def _kreis_mit_texten(betriebswahl_bereich: str = "select"):
+    return anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [
+                entitaet(
+                    f"{betriebswahl_bereich}.betriebswahl",
+                    "Betriebswahl",
+                    adresse="3/50",
+                    optionen=BETRIEBSWAHL_TEXTE,
+                ),
+                entitaet("sensor.programm_2", "Programm 2", adresse="3/62"),
+                entitaet("sensor.ww_programm", "WW-Programm", adresse="5/61"),
+            ],
+        )
+    )
+
+
+def test_ein_heizprogramm_nennt_sein_ziel(panel):
+    """Die Taste „Aktivieren" braucht den Optionstext so, wie die Auswahl ihn führt."""
+    programme = {p["titel"]: p for p in panel._anlage_daten(_kreis_mit_texten())["zeitprogramme"]}
+
+    wirkung = programme["Programm 2"]["wirkung"]
+    assert wirkung["ziel"] == "Programm 2"
+    assert wirkung["wahl_name"] == "Betriebswahl"
+
+
+def test_das_ww_programm_hat_kein_ziel(panel):
+    """Es gilt in jeder Betriebswahl außer Standby; es gibt keinen einzelnen Eintrag."""
+    programme = {p["titel"]: p for p in panel._anlage_daten(_kreis_mit_texten())["zeitprogramme"]}
+
+    assert "ziel" not in programme["WW-Programm"]["wirkung"]
+
+
+def test_eine_schreibgeschuetzte_betriebswahl_hat_kein_ziel(panel):
+    programme = {
+        p["titel"]: p for p in panel._anlage_daten(_kreis_mit_texten("sensor"))["zeitprogramme"]
+    }
+
+    assert "ziel" not in programme["Programm 2"]["wirkung"]
+
+
+def test_ohne_optionstext_gibt_es_kein_ziel(panel):
+    """Der Ersatztext ist geraten; auf ihn schaltet die Taste nicht."""
+    programme = panel._anlage_daten(_kreis_mit_programmen())["zeitprogramme"]
+    karte = next(p for p in programme if p["titel"] == "Programm 2")
+
+    assert "ziel" not in karte["wirkung"]
+
+
 def test_der_hinweis_zum_heizprogramm_steht_im_woerterbuch(panel):
     """Ein Text mit eingesetztem Namen träfe keinen Eintrag und bliebe deutsch."""
     from custom_components.heatnexus.texte import Woerterbuch
@@ -507,6 +561,7 @@ def test_die_pufferwirkung_folgt_dem_auswahltext(panel):
     (karte,) = panel._anlage_daten(anlage(puffer))["zeitprogramme"]
 
     assert karte["wirkung"]["muster"] == "auto with time program"
+    assert karte["wirkung"]["ziel"] == "Auto with time program"
 
 
 def test_eine_schreibgeschuetzte_betriebswahl_zeigt_das_gueltige_programm(panel):
@@ -626,6 +681,42 @@ def test_von_zwei_zirkulationsprogrammen_bleibt_das_wirksame(panel):
     assert nach_zeit["muster"] == "zeitsteuerung"
     assert nach_temperatur["muster"] == "temperatursteuerung"
     assert "Temperatursteuerung" in nach_temperatur["hinweis"]
+
+
+def test_jedes_zirkulationsprogramm_nennt_seine_steuerungsart_als_ziel(panel):
+    kreis = teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            entitaet(
+                "sensor.zirkulationsprogramm_zeit",
+                "WW-Zirkulationsprogramm",
+                schluessel="dhw_circulation_program_time",
+            ),
+            entitaet(
+                "sensor.zirkulationsprogramm_temperatur",
+                "WW-Zirkulationsprogramm",
+                schluessel="dhw_circulation_program_temperature",
+            ),
+            entitaet(
+                "select.ww_zirkulationspumpe",
+                "WW-Zirkulationspumpe",
+                schluessel="dhw_circulation_mode",
+                optionen={0: "Aus", 1: "Mit Zeitsteuerung", 2: "Mit Temperatursteuerung"},
+            ),
+        ],
+    )
+    programme = {p["entity"]: p for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]}
+
+    assert programme["sensor.zirkulationsprogramm_zeit"]["wirkung"]["ziel"] == "Mit Zeitsteuerung"
+    assert (
+        programme["sensor.zirkulationsprogramm_temperatur"]["wirkung"]["ziel"]
+        == "Mit Temperatursteuerung"
+    )
+    assert (
+        programme["sensor.zirkulationsprogramm_zeit"]["wirkung"]["wahl_name"]
+        == "WW-Zirkulationspumpe"
+    )
 
 
 def test_ein_einzelnes_zirkulationsprogramm_wird_nie_versteckt(panel):

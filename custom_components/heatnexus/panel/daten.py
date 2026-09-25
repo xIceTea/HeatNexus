@@ -484,6 +484,14 @@ def _auswahltext(wahl: dict[str, Any], wert: int, ersatz: str) -> str:
     return ((wahl.get("optionen") or {}).get(wert) or ersatz).lower()
 
 
+def _ziel(wahl: dict[str, Any], wert: int) -> dict[str, str]:
+    """Worauf „Aktivieren" die Auswahl stellt – nur bei `select` und bekanntem Text."""
+    text = (wahl.get("optionen") or {}).get(wert)
+    if wahl.get("bereich") != "select" or not text:
+        return {}
+    return {"ziel": text, "wahl_name": wahl.get("name") or ""}
+
+
 def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
     """Das Zeitprogramm des Puffers greift nur in einer Betriebswahl.
 
@@ -511,6 +519,7 @@ def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
         "entity": wahl["entity_id"],
         "muster": _auswahltext(wahl, 4, "zeitprogramm"),
         "hinweis": "Wirkt erst, wenn die Betriebswahl auf „Auto mit Zeitprogramm“ steht.",
+        **_ziel(wahl, 4),
     }
 
 
@@ -542,12 +551,12 @@ def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[s
             "muster_nicht": _auswahltext(wahl, 0, "standby"),
             "hinweis": "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.",
         }
+    wert = HEIZPROGRAMM_ADRESSEN.index(adresse) + 1
     return {
         "entity": wahl["entity_id"],
-        "muster": _auswahltext(
-            wahl, HEIZPROGRAMM_ADRESSEN.index(adresse) + 1, programm.get("name") or ""
-        ),
+        "muster": _auswahltext(wahl, wert, programm.get("name") or ""),
         "hinweis": "Wirkt erst, wenn die Betriebswahl auf diesem Programm steht.",
+        **_ziel(wahl, wert),
     }
 
 
@@ -603,6 +612,8 @@ def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str,
         wirkung["hinweis"] = (
             "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Temperatursteuerung“ steht."
         )
+    temperatur = schluessel == "dhw_circulation_program_temperature"
+    wirkung.update(_ziel(pumpe, 2 if temperatur else 1))
     return wirkung
 
 
