@@ -217,7 +217,7 @@ export const BedienenMixin = (Basis) =>
 
     anzeige.className = "rueckmeldung wartet";
     anzeige.textContent = this._t("wird ausgeführt …");
-    this._wartend.push({ anzeige, bestaetigt, seit: Date.now() });
+    this._wartend.push({ anzeige, bestaetigt, kennung, seit: Date.now() });
     this._pruefeWartende();
     return true;
   }
