@@ -16,6 +16,7 @@ import {
   gleich,
   mitBezeichnung,
   nachDienst,
+  ortszeit,
   pruefen,
   rasterKnoten,
   uebersichtKnoten,
@@ -216,6 +217,11 @@ export const ZeitprogrammeMixin = (Basis) =>
     return { zeile, feld };
   }
 
+  /** Die aktuelle Zeit; eine eigene Methode, damit der Durchlauf sie festlegen kann. */
+  _jetzt() {
+    return new Date();
+  }
+
   /**
    * Das Programm als Dialog – dieselbe Form wie Rückfrage und Erklärung.
    *
@@ -247,7 +253,9 @@ export const ZeitprogrammeMixin = (Basis) =>
     ueberschrift.textContent = this._programmTitel(programm);
 
     const platz = document.createElement("div");
-    platz.appendChild(uebersichtKnoten(bloecke, { grenzen, t: this._t.bind(this) }));
+    const zone = this._hass && this._hass.config && this._hass.config.time_zone;
+    const jetzt = ortszeit(this._jetzt(), zone);
+    platz.appendChild(uebersichtKnoten(bloecke, { grenzen, jetzt, t: this._t.bind(this) }));
 
     const meldung = document.createElement("div");
     meldung.className = "zp-meldung";

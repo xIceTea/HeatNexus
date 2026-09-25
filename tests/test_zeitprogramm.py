@@ -47,7 +47,9 @@ import {{
   bloeckeLesen,
   gleich,
   istSchaltprogramm,
+  jetztStelle,
   nachDienst,
+  ortszeit,
   pruefen,
   tagesbereich,
   wochenraster,
@@ -151,6 +153,13 @@ console.log(
     sauber: pruefen(heizen),
     gleich_trotz_reihenfolge: gleich(heizen, zurueckgemeldet),
     gleich_bei_abweichung: gleich(heizen, schalten),
+    jetzt_mittag: jetztStelle(heizen, {{ tag: "Mo", minute: 10 * 60 }}),
+    jetzt_spaet: jetztStelle(heizen, {{ tag: "Fr", minute: 23 * 60 + 45 }}),
+    jetzt_frueh: jetztStelle(heizen, {{ tag: "Tu", minute: 15 }}),
+    jetzt_ohne_block: jetztStelle(deutsch, {{ tag: "Mo", minute: 600 }}),
+    ortszeit_utc: ortszeit(new Date("2026-09-21T21:45:00Z"), "UTC"),
+    ortszeit_wien: ortszeit(new Date("2026-09-21T22:30:00Z"), "Europe/Vienna"),
+    ortszeit_falsche_zone: ortszeit(new Date("2026-09-21T10:00:00Z"), "Nirgendwo/Stadt").tag !== null,
   }})
 );
 """,
@@ -303,3 +312,33 @@ def test_block_ohne_wochentag_und_doppelte_zeit_werden_abgelehnt(rechnung):
 
 def test_ein_gueltiges_programm_geht_durch(rechnung):
     assert rechnung["sauber"] == []
+
+
+# ---------------------------------------------------------------------------
+# Was jetzt gilt
+# ---------------------------------------------------------------------------
+def test_jetzt_liegt_im_abschnitt_der_uhrzeit(rechnung):
+    assert rechnung["jetzt_mittag"] == {"block": 0, "von": 360}
+
+
+def test_spaet_abends_gilt_der_letzte_abschnitt_bis_mitternacht(rechnung):
+    assert rechnung["jetzt_spaet"] == {"block": 0, "von": 1320}
+
+
+def test_nach_mitternacht_gilt_der_umlauf_des_vortags(rechnung):
+    """Vor dem ersten Schaltpunkt gilt der letzte des Tages weiter."""
+    assert rechnung["jetzt_frueh"] == {"block": 0, "von": 0}
+
+
+def test_ein_tag_ohne_block_hat_kein_jetzt(rechnung):
+    assert rechnung["jetzt_ohne_block"] is None
+
+
+def test_die_ortszeit_folgt_der_zeitzone_von_home_assistant(rechnung):
+    assert rechnung["ortszeit_utc"] == {"tag": "Mo", "minute": 21 * 60 + 45}
+    # 22:30 UTC ist in Wien schon Dienstag, 00:30.
+    assert rechnung["ortszeit_wien"] == {"tag": "Tu", "minute": 30}
+
+
+def test_eine_unbekannte_zeitzone_faellt_auf_den_browser(rechnung):
+    assert rechnung["ortszeit_falsche_zone"] is True

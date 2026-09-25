@@ -1008,6 +1008,11 @@ export const STIL = `
   .zp-spanne i { width: 9px; height: 9px; border-radius: 3px; flex: none; }
   .zp-spannezeit { font-variant-numeric: tabular-nums; }
   .zp-spannewert { margin-left: auto; font-weight: 600; }
+  .zp-spanne.jetzt { margin: 0 -6px; padding: 3px 6px; border-radius: 6px;
+    background: color-mix(in srgb, var(--hn-akzent) 16%, transparent); }
+  .zp-spanne.jetzt .zp-spannezeit { font-weight: 600; }
+  .zp-jetzt { font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--hn-akzent); }
   /* Ueber der Punktetabelle: was hier eingestellt wird, ist der Start einer
      Spanne, nicht die Spanne selbst. */
   .zp-punktekopf {

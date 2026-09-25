@@ -417,6 +417,9 @@ const einProgramm = (daten.anlagen || []).flatMap((anlage) => anlage.zeitprogram
 
 let zeitprogrammDialog = null;
 if (einProgramm) {
+  // Montag, 10:00 in der Zone von Home Assistant.
+  flaeche._jetzt = () => new Date("2026-09-21T10:00:00Z");
+  hass.config = { time_zone: "UTC" };
   const meldung = document.createElement("div");
   flaeche._zeitprogrammBearbeiten(einProgramm, meldung);
   const dialog = flaeche.shadowRoot.querySelector(".zp-dialog");
@@ -429,6 +432,10 @@ if (einProgramm) {
     ),
     editoren: dialog.querySelectorAll(".zp-editor").length,
     tasten: tasten(),
+    jetzt: dialog
+      .querySelectorAll(".zp-spanne")
+      .filter((zeile) => zeile.classList.contains("jetzt"))
+      .map((zeile) => String(zeile.querySelector(".zp-spannezeit").textContent)),
   };
 
   // Der zweite Knopf holt den Editor.

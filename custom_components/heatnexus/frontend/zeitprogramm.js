@@ -138,6 +138,40 @@ export function wochenraster(bloecke) {
   });
 }
 
+/** Wochentag und Minute in der Zeitzone von Home Assistant; ohne gültige Zone die des Browsers. */
+export function ortszeit(datum, zeitzone) {
+  const zerlegen = (zone) =>
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: zone,
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(datum);
+  let teile;
+  try {
+    teile = zerlegen(zeitzone || undefined);
+  } catch {
+    teile = zerlegen(undefined);
+  }
+  const teil = (art) => (teile.find((eintrag) => eintrag.type === art) || {}).value || "";
+  return {
+    tag: tagCode(teil("weekday").slice(0, 2)),
+    minute: Number(teil("hour")) * 60 + Number(teil("minute")),
+  };
+}
+
+/** Block und Abschnitt, die zu dieser Zeit gelten; 'null', wenn der Tag keinen Block hat. */
+export function jetztStelle(bloecke, zeit) {
+  if (!zeit || !zeit.tag) return null;
+  const block = (bloecke || []).findIndex((eintrag) => eintrag.tage.includes(zeit.tag));
+  if (block < 0) return null;
+  const stueck = abschnitte(bloecke[block].punkte).find(
+    (eintrag) => eintrag.von <= zeit.minute && zeit.minute < eintrag.bis
+  );
+  return stueck ? { block, von: stueck.von } : null;
+}
+
 /**
  * Wochentage kurz benennen: „täglich", „Mo–Fr", „Mo–Mi, Sa".
  *
@@ -399,14 +433,16 @@ export function rasterKnoten(bloecke, optionen = {}) {
  * Zum Ablesen ist es die falsche Frage: Wer wissen will, wann geheizt wird,
  * will „06:00 – 19:00" lesen und nicht zwei Zeilen im Kopf zusammenrechnen.
  * Der Umlauf über Mitternacht steckt schon in `abschnitte`.
+ * Mit jetzt (aus ortszeit) hebt sich die Zeile ab, die gerade gilt.
  */
 export function uebersichtKnoten(bloecke, optionen = {}) {
   const t = optionen.t || OHNE;
   const grenzen = optionen.grenzen || bereich(bloecke);
+  const stelle = optionen.jetzt ? jetztStelle(bloecke, optionen.jetzt) : null;
   const knoten = document.createElement("div");
   knoten.className = "zp-uebersicht";
 
-  (bloecke || []).forEach((block) => {
+  (bloecke || []).forEach((block, nummer) => {
     const kasten = document.createElement("div");
     kasten.className = "zp-block";
 
@@ -431,6 +467,14 @@ export function uebersichtKnoten(bloecke, optionen = {}) {
       wert.className = "zp-spannewert";
       wert.textContent = wertText(stueck.wert, grenzen);
       zeile.append(punktfarbe, zeit, wert);
+      if (stelle && stelle.block === nummer && stelle.von === stueck.von) {
+        zeile.classList.add("jetzt");
+        zeile.setAttribute("aria-current", "time");
+        const marke = document.createElement("span");
+        marke.className = "zp-jetzt";
+        marke.textContent = t("jetzt");
+        zeile.appendChild(marke);
+      }
       liste.appendChild(zeile);
     });
     kasten.appendChild(liste);

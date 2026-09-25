@@ -611,3 +611,8 @@ def test_die_betriebswahl_zeigt_die_bezeichnung(durchlauf):
     optionen = {o["wert"]: o["text"] for o in durchlauf["optionen"]}
     assert optionen["Programm 2"] == "Programm 2 – Übergangszeit"
     assert optionen["Programm 1"] == "Programm 1"
+
+
+def test_der_dialog_hebt_die_spanne_von_jetzt_hervor(durchlauf):
+    """Montag 10:00 liegt im Abschnitt 06:00 – 22:00 des Wochentagsblocks."""
+    assert durchlauf["zeitprogrammDialog"]["lesen"]["jetzt"] == ["06:00 – 22:00"]
