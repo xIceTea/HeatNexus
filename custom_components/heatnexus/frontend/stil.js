@@ -11,6 +11,9 @@
  */
 
 export const STIL = `
+  /* Klassen mit eigenem display schlagen sonst die Browserregel für hidden. */
+  [hidden] { display: none !important; }
+
   /* Farbsätze der Oberfläche.
 
      Die Vorgabe folgt Home Assistant; wählt jemand einen festen Satz, setzt

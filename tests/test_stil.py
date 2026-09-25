@@ -23,6 +23,13 @@ def test_laufendes_rad_bekommt_eigene_ebene():
     assert "will-change: transform" in _regel(".schaubild .pumpe.laeuft .rad")
 
 
+def test_verborgene_elemente_bleiben_verborgen():
+    """Eine Klasse mit eigenem `display` schlägt sonst die Browserregel für `hidden`."""
+    treffer = re.search(r"(?m)^\s*\[hidden\]\s*\{([^}]*)\}", STIL)
+    assert treffer, "Regel [hidden] fehlt"
+    assert "display: none !important" in treffer.group(1)
+
+
 def test_stehende_pumpe_folgt_dem_farbsatz():
     """Ein fester dunkler Grund wirkt im hellen Farbsatz wie ein Loch."""
     assert "var(--hn-karte" in _regel(".schaubild .pumpe")
