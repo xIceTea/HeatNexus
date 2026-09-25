@@ -567,9 +567,15 @@ def test_die_bezeichnung_steht_im_kartentitel(durchlauf):
 
 def test_aktivieren_steht_nur_an_programmen_die_nicht_gelten(durchlauf):
     """Programm 1 gilt schon; nur Programm 2 bietet die Taste an."""
-    aktivieren = durchlauf["aktivieren"]
-    assert aktivieren["vorher"] == 1
-    assert aktivieren["nachher"] == 0
+    assert durchlauf["aktivieren"]["vorher"] == 1
+
+
+def test_waehrend_der_umstellung_ist_keine_taste_zu_sehen(durchlauf):
+    assert durchlauf["aktivieren"]["waehrendUmstellung"] == 0
+
+
+def test_nach_der_umstellung_wechselt_die_taste_zum_alten_programm(durchlauf):
+    assert durchlauf["aktivieren"]["danach"] == ["Programm 1"]
 
 
 def test_aktivieren_fragt_vorher_nach(durchlauf):
@@ -605,6 +611,15 @@ def test_eine_geaenderte_bezeichnung_schreibt_nur_die_bezeichnung(durchlauf):
     assert not bezeichnung["programmGeschrieben"]
     assert bezeichnung["neuGeholt"]
     assert bezeichnung["dialogZu"]
+
+
+def test_bezeichnung_und_zeiten_zugleich_behalten_die_rueckmeldung(durchlauf):
+    """Der Neuaufbau ersetzt die Karte; die Rückmeldung steht an der neuen."""
+    fall = durchlauf["bezeichnungUndZeiten"]
+    assert fall["geschrieben"]
+    assert fall["waehrend"] == ["wird ausgeführt …"]
+    assert fall["bestaetigt"] == ["übernommen ✓"]
+    assert any("Programm 2 – Sommer" in t for t in fall["titel"])
 
 
 def test_die_betriebswahl_zeigt_die_bezeichnung(durchlauf):

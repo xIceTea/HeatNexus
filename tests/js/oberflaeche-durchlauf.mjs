@@ -500,16 +500,25 @@ const gesetzt = dienstAufrufe
   .slice(vorJa)
   .find((aufruf) => aufruf.dienst === "select.select_option");
 
+// Die Programme, deren Karte die Taste gerade zeigt.
+const mitAktivieren = () =>
+  flaeche.shadowRoot
+    .querySelectorAll(".karte")
+    .filter((karte) => karte.querySelectorAll(".zp-aktivieren").some((taste) => !taste.hidden))
+    .map((karte) => titelOhneMarke(karte.querySelector("h2")));
+
 states["select.betriebswahl"].state = "Programm 2";
 flaeche._aktualisieren();
+const waehrendUmstellung = sichtbareAktivieren().length;
+zeit.zeitLaufenLassen();
 bilanz.aktivieren = {
   vorher: vorAktivieren,
   frage: frageText,
   nachNein,
   gesetzt: gesetzt ? gesetzt.angaben.option : null,
-  nachher: sichtbareAktivieren().length,
+  waehrendUmstellung,
+  danach: mitAktivieren(),
 };
-zeit.zeitLaufenLassen();
 
 // ---------------------------------------------------------------------------
 // Bezeichnung: im Dialog ändern, ohne das Programm neu zu schreiben
@@ -561,6 +570,80 @@ flaeche._aktualisieren();
 bilanz.optionen = beschriftetesFeld
   .querySelector("select")
   .children.map((knoten) => ({ wert: knoten.value, text: String(knoten.textContent) }));
+
+// ---------------------------------------------------------------------------
+// Bezeichnung und Zeiten zugleich
+//
+// Die neue Bezeichnung baut die Oberfläche neu auf. Die Rückmeldung zum
+// Schreiben der Zeiten muss an der Karte stehen, die danach zu sehen ist.
+// ---------------------------------------------------------------------------
+let gespeicherteBezeichnung = null;
+hass.callWS = async (anfrage) => {
+  if (anfrage.type === "heatnexus/bezeichnung") {
+    gespeicherteBezeichnung = anfrage.bezeichnung;
+    return { gespeichert: true };
+  }
+  if (anfrage.type !== "heatnexus/panel_daten") return {};
+  const neu = JSON.parse(JSON.stringify(daten));
+  neu.anlagen
+    .flatMap((anlage) => anlage.zeitprogramme || [])
+    .filter((programm) => programm.titel === "Programm 2")
+    .forEach((programm) => {
+      programm.bezeichnung = gespeicherteBezeichnung;
+    });
+  return neu;
+};
+flaeche._reiter = "zeitprogramme";
+flaeche._gebaut = false;
+flaeche._zeichnen();
+const karteZwei = flaeche.shadowRoot
+  .querySelectorAll(".karte")
+  .find((karte) => titelOhneMarke(karte.querySelector("h2")).startsWith("Programm 2"));
+let bezeichnungUndZeiten = null;
+if (karteZwei) {
+  const vorZugleich = dienstAufrufe.length;
+  karteZwei
+    .querySelectorAll(".zp-taste")
+    .find((taste) => String(taste.textContent).trim() === "Öffnen")
+    .ausloesen("click");
+  const dialog = flaeche.shadowRoot.querySelectorAll(".zp-dialog").at(-1);
+  dialog._bearbeiten();
+  dialog.querySelector(".zp-bezeichnung").value = "Sommer";
+  const sollwert = dialog.querySelector(".zp-wert");
+  sollwert.value = "22";
+  sollwert.ausloesen("change");
+  dialog
+    .querySelectorAll(".dialog-taste")
+    .find((taste) => taste.classList.contains("betont"))
+    .ausloesen("click");
+  for (let runde = 0; runde < 10; runde++) await Promise.resolve();
+  const sichtbareRueckmeldungen = () =>
+    flaeche.shadowRoot
+      .querySelectorAll(".rueckmeldung")
+      .map((knoten) => String(knoten.textContent || "").trim())
+      .filter(Boolean);
+  const waehrend = sichtbareRueckmeldungen();
+  const geschrieben = dienstAufrufe
+    .slice(vorZugleich)
+    .find((aufruf) => aufruf.dienst === "heatnexus.set_time_program");
+  // Die Anlage meldet die neuen Zeiten zurück, in der Schreibweise des Zustands.
+  if (geschrieben) {
+    states[geschrieben.angaben.entity_id].attributes.blocks = geschrieben.angaben.blocks.map(
+      (block) => ({ weekdays: block.weekdays, switchPoints: block.switch_points })
+    );
+  }
+  flaeche._aktualisieren();
+  bezeichnungUndZeiten = {
+    geschrieben: !!geschrieben,
+    waehrend,
+    bestaetigt: sichtbareRueckmeldungen(),
+    titel: [...flaeche.shadowRoot.querySelectorAll(".kartenkopf")].map((kopf) =>
+      String(kopf.textContent || "").trim()
+    ),
+  };
+  zeit.zeitLaufenLassen();
+}
+bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 
 // ---------------------------------------------------------------------------
 // Misslungenes Speichern

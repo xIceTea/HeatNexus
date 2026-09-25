@@ -109,6 +109,7 @@ export const ZeitprogrammeMixin = (Basis) =>
 
     const rueckmeldung = document.createElement("div");
     rueckmeldung.className = "rueckmeldung";
+    rueckmeldung.dataset.programm = programm.entity;
 
     const leiste = document.createElement("div");
     leiste.className = "zp-karteleiste";
@@ -332,10 +333,15 @@ export const ZeitprogrammeMixin = (Basis) =>
       meldung.textContent = "";
       weg();
       // Titel, Rückfrage und Betriebswahl lesen die Bezeichnung aus den Paneldaten.
-      if (neueBezeichnung) this._datenHolen();
+      // Der Neuaufbau ersetzt die Karte; die Rückmeldung gehört an die neue.
+      if (neueBezeichnung) await this._datenHolen();
       if (gleich(neu, bloecke)) return;
+      const anzeige =
+        [...this.shadowRoot.querySelectorAll(".rueckmeldung")].find(
+          (knoten) => knoten.dataset.programm === programm.entity
+        ) || rueckmeldung;
       await this._uebertragen(
-        rueckmeldung,
+        anzeige,
         () =>
           this._hass.callService("heatnexus", "set_time_program", {
             entity_id: programm.entity,
