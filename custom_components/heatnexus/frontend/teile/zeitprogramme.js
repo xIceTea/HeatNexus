@@ -9,6 +9,7 @@
  */
 
 import {
+  BEZEICHNUNG_MAX,
   bereich,
   bloeckeLesen,
   editorKnoten,
@@ -201,6 +202,20 @@ export const ZeitprogrammeMixin = (Basis) =>
     if (angenommen) this._nachfassen({ betriebswahl: entity });
   }
 
+  /** Das Feld für die eigene Bezeichnung; der Name der Anlage bleibt davor stehen. */
+  _bezeichnungFeld(programm) {
+    const feld = document.createElement("input");
+    feld.type = "text";
+    feld.className = "zp-bezeichnung";
+    feld.maxLength = BEZEICHNUNG_MAX;
+    feld.placeholder = this._t("z. B. Übergangszeit");
+    feld.value = programm.bezeichnung || "";
+    const zeile = document.createElement("label");
+    zeile.className = "zp-bezeichnung-zeile";
+    zeile.append(this._t("Bezeichnung (optional)"), feld);
+    return { zeile, feld };
+  }
+
   /**
    * Das Programm als Dialog – dieselbe Form wie Rückfrage und Erklärung.
    *
@@ -267,9 +282,11 @@ export const ZeitprogrammeMixin = (Basis) =>
 
     // Im Lesezustand liegt hier nichts; erst *Bearbeiten* legt den Editor an.
     let editor = null;
+    let bezeichnungFeld = null;
     dialog._bearbeiten = () => {
       editor = editorKnoten(bloecke, { grenzen, t: this._t.bind(this) });
-      platz.replaceChildren(editor.knoten);
+      bezeichnungFeld = this._bezeichnungFeld(programm);
+      platz.replaceChildren(bezeichnungFeld.zeile, editor.knoten);
       meldung.textContent = "";
       abbrechen.textContent = this._t("Verwerfen");
       speichern.textContent = this._t("Übernehmen");
@@ -288,8 +305,27 @@ export const ZeitprogrammeMixin = (Basis) =>
         meldung.textContent = fehler.join(" ");
         return;
       }
+      const bezeichnung = bezeichnungFeld.feld.value.trim();
+      const neueBezeichnung = bezeichnung !== (programm.bezeichnung || "");
+      if (neueBezeichnung) {
+        try {
+          await this._hass.callWS({
+            type: "heatnexus/bezeichnung",
+            entity_id: programm.entity,
+            bezeichnung,
+          });
+        } catch (err) {
+          console.warn("HeatNexus: Bezeichnung nicht gespeichert", err);
+          meldung.className = "zp-meldung fehler";
+          meldung.textContent = this._t("Die Bezeichnung konnte nicht gespeichert werden.");
+          return;
+        }
+      }
       meldung.textContent = "";
       weg();
+      // Titel, Rückfrage und Betriebswahl lesen die Bezeichnung aus den Paneldaten.
+      if (neueBezeichnung) this._datenHolen();
+      if (gleich(neu, bloecke)) return;
       await this._uebertragen(
         rueckmeldung,
         () =>

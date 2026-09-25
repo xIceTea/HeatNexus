@@ -505,6 +505,57 @@ bilanz.aktivieren = {
 zeit.zeitLaufenLassen();
 
 // ---------------------------------------------------------------------------
+// Bezeichnung: im Dialog ändern, ohne das Programm neu zu schreiben
+// ---------------------------------------------------------------------------
+const wsAufrufe = [];
+hass.callWS = async (anfrage) => {
+  wsAufrufe.push(anfrage);
+  return anfrage.type === "heatnexus/panel_daten" ? daten : { gespeichert: true };
+};
+const programmZwei = (daten.anlagen || [])
+  .flatMap((anlage) => anlage.zeitprogramme || [])
+  .find((programm) => programm.titel === "Programm 2");
+let bezeichnung = null;
+if (programmZwei) {
+  const vorBezeichnung = dienstAufrufe.length;
+  const offeneDialoge = flaeche.shadowRoot.querySelectorAll(".zp-dialog").length;
+  flaeche._zeitprogrammBearbeiten(programmZwei, document.createElement("div"));
+  // Der zuletzt geöffnete; ein früherer Programmdialog kann noch im Baum stehen.
+  const dialog = flaeche.shadowRoot.querySelectorAll(".zp-dialog").at(-1);
+  const titel = String(dialog.querySelector(".dialog-titel").textContent);
+  const imLesen = dialog.querySelectorAll(".zp-bezeichnung").length;
+  dialog._bearbeiten();
+  const feld = dialog.querySelector(".zp-bezeichnung");
+  const vorbelegt = feld ? feld.value : null;
+  if (feld) feld.value = "  Winter ";
+  dialog
+    .querySelectorAll(".dialog-taste")
+    .find((taste) => taste.classList.contains("betont"))
+    .ausloesen("click");
+  for (let runde = 0; runde < 5; runde++) await Promise.resolve();
+  bezeichnung = {
+    titel,
+    imLesen,
+    vorbelegt,
+    gesendet: wsAufrufe.filter((anfrage) => anfrage.type === "heatnexus/bezeichnung"),
+    neuGeholt: wsAufrufe.some((anfrage) => anfrage.type === "heatnexus/panel_daten"),
+    programmGeschrieben: dienstAufrufe
+      .slice(vorBezeichnung)
+      .some((aufruf) => aufruf.dienst === "heatnexus.set_time_program"),
+    dialogZu: flaeche.shadowRoot.querySelectorAll(".zp-dialog").length <= offeneDialoge,
+  };
+}
+bilanz.bezeichnung = bezeichnung;
+
+// Die Betriebswahl zeigt die Bezeichnung, der Wert bleibt der Optionstext.
+states["select.betriebswahl"].state = "Programm 1";
+const beschriftetesFeld = flaeche._auswahlFeld("Betriebswahl", "select.betriebswahl", null, null);
+flaeche._aktualisieren();
+bilanz.optionen = beschriftetesFeld
+  .querySelector("select")
+  .children.map((knoten) => ({ wert: knoten.value, text: String(knoten.textContent) }));
+
+// ---------------------------------------------------------------------------
 // Misslungenes Speichern
 //
 // Die Attrappe wirft bei jedem `callWS`. Wer die Farbwahl anfasst, muss das

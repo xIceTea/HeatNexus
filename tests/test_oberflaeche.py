@@ -582,3 +582,32 @@ def test_aktivieren_fragt_vorher_nach(durchlauf):
 
 def test_aktivieren_stellt_die_betriebswahl_um(durchlauf):
     assert durchlauf["aktivieren"]["gesetzt"] == "Programm 2"
+
+
+# ---------------------------------------------------------------------------
+# Bezeichnung
+# ---------------------------------------------------------------------------
+def test_der_dialog_traegt_die_bezeichnung_im_titel(durchlauf):
+    assert durchlauf["bezeichnung"]["titel"] == "Programm 2 – Übergangszeit"
+
+
+def test_das_bezeichnungsfeld_erscheint_erst_beim_bearbeiten(durchlauf):
+    bezeichnung = durchlauf["bezeichnung"]
+    assert bezeichnung["imLesen"] == 0
+    assert bezeichnung["vorbelegt"] == "Übergangszeit"
+
+
+def test_eine_geaenderte_bezeichnung_schreibt_nur_die_bezeichnung(durchlauf):
+    """Die Zeiten sind unverändert; das Programm der Anlage bleibt unberührt."""
+    bezeichnung = durchlauf["bezeichnung"]
+    assert [a["bezeichnung"] for a in bezeichnung["gesendet"]] == ["Winter"]
+    assert bezeichnung["gesendet"][0]["entity_id"] == "sensor.programm_2"
+    assert not bezeichnung["programmGeschrieben"]
+    assert bezeichnung["neuGeholt"]
+    assert bezeichnung["dialogZu"]
+
+
+def test_die_betriebswahl_zeigt_die_bezeichnung(durchlauf):
+    optionen = {o["wert"]: o["text"] for o in durchlauf["optionen"]}
+    assert optionen["Programm 2"] == "Programm 2 – Übergangszeit"
+    assert optionen["Programm 1"] == "Programm 1"

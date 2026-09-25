@@ -993,6 +993,10 @@ export const STIL = `
   .zp-taste.betont { background: color-mix(in srgb, var(--hn-akzent) 16%, transparent); border-color: color-mix(in srgb, var(--hn-akzent) 40%, transparent); }
 
   .dialog.zp-dialog { max-width: 560px; }
+  .zp-bezeichnung-zeile { display: flex; flex-direction: column; gap: 6px;
+    margin-bottom: 12px; font-size: 13px; }
+  .zp-bezeichnung { font: inherit; padding: 7px 10px; border-radius: 8px;
+    border: 1px solid var(--hn-linie); background: var(--hn-flaeche); color: inherit; }
   .zp-editor { max-height: 58vh; overflow-y: auto; display: flex;
     flex-direction: column; gap: 12px; }
   /* Leseansicht: dieselben Blockkaesten wie im Editor, aber statt der

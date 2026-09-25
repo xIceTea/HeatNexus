@@ -554,7 +554,7 @@ export const SteuerungMixin = (Basis) =>
           ...optionen.map((option) => {
             const knoten = document.createElement("option");
             knoten.value = option;
-            knoten.textContent = option;
+            knoten.textContent = this._optionBeschriftung(entity, option);
             return knoten;
           })
         );
