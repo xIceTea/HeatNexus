@@ -751,6 +751,25 @@ def test_nur_sensoren_kommen_als_zeitprogramm_in_frage(panel):
     assert panel._anlage_daten(anlage(kreis))["zeitprogramme"] == []
 
 
+def test_die_bezeichnung_kommt_in_die_programmkarte(panel):
+    kreis = anlage(
+        teil(
+            "UMLZ HEIZKREIS",
+            14,
+            [
+                entitaet(
+                    "sensor.programm_2", "Programm 2", adresse="3/62", bezeichnung="Übergangszeit"
+                ),
+                entitaet("sensor.programm_3", "Programm 3", adresse="3/63", bezeichnung=None),
+            ],
+        )
+    )
+    programme = {p["titel"]: p for p in panel._anlage_daten(kreis)["zeitprogramme"]}
+
+    assert programme["Programm 2"]["bezeichnung"] == "Übergangszeit"
+    assert "bezeichnung" not in programme["Programm 3"]
+
+
 # ---------------------------------------------------------------------------
 # Rückfragen
 # ---------------------------------------------------------------------------

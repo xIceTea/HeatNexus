@@ -422,6 +422,38 @@ async def test_fremde_geraetekennung_ohne_paarform_stoert_nicht(hass, anlagen, k
     assert [teil["name"] for teil in anlage["teile"]] == ["Kessel"]
 
 
+async def test_die_bezeichnung_eines_programms_kommt_mit(hass, anlagen):
+    """Der Name bleibt der des Geräts; die Bezeichnung steht daneben."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eigen = MockConfigEntry(domain=DOMAIN)
+    eigen.add_to_hass(hass)
+    kreis = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eigen.entry_id, identifiers={(DOMAIN, "SN1-0")}, name="Heizkreis"
+    )
+    register = er.async_get(hass)
+    programm = register.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "SN1-0-3-62-0",
+        config_entry=eigen,
+        device_id=kreis.id,
+        original_name="Heizprogramm 2",
+    )
+    register.async_update_entity_options(
+        programm.entity_id, DOMAIN, {"bezeichnung": "Übergangszeit"}
+    )
+
+    [anlage] = anlagen.anlagen_lesen(hass)
+    [eintrag] = anlage["teile"][0]["entitaeten"]
+    assert eintrag["name"] == "Heizprogramm 2"
+    assert eintrag["bezeichnung"] == "Übergangszeit"
+
+
 def test_meldungen_zeigen_text_und_abhilfe(ansichten):
     """Die Abhilfe steht nur im Attribut; die Kachel zeigte sie nicht."""
     anlage = _anlage_mit_teilen()

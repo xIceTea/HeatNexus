@@ -449,6 +449,8 @@ def _zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
             }
             if text := hilfe(eintrag["name"]):
                 programm["hilfe"] = text
+            if bezeichnung := eintrag.get("bezeichnung"):
+                programm["bezeichnung"] = bezeichnung
             if (wirkung := _wirkt_nur_wenn(eintrag, teil)) is not None:
                 programm["wirkung"] = wirkung
             programme.append(programm)

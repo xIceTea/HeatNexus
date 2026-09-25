@@ -13,6 +13,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .. import waermequelle
+from ..bezeichnung import bezeichnung_lesen
 from ..const import (
     CONF_KESSELART,
     CONF_KESSELWERT,
@@ -257,6 +258,8 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
                 "state_class": (zustand.attributes.get("state_class") if zustand else None),
                 # Auswahltexte nach Wert: Vergleiche über den Wert gelten in jeder Sprache.
                 "optionen": auswahltexte.get(eintrag.unique_id, {}),
+                # Eigene Bezeichnung eines Zeitprogramms; der Name bleibt der der Anlage.
+                "bezeichnung": bezeichnung_lesen(eintrag),
             }
         )
 

@@ -33,6 +33,7 @@ import voluptuous as vol
 
 from ..anordnung import async_register_anordnung
 from ..auslieferung import async_dateien_ausliefern
+from ..bezeichnung import async_register_bezeichnung
 from ..const import (
     COMFORT_TEMP_STANDARD,
     CONF_AUSSENTEMPERATUR,
@@ -228,6 +229,7 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
         hass.data[f"{DOMAIN}_panel_datei"] = True
     # Die selbst gewählte Anordnung hängt am Panel, nicht an einer Anlage.
     async_register_anordnung(hass)
+    async_register_bezeichnung(hass)
 
     daten = panel_daten(hass)
     if not daten["anlagen"]:
