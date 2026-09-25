@@ -520,6 +520,13 @@ bilanz.aktivieren = {
   danach: mitAktivieren(),
 };
 
+// Eine nicht verfügbare Auswahl behält ihre Optionen, stellt aber nichts um.
+states["select.betriebswahl"].state = "unavailable";
+flaeche._aktualisieren();
+bilanz.aktivieren.nichtVerfuegbar = mitAktivieren();
+states["select.betriebswahl"].state = "Programm 2";
+flaeche._aktualisieren();
+
 // ---------------------------------------------------------------------------
 // Bezeichnung: im Dialog ändern, ohne das Programm neu zu schreiben
 // ---------------------------------------------------------------------------

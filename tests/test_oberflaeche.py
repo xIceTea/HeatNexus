@@ -578,6 +578,10 @@ def test_nach_der_umstellung_wechselt_die_taste_zum_alten_programm(durchlauf):
     assert durchlauf["aktivieren"]["danach"] == ["Programm 1"]
 
 
+def test_ohne_verfuegbare_auswahl_fehlt_die_taste(durchlauf):
+    assert durchlauf["aktivieren"]["nichtVerfuegbar"] == []
+
+
 def test_aktivieren_fragt_vorher_nach(durchlauf):
     aktivieren = durchlauf["aktivieren"]
     assert aktivieren["frage"] == (

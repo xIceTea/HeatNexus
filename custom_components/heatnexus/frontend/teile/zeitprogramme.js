@@ -162,6 +162,8 @@ export const ZeitprogrammeMixin = (Basis) =>
   /** Ob die Auswahl diese Option gerade anbietet. */
   _bietet(entity, option) {
     const zustand = this._zustand(entity);
+    // Eine nicht verfügbare Auswahl behält ihre Optionen, nimmt aber nichts an.
+    if (!zustand || ["unavailable", "unknown"].includes(zustand.state)) return false;
     const optionen = (zustand && zustand.attributes && zustand.attributes.options) || [];
     return optionen.includes(option);
   }
