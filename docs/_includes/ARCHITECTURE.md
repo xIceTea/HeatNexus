@@ -267,6 +267,7 @@ von Hand gepflegt.
 | `kanonisch.py` | herstellerunabhängige Schlüssel je Datenpunkt (`boiler_temperature`, …) |
 | `migration.py` | schreibt Registrierungseinträge auf das aktuelle Kennungsschema um, gleicht Gerätenamen an |
 | `anordnung.py` | Anordnung der Karten je Nutzer, über WebSocket gespeichert |
+| `bezeichnung.py` | Bezeichnung eines Zeitprogramms, in den Registry-Optionen, über WebSocket gespeichert |
 | `config_flow.py` | die Abläufe: Einrichtung, erneute Anmeldung, Optionen |
 | `formulare.py` | was ein Schritt anzeigt und wie seine Eingabe geprüft wird |
 | `waermequelle_flow.py` | der Subeintrag für eine Wärmequelle ohne Windhager-Steuerung |

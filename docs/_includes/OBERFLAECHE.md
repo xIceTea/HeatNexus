@@ -55,9 +55,9 @@ der Brennstoff, die Zählerstände.
 **Zeitprogramme.** Je Programm ein Wochenraster: Blöcke wie „Mo–Fr" und
 „Sa, So", darin die Schaltzeiten als Balken, darunter als Text. Bearbeitet wird
 in Blöcken und gespeichert als ganzes Programm — so, wie die Anlage es führt.
-„Aktivieren“ stellt die Betriebswahl nach einer Rückfrage auf dieses Programm.
-Beim Bearbeiten lässt sich eine eigene Bezeichnung wie „Übergangszeit“ vergeben;
-sie steht hinter dem Namen des Programms. In der Leseansicht ist die Zeile
+„Aktivieren“ stellt die zugehörige Auswahl nach einer Rückfrage auf dieses Programm.
+Beim Bearbeiten lässt sich eine eigene Bezeichnung wie „Übergangszeit“ vergeben.
+Sie steht hinter dem Namen des Programms. In der Leseansicht ist die Zeile
 hervorgehoben, die gerade gilt.
 
 ## Eigene Werte über Labels
