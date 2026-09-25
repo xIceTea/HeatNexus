@@ -639,3 +639,10 @@ def test_die_betriebswahl_zeigt_die_bezeichnung(durchlauf):
 def test_der_dialog_hebt_die_spanne_von_jetzt_hervor(durchlauf):
     """Montag 10:00 liegt im Abschnitt 06:00 – 22:00 des Wochentagsblocks."""
     assert durchlauf["zeitprogrammDialog"]["lesen"]["jetzt"] == ["06:00 – 22:00"]
+
+
+def test_die_marke_jetzt_steht_vor_dem_wert(durchlauf):
+    """Der Wert bleibt am rechten Rand, damit die Werte untereinander stehen."""
+    assert durchlauf["zeitprogrammDialog"]["lesen"]["jetztFolge"] == [
+        ["zp-spannezeit", "zp-jetzt", "zp-spannewert"]
+    ]

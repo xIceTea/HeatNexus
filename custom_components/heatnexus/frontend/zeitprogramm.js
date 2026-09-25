@@ -466,7 +466,8 @@ export function uebersichtKnoten(bloecke, optionen = {}) {
       const wert = document.createElement("span");
       wert.className = "zp-spannewert";
       wert.textContent = wertText(stueck.wert, grenzen);
-      zeile.append(punktfarbe, zeit, wert);
+      zeile.append(punktfarbe, zeit);
+      // Die Marke steht vor dem Wert, damit die Werte untereinander bleiben.
       if (stelle && stelle.block === nummer && stelle.von === stueck.von) {
         zeile.classList.add("jetzt");
         zeile.setAttribute("aria-current", "time");
@@ -475,6 +476,7 @@ export function uebersichtKnoten(bloecke, optionen = {}) {
         marke.textContent = t("jetzt");
         zeile.appendChild(marke);
       }
+      zeile.appendChild(wert);
       liste.appendChild(zeile);
     });
     kasten.appendChild(liste);

@@ -436,6 +436,10 @@ if (einProgramm) {
       .querySelectorAll(".zp-spanne")
       .filter((zeile) => zeile.classList.contains("jetzt"))
       .map((zeile) => String(zeile.querySelector(".zp-spannezeit").textContent)),
+    jetztFolge: dialog
+      .querySelectorAll(".zp-spanne")
+      .filter((zeile) => zeile.classList.contains("jetzt"))
+      .map((zeile) => zeile.children.map((kind) => kind.className).filter(Boolean)),
   };
 
   // Der zweite Knopf holt den Editor.
