@@ -205,7 +205,6 @@ def _anlage_mit_teilen():
     return {
         "id": "anlage-1",
         "name": "Kesselhaus",
-        "kesselart": "hackgut",
         "teile": [
             {
                 "name": "PuroWIN",

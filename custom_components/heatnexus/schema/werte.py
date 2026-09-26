@@ -11,7 +11,7 @@ import re
 from typing import Any
 
 from .. import geraete
-from ..const import QUELLEN_ARTEN
+from ..const import KESSELART_AUTO, QUELLEN_ARTEN
 from ..symbole import symbol_fuer_wert, symbol_je_fct
 
 # Woran ein Heizkreis (fctType 14) Warmwasser und Zirkulation erkennen lässt.
@@ -219,35 +219,37 @@ NAME_ART: tuple[tuple[str, str], ...] = (
     (r"purowin", "hackgut"),
     (r"biowin|pelletswin|pelletskessel|\bpellet", "pellets"),
     (r"logwin|vario\s?win|scheitholz|st(ü|ue)ckholz|holzvergaser", "scheitholz"),
-    (r"duo\s?win|gas|\b(ö|oe)l\b|brennwert|therme", "gas_oel"),
+    (r"gas|\b(ö|oe)l\b|brennwert|therme", "gas_oel"),
 )
 
 
-def kesselart_erkennen(teile: list[dict[str, Any]]) -> str | None:
-    """Art des Wärmeerzeugers aus den Anlagenteilen ableiten.
+def kesselart_des_teils(teil: dict[str, Any]) -> str | None:
+    """Art eines Wärmeerzeugers: Funktionstyp, gemeldeter Brennstoff, Funktionsname.
 
-    Gibt einen Schlüssel aus ``const.KESSELARTEN`` zurück oder ``None``, wenn
-    sich nichts sagen lässt. ``None`` heißt „neutral zeichnen" – nicht raten.
-    Die Funktion wirkt ausschließlich auf die Zeichnung.
+    ``None`` heißt „neutral zeichnen" – nicht raten. Wirkt nur auf die Zeichnung.
     """
-    kessel = [t for t in teile if _art(t.get("fct_type")) == "kessel"]
-    for teil in kessel:
-        with contextlib.suppress(TypeError, ValueError):
-            if art := KESSELART_JE_FCT.get(int(teil.get("fct_type"))):
+    if _art(teil.get("fct_type")) != "kessel":
+        return None
+    with contextlib.suppress(TypeError, ValueError):
+        if art := KESSELART_JE_FCT.get(int(teil.get("fct_type"))):
+            return art
+    for eintrag in teil.get("entitaeten", []):
+        if not BRENNSTOFF_ENTITAET.search(eintrag.get("name") or ""):
+            continue
+        text = str(eintrag.get("text") or "")
+        for muster, art in BRENNSTOFF_ART:
+            if re.search(muster, text, re.IGNORECASE):
                 return art
-    for teil in kessel:
-        for eintrag in teil.get("entitaeten", []):
-            if not BRENNSTOFF_ENTITAET.search(eintrag.get("name") or ""):
-                continue
-            text = str(eintrag.get("text") or "")
-            for muster, art in BRENNSTOFF_ART:
-                if re.search(muster, text, re.IGNORECASE):
-                    return art
-    for teil in kessel:
-        for muster, art in NAME_ART:
-            if re.search(muster, teil.get("name") or "", re.IGNORECASE):
-                return art
+    for muster, art in NAME_ART:
+        if re.search(muster, teil.get("name") or "", re.IGNORECASE):
+            return art
     return None
+
+
+def _kesselart(teil: dict[str, Any]) -> str | None:
+    """Die Wahl am Gerät, sonst die erkannte Art dieses Kessels."""
+    wahl = teil.get("kesselart_wahl")
+    return wahl if wahl and wahl != KESSELART_AUTO else kesselart_des_teils(teil)
 
 
 def passt(name: str, muster: tuple[re.Pattern, ...]) -> bool:
@@ -480,6 +482,8 @@ def zeichenbare_module(
                     "zeichnung": (zeichnungen or {}).get(kennung),
                     "titel": teil["name"],
                     "art": art,
+                    # Jeder Kessel trägt seine eigene Zeichnung, auch zwei an einer Steuerung.
+                    "kesselart": _kesselart(teil) if art == "kessel" else None,
                     "werte": werte,
                     # Am Pumpen-/Relaismodul ist die Drehzahl nur dann eine
                     # Pumpe, wenn auch eine angeschlossen ist. Das entscheidet

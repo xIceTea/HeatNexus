@@ -12,7 +12,6 @@ from .werte import (
     BRENNKAMMER_KALT,
     ERZEUGER_ARTEN,
     finde,
-    kesselart_erkennen,
     waehlbare_werte,
     zeichenbare_module,
 )
@@ -56,7 +55,6 @@ from .zeichnung import (
 
 def anlagenschema(
     teile: list[dict[str, Any]],
-    kesselart: str | None = None,
     kesselwert: str | None = None,
     auswahl: dict[str, list[str]] | None = None,
     teile_aus: list[str] | tuple[str, ...] = (),
@@ -67,8 +65,7 @@ def anlagenschema(
     """Eine `picture-elements`-Karte für eine Anlage – oder nichts.
 
     Erwartet die Anlagenteile in der Form, die `dashboard.anlagen_lesen` liefert.
-    ``kesselart`` wählt die Kesselzeichnung; ohne Angabe wird sie aus den
-    Anlagenteilen abgeleitet.
+    Die Kesselzeichnung gilt je Kessel: die Wahl am Gerät, sonst die erkannte Art.
 
     **Beide Farbsätze werden mitgeliefert**, nicht einer nach Vorgabe: Das Bild
     steckt als `data:`-Adresse in einem `<img>` und erbt dort kein CSS, die
@@ -85,9 +82,7 @@ def anlagenschema(
     if not any(m["werte"] for m in module):
         return None
 
-    if kesselart is None:
-        kesselart = kesselart_erkennen(teile)
-    svg, breite = schaubild_svg(module, kesselart, mischer)
+    svg, breite = schaubild_svg(module, mischer)
 
     elemente: list[dict[str, Any]] = []
     pumpen: list[dict[str, Any]] = []
@@ -260,7 +255,9 @@ def anlagenschema(
                 # Die Betriebslampe über dem gezeichneten roten Punkt. Sie
                 # leuchtet grün, solange der Erzeuger läuft, und deckt das Rot
                 # dabei ab.
-                if (stelle := kessellampe(kesselart, modul.get("zeichnung"))) is not None:
+                if (
+                    stelle := kessellampe(modul.get("kesselart"), modul.get("zeichnung"))
+                ) is not None:
                     lx, ly, lr = stelle
                     lampen.append(
                         {
@@ -507,13 +504,12 @@ def schaubild_nutzdaten(
     """
     bild = anlagenschema(
         anlage["teile"],
-        anlage.get("kesselart"),
-        anlage.get("kesselwert"),
-        auswahl,
-        teile_aus,
-        zeichnungen,
-        mischer,
-        anlage.get("modulpumpe", False),
+        kesselwert=anlage.get("kesselwert"),
+        auswahl=auswahl,
+        teile_aus=teile_aus,
+        zeichnungen=zeichnungen,
+        mischer=mischer,
+        modulpumpe=anlage.get("modulpumpe", False),
     )
     return {
         # Die Zeichnung geht **einmal** hinaus, dazu die Farbtabellen. Welcher

@@ -348,7 +348,6 @@ def anlage() -> dict:
     return {
         "id": "anlage_heizhaus",
         "name": "Heizhaus",
-        "kesselart": "hackgut",
         "kesselwert": "leistung",
         "teile": TEILE,
     }

@@ -29,13 +29,12 @@ from __future__ import annotations
 
 from .farben import FARBSAETZE
 from .karte import anlagenschema, schaubild_daten, schaubild_nutzdaten
-from .werte import ANALOG_SOLLWERT, kesselart_erkennen, modul_in_betrieb, passt, traegt, treffer
+from .werte import ANALOG_SOLLWERT, modul_in_betrieb, passt, traegt, treffer
 
 __all__ = [
     "ANALOG_SOLLWERT",
     "FARBSAETZE",
     "anlagenschema",
-    "kesselart_erkennen",
     "modul_in_betrieb",
     "passt",
     "schaubild_daten",

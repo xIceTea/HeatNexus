@@ -28,7 +28,6 @@ from ..helpers import enum_texte
 from ..kanonisch import gnmn, ist_ableitung
 from ..kanonisch import schluessel as kanonischer_schluessel
 from ..rechte import darf_lesen
-from ..schema import kesselart_erkennen
 from ..schema import passt as _passt
 from ..schema import traegt as _traegt
 from ..symbole import symbol_je_fct
@@ -286,17 +285,6 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
 
     for gruppe in anlagen.values():
         gruppe["teile"].sort(key=lambda t: (t["rang"], t["name"]))
-        # Die ausdrückliche Auswahl schlägt die Erkennung; steht überall
-        # "automatisch", entscheidet der gemeldete Brennstoff bzw. der Name.
-        gewaehlt = next(
-            (
-                t["kesselart_wahl"]
-                for t in gruppe["teile"]
-                if t.get("kesselart_wahl") not in (None, KESSELART_AUTO)
-            ),
-            None,
-        )
-        gruppe["kesselart"] = gewaehlt or kesselart_erkennen(gruppe["teile"])
         # Welcher zweite Wert am Kessel steht. Die erste ausdrückliche Angabe
         # gilt; ohne Angabe bleibt es bei der Leistung.
         gruppe["kesselwert"] = next(

@@ -68,8 +68,8 @@ cards:
 
 ## Eigene Zeichnungen
 
-Welche Zeichnung ein Anlagenteil bekommt, entscheidet die Erkennung — Hackgut,
-Pellets, Scheitholz, Gas/Öl, Wärmepumpe. Wer eine andere will, wählt sie im
+Welche Zeichnung ein Anlagenteil bekommt, entscheidet die Erkennung. Jeder
+Kessel wird einzeln erkannt: Hackgut, Pellets, Scheitholz, Gas/Öl, Wärmepumpe. Wer eine andere will, wählt sie im
 Editor unter *Werte im Schaubild → Zeichnungen*; Warmwasser und Zirkulation
 stehen dort ebenfalls.
 

@@ -375,7 +375,9 @@ def test_abwahl_trifft_nur_das_pumpenmodul(schema, werte):
 # ---------------------------------------------------------------------------
 def _svg_von(karte, teile, kesselart=None) -> str:
     """Die dunkle Fassung – sie ist die gezeichnete, die helle entsteht daraus."""
-    karte = karte.anlagenschema(teile, kesselart)
+    if kesselart is not None:
+        teile = [{**teil, "kesselart_wahl": kesselart} for teil in teile]
+    karte = karte.anlagenschema(teile)
     return base64.b64decode(karte["dark_mode_image"].split(",", 1)[1]).decode("utf-8")
 
 
@@ -464,22 +466,22 @@ def test_kesselart_kommt_aus_dem_gemeldeten_brennstoff(werte):
             "text": "Hackgut feucht schlackend",
         }
     )
-    assert werte.kesselart_erkennen([kessel]) == "hackgut"
+    assert werte.kesselart_des_teils(kessel) == "hackgut"
 
     kessel["entitaeten"][-1]["text"] = "Pellets"
-    assert werte.kesselart_erkennen([kessel]) == "pellets"
+    assert werte.kesselart_des_teils(kessel) == "pellets"
 
 
 def test_kesselart_faellt_auf_den_namen_zurueck(werte):
-    assert werte.kesselart_erkennen([_teil("PuroWIN 40", 25, [])]) == "hackgut"
-    assert werte.kesselart_erkennen([_teil("BioWIN 2", 25, [])]) == "pellets"
-    assert werte.kesselart_erkennen([_teil("AeroWIN", 25, [])]) == "waermepumpe"
+    assert werte.kesselart_des_teils(_teil("PuroWIN 40", 25, [])) == "hackgut"
+    assert werte.kesselart_des_teils(_teil("BioWIN 2", 25, [])) == "pellets"
+    assert werte.kesselart_des_teils(_teil("AeroWIN", 25, [])) == "waermepumpe"
 
 
 def test_kesselart_raet_nicht(werte):
     """Sagt weder Brennstoff noch Name etwas, wird neutral gezeichnet."""
-    assert werte.kesselart_erkennen([_teil("Waermeerzeuger", 25, [])]) is None
-    assert werte.kesselart_erkennen([_teil("PuroWIN", 16, [])]) is None
+    assert werte.kesselart_des_teils(_teil("Waermeerzeuger", 25, [])) is None
+    assert werte.kesselart_des_teils(_teil("PuroWIN", 16, [])) is None
 
 
 def test_kesselart_waehlt_die_zeichnung(schema):
@@ -493,6 +495,53 @@ def test_kesselart_waehlt_die_zeichnung(schema):
 def test_unbekannte_kesselart_faellt_auf_die_neutrale_zeichnung(schema):
     kessel = [_teil("Kessel", 25, [("sensor.k", "Kesseltemperatur Ist")])]
     assert _svg_von(schema, kessel, "gibtsnicht") == _svg_von(schema, kessel, None)
+
+
+def _zwei_kessel() -> list[dict]:
+    """Pellet- und Scheitholzkessel an einer Steuerung, beide mit Leistung."""
+    return [
+        _teil(
+            "BioWIN",
+            9,
+            [("sensor.bio_ist", "Kesseltemperatur Ist"), ("sensor.bio_leistung", "Kesselleistung")],
+        ),
+        _teil(
+            "LogWIN",
+            10,
+            [("sensor.log_ist", "Kesseltemperatur Ist"), ("sensor.log_leistung", "Kesselleistung")],
+        ),
+    ]
+
+
+def test_zwei_kessel_bekommen_je_ihre_eigene_zeichnung(schema, werte, bauteile):
+    teile = _zwei_kessel()
+    assert [m["kesselart"] for m in werte.zeichenbare_module(teile)] == ["pellets", "scheitholz"]
+
+    svg = _svg_von(schema, teile)
+    assert bauteile.aus_datei("kessel", "pellets", "t0-") in svg
+    assert bauteile.aus_datei("kessel", "scheitholz", "t1-") in svg
+
+    lampen = {
+        lampe["titel"]: lampe
+        for lampe in schema.karte.anlagenschema(teile)["lampen"]
+        if lampe["zweck"] == "erzeuger"
+    }
+    for titel, art in (("BioWIN", "pellets"), ("LogWIN", "scheitholz")):
+        _x, ly, _r = bauteile.kessellampe(art)
+        assert lampen[titel]["top"] == f"{ly / schema.zeichnung.HOEHE * 100:.2f}%"
+
+
+def test_die_wahl_eines_geraets_gilt_nur_fuer_seinen_kessel(werte):
+    biowin, logwin = _zwei_kessel()
+    module = werte.zeichenbare_module(
+        [{**biowin, "kesselart_wahl": "hackgut"}, {**logwin, "kesselart_wahl": "auto"}]
+    )
+    assert [m["kesselart"] for m in module] == ["hackgut", "scheitholz"]
+
+
+def test_kesselart_steht_nur_am_kessel(werte, anlage):
+    module = werte.zeichenbare_module(anlage)
+    assert [m.get("kesselart") for m in module] == ["hackgut", None]
 
 
 # ---------------------------------------------------------------------------
@@ -561,7 +610,7 @@ def test_waermepumpe_ist_ein_waermeerzeuger(werte):
         assert werte.ART_JE_FCT[fct] == "kessel"
     # Und sie braucht weder Brennstoff noch sprechenden Namen.
     stumm = _teil("Modul 26", 26, [("sensor.k", "Kesseltemperatur Ist")])
-    assert werte.kesselart_erkennen([stumm]) == "waermepumpe"
+    assert werte.kesselart_des_teils(stumm) == "waermepumpe"
 
 
 def test_zsp_und_zirkulation_sehen_verschieden_aus(werte, bauteile):
@@ -1065,8 +1114,8 @@ def test_der_boiler_traegt_dieselbe_bildsprache(schema):
 # Beide Fassungen gehen mit, weil beim Zeichnen niemand weiß, welches
 # Erscheinungsbild der Betrachter eingestellt hat.
 # ---------------------------------------------------------------------------
-def _svg_hell_von(karte, teile, kesselart=None) -> str:
-    karte = karte.anlagenschema(teile, kesselart)
+def _svg_hell_von(karte, teile) -> str:
+    karte = karte.anlagenschema(teile)
     return base64.b64decode(karte["image"].split(",", 1)[1]).decode("utf-8")
 
 
@@ -1325,7 +1374,7 @@ def test_warm_bleibt_warm_und_kalt_bleibt_kalt(farben):
 
 def test_jede_kesselzeichnung_traegt_eine_betriebslampe(bauteile, zeichnung):
     """Ohne Fundstelle in der Zeichnung bliebe der rote Punkt im Bild rot."""
-    for kesselart in (None, "hackgut", "pellets", "scheitholz", "gas-oel", "waermepumpe"):
+    for kesselart in (None, "hackgut", "pellets", "scheitholz", "gas_oel", "waermepumpe"):
         stelle = bauteile.kessellampe(kesselart)
         assert stelle is not None, kesselart
         x, y, r = stelle
@@ -1567,3 +1616,19 @@ def test_das_schaubild_zeigt_die_quelle_neben_der_anlage(karte, anlage):
     assert bild is not None
     roh = base64.b64decode(bild["image"].split(",", 1)[1]).decode("utf-8")
     assert "Heizstab" in roh
+
+
+def test_jede_erkannte_kesselart_hat_eine_eigene_zeichnung(werte, bauteile):
+    ordner = Path(bauteile.__file__).parent.parent / "anlagenteile"
+    arten = {a for _m, a in werte.NAME_ART} | {a for _m, a in werte.BRENNSTOFF_ART}
+    arten |= set(werte.KESSELART_JE_FCT.values())
+
+    fehlend = [a for a in sorted(arten) if not (ordner / f"kessel-{a}.svg").exists()]
+
+    assert not fehlend
+
+
+def test_duowin_im_namen_ist_kein_gaskessel(werte):
+    teil = {"name": "DuoWIN", "fct_type": 9, "entitaeten": []}
+
+    assert werte.kesselart_des_teils(teil) != "gas_oel"

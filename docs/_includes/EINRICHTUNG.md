@@ -181,9 +181,10 @@ Oberfläche und lässt sich wie jede andere Entität in Automationen verwenden.
 - **Außentemperatur** — welche Entität in der Kopfzeile der eigenen Oberfläche
   gilt. Leer heißt: HeatNexus sucht sie sich in der Anlage. Nötig, weil der
   Außenfühler oft an einem anderen Gerät hängt als an dem, das ihn meldet.
-- **Kesselart** wirkt nur auf die Zeichnung im Schaubild. `Automatisch` leitet
-  sie aus Brennstoff und Funktionsnamen ab; die Auswahl ist dafür da, dass eine
-  falsch erkannte Anlage trotzdem richtig aussieht.
+- **Kesselart** wirkt nur auf die Zeichnung im Schaubild und gilt für die
+  Kessel dieser Steuerung. `Automatisch` leitet sie je Kessel aus Brennstoff und
+  Funktionsnamen ab. Mit der Auswahl lässt sich eine falsch erkannte Zeichnung
+  korrigieren.
 - **Zweiter Kesselwert** im Schaubild: Kesselleistung oder
   Brennkammertemperatur.
 

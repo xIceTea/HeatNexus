@@ -140,9 +140,11 @@ Anlagenteil einen eigenen Präfix, damit zwei Puffer sich nicht denselben Verlau
 teilen. Fehlt eine Datei, greift eine schlichte gezeichnete Ersatzform.
 
 Für den Kessel entscheidet die **Kesselart** über die Datei
-(`kessel-<art>.svg`, Rückfall `kessel.svg`). Sie kommt aus der Option
-`kesselart` je Anlage; steht die auf „automatisch", wird sie aus dem gemeldeten
-Brennstoff (`38/126`, `38/127`) und sonst aus dem Funktionsnamen abgeleitet. Die
+(`kessel-<art>.svg`, Rückfall `kessel.svg`). Sie gilt je Kessel. Die Option
+`kesselart` einer Steuerung gilt für deren Kessel; steht sie auf „automatisch",
+wird die Art aus dem Funktionstyp, dem gemeldeten Brennstoff (`38/126`,
+`38/127`) und sonst aus dem Funktionsnamen abgeleitet. Zwei Kessel einer Anlage,
+etwa Pellets und Scheitholz, werden so verschieden gezeichnet. Die
 Kesselart wirkt **nur auf die Zeichnung** – sie steht bewusst nicht im
 Umfangs-Fingerabdruck, ein Wechsel liest die Anlage also nicht neu ein.
 

@@ -317,9 +317,7 @@ def _ersatzform(art: str) -> str:
     )
 
 
-def _kasten(
-    x: int, platz: int, modul: dict[str, Any], kesselart: str | None, mischer: bool = True
-) -> str:
+def _kasten(x: int, platz: int, modul: dict[str, Any], mischer: bool = True) -> str:
     """Ein Anlagenteil an seinem Platz im Gesamtbild."""
     art = modul["art"]
     # Der Speicherkörper bleibt leer, wenn die Oberfläche die gemessene
@@ -329,7 +327,7 @@ def _kasten(
         zusatz["koerper"] = "none" if hat_speicherfarbe(modul) else masse["fuellung"]
     inhalt = aus_datei(
         art,
-        kesselart if art == "kessel" else None,
+        modul.get("kesselart") if art == "kessel" else None,
         f"t{platz}-",
         zusatz,
         modul.get("zeichnung"),
@@ -398,9 +396,7 @@ def beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str,
     return elemente
 
 
-def schaubild_svg(
-    module: list[dict[str, Any]], kesselart: str | None, mischer: bool = True
-) -> tuple[str, int]:
+def schaubild_svg(module: list[dict[str, Any]], mischer: bool = True) -> tuple[str, int]:
     """Das Schaubild als SVG-Text und seine Breite."""
     breite = max(2 * RAND + len(module) * MODUL_BREITE, 400)
     teile = [
@@ -409,7 +405,7 @@ def schaubild_svg(
         _rohre(breite),
     ]
     for platz, modul in enumerate(module):
-        teile.append(_kasten(RAND + platz * MODUL_BREITE, platz, modul, kesselart, mischer))
+        teile.append(_kasten(RAND + platz * MODUL_BREITE, platz, modul, mischer))
     teile.append("</svg>")
     return "".join(teile), breite
 

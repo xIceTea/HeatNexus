@@ -201,11 +201,7 @@ def anlagenbild(anlagen: list[dict[str, Any]], als_karte: bool = False) -> dict[
             )
             continue
 
-        bild = anlagenschema(
-            anlage["teile"],
-            anlage.get("kesselart"),
-            modulpumpe=anlage.get("modulpumpe", False),
-        )
+        bild = anlagenschema(anlage["teile"], modulpumpe=anlage.get("modulpumpe", False))
         if bild is None:
             continue
         abschnitte += abschnitt(anlage["name"] or "Anlage", [bild], "mdi:sitemap-outline")
