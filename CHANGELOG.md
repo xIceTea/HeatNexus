@@ -27,6 +27,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Gas- und Ölkessel erscheinen im Schaubild mit eigener Zeichnung.
 - Die Sonde umgeht einen in Windows eingestellten Proxy.
 - Die Sonde bricht die Gegenprobe bei Funktionen ohne Funktionstyp nicht mehr ab.
+- Alle Texte der Oberfläche erscheinen in der englischen Fassung übersetzt.
 
 ## [1.13.0-beta.2] - 2026-09-24
 
