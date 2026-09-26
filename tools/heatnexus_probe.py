@@ -120,7 +120,12 @@ class Probe:
         if opener is None:
             mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
             mgr.add_password(None, f"{self.base}/", self.username, self.password)
-            opener = urllib.request.build_opener(urllib.request.HTTPDigestAuthHandler(mgr))
+            # Ohne Proxy, wie die Integration: urllib übernähme sonst den des
+            # Systems, und die Anfrage an die Steuerung ginge nach draußen.
+            opener = urllib.request.build_opener(
+                urllib.request.ProxyHandler({}),
+                urllib.request.HTTPDigestAuthHandler(mgr),
+            )
             self._local.opener = opener
         return opener
 
@@ -409,9 +414,31 @@ def fetch_menu_all(
 def fetch_structure(probe: Probe):
     """Anlagenstruktur (/1)."""
     data, status = probe.lookup("/1")
-    if status != 200 or not isinstance(data, list):
-        return None, status
     return data, status
+
+
+def struktur_hinweis(status: int, data) -> str:
+    """Erklären, warum die Struktur nicht lesbar war."""
+    if status in (401, 403):
+        return "Passwort prüfen – dasselbe wie in der Integration"
+    if status == 0:
+        return f"keine Verbindung: {(data or {}).get('error', 'unbekannt')}"
+    hinweis = f"HTTP {status}"
+    # Die Struktur lehnt eine Steuerung nur mit 401/403 ab. Jede andere
+    # 4xx-Antwort stammt von einem anderen Gerät unter derselben Adresse.
+    if 400 <= status < 500:
+        hinweis += (
+            ": Unter dieser Adresse antwortet keine Windhager-Steuerung."
+            " Dieselbe IP-Adresse wie in der Integration verwenden"
+        )
+    seite = data.get("raw") if isinstance(data, dict) else None
+    if seite is None and data:
+        seite = json.dumps(data, ensure_ascii=False)
+    seite = seite or ""
+    titel = re.search(r"<title>(.*?)</title>", seite, re.I | re.S)
+    text = titel.group(1) if titel else re.sub(r"<[^>]+>", " ", seite)
+    text = " ".join(text.split())[:80]
+    return f"{hinweis} (Antwort: {text})" if text else hinweis
 
 
 # Statische Navigationseinträge der Steuerung. Sie stehen in
@@ -1685,9 +1712,8 @@ def run_host(
     started = time.monotonic()
 
     structure, status = fetch_structure(probe)
-    if structure is None:
-        hint = "Passwort prüfen" if status in (401, 403) else f"HTTP {status}"
-        print(f"    Struktur nicht lesbar ({hint})")
+    if status != 200 or not isinstance(structure, list):
+        print(f"    Struktur nicht lesbar ({struktur_hinweis(status, structure)})")
         return {"host": host, "ok": False}
 
     nodes = len(structure)
