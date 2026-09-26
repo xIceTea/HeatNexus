@@ -23,7 +23,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
-- Jeder Kessel erscheint im Schaubild mit seiner eigenen Zeichnung ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
+- Mehrere Kessel einer Anlage erscheinen im Schaubild mit eigener Zeichnung ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
 - Gas- und Ölkessel erscheinen im Schaubild mit eigener Zeichnung.
 - Die Sonde umgeht einen in Windows eingestellten Proxy.
 - Die Sonde bricht die Gegenprobe bei Funktionen ohne Funktionstyp nicht mehr ab.
