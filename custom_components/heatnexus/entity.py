@@ -18,7 +18,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DOMAIN,
-    FCT_MODELL,
     NACHFASS_ANZAHL,
     NACHFASS_INTERVALL,
     OID_HARDWAREVERSION,
@@ -26,6 +25,7 @@ from .const import (
     SIGNAL_NEUE_ENTITAETEN,
 )
 from .error_texts import parse_messages
+from .geraete import modell
 from .helpers import enum_texte, parse_value
 from .lon import ungueltig as lon_ungueltig
 from .registrierung import uebergeordnet
@@ -153,6 +153,13 @@ def _seriennummer(coordinator: Any, beschreibung: dict) -> str | None:
     return (getattr(coordinator.client, "neuron_by_node", None) or {}).get(knoten)
 
 
+def _geraeteklasse(coordinator: Any, beschreibung: dict) -> str | None:
+    """Geräteklasse des Bausteins, an dem diese Funktion hängt."""
+    if (knoten := _knoten(beschreibung)) is None:
+        return None
+    return (getattr(coordinator.client, "geraeteklasse", None) or {}).get(knoten)
+
+
 def _werksbezeichnung(coordinator: Any, beschreibung: dict) -> str | None:
     """Wie der Hersteller den Baustein nennt, an dem diese Funktion hängt."""
     if (knoten := _knoten(beschreibung)) is None:
@@ -180,7 +187,9 @@ def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
         # gehört dorthin, **was** das Gerät ist. Kennt die kuratierte Tabelle
         # den Funktionstyp nicht, nennt die Anlage selbst die Werksbezeichnung
         # ihres Bausteins – für fremde Baureihen die einzige belastbare Angabe.
-        model=FCT_MODELL.get(fct_type) or _werksbezeichnung(coordinator, beschreibung) or funktion,
+        model=modell(fct_type, _geraeteklasse(coordinator, beschreibung))
+        or _werksbezeichnung(coordinator, beschreibung)
+        or funktion,
         **steuerung_verweis(coordinator),
     )
     if seriennummer := _seriennummer(coordinator, beschreibung):

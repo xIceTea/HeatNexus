@@ -324,8 +324,13 @@ class ErkennungMixin:
 
         # Erst die Seriennummern einsammeln – alle Kennungen hängen daran.
         for device in json_devices:
-            if (neuron := device.get("neuronId")) and device.get("nodeId") is not None:
-                self.neuron_by_node[str(device["nodeId"])] = str(neuron)
+            if device.get("nodeId") is None:
+                continue
+            knoten = str(device["nodeId"])
+            if neuron := device.get("neuronId"):
+                self.neuron_by_node[knoten] = str(neuron)
+            if klasse := geraete.geraeteklasse(device.get("programId")):
+                self.geraeteklasse[knoten] = klasse
 
         for device in json_devices:
             node_id = device["nodeId"]
@@ -579,6 +584,7 @@ class ErkennungMixin:
             "neuron_by_node": dict(self.neuron_by_node),
             "geraeteinfo": dict(self.geraeteinfo),
             "werksbezeichnung": dict(self.werksbezeichnung),
+            "geraeteklasse": dict(self.geraeteklasse),
             "zusatzkandidaten": list(self.zusatzkandidaten),
         }
 
@@ -593,6 +599,7 @@ class ErkennungMixin:
         self.neuron_by_node = dict(data.get("neuron_by_node") or {})
         self.geraeteinfo = dict(data.get("geraeteinfo") or {})
         self.werksbezeichnung = dict(data.get("werksbezeichnung") or {})
+        self.geraeteklasse = dict(data.get("geraeteklasse") or {})
         self.zusatzkandidaten = [dict(k) for k in data.get("zusatzkandidaten") or []]
         # Die Auswahl kann sich seit dem Speichern geändert haben.
         for d in self.devices:

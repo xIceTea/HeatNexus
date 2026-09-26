@@ -103,6 +103,8 @@ class WindhagerHttpClient(
         self.geraeteinfo: dict = {}
         # nodeId -> Werksbezeichnung des Bausteins, aus `nodes`.
         self.werksbezeichnung: dict[str, str] = {}
+        # nodeId -> Geräteklasse aus der `programId`, wählt das Modell.
+        self.geraeteklasse: dict[str, str] = {}
         # nodeId -> neuronId (Seriennummer des Bausteins). Grundlage aller
         # dauerhaften Kennungen; wird bei der Discovery aus /1 gefüllt.
         self.neuron_by_node: dict[str, str] = {}
