@@ -123,5 +123,20 @@ verändert nichts an der Anlage und läuft im Betrieb nicht mit:
 python tools/heatnexus_probe.py all 192.0.2.10
 ```
 
-Ohne Argument startet es geführt. Die Ergebnisse landen als JSON, CSV und
-Bericht im Ordner `probe/`.
+Ohne Argument startet es geführt; unter Windows genügt ein Doppelklick auf
+`tools/probe.cmd`. Die Ergebnisse landen als JSON, CSV und Bericht im Ordner
+`probe/`.
+
+Die Sonde braucht dieselbe IP-Adresse und dasselbe Service-Passwort wie die
+Integration, nicht das Passwort von Windhager Connect. Meldet sie „Struktur
+nicht lesbar“, nennt sie den Grund:
+
+| Meldung | Bedeutung |
+|---|---|
+| Passwort prüfen | Die Steuerung lehnt die Anmeldung ab. |
+| Unter dieser Adresse antwortet keine Windhager-Steuerung | Ein anderes Gerät hat geantwortet, etwa der Router. Die IP-Adresse aus der Integration verwenden. |
+| keine Verbindung | Unter der Adresse antwortet nichts. |
+
+Anders als der Diagnose-Export enthält der Abzug die Kennung und die
+Seriennummer der Anlage. Wer ihn nicht öffentlich anhängen will, sagt es im
+Issue.

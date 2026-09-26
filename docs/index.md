@@ -227,9 +227,9 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
           <tbody>
             <tr><td><svg class="sym"><use href="#sym-flamme"/></svg>PuroWIN</td><td>Hackgut, wahlweise Pellets</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
             <tr><td><svg class="sym"><use href="#sym-flamme"/></svg>BioWIN, BioWIN 2, PelletsWIN</td><td>Pellets</td><td><span class="stand fremd">fremde Anlage geprüft</span></td></tr>
-            <tr><td><svg class="sym"><use href="#sym-scheit"/></svg>LogWIN, VarioWIN</td><td>Scheitholz</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-scheit"/></svg>LogWIN, VarioWIN</td><td>Scheitholz</td><td><span class="stand fremd">fremde Anlage geprüft</span></td></tr>
             <tr><td><svg class="sym"><use href="#sym-waermepumpe"/></svg>AeroWIN und andere Wärmepumpen</td><td>Strom</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
-            <tr><td><svg class="sym"><use href="#sym-scheit"/></svg>DuoWIN</td><td>Pellets und Scheitholz</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-scheit"/></svg>DuoWIN</td><td>Pellets und Scheitholz</td><td><span class="stand fremd">fremde Anlage geprüft</span></td></tr>
             <tr><td><svg class="sym"><use href="#sym-flamme"/></svg>Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
             <tr><td><svg class="sym"><use href="#sym-blitz"/></svg>E-Heizung, Automatik- und Zusatzkessel</td><td>—</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
           </tbody>
@@ -243,7 +243,8 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
             <tr><td><svg class="sym"><use href="#sym-heizkoerper"/></svg>UML / UMLZ Heizkreismodul</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
             <tr><td><svg class="sym"><use href="#sym-puffer"/></svg>B-PLMi Pufferlademodul</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
             <tr><td><svg class="sym"><use href="#sym-rotor"/></svg>ZSP Pumpen- und Relaismodul</td><td><span class="stand geprueft">an der Anlage geprüft</span></td></tr>
-            <tr><td><svg class="sym"><use href="#sym-heizkoerper"/></svg>Infinity PLUS Heizkreis und Warmwasser</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-heizkoerper"/></svg>Infinity PLUS Heizkreis und Warmwasser</td><td><span class="stand fremd">fremde Anlage geprüft</span></td></tr>
+            <tr><td><svg class="sym"><use href="#sym-puffer"/></svg>Pufferspeicher am Kessel</td><td><span class="stand fremd">fremde Anlage geprüft</span></td></tr>
             <tr><td><svg class="sym"><use href="#sym-sonne"/></svg>Solar, Kaskade, Umschaltung, weitere Puffer</td><td><span class="stand offen">eingebunden, ungeprüft</span></td></tr>
           </tbody>
         </table>
