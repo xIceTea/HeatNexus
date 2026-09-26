@@ -13,7 +13,13 @@ import re as _re
 from xml.etree import ElementTree
 
 from .. import geraete, geraetetexte
-from ..const import ADVANCED_LEVELS, EXTRA_OIDS_BY_FCT, FCT_CLIMATE, FCT_ENTITY_MAP, FCT_NV
+from ..const import (
+    ADVANCED_LEVELS,
+    EXTRA_OIDS_BY_FCT,
+    FCT_CLIMATE_TYPES,
+    FCT_ENTITY_MAP,
+    FCT_NV,
+)
 from ..device_db import get_enum, get_layers, get_name, get_programme
 from ..helpers import messgroesse
 from .gemeinsam import EBENENFOLGE, MELDUNGS_SENSOREN, gelesene_ebenen
@@ -472,7 +478,7 @@ class ErkennungMixin:
                     self.oids.add(oid)
 
                 # Heizkreis additionally gets a climate entity
-                if fct_type == FCT_CLIMATE:
+                if fct_type in FCT_CLIMATE_TYPES:
                     self.devices.append(
                         {
                             "id": f"{self._geraetekennung(prefix)}-thermostat",

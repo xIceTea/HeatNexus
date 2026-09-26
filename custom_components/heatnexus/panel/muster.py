@@ -27,11 +27,14 @@ Zeile = tuple[str, str, str, tuple[str, ...]]
 # Kesseltemperatur, am Heizkreis die Raumtemperatur, am Puffer die obere
 # Temperatur. Ohne diese Trennung gewann bisher die Kesseltemperatur auch am
 # Heizkreis – der meldet sie nämlich ebenfalls.
+KENNWERT_HEIZKREIS: tuple[Zeile, ...] = (
+    (r"raumtemperatur ist", "Raumtemperatur", "mdi:home-thermometer", ("room_temperature",)),
+    (r"vorlauftemperatur ist", "Vorlauf", "mdi:radiator", ("flow_temperature",)),
+)
+
 KENNWERT_JE_FCT: dict[int, tuple[Zeile, ...]] = {
-    14: (  # Heizkreis
-        (r"raumtemperatur ist", "Raumtemperatur", "mdi:home-thermometer", ("room_temperature",)),
-        (r"vorlauftemperatur ist", "Vorlauf", "mdi:radiator", ("flow_temperature",)),
-    ),
+    14: KENNWERT_HEIZKREIS,  # UML/UMLZ
+    1: KENNWERT_HEIZKREIS,  # Infinity PLUS
     16: (  # Puffer
         (r"puffer oben", "Puffer oben", "mdi:storage-tank", ("buffer_top",)),
         # „Temperatur ist" ohne Zusatz: Welche Adresse dahintersteht, hängt an

@@ -540,6 +540,10 @@ ERKENNUNG_MIN_DATENPUNKTE = 20
 
 # Function types (fctType) as reported by /api/1.0/lookup/1
 FCT_CLIMATE = 14  # Heizkreis (UML+ / UMLZ)
+FCT_HEIZKREIS_INFINITY = 1  # Heizkreis (Infinity PLUS)
+# Heizkreise, die ein Thermostat bekommen: Beide Baureihen führen dieselben
+# Adressen für Raumtemperatur, Sollwert, Betriebswahl und befristete Vorgabe.
+FCT_CLIMATE_TYPES = frozenset({FCT_CLIMATE, FCT_HEIZKREIS_INFINITY})
 # Der LON-Adressraum eines Knotens. Er meldet sich als Funktion `NV's` ohne
 # Funktionstyp; die Steuerung deutet dort die Adresse um (der Member ist der
 # `nvIndex`, die Gruppe fällt weg). Deshalb läuft er nicht durch die
