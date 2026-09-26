@@ -6,6 +6,28 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.13.0-beta.3] - 2026-09-26
+
+### Neu
+
+- Ein Zeitprogramm lässt sich in der Oberfläche aktivieren.
+- Für Zeitprogramme lässt sich eine eigene Bezeichnung vergeben, etwa „Übergangszeit“.
+- Die Leseansicht eines Zeitprogramms hebt den gerade gültigen Abschnitt hervor.
+- Für Heizkreise Infinity PLUS entsteht ein Thermostat.
+
+### Geändert
+
+- Die Vorlaufprogramme am Infinity-Heizkreis tragen eigene Namen und neue Entitäts-IDs.
+- Der LogWIN erscheint als „LogWIN Holzvergaserkessel“ statt als Automatikkessel.
+- Die Sonde nennt den Grund, wenn sie die Anlage nicht lesen kann.
+
+### Behoben
+
+- Jeder Kessel erscheint im Schaubild mit seiner eigenen Zeichnung ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
+- Gas- und Ölkessel erscheinen im Schaubild mit eigener Zeichnung.
+- Die Sonde umgeht einen in Windows eingestellten Proxy.
+- Die Sonde bricht die Gegenprobe bei Funktionen ohne Funktionstyp nicht mehr ab.
+
 ## [1.13.0-beta.2] - 2026-09-24
 
 ### Neu
