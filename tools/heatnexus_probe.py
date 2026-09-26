@@ -1542,6 +1542,15 @@ def compare(menus: dict) -> list[dict]:
     return rows
 
 
+def vergleichszeile(row: dict) -> str:
+    """Eine Zeile der Gegenprobe; `fct_type` fehlt bei manchen Funktionen."""
+    return (
+        f"    {row['prefix']:<12} fctType {row['fct_type']!s:>3}: "
+        f"Anlage {len(row['found']):>3} | DB {len(row['known']):>3} | "
+        f"nur Anlage {len(row['only_device']):>3} | nur DB {len(row['only_db']):>3}"
+    )
+
+
 def _sort_gnmn(gnmn: str):
     gn, _, mn = gnmn.partition("/")
     return (int(gn) if gn.isdigit() else 0, int(mn) if mn.isdigit() else 0)
@@ -1851,11 +1860,7 @@ def run_host(
     if menus and "compare" in actions:
         with schritt("Gegenprobe"):
             for row in compare(menus):
-                print(
-                    f"    {row['prefix']:<12} fctType {row['fct_type']:>3}: "
-                    f"Anlage {len(row['found']):>3} | DB {len(row['known']):>3} | "
-                    f"nur Anlage {len(row['only_device']):>3} | nur DB {len(row['only_db']):>3}"
-                )
+                print(vergleichszeile(row))
 
     if menus and "report" in actions:
         with schritt("Bericht"):

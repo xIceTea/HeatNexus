@@ -69,3 +69,16 @@ def test_fremde_json_antwort_zeigt_ihren_text(probe_modul):
 
 def test_verbindungsfehler_nennt_die_ursache(probe_modul):
     assert "timed out" in probe_modul.struktur_hinweis(0, {"error": "timed out"})
+
+
+def test_gegenprobe_zeigt_funktion_ohne_funktionstyp(probe_modul):
+    zeile = {
+        "prefix": "/1/90/0",
+        "fct_type": None,
+        "found": {"1/1"},
+        "known": set(),
+        "only_device": ["1/1"],
+        "only_db": [],
+    }
+
+    assert "fctType None" in probe_modul.vergleichszeile(zeile)
