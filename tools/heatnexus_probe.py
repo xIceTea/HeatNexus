@@ -121,7 +121,7 @@ class Probe:
             mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
             mgr.add_password(None, f"{self.base}/", self.username, self.password)
             # Ohne Proxy, wie die Integration: urllib übernähme sonst den des
-            # Systems, und die Anfrage an die Steuerung ginge nach draußen.
+            # Systems und schickte die Anfrage über ihn statt direkt zur Steuerung.
             opener = urllib.request.build_opener(
                 urllib.request.ProxyHandler({}),
                 urllib.request.HTTPDigestAuthHandler(mgr),
@@ -411,12 +411,6 @@ def fetch_menu_all(
 
 
 # ---------------------------------------------------------------- Abfragen
-def fetch_structure(probe: Probe):
-    """Anlagenstruktur (/1)."""
-    data, status = probe.lookup("/1")
-    return data, status
-
-
 def struktur_hinweis(status: int, data) -> str:
     """Erklären, warum die Struktur nicht lesbar war."""
     if status in (401, 403):
@@ -431,10 +425,12 @@ def struktur_hinweis(status: int, data) -> str:
             ": Unter dieser Adresse antwortet keine Windhager-Steuerung."
             " Dieselbe IP-Adresse wie in der Integration verwenden"
         )
-    seite = data.get("raw") if isinstance(data, dict) else None
-    if seite is None and data:
+    if isinstance(data, dict) and "raw" in data:
+        seite = data["raw"]
+    elif data:
         seite = json.dumps(data, ensure_ascii=False)
-    seite = seite or ""
+    else:
+        seite = ""
     titel = re.search(r"<title>(.*?)</title>", seite, re.I | re.S)
     text = titel.group(1) if titel else re.sub(r"<[^>]+>", " ", seite)
     text = " ".join(text.split())[:80]
@@ -1711,7 +1707,7 @@ def run_host(
     probe = Probe(host, password, workers, username)
     started = time.monotonic()
 
-    structure, status = fetch_structure(probe)
+    structure, status = probe.lookup("/1")
     if status != 200 or not isinstance(structure, list):
         print(f"    Struktur nicht lesbar ({struktur_hinweis(status, structure)})")
         return {"host": host, "ok": False}
