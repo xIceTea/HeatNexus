@@ -51,7 +51,7 @@ Bild wird als `data:`-URL ausgeliefert; alles Externe würde geblockt.
 | `kessel-pellets.svg` | Pelletskessel |
 | `kessel-scheitholz.svg` | Scheitholzkessel |
 | `kessel-waermepumpe.svg` | Wärmepumpe |
-| `kessel-gas-oel.svg` | Gas- oder Ölkessel |
+| `kessel-gas_oel.svg` | Gas- oder Ölkessel |
 | `puffer.svg` | Pufferspeicher |
 | `heizkreis.svg` | Heizkreis |
 | `wasser.svg` | Warmwasserspeicher |
