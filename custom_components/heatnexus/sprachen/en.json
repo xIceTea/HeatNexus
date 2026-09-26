@@ -281,5 +281,8 @@
   "Übernehmen": "Apply",
   "Überschrift über dem Bild": "Heading above the image",
   "Überschrift über der Liste": "Heading above the list",
-  "Übersicht": "Overview"
+  "Übersicht": "Overview",
+  "abbrechen": "cancel",
+  "übertragen ✓": "sent ✓",
+  "übernommen ✓": "applied ✓"
 }
