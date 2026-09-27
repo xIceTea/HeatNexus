@@ -116,6 +116,15 @@ HILFE_KARTEN = {
         "Die eingestellte Warmwassertemperatur ist der Ausschaltpunkt – "
         "geladen wird, sobald die Temperatur etwa 5 K darunter fällt."
     ),
+    "Automatik": (
+        "Die Automatik verschiebt, was die Anlage ohnehin tut. An einem sonnigen "
+        "Tag senkt sie den Sollwert befristet ab; die Absenkung endet an der "
+        "Steuerung von selbst. In der Übergangszeit schaltet sie den Heizkreis "
+        "auf nur Warmwasser und bei kühlerem Wetter zurück. "
+        "Im Beobachtungsmodus schreibt sie nichts und zeigt im Protokoll, was sie "
+        "getan hätte. Eine Bedienung von Hand pausiert sie bis 05:00. Unter 3 °C "
+        "außen oder 16 °C im Raum stellt sie den Heizkreis sofort zurück."
+    ),
     "Lagerraum befüllen": (
         "Erst anfordern, dann warten, bis „freigegeben“ dasteht. Vorher darf "
         "nur bis etwa einen Meter Schütthöhe befüllt werden, sonst kann das "

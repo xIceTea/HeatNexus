@@ -60,6 +60,52 @@ Beim Bearbeiten lässt sich eine eigene Bezeichnung wie „Übergangszeit“ ver
 Sie steht hinter dem Namen des Programms. In der Leseansicht ist die Zeile
 hervorgehoben, die gerade gilt.
 
+<a id="automatik"></a>
+
+## Automatik
+
+Der Außenfühler der Anlage hängt meist auf der Nordseite. An einem sonnigen
+Tag in der Übergangszeit misst er wenig, während die Räume nach Süden warm
+werden – und der Heizkreis heizt weiter. Die Automatik nimmt dafür
+Temperaturfühler aus Home Assistant, die Wetterprognose und auf Wunsch eine
+PV-Prognose dazu. Sie regelt nicht selbst, sondern verschiebt, was die Anlage
+ohnehin tut:
+
+- **Sonnentag.** Zur Entscheidungszeit prüft sie die Sonnenquote des Tages. Ist
+  sie hoch genug und der Raum warm genug, senkt sie den Sollwert befristet ab,
+  auf demselben Weg wie Eco in der Steuerung. Die Absenkung endet an der Anlage
+  von selbst, spätestens zwei Stunden vor Sonnenuntergang. Fällt der Raum unter
+  die Rückkehrschwelle, beendet die Automatik sie vorher.
+- **Übergangszeit.** Liegt die gedämpfte Außentemperatur über der Heizgrenze
+  oder sagt die Prognose für heute und morgen mildes Wetter voraus, schaltet
+  sie den Heizkreis auf nur Warmwasser. Zurück geht es, wenn es kühler wird
+  und der Raum auskühlt. Eine Hysterese und eine Mindestdauer verhindern
+  häufiges Umschalten.
+- **Abwesenheit und Fenster** sind freiwillig. Sind alle Personen weg, senkt
+  sie ab. Ein offenes Fenster setzt die Entscheidungen aus.
+
+Eingerichtet wird im Reiter **Automatik** je Heizkreis: Heizflächen, Räume,
+Wetter und optional PV-Prognose, Personen und Fenster. Die Art der Heizflächen
+wählt eines von drei Profilen – Schnell für Heizkörper, Standard für gemischt,
+Träge für Fußboden- und Wandheizung. Unter „Erweitert“ lässt sich jeder Wert
+einzeln ändern.
+
+Die Automatik beginnt im **Beobachtungsmodus**. Dann schreibt sie nichts an
+die Steuerung, und das Protokoll zeigt, was sie getan hätte. Erst „Schalten“
+macht sie wirksam. Weitere Regeln:
+
+- Eine Bedienung von Hand hat Vorrang und pausiert die Automatik bis 05:00 am
+  nächsten Morgen.
+- Höchstens vier Eingriffe am Tag gehen an die Steuerung; die Zahl lässt sich
+  einstellen.
+- Unter 3 °C außen oder 16 °C im Raum stellt sie den Heizkreis sofort in sein
+  Programm zurück. Den Frostschutz der Anlage ersetzt sie nicht.
+- Wird die Automatik ausgeschaltet, nimmt sie ihre eigenen Eingriffe zurück.
+
+Je Heizkreis entstehen drei Entitäten: der Schalter **Automatik**, die Auswahl
+**Automatik-Modus** und der Sensor **Automatik-Zustand** mit der Begründung als
+Attribut. Damit lässt sie sich auch in Automationen und Dashboards verwenden.
+
 ## Eigene Werte über Labels
 
 Auch Werte, die nicht von der Heizung stammen, lassen sich anzeigen. Vergib der
