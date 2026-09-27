@@ -344,3 +344,31 @@ def test_ein_wieder_eingeschalteter_wert_wird_sofort_gemeldet(hass):
 
     assert registry.async_get(entitaet.entity_id).disabled_by is None
     assert gerufen, "Die Plattformen wurden nicht benachrichtigt"
+
+
+async def test_die_entitaeten_einer_automatik_sind_nicht_verwaist(modul, hass):
+    """Sie hängen an keinem Datenpunkt, sondern an einer eingerichteten Automatik."""
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.automatik.verwaltung import verwaltung_holen
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag, _ = _eintrag_mit_entitaet(hass)
+    verwaltung = verwaltung_holen(hass)
+    await verwaltung.laden()
+    verwaltung._daten["heizkreise"]["SN1-2-0"] = {
+        "konfig": {"entry_id": eintrag.entry_id},
+        "zustand": {},
+    }
+    register = er.async_get(hass)
+    for domaene, art in (("switch", "schalter"), ("select", "modus"), ("sensor", "zustand")):
+        register.async_get_or_create(
+            domaene, DOMAIN, f"SN1-2-0-automatik-{art}", config_entry=eintrag
+        )
+
+    gefunden = modul.finden(hass, eintrag, {"a": _koordinator(["SN1-0-0-7-0"])})
+
+    assert gefunden == []
+    assert modul.bekannte_kennungen(eintrag, {"a": _koordinator([])}, hass)[
+        "SN1-2-0-automatik-zustand"
+    ]

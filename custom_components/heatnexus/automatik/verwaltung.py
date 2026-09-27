@@ -43,9 +43,12 @@ def verwaltung_holen(hass: HomeAssistant) -> Verwaltung:
     return verwaltung
 
 
+AUTOMATIK_MARKE = "-automatik-"
+
+
 def unique_id(device_id: str, art: str) -> str:
     """Kennung einer Automatik-Entität; hängt an der Kennung des Heizkreises."""
-    return f"{device_id}-automatik-{art}"
+    return f"{device_id}{AUTOMATIK_MARKE}{art}"
 
 
 class Verwaltung:
@@ -79,6 +82,19 @@ class Verwaltung:
             if eintrag := self._daten["heizkreise"].get(device_id):
                 eintrag["zustand"] = laufzeit.als_dict()
         return self._daten
+
+    @property
+    def geladen(self) -> bool:
+        return self._geladen
+
+    def kennungen(self, entry_id: str) -> dict[str, str]:
+        """Kennung -> Domäne jeder Automatik-Entität eines Eintrags."""
+        return {
+            unique_id(device_id, art): DOMAENE_JE_ART[art]
+            for device_id, eintrag in self._daten["heizkreise"].items()
+            if (eintrag.get("konfig") or {}).get("entry_id") == entry_id
+            for art in ARTEN
+        }
 
     def konfig(self, device_id: str) -> dict[str, Any] | None:
         """Die gespeicherten Einstellungen eines Heizkreises."""

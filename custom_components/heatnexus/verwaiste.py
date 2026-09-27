@@ -23,8 +23,19 @@ SCHLUESSEL = "verwaiste_entitaeten"
 HINWEIS = SCHLUESSEL + "_{entry_id}"
 
 
+def _automatik(hass: HomeAssistant | None, entry: ConfigEntry) -> dict[str, str]:
+    # Die Entitäten einer Automatik hängen an keinem Datenpunkt der Anlage.
+    if hass is None:
+        return {}
+    from .automatik.verwaltung import verwaltung_holen
+
+    return verwaltung_holen(hass).kennungen(entry.entry_id)
+
+
 @callback
-def bekannte_kennungen(entry: ConfigEntry, coordinators: dict) -> dict[str, bool]:
+def bekannte_kennungen(
+    entry: ConfigEntry, coordinators: dict, hass: HomeAssistant | None = None
+) -> dict[str, bool]:
     """Kennung -> ob die Erkennung sie ab Werk einschaltet.
 
     Wärmequellen stehen nicht im Abzug der Anlage; ohne sie hier gälte jede
@@ -35,7 +46,8 @@ def bekannte_kennungen(entry: ConfigEntry, coordinators: dict) -> dict[str, bool
         for coordinator in coordinators.values()
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
-    return bekannt | dict.fromkeys(waermequelle.kennungen(entry, coordinators), True)
+    quellen = dict.fromkeys(waermequelle.kennungen(entry, coordinators), True)
+    return bekannt | quellen | dict.fromkeys(_automatik(hass, entry), True)
 
 
 @callback
@@ -54,7 +66,9 @@ def abzug_steht(coordinators: dict) -> bool:
 
 
 @callback
-def erwartete_domaenen(entry: ConfigEntry, coordinators: dict) -> dict[str, str]:
+def erwartete_domaenen(
+    entry: ConfigEntry, coordinators: dict, hass: HomeAssistant | None = None
+) -> dict[str, str]:
     """Kennung -> Domäne, in der sie heute entsteht.
 
     Nur für Arten, deren Plattform schon angelegt ist. Was `TYP_DOMAENE` noch
@@ -68,7 +82,8 @@ def erwartete_domaenen(entry: ConfigEntry, coordinators: dict) -> dict[str, str]
         for beschreibung in (coordinator.data or {}).get("devices", [])
         if beschreibung.get("id") and beschreibung.get("type") in TYP_DOMAENE
     }
-    return domaenen | dict.fromkeys(waermequelle.kennungen(entry, coordinators), "binary_sensor")
+    quellen = dict.fromkeys(waermequelle.kennungen(entry, coordinators), "binary_sensor")
+    return domaenen | quellen | _automatik(hass, entry)
 
 
 @callback
@@ -80,11 +95,17 @@ def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[
     """
     if not coordinators or not abzug_steht(coordinators):
         return []
-    bekannt = bekannte_kennungen(entry, coordinators)
-    domaenen = erwartete_domaenen(entry, coordinators)
+    from .automatik.verwaltung import AUTOMATIK_MARKE, verwaltung_holen
+
+    geladen = verwaltung_holen(hass).geladen
+    bekannt = bekannte_kennungen(entry, coordinators, hass)
+    domaenen = erwartete_domaenen(entry, coordinators, hass)
     registry = er.async_get(hass)
     verwaist = []
     for eintrag in er.async_entries_for_config_entry(registry, entry.entry_id):
+        # Ohne gelesenen Store ist eine Automatik unbekannt, nicht verwaist.
+        if not geladen and AUTOMATIK_MARKE in eintrag.unique_id:
+            continue
         if eintrag.unique_id not in bekannt:
             verwaist.append(eintrag)
             continue

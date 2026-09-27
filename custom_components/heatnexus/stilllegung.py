@@ -125,7 +125,7 @@ def abgewaehlte_entitaeten_stilllegen(
 
     # Entitäten der Serviceebene sind absichtlich deaktiviert angelegt; sie
     # dürfen beim Wiederdazuwählen nicht versehentlich eingeschaltet werden.
-    standardmaessig_an = verwaiste.bekannte_kennungen(entry, coordinators)
+    standardmaessig_an = verwaiste.bekannte_kennungen(entry, coordinators, hass)
     # Die selbst gebildeten Werte: Nur bei ihnen schlägt die Auswahl eine
     # Einschaltung von Hand.
     zusatzwerte = {
