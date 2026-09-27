@@ -687,6 +687,7 @@ class Laufzeit:
             mittel_morgen=self.tagesmittel(jetzt.date() + timedelta(days=1)),
             sonnenuntergang=untergang,
             betriebswahl=_ganzzahl(self._wert("/3/50/0")),
+            betriebsart=_ganzzahl(self._wert("/2/9/0")),
             daten_ok=daten_ok,
             daten_fehlen_seit=self._daten_fehlen_seit,
             fenster_offen=self._fenster(jetzt),

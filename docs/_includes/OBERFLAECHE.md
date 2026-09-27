@@ -96,6 +96,8 @@ macht sie wirksam. Weitere Regeln:
 
 - Eine Bedienung von Hand hat Vorrang und pausiert die Automatik bis 05:00 am
   nächsten Morgen.
+- Fährt die Steuerung ein eigenes Programm – Urlaub, Estrich, Hand-, Test- oder
+  Kaminkehrerbetrieb –, greift die Automatik nicht ein.
 - Höchstens vier Eingriffe am Tag gehen an die Steuerung; die Zahl lässt sich
   einstellen.
 - Unter 16 °C im Raum nimmt sie jeden eigenen Eingriff sofort zurück. Unter

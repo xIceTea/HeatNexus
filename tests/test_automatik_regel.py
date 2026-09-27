@@ -357,3 +357,17 @@ def test_waermeanforderung_beendet_nur_ww_des_sonnentags(m, w):
     stand = lage(m, jetzt=MORGEN + timedelta(hours=2), raum=22.0, betriebswahl=6, ruhig=False)
     e = m.entscheiden(stand, start.gedaechtnis, stark)
     assert [a.art for a in e.aktionen] == ["zurueck"]
+
+
+@pytest.mark.parametrize("betriebsart", [5, 6, 9, 10, 11])
+def test_sonderbetrieb_der_steuerung_setzt_die_automatik_aus(m, w, betriebsart):
+    """Estrich, Urlaub, Hand-, Test- und Kaminkehrerbetrieb laufen über `3/50` weiter im Programm."""
+    stand = lage(m, entscheidungszeit=True, at_gedaempft=18.5, betriebsart=betriebsart)
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.PAUSIERT
+    assert e.aktionen == ()
+
+
+def test_warmwasserladung_ist_kein_sonderbetrieb(m, w):
+    e = m.entscheiden(lage(m, entscheidungszeit=True, betriebsart=3), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.SONNENTAG

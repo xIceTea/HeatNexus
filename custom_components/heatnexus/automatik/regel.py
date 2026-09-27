@@ -29,6 +29,14 @@ MIN_MINUTEN = 60
 VORLAUF_UNTERGANG = timedelta(hours=2)
 VERLAENGERN_REST = timedelta(minutes=5)
 PROGRAMMWAHL = frozenset({1, 2, 3, 4, 5})
+# Betriebsarten (`2/9`), in denen die Steuerung ein eigenes Programm fährt; `3/50` bleibt dabei.
+SONDERBETRIEB = {
+    5: "Urlaubsprogramm",
+    6: "Estrich",
+    9: "Handbetrieb",
+    10: "Testbetrieb",
+    11: "Kaminkehrer",
+}
 
 HEIZEN = "heizen"
 NUR_WW = "nur_ww"
@@ -69,6 +77,7 @@ class Lage:
     mittel_morgen: float | None = None
     sonnenuntergang: datetime | None = None
     betriebswahl: int | None = None
+    betriebsart: int | None = None
     daten_ok: bool = True
     daten_fehlen_seit: datetime | None = None
     fenster_offen: bool = False
@@ -222,6 +231,12 @@ def _pause(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entschei
     return Entscheidung(
         Zustand.PAUSIERT, (), f"Handeingriff – pausiert bis {_uhr(lage.pausiert_bis)}.", g
     )
+
+
+def _sonderbetrieb(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entscheidung | None:
+    if (name := SONDERBETRIEB.get(lage.betriebsart)) is None:
+        return None
+    return Entscheidung(Zustand.PAUSIERT, (), f"{name} an der Steuerung – keine Eingriffe.", g)
 
 
 def _fenster(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entscheidung | None:
@@ -431,10 +446,10 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
 
 
 def entscheiden(lage: Lage, alt: Gedaechtnis, werte: Werte) -> Entscheidung:
-    """Nach Vorrang: Sicherheit, Pause, Fenster, Daten, Saison, Abwesenheit, Sonne."""
+    """Nach Vorrang: Sicherheit, Pause, Sonderbetrieb, Fenster, Daten, Saison, Abwesenheit, Sonne."""
     g = _raeumen(lage, alt)
     soll = _soll_bezug(lage, g)
-    for pruefung in (_sicherheit, _pause, _fenster, _daten):
+    for pruefung in (_sicherheit, _pause, _sonderbetrieb, _fenster, _daten):
         if (ergebnis := pruefung(lage, g, soll, werte)) is not None:
             return ergebnis
     for pruefung in (_saison, _abwesenheit):
