@@ -752,6 +752,19 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   hass.callWS = vorherSpeichern;
   const neu = wurzel.querySelector(".automatik-erweitert");
   bilanz.automatik.erweitertBleibtOffen = neu !== erweitert && neu.open === true;
+
+  // Der Einrichtungsdialog schließt oben rechts; Kopf und Tasten scrollen nicht mit.
+  const vorherDialog = hass.callWS;
+  hass.callWS = async () => ({ temperatur: [], wetter: [], pv: [], pv_ist: [], personen: [], fenster: [] });
+  await flaeche._automatikDialog(flaeche._automatik.heizkreise[0]);
+  hass.callWS = vorherDialog;
+  const dialog = wurzel.querySelector(".automatik-dialog");
+  const kopfzeile = dialog.querySelector(".dialog-kopf");
+  const kreuz = kopfzeile && kopfzeile.querySelector(".dialog-schliessen");
+  const inhalt = dialog.querySelector(".automatik-dialog-inhalt");
+  bilanz.automatik.dialogKopf = Boolean(kreuz) && Boolean(inhalt) && !inhalt.querySelector(".dialog-leiste");
+  if (kreuz) kreuz.ausloesen("click");
+  bilanz.automatik.kreuzSchliesst = wurzel.querySelectorAll(".schleier").length === 0;
 }
 
 // ---------------------------------------------------------------------------

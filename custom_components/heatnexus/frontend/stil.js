@@ -1343,7 +1343,26 @@ export const STIL = `
   .automatik-feld.breit { grid-column: span 2; }
   .automatik-beschriftet { margin-top: 8px; }
   .automatik-unter { font-size: 12px; color: var(--hn-gedaempft); margin-bottom: 4px; }
-  .automatik-dialog { max-width: 560px; max-height: 86vh; overflow-y: auto; }
+  .automatik-dialog {
+    max-width: 560px; max-height: 86vh; padding: 0; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .automatik-dialog .dialog-kopf {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 14px 12px 24px; border-bottom: 1px solid var(--hn-linie);
+  }
+  .automatik-dialog .dialog-titel { margin: 0; }
+  .automatik-dialog-inhalt { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 4px 24px 18px; }
+  .automatik-dialog .dialog-leiste {
+    margin-top: 0; padding: 14px 24px 18px; border-top: 1px solid var(--hn-linie);
+  }
+  .dialog-schliessen {
+    flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+    border: none; background: transparent; color: inherit; opacity: 0.7;
+    font-size: 24px; line-height: 1; cursor: pointer;
+  }
+  .dialog-schliessen:hover { background: var(--hn-flaeche); opacity: 1; }
+  .dialog-schliessen:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
   .automatik-dialog section { margin-top: 14px; }
   .automatik-dialog h4 { margin: 0 0 6px; font-size: 13px; font-weight: 600; opacity: 0.7; }
   .automatik-dialog select { margin-top: 6px; }

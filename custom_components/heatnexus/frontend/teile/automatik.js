@@ -870,7 +870,19 @@ export const AutomatikMixin = (Basis) =>
       titel.textContent = k
         ? this._tMit("Einrichtung von {name} ändern", { name: kreis.name })
         : this._tMit("Automatik für {name} einrichten", { name: kreis.name });
-      dialog.appendChild(titel);
+      // Kopf und Tasten bleiben stehen, nur die Abschnitte dazwischen scrollen.
+      const kopfzeile = document.createElement("div");
+      kopfzeile.className = "dialog-kopf";
+      const kreuz = document.createElement("button");
+      kreuz.type = "button";
+      kreuz.className = "dialog-schliessen";
+      kreuz.textContent = "×";
+      kreuz.setAttribute("aria-label", this._t("Schließen"));
+      kreuz.title = this._t("Schließen");
+      kopfzeile.append(titel, kreuz);
+      const inhalt = document.createElement("div");
+      inhalt.className = "automatik-dialog-inhalt";
+      dialog.append(kopfzeile, inhalt);
 
       const heizflaechen = this._automatikAuswahl(HEIZFLAECHEN, (k && k.heizflaechen) || "gemischt");
       const raeume = this._automatikHaken(kandidaten.temperatur, k ? k.raeume : []);
@@ -940,7 +952,7 @@ export const AutomatikMixin = (Basis) =>
         const kopf = document.createElement("h4");
         kopf.textContent = ueberschrift;
         abschnitt.append(kopf, ...knoten);
-        dialog.appendChild(abschnitt);
+        inhalt.appendChild(abschnitt);
       });
 
       const leiste = document.createElement("div");
@@ -956,8 +968,16 @@ export const AutomatikMixin = (Basis) =>
       leiste.append(abbrechen, einrichten);
       dialog.appendChild(leiste);
       schleier.appendChild(dialog);
-      const weg = () => schleier.remove();
+      const beiTaste = (ereignis) => {
+        if (ereignis.key === "Escape") weg();
+      };
+      const weg = () => {
+        document.removeEventListener("keydown", beiTaste);
+        schleier.remove();
+      };
+      document.addEventListener("keydown", beiTaste);
       abbrechen.addEventListener("click", weg);
+      kreuz.addEventListener("click", weg);
       einrichten.addEventListener("click", async () => {
         const gewaehlt = (liste) => Array.from(liste.querySelectorAll("input:checked")).map((e) => e.value);
         const nachricht = {
