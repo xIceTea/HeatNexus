@@ -61,3 +61,8 @@ def test_lernfenster_nur_drei_sieben_oder_vierzehn_tage(profile):
     assert profile.werte(profile.STANDARD, {"lernfenster": 3}).lernfenster == 3
     assert profile.werte(profile.STANDARD, {"lernfenster": "7"}).lernfenster == 7
     assert profile.werte(profile.STANDARD, {"lernfenster": 5}).lernfenster == 14
+
+
+def test_prognose_anpassen_ist_abschaltbar(profile):
+    assert profile.werte(profile.STANDARD).anpassen is True
+    assert profile.werte(profile.STANDARD, {"anpassen": False}).anpassen is False

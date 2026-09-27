@@ -26,6 +26,12 @@ export const FELDER = [
   { name: "stark", hilfe: "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn der Raum schon 1 K über dem Soll liegt, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.", titel: "Sehr sonnig: nur Warmwasser statt Absenkung", art: "janein" },
   { name: "budget", hilfe: "So viele Eingriffe darf die Automatik am Tag an die Steuerung schreiben. Die Rückkehr ins Programm zählt nicht mit und ist immer erlaubt.", titel: "Eingriffe je Tag höchstens", einheit: "", schritt: 1 },
   { name: "fenster_k_je_h", hilfe: "Fällt der Raum schneller als dieser Wert pro Stunde, gilt ein Fenster als offen. Die Automatik setzt ihre Entscheidungen dann 30 Minuten aus.", titel: "Fenster offen ab Sturz von", einheit: "K/h", schritt: 0.5 },
+  {
+    name: "anpassen",
+    hilfe: "Die Automatik vergleicht jeden Tag Prognose und Messung und verschiebt die Prognose um die gelernte Abweichung. Ist der Schalter aus, gelten die rohen Prognosen für Anzeige und Entscheidung; gelernt wird trotzdem weiter.",
+    titel: "Prognose an den Standort anpassen",
+    art: "janein",
+  },
   { name: "lernfenster", hilfe: "Über so viele Tage vergleicht die Automatik Prognose und Messung und passt die Prognose daran an. Ein kurzes Fenster reagiert schneller, ein langes schwankt weniger.", titel: "Prognose anpassen über", art: "wahl", optionen: [3, 7, 14], einheit: "Tage" },
 ];
 
@@ -486,6 +492,27 @@ export const AutomatikMixin = (Basis) =>
       leiste.className = "automatik-korrektur";
       const k = kreis.korrektur;
       if (!k) return leiste;
+      const schalter = document.createElement("button");
+      schalter.type = "button";
+      schalter.className = `automatik-schalter klein${k.an ? " an" : ""}`;
+      schalter.setAttribute("role", "switch");
+      schalter.setAttribute("aria-checked", String(!!k.an));
+      schalter.disabled = !(this._automatik && this._automatik.darf_aendern);
+      const knopf = document.createElement("i");
+      const text = document.createElement("span");
+      text.textContent = "Prognose anpassen";
+      schalter.append(knopf, text);
+      schalter.addEventListener("click", () =>
+        this._automatikEinstellen(kreis, { eigene: { ...(kreis.konfig.eigene || {}), anpassen: !k.an } })
+      );
+      leiste.appendChild(schalter);
+      if (!k.an) {
+        const aus = document.createElement("span");
+        aus.className = "automatik-korrekturmarke";
+        aus.textContent = "rohe Prognose";
+        leiste.appendChild(aus);
+        return leiste;
+      }
       ["temperatur", "sonne"].forEach((art) => {
         const marke = document.createElement("span");
         const eintrag = k[art] || {};

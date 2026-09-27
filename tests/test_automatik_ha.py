@@ -504,3 +504,32 @@ async def test_eingefrorener_fuehler_wird_aus_dem_verlauf_erkannt(
     assert laufzeit.veraltet("sensor.wohnzimmer") is False
     await laufzeit.auswerten()
     assert laufzeit.lage.raum == 21.4
+
+
+async def test_ohne_anpassen_gilt_die_rohe_prognose(hass, hass_ws_client, anlage):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    heute = dt_util.now().date()
+    for tag in range(1, 8):
+        datum = (heute - timedelta(days=tag)).isoformat()
+        for stunde in range(24):
+            laufzeit.temperatur._fehler.append((datum, stunde, -2.0))
+    roh = 10.0  # (14 + 6) / 2 aus der Tagesprognose
+    assert laufzeit.tagesmittel(heute) == pytest.approx(roh - 2.0)
+
+    await _senden(
+        client,
+        type="heatnexus/automatik/einstellen",
+        heizkreis=HEIZKREIS,
+        eigene={"anpassen": False},
+    )
+
+    assert laufzeit.tagesmittel(heute) == pytest.approx(roh)
+    antwort = await _senden(client, type="heatnexus/automatik")
+    assert antwort["result"]["heizkreise"][0]["korrektur"]["an"] is False

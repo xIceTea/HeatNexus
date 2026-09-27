@@ -115,7 +115,7 @@ def _quote(laufzeit: Laufzeit, tag: date, abstand: int) -> float | None:
     heute_tag = dt_util.now().date()
     fenster = laufzeit.werte.lernfenster
     quote = None
-    if laufzeit.konfig.get("pv_ist"):
+    if laufzeit.konfig.get("pv_ist") and laufzeit.werte.anpassen:
         quote = korrektur.sonnenquote_korrigiert(
             laufzeit.kwh(_pv_sensor(laufzeit, abstand)),
             laufzeit.pv.faktor(fenster, heute_tag),

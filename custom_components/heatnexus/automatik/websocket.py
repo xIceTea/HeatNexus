@@ -40,6 +40,7 @@ def _liste(grenze: int) -> vol.All:
 def _korrektur(laufzeit: Laufzeit, jetzt: datetime) -> dict[str, Any]:
     fenster, heute = laufzeit.werte.lernfenster, jetzt.date()
     return {
+        "an": laufzeit.werte.anpassen,
         "fenster": fenster,
         "noetig": korrektur.noetige_tage(fenster),
         "temperatur": {
@@ -280,7 +281,9 @@ async def _ws_einrichten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
         vol.Optional("eigene"): vol.All(
             {
                 vol.In(
-                    tuple(profile.GRENZEN) + profile.UHRZEITEN + ("stark", "lernfenster")
+                    tuple(profile.GRENZEN)
+                    + profile.UHRZEITEN
+                    + ("stark", "lernfenster", "anpassen")
                 ): vol.Any(int, float, str, bool)
             },
             vol.Length(max=20),

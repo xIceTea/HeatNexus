@@ -38,6 +38,7 @@ assert.deepEqual(
   [...namen].sort(),
   [
     "absenkung_k",
+    "anpassen",
     "budget",
     "entscheidung",
     "fenster_k_je_h",

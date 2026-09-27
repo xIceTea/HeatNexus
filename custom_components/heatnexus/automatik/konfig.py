@@ -15,7 +15,7 @@ from .profile import GRENZEN, HEIZFLAECHEN, PROFILE, UHRZEITEN, abweichungen, pr
 MODI = ("beobachten", "schalten")
 RAUM_ARTEN = ("mittel", "minimum")
 LISTEN_MAX = {"raeume": 10, "personen": 10, "fenster": 20}
-EIGENE_FELDER = frozenset({*GRENZEN, *UHRZEITEN, "stark", "lernfenster"})
+EIGENE_FELDER = frozenset({*GRENZEN, *UHRZEITEN, "stark", "lernfenster", "anpassen"})
 
 _ENTITAET = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+$")
 # Temperaturen, die kein Raum sind: Taupunkt, Ziel- und Sollwerte, Oberflächen, Geräte.

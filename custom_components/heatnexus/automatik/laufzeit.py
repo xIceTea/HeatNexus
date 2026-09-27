@@ -485,6 +485,8 @@ class Laufzeit:
         """Tagesmittel der Prognose, um den gelernten Versatz verschoben."""
         if (mittel := eingaben.tagesmittel(self._tage, tag)) is None:
             return None
+        if not self.werte.anpassen:
+            return mittel
         versatz = self.temperatur.tagesversatz(self.werte.lernfenster, dt_util.now().date())
         return mittel + (versatz or 0.0)
 
@@ -518,7 +520,9 @@ class Laufzeit:
                 )
         ergebnis: dict[int, dict[str, float | None]] = {}
         for stunde, (roh, wolken) in roh_je_stunde.items():
-            versatz = self.temperatur.versatz(stunde, fenster, heute)
+            versatz = (
+                self.temperatur.versatz(stunde, fenster, heute) if self.werte.anpassen else None
+            )
             ergebnis[stunde] = {
                 "roh": roh,
                 "korrigiert": None if roh is None else round(roh + (versatz or 0.0), 1),
@@ -566,7 +570,9 @@ class Laufzeit:
 
     def _sonnenquote(self, jetzt: datetime, aufgang: datetime, untergang: datetime) -> float | None:
         heute = jetzt.date().isoformat()
-        faktor = self.pv.faktor(self.werte.lernfenster, jetzt.date())
+        faktor = (
+            self.pv.faktor(self.werte.lernfenster, jetzt.date()) if self.werte.anpassen else None
+        )
         pv_prognose = self.kwh(self.konfig.get("pv"))
         if (
             self.konfig.get("pv_ist")

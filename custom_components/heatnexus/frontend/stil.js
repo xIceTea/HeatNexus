@@ -1226,7 +1226,13 @@ export const STIL = `
     background: var(--hn-flaeche); border: 1px dashed var(--hn-linie);
   }
   .automatik-wert .raeume { margin-top: 6px; font-size: 11px; color: var(--hn-gedaempft); line-height: 1.4; }
-  .automatik-korrektur { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .automatik-korrektur {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .automatik-schalter.klein { font-size: 12px; }
+  .automatik-schalter.klein i { width: 30px; height: 18px; }
+  .automatik-schalter.klein i::after { width: 12px; height: 12px; }
+  .automatik-schalter.klein.an i::after { transform: translateX(12px); }
   .automatik-korrekturmarke {
     padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
     background: var(--hn-flaeche); color: var(--hn-gedaempft);

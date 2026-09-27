@@ -36,6 +36,7 @@ class Werte:
     budget: int = 4
     fenster_k_je_h: float = 3.0
     lernfenster: int = 14
+    anpassen: bool = True
 
 
 VORGABEN: dict[str, Werte] = {
@@ -115,7 +116,7 @@ def werte(profil: str, eigene: Mapping[str, Any] | None = None) -> Werte:
         elif name in UHRZEITEN:
             if (zeit := _uhrzeit(wert)) is not None:
                 aenderungen[name] = zeit
-        elif name == "stark":
+        elif name in ("stark", "anpassen"):
             aenderungen[name] = bool(wert)
         elif name == "lernfenster":
             with suppress(TypeError, ValueError):
