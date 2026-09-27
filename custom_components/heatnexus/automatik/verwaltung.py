@@ -209,6 +209,7 @@ class Verwaltung:
         konfig = konfig_modul.pruefen({**roh, "entry_id": entry.entry_id, "modus": "beobachten"})
         if konfig is None:
             raise ValueError("Raumfühler und Wetter-Entität sind nötig.")
+        konfig = konfig_modul.klima_vorgabe(konfig, [])
         device_id = konfig["heizkreis"]
         if device_id in self.laufzeiten:
             raise ValueError("Für diesen Heizkreis gibt es schon eine Automatik.")
@@ -228,6 +229,7 @@ class Verwaltung:
         neu = konfig_modul.pruefen({**alt, **aenderung})
         if neu is None:
             raise ValueError("Raumfühler und Wetter-Entität sind nötig.")
+        neu = konfig_modul.klima_vorgabe(neu, alt["raeume"])
         if (laufzeit := self.laufzeiten.get(device_id)) is not None:
             schaltete = alt["aktiv"] and alt["modus"] == "schalten"
             schaltet = neu["aktiv"] and neu["modus"] == "schalten"

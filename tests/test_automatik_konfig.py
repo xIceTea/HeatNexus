@@ -139,3 +139,35 @@ def test_ein_restwert_als_pv_prognose_wird_verworfen(konfig):
     assert konfig.pruefen(roh(pv="sensor.energy_production_today"))["pv"] == (
         "sensor.energy_production_today"
     )
+
+
+def test_thermostat_zaehlt_als_raum(konfig):
+    k = konfig.pruefen(roh(raeume=["climate.bad", "sensor.kueche_temperatur"]))
+    assert k["raeume"] == ["climate.bad", "sensor.kueche_temperatur"]
+
+
+@pytest.mark.parametrize(
+    ("eingabe", "erwartet"), [(20.5, 20.5), ("21", 21.0), (40, None), ("x", None), (None, None)]
+)
+def test_wunschtemperatur_nur_im_zulaessigen_bereich(konfig, eingabe, erwartet):
+    assert konfig.pruefen(roh(raum_ziel=eingabe))["raum_ziel"] == erwartet
+
+
+def test_sonnentag_laesst_sich_abschalten(konfig):
+    k = konfig.pruefen(roh(eigene={"sonnentag": False}))
+    assert k["eigene"] == {"sonnentag": False}
+
+
+def test_erstes_thermostat_schaltet_den_sonnentag_ab(konfig):
+    k = konfig.pruefen(roh(raeume=["climate.bad"]))
+    assert konfig.klima_vorgabe(k, [])["eigene"] == {"sonnentag": False}
+
+
+def test_vorhandene_thermostate_lassen_den_sonnentag_in_ruhe(konfig):
+    k = konfig.pruefen(roh(raeume=["climate.bad", "climate.kueche"]))
+    assert konfig.klima_vorgabe(k, ["climate.bad"])["eigene"] == {}
+
+
+def test_ohne_thermostat_bleibt_der_sonnentag_an(konfig):
+    k = konfig.pruefen(roh())
+    assert konfig.klima_vorgabe(k, [])["eigene"] == {}

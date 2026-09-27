@@ -398,5 +398,12 @@
   "Um so viel senkt die Automatik den Sollwert an einem Sonnentag. Die Absenkung endet an der Steuerung von selbst, spätestens zwei Stunden vor Sonnenuntergang.": "The automation lowers the setpoint by this much on a sunny day. The setback ends at the controller by itself, at the latest two hours before sunset.",
   "Wie träge die gedämpfte Außentemperatur dem Fühler folgt. Ein größerer Wert lässt kurze Wärme am Nachmittag weniger zählen. Richtwerte: Heizkörper 5 h, gemischt 15 h, Fußbodenheizung 25 h.": "How slowly the damped outdoor temperature follows the sensor. A larger value gives short afternoon warmth less weight. Guide values: radiators 5 h, mixed 15 h, underfloor heating 25 h.",
   "Zu dieser Uhrzeit prüft die Automatik, ob ein Sonnentag bevorsteht, und setzt dann die Absenkung.": "At this time the automation checks whether a sunny day lies ahead and then sets the setback.",
-  "Über so viele Tage vergleicht die Automatik Prognose und Messung und passt die Prognose daran an. Ein kurzes Fenster reagiert schneller, ein langes schwankt weniger.": "Over this many days the automation compares forecast and measurement and adjusts the forecast. A short window reacts faster, a long one varies less."
+  "Über so viele Tage vergleicht die Automatik Prognose und Messung und passt die Prognose daran an. Ein kurzes Fenster reagiert schneller, ein langes schwankt weniger.": "Over this many days the automation compares forecast and measurement and adjusts the forecast. A short window reacts faster, a long one varies less.",
+  "Sonnentag absenken": "Set back on sunny days",
+  "An sonnigen Tagen senkt die Automatik den Sollwert des Heizkreises ab. Mit Thermostaten in den Räumen ist der Sonnentag ab Werk aus: Die Thermostate öffnen bei abgesenktem Sollwert nur weiter.": "On sunny days the automation lowers the setpoint of the heating circuit. With thermostats in the rooms this is off by default: the thermostats only open further when the setpoint is lowered.",
+  "Räume zum Ziel, Mittel": "Rooms to target, average",
+  "Räume zum Ziel, kältester": "Rooms to target, coldest",
+  "heizt": "heating",
+  "Thermostat": "Thermostat",
+  "Wunschtemperatur für Temperaturfühler, °C (leer: Sollwert des Heizkreises)": "Target temperature for temperature sensors, °C (empty: setpoint of the heating circuit)"
 }

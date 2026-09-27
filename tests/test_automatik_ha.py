@@ -157,6 +157,8 @@ async def test_lesen_zeigt_den_heizkreis(hass, hass_ws_client, anlage):
     assert kreis["eingerichtet"] is True
     assert kreis["anlage"] == ANLAGE
     assert kreis["kennwerte"]["raum"] == 21.4
+    assert kreis["kennwerte"]["eigene_ziele"] is False
+    assert kreis["kennwerte"]["raum_bezug"] == 21.0
     assert antwort["result"]["darf_aendern"] is True
 
 
@@ -671,3 +673,166 @@ async def test_ein_seit_zwoelf_stunden_gleicher_wert_ist_noch_nicht_eingefroren(
     }
 
     assert set(nachladen.eingefroren(reihen, jetzt)) == {"sensor.defekt"}
+
+
+def _thermostat(hass, entity_id: str, ist: float, ziel: float, aktion: str = "idle") -> None:
+    attribute = {"current_temperature": ist, "temperature": ziel, "hvac_action": aktion}
+    hass.states.async_set(entity_id, "heat", attribute)
+
+
+async def test_thermostat_zaehlt_gegen_sein_eigenes_ziel(hass, hass_ws_client, anlage):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    _thermostat(hass, "climate.bad", 20.4, 20.5)
+    antwort = await _senden(
+        client,
+        type="heatnexus/automatik/einrichten",
+        heizkreis=HEIZKREIS,
+        raeume=["climate.bad"],
+        wetter="weather.home",
+    )
+    assert antwort["success"], antwort
+    assert antwort["result"]["eigene"] == {"sonnentag": False}
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+
+    await laufzeit.auswerten()
+
+    assert laufzeit.lage.raeume == ((20.4, 20.5),)
+    assert laufzeit.lage.raum == 20.4
+    kennwerte = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0][
+        "kennwerte"
+    ]
+    assert kennwerte["abweichung"] == pytest.approx(-0.1)
+    assert kennwerte["eigene_ziele"] is True
+    assert kennwerte["raum_bezug"] is None
+    assert kennwerte["raeume"][0]["ziel"] == 20.5
+    assert kennwerte["raeume"][0]["heizt"] is False
+
+
+async def test_raeume_gelten_erst_nach_zwei_stunden_ohne_anforderung_als_ruhig(
+    hass, anlage, freezer
+):
+    from datetime import timedelta
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    _thermostat(hass, "climate.bad", 20.6, 20.5)
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {"heizkreis": HEIZKREIS, "raeume": ["climate.bad"], "wetter": "weather.home"},
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    assert laufzeit.lage.ruhig is False
+
+    freezer.tick(timedelta(hours=2, minutes=1))
+    await laufzeit.auswerten()
+    assert laufzeit.lage.ruhig is True
+
+    _thermostat(hass, "climate.bad", 20.3, 20.5, "heating")
+    await hass.async_block_till_done()
+    _thermostat(hass, "climate.bad", 20.4, 20.5)
+    freezer.tick(timedelta(minutes=30))
+    await laufzeit.auswerten()
+    assert laufzeit.lage.ruhig is False
+
+
+async def test_ohne_thermostat_gibt_es_keine_anforderung(hass, anlage):
+    verwaltung, _ = anlage
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
+    )
+    assert verwaltung.laufzeiten[HEIZKREIS].lage.ruhig is None
+
+
+async def test_wunschtemperatur_gilt_fuer_temperaturfuehler(hass, anlage):
+    verwaltung, _ = anlage
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {
+            "heizkreis": HEIZKREIS,
+            "raeume": ["sensor.wohnzimmer"],
+            "wetter": "weather.home",
+            "raum_ziel": 20.0,
+        },
+    )
+    assert verwaltung.laufzeiten[HEIZKREIS].lage.raeume == ((21.4, 20.0),)
+
+
+async def test_thermostate_stehen_zur_wahl_der_eigene_heizkreis_nicht(hass, hass_ws_client, anlage):
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    client = await hass_ws_client(hass)
+    _thermostat(hass, "climate.bad", 20.4, 20.5)
+    eigener = er.async_get(hass).async_get_entity_id("climate", DOMAIN, f"{HEIZKREIS}-thermostat")
+    _thermostat(hass, eigener, 20.0, 21.0)
+
+    antwort = await _senden(client, type="heatnexus/automatik/kandidaten")
+
+    kennungen = {e["entity_id"]: e for e in antwort["result"]["temperatur"]}
+    assert kennungen["climate.bad"]["art"] == "thermostat"
+    assert eigener not in kennungen
+
+
+async def test_eingefrorenes_thermostat_wird_aus_dem_verlauf_erkannt(
+    hass, anlage, monkeypatch, freezer
+):
+    from datetime import timedelta
+
+    from homeassistant.core import State
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import nachladen
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    jetzt = dt_util.now()
+    _thermostat(hass, "climate.ess", 29.7, 21.0)
+    _thermostat(hass, "climate.bad", 20.4, 20.5)
+    attribute = {"current_temperature": 29.7, "temperature": 21.0}
+    zustaende = {
+        "climate.ess": [
+            State("climate.ess", "auto", attribute, last_updated=jetzt - timedelta(hours=30)),
+            State("climate.ess", "heat", attribute, last_updated=jetzt - timedelta(hours=2)),
+        ],
+        "climate.bad": [
+            State(
+                "climate.bad",
+                "heat",
+                {"current_temperature": 20.1},
+                last_updated=jetzt - timedelta(hours=20),
+            ),
+            State(
+                "climate.bad",
+                "heat",
+                {"current_temperature": 20.4},
+                last_updated=jetzt - timedelta(hours=1),
+            ),
+        ],
+    }
+
+    class Instanz:
+        async def async_add_executor_job(self, aufgabe):
+            return zustaende
+
+    import homeassistant.components.recorder as recorder
+
+    monkeypatch.setattr(recorder, "get_instance", lambda _hass: Instanz(), raising=False)
+    hass.config.components.add("recorder")
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {
+            "heizkreis": HEIZKREIS,
+            "raeume": ["climate.bad", "climate.ess"],
+            "wetter": "weather.home",
+        },
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await nachladen.heute_nachtragen(hass, laufzeit)
+
+    assert laufzeit.veraltet("climate.ess") is True
+    assert laufzeit.veraltet("climate.bad") is False
+    await laufzeit.auswerten()
+    assert laufzeit.lage.raeume == ((20.4, 20.5),)

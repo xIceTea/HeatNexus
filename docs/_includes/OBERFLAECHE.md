@@ -131,9 +131,28 @@ vergangenen Stunden von heute liest die Automatik beim Start aus der
 Aufzeichnung von Home Assistant nach.
 
 Für morgen und übermorgen rechnet sie mit derselben Regel vor, was sie
-voraussichtlich tun wird. Dabei nimmt sie an, dass der Raum am Sollwert liegt.
+voraussichtlich tun wird. Dabei nimmt sie an, dass die Räume ihr Ziel halten.
 
-### Raumfühler
+### Räume und ihr Ziel
+
+Ohne Raumfühler am Heizkreis regelt die Steuerung nur nach der
+Außentemperatur. Der Raumsollwert verschiebt dann nur die Heizkurve und sagt
+nichts darüber, wie warm ein Raum sein soll. Die Automatik vergleicht deshalb
+jeden Raum mit seinem eigenen Ziel:
+
+- **Thermostate** wie tado lassen sich direkt als Raum wählen. Sie liefern Ist,
+  Ziel und ob sie gerade heizen. Senkt ein Thermostat nachts ab, sinkt das Ziel
+  mit. Ein ausgeschaltetes Thermostat zählt nicht.
+- Für reine **Temperaturfühler** gilt die Wunschtemperatur aus der Einrichtung.
+  Bleibt das Feld leer, gilt der Raumsollwert des Heizkreises. Das passt nur,
+  wenn der Heizkreis selbst einen Raumfühler hat.
+- **Nur Warmwasser** setzt mit Thermostaten zusätzlich voraus, dass seit zwei
+  Stunden kein Raum Wärme angefordert hat.
+- Mit Thermostaten ist der **Sonnentag** ab Werk aus. Die Thermostate öffnen bei
+  abgesenktem Sollwert nur weiter. Unter „Erweitert“ lässt er sich einschalten.
+
+Die Raum-Kachel zeigt dann die Abweichung der Räume von ihrem Ziel, im Mittel
+oder für den kältesten Raum.
 
 Die Auswahl zeigt zu jedem Fühler den aktuellen Wert. Ein ausgefallener Fühler
 meldet in Home Assistant oft weiter seinen letzten Wert. Zeigt ein Raumfühler

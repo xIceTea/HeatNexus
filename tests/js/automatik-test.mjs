@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 
 const modul = await import(pathToFileURL(process.argv[2]).href);
-const { zahl, uhrzeit, tagesleisteSvg, wetterSymbol, korrekturText, FELDER, ZUSTAENDE } = modul;
+const { zahl, uhrzeit, tagesleisteSvg, wetterSymbol, korrekturText, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
 
 assert.equal(zahl(19.5), "19,5");
 assert.equal(zahl(78, 0), "78");
@@ -49,11 +49,19 @@ assert.deepEqual(
     "nachpruefung",
     "rueckkehr_k",
     "sonnenquote",
+    "sonnentag",
     "stark",
     "tau_h",
   ]
 );
 assert.equal(Object.keys(ZUSTAENDE).length, 9);
+
+// Abweichung der Räume von ihrem Ziel, mit echtem Minuszeichen.
+assert.equal(kelvin(-0.14), "−0,1 K");
+assert.equal(kelvin(0.5), "+0,5 K");
+assert.equal(kelvin(null), "–");
+assert.equal(raumzeile({ name: "Bad", wert: 20.8, ziel: 21, heizt: true }), "Bad 20,8 °C → 21,0 °C · heizt");
+assert.equal(raumzeile({ name: "Küche", wert: 18.9, ziel: null, heizt: null }), "Küche 18,9 °C");
 
 // Temperaturen: gemessen bis jetzt, angepasste Prognose ab jetzt, Heizgrenze.
 const mitTemperatur = tagesleisteSvg(

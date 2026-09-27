@@ -29,6 +29,7 @@ from homeassistant.util import dt as dt_util
 from ..const import DOMAIN
 from ..helpers import get_oid_value
 from . import eingaben, korrektur, nachladen, profile, regel
+from .konfig import ist_thermostat
 from .steller import Stand, Steller
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,6 +41,8 @@ ABWESEND_NACH = timedelta(minutes=30)
 # Ein ausgefallener Fühler meldet in HA seinen letzten Wert weiter; bleibt er so lange gleich, zählt er nicht.
 RAUM_VERALTET = timedelta(hours=12)
 STUFEN_FRISCH = timedelta(hours=3)
+# So lange darf kein Thermostat Wärme angefordert haben, bevor die Räume als ruhig gelten.
+RUHE_NACH = timedelta(hours=2)
 FENSTER_DAUER = timedelta(minutes=30)
 PAUSE_BIS_STUNDE = 5
 SICHERHEIT_WIEDERHOLEN_S = 60
@@ -56,6 +59,13 @@ def ortszeit(wert: Any) -> datetime | None:
         return None
     zeit = dt_util.parse_datetime(str(wert))
     return dt_util.as_local(zeit) if zeit else None
+
+
+def _messwert(zustand: Any) -> Any:
+    """Was sich bei einem lebendigen Fühler ändert: der Zustand oder die Ist-Temperatur."""
+    if ist_thermostat(zustand.entity_id):
+        return zustand.attributes.get("current_temperature")
+    return zustand.state
 
 
 def _ganzzahl(wert: float | None) -> int | None:
@@ -107,6 +117,8 @@ class Laufzeit:
         self.stufen_start = ortszeit(z.get("stufen_start"))
         self.pausiert_bis = ortszeit(z.get("pausiert_bis"))
         self.beobachtet_seit = ortszeit(z.get("beobachtet_seit")) or dt_util.now()
+        # Ohne Vorgeschichte gilt der Start als letzte Anforderung; das verzögert nur Warmwasser.
+        self.anforderung_zuletzt = ortszeit(z.get("anforderung_zuletzt")) or dt_util.now()
         self.pv_tage: dict[str, float] = {
             str(k): float(v) for k, v in (z.get("pv_tage") or {}).items()
         }
@@ -163,6 +175,7 @@ class Laufzeit:
             "stufen_start": self.stufen_start.isoformat() if self.stufen_start else None,
             "pausiert_bis": self.pausiert_bis.isoformat() if self.pausiert_bis else None,
             "beobachtet_seit": self.beobachtet_seit.isoformat(),
+            "anforderung_zuletzt": self.anforderung_zuletzt.isoformat(),
             "pv_tage": self.pv_tage,
             "temperatur": self.temperatur.als_dict(),
             "pv": self.pv.als_dict(),
@@ -230,8 +243,10 @@ class Laufzeit:
         self._geaendert = True
         entity_id = event.data.get("entity_id")
         alt, neu = event.data.get("old_state"), event.data.get("new_state")
-        if alt is not None and neu is not None and alt.state != neu.state:
+        if alt is not None and neu is not None and _messwert(alt) != _messwert(neu):
             self.eingefroren.discard(entity_id)
+        if neu is not None and neu.attributes.get("hvac_action") == "heating":
+            self.anforderung_zuletzt = dt_util.now()
         if entity_id in self.konfig["raeume"]:
             self._raum_verfolgen()
 
@@ -407,7 +422,14 @@ class Laufzeit:
         """Seit wann der Sensor denselben Wert zeigt."""
         if (zustand := self.hass.states.get(entity_id)) is None:
             return None
-        return zustand.last_changed
+        # Beim Thermostat ändert sich der Zustand nur mit der Betriebsart, der Messwert als Merkmal.
+        return zustand.last_updated if ist_thermostat(entity_id) else zustand.last_changed
+
+    def messung(self, entity_id: str) -> tuple[float, float | None, bool | None] | None:
+        """Ist, eigenes Ziel und Wärmeanforderung eines Raums."""
+        if (zustand := self.hass.states.get(entity_id)) is None:
+            return None
+        return eingaben.raum_messung(entity_id, zustand.state, zustand.attributes)
 
     def veraltet(self, entity_id: str) -> bool:
         """Ob ein Raumfühler zu lange denselben Wert zeigt."""
@@ -416,9 +438,29 @@ class Laufzeit:
         seit = self.seit(entity_id)
         return seit is not None and dt_util.utcnow() - seit > RAUM_VERALTET
 
+    def _messungen(self) -> list[tuple[float, float | None, bool | None]]:
+        """Alle gültigen Räume; ein Fühler ohne eigenes Ziel bekommt die Wunschtemperatur."""
+        ergebnis = []
+        for kennung in self.konfig["raeume"]:
+            if self.veraltet(kennung) or (m := self.messung(kennung)) is None:
+                continue
+            ziel = m[1] if ist_thermostat(kennung) else self.konfig.get("raum_ziel")
+            ergebnis.append((m[0], ziel, m[2]))
+        return ergebnis
+
     def _raum(self) -> float | None:
-        werte = [None if self.veraltet(e) else self.zahl(e) for e in self.konfig["raeume"]]
+        werte: list[float | None] = [m[0] for m in self._messungen()]
         return eingaben.raumwert(werte, self.konfig["raum_art"])
+
+    def _ruhig(
+        self, jetzt: datetime, messungen: list[tuple[float, float | None, bool | None]]
+    ) -> bool | None:
+        """Ob seit zwei Stunden kein Thermostat Wärme anfordert; ohne Thermostat `None`."""
+        if not any(map(ist_thermostat, self.konfig["raeume"])):
+            return None
+        if any(m[2] for m in messungen):
+            self.anforderung_zuletzt = jetzt
+        return jetzt - self.anforderung_zuletzt >= RUHE_NACH
 
     def _aussen(self) -> float | None:
         if self.konfig.get("aussen"):
@@ -619,7 +661,8 @@ class Laufzeit:
         return eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang)
 
     def _lage(self, jetzt: datetime, entscheidungszeit: bool) -> regel.Lage:
-        raum = self._raum()
+        messungen = self._messungen()
+        raum = eingaben.raumwert([m[0] for m in messungen], self.konfig["raum_art"])
         at = self._aussen()
         frisch = (
             self._prognose_zeit is not None and jetzt - self._prognose_zeit <= PROGNOSE_MAX_ALTER
@@ -636,6 +679,9 @@ class Laufzeit:
             at_gedaempft=self.stufen[1] if self.stufen else None,
             raum=raum,
             soll=self._wert("/1/1/0"),
+            raeume=tuple((ist, ziel) for ist, ziel, _ in messungen),
+            raum_art=self.konfig["raum_art"],
+            ruhig=self._ruhig(jetzt, messungen),
             sonnenquote=self.sonnenquote(jetzt.date(), self.konfig.get("pv")),
             mittel_heute=self.tagesmittel(jetzt.date()),
             mittel_morgen=self.tagesmittel(jetzt.date() + timedelta(days=1)),

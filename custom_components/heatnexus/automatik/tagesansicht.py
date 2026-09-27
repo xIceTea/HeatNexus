@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.util import dt as dt_util
 
 from . import regel
+from .konfig import ist_thermostat
 
 if TYPE_CHECKING:
     from .laufzeit import Laufzeit
@@ -141,12 +142,15 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
         )
         ausgang = regel.Gedaechtnis(saison=g.saison, saison_soll=g.saison_soll)
         entscheidung = regel.entscheiden(lage, ausgang, werte)
+        begruendung = entscheidung.begruendung
+        if entscheidung.aktionen and any(map(ist_thermostat, laufzeit.konfig["raeume"])):
+            begruendung += " Vorausgesetzt, die Räume fordern keine Wärme an."
         tage.append(
             {
                 "datum": tag.isoformat(),
                 "titel": TITEL[abstand],
                 "zustand": entscheidung.zustand.value,
-                "begruendung": entscheidung.begruendung,
+                "begruendung": begruendung,
                 "sonnenquote": quote,
                 "tag": {
                     "sonne": sonne(laufzeit, tag),
@@ -167,11 +171,14 @@ def raumwerte(laufzeit: Laufzeit) -> list[dict[str, Any]]:
         zustand = laufzeit.hass.states.get(entity_id)
         name = zustand.attributes.get("friendly_name") if zustand else None
         seit = laufzeit.seit(entity_id)
+        ist, ziel, heizt = laufzeit.messung(entity_id) or (None, None, None)
         ergebnis.append(
             {
                 "entity_id": entity_id,
                 "name": name or entity_id,
-                "wert": laufzeit.zahl(entity_id),
+                "wert": ist,
+                "ziel": ziel,
+                "heizt": heizt,
                 "veraltet": laufzeit.veraltet(entity_id),
                 "seit": seit.isoformat() if seit else None,
             }

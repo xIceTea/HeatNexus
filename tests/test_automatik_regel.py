@@ -273,3 +273,87 @@ def test_wechsel_auf_nur_ww_beendet_laufende_absenkung(m, w):
     e = m.entscheiden(warm, sonnentag(m), w)
     assert e.zustand == m.Zustand.NUR_WW
     assert [a.art for a in e.aktionen] == ["absenkung_ende", "nur_ww"]
+
+
+# --- Räume gegen ihr eigenes Ziel --------------------------------------------
+def test_raeume_am_eigenen_ziel_erlauben_den_sonnentag(m, w):
+    """Ohne Raumfühler am Heizkreis ist der Sollwert nur eine Verschiebung der Heizkurve."""
+    stand = lage(
+        m, raum=20.7, soll=22.0, raeume=((20.4, 20.5), (21.0, 21.0)), entscheidungszeit=True
+    )
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.SONNENTAG
+    assert e.aktionen[0].soll == 20.5
+
+
+def test_kaeltester_raum_zaehlt_gegen_sein_ziel(m, w):
+    stand = lage(
+        m,
+        raum=20.0,
+        soll=22.0,
+        raeume=((22.0, 20.0), (19.0, 20.0)),
+        raum_art="minimum",
+        entscheidungszeit=True,
+    )
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert e.aktionen == ()
+    assert "−1,0 K" in e.begruendung
+
+
+def test_raum_ohne_eigenes_ziel_misst_gegen_den_sollwert(m, w):
+    stand = lage(m, raum=20.6, soll=21.0, raeume=((20.6, None),), entscheidungszeit=True)
+    assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
+
+
+def test_nur_ww_endet_wenn_ein_raum_unter_sein_ziel_faellt(m, w):
+    stand = lage(m, raum=21.5, soll=22.0, raeume=((19.2, 20.5),), betriebswahl=6)
+    e = m.entscheiden(stand, nur_ww(m, timedelta(hours=3)), w)
+    assert [a.art for a in e.aktionen] == ["zurueck"]
+
+
+def test_nur_ww_bleibt_wenn_die_raeume_ihr_ziel_halten(m, w):
+    stand = lage(m, raum=20.4, soll=22.0, raeume=((20.4, 20.5),), betriebswahl=6)
+    e = m.entscheiden(stand, nur_ww(m, timedelta(hours=3)), w)
+    assert e.zustand == m.Zustand.NUR_WW
+    assert e.aktionen == ()
+
+
+def test_waermeanforderung_verhindert_nur_ww(m, w):
+    stand = lage(m, at_gedaempft=18.5, ruhig=False)
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert e.aktionen == ()
+    assert "fordern Wärme an" in e.begruendung
+
+
+def test_ruhige_raeume_erlauben_nur_ww(m, w):
+    e = m.entscheiden(lage(m, at_gedaempft=18.5, ruhig=True), m.Gedaechtnis(), w)
+    assert [a.art for a in e.aktionen] == ["nur_ww"]
+
+
+def test_ausgeschalteter_sonnentag_senkt_nicht_ab(m, w):
+    e = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), replace(w, sonnentag=False))
+    assert e.zustand == m.Zustand.PROGRAMM
+    assert e.aktionen == ()
+
+
+def test_ausschalten_beendet_einen_laufenden_sonnentag(m, w):
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=1), soll=19.5)
+    e = m.entscheiden(stand, sonnentag(m), replace(w, sonnentag=False))
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.gedaechtnis.absenkung_art is None
+
+
+def test_waermeanforderung_verhindert_nur_ww_am_sehr_sonnigen_tag(m, w):
+    stand = lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True, ruhig=False)
+    e = m.entscheiden(stand, m.Gedaechtnis(), replace(w, stark=True))
+    assert [a.art for a in e.aktionen] == ["absenken"]
+
+
+def test_waermeanforderung_beendet_nur_ww_des_sonnentags(m, w):
+    stark = replace(w, stark=True)
+    start = m.entscheiden(
+        lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True), m.Gedaechtnis(), stark
+    )
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=2), raum=22.0, betriebswahl=6, ruhig=False)
+    e = m.entscheiden(stand, start.gedaechtnis, stark)
+    assert [a.art for a in e.aktionen] == ["zurueck"]

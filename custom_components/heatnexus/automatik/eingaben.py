@@ -5,11 +5,15 @@ Reine Rechnungen ohne Home Assistant; Zeiten kommen als `datetime` mit Zone.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import date, datetime, timedelta
 import math
+from typing import Any
 
 # Unter so vielen Vergleichstagen sagt der PV-Ertrag nichts über die Sonne.
 PV_MIN_TAGE = 7
+# Ein Thermostat in diesen Zuständen regelt den Raum nicht; er zählt dann nicht.
+THERMOSTAT_AUS = frozenset({"off", "unavailable", "unknown"})
 
 
 def daempfen(
@@ -30,6 +34,27 @@ def raumwert(werte: list[float | None], art: str) -> float | None:
     if not gueltig:
         return None
     return min(gueltig) if art == "minimum" else sum(gueltig) / len(gueltig)
+
+
+def _zahl(wert: Any) -> float | None:
+    if wert is None or isinstance(wert, bool):
+        return None
+    try:
+        zahl = float(wert)
+    except (TypeError, ValueError):
+        return None
+    return zahl if math.isfinite(zahl) else None
+
+
+def raum_messung(
+    entity_id: str, zustand: str, attribute: Mapping[str, Any]
+) -> tuple[float, float | None, bool | None] | None:
+    """Ist, eigenes Ziel und Wärmeanforderung eines Raums; ein Sensor kennt nur den Ist-Wert."""
+    if not entity_id.startswith("climate."):
+        return None if (ist := _zahl(zustand)) is None else (ist, None, None)
+    if zustand in THERMOSTAT_AUS or (ist := _zahl(attribute.get("current_temperature"))) is None:
+        return None
+    return (ist, _zahl(attribute.get("temperature")), attribute.get("hvac_action") == "heating")
 
 
 def sonnenquote_aus_bewoelkung(

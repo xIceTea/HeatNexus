@@ -183,6 +183,25 @@ wird mit einem kopflosen Browser, zusammengelegt mit Pillow. Es benutzt dabei
 `blueprints/automation/heatnexus/` unter `<config>/blueprints/automation/heatnexus/`
 ab und frischt sie beim Versionswechsel auf.
 
+## Automatik
+
+Das Paket `automatik/` arbeitet je Heizkreis. Die Regel in `regel.py` ist eine
+reine Funktion: Aus einer Momentaufnahme (`Lage`) und dem Gedächtnis des letzten
+Laufs entsteht eine Entscheidung mit Begründung. `eingaben.py`, `konfig.py`,
+`profile.py` und `korrektur.py` kommen ebenfalls ohne Home Assistant aus.
+
+- `laufzeit.py` sammelt die Eingänge und stößt die Regel im Fünf-Minuten-Takt
+  und zu den Entscheidungszeiten an.
+- `steller.py` schreibt an die Steuerung. Er prüft Budget, Beobachtungsmodus
+  und Handeingriffe.
+- `verwaltung.py` hält Einstellungen und Zustand im Store `heatnexus.automatik`.
+  Subeinträge scheiden aus, weil ihre Änderung den ganzen Eintrag neu lädt.
+- `websocket.py` liefert den Reiter „Automatik“ der Oberfläche.
+
+Jeder Raum zählt gegen sein eigenes Ziel. Ein Thermostat liefert es selbst, für
+einen Temperaturfühler gilt die Wunschtemperatur der Einrichtung. Der
+Raumsollwert des Heizkreises verschiebt ohne Raumfühler nur die Heizkurve.
+
 ## Zyklisches Polling
 
 `fetch_all()` liefert:

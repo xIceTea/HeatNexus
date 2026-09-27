@@ -33,6 +33,7 @@ class Werte:
     absenkung_k: float = 1.5
     rueckkehr_k: float = 0.8
     sonnenquote: float = 60.0
+    sonnentag: bool = True
     stark: bool = False
     budget: int = 4
     fenster_k_je_h: float = 3.0
@@ -74,6 +75,7 @@ GRENZEN: dict[str, tuple[float, float]] = {
     "fenster_k_je_h": (1.0, 10.0),
 }
 UHRZEITEN = ("entscheidung", "nachpruefung")
+SCHALTER = ("sonnentag", "stark", "anpassen")
 # Über so viele Tage lernt die Prognosekorrektur; andere Werte gelten nicht.
 LERNFENSTER = (3, 7, 14)
 
@@ -119,7 +121,7 @@ def werte(profil: str, eigene: Mapping[str, Any] | None = None) -> Werte:
         elif name in UHRZEITEN:
             if (zeit := _uhrzeit(wert)) is not None:
                 aenderungen[name] = zeit
-        elif name in ("stark", "anpassen"):
+        elif name in SCHALTER:
             aenderungen[name] = bool(wert)
         elif name == "lernfenster":
             with suppress(TypeError, ValueError):

@@ -15,6 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from . import eingaben
+from .konfig import ist_thermostat
 
 if TYPE_CHECKING:
     from .laufzeit import Laufzeit
@@ -40,6 +41,11 @@ def _reihe(zustaende: list[Any], merkmal: str | None = None) -> list[tuple[datet
         if (wert := _zahl(roh)) is not None:
             reihe.append((dt_util.as_local(zustand.last_updated), wert))
     return reihe
+
+
+def _raumreihe(zustaende: dict[str, list[Any]], kennung: str) -> list[tuple[datetime, float]]:
+    merkmal = "current_temperature" if ist_thermostat(kennung) else None
+    return _reihe(zustaende.get(kennung, []), merkmal)
 
 
 def eingefroren(
@@ -69,14 +75,14 @@ async def eingefrorene_fuehler(hass: HomeAssistant, kennungen: list[str]) -> dic
         jetzt,
         kennungen,
         significant_changes_only=False,
-        no_attributes=True,
+        no_attributes=not any(map(ist_thermostat, kennungen)),
     )
     try:
         zustaende = await get_instance(hass).async_add_executor_job(abfrage)
     except Exception as fehler:  # die Aufzeichnung ist eine Zugabe, kein Muss
         _LOGGER.debug("Automatik: Verlauf der Fühler nicht lesbar: %s", fehler)
         return {}
-    return eingefroren({k: _reihe(zustaende.get(k, [])) for k in kennungen}, jetzt)
+    return eingefroren({k: _raumreihe(zustaende, k) for k in kennungen}, jetzt)
 
 
 async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
@@ -107,7 +113,7 @@ async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
     temperaturen = _reihe(wetter, "temperature")
     wolken = _reihe(wetter, "cloud_coverage")
     aussenreihe = _reihe(zustaende.get(aussen, [])) if aussen else []
-    raeume = [_reihe(zustaende.get(raum, [])) for raum in k["raeume"]]
+    raeume = [_raumreihe(zustaende, raum) for raum in k["raeume"]]
     laufzeit.eingefroren = set(eingefroren(dict(zip(k["raeume"], raeume, strict=True)), jetzt))
     stufen = None
     for stunde in range(jetzt.hour):

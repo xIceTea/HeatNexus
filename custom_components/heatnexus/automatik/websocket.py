@@ -21,8 +21,17 @@ import voluptuous as vol
 
 from ..const import DOMAIN
 from ..rechte import darf_lesen
-from . import korrektur, nachladen, profile, tagesansicht
-from .konfig import LISTEN_MAX, MODI, RAUM_ARTEN, pv_ist_passt, pv_passt, raumfuehler_passt
+from . import korrektur, nachladen, profile, regel, tagesansicht
+from .konfig import (
+    LISTEN_MAX,
+    MODI,
+    RAUM_ARTEN,
+    RAUM_ZIEL,
+    ist_thermostat,
+    pv_ist_passt,
+    pv_passt,
+    raumfuehler_passt,
+)
 from .laufzeit import Laufzeit
 from .verwaltung import DOMAENE_JE_ART, Verwaltung, unique_id, verwaltung_holen
 
@@ -81,6 +90,13 @@ def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: d
     werte = laufzeit.werte
     lage = laufzeit.lage
     g = laufzeit.gedaechtnis
+    soll = g.absenkung_basis or g.saison_soll or (lage.soll if lage else None)
+    thermostate = any(map(ist_thermostat, laufzeit.konfig["raeume"]))
+    abweichung = (
+        regel.abweichung(lage, soll)
+        if lage is not None and lage.raum is not None and soll is not None
+        else None
+    )
     ergebnis.update(
         eingerichtet=True,
         konfig=laufzeit.konfig,
@@ -90,7 +106,11 @@ def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: d
         kennwerte={
             "sonnenquote": lage.sonnenquote if lage else None,
             "raum": lage.raum if lage else None,
-            "soll": g.absenkung_basis or g.saison_soll or (lage.soll if lage else None),
+            "soll": soll,
+            "abweichung": abweichung,
+            "eigene_ziele": thermostate or laufzeit.konfig.get("raum_ziel") is not None,
+            # Gemeinsamer Bezug der Raumwerte im Stundenraster; Thermostate haben je Raum eigene.
+            "raum_bezug": None if thermostate else laufzeit.konfig.get("raum_ziel") or soll,
             "at": lage.at if lage else None,
             "at_gedaempft": lage.at_gedaempft if lage else None,
             "raeume": tagesansicht.raumwerte(laufzeit),
@@ -162,6 +182,15 @@ def _bereich(hass: HomeAssistant, eintrag: er.RegistryEntry | None) -> str:
     return bereich.name if bereich else ""
 
 
+def _anzeigewert(zustand: Any, art: str) -> str:
+    if art != "thermostat":
+        einheit = zustand.attributes.get("unit_of_measurement") or ""
+        return f"{zustand.state} {einheit}".strip()
+    ist = zustand.attributes.get("current_temperature")
+    ziel = zustand.attributes.get("temperature")
+    return f"{ist} °C → {ziel} °C" if ziel is not None else f"{ist} °C"
+
+
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/automatik/kandidaten"})
 @websocket_api.async_response
 async def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
@@ -184,8 +213,15 @@ async def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
         eintrag = register.async_get(entity_id)
         if eintrag is not None and eintrag.entity_category is not None:
             continue
+        art = ""
         if domaene == "sensor" and klasse == "temperature" and raumfuehler_passt(entity_id):
             ziel = "temperatur"
+        elif (
+            domaene == "climate"
+            and "current_temperature" in zustand.attributes
+            and not (eintrag and eintrag.platform == DOMAIN)
+        ):
+            ziel, art = "temperatur", "thermostat"
         elif domaene == "weather":
             ziel = "wetter"
         elif (
@@ -209,15 +245,14 @@ async def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
             ziel = "fenster"
         else:
             continue
-        einheit = zustand.attributes.get("unit_of_measurement") or ""
-        seit = zustand.last_changed
         listen[ziel].append(
             {
                 "entity_id": entity_id,
                 "name": str(zustand.attributes.get("friendly_name") or entity_id),
                 "bereich": _bereich(hass, eintrag),
-                "wert": f"{zustand.state} {einheit}".strip(),
-                "seit": seit.isoformat(),
+                "wert": _anzeigewert(zustand, art),
+                "seit": (zustand.last_updated if art else zustand.last_changed).isoformat(),
+                **({"art": art} if art else {}),
             }
         )
     # Ein ausgefallener Fühler zeigt seit Tagen denselben Wert; der Verlauf verrät es.
@@ -237,6 +272,9 @@ EINSTELLUNGEN = {
     vol.Optional("profil"): vol.In(profile.PROFILE),
     vol.Optional("raeume"): _liste(LISTEN_MAX["raeume"]),
     vol.Optional("raum_art"): vol.In(RAUM_ARTEN),
+    vol.Optional("raum_ziel"): vol.Any(
+        None, vol.All(vol.Coerce(float), vol.Range(min=RAUM_ZIEL[0], max=RAUM_ZIEL[1]))
+    ),
     vol.Optional("wetter"): ENTITAET,
     vol.Optional("pv"): vol.Any(None, ENTITAET),
     vol.Optional("pv_ist"): vol.Any(None, ENTITAET),
@@ -281,9 +319,7 @@ async def _ws_einrichten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
         vol.Optional("eigene"): vol.All(
             {
                 vol.In(
-                    tuple(profile.GRENZEN)
-                    + profile.UHRZEITEN
-                    + ("stark", "lernfenster", "anpassen")
+                    tuple(profile.GRENZEN) + profile.UHRZEITEN + profile.SCHALTER + ("lernfenster",)
                 ): vol.Any(int, float, str, bool)
             },
             vol.Length(max=20),

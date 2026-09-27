@@ -84,3 +84,24 @@ def test_wert_zur_stunde_nimmt_den_geltenden_stand(eingaben):
     assert eingaben.wert_zur_stunde(reihe, t + timedelta(hours=7)) == 9.0
     assert eingaben.wert_zur_stunde(reihe, t + timedelta(hours=5)) is None
     assert eingaben.wert_zur_stunde([], t) is None
+
+
+def test_thermostat_liefert_ist_ziel_und_anforderung(eingaben):
+    attribute = {"current_temperature": 20.8, "temperature": 21.0, "hvac_action": "heating"}
+    assert eingaben.raum_messung("climate.bad", "heat", attribute) == (20.8, 21.0, True)
+
+
+def test_thermostat_im_leerlauf_fordert_nichts_an(eingaben):
+    attribute = {"current_temperature": 19.8, "temperature": 18.0, "hvac_action": "idle"}
+    assert eingaben.raum_messung("climate.schlafzimmer", "auto", attribute) == (19.8, 18.0, False)
+
+
+@pytest.mark.parametrize("zustand", ["off", "unavailable", "unknown"])
+def test_ausgeschaltetes_thermostat_zaehlt_nicht(eingaben, zustand):
+    attribute = {"current_temperature": 19.0, "temperature": 5.0, "hvac_action": "off"}
+    assert eingaben.raum_messung("climate.bad", zustand, attribute) is None
+
+
+def test_temperatursensor_kennt_kein_ziel(eingaben):
+    assert eingaben.raum_messung("sensor.kueche_temperatur", "18.9", {}) == (18.9, None, None)
+    assert eingaben.raum_messung("sensor.kueche_temperatur", "unavailable", {}) is None

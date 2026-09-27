@@ -121,6 +121,7 @@ HILFE_KARTEN = {
         "Tag senkt sie den Sollwert befristet ab; die Absenkung endet an der "
         "Steuerung von selbst. In der Übergangszeit schaltet sie den Heizkreis "
         "auf nur Warmwasser und bei kühlerem Wetter zurück. "
+        "Jeder Raum zählt gegen sein eigenes Ziel; Thermostate liefern es selbst. "
         "Im Beobachtungsmodus schreibt sie nichts und zeigt im Protokoll, was sie "
         "getan hätte. Eine Bedienung von Hand pausiert sie bis 05:00. Unter 16 °C "
         "im Raum nimmt sie jeden eigenen Eingriff sofort zurück."

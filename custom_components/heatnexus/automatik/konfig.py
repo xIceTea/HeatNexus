@@ -6,16 +6,27 @@ eigene Werte werden auf ihre Abweichung vom Profil reduziert.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+import math
 import re
 from typing import Any
 
-from .profile import GRENZEN, HEIZFLAECHEN, PROFILE, UHRZEITEN, abweichungen, profil_fuer
+from .profile import (
+    GRENZEN,
+    HEIZFLAECHEN,
+    PROFILE,
+    SCHALTER,
+    UHRZEITEN,
+    abweichungen,
+    profil_fuer,
+)
 
 MODI = ("beobachten", "schalten")
 RAUM_ARTEN = ("mittel", "minimum")
 LISTEN_MAX = {"raeume": 10, "personen": 10, "fenster": 20}
-EIGENE_FELDER = frozenset({*GRENZEN, *UHRZEITEN, "stark", "lernfenster", "anpassen"})
+EIGENE_FELDER = frozenset({*GRENZEN, *UHRZEITEN, *SCHALTER, "lernfenster"})
+# Wunschtemperatur der Räume, deren Fühler kein eigenes Ziel kennt.
+RAUM_ZIEL = (10.0, 30.0)
 
 _ENTITAET = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+$")
 # Temperaturen, die kein Raum sind: Taupunkt, Ziel- und Sollwerte, Oberflächen, Geräte.
@@ -49,6 +60,21 @@ def pv_ist_passt(entity_id: str) -> bool:
 def pv_passt(entity_id: str) -> bool:
     """Ob ein Sensor einer PV-Prognose den Ertrag des ganzen Tages nennt."""
     return not _KEIN_TAGESERTRAG.search(entity_id)
+
+
+def ist_thermostat(entity_id: str) -> bool:
+    """Ob ein Raum eine Klima-Entität ist, die Ist, Ziel und Anforderung kennt."""
+    return entity_id.startswith("climate.")
+
+
+def _raum_ziel(wert: Any) -> float | None:
+    if isinstance(wert, bool):
+        return None
+    try:
+        zahl = float(wert)
+    except (TypeError, ValueError):
+        return None
+    return zahl if math.isfinite(zahl) and RAUM_ZIEL[0] <= zahl <= RAUM_ZIEL[1] else None
 
 
 def _entitaet(wert: Any) -> str | None:
@@ -87,6 +113,7 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         "profil": profil,
         "raeume": raeume,
         "raum_art": roh.get("raum_art") if roh.get("raum_art") in RAUM_ARTEN else RAUM_ARTEN[0],
+        "raum_ziel": _raum_ziel(roh.get("raum_ziel")),
         "wetter": wetter,
         "pv": pv if (pv := _entitaet(roh.get("pv"))) and pv_passt(pv) else None,
         "pv_ist": _entitaet(roh.get("pv_ist")),
@@ -96,3 +123,13 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         "fenster_erkennung": bool(roh.get("fenster_erkennung", False)),
         "eigene": abweichungen(profil, eigene),
     }
+
+
+def klima_vorgabe(konfig: dict[str, Any], alte_raeume: Sequence[str]) -> dict[str, Any]:
+    """Mit dem ersten Thermostat den Sonnentag abschalten; die Thermostate gleichen ihn aus."""
+    if any(map(ist_thermostat, alte_raeume)) or not any(map(ist_thermostat, konfig["raeume"])):
+        return konfig
+    if "sonnentag" in konfig["eigene"]:
+        return konfig
+    eigene = abweichungen(konfig["profil"], {**konfig["eigene"], "sonnentag": False})
+    return {**konfig, "eigene": eigene}

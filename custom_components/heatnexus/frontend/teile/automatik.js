@@ -23,6 +23,7 @@ export const FELDER = [
   { name: "absenkung_k", hilfe: "Um so viel senkt die Automatik den Sollwert an einem Sonnentag. Die Absenkung endet an der Steuerung von selbst, spätestens zwei Stunden vor Sonnenuntergang.", titel: "Absenkung am Sonnentag", einheit: "K", schritt: 0.5 },
   { name: "rueckkehr_k", hilfe: "Fällt der Raum unter Soll minus diesen Wert, beendet die Automatik die Absenkung sofort.", titel: "Rückkehr bei Raum unter Soll minus", einheit: "K", schritt: 0.1 },
   { name: "sonnenquote", hilfe: "Ab diesem Anteil Sonne gilt der Tag als Sonnentag. Die Quote kommt aus der PV-Prognose oder aus der Bewölkung der Wetterprognose.", titel: "Sonnenquote ab", einheit: "%", schritt: 5 },
+  { name: "sonnentag", hilfe: "An sonnigen Tagen senkt die Automatik den Sollwert des Heizkreises ab. Mit Thermostaten in den Räumen ist der Sonnentag ab Werk aus: Die Thermostate öffnen bei abgesenktem Sollwert nur weiter.", titel: "Sonnentag absenken", art: "janein" },
   { name: "stark", hilfe: "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn der Raum schon 1 K über dem Soll liegt, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.", titel: "Sehr sonnig: nur Warmwasser statt Absenkung", art: "janein" },
   { name: "budget", hilfe: "So viele Eingriffe darf die Automatik am Tag an die Steuerung schreiben. Die Rückkehr ins Programm zählt nicht mit und ist immer erlaubt.", titel: "Eingriffe je Tag höchstens", einheit: "", schritt: 1 },
   { name: "fenster_k_je_h", hilfe: "Fällt der Raum schneller als dieser Wert pro Stunde, gilt ein Fenster als offen. Die Automatik setzt ihre Entscheidungen dann 30 Minuten aus.", titel: "Fenster offen ab Sturz von", einheit: "K/h", schritt: 0.5 },
@@ -75,6 +76,21 @@ const PROFIL_JE_FLAECHE = { heizkoerper: "schnell", gemischt: "standard", flaech
 export function zahl(wert, stellen = 1) {
   if (wert === null || wert === undefined || Number.isNaN(Number(wert))) return "–";
   return Number(wert).toFixed(stellen).replace(".", ",");
+}
+
+/** Abweichung in Kelvin mit Vorzeichen; ohne Wert ein Strich. */
+export function kelvin(wert) {
+  if (wert === null || wert === undefined || Number.isNaN(Number(wert))) return "–";
+  const v = Math.round(Number(wert) * 10) / 10;
+  return `${v > 0 ? "+" : v < 0 ? "−" : "±"}${zahl(Math.abs(v))} K`;
+}
+
+/** Ein Raum mit Ist, eigenem Ziel und Wärmeanforderung. */
+export function raumzeile(raum, t = (text) => text) {
+  let text = `${raum.name} ${zahl(raum.wert)} °C`;
+  if (raum.ziel !== null && raum.ziel !== undefined) text += ` → ${zahl(raum.ziel)} °C`;
+  if (raum.heizt) text += ` · ${t("heizt")}`;
+  return text;
 }
 
 /** Stunde als Kommazahl in „HH:MM“. */
@@ -393,7 +409,9 @@ export const AutomatikMixin = (Basis) =>
       raster.className = "automatik-werte";
       const kacheln = [
         ["sonne", `${zahl(k.sonnenquote, 0)} %`, "Sonnenquote heute", `ab ${zahl(w.sonnenquote, 0)} %`],
-        ["", `${zahl(k.raum)} °C`, k.raum_art === "minimum" ? "Raum, kältester" : "Raum, Mittel", `Soll ${zahl(k.soll)} °C`],
+        k.eigene_ziele
+          ? ["", kelvin(k.abweichung), k.raum_art === "minimum" ? "Räume zum Ziel, kältester" : "Räume zum Ziel, Mittel", `Raum ${zahl(k.raum)} °C`]
+          : ["", `${zahl(k.raum)} °C`, k.raum_art === "minimum" ? "Raum, kältester" : "Raum, Mittel", `Soll ${zahl(k.soll)} °C`],
         ["", `${zahl(k.at)} · ${zahl(k.at_gedaempft)} °C`, "Außen · gedämpft", `Heizgrenze ${zahl(k.heizgrenze)} °C`],
         ["", `${k.eingriffe ?? 0} / ${k.budget ?? "–"}`, "Eingriffe heute", "Budget"],
       ];
@@ -411,14 +429,14 @@ export const AutomatikMixin = (Basis) =>
           teil.textContent = inhalt;
           kachel.appendChild(teil);
         });
-        if (bezeichnung.startsWith("Raum") && (k.raeume || []).length > 1) {
+        if (bezeichnung.startsWith("Raum") && ((k.raeume || []).length > 1 || k.eigene_ziele)) {
           const liste = document.createElement("div");
           liste.className = "raeume";
           k.raeume.forEach((raum) => {
             const zeile = document.createElement("div");
             zeile.textContent = raum.veraltet
               ? this._tMit("{name} {wert} °C – veraltet, zählt nicht", { name: raum.name, wert: zahl(raum.wert) })
-              : `${raum.name} ${zahl(raum.wert)} °C`;
+              : raumzeile(raum, (text) => this._t(text));
             if (raum.veraltet) zeile.className = "veraltet";
             liste.appendChild(zeile);
           });
@@ -543,7 +561,8 @@ export const AutomatikMixin = (Basis) =>
       const sonne = (kreis.tag || {}).sonne || [];
       const jetzt = Math.floor(Number((kreis.tag || {}).jetzt));
       const grenze = (kreis.werte || {}).heizgrenze;
-      const soll = (kreis.kennwerte || {}).soll;
+      // Mit Thermostaten hat jeder Raum sein eigenes Ziel; dann gibt es keinen gemeinsamen Bezug.
+      const bezug = (kreis.kennwerte || {}).raum_bezug;
       stunden.forEach((eintrag) => {
         const zelle = document.createElement("div");
         zelle.className = `automatik-stunde${eintrag.stunde === jetzt ? " jetzt" : ""}${eintrag.stunde > 14 ? " spaet" : ""}`;
@@ -567,8 +586,8 @@ export const AutomatikMixin = (Basis) =>
         zelle.appendChild(streifen);
         const raum = document.createElement("div");
         raum.className = "raum";
-        if (eintrag.raum !== null && eintrag.raum !== undefined && soll !== null && soll !== undefined) {
-          raum.classList.add(eintrag.raum >= soll ? "ueber" : "unter");
+        if (eintrag.raum !== null && eintrag.raum !== undefined) {
+          if (bezug !== null && bezug !== undefined) raum.classList.add(eintrag.raum >= bezug ? "ueber" : "unter");
           raum.textContent = zahl(eintrag.raum);
         } else {
           raum.textContent = "–";
@@ -837,6 +856,12 @@ export const AutomatikMixin = (Basis) =>
         ],
         (k && k.raum_art) || "mittel"
       );
+      const raumZiel = document.createElement("input");
+      raumZiel.type = "number";
+      raumZiel.step = "0.5";
+      raumZiel.min = "10";
+      raumZiel.max = "30";
+      raumZiel.value = k && k.raum_ziel !== null && k.raum_ziel !== undefined ? String(k.raum_ziel) : "";
       const wetter = this._automatikAuswahl(
         this._automatikMitGewaehlt(kandidaten.wetter.map((e) => [e.entity_id, e.name]), k && k.wetter),
         (k && k.wetter) || ""
@@ -857,7 +882,14 @@ export const AutomatikMixin = (Basis) =>
 
       const abschnitte = [
         [this._t("1 · Heizflächen"), [heizflaechen]],
-        [this._t("2 · Räume"), [raeume, this._automatikBeschriftet(this._t("Zählt"), raumArt)]],
+        [
+          this._t("2 · Räume"),
+          [
+            raeume,
+            this._automatikBeschriftet(this._t("Zählt"), raumArt),
+            this._automatikBeschriftet(this._t("Wunschtemperatur für Temperaturfühler, °C (leer: Sollwert des Heizkreises)"), raumZiel),
+          ],
+        ],
         [
           this._t("3 · Wetter und PV-Prognose"),
           [
@@ -909,6 +941,7 @@ export const AutomatikMixin = (Basis) =>
           heizflaechen: heizflaechen.value,
           raeume: gewaehlt(raeume),
           raum_art: raumArt.value,
+          raum_ziel: raumZiel.value === "" ? null : Number(raumZiel.value),
           wetter: wetter.value,
           pv: pv.value || null,
           pv_ist: pvIst.value || null,
@@ -953,7 +986,7 @@ export const AutomatikMixin = (Basis) =>
         haken.type = "checkbox";
         haken.value = eintrag.entity_id;
         haken.checked = gewaehlt.includes(eintrag.entity_id);
-        const teile = [eintrag.name, eintrag.bereich, eintrag.wert].filter(Boolean);
+        const teile = [eintrag.name, eintrag.bereich, eintrag.art === "thermostat" ? this._t("Thermostat") : "", eintrag.wert].filter(Boolean);
         const alter = eintrag.seit ? (Date.now() - Date.parse(eintrag.seit)) / 3600000 : 0;
         if (alter > VERALTET_STUNDEN) {
           teile.push(

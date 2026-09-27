@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
+from .eingaben import raumwert
 from .profile import Werte
 
 AT_FROST = 3.0
@@ -58,6 +59,11 @@ class Lage:
     at_gedaempft: float | None = None
     raum: float | None = None
     soll: float | None = None
+    # Je Raum Ist und eigenes Ziel; ohne Ziel gilt der Sollwert des Heizkreises.
+    raeume: tuple[tuple[float, float | None], ...] = ()
+    raum_art: str = "mittel"
+    # Ob seit zwei Stunden kein Raum Wärme anfordert; `None` ohne Thermostate.
+    ruhig: bool | None = None
     sonnenquote: float | None = None
     mittel_heute: float | None = None
     mittel_morgen: float | None = None
@@ -112,6 +118,10 @@ def _zahl(wert: float | None) -> str:
     return "–" if wert is None else f"{wert:.1f}".replace(".", ",")
 
 
+def _kelvin(wert: float) -> str:
+    return f"{wert:+.1f} K".replace(".", ",").replace("-", "−")
+
+
 def _uhr(zeit: datetime) -> str:
     return zeit.strftime("%H:%M")
 
@@ -154,6 +164,14 @@ def _raeumen(lage: Lage, g: Gedaechtnis) -> Gedaechtnis:
     )
     weiter_weg = g.absenkung_art == ABWESEND and lage.abwesend
     return g if verlaengerbar or weiter_weg else ohne_absenkung(g)
+
+
+def abweichung(lage: Lage, soll: float) -> float:
+    """Raum minus Ziel, zusammengefasst wie eingestellt; ohne Einzelwerte der Raumwert."""
+    if lage.raeume:
+        werte = [ist - (soll if ziel is None else ziel) for ist, ziel in lage.raeume]
+        return raumwert(werte, lage.raum_art)
+    return lage.raum - soll
 
 
 def _bereit(g: Gedaechtnis, jetzt: datetime, w: Werte) -> bool:
@@ -222,15 +240,20 @@ def _daten(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entschei
 
 def _saison_nur_ww(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung:
     if g.stark_bis is not None:
-        if lage.jetzt >= g.stark_bis or lage.raum < soll - SAISON_RAUM_K:
+        if (
+            lage.jetzt >= g.stark_bis
+            or abweichung(lage, soll) < -SAISON_RAUM_K
+            or lage.ruhig is False
+        ):
             return _zurueck(lage, "Sonnentag vorbei – zurück ins Programm.")
         return Entscheidung(
             Zustand.NUR_WW, (), f"Sehr sonnig – nur Warmwasser bis {_uhr(g.stark_bis)}.", g
         )
-    if lage.raum < soll - ZU_KALT_K:
-        return _zurueck(lage, f"Raum {_zahl(lage.raum)} °C – zurück ins Programm.")
+    abstand = abweichung(lage, soll)
+    if abstand < -ZU_KALT_K:
+        return _zurueck(lage, f"Räume {_kelvin(abstand)} – zurück ins Programm.")
     kuehl = lage.at_gedaempft is not None and lage.at_gedaempft < w.heizgrenze - w.hysterese
-    if kuehl and _bereit(g, lage.jetzt, w) and lage.raum < soll - SAISON_RAUM_K:
+    if kuehl and _bereit(g, lage.jetzt, w) and abstand < -SAISON_RAUM_K:
         return _zurueck(
             lage,
             f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C unter "
@@ -249,7 +272,7 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
         return _saison_nur_ww(lage, g, soll, w)
     if lage.betriebswahl not in PROGRAMMWAHL or not _bereit(g, lage.jetzt, w):
         return None
-    if lage.raum < soll - SAISON_RAUM_K:
+    if abweichung(lage, soll) < -SAISON_RAUM_K:
         return None
     warm = lage.at_gedaempft is not None and lage.at_gedaempft > w.heizgrenze + w.hysterese
     mild = (
@@ -257,7 +280,8 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
         and lage.mittel_morgen is not None
         and min(lage.mittel_heute, lage.mittel_morgen) >= w.heizgrenze
     )
-    if not (warm or mild):
+    # Fordert ein Thermostat noch Wärme an, braucht der Heizkreis sie auch.
+    if not (warm or mild) or lage.ruhig is False:
         return None
     if warm:
         grund = (
@@ -307,22 +331,28 @@ def _abwesenheit(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheid
 
 
 def _programm(lage: Lage, g: Gedaechtnis) -> Entscheidung:
-    return Entscheidung(
-        Zustand.PROGRAMM,
-        (),
+    text = (
         f"Heizt nach Programm – gedämpfte AT {_zahl(lage.at_gedaempft)} °C, "
-        f"Raum {_zahl(lage.raum)} °C.",
-        g,
+        f"Raum {_zahl(lage.raum)} °C."
     )
+    if lage.ruhig is False:
+        text += " Die Räume fordern Wärme an."
+    return Entscheidung(Zustand.PROGRAMM, (), text, g)
 
 
 def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung:
-    grenze = soll - w.rueckkehr_k
-    if lage.raum < grenze:
+    if not w.sonnentag:
         return Entscheidung(
             Zustand.PROGRAMM,
             (Aktion("absenkung_ende"),),
-            f"Raum {_zahl(lage.raum)} °C unter {_zahl(grenze)} °C – Absenkung beendet.",
+            "Sonnentag ausgeschaltet – Absenkung beendet.",
+            ohne_absenkung(g),
+        )
+    if (abstand := abweichung(lage, soll)) < -w.rueckkehr_k:
+        return Entscheidung(
+            Zustand.PROGRAMM,
+            (Aktion("absenkung_ende"),),
+            f"Räume {_kelvin(abstand)} unter Ziel – Absenkung beendet.",
             ohne_absenkung(g),
         )
     ziel_soll = round(soll - w.absenkung_k, 1)
@@ -345,7 +375,8 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
     if g.absenkung_art == SONNE:
         return _sonnentag_laeuft(lage, g, soll, w)
     moeglich = (
-        lage.entscheidungszeit
+        w.sonnentag
+        and lage.entscheidungszeit
         and lage.betriebswahl in PROGRAMMWAHL
         and lage.absenkung_moeglich
         and lage.sonnenquote is not None
@@ -361,18 +392,15 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
             f"Sonnenquote {quote:.0f} % unter {w.sonnenquote:.0f} % – keine Absenkung.",
             g,
         )
-    if lage.raum < soll - SONNE_RAUM_K:
+    if (abstand := abweichung(lage, soll)) < -SONNE_RAUM_K:
         return Entscheidung(
-            Zustand.PROGRAMM,
-            (),
-            f"Raum {_zahl(lage.raum)} °C unter Soll {_zahl(soll)} °C – keine Absenkung.",
-            g,
+            Zustand.PROGRAMM, (), f"Räume {_kelvin(abstand)} unter Ziel – keine Absenkung.", g
         )
     ziel = lage.sonnenuntergang - VORLAUF_UNTERGANG
     rest = int((ziel - lage.jetzt).total_seconds() // 60)
     if rest < MIN_MINUTEN:
         return Entscheidung(Zustand.PROGRAMM, (), "Zu spät am Tag für eine Absenkung.", g)
-    if w.stark and lage.raum >= soll + STARK_RAUM_K and quote >= STARK_QUOTE:
+    if w.stark and abstand >= STARK_RAUM_K and quote >= STARK_QUOTE and lage.ruhig is not False:
         neu = replace(
             ohne_absenkung(g), saison=NUR_WW, saison_soll=soll, stark_bis=lage.sonnenuntergang
         )
