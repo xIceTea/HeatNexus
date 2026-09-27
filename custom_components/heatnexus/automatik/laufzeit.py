@@ -411,9 +411,9 @@ class Laufzeit:
         heute = jetzt.date().isoformat()
         if self.verlauf["datum"] != heute:
             self.verlauf = {"datum": heute, "stunden": {}}
-        stunde = str(jetzt.hour)
-        if stunde not in self.verlauf["stunden"]:
-            self.verlauf["stunden"][stunde] = {"at": at, "raum": self._raum()}
+        stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
+        if "at" not in stunde:
+            stunde.update(at=at, raum=self._raum())
 
     def tagesmittel(self, tag: date) -> float | None:
         """Tagesmittel der Prognose, um den gelernten Versatz verschoben."""
@@ -422,20 +422,41 @@ class Laufzeit:
         versatz = self.temperatur.tagesversatz(self.werte.lernfenster, dt_util.now().date())
         return mittel + (versatz or 0.0)
 
+    def _prognose_des_tages_merken(self, stunden: list[dict[str, Any]]) -> None:
+        # Die Stundenprognose beginnt mit der laufenden Stunde; Vergangenes hält der Verlauf.
+        heute = dt_util.now().date()
+        if self.verlauf["datum"] != heute.isoformat():
+            self.verlauf = {"datum": heute.isoformat(), "stunden": {}}
+        for eintrag in stunden:
+            zeit = ortszeit(eintrag.get("datetime"))
+            if zeit is None or zeit.date() != heute:
+                continue
+            stunde = self.verlauf["stunden"].setdefault(str(zeit.hour), {})
+            stunde["prognose"] = eintrag.get("temperature")
+            stunde["wolken"] = eintrag.get("cloud_coverage")
+
     def stundenprognose(self, tag: date) -> dict[int, dict[str, float | None]]:
         """Stundenprognose eines Tages: roh, korrigiert, Bewölkung."""
         fenster, heute = self.werte.lernfenster, dt_util.now().date()
-        ergebnis: dict[int, dict[str, float | None]] = {}
+        roh_je_stunde: dict[int, tuple[Any, Any]] = {}
+        if self.verlauf["datum"] == tag.isoformat():
+            for stunde, werte in self.verlauf["stunden"].items():
+                if "prognose" in werte:
+                    roh_je_stunde[int(stunde)] = (werte.get("prognose"), werte.get("wolken"))
         for eintrag in self.stunden:
             zeit = ortszeit(eintrag.get("datetime"))
-            if zeit is None or zeit.date() != tag:
-                continue
-            roh = eintrag.get("temperature")
-            versatz = self.temperatur.versatz(zeit.hour, fenster, heute)
-            ergebnis[zeit.hour] = {
+            if zeit is not None and zeit.date() == tag:
+                roh_je_stunde[zeit.hour] = (
+                    eintrag.get("temperature"),
+                    eintrag.get("cloud_coverage"),
+                )
+        ergebnis: dict[int, dict[str, float | None]] = {}
+        for stunde, (roh, wolken) in roh_je_stunde.items():
+            versatz = self.temperatur.versatz(stunde, fenster, heute)
+            ergebnis[stunde] = {
                 "roh": roh,
                 "korrigiert": None if roh is None else round(roh + (versatz or 0.0), 1),
-                "wolken": eintrag.get("cloud_coverage"),
+                "wolken": wolken,
             }
         return ergebnis
 
@@ -546,6 +567,7 @@ class Laufzeit:
         tage = await self._prognose("daily")
         if stunden is not None:
             self.stunden = stunden
+            self._prognose_des_tages_merken(stunden)
             self.temperatur.vormerken(
                 [
                     (zeit, eintrag.get("temperature"))

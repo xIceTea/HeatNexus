@@ -70,6 +70,12 @@ class Verwaltung:
         roh = await self._store.async_load() or {}
         heizkreise = roh.get("heizkreise") if isinstance(roh, dict) else None
         self._daten = {"heizkreise": heizkreise if isinstance(heizkreise, dict) else {}}
+        # Gespeichertes geht noch einmal durch die Prüfung; neue Regeln gelten auch für Altes.
+        for eintrag in self._daten["heizkreise"].values():
+            if isinstance(eintrag, dict) and (
+                neu := konfig_modul.pruefen(eintrag.get("konfig") or {})
+            ):
+                eintrag["konfig"] = neu
         self._geladen = True
 
     @callback

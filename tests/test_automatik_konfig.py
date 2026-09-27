@@ -115,9 +115,27 @@ def test_pv_ist_und_lernfenster_werden_gespeichert(konfig):
         ("sensor.hoymiles_ms_a2_solarh_9201610_today_eq", True),
         ("sensor.wechselrichter_ertrag_heute", True),
         ("sensor.pv_tagesertrag_gesamt", True),
+        ("sensor.bienendach_yieldday", True),
+        ("sensor.opendtu_1410f4_yield_day", True),
+        ("sensor.marstek_venus_system_daily_solar_energy", True),
         ("sensor.shellypro3em_total_energy", False),
         ("sensor.waschmaschine_energie", False),
+        ("sensor.hoymiles_ms_a2_solarh_9201610_month_eq", False),
+        ("sensor.hoymiles_ms_a2_solarh_9201610_total_eq", False),
+        ("sensor.hoymiles_ms_a2_solarh_9201610_meter_from_grid", False),
+        ("sensor.hoymiles_ms_a2_solarh_9201610_bms_charging", False),
+        ("sensor.bienendach_yieldtotal", False),
+        ("sensor.pv_ertrag_total", False),
     ],
 )
 def test_pv_ist_nur_nach_pv_aussehende_zaehler(konfig, entity_id, passt):
     assert konfig.pv_ist_passt(entity_id) is passt
+
+
+def test_ein_restwert_als_pv_prognose_wird_verworfen(konfig):
+    """Der Restwert schrumpft im Lauf des Tages; Quote und Lernfaktor wären falsch."""
+    k = konfig.pruefen(roh(pv="sensor.energy_production_today_remaining"))
+    assert k["pv"] is None
+    assert konfig.pruefen(roh(pv="sensor.energy_production_today"))["pv"] == (
+        "sensor.energy_production_today"
+    )

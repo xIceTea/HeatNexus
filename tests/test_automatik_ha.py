@@ -272,3 +272,47 @@ async def test_lesen_liefert_stundenraster_und_korrektur(hass, hass_ws_client, a
     assert kreis["korrektur"]["noetig"] == 7
     assert kreis["korrektur"]["temperatur"]["versatz"] is None
     assert kreis["korrektur"]["sonne"]["aktiv"] is False
+
+
+async def test_gespeicherter_restwert_sensor_wird_beim_laden_verworfen(hass, hass_storage):
+    from custom_components.heatnexus.automatik.verwaltung import STORE_KEY, Verwaltung
+
+    hass_storage[STORE_KEY] = {
+        "version": 1,
+        "data": {
+            "heizkreise": {
+                HEIZKREIS: {
+                    "konfig": {
+                        "heizkreis": HEIZKREIS,
+                        "raeume": ["sensor.wohnzimmer"],
+                        "wetter": "weather.home",
+                        "pv": "sensor.energy_production_today_remaining",
+                    },
+                    "zustand": {},
+                }
+            }
+        },
+    }
+    verwaltung = Verwaltung(hass)
+
+    await verwaltung.laden()
+
+    assert verwaltung.konfig(HEIZKREIS)["pv"] is None
+
+
+async def test_vergangene_stunden_behalten_ihre_prognose(hass, hass_ws_client, anlage):
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    heute = dt_util.now().date()
+    laufzeit.stunden = [
+        e for e in laufzeit.stunden if not e["datetime"].startswith(heute.isoformat() + "T0")
+    ]
+
+    prognose = laufzeit.stundenprognose(heute)
+
+    assert len(prognose) == 24
+    assert prognose[3]["wolken"] == 10

@@ -24,9 +24,11 @@ _KEIN_RAUM = re.compile(
 )
 # Von einer PV-Prognose zählt nur der erwartete Ertrag des ganzen Tages.
 _KEIN_TAGESERTRAG = re.compile(r"remaining|rest|hour|stunde|tomorrow|morgen|peak|power")
-# Ein Ist-Zähler der PV verrät sich meist am Namen.
-_PV_IST = re.compile(
-    r"pv|solar|photovolt|wechselrichter|inverter|ertrag|yield|_eq$|balkonkraftwerk"
+# Ein Ist-Zähler der PV verrät sich am Namen: PV, Tageswert, kein Monat, Netz oder Speicher.
+_PV_IST = re.compile(r"pv|solar|photovolt|wechselrichter|inverter|ertrag|yield|_eq|balkonkraftwerk")
+_TAGESWERT = re.compile(r"today|day|tag|daily|heute")
+_KEIN_PV_IST = re.compile(
+    r"month|monat|year|jahr|total|grid|netz|bms|charg|return|self|power|leistung"
 )
 
 
@@ -36,8 +38,12 @@ def raumfuehler_passt(entity_id: str) -> bool:
 
 
 def pv_ist_passt(entity_id: str) -> bool:
-    """Ob ein Energiezähler nach tatsächlichem PV-Ertrag aussieht."""
-    return bool(_PV_IST.search(entity_id))
+    """Ob ein Energiezähler nach dem tatsächlichen PV-Ertrag des Tages aussieht."""
+    return (
+        bool(_PV_IST.search(entity_id))
+        and bool(_TAGESWERT.search(entity_id))
+        and not _KEIN_PV_IST.search(entity_id)
+    )
 
 
 def pv_passt(entity_id: str) -> bool:
@@ -82,7 +88,7 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         "raeume": raeume,
         "raum_art": roh.get("raum_art") if roh.get("raum_art") in RAUM_ARTEN else RAUM_ARTEN[0],
         "wetter": wetter,
-        "pv": _entitaet(roh.get("pv")),
+        "pv": pv if (pv := _entitaet(roh.get("pv"))) and pv_passt(pv) else None,
         "pv_ist": _entitaet(roh.get("pv_ist")),
         "aussen": _entitaet(roh.get("aussen")),
         "personen": _liste(roh.get("personen"), LISTEN_MAX["personen"]),
