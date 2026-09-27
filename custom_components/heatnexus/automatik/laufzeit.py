@@ -42,10 +42,8 @@ RAUM_VERALTET = timedelta(hours=12)
 STUFEN_FRISCH = timedelta(hours=3)
 FENSTER_DAUER = timedelta(minutes=30)
 PAUSE_BIS_STUNDE = 5
-PV_TAGE = 30
 SICHERHEIT_WIEDERHOLEN_S = 60
 VERLAUF_LAENGE = 64
-UNGUELTIG = frozenset({"unavailable", "unknown", "none", ""})
 # Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
 ABRUF = ("/2/9/0", "/0/0/0")
 
@@ -398,7 +396,7 @@ class Laufzeit:
     def zahl(self, entity_id: str | None) -> float | None:
         if not entity_id or (zustand := self.hass.states.get(entity_id)) is None:
             return None
-        if zustand.state in UNGUELTIG:
+        if zustand.state in nachladen.UNGUELTIG:
             return None
         try:
             return float(zustand.state)
@@ -443,10 +441,8 @@ class Laufzeit:
         """Die Entität des Außenfühlers: eigene Wahl oder der Fühler des Heizkreises."""
         if self.konfig.get("aussen"):
             return self.konfig["aussen"]
-        from ..const import DOMAIN as DOMAENE
-
         return er.async_get(self.hass).async_get_entity_id(
-            "sensor", DOMAENE, f"{self.device_id}-0-0-0"
+            "sensor", DOMAIN, f"{self.device_id}-0-0-0"
         )
 
     def stunde_nachtragen(self, stunde: int, **werte: float | None) -> None:
@@ -569,7 +565,7 @@ class Laufzeit:
         if not personen:
             return False
         zustaende = [z.state if (z := self.hass.states.get(p)) else "" for p in personen]
-        if any(zustand == "home" or zustand in UNGUELTIG for zustand in zustaende):
+        if any(zustand == "home" or zustand in nachladen.UNGUELTIG for zustand in zustaende):
             self._weg_seit = None
             return False
         self._weg_seit = self._weg_seit or jetzt
@@ -590,7 +586,7 @@ class Laufzeit:
             return
         heute = jetzt.date().isoformat()
         self.pv_tage[heute] = max(pv, self.pv_tage.get(heute, 0.0))
-        grenze = (jetzt.date() - timedelta(days=PV_TAGE)).isoformat()
+        grenze = (jetzt.date() - timedelta(days=korrektur.PV_TAGE)).isoformat()
         self.pv_tage = {tag: wert for tag, wert in self.pv_tage.items() if tag > grenze}
 
     def sonnenquote(self, tag: date, pv_sensor: str | None) -> float | None:

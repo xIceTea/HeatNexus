@@ -18,7 +18,6 @@ FAKTOR_MIN = 0.5
 FAKTOR_MAX = 1.5
 # Die PV-Prognose des Tages zählt ab dem Morgen; nachts rechnet sie oft noch mit gestern.
 MORGEN_AB = 5
-LERNFENSTER = (3, 7, 14)
 
 
 def _stunde(zeit: datetime) -> str:
