@@ -660,6 +660,60 @@ if (karteZwei) {
 bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 
 // ---------------------------------------------------------------------------
+// Reiter „Automatik“
+//
+// Die Daten stehen fest; geholt wird nichts. Ein Heizkreis ist eingerichtet,
+// einer lädt zum Einrichten ein.
+// ---------------------------------------------------------------------------
+{
+  const anlageId = (daten.anlagen[0] || {}).id;
+  flaeche._automatik = {
+    darf_aendern: true,
+    profile: {
+      standard: { heizgrenze: 17, absenkung_k: 1.5, sonnenquote: 60, stark: false, entscheidung: "07:00" },
+    },
+    heizkreise: [
+      {
+        heizkreis: "SN1-2-0",
+        name: "Heizkreis",
+        anlage_id: anlageId,
+        eingerichtet: true,
+        konfig: { aktiv: true, modus: "beobachten", profil: "standard", heizflaechen: "gemischt" },
+        werte: { heizgrenze: 17, absenkung_k: 2, sonnenquote: 60, stark: false, entscheidung: "07:00" },
+        zustand: "sonnentag",
+        begruendung: "Sonnenquote 78 % – 19,5 °C bis 16:55.",
+        kennwerte: { sonnenquote: 78, raum: 21.4, soll: 21, at_gedaempft: 11.8, heizgrenze: 17, eingriffe: 1, budget: 4 },
+        tag: { sonne: [0, 0.5, 0], absenkung_von: 7, absenkung_bis: 13.67, absenkung_ziel: 16.92, entscheidungen: [7], jetzt: 11.3 },
+        protokoll: [{ zeit: "2026-09-27T07:00:00+02:00", art: "haette", text: "Sonnenquote 78 %.", werte: [] }],
+        beobachtet_seit: "2026-09-20T07:00:00+02:00",
+        pausiert_bis: null,
+      },
+      { heizkreis: "SN1-3-0", name: "Heizkreis 2", anlage_id: anlageId, eingerichtet: false },
+    ],
+  };
+  flaeche._automatikZeit = Date.now();
+  flaeche._reiter = "automatik";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  const wurzel = flaeche.shadowRoot;
+  bilanz.automatik = {
+    karten: wurzel.querySelectorAll(".karte").length,
+    marken: [...wurzel.querySelectorAll(".automatik-marke")].map((m) => String(m.textContent || "").trim()),
+    felder: wurzel.querySelectorAll(".automatik-feld").length,
+    geaendert: [...wurzel.querySelectorAll(".automatik-feld")].filter((f) => f.classList.contains("geaendert")).length,
+    protokoll: [...wurzel.querySelectorAll(".automatik-protokoll")].reduce(
+      (anzahl, liste) => anzahl + liste.childNodes.length,
+      0
+    ),
+    einladungen: wurzel.querySelectorAll(".automatik-einladung").length,
+    hinweise: [...wurzel.querySelectorAll(".automatik-hinweis")].map((t) => String(t.textContent || "").trim()),
+    tagesleiste: wurzel.querySelectorAll(".automatik-tag-bild").length,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Misslungenes Speichern
 //
 // Die Attrappe wirft bei jedem `callWS`. Wer die Farbwahl anfasst, muss das

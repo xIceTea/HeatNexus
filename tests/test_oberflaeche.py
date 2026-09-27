@@ -646,3 +646,16 @@ def test_die_marke_jetzt_steht_vor_dem_wert(durchlauf):
     assert durchlauf["zeitprogrammDialog"]["lesen"]["jetztFolge"] == [
         ["zp-spannezeit", "zp-jetzt", "zp-spannewert"]
     ]
+
+
+def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
+    """Eingerichtet: Karte mit Marke, Feldern und Protokoll; sonst die Einladung."""
+    automatik = durchlauf["automatik"]
+    assert automatik["marken"] == ["Sonnentag · beobachtet"]
+    assert automatik["felder"] == 13  # Profil und zwölf Werte
+    assert automatik["geaendert"] == 1
+    assert automatik["protokoll"] == 1
+    assert automatik["einladungen"] == 1
+    assert automatik["tagesleiste"] == 1
+    (hinweis,) = automatik["hinweise"]
+    assert "Nichts davon ging an die Steuerung" in hinweis

@@ -80,10 +80,13 @@ def _entitaeten(hass: HomeAssistant, device_id: str) -> dict[str, str | None]:
 
 def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: dict) -> dict:
     device_id = b["device_id"]
+    geraet = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, device_id)})
     ergebnis: dict[str, Any] = {
         "heizkreis": device_id,
         "name": b.get("device_name") or device_id,
         "anlage": getattr(coordinator, "label", "") or "",
+        # Dieselbe Kennung wie die Anlage im Panel: das Gerät der Steuerung.
+        "anlage_id": geraet.via_device_id if geraet else None,
         "eingerichtet": False,
     }
     laufzeit = verwaltung.laufzeiten.get(device_id)

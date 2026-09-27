@@ -27,6 +27,7 @@ import { STIL } from "./stil.js";
 import { PALETTEN } from "./ordnung.js";
 import { REITER } from "./ordnung.js";
 import { AnordnenMixin } from "./teile/anordnen.js";
+import { AutomatikMixin } from "./teile/automatik.js";
 import { BausteineMixin } from "./teile/bausteine.js";
 import { BedienenMixin } from "./teile/bedienen.js";
 import { HilfeMixin } from "./teile/hilfe.js";
@@ -42,9 +43,11 @@ const Grundlage = HilfeMixin(
   ZeitprogrammeMixin(
     WartungMixin(
       VerlaufMixin(
-        SteuerungMixin(
-          UebersichtMixin(
-            SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+        AutomatikMixin(
+          SteuerungMixin(
+            UebersichtMixin(
+              SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+            )
           )
         )
       )
@@ -427,6 +430,9 @@ class HeatNexusPanel extends Grundlage {
     this._hilfe = anlage.hilfe || {};
     if (this._reiter === "steuerung") {
       return this._raster(anlage, this._steuerung(anlage), "Keine bedienbaren Werte gefunden.");
+    }
+    if (this._reiter === "automatik") {
+      return this._raster(anlage, this._automatikReiter(anlage), "Keine Heizkreise gefunden.");
     }
     if (this._reiter === "wartung") {
       return this._raster(anlage, this._wartung(anlage), "Keine Wartungswerte gefunden.");

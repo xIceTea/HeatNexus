@@ -27,6 +27,7 @@ export const STIL = `
     --hn-akzent-text: #0e1419;
     --hn-linie: rgba(255, 255, 255, 0.1);
     --hn-flaeche: rgba(255, 255, 255, 0.05);
+    --hn-sonne: #f5c451;
   }
 
   :host {
@@ -1108,4 +1109,175 @@ export const STIL = `
   /* Die Texte tragen Absätze und Aufzählungen als Zeilenumbruch, kein Markup. */
   .hilfe-eintrag p { margin: 6px 0 0; opacity: 0.85; white-space: pre-line; }
   .hilfe-leer { opacity: 0.6; padding: 6px 0; }
+
+  /* --- Automatik ------------------------------------------------------- */
+  /* Gelb steht für Sonne; Rot bleibt der Störung vorbehalten. */
+  .automatik-marke {
+    display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+    background: var(--hn-flaeche); color: var(--hn-gedaempft);
+  }
+  .automatik-marke.z-sonnentag, .automatik-marke.z-nur_ww {
+    background: color-mix(in srgb, var(--hn-sonne) 16%, transparent); color: var(--hn-sonne);
+  }
+  .automatik-marke.z-programm { background: rgba(67, 160, 71, 0.15); color: #7bd88f; }
+  .automatik-marke.z-pausiert, .automatik-marke.z-fenster, .automatik-marke.z-abwesend {
+    background: color-mix(in srgb, var(--hn-akzent) 14%, transparent); color: var(--hn-akzent);
+  }
+  .automatik-marke.z-sicherheit, .automatik-marke.z-keine_daten {
+    background: rgba(255, 171, 111, 0.15); color: #ffab6f;
+  }
+  .automatik-zeile { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+  .automatik-schalter {
+    display: inline-flex; align-items: center; gap: 8px; padding: 0; cursor: pointer;
+    background: none; border: none; color: inherit; font: inherit; font-size: 13px; font-weight: 600;
+  }
+  .automatik-schalter i {
+    width: 38px; height: 22px; border-radius: 999px; background: var(--hn-linie);
+    position: relative; transition: background 0.2s;
+  }
+  .automatik-schalter i::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--hn-text); transition: transform 0.2s;
+  }
+  .automatik-schalter.an i { background: var(--hn-akzent); }
+  .automatik-schalter.an i::after { transform: translateX(16px); background: var(--hn-akzent-text); }
+  .automatik-schalter:focus-visible {
+    outline: 2px solid var(--hn-akzent); outline-offset: 3px; border-radius: 6px;
+  }
+  .automatik-segment {
+    display: inline-flex; padding: 3px; border-radius: 999px;
+    background: var(--hn-flaeche); border: 1px solid var(--hn-linie);
+  }
+  .automatik-segment button {
+    padding: 5px 12px; border-radius: 999px; border: none; background: none; cursor: pointer;
+    color: inherit; font: inherit; font-size: 12px; font-weight: 600; opacity: 0.6;
+  }
+  .automatik-segment button[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--hn-akzent) 20%, transparent);
+    color: var(--hn-akzent); opacity: 1;
+  }
+  .automatik-profil { margin-left: auto; font-size: 12px; color: var(--hn-gedaempft); }
+  .automatik-hinweis {
+    display: flex; gap: 12px; align-items: center; margin-top: 12px; padding: 10px 14px;
+    border-radius: 12px; font-size: 13px;
+    background: color-mix(in srgb, var(--hn-akzent) 10%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--hn-akzent) 45%, transparent);
+  }
+  .automatik-hinweis .text { flex: 1; }
+  .automatik-knopf {
+    padding: 8px 14px; border-radius: 10px; border: none; cursor: pointer; white-space: nowrap;
+    font: inherit; font-size: 13px; font-weight: 600;
+    background: var(--hn-akzent); color: var(--hn-akzent-text);
+  }
+  .automatik-knopf.leise {
+    background: var(--hn-flaeche); color: inherit; border: 1px solid var(--hn-linie);
+  }
+  .automatik-knopf[disabled], .automatik-segment button[disabled], .automatik-schalter[disabled] {
+    opacity: 0.5; cursor: default;
+  }
+  .automatik-warum {
+    margin-top: 14px; padding: 12px 14px; border-radius: 12px;
+    background: var(--hn-flaeche); font-size: 15px; line-height: 1.45;
+  }
+  .automatik-werte {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px;
+  }
+  .automatik-wert { padding: 10px 12px; border-radius: 12px; background: var(--hn-flaeche); min-width: 0; }
+  .automatik-wert .zahl {
+    font-size: 20px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums;
+  }
+  .automatik-wert.sonne .zahl { color: var(--hn-sonne); }
+  .automatik-wert .bez { font-size: 11px; opacity: 0.55; margin-top: 3px; }
+  .automatik-wert .schw { font-size: 11px; margin-top: 4px; color: var(--hn-gedaempft); }
+  .automatik-tag-bild svg { display: block; width: 100%; height: 90px; }
+  .automatik-tag .al-sonne {
+    fill: color-mix(in srgb, var(--hn-sonne) 35%, transparent);
+    stroke: var(--hn-sonne); stroke-width: 1.5; vector-effect: non-scaling-stroke;
+  }
+  .automatik-tag .al-grund { fill: var(--hn-flaeche); }
+  .automatik-tag .al-absenkung { fill: var(--hn-akzent); }
+  .automatik-tag .al-verlaengerung { fill: color-mix(in srgb, var(--hn-akzent) 35%, transparent); }
+  .automatik-tag .al-punkt { fill: var(--hn-text); }
+  .automatik-tag .al-jetzt {
+    stroke: var(--hn-text); stroke-width: 2; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke;
+  }
+  .automatik-achse {
+    display: flex; justify-content: space-between; font-size: 10px;
+    color: var(--hn-gedaempft); margin-top: 2px;
+  }
+  .automatik-legende {
+    display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px;
+    color: var(--hn-gedaempft); margin-top: 6px;
+  }
+  .automatik-legende i {
+    display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+    margin-right: 6px; vertical-align: -1px;
+  }
+  .automatik-legende i.al-sonne { background: color-mix(in srgb, var(--hn-sonne) 50%, transparent); }
+  .automatik-legende i.al-absenkung { background: var(--hn-akzent); }
+  .automatik-legende i.al-verlaengerung {
+    background: color-mix(in srgb, var(--hn-akzent) 35%, transparent);
+  }
+  .automatik-erweitert {
+    margin-top: 16px; border: 1px solid var(--hn-flaeche); border-radius: 12px; padding: 12px 14px;
+  }
+  .automatik-erweitert summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+  .automatik-felder {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px; margin-top: 12px;
+  }
+  .automatik-feld { padding: 10px 12px; border-radius: 12px; background: var(--hn-flaeche); }
+  .automatik-feld.geaendert { box-shadow: inset 3px 0 0 var(--hn-akzent); }
+  .automatik-feld label { display: block; font-size: 12px; color: var(--hn-gedaempft); margin-bottom: 6px; }
+  .automatik-feld .eingabe { display: flex; align-items: center; gap: 6px; }
+  .automatik-feld input {
+    width: 100%; padding: 7px 9px; border-radius: 9px; font: inherit; font-size: 14px;
+    background: var(--hn-karte); color: inherit; border: 1px solid var(--hn-linie);
+  }
+  .automatik-feld .einheit { font-size: 12px; color: var(--hn-gedaempft); }
+  .automatik-feld .profilwert { font-size: 11px; color: var(--hn-gedaempft); margin-top: 4px; }
+  .automatik-leiste {
+    display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap;
+  }
+  .automatik-budget { display: flex; gap: 4px; margin: 0 0 8px; }
+  .automatik-budget i { width: 14px; height: 6px; border-radius: 3px; background: var(--hn-linie); }
+  .automatik-budget i.voll { background: var(--hn-akzent); }
+  .automatik-protokoll { list-style: none; margin: 0; padding: 0; }
+  .automatik-protokoll li {
+    display: grid; grid-template-columns: 64px 1fr auto; gap: 10px; align-items: baseline;
+    padding: 8px 0; border-bottom: 1px solid var(--hn-flaeche); font-size: 13px;
+  }
+  .automatik-protokoll li:last-child { border-bottom: none; }
+  .automatik-protokoll .zeit { color: var(--hn-gedaempft); font-variant-numeric: tabular-nums; }
+  .automatik-protokoll .art {
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  }
+  .automatik-protokoll .art.geschrieben {
+    background: color-mix(in srgb, var(--hn-akzent) 16%, transparent); color: var(--hn-akzent);
+  }
+  .automatik-protokoll .art.haette {
+    border: 1px dashed color-mix(in srgb, var(--hn-akzent) 55%, transparent); color: var(--hn-akzent);
+  }
+  .automatik-protokoll .art.abgelehnt { background: rgba(229, 57, 53, 0.15); color: #ff8a80; }
+  .automatik-protokoll .art.budget, .automatik-protokoll .art.eingriff {
+    background: rgba(255, 171, 111, 0.15); color: #ffab6f;
+  }
+  .automatik-protokoll .art.geprueft { background: var(--hn-flaeche); color: var(--hn-gedaempft); }
+  .automatik-einladung { font-size: 14px; line-height: 1.5; opacity: 0.85; margin: 4px 0 14px; }
+  .karte > .automatik-knopf { align-self: flex-start; }
+  .automatik-feld.breit { grid-column: span 2; }
+  .automatik-beschriftet { margin-top: 8px; }
+  .automatik-unter { font-size: 12px; color: var(--hn-gedaempft); margin-bottom: 4px; }
+  .automatik-dialog { max-width: 560px; max-height: 86vh; overflow-y: auto; }
+  .automatik-dialog section { margin-top: 14px; }
+  .automatik-dialog h4 { margin: 0 0 6px; font-size: 13px; font-weight: 600; opacity: 0.7; }
+  .automatik-dialog select { margin-top: 6px; }
+  .automatik-haken { max-height: 160px; overflow-y: auto; display: grid; gap: 4px; }
+  .automatik-haken-zeile { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  @media (max-width: 700px) {
+    .automatik-werte { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .automatik-feld.breit { grid-column: auto; }
+    .automatik-profil { margin-left: 0; }
+  }
 `;

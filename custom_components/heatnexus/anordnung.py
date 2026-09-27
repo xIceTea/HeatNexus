@@ -45,7 +45,15 @@ ANORDNUNG_STORE_KEY = f"{DOMAIN}.anordnung"
 # Reiter ab. Steht dort einer, den die Oberfläche anbietet, der hier aber
 # fehlt, lässt sich seine Karte zwar verschieben und verbreitern – gespeichert
 # wird nichts, und beim nächsten Öffnen steht wieder der Standard.
-REITER = ("uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme", "hilfe")
+REITER = (
+    "uebersicht",
+    "steuerung",
+    "automatik",
+    "wartung",
+    "verlauf",
+    "zeitprogramme",
+    "hilfe",
+)
 
 # Neben den Reitern steht je Benutzer ein Satz Einstellungen, die für die
 # ganze Oberfläche gelten. Der Schlüssel darf keinem Reiter gleichen.

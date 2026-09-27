@@ -88,6 +88,7 @@ export const ABBRUCH_PAUSE_MS = 6 * 1000;
 export const REITER = [
   { schluessel: "uebersicht", titel: "Übersicht", symbol: "mdi:view-dashboard-outline" },
   { schluessel: "steuerung", titel: "Steuerung", symbol: "mdi:tune-vertical" },
+  { schluessel: "automatik", titel: "Automatik", symbol: "mdi:weather-sunny-alert" },
   { schluessel: "wartung", titel: "Wartung", symbol: "mdi:wrench-outline" },
   { schluessel: "verlauf", titel: "Verlauf", symbol: "mdi:chart-line" },
   { schluessel: "zeitprogramme", titel: "Zeitprogramme", symbol: "mdi:calendar-clock" },
@@ -144,6 +145,7 @@ export const PALETTEN = {
     "--hn-akzent-text": "#0e1116",
     "--hn-linie": "#262b33",
     "--hn-flaeche": "#262b33",
+    "--hn-sonne": "#f5c451",
   },
   hell: {
     "--hn-grund": "#f4f5f7",
@@ -154,6 +156,7 @@ export const PALETTEN = {
     "--hn-akzent-text": "#ffffff",
     "--hn-linie": "#e0e3e8",
     "--hn-flaeche": "#eef1f5",
+    "--hn-sonne": "#b7791f",
   },
   terrakotta: {
     "--hn-grund": "#1a1816",
@@ -164,6 +167,7 @@ export const PALETTEN = {
     "--hn-akzent-text": "#1a1210",
     "--hn-linie": "#2c2926",
     "--hn-flaeche": "#2c2926",
+    "--hn-sonne": "#f2c14e",
   },
   petrol: {
     "--hn-grund": "#10171a",
@@ -174,6 +178,7 @@ export const PALETTEN = {
     "--hn-akzent-text": "#08120f",
     "--hn-linie": "#222d31",
     "--hn-flaeche": "#222d31",
+    "--hn-sonne": "#f5c451",
   },
   pflaume: {
     "--hn-grund": "#16121c",
@@ -184,6 +189,7 @@ export const PALETTEN = {
     "--hn-akzent-text": "#150e1c",
     "--hn-linie": "#2b2336",
     "--hn-flaeche": "#2b2336",
+    "--hn-sonne": "#f5c451",
   },
 };
 
