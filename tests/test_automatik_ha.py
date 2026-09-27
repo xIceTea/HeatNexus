@@ -188,6 +188,67 @@ async def test_ausschalten_nimmt_die_absenkung_zurueck(hass, hass_ws_client, anl
     assert coordinator.client.geschrieben[-1] == (f"{PREFIX}/2/10/0", "0")
 
 
+async def test_ausschalten_nimmt_trotz_sperre_zurueck(hass, hass_ws_client, anlage, freezer):
+    from dataclasses import replace
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await laufzeit.auswerten(entscheidungszeit=True)
+    bis = (dt_util.now() + timedelta(hours=1)).isoformat()
+    laufzeit.steller.stand = replace(laufzeit.steller.stand, gesperrt_bis=bis)
+
+    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
+
+    assert coordinator.client.geschrieben[-1] == (f"{PREFIX}/2/10/0", "0")
+
+
+async def test_abgelehnte_ruecknahme_meldet_sich(hass, hass_ws_client, anlage, freezer):
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await laufzeit.auswerten(entscheidungszeit=True)
+    coordinator.client.ablehnen = True
+
+    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
+
+    kennung = f"automatik_ruecknahme_{HEIZKREIS}"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is not None
+    assert laufzeit.gedaechtnis.absenkung_art is not None
+
+
+async def test_wiedereinschalten_behaelt_die_nicht_zurueckgenommene_absenkung(
+    hass, hass_ws_client, anlage, freezer
+):
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await laufzeit.auswerten(entscheidungszeit=True)
+    coordinator.client.ablehnen = True
+    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
+    coordinator.client.ablehnen = False
+
+    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=True)
+
+    assert laufzeit.gedaechtnis.absenkung_art is not None
+
+
 async def test_sicherheit_meldet_sich_erst_nach_der_wiederholung(
     hass, hass_ws_client, anlage, freezer
 ):

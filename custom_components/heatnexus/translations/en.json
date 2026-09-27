@@ -307,6 +307,10 @@
     "automatik_sicherheit": {
       "title": "Automation {heizkreis}: return to program failed",
       "description": "For safety, the automation tried to return the heating circuit **{heizkreis}** to its program. The controller rejected this twice.\n\nPlease check the operating mode of the heating circuit and set it manually. This message disappears as soon as the controller accepts an intervention of the automation again."
+    },
+    "automatik_ruecknahme": {
+      "title": "Automation {heizkreis}: undo failed",
+      "description": "When the automation was switched off or removed, the controller rejected undoing its interventions on the heating circuit **{heizkreis}**. The heating circuit may still be set to hot water only or run at a lowered setpoint.\n\nPlease check the operating mode and setpoint of the heating circuit and set them manually. This message disappears as soon as an undo succeeds."
     }
   },
   "config_subentries": {

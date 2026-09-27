@@ -324,6 +324,7 @@ class Laufzeit:
             aktionen.append(regel.Aktion("zurueck", sicherheit=True))
         if regel.absenkung_laeuft(self.gedaechtnis, jetzt):
             aktionen.append(regel.Aktion("absenkung_ende", sicherheit=True))
+        kennung = f"automatik_ruecknahme_{self.device_id}"
         if aktionen:
             entscheidung = regel.Entscheidung(
                 regel.Zustand.AUS,
@@ -331,13 +332,19 @@ class Laufzeit:
                 "Eigene Eingriffe zurückgenommen.",
                 regel.Gedaechtnis(),
             )
-            await self.steller.ausfuehren(
+            if not await self.steller.ausfuehren(
                 entscheidung,
                 jetzt=jetzt,
                 betriebswahl=_ganzzahl(self._wert("/3/50/0")),
                 budget=0,
                 beobachten=self.beobachten,
-            )
+                erzwingen=True,
+            ):
+                # Das Gedächtnis bleibt, damit ein Wiedereinschalten den Eingriff kennt.
+                self._meldung(kennung, "automatik_ruecknahme")
+                self._speichern()
+                return
+        ir.async_delete_issue(self.hass, DOMAIN, kennung)
         self.gedaechtnis = regel.Gedaechtnis()
         self.steller.freigeben()
         self._speichern()

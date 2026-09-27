@@ -233,7 +233,8 @@ class Verwaltung:
             schaltet = neu["aktiv"] and neu["modus"] == "schalten"
             if schaltete and not schaltet:
                 await laufzeit.zuruecknehmen()
-            if schaltet and not schaltete:
+            # Nur Beobachtetes verwerfen; ein nicht zurückgenommener Eingriff bleibt bekannt.
+            if schaltet and alt["modus"] != "schalten":
                 laufzeit.gedaechtnis_leeren()
             if neu["modus"] == "beobachten" and alt["modus"] != "beobachten":
                 laufzeit.beobachtet_seit = dt_util.now()

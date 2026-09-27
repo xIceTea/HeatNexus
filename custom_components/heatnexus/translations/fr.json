@@ -307,6 +307,10 @@
     "automatik_sicherheit": {
       "title": "Automatisme {heizkreis} : retour au programme échoué",
       "description": "Par sécurité, l'automatisme a voulu remettre le circuit de chauffage **{heizkreis}** sur son programme. La régulation a refusé deux fois.\n\nVeuillez vérifier le mode de fonctionnement du circuit et le régler manuellement. Ce message disparaît dès que la régulation accepte à nouveau une intervention de l'automatisme."
+    },
+    "automatik_ruecknahme": {
+      "title": "Automatisme {heizkreis} : annulation échouée",
+      "description": "Lors de la désactivation ou de la suppression de l'automatisme, la régulation a refusé d'annuler ses interventions sur le circuit de chauffage **{heizkreis}**. Le circuit peut encore être en eau chaude seule ou fonctionner avec une consigne abaissée.\n\nVeuillez vérifier le mode de fonctionnement et la consigne du circuit et les régler manuellement. Ce message disparaît dès qu'une annulation réussit."
     }
   },
   "config_subentries": {

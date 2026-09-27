@@ -307,6 +307,10 @@
     "automatik_sicherheit": {
       "title": "Automatik {heizkreis}: Rückkehr ins Programm gescheitert",
       "description": "Die Automatik wollte den Heizkreis **{heizkreis}** zur Sicherheit in sein Programm zurückstellen. Die Steuerung hat das zweimal abgelehnt.\n\nBitte die Betriebswahl des Heizkreises prüfen und von Hand einstellen. Diese Meldung verschwindet, sobald ein Eingriff der Automatik wieder angenommen wird."
+    },
+    "automatik_ruecknahme": {
+      "title": "Automatik {heizkreis}: Rücknahme gescheitert",
+      "description": "Beim Ausschalten oder Entfernen der Automatik hat die Steuerung die Rücknahme ihrer Eingriffe am Heizkreis **{heizkreis}** abgelehnt. Der Heizkreis kann noch auf „nur Warmwasser“ stehen oder abgesenkt sein.\n\nBitte Betriebswahl und Sollwert des Heizkreises prüfen und von Hand einstellen. Die Meldung verschwindet, sobald eine Rücknahme gelingt."
     }
   },
   "config_subentries": {
