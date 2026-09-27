@@ -232,3 +232,28 @@ async def test_gedaempfte_at_beginnt_beim_tagesmittel(hass, hass_ws_client, anla
 
     assert stufen is not None
     assert stufen[1] == pytest.approx(10.0, abs=0.1)  # (14 + 6) / 2 aus der Tagesprognose
+
+
+async def test_einrichtung_laesst_sich_nachtraeglich_aendern(hass, hass_ws_client, anlage):
+    verwaltung, _ = anlage
+    hass.states.async_set("sensor.kueche", "20.8", {"device_class": "temperature"})
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+
+    antwort = await _senden(
+        client,
+        type="heatnexus/automatik/einstellen",
+        heizkreis=HEIZKREIS,
+        raeume=["sensor.wohnzimmer", "sensor.kueche"],
+        raum_art="minimum",
+        heizflaechen="flaeche",
+        profil="traege",
+        eigene={},
+    )
+
+    assert antwort["success"], antwort
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    assert laufzeit.konfig["raeume"] == ["sensor.wohnzimmer", "sensor.kueche"]
+    assert laufzeit.konfig["profil"] == "traege"
+    await laufzeit.auswerten()
+    assert laufzeit.lage.raum == 20.8

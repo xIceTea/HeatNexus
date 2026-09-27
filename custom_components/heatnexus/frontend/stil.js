@@ -1240,6 +1240,8 @@ export const STIL = `
   .automatik-leiste {
     display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap;
   }
+  .automatik-leiste-links { display: flex; gap: 8px; margin-right: auto; flex-wrap: wrap; }
+  .automatik-knopf.warnung { color: #ffab6f; border-color: rgba(255, 171, 111, 0.45); }
   .automatik-budget { display: flex; gap: 4px; margin: 0 0 8px; }
   .automatik-budget i { width: 14px; height: 6px; border-radius: 3px; background: var(--hn-linie); }
   .automatik-budget i.voll { background: var(--hn-akzent); }

@@ -59,6 +59,9 @@ const HEIZFLAECHEN = [
   ["flaeche", "Fußboden- oder Wandheizung"],
 ];
 
+// Dieselbe Zuordnung wie `profile.HEIZFLAECHEN` auf dem Server.
+const PROFIL_JE_FLAECHE = { heizkoerper: "schnell", gemischt: "standard", flaeche: "traege" };
+
 /** Zahl mit Komma; ohne Wert ein Strich. */
 export function zahl(wert, stellen = 1) {
   if (wert === null || wert === undefined || Number.isNaN(Number(wert))) return "–";
@@ -423,9 +426,35 @@ export const AutomatikMixin = (Basis) =>
       speichern.textContent = "Speichern";
       speichern.disabled = !darf;
       speichern.addEventListener("click", () => this._automatikEinstellen(kreis, { eigene: this._automatikEigene(eingaben) }));
-      leiste.append(zuruecksetzen, speichern);
+      const aendern = document.createElement("button");
+      aendern.type = "button";
+      aendern.className = "automatik-knopf leise";
+      aendern.textContent = "Einrichtung ändern";
+      aendern.disabled = !darf;
+      aendern.addEventListener("click", () => this._automatikDialog(kreis));
+      const entfernen = document.createElement("button");
+      entfernen.type = "button";
+      entfernen.className = "automatik-knopf leise warnung";
+      entfernen.textContent = "Automatik entfernen";
+      entfernen.disabled = !darf;
+      entfernen.addEventListener("click", () => this._automatikEntfernen(kreis));
+      const links = document.createElement("div");
+      links.className = "automatik-leiste-links";
+      links.append(aendern, entfernen);
+      leiste.append(links, zuruecksetzen, speichern);
       bereich.appendChild(leiste);
       return bereich;
+    }
+
+    async _automatikEntfernen(kreis) {
+      const ja = await this._bestaetigen(
+        this._tMit("Automatik für {name} entfernen?", { name: kreis.name }),
+        this._t("Eigene Eingriffe an der Steuerung werden zurückgenommen. Einstellungen und Protokoll gehen verloren."),
+        null,
+        { ja: this._t("Entfernen") }
+      );
+      if (!ja) return;
+      await this._automatikAufruf({ type: "heatnexus/automatik/entfernen", heizkreis: kreis.heizkreis });
     }
 
     _automatikFeld(titel, unter, geaendert = false) {
@@ -550,24 +579,34 @@ export const AutomatikMixin = (Basis) =>
       dialog.setAttribute("role", "dialog");
       const titel = document.createElement("h3");
       titel.className = "dialog-titel";
-      titel.textContent = this._tMit("Automatik für {name} einrichten", { name: kreis.name });
+      const k = kreis.eingerichtet ? kreis.konfig : null;
+      titel.textContent = k
+        ? this._tMit("Einrichtung von {name} ändern", { name: kreis.name })
+        : this._tMit("Automatik für {name} einrichten", { name: kreis.name });
       dialog.appendChild(titel);
 
-      const heizflaechen = this._automatikAuswahl(HEIZFLAECHEN, "gemischt");
-      const raeume = this._automatikHaken(kandidaten.temperatur);
+      const heizflaechen = this._automatikAuswahl(HEIZFLAECHEN, (k && k.heizflaechen) || "gemischt");
+      const raeume = this._automatikHaken(kandidaten.temperatur, k ? k.raeume : []);
       const raumArt = this._automatikAuswahl(
         [
           ["mittel", this._t("Mittel der Räume")],
           ["minimum", this._t("Kältester Raum")],
         ],
-        "mittel"
+        (k && k.raum_art) || "mittel"
       );
-      const wetter = this._automatikAuswahl(kandidaten.wetter.map((e) => [e.entity_id, e.name]), "");
-      const pv = this._automatikAuswahl([["", this._t("Keine")], ...kandidaten.pv.map((e) => [e.entity_id, e.name])], "");
-      const personen = this._automatikHaken(kandidaten.personen);
-      const fenster = this._automatikHaken(kandidaten.fenster);
+      const wetter = this._automatikAuswahl(
+        this._automatikMitGewaehlt(kandidaten.wetter.map((e) => [e.entity_id, e.name]), k && k.wetter),
+        (k && k.wetter) || ""
+      );
+      const pv = this._automatikAuswahl(
+        this._automatikMitGewaehlt([["", this._t("Keine")], ...kandidaten.pv.map((e) => [e.entity_id, e.name])], k && k.pv),
+        (k && k.pv) || ""
+      );
+      const personen = this._automatikHaken(kandidaten.personen, k ? k.personen : []);
+      const fenster = this._automatikHaken(kandidaten.fenster, k ? k.fenster : []);
       const erkennung = document.createElement("input");
       erkennung.type = "checkbox";
+      erkennung.checked = !!(k && k.fenster_erkennung);
 
       const abschnitte = [
         [this._t("1 · Heizflächen"), [heizflaechen]],
@@ -605,7 +644,7 @@ export const AutomatikMixin = (Basis) =>
       const einrichten = document.createElement("button");
       einrichten.type = "button";
       einrichten.className = "dialog-taste bestaetigen";
-      einrichten.textContent = this._t("Einrichten");
+      einrichten.textContent = k ? this._t("Übernehmen") : this._t("Einrichten");
       leiste.append(abbrechen, einrichten);
       dialog.appendChild(leiste);
       schleier.appendChild(dialog);
@@ -614,7 +653,7 @@ export const AutomatikMixin = (Basis) =>
       einrichten.addEventListener("click", async () => {
         const gewaehlt = (liste) => Array.from(liste.querySelectorAll("input:checked")).map((e) => e.value);
         const nachricht = {
-          type: "heatnexus/automatik/einrichten",
+          type: k ? "heatnexus/automatik/einstellen" : "heatnexus/automatik/einrichten",
           heizkreis: kreis.heizkreis,
           heizflaechen: heizflaechen.value,
           raeume: gewaehlt(raeume),
@@ -625,6 +664,11 @@ export const AutomatikMixin = (Basis) =>
           fenster: gewaehlt(fenster),
           fenster_erkennung: erkennung.checked,
         };
+        // Andere Heizflächen heißen anderes Profil; eigene Werte gehörten zum alten.
+        if (k && nachricht.heizflaechen !== k.heizflaechen) {
+          nachricht.profil = PROFIL_JE_FLAECHE[nachricht.heizflaechen];
+          nachricht.eigene = {};
+        }
         if (!nachricht.raeume.length || !nachricht.wetter) {
           this._melden(this._t("Mindestens ein Raum und eine Wetter-Entität sind nötig."));
           return;
@@ -646,14 +690,17 @@ export const AutomatikMixin = (Basis) =>
       return wahl;
     }
 
-    _automatikHaken(eintraege) {
+    _automatikHaken(eintraege, gewaehlt = []) {
       const liste = document.createElement("div");
       liste.className = "automatik-haken";
-      if (!eintraege.length) liste.appendChild(this._hinweisKnoten(this._t("Keine passenden Entitäten gefunden.")));
-      eintraege.forEach((eintrag) => {
+      const bekannt = new Set(eintraege.map((e) => e.entity_id));
+      const alle = [...gewaehlt.filter((id) => !bekannt.has(id)).map((id) => ({ entity_id: id, name: id, bereich: "" })), ...eintraege];
+      if (!alle.length) liste.appendChild(this._hinweisKnoten(this._t("Keine passenden Entitäten gefunden.")));
+      alle.forEach((eintrag) => {
         const haken = document.createElement("input");
         haken.type = "checkbox";
         haken.value = eintrag.entity_id;
+        haken.checked = gewaehlt.includes(eintrag.entity_id);
         const titel = eintrag.bereich ? `${eintrag.name} · ${eintrag.bereich}` : eintrag.name;
         liste.appendChild(this._automatikMitText(haken, titel));
       });
@@ -668,6 +715,11 @@ export const AutomatikMixin = (Basis) =>
       titel.textContent = text;
       rahmen.append(titel, knoten);
       return rahmen;
+    }
+
+    _automatikMitGewaehlt(eintraege, gewaehlt) {
+      if (!gewaehlt || eintraege.some(([wert]) => wert === gewaehlt)) return eintraege;
+      return [...eintraege, [gewaehlt, gewaehlt]];
     }
 
     _automatikMitText(eingabe, text) {

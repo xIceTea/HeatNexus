@@ -710,6 +710,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     einladungen: wurzel.querySelectorAll(".automatik-einladung").length,
     hinweise: [...wurzel.querySelectorAll(".automatik-hinweis")].map((t) => String(t.textContent || "").trim()),
     tagesleiste: wurzel.querySelectorAll(".automatik-tag-bild").length,
+    knoepfe: [...wurzel.querySelectorAll(".automatik-knopf")].map((k) => String(k.textContent || "").trim()),
   };
 }
 
