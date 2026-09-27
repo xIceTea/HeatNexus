@@ -5,7 +5,7 @@ Reine Rechnungen ohne Home Assistant; Zeiten kommen als `datetime` mit Zone.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import math
 
 # Unter so vielen Vergleichstagen sagt der PV-Ertrag nichts über die Sonne.
@@ -78,3 +78,16 @@ def temperatursturz(
             return False
         return (wert - ende_wert) / dauer * 3600.0 >= schwelle_k_je_h
     return False
+
+
+def wert_zur_stunde(reihe: list[tuple[datetime, float]], stunde: datetime) -> float | None:
+    """Der Wert, der zur vollen Stunde galt; davor der erste innerhalb der Stunde."""
+    geltend = None
+    for zeit, wert in reihe:
+        if zeit <= stunde:
+            geltend = wert
+        elif geltend is None and zeit < stunde + timedelta(hours=1):
+            return wert
+        else:
+            break
+    return geltend

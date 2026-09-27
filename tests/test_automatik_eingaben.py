@@ -73,3 +73,14 @@ def test_temperatursturz_erkennt_schnelles_fallen(eingaben):
     langsam = [(0.0, 21.0), (600.0, 20.9)]
     assert eingaben.temperatursturz(langsam, 3.0) is False
     assert eingaben.temperatursturz([(0.0, 21.0)], 3.0) is False
+
+
+def test_wert_zur_stunde_nimmt_den_geltenden_stand(eingaben):
+    t = datetime(2026, 9, 27, tzinfo=UTC)
+    reihe = [(t + timedelta(hours=7, minutes=40), 9.0), (t + timedelta(hours=8, minutes=20), 11.0)]
+    assert eingaben.wert_zur_stunde(reihe, t + timedelta(hours=8)) == 9.0
+    assert eingaben.wert_zur_stunde(reihe, t + timedelta(hours=9)) == 11.0
+    # Vor dem ersten Stand zählt der erste Wert innerhalb der Stunde.
+    assert eingaben.wert_zur_stunde(reihe, t + timedelta(hours=7)) == 9.0
+    assert eingaben.wert_zur_stunde(reihe, t + timedelta(hours=5)) is None
+    assert eingaben.wert_zur_stunde([], t) is None

@@ -316,3 +316,63 @@ async def test_vergangene_stunden_behalten_ihre_prognose(hass, hass_ws_client, a
 
     assert len(prognose) == 24
     assert prognose[3]["wolken"] == 10
+
+
+async def test_lesen_liefert_vorschau_und_einzelne_raeume(hass, hass_ws_client, anlage, freezer):
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+
+    antwort = await _senden(client, type="heatnexus/automatik")
+
+    (kreis,) = antwort["result"]["heizkreise"]
+    assert [tag["titel"] for tag in kreis["vorschau"]] == ["Morgen", "Übermorgen"]
+    assert kreis["vorschau"][0]["begruendung"]
+    assert kreis["kennwerte"]["at"] == 12.0
+    assert kreis["kennwerte"]["raeume"][0]["wert"] == 21.4
+
+
+async def test_heute_wird_aus_der_aufzeichnung_nachgetragen(hass, anlage, monkeypatch, freezer):
+    from datetime import timedelta
+
+    from homeassistant.core import State
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import nachladen
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    anfang = dt_util.start_of_local_day()
+    zustaende = {
+        "weather.home": [
+            State(
+                "weather.home",
+                "sunny",
+                {"temperature": 6.5, "cloud_coverage": 20},
+                last_updated=anfang + timedelta(hours=2, minutes=50),
+            ),
+        ],
+        "sensor.wohnzimmer": [
+            State("sensor.wohnzimmer", "20.5", last_updated=anfang + timedelta(hours=1)),
+        ],
+    }
+
+    class Instanz:
+        async def async_add_executor_job(self, aufgabe):
+            return zustaende
+
+    import homeassistant.components.recorder as recorder
+
+    monkeypatch.setattr(recorder, "get_instance", lambda _hass: Instanz(), raising=False)
+    hass.config.components.add("recorder")
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await nachladen.heute_nachtragen(hass, laufzeit)
+
+    stunden = laufzeit.verlauf["stunden"]
+    assert stunden["3"]["prognose"] == 6.5
+    assert stunden["3"]["wolken"] == 10  # schon aus der Prognose gemerkt; Vorhandenes bleibt
+    assert stunden["2"]["raum"] == 20.5

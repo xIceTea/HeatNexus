@@ -14,6 +14,7 @@ import logging
 from typing import Any
 
 from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
@@ -27,7 +28,7 @@ from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
 from ..helpers import get_oid_value
-from . import eingaben, korrektur, profile, regel
+from . import eingaben, korrektur, nachladen, profile, regel
 from .steller import Stand, Steller
 
 _LOGGER = logging.getLogger(__name__)
@@ -133,6 +134,7 @@ class Laufzeit:
         self._wiederholung: Callable[[], None] | None = None
         self._fehlschlaege = 0
         self._erzwingen = False
+        self._nachladen: Any = None
 
     # --- Eigenschaften -------------------------------------------------------
     @property
@@ -189,6 +191,9 @@ class Laufzeit:
                 )
         await self._prognose_holen()
         await self.auswerten()
+        self._nachladen = self.hass.async_create_background_task(
+            nachladen.heute_nachtragen(self.hass, self), f"heatnexus_automatik_{self.device_id}"
+        )
 
     def stoppen(self) -> None:
         """Alle Auslöser abmelden."""
@@ -198,6 +203,8 @@ class Laufzeit:
         if self._wiederholung:
             self._wiederholung()
             self._wiederholung = None
+        if self._nachladen is not None and not self._nachladen.done():
+            self._nachladen.cancel()
         client = self.coordinator.client
         for adresse in ABRUF:
             client.unregister_poll_oid(f"{self.prefix}{adresse}")
@@ -364,7 +371,7 @@ class Laufzeit:
     def _wert(self, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, self.prefix)
 
-    def _zahl(self, entity_id: str | None) -> float | None:
+    def zahl(self, entity_id: str | None) -> float | None:
         if not entity_id or (zustand := self.hass.states.get(entity_id)) is None:
             return None
         if zustand.state in UNGUELTIG:
@@ -375,12 +382,12 @@ class Laufzeit:
             return None
 
     def _raum(self) -> float | None:
-        werte = [self._zahl(e) for e in self.konfig["raeume"]]
+        werte = [self.zahl(e) for e in self.konfig["raeume"]]
         return eingaben.raumwert(werte, self.konfig["raum_art"])
 
     def _aussen(self) -> float | None:
         if self.konfig.get("aussen"):
-            return self._zahl(self.konfig["aussen"])
+            return self.zahl(self.konfig["aussen"])
         return self._wert("/0/0/0")
 
     def _daempfen(self, jetzt: datetime) -> None:
@@ -394,8 +401,33 @@ class Laufzeit:
         self.stufen = eingaben.daempfen(self.stufen, at, dauer, self.werte.tau_h)
         self.stufen_zeit = jetzt
 
-    def _kwh(self, entity_id: str | None) -> float | None:
-        if (wert := self._zahl(entity_id)) is None:
+    def aussen_entitaet(self) -> str | None:
+        """Die Entität des Außenfühlers: eigene Wahl oder der Fühler des Heizkreises."""
+        if self.konfig.get("aussen"):
+            return self.konfig["aussen"]
+        from ..const import DOMAIN as DOMAENE
+
+        return er.async_get(self.hass).async_get_entity_id(
+            "sensor", DOMAENE, f"{self.device_id}-0-0-0"
+        )
+
+    def stunde_nachtragen(self, stunde: int, **werte: float | None) -> None:
+        """Werte einer vergangenen Stunde von heute ergänzen; Vorhandenes bleibt."""
+        heute = dt_util.now().date().isoformat()
+        if self.verlauf["datum"] != heute:
+            self.verlauf = {"datum": heute, "stunden": {}}
+        eintrag = self.verlauf["stunden"].setdefault(str(stunde), {})
+        for name, wert in werte.items():
+            if wert is not None and eintrag.get(name) is None:
+                eintrag[name] = wert
+
+    def nachgetragen(self) -> None:
+        """Nach dem Nachtragen speichern und die Oberfläche auffrischen."""
+        self._speichern()
+        async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
+
+    def kwh(self, entity_id: str | None) -> float | None:
+        if (wert := self.zahl(entity_id)) is None:
             return None
         zustand = self.hass.states.get(entity_id)
         einheit = str(zustand.attributes.get("unit_of_measurement") or "") if zustand else ""
@@ -405,9 +437,9 @@ class Laufzeit:
         """Messwerte für die Prognosekorrektur und den Verlauf des Tages ablegen."""
         at = self._aussen()
         self.temperatur.messen(jetzt, at)
-        self.pv.prognose_merken(jetzt, self._kwh(self.konfig.get("pv")))
+        self.pv.prognose_merken(jetzt, self.kwh(self.konfig.get("pv")))
         if self.konfig.get("pv_ist"):
-            self.pv.ist_merken(jetzt, self._kwh(self.konfig["pv_ist"]))
+            self.pv.ist_merken(jetzt, self.kwh(self.konfig["pv_ist"]))
         heute = jetzt.date().isoformat()
         if self.verlauf["datum"] != heute:
             self.verlauf = {"datum": heute, "stunden": {}}
@@ -501,7 +533,7 @@ class Laufzeit:
     def _sonnenquote(self, jetzt: datetime, aufgang: datetime, untergang: datetime) -> float | None:
         heute = jetzt.date().isoformat()
         faktor = self.pv.faktor(self.werte.lernfenster, jetzt.date())
-        pv_prognose = self._kwh(self.konfig.get("pv"))
+        pv_prognose = self.kwh(self.konfig.get("pv"))
         if (
             self.konfig.get("pv_ist")
             and (
@@ -512,17 +544,22 @@ class Laufzeit:
             is not None
         ):
             return quote
-        if (pv := self._zahl(self.konfig.get("pv"))) is not None:
+        if (pv := self.zahl(self.konfig.get("pv"))) is not None:
             self.pv_tage[heute] = max(pv, self.pv_tage.get(heute, 0.0))
             grenze = (jetzt.date() - timedelta(days=PV_TAGE)).isoformat()
             self.pv_tage = {tag: wert for tag, wert in self.pv_tage.items() if tag > grenze}
             bisher = [wert for tag, wert in self.pv_tage.items() if tag != heute]
             if (quote := eingaben.sonnenquote_aus_pv(pv, bisher)) is not None:
                 return quote
+        return self.quote_aus_bewoelkung(jetzt.date(), aufgang, untergang)
+
+    def quote_aus_bewoelkung(
+        self, tag: date, aufgang: datetime, untergang: datetime
+    ) -> float | None:
+        # Aus allen Stunden des Tages, auch den schon vergangenen aus dem Verlauf.
         stunden = [
-            (zeit, eintrag.get("cloud_coverage"))
-            for eintrag in self.stunden
-            if (zeit := ortszeit(eintrag.get("datetime"))) is not None
+            (aufgang.replace(hour=stunde, minute=0, second=0, microsecond=0), werte["wolken"])
+            for stunde, werte in self.stundenprognose(tag).items()
         ]
         return eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang)
 

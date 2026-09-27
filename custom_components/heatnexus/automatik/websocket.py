@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import datetime
-import math
 from typing import Any
 
 from homeassistant.components import websocket_api
@@ -22,9 +21,9 @@ import voluptuous as vol
 
 from ..const import DOMAIN
 from ..rechte import darf_lesen
-from . import korrektur, profile, regel
+from . import korrektur, profile, tagesansicht
 from .konfig import LISTEN_MAX, MODI, RAUM_ARTEN, pv_ist_passt, pv_passt, raumfuehler_passt
-from .laufzeit import Laufzeit, ortszeit
+from .laufzeit import Laufzeit
 from .verwaltung import DOMAENE_JE_ART, Verwaltung, unique_id, verwaltung_holen
 
 PROTOKOLL_ANZEIGE = 20
@@ -36,66 +35,6 @@ ENTITAET = vol.All(str, vol.Length(max=255))
 
 def _liste(grenze: int) -> vol.All:
     return vol.All([ENTITAET], vol.Length(max=grenze))
-
-
-def _stunde(zeit: datetime | None, heute: Any) -> float | None:
-    if zeit is None:
-        return None
-    lokal = dt_util.as_local(zeit)
-    if lokal.date() != heute:
-        return 24.0 if lokal.date() > heute else 0.0
-    return lokal.hour + lokal.minute / 60
-
-
-def _sonne(laufzeit: Laufzeit, jetzt: datetime) -> list[float]:
-    """Relative Einstrahlung je Stunde: Tagbogen mal (1 − Bewölkung)."""
-    aufgang, untergang = laufzeit.sonne(jetzt.date())
-    if not aufgang or not untergang or not laufzeit.stunden:
-        return []
-    wolken: dict[int, float] = {}
-    for eintrag in laufzeit.stunden:
-        zeit = ortszeit(eintrag.get("datetime"))
-        if zeit and zeit.date() == jetzt.date() and eintrag.get("cloud_coverage") is not None:
-            wolken[zeit.hour] = float(eintrag["cloud_coverage"])
-    auf = aufgang.hour + aufgang.minute / 60
-    unter = untergang.hour + untergang.minute / 60
-    werte = []
-    for stunde in range(25):
-        if not auf < stunde < unter:
-            werte.append(0.0)
-            continue
-        bogen = math.sin(math.pi * (stunde - auf) / (unter - auf))
-        anteil = 1 - wolken.get(stunde, 50.0) / 100
-        werte.append(round(max(0.0, bogen * anteil), 3))
-    return werte
-
-
-def _aktion(g: regel.Gedaechtnis, stunde: int, heute: Any) -> str:
-    """Was die Automatik in dieser Stunde tut – für den Streifen im Stundenraster."""
-    if g.saison == regel.NUR_WW:
-        return "nur_ww"
-    von = _stunde(g.absenkung_von, heute)
-    bis = _stunde(g.absenkung_ziel or g.absenkung_bis, heute)
-    if von is not None and bis is not None and von <= stunde < bis:
-        return "absenkung"
-    return "programm"
-
-
-def _stunden(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
-    prognose = laufzeit.stundenprognose(jetzt.date())
-    gemessen = (
-        laufzeit.verlauf["stunden"] if laufzeit.verlauf["datum"] == jetzt.date().isoformat() else {}
-    )
-    return [
-        {
-            "stunde": stunde,
-            **(prognose.get(stunde) or {"roh": None, "korrigiert": None, "wolken": None}),
-            "at": (gemessen.get(str(stunde)) or {}).get("at"),
-            "raum": (gemessen.get(str(stunde)) or {}).get("raum"),
-            "aktion": _aktion(laufzeit.gedaechtnis, stunde, jetzt.date()),
-        }
-        for stunde in range(24)
-    ]
 
 
 def _korrektur(laufzeit: Laufzeit, jetzt: datetime) -> dict[str, Any]:
@@ -141,7 +80,6 @@ def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: d
     werte = laufzeit.werte
     lage = laufzeit.lage
     g = laufzeit.gedaechtnis
-    heute = jetzt.date()
     ergebnis.update(
         eingerichtet=True,
         konfig=laufzeit.konfig,
@@ -152,22 +90,16 @@ def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: d
             "sonnenquote": lage.sonnenquote if lage else None,
             "raum": lage.raum if lage else None,
             "soll": g.absenkung_basis or g.saison_soll or (lage.soll if lage else None),
+            "at": lage.at if lage else None,
             "at_gedaempft": lage.at_gedaempft if lage else None,
+            "raeume": tagesansicht.raumwerte(laufzeit),
+            "raum_art": laufzeit.konfig["raum_art"],
             "heizgrenze": werte.heizgrenze,
             "eingriffe": laufzeit.steller.stand.eingriffe,
             "budget": werte.budget,
         },
-        tag={
-            "sonne": _sonne(laufzeit, jetzt),
-            "absenkung_von": _stunde(g.absenkung_von, heute),
-            "absenkung_bis": _stunde(g.absenkung_bis, heute),
-            "absenkung_ziel": _stunde(g.absenkung_ziel, heute),
-            "entscheidungen": [
-                int(z[:2]) + int(z[3:]) / 60 for z in (werte.entscheidung, werte.nachpruefung) if z
-            ],
-            "jetzt": jetzt.hour + jetzt.minute / 60,
-            "stunden": _stunden(laufzeit, jetzt),
-        },
+        tag=tagesansicht.heute(laufzeit, jetzt),
+        vorschau=tagesansicht.vorschau(laufzeit, jetzt),
         korrektur=_korrektur(laufzeit, jetzt),
         protokoll=list(laufzeit.steller.stand.protokoll[:PROTOKOLL_ANZEIGE]),
         beobachtet_seit=laufzeit.beobachtet_seit.isoformat(),
