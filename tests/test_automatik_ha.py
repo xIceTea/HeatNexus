@@ -92,6 +92,11 @@ async def anlage(hass):
     )
     eintrag = MockConfigEntry(domain=DOMAIN, state=ConfigEntryState.LOADED)
     eintrag.add_to_hass(hass)
+    from homeassistant.helpers import entity_registry as er
+
+    er.async_get(hass).async_get_or_create(
+        "climate", DOMAIN, f"{HEIZKREIS}-thermostat", config_entry=eintrag
+    )
     coordinator = Coordinator()
     eintrag.runtime_data = {"coordinators": {"192.0.2.10": coordinator}}
     async_register_automatik(hass)

@@ -156,7 +156,8 @@ async def _ws_lesen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> Non
     for entry in _geladene(hass):
         for coordinator, beschreibung in Verwaltung.heizkreise(entry):
             klima = register.async_get_entity_id("climate", DOMAIN, beschreibung.get("id", ""))
-            if klima and not darf_lesen(connection.user, klima):
+            # Ohne Klima-Entität gibt es nichts zu prüfen und nichts zu bedienen.
+            if not klima or not darf_lesen(connection.user, klima):
                 continue
             heizkreise.append(_eintrag(hass, verwaltung, coordinator, beschreibung))
     connection.send_result(
