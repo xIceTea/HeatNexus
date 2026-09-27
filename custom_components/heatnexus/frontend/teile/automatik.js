@@ -9,6 +9,8 @@
  */
 
 // Höchstens so oft wird nachgeladen, solange der Reiter offen ist.
+// Wie auf dem Server: So lange darf ein Raumfühler schweigen, dann gilt er als veraltet.
+export const VERALTET_STUNDEN = 6;
 export const AUTOMATIK_TAKT_MS = 60 * 1000;
 
 export const FELDER = [
@@ -114,7 +116,8 @@ export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null) {
   const jetzt = tag && tag.jetzt !== undefined && tag.jetzt !== null ? Number(tag.jetzt) : null;
   const gemessen = stunden.map((s) => [s.stunde, jetzt !== null && s.stunde > jetzt ? null : s.at]);
   const prognose = stunden.map((s) => [s.stunde, jetzt !== null && s.stunde < Math.floor(jetzt) ? null : s.korrigiert ?? s.roh]);
-  const alle = [...gemessen, ...prognose].map(([, w]) => w).filter((w) => w !== null && w !== undefined);
+  const gedaempft = stunden.map((s) => [s.stunde, jetzt !== null && s.stunde > jetzt ? null : s.gedaempft]);
+  const alle = [...gemessen, ...prognose, ...gedaempft].map(([, w]) => w).filter((w) => w !== null && w !== undefined);
   if (heizgrenze !== null && heizgrenze !== undefined) alle.push(Number(heizgrenze));
   if (alle.length) {
     const min = Math.min(...alle) - 1;
@@ -127,6 +130,8 @@ export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null) {
     if (pfadGemessen) teile.push(`<path class="al-aussen" d="${pfadGemessen}"/>`);
     const pfadPrognose = linie(prognose, x, y);
     if (pfadPrognose) teile.push(`<path class="al-prognose" d="${pfadPrognose}"/>`);
+    const pfadGedaempft = linie(gedaempft, x, y);
+    if (pfadGedaempft) teile.push(`<path class="al-gedaempft" d="${pfadGedaempft}"/>`);
   }
   teile.push(`<rect class="al-grund" x="0" y="${bandY}" width="${breite}" height="${band}" rx="5"/>`);
   const von = tag && tag.absenkung_von;
@@ -368,7 +373,7 @@ export const AutomatikMixin = (Basis) =>
       const kacheln = [
         ["sonne", `${zahl(k.sonnenquote, 0)} %`, "Sonnenquote heute", `ab ${zahl(w.sonnenquote, 0)} %`],
         ["", `${zahl(k.raum)} °C`, k.raum_art === "minimum" ? "Raum, kältester" : "Raum, Mittel", `Soll ${zahl(k.soll)} °C`],
-        ["", `${zahl(k.at)} °C`, "Außen, Fühler Heizkreis", `gedämpft ${zahl(k.at_gedaempft)} · Grenze ${zahl(k.heizgrenze)} °C`],
+        ["", `${zahl(k.at)} · ${zahl(k.at_gedaempft)} °C`, "Außen · gedämpft", `Heizgrenze ${zahl(k.heizgrenze)} °C`],
         ["", `${k.eingriffe ?? 0} / ${k.budget ?? "–"}`, "Eingriffe heute", "Budget"],
       ];
       kacheln.forEach(([art, wert, bezeichnung, schwelle]) => {
@@ -390,7 +395,10 @@ export const AutomatikMixin = (Basis) =>
           liste.className = "raeume";
           k.raeume.forEach((raum) => {
             const zeile = document.createElement("div");
-            zeile.textContent = `${raum.name} ${zahl(raum.wert)} °C`;
+            zeile.textContent = raum.veraltet
+              ? this._tMit("{name} {wert} °C – veraltet, zählt nicht", { name: raum.name, wert: zahl(raum.wert) })
+              : `${raum.name} ${zahl(raum.wert)} °C`;
+            if (raum.veraltet) zeile.className = "veraltet";
             liste.appendChild(zeile);
           });
           kachel.appendChild(liste);
@@ -436,6 +444,7 @@ export const AutomatikMixin = (Basis) =>
         ["al-sonne", "Sonne laut Prognose"],
         ["al-aussen", "Außen gemessen"],
         ["al-prognose", "Außen Prognose, angepasst"],
+        ["al-gedaempft", "gedämpfte AT"],
         ["al-grenze", "Heizgrenze"],
         ["al-absenkung", "Absenkung"],
       ].forEach(([klasse, titel]) => {
@@ -883,8 +892,12 @@ export const AutomatikMixin = (Basis) =>
         haken.type = "checkbox";
         haken.value = eintrag.entity_id;
         haken.checked = gewaehlt.includes(eintrag.entity_id);
-        const titel = eintrag.bereich ? `${eintrag.name} · ${eintrag.bereich}` : eintrag.name;
-        liste.appendChild(this._automatikMitText(haken, titel));
+        const teile = [eintrag.name, eintrag.bereich, eintrag.wert].filter(Boolean);
+        const alter = eintrag.seit ? (Date.now() - Date.parse(eintrag.seit)) / 3600000 : 0;
+        if (alter > VERALTET_STUNDEN) teile.push(this._tMit("seit {tage} Tagen ohne Meldung", { tage: Math.floor(alter / 24) }));
+        const zeile = this._automatikMitText(haken, teile.join(" · "));
+        if (alter > VERALTET_STUNDEN) zeile.classList.add("veraltet");
+        liste.appendChild(zeile);
       });
       return liste;
     }

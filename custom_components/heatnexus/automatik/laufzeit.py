@@ -37,6 +37,8 @@ TAKT = timedelta(minutes=5)
 PROGNOSE_TAKT = timedelta(hours=1)
 PROGNOSE_MAX_ALTER = timedelta(hours=6)
 ABWESEND_NACH = timedelta(minutes=30)
+# Ein ausgefallener Fühler meldet in HA seinen letzten Wert weiter; nach so langer Stille zählt er nicht.
+RAUM_VERALTET = timedelta(hours=6)
 FENSTER_DAUER = timedelta(minutes=30)
 PAUSE_BIS_STUNDE = 5
 PV_TAGE = 30
@@ -103,6 +105,7 @@ class Laufzeit:
             (float(stufen[0]), float(stufen[1])) if isinstance(stufen, list | tuple) else None
         )
         self.stufen_zeit = ortszeit(z.get("stufen_zeit"))
+        self.stufen_start = ortszeit(z.get("stufen_start"))
         self.pausiert_bis = ortszeit(z.get("pausiert_bis"))
         self.beobachtet_seit = ortszeit(z.get("beobachtet_seit")) or dt_util.now()
         self.pv_tage: dict[str, float] = {
@@ -156,6 +159,7 @@ class Laufzeit:
             "stand": self.steller.stand.als_dict(),
             "stufen": list(self.stufen) if self.stufen else None,
             "stufen_zeit": self.stufen_zeit.isoformat() if self.stufen_zeit else None,
+            "stufen_start": self.stufen_start.isoformat() if self.stufen_start else None,
             "pausiert_bis": self.pausiert_bis.isoformat() if self.pausiert_bis else None,
             "beobachtet_seit": self.beobachtet_seit.isoformat(),
             "pv_tage": self.pv_tage,
@@ -381,8 +385,19 @@ class Laufzeit:
         except ValueError:
             return None
 
+    def seit(self, entity_id: str) -> datetime | None:
+        """Wann der Sensor zuletzt gemeldet hat, auch ohne neuen Wert."""
+        if (zustand := self.hass.states.get(entity_id)) is None:
+            return None
+        return getattr(zustand, "last_reported", None) or zustand.last_updated
+
+    def veraltet(self, entity_id: str) -> bool:
+        """Ob ein Raumfühler zu lange nichts gemeldet hat."""
+        seit = self.seit(entity_id)
+        return seit is not None and dt_util.utcnow() - seit > RAUM_VERALTET
+
     def _raum(self) -> float | None:
-        werte = [self.zahl(e) for e in self.konfig["raeume"]]
+        werte = [None if self.veraltet(e) else self.zahl(e) for e in self.konfig["raeume"]]
         return eingaben.raumwert(werte, self.konfig["raum_art"])
 
     def _aussen(self) -> float | None:
@@ -397,6 +412,7 @@ class Laufzeit:
         if self.stufen is None and (mittel := self.tagesmittel(jetzt.date())):
             self.stufen = (mittel, mittel)
             self.stufen_zeit = jetzt
+            self.stufen_start = jetzt
         dauer = (jetzt - self.stufen_zeit).total_seconds() if self.stufen_zeit else 0.0
         self.stufen = eingaben.daempfen(self.stufen, at, dauer, self.werte.tau_h)
         self.stufen_zeit = jetzt
@@ -420,6 +436,15 @@ class Laufzeit:
         for name, wert in werte.items():
             if wert is not None and eintrag.get(name) is None:
                 eintrag[name] = wert
+
+    def stufen_uebernehmen(self, stufen: tuple[float, float], zeit: datetime) -> None:
+        """Die aus dem Tag nachgerechnete gedämpfte AT übernehmen, wenn die eigene jünger ist."""
+        # Ein heute gesetzter Startwert beruht auf einer Schätzung, der nachgerechnete auf Messwerten.
+        if self.stufen_start is not None and self.stufen_start.date() < zeit.date():
+            return
+        self.stufen = stufen
+        self.stufen_zeit = zeit
+        self.stufen_start = dt_util.start_of_local_day(zeit.date())
 
     def nachgetragen(self) -> None:
         """Nach dem Nachtragen speichern und die Oberfläche auffrischen."""
@@ -445,7 +470,8 @@ class Laufzeit:
             self.verlauf = {"datum": heute, "stunden": {}}
         stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
         if "at" not in stunde:
-            stunde.update(at=at, raum=self._raum())
+            gedaempft = round(self.stufen[1], 2) if self.stufen else None
+            stunde.update(at=at, raum=self._raum(), gedaempft=gedaempft)
 
     def tagesmittel(self, tag: date) -> float | None:
         """Tagesmittel der Prognose, um den gelernten Versatz verschoben."""

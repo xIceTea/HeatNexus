@@ -1252,6 +1252,12 @@ export const STIL = `
   .automatik-stunde .raum { font-size: 10px; font-weight: 700; border-radius: 5px; margin: 0 3px; padding: 2px 0; }
   .automatik-stunde .raum.ueber { background: color-mix(in srgb, #7bd88f 30%, transparent); color: var(--hn-text); }
   .automatik-stunde .raum.unter { background: color-mix(in srgb, #8fd3ff 30%, transparent); color: var(--hn-text); }
+  .automatik-tag .al-gedaempft {
+    fill: none; stroke: var(--hn-akzent); stroke-width: 2; vector-effect: non-scaling-stroke;
+  }
+  .automatik-legende i.al-gedaempft { background: var(--hn-akzent); height: 3px; }
+  .automatik-wert .raeume .veraltet { color: #ffab6f; }
+  .automatik-haken-zeile.veraltet { color: #ffab6f; }
   .automatik-legende i.al-aussen { background: #ffab6f; height: 3px; }
   .automatik-legende i.al-prognose {
     height: 3px; background: repeating-linear-gradient(90deg, #ffab6f 0 4px, transparent 4px 7px);

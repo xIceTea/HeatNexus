@@ -69,15 +69,23 @@ async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
     wolken = _reihe(wetter, "cloud_coverage")
     aussenreihe = _reihe(zustaende.get(aussen, [])) if aussen else []
     raeume = [_reihe(zustaende.get(raum, [])) for raum in k["raeume"]]
+    stufen = None
     for stunde in range(jetzt.hour):
         zeit = anfang + timedelta(hours=stunde)
+        at = eingaben.wert_zur_stunde(aussenreihe, zeit)
+        # Die gedämpfte AT der vergangenen Stunden aus den Messwerten nachrechnen.
+        if at is not None:
+            stufen = eingaben.daempfen(stufen, at, 3600, laufzeit.werte.tau_h)
         laufzeit.stunde_nachtragen(
             stunde,
+            gedaempft=round(stufen[1], 2) if stufen else None,
             prognose=eingaben.wert_zur_stunde(temperaturen, zeit),
             wolken=eingaben.wert_zur_stunde(wolken, zeit),
-            at=eingaben.wert_zur_stunde(aussenreihe, zeit),
+            at=at,
             raum=eingaben.raumwert(
                 [eingaben.wert_zur_stunde(reihe, zeit) for reihe in raeume], k["raum_art"]
             ),
         )
+    if stufen is not None:
+        laufzeit.stufen_uebernehmen(stufen, anfang + timedelta(hours=max(jetzt.hour - 1, 0)))
     laufzeit.nachgetragen()

@@ -208,11 +208,15 @@ def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None
             ziel = "fenster"
         else:
             continue
+        einheit = zustand.attributes.get("unit_of_measurement") or ""
+        seit = getattr(zustand, "last_reported", None) or zustand.last_updated
         listen[ziel].append(
             {
                 "entity_id": entity_id,
                 "name": str(zustand.attributes.get("friendly_name") or entity_id),
                 "bereich": _bereich(hass, eintrag),
+                "wert": f"{zustand.state} {einheit}".strip(),
+                "seit": seit.isoformat(),
             }
         )
     for liste in listen.values():

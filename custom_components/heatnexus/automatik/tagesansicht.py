@@ -72,6 +72,7 @@ def stunden(laufzeit: Laufzeit, tag: date, g: regel.Gedaechtnis) -> list[dict[st
             **(prognose.get(stunde) or leer),
             "at": (gemessen.get(str(stunde)) or {}).get("at"),
             "raum": (gemessen.get(str(stunde)) or {}).get("raum"),
+            "gedaempft": (gemessen.get(str(stunde)) or {}).get("gedaempft"),
             "aktion": _aktion(g, stunde, tag),
         }
         for stunde in range(24)
@@ -135,9 +136,16 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
     for abstand in range(1, VORSCHAU_TAGE + 1):
         tag = jetzt.date() + timedelta(days=abstand)
         quote = _quote(laufzeit, tag, abstand)
+        # Für einen kommenden Tag steht die gedämpfte AT noch nicht fest; das Mittel aus
+        # Vortag und Tag laut angepasster Prognose kommt ihr am nächsten.
+        mittel = [
+            m
+            for m in (laufzeit.tagesmittel(tag - timedelta(days=1)), laufzeit.tagesmittel(tag))
+            if m is not None
+        ]
         lage = regel.Lage(
             jetzt=dt_util.start_of_local_day(tag).replace(hour=stunde, minute=minute),
-            at_gedaempft=laufzeit.stufen[1] if laufzeit.stufen else None,
+            at_gedaempft=sum(mittel) / len(mittel) if mittel else None,
             raum=soll,
             soll=soll,
             sonnenquote=quote,
@@ -174,7 +182,14 @@ def raumwerte(laufzeit: Laufzeit) -> list[dict[str, Any]]:
     for entity_id in laufzeit.konfig["raeume"]:
         zustand = laufzeit.hass.states.get(entity_id)
         name = zustand.attributes.get("friendly_name") if zustand else None
+        seit = laufzeit.seit(entity_id)
         ergebnis.append(
-            {"entity_id": entity_id, "name": name or entity_id, "wert": laufzeit.zahl(entity_id)}
+            {
+                "entity_id": entity_id,
+                "name": name or entity_id,
+                "wert": laufzeit.zahl(entity_id),
+                "veraltet": laufzeit.veraltet(entity_id),
+                "seit": seit.isoformat() if seit else None,
+            }
         )
     return ergebnis
