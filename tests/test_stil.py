@@ -33,3 +33,13 @@ def test_verborgene_elemente_bleiben_verborgen():
 def test_stehende_pumpe_folgt_dem_farbsatz():
     """Ein fester dunkler Grund wirkt im hellen Farbsatz wie ein Loch."""
     assert "var(--hn-karte" in _regel(".schaubild .pumpe")
+
+
+def test_safari_vergroessert_lange_zeilen_nicht():
+    """iOS-Safari hebt die Schrift langer Zeilen sonst eigenmächtig an."""
+    assert "text-size-adjust: 100%" in STIL
+
+
+def test_kopf_der_automatik_bricht_um():
+    """Name, Zustand und Einrichtung passen auf dem Telefon nicht in eine Zeile."""
+    assert "flex-wrap: wrap" in _regel(".karte.automatik > .kartenkopf")

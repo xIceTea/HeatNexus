@@ -32,6 +32,9 @@ export const STIL = `
 
   :host {
     display: block;
+    /* iOS-Safari hebt die Schrift langer Zeilen sonst eigenmächtig an. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     background: var(--hn-grund);
     color: var(--hn-text);
     min-height: 100%;
@@ -1127,7 +1130,9 @@ export const STIL = `
   .automatik-marke.z-sicherheit, .automatik-marke.z-keine_daten {
     background: rgba(255, 171, 111, 0.15); color: #ffab6f;
   }
-  .karte.automatik > .kartenkopf h2 { flex: 0 1 auto; }
+  .karte.automatik > .kartenkopf { flex-wrap: wrap; row-gap: 6px; }
+  .karte.automatik > .kartenkopf h2 { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+  .karte.automatik > .kartenkopf .automatik-knopf { margin-left: auto; }
   .karte.automatik > .kartenkopf .automatik-marke { margin-right: auto; }
   .automatik-punkt { color: var(--hn-gedaempft); }
   .automatik-zeile { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
