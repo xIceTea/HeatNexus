@@ -1,0 +1,210 @@
+"""Alle Automatiken: Einstellungen und Zustand im Store, Start und Stopp je Eintrag.
+
+Die Einstellungen liegen bewusst nicht in Subeinträgen: Deren Änderung weckt
+die Update-Listener des Eintrags und kann die ganze Integration neu laden.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
+from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
+
+from ..const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
+from . import konfig as konfig_modul
+from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
+
+_LOGGER = logging.getLogger(__name__)
+
+STORE_KEY = f"{DOMAIN}.automatik"
+STORE_VERSION = 1
+SPEICHER_VERZOEGERUNG_S = 30
+DATEN_SCHLUESSEL = f"{DOMAIN}_automatik"
+SIGNAL_NEU = f"{DOMAIN}_automatik_neu_{{}}"
+ARTEN = ("schalter", "modus", "zustand")
+DOMAENE_JE_ART = {"schalter": "switch", "modus": "select", "zustand": "sensor"}
+
+
+def verwaltung_holen(hass: HomeAssistant) -> Verwaltung:
+    """Die eine Verwaltung je Home-Assistant-Instanz."""
+    if (verwaltung := hass.data.get(DATEN_SCHLUESSEL)) is None:
+        verwaltung = hass.data[DATEN_SCHLUESSEL] = Verwaltung(hass)
+    return verwaltung
+
+
+def unique_id(device_id: str, art: str) -> str:
+    """Kennung einer Automatik-Entität; hängt an der Kennung des Heizkreises."""
+    return f"{device_id}-automatik-{art}"
+
+
+class Verwaltung:
+    """Hält die Laufzeiten und den gemeinsamen Store."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+        self._store: Store = Store(hass, STORE_VERSION, STORE_KEY)
+        self._daten: dict[str, Any] = {"heizkreise": {}}
+        self._geladen = False
+        self.laufzeiten: dict[str, Laufzeit] = {}
+
+    async def laden(self) -> None:
+        """Den Store einmal lesen."""
+        if self._geladen:
+            return
+        roh = await self._store.async_load() or {}
+        heizkreise = roh.get("heizkreise") if isinstance(roh, dict) else None
+        self._daten = {"heizkreise": heizkreise if isinstance(heizkreise, dict) else {}}
+        self._geladen = True
+
+    @callback
+    def speichern(self) -> None:
+        """Verzögert sichern; viele Läufe kurz hintereinander ergeben einen Schreibvorgang."""
+        self._store.async_delay_save(self._abzug, SPEICHER_VERZOEGERUNG_S)
+
+    def _abzug(self) -> dict[str, Any]:
+        for device_id, laufzeit in self.laufzeiten.items():
+            if eintrag := self._daten["heizkreise"].get(device_id):
+                eintrag["zustand"] = laufzeit.als_dict()
+        return self._daten
+
+    def konfig(self, device_id: str) -> dict[str, Any] | None:
+        """Die gespeicherten Einstellungen eines Heizkreises."""
+        eintrag = self._daten["heizkreise"].get(device_id)
+        return eintrag.get("konfig") if eintrag else None
+
+    @staticmethod
+    def heizkreise(entry: ConfigEntry) -> list[tuple[Any, dict[str, Any]]]:
+        """Alle Heizkreise eines Eintrags: Coordinator und Klima-Beschreibung."""
+        daten = getattr(entry, "runtime_data", None) or {}
+        treffer: list[tuple[Any, dict[str, Any]]] = []
+        for coordinator in (daten.get("coordinators") or {}).values():
+            for beschreibung in (coordinator.data or {}).get("devices", []):
+                if beschreibung.get("type") == "climate" and beschreibung.get("device_id"):
+                    treffer.append((coordinator, beschreibung))
+        return treffer
+
+    # --- je Eintrag ----------------------------------------------------------
+    async def eintrag_starten(self, entry: ConfigEntry) -> None:
+        """Alle eingerichteten Automatiken des Eintrags starten."""
+        await self.laden()
+        await self._nachholen(entry)
+
+        @callback
+        def _neu() -> None:
+            self.hass.async_create_task(self._nachholen(entry))
+
+        entry.async_on_unload(
+            async_dispatcher_connect(self.hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id), _neu)
+        )
+
+    async def _nachholen(self, entry: ConfigEntry) -> None:
+        # Ein Heizkreis kann erst nach dem Vollabzug bekannt sein.
+        for device_id, eintrag in list(self._daten["heizkreise"].items()):
+            konfig = eintrag.get("konfig") or {}
+            if konfig.get("entry_id") == entry.entry_id and device_id not in self.laufzeiten:
+                await self._starten(entry, device_id)
+
+    async def _starten(self, entry: ConfigEntry, device_id: str) -> bool:
+        treffer = next((t for t in self.heizkreise(entry) if t[1]["device_id"] == device_id), None)
+        eintrag = self._daten["heizkreise"].get(device_id)
+        if treffer is None or eintrag is None:
+            return False
+        coordinator, beschreibung = treffer
+        laufzeit = Laufzeit(
+            self.hass,
+            coordinator,
+            beschreibung,
+            eintrag["konfig"],
+            eintrag.get("zustand"),
+            self.speichern,
+            entry.entry_id,
+        )
+        self.laufzeiten[device_id] = laufzeit
+        async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))
+        await laufzeit.starten()
+        return True
+
+    async def eintrag_stoppen(self, entry: ConfigEntry) -> None:
+        """Die Automatiken des Eintrags anhalten; ihr Zustand bleibt im Store."""
+        self._abzug()
+        for device_id, laufzeit in list(self.laufzeiten.items()):
+            if laufzeit.entry_id == entry.entry_id:
+                laufzeit.stoppen()
+                del self.laufzeiten[device_id]
+        await self._store.async_save(self._daten)
+
+    async def eintrag_entfernt(self, entry_id: str) -> None:
+        """Einstellungen eines gelöschten Eintrags verwerfen."""
+        await self.laden()
+        self._daten["heizkreise"] = {
+            device_id: eintrag
+            for device_id, eintrag in self._daten["heizkreise"].items()
+            if (eintrag.get("konfig") or {}).get("entry_id") != entry_id
+        }
+        await self._store.async_save(self._daten)
+
+    # --- Bedienung -----------------------------------------------------------
+    async def einrichten(self, entry: ConfigEntry, roh: dict[str, Any]) -> dict[str, Any]:
+        """Eine Automatik anlegen; sie startet im Beobachtungsmodus."""
+        await self.laden()
+        konfig = konfig_modul.pruefen({**roh, "entry_id": entry.entry_id, "modus": "beobachten"})
+        if konfig is None:
+            raise ValueError("Raumfühler und Wetter-Entität sind nötig.")
+        device_id = konfig["heizkreis"]
+        if device_id in self.laufzeiten:
+            raise ValueError("Für diesen Heizkreis gibt es schon eine Automatik.")
+        self._daten["heizkreise"][device_id] = {"konfig": konfig, "zustand": {}}
+        if not await self._starten(entry, device_id):
+            del self._daten["heizkreise"][device_id]
+            raise ValueError("Diesen Heizkreis kennt die Anlage nicht.")
+        self.speichern()
+        return konfig
+
+    async def einstellen(self, device_id: str, aenderung: dict[str, Any]) -> dict[str, Any]:
+        """Einstellungen ändern; beim Wechsel ins Beobachten oder Aus zurücknehmen."""
+        eintrag = self._daten["heizkreise"].get(device_id)
+        if eintrag is None:
+            raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
+        alt = eintrag["konfig"]
+        neu = konfig_modul.pruefen({**alt, **aenderung})
+        if neu is None:
+            raise ValueError("Raumfühler und Wetter-Entität sind nötig.")
+        if (laufzeit := self.laufzeiten.get(device_id)) is not None:
+            schaltete = alt["aktiv"] and alt["modus"] == "schalten"
+            schaltet = neu["aktiv"] and neu["modus"] == "schalten"
+            if schaltete and not schaltet:
+                await laufzeit.zuruecknehmen()
+            if schaltet and not schaltete:
+                laufzeit.gedaechtnis_leeren()
+            if neu["modus"] == "beobachten" and alt["modus"] != "beobachten":
+                laufzeit.beobachtet_seit = dt_util.now()
+            await laufzeit.neu_starten(neu)
+        eintrag["konfig"] = neu
+        self.speichern()
+        async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(device_id))
+        return neu
+
+    async def uebernehmen(self, device_id: str) -> None:
+        """Nach einem Handeingriff sofort weitermachen."""
+        if (laufzeit := self.laufzeiten.get(device_id)) is None:
+            raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
+        await laufzeit.uebernehmen()
+
+    async def entfernen(self, device_id: str) -> None:
+        """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten abräumen."""
+        if (laufzeit := self.laufzeiten.pop(device_id, None)) is not None:
+            await laufzeit.zuruecknehmen()
+            laufzeit.stoppen()
+        self._daten["heizkreise"].pop(device_id, None)
+        register = er.async_get(self.hass)
+        for art in ARTEN:
+            kennung = unique_id(device_id, art)
+            if entity_id := register.async_get_entity_id(DOMAENE_JE_ART[art], DOMAIN, kennung):
+                register.async_remove(entity_id)
+        await self._store.async_save(self._daten)

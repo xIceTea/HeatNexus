@@ -6,6 +6,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+from .automatik.entitaeten import anmelden as automatik_anmelden
 from .entity import WindhagerEntity, async_setup_entities
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
@@ -17,6 +18,7 @@ PARALLEL_UPDATES = 0
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager switches from a config entry."""
     async_setup_entities(hass, entry, async_add_entities, {"switch": WindhagerSwitch})
+    automatik_anmelden(hass, entry, async_add_entities, "schalter")
 
 
 class WindhagerSwitch(WindhagerEntity, SwitchEntity):

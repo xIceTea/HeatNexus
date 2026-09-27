@@ -8,6 +8,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+from .automatik.entitaeten import anmelden as automatik_anmelden
 from .entity import WindhagerEntity, async_setup_entities
 from .exceptions import WindhagerValueError
 
@@ -22,6 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager selects from a config entry."""
     async_setup_entities(hass, entry, async_add_entities, {"select": WindhagerSelect})
+    automatik_anmelden(hass, entry, async_add_entities, "modus")
 
 
 class WindhagerSelect(WindhagerEntity, SelectEntity):

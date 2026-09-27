@@ -238,6 +238,47 @@
           }
         }
       }
+    },
+    "switch": {
+      "automatik": {
+        "name": "Automatisme"
+      }
+    },
+    "select": {
+      "automatik_modus": {
+        "name": "Mode de l'automatisme",
+        "state": {
+          "beobachten": "Observer",
+          "schalten": "Commuter"
+        }
+      }
+    },
+    "sensor": {
+      "automatik_zustand": {
+        "name": "État de l'automatisme",
+        "state": {
+          "programm": "Chauffage selon programme",
+          "sonnentag": "Journée ensoleillée",
+          "nur_ww": "Eau chaude seule",
+          "abwesend": "Absent",
+          "pausiert": "En pause",
+          "fenster": "Fenêtre ouverte",
+          "keine_daten": "Pas de données",
+          "sicherheit": "Sécurité",
+          "aus": "Arrêt"
+        },
+        "state_attributes": {
+          "begruendung": {
+            "name": "Motif"
+          },
+          "pausiert_bis": {
+            "name": "En pause jusqu'à"
+          },
+          "eingriffe_heute": {
+            "name": "Interventions aujourd'hui"
+          }
+        }
+      }
     }
   },
   "issues": {
@@ -262,6 +303,10 @@
           "nicht_geladen": "L'installation n'est pas chargée actuellement. Veuillez réessayer plus tard."
         }
       }
+    },
+    "automatik_sicherheit": {
+      "title": "Automatisme {heizkreis} : retour au programme échoué",
+      "description": "Par sécurité, l'automatisme a voulu remettre le circuit de chauffage **{heizkreis}** sur son programme. La régulation a refusé deux fois.\n\nVeuillez vérifier le mode de fonctionnement du circuit et le régler manuellement. Ce message disparaît dès que la régulation accepte à nouveau une intervention de l'automatisme."
     }
   },
   "config_subentries": {

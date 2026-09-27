@@ -238,6 +238,47 @@
           }
         }
       }
+    },
+    "switch": {
+      "automatik": {
+        "name": "Automatik"
+      }
+    },
+    "select": {
+      "automatik_modus": {
+        "name": "Automatik-Modus",
+        "state": {
+          "beobachten": "Beobachten",
+          "schalten": "Schalten"
+        }
+      }
+    },
+    "sensor": {
+      "automatik_zustand": {
+        "name": "Automatik-Zustand",
+        "state": {
+          "programm": "Heizen nach Programm",
+          "sonnentag": "Sonnentag",
+          "nur_ww": "Nur Warmwasser",
+          "abwesend": "Abwesend",
+          "pausiert": "Pausiert",
+          "fenster": "Fenster offen",
+          "keine_daten": "Keine Daten",
+          "sicherheit": "Sicherheit",
+          "aus": "Aus"
+        },
+        "state_attributes": {
+          "begruendung": {
+            "name": "Begründung"
+          },
+          "pausiert_bis": {
+            "name": "Pausiert bis"
+          },
+          "eingriffe_heute": {
+            "name": "Eingriffe heute"
+          }
+        }
+      }
     }
   },
   "issues": {
@@ -262,6 +303,10 @@
           "nicht_geladen": "Die Anlage ist gerade nicht geladen. Bitte später erneut versuchen."
         }
       }
+    },
+    "automatik_sicherheit": {
+      "title": "Automatik {heizkreis}: Rückkehr ins Programm gescheitert",
+      "description": "Die Automatik wollte den Heizkreis **{heizkreis}** zur Sicherheit in sein Programm zurückstellen. Die Steuerung hat das zweimal abgelehnt.\n\nBitte die Betriebswahl des Heizkreises prüfen und von Hand einstellen. Diese Meldung verschwindet, sobald ein Eingriff der Automatik wieder angenommen wird."
     }
   },
   "config_subentries": {

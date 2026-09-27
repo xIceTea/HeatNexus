@@ -238,6 +238,47 @@
           }
         }
       }
+    },
+    "switch": {
+      "automatik": {
+        "name": "Automation"
+      }
+    },
+    "select": {
+      "automatik_modus": {
+        "name": "Automation mode",
+        "state": {
+          "beobachten": "Observe",
+          "schalten": "Switch"
+        }
+      }
+    },
+    "sensor": {
+      "automatik_zustand": {
+        "name": "Automation state",
+        "state": {
+          "programm": "Heating by program",
+          "sonnentag": "Sunny day",
+          "nur_ww": "Hot water only",
+          "abwesend": "Away",
+          "pausiert": "Paused",
+          "fenster": "Window open",
+          "keine_daten": "No data",
+          "sicherheit": "Safety",
+          "aus": "Off"
+        },
+        "state_attributes": {
+          "begruendung": {
+            "name": "Reason"
+          },
+          "pausiert_bis": {
+            "name": "Paused until"
+          },
+          "eingriffe_heute": {
+            "name": "Interventions today"
+          }
+        }
+      }
     }
   },
   "issues": {
@@ -262,6 +303,10 @@
           "nicht_geladen": "The system is not loaded right now. Please try again later."
         }
       }
+    },
+    "automatik_sicherheit": {
+      "title": "Automation {heizkreis}: return to program failed",
+      "description": "For safety, the automation tried to return the heating circuit **{heizkreis}** to its program. The controller rejected this twice.\n\nPlease check the operating mode of the heating circuit and set it manually. This message disappears as soon as the controller accepts an intervention of the automation again."
     }
   },
   "config_subentries": {

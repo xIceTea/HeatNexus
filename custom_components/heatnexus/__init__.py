@@ -27,6 +27,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.loader import async_get_integration
 
 from . import device_db, error_texts, verwaiste, waermequelle
+from .automatik.verwaltung import verwaltung_holen
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
@@ -384,6 +385,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     waermequelle.geraete_entflechten(registry, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     geraetenamen_angleichen(registry, entry, coordinators)
+    await verwaltung_holen(hass).eintrag_starten(entry)
     async_entity_ids_umstellen(hass, entry)
     # Beim ersten Lauf steht in der Registrierung noch der alte Anzeigename –
     # die Plattformen melden ihn erst danach an. Ein zweiter Lauf, sobald Home
@@ -478,6 +480,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Einen Konfigurationseintrag entladen."""
+    await verwaltung_holen(hass).eintrag_stoppen(entry)
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         daten = laufzeitdaten(entry) or {}
@@ -501,6 +504,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Gespeicherten Erkennungsstand und Dashboard abräumen."""
+    await verwaltung_holen(hass).eintrag_entfernt(entry.entry_id)
     persistent_notification.async_dismiss(hass, meldungs_id(entry))
     verwaiste.hinweis_pflegen(hass, entry, 0)
     for system in systems(entry):

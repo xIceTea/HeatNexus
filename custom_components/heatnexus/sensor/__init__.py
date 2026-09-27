@@ -17,6 +17,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 import voluptuous as vol
 
+from ..automatik.entitaeten import anmelden as automatik_anmelden
 from ..entity import WindhagerEntity, async_setup_entities
 from .ableitungen import (
     WindhagerAbleitungSensor,
@@ -46,6 +47,7 @@ PARALLEL_UPDATES = 0
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager sensors from a config entry."""
     platform = entity_platform.async_get_current_platform()
+    automatik_anmelden(hass, entry, async_add_entities, "zustand")
 
     # Leert die Meldungsliste der Integration, nicht die des Bediengeräts;
     # die Dienstbeschreibung sagt das, damit sie nicht wie eine Quittung wirkt.
