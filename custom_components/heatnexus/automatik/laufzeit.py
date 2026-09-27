@@ -1,0 +1,489 @@
+"""Automatik eines Heizkreises zur Laufzeit: Auslöser, Eingänge, Ablauf.
+
+Ereignisse setzen nur ein Merkzeichen. Ausgewertet wird im Takt von fünf
+Minuten und zu den Entscheidungszeiten des Profils.
+"""
+
+from __future__ import annotations
+
+from collections import deque
+from collections.abc import Callable
+from dataclasses import replace
+from datetime import date, datetime, timedelta
+import logging
+from typing import Any
+
+from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import (
+    async_call_later,
+    async_track_state_change_event,
+    async_track_time_change,
+    async_track_time_interval,
+)
+from homeassistant.helpers.sun import get_astral_event_date
+from homeassistant.util import dt as dt_util
+
+from ..const import DOMAIN
+from ..helpers import get_oid_value
+from . import eingaben, profile, regel
+from .steller import Stand, Steller
+
+_LOGGER = logging.getLogger(__name__)
+
+TAKT = timedelta(minutes=5)
+PROGNOSE_TAKT = timedelta(hours=1)
+PROGNOSE_MAX_ALTER = timedelta(hours=6)
+ABWESEND_NACH = timedelta(minutes=30)
+FENSTER_DAUER = timedelta(minutes=30)
+PAUSE_BIS_STUNDE = 5
+PV_TAGE = 30
+SICHERHEIT_WIEDERHOLEN_S = 60
+VERLAUF_LAENGE = 64
+UNGUELTIG = frozenset({"unavailable", "unknown", "none", ""})
+# Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
+ABRUF = ("/2/9/0", "/0/0/0")
+
+SIGNAL_AKTUALISIERT = f"{DOMAIN}_automatik_{{}}"
+
+
+def _zeit(wert: Any) -> datetime | None:
+    if not wert:
+        return None
+    zeit = dt_util.parse_datetime(str(wert))
+    return dt_util.as_local(zeit) if zeit else None
+
+
+def _ganzzahl(wert: float | None) -> int | None:
+    return None if wert is None else int(wert)
+
+
+def naechster_morgen(jetzt: datetime) -> datetime:
+    """Das nächste 05:00 nach `jetzt`; so lange hält eine Pause."""
+    ziel = jetzt.replace(hour=PAUSE_BIS_STUNDE, minute=0, second=0, microsecond=0)
+    return ziel if ziel > jetzt else ziel + timedelta(days=1)
+
+
+class Laufzeit:
+    """Die Automatik eines Heizkreises."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: Any,
+        beschreibung: dict[str, Any],
+        konfig: dict[str, Any],
+        zustand: dict[str, Any] | None,
+        speichern: Callable[[], None],
+        entry_id: str,
+    ) -> None:
+        self.hass = hass
+        self.coordinator = coordinator
+        self.entry_id = entry_id
+        self.device_id: str = beschreibung["device_id"]
+        self.prefix: str = beschreibung.get("prefix", "")
+        self.name: str = beschreibung.get("device_name") or self.device_id
+        self.konfig = konfig
+        self._speichern = speichern
+        z = zustand or {}
+        self.gedaechtnis = regel.gedaechtnis_aus_dict(z.get("gedaechtnis"))
+        self.steller = Steller(
+            self.prefix,
+            beschreibung.get("preset_allowed") or [],
+            coordinator.client.update,
+            Stand.aus_dict(z.get("stand")),
+        )
+        stufen = z.get("stufen")
+        self.stufen: tuple[float, float] | None = (
+            (float(stufen[0]), float(stufen[1])) if isinstance(stufen, list | tuple) else None
+        )
+        self.stufen_zeit = _zeit(z.get("stufen_zeit"))
+        self.pausiert_bis = _zeit(z.get("pausiert_bis"))
+        self.beobachtet_seit = _zeit(z.get("beobachtet_seit")) or dt_util.now()
+        self.pv_tage: dict[str, float] = {
+            str(k): float(v) for k, v in (z.get("pv_tage") or {}).items()
+        }
+        try:
+            self.zustand = regel.Zustand(z.get("zustand") or regel.Zustand.PROGRAMM)
+        except ValueError:
+            self.zustand = regel.Zustand.PROGRAMM
+        self.begruendung = str(z.get("begruendung") or "")
+        self.lage: regel.Lage | None = None
+        self.stunden: list[dict[str, Any]] = []
+        self._tage: list[tuple[date, float | None, float | None]] = []
+        self._prognose_zeit: datetime | None = None
+        self._verlauf: deque[tuple[float, float]] = deque(maxlen=VERLAUF_LAENGE)
+        self._fenster_bis: datetime | None = None
+        self._weg_seit: datetime | None = None
+        self._daten_fehlen_seit: datetime | None = None
+        self._geaendert = True
+        self._laeuft = False
+        self._abmelden: list[Callable[[], None]] = []
+        self._wiederholung: Callable[[], None] | None = None
+        self._fehlschlaege = 0
+
+    # --- Eigenschaften -------------------------------------------------------
+    @property
+    def werte(self) -> profile.Werte:
+        return profile.werte(self.konfig["profil"], self.konfig.get("eigene"))
+
+    @property
+    def aktiv(self) -> bool:
+        return bool(self.konfig.get("aktiv"))
+
+    @property
+    def beobachten(self) -> bool:
+        return self.konfig.get("modus") != "schalten"
+
+    def als_dict(self) -> dict[str, Any]:
+        """Was im Store bleibt."""
+        return {
+            "gedaechtnis": regel.gedaechtnis_als_dict(self.gedaechtnis),
+            "stand": self.steller.stand.als_dict(),
+            "stufen": list(self.stufen) if self.stufen else None,
+            "stufen_zeit": self.stufen_zeit.isoformat() if self.stufen_zeit else None,
+            "pausiert_bis": self.pausiert_bis.isoformat() if self.pausiert_bis else None,
+            "beobachtet_seit": self.beobachtet_seit.isoformat(),
+            "pv_tage": self.pv_tage,
+            "zustand": self.zustand.value,
+            "begruendung": self.begruendung,
+        }
+
+    # --- Lebenszyklus --------------------------------------------------------
+    async def starten(self) -> None:
+        """Auslöser anmelden, Prognose holen, einmal auswerten."""
+        client = self.coordinator.client
+        for adresse in ABRUF:
+            client.register_poll_oid(f"{self.prefix}{adresse}")
+        k = self.konfig
+        quellen = [*k["raeume"], *k["personen"], *k["fenster"]]
+        quellen += [e for e in (k.get("pv"), k.get("aussen")) if e]
+        self._abmelden.append(async_track_state_change_event(self.hass, quellen, self._ereignis))
+        self._abmelden.append(self.coordinator.async_add_listener(self._merken))
+        self._abmelden.append(async_track_time_interval(self.hass, self._takt, TAKT))
+        self._abmelden.append(
+            async_track_time_interval(self.hass, self._prognose_takt, PROGNOSE_TAKT)
+        )
+        for uhrzeit in (self.werte.entscheidung, self.werte.nachpruefung):
+            if uhrzeit:
+                stunde, minute = (int(teil) for teil in uhrzeit.split(":"))
+                self._abmelden.append(
+                    async_track_time_change(
+                        self.hass, self._entscheidungszeit, hour=stunde, minute=minute, second=0
+                    )
+                )
+        await self._prognose_holen()
+        await self.auswerten()
+
+    def stoppen(self) -> None:
+        """Alle Auslöser abmelden."""
+        for abmelden in self._abmelden:
+            abmelden()
+        self._abmelden.clear()
+        if self._wiederholung:
+            self._wiederholung()
+            self._wiederholung = None
+        client = self.coordinator.client
+        for adresse in ABRUF:
+            client.unregister_poll_oid(f"{self.prefix}{adresse}")
+
+    async def neu_starten(self, konfig: dict[str, Any]) -> None:
+        """Mit geänderten Einstellungen weiterlaufen; der Zustand bleibt."""
+        self.stoppen()
+        self.konfig = konfig
+        await self.starten()
+
+    # --- Auslöser ------------------------------------------------------------
+    @callback
+    def _merken(self, *_: Any) -> None:
+        self._geaendert = True
+
+    @callback
+    def _ereignis(self, event: Event) -> None:
+        self._geaendert = True
+        if event.data.get("entity_id") in self.konfig["raeume"]:
+            self._raum_verfolgen()
+
+    async def _takt(self, _jetzt: datetime) -> None:
+        if self._geaendert:
+            await self.auswerten()
+
+    async def _entscheidungszeit(self, _jetzt: datetime) -> None:
+        await self.auswerten(entscheidungszeit=True)
+
+    async def _prognose_takt(self, _jetzt: datetime) -> None:
+        await self._prognose_holen()
+        self._geaendert = True
+
+    # --- Ablauf --------------------------------------------------------------
+    async def auswerten(self, entscheidungszeit: bool = False) -> None:
+        """Ein Lauf der Regel; läuft nie doppelt."""
+        if self._laeuft:
+            return
+        self._laeuft = True
+        try:
+            await self._auswerten(entscheidungszeit)
+        finally:
+            self._laeuft = False
+
+    async def _auswerten(self, entscheidungszeit: bool) -> None:
+        self._geaendert = False
+        jetzt = dt_util.now()
+        self._daempfen(jetzt)
+        lage = self._lage(jetzt, entscheidungszeit)
+        self.lage = lage
+        if not self.aktiv:
+            self._setzen(regel.Zustand.AUS, "Automatik ausgeschaltet.")
+            return
+        if not self.beobachten and (
+            grund := self.steller.handeingriff(
+                self.gedaechtnis,
+                jetzt=jetzt,
+                betriebswahl=lage.betriebswahl,
+                rest_min=self._wert("/2/10/0"),
+                betriebsart=_ganzzahl(self._wert("/2/9/0")),
+            )
+        ):
+            self._pausieren(jetzt, grund)
+            lage = replace(lage, pausiert_bis=self.pausiert_bis)
+        entscheidung = regel.entscheiden(lage, self.gedaechtnis, self.werte)
+        angenommen = await self.steller.ausfuehren(
+            entscheidung,
+            jetzt=jetzt,
+            betriebswahl=lage.betriebswahl,
+            budget=self.werte.budget,
+            beobachten=self.beobachten,
+        )
+        if angenommen:
+            self.gedaechtnis = entscheidung.gedaechtnis
+        self._sicherheit_pruefen(entscheidung, angenommen)
+        self.steller.abgleichen(self.gedaechtnis, jetzt)
+        if entscheidungszeit and not entscheidung.aktionen:
+            self.steller.vermerken(jetzt, "geprueft", entscheidung.begruendung)
+        self._setzen(entscheidung.zustand, entscheidung.begruendung)
+
+    def _setzen(self, zustand: regel.Zustand, begruendung: str) -> None:
+        self.zustand = zustand
+        self.begruendung = begruendung
+        self._speichern()
+        async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
+
+    def _pausieren(self, jetzt: datetime, grund: str) -> None:
+        self.pausiert_bis = naechster_morgen(jetzt)
+        self.gedaechtnis = regel.Gedaechtnis(saison=regel.HEIZEN, saison_seit=jetzt)
+        self.steller.freigeben()
+        text = f"{grund} Pausiert bis {self.pausiert_bis:%H:%M}."
+        self.steller.vermerken(jetzt, "eingriff", text)
+
+    async def uebernehmen(self) -> None:
+        """Eine Pause nach Handeingriff sofort aufheben."""
+        self.pausiert_bis = None
+        await self.auswerten()
+
+    async def zuruecknehmen(self) -> None:
+        """Eigene Eingriffe zurücknehmen und das Gedächtnis leeren."""
+        jetzt = dt_util.now()
+        aktionen: list[regel.Aktion] = []
+        if self.gedaechtnis.saison == regel.NUR_WW:
+            aktionen.append(regel.Aktion("zurueck", sicherheit=True))
+        if regel.absenkung_laeuft(self.gedaechtnis, jetzt):
+            aktionen.append(regel.Aktion("absenkung_ende", sicherheit=True))
+        if aktionen:
+            entscheidung = regel.Entscheidung(
+                regel.Zustand.AUS,
+                tuple(aktionen),
+                "Eigene Eingriffe zurückgenommen.",
+                regel.Gedaechtnis(),
+            )
+            await self.steller.ausfuehren(
+                entscheidung,
+                jetzt=jetzt,
+                betriebswahl=_ganzzahl(self._wert("/3/50/0")),
+                budget=0,
+                beobachten=self.beobachten,
+            )
+        self.gedaechtnis = regel.Gedaechtnis()
+        self.steller.freigeben()
+        self._speichern()
+
+    def gedaechtnis_leeren(self) -> None:
+        """Beim Wechsel vom Beobachten zum Schalten: Beobachtetes wurde nie geschrieben."""
+        self.gedaechtnis = regel.Gedaechtnis()
+        self.steller.freigeben()
+
+    # --- Sicherheit ----------------------------------------------------------
+    def _sicherheit_pruefen(self, entscheidung: regel.Entscheidung, angenommen: bool) -> None:
+        sicherheit = any(aktion.sicherheit for aktion in entscheidung.aktionen)
+        kennung = f"automatik_sicherheit_{self.device_id}"
+        if not sicherheit or angenommen:
+            if self._fehlschlaege:
+                ir.async_delete_issue(self.hass, DOMAIN, kennung)
+            self._fehlschlaege = 0
+            return
+        self._fehlschlaege += 1
+        if self._fehlschlaege == 1 and self._wiederholung is None:
+            self._wiederholung = async_call_later(
+                self.hass, SICHERHEIT_WIEDERHOLEN_S, self._wiederholen
+            )
+            return
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            kennung,
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="automatik_sicherheit",
+            translation_placeholders={"heizkreis": self.name},
+        )
+
+    async def _wiederholen(self, _jetzt: datetime) -> None:
+        self._wiederholung = None
+        await self.auswerten()
+
+    # --- Eingänge ------------------------------------------------------------
+    def _wert(self, adresse: str) -> float | None:
+        return get_oid_value(self.coordinator, adresse, self.prefix)
+
+    def _zahl(self, entity_id: str | None) -> float | None:
+        if not entity_id or (zustand := self.hass.states.get(entity_id)) is None:
+            return None
+        if zustand.state in UNGUELTIG:
+            return None
+        try:
+            return float(zustand.state)
+        except ValueError:
+            return None
+
+    def _raum(self) -> float | None:
+        werte = [self._zahl(e) for e in self.konfig["raeume"]]
+        return eingaben.raumwert(werte, self.konfig["raum_art"])
+
+    def _aussen(self) -> float | None:
+        if self.konfig.get("aussen"):
+            return self._zahl(self.konfig["aussen"])
+        return self._wert("/0/0/0")
+
+    def _daempfen(self, jetzt: datetime) -> None:
+        if (at := self._aussen()) is None:
+            return
+        dauer = (jetzt - self.stufen_zeit).total_seconds() if self.stufen_zeit else 0.0
+        self.stufen = eingaben.daempfen(self.stufen, at, dauer, self.werte.tau_h)
+        self.stufen_zeit = jetzt
+
+    def _raum_verfolgen(self) -> None:
+        if (raum := self._raum()) is None:
+            return
+        jetzt = dt_util.now()
+        if self._fenster_bis and self._verlauf and raum > self._verlauf[-1][1] + 0.1:
+            self._fenster_bis = None
+        self._verlauf.append((jetzt.timestamp(), raum))
+        if self.konfig.get("fenster_erkennung") and eingaben.temperatursturz(
+            list(self._verlauf), self.werte.fenster_k_je_h
+        ):
+            self._fenster_bis = jetzt + FENSTER_DAUER
+
+    def _fenster(self, jetzt: datetime) -> bool:
+        for kennung in self.konfig["fenster"]:
+            if (zustand := self.hass.states.get(kennung)) and zustand.state == "on":
+                return True
+        return self._fenster_bis is not None and jetzt < self._fenster_bis
+
+    def _abwesend(self, jetzt: datetime) -> bool:
+        personen = self.konfig["personen"]
+        if not personen:
+            return False
+        zustaende = [z.state if (z := self.hass.states.get(p)) else "" for p in personen]
+        if any(zustand == "home" or zustand in UNGUELTIG for zustand in zustaende):
+            self._weg_seit = None
+            return False
+        self._weg_seit = self._weg_seit or jetzt
+        return jetzt - self._weg_seit >= ABWESEND_NACH
+
+    def sonne(self, tag: date) -> tuple[datetime | None, datetime | None]:
+        """Sonnenauf- und -untergang des Tages in Ortszeit."""
+        aufgang = get_astral_event_date(self.hass, "sunrise", tag)
+        untergang = get_astral_event_date(self.hass, "sunset", tag)
+        return (
+            dt_util.as_local(aufgang) if aufgang else None,
+            dt_util.as_local(untergang) if untergang else None,
+        )
+
+    def _sonnenquote(self, jetzt: datetime, aufgang: datetime, untergang: datetime) -> float | None:
+        heute = jetzt.date().isoformat()
+        if (pv := self._zahl(self.konfig.get("pv"))) is not None:
+            self.pv_tage[heute] = max(pv, self.pv_tage.get(heute, 0.0))
+            grenze = (jetzt.date() - timedelta(days=PV_TAGE)).isoformat()
+            self.pv_tage = {tag: wert for tag, wert in self.pv_tage.items() if tag > grenze}
+            bisher = [wert for tag, wert in self.pv_tage.items() if tag != heute]
+            if (quote := eingaben.sonnenquote_aus_pv(pv, bisher)) is not None:
+                return quote
+        stunden = [
+            (zeit, eintrag.get("cloud_coverage"))
+            for eintrag in self.stunden
+            if (zeit := _zeit(eintrag.get("datetime"))) is not None
+        ]
+        return eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang)
+
+    def _lage(self, jetzt: datetime, entscheidungszeit: bool) -> regel.Lage:
+        raum = self._raum()
+        at = self._aussen()
+        frisch = (
+            self._prognose_zeit is not None and jetzt - self._prognose_zeit <= PROGNOSE_MAX_ALTER
+        )
+        daten_ok = raum is not None and at is not None and frisch
+        if daten_ok:
+            self._daten_fehlen_seit = None
+        elif self._daten_fehlen_seit is None:
+            self._daten_fehlen_seit = jetzt
+        aufgang, untergang = self.sonne(jetzt.date())
+        quote = self._sonnenquote(jetzt, aufgang, untergang) if aufgang and untergang else None
+        return regel.Lage(
+            jetzt=jetzt,
+            at=at,
+            at_gedaempft=self.stufen[1] if self.stufen else None,
+            raum=raum,
+            soll=self._wert("/1/1/0"),
+            sonnenquote=quote,
+            mittel_heute=eingaben.tagesmittel(self._tage, jetzt.date()),
+            mittel_morgen=eingaben.tagesmittel(self._tage, jetzt.date() + timedelta(days=1)),
+            sonnenuntergang=untergang,
+            betriebswahl=_ganzzahl(self._wert("/3/50/0")),
+            daten_ok=daten_ok,
+            daten_fehlen_seit=self._daten_fehlen_seit,
+            fenster_offen=self._fenster(jetzt),
+            abwesend=self._abwesend(jetzt),
+            pausiert_bis=self.pausiert_bis,
+            entscheidungszeit=entscheidungszeit,
+            absenkung_moeglich=self._wert("/2/10/0") is not None,
+        )
+
+    async def _prognose(self, art: str) -> list[dict[str, Any]] | None:
+        wetter = self.konfig["wetter"]
+        try:
+            antwort = await self.hass.services.async_call(
+                "weather",
+                "get_forecasts",
+                {"entity_id": wetter, "type": art},
+                blocking=True,
+                return_response=True,
+            )
+        except HomeAssistantError as fehler:
+            _LOGGER.debug("Automatik %s: Prognose %s nicht lesbar: %s", self.name, art, fehler)
+            return None
+        return list(((antwort or {}).get(wetter) or {}).get("forecast") or [])
+
+    async def _prognose_holen(self) -> None:
+        stunden = await self._prognose("hourly")
+        tage = await self._prognose("daily")
+        if stunden is not None:
+            self.stunden = stunden
+        if tage is not None:
+            self._tage = [
+                (zeit.date(), eintrag.get("temperature"), eintrag.get("templow"))
+                for eintrag in tage
+                if (zeit := _zeit(eintrag.get("datetime"))) is not None
+            ]
+        if stunden is not None or tage is not None:
+            self._prognose_zeit = dt_util.now()
