@@ -170,6 +170,11 @@ class Knoten {
     this.children.splice(stelle, 0, kind);
     return kind;
   }
+  get nextSibling() {
+    if (!this.parentElement) return null;
+    const geschwister = this.parentElement.children;
+    return geschwister[geschwister.indexOf(this) + 1] || null;
+  }
   closest(wahl) {
     let knoten = this;
     while (knoten) {

@@ -670,6 +670,13 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["sperreNachAufbau"] is False
     assert automatik["sperreNachZuklappen"] is False
     assert automatik["erweitertBleibtOffen"] is True
+    assert automatik["kopf"] == [
+        "h2",
+        "automatik-punkt",
+        "automatik-marke",
+        "automatik-knopf",
+        "fragezeichen",
+    ]
     assert automatik["dialogKopf"] is True
     assert automatik["kreuzSchliesst"] is True
 

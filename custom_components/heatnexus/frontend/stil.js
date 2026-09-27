@@ -1127,6 +1127,9 @@ export const STIL = `
   .automatik-marke.z-sicherheit, .automatik-marke.z-keine_daten {
     background: rgba(255, 171, 111, 0.15); color: #ffab6f;
   }
+  .karte.automatik > .kartenkopf h2 { flex: 0 1 auto; }
+  .karte.automatik > .kartenkopf .automatik-marke { margin-right: auto; }
+  .automatik-punkt { color: var(--hn-gedaempft); }
   .automatik-zeile { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
   .automatik-schalter {
     display: inline-flex; align-items: center; gap: 8px; padding: 0; cursor: pointer;

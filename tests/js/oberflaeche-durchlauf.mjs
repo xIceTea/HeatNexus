@@ -711,6 +711,11 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     hinweise: [...wurzel.querySelectorAll(".automatik-hinweis")].map((t) => String(t.textContent || "").trim()),
     tagesleiste: wurzel.querySelectorAll(".automatik-tag-bild").length,
     knoepfe: [...wurzel.querySelectorAll(".automatik-knopf")].map((k) => String(k.textContent || "").trim()),
+    // Name · Zustand links, Einrichtung und Hilfe rechts.
+    kopf: wurzel
+      .querySelector(".automatik")
+      .querySelector(".kartenkopf")
+      .children.map((k) => (k.tagName === "H2" ? "h2" : String(k.className).split(" ")[0])),
   };
 
   // Ein offener Dialog übersteht das Nachladen im Takt.

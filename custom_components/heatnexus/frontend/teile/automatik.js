@@ -322,7 +322,22 @@ export const AutomatikMixin = (Basis) =>
       if (kreis.konfig.modus === "beobachten" && kreis.konfig.aktiv) {
         marke.textContent += ` · ${this._t("beobachtet")}`;
       }
-      if (kopf) kopf.insertBefore(marke, kopf.querySelector(".fragezeichen"));
+      // Zustand neben dem Namen, die Einrichtung rechts oben: Die Zeile darunter bleibt für die Bedienung.
+      const punkt = document.createElement("span");
+      punkt.className = "automatik-punkt";
+      punkt.textContent = "·";
+      const bearbeiten = document.createElement("button");
+      bearbeiten.type = "button";
+      bearbeiten.className = "automatik-knopf leise klein";
+      bearbeiten.textContent = "Einrichtung bearbeiten";
+      bearbeiten.disabled = !darf;
+      bearbeiten.addEventListener("click", () => this._automatikDialog(kreis));
+      if (kopf) {
+        const titel = kopf.querySelector("h2");
+        kopf.insertBefore(bearbeiten, kopf.querySelector(".fragezeichen"));
+        kopf.insertBefore(marke, titel ? titel.nextSibling : kopf.firstChild);
+        kopf.insertBefore(punkt, marke);
+      }
 
       karte.appendChild(this._automatikSteuerzeile(kreis, darf));
       const hinweis = this._automatikHinweis(kreis, darf);
@@ -378,13 +393,7 @@ export const AutomatikMixin = (Basis) =>
       profil.className = "automatik-profil";
       const eintrag = PROFILE.find(([name]) => name === kreis.konfig.profil);
       profil.textContent = eintrag ? eintrag[1] : kreis.konfig.profil;
-      const bearbeiten = document.createElement("button");
-      bearbeiten.type = "button";
-      bearbeiten.className = "automatik-knopf leise klein";
-      bearbeiten.textContent = "Einrichtung bearbeiten";
-      bearbeiten.disabled = !darf;
-      bearbeiten.addEventListener("click", () => this._automatikDialog(kreis));
-      zeile.append(schalter, segment, profil, bearbeiten);
+      zeile.append(schalter, segment, profil);
       return zeile;
     }
 
