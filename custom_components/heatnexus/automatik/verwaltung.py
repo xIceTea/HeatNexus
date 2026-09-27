@@ -6,11 +6,14 @@ die Update-Listener des Eintrags und kann die ganze Integration neu laden.
 
 from __future__ import annotations
 
+import asyncio
+from datetime import datetime, timedelta
 import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 from homeassistant.helpers.storage import Store
@@ -29,6 +32,8 @@ DATEN_SCHLUESSEL = f"{DOMAIN}_automatik"
 SIGNAL_NEU = f"{DOMAIN}_automatik_neu_{{}}"
 ARTEN = ("schalter", "modus", "zustand")
 DOMAENE_JE_ART = {"schalter": "switch", "modus": "select", "zustand": "sensor"}
+# Mehrere Heizkreise teilen sich meist eine Wetter-Entität; gefragt wird sie einmal.
+PROGNOSE_GUELTIG = timedelta(minutes=50)
 
 
 def verwaltung_holen(hass: HomeAssistant) -> Verwaltung:
@@ -52,6 +57,8 @@ class Verwaltung:
         self._daten: dict[str, Any] = {"heizkreise": {}}
         self._geladen = False
         self.laufzeiten: dict[str, Laufzeit] = {}
+        self._prognosen: dict[tuple[str, str], tuple[datetime, list[dict[str, Any]]]] = {}
+        self._prognose_sperre = asyncio.Lock()
 
     async def laden(self) -> None:
         """Den Store einmal lesen."""
@@ -89,6 +96,29 @@ class Verwaltung:
                     treffer.append((coordinator, beschreibung))
         return treffer
 
+    async def prognose(self, wetter: str, art: str) -> list[dict[str, Any]] | None:
+        """Stunden- oder Tagesprognose einer Wetter-Entität, kurz zwischengespeichert."""
+        async with self._prognose_sperre:
+            jetzt = dt_util.now()
+            if (treffer := self._prognosen.get((wetter, art))) and jetzt - treffer[
+                0
+            ] < PROGNOSE_GUELTIG:
+                return treffer[1]
+            try:
+                antwort = await self.hass.services.async_call(
+                    "weather",
+                    "get_forecasts",
+                    {"entity_id": wetter, "type": art},
+                    blocking=True,
+                    return_response=True,
+                )
+            except HomeAssistantError as fehler:
+                _LOGGER.debug("Automatik: Prognose %s von %s nicht lesbar: %s", art, wetter, fehler)
+                return None
+            daten = list(((antwort or {}).get(wetter) or {}).get("forecast") or [])
+            self._prognosen[(wetter, art)] = (jetzt, daten)
+            return daten
+
     # --- je Eintrag ----------------------------------------------------------
     async def eintrag_starten(self, entry: ConfigEntry) -> None:
         """Alle eingerichteten Automatiken des Eintrags starten."""
@@ -124,6 +154,7 @@ class Verwaltung:
             eintrag.get("zustand"),
             self.speichern,
             entry.entry_id,
+            self.prognose,
         )
         self.laufzeiten[device_id] = laufzeit
         async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))

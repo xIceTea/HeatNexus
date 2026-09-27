@@ -28,6 +28,11 @@ PROTOKOLL_MAX = 200
 TOLERANZ_MIN = 5.0
 # Der Abruf zeigt einen eigenen Schreibvorgang erst mit Verzug.
 SCHONFRIST = timedelta(minutes=3)
+# Nach einer Ablehnung wartet der Steller, mit jeder weiteren doppelt so lang.
+SPERRE_START = timedelta(minutes=30)
+SPERRE_MAX = timedelta(hours=6)
+# Mehr heizen ist die sichere Richtung; das Budget begrenzt nur das Gegenteil.
+RUECKKEHR = frozenset({"zurueck", "absenkung_ende"})
 
 Schreiber = Callable[[str, str], Awaitable[None]]
 
@@ -46,6 +51,8 @@ class Stand:
     betriebswahl_vorher: int | None = None
     erwartet: int | None = None
     zuletzt: str | None = None
+    ablehnungen: int = 0
+    gesperrt_bis: str | None = None
     protokoll: tuple[dict[str, Any], ...] = ()
 
     def als_dict(self) -> dict[str, Any]:
@@ -65,6 +72,8 @@ class Stand:
                 betriebswahl_vorher=_ganzzahl(roh.get("betriebswahl_vorher")),
                 erwartet=_ganzzahl(roh.get("erwartet")),
                 zuletzt=roh.get("zuletzt") or None,
+                ablehnungen=int(roh.get("ablehnungen") or 0),
+                gesperrt_bis=roh.get("gesperrt_bis") or None,
                 protokoll=tuple(e for e in roh.get("protokoll") or () if isinstance(e, dict))[
                     :PROTOKOLL_MAX
                 ],
@@ -126,6 +135,7 @@ class Steller:
         betriebswahl: int | None,
         budget: int,
         beobachten: bool,
+        erzwingen: bool = False,
     ) -> bool:
         """Schreibt die Aktionen; `True`, wenn alles angenommen oder nur beobachtet wurde."""
         self._tag_wechseln(jetzt)
@@ -135,22 +145,47 @@ class Steller:
         if beobachten:
             self.vermerken(jetzt, "haette", entscheidung.begruendung, paare)
             return True
-        sicherheit = any(aktion.sicherheit for aktion in entscheidung.aktionen)
-        if not sicherheit and self.stand.eingriffe >= budget:
-            text = f"Tagesbudget von {budget} Eingriffen erreicht – nicht geschrieben."
-            self.vermerken(jetzt, "budget", text, paare)
+        if not erzwingen and self._gesperrt(jetzt):
+            return False
+        zaehlt = any(
+            aktion.art not in RUECKKEHR and not aktion.sicherheit
+            for aktion in entscheidung.aktionen
+        )
+        if zaehlt and self.stand.eingriffe >= budget:
+            self._budget_vermerken(jetzt, budget, paare)
             return False
         try:
             for oid, wert in paare:
                 await self._schreiben(f"{self._prefix}{oid}", wert)
         except Exception as fehler:  # jede Ablehnung gehört ins Protokoll
-            _LOGGER.warning("Automatik %s: Eingriff abgelehnt: %s", self._prefix, fehler)
-            text = f"Die Steuerung hat den Eingriff abgelehnt: {fehler}"
-            self.vermerken(jetzt, "abgelehnt", text, paare)
+            self._abgelehnt(jetzt, fehler, paare)
             return False
-        self._merken(entscheidung.aktionen, betriebswahl, jetzt)
+        self.stand = replace(self.stand, ablehnungen=0, gesperrt_bis=None)
+        self._merken(entscheidung.aktionen, betriebswahl, jetzt, zaehlt)
         self.vermerken(jetzt, "geschrieben", entscheidung.begruendung, paare)
         return True
+
+    def _gesperrt(self, jetzt: datetime) -> bool:
+        bis = self.stand.gesperrt_bis
+        return bis is not None and jetzt < datetime.fromisoformat(bis)
+
+    def _budget_vermerken(self, jetzt: datetime, budget: int, paare: list[tuple[str, str]]) -> None:
+        letzter = self.stand.protokoll[0] if self.stand.protokoll else {}
+        if letzter.get("art") == "budget" and letzter.get("zeit", "")[:10] == self.stand.tag:
+            return
+        text = f"Tagesbudget von {budget} Eingriffen erreicht – nicht geschrieben."
+        self.vermerken(jetzt, "budget", text, paare)
+
+    def _abgelehnt(self, jetzt: datetime, fehler: Exception, paare: list[tuple[str, str]]) -> None:
+        anzahl = self.stand.ablehnungen + 1
+        sperre = min(SPERRE_START * 2 ** (anzahl - 1), SPERRE_MAX)
+        bis = jetzt + sperre
+        self.stand = replace(self.stand, ablehnungen=anzahl, gesperrt_bis=bis.isoformat())
+        _LOGGER.warning("Automatik %s: Eingriff abgelehnt: %s", self._prefix, fehler)
+        text = (
+            f"Die Steuerung hat den Eingriff abgelehnt: {fehler}. Nächster Versuch ab {bis:%H:%M}."
+        )
+        self.vermerken(jetzt, "abgelehnt", text, paare)
 
     def handeingriff(
         self,
@@ -192,9 +227,14 @@ class Steller:
             self.stand = replace(self.stand, tag=tag, eingriffe=0)
 
     def _merken(
-        self, aktionen: tuple[Aktion, ...], betriebswahl: int | None, jetzt: datetime
+        self,
+        aktionen: tuple[Aktion, ...],
+        betriebswahl: int | None,
+        jetzt: datetime,
+        zaehlt: bool,
     ) -> None:
-        stand = replace(self.stand, eingriffe=self.stand.eingriffe + 1, zuletzt=jetzt.isoformat())
+        eingriffe = self.stand.eingriffe + (1 if zaehlt else 0)
+        stand = replace(self.stand, eingriffe=eingriffe, zuletzt=jetzt.isoformat())
         for aktion in aktionen:
             if aktion.art == "nur_ww":
                 vorher = betriebswahl if betriebswahl in PROGRAMMWAHL else stand.betriebswahl_vorher

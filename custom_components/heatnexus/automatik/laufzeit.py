@@ -7,14 +7,13 @@ Minuten und zu den Entscheidungszeiten des Profils.
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import date, datetime, timedelta
 import logging
 from typing import Any
 
 from homeassistant.core import Event, HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
@@ -79,6 +78,7 @@ class Laufzeit:
         zustand: dict[str, Any] | None,
         speichern: Callable[[], None],
         entry_id: str,
+        prognose: Callable[[str, str], Awaitable[list[dict[str, Any]] | None]],
     ) -> None:
         self.hass = hass
         self.coordinator = coordinator
@@ -88,6 +88,7 @@ class Laufzeit:
         self.name: str = beschreibung.get("device_name") or self.device_id
         self.konfig = konfig
         self._speichern = speichern
+        self._prognose_quelle = prognose
         z = zustand or {}
         self.gedaechtnis = regel.gedaechtnis_aus_dict(z.get("gedaechtnis"))
         self.steller = Steller(
@@ -124,6 +125,7 @@ class Laufzeit:
         self._abmelden: list[Callable[[], None]] = []
         self._wiederholung: Callable[[], None] | None = None
         self._fehlschlaege = 0
+        self._erzwingen = False
 
     # --- Eigenschaften -------------------------------------------------------
     @property
@@ -256,7 +258,9 @@ class Laufzeit:
             betriebswahl=lage.betriebswahl,
             budget=self.werte.budget,
             beobachten=self.beobachten,
+            erzwingen=self._erzwingen,
         )
+        self._erzwingen = False
         if angenommen:
             self.gedaechtnis = entscheidung.gedaechtnis
         self._sicherheit_pruefen(entscheidung, angenommen)
@@ -341,6 +345,8 @@ class Laufzeit:
 
     async def _wiederholen(self, _jetzt: datetime) -> None:
         self._wiederholung = None
+        # Der einmalige Sicherheitsversuch übergeht die Sperre nach einer Ablehnung.
+        self._erzwingen = True
         await self.auswerten()
 
     # --- Eingänge ------------------------------------------------------------
@@ -461,19 +467,7 @@ class Laufzeit:
         )
 
     async def _prognose(self, art: str) -> list[dict[str, Any]] | None:
-        wetter = self.konfig["wetter"]
-        try:
-            antwort = await self.hass.services.async_call(
-                "weather",
-                "get_forecasts",
-                {"entity_id": wetter, "type": art},
-                blocking=True,
-                return_response=True,
-            )
-        except HomeAssistantError as fehler:
-            _LOGGER.debug("Automatik %s: Prognose %s nicht lesbar: %s", self.name, art, fehler)
-            return None
-        return list(((antwort or {}).get(wetter) or {}).get("forecast") or [])
+        return await self._prognose_quelle(self.konfig["wetter"], art)
 
     async def _prognose_holen(self) -> None:
         stunden = await self._prognose("hourly")

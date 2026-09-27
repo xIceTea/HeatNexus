@@ -44,7 +44,13 @@ def entscheidung(regel, *aktionen, text="Grund."):
 
 
 def ausfuehren(steller, e, **kw):
-    felder = {"jetzt": JETZT, "betriebswahl": 2, "budget": 4, "beobachten": False}
+    felder = {
+        "jetzt": JETZT,
+        "betriebswahl": 2,
+        "budget": 4,
+        "beobachten": False,
+        "erzwingen": False,
+    }
     felder.update(kw)
     return asyncio.run(steller.ausfuehren(e, **felder))
 
@@ -79,14 +85,22 @@ def test_beobachten_schreibt_nichts(s, regel):
 def test_budget_haelt_an_ausser_bei_sicherheit(s, regel):
     schreiber = Schreiber()
     steller = s.Steller("/1/15/0", UML, schreiber)
-    ausfuehren(steller, entscheidung(regel, regel.Aktion("absenkung_ende")), budget=1)
-    assert (
-        ausfuehren(steller, entscheidung(regel, regel.Aktion("absenkung_ende")), budget=1) is False
-    )
+    absenken = regel.Aktion("absenken", soll=19.5, minuten=60)
+    ausfuehren(steller, entscheidung(regel, absenken), budget=1)
+    assert ausfuehren(steller, entscheidung(regel, absenken), budget=1) is False
     assert steller.stand.protokoll[0]["art"] == "budget"
-    sicher = entscheidung(regel, regel.Aktion("absenkung_ende", sicherheit=True))
+    sicher = entscheidung(regel, regel.Aktion("nur_ww", sicherheit=True))
     assert ausfuehren(steller, sicher, budget=1) is True
-    assert len(schreiber.aufrufe) == 2
+    assert len(schreiber.aufrufe) == 3
+
+
+@pytest.mark.parametrize("art", ["zurueck", "absenkung_ende"])
+def test_rueckkehr_ins_programm_zaehlt_nicht_gegen_das_budget(s, regel, art):
+    """Mehr heizen ist die sichere Richtung; sie darf nie am Budget scheitern."""
+    schreiber = Schreiber()
+    steller = s.Steller("/1/15/0", UML, schreiber)
+    assert ausfuehren(steller, entscheidung(regel, regel.Aktion(art)), budget=0) is True
+    assert steller.stand.eingriffe == 0
 
 
 def test_abgelehnter_eingriff_steht_im_protokoll(s, regel):
@@ -95,6 +109,32 @@ def test_abgelehnter_eingriff_steht_im_protokoll(s, regel):
     assert steller.stand.protokoll[0]["art"] == "abgelehnt"
     assert "HTTP 409" in steller.stand.protokoll[0]["text"]
     assert steller.stand.eingriffe == 0
+
+
+def test_nach_ablehnung_wartet_der_steller_immer_laenger(s, regel):
+    schreiber = Schreiber(RuntimeError("HTTP 409"))
+    steller = s.Steller("/1/15/0", UML, schreiber)
+    e = entscheidung(regel, regel.Aktion("zurueck"))
+    ausfuehren(steller, e)
+    schreiber.fehler = None
+    assert ausfuehren(steller, e, jetzt=JETZT + timedelta(minutes=29)) is False
+    assert schreiber.aufrufe == []
+    assert len(steller.stand.protokoll) == 1  # die Sperre füllt das Protokoll nicht
+    schreiber.fehler = RuntimeError("HTTP 409")
+    ausfuehren(steller, e, jetzt=JETZT + timedelta(minutes=31))
+    schreiber.fehler = None
+    assert ausfuehren(steller, e, jetzt=JETZT + timedelta(minutes=31 + 59)) is False
+    assert ausfuehren(steller, e, jetzt=JETZT + timedelta(minutes=31 + 61)) is True
+    assert steller.stand.ablehnungen == 0
+
+
+def test_erzwingen_uebergeht_die_sperre(s, regel):
+    schreiber = Schreiber(RuntimeError("HTTP 409"))
+    steller = s.Steller("/1/15/0", UML, schreiber)
+    e = entscheidung(regel, regel.Aktion("zurueck", sicherheit=True))
+    ausfuehren(steller, e)
+    schreiber.fehler = None
+    assert ausfuehren(steller, e, jetzt=JETZT + timedelta(minutes=1), erzwingen=True) is True
 
 
 def test_rueckkehr_stellt_die_vorherige_wahl_her(s, regel):
@@ -149,9 +189,10 @@ def test_handeingriff_beendet_die_absenkung(s, regel):
 
 def test_neuer_tag_setzt_das_budget_zurueck(s, regel):
     steller = s.Steller("/1/15/0", UML, Schreiber())
-    ausfuehren(steller, entscheidung(regel, regel.Aktion("absenkung_ende")))
+    absenken = regel.Aktion("absenken", soll=19.5, minuten=60)
+    ausfuehren(steller, entscheidung(regel, absenken))
     morgen = JETZT + timedelta(days=1)
-    ausfuehren(steller, entscheidung(regel, regel.Aktion("absenkung_ende")), jetzt=morgen)
+    ausfuehren(steller, entscheidung(regel, absenken), jetzt=morgen)
     assert steller.stand.eingriffe == 1
 
 
