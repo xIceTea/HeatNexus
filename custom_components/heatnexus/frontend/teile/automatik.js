@@ -253,8 +253,13 @@ export const AutomatikMixin = (Basis) =>
         // Der Neuaufbau ersetzt den ganzen Baum; ein offener Dialog ginge mit.
         const dialogOffen = Boolean(this.shadowRoot.querySelector(".schleier"));
         if (this._reiter === "automatik" && !this._automatikBearbeitet && !dialogOffen) {
+          // Der Neuaufbau leert die Seite kurz; ohne Merken spränge sie nach oben.
+          const lagen = this._automatikScrollLagen();
           this._gebaut = false;
           this._zeichnen();
+          lagen.forEach(([element, oben]) => {
+            element.scrollTop = oben;
+          });
         }
       } catch (err) {
         this._automatikZeit = Date.now();
@@ -262,6 +267,19 @@ export const AutomatikMixin = (Basis) =>
       } finally {
         this._automatikLaedt = false;
       }
+    }
+
+    /** Alle gescrollten Vorfahren, auch über Shadow-Grenzen, mit ihrer Lage. */
+    _automatikScrollLagen() {
+      const lagen = [];
+      let element = this;
+      while (element) {
+        if (element.scrollTop > 0) lagen.push([element, element.scrollTop]);
+        element = element.parentElement || (element.getRootNode && element.getRootNode().host) || null;
+      }
+      const seite = typeof document !== "undefined" ? document.scrollingElement : null;
+      if (seite && seite.scrollTop > 0 && !lagen.some(([e]) => e === seite)) lagen.push([seite, seite.scrollTop]);
+      return lagen;
     }
 
     _automatikUhrStellen() {
@@ -604,8 +622,15 @@ export const AutomatikMixin = (Basis) =>
       this._automatikBearbeitet = false;
       const bereich = document.createElement("details");
       bereich.className = "automatik-erweitert";
+      // Offen bleibt offen, auch wenn Speichern oder Nachladen die Karte neu baut.
+      this._automatikOffen = this._automatikOffen || new Set();
+      bereich.open = this._automatikOffen.has(kreis.heizkreis);
       bereich.addEventListener("toggle", () => {
-        if (!bereich.open) this._automatikBearbeitet = false;
+        if (bereich.open) this._automatikOffen.add(kreis.heizkreis);
+        else {
+          this._automatikOffen.delete(kreis.heizkreis);
+          this._automatikBearbeitet = false;
+        }
       });
       const kopf = document.createElement("summary");
       kopf.textContent = "Erweitert";

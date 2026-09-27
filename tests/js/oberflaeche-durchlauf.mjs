@@ -740,6 +740,18 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   erweitert.open = false;
   erweitert.ausloesen("toggle");
   bilanz.automatik.sperreNachZuklappen = flaeche._automatikBearbeitet;
+
+  // Nach dem Speichern baut der Reiter neu; ein offenes „Erweitert“ bleibt offen.
+  erweitert.open = true;
+  erweitert.ausloesen("toggle");
+  const vorherSpeichern = hass.callWS;
+  hass.callWS = async () => flaeche._automatik;
+  await flaeche._automatikAufruf({ type: "heatnexus/automatik/einstellen" });
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  hass.callWS = vorherSpeichern;
+  const neu = wurzel.querySelector(".automatik-erweitert");
+  bilanz.automatik.erweitertBleibtOffen = neu !== erweitert && neu.open === true;
 }
 
 // ---------------------------------------------------------------------------
