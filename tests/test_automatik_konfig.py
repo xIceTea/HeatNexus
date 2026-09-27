@@ -70,3 +70,34 @@ def test_unbekannter_modus_und_profil_fallen_zurueck(konfig):
     k = konfig.pruefen(roh(modus="turbo", profil="x", heizflaechen="flaeche"))
     assert k["modus"] == "beobachten"
     assert k["profil"] == "traege"
+
+
+@pytest.mark.parametrize(
+    ("entity_id", "passt"),
+    [
+        ("sensor.wohnzimmer_wohnzimmer_temperatur", True),
+        ("sensor.kuche_temperatur", True),
+        ("sensor.wohnzimmer_wohnzimmer_taupunkt", False),
+        ("sensor.wohnzimmer_wohnzimmer_ziel", False),
+        ("sensor.bad_bad_oberflachentemperatur", False),
+        ("sensor.shellyplus1pm_d4d4_switch_0_device_temperature", False),
+        ("sensor.fritz_box_6890_lte_cpu_temperatur", False),
+        ("sensor.heizkreis_raumtemperatur_soll", False),
+    ],
+)
+def test_nur_raumtemperaturen_stehen_zur_wahl(konfig, entity_id, passt):
+    assert konfig.raumfuehler_passt(entity_id) is passt
+
+
+@pytest.mark.parametrize(
+    ("entity_id", "passt"),
+    [
+        ("sensor.energy_production_today", True),
+        ("sensor.energy_production_today_remaining", False),
+        ("sensor.energy_production_tomorrow", False),
+        ("sensor.energy_current_hour", False),
+        ("sensor.energy_next_hour", False),
+    ],
+)
+def test_nur_die_tagesprognose_steht_als_pv_zur_wahl(konfig, entity_id, passt):
+    assert konfig.pv_passt(entity_id) is passt

@@ -18,6 +18,22 @@ LISTEN_MAX = {"raeume": 10, "personen": 10, "fenster": 20}
 EIGENE_FELDER = frozenset({*GRENZEN, *UHRZEITEN, "stark"})
 
 _ENTITAET = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+$")
+# Temperaturen, die kein Raum sind: Taupunkt, Ziel- und Sollwerte, Oberflächen, Geräte.
+_KEIN_RAUM = re.compile(
+    r"taupunkt|dew_?point|_ziel|target|setpoint|_soll|oberflache|surface|device_temp|cpu|chip"
+)
+# Von einer PV-Prognose zählt nur der erwartete Ertrag des ganzen Tages.
+_KEIN_TAGESERTRAG = re.compile(r"remaining|rest|hour|stunde|tomorrow|morgen|peak|power")
+
+
+def raumfuehler_passt(entity_id: str) -> bool:
+    """Ob ein Temperatursensor nach Raumtemperatur aussieht."""
+    return not _KEIN_RAUM.search(entity_id)
+
+
+def pv_passt(entity_id: str) -> bool:
+    """Ob ein Sensor einer PV-Prognose den Ertrag des ganzen Tages nennt."""
+    return not _KEIN_TAGESERTRAG.search(entity_id)
 
 
 def _entitaet(wert: Any) -> str | None:

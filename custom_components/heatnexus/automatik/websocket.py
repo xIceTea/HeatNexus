@@ -23,7 +23,7 @@ import voluptuous as vol
 from ..const import DOMAIN
 from ..rechte import darf_lesen
 from . import profile
-from .konfig import LISTEN_MAX, MODI, RAUM_ARTEN
+from .konfig import LISTEN_MAX, MODI, RAUM_ARTEN, pv_passt, raumfuehler_passt
 from .laufzeit import Laufzeit, ortszeit
 from .verwaltung import DOMAENE_JE_ART, Verwaltung, unique_id, verwaltung_holen
 
@@ -201,7 +201,9 @@ def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None
         domaene = entity_id.split(".", 1)[0]
         klasse = zustand.attributes.get("device_class")
         eintrag = register.async_get(entity_id)
-        if domaene == "sensor" and klasse == "temperature":
+        if eintrag is not None and eintrag.entity_category is not None:
+            continue
+        if domaene == "sensor" and klasse == "temperature" and raumfuehler_passt(entity_id):
             ziel = "temperatur"
         elif domaene == "weather":
             ziel = "wetter"
@@ -210,9 +212,10 @@ def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None
             and klasse == "energy"
             and eintrag
             and eintrag.platform in PV_PLATTFORMEN
+            and pv_passt(entity_id)
         ):
             ziel = "pv"
-        elif domaene in ("person", "device_tracker"):
+        elif domaene == "person":
             ziel = "personen"
         elif domaene == "binary_sensor" and klasse in FENSTER_KLASSEN:
             ziel = "fenster"
