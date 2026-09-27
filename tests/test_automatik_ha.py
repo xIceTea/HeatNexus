@@ -386,7 +386,7 @@ async def test_veralteter_raumfuehler_zaehlt_nicht(hass, hass_ws_client, anlage,
     verwaltung, _ = anlage
     client = await hass_ws_client(hass)
     hass.states.async_set("sensor.alt", "29.7", {"device_class": "temperature"})
-    freezer.move_to(dt_util.utcnow() + timedelta(hours=7))
+    freezer.move_to(dt_util.utcnow() + timedelta(hours=13))
     hass.states.async_set(
         "sensor.wohnzimmer", "21.0", {"device_class": "temperature"}, force_update=True
     )
@@ -453,3 +453,54 @@ async def test_nachgerechnete_gedaempfte_at_ersetzt_einen_frischen_startwert(
 
     assert laufzeit.stufen[1] == pytest.approx(8.0, abs=0.01)
     assert laufzeit.verlauf["stunden"]["5"]["gedaempft"] == pytest.approx(8.0, abs=0.01)
+
+
+async def test_eingefrorener_fuehler_wird_aus_dem_verlauf_erkannt(
+    hass, anlage, monkeypatch, freezer
+):
+    """Ein ausgefallenes Gerät meldet weiter denselben Wert; der Verlauf verrät es."""
+    from datetime import timedelta
+
+    from homeassistant.core import State
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import nachladen
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    jetzt = dt_util.now()
+    hass.states.async_set("sensor.alt", "29.7", {"device_class": "temperature"})
+    zustaende = {
+        "sensor.alt": [
+            State("sensor.alt", "29.7", last_updated=jetzt - timedelta(hours=30)),
+            State("sensor.alt", "29.7", last_updated=jetzt - timedelta(hours=2)),
+        ],
+        "sensor.wohnzimmer": [
+            State("sensor.wohnzimmer", "21.0", last_updated=jetzt - timedelta(hours=20)),
+            State("sensor.wohnzimmer", "21.4", last_updated=jetzt - timedelta(hours=1)),
+        ],
+    }
+
+    class Instanz:
+        async def async_add_executor_job(self, aufgabe):
+            return zustaende
+
+    import homeassistant.components.recorder as recorder
+
+    monkeypatch.setattr(recorder, "get_instance", lambda _hass: Instanz(), raising=False)
+    hass.config.components.add("recorder")
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {
+            "heizkreis": HEIZKREIS,
+            "raeume": ["sensor.wohnzimmer", "sensor.alt"],
+            "wetter": "weather.home",
+        },
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await nachladen.heute_nachtragen(hass, laufzeit)
+
+    assert laufzeit.veraltet("sensor.alt") is True
+    assert laufzeit.veraltet("sensor.wohnzimmer") is False
+    await laufzeit.auswerten()
+    assert laufzeit.lage.raum == 21.4

@@ -1,4 +1,4 @@
-"""Die vergangenen Stunden des heutigen Tages aus der Aufzeichnung nachtragen.
+"""Die vergangenen Stunden von heute nachtragen, eingefrorene Raumfühler erkennen.
 
 Die Stundenprognose beginnt mit der laufenden Stunde, und gesammelt wird erst
 ab dem Start. Einmal je Start liest die Automatik deshalb den heutigen Tag nach.
@@ -21,6 +21,8 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 UNGUELTIG = frozenset({"unavailable", "unknown", "none", ""})
+# So weit zurück liest die Erkennung eingefrorener Fühler; ein Neustart setzt `last_changed` neu.
+VERLAUF_ZURUECK = timedelta(hours=24)
 
 
 def _zahl(wert: Any) -> float | None:
@@ -54,7 +56,7 @@ async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
     abfrage = partial(
         history.get_significant_states,
         hass,
-        anfang,
+        min(anfang, jetzt - VERLAUF_ZURUECK),
         jetzt,
         kennungen,
         significant_changes_only=False,
@@ -69,6 +71,13 @@ async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
     wolken = _reihe(wetter, "cloud_coverage")
     aussenreihe = _reihe(zustaende.get(aussen, [])) if aussen else []
     raeume = [_reihe(zustaende.get(raum, [])) for raum in k["raeume"]]
+    laufzeit.eingefroren = {
+        raum
+        for raum, reihe in zip(k["raeume"], raeume, strict=True)
+        if reihe
+        and len({wert for _, wert in reihe}) == 1
+        and reihe[0][0] <= jetzt - VERLAUF_ZURUECK / 2
+    }
     stufen = None
     for stunde in range(jetzt.hour):
         zeit = anfang + timedelta(hours=stunde)

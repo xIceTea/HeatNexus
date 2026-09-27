@@ -37,8 +37,8 @@ TAKT = timedelta(minutes=5)
 PROGNOSE_TAKT = timedelta(hours=1)
 PROGNOSE_MAX_ALTER = timedelta(hours=6)
 ABWESEND_NACH = timedelta(minutes=30)
-# Ein ausgefallener Fühler meldet in HA seinen letzten Wert weiter; nach so langer Stille zählt er nicht.
-RAUM_VERALTET = timedelta(hours=6)
+# Ein ausgefallener Fühler meldet in HA seinen letzten Wert weiter; bleibt er so lange gleich, zählt er nicht.
+RAUM_VERALTET = timedelta(hours=12)
 FENSTER_DAUER = timedelta(minutes=30)
 PAUSE_BIS_STUNDE = 5
 PV_TAGE = 30
@@ -138,6 +138,8 @@ class Laufzeit:
         self._fehlschlaege = 0
         self._erzwingen = False
         self._nachladen: Any = None
+        # Raumfühler, deren Wert laut Verlauf eingefroren ist; ein neuer Wert löst sie.
+        self.eingefroren: set[str] = set()
 
     # --- Eigenschaften -------------------------------------------------------
     @property
@@ -227,7 +229,11 @@ class Laufzeit:
     @callback
     def _ereignis(self, event: Event) -> None:
         self._geaendert = True
-        if event.data.get("entity_id") in self.konfig["raeume"]:
+        entity_id = event.data.get("entity_id")
+        alt, neu = event.data.get("old_state"), event.data.get("new_state")
+        if alt is not None and neu is not None and alt.state != neu.state:
+            self.eingefroren.discard(entity_id)
+        if entity_id in self.konfig["raeume"]:
             self._raum_verfolgen()
 
     async def _takt(self, _jetzt: datetime) -> None:
@@ -386,13 +392,15 @@ class Laufzeit:
             return None
 
     def seit(self, entity_id: str) -> datetime | None:
-        """Wann der Sensor zuletzt gemeldet hat, auch ohne neuen Wert."""
+        """Seit wann der Sensor denselben Wert zeigt."""
         if (zustand := self.hass.states.get(entity_id)) is None:
             return None
-        return getattr(zustand, "last_reported", None) or zustand.last_updated
+        return zustand.last_changed
 
     def veraltet(self, entity_id: str) -> bool:
-        """Ob ein Raumfühler zu lange nichts gemeldet hat."""
+        """Ob ein Raumfühler zu lange denselben Wert zeigt."""
+        if entity_id in self.eingefroren:
+            return True
         seit = self.seit(entity_id)
         return seit is not None and dt_util.utcnow() - seit > RAUM_VERALTET
 

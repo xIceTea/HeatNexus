@@ -209,7 +209,7 @@ def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None
         else:
             continue
         einheit = zustand.attributes.get("unit_of_measurement") or ""
-        seit = getattr(zustand, "last_reported", None) or zustand.last_updated
+        seit = zustand.last_changed
         listen[ziel].append(
             {
                 "entity_id": entity_id,

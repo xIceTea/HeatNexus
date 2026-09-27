@@ -9,8 +9,8 @@
  */
 
 // Höchstens so oft wird nachgeladen, solange der Reiter offen ist.
-// Wie auf dem Server: So lange darf ein Raumfühler schweigen, dann gilt er als veraltet.
-export const VERALTET_STUNDEN = 6;
+// Wie auf dem Server: So lange darf ein Raumfühler denselben Wert zeigen, dann gilt er als veraltet.
+export const VERALTET_STUNDEN = 12;
 export const AUTOMATIK_TAKT_MS = 60 * 1000;
 
 export const FELDER = [
@@ -894,7 +894,7 @@ export const AutomatikMixin = (Basis) =>
         haken.checked = gewaehlt.includes(eintrag.entity_id);
         const teile = [eintrag.name, eintrag.bereich, eintrag.wert].filter(Boolean);
         const alter = eintrag.seit ? (Date.now() - Date.parse(eintrag.seit)) / 3600000 : 0;
-        if (alter > VERALTET_STUNDEN) teile.push(this._tMit("seit {tage} Tagen ohne Meldung", { tage: Math.floor(alter / 24) }));
+        if (alter > VERALTET_STUNDEN) teile.push(this._tMit("seit {stunden} h unverändert", { stunden: Math.floor(alter) }));
         const zeile = this._automatikMitText(haken, teile.join(" · "));
         if (alter > VERALTET_STUNDEN) zeile.classList.add("veraltet");
         liste.appendChild(zeile);
