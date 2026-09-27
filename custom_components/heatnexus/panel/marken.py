@@ -1,6 +1,6 @@
-"""Marken aus Home Assistant als eigene Karten der Oberfläche.
+"""Labels aus Home Assistant als eigene Karten der Oberfläche.
 
-Auswahl, Benennung und Gruppierung erledigt Home Assistants Markenverwaltung;
+Auswahl, Benennung und Gruppierung erledigt die Label-Verwaltung von Home Assistant;
 hier entsteht daraus nur die Kartenbeschreibung.
 """
 

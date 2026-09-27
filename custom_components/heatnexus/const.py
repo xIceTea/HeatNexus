@@ -46,7 +46,7 @@ ZUSATZGRUPPEN = {
 CONF_LON = "lon"
 CONF_LON_GRUNDUMFANG = "lon_grundumfang"
 
-# Marken aus Home Assistant als eigene Karten der Oberfläche. Leer heißt aus.
+# Labels aus Home Assistant als eigene Karten der Oberfläche. Leer heißt aus.
 CONF_MARKEN = "marken"
 
 # Labels, deren Werte in den Systemstatus wandern statt in eine eigene Karte.
