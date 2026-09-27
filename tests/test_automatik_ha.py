@@ -422,6 +422,37 @@ async def test_lesen_liefert_vorschau_und_einzelne_raeume(hass, hass_ws_client, 
     assert kreis["kennwerte"]["raeume"][0]["wert"] == 21.4
 
 
+async def test_vorschau_rechnet_die_sonnenquote_wie_der_betrieb(
+    hass, hass_ws_client, anlage, freezer
+):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    einheit = {"unit_of_measurement": "kWh", "device_class": "energy"}
+    hass.states.async_set("sensor.energy_production_today", "20.0", einheit)
+    hass.states.async_set("sensor.energy_production_tomorrow", "5.0", einheit)
+    await _senden(
+        client,
+        type="heatnexus/automatik/einrichten",
+        heizkreis=HEIZKREIS,
+        raeume=["sensor.wohnzimmer"],
+        wetter="weather.home",
+        pv="sensor.energy_production_today",
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    heute = dt_util.now().date()
+    laufzeit.pv_tage = {(heute - timedelta(days=t)).isoformat(): 20.0 for t in range(1, 8)}
+
+    antwort = await _senden(client, type="heatnexus/automatik")
+
+    (kreis,) = antwort["result"]["heizkreise"]
+    assert kreis["vorschau"][0]["sonnenquote"] == 25.0
+
+
 async def test_heute_wird_aus_der_aufzeichnung_nachgetragen(hass, anlage, monkeypatch, freezer):
     from datetime import timedelta
 

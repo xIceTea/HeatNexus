@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.util import dt as dt_util
 
-from . import korrektur, regel
+from . import regel
 
 if TYPE_CHECKING:
     from .laufzeit import Laufzeit
@@ -111,22 +111,6 @@ def _pv_sensor(laufzeit: Laufzeit, abstand: int) -> str | None:
     return kennung if laufzeit.hass.states.get(kennung) is not None else None
 
 
-def _quote(laufzeit: Laufzeit, tag: date, abstand: int) -> float | None:
-    heute_tag = dt_util.now().date()
-    fenster = laufzeit.werte.lernfenster
-    quote = None
-    if laufzeit.konfig.get("pv_ist") and laufzeit.werte.anpassen:
-        quote = korrektur.sonnenquote_korrigiert(
-            laufzeit.kwh(_pv_sensor(laufzeit, abstand)),
-            laufzeit.pv.faktor(fenster, heute_tag),
-            laufzeit.pv.bester_ist(heute_tag),
-        )
-    aufgang, untergang = laufzeit.sonne(tag)
-    if quote is None and aufgang and untergang:
-        quote = laufzeit.quote_aus_bewoelkung(tag, aufgang, untergang)
-    return quote
-
-
 def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
     """Morgen und übermorgen: was die Regel voraussichtlich entscheidet, Raum am Sollwert."""
     werte, g = laufzeit.werte, laufzeit.gedaechtnis
@@ -135,7 +119,7 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
     tage = []
     for abstand in range(1, VORSCHAU_TAGE + 1):
         tag = jetzt.date() + timedelta(days=abstand)
-        quote = _quote(laufzeit, tag, abstand)
+        quote = laufzeit.sonnenquote(tag, _pv_sensor(laufzeit, abstand))
         # Für einen kommenden Tag steht die gedämpfte AT noch nicht fest; das Mittel aus
         # Vortag und Tag laut angepasster Prognose kommt ihr am nächsten.
         mittel = [

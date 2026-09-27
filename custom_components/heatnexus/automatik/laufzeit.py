@@ -486,6 +486,7 @@ class Laufzeit:
         at = self._aussen()
         self.temperatur.messen(jetzt, at)
         self.pv.prognose_merken(jetzt, self.kwh(self.konfig.get("pv")))
+        self._pv_tag_merken(jetzt)
         if self.konfig.get("pv_ist"):
             self.pv.ist_merken(jetzt, self.kwh(self.konfig["pv_ist"]))
         heute = jetzt.date().isoformat()
@@ -583,30 +584,33 @@ class Laufzeit:
             dt_util.as_local(untergang) if untergang else None,
         )
 
-    def _sonnenquote(self, jetzt: datetime, aufgang: datetime, untergang: datetime) -> float | None:
+    def _pv_tag_merken(self, jetzt: datetime) -> None:
+        """Die PV-Prognose des Tages als Maßstab für spätere Tage ablegen."""
+        if (pv := self.zahl(self.konfig.get("pv"))) is None:
+            return
         heute = jetzt.date().isoformat()
-        faktor = (
-            self.pv.faktor(self.werte.lernfenster, jetzt.date()) if self.werte.anpassen else None
-        )
-        pv_prognose = self.kwh(self.konfig.get("pv"))
-        if (
-            self.konfig.get("pv_ist")
-            and (
-                quote := korrektur.sonnenquote_korrigiert(
-                    pv_prognose, faktor, self.pv.bester_ist(jetzt.date())
-                )
+        self.pv_tage[heute] = max(pv, self.pv_tage.get(heute, 0.0))
+        grenze = (jetzt.date() - timedelta(days=PV_TAGE)).isoformat()
+        self.pv_tage = {tag: wert for tag, wert in self.pv_tage.items() if tag > grenze}
+
+    def sonnenquote(self, tag: date, pv_sensor: str | None) -> float | None:
+        """Sonnenquote eines Tages; Betrieb und Vorschau rechnen sie gleich."""
+        heute = dt_util.now().date()
+        if self.konfig.get("pv_ist") and self.werte.anpassen:
+            quote = korrektur.sonnenquote_korrigiert(
+                self.kwh(pv_sensor),
+                self.pv.faktor(self.werte.lernfenster, heute),
+                self.pv.bester_ist(heute),
             )
-            is not None
-        ):
-            return quote
-        if (pv := self.zahl(self.konfig.get("pv"))) is not None:
-            self.pv_tage[heute] = max(pv, self.pv_tage.get(heute, 0.0))
-            grenze = (jetzt.date() - timedelta(days=PV_TAGE)).isoformat()
-            self.pv_tage = {tag: wert for tag, wert in self.pv_tage.items() if tag > grenze}
-            bisher = [wert for tag, wert in self.pv_tage.items() if tag != heute]
-            if (quote := eingaben.sonnenquote_aus_pv(pv, bisher)) is not None:
+            if quote is not None:
                 return quote
-        return self.quote_aus_bewoelkung(jetzt.date(), aufgang, untergang)
+        bisher = [wert for datum, wert in self.pv_tage.items() if datum != heute.isoformat()]
+        if (quote := eingaben.sonnenquote_aus_pv(self.zahl(pv_sensor), bisher)) is not None:
+            return quote
+        aufgang, untergang = self.sonne(tag)
+        if aufgang is None or untergang is None:
+            return None
+        return self.quote_aus_bewoelkung(tag, aufgang, untergang)
 
     def quote_aus_bewoelkung(
         self, tag: date, aufgang: datetime, untergang: datetime
@@ -629,15 +633,14 @@ class Laufzeit:
             self._daten_fehlen_seit = None
         elif self._daten_fehlen_seit is None:
             self._daten_fehlen_seit = jetzt
-        aufgang, untergang = self.sonne(jetzt.date())
-        quote = self._sonnenquote(jetzt, aufgang, untergang) if aufgang and untergang else None
+        untergang = self.sonne(jetzt.date())[1]
         return regel.Lage(
             jetzt=jetzt,
             at=at,
             at_gedaempft=self.stufen[1] if self.stufen else None,
             raum=raum,
             soll=self._wert("/1/1/0"),
-            sonnenquote=quote,
+            sonnenquote=self.sonnenquote(jetzt.date(), self.konfig.get("pv")),
             mittel_heute=self.tagesmittel(jetzt.date()),
             mittel_morgen=self.tagesmittel(jetzt.date() + timedelta(days=1)),
             sonnenuntergang=untergang,
