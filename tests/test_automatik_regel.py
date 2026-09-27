@@ -266,3 +266,10 @@ def test_gedaechtnis_uebersteht_den_store(m, w):
 def test_kaputtes_gedaechtnis_wird_leer(m):
     assert m.gedaechtnis_aus_dict({"saison_seit": "kein datum", "unbekannt": 1}) == m.Gedaechtnis()
     assert m.gedaechtnis_aus_dict(None) == m.Gedaechtnis()
+
+
+def test_wechsel_auf_nur_ww_beendet_laufende_absenkung(m, w):
+    warm = lage(m, jetzt=MORGEN + timedelta(hours=1), at_gedaempft=18.5, betriebswahl=3)
+    e = m.entscheiden(warm, sonnentag(m), w)
+    assert e.zustand == m.Zustand.NUR_WW
+    assert [a.art for a in e.aktionen] == ["absenkung_ende", "nur_ww"]

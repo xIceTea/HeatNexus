@@ -267,7 +267,9 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
     else:
         grund = f"Prognose heute und morgen im Mittel ab {_zahl(w.heizgrenze)} °C – nur Warmwasser."
     neu = Gedaechtnis(saison=NUR_WW, saison_seit=lage.jetzt, saison_soll=soll)
-    return Entscheidung(Zustand.NUR_WW, (Aktion("nur_ww"),), grund, neu)
+    # Das neue Gedächtnis kennt die Absenkung nicht mehr; an der Steuerung liefe sie weiter.
+    ende = (Aktion("absenkung_ende"),) if absenkung_laeuft(g, lage.jetzt) else ()
+    return Entscheidung(Zustand.NUR_WW, (*ende, Aktion("nur_ww")), grund, neu)
 
 
 def _abwesenheit(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung | None:
