@@ -367,8 +367,8 @@ export const AutomatikMixin = (Basis) =>
       raster.className = "automatik-werte";
       const kacheln = [
         ["sonne", `${zahl(k.sonnenquote, 0)} %`, "Sonnenquote heute", `ab ${zahl(w.sonnenquote, 0)} %`],
-        ["", `${zahl(k.raum)} °C`, "Raum", `Soll ${zahl(k.soll)} °C`],
-        ["", `${zahl(k.at_gedaempft)} °C`, "gedämpfte AT", `Heizgrenze ${zahl(k.heizgrenze)} °C`],
+        ["", `${zahl(k.raum)} °C`, k.raum_art === "minimum" ? "Raum, kältester" : "Raum, Mittel", `Soll ${zahl(k.soll)} °C`],
+        ["", `${zahl(k.at)} °C`, "Außen, Fühler Heizkreis", `gedämpft ${zahl(k.at_gedaempft)} · Grenze ${zahl(k.heizgrenze)} °C`],
         ["", `${k.eingriffe ?? 0} / ${k.budget ?? "–"}`, "Eingriffe heute", "Budget"],
       ];
       kacheln.forEach(([art, wert, bezeichnung, schwelle]) => {
@@ -385,6 +385,16 @@ export const AutomatikMixin = (Basis) =>
           teil.textContent = inhalt;
           kachel.appendChild(teil);
         });
+        if (bezeichnung.startsWith("Raum") && (k.raeume || []).length > 1) {
+          const liste = document.createElement("div");
+          liste.className = "raeume";
+          k.raeume.forEach((raum) => {
+            const zeile = document.createElement("div");
+            zeile.textContent = `${raum.name} ${zahl(raum.wert)} °C`;
+            liste.appendChild(zeile);
+          });
+          kachel.appendChild(liste);
+        }
         raster.appendChild(kachel);
       });
       return raster;
@@ -393,11 +403,26 @@ export const AutomatikMixin = (Basis) =>
     _automatikTag(kreis) {
       const rahmen = document.createElement("div");
       rahmen.className = "automatik-tag";
+      this._automatikTagWahl = this._automatikTagWahl || {};
+      const tage = [{ titel: "Heute", tag: kreis.tag }, ...(kreis.vorschau || [])];
+      const wahl = Math.min(this._automatikTagWahl[kreis.heizkreis] || 0, tage.length - 1);
+      const gewaehlt = tage[wahl];
+      const tag = gewaehlt.tag || {};
+      rahmen.appendChild(this._automatikTagWahlLeiste(kreis, tage, wahl));
       rahmen.appendChild(this._automatikKorrekturMarken(kreis));
-      rahmen.appendChild(this._automatikStundenraster(kreis));
+      if (wahl > 0) {
+        const vorschau = document.createElement("div");
+        vorschau.className = "automatik-vorschau";
+        vorschau.textContent = this._tMit("{titel}: {text} Angenommen ist ein Raum am Sollwert.", {
+          titel: this._t(gewaehlt.titel),
+          text: gewaehlt.begruendung || "",
+        });
+        rahmen.appendChild(vorschau);
+      }
+      rahmen.appendChild(this._automatikStundenraster({ ...kreis, tag }));
       const bild = document.createElement("div");
       bild.className = "automatik-tag-bild";
-      bild.innerHTML = tagesleisteSvg(kreis.tag || {}, 1000, (kreis.werte || {}).heizgrenze);
+      bild.innerHTML = tagesleisteSvg(tag, 1000, (kreis.werte || {}).heizgrenze);
       const achse = document.createElement("div");
       achse.className = "automatik-achse";
       ["00:00", "06:00", "12:00", "18:00", "24:00"].forEach((marke) => {
@@ -424,6 +449,24 @@ export const AutomatikMixin = (Basis) =>
       });
       rahmen.append(bild, achse, legende);
       return rahmen;
+    }
+
+    _automatikTagWahlLeiste(kreis, tage, wahl) {
+      const leiste = document.createElement("div");
+      leiste.className = "automatik-tagwahl";
+      tage.forEach((eintrag, index) => {
+        const taste = document.createElement("button");
+        taste.type = "button";
+        taste.textContent = eintrag.titel;
+        taste.setAttribute("aria-pressed", String(index === wahl));
+        taste.addEventListener("click", () => {
+          this._automatikTagWahl[kreis.heizkreis] = index;
+          this._gebaut = false;
+          this._zeichnen();
+        });
+        leiste.appendChild(taste);
+      });
+      return leiste;
     }
 
     _automatikKorrekturMarken(kreis) {

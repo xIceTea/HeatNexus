@@ -1212,6 +1212,20 @@ export const STIL = `
   .automatik-tag .al-grenze {
     stroke: var(--hn-gedaempft); stroke-dasharray: 6 5; vector-effect: non-scaling-stroke;
   }
+  .automatik-tagwahl { display: inline-flex; gap: 4px; margin-bottom: 10px; padding: 3px;
+    border-radius: 999px; background: var(--hn-flaeche); border: 1px solid var(--hn-linie); }
+  .automatik-tagwahl button {
+    padding: 5px 12px; border-radius: 999px; border: none; background: none; cursor: pointer;
+    color: inherit; font: inherit; font-size: 12px; font-weight: 600; opacity: 0.6;
+  }
+  .automatik-tagwahl button[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--hn-akzent) 20%, transparent); color: var(--hn-akzent); opacity: 1;
+  }
+  .automatik-vorschau {
+    margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; font-size: 13px;
+    background: var(--hn-flaeche); border: 1px dashed var(--hn-linie);
+  }
+  .automatik-wert .raeume { margin-top: 6px; font-size: 11px; color: var(--hn-gedaempft); line-height: 1.4; }
   .automatik-korrektur { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
   .automatik-korrekturmarke {
     padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
