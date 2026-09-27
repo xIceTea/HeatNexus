@@ -29,6 +29,7 @@ import { REITER } from "./ordnung.js";
 import { AnordnenMixin } from "./teile/anordnen.js";
 import { AutomatikMixin } from "./teile/automatik.js";
 import { BausteineMixin } from "./teile/bausteine.js";
+import { EinrichtungMixin } from "./teile/einrichtung.js";
 import { BedienenMixin } from "./teile/bedienen.js";
 import { HilfeMixin } from "./teile/hilfe.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
@@ -44,9 +45,11 @@ const Grundlage = HilfeMixin(
     WartungMixin(
       VerlaufMixin(
         AutomatikMixin(
-          SteuerungMixin(
-            UebersichtMixin(
-              SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+          EinrichtungMixin(
+            SteuerungMixin(
+              UebersichtMixin(
+                SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+              )
             )
           )
         )
