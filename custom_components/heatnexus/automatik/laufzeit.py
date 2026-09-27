@@ -49,7 +49,8 @@ ABRUF = ("/2/9/0", "/0/0/0")
 SIGNAL_AKTUALISIERT = f"{DOMAIN}_automatik_{{}}"
 
 
-def _zeit(wert: Any) -> datetime | None:
+def ortszeit(wert: Any) -> datetime | None:
+    """ISO-Text als Ortszeit; Unlesbares ergibt nichts."""
     if not wert:
         return None
     zeit = dt_util.parse_datetime(str(wert))
@@ -99,9 +100,9 @@ class Laufzeit:
         self.stufen: tuple[float, float] | None = (
             (float(stufen[0]), float(stufen[1])) if isinstance(stufen, list | tuple) else None
         )
-        self.stufen_zeit = _zeit(z.get("stufen_zeit"))
-        self.pausiert_bis = _zeit(z.get("pausiert_bis"))
-        self.beobachtet_seit = _zeit(z.get("beobachtet_seit")) or dt_util.now()
+        self.stufen_zeit = ortszeit(z.get("stufen_zeit"))
+        self.pausiert_bis = ortszeit(z.get("pausiert_bis"))
+        self.beobachtet_seit = ortszeit(z.get("beobachtet_seit")) or dt_util.now()
         self.pv_tage: dict[str, float] = {
             str(k): float(v) for k, v in (z.get("pv_tage") or {}).items()
         }
@@ -422,7 +423,7 @@ class Laufzeit:
         stunden = [
             (zeit, eintrag.get("cloud_coverage"))
             for eintrag in self.stunden
-            if (zeit := _zeit(eintrag.get("datetime"))) is not None
+            if (zeit := ortszeit(eintrag.get("datetime"))) is not None
         ]
         return eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang)
 
@@ -483,7 +484,7 @@ class Laufzeit:
             self._tage = [
                 (zeit.date(), eintrag.get("temperature"), eintrag.get("templow"))
                 for eintrag in tage
-                if (zeit := _zeit(eintrag.get("datetime"))) is not None
+                if (zeit := ortszeit(eintrag.get("datetime"))) is not None
             ]
         if stunden is not None or tage is not None:
             self._prognose_zeit = dt_util.now()
