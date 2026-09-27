@@ -44,6 +44,9 @@ def lage(m, **felder):
         "betriebswahl": 1,
     }
     basis.update(felder)
+    # Ein einzelner Raumwert steht für einen Raum ohne eigenes Ziel.
+    raum = basis.pop("raum")
+    basis.setdefault("raeume", () if raum is None else ((raum, None),))
     return m.Lage(**basis)
 
 

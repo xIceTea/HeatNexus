@@ -12,8 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.util import dt as dt_util
 
-from . import regel
-from .konfig import ist_thermostat
+from . import eingaben, regel
 
 if TYPE_CHECKING:
     from .laufzeit import Laufzeit
@@ -131,7 +130,7 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
         lage = regel.Lage(
             jetzt=dt_util.start_of_local_day(tag).replace(hour=stunde, minute=minute),
             at_gedaempft=sum(mittel) / len(mittel) if mittel else None,
-            raum=soll,
+            raeume=() if soll is None else ((soll, None),),
             soll=soll,
             sonnenquote=quote,
             mittel_heute=laufzeit.tagesmittel(tag),
@@ -143,7 +142,7 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
         ausgang = regel.Gedaechtnis(saison=g.saison, saison_soll=g.saison_soll)
         entscheidung = regel.entscheiden(lage, ausgang, werte)
         begruendung = entscheidung.begruendung
-        if entscheidung.aktionen and any(map(ist_thermostat, laufzeit.konfig["raeume"])):
+        if entscheidung.aktionen and eingaben.hat_thermostat(laufzeit.konfig["raeume"]):
             begruendung += " Vorausgesetzt, die Räume fordern keine Wärme an."
         tage.append(
             {

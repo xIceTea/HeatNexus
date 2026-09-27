@@ -21,13 +21,13 @@ import voluptuous as vol
 
 from ..const import DOMAIN
 from ..rechte import darf_lesen
-from . import korrektur, nachladen, profile, regel, tagesansicht
+from . import eingaben, korrektur, nachladen, profile, regel, tagesansicht
 from .konfig import (
+    EIGENE_FELDER,
     LISTEN_MAX,
     MODI,
     RAUM_ARTEN,
     RAUM_ZIEL,
-    ist_thermostat,
     pv_ist_passt,
     pv_passt,
     raumfuehler_passt,
@@ -91,7 +91,7 @@ def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: d
     lage = laufzeit.lage
     g = laufzeit.gedaechtnis
     soll = g.absenkung_basis or g.saison_soll or (lage.soll if lage else None)
-    thermostate = any(map(ist_thermostat, laufzeit.konfig["raeume"]))
+    thermostate = eingaben.hat_thermostat(laufzeit.konfig["raeume"])
     abweichung = (
         regel.abweichung(lage, soll)
         if lage is not None and lage.raum is not None and soll is not None
@@ -317,11 +317,7 @@ async def _ws_einrichten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
         vol.Optional("aktiv"): bool,
         vol.Optional("modus"): vol.In(MODI),
         vol.Optional("eigene"): vol.All(
-            {
-                vol.In(
-                    tuple(profile.GRENZEN) + profile.UHRZEITEN + profile.SCHALTER + ("lernfenster",)
-                ): vol.Any(int, float, str, bool)
-            },
+            {vol.In(EIGENE_FELDER): vol.Any(int, float, str, bool)},
             vol.Length(max=20),
         ),
     }

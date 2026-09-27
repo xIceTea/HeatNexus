@@ -5,10 +5,10 @@ Reine Rechnungen ohne Home Assistant; Zeiten kommen als `datetime` mit Zone.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import date, datetime, timedelta
 import math
-from typing import Any
+from typing import Any, NamedTuple
 
 # Unter so vielen Vergleichstagen sagt der PV-Ertrag nichts über die Sonne.
 PV_MIN_TAGE = 7
@@ -36,7 +36,16 @@ def raumwert(werte: list[float | None], art: str) -> float | None:
     return min(gueltig) if art == "minimum" else sum(gueltig) / len(gueltig)
 
 
-def _zahl(wert: Any) -> float | None:
+class Messung(NamedTuple):
+    """Ein Raum: Ist, eigenes Ziel und ob er Wärme anfordert."""
+
+    ist: float
+    ziel: float | None
+    heizt: bool | None
+
+
+def zahl(wert: Any) -> float | None:
+    """Endliche Zahl oder nichts; Wahrheitswerte zählen nicht als Zahl."""
     if wert is None or isinstance(wert, bool):
         return None
     try:
@@ -46,15 +55,30 @@ def _zahl(wert: Any) -> float | None:
     return zahl if math.isfinite(zahl) else None
 
 
-def raum_messung(
-    entity_id: str, zustand: str, attribute: Mapping[str, Any]
-) -> tuple[float, float | None, bool | None] | None:
+def ist_thermostat(entity_id: str) -> bool:
+    """Ob ein Raum eine Klima-Entität ist, die Ist, Ziel und Anforderung kennt."""
+    return entity_id.startswith("climate.")
+
+
+def hat_thermostat(raeume: Iterable[str]) -> bool:
+    """Ob unter den Räumen ein Thermostat ist."""
+    return any(map(ist_thermostat, raeume))
+
+
+def messmerkmal(entity_id: str) -> str | None:
+    """Wo der Messwert eines Raums steht: im Zustand, beim Thermostat in einem Attribut."""
+    return "current_temperature" if ist_thermostat(entity_id) else None
+
+
+def raum_messung(entity_id: str, zustand: str, attribute: Mapping[str, Any]) -> Messung | None:
     """Ist, eigenes Ziel und Wärmeanforderung eines Raums; ein Sensor kennt nur den Ist-Wert."""
-    if not entity_id.startswith("climate."):
-        return None if (ist := _zahl(zustand)) is None else (ist, None, None)
-    if zustand in THERMOSTAT_AUS or (ist := _zahl(attribute.get("current_temperature"))) is None:
+    if (merkmal := messmerkmal(entity_id)) is None:
+        return None if (ist := zahl(zustand)) is None else Messung(ist, None, None)
+    if zustand in THERMOSTAT_AUS or (ist := zahl(attribute.get(merkmal))) is None:
         return None
-    return (ist, _zahl(attribute.get("temperature")), attribute.get("hvac_action") == "heating")
+    return Messung(
+        ist, zahl(attribute.get("temperature")), attribute.get("hvac_action") == "heating"
+    )
 
 
 def sonnenquote_aus_bewoelkung(

@@ -194,8 +194,7 @@ export function korrekturText(art, eintrag, noetig) {
   if (art === "sonne" && !eintrag.aktiv) return "Sonne unkorrigiert";
   const name = art === "sonne" ? "Sonne" : "Außen";
   if (art === "temperatur" && eintrag.versatz !== null && eintrag.versatz !== undefined) {
-    const v = Number(eintrag.versatz);
-    return `${name} angepasst ${v > 0 ? "+" : v < 0 ? "−" : "±"}${zahl(Math.abs(v))} K`;
+    return `${name} angepasst ${kelvin(eintrag.versatz)}`;
   }
   if (art === "sonne" && eintrag.faktor !== null && eintrag.faktor !== undefined) {
     const prozent = Math.round((Number(eintrag.faktor) - 1) * 100);

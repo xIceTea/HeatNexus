@@ -29,7 +29,6 @@ from homeassistant.util import dt as dt_util
 from ..const import DOMAIN
 from ..helpers import get_oid_value
 from . import eingaben, korrektur, nachladen, profile, regel
-from .konfig import ist_thermostat
 from .steller import Stand, Steller
 
 _LOGGER = logging.getLogger(__name__)
@@ -63,9 +62,8 @@ def ortszeit(wert: Any) -> datetime | None:
 
 def _messwert(zustand: Any) -> Any:
     """Was sich bei einem lebendigen Fühler ändert: der Zustand oder die Ist-Temperatur."""
-    if ist_thermostat(zustand.entity_id):
-        return zustand.attributes.get("current_temperature")
-    return zustand.state
+    merkmal = eingaben.messmerkmal(zustand.entity_id)
+    return zustand.attributes.get(merkmal) if merkmal else zustand.state
 
 
 def _ganzzahl(wert: float | None) -> int | None:
@@ -423,9 +421,9 @@ class Laufzeit:
         if (zustand := self.hass.states.get(entity_id)) is None:
             return None
         # Beim Thermostat ändert sich der Zustand nur mit der Betriebsart, der Messwert als Merkmal.
-        return zustand.last_updated if ist_thermostat(entity_id) else zustand.last_changed
+        return zustand.last_updated if eingaben.ist_thermostat(entity_id) else zustand.last_changed
 
-    def messung(self, entity_id: str) -> tuple[float, float | None, bool | None] | None:
+    def messung(self, entity_id: str) -> eingaben.Messung | None:
         """Ist, eigenes Ziel und Wärmeanforderung eines Raums."""
         if (zustand := self.hass.states.get(entity_id)) is None:
             return None
@@ -438,28 +436,27 @@ class Laufzeit:
         seit = self.seit(entity_id)
         return seit is not None and dt_util.utcnow() - seit > RAUM_VERALTET
 
-    def _messungen(self) -> list[tuple[float, float | None, bool | None]]:
-        """Alle gültigen Räume; ein Fühler ohne eigenes Ziel bekommt die Wunschtemperatur."""
+    def _messungen(self) -> list[eingaben.Messung]:
+        """Alle gültigen Räume; ohne eigenes Ziel gilt die Wunschtemperatur der Einrichtung."""
         ergebnis = []
         for kennung in self.konfig["raeume"]:
             if self.veraltet(kennung) or (m := self.messung(kennung)) is None:
                 continue
-            ziel = m[1] if ist_thermostat(kennung) else self.konfig.get("raum_ziel")
-            ergebnis.append((m[0], ziel, m[2]))
+            ergebnis.append(
+                m if m.ziel is not None else m._replace(ziel=self.konfig.get("raum_ziel"))
+            )
         return ergebnis
 
-    def _raum(self) -> float | None:
-        werte: list[float | None] = [m[0] for m in self._messungen()]
+    def _raum(self, messungen: list[eingaben.Messung] | None = None) -> float | None:
+        werte: list[float | None] = [
+            m.ist for m in (self._messungen() if messungen is None else messungen)
+        ]
         return eingaben.raumwert(werte, self.konfig["raum_art"])
 
-    def _ruhig(
-        self, jetzt: datetime, messungen: list[tuple[float, float | None, bool | None]]
-    ) -> bool | None:
+    def _ruhig(self, jetzt: datetime) -> bool | None:
         """Ob seit zwei Stunden kein Thermostat Wärme anfordert; ohne Thermostat `None`."""
-        if not any(map(ist_thermostat, self.konfig["raeume"])):
+        if not eingaben.hat_thermostat(self.konfig["raeume"]):
             return None
-        if any(m[2] for m in messungen):
-            self.anforderung_zuletzt = jetzt
         return jetzt - self.anforderung_zuletzt >= RUHE_NACH
 
     def _aussen(self) -> float | None:
@@ -662,7 +659,9 @@ class Laufzeit:
 
     def _lage(self, jetzt: datetime, entscheidungszeit: bool) -> regel.Lage:
         messungen = self._messungen()
-        raum = eingaben.raumwert([m[0] for m in messungen], self.konfig["raum_art"])
+        if any(m.heizt for m in messungen):
+            self.anforderung_zuletzt = jetzt
+        raum = self._raum(messungen)
         at = self._aussen()
         frisch = (
             self._prognose_zeit is not None and jetzt - self._prognose_zeit <= PROGNOSE_MAX_ALTER
@@ -677,11 +676,10 @@ class Laufzeit:
             jetzt=jetzt,
             at=at,
             at_gedaempft=self.stufen[1] if self.stufen else None,
-            raum=raum,
             soll=self._wert("/1/1/0"),
-            raeume=tuple((ist, ziel) for ist, ziel, _ in messungen),
+            raeume=tuple((m.ist, m.ziel) for m in messungen),
             raum_art=self.konfig["raum_art"],
-            ruhig=self._ruhig(jetzt, messungen),
+            ruhig=self._ruhig(jetzt),
             sonnenquote=self.sonnenquote(jetzt.date(), self.konfig.get("pv")),
             mittel_heute=self.tagesmittel(jetzt.date()),
             mittel_morgen=self.tagesmittel(jetzt.date() + timedelta(days=1)),

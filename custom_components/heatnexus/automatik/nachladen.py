@@ -15,7 +15,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from . import eingaben
-from .konfig import ist_thermostat
 
 if TYPE_CHECKING:
     from .laufzeit import Laufzeit
@@ -44,8 +43,7 @@ def _reihe(zustaende: list[Any], merkmal: str | None = None) -> list[tuple[datet
 
 
 def _raumreihe(zustaende: dict[str, list[Any]], kennung: str) -> list[tuple[datetime, float]]:
-    merkmal = "current_temperature" if ist_thermostat(kennung) else None
-    return _reihe(zustaende.get(kennung, []), merkmal)
+    return _reihe(zustaende.get(kennung, []), eingaben.messmerkmal(kennung))
 
 
 def eingefroren(
@@ -68,15 +66,22 @@ async def eingefrorene_fuehler(hass: HomeAssistant, kennungen: list[str]) -> dic
     from homeassistant.components.recorder import get_instance, history
 
     jetzt = dt_util.now()
-    abfrage = partial(
-        history.get_significant_states,
-        hass,
-        jetzt - VERLAUF_ZURUECK,
-        jetzt,
-        kennungen,
-        significant_changes_only=False,
-        no_attributes=not any(map(ist_thermostat, kennungen)),
-    )
+
+    def abfrage() -> dict[str, list[Any]]:
+        # Attribute nur für Thermostate lesen; bei Sensoren kostet der Join ohne Nutzen.
+        zustaende: dict[str, list[Any]] = {}
+        for ohne_attribute in (True, False):
+            if gruppe := [k for k in kennungen if eingaben.ist_thermostat(k) != ohne_attribute]:
+                zustaende |= history.get_significant_states(
+                    hass,
+                    jetzt - VERLAUF_ZURUECK,
+                    jetzt,
+                    gruppe,
+                    significant_changes_only=False,
+                    no_attributes=ohne_attribute,
+                )
+        return zustaende
+
     try:
         zustaende = await get_instance(hass).async_add_executor_job(abfrage)
     except Exception as fehler:  # die Aufzeichnung ist eine Zugabe, kein Muss

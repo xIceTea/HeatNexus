@@ -7,10 +7,10 @@ eigene Werte werden auf ihre Abweichung vom Profil reduziert.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-import math
 import re
 from typing import Any
 
+from .eingaben import hat_thermostat, zahl
 from .profile import (
     GRENZEN,
     HEIZFLAECHEN,
@@ -62,19 +62,9 @@ def pv_passt(entity_id: str) -> bool:
     return not _KEIN_TAGESERTRAG.search(entity_id)
 
 
-def ist_thermostat(entity_id: str) -> bool:
-    """Ob ein Raum eine Klima-Entität ist, die Ist, Ziel und Anforderung kennt."""
-    return entity_id.startswith("climate.")
-
-
 def _raum_ziel(wert: Any) -> float | None:
-    if isinstance(wert, bool):
-        return None
-    try:
-        zahl = float(wert)
-    except (TypeError, ValueError):
-        return None
-    return zahl if math.isfinite(zahl) and RAUM_ZIEL[0] <= zahl <= RAUM_ZIEL[1] else None
+    ziel = zahl(wert)
+    return ziel if ziel is not None and RAUM_ZIEL[0] <= ziel <= RAUM_ZIEL[1] else None
 
 
 def _entitaet(wert: Any) -> str | None:
@@ -127,9 +117,8 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
 
 def klima_vorgabe(konfig: dict[str, Any], alte_raeume: Sequence[str]) -> dict[str, Any]:
     """Mit dem ersten Thermostat den Sonnentag abschalten; die Thermostate gleichen ihn aus."""
-    if any(map(ist_thermostat, alte_raeume)) or not any(map(ist_thermostat, konfig["raeume"])):
-        return konfig
-    if "sonnentag" in konfig["eigene"]:
+    neu = not hat_thermostat(alte_raeume) and hat_thermostat(konfig["raeume"])
+    if not neu or "sonnentag" in konfig["eigene"]:
         return konfig
     eigene = abweichungen(konfig["profil"], {**konfig["eigene"], "sonnentag": False})
     return {**konfig, "eigene": eigene}

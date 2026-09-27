@@ -65,7 +65,6 @@ class Lage:
     jetzt: datetime
     at: float | None = None
     at_gedaempft: float | None = None
-    raum: float | None = None
     soll: float | None = None
     # Je Raum Ist und eigenes Ziel; ohne Ziel gilt der Sollwert des Heizkreises.
     raeume: tuple[tuple[float, float | None], ...] = ()
@@ -85,6 +84,11 @@ class Lage:
     pausiert_bis: datetime | None = None
     entscheidungszeit: bool = False
     absenkung_moeglich: bool = True
+
+    @property
+    def raum(self) -> float | None:
+        """Raumwert für Sicherheit und Anzeige: Mittel oder kältester Raum."""
+        return raumwert([ist for ist, _ in self.raeume], self.raum_art)
 
 
 @dataclass(frozen=True)
@@ -128,7 +132,8 @@ def _zahl(wert: float | None) -> str:
 
 
 def _kelvin(wert: float) -> str:
-    return f"{wert:+.1f} K".replace(".", ",").replace("-", "−")
+    text = f"{abs(wert):.1f} K".replace(".", ",")
+    return ("\u2212" if wert < -0.05 else "+" if wert >= 0.05 else "\u00b1") + text
 
 
 def _uhr(zeit: datetime) -> str:
@@ -176,11 +181,9 @@ def _raeumen(lage: Lage, g: Gedaechtnis) -> Gedaechtnis:
 
 
 def abweichung(lage: Lage, soll: float) -> float:
-    """Raum minus Ziel, zusammengefasst wie eingestellt; ohne Einzelwerte der Raumwert."""
-    if lage.raeume:
-        werte = [ist - (soll if ziel is None else ziel) for ist, ziel in lage.raeume]
-        return raumwert(werte, lage.raum_art)
-    return lage.raum - soll
+    """Raum minus Ziel, zusammengefasst wie eingestellt; ohne eigenes Ziel gilt `soll`."""
+    werte = [ist - (soll if ziel is None else ziel) for ist, ziel in lage.raeume]
+    return raumwert(werte, lage.raum_art) or 0.0
 
 
 def _bereit(g: Gedaechtnis, jetzt: datetime, w: Werte) -> bool:

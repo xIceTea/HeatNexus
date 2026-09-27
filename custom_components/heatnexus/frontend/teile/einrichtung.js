@@ -251,12 +251,9 @@ export const EinrichtungMixin = (Basis) =>
         ],
         (k && k.raum_art) || "mittel"
       );
-      const raumZiel = document.createElement("input");
-      raumZiel.type = "number";
-      raumZiel.step = "0.5";
+      const raumZiel = this._automatikEingabe({ schritt: 0.5 }, k ? k.raum_ziel : null, true);
       raumZiel.min = "10";
       raumZiel.max = "30";
-      raumZiel.value = k && k.raum_ziel !== null && k.raum_ziel !== undefined ? String(k.raum_ziel) : "";
       const wetter = this._automatikAuswahl(
         this._automatikMitGewaehlt(kandidaten.wetter.map((e) => [e.entity_id, e.name]), k && k.wetter),
         (k && k.wetter) || ""
