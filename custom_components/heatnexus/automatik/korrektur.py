@@ -59,8 +59,8 @@ class Temperaturkorrektur:
 
     def messen(self, jetzt: datetime, gemessen: float | None) -> None:
         """Im ersten Lauf einer Stunde den Fehler dieser Stunde festhalten."""
-        prognose = self._vorgemerkt.pop(_stunde(jetzt), None)
-        if prognose is None or gemessen is None:
+        # Erst bei gültigem Messwert entnehmen: Ein kurz fehlender Wert verschenkt die Stunde nicht.
+        if gemessen is None or (prognose := self._vorgemerkt.pop(_stunde(jetzt), None)) is None:
             return
         self._fehler.append((jetzt.date().isoformat(), jetzt.hour, round(gemessen - prognose, 2)))
         grenze = (jetzt.date() - timedelta(days=FENSTER_MAX - 1)).isoformat()

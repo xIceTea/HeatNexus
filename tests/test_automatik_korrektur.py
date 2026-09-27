@@ -136,3 +136,12 @@ def test_sonnenquote_mit_faktor(k):
     assert k.sonnenquote_korrigiert(20.0, 1.0, 11.0) == 100.0
     assert k.sonnenquote_korrigiert(10.0, None, 11.0) is None
     assert k.sonnenquote_korrigiert(10.0, 0.9, None) is None
+
+
+def test_kurz_fehlender_messwert_verschenkt_die_stunde_nicht(k):
+    korrektur = k.Temperaturkorrektur()
+    zeit = START.replace(hour=10)
+    korrektur.vormerken([(zeit.replace(minute=0), 15.0)], zeit - timedelta(hours=1))
+    korrektur.messen(zeit, None)
+    korrektur.messen(zeit + timedelta(minutes=5), 13.0)
+    assert korrektur.als_dict()["fehler"] == [[zeit.date().isoformat(), 10, -2.0]]

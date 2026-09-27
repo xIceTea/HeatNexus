@@ -448,6 +448,7 @@ async def test_nachgerechnete_gedaempfte_at_ersetzt_einen_frischen_startwert(
     )
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
     laufzeit.stufen = (20.4, 20.4)  # Startwert vom Nachmittag
+    laufzeit.stufen_start = dt_util.now()  # eben geschätzt
 
     await nachladen.heute_nachtragen(hass, laufzeit)
 
@@ -533,3 +534,19 @@ async def test_ohne_anpassen_gilt_die_rohe_prognose(hass, hass_ws_client, anlage
     assert laufzeit.tagesmittel(heute) == pytest.approx(roh)
     antwort = await _senden(client, type="heatnexus/automatik")
     assert antwort["result"]["heizkreise"][0]["korrektur"]["an"] is False
+
+
+async def test_ein_seit_zwoelf_stunden_gleicher_wert_ist_noch_nicht_eingefroren(hass):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import nachladen
+
+    jetzt = dt_util.now()
+    reihen = {
+        "sensor.selten": [(jetzt - timedelta(hours=14), 21.5)],
+        "sensor.defekt": [(jetzt - timedelta(days=12), 29.7)],
+    }
+
+    assert set(nachladen.eingefroren(reihen, jetzt)) == {"sensor.defekt"}

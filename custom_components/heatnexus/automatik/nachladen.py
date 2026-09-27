@@ -45,13 +45,13 @@ def _reihe(zustaende: list[Any], merkmal: str | None = None) -> list[tuple[datet
 def eingefroren(
     reihen: dict[str, list[tuple[datetime, float]]], jetzt: datetime
 ) -> dict[str, datetime]:
-    """Sensoren, die über den halben Verlauf hinweg nur einen Wert zeigen, mit Beginn."""
+    """Sensoren, die den ganzen Verlauf hindurch nur einen Wert zeigen, mit Beginn."""
     return {
         kennung: reihe[0][0]
         for kennung, reihe in reihen.items()
         if reihe
         and len({wert for _, wert in reihe}) == 1
-        and reihe[0][0] <= jetzt - VERLAUF_ZURUECK / 2
+        and reihe[0][0] <= jetzt - VERLAUF_ZURUECK
     }
 
 
@@ -111,7 +111,8 @@ async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
     laufzeit.eingefroren = set(eingefroren(dict(zip(k["raeume"], raeume, strict=True)), jetzt))
     stufen = None
     for stunde in range(jetzt.hour):
-        zeit = anfang + timedelta(hours=stunde)
+        # Über die Uhrzeit zählen: am Tag der Zeitumstellung fehlt oder doppelt sich eine Stunde.
+        zeit = anfang.replace(hour=stunde)
         at = eingaben.wert_zur_stunde(aussenreihe, zeit)
         # Die gedämpfte AT der vergangenen Stunden aus den Messwerten nachrechnen.
         if at is not None:
@@ -127,5 +128,5 @@ async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
             ),
         )
     if stufen is not None:
-        laufzeit.stufen_uebernehmen(stufen, anfang + timedelta(hours=max(jetzt.hour - 1, 0)))
+        laufzeit.stufen_uebernehmen(stufen, anfang.replace(hour=max(jetzt.hour - 1, 0)))
     laufzeit.nachgetragen()

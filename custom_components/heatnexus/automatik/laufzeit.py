@@ -39,6 +39,7 @@ PROGNOSE_MAX_ALTER = timedelta(hours=6)
 ABWESEND_NACH = timedelta(minutes=30)
 # Ein ausgefallener Fühler meldet in HA seinen letzten Wert weiter; bleibt er so lange gleich, zählt er nicht.
 RAUM_VERALTET = timedelta(hours=12)
+STUFEN_FRISCH = timedelta(hours=3)
 FENSTER_DAUER = timedelta(minutes=30)
 PAUSE_BIS_STUNDE = 5
 PV_TAGE = 30
@@ -448,7 +449,8 @@ class Laufzeit:
     def stufen_uebernehmen(self, stufen: tuple[float, float], zeit: datetime) -> None:
         """Die aus dem Tag nachgerechnete gedämpfte AT übernehmen, wenn die eigene jünger ist."""
         # Ein heute gesetzter Startwert beruht auf einer Schätzung, der nachgerechnete auf Messwerten.
-        if self.stufen_start is not None and self.stufen_start.date() < zeit.date():
+        # Nur einen eben geschätzten Wert ersetzen; ein laufender springt sonst bei jedem Neustart.
+        if self.stufen_start is not None and dt_util.now() - self.stufen_start > STUFEN_FRISCH:
             return
         self.stufen = stufen
         self.stufen_zeit = zeit
