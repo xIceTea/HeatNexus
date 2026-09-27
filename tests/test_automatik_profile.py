@@ -66,3 +66,9 @@ def test_lernfenster_nur_drei_sieben_oder_vierzehn_tage(profile):
 def test_prognose_anpassen_ist_abschaltbar(profile):
     assert profile.werte(profile.STANDARD).anpassen is True
     assert profile.werte(profile.STANDARD, {"anpassen": False}).anpassen is False
+
+
+def test_nicht_endliche_eigene_werte_gelten_nicht(profile):
+    w = profile.werte(profile.STANDARD, {"sonnenquote": "nan", "heizgrenze": "inf"})
+    assert w.sonnenquote == profile.VORGABEN[profile.STANDARD].sonnenquote
+    assert w.heizgrenze == profile.VORGABEN[profile.STANDARD].heizgrenze

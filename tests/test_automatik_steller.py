@@ -215,3 +215,9 @@ def test_stand_uebersteht_den_store(s, regel):
     ausfuehren(steller, entscheidung(regel, regel.Aktion("nur_ww")))
     assert s.Stand.aus_dict(steller.stand.als_dict()) == steller.stand
     assert s.Stand.aus_dict("kaputt") == s.Stand()
+
+
+def test_unlesbare_zeiten_im_store_werden_verworfen(s):
+    stand = s.Stand.aus_dict({"gesperrt_bis": "kaputt", "zuletzt": "auch kaputt"})
+    assert stand.gesperrt_bis is None
+    assert stand.zuletzt is None

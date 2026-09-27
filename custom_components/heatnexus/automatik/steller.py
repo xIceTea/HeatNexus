@@ -71,9 +71,9 @@ class Stand:
                 eingriffe=int(roh.get("eingriffe") or 0),
                 betriebswahl_vorher=_ganzzahl(roh.get("betriebswahl_vorher")),
                 erwartet=_ganzzahl(roh.get("erwartet")),
-                zuletzt=roh.get("zuletzt") or None,
+                zuletzt=_zeitpunkt(roh.get("zuletzt")),
                 ablehnungen=int(roh.get("ablehnungen") or 0),
-                gesperrt_bis=roh.get("gesperrt_bis") or None,
+                gesperrt_bis=_zeitpunkt(roh.get("gesperrt_bis")),
                 protokoll=tuple(e for e in roh.get("protokoll") or () if isinstance(e, dict))[
                     :PROTOKOLL_MAX
                 ],
@@ -84,6 +84,14 @@ class Stand:
 
 def _ganzzahl(wert: Any) -> int | None:
     return None if wert is None else int(wert)
+
+
+def _zeitpunkt(wert: Any) -> str | None:
+    # Ein unlesbarer Zeitpunkt ließe später jeden Lauf scheitern.
+    try:
+        return datetime.fromisoformat(wert).isoformat() if wert else None
+    except (TypeError, ValueError):
+        return None
 
 
 class Steller:

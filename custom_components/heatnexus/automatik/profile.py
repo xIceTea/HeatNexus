@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from contextlib import suppress
 from dataclasses import dataclass, fields, replace
+import math
 from typing import Any
 
 SCHNELL = "schnell"
@@ -98,6 +99,8 @@ def _zahl(name: str, wert: Any) -> float | int | None:
     try:
         zahl = float(wert)
     except (TypeError, ValueError):
+        return None
+    if not math.isfinite(zahl):
         return None
     unten, oben = GRENZEN[name]
     zahl = min(max(zahl, unten), oben)
