@@ -261,7 +261,13 @@ export const AutomatikMixin = (Basis) =>
       profil.className = "automatik-profil";
       const eintrag = PROFILE.find(([name]) => name === kreis.konfig.profil);
       profil.textContent = eintrag ? eintrag[1] : kreis.konfig.profil;
-      zeile.append(schalter, segment, profil);
+      const bearbeiten = document.createElement("button");
+      bearbeiten.type = "button";
+      bearbeiten.className = "automatik-knopf leise klein";
+      bearbeiten.textContent = "Einrichtung bearbeiten";
+      bearbeiten.disabled = !darf;
+      bearbeiten.addEventListener("click", () => this._automatikDialog(kreis));
+      zeile.append(schalter, segment, profil, bearbeiten);
       return zeile;
     }
 
@@ -426,12 +432,6 @@ export const AutomatikMixin = (Basis) =>
       speichern.textContent = "Speichern";
       speichern.disabled = !darf;
       speichern.addEventListener("click", () => this._automatikEinstellen(kreis, { eigene: this._automatikEigene(eingaben) }));
-      const aendern = document.createElement("button");
-      aendern.type = "button";
-      aendern.className = "automatik-knopf leise";
-      aendern.textContent = "Einrichtung ändern";
-      aendern.disabled = !darf;
-      aendern.addEventListener("click", () => this._automatikDialog(kreis));
       const entfernen = document.createElement("button");
       entfernen.type = "button";
       entfernen.className = "automatik-knopf leise warnung";
@@ -440,7 +440,7 @@ export const AutomatikMixin = (Basis) =>
       entfernen.addEventListener("click", () => this._automatikEntfernen(kreis));
       const links = document.createElement("div");
       links.className = "automatik-leiste-links";
-      links.append(aendern, entfernen);
+      links.append(entfernen);
       leiste.append(links, zuruecksetzen, speichern);
       bereich.appendChild(leiste);
       return bereich;

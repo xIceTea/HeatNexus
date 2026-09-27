@@ -657,7 +657,7 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     assert automatik["protokoll"] == 1
     assert automatik["einladungen"] == 1
     assert automatik["tagesleiste"] == 1
-    assert "Einrichtung ändern" in automatik["knoepfe"]
+    assert "Einrichtung bearbeiten" in automatik["knoepfe"]
     assert "Automatik entfernen" in automatik["knoepfe"]
     (hinweis,) = automatik["hinweise"]
     assert "Nichts davon ging an die Steuerung" in hinweis
