@@ -743,6 +743,51 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 }
 
 // ---------------------------------------------------------------------------
+// Reiter „Automatik“ über alle Anlagen
+//
+// Die Automatik arbeitet je Heizkreis. Bei „Alle Anlagen“ stehen die Kreise
+// deshalb in einem Raster, eingerichtete zuerst, mit der Anlage im Titel.
+// ---------------------------------------------------------------------------
+{
+  const vorherDaten = flaeche._daten;
+  const vorherIndex = flaeche._anlageIndex;
+  const erste = vorherDaten.anlagen[0];
+  flaeche._daten = {
+    ...vorherDaten,
+    anlagen: [
+      { ...erste, id: "anlage-a", name: "Anlage A" },
+      { ...erste, id: "anlage-b", name: "Anlage B" },
+    ],
+  };
+  flaeche._anlageIndex = -1;
+  const [eingerichtet] = flaeche._automatik.heizkreise;
+  flaeche._automatik = {
+    ...flaeche._automatik,
+    heizkreise: [
+      { heizkreis: "SN9-2-0", name: "Heizkreis 2", anlage: "Anlage A", anlage_id: "anlage-a", eingerichtet: false },
+      { ...eingerichtet, anlage: "Anlage B", anlage_id: "anlage-b" },
+    ],
+  };
+  flaeche._reiter = "automatik";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  const wurzel = flaeche.shadowRoot;
+  bilanz.automatikAlle = {
+    raster: wurzel.querySelectorAll(".raster").length,
+    trenner: wurzel.querySelectorAll(".anlagen-trenner").length,
+    titel: [...wurzel.querySelectorAll(".karte")].map((karte) => {
+      const kopf = karte.querySelector("h2");
+      return kopf ? String(kopf.textContent || "").trim() : "";
+    }),
+  };
+  flaeche._daten = vorherDaten;
+  flaeche._anlageIndex = vorherIndex;
+  flaeche._gebaut = false;
+}
+
+// ---------------------------------------------------------------------------
 // Misslungenes Speichern
 //
 // Die Attrappe wirft bei jedem `callWS`. Wer die Farbwahl anfasst, muss das

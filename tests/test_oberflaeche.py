@@ -669,3 +669,12 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["dialogBleibt"] is True
     assert automatik["sperreNachAufbau"] is False
     assert automatik["sperreNachZuklappen"] is False
+
+
+def test_die_automatik_steht_bei_allen_anlagen_in_einem_raster(durchlauf):
+    """Eingerichtete Kreise zuerst, über Anlagen hinweg; die Anlage steht im Titel."""
+    alle = durchlauf["automatikAlle"]
+    assert alle["raster"] == 1
+    assert alle["trenner"] == 0
+    assert alle["titel"][0] == "Anlage B · Heizkreis"
+    assert alle["titel"][-1] == "Anlage A · Heizkreis 2"

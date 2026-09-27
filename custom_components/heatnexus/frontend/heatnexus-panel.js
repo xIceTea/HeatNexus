@@ -232,7 +232,9 @@ class HeatNexusPanel extends Grundlage {
     leiste.append(this._kopfleiste(anlage), this._reiterleiste());
     inhalt.appendChild(leiste);
     if (this._anordnen) inhalt.appendChild(this._anordnenLeiste());
-    if (this._alleAnlagen()) {
+    if (this._alleAnlagen() && this._reiter === "automatik") {
+      inhalt.appendChild(this._automatikAlle());
+    } else if (this._alleAnlagen()) {
       this._anlagen().forEach((eintrag) => {
         const ueberschrift = document.createElement("div");
         ueberschrift.className = "anlagen-trenner";

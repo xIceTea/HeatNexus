@@ -206,15 +206,25 @@ export const AutomatikMixin = (Basis) =>
       const kreise = [...(this._anlagen().length > 1 ? eigene : alle)].sort(
         (a, b) => Number(!!b.eingerichtet) - Number(!!a.eingerichtet)
       );
-      return kreise.flatMap((kreis) => {
+      // Im gemeinsamen Raster aller Anlagen sagt erst die Anlage, welcher Kreis gemeint ist.
+      const mitAnlage = !anlage && this._anlagen().length > 1;
+      return kreise.flatMap((roh) => {
+        const kreis = mitAnlage && roh.anlage ? { ...roh, name: `${roh.anlage} · ${roh.name}` } : roh;
+        const titel = kreis.name;
         if (!kreis.eingerichtet) {
-          return [{ id: `automatik:${kreis.heizkreis}`, titel: kreis.name, knoten: this._automatikEinladung(kreis, daten) }];
+          return [{ id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikEinladung(kreis, daten) }];
         }
         return [
-          { id: `automatik:${kreis.heizkreis}`, titel: kreis.name, knoten: this._automatikKarte(kreis, daten), breite: 2 },
+          { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikKarte(kreis, daten), breite: 2 },
           { id: `automatik-protokoll:${kreis.heizkreis}`, titel: "Protokoll", knoten: this._automatikProtokoll(kreis) },
         ];
       });
+    }
+
+    /** Alle Anlagen in einem Raster: Die Automatik arbeitet je Heizkreis, nicht je Anlage. */
+    _automatikAlle() {
+      this._hilfe = (this._anlagen()[0] || {}).hilfe || {};
+      return this._raster({ id: "alle" }, this._automatikReiter(null), "Keine Heizkreise gefunden.");
     }
 
     async _automatikHolen(erzwingen = false) {
