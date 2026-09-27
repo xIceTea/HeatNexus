@@ -241,11 +241,12 @@ class Laufzeit:
         self._geaendert = True
         entity_id = event.data.get("entity_id")
         alt, neu = event.data.get("old_state"), event.data.get("new_state")
-        if alt is not None and neu is not None and _messwert(alt) != _messwert(neu):
+        veraendert = alt is None or neu is None or _messwert(alt) != _messwert(neu)
+        if veraendert and alt is not None and neu is not None:
             self.eingefroren.discard(entity_id)
         if neu is not None and neu.attributes.get("hvac_action") == "heating":
             self.anforderung_zuletzt = dt_util.now()
-        if entity_id in self.konfig["raeume"]:
+        if veraendert and entity_id in self.konfig["raeume"]:
             self._raum_verfolgen()
 
     async def _takt(self, _jetzt: datetime) -> None:
