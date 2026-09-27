@@ -122,8 +122,8 @@ HILFE_KARTEN = {
         "Steuerung von selbst. In der Übergangszeit schaltet sie den Heizkreis "
         "auf nur Warmwasser und bei kühlerem Wetter zurück. "
         "Im Beobachtungsmodus schreibt sie nichts und zeigt im Protokoll, was sie "
-        "getan hätte. Eine Bedienung von Hand pausiert sie bis 05:00. Unter 3 °C "
-        "außen oder 16 °C im Raum stellt sie den Heizkreis sofort zurück."
+        "getan hätte. Eine Bedienung von Hand pausiert sie bis 05:00. Unter 16 °C "
+        "im Raum nimmt sie jeden eigenen Eingriff sofort zurück."
     ),
     "Lagerraum befüllen": (
         "Erst anfordern, dann warten, bis „freigegeben“ dasteht. Vorher darf "

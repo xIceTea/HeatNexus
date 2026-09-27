@@ -76,10 +76,11 @@ def test_kalter_raum_beendet_eine_laufende_absenkung(m, w):
     assert e.aktionen[0].sicherheit is True
 
 
-def test_frost_ohne_eigenen_eingriff_schreibt_nichts(m, w):
-    e = m.entscheiden(lage(m, at=1.0), m.Gedaechtnis(), w)
-    assert e.zustand == m.Zustand.SICHERHEIT
-    assert e.aktionen == ()
+def test_frost_blockiert_keinen_sonnentag(m, w):
+    """Eine befristete Absenkung um wenige Kelvin birgt kein Frostrisiko."""
+    e = m.entscheiden(lage(m, at=1.0, entscheidungszeit=True), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.SONNENTAG
+    assert [a.art for a in e.aktionen] == ["absenken"]
 
 
 def test_zwei_stunden_ohne_daten_in_nur_ww_fuehren_zurueck(m, w):

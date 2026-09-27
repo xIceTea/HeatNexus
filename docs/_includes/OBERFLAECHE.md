@@ -98,8 +98,9 @@ macht sie wirksam. Weitere Regeln:
   nächsten Morgen.
 - Höchstens vier Eingriffe am Tag gehen an die Steuerung; die Zahl lässt sich
   einstellen.
-- Unter 3 °C außen oder 16 °C im Raum stellt sie den Heizkreis sofort in sein
-  Programm zurück. Den Frostschutz der Anlage ersetzt sie nicht.
+- Unter 16 °C im Raum nimmt sie jeden eigenen Eingriff sofort zurück. Unter
+  3 °C außen schaltet sie „nur Warmwasser“ sofort zurück. Den Frostschutz der
+  Anlage ersetzt sie nicht.
 - Wird die Automatik ausgeschaltet, nimmt sie ihre eigenen Eingriffe zurück.
 
 Je Heizkreis entstehen drei Entitäten: der Schalter **Automatik**, die Auswahl

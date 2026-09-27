@@ -170,7 +170,8 @@ def _zurueck(lage: Lage, grund: str) -> Entscheidung:
 
 
 def _sicherheit(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entscheidung | None:
-    if lage.at is not None and lage.at < AT_FROST:
+    # Frost zählt nur bei abgeschaltetem Heizkreis; kalte klare Tage bringen die meiste Sonne.
+    if g.saison == NUR_WW and lage.at is not None and lage.at < AT_FROST:
         anlass = f"Außen {_zahl(lage.at)} °C"
     elif lage.raum is not None and lage.raum < RAUM_MIN:
         anlass = f"Raum {_zahl(lage.raum)} °C"
