@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 
 const modul = await import(pathToFileURL(process.argv[2]).href);
-const { zahl, uhrzeit, tagesleisteSvg, FELDER, ZUSTAENDE } = modul;
+const { zahl, uhrzeit, tagesleisteSvg, wetterSymbol, korrekturText, FELDER, ZUSTAENDE } = modul;
 
 assert.equal(zahl(19.5), "19,5");
 assert.equal(zahl(78, 0), "78");
@@ -43,6 +43,7 @@ assert.deepEqual(
     "fenster_k_je_h",
     "heizgrenze",
     "hysterese",
+    "lernfenster",
     "mindestdauer_h",
     "nachpruefung",
     "rueckkehr_k",
@@ -52,4 +53,28 @@ assert.deepEqual(
   ]
 );
 assert.equal(Object.keys(ZUSTAENDE).length, 9);
+
+// Temperaturen: gemessen bis jetzt, angepasste Prognose ab jetzt, Heizgrenze.
+const mitTemperatur = tagesleisteSvg(
+  {
+    jetzt: 12.5,
+    stunden: Array.from({ length: 24 }, (_, h) => ({ stunde: h, at: 10 + h / 2, korrigiert: 9 + h / 2, roh: 10 + h / 2 })),
+  },
+  1000,
+  17
+);
+assert.ok(mitTemperatur.includes("al-aussen"));
+assert.ok(mitTemperatur.includes("al-prognose"));
+assert.ok(mitTemperatur.includes("al-grenze"));
+assert.ok(!/NaN|undefined/.test(mitTemperatur), mitTemperatur);
+
+assert.equal(wetterSymbol(10, true), "☀");
+assert.equal(wetterSymbol(50, true), "⛅");
+assert.equal(wetterSymbol(90, true), "☁");
+assert.equal(wetterSymbol(10, false), "☾");
+
+assert.equal(korrekturText("temperatur", { versatz: -1.4, tage: 9 }, 7), "Außen angepasst −1,4 K");
+assert.equal(korrekturText("temperatur", { versatz: null, tage: 3 }, 7), "Außen: lernt noch 3/7");
+assert.equal(korrekturText("sonne", { aktiv: true, faktor: 0.88, tage: 8 }, 7), "Sonne angepasst −12 %");
+assert.equal(korrekturText("sonne", { aktiv: false }, 7), "Sonne unkorrigiert");
 console.log("ok");

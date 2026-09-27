@@ -1190,7 +1190,7 @@ export const STIL = `
   .automatik-wert.sonne .zahl { color: var(--hn-sonne); }
   .automatik-wert .bez { font-size: 11px; opacity: 0.55; margin-top: 3px; }
   .automatik-wert .schw { font-size: 11px; margin-top: 4px; color: var(--hn-gedaempft); }
-  .automatik-tag-bild svg { display: block; width: 100%; height: 90px; }
+  .automatik-tag-bild svg { display: block; width: 100%; }
   .automatik-tag .al-sonne {
     fill: color-mix(in srgb, var(--hn-sonne) 35%, transparent);
     stroke: var(--hn-sonne); stroke-width: 1.5; vector-effect: non-scaling-stroke;
@@ -1201,6 +1201,49 @@ export const STIL = `
   .automatik-tag .al-punkt { fill: var(--hn-text); }
   .automatik-tag .al-jetzt {
     stroke: var(--hn-text); stroke-width: 2; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke;
+  }
+  .automatik-tag-bild svg { height: 150px; }
+  .automatik-tag .al-aussen {
+    fill: none; stroke: #ffab6f; stroke-width: 2.5; vector-effect: non-scaling-stroke;
+  }
+  .automatik-tag .al-prognose {
+    fill: none; stroke: #ffab6f; stroke-width: 2; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke;
+  }
+  .automatik-tag .al-grenze {
+    stroke: var(--hn-gedaempft); stroke-dasharray: 6 5; vector-effect: non-scaling-stroke;
+  }
+  .automatik-korrektur { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .automatik-korrekturmarke {
+    padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: var(--hn-flaeche); color: var(--hn-gedaempft);
+  }
+  .automatik-korrekturmarke.wirkt {
+    background: color-mix(in srgb, var(--hn-akzent) 16%, transparent); color: var(--hn-akzent);
+  }
+  .automatik-stunden {
+    display: grid; grid-template-columns: repeat(17, minmax(0, 1fr)); gap: 3px; margin-bottom: 12px;
+  }
+  .automatik-stunde {
+    text-align: center; font-size: 10px; color: var(--hn-gedaempft);
+    border-radius: 8px; padding: 5px 0 4px; background: var(--hn-flaeche);
+  }
+  .automatik-stunde.jetzt { outline: 1px solid var(--hn-text); }
+  .automatik-stunde .sym { font-size: 15px; line-height: 1.25; color: var(--hn-sonne); }
+  .automatik-stunde .t { font-size: 12px; font-weight: 700; color: var(--hn-text); margin-top: 1px; }
+  .automatik-stunde .t.kalt { color: #8fd3ff; }
+  .automatik-stunde .t.warm { color: #ffab6f; }
+  .automatik-stunde .streifen { height: 4px; border-radius: 2px; margin: 4px 3px; background: var(--hn-linie); }
+  .automatik-stunde .streifen.absenkung { background: var(--hn-akzent); }
+  .automatik-stunde .streifen.nur_ww { background: var(--hn-sonne); }
+  .automatik-stunde .raum { font-size: 10px; font-weight: 700; border-radius: 5px; margin: 0 3px; padding: 2px 0; }
+  .automatik-stunde .raum.ueber { background: color-mix(in srgb, #7bd88f 30%, transparent); color: var(--hn-text); }
+  .automatik-stunde .raum.unter { background: color-mix(in srgb, #8fd3ff 30%, transparent); color: var(--hn-text); }
+  .automatik-legende i.al-aussen { background: #ffab6f; height: 3px; }
+  .automatik-legende i.al-prognose {
+    height: 3px; background: repeating-linear-gradient(90deg, #ffab6f 0 4px, transparent 4px 7px);
+  }
+  .automatik-legende i.al-grenze {
+    height: 2px; background: repeating-linear-gradient(90deg, var(--hn-gedaempft) 0 4px, transparent 4px 7px);
   }
   .automatik-achse {
     display: flex; justify-content: space-between; font-size: 10px;
@@ -1279,6 +1322,8 @@ export const STIL = `
   .automatik-haken { max-height: 160px; overflow-y: auto; display: grid; gap: 4px; }
   .automatik-haken-zeile { display: flex; align-items: center; gap: 8px; font-size: 13px; }
   @media (max-width: 700px) {
+    .automatik-stunden { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+    .automatik-stunde.spaet { display: none; }
     .automatik-werte { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .automatik-feld.breit { grid-column: auto; }
     .automatik-profil { margin-left: 0; }

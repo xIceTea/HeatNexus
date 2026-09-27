@@ -24,6 +24,7 @@ export const FELDER = [
   { name: "stark", titel: "Starke Stufe: nur Warmwasser", art: "janein" },
   { name: "budget", titel: "Eingriffe je Tag höchstens", einheit: "", schritt: 1 },
   { name: "fenster_k_je_h", titel: "Fenster offen ab Sturz von", einheit: "K/h", schritt: 0.5 },
+  { name: "lernfenster", titel: "Prognose anpassen über", art: "wahl", optionen: [3, 7, 14], einheit: "Tage" },
 ];
 
 export const ZUSTAENDE = {
@@ -75,27 +76,59 @@ export function uhrzeit(stunde) {
   return `${String(h).padStart(2, "0")}:${String(minuten % 60).padStart(2, "0")}`;
 }
 
+/** Stunden als Punktliste für einen SVG-Pfad; Lücken beginnen neu. */
+function linie(werte, x, y) {
+  let pfad = "";
+  let offen = false;
+  werte.forEach(([stunde, wert]) => {
+    if (wert === null || wert === undefined || Number.isNaN(Number(wert))) {
+      offen = false;
+      return;
+    }
+    pfad += `${offen ? "L" : "M"}${x(stunde)} ${y(wert)} `;
+    offen = true;
+  });
+  return pfad.trim();
+}
+
 /**
- * Die Tagesleiste als SVG-Text: Sonnenbogen, Absenkung, Verlängerung,
- * Entscheidungspunkte und „jetzt“. Nur Zahlen gehen in den Text.
+ * Das Tagesbild als SVG-Text: Sonne als Fläche, Außen gemessen und
+ * angepasste Prognose, Heizgrenze, Absenkung und „jetzt“. Nur Zahlen gehen in den Text.
  */
-export function tagesleisteSvg(tag, breite = 1000) {
-  const hoehe = 90;
-  const band = 12;
+export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null) {
+  const hoehe = 150;
+  const band = 10;
   const bandY = hoehe - band - 2;
+  const oben = 8;
+  const unten = bandY - 8;
   const x = (stunde) => ((Math.max(0, Math.min(24, Number(stunde))) / 24) * breite).toFixed(1);
   const teile = [
     `<svg viewBox="0 0 ${breite} ${hoehe}" preserveAspectRatio="none" role="img" aria-label="Tagesverlauf">`,
   ];
   const sonne = (tag && tag.sonne) || [];
   if (sonne.length) {
-    const hoch = bandY - 8;
-    const punkte = sonne.map((wert, stunde) => `${x(stunde)},${(hoch - Number(wert) * (hoch - 6)).toFixed(1)}`);
-    teile.push(
-      `<polygon class="al-sonne" points="0,${hoch} ${punkte.join(" ")} ${breite},${hoch}"/>`
-    );
+    const punkte = sonne.map((wert, stunde) => `${x(stunde)},${(unten - Number(wert) * (unten - oben)).toFixed(1)}`);
+    teile.push(`<polygon class="al-sonne" points="0,${unten} ${punkte.join(" ")} ${breite},${unten}"/>`);
   }
-  teile.push(`<rect class="al-grund" x="0" y="${bandY}" width="${breite}" height="${band}" rx="6"/>`);
+  const stunden = (tag && tag.stunden) || [];
+  const jetzt = tag && tag.jetzt !== undefined && tag.jetzt !== null ? Number(tag.jetzt) : null;
+  const gemessen = stunden.map((s) => [s.stunde, jetzt !== null && s.stunde > jetzt ? null : s.at]);
+  const prognose = stunden.map((s) => [s.stunde, jetzt !== null && s.stunde < Math.floor(jetzt) ? null : s.korrigiert ?? s.roh]);
+  const alle = [...gemessen, ...prognose].map(([, w]) => w).filter((w) => w !== null && w !== undefined);
+  if (heizgrenze !== null && heizgrenze !== undefined) alle.push(Number(heizgrenze));
+  if (alle.length) {
+    const min = Math.min(...alle) - 1;
+    const max = Math.max(...alle) + 1;
+    const y = (wert) => (unten - ((Number(wert) - min) / (max - min)) * (unten - oben)).toFixed(1);
+    if (heizgrenze !== null && heizgrenze !== undefined) {
+      teile.push(`<line class="al-grenze" x1="0" x2="${breite}" y1="${y(heizgrenze)}" y2="${y(heizgrenze)}"/>`);
+    }
+    const pfadGemessen = linie(gemessen, x, y);
+    if (pfadGemessen) teile.push(`<path class="al-aussen" d="${pfadGemessen}"/>`);
+    const pfadPrognose = linie(prognose, x, y);
+    if (pfadPrognose) teile.push(`<path class="al-prognose" d="${pfadPrognose}"/>`);
+  }
+  teile.push(`<rect class="al-grund" x="0" y="${bandY}" width="${breite}" height="${band}" rx="5"/>`);
   const von = tag && tag.absenkung_von;
   const bis = tag && tag.absenkung_bis;
   const ziel = tag && tag.absenkung_ziel;
@@ -113,11 +146,35 @@ export function tagesleisteSvg(tag, breite = 1000) {
   ((tag && tag.entscheidungen) || []).forEach((stunde) => {
     teile.push(`<rect class="al-punkt" x="${x(stunde)}" y="${bandY - 4}" width="3" height="${band + 8}"/>`);
   });
-  if (tag && tag.jetzt !== undefined && tag.jetzt !== null) {
-    teile.push(`<line class="al-jetzt" x1="${x(tag.jetzt)}" x2="${x(tag.jetzt)}" y1="0" y2="${hoehe}"/>`);
+  if (jetzt !== null) {
+    teile.push(`<line class="al-jetzt" x1="${x(jetzt)}" x2="${x(jetzt)}" y1="0" y2="${hoehe}"/>`);
   }
   teile.push("</svg>");
   return teile.join("");
+}
+
+/** Wettersymbol einer Stunde aus Bewölkung und Tageslicht. */
+export function wetterSymbol(wolken, hell) {
+  if (!hell) return "☾";
+  if (wolken === null || wolken === undefined) return "·";
+  if (wolken < 25) return "☀";
+  if (wolken < 70) return "⛅";
+  return "☁";
+}
+
+/** Text der Korrekturmarke: angepasst, lernend oder ohne Messung. */
+export function korrekturText(art, eintrag, noetig) {
+  if (art === "sonne" && !eintrag.aktiv) return "Sonne unkorrigiert";
+  const name = art === "sonne" ? "Sonne" : "Außen";
+  if (art === "temperatur" && eintrag.versatz !== null && eintrag.versatz !== undefined) {
+    const v = Number(eintrag.versatz);
+    return `${name} angepasst ${v > 0 ? "+" : v < 0 ? "−" : "±"}${zahl(Math.abs(v))} K`;
+  }
+  if (art === "sonne" && eintrag.faktor !== null && eintrag.faktor !== undefined) {
+    const prozent = Math.round((Number(eintrag.faktor) - 1) * 100);
+    return `${name} angepasst ${prozent > 0 ? "+" : prozent < 0 ? "−" : "±"}${Math.abs(prozent)} %`;
+  }
+  return `${name}: lernt noch ${eintrag.tage || 0}/${noetig}`;
 }
 
 export const AutomatikMixin = (Basis) =>
@@ -336,9 +393,11 @@ export const AutomatikMixin = (Basis) =>
     _automatikTag(kreis) {
       const rahmen = document.createElement("div");
       rahmen.className = "automatik-tag";
+      rahmen.appendChild(this._automatikKorrekturMarken(kreis));
+      rahmen.appendChild(this._automatikStundenraster(kreis));
       const bild = document.createElement("div");
       bild.className = "automatik-tag-bild";
-      bild.innerHTML = tagesleisteSvg(kreis.tag || {});
+      bild.innerHTML = tagesleisteSvg(kreis.tag || {}, 1000, (kreis.werte || {}).heizgrenze);
       const achse = document.createElement("div");
       achse.className = "automatik-achse";
       ["00:00", "06:00", "12:00", "18:00", "24:00"].forEach((marke) => {
@@ -350,8 +409,10 @@ export const AutomatikMixin = (Basis) =>
       legende.className = "automatik-legende";
       [
         ["al-sonne", "Sonne laut Prognose"],
+        ["al-aussen", "Außen gemessen"],
+        ["al-prognose", "Außen Prognose, angepasst"],
+        ["al-grenze", "Heizgrenze"],
         ["al-absenkung", "Absenkung"],
-        ["al-verlaengerung", "Verlängerung"],
       ].forEach(([klasse, titel]) => {
         const eintrag = document.createElement("span");
         const farbe = document.createElement("i");
@@ -363,6 +424,65 @@ export const AutomatikMixin = (Basis) =>
       });
       rahmen.append(bild, achse, legende);
       return rahmen;
+    }
+
+    _automatikKorrekturMarken(kreis) {
+      const leiste = document.createElement("div");
+      leiste.className = "automatik-korrektur";
+      const k = kreis.korrektur;
+      if (!k) return leiste;
+      ["temperatur", "sonne"].forEach((art) => {
+        const marke = document.createElement("span");
+        const eintrag = k[art] || {};
+        const wirkt = art === "temperatur" ? eintrag.versatz !== null && eintrag.versatz !== undefined : eintrag.faktor !== null && eintrag.faktor !== undefined;
+        marke.className = `automatik-korrekturmarke${wirkt ? " wirkt" : ""}`;
+        marke.textContent = korrekturText(art, eintrag, k.noetig);
+        leiste.appendChild(marke);
+      });
+      return leiste;
+    }
+
+    _automatikStundenraster(kreis) {
+      const raster = document.createElement("div");
+      raster.className = "automatik-stunden";
+      const stunden = ((kreis.tag || {}).stunden || []).filter((s) => s.stunde >= 6 && s.stunde <= 22);
+      const sonne = (kreis.tag || {}).sonne || [];
+      const jetzt = Math.floor(Number((kreis.tag || {}).jetzt));
+      const grenze = (kreis.werte || {}).heizgrenze;
+      const soll = (kreis.kennwerte || {}).soll;
+      stunden.forEach((eintrag) => {
+        const zelle = document.createElement("div");
+        zelle.className = `automatik-stunde${eintrag.stunde === jetzt ? " jetzt" : ""}${eintrag.stunde > 14 ? " spaet" : ""}`;
+        const temperatur = eintrag.korrigiert ?? eintrag.roh;
+        const teile = [
+          ["uhr", String(eintrag.stunde).padStart(2, "0")],
+          ["sym", wetterSymbol(eintrag.wolken, (sonne[eintrag.stunde] || 0) > 0)],
+          ["t", temperatur === null || temperatur === undefined ? "–" : `${Math.round(temperatur)}°`],
+        ];
+        teile.forEach(([klasse, text]) => {
+          const teil = document.createElement("div");
+          teil.className = klasse;
+          if (klasse === "t" && temperatur !== null && temperatur !== undefined && grenze !== undefined) {
+            teil.classList.add(temperatur < grenze ? "kalt" : "warm");
+          }
+          teil.textContent = text;
+          zelle.appendChild(teil);
+        });
+        const streifen = document.createElement("div");
+        streifen.className = `streifen ${eintrag.aktion || "programm"}`;
+        zelle.appendChild(streifen);
+        const raum = document.createElement("div");
+        raum.className = "raum";
+        if (eintrag.raum !== null && eintrag.raum !== undefined && soll !== null && soll !== undefined) {
+          raum.classList.add(eintrag.raum >= soll ? "ueber" : "unter");
+          raum.textContent = zahl(eintrag.raum);
+        } else {
+          raum.textContent = "–";
+        }
+        zelle.appendChild(raum);
+        raster.appendChild(zelle);
+      });
+      return raster;
     }
 
     // --- Erweitert -----------------------------------------------------
@@ -472,6 +592,18 @@ export const AutomatikMixin = (Basis) =>
     }
 
     _automatikEingabe(feld, wert, darf) {
+      if (feld.art === "wahl") {
+        const wahl = document.createElement("select");
+        feld.optionen.forEach((option) => {
+          const eintrag = document.createElement("option");
+          eintrag.value = String(option);
+          eintrag.textContent = String(option);
+          eintrag.selected = Number(wert) === option;
+          wahl.appendChild(eintrag);
+        });
+        wahl.disabled = !darf;
+        return wahl;
+      }
       if (feld.art === "janein") {
         const wahl = document.createElement("select");
         [
@@ -504,6 +636,7 @@ export const AutomatikMixin = (Basis) =>
       const eigene = {};
       Object.entries(eingaben).forEach(([name, [feld, eingabe]]) => {
         if (feld.art === "janein") eigene[name] = eingabe.value === "true";
+        else if (feld.art === "wahl") eigene[name] = Number(eingabe.value);
         else if (feld.art === "zeit") eigene[name] = eingabe.value || "";
         else if (eingabe.value !== "") eigene[name] = Number(eingabe.value);
       });
@@ -602,6 +735,10 @@ export const AutomatikMixin = (Basis) =>
         this._automatikMitGewaehlt([["", this._t("Keine")], ...kandidaten.pv.map((e) => [e.entity_id, e.name])], k && k.pv),
         (k && k.pv) || ""
       );
+      const pvIst = this._automatikAuswahl(
+        this._automatikMitGewaehlt([["", this._t("Keine")], ...(kandidaten.pv_ist || []).map((e) => [e.entity_id, e.name])], k && k.pv_ist),
+        (k && k.pv_ist) || ""
+      );
       const personen = this._automatikHaken(kandidaten.personen, k ? k.personen : []);
       const fenster = this._automatikHaken(kandidaten.fenster, k ? k.fenster : []);
       const erkennung = document.createElement("input");
@@ -615,7 +752,8 @@ export const AutomatikMixin = (Basis) =>
           this._t("3 · Wetter und PV-Prognose"),
           [
             this._automatikBeschriftet(this._t("Wetter"), wetter),
-            this._automatikBeschriftet(this._t("PV-Prognose (optional)"), pv),
+            this._automatikBeschriftet(this._t("PV-Prognose, Tagesertrag (optional)"), pv),
+            this._automatikBeschriftet(this._t("PV-Ertrag tatsächlich, zum Anpassen (optional)"), pvIst),
           ],
         ],
         [
@@ -660,6 +798,7 @@ export const AutomatikMixin = (Basis) =>
           raum_art: raumArt.value,
           wetter: wetter.value,
           pv: pv.value || null,
+          pv_ist: pvIst.value || null,
           personen: gewaehlt(personen),
           fenster: gewaehlt(fenster),
           fenster_erkennung: erkennung.checked,
