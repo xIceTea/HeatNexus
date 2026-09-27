@@ -375,6 +375,10 @@ class Laufzeit:
     def _daempfen(self, jetzt: datetime) -> None:
         if (at := self._aussen()) is None:
             return
+        # Ohne Vorgeschichte das Tagesmittel: Nachmittags läge der Messwert weit darüber.
+        if self.stufen is None and (mittel := eingaben.tagesmittel(self._tage, jetzt.date())):
+            self.stufen = (mittel, mittel)
+            self.stufen_zeit = jetzt
         dauer = (jetzt - self.stufen_zeit).total_seconds() if self.stufen_zeit else 0.0
         self.stufen = eingaben.daempfen(self.stufen, at, dauer, self.werte.tau_h)
         self.stufen_zeit = jetzt

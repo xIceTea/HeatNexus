@@ -220,3 +220,15 @@ async def test_entfernen_raeumt_ab(hass, hass_ws_client, anlage):
     assert antwort["success"], antwort
     assert HEIZKREIS not in verwaltung.laufzeiten
     assert verwaltung.konfig(HEIZKREIS) is None
+
+
+async def test_gedaempfte_at_beginnt_beim_tagesmittel(hass, hass_ws_client, anlage):
+    """Nachmittags läge der Messwert weit über dem Mittel des Tages."""
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+
+    stufen = verwaltung.laufzeiten[HEIZKREIS].stufen
+
+    assert stufen is not None
+    assert stufen[1] == pytest.approx(10.0, abs=0.1)  # (14 + 6) / 2 aus der Tagesprognose
