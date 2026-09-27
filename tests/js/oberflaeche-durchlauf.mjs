@@ -770,6 +770,22 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   bilanz.automatik.dialogKopf = Boolean(kreuz) && Boolean(inhalt) && !inhalt.querySelector(".dialog-leiste");
   if (kreuz) kreuz.ausloesen("click");
   bilanz.automatik.kreuzSchliesst = wurzel.querySelectorAll(".schleier").length === 0;
+
+  // Mit eigenen Zielen nennt die Raum-Kachel jeden Raum mit Ist und Ziel.
+  const [mitZielen] = flaeche._automatik.heizkreise;
+  const vorherKennwerte = mitZielen.kennwerte;
+  mitZielen.kennwerte = {
+    ...vorherKennwerte,
+    eigene_ziele: true,
+    abweichung: -0.2,
+    raeume: [{ entity_id: "climate.bad", name: "Bad", wert: 20.8, ziel: 21, heizt: true, veraltet: false }],
+  };
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  bilanz.automatik.raumliste = [...wurzel.querySelectorAll(".raeume")].map((l) => String(l.textContent || ""));
+  mitZielen.kennwerte = vorherKennwerte;
 }
 
 // ---------------------------------------------------------------------------

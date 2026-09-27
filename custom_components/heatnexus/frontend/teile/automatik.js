@@ -437,8 +437,8 @@ export const AutomatikMixin = (Basis) =>
       const kacheln = [
         ["sonne", `${zahl(k.sonnenquote, 0)} %`, "Sonnenquote heute", `ab ${zahl(w.sonnenquote, 0)} %`],
         k.eigene_ziele
-          ? ["", kelvin(k.abweichung), k.raum_art === "minimum" ? "Räume zum Ziel, kältester" : "Räume zum Ziel, Mittel", `Raum ${zahl(k.raum)} °C`]
-          : ["", `${zahl(k.raum)} °C`, k.raum_art === "minimum" ? "Raum, kältester" : "Raum, Mittel", `Soll ${zahl(k.soll)} °C`],
+          ? ["raum", kelvin(k.abweichung), k.raum_art === "minimum" ? "Räume zum Ziel, kältester" : "Räume zum Ziel, Mittel", `Raum ${zahl(k.raum)} °C`]
+          : ["raum", `${zahl(k.raum)} °C`, k.raum_art === "minimum" ? "Raum, kältester" : "Raum, Mittel", `Soll ${zahl(k.soll)} °C`],
         ["", `${zahl(k.at)} · ${zahl(k.at_gedaempft)} °C`, "Außen · gedämpft", `Heizgrenze ${zahl(k.heizgrenze)} °C`],
         ["", `${k.eingriffe ?? 0} / ${k.budget ?? "–"}`, "Eingriffe heute", "Budget"],
       ];
@@ -456,7 +456,7 @@ export const AutomatikMixin = (Basis) =>
           teil.textContent = inhalt;
           kachel.appendChild(teil);
         });
-        if (bezeichnung.startsWith("Raum") && ((k.raeume || []).length > 1 || k.eigene_ziele)) {
+        if (art === "raum" && ((k.raeume || []).length > 1 || k.eigene_ziele)) {
           const liste = document.createElement("div");
           liste.className = "raeume";
           k.raeume.forEach((raum) => {
