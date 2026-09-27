@@ -103,6 +103,43 @@ macht sie wirksam. Weitere Regeln:
   Anlage ersetzt sie nicht.
 - Wird die Automatik ausgeschaltet, nimmt sie ihre eigenen Eingriffe zurück.
 
+### Prognose an den Standort anpassen
+
+Die Wetterprognose gilt für den Ort, nicht für den Fühler an der Nordwand. Die
+Automatik vergleicht deshalb jede Stunde, was die Prognose vorhergesagt hat,
+mit dem Messwert des Außenfühlers. Aus der Abweichung je Tageszeit wird ein
+Versatz, zum Beispiel „Außen angepasst −1,4 K“. Mit einem Zähler für den
+tatsächlichen PV-Ertrag vergleicht sie ebenso die PV-Prognose mit dem Ertrag
+und bildet einen Faktor, etwa „Sonne angepasst −12 %“. Das Verfahren entspricht
+der Prognoseanpassung von evcc.
+
+- Die Korrektur wirkt nach sieben Tagen mit Daten. Unter „Erweitert“ lässt sich
+  das Lernfenster auf 3, 7 oder 14 Tage stellen; bei 3 Tagen wirkt sie nach
+  drei Tagen.
+- Der Schalter **Prognose anpassen** schaltet die Korrektur für Anzeige und
+  Entscheidung ab. Gelernt wird weiter.
+- Als PV-Prognose dient immer der Ertrag des ganzen Tages. Ein Wert für den
+  Rest des Tages schrumpft im Lauf des Tages und wird nicht angeboten.
+
+### Heute, morgen, übermorgen
+
+Das Stundenraster zeigt je Stunde von 06 bis 22 Uhr das Wetter, die angepasste
+Außentemperatur, was die Automatik in dieser Stunde tut, und den Raum gegen das
+Soll. Darunter zeigt ein Diagramm die Sonne, die Außentemperatur gemessen und
+laut Prognose, die gedämpfte Außentemperatur und die Heizgrenze. Die schon
+vergangenen Stunden von heute liest die Automatik beim Start aus der
+Aufzeichnung von Home Assistant nach.
+
+Für morgen und übermorgen rechnet sie mit derselben Regel vor, was sie
+voraussichtlich tun wird. Dabei nimmt sie an, dass der Raum am Sollwert liegt.
+
+### Raumfühler
+
+Die Auswahl zeigt zu jedem Fühler den aktuellen Wert. Ein ausgefallener Fühler
+meldet in Home Assistant oft weiter seinen letzten Wert. Zeigt ein Raumfühler
+über Stunden denselben Wert, gilt er als veraltet und zählt nicht zum Raumwert;
+die Raum-Kachel nennt ihn dann ausdrücklich.
+
 Je Heizkreis entstehen drei Entitäten: der Schalter **Automatik**, die Auswahl
 **Automatik-Modus** und der Sensor **Automatik-Zustand** mit der Begründung als
 Attribut. Damit lässt sie sich auch in Automationen und Dashboards verwenden.
