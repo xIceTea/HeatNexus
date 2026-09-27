@@ -591,7 +591,9 @@ export const AutomatikMixin = (Basis) =>
         "Profil",
         flaechen ? flaechen[1] : "",
         false,
-        "Das Profil stellt alle Werte passend zu den Heizflächen ein. Eigene Werte darunter überschreiben einzelne Felder; „Profilwerte wiederherstellen“ nimmt sie zurück."
+        this._t(
+          "Das Profil stellt alle Werte passend zu den Heizflächen ein. Eigene Werte darunter überschreiben einzelne Felder; „Profilwerte wiederherstellen“ nimmt sie zurück."
+        )
       );
       profilFeld.classList.add("breit");
       const profilWahl = document.createElement("select");

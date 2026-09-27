@@ -7,7 +7,8 @@ from pathlib import Path
 import re
 
 WURZEL = Path(__file__).parent.parent / "custom_components" / "heatnexus"
-AUFRUF = re.compile(r'(?:\bt|\._t)\(\s*"([^"]+)"')
+# Hilfetexte stehen als `hilfe: "…"` in Tabellen und gehen erst im Fenster durch `_t`.
+AUFRUF = re.compile(r'(?:\bt\(|\._t\(|\bhilfe:)\s*"([^"]+)"')
 # Texte, die auf Englisch genauso lauten.
 GLEICH = {"+ Block", "Block", "HeatNexus"}
 

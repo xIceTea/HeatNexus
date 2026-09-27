@@ -141,10 +141,11 @@ export const BausteineMixin = (Basis) =>
 
     const ueberschrift = document.createElement("h3");
     ueberschrift.className = "dialog-titel";
-    ueberschrift.textContent = titel;
+    // Das Fenster entsteht nach dem Aufbau; `_uebersetzen` erreicht es nicht mehr.
+    ueberschrift.textContent = this._t(titel);
     const inhalt = document.createElement("div");
     inhalt.className = "dialog-text";
-    inhalt.textContent = text;
+    inhalt.textContent = this._t(text);
 
     const leiste = document.createElement("div");
     leiste.className = "dialog-leiste";
