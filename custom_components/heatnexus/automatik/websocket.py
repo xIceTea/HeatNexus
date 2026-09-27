@@ -21,7 +21,7 @@ import voluptuous as vol
 
 from ..const import DOMAIN
 from ..rechte import darf_lesen
-from . import korrektur, profile, tagesansicht
+from . import korrektur, nachladen, profile, tagesansicht
 from .konfig import LISTEN_MAX, MODI, RAUM_ARTEN, pv_ist_passt, pv_passt, raumfuehler_passt
 from .laufzeit import Laufzeit
 from .verwaltung import DOMAENE_JE_ART, Verwaltung, unique_id, verwaltung_holen
@@ -162,8 +162,8 @@ def _bereich(hass: HomeAssistant, eintrag: er.RegistryEntry | None) -> str:
 
 
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/automatik/kandidaten"})
-@callback
-def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
+@websocket_api.async_response
+async def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     """Auswahllisten für den Einrichtungsdialog."""
     register = er.async_get(hass)
     listen: dict[str, list[dict[str, str]]] = {
@@ -219,6 +219,13 @@ def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None
                 "seit": seit.isoformat(),
             }
         )
+    # Ein ausgefallener Fühler zeigt seit Tagen denselben Wert; der Verlauf verrät es.
+    kalt = await nachladen.eingefrorene_fuehler(
+        hass, [e["entity_id"] for e in listen["temperatur"]]
+    )
+    for eintrag in listen["temperatur"]:
+        if (seit := kalt.get(eintrag["entity_id"])) is not None:
+            eintrag["seit"] = seit.isoformat()
     for liste in listen.values():
         liste.sort(key=lambda e: (e["bereich"] or "~", e["name"]))
     connection.send_result(msg["id"], listen)

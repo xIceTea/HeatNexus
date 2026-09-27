@@ -42,6 +42,43 @@ def _reihe(zustaende: list[Any], merkmal: str | None = None) -> list[tuple[datet
     return reihe
 
 
+def eingefroren(
+    reihen: dict[str, list[tuple[datetime, float]]], jetzt: datetime
+) -> dict[str, datetime]:
+    """Sensoren, die über den halben Verlauf hinweg nur einen Wert zeigen, mit Beginn."""
+    return {
+        kennung: reihe[0][0]
+        for kennung, reihe in reihen.items()
+        if reihe
+        and len({wert for _, wert in reihe}) == 1
+        and reihe[0][0] <= jetzt - VERLAUF_ZURUECK / 2
+    }
+
+
+async def eingefrorene_fuehler(hass: HomeAssistant, kennungen: list[str]) -> dict[str, datetime]:
+    """Eingefrorene unter den Sensoren, aus dem Verlauf der letzten 24 Stunden."""
+    if not kennungen or "recorder" not in hass.config.components:
+        return {}
+    from homeassistant.components.recorder import get_instance, history
+
+    jetzt = dt_util.now()
+    abfrage = partial(
+        history.get_significant_states,
+        hass,
+        jetzt - VERLAUF_ZURUECK,
+        jetzt,
+        kennungen,
+        significant_changes_only=False,
+        no_attributes=True,
+    )
+    try:
+        zustaende = await get_instance(hass).async_add_executor_job(abfrage)
+    except Exception as fehler:  # die Aufzeichnung ist eine Zugabe, kein Muss
+        _LOGGER.debug("Automatik: Verlauf der Fühler nicht lesbar: %s", fehler)
+        return {}
+    return eingefroren({k: _reihe(zustaende.get(k, [])) for k in kennungen}, jetzt)
+
+
 async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
     """Fehlende Stunden von heute mit Wetter, Außen- und Raumtemperatur füllen."""
     if "recorder" not in hass.config.components:
@@ -71,13 +108,7 @@ async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
     wolken = _reihe(wetter, "cloud_coverage")
     aussenreihe = _reihe(zustaende.get(aussen, [])) if aussen else []
     raeume = [_reihe(zustaende.get(raum, [])) for raum in k["raeume"]]
-    laufzeit.eingefroren = {
-        raum
-        for raum, reihe in zip(k["raeume"], raeume, strict=True)
-        if reihe
-        and len({wert for _, wert in reihe}) == 1
-        and reihe[0][0] <= jetzt - VERLAUF_ZURUECK / 2
-    }
+    laufzeit.eingefroren = set(eingefroren(dict(zip(k["raeume"], raeume, strict=True)), jetzt))
     stufen = None
     for stunde in range(jetzt.hour):
         zeit = anfang + timedelta(hours=stunde)

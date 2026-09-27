@@ -14,19 +14,19 @@ export const VERALTET_STUNDEN = 12;
 export const AUTOMATIK_TAKT_MS = 60 * 1000;
 
 export const FELDER = [
-  { name: "heizgrenze", titel: "Heizgrenze", einheit: "°C", schritt: 0.5 },
-  { name: "hysterese", titel: "Hysterese Saison", einheit: "K", schritt: 0.1 },
-  { name: "tau_h", titel: "Zeitkonstante gedämpfte AT", einheit: "h", schritt: 1 },
-  { name: "mindestdauer_h", titel: "Mindestdauer Saisonwechsel", einheit: "h", schritt: 1 },
-  { name: "entscheidung", titel: "Entscheidung um", art: "zeit" },
-  { name: "nachpruefung", titel: "Nachprüfung um", art: "zeit" },
-  { name: "absenkung_k", titel: "Absenkung am Sonnentag", einheit: "K", schritt: 0.5 },
-  { name: "rueckkehr_k", titel: "Rückkehr bei Raum unter Soll minus", einheit: "K", schritt: 0.1 },
-  { name: "sonnenquote", titel: "Sonnenquote ab", einheit: "%", schritt: 5 },
-  { name: "stark", titel: "Starke Stufe: nur Warmwasser", art: "janein" },
-  { name: "budget", titel: "Eingriffe je Tag höchstens", einheit: "", schritt: 1 },
-  { name: "fenster_k_je_h", titel: "Fenster offen ab Sturz von", einheit: "K/h", schritt: 0.5 },
-  { name: "lernfenster", titel: "Prognose anpassen über", art: "wahl", optionen: [3, 7, 14], einheit: "Tage" },
+  { name: "heizgrenze", hilfe: "Liegt die gedämpfte Außentemperatur um die Hysterese darüber, schaltet die Automatik den Heizkreis auf nur Warmwasser. Liegt sie um die Hysterese darunter und ist der Raum kühler als Soll minus 0,5 K, geht er zurück ins Programm.", titel: "Heizgrenze", einheit: "°C", schritt: 0.5 },
+  { name: "hysterese", hilfe: "Abstand über und unter der Heizgrenze. Er verhindert, dass der Heizkreis bei Werten nahe der Grenze hin- und herschaltet.", titel: "Hysterese Saison", einheit: "K", schritt: 0.1 },
+  { name: "tau_h", hilfe: "Wie träge die gedämpfte Außentemperatur dem Fühler folgt. Ein größerer Wert lässt kurze Wärme am Nachmittag weniger zählen. Richtwerte: Heizkörper 5 h, gemischt 15 h, Fußbodenheizung 25 h.", titel: "Zeitkonstante gedämpfte AT", einheit: "h", schritt: 1 },
+  { name: "mindestdauer_h", hilfe: "So lange bleibt der Heizkreis mindestens im Programm oder auf nur Warmwasser, bevor die Automatik wieder umschaltet. Ein zu kalter Raum geht immer vor.", titel: "Mindestdauer Saisonwechsel", einheit: "h", schritt: 1 },
+  { name: "entscheidung", hilfe: "Zu dieser Uhrzeit prüft die Automatik, ob ein Sonnentag bevorsteht, und setzt dann die Absenkung.", titel: "Entscheidung um", art: "zeit" },
+  { name: "nachpruefung", hilfe: "Eine zweite Prüfung am Tag, etwa wenn der Morgen trüb war und die Sonne später kommt. Leer lassen, wenn sie nicht gewünscht ist.", titel: "Nachprüfung um", art: "zeit" },
+  { name: "absenkung_k", hilfe: "Um so viel senkt die Automatik den Sollwert an einem Sonnentag. Die Absenkung endet an der Steuerung von selbst, spätestens zwei Stunden vor Sonnenuntergang.", titel: "Absenkung am Sonnentag", einheit: "K", schritt: 0.5 },
+  { name: "rueckkehr_k", hilfe: "Fällt der Raum unter Soll minus diesen Wert, beendet die Automatik die Absenkung sofort.", titel: "Rückkehr bei Raum unter Soll minus", einheit: "K", schritt: 0.1 },
+  { name: "sonnenquote", hilfe: "Ab diesem Anteil Sonne gilt der Tag als Sonnentag. Die Quote kommt aus der PV-Prognose oder aus der Bewölkung der Wetterprognose.", titel: "Sonnenquote ab", einheit: "%", schritt: 5 },
+  { name: "stark", hilfe: "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn der Raum schon 1 K über dem Soll liegt, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.", titel: "Sehr sonnig: nur Warmwasser statt Absenkung", art: "janein" },
+  { name: "budget", hilfe: "So viele Eingriffe darf die Automatik am Tag an die Steuerung schreiben. Die Rückkehr ins Programm zählt nicht mit und ist immer erlaubt.", titel: "Eingriffe je Tag höchstens", einheit: "", schritt: 1 },
+  { name: "fenster_k_je_h", hilfe: "Fällt der Raum schneller als dieser Wert pro Stunde, gilt ein Fenster als offen. Die Automatik setzt ihre Entscheidungen dann 30 Minuten aus.", titel: "Fenster offen ab Sturz von", einheit: "K/h", schritt: 0.5 },
+  { name: "lernfenster", hilfe: "Über so viele Tage vergleicht die Automatik Prognose und Messung und passt die Prognose daran an. Ein kurzes Fenster reagiert schneller, ein langes schwankt weniger.", titel: "Prognose anpassen über", art: "wahl", optionen: [3, 7, 14], einheit: "Tage" },
 ];
 
 export const ZUSTAENDE = {
@@ -196,7 +196,10 @@ export const AutomatikMixin = (Basis) =>
       }
       const alle = daten.heizkreise || [];
       const eigene = alle.filter((kreis) => !anlage || !anlage.id || kreis.anlage_id === anlage.id);
-      const kreise = this._anlagen().length > 1 ? eigene : alle;
+      // Eingerichtete zuerst: Ein unbenutzter Kreis soll den benutzten nicht nach unten schieben.
+      const kreise = [...(this._anlagen().length > 1 ? eigene : alle)].sort(
+        (a, b) => Number(!!b.eingerichtet) - Number(!!a.eingerichtet)
+      );
       return kreise.flatMap((kreis) => {
         if (!kreis.eingerichtet) {
           return [{ id: `automatik:${kreis.heizkreis}`, titel: kreis.name, knoten: this._automatikEinladung(kreis, daten) }];
@@ -550,7 +553,12 @@ export const AutomatikMixin = (Basis) =>
       raster.className = "automatik-felder";
 
       const flaechen = HEIZFLAECHEN.find(([name]) => name === kreis.konfig.heizflaechen);
-      const profilFeld = this._automatikFeld("Profil", flaechen ? flaechen[1] : "");
+      const profilFeld = this._automatikFeld(
+        "Profil",
+        flaechen ? flaechen[1] : "",
+        false,
+        "Das Profil stellt alle Werte passend zu den Heizflächen ein. Eigene Werte darunter überschreiben einzelne Felder; „Profilwerte wiederherstellen“ nimmt sie zurück."
+      );
       profilFeld.classList.add("breit");
       const profilWahl = document.createElement("select");
       profilWahl.disabled = !darf;
@@ -573,7 +581,7 @@ export const AutomatikMixin = (Basis) =>
         const geaendert = wert !== basis;
         const basisText = typeof basis === "number" ? zahl(basis, Number.isInteger(basis) ? 0 : 1) : basis || "–";
         const anzeige = feld.art === "janein" ? (basis ? "Ein" : "Aus") : `${basisText} ${feld.einheit || ""}`.trim();
-        const knoten = this._automatikFeld(feld.titel, `Profil: ${anzeige || "–"}`, geaendert);
+        const knoten = this._automatikFeld(feld.titel, `Profil: ${anzeige || "–"}`, geaendert, feld.hilfe);
         const eingabe = this._automatikEingabe(feld, wert, darf);
         eingabe.addEventListener("input", () => {
           this._automatikBearbeitet = true;
@@ -629,11 +637,15 @@ export const AutomatikMixin = (Basis) =>
       await this._automatikAufruf({ type: "heatnexus/automatik/entfernen", heizkreis: kreis.heizkreis });
     }
 
-    _automatikFeld(titel, unter, geaendert = false) {
+    _automatikFeld(titel, unter, geaendert = false, hilfe = "") {
       const feld = document.createElement("div");
       feld.className = `automatik-feld${geaendert ? " geaendert" : ""}`;
-      const beschriftung = document.createElement("label");
-      beschriftung.textContent = titel;
+      const beschriftung = document.createElement("div");
+      beschriftung.className = "automatik-feldkopf";
+      const text = document.createElement("label");
+      text.textContent = titel;
+      beschriftung.appendChild(text);
+      if (hilfe) beschriftung.appendChild(this._fragezeichen(titel, hilfe));
       const eingabe = document.createElement("div");
       eingabe.className = "eingabe";
       const hinweis = document.createElement("div");
@@ -812,8 +824,11 @@ export const AutomatikMixin = (Basis) =>
           this._t("4 · Optional: Anwesenheit und Fenster"),
           [
             this._automatikBeschriftet(this._t("Personen"), personen),
-            this._automatikBeschriftet(this._t("Fensterkontakte"), fenster),
-            this._automatikMitText(erkennung, this._t("Fenster aus Temperatursturz erkennen")),
+            this._automatikBeschriftet(
+              this._t("Fensterkontakte"),
+              this._automatikMitText(erkennung, this._t("Fenster aus Temperatursturz erkennen")),
+              fenster
+            ),
           ],
         ],
       ];
@@ -894,7 +909,13 @@ export const AutomatikMixin = (Basis) =>
         haken.checked = gewaehlt.includes(eintrag.entity_id);
         const teile = [eintrag.name, eintrag.bereich, eintrag.wert].filter(Boolean);
         const alter = eintrag.seit ? (Date.now() - Date.parse(eintrag.seit)) / 3600000 : 0;
-        if (alter > VERALTET_STUNDEN) teile.push(this._tMit("seit {stunden} h unverändert", { stunden: Math.floor(alter) }));
+        if (alter > VERALTET_STUNDEN) {
+          teile.push(
+            alter >= 48
+              ? this._tMit("seit {tage} Tagen unverändert", { tage: Math.floor(alter / 24) })
+              : this._tMit("seit {stunden} h unverändert", { stunden: Math.floor(alter) })
+          );
+        }
         const zeile = this._automatikMitText(haken, teile.join(" · "));
         if (alter > VERALTET_STUNDEN) zeile.classList.add("veraltet");
         liste.appendChild(zeile);
@@ -902,13 +923,13 @@ export const AutomatikMixin = (Basis) =>
       return liste;
     }
 
-    _automatikBeschriftet(text, knoten) {
+    _automatikBeschriftet(text, ...knoten) {
       const rahmen = document.createElement("div");
       rahmen.className = "automatik-beschriftet";
       const titel = document.createElement("div");
       titel.className = "automatik-unter";
       titel.textContent = text;
-      rahmen.append(titel, knoten);
+      rahmen.append(titel, ...knoten);
       return rahmen;
     }
 

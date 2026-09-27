@@ -1292,7 +1292,9 @@ export const STIL = `
   }
   .automatik-feld { padding: 10px 12px; border-radius: 12px; background: var(--hn-flaeche); }
   .automatik-feld.geaendert { box-shadow: inset 3px 0 0 var(--hn-akzent); }
-  .automatik-feld label { display: block; font-size: 12px; color: var(--hn-gedaempft); margin-bottom: 6px; }
+  .automatik-feldkopf { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 6px; }
+  .automatik-feldkopf label { flex: 1; font-size: 12px; color: var(--hn-gedaempft); }
+  .automatik-feldkopf .fragezeichen { width: 18px; height: 18px; font-size: 11px; }
   .automatik-feld .eingabe { display: flex; align-items: center; gap: 6px; }
   .automatik-feld input {
     width: 100%; padding: 7px 9px; border-radius: 9px; font: inherit; font-size: 14px;
@@ -1339,8 +1341,13 @@ export const STIL = `
   .automatik-dialog section { margin-top: 14px; }
   .automatik-dialog h4 { margin: 0 0 6px; font-size: 13px; font-weight: 600; opacity: 0.7; }
   .automatik-dialog select { margin-top: 6px; }
-  .automatik-haken { max-height: 160px; overflow-y: auto; display: grid; gap: 4px; }
-  .automatik-haken-zeile { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .automatik-haken {
+    max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
+  }
+  .automatik-haken-zeile {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; flex-shrink: 0;
+  }
+  .automatik-beschriftet > .automatik-haken-zeile { margin-bottom: 6px; }
   @media (max-width: 700px) {
     .automatik-stunden { grid-template-columns: repeat(9, minmax(0, 1fr)); }
     .automatik-stunde.spaet { display: none; }
