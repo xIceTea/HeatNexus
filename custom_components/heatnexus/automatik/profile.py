@@ -7,6 +7,7 @@ Das Profil folgt der Art der Heizflächen. Eigene Werte aus „Erweitert"
 from __future__ import annotations
 
 from collections.abc import Mapping
+from contextlib import suppress
 from dataclasses import dataclass, fields, replace
 from typing import Any
 
@@ -34,6 +35,7 @@ class Werte:
     stark: bool = False
     budget: int = 4
     fenster_k_je_h: float = 3.0
+    lernfenster: int = 14
 
 
 VORGABEN: dict[str, Werte] = {
@@ -70,6 +72,8 @@ GRENZEN: dict[str, tuple[float, float]] = {
     "fenster_k_je_h": (1.0, 10.0),
 }
 UHRZEITEN = ("entscheidung", "nachpruefung")
+# Über so viele Tage lernt die Prognosekorrektur; andere Werte gelten nicht.
+LERNFENSTER = (3, 7, 14)
 
 
 def profil_fuer(heizflaechen: str) -> str:
@@ -113,6 +117,10 @@ def werte(profil: str, eigene: Mapping[str, Any] | None = None) -> Werte:
                 aenderungen[name] = zeit
         elif name == "stark":
             aenderungen[name] = bool(wert)
+        elif name == "lernfenster":
+            with suppress(TypeError, ValueError):
+                if int(wert) in LERNFENSTER:
+                    aenderungen[name] = int(wert)
     return replace(VORGABEN.get(profil, VORGABEN[STANDARD]), **aenderungen)
 
 

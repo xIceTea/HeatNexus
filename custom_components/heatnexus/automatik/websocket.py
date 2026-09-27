@@ -22,8 +22,8 @@ import voluptuous as vol
 
 from ..const import DOMAIN
 from ..rechte import darf_lesen
-from . import profile
-from .konfig import LISTEN_MAX, MODI, RAUM_ARTEN, pv_passt, raumfuehler_passt
+from . import korrektur, profile, regel
+from .konfig import LISTEN_MAX, MODI, RAUM_ARTEN, pv_ist_passt, pv_passt, raumfuehler_passt
 from .laufzeit import Laufzeit, ortszeit
 from .verwaltung import DOMAENE_JE_ART, Verwaltung, unique_id, verwaltung_holen
 
@@ -68,6 +68,51 @@ def _sonne(laufzeit: Laufzeit, jetzt: datetime) -> list[float]:
         anteil = 1 - wolken.get(stunde, 50.0) / 100
         werte.append(round(max(0.0, bogen * anteil), 3))
     return werte
+
+
+def _aktion(g: regel.Gedaechtnis, stunde: int, heute: Any) -> str:
+    """Was die Automatik in dieser Stunde tut – für den Streifen im Stundenraster."""
+    if g.saison == regel.NUR_WW:
+        return "nur_ww"
+    von = _stunde(g.absenkung_von, heute)
+    bis = _stunde(g.absenkung_ziel or g.absenkung_bis, heute)
+    if von is not None and bis is not None and von <= stunde < bis:
+        return "absenkung"
+    return "programm"
+
+
+def _stunden(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
+    prognose = laufzeit.stundenprognose(jetzt.date())
+    gemessen = (
+        laufzeit.verlauf["stunden"] if laufzeit.verlauf["datum"] == jetzt.date().isoformat() else {}
+    )
+    return [
+        {
+            "stunde": stunde,
+            **(prognose.get(stunde) or {"roh": None, "korrigiert": None, "wolken": None}),
+            "at": (gemessen.get(str(stunde)) or {}).get("at"),
+            "raum": (gemessen.get(str(stunde)) or {}).get("raum"),
+            "aktion": _aktion(laufzeit.gedaechtnis, stunde, jetzt.date()),
+        }
+        for stunde in range(24)
+    ]
+
+
+def _korrektur(laufzeit: Laufzeit, jetzt: datetime) -> dict[str, Any]:
+    fenster, heute = laufzeit.werte.lernfenster, jetzt.date()
+    return {
+        "fenster": fenster,
+        "noetig": korrektur.noetige_tage(fenster),
+        "temperatur": {
+            "versatz": laufzeit.temperatur.tagesversatz(fenster, heute),
+            "tage": laufzeit.temperatur.lerntage(fenster, heute),
+        },
+        "sonne": {
+            "aktiv": bool(laufzeit.konfig.get("pv_ist")),
+            "faktor": laufzeit.pv.faktor(fenster, heute),
+            "tage": laufzeit.pv.lerntage(fenster, heute),
+        },
+    }
 
 
 def _entitaeten(hass: HomeAssistant, device_id: str) -> dict[str, str | None]:
@@ -121,7 +166,9 @@ def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: d
                 int(z[:2]) + int(z[3:]) / 60 for z in (werte.entscheidung, werte.nachpruefung) if z
             ],
             "jetzt": jetzt.hour + jetzt.minute / 60,
+            "stunden": _stunden(laufzeit, jetzt),
         },
+        korrektur=_korrektur(laufzeit, jetzt),
         protokoll=list(laufzeit.steller.stand.protokoll[:PROTOKOLL_ANZEIGE]),
         beobachtet_seit=laufzeit.beobachtet_seit.isoformat(),
         pausiert_bis=laufzeit.pausiert_bis.isoformat() if laufzeit.pausiert_bis else None,
@@ -191,6 +238,7 @@ def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None
         "temperatur": [],
         "wetter": [],
         "pv": [],
+        "pv_ist": [],
         "personen": [],
         "fenster": [],
     }
@@ -215,6 +263,13 @@ def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None
             and pv_passt(entity_id)
         ):
             ziel = "pv"
+        elif (
+            domaene == "sensor"
+            and klasse == "energy"
+            and not (eintrag and eintrag.platform in PV_PLATTFORMEN)
+            and pv_ist_passt(entity_id)
+        ):
+            ziel = "pv_ist"
         elif domaene == "person":
             ziel = "personen"
         elif domaene == "binary_sensor" and klasse in FENSTER_KLASSEN:
@@ -240,6 +295,7 @@ EINSTELLUNGEN = {
     vol.Optional("raum_art"): vol.In(RAUM_ARTEN),
     vol.Optional("wetter"): ENTITAET,
     vol.Optional("pv"): vol.Any(None, ENTITAET),
+    vol.Optional("pv_ist"): vol.Any(None, ENTITAET),
     vol.Optional("aussen"): vol.Any(None, ENTITAET),
     vol.Optional("personen"): _liste(LISTEN_MAX["personen"]),
     vol.Optional("fenster"): _liste(LISTEN_MAX["fenster"]),
@@ -280,9 +336,9 @@ async def _ws_einrichten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
         vol.Optional("modus"): vol.In(MODI),
         vol.Optional("eigene"): vol.All(
             {
-                vol.In(tuple(profile.GRENZEN) + profile.UHRZEITEN + ("stark",)): vol.Any(
-                    int, float, str, bool
-                )
+                vol.In(
+                    tuple(profile.GRENZEN) + profile.UHRZEITEN + ("stark", "lernfenster")
+                ): vol.Any(int, float, str, bool)
             },
             vol.Length(max=20),
         ),

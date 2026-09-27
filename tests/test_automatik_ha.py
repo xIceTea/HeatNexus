@@ -257,3 +257,18 @@ async def test_einrichtung_laesst_sich_nachtraeglich_aendern(hass, hass_ws_clien
     assert laufzeit.konfig["profil"] == "traege"
     await laufzeit.auswerten()
     assert laufzeit.lage.raum == 20.8
+
+
+async def test_lesen_liefert_stundenraster_und_korrektur(hass, hass_ws_client, anlage):
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+
+    antwort = await _senden(client, type="heatnexus/automatik")
+
+    (kreis,) = antwort["result"]["heizkreise"]
+    assert len(kreis["tag"]["stunden"]) == 24
+    assert {"korrigiert", "wolken", "aktion"} <= set(kreis["tag"]["stunden"][12])
+    assert kreis["korrektur"]["fenster"] == 14
+    assert kreis["korrektur"]["noetig"] == 7
+    assert kreis["korrektur"]["temperatur"]["versatz"] is None
+    assert kreis["korrektur"]["sonne"]["aktiv"] is False

@@ -27,7 +27,7 @@ from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
 from ..helpers import get_oid_value
-from . import eingaben, profile, regel
+from . import eingaben, korrektur, profile, regel
 from .steller import Stand, Steller
 
 _LOGGER = logging.getLogger(__name__)
@@ -112,6 +112,13 @@ class Laufzeit:
         except ValueError:
             self.zustand = regel.Zustand.PROGRAMM
         self.begruendung = str(z.get("begruendung") or "")
+        self.temperatur = korrektur.Temperaturkorrektur(z.get("temperatur"))
+        self.pv = korrektur.Pvkorrektur(z.get("pv"))
+        verlauf = z.get("verlauf") if isinstance(z.get("verlauf"), dict) else {}
+        self.verlauf: dict[str, Any] = {
+            "datum": str(verlauf.get("datum") or ""),
+            "stunden": dict(verlauf.get("stunden") or {}),
+        }
         self.lage: regel.Lage | None = None
         self.stunden: list[dict[str, Any]] = []
         self._tage: list[tuple[date, float | None, float | None]] = []
@@ -150,6 +157,9 @@ class Laufzeit:
             "pausiert_bis": self.pausiert_bis.isoformat() if self.pausiert_bis else None,
             "beobachtet_seit": self.beobachtet_seit.isoformat(),
             "pv_tage": self.pv_tage,
+            "temperatur": self.temperatur.als_dict(),
+            "pv": self.pv.als_dict(),
+            "verlauf": self.verlauf,
             "zustand": self.zustand.value,
             "begruendung": self.begruendung,
         }
@@ -162,7 +172,7 @@ class Laufzeit:
             client.register_poll_oid(f"{self.prefix}{adresse}")
         k = self.konfig
         quellen = [*k["raeume"], *k["personen"], *k["fenster"]]
-        quellen += [e for e in (k.get("pv"), k.get("aussen")) if e]
+        quellen += [e for e in (k.get("pv"), k.get("pv_ist"), k.get("aussen")) if e]
         self._abmelden.append(async_track_state_change_event(self.hass, quellen, self._ereignis))
         self._abmelden.append(self.coordinator.async_add_listener(self._merken))
         self._abmelden.append(async_track_time_interval(self.hass, self._takt, TAKT))
@@ -235,6 +245,7 @@ class Laufzeit:
         self._geaendert = False
         jetzt = dt_util.now()
         self._daempfen(jetzt)
+        self._lernen(jetzt)
         lage = self._lage(jetzt, entscheidungszeit)
         self.lage = lage
         if not self.aktiv:
@@ -376,12 +387,57 @@ class Laufzeit:
         if (at := self._aussen()) is None:
             return
         # Ohne Vorgeschichte das Tagesmittel: Nachmittags läge der Messwert weit darüber.
-        if self.stufen is None and (mittel := eingaben.tagesmittel(self._tage, jetzt.date())):
+        if self.stufen is None and (mittel := self.tagesmittel(jetzt.date())):
             self.stufen = (mittel, mittel)
             self.stufen_zeit = jetzt
         dauer = (jetzt - self.stufen_zeit).total_seconds() if self.stufen_zeit else 0.0
         self.stufen = eingaben.daempfen(self.stufen, at, dauer, self.werte.tau_h)
         self.stufen_zeit = jetzt
+
+    def _kwh(self, entity_id: str | None) -> float | None:
+        if (wert := self._zahl(entity_id)) is None:
+            return None
+        zustand = self.hass.states.get(entity_id)
+        einheit = str(zustand.attributes.get("unit_of_measurement") or "") if zustand else ""
+        return wert / 1000 if einheit == "Wh" else wert
+
+    def _lernen(self, jetzt: datetime) -> None:
+        """Messwerte für die Prognosekorrektur und den Verlauf des Tages ablegen."""
+        at = self._aussen()
+        self.temperatur.messen(jetzt, at)
+        self.pv.prognose_merken(jetzt, self._kwh(self.konfig.get("pv")))
+        if self.konfig.get("pv_ist"):
+            self.pv.ist_merken(jetzt, self._kwh(self.konfig["pv_ist"]))
+        heute = jetzt.date().isoformat()
+        if self.verlauf["datum"] != heute:
+            self.verlauf = {"datum": heute, "stunden": {}}
+        stunde = str(jetzt.hour)
+        if stunde not in self.verlauf["stunden"]:
+            self.verlauf["stunden"][stunde] = {"at": at, "raum": self._raum()}
+
+    def tagesmittel(self, tag: date) -> float | None:
+        """Tagesmittel der Prognose, um den gelernten Versatz verschoben."""
+        if (mittel := eingaben.tagesmittel(self._tage, tag)) is None:
+            return None
+        versatz = self.temperatur.tagesversatz(self.werte.lernfenster, dt_util.now().date())
+        return mittel + (versatz or 0.0)
+
+    def stundenprognose(self, tag: date) -> dict[int, dict[str, float | None]]:
+        """Stundenprognose eines Tages: roh, korrigiert, Bewölkung."""
+        fenster, heute = self.werte.lernfenster, dt_util.now().date()
+        ergebnis: dict[int, dict[str, float | None]] = {}
+        for eintrag in self.stunden:
+            zeit = ortszeit(eintrag.get("datetime"))
+            if zeit is None or zeit.date() != tag:
+                continue
+            roh = eintrag.get("temperature")
+            versatz = self.temperatur.versatz(zeit.hour, fenster, heute)
+            ergebnis[zeit.hour] = {
+                "roh": roh,
+                "korrigiert": None if roh is None else round(roh + (versatz or 0.0), 1),
+                "wolken": eintrag.get("cloud_coverage"),
+            }
+        return ergebnis
 
     def _raum_verfolgen(self) -> None:
         if (raum := self._raum()) is None:
@@ -423,6 +479,18 @@ class Laufzeit:
 
     def _sonnenquote(self, jetzt: datetime, aufgang: datetime, untergang: datetime) -> float | None:
         heute = jetzt.date().isoformat()
+        faktor = self.pv.faktor(self.werte.lernfenster, jetzt.date())
+        pv_prognose = self._kwh(self.konfig.get("pv"))
+        if (
+            self.konfig.get("pv_ist")
+            and (
+                quote := korrektur.sonnenquote_korrigiert(
+                    pv_prognose, faktor, self.pv.bester_ist(jetzt.date())
+                )
+            )
+            is not None
+        ):
+            return quote
         if (pv := self._zahl(self.konfig.get("pv"))) is not None:
             self.pv_tage[heute] = max(pv, self.pv_tage.get(heute, 0.0))
             grenze = (jetzt.date() - timedelta(days=PV_TAGE)).isoformat()
@@ -457,8 +525,8 @@ class Laufzeit:
             raum=raum,
             soll=self._wert("/1/1/0"),
             sonnenquote=quote,
-            mittel_heute=eingaben.tagesmittel(self._tage, jetzt.date()),
-            mittel_morgen=eingaben.tagesmittel(self._tage, jetzt.date() + timedelta(days=1)),
+            mittel_heute=self.tagesmittel(jetzt.date()),
+            mittel_morgen=self.tagesmittel(jetzt.date() + timedelta(days=1)),
             sonnenuntergang=untergang,
             betriebswahl=_ganzzahl(self._wert("/3/50/0")),
             daten_ok=daten_ok,
@@ -478,6 +546,14 @@ class Laufzeit:
         tage = await self._prognose("daily")
         if stunden is not None:
             self.stunden = stunden
+            self.temperatur.vormerken(
+                [
+                    (zeit, eintrag.get("temperature"))
+                    for eintrag in stunden
+                    if (zeit := ortszeit(eintrag.get("datetime"))) is not None
+                ],
+                dt_util.now(),
+            )
         if tage is not None:
             self._tage = [
                 (zeit.date(), eintrag.get("temperature"), eintrag.get("templow"))

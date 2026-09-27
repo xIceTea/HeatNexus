@@ -15,7 +15,7 @@ from .profile import GRENZEN, HEIZFLAECHEN, PROFILE, UHRZEITEN, abweichungen, pr
 MODI = ("beobachten", "schalten")
 RAUM_ARTEN = ("mittel", "minimum")
 LISTEN_MAX = {"raeume": 10, "personen": 10, "fenster": 20}
-EIGENE_FELDER = frozenset({*GRENZEN, *UHRZEITEN, "stark"})
+EIGENE_FELDER = frozenset({*GRENZEN, *UHRZEITEN, "stark", "lernfenster"})
 
 _ENTITAET = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+$")
 # Temperaturen, die kein Raum sind: Taupunkt, Ziel- und Sollwerte, Oberflächen, Geräte.
@@ -24,11 +24,20 @@ _KEIN_RAUM = re.compile(
 )
 # Von einer PV-Prognose zählt nur der erwartete Ertrag des ganzen Tages.
 _KEIN_TAGESERTRAG = re.compile(r"remaining|rest|hour|stunde|tomorrow|morgen|peak|power")
+# Ein Ist-Zähler der PV verrät sich meist am Namen.
+_PV_IST = re.compile(
+    r"pv|solar|photovolt|wechselrichter|inverter|ertrag|yield|_eq$|balkonkraftwerk"
+)
 
 
 def raumfuehler_passt(entity_id: str) -> bool:
     """Ob ein Temperatursensor nach Raumtemperatur aussieht."""
     return not _KEIN_RAUM.search(entity_id)
+
+
+def pv_ist_passt(entity_id: str) -> bool:
+    """Ob ein Energiezähler nach tatsächlichem PV-Ertrag aussieht."""
+    return bool(_PV_IST.search(entity_id))
 
 
 def pv_passt(entity_id: str) -> bool:
@@ -74,6 +83,7 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         "raum_art": roh.get("raum_art") if roh.get("raum_art") in RAUM_ARTEN else RAUM_ARTEN[0],
         "wetter": wetter,
         "pv": _entitaet(roh.get("pv")),
+        "pv_ist": _entitaet(roh.get("pv_ist")),
         "aussen": _entitaet(roh.get("aussen")),
         "personen": _liste(roh.get("personen"), LISTEN_MAX["personen"]),
         "fenster": _liste(roh.get("fenster"), LISTEN_MAX["fenster"]),

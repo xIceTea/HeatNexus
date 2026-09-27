@@ -54,3 +54,10 @@ def test_abweichungen_nennen_nur_geaenderte_felder(profile):
     assert profile.abweichungen(profile.STANDARD, {"absenkung_k": 2.0, "hysterese": 1.0}) == {
         "absenkung_k": 2.0
     }
+
+
+def test_lernfenster_nur_drei_sieben_oder_vierzehn_tage(profile):
+    assert profile.werte(profile.STANDARD).lernfenster == 14
+    assert profile.werte(profile.STANDARD, {"lernfenster": 3}).lernfenster == 3
+    assert profile.werte(profile.STANDARD, {"lernfenster": "7"}).lernfenster == 7
+    assert profile.werte(profile.STANDARD, {"lernfenster": 5}).lernfenster == 14

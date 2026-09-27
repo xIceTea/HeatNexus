@@ -101,3 +101,23 @@ def test_nur_raumtemperaturen_stehen_zur_wahl(konfig, entity_id, passt):
 )
 def test_nur_die_tagesprognose_steht_als_pv_zur_wahl(konfig, entity_id, passt):
     assert konfig.pv_passt(entity_id) is passt
+
+
+def test_pv_ist_und_lernfenster_werden_gespeichert(konfig):
+    k = konfig.pruefen(roh(pv_ist="sensor.hoymiles_today_eq", eigene={"lernfenster": 7}))
+    assert k["pv_ist"] == "sensor.hoymiles_today_eq"
+    assert k["eigene"] == {"lernfenster": 7}
+
+
+@pytest.mark.parametrize(
+    ("entity_id", "passt"),
+    [
+        ("sensor.hoymiles_ms_a2_solarh_9201610_today_eq", True),
+        ("sensor.wechselrichter_ertrag_heute", True),
+        ("sensor.pv_tagesertrag_gesamt", True),
+        ("sensor.shellypro3em_total_energy", False),
+        ("sensor.waschmaschine_energie", False),
+    ],
+)
+def test_pv_ist_nur_nach_pv_aussehende_zaehler(konfig, entity_id, passt):
+    assert konfig.pv_ist_passt(entity_id) is passt
