@@ -21,10 +21,13 @@ MORGEN = "2026-09-27 15:00:00+00:00"
 
 class Client:
     def __init__(self) -> None:
-        """Merkt sich jeden Schreibvorgang."""
+        """Merkt sich jeden Schreibvorgang; mit `ablehnen` scheitert jeder."""
         self.geschrieben: list[tuple[str, str]] = []
+        self.ablehnen = False
 
     async def update(self, oid: str, wert: str) -> None:
+        if self.ablehnen:
+            raise RuntimeError("abgelehnt")
         self.geschrieben.append((oid, wert))
 
     def register_poll_oid(self, oid: str) -> None:
@@ -183,6 +186,32 @@ async def test_ausschalten_nimmt_die_absenkung_zurueck(hass, hass_ws_client, anl
     await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
 
     assert coordinator.client.geschrieben[-1] == (f"{PREFIX}/2/10/0", "0")
+
+
+async def test_sicherheit_meldet_sich_erst_nach_der_wiederholung(
+    hass, hass_ws_client, anlage, freezer
+):
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.automatik import regel
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit.gedaechtnis = regel.Gedaechtnis(saison=regel.NUR_WW, saison_soll=21.0)
+    coordinator.data["oids"][f"{PREFIX}/3/50/0"] = "6"
+    hass.states.async_set("sensor.wohnzimmer", "15.0", {"device_class": "temperature"})
+    coordinator.client.ablehnen = True
+
+    await laufzeit.auswerten()
+    await laufzeit.auswerten()
+
+    kennung = f"automatik_sicherheit_{HEIZKREIS}"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is None
 
 
 async def test_nur_administratoren_richten_ein(

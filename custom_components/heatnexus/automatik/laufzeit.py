@@ -356,19 +356,25 @@ class Laufzeit:
                 ir.async_delete_issue(self.hass, DOMAIN, kennung)
             self._fehlschlaege = 0
             return
+        # Bis zur geplanten Wiederholung zählt kein weiterer Lauf als Fehlschlag.
+        if self._wiederholung is not None:
+            return
         self._fehlschlaege += 1
-        if self._fehlschlaege == 1 and self._wiederholung is None:
+        if self._fehlschlaege == 1:
             self._wiederholung = async_call_later(
                 self.hass, SICHERHEIT_WIEDERHOLEN_S, self._wiederholen
             )
             return
+        self._meldung(kennung, "automatik_sicherheit")
+
+    def _meldung(self, kennung: str, schluessel: str) -> None:
         ir.async_create_issue(
             self.hass,
             DOMAIN,
             kennung,
             is_fixable=False,
             severity=ir.IssueSeverity.ERROR,
-            translation_key="automatik_sicherheit",
+            translation_key=schluessel,
             translation_placeholders={"heizkreis": self.name},
         )
 
