@@ -224,7 +224,9 @@ export const AutomatikMixin = (Basis) =>
       try {
         this._automatik = await this._hass.callWS({ type: "heatnexus/automatik" });
         this._automatikZeit = Date.now();
-        if (this._reiter === "automatik" && !this._automatikBearbeitet) {
+        // Der Neuaufbau ersetzt den ganzen Baum; ein offener Dialog ginge mit.
+        const dialogOffen = Boolean(this.shadowRoot.querySelector(".schleier"));
+        if (this._reiter === "automatik" && !this._automatikBearbeitet && !dialogOffen) {
           this._gebaut = false;
           this._zeichnen();
         }
@@ -569,8 +571,13 @@ export const AutomatikMixin = (Basis) =>
 
     // --- Erweitert -----------------------------------------------------
     _automatikErweitert(kreis, daten, darf) {
+      // Frisch gebaute Felder tragen keine Eingabe; Zuklappen gibt das Nachladen ebenso frei.
+      this._automatikBearbeitet = false;
       const bereich = document.createElement("details");
       bereich.className = "automatik-erweitert";
+      bereich.addEventListener("toggle", () => {
+        if (!bereich.open) this._automatikBearbeitet = false;
+      });
       const kopf = document.createElement("summary");
       kopf.textContent = "Erweitert";
       bereich.appendChild(kopf);

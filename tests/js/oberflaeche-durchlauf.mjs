@@ -712,6 +712,34 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     tagesleiste: wurzel.querySelectorAll(".automatik-tag-bild").length,
     knoepfe: [...wurzel.querySelectorAll(".automatik-knopf")].map((k) => String(k.textContent || "").trim()),
   };
+
+  // Ein offener Dialog übersteht das Nachladen im Takt.
+  const schleier = document.createElement("div");
+  schleier.className = "schleier";
+  wurzel.appendChild(schleier);
+  const vorherWS = hass.callWS;
+  hass.callWS = async () => flaeche._automatik;
+  await flaeche._automatikHolen(true);
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  bilanz.automatik.dialogBleibt = wurzel.querySelectorAll(".schleier").length === 1;
+  schleier.remove();
+  hass.callWS = vorherWS;
+
+  // Frisch gebaute Felder tragen keine Eingabe; die Sperre fürs Nachladen fällt.
+  flaeche._automatikBearbeitet = true;
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  bilanz.automatik.sperreNachAufbau = flaeche._automatikBearbeitet;
+
+  // Wer „Erweitert“ zuklappt, gibt die Ansicht wieder frei.
+  flaeche._automatikBearbeitet = true;
+  const erweitert = wurzel.querySelector(".automatik-erweitert");
+  erweitert.open = false;
+  erweitert.ausloesen("toggle");
+  bilanz.automatik.sperreNachZuklappen = flaeche._automatikBearbeitet;
 }
 
 // ---------------------------------------------------------------------------

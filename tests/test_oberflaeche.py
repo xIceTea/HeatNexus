@@ -661,3 +661,11 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     assert "Automatik entfernen" in automatik["knoepfe"]
     (hinweis,) = automatik["hinweise"]
     assert "Nichts davon ging an die Steuerung" in hinweis
+
+
+def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
+    """Ein offener Dialog bleibt; die Sperre fürs Nachladen hält nicht über den Aufbau hinaus."""
+    automatik = durchlauf["automatik"]
+    assert automatik["dialogBleibt"] is True
+    assert automatik["sperreNachAufbau"] is False
+    assert automatik["sperreNachZuklappen"] is False
