@@ -459,6 +459,52 @@ async def test_englische_deskriptoren_tragen_den_deutschen_namen(client_module, 
     assert aus_dem_menue["name_de"] == "Gerätetyp"
 
 
+async def test_englische_ableitungen_heissen_englisch(client_module, monkeypatch):
+    """Zusätze, Laufzeiten, Rücksetz- und Abfragetasten folgen der Sprache; der deutsche Name bleibt."""
+    client = client_module.WindhagerHttpClient("192.0.2.1", "secret", sprache="en")
+    await _kessel_erkennen(client, monkeypatch)
+    quelle = {
+        "id": "x-0-2-81-0",
+        "oid": "/1/60/0/2/81/0",
+        "name": "Operating hours",
+        "name_de": "Betriebsstunden",
+    }
+
+    heute = client._ableitung(quelle, "heute", "zaehler_heute", "heute")
+    laufzeit = client._ableitung(
+        {**quelle, "name": "", "name_de": None}, "laufzeit", "laufzeit", "Laufzeit Zyklus"
+    )
+    punkt = client._ableitung(
+        quelle, "schaltpunkt", "schaltpunkt", "", name_ersetzen="Einschaltpunkt"
+    )
+
+    assert (heute["name"], heute["name_de"]) == ("Operating hours today", "Betriebsstunden heute")
+    assert (laufzeit["name"], laufzeit["name_de"]) == ("Runtime cycle", "Laufzeit Zyklus")
+    assert (punkt["name"], punkt["name_de"]) == ("Switch-on point", "Einschaltpunkt")
+    client._abfragetasten()
+    assert {d["name"] for d in client.devices if d.get("type") == "refresh"} == {
+        "Refresh values now"
+    }
+
+
+def test_jeder_name_einer_ableitung_hat_eine_englische_fassung(client_module):
+    """Ohne Eintrag bliebe der Name einer Ableitung auf Englisch deutsch."""
+    import json
+    from pathlib import Path
+
+    from custom_components.heatnexus.client import ableitungen
+
+    datei = (
+        Path(__file__).parent.parent / "custom_components" / "heatnexus" / "sprachen" / "en.json"
+    )
+    englisch = json.loads(datei.read_text(encoding="utf-8"))
+    namen = {"heute", "seit Start", "zurücksetzen", "Werte jetzt abfragen", "Datenpunkt {gnmn}"}
+    namen |= set(ableitungen.AbleitungenMixin._LAUFZEITEN.values())
+    for regel in [*ableitungen.SCHALTPUNKTE, *ableitungen.VERBRAUCHER_ABSTAND]:
+        namen |= {regel[k] for k in ("name", "abstand_name", "schaltpunkt_name") if regel.get(k)}
+    assert sorted(namen - set(englisch)) == []
+
+
 async def test_deutsche_deskriptoren_bleiben_ohne_zweitnamen(client_module, monkeypatch):
     client = client_module.WindhagerHttpClient("192.0.2.1", "secret", sprache="de")
     je_adresse = await _kessel_erkennen(client, monkeypatch)

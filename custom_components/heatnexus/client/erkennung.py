@@ -239,10 +239,18 @@ class ErkennungMixin:
 
         Poll-Takt, Statistikklasse und Oberfläche erkennen Datenpunkte an deutschen Wörtern.
         """
-        name = self._name_fuer(gnmn, vorgabe, gepflegt) or rueckfall
+        name = self._name_fuer(gnmn, vorgabe, gepflegt)
         if self.sprache == "de":
-            return {"name": name}
-        return {"name": name, "name_de": vorgabe or rueckfall}
+            return {"name": name or rueckfall}
+        if not name and rueckfall == f"Datenpunkt {gnmn}":
+            name = texte.Woerterbuch(self.sprache)("Datenpunkt {gnmn}").replace("{gnmn}", gnmn)
+        return {"name": name or rueckfall, "name_de": vorgabe or rueckfall}
+
+    def _eigener_name(self, deutsch: str) -> dict:
+        """Ein Name, den HeatNexus selbst vergibt: übersetzt, der deutsche daneben."""
+        if self.sprache == "de":
+            return {"name": deutsch}
+        return {"name": texte.Woerterbuch(self.sprache)(deutsch), "name_de": deutsch}
 
     def _enum_texte_fuer(self, gnmn: str) -> dict[int, str] | None:
         """Zustandstexte, die die Anlage selbst für diesen Datenpunkt führt.
@@ -579,7 +587,7 @@ class ErkennungMixin:
                     "id": f"{kennung}-abfragen",
                     "alt_id": f"{muster.get('alt_device_id') or kennung}-abfragen",
                     "type": "refresh",
-                    "name": "Werte jetzt abfragen",
+                    **self._eigener_name("Werte jetzt abfragen"),
                     # Ohne Kategorie steht die Taste im Abschnitt Steuerung,
                     # und der liegt auf der Geräteseite ganz oben.
                     "icon": "mdi:refresh",

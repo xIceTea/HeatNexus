@@ -321,5 +321,16 @@
   "WW-Zirkulation Ausschaltzeit": "DHW circulation switch-off time",
   "WW-Hysterese Ein": "DHW hysteresis on",
   "Eco/Comfort Dauer": "Eco/Comfort duration",
-  "Eco/Comfort Temperatur": "Eco/Comfort temperature"
+  "Eco/Comfort Temperatur": "Eco/Comfort temperature",
+  "heute": "today",
+  "seit Start": "since start",
+  "zurücksetzen": "reset",
+  "Laufzeit Zyklus": "Runtime cycle",
+  "Werte jetzt abfragen": "Refresh values now",
+  "Datenpunkt {gnmn}": "Datapoint {gnmn}",
+  "Anforderungstemperatur": "Demand temperature",
+  "Einschaltpunkt": "Switch-on point",
+  "Einschaltpunkt Delta": "Switch-on point delta",
+  "WW-Einschaltpunkt": "DHW switch-on point",
+  "WW-Einschaltpunkt Delta": "DHW switch-on point delta"
 }
