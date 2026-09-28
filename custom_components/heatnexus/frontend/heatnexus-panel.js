@@ -239,8 +239,9 @@ class HeatNexusPanel extends Grundlage {
     const leiste = document.createElement("div");
     leiste.className = "leiste";
     leiste.append(this._kopfleiste(anlage), this._reiterleiste());
+    // Beim Anordnen steht die Leiste mit im Kasten, damit Spalten und Farbsatz beim Blättern erreichbar bleiben.
+    if (this._anordnen) leiste.appendChild(this._anordnenLeiste());
     inhalt.appendChild(leiste);
-    if (this._anordnen) inhalt.appendChild(this._anordnenLeiste());
     if (this._alleAnlagen() && this._reiter === "automatik") {
       inhalt.appendChild(this._automatikAlle());
     } else if (this._alleAnlagen()) {

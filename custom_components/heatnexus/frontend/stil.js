@@ -174,7 +174,8 @@ export const STIL = `
   /* --- Anordnen -------------------------------------------------------- */
   .anordnen-leiste {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    margin: 12px 16px 0; padding: 10px 14px; border-radius: 14px;
+    margin: 10px 16px 12px; padding: 10px 14px; border-radius: 14px;
+    max-height: 45vh; overflow-y: auto;
     background: color-mix(in srgb, var(--hn-akzent) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--hn-akzent) 35%, transparent);
   }
