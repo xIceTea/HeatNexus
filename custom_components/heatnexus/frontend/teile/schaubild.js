@@ -246,7 +246,7 @@ export const SchaubildMixin = (Basis) =>
           anlage,
           "vorlauf"
         )} ${Math.round(anteil * 100)}%, ${this._farbe(anlage, "ruecklauf")})`;
-        marke.title = `${eintrag.titel} – Mischer ${Math.round(stellwert)} %`;
+        marke.title = this._tMit("{titel} – Mischer {wert} %", { titel: eintrag.titel, wert: Math.round(stellwert) });
       });
     });
 
@@ -303,7 +303,7 @@ export const SchaubildMixin = (Basis) =>
           glied.style.background = fuellung;
         });
         koerper.classList.toggle("heiss", anteil > 0.66);
-        koerper.title = `${eintrag.titel} – Vorlauf ${this._text(eintrag.entity)}`;
+        koerper.title = this._tMit("{titel} – Vorlauf {wert}", { titel: eintrag.titel, wert: this._text(eintrag.entity) });
       });
     });
 
@@ -342,7 +342,7 @@ export const SchaubildMixin = (Basis) =>
           // Zurück auf den neutralen Verlauf. Ohne das bliebe die letzte
           // Färbung stehen und behauptete Messwerte, die es nicht gibt.
           koerper.style.background = eintrag.grund;
-          koerper.title = `${eintrag.titel} – kein Fühlerwert`;
+          koerper.title = this._tMit("{titel} – kein Fühlerwert", { titel: eintrag.titel });
           return;
         }
         const spanne = Number(eintrag.heiss) - Number(eintrag.kalt);
@@ -443,8 +443,8 @@ export const SchaubildMixin = (Basis) =>
         feld.classList.toggle("an", an);
         rad.classList.toggle("an", an);
         rad.title = an
-          ? `${eintrag.titel} – gibt Wärme ab, ${Math.round(soll)} °C`
-          : `${eintrag.titel} – keine Übergabe`;
+          ? this._tMit("{titel} – gibt Wärme ab, {wert} °C", { titel: eintrag.titel, wert: Math.round(soll) })
+          : this._tMit("{titel} – keine Übergabe", { titel: eintrag.titel });
       });
     });
 
@@ -559,7 +559,7 @@ export const SchaubildMixin = (Basis) =>
       if (eintrag.nur_strang) return;
       const marke = document.createElement("div");
       marke.className = "pumpe";
-      marke.title = `${eintrag.titel} – Pumpe`;
+      marke.title = this._tMit("{titel} – Pumpe", { titel: eintrag.titel });
       marke.style.left = eintrag.left;
       marke.style.top = eintrag.top;
       marke.appendChild(this._laufrad());

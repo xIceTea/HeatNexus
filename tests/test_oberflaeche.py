@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 from urllib.parse import unquote
@@ -783,4 +784,45 @@ def test_auf_englisch_bleibt_kein_uebersetzbarer_text_deutsch(aufteilung, tmp_pa
         }
     )
 
+    assert not reste, f"auf Englisch noch deutsch: {reste}"
+
+
+# Merkmale deutscher Sätze: Umlaute und häufige kurze Wörter.
+DEUTSCH = re.compile(
+    r"[äöüÄÖÜß]|(und|der|die|das|nicht|bis|von|mit|keine|seit|oder|für|zum|zur|Uhr|heute|Wert)"
+)
+
+
+def _texte_der_nutzlast(wert) -> set[str]:
+    """Namen aus den Daten: Sie dürfen deutsch sein, die Oberfläche übersetzt sie nicht."""
+    if isinstance(wert, dict):
+        return set().union(*(_texte_der_nutzlast(v) for v in wert.values()))
+    if isinstance(wert, list):
+        return set().union(*(_texte_der_nutzlast(v) for v in wert)) if wert else set()
+    return {wert} if isinstance(wert, str) and len(wert) > 2 else set()
+
+
+def test_auf_englisch_bleibt_kein_deutscher_text_ohne_eintrag(aufteilung, tmp_path):
+    """Findet auch Texte, die ganz ohne Eintrag im Wörterbuch stehen, etwa zusammengesetzte Titel."""
+    from custom_components.heatnexus.texte import Woerterbuch, uebersetze_baum
+
+    englisch = json.loads(WOERTERBUCH.read_text(encoding="utf-8"))
+    nutzlast = uebersetze_baum(aufteilung, Woerterbuch("en"))
+    datei = tmp_path / "daten.json"
+    datei.write_text(json.dumps({**nutzlast, "texte": englisch}), encoding="utf-8")
+    ergebnis = subprocess.run(
+        ["node", str(ENGLISCH), str(PANEL_JS), str(datei)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    assert ergebnis.returncode == 0, ergebnis.stderr[:2000]
+    namen = sorted(_texte_der_nutzlast(nutzlast), key=len, reverse=True)
+
+    def ohne_namen(text: str) -> str:
+        for name in namen:
+            text = text.replace(name, "")
+        return text
+
+    reste = sorted(t for t in json.loads(ergebnis.stdout) if DEUTSCH.search(ohne_namen(t)))
     assert not reste, f"auf Englisch noch deutsch: {reste}"

@@ -7,6 +7,7 @@ tragen einen eigenen Namen und Typ.
 
 from __future__ import annotations
 
+from .. import texte
 from ..const import (
     GRUPPE_LAUFZEIT,
     GRUPPE_SCHALTPUNKT,
@@ -54,15 +55,24 @@ class AbleitungenMixin:
         verlängern — ein Schaltpunkt heißt nicht „Puffertemperatur Sollwert ab".
         """
         eigener = felder.pop("name_ersetzen", None)
-        # Der deutsche Name wächst mit, damit die Ableitung wie auf Deutsch eingeordnet wird.
-        if not eigener and (name_de := quelle.get("name_de")):
-            felder["name_de"] = f"{name_de} {zusatz}".strip()
+        name = eigener or f"{quelle['name']} {zusatz}".strip()
+        # Der deutsche Name bleibt daneben stehen, damit die Ableitung wie auf Deutsch eingeordnet wird.
+        if self.sprache != "de":
+            woerterbuch = texte.Woerterbuch(self.sprache)
+            felder["name_de"] = (
+                eigener or f"{quelle.get('name_de') or quelle['name']} {zusatz}".strip()
+            )
+            name = (
+                woerterbuch(eigener)
+                if eigener
+                else f"{quelle['name']} {woerterbuch(zusatz)}".strip()
+            )
         return self._deskriptor(
             id=f"{quelle['id']}-{endung}",
             alt_id=f"{quelle.get('alt_id') or quelle['id']}-{endung}",
             oid=quelle["oid"],
             type=typ,
-            name=eigener or f"{quelle['name']} {zusatz}".strip(),
+            name=name,
             enabled_default=False,
             device_id=quelle.get("device_id"),
             alt_device_id=quelle.get("alt_device_id"),

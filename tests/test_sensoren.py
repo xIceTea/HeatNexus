@@ -63,6 +63,18 @@ def test_enum_sensor_nennt_unbekannte_werte_beim_namen(sensoren):
     assert entity.native_value in entity.options
 
 
+def test_enum_sensor_nennt_unbekannte_werte_in_seiner_sprache(sensoren):
+    entity, _ = _entitaet(
+        sensoren.WindhagerEnumSensor,
+        {"/1/60/0/9/75/0": "99"},
+        type="enum_sensor",
+        enum="2/9",
+        sprache="en",
+    )
+    assert entity.native_value == "Unknown (99)"
+    assert entity.native_value in entity.options
+
+
 def test_enum_sensor_ohne_wert_bleibt_leer(sensoren):
     entity, _ = _entitaet(sensoren.WindhagerEnumSensor, {}, type="enum_sensor", enum="2/9")
     assert entity.native_value is None

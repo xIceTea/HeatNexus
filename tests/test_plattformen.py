@@ -168,6 +168,20 @@ def test_select_waehlt_auch_einen_gemeldeten_wert_ohne_text(select_klasse):
     assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "8")]
 
 
+def test_select_nennt_einen_wert_ohne_text_in_seiner_sprache(select_klasse):
+    entity, koordinator = _entitaet(
+        select_klasse,
+        {"/1/60/0/9/75/0": "8"},
+        type="select",
+        enum="9/75",
+        allowed=[0, 1, 8],
+        sprache="en",
+    )
+    assert entity.current_option == "Value 8"
+    asyncio.run(entity.async_select_option("Value 8"))
+    assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "8")]
+
+
 def test_select_schreibt_nichts_bei_unbekannter_option(select_klasse):
     """Eine Option, die es nicht gibt, geht nicht an die Anlage und wird gemeldet."""
     from custom_components.heatnexus.exceptions import WindhagerValueError

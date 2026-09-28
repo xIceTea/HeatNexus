@@ -40,6 +40,11 @@ def _laden(sprache: str) -> dict[str, str]:
     return inhalt if isinstance(inhalt, dict) else {}
 
 
+def eigene_fassung(sprache: str, text: str) -> str | None:
+    """Die Fassung eines Textes im Wörterbuch genau dieser Sprache, ohne Rückfall."""
+    return _laden(sprache).get(text) if sprache != QUELLSPRACHE else None
+
+
 class Woerterbuch:
     """Übersetzt Oberflächentexte, oder gibt den deutschen zurück."""
 

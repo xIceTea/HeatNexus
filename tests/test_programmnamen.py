@@ -73,10 +73,12 @@ async def _keine_geraetetexte():
     return geraetetexte.Texte()
 
 
-async def _erkennen(monkeypatch):
+async def _erkennen(monkeypatch, sprache="de"):
     from custom_components.heatnexus import client
 
-    c = client.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info", "operate"])
+    c = client.WindhagerHttpClient(
+        "192.0.2.10", "geheim", levels=["info", "operate"], sprache=sprache
+    )
     c.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
     c.werksbezeichnung = {str(KNOTEN): "Infinity"}
 
@@ -120,3 +122,24 @@ async def test_der_name_aendert_die_kennung_nicht(monkeypatch):
     kennungen = {d["oid"]: d["id"] for d in c.devices if d.get("oid")}
     assert kennungen["/1/15/0/58/78/0"] == f"{SERIE}-0-58-78-0"
     assert kennungen["/1/15/0/3/61/0"] == f"{SERIE}-0-3-61-0"
+
+
+@requires_ha()
+async def test_auf_englisch_tragen_die_gepflegten_namen_keine_adresse(monkeypatch):
+    """Die Herstellertabelle nennt beide Sätze auch englisch gleich; der gepflegte Name trennt sie."""
+    c = await _erkennen(monkeypatch, sprache="en")
+    namen = {d["oid"].split("/1/15/0/", 1)[1][:-2]: d["name"] for d in c.devices if d.get("oid")}
+    assert namen["58/78"] == "Program 1 flow temperature"
+    assert namen["58/81"] == "Flow temperature heating mode"
+    assert not [n for n in namen.values() if "(" in n]
+
+
+def test_jeder_gepflegte_name_hat_eine_englische_fassung(geraete):
+    """Ohne Fassung fiele ein gepflegter Name auf Englisch auf die mehrdeutige Herstellertabelle zurück."""
+    from custom_components.heatnexus.client.erkennung import NAME_OVERRIDES
+
+    englisch = json.loads((KOMPONENTE / "sprachen" / "en.json").read_text(encoding="utf-8"))
+    gepflegt = {n for tabelle in geraete.NAMEN.values() for n in tabelle.values()} | set(
+        NAME_OVERRIDES.values()
+    )
+    assert sorted(gepflegt - set(englisch)) == []
