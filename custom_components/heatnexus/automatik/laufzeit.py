@@ -457,9 +457,9 @@ class Laufzeit:
         for kennung in self.konfig["raeume"]:
             if self.veraltet(kennung) or (m := self.messung(kennung)) is None:
                 continue
-            ergebnis.append(
-                m if m.ziel is not None else m._replace(ziel=self.konfig.get("raum_ziel"))
-            )
+            if m.ziel is None and not m.aus:
+                m = m._replace(ziel=self.konfig.get("raum_ziel"))
+            ergebnis.append(m)
         return ergebnis
 
     def _raum(self, messungen: list[eingaben.Messung] | None = None) -> float | None:
@@ -692,7 +692,8 @@ class Laufzeit:
             at=at,
             at_gedaempft=self.stufen[1] if self.stufen else None,
             soll=self._wert("/1/1/0"),
-            raeume=tuple((m.ist, m.ziel) for m in messungen),
+            raeume=tuple((m.ist, m.ziel) for m in messungen if not m.aus),
+            aus=tuple(m.ist for m in messungen if m.aus),
             raum_art=self.konfig["raum_art"],
             ruhig=self._ruhig(jetzt),
             sonnenquote=self.sonnenquote(jetzt.date(), self.konfig.get("pv")),

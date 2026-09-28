@@ -171,7 +171,7 @@ def raumwerte(laufzeit: Laufzeit) -> list[dict[str, Any]]:
         zustand = laufzeit.hass.states.get(entity_id)
         name = zustand.attributes.get("friendly_name") if zustand else None
         seit = laufzeit.seit(entity_id)
-        ist, ziel, heizt = laufzeit.messung(entity_id) or (None, None, None)
+        ist, ziel, heizt, aus = laufzeit.messung(entity_id) or (None, None, None, False)
         ergebnis.append(
             {
                 "entity_id": entity_id,
@@ -179,6 +179,7 @@ def raumwerte(laufzeit: Laufzeit) -> list[dict[str, Any]]:
                 "wert": ist,
                 "ziel": ziel,
                 "heizt": heizt,
+                "aus": aus,
                 "veraltet": laufzeit.veraltet(entity_id),
                 "seit": seit.isoformat() if seit else None,
             }

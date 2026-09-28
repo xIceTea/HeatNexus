@@ -412,3 +412,23 @@ def test_mit_waerme_der_vorrangquellen_laeuft_der_sonnentag_weiter(m, w):
 def test_vor_vier_stunden_zaehlt_fehlende_waerme_nicht(m, w):
     stand = lage(m, jetzt=MORGEN + timedelta(hours=2), soll=19.5, vorrang_minuten=0.0)
     assert m.entscheiden(stand, lange_absenkung(m), w).aktionen == ()
+
+
+# --- Ausgeschaltete Thermostate -----------------------------------------------
+def test_ausgeschaltete_raeume_sind_kein_fehlender_messwert(m, w):
+    stand = lage(m, at_gedaempft=18.5, raeume=(), aus=(19.0, 18.5))
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.NUR_WW
+    assert stand.raum == 18.75
+
+
+def test_ausgeschaltete_raeume_holen_nur_ww_nicht_zurueck(m, w):
+    stand = lage(m, raeume=(), aus=(19.0,), betriebswahl=6)
+    e = m.entscheiden(stand, nur_ww(m, timedelta(hours=3)), w)
+    assert e.zustand == m.Zustand.NUR_WW
+    assert e.aktionen == ()
+
+
+def test_ausgeschalteter_raum_zaehlt_nicht_gegen_die_anderen(m, w):
+    stand = lage(m, raeume=((21.0, 21.0),), aus=(15.0,), entscheidungszeit=True)
+    assert m.abweichung(stand, 22.0) == 0.0

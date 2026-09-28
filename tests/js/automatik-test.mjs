@@ -64,6 +64,7 @@ assert.equal(kelvin(0.5), "+0,5 K");
 assert.equal(kelvin(null), "–");
 assert.equal(raumzeile({ name: "Bad", wert: 20.8, ziel: 21, heizt: true }), "Bad 20,8 °C → 21,0 °C · heizt");
 assert.equal(raumzeile({ name: "Küche", wert: 18.9, ziel: null, heizt: null }), "Küche 18,9 °C");
+assert.equal(raumzeile({ name: "Bad", wert: 20.1, ziel: null, heizt: false, aus: true }), "Bad 20,1 °C · aus");
 
 // Temperaturen: gemessen bis jetzt, angepasste Prognose ab jetzt, Heizgrenze.
 const mitTemperatur = tagesleisteSvg(

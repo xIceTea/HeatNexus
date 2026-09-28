@@ -70,6 +70,8 @@ class Lage:
     soll: float | None = None
     # Je Raum Ist und eigenes Ziel; ohne Ziel gilt der Sollwert des Heizkreises.
     raeume: tuple[tuple[float, float | None], ...] = ()
+    # Ausgeschaltete Räume: nur ihr Ist-Wert, für Sicherheit und Anzeige.
+    aus: tuple[float, ...] = ()
     raum_art: str = "mittel"
     # Ob seit zwei Stunden kein Raum Wärme anfordert; `None` ohne Thermostate.
     ruhig: bool | None = None
@@ -94,7 +96,7 @@ class Lage:
     @property
     def raum(self) -> float | None:
         """Raumwert für Sicherheit und Anzeige: Mittel oder kältester Raum."""
-        return raumwert([ist for ist, _ in self.raeume], self.raum_art)
+        return raumwert([*(ist for ist, _ in self.raeume), *self.aus], self.raum_art)
 
 
 @dataclass(frozen=True)

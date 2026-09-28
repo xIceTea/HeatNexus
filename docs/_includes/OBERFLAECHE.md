@@ -154,7 +154,11 @@ jeden Raum mit seinem eigenen Ziel:
 
 - **Thermostate** wie tado lassen sich direkt als Raum wählen. Sie liefern Ist,
   Ziel und ob sie gerade heizen. Senkt ein Thermostat nachts ab, sinkt das Ziel
-  mit. Ein ausgeschaltetes Thermostat zählt nicht.
+  mit.
+- Ein ausgeschaltetes Thermostat, etwa beim Lüften oder im Sommer, zählt als
+  Raum ohne Bedarf: Es fordert keine Wärme an und geht nicht in die Abweichung
+  ein. Sein Ist-Wert zählt weiter für die Sicherheit unter 16 °C. Ein nicht
+  erreichbares Thermostat zählt gar nicht.
 - Für reine **Temperaturfühler** gilt die Wunschtemperatur aus der Einrichtung.
   Bleibt das Feld leer, gilt der Raumsollwert des Heizkreises. Das passt nur,
   wenn der Heizkreis selbst einen Raumfühler hat.

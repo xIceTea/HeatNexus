@@ -937,3 +937,26 @@ async def test_lieferbeginn_einer_vorrangquelle_loest_eine_entscheidung_aus(
         hass.states.async_set(quelle, zustand, {"friendly_name": "Solaranlage"})
         await hass.async_block_till_done()
     assert len(laufzeit.steller.stand.protokoll) == vorher + 1
+
+
+async def test_ausgeschaltete_thermostate_sind_raeume_ohne_bedarf(hass, anlage):
+    verwaltung, _ = anlage
+    for kennung, ist in (("climate.bad", 20.1), ("climate.kueche", 19.5)):
+        hass.states.async_set(
+            kennung,
+            "off",
+            {"current_temperature": ist, "temperature": None, "hvac_action": "off"},
+        )
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {
+            "heizkreis": HEIZKREIS,
+            "raeume": ["climate.bad", "climate.kueche"],
+            "wetter": "weather.home",
+        },
+    )
+    lage = verwaltung.laufzeiten[HEIZKREIS].lage
+    assert lage.raeume == ()
+    assert lage.aus == (20.1, 19.5)
+    assert lage.raum == pytest.approx(19.8)
+    assert verwaltung.laufzeiten[HEIZKREIS].zustand.value != "keine_daten"

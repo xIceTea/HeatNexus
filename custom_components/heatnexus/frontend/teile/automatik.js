@@ -98,6 +98,7 @@ export function raumzeile(raum, t = (text) => text) {
   let text = `${raum.name} ${zahl(raum.wert)} °C`;
   if (raum.ziel !== null && raum.ziel !== undefined) text += ` → ${zahl(raum.ziel)} °C`;
   if (raum.heizt) text += ` · ${t("heizt")}`;
+  if (raum.aus) text += ` · ${t("aus")}`;
   return text;
 }
 

@@ -13,8 +13,8 @@ from typing import Any, NamedTuple
 
 # Unter so vielen Vergleichstagen sagt der PV-Ertrag nichts über die Sonne.
 PV_MIN_TAGE = 7
-# Ein Thermostat in diesen Zuständen regelt den Raum nicht; er zählt dann nicht.
-THERMOSTAT_AUS = frozenset({"off", "unavailable", "unknown"})
+# Ein Thermostat in diesen Zuständen liefert nichts; er zählt dann nicht.
+NICHT_ERREICHBAR = frozenset({"unavailable", "unknown"})
 
 
 def daempfen(
@@ -43,6 +43,8 @@ class Messung(NamedTuple):
     ist: float
     ziel: float | None
     heizt: bool | None
+    # Von Hand oder per Automation ausgeschaltet: kein Bedarf, kein Ziel, gemessen wird weiter.
+    aus: bool = False
 
 
 def zahl(wert: Any) -> float | None:
@@ -75,8 +77,10 @@ def raum_messung(entity_id: str, zustand: str, attribute: Mapping[str, Any]) -> 
     """Ist, eigenes Ziel und Wärmeanforderung eines Raums; ein Sensor kennt nur den Ist-Wert."""
     if (merkmal := messmerkmal(entity_id)) is None:
         return None if (ist := zahl(zustand)) is None else Messung(ist, None, None)
-    if zustand in THERMOSTAT_AUS or (ist := zahl(attribute.get(merkmal))) is None:
+    if zustand in NICHT_ERREICHBAR or (ist := zahl(attribute.get(merkmal))) is None:
         return None
+    if zustand == "off":
+        return Messung(ist, None, False, aus=True)
     return Messung(
         ist, zahl(attribute.get("temperature")), attribute.get("hvac_action") == "heating"
     )
