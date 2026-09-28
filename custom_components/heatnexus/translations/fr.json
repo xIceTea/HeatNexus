@@ -251,6 +251,14 @@
           "beobachten": "Observer",
           "schalten": "Commuter"
         }
+      },
+      "automatik_ausrichtung": {
+        "name": "Orientation de l'automatisme",
+        "state": {
+          "eco": "Éco",
+          "ausgewogen": "Équilibré",
+          "komfort": "Confort"
+        }
       }
     },
     "sensor": {

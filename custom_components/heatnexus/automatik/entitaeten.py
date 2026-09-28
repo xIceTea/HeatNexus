@@ -21,6 +21,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from ..const import DOMAIN
 from .konfig import MODI
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
+from .profile import AUSGEWOGEN, AUSRICHTUNGEN
 from .regel import Zustand
 from .verwaltung import SIGNAL_NEU, Verwaltung, unique_id, verwaltung_holen
 
@@ -90,6 +91,23 @@ class AutomatikModus(AutomatikEntitaet, SelectEntity):
         await self._verwaltung.einstellen(self._device_id, {"modus": option})
 
 
+class AutomatikAusrichtung(AutomatikEntitaet, SelectEntity):
+    """Eco, Ausgewogen oder Komfort – wie früh und kräftig die Automatik eingreift."""
+
+    ART = "ausrichtung"
+    _attr_translation_key = "automatik_ausrichtung"
+    _attr_options = list(AUSRICHTUNGEN)
+
+    @property
+    def current_option(self) -> str | None:
+        if not self._laufzeit:
+            return None
+        return self._laufzeit.konfig.get("ausrichtung") or AUSGEWOGEN
+
+    async def async_select_option(self, option: str) -> None:
+        await self._verwaltung.einstellen(self._device_id, {"ausrichtung": option})
+
+
 class AutomatikZustand(AutomatikEntitaet, SensorEntity):
     """Was die Automatik gerade tut, mit Begründung."""
 
@@ -119,6 +137,7 @@ class AutomatikZustand(AutomatikEntitaet, SensorEntity):
 KLASSEN: dict[str, type[AutomatikEntitaet]] = {
     "schalter": AutomatikSchalter,
     "modus": AutomatikModus,
+    "ausrichtung": AutomatikAusrichtung,
     "zustand": AutomatikZustand,
 }
 

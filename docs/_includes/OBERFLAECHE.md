@@ -191,9 +191,9 @@ meldet in Home Assistant oft weiter seinen letzten Wert. Zeigt ein Raumfühler
 über Stunden denselben Wert, gilt er als veraltet und zählt nicht zum Raumwert;
 die Raum-Kachel nennt ihn dann ausdrücklich.
 
-Je Heizkreis entstehen drei Entitäten: der Schalter **Automatik**, die Auswahl
-**Automatik-Modus** und der Sensor **Automatik-Zustand** mit der Begründung als
-Attribut. Damit lässt sie sich auch in Automationen und Dashboards verwenden.
+Je Heizkreis entstehen vier Entitäten: der Schalter **Automatik**, die Auswahlen
+**Automatik-Modus** und **Automatik-Ausrichtung** und der Sensor
+**Automatik-Zustand** mit der Begründung als Attribut. Damit lässt sie sich auch in Automationen und Dashboards verwenden.
 
 ## Eigene Werte über Labels
 

@@ -251,6 +251,14 @@
           "beobachten": "Beobachten",
           "schalten": "Schalten"
         }
+      },
+      "automatik_ausrichtung": {
+        "name": "Automatik-Ausrichtung",
+        "state": {
+          "eco": "Eco",
+          "ausgewogen": "Ausgewogen",
+          "komfort": "Komfort"
+        }
       }
     },
     "sensor": {

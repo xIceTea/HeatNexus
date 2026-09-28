@@ -993,3 +993,23 @@ async def test_stundenraster_zeigt_was_je_stunde_galt(hass, anlage, freezer):
     assert aktionen[11] == "nur_ww"
     assert aktionen[15] == "nur_ww"
     assert aktionen[5] == "programm"
+
+
+async def test_ausrichtung_ist_eine_auswahl_entitaet(hass, anlage):
+    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
+    from custom_components.heatnexus.automatik.verwaltung import DOMAENE_JE_ART
+
+    verwaltung, _ = anlage
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
+    )
+    auswahl = KLASSEN["ausrichtung"](verwaltung, HEIZKREIS)
+    assert DOMAENE_JE_ART["ausrichtung"] == "select"
+    assert auswahl.options == ["eco", "ausgewogen", "komfort"]
+    assert auswahl.current_option == "ausgewogen"
+
+    await auswahl.async_select_option("eco")
+
+    assert verwaltung.konfig(HEIZKREIS)["ausrichtung"] == "eco"
+    assert auswahl.current_option == "eco"

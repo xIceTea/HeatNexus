@@ -24,6 +24,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     """Set up Windhager selects from a config entry."""
     async_setup_entities(hass, entry, async_add_entities, {"select": WindhagerSelect})
     automatik_anmelden(hass, entry, async_add_entities, "modus")
+    automatik_anmelden(hass, entry, async_add_entities, "ausrichtung")
 
 
 class WindhagerSelect(WindhagerEntity, SelectEntity):

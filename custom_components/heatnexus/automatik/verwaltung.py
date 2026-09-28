@@ -30,8 +30,13 @@ STORE_VERSION = 1
 SPEICHER_VERZOEGERUNG_S = 30
 DATEN_SCHLUESSEL = f"{DOMAIN}_automatik"
 SIGNAL_NEU = f"{DOMAIN}_automatik_neu_{{}}"
-ARTEN = ("schalter", "modus", "zustand")
-DOMAENE_JE_ART = {"schalter": "switch", "modus": "select", "zustand": "sensor"}
+ARTEN = ("schalter", "modus", "ausrichtung", "zustand")
+DOMAENE_JE_ART = {
+    "schalter": "switch",
+    "modus": "select",
+    "ausrichtung": "select",
+    "zustand": "sensor",
+}
 # Mehrere Heizkreise teilen sich meist eine Wetter-Entität; gefragt wird sie einmal.
 PROGNOSE_GUELTIG = timedelta(minutes=50)
 
