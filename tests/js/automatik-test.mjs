@@ -4,7 +4,9 @@ import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 
 const modul = await import(pathToFileURL(process.argv[2]).href);
-const { zahl, uhrzeit, tagesleisteSvg, tagesleisteTipp, stundenKasten, wetterSymbol, korrekturText, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
+const { zahl, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
+const tagesbild = await import(new URL("./tagesbild.js", pathToFileURL(process.argv[2])).href);
+const { uhrzeit, tagesleisteSvg, tagesleisteTipp, stundenKasten, wetterSymbol, korrekturText } = tagesbild;
 
 assert.equal(zahl(19.5), "19,5");
 assert.equal(zahl(78, 0), "78");

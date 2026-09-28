@@ -35,6 +35,7 @@ import { BedienenMixin } from "./teile/bedienen.js";
 import { HilfeMixin } from "./teile/hilfe.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { SteuerungMixin } from "./teile/steuerung.js";
+import { TagesbildMixin } from "./teile/tagesbild.js";
 import { UebersichtMixin } from "./teile/uebersicht.js";
 import { VerlaufMixin } from "./teile/verlauf.js";
 import { WartungMixin } from "./teile/wartung.js";
@@ -48,9 +49,11 @@ const Grundlage = HilfeMixin(
         AutomatikMixin(
           EinrichtungMixin(
             KennwerteMixin(
-              SteuerungMixin(
-                UebersichtMixin(
-                  SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+              TagesbildMixin(
+                SteuerungMixin(
+                  UebersichtMixin(
+                    SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+                  )
                 )
               )
             )
