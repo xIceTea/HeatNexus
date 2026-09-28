@@ -150,6 +150,8 @@ class Laufzeit:
         self.eingefroren: set[str] = set()
         # Wie lange Wärmequellen mit Vorrang vor dem Kessel heute geliefert haben.
         self.vorrang = eingaben.lauf_aus_dict(z.get("vorrang"))
+        self._lieferbeginn_am: date | None = None
+        self._entscheidung_offen = False
 
     # --- Eigenschaften -------------------------------------------------------
     @property
@@ -254,6 +256,9 @@ class Laufzeit:
             self._raum_verfolgen()
         if entity_id in self.konfig["vorrang"]:
             self._vorrang_fortschreiben(dt_util.now())
+            beginnt = neu is not None and neu.state == "on" and (alt is None or alt.state != "on")
+            if beginnt:
+                self._lieferbeginn()
 
     async def _takt(self, _jetzt: datetime) -> None:
         if self._geaendert:
@@ -279,6 +284,8 @@ class Laufzeit:
 
     async def _auswerten(self, entscheidungszeit: bool) -> None:
         self._geaendert = False
+        entscheidungszeit = entscheidungszeit or self._entscheidung_offen
+        self._entscheidung_offen = False
         jetzt = dt_util.now()
         self._daempfen(jetzt)
         self._lernen(jetzt)
@@ -703,6 +710,17 @@ class Laufzeit:
             absenkung_moeglich=self._wert("/2/10/0") is not None,
             **self._vorrang_lage(jetzt),
         )
+
+    def _lieferbeginn(self) -> None:
+        """Einmal am Tag sofort entscheiden, statt bis zur nächsten Entscheidungszeit zu warten."""
+        heute = dt_util.now().date()
+        if self._lieferbeginn_am == heute:
+            return
+        self._lieferbeginn_am = heute
+        # Vorgemerkt: Läuft gerade eine Auswertung, holt der nächste Lauf die Entscheidung nach.
+        self._entscheidung_offen = True
+        self._geaendert = True
+        self.hass.async_create_task(self.auswerten())
 
     def _vorrang_liefert(self) -> list[str]:
         return [

@@ -902,3 +902,38 @@ async def test_ohne_vorrangquelle_keine_angabe(hass, hass_ws_client, anlage):
     kreis = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0]
     assert kreis["kennwerte"]["vorrang"] is None
     assert kreis["konfig"]["vorrang"] == []
+
+
+async def test_lieferbeginn_einer_vorrangquelle_loest_eine_entscheidung_aus(
+    hass, hass_ws_client, anlage, freezer
+):
+    """Einmal am Tag; ein zweiter Lieferbeginn entscheidet nicht erneut."""
+    from datetime import timedelta
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    quelle = _quelle(hass, "off")
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {
+            "heizkreis": HEIZKREIS,
+            "raeume": ["sensor.wohnzimmer"],
+            "wetter": "weather.home",
+            "vorrang": [quelle],
+        },
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    vorher = len(laufzeit.steller.stand.protokoll)
+
+    hass.states.async_set(quelle, "on", {"friendly_name": "Solaranlage"})
+    await hass.async_block_till_done()
+
+    eintraege = laufzeit.steller.stand.protokoll
+    assert len(eintraege) == vorher + 1
+    assert eintraege[0]["text"].startswith("Solaranlage liefert")
+
+    for zustand in ("off", "on"):
+        freezer.tick(timedelta(minutes=10))
+        hass.states.async_set(quelle, zustand, {"friendly_name": "Solaranlage"})
+        await hass.async_block_till_done()
+    assert len(laufzeit.steller.stand.protokoll) == vorher + 1

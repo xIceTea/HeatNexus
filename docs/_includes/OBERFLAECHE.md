@@ -175,6 +175,8 @@ ab Werk ist keine gewählt.
 
 - Liefert eine gewählte Quelle zur Entscheidungszeit, gilt der Tag als
   Sonnentag, auch wenn die Prognose vorsichtiger ist.
+- Beginnt eine gewählte Quelle zu liefern, entscheidet die Automatik sofort
+  neu, einmal am Tag, statt bis zur nächsten Entscheidungszeit zu warten.
 - Hat vier Stunden nach Beginn einer Absenkung keine gewählte Quelle Wärme
   geliefert, beendet die Automatik die Absenkung.
 - Die Sonnen-Kachel nennt, ob eine Quelle liefert oder wie lange heute schon.
