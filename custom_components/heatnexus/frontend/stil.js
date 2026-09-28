@@ -1294,9 +1294,11 @@ export const STIL = `
     display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px;
     color: var(--hn-gedaempft); margin-top: 6px;
   }
+  /* Farbmarke und Text je Eintrag auf einer Mittellinie, auch für die dünnen Linien. */
+  .automatik-legende > span { display: inline-flex; align-items: center; }
   .automatik-legende i {
     display: inline-block; width: 10px; height: 10px; border-radius: 3px;
-    margin-right: 6px; vertical-align: -1px;
+    margin-right: 6px; flex-shrink: 0;
   }
   .automatik-legende i.al-sonne { background: color-mix(in srgb, var(--hn-sonne) 50%, transparent); }
   .automatik-legende i.al-absenkung { background: var(--hn-akzent); }
