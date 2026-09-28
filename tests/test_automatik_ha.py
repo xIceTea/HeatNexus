@@ -1396,6 +1396,32 @@ async def test_entitaeten_der_automatik_gehoeren_dem_untereintrag(hass, hass_ws_
     assert aufnahme.untereintraege == [verwaltung.subeintrag(entry)] != [None]
 
 
+async def test_regel_wartet_auf_die_werte_der_steuerung(hass, anlage, freezer):
+    from datetime import timedelta
+
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    grenze = coordinator.data["oids"].pop(f"{PREFIX}/3/21/0")
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    assert laufzeit._wartet is True
+
+    coordinator.data["oids"][f"{PREFIX}/3/21/0"] = grenze
+    laufzeit._merken()
+    await hass.async_block_till_done()
+    assert laufzeit._wartet is False
+    assert laufzeit.lage.grenze_steuerung == 18.0
+
+    del coordinator.data["oids"][f"{PREFIX}/3/21/0"]
+    freezer.tick(timedelta(minutes=11))
+    await laufzeit.auswerten()
+    assert laufzeit._wartet is False
+    assert laufzeit.lage.grenze_steuerung is None
+
+
 async def test_laufzeiten_ohne_speicherstand_kommen_aus_dem_protokoll(hass, freezer):
     from custom_components.heatnexus.automatik.laufzeit import Laufzeit
 

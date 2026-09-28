@@ -44,6 +44,8 @@ FENSTER_DAUER = timedelta(minutes=30)
 PAUSE_BIS_STUNDE = 5
 SICHERHEIT_WIEDERHOLEN_S = 60
 VERLAUF_LAENGE = 64
+# So lange wartet die Regel nach dem Start auf den ersten Abruf der Werte in `ABRUF`.
+STEUERUNG_WARTEN = timedelta(minutes=10)
 MODUS_ARTEN = ("absenkung", "nur_ww")
 # Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
 # Heizgrenzen der Steuerung (`3/21`, `3/2`) gehören dazu: an ihnen richtet sich die Regel aus.
@@ -155,6 +157,8 @@ class Laufzeit(QuellenMixin):
             if isinstance(modus, dict)
             else self._lauf_aus_protokoll(dt_util.now())
         )
+        self._gestartet = dt_util.now()
+        self._wartet = False
         self._lieferbeginn_am: date | None = None
         self._entscheidung_offen = False
 
@@ -205,6 +209,7 @@ class Laufzeit(QuellenMixin):
     # --- Lebenszyklus --------------------------------------------------------
     async def starten(self) -> None:
         """Auslöser anmelden, Prognose holen, einmal auswerten."""
+        self._gestartet = dt_util.now()
         client = self.coordinator.client
         for adresse in ABRUF:
             client.register_poll_oid(f"{self.prefix}{adresse}")
@@ -258,6 +263,9 @@ class Laufzeit(QuellenMixin):
     @callback
     def _merken(self, *_: Any) -> None:
         self._geaendert = True
+        if self._wartet and not self._steuerung_fehlt(dt_util.now()):
+            self._wartet = False
+            self.hass.async_create_task(self.auswerten())
 
     @callback
     def _ereignis(self, event: Event) -> None:
@@ -311,6 +319,10 @@ class Laufzeit(QuellenMixin):
         self.lage = lage
         if not self.aktiv:
             self._setzen(regel.Zustand.AUS, "Automatik ausgeschaltet.")
+            return
+        self._wartet = self._steuerung_fehlt(jetzt)
+        if self._wartet:
+            self._geaendert = True
             return
         if not self.beobachten and (
             grund := self.steller.handeingriff(
@@ -575,6 +587,12 @@ class Laufzeit(QuellenMixin):
             self.verlauf = {"datum": heute, "stunden": {}}
         stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
         stunde["aktion"] = tagesansicht.aktion(self.gedaechtnis, jetzt.hour, jetzt.date())
+
+    def _steuerung_fehlt(self, jetzt: datetime) -> bool:
+        """Ob Werte aus `ABRUF` seit dem Start noch nie gelesen wurden; gilt höchstens `STEUERUNG_WARTEN`."""
+        oids = (self.coordinator.data or {}).get("oids") or {}
+        fehlt = any(f"{self.prefix}{adresse}" not in oids for adresse in ABRUF)
+        return fehlt and jetzt - self._gestartet < STEUERUNG_WARTEN
 
     def _lauf_aus_protokoll(self, jetzt: datetime) -> dict[str, eingaben.Lauf]:
         """Ohne gespeicherte Laufzeiten der heutige Stand aus den geschriebenen Eingriffen."""
