@@ -661,7 +661,12 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     assert "Automatik entfernen" in automatik["knoepfe"]
     assert automatik["kacheln"] == ["aussentemperatur", "sonne", "raum"]
     assert automatik["skalen"] == 3
-    assert automatik["eingriffe"] == "Eingriffe 1 / 4"
+    assert "1 von 4 Eingriffen heute" in automatik["meta"]
+    assert "Gemischt" in automatik["meta"]
+    assert f"nächste Prüfung {automatik['naechstePruefungUhrzeit']}" in automatik["meta"]
+    assert (automatik["alteEingriffe"], automatik["alteProfilzeile"]) == (0, 0)
+    assert automatik["raumZonen"] == 4
+    assert automatik["raumWert"] == "+0,4 K"
     assert automatik["grenzenEingaben"] == 2
     assert automatik["ausrichtung"] == [
         ["Eco", "false"],
@@ -693,11 +698,11 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["sperreNachZuklappen"] is False
     assert automatik["erweitertBleibtOffen"] is True
     assert automatik["gespeichert"] == ["übernommen ✓"]
+    # Die Metazeile steht als eigene Zeile unter dem Kopf, nicht mehr darin.
     assert automatik["kopf"] == [
         "h2",
         "automatik-punkt",
         "automatik-marke",
-        "automatik-eingriffe",
         "automatik-knopf",
         "fragezeichen",
     ]

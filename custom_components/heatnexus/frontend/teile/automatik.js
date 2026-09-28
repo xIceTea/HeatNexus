@@ -367,11 +367,7 @@ export const AutomatikMixin = (Basis) =>
         kopf.insertBefore(bearbeiten, kopf.querySelector(".fragezeichen"));
         kopf.insertBefore(marke, titel ? titel.nextSibling : kopf.firstChild);
         kopf.insertBefore(punkt, marke);
-        const k = kreis.kennwerte || {};
-        const eingriffe = document.createElement("span");
-        eingriffe.className = "automatik-eingriffe";
-        eingriffe.textContent = this._tMit("Eingriffe {zahl} / {budget}", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" });
-        kopf.insertBefore(eingriffe, bearbeiten);
+        kopf.parentElement.insertBefore(this._automatikMeta(kreis), kopf.nextSibling);
       }
 
       karte.appendChild(this._automatikSteuerzeile(kreis, darf));
@@ -425,10 +421,6 @@ export const AutomatikMixin = (Basis) =>
         segment.appendChild(taste);
       });
 
-      const profil = document.createElement("span");
-      profil.className = "automatik-profil";
-      const eintrag = PROFILE.find(([name]) => name === kreis.konfig.profil);
-      profil.textContent = eintrag ? eintrag[1] : kreis.konfig.profil;
       // Die Ausrichtung ist die Einstellung, die man im Alltag wechselt; sie steht deshalb hier.
       const ausrichtung = document.createElement("div");
       ausrichtung.className = "automatik-segment ausrichtung";
@@ -449,8 +441,41 @@ export const AutomatikMixin = (Basis) =>
         });
         ausrichtung.appendChild(taste);
       });
-      zeile.append(schalter, segment, ausrichtung, profil);
+      zeile.append(schalter, segment, ausrichtung);
       return zeile;
+    }
+
+    /** Unter dem Titel: Heizfläche, Eingriffe als Punkte, nächste Prüfung, Modus seit. */
+    _automatikMeta(kreis) {
+      const k = kreis.kennwerte || {};
+      const meta = document.createElement("div");
+      meta.className = "automatik-meta";
+      const teil = (text) => {
+        const span = document.createElement("span");
+        span.textContent = text;
+        meta.appendChild(span);
+        return span;
+      };
+      const flaeche = HEIZFLAECHEN.find(([name]) => name === kreis.konfig.heizflaechen);
+      const profil = PROFILE.find(([name]) => name === kreis.konfig.profil);
+      teil(this._t(flaeche ? flaeche[1] : profil ? profil[1] : kreis.konfig.profil || ""));
+      const eingriffe = teil("");
+      const budget = document.createElement("span");
+      budget.className = "automatik-budget klein";
+      for (let i = 0; i < (k.budget || 0); i += 1) {
+        const strich = document.createElement("i");
+        if (i < (k.eingriffe || 0)) strich.className = "voll";
+        budget.appendChild(strich);
+      }
+      const zaehler = document.createElement("span");
+      zaehler.textContent = this._tMit(" {zahl} von {budget} Eingriffen heute", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" });
+      eingriffe.append(budget, zaehler);
+      const uhr = (iso) => new Date(iso).toTimeString().slice(0, 5);
+      if (k.naechste_pruefung) teil(this._tMit("nächste Prüfung {zeit}", { zeit: uhr(k.naechste_pruefung) }));
+      if (k.modus_seit && kreis.zustand !== "programm" && ZUSTAENDE[kreis.zustand]) {
+        teil(this._tMit("{modus} seit {zeit}", { modus: this._t(ZUSTAENDE[kreis.zustand]), zeit: uhr(k.modus_seit) }));
+      }
+      return meta;
     }
 
     _automatikHinweis(kreis, darf) {

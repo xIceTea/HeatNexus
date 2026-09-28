@@ -57,7 +57,7 @@ export const KennwerteMixin = (Basis) =>
     }
 
     /** Zonen als Flächen, Marken als Linien, Werte als Punkt oder Strich. */
-    _skala({ von, bis, zonen = [], marken = [], punkte = [], achse = [] }) {
+    _skala({ von, bis, zonen = [], marken = [], punkte = [], achse = [], wertText = null }) {
       const rahmen = knoten("div", "automatik-skala");
       const bahn = knoten("div", "bahn");
       zonen.forEach(([anfang, ende, klasse]) => {
@@ -77,6 +77,11 @@ export const KennwerteMixin = (Basis) =>
           zeichen.style.left = `${lage}%`;
           if (titel) zeichen.title = titel;
           bahn.appendChild(zeichen);
+          if (form === "punkt" && wertText) {
+            const text = knoten("div", "punkt-wert", wertText);
+            text.style.left = `${lage}%`;
+            bahn.appendChild(text);
+          }
         }
       );
       const beschriftung = knoten("div", "achse");
@@ -123,10 +128,10 @@ export const KennwerteMixin = (Basis) =>
         "Außentemperatur",
         [
           [`${zahl(k.at)} °C`, "jetzt"],
-          [`${zahl(k.at_gedaempft)} °C`, "gedämpft, träge"],
+          [`${zahl(k.at_gedaempft)} °C`, "gedämpft (Automatik)"],
         ],
         skala,
-        [knoten("div", "fuss", hinweis)]
+        [knoten("div", "fuss", hinweis), knoten("div", "fuss", this._t("Die Steuerung rechnet mit der aktuellen Außentemperatur."))]
       );
     }
 
@@ -166,11 +171,23 @@ export const KennwerteMixin = (Basis) =>
 
     _kachelRaeume(kreis) {
       const k = kreis.kennwerte || {};
-      const rueckkehr = vorhanden(k.rueckkehr_k) ? Number(k.rueckkehr_k) : null;
+      const rk = vorhanden(k.rueckkehr_k) ? Number(k.rueckkehr_k) : 1;
+      const sonnig = vorhanden(k.sonne_raum_k) ? Number(k.sonne_raum_k) : 0.5;
+      // Außerhalb von ±2 K sitzt der Punkt am Rand; ein Pfeil zeigt, dass der Wert weiter liegt.
+      const ab = vorhanden(k.abweichung) ? Number(k.abweichung) : null;
+      let wertText = ab === null ? null : kelvin(ab);
+      if (ab !== null && ab < -2) wertText = `‹ ${wertText}`;
+      if (ab !== null && ab > 2) wertText = `${wertText} ›`;
       const skala = this._skala({
         von: -2,
         bis: 2,
-        zonen: rueckkehr === null ? [] : [[-2, -rueckkehr, "kalt"]],
+        zonen: [
+          [-2, -rk, "kalt"],
+          [-rk, -sonnig, "neutral"],
+          [-sonnig, 0, "moeglich"],
+          [0, 2, "ueber"],
+        ],
+        wertText,
         marken: [
           [0, "ziel", this._t("Ziel")],
           ...(vorhanden(k.sonne_raum_k) ? [[-k.sonne_raum_k, "schwelle", this._t("Sonnentag möglich ab")]] : []),

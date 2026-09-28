@@ -21,7 +21,7 @@ import voluptuous as vol
 
 from ..const import DOMAIN, SUBEINTRAG_QUELLE
 from ..rechte import darf_lesen
-from . import eingaben, korrektur, nachladen, profile, regel, tagesansicht
+from . import eingaben, kennzahlen, korrektur, nachladen, profile, regel, tagesansicht
 from .konfig import (
     EIGENE_FELDER,
     LISTEN_MAX,
@@ -129,6 +129,10 @@ def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: d
             "sonne_raum_k": regel.SONNE_RAUM_K,
             "eingriffe": laufzeit.steller.stand.eingriffe,
             "budget": werte.budget,
+            "naechste_pruefung": (
+                n.isoformat() if (n := kennzahlen.naechste_entscheidung(laufzeit)) else None
+            ),
+            "modus_seit": (s.isoformat() if (s := kennzahlen.modus_seit(laufzeit)) else None),
             "vorrang": (
                 {"laeuft": lage.vorrang_laeuft, "minuten": round(lage.vorrang_minuten or 0)}
                 if lage is not None and laufzeit.konfig["vorrang"]

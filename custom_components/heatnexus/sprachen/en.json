@@ -433,7 +433,8 @@
   "Komfort": "Comfort",
   "Die Automatik richtet sich nach der Heizgrenze der Steuerung (TA Heizbetrieb) und verschiebt sie um diesen Wert. Negativ schaltet früher auf nur Warmwasser. Die Ausrichtung setzt ihn; hier lässt er sich fein einstellen.": "The automation follows the controller's heating limit (outdoor temperature heating mode) and shifts it by this value. Negative switches to hot water only earlier. The orientation sets it; fine-tune it here.",
   "Abstand zur Heizgrenze der Steuerung": "Offset from the controller's heating limit",
-  "gedämpft, träge": "damped, slow",
+  "gedämpft (Automatik)": "damped (automation)",
+  "Die Steuerung rechnet mit der aktuellen Außentemperatur.": "The controller uses the current outdoor temperature.",
   "gedämpft": "damped",
   "Grenze der Automatik": "Automation limit",
   "heizt unter {ein} · aus über {aus} °C": "heats below {ein} · off above {aus} °C",
@@ -460,6 +461,8 @@
   "Absenkbetrieb": "Setback mode",
   "Die Steuerung schaltet 1 K darüber ab und 1 K darunter wieder ein, nach der aktuellen Außentemperatur.": "The controller switches off 1 K above and back on 1 K below, using the current outdoor temperature.",
   "Die Steuerung liefert ihre Heizgrenze nicht; die Automatik rechnet mit 17 °C.": "The controller does not report its heating limit; the automation uses 17 °C.",
-  "Eingriffe {zahl} / {budget}": "Interventions {zahl} / {budget}",
+  " {zahl} von {budget} Eingriffen heute": " {zahl} of {budget} interventions today",
+  "nächste Prüfung {zeit}": "next check {zeit}",
+  "{modus} seit {zeit}": "{modus} since {zeit}",
   "Einstellung": "Setting"
 }

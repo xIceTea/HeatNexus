@@ -1169,7 +1169,6 @@ export const STIL = `
     background: color-mix(in srgb, var(--hn-akzent) 20%, transparent);
     color: var(--hn-akzent); opacity: 1;
   }
-  .automatik-profil { margin-left: auto; font-size: 12px; color: var(--hn-gedaempft); }
   .automatik-hinweis {
     display: flex; gap: 12px; align-items: center; margin-top: 12px; padding: 10px 14px;
     border-radius: 12px; font-size: 13px;
@@ -1199,7 +1198,12 @@ export const STIL = `
   .automatik-wert .werte { display: flex; gap: 16px; align-items: flex-end; }
   .automatik-wert .werte .neben .zahl { color: var(--hn-gedaempft); font-size: 17px; }
   .automatik-wert .fuss { font-size: 11px; margin-top: 6px; color: var(--hn-gedaempft); line-height: 1.4; }
-  .automatik-eingriffe { font-size: 12px; color: var(--hn-gedaempft); }
+  .automatik-meta {
+    display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 2px 0 6px;
+    font-size: 12px; color: var(--hn-gedaempft);
+  }
+  .automatik-meta .automatik-budget.klein { display: inline-flex; gap: 3px; margin: 0 4px 0 0; vertical-align: middle; }
+  .automatik-meta .automatik-budget.klein i { width: 7px; height: 7px; border-radius: 50%; }
   /* Skala: Zonen als Flächen, Schaltpunkte als Linien, Werte als Punkt oder Strich. */
   .automatik-skala { margin-top: 10px; }
   .automatik-skala .bahn { position: relative; height: 22px; }
@@ -1212,6 +1216,14 @@ export const STIL = `
   .automatik-skala .zone.hysterese { background: color-mix(in srgb, var(--hn-text) 25%, transparent); }
   .automatik-skala .zone.aus { background: color-mix(in srgb, #7bd88f 45%, transparent); }
   .automatik-skala .zone.sonne { background: var(--hn-sonne); border-radius: 3px; }
+  .automatik-skala .zone.neutral { background: color-mix(in srgb, var(--hn-text) 18%, transparent); }
+  .automatik-skala .zone.moeglich { background: color-mix(in srgb, var(--hn-sonne) 45%, transparent); }
+  .automatik-skala .zone.ueber { background: color-mix(in srgb, #7bd88f 45%, transparent); }
+  .automatik-skala .punkt-wert {
+    position: absolute; top: -12px; transform: translateX(-50%);
+    font-size: 11px; font-weight: 700; color: var(--hn-text); white-space: nowrap;
+  }
+  .automatik-skala .bahn:has(.punkt-wert) { margin-top: 12px; }
   .automatik-skala .marke { position: absolute; top: 2px; height: 18px; width: 0; border-left: 2px solid var(--hn-text); }
   .automatik-skala .marke.automatik { border-left-style: dashed; border-left-color: var(--hn-akzent); }
   .automatik-skala .marke.stark, .automatik-skala .marke.schwelle { opacity: 0.6; }
@@ -1445,6 +1457,5 @@ export const STIL = `
     .automatik-stunde.spaet { display: none; }
     .automatik-werte { grid-template-columns: minmax(0, 1fr); }
     .automatik-feld.breit { grid-column: auto; }
-    .automatik-profil { margin-left: 0; }
   }
 `;

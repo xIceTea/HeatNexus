@@ -711,7 +711,20 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
         werte: { heizgrenze: 17, absenkung_k: 2, sonnenquote: 60, stark: false, entscheidung: "07:00" },
         zustand: "sonnentag",
         begruendung: "Sonnenquote 78 % – 19,5 °C bis 16:55.",
-        kennwerte: { sonnenquote: 78, raum: 21.4, soll: 21, at_gedaempft: 11.8, heizgrenze: 17, eingriffe: 1, budget: 4 },
+        kennwerte: {
+          sonnenquote: 78,
+          raum: 21.4,
+          soll: 21,
+          at_gedaempft: 11.8,
+          heizgrenze: 17,
+          eingriffe: 1,
+          budget: 4,
+          abweichung: 0.4,
+          rueckkehr_k: 1,
+          stark_k: 1.5,
+          naechste_pruefung: "2026-09-28T07:00:00+02:00",
+          modus_seit: "2026-09-27T07:00:00+02:00",
+        },
         tag: { sonne: [0, 0.5, 0], absenkung_von: 7, absenkung_bis: 13.67, absenkung_ziel: 16.92, entscheidungen: [7], jetzt: 11.3 },
         protokoll: [{ zeit: "2026-09-27T07:00:00+02:00", art: "haette", text: "Sonnenquote 78 %.", werte: [] }],
         beobachtet_seit: "2026-09-20T07:00:00+02:00",
@@ -742,7 +755,15 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     knoepfe: [...wurzel.querySelectorAll(".automatik-knopf")].map((k) => String(k.textContent || "").trim()),
     kacheln: wurzel.querySelectorAll(".automatik-wert").map((k) => String(k.className).split(" ")[1]),
     skalen: wurzel.querySelectorAll(".automatik-skala").length,
-    eingriffe: String((wurzel.querySelector(".automatik-eingriffe") || {}).textContent || ""),
+    meta: String((wurzel.querySelector(".automatik-meta") || {}).textContent || ""),
+    // Zur Laufzeit lokal formatiert wie die Karte selbst – TZ-unabhängig prüfbar.
+    naechstePruefungUhrzeit: new Date("2026-09-28T07:00:00+02:00").toTimeString().slice(0, 5),
+    alteEingriffe: wurzel.querySelectorAll(".automatik-eingriffe").length,
+    alteProfilzeile: wurzel.querySelectorAll(".automatik-profil").length,
+    raumZonen: (wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("raum")) || { querySelectorAll: () => [] })
+      .querySelectorAll(".zone").length,
+    raumWert: String(((wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("raum")) || { querySelector: () => null })
+      .querySelector(".punkt-wert") || {}).textContent || ""),
     grenzenEingaben: (wurzel.querySelector(".automatik-grenzen") || { querySelectorAll: () => [] }).querySelectorAll("input").length,
     ausrichtung: wurzel
       .querySelectorAll(".automatik-segment")
