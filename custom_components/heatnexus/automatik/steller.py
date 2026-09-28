@@ -158,7 +158,9 @@ class Steller:
         if beobachten:
             self.vermerken(jetzt, "haette", entscheidung.begruendung, paare)
             return True
-        if not erzwingen and self._gesperrt(jetzt):
+        # Die Sperre nach einer Ablehnung gilt nicht für Sicherheitsaktionen.
+        sicherheit = any(aktion.sicherheit for aktion in entscheidung.aktionen)
+        if not erzwingen and not sicherheit and self._gesperrt(jetzt):
             return False
         zaehlt = any(
             aktion.art not in RUECKKEHR and not aktion.sicherheit

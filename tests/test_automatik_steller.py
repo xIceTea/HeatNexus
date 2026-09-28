@@ -137,6 +137,16 @@ def test_erzwingen_uebergeht_die_sperre(s, regel):
     assert ausfuehren(steller, e, jetzt=JETZT + timedelta(minutes=1), erzwingen=True) is True
 
 
+def test_sicherheit_schreibt_trotz_sperre(s, regel):
+    schreiber = Schreiber(RuntimeError("HTTP 409"))
+    steller = s.Steller("/1/15/0", UML, schreiber)
+    ausfuehren(steller, entscheidung(regel, regel.Aktion("absenken", soll=19.5, minuten=60)))
+    schreiber.fehler = None
+    sicher = entscheidung(regel, regel.Aktion("absenkung_ende", sicherheit=True))
+    assert ausfuehren(steller, sicher, jetzt=JETZT + timedelta(minutes=1)) is True
+    assert schreiber.aufrufe == [("/1/15/0/2/10/0", "0")]
+
+
 def test_rueckkehr_stellt_die_vorherige_wahl_her(s, regel):
     schreiber = Schreiber()
     steller = s.Steller("/1/15/0", INFINITY, schreiber)
