@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from .conftest import requires_ha
+from .conftest import auf_englisch, requires_ha, zurueck_auf_deutsch
 
 pytestmark = requires_ha()
 
@@ -1328,3 +1328,31 @@ def test_ohne_lieferungsmeldung_bleibt_die_zeile_weg(panel):
     ohne["entitaeten"] = []
 
     assert panel._anlage_daten(anlage(ohne))["kennwerte"] == []
+
+
+def test_englische_namen_ergeben_dieselbe_oberflaeche(panel, kessel_und_heizkreis):
+    """Muster, Rückfragen und Hilfetexte greifen am deutschen Namen der Entität."""
+    kessel, heizkreis = kessel_und_heizkreis["teile"]
+    kessel["entitaeten"] += [
+        entitaet("button.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
+        entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
+        entitaet("binary_sensor.stoerung_gemeldet", "Störung gemeldet", kategorie="diagnostic"),
+    ]
+    heizkreis["entitaeten"] += [
+        entitaet("sensor.programm_1", "Programm 1"),
+        entitaet("sensor.ww_zirkulationsprogramm", "WW-Zirkulationsprogramm"),
+        entitaet("select.betriebswahl", "Betriebswahl"),
+    ]
+    deutsch = panel._anlage_daten(kessel_und_heizkreis)
+    englisch, namen = auf_englisch(kessel_und_heizkreis["teile"])
+
+    ergebnis = zurueck_auf_deutsch(panel._anlage_daten(anlage(*englisch)), namen)
+
+    # Hilfeliste und Schaubildwerte sind nach dem angezeigten Namen sortiert.
+    for daten in (deutsch, ergebnis):
+        daten["hilfe_liste"].sort(key=lambda h: h["titel"])
+        for teil in daten["schema_teile"]:
+            teil["werte"].sort(key=lambda w: w["entity"])
+    assert ergebnis == deutsch
+    assert deutsch["zeitprogramme"] and deutsch["stoerungen"] and deutsch["steuerung"]["kessel"]
+    assert any(z.get("frage") for z in deutsch["schnellzugriff"])

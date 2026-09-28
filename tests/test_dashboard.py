@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from .conftest import requires_ha
+from .conftest import auf_englisch, requires_ha, zurueck_auf_deutsch
 
 pytestmark = requires_ha()
 
@@ -479,3 +479,100 @@ def test_meldungen_zeigen_text_und_abhilfe(ansichten):
     assert "e.text" in inhalt and "e.info" in inhalt
     # Zwei Anlagen melden dieselben Teile; der Titel sagt, welches.
     assert karten[0]["title"] == "Kesselhaus · PuroWIN"
+
+
+async def test_der_deutsche_name_kommt_aus_dem_deskriptor(hass, anlagen):
+    """Gesucht wird am Datenpunkt, nicht an einem selbst vergebenen Namen."""
+    from types import SimpleNamespace
+
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eigen = MockConfigEntry(domain=DOMAIN)
+    eigen.add_to_hass(hass)
+    eigen.runtime_data = {
+        "coordinators": {
+            "192.0.2.10": SimpleNamespace(
+                data={
+                    "devices": [
+                        {
+                            "id": "SN1-0-0-7-0",
+                            "name": "Boiler temp. current value",
+                            "name_de": "Kesseltemperatur Ist",
+                        }
+                    ]
+                }
+            )
+        }
+    }
+    kessel = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eigen.entry_id, identifiers={(DOMAIN, "SN1-0")}, name="Kessel"
+    )
+    register = er.async_get(hass)
+    for kennung, name in (
+        ("SN1-0-0-7-0", "Boiler temp. current value"),
+        ("SN1-0-3-62-0", "Heizprogramm 2"),
+    ):
+        eintrag = register.async_get_or_create(
+            "sensor", DOMAIN, kennung, config_entry=eigen, device_id=kessel.id, original_name=name
+        )
+        register.async_update_entity(eintrag.entity_id, name=f"Eigener Name {kennung}")
+
+    [anlage] = anlagen.anlagen_lesen(hass)
+    muster = {e["name"]: e["name_de"] for e in anlage["teile"][0]["entitaeten"]}
+    assert muster == {
+        "Eigener Name SN1-0-0-7-0": "Kesseltemperatur Ist",
+        "Eigener Name SN1-0-3-62-0": "Heizprogramm 2",
+    }
+
+
+def _dashboard_anlage():
+    def eintrag(entity_id: str, name: str, **rest):
+        return {
+            "entity_id": entity_id,
+            "name": name,
+            "bereich": entity_id.split(".")[0],
+            "hat_wert": True,
+            "kategorie": None,
+            "state_class": None,
+            "abgeleitet": False,
+            "wert": 70.0,
+            **rest,
+        }
+
+    anlage = _anlage_mit_teilen()
+    anlage["teile"][0]["entitaeten"] = [
+        # Alphabetisch: Die Ersatznamen sortieren dann wie die deutschen.
+        eintrag("sensor.betriebsphase", "Betriebsphase"),
+        eintrag("sensor.brennerstarts", "Brennerstarts", state_class="total_increasing"),
+        eintrag("sensor.kesseltemperatur_ist", "Kesseltemperatur Ist"),
+        eintrag("sensor.meldung_klartext", "Meldung Klartext", kategorie="diagnostic"),
+        eintrag("sensor.nachstellzeit", "Nachstellzeit"),
+        eintrag("button.serviceausbrand", "Serviceausbrand"),
+    ]
+    return anlage
+
+
+def test_englische_namen_ergeben_dasselbe_dashboard(ansichten):
+    """Rundinstrument, Reihenfolge, Rückfrage und Meldungen folgen dem deutschen Namen."""
+    deutsch = _dashboard_anlage()
+    teile, namen = auf_englisch(deutsch["teile"])
+    englisch = {**deutsch, "teile": teile}
+
+    def ansichten_von(anlage):
+        [teil] = anlage["teile"]
+        return [
+            ansichten.uebersicht([anlage]),
+            ansichten.anlagenbild([anlage]),
+            ansichten.wartung([anlage]),
+            ansichten.auswertung([anlage]),
+            ansichten.geraeteansicht(anlage, teil, set()),
+        ]
+
+    assert zurueck_auf_deutsch(ansichten_von(englisch), namen) == ansichten_von(deutsch)
+    kacheln = [k for a in ansichten_von(deutsch) for s in a["sections"] for k in s["cards"]]
+    assert any(k.get("icon_tap_action") for k in kacheln)
+    assert any(k.get("type") == "markdown" for k in kacheln)

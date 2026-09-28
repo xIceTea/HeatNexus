@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..const import KARTE_ELEMENT
+from ..helpers import mustername
 from ..schema import anlagenschema
 from ..schema import passt as _passt
 from ..schema import traegt as _traegt
@@ -36,7 +37,7 @@ def kachel(eintrag: dict[str, Any], rundinstrument: bool = False) -> dict[str, A
     if rundinstrument:
         # Die Adresse zuerst, der Name als Rückfall – wie überall sonst.
         zeilen = [z for z in RUNDINSTRUMENT if _traegt(eintrag, z[1])] or [
-            z for z in RUNDINSTRUMENT if _passt(eintrag.get("name") or "", (z[0],))
+            z for z in RUNDINSTRUMENT if _passt(mustername(eintrag), (z[0],))
         ]
         if zeilen:
             return {
@@ -51,7 +52,7 @@ def kachel(eintrag: dict[str, Any], rundinstrument: bool = False) -> dict[str, A
         "entity": eintrag["entity_id"],
         "name": eintrag["name"],
     }
-    if (frage := rueckfrage(eintrag["name"])) and (
+    if (frage := rueckfrage(mustername(eintrag))) and (
         aktion := _schaltaktion(eintrag["bereich"], eintrag["entity_id"])
     ):
         # Nur das Symbol schaltet; ein Tippen auf die Kachel öffnet weiterhin
@@ -152,7 +153,7 @@ def uebersicht(anlagen: list[dict[str, Any]]) -> dict[str, Any]:
         for anlage in anlagen
         for teil in anlage["teile"]
         for e in teil["entitaeten"]
-        if e["kategorie"] == "diagnostic" and "klartext" in e["name"].lower()
+        if e["kategorie"] == "diagnostic" and "klartext" in mustername(e).lower()
     ]
     abschnitte += abschnitt("Meldungen", meldungen, "mdi:alert-circle-outline")
 

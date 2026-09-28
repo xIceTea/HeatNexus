@@ -13,7 +13,7 @@ from xml.etree import ElementTree
 
 import pytest
 
-from .conftest import load_standalone
+from .conftest import auf_englisch, load_standalone, zurueck_auf_deutsch
 
 
 @pytest.fixture(scope="module")
@@ -1721,3 +1721,33 @@ def test_duowin_im_namen_ist_kein_gaskessel(werte):
     teil = {"name": "DuoWIN", "fct_type": 9, "entitaeten": []}
 
     assert werte.kesselart_des_teils(teil) != "gas_oel"
+
+
+def test_englische_namen_ergeben_dasselbe_schaubild(karte, werte):
+    """Bauteile, Werte und Kesselart folgen dem deutschen Namen der Entität."""
+    kessel = _teil(
+        "Kessel",
+        25,
+        [("sensor.leistung", "Kesselleistung"), ("sensor.kessel_ist", "Kesseltemperatur Ist")],
+    )
+    kessel["entitaeten"].insert(
+        0,
+        {
+            "entity_id": "sensor.brennstoff",
+            "name": "Aktueller Brennstoff",
+            "bereich": "sensor",
+            "hat_wert": True,
+            "text": "Pellets",
+        },
+    )
+    kreis = _teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [("binary_sensor.pumpe", "Heizkreispumpe"), ("sensor.vorlauf", "Vorlauftemperatur Ist")],
+    )
+    # Je Anlagenteil alphabetisch: Die Ersatznamen sortieren dann wie die deutschen.
+    deutsch = [kessel, _anlage_mit_ladepumpe()[1], kreis]
+    englisch, namen = auf_englisch(deutsch)
+
+    assert zurueck_auf_deutsch(karte.anlagenschema(englisch), namen) == karte.anlagenschema(deutsch)
+    assert werte.kesselart_des_teils(englisch[0]) == "pellets"

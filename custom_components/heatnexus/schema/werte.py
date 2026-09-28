@@ -12,6 +12,7 @@ from typing import Any
 
 from .. import geraete
 from ..const import KESSELART_AUTO, QUELLEN_ARTEN
+from ..helpers import mustername
 from ..symbole import symbol_fuer_wert, symbol_je_fct
 
 # Woran ein Heizkreis (fctType 14) Warmwasser und Zirkulation erkennen lässt.
@@ -242,7 +243,7 @@ def kesselart_des_teils(teil: dict[str, Any]) -> str | None:
         if art := KESSELART_JE_FCT.get(int(teil.get("fct_type"))):
             return art
     for eintrag in teil.get("entitaeten", []):
-        if not BRENNSTOFF_ENTITAET.search(eintrag.get("name") or ""):
+        if not BRENNSTOFF_ENTITAET.search(mustername(eintrag)):
             continue
         text = str(eintrag.get("text") or "")
         for muster, art in BRENNSTOFF_ART:
@@ -281,7 +282,7 @@ def treffer(
     """
     ueber_schluessel = [e for e in entitaeten if traegt(e, schluessel)]
     ueber_namen = [
-        e for e in entitaeten if not traegt(e, schluessel) and passt(e.get("name") or "", muster)
+        e for e in entitaeten if not traegt(e, schluessel) and passt(mustername(e), muster)
     ]
     return ueber_schluessel + ueber_namen
 
