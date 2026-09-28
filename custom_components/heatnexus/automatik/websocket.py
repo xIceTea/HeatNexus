@@ -56,11 +56,13 @@ def _korrektur(laufzeit: Laufzeit, jetzt: datetime) -> dict[str, Any]:
         "noetig": korrektur.noetige_tage(fenster),
         "temperatur": {
             "versatz": laufzeit.temperatur.tagesversatz(fenster, heute),
+            "versatz_bisher": laufzeit.temperatur.tagesversatz(fenster, heute, vorlaeufig=True),
             "tage": laufzeit.temperatur.lerntage(fenster, heute),
         },
         "sonne": {
             "aktiv": bool(laufzeit.konfig.get("pv_ist")),
             "faktor": laufzeit.pv.faktor(fenster, heute),
+            "faktor_bisher": laufzeit.pv.faktor(fenster, heute, vorlaeufig=True),
             "tage": laufzeit.pv.lerntage(fenster, heute),
         },
     }

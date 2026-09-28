@@ -73,9 +73,12 @@ class Temperaturkorrektur:
         """Tage mit Daten im Lernfenster."""
         return len({eintrag[0] for eintrag in self._im_fenster(fenster, heute)})
 
-    def tagesversatz(self, fenster: int, heute: date) -> float | None:
-        """Mittlerer Versatz über alle Stunden; `None`, solange zu wenig gelernt ist."""
-        if self.lerntage(fenster, heute) < noetige_tage(fenster):
+    def tagesversatz(self, fenster: int, heute: date, *, vorlaeufig: bool = False) -> float | None:
+        """Mittlerer Versatz über alle Stunden; `None`, solange zu wenig gelernt ist.
+
+        `vorlaeufig` rechnet schon ab dem ersten Tag – nur zur Anzeige, nicht zum Anpassen.
+        """
+        if self.lerntage(fenster, heute) < (1 if vorlaeufig else noetige_tage(fenster)):
             return None
         werte = [eintrag[2] for eintrag in self._im_fenster(fenster, heute)]
         return round(_begrenzt(sum(werte) / len(werte), VERSATZ_MAX), 2)
@@ -141,10 +144,13 @@ class Pvkorrektur:
         """Abgeschlossene Tage mit Prognose und Ist im Lernfenster."""
         return len(self._abgeschlossen(fenster, heute))
 
-    def faktor(self, fenster: int, heute: date) -> float | None:
-        """Ist ÷ Prognose; `None`, solange zu wenig gelernt ist."""
+    def faktor(self, fenster: int, heute: date, *, vorlaeufig: bool = False) -> float | None:
+        """Ist ÷ Prognose; `None`, solange zu wenig gelernt ist.
+
+        `vorlaeufig` rechnet schon ab dem ersten Tag – nur zur Anzeige, nicht zum Anpassen.
+        """
         paare = self._abgeschlossen(fenster, heute)
-        if len(paare) < noetige_tage(fenster):
+        if len(paare) < (1 if vorlaeufig else noetige_tage(fenster)):
             return None
         faktor = sum(ist for _, ist in paare) / sum(prognose for prognose, _ in paare)
         return round(max(FAKTOR_MIN, min(FAKTOR_MAX, faktor)), 3)

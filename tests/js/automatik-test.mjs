@@ -104,6 +104,19 @@ assert.deepEqual(
     { text: "Sonne +12 %", wirkt: true },
   ]
 );
+// Vor dem letzten Lerntag steht der bisherige Wert als vorläufig da und wirkt nicht.
+assert.deepEqual(
+  korrekturMarken({
+    an: true,
+    noetig: 7,
+    temperatur: { versatz: null, versatz_bisher: -0.8, tage: 2 },
+    sonne: { aktiv: true, faktor: null, faktor_bisher: 1.12, tage: 1 },
+  }),
+  [
+    { text: "Außen −0,8 K (vorläufig 2/7)", wirkt: false },
+    { text: "Sonne +12 % (vorläufig 1/7)", wirkt: false },
+  ]
+);
 // Ausgeschaltet bleibt die Wirkung sichtbar, aber nicht als wirksam markiert.
 assert.deepEqual(korrekturMarken({ an: false, noetig: 7, temperatur: { versatz: 0.5 }, sonne: { aktiv: false } }), [
   { text: "Außen +0,5 K", wirkt: false },

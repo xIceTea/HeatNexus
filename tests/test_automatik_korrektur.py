@@ -36,6 +36,14 @@ def test_ohne_genug_tage_kein_versatz(k):
     assert korrektur.versatz(8, 14, heute) is None
 
 
+def test_vorlaeufig_gibt_es_den_versatz_schon_nach_einem_tag(k):
+    """Nur zur Anzeige: Der bisherige Mittelwert steht da, bevor die Korrektur wirkt."""
+    korrektur = lernen(k, 2, lambda h: -2.0)
+    heute = (START + timedelta(days=2)).date()
+    assert korrektur.tagesversatz(14, heute) is None
+    assert korrektur.tagesversatz(14, heute, vorlaeufig=True) == pytest.approx(-2.0)
+
+
 def test_versatz_je_tageszeit(k):
     korrektur = lernen(k, 7, lambda h: -3.0 if h < 12 else 1.0)
     heute = (START + timedelta(days=7)).date()
@@ -111,6 +119,13 @@ def test_pv_faktor_aus_ist_und_prognose(k):
 def test_pv_faktor_braucht_tage_und_zaehlt_heute_nicht(k):
     korrektur = pv_tage(k, 7, 10.0, 8.8)
     assert korrektur.faktor(14, (START + timedelta(days=6)).date()) is None
+
+
+def test_vorlaeufig_gibt_es_den_pv_faktor_schon_nach_einem_tag(k):
+    korrektur = pv_tage(k, 1, 10.0, 11.2)
+    heute = (START + timedelta(days=1)).date()
+    assert korrektur.faktor(14, heute) is None
+    assert korrektur.faktor(14, heute, vorlaeufig=True) == pytest.approx(1.12)
 
 
 def test_pv_faktor_ist_begrenzt(k):

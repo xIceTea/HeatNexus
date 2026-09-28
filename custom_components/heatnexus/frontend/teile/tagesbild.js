@@ -187,17 +187,27 @@ export function wetterSymbol(wolken, hell) {
  */
 export function korrekturMarken(k, t = (text) => text) {
   if (!k) return [];
+  const da = (wert) => wert !== null && wert !== undefined;
+  const prozent = (faktor) => {
+    const p = Math.round((Number(faktor) - 1) * 100);
+    return `${p > 0 ? "+" : p < 0 ? "−" : "±"}${Math.abs(p)} %`;
+  };
+  // Vor dem letzten Lerntag steht der bisherige Wert als vorläufig da; er wirkt noch nicht.
+  const vorlaeufig = (eintrag) => ` (${t("vorläufig")} ${eintrag.tage || 0}/${k.noetig})`;
   const marken = [];
   const temperatur = k.temperatur || {};
-  if (temperatur.versatz !== null && temperatur.versatz !== undefined) {
+  if (da(temperatur.versatz)) {
     marken.push({ text: `${t("Außen")} ${kelvin(temperatur.versatz)}`, wirkt: !!k.an });
+  } else if (da(temperatur.versatz_bisher)) {
+    marken.push({ text: `${t("Außen")} ${kelvin(temperatur.versatz_bisher)}${vorlaeufig(temperatur)}`, wirkt: false });
   } else {
     marken.push({ text: `${t("Außen lernt noch")} ${temperatur.tage || 0}/${k.noetig}`, wirkt: false });
   }
   const sonne = k.sonne || {};
-  if (sonne.aktiv && sonne.faktor !== null && sonne.faktor !== undefined) {
-    const prozent = Math.round((Number(sonne.faktor) - 1) * 100);
-    marken.push({ text: `${t("Sonne")} ${prozent > 0 ? "+" : prozent < 0 ? "−" : "±"}${Math.abs(prozent)} %`, wirkt: !!k.an });
+  if (sonne.aktiv && da(sonne.faktor)) {
+    marken.push({ text: `${t("Sonne")} ${prozent(sonne.faktor)}`, wirkt: !!k.an });
+  } else if (sonne.aktiv && da(sonne.faktor_bisher)) {
+    marken.push({ text: `${t("Sonne")} ${prozent(sonne.faktor_bisher)}${vorlaeufig(sonne)}`, wirkt: false });
   } else if (sonne.aktiv) {
     marken.push({ text: `${t("Sonne lernt noch")} ${sonne.tage || 0}/${k.noetig}`, wirkt: false });
   }
