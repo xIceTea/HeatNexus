@@ -16,6 +16,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Geändert
 
 - Gleichnamige Einträge im Schnellzugriff nennen zusätzlich den Anlagenteil.
+- Auf Englisch zeigt der Klartext-Sensor „No fault“ statt „Keine Störung“.
 
 ### Behoben
 
@@ -25,6 +26,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Bei englischen Namen bleiben Schaubild, Übersicht und Symbole vollständig ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
 - Bei englischen Namen stimmen Abfragetakt und Langzeitstatistik der Datenpunkte.
 - „Warmwasser laden“ schaltet auch mit englischer Betriebswahl aus Standby um.
+- Wochentage der Zeitprogramme und die Art einer Störung erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
 
 ## [1.13.0-beta.3] - 2026-09-26
 
