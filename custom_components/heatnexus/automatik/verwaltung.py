@@ -20,7 +20,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dis
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from ..const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
+from ..const import AUTOMATIK_GERAET_ENDUNG, DOMAIN, SIGNAL_NEUE_ENTITAETEN
 from . import konfig as konfig_modul
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 
@@ -71,7 +71,7 @@ AUTOMATIK_MARKE = "-automatik-"
 
 def system_kennung(entry_id: str) -> str:
     """Kennung des System-Geräts „HeatNexus Automatik“ eines Eintrags."""
-    return f"{entry_id}-automatik"
+    return f"{entry_id}{AUTOMATIK_GERAET_ENDUNG}"
 
 
 def system_unique_id(entry_id: str, art: str) -> str:
@@ -81,7 +81,7 @@ def system_unique_id(entry_id: str, art: str) -> str:
 
 def geraet_kennung(device_id: str) -> str:
     """Kennung des Automatik-Geräts eines Heizkreises."""
-    return f"{device_id}-automatik"
+    return f"{device_id}{AUTOMATIK_GERAET_ENDUNG}"
 
 
 def unique_id(device_id: str, art: str) -> str:

@@ -15,6 +15,7 @@ from homeassistant.helpers import entity_registry as er
 from .. import waermequelle
 from ..bezeichnung import bezeichnung_lesen
 from ..const import (
+    AUTOMATIK_GERAET_ENDUNG,
     CONF_KESSELART,
     CONF_KESSELWERT,
     CONF_MODULPUMPE,
@@ -193,6 +194,9 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
     for geraet in eigene:
         kennung = next((w for bereich, w in geraet.identifiers if bereich == DOMAIN), None)
         if kennung is None:
+            continue
+        # Die Automatik hat ihren eigenen Reiter und ist kein Teil der Anlage.
+        if kennung.endswith(AUTOMATIK_GERAET_ENDUNG):
             continue
         fct = fct_je_geraet.get(kennung)
         quelle = quellen_je_geraet.get(kennung) or {}

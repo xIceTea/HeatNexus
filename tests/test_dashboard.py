@@ -479,3 +479,37 @@ def test_meldungen_zeigen_text_und_abhilfe(ansichten):
     assert "e.text" in inhalt and "e.info" in inhalt
     # Zwei Anlagen melden dieselben Teile; der Titel sagt, welches.
     assert karten[0]["title"] == "Kesselhaus · PuroWIN"
+
+
+async def test_die_automatik_ist_keine_anlage(hass, anlagen):
+    """System- und Kreisgerät der Automatik erscheinen weder als Anlage noch als Teil."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.registrierung import uebergeordnet
+
+    eintrag = MockConfigEntry(domain=DOMAIN, data={})
+    eintrag.add_to_hass(hass)
+    geraete, register = dr.async_get(hass), er.async_get(hass)
+    system = geraete.async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, f"{eintrag.entry_id}-automatik")},
+        name="HeatNexus Automatik",
+    )
+    kreis = geraete.async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-2-0-automatik")},
+        name="Automatik Heizkreis",
+        **uebergeordnet(hass, f"{eintrag.entry_id}-automatik", eintrag.entry_id),
+    )
+    for geraet, kennung in (
+        (system, "e1-automatik-system-status"),
+        (kreis, "SN1-2-0-automatik-zustand"),
+    ):
+        register.async_get_or_create(
+            "sensor", DOMAIN, kennung, config_entry=eintrag, device_id=geraet.id
+        )
+
+    assert anlagen.anlagen_lesen(hass) == []
