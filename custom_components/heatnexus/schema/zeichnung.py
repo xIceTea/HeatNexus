@@ -149,6 +149,11 @@ GLUTBETT_BREITE = 76
 MISCHER_Y = 112
 
 
+# Je Art: Mitte des Ventils und Ende des Vorlaufstücks darüber. Der Kesselkörper
+# beginnt bei y = 120, höher als der Heizkörper; das Ventil rückt dort nach oben.
+MISCHER_JE_ART: dict[str, tuple[int, int]] = {"heizkreis": (MISCHER_Y, 132), "kessel": (108, 120)}
+
+
 MISCHER_MARKE = 26
 
 
@@ -334,15 +339,16 @@ def _kasten(x: int, platz: int, modul: dict[str, Any], mischer: bool = True) -> 
     )
     if inhalt is None:
         inhalt = _ersatzform(art)
-    # Das Stellglied des Heizkreises steht in einer eigenen Datei: Wer es nicht
-    # sehen will, bekommt den Kreis ohne Ventil.
+    # Das Stellglied steht in einer eigenen Datei: Wer es nicht
+    # sehen will, bekommt das Bild ohne Ventil.
     if (
         mischer
-        and art == "heizkreis"
+        and art in MISCHER_JE_ART
         and modul.get("mischer")
         and (zeichen := aus_datei(art, None, f"t{platz}-m", None, "heizkreis-mischer")) is not None
     ):
-        inhalt += zeichen
+        versatz = MISCHER_JE_ART[art][0] - MISCHER_Y
+        inhalt += f'<g transform="translate(0,{versatz})">{zeichen}</g>' if versatz else zeichen
 
     oben, unten = KANTEN_JE_ART.get(art, KANTEN_STANDARD)
     anschluss = (

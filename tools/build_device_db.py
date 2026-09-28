@@ -239,7 +239,9 @@ UEBERSTEUERUNG: dict[str, dict[str, list[str]]] = {
         # Ohne Eintrag zählt sie als Werksebene und ist damit unsichtbar.
         "operate": ["9/75"],
         # Der Alarmcode gehört zur Diagnose und steht ebenfalls in keiner Ebene.
-        "info": ["2/0"],
+        # Kesselpumpe und Kesselmischer braucht das Schaubild; auf der
+        # Serviceebene würden sie nicht gelesen.
+        "info": ["2/0", "58/12", "58/115"],
     },
     # Pelletskessel (BioWIN). Belegt durch einen Vollabzug einer laufenden
     # Anlage dieser Baureihe; sie meldet 64 Datenpunkte, die Ebenenlisten des
@@ -249,8 +251,9 @@ UEBERSTEUERUNG: dict[str, dict[str, list[str]]] = {
         # ohne Eintrag zählt sie als Werksebene und wäre unsichtbar.
         "operate": ["9/75"],
         # Ablesbares: Alarmcode, Restlaufzeit der Kaminkehrerfunktion und die
-        # Aufforderung, die Aschetonne zu entleeren.
-        "info": ["2/0", "9/90", "39/57"],
+        # Aufforderung, die Aschetonne zu entleeren. Dazu Kesselpumpe und
+        # Kesselmischer für das Schaubild.
+        "info": ["2/0", "9/90", "39/57", "58/12", "58/115"],
         # Einstellbares der Serviceebene: Kaminkehrerleistung, Brennstoffmenge
         # und die Soll-Drehzahl des Saugzuggebläses.
         "service": ["10/110", "23/99", "39/23"],

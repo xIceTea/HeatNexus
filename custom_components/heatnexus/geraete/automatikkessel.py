@@ -18,7 +18,8 @@ EXTRA_OIDS: tuple[str, ...] = ()
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
-NAMEN: dict[str, str] = {"0/7": "Kesseltemperatur Ist"}
+# Der Kesselmischer heißt in der Tabelle wie der Heizkreismischer.
+NAMEN: dict[str, str] = {"0/7": "Kesseltemperatur Ist", "58/115": "Mischer Wärmeerzeuger"}
 
 NUR_BUS: tuple[str, ...] = ()
 ENTITAETEN: list[dict] = []

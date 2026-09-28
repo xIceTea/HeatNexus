@@ -181,3 +181,16 @@ def test_der_alarmcode_steht_unter_diagnose(geraete):
     """Als Messwert stünde der Code in der Übersicht, ohne Text."""
     eintrag = next(e for e in geraete.biowin.ENTITAETEN if e["oid"] == "/2/0/0")
     assert eintrag["category"] == "diagnostic"
+
+
+@pytest.mark.parametrize("adresse", ["58/12", "58/115"])
+def test_kesselpumpe_und_mischer_stehen_auf_der_infoebene(db, adresse):
+    """Das Schaubild braucht beide Werte; auf der Serviceebene würden sie nicht gelesen."""
+    folge = load_standalone("client.gemeinsam").EBENENFOLGE
+    ebenen = db["layers"][FCT_BIOWIN]
+    assert next(ziel for liste, ziel in folge if adresse in ebenen.get(liste, [])) == "info"
+
+
+def test_der_kesselmischer_heisst_nicht_wie_der_des_heizkreises(geraete):
+    """Die Erklärung zum Mischer gilt dem Heizkreis; am Kessel regelt er etwas anderes."""
+    assert geraete.NAMEN[int(FCT_BIOWIN)]["58/115"] == "Mischer Wärmeerzeuger"

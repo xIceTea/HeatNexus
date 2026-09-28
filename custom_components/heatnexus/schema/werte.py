@@ -33,6 +33,14 @@ ZIRKULATION_IST = r"\bww-zirkulations?[- ]?(ist[- ])?temperatur(?!.*soll)"
 MISCHER_IST = r"^mischer( stellwert)?$"
 
 
+# Der Mischer je Art: am Heizkreis das Stellglied des Kreises, am Kessel der
+# Mischer des Wärmeerzeugers. Beide zeigen ihre Stellung in Prozent.
+MISCHER_JE_ART: dict[str, tuple[str, tuple[str, ...]]] = {
+    "heizkreis": (MISCHER_IST, ("mixer_position",)),
+    "kessel": (r"^mischer w(ä|ae)rmeerzeuger$", ("boiler_mixer_position",)),
+}
+
+
 # Die gemessene Vorlauftemperatur eines Heizkreises – die Wärme, die wirklich
 # im Heizkörper ankommt. Der Sollwert darf nicht mitgehen.
 VORLAUF_IST = r"^vorlauftemperatur ist$"
@@ -320,16 +328,19 @@ def _pumpe(entitaeten: list[dict[str, Any]], art: str) -> str | None:
     return treffer["entity_id"] if treffer else None
 
 
-def _mischer(entitaeten: list[dict[str, Any]]) -> str | None:
-    """Der Stellwert des Heizkreismischers in Prozent, sofern gemeldet.
+def _mischer(entitaeten: list[dict[str, Any]], art: str = "heizkreis") -> str | None:
+    """Der Stellwert des Mischers in Prozent, sofern gemeldet.
 
     Die Anlage nennt den Datenpunkt `1/21` „Mischer"; die kuratierte Tabelle
     „Mischer Stellwert". Beide Schreibweisen zählen.
     """
+    if art not in MISCHER_JE_ART:
+        return None
+    muster, schluessel = MISCHER_JE_ART[art]
     treffer = finde(
         [e for e in entitaeten if (e.get("unit") or "") == "%" or e.get("bereich") == "sensor"],
-        MISCHER_IST,
-        "mixer_position",
+        muster,
+        *schluessel,
     )
     return treffer["entity_id"] if treffer else None
 
@@ -503,7 +514,7 @@ def zeichenbare_module(
                     # Ob die Quelle ein Laufrad bekommt, sagt ihre Einstellung:
                     # Eine Solaranlage hat eine Pumpe, ein Heizstab nicht.
                     "quellenpumpe": ist_quelle and bool(teil.get("quellenpumpe")),
-                    "mischer": _mischer(teil["entitaeten"]) if art == "heizkreis" else None,
+                    "mischer": _mischer(teil["entitaeten"], art),
                     # Die Temperatur, die tatsächlich in den Heizkörper geht.
                     # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn
                     # der Kreis abgeschaltet ist und der Körper kalt hängt.
