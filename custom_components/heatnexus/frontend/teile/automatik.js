@@ -1,9 +1,10 @@
 /**
  * Reiter „Automatik“.
  *
- * Je Heizkreis eine Karte mit Zustand, Begründung, Kennwerten, Tagesleiste
+ * Je Heizkreis eine Karte mit Zustand, Begründung, Kennwerten, Tagesbild
  * und „Erweitert“, daneben das Protokoll. Einladung, Einrichtungsdialog und
- * „Erweitert“ stehen in `einrichtung.js`. Die Daten kommen über `heatnexus/automatik`.
+ * „Erweitert“ stehen in `einrichtung.js`, das Tagesbild in `tagesbild.js`.
+ * Die Daten kommen über `heatnexus/automatik`.
  *
  * Teil der Oberfläche `heatnexus-panel.js`; eingebunden als Mixin.
  */
@@ -12,9 +13,11 @@
 // Wie auf dem Server: So lange darf ein Raumfühler denselben Wert zeigen, dann gilt er als veraltet.
 export const VERALTET_STUNDEN = 12;
 export const AUTOMATIK_TAKT_MS = 60 * 1000;
+// So viele Protokolleinträge stehen, bis „Alle anzeigen“ den Rest aufklappt.
+const PROTOKOLL_KURZ = 8;
 
 export const FELDER = [
-  { name: "grenze_versatz", hilfe: "Die Automatik richtet sich nach der Heizgrenze der Steuerung (TA Heizbetrieb) und verschiebt sie um diesen Wert. Negativ schaltet früher auf nur Warmwasser. Die Ausrichtung setzt ihn; hier lässt er sich fein einstellen.", titel: "Abstand zur Heizgrenze der Steuerung", einheit: "K", schritt: 0.5 },
+  { name: "grenze_versatz", hilfe: "Die Automatik richtet sich nach der Heizgrenze der Steuerung (TA Heizbetrieb) und verschiebt sie um diesen Wert. Negativ schaltet früher auf nur Warmwasser. Die Ausrichtung setzt ihn; hier lässt er sich fein einstellen.", titel: "Abstand zur Heizgrenze", einheit: "K", schritt: 0.5 },
   { name: "hysterese", hilfe: "Abstand über und unter der Heizgrenze. Er verhindert, dass der Heizkreis bei Werten nahe der Grenze hin- und herschaltet.", titel: "Hysterese Saison", einheit: "K", schritt: 0.1 },
   { name: "tau_h", hilfe: "Wie träge die gedämpfte Außentemperatur dem Fühler folgt. Ein größerer Wert lässt kurze Wärme am Nachmittag weniger zählen. Richtwerte: Heizkörper 5 h, gemischt 15 h, Fußbodenheizung 25 h.", titel: "Zeitkonstante gedämpfte AT", einheit: "h", schritt: 1 },
   { name: "mindestdauer_h", hilfe: "So lange bleibt der Heizkreis mindestens im Programm oder auf nur Warmwasser, bevor die Automatik wieder umschaltet. Ein zu kalter Raum geht immer vor.", titel: "Mindestdauer Saisonwechsel", einheit: "h", schritt: 1 },
@@ -24,7 +27,7 @@ export const FELDER = [
   { name: "rueckkehr_k", hilfe: "Fällt der Raum unter Soll minus diesen Wert, beendet die Automatik die Absenkung sofort.", titel: "Rückkehr bei Raum unter Soll minus", einheit: "K", schritt: 0.1 },
   { name: "sonnenquote", hilfe: "Ab diesem Anteil Sonne gilt der Tag als Sonnentag. Die Quote kommt aus der PV-Prognose oder aus der Bewölkung der Wetterprognose.", titel: "Sonnenquote ab", einheit: "%", schritt: 5 },
   { name: "sonnentag", hilfe: "An sonnigen Tagen senkt die Automatik den Sollwert des Heizkreises ab. Mit Thermostaten in den Räumen ist der Sonnentag ab Werk aus: Die Thermostate öffnen bei abgesenktem Sollwert nur weiter.", titel: "Sonnentag absenken", art: "janein" },
-  { name: "stark", hilfe: "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn die Räume schon über ihrem Ziel liegen, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.", titel: "Sehr sonnig: nur Warmwasser statt Absenkung", art: "janein" },
+  { name: "stark", hilfe: "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn die Räume schon über ihrem Ziel liegen, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.", titel: "Sehr sonnig: nur Warmwasser", art: "janein" },
   { name: "stark_k", hilfe: "So weit müssen die Räume über ihrem Ziel liegen, damit ein sehr sonniger Tag auf nur Warmwasser schaltet.", titel: "Sehr sonnig ab Räumen über Ziel", einheit: "K", schritt: 0.1 },
   { name: "ruhe_h", hilfe: "So lange darf kein Thermostat Wärme angefordert haben, bevor die Automatik auf nur Warmwasser schaltet.", titel: "Räume ruhig seit", einheit: "h", schritt: 0.5 },
   { name: "budget", hilfe: "So viele Eingriffe darf die Automatik am Tag an die Steuerung schreiben. Die Rückkehr ins Programm zählt nicht mit und ist immer erlaubt.", titel: "Eingriffe je Tag höchstens", einheit: "", schritt: 1 },
@@ -32,10 +35,10 @@ export const FELDER = [
   {
     name: "anpassen",
     hilfe: "Die Automatik vergleicht jeden Tag Prognose und Messung und verschiebt die Prognose um die gelernte Abweichung. Ist der Schalter aus, gelten die rohen Prognosen für Anzeige und Entscheidung; gelernt wird trotzdem weiter.",
-    titel: "Prognose an den Standort anpassen",
+    titel: "Prognose an Standort anpassen",
     art: "janein",
   },
-  { name: "lernfenster", hilfe: "Über so viele Tage vergleicht die Automatik Prognose und Messung und passt die Prognose daran an. Ein kurzes Fenster reagiert schneller, ein langes schwankt weniger.", titel: "Prognose anpassen über", art: "wahl", optionen: [3, 7, 14], einheit: "Tage" },
+  { name: "lernfenster", hilfe: "Über so viele Tage vergleicht die Automatik Prognose und Messung und passt die Prognose daran an. Ein kurzes Fenster reagiert schneller, ein langes schwankt weniger.", titel: "Prognose lernen über", art: "wahl", optionen: [3, 7, 14], einheit: "Tage" },
 ];
 
 export const ZUSTAENDE = {
@@ -103,157 +106,6 @@ export function raumzeile(raum, t = (text) => text) {
   return text;
 }
 
-const AKTIONEN = { absenkung: "Absenkung", nur_ww: "nur Warmwasser", programm: "Programm" };
-
-/** Die Werte einer Stunde im Tagesbild, als Zeilen für den Zeiger; Fehlendes entfällt. */
-export function tagesleisteTipp(tag, stunde, t = (text) => text) {
-  const eintrag = ((tag && tag.stunden) || []).find((s) => s.stunde === stunde) || {};
-  const kopf = [uhrzeit(stunde), eintrag.aktion ? t(AKTIONEN[eintrag.aktion] || eintrag.aktion) : null];
-  const zeilen = [kopf.filter(Boolean).join(" · ")];
-  const prognose = eintrag.korrigiert ?? eintrag.roh;
-  [
-    ["Außen gemessen", eintrag.at],
-    ["Außen Prognose", prognose],
-    ["gedämpfte AT", eintrag.gedaempft],
-    ["Räume", eintrag.raum],
-  ].forEach(([titel, wert]) => {
-    if (wert !== null && wert !== undefined) zeilen.push(`${t(titel)} ${zahl(wert)} °C`);
-  });
-  const sonne = ((tag && tag.sonne) || [])[stunde];
-  if (sonne) zeilen.push(`${t("Sonne")} ${Math.round(sonne * 100)} %`);
-  return zeilen;
-}
-
-/** Inhalt des Kastens zu einer Stunde: Modus, heutige Protokolleinträge dieser Stunde, Vorrang, Messwerte. */
-export function stundenKasten(tag, stunde, protokoll, t = (text) => text) {
-  const eintrag = ((tag && tag.stunden) || []).find((s) => s.stunde === stunde) || {};
-  const bis = `${String(stunde + 1).padStart(2, "0")}:00`;
-  const zeilen = [`${uhrzeit(stunde)}–${bis} · ${t(AKTIONEN[eintrag.aktion || "programm"])}`];
-  const heute = new Date().toDateString();
-  (protokoll || [])
-    .filter((e) => new Date(e.zeit).getHours() === stunde && new Date(e.zeit).toDateString() === heute)
-    .sort((a, b) => new Date(a.zeit) - new Date(b.zeit))
-    .forEach((e) => zeilen.push(`${new Date(e.zeit).toTimeString().slice(0, 5)} ${e.text}`));
-  if (eintrag.vorrang) zeilen.push(t("Vorrangquelle lieferte"));
-  [
-    ["Außen gemessen", eintrag.at],
-    ["Räume", eintrag.raum],
-  ].forEach(([titel, wert]) => {
-    if (wert !== null && wert !== undefined) zeilen.push(`${t(titel)} ${zahl(wert)} °C`);
-  });
-  return zeilen;
-}
-
-/** Stunde als Kommazahl in „HH:MM“. */
-export function uhrzeit(stunde) {
-  const minuten = Math.round(Number(stunde) * 60);
-  const h = Math.floor(minuten / 60) % 24;
-  return `${String(h).padStart(2, "0")}:${String(minuten % 60).padStart(2, "0")}`;
-}
-
-/** Stunden als Punktliste für einen SVG-Pfad; Lücken beginnen neu. */
-function linie(werte, x, y) {
-  let pfad = "";
-  let offen = false;
-  werte.forEach(([stunde, wert]) => {
-    if (wert === null || wert === undefined || Number.isNaN(Number(wert))) {
-      offen = false;
-      return;
-    }
-    pfad += `${offen ? "L" : "M"}${x(stunde)} ${y(wert)} `;
-    offen = true;
-  });
-  return pfad.trim();
-}
-
-/**
- * Das Tagesbild als SVG-Text: Sonne als Fläche, Außen gemessen und
- * angepasste Prognose, Heizgrenze, Absenkung und „jetzt“. Nur Zahlen gehen in den Text.
- */
-export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null) {
-  const hoehe = 150;
-  const band = 10;
-  const bandY = hoehe - band - 2;
-  const oben = 8;
-  const unten = bandY - 8;
-  const x = (stunde) => ((Math.max(0, Math.min(24, Number(stunde))) / 24) * breite).toFixed(1);
-  const teile = [
-    `<svg viewBox="0 0 ${breite} ${hoehe}" preserveAspectRatio="none" role="img" aria-label="Tagesverlauf">`,
-  ];
-  const sonne = (tag && tag.sonne) || [];
-  if (sonne.length) {
-    const punkte = sonne.map((wert, stunde) => `${x(stunde)},${(unten - Number(wert) * (unten - oben)).toFixed(1)}`);
-    teile.push(`<polygon class="al-sonne" points="0,${unten} ${punkte.join(" ")} ${breite},${unten}"/>`);
-  }
-  const stunden = (tag && tag.stunden) || [];
-  const jetzt = tag && tag.jetzt !== undefined && tag.jetzt !== null ? Number(tag.jetzt) : null;
-  const gemessen = stunden.map((s) => [s.stunde, jetzt !== null && s.stunde > jetzt ? null : s.at]);
-  const prognose = stunden.map((s) => [s.stunde, jetzt !== null && s.stunde < Math.floor(jetzt) ? null : s.korrigiert ?? s.roh]);
-  const gedaempft = stunden.map((s) => [s.stunde, jetzt !== null && s.stunde > jetzt ? null : s.gedaempft]);
-  const alle = [...gemessen, ...prognose, ...gedaempft].map(([, w]) => w).filter((w) => w !== null && w !== undefined);
-  if (heizgrenze !== null && heizgrenze !== undefined) alle.push(Number(heizgrenze));
-  if (alle.length) {
-    const min = Math.min(...alle) - 1;
-    const max = Math.max(...alle) + 1;
-    const y = (wert) => (unten - ((Number(wert) - min) / (max - min)) * (unten - oben)).toFixed(1);
-    if (heizgrenze !== null && heizgrenze !== undefined) {
-      teile.push(`<line class="al-grenze" x1="0" x2="${breite}" y1="${y(heizgrenze)}" y2="${y(heizgrenze)}"/>`);
-    }
-    const pfadGemessen = linie(gemessen, x, y);
-    if (pfadGemessen) teile.push(`<path class="al-aussen" d="${pfadGemessen}"/>`);
-    const pfadPrognose = linie(prognose, x, y);
-    if (pfadPrognose) teile.push(`<path class="al-prognose" d="${pfadPrognose}"/>`);
-    const pfadGedaempft = linie(gedaempft, x, y);
-    if (pfadGedaempft) teile.push(`<path class="al-gedaempft" d="${pfadGedaempft}"/>`);
-  }
-  teile.push(`<rect class="al-grund" x="0" y="${bandY}" width="${breite}" height="${band}" rx="5"/>`);
-  const von = tag && tag.absenkung_von;
-  const bis = tag && tag.absenkung_bis;
-  const ziel = tag && tag.absenkung_ziel;
-  if (von !== null && von !== undefined && bis !== null && bis !== undefined) {
-    const ende = Math.min(Number(bis), ziel ?? Number(bis));
-    teile.push(
-      `<rect class="al-absenkung" x="${x(von)}" y="${bandY}" width="${(x(ende) - x(von)).toFixed(1)}" height="${band}" rx="4"/>`
-    );
-    if (ziel !== null && ziel !== undefined && Number(ziel) > Number(bis)) {
-      teile.push(
-        `<rect class="al-verlaengerung" x="${x(bis)}" y="${bandY}" width="${(x(ziel) - x(bis)).toFixed(1)}" height="${band}" rx="4"/>`
-      );
-    }
-  }
-  ((tag && tag.entscheidungen) || []).forEach((stunde) => {
-    teile.push(`<rect class="al-punkt" x="${x(stunde)}" y="${bandY - 4}" width="3" height="${band + 8}"/>`);
-  });
-  if (jetzt !== null) {
-    teile.push(`<line class="al-jetzt" x1="${x(jetzt)}" x2="${x(jetzt)}" y1="0" y2="${hoehe}"/>`);
-  }
-  teile.push("</svg>");
-  return teile.join("");
-}
-
-/** Wettersymbol einer Stunde aus Bewölkung und Tageslicht. */
-export function wetterSymbol(wolken, hell) {
-  if (!hell) return "☾";
-  if (wolken === null || wolken === undefined) return "·";
-  if (wolken < 25) return "☀";
-  if (wolken < 70) return "⛅";
-  return "☁";
-}
-
-/** Text der Korrekturmarke: angepasst, lernend oder ohne Messung. */
-export function korrekturText(art, eintrag, noetig) {
-  if (art === "sonne" && !eintrag.aktiv) return "Sonne unkorrigiert";
-  const name = art === "sonne" ? "Sonne" : "Außen";
-  if (art === "temperatur" && eintrag.versatz !== null && eintrag.versatz !== undefined) {
-    return `${name} angepasst ${kelvin(eintrag.versatz)}`;
-  }
-  if (art === "sonne" && eintrag.faktor !== null && eintrag.faktor !== undefined) {
-    const prozent = Math.round((Number(eintrag.faktor) - 1) * 100);
-    return `${name} angepasst ${prozent > 0 ? "+" : prozent < 0 ? "−" : "±"}${Math.abs(prozent)} %`;
-  }
-  return `${name}: lernt noch ${eintrag.tage || 0}/${noetig}`;
-}
-
 export const AutomatikMixin = (Basis) =>
   class extends Basis {
     // -------------------------------------------------------------------
@@ -281,7 +133,7 @@ export const AutomatikMixin = (Basis) =>
           return [{ id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikEinladung(kreis, daten) }];
         }
         return [
-          { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikKarte(kreis, daten), breite: 2 },
+          { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikBereich(kreis, daten), breite: 2 },
           { id: `automatik-protokoll:${kreis.heizkreis}`, titel: "Protokoll", knoten: this._automatikProtokoll(kreis) },
         ];
       });
@@ -361,6 +213,20 @@ export const AutomatikMixin = (Basis) =>
     }
 
     // --- Karte ---------------------------------------------------------
+    /** Kopfkarte, drei Kennwerte, Tagesverlauf und Einstellungen untereinander. */
+    _automatikBereich(kreis, daten) {
+      const bereich = document.createElement("div");
+      bereich.className = "automatik-bereich";
+      const darf = !!daten.darf_aendern;
+      bereich.append(
+        this._automatikKarte(kreis, daten),
+        this._automatikKennwerte(kreis),
+        this._automatikTag(kreis),
+        this._automatikErweitert(kreis, daten, darf)
+      );
+      return bereich;
+    }
+
     _automatikKarte(kreis, daten) {
       const karte = this._karte(kreis.name, this._hilfe && this._hilfe.Automatik);
       karte.classList.add("automatik");
@@ -368,45 +234,57 @@ export const AutomatikMixin = (Basis) =>
       const kopf = karte.querySelector(".kartenkopf");
       const marke = document.createElement("span");
       marke.className = `automatik-marke z-${kreis.zustand}`;
-      marke.textContent = ZUSTAENDE[kreis.zustand] || kreis.zustand;
+      marke.textContent = this._t(ZUSTAENDE[kreis.zustand] || kreis.zustand);
       if (kreis.konfig.modus === "beobachten" && kreis.konfig.aktiv) {
         marke.textContent += ` · ${this._t("beobachtet")}`;
       }
-      // Zustand neben dem Namen, die Einrichtung rechts oben: Die Zeile darunter bleibt für die Bedienung.
-      const punkt = document.createElement("span");
-      punkt.className = "automatik-punkt";
-      punkt.textContent = "·";
       const bearbeiten = document.createElement("button");
       bearbeiten.type = "button";
       bearbeiten.className = "automatik-knopf leise klein";
-      bearbeiten.textContent = "Einrichtung bearbeiten";
+      bearbeiten.textContent = this._t("Einrichtung bearbeiten");
       bearbeiten.disabled = !darf;
       bearbeiten.addEventListener("click", () => this._automatikDialog(kreis));
+      this._klickbar(marke, (kreis.entitaeten || {}).zustand);
       if (kopf) {
         const titel = kopf.querySelector("h2");
         kopf.insertBefore(bearbeiten, kopf.querySelector(".fragezeichen"));
         kopf.insertBefore(marke, titel ? titel.nextSibling : kopf.firstChild);
-        kopf.insertBefore(punkt, marke);
         kopf.parentElement.insertBefore(this._automatikMeta(kreis), kopf.nextSibling);
       }
-
-      karte.appendChild(this._automatikSteuerzeile(kreis, darf));
-      const hinweis = this._automatikHinweis(kreis, darf);
-      if (hinweis) karte.appendChild(hinweis);
 
       const warum = document.createElement("div");
       warum.className = "automatik-warum";
       warum.textContent = kreis.begruendung || "";
       karte.appendChild(warum);
-      karte.appendChild(this._automatikKennwerte(kreis));
-      karte.appendChild(this._automatikGrenzen(kreis, darf));
-
-      const ueberschrift = document.createElement("h3");
-      ueberschrift.textContent = "Heute";
-      karte.appendChild(ueberschrift);
-      karte.appendChild(this._automatikTag(kreis));
-      karte.appendChild(this._automatikErweitert(kreis, daten, darf));
+      karte.appendChild(this._automatikSteuerzeile(kreis, darf));
+      const hinweis = this._automatikHinweis(kreis, darf);
+      if (hinweis) karte.appendChild(hinweis);
       return karte;
+    }
+
+    /** Ein Segment aus Tasten; die gewählte ist hervorgehoben. */
+    _automatikSegment(titel, klasse, eintraege, gewaehlt, darf, waehlen) {
+      const gruppe = document.createElement("div");
+      gruppe.className = "automatik-gruppe";
+      const beschriftung = document.createElement("span");
+      beschriftung.className = "automatik-gruppentitel";
+      beschriftung.textContent = this._t(titel);
+      const segment = document.createElement("div");
+      segment.className = `automatik-segment${klasse ? ` ${klasse}` : ""}`;
+      eintraege.forEach(([wert, text, tipp]) => {
+        const taste = document.createElement("button");
+        taste.type = "button";
+        taste.textContent = this._t(text);
+        if (tipp) taste.title = this._t(tipp);
+        taste.disabled = !darf;
+        taste.setAttribute("aria-pressed", String(gewaehlt === wert));
+        taste.addEventListener("click", () => {
+          if (gewaehlt !== wert) waehlen(wert);
+        });
+        segment.appendChild(taste);
+      });
+      gruppe.append(beschriftung, segment);
+      return gruppe;
     }
 
     _automatikSteuerzeile(kreis, darf) {
@@ -420,52 +298,39 @@ export const AutomatikMixin = (Basis) =>
       schalter.disabled = !darf;
       const knopf = document.createElement("i");
       const text = document.createElement("span");
-      text.textContent = "Automatik";
+      text.textContent = this._t("Automatik aktiv");
       schalter.append(knopf, text);
       schalter.addEventListener("click", () => this._automatikEinstellen(kreis, { aktiv: !kreis.konfig.aktiv }));
 
-      const segment = document.createElement("div");
-      segment.className = "automatik-segment";
-      [
-        ["beobachten", "Beobachten"],
-        ["schalten", "Schalten"],
-      ].forEach(([modus, titel]) => {
-        const taste = document.createElement("button");
-        taste.type = "button";
-        taste.textContent = titel;
-        taste.disabled = !darf;
-        taste.setAttribute("aria-pressed", String(kreis.konfig.modus === modus));
-        taste.addEventListener("click", () => {
-          if (kreis.konfig.modus !== modus) this._automatikEinstellen(kreis, { modus });
-        });
-        segment.appendChild(taste);
-      });
-
+      const modus = this._automatikSegment(
+        "Modus",
+        "",
+        [
+          ["beobachten", "Beobachten"],
+          ["schalten", "Schalten"],
+        ],
+        kreis.konfig.modus,
+        darf,
+        (wert) => this._automatikEinstellen(kreis, { modus: wert })
+      );
       // Die Ausrichtung ist die Einstellung, die man im Alltag wechselt; sie steht deshalb hier.
-      const ausrichtung = document.createElement("div");
-      ausrichtung.className = "automatik-segment ausrichtung";
-      const gewaehlt = kreis.konfig.ausrichtung || "ausgewogen";
-      [
-        ["eco", "Eco"],
-        ["ausgewogen", "Ausgewogen"],
-        ["komfort", "Komfort"],
-      ].forEach(([wert, titel]) => {
-        const taste = document.createElement("button");
-        taste.type = "button";
-        taste.textContent = titel;
-        taste.title = this._t((AUSRICHTUNGEN.find(([name]) => name === wert) || [])[1] || titel);
-        taste.disabled = !darf;
-        taste.setAttribute("aria-pressed", String(gewaehlt === wert));
-        taste.addEventListener("click", () => {
-          if (gewaehlt !== wert) this._automatikEinstellen(kreis, { ausrichtung: wert });
-        });
-        ausrichtung.appendChild(taste);
-      });
-      zeile.append(schalter, segment, ausrichtung);
+      const stil = this._automatikSegment(
+        "Stil",
+        "ausrichtung",
+        [
+          ["eco", "Eco", AUSRICHTUNGEN[0][1]],
+          ["ausgewogen", "Ausgewogen", AUSRICHTUNGEN[1][1]],
+          ["komfort", "Komfort", AUSRICHTUNGEN[2][1]],
+        ],
+        kreis.konfig.ausrichtung || "ausgewogen",
+        darf,
+        (wert) => this._automatikEinstellen(kreis, { ausrichtung: wert })
+      );
+      zeile.append(schalter, modus, stil);
       return zeile;
     }
 
-    /** Unter dem Titel: Heizfläche, Eingriffe als Punkte, nächste Prüfung, Modus seit. */
+    /** Unter dem Titel: Heizfläche, Eingriffe, nächste Prüfung, Modus seit. */
     _automatikMeta(kreis) {
       const k = kreis.kennwerte || {};
       const meta = document.createElement("div");
@@ -479,19 +344,12 @@ export const AutomatikMixin = (Basis) =>
       const flaeche = HEIZFLAECHEN.find(([name]) => name === kreis.konfig.heizflaechen);
       const profil = PROFILE.find(([name]) => name === kreis.konfig.profil);
       teil(this._t(flaeche ? flaeche[1] : profil ? profil[1] : kreis.konfig.profil || ""));
-      const eingriffe = teil("");
-      const budget = document.createElement("span");
-      budget.className = "automatik-budget klein";
-      for (let i = 0; i < (k.budget || 0); i += 1) {
-        const strich = document.createElement("i");
-        if (i < (k.eingriffe || 0)) strich.className = "voll";
-        budget.appendChild(strich);
-      }
-      const zaehler = document.createElement("span");
-      zaehler.textContent = this._tMit(" {zahl} von {budget} Eingriffen heute", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" });
-      eingriffe.append(budget, zaehler);
+      const entitaeten = kreis.entitaeten || {};
+      this._klickbar(teil(this._tMit("{zahl} von {budget} Eingriffen heute", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" })), entitaeten.eingriffe);
       const uhr = (iso) => new Date(iso).toTimeString().slice(0, 5);
-      if (k.naechste_pruefung) teil(this._tMit("nächste Prüfung {zeit}", { zeit: uhr(k.naechste_pruefung) }));
+      if (k.naechste_pruefung) {
+        this._klickbar(teil(this._tMit("Nächste Prüfung {zeit}", { zeit: uhr(k.naechste_pruefung) })), entitaeten.naechste_entscheidung);
+      }
       if (k.modus_seit && kreis.zustand !== "programm" && ZUSTAENDE[kreis.zustand]) {
         teil(this._tMit("{modus} seit {zeit}", { modus: this._t(ZUSTAENDE[kreis.zustand]), zeit: uhr(k.modus_seit) }));
       }
@@ -530,281 +388,62 @@ export const AutomatikMixin = (Basis) =>
       return hinweis;
     }
 
-    /** Zeiger über dem Tagesbild: senkrechte Linie und die Werte der Stunde darunter. */
-    _automatikZeiger(bild, tag) {
-      const linie = document.createElement("div");
-      linie.className = "automatik-zeiger";
-      const tipp = document.createElement("div");
-      tipp.className = "automatik-tipp";
-      linie.hidden = true;
-      tipp.hidden = true;
-      bild.append(linie, tipp);
-      const zeigen = (ereignis) => {
-        const rahmen = bild.getBoundingClientRect();
-        if (!rahmen.width) return;
-        const anteil = Math.max(0, Math.min(1, (ereignis.clientX - rahmen.left) / rahmen.width));
-        const stunde = Math.min(23, Math.floor(anteil * 24));
-        linie.style.left = `${((stunde + 0.5) / 24) * 100}%`;
-        tipp.replaceChildren(
-          ...tagesleisteTipp(tag, stunde, (text) => this._t(text)).map((text) => {
-            const zeile = document.createElement("div");
-            zeile.textContent = text;
-            return zeile;
-          })
-        );
-        // Rechts der Mitte steht die Box links vom Zeiger, damit sie im Bild bleibt.
-        tipp.style.left = anteil > 0.5 ? "auto" : `calc(${((stunde + 0.5) / 24) * 100}% + 8px)`;
-        tipp.style.right = anteil > 0.5 ? `calc(${100 - ((stunde + 0.5) / 24) * 100}% + 8px)` : "auto";
-        linie.hidden = false;
-        tipp.hidden = false;
-      };
-      bild.addEventListener("pointermove", zeigen);
-      bild.addEventListener("pointerdown", zeigen);
-      bild.addEventListener("pointerleave", () => {
-        linie.hidden = true;
-        tipp.hidden = true;
-      });
-    }
-
-    _automatikTag(kreis) {
-      const rahmen = document.createElement("div");
-      rahmen.className = "automatik-tag";
-      this._automatikTagWahl = this._automatikTagWahl || {};
-      const tage = [{ titel: "Heute", tag: kreis.tag }, ...(kreis.vorschau || [])];
-      const wahl = Math.min(this._automatikTagWahl[kreis.heizkreis] || 0, tage.length - 1);
-      const gewaehlt = tage[wahl];
-      const tag = gewaehlt.tag || {};
-      rahmen.appendChild(this._automatikTagWahlLeiste(kreis, tage, wahl));
-      rahmen.appendChild(this._automatikKorrekturMarken(kreis));
-      if (wahl > 0) {
-        const vorschau = document.createElement("div");
-        vorschau.className = "automatik-vorschau";
-        vorschau.textContent = this._tMit("{titel}: {text} Angenommen ist ein Raum am Sollwert.", {
-          titel: this._t(gewaehlt.titel),
-          text: gewaehlt.begruendung || "",
-        });
-        rahmen.appendChild(vorschau);
-      }
-      rahmen.appendChild(this._automatikStundenraster({ ...kreis, tag }));
-      const bild = document.createElement("div");
-      bild.className = "automatik-tag-bild";
-      bild.innerHTML = tagesleisteSvg(tag, 1000, (kreis.kennwerte || {}).heizgrenze);
-      this._automatikZeiger(bild, tag);
-      const achse = document.createElement("div");
-      achse.className = "automatik-achse";
-      ["00:00", "06:00", "12:00", "18:00", "24:00"].forEach((marke) => {
-        const teil = document.createElement("span");
-        teil.textContent = marke;
-        achse.appendChild(teil);
-      });
-      const legende = document.createElement("div");
-      legende.className = "automatik-legende";
-      [
-        ["al-sonne", "Sonne laut Prognose"],
-        ["al-aussen", "Außen gemessen"],
-        ["al-prognose", "Außen Prognose, angepasst"],
-        ["al-gedaempft", "gedämpfte AT"],
-        ["al-grenze", "Heizgrenze"],
-        ["al-absenkung", "Absenkung"],
-      ].forEach(([klasse, titel]) => {
-        const eintrag = document.createElement("span");
-        const farbe = document.createElement("i");
-        farbe.className = klasse;
-        const text = document.createElement("span");
-        text.textContent = titel;
-        eintrag.append(farbe, text);
-        legende.appendChild(eintrag);
-      });
-      rahmen.append(bild, achse, legende);
-      return rahmen;
-    }
-
-    _automatikTagWahlLeiste(kreis, tage, wahl) {
-      const leiste = document.createElement("div");
-      leiste.className = "automatik-tagwahl";
-      tage.forEach((eintrag, index) => {
-        const taste = document.createElement("button");
-        taste.type = "button";
-        taste.textContent = eintrag.titel;
-        taste.setAttribute("aria-pressed", String(index === wahl));
-        taste.addEventListener("click", () => {
-          this._automatikTagWahl[kreis.heizkreis] = index;
-          this._gebaut = false;
-          this._zeichnen();
-        });
-        leiste.appendChild(taste);
-      });
-      return leiste;
-    }
-
-    _automatikKorrekturMarken(kreis) {
-      const leiste = document.createElement("div");
-      leiste.className = "automatik-korrektur";
-      const k = kreis.korrektur;
-      if (!k) return leiste;
-      const schalter = document.createElement("button");
-      schalter.type = "button";
-      schalter.className = `automatik-schalter klein${k.an ? " an" : ""}`;
-      schalter.setAttribute("role", "switch");
-      schalter.setAttribute("aria-checked", String(!!k.an));
-      schalter.disabled = !(this._automatik && this._automatik.darf_aendern);
-      const knopf = document.createElement("i");
-      const text = document.createElement("span");
-      text.textContent = "Prognose anpassen";
-      schalter.append(knopf, text);
-      schalter.addEventListener("click", () =>
-        this._automatikEinstellen(kreis, { eigene: { ...(kreis.konfig.eigene || {}), anpassen: !k.an } })
-      );
-      leiste.appendChild(schalter);
-      if (!k.an) {
-        const aus = document.createElement("span");
-        aus.className = "automatik-korrekturmarke";
-        aus.textContent = "rohe Prognose";
-        leiste.appendChild(aus);
-        return leiste;
-      }
-      ["temperatur", "sonne"].forEach((art) => {
-        const marke = document.createElement("span");
-        const eintrag = k[art] || {};
-        const wirkt = art === "temperatur" ? eintrag.versatz !== null && eintrag.versatz !== undefined : eintrag.faktor !== null && eintrag.faktor !== undefined;
-        marke.className = `automatik-korrekturmarke${wirkt ? " wirkt" : ""}`;
-        marke.textContent = korrekturText(art, eintrag, k.noetig);
-        leiste.appendChild(marke);
-      });
-      return leiste;
-    }
-
-    _automatikStundenraster(kreis) {
-      const raster = document.createElement("div");
-      raster.className = "automatik-stunden";
-      const stunden = ((kreis.tag || {}).stunden || []).filter((s) => s.stunde >= 6 && s.stunde <= 22);
-      const sonne = (kreis.tag || {}).sonne || [];
-      const heute = (kreis.tag || {}).jetzt !== null && (kreis.tag || {}).jetzt !== undefined;
-      const jetzt = heute ? Math.floor(Number(kreis.tag.jetzt)) : null;
-      const grenze = (kreis.kennwerte || {}).heizgrenze;
-      // Mit Thermostaten hat jeder Raum sein eigenes Ziel; dann gibt es keinen gemeinsamen Bezug.
-      const bezug = (kreis.kennwerte || {}).raum_bezug;
-      stunden.forEach((eintrag) => {
-        const zelle = document.createElement("div");
-        const plan = !heute || eintrag.stunde > jetzt;
-        zelle.className = [
-          "automatik-stunde",
-          `m-${eintrag.aktion || "programm"}`,
-          eintrag.stunde === jetzt ? "jetzt" : "",
-          eintrag.stunde > 14 ? "spaet" : "",
-          plan ? "plan" : "",
-          eintrag.stunde === this._automatikStundeOffen ? "offen" : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
-        zelle.addEventListener("click", () => {
-          this._automatikStundeOffen = this._automatikStundeOffen === eintrag.stunde ? null : eintrag.stunde;
-          this._gebaut = false;
-          this._zeichnen();
-        });
-        const temperatur = eintrag.korrigiert ?? eintrag.roh;
-        const teile = [
-          ["uhr", String(eintrag.stunde).padStart(2, "0")],
-          ["sym", wetterSymbol(eintrag.wolken, (sonne[eintrag.stunde] || 0) > 0)],
-          ["t", temperatur === null || temperatur === undefined ? "–" : `${Math.round(temperatur)}°`],
-        ];
-        teile.forEach(([klasse, text]) => {
-          const teil = document.createElement("div");
-          teil.className = klasse;
-          if (klasse === "t" && temperatur !== null && temperatur !== undefined && grenze !== undefined) {
-            teil.classList.add(temperatur < grenze ? "kalt" : "warm");
-          }
-          teil.textContent = text;
-          zelle.appendChild(teil);
-        });
-        const streifen = document.createElement("div");
-        streifen.className = `streifen ${eintrag.aktion || "programm"}`;
-        zelle.appendChild(streifen);
-        const raum = document.createElement("div");
-        raum.className = "raum";
-        raum.title = this._t("Räume im Mittel, gemessen zu Beginn der Stunde");
-        if (eintrag.raum !== null && eintrag.raum !== undefined) {
-          if (bezug !== null && bezug !== undefined) raum.classList.add(eintrag.raum >= bezug ? "ueber" : "unter");
-          raum.textContent = `${zahl(eintrag.raum)}°`;
-        } else {
-          raum.textContent = "–";
-        }
-        zelle.appendChild(raum);
-        raster.appendChild(zelle);
-      });
-      const huelle = document.createElement("div");
-      huelle.appendChild(raster);
-      huelle.appendChild(this._automatikStundenlegende());
-      const offen = this._automatikStundeOffen;
-      if (stunden.some((s) => s.stunde === offen)) {
-        const kasten = document.createElement("div");
-        kasten.className = "automatik-stundenkasten";
-        stundenKasten(kreis.tag, offen, heute ? kreis.protokoll : [], (text) => this._t(text)).forEach((text, i) => {
-          const zeile = document.createElement("div");
-          if (i === 0) zeile.className = "kopf";
-          zeile.textContent = text;
-          kasten.appendChild(zeile);
-        });
-        huelle.appendChild(kasten);
-      }
-      return huelle;
-    }
-
-    /** Farben der Modi unter dem Stundenraster. */
-    _automatikStundenlegende() {
-      const legende = document.createElement("div");
-      legende.className = "automatik-stundenlegende";
-      [
-        ["m-absenkung", "Sonnentag"],
-        ["m-nur_ww", "nur Warmwasser"],
-        ["m-programm", "Programm"],
-      ].forEach(([klasse, titel]) => {
-        const eintrag = document.createElement("span");
-        const farbe = document.createElement("i");
-        farbe.className = klasse;
-        eintrag.append(farbe, this._t(titel));
-        legende.appendChild(eintrag);
-      });
-      const hinweis = document.createElement("span");
-      hinweis.textContent = this._t("Rand oben: was galt · blass: geplant · Klick zeigt die Stunde");
-      legende.appendChild(hinweis);
-      return legende;
-    }
-
     // --- Protokoll -----------------------------------------------------
+    /** Einträge nach Tagen: Heute, Gestern, dann das Datum; lange Listen zeigen erst die jüngsten. */
     _automatikProtokoll(kreis) {
       const karte = this._karte("Protokoll");
-      const k = kreis.kennwerte || {};
-      const budget = document.createElement("div");
-      budget.className = "automatik-budget";
-      for (let i = 0; i < (k.budget || 0); i += 1) {
-        const strich = document.createElement("i");
-        if (i < (k.eingriffe || 0)) strich.className = "voll";
-        budget.appendChild(strich);
-      }
-      karte.appendChild(budget);
-      const liste = document.createElement("ul");
-      liste.className = "automatik-protokoll";
+      karte.classList.add("automatik-protokollkarte");
       const eintraege = kreis.protokoll || [];
+      this._automatikProtokollAlle = this._automatikProtokollAlle || new Set();
+      const alle = this._automatikProtokollAlle.has(kreis.heizkreis);
+      const kopf = karte.querySelector(".kartenkopf");
+      if (kopf && eintraege.length > PROTOKOLL_KURZ) {
+        const umschalten = document.createElement("button");
+        umschalten.type = "button";
+        umschalten.className = "automatik-verweis";
+        umschalten.textContent = this._t(alle ? "Weniger anzeigen" : "Alle anzeigen");
+        umschalten.addEventListener("click", () => {
+          if (alle) this._automatikProtokollAlle.delete(kreis.heizkreis);
+          else this._automatikProtokollAlle.add(kreis.heizkreis);
+          this._gebaut = false;
+          this._zeichnen();
+        });
+        kopf.appendChild(umschalten);
+      }
       if (!eintraege.length) karte.appendChild(this._hinweisKnoten("Noch keine Entscheidung."));
-      eintraege.forEach((eintrag) => {
+      const heute = new Date();
+      const gestern = new Date(heute.getTime() - 86400000);
+      let liste = null;
+      let letzterTag = null;
+      (alle ? eintraege : eintraege.slice(0, PROTOKOLL_KURZ)).forEach((eintrag) => {
+        const datum = new Date(eintrag.zeit);
+        const tag = datum.toDateString();
+        if (tag !== letzterTag) {
+          letzterTag = tag;
+          const ueberschrift = document.createElement("h4");
+          ueberschrift.className = "automatik-protokolltag";
+          if (tag === heute.toDateString()) ueberschrift.textContent = this._t("Heute");
+          else if (tag === gestern.toDateString()) ueberschrift.textContent = this._t("Gestern");
+          else ueberschrift.textContent = `${datum.getDate()}.${datum.getMonth() + 1}.`;
+          liste = document.createElement("ul");
+          liste.className = "automatik-protokoll";
+          karte.append(ueberschrift, liste);
+        }
         const zeile = document.createElement("li");
         const zeit = document.createElement("span");
         zeit.className = "zeit";
-        const datum = new Date(eintrag.zeit);
-        const heute = new Date().toDateString() === datum.toDateString();
-        zeit.textContent = heute
-          ? datum.toTimeString().slice(0, 5)
-          : `${datum.getDate()}.${datum.getMonth() + 1}. ${datum.toTimeString().slice(0, 5)}`;
-        const text = document.createElement("span");
+        zeit.textContent = datum.toTimeString().slice(0, 5);
+        const inhalt = document.createElement("div");
+        inhalt.className = "inhalt";
+        const text = document.createElement("div");
         text.textContent = eintrag.text;
         const art = document.createElement("span");
         art.className = `art ${eintrag.art}`;
-        art.textContent = PROTOKOLL_ARTEN[eintrag.art] || eintrag.art;
-        zeile.append(zeit, text, art);
+        art.textContent = this._t(PROTOKOLL_ARTEN[eintrag.art] || eintrag.art);
+        inhalt.append(text, art);
+        zeile.append(zeit, inhalt);
         liste.appendChild(zeile);
       });
-      karte.appendChild(liste);
       return karte;
     }
   };

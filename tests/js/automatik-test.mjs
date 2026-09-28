@@ -4,7 +4,9 @@ import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 
 const modul = await import(pathToFileURL(process.argv[2]).href);
-const { zahl, uhrzeit, tagesleisteSvg, tagesleisteTipp, stundenKasten, wetterSymbol, korrekturText, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
+const { zahl, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
+const tagesbild = await import(new URL("./tagesbild.js", pathToFileURL(process.argv[2])).href);
+const { uhrzeit, tagesleisteSvg, tagesleisteTipp, stundenKasten, wetterSymbol, korrekturText, korrekturZeile, tagesleisteBereich } = tagesbild;
 
 assert.equal(zahl(19.5), "19,5");
 assert.equal(zahl(78, 0), "78");
@@ -89,6 +91,30 @@ assert.equal(korrekturText("temperatur", { versatz: -1.4, tage: 9 }, 7), "Außen
 assert.equal(korrekturText("temperatur", { versatz: null, tage: 3 }, 7), "Außen: lernt noch 3/7");
 assert.equal(korrekturText("sonne", { aktiv: true, faktor: 0.88, tage: 8 }, 7), "Sonne angepasst −12 %");
 assert.equal(korrekturText("sonne", { aktiv: false }, 7), "Sonne unkorrigiert");
+
+// Stand der Prognoseanpassung in einer Zeile, mit Wirkung der Sonnenanpassung in Prozent.
+assert.equal(korrekturZeile({ an: false }), "Rohe Prognose");
+assert.equal(
+  korrekturZeile({ an: true, noetig: 7, temperatur: { versatz: null, tage: 2 }, sonne: { aktiv: true, faktor: null, tage: 1 } }),
+  "Prognose angepasst · Außen lernt noch 2/7 · Sonne 1/7"
+);
+assert.equal(
+  korrekturZeile({ an: true, noetig: 7, temperatur: { versatz: -1.4, tage: 9 }, sonne: { aktiv: true, faktor: 1.12, tage: 8 } }),
+  "Prognose angepasst · Außen −1,4 K · Sonne +12 %"
+);
+assert.equal(korrekturZeile({ an: true, noetig: 7, temperatur: { versatz: 0.5 }, sonne: { aktiv: false } }), "Prognose angepasst · Außen +0,5 K");
+
+// Das Band unten zeigt den Modus je Stunde; künftige Stunden sind als Plan markiert.
+const band = tagesleisteSvg({
+  jetzt: 12.5,
+  stunden: Array.from({ length: 24 }, (_, h) => ({ stunde: h, aktion: h >= 11 && h < 20 ? "nur_ww" : "programm" })),
+});
+assert.ok(band.includes('class="al-m-programm"'));
+assert.ok(band.includes('class="al-m-nur_ww"'));
+assert.ok(band.includes('class="al-m-nur_ww al-plan"'));
+assert.equal(tagesleisteBereich({}), null);
+const bereich = tagesleisteBereich({ stunden: [{ stunde: 0, at: 10 }] }, 20);
+assert.ok(bereich.prozent(20) < bereich.prozent(10));
 
 // Werte unter dem Zeiger im Tagesbild: nur, was für die Stunde vorliegt.
 const tagMitWerten = {

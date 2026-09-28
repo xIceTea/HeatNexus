@@ -35,6 +35,7 @@ import { BedienenMixin } from "./teile/bedienen.js";
 import { HilfeMixin } from "./teile/hilfe.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { SteuerungMixin } from "./teile/steuerung.js";
+import { TagesbildMixin } from "./teile/tagesbild.js";
 import { UebersichtMixin } from "./teile/uebersicht.js";
 import { VerlaufMixin } from "./teile/verlauf.js";
 import { WartungMixin } from "./teile/wartung.js";
@@ -48,9 +49,11 @@ const Grundlage = HilfeMixin(
         AutomatikMixin(
           EinrichtungMixin(
             KennwerteMixin(
-              SteuerungMixin(
-                UebersichtMixin(
-                  SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+              TagesbildMixin(
+                SteuerungMixin(
+                  UebersichtMixin(
+                    SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+                  )
                 )
               )
             )
@@ -236,8 +239,9 @@ class HeatNexusPanel extends Grundlage {
     const leiste = document.createElement("div");
     leiste.className = "leiste";
     leiste.append(this._kopfleiste(anlage), this._reiterleiste());
+    // Beim Anordnen steht die Leiste mit im Kasten, damit Spalten und Farbsatz beim Blättern erreichbar bleiben.
+    if (this._anordnen) leiste.appendChild(this._anordnenLeiste());
     inhalt.appendChild(leiste);
-    if (this._anordnen) inhalt.appendChild(this._anordnenLeiste());
     if (this._alleAnlagen() && this._reiter === "automatik") {
       inhalt.appendChild(this._automatikAlle());
     } else if (this._alleAnlagen()) {

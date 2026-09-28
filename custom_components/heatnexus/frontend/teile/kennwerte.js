@@ -1,14 +1,11 @@
 /**
- * Reiter „Automatik“: die Kennwerte als Skalen und die Heizgrenzen der Steuerung.
+ * Reiter „Automatik“: die Kennwerte als Kacheln mit Skala.
  *
  * Jede Kachel nennt ihre Zahlen mit Beschriftung und zeigt auf einer Skala,
  * wo die Schaltpunkte liegen. Teil der Oberfläche `heatnexus-panel.js`; als Mixin.
  */
 
-import { kelvin, raumzeile, zahl } from "./automatik.js";
-
-// So lange steht „übernommen ✓“ im Kasten der Heizgrenzen.
-const GRENZEN_GESPEICHERT_MS = 4000;
+import { kelvin, zahl } from "./automatik.js";
 
 /** Lage eines Werts auf einer Skala in Prozent, an den Rändern begrenzt. */
 export function skalaProzent(wert, von, bis) {
@@ -42,17 +39,16 @@ export const KennwerteMixin = (Basis) =>
       return raster;
     }
 
-    /** Eine Kachel: Titel, Zahlen mit Beschriftung, Skala und Fußzeilen. */
-    _kachel(art, titel, zahlen, skala, fuss) {
+    /** Eine Kachel: Titel, große Zahl mit Beisatz, Skala oder Liste, Fußzeilen. */
+    _kachel(art, titel, zahl, beisatz, inhalt, fuss = []) {
       const kachel = knoten("div", `automatik-wert ${art}`);
       kachel.appendChild(knoten("div", "titel", this._t(titel)));
       const reihe = knoten("div", "werte");
-      zahlen.forEach(([wert, beschriftung], stelle) => {
-        const block = knoten("div", stelle ? "neben" : "haupt");
-        block.append(knoten("div", "zahl", wert), knoten("div", "bez", this._t(beschriftung)));
-        reihe.appendChild(block);
-      });
-      kachel.append(reihe, skala, ...fuss.filter(Boolean));
+      reihe.appendChild(knoten("div", "zahl", zahl));
+      if (beisatz) reihe.appendChild(knoten("div", "neben", beisatz));
+      kachel.appendChild(reihe);
+      if (inhalt) kachel.appendChild(inhalt);
+      kachel.append(...fuss.filter(Boolean));
       return kachel;
     }
 
@@ -85,7 +81,10 @@ export const KennwerteMixin = (Basis) =>
         }
       );
       const beschriftung = knoten("div", "achse");
-      achse.forEach((text) => beschriftung.appendChild(knoten("span", "", text)));
+      achse.forEach((eintrag) => {
+        const [text, klasse] = Array.isArray(eintrag) ? eintrag : [eintrag, ""];
+        beschriftung.appendChild(knoten("span", klasse, text));
+      });
       rahmen.append(bahn, beschriftung);
       return rahmen;
     }
@@ -110,67 +109,85 @@ export const KennwerteMixin = (Basis) =>
               ],
         marken: eigene ? [[k.heizgrenze, "automatik", this._t("Grenze der Automatik")]] : [],
         punkte: [
-          [k.at_gedaempft, "gedaempft", this._t("gedämpft")],
+          [k.at_gedaempft, "gedaempft", this._t("gedämpft (Automatik)")],
           [k.at, "jetzt", this._t("jetzt")],
         ],
-        achse: [
-          `${zahl(von, 0)} °C`,
-          bezug === null ? "" : this._tMit("heizt unter {ein} · aus über {aus} °C", { ein: zahl(bezug - hysterese), aus: zahl(bezug + hysterese) }),
-          `${zahl(bis, 0)} °C`,
-        ],
+        achse:
+          bezug === null
+            ? []
+            : [
+                this._tMit("Heizt unter {ein} °C", { ein: zahl(bezug - hysterese, 0) }),
+                this._tMit("Aus über {aus} °C", { aus: zahl(bezug + hysterese, 0) }),
+              ],
       });
-      let hinweis;
-      if (steuerung === null) hinweis = this._t("Heizgrenze der Steuerung nicht lesbar – es gilt 17 °C.");
-      else if (eigene) hinweis = this._tMit("Automatik: {grenze} °C, {versatz} zur Steuerung", { grenze: zahl(k.heizgrenze), versatz: kelvin(k.versatz) });
-      else hinweis = this._t("Automatik: Heizgrenze der Steuerung");
-      return this._kachel(
+      const fuss = [];
+      if (steuerung === null) fuss.push(knoten("div", "fuss", this._t("Heizgrenze der Steuerung nicht lesbar – es gilt 17 °C.")));
+      else if (eigene) {
+        fuss.push(knoten("div", "fuss", this._tMit("Automatik: {grenze} °C, {versatz} zur Steuerung", { grenze: zahl(k.heizgrenze), versatz: kelvin(k.versatz) })));
+      }
+      const kachel = this._kachel(
         "aussentemperatur",
         "Außentemperatur",
-        [
-          [`${zahl(k.at)} °C`, "jetzt"],
-          [`${zahl(k.at_gedaempft)} °C`, "gedämpft (Automatik)"],
-        ],
+        `${zahl(k.at)} °C`,
+        this._tMit("gedämpft {wert} °C", { wert: zahl(k.at_gedaempft) }),
         skala,
-        [knoten("div", "fuss", hinweis), knoten("div", "fuss", this._t("Die Steuerung rechnet mit der aktuellen Außentemperatur."))]
+        fuss
       );
+      kachel.title = this._t("Die gedämpfte Außentemperatur entscheidet über nur Warmwasser. Die Steuerung rechnet mit der aktuellen Außentemperatur.");
+      this._klickbar(kachel.querySelector(".neben"), (kreis.entitaeten || {}).gedaempft);
+      return kachel;
     }
 
     _kachelSonne(kreis) {
       const k = kreis.kennwerte || {};
       const w = kreis.werte || {};
       const schwelle = vorhanden(k.sonne_schwelle) ? k.sonne_schwelle : w.sonnenquote;
+      let vorrang = "";
+      if (k.vorrang) {
+        vorrang = k.vorrang.laeuft
+          ? this._t("Vorrangquelle liefert")
+          : this._tMit("Vorrangquellen {stunden} h", { stunden: zahl((k.vorrang.minuten || 0) / 60) });
+      }
       const skala = this._skala({
         von: 0,
         bis: 100,
         zonen: vorhanden(k.sonnenquote) ? [[0, k.sonnenquote, "sonne"]] : [],
         marken: [
           [schwelle, "schwelle", this._t("Sonnentag ab")],
-          ...(vorhanden(k.stark_quote) ? [[k.stark_quote, "stark", this._t("sehr sonnig")]] : []),
+          ...(vorhanden(k.stark_quote) ? [[k.stark_quote, "stark", this._tMit("sehr sonnig ab {stark} %", { stark: zahl(k.stark_quote, 0) })]] : []),
         ],
-        achse: [
-          "0",
-          vorhanden(k.stark_quote)
-            ? this._tMit("Sonnentag ab {ab} · sehr sonnig {stark} %", { ab: zahl(schwelle, 0), stark: zahl(k.stark_quote, 0) })
-            : this._tMit("Sonnentag ab {ab} %", { ab: zahl(schwelle, 0) }),
-          "100 %",
-        ],
+        achse: [this._tMit("Sonnentag ab {ab} %", { ab: zahl(schwelle, 0) }), [vorrang, vorrang ? "vorrang-zeile" : ""]],
       });
-      let vorrang = null;
-      if (k.vorrang) {
-        vorrang = knoten(
-          "div",
-          "vorrang-zeile",
-          k.vorrang.laeuft
-            ? this._t("Vorrangquelle liefert")
-            : this._tMit("Vorrangquellen heute {stunden} h", { stunden: zahl((k.vorrang.minuten || 0) / 60) })
-        );
-      }
       const aus = w.sonnentag === false ? knoten("div", "fuss", this._t("Sonnentag ausgeschaltet")) : null;
-      return this._kachel("sonne", "Sonne heute", [[`${zahl(k.sonnenquote, 0)} %`, "Sonnenquote"]], skala, [vorrang, aus]);
+      const kachel = this._kachel("sonne", "Sonne heute", `${zahl(k.sonnenquote, 0)} %`, this._t("Sonnenquote"), skala, [aus]);
+      this._klickbar(kachel.querySelector(".zahl"), (kreis.entitaeten || {}).sonnenquote);
+      return kachel;
     }
 
+    /** Mit mehreren Räumen oder eigenen Zielen eine Liste je Raum, sonst die Skala um das Ziel. */
     _kachelRaeume(kreis) {
       const k = kreis.kennwerte || {};
+      const raeume = k.raeume || [];
+      const minimum = k.raum_art === "minimum";
+      const beisatz = `${minimum ? this._t("kältester Raum") : "Ø"} ${zahl(k.raum)} °C`;
+      if (raeume.length > 1 || k.eigene_ziele) {
+        const liste = knoten("div", "raeume");
+        raeume.forEach((raum) => {
+          const zeile = knoten("div", raum.veraltet ? "raum veraltet" : "raum");
+          zeile.appendChild(knoten("span", "name", raum.name));
+          const wert = knoten("span", "wert");
+          if (raum.veraltet) wert.textContent = this._tMit("{wert} °C – veraltet", { wert: zahl(raum.wert) });
+          else {
+            const ziel = raum.ziel === null || raum.ziel === undefined ? "" : ` → ${zahl(raum.ziel)}`;
+            wert.textContent = `${zahl(raum.wert)}${ziel} °C`;
+            if (raum.heizt) wert.appendChild(knoten("span", "heizt", ` · ${this._t("heizt")}`));
+            if (raum.aus) wert.appendChild(knoten("span", "aus", ` · ${this._t("aus")}`));
+          }
+          zeile.appendChild(wert);
+          liste.appendChild(zeile);
+        });
+        return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, liste));
+      }
       const rk = vorhanden(k.rueckkehr_k) ? Number(k.rueckkehr_k) : 1;
       const sonnig = vorhanden(k.sonne_raum_k) ? Number(k.sonne_raum_k) : 0.5;
       // Außerhalb von ±2 K sitzt der Punkt am Rand; ein Pfeil zeigt, dass der Wert weiter liegt.
@@ -196,80 +213,15 @@ export const KennwerteMixin = (Basis) =>
         punkte: [[k.abweichung, "raum", this._t("Räume")]],
         achse: ["−2 K", this._t("Ziel"), "+2 K"],
       });
-      const fuss = [];
-      if (!k.eigene_ziele) fuss.push(knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) })));
-      if ((k.raeume || []).length > 1 || k.eigene_ziele) {
-        const liste = knoten("div", "raeume");
-        (k.raeume || []).forEach((raum) => {
-          const zeile = knoten(
-            "div",
-            raum.veraltet ? "veraltet" : "",
-            raum.veraltet
-              ? this._tMit("{name} {wert} °C – veraltet, zählt nicht", { name: raum.name, wert: zahl(raum.wert) })
-              : raumzeile(raum, (text) => this._t(text))
-          );
-          liste.appendChild(zeile);
-        });
-        fuss.push(liste);
-      }
-      return this._kachel(
-        "raum",
-        "Räume zum Ziel",
-        [
-          [kelvin(k.abweichung), k.raum_art === "minimum" ? "kältester Raum" : "Mittel"],
-          [`${zahl(k.raum)} °C`, k.raum_art === "minimum" ? "kältester Raum" : "Ø Räume"],
-        ],
-        skala,
-        fuss
-      );
+      const fuss = [knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) }))];
+      return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, skala, fuss));
     }
 
-    /** Heizgrenzen der Steuerung lesen und von Hand setzen; die Automatik richtet sich danach. */
-    _automatikGrenzen(kreis, darf) {
-      const k = kreis.kennwerte || {};
-      const kasten = knoten("div", "automatik-grenzen");
-      kasten.appendChild(knoten("div", "titel", this._t("Heizgrenzen der Steuerung")));
-      const feld = (titel, wert, min, max) => {
-        const eingabe = knoten("input");
-        eingabe.type = "number";
-        eingabe.step = "0.5";
-        eingabe.min = String(min);
-        eingabe.max = String(max);
-        eingabe.value = vorhanden(wert) ? String(wert) : "";
-        eingabe.disabled = !darf;
-        const beschriftung = knoten("label", "feld");
-        beschriftung.append(knoten("span", "", this._t(titel)), eingabe, knoten("span", "", "°C"));
-        kasten.appendChild(beschriftung);
-        return eingabe;
-      };
-      const heiz = feld("Heizbetrieb", k.grenze_steuerung, 0, 30);
-      const absenk = feld("Absenkbetrieb", k.grenze_absenk, -10, 20);
-      const taste = knoten("button", "automatik-knopf leise klein", this._t("Übernehmen"));
-      taste.type = "button";
-      taste.disabled = !darf;
-      taste.addEventListener("click", async () => {
-        const nachricht = { type: "heatnexus/automatik/heizgrenzen", heizkreis: kreis.heizkreis };
-        if (heiz.value !== "") nachricht.heizbetrieb = Number(heiz.value);
-        if (absenk.value !== "") nachricht.absenkbetrieb = Number(absenk.value);
-        this._automatikGespeichert = `${kreis.heizkreis}:grenzen`;
-        if (!(await this._automatikAufruf(nachricht))) this._automatikGespeichert = null;
-      });
-      kasten.appendChild(taste);
-      if (this._automatikGespeichert === `${kreis.heizkreis}:grenzen`) {
-        this._automatikGespeichert = null;
-        const hinweis = knoten("span", "automatik-gespeichert", this._t("übernommen ✓"));
-        kasten.appendChild(hinweis);
-        setTimeout(() => hinweis.remove(), GRENZEN_GESPEICHERT_MS);
-      }
-      kasten.appendChild(
-        knoten(
-          "div",
-          "fuss",
-          vorhanden(k.grenze_steuerung)
-            ? this._t("Die Steuerung schaltet 1 K darüber ab und 1 K darunter wieder ein, nach der aktuellen Außentemperatur.")
-            : this._t("Die Steuerung liefert ihre Heizgrenze nicht; die Automatik rechnet mit 17 °C.")
-        )
-      );
-      return kasten;
+    /** Die Abweichung öffnet die Entität der Automatik, jeder Raum seine eigene. */
+    _raumKlickbar(kreis, kachel) {
+      this._klickbar(kachel.querySelector(".zahl"), (kreis.entitaeten || {}).abweichung);
+      const raeume = (kreis.kennwerte || {}).raeume || [];
+      kachel.querySelectorAll(".raeume .raum").forEach((zeile, i) => this._klickbar(zeile, (raeume[i] || {}).entity_id));
+      return kachel;
     }
   };

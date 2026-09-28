@@ -652,7 +652,7 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     """Eingerichtet: Karte mit Marke, Feldern und Protokoll; sonst die Einladung."""
     automatik = durchlauf["automatik"]
     assert automatik["marken"] == ["Sonnentag · beobachtet"]
-    assert automatik["felder"] == 18  # Profil und siebzehn Werte
+    assert automatik["felder"] == 20  # Profil, zwei Heizgrenzen und siebzehn Werte
     assert automatik["geaendert"] == 1
     assert automatik["protokoll"] == 1
     assert automatik["einladungen"] == 1
@@ -663,11 +663,12 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     assert automatik["skalen"] == 3
     assert "1 von 4 Eingriffen heute" in automatik["meta"]
     assert "Gemischt" in automatik["meta"]
-    assert f"nächste Prüfung {automatik['naechstePruefungUhrzeit']}" in automatik["meta"]
+    assert f"Nächste Prüfung {automatik['naechstePruefungUhrzeit']}" in automatik["meta"]
     assert (automatik["alteEingriffe"], automatik["alteProfilzeile"]) == (0, 0)
     assert automatik["raumZonen"] == 4
     assert automatik["raumWert"] == "+0,4 K"
     assert automatik["grenzenEingaben"] == 2
+    assert automatik["gruppen"] == ["Heizgrenze", "Sonnentag", "Zeitplan", "Schutz und Prognose"]
     assert automatik["ausrichtung"] == [
         ["Eco", "false"],
         ["Ausgewogen", "true"],
@@ -690,6 +691,20 @@ def test_reiter_lassen_sich_umordnen_und_ausblenden(durchlauf):
     }
 
 
+def test_die_werte_der_automatik_oeffnen_ihre_entitaet(durchlauf):
+    """Zustand, Eingriffe, nächste Prüfung und die Kachelwerte öffnen den Mehr-Info-Dialog."""
+    assert sorted(durchlauf["automatik"]["klickbar"]) == sorted(
+        ["automatik-marke", "klickbar", "klickbar", "neben", "zahl", "zahl"]
+    )
+
+
+def test_speichern_ist_nur_mit_einer_abweichung_aktiv(durchlauf):
+    """Grau ohne Änderung, aktiv nach einer Eingabe, grau nach der Rückkehr zum gespeicherten Wert."""
+    automatik = durchlauf["automatik"]
+    assert automatik["speichernGrau"] is True
+    assert automatik["speichernFolge"] == [False, True]
+
+
 def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     """Ein offener Dialog bleibt; die Sperre fürs Nachladen hält nicht über den Aufbau hinaus."""
     automatik = durchlauf["automatik"]
@@ -701,20 +716,19 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     # Die Metazeile steht als eigene Zeile unter dem Kopf, nicht mehr darin.
     assert automatik["kopf"] == [
         "h2",
-        "automatik-punkt",
         "automatik-marke",
         "automatik-knopf",
         "fragezeichen",
     ]
     assert automatik["dialogKopf"] is True
     assert automatik["kreuzSchliesst"] is True
-    assert automatik["raumliste"] == ["Bad 20,8 °C → 21,0 °C · heizt"]
-    assert automatik["raumKachel"] == ["−0,2 K", "21,4 °C"]
+    assert automatik["raumliste"] == [["Bad", "20,8 → 21,0 °C · heizt"]]
+    assert automatik["raumKachel"] == ["−0,2 K", "Ø 21,4 °C"]
     assert automatik["vorrangWahl"] is True
-    assert automatik["vorrangZeile"] == ["Vorrangquellen heute 1,5 h"]
+    assert automatik["vorrangZeile"] == ["Vorrangquellen 1,5 h"]
     assert automatik["modusStunden"] > 0
     assert automatik["stundenLegende"] == 1
-    assert automatik["stundenKasten"] == ["10:00–11:00 · Programm"]
+    assert automatik["stundenKasten"] == ["10:00 Uhr"]
     assert automatik["stundeOffen"] == 1
 
 
