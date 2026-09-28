@@ -909,6 +909,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   bilanz.automatik.raumKachel = [...raumKachel.querySelectorAll(".zahl"), ...raumKachel.querySelectorAll(".neben")].map((teil) =>
     String(teil.textContent || "")
   );
+  bilanz.automatik.raumSkalaMitListe = raumKachel.querySelectorAll(".zone").length;
   bilanz.automatik.vorrangZeile = [...wurzel.querySelectorAll(".vorrang-zeile")].map((l) => String(l.textContent || ""));
   bilanz.automatik.modusStunden = wurzel.querySelectorAll(".automatik-stunde").filter((z) => z.classList.contains("m-programm")).length;
   bilanz.automatik.stundenLegende = wurzel.querySelectorAll(".automatik-stundenlegende").length;

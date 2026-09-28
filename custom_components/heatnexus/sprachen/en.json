@@ -550,5 +550,7 @@
   "Absenkbetrieb {wert} °C": "Setback mode {wert} °C",
   "{text} Vorausgesetzt, die Räume fordern keine Wärme an.": "{text} Provided the rooms do not call for heat.",
   "Prognose anpassen": "Adapt forecast",
-  "Sonne lernt noch": "Sun still learning"
+  "Sonne lernt noch": "Sun still learning",
+  "Zurück unter {wert}": "Back below {wert}",
+  "Sehr sonnig ab {wert}": "Very sunny from {wert}"
 }

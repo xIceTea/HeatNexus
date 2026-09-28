@@ -666,7 +666,8 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     assert f"Nächste Prüfung {automatik['naechstePruefungUhrzeit']}" in automatik["meta"]
     assert (automatik["alteEingriffe"], automatik["alteProfilzeile"]) == (0, 0)
     assert automatik["raumZonen"] == 4
-    assert automatik["raumWert"] == "+0,4 K"
+    # Innerhalb von ±2 K steht der Wert nur in der Kachel, nicht noch einmal am Punkt.
+    assert automatik["raumWert"] == ""
     assert automatik["grenzenEingaben"] == 2
     assert automatik["gruppen"] == ["Heizgrenze", "Sonnentag", "Zeitplan", "Schutz und Prognose"]
     assert automatik["ausrichtung"] == [
@@ -730,6 +731,7 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["dialogKopf"] is True
     assert automatik["kreuzSchliesst"] is True
     assert automatik["raumliste"] == [["Bad", "20,8 → 21,0 °C · heizt"]]
+    assert automatik["raumSkalaMitListe"] == 4
     assert automatik["raumKachel"] == ["−0,2 K", "Ø 21,4 °C"]
     assert automatik["vorrangWahl"] is True
     assert automatik["vorrangZeile"] == ["Vorrangquellen 1,5 h"]

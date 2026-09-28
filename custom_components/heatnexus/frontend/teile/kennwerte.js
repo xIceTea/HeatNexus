@@ -164,37 +164,23 @@ export const KennwerteMixin = (Basis) =>
       return kachel;
     }
 
-    /** Mit mehreren Räumen oder eigenen Zielen eine Liste je Raum, sonst die Skala um das Ziel. */
+    /**
+     * Skala um das Ziel mit den Zonen aus den Einstellungen; mit mehreren Räumen
+     * oder eigenen Zielen darunter eine Zeile je Raum.
+     */
     _kachelRaeume(kreis) {
       const k = kreis.kennwerte || {};
       const raeume = k.raeume || [];
       const minimum = k.raum_art === "minimum";
       const beisatz = `${minimum ? this._t("kältester Raum") : "Ø"} ${zahl(k.raum)} °C`;
-      if (raeume.length > 1 || k.eigene_ziele) {
-        const liste = knoten("div", "raeume");
-        raeume.forEach((raum) => {
-          const zeile = knoten("div", raum.veraltet ? "raum veraltet" : "raum");
-          zeile.appendChild(knoten("span", "name", raum.name));
-          const wert = knoten("span", "wert");
-          if (raum.veraltet) wert.textContent = this._tMit("{wert} °C – veraltet", { wert: zahl(raum.wert) });
-          else {
-            const ziel = raum.ziel === null || raum.ziel === undefined ? "" : ` → ${zahl(raum.ziel)}`;
-            wert.textContent = `${zahl(raum.wert)}${ziel} °C`;
-            if (raum.heizt) wert.appendChild(knoten("span", "heizt", ` · ${this._t("heizt")}`));
-            if (raum.aus) wert.appendChild(knoten("span", "aus", ` · ${this._t("aus")}`));
-          }
-          zeile.appendChild(wert);
-          liste.appendChild(zeile);
-        });
-        return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, liste));
-      }
       const rk = vorhanden(k.rueckkehr_k) ? Number(k.rueckkehr_k) : 1;
       const sonnig = vorhanden(k.sonne_raum_k) ? Number(k.sonne_raum_k) : 0.5;
-      // Außerhalb von ±2 K sitzt der Punkt am Rand; ein Pfeil zeigt, dass der Wert weiter liegt.
+      const stark = vorhanden(k.stark_k) ? Number(k.stark_k) : null;
+      // Außerhalb von ±2 K sitzt der Punkt am Rand; nur dann nennt ein Pfeil den Wert.
       const ab = vorhanden(k.abweichung) ? Number(k.abweichung) : null;
-      let wertText = ab === null ? null : kelvin(ab);
-      if (ab !== null && ab < -2) wertText = `‹ ${wertText}`;
-      if (ab !== null && ab > 2) wertText = `${wertText} ›`;
+      let wertText = null;
+      if (ab !== null && ab < -2) wertText = `‹ ${kelvin(ab)}`;
+      if (ab !== null && ab > 2) wertText = `${kelvin(ab)} ›`;
       const skala = this._skala({
         von: -2,
         bis: 2,
@@ -207,14 +193,40 @@ export const KennwerteMixin = (Basis) =>
         wertText,
         marken: [
           [0, "ziel", this._t("Ziel")],
-          ...(vorhanden(k.sonne_raum_k) ? [[-k.sonne_raum_k, "schwelle", this._t("Sonnentag möglich ab")]] : []),
-          ...(vorhanden(k.stark_k) ? [[k.stark_k, "stark", this._t("sehr sonnig ab")]] : []),
+          [-sonnig, "schwelle", this._t("Sonnentag möglich ab")],
+          ...(stark !== null ? [[stark, "stark", this._t("sehr sonnig ab")]] : []),
         ],
         punkte: [[k.abweichung, "raum", this._t("Räume")]],
-        achse: ["−2 K", this._t("Ziel"), "+2 K"],
+        achse: [
+          this._tMit("Zurück unter {wert}", { wert: kelvin(-rk) }),
+          this._t("Ziel"),
+          stark !== null ? this._tMit("Sehr sonnig ab {wert}", { wert: kelvin(stark) }) : "+2 K",
+        ],
       });
-      const fuss = [knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) }))];
+      const fuss = [];
+      if (raeume.length > 1 || k.eigene_ziele) fuss.push(this._raumliste(raeume));
+      else fuss.push(knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) })));
       return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, skala, fuss));
+    }
+
+    /** Eine Zeile je Raum: Name, Ist → Ziel, ob er heizt. */
+    _raumliste(raeume) {
+      const liste = knoten("div", "raeume");
+      raeume.forEach((raum) => {
+        const zeile = knoten("div", raum.veraltet ? "raum veraltet" : "raum");
+        zeile.appendChild(knoten("span", "name", raum.name));
+        const wert = knoten("span", "wert");
+        if (raum.veraltet) wert.textContent = this._tMit("{wert} °C – veraltet", { wert: zahl(raum.wert) });
+        else {
+          const ziel = raum.ziel === null || raum.ziel === undefined ? "" : ` → ${zahl(raum.ziel)}`;
+          wert.textContent = `${zahl(raum.wert)}${ziel} °C`;
+          if (raum.heizt) wert.appendChild(knoten("span", "heizt", ` · ${this._t("heizt")}`));
+          if (raum.aus) wert.appendChild(knoten("span", "aus", ` · ${this._t("aus")}`));
+        }
+        zeile.appendChild(wert);
+        liste.appendChild(zeile);
+      });
+      return liste;
     }
 
     /** Die Abweichung öffnet die Entität der Automatik, jeder Raum seine eigene. */
