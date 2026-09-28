@@ -408,6 +408,8 @@
   "5 · Optional: Wärmequellen mit Vorrang vor dem Kessel": "5 · Optional: heat sources with priority over the boiler",
   "Liefert eine dieser Quellen, soll ihre Wärme den Heizkreis decken statt der Kessel.": "While one of these sources delivers, its heat should supply the heating circuit instead of the boiler.",
   "Vorrangquelle liefert": "Priority source delivering",
+  "Vorrangquelle lieferte": "Priority source delivered",
+  "Rand oben: was galt · blass: geplant · Klick zeigt die Stunde": "Top edge: what applied · faded: planned · click shows the hour",
   "Vorrangquellen heute {stunden} h": "Priority sources today {stunden} h",
   "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn die Räume schon über ihrem Ziel liegen, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.": "On very sunny days from 80 % sunshine share, when the rooms are already above their target, the automation switches the heating circuit to hot water only until sunset instead of just lowering the setpoint.",
   "So weit müssen die Räume über ihrem Ziel liegen, damit ein sehr sonniger Tag auf nur Warmwasser schaltet.": "The rooms must be this far above their target before a very sunny day switches to hot water only.",

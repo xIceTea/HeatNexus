@@ -868,7 +868,15 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   const raumKachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("raum"));
   bilanz.automatik.raumKachel = raumKachel.querySelectorAll(".zahl").map((teil) => String(teil.textContent || ""));
   bilanz.automatik.vorrangZeile = [...wurzel.querySelectorAll(".vorrang-zeile")].map((l) => String(l.textContent || ""));
-  bilanz.automatik.vorrangStunden = wurzel.querySelectorAll(".automatik-stunde").filter((z) => z.classList.contains("vorrang")).length;
+  bilanz.automatik.modusStunden = wurzel.querySelectorAll(".automatik-stunde").filter((z) => z.classList.contains("m-programm")).length;
+  bilanz.automatik.stundenLegende = wurzel.querySelectorAll(".automatik-stundenlegende").length;
+  const zehn = wurzel.querySelectorAll(".automatik-stunde").find((z) => String((z.querySelector(".uhr") || {}).textContent) === "10");
+  zehn.ausloesen("click");
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  bilanz.automatik.stundenKasten = flaeche.shadowRoot.querySelectorAll(".automatik-stundenkasten").map((k) => String((k.querySelector(".kopf") || {}).textContent || ""));
+  bilanz.automatik.stundeOffen = flaeche.shadowRoot.querySelectorAll(".automatik-stunde").filter((z) => z.classList.contains("offen")).length;
+  flaeche._automatikStundeOffen = null;
   mitZielen.kennwerte = vorherKennwerte;
   mitZielen.tag = vorherTag;
 }

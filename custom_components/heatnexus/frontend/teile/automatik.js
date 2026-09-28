@@ -124,6 +124,26 @@ export function tagesleisteTipp(tag, stunde, t = (text) => text) {
   return zeilen;
 }
 
+/** Inhalt des Kastens zu einer Stunde: Modus, heutige Protokolleinträge dieser Stunde, Vorrang, Messwerte. */
+export function stundenKasten(tag, stunde, protokoll, t = (text) => text) {
+  const eintrag = ((tag && tag.stunden) || []).find((s) => s.stunde === stunde) || {};
+  const bis = `${String(stunde + 1).padStart(2, "0")}:00`;
+  const zeilen = [`${uhrzeit(stunde)}–${bis} · ${t(AKTIONEN[eintrag.aktion || "programm"])}`];
+  const heute = new Date().toDateString();
+  (protokoll || [])
+    .filter((e) => new Date(e.zeit).getHours() === stunde && new Date(e.zeit).toDateString() === heute)
+    .sort((a, b) => new Date(a.zeit) - new Date(b.zeit))
+    .forEach((e) => zeilen.push(`${new Date(e.zeit).toTimeString().slice(0, 5)} ${e.text}`));
+  if (eintrag.vorrang) zeilen.push(t("Vorrangquelle lieferte"));
+  [
+    ["Außen gemessen", eintrag.at],
+    ["Räume", eintrag.raum],
+  ].forEach(([titel, wert]) => {
+    if (wert !== null && wert !== undefined) zeilen.push(`${t(titel)} ${zahl(wert)} °C`);
+  });
+  return zeilen;
+}
+
 /** Stunde als Kommazahl in „HH:MM“. */
 export function uhrzeit(stunde) {
   const minuten = Math.round(Number(stunde) * 60);
@@ -659,13 +679,29 @@ export const AutomatikMixin = (Basis) =>
       raster.className = "automatik-stunden";
       const stunden = ((kreis.tag || {}).stunden || []).filter((s) => s.stunde >= 6 && s.stunde <= 22);
       const sonne = (kreis.tag || {}).sonne || [];
-      const jetzt = Math.floor(Number((kreis.tag || {}).jetzt));
+      const heute = (kreis.tag || {}).jetzt !== null && (kreis.tag || {}).jetzt !== undefined;
+      const jetzt = heute ? Math.floor(Number(kreis.tag.jetzt)) : null;
       const grenze = (kreis.kennwerte || {}).heizgrenze;
       // Mit Thermostaten hat jeder Raum sein eigenes Ziel; dann gibt es keinen gemeinsamen Bezug.
       const bezug = (kreis.kennwerte || {}).raum_bezug;
       stunden.forEach((eintrag) => {
         const zelle = document.createElement("div");
-        zelle.className = `automatik-stunde${eintrag.stunde === jetzt ? " jetzt" : ""}${eintrag.stunde > 14 ? " spaet" : ""}${eintrag.vorrang ? " vorrang" : ""}`;
+        const plan = !heute || eintrag.stunde > jetzt;
+        zelle.className = [
+          "automatik-stunde",
+          `m-${eintrag.aktion || "programm"}`,
+          eintrag.stunde === jetzt ? "jetzt" : "",
+          eintrag.stunde > 14 ? "spaet" : "",
+          plan ? "plan" : "",
+          eintrag.stunde === this._automatikStundeOffen ? "offen" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+        zelle.addEventListener("click", () => {
+          this._automatikStundeOffen = this._automatikStundeOffen === eintrag.stunde ? null : eintrag.stunde;
+          this._gebaut = false;
+          this._zeichnen();
+        });
         const temperatur = eintrag.korrigiert ?? eintrag.roh;
         const teile = [
           ["uhr", String(eintrag.stunde).padStart(2, "0")],
@@ -689,14 +725,50 @@ export const AutomatikMixin = (Basis) =>
         raum.title = this._t("Räume im Mittel, gemessen zu Beginn der Stunde");
         if (eintrag.raum !== null && eintrag.raum !== undefined) {
           if (bezug !== null && bezug !== undefined) raum.classList.add(eintrag.raum >= bezug ? "ueber" : "unter");
-          raum.textContent = zahl(eintrag.raum);
+          raum.textContent = `${zahl(eintrag.raum)}°`;
         } else {
           raum.textContent = "–";
         }
         zelle.appendChild(raum);
         raster.appendChild(zelle);
       });
-      return raster;
+      const huelle = document.createElement("div");
+      huelle.appendChild(raster);
+      huelle.appendChild(this._automatikStundenlegende());
+      const offen = this._automatikStundeOffen;
+      if (stunden.some((s) => s.stunde === offen)) {
+        const kasten = document.createElement("div");
+        kasten.className = "automatik-stundenkasten";
+        stundenKasten(kreis.tag, offen, heute ? kreis.protokoll : [], (text) => this._t(text)).forEach((text, i) => {
+          const zeile = document.createElement("div");
+          if (i === 0) zeile.className = "kopf";
+          zeile.textContent = text;
+          kasten.appendChild(zeile);
+        });
+        huelle.appendChild(kasten);
+      }
+      return huelle;
+    }
+
+    /** Farben der Modi unter dem Stundenraster. */
+    _automatikStundenlegende() {
+      const legende = document.createElement("div");
+      legende.className = "automatik-stundenlegende";
+      [
+        ["m-absenkung", "Sonnentag"],
+        ["m-nur_ww", "nur Warmwasser"],
+        ["m-programm", "Programm"],
+      ].forEach(([klasse, titel]) => {
+        const eintrag = document.createElement("span");
+        const farbe = document.createElement("i");
+        farbe.className = klasse;
+        eintrag.append(farbe, this._t(titel));
+        legende.appendChild(eintrag);
+      });
+      const hinweis = document.createElement("span");
+      hinweis.textContent = this._t("Rand oben: was galt · blass: geplant · Klick zeigt die Stunde");
+      legende.appendChild(hinweis);
+      return legende;
     }
 
     // --- Protokoll -----------------------------------------------------

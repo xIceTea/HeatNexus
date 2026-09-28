@@ -1319,12 +1319,19 @@ export const STIL = `
     text-align: center; font-size: 10px; color: var(--hn-gedaempft);
     border-radius: 8px; padding: 5px 0 4px; background: var(--hn-flaeche);
   }
+  /* Rand oben: der Modus, der in der Stunde galt; künftige Stunden ohne Rand und blass. */
+  .automatik-stunde { cursor: pointer; border-top: 3px solid transparent; }
+  .automatik-stunde.m-absenkung { border-top-color: var(--hn-sonne); }
+  .automatik-stunde.m-nur_ww { border-top-color: #5aa9e6; }
+  .automatik-stunde.plan { border-top-color: transparent; }
+  .automatik-stunde.plan .streifen { opacity: 0.45; }
   .automatik-stunde.jetzt { outline: 1px solid var(--hn-text); }
+  .automatik-stunde.offen { outline: 1px dashed var(--hn-akzent); }
   .automatik-stunde .sym { font-size: 15px; line-height: 1.25; color: var(--hn-sonne); }
   .automatik-stunde .t { font-size: 12px; font-weight: 700; color: var(--hn-text); margin-top: 1px; }
   .automatik-stunde .t.kalt { color: #8fd3ff; }
   .automatik-stunde .t.warm { color: #ffab6f; }
-  .automatik-stunde .streifen { height: 4px; border-radius: 2px; margin: 4px 3px; background: var(--hn-linie); }
+  .automatik-stunde .streifen { height: 4px; border-radius: 2px; margin: 4px 3px; background: color-mix(in srgb, var(--hn-text) 35%, transparent); }
   /* Sonnentag gelb, nur Warmwasser blau: auf einen Blick, was in welcher Stunde galt. */
   .automatik-stunde .streifen.absenkung { background: var(--hn-sonne); }
   .automatik-stunde .streifen.nur_ww { background: #5aa9e6; }
@@ -1337,8 +1344,19 @@ export const STIL = `
   .automatik-legende i.al-gedaempft { background: var(--hn-akzent); height: 3px; }
   .automatik-wert .raeume .veraltet { color: #ffab6f; }
   .automatik-wert .vorrang-zeile { margin-top: 6px; font-size: 11px; color: var(--hn-sonne); }
-  /* Stunden, in denen eine Quelle mit Vorrang geliefert hat, tragen oben einen Sonnenstrich. */
-  .automatik-stunde.vorrang { box-shadow: inset 0 3px 0 var(--hn-sonne); }
+  .automatik-stundenlegende {
+    display: flex; flex-wrap: wrap; gap: 4px 14px; margin: -6px 0 10px;
+    font-size: 11px; color: var(--hn-gedaempft);
+  }
+  .automatik-stundenlegende i { display: inline-block; width: 12px; height: 4px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  .automatik-stundenlegende i.m-absenkung { background: var(--hn-sonne); }
+  .automatik-stundenlegende i.m-nur_ww { background: #5aa9e6; }
+  .automatik-stundenlegende i.m-programm { background: color-mix(in srgb, var(--hn-text) 35%, transparent); }
+  .automatik-stundenkasten {
+    margin: 0 0 12px; padding: 10px 12px; border-radius: 10px;
+    background: var(--hn-flaeche); font-size: 12px; line-height: 1.5;
+  }
+  .automatik-stundenkasten .kopf { font-weight: 700; margin-bottom: 2px; }
   .automatik-haken-zeile.veraltet { color: #ffab6f; }
   .automatik-legende i.al-aussen { background: #ffab6f; height: 3px; }
   .automatik-legende i.al-prognose {

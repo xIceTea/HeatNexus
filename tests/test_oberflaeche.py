@@ -712,7 +712,10 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["raumKachel"] == ["−0,2 K", "21,4 °C"]
     assert automatik["vorrangWahl"] is True
     assert automatik["vorrangZeile"] == ["Vorrangquellen heute 1,5 h"]
-    assert automatik["vorrangStunden"] == 1
+    assert automatik["modusStunden"] > 0
+    assert automatik["stundenLegende"] == 1
+    assert automatik["stundenKasten"] == ["10:00–11:00 · Programm"]
+    assert automatik["stundeOffen"] == 1
 
 
 def test_die_automatik_steht_bei_allen_anlagen_in_einem_raster(durchlauf):

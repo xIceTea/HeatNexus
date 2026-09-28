@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 
 const modul = await import(pathToFileURL(process.argv[2]).href);
-const { zahl, uhrzeit, tagesleisteSvg, tagesleisteTipp, wetterSymbol, korrekturText, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
+const { zahl, uhrzeit, tagesleisteSvg, tagesleisteTipp, stundenKasten, wetterSymbol, korrekturText, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
 
 assert.equal(zahl(19.5), "19,5");
 assert.equal(zahl(78, 0), "78");
@@ -109,6 +109,27 @@ assert.deepEqual(tagesleisteTipp(tagMitWerten, 10), [
 assert.deepEqual(tagesleisteTipp(tagMitWerten, 20), ["20:00 · Programm", "Außen Prognose 18,1 °C"]);
 assert.deepEqual(tagesleisteTipp({}, 5), ["05:00"]);
 // Skalen der Kennwerte: Lage eines Werts in Prozent, an den Rändern begrenzt.
+// Kasten einer Stunde: nur Protokolleinträge von heute aus dieser Stunde.
+const halbAcht = new Date();
+halbAcht.setHours(7, 30, 0, 0);
+const zehnNachNeun = new Date();
+zehnNachNeun.setHours(9, 10, 0, 0);
+const kasten = stundenKasten(
+  { stunden: [{ stunde: 7, aktion: "absenkung", vorrang: true, at: 9.3, raum: 20.5 }] },
+  7,
+  [
+    { zeit: zehnNachNeun.toISOString(), art: "geschrieben", text: "anders", werte: [] },
+    { zeit: halbAcht.toISOString(), art: "geschrieben", text: "Sonnenquote 82 % – 21,0 °C bis 16:54.", werte: [] },
+  ]
+);
+assert.equal(kasten[0], "07:00–08:00 · Absenkung");
+assert.ok(kasten.includes("07:30 Sonnenquote 82 % – 21,0 °C bis 16:54."));
+assert.ok(!kasten.some((z) => z.startsWith("09:10")));
+assert.ok(kasten.includes("Vorrangquelle lieferte"));
+assert.ok(kasten.includes("Außen gemessen 9,3 °C"));
+assert.ok(kasten.includes("Räume 20,5 °C"));
+assert.equal(stundenKasten({ stunden: [] }, 23, [])[0], "23:00–24:00 · Programm");
+
 const kennwerte = await import(new URL("./kennwerte.js", pathToFileURL(process.argv[2])).href);
 assert.equal(kennwerte.skalaProzent(18, 6, 26), 60);
 assert.equal(kennwerte.skalaProzent(40, 6, 26), 100);
