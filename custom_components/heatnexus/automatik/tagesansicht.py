@@ -51,7 +51,8 @@ def sonne(laufzeit: Laufzeit, tag: date) -> list[float]:
     return werte
 
 
-def _aktion(g: regel.Gedaechtnis, stunde: int, tag: date) -> str:
+def aktion(g: regel.Gedaechtnis, stunde: int, tag: date) -> str:
+    """Was das Gedächtnis für eine Stunde vorsieht: nur_ww, absenkung oder programm."""
     if g.saison == regel.NUR_WW:
         return "nur_ww"
     von = stunde_als_zahl(g.absenkung_von, tag)
@@ -65,6 +66,8 @@ def stunden(laufzeit: Laufzeit, tag: date, g: regel.Gedaechtnis) -> list[dict[st
     """24 Stunden mit Prognose, Messwerten und dem, was die Automatik tut."""
     prognose = laufzeit.stundenprognose(tag)
     gemessen = laufzeit.verlauf["stunden"] if laufzeit.verlauf["datum"] == tag.isoformat() else {}
+    jetzt = dt_util.now()
+    vorbei = jetzt.hour if tag == jetzt.date() else (24 if tag < jetzt.date() else 0)
     leer = {"roh": None, "korrigiert": None, "wolken": None}
     return [
         {
@@ -74,7 +77,9 @@ def stunden(laufzeit: Laufzeit, tag: date, g: regel.Gedaechtnis) -> list[dict[st
             "raum": (gemessen.get(str(stunde)) or {}).get("raum"),
             "gedaempft": (gemessen.get(str(stunde)) or {}).get("gedaempft"),
             "vorrang": bool((gemessen.get(str(stunde)) or {}).get("vorrang")),
-            "aktion": _aktion(g, stunde, tag),
+            # Vergangene Stunden zeigen, was galt; ohne Vermerk lief das Programm.
+            "aktion": (gemessen.get(str(stunde)) or {}).get("aktion")
+            or ("programm" if stunde < vorbei else aktion(g, stunde, tag)),
         }
         for stunde in range(24)
     ]

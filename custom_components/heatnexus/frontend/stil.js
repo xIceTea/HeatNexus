@@ -1277,8 +1277,9 @@ export const STIL = `
   .automatik-stunde .t.kalt { color: #8fd3ff; }
   .automatik-stunde .t.warm { color: #ffab6f; }
   .automatik-stunde .streifen { height: 4px; border-radius: 2px; margin: 4px 3px; background: var(--hn-linie); }
-  .automatik-stunde .streifen.absenkung { background: var(--hn-akzent); }
-  .automatik-stunde .streifen.nur_ww { background: var(--hn-sonne); }
+  /* Sonnentag gelb, nur Warmwasser blau: auf einen Blick, was in welcher Stunde galt. */
+  .automatik-stunde .streifen.absenkung { background: var(--hn-sonne); }
+  .automatik-stunde .streifen.nur_ww { background: #5aa9e6; }
   .automatik-stunde .raum { font-size: 10px; font-weight: 700; border-radius: 5px; margin: 0 3px; padding: 2px 0; }
   .automatik-stunde .raum.ueber { background: color-mix(in srgb, #7bd88f 30%, transparent); color: var(--hn-text); }
   .automatik-stunde .raum.unter { background: color-mix(in srgb, #8fd3ff 30%, transparent); color: var(--hn-text); }

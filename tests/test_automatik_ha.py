@@ -960,3 +960,36 @@ async def test_ausgeschaltete_thermostate_sind_raeume_ohne_bedarf(hass, anlage):
     assert lage.aus == (20.1, 19.5)
     assert lage.raum == pytest.approx(19.8)
     assert verwaltung.laufzeiten[HEIZKREIS].zustand.value != "keine_daten"
+
+
+async def test_stundenraster_zeigt_was_je_stunde_galt(hass, anlage, freezer):
+    """Vergangene Stunden behalten ihre Aktion; kommende zeigen den Plan."""
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import regel, tagesansicht
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await laufzeit.auswerten(entscheidungszeit=True)
+    assert laufzeit.zustand == regel.Zustand.SONNENTAG
+
+    freezer.tick(timedelta(hours=3))
+    laufzeit.gedaechtnis = regel.Gedaechtnis(
+        saison=regel.NUR_WW, saison_seit=dt_util.now(), saison_soll=21.0
+    )
+    await laufzeit.auswerten()
+
+    aktionen = {
+        s["stunde"]: s["aktion"] for s in tagesansicht.heute(laufzeit, dt_util.now())["stunden"]
+    }
+    assert aktionen[8] == "absenkung"
+    assert aktionen[11] == "nur_ww"
+    assert aktionen[15] == "nur_ww"
+    assert aktionen[5] == "programm"

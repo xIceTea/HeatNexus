@@ -29,7 +29,7 @@ from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
 from ..helpers import get_oid_value
-from . import eingaben, korrektur, nachladen, profile, regel
+from . import eingaben, korrektur, nachladen, profile, regel, tagesansicht
 from .steller import Stand, Steller
 
 _LOGGER = logging.getLogger(__name__)
@@ -327,6 +327,7 @@ class Laufzeit:
     def _setzen(self, zustand: regel.Zustand, begruendung: str) -> None:
         self.zustand = zustand
         self.begruendung = begruendung
+        self._aktion_merken(dt_util.now())
         self._speichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
 
@@ -508,6 +509,14 @@ class Laufzeit:
         for name, wert in werte.items():
             if wert is not None and eintrag.get(name) is None:
                 eintrag[name] = wert
+
+    def _aktion_merken(self, jetzt: datetime) -> None:
+        """Was in dieser Stunde an der Steuerung gilt; spätere Stunden zeigen nur den Plan."""
+        heute = jetzt.date().isoformat()
+        if self.verlauf["datum"] != heute:
+            self.verlauf = {"datum": heute, "stunden": {}}
+        stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
+        stunde["aktion"] = tagesansicht.aktion(self.gedaechtnis, jetzt.hour, jetzt.date())
 
     def stufen_uebernehmen(self, stufen: tuple[float, float], zeit: datetime) -> None:
         """Die aus dem Tag nachgerechnete gedämpfte AT übernehmen, wenn die eigene jünger ist."""

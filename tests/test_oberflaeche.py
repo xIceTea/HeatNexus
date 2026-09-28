@@ -659,7 +659,11 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     assert automatik["tagesleiste"] == 1
     assert "Einrichtung bearbeiten" in automatik["knoepfe"]
     assert "Automatik entfernen" in automatik["knoepfe"]
-    assert automatik["ausrichtung"] == [["Eco", "false"], ["Ausgewogen", "true"], ["Komfort", "false"]]
+    assert automatik["ausrichtung"] == [
+        ["Eco", "false"],
+        ["Ausgewogen", "true"],
+        ["Komfort", "false"],
+    ]
     (hinweis,) = automatik["hinweise"]
     assert "Nichts davon ging an die Steuerung" in hinweis
 
