@@ -181,34 +181,27 @@ export function wetterSymbol(wolken, hell) {
   return "☁";
 }
 
-/** Text der Korrekturmarke: angepasst, lernend oder ohne Messung. */
-export function korrekturText(art, eintrag, noetig) {
-  if (art === "sonne" && !eintrag.aktiv) return "Sonne unkorrigiert";
-  const name = art === "sonne" ? "Sonne" : "Außen";
-  if (art === "temperatur" && eintrag.versatz !== null && eintrag.versatz !== undefined) {
-    return `${name} angepasst ${kelvin(eintrag.versatz)}`;
-  }
-  if (art === "sonne" && eintrag.faktor !== null && eintrag.faktor !== undefined) {
-    const prozent = Math.round((Number(eintrag.faktor) - 1) * 100);
-    return `${name} angepasst ${prozent > 0 ? "+" : prozent < 0 ? "−" : "±"}${Math.abs(prozent)} %`;
-  }
-  return `${name}: lernt noch ${eintrag.tage || 0}/${noetig}`;
-}
-
-/** Stand der Prognoseanpassung in einer Zeile: angepasst, lernend oder roh. */
-export function korrekturZeile(k, t = (text) => text) {
-  if (!k) return "";
-  if (!k.an) return t("Rohe Prognose");
-  const teile = [t("Prognose angepasst")];
+/**
+ * Wirkung der Prognoseanpassung je Größe: Versatz in K, Sonne in Prozent,
+ * sonst der Lernstand. `wirkt` nur bei eingeschalteter Anpassung.
+ */
+export function korrekturMarken(k, t = (text) => text) {
+  if (!k) return [];
+  const marken = [];
   const temperatur = k.temperatur || {};
-  if (temperatur.versatz !== null && temperatur.versatz !== undefined) teile.push(`${t("Außen")} ${kelvin(temperatur.versatz)}`);
-  else teile.push(`${t("Außen lernt noch")} ${temperatur.tage || 0}/${k.noetig}`);
+  if (temperatur.versatz !== null && temperatur.versatz !== undefined) {
+    marken.push({ text: `${t("Außen")} ${kelvin(temperatur.versatz)}`, wirkt: !!k.an });
+  } else {
+    marken.push({ text: `${t("Außen lernt noch")} ${temperatur.tage || 0}/${k.noetig}`, wirkt: false });
+  }
   const sonne = k.sonne || {};
   if (sonne.aktiv && sonne.faktor !== null && sonne.faktor !== undefined) {
     const prozent = Math.round((Number(sonne.faktor) - 1) * 100);
-    teile.push(`${t("Sonne")} ${prozent > 0 ? "+" : prozent < 0 ? "−" : "±"}${Math.abs(prozent)} %`);
-  } else if (sonne.aktiv) teile.push(`${t("Sonne")} ${sonne.tage || 0}/${k.noetig}`);
-  return teile.join(" · ");
+    marken.push({ text: `${t("Sonne")} ${prozent > 0 ? "+" : prozent < 0 ? "−" : "±"}${Math.abs(prozent)} %`, wirkt: !!k.an });
+  } else if (sonne.aktiv) {
+    marken.push({ text: `${t("Sonne lernt noch")} ${sonne.tage || 0}/${k.noetig}`, wirkt: false });
+  }
+  return marken;
 }
 
 export const TagesbildMixin = (Basis) =>
@@ -264,7 +257,10 @@ export const TagesbildMixin = (Basis) =>
       kopf.className = "automatik-verlaufkopf";
       const titel = document.createElement("h3");
       titel.textContent = this._t("Tagesverlauf");
-      kopf.append(titel, this._automatikTagWahlLeiste(kreis, tage, wahl), this._automatikStundenlegende());
+      kopf.append(titel, this._automatikTagWahlLeiste(kreis, tage, wahl));
+      const korrektur = this._automatikKorrektur(kreis);
+      if (korrektur) kopf.appendChild(korrektur);
+      kopf.appendChild(this._automatikStundenlegende());
       rahmen.appendChild(kopf);
       if (wahl > 0) {
         const vorschau = document.createElement("div");
@@ -437,8 +433,6 @@ export const TagesbildMixin = (Basis) =>
       const aktion = eintrag.aktion || "programm";
       teil(`modus m-${aktion}`, this._t(AKTIONEN[aktion] || aktion));
       if (eintrag.vorrang) teil("vorrang", this._t("Vorrangquelle lieferte"));
-      const korrektur = korrekturZeile(kreis.korrektur, (text) => this._t(text));
-      if (korrektur) teil("korrektur", korrektur);
       kasten.appendChild(zeile);
       // Die Protokolleinträge dieser Stunde; Kopf und Messwerte stehen schon in der Zeile.
       stundenKasten(kreis.tag, stunde, heute ? kreis.protokoll : [], (text) => this._t(text))
@@ -450,6 +444,35 @@ export const TagesbildMixin = (Basis) =>
           kasten.appendChild(eintragZeile);
         });
       return kasten;
+    }
+
+    /** Schalter „Prognose anpassen“ mit der Wirkung daneben; ausgeschaltet blass, zum Vergleich. */
+    _automatikKorrektur(kreis) {
+      const k = kreis.korrektur;
+      if (!k) return null;
+      const huelle = document.createElement("span");
+      huelle.className = "korrektur";
+      const schalter = document.createElement("button");
+      schalter.type = "button";
+      schalter.className = `automatik-schalter klein${k.an ? " an" : ""}`;
+      schalter.setAttribute("role", "switch");
+      schalter.setAttribute("aria-checked", String(!!k.an));
+      schalter.disabled = !(this._automatik && this._automatik.darf_aendern);
+      const knopf = document.createElement("i");
+      const text = document.createElement("span");
+      text.textContent = this._t("Prognose anpassen");
+      schalter.append(knopf, text);
+      schalter.addEventListener("click", () =>
+        this._automatikEinstellen(kreis, { eigene: { ...(kreis.konfig.eigene || {}), anpassen: !k.an } })
+      );
+      huelle.appendChild(schalter);
+      korrekturMarken(k, (wort) => this._t(wort)).forEach(({ text: inhalt, wirkt }) => {
+        const marke = document.createElement("span");
+        marke.className = `automatik-korrekturmarke${wirkt ? " wirkt" : ""}`;
+        marke.textContent = inhalt;
+        huelle.appendChild(marke);
+      });
+      return huelle;
     }
 
     /** Farben der Modi, oben rechts im Tagesverlauf. */

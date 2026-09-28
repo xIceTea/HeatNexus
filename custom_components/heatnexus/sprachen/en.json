@@ -467,8 +467,6 @@
   "Die gedämpfte Außentemperatur entscheidet über nur Warmwasser. Die Steuerung rechnet mit der aktuellen Außentemperatur.": "The damped outdoor temperature decides on hot water only. The controller uses the current outdoor temperature.",
   "Gestern": "Yesterday",
   "Nicht eingerichtet": "Not set up",
-  "Prognose angepasst": "Forecast adapted",
-  "Rohe Prognose": "Raw forecast",
   "Senkt an sonnigen Tagen ab und schaltet in der Übergangszeit auf nur Warmwasser. Startet im Beobachtungsmodus.": "Lowers the setpoint on sunny days and switches to hot water only in the transition season. Starts in observe mode.",
   "Tagesverlauf": "Day profile",
   "Modus": "Mode",
@@ -550,5 +548,7 @@
   "Heizbetrieb {heiz} °C, Absenkbetrieb {absenk} °C": "Heating mode {heiz} °C, setback mode {absenk} °C",
   "Heizbetrieb {wert} °C": "Heating mode {wert} °C",
   "Absenkbetrieb {wert} °C": "Setback mode {wert} °C",
-  "{text} Vorausgesetzt, die Räume fordern keine Wärme an.": "{text} Provided the rooms do not call for heat."
+  "{text} Vorausgesetzt, die Räume fordern keine Wärme an.": "{text} Provided the rooms do not call for heat.",
+  "Prognose anpassen": "Adapt forecast",
+  "Sonne lernt noch": "Sun still learning"
 }

@@ -698,6 +698,13 @@ def test_die_werte_der_automatik_oeffnen_ihre_entitaet(durchlauf):
     )
 
 
+def test_prognose_anpassen_zeigt_seine_wirkung(durchlauf):
+    """Neben dem Schalter steht, um wie viel die Anpassung die Prognose verschiebt."""
+    automatik = durchlauf["automatik"]
+    assert automatik["korrekturSchalter"] == ["true"]
+    assert automatik["korrektur"] == [["Außen −1,4 K", True], ["Sonne +12 %", True]]
+
+
 def test_speichern_ist_nur_mit_einer_abweichung_aktiv(durchlauf):
     """Grau ohne Änderung, aktiv nach einer Eingabe, grau nach der Rückkehr zum gespeicherten Wert."""
     automatik = durchlauf["automatik"]

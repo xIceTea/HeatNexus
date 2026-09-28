@@ -729,6 +729,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
         protokoll: [{ zeit: "2026-09-27T07:00:00+02:00", art: "haette", text: "Sonnenquote 78 %.", werte: [] }],
         beobachtet_seit: "2026-09-20T07:00:00+02:00",
         pausiert_bis: null,
+        korrektur: { an: true, noetig: 7, temperatur: { versatz: -1.4, tage: 9 }, sonne: { aktiv: true, faktor: 1.12, tage: 8 } },
         entitaeten: {
           zustand: "sensor.heizkreis_automatik_zustand",
           gedaempft: "sensor.heizkreis_automatik_gedaempft",
@@ -780,6 +781,13 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     klickbar: (wurzel.querySelector(".automatik-bereich") || { querySelectorAll: () => [] })
       .querySelectorAll(".klickbar")
       .map((k) => String(k.className).split(" ")[0]),
+    korrektur: wurzel
+      .querySelectorAll(".automatik-korrekturmarke")
+      .map((m) => [String(m.textContent || ""), m.classList.contains("wirkt")]),
+    korrekturSchalter: wurzel
+      .querySelectorAll(".automatik-schalter")
+      .filter((k) => k.classList.contains("klein"))
+      .map((k) => k.getAttribute("aria-checked")),
     speichernGrau: (wurzel.querySelectorAll(".automatik-knopf").find((k) => k.classList.contains("speichern")) || {}).disabled,
     ausrichtung: wurzel
       .querySelectorAll(".automatik-segment")

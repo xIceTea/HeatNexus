@@ -1344,7 +1344,21 @@ export const STIL = `
   .automatik-stundenwerte .modus.m-absenkung { color: var(--hn-sonne); }
   .automatik-stundenwerte .modus.m-nur_ww { color: #5aa9e6; }
   .automatik-stundenwerte .vorrang { color: var(--hn-sonne); }
-  .automatik-stundenwerte .korrektur { margin-left: auto; font-size: 12px; color: var(--hn-gedaempft); }
+  .automatik-verlaufkopf .korrektur {
+    display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+    font-size: 12px; color: var(--hn-gedaempft);
+  }
+  .automatik-schalter.klein { font-size: 12px; font-weight: 500; gap: 8px; }
+  .automatik-schalter.klein i { width: 30px; height: 18px; }
+  .automatik-schalter.klein i::after { width: 12px; height: 12px; }
+  .automatik-schalter.klein.an i::after { transform: translateX(12px); }
+  .automatik-korrekturmarke {
+    padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap;
+    background: var(--hn-flaeche); color: var(--hn-gedaempft); opacity: 0.75;
+  }
+  .automatik-korrekturmarke.wirkt {
+    opacity: 1; background: color-mix(in srgb, var(--hn-akzent) 16%, transparent); color: var(--hn-akzent);
+  }
   .automatik-stundenkasten .protokoll { font-size: 12px; color: var(--hn-gedaempft); margin-top: 2px; }
   .automatik-tag-bild { position: relative; touch-action: pan-y; cursor: crosshair; }
   .automatik-tag-bild svg { display: block; width: 100%; height: 190px; }
@@ -1530,6 +1544,5 @@ export const STIL = `
     .automatik-feld.breit select { min-width: 0; max-width: 55vw; }
     .automatik-gruppe + .automatik-gruppe, .automatik-schalter + .automatik-gruppe { padding-left: 0; border-left: none; }
     .automatik-stundenlegende { margin-left: 0; }
-    .automatik-stundenwerte .korrektur { margin-left: 0; }
   }
 `;

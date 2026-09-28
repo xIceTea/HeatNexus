@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 const modul = await import(pathToFileURL(process.argv[2]).href);
 const { zahl, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
 const tagesbild = await import(new URL("./tagesbild.js", pathToFileURL(process.argv[2])).href);
-const { uhrzeit, tagesleisteSvg, tagesleisteTipp, stundenKasten, wetterSymbol, korrekturText, korrekturZeile, tagesleisteBereich } = tagesbild;
+const { uhrzeit, tagesleisteSvg, tagesleisteTipp, stundenKasten, wetterSymbol, korrekturMarken, tagesleisteBereich } = tagesbild;
 
 assert.equal(zahl(19.5), "19,5");
 assert.equal(zahl(78, 0), "78");
@@ -87,22 +87,27 @@ assert.equal(wetterSymbol(50, true), "⛅");
 assert.equal(wetterSymbol(90, true), "☁");
 assert.equal(wetterSymbol(10, false), "☾");
 
-assert.equal(korrekturText("temperatur", { versatz: -1.4, tage: 9 }, 7), "Außen angepasst −1,4 K");
-assert.equal(korrekturText("temperatur", { versatz: null, tage: 3 }, 7), "Außen: lernt noch 3/7");
-assert.equal(korrekturText("sonne", { aktiv: true, faktor: 0.88, tage: 8 }, 7), "Sonne angepasst −12 %");
-assert.equal(korrekturText("sonne", { aktiv: false }, 7), "Sonne unkorrigiert");
 
-// Stand der Prognoseanpassung in einer Zeile, mit Wirkung der Sonnenanpassung in Prozent.
-assert.equal(korrekturZeile({ an: false }), "Rohe Prognose");
-assert.equal(
-  korrekturZeile({ an: true, noetig: 7, temperatur: { versatz: null, tage: 2 }, sonne: { aktiv: true, faktor: null, tage: 1 } }),
-  "Prognose angepasst · Außen lernt noch 2/7 · Sonne 1/7"
+// Wirkung der Prognoseanpassung: Versatz in K, Sonne in Prozent, sonst der Lernstand.
+assert.deepEqual(korrekturMarken(null), []);
+assert.deepEqual(
+  korrekturMarken({ an: true, noetig: 7, temperatur: { versatz: null, tage: 2 }, sonne: { aktiv: true, faktor: null, tage: 1 } }),
+  [
+    { text: "Außen lernt noch 2/7", wirkt: false },
+    { text: "Sonne lernt noch 1/7", wirkt: false },
+  ]
 );
-assert.equal(
-  korrekturZeile({ an: true, noetig: 7, temperatur: { versatz: -1.4, tage: 9 }, sonne: { aktiv: true, faktor: 1.12, tage: 8 } }),
-  "Prognose angepasst · Außen −1,4 K · Sonne +12 %"
+assert.deepEqual(
+  korrekturMarken({ an: true, noetig: 7, temperatur: { versatz: -1.4, tage: 9 }, sonne: { aktiv: true, faktor: 1.12, tage: 8 } }),
+  [
+    { text: "Außen −1,4 K", wirkt: true },
+    { text: "Sonne +12 %", wirkt: true },
+  ]
 );
-assert.equal(korrekturZeile({ an: true, noetig: 7, temperatur: { versatz: 0.5 }, sonne: { aktiv: false } }), "Prognose angepasst · Außen +0,5 K");
+// Ausgeschaltet bleibt die Wirkung sichtbar, aber nicht als wirksam markiert.
+assert.deepEqual(korrekturMarken({ an: false, noetig: 7, temperatur: { versatz: 0.5 }, sonne: { aktiv: false } }), [
+  { text: "Außen +0,5 K", wirkt: false },
+]);
 
 // Das Band unten zeigt den Modus je Stunde; künftige Stunden sind als Plan markiert.
 const band = tagesleisteSvg({
