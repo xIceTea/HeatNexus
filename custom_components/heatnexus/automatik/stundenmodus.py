@@ -58,6 +58,24 @@ def _modus_am(ereignisse: list[tuple[datetime, str, datetime | None]], zeitpunkt
     return PROGRAMM if ende is not None and zeitpunkt > ende else modus
 
 
+def minuten(
+    protokoll: Iterable[Mapping[str, Any]], tag: date, bis: datetime, nur_ww_wert: int
+) -> dict[str, float]:
+    """Minuten je Modus von Mitternacht bis `bis`, aus den geschriebenen Eingriffen."""
+    beginn = datetime.combine(tag, time(0), bis.tzinfo)
+    summe = {"absenkung": 0.0, "nur_ww": 0.0}
+    modus, ende, ab = PROGRAMM, None, beginn
+    for zeit, neu, neues_ende in [*_ereignisse(protokoll, tag, nur_ww_wert), (bis, PROGRAMM, None)]:
+        grenze = min(max(zeit, beginn), bis)
+        schluss = min(grenze, ende) if ende is not None else grenze
+        if modus in summe and schluss > ab:
+            summe[modus] += (schluss - ab).total_seconds() / 60
+        modus, ende, ab = neu, neues_ende, grenze
+        if zeit >= bis:
+            break
+    return summe
+
+
 def ergaenzen(
     vermerke: Mapping[int, str],
     protokoll: Iterable[Mapping[str, Any]],

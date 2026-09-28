@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
@@ -98,3 +98,20 @@ def test_absenkung_von_gestern_endet_nach_mitternacht(m):
         "absenkung",
         "programm",
     ]
+
+
+def test_minuten_je_modus_aus_dem_protokoll(m):
+    bis = datetime(2026, 9, 28, 20, 50, tzinfo=TZ)
+    assert m.minuten(PROTOKOLL, TAG, bis, 6) == {"absenkung": 242.0, "nur_ww": 558.0}
+
+
+def test_minuten_enden_mit_der_dauer_der_absenkung(m):
+    bis = datetime(2026, 9, 28, 16, 0, tzinfo=TZ)
+    protokoll = [eintrag("07:30", ("/3/4/0", "21.0"), ("/2/10/0", "400"))]
+    assert m.minuten(protokoll, TAG, bis, 6) == {"absenkung": 400.0, "nur_ww": 0.0}
+
+
+def test_minuten_zaehlen_nur_ww_vom_vortag_ab_mitternacht(m):
+    vortag = {**eintrag("00:00", ("/3/50/0", "6")), "zeit": "2026-09-27T18:00:00+02:00"}
+    bis = datetime(2026, 9, 28, 6, 0, tzinfo=TZ)
+    assert m.minuten([vortag], TAG, bis, 6) == {"absenkung": 0.0, "nur_ww": 360.0}

@@ -1394,3 +1394,42 @@ async def test_entitaeten_der_automatik_gehoeren_dem_untereintrag(hass, hass_ws_
 
     assert aufnahme.entitaeten
     assert aufnahme.untereintraege == [verwaltung.subeintrag(entry)] != [None]
+
+
+async def test_laufzeiten_ohne_speicherstand_kommen_aus_dem_protokoll(hass, freezer):
+    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
+
+    # Zeiten in der Zone der Testumgebung, damit der Tag dort um Mitternacht beginnt.
+    freezer.move_to("2026-09-28 20:50:00-07:00")
+    protokoll = [
+        {
+            "zeit": "2026-09-28T11:32:00-07:00",
+            "art": "geschrieben",
+            "text": "",
+            "werte": [["/2/10/0", "0"], ["/3/50/0", "6"]],
+        },
+        {
+            "zeit": "2026-09-28T07:30:00-07:00",
+            "art": "geschrieben",
+            "text": "",
+            "werte": [["/3/4/0", "21.0"], ["/2/10/0", "400"]],
+        },
+    ]
+    beschreibung = {"device_id": HEIZKREIS, "prefix": PREFIX, "preset_allowed": [0, 1, 6]}
+
+    async def prognose(_art, _quelle):
+        return None
+
+    laufzeit = Laufzeit(
+        hass,
+        Coordinator(),
+        beschreibung,
+        {},
+        {"stand": {"protokoll": protokoll}},
+        lambda: None,
+        "e",
+        prognose,
+    )
+
+    assert round(laufzeit.modus_lauf["absenkung"].minuten) == 242
+    assert round(laufzeit.modus_lauf["nur_ww"].minuten) == 558

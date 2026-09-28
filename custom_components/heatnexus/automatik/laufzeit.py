@@ -27,9 +27,9 @@ from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
 from ..helpers import get_oid_value
-from . import eingaben, korrektur, nachladen, profile, regel, tagesansicht
+from . import eingaben, korrektur, nachladen, profile, regel, stundenmodus, tagesansicht
 from .quellen import QuellenMixin, ortszeit
-from .steller import Stand, Steller
+from .steller import Stand, Steller, nur_ww_wert
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -149,8 +149,12 @@ class Laufzeit(QuellenMixin):
         # Wie lange Wärmequellen mit Vorrang vor dem Kessel heute geliefert haben.
         self.vorrang = eingaben.lauf_aus_dict(z.get("vorrang"))
         # Wie lange Sonnentag und nur Warmwasser heute an der Steuerung galten.
-        modus = z.get("modus_lauf") if isinstance(z.get("modus_lauf"), dict) else {}
-        self.modus_lauf = {art: eingaben.lauf_aus_dict(modus.get(art)) for art in MODUS_ARTEN}
+        modus = z.get("modus_lauf")
+        self.modus_lauf = (
+            {art: eingaben.lauf_aus_dict(modus.get(art)) for art in MODUS_ARTEN}
+            if isinstance(modus, dict)
+            else self._lauf_aus_protokoll(dt_util.now())
+        )
         self._lieferbeginn_am: date | None = None
         self._entscheidung_offen = False
 
@@ -571,6 +575,14 @@ class Laufzeit(QuellenMixin):
             self.verlauf = {"datum": heute, "stunden": {}}
         stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
         stunde["aktion"] = tagesansicht.aktion(self.gedaechtnis, jetzt.hour, jetzt.date())
+
+    def _lauf_aus_protokoll(self, jetzt: datetime) -> dict[str, eingaben.Lauf]:
+        """Ohne gespeicherte Laufzeiten der heutige Stand aus den geschriebenen Eingriffen."""
+        minuten = stundenmodus.minuten(
+            self.steller.stand.protokoll, jetzt.date(), jetzt, nur_ww_wert(self.steller.angeboten)
+        )
+        heute = jetzt.date().isoformat()
+        return {art: eingaben.Lauf(heute, minuten[art]) for art in MODUS_ARTEN}
 
     def _modus_fortschreiben(self, jetzt: datetime) -> None:
         """Laufzeiten der Modi; im Beobachten ging nichts an die Steuerung."""
