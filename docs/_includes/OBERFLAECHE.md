@@ -76,24 +76,40 @@ ohnehin tut:
   auf demselben Weg wie Eco in der Steuerung. Die Absenkung endet an der Anlage
   von selbst, spätestens zwei Stunden vor Sonnenuntergang. Fällt der Raum unter
   die Rückkehrschwelle, beendet die Automatik sie vorher.
-- **Übergangszeit.** Liegt die gedämpfte Außentemperatur über der Heizgrenze
-  oder sagt die Prognose für heute und morgen mildes Wetter voraus, schaltet
-  sie den Heizkreis auf nur Warmwasser. Zurück geht es, wenn es kühler wird
-  und der Raum auskühlt. Eine Hysterese und eine Mindestdauer verhindern
-  häufiges Umschalten.
+- **Übergangszeit.** Sagt die Prognose für heute und morgen im Mittel
+  mindestens die Heizgrenze voraus, oder liegt die gedämpfte Außentemperatur
+  um die Hysterese darüber, schaltet sie den Heizkreis auf nur Warmwasser.
+  Zurück geht es, wenn es kühler wird und die Räume auskühlen. Eine Hysterese
+  und eine Mindestdauer verhindern häufiges Umschalten.
+
+### Die Heizgrenze der Steuerung
+
+Die Automatik führt keine eigene Heizgrenze. Sie liest `TA Heizbetrieb` der
+Steuerung und richtet sich danach, an jedem Heizkreis und mit jedem Kessel.
+Die Steuerung selbst schaltet nach der aktuellen Außentemperatur; die
+Automatik schaltet nach Prognose und gedämpfter Außentemperatur und ist damit
+vorausschauend. Liefert ein Heizkreis die Heizgrenze nicht, rechnet sie mit
+17 °C und sagt das in der Außen-Kachel.
+
+Unter den Kacheln stehen die **Heizgrenzen der Steuerung** für Heiz- und
+Absenkbetrieb. Sie lassen sich dort ändern; das ist eine Einstellung von Hand,
+kein Eingriff der Automatik, und zählt nicht zum Budget.
 - **Abwesenheit und Fenster** sind freiwillig. Sind alle Personen weg, senkt
   sie ab. Ein offenes Fenster setzt die Entscheidungen aus.
 
 Eingerichtet wird im Reiter **Automatik** je Heizkreis: Heizflächen, Räume,
 Wetter und optional PV-Prognose, Personen und Fenster. Die Art der Heizflächen
 wählt eines von drei Profilen – Schnell für Heizkörper, Standard für gemischt,
-Träge für Fußboden- und Wandheizung. Die **Ausrichtung** verschiebt diese Werte:
+Träge für Fußboden- und Wandheizung. Die **Ausrichtung** verschiebt diese Werte
+und legt fest, wie weit die Automatik von der Heizgrenze der Steuerung abweicht:
 
-- **Eco** greift früher und kräftiger ein: Heizgrenze 2 K tiefer, Sonnentag ab
+- **Eco** greift früher und kräftiger ein: 2 K unter der Heizgrenze der
+  Steuerung, Sonnentag ab
   15 % weniger Sonnenquote, 0,5 K mehr Absenkung, „sehr sonnig“ schon ab 0,5 K
   über Ziel, Räume nach einer Stunde ohne Wärmeanforderung ruhig.
 - **Ausgewogen** nimmt die Werte der Heizflächen unverändert.
-- **Komfort** greift später und sanfter ein: Heizgrenze 1 K höher, Sonnentag
+- **Komfort** greift später und sanfter ein: 1 K über der Heizgrenze der
+  Steuerung, Sonnentag
   erst ab 10 % mehr Sonnenquote, 0,5 K weniger Absenkung, kein „sehr sonnig“,
   Räume erst nach drei Stunden ruhig.
 
@@ -191,18 +207,34 @@ meldet in Home Assistant oft weiter seinen letzten Wert. Zeigt ein Raumfühler
 über Stunden denselben Wert, gilt er als veraltet und zählt nicht zum Raumwert;
 die Raum-Kachel nennt ihn dann ausdrücklich.
 
-Je eingerichteter Automatik entsteht ein eigenes Gerät **Automatik <Heizkreis>**
-unter dem Heizkreis. Es führt:
+### Geräte und Sensoren
+
+Mit der ersten Automatik entsteht das Gerät **HeatNexus Automatik**. Es
+bündelt alle Automatiken des Eintrags:
+
+- **Status**: aus, beobachten, bereit, Eingriff aktiv, pausiert oder Störung,
+  der schwerste Zustand aller Heizkreise; je Heizkreis als Attribut,
+- **Automatiken**, **Eingriffe heute**, **Letzter Eingriff** mit Grund und
+  Heizkreis, **Nächste Entscheidung**,
+- **Störung** und **Wetterprognose** (an, solange jede Automatik eine
+  Prognose hat, die jünger als sechs Stunden ist).
+
+Darunter steht je Heizkreis das Gerät **Automatik <Heizkreis>**. Es führt:
 
 - den Schalter **Automatik** und die Auswahlen **Automatik-Modus** und
   **Automatik-Ausrichtung**,
 - den Sensor **Automatik-Zustand** mit der Begründung als Attribut,
 - die Werte, mit denen sie rechnet: **Gedämpfte Außentemperatur**,
-  **Heizgrenze** (die gerade gilt), **Räume zum Ziel**, **Sonnenquote heute**,
+  **Heizgrenze** (die der Steuerung samt Ausrichtung), **Räume zum Ziel**,
+  **Sonnenquote heute**,
 - **Eingriffe heute** mit dem Budget als Attribut, **Letzter Eingriff** mit
   dem Grund, **Nächste Entscheidung**,
 - **Störung**: an, solange die Steuerung Eingriffe ablehnt oder die
-  Sicherheitsregel greift. Damit lässt sie sich auch in Automationen und Dashboards verwenden.
+  Sicherheitsregel greift.
+
+Damit lässt sich die Automatik auch in Automationen und Dashboards verwenden.
+Der Diagnose-Export der Integration enthält je Automatik Einstellungen,
+wirksame Werte, die letzte Lage, das Protokoll und den Verlauf des Tages.
 
 ## Eigene Werte über Labels
 
