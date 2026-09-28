@@ -837,3 +837,68 @@ async def test_eingefrorenes_thermostat_wird_aus_dem_verlauf_erkannt(
     assert laufzeit.veraltet("climate.bad") is False
     await laufzeit.auswerten()
     assert laufzeit.lage.raeume == ((20.4, 20.5),)
+
+
+def _quelle(hass, zustand: str = "on") -> str:
+    """Eine Wärmequelle von HeatNexus, wie sie `binary_sensor` anlegt."""
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = er.async_get(hass).async_get_or_create(
+        "binary_sensor", DOMAIN, "SN1-waermequelle-q1", suggested_object_id="solaranlage"
+    )
+    hass.states.async_set(eintrag.entity_id, zustand, {"friendly_name": "Solaranlage"})
+    return eintrag.entity_id
+
+
+async def test_waermequellen_stehen_als_vorrang_zur_wahl(hass, hass_ws_client, anlage):
+    client = await hass_ws_client(hass)
+    quelle = _quelle(hass)
+    hass.states.async_set("binary_sensor.tuer", "off", {"device_class": "door"})
+
+    antwort = await _senden(client, type="heatnexus/automatik/kandidaten")
+
+    assert [e["entity_id"] for e in antwort["result"]["vorrang"]] == [quelle]
+
+
+async def test_vorrangquelle_zaehlt_ihre_minuten(hass, hass_ws_client, anlage, freezer):
+    from datetime import timedelta
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    quelle = _quelle(hass)
+    antwort = await _senden(
+        client,
+        type="heatnexus/automatik/einrichten",
+        heizkreis=HEIZKREIS,
+        raeume=["sensor.wohnzimmer"],
+        wetter="weather.home",
+        vorrang=[quelle],
+    )
+    assert antwort["success"], antwort
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    assert laufzeit.lage.vorrang_laeuft is True
+    assert laufzeit.lage.vorrang_name == "Solaranlage"
+
+    freezer.tick(timedelta(minutes=30))
+    hass.states.async_set(quelle, "off", {"friendly_name": "Solaranlage"})
+    await hass.async_block_till_done()
+    freezer.tick(timedelta(minutes=30))
+    await laufzeit.auswerten()
+
+    assert laufzeit.lage.vorrang_laeuft is False
+    assert laufzeit.lage.vorrang_minuten == pytest.approx(30)
+    kreis = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0]
+    assert kreis["kennwerte"]["vorrang"] == {"laeuft": False, "minuten": 30}
+    stunde = next(s for s in kreis["tag"]["stunden"] if s["stunde"] == 8)
+    assert stunde["vorrang"] is True
+
+
+async def test_ohne_vorrangquelle_keine_angabe(hass, hass_ws_client, anlage):
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    kreis = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0]
+    assert kreis["kennwerte"]["vorrang"] is None
+    assert kreis["konfig"]["vorrang"] == []

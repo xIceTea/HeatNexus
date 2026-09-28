@@ -680,6 +680,9 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["dialogKopf"] is True
     assert automatik["kreuzSchliesst"] is True
     assert automatik["raumliste"] == ["Bad 20,8 °C → 21,0 °C · heizt"]
+    assert automatik["vorrangWahl"] is True
+    assert automatik["vorrangZeile"] == ["Vorrangquellen heute 1,5 h"]
+    assert automatik["vorrangStunden"] == 1
 
 
 def test_die_automatik_steht_bei_allen_anlagen_in_einem_raster(durchlauf):

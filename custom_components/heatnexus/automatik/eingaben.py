@@ -6,6 +6,7 @@ Reine Rechnungen ohne Home Assistant; Zeiten kommen als `datetime` mit Zone.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 import math
 from typing import Any, NamedTuple
@@ -79,6 +80,54 @@ def raum_messung(entity_id: str, zustand: str, attribute: Mapping[str, Any]) -> 
     return Messung(
         ist, zahl(attribute.get("temperature")), attribute.get("hvac_action") == "heating"
     )
+
+
+@dataclass(frozen=True)
+class Lauf:
+    """Wie lange eine Quelle heute geliefert hat; `seit` ist gesetzt, solange sie läuft."""
+
+    datum: str = ""
+    minuten: float = 0.0
+    seit: datetime | None = None
+
+
+def lauf_fortschreiben(lauf: Lauf, jetzt: datetime, laeuft: bool) -> Lauf:
+    """Den Stand zu `jetzt` bilden; ein neuer Tag beginnt bei null, ein Lauf ab Mitternacht."""
+    heute = jetzt.date().isoformat()
+    if lauf.datum != heute:
+        mitternacht = jetzt.replace(hour=0, minute=0, second=0, microsecond=0)
+        lauf = Lauf(datum=heute, seit=mitternacht if lauf.seit is not None else None)
+    if laeuft and lauf.seit is None:
+        return replace(lauf, seit=jetzt)
+    if not laeuft and lauf.seit is not None:
+        return replace(lauf, minuten=lauf_minuten(lauf, jetzt), seit=None)
+    return lauf
+
+
+def lauf_minuten(lauf: Lauf, jetzt: datetime) -> float:
+    """Minuten des Tages bis `jetzt`, der laufende Abschnitt eingerechnet."""
+    offen = (jetzt - lauf.seit).total_seconds() / 60 if lauf.seit is not None else 0.0
+    return lauf.minuten + max(offen, 0.0)
+
+
+def lauf_als_dict(lauf: Lauf) -> dict[str, Any]:
+    """Für den Store."""
+    return {
+        "datum": lauf.datum,
+        "minuten": lauf.minuten,
+        "seit": lauf.seit.isoformat() if lauf.seit else None,
+    }
+
+
+def lauf_aus_dict(roh: Any) -> Lauf:
+    """Aus dem Store; Unlesbares ergibt einen leeren Stand."""
+    if not isinstance(roh, Mapping):
+        return Lauf()
+    try:
+        seit = datetime.fromisoformat(roh["seit"]) if roh.get("seit") else None
+        return Lauf(str(roh.get("datum") or ""), float(roh.get("minuten") or 0.0), seit)
+    except (TypeError, ValueError):
+        return Lauf()
 
 
 def sonnenquote_aus_bewoelkung(

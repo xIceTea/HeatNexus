@@ -760,10 +760,21 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 
   // Der Einrichtungsdialog schließt oben rechts; Kopf und Tasten scrollen nicht mit.
   const vorherDialog = hass.callWS;
-  hass.callWS = async () => ({ temperatur: [], wetter: [], pv: [], pv_ist: [], personen: [], fenster: [] });
+  hass.callWS = async () => ({
+    temperatur: [],
+    wetter: [],
+    pv: [],
+    pv_ist: [],
+    personen: [],
+    fenster: [],
+    vorrang: [{ entity_id: "binary_sensor.solaranlage", name: "Solaranlage", bereich: "" }],
+  });
   await flaeche._automatikDialog(flaeche._automatik.heizkreise[0]);
   hass.callWS = vorherDialog;
   const dialog = wurzel.querySelector(".automatik-dialog");
+  bilanz.automatik.vorrangWahl = dialog
+    .querySelectorAll("input")
+    .some((e) => e.value === "binary_sensor.solaranlage");
   const kopfzeile = dialog.querySelector(".dialog-kopf");
   const kreuz = kopfzeile && kopfzeile.querySelector(".dialog-schliessen");
   const inhalt = dialog.querySelector(".automatik-dialog-inhalt");
@@ -779,13 +790,19 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     eigene_ziele: true,
     abweichung: -0.2,
     raeume: [{ entity_id: "climate.bad", name: "Bad", wert: 20.8, ziel: 21, heizt: true, veraltet: false }],
+    vorrang: { laeuft: false, minuten: 90 },
   };
+  const vorherTag = mitZielen.tag;
+  mitZielen.tag = { ...vorherTag, stunden: Array.from({ length: 24 }, (_, stunde) => ({ stunde, vorrang: stunde === 10 })) };
   flaeche._gebaut = false;
   flaeche._zeichnen();
   clearInterval(flaeche._automatikUhr);
   flaeche._automatikUhr = null;
   bilanz.automatik.raumliste = [...wurzel.querySelectorAll(".raeume")].map((l) => String(l.textContent || ""));
+  bilanz.automatik.vorrangZeile = [...wurzel.querySelectorAll(".vorrang-zeile")].map((l) => String(l.textContent || ""));
+  bilanz.automatik.vorrangStunden = wurzel.querySelectorAll(".automatik-stunde").filter((z) => z.classList.contains("vorrang")).length;
   mitZielen.kennwerte = vorherKennwerte;
+  mitZielen.tag = vorherTag;
 }
 
 // ---------------------------------------------------------------------------

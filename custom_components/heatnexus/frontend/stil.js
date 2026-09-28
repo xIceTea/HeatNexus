@@ -1271,6 +1271,9 @@ export const STIL = `
   }
   .automatik-legende i.al-gedaempft { background: var(--hn-akzent); height: 3px; }
   .automatik-wert .raeume .veraltet { color: #ffab6f; }
+  .automatik-wert .vorrang-zeile { margin-top: 6px; font-size: 11px; color: var(--hn-sonne); }
+  /* Stunden, in denen eine Quelle mit Vorrang geliefert hat, tragen oben einen Sonnenstrich. */
+  .automatik-stunde.vorrang { box-shadow: inset 0 3px 0 var(--hn-sonne); }
   .automatik-haken-zeile.veraltet { color: #ffab6f; }
   .automatik-legende i.al-aussen { background: #ffab6f; height: 3px; }
   .automatik-legende i.al-prognose {

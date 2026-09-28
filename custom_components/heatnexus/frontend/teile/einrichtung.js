@@ -268,6 +268,7 @@ export const EinrichtungMixin = (Basis) =>
       );
       const personen = this._automatikHaken(kandidaten.personen, k ? k.personen : []);
       const fenster = this._automatikHaken(kandidaten.fenster, k ? k.fenster : []);
+      const vorrang = this._automatikHaken(kandidaten.vorrang || [], k ? k.vorrang || [] : []);
       const erkennung = document.createElement("input");
       erkennung.type = "checkbox";
       erkennung.checked = !!(k && k.fenster_erkennung);
@@ -298,6 +299,15 @@ export const EinrichtungMixin = (Basis) =>
               this._t("Fensterkontakte"),
               this._automatikMitText(erkennung, this._t("Fenster aus Temperatursturz erkennen")),
               fenster
+            ),
+          ],
+        ],
+        [
+          this._t("5 · Optional: Wärmequellen mit Vorrang vor dem Kessel"),
+          [
+            this._automatikBeschriftet(
+              this._t("Liefert eine dieser Quellen, soll ihre Wärme den Heizkreis decken statt der Kessel."),
+              vorrang
             ),
           ],
         ],
@@ -347,6 +357,7 @@ export const EinrichtungMixin = (Basis) =>
           pv_ist: pvIst.value || null,
           personen: gewaehlt(personen),
           fenster: gewaehlt(fenster),
+          vorrang: gewaehlt(vorrang),
           fenster_erkennung: erkennung.checked,
         };
         // Andere Heizflächen heißen anderes Profil; eigene Werte gehörten zum alten.

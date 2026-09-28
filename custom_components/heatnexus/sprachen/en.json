@@ -405,5 +405,9 @@
   "Räume zum Ziel, kältester": "Rooms to target, coldest",
   "heizt": "heating",
   "Thermostat": "Thermostat",
-  "Wunschtemperatur für Temperaturfühler, °C (leer: Sollwert des Heizkreises)": "Target temperature for temperature sensors, °C (empty: setpoint of the heating circuit)"
+  "Wunschtemperatur für Temperaturfühler, °C (leer: Sollwert des Heizkreises)": "Target temperature for temperature sensors, °C (empty: setpoint of the heating circuit)",
+  "5 · Optional: Wärmequellen mit Vorrang vor dem Kessel": "5 · Optional: heat sources with priority over the boiler",
+  "Liefert eine dieser Quellen, soll ihre Wärme den Heizkreis decken statt der Kessel.": "While one of these sources delivers, its heat should supply the heating circuit instead of the boiler.",
+  "Vorrangquelle liefert": "Priority source delivering",
+  "Vorrangquellen heute {stunden} h": "Priority sources today {stunden} h"
 }

@@ -455,6 +455,14 @@ export const AutomatikMixin = (Basis) =>
           teil.textContent = inhalt;
           kachel.appendChild(teil);
         });
+        if (art === "sonne" && k.vorrang) {
+          const zeile = document.createElement("div");
+          zeile.className = "vorrang-zeile";
+          zeile.textContent = k.vorrang.laeuft
+            ? this._t("Vorrangquelle liefert")
+            : this._tMit("Vorrangquellen heute {stunden} h", { stunden: zahl((k.vorrang.minuten || 0) / 60) });
+          kachel.appendChild(zeile);
+        }
         if (art === "raum" && ((k.raeume || []).length > 1 || k.eigene_ziele)) {
           const liste = document.createElement("div");
           liste.className = "raeume";
@@ -591,7 +599,7 @@ export const AutomatikMixin = (Basis) =>
       const bezug = (kreis.kennwerte || {}).raum_bezug;
       stunden.forEach((eintrag) => {
         const zelle = document.createElement("div");
-        zelle.className = `automatik-stunde${eintrag.stunde === jetzt ? " jetzt" : ""}${eintrag.stunde > 14 ? " spaet" : ""}`;
+        zelle.className = `automatik-stunde${eintrag.stunde === jetzt ? " jetzt" : ""}${eintrag.stunde > 14 ? " spaet" : ""}${eintrag.vorrang ? " vorrang" : ""}`;
         const temperatur = eintrag.korrigiert ?? eintrag.roh;
         const teile = [
           ["uhr", String(eintrag.stunde).padStart(2, "0")],

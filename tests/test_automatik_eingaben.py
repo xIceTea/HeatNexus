@@ -105,3 +105,33 @@ def test_ausgeschaltetes_thermostat_zaehlt_nicht(eingaben, zustand):
 def test_temperatursensor_kennt_kein_ziel(eingaben):
     assert eingaben.raum_messung("sensor.kueche_temperatur", "18.9", {}) == (18.9, None, None)
     assert eingaben.raum_messung("sensor.kueche_temperatur", "unavailable", {}) is None
+
+
+def _uhr(tag: int, stunde: int, minute: int = 0) -> datetime:
+    return datetime(2026, 9, tag, stunde, minute, tzinfo=UTC)
+
+
+def test_lauf_zaehlt_die_minuten_des_tages(eingaben):
+    lauf = eingaben.lauf_fortschreiben(eingaben.Lauf(), _uhr(28, 9), laeuft=True)
+    assert eingaben.lauf_minuten(lauf, _uhr(28, 10)) == 60
+    lauf = eingaben.lauf_fortschreiben(lauf, _uhr(28, 10, 30), laeuft=False)
+    assert eingaben.lauf_minuten(lauf, _uhr(28, 12)) == 90
+
+
+def test_neuer_tag_beginnt_bei_null(eingaben):
+    lauf = eingaben.lauf_fortschreiben(eingaben.Lauf(), _uhr(28, 9), laeuft=True)
+    lauf = eingaben.lauf_fortschreiben(lauf, _uhr(28, 11), laeuft=False)
+    lauf = eingaben.lauf_fortschreiben(lauf, _uhr(29, 6), laeuft=False)
+    assert eingaben.lauf_minuten(lauf, _uhr(29, 7)) == 0
+
+
+def test_lauf_ueber_mitternacht_zaehlt_ab_mitternacht(eingaben):
+    lauf = eingaben.lauf_fortschreiben(eingaben.Lauf(), _uhr(28, 23), laeuft=True)
+    lauf = eingaben.lauf_fortschreiben(lauf, _uhr(29, 1), laeuft=True)
+    assert eingaben.lauf_minuten(lauf, _uhr(29, 1)) == 60
+
+
+def test_lauf_uebersteht_den_store(eingaben):
+    lauf = eingaben.lauf_fortschreiben(eingaben.Lauf(), _uhr(28, 9), laeuft=True)
+    assert eingaben.lauf_aus_dict(eingaben.lauf_als_dict(lauf)) == lauf
+    assert eingaben.lauf_aus_dict({"seit": "kaputt"}) == eingaben.Lauf()

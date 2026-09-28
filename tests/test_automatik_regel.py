@@ -374,3 +374,41 @@ def test_sonderbetrieb_der_steuerung_setzt_die_automatik_aus(m, w, betriebsart):
 def test_warmwasserladung_ist_kein_sonderbetrieb(m, w):
     e = m.entscheiden(lage(m, entscheidungszeit=True, betriebsart=3), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.SONNENTAG
+
+
+# --- Wärmequellen mit Vorrang vor dem Kessel -----------------------------------
+def lange_absenkung(m):
+    return replace(sonnentag(m), absenkung_bis=MORGEN + timedelta(hours=6))
+
+
+def test_liefernde_vorrangquelle_bestaetigt_den_sonnentag(m, w):
+    stand = lage(
+        m, sonnenquote=40.0, entscheidungszeit=True, vorrang_laeuft=True, vorrang_name="Solaranlage"
+    )
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.SONNENTAG
+    assert e.begruendung.startswith("Solaranlage liefert")
+
+
+def test_vorrangquelle_ersetzt_eine_fehlende_sonnenquote(m, w):
+    stand = lage(m, sonnenquote=None, entscheidungszeit=True, vorrang_laeuft=True)
+    assert [a.art for a in m.entscheiden(stand, m.Gedaechtnis(), w).aktionen] == ["absenken"]
+
+
+def test_ohne_waerme_der_vorrangquellen_endet_der_sonnentag_nach_vier_stunden(m, w):
+    spaeter = MORGEN + timedelta(hours=4)
+    stand = lage(m, jetzt=spaeter, soll=19.5, vorrang_laeuft=False, vorrang_minuten=5.0)
+    e = m.entscheiden(stand, lange_absenkung(m), w)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.gedaechtnis.absenkung_art is None
+
+
+def test_mit_waerme_der_vorrangquellen_laeuft_der_sonnentag_weiter(m, w):
+    spaeter = MORGEN + timedelta(hours=4)
+    stand = lage(m, jetzt=spaeter, soll=19.5, vorrang_laeuft=True, vorrang_minuten=60.0)
+    assert m.entscheiden(stand, lange_absenkung(m), w).aktionen == ()
+
+
+def test_vor_vier_stunden_zaehlt_fehlende_waerme_nicht(m, w):
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=2), soll=19.5, vorrang_minuten=0.0)
+    assert m.entscheiden(stand, lange_absenkung(m), w).aktionen == ()

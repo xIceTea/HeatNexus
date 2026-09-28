@@ -28,6 +28,9 @@ MAX_MINUTEN = 400
 MIN_MINUTEN = 60
 VORLAUF_UNTERGANG = timedelta(hours=2)
 VERLAENGERN_REST = timedelta(minutes=5)
+# So lange nach Beginn der Absenkung muss eine Quelle mit Vorrang Wärme geliefert haben.
+VORRANG_PRUEFEN_NACH = timedelta(hours=4)
+VORRANG_MIN_MINUTEN = 15.0
 PROGRAMMWAHL = frozenset({1, 2, 3, 4, 5})
 # Betriebsarten (`2/9`), in denen die Steuerung ein eigenes Programm fährt; `3/50` bleibt dabei.
 SONDERBETRIEB = {
@@ -84,6 +87,10 @@ class Lage:
     pausiert_bis: datetime | None = None
     entscheidungszeit: bool = False
     absenkung_moeglich: bool = True
+    # Wärmequellen mit Vorrang vor dem Kessel: welche liefert gerade, wie lange heute schon.
+    vorrang_laeuft: bool | None = None
+    vorrang_minuten: float | None = None
+    vorrang_name: str | None = None
 
     @property
     def raum(self) -> float | None:
@@ -373,6 +380,18 @@ def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
             f"Räume {_kelvin(abstand)} unter Ziel – Absenkung beendet.",
             ohne_absenkung(g),
         )
+    if (
+        lage.vorrang_minuten is not None
+        and lage.vorrang_minuten < VORRANG_MIN_MINUTEN
+        and g.absenkung_von is not None
+        and lage.jetzt - g.absenkung_von >= VORRANG_PRUEFEN_NACH
+    ):
+        return Entscheidung(
+            Zustand.PROGRAMM,
+            (Aktion("absenkung_ende"),),
+            f"Keine Wärme aus den Vorrangquellen seit {_uhr(g.absenkung_von)} – Absenkung beendet.",
+            ohne_absenkung(g),
+        )
     ziel_soll = round(soll - w.absenkung_k, 1)
     if g.absenkung_bis is not None and g.absenkung_bis <= lage.jetzt and g.absenkung_ziel:
         minuten = min(MAX_MINUTEN, int((g.absenkung_ziel - lage.jetzt).total_seconds() // 60))
@@ -397,12 +416,15 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         and lage.entscheidungszeit
         and lage.betriebswahl in PROGRAMMWAHL
         and lage.absenkung_moeglich
-        and lage.sonnenquote is not None
+        and (lage.sonnenquote is not None or bool(lage.vorrang_laeuft))
         and lage.sonnenuntergang is not None
     )
     if not moeglich:
         return _programm(lage, g)
-    quote = lage.sonnenquote
+    quote = lage.sonnenquote or 0.0
+    # Liefert eine Quelle mit Vorrang, soll ihre Wärme den Heizkreis decken, nicht der Kessel.
+    if lage.vorrang_laeuft:
+        quote = max(quote, w.sonnenquote)
     if quote < w.sonnenquote:
         return Entscheidung(
             Zustand.PROGRAMM,
@@ -443,7 +465,8 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
     return Entscheidung(
         Zustand.SONNENTAG,
         (Aktion("absenken", soll=ziel_soll, minuten=minuten),),
-        f"Sonnenquote {quote:.0f} % – {_zahl(ziel_soll)} °C bis {_uhr(ziel)}.",
+        f"{f'{lage.vorrang_name or "Vorrangquelle"} liefert' if lage.vorrang_laeuft else f'Sonnenquote {quote:.0f} %'} – "
+        f"{_zahl(ziel_soll)} °C bis {_uhr(ziel)}.",
         neu,
     )
 

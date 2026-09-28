@@ -19,7 +19,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
-from ..const import DOMAIN
+from ..const import DOMAIN, SUBEINTRAG_QUELLE
 from ..rechte import darf_lesen
 from . import eingaben, korrektur, nachladen, profile, regel, tagesansicht
 from .konfig import (
@@ -118,6 +118,11 @@ def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: d
             "heizgrenze": werte.heizgrenze,
             "eingriffe": laufzeit.steller.stand.eingriffe,
             "budget": werte.budget,
+            "vorrang": (
+                {"laeuft": lage.vorrang_laeuft, "minuten": round(lage.vorrang_minuten or 0)}
+                if lage is not None and laufzeit.konfig["vorrang"]
+                else None
+            ),
         },
         tag=tagesansicht.heute(laufzeit, jetzt),
         vorschau=tagesansicht.vorschau(laufzeit, jetzt),
@@ -203,6 +208,7 @@ async def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
         "pv_ist": [],
         "personen": [],
         "fenster": [],
+        "vorrang": [],
     }
     for zustand in hass.states.async_all():
         entity_id = zustand.entity_id
@@ -243,6 +249,13 @@ async def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
             ziel = "personen"
         elif domaene == "binary_sensor" and klasse in FENSTER_KLASSEN:
             ziel = "fenster"
+        elif (
+            domaene == "binary_sensor"
+            and eintrag is not None
+            and eintrag.platform == DOMAIN
+            and f"-{SUBEINTRAG_QUELLE}-" in eintrag.unique_id
+        ):
+            ziel = "vorrang"
         else:
             continue
         listen[ziel].append(
@@ -282,6 +295,7 @@ EINSTELLUNGEN = {
     vol.Optional("personen"): _liste(LISTEN_MAX["personen"]),
     vol.Optional("fenster"): _liste(LISTEN_MAX["fenster"]),
     vol.Optional("fenster_erkennung"): bool,
+    vol.Optional("vorrang"): _liste(LISTEN_MAX["vorrang"]),
 }
 
 

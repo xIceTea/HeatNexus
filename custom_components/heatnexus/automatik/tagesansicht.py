@@ -73,6 +73,7 @@ def stunden(laufzeit: Laufzeit, tag: date, g: regel.Gedaechtnis) -> list[dict[st
             "at": (gemessen.get(str(stunde)) or {}).get("at"),
             "raum": (gemessen.get(str(stunde)) or {}).get("raum"),
             "gedaempft": (gemessen.get(str(stunde)) or {}).get("gedaempft"),
+            "vorrang": bool((gemessen.get(str(stunde)) or {}).get("vorrang")),
             "aktion": _aktion(g, stunde, tag),
         }
         for stunde in range(24)

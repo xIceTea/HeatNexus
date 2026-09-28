@@ -14,6 +14,7 @@ import logging
 from typing import Any
 
 from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -149,6 +150,8 @@ class Laufzeit:
         self._nachladen: Any = None
         # Raumfühler, deren Wert laut Verlauf eingefroren ist; ein neuer Wert löst sie.
         self.eingefroren: set[str] = set()
+        # Wie lange Wärmequellen mit Vorrang vor dem Kessel heute geliefert haben.
+        self.vorrang = eingaben.lauf_aus_dict(z.get("vorrang"))
 
     # --- Eigenschaften -------------------------------------------------------
     @property
@@ -178,6 +181,7 @@ class Laufzeit:
             "temperatur": self.temperatur.als_dict(),
             "pv": self.pv.als_dict(),
             "verlauf": self.verlauf,
+            "vorrang": eingaben.lauf_als_dict(self.vorrang),
             "zustand": self.zustand.value,
             "begruendung": self.begruendung,
         }
@@ -189,7 +193,7 @@ class Laufzeit:
         for adresse in ABRUF:
             client.register_poll_oid(f"{self.prefix}{adresse}")
         k = self.konfig
-        quellen = [*k["raeume"], *k["personen"], *k["fenster"]]
+        quellen = [*k["raeume"], *k["personen"], *k["fenster"], *k["vorrang"]]
         quellen += [e for e in (k.get("pv"), k.get("pv_ist"), k.get("aussen")) if e]
         self._abmelden.append(async_track_state_change_event(self.hass, quellen, self._ereignis))
         self._abmelden.append(self.coordinator.async_add_listener(self._merken))
@@ -248,6 +252,8 @@ class Laufzeit:
             self.anforderung_zuletzt = dt_util.now()
         if veraendert and entity_id in self.konfig["raeume"]:
             self._raum_verfolgen()
+        if entity_id in self.konfig["vorrang"]:
+            self._vorrang_fortschreiben(dt_util.now())
 
     async def _takt(self, _jetzt: datetime) -> None:
         if self._geaendert:
@@ -276,6 +282,7 @@ class Laufzeit:
         jetzt = dt_util.now()
         self._daempfen(jetzt)
         self._lernen(jetzt)
+        self._vorrang_fortschreiben(jetzt)
         lage = self._lage(jetzt, entscheidungszeit)
         self.lage = lage
         if not self.aktiv:
@@ -694,7 +701,46 @@ class Laufzeit:
             pausiert_bis=self.pausiert_bis,
             entscheidungszeit=entscheidungszeit,
             absenkung_moeglich=self._wert("/2/10/0") is not None,
+            **self._vorrang_lage(jetzt),
         )
+
+    def _vorrang_liefert(self) -> list[str]:
+        return [
+            kennung
+            for kennung in self.konfig["vorrang"]
+            if (zustand := self.hass.states.get(kennung)) is not None and zustand.state == "on"
+        ]
+
+    def _vorrang_fortschreiben(self, jetzt: datetime) -> None:
+        if not self.konfig["vorrang"]:
+            return
+        liefert = bool(self._vorrang_liefert())
+        self.vorrang = eingaben.lauf_fortschreiben(self.vorrang, jetzt, liefert)
+        if liefert:
+            self.stunde_nachtragen(jetzt.hour, vorrang=True)
+
+    def _vorrang_lage(self, jetzt: datetime) -> dict[str, Any]:
+        if not self.konfig["vorrang"]:
+            return {}
+        liefert = self._vorrang_liefert()
+        return {
+            "vorrang_laeuft": bool(liefert),
+            "vorrang_minuten": eingaben.lauf_minuten(self.vorrang, jetzt),
+            "vorrang_name": self._quellenname(liefert[0]) if liefert else None,
+        }
+
+    def _quellenname(self, entity_id: str) -> str:
+        """Name des Geräts der Quelle; der Entitätsname allein heißt nur „Wärmelieferung“."""
+        eintrag = er.async_get(self.hass).async_get(entity_id)
+        geraet = (
+            dr.async_get(self.hass).async_get(eintrag.device_id)
+            if eintrag and eintrag.device_id
+            else None
+        )
+        if geraet is not None and (name := geraet.name_by_user or geraet.name):
+            return name
+        zustand = self.hass.states.get(entity_id)
+        return str(zustand.attributes.get("friendly_name") or entity_id) if zustand else entity_id
 
     async def _prognose(self, art: str) -> list[dict[str, Any]] | None:
         return await self._prognose_quelle(self.konfig["wetter"], art)

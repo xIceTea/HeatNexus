@@ -23,7 +23,7 @@ from .profile import (
 
 MODI = ("beobachten", "schalten")
 RAUM_ARTEN = ("mittel", "minimum")
-LISTEN_MAX = {"raeume": 10, "personen": 10, "fenster": 20}
+LISTEN_MAX = {"raeume": 10, "personen": 10, "fenster": 20, "vorrang": 5}
 EIGENE_FELDER = frozenset({*GRENZEN, *UHRZEITEN, *SCHALTER, "lernfenster"})
 # Wunschtemperatur der Räume, deren Fühler kein eigenes Ziel kennt.
 RAUM_ZIEL = (10.0, 30.0)
@@ -111,6 +111,7 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         "personen": _liste(roh.get("personen"), LISTEN_MAX["personen"]),
         "fenster": _liste(roh.get("fenster"), LISTEN_MAX["fenster"]),
         "fenster_erkennung": bool(roh.get("fenster_erkennung", False)),
+        "vorrang": _liste(roh.get("vorrang"), LISTEN_MAX["vorrang"]),
         "eigene": abweichungen(profil, eigene),
     }
 

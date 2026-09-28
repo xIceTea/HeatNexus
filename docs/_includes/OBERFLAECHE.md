@@ -156,6 +156,20 @@ jeden Raum mit seinem eigenen Ziel:
 Die Raum-Kachel zeigt dann die Abweichung der Räume von ihrem Ziel, im Mittel
 oder für den kältesten Raum.
 
+### Wärmequellen mit Vorrang
+
+In der Einrichtung lassen sich Wärmequellen von HeatNexus wählen, deren Wärme
+Vorrang vor dem Kessel hat, etwa eine Solaranlage oder ein Heizstab am
+PV-Überschuss. Ob eine Quelle Vorrang bekommt, entscheidet jede Anlage selbst;
+ab Werk ist keine gewählt.
+
+- Liefert eine gewählte Quelle zur Entscheidungszeit, gilt der Tag als
+  Sonnentag, auch wenn die Prognose vorsichtiger ist.
+- Hat vier Stunden nach Beginn einer Absenkung keine gewählte Quelle Wärme
+  geliefert, beendet die Automatik die Absenkung.
+- Die Sonnen-Kachel nennt, ob eine Quelle liefert oder wie lange heute schon.
+  Im Stundenraster tragen diese Stunden oben einen Strich.
+
 Die Auswahl zeigt zu jedem Fühler den aktuellen Wert. Ein ausgefallener Fühler
 meldet in Home Assistant oft weiter seinen letzten Wert. Zeigt ein Raumfühler
 über Stunden denselben Wert, gilt er als veraltet und zählt nicht zum Raumwert;

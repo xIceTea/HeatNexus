@@ -171,3 +171,10 @@ def test_vorhandene_thermostate_lassen_den_sonnentag_in_ruhe(konfig):
 def test_ohne_thermostat_bleibt_der_sonnentag_an(konfig):
     k = konfig.pruefen(roh())
     assert konfig.klima_vorgabe(k, [])["eigene"] == {}
+
+
+def test_vorrangquellen_sind_eine_begrenzte_liste(konfig):
+    quellen = [f"binary_sensor.quelle_{i}" for i in range(8)]
+    k = konfig.pruefen(roh(vorrang=[*quellen, "kein id"]))
+    assert k["vorrang"] == quellen[: konfig.LISTEN_MAX["vorrang"]]
+    assert konfig.pruefen(roh())["vorrang"] == []
