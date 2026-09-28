@@ -58,7 +58,7 @@ export const EinrichtungMixin = (Basis) =>
         const geaendert = wert !== basis;
         if (geaendert) abweichend += 1;
         const basisText = typeof basis === "number" ? zahl(basis, Number.isInteger(basis) ? 0 : 1) : basis || "–";
-        const anzeige = feld.art === "janein" ? this._t(basis ? "Ein" : "Aus") : `${basisText} ${feld.einheit || ""}`.trim();
+        const anzeige = feld.art === "janein" ? this._t(basis ? "Ein" : "Aus") : `${basisText} ${feld.einheit ? this._t(feld.einheit) : ""}`.trim();
         const zeile = this._automatikFeld(feld.titel, geaendert ? this._tMit("Profil: {wert}", { wert: anzeige || "–" }) : "", geaendert, feld.hilfe);
         const eingabe = this._automatikEingabe(feld, wert, darf);
         eingaben[feld.name] = [feld, eingabe];
