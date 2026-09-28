@@ -5,13 +5,14 @@ Die Dateien liegen öffentlich bereit und werden bei Bedarf geladen:
 
     de-parameters.json      Datenpunktnamen, Enum-Texte, Störungstexte
     de-oem-parameters.json  Datenpunktnamen der Werksebene
-    en-parameters.json      englische Namen und Enum-Texte als Rückfall
+    en-parameters.json      englische Namen, Enum- und Störungstexte als Rückfall
     parameterLayer.json     Zuordnung der Datenpunkte zu den Bedienebenen
 
-Ergebnis sind zwei Dateien der Integration:
+Ergebnis sind diese Dateien der Integration:
 
     custom_components/heatnexus/device_db.json
     custom_components/heatnexus/error_texts_de.json
+    custom_components/heatnexus/error_texts_en.json
 
 Aufruf:
 
@@ -368,21 +369,22 @@ def main() -> int:
     enums = {k: v for k, v in parameter.get("enums", {}).items() if isinstance(v, dict)}
     ebenen = sammle_ebenen(layer, texte)
     ergaenzt = uebersteuern(ebenen)
-    stoerungen = sammle_stoerungen(texte)
+    stoerungen = {"de": sammle_stoerungen(texte)}
     sprachen = {}
     for sprache in FREMDSPRACHEN:
         xml = geraetetexte_fuer(args.geraetetexte, sprache)
-        sprachen[sprache] = sammle_sprache(
-            lade(f"{sprache}-parameters.json", args.quelle), lade_geraetetexte(xml) if xml else {}
-        )
+        fremd = lade(f"{sprache}-parameters.json", args.quelle)
+        sprachen[sprache] = sammle_sprache(fremd, lade_geraetetexte(xml) if xml else {})
+        stoerungen[sprache] = sammle_stoerungen(fremd.get("emStrIds", {}))
 
     print(f"\nDatenpunktnamen : {len(namen)}")
     print(f"davon ergänzt   : {ergaenzt} (an der Anlage gemessen, siehe UEBERSTEUERUNG)")
     print(f"Enum-Tabellen   : {len(enums)}")
     print(f"Funktionstypen  : {len(ebenen)}")
-    print(f"Störungstexte   : {len(stoerungen)}")
+    print(f"Störungstexte   : {len(stoerungen['de'])}")
     for sprache, inhalt in sprachen.items():
         print(f"Namen {sprache:<10}: {len(inhalt['names'])}, Enum-Tabellen {len(inhalt['enums'])}")
+        print(f"Störungen {sprache:<6}: {len(stoerungen[sprache])}")
     for fct in sorted(ebenen, key=int):
         zaehler = {e: len(ebenen[fct].get(e, [])) for e in EBENEN if ebenen[fct].get(e)}
         gruppen = len(ebenen[fct].get("groups", {}))
@@ -396,12 +398,14 @@ def main() -> int:
     (ZIEL / "device_db.json").write_text(
         json.dumps(db, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8"
     )
-    (ZIEL / "error_texts_de.json").write_text(
-        json.dumps(stoerungen, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
     print(f"\ngeschrieben: {ZIEL / 'device_db.json'}")
-    print(f"geschrieben: {ZIEL / 'error_texts_de.json'}")
+    for sprache, tabelle in stoerungen.items():
+        ziel = ZIEL / f"error_texts_{sprache}.json"
+        ziel.write_text(
+            json.dumps(tabelle, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        print(f"geschrieben: {ziel}")
     return 0
 
 

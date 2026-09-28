@@ -1,0 +1,886 @@
+{
+ "AL1": {
+  "info": "Primary airflap blocked or defective",
+  "text": "Primary airflap defective"
+ },
+ "AL10": {
+  "info": "Follow operating manual",
+  "text": "Ember bed slider blocked"
+ },
+ "AL101": {
+  "info": "Verify sensors and connections",
+  "text": "TWE-sensor defective"
+ },
+ "AL103": {
+  "info": "Verify boiler sensor and connections",
+  "text": "Boiler sensor defective"
+ },
+ "AL104": {
+  "info": "Verify sensors and connections",
+  "text": "Accumulator sensor TPE defective"
+ },
+ "AL105": {
+  "info": "Verify sensors and connections",
+  "text": "Accumulator sensor TPA defective"
+ },
+ "AL106": {
+  "info": "Verify sensors and connections",
+  "text": "Accumulator sensor TPO defective"
+ },
+ "AL11": {
+  "info": "Follow operating manual",
+  "text": "Ash slider blocked"
+ },
+ "AL114": {
+  "info": "Verify switch/accumulator sensor and connections on cascade module",
+  "text": "Switch/Accumulator sensor defective"
+ },
+ "AL115": {
+  "info": "Verify sensors and connections",
+  "text": "ZSK boilersensor defective"
+ },
+ "AL119": {
+  "info": "Follow operating manual",
+  "text": "Ashbox not available"
+ },
+ "AL12": {
+  "info": "Follow operating manual",
+  "text": "Hopper auger blocked"
+ },
+ "AL128": {
+  "info": "Clean boiler and burner",
+  "text": "No flame formation in control mode"
+ },
+ "AL129": {
+  "info": "Perform main cleaning according to operation manual",
+  "text": "Maximum burnout time exceeded"
+ },
+ "AL13": {
+  "info": "Follow operating manual",
+  "text": "Stoker auger blocked"
+ },
+ "AL130": {
+  "info": "Verify combustion chamber and thermo-control sensor",
+  "text": "Combustion chamber temperature too low"
+ },
+ "AL131": {
+  "info": "Follow operating manual",
+  "text": "Flame-out / water content wood chips too high"
+ },
+ "AL133": {
+  "info": "Verify system and filling pressure",
+  "text": "Safety temperature shut-down"
+ },
+ "AL134": {
+  "info": "Follow operating manual",
+  "text": "Overtemperature on stoker auger"
+ },
+ "AL135": {
+  "info": "Press release button B8.1",
+  "text": "Excess temperature on auger tube"
+ },
+ "AL144": {
+  "info": "Verify safety devices",
+  "text": "Safety temperature shut-down"
+ },
+ "AL147": {
+  "info": "Follow operating manual",
+  "text": "Bottom shut-off slider defective"
+ },
+ "AL148": {
+  "info": "Follow operating manual",
+  "text": "Top shut-off slider defective"
+ },
+ "AL149": {
+  "info": "Verify safety devices storage room, follow operating manual",
+  "text": "Savety devices storage room"
+ },
+ "AL15": {
+  "info": "Verify 230VAC power supply",
+  "text": "230V not reached"
+ },
+ "AL150": {
+  "info": "Verify daily hopper suction feed system, following operating manual",
+  "text": "Cover of hopper suction feed system open"
+ },
+ "AL151": {
+  "info": "Verify water supply",
+  "text": "No flow at drain rinsing"
+ },
+ "AL152": {
+  "info": "Close water supply",
+  "text": "Drain valve doesn´t close"
+ },
+ "AL153": {
+  "info": "Verify water supply",
+  "text": "No flow at heat exchanger rinsing"
+ },
+ "AL154": {
+  "info": "Close water supply",
+  "text": "Valve heat exchanger doesn´t close"
+ },
+ "AL155": {
+  "info": "Verify system pressure",
+  "text": "Low water cut-off has tripped"
+ },
+ "AL156": {
+  "info": "No negative pressure in combustion chamber or sensor defective",
+  "text": "No negative pressure in combustion chamber"
+ },
+ "AL157": {
+  "info": "Follow operating manual",
+  "text": "Primary air quantity not correct"
+ },
+ "AL16": {
+  "info": "Clean impeller and clean blower box",
+  "text": "Induced draught fan defective"
+ },
+ "AL161": {
+  "info": "Follow operating manual",
+  "text": "Alarm message heat pump"
+ },
+ "AL162": {
+  "info": "Follow operating manual",
+  "text": "Alarm message heat pump"
+ },
+ "AL165": {
+  "info": "Follow operating manual",
+  "text": "Alarm message heat pump"
+ },
+ "AL166": {
+  "info": "Follow operating manual",
+  "text": "Communication error to heat pump"
+ },
+ "AL167": {
+  "info": "Follow operating manual",
+  "text": "Type heat pump undefined"
+ },
+ "AL169": {
+  "info": "Follow operating manual",
+  "text": "Power supply for heat pump missing"
+ },
+ "AL17": {
+  "info": "Clean impeller",
+  "text": "Induced draught fan defective"
+ },
+ "AL171": {
+  "info": "Clean burner pot",
+  "text": "Maximum heating time exceeded"
+ },
+ "AL176": {
+  "info": "Follow operating manual",
+  "text": "Purging not successful"
+ },
+ "AL179": {
+  "info": "Follow operating manual",
+  "text": "Primary ignition not successful"
+ },
+ "AL18": {
+  "info": "Verify ID-Fan and blower box",
+  "text": "Induced draught fan unstable"
+ },
+ "AL180": {
+  "info": "Follow operating manual",
+  "text": "Secondary ignition not successful"
+ },
+ "AL186": {
+  "info": "Verify communication of the MES-Modules",
+  "text": "No communication with MES Module"
+ },
+ "AL187": {
+  "info": "Verify linkage of firing automate and connections",
+  "text": "No communication with firing automate"
+ },
+ "AL188": {
+  "info": "Internal error occurred",
+  "text": "Internal error occurred"
+ },
+ "AL189": {
+  "info": "Verify linkage to additional print, firing automat and connections",
+  "text": "No communication with additional print"
+ },
+ "AL191": {
+  "info": "Verify gas boiler PCB",
+  "text": "Gas boiler PCB fault"
+ },
+ "AL194": {
+  "info": "No communication with a boiler, verify connections",
+  "text": "No communication with a boiler"
+ },
+ "AL195": {
+  "info": "Verify cladding door",
+  "text": "Combustion chamber door opened in operation"
+ },
+ "AL197": {
+  "info": "Follow operating manual",
+  "text": "Control of suction feed system failed"
+ },
+ "AL199": {
+  "info": "Network connection interrupted, check the Internet connection to your system.",
+  "text": "System offline"
+ },
+ "AL2": {
+  "info": "Follow operating manual",
+  "text": "Primary air valve does not open"
+ },
+ "AL20": {
+  "info": "Follow operating manual",
+  "text": "Suctionturbine defective"
+ },
+ "AL27": {
+  "info": "Ignition element defective",
+  "text": "Ignition element defective"
+ },
+ "AL29": {
+  "info": "Follow operating manual",
+  "text": "Secondary ignition element defective"
+ },
+ "AL3": {
+  "info": "Secondary airflap blocked or defective",
+  "text": "Secondary airflap defective"
+ },
+ "AL35": {
+  "info": "Follow operating manual",
+  "text": "Main relay suction feed system defective"
+ },
+ "AL37": {
+  "info": "Verify flap in feed unit",
+  "text": "Fuel feed flap does not open"
+ },
+ "AL38": {
+  "info": "Verify fuel supply in storage room and feed hose",
+  "text": "Feed system is not sucking in any fuel"
+ },
+ "AL39": {
+  "info": "Verify changeover unit",
+  "text": "Probe switching defective"
+ },
+ "AL40": {
+  "info": "Shut-off unit of fuel feed systm does not open or close.",
+  "text": "Shut-off unit defect"
+ },
+ "AL41": {
+  "info": "Verify switch of fuel hopper cover",
+  "text": "Switch fuel hopper cover defective"
+ },
+ "AL42": {
+  "info": "Unplug main power from the boiler",
+  "text": "Relay of suction turbine defect"
+ },
+ "AL43": {
+  "info": "Follow operating manual",
+  "text": "Fuel conveyor blocked"
+ },
+ "AL44": {
+  "info": "Follow operating manual",
+  "text": "Overfilling of fuel conveyor"
+ },
+ "AL45": {
+  "info": "Verify fuel supply in storage room and feed hose",
+  "text": "All select probes without fuel"
+ },
+ "AL5": {
+  "info": "Ash removal / Grate shaking defective or blocked. Clean burner pot.",
+  "text": "Ash removal / Grate shaking defective"
+ },
+ "AL50": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of stoker auger defective"
+ },
+ "AL51": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of fuel conveyor defective"
+ },
+ "AL52": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of hopper auger defective"
+ },
+ "AL53": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of fuel conveyor defective"
+ },
+ "AL54": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of transport auger defective"
+ },
+ "AL55": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of suction turbine defective"
+ },
+ "AL57": {
+  "info": "Press unlock key on burner",
+  "text": "Burner malfunction"
+ },
+ "AL6": {
+  "info": "Auger conveyor motor defective",
+  "text": "Auger conveyor motor defective"
+ },
+ "AL62": {
+  "info": "Air intake flap defective or does not open.",
+  "text": "Air intake flap defective"
+ },
+ "AL63": {
+  "info": "Follow operating manual",
+  "text": "Transport auger blocked"
+ },
+ "AL64": {
+  "info": "Follow operating manual",
+  "text": "Overfilling on transport auger"
+ },
+ "AL68": {
+  "info": "Verify cladding door sensor",
+  "text": "Cladding door switch defective"
+ },
+ "AL69": {
+  "info": "Verify Storage room/Fuel hopper, follow operating manual",
+  "text": "Fuel conveyor into the burner doesn´t work"
+ },
+ "AL7": {
+  "info": "Fuel conveyor blocked",
+  "text": "Auger conveyor blocked"
+ },
+ "AL71": {
+  "info": "Verify switch setting on safety switch and emergency switches",
+  "text": "Safety/emergency switch open"
+ },
+ "AL72": {
+  "info": "Follow operating manual",
+  "text": "Savety devices fuel conveyor"
+ },
+ "AL73": {
+  "info": "Follow operating manual",
+  "text": "Internal power supply defective"
+ },
+ "AL76": {
+  "info": "Verify boiler sensor and connections",
+  "text": "Boiler sensor defective"
+ },
+ "AL78": {
+  "info": "Verify thermocontrol sensor and connections",
+  "text": "Thermocontrol sensor defective"
+ },
+ "AL79": {
+  "info": "Follow operating manual",
+  "text": "Flow temperature sensor e-heater defective"
+ },
+ "AL8": {
+  "info": "Verify heating surface cleaning",
+  "text": "Heating surface cleaning defective"
+ },
+ "AL81": {
+  "info": "Verify flue gas temperature sensor and connections",
+  "text": "Flue gas temperature sensor defective"
+ },
+ "AL82": {
+  "info": "Follow operating manual",
+  "text": "Maximum exhaust temperature exceeded"
+ },
+ "AL88": {
+  "info": "Verify O2 probe and connections",
+  "text": "O2 probe defective"
+ },
+ "AL89": {
+  "info": "Verify O2 probe, transformer and connections",
+  "text": "O2 probe heating element defective"
+ },
+ "AL9": {
+  "info": "Follow operating manual",
+  "text": "Ash removal blocked"
+ },
+ "AL90": {
+  "info": "O2-Value out of the limits. Follow operating manual!",
+  "text": "Failure O2-Value"
+ },
+ "AL93": {
+  "info": "Follow operating manual",
+  "text": "Contact heat demand 0-10V wrong connected"
+ },
+ "AL94": {
+  "info": "Follow operating manual",
+  "text": "Heat generator pump defective"
+ },
+ "FE204": {
+  "info": "Follow operating manual",
+  "text": "Valve fluegas recirculation defective"
+ },
+ "FE206": {
+  "info": "Verify auger conveyor and proximity switch",
+  "text": "Monitoring of auger conveyor defective"
+ },
+ "FE208": {
+  "info": "Verify heating surface mechanism",
+  "text": "Heating surfaces mechanism defective"
+ },
+ "FE209": {
+  "info": "Follow operating manual",
+  "text": "Ash removal blocked"
+ },
+ "FE214": {
+  "info": "Follow operating manual",
+  "text": "Ash bin conveyor fault"
+ },
+ "FE226": {
+  "info": "Ignition failurel",
+  "text": "No flame during ignition"
+ },
+ "FE238": {
+  "info": "Verify fuel supply in storage room and feed hose",
+  "text": "Feed system is not sucking in any fuel"
+ },
+ "FE239": {
+  "info": "Verify changeover unit",
+  "text": "Probe switching defective"
+ },
+ "FE240": {
+  "info": "Shut-off unit of fuel feed system does not close",
+  "text": "Shut-off unit of fuel feed system open"
+ },
+ "FE241": {
+  "info": "Close cover fuel hopper",
+  "text": "Cover fuel hopper open"
+ },
+ "FE245": {
+  "info": "Verify fuel supply in storage room and feed hose",
+  "text": "All select probes without fuel"
+ },
+ "FE247": {
+  "info": "Fuel hopper empty. Re-fill fuel. Burner is locked",
+  "text": "Fuel hopper empty"
+ },
+ "FE250": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of stoker auger defective"
+ },
+ "FE251": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of fuel conveyor defective"
+ },
+ "FE252": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of hopper auger defective"
+ },
+ "FE253": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of fuel conveyor  defective"
+ },
+ "FE254": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of transport auger defective"
+ },
+ "FE255": {
+  "info": "Switch the main switch off-on, follow operating manual",
+  "text": "Control of suction turbine defective"
+ },
+ "FE260": {
+  "info": "Follow operating manual",
+  "text": "Fuel conveyor storage room blocked"
+ },
+ "FE261": {
+  "info": "Follow operating manual",
+  "text": "Overfilling of fuel conveyor storage room"
+ },
+ "FE266": {
+  "info": "Do not reload",
+  "text": "Loading door switch not operating"
+ },
+ "FE268": {
+  "info": "Verify cladding door sensor",
+  "text": "Cladding door switch defective"
+ },
+ "FE279": {
+  "info": "Follow operating manual",
+  "text": "Flow sensor indoor unit defective"
+ },
+ "FE281": {
+  "info": "Verify flue gas temperature sensor and connections",
+  "text": "Flue gas temperature sensor defective"
+ },
+ "FE291": {
+  "info": "Verify sensors and connections",
+  "text": "Cooling accumulator sensor top defective"
+ },
+ "FE292": {
+  "info": "Verify sensors and connections",
+  "text": "Cooling accumulator sensor bottom defective"
+ },
+ "FE294": {
+  "info": "Follow operating manual",
+  "text": "Water volume flow insufficient"
+ },
+ "FE295": {
+  "info": "Follow operating manual",
+  "text": "Frost protection heat pump"
+ },
+ "FE296": {
+  "info": "Verify sensors and connections",
+  "text": "Flow temperature sensor defective"
+ },
+ "FE297": {
+  "info": "Verify boiler network",
+  "text": "Setpoint not reached"
+ },
+ "FE298": {
+  "info": "Follow operating manual",
+  "text": "Boiler minimum temparture is not reached"
+ },
+ "FE299": {
+  "info": "Verify sensors and connections",
+  "text": "Return temperature sensor defective"
+ },
+ "FE300": {
+  "info": "Verify sensors and connections",
+  "text": "DHW sensor defective"
+ },
+ "FE302": {
+  "info": "Verify sensors and connections",
+  "text": "Outside temperature sensor defective"
+ },
+ "FE306": {
+  "info": "Verify sensors and connections",
+  "text": "Accumulator sensor TPO defective"
+ },
+ "FE307": {
+  "info": "Verify sensors and connections",
+  "text": "Accumulator sensor TPM defective"
+ },
+ "FE308": {
+  "info": "Verify sensors and connections",
+  "text": "Accumulator sensor TPU defective"
+ },
+ "FE309": {
+  "info": "Verify sensors and connections",
+  "text": "Return rising temperature sensor defective"
+ },
+ "FE310": {
+  "info": "Follow operating manual",
+  "text": "The minimum return temperature is not reached"
+ },
+ "FE311": {
+  "info": "Verify sensors and connections",
+  "text": "Secondary DHW pump sensor defective"
+ },
+ "FE313": {
+  "info": "Follow operating manual",
+  "text": "Accumulator sensor TPS defective"
+ },
+ "FE316": {
+  "info": "Verify sensors and connections",
+  "text": "Collector sensor defective"
+ },
+ "FE317": {
+  "info": "Verify sensors and connections",
+  "text": "Secondary DHW pump sensor defective"
+ },
+ "FE318": {
+  "info": "Verify sensors and connections",
+  "text": "Accumulator sensor TPT defective"
+ },
+ "FE320": {
+  "info": "Empty the ash pan, remove ash from heat exchanger base. Clean thermocontrol sensor",
+  "text": "Emergency operation! Cleaning required"
+ },
+ "FE321": {
+  "info": "Perform main cleaning according to operation manual.",
+  "text": "Emergency operation! Main cleaning required"
+ },
+ "FE322": {
+  "info": "Empty ash container, clean burner and combustion chamber",
+  "text": "Emergency operation! Cleaning required"
+ },
+ "FE323": {
+  "info": "Empty the ash pan, remove the ash from below the heating surface",
+  "text": "Emergency operation! Main cleaning required"
+ },
+ "FE324": {
+  "info": "Correct servicing is a prerequisite for warranty",
+  "text": "Maintenance"
+ },
+ "FE325": {
+  "info": "Empty ash box, follow operating manual",
+  "text": "Emergeny operation! Empty ash box"
+ },
+ "FE326": {
+  "info": "Perform main cleaning according to operation manual",
+  "text": "Emergency operation! Main cleaning required"
+ },
+ "FE327": {
+  "info": "Correct servicing is a prerequisite for warranty. Arrange service appointement",
+  "text": "Maintenance"
+ },
+ "FE330": {
+  "info": "Maximum burnout time exceeded",
+  "text": "Combustion chamber temperature too low"
+ },
+ "FE338": {
+  "info": "Follow operating manual",
+  "text": "Communcation to precipitator interrupted"
+ },
+ "FE345": {
+  "info": "Burner locked",
+  "text": "Combustion chamber door open"
+ },
+ "FE346": {
+  "info": "Close cladding door, follow operating manual",
+  "text": "Cladding door open"
+ },
+ "FE350": {
+  "info": "Verify daily hopper suction feed system, following operating manual",
+  "text": "Cover of hopper suction feed system open"
+ },
+ "FE351": {
+  "info": "Verify water supply",
+  "text": "Too less flow drain rinsing"
+ },
+ "FE353": {
+  "info": "Verify water supply",
+  "text": "Too less flow heat exchanger rinsing"
+ },
+ "FE356": {
+  "info": "Verify negative pressure watch dog",
+  "text": "Combustion chamber pressure not stable"
+ },
+ "FE362": {
+  "info": "Follow operating manual",
+  "text": "Error message heat pump"
+ },
+ "FE363": {
+  "info": "Follow operating manual",
+  "text": "External boiler reports fault"
+ },
+ "FE365": {
+  "info": "Follow operating manual",
+  "text": "Error message heat pump"
+ },
+ "FE368": {
+  "info": "Follow operating manual",
+  "text": "E-heater does not work"
+ },
+ "FE372": {
+  "info": "To low combustion chamber temperature  at start",
+  "text": "Starting report"
+ },
+ "FE373": {
+  "info": "Power consumption too low during heating up",
+  "text": "Starting report"
+ },
+ "FE374": {
+  "info": "Too low combustion temperature during heat up",
+  "text": "Starting report"
+ },
+ "FE375": {
+  "info": "Follow operating manual",
+  "text": "Heating up at excessively high boiler or accumulator tank temperature"
+ },
+ "FE377": {
+  "info": "Check Modbus",
+  "text": "Communication failure"
+ },
+ "FE381": {
+  "info": "Time program is blocking the feed system. Change enable time in operator level",
+  "text": "Fuel hopper empty"
+ },
+ "FE382": {
+  "info": "Verify flap and switch on the fuel hopper",
+  "text": "Flap and switch on fuel hopper defective"
+ },
+ "FE383": {
+  "info": "Follow operating manual",
+  "text": "Level-Control defective"
+ },
+ "FE384": {
+  "info": "Check the internet connection",
+  "text": "Variable electricity tariffs download error"
+ },
+ "FE387": {
+  "info": "Press Reset Button for minimum 5 sec.",
+  "text": "Communication failure with Firing Automate"
+ },
+ "FE390": {
+  "info": "Remove ash. Clean boiler and burner. Confirm cleaning",
+  "text": "Emergency operation! Clean boiler/burner"
+ },
+ "FE393": {
+  "info": "Verify error input E1",
+  "text": "Error message E1"
+ },
+ "FE394": {
+  "info": "Inspect the heat generator",
+  "text": "Failure of a heat generator"
+ },
+ "FE395": {
+  "info": "Burner locked",
+  "text": "Combustion chamber or ash door open"
+ },
+ "FE396": {
+  "info": "Close cladding door",
+  "text": "Cladding door open"
+ },
+ "IN408": {
+  "info": "Follow operating manual",
+  "text": "Heating surface monitoring defective"
+ },
+ "IN409": {
+  "info": "Follow operating manual",
+  "text": "Ash removal monitoring defective"
+ },
+ "IN414": {
+  "info": "Follow operating manual",
+  "text": "Ash bin conveyor fault"
+ },
+ "IN418": {
+  "info": "Warning: flue gas can escape during ignition",
+  "text": "Induced draught fan locked on the pellet boiler"
+ },
+ "IN438": {
+  "info": "Verify fuel supply in storage room",
+  "text": "One zone in storage room is empty"
+ },
+ "IN445": {
+  "info": "Verify fuel level in storage room",
+  "text": "One probe without fuel"
+ },
+ "IN446": {
+  "info": "Verify fuel level in storage room",
+  "text": "Storage room becomes empty"
+ },
+ "IN447": {
+  "info": "Fuel hopper is almost empty. Re-fill fuel",
+  "text": "Re-fill fuel"
+ },
+ "IN481": {
+  "info": "Verify flue gas temperature sensor and connections",
+  "text": "Flue gas temperature before heat exchanger defective"
+ },
+ "IN495": {
+  "info": "Follow operating manual",
+  "text": "Frost protection, automatic boiler not available"
+ },
+ "IN496": {
+  "info": "System-frostprotection active. Verify plant",
+  "text": "System-frostprotection active"
+ },
+ "IN499": {
+  "info": "Room-frostprotection active. Verify plant",
+  "text": "Room-frostprotection active"
+ },
+ "IN500": {
+  "info": "DHW frostprotection active. Verify plant",
+  "text": "DHW frostprotection active"
+ },
+ "IN504": {
+  "info": "TP/TW frost protection active. Verify plant",
+  "text": "TP/TW frost protection aktiv"
+ },
+ "IN511": {
+  "info": "Follow operating manual",
+  "text": "Error flow rate sensor"
+ },
+ "IN512": {
+  "info": "Follow operating manual",
+  "text": "Error heat flow meter"
+ },
+ "IN519": {
+  "info": "Follow operating manual",
+  "text": "Ashbox not available"
+ },
+ "IN520": {
+  "info": "Empty ash pan, remove the ash under the heating surfaces and clean the thermocontrol sensor",
+  "text": "Cleaning"
+ },
+ "IN521": {
+  "info": "Perform main cleaning according to operation manual.",
+  "text": "Main cleaning"
+ },
+ "IN522": {
+  "info": "Empty ash container, clean burner and combustion chamber",
+  "text": "Cleaning"
+ },
+ "IN523": {
+  "info": "Perform main cleaning according to operation manual.",
+  "text": "Main cleaning"
+ },
+ "IN524": {
+  "info": "Maintenance is key prerequisite for Warranty.",
+  "text": "Maintenance"
+ },
+ "IN525": {
+  "info": "Empty ash box, follow operating manual",
+  "text": "Empty ash box"
+ },
+ "IN526": {
+  "info": "Perform main cleaning according to operation manual",
+  "text": "Main cleaning"
+ },
+ "IN527": {
+  "info": "Correct servicing is a prerequisite for warranty. Arrange service appointement within 3 months.",
+  "text": "Maintenance"
+ },
+ "IN537": {
+  "info": "Follow operating manual",
+  "text": "Condensing benefits too low"
+ },
+ "IN551": {
+  "info": "Follow operating manual",
+  "text": "Too much flow drain rinsing"
+ },
+ "IN553": {
+  "info": "Follow operating manual",
+  "text": "Too much flow heat exchanger rinsing"
+ },
+ "IN560": {
+  "info": "Follow operating manual",
+  "text": "Condensation monitor"
+ },
+ "IN562": {
+  "info": "Follow operating manual",
+  "text": "Info messages heat pump"
+ },
+ "IN563": {
+  "info": "Follow operating manual",
+  "text": "External boiler reports fault"
+ },
+ "IN564": {
+  "info": "Follow operating manual",
+  "text": "Flame stabilisation time to long"
+ },
+ "IN565": {
+  "info": "Follow operating manual",
+  "text": "Unknown error heat pump"
+ },
+ "IN570": {
+  "info": "Follow operating manual",
+  "text": "E-Heater in operation"
+ },
+ "IN578": {
+  "info": "Do not ignite the log boiler",
+  "text": "Induced draught fan locked on the log boiler"
+ },
+ "IN581": {
+  "info": "Fuel hopper is almost empty.Re-fill fuel",
+  "text": "Re-fill fuel"
+ },
+ "IN582": {
+  "info": "Fuel hopper empty.Re-fill fuel.Burner is locked",
+  "text": "Fuel hopper empty"
+ },
+ "IN590": {
+  "info": "Remove ash.Clean boiler and burner",
+  "text": "Clean boiler and burner. Confirm cleaning"
+ },
+ "IN591": {
+  "info": "Door min. 15 sec. on latch",
+  "text": "Caution when opening the door"
+ },
+ "IN595": {
+  "info": "Burner locked",
+  "text": "Door open"
+ },
+ "IN598": {
+  "info": "No communication with the PV surplus energy meter",
+  "text": "Energy meter no communication"
+ },
+ "IN599": {
+  "info": "System offline",
+  "text": "System connection and monitoring disabled. The connection can be restored on the Windhager Connect management page."
+ }
+}

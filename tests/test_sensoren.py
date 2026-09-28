@@ -113,6 +113,22 @@ def test_eine_echte_stoerung_erscheint_im_klartext(sensoren):
     assert "Verkleidungstür schließen" in meldung["info"]
 
 
+def test_englische_stoerung_ohne_texte_der_steuerung(sensoren):
+    entity, koordinator = _entitaet(
+        sensoren.WindhagerMessageTextSensor,
+        {},
+        type="message_text",
+        node_id="60",
+        oid=None,
+        sprache="en",
+    )
+    koordinator.data["status"] = {"60": "PUR 09E346"}
+    koordinator.last_update_success = True
+
+    assert entity.native_value == "Cladding door open"
+    assert entity.extra_state_attributes["meldungen"][0]["info"].startswith("Close")
+
+
 def test_mehrere_stoerungen_werden_aneinandergereiht(sensoren):
     """Mehrere Codes im selben Feld, Dubletten fallen weg."""
     entity = _meldung(sensoren, "PUR 09E346E346E239")

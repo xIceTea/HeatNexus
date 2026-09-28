@@ -389,6 +389,30 @@ def test_englische_auswahltexte_ohne_textdatei_der_steuerung(client_module):
     assert _mit_texten(client_module, "de", {})._enum_texte_fuer("9/75") is None
 
 
+async def test_meldungssensoren_tragen_die_sprache(client_module, monkeypatch):
+    """Ohne Textdatei der Steuerung wählt die Sprache die Tabelle der Störungstexte."""
+    client = _mit_texten(client_module, "en", {})
+    client.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
+    client.werksbezeichnung = {"60": "PuroWIN"}
+
+    async def fetch(url, semaphore=None):
+        return [
+            {
+                "nodeId": 60,
+                "neuronId": "0000PUROWIN1",
+                "FE01msg": "PUR 09  OK",
+                "functions": [{"fctId": 0, "fctType": 25, "lock": False, "name": "PuroWIN"}],
+            }
+        ]
+
+    monkeypatch.setattr(client, "fetch", fetch)
+    await client._discover(nur_kern=True)
+
+    meldungen = [d for d in client.devices if d["type"] == "message_text"]
+    assert meldungen
+    assert all(d["sprache"] == "en" for d in meldungen)
+
+
 def test_die_ww_hysterese_steht_bei_den_warmwasserwerten(client_module):
     """Der Herstellername „Hysterese Ein" nennt seinen Bezug nicht."""
     client = _mit_texten(client_module, "de", {"5/0": "Hysterese Ein"})

@@ -104,3 +104,11 @@ def test_die_geraetedatei_der_fremdsprache_liegt_neben_der_deutschen(generator, 
     assert generator.geraetetexte_fuer(deutsch, "en") == englisch
     assert generator.geraetetexte_fuer(deutsch, "it") is None
     assert generator.geraetetexte_fuer(None, "en") is None
+
+
+def test_jede_erzeugte_stoerungstabelle_wird_gelesen(generator, error_texts):
+    assert set(error_texts.SPRACHEN) == {"de", *generator.FREMDSPRACHEN}
+
+
+def test_die_englischen_stoerungstexte_decken_die_deutschen_ab(error_texts):
+    assert set(error_texts._table("en")) == set(error_texts._table("de"))

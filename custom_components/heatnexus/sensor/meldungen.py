@@ -143,7 +143,8 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
         if roh is None:
             return
         jetzt = dt_util.utcnow().isoformat(timespec="seconds")
-        for meldung in parse_messages(roh, self._descriptor.get("stoerungstexte")):
+        texte = self._descriptor.get("stoerungstexte")
+        for meldung in parse_messages(roh, texte, self._descriptor.get("sprache") or "de"):
             vorhanden = self._eintraege.get(meldung["code"])
             if vorhanden is None:
                 self._eintraege[meldung["code"]] = {

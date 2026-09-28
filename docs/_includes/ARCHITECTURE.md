@@ -239,8 +239,9 @@ auswählbaren Werte zusätzlich ein.
 |---|---|
 | `device_db.json` | Datenpunktnamen, Enum-Tabellen und Ebenenlisten je Funktionstyp |
 | `error_texts_de.json` | Störungstexte und Handlungsempfehlungen je Code |
+| `error_texts_en.json` | dieselben Texte auf Englisch, für Steuerungen ohne eigene Textdateien |
 
-Beide werden aus den offiziellen Windhager-Parameterdateien erzeugt und nicht
+Alle drei werden aus den offiziellen Windhager-Parameterdateien erzeugt und nicht
 von Hand gepflegt.
 
 ## Module

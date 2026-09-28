@@ -269,7 +269,9 @@ class MeldungsQuelle:
         roh = self._raw
         if roh != self._roh_zuletzt:
             self._roh_zuletzt = roh
-            self._meldungen_zuletzt = parse_messages(roh, self._descriptor.get("stoerungstexte"))
+            self._meldungen_zuletzt = parse_messages(
+                roh, self._descriptor.get("stoerungstexte"), self._descriptor.get("sprache") or "de"
+            )
         return self._meldungen_zuletzt
 
     @property

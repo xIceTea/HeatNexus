@@ -532,6 +532,7 @@ class ErkennungMixin:
                             node_id=str(node_id),
                             name=name,
                             stoerungstexte=self._stoerungstexte(),
+                            sprache=self.sprache,
                             category="diagnostic",
                             icon=icon,
                             device_id=self._geraetekennung(primary_prefix),
