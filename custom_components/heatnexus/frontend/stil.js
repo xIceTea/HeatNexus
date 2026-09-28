@@ -1186,7 +1186,7 @@ export const STIL = `
   }
   .automatik-segment button:hover:not([disabled]) { color: var(--hn-text); }
   .automatik-segment button[aria-pressed="true"] {
-    background: color-mix(in srgb, var(--hn-text) 14%, transparent); color: var(--hn-text); font-weight: 600;
+    background: color-mix(in srgb, var(--hn-akzent) 20%, transparent); color: var(--hn-akzent); font-weight: 600;
   }
   .automatik-segment button:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
   .automatik-hinweis {
@@ -1293,7 +1293,7 @@ export const STIL = `
     color: var(--hn-gedaempft); font: inherit; font-size: 13px; font-weight: 500;
   }
   .automatik-tagwahl button[aria-pressed="true"] {
-    background: color-mix(in srgb, var(--hn-text) 14%, transparent); color: var(--hn-text); font-weight: 600;
+    background: color-mix(in srgb, var(--hn-akzent) 20%, transparent); color: var(--hn-akzent); font-weight: 600;
   }
   .automatik-stundenlegende {
     display: flex; flex-wrap: wrap; gap: 4px 16px; margin-left: auto;
