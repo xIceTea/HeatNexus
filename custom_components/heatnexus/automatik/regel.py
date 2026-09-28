@@ -291,6 +291,13 @@ def _saison_nur_ww(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entsche
     if abstand < -ZU_KALT_K:
         return _zurueck(lage, f"Räume {_kelvin(abstand)} – zurück ins Programm.")
     unten = grenze(lage, w) - w.hysterese
+    # Unter ihrer Einschaltschwelle heizt die Steuerung; fordern die Thermostate Wärme an, gilt das sofort.
+    if lage.at is not None and lage.at < unten and lage.ruhig is False and abstand < 0:
+        return _zurueck(
+            lage,
+            f"Außen {_zahl(lage.at)} °C unter {_zahl(unten)} °C, Thermostate fordern Wärme "
+            "an – zurück ins Programm.",
+        )
     kuehl = lage.at_gedaempft is not None and lage.at_gedaempft < unten
     if kuehl and _bereit(g, lage.jetzt, w) and abstand < -SAISON_RAUM_K:
         return _zurueck(

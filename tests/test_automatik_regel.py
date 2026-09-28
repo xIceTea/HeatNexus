@@ -182,6 +182,40 @@ def test_zu_kalter_raum_kehrt_trotz_mindestdauer_zurueck(m, w):
     assert [a.art for a in e.aktionen] == ["zurueck"]
 
 
+def _heizbedarf(m, **felder):
+    basis = {
+        "at": 16.7,
+        "at_gedaempft": 16.4,
+        "raeume": ((18.4, 19.0), (21.1, 21.5)),
+        "ruhig": False,
+        "betriebswahl": 6,
+        "grenze_steuerung": 18.0,
+    }
+    basis.update(felder)
+    return lage(m, raum=None, **basis)
+
+
+def test_heizbedarf_unter_der_einschaltschwelle_holt_nur_ww_zurueck(m, w):
+    e = m.entscheiden(_heizbedarf(m), nur_ww(m, timedelta(hours=3)), w)
+    assert [a.art for a in e.aktionen] == ["zurueck"]
+    assert "16,7" in e.begruendung and "17,0" in e.begruendung
+
+
+def test_heizbedarf_ueber_der_einschaltschwelle_haelt_nur_ww(m, w):
+    e = m.entscheiden(_heizbedarf(m, at=17.2), nur_ww(m, timedelta(hours=3)), w)
+    assert e.aktionen == ()
+
+
+def test_ruhige_thermostate_unter_der_einschaltschwelle_halten_nur_ww(m, w):
+    e = m.entscheiden(_heizbedarf(m, ruhig=True), nur_ww(m, timedelta(hours=3)), w)
+    assert e.aktionen == ()
+
+
+def test_anforderung_bei_raeumen_ueber_ziel_haelt_nur_ww(m, w):
+    stand = _heizbedarf(m, raeume=((19.2, 19.0), (21.6, 21.5)))
+    assert m.entscheiden(stand, nur_ww(m, timedelta(hours=3)), w).aktionen == ()
+
+
 def test_nur_ww_misst_gegen_den_gemerkten_sollwert(m, w):
     stand = lage(m, soll=5.0, raum=19.9, betriebswahl=6)
     e = m.entscheiden(stand, nur_ww(m, timedelta(hours=3)), w)

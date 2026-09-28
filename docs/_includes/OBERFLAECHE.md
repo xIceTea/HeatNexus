@@ -80,7 +80,9 @@ ohnehin tut:
   mindestens die Heizgrenze voraus, oder liegt die gedämpfte Außentemperatur
   um die Hysterese darüber, schaltet sie den Heizkreis auf nur Warmwasser.
   Zurück geht es, wenn es kühler wird und die Räume auskühlen. Eine Hysterese
-  und eine Mindestdauer verhindern häufiges Umschalten.
+  und eine Mindestdauer verhindern häufiges Umschalten. Liegt die aktuelle
+  Außentemperatur unter der Einschaltschwelle der Steuerung und fordern die
+  Thermostate Wärme an, geht der Heizkreis sofort zurück ins Programm.
 
 ### Die Heizgrenze der Steuerung
 
