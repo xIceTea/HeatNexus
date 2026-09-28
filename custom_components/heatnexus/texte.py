@@ -10,6 +10,7 @@ from functools import lru_cache
 import json
 import logging
 from pathlib import Path
+import re
 
 from .const import CONF_SPRACHE, DOMAIN
 from .geraetetexte import SPRACHE_AUTO
@@ -59,6 +60,24 @@ class Woerterbuch:
         """Kurzform für die Übersetzung eines Textes."""
         return self._eintraege.get(text, text)
 
+    def satz(self, text: str) -> str:
+        """Einen fertigen Satz übersetzen, auch mit Werten darin; Unbekanntes bleibt deutsch.
+
+        Die Werte eines Musters werden selbst nachgeschlagen: „{grund} Pausiert bis {zeit}.“
+        """
+        if not self._eintraege or not text:
+            return text
+        if text in self._eintraege:
+            return self._eintraege[text]
+        for suche, namen, fremd in _muster(self.sprache):
+            if (treffer := suche.match(text)) is None:
+                continue
+            ergebnis = fremd
+            for name, wert in zip(namen, treffer.groups(), strict=True):
+                ergebnis = ergebnis.replace("{" + name + "}", self.satz(wert))
+            return ergebnis
+        return text
+
     def __bool__(self) -> bool:
         """Wahr, sobald es etwas zu übersetzen gibt."""
         return bool(self._eintraege)
@@ -71,6 +90,28 @@ class Woerterbuch:
         keinem Aufrufer verändert werden.
         """
         return dict(self._eintraege)
+
+
+# Sätze mit Zahlen stehen als Muster im Wörterbuch: „Sonnentag – {soll} °C bis {zeit}.“
+_PLATZHALTER = re.compile(r"\{(\w+)\}")
+# Kürzere feste Anteile trügen zu wenig, um einen Satz sicher zu erkennen.
+MUSTER_MIN_ZEICHEN = 6
+
+
+@lru_cache(maxsize=4)
+def _muster(sprache: str) -> tuple[tuple[re.Pattern[str], tuple[str, ...], str], ...]:
+    """Die Einträge mit Platzhaltern als Suchmuster, der längste feste Anteil zuerst."""
+    gefunden = []
+    for deutsch, fremd in Woerterbuch._waehlen(sprache).items():
+        teile = _PLATZHALTER.split(deutsch)
+        namen = tuple(teile[1::2])
+        fest = "".join(teile[0::2])
+        if not namen or len(fest.strip()) < MUSTER_MIN_ZEICHEN:
+            continue
+        suche = "".join(re.escape(t) if i % 2 == 0 else "(.+?)" for i, t in enumerate(teile))
+        gefunden.append((len(fest), re.compile(suche + r"\Z", re.DOTALL), namen, fremd))
+    gefunden.sort(key=lambda eintrag: -eintrag[0])
+    return tuple((suche, namen, fremd) for _, suche, namen, fremd in gefunden)
 
 
 # Felder der Nutzlast, die Klartext für den Betrachter tragen. Was nicht im

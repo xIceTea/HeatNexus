@@ -19,6 +19,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
+from .. import texte
 from ..const import DOMAIN, SUBEINTRAG_QUELLE
 from ..rechte import darf_lesen
 from . import eingaben, kennzahlen, korrektur, nachladen, profile, regel, tagesansicht
@@ -172,6 +173,7 @@ async def _ws_lesen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> Non
     verwaltung = verwaltung_holen(hass)
     await verwaltung.laden()
     register = er.async_get(hass)
+    woerterbuch = texte.woerterbuch(hass)
     heizkreise = []
     for entry in _geladene(hass):
         for coordinator, beschreibung in Verwaltung.heizkreise(entry):
@@ -179,7 +181,9 @@ async def _ws_lesen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> Non
             # Ohne Klima-Entität gibt es nichts zu prüfen und nichts zu bedienen.
             if not klima or not darf_lesen(connection.user, klima):
                 continue
-            heizkreise.append(_eintrag(hass, verwaltung, coordinator, beschreibung))
+            heizkreise.append(
+                _uebersetzt(_eintrag(hass, verwaltung, coordinator, beschreibung), woerterbuch)
+            )
     connection.send_result(
         msg["id"],
         {
@@ -189,6 +193,24 @@ async def _ws_lesen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> Non
             "grenzen": profile.GRENZEN,
         },
     )
+
+
+def _uebersetzt(eintrag: dict[str, Any], woerterbuch: texte.Woerterbuch) -> dict[str, Any]:
+    """Begründung, Vorschau und Protokoll in der Sprache der Oberfläche; gespeichert bleibt Deutsch."""
+    if not woerterbuch:
+        return eintrag
+    satz = woerterbuch.satz
+    neu = dict(eintrag)
+    if eintrag.get("begruendung"):
+        neu["begruendung"] = satz(eintrag["begruendung"])
+    if "vorschau" in eintrag:
+        neu["vorschau"] = [
+            {**tag, "begruendung": satz(tag.get("begruendung") or "")}
+            for tag in eintrag["vorschau"]
+        ]
+    if "protokoll" in eintrag:
+        neu["protokoll"] = [{**e, "text": satz(e.get("text") or "")} for e in eintrag["protokoll"]]
+    return neu
 
 
 def _bereich(hass: HomeAssistant, eintrag: er.RegistryEntry | None) -> str:

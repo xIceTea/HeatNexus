@@ -165,6 +165,26 @@ async def test_lesen_zeigt_den_heizkreis(hass, hass_ws_client, anlage):
     assert antwort["result"]["darf_aendern"] is True
 
 
+async def test_lesen_auf_englisch_uebersetzt_begruendung_und_protokoll(
+    hass, hass_ws_client, anlage, freezer
+):
+    """Begründung und Protokoll kommen in der Sprache der Oberfläche, der Store bleibt deutsch."""
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await laufzeit.auswerten(entscheidungszeit=True)
+    hass.config.language = "en"
+
+    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
+
+    deutsch = laufzeit.steller.stand.protokoll[0]["text"]
+    assert kreis["begruendung"] != laufzeit.begruendung
+    assert kreis["protokoll"][0]["text"] != deutsch
+    assert laufzeit.steller.stand.protokoll[0]["text"] == deutsch
+
+
 async def test_schalten_schreibt_zur_entscheidungszeit(hass, hass_ws_client, anlage, freezer):
     verwaltung, coordinator = anlage
     client = await hass_ws_client(hass)

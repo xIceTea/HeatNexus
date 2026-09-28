@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 
 import pytest
 
 from .conftest import load_standalone
 
 ORDNER = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "sprachen"
+PLATZHALTER = re.compile(r"\{(\w+)\}")
 
 
 @pytest.fixture(scope="module")
@@ -55,6 +57,55 @@ def test_nur_bekannte_felder_werden_uebersetzt(texte):
     assert ergebnis["titel"] == "Overview"
     assert ergebnis["entity"] == "sensor.uebersicht"
     assert ergebnis["kinder"][0]["titel"] == "Maintenance"
+
+
+@pytest.mark.parametrize(
+    ("deutsch", "englisch"),
+    [
+        ("Sonnentag – 21,0 °C bis 16:54.", "Sunny day – 21,0 °C until 16:54."),
+        (
+            "Heizt nach Programm – gedämpfte AT 16,8 °C, Raum 21,3 °C. Die Räume fordern Wärme an.",
+            "Heating by program – damped outdoor temp. 16,8 °C, room 21,3 °C. The rooms call for heat.",
+        ),
+        (
+            "Absenkung von Hand beendet. Pausiert bis 05:00.",
+            "Setback ended by hand. Paused until 05:00.",
+        ),
+        ("Außen 3,0 °C – zurück ins Programm.", "Outdoor 3,0 °C – back to the program."),
+        ("Räume −0,6 K – zurück ins Programm.", "Rooms −0,6 K – back to the program."),
+        (
+            "Estrich an der Steuerung – keine Eingriffe.",
+            "Screed drying at the controller – no interventions.",
+        ),
+        (
+            "Heizgrenzen der Steuerung: Heizbetrieb 18,0 °C, Absenkbetrieb 5,0 °C.",
+            "Controller heating limits: Heating mode 18,0 °C, setback mode 5,0 °C.",
+        ),
+        ("Solaranlage liefert – 21,0 °C bis 16:54.", "Solaranlage delivers – 21,0 °C until 16:54."),
+    ],
+)
+def test_saetze_mit_zahlen_kommen_uebersetzt(texte, deutsch, englisch):
+    """Ein Satz mit Werten trifft sein Muster; die Werte bleiben, eingebettete Sätze werden mit übersetzt."""
+    assert texte.Woerterbuch("en").satz(deutsch) == englisch
+
+
+def test_unbekannter_satz_bleibt_deutsch(texte):
+    """Ohne passendes Muster bleibt der Satz stehen, auf Deutsch sowieso."""
+    assert texte.Woerterbuch("en").satz("Etwas ganz anderes 12 %.") == "Etwas ganz anderes 12 %."
+    assert (
+        texte.Woerterbuch("de").satz("Sonnentag – 21,0 °C bis 16:54.")
+        == "Sonnentag – 21,0 °C bis 16:54."
+    )
+
+
+def test_jede_uebersetzung_traegt_die_platzhalter_ihres_schluessels():
+    """Ein vergessener oder umbenannter Platzhalter ließe einen Wert verschwinden."""
+    for datei in ORDNER.glob("*.json"):
+        for deutsch, fremd in json.loads(datei.read_text(encoding="utf-8")).items():
+            assert sorted(PLATZHALTER.findall(deutsch)) == sorted(PLATZHALTER.findall(fremd)), (
+                datei.name,
+                deutsch,
+            )
 
 
 def test_jede_kachelbeschriftung_ist_uebersetzt(texte):
