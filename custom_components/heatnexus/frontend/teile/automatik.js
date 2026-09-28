@@ -101,6 +101,27 @@ export function raumzeile(raum, t = (text) => text) {
   return text;
 }
 
+const AKTIONEN = { absenkung: "Absenkung", nur_ww: "nur Warmwasser", programm: "Programm" };
+
+/** Die Werte einer Stunde im Tagesbild, als Zeilen für den Zeiger; Fehlendes entfällt. */
+export function tagesleisteTipp(tag, stunde, t = (text) => text) {
+  const eintrag = ((tag && tag.stunden) || []).find((s) => s.stunde === stunde) || {};
+  const kopf = [uhrzeit(stunde), eintrag.aktion ? t(AKTIONEN[eintrag.aktion] || eintrag.aktion) : null];
+  const zeilen = [kopf.filter(Boolean).join(" · ")];
+  const prognose = eintrag.korrigiert ?? eintrag.roh;
+  [
+    ["Außen gemessen", eintrag.at],
+    ["Außen Prognose", prognose],
+    ["gedämpfte AT", eintrag.gedaempft],
+    ["Räume", eintrag.raum],
+  ].forEach(([titel, wert]) => {
+    if (wert !== null && wert !== undefined) zeilen.push(`${t(titel)} ${zahl(wert)} °C`);
+  });
+  const sonne = ((tag && tag.sonne) || [])[stunde];
+  if (sonne) zeilen.push(`${t("Sonne")} ${Math.round(sonne * 100)} %`);
+  return zeilen;
+}
+
 /** Stunde als Kommazahl in „HH:MM“. */
 export function uhrzeit(stunde) {
   const minuten = Math.round(Number(stunde) * 60);
@@ -490,6 +511,42 @@ export const AutomatikMixin = (Basis) =>
       return raster;
     }
 
+    /** Zeiger über dem Tagesbild: senkrechte Linie und die Werte der Stunde darunter. */
+    _automatikZeiger(bild, tag) {
+      const linie = document.createElement("div");
+      linie.className = "automatik-zeiger";
+      const tipp = document.createElement("div");
+      tipp.className = "automatik-tipp";
+      linie.hidden = true;
+      tipp.hidden = true;
+      bild.append(linie, tipp);
+      const zeigen = (ereignis) => {
+        const rahmen = bild.getBoundingClientRect();
+        if (!rahmen.width) return;
+        const anteil = Math.max(0, Math.min(1, (ereignis.clientX - rahmen.left) / rahmen.width));
+        const stunde = Math.min(23, Math.floor(anteil * 24));
+        linie.style.left = `${((stunde + 0.5) / 24) * 100}%`;
+        tipp.replaceChildren(
+          ...tagesleisteTipp(tag, stunde, (text) => this._t(text)).map((text) => {
+            const zeile = document.createElement("div");
+            zeile.textContent = text;
+            return zeile;
+          })
+        );
+        // Rechts der Mitte steht die Box links vom Zeiger, damit sie im Bild bleibt.
+        tipp.style.left = anteil > 0.5 ? "auto" : `calc(${((stunde + 0.5) / 24) * 100}% + 8px)`;
+        tipp.style.right = anteil > 0.5 ? `calc(${100 - ((stunde + 0.5) / 24) * 100}% + 8px)` : "auto";
+        linie.hidden = false;
+        tipp.hidden = false;
+      };
+      bild.addEventListener("pointermove", zeigen);
+      bild.addEventListener("pointerdown", zeigen);
+      bild.addEventListener("pointerleave", () => {
+        linie.hidden = true;
+        tipp.hidden = true;
+      });
+    }
+
     _automatikTag(kreis) {
       const rahmen = document.createElement("div");
       rahmen.className = "automatik-tag";
@@ -513,6 +570,7 @@ export const AutomatikMixin = (Basis) =>
       const bild = document.createElement("div");
       bild.className = "automatik-tag-bild";
       bild.innerHTML = tagesleisteSvg(tag, 1000, (kreis.werte || {}).heizgrenze);
+      this._automatikZeiger(bild, tag);
       const achse = document.createElement("div");
       achse.className = "automatik-achse";
       ["00:00", "06:00", "12:00", "18:00", "24:00"].forEach((marke) => {
@@ -629,6 +687,7 @@ export const AutomatikMixin = (Basis) =>
         zelle.appendChild(streifen);
         const raum = document.createElement("div");
         raum.className = "raum";
+        raum.title = this._t("Räume im Mittel, gemessen zu Beginn der Stunde");
         if (eintrag.raum !== null && eintrag.raum !== undefined) {
           if (bezug !== null && bezug !== undefined) raum.classList.add(eintrag.raum >= bezug ? "ueber" : "unter");
           raum.textContent = zahl(eintrag.raum);

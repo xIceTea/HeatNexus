@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { pathToFileURL } from "node:url";
 
 const modul = await import(pathToFileURL(process.argv[2]).href);
-const { zahl, uhrzeit, tagesleisteSvg, wetterSymbol, korrekturText, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
+const { zahl, uhrzeit, tagesleisteSvg, tagesleisteTipp, wetterSymbol, korrekturText, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
 
 assert.equal(zahl(19.5), "19,5");
 assert.equal(zahl(78, 0), "78");
@@ -88,4 +88,23 @@ assert.equal(korrekturText("temperatur", { versatz: -1.4, tage: 9 }, 7), "Außen
 assert.equal(korrekturText("temperatur", { versatz: null, tage: 3 }, 7), "Außen: lernt noch 3/7");
 assert.equal(korrekturText("sonne", { aktiv: true, faktor: 0.88, tage: 8 }, 7), "Sonne angepasst −12 %");
 assert.equal(korrekturText("sonne", { aktiv: false }, 7), "Sonne unkorrigiert");
+
+// Werte unter dem Zeiger im Tagesbild: nur, was für die Stunde vorliegt.
+const tagMitWerten = {
+  sonne: Array.from({ length: 25 }, (_, h) => (h === 10 ? 0.5 : 0)),
+  stunden: [
+    { stunde: 10, at: 12.9, korrigiert: 13.8, gedaempft: 12.41, raum: 20.55, aktion: "absenkung" },
+    { stunde: 20, at: null, korrigiert: 18.1, gedaempft: null, raum: null, aktion: "programm" },
+  ],
+};
+assert.deepEqual(tagesleisteTipp(tagMitWerten, 10), [
+  "10:00 · Absenkung",
+  "Außen gemessen 12,9 °C",
+  "Außen Prognose 13,8 °C",
+  "gedämpfte AT 12,4 °C",
+  "Räume 20,6 °C",
+  "Sonne 50 %",
+]);
+assert.deepEqual(tagesleisteTipp(tagMitWerten, 20), ["20:00 · Programm", "Außen Prognose 18,1 °C"]);
+assert.deepEqual(tagesleisteTipp({}, 5), ["05:00"]);
 console.log("ok");

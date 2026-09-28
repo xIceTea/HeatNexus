@@ -1203,6 +1203,18 @@ export const STIL = `
   .automatik-wert .bez { font-size: 11px; opacity: 0.55; margin-top: 3px; }
   .automatik-wert .schw { font-size: 11px; margin-top: 4px; color: var(--hn-gedaempft); }
   .automatik-tag-bild svg { display: block; width: 100%; }
+  .automatik-tag-bild { position: relative; touch-action: pan-y; cursor: crosshair; }
+  .automatik-zeiger {
+    position: absolute; top: 0; bottom: 0; width: 0; pointer-events: none;
+    border-left: 1px solid var(--hn-text); opacity: 0.6;
+  }
+  .automatik-tipp {
+    position: absolute; top: 4px; pointer-events: none; z-index: 2;
+    background: var(--hn-karte); border: 1px solid var(--hn-linie); border-radius: 8px;
+    padding: 6px 9px; font-size: 12px; line-height: 1.45; white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+  .automatik-tipp > div:first-child { font-weight: 700; }
   .automatik-tag .al-sonne {
     fill: color-mix(in srgb, var(--hn-sonne) 35%, transparent);
     stroke: var(--hn-sonne); stroke-width: 1.5; vector-effect: non-scaling-stroke;
