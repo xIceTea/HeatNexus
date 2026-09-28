@@ -9,6 +9,9 @@
 
 import { FELDER, HEIZFLAECHEN, PROFILE, PROFIL_JE_FLAECHE, VERALTET_STUNDEN, zahl } from "./automatik.js";
 
+// So lange steht „übernommen ✓“ neben den Tasten.
+const GESPEICHERT_MS = 4000;
+
 export const EinrichtungMixin = (Basis) =>
   class extends Basis {
     // --- Erweitert -----------------------------------------------------
@@ -90,13 +93,13 @@ export const EinrichtungMixin = (Basis) =>
       zuruecksetzen.className = "automatik-knopf leise";
       zuruecksetzen.textContent = "Profilwerte wiederherstellen";
       zuruecksetzen.disabled = !darf;
-      zuruecksetzen.addEventListener("click", () => this._automatikEinstellen(kreis, { eigene: {} }));
+      zuruecksetzen.addEventListener("click", () => this._automatikSpeichern(kreis, { eigene: {} }));
       const speichern = document.createElement("button");
       speichern.type = "button";
       speichern.className = "automatik-knopf";
       speichern.textContent = "Speichern";
       speichern.disabled = !darf;
-      speichern.addEventListener("click", () => this._automatikEinstellen(kreis, { eigene: this._automatikEigene(eingaben) }));
+      speichern.addEventListener("click", () => this._automatikSpeichern(kreis, { eigene: this._automatikEigene(eingaben) }));
       const entfernen = document.createElement("button");
       entfernen.type = "button";
       entfernen.className = "automatik-knopf leise warnung";
@@ -106,9 +109,25 @@ export const EinrichtungMixin = (Basis) =>
       const links = document.createElement("div");
       links.className = "automatik-leiste-links";
       links.append(entfernen);
-      leiste.append(links, zuruecksetzen, speichern);
+      leiste.append(links);
+      // Der Neuaufbau nach dem Speichern ersetzt die Felder; der Hinweis sagt, dass es geklappt hat.
+      if (this._automatikGespeichert === kreis.heizkreis) {
+        this._automatikGespeichert = null;
+        const hinweis = document.createElement("span");
+        hinweis.className = "automatik-gespeichert";
+        hinweis.textContent = this._t("übernommen ✓");
+        leiste.append(hinweis);
+        setTimeout(() => hinweis.remove(), GESPEICHERT_MS);
+      }
+      leiste.append(zuruecksetzen, speichern);
       bereich.appendChild(leiste);
       return bereich;
+    }
+
+    /** Speichern unter „Erweitert“; nach dem Neuaufbau steht dort „übernommen ✓“. */
+    async _automatikSpeichern(kreis, aenderung) {
+      this._automatikGespeichert = kreis.heizkreis;
+      if (!(await this._automatikEinstellen(kreis, aenderung))) this._automatikGespeichert = null;
     }
 
     async _automatikEntfernen(kreis) {

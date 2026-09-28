@@ -758,6 +758,14 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   const neu = wurzel.querySelector(".automatik-erweitert");
   bilanz.automatik.erweitertBleibtOffen = neu !== erweitert && neu.open === true;
 
+  // Speichern unter „Erweitert“ meldet sich nach dem Neuaufbau mit „übernommen ✓“.
+  hass.callWS = async () => flaeche._automatik;
+  await flaeche._automatikSpeichern(flaeche._automatik.heizkreise[0], { eigene: {} });
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  hass.callWS = vorherSpeichern;
+  bilanz.automatik.gespeichert = [...wurzel.querySelectorAll(".automatik-gespeichert")].map((t) => String(t.textContent || ""));
+
   // Der Einrichtungsdialog schließt oben rechts; Kopf und Tasten scrollen nicht mit.
   const vorherDialog = hass.callWS;
   hass.callWS = async () => ({
