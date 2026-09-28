@@ -12,7 +12,7 @@ import logging
 import re as _re
 from xml.etree import ElementTree
 
-from .. import geraete, geraetetexte
+from .. import geraete, geraetetexte, texte
 from ..const import (
     ADVANCED_LEVELS,
     EXTRA_OIDS_BY_FCT,
@@ -212,7 +212,7 @@ class ErkennungMixin:
             and (bezeichnung := (knoten.get("device") or {}).get("name"))
         }
 
-    def _name_fuer(self, gnmn: str, vorgabe: str | None) -> str | None:
+    def _name_fuer(self, gnmn: str, vorgabe: str | None, gepflegt: str | None = None) -> str | None:
         """Anzeigename eines Datenpunkts.
 
         Auf Deutsch führt die gepflegte Bezeichnung; der Gerätetext springt nur
@@ -222,15 +222,24 @@ class ErkennungMixin:
         geraet = self._texte.namen.get(gnmn)
         if self.sprache == "de":
             return vorgabe or geraet
+        # Ein gepflegter Name trennt, was Gerät und Herstellertabelle gleich nennen.
+        if gepflegt and (fassung := texte.eigene_fassung(self.sprache, gepflegt)):
+            return fassung
         # Liefert die Steuerung kein Textwerk, springt die Herstellertabelle ein.
         return geraet or get_name(gnmn, self.sprache) or vorgabe
 
-    def _namensfelder(self, gnmn: str, vorgabe: str | None, rueckfall: str | None = None) -> dict:
+    def _namensfelder(
+        self,
+        gnmn: str,
+        vorgabe: str | None,
+        rueckfall: str | None = None,
+        gepflegt: str | None = None,
+    ) -> dict:
         """Anzeigename, bei fremder Sprache dazu der deutsche als `name_de`.
 
         Poll-Takt, Statistikklasse und Oberfläche erkennen Datenpunkte an deutschen Wörtern.
         """
-        name = self._name_fuer(gnmn, vorgabe) or rueckfall
+        name = self._name_fuer(gnmn, vorgabe, gepflegt) or rueckfall
         if self.sprache == "de":
             return {"name": name}
         return {"name": name, "name_de": vorgabe or rueckfall}
@@ -291,7 +300,9 @@ class ErkennungMixin:
             # `base`, nicht `prefix`: Knotenweite Datenpunkte hängen am Gerät,
             # nicht an der Funktion – sonst schneidet `_gnmn` die falsche
             # Länge ab.
-            **self._namensfelder(self._gnmn(base, oid), definition["name"]),
+            **self._namensfelder(
+                self._gnmn(base, oid), definition["name"], gepflegt=definition["name"]
+            ),
             type=definition["platform"],
             unit=definition.get("unit"),
             enum=definition.get("enum"),
@@ -476,6 +487,7 @@ class ErkennungMixin:
                                 name_override(fct_type, gnmn) or get_name(gnmn),
                                 (f"{gruppe_of[gnmn]} {gnmn}" if gnmn in gruppe_of else None)
                                 or f"Datenpunkt {gnmn}",
+                                gepflegt=name_override(fct_type, gnmn),
                             ),
                             level=level,
                             # Service- und Werksebene sind vorhanden, aber
