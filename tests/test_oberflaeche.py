@@ -659,6 +659,10 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     assert automatik["tagesleiste"] == 1
     assert "Einrichtung bearbeiten" in automatik["knoepfe"]
     assert "Automatik entfernen" in automatik["knoepfe"]
+    assert automatik["kacheln"] == ["aussentemperatur", "sonne", "raum"]
+    assert automatik["skalen"] == 3
+    assert automatik["eingriffe"] == "Eingriffe 1 / 4"
+    assert automatik["grenzenEingaben"] == 2
     assert automatik["ausrichtung"] == [
         ["Eco", "false"],
         ["Ausgewogen", "true"],
@@ -693,13 +697,14 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
         "h2",
         "automatik-punkt",
         "automatik-marke",
+        "automatik-eingriffe",
         "automatik-knopf",
         "fragezeichen",
     ]
     assert automatik["dialogKopf"] is True
     assert automatik["kreuzSchliesst"] is True
     assert automatik["raumliste"] == ["Bad 20,8 °C → 21,0 °C · heizt"]
-    assert automatik["raumKachel"] == ["21,4 °C · −0,2 K", None]
+    assert automatik["raumKachel"] == ["−0,2 K", "21,4 °C"]
     assert automatik["vorrangWahl"] is True
     assert automatik["vorrangZeile"] == ["Vorrangquellen heute 1,5 h"]
     assert automatik["vorrangStunden"] == 1

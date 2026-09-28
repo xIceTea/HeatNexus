@@ -1193,8 +1193,44 @@ export const STIL = `
     background: var(--hn-flaeche); font-size: 15px; line-height: 1.45;
   }
   .automatik-werte {
-    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px;
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px;
   }
+  .automatik-wert .titel { font-size: 12px; color: var(--hn-gedaempft); margin-bottom: 4px; }
+  .automatik-wert .werte { display: flex; gap: 16px; align-items: flex-end; }
+  .automatik-wert .werte .neben .zahl { color: var(--hn-gedaempft); font-size: 17px; }
+  .automatik-wert .fuss { font-size: 11px; margin-top: 6px; color: var(--hn-gedaempft); line-height: 1.4; }
+  .automatik-eingriffe { font-size: 12px; color: var(--hn-gedaempft); }
+  /* Skala: Zonen als Flächen, Schaltpunkte als Linien, Werte als Punkt oder Strich. */
+  .automatik-skala { margin-top: 10px; }
+  .automatik-skala .bahn { position: relative; height: 22px; }
+  .automatik-skala .bahn::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 6px;
+    border-radius: 3px; background: var(--hn-linie);
+  }
+  .automatik-skala .zone { position: absolute; top: 8px; height: 6px; }
+  .automatik-skala .zone.heizt, .automatik-skala .zone.kalt { background: color-mix(in srgb, #ff8a80 45%, transparent); }
+  .automatik-skala .zone.hysterese { background: color-mix(in srgb, var(--hn-text) 25%, transparent); }
+  .automatik-skala .zone.aus { background: color-mix(in srgb, #7bd88f 45%, transparent); }
+  .automatik-skala .zone.sonne { background: var(--hn-sonne); border-radius: 3px; }
+  .automatik-skala .marke { position: absolute; top: 2px; height: 18px; width: 0; border-left: 2px solid var(--hn-text); }
+  .automatik-skala .marke.automatik { border-left-style: dashed; border-left-color: var(--hn-akzent); }
+  .automatik-skala .marke.stark, .automatik-skala .marke.schwelle { opacity: 0.6; }
+  .automatik-skala .marke.ziel { opacity: 0.35; }
+  .automatik-skala .punkt {
+    position: absolute; top: 5px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%;
+    background: var(--hn-text); border: 2px solid var(--hn-karte);
+  }
+  .automatik-skala .punkt.gedaempft { background: var(--hn-gedaempft); }
+  .automatik-skala .punkt.jetzt { width: 3px; height: 16px; top: 3px; margin-left: -1px; border: none; border-radius: 1px; }
+  .automatik-skala .achse { display: flex; justify-content: space-between; gap: 6px; font-size: 10px; color: var(--hn-gedaempft); }
+  .automatik-grenzen {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 8px;
+    padding: 10px 12px; border-radius: 12px; background: var(--hn-flaeche);
+  }
+  .automatik-grenzen .titel { font-size: 13px; font-weight: 600; }
+  .automatik-grenzen .feld { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--hn-gedaempft); }
+  .automatik-grenzen input { width: 76px; }
+  .automatik-grenzen .fuss { flex-basis: 100%; font-size: 11px; color: var(--hn-gedaempft); }
   .automatik-wert { padding: 10px 12px; border-radius: 12px; background: var(--hn-flaeche); min-width: 0; }
   .automatik-wert .zahl {
     font-size: 20px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums;
@@ -1407,7 +1443,7 @@ export const STIL = `
   @media (max-width: 700px) {
     .automatik-stunden { grid-template-columns: repeat(9, minmax(0, 1fr)); }
     .automatik-stunde.spaet { display: none; }
-    .automatik-werte { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .automatik-werte { grid-template-columns: minmax(0, 1fr); }
     .automatik-feld.breit { grid-column: auto; }
     .automatik-profil { margin-left: 0; }
   }

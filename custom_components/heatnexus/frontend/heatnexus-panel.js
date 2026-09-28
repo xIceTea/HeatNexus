@@ -30,6 +30,7 @@ import { AnordnenMixin } from "./teile/anordnen.js";
 import { AutomatikMixin } from "./teile/automatik.js";
 import { BausteineMixin } from "./teile/bausteine.js";
 import { EinrichtungMixin } from "./teile/einrichtung.js";
+import { KennwerteMixin } from "./teile/kennwerte.js";
 import { BedienenMixin } from "./teile/bedienen.js";
 import { HilfeMixin } from "./teile/hilfe.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
@@ -46,9 +47,11 @@ const Grundlage = HilfeMixin(
       VerlaufMixin(
         AutomatikMixin(
           EinrichtungMixin(
-            SteuerungMixin(
-              UebersichtMixin(
-                SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+            KennwerteMixin(
+              SteuerungMixin(
+                UebersichtMixin(
+                  SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+                )
               )
             )
           )

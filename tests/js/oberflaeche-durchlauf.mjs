@@ -740,6 +740,10 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     hinweise: [...wurzel.querySelectorAll(".automatik-hinweis")].map((t) => String(t.textContent || "").trim()),
     tagesleiste: wurzel.querySelectorAll(".automatik-tag-bild").length,
     knoepfe: [...wurzel.querySelectorAll(".automatik-knopf")].map((k) => String(k.textContent || "").trim()),
+    kacheln: wurzel.querySelectorAll(".automatik-wert").map((k) => String(k.className).split(" ")[1]),
+    skalen: wurzel.querySelectorAll(".automatik-skala").length,
+    eingriffe: String((wurzel.querySelector(".automatik-eingriffe") || {}).textContent || ""),
+    grenzenEingaben: (wurzel.querySelector(".automatik-grenzen") || { querySelectorAll: () => [] }).querySelectorAll("input").length,
     ausrichtung: wurzel
       .querySelectorAll(".automatik-segment")
       .filter((segment) => segment.classList.contains("ausrichtung"))
@@ -841,10 +845,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   flaeche._automatikUhr = null;
   bilanz.automatik.raumliste = [...wurzel.querySelectorAll(".raeume")].map((l) => String(l.textContent || ""));
   const raumKachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("raum"));
-  bilanz.automatik.raumKachel = ["zahl", "schw"].map((klasse) => {
-    const teil = raumKachel.querySelector("." + klasse);
-    return teil ? String(teil.textContent || "") : null;
-  });
+  bilanz.automatik.raumKachel = raumKachel.querySelectorAll(".zahl").map((teil) => String(teil.textContent || ""));
   bilanz.automatik.vorrangZeile = [...wurzel.querySelectorAll(".vorrang-zeile")].map((l) => String(l.textContent || ""));
   bilanz.automatik.vorrangStunden = wurzel.querySelectorAll(".automatik-stunde").filter((z) => z.classList.contains("vorrang")).length;
   mitZielen.kennwerte = vorherKennwerte;

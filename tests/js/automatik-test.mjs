@@ -108,4 +108,12 @@ assert.deepEqual(tagesleisteTipp(tagMitWerten, 10), [
 ]);
 assert.deepEqual(tagesleisteTipp(tagMitWerten, 20), ["20:00 · Programm", "Außen Prognose 18,1 °C"]);
 assert.deepEqual(tagesleisteTipp({}, 5), ["05:00"]);
+// Skalen der Kennwerte: Lage eines Werts in Prozent, an den Rändern begrenzt.
+const kennwerte = await import(new URL("./kennwerte.js", pathToFileURL(process.argv[2])).href);
+assert.equal(kennwerte.skalaProzent(18, 6, 26), 60);
+assert.equal(kennwerte.skalaProzent(40, 6, 26), 100);
+assert.equal(kennwerte.skalaProzent(-3, 6, 26), 0);
+assert.equal(kennwerte.skalaProzent(null, 0, 10), null);
+assert.deepEqual(kennwerte.aussenBereich(18), [6, 26]);
+assert.deepEqual(kennwerte.aussenBereich(null), [5, 25]);
 console.log("ok");

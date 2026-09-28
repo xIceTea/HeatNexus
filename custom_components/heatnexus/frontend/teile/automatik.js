@@ -366,6 +366,11 @@ export const AutomatikMixin = (Basis) =>
         kopf.insertBefore(bearbeiten, kopf.querySelector(".fragezeichen"));
         kopf.insertBefore(marke, titel ? titel.nextSibling : kopf.firstChild);
         kopf.insertBefore(punkt, marke);
+        const k = kreis.kennwerte || {};
+        const eingriffe = document.createElement("span");
+        eingriffe.className = "automatik-eingriffe";
+        eingriffe.textContent = this._tMit("Eingriffe {zahl} / {budget}", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" });
+        kopf.insertBefore(eingriffe, bearbeiten);
       }
 
       karte.appendChild(this._automatikSteuerzeile(kreis, darf));
@@ -377,6 +382,7 @@ export const AutomatikMixin = (Basis) =>
       warum.textContent = kreis.begruendung || "";
       karte.appendChild(warum);
       karte.appendChild(this._automatikKennwerte(kreis));
+      karte.appendChild(this._automatikGrenzen(kreis, darf));
 
       const ueberschrift = document.createElement("h3");
       ueberschrift.textContent = "Heute";
@@ -476,60 +482,6 @@ export const AutomatikMixin = (Basis) =>
       }
       hinweis.append(text, taste);
       return hinweis;
-    }
-
-    _automatikKennwerte(kreis) {
-      const k = kreis.kennwerte || {};
-      const w = kreis.werte || {};
-      const raster = document.createElement("div");
-      raster.className = "automatik-werte";
-      const kacheln = [
-        ["sonne", `${zahl(k.sonnenquote, 0)} %`, "Sonnenquote heute", `ab ${zahl(w.sonnenquote, 0)} %`],
-        k.eigene_ziele
-          ? ["raum", `${zahl(k.raum)} °C · ${kelvin(k.abweichung)}`, k.raum_art === "minimum" ? "Räume zum Ziel, kältester" : "Räume zum Ziel, Mittel", ""]
-          : ["raum", `${zahl(k.raum)} °C`, k.raum_art === "minimum" ? "Raum, kältester" : "Raum, Mittel", `Soll ${zahl(k.soll)} °C`],
-        ["", `${zahl(k.at)} · ${zahl(k.at_gedaempft)} °C`, "Außen · gedämpft", `Heizgrenze ${zahl(k.heizgrenze)} °C`],
-        ["", `${k.eingriffe ?? 0} / ${k.budget ?? "–"}`, "Eingriffe heute", "Budget"],
-      ];
-      kacheln.forEach(([art, wert, bezeichnung, schwelle]) => {
-        const kachel = document.createElement("div");
-        kachel.className = `automatik-wert ${art}`;
-        const zeilen = [
-          ["zahl", wert],
-          ["bez", bezeichnung],
-          ["schw", schwelle],
-        ];
-        zeilen.forEach(([klasse, inhalt]) => {
-          if (!inhalt) return;
-          const teil = document.createElement("div");
-          teil.className = klasse;
-          teil.textContent = inhalt;
-          kachel.appendChild(teil);
-        });
-        if (art === "sonne" && k.vorrang) {
-          const zeile = document.createElement("div");
-          zeile.className = "vorrang-zeile";
-          zeile.textContent = k.vorrang.laeuft
-            ? this._t("Vorrangquelle liefert")
-            : this._tMit("Vorrangquellen heute {stunden} h", { stunden: zahl((k.vorrang.minuten || 0) / 60) });
-          kachel.appendChild(zeile);
-        }
-        if (art === "raum" && ((k.raeume || []).length > 1 || k.eigene_ziele)) {
-          const liste = document.createElement("div");
-          liste.className = "raeume";
-          k.raeume.forEach((raum) => {
-            const zeile = document.createElement("div");
-            zeile.textContent = raum.veraltet
-              ? this._tMit("{name} {wert} °C – veraltet, zählt nicht", { name: raum.name, wert: zahl(raum.wert) })
-              : raumzeile(raum, (text) => this._t(text));
-            if (raum.veraltet) zeile.className = "veraltet";
-            liste.appendChild(zeile);
-          });
-          kachel.appendChild(liste);
-        }
-        raster.appendChild(kachel);
-      });
-      return raster;
     }
 
     /** Zeiger über dem Tagesbild: senkrechte Linie und die Werte der Stunde darunter. */
