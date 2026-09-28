@@ -1222,6 +1222,8 @@ export const STIL = `
     opacity: 1; background: var(--hn-flaeche); color: var(--hn-gedaempft); border-color: var(--hn-linie);
   }
   .automatik-gespeichert { align-self: center; font-size: 12px; color: #7bd88f; }
+  .automatik-bereich .klickbar { border-radius: 6px; }
+  .automatik-bereich .klickbar:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 2px; }
 
   /* Kennwerte */
   .automatik-werte { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }

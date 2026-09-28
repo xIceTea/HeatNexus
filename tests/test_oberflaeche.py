@@ -691,6 +691,13 @@ def test_reiter_lassen_sich_umordnen_und_ausblenden(durchlauf):
     }
 
 
+def test_die_werte_der_automatik_oeffnen_ihre_entitaet(durchlauf):
+    """Zustand, Eingriffe, nächste Prüfung und die Kachelwerte öffnen den Mehr-Info-Dialog."""
+    assert sorted(durchlauf["automatik"]["klickbar"]) == sorted(
+        ["automatik-marke", "klickbar", "klickbar", "neben", "zahl", "zahl"]
+    )
+
+
 def test_speichern_ist_nur_mit_einer_abweichung_aktiv(durchlauf):
     """Grau ohne Änderung, aktiv nach einer Eingabe, grau nach der Rückkehr zum gespeicherten Wert."""
     automatik = durchlauf["automatik"]

@@ -244,6 +244,7 @@ export const AutomatikMixin = (Basis) =>
       bearbeiten.textContent = this._t("Einrichtung bearbeiten");
       bearbeiten.disabled = !darf;
       bearbeiten.addEventListener("click", () => this._automatikDialog(kreis));
+      this._klickbar(marke, (kreis.entitaeten || {}).zustand);
       if (kopf) {
         const titel = kopf.querySelector("h2");
         kopf.insertBefore(bearbeiten, kopf.querySelector(".fragezeichen"));
@@ -343,9 +344,12 @@ export const AutomatikMixin = (Basis) =>
       const flaeche = HEIZFLAECHEN.find(([name]) => name === kreis.konfig.heizflaechen);
       const profil = PROFILE.find(([name]) => name === kreis.konfig.profil);
       teil(this._t(flaeche ? flaeche[1] : profil ? profil[1] : kreis.konfig.profil || ""));
-      teil(this._tMit("{zahl} von {budget} Eingriffen heute", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" }));
+      const entitaeten = kreis.entitaeten || {};
+      this._klickbar(teil(this._tMit("{zahl} von {budget} Eingriffen heute", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" })), entitaeten.eingriffe);
       const uhr = (iso) => new Date(iso).toTimeString().slice(0, 5);
-      if (k.naechste_pruefung) teil(this._tMit("Nächste Prüfung {zeit}", { zeit: uhr(k.naechste_pruefung) }));
+      if (k.naechste_pruefung) {
+        this._klickbar(teil(this._tMit("Nächste Prüfung {zeit}", { zeit: uhr(k.naechste_pruefung) })), entitaeten.naechste_entscheidung);
+      }
       if (k.modus_seit && kreis.zustand !== "programm" && ZUSTAENDE[kreis.zustand]) {
         teil(this._tMit("{modus} seit {zeit}", { modus: this._t(ZUSTAENDE[kreis.zustand]), zeit: uhr(k.modus_seit) }));
       }

@@ -729,6 +729,14 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
         protokoll: [{ zeit: "2026-09-27T07:00:00+02:00", art: "haette", text: "Sonnenquote 78 %.", werte: [] }],
         beobachtet_seit: "2026-09-20T07:00:00+02:00",
         pausiert_bis: null,
+        entitaeten: {
+          zustand: "sensor.heizkreis_automatik_zustand",
+          gedaempft: "sensor.heizkreis_automatik_gedaempft",
+          sonnenquote: "sensor.heizkreis_automatik_sonnenquote",
+          abweichung: "sensor.heizkreis_automatik_abweichung",
+          eingriffe: "sensor.heizkreis_automatik_eingriffe",
+          naechste_entscheidung: "sensor.heizkreis_automatik_naechste_entscheidung",
+        },
       },
       { heizkreis: "SN1-3-0", name: "Heizkreis 2", anlage_id: anlageId, eingerichtet: false },
     ],
@@ -769,6 +777,9 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       .filter((f) => f.classList.contains("grenze"))
       .reduce((anzahl, f) => anzahl + f.querySelectorAll("input").length, 0),
     gruppen: wurzel.querySelectorAll(".automatik-einstellungsgruppe").map((g) => String((g.querySelector("h4") || {}).textContent || "")),
+    klickbar: (wurzel.querySelector(".automatik-bereich") || { querySelectorAll: () => [] })
+      .querySelectorAll(".klickbar")
+      .map((k) => String(k.className).split(" ")[0]),
     speichernGrau: (wurzel.querySelectorAll(".automatik-knopf").find((k) => k.classList.contains("speichern")) || {}).disabled,
     ausrichtung: wurzel
       .querySelectorAll(".automatik-segment")

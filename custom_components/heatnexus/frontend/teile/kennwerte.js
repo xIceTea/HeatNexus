@@ -134,6 +134,7 @@ export const KennwerteMixin = (Basis) =>
         fuss
       );
       kachel.title = this._t("Die gedämpfte Außentemperatur entscheidet über nur Warmwasser. Die Steuerung rechnet mit der aktuellen Außentemperatur.");
+      this._klickbar(kachel.querySelector(".neben"), (kreis.entitaeten || {}).gedaempft);
       return kachel;
     }
 
@@ -158,7 +159,9 @@ export const KennwerteMixin = (Basis) =>
         achse: [this._tMit("Sonnentag ab {ab} %", { ab: zahl(schwelle, 0) }), [vorrang, vorrang ? "vorrang-zeile" : ""]],
       });
       const aus = w.sonnentag === false ? knoten("div", "fuss", this._t("Sonnentag ausgeschaltet")) : null;
-      return this._kachel("sonne", "Sonne heute", `${zahl(k.sonnenquote, 0)} %`, this._t("Sonnenquote"), skala, [aus]);
+      const kachel = this._kachel("sonne", "Sonne heute", `${zahl(k.sonnenquote, 0)} %`, this._t("Sonnenquote"), skala, [aus]);
+      this._klickbar(kachel.querySelector(".zahl"), (kreis.entitaeten || {}).sonnenquote);
+      return kachel;
     }
 
     /** Mit mehreren Räumen oder eigenen Zielen eine Liste je Raum, sonst die Skala um das Ziel. */
@@ -183,7 +186,7 @@ export const KennwerteMixin = (Basis) =>
           zeile.appendChild(wert);
           liste.appendChild(zeile);
         });
-        return this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, liste);
+        return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, liste));
       }
       const rk = vorhanden(k.rueckkehr_k) ? Number(k.rueckkehr_k) : 1;
       const sonnig = vorhanden(k.sonne_raum_k) ? Number(k.sonne_raum_k) : 0.5;
@@ -211,6 +214,14 @@ export const KennwerteMixin = (Basis) =>
         achse: ["−2 K", this._t("Ziel"), "+2 K"],
       });
       const fuss = [knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) }))];
-      return this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, skala, fuss);
+      return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, skala, fuss));
+    }
+
+    /** Die Abweichung öffnet die Entität der Automatik, jeder Raum seine eigene. */
+    _raumKlickbar(kreis, kachel) {
+      this._klickbar(kachel.querySelector(".zahl"), (kreis.entitaeten || {}).abweichung);
+      const raeume = (kreis.kennwerte || {}).raeume || [];
+      kachel.querySelectorAll(".raeume .raum").forEach((zeile, i) => this._klickbar(zeile, (raeume[i] || {}).entity_id));
+      return kachel;
     }
   };
