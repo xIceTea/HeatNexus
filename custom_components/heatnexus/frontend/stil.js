@@ -1538,8 +1538,11 @@ export const STIL = `
     .automatik-gruppen { grid-template-columns: minmax(0, 1fr); }
   }
   @media (max-width: 700px) {
-    .automatik-stunden { grid-template-columns: repeat(9, minmax(0, 1fr)); }
-    .automatik-stunde.spaet { display: none; }
+    .automatik-stunden {
+      grid-template-columns: repeat(17, minmax(52px, 1fr)); overflow-x: auto;
+      scroll-snap-type: x proximity; scrollbar-width: thin; padding-bottom: 4px;
+    }
+    .automatik-stunde { scroll-snap-align: start; }
     .automatik-werte { grid-template-columns: minmax(0, 1fr); }
     .automatik-feld.breit select { min-width: 0; max-width: 55vw; }
     .automatik-gruppe + .automatik-gruppe, .automatik-schalter + .automatik-gruppe { padding-left: 0; border-left: none; }

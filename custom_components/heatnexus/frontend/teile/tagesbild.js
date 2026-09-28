@@ -375,7 +375,6 @@ export const TagesbildMixin = (Basis) =>
           "automatik-stunde",
           `m-${eintrag.aktion || "programm"}`,
           eintrag.stunde === jetzt ? "jetzt" : "",
-          eintrag.stunde > 14 ? "spaet" : "",
           plan ? "plan" : "",
           eintrag.stunde === offen ? "offen" : "",
           eintrag.stunde === gezeigt ? "gezeigt" : "",
@@ -414,12 +413,23 @@ export const TagesbildMixin = (Basis) =>
         zelle.appendChild(raum);
         raster.appendChild(zelle);
       });
+      this._automatikRasterZentrieren(raster);
       const huelle = document.createElement("div");
       huelle.appendChild(raster);
       if (gezeigt !== undefined && gezeigt !== null) {
         huelle.appendChild(this._automatikStundenzeile(kreis, gezeigt, heute));
       }
       return huelle;
+    }
+
+    /** Auf schmalen Bildschirmen scrollt das Raster waagrecht; die gezeigte Stunde rückt in die Mitte. */
+    _automatikRasterZentrieren(raster) {
+      if (typeof requestAnimationFrame !== "function") return;
+      requestAnimationFrame(() => {
+        const zelle = raster.querySelector(".automatik-stunde.gezeigt");
+        if (!zelle || raster.scrollWidth <= raster.clientWidth) return;
+        raster.scrollLeft = zelle.offsetLeft - (raster.clientWidth - zelle.offsetWidth) / 2;
+      });
     }
 
     /** Zeile unter dem Raster: Werte und Modus der gezeigten Stunde, rechts der Stand der Prognoseanpassung. */
