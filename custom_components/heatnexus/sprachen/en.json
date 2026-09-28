@@ -304,7 +304,7 @@
   "Heizflächenreinigung Beginn Sperrzeit": "Heat exchanger cleaning off period start",
   "Heizflächenreinigung Dauer": "Heat exchanger cleaning duration",
   "Mischer Wärmeerzeuger": "Heat generator mixing valve",
-  "Kesseltemperatur Ist": "Boiler temperature actual",
+  "Kesseltemperatur Ist": "Boiler temp. current value",
   "Programm 1 Vorlauftemperatur": "Program 1 flow temperature",
   "Programm 2 Vorlauftemperatur": "Program 2 flow temperature",
   "Programm 3 Vorlauftemperatur": "Program 3 flow temperature",
