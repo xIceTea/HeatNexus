@@ -807,6 +807,11 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   clearInterval(flaeche._automatikUhr);
   flaeche._automatikUhr = null;
   bilanz.automatik.raumliste = [...wurzel.querySelectorAll(".raeume")].map((l) => String(l.textContent || ""));
+  const raumKachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("raum"));
+  bilanz.automatik.raumKachel = ["zahl", "schw"].map((klasse) => {
+    const teil = raumKachel.querySelector("." + klasse);
+    return teil ? String(teil.textContent || "") : null;
+  });
   bilanz.automatik.vorrangZeile = [...wurzel.querySelectorAll(".vorrang-zeile")].map((l) => String(l.textContent || ""));
   bilanz.automatik.vorrangStunden = wurzel.querySelectorAll(".automatik-stunde").filter((z) => z.classList.contains("vorrang")).length;
   mitZielen.kennwerte = vorherKennwerte;
