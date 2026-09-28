@@ -1107,3 +1107,51 @@ async def test_kennwerte_nennen_die_grenzen_der_steuerung(hass, hass_ws_client, 
     assert kennwerte["hysterese"] == 1.0
     assert kennwerte["sonne_schwelle"] == 45.0
     assert kennwerte["stark_quote"] == 80.0
+
+
+async def test_heizgrenzen_der_steuerung_lassen_sich_setzen(hass, hass_ws_client, anlage):
+    """Eine Handeinstellung: geschrieben an die Steuerung, ohne Budget der Automatik."""
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+
+    antwort = await _senden(
+        client,
+        type="heatnexus/automatik/heizgrenzen",
+        heizkreis=HEIZKREIS,
+        heizbetrieb=17.5,
+        absenkbetrieb=4.0,
+    )
+
+    assert antwort["success"], antwort
+    assert coordinator.client.geschrieben == [
+        (f"{PREFIX}/3/21/0", "17.5"),
+        (f"{PREFIX}/3/2/0", "4.0"),
+    ]
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    assert laufzeit.steller.stand.protokoll[0]["art"] == "einstellung"
+    assert laufzeit.steller.stand.eingriffe == 0
+
+
+@pytest.mark.parametrize("felder", [{"heizbetrieb": 35.0}, {"absenkbetrieb": -12.0}, {}])
+async def test_heizgrenzen_ausserhalb_des_bereichs_werden_abgewiesen(
+    hass, hass_ws_client, anlage, felder
+):
+    _, coordinator = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    antwort = await _senden(
+        client, type="heatnexus/automatik/heizgrenzen", heizkreis=HEIZKREIS, **felder
+    )
+    assert not antwort["success"]
+    assert coordinator.client.geschrieben == []
+
+
+async def test_nur_administratoren_setzen_heizgrenzen(
+    hass, hass_ws_client, hass_read_only_access_token, anlage
+):
+    client = await hass_ws_client(hass, hass_read_only_access_token)
+    antwort = await _senden(
+        client, type="heatnexus/automatik/heizgrenzen", heizkreis=HEIZKREIS, heizbetrieb=18.0
+    )
+    assert antwort["error"]["code"] == "unauthorized"

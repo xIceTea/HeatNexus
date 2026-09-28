@@ -265,6 +265,12 @@ class Verwaltung:
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(device_id))
         return neu
 
+    async def heizgrenzen(self, device_id: str, werte: dict[str, float]) -> None:
+        """Heizgrenzen der Steuerung des Heizkreises setzen."""
+        if (laufzeit := self.laufzeiten.get(device_id)) is None:
+            raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
+        await laufzeit.heizgrenzen_setzen(werte)
+
     async def uebernehmen(self, device_id: str) -> None:
         """Nach einem Handeingriff sofort weitermachen."""
         if (laufzeit := self.laufzeiten.get(device_id)) is None:

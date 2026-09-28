@@ -359,6 +359,30 @@ async def _ws_einstellen(hass: HomeAssistant, connection, msg: dict[str, Any]) -
     )
 
 
+# Dieselben Bereiche wie an der Steuerung (TA Heizbetrieb, TA Absenkbetrieb).
+HEIZBETRIEB = vol.All(vol.Coerce(float), vol.Range(min=0.0, max=30.0))
+ABSENKBETRIEB = vol.All(vol.Coerce(float), vol.Range(min=-10.0, max=20.0))
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/automatik/heizgrenzen",
+        vol.Required("heizkreis"): KENNUNG,
+        vol.Optional("heizbetrieb"): HEIZBETRIEB,
+        vol.Optional("absenkbetrieb"): ABSENKBETRIEB,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _ws_heizgrenzen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
+    """Heizgrenzen der Steuerung schreiben; die Automatik liest sie beim nächsten Abruf."""
+    werte = {name: msg[name] for name in ("heizbetrieb", "absenkbetrieb") if name in msg}
+    if not werte:
+        connection.send_error(msg["id"], "ungueltig", "Keine Heizgrenze angegeben.")
+        return
+    await _ausfuehren(connection, msg, verwaltung_holen(hass).heizgrenzen(msg["heizkreis"], werte))
+
+
 @websocket_api.websocket_command(
     {vol.Required("type"): f"{DOMAIN}/automatik/uebernehmen", vol.Required("heizkreis"): KENNUNG}
 )
@@ -390,6 +414,7 @@ def async_register_automatik(hass: HomeAssistant) -> None:
         _ws_einrichten,
         _ws_einstellen,
         _ws_uebernehmen,
+        _ws_heizgrenzen,
         _ws_entfernen,
     ):
         websocket_api.async_register_command(hass, befehl)

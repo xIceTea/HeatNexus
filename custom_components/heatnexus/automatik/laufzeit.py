@@ -48,6 +48,10 @@ VERLAUF_LAENGE = 64
 # Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
 # Heizgrenzen der Steuerung (`3/21`, `3/2`) gehören dazu: an ihnen richtet sich die Regel aus.
 ABRUF = ("/2/9/0", "/0/0/0", "/3/21/0", "/3/2/0")
+HEIZGRENZEN = {
+    "heizbetrieb": ("/3/21/0", "Heizbetrieb"),
+    "absenkbetrieb": ("/3/2/0", "Absenkbetrieb"),
+}
 
 SIGNAL_AKTUALISIERT = f"{DOMAIN}_automatik_{{}}"
 
@@ -376,6 +380,29 @@ class Laufzeit:
         self.gedaechtnis = regel.Gedaechtnis()
         self.steller.freigeben()
         self._speichern()
+
+    async def heizgrenzen_setzen(self, werte: dict[str, float]) -> None:
+        """Heizgrenzen der Steuerung von Hand setzen: kein Budget, kein Eingriff der Automatik."""
+        paare = [(HEIZGRENZEN[name][0], f"{wert:.1f}") for name, wert in werte.items()]
+        try:
+            for adresse, wert in paare:
+                await self.coordinator.client.update(f"{self.prefix}{adresse}", wert)
+        except Exception as fehler:  # jede Ablehnung der Steuerung geht als Meldung zurück
+            raise ValueError(
+                f"Die Steuerung hat die Heizgrenze nicht übernommen: {fehler}"
+            ) from fehler
+        text = ", ".join(
+            f"{HEIZGRENZEN[name][1]} {wert:.1f} °C".replace(".", ",")
+            for name, wert in werte.items()
+        )
+        self.steller.vermerken(
+            dt_util.now(), "einstellung", f"Heizgrenzen der Steuerung: {text}.", paare
+        )
+        self._geaendert = True
+        self._speichern()
+        if (auffrischen := getattr(self.coordinator, "async_request_refresh", None)) is not None:
+            await auffrischen()
+        async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
 
     def gedaechtnis_leeren(self) -> None:
         """Beim Wechsel vom Beobachten zum Schalten: Beobachtetes wurde nie geschrieben."""
