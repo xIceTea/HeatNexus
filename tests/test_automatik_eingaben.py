@@ -147,3 +147,17 @@ def test_lauf_uebersteht_den_store(eingaben):
     lauf = eingaben.lauf_fortschreiben(eingaben.Lauf(), _uhr(28, 9), laeuft=True)
     assert eingaben.lauf_aus_dict(eingaben.lauf_als_dict(lauf)) == lauf
     assert eingaben.lauf_aus_dict({"seit": "kaputt"}) == eingaben.Lauf()
+
+
+@pytest.mark.parametrize(
+    ("at", "vorher", "erwartet"),
+    [
+        (19.1, None, True),
+        (16.9, True, False),
+        (18.0, True, True),
+        (18.0, False, False),
+        (18.0, None, None),
+    ],
+)
+def test_heizgrenze_der_steuerung_mit_hysterese(eingaben, at, vorher, erwartet):
+    assert eingaben.heizgrenze_halten(at, 18.0, vorher) is erwartet

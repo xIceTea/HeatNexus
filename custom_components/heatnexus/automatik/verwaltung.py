@@ -54,6 +54,18 @@ SYSTEM_DOMAENE = {
     "naechste_entscheidung": "sensor",
     "stoerung": "binary_sensor",
     "prognose": "binary_sensor",
+    "sonnentag_heute": "sensor",
+    "nur_ww_heute": "sensor",
+    "vorrang_heute": "sensor",
+    "absenkung_bis": "sensor",
+    "modus_seit": "sensor",
+    "raeume": "sensor",
+    "prognose_max": "sensor",
+    "prognose_mittel": "sensor",
+    "prognosekorrektur": "sensor",
+    "sonnentag_aktiv": "binary_sensor",
+    "nur_ww_aktiv": "binary_sensor",
+    "ueber_heizgrenze": "binary_sensor",
 }
 # Mehrere Heizkreise teilen sich meist eine Wetter-Entität; gefragt wird sie einmal.
 PROGNOSE_GUELTIG = timedelta(minutes=50)

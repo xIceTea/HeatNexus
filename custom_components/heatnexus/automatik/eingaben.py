@@ -182,6 +182,19 @@ def temperatursturz(
     return False
 
 
+def heizgrenze_halten(
+    at: float | None, grenze: float | None, vorher: bool | None, hysterese: float = 1.0
+) -> bool | None:
+    """Über der Heizgrenze der Steuerung: an über Grenze + Hysterese, aus darunter; dazwischen hält."""
+    if at is None or grenze is None:
+        return None
+    if at > grenze + hysterese:
+        return True
+    if at < grenze - hysterese:
+        return False
+    return vorher
+
+
 def wert_zur_stunde(reihe: list[tuple[datetime, float]], stunde: datetime) -> float | None:
     """Der Wert, der zur vollen Stunde galt; davor der erste innerhalb der Stunde."""
     geltend = None

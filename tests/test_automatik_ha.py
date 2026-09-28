@@ -1285,3 +1285,25 @@ async def test_die_volle_stunde_vermerkt_den_modus(hass, hass_ws_client, anlage,
     await hass.async_block_till_done()
     assert laufzeit.verlauf["stunden"][str(naechste.hour)]["aktion"] == "programm"
     assert set(laufzeit.als_dict()["modus_lauf"]) == {"absenkung", "nur_ww"}
+
+
+async def test_das_system_hat_die_neuen_sensoren(hass, hass_ws_client, anlage):
+    """`anmelden` legt für jede neue Art eine Entität mit der Systemkennung an."""
+    from custom_components.heatnexus.automatik import system as system_modul
+    from custom_components.heatnexus.const import DOMAIN
+
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    await hass.async_block_till_done()
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    for art in (
+        "sonnentag_heute",
+        "nur_ww_heute",
+        "modus_seit",
+        "prognose_mittel",
+        "ueber_heizgrenze",
+    ):
+        erstellt: list = []
+        system_modul.anmelden(hass, entry, erstellt.extend, art)
+        assert erstellt, art
+        assert erstellt[0].unique_id.endswith(f"-automatik-system-{art}")

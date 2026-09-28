@@ -330,6 +330,33 @@
       },
       "automatik_system_naechste_entscheidung": {
         "name": "Prochaine décision"
+      },
+      "automatik_system_sonnentag_heute": {
+        "name": "Journée ensoleillée aujourd'hui"
+      },
+      "automatik_system_nur_ww_heute": {
+        "name": "Eau chaude seule aujourd'hui"
+      },
+      "automatik_system_vorrang_heute": {
+        "name": "Source prioritaire aujourd'hui"
+      },
+      "automatik_system_absenkung_bis": {
+        "name": "Réduit jusqu'à"
+      },
+      "automatik_system_modus_seit": {
+        "name": "Mode depuis"
+      },
+      "automatik_system_raeume": {
+        "name": "Pièces"
+      },
+      "automatik_system_prognose_max": {
+        "name": "Prévision maximale aujourd'hui"
+      },
+      "automatik_system_prognose_mittel": {
+        "name": "Prévision moyenne journalière"
+      },
+      "automatik_system_prognosekorrektur": {
+        "name": "Correction de prévision"
       }
     },
     "binary_sensor": {
@@ -341,6 +368,15 @@
       },
       "automatik_system_prognose": {
         "name": "Prévisions météo"
+      },
+      "automatik_system_sonnentag_aktiv": {
+        "name": "Journée ensoleillée"
+      },
+      "automatik_system_nur_ww_aktiv": {
+        "name": "Eau chaude seule"
+      },
+      "automatik_system_ueber_heizgrenze": {
+        "name": "Au-dessus de la limite de chauffe"
       }
     }
   },

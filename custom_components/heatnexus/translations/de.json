@@ -330,6 +330,33 @@
       },
       "automatik_system_naechste_entscheidung": {
         "name": "Nächste Entscheidung"
+      },
+      "automatik_system_sonnentag_heute": {
+        "name": "Sonnentag heute"
+      },
+      "automatik_system_nur_ww_heute": {
+        "name": "Nur Warmwasser heute"
+      },
+      "automatik_system_vorrang_heute": {
+        "name": "Vorrangquelle heute"
+      },
+      "automatik_system_absenkung_bis": {
+        "name": "Absenkung bis"
+      },
+      "automatik_system_modus_seit": {
+        "name": "Modus seit"
+      },
+      "automatik_system_raeume": {
+        "name": "Räume"
+      },
+      "automatik_system_prognose_max": {
+        "name": "Prognose Höchstwert heute"
+      },
+      "automatik_system_prognose_mittel": {
+        "name": "Prognose Tagesmittel"
+      },
+      "automatik_system_prognosekorrektur": {
+        "name": "Prognosekorrektur"
       }
     },
     "binary_sensor": {
@@ -341,6 +368,15 @@
       },
       "automatik_system_prognose": {
         "name": "Wetterprognose"
+      },
+      "automatik_system_sonnentag_aktiv": {
+        "name": "Sonnentag"
+      },
+      "automatik_system_nur_ww_aktiv": {
+        "name": "Nur Warmwasser"
+      },
+      "automatik_system_ueber_heizgrenze": {
+        "name": "Über Heizgrenze der Steuerung"
       }
     }
   },

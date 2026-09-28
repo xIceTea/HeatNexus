@@ -330,6 +330,33 @@
       },
       "automatik_system_naechste_entscheidung": {
         "name": "Next decision"
+      },
+      "automatik_system_sonnentag_heute": {
+        "name": "Sunny day today"
+      },
+      "automatik_system_nur_ww_heute": {
+        "name": "Hot water only today"
+      },
+      "automatik_system_vorrang_heute": {
+        "name": "Priority source today"
+      },
+      "automatik_system_absenkung_bis": {
+        "name": "Setback until"
+      },
+      "automatik_system_modus_seit": {
+        "name": "Mode since"
+      },
+      "automatik_system_raeume": {
+        "name": "Rooms"
+      },
+      "automatik_system_prognose_max": {
+        "name": "Forecast high today"
+      },
+      "automatik_system_prognose_mittel": {
+        "name": "Forecast daily mean"
+      },
+      "automatik_system_prognosekorrektur": {
+        "name": "Forecast correction"
       }
     },
     "binary_sensor": {
@@ -341,6 +368,15 @@
       },
       "automatik_system_prognose": {
         "name": "Weather forecast"
+      },
+      "automatik_system_sonnentag_aktiv": {
+        "name": "Sunny day"
+      },
+      "automatik_system_nur_ww_aktiv": {
+        "name": "Hot water only"
+      },
+      "automatik_system_ueber_heizgrenze": {
+        "name": "Above controller heating limit"
       }
     }
   },
