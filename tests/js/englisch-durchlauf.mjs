@@ -37,7 +37,21 @@ entitaeten.forEach((entity) => {
   states[entity] = {
     entity_id: entity,
     state: bereich === "binary_sensor" || bereich === "switch" ? "on" : "21.5",
-    attributes: { friendly_name: entity, unit_of_measurement: "°C", stoerung_aktiv: false },
+    attributes: {
+      friendly_name: entity,
+      unit_of_measurement: "°C",
+      stoerung_aktiv: false,
+      // Ein Schaltprogramm, damit das Wochenraster Ein und Aus beschriftet.
+      blocks: [
+        {
+          weekdays: ["Mo"],
+          switchPoints: [
+            { time: "05:00", value: 1 },
+            { time: "08:00", value: 0 },
+          ],
+        },
+      ],
+    },
   };
 });
 
