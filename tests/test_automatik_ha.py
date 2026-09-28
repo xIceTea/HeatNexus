@@ -1155,3 +1155,61 @@ async def test_nur_administratoren_setzen_heizgrenzen(
         client, type="heatnexus/automatik/heizgrenzen", heizkreis=HEIZKREIS, heizbetrieb=18.0
     )
     assert antwort["error"]["code"] == "unauthorized"
+
+
+async def test_system_geraet_buendelt_die_automatiken(hass, anlage, freezer):
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.heatnexus.automatik import system
+    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    entry = hass.config_entries.async_entries("heatnexus")[0]
+    laufzeit = await _eingerichtet(hass, verwaltung)
+
+    geraet = dr.async_get(hass).async_get_device(
+        identifiers={(DOMAIN, system.system_kennung(entry.entry_id))}
+    )
+    assert geraet is not None
+    assert geraet.name == "HeatNexus Automatik"
+    kreis = KLASSEN["schalter"](verwaltung, HEIZKREIS).device_info
+    assert kreis.get("via_device_id") == geraet.id or kreis.get("via_device") == (
+        DOMAIN,
+        system.system_kennung(entry.entry_id),
+    )
+
+    def wert(art):
+        entitaet = system.KLASSEN[art](verwaltung, entry.entry_id)
+        return entitaet.is_on if art in system.BINAER_ARTEN else entitaet.native_value
+
+    assert wert("status") == "beobachten"
+    assert wert("automatiken") == 1
+    assert wert("stoerung") is False
+    assert wert("prognose") is True
+
+    await verwaltung.einstellen(HEIZKREIS, {"modus": "schalten"})
+    await laufzeit.auswerten(entscheidungszeit=True)
+    assert wert("status") == "eingriff"
+    assert wert("eingriffe") == 1
+    assert wert("letzter_eingriff") is not None
+    assert wert("naechste_entscheidung") is not None
+
+    await verwaltung.entfernen(HEIZKREIS)
+    assert (
+        dr.async_get(hass).async_get_device(
+            identifiers={(DOMAIN, system.system_kennung(entry.entry_id))}
+        )
+        is None
+    )
+
+
+async def test_system_kennungen_gelten_als_bekannt(hass, anlage):
+    from custom_components.heatnexus.automatik import system
+
+    verwaltung, _ = anlage
+    entry = hass.config_entries.async_entries("heatnexus")[0]
+    await _eingerichtet(hass, verwaltung)
+    kennungen = verwaltung.kennungen(entry.entry_id)
+    assert system.system_unique_id(entry.entry_id, "status") in kennungen

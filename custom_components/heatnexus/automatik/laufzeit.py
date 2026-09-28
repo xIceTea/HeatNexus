@@ -54,6 +54,7 @@ HEIZGRENZEN = {
 }
 
 SIGNAL_AKTUALISIERT = f"{DOMAIN}_automatik_{{}}"
+SIGNAL_SYSTEM = f"{DOMAIN}_automatik_system_{{}}"
 
 
 def ortszeit(wert: Any) -> datetime | None:
@@ -164,6 +165,12 @@ class Laufzeit:
         return profile.werte(
             self.konfig["profil"], self.konfig.get("eigene"), self.konfig["ausrichtung"]
         )
+
+    @property
+    def prognose_frisch(self) -> bool:
+        """Ob die Wetterprognose jünger als sechs Stunden ist."""
+        zeit = self._prognose_zeit
+        return zeit is not None and dt_util.now() - zeit <= PROGNOSE_MAX_ALTER
 
     @property
     def aktiv(self) -> bool:
@@ -335,6 +342,7 @@ class Laufzeit:
         self._aktion_merken(dt_util.now())
         self._speichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
+        async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
 
     def _pausieren(self, jetzt: datetime, grund: str) -> None:
         self.pausiert_bis = naechster_morgen(jetzt)

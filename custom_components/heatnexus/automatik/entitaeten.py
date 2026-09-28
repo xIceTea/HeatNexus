@@ -6,7 +6,7 @@ Signal; abgefragt wird nichts.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
@@ -19,20 +19,26 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
 from ..registrierung import uebergeordnet
-from . import regel
+from . import kennzahlen, regel
 from .konfig import MODI
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 from .profile import AUSGEWOGEN, AUSRICHTUNGEN
 from .regel import Zustand
-from .verwaltung import SIGNAL_NEU, Verwaltung, geraet_kennung, unique_id, verwaltung_holen
+from .verwaltung import (
+    SIGNAL_NEU,
+    Verwaltung,
+    geraet_kennung,
+    system_kennung,
+    unique_id,
+    verwaltung_holen,
+)
 
 
 def geraet_info(laufzeit: Laufzeit) -> DeviceInfo:
-    """Ein eigenes Gerät je Automatik, unter ihrem Heizkreis."""
+    """Ein eigenes Gerät je Automatik, unter dem System-Gerät „HeatNexus Automatik“."""
     anlage = getattr(laufzeit.coordinator, "label", "") or ""
     name = f"Automatik {laufzeit.name}"
     return DeviceInfo(
@@ -40,7 +46,7 @@ def geraet_info(laufzeit: Laufzeit) -> DeviceInfo:
         name=f"{anlage} · {name}" if anlage else name,
         manufacturer="HeatNexus",
         model="Automatik",
-        **uebergeordnet(laufzeit.hass, laufzeit.device_id, laufzeit.entry_id),
+        **uebergeordnet(laufzeit.hass, system_kennung(laufzeit.entry_id), laufzeit.entry_id),
     )
 
 
@@ -238,8 +244,7 @@ class AutomatikEingriffe(AutomatikWert):
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def _wert(self, laufzeit: Laufzeit) -> int:
-        stand = laufzeit.steller.stand
-        return stand.eingriffe if stand.tag == dt_util.now().date().isoformat() else 0
+        return kennzahlen.eingriffe_heute(laufzeit)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -254,18 +259,12 @@ class AutomatikLetzterEingriff(AutomatikWert):
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _unrecorded_attributes = frozenset({"text"})
 
-    def _eintrag(self) -> dict[str, Any] | None:
-        laufzeit = self._laufzeit
-        protokoll = laufzeit.steller.stand.protokoll if laufzeit else []
-        return next((e for e in protokoll if e.get("art") == "geschrieben"), None)
-
     def _wert(self, laufzeit: Laufzeit) -> datetime | None:
-        eintrag = self._eintrag()
-        return datetime.fromisoformat(eintrag["zeit"]) if eintrag else None
+        return kennzahlen.zeit(kennzahlen.letzter_eingriff(laufzeit))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        eintrag = self._eintrag()
+        eintrag = kennzahlen.letzter_eingriff(self._laufzeit) if self._laufzeit else None
         return {"text": eintrag["text"]} if eintrag else {}
 
 
@@ -277,16 +276,7 @@ class AutomatikNaechsteEntscheidung(AutomatikWert):
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def _wert(self, laufzeit: Laufzeit) -> datetime | None:
-        jetzt = dt_util.now()
-        werte = laufzeit.werte
-        zeiten = []
-        for uhrzeit in (werte.entscheidung, werte.nachpruefung):
-            if not uhrzeit:
-                continue
-            stunde, minute = (int(teil) for teil in uhrzeit.split(":"))
-            zeit = jetzt.replace(hour=stunde, minute=minute, second=0, microsecond=0)
-            zeiten.append(zeit if zeit > jetzt else zeit + timedelta(days=1))
-        return min(zeiten) if zeiten else None
+        return kennzahlen.naechste_entscheidung(laufzeit)
 
 
 class AutomatikStoerung(AutomatikEntitaet, BinarySensorEntity):
@@ -298,12 +288,7 @@ class AutomatikStoerung(AutomatikEntitaet, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        laufzeit = self._laufzeit
-        if laufzeit is None:
-            return None
-        gesperrt = laufzeit.steller.stand.gesperrt_bis
-        bis = dt_util.parse_datetime(gesperrt) if gesperrt else None
-        return laufzeit.zustand == Zustand.SICHERHEIT or (bis is not None and bis > dt_util.now())
+        return kennzahlen.gestoert(self._laufzeit) if self._laufzeit else None
 
 
 KLASSEN: dict[str, type[AutomatikEntitaet]] = {

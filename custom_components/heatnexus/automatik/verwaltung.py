@@ -46,6 +46,15 @@ DOMAENE_JE_ART = {
     "stoerung": "binary_sensor",
 }
 ARTEN = tuple(DOMAENE_JE_ART)
+SYSTEM_DOMAENE = {
+    "status": "sensor",
+    "automatiken": "sensor",
+    "eingriffe": "sensor",
+    "letzter_eingriff": "sensor",
+    "naechste_entscheidung": "sensor",
+    "stoerung": "binary_sensor",
+    "prognose": "binary_sensor",
+}
 # Mehrere Heizkreise teilen sich meist eine Wetter-Entität; gefragt wird sie einmal.
 PROGNOSE_GUELTIG = timedelta(minutes=50)
 
@@ -58,6 +67,16 @@ def verwaltung_holen(hass: HomeAssistant) -> Verwaltung:
 
 
 AUTOMATIK_MARKE = "-automatik-"
+
+
+def system_kennung(entry_id: str) -> str:
+    """Kennung des System-Geräts „HeatNexus Automatik“ eines Eintrags."""
+    return f"{entry_id}-automatik"
+
+
+def system_unique_id(entry_id: str, art: str) -> str:
+    """Kennung einer System-Entität; die Marke `-automatik-` kennt auch die Suche nach Verwaisten."""
+    return f"{entry_id}{AUTOMATIK_MARKE}system-{art}"
 
 
 def geraet_kennung(device_id: str) -> str:
@@ -113,13 +132,36 @@ class Verwaltung:
         return self._geladen
 
     def kennungen(self, entry_id: str) -> dict[str, str]:
-        """Kennung -> Domäne jeder Automatik-Entität eines Eintrags."""
-        return {
+        """Kennung -> Domäne jeder Automatik-Entität eines Eintrags, System eingeschlossen."""
+        kreise = {
             unique_id(device_id, art): DOMAENE_JE_ART[art]
             for device_id, eintrag in self._daten["heizkreise"].items()
             if (eintrag.get("konfig") or {}).get("entry_id") == entry_id
             for art in ARTEN
         }
+        if not kreise:
+            return {}
+        return kreise | {system_unique_id(entry_id, art): d for art, d in SYSTEM_DOMAENE.items()}
+
+    def _system_anlegen(self, entry: ConfigEntry) -> None:
+        dr.async_get(self.hass).async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, system_kennung(entry.entry_id))},
+            name="HeatNexus Automatik",
+            manufacturer="HeatNexus",
+            model="Automatik-System",
+        )
+
+    def _system_entfernen(self, entry_id: str) -> None:
+        """Mit der letzten Automatik des Eintrags gehen System-Entitäten und -Gerät."""
+        register = er.async_get(self.hass)
+        for art, domaene in SYSTEM_DOMAENE.items():
+            kennung = system_unique_id(entry_id, art)
+            if entity_id := register.async_get_entity_id(domaene, DOMAIN, kennung):
+                register.async_remove(entity_id)
+        geraete = dr.async_get(self.hass)
+        if geraet := geraete.async_get_device(identifiers={(DOMAIN, system_kennung(entry_id))}):
+            geraete.async_remove_device(geraet.id)
 
     def konfig(self, device_id: str) -> dict[str, Any] | None:
         """Die gespeicherten Einstellungen eines Heizkreises."""
@@ -187,6 +229,8 @@ class Verwaltung:
         if treffer is None or eintrag is None:
             return False
         coordinator, beschreibung = treffer
+        # Das System-Gerät muss stehen, bevor der Heizkreis darauf verweist.
+        self._system_anlegen(entry)
         laufzeit = Laufzeit(
             self.hass,
             coordinator,
@@ -282,7 +326,9 @@ class Verwaltung:
         if (laufzeit := self.laufzeiten.pop(device_id, None)) is not None:
             await laufzeit.zuruecknehmen()
             laufzeit.stoppen()
-        self._daten["heizkreise"].pop(device_id, None)
+        entry_id = ((self._daten["heizkreise"].pop(device_id, None) or {}).get("konfig") or {}).get(
+            "entry_id"
+        )
         register = er.async_get(self.hass)
         for art in ARTEN:
             kennung = unique_id(device_id, art)
@@ -291,4 +337,7 @@ class Verwaltung:
         geraete = dr.async_get(self.hass)
         if geraet := geraete.async_get_device(identifiers={(DOMAIN, geraet_kennung(device_id))}):
             geraete.async_remove_device(geraet.id)
+        if entry_id and not self.kennungen(entry_id):
+            self._system_entfernen(entry_id)
+            async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry_id))
         await self._store.async_save(self._daten)

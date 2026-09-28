@@ -15,6 +15,8 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import bedingung, waermequelle
 from .automatik.entitaeten import anmelden as automatik_anmelden
+from .automatik.system import BINAER_ARTEN as SYSTEM_BINAER
+from .automatik.system import anmelden as system_anmelden
 from .entity import MeldungsQuelle, WindhagerEntity, async_setup_entities
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
@@ -32,6 +34,8 @@ DEVICE_CLASS_MAP = {
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager binary sensors from a config entry."""
     automatik_anmelden(hass, entry, async_add_entities, "stoerung")
+    for art in SYSTEM_BINAER:
+        system_anmelden(hass, entry, async_add_entities, art)
     async_setup_entities(
         hass,
         entry,

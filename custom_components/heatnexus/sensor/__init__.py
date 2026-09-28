@@ -19,6 +19,8 @@ import voluptuous as vol
 
 from ..automatik.entitaeten import SENSOR_ARTEN
 from ..automatik.entitaeten import anmelden as automatik_anmelden
+from ..automatik.system import SENSOR_ARTEN as SYSTEM_SENSOREN
+from ..automatik.system import anmelden as system_anmelden
 from ..entity import WindhagerEntity, async_setup_entities
 from .ableitungen import (
     WindhagerAbleitungSensor,
@@ -50,6 +52,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     platform = entity_platform.async_get_current_platform()
     for art in SENSOR_ARTEN:
         automatik_anmelden(hass, entry, async_add_entities, art)
+    for art in SYSTEM_SENSOREN:
+        system_anmelden(hass, entry, async_add_entities, art)
 
     # Leert die Meldungsliste der Integration, nicht die des Bediengeräts;
     # die Dienstbeschreibung sagt das, damit sie nicht wie eine Quittung wirkt.

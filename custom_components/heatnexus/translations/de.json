@@ -307,11 +307,40 @@
       },
       "automatik_naechste_entscheidung": {
         "name": "Nächste Entscheidung"
+      },
+      "automatik_system_status": {
+        "name": "Status",
+        "state": {
+          "aus": "Aus",
+          "beobachten": "Beobachten",
+          "bereit": "Bereit",
+          "eingriff": "Eingriff aktiv",
+          "pausiert": "Pausiert",
+          "stoerung": "Störung"
+        }
+      },
+      "automatik_system_automatiken": {
+        "name": "Automatiken"
+      },
+      "automatik_system_eingriffe": {
+        "name": "Eingriffe heute"
+      },
+      "automatik_system_letzter_eingriff": {
+        "name": "Letzter Eingriff"
+      },
+      "automatik_system_naechste_entscheidung": {
+        "name": "Nächste Entscheidung"
       }
     },
     "binary_sensor": {
       "automatik_stoerung": {
         "name": "Störung"
+      },
+      "automatik_system_stoerung": {
+        "name": "Störung"
+      },
+      "automatik_system_prognose": {
+        "name": "Wetterprognose"
       }
     }
   },

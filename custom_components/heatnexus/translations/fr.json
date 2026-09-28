@@ -307,11 +307,40 @@
       },
       "automatik_naechste_entscheidung": {
         "name": "Prochaine décision"
+      },
+      "automatik_system_status": {
+        "name": "Statut",
+        "state": {
+          "aus": "Arrêt",
+          "beobachten": "Observation",
+          "bereit": "Prêt",
+          "eingriff": "Intervention active",
+          "pausiert": "En pause",
+          "stoerung": "Défaut"
+        }
+      },
+      "automatik_system_automatiken": {
+        "name": "Automatismes"
+      },
+      "automatik_system_eingriffe": {
+        "name": "Interventions du jour"
+      },
+      "automatik_system_letzter_eingriff": {
+        "name": "Dernière intervention"
+      },
+      "automatik_system_naechste_entscheidung": {
+        "name": "Prochaine décision"
       }
     },
     "binary_sensor": {
       "automatik_stoerung": {
         "name": "Défaut"
+      },
+      "automatik_system_stoerung": {
+        "name": "Défaut"
+      },
+      "automatik_system_prognose": {
+        "name": "Prévisions météo"
       }
     }
   },
