@@ -16,6 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback, async_get
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import texte
 from .const import (
     DOMAIN,
     NACHFASS_ANZAHL,
@@ -409,6 +410,10 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
             or getattr(self.coordinator.client, "sprache", None)
             or "de"
         )
+
+    def _ersatztext(self, muster: str, wert: object) -> str:
+        """Ein Rückfalltext wie „Wert {wert}“ in der Sprache der Datenpunkte."""
+        return texte.Woerterbuch(self._sprache)(muster).replace("{wert}", str(wert))
 
     @property
     def raw_value(self) -> str | None:

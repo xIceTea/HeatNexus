@@ -332,5 +332,7 @@
   "Einschaltpunkt": "Switch-on point",
   "Einschaltpunkt Delta": "Switch-on point delta",
   "WW-Einschaltpunkt": "DHW switch-on point",
-  "WW-Einschaltpunkt Delta": "DHW switch-on point delta"
+  "WW-Einschaltpunkt Delta": "DHW switch-on point delta",
+  "Wert {wert}": "Value {wert}",
+  "Unbekannt ({wert})": "Unknown ({wert})"
 }
