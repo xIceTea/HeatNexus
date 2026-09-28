@@ -5,6 +5,7 @@ Die Dateien liegen öffentlich bereit und werden bei Bedarf geladen:
 
     de-parameters.json      Datenpunktnamen, Enum-Texte, Störungstexte
     de-oem-parameters.json  Datenpunktnamen der Werksebene
+    en-parameters.json      englische Namen und Enum-Texte als Rückfall
     parameterLayer.json     Zuordnung der Datenpunkte zu den Bedienebenen
 
 Ergebnis sind zwei Dateien der Integration:
@@ -37,6 +38,8 @@ import xml.etree.ElementTree as ET
 
 BASIS = "https://connect-api.windhager.com/config"
 DATEIEN = ("de-parameters.json", "de-oem-parameters.json", "parameterLayer.json")
+# Fremdsprachen für Steuerungen, die ihr Textwerk nicht ausliefern.
+FREMDSPRACHEN = ("en",)
 EBENEN = ("overview", "info", "operate", "service", "oem")
 REPO = Path(__file__).resolve().parent.parent
 ZIEL = REPO / "custom_components" / "heatnexus"
@@ -83,6 +86,23 @@ def _uebernehmen(namen: dict[str, str], quelle: dict) -> None:
     for adresse, text in quelle.items():
         if isinstance(text, str) and text.strip():
             namen[adresse] = text.strip()
+
+
+def sammle_sprache(parameter: dict, geraetetexte: dict[str, str]) -> dict[str, dict]:
+    """Namen und Enum-Texte einer Fremdsprache, nach derselben Regel wie Deutsch."""
+    namen: dict[str, str] = {}
+    _uebernehmen(namen, geraetetexte)
+    _uebernehmen(namen, parameter.get("oids", {}))
+    enums = {k: v for k, v in parameter.get("enums", {}).items() if isinstance(v, dict)}
+    return {"names": namen, "enums": enums}
+
+
+def geraetetexte_fuer(deutsch: Path | None, sprache: str) -> Path | None:
+    """Die Gerätedatei einer Sprache neben der deutschen, sofern vorhanden."""
+    if deutsch is None or not deutsch.name.endswith("_de.xml"):
+        return None
+    pfad = deutsch.with_name(deutsch.name[: -len("_de.xml")] + f"_{sprache}.xml")
+    return pfad if pfad.exists() else None
 
 
 def lade_geraetetexte(pfad: Path) -> dict[str, str]:
@@ -349,12 +369,20 @@ def main() -> int:
     ebenen = sammle_ebenen(layer, texte)
     ergaenzt = uebersteuern(ebenen)
     stoerungen = sammle_stoerungen(texte)
+    sprachen = {}
+    for sprache in FREMDSPRACHEN:
+        xml = geraetetexte_fuer(args.geraetetexte, sprache)
+        sprachen[sprache] = sammle_sprache(
+            lade(f"{sprache}-parameters.json", args.quelle), lade_geraetetexte(xml) if xml else {}
+        )
 
     print(f"\nDatenpunktnamen : {len(namen)}")
     print(f"davon ergänzt   : {ergaenzt} (an der Anlage gemessen, siehe UEBERSTEUERUNG)")
     print(f"Enum-Tabellen   : {len(enums)}")
     print(f"Funktionstypen  : {len(ebenen)}")
     print(f"Störungstexte   : {len(stoerungen)}")
+    for sprache, inhalt in sprachen.items():
+        print(f"Namen {sprache:<10}: {len(inhalt['names'])}, Enum-Tabellen {len(inhalt['enums'])}")
     for fct in sorted(ebenen, key=int):
         zaehler = {e: len(ebenen[fct].get(e, [])) for e in EBENEN if ebenen[fct].get(e)}
         gruppen = len(ebenen[fct].get("groups", {}))
@@ -364,7 +392,7 @@ def main() -> int:
     if args.nur_anzeigen:
         return 0
 
-    db = {"names": namen, "enums": enums, "layers": ebenen}
+    db = {"names": namen, "enums": enums, "layers": ebenen, "sprachen": sprachen}
     (ZIEL / "device_db.json").write_text(
         json.dumps(db, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8"
     )

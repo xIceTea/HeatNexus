@@ -179,3 +179,18 @@ def test_ruecksetzwert_des_brennstoffzaehlers(device_db):
 def test_neustart_merkmal_je_funktionstyp(device_db):
     assert "42/18" in device_db.get_neustart(FCT_BIOWIN)
     assert device_db.get_neustart(FCT_PUFFER) == frozenset()
+
+
+def test_englische_namen_aus_der_herstellerdatei(device_db):
+    assert device_db.get_name("0/0", "en") == "Outside temperature"
+    assert device_db.get_name("0/0", "de") == device_db.get_name("0/0")
+
+
+def test_englische_auswahltexte_aus_der_herstellerdatei(device_db):
+    enum = device_db.get_enum("9/75", "en")
+    assert enum and enum[1] == "On"
+
+
+def test_sprache_ohne_tabelle_liefert_nichts(device_db):
+    assert device_db.get_name("0/0", "fr") is None
+    assert device_db.get_enum("9/75", "fr") is None

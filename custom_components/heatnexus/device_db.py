@@ -21,12 +21,19 @@ def _db() -> dict:
         return json.load(f)
 
 
-def get_name(gnmn: str) -> str | None:
-    """German display name for a 'gn/mn' datapoint."""
-    return _db()["names"].get(gnmn)
+def _tabelle(sprache: str) -> dict:
+    """Namen und Enums einer Sprache; Deutsch liegt auf oberster Ebene."""
+    if sprache == "de":
+        return _db()
+    return (_db().get("sprachen") or {}).get(sprache) or {}
 
 
-def get_enum(gnmn: str) -> dict[int, str] | None:
+def get_name(gnmn: str, sprache: str = "de") -> str | None:
+    """Display name for a 'gn/mn' datapoint in the given language."""
+    return (_tabelle(sprache).get("names") or {}).get(gnmn)
+
+
+def get_enum(gnmn: str, sprache: str = "de") -> dict[int, str] | None:
     """Enum value->text mapping for a 'gn/mn' datapoint, if any.
 
     Die Texte werden beschnitten: In der Herstellerdatei hängt an einzelnen
@@ -34,7 +41,7 @@ def get_enum(gnmn: str) -> dict[int, str] | None:
     Entität ist das sichtbar – und es macht aus einem Zustand zwei, sobald
     jemand in einer Automation darauf vergleicht.
     """
-    e = _db()["enums"].get(gnmn)
+    e = (_tabelle(sprache).get("enums") or {}).get(gnmn)
     if not e:
         return None
     return {int(k): str(v).strip() for k, v in e.items()}

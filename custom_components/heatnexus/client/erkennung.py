@@ -222,7 +222,8 @@ class ErkennungMixin:
         geraet = self._texte.namen.get(gnmn)
         if self.sprache == "de":
             return vorgabe or geraet
-        return geraet or vorgabe
+        # Liefert die Steuerung kein Textwerk, springt die Herstellertabelle ein.
+        return geraet or get_name(gnmn, self.sprache) or vorgabe
 
     def _enum_texte_fuer(self, gnmn: str) -> dict[int, str] | None:
         """Zustandstexte, die die Anlage selbst für diesen Datenpunkt führt.
@@ -232,7 +233,7 @@ class ErkennungMixin:
         """
         if self.sprache == "de":
             return None
-        return self._texte.enums.get(gnmn)
+        return self._texte.enums.get(gnmn) or get_enum(gnmn, self.sprache)
 
     def _stoerungstexte(self) -> dict[int, str] | None:
         """Störungstexte der Anlage, für die Meldungssensoren.

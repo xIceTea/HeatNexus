@@ -372,6 +372,23 @@ def test_ohne_geraetetext_bleibt_die_gepflegte_bezeichnung(client_module):
     assert client._name_fuer("0/7", "Kesseltemperatur") == "Kesseltemperatur"
 
 
+def test_ohne_geraetetext_springt_die_englische_herstellertabelle_ein(client_module):
+    """Eine Steuerung ohne Textdateien bekommt englische Namen aus der Datenbank."""
+    client = _mit_texten(client_module, "en", {})
+    assert client._name_fuer("0/0", "Außentemperatur") == "Outside temperature"
+
+
+def test_der_geraetetext_geht_der_englischen_tabelle_vor(client_module):
+    client = _mit_texten(client_module, "en", {"0/0": "Outdoor temp."})
+    assert client._name_fuer("0/0", "Außentemperatur") == "Outdoor temp."
+
+
+def test_englische_auswahltexte_ohne_textdatei_der_steuerung(client_module):
+    client = _mit_texten(client_module, "en", {})
+    assert client._enum_texte_fuer("9/75")[1] == "On"
+    assert _mit_texten(client_module, "de", {})._enum_texte_fuer("9/75") is None
+
+
 def test_die_ww_hysterese_steht_bei_den_warmwasserwerten(client_module):
     """Der Herstellername „Hysterese Ein" nennt seinen Bezug nicht."""
     client = _mit_texten(client_module, "de", {"5/0": "Hysterese Ein"})
