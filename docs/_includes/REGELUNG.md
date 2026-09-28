@@ -112,6 +112,22 @@ Bei `1` bleibt das Zeitprogramm des Puffers ohne Wirkung. Einstellen lässt es
 sich, ausgewertet wird es nicht. Erst bei `4` bestimmt es den Sollwert, und zwar
 unabhängig vom aktuellen Bedarf.
 
+## Die Heizgrenze des Heizkreises
+
+Der Heizkreis schaltet sich über die Außentemperatur selbst ab. Maßgeblich ist
+`TA Heizbetrieb` (Werkseinstellung 20 °C) mit 1 K Hysterese:
+
+- Liegt die **aktuelle** Außentemperatur 1 K über dem eingestellten Wert, geht
+  der Heizkreis auf Standby.
+- Fällt sie 1 K darunter, heizt er wieder. Eine gedämpfte oder gemittelte
+  Außentemperatur verwendet die Steuerung dafür nicht.
+- Nach dem Abschalten läuft die Heizkreispumpe noch einige Minuten nach. Der
+  Mischer regelt in dieser Zeit weiter auf den letzten Vorlauf-Sollwert; das gilt
+  auch beim Wechsel auf WW-Betrieb.
+
+An einem warmen Tag in der Übergangszeit schaltet der Heizkreis deshalb mittags
+ab und abends wieder ein, sobald es kühler wird.
+
 ---
 
 ## Anwendungsfälle
