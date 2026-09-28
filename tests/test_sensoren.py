@@ -71,13 +71,14 @@ def test_enum_sensor_ohne_wert_bleibt_leer(sensoren):
 # ---------------------------------------------------------------------------
 # Störungsmeldung – daran hängt die Automationsvorlage
 # ---------------------------------------------------------------------------
-def _meldung(sensoren, roh: str | None):
+def _meldung(sensoren, roh: str | None, **felder):
     koordinator_werte = {}
     entity, koordinator = _entitaet(
         sensoren.WindhagerMessageTextSensor,
         koordinator_werte,
         type="message_text",
         node_id="60",
+        **felder,
         oid=None,
     )
     koordinator.data["status"] = {"60": roh} if roh is not None else {}
@@ -91,6 +92,37 @@ def test_ohne_stoerung_steht_keine_stoerung_da(sensoren):
     assert entity.native_value == "Keine Störung"
     assert entity.extra_state_attributes["stoerung_aktiv"] is False
     assert entity.extra_state_attributes["anzahl"] == 0
+
+
+def test_meldungen_folgen_der_sprache_der_datenpunkte(sensoren):
+    """Zustand und Art der Meldung erscheinen in der gewählten Sprache."""
+    ruhig = _meldung(sensoren, "PUR 09  OK", sprache="en")
+    gestoert = _meldung(sensoren, "PUR 09E346", sprache="en")
+
+    assert ruhig.native_value == "No fault"
+    assert gestoert.extra_state_attributes["meldungen"][0]["kind"] == "Error"
+
+
+@pytest.mark.parametrize(
+    ("sprache", "code", "erwartet"),
+    [
+        ("de", 0, "Keine Störung"),
+        ("en", 0, "No fault"),
+        ("en", 1, "1: Primary airflap defective"),
+        ("en", 9998, "Unknown code 9998"),
+    ],
+)
+def test_alarmcode_folgt_der_sprache_der_datenpunkte(sensoren, sprache, code, erwartet):
+    """Der Alarmcode des PuroWIN nimmt den Text aus der Tabelle der Sprache."""
+    entity, koordinator = _entitaet(
+        sensoren.WindhagerErrorTextSensor,
+        {"/1/15/0/0/97/0": str(code)},
+        type="sensor",
+        oid="/1/15/0/0/97/0",
+    )
+    koordinator.client.sprache = sprache
+
+    assert entity.native_value == erwartet
 
 
 def test_eine_echte_stoerung_erscheint_im_klartext(sensoren):
@@ -370,6 +402,27 @@ def test_zeitprogramm_fasst_wochentage_und_schaltpunkte_zusammen(sensoren):
     assert zustand is not None
     assert "06:00" in zustand
     assert entity.available is True
+
+
+@pytest.mark.parametrize(
+    ("sprache", "erwartet"),
+    [
+        ("de", "Mo, Di: 06:00→21° | täglich: keine Schaltpunkte"),
+        ("en", "Mo, Tu: 06:00→21° | daily: no switch points"),
+    ],
+)
+def test_zeitprogramm_folgt_der_sprache_der_datenpunkte(sensoren, sprache, erwartet):
+    """Wochentage und Füllwörter erscheinen in der gewählten Sprache."""
+    entity = _zeitprogramm(
+        sensoren,
+        [
+            {"weekdays": ["Mo", "Tu"], "switchPoints": [{"time": "06:00", "value": 21}]},
+            {"weekdays": ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], "switchPoints": []},
+        ],
+    )
+    entity.coordinator.client.sprache = sprache
+
+    assert entity.native_value == erwartet
 
 
 def test_zeitprogramm_ohne_daten_ist_nicht_verfuegbar(sensoren):

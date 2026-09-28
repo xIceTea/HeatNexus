@@ -11,11 +11,11 @@ from homeassistant.util import dt as dt_util
 
 from ..const import ERROR_TEXTS
 from ..entity import MeldungsQuelle, WindhagerEntity
-from ..error_texts import parse_messages
+from ..error_texts import keine_stoerung, klartext, parse_messages, textsprache, unbekannt
 
 
 class WindhagerErrorTextSensor(WindhagerEntity, SensorEntity):
-    """Maps a Windhager alarm code (e.g. 0/97) to its German error text."""
+    """Maps a Windhager alarm code (e.g. 0/97) to its error text."""
 
     _attr_icon = "mdi:alert-circle-outline"
 
@@ -24,11 +24,15 @@ class WindhagerErrorTextSensor(WindhagerEntity, SensorEntity):
         code = self.int_value
         if code is None:
             return None
+        sprache = self._sprache
         if code == 0:
-            return "Keine Störung"
-        text = ERROR_TEXTS.get(code)
+            return keine_stoerung(sprache)
+        # Die gepflegte deutsche Tabelle ist ausführlicher; andere Sprachen
+        # nehmen die Herstellertabelle und erst ohne Eintrag die deutsche.
+        deutsch = ERROR_TEXTS.get(code)
+        text = deutsch if textsprache(sprache) == "de" else klartext(code, sprache) or deutsch
         if text is None:
-            return f"Unbekannter Code {code}"
+            return unbekannt(code, sprache)
         return f"{code}: {text}"
 
     @property
@@ -79,7 +83,7 @@ class WindhagerMessageTextSensor(MeldungsQuelle, WindhagerEntity, SensorEntity):
             return None
         msgs = self._meldungen
         if not msgs:
-            return "Keine Störung"
+            return keine_stoerung(self._sprache)
         # Nur der Klartext (Code/Art stehen im Attribut 'meldungen').
         parts = [m["text"] for m in msgs]
         return " | ".join(parts)[:255]

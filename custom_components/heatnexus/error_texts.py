@@ -16,10 +16,39 @@ import re
 
 # Code-Muster im FE01msg: E=Fehler, A=Alarm, I=Info, gefolgt von der Nummer.
 _CODE_RE = re.compile(r"([EAI])(\d{2,4})")
-_KIND = {"E": ("FE", "Fehler"), "A": ("AL", "Alarm"), "I": ("IN", "Info")}
+_KATEGORIE = {"E": "FE", "A": "AL", "I": "IN"}
 # Sprachen mit mitgelieferter Tabelle; die übrigen fallen auf Deutsch zurück.
 SPRACHEN = ("de", "en")
+_ART = {
+    "de": {"E": "Fehler", "A": "Alarm", "I": "Info"},
+    "en": {"E": "Error", "A": "Alarm", "I": "Info"},
+}
 _UNBEKANNT = {"de": "Unbekannter Code", "en": "Unknown code"}
+_KEINE = {"de": "Keine Störung", "en": "No fault"}
+
+
+def textsprache(sprache: str | None) -> str:
+    """Die Sprache, in der Meldungstexte erscheinen."""
+    return sprache if sprache in SPRACHEN else "de"
+
+
+def keine_stoerung(sprache: str | None = "de") -> str:
+    """Der Zustand, wenn nichts ansteht."""
+    return _KEINE[textsprache(sprache)]
+
+
+def unbekannt(code: int, sprache: str | None = "de") -> str:
+    """Der Zustand für einen Code, den keine Tabelle kennt."""
+    return f"{_UNBEKANNT[textsprache(sprache)]} {code}"
+
+
+def klartext(code: int, sprache: str) -> str | None:
+    """Der Text zu einem Code aus der Tabelle genau dieser Sprache."""
+    tabelle = _table(textsprache(sprache))
+    for c in ("FE", "AL", "IN"):
+        if entry := tabelle.get(f"{c}{code}"):
+            return entry.get("text")
+    return None
 
 
 @lru_cache(maxsize=len(SPRACHEN))
@@ -66,19 +95,18 @@ def parse_messages(raw: str | None, zusatz: dict | None = None, sprache: str = "
     # der Anlage umfasst alle Codes ihrer Baureihe; sie erst hier umzuschreiben
     # hält den Normalfall – keine Störung – frei von dieser Arbeit.
     vom_geraet = {int(code): text for code, text in (zusatz or {}).items()}
+    sprache = textsprache(sprache)
     for letter, num in treffer:
         code = int(num)
         if code in seen:
             continue
         seen.add(code)
-        cat, word = _KIND.get(letter, ("FE", "Fehler"))
-        entry = _lookup(cat, code, sprache)
-        unbekannt = _UNBEKANNT.get(sprache, _UNBEKANNT["de"])
+        entry = _lookup(_KATEGORIE.get(letter, "FE"), code, sprache)
         out.append(
             {
                 "code": code,
-                "kind": word,
-                "text": vom_geraet.get(code) or entry.get("text", unbekannt),
+                "kind": _ART[sprache].get(letter, _ART[sprache]["E"]),
+                "text": vom_geraet.get(code) or entry.get("text", _UNBEKANNT[sprache]),
                 "info": entry.get("info"),
             }
         )

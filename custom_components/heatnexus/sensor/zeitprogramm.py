@@ -7,6 +7,7 @@ from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 
 from ..entity import WindhagerEntity
+from ..error_texts import textsprache
 from ..exceptions import WindhagerValueError
 
 # Schaltpunkt: {"time": "HH:MM", "value": <Temperatur>}
@@ -49,6 +50,12 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         "Sa": "Sa",
         "Su": "So",
     }
+    # Die Anlage meldet je nach Baureihe deutsche oder englische Kürzel.
+    _DAY_EN = {de: en for en, de in _DAY_DE.items()}
+    _WORTE = {
+        "de": ("täglich", "keine Schaltpunkte"),
+        "en": ("daily", "no switch points"),
+    }
 
     @property
     def _blocks(self):
@@ -66,30 +73,32 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         return self.coordinator.last_update_success and self._blocks is not None
 
     @classmethod
-    def _fmt_days(cls, days: list) -> str:
+    def _fmt_days(cls, days: list, sprache: str = "de") -> str:
         if not days:
             return "?"
         if len(days) == 7:
-            return "täglich"
-        return ", ".join(cls._DAY_DE.get(d, d) for d in days)
+            return cls._WORTE[sprache][0]
+        tage = cls._DAY_DE if sprache == "de" else cls._DAY_EN
+        return ", ".join(tage.get(d, d) for d in days)
 
-    @staticmethod
-    def _fmt_points(points: list) -> str:
+    @classmethod
+    def _fmt_points(cls, points: list, sprache: str = "de") -> str:
         out = []
         for p in points or []:
             t = p.get("time", "?")
             v = p.get("value")
             out.append(f"{t}→{v}°" if v is not None else f"{t}→–")
-        return ", ".join(out) if out else "keine Schaltpunkte"
+        return ", ".join(out) if out else cls._WORTE[sprache][1]
 
     @property
     def native_value(self) -> str | None:
         blocks = self._blocks
         if not blocks:
             return None
+        sprache = textsprache(self._sprache)
         parts = [
-            f"{self._fmt_days(b.get('weekdays', []))}: "
-            f"{self._fmt_points(b.get('switchPoints', []))}"
+            f"{self._fmt_days(b.get('weekdays', []), sprache)}: "
+            f"{self._fmt_points(b.get('switchPoints', []), sprache)}"
             for b in blocks
         ]
         text = " | ".join(parts)

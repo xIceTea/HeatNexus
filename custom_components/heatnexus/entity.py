@@ -270,7 +270,7 @@ class MeldungsQuelle:
         if roh != self._roh_zuletzt:
             self._roh_zuletzt = roh
             self._meldungen_zuletzt = parse_messages(
-                roh, self._descriptor.get("stoerungstexte"), self._descriptor.get("sprache") or "de"
+                roh, self._descriptor.get("stoerungstexte"), self._sprache
             )
         return self._meldungen_zuletzt
 
@@ -400,6 +400,15 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         self.coordinator.data.setdefault("oids", {}).update(gelesen)
         # Nur die Zuhörer wecken – kein zweiter Durchlauf durch die Anlage.
         self.coordinator.async_update_listeners()
+
+    @property
+    def _sprache(self) -> str:
+        """Sprache der Datenpunkte: die des Deskriptors, sonst die der Anlage."""
+        return (
+            self._descriptor.get("sprache")
+            or getattr(self.coordinator.client, "sprache", None)
+            or "de"
+        )
 
     @property
     def raw_value(self) -> str | None:

@@ -96,3 +96,12 @@ def test_unbekannter_code_auf_englisch(error_texts):
 def test_jede_sprache_hat_ihre_tabelle(error_texts):
     for sprache in error_texts.SPRACHEN:
         assert error_texts._table(sprache), sprache
+
+
+@pytest.mark.parametrize(
+    ("letter", "kind"),
+    [("E", "Error"), ("A", "Alarm"), ("I", "Info")],
+)
+def test_message_kinds_in_english(error_texts, letter, kind):
+    msgs = error_texts.parse_messages(f"PUR 09{letter}322", sprache="en")
+    assert msgs[0]["kind"] == kind
