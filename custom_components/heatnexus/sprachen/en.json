@@ -284,5 +284,15 @@
   "Übersicht": "Overview",
   "abbrechen": "cancel",
   "übertragen ✓": "sent ✓",
-  "übernommen ✓": "applied ✓"
+  "übernommen ✓": "applied ✓",
+  "aus": "off",
+  "lädt": "charging",
+  "entlädt": "discharging",
+  "Pumpe läuft": "pump running",
+  "Pumpe steht": "pump stopped",
+  "fordert {grad} °C": "demands {grad} °C",
+  "Ja, ausführen": "Yes, run",
+  "zuletzt {zeit}": "last {zeit}",
+  "läuft": "running",
+  "bereit": "ready"
 }

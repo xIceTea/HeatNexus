@@ -364,7 +364,7 @@ class HeatNexusPanel extends Grundlage {
       punkt.setAttribute("role", "menuitem");
       punkt.appendChild(this._symbolKnoten(symbol));
       const text = document.createElement("span");
-      text.textContent = titel;
+      text.textContent = this._t(titel);
       punkt.appendChild(text);
       punkt.addEventListener("click", () => {
         zu();

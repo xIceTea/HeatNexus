@@ -83,6 +83,19 @@ class Knoten {
   removeAttribute(name) {
     this.attribute.delete(name);
   }
+  // Wie im Browser spiegeln title und placeholder ihr Attribut.
+  get title() {
+    return this.getAttribute("title") || "";
+  }
+  set title(wert) {
+    this.setAttribute("title", wert);
+  }
+  get placeholder() {
+    return this.getAttribute("placeholder") || "";
+  }
+  set placeholder(wert) {
+    this.setAttribute("placeholder", wert);
+  }
 
   // --- Inhalt -------------------------------------------------------------
   get textContent() {

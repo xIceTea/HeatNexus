@@ -205,7 +205,7 @@ export const SchaubildMixin = (Basis) =>
         const brennt = anteil !== null && anteil > 0;
         glut.classList.toggle("brennt", brennt);
         glut.style.opacity = brennt ? String(0.35 + anteil * 0.65) : "0";
-        glut.title = `${eintrag.titel} – ${brennt ? text : "aus"}`;
+        glut.title = `${eintrag.titel} – ${brennt ? text : this._t("aus")}`;
       });
     });
 
@@ -402,13 +402,13 @@ export const SchaubildMixin = (Basis) =>
           wert !== null ? wert > schwelle : eintrag.entity ? this._istAn(eintrag.entity) : false;
         lampe.classList.toggle("an", an);
         if (eintrag.zweck === "quelle") {
-          lampe.title = `${eintrag.titel} – ${an ? "liefert Wärme" : "liefert nicht"}`;
+          lampe.title = `${eintrag.titel} – ${this._t(an ? "liefert Wärme" : "liefert nicht")}`;
         } else if (eintrag.zweck === "erzeuger") {
-          lampe.title = `${eintrag.titel} – ${an ? "in Betrieb" : "aus"}`;
+          lampe.title = `${eintrag.titel} – ${this._t(an ? "in Betrieb" : "aus")}`;
         } else {
           lampe.title = an
-            ? `${eintrag.titel} – fordert ${Math.round(wert)} °C`
-            : `${eintrag.titel} – keine Anforderung`;
+            ? `${eintrag.titel} – ${this._tMit("fordert {grad} °C", { grad: Math.round(wert) })}`
+            : `${eintrag.titel} – ${this._t("keine Anforderung")}`;
         }
       });
     });
@@ -478,8 +478,8 @@ export const SchaubildMixin = (Basis) =>
         const soll = this._zahl(eintrag.entity);
         const an = soll !== null && soll > 0;
         marke.classList.toggle("laedt", an);
-        marke.textContent = an ? `fordert ${Math.round(soll)} °C` : "";
-        marke.title = `${eintrag.titel} – ${an ? "Wärmeanforderung" : "keine Anforderung"}`;
+        marke.textContent = an ? this._tMit("fordert {grad} °C", { grad: Math.round(soll) }) : "";
+        marke.title = `${eintrag.titel} – ${this._t(an ? "Wärmeanforderung" : "keine Anforderung")}`;
       });
     });
 
@@ -495,8 +495,8 @@ export const SchaubildMixin = (Basis) =>
         const { laedt, zieht } = this._speicherzustand(eintrag);
         marke.classList.toggle("laedt", laedt);
         marke.classList.toggle("entlaedt", !laedt && zieht);
-        marke.textContent = laedt ? "lädt" : zieht ? "entlädt" : "";
-        marke.title = `${eintrag.titel} – ${marke.textContent || "keine Förderung"}`;
+        marke.textContent = laedt ? this._t("lädt") : zieht ? this._t("entlädt") : "";
+        marke.title = `${eintrag.titel} – ${marke.textContent || this._t("keine Förderung")}`;
       });
     });
 
@@ -569,7 +569,7 @@ export const SchaubildMixin = (Basis) =>
         const zahl = this._zahl(eintrag.entity);
         const laeuft = zahl !== null ? zahl > 0 : this._istAn(eintrag.entity);
         marke.classList.toggle("laeuft", laeuft);
-        marke.title = `${eintrag.titel} – Pumpe ${laeuft ? "läuft" : "steht"}`;
+        marke.title = `${eintrag.titel} – ${this._t(laeuft ? "Pumpe läuft" : "Pumpe steht")}`;
       });
     });
 

@@ -786,6 +786,20 @@ def test_warmwasserladung_fragt_nicht_nach(panel, kessel_und_heizkreis):
     assert eintraege["Warmwasser laden"]["frage"] == ""
 
 
+def test_gleiche_bedienungen_nennen_ihren_anlagenteil(panel):
+    """Vier Mal „Betriebswahl" ließe sich nicht auseinanderhalten."""
+    bio = teil("BioWIN", 9, [entitaet("select.betriebswahl_bio", "Betriebswahl")])
+    log = teil("LogWIN", 10, [entitaet("select.betriebswahl_log", "Betriebswahl")])
+    ofen = teil("PuroWIN", 25, [entitaet("button.serviceausbrand", "Serviceausbrand")])
+
+    eintraege = panel._anlage_daten(anlage(bio, log, ofen))["schnellzugriff"]
+
+    teile = {e["entity"]: e.get("anlagenteil") for e in eintraege}
+    assert teile["select.betriebswahl_bio"] == "BioWIN"
+    assert teile["select.betriebswahl_log"] == "LogWIN"
+    assert teile["button.serviceausbrand"] is None
+
+
 # ---------------------------------------------------------------------------
 # Störungen und Kennwerte
 # ---------------------------------------------------------------------------

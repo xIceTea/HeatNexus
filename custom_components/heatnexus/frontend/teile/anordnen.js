@@ -206,8 +206,8 @@ export const AnordnenMixin = (Basis) =>
   _griffTaste(symbol, beschriftung, gesperrt, beiKlick) {
     const taste = document.createElement("button");
     taste.type = "button";
-    taste.title = beschriftung;
-    taste.setAttribute("aria-label", beschriftung);
+    taste.title = this._t(beschriftung);
+    taste.setAttribute("aria-label", this._t(beschriftung));
     taste.disabled = !!gesperrt;
     taste.appendChild(this._symbolKnoten(symbol));
     taste.addEventListener("click", beiKlick);

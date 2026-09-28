@@ -12,6 +12,7 @@ Woran ein Datenpunkt erkannt wird, steht in :mod:`.muster`; was er bedeutet, in
 
 from __future__ import annotations
 
+from collections import Counter
 import contextlib
 import re
 from typing import Any
@@ -857,7 +858,13 @@ def _anlage_daten(
                     eintrag.update(_warmwasser_bedienung(alle, teil["entitaeten"]))
                 if _passt(treffer["name"], KAMINKEHRER):
                     eintrag.update(_kaminkehrer_bedienung(teil["entitaeten"]))
+                eintrag["anlagenteil"] = teil["name"]
                 schnellzugriff.append(eintrag)
+    # Den Anlagenteil nennt nur, wer sich sonst nicht unterscheiden ließe.
+    titel = Counter(e["titel"] for e in schnellzugriff)
+    for eintrag in schnellzugriff:
+        if titel[eintrag["titel"]] == 1:
+            del eintrag["anlagenteil"]
 
     # **Jede Anlage behält ihren eigenen Messwert.** Die in den Optionen
     # gewählte Entität gilt nur für die Ansicht „Alle" – dort gibt es keine
