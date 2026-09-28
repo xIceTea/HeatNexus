@@ -14,6 +14,9 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from . import verwaiste
+from .automatik.diagnose import auszug
+from .automatik.kennzahlen import schwerster, status
+from .automatik.verwaltung import DATEN_SCHLUESSEL
 
 # Zugangsdaten und eindeutige Gerätekennungen bleiben draußen.
 #
@@ -83,8 +86,26 @@ async def async_get_config_entry_diagnostics(
         },
         "registrierung": _registrierung(hass, entry, eintrag),
         "anlagen": async_redact_data(anlagen, ZU_SCHWAERZEN),
+        "automatik": automatik_auszug(hass, entry),
     }
     return _anonymisieren(daten, _seriennummern(eintrag))
+
+
+def automatik_auszug(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
+    """Die Automatiken dieses Eintrags: Überblick und je Heizkreis der volle Stand."""
+    verwaltung = hass.data.get(DATEN_SCHLUESSEL)
+    laufzeiten = [
+        laufzeit
+        for laufzeit in (verwaltung.laufzeiten.values() if verwaltung else [])
+        if laufzeit.entry_id == entry.entry_id
+    ]
+    return {
+        "system": {
+            "automatiken": len(laufzeiten),
+            "status": schwerster([status(lz) for lz in laufzeiten]),
+        },
+        "heizkreise": [auszug(laufzeit) for laufzeit in laufzeiten],
+    }
 
 
 def _registrierung(hass: HomeAssistant, entry: ConfigEntry, eintrag: dict[str, Any]) -> dict:

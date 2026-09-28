@@ -1213,3 +1213,25 @@ async def test_system_kennungen_gelten_als_bekannt(hass, anlage):
     await _eingerichtet(hass, verwaltung)
     kennungen = verwaltung.kennungen(entry.entry_id)
     assert system.system_unique_id(entry.entry_id, "status") in kennungen
+
+
+async def test_diagnose_enthaelt_die_automatik(hass, anlage, freezer):
+    """Ohne den Stand der Automatik lässt sich ein gemeldeter Eingriff nicht nachvollziehen."""
+    from custom_components.heatnexus import diagnostics
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit.auswerten(entscheidungszeit=True)
+    entry = hass.config_entries.async_entries("heatnexus")[0]
+
+    automatik = diagnostics.automatik_auszug(hass, entry)
+    assert automatik["system"] == {"automatiken": 1, "status": "beobachten"}
+    (auszug,) = automatik["heizkreise"]
+    assert auszug["zustand"] == "sonnentag"
+    assert auszug["lage"]["grenze_steuerung"] == 18.0
+    assert auszug["grenze"] == 18.0
+    assert auszug["werte"]["grenze_versatz"] == 0.0
+    assert auszug["protokoll"][0]["art"] == "haette"
+    for schluessel in ("konfig", "gedaechtnis", "steller", "vorrang", "verlauf", "korrektur"):
+        assert schluessel in auszug
