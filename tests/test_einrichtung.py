@@ -417,6 +417,39 @@ async def test_ein_bekannter_erkennungsstand_spart_das_neue_einlesen(hass, eintr
     assert len(zweiter.devices) == len(ZUSAETZLICH)
 
 
+async def _untereintrag_hinzufuegen(hass, eintrag, art: str) -> bool:
+    """Einen Untereintrag anlegen; zurück kommt, ob der Eintrag neu laden wollte."""
+    from types import MappingProxyType
+    from unittest.mock import AsyncMock
+
+    from homeassistant.config_entries import ConfigSubentry
+
+    with patch.object(hass.config_entries, "async_reload", AsyncMock()) as neu_laden:
+        hass.config_entries.async_add_subentry(
+            eintrag,
+            ConfigSubentry(data=MappingProxyType({}), subentry_type=art, title=art, unique_id=art),
+        )
+        await hass.async_block_till_done()
+    return neu_laden.called
+
+
+async def test_der_untereintrag_der_automatik_laedt_nicht_neu(hass, eintrag):
+    """Die Automatik legt ihren Untereintrag im laufenden Betrieb an."""
+    from custom_components.heatnexus.const import SUBEINTRAG_AUTOMATIK
+
+    assert await _einrichten(hass, eintrag) is True
+
+    assert await _untereintrag_hinzufuegen(hass, eintrag, SUBEINTRAG_AUTOMATIK) is False
+
+
+async def test_ein_anderer_untereintrag_laedt_weiter_neu(hass, eintrag):
+    from custom_components.heatnexus.const import SUBEINTRAG_QUELLE
+
+    assert await _einrichten(hass, eintrag) is True
+
+    assert await _untereintrag_hinzufuegen(hass, eintrag, SUBEINTRAG_QUELLE) is True
+
+
 def test_eine_schaubildoption_allein_laedt_nicht_neu():
     """Ein Neuladen risse jeden Verlauf für einen Takt auf „nicht verfügbar"."""
     alt = {"192.0.2.10": {CONF_LEVELS: ["info"], CONF_MODULPUMPE: False}}

@@ -55,10 +55,12 @@ from .erkennungsstand import (
     laufzeitdaten,
     neustart_hinweis,
     nur_anzeige_geaendert,
+    nur_automatik_untereintrag_geaendert,
     store_key,
     systems,
     umfang_der_anlage,
     umfang_fingerprint,
+    untereintraege_abzug,
 )
 from .karte import async_setup_karte
 from .migration import (
@@ -374,6 +376,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Die Optionen, mit denen geladen wurde. Daran hängt die Entscheidung,
         # ob eine Änderung ein Neuladen wert ist.
         "optionen": deepcopy(dict(entry.options or {})),
+        # Ebenso die Untereinträge: Der Behälter der Automatik ist kein Grund zum Neuladen.
+        "untereintraege": untereintraege_abzug(entry),
         # Anlagen, deren Vollabzug noch läuft – für die Meldung an den Nutzer.
         "einlesen_offen": {eintrag[3] for eintrag in nachzuladen},
     }
@@ -459,6 +463,12 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
     der nächste Ladevorgang die betroffenen Entitäten wirklich entfernen.
     """
     daten = laufzeitdaten(entry) or {}
+    untereintraege = untereintraege_abzug(entry)
+    if dict(entry.options or {}) == daten.get("optionen") and nur_automatik_untereintrag_geaendert(
+        daten.get("untereintraege") or {}, untereintraege
+    ):
+        daten["untereintraege"] = untereintraege
+        return
     if nur_anzeige_geaendert(daten.get("optionen") or {}, dict(entry.options or {})):
         # Das Dashboard wird bei jedem Öffnen neu gebaut, die Oberfläche nicht:
         # Sie trägt einen Abzug aus dem Augenblick der Anmeldung. Ohne

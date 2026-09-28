@@ -30,6 +30,7 @@ from .const import (
     DEFAULT_USERNAME,
     DISCOVERY_MAX_AGE_DAYS,
     DOMAIN,
+    SUBEINTRAG_AUTOMATIK,
     UPDATE_INTERVAL,
 )
 from .geraetetexte import sprache_aufloesen
@@ -168,6 +169,25 @@ def laufzeitdaten(entry: ConfigEntry) -> dict | None:
     """
     daten = getattr(entry, "runtime_data", None)
     return daten if isinstance(daten, dict) else None
+
+
+def untereintraege_abzug(entry: ConfigEntry) -> dict[str, tuple]:
+    """Art, Titel und Daten jedes Untereintrags, zum Vergleich nach einer Änderung."""
+    return {
+        kennung: (sub.subentry_type, sub.title, dict(sub.data or {}))
+        for kennung, sub in (entry.subentries or {}).items()
+    }
+
+
+def nur_automatik_untereintrag_geaendert(alt: dict, neu: dict) -> bool:
+    """Ob sich unter den Untereinträgen allein der Behälter der Automatik geändert hat.
+
+    Er bündelt nur Geräte; ein Neuladen dafür risse jede Entität kurz auf „nicht verfügbar".
+    """
+    geaendert = {k for k in set(alt) | set(neu) if alt.get(k) != neu.get(k)}
+    return bool(geaendert) and all(
+        (alt.get(k) or neu.get(k))[0] == SUBEINTRAG_AUTOMATIK for k in geaendert
+    )
 
 
 def nur_anzeige_geaendert(alt: dict, neu: dict) -> bool:
