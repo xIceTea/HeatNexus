@@ -179,15 +179,25 @@ class AutomatikGedaempft(AutomatikWert):
 
 
 class AutomatikHeizgrenze(AutomatikWert):
-    """Die Heizgrenze, die gerade gilt: Profil, Ausrichtung und eigene Werte zusammen."""
+    """Die Heizgrenze der Automatik: die der Steuerung, verschoben um die Ausrichtung."""
 
     ART = "heizgrenze"
     _attr_translation_key = "automatik_heizgrenze"
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = "°C"
 
-    def _wert(self, laufzeit: Laufzeit) -> float:
-        return laufzeit.werte.heizgrenze
+    def _wert(self, laufzeit: Laufzeit) -> float | None:
+        return regel.grenze(laufzeit.lage, laufzeit.werte) if laufzeit.lage else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        laufzeit = self._laufzeit
+        if laufzeit is None or laufzeit.lage is None:
+            return {}
+        return {
+            "steuerung": laufzeit.lage.grenze_steuerung,
+            "versatz": laufzeit.werte.grenze_versatz,
+        }
 
 
 class AutomatikAbweichung(AutomatikWert):

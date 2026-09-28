@@ -14,7 +14,7 @@ export const VERALTET_STUNDEN = 12;
 export const AUTOMATIK_TAKT_MS = 60 * 1000;
 
 export const FELDER = [
-  { name: "heizgrenze", hilfe: "Liegt die gedämpfte Außentemperatur um die Hysterese darüber, schaltet die Automatik den Heizkreis auf nur Warmwasser. Liegt sie um die Hysterese darunter und ist der Raum kühler als Soll minus 0,5 K, geht er zurück ins Programm.", titel: "Heizgrenze", einheit: "°C", schritt: 0.5 },
+  { name: "grenze_versatz", hilfe: "Die Automatik richtet sich nach der Heizgrenze der Steuerung (TA Heizbetrieb) und verschiebt sie um diesen Wert. Negativ schaltet früher auf nur Warmwasser. Die Ausrichtung setzt ihn; hier lässt er sich fein einstellen.", titel: "Abstand zur Heizgrenze der Steuerung", einheit: "K", schritt: 0.5 },
   { name: "hysterese", hilfe: "Abstand über und unter der Heizgrenze. Er verhindert, dass der Heizkreis bei Werten nahe der Grenze hin- und herschaltet.", titel: "Hysterese Saison", einheit: "K", schritt: 0.1 },
   { name: "tau_h", hilfe: "Wie träge die gedämpfte Außentemperatur dem Fühler folgt. Ein größerer Wert lässt kurze Wärme am Nachmittag weniger zählen. Richtwerte: Heizkörper 5 h, gemischt 15 h, Fußbodenheizung 25 h.", titel: "Zeitkonstante gedämpfte AT", einheit: "h", schritt: 1 },
   { name: "mindestdauer_h", hilfe: "So lange bleibt der Heizkreis mindestens im Programm oder auf nur Warmwasser, bevor die Automatik wieder umschaltet. Ein zu kalter Raum geht immer vor.", titel: "Mindestdauer Saisonwechsel", einheit: "h", schritt: 1 },
@@ -590,7 +590,7 @@ export const AutomatikMixin = (Basis) =>
       rahmen.appendChild(this._automatikStundenraster({ ...kreis, tag }));
       const bild = document.createElement("div");
       bild.className = "automatik-tag-bild";
-      bild.innerHTML = tagesleisteSvg(tag, 1000, (kreis.werte || {}).heizgrenze);
+      bild.innerHTML = tagesleisteSvg(tag, 1000, (kreis.kennwerte || {}).heizgrenze);
       this._automatikZeiger(bild, tag);
       const achse = document.createElement("div");
       achse.className = "automatik-achse";
@@ -682,7 +682,7 @@ export const AutomatikMixin = (Basis) =>
       const stunden = ((kreis.tag || {}).stunden || []).filter((s) => s.stunde >= 6 && s.stunde <= 22);
       const sonne = (kreis.tag || {}).sonne || [];
       const jetzt = Math.floor(Number((kreis.tag || {}).jetzt));
-      const grenze = (kreis.werte || {}).heizgrenze;
+      const grenze = (kreis.kennwerte || {}).heizgrenze;
       // Mit Thermostaten hat jeder Raum sein eigenes Ziel; dann gibt es keinen gemeinsamen Bezug.
       const bezug = (kreis.kennwerte || {}).raum_bezug;
       stunden.forEach((eintrag) => {

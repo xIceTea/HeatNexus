@@ -60,6 +60,8 @@ class Coordinator:
                 f"{PREFIX}/2/10/0": "0",
                 f"{PREFIX}/0/0/0": "12.0",
                 f"{PREFIX}/2/9/0": "1",
+                f"{PREFIX}/3/21/0": "18.0",
+                f"{PREFIX}/3/2/0": "5.0",
             },
         }
 
@@ -1053,7 +1055,8 @@ async def test_sensoren_der_automatik(hass, anlage, freezer):
         return KLASSEN[art](verwaltung, HEIZKREIS).native_value
 
     assert wert("gedaempft") == round(laufzeit.lage.at_gedaempft, 1)
-    assert wert("heizgrenze") == laufzeit.werte.heizgrenze
+    assert laufzeit.lage.grenze_steuerung == 18.0
+    assert wert("heizgrenze") == 18.0
     assert wert("abweichung") == pytest.approx(0.4)
     assert wert("sonnenquote") == round(laufzeit.lage.sonnenquote)
     assert wert("eingriffe") == 1
@@ -1082,3 +1085,25 @@ async def test_stoerung_meldet_eine_gesperrte_steuerung(hass, anlage, freezer):
     bis = (dt_util.now() + timedelta(hours=1)).isoformat()
     laufzeit.steller.stand = replace(laufzeit.steller.stand, gesperrt_bis=bis)
     assert stoerung.is_on is True
+
+
+async def test_kennwerte_nennen_die_grenzen_der_steuerung(hass, hass_ws_client, anlage):
+    client = await hass_ws_client(hass)
+    await _senden(
+        client,
+        type="heatnexus/automatik/einrichten",
+        heizkreis=HEIZKREIS,
+        raeume=["sensor.wohnzimmer"],
+        wetter="weather.home",
+        ausrichtung="eco",
+    )
+    kennwerte = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0][
+        "kennwerte"
+    ]
+    assert kennwerte["grenze_steuerung"] == 18.0
+    assert kennwerte["grenze_absenk"] == 5.0
+    assert kennwerte["versatz"] == -2.0
+    assert kennwerte["heizgrenze"] == 16.0
+    assert kennwerte["hysterese"] == 1.0
+    assert kennwerte["sonne_schwelle"] == 45.0
+    assert kennwerte["stark_quote"] == 80.0

@@ -430,5 +430,7 @@
   "Räume im Mittel, gemessen zu Beginn der Stunde": "Rooms on average, measured at the start of the hour",
   "aus": "off",
   "Eco": "Eco",
-  "Komfort": "Comfort"
+  "Komfort": "Comfort",
+  "Die Automatik richtet sich nach der Heizgrenze der Steuerung (TA Heizbetrieb) und verschiebt sie um diesen Wert. Negativ schaltet früher auf nur Warmwasser. Die Ausrichtung setzt ihn; hier lässt er sich fein einstellen.": "The automation follows the controller's heating limit (outdoor temperature heating mode) and shifts it by this value. Negative switches to hot water only earlier. The orientation sets it; fine-tune it here.",
+  "Abstand zur Heizgrenze der Steuerung": "Offset from the controller's heating limit"
 }

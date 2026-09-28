@@ -26,13 +26,13 @@ def test_vorgaben_unterscheiden_sich_in_der_traegheit(profile):
     assert schnell.tau_h < profile.werte(profile.STANDARD).tau_h < traege.tau_h
     assert schnell.nachpruefung == "11:00"
     assert traege.entscheidung == "05:00"
-    assert schnell.heizgrenze == traege.heizgrenze == 17.0
+    assert schnell.grenze_versatz == traege.grenze_versatz == 0.0
 
 
 def test_eigene_werte_ueberschreiben_und_werden_begrenzt(profile):
-    w = profile.werte(profile.STANDARD, {"absenkung_k": "2,5", "heizgrenze": 99, "budget": 2.6})
+    w = profile.werte(profile.STANDARD, {"absenkung_k": "2,5", "grenze_versatz": 99, "budget": 2.6})
     assert w.absenkung_k == 1.5  # "2,5" ist keine Zahl im Python-Sinn
-    assert w.heizgrenze == 22.0
+    assert w.grenze_versatz == 5.0
     assert w.budget == 3
 
 
@@ -69,15 +69,15 @@ def test_prognose_anpassen_ist_abschaltbar(profile):
 
 
 def test_nicht_endliche_eigene_werte_gelten_nicht(profile):
-    w = profile.werte(profile.STANDARD, {"sonnenquote": "nan", "heizgrenze": "inf"})
+    w = profile.werte(profile.STANDARD, {"sonnenquote": "nan", "grenze_versatz": "inf"})
     assert w.sonnenquote == profile.VORGABEN[profile.STANDARD].sonnenquote
-    assert w.heizgrenze == profile.VORGABEN[profile.STANDARD].heizgrenze
+    assert w.grenze_versatz == profile.VORGABEN[profile.STANDARD].grenze_versatz
 
 
 def test_eco_greift_frueher_ein(profile):
     basis = profile.werte(profile.SCHNELL)
     eco = profile.werte(profile.SCHNELL, ausrichtung=profile.ECO)
-    assert eco.heizgrenze == basis.heizgrenze - 2
+    assert eco.grenze_versatz == basis.grenze_versatz - 2
     assert eco.sonnenquote == basis.sonnenquote - 15
     assert eco.absenkung_k == basis.absenkung_k + 0.5
     assert eco.ruhe_h < basis.ruhe_h
@@ -88,7 +88,7 @@ def test_eco_greift_frueher_ein(profile):
 def test_komfort_greift_spaeter_und_sanfter_ein(profile):
     basis = profile.werte(profile.STANDARD)
     komfort = profile.werte(profile.STANDARD, ausrichtung=profile.KOMFORT)
-    assert komfort.heizgrenze == basis.heizgrenze + 1
+    assert komfort.grenze_versatz == basis.grenze_versatz + 1
     assert komfort.sonnenquote == basis.sonnenquote + 10
     assert komfort.absenkung_k == basis.absenkung_k - 0.5
     assert komfort.stark is False
@@ -100,13 +100,14 @@ def test_ausrichtung_bleibt_in_den_grenzen(profile):
 
 
 def test_eigene_werte_gehen_der_ausrichtung_vor(profile):
-    w = profile.werte(profile.SCHNELL, {"heizgrenze": 18.0}, ausrichtung=profile.ECO)
-    assert w.heizgrenze == 18.0
+    w = profile.werte(profile.SCHNELL, {"grenze_versatz": 0.5}, ausrichtung=profile.ECO)
+    assert w.grenze_versatz == 0.5
 
 
 def test_abweichungen_messen_gegen_die_ausrichtung(profile):
     eco = profile.werte(profile.SCHNELL, ausrichtung=profile.ECO)
-    assert profile.abweichungen(profile.SCHNELL, {"heizgrenze": eco.heizgrenze}, profile.ECO) == {}
+    eigene = {"grenze_versatz": eco.grenze_versatz}
+    assert profile.abweichungen(profile.SCHNELL, eigene, profile.ECO) == {}
 
 
 def test_unbekannte_ausrichtung_gilt_als_ausgewogen(profile):

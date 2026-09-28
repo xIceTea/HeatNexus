@@ -42,7 +42,7 @@ assert.deepEqual(
     "budget",
     "entscheidung",
     "fenster_k_je_h",
-    "heizgrenze",
+    "grenze_versatz",
     "hysterese",
     "lernfenster",
     "mindestdauer_h",

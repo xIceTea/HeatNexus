@@ -46,7 +46,8 @@ PAUSE_BIS_STUNDE = 5
 SICHERHEIT_WIEDERHOLEN_S = 60
 VERLAUF_LAENGE = 64
 # Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
-ABRUF = ("/2/9/0", "/0/0/0")
+# Heizgrenzen der Steuerung (`3/21`, `3/2`) gehören dazu: an ihnen richtet sich die Regel aus.
+ABRUF = ("/2/9/0", "/0/0/0", "/3/21/0", "/3/2/0")
 
 SIGNAL_AKTUALISIERT = f"{DOMAIN}_automatik_{{}}"
 
@@ -422,6 +423,10 @@ class Laufzeit:
     def _wert(self, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, self.prefix)
 
+    def wert(self, adresse: str) -> float | None:
+        """Ein Wert des Heizkreises, Adresse relativ zum Präfix."""
+        return self._wert(adresse)
+
     def zahl(self, entity_id: str | None) -> float | None:
         if not entity_id or (zustand := self.hass.states.get(entity_id)) is None:
             return None
@@ -711,6 +716,7 @@ class Laufzeit:
             sonnenuntergang=untergang,
             betriebswahl=_ganzzahl(self._wert("/3/50/0")),
             betriebsart=_ganzzahl(self._wert("/2/9/0")),
+            grenze_steuerung=self._wert("/3/21/0"),
             daten_ok=daten_ok,
             daten_fehlen_seit=self._daten_fehlen_seit,
             fenster_offen=self._fenster(jetzt),

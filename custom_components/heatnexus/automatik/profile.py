@@ -29,7 +29,8 @@ AUSRICHTUNGEN = (ECO, AUSGEWOGEN, KOMFORT)
 class Werte:
     """Alle Schwellen und Zeiten, nach denen die Regel entscheidet."""
 
-    heizgrenze: float = 17.0
+    # Abstand zur Heizgrenze der Steuerung (`3/21`); die Ausrichtung verschiebt ihn.
+    grenze_versatz: float = 0.0
     hysterese: float = 1.0
     tau_h: float = 15.0
     mindestdauer_h: float = 24.0
@@ -71,7 +72,7 @@ VORGABEN: dict[str, Werte] = {
 
 # Kleinster und größter zulässiger Wert je einstellbarem Zahlenfeld.
 GRENZEN: dict[str, tuple[float, float]] = {
-    "heizgrenze": (10.0, 22.0),
+    "grenze_versatz": (-5.0, 5.0),
     "hysterese": (0.5, 3.0),
     "tau_h": (1.0, 48.0),
     "mindestdauer_h": (1.0, 96.0),
@@ -87,8 +88,8 @@ GRENZEN: dict[str, tuple[float, float]] = {
 # Die Ausrichtung verschiebt die Vorgabe der Heizflächen: Eco greift früher und
 # kräftiger ein, Komfort später und sanfter. Eigene Werte gehen beidem vor.
 AUSRICHTUNG_VERSATZ: dict[str, dict[str, float]] = {
-    ECO: {"heizgrenze": -2.0, "sonnenquote": -15.0, "absenkung_k": 0.5, "rueckkehr_k": 0.4},
-    KOMFORT: {"heizgrenze": 1.0, "sonnenquote": 10.0, "absenkung_k": -0.5, "rueckkehr_k": -0.3},
+    ECO: {"grenze_versatz": -2.0, "sonnenquote": -15.0, "absenkung_k": 0.5, "rueckkehr_k": 0.4},
+    KOMFORT: {"grenze_versatz": 1.0, "sonnenquote": 10.0, "absenkung_k": -0.5, "rueckkehr_k": -0.3},
 }
 AUSRICHTUNG_FEST: dict[str, dict[str, Any]] = {
     ECO: {"stark": True, "stark_k": 0.5, "ruhe_h": 1.0},

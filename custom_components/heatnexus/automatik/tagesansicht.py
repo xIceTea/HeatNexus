@@ -143,6 +143,7 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
             mittel_morgen=laufzeit.tagesmittel(tag + timedelta(days=1)),
             sonnenuntergang=laufzeit.sonne(tag)[1],
             betriebswahl=6 if g.saison == regel.NUR_WW else 1,
+            grenze_steuerung=laufzeit.lage.grenze_steuerung if laufzeit.lage else None,
             entscheidungszeit=True,
         )
         ausgang = regel.Gedaechtnis(saison=g.saison, saison_soll=g.saison_soll)

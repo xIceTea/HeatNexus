@@ -31,6 +31,9 @@ VERLAENGERN_REST = timedelta(minutes=5)
 VORRANG_PRUEFEN_NACH = timedelta(hours=4)
 VORRANG_MIN_MINUTEN = 15.0
 PROGRAMMWAHL = frozenset({1, 2, 3, 4, 5})
+# Ohne lesbare Heizgrenze der Steuerung (`3/21`) gilt dieser Wert; außerhalb des Bereichs ebenso.
+HEIZGRENZE_RUECKFALL = 17.0
+HEIZGRENZE_BEREICH = (0.0, 30.0)
 # Betriebsarten (`2/9`), in denen die Steuerung ein eigenes Programm fährt; `3/50` bleibt dabei.
 SONDERBETRIEB = {
     5: "Urlaubsprogramm",
@@ -81,6 +84,7 @@ class Lage:
     sonnenuntergang: datetime | None = None
     betriebswahl: int | None = None
     betriebsart: int | None = None
+    grenze_steuerung: float | None = None
     daten_ok: bool = True
     daten_fehlen_seit: datetime | None = None
     fenster_offen: bool = False
@@ -194,6 +198,13 @@ def abweichung(lage: Lage, soll: float) -> float:
     return raumwert(werte, lage.raum_art) or 0.0
 
 
+def grenze(lage: Lage, w: Werte) -> float:
+    """Die Heizgrenze der Steuerung, verschoben um die Ausrichtung."""
+    steuerung = lage.grenze_steuerung
+    gueltig = steuerung is not None and HEIZGRENZE_BEREICH[0] <= steuerung <= HEIZGRENZE_BEREICH[1]
+    return (steuerung if gueltig else HEIZGRENZE_RUECKFALL) + w.grenze_versatz
+
+
 def _bereit(g: Gedaechtnis, jetzt: datetime, w: Werte) -> bool:
     return g.saison_seit is None or jetzt - g.saison_seit >= timedelta(hours=w.mindestdauer_h)
 
@@ -278,12 +289,13 @@ def _saison_nur_ww(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entsche
     abstand = abweichung(lage, soll)
     if abstand < -ZU_KALT_K:
         return _zurueck(lage, f"Räume {_kelvin(abstand)} – zurück ins Programm.")
-    kuehl = lage.at_gedaempft is not None and lage.at_gedaempft < w.heizgrenze - w.hysterese
+    unten = grenze(lage, w) - w.hysterese
+    kuehl = lage.at_gedaempft is not None and lage.at_gedaempft < unten
     if kuehl and _bereit(g, lage.jetzt, w) and abstand < -SAISON_RAUM_K:
         return _zurueck(
             lage,
             f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C unter "
-            f"{_zahl(w.heizgrenze - w.hysterese)} °C – zurück ins Programm.",
+            f"{_zahl(unten)} °C – zurück ins Programm.",
         )
     return Entscheidung(
         Zustand.NUR_WW,
@@ -300,11 +312,12 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
         return None
     if abweichung(lage, soll) < -SAISON_RAUM_K:
         return None
-    warm = lage.at_gedaempft is not None and lage.at_gedaempft > w.heizgrenze + w.hysterese
+    schwelle = grenze(lage, w)
+    warm = lage.at_gedaempft is not None and lage.at_gedaempft > schwelle + w.hysterese
     mild = (
         lage.mittel_heute is not None
         and lage.mittel_morgen is not None
-        and min(lage.mittel_heute, lage.mittel_morgen) >= w.heizgrenze
+        and min(lage.mittel_heute, lage.mittel_morgen) >= schwelle
     )
     # Fordert ein Thermostat noch Wärme an, braucht der Heizkreis sie auch.
     if not (warm or mild) or lage.ruhig is False:
@@ -312,10 +325,10 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
     if warm:
         grund = (
             f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C über "
-            f"{_zahl(w.heizgrenze + w.hysterese)} °C – nur Warmwasser."
+            f"{_zahl(schwelle + w.hysterese)} °C – nur Warmwasser."
         )
     else:
-        grund = f"Prognose heute und morgen im Mittel ab {_zahl(w.heizgrenze)} °C – nur Warmwasser."
+        grund = f"Prognose heute und morgen im Mittel ab {_zahl(schwelle)} °C – nur Warmwasser."
     neu = Gedaechtnis(saison=NUR_WW, saison_seit=lage.jetzt, saison_soll=soll)
     # Das neue Gedächtnis kennt die Absenkung nicht mehr; an der Steuerung liefe sie weiter.
     ende = (Aktion("absenkung_ende"),) if absenkung_laeuft(g, lage.jetzt) else ()

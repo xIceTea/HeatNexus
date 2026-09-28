@@ -42,6 +42,7 @@ def lage(m, **felder):
         "mittel_morgen": 10.0,
         "sonnenuntergang": UNTERGANG,
         "betriebswahl": 1,
+        "grenze_steuerung": 17.0,
     }
     basis.update(felder)
     # Ein einzelner Raumwert steht für einen Raum ohne eigenes Ziel.
@@ -432,3 +433,33 @@ def test_ausgeschaltete_raeume_holen_nur_ww_nicht_zurueck(m, w):
 def test_ausgeschalteter_raum_zaehlt_nicht_gegen_die_anderen(m, w):
     stand = lage(m, raeume=((21.0, 21.0),), aus=(15.0,), entscheidungszeit=True)
     assert m.abweichung(stand, 22.0) == 0.0
+
+
+# --- Heizgrenze der Steuerung --------------------------------------------------
+def test_hohe_heizgrenze_der_steuerung_haelt_den_heizkreis_im_programm(m, w):
+    stand = lage(m, mittel_heute=19.0, mittel_morgen=19.0, grenze_steuerung=20.0)
+    assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
+
+
+def test_niedrige_heizgrenze_der_steuerung_erlaubt_nur_ww(m, w):
+    stand = lage(m, mittel_heute=19.0, mittel_morgen=19.0, grenze_steuerung=18.0)
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert [a.art for a in e.aktionen] == ["nur_ww"]
+    assert "18,0 °C" in e.begruendung
+
+
+def test_ohne_heizgrenze_der_steuerung_gilt_der_rueckfall(m, w):
+    stand = lage(m, grenze_steuerung=None)
+    assert m.grenze(stand, w) == m.HEIZGRENZE_RUECKFALL == 17.0
+
+
+@pytest.mark.parametrize("wert", [-5.0, 45.0])
+def test_unplausible_heizgrenze_gilt_als_fehlend(m, w, wert):
+    assert m.grenze(lage(m, grenze_steuerung=wert), w) == m.HEIZGRENZE_RUECKFALL
+
+
+def test_versatz_der_ausrichtung_verschiebt_die_heizgrenze(m, w):
+    eco = replace(w, grenze_versatz=-2.0)
+    stand = lage(m, mittel_heute=16.5, mittel_morgen=16.5, grenze_steuerung=18.0)
+    assert m.grenze(stand, eco) == 16.0
+    assert [a.art for a in m.entscheiden(stand, m.Gedaechtnis(), eco).aktionen] == ["nur_ww"]
