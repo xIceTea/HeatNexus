@@ -225,6 +225,16 @@ class ErkennungMixin:
         # Liefert die Steuerung kein Textwerk, springt die Herstellertabelle ein.
         return geraet or get_name(gnmn, self.sprache) or vorgabe
 
+    def _namensfelder(self, gnmn: str, vorgabe: str | None, rueckfall: str | None = None) -> dict:
+        """Anzeigename, bei fremder Sprache dazu der deutsche als `name_de`.
+
+        Poll-Takt, Statistikklasse und Oberfläche erkennen Datenpunkte an deutschen Wörtern.
+        """
+        name = self._name_fuer(gnmn, vorgabe) or rueckfall
+        if self.sprache == "de":
+            return {"name": name}
+        return {"name": name, "name_de": vorgabe or rueckfall}
+
     def _enum_texte_fuer(self, gnmn: str) -> dict[int, str] | None:
         """Zustandstexte, die die Anlage selbst für diesen Datenpunkt führt.
 
@@ -281,7 +291,7 @@ class ErkennungMixin:
             # `base`, nicht `prefix`: Knotenweite Datenpunkte hängen am Gerät,
             # nicht an der Funktion – sonst schneidet `_gnmn` die falsche
             # Länge ab.
-            name=self._name_fuer(self._gnmn(base, oid), definition["name"]),
+            **self._namensfelder(self._gnmn(base, oid), definition["name"]),
             type=definition["platform"],
             unit=definition.get("unit"),
             enum=definition.get("enum"),
@@ -461,12 +471,11 @@ class ErkennungMixin:
                             id=self._kennung(oid),
                             alt_id=self._alte_kennung(oid),
                             oid=oid,
-                            name=(
-                                self._name_fuer(
-                                    gnmn, name_override(fct_type, gnmn) or get_name(gnmn)
-                                )
-                                or (f"{gruppe_of[gnmn]} {gnmn}" if gnmn in gruppe_of else None)
-                                or f"Datenpunkt {gnmn}"
+                            **self._namensfelder(
+                                gnmn,
+                                name_override(fct_type, gnmn) or get_name(gnmn),
+                                (f"{gruppe_of[gnmn]} {gnmn}" if gnmn in gruppe_of else None)
+                                or f"Datenpunkt {gnmn}",
                             ),
                             level=level,
                             # Service- und Werksebene sind vorhanden, aber

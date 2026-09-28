@@ -115,6 +115,21 @@ async def test_die_uhr_der_steuerung_wird_zusammengesetzt(client):
     assert await client._steuerungszeit() == datetime(2026, 8, 18, 12, 30, 0)
 
 
+async def test_die_uhr_findet_sich_auch_unter_englischen_namen(client):
+    client.devices = [
+        {**d, "name_de": d["name"], "name": englisch}
+        for d, englisch in zip(_uhr_deskriptoren(), ("Date", "Time"), strict=True)
+    ]
+    werte = {"/1/15/0/2/70/0": "18.08.2026", "/1/15/0/2/72/0": "12:30:00"}
+
+    async def lesen(oid):
+        return oid, werte[oid]
+
+    client._fetch_oid = lesen
+
+    assert await client._steuerungszeit() == datetime(2026, 8, 18, 12, 30, 0)
+
+
 async def test_ohne_uhr_gibt_es_keine_bezugszeit(client):
     client.devices = []
 

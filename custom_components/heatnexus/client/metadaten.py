@@ -22,7 +22,7 @@ from ..const import (
 )
 from ..const import ENUMS as ENUMS_FALLBACK
 from ..device_db import get_conditions, get_enum, get_neustart, get_programme
-from ..helpers import READONLY_FALLBACK, lesetyp, messgroesse
+from ..helpers import READONLY_FALLBACK, lesetyp, messgroesse, mustername
 from ..kanonisch import ist_ableitung
 from .gemeinsam import gnmn_aus_oid
 
@@ -96,7 +96,7 @@ class MetadatenMixin:
                 # `string_sensor` gehört dazu: Eine schreibgeschützte Systemuhr
                 # wird als Text gelesen und liefe sonst an der Auswahl vorbei.
                 if d["type"] in ("time", "date", "string_sensor") and (
-                    d.get("name") in SYSTEMZEIT_NAMEN
+                    mustername(d) in SYSTEMZEIT_NAMEN
                 ):
                     # **Systemuhr und Systemdatum sind Einstellwerte, keine
                     # Messwerte.** Man stellt sie einmal und danach jahrelang

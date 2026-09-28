@@ -167,6 +167,15 @@ def test_die_betriebsphase_bekommt_zwei_laufzeiten(client):
     assert all(d["enabled_default"] is False for d in neue.values())
 
 
+def test_die_laufzeit_uebernimmt_keinen_fremden_deutschen_namen(client):
+    """Sie heißt nach sich selbst, nicht nach der Betriebsphase."""
+    client.devices[0] = {**client.devices[0], "name": "Operating phase", "name_de": "Betriebsphase"}
+    client._laufzeit()
+    zyklus = next(d for d in client.devices if d["id"] == "SN1-phase-laufzeit")
+    assert zyklus["name"] == "Laufzeit Zyklus"
+    assert "name_de" not in zyklus
+
+
 def test_ohne_bekannte_laufphasen_entsteht_nichts(client):
     """Eine unbekannte Tabelle wird nicht geraten."""
     client.devices[0]["enum"] = "99/99"

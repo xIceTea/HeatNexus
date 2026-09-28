@@ -30,7 +30,7 @@ from ..const import (
     UHR_TIMEOUT,
     VORMERK_MAX_ALTER_S,
 )
-from ..helpers import poll_takte
+from ..helpers import mustername, poll_takte
 from ..lon import zuordnen as lon_zuordnen
 from .gemeinsam import FEHLGESCHLAGEN, MELDUNGS_SENSOREN
 
@@ -178,7 +178,7 @@ class AbrufMixin:
         if typ in POLL_TYPEN_SCHNELL:
             return POLL_FAST
 
-        name = (beschreibung.get("name") or "").lower()
+        name = mustername(beschreibung).lower()
         if any(wort in name for wort in POLL_WOERTER_TRAEGE):
             return POLL_SLOW
         if beschreibung.get("state_class") in ("total", "total_increasing"):
@@ -550,9 +550,9 @@ class AbrufMixin:
         adressen = {}
         for teile in self._nach_praefix().values():
             paar = {
-                d["name"]: d["oid"]
+                mustername(d): d["oid"]
                 for d in teile.values()
-                if d.get("name") in SYSTEMZEIT_NAMEN and d.get("oid")
+                if mustername(d) in SYSTEMZEIT_NAMEN and d.get("oid")
             }
             if len(paar) == 2:
                 adressen = paar
