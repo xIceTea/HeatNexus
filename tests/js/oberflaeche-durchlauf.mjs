@@ -904,7 +904,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   bilanz.automatik.vorrangZeile = [...wurzel.querySelectorAll(".vorrang-zeile")].map((l) => String(l.textContent || ""));
   bilanz.automatik.modusStunden = wurzel.querySelectorAll(".automatik-stunde").filter((z) => z.classList.contains("m-programm")).length;
   bilanz.automatik.stundenLegende = wurzel.querySelectorAll(".automatik-stundenlegende").length;
-  const zehn = wurzel.querySelectorAll(".automatik-stunde").find((z) => String((z.querySelector(".uhr") || {}).textContent) === "10");
+  const zehn = wurzel.querySelectorAll(".automatik-stunde").find((z) => String((z.querySelector(".uhr") || {}).textContent) === "10 Uhr");
   zehn.ausloesen("click");
   clearInterval(flaeche._automatikUhr);
   flaeche._automatikUhr = null;

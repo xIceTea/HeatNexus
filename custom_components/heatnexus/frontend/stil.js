@@ -1151,7 +1151,7 @@ export const STIL = `
     display: flex; flex-wrap: wrap; gap: 4px 20px; margin: 6px 0 0;
     font-size: 13px; color: var(--hn-gedaempft);
   }
-  .automatik-warum { margin: 16px 0 0; font-size: 17px; line-height: 1.5; max-width: 72ch; }
+  .automatik-warum { margin: 16px 0 0; font-size: 17px; line-height: 1.5; }
   .automatik-zeile {
     display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap;
     margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hn-linie);
@@ -1320,6 +1320,10 @@ export const STIL = `
   .automatik-stunde.plan .sym, .automatik-stunde.plan .t, .automatik-stunde.plan .raum { opacity: 0.55; }
   .automatik-stunde.plan .streifen { opacity: 0.45; }
   .automatik-stunde .sym { font-size: 15px; line-height: 1.4; color: var(--hn-gedaempft); }
+  .automatik-stunde .sym.sonne { color: var(--hn-sonne); }
+  .automatik-stunde .sym.mond { color: color-mix(in srgb, var(--hn-sonne) 70%, var(--hn-text)); }
+  .automatik-stunde .sym.wolke { color: #9fb3c8; }
+  .automatik-stunde .uhr { white-space: nowrap; }
   .automatik-stunde .t { font-size: 14px; font-weight: 700; color: var(--hn-text); }
   .automatik-stunde .t.kalt { color: var(--hn-text); }
   .automatik-stunde .t.warm { color: var(--hn-text); }

@@ -169,6 +169,9 @@ export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null) {
   return teile.join("");
 }
 
+// Farbe je Wettersymbol: Sonne und Mond gelb, Wolken grau.
+const SYMBOLFARBE = { "☀": "sonne", "☾": "mond", "☁": "wolke", "⛅": "teils" };
+
 /** Wettersymbol einer Stunde aus Bewölkung und Tageslicht. */
 export function wetterSymbol(wolken, hell) {
   if (!hell) return "☾";
@@ -380,9 +383,10 @@ export const TagesbildMixin = (Basis) =>
           this._zeichnen();
         });
         const temperatur = eintrag.korrigiert ?? eintrag.roh;
+        const symbol = wetterSymbol(eintrag.wolken, (sonne[eintrag.stunde] || 0) > 0);
         const teile = [
-          ["uhr", String(eintrag.stunde).padStart(2, "0")],
-          ["sym", wetterSymbol(eintrag.wolken, (sonne[eintrag.stunde] || 0) > 0)],
+          ["uhr", this._tMit("{zeit} Uhr", { zeit: String(eintrag.stunde).padStart(2, "0") })],
+          [`sym ${SYMBOLFARBE[symbol] || ""}`.trim(), symbol],
           ["t", temperatur === null || temperatur === undefined ? "–" : `${Math.round(temperatur)}°`],
         ];
         teile.forEach(([klasse, text]) => {
@@ -400,7 +404,7 @@ export const TagesbildMixin = (Basis) =>
         const raum = document.createElement("div");
         raum.className = "raum";
         raum.title = this._t("Räume im Mittel, gemessen zu Beginn der Stunde");
-        raum.textContent = eintrag.raum !== null && eintrag.raum !== undefined ? zahl(eintrag.raum) : "–";
+        raum.textContent = eintrag.raum !== null && eintrag.raum !== undefined ? `${zahl(eintrag.raum)}°` : "–";
         zelle.appendChild(raum);
         raster.appendChild(zelle);
       });
