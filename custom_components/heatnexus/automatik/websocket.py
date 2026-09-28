@@ -22,6 +22,7 @@ import voluptuous as vol
 from .. import texte
 from ..const import DOMAIN, SUBEINTRAG_QUELLE
 from ..rechte import darf_lesen
+from ..registrierung import geraet_suchen
 from . import eingaben, kennzahlen, korrektur, nachladen, profile, regel, tagesansicht
 from .konfig import (
     EIGENE_FELDER,
@@ -73,9 +74,11 @@ def _entitaeten(hass: HomeAssistant, device_id: str) -> dict[str, str | None]:
     }
 
 
-def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: dict) -> dict:
+def _eintrag(
+    hass: HomeAssistant, verwaltung: Verwaltung, entry_id: str, coordinator: Any, b: dict
+) -> dict:
     device_id = b["device_id"]
-    geraet = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, device_id)})
+    geraet = geraet_suchen(dr.async_get(hass), device_id, entry_id)
     ergebnis: dict[str, Any] = {
         "heizkreis": device_id,
         "name": b.get("device_name") or device_id,
@@ -182,7 +185,10 @@ async def _ws_lesen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> Non
             if not klima or not darf_lesen(connection.user, klima):
                 continue
             heizkreise.append(
-                _uebersetzt(_eintrag(hass, verwaltung, coordinator, beschreibung), woerterbuch)
+                _uebersetzt(
+                    _eintrag(hass, verwaltung, entry.entry_id, coordinator, beschreibung),
+                    woerterbuch,
+                )
             )
     connection.send_result(
         msg["id"],

@@ -27,6 +27,7 @@ from ..const import (
     SIGNAL_NEUE_ENTITAETEN,
     SUBEINTRAG_AUTOMATIK,
 )
+from ..registrierung import geraet_suchen
 from . import konfig as konfig_modul
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 
@@ -230,7 +231,7 @@ class Verwaltung:
             if entity_id := register.async_get_entity_id(domaene, DOMAIN, kennung):
                 register.async_remove(entity_id)
         geraete = dr.async_get(self.hass)
-        if geraet := geraete.async_get_device(identifiers={(DOMAIN, system_kennung(entry_id))}):
+        if geraet := geraet_suchen(geraete, system_kennung(entry_id), entry_id):
             geraete.async_remove_device(geraet.id)
         if (entry := self.hass.config_entries.async_get_entry(entry_id)) and (
             sub_id := self.subeintrag(entry)
@@ -409,7 +410,7 @@ class Verwaltung:
             if entity_id := register.async_get_entity_id(DOMAENE_JE_ART[art], DOMAIN, kennung):
                 register.async_remove(entity_id)
         geraete = dr.async_get(self.hass)
-        if geraet := geraete.async_get_device(identifiers={(DOMAIN, geraet_kennung(device_id))}):
+        if geraet := geraet_suchen(geraete, geraet_kennung(device_id), entry_id):
             geraete.async_remove_device(geraet.id)
         if entry_id and not self.kennungen(entry_id):
             self._system_entfernen(entry_id)

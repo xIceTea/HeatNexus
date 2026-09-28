@@ -20,10 +20,10 @@ VERKNUEPFUNG_PER_ID = (
 )
 
 
-def geraet_suchen(registry: Any, kennung: str, entry_id: str) -> Any:
-    """Das Gerät des Eintrags mit dieser Kennung, oder `None`."""
+def geraet_suchen(registry: Any, kennung: str, entry_id: str | None) -> Any:
+    """Das Gerät des Eintrags mit dieser Kennung, oder `None`; ohne Eintrag über die Kennung allein."""
     suche = getattr(registry, "async_get_device_by_identifier", None)
-    if suche is not None:
+    if suche is not None and entry_id:
         return suche((DOMAIN, kennung), entry_id)
     return registry.async_get_device(identifiers={(DOMAIN, kennung)})
 
