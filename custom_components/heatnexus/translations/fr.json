@@ -413,6 +413,12 @@
     }
   },
   "config_subentries": {
+    "automatik": {
+      "entry_type": "Automatisme",
+      "initiate_flow": {
+        "user": "Automatisme"
+      }
+    },
     "waermequelle": {
       "title": "Source de chaleur",
       "entry_type": "Source de chaleur",

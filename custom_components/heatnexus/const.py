@@ -63,6 +63,8 @@ CONF_QUELLEN = "quellen"
 
 # Art des Subeintrags, unter dem eine Wärmequelle steht.
 SUBEINTRAG_QUELLE = "waermequelle"
+# Art des Subeintrags, der die Geräte der Automatik bündelt.
+SUBEINTRAG_AUTOMATIK = "automatik"
 
 # Kennungen der Automatik-Geräte enden so; Panel und Dashboard lassen sie aus.
 AUTOMATIK_GERAET_ENDUNG = "-automatik"

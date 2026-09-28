@@ -9,9 +9,10 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta
 import logging
+from types import MappingProxyType
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
@@ -20,7 +21,12 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dis
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from ..const import AUTOMATIK_GERAET_ENDUNG, DOMAIN, SIGNAL_NEUE_ENTITAETEN
+from ..const import (
+    AUTOMATIK_GERAET_ENDUNG,
+    DOMAIN,
+    SIGNAL_NEUE_ENTITAETEN,
+    SUBEINTRAG_AUTOMATIK,
+)
 from . import konfig as konfig_modul
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 
@@ -101,6 +107,29 @@ def unique_id(device_id: str, art: str) -> str:
     return f"{device_id}{AUTOMATIK_MARKE}{art}"
 
 
+def _geraete_umhaengen(register: dr.DeviceRegistry, entry: ConfigEntry, sub_id: str) -> None:
+    """Automatik-Geräte vom Haupteintrag in den Untereintrag verschieben.
+
+    Hängt ein Gerät an beiden, steht es zweimal in der Übersicht der Integration.
+    """
+    for geraet in dr.async_entries_for_config_entry(register, entry.entry_id):
+        zuordnung = geraet.config_entries_subentries.get(entry.entry_id) or set()
+        if None not in zuordnung or not any(
+            bereich == DOMAIN and str(wert).endswith(AUTOMATIK_GERAET_ENDUNG)
+            for bereich, wert in geraet.identifiers
+        ):
+            continue
+        # Erst dazu, dann weg: Ein Gerät ohne Eintrag entfernt Home Assistant.
+        register.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            config_subentry_id=sub_id,
+            identifiers=set(geraet.identifiers),
+        )
+        register.async_update_device(
+            geraet.id, remove_config_entry_id=entry.entry_id, remove_config_subentry_id=None
+        )
+
+
 class Verwaltung:
     """Hält die Laufzeiten und den gemeinsamen Store."""
 
@@ -155,14 +184,43 @@ class Verwaltung:
             return {}
         return kreise | {system_unique_id(entry_id, art): d for art, d in SYSTEM_DOMAENE.items()}
 
+    @staticmethod
+    def subeintrag(entry: ConfigEntry) -> str | None:
+        """Der Untereintrag, der die Geräte der Automatik bündelt; ohne ihn None."""
+        return next(
+            (
+                sub.subentry_id
+                for sub in (entry.subentries or {}).values()
+                if sub.subentry_type == SUBEINTRAG_AUTOMATIK
+            ),
+            None,
+        )
+
+    def _subeintrag_anlegen(self, entry: ConfigEntry) -> str:
+        """Nur ein Behälter für die Geräte: die Einstellungen bleiben im Store."""
+        if (vorhanden := self.subeintrag(entry)) is not None:
+            return vorhanden
+        sub = ConfigSubentry(
+            data=MappingProxyType({}),
+            subentry_type=SUBEINTRAG_AUTOMATIK,
+            title="HeatNexus Automatik",
+            unique_id=SUBEINTRAG_AUTOMATIK,
+        )
+        self.hass.config_entries.async_add_subentry(entry, sub)
+        return sub.subentry_id
+
     def _system_anlegen(self, entry: ConfigEntry) -> None:
-        dr.async_get(self.hass).async_get_or_create(
+        sub_id = self._subeintrag_anlegen(entry)
+        register = dr.async_get(self.hass)
+        register.async_get_or_create(
             config_entry_id=entry.entry_id,
+            config_subentry_id=sub_id,
             identifiers={(DOMAIN, system_kennung(entry.entry_id))},
             name="HeatNexus Automatik",
             manufacturer="HeatNexus",
             model="Automatik-System",
         )
+        _geraete_umhaengen(register, entry, sub_id)
 
     def _system_entfernen(self, entry_id: str) -> None:
         """Mit der letzten Automatik des Eintrags gehen System-Entitäten und -Gerät."""
@@ -174,6 +232,10 @@ class Verwaltung:
         geraete = dr.async_get(self.hass)
         if geraet := geraete.async_get_device(identifiers={(DOMAIN, system_kennung(entry_id))}):
             geraete.async_remove_device(geraet.id)
+        if (entry := self.hass.config_entries.async_get_entry(entry_id)) and (
+            sub_id := self.subeintrag(entry)
+        ):
+            self.hass.config_entries.async_remove_subentry(entry, sub_id)
 
     def konfig(self, device_id: str) -> dict[str, Any] | None:
         """Die gespeicherten Einstellungen eines Heizkreises."""

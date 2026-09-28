@@ -337,7 +337,7 @@ def anmelden(
         neu = [KLASSEN[art](verwaltung, device_id) for device_id in eigene - bekannt]
         bekannt.update(eigene)
         if neu:
-            async_add_entities(neu)
+            async_add_entities(neu, config_subentry_id=verwaltung.subeintrag(entry))
 
     _anlegen()
     entry.async_on_unload(

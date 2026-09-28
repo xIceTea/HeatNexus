@@ -425,7 +425,10 @@ def anmelden(
         nonlocal angelegt
         vorhanden = any(lz.entry_id == entry.entry_id for lz in verwaltung.laufzeiten.values())
         if vorhanden and not angelegt:
-            async_add_entities([KLASSEN[art](verwaltung, entry.entry_id)])
+            async_add_entities(
+                [KLASSEN[art](verwaltung, entry.entry_id)],
+                config_subentry_id=verwaltung.subeintrag(entry),
+            )
         angelegt = vorhanden
 
     _anlegen()

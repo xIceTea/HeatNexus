@@ -315,6 +315,61 @@ async def test_entfernen_raeumt_ab(hass, hass_ws_client, anlage):
     assert antwort["success"], antwort
     assert HEIZKREIS not in verwaltung.laufzeiten
     assert verwaltung.konfig(HEIZKREIS) is None
+    [eintrag] = hass.config_entries.async_entries("heatnexus")
+    assert verwaltung.subeintrag(eintrag) is None
+
+
+def _automatik_geraete(hass, eintrag):
+    from homeassistant.helpers import device_registry as dr
+
+    return [
+        g
+        for g in dr.async_entries_for_config_entry(dr.async_get(hass), eintrag.entry_id)
+        if any(k.endswith("-automatik") for _, k in g.identifiers)
+    ]
+
+
+async def test_die_automatik_hat_einen_eigenen_untereintrag(hass, hass_ws_client, anlage):
+    from custom_components.heatnexus.const import DOMAIN, SUBEINTRAG_AUTOMATIK
+
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    await hass.async_block_till_done()
+    [eintrag] = hass.config_entries.async_entries(DOMAIN)
+    [sub] = [s for s in eintrag.subentries.values() if s.subentry_type == SUBEINTRAG_AUTOMATIK]
+    geraete = _automatik_geraete(hass, eintrag)
+    assert geraete
+    assert all(g.config_entries_subentries[eintrag.entry_id] == {sub.subentry_id} for g in geraete)
+
+
+async def test_vorhandene_automatik_geraete_wandern_in_den_untereintrag(
+    hass, hass_ws_client, anlage
+):
+    """Geräte, die noch am Haupteintrag hängen, stünden sonst zweimal in der Übersicht."""
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.heatnexus.automatik import verwaltung as verwaltung_modul
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    [eintrag] = hass.config_entries.async_entries(DOMAIN)
+    register = dr.async_get(hass)
+    for kennung in (
+        verwaltung_modul.system_kennung(eintrag.entry_id),
+        verwaltung_modul.geraet_kennung(HEIZKREIS),
+    ):
+        register.async_get_or_create(
+            config_entry_id=eintrag.entry_id, identifiers={(DOMAIN, kennung)}
+        )
+
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    await hass.async_block_till_done()
+
+    sub_id = verwaltung.subeintrag(eintrag)
+    geraete = _automatik_geraete(hass, eintrag)
+    assert len(geraete) == 2
+    assert all(g.config_entries_subentries[eintrag.entry_id] == {sub_id} for g in geraete)
 
 
 async def test_gedaempfte_at_beginnt_beim_tagesmittel(hass, hass_ws_client, anlage):
@@ -1290,12 +1345,14 @@ async def test_die_volle_stunde_vermerkt_den_modus(hass, hass_ws_client, anlage,
 async def test_das_system_hat_die_neuen_sensoren(hass, hass_ws_client, anlage):
     """`anmelden` legt für jede neue Art eine Entität mit der Systemkennung an."""
     from custom_components.heatnexus.automatik import system as system_modul
+    from custom_components.heatnexus.automatik.verwaltung import verwaltung_holen
     from custom_components.heatnexus.const import DOMAIN
 
     client = await hass_ws_client(hass)
     await _einrichten(client)
     await hass.async_block_till_done()
     entry = hass.config_entries.async_entries(DOMAIN)[0]
+    sub_id = verwaltung_holen(hass).subeintrag(entry)
     for art in (
         "sonnentag_heute",
         "nur_ww_heute",
@@ -1303,7 +1360,37 @@ async def test_das_system_hat_die_neuen_sensoren(hass, hass_ws_client, anlage):
         "prognose_mittel",
         "ueber_heizgrenze",
     ):
-        erstellt: list = []
-        system_modul.anmelden(hass, entry, erstellt.extend, art)
-        assert erstellt, art
-        assert erstellt[0].unique_id.endswith(f"-automatik-system-{art}")
+        aufnahme = _Aufnahme()
+        system_modul.anmelden(hass, entry, aufnahme, art)
+        assert aufnahme.entitaeten, art
+        assert aufnahme.entitaeten[0].unique_id.endswith(f"-automatik-system-{art}")
+        assert aufnahme.untereintraege == [sub_id]
+
+
+class _Aufnahme:
+    """Steht für `async_add_entities` und merkt sich Entitäten und Untereintrag."""
+
+    def __init__(self) -> None:
+        self.entitaeten: list = []
+        self.untereintraege: list = []
+
+    def __call__(self, neue, *, config_subentry_id=None) -> None:
+        self.entitaeten.extend(neue)
+        self.untereintraege.append(config_subentry_id)
+
+
+async def test_entitaeten_der_automatik_gehoeren_dem_untereintrag(hass, hass_ws_client, anlage):
+    from custom_components.heatnexus.automatik import entitaeten
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    await hass.async_block_till_done()
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+
+    aufnahme = _Aufnahme()
+    entitaeten.anmelden(hass, entry, aufnahme, "schalter")
+
+    assert aufnahme.entitaeten
+    assert aufnahme.untereintraege == [verwaltung.subeintrag(entry)] != [None]
