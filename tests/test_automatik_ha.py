@@ -1264,3 +1264,24 @@ async def test_teilweise_gesetzte_heizgrenzen_stehen_im_protokoll(hass, hass_ws_
     eintrag = verwaltung.laufzeiten[HEIZKREIS].steller.stand.protokoll[0]
     assert eintrag["art"] == "einstellung"
     assert "Heizbetrieb 17,5 °C" in eintrag["text"]
+
+
+async def test_die_volle_stunde_vermerkt_den_modus(hass, hass_ws_client, anlage, freezer):
+    """Der Stundentakt trägt Aktion und Modus-Laufzeiten nach, auch ohne Ereignis."""
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    verwaltung, _coordinator = anlage
+    client = await hass_ws_client(hass)
+    # MORGEN liegt nicht an der Tagesgrenze, damit +1 h nicht in den nächsten Tag rutscht.
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    naechste = (dt_util.now() + timedelta(hours=1)).replace(minute=0, second=5, microsecond=0)
+    freezer.move_to(naechste)
+    async_fire_time_changed(hass, naechste)
+    await hass.async_block_till_done()
+    assert laufzeit.verlauf["stunden"][str(naechste.hour)]["aktion"] == "programm"
+    assert set(laufzeit.als_dict()["modus_lauf"]) == {"absenkung", "nur_ww"}

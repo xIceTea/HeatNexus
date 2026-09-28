@@ -44,6 +44,7 @@ FENSTER_DAUER = timedelta(minutes=30)
 PAUSE_BIS_STUNDE = 5
 SICHERHEIT_WIEDERHOLEN_S = 60
 VERLAUF_LAENGE = 64
+MODUS_ARTEN = ("absenkung", "nur_ww")
 # Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
 # Heizgrenzen der Steuerung (`3/21`, `3/2`) gehören dazu: an ihnen richtet sich die Regel aus.
 ABRUF = ("/2/9/0", "/0/0/0", "/3/21/0", "/3/2/0")
@@ -147,6 +148,9 @@ class Laufzeit(QuellenMixin):
         self.eingefroren: set[str] = set()
         # Wie lange Wärmequellen mit Vorrang vor dem Kessel heute geliefert haben.
         self.vorrang = eingaben.lauf_aus_dict(z.get("vorrang"))
+        # Wie lange Sonnentag und nur Warmwasser heute an der Steuerung galten.
+        modus = z.get("modus_lauf") if isinstance(z.get("modus_lauf"), dict) else {}
+        self.modus_lauf = {art: eingaben.lauf_aus_dict(modus.get(art)) for art in MODUS_ARTEN}
         self._lieferbeginn_am: date | None = None
         self._entscheidung_offen = False
 
@@ -187,6 +191,9 @@ class Laufzeit(QuellenMixin):
             "pv": self.pv.als_dict(),
             "verlauf": self.verlauf,
             "vorrang": eingaben.lauf_als_dict(self.vorrang),
+            "modus_lauf": {
+                art: eingaben.lauf_als_dict(lauf) for art, lauf in self.modus_lauf.items()
+            },
             "zustand": self.zustand.value,
             "begruendung": self.begruendung,
         }
@@ -203,6 +210,9 @@ class Laufzeit(QuellenMixin):
         self._abmelden.append(async_track_state_change_event(self.hass, quellen, self._ereignis))
         self._abmelden.append(self.coordinator.async_add_listener(self._merken))
         self._abmelden.append(async_track_time_interval(self.hass, self._takt, TAKT))
+        self._abmelden.append(
+            async_track_time_change(self.hass, self._stundentakt, minute=0, second=5)
+        )
         self._abmelden.append(
             async_track_time_interval(self.hass, self._prognose_takt, PROGNOSE_TAKT)
         )
@@ -330,6 +340,7 @@ class Laufzeit(QuellenMixin):
     def _setzen(self, zustand: regel.Zustand, begruendung: str) -> None:
         self.zustand = zustand
         self.begruendung = begruendung
+        self._modus_fortschreiben(dt_util.now())
         self._aktion_merken(dt_util.now())
         self._speichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
@@ -560,6 +571,27 @@ class Laufzeit(QuellenMixin):
             self.verlauf = {"datum": heute, "stunden": {}}
         stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
         stunde["aktion"] = tagesansicht.aktion(self.gedaechtnis, jetzt.hour, jetzt.date())
+
+    def _modus_fortschreiben(self, jetzt: datetime) -> None:
+        """Laufzeiten der Modi; im Beobachten ging nichts an die Steuerung."""
+        g = self.gedaechtnis
+        laeuft = {
+            "absenkung": regel.absenkung_laeuft(g, jetzt),
+            "nur_ww": g.saison == regel.NUR_WW,
+        }
+        self.modus_lauf = {
+            art: eingaben.lauf_fortschreiben(lauf, jetzt, laeuft[art] and not self.beobachten)
+            for art, lauf in self.modus_lauf.items()
+        }
+
+    @callback
+    def _stundentakt(self, _jetzt: datetime) -> None:
+        """Zur vollen Stunde vermerken, was gilt; eine ruhige Stunde bliebe sonst leer."""
+        jetzt = dt_util.now()
+        self._modus_fortschreiben(jetzt)
+        self._aktion_merken(jetzt)
+        self._speichern()
+        async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
 
     def stufen_uebernehmen(self, stufen: tuple[float, float], zeit: datetime) -> None:
         """Die aus dem Tag nachgerechnete gedämpfte AT übernehmen, wenn die eigene jünger ist."""
