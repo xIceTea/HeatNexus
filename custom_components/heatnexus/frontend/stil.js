@@ -123,6 +123,10 @@ export const STIL = `
   .reiter button[aria-selected="true"] {
     opacity: 1; color: var(--hn-akzent); border-bottom-color: var(--hn-akzent);
   }
+  .reiter button.versteckt { text-decoration: line-through; opacity: 0.35; }
+  .reiter .reiter-griffe { display: inline-flex; align-items: center; margin-right: 8px; }
+  .reiter .reiter-griffe button { padding: 4px; border-bottom: none; opacity: 0.6; }
+  .reiter .reiter-griffe button:hover { opacity: 1; }
   .anlagen-trenner {
     display: flex; align-items: center; gap: 12px;
     margin: 8px 16px 0; padding-top: 16px;

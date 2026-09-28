@@ -663,6 +663,19 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     assert "Nichts davon ging an die Steuerung" in hinweis
 
 
+def test_reiter_lassen_sich_umordnen_und_ausblenden(durchlauf):
+    reiter = durchlauf["reiter"]
+    standard = ["uebersicht", "steuerung", "automatik", "wartung", "verlauf", "zeitprogramme"]
+    assert reiter["ohneHilfe"] == standard
+    umgestellt = ["uebersicht", "zeitprogramme", "steuerung", "automatik", "wartung", "verlauf"]
+    assert reiter["verschoben"] == umgestellt
+    assert reiter["ausgeblendet"] == [r for r in umgestellt if r != "verlauf"]
+    assert reiter["gesendet"] == {
+        "reiter": [*umgestellt, "hilfe"],
+        "reiter_versteckt": ["verlauf", "hilfe"],
+    }
+
+
 def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     """Ein offener Dialog bleibt; die Sperre fürs Nachladen hält nicht über den Aufbau hinaus."""
     automatik = durchlauf["automatik"]

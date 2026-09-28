@@ -411,9 +411,18 @@ class HeatNexusPanel extends Grundlage {
     const leiste = document.createElement("div");
     leiste.className = "reiter";
     leiste.setAttribute("role", "tablist");
-    REITER.forEach((reiter) => {
+    const versteckt = this._reiterVersteckt();
+    const folge = this._reiterFolge();
+    const sichtbar = folge.filter((reiter) => !versteckt.has(reiter.schluessel));
+    // Ein ausgeblendeter Reiter bleibt nur beim Bearbeiten erreichbar.
+    if (!this._anordnen && !sichtbar.some((reiter) => reiter.schluessel === this._reiter) && sichtbar.length) {
+      this._reiter = sichtbar[0].schluessel;
+    }
+    (this._anordnen ? folge : sichtbar).forEach((reiter) => {
       const taste = document.createElement("button");
       taste.type = "button";
+      taste.dataset.reiter = reiter.schluessel;
+      if (versteckt.has(reiter.schluessel)) taste.classList.add("versteckt");
       taste.setAttribute("role", "tab");
       taste.setAttribute("aria-selected", String(reiter.schluessel === this._reiter));
       taste.appendChild(this._symbolKnoten(reiter.symbol));
@@ -426,8 +435,29 @@ class HeatNexusPanel extends Grundlage {
         this._zeichnen();
       });
       leiste.appendChild(taste);
+      if (this._anordnen) leiste.appendChild(this._reiterGriffe(reiter, versteckt.has(reiter.schluessel)));
     });
     return leiste;
+  }
+
+  /** Beim Bearbeiten: Reiter nach links, nach rechts, aus- oder einblenden. */
+  _reiterGriffe(reiter, verborgen) {
+    const griffe = document.createElement("div");
+    griffe.className = "reiter-griffe";
+    [
+      ["mdi:chevron-left", "Nach links", () => this._reiterVerschieben(reiter.schluessel, -1)],
+      ["mdi:chevron-right", "Nach rechts", () => this._reiterVerschieben(reiter.schluessel, 1)],
+      [verborgen ? "mdi:eye-off-outline" : "mdi:eye-outline", verborgen ? "Einblenden" : "Ausblenden", () => this._reiterAusblenden(reiter.schluessel)],
+    ].forEach(([symbol, titel, aktion]) => {
+      const taste = document.createElement("button");
+      taste.type = "button";
+      taste.title = this._t(titel);
+      taste.setAttribute("aria-label", `${this._t(titel)}: ${reiter.titel}`);
+      taste.appendChild(this._symbolKnoten(symbol));
+      taste.addEventListener("click", aktion);
+      griffe.appendChild(taste);
+    });
+    return griffe;
   }
 
   _inhalt(anlage) {

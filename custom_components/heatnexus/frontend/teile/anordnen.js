@@ -64,6 +64,50 @@ export const AnordnenMixin = (Basis) =>
     }
   }
 
+  /** Reiter in der Reihenfolge des Benutzers; neue stehen an ihrem Standardplatz. */
+  _reiterFolge() {
+    const standard = REITER.map((reiter) => reiter.schluessel);
+    return ordnungAnwenden(standard, this._einstellungen().reiter).map((schluessel) =>
+      REITER.find((reiter) => reiter.schluessel === schluessel)
+    );
+  }
+
+  _reiterVersteckt() {
+    return new Set(this._einstellungen().reiter_versteckt || []);
+  }
+
+  /** Einen Reiter um eine Stelle nach links (-1) oder rechts (+1) schieben. */
+  _reiterVerschieben(schluessel, richtung) {
+    const folge = this._reiterFolge().map((reiter) => reiter.schluessel);
+    const von = folge.indexOf(schluessel);
+    const nach = von + richtung;
+    if (von < 0 || nach < 0 || nach >= folge.length) return;
+    [folge[von], folge[nach]] = [folge[nach], folge[von]];
+    this._reiterSichern(folge, this._reiterVersteckt());
+  }
+
+  /** Einen Reiter aus- oder wieder einblenden; einer bleibt immer sichtbar. */
+  _reiterAusblenden(schluessel) {
+    const versteckt = this._reiterVersteckt();
+    if (versteckt.has(schluessel)) versteckt.delete(schluessel);
+    else if (REITER.length - versteckt.size > 1) versteckt.add(schluessel);
+    this._reiterSichern(
+      this._reiterFolge().map((reiter) => reiter.schluessel),
+      versteckt
+    );
+  }
+
+  _reiterSichern(folge, versteckt) {
+    const teil = { reiter: folge, reiter_versteckt: folge.filter((schluessel) => versteckt.has(schluessel)) };
+    this._anordnung = { ...this._anordnung, einstellungen: { ...this._einstellungen(), ...teil } };
+    this._gebaut = false;
+    this._zeichnen();
+    this._hass.callWS({ type: "heatnexus/anordnung/einstellungen", einstellungen: teil }).catch((err) => {
+      console.warn("HeatNexus: Reiterfolge konnte nicht gespeichert werden", err);
+      this._melden("Die Reiterfolge konnte nicht gespeichert werden.");
+    });
+  }
+
   /** Einen Farbsatz wählen, sofort anzeigen und sichern. */
   _farbsatzSetzen(farbsatz) {
     const einstellungen = { ...this._einstellungen(), farbsatz };

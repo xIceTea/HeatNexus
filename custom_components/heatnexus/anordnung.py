@@ -93,7 +93,16 @@ REITER_SCHEMA = vol.Schema(
 )
 
 
-EINSTELLUNGEN_SCHEMA = vol.Schema({vol.Optional("farbsatz"): vol.In(FARBSAETZE)})
+REITERLISTE = vol.All([vol.In(REITER)], vol.Length(max=len(REITER)))
+
+# Farbsatz, Reihenfolge und ausgeblendete Reiter gelten für die ganze Oberfläche.
+EINSTELLUNGEN_SCHEMA = vol.Schema(
+    {
+        vol.Optional("farbsatz"): vol.In(FARBSAETZE),
+        vol.Optional("reiter"): REITERLISTE,
+        vol.Optional("reiter_versteckt"): REITERLISTE,
+    }
+)
 
 
 def _store(hass: HomeAssistant) -> Store:

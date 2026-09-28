@@ -267,6 +267,35 @@ flaeche._gebaut = false;
 flaeche._zeichnen();
 bilanz.palette = { terrakotta: beiWahl, auto: flaeche.style.getPropertyValue("--hn-akzent") };
 
+// Reiter lassen sich je Benutzer umordnen und ausblenden.
+{
+  const vorherAnordnung = flaeche._anordnung;
+  const vorherWS = hass.callWS;
+  const gesendet = [];
+  hass.callWS = async (nachricht) => {
+    gesendet.push(nachricht);
+    return {};
+  };
+  const reiterfolge = () => flaeche.shadowRoot.querySelector(".reiter").children.map((t) => t.dataset.reiter);
+  flaeche._anordnung = { ...flaeche._anordnung, einstellungen: { reiter_versteckt: ["hilfe"] } };
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  const ohneHilfe = reiterfolge();
+  for (let i = 0; i < 4; i += 1) flaeche._reiterVerschieben("zeitprogramme", -1);
+  const verschoben = reiterfolge();
+  flaeche._reiterAusblenden("verlauf");
+  bilanz.reiter = {
+    ohneHilfe,
+    verschoben,
+    ausgeblendet: reiterfolge(),
+    gesendet: gesendet.length ? gesendet[gesendet.length - 1].einstellungen : null,
+  };
+  hass.callWS = vorherWS;
+  flaeche._anordnung = vorherAnordnung;
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+}
+
 // Eine gewählte Farbe wird im Browser gemerkt: Die nächste Oberfläche steht
 // damit vom ersten Aufbau an richtig, ohne auf die Einstellungen zu warten.
 flaeche._farbsatzSetzen("petrol");
