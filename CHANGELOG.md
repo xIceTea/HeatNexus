@@ -12,6 +12,15 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Datenpunkte tragen englische Namen, auch wenn die Steuerung keine Textdateien liefert.
 - Störungstexte und Handlungsempfehlungen erscheinen auf Englisch.
+- Eine Automatik je Heizkreis senkt an sonnigen Tagen den Sollwert ab.
+- In der Übergangszeit schaltet die Automatik den Heizkreis auf nur Warmwasser.
+- Die Automatik beginnt im Beobachtungsmodus und schreibt erst nach Freigabe an die Steuerung.
+- Der Reiter „Automatik“ zeigt Zustand, Begründung, Tagesverlauf, Protokoll und Einstellungen.
+- Die Automatik gleicht die Wetterprognose an den Standort an und zeigt die Abweichung.
+- Liefert eine Wärmequelle mit Vorrang, senkt die Automatik den Heizkreis ab.
+- Das Gerät „HeatNexus Automatik“ bündelt Sensoren zu Modus, Laufzeiten und Prognose.
+- Die Heizgrenzen der Steuerung lassen sich im Reiter „Automatik“ einstellen.
+- Die Reiter lassen sich je Benutzer verschieben und ausblenden.
 
 ### Geändert
 
@@ -30,6 +39,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Gleichnamige Datenpunkte tragen auf Englisch eigene Namen statt einer Adresse ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
 - Abgeleitete Werte, Tasten und unbekannte Auswahlwerte erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
 - Die Tooltips im Schaubild erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
+- Die Leiste „Ansicht bearbeiten“ bleibt beim Blättern oben stehen.
 
 ## [1.13.0-beta.3] - 2026-09-26
 
