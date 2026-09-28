@@ -7,7 +7,7 @@
  * Teil der Oberfläche `heatnexus-panel.js`; eingebunden als Mixin.
  */
 
-import { FELDER, HEIZFLAECHEN, PROFILE, PROFIL_JE_FLAECHE, VERALTET_STUNDEN, zahl } from "./automatik.js";
+import { AUSRICHTUNGEN, FELDER, HEIZFLAECHEN, PROFILE, PROFIL_JE_FLAECHE, VERALTET_STUNDEN, zahl } from "./automatik.js";
 
 // So lange steht „übernommen ✓“ neben den Tasten.
 const GESPEICHERT_MS = 4000;
@@ -33,7 +33,7 @@ export const EinrichtungMixin = (Basis) =>
       const kopf = document.createElement("summary");
       kopf.textContent = "Erweitert";
       bereich.appendChild(kopf);
-      const vorgabe = (daten.profile || {})[kreis.konfig.profil] || {};
+      const vorgabe = kreis.vorgabe || (daten.profile || {})[kreis.konfig.profil] || {};
       const eingaben = {};
       const raster = document.createElement("div");
       raster.className = "automatik-felder";
@@ -262,6 +262,7 @@ export const EinrichtungMixin = (Basis) =>
       dialog.append(kopfzeile, inhalt);
 
       const heizflaechen = this._automatikAuswahl(HEIZFLAECHEN, (k && k.heizflaechen) || "gemischt");
+      const ausrichtung = this._automatikAuswahl(AUSRICHTUNGEN, (k && k.ausrichtung) || "ausgewogen");
       const raeume = this._automatikHaken(kandidaten.temperatur, k ? k.raeume : []);
       const raumArt = this._automatikAuswahl(
         [
@@ -293,7 +294,10 @@ export const EinrichtungMixin = (Basis) =>
       erkennung.checked = !!(k && k.fenster_erkennung);
 
       const abschnitte = [
-        [this._t("1 · Heizflächen"), [heizflaechen]],
+        [
+          this._t("1 · Heizflächen und Ausrichtung"),
+          [heizflaechen, this._automatikBeschriftet(this._t("Eco greift früher und kräftiger ein, Komfort später und sanfter. Ausgewogen nimmt die Werte der Heizflächen unverändert."), ausrichtung)],
+        ],
         [
           this._t("2 · Räume"),
           [
@@ -368,6 +372,7 @@ export const EinrichtungMixin = (Basis) =>
           type: k ? "heatnexus/automatik/einstellen" : "heatnexus/automatik/einrichten",
           heizkreis: kreis.heizkreis,
           heizflaechen: heizflaechen.value,
+          ausrichtung: ausrichtung.value,
           raeume: gewaehlt(raeume),
           raum_art: raumArt.value,
           raum_ziel: raumZiel.value === "" ? null : Number(raumZiel.value),

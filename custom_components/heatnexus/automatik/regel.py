@@ -21,7 +21,6 @@ OHNE_DATEN_MAX = timedelta(hours=2)
 SAISON_RAUM_K = 0.5
 ZU_KALT_K = 1.0
 SONNE_RAUM_K = 0.3
-STARK_RAUM_K = 1.0
 STARK_QUOTE = 80.0
 ABWESEND_K = 3.0
 MAX_MINUTEN = 400
@@ -440,7 +439,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
     rest = int((ziel - lage.jetzt).total_seconds() // 60)
     if rest < MIN_MINUTEN:
         return Entscheidung(Zustand.PROGRAMM, (), "Zu spät am Tag für eine Absenkung.", g)
-    if w.stark and abstand >= STARK_RAUM_K and quote >= STARK_QUOTE and lage.ruhig is not False:
+    if w.stark and abstand >= w.stark_k and quote >= STARK_QUOTE and lage.ruhig is not False:
         neu = replace(
             ohne_absenkung(g), saison=NUR_WW, saison_soll=soll, stark_bis=lage.sonnenuntergang
         )

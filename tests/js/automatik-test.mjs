@@ -48,9 +48,11 @@ assert.deepEqual(
     "mindestdauer_h",
     "nachpruefung",
     "rueckkehr_k",
+    "ruhe_h",
     "sonnenquote",
     "sonnentag",
     "stark",
+    "stark_k",
     "tau_h",
   ]
 );

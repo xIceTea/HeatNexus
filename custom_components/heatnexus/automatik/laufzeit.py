@@ -41,8 +41,6 @@ ABWESEND_NACH = timedelta(minutes=30)
 # Ein ausgefallener Fühler meldet in HA seinen letzten Wert weiter; bleibt er so lange gleich, zählt er nicht.
 RAUM_VERALTET = timedelta(hours=12)
 STUFEN_FRISCH = timedelta(hours=3)
-# So lange darf kein Thermostat Wärme angefordert haben, bevor die Räume als ruhig gelten.
-RUHE_NACH = timedelta(hours=2)
 FENSTER_DAUER = timedelta(minutes=30)
 PAUSE_BIS_STUNDE = 5
 SICHERHEIT_WIEDERHOLEN_S = 60
@@ -156,7 +154,9 @@ class Laufzeit:
     # --- Eigenschaften -------------------------------------------------------
     @property
     def werte(self) -> profile.Werte:
-        return profile.werte(self.konfig["profil"], self.konfig.get("eigene"))
+        return profile.werte(
+            self.konfig["profil"], self.konfig.get("eigene"), self.konfig["ausrichtung"]
+        )
 
     @property
     def aktiv(self) -> bool:
@@ -465,7 +465,7 @@ class Laufzeit:
         """Ob seit zwei Stunden kein Thermostat Wärme anfordert; ohne Thermostat `None`."""
         if not eingaben.hat_thermostat(self.konfig["raeume"]):
             return None
-        return jetzt - self.anforderung_zuletzt >= RUHE_NACH
+        return jetzt - self.anforderung_zuletzt >= timedelta(hours=self.werte.ruhe_h)
 
     def _aussen(self) -> float | None:
         if self.konfig.get("aussen"):

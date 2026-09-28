@@ -386,7 +386,6 @@
   "übernommen ✓": "applied ✓",
   "Ab diesem Anteil Sonne gilt der Tag als Sonnentag. Die Quote kommt aus der PV-Prognose oder aus der Bewölkung der Wetterprognose.": "From this share of sunshine on, the day counts as a sunny day. The ratio comes from the PV forecast or from the cloud cover of the weather forecast.",
   "Abstand über und unter der Heizgrenze. Er verhindert, dass der Heizkreis bei Werten nahe der Grenze hin- und herschaltet.": "Margin above and below the heating limit. It keeps the heating circuit from switching back and forth when values are close to the limit.",
-  "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn der Raum schon 1 K über dem Soll liegt, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.": "On very sunny days with a sunshine ratio from 80 %, and with the room already 1 K above the setpoint, the automation switches the heating circuit to hot water only until sunset instead of only lowering the setpoint.",
   "Das Profil stellt alle Werte passend zu den Heizflächen ein. Eigene Werte darunter überschreiben einzelne Felder; „Profilwerte wiederherstellen“ nimmt sie zurück.": "The profile sets all values to suit the heating surfaces. Your own values below override single fields; “Restore profile values” removes them.",
   "Die Automatik vergleicht jeden Tag Prognose und Messung und verschiebt die Prognose um die gelernte Abweichung. Ist der Schalter aus, gelten die rohen Prognosen für Anzeige und Entscheidung; gelernt wird trotzdem weiter.": "Every day the automation compares forecast and measurement and shifts the forecast by the learned deviation. With the switch off, the raw forecasts apply to display and decision; learning continues.",
   "Eine zweite Prüfung am Tag, etwa wenn der Morgen trüb war und die Sonne später kommt. Leer lassen, wenn sie nicht gewünscht ist.": "A second check during the day, for example when the morning was dull and the sun comes later. Leave empty if it is not wanted.",
@@ -409,5 +408,15 @@
   "5 · Optional: Wärmequellen mit Vorrang vor dem Kessel": "5 · Optional: heat sources with priority over the boiler",
   "Liefert eine dieser Quellen, soll ihre Wärme den Heizkreis decken statt der Kessel.": "While one of these sources delivers, its heat should supply the heating circuit instead of the boiler.",
   "Vorrangquelle liefert": "Priority source delivering",
-  "Vorrangquellen heute {stunden} h": "Priority sources today {stunden} h"
+  "Vorrangquellen heute {stunden} h": "Priority sources today {stunden} h",
+  "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn die Räume schon über ihrem Ziel liegen, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.": "On very sunny days from 80 % sunshine share, when the rooms are already above their target, the automation switches the heating circuit to hot water only until sunset instead of just lowering the setpoint.",
+  "So weit müssen die Räume über ihrem Ziel liegen, damit ein sehr sonniger Tag auf nur Warmwasser schaltet.": "The rooms must be this far above their target before a very sunny day switches to hot water only.",
+  "So lange darf kein Thermostat Wärme angefordert haben, bevor die Automatik auf nur Warmwasser schaltet.": "No thermostat may have requested heat for this long before the automation switches to hot water only.",
+  "Eco greift früher und kräftiger ein, Komfort später und sanfter. Ausgewogen nimmt die Werte der Heizflächen unverändert.": "Eco intervenes earlier and more strongly, comfort later and more gently. Balanced uses the values of the heating surfaces unchanged.",
+  "Sehr sonnig ab Räumen über Ziel": "Very sunny from rooms above target",
+  "Räume ruhig seit": "Rooms quiet for",
+  "1 · Heizflächen und Ausrichtung": "1 · Heating surfaces and orientation",
+  "Eco – früh und kräftig eingreifen": "Eco – intervene early and strongly",
+  "Ausgewogen": "Balanced",
+  "Komfort – spät und sanft eingreifen": "Comfort – intervene late and gently"
 }

@@ -101,6 +101,8 @@ def _eintrag(hass: HomeAssistant, verwaltung: Verwaltung, coordinator: Any, b: d
         eingerichtet=True,
         konfig=laufzeit.konfig,
         werte=asdict(werte),
+        # Die Vorgabe, gegen die „Erweitert“ eigene Werte zeigt: Profil samt Ausrichtung.
+        vorgabe=asdict(profile.vorgabe(laufzeit.konfig["profil"], laufzeit.konfig["ausrichtung"])),
         zustand=laufzeit.zustand.value,
         begruendung=laufzeit.begruendung,
         kennwerte={
@@ -283,6 +285,7 @@ async def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
 EINSTELLUNGEN = {
     vol.Optional("heizflaechen"): vol.In(tuple(profile.HEIZFLAECHEN)),
     vol.Optional("profil"): vol.In(profile.PROFILE),
+    vol.Optional("ausrichtung"): vol.In(profile.AUSRICHTUNGEN),
     vol.Optional("raeume"): _liste(LISTEN_MAX["raeume"]),
     vol.Optional("raum_art"): vol.In(RAUM_ARTEN),
     vol.Optional("raum_ziel"): vol.Any(

@@ -87,8 +87,18 @@ ohnehin tut:
 Eingerichtet wird im Reiter **Automatik** je Heizkreis: Heizflächen, Räume,
 Wetter und optional PV-Prognose, Personen und Fenster. Die Art der Heizflächen
 wählt eines von drei Profilen – Schnell für Heizkörper, Standard für gemischt,
-Träge für Fußboden- und Wandheizung. Unter „Erweitert“ lässt sich jeder Wert
-einzeln ändern.
+Träge für Fußboden- und Wandheizung. Die **Ausrichtung** verschiebt diese Werte:
+
+- **Eco** greift früher und kräftiger ein: Heizgrenze 2 K tiefer, Sonnentag ab
+  15 % weniger Sonnenquote, 0,5 K mehr Absenkung, „sehr sonnig“ schon ab 0,5 K
+  über Ziel, Räume nach einer Stunde ohne Wärmeanforderung ruhig.
+- **Ausgewogen** nimmt die Werte der Heizflächen unverändert.
+- **Komfort** greift später und sanfter ein: Heizgrenze 1 K höher, Sonnentag
+  erst ab 10 % mehr Sonnenquote, 0,5 K weniger Absenkung, kein „sehr sonnig“,
+  Räume erst nach drei Stunden ruhig.
+
+Unter „Erweitert“ lässt sich jeder Wert einzeln ändern; eigene Werte gehen der
+Ausrichtung vor.
 
 Die Automatik beginnt im **Beobachtungsmodus**. Dann schreibt sie nichts an
 die Steuerung, und das Protokoll zeigt, was sie getan hätte. Erst „Schalten“

@@ -24,7 +24,9 @@ export const FELDER = [
   { name: "rueckkehr_k", hilfe: "Fällt der Raum unter Soll minus diesen Wert, beendet die Automatik die Absenkung sofort.", titel: "Rückkehr bei Raum unter Soll minus", einheit: "K", schritt: 0.1 },
   { name: "sonnenquote", hilfe: "Ab diesem Anteil Sonne gilt der Tag als Sonnentag. Die Quote kommt aus der PV-Prognose oder aus der Bewölkung der Wetterprognose.", titel: "Sonnenquote ab", einheit: "%", schritt: 5 },
   { name: "sonnentag", hilfe: "An sonnigen Tagen senkt die Automatik den Sollwert des Heizkreises ab. Mit Thermostaten in den Räumen ist der Sonnentag ab Werk aus: Die Thermostate öffnen bei abgesenktem Sollwert nur weiter.", titel: "Sonnentag absenken", art: "janein" },
-  { name: "stark", hilfe: "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn der Raum schon 1 K über dem Soll liegt, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.", titel: "Sehr sonnig: nur Warmwasser statt Absenkung", art: "janein" },
+  { name: "stark", hilfe: "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn die Räume schon über ihrem Ziel liegen, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.", titel: "Sehr sonnig: nur Warmwasser statt Absenkung", art: "janein" },
+  { name: "stark_k", hilfe: "So weit müssen die Räume über ihrem Ziel liegen, damit ein sehr sonniger Tag auf nur Warmwasser schaltet.", titel: "Sehr sonnig ab Räumen über Ziel", einheit: "K", schritt: 0.1 },
+  { name: "ruhe_h", hilfe: "So lange darf kein Thermostat Wärme angefordert haben, bevor die Automatik auf nur Warmwasser schaltet.", titel: "Räume ruhig seit", einheit: "h", schritt: 0.5 },
   { name: "budget", hilfe: "So viele Eingriffe darf die Automatik am Tag an die Steuerung schreiben. Die Rückkehr ins Programm zählt nicht mit und ist immer erlaubt.", titel: "Eingriffe je Tag höchstens", einheit: "", schritt: 1 },
   { name: "fenster_k_je_h", hilfe: "Fällt der Raum schneller als dieser Wert pro Stunde, gilt ein Fenster als offen. Die Automatik setzt ihre Entscheidungen dann 30 Minuten aus.", titel: "Fenster offen ab Sturz von", einheit: "K/h", schritt: 0.5 },
   {
@@ -61,6 +63,12 @@ export const PROFILE = [
   ["schnell", "Schnell – Heizkörper"],
   ["standard", "Standard – gemischt"],
   ["traege", "Träge – Fußboden- oder Wandheizung"],
+];
+
+export const AUSRICHTUNGEN = [
+  ["eco", "Eco – früh und kräftig eingreifen"],
+  ["ausgewogen", "Ausgewogen"],
+  ["komfort", "Komfort – spät und sanft eingreifen"],
 ];
 
 export const HEIZFLAECHEN = [

@@ -12,6 +12,8 @@ from typing import Any
 
 from .eingaben import hat_thermostat, zahl
 from .profile import (
+    AUSGEWOGEN,
+    AUSRICHTUNGEN,
     GRENZEN,
     HEIZFLAECHEN,
     PROFILE,
@@ -94,6 +96,9 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         profil = profil_fuer(heizflaechen)
     eigene_roh = roh.get("eigene") if isinstance(roh.get("eigene"), Mapping) else {}
     eigene = {name: wert for name, wert in eigene_roh.items() if name in EIGENE_FELDER}
+    ausrichtung = roh.get("ausrichtung")
+    if ausrichtung not in AUSRICHTUNGEN:
+        ausrichtung = AUSGEWOGEN
     return {
         "heizkreis": heizkreis,
         "entry_id": str(roh.get("entry_id") or ""),
@@ -101,6 +106,7 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         "modus": roh.get("modus") if roh.get("modus") in MODI else MODI[0],
         "heizflaechen": heizflaechen,
         "profil": profil,
+        "ausrichtung": ausrichtung,
         "raeume": raeume,
         "raum_art": roh.get("raum_art") if roh.get("raum_art") in RAUM_ARTEN else RAUM_ARTEN[0],
         "raum_ziel": _raum_ziel(roh.get("raum_ziel")),
@@ -112,7 +118,7 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         "fenster": _liste(roh.get("fenster"), LISTEN_MAX["fenster"]),
         "fenster_erkennung": bool(roh.get("fenster_erkennung", False)),
         "vorrang": _liste(roh.get("vorrang"), LISTEN_MAX["vorrang"]),
-        "eigene": abweichungen(profil, eigene),
+        "eigene": abweichungen(profil, eigene, ausrichtung),
     }
 
 
@@ -121,5 +127,7 @@ def klima_vorgabe(konfig: dict[str, Any], alte_raeume: Sequence[str]) -> dict[st
     neu = not hat_thermostat(alte_raeume) and hat_thermostat(konfig["raeume"])
     if not neu or "sonnentag" in konfig["eigene"]:
         return konfig
-    eigene = abweichungen(konfig["profil"], {**konfig["eigene"], "sonnentag": False})
+    eigene = abweichungen(
+        konfig["profil"], {**konfig["eigene"], "sonnentag": False}, konfig["ausrichtung"]
+    )
     return {**konfig, "eigene": eigene}

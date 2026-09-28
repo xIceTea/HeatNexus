@@ -19,6 +19,11 @@ PROFILE = (SCHNELL, STANDARD, TRAEGE)
 
 HEIZFLAECHEN = {"heizkoerper": SCHNELL, "gemischt": STANDARD, "flaeche": TRAEGE}
 
+ECO = "eco"
+AUSGEWOGEN = "ausgewogen"
+KOMFORT = "komfort"
+AUSRICHTUNGEN = (ECO, AUSGEWOGEN, KOMFORT)
+
 
 @dataclass(frozen=True)
 class Werte:
@@ -35,6 +40,8 @@ class Werte:
     sonnenquote: float = 60.0
     sonnentag: bool = True
     stark: bool = False
+    stark_k: float = 1.0
+    ruhe_h: float = 2.0
     budget: int = 4
     fenster_k_je_h: float = 3.0
     lernfenster: int = 14
@@ -73,6 +80,19 @@ GRENZEN: dict[str, tuple[float, float]] = {
     "sonnenquote": (20.0, 100.0),
     "budget": (1.0, 12.0),
     "fenster_k_je_h": (1.0, 10.0),
+    "stark_k": (0.3, 3.0),
+    "ruhe_h": (0.5, 6.0),
+}
+
+# Die Ausrichtung verschiebt die Vorgabe der Heizflächen: Eco greift früher und
+# kräftiger ein, Komfort später und sanfter. Eigene Werte gehen beidem vor.
+AUSRICHTUNG_VERSATZ: dict[str, dict[str, float]] = {
+    ECO: {"heizgrenze": -2.0, "sonnenquote": -15.0, "absenkung_k": 0.5, "rueckkehr_k": 0.4},
+    KOMFORT: {"heizgrenze": 1.0, "sonnenquote": 10.0, "absenkung_k": -0.5, "rueckkehr_k": -0.3},
+}
+AUSRICHTUNG_FEST: dict[str, dict[str, Any]] = {
+    ECO: {"stark": True, "stark_k": 0.5, "ruhe_h": 1.0},
+    KOMFORT: {"stark": False, "ruhe_h": 3.0},
 }
 UHRZEITEN = ("entscheidung", "nachpruefung")
 SCHALTER = ("sonnentag", "stark", "anpassen")
@@ -109,7 +129,19 @@ def _zahl(name: str, wert: Any) -> float | int | None:
     return round(zahl) if name == "budget" else zahl
 
 
-def werte(profil: str, eigene: Mapping[str, Any] | None = None) -> Werte:
+def vorgabe(profil: str, ausrichtung: str = AUSGEWOGEN) -> Werte:
+    """Die Werte des Profils, verschoben um die Ausrichtung und auf die Grenzen gezogen."""
+    basis = VORGABEN.get(profil, VORGABEN[STANDARD])
+    aenderungen: dict[str, Any] = {
+        name: _zahl(name, getattr(basis, name) + versatz)
+        for name, versatz in AUSRICHTUNG_VERSATZ.get(ausrichtung, {}).items()
+    }
+    return replace(basis, **aenderungen, **AUSRICHTUNG_FEST.get(ausrichtung, {}))
+
+
+def werte(
+    profil: str, eigene: Mapping[str, Any] | None = None, ausrichtung: str = AUSGEWOGEN
+) -> Werte:
     """Die Vorgabe des Profils, überschrieben mit den gültigen eigenen Werten."""
     aenderungen: dict[str, Any] = {}
     for name, wert in (eigene or {}).items():
@@ -127,13 +159,15 @@ def werte(profil: str, eigene: Mapping[str, Any] | None = None) -> Werte:
             with suppress(TypeError, ValueError):
                 if int(wert) in LERNFENSTER:
                     aenderungen[name] = int(wert)
-    return replace(VORGABEN.get(profil, VORGABEN[STANDARD]), **aenderungen)
+    return replace(vorgabe(profil, ausrichtung), **aenderungen)
 
 
-def abweichungen(profil: str, eigene: Mapping[str, Any] | None) -> dict[str, Any]:
+def abweichungen(
+    profil: str, eigene: Mapping[str, Any] | None, ausrichtung: str = AUSGEWOGEN
+) -> dict[str, Any]:
     """Nur die Felder, die von der Vorgabe des Profils abweichen."""
-    basis = VORGABEN.get(profil, VORGABEN[STANDARD])
-    aktuell = werte(profil, eigene)
+    basis = vorgabe(profil, ausrichtung)
+    aktuell = werte(profil, eigene, ausrichtung)
     return {
         feld.name: getattr(aktuell, feld.name)
         for feld in fields(Werte)
