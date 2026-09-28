@@ -67,6 +67,8 @@ class AbleitungenMixin:
                 if eigener
                 else f"{quelle['name']} {woerterbuch(zusatz)}".strip()
             )
+        elif not eigener and (name_de := quelle.get("name_de")):
+            felder["name_de"] = f"{name_de} {zusatz}".strip()
         return self._deskriptor(
             id=f"{quelle['id']}-{endung}",
             alt_id=f"{quelle.get('alt_id') or quelle['id']}-{endung}",
