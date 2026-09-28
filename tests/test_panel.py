@@ -11,6 +11,8 @@ Zeile aus. Genau das prüft `test_zeilen_entstehen_auch_ohne_werte`.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from .conftest import auf_englisch, requires_ha, zurueck_auf_deutsch
@@ -1356,3 +1358,33 @@ def test_englische_namen_ergeben_dieselbe_oberflaeche(panel, kessel_und_heizkrei
     assert ergebnis == deutsch
     assert deutsch["zeitprogramme"] and deutsch["stoerungen"] and deutsch["steuerung"]["kessel"]
     assert any(z.get("frage") for z in deutsch["schnellzugriff"])
+
+
+def test_warmwasser_laden_erkennt_englische_betriebswahl():
+    """Standby, WW-Betrieb und laufende Ladung folgen dem Wert, nicht dem deutschen Wort."""
+    wahl = entitaet(
+        "select.operating_selection",
+        "Operating selection",
+        name_de="Betriebswahl",
+        optionen={0: "Stand-by", 1: "Program 1", 6: "DHW operation"},
+    )
+    art = entitaet(
+        "sensor.operating_mode",
+        "Operating mode",
+        name_de="Betriebsart",
+        optionen={3: "DHW charging", 17: "Hot water hygiene programme", 18: "DHW single charge"},
+    )
+
+    from custom_components.heatnexus.panel.daten import _warmwasser_bedienung
+
+    bedienung = _warmwasser_bedienung([art, wahl], [wahl])
+
+    assert re.search(bedienung["betriebswahl_aus"], "Stand-by", re.IGNORECASE)
+    assert not re.search(bedienung["betriebswahl_aus"], "Program 1", re.IGNORECASE)
+    assert re.search(bedienung["betriebswahl_ww"], "DHW operation", re.IGNORECASE)
+    assert {"DHW charging", "DHW single charge", "Hot water hygiene programme"} <= set(
+        bedienung["zustand_wenn"]
+    )
+    # Ohne bekannte Texte bleiben die deutschen Muster.
+    assert re.search(bedienung["betriebswahl_aus"], "Standby", re.IGNORECASE)
+    assert "WW-Ladung" in bedienung["zustand_wenn"]

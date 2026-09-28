@@ -40,7 +40,9 @@ from .muster import (
     BETRIEBSART_URLAUB,
     BETRIEBSWAHL,
     BETRIEBSWAHL_STANDBY,
+    BETRIEBSWAHL_STANDBY_WERT,
     BETRIEBSWAHL_WW,
+    BETRIEBSWAHL_WW_WERT,
     BETRIEBSWAHL_ZURUECK,
     EINMALLADUNG,
     EINMALLADUNG_TEMPERATUR,
@@ -70,6 +72,7 @@ from .muster import (
     WARMWASSER_KREIS,
     WARMWASSER_LADEPUMPE,
     WARMWASSER_LAEDT,
+    WARMWASSER_LAEDT_WERTE,
     WARMWASSER_MAX,
     WARMWASSER_SCHLUESSEL,
     WARMWASSER_SOLL,
@@ -178,6 +181,19 @@ def _ladeschwelle(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _optionstexte(eintrag: dict[str, Any] | None, *werte: int) -> list[str]:
+    """Die Texte, die eine Entität für diese Werte anzeigt, soweit bekannt."""
+    optionen = (eintrag or {}).get("optionen") or {}
+    texte = (optionen.get(w) or optionen.get(str(w)) for w in werte)
+    return [t for t in texte if t]
+
+
+def _wahlmuster(eintrag: dict[str, Any] | None, wert: int, muster: str) -> str:
+    """Muster für einen Eintrag der Betriebswahl: sein Text, das deutsche Wort als Rückfall."""
+    texte = [f"^{re.escape(t)}$" for t in _optionstexte(eintrag, wert)]
+    return "|".join([*texte, muster])
+
+
 def _warmwasser_bedienung(
     alle: list[dict[str, Any]], kreis: list[dict[str, Any]]
 ) -> dict[str, Any]:
@@ -196,9 +212,12 @@ def _warmwasser_bedienung(
     * ``2/9``  „Betriebsart" – was gerade läuft. Dort steht „Warmwasser
       Einmalladung", und dort steht auch „Urlaubsprogramm".
     """
+    art = _eintrag(alle, BETRIEBSART, ("sensor",), "operating_mode")
+    wahl = _eintrag(kreis, BETRIEBSWAHL, ("select",), "mode_selection")
+    laedt = _optionstexte(art, *WARMWASSER_LAEDT_WERTE)
     return {
-        "zustand_an": _kennung(alle, BETRIEBSART, ("sensor",), "operating_mode"),
-        "zustand_wenn": list(WARMWASSER_LAEDT),
+        "zustand_an": art["entity_id"] if art else None,
+        "zustand_wenn": [*laedt, *(t for t in WARMWASSER_LAEDT if t not in laedt)],
         # Zweiter Beleg für „lädt gerade": die Ladepumpe. Die Betriebsart
         # allein genügt nicht – sie meldet je nach Baureihe andere Worte, und
         # an einem Kreis mit nur einem zulässigen Wert (`allowed: [0]`) meldet
@@ -210,9 +229,9 @@ def _warmwasser_bedienung(
         # abgeschaltet und nimmt den Auftrag nicht an, im Urlaubsprogramm
         # ebenso wenig. Nur dann wird auf WW-Betrieb umgeschaltet – und
         # hinterher genau auf den Wert zurück, der vorher stand.
-        "betriebswahl": _kennung(kreis, BETRIEBSWAHL, ("select",), "mode_selection"),
-        "betriebswahl_aus": BETRIEBSWAHL_STANDBY,
-        "betriebswahl_ww": BETRIEBSWAHL_WW,
+        "betriebswahl": wahl["entity_id"] if wahl else None,
+        "betriebswahl_aus": _wahlmuster(wahl, BETRIEBSWAHL_STANDBY_WERT, BETRIEBSWAHL_STANDBY),
+        "betriebswahl_ww": _wahlmuster(wahl, BETRIEBSWAHL_WW_WERT, BETRIEBSWAHL_WW),
         "betriebswahl_zurueck": BETRIEBSWAHL_ZURUECK,
         # „Urlaubsprogramm" ist kein Eintrag der Betriebswahl (3/50 kennt ihn
         # nicht), sondern ein Zustand der Betriebsart. Erkennbar ist er nur

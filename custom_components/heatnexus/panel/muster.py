@@ -295,6 +295,7 @@ WARMWASSER_HYSTERESE_MUSTER = namensmuster(WARMWASSER_HYSTERESE)
 
 # Betriebsarten (2/9), die eine laufende Warmwasserladung bedeuten.
 WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-Programm")
+WARMWASSER_LAEDT_WERTE = (3, 17, 18)
 
 # Betriebswahl-Einträge (3/50), die bei der Warmwasserladung eine Rolle
 # spielen. Es sind Muster, keine festen Namen: Welche Einträge eine Anlage
@@ -302,6 +303,9 @@ WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-
 BETRIEBSWAHL_STANDBY = r"^standby$"
 BETRIEBSWAHL_WW = r"^ww[- ]betrieb$|^warmwasserbetrieb$"
 BETRIEBSWAHL_ZURUECK = r"^programm"
+# Dieselben Einträge als Wert: Ihr Text hängt an der Sprache der Anlage.
+BETRIEBSWAHL_STANDBY_WERT = 0
+BETRIEBSWAHL_WW_WERT = 6
 # Das Urlaubsprogramm steht **nicht** in der Betriebswahl: `3/50` kennt
 # Standby, Programm 1–3, Heiz-, Absenk-, WW-, Handbetrieb und Kühlen – mehr
 # nicht. Der Urlaub entsteht aus dem Datum (`3/78`) und meldet sich nur in der
