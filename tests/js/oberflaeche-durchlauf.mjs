@@ -764,7 +764,12 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       .querySelectorAll(".zone").length,
     raumWert: String(((wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("raum")) || { querySelector: () => null })
       .querySelector(".punkt-wert") || {}).textContent || ""),
-    grenzenEingaben: (wurzel.querySelector(".automatik-grenzen") || { querySelectorAll: () => [] }).querySelectorAll("input").length,
+    grenzenEingaben: wurzel
+      .querySelectorAll(".automatik-feld")
+      .filter((f) => f.classList.contains("grenze"))
+      .reduce((anzahl, f) => anzahl + f.querySelectorAll("input").length, 0),
+    gruppen: wurzel.querySelectorAll(".automatik-einstellungsgruppe").map((g) => String((g.querySelector("h4") || {}).textContent || "")),
+    speichernGrau: (wurzel.querySelectorAll(".automatik-knopf").find((k) => k.classList.contains("speichern")) || {}).disabled,
     ausrichtung: wurzel
       .querySelectorAll(".automatik-segment")
       .filter((segment) => segment.classList.contains("ausrichtung"))
@@ -775,6 +780,20 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       .querySelector(".kartenkopf")
       .children.map((k) => (k.tagName === "H2" ? "h2" : String(k.className).split(" ")[0])),
   };
+
+  // Speichern wird erst mit einer Abweichung vom gespeicherten Wert aktiv, und zurück wieder grau.
+  {
+    const speichern = wurzel.querySelectorAll(".automatik-knopf").find((k) => k.classList.contains("speichern"));
+    const feld = wurzel.querySelectorAll(".automatik-feld").find((f) => f.classList.contains("grenze"));
+    const eingabe = feld.querySelector("input");
+    const vorher = eingabe.value;
+    eingabe.value = "19";
+    eingabe.ausloesen("input");
+    const nachAenderung = speichern.disabled;
+    eingabe.value = vorher;
+    eingabe.ausloesen("input");
+    bilanz.automatik.speichernFolge = [nachAenderung, speichern.disabled];
+  }
 
   // Ein offener Dialog übersteht das Nachladen im Takt.
   const schleier = document.createElement("div");
@@ -864,9 +883,13 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   flaeche._zeichnen();
   clearInterval(flaeche._automatikUhr);
   flaeche._automatikUhr = null;
-  bilanz.automatik.raumliste = [...wurzel.querySelectorAll(".raeume")].map((l) => String(l.textContent || ""));
+  bilanz.automatik.raumliste = wurzel
+    .querySelectorAll(".raeume")
+    .flatMap((l) => l.children.map((z) => z.children.map((t) => String(t.textContent || ""))));
   const raumKachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("raum"));
-  bilanz.automatik.raumKachel = raumKachel.querySelectorAll(".zahl").map((teil) => String(teil.textContent || ""));
+  bilanz.automatik.raumKachel = [...raumKachel.querySelectorAll(".zahl"), ...raumKachel.querySelectorAll(".neben")].map((teil) =>
+    String(teil.textContent || "")
+  );
   bilanz.automatik.vorrangZeile = [...wurzel.querySelectorAll(".vorrang-zeile")].map((l) => String(l.textContent || ""));
   bilanz.automatik.modusStunden = wurzel.querySelectorAll(".automatik-stunde").filter((z) => z.classList.contains("m-programm")).length;
   bilanz.automatik.stundenLegende = wurzel.querySelectorAll(".automatik-stundenlegende").length;

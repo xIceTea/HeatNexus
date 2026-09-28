@@ -13,9 +13,11 @@
 // Wie auf dem Server: So lange darf ein Raumfühler denselben Wert zeigen, dann gilt er als veraltet.
 export const VERALTET_STUNDEN = 12;
 export const AUTOMATIK_TAKT_MS = 60 * 1000;
+// So viele Protokolleinträge stehen, bis „Alle anzeigen“ den Rest aufklappt.
+const PROTOKOLL_KURZ = 8;
 
 export const FELDER = [
-  { name: "grenze_versatz", hilfe: "Die Automatik richtet sich nach der Heizgrenze der Steuerung (TA Heizbetrieb) und verschiebt sie um diesen Wert. Negativ schaltet früher auf nur Warmwasser. Die Ausrichtung setzt ihn; hier lässt er sich fein einstellen.", titel: "Abstand zur Heizgrenze der Steuerung", einheit: "K", schritt: 0.5 },
+  { name: "grenze_versatz", hilfe: "Die Automatik richtet sich nach der Heizgrenze der Steuerung (TA Heizbetrieb) und verschiebt sie um diesen Wert. Negativ schaltet früher auf nur Warmwasser. Die Ausrichtung setzt ihn; hier lässt er sich fein einstellen.", titel: "Abstand zur Heizgrenze", einheit: "K", schritt: 0.5 },
   { name: "hysterese", hilfe: "Abstand über und unter der Heizgrenze. Er verhindert, dass der Heizkreis bei Werten nahe der Grenze hin- und herschaltet.", titel: "Hysterese Saison", einheit: "K", schritt: 0.1 },
   { name: "tau_h", hilfe: "Wie träge die gedämpfte Außentemperatur dem Fühler folgt. Ein größerer Wert lässt kurze Wärme am Nachmittag weniger zählen. Richtwerte: Heizkörper 5 h, gemischt 15 h, Fußbodenheizung 25 h.", titel: "Zeitkonstante gedämpfte AT", einheit: "h", schritt: 1 },
   { name: "mindestdauer_h", hilfe: "So lange bleibt der Heizkreis mindestens im Programm oder auf nur Warmwasser, bevor die Automatik wieder umschaltet. Ein zu kalter Raum geht immer vor.", titel: "Mindestdauer Saisonwechsel", einheit: "h", schritt: 1 },
@@ -25,7 +27,7 @@ export const FELDER = [
   { name: "rueckkehr_k", hilfe: "Fällt der Raum unter Soll minus diesen Wert, beendet die Automatik die Absenkung sofort.", titel: "Rückkehr bei Raum unter Soll minus", einheit: "K", schritt: 0.1 },
   { name: "sonnenquote", hilfe: "Ab diesem Anteil Sonne gilt der Tag als Sonnentag. Die Quote kommt aus der PV-Prognose oder aus der Bewölkung der Wetterprognose.", titel: "Sonnenquote ab", einheit: "%", schritt: 5 },
   { name: "sonnentag", hilfe: "An sonnigen Tagen senkt die Automatik den Sollwert des Heizkreises ab. Mit Thermostaten in den Räumen ist der Sonnentag ab Werk aus: Die Thermostate öffnen bei abgesenktem Sollwert nur weiter.", titel: "Sonnentag absenken", art: "janein" },
-  { name: "stark", hilfe: "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn die Räume schon über ihrem Ziel liegen, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.", titel: "Sehr sonnig: nur Warmwasser statt Absenkung", art: "janein" },
+  { name: "stark", hilfe: "An sehr sonnigen Tagen ab 80 % Sonnenquote, wenn die Räume schon über ihrem Ziel liegen, schaltet die Automatik den Heizkreis bis Sonnenuntergang auf nur Warmwasser, statt nur den Sollwert abzusenken.", titel: "Sehr sonnig: nur Warmwasser", art: "janein" },
   { name: "stark_k", hilfe: "So weit müssen die Räume über ihrem Ziel liegen, damit ein sehr sonniger Tag auf nur Warmwasser schaltet.", titel: "Sehr sonnig ab Räumen über Ziel", einheit: "K", schritt: 0.1 },
   { name: "ruhe_h", hilfe: "So lange darf kein Thermostat Wärme angefordert haben, bevor die Automatik auf nur Warmwasser schaltet.", titel: "Räume ruhig seit", einheit: "h", schritt: 0.5 },
   { name: "budget", hilfe: "So viele Eingriffe darf die Automatik am Tag an die Steuerung schreiben. Die Rückkehr ins Programm zählt nicht mit und ist immer erlaubt.", titel: "Eingriffe je Tag höchstens", einheit: "", schritt: 1 },
@@ -33,10 +35,10 @@ export const FELDER = [
   {
     name: "anpassen",
     hilfe: "Die Automatik vergleicht jeden Tag Prognose und Messung und verschiebt die Prognose um die gelernte Abweichung. Ist der Schalter aus, gelten die rohen Prognosen für Anzeige und Entscheidung; gelernt wird trotzdem weiter.",
-    titel: "Prognose an den Standort anpassen",
+    titel: "Prognose an Standort anpassen",
     art: "janein",
   },
-  { name: "lernfenster", hilfe: "Über so viele Tage vergleicht die Automatik Prognose und Messung und passt die Prognose daran an. Ein kurzes Fenster reagiert schneller, ein langes schwankt weniger.", titel: "Prognose anpassen über", art: "wahl", optionen: [3, 7, 14], einheit: "Tage" },
+  { name: "lernfenster", hilfe: "Über so viele Tage vergleicht die Automatik Prognose und Messung und passt die Prognose daran an. Ein kurzes Fenster reagiert schneller, ein langes schwankt weniger.", titel: "Prognose lernen über", art: "wahl", optionen: [3, 7, 14], einheit: "Tage" },
 ];
 
 export const ZUSTAENDE = {
@@ -131,7 +133,7 @@ export const AutomatikMixin = (Basis) =>
           return [{ id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikEinladung(kreis, daten) }];
         }
         return [
-          { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikKarte(kreis, daten), breite: 2 },
+          { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikBereich(kreis, daten), breite: 2 },
           { id: `automatik-protokoll:${kreis.heizkreis}`, titel: "Protokoll", knoten: this._automatikProtokoll(kreis) },
         ];
       });
@@ -211,6 +213,20 @@ export const AutomatikMixin = (Basis) =>
     }
 
     // --- Karte ---------------------------------------------------------
+    /** Kopfkarte, drei Kennwerte, Tagesverlauf und Einstellungen untereinander. */
+    _automatikBereich(kreis, daten) {
+      const bereich = document.createElement("div");
+      bereich.className = "automatik-bereich";
+      const darf = !!daten.darf_aendern;
+      bereich.append(
+        this._automatikKarte(kreis, daten),
+        this._automatikKennwerte(kreis),
+        this._automatikTag(kreis),
+        this._automatikErweitert(kreis, daten, darf)
+      );
+      return bereich;
+    }
+
     _automatikKarte(kreis, daten) {
       const karte = this._karte(kreis.name, this._hilfe && this._hilfe.Automatik);
       karte.classList.add("automatik");
@@ -218,45 +234,56 @@ export const AutomatikMixin = (Basis) =>
       const kopf = karte.querySelector(".kartenkopf");
       const marke = document.createElement("span");
       marke.className = `automatik-marke z-${kreis.zustand}`;
-      marke.textContent = ZUSTAENDE[kreis.zustand] || kreis.zustand;
+      marke.textContent = this._t(ZUSTAENDE[kreis.zustand] || kreis.zustand);
       if (kreis.konfig.modus === "beobachten" && kreis.konfig.aktiv) {
         marke.textContent += ` · ${this._t("beobachtet")}`;
       }
-      // Zustand neben dem Namen, die Einrichtung rechts oben: Die Zeile darunter bleibt für die Bedienung.
-      const punkt = document.createElement("span");
-      punkt.className = "automatik-punkt";
-      punkt.textContent = "·";
       const bearbeiten = document.createElement("button");
       bearbeiten.type = "button";
       bearbeiten.className = "automatik-knopf leise klein";
-      bearbeiten.textContent = "Einrichtung bearbeiten";
+      bearbeiten.textContent = this._t("Einrichtung bearbeiten");
       bearbeiten.disabled = !darf;
       bearbeiten.addEventListener("click", () => this._automatikDialog(kreis));
       if (kopf) {
         const titel = kopf.querySelector("h2");
         kopf.insertBefore(bearbeiten, kopf.querySelector(".fragezeichen"));
         kopf.insertBefore(marke, titel ? titel.nextSibling : kopf.firstChild);
-        kopf.insertBefore(punkt, marke);
         kopf.parentElement.insertBefore(this._automatikMeta(kreis), kopf.nextSibling);
       }
-
-      karte.appendChild(this._automatikSteuerzeile(kreis, darf));
-      const hinweis = this._automatikHinweis(kreis, darf);
-      if (hinweis) karte.appendChild(hinweis);
 
       const warum = document.createElement("div");
       warum.className = "automatik-warum";
       warum.textContent = kreis.begruendung || "";
       karte.appendChild(warum);
-      karte.appendChild(this._automatikKennwerte(kreis));
-      karte.appendChild(this._automatikGrenzen(kreis, darf));
-
-      const ueberschrift = document.createElement("h3");
-      ueberschrift.textContent = "Heute";
-      karte.appendChild(ueberschrift);
-      karte.appendChild(this._automatikTag(kreis));
-      karte.appendChild(this._automatikErweitert(kreis, daten, darf));
+      karte.appendChild(this._automatikSteuerzeile(kreis, darf));
+      const hinweis = this._automatikHinweis(kreis, darf);
+      if (hinweis) karte.appendChild(hinweis);
       return karte;
+    }
+
+    /** Ein Segment aus Tasten; die gewählte ist hervorgehoben. */
+    _automatikSegment(titel, klasse, eintraege, gewaehlt, darf, waehlen) {
+      const gruppe = document.createElement("div");
+      gruppe.className = "automatik-gruppe";
+      const beschriftung = document.createElement("span");
+      beschriftung.className = "automatik-gruppentitel";
+      beschriftung.textContent = this._t(titel);
+      const segment = document.createElement("div");
+      segment.className = `automatik-segment${klasse ? ` ${klasse}` : ""}`;
+      eintraege.forEach(([wert, text, tipp]) => {
+        const taste = document.createElement("button");
+        taste.type = "button";
+        taste.textContent = this._t(text);
+        if (tipp) taste.title = this._t(tipp);
+        taste.disabled = !darf;
+        taste.setAttribute("aria-pressed", String(gewaehlt === wert));
+        taste.addEventListener("click", () => {
+          if (gewaehlt !== wert) waehlen(wert);
+        });
+        segment.appendChild(taste);
+      });
+      gruppe.append(beschriftung, segment);
+      return gruppe;
     }
 
     _automatikSteuerzeile(kreis, darf) {
@@ -270,52 +297,39 @@ export const AutomatikMixin = (Basis) =>
       schalter.disabled = !darf;
       const knopf = document.createElement("i");
       const text = document.createElement("span");
-      text.textContent = "Automatik";
+      text.textContent = this._t("Automatik aktiv");
       schalter.append(knopf, text);
       schalter.addEventListener("click", () => this._automatikEinstellen(kreis, { aktiv: !kreis.konfig.aktiv }));
 
-      const segment = document.createElement("div");
-      segment.className = "automatik-segment";
-      [
-        ["beobachten", "Beobachten"],
-        ["schalten", "Schalten"],
-      ].forEach(([modus, titel]) => {
-        const taste = document.createElement("button");
-        taste.type = "button";
-        taste.textContent = titel;
-        taste.disabled = !darf;
-        taste.setAttribute("aria-pressed", String(kreis.konfig.modus === modus));
-        taste.addEventListener("click", () => {
-          if (kreis.konfig.modus !== modus) this._automatikEinstellen(kreis, { modus });
-        });
-        segment.appendChild(taste);
-      });
-
+      const modus = this._automatikSegment(
+        "Modus",
+        "",
+        [
+          ["beobachten", "Beobachten"],
+          ["schalten", "Schalten"],
+        ],
+        kreis.konfig.modus,
+        darf,
+        (wert) => this._automatikEinstellen(kreis, { modus: wert })
+      );
       // Die Ausrichtung ist die Einstellung, die man im Alltag wechselt; sie steht deshalb hier.
-      const ausrichtung = document.createElement("div");
-      ausrichtung.className = "automatik-segment ausrichtung";
-      const gewaehlt = kreis.konfig.ausrichtung || "ausgewogen";
-      [
-        ["eco", "Eco"],
-        ["ausgewogen", "Ausgewogen"],
-        ["komfort", "Komfort"],
-      ].forEach(([wert, titel]) => {
-        const taste = document.createElement("button");
-        taste.type = "button";
-        taste.textContent = titel;
-        taste.title = this._t((AUSRICHTUNGEN.find(([name]) => name === wert) || [])[1] || titel);
-        taste.disabled = !darf;
-        taste.setAttribute("aria-pressed", String(gewaehlt === wert));
-        taste.addEventListener("click", () => {
-          if (gewaehlt !== wert) this._automatikEinstellen(kreis, { ausrichtung: wert });
-        });
-        ausrichtung.appendChild(taste);
-      });
-      zeile.append(schalter, segment, ausrichtung);
+      const stil = this._automatikSegment(
+        "Stil",
+        "ausrichtung",
+        [
+          ["eco", "Eco", AUSRICHTUNGEN[0][1]],
+          ["ausgewogen", "Ausgewogen", AUSRICHTUNGEN[1][1]],
+          ["komfort", "Komfort", AUSRICHTUNGEN[2][1]],
+        ],
+        kreis.konfig.ausrichtung || "ausgewogen",
+        darf,
+        (wert) => this._automatikEinstellen(kreis, { ausrichtung: wert })
+      );
+      zeile.append(schalter, modus, stil);
       return zeile;
     }
 
-    /** Unter dem Titel: Heizfläche, Eingriffe als Punkte, nächste Prüfung, Modus seit. */
+    /** Unter dem Titel: Heizfläche, Eingriffe, nächste Prüfung, Modus seit. */
     _automatikMeta(kreis) {
       const k = kreis.kennwerte || {};
       const meta = document.createElement("div");
@@ -329,19 +343,9 @@ export const AutomatikMixin = (Basis) =>
       const flaeche = HEIZFLAECHEN.find(([name]) => name === kreis.konfig.heizflaechen);
       const profil = PROFILE.find(([name]) => name === kreis.konfig.profil);
       teil(this._t(flaeche ? flaeche[1] : profil ? profil[1] : kreis.konfig.profil || ""));
-      const eingriffe = teil("");
-      const budget = document.createElement("span");
-      budget.className = "automatik-budget klein";
-      for (let i = 0; i < (k.budget || 0); i += 1) {
-        const strich = document.createElement("i");
-        if (i < (k.eingriffe || 0)) strich.className = "voll";
-        budget.appendChild(strich);
-      }
-      const zaehler = document.createElement("span");
-      zaehler.textContent = this._tMit(" {zahl} von {budget} Eingriffen heute", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" });
-      eingriffe.append(budget, zaehler);
+      teil(this._tMit("{zahl} von {budget} Eingriffen heute", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" }));
       const uhr = (iso) => new Date(iso).toTimeString().slice(0, 5);
-      if (k.naechste_pruefung) teil(this._tMit("nächste Prüfung {zeit}", { zeit: uhr(k.naechste_pruefung) }));
+      if (k.naechste_pruefung) teil(this._tMit("Nächste Prüfung {zeit}", { zeit: uhr(k.naechste_pruefung) }));
       if (k.modus_seit && kreis.zustand !== "programm" && ZUSTAENDE[kreis.zustand]) {
         teil(this._tMit("{modus} seit {zeit}", { modus: this._t(ZUSTAENDE[kreis.zustand]), zeit: uhr(k.modus_seit) }));
       }
@@ -381,39 +385,61 @@ export const AutomatikMixin = (Basis) =>
     }
 
     // --- Protokoll -----------------------------------------------------
+    /** Einträge nach Tagen: Heute, Gestern, dann das Datum; lange Listen zeigen erst die jüngsten. */
     _automatikProtokoll(kreis) {
       const karte = this._karte("Protokoll");
-      const k = kreis.kennwerte || {};
-      const budget = document.createElement("div");
-      budget.className = "automatik-budget";
-      for (let i = 0; i < (k.budget || 0); i += 1) {
-        const strich = document.createElement("i");
-        if (i < (k.eingriffe || 0)) strich.className = "voll";
-        budget.appendChild(strich);
-      }
-      karte.appendChild(budget);
-      const liste = document.createElement("ul");
-      liste.className = "automatik-protokoll";
+      karte.classList.add("automatik-protokollkarte");
       const eintraege = kreis.protokoll || [];
+      this._automatikProtokollAlle = this._automatikProtokollAlle || new Set();
+      const alle = this._automatikProtokollAlle.has(kreis.heizkreis);
+      const kopf = karte.querySelector(".kartenkopf");
+      if (kopf && eintraege.length > PROTOKOLL_KURZ) {
+        const umschalten = document.createElement("button");
+        umschalten.type = "button";
+        umschalten.className = "automatik-verweis";
+        umschalten.textContent = this._t(alle ? "Weniger anzeigen" : "Alle anzeigen");
+        umschalten.addEventListener("click", () => {
+          if (alle) this._automatikProtokollAlle.delete(kreis.heizkreis);
+          else this._automatikProtokollAlle.add(kreis.heizkreis);
+          this._gebaut = false;
+          this._zeichnen();
+        });
+        kopf.appendChild(umschalten);
+      }
       if (!eintraege.length) karte.appendChild(this._hinweisKnoten("Noch keine Entscheidung."));
-      eintraege.forEach((eintrag) => {
+      const heute = new Date();
+      const gestern = new Date(heute.getTime() - 86400000);
+      let liste = null;
+      let letzterTag = null;
+      (alle ? eintraege : eintraege.slice(0, PROTOKOLL_KURZ)).forEach((eintrag) => {
+        const datum = new Date(eintrag.zeit);
+        const tag = datum.toDateString();
+        if (tag !== letzterTag) {
+          letzterTag = tag;
+          const ueberschrift = document.createElement("h4");
+          ueberschrift.className = "automatik-protokolltag";
+          if (tag === heute.toDateString()) ueberschrift.textContent = this._t("Heute");
+          else if (tag === gestern.toDateString()) ueberschrift.textContent = this._t("Gestern");
+          else ueberschrift.textContent = `${datum.getDate()}.${datum.getMonth() + 1}.`;
+          liste = document.createElement("ul");
+          liste.className = "automatik-protokoll";
+          karte.append(ueberschrift, liste);
+        }
         const zeile = document.createElement("li");
         const zeit = document.createElement("span");
         zeit.className = "zeit";
-        const datum = new Date(eintrag.zeit);
-        const heute = new Date().toDateString() === datum.toDateString();
-        zeit.textContent = heute
-          ? datum.toTimeString().slice(0, 5)
-          : `${datum.getDate()}.${datum.getMonth() + 1}. ${datum.toTimeString().slice(0, 5)}`;
-        const text = document.createElement("span");
+        zeit.textContent = datum.toTimeString().slice(0, 5);
+        const inhalt = document.createElement("div");
+        inhalt.className = "inhalt";
+        const text = document.createElement("div");
         text.textContent = eintrag.text;
         const art = document.createElement("span");
         art.className = `art ${eintrag.art}`;
-        art.textContent = PROTOKOLL_ARTEN[eintrag.art] || eintrag.art;
-        zeile.append(zeit, text, art);
+        art.textContent = this._t(PROTOKOLL_ARTEN[eintrag.art] || eintrag.art);
+        inhalt.append(text, art);
+        zeile.append(zeit, inhalt);
         liste.appendChild(zeile);
       });
-      karte.appendChild(liste);
       return karte;
     }
   };
