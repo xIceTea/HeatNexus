@@ -776,6 +776,8 @@ def _anlage_daten(
 
         # Warmwasser und Zirkulation hängen als Datenpunkte am Heizkreis,
         # gehören in der Übersicht aber eigene Zeilen – man liest sie täglich.
+        # Ist der Wert schon Leitwert eines eigenen Speichers, bleibt es bei einer Zeile.
+        gelistet = {k["entity"] for k in kennwerte}
         for muster, beschriftung, symbol, schluessel in (
             (WARMWASSER_IST_KENNWERT, "Warmwasser", "mdi:water-boiler", ("dhw_temperature",)),
             (
@@ -785,7 +787,8 @@ def _anlage_daten(
                 ("dhw_circulation_temperature",),
             ),
         ):
-            if (treffer := _erster(teil["entitaeten"], muster, *schluessel)) is not None:
+            treffer = _erster(teil["entitaeten"], muster, *schluessel)
+            if treffer is not None and treffer["entity_id"] not in gelistet:
                 kennwerte.append(
                     {
                         "entity": treffer["entity_id"],

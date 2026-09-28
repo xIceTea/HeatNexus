@@ -824,6 +824,52 @@ def test_je_anlagenteil_ein_leitwert(panel, kessel_und_heizkreis):
     assert daten["kennwerte"][0]["entity"] == "sensor.kesseltemperatur_ist"
 
 
+def test_ein_eigener_warmwasserspeicher_erscheint_einmal(panel):
+    """Ein Warmwasserspeicher als eigenes Anlagenteil hat eine Zeile, nicht zwei.
+
+    Sein Leitwert ist bereits die Warmwassertemperatur; die Zusatzzeile für
+    Warmwasser am Heizkreis darf sie nicht ein zweites Mal anhängen.
+    """
+    kreis = teil(
+        "Heizkreis Erdgeschoss",
+        1,
+        [
+            entitaet("climate.heizkreis_erdgeschoss", "Heizkreis Erdgeschoss"),
+            entitaet(
+                "sensor.vorlauf_erdgeschoss",
+                "Vorlauftemperatur Ist",
+                schluessel="flow_temperature",
+                adresse="0/2",
+            ),
+        ],
+    )
+    speicher = teil(
+        "Speicher Haus",
+        2,
+        [
+            entitaet(
+                "sensor.speicher_ist",
+                "WW-Temperatur Aktueller Wert",
+                schluessel="dhw_temperature",
+                adresse="0/4",
+            ),
+            entitaet(
+                "sensor.speicher_soll",
+                "WW-Temperatur Sollwert",
+                schluessel="dhw_temperature_target",
+                adresse="1/4",
+            ),
+        ],
+    )
+    daten = panel._anlage_daten(anlage(kreis, speicher))
+
+    zeilen = [(k["titel"], k["entity"]) for k in daten["kennwerte"]]
+    assert zeilen == [
+        ("Heizkreis Erdgeschoss", "sensor.vorlauf_erdgeschoss"),
+        ("Speicher Haus", "sensor.speicher_ist"),
+    ]
+
+
 def test_leere_anlage_ergibt_leere_aufteilung(panel):
     daten = panel._anlage_daten(anlage())
     assert daten["kennwerte"] == []
