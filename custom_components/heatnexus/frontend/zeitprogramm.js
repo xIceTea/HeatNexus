@@ -258,9 +258,9 @@ export function farbe(wert, grenzen) {
   return `rgb(${kanal(0)}, ${kanal(1)}, ${kanal(2)})`;
 }
 
-/** Ein Wert, wie er am Balken und in der Tabelle steht. */
-export function wertText(wert, grenzen) {
-  if (grenzen.schalt) return wert >= 0.5 ? "Ein" : "Aus";
+/** Ein Wert, wie er am Balken und in der Tabelle steht; `t` übersetzt Ein und Aus. */
+export function wertText(wert, grenzen, t = OHNE) {
+  if (grenzen.schalt) return wert >= 0.5 ? t("Ein") : t("Aus");
   const gerundet = Math.round(wert * 10) / 10;
   return `${gerundet} °C`;
 }
@@ -390,7 +390,8 @@ export function rasterKnoten(bloecke, optionen = {}) {
       balken.style.background = farbe(stueck.wert, grenzen);
       balken.title = `${uhrzeit(stueck.von)}–${uhrzeit(stueck.bis % TAG_MINUTEN)} · ${wertText(
         stueck.wert,
-        grenzen
+        grenzen,
+        t
       )}`;
       spur.appendChild(balken);
     });
@@ -412,7 +413,7 @@ export function rasterKnoten(bloecke, optionen = {}) {
         // Strich zwischen Uhrzeit und Wert. Ohne ihn standen „06:00" und
         // „21,0 °C" nur durch ein Leerzeichen getrennt nebeneinander und
         // lasen sich wie eine einzige Angabe.
-        text.textContent = `${uhrzeit(punkt.zeit)} – ${wertText(punkt.wert, grenzen)}`;
+        text.textContent = `${uhrzeit(punkt.zeit)} – ${wertText(punkt.wert, grenzen, t)}`;
         marke.append(punktfarbe, text);
         zeiten.appendChild(marke);
       });
@@ -465,7 +466,7 @@ export function uebersichtKnoten(bloecke, optionen = {}) {
       zeit.textContent = `${uhrzeit(stueck.von)} – ${uhrzeit(stueck.bis % TAG_MINUTEN)}`;
       const wert = document.createElement("span");
       wert.className = "zp-spannewert";
-      wert.textContent = wertText(stueck.wert, grenzen);
+      wert.textContent = wertText(stueck.wert, grenzen, t);
       zeile.append(punktfarbe, zeit);
       // Die Marke steht vor dem Wert, damit die Werte untereinander bleiben.
       if (stelle && stelle.block === nummer && stelle.von === stueck.von) {

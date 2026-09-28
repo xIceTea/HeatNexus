@@ -725,3 +725,39 @@ def test_die_automatik_steht_bei_allen_anlagen_in_einem_raster(durchlauf):
     assert alle["trenner"] == 0
     assert alle["titel"][0] == "Anlage B · Heizkreis"
     assert alle["titel"][-1] == "Anlage A · Heizkreis 2"
+
+
+ENGLISCH = Path(__file__).parent / "js" / "englisch-durchlauf.mjs"
+WOERTERBUCH = WURZEL / "custom_components" / "heatnexus" / "sprachen" / "en.json"
+
+
+def test_auf_englisch_bleibt_kein_uebersetzbarer_text_deutsch(aufteilung, tmp_path):
+    """Jeder angezeigte Text mit englischer Fassung erscheint auch englisch.
+
+    Geprüft wird nach Aufbau und Aktualisierung: Texte, die eine Bindung später
+    setzt, laufen nicht durch den Übersetzungsdurchlauf und brauchen `_t`.
+    """
+    from custom_components.heatnexus.texte import Woerterbuch, uebersetze_baum
+
+    englisch = json.loads(WOERTERBUCH.read_text(encoding="utf-8"))
+    nutzlast = uebersetze_baum(aufteilung, Woerterbuch("en"))
+    datei = tmp_path / "daten.json"
+    datei.write_text(json.dumps({**nutzlast, "texte": englisch}), encoding="utf-8")
+    ergebnis = subprocess.run(
+        ["node", str(ENGLISCH), str(PANEL_JS), str(datei)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    assert ergebnis.returncode == 0, ergebnis.stderr[:2000]
+
+    reste = sorted(
+        {
+            teil
+            for text in json.loads(ergebnis.stdout)
+            for teil in [text, *text.split(" – ")]
+            if englisch.get(teil, teil) != teil
+        }
+    )
+
+    assert not reste, f"auf Englisch noch deutsch: {reste}"

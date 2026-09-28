@@ -31,6 +31,8 @@ NAMEN: dict[str, str] = {
     "12/104": "Fördermenge Korrektur",
     "14/79": "Heizflächenreinigung Beginn Sperrzeit",
     "14/80": "Heizflächenreinigung Dauer",
+    # In der Tabelle heißt er wie der Heizkreismischer.
+    "58/115": "Mischer Wärmeerzeuger",
 }
 
 NUR_BUS: tuple[str, ...] = ("Brennkammertemperatur", "Gebläsedrehzahl", "Pelletsvorrat")

@@ -466,5 +466,14 @@
   " {zahl} von {budget} Eingriffen heute": " {zahl} of {budget} interventions today",
   "nächste Prüfung {zeit}": "next check {zeit}",
   "{modus} seit {zeit}": "{modus} since {zeit}",
-  "Einstellung": "Setting"
+  "Einstellung": "Setting",
+  "Pumpe läuft": "pump running",
+  "Pumpe steht": "pump stopped",
+  "fordert {grad} °C": "demands {grad} °C",
+  "zuletzt {zeit}": "last {zeit}",
+  "läuft": "running",
+  "bereit": "ready",
+  "entlädt": "discharging",
+  "Ja, ausführen": "Yes, run",
+  "lädt": "charging"
 }

@@ -52,6 +52,7 @@ import {{
   ortszeit,
   pruefen,
   tagesbereich,
+  wertText,
   wochenraster,
 }} from "{adresse}";
 
@@ -144,6 +145,11 @@ console.log(
     heizen_ist_kein_schaltprogramm: istSchaltprogramm(heizen),
     bereich_heizen: bereich(heizen),
     bereich_schalten: bereich(schalten),
+    schalttext: [1, 0].map((wert) => wertText(wert, bereich(schalten))),
+    schalttext_englisch: [1, 0].map((wert) =>
+      wertText(wert, bereich(schalten), (text) => ({{ Ein: "On", Aus: "Off" }})[text])
+    ),
+    temperaturtext: wertText(20.55, bereich(heizen), () => "falsch"),
     dienst: nachDienst(heizen),
     fehler_zuviele: pruefen(zuviele),
     fehler_doppelter_tag: pruefen(doppelterTag),
@@ -268,6 +274,12 @@ def test_schaltprogramm_wird_am_wertebereich_erkannt(rechnung):
 # ---------------------------------------------------------------------------
 # Schreiben
 # ---------------------------------------------------------------------------
+def test_schaltwerte_folgen_der_sprache(rechnung):
+    assert rechnung["schalttext"] == ["Ein", "Aus"]
+    assert rechnung["schalttext_englisch"] == ["On", "Off"]
+    assert rechnung["temperaturtext"] == "20.6 °C"
+
+
 def test_die_nutzlast_hat_die_form_des_dienstes(rechnung):
     """Genau das, was `set_time_program` als `blocks` erwartet."""
     assert rechnung["dienst"] == [

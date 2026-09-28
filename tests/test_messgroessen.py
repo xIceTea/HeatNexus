@@ -119,6 +119,16 @@ def test_ein_zaehler_ohne_einheit_zaehlt_trotzdem(helpers):
     assert beschreibung["state_class"] == "total_increasing"
 
 
+def test_ein_englischer_zaehler_wird_am_deutschen_namen_erkannt(helpers):
+    """Der angezeigte Name folgt der Sprache, die Einstufung dem deutschen Namen."""
+    starts = helpers.messgroesse(_sensor(name="Burner starts", name_de="Brennerstarts"))
+    stunden = helpers.messgroesse(
+        _sensor(name="Operating hours total", name_de="Betriebsstunden gesamt", unit="h")
+    )
+    assert starts["state_class"] == "total_increasing"
+    assert stunden["state_class"] == "total_increasing"
+
+
 def test_ein_messwert_ohne_einheit_bleibt_ohne_statistik(helpers):
     """Ein Zustand ohne Einheit ist kein Zähler."""
     assert helpers.messgroesse(_sensor(name="Betriebsphase", unit=None)).get("state_class") is None

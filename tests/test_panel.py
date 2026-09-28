@@ -11,9 +11,11 @@ Zeile aus. Genau das prüft `test_zeilen_entstehen_auch_ohne_werte`.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
-from .conftest import requires_ha
+from .conftest import auf_englisch, requires_ha, zurueck_auf_deutsch
 
 pytestmark = requires_ha()
 
@@ -786,6 +788,20 @@ def test_warmwasserladung_fragt_nicht_nach(panel, kessel_und_heizkreis):
     assert eintraege["Warmwasser laden"]["frage"] == ""
 
 
+def test_gleiche_bedienungen_nennen_ihren_anlagenteil(panel):
+    """Vier Mal „Betriebswahl" ließe sich nicht auseinanderhalten."""
+    bio = teil("BioWIN", 9, [entitaet("select.betriebswahl_bio", "Betriebswahl")])
+    log = teil("LogWIN", 10, [entitaet("select.betriebswahl_log", "Betriebswahl")])
+    ofen = teil("PuroWIN", 25, [entitaet("button.serviceausbrand", "Serviceausbrand")])
+
+    eintraege = panel._anlage_daten(anlage(bio, log, ofen))["schnellzugriff"]
+
+    teile = {e["entity"]: e.get("anlagenteil") for e in eintraege}
+    assert teile["select.betriebswahl_bio"] == "BioWIN"
+    assert teile["select.betriebswahl_log"] == "LogWIN"
+    assert teile["button.serviceausbrand"] is None
+
+
 # ---------------------------------------------------------------------------
 # Störungen und Kennwerte
 # ---------------------------------------------------------------------------
@@ -808,6 +824,52 @@ def test_je_anlagenteil_ein_leitwert(panel, kessel_und_heizkreis):
     ]
     assert len(leitwerte) == len(kessel_und_heizkreis["teile"])
     assert daten["kennwerte"][0]["entity"] == "sensor.kesseltemperatur_ist"
+
+
+def test_ein_eigener_warmwasserspeicher_erscheint_einmal(panel):
+    """Ein Warmwasserspeicher als eigenes Anlagenteil hat eine Zeile, nicht zwei.
+
+    Sein Leitwert ist bereits die Warmwassertemperatur; die Zusatzzeile für
+    Warmwasser am Heizkreis darf sie nicht ein zweites Mal anhängen.
+    """
+    kreis = teil(
+        "Heizkreis Erdgeschoss",
+        1,
+        [
+            entitaet("climate.heizkreis_erdgeschoss", "Heizkreis Erdgeschoss"),
+            entitaet(
+                "sensor.vorlauf_erdgeschoss",
+                "Vorlauftemperatur Ist",
+                schluessel="flow_temperature",
+                adresse="0/2",
+            ),
+        ],
+    )
+    speicher = teil(
+        "Speicher Haus",
+        2,
+        [
+            entitaet(
+                "sensor.speicher_ist",
+                "WW-Temperatur Aktueller Wert",
+                schluessel="dhw_temperature",
+                adresse="0/4",
+            ),
+            entitaet(
+                "sensor.speicher_soll",
+                "WW-Temperatur Sollwert",
+                schluessel="dhw_temperature_target",
+                adresse="1/4",
+            ),
+        ],
+    )
+    daten = panel._anlage_daten(anlage(kreis, speicher))
+
+    zeilen = [(k["titel"], k["entity"]) for k in daten["kennwerte"]]
+    assert zeilen == [
+        ("Heizkreis Erdgeschoss", "sensor.vorlauf_erdgeschoss"),
+        ("Speicher Haus", "sensor.speicher_ist"),
+    ]
 
 
 def test_leere_anlage_ergibt_leere_aufteilung(panel):
@@ -1268,3 +1330,61 @@ def test_ohne_lieferungsmeldung_bleibt_die_zeile_weg(panel):
     ohne["entitaeten"] = []
 
     assert panel._anlage_daten(anlage(ohne))["kennwerte"] == []
+
+
+def test_englische_namen_ergeben_dieselbe_oberflaeche(panel, kessel_und_heizkreis):
+    """Muster, Rückfragen und Hilfetexte greifen am deutschen Namen der Entität."""
+    kessel, heizkreis = kessel_und_heizkreis["teile"]
+    kessel["entitaeten"] += [
+        entitaet("button.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
+        entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
+        entitaet("binary_sensor.stoerung_gemeldet", "Störung gemeldet", kategorie="diagnostic"),
+    ]
+    heizkreis["entitaeten"] += [
+        entitaet("sensor.programm_1", "Programm 1"),
+        entitaet("sensor.ww_zirkulationsprogramm", "WW-Zirkulationsprogramm"),
+        entitaet("select.betriebswahl", "Betriebswahl"),
+    ]
+    deutsch = panel._anlage_daten(kessel_und_heizkreis)
+    englisch, namen = auf_englisch(kessel_und_heizkreis["teile"])
+
+    ergebnis = zurueck_auf_deutsch(panel._anlage_daten(anlage(*englisch)), namen)
+
+    # Hilfeliste und Schaubildwerte sind nach dem angezeigten Namen sortiert.
+    for daten in (deutsch, ergebnis):
+        daten["hilfe_liste"].sort(key=lambda h: h["titel"])
+        for teil in daten["schema_teile"]:
+            teil["werte"].sort(key=lambda w: w["entity"])
+    assert ergebnis == deutsch
+    assert deutsch["zeitprogramme"] and deutsch["stoerungen"] and deutsch["steuerung"]["kessel"]
+    assert any(z.get("frage") for z in deutsch["schnellzugriff"])
+
+
+def test_warmwasser_laden_erkennt_englische_betriebswahl():
+    """Standby, WW-Betrieb und laufende Ladung folgen dem Wert, nicht dem deutschen Wort."""
+    wahl = entitaet(
+        "select.operating_selection",
+        "Operating selection",
+        name_de="Betriebswahl",
+        optionen={0: "Stand-by", 1: "Program 1", 6: "DHW operation"},
+    )
+    art = entitaet(
+        "sensor.operating_mode",
+        "Operating mode",
+        name_de="Betriebsart",
+        optionen={3: "DHW charging", 17: "Hot water hygiene programme", 18: "DHW single charge"},
+    )
+
+    from custom_components.heatnexus.panel.daten import _warmwasser_bedienung
+
+    bedienung = _warmwasser_bedienung([art, wahl], [wahl])
+
+    assert re.search(bedienung["betriebswahl_aus"], "Stand-by", re.IGNORECASE)
+    assert not re.search(bedienung["betriebswahl_aus"], "Program 1", re.IGNORECASE)
+    assert re.search(bedienung["betriebswahl_ww"], "DHW operation", re.IGNORECASE)
+    assert {"DHW charging", "DHW single charge", "Hot water hygiene programme"} <= set(
+        bedienung["zustand_wenn"]
+    )
+    # Ohne bekannte Texte bleiben die deutschen Muster.
+    assert re.search(bedienung["betriebswahl_aus"], "Standby", re.IGNORECASE)
+    assert "WW-Ladung" in bedienung["zustand_wenn"]

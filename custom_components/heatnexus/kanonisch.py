@@ -30,6 +30,9 @@ KANONISCH: dict[str, str] = {
     "2/80": "burner_starts",
     "2/81": "operating_hours",
     "58/12": "boiler_pump",
+    # Stellung des Kesselmischers. Eigener Schlüssel: Er regelt den Kessel,
+    # nicht einen Heizkreis.
+    "58/115": "boiler_mixer_position",
     "59/17": "operating_phase",
     "63/10": "boiler_temperature_target",
     "60/34": "operating_hours",
@@ -56,12 +59,18 @@ KANONISCH: dict[str, str] = {
     "1/2": "flow_temperature_target",
     "1/20": "circuit_pump",
     "1/21": "mixer_position",
+    # Heizkreise fctType 1 melden Pumpe und Mischer in Prozent unter 58/48, 58/49.
+    "58/48": "circuit_pump",
+    "58/49": "mixer_position",
     "3/50": "mode_selection",
     "3/58": "comfort_offset",
     # Warmwasser (hängt am Heizkreis, nicht an einer eigenen Funktion)
     "0/4": "dhw_temperature",
     "1/4": "dhw_temperature_target",
     "1/66": "dhw_charge_pump",
+    # Dieselben Pumpen an der Warmwasserfunktion fctType 2, in Prozent.
+    "58/52": "dhw_charge_pump",
+    "59/18": "dhw_circulation_pump",
     # Zirkulation: `1/65` meldet, ob die Pumpe läuft, `5/6` wonach sie sich
     # richtet (Aus, Zeit-, Temperatur-, Impulssteuerung, EIN). Zwei Begriffe,
     # zwei Schlüssel – sonst trägt der Modus den Namen der Pumpe.

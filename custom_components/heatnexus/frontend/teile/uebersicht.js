@@ -101,7 +101,7 @@ export const UebersichtMixin = (Basis) =>
     this._bindungen.push(() => {
       const stoerung = this._stoerung(anlage);
       abzeichen.classList.toggle("stoerung", stoerung);
-      abzeichenText.textContent = stoerung ? "Störung anliegend" : "Anlage in Ordnung";
+      abzeichenText.textContent = this._t(stoerung ? "Störung anliegend" : "Anlage in Ordnung");
       abzeichen.firstChild.setAttribute(
         "icon",
         stoerung ? "mdi:alert-circle-outline" : "mdi:check-circle-outline"
@@ -212,7 +212,7 @@ export const UebersichtMixin = (Basis) =>
       const soll = zustand.attributes.temperature;
       wert.textContent = ist !== undefined && ist !== null ? `${ist} °C` : "–";
       sollzeile.textContent =
-        soll !== undefined && soll !== null ? `${soll} °C` : "Raumtemperatur";
+        soll !== undefined && soll !== null ? `${soll} °C` : this._t("Raumtemperatur");
 
       const art = zustand.attributes.preset_mode ? this._presetName(zustand) : "";
       const rest = this._restzeit(zustand);
@@ -353,10 +353,10 @@ export const UebersichtMixin = (Basis) =>
       const stoerung = this._stoerung(anlage);
       symbol.setAttribute("icon", stoerung ? "mdi:shield-alert-outline" : "mdi:shield-check-outline");
       symbol.className = stoerung ? "schlecht" : "gut";
-      haupt.textContent = stoerung ? "Störung anliegend" : "Keine Störung";
-      neben.textContent = stoerung
-        ? "Die Anlage meldet mindestens eine aktive Störung."
-        : "Alles läuft.";
+      haupt.textContent = this._t(stoerung ? "Störung anliegend" : "Keine Störung");
+      neben.textContent = this._t(
+        stoerung ? "Die Anlage meldet mindestens eine aktive Störung." : "Alles läuft."
+      );
       mitte.style.display = stoerung ? "none" : "block";
     });
     return karte;
@@ -380,7 +380,9 @@ export const UebersichtMixin = (Basis) =>
     const tasten = eintraege.filter((eintrag) => eintrag.entity.split(".")[0] !== "select");
     const alleinstehend = tasten.length === 1;
 
-    eintraege.forEach((eintrag) => {
+    eintraege.forEach((roh) => {
+      // Gleichnamige Bedienungen verschiedener Anlagenteile tragen ihren Teil.
+      const eintrag = roh.anlagenteil ? { ...roh, titel: `${roh.titel} · ${roh.anlagenteil}` } : roh;
       if (eintrag.entity.split(".")[0] === "select") {
         const huelle = this._auswahlFeld(eintrag.titel, eintrag.entity, eintrag.hilfe);
         huelle.style.gridColumn = "1 / -1";
@@ -582,7 +584,7 @@ export const UebersichtMixin = (Basis) =>
       if (rueckmeldung.dataset.belegt === "1") return;
       rueckmeldung.className = "rueckmeldung";
       rueckmeldung.textContent = eintrag.zustand_an
-        ? (an ? "läuft" : "bereit")
+        ? this._t(an ? "läuft" : "bereit")
         : this._tastenZustand(bereich, zustand, an);
     };
     taste._zeichnen = zeichnen;

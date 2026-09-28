@@ -6,6 +6,28 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.13.0-beta.4] - 2026-09-28
+
+### Neu
+
+- Datenpunkte tragen englische Namen, auch wenn die Steuerung keine Textdateien liefert.
+- Störungstexte und Handlungsempfehlungen erscheinen auf Englisch.
+
+### Geändert
+
+- Gleichnamige Einträge im Schnellzugriff nennen zusätzlich den Anlagenteil.
+- Auf Englisch zeigt der Klartext-Sensor „No fault“ statt „Keine Störung“.
+
+### Behoben
+
+- Kesselpumpe und Kesselmischer erscheinen im Schaubild ([#14](https://github.com/xIceTea/HeatNexus/issues/14)).
+- Der Warmwasserspeicher erscheint in der Heizungsübersicht nur einmal ([#15](https://github.com/xIceTea/HeatNexus/issues/15)).
+- Die englische Oberfläche zeigt keine deutschen Texte mehr, auch nicht in Schaltprogrammen ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
+- Bei englischen Namen bleiben Schaubild, Übersicht und Symbole vollständig ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
+- Bei englischen Namen stimmen Abfragetakt und Langzeitstatistik der Datenpunkte.
+- „Warmwasser laden“ schaltet auch mit englischer Betriebswahl aus Standby um.
+- Wochentage der Zeitprogramme und die Art einer Störung erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
+
 ## [1.13.0-beta.3] - 2026-09-26
 
 ### Neu

@@ -159,6 +159,18 @@ def test_je_zaehler_entstehen_beide_ableitungen(client):
     assert neue["SN1-stunden-start"]["ausloeser_oid"] == STARTS
 
 
+def test_eine_englische_ableitung_traegt_den_deutschen_namen_weiter(client):
+    client.devices[0] = {
+        **client.devices[0],
+        "name": "Operating hours",
+        "name_de": "Betriebsstunden",
+    }
+    client._abgeleitete_zaehler()
+    heute = next(d for d in client.devices if d["id"] == "SN1-stunden-heute")
+    assert heute["name"] == "Operating hours heute"
+    assert heute["name_de"] == "Betriebsstunden heute"
+
+
 def test_ableitungen_entstehen_abgeschaltet(client):
     """Sie kosten keinen Abruf, bis jemand sie einschaltet."""
     client._abgeleitete_zaehler()

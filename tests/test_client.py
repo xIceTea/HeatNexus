@@ -372,6 +372,102 @@ def test_ohne_geraetetext_bleibt_die_gepflegte_bezeichnung(client_module):
     assert client._name_fuer("0/7", "Kesseltemperatur") == "Kesseltemperatur"
 
 
+def test_ohne_geraetetext_springt_die_englische_herstellertabelle_ein(client_module):
+    """Eine Steuerung ohne Textdateien bekommt englische Namen aus der Datenbank."""
+    client = _mit_texten(client_module, "en", {})
+    assert client._name_fuer("0/0", "Außentemperatur") == "Outside temperature"
+
+
+def test_der_geraetetext_geht_der_englischen_tabelle_vor(client_module):
+    client = _mit_texten(client_module, "en", {"0/0": "Outdoor temp."})
+    assert client._name_fuer("0/0", "Außentemperatur") == "Outdoor temp."
+
+
+def test_englische_auswahltexte_ohne_textdatei_der_steuerung(client_module):
+    client = _mit_texten(client_module, "en", {})
+    assert client._enum_texte_fuer("9/75")[1] == "On"
+    assert _mit_texten(client_module, "de", {})._enum_texte_fuer("9/75") is None
+
+
+async def test_meldungssensoren_tragen_die_sprache(client_module, monkeypatch):
+    """Ohne Textdatei der Steuerung wählt die Sprache die Tabelle der Störungstexte."""
+    client = _mit_texten(client_module, "en", {})
+    client.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
+    client.werksbezeichnung = {"60": "PuroWIN"}
+
+    async def fetch(url, semaphore=None):
+        return [
+            {
+                "nodeId": 60,
+                "neuronId": "0000PUROWIN1",
+                "FE01msg": "PUR 09  OK",
+                "functions": [{"fctId": 0, "fctType": 25, "lock": False, "name": "PuroWIN"}],
+            }
+        ]
+
+    monkeypatch.setattr(client, "fetch", fetch)
+    await client._discover(nur_kern=True)
+
+    meldungen = [d for d in client.devices if d["type"] == "message_text"]
+    assert meldungen
+    assert all(d["sprache"] == "en" for d in meldungen)
+
+
+async def _kessel_erkennen(client, monkeypatch) -> dict[str, dict]:
+    """Volle Erkennung eines Kessels mit einem Datenpunkt aus dem Menü, je Adresse."""
+    from custom_components.heatnexus import geraetetexte
+
+    client.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
+    client.werksbezeichnung = {"60": "PuroWIN"}
+
+    async def fetch(url, semaphore=None):
+        return [
+            {
+                "nodeId": 60,
+                "neuronId": "0000PUROWIN1",
+                "functions": [{"fctId": 0, "fctType": 25, "lock": False, "name": "PuroWIN"}],
+            }
+        ]
+
+    async def menues(prefix, fct_type):
+        return {f"{prefix}/12/38/0": {"value": "1"}}
+
+    async def keine_positionen():
+        return set()
+
+    async def keine_texte():
+        return geraetetexte.Texte()
+
+    monkeypatch.setattr(client, "fetch", fetch)
+    monkeypatch.setattr(client, "_read_function_menus", menues)
+    monkeypatch.setattr(client, "_statische_adressen", keine_positionen)
+    monkeypatch.setattr(client, "_lade_geraetetexte", keine_texte)
+    await client._discover()
+    return {d["oid"]: d for d in client.devices if d.get("oid")}
+
+
+async def test_englische_deskriptoren_tragen_den_deutschen_namen(client_module, monkeypatch):
+    """Einstufung und Oberfläche erkennen Datenpunkte an deutschen Namen."""
+    client = client_module.WindhagerHttpClient("192.0.2.1", "secret", sprache="en")
+    je_adresse = await _kessel_erkennen(client, monkeypatch)
+
+    kuratiert = je_adresse["/1/60/0/0/7/0"]
+    assert kuratiert["name"] == "Boiler temp. current value"
+    assert kuratiert["name_de"] == "Kesseltemperatur Ist"
+    aus_dem_menue = je_adresse["/1/60/0/12/38/0"]
+    assert aus_dem_menue["name"] == "Device type"
+    assert aus_dem_menue["name_de"] == "Gerätetyp"
+
+
+async def test_deutsche_deskriptoren_bleiben_ohne_zweitnamen(client_module, monkeypatch):
+    client = client_module.WindhagerHttpClient("192.0.2.1", "secret", sprache="de")
+    je_adresse = await _kessel_erkennen(client, monkeypatch)
+
+    assert je_adresse["/1/60/0/0/7/0"]["name"] == "Kesseltemperatur Ist"
+    assert je_adresse["/1/60/0/12/38/0"]["name"] == "Gerätetyp"
+    assert not any("name_de" in d for d in client.devices)
+
+
 def test_die_ww_hysterese_steht_bei_den_warmwasserwerten(client_module):
     """Der Herstellername „Hysterese Ein" nennt seinen Bezug nicht."""
     client = _mit_texten(client_module, "de", {"5/0": "Hysterese Ein"})

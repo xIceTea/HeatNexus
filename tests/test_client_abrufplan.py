@@ -150,6 +150,40 @@ def test_eine_temperatur_wird_schnell_gelesen(client_module):
     assert client_module.WindhagerHttpClient._poll_klasse({"type": "temperature"}) == "fast"
 
 
+@pytest.mark.parametrize(
+    ("name", "name_de", "takt"),
+    [
+        ("Heating circuit pump", "Heizkreispumpe", "fast"),
+        ("Operating phase", "Betriebsphase", "fast"),
+        ("Burner starts", "Brennerstarts", "slow"),
+    ],
+)
+def test_ein_englischer_name_laeuft_im_takt_des_deutschen(client_module, name, name_de, takt):
+    klasse = client_module.WindhagerHttpClient._poll_klasse
+    assert klasse({"name": name_de}) == takt
+    assert klasse({"name": name, "name_de": name_de}) == takt
+
+
+async def test_die_englische_systemuhr_bleibt_ebenfalls_aus(client):
+    """Erkannt wird sie am deutschen Namen, nicht an „Date" und „Time"."""
+    client.oids = {"/1/15/0/2/70/0", "/1/15/0/2/72/0"}
+    client.menu_meta = {
+        "/1/15/0/2/70/0": {"writeProt": False, "value": "24.12.2026"},
+        "/1/15/0/2/72/0": {"writeProt": False, "value": "06:30"},
+    }
+    client.devices = [
+        {"oid": oid, "name": name, "name_de": name_de, "type": "auto", "level": "operate"}
+        for oid, name, name_de in (
+            ("/1/15/0/2/70/0", "Date", "Datum"),
+            ("/1/15/0/2/72/0", "Time", "Uhrzeit"),
+        )
+    ]
+
+    await client._apply_metadata()
+
+    assert all(d["enabled_default"] is False for d in client.devices)
+
+
 def test_im_zweifel_bleibt_es_beim_mittleren_takt(client_module):
     """Lieber einmal zu oft gelesen als eine Anzeige, die nachhinkt."""
     assert client_module.WindhagerHttpClient._poll_klasse({"name": "Rätsel"}) == "normal"

@@ -25,7 +25,7 @@ from ..const import (
     QUELLEN_RANG,
     QUELLEN_SYMBOLE,
 )
-from ..helpers import enum_texte
+from ..helpers import enum_texte, mustername
 from ..kanonisch import gnmn, ist_ableitung
 from ..kanonisch import schluessel as kanonischer_schluessel
 from ..rechte import darf_lesen
@@ -67,7 +67,7 @@ def vorrang(eintrag: dict) -> int:
         if _traegt(eintrag, zeile[1]):
             return platz
     for platz, zeile in enumerate(UEBERSICHT_VORRANG):
-        if _passt(eintrag.get("name") or "", (zeile[0],)):
+        if _passt(mustername(eintrag), (zeile[0],)):
             return platz
     return len(UEBERSICHT_VORRANG)
 
@@ -79,7 +79,7 @@ def trifft(eintrag: dict, muster: tuple[re.Pattern, ...], *schluessel: str) -> b
     Serviceebene gibt es Datenpunkte, die dieselbe Adresse an einer anderen
     Funktion tragen, und die Muster sind dort bisher die einzige Auskunft.
     """
-    return _traegt(eintrag, schluessel) or _passt(eintrag.get("name") or "", muster)
+    return _traegt(eintrag, schluessel) or _passt(mustername(eintrag), muster)
 
 
 def skala(wert: float | None) -> int:
@@ -116,6 +116,11 @@ def _auswahltexte(hass: HomeAssistant) -> dict[str, dict[int, str]]:
         if (kennung := beschreibung.get("id")) and (texte := enum_texte(beschreibung)):
             zuordnung.setdefault(kennung, texte)
     return zuordnung
+
+
+def _deutsche_namen(hass: HomeAssistant) -> dict[str, str]:
+    """Deutscher Datenpunktname je Entitätskennung, unabhängig von Sprache und Umbenennung."""
+    return {b["id"]: mustername(b) for b in _beschreibungen(hass) if b.get("id")}
 
 
 def quellen_nach_geraet(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
@@ -182,6 +187,7 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
     quellen_je_geraet = quellen_nach_geraet(hass)
     schaubildwahl_je_geraet = _schaubildwahl_je_geraet(hass)
     auswahltexte = _auswahltexte(hass)
+    deutsche_namen = _deutsche_namen(hass)
 
     # Nur die eigenen Geräte: Home Assistant prüft die Form der Kennungen nicht,
     # und fremde Integrationen halten sich nicht immer an das Paar.
@@ -238,6 +244,9 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
             {
                 "entity_id": eintrag.entity_id,
                 "name": kurzname(eintrag.name or eintrag.original_name or eintrag.entity_id),
+                # Muster und Hilfetexte sind deutsch und suchen hier, nicht im Anzeigenamen.
+                "name_de": deutsche_namen.get(eintrag.unique_id)
+                or kurzname(eintrag.original_name or eintrag.name or eintrag.entity_id),
                 # Der sprachunabhängige Schlüssel, sofern der Datenpunkt einen
                 # hat. Er kommt aus der Adresse in der Kennung und nicht aus
                 # dem Namen – siehe `kanonisch.py`. Wo er fehlt, bleibt es beim

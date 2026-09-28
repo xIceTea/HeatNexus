@@ -100,6 +100,21 @@ def test_auch_die_nachgereichten_datenpunkte_tragen_ihren_schluessel(kanonisch):
     assert kanonisch.schluessel("0000ABCD1234-0-39-76-0") == "fuel_storage_status"
 
 
+@pytest.mark.parametrize(
+    ("adresse", "erwartet"),
+    [
+        ("58-48", "circuit_pump"),
+        ("58-49", "mixer_position"),
+        ("58-52", "dhw_charge_pump"),
+        ("59-18", "dhw_circulation_pump"),
+        ("58-115", "boiler_mixer_position"),
+    ],
+)
+def test_pumpen_und_mischer_des_schaubilds_tragen_einen_schluessel(kanonisch, adresse, erwartet):
+    """Heizkreis fctType 1, Warmwasser fctType 2 und Kessel melden sie unter diesen Adressen."""
+    assert kanonisch.schluessel(f"0000ABCD1234-0-{adresse}-0") == erwartet
+
+
 def test_ein_datenpunkt_ohne_entsprechung_bleibt_ohne_schluessel(kanonisch):
     """Er behält den Herstellernamen; deshalb verschwinden die Muster nicht."""
     assert kanonisch.schluessel("0000ABCD1234-0-9-31-0") is None
@@ -157,6 +172,12 @@ def test_ein_schluessel_gilt_nur_dort_mehrfach_wo_es_begruendet_ist(kanonisch):
         "boiler_temperature_target",
         "operating_hours",
         "collector_temperature",
+        # Heizkreis fctType 1 `58/48`/`58/49`, Warmwasser fctType 2 `58/52`/`59/18`
+        # – dieselbe Pumpe bzw. derselbe Mischer, in Prozent statt als Zustand.
+        "circuit_pump",
+        "mixer_position",
+        "dhw_charge_pump",
+        "dhw_circulation_pump",
     }
     werte = [w for w in kanonisch.KANONISCH.values() if w not in mehrfach]
     doppelt = sorted({w for w in werte if werte.count(w) > 1})

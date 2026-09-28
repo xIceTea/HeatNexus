@@ -9,9 +9,12 @@ importiert, zieht Home Assistant nach und wird bei fehlender Umgebung
 
 from __future__ import annotations
 
+import copy
 import importlib.util
+import json
 import logging
 from pathlib import Path
+import re
 import sys
 from types import ModuleType
 
@@ -265,6 +268,32 @@ def device_db() -> ModuleType:
 def geraetetexte() -> ModuleType:
     """Modul geraetetexte (Textwerk der Steuerung)."""
     return load_standalone("geraetetexte")
+
+
+# Ersatzname für eine fremde Sprache: Auf ihn passt kein deutsches Muster.
+_ERSATZNAME = re.compile(r"ǂ\d+ǂ")
+
+
+def auf_englisch(teile: list[dict]) -> tuple[list[dict], dict[str, str]]:
+    """Dieselben Anlagenteile, die Entitäten mit fremdem Namen und `name_de`.
+
+    Zurück kommt dazu die Zuordnung Ersatzname → deutscher Name.
+    """
+    kopie = copy.deepcopy(teile)
+    namen: dict[str, str] = {}
+    for teil in kopie:
+        for eintrag in teil["entitaeten"]:
+            ersatz = f"ǂ{len(namen)}ǂ"
+            namen[ersatz] = eintrag["name"]
+            eintrag["name_de"], eintrag["name"] = eintrag["name"], ersatz
+    return kopie, namen
+
+
+def zurueck_auf_deutsch(daten, namen: dict[str, str]):
+    """In einer fertigen Nutzlast jeden Ersatznamen durch den deutschen ersetzen."""
+    text = json.dumps(daten, ensure_ascii=False)
+    text = _ERSATZNAME.sub(lambda m: json.dumps(namen[m.group(0)], ensure_ascii=False)[1:-1], text)
+    return json.loads(text)
 
 
 # Ohne tragfähige Umgebung werden die Testdateien, die das Paket importieren,

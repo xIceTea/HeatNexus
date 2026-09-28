@@ -54,6 +54,9 @@ class AbleitungenMixin:
         verlängern — ein Schaltpunkt heißt nicht „Puffertemperatur Sollwert ab".
         """
         eigener = felder.pop("name_ersetzen", None)
+        # Der deutsche Name wächst mit, damit die Ableitung wie auf Deutsch eingeordnet wird.
+        if not eigener and (name_de := quelle.get("name_de")):
+            felder["name_de"] = f"{name_de} {zusatz}".strip()
         return self._deskriptor(
             id=f"{quelle['id']}-{endung}",
             alt_id=f"{quelle.get('alt_id') or quelle['id']}-{endung}",
@@ -291,7 +294,7 @@ class AbleitungenMixin:
             for endung, name in self._LAUFZEITEN.items():
                 neu.append(
                     self._ableitung(
-                        {**d, "name": ""},
+                        {**d, "name": "", "name_de": None},
                         endung,
                         endung.replace("-", "_"),
                         name,

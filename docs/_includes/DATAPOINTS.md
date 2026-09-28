@@ -28,8 +28,8 @@ hat.
 | 6 | Kessel (Gas / Öl) | Ionisationsstrom, Anlagendruck, Netzbetriebsstunden | 10 | – | 13 | – |
 | 7 | Wärmepumpe | COP, Silentmode, Betriebsstunden Heizen/Warmwasser | 23 | 10 | 50 | 74 |
 | 8 | E-Heizung / Zusatzheizung | Aktuelle Stufe, Betriebsstunden Stufe 1–3 | 9 | – | 10 | 23 |
-| 9 | Kessel (BioWIN) | Laufzeit bis Reinigung, Brennstoffverbrauch, Sonden | 24 | 28 | 106 | 376 |
-| 10 | Kessel (Automatik-/Zusatzkessel) | Startverzögerung, O2-Signal | 18 | 6 | 39 | – |
+| 9 | Kessel (BioWIN) | Laufzeit bis Reinigung, Brennstoffverbrauch, Sonden | 26 | 28 | 106 | 376 |
+| 10 | Kessel (Automatik-/Zusatzkessel) | Startverzögerung, O2-Signal | 20 | 6 | 39 | – |
 | 14 | Heizkreis (UML / UMLZ) | wie 1, ältere Baureihe, Warmwasser inbegriffen | 19 | 28 | 49 | 13 |
 | 15 | Umschaltung | Automatikkessel / Festbrennstoff / Puffer, Umschaltventil | 8 | 1 | 20 | – |
 | 16 | Puffer (B-PLMi) | TPE, TPA, TPT, Pufferladepumpe | 15 | 2 | 16 | – |
@@ -941,9 +941,10 @@ Datenpunkte und werden übersprungen.
 | `54/26` | Regler Spreizung Nachstellzeit | Werk |
 | `54/34` | Nachlaufzeit Pumpe | Werk |
 | `58/5` | Pumpensteuerung | Service, Werk |
-| `58/12` | Pumpe Wärmeerzeuger | Service |
+| `58/12` | Pumpe Wärmeerzeuger | Info, Service |
 | `58/15` | – | Service |
 | `58/42` | Hysterese Transferdifferenz ein | Werk |
+| `58/115` | Mischer | Info |
 | `59/7` | Anlagenkonfiguration | Service |
 | `59/23` | Rücklaufhochhaltung | Service |
 | `63/1` | Steuersignal invertiert | Werk |
@@ -1007,8 +1008,8 @@ Datenpunkte und werden übersprungen.
 | `46/122` | Brenner AUS | Service |
 | `50/22` | Externe Anforderung | Service |
 | `58/5` | Pumpensteuerung | Service |
-| `58/12` | Pumpe Wärmeerzeuger | Service |
-| `58/115` | Mischer | Service |
+| `58/12` | Pumpe Wärmeerzeuger | Info, Service |
+| `58/115` | Mischer | Info, Service |
 | `59/7` | Anlagenkonfiguration | Service |
 | `63/2` | Mischer | Service |
 

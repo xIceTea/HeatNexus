@@ -12,6 +12,7 @@ from typing import Any
 
 from .. import geraete
 from ..const import KESSELART_AUTO, QUELLEN_ARTEN
+from ..helpers import mustername
 from ..symbole import symbol_fuer_wert, symbol_je_fct
 
 # Woran ein Heizkreis (fctType 14) Warmwasser und Zirkulation erkennen lässt.
@@ -31,6 +32,14 @@ ZIRKULATION_IST = r"\bww-zirkulations?[- ]?(ist[- ])?temperatur(?!.*soll)"
 # Der Stellwert des Heizkreismischers. „Laufzeit" muss draußen bleiben: Die
 # Mischerlaufzeit ist eine Einstellung in Minuten, keine Stellung in Prozent.
 MISCHER_IST = r"^mischer( stellwert)?$"
+
+
+# Der Mischer je Art: am Heizkreis das Stellglied des Kreises, am Kessel der
+# Mischer des Wärmeerzeugers. Beide zeigen ihre Stellung in Prozent.
+MISCHER_JE_ART: dict[str, tuple[str, tuple[str, ...]]] = {
+    "heizkreis": (MISCHER_IST, ("mixer_position",)),
+    "kessel": (r"^mischer w(ä|ae)rmeerzeuger$", ("boiler_mixer_position",)),
+}
 
 
 # Die gemessene Vorlauftemperatur eines Heizkreises – die Wärme, die wirklich
@@ -234,7 +243,7 @@ def kesselart_des_teils(teil: dict[str, Any]) -> str | None:
         if art := KESSELART_JE_FCT.get(int(teil.get("fct_type"))):
             return art
     for eintrag in teil.get("entitaeten", []):
-        if not BRENNSTOFF_ENTITAET.search(eintrag.get("name") or ""):
+        if not BRENNSTOFF_ENTITAET.search(mustername(eintrag)):
             continue
         text = str(eintrag.get("text") or "")
         for muster, art in BRENNSTOFF_ART:
@@ -273,7 +282,7 @@ def treffer(
     """
     ueber_schluessel = [e for e in entitaeten if traegt(e, schluessel)]
     ueber_namen = [
-        e for e in entitaeten if not traegt(e, schluessel) and passt(e.get("name") or "", muster)
+        e for e in entitaeten if not traegt(e, schluessel) and passt(mustername(e), muster)
     ]
     return ueber_schluessel + ueber_namen
 
@@ -320,16 +329,19 @@ def _pumpe(entitaeten: list[dict[str, Any]], art: str) -> str | None:
     return treffer["entity_id"] if treffer else None
 
 
-def _mischer(entitaeten: list[dict[str, Any]]) -> str | None:
-    """Der Stellwert des Heizkreismischers in Prozent, sofern gemeldet.
+def _mischer(entitaeten: list[dict[str, Any]], art: str = "heizkreis") -> str | None:
+    """Der Stellwert des Mischers in Prozent, sofern gemeldet.
 
     Die Anlage nennt den Datenpunkt `1/21` „Mischer"; die kuratierte Tabelle
     „Mischer Stellwert". Beide Schreibweisen zählen.
     """
+    if art not in MISCHER_JE_ART:
+        return None
+    muster, schluessel = MISCHER_JE_ART[art]
     treffer = finde(
         [e for e in entitaeten if (e.get("unit") or "") == "%" or e.get("bereich") == "sensor"],
-        MISCHER_IST,
-        "mixer_position",
+        muster,
+        *schluessel,
     )
     return treffer["entity_id"] if treffer else None
 
@@ -503,7 +515,7 @@ def zeichenbare_module(
                     # Ob die Quelle ein Laufrad bekommt, sagt ihre Einstellung:
                     # Eine Solaranlage hat eine Pumpe, ein Heizstab nicht.
                     "quellenpumpe": ist_quelle and bool(teil.get("quellenpumpe")),
-                    "mischer": _mischer(teil["entitaeten"]) if art == "heizkreis" else None,
+                    "mischer": _mischer(teil["entitaeten"], art),
                     # Die Temperatur, die tatsächlich in den Heizkörper geht.
                     # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn
                     # der Kreis abgeschaltet ist und der Körper kalt hängt.

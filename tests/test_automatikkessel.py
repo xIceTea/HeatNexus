@@ -19,11 +19,15 @@ FCT_AUTOMATIKKESSEL = "10"
 PRAEFIX = "/1/65/0"
 KESSEL = f"{PRAEFIX}/0/7/0"
 BETRIEBSART = f"{PRAEFIX}/2/59/0"
+PUMPE = f"{PRAEFIX}/58/12/0"
+MISCHER = f"{PRAEFIX}/58/115/0"
 
 # Metadaten in der Form, die die Steuerung für beide Adressen meldet.
 MENUE = {
     KESSEL: {"writeProt": True, "typeId": 13, "unit": "°C", "value": "64.2"},
     BETRIEBSART: {"writeProt": True, "typeId": 9, "enum": "[0,1,2,5]", "value": "5"},
+    PUMPE: {"writeProt": True, "typeId": 0, "unit": "%", "value": "40"},
+    MISCHER: {"writeProt": True, "typeId": 0, "unit": "%", "value": "25"},
 }
 
 
@@ -54,6 +58,12 @@ def test_kesseltemperatur_und_betriebsart_stehen_in_keiner_bedienebene(db):
 def test_die_uebersichtsseite_hebt_sie_auf_die_infoebene(db, ebenenfolge):
     assert _ebene(db, ebenenfolge, "0/7") == "info"
     assert _ebene(db, ebenenfolge, "2/59") == "info"
+
+
+@pytest.mark.parametrize("adresse", ["58/12", "58/115"])
+def test_kesselpumpe_und_mischer_stehen_auf_der_infoebene(db, ebenenfolge, adresse):
+    """Das Schaubild braucht beide Werte; auf der Serviceebene würden sie nicht gelesen."""
+    assert _ebene(db, ebenenfolge, adresse) == "info"
 
 
 @pytest.fixture(scope="module")
@@ -104,6 +114,17 @@ async def test_der_kessel_entsteht_eingeschaltet_auf_der_infoebene(client_module
         assert beschreibungen[oid]["level"] == "info", oid
         assert beschreibungen[oid]["enabled_default"] is True, oid
     assert beschreibungen[KESSEL]["name"] == "Kesseltemperatur Ist"
+
+
+@requires_ha()
+async def test_kesselpumpe_und_mischer_werden_gelesen(client_module, monkeypatch):
+    beschreibungen, c = await _erkennen(client_module, monkeypatch)
+    c._compute_poll_oids()
+    for oid in (PUMPE, MISCHER):
+        assert beschreibungen[oid]["level"] == "info", oid
+        assert beschreibungen[oid]["enabled_default"] is True, oid
+        assert oid in c.poll_oids, oid
+    assert beschreibungen[MISCHER]["name"] == "Mischer Wärmeerzeuger"
 
 
 @requires_ha()

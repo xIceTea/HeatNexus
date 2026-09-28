@@ -132,11 +132,11 @@ export const BedienenMixin = (Basis) =>
       abbrechen.className = "dialog-taste";
       // Im Beendendialog wäre „Abbrechen" zweideutig: Es liest sich als
       // Abbruch des laufenden Vorgangs statt als Abbruch der Rückfrage.
-      abbrechen.textContent = (tasten && tasten.zurueck) || "Abbrechen";
+      abbrechen.textContent = this._t((tasten && tasten.zurueck) || "Abbrechen");
       const ausloesen = document.createElement("button");
       ausloesen.type = "button";
       ausloesen.className = "dialog-taste betont";
-      ausloesen.textContent = (tasten && tasten.ja) || "Ja, ausführen";
+      ausloesen.textContent = this._t((tasten && tasten.ja) || "Ja, ausführen");
       leiste.append(abbrechen, ausloesen);
 
       dialog.append(ueberschrift, text);
@@ -285,12 +285,11 @@ export const BedienenMixin = (Basis) =>
     if (!zustand) return "";
     if (bereich === "button") {
       const zeitpunkt = new Date(zustand.state);
-      if (Number.isNaN(zeitpunkt.getTime())) return "noch nie ausgelöst";
-      return `zuletzt ${zeitpunkt.toLocaleTimeString(undefined, {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}`;
+      if (Number.isNaN(zeitpunkt.getTime())) return this._t("noch nie ausgelöst");
+      return this._tMit("zuletzt {zeit}", {
+        zeit: zeitpunkt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
+      });
     }
-    return laeuft ? "läuft" : "aus";
+    return this._t(laeuft ? "läuft" : "aus");
   }
   };

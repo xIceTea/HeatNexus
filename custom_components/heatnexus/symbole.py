@@ -10,6 +10,7 @@ import re
 from typing import Any
 
 from . import geraete
+from .helpers import mustername
 
 # Symbol je Funktionstyp, für Überschriften und als Rückfall einer Zeile.
 FCT_SYMBOL: dict[int, str] = geraete.SYMBOLE
@@ -120,7 +121,7 @@ def symbol_fuer_wert(eintrag: dict[str, Any], fct_type: Any = None) -> str:
         for _muster, schluesselliste, symbol in WERT_SYMBOLE:
             if schluessel in schluesselliste:
                 return symbol
-    name = eintrag.get("name") or ""
+    name = mustername(eintrag)
     for muster, _schluesselliste, symbol in WERT_SYMBOLE:
         if muster.search(name):
             return symbol

@@ -13,7 +13,7 @@ from xml.etree import ElementTree
 
 import pytest
 
-from .conftest import load_standalone
+from .conftest import auf_englisch, load_standalone, zurueck_auf_deutsch
 
 
 @pytest.fixture(scope="module")
@@ -325,6 +325,95 @@ def test_die_pumpe_wird_auch_ohne_deutschen_namen_gefunden(werte, fct, messwert,
     }
     module = werte.zeichenbare_module([teil], modulpumpe=True)
     assert module and module[0]["pumpe"] == "sensor.pumpe"
+
+
+@pytest.fixture(scope="module")
+def englische_namen():
+    datei = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "device_db.json"
+    return json.loads(datei.read_text(encoding="utf-8"))["sprachen"]["en"]["names"]
+
+
+@pytest.mark.parametrize(
+    ("fct", "messwerte", "art", "feld", "adresse"),
+    [
+        (9, ("0/7",), "kessel", "pumpe", "58/12"),
+        (10, ("0/7",), "kessel", "pumpe", "58/12"),
+        (9, ("0/7",), "kessel", "mischer", "58/115"),
+        (10, ("0/7",), "kessel", "mischer", "58/115"),
+        (16, ("21/65",), "puffer", "pumpe", "1/22"),
+        (14, ("0/2",), "heizkreis", "pumpe", "1/20"),
+        (14, ("0/2",), "heizkreis", "mischer", "1/21"),
+        (1, ("0/2",), "heizkreis", "pumpe", "58/48"),
+        (1, ("0/2",), "heizkreis", "mischer", "58/49"),
+        (2, ("0/4",), "wasser", "pumpe", "58/52"),
+        (2, ("0/4", "0/118"), "zirkulation", "pumpe", "59/18"),
+    ],
+)
+def test_pumpen_und_mischer_tragen_auch_unter_englischen_namen(
+    werte, englische_namen, fct, messwerte, art, feld, adresse
+):
+    """Name aus der englischen Herstellertabelle, Schlüssel aus der Adresse."""
+    kanonisch = load_standalone("kanonisch")
+
+    def eintrag(gnmn: str) -> dict:
+        gn, mn = gnmn.split("/")
+        return {
+            "entity_id": f"sensor.a_{gn}_{mn}",
+            "name": englische_namen[gnmn],
+            "hat_wert": True,
+            "bereich": "sensor",
+            "unit": "%",
+            "schluessel": kanonisch.schluessel(f"0000ABCD1234-0-{gn}-{mn}-0"),
+        }
+
+    teil = {
+        "name": "Teil",
+        "fct_type": fct,
+        "entitaeten": [eintrag(a) for a in (*messwerte, adresse)],
+    }
+    modul = next(m for m in werte.zeichenbare_module([teil]) if m["art"] == art)
+    assert modul[feld] == eintrag(adresse)["entity_id"]
+
+
+def _kessel_mit_mischer() -> dict:
+    return {
+        "name": "LogWIN",
+        "fct_type": 10,
+        "entitaeten": [
+            {
+                "entity_id": "sensor.kessel",
+                "name": "Kesseltemperatur Ist",
+                "hat_wert": True,
+                "bereich": "sensor",
+                "schluessel": "boiler_temperature",
+            },
+            {
+                "entity_id": "sensor.kesselmischer",
+                "name": "Mischer Wärmeerzeuger",
+                "hat_wert": True,
+                "bereich": "sensor",
+                "unit": "%",
+                "schluessel": "boiler_mixer_position",
+            },
+        ],
+    }
+
+
+def test_der_kesselmischer_steht_im_bild(karte):
+    """Ventil in der Zeichnung, Anzeiger darüber – wie am Heizkreis."""
+    mit = karte.anlagenschema([_kessel_mit_mischer()])
+    ohne = karte.anlagenschema([_kessel_mit_mischer()], mischer=False)
+    assert [e["entity"] for e in mit["mischer"]] == ["sensor.kesselmischer"]
+    assert "M 86 104" in mit["svg"]
+    assert "M 86 104" not in ohne["svg"]
+
+
+def test_das_vorlaufstueck_des_kesselmischers_endet_am_kessel(karte, zeichnung):
+    """Der Kesselkörper beginnt höher als der Heizkörper; das Stück darf ihn nicht überdecken."""
+    eintrag = karte.anlagenschema([_kessel_mit_mischer()])["mischer"][0]
+    ende = float(eintrag["stutzen_top"].rstrip("%")) + float(eintrag["stutzen_hoehe"].rstrip("%"))
+    assert ende <= 120 / zeichnung.HOEHE * 100 + 0.01
+    assert float(eintrag["top"].rstrip("%")) < ende
 
 
 def _pumpenmodul():
@@ -1632,3 +1721,33 @@ def test_duowin_im_namen_ist_kein_gaskessel(werte):
     teil = {"name": "DuoWIN", "fct_type": 9, "entitaeten": []}
 
     assert werte.kesselart_des_teils(teil) != "gas_oel"
+
+
+def test_englische_namen_ergeben_dasselbe_schaubild(karte, werte):
+    """Bauteile, Werte und Kesselart folgen dem deutschen Namen der Entität."""
+    kessel = _teil(
+        "Kessel",
+        25,
+        [("sensor.leistung", "Kesselleistung"), ("sensor.kessel_ist", "Kesseltemperatur Ist")],
+    )
+    kessel["entitaeten"].insert(
+        0,
+        {
+            "entity_id": "sensor.brennstoff",
+            "name": "Aktueller Brennstoff",
+            "bereich": "sensor",
+            "hat_wert": True,
+            "text": "Pellets",
+        },
+    )
+    kreis = _teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [("binary_sensor.pumpe", "Heizkreispumpe"), ("sensor.vorlauf", "Vorlauftemperatur Ist")],
+    )
+    # Je Anlagenteil alphabetisch: Die Ersatznamen sortieren dann wie die deutschen.
+    deutsch = [kessel, _anlage_mit_ladepumpe()[1], kreis]
+    englisch, namen = auf_englisch(deutsch)
+
+    assert zurueck_auf_deutsch(karte.anlagenschema(englisch), namen) == karte.anlagenschema(deutsch)
+    assert werte.kesselart_des_teils(englisch[0]) == "pellets"

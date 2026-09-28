@@ -17,6 +17,14 @@ from .device_db import get_enum
 _LOGGER = logging.getLogger(__name__)
 
 
+def mustername(eintrag: dict[str, Any]) -> str:
+    """Der Name, an dem Wortlisten und Muster einen Datenpunkt erkennen.
+
+    Sie sind deutsch; bei fremder Sprache trägt `name_de` den deutschen Namen.
+    """
+    return eintrag.get("name_de") or eintrag.get("name") or ""
+
+
 def enum_texte(beschreibung: dict[str, Any]) -> dict[int, str]:
     """Auswahltexte eines Datenpunkts: zuerst die der Anlage, sonst die Tabellen.
 
@@ -150,7 +158,7 @@ def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
         # zählt Vorgänge. Ohne Statistikklasse führt der Rekorder für ihn keinen
         # Langzeitverlauf.
         if beschreibung.get("type") == "sensor" and beschreibung.get("state_class") is None:
-            name = (beschreibung.get("name") or "").lower()
+            name = mustername(beschreibung).lower()
             if any(wort in name for wort in ZAEHLER_WOERTER):
                 beschreibung["state_class"] = "total_increasing"
         return beschreibung
@@ -171,7 +179,7 @@ def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
         # Zahlenfelder kennen weder Statistik noch Anzeigegenauigkeit.
         return beschreibung
     if beschreibung.get("state_class") is None:
-        name = (beschreibung.get("name") or "").lower()
+        name = mustername(beschreibung).lower()
         if any(wort in name for wort in ZAEHLER_WOERTER):
             statistik = "total_increasing"
         beschreibung["state_class"] = statistik

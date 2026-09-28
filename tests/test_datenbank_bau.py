@@ -83,3 +83,32 @@ def test_ruecksetzwerte_werden_uebernommen(generator):
 def test_neustart_merkmal_wird_auch_in_gruppen_gefunden(generator):
     ebenen = generator.sammle_ebenen(EBENEN_MIT_MERKMALEN, {})
     assert ebenen["9"]["neustart"] == ["42/18"]
+
+
+def test_fremdsprache_nimmt_namen_und_auswahltexte_der_herstellerdatei(generator):
+    sprache = generator.sammle_sprache(
+        {"oids": {"0/0": "Outside temperature", "0/1": " "}, "enums": {"9/75": {"1": "On"}}},
+        {"0/1": "Room temperature"},
+    )
+    assert sprache["names"] == {"0/0": "Outside temperature", "0/1": "Room temperature"}
+    assert sprache["enums"] == {"9/75": {"1": "On"}}
+
+
+def test_die_geraetedatei_der_fremdsprache_liegt_neben_der_deutschen(generator, tmp_path):
+    deutsch = tmp_path / "PW_VarIdentTexte_de.xml"
+    englisch = tmp_path / "PW_VarIdentTexte_en.xml"
+    englisch.write_text(
+        '<VarIdentTexte lang="en"><gn id="0"><mn id="1">Actual</mn></gn></VarIdentTexte>',
+        encoding="utf-8",
+    )
+    assert generator.geraetetexte_fuer(deutsch, "en") == englisch
+    assert generator.geraetetexte_fuer(deutsch, "it") is None
+    assert generator.geraetetexte_fuer(None, "en") is None
+
+
+def test_jede_erzeugte_stoerungstabelle_wird_gelesen(generator, error_texts):
+    assert set(error_texts.SPRACHEN) == {"de", *generator.FREMDSPRACHEN}
+
+
+def test_die_englischen_stoerungstexte_decken_die_deutschen_ab(error_texts):
+    assert set(error_texts._table("en")) == set(error_texts._table("de"))

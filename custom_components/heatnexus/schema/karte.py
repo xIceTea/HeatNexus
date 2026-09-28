@@ -34,8 +34,8 @@ from .zeichnung import (
     KANTEN_JE_ART,
     KANTEN_STANDARD,
     LADE_TOLERANZ,
+    MISCHER_JE_ART,
     MISCHER_MARKE,
-    MISCHER_Y,
     MODUL_BREITE,
     RAND,
     RUECKLAUF_Y,
@@ -190,14 +190,14 @@ def anlagenschema(
         # drehendes Ventil läse sich wie eine Pumpe, und die dreht sich im
         # Bild schon. Der Anzeiger schwenkt, das Stück Vorlauf darüber färbt
         # sich nach der Beimischung.
-        if modul.get("mischer"):
+        if modul.get("mischer") and modul["art"] in MISCHER_JE_ART:
             mitte = x + MODUL_BREITE // 2
-            oben, _unten = KANTEN_JE_ART["heizkreis"]
+            ventil, oben = MISCHER_JE_ART[modul["art"]]
             mischer.append(
                 {
                     "entity": modul["mischer"],
                     "left": f"{mitte / breite * 100:.2f}%",
-                    "top": f"{MISCHER_Y / HOEHE * 100:.2f}%",
+                    "top": f"{ventil / HOEHE * 100:.2f}%",
                     "groesse": f"{MISCHER_MARKE / breite * 100:.2f}%",
                     # Das Stück Vorlauf zwischen Leitung und Ventil.
                     "stutzen_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
