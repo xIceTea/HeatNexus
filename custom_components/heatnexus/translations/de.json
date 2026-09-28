@@ -286,6 +286,32 @@
             "name": "Eingriffe heute"
           }
         }
+      },
+      "automatik_gedaempft": {
+        "name": "Gedämpfte Außentemperatur"
+      },
+      "automatik_heizgrenze": {
+        "name": "Heizgrenze"
+      },
+      "automatik_abweichung": {
+        "name": "Räume zum Ziel"
+      },
+      "automatik_sonnenquote": {
+        "name": "Sonnenquote heute"
+      },
+      "automatik_eingriffe": {
+        "name": "Eingriffe heute"
+      },
+      "automatik_letzter_eingriff": {
+        "name": "Letzter Eingriff"
+      },
+      "automatik_naechste_entscheidung": {
+        "name": "Nächste Entscheidung"
+      }
+    },
+    "binary_sensor": {
+      "automatik_stoerung": {
+        "name": "Störung"
       }
     }
   },

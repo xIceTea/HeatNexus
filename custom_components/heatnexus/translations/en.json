@@ -286,6 +286,32 @@
             "name": "Interventions today"
           }
         }
+      },
+      "automatik_gedaempft": {
+        "name": "Damped outdoor temperature"
+      },
+      "automatik_heizgrenze": {
+        "name": "Heating limit"
+      },
+      "automatik_abweichung": {
+        "name": "Rooms to target"
+      },
+      "automatik_sonnenquote": {
+        "name": "Sunshine share today"
+      },
+      "automatik_eingriffe": {
+        "name": "Interventions today"
+      },
+      "automatik_letzter_eingriff": {
+        "name": "Last intervention"
+      },
+      "automatik_naechste_entscheidung": {
+        "name": "Next decision"
+      }
+    },
+    "binary_sensor": {
+      "automatik_stoerung": {
+        "name": "Fault"
       }
     }
   },

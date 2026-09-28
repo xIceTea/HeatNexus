@@ -6,10 +6,12 @@ Signal; abgefragt wird nichts.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any
 
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.components.select import SelectEntity
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -17,13 +19,29 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
+from ..registrierung import uebergeordnet
+from . import regel
 from .konfig import MODI
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 from .profile import AUSGEWOGEN, AUSRICHTUNGEN
 from .regel import Zustand
-from .verwaltung import SIGNAL_NEU, Verwaltung, unique_id, verwaltung_holen
+from .verwaltung import SIGNAL_NEU, Verwaltung, geraet_kennung, unique_id, verwaltung_holen
+
+
+def geraet_info(laufzeit: Laufzeit) -> DeviceInfo:
+    """Ein eigenes Gerät je Automatik, unter ihrem Heizkreis."""
+    anlage = getattr(laufzeit.coordinator, "label", "") or ""
+    name = f"Automatik {laufzeit.name}"
+    return DeviceInfo(
+        identifiers={(DOMAIN, geraet_kennung(laufzeit.device_id))},
+        name=f"{anlage} · {name}" if anlage else name,
+        manufacturer="HeatNexus",
+        model="Automatik",
+        **uebergeordnet(laufzeit.hass, laufzeit.device_id, laufzeit.entry_id),
+    )
 
 
 class AutomatikEntitaet(Entity):
@@ -37,7 +55,7 @@ class AutomatikEntitaet(Entity):
         self._verwaltung = verwaltung
         self._device_id = device_id
         self._attr_unique_id = unique_id(device_id, self.ART)
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, device_id)})
+        self._attr_device_info = geraet_info(verwaltung.laufzeiten[device_id])
 
     @property
     def _laufzeit(self) -> Laufzeit | None:
@@ -134,12 +152,175 @@ class AutomatikZustand(AutomatikEntitaet, SensorEntity):
         }
 
 
+class AutomatikWert(AutomatikEntitaet, SensorEntity):
+    """Ein Messwert der Automatik; ohne Lauf bleibt er leer."""
+
+    def _wert(self, laufzeit: Laufzeit) -> Any:
+        raise NotImplementedError
+
+    @property
+    def native_value(self) -> Any:
+        laufzeit = self._laufzeit
+        return self._wert(laufzeit) if laufzeit is not None else None
+
+
+class AutomatikGedaempft(AutomatikWert):
+    """Die gedämpfte Außentemperatur, mit der die Automatik rechnet."""
+
+    ART = "gedaempft"
+    _attr_translation_key = "automatik_gedaempft"
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = "°C"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def _wert(self, laufzeit: Laufzeit) -> float | None:
+        wert = laufzeit.lage.at_gedaempft if laufzeit.lage else None
+        return None if wert is None else round(wert, 1)
+
+
+class AutomatikHeizgrenze(AutomatikWert):
+    """Die Heizgrenze, die gerade gilt: Profil, Ausrichtung und eigene Werte zusammen."""
+
+    ART = "heizgrenze"
+    _attr_translation_key = "automatik_heizgrenze"
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = "°C"
+
+    def _wert(self, laufzeit: Laufzeit) -> float:
+        return laufzeit.werte.heizgrenze
+
+
+class AutomatikAbweichung(AutomatikWert):
+    """Wie weit die Räume über oder unter ihrem Ziel liegen."""
+
+    ART = "abweichung"
+    _attr_translation_key = "automatik_abweichung"
+    _attr_native_unit_of_measurement = "K"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 1
+
+    def _wert(self, laufzeit: Laufzeit) -> float | None:
+        lage, g = laufzeit.lage, laufzeit.gedaechtnis
+        soll = g.absenkung_basis or g.saison_soll or (lage.soll if lage else None)
+        if lage is None or lage.raum is None or soll is None:
+            return None
+        return round(regel.abweichung(lage, soll), 2)
+
+
+class AutomatikSonnenquote(AutomatikWert):
+    """Die Sonnenquote des Tages, nach der der Sonnentag entschieden wird."""
+
+    ART = "sonnenquote"
+    _attr_translation_key = "automatik_sonnenquote"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def _wert(self, laufzeit: Laufzeit) -> int | None:
+        quote = laufzeit.lage.sonnenquote if laufzeit.lage else None
+        return None if quote is None else round(quote)
+
+
+class AutomatikEingriffe(AutomatikWert):
+    """Eingriffe an die Steuerung heute; das Budget steht als Attribut."""
+
+    ART = "eingriffe"
+    _attr_translation_key = "automatik_eingriffe"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def _wert(self, laufzeit: Laufzeit) -> int:
+        stand = laufzeit.steller.stand
+        return stand.eingriffe if stand.tag == dt_util.now().date().isoformat() else 0
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"budget": self._laufzeit.werte.budget} if self._laufzeit else {}
+
+
+class AutomatikLetzterEingriff(AutomatikWert):
+    """Wann die Automatik zuletzt an die Steuerung geschrieben hat, und warum."""
+
+    ART = "letzter_eingriff"
+    _attr_translation_key = "automatik_letzter_eingriff"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _unrecorded_attributes = frozenset({"text"})
+
+    def _eintrag(self) -> dict[str, Any] | None:
+        laufzeit = self._laufzeit
+        protokoll = laufzeit.steller.stand.protokoll if laufzeit else []
+        return next((e for e in protokoll if e.get("art") == "geschrieben"), None)
+
+    def _wert(self, laufzeit: Laufzeit) -> datetime | None:
+        eintrag = self._eintrag()
+        return datetime.fromisoformat(eintrag["zeit"]) if eintrag else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        eintrag = self._eintrag()
+        return {"text": eintrag["text"]} if eintrag else {}
+
+
+class AutomatikNaechsteEntscheidung(AutomatikWert):
+    """Die nächste Entscheidungszeit des Profils, heute oder morgen."""
+
+    ART = "naechste_entscheidung"
+    _attr_translation_key = "automatik_naechste_entscheidung"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def _wert(self, laufzeit: Laufzeit) -> datetime | None:
+        jetzt = dt_util.now()
+        werte = laufzeit.werte
+        zeiten = []
+        for uhrzeit in (werte.entscheidung, werte.nachpruefung):
+            if not uhrzeit:
+                continue
+            stunde, minute = (int(teil) for teil in uhrzeit.split(":"))
+            zeit = jetzt.replace(hour=stunde, minute=minute, second=0, microsecond=0)
+            zeiten.append(zeit if zeit > jetzt else zeit + timedelta(days=1))
+        return min(zeiten) if zeiten else None
+
+
+class AutomatikStoerung(AutomatikEntitaet, BinarySensorEntity):
+    """An, wenn die Automatik nicht wie vorgesehen schreiben kann oder Sicherheit greift."""
+
+    ART = "stoerung"
+    _attr_translation_key = "automatik_stoerung"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    @property
+    def is_on(self) -> bool | None:
+        laufzeit = self._laufzeit
+        if laufzeit is None:
+            return None
+        gesperrt = laufzeit.steller.stand.gesperrt_bis
+        bis = dt_util.parse_datetime(gesperrt) if gesperrt else None
+        return laufzeit.zustand == Zustand.SICHERHEIT or (bis is not None and bis > dt_util.now())
+
+
 KLASSEN: dict[str, type[AutomatikEntitaet]] = {
     "schalter": AutomatikSchalter,
     "modus": AutomatikModus,
     "ausrichtung": AutomatikAusrichtung,
     "zustand": AutomatikZustand,
+    "gedaempft": AutomatikGedaempft,
+    "heizgrenze": AutomatikHeizgrenze,
+    "abweichung": AutomatikAbweichung,
+    "sonnenquote": AutomatikSonnenquote,
+    "eingriffe": AutomatikEingriffe,
+    "letzter_eingriff": AutomatikLetzterEingriff,
+    "naechste_entscheidung": AutomatikNaechsteEntscheidung,
+    "stoerung": AutomatikStoerung,
 }
+# Welche Arten eine Plattform anlegt; die Domäne je Art steht in `verwaltung.DOMAENE_JE_ART`.
+SENSOR_ARTEN = (
+    "zustand",
+    "gedaempft",
+    "heizgrenze",
+    "abweichung",
+    "sonnenquote",
+    "eingriffe",
+    "letzter_eingriff",
+    "naechste_entscheidung",
+)
 
 
 @callback

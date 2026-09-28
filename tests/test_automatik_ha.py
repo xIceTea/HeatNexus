@@ -1013,3 +1013,72 @@ async def test_ausrichtung_ist_eine_auswahl_entitaet(hass, anlage):
 
     assert verwaltung.konfig(HEIZKREIS)["ausrichtung"] == "eco"
     assert auswahl.current_option == "eco"
+
+
+async def _eingerichtet(hass, verwaltung):
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
+    )
+    return verwaltung.laufzeiten[HEIZKREIS]
+
+
+async def test_automatik_bekommt_ein_eigenes_geraet(hass, anlage):
+    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    for art in ("schalter", "zustand", "gedaempft"):
+        geraet = KLASSEN[art](verwaltung, HEIZKREIS).device_info
+        assert geraet["identifiers"] == {(DOMAIN, f"{HEIZKREIS}-automatik")}
+        assert geraet["name"] == f"{ANLAGE} · Automatik Heizkreis"
+        assert geraet["model"] == "Automatik"
+
+
+async def test_sensoren_der_automatik(hass, anlage, freezer):
+    from datetime import datetime
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await verwaltung.einstellen(HEIZKREIS, {"modus": "schalten"})
+    await laufzeit.auswerten(entscheidungszeit=True)
+
+    def wert(art):
+        return KLASSEN[art](verwaltung, HEIZKREIS).native_value
+
+    assert wert("gedaempft") == round(laufzeit.lage.at_gedaempft, 1)
+    assert wert("heizgrenze") == laufzeit.werte.heizgrenze
+    assert wert("abweichung") == pytest.approx(0.4)
+    assert wert("sonnenquote") == round(laufzeit.lage.sonnenquote)
+    assert wert("eingriffe") == 1
+    assert wert("letzter_eingriff") == datetime.fromisoformat(
+        laufzeit.steller.stand.protokoll[0]["zeit"]
+    )
+    naechste = wert("naechste_entscheidung")
+    assert naechste > dt_util.now()
+    assert (naechste.hour, naechste.minute) == (7, 0)
+
+
+async def test_stoerung_meldet_eine_gesperrte_steuerung(hass, anlage, freezer):
+    from dataclasses import replace
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    stoerung = KLASSEN["stoerung"](verwaltung, HEIZKREIS)
+    assert stoerung.is_on is False
+
+    bis = (dt_util.now() + timedelta(hours=1)).isoformat()
+    laufzeit.steller.stand = replace(laufzeit.steller.stand, gesperrt_bis=bis)
+    assert stoerung.is_on is True

@@ -14,6 +14,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 from homeassistant.helpers.storage import Store
@@ -30,13 +31,21 @@ STORE_VERSION = 1
 SPEICHER_VERZOEGERUNG_S = 30
 DATEN_SCHLUESSEL = f"{DOMAIN}_automatik"
 SIGNAL_NEU = f"{DOMAIN}_automatik_neu_{{}}"
-ARTEN = ("schalter", "modus", "ausrichtung", "zustand")
 DOMAENE_JE_ART = {
     "schalter": "switch",
     "modus": "select",
     "ausrichtung": "select",
     "zustand": "sensor",
+    "gedaempft": "sensor",
+    "heizgrenze": "sensor",
+    "abweichung": "sensor",
+    "sonnenquote": "sensor",
+    "eingriffe": "sensor",
+    "letzter_eingriff": "sensor",
+    "naechste_entscheidung": "sensor",
+    "stoerung": "binary_sensor",
 }
+ARTEN = tuple(DOMAENE_JE_ART)
 # Mehrere Heizkreise teilen sich meist eine Wetter-Entität; gefragt wird sie einmal.
 PROGNOSE_GUELTIG = timedelta(minutes=50)
 
@@ -49,6 +58,11 @@ def verwaltung_holen(hass: HomeAssistant) -> Verwaltung:
 
 
 AUTOMATIK_MARKE = "-automatik-"
+
+
+def geraet_kennung(device_id: str) -> str:
+    """Kennung des Automatik-Geräts eines Heizkreises."""
+    return f"{device_id}-automatik"
 
 
 def unique_id(device_id: str, art: str) -> str:
@@ -268,4 +282,7 @@ class Verwaltung:
             kennung = unique_id(device_id, art)
             if entity_id := register.async_get_entity_id(DOMAENE_JE_ART[art], DOMAIN, kennung):
                 register.async_remove(entity_id)
+        geraete = dr.async_get(self.hass)
+        if geraet := geraete.async_get_device(identifiers={(DOMAIN, geraet_kennung(device_id))}):
+            geraete.async_remove_device(geraet.id)
         await self._store.async_save(self._daten)

@@ -191,9 +191,18 @@ meldet in Home Assistant oft weiter seinen letzten Wert. Zeigt ein Raumfühler
 über Stunden denselben Wert, gilt er als veraltet und zählt nicht zum Raumwert;
 die Raum-Kachel nennt ihn dann ausdrücklich.
 
-Je Heizkreis entstehen vier Entitäten: der Schalter **Automatik**, die Auswahlen
-**Automatik-Modus** und **Automatik-Ausrichtung** und der Sensor
-**Automatik-Zustand** mit der Begründung als Attribut. Damit lässt sie sich auch in Automationen und Dashboards verwenden.
+Je eingerichteter Automatik entsteht ein eigenes Gerät **Automatik <Heizkreis>**
+unter dem Heizkreis. Es führt:
+
+- den Schalter **Automatik** und die Auswahlen **Automatik-Modus** und
+  **Automatik-Ausrichtung**,
+- den Sensor **Automatik-Zustand** mit der Begründung als Attribut,
+- die Werte, mit denen sie rechnet: **Gedämpfte Außentemperatur**,
+  **Heizgrenze** (die gerade gilt), **Räume zum Ziel**, **Sonnenquote heute**,
+- **Eingriffe heute** mit dem Budget als Attribut, **Letzter Eingriff** mit
+  dem Grund, **Nächste Entscheidung**,
+- **Störung**: an, solange die Steuerung Eingriffe ablehnt oder die
+  Sicherheitsregel greift. Damit lässt sie sich auch in Automationen und Dashboards verwenden.
 
 ## Eigene Werte über Labels
 

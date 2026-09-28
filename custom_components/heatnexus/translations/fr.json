@@ -286,6 +286,32 @@
             "name": "Interventions aujourd'hui"
           }
         }
+      },
+      "automatik_gedaempft": {
+        "name": "Température extérieure amortie"
+      },
+      "automatik_heizgrenze": {
+        "name": "Limite de chauffage"
+      },
+      "automatik_abweichung": {
+        "name": "Pièces par rapport à la consigne"
+      },
+      "automatik_sonnenquote": {
+        "name": "Part d'ensoleillement du jour"
+      },
+      "automatik_eingriffe": {
+        "name": "Interventions du jour"
+      },
+      "automatik_letzter_eingriff": {
+        "name": "Dernière intervention"
+      },
+      "automatik_naechste_entscheidung": {
+        "name": "Prochaine décision"
+      }
+    },
+    "binary_sensor": {
+      "automatik_stoerung": {
+        "name": "Défaut"
       }
     }
   },
