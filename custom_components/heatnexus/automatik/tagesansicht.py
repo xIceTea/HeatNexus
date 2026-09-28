@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.util import dt as dt_util
 
-from . import eingaben, regel
+from . import eingaben, regel, stundenmodus
+from .steller import nur_ww_wert
 
 if TYPE_CHECKING:
     from .laufzeit import Laufzeit
@@ -69,6 +70,17 @@ def stunden(laufzeit: Laufzeit, tag: date, g: regel.Gedaechtnis) -> list[dict[st
     jetzt = dt_util.now()
     vorbei = jetzt.hour if tag == jetzt.date() else (24 if tag < jetzt.date() else 0)
     leer = {"roh": None, "korrigiert": None, "wolken": None}
+    vermerke = {
+        int(s): w["aktion"] for s, w in gemessen.items() if isinstance(w, dict) and w.get("aktion")
+    }
+    ergaenzt = stundenmodus.ergaenzen(
+        vermerke,
+        laufzeit.steller.stand.protokoll,
+        tag,
+        vorbei,
+        nur_ww_wert(laufzeit.steller.angeboten),
+        dt_util.DEFAULT_TIME_ZONE,
+    )
     return [
         {
             "stunde": stunde,
@@ -77,9 +89,10 @@ def stunden(laufzeit: Laufzeit, tag: date, g: regel.Gedaechtnis) -> list[dict[st
             "raum": (gemessen.get(str(stunde)) or {}).get("raum"),
             "gedaempft": (gemessen.get(str(stunde)) or {}).get("gedaempft"),
             "vorrang": bool((gemessen.get(str(stunde)) or {}).get("vorrang")),
-            # Vergangene Stunden zeigen, was galt; ohne Vermerk lief das Programm.
+            # Vergangene Stunden zeigen, was galt; Lücken erben den vorigen Modus.
             "aktion": (gemessen.get(str(stunde)) or {}).get("aktion")
-            or ("programm" if stunde < vorbei else aktion(g, stunde, tag)),
+            or ergaenzt.get(stunde)
+            or aktion(g, stunde, tag),
         }
         for stunde in range(24)
     ]

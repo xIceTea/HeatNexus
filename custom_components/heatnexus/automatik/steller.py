@@ -109,6 +109,11 @@ class Steller:
         self._schreiben = schreiben
         self.stand = stand or Stand()
 
+    @property
+    def angeboten(self) -> tuple[int, ...]:
+        """Die Betriebswahlen, die der Heizkreis anbietet."""
+        return self._angeboten
+
     def vermerken(
         self, jetzt: datetime, art: str, text: str, werte: Iterable[tuple[str, str]] = ()
     ) -> None:
