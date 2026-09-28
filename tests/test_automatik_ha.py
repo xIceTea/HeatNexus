@@ -1396,6 +1396,28 @@ async def test_entitaeten_der_automatik_gehoeren_dem_untereintrag(hass, hass_ws_
     assert aufnahme.untereintraege == [verwaltung.subeintrag(entry)] != [None]
 
 
+async def test_entscheidungszeit_waehrend_einer_auswertung_geht_nicht_verloren(
+    hass, hass_ws_client, anlage, freezer
+):
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+
+    laufzeit._laeuft = True
+    await laufzeit._entscheidungszeit(None)
+    assert coordinator.client.geschrieben == []
+    laufzeit._laeuft = False
+    await laufzeit._takt(None)
+
+    assert coordinator.client.geschrieben == [
+        (f"{PREFIX}/3/4/0", "19.5"),
+        (f"{PREFIX}/2/10/0", "400"),
+    ]
+
+
 async def test_regel_wartet_auf_die_werte_der_steuerung(hass, anlage, freezer):
     from datetime import timedelta
 

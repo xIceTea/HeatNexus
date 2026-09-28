@@ -290,7 +290,10 @@ class Laufzeit(QuellenMixin):
             await self.auswerten()
 
     async def _entscheidungszeit(self, _jetzt: datetime) -> None:
-        await self.auswerten(entscheidungszeit=True)
+        # Läuft gerade eine Auswertung, holt der nächste Lauf die Entscheidung nach.
+        self._entscheidung_offen = True
+        self._geaendert = True
+        await self.auswerten()
 
     async def _prognose_takt(self, _jetzt: datetime) -> None:
         await self._prognose_holen()
