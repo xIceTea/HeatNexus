@@ -57,6 +57,7 @@ export const PROTOKOLL_ARTEN = {
   budget: "Budget erreicht",
   geprueft: "geprüft",
   eingriff: "Handeingriff",
+  einstellung: "Einstellung",
 };
 
 export const PROFILE = [

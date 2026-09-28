@@ -460,5 +460,6 @@
   "Absenkbetrieb": "Setback mode",
   "Die Steuerung schaltet 1 K darüber ab und 1 K darunter wieder ein, nach der aktuellen Außentemperatur.": "The controller switches off 1 K above and back on 1 K below, using the current outdoor temperature.",
   "Die Steuerung liefert ihre Heizgrenze nicht; die Automatik rechnet mit 17 °C.": "The controller does not report its heating limit; the automation uses 17 °C.",
-  "Eingriffe {zahl} / {budget}": "Interventions {zahl} / {budget}"
+  "Eingriffe {zahl} / {budget}": "Interventions {zahl} / {budget}",
+  "Einstellung": "Setting"
 }

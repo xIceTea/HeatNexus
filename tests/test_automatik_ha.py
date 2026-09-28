@@ -1235,3 +1235,32 @@ async def test_diagnose_enthaelt_die_automatik(hass, anlage, freezer):
     assert auszug["protokoll"][0]["art"] == "haette"
     for schluessel in ("konfig", "gedaechtnis", "steller", "vorrang", "verlauf", "korrektur"):
         assert schluessel in auszug
+
+
+async def test_teilweise_gesetzte_heizgrenzen_stehen_im_protokoll(hass, hass_ws_client, anlage):
+    """Lehnt die Steuerung den zweiten Wert ab, bleibt der erste nachvollziehbar."""
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    geschrieben = []
+
+    async def update(oid: str, wert: str) -> None:
+        if oid.endswith("/3/2/0"):
+            raise RuntimeError("abgelehnt")
+        geschrieben.append((oid, wert))
+
+    coordinator.client.update = update
+    antwort = await _senden(
+        client,
+        type="heatnexus/automatik/heizgrenzen",
+        heizkreis=HEIZKREIS,
+        heizbetrieb=17.5,
+        absenkbetrieb=4.0,
+    )
+
+    assert not antwort["success"]
+    assert "Absenkbetrieb" in antwort["error"]["message"]
+    assert geschrieben == [(f"{PREFIX}/3/21/0", "17.5")]
+    eintrag = verwaltung.laufzeiten[HEIZKREIS].steller.stand.protokoll[0]
+    assert eintrag["art"] == "einstellung"
+    assert "Heizbetrieb 17,5 °C" in eintrag["text"]
