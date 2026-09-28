@@ -422,7 +422,27 @@ export const AutomatikMixin = (Basis) =>
       profil.className = "automatik-profil";
       const eintrag = PROFILE.find(([name]) => name === kreis.konfig.profil);
       profil.textContent = eintrag ? eintrag[1] : kreis.konfig.profil;
-      zeile.append(schalter, segment, profil);
+      // Die Ausrichtung ist die Einstellung, die man im Alltag wechselt; sie steht deshalb hier.
+      const ausrichtung = document.createElement("div");
+      ausrichtung.className = "automatik-segment ausrichtung";
+      const gewaehlt = kreis.konfig.ausrichtung || "ausgewogen";
+      [
+        ["eco", "Eco"],
+        ["ausgewogen", "Ausgewogen"],
+        ["komfort", "Komfort"],
+      ].forEach(([wert, titel]) => {
+        const taste = document.createElement("button");
+        taste.type = "button";
+        taste.textContent = titel;
+        taste.title = this._t((AUSRICHTUNGEN.find(([name]) => name === wert) || [])[1] || titel);
+        taste.disabled = !darf;
+        taste.setAttribute("aria-pressed", String(gewaehlt === wert));
+        taste.addEventListener("click", () => {
+          if (gewaehlt !== wert) this._automatikEinstellen(kreis, { ausrichtung: wert });
+        });
+        ausrichtung.appendChild(taste);
+      });
+      zeile.append(schalter, segment, ausrichtung, profil);
       return zeile;
     }
 

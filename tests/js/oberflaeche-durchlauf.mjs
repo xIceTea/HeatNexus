@@ -740,6 +740,10 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     hinweise: [...wurzel.querySelectorAll(".automatik-hinweis")].map((t) => String(t.textContent || "").trim()),
     tagesleiste: wurzel.querySelectorAll(".automatik-tag-bild").length,
     knoepfe: [...wurzel.querySelectorAll(".automatik-knopf")].map((k) => String(k.textContent || "").trim()),
+    ausrichtung: wurzel
+      .querySelectorAll(".automatik-segment")
+      .filter((segment) => segment.classList.contains("ausrichtung"))
+      .flatMap((segment) => segment.children.map((t) => [String(t.textContent || "").trim(), t.getAttribute("aria-pressed")])),
     // Name · Zustand links, Einrichtung und Hilfe rechts.
     kopf: wurzel
       .querySelector(".automatik")
