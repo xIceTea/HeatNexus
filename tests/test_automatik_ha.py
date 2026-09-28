@@ -132,9 +132,10 @@ async def _schalten(client) -> None:
     assert antwort["success"], antwort
 
 
-async def test_einrichten_startet_im_beobachtungsmodus(hass, hass_ws_client, anlage):
+async def test_einrichten_startet_im_beobachtungsmodus(hass, hass_ws_client, anlage, freezer):
     verwaltung, coordinator = anlage
     client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
 
     antwort = await _einrichten(client)
 
