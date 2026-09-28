@@ -22,7 +22,11 @@ def _minuten(wert: Any) -> float:
 def _ereignisse(
     protokoll: Iterable[Mapping[str, Any]], tag: date, nur_ww_wert: int
 ) -> list[tuple[datetime, str, datetime | None]]:
-    """Geschriebene Eingriffe des Tages als (Zeit, Modus, Ende), aufsteigend."""
+    """Geschriebene Eingriffe bis Ende `tag` als (Zeit, Modus, Ende), aufsteigend.
+
+    Ein Eingriff von einem Vortag (z. B. nur_ww über Mitternacht) zählt als
+    Startzustand mit; nur Eingriffe nach `tag` werden verworfen.
+    """
     liste = []
     for eintrag in protokoll:
         if eintrag.get("art") != "geschrieben":
@@ -31,7 +35,7 @@ def _ereignisse(
             zeit = datetime.fromisoformat(str(eintrag.get("zeit")))
         except ValueError:
             continue
-        if zeit.date() != tag:
+        if zeit.date() > tag:
             continue
         werte = {str(oid): str(wert) for oid, wert in eintrag.get("werte") or ()}
         dauer = _minuten(werte.get(OID_DAUER))
@@ -64,7 +68,8 @@ def ergaenzen(
 ) -> dict[int, str]:
     """Jede Stunde vor `vorbei` mit Modus; Lücken nach einem Vermerk erben ihn.
 
-    Vor dem ersten Vermerk gilt der Modus am Ende der Stunde laut Protokoll.
+    Vor dem ersten Vermerk gilt der Modus am Ende der Stunde laut Protokoll,
+    auch wenn der zugehörige Eingriff an einem Vortag geschrieben wurde.
     """
     ereignisse = _ereignisse(protokoll, tag, nur_ww_wert)
     ergebnis: dict[int, str] = {}

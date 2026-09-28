@@ -69,3 +69,32 @@ def test_absenkung_endet_mit_ihrer_dauer(m):
 def test_betriebswahl_zurueck_ist_programm(m):
     zurueck = [*PROTOKOLL, eintrag("14:10", ("/3/50/0", "1"))]
     assert m.ergaenzen({}, zurueck, TAG, 15, 6, TZ)[14] == "programm"
+
+
+def eintrag_am(datum: str, zeit: str, *werte: tuple[str, str], art: str = "geschrieben") -> dict:
+    return {
+        "zeit": f"{datum}T{zeit}:00+02:00",
+        "art": art,
+        "text": "",
+        "werte": [list(w) for w in werte],
+    }
+
+
+def test_nur_ww_von_gestern_gilt_ueber_mitternacht(m):
+    gestern = [eintrag_am("2026-09-27", "16:00", ("/3/50/0", "6"))]
+    ergebnis = m.ergaenzen({}, gestern, TAG, 3, 6, TZ)
+    assert [ergebnis[h] for h in range(3)] == ["nur_ww", "nur_ww", "nur_ww"]
+
+
+def test_absenkung_von_gestern_endet_nach_mitternacht(m):
+    gestern = [eintrag_am("2026-09-27", "23:50", ("/3/4/0", "21.0"), ("/2/10/0", "400"))]
+    ergebnis = m.ergaenzen({}, gestern, TAG, 7, 6, TZ)
+    assert [ergebnis[h] for h in range(7)] == [
+        "absenkung",
+        "absenkung",
+        "absenkung",
+        "absenkung",
+        "absenkung",
+        "absenkung",
+        "programm",
+    ]
