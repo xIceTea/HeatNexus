@@ -479,7 +479,7 @@ async def test_englische_ableitungen_heissen_englisch(client_module, monkeypatch
     )
 
     assert (heute["name"], heute["name_de"]) == ("Operating hours today", "Betriebsstunden heute")
-    assert (laufzeit["name"], laufzeit["name_de"]) == ("Runtime cycle", "Laufzeit Zyklus")
+    assert (laufzeit["name"], laufzeit["name_de"]) == ("Cycle runtime", "Laufzeit Zyklus")
     assert (punkt["name"], punkt["name_de"]) == ("Switch-on point", "Einschaltpunkt")
     client._abfragetasten()
     assert {d["name"] for d in client.devices if d.get("type") == "refresh"} == {
