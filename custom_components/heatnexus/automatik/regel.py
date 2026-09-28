@@ -110,6 +110,7 @@ class Gedaechtnis:
     saison: str = HEIZEN
     saison_seit: datetime | None = None
     saison_soll: float | None = None
+    saison_grund: str | None = None
     stark_bis: datetime | None = None
     absenkung_art: str | None = None
     absenkung_von: datetime | None = None
@@ -297,12 +298,14 @@ def _saison_nur_ww(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entsche
             f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C unter "
             f"{_zahl(unten)} °C – zurück ins Programm.",
         )
-    return Entscheidung(
-        Zustand.NUR_WW,
-        (),
-        f"Übergangszeit – nur Warmwasser, gedämpfte AT {_zahl(lage.at_gedaempft)} °C.",
-        g,
-    )
+    mittel = [x for x in (lage.mittel_heute, lage.mittel_morgen) if x is not None]
+    if g.saison_grund == "prognose" and mittel:
+        text = (
+            f"Übergangszeit – nur Warmwasser nach Prognose, Tagesmittel ab {_zahl(min(mittel))} °C."
+        )
+    else:
+        text = f"Übergangszeit – nur Warmwasser, gedämpfte AT {_zahl(lage.at_gedaempft)} °C."
+    return Entscheidung(Zustand.NUR_WW, (), text, g)
 
 
 def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung | None:
@@ -329,7 +332,12 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
         )
     else:
         grund = f"Prognose heute und morgen im Mittel ab {_zahl(schwelle)} °C – nur Warmwasser."
-    neu = Gedaechtnis(saison=NUR_WW, saison_seit=lage.jetzt, saison_soll=soll)
+    neu = Gedaechtnis(
+        saison=NUR_WW,
+        saison_seit=lage.jetzt,
+        saison_soll=soll,
+        saison_grund="gedaempft" if warm else "prognose",
+    )
     # Das neue Gedächtnis kennt die Absenkung nicht mehr; an der Steuerung liefe sie weiter.
     ende = (Aktion("absenkung_ende"),) if absenkung_laeuft(g, lage.jetzt) else ()
     return Entscheidung(Zustand.NUR_WW, (*ende, Aktion("nur_ww")), grund, neu)

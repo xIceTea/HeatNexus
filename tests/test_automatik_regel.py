@@ -129,6 +129,24 @@ def test_milde_prognose_schaltet_nur_ww(m, w):
     assert [a.art for a in e.aktionen] == ["nur_ww"]
 
 
+def test_nur_ww_merkt_seinen_grund(m, w):
+    warm = m.entscheiden(lage(m, at_gedaempft=18.2, mittel_heute=None), m.Gedaechtnis(), w)
+    mild = m.entscheiden(lage(m, mittel_heute=17.5, mittel_morgen=17.0), m.Gedaechtnis(), w)
+    assert (warm.gedaechtnis.saison_grund, mild.gedaechtnis.saison_grund) == (
+        "gedaempft",
+        "prognose",
+    )
+
+
+def test_nur_ww_nach_prognose_nennt_die_prognose(m, w):
+    g = replace(nur_ww(m, timedelta(hours=1)), saison_grund="prognose")
+    e = m.entscheiden(
+        lage(m, at_gedaempft=12.8, mittel_heute=17.5, mittel_morgen=17.0, betriebswahl=6), g, w
+    )
+    assert e.zustand == m.Zustand.NUR_WW
+    assert "Prognose" in e.begruendung and "12,8" not in e.begruendung
+
+
 def test_kuehler_raum_verhindert_nur_ww(m, w):
     e = m.entscheiden(lage(m, at_gedaempft=18.5, raum=20.3), m.Gedaechtnis(), w)
     assert e.aktionen == ()
