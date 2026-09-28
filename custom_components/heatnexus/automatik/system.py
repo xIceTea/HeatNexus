@@ -6,6 +6,8 @@ entsteht mit der ersten Automatik und verschwindet mit der letzten.
 
 from __future__ import annotations
 
+from collections import Counter
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -34,6 +36,12 @@ from .verwaltung import (
 __all__ = ["system_kennung", "system_unique_id"]
 
 
+def bezeichnung(laufzeit: Laufzeit) -> str:
+    """„Anlage · Heizkreis“; zwei Anlagen führen oft gleichnamige Heizkreise."""
+    anlage = getattr(laufzeit.coordinator, "label", None)
+    return f"{anlage} · {laufzeit.name}" if anlage else laufzeit.name
+
+
 class SystemEntitaet(Entity):
     """Grundlage: Kennung, Gerät, Signal des Eintrags."""
 
@@ -58,6 +66,16 @@ class SystemEntitaet(Entity):
     @property
     def available(self) -> bool:
         return bool(self._laufzeiten)
+
+    def _je_kreis(self, wert: Callable[[Laufzeit], Any]) -> dict[str, Any]:
+        """Ein Wert je Heizkreis unter „Anlage · Heizkreis“; doppelte Namen tragen die Kennung."""
+        namen = {lz.device_id: bezeichnung(lz) for lz in self._laufzeiten}
+        doppelt = Counter(namen.values())
+        ergebnis: dict[str, Any] = {}
+        for lz in self._laufzeiten:
+            name = namen[lz.device_id]
+            ergebnis[name if doppelt[name] == 1 else f"{name} ({lz.device_id})"] = wert(lz)
+        return ergebnis
 
     async def async_added_to_hass(self) -> None:
         self.async_on_remove(
@@ -85,7 +103,7 @@ class SystemStatus(SystemEntitaet, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {"heizkreise": {lz.name: kennzahlen.status(lz) for lz in self._laufzeiten}}
+        return {"heizkreise": self._je_kreis(kennzahlen.status)}
 
 
 class SystemAutomatiken(SystemEntitaet, SensorEntity):
@@ -100,7 +118,7 @@ class SystemAutomatiken(SystemEntitaet, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {"heizkreise": [lz.name for lz in self._laufzeiten]}
+        return {"heizkreise": list(self._je_kreis(lambda _lz: None))}
 
 
 class SystemEingriffe(SystemEntitaet, SensorEntity):
@@ -125,7 +143,7 @@ class SystemLetzterEingriff(SystemEntitaet, SensorEntity):
 
     def _juengster(self) -> tuple[datetime, str, str] | None:
         kandidaten = [
-            (kennzahlen.zeit(eintrag), eintrag["text"], lz.name)
+            (kennzahlen.zeit(eintrag), eintrag["text"], bezeichnung(lz))
             for lz in self._laufzeiten
             if (eintrag := kennzahlen.letzter_eingriff(lz))
         ]
@@ -197,11 +215,7 @@ class SystemLaufHeute(SystemEntitaet, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {
-            "heizkreise": {
-                lz.name: kennzahlen.lauf_heute(self._lauf(lz)) for lz in self._laufzeiten
-            }
-        }
+        return {"heizkreise": self._je_kreis(lambda lz: kennzahlen.lauf_heute(self._lauf(lz)))}
 
 
 class SystemSonnentagHeute(SystemLaufHeute):
@@ -307,7 +321,7 @@ class SystemTemperatur(SystemEntitaet, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {"heizkreise": {lz.name: self._wert(lz) for lz in self._laufzeiten}}
+        return {"heizkreise": self._je_kreis(self._wert)}
 
 
 class SystemRaeume(SystemTemperatur):
@@ -372,10 +386,10 @@ class SystemUeberHeizgrenze(SystemEntitaet, BinarySensorEntity):
         for lz in self._laufzeiten:
             lage = lz.lage
             grenze = (lage.grenze_steuerung if lage else None) or regel.HEIZGRENZE_RUECKFALL
-            self._halt[lz.name] = eingaben.heizgrenze_halten(
-                lage.at if lage else None, grenze, self._halt.get(lz.name)
+            self._halt[lz.device_id] = eingaben.heizgrenze_halten(
+                lage.at if lage else None, grenze, self._halt.get(lz.device_id)
             )
-        return {lz.name: self._halt.get(lz.name) for lz in self._laufzeiten}
+        return self._je_kreis(lambda lz: self._halt.get(lz.device_id))
 
     @property
     def is_on(self) -> bool | None:

@@ -1481,3 +1481,32 @@ async def test_laufzeiten_ohne_speicherstand_kommen_aus_dem_protokoll(hass, free
 
     assert round(laufzeit.modus_lauf["absenkung"].minuten) == 242
     assert round(laufzeit.modus_lauf["nur_ww"].minuten) == 558
+
+
+def test_gleichnamige_heizkreise_bleiben_im_attribut_getrennt():
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.automatik.system import SystemAutomatiken
+
+    def kreis(kennung: str, anlage: str) -> SimpleNamespace:
+        coordinator = SimpleNamespace(label=anlage)
+        return SimpleNamespace(
+            device_id=kennung, entry_id="e", name="UMLZ HEIZKREIS", coordinator=coordinator
+        )
+
+    kreise = [
+        kreis("SN1-2-0", "Anlage A"),
+        kreis("SN2-2-0", "Anlage B"),
+        kreis("SN3-2-0", "Anlage B"),
+    ]
+    verwaltung = SimpleNamespace(laufzeiten={k.device_id: k for k in kreise})
+
+    sensor = SystemAutomatiken(verwaltung, "e")
+
+    assert sensor.extra_state_attributes == {
+        "heizkreise": [
+            "Anlage A · UMLZ HEIZKREIS",
+            "Anlage B · UMLZ HEIZKREIS (SN2-2-0)",
+            "Anlage B · UMLZ HEIZKREIS (SN3-2-0)",
+        ]
+    }
