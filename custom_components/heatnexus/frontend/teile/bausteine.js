@@ -122,8 +122,8 @@ export const BausteineMixin = (Basis) =>
     taste.type = "button";
     taste.className = "fragezeichen";
     taste.textContent = this._t("?");
-    taste.title = "Erklärung";
-    taste.setAttribute("aria-label", `Erklärung zu ${titel}`);
+    taste.title = this._t("Erklärung");
+    taste.setAttribute("aria-label", this._tMit("Erklärung zu {titel}", { titel: this._t(titel) }));
     taste.addEventListener("click", (ereignis) => {
       ereignis.stopPropagation();
       this._erklaeren(titel, text);

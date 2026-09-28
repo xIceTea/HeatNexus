@@ -398,7 +398,7 @@ export const SteuerungMixin = (Basis) =>
       taste.addEventListener("click", () => this._stufen(feld, richtung, anstossen));
       return taste;
     };
-    stufen.append(pfeil(1, "▲", "erhöhen"), pfeil(-1, "▼", "verringern"));
+    stufen.append(pfeil(1, "▲", this._t("erhöhen")), pfeil(-1, "▼", this._t("verringern")));
 
     rechts.append(stufen, feld, einheit);
     zeile.append(links, rechts, rueckmeldung);

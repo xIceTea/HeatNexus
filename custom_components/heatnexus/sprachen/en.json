@@ -334,5 +334,14 @@
   "WW-Einschaltpunkt": "DHW switch-on point",
   "WW-Einschaltpunkt Delta": "DHW switch-on point delta",
   "Wert {wert}": "Value {wert}",
-  "Unbekannt ({wert})": "Unknown ({wert})"
+  "Unbekannt ({wert})": "Unknown ({wert})",
+  "Erklärung zu {titel}": "Explanation of {titel}",
+  "{titel} – Mischer {wert} %": "{titel} – mixing valve {wert} %",
+  "{titel} – Vorlauf {wert}": "{titel} – flow {wert}",
+  "{titel} – kein Fühlerwert": "{titel} – no sensor value",
+  "{titel} – gibt Wärme ab, {wert} °C": "{titel} – releasing heat, {wert} °C",
+  "{titel} – keine Übergabe": "{titel} – no transfer",
+  "{titel} – Pumpe": "{titel} – pump",
+  "erhöhen": "increase",
+  "verringern": "decrease"
 }
