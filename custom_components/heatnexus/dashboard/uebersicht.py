@@ -38,9 +38,19 @@ def _kernwerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _tasten(anlage: dict[str, Any]) -> list[dict[str, Any]]:
     """Die Tasten aller Teile; „Werte jetzt abfragen“ nur die des ersten Teils."""
-    tasten = [e for teil in anlage["teile"] for e in auswahl.tasten(teil)]
-    abfrage = [e for e in tasten if passt(mustername(e), ABFRAGETASTE)]
-    return [e for e in tasten if e not in abfrage[1:]]
+    mehrteilig = len(anlage["teile"]) > 1
+    tasten: list[dict[str, Any]] = []
+    abgefragt = False
+    for teil in anlage["teile"]:
+        for e in auswahl.tasten(teil):
+            if not passt(mustername(e), ABFRAGETASTE):
+                tasten.append(e)
+            elif not abgefragt:
+                abgefragt = True
+                # Die Taste liest nur ihren Anlagenteil; der Name sagt, welchen.
+                name = f"{teil['name']} · {e['name']}" if mehrteilig else e["name"]
+                tasten.append({**e, "name_de": mustername(e), "name": name})
+    return tasten
 
 
 def _anlagenspalte(anlage: dict[str, Any], als_karte: bool) -> list[dict[str, Any]]:

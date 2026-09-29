@@ -1022,10 +1022,17 @@ def test_uebersicht_zeigt_die_abfragetaste_einmal_je_anlage(uebersichtsseite):
     for kreis in (hk1, hk2):
         kreis["entitaeten"].append(_e(f"button.{kreis['id']}_ww", "WW Einmalladung"))
     anlage = _anlage(kessel, hk1, hk2)
-    seite = uebersichtsseite.uebersicht([anlage, _anlage(_kessel(), name="Werkstatt")], False, [])
+    einzeln = _anlage(kessel, name="Werkstatt", kennung="werkst0123456789")
+    seite = uebersichtsseite.uebersicht([anlage, einzeln], False, [])
     kacheln = [k for k in _abschnitt_mit(seite, "Kesselhaus") if k.get("type") == "tile"]
-    abfragen = [k["entity"] for k in kacheln if k["name"] == "Werte jetzt abfragen"]
-    assert abfragen == ["button.k"]
+    abfragen = [k for k in kacheln if k["entity"].endswith("abfragen") or k["entity"] == "button.k"]
+    # Die Taste liest nur ihren Anlagenteil; der Name sagt, welchen.
+    assert [(k["entity"], k["name"]) for k in abfragen] == [
+        ("button.k", "PuroWIN · Werte jetzt abfragen")
+    ]
+    # Mit nur einem Anlagenteil bleibt der Name, wie er ist.
+    werkstatt = [k for k in _abschnitt_mit(seite, "Werkstatt") if k.get("type") == "tile"]
+    assert [k["name"] for k in werkstatt if k["entity"] == "button.k"] == ["Werte jetzt abfragen"]
     ladungen = [k["entity"] for k in kacheln if k["name"] == "WW Einmalladung"]
     assert ladungen == ["button.hk1_ww", "button.hk2_ww"]
 
