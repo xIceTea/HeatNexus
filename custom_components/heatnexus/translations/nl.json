@@ -1,0 +1,654 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Deze installatie is al ingesteld",
+      "reauth_successful": "Wachtwoord bijgewerkt"
+    },
+    "error": {
+      "cannot_connect": "Verbinding mislukt",
+      "invalid_auth": "Aanmelding geweigerd - controleer het servicewachtwoord",
+      "unknown": "Onverwachte fout",
+      "already_configured": "Dit adres is al toegevoegd"
+    },
+    "step": {
+      "user": {
+        "title": "Verwarmingsinstallatie toevoegen",
+        "description": "Hoe moet de installatie heten, en uit hoeveel regelaars bestaat ze? Elke regelaar heeft een eigen IP-adres (bijv. stookhok en bijgebouw).",
+        "data": {
+          "name": "Naam van de installatie",
+          "count": "Aantal regelaars"
+        }
+      },
+      "system": {
+        "title": "Regelaar {nummer} van {anzahl}",
+        "description": "Naam, IP-adres, toegang en servicewachtwoord.",
+        "data": {
+          "label": "Naam van de regelaar",
+          "host": "IP-adres van de regelaar",
+          "password": "Servicewachtwoord",
+          "username": "Account"
+        },
+        "data_description": {
+          "username": "Standaard kent de installatie “USER” en “Service”. “Service” levert ook de expertparameters. Een andere naam kan worden ingevoerd."
+        }
+      },
+      "scope": {
+        "title": "Omvang kiezen",
+        "description": "Gevonden:\n\n{gefunden}\n\nWelke niveaus moeten worden opgenomen? Info- en bedieningsniveau zijn altijd inbegrepen. Service- en fabrieksniveau bevatten expertparameters. De keuze geldt eerst voor alle regelaars en kan later per regelaar worden aangepast.\n\nNa het afronden leest HeatNexus de installatie op de achtergrond volledig in. Afhankelijk van de installatie duurt dat 30 tot 120 seconden, en intussen verschijnen er nog entiteiten bij. Een melding laat weten wanneer alles er is.",
+        "data": {
+          "levels": "Niveaus",
+          "enable_advanced": "Service-/fabrieksniveau direct inschakelen",
+          "writable_advanced": "Service-/fabrieksparameters bedienbaar maken",
+          "update_interval": "Pollinginterval",
+          "dashboard": "Dashboard aanmaken",
+          "panel": "HeatNexus-paneel",
+          "zeitwerte": "Systeemklok en systeemdatum aanmaken",
+          "lon": "Waarden van de LON-bus lezen",
+          "lon_grundumfang": "Basiswaarden van de LON-bus toevoegen"
+        },
+        "data_description": {
+          "levels": "Info: meetwaarden. Bediening: bedrijfsmodus, instelwaarden, programma's. Service: stooklijn, grenswaarden, droogprogramma smeervloer. Fabriek: verbrandingsregeling, ontsteking, aandrijvingen.",
+          "enable_advanced": "Zonder vinkje worden de entiteiten aangemaakt, maar blijven ze uitgeschakeld en worden ze niet opgevraagd.",
+          "writable_advanced": "Zonder vinkje worden deze parameters alleen weergegeven en niet geschreven.",
+          "update_interval": "Hoe vaak de installatie wordt opgevraagd. De waarde geldt voor de snelle waarden (thermostaat, temperaturen, pompen); trage waarden houden hun eigen interval — 2 minuten voor bedrijfswaarden, 15 minuten voor tellers. Aanbevolen: 30 seconden voor één installatie, 60 seconden voor meerdere of voor installaties met veel datapunten.",
+          "dashboard": "Voegt een dashboard “Verwarming” toe aan de zijbalk, dat zich opbouwt uit de gevonden apparaten.",
+          "panel": "Voegt een item “HeatNexus” toe aan de zijbalk met installatieschema, status, verwarmingscircuits en snelle bediening.",
+          "zeitwerte": "De klok van de regelaar. Zonder vinkje uitgeschakeld aangemaakt; alle andere tijd- en datumvelden blijven hierdoor ongewijzigd.",
+          "lon": "Naast de datapunten houdt de regelaar een volledige busadresruimte bij. Voor wie dieper wil kijken: ventilatortoerental, verwarming van de lambdasonde, pelletvoorraad en al het andere. Bij PuroWIN en Infinity voegt dit weinig toe, omdat dezelfde waarden al als datapunt bestaan.",
+          "lon_grundumfang": "Haalt pomp, menger en de kernwaarden van de ketel van de bus, waar de installatie er geen datapunt voor heeft — anders ontbreken ze in het schema. Geen dubbele waarden: waar een datapunt bestaat, geldt het datapunt."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Wachtwoord bijwerken",
+        "description": "Een regelaar heeft de aanmelding geweigerd. Kies de regelaar en voer het servicewachtwoord opnieuw in.",
+        "data": {
+          "host": "Regelaar",
+          "password": "Servicewachtwoord",
+          "username": "Account"
+        },
+        "data_description": {
+          "username": "Standaard kent de installatie “USER” en “Service”. “Service” levert ook de expertparameters. Een andere naam kan worden ingevoerd."
+        }
+      },
+      "reconfigure": {
+        "title": "Adres wijzigen",
+        "description": "Voer het nieuwe adres van de installatie in. Apparaten, entiteiten en geschiedenis blijven behouden.",
+        "data": {
+          "anlage": "Regelaar",
+          "host": "Nieuw IP-adres van de regelaar",
+          "username": "Toegang"
+        },
+        "data_description": {
+          "username": "USER ziet info- en bedieningsniveau, Service daarnaast de vakmanparameters. Een wijziging leest de installatie opnieuw in."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Instellingen",
+        "description": "Wat wil je wijzigen?",
+        "menu_options": {
+          "allgemein": "Algemeen (interface, uitleg, polling)"
+        }
+      },
+      "allgemein": {
+        "title": "Algemene instellingen",
+        "description": "Geldt voor alle regelaars van deze installatie.",
+        "data": {
+          "update_interval": "Pollinginterval",
+          "dashboard": "Dashboard aanmaken",
+          "panel": "HeatNexus-paneel",
+          "meldung_einlesen": "Melding tijdens het inlezen",
+          "vorlagen": "Blauwdrukken voor automatiseringen",
+          "aussentemperatur": "Buitentemperatuur",
+          "hilfe": "Uitleg tonen",
+          "sprache": "Taal van de namen",
+          "startwerte": "Startwaarden van de installatie overnemen"
+        },
+        "data_description": {
+          "update_interval": "Hoe vaak de installatie wordt opgevraagd. De waarde geldt voor de snelle waarden (thermostaat, temperaturen, pompen); trage waarden houden hun eigen interval — 2 minuten voor bedrijfswaarden, 15 minuten voor tellers. Aanbevolen: 30 seconden voor één installatie, 60 seconden voor meerdere of voor installaties met veel datapunten.",
+          "dashboard": "Voegt een dashboard “Verwarming” toe aan de zijbalk, dat zich opbouwt uit de gevonden apparaten.",
+          "panel": "Voegt een item “HeatNexus” toe aan de zijbalk met installatieschema, status, verwarmingscircuits en snelle bediening.",
+          "meldung_einlesen": "Toont een melding zolang HeatNexus de installatie inleest.",
+          "vorlagen": "Welke blauwdrukken onder Instellingen → Automatiseringen beschikbaar zijn. Een blauwdruk die een automatisering nog gebruikt, blijft ook na het uitvinken staan.",
+          "aussentemperatur": "Welke sensor in de kopregel als buitentemperatuur geldt. Leeg: HeatNexus zoekt hem zelf in de installatie.",
+          "hilfe": "Zet een „?“ naast kaarten en bedieningselementen, dat uitlegt wat een waarde betekent en wat een bediening doet.",
+          "sprache": "Waar de namen van de datapunten vandaan komen. Bij “Automatisch” blijven ze Duits, en de interface volgt de taal van Home Assistant."
+        }
+      },
+      "system": {
+        "title": "Niveaus",
+        "description": "Instellingen voor {anlage}. {bus_hinweis}",
+        "data": {
+          "label": "Naam van de regelaar",
+          "levels": "Niveaus",
+          "enable_advanced": "Service-/fabrieksniveau direct inschakelen",
+          "writable_advanced": "Service-/fabrieksparameters bedienbaar maken",
+          "username": "Toegang",
+          "kesselart": "Warmteopwekker (schema)",
+          "kesselwert": "Ketelwaarde (schema)",
+          "modulpumpe": "Pomp aangesloten op de pomp-/relaismodule",
+          "zeitwerte": "Systeemklok en systeemdatum aanmaken",
+          "lon": "Waarden van de LON-bus lezen",
+          "lon_grundumfang": "Basiswaarden van de LON-bus toevoegen",
+          "zusatzgruppen": "Afgeleide waarden",
+          "marken": "Labels in de interface tonen",
+          "marken_status": "Deze labels in de installatiestatus opnemen"
+        },
+        "data_description": {
+          "label": "Staat voor elke apparaatnaam van deze regelaar, bijvoorbeeld \"Stookhok · Buffervat\".",
+          "levels": "Info: meetwaarden. Bediening: bedrijfsmodus, instelwaarden, programma's. Service: stooklijn, grenswaarden, droogprogramma smeervloer. Fabriek: verbrandingsregeling, ontsteking, aandrijvingen.",
+          "enable_advanced": "Zonder vinkje worden de entiteiten aangemaakt, maar blijven ze uitgeschakeld en worden ze niet opgevraagd.",
+          "writable_advanced": "Zonder vinkje worden deze parameters alleen weergegeven en niet geschreven.",
+          "username": "USER ziet info- en bedieningsniveau, Service daarnaast de vakmanparameters. Een wijziging leest de installatie opnieuw in.",
+          "kesselart": "Welk toestel het installatieschema tekent. Werkt alleen op de tekening – geen entiteit, geen waarde verandert.",
+          "kesselwert": "Welke tweede waarde bij de ketel staat. Het gloeibed volgt verder het vermogen; meldt de installatie dat niet, dan geldt de branderkamertemperatuur.",
+          "modulpumpe": "Alleen met vinkje verschijnt de pomp van de module in het schema. De module meldt ook een toerental als er niets op is aangesloten; de module zelf en haar lampjes worden altijd getoond.",
+          "zeitwerte": "De klok van de regelaar. Zonder vinkje uitgeschakeld aangemaakt; alle andere tijd- en datumvelden blijven hierdoor ongewijzigd.",
+          "lon": "Leest ook de busadresruimte van de regelaar: ventilatortoerental, verwarming van de lambdasonde, pelletvoorraad en wat alleen daar beschikbaar is. Bij PuroWIN en Infinity voegt dit weinig toe, omdat dezelfde waarden al als datapunt komen.",
+          "lon_grundumfang": "Leest pomp, menger en de kernwaarden van de ketel van de bus, waar de installatie ze niet als datapunt levert; anders ontbreken ze in het schema. \"Waarden van de LON-bus lezen\" hoeft daarvoor niet aan te staan. Waar het datapunt bestaat, geldt het datapunt.",
+          "zusatzgruppen": "Waarden die HeatNexus afleidt uit bestaande tellers en toestanden: looptijden (vandaag, sinds de laatste start), tellers (starts, verbruik, warmtehoeveelheid) en de bedrijfsduur. Wat niet is aangevinkt, wordt uitgeschakeld aangemaakt. Met „Individueel” volgt na OK een tweede stap met de afzonderlijke waarden.",
+          "marken": "Elk gekozen label wordt een eigen kaart in het overzicht. Wie er een niet nodig heeft, verbergt die daar. Wat iemand in een kaart ziet, hangt af van diens rechten in Home Assistant.",
+          "marken_status": "Waarden van deze labels verschijnen in de installatiestatus in plaats van in een eigen kaart. Alleen labels die hierboven worden getoond, zijn te kiezen."
+        }
+      },
+      "zusatzwerte": {
+        "title": "Afgeleide waarden afzonderlijk",
+        "description": "Vink de waarden aan die ingeschakeld moeten zijn.",
+        "data": {
+          "zusatzwerte": "Waarden"
+        }
+      },
+      "steuerung_neu": {
+        "title": "Regelaar toevoegen",
+        "description": "Nog een regelaar van deze verwarmingsinstallatie. Na het opslaan laadt HeatNexus opnieuw en leest de regelaar in; de bestaande regelaars blijven ongewijzigd.",
+        "data": {
+          "label": "Naam van de regelaar",
+          "host": "IP-adres van de regelaar",
+          "username": "Toegang",
+          "password": "Servicewachtwoord"
+        },
+        "data_description": {
+          "username": "Standaard kent de installatie \"USER\" en \"Service\". \"Service\" levert ook de vakmanparameters."
+        }
+      },
+      "steuerung_entfernen": {
+        "title": "Regelaar verwijderen",
+        "description": "Welke regelaar moet uit deze verwarmingsinstallatie worden verwijderd?",
+        "data": {
+          "host": "Regelaar"
+        }
+      },
+      "steuerung_entfernen_bestaetigen": {
+        "title": "Regelaar verwijderen",
+        "description": "**{anlage}** wordt verwijderd, samen met alles wat eraan hangt:\n\n- {geraete} apparaten met hun entiteiten en geschiedenis\n- Automatische regelingen: {automatiken}. Hun ingrepen op de regelaar worden teruggedraaid.\n- Warmtebronnen: {quellen}\n\nDit kan niet ongedaan worden gemaakt. Wordt de regelaar later opnieuw toegevoegd, dan wordt hij helemaal opnieuw ingelezen.",
+        "data": {
+          "verstanden": "Ik begrijp het en wil de regelaar verwijderen"
+        }
+      }
+    },
+    "error": {
+      "bestaetigung_fehlt": "Bevestig dat de regelaar met alles wat eraan hangt moet worden verwijderd.",
+      "already_configured": "Dit adres hoort al bij deze verwarmingsinstallatie.",
+      "cannot_connect": "Verbinding mislukt",
+      "invalid_auth": "Aanmelding geweigerd - controleer het servicewachtwoord",
+      "unknown": "Onverwachte fout"
+    },
+    "abort": {
+      "steuerung_hinzugefuegt": "De regelaar is toegevoegd. HeatNexus laadt opnieuw en leest hem in.",
+      "steuerung_entfernt": "De regelaar is verwijderd. HeatNexus laadt opnieuw.",
+      "letzte_steuerung": "De laatste regelaar kan niet worden verwijderd. Om de hele verwarmingsinstallatie te verwijderen, verwijder je de integratie-invoer."
+    }
+  },
+  "selector": {
+    "levels": {
+      "options": {
+        "info": "Infoniveau (meetwaarden)",
+        "operate": "Bedieningsniveau (bediening)",
+        "service": "Serviceniveau (expertparameters)",
+        "oem": "Fabrieksniveau (fabrikantparameters)"
+      }
+    },
+    "kesselart": {
+      "options": {
+        "auto": "Automatisch herkennen",
+        "hackgut": "Houtsnipperketel",
+        "pellets": "Pelletketel",
+        "scheitholz": "Houtblokkenketel",
+        "waermepumpe": "Warmtepomp",
+        "gas_oel": "Gas- of olieketel",
+        "standard": "Neutraal (zonder brandstof)"
+      }
+    },
+    "kesselwert": {
+      "options": {
+        "leistung": "Ketelvermogen",
+        "brennkammer": "Branderkamertemperatuur"
+      }
+    },
+    "sprache": {
+      "options": {
+        "auto": "Automatisch",
+        "de": "Duits",
+        "en": "Engels",
+        "fr": "Frans",
+        "it": "Italiaans",
+        "nl": "Nederlands"
+      }
+    },
+    "startwerte": {
+      "options": {
+        "0": "uit",
+        "5": "tot 5 minuten oud",
+        "15": "tot 15 minuten oud",
+        "60": "tot 60 minuten oud"
+      }
+    },
+    "quellenart": {
+      "options": {
+        "solar": "Zonneboilersysteem",
+        "heizstab": "Elektrisch verwarmingselement",
+        "fremdquelle": "Stadsverwarming of andere bron"
+      }
+    },
+    "bedingungsart": {
+      "options": {
+        "zustand": "Toestand (aan/uit)",
+        "schwelle": "Drempel (waarde boven of onder een grens)",
+        "differenz": "Verschil tussen twee sensoren"
+      }
+    },
+    "zusatzgruppen": {
+      "options": {
+        "laufzeit": "Looptijd",
+        "zaehler": "Tellers",
+        "schaltpunkt": "Schakelpunten",
+        "individuell": "Individueel – verder naar de afzonderlijke keuze"
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "heatnexus_climate": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "0": "Stand-by",
+              "1": "Verwarmingsprogramma 1",
+              "2": "Verwarmingsprogramma 2",
+              "3": "Verwarmingsprogramma 3",
+              "4": "Verwarmingsbedrijf",
+              "5": "Verlaagd bedrijf",
+              "6": "Warmwaterbedrijf",
+              "7": "Handbedrijf"
+            }
+          }
+        }
+      }
+    },
+    "switch": {
+      "automatik": {
+        "name": "Automatische regeling"
+      }
+    },
+    "select": {
+      "automatik_modus": {
+        "name": "Modus automatische regeling",
+        "state": {
+          "beobachten": "Observeren",
+          "schalten": "Schakelen"
+        }
+      },
+      "automatik_ausrichtung": {
+        "name": "Afstemming automatische regeling",
+        "state": {
+          "eco": "Eco",
+          "ausgewogen": "Evenwichtig",
+          "komfort": "Comfort"
+        }
+      }
+    },
+    "sensor": {
+      "automatik_zustand": {
+        "name": "Toestand automatische regeling",
+        "state": {
+          "programm": "Verwarmt volgens programma",
+          "sonnentag": "Zonnige dag",
+          "nur_ww": "Alleen warm water",
+          "abwesend": "Afwezig",
+          "pausiert": "Gepauzeerd",
+          "fenster": "Raam open",
+          "keine_daten": "Geen gegevens",
+          "sicherheit": "Veiligheid",
+          "aus": "Uit"
+        },
+        "state_attributes": {
+          "begruendung": {
+            "name": "Reden"
+          },
+          "pausiert_bis": {
+            "name": "Gepauzeerd tot"
+          },
+          "eingriffe_heute": {
+            "name": "Ingrepen vandaag"
+          }
+        }
+      },
+      "automatik_gedaempft": {
+        "name": "Gedempte buitentemperatuur"
+      },
+      "automatik_heizgrenze": {
+        "name": "Verwarmingsgrens"
+      },
+      "automatik_abweichung": {
+        "name": "Ruimtes t.o.v. doel"
+      },
+      "automatik_sonnenquote": {
+        "name": "Zonaandeel vandaag"
+      },
+      "automatik_eingriffe": {
+        "name": "Ingrepen vandaag"
+      },
+      "automatik_letzter_eingriff": {
+        "name": "Laatste ingreep"
+      },
+      "automatik_naechste_entscheidung": {
+        "name": "Volgende beslissing"
+      },
+      "automatik_system_status": {
+        "name": "Status",
+        "state": {
+          "aus": "Uit",
+          "beobachten": "Observeert",
+          "bereit": "Gereed",
+          "eingriff": "Ingreep actief",
+          "pausiert": "Gepauzeerd",
+          "stoerung": "Storing"
+        }
+      },
+      "automatik_system_automatiken": {
+        "name": "Automatische regelingen"
+      },
+      "automatik_system_eingriffe": {
+        "name": "Ingrepen vandaag"
+      },
+      "automatik_system_letzter_eingriff": {
+        "name": "Laatste ingreep"
+      },
+      "automatik_system_naechste_entscheidung": {
+        "name": "Volgende beslissing"
+      },
+      "automatik_system_sonnentag_heute": {
+        "name": "Zonnige dag vandaag"
+      },
+      "automatik_system_nur_ww_heute": {
+        "name": "Alleen warm water vandaag"
+      },
+      "automatik_system_vorrang_heute": {
+        "name": "Voorrangsbron vandaag"
+      },
+      "automatik_system_absenkung_bis": {
+        "name": "Verlaging tot"
+      },
+      "automatik_system_modus_seit": {
+        "name": "Modus sinds"
+      },
+      "automatik_system_raeume": {
+        "name": "Ruimtes"
+      },
+      "automatik_system_prognose_max": {
+        "name": "Verwachte maximumtemperatuur vandaag"
+      },
+      "automatik_system_prognose_mittel": {
+        "name": "Verwacht daggemiddelde"
+      },
+      "automatik_system_prognosekorrektur": {
+        "name": "Correctie weersverwachting"
+      }
+    },
+    "binary_sensor": {
+      "automatik_stoerung": {
+        "name": "Storing"
+      },
+      "automatik_system_stoerung": {
+        "name": "Storing"
+      },
+      "automatik_system_prognose": {
+        "name": "Weersverwachting"
+      },
+      "automatik_system_sonnentag_aktiv": {
+        "name": "Zonnige dag"
+      },
+      "automatik_system_nur_ww_aktiv": {
+        "name": "Alleen warm water"
+      },
+      "automatik_system_ueber_heizgrenze": {
+        "name": "Boven verwarmingsgrens van de regelaar"
+      }
+    }
+  },
+  "issues": {
+    "nicht_erreichbar": {
+      "title": "{anlage} is niet bereikbaar",
+      "description": "HeatNexus ontvangt geen waarden meer van **{anlage}**.\n\nGemeld: {grund}\n\nControleer of de regelaar is ingeschakeld en via het netwerk bereikbaar is. Deze melding verdwijnt vanzelf zodra de installatie weer antwoordt."
+    },
+    "sprache_neustart": {
+      "title": "Taal gewijzigd – herstart nodig",
+      "description": "De taal van de namen is gewijzigd. HeatNexus leest de nieuwe namen al van de regelaar; ze worden zichtbaar na een herstart van Home Assistant.\n\nDaarna verdwijnt deze melding vanzelf."
+    },
+    "verwaiste_entitaeten": {
+      "title": "{anzahl} entiteiten zonder datapunt",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Entiteiten zonder datapunt verwijderen",
+            "description": "De installatie levert voor {anzahl} entiteiten geen waarde meer. Ze zijn al uitgeschakeld en kosten geen opvraging.\n\nBij het verwijderen gaan je eigen naam, pictogram, ruimte en geschiedenis verloren. Levert de installatie de waarde weer, dan wordt de entiteit opnieuw aangemaakt."
+          }
+        },
+        "abort": {
+          "nicht_geladen": "De installatie is op dit moment niet geladen. Probeer het later opnieuw."
+        }
+      }
+    },
+    "automatik_sicherheit": {
+      "title": "Automatische regeling {heizkreis}: terugzetten naar programma mislukt",
+      "description": "Voor de veiligheid probeerde de automatische regeling het verwarmingscircuit **{heizkreis}** terug te zetten naar zijn programma. De regelaar heeft dit twee keer geweigerd.\n\nControleer de bedrijfsmodus van het verwarmingscircuit en stel die handmatig in. Deze melding verdwijnt zodra de regelaar weer een ingreep van de automatische regeling aanneemt."
+    },
+    "automatik_ruecknahme": {
+      "title": "Automatische regeling {heizkreis}: terugdraaien mislukt",
+      "description": "Bij het uitschakelen of verwijderen van de automatische regeling weigerde de regelaar haar ingrepen op het verwarmingscircuit **{heizkreis}** terug te draaien. Het verwarmingscircuit staat mogelijk nog op alleen warm water of op een verlaagde instelwaarde.\n\nControleer de bedrijfsmodus en de instelwaarde van het verwarmingscircuit en stel ze handmatig in. Deze melding verdwijnt zodra het terugdraaien lukt."
+    }
+  },
+  "config_subentries": {
+    "automatik": {
+      "entry_type": "Automatische regeling",
+      "initiate_flow": {
+        "user": "Automatische regeling"
+      },
+      "step": {
+        "user": {
+          "title": "Automatische regeling"
+        }
+      }
+    },
+    "waermequelle": {
+      "title": "Warmtebron",
+      "entry_type": "Warmtebron",
+      "initiate_flow": {
+        "user": "Warmtebron toevoegen",
+        "reconfigure": "Warmtebron wijzigen"
+      },
+      "step": {
+        "user": {
+          "title": "Installatie",
+          "description": "Bij welke installatie hoort de warmtebron?",
+          "data": {
+            "host": "Regelaar"
+          }
+        },
+        "quelle": {
+          "title": "Warmtebron",
+          "description": "De bron verschijnt in het schema van {anlage}. De voorwaarde bepaalt wanneer ze warmte levert.",
+          "data": {
+            "name": "Naam",
+            "art": "Soort",
+            "pumpe": "Pomp in het schema tonen",
+            "bedingung_art": "Voorwaarde",
+            "quelle": "Entiteit"
+          },
+          "data_description": {
+            "quelle": "De waarde die over de bron beslist.",
+            "pumpe": "Tekent een pompwaaier in de leiding van de bron zolang ze warmte levert."
+          }
+        },
+        "regel": {
+          "title": "Voorwaarde",
+          "description": "Wanneer levert de bron warmte? {quelle} beslist.",
+          "data": {
+            "zustaende": "Toestanden die als aan gelden",
+            "gegen": "Tweede entiteit",
+            "ein": "Inschakelwaarde",
+            "aus": "Uitschakelwaarde"
+          },
+          "data_description": {
+            "zustaende": "Alleen deze toestanden gelden als leverend, elke andere als uit. Ontbreekt er een in de lijst, typ die dan in.",
+            "gegen": "De waarde ervan wordt van de eerste entiteit afgetrokken.",
+            "ein": "Vanaf deze waarde geldt de bron als leverend.",
+            "aus": "Pas daaronder geldt ze weer als uit. Leeg betekent dezelfde waarde."
+          }
+        }
+      },
+      "error": {
+        "name_fehlt": "De bron heeft een naam nodig.",
+        "bedingung_unvollstaendig": "De voorwaarde is onvolledig. Drempel en verschil hebben een inschakelwaarde nodig, verschil ook een tweede entiteit."
+      },
+      "abort": {
+        "reconfigure_successful": "De warmtebron is gewijzigd.",
+        "zu_viele": "Het schema kan geen verdere warmtebronnen bevatten."
+      }
+    }
+  },
+  "exceptions": {
+    "wert_abgelehnt": {
+      "message": "De installatie heeft de waarde voor {oid} geweigerd (HTTP {status})."
+    },
+    "zeitprogramm_abgelehnt": {
+      "message": "De installatie heeft het tijdprogramma {oid} geweigerd (HTTP {status})."
+    },
+    "voreinstellung_unbekannt": {
+      "message": "De voorinstelling {voreinstellung} bestaat niet."
+    },
+    "temperatur_fehlt": {
+      "message": "Er is geen temperatuur opgegeven."
+    },
+    "betriebswahl_unbekannt": {
+      "message": "De bedrijfsmodus is nog niet bekend. Wacht tot de installatie is ingelezen."
+    },
+    "keine_anlage": {
+      "message": "Er is geen installatie ingesteld."
+    },
+    "keine_anlage_zum_einlesen": {
+      "message": "Er is geen installatie ingesteld die opnieuw kan worden ingelezen."
+    },
+    "einstellung_unbekannt": {
+      "message": "{name} kent de instelling {option} niet."
+    },
+    "wochentag_unbekannt": {
+      "message": "Onbekende weekdag: {tag}"
+    },
+    "zu_viele_schaltpunkte": {
+      "message": "Maximaal {hoechstens} schakelpunten per blok, er zijn er {anzahl} opgegeven."
+    },
+    "uhrzeit_ungueltig": {
+      "message": "Ongeldige tijd: {uhrzeit}"
+    },
+    "kein_zeitprogramm": {
+      "message": "Deze entiteit is geen schrijfbaar tijdprogramma."
+    },
+    "zeitprogramm_geschuetzt": {
+      "message": "Dit tijdprogramma is tegen schrijven beveiligd."
+    },
+    "schaltpunkte_fehlen": {
+      "message": "Geef switch_points of blocks op."
+    },
+    "anmeldung_abgewiesen": {
+      "message": "De installatie {anlage} weigert de aanmelding."
+    },
+    "antwortet_nicht": {
+      "message": "De installatie {anlage} antwoordt herhaaldelijk niet: {fehler}"
+    },
+    "keine_werte": {
+      "message": "De installatie {anlage} heeft nog geen waarden geleverd: {fehler}"
+    },
+    "abfrage_fehler": {
+      "message": "Fout bij het opvragen van {anlage}: {fehler}"
+    },
+    "keine_anlage_im_eintrag": {
+      "message": "De configuratie-invoer bevat geen installatie."
+    },
+    "verbinden_zeitueberschreitung": {
+      "message": "Time-out bij het verbinden met {anlage}."
+    },
+    "verbinden_fehler": {
+      "message": "Fout bij het verbinden met {anlage}: {fehler}"
+    }
+  },
+  "services": {
+    "rediscover": {
+      "name": "Installatie opnieuw herkennen",
+      "description": "Verwerpt de opgeslagen herkenning en leest de installatie volledig opnieuw in (datapunten en apparaten). Nodig bijvoorbeeld na wijzigingen aan de verwarming of als er verwarmingscircuits bij zijn gekomen. Duurt één keer langer en meldt daarna per installatie hoeveel entiteiten, opgevraagde datapunten en tijdprogramma's zijn gevonden."
+    },
+    "set_current_temp_compensation": {
+      "name": "Comfortcorrectie instellen",
+      "description": "Verschuift de gemeten kamertemperatuur van een verwarmingscircuit met een vaste waarde. Bedoeld voor sensoren die door hun plaats steeds te warm of te koud meten.",
+      "fields": {
+        "compensation": {
+          "name": "Correctie",
+          "description": "Wordt bij de gemeten kamertemperatuur opgeteld."
+        }
+      }
+    },
+    "meldungen_loeschen": {
+      "name": "Meldingenlijst wissen",
+      "description": "Wist de meldingenlijst die HeatNexus voor een installatie bijhoudt. De installatie levert deze lijst niet via haar interface. Daarom wordt alleen de verzameling in Home Assistant gewist, niet het storingsgeheugen op de bedieningseenheid. Meldingen die daar openstaan, blijven staan en moeten zoals gewoonlijk op het toestel worden gereset."
+    },
+    "set_vorgabe": {
+      "name": "Tijdelijke instelwaarde zetten",
+      "description": "Zet een tijdelijke instelwaarde voor de kamertemperatuur van een verwarmingscircuit, dezelfde die de installatie \"Eco / Comfort\" noemt. Daarna keert het circuit vanzelf terug naar zijn bedrijfsmodus; de tijdprogramma's blijven ongewijzigd. Staat het circuit op stand-by of warmwaterbedrijf, dan schakelt het voor die tijd naar een verwarmingsprogramma en daarna terug.",
+      "fields": {
+        "temperature": {
+          "name": "Temperatuur",
+          "description": "Kamertemperatuur die tijdens de instelwaarde geldt."
+        },
+        "duration": {
+          "name": "Duur",
+          "description": "Hoe lang de instelwaarde geldt. 0 beëindigt een lopende instelwaarde direct."
+        }
+      }
+    },
+    "set_time_program": {
+      "name": "Tijdprogramma instellen",
+      "description": "Schrijft een verwarmings- of warmwaterprogramma (doel: een tijdprogrammasensor van HeatNexus). Ofwel vereenvoudigd met switch_points (plus optioneel weekdays, standaard dagelijks), ofwel met blocks voor volledige controle (meerdere groepen weekdagen, bijvoorbeeld ma–vr en za–zo).",
+      "fields": {
+        "switch_points": {
+          "name": "Schakelpunten",
+          "description": "Lijst van schakelpunten met tijd en waarde. time als HH:MM, value = gewenste temperatuur. Geldt voor het blok uit weekdays."
+        },
+        "weekdays": {
+          "name": "Weekdagen",
+          "description": "Weekdagen voor de schakelpunten (Mo Tu We Th Fr Sa Su of Mo Di Mi Do Fr Sa So). Standaard: dagelijks."
+        },
+        "blocks": {
+          "name": "Blokken (geavanceerd)",
+          "description": "Volledige programmastructuur als lijst van blokken, elk met weekdays en switch_points. Heeft voorrang op switch_points/weekdays als het is opgegeven."
+        }
+      }
+    },
+    "dashboard_ausgeben": {
+      "name": "Dashboard als YAML uitvoeren",
+      "description": "Geeft het meegeleverde dashboard terug als YAML-tekst. Het wordt bij elke keer openen opnieuw opgebouwd en kan daarom niet worden bewerkt. Met deze tekst maak je een eigen dashboard: voeg een nieuw dashboard toe, open de editor voor de ruwe configuratie en plak de tekst."
+    }
+  }
+}

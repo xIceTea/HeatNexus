@@ -58,7 +58,7 @@ def test_eigene_sprache_liegt_ueber_dem_englischen(texte):
     assert franzoesisch("Übersicht") == "Overview"
 
 
-@pytest.mark.parametrize("sprache", ["fr", "it"])
+@pytest.mark.parametrize("sprache", ["fr", "it", "nl"])
 def test_namenszusaetze_gibt_es_in_jeder_sprache_der_datenpunkte(sprache):
     """Diese Texte setzt HeatNexus selbst in Namen; ohne eigene Fassung entstünden Mischnamen."""
     englisch = json.loads((ORDNER / "en.json").read_text(encoding="utf-8"))
@@ -141,13 +141,16 @@ def test_unbekannter_satz_bleibt_deutsch(texte):
     )
 
 
-def test_jedes_satzmuster_trifft_nur_sich_selbst(texte):
+@pytest.mark.parametrize(("sprache", "komma"), [("en", "."), ("nl", ",")])
+def test_jedes_satzmuster_trifft_nur_sich_selbst(texte, sprache, komma):
     """Mit Beispielwerten gefüllt, übersetzt jedes Muster zu seiner eigenen Fassung.
 
     Ein anderes Muster mit längerem festem Anteil darf den Satz nicht an sich ziehen.
     """
-    englisch = texte.Woerterbuch("en")
-    for deutsch, fremd in json.loads((ORDNER / "en.json").read_text(encoding="utf-8")).items():
+    woerterbuch = texte.Woerterbuch(sprache)
+    for deutsch, fremd in json.loads(
+        (ORDNER / f"{sprache}.json").read_text(encoding="utf-8")
+    ).items():
         namen = PLATZHALTER.findall(deutsch)
         fest = PLATZHALTER.sub("", deutsch).strip()
         if not namen or len(fest) < texte.MUSTER_MIN_ZEICHEN:
@@ -155,8 +158,20 @@ def test_jedes_satzmuster_trifft_nur_sich_selbst(texte):
         beispiel, erwartet = deutsch, fremd
         for nummer, name in enumerate(namen):
             beispiel = beispiel.replace("{" + name + "}", f"{nummer + 1},5")
-            erwartet = erwartet.replace("{" + name + "}", f"{nummer + 1}.5")
-        assert englisch.satz(beispiel) == erwartet, deutsch
+            erwartet = erwartet.replace("{" + name + "}", f"{nummer + 1}{komma}5")
+        assert woerterbuch.satz(beispiel) == erwartet, deutsch
+
+
+# Sprachen, die jeden Eintrag des Englischen selbst führen; ein Rückfall wäre dort ein Mischtext.
+VOLLSTAENDIG = ("nl",)
+
+
+@pytest.mark.parametrize("sprache", VOLLSTAENDIG)
+def test_vollstaendige_sprache_fuehrt_jeden_englischen_eintrag(sprache):
+    """Ein neuer Text mit englischer Fassung erschiene sonst englisch mitten im Niederländischen."""
+    englisch = json.loads((ORDNER / "en.json").read_text(encoding="utf-8"))
+    eigene = json.loads((ORDNER / f"{sprache}.json").read_text(encoding="utf-8"))
+    assert sorted(set(englisch) - set(eigene)) == []
 
 
 def test_jede_uebersetzung_traegt_die_platzhalter_ihres_schluessels():

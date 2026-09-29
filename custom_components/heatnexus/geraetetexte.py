@@ -18,7 +18,7 @@ from xml.etree import ElementTree as ET
 
 _LOGGER = logging.getLogger(__name__)
 
-SPRACHEN = ("de", "en", "fr", "it")
+SPRACHEN = ("de", "en", "fr", "it", "nl")
 SPRACHE_AUTO = "auto"
 
 

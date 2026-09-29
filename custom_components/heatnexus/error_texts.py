@@ -18,13 +18,14 @@ import re
 _CODE_RE = re.compile(r"([EAI])(\d{2,4})")
 _KATEGORIE = {"E": "FE", "A": "AL", "I": "IN"}
 # Sprachen mit mitgelieferter Tabelle; die übrigen fallen auf Deutsch zurück.
-SPRACHEN = ("de", "en")
+SPRACHEN = ("de", "en", "nl")
 _ART = {
     "de": {"E": "Fehler", "A": "Alarm", "I": "Info"},
     "en": {"E": "Error", "A": "Alarm", "I": "Info"},
+    "nl": {"E": "Fout", "A": "Alarm", "I": "Info"},
 }
-_UNBEKANNT = {"de": "Unbekannter Code", "en": "Unknown code"}
-_KEINE = {"de": "Keine Störung", "en": "No fault"}
+_UNBEKANNT = {"de": "Unbekannter Code", "en": "Unknown code", "nl": "Onbekende code"}
+_KEINE = {"de": "Keine Störung", "en": "No fault", "nl": "Geen storing"}
 
 
 def textsprache(sprache: str | None) -> str:

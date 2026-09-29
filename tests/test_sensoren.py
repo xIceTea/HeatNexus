@@ -122,6 +122,8 @@ def test_meldungen_folgen_der_sprache_der_datenpunkte(sensoren):
         ("en", 0, "No fault"),
         ("en", 1, "1: Primary airflap defective"),
         ("en", 9998, "Unknown code 9998"),
+        ("nl", 0, "Geen storing"),
+        ("nl", 9998, "Onbekende code 9998"),
     ],
 )
 def test_alarmcode_folgt_der_sprache_der_datenpunkte(sensoren, sprache, code, erwartet):
@@ -421,6 +423,7 @@ def test_zeitprogramm_fasst_wochentage_und_schaltpunkte_zusammen(sensoren):
     [
         ("de", "Mo, Di: 06:00→21° | täglich: keine Schaltpunkte"),
         ("en", "Mo, Tu: 06:00→21° | daily: no switch points"),
+        ("nl", "Ma, Di: 06:00→21° | dagelijks: geen schakelpunten"),
     ],
 )
 def test_zeitprogramm_folgt_der_sprache_der_datenpunkte(sensoren, sprache, erwartet):

@@ -52,9 +52,14 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
     }
     # Die Anlage meldet je nach Baureihe deutsche oder englische Kürzel.
     _DAY_EN = {de: en for en, de in _DAY_DE.items()}
+    _DAY_NL = {
+        **dict(zip(_DAY_DE, ("Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"), strict=True)),
+        **dict(zip(_DAY_DE.values(), ("Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"), strict=True)),
+    }
     _WORTE = {
         "de": ("täglich", "keine Schaltpunkte"),
         "en": ("daily", "no switch points"),
+        "nl": ("dagelijks", "geen schakelpunten"),
     }
 
     @property
@@ -78,7 +83,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
             return "?"
         if len(days) == 7:
             return cls._WORTE[sprache][0]
-        tage = cls._DAY_DE if sprache == "de" else cls._DAY_EN
+        tage = {"de": cls._DAY_DE, "nl": cls._DAY_NL}.get(sprache, cls._DAY_EN)
         return ", ".join(tage.get(d, d) for d in days)
 
     @classmethod

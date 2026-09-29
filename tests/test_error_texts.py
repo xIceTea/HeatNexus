@@ -74,6 +74,13 @@ def test_englische_meldung_ohne_texte_der_steuerung(error_texts):
     assert meldung["info"].startswith("Close cladding door")
 
 
+def test_niederlaendisch_nimmt_die_eigene_tabelle(error_texts):
+    meldung = error_texts.parse_messages("PUR 09E346", sprache="nl")[0]
+
+    assert meldung["text"] == "Voordeur open"
+    assert meldung["kind"] == "Fout"
+
+
 def test_der_geraetetext_geht_der_englischen_tabelle_vor(error_texts):
     meldung = error_texts.parse_messages("PUR 09E346", {346: "Door open"}, "en")[0]
 
