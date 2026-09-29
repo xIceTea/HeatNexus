@@ -336,6 +336,9 @@ class Laufzeit(QuellenMixin):
         self._wartet = self._steuerung_fehlt(jetzt)
         if self._wartet:
             self._geaendert = True
+            # Die Werte stehen schon in der Lage; die Sensoren zeigen sie, auch wenn die Regel noch wartet.
+            async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
+            async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
             return
         if not self.beobachten and (
             grund := self.steller.handeingriff(

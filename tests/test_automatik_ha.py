@@ -1498,6 +1498,28 @@ async def test_regel_wartet_auf_die_werte_der_steuerung(hass, anlage, freezer):
     assert laufzeit.lage.grenze_steuerung == 18.0
 
 
+async def test_waehrend_die_regel_wartet_rechnen_auch_die_summensensoren(hass, anlage, freezer):
+    """Nach dem Start fehlt ein Wert der Steuerung; die Sensoren am System-Gerät zeigen trotzdem gleich ihren Stand."""
+    from homeassistant.helpers.dispatcher import async_dispatcher_connect
+
+    from custom_components.heatnexus.automatik.laufzeit import SIGNAL_SYSTEM
+
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    eintrag = hass.config_entries.async_entries("heatnexus")[0]
+    gemeldet = []
+    async_dispatcher_connect(
+        hass, SIGNAL_SYSTEM.format(eintrag.entry_id), lambda: gemeldet.append(1)
+    )
+    del coordinator.data["oids"][f"{PREFIX}/2/9/0"]
+
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+
+    assert laufzeit._wartet is True
+    assert gemeldet
+
+
 async def test_nach_dem_start_gilt_die_zuletzt_gelesene_heizgrenze(hass, anlage, freezer):
     """Der erste Abruf nach dem Start trägt `3/21` noch nicht; der Rückfall 17 °C wäre falsch."""
     verwaltung, coordinator = anlage
