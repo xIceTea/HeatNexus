@@ -73,7 +73,7 @@ async def _keine_geraetetexte():
     return geraetetexte.Texte()
 
 
-async def _erkennen(monkeypatch, sprache="de"):
+async def _erkennen(monkeypatch, sprache="de", fct_type=1):
     from custom_components.heatnexus import client
 
     c = client.WindhagerHttpClient(
@@ -88,7 +88,9 @@ async def _erkennen(monkeypatch, sprache="de"):
                 "nodeId": KNOTEN,
                 "neuronId": SERIE,
                 "name": "Heizkreise",
-                "functions": [{"fctId": 0, "fctType": 1, "lock": False, "name": "Heizkreis 1"}],
+                "functions": [
+                    {"fctId": 0, "fctType": fct_type, "lock": False, "name": "Heizkreis 1"}
+                ],
             }
         ]
 
@@ -143,3 +145,12 @@ def test_jeder_gepflegte_name_hat_eine_englische_fassung(geraete):
         NAME_OVERRIDES.values()
     )
     assert sorted(gepflegt - set(englisch)) == []
+
+
+@requires_ha()
+async def test_auf_englisch_tragen_auch_gepflegte_kernnamen_keine_adresse(monkeypatch):
+    """Die Warmwasserwerte am Heizkreis heißen beim Hersteller gleich wie ihre Nachbarn."""
+    c = await _erkennen(monkeypatch, sprache="en", fct_type=14)
+    namen = {d["oid"].split("/1/15/0/", 1)[1][:-2]: d["name"] for d in c.devices if d.get("oid")}
+    assert namen.get("5/6") == "DHW circulation pump mode"
+    assert "(" not in namen.get("5/0", "")

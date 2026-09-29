@@ -308,7 +308,11 @@ class ErkennungMixin:
             # `base`, nicht `prefix`: Knotenweite Datenpunkte hängen am Gerät,
             # nicht an der Funktion – sonst schneidet `_gnmn` die falsche
             # Länge ab.
-            **self._namensfelder(self._gnmn(base, oid), definition["name"]),
+            **self._namensfelder(
+                self._gnmn(base, oid),
+                definition["name"],
+                gepflegt=name_override(fct.get("fctType"), self._gnmn(base, oid)),
+            ),
             type=definition["platform"],
             unit=definition.get("unit"),
             enum=definition.get("enum"),
