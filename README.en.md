@@ -275,20 +275,30 @@ delivers appears, what is missing is left out.
 
 A dashboard named **Heizung** appears in the sidebar on its own after setup. It
 is built from the devices actually found — no entity IDs to type, no YAML to
-copy:
+copy. Every tab shows its name:
 
-- **Overview** — the most important values per part, in a sensible order (boiler,
-  buffer, heating circuit, hot water, circulation), plus the fault messages. With
-  several systems the system name is in the heading, so two identically named
-  parts stay distinguishable.
-- **Plant** — one diagram per system: boiler, buffer, heating circuits, hot water
-  and circulation, connected by flow and return, with the live values on top.
-  What was found is drawn — two buffer tanks give you two.
+- **Overview** — this tab appears only with two or more systems. Active faults
+  with text and remedy are at the top. Below, each system gets a section with
+  its diagram, key values, thermostats and everyday buttons. Outdoor
+  temperature, faults and, if set up, the automation status sit above as
+  badges. Tapping a system name opens its working page.
+- **One working page per system** — it shows gauges, state and controls for
+  each part, with the thermostat first for heating circuits. With a single
+  system this page comes first and carries messages, badges and the diagram
+  with its state list at the top.
 - **Maintenance** — remaining runtimes until ash removal, main cleaning and
-  service as gauges, plus fuel, hopper and meter readings.
-- **Analysis** — meter increase *today* and *this month* (burner starts,
-  operating hours) and temperature histories of the last 48 hours per part.
-- **One view per part**, split into controls, readings, settings and diagnostics.
+  service appear as gauges, plus fuel, hopper and meter readings, grouped by
+  system.
+- **Analysis** — it shows the meter increase *today* and *this month* (burner
+  starts, operating hours) and temperature histories of the last 48 hours,
+  grouped by system.
+- **One subview per part** — it sorts all values of the part into controls,
+  readings, time programs, settings and diagnostics. Tapping the heading of a
+  part opens it; the arrow at the top leads back to the working page.
+
+The diagram shows boiler, buffer, heating circuits, hot water and circulation,
+connected by flow and return, with the live values on top. What was found is
+drawn — two buffer tanks give you two.
 
 If a part is missing, its block is left out. If the scope is changed later, the
 dashboard adapts the next time it is opened. It can be switched off under
@@ -296,6 +306,25 @@ dashboard adapts the next time it is opened. It can be switched off under
 
 If you would rather build your own: templates for an overview, control cards and
 a plant diagram are in [`dashboards/`](dashboards/).
+
+### Making your own dashboard from it
+
+The bundled dashboard is rebuilt every time it is opened; your own changes to it
+do not survive, not even through the YAML editor. To use it as a starting point,
+get it as text:
+
+*Panel → ⋮ → **Dashboard template*** – or, without the panel,
+*Developer tools → Actions → **HeatNexus: Export dashboard as YAML***
+
+Paste the returned text into a new, empty dashboard (*Settings → Dashboards →
+Add*, then ⋮ → *Raw configuration editor*). From then on it is yours. For the
+copy:
+
+- It is a snapshot. New values of the system do not appear there by themselves.
+- The cards depend on today's entity IDs.
+- Links and back arrows lead to the bundled dashboard at `/heatnexus/`. If the
+  copy lives at its own address, replace `/heatnexus/` in the text with that
+  address.
 
 ## Automation blueprints
 

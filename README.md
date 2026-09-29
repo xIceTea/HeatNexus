@@ -291,23 +291,31 @@ liefert, erscheint; was fehlt, entfällt.
 
 Ein Dashboard **Heizung** erscheint nach der Einrichtung von selbst in der
 Seitenleiste. Es wird aus den tatsächlich gefundenen Geräten gebaut – keine
-Entitäts-IDs eintragen, kein YAML kopieren:
+Entitäts-IDs eintragen, kein YAML kopieren. Jeder Reiter trägt seinen Namen:
 
-- **Übersicht** – je Anlagenteil die wichtigsten Werte, in fachlicher
-  Reihenfolge (Kessel, Puffer, Heizkreis, Warmwasser, Zirkulation), dazu die
-  Störungsmeldungen. Bei mehreren Anlagen steht die Anlage in der Überschrift,
-  damit zwei gleich benannte Anlagenteile unterscheidbar bleiben.
-- **Anlage** – ein Schaubild je Anlage: Kessel, Puffer, Heizkreise, Warmwasser
-  und Zirkulation, verbunden durch Vor- und Rücklauf, mit den Live-Werten
-  darauf. Gezeichnet wird, was gefunden wurde – bei zwei Puffern erscheinen
-  zwei.
+- **Übersicht** – der Reiter erscheint erst ab zwei Anlagen. Oben stehen
+  anliegende Störungen mit Text und Abhilfe. Darunter folgt je Anlage ein
+  Abschnitt mit Schaubild, Kernwerten, Thermostaten und den alltäglichen
+  Tasten. Außentemperatur, Störungen und, sofern eingerichtet, der Status der
+  Automatik stehen als Badges darüber. Ein Tippen auf den Anlagennamen öffnet die Arbeitsseite.
+- **Je Anlage eine Arbeitsseite** – sie zeigt je Anlagenteil Zeigerinstrumente,
+  Zustand und Bedienung, bei Heizkreisen zuerst das Thermostat. Gibt es nur
+  eine Anlage, steht diese Seite vorn und trägt oben Meldungen, Badges und das
+  Schaubild mit Zustandsliste.
 - **Wartung** – Restlaufzeiten bis Ascheentleerung, Hauptreinigung und Wartung
-  als Rundinstrument, dazu Brennstoff, Vorratsbehälter und Zählerstände.
-- **Auswertung** – Zuwachs der Zähler *heute* und *diesen Monat*
+  stehen als Rundinstrument, dazu Brennstoff, Vorratsbehälter und
+  Zählerstände. Die Seite ist je Anlage gegliedert.
+- **Auswertung** – sie zeigt den Zuwachs der Zähler *heute* und *diesen Monat*
   (Brennerstarts, Betriebsstunden) sowie Temperaturverläufe der letzten
-  48 Stunden je Anlagenteil.
-- **Je Anlagenteil eine Ansicht**, gegliedert in Bedienung, Messwerte,
-  Einstellungen und Diagnose.
+  48 Stunden, je Anlage gegliedert.
+- **Je Anlagenteil eine Unteransicht** – sie gliedert alle Werte des Teils in
+  Bedienung, Messwerte, Zeitprogramme, Einstellungen und Diagnose. Ein Tippen
+  auf die Überschrift des Anlagenteils öffnet sie, der Pfeil oben führt zur
+  Arbeitsseite zurück.
+
+Das Schaubild zeigt Kessel, Puffer, Heizkreise, Warmwasser und Zirkulation,
+verbunden durch Vor- und Rücklauf, mit den Live-Werten darauf. Gezeichnet wird,
+was gefunden wurde – bei zwei Puffern erscheinen zwei.
 
 Fehlt ein Anlagenteil, entfällt der Block. Wird der Umfang später geändert,
 passt sich das Dashboard beim nächsten Öffnen an. Abschalten lässt es sich
@@ -338,8 +346,14 @@ Ausgangspunkt nehmen will, bekommt es als Text:
 
 Den zurückgegebenen Text in ein neues, leeres Dashboard einfügen
 (*Einstellungen → Dashboards → Hinzufügen*, dann ⋮ → *Rohkonfigurations-Editor*).
-Ab da gehört es dir und bleibt, wie du es einrichtest — es wächst allerdings
-auch nicht mehr mit, wenn die Anlage sich ändert.
+Ab da gehört es dir und bleibt, wie du es einrichtest. Für die Kopie gilt:
+
+- Sie ist eine Momentaufnahme. Neue Werte der Anlage erscheinen dort nicht von
+  selbst.
+- Die Karten hängen an den heutigen Entitäts-IDs.
+- Links und Zurück-Pfeile führen in das mitgelieferte Dashboard unter
+  `/heatnexus/`. Liegt die Kopie unter einer eigenen Adresse, ersetze
+  `/heatnexus/` im Text durch diese Adresse.
 
 ## Automations-Vorlagen
 
