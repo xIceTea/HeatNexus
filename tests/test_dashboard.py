@@ -58,6 +58,13 @@ def karten(dashboard):
     return modul
 
 
+@pytest.fixture(scope="module")
+def anlagenseite(dashboard):
+    from custom_components.heatnexus.dashboard import anlage as modul
+
+    return modul
+
+
 def test_kurzname_entfernt_steuerungspraefix(anlagen):
     assert anlagen.kurzname("Kesselhaus · PuroWIN") == "PuroWIN"
     assert anlagen.kurzname("PuroWIN") == "PuroWIN"
@@ -836,3 +843,31 @@ def test_unteransicht_zeigt_zeitprogramme(details):
     zeitprogramme_section = ansicht["sections"][2]
     entity_ids = [c.get("entity") for c in zeitprogramme_section["cards"]]
     assert "sensor.heizprogramm_1" in entity_ids
+
+
+def _karten(ansicht: dict) -> list[dict]:
+    return [k for s in ansicht["sections"] for k in s["cards"]]
+
+
+def test_arbeitsseite_zeigt_zeiger_zustand_bedienung(anlagenseite):
+    seite = anlagenseite.arbeitsseite(_anlage(_kessel()), als_karte=False, mit_schaubild=False)
+    karten = _karten(seite)
+    kopf = karten[0]
+    assert kopf["heading"] == "PuroWIN"
+    assert kopf["tap_action"]["navigation_path"] == "/heatnexus/teil-kessel01"
+    assert [k["entity"] for k in karten if k["type"] == "gauge"] == [
+        "sensor.kessel_ist",
+        "sensor.leistung",
+    ]
+    unter = [k["heading"] for k in karten if k.get("heading_style") == "subtitle"]
+    assert unter == ["Zustand", "Bedienung"]
+    # Was als Zeiger steht, steht nicht noch einmal als Kachel.
+    kacheln = [k["entity"] for k in karten if k["type"] == "tile"]
+    assert "sensor.kessel_ist" not in kacheln and "sensor.abgas" in kacheln
+    assert "icon" not in seite and seite["path"] == "anlage-anlage01"
+
+
+def test_arbeitsseite_mit_schaubild_bei_einer_anlage(anlagenseite):
+    seite = anlagenseite.arbeitsseite(_anlage(_kessel()), als_karte=True, mit_schaubild=True)
+    erste = seite["sections"][0]["cards"]
+    assert any(str(k.get("type", "")).startswith("custom:") for k in erste)
