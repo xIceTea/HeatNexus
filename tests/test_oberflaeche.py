@@ -740,6 +740,8 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["stundenLegende"] == 1
     assert automatik["stundenKasten"] == ["10:00 Uhr"]
     assert automatik["stundeOffen"] == 1
+    # Die Auswahl gehört dem Kreis, in dem geklickt wurde, nicht dem ganzen Reiter.
+    assert automatik["stundeJeKreis"] == [["SN1-2-0", 10]]
 
 
 def test_die_automatik_steht_bei_allen_anlagen_in_einem_raster(durchlauf):

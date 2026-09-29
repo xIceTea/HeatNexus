@@ -347,7 +347,7 @@ export const TagesbildMixin = (Basis) =>
         taste.setAttribute("aria-pressed", String(index === wahl));
         taste.addEventListener("click", () => {
           this._automatikTagWahl[kreis.heizkreis] = index;
-          this._automatikStundeOffen = null;
+          delete (this._automatikStundeOffen || {})[kreis.heizkreis];
           this._gebaut = false;
           this._zeichnen();
         });
@@ -365,7 +365,10 @@ export const TagesbildMixin = (Basis) =>
       const jetzt = heute ? Math.floor(Number(kreis.tag.jetzt)) : null;
       const grenze = (kreis.kennwerte || {}).heizgrenze;
       // Gezeigt wird die angeklickte Stunde, sonst die laufende, an anderen Tagen die erste.
-      const offen = stunden.some((s) => s.stunde === this._automatikStundeOffen) ? this._automatikStundeOffen : null;
+      // Je Kreis eigene Auswahl: Ein Klick im einen Kreis ändert das Raster des anderen nicht.
+      this._automatikStundeOffen = this._automatikStundeOffen || {};
+      const gewaehlt = this._automatikStundeOffen[kreis.heizkreis];
+      const offen = stunden.some((s) => s.stunde === gewaehlt) ? gewaehlt : null;
       const gezeigt = offen ?? (stunden.some((s) => s.stunde === jetzt) ? jetzt : (stunden[0] || {}).stunde);
       stunden.forEach((eintrag) => {
         const zelle = document.createElement("button");
@@ -383,7 +386,7 @@ export const TagesbildMixin = (Basis) =>
           .join(" ");
         zelle.setAttribute("aria-pressed", String(eintrag.stunde === gezeigt));
         zelle.addEventListener("click", () => {
-          this._automatikStundeOffen = this._automatikStundeOffen === eintrag.stunde ? null : eintrag.stunde;
+          this._automatikStundeOffen[kreis.heizkreis] = gewaehlt === eintrag.stunde ? null : eintrag.stunde;
           this._gebaut = false;
           this._zeichnen();
         });
@@ -413,7 +416,7 @@ export const TagesbildMixin = (Basis) =>
         zelle.appendChild(raum);
         raster.appendChild(zelle);
       });
-      this._automatikRasterZentrieren(raster);
+      this._automatikRasterZentrieren(raster, kreis.heizkreis, gezeigt);
       const huelle = document.createElement("div");
       huelle.appendChild(raster);
       if (gezeigt !== undefined && gezeigt !== null) {
@@ -422,13 +425,25 @@ export const TagesbildMixin = (Basis) =>
       return huelle;
     }
 
-    /** Auf schmalen Bildschirmen scrollt das Raster waagrecht; die gezeigte Stunde rückt in die Mitte. */
-    _automatikRasterZentrieren(raster) {
+    /**
+     * Auf schmalen Bildschirmen scrollt das Raster waagrecht. Eine neu gezeigte Stunde rückt
+     * in die Mitte; beim Nachladen bleibt die Lage, in die der Nutzer gescrollt hat.
+     */
+    _automatikRasterZentrieren(raster, heizkreis, gezeigt) {
+      this._automatikRasterLage = this._automatikRasterLage || {};
+      const vorher = this._automatikRasterLage[heizkreis];
+      raster.addEventListener("scroll", () => {
+        this._automatikRasterLage[heizkreis] = { stunde: gezeigt, links: raster.scrollLeft };
+      });
       if (typeof requestAnimationFrame !== "function") return;
       requestAnimationFrame(() => {
+        if (raster.scrollWidth <= raster.clientWidth) return;
+        if (vorher && vorher.stunde === gezeigt) {
+          raster.scrollLeft = vorher.links;
+          return;
+        }
         const zelle = raster.querySelector(".automatik-stunde.gezeigt");
-        if (!zelle || raster.scrollWidth <= raster.clientWidth) return;
-        raster.scrollLeft = zelle.offsetLeft - (raster.clientWidth - zelle.offsetWidth) / 2;
+        if (zelle) raster.scrollLeft = zelle.offsetLeft - (raster.clientWidth - zelle.offsetWidth) / 2;
       });
     }
 

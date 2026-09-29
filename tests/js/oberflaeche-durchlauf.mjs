@@ -918,8 +918,9 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   clearInterval(flaeche._automatikUhr);
   flaeche._automatikUhr = null;
   bilanz.automatik.stundenKasten = flaeche.shadowRoot.querySelectorAll(".automatik-stundenkasten").map((k) => String((k.querySelector(".kopf") || {}).textContent || ""));
+  bilanz.automatik.stundeJeKreis = Object.entries(flaeche._automatikStundeOffen || {});
   bilanz.automatik.stundeOffen = flaeche.shadowRoot.querySelectorAll(".automatik-stunde").filter((z) => z.classList.contains("offen")).length;
-  flaeche._automatikStundeOffen = null;
+  flaeche._automatikStundeOffen = {};
   mitZielen.kennwerte = vorherKennwerte;
   mitZielen.tag = vorherTag;
 }
