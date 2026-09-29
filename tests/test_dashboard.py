@@ -37,6 +37,27 @@ def ansichten(dashboard):
     return dashboard.ansichten
 
 
+@pytest.fixture(scope="module")
+def details(dashboard):
+    from custom_components.heatnexus.dashboard import details as modul
+
+    return modul
+
+
+@pytest.fixture(scope="module")
+def auswahl(dashboard):
+    from custom_components.heatnexus.dashboard import auswahl as modul
+
+    return modul
+
+
+@pytest.fixture(scope="module")
+def karten(dashboard):
+    from custom_components.heatnexus.dashboard import karten as modul
+
+    return modul
+
+
 def test_kurzname_entfernt_steuerungspraefix(anlagen):
     assert anlagen.kurzname("Kesselhaus · PuroWIN") == "PuroWIN"
     assert anlagen.kurzname("PuroWIN") == "PuroWIN"
@@ -669,20 +690,6 @@ def test_auf_englisch_bleibt_im_dashboard_nichts_deutsch(ansichten):
     assert not reste, f"auf Englisch noch deutsch: {reste}"
 
 
-@pytest.fixture(scope="module")
-def karten(dashboard):
-    from custom_components.heatnexus.dashboard import karten as modul
-
-    return modul
-
-
-@pytest.fixture(scope="module")
-def auswahl(dashboard):
-    from custom_components.heatnexus.dashboard import auswahl as modul
-
-    return modul
-
-
 def _e(entity_id: str, name: str, **rest) -> dict:
     return {
         "entity_id": entity_id,
@@ -793,3 +800,21 @@ def test_auswahl_und_zahl_bekommen_bedienfelder(karten):
     zahl = karten.kachel(_e("number.korrektur", "Komfortkorrektur"))
     assert auswahlkachel["features"] == [{"type": "select-options"}]
     assert zahl["features"] == [{"type": "numeric-input", "style": "buttons"}]
+
+
+def _anlage(*teile: dict, name: str = "Kesselhaus", kennung: str = "anlage0123456789") -> dict:
+    return {"id": kennung, "name": name, "teile": list(teile)}
+
+
+def test_unteransicht_gliedert_nach_zweck(details):
+    ansicht = details.unteransicht(_anlage(_kessel()), _kessel())
+    titel = [s["cards"][0]["heading"] for s in ansicht["sections"]]
+    assert titel == ["Bedienung", "Messwerte", "Einstellungen", "Diagnose"]
+    assert ansicht["title"] == "Kesselhaus · PuroWIN"
+    assert ansicht["path"] == "teil-kessel01"
+    assert ansicht["back_path"] == "/heatnexus/anlage-anlage01"
+
+
+def test_teil_ohne_werte_hat_keine_unteransicht(details):
+    leer = {**_kessel(), "entitaeten": []}
+    assert details.unteransicht(_anlage(leer), leer) is None
