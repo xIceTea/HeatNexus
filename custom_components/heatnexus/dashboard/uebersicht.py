@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..helpers import mustername
+from ..schema import passt
 from . import auswahl
 from .anlage import meldungsabschnitt, schaubild
 from .karten import abschnitt, ansicht, kachel, pfad_anlage
+from .muster import ABFRAGETASTE
 
 
 def stoerungsbadges(anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -23,16 +26,31 @@ def stoerungsbadges(anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
     ]
 
 
+def _kernwerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
+    """Kernwerte aller Teile; bei mehreren Teilen mit dem Teilnamen davor."""
+    je_teil = [(teil, werte) for teil in anlage["teile"] if (werte := auswahl.kernwerte(teil))]
+    if len(je_teil) < 2:
+        return [e for _, werte in je_teil for e in werte]
+    return [
+        {**e, "name": f"{teil['name']} · {e['name']}"} for teil, werte in je_teil for e in werte
+    ]
+
+
+def _tasten(anlage: dict[str, Any]) -> list[dict[str, Any]]:
+    """Die Tasten aller Teile; „Werte jetzt abfragen“ nur die des ersten Teils."""
+    tasten = [e for teil in anlage["teile"] for e in auswahl.tasten(teil)]
+    abfrage = [e for e in tasten if passt(mustername(e), ABFRAGETASTE)]
+    return [e for e in tasten if e not in abfrage[1:]]
+
+
 def _anlagenspalte(anlage: dict[str, Any], als_karte: bool) -> list[dict[str, Any]]:
     karten: list[dict[str, Any]] = []
     if bild := schaubild(anlage, als_karte, mit_liste=False):
         karten.append(bild)
-    for teil in anlage["teile"]:
-        karten += [kachel(e) for e in auswahl.kernwerte(teil)]
+    karten += [kachel(e) for e in _kernwerte(anlage)]
     for teil in anlage["teile"]:
         karten += [kachel(e) for e in auswahl.thermostate(teil)]
-    for teil in anlage["teile"]:
-        karten += [kachel(e) for e in auswahl.tasten(teil)]
+    karten += [kachel(e) for e in _tasten(anlage)]
     return abschnitt(anlage["name"] or "Anlage", karten, ziel=pfad_anlage(anlage))
 
 
