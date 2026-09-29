@@ -409,6 +409,8 @@ class WindhagerOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Abfrageintervall für alle Anlagen."""
         options = dict(self.config_entry.options)
+        # Die Vorlagen liegen als Dateien; gelesen wird außerhalb der Ereignisschleife.
+        vorlagen = await self.hass.async_add_executor_job(verfuegbare_vorlagen)
         if user_input is not None:
             options[CONF_UPDATE_INTERVAL] = int(user_input[CONF_UPDATE_INTERVAL])
             options[CONF_STARTWERTE] = int(user_input.get(CONF_STARTWERTE, STARTWERTE_VORGABE))
@@ -419,9 +421,7 @@ class WindhagerOptionsFlow(OptionsFlow):
             options[CONF_MELDUNG_EINLESEN] = bool(user_input.get(CONF_MELDUNG_EINLESEN, False))
             options[CONF_HILFE] = bool(user_input.get(CONF_HILFE, True))
             options[CONF_SPRACHE] = user_input.get(CONF_SPRACHE, "de")
-            options[CONF_VORLAGEN] = [
-                v for v in user_input.get(CONF_VORLAGEN, []) if v in verfuegbare_vorlagen()
-            ]
+            options[CONF_VORLAGEN] = [v for v in user_input.get(CONF_VORLAGEN, []) if v in vorlagen]
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
             if gewaehlt:
                 options[CONF_AUSSENTEMPERATUR] = gewaehlt
@@ -447,12 +447,12 @@ class WindhagerOptionsFlow(OptionsFlow):
                     # eine Aktualisierung keine wegnimmt.
                     vol.Optional(
                         CONF_VORLAGEN,
-                        default=list(options.get(CONF_VORLAGEN, verfuegbare_vorlagen())),
+                        default=list(options.get(CONF_VORLAGEN, vorlagen)),
                     ): SelectSelector(
                         SelectSelectorConfig(
                             options=[
-                                SelectOptionDict(value=kennung, label=name)
-                                for kennung, name in verfuegbare_vorlagen().items()
+                                SelectOptionDict(value=kennung, label=woerterbuch_zu(self)(name))
+                                for kennung, name in vorlagen.items()
                             ],
                             multiple=True,
                             mode=SelectSelectorMode.LIST,

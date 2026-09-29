@@ -728,5 +728,11 @@
   "Zirkulationstemperatur": "Circulation temperature",
   "Netzwerkvariable {index}": "Network variable {index}",
   "Knoten {knoten}": "Node {knoten}",
-  "Kaminkehrer Laufzeit": "Chimney sweep runtime"
+  "Kaminkehrer Laufzeit": "Chimney sweep runtime",
+  "HeatNexus – Betriebsdauer erfassen": "HeatNexus – Record operating time",
+  "HeatNexus – Heizkreis bei Abwesenheit absenken": "HeatNexus – Lower heating circuit when away",
+  "HeatNexus – Legionellenschutz nachbilden": "HeatNexus – Legionella protection",
+  "HeatNexus – Störung melden": "HeatNexus – Report fault",
+  "HeatNexus – Brennstoffvorrat niedrig": "HeatNexus – Low fuel stock",
+  "HeatNexus – Wartungswarnung mit Erinnerung": "HeatNexus – Maintenance warning with reminder"
 }

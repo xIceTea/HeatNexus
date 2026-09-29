@@ -241,6 +241,16 @@ EIGENE_BEZEICHNUNGEN = (
 )
 
 
+def _vorlagennamen() -> set[str]:
+    """Die Namen der mitgelieferten Blueprints; der Optionsdialog zeigt sie zur Auswahl."""
+    ordner = ORDNER.parent / "blueprints" / "automation" / "heatnexus"
+    return {
+        treffer.group(1).strip()
+        for datei in ordner.glob("*.yaml")
+        if (treffer := re.search(r"^  name:\s*(.+)$", datei.read_text(encoding="utf-8"), re.M))
+    }
+
+
 def _lon_namen() -> set[str]:
     """Die gepflegten Begriffe der Busentitäten."""
     lon = load_standalone("lon")
@@ -270,6 +280,7 @@ def test_jede_eigene_bezeichnung_hat_eine_englische_fassung():
         *(begriff for begriffe in geraete.NUR_BUS.values() for begriff in begriffe),
         *EIGENE_BEZEICHNUNGEN,
         *_lon_namen(),
+        *_vorlagennamen(),
     }
     fehlend = sorted(t for t in texte if t not in englisch)
     assert not fehlend, fehlend

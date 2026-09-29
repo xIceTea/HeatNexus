@@ -182,6 +182,31 @@ async def test_allgemeine_einstellungen_auch_bei_einer_anlage(flow, monkeypatch)
     assert "anlage_0" in ergebnis["menu_options"]
 
 
+async def test_die_vorlagen_werden_ausserhalb_der_ereignisschleife_gelesen(flow, monkeypatch):
+    """Home Assistant meldet einen Dateizugriff in der Ereignisschleife als blockierend."""
+    from types import SimpleNamespace
+
+    aufgerufen = []
+
+    async def im_executor(funktion, *argumente):
+        aufgerufen.append(funktion)
+        return funktion(*argumente)
+
+    optionen = flow.WindhagerOptionsFlow()
+    optionen.hass = SimpleNamespace(
+        async_add_executor_job=im_executor,
+        config_entries=SimpleNamespace(async_entries=lambda _domain: []),
+    )
+    monkeypatch.setattr(
+        type(optionen), "config_entry", property(lambda _self: SimpleNamespace(options={}))
+    )
+
+    ergebnis = await optionen.async_step_allgemein()
+
+    assert aufgerufen == [flow.verfuegbare_vorlagen]
+    assert ergebnis["step_id"] == "allgemein"
+
+
 def test_der_dialog_nennt_die_werte_die_nur_der_bus_hergibt(flow, monkeypatch):
     """Sonst steht dort eine Sammelaussage, die je Baureihe stimmt oder nicht."""
     from types import SimpleNamespace
