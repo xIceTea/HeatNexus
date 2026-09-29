@@ -1,7 +1,7 @@
 """Einrichtung der Integration über die Oberfläche.
 
 Ein Konfigurationseintrag bündelt eine Heizungsanlage, die aus mehreren
-Steuerungen bestehen kann (z.B. Heizhaus und Wohnhaus mit je eigener
+Steuerungen bestehen kann (z.B. Kesselhaus und Nebengebäude mit je eigener
 Adresse). In Home Assistant erscheint das als ein Gerät mit Untergeräten.
 """
 

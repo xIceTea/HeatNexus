@@ -13,7 +13,7 @@
     "step": {
       "user": {
         "title": "Heizungsanlage anlegen",
-        "description": "Wie soll die Anlage heißen, und aus wie vielen Steuerungen besteht sie? Jede Steuerung hat eine eigene IP-Adresse (z. B. Heizhaus und Wohnhaus).",
+        "description": "Wie soll die Anlage heißen, und aus wie vielen Steuerungen besteht sie? Jede Steuerung hat eine eigene IP-Adresse (z. B. Kesselhaus und Nebengebäude).",
         "data": {
           "name": "Name der Anlage",
           "count": "Anzahl der Steuerungen"

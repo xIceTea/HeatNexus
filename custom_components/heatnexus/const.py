@@ -16,7 +16,7 @@ SIGNAL_NEUE_ENTITAETEN = "heatnexus_neue_entitaeten_{}"
 # Konfiguration (Einrichtungsdialog und Optionen)
 # ---------------------------------------------------------------------------
 CONF_SYSTEMS = "systems"  # Liste der Anlagen eines Konfigurationseintrags
-CONF_LABEL = "label"  # Bezeichnung einer Anlage, z.B. "Heizhaus"
+CONF_LABEL = "label"  # Bezeichnung einer Anlage, z.B. "Kesselhaus"
 CONF_COUNT = "count"  # Anzahl der Anlagen im Einrichtungsdialog
 MAX_SYSTEMS = 6
 

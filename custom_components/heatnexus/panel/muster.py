@@ -146,8 +146,7 @@ WARMWASSER_SCHLUESSEL = (
 #
 # Die Parameter allein beweisen nichts: „WW-Überhöhung", „WW-Ladepumpe" und
 # „WW-Ladung max. Ladevorrang" stehen auch an einem Heizkreis ohne
-# Warmwasserspeicher in der Liste. Genau daran zeigte die Oberfläche im
-# Heizhaus eine Warmwasserkarte, die es dort nie gab.
+# Warmwasserspeicher in der Liste; eine Warmwasserkarte wäre dort falsch.
 # Kuratiert heißt der Datenpunkt „Warmwasser Ist-Temperatur", aus der
 # Menü-Erkennung „WW-Temperatur Aktueller Wert" – beide Schreibweisen zählen.
 WARMWASSER_IST = namensmuster(
