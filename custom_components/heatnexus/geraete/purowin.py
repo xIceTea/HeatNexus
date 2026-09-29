@@ -11,6 +11,14 @@ MODELL = "PuroWIN Hackgutkessel"
 RANG = 10
 SYMBOL = "mdi:fire"
 SCHAUBILD = "kessel"
+KERNWERTE: tuple[str, ...] = ("operating_phase", "boiler_temperature")
+RUNDINSTRUMENTE: tuple[tuple[str, dict], ...] = (
+    (
+        "boiler_temperature",
+        {"min": 0, "max": 95, "severity": {"green": 55, "yellow": 80, "red": 88}},
+    ),
+    ("boiler_power", {"min": 0, "max": 100}),
+)
 
 # Störcode, Softwarestand und die Lagerraumbefüllung stehen in keiner
 # Bedienebene; das InfoWIN Touch zeigt sie trotzdem an.

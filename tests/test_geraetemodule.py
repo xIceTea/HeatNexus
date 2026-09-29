@@ -120,3 +120,20 @@ def test_eingriffe_in_die_betriebswahl_sind_schalter(geraete):
     assert eintraege["kaminkehrer"]["ein_wert"] == "3"
     assert eintraege["befuellen"]["ein_wert"] == "7"
     assert {eintraege[k]["aus_wert"] for k in eintraege} == {"1"}
+
+
+def test_kernwerte_und_rundinstrumente_nennen_nur_bekannte_schluessel(geraete):
+    """Ein Tippfehler im Schlüssel ließe den Wert still aus dem Dashboard fallen."""
+    kanonisch = load_standalone("kanonisch")
+    bekannt = set(kanonisch.KANONISCH.values())
+    for fct, schluessel in geraete.KERNWERTE.items():
+        assert set(schluessel) <= bekannt, fct
+    for fct, zeilen in geraete.RUNDINSTRUMENTE.items():
+        assert {s for s, _ in zeilen} <= bekannt, fct
+        assert all(skala["min"] < skala["max"] for _, skala in zeilen), fct
+
+
+def test_kessel_und_puffer_haben_zeigerinstrumente(geraete):
+    assert [s for s, _ in geraete.RUNDINSTRUMENTE[25]] == ["boiler_temperature", "boiler_power"]
+    assert [s for s, _ in geraete.RUNDINSTRUMENTE[16]] == ["buffer_top", "buffer_bottom"]
+    assert geraete.KERNWERTE[14] == ("flow_temperature",)

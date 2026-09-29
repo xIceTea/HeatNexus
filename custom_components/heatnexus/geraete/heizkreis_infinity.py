@@ -11,6 +11,7 @@ MODELL = "Heizkreis (Infinity PLUS)"
 RANG = 30
 SYMBOL = "mdi:radiator"
 SCHAUBILD = "heizkreis"
+KERNWERTE: tuple[str, ...] = ("flow_temperature",)
 
 EXTRA_OIDS: tuple[str, ...] = ()
 KESSELART: str | None = None

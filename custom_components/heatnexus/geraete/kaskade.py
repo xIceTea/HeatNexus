@@ -11,6 +11,7 @@ MODELL = "Kaskade"
 RANG = 16
 SYMBOL = "mdi:layers-triple"
 SCHAUBILD = "umschaltung"
+KERNWERTE: tuple[str, ...] = ("operating_phase", "boiler_temperature")
 
 EXTRA_OIDS: tuple[str, ...] = ()
 KESSELART: str | None = None
