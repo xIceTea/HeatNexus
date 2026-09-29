@@ -408,106 +408,14 @@ export const EinrichtungMixin = (Basis) =>
         this._melden(this._t("Die Auswahllisten konnten nicht geladen werden."));
         return;
       }
-      const schleier = document.createElement("div");
-      schleier.className = "schleier";
-      const dialog = document.createElement("div");
-      dialog.className = "dialog automatik-dialog";
-      dialog.setAttribute("role", "dialog");
-      const titel = document.createElement("h3");
-      titel.className = "dialog-titel";
       const k = kreis.eingerichtet ? kreis.konfig : null;
-      titel.textContent = k
-        ? this._tMit("Einrichtung von {name} ändern", { name: kreis.name })
-        : this._tMit("Automatik für {name} einrichten", { name: kreis.name });
-      // Kopf und Tasten bleiben stehen, nur die Abschnitte dazwischen scrollen.
-      const kopfzeile = document.createElement("div");
-      kopfzeile.className = "dialog-kopf";
-      const kreuz = document.createElement("button");
-      kreuz.type = "button";
-      kreuz.className = "dialog-schliessen";
-      kreuz.textContent = "×";
-      kreuz.setAttribute("aria-label", this._t("Schließen"));
-      kreuz.title = this._t("Schließen");
-      kopfzeile.append(titel, kreuz);
-      const inhalt = document.createElement("div");
-      inhalt.className = "automatik-dialog-inhalt";
-      dialog.append(kopfzeile, inhalt);
-
-      const heizflaechen = this._automatikAuswahl(HEIZFLAECHEN, (k && k.heizflaechen) || "gemischt");
-      const ausrichtung = this._automatikAuswahl(AUSRICHTUNGEN, (k && k.ausrichtung) || "ausgewogen");
-      const raeume = this._automatikHaken(kandidaten.temperatur, k ? k.raeume : []);
-      const raumArt = this._automatikAuswahl(
-        [
-          ["mittel", this._t("Mittel der Räume")],
-          ["minimum", this._t("Kältester Raum")],
-        ],
-        (k && k.raum_art) || "mittel"
+      const { schleier, dialog, inhalt, kreuz } = this._automatikDialogRahmen(
+        k
+          ? this._tMit("Einrichtung von {name} ändern", { name: kreis.name })
+          : this._tMit("Automatik für {name} einrichten", { name: kreis.name })
       );
-      const raumZiel = this._automatikEingabe({ schritt: 0.5 }, k ? k.raum_ziel : null, true);
-      raumZiel.min = "10";
-      raumZiel.max = "30";
-      const wetter = this._automatikAuswahl(
-        this._automatikMitGewaehlt(kandidaten.wetter.map((e) => [e.entity_id, e.name]), k && k.wetter),
-        (k && k.wetter) || ""
-      );
-      const pv = this._automatikAuswahl(
-        this._automatikMitGewaehlt([["", this._t("Keine")], ...kandidaten.pv.map((e) => [e.entity_id, e.name])], k && k.pv),
-        (k && k.pv) || ""
-      );
-      const pvIst = this._automatikAuswahl(
-        this._automatikMitGewaehlt([["", this._t("Keine")], ...(kandidaten.pv_ist || []).map((e) => [e.entity_id, e.name])], k && k.pv_ist),
-        (k && k.pv_ist) || ""
-      );
-      const personen = this._automatikHaken(kandidaten.personen, k ? k.personen : []);
-      const fenster = this._automatikHaken(kandidaten.fenster, k ? k.fenster : []);
-      const vorrang = this._automatikHaken(kandidaten.vorrang || [], k ? k.vorrang || [] : []);
-      const erkennung = document.createElement("input");
-      erkennung.type = "checkbox";
-      erkennung.checked = !!(k && k.fenster_erkennung);
-
-      const abschnitte = [
-        [
-          this._t("1 · Heizflächen und Ausrichtung"),
-          [heizflaechen, this._automatikBeschriftet(this._t("Eco greift früher und kräftiger ein, Komfort später und sanfter. Ausgewogen nimmt die Werte der Heizflächen unverändert."), ausrichtung)],
-        ],
-        [
-          this._t("2 · Räume"),
-          [
-            raeume,
-            this._automatikBeschriftet(this._t("Zählt"), raumArt),
-            this._automatikBeschriftet(this._t("Wunschtemperatur für Temperaturfühler, °C (leer: Sollwert des Heizkreises)"), raumZiel),
-          ],
-        ],
-        [
-          this._t("3 · Wetter und PV-Prognose"),
-          [
-            this._automatikBeschriftet(this._t("Wetter"), wetter),
-            this._automatikBeschriftet(this._t("PV-Prognose, Tagesertrag (optional)"), pv),
-            this._automatikBeschriftet(this._t("PV-Ertrag tatsächlich, zum Anpassen (optional)"), pvIst),
-          ],
-        ],
-        [
-          this._t("4 · Optional: Anwesenheit und Fenster"),
-          [
-            this._automatikBeschriftet(this._t("Personen"), personen),
-            this._automatikBeschriftet(
-              this._t("Fensterkontakte"),
-              this._automatikMitText(erkennung, this._t("Fenster aus Temperatursturz erkennen")),
-              fenster
-            ),
-          ],
-        ],
-        [
-          this._t("5 · Optional: Wärmequellen mit Vorrang vor dem Kessel"),
-          [
-            this._automatikBeschriftet(
-              this._t("Liefert eine dieser Quellen, soll ihre Wärme den Heizkreis decken statt der Kessel."),
-              vorrang
-            ),
-          ],
-        ],
-      ];
-      abschnitte.forEach(([ueberschrift, knoten]) => {
+      const felder = this._automatikDialogFelder(kandidaten, k);
+      this._automatikDialogAbschnitte(felder).forEach(([ueberschrift, knoten]) => {
         const abschnitt = document.createElement("section");
         const kopf = document.createElement("h4");
         kopf.textContent = ueberschrift;
@@ -527,7 +435,6 @@ export const EinrichtungMixin = (Basis) =>
       einrichten.textContent = k ? this._t("Übernehmen") : this._t("Einrichten");
       leiste.append(abbrechen, einrichten);
       dialog.appendChild(leiste);
-      schleier.appendChild(dialog);
       const beiTaste = (ereignis) => {
         if (ereignis.key === "Escape") weg();
       };
@@ -539,28 +446,7 @@ export const EinrichtungMixin = (Basis) =>
       abbrechen.addEventListener("click", weg);
       kreuz.addEventListener("click", weg);
       einrichten.addEventListener("click", async () => {
-        const gewaehlt = (liste) => Array.from(liste.querySelectorAll("input:checked")).map((e) => e.value);
-        const nachricht = {
-          type: k ? "heatnexus/automatik/einstellen" : "heatnexus/automatik/einrichten",
-          heizkreis: kreis.heizkreis,
-          heizflaechen: heizflaechen.value,
-          ausrichtung: ausrichtung.value,
-          raeume: gewaehlt(raeume),
-          raum_art: raumArt.value,
-          raum_ziel: raumZiel.value === "" ? null : Number(raumZiel.value),
-          wetter: wetter.value,
-          pv: pv.value || null,
-          pv_ist: pvIst.value || null,
-          personen: gewaehlt(personen),
-          fenster: gewaehlt(fenster),
-          vorrang: gewaehlt(vorrang),
-          fenster_erkennung: erkennung.checked,
-        };
-        // Andere Heizflächen heißen anderes Profil; eigene Werte gehörten zum alten.
-        if (k && nachricht.heizflaechen !== k.heizflaechen) {
-          nachricht.profil = PROFIL_JE_FLAECHE[nachricht.heizflaechen];
-          nachricht.eigene = {};
-        }
+        const nachricht = this._automatikDialogNachricht(kreis, k, felder);
         if (!nachricht.raeume.length || !nachricht.wetter) {
           this._melden(this._t("Mindestens ein Raum und eine Wetter-Entität sind nötig."));
           return;
@@ -568,6 +454,124 @@ export const EinrichtungMixin = (Basis) =>
         if (await this._automatikAufruf(nachricht)) weg();
       });
       this.shadowRoot.appendChild(schleier);
+    }
+
+    /** Schleier, Dialog und fester Kopf; nur der Inhalt dazwischen scrollt. */
+    _automatikDialogRahmen(titelText) {
+      const schleier = document.createElement("div");
+      schleier.className = "schleier";
+      const dialog = document.createElement("div");
+      dialog.className = "dialog automatik-dialog";
+      dialog.setAttribute("role", "dialog");
+      const titel = document.createElement("h3");
+      titel.className = "dialog-titel";
+      titel.textContent = titelText;
+      const kopfzeile = document.createElement("div");
+      kopfzeile.className = "dialog-kopf";
+      const kreuz = document.createElement("button");
+      kreuz.type = "button";
+      kreuz.className = "dialog-schliessen";
+      kreuz.textContent = "×";
+      kreuz.setAttribute("aria-label", this._t("Schließen"));
+      kreuz.title = this._t("Schließen");
+      kopfzeile.append(titel, kreuz);
+      const inhalt = document.createElement("div");
+      inhalt.className = "automatik-dialog-inhalt";
+      dialog.append(kopfzeile, inhalt);
+      schleier.appendChild(dialog);
+      return { schleier, dialog, inhalt, kreuz };
+    }
+
+    /** Die Eingaben des Dialogs, vorbelegt mit der bestehenden Einrichtung `k`. */
+    _automatikDialogFelder(kandidaten, k) {
+      const mitKeine = (liste, gewaehlt) =>
+        this._automatikMitGewaehlt([["", this._t("Keine")], ...(liste || []).map((e) => [e.entity_id, e.name])], gewaehlt);
+      const raumZiel = this._automatikEingabe({ schritt: 0.5 }, k ? k.raum_ziel : null, true);
+      raumZiel.min = "10";
+      raumZiel.max = "30";
+      const erkennung = document.createElement("input");
+      erkennung.type = "checkbox";
+      erkennung.checked = !!(k && k.fenster_erkennung);
+      return {
+        heizflaechen: this._automatikAuswahl(HEIZFLAECHEN, (k && k.heizflaechen) || "gemischt"),
+        ausrichtung: this._automatikAuswahl(AUSRICHTUNGEN, (k && k.ausrichtung) || "ausgewogen"),
+        raeume: this._automatikHaken(kandidaten.temperatur, k ? k.raeume : []),
+        raumArt: this._automatikAuswahl(
+          [
+            ["mittel", this._t("Mittel der Räume")],
+            ["minimum", this._t("Kältester Raum")],
+          ],
+          (k && k.raum_art) || "mittel"
+        ),
+        raumZiel,
+        wetter: this._automatikAuswahl(
+          this._automatikMitGewaehlt(kandidaten.wetter.map((e) => [e.entity_id, e.name]), k && k.wetter),
+          (k && k.wetter) || ""
+        ),
+        pv: this._automatikAuswahl(mitKeine(kandidaten.pv, k && k.pv), (k && k.pv) || ""),
+        pvIst: this._automatikAuswahl(mitKeine(kandidaten.pv_ist, k && k.pv_ist), (k && k.pv_ist) || ""),
+        personen: this._automatikHaken(kandidaten.personen, k ? k.personen : []),
+        fenster: this._automatikHaken(kandidaten.fenster, k ? k.fenster : []),
+        vorrang: this._automatikHaken(kandidaten.vorrang || [], k ? k.vorrang || [] : []),
+        erkennung,
+      };
+    }
+
+    /** Die fünf Abschnitte des Dialogs als Überschrift und Knoten. */
+    _automatikDialogAbschnitte(f) {
+      const b = (text, ...knoten) => this._automatikBeschriftet(this._t(text), ...knoten);
+      return [
+        [
+          this._t("1 · Heizflächen und Ausrichtung"),
+          [f.heizflaechen, b("Eco greift früher und kräftiger ein, Komfort später und sanfter. Ausgewogen nimmt die Werte der Heizflächen unverändert.", f.ausrichtung)],
+        ],
+        [
+          this._t("2 · Räume"),
+          [f.raeume, b("Zählt", f.raumArt), b("Wunschtemperatur für Temperaturfühler, °C (leer: Sollwert des Heizkreises)", f.raumZiel)],
+        ],
+        [
+          this._t("3 · Wetter und PV-Prognose"),
+          [b("Wetter", f.wetter), b("PV-Prognose, Tagesertrag (optional)", f.pv), b("PV-Ertrag tatsächlich, zum Anpassen (optional)", f.pvIst)],
+        ],
+        [
+          this._t("4 · Optional: Anwesenheit und Fenster"),
+          [
+            b("Personen", f.personen),
+            b("Fensterkontakte", this._automatikMitText(f.erkennung, this._t("Fenster aus Temperatursturz erkennen")), f.fenster),
+          ],
+        ],
+        [
+          this._t("5 · Optional: Wärmequellen mit Vorrang vor dem Kessel"),
+          [b("Liefert eine dieser Quellen, soll ihre Wärme den Heizkreis decken statt der Kessel.", f.vorrang)],
+        ],
+      ];
+    }
+
+    /** Die Nachricht an den Server aus den Eingaben des Dialogs. */
+    _automatikDialogNachricht(kreis, k, f) {
+      const gewaehlt = (liste) => Array.from(liste.querySelectorAll("input:checked")).map((e) => e.value);
+      const nachricht = {
+        type: k ? "heatnexus/automatik/einstellen" : "heatnexus/automatik/einrichten",
+        heizkreis: kreis.heizkreis,
+        heizflaechen: f.heizflaechen.value,
+        ausrichtung: f.ausrichtung.value,
+        raeume: gewaehlt(f.raeume),
+        raum_art: f.raumArt.value,
+        raum_ziel: f.raumZiel.value === "" ? null : Number(f.raumZiel.value),
+        wetter: f.wetter.value,
+        pv: f.pv.value || null,
+        pv_ist: f.pvIst.value || null,
+        personen: gewaehlt(f.personen),
+        fenster: gewaehlt(f.fenster),
+        vorrang: gewaehlt(f.vorrang),
+        fenster_erkennung: f.erkennung.checked,
+      };
+      // Andere Heizflächen heißen anderes Profil; eigene Werte gehörten zum alten.
+      if (k && nachricht.heizflaechen !== k.heizflaechen) {
+        nachricht.profil = PROFIL_JE_FLAECHE[nachricht.heizflaechen];
+        nachricht.eigene = {};
+      }
+      return nachricht;
     }
 
     _automatikAuswahl(eintraege, vorgabe) {
