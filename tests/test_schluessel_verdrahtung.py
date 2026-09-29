@@ -35,11 +35,6 @@ def anlagen(dashboard):
     return dashboard.anlagen
 
 
-@pytest.fixture(scope="module")
-def ansichten(dashboard):
-    return dashboard.ansichten
-
-
 def namensmuster(*ausdruecke: str) -> tuple[re.Pattern, ...]:
     return tuple(re.compile(a, re.IGNORECASE) for a in ausdruecke)
 

@@ -47,27 +47,6 @@ UEBERSICHT_VORRANG: tuple[tuple[re.Pattern, tuple[str, ...]], ...] = (
 )
 
 
-# Werte, die als Rundinstrument mehr sagen als eine Kachel.
-RUNDINSTRUMENT: tuple[tuple[re.Pattern, tuple[str, ...], dict], ...] = (
-    (
-        re.compile(r"kesseltemperatur ist", re.IGNORECASE),
-        ("boiler_temperature",),
-        {"min": 0, "max": 95, "severity": {"green": 55, "yellow": 80, "red": 88}},
-    ),
-    (re.compile(r"kesselleistung", re.IGNORECASE), ("boiler_power",), {"min": 0, "max": 100}),
-    (
-        re.compile(r"puffer oben", re.IGNORECASE),
-        ("buffer_top",),
-        {"min": 0, "max": 95, "severity": {"green": 60, "yellow": 80, "red": 90}},
-    ),
-    (
-        re.compile(r"puffer unten", re.IGNORECASE),
-        ("buffer_bottom",),
-        {"min": 0, "max": 95, "severity": {"green": 40, "yellow": 70, "red": 85}},
-    ),
-)
-
-
 # Wartungsansicht: Restlaufzeiten, Zähler, Brennstoff.
 #
 # Zu jeder Musterliste gehört eine Liste kanonischer Schlüssel. Sie steht
@@ -259,10 +238,6 @@ def rueckfrage(name: str) -> str:
 
 # Zustände, mit denen sich keine Karte lohnt.
 OHNE_WERT = frozenset({"unavailable", "unknown", "none", ""})
-
-
-# Höchstzahl der Kacheln, die ein Anlagenteil in der Übersicht bekommt.
-UEBERSICHT_MAX = 8
 
 
 # Höchstzahl der Linien in einem Verlaufsdiagramm.

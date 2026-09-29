@@ -2,7 +2,7 @@
 
 Gebaut in Home Assistant aus Geräte- und Entitätsliste, ausgeliefert als fertige
 Lovelace-Konfiguration; kein Browsermodul, keine festen Entitäts-IDs. Ansichten:
-Übersicht, Wartung, Auswertung, je Anlagenteil eine.
+Übersicht (ab zwei Anlagen), je Anlage, Wartung, Auswertung, je Anlagenteil eine Unteransicht.
 """
 
 from __future__ import annotations
@@ -14,13 +14,14 @@ from typing import Any
 
 from homeassistant.components import frontend, websocket_api
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 import voluptuous as vol
 import yaml
 
-from ..const import DASHBOARD_TITEL, DASHBOARD_URL, DOMAIN
+from ..const import CONF_AUSSENTEMPERATUR, DASHBOARD_TITEL, DASHBOARD_URL, DOMAIN
 from ..texte import LOVELACE_FELDER, uebersetze_baum, woerterbuch
-from .anlagen import anlagen_lesen, mehrfach_vergebene_namen
-from .ansichten import anlagenbild, auswertung, geraeteansicht, uebersicht, wartung
+from . import anlage, details, uebersicht, wartung
+from .anlagen import anlagen_lesen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,15 +61,40 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
             ],
         }
 
-    mehrdeutig = mehrfach_vergebene_namen(anlagen)
-    views: list[dict[str, Any]] = [uebersicht(anlagen)]
-    for ansicht in (anlagenbild(anlagen, als_karte), wartung(anlagen), auswertung(anlagen)):
-        if ansicht:
-            views.append(ansicht)
-    views += [
-        geraeteansicht(anlage, teil, mehrdeutig) for anlage in anlagen for teil in anlage["teile"]
-    ]
+    mehrere = len(anlagen) > 1
+    views: list[dict[str, Any]] = []
+    if mehrere:
+        views.append(uebersicht.uebersicht(anlagen, als_karte, _kennwerte(hass, anlagen)))
+    views += [anlage.arbeitsseite(a, als_karte, mit_schaubild=not mehrere) for a in anlagen]
+    views += [v for v in (wartung.wartung(anlagen), wartung.auswertung(anlagen)) if v]
+    views += [v for a in anlagen for t in a["teile"] if (v := details.unteransicht(a, t))]
     return {"title": DASHBOARD_TITEL, "views": views}
+
+
+def _kennwerte(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Außentemperatur (gewählt oder erste gemeldete) und Status der Automatik als Badges."""
+    eintraege = hass.config_entries.async_entries(DOMAIN)
+    aussen = (eintraege[0].options or {}).get(CONF_AUSSENTEMPERATUR) if eintraege else None
+    aussen = aussen or next(
+        (
+            e["entity_id"]
+            for a in anlagen
+            for t in a["teile"]
+            for e in t["entitaeten"]
+            if e.get("schluessel") == "outdoor_temperature" and e["hat_wert"]
+        ),
+        None,
+    )
+    register = er.async_get(hass)
+    automatik = next(
+        (
+            e.entity_id
+            for e in register.entities.values()
+            if e.platform == DOMAIN and e.unique_id.endswith("-automatik-system-status")
+        ),
+        None,
+    )
+    return [{"type": "entity", "entity": eid} for eid in (aussen, automatik) if eid]
 
 
 def als_yaml(konfiguration: dict[str, Any]) -> str:

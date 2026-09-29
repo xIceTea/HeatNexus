@@ -33,11 +33,6 @@ def anlagen(dashboard):
 
 
 @pytest.fixture(scope="module")
-def ansichten(dashboard):
-    return dashboard.ansichten
-
-
-@pytest.fixture(scope="module")
 def details(dashboard):
     from custom_components.heatnexus.dashboard import details as modul
 
@@ -67,10 +62,16 @@ def anlagenseite(dashboard):
 
 @pytest.fixture(scope="module")
 def uebersichtsseite(dashboard):
-    import importlib
+    from custom_components.heatnexus.dashboard import uebersicht as modul
 
-    # `dashboard.uebersicht` ist als Attribut noch die Funktion aus `ansichten`.
-    return importlib.import_module("custom_components.heatnexus.dashboard.uebersicht")
+    return modul
+
+
+@pytest.fixture(scope="module")
+def wartungsseite(dashboard):
+    from custom_components.heatnexus.dashboard import wartung as modul
+
+    return modul
 
 
 def test_kurzname_entfernt_steuerungspraefix(anlagen):
@@ -104,26 +105,14 @@ def test_der_vorrang_gilt_auch_ohne_deutschen_namen(anlagen):
     assert anlagen.vorrang(fremd) < anlagen.vorrang({"name": "Nachstellzeit"})
 
 
-def test_thermostat_bekommt_eigene_karte(ansichten):
+def test_thermostat_bekommt_eigene_karte(karten):
     eintrag = {"entity_id": "climate.heizkreis", "name": "Heizkreis", "bereich": "climate"}
-    assert ansichten.kachel(eintrag)["type"] == "thermostat"
+    assert karten.kachel(eintrag)["type"] == "thermostat"
 
 
-def test_kesseltemperatur_wird_rundinstrument(ansichten):
-    eintrag = {
-        "entity_id": "sensor.kesseltemperatur_ist",
-        "name": "Kesseltemperatur Ist",
-        "bereich": "sensor",
-    }
-    karte = ansichten.kachel(eintrag, rundinstrument=True)
-    assert karte["type"] == "gauge"
-    # Ohne ausdrückliche Anforderung bleibt es eine schlichte Kachel.
-    assert ansichten.kachel(eintrag)["type"] == "tile"
-
-
-def test_leerer_abschnitt_entfaellt(ansichten):
-    assert ansichten.abschnitt("Messwerte", []) == []
-    abschnitt = ansichten.abschnitt("Messwerte", [{"type": "tile"}])
+def test_leerer_abschnitt_entfaellt(karten):
+    assert karten.abschnitt("Messwerte", []) == []
+    abschnitt = karten.abschnitt("Messwerte", [{"type": "tile"}])
     assert abschnitt[0]["cards"][0]["heading"] == "Messwerte"
 
 
@@ -167,13 +156,13 @@ def test_rueckfrage_nur_bei_eingriffen(muster):
     assert muster.rueckfrage("Kesseltemperatur Ist") == ""
 
 
-def test_gefaehrliche_taste_bekommt_bestaetigung(ansichten):
+def test_gefaehrliche_taste_bekommt_bestaetigung(karten):
     eintrag = {
         "entity_id": "button.serviceausbrand",
         "name": "Serviceausbrand",
         "bereich": "button",
     }
-    karte = ansichten.kachel(eintrag)
+    karte = karten.kachel(eintrag)
     aktion = karte["icon_tap_action"]
     assert aktion["perform_action"] == "button.press"
     assert aktion["confirmation"]["text"]
@@ -181,28 +170,28 @@ def test_gefaehrliche_taste_bekommt_bestaetigung(ansichten):
     assert "tap_action" not in karte
 
 
-def test_schalter_wird_umgeschaltet_statt_ausgeloest(ansichten):
+def test_schalter_wird_umgeschaltet_statt_ausgeloest(karten):
     eintrag = {"entity_id": "switch.estrich", "name": "Estrichprogramm", "bereich": "switch"}
-    assert ansichten.kachel(eintrag)["icon_tap_action"]["action"] == "toggle"
+    assert karten.kachel(eintrag)["icon_tap_action"]["action"] == "toggle"
 
 
-def test_harmlose_kachel_bleibt_unveraendert(ansichten):
+def test_harmlose_kachel_bleibt_unveraendert(karten):
     eintrag = {
         "entity_id": "sensor.kesseltemperatur_ist",
         "name": "Kesseltemperatur Ist",
         "bereich": "sensor",
     }
-    assert "icon_tap_action" not in ansichten.kachel(eintrag)
+    assert "icon_tap_action" not in karten.kachel(eintrag)
 
 
-def test_ohne_schaltbare_plattform_keine_bestaetigung(ansichten):
+def test_ohne_schaltbare_plattform_keine_bestaetigung(karten):
     """Ein Anzeigewert mit brenzligem Namen bekommt keine Schaltaktion."""
     eintrag = {
         "entity_id": "sensor.serviceausbrand_zaehler",
         "name": "Serviceausbrand Zähler",
         "bereich": "sensor",
     }
-    assert "icon_tap_action" not in ansichten.kachel(eintrag)
+    assert "icon_tap_action" not in karten.kachel(eintrag)
 
 
 # ---------------------------------------------------------------------------
@@ -275,9 +264,9 @@ def _anlage_mit_teilen():
     }
 
 
-def test_der_text_zum_kopieren_setzt_die_eigene_karte(ansichten):
+def test_der_text_zum_kopieren_setzt_die_eigene_karte(anlagenseite):
     """Nur als Karte lässt sich das Schaubild im Editor bearbeiten."""
-    ansicht = ansichten.anlagenbild([_anlage_mit_teilen()], als_karte=True)
+    ansicht = anlagenseite.arbeitsseite(_anlage_mit_teilen(), als_karte=True, mit_schaubild=True)
     karten = [k for abschnitt in ansicht["sections"] for k in abschnitt["cards"]]
     schaubild = [k for k in karten if k.get("type", "").startswith("custom:")]
     assert len(schaubild) == 1
@@ -286,9 +275,9 @@ def test_der_text_zum_kopieren_setzt_die_eigene_karte(ansichten):
     assert "sensor.purowin_betriebsphase" in schaubild[0]["zusatzwerte"]
 
 
-def test_ohne_kartenmodul_bleibt_die_zeichnung(ansichten):
+def test_ohne_kartenmodul_bleibt_die_zeichnung(anlagenseite):
     """Der Rückfall setzt kein Modul im Browser voraus."""
-    ansicht = ansichten.anlagenbild([_anlage_mit_teilen()])
+    ansicht = anlagenseite.arbeitsseite(_anlage_mit_teilen(), als_karte=False, mit_schaubild=True)
     karten = [k for abschnitt in ansicht["sections"] for k in abschnitt["cards"]]
     assert not [k for k in karten if str(k.get("type", "")).startswith("custom:")]
     assert [k for k in karten if k.get("type") == "picture-elements"]
@@ -329,9 +318,9 @@ async def test_ohne_angemeldetes_modul_baut_das_dashboard_die_zeichnung(
     assert "custom:heatnexus-schaubild" not in typen
 
 
-def test_das_schaubild_bekommt_zwei_spalten(ansichten):
+def test_das_schaubild_bekommt_zwei_spalten(anlagenseite):
     """Neben dem Bild steht die Werteliste – in einer Spalte wird beides eng."""
-    ansicht = ansichten.anlagenbild([_anlage_mit_teilen()], als_karte=True)
+    ansicht = anlagenseite.arbeitsseite(_anlage_mit_teilen(), als_karte=True, mit_schaubild=True)
     assert ansicht["sections"][0]["column_span"] == 2
 
 
@@ -491,29 +480,18 @@ async def test_die_bezeichnung_eines_programms_kommt_mit(hass, anlagen):
     assert eintrag["bezeichnung"] == "Übergangszeit"
 
 
-def test_meldungen_zeigen_text_und_abhilfe(ansichten):
+def test_meldungen_zeigen_text_und_abhilfe(uebersichtsseite):
     """Die Abhilfe steht nur im Attribut; die Kachel zeigte sie nicht."""
-    anlage = _anlage_mit_teilen()
-    anlage["teile"][0]["entitaeten"].append(
-        {
-            "entity_id": "sensor.purowin_meldung_klartext",
-            "name": "PuroWIN Meldung Klartext",
-            "bereich": "sensor",
-            "hat_wert": True,
-            "kategorie": "diagnostic",
-            "state_class": None,
-            "abgeleitet": False,
-        }
-    )
+    seite = uebersichtsseite.uebersicht([_anlage(_kessel())], als_karte=False, badges=[])
     karten = [
         karte
-        for abschnitt in ansichten.uebersicht([anlage])["sections"]
+        for abschnitt in seite["sections"]
         for karte in abschnitt["cards"]
         if karte.get("type") == "markdown"
     ]
     assert len(karten) == 1
     inhalt = karten[0]["content"]
-    assert "state_attr('sensor.purowin_meldung_klartext', 'meldungen')" in inhalt
+    assert "state_attr('sensor.klartext', 'meldungen')" in inhalt
     assert "e.text" in inhalt and "e.info" in inhalt
     # Zwei Anlagen melden dieselben Teile; der Titel sagt, welches.
     assert karten[0]["title"] == "Kesselhaus · PuroWIN"
@@ -611,6 +589,8 @@ def _dashboard_anlage():
             "kategorie": None,
             "state_class": None,
             "abgeleitet": False,
+            "schluessel": None,
+            "meldungsart": None,
             "wert": 70.0,
             **rest,
         }
@@ -621,28 +601,47 @@ def _dashboard_anlage():
         eintrag("sensor.betriebsphase", "Betriebsphase"),
         eintrag("sensor.brennerstarts", "Brennerstarts", state_class="total_increasing"),
         eintrag("sensor.kesseltemperatur_ist", "Kesseltemperatur Ist"),
-        eintrag("sensor.meldung_klartext", "Meldung Klartext", kategorie="diagnostic"),
+        eintrag(
+            "sensor.meldung_klartext",
+            "Meldung Klartext",
+            kategorie="diagnostic",
+            meldungsart="fe01text",
+        ),
+        eintrag(
+            "binary_sensor.stoerung",
+            "Störung gemeldet",
+            kategorie="diagnostic",
+            meldungsart="fe01stoerung",
+        ),
         eintrag("sensor.nachstellzeit", "Nachstellzeit"),
         eintrag("button.serviceausbrand", "Serviceausbrand"),
     ]
     return anlage
 
 
-def test_englische_namen_ergeben_dasselbe_dashboard(ansichten):
-    """Rundinstrument, Reihenfolge, Rückfrage und Meldungen folgen dem deutschen Namen."""
+def _alle_ansichten(anlage, teil, uebersichtsseite, anlagenseite, wartungsseite, details):
+    """Alle Ansichten einer Anlage; fehlende (`None`) entfallen."""
+    ansichten = [
+        uebersichtsseite.uebersicht([anlage], als_karte=False, badges=[]),
+        anlagenseite.arbeitsseite(anlage, als_karte=False, mit_schaubild=True),
+        wartungsseite.wartung([anlage]),
+        wartungsseite.auswertung([anlage]),
+        details.unteransicht(anlage, teil),
+    ]
+    return [a for a in ansichten if a]
+
+
+def test_englische_namen_ergeben_dasselbe_dashboard(
+    uebersichtsseite, anlagenseite, wartungsseite, details
+):
+    """Zeigerinstrument, Reihenfolge, Rückfrage und Meldungen folgen dem deutschen Namen."""
     deutsch = _dashboard_anlage()
     teile, namen = auf_englisch(deutsch["teile"])
     englisch = {**deutsch, "teile": teile}
 
     def ansichten_von(anlage):
         [teil] = anlage["teile"]
-        return [
-            ansichten.uebersicht([anlage]),
-            ansichten.anlagenbild([anlage]),
-            ansichten.wartung([anlage]),
-            ansichten.auswertung([anlage]),
-            ansichten.geraeteansicht(anlage, teil, set()),
-        ]
+        return _alle_ansichten(anlage, teil, uebersichtsseite, anlagenseite, wartungsseite, details)
 
     assert zurueck_auf_deutsch(ansichten_von(englisch), namen) == ansichten_von(deutsch)
     kacheln = [k for a in ansichten_von(deutsch) for s in a["sections"] for k in s["cards"]]
@@ -668,7 +667,9 @@ def _sichtbare_texte(wert, schluessel=None) -> list[str]:
     return []
 
 
-def test_auf_englisch_bleibt_im_dashboard_nichts_deutsch(ansichten):
+def test_auf_englisch_bleibt_im_dashboard_nichts_deutsch(
+    uebersichtsseite, anlagenseite, wartungsseite, details
+):
     """Jede Überschrift, jeder Kartenname und jede Rückfrage erscheint auf Englisch."""
     from custom_components.heatnexus.texte import LOVELACE_FELDER, Woerterbuch, uebersetze_baum
 
@@ -684,13 +685,7 @@ def test_auf_englisch_bleibt_im_dashboard_nichts_deutsch(ansichten):
     englisch = {**anlage, "teile": teile}
     [teil] = englisch["teile"]
     fertig = uebersetze_baum(
-        [
-            ansichten.uebersicht([englisch]),
-            ansichten.anlagenbild([englisch]),
-            ansichten.wartung([englisch]),
-            ansichten.auswertung([englisch]),
-            ansichten.geraeteansicht(englisch, teil, set()),
-        ],
+        _alle_ansichten(englisch, teil, uebersichtsseite, anlagenseite, wartungsseite, details),
         Woerterbuch("en"),
         LOVELACE_FELDER,
     )
@@ -918,3 +913,70 @@ def test_stoerungsbadge_nur_solange_eine_anliegt(uebersichtsseite):
     assert badge["visibility"] == [
         {"condition": "state", "entity": "binary_sensor.stoerung", "state": "on"}
     ]
+
+
+async def test_eine_anlage_ohne_reiter_uebersicht(dashboard, hass, monkeypatch):
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage(_kessel())])
+    hass.data["heatnexus_karte_js"] = True
+    views = dashboard.dashboard_konfiguration(hass)["views"]
+    assert views[0]["path"] == "anlage-anlage01"
+    assert not [v for v in views if v["path"] == "uebersicht"]
+    assert all("icon" not in v for v in views)
+
+
+async def test_zwei_anlagen_uebersicht_zuerst_ohne_bild_im_anlagenreiter(
+    dashboard, hass, monkeypatch
+):
+    zweite = _anlage(
+        {**_kessel(), "id": "zweiter0123456789"}, name="Werkstatt", kennung="werkst0123456789"
+    )
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage(_kessel()), zweite])
+    hass.data["heatnexus_karte_js"] = True
+    views = dashboard.dashboard_konfiguration(hass)["views"]
+    assert [v["path"] for v in views][:3] == ["uebersicht", "anlage-anlage01", "anlage-werkst01"]
+    anlagenreiter = views[1]
+    assert not [
+        k
+        for s in anlagenreiter["sections"]
+        for k in s["cards"]
+        if str(k.get("type", "")).startswith("custom:")
+    ]
+
+
+async def test_jedes_ziel_ist_eine_ansicht(dashboard, hass, monkeypatch):
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage(_kessel())])
+    views = dashboard.dashboard_konfiguration(hass)["views"]
+    pfade = {f"/heatnexus/{v['path']}" for v in views}
+    ziele = {
+        k["tap_action"]["navigation_path"]
+        for v in views
+        for s in v.get("sections", [])
+        for k in s["cards"]
+        if k.get("tap_action", {}).get("action") == "navigate"
+    } | {v["back_path"] for v in views if v.get("subview")}
+    assert ziele and ziele <= pfade
+
+
+def test_wartung_je_anlage_gegliedert(wartungsseite):
+    teil = {**_kessel()}
+    teil["entitaeten"] = [
+        *teil["entitaeten"],
+        _e(
+            "sensor.bis_reinigung",
+            "Laufzeit bis Reinigung",
+            schluessel="maintenance_cleaning_hours",
+            wert=120.0,
+        ),
+    ]
+    ansicht = wartungsseite.wartung([_anlage(teil)])
+    assert "icon" not in ansicht
+    assert ansicht["sections"][0]["cards"][0]["heading"] == "Kesselhaus · PuroWIN"
+
+
+async def test_die_vorlage_enthaelt_die_unteransichten(dashboard, hass, monkeypatch):
+    """Wer das Dashboard kopiert, bekommt auch die Details je Anlagenteil."""
+    import yaml
+
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage(_kessel())])
+    views = yaml.safe_load(dashboard.dashboard_als_yaml(hass))["views"]
+    assert [v["path"] for v in views if v.get("subview")] == ["teil-kessel01"]
