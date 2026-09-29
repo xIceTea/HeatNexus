@@ -1,0 +1,16 @@
+{
+  "heute": "aujourd'hui",
+  "seit Start": "depuis le démarrage",
+  "zurücksetzen": "réinitialiser",
+  "Laufzeit Zyklus": "Durée du cycle",
+  "Laufzeit heute": "Durée aujourd'hui",
+  "Werte jetzt abfragen": "Actualiser les valeurs",
+  "Datenpunkt {gnmn}": "Point de données {gnmn}",
+  "Wert {wert}": "Valeur {wert}",
+  "Unbekannt ({wert})": "Inconnu ({wert})",
+  "Anforderungstemperatur": "Température demandée",
+  "Einschaltpunkt": "Point d'enclenchement",
+  "Einschaltpunkt Delta": "Écart d'enclenchement",
+  "WW-Einschaltpunkt": "Point d'enclenchement ECS",
+  "WW-Einschaltpunkt Delta": "Écart d'enclenchement ECS"
+}

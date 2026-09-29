@@ -54,12 +54,14 @@ class Woerterbuch:
 
     @staticmethod
     def _waehlen(sprache: str) -> dict[str, str]:
-        """Das Wörterbuch der Sprache, sonst das englische.
+        """Das Wörterbuch der Sprache, über das englische gelegt.
 
         Wer eine fremde Sprache wählt, versteht die deutsche Quelle in aller
-        Regel nicht; Englisch trägt weiter als der Rückfall auf Deutsch.
+        Regel nicht; was die Sprache nicht führt, erscheint englisch.
         """
-        return _laden(sprache) or _laden(RUECKFALL)
+        if sprache == RUECKFALL:
+            return _laden(RUECKFALL)
+        return {**_laden(RUECKFALL), **_laden(sprache)}
 
     def __call__(self, text: str) -> str:
         """Kurzform für die Übersetzung eines Textes."""

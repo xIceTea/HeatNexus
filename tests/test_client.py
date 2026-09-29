@@ -487,6 +487,29 @@ async def test_englische_ableitungen_heissen_englisch(client_module, monkeypatch
     }
 
 
+async def test_franzoesische_ableitungen_heissen_franzoesisch(client_module, monkeypatch):
+    """Zusätze kommen aus der eigenen Sprache, nicht englisch an einen französischen Namen gehängt."""
+    client = client_module.WindhagerHttpClient("192.0.2.1", "secret", sprache="fr")
+    await _kessel_erkennen(client, monkeypatch)
+    quelle = {
+        "id": "x-0-2-81-0",
+        "oid": "/1/60/0/2/81/0",
+        "name": "Heures de service",
+        "name_de": "Betriebsstunden",
+    }
+
+    heute = client._ableitung(quelle, "heute", "zaehler_heute", "heute")
+
+    assert (heute["name"], heute["name_de"]) == (
+        "Heures de service aujourd'hui",
+        "Betriebsstunden heute",
+    )
+    client._abfragetasten()
+    assert {d["name"] for d in client.devices if d.get("type") == "refresh"} == {
+        "Actualiser les valeurs"
+    }
+
+
 def test_jeder_name_einer_ableitung_hat_eine_englische_fassung(client_module):
     """Ohne Eintrag bliebe der Name einer Ableitung auf Englisch deutsch."""
     import json

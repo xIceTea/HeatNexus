@@ -1,0 +1,16 @@
+{
+  "heute": "oggi",
+  "seit Start": "dall'avvio",
+  "zurücksetzen": "azzera",
+  "Laufzeit Zyklus": "Durata del ciclo",
+  "Laufzeit heute": "Durata oggi",
+  "Werte jetzt abfragen": "Aggiorna i valori",
+  "Datenpunkt {gnmn}": "Punto dati {gnmn}",
+  "Wert {wert}": "Valore {wert}",
+  "Unbekannt ({wert})": "Sconosciuto ({wert})",
+  "Anforderungstemperatur": "Temperatura richiesta",
+  "Einschaltpunkt": "Punto di accensione",
+  "Einschaltpunkt Delta": "Differenza di accensione",
+  "WW-Einschaltpunkt": "Punto di accensione ACS",
+  "WW-Einschaltpunkt Delta": "Differenza di accensione ACS"
+}

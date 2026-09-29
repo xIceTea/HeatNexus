@@ -50,6 +50,38 @@ def test_unbekannte_sprache_faellt_auf_englisch(texte):
     assert texte.Woerterbuch("it")("Übersicht") == "Overview"
 
 
+def test_eigene_sprache_liegt_ueber_dem_englischen(texte):
+    """Französisch nimmt seine eigenen Einträge, für alles andere gilt Englisch."""
+    franzoesisch = texte.Woerterbuch("fr")
+    assert franzoesisch("heute") == "aujourd'hui"
+    assert franzoesisch("Übersicht") == "Overview"
+
+
+@pytest.mark.parametrize("sprache", ["fr", "it"])
+def test_namenszusaetze_gibt_es_in_jeder_sprache_der_datenpunkte(sprache):
+    """Diese Texte setzt HeatNexus selbst in Namen; ohne eigene Fassung entstünden Mischnamen."""
+    englisch = json.loads((ORDNER / "en.json").read_text(encoding="utf-8"))
+    eigene = json.loads((ORDNER / f"{sprache}.json").read_text(encoding="utf-8"))
+    namen = {
+        "heute",
+        "seit Start",
+        "zurücksetzen",
+        "Laufzeit Zyklus",
+        "Laufzeit heute",
+        "Werte jetzt abfragen",
+        "Datenpunkt {gnmn}",
+        "Wert {wert}",
+        "Unbekannt ({wert})",
+        "Anforderungstemperatur",
+        "Einschaltpunkt",
+        "Einschaltpunkt Delta",
+        "WW-Einschaltpunkt",
+        "WW-Einschaltpunkt Delta",
+    }
+    assert namen <= set(englisch)
+    assert sorted(namen - set(eigene)) == []
+
+
 def test_nur_bekannte_felder_werden_uebersetzt(texte):
     """Ein selbst vergebener Name steht in denselben Feldern und darf nicht wandern."""
     baum = {"titel": "Übersicht", "entity": "sensor.uebersicht", "kinder": [{"titel": "Wartung"}]}
