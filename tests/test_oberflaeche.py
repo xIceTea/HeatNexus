@@ -754,6 +754,8 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["vorrangZeile"] == ["Vorrangquellen 1,5 h"]
     assert automatik["modusStunden"] > 0
     assert automatik["stundenLegende"] == 1
+    # Die Erklärung der Farben ist auch am Handy erreichbar, nicht nur als Tooltip.
+    assert automatik["legendeHilfe"] == [1]
     assert automatik["stundenKasten"] == ["10:00 Uhr"]
     assert automatik["stundeOffen"] == 1
     # Die Auswahl gehört dem Kreis, in dem geklickt wurde, nicht dem ganzen Reiter.

@@ -143,7 +143,7 @@ const tagMitWerten = {
   ],
 };
 assert.deepEqual(tagesleisteTipp(tagMitWerten, 10), [
-  "10:00 · Absenkung",
+  "10:00 · Sonnentag",
   "Außen gemessen 12,9 °C",
   "Außen Prognose 13,8 °C",
   "gedämpfte AT 12,4 °C",
@@ -166,7 +166,7 @@ const kasten = stundenKasten(
     { zeit: halbAcht.toISOString(), art: "geschrieben", text: "Sonnenquote 82 % – 21,0 °C bis 16:54.", werte: [] },
   ]
 );
-assert.equal(kasten[0], "07:00–08:00 · Absenkung");
+assert.equal(kasten[0], "07:00–08:00 · Sonnentag");
 assert.ok(kasten.includes("07:30 Sonnenquote 82 % – 21,0 °C bis 16:54."));
 assert.ok(!kasten.some((z) => z.startsWith("09:10")));
 assert.ok(kasten.includes("Vorrangquelle lieferte"));

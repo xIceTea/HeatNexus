@@ -7,7 +7,8 @@
 
 import { kelvin, zahl } from "./automatik.js";
 
-const AKTIONEN = { absenkung: "Absenkung", nur_ww: "nur Warmwasser", programm: "Programm" };
+// Dieselben Namen wie in der Legende des Tagesverlaufs.
+const AKTIONEN = { absenkung: "Sonnentag", nur_ww: "Nur Warmwasser", programm: "Programm" };
 
 /** Die Werte einer Stunde im Tagesbild, als Zeilen für den Zeiger; Fehlendes entfällt. */
 export function tagesleisteTipp(tag, stunde, t = (text) => text) {
@@ -510,13 +511,13 @@ export const TagesbildMixin = (Basis) =>
       return huelle;
     }
 
-    /** Farben der Modi, oben rechts im Tagesverlauf. */
+    /** Farben der Modi, oben rechts im Tagesverlauf; das „?“ erklärt sie auch ohne Maus. */
     _automatikStundenlegende() {
       const legende = document.createElement("div");
       legende.className = "automatik-stundenlegende";
-      legende.title = this._t(
-        "Der Balken unter jeder Stunde zeigt, was galt; blasse Stunden sind geplant. Ein Klick auf eine Stunde zeigt ihre Werte und Einträge."
-      );
+      const hinweis =
+        "Der Balken unter jeder Stunde zeigt, was galt; blasse Stunden sind geplant. Ein Klick auf eine Stunde zeigt ihre Werte und Einträge.";
+      legende.title = this._t(hinweis);
       [
         ["m-absenkung", "Sonnentag"],
         ["m-nur_ww", "Nur Warmwasser"],
@@ -528,6 +529,7 @@ export const TagesbildMixin = (Basis) =>
         eintrag.append(farbe, this._t(titel));
         legende.appendChild(eintrag);
       });
+      legende.appendChild(this._fragezeichen("Tagesverlauf", hinweis));
       return legende;
     }
   };
