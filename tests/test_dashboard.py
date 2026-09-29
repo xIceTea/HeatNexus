@@ -6,6 +6,8 @@ bestimmen – ohne laufende Home-Assistant-Instanz.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from .conftest import auf_englisch, requires_ha, zurueck_auf_deutsch
@@ -610,3 +612,58 @@ def test_englische_namen_ergeben_dasselbe_dashboard(ansichten):
     kacheln = [k for a in ansichten_von(deutsch) for s in a["sections"] for k in s["cards"]]
     assert any(k.get("icon_tap_action") for k in kacheln)
     assert any(k.get("type") == "markdown" for k in kacheln)
+
+
+# Merkmale deutscher Texte: Umlaute und häufige kurze Wörter.
+DEUTSCH = re.compile(
+    r"[äöüÄÖÜß]|\b(und|der|die|das|nicht|bis|von|mit|keine|seit|oder|für|zum|zur|Uhr|heute|"
+    r"Wert|Zähler|Anlage|Heizung|Monat|dieser)\b"
+)
+SICHTBAR = frozenset({"title", "name", "heading", "content", "confirmation_text", "text"})
+
+
+def _sichtbare_texte(wert, schluessel=None) -> list[str]:
+    if isinstance(wert, dict):
+        return [t for k, v in wert.items() for t in _sichtbare_texte(v, k)]
+    if isinstance(wert, list):
+        return [t for v in wert for t in _sichtbare_texte(v, schluessel)]
+    if isinstance(wert, str) and schluessel in SICHTBAR and "{%" not in wert:
+        return [wert]
+    return []
+
+
+def test_auf_englisch_bleibt_im_dashboard_nichts_deutsch(ansichten):
+    """Jede Überschrift, jeder Kartenname und jede Rückfrage erscheint auf Englisch."""
+    from custom_components.heatnexus.texte import LOVELACE_FELDER, Woerterbuch, uebersetze_baum
+
+    anlage = _dashboard_anlage()
+    anlage["teile"][0]["entitaeten"].append(
+        {
+            **anlage["teile"][0]["entitaeten"][0],
+            "entity_id": "sensor.laufzeit_bis_reinigung",
+            "name": "Laufzeit bis Reinigung",
+        }
+    )
+    teile, _namen = auf_englisch(anlage["teile"])
+    englisch = {**anlage, "teile": teile}
+    [teil] = englisch["teile"]
+    fertig = uebersetze_baum(
+        [
+            ansichten.uebersicht([englisch]),
+            ansichten.anlagenbild([englisch]),
+            ansichten.wartung([englisch]),
+            ansichten.auswertung([englisch]),
+            ansichten.geraeteansicht(englisch, teil, set()),
+        ],
+        Woerterbuch("en"),
+        LOVELACE_FELDER,
+    )
+    eigene = {anlage["name"], teil["name"]}
+
+    def ohne_eigene(text: str) -> str:
+        for name in eigene:
+            text = text.replace(name, "")
+        return text
+
+    reste = sorted({t for t in _sichtbare_texte(fertig) if DEUTSCH.search(ohne_eigene(t))})
+    assert not reste, f"auf Englisch noch deutsch: {reste}"

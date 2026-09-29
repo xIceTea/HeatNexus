@@ -148,7 +148,7 @@ TEXTFELDER = frozenset(
 )
 
 # Dieselben Felder in der Lovelace-Konfiguration des Dashboards.
-LOVELACE_FELDER = frozenset({"title", "name", "confirmation_text", "content"})
+LOVELACE_FELDER = frozenset({"title", "name", "heading", "text", "confirmation_text", "content"})
 
 
 def uebersetze_baum(daten, woerterbuch: Woerterbuch, felder=TEXTFELDER):
@@ -161,7 +161,7 @@ def uebersetze_baum(daten, woerterbuch: Woerterbuch, felder=TEXTFELDER):
         return daten
     if isinstance(daten, dict):
         return {
-            k: woerterbuch(v)
+            k: woerterbuch.satz(v)
             if k in felder and isinstance(v, str)
             else uebersetze_baum(v, woerterbuch, felder)
             for k, v in daten.items()
@@ -182,12 +182,20 @@ def sprache_der_oberflaeche(hass) -> str:
     if not eintraege:
         return QUELLSPRACHE
     gewaehlt = (eintraege[0].options or {}).get(CONF_SPRACHE)
-    if gewaehlt and gewaehlt != SPRACHE_AUTO:
+    if isinstance(gewaehlt, str) and gewaehlt and gewaehlt != SPRACHE_AUTO:
         return gewaehlt
-    ha_sprache = getattr(hass.config, "language", None) or QUELLSPRACHE
+    ha_sprache = getattr(hass.config, "language", None)
+    if not isinstance(ha_sprache, str) or not ha_sprache:
+        return QUELLSPRACHE
     return ha_sprache.split("-")[0]
 
 
 def woerterbuch(hass) -> Woerterbuch:
     """Das Wörterbuch für die eingestellte Sprache."""
     return Woerterbuch(sprache_der_oberflaeche(hass))
+
+
+def woerterbuch_zu(objekt) -> Woerterbuch:
+    """Das Wörterbuch zum Home Assistant eines Objekts; ohne eines bleibt es deutsch."""
+    hass = getattr(objekt, "hass", None)
+    return woerterbuch(hass) if hass is not None else Woerterbuch(None)

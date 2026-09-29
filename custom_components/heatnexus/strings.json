@@ -115,7 +115,7 @@
           "vorlagen": "Which blueprints appear under Settings → Automations. A blueprint an automation still uses stays in place.",
           "aussentemperatur": "Which sensor counts as the outside temperature in the header. Empty: HeatNexus finds it in the plant itself.",
           "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does.",
-          "sprache": "Where the datapoint names come from. The panel cards stay labelled in German."
+          "sprache": "Where the datapoint names come from. With “Automatic” they stay German and the interface follows the language of Home Assistant."
         }
       },
       "system": {
@@ -134,8 +134,8 @@
           "lon": "Read values from the LON bus",
           "lon_grundumfang": "Add basic values from the LON bus",
           "zusatzgruppen": "Derived values",
-          "marken": "Labels in der Oberfläche zeigen",
-          "marken_status": "Diese Labels in den Systemstatus"
+          "marken": "Show labels in the interface",
+          "marken_status": "Put these labels into the system status"
         },
         "data_description": {
           "label": "Appears in front of every device name of this system, for example \"Boiler house · Buffer tank\".",
@@ -147,11 +147,11 @@
           "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature.",
           "modulpumpe": "Only with the tick does the module's pump appear in the diagram. The module reports a speed even when nothing is wired to it; the module itself and its lamps are shown either way.",
           "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
-          "lon": "Liest zusätzlich den Bus-Adressraum der Steuerung: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und was sonst nur dort steht. An PuroWIN und Infinity bringt das wenig, weil dieselben Werte schon als Datenpunkt kommen.",
-          "lon_grundumfang": "Holt Pumpe, Mischer und die Kernwerte des Kessels aus dem Bus, wo die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Dafür muss „Werte vom LON-Bus lesen“ nicht eingeschaltet sein. Wo es den Datenpunkt gibt, gilt der Datenpunkt.",
+          "lon": "Also reads the bus address space of the controller: fan speed, lambda probe heating, pellet stock and whatever is only available there. On PuroWIN and Infinity this adds little, because the same values already come as data points.",
+          "lon_grundumfang": "Reads pump, mixing valve and the core boiler values from the bus where the system does not provide them as data points; otherwise they are missing in the diagram. \"Read values from the LON bus\" does not need to be switched on for this. Where the data point exists, the data point applies.",
           "zusatzgruppen": "Values HeatNexus derives from existing counters and states: running times (today, since the last start), counters (starts, consumption, heat) and the running duration. Unticked ones are created disabled. With “Individuell”, pressing OK opens a second step listing the individual values.",
-          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant.",
-          "marken_status": "Werte dieser Labels stehen im Systemstatus statt in einer eigenen Karte. Gewählt werden kann nur, was oben auch gezeigt wird."
+          "marken": "Each selected label becomes its own card in the overview. Anyone who does not need one hides it there. What someone sees in a card depends on their permissions in Home Assistant.",
+          "marken_status": "Values of these labels appear in the system status instead of their own card. Only labels shown above can be selected."
         }
       },
       "zusatzwerte": {
@@ -220,6 +220,14 @@
         "schwelle": "Threshold (value above or below a limit)",
         "differenz": "Difference between two sensors"
       }
+    },
+    "zusatzgruppen": {
+      "options": {
+        "laufzeit": "Runtime",
+        "zaehler": "Counters",
+        "schaltpunkt": "Switching points",
+        "individuell": "Custom – continue to individual selection"
+      }
     }
   },
   "entity": {
@@ -243,142 +251,142 @@
     },
     "switch": {
       "automatik": {
-        "name": "Automatik"
+        "name": "Automation"
       }
     },
     "select": {
       "automatik_modus": {
-        "name": "Automatik-Modus",
+        "name": "Automation mode",
         "state": {
-          "beobachten": "Beobachten",
-          "schalten": "Schalten"
+          "beobachten": "Observe",
+          "schalten": "Switch"
         }
       },
       "automatik_ausrichtung": {
-        "name": "Automatik-Ausrichtung",
+        "name": "Automation orientation",
         "state": {
           "eco": "Eco",
-          "ausgewogen": "Ausgewogen",
-          "komfort": "Komfort"
+          "ausgewogen": "Balanced",
+          "komfort": "Comfort"
         }
       }
     },
     "sensor": {
       "automatik_zustand": {
-        "name": "Automatik-Zustand",
+        "name": "Automation state",
         "state": {
-          "programm": "Heizen nach Programm",
-          "sonnentag": "Sonnentag",
-          "nur_ww": "Nur Warmwasser",
-          "abwesend": "Abwesend",
-          "pausiert": "Pausiert",
-          "fenster": "Fenster offen",
-          "keine_daten": "Keine Daten",
-          "sicherheit": "Sicherheit",
-          "aus": "Aus"
+          "programm": "Heating by program",
+          "sonnentag": "Sunny day",
+          "nur_ww": "Hot water only",
+          "abwesend": "Away",
+          "pausiert": "Paused",
+          "fenster": "Window open",
+          "keine_daten": "No data",
+          "sicherheit": "Safety",
+          "aus": "Off"
         },
         "state_attributes": {
           "begruendung": {
-            "name": "Begründung"
+            "name": "Reason"
           },
           "pausiert_bis": {
-            "name": "Pausiert bis"
+            "name": "Paused until"
           },
           "eingriffe_heute": {
-            "name": "Eingriffe heute"
+            "name": "Interventions today"
           }
         }
       },
       "automatik_gedaempft": {
-        "name": "Gedämpfte Außentemperatur"
+        "name": "Damped outdoor temperature"
       },
       "automatik_heizgrenze": {
-        "name": "Heizgrenze"
+        "name": "Heating limit"
       },
       "automatik_abweichung": {
-        "name": "Räume zum Ziel"
+        "name": "Rooms to target"
       },
       "automatik_sonnenquote": {
-        "name": "Sonnenquote heute"
+        "name": "Sunshine share today"
       },
       "automatik_eingriffe": {
-        "name": "Eingriffe heute"
+        "name": "Interventions today"
       },
       "automatik_letzter_eingriff": {
-        "name": "Letzter Eingriff"
+        "name": "Last intervention"
       },
       "automatik_naechste_entscheidung": {
-        "name": "Nächste Entscheidung"
+        "name": "Next decision"
       },
       "automatik_system_status": {
         "name": "Status",
         "state": {
-          "aus": "Aus",
-          "beobachten": "Beobachten",
-          "bereit": "Bereit",
-          "eingriff": "Eingriff aktiv",
-          "pausiert": "Pausiert",
-          "stoerung": "Störung"
+          "aus": "Off",
+          "beobachten": "Observing",
+          "bereit": "Ready",
+          "eingriff": "Intervention active",
+          "pausiert": "Paused",
+          "stoerung": "Fault"
         }
       },
       "automatik_system_automatiken": {
-        "name": "Automatiken"
+        "name": "Automations"
       },
       "automatik_system_eingriffe": {
-        "name": "Eingriffe heute"
+        "name": "Interventions today"
       },
       "automatik_system_letzter_eingriff": {
-        "name": "Letzter Eingriff"
+        "name": "Last intervention"
       },
       "automatik_system_naechste_entscheidung": {
-        "name": "Nächste Entscheidung"
+        "name": "Next decision"
       },
       "automatik_system_sonnentag_heute": {
-        "name": "Sonnentag heute"
+        "name": "Sunny day today"
       },
       "automatik_system_nur_ww_heute": {
-        "name": "Nur Warmwasser heute"
+        "name": "Hot water only today"
       },
       "automatik_system_vorrang_heute": {
-        "name": "Vorrangquelle heute"
+        "name": "Priority source today"
       },
       "automatik_system_absenkung_bis": {
-        "name": "Absenkung bis"
+        "name": "Setback until"
       },
       "automatik_system_modus_seit": {
-        "name": "Modus seit"
+        "name": "Mode since"
       },
       "automatik_system_raeume": {
-        "name": "Räume"
+        "name": "Rooms"
       },
       "automatik_system_prognose_max": {
-        "name": "Prognose Höchstwert heute"
+        "name": "Forecast high today"
       },
       "automatik_system_prognose_mittel": {
-        "name": "Prognose Tagesmittel"
+        "name": "Forecast daily mean"
       },
       "automatik_system_prognosekorrektur": {
-        "name": "Prognosekorrektur"
+        "name": "Forecast correction"
       }
     },
     "binary_sensor": {
       "automatik_stoerung": {
-        "name": "Störung"
+        "name": "Fault"
       },
       "automatik_system_stoerung": {
-        "name": "Störung"
+        "name": "Fault"
       },
       "automatik_system_prognose": {
-        "name": "Wetterprognose"
+        "name": "Weather forecast"
       },
       "automatik_system_sonnentag_aktiv": {
-        "name": "Sonnentag"
+        "name": "Sunny day"
       },
       "automatik_system_nur_ww_aktiv": {
-        "name": "Nur Warmwasser"
+        "name": "Hot water only"
       },
       "automatik_system_ueber_heizgrenze": {
-        "name": "Über Heizgrenze der Steuerung"
+        "name": "Above controller heating limit"
       }
     }
   },
@@ -406,12 +414,12 @@
       }
     },
     "automatik_sicherheit": {
-      "title": "Automatik {heizkreis}: Rückkehr ins Programm gescheitert",
-      "description": "Die Automatik wollte den Heizkreis **{heizkreis}** zur Sicherheit in sein Programm zurückstellen. Die Steuerung hat das zweimal abgelehnt.\n\nBitte die Betriebswahl des Heizkreises prüfen und von Hand einstellen. Diese Meldung verschwindet, sobald ein Eingriff der Automatik wieder angenommen wird."
+      "title": "Automation {heizkreis}: return to program failed",
+      "description": "For safety, the automation tried to return the heating circuit **{heizkreis}** to its program. The controller rejected this twice.\n\nPlease check the operating mode of the heating circuit and set it manually. This message disappears as soon as the controller accepts an intervention of the automation again."
     },
     "automatik_ruecknahme": {
-      "title": "Automatik {heizkreis}: Rücknahme gescheitert",
-      "description": "Beim Ausschalten oder Entfernen der Automatik hat die Steuerung die Rücknahme ihrer Eingriffe am Heizkreis **{heizkreis}** abgelehnt. Der Heizkreis kann noch auf „nur Warmwasser“ stehen oder abgesenkt sein.\n\nBitte Betriebswahl und Sollwert des Heizkreises prüfen und von Hand einstellen. Die Meldung verschwindet, sobald eine Rücknahme gelingt."
+      "title": "Automation {heizkreis}: undo failed",
+      "description": "When the automation was switched off or removed, the controller rejected undoing its interventions on the heating circuit **{heizkreis}**. The heating circuit may still be set to hot water only or run at a lowered setpoint.\n\nPlease check the operating mode and setpoint of the heating circuit and set them manually. This message disappears as soon as an undo succeeds."
     }
   },
   "config_subentries": {
@@ -481,6 +489,127 @@
         "reconfigure_successful": "The heat source was changed.",
         "zu_viele": "The diagram cannot hold more heat sources."
       }
+    }
+  },
+  "exceptions": {
+    "wert_abgelehnt": {
+      "message": "The system rejected the value for {oid} (HTTP {status})."
+    },
+    "zeitprogramm_abgelehnt": {
+      "message": "The system rejected the schedule {oid} (HTTP {status})."
+    },
+    "voreinstellung_unbekannt": {
+      "message": "The preset {voreinstellung} does not exist."
+    },
+    "temperatur_fehlt": {
+      "message": "No temperature was given."
+    },
+    "betriebswahl_unbekannt": {
+      "message": "The operating mode is not known yet. Please wait until the system has been read."
+    },
+    "keine_anlage": {
+      "message": "No system is set up."
+    },
+    "keine_anlage_zum_einlesen": {
+      "message": "No system is set up that could be read in again."
+    },
+    "einstellung_unbekannt": {
+      "message": "{name} does not know the setting {option}."
+    },
+    "wochentag_unbekannt": {
+      "message": "Unknown weekday: {tag}"
+    },
+    "zu_viele_schaltpunkte": {
+      "message": "At most {hoechstens} switching points per block, {anzahl} were given."
+    },
+    "uhrzeit_ungueltig": {
+      "message": "Invalid time: {uhrzeit}"
+    },
+    "kein_zeitprogramm": {
+      "message": "This entity is not a writable schedule."
+    },
+    "zeitprogramm_geschuetzt": {
+      "message": "This schedule is write-protected."
+    },
+    "schaltpunkte_fehlen": {
+      "message": "Please give switch_points or blocks."
+    },
+    "anmeldung_abgewiesen": {
+      "message": "The system {anlage} rejects the login."
+    },
+    "antwortet_nicht": {
+      "message": "The system {anlage} repeatedly does not respond: {fehler}"
+    },
+    "keine_werte": {
+      "message": "The system {anlage} has not delivered any values yet: {fehler}"
+    },
+    "abfrage_fehler": {
+      "message": "Error while polling {anlage}: {fehler}"
+    },
+    "keine_anlage_im_eintrag": {
+      "message": "The configuration entry contains no system."
+    },
+    "verbinden_zeitueberschreitung": {
+      "message": "Timeout while connecting to {anlage}."
+    },
+    "verbinden_fehler": {
+      "message": "Error while connecting to {anlage}: {fehler}"
+    }
+  },
+  "services": {
+    "rediscover": {
+      "name": "Detect system again",
+      "description": "Discards the stored discovery state and reads the system in again completely (data points and devices). Needed for example after changes to the heating or when new heating circuits were added. Takes longer once and then reports per system how many entities, polled data points and schedules were found."
+    },
+    "set_current_temp_compensation": {
+      "name": "Set comfort correction",
+      "description": "Shifts the measured room temperature of a heating circuit by a fixed amount. Meant for sensors that permanently read too warm or too cold because of where they hang.",
+      "fields": {
+        "compensation": {
+          "name": "Correction",
+          "description": "Added to the measured room temperature."
+        }
+      }
+    },
+    "meldungen_loeschen": {
+      "name": "Clear message list",
+      "description": "Clears the message list that HeatNexus keeps for a system. The system does not provide this list through its interface, so only the collection in Home Assistant is cleared, not the fault memory on the operating unit. Messages pending there stay and must be reset on the device as usual."
+    },
+    "set_vorgabe": {
+      "name": "Set temporary setpoint",
+      "description": "Sets a temporary room temperature setpoint for a heating circuit, the same one the system calls \"Eco / Comfort\". Afterwards the circuit returns to its operating mode by itself; the schedules stay unchanged. If the circuit is on standby or hot water mode, it switches to a heating program for the duration and back afterwards.",
+      "fields": {
+        "temperature": {
+          "name": "Temperature",
+          "description": "Room temperature that applies during the setpoint."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "How long the setpoint applies. 0 ends a running setpoint immediately."
+        }
+      }
+    },
+    "set_time_program": {
+      "name": "Set schedule",
+      "description": "Writes a heating or hot water schedule (target: a schedule sensor of HeatNexus). Either simplified with switch_points (plus optional weekdays, daily by default) or with blocks for full control (several weekday groups, for example Mon–Fri and Sat–Sun).",
+      "fields": {
+        "switch_points": {
+          "name": "Switching points",
+          "description": "List of switching points {time, value}. time as HH:MM, value = target temperature. Applies to the block from weekdays."
+        },
+        "weekdays": {
+          "name": "Weekdays",
+          "description": "Weekdays for the switching points (Mo Tu We Th Fr Sa Su or Mo Di Mi Do Fr Sa So). Default: daily."
+        },
+        "blocks": {
+          "name": "Blocks (advanced)",
+          "description": "Full program structure as a list of blocks, each with weekdays and switch_points. Overrides switch_points/weekdays when given."
+        }
+      }
+    },
+    "dashboard_ausgeben": {
+      "name": "Export dashboard as YAML",
+      "description": "Returns the bundled dashboard as YAML text. It is rebuilt every time it is opened and therefore cannot be edited. With this text you create a dashboard of your own: add a new dashboard, open the raw configuration editor, paste the text."
     }
   }
 }

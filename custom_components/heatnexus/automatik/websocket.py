@@ -345,11 +345,15 @@ EINSTELLUNGEN = {
 }
 
 
-async def _ausfuehren(connection, msg: dict[str, Any], aufgabe) -> None:
+def _ablehnen(hass: HomeAssistant, connection, msg: dict[str, Any], text: str) -> None:
+    connection.send_error(msg["id"], "ungueltig", texte.woerterbuch(hass).satz(text))
+
+
+async def _ausfuehren(hass: HomeAssistant, connection, msg: dict[str, Any], aufgabe) -> None:
     try:
         ergebnis = await aufgabe
     except ValueError as fehler:
-        connection.send_error(msg["id"], "ungueltig", str(fehler))
+        _ablehnen(hass, connection, msg, str(fehler))
         return
     connection.send_result(msg["id"], ergebnis if ergebnis is not None else {"ok": True})
 
@@ -364,10 +368,10 @@ async def _ws_einrichten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
     """Eine Automatik für einen Heizkreis anlegen."""
     entry = _eintrag_zum_heizkreis(hass, msg["heizkreis"])
     if entry is None:
-        connection.send_error(msg["id"], "ungueltig", "Diesen Heizkreis kennt keine Anlage.")
+        _ablehnen(hass, connection, msg, "Diesen Heizkreis kennt keine Anlage.")
         return
     roh = {k: v for k, v in msg.items() if k not in ("id", "type")}
-    await _ausfuehren(connection, msg, verwaltung_holen(hass).einrichten(entry, roh))
+    await _ausfuehren(hass, connection, msg, verwaltung_holen(hass).einrichten(entry, roh))
 
 
 @websocket_api.websocket_command(
@@ -389,7 +393,7 @@ async def _ws_einstellen(hass: HomeAssistant, connection, msg: dict[str, Any]) -
     """Einstellungen einer Automatik ändern."""
     aenderung = {k: v for k, v in msg.items() if k not in ("id", "type", "heizkreis")}
     await _ausfuehren(
-        connection, msg, verwaltung_holen(hass).einstellen(msg["heizkreis"], aenderung)
+        hass, connection, msg, verwaltung_holen(hass).einstellen(msg["heizkreis"], aenderung)
     )
 
 
@@ -412,9 +416,11 @@ async def _ws_heizgrenzen(hass: HomeAssistant, connection, msg: dict[str, Any]) 
     """Heizgrenzen der Steuerung schreiben; die Automatik liest sie beim nächsten Abruf."""
     werte = {name: msg[name] for name in ("heizbetrieb", "absenkbetrieb") if name in msg}
     if not werte:
-        connection.send_error(msg["id"], "ungueltig", "Keine Heizgrenze angegeben.")
+        _ablehnen(hass, connection, msg, "Keine Heizgrenze angegeben.")
         return
-    await _ausfuehren(connection, msg, verwaltung_holen(hass).heizgrenzen(msg["heizkreis"], werte))
+    await _ausfuehren(
+        hass, connection, msg, verwaltung_holen(hass).heizgrenzen(msg["heizkreis"], werte)
+    )
 
 
 @websocket_api.websocket_command(
@@ -424,7 +430,7 @@ async def _ws_heizgrenzen(hass: HomeAssistant, connection, msg: dict[str, Any]) 
 @websocket_api.async_response
 async def _ws_uebernehmen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     """Eine Pause nach Handeingriff aufheben."""
-    await _ausfuehren(connection, msg, verwaltung_holen(hass).uebernehmen(msg["heizkreis"]))
+    await _ausfuehren(hass, connection, msg, verwaltung_holen(hass).uebernehmen(msg["heizkreis"]))
 
 
 @websocket_api.websocket_command(
@@ -434,7 +440,7 @@ async def _ws_uebernehmen(hass: HomeAssistant, connection, msg: dict[str, Any]) 
 @websocket_api.async_response
 async def _ws_entfernen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     """Eine Automatik löschen."""
-    await _ausfuehren(connection, msg, verwaltung_holen(hass).entfernen(msg["heizkreis"]))
+    await _ausfuehren(hass, connection, msg, verwaltung_holen(hass).entfernen(msg["heizkreis"]))
 
 
 @callback

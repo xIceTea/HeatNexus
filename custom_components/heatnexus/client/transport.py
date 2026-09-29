@@ -15,7 +15,7 @@ import aiohttp
 from yarl import URL
 
 from ..const import ANFRAGE_TIMEOUT, FETCH_CONCURRENCY, POLL_CONCURRENCY, VERBINDUNG_TIMEOUT
-from ..exceptions import WindhagerWriteError
+from ..exceptions import WindhagerWriteError, mit_text
 from .gemeinsam import FEHLGESCHLAGEN
 
 _LOGGER = logging.getLogger(__name__)
@@ -208,9 +208,7 @@ class TransportMixin:
             if ret.status >= 400:
                 body = await ret.text()
                 _LOGGER.debug("Schreiben auf %s scheitert mit HTTP %s: %s", oid, ret.status, body)
-                raise WindhagerWriteError(
-                    f"Die Anlage hat den Wert für {oid} abgelehnt (HTTP {ret.status})."
-                )
+                raise mit_text(WindhagerWriteError, "wert_abgelehnt", oid=oid, status=ret.status)
         self.vormerken(oid, value)
         _LOGGER.debug("Auf %s geschrieben: %s", oid, value)
 
@@ -261,8 +259,8 @@ class TransportMixin:
                     ret.status,
                     body,
                 )
-                raise WindhagerWriteError(
-                    f"Die Anlage hat das Zeitprogramm {full_oid} abgelehnt (HTTP {ret.status})."
+                raise mit_text(
+                    WindhagerWriteError, "zeitprogramm_abgelehnt", oid=full_oid, status=ret.status
                 )
         _LOGGER.debug("Auf Objekt %s geschrieben: %s", full_oid, payload)
 

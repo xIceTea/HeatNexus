@@ -175,7 +175,7 @@ async def _async_setup_dashboard(hass: HomeAssistant) -> None:
         frontend.async_register_built_in_panel(
             hass,
             component_name="lovelace",
-            sidebar_title=DASHBOARD_TITEL,
+            sidebar_title=woerterbuch(hass)(DASHBOARD_TITEL),
             sidebar_icon="mdi:fire",
             frontend_url_path=DASHBOARD_URL,
             config={"mode": MODE_YAML, "urlPath": DASHBOARD_URL},

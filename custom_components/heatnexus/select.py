@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 
 from .automatik.entitaeten import anmelden as automatik_anmelden
 from .entity import WindhagerEntity, async_setup_entities
-from .exceptions import WindhagerValueError
+from .exceptions import WindhagerValueError, mit_text
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
 # begrenzt der Client über seine eigene Warteschlange. Eine zweite Bremse in
@@ -71,5 +71,7 @@ class WindhagerSelect(WindhagerEntity, SelectEntity):
         if value is None:
             # Stillschweigend zurückspringen sähe aus wie ein verschluckter
             # Klick; als Hinweis steht die Ablehnung an der Entität.
-            raise WindhagerValueError(f"{self.name} kennt die Einstellung {option} nicht.")
+            raise mit_text(
+                WindhagerValueError, "einstellung_unbekannt", name=self.name, option=option
+            )
         await self._async_write(str(value))

@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from .. import texte
 from ..const import FCT_NV
 from ..kanonisch import schluessel as kanonischer_schluessel
 from ..lon import im_grundumfang as lon_im_grundumfang
@@ -61,6 +62,18 @@ class NetzwerkvariablenMixin:
             for item in items:
                 self._nv_deskriptor(prefix, menu_id, item, ziel_prefix, ziel_name, ziel_typ)
 
+    def _lon_namensfelder(self, eintrag: dict | None, nv_name: str, index: object) -> dict:
+        """Name mit Kürzel „(LON)“; der gepflegte Begriff übersetzt, der Busname nicht."""
+        if eintrag:
+            felder = self._eigener_name(eintrag["name"])
+        elif nv_name:
+            felder = {"name": nv_name}
+        else:
+            vorlage = "Netzwerkvariable {index}"
+            felder = self._eigener_name(vorlage)
+            felder = {k: v.replace("{index}", str(index)) for k, v in felder.items()}
+        return {k: f"{v} (LON)" for k, v in felder.items()}
+
     def _nv_deskriptor(
         self,
         prefix: str,
@@ -110,7 +123,7 @@ class NetzwerkvariablenMixin:
                 # den Bus einschaltet und danach aufräumen will, filtert in der
                 # Entitätsliste nach „LON" und sieht auf einen Blick, was von
                 # dort kommt. Es steht auch in der Entitäts-ID.
-                name=f"{eintrag['name'] if eintrag else nv_name or f'Netzwerkvariable {index}'} (LON)",
+                **self._lon_namensfelder(eintrag, nv_name, index),
                 # Netzwerkvariablen stehen in keiner Bedienebene der Anlage –
                 # weder Info noch Service. Sie eine zu nennen, um durch den
                 # Umfangsfilter zu kommen, wäre eine falsche Auskunft an alles,
@@ -136,7 +149,9 @@ class NetzwerkvariablenMixin:
                 # „MB6611 LOP". Fehlt auch die, bleibt die Knotennummer – sie
                 # ist wenigstens wahr, während „Bedienteil" bei jedem zweiten
                 # Busgerät danebenläge.
-                device_name=ziel_name or self.werksbezeichnung.get(knoten) or f"Knoten {knoten}",
+                device_name=ziel_name
+                or self.werksbezeichnung.get(knoten)
+                or texte.Woerterbuch(self.sprache)("Knoten {knoten}").replace("{knoten}", knoten),
                 fct_type=ziel_typ if ziel_prefix else FCT_NV,
             )
         )

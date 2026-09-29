@@ -119,14 +119,14 @@ def anlagenkennung(struktur: list) -> str:
     return neuronen[0] if neuronen else ""
 
 
-def beschreibe(struktur: list) -> str:
+def beschreibe(struktur: list, leer: str = "keine Funktionen gemeldet") -> str:
     """Kurzfassung dessen, was die Anlage meldet."""
     namen = []
     for knoten in struktur:
         for funktion in knoten.get("functions", []):
             if not funktion.get("lock") and funktion.get("fctType", -1) >= 0:
                 namen.append(str(funktion.get("name", "")).strip())
-    return ", ".join(dict.fromkeys(n for n in namen if n)) or "keine Funktionen gemeldet"
+    return ", ".join(dict.fromkeys(n for n in namen if n)) or leer
 
 
 def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol.Schema:
@@ -265,7 +265,12 @@ def zusatzgruppen_feld(kandidaten: list[dict], gewaehlt: list[str]) -> dict:
     )
     return {
         vol.Optional(CONF_ZUSATZGRUPPEN, default=gewaehlt): SelectSelector(
-            SelectSelectorConfig(options=optionen, multiple=True, mode=SelectSelectorMode.LIST)
+            SelectSelectorConfig(
+                options=optionen,
+                multiple=True,
+                mode=SelectSelectorMode.LIST,
+                translation_key="zusatzgruppen",
+            )
         )
     }
 

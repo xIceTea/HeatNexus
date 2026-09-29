@@ -21,6 +21,7 @@ from homeassistant.util import dt as dt_util
 from .const import CONF_MELDUNG_EINLESEN, DOMAIN, SIGNAL_NEUE_ENTITAETEN
 from .erkennungsstand import laufzeitdaten, umfang_der_anlage
 from .stilllegung import abgewaehlte_entitaeten_stilllegen
+from .texte import woerterbuch
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,6 +29,22 @@ _LOGGER = logging.getLogger(__name__)
 # Sekunden, die die Erfolgsmeldung dem Anlegen der nachgemeldeten Entitäten
 # einräumt.
 MELDUNG_VERZOEGERUNG = 10
+
+TEXT_LAEUFT = (
+    "**{titel}** wird gerade vollständig eingelesen.\n\n"
+    "Bisher angelegt: {anzahl} Entitäten. "
+    "Je nach Anlage dauert es 30 bis 120 Sekunden, bis alle Werte da "
+    "sind – Sie müssen nichts tun, die Meldung meldet sich wieder."
+)
+TEXT_FERTIG = (
+    "**{titel}** ist vollständig eingelesen: {anzahl} Entitäten.\n\n"
+    "Fachparameter der Service- und Werksebene sind bewusst "
+    "deaktiviert angelegt; sie lassen sich einzeln einschalten."
+)
+
+
+def _einsetzen(text: str, titel: str, anzahl: int) -> str:
+    return text.replace("{titel}", titel).replace("{anzahl}", str(anzahl))
 
 
 def meldungs_id(entry: ConfigEntry) -> str:
@@ -61,15 +78,11 @@ def einlesen_melden(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """
     if not meldung_erwuenscht(entry.options):
         return
+    uebersetzt = woerterbuch(hass)
     persistent_notification.async_create(
         hass,
-        (
-            f"**{entry.title}** wird gerade vollständig eingelesen.\n\n"
-            f"Bisher angelegt: {_entitaeten_anzahl(hass, entry)} Entitäten. "
-            "Je nach Anlage dauert es 30 bis 120 Sekunden, bis alle Werte da "
-            "sind – Sie müssen nichts tun, die Meldung meldet sich wieder."
-        ),
-        title="HeatNexus liest die Anlage ein",
+        _einsetzen(uebersetzt(TEXT_LAEUFT), entry.title, _entitaeten_anzahl(hass, entry)),
+        title=uebersetzt("HeatNexus liest die Anlage ein"),
         notification_id=meldungs_id(entry),
     )
 
@@ -88,15 +101,11 @@ def _einlesen_abgeschlossen(hass: HomeAssistant, entry: ConfigEntry, host: str) 
     if not meldung_erwuenscht(entry.options):
         return
 
+    uebersetzt = woerterbuch(hass)
     persistent_notification.async_create(
         hass,
-        (
-            f"**{entry.title}** ist vollständig eingelesen: "
-            f"{_entitaeten_anzahl(hass, entry)} Entitäten.\n\n"
-            "Fachparameter der Service- und Werksebene sind bewusst "
-            "deaktiviert angelegt; sie lassen sich einzeln einschalten."
-        ),
-        title="HeatNexus ist bereit",
+        _einsetzen(uebersetzt(TEXT_FERTIG), entry.title, _entitaeten_anzahl(hass, entry)),
+        title=uebersetzt("HeatNexus ist bereit"),
         notification_id=meldungs_id(entry),
     )
 

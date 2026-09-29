@@ -62,6 +62,7 @@ from .erkennungsstand import (
     umfang_fingerprint,
     untereintraege_abzug,
 )
+from .exceptions import mit_text
 from .karte import async_setup_karte
 from .migration import (
     async_entity_ids_umstellen,
@@ -76,6 +77,7 @@ from .stilllegung import (
     abwahl_vormerken,
     umfang_verkleinert,
 )
+from .texte import woerterbuch
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -178,7 +180,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Einen Konfigurationseintrag mit einer oder mehreren Anlagen einrichten."""
     systeme = systems(entry)
     if not systeme:
-        raise ConfigEntryNotReady("Keine Anlage im Konfigurationseintrag hinterlegt")
+        raise mit_text(ConfigEntryNotReady, "keine_anlage_im_eintrag")
 
     _marken_je_anlage_uebernehmen(hass, entry, systeme)
 
@@ -201,7 +203,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         identifiers={(DOMAIN, entry.entry_id)},
         name=hub_name,
         manufacturer="Windhager",
-        model="Heizungsanlage",
+        model=woerterbuch(hass)("Heizungsanlage"),
     )
 
     async def _anlage_vorbereiten(system: dict) -> tuple:
@@ -273,10 +275,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     await client.async_init_basic()
             except TimeoutError as err:
                 await client.close()
-                raise ConfigEntryNotReady(f"Zeitüberschreitung beim Verbinden mit {host}") from err
+                raise mit_text(
+                    ConfigEntryNotReady, "verbinden_zeitueberschreitung", anlage=host
+                ) from err
             except Exception as err:
                 await client.close()
-                raise ConfigEntryNotReady(f"Fehler beim Verbinden mit {host}: {err}") from err
+                raise mit_text(
+                    ConfigEntryNotReady, "verbinden_fehler", anlage=host, fehler=err
+                ) from err
 
         # Ein Erkennungsstand aus einer Fassung ohne diese Abfrage trägt sie
         # nicht mit. Zwei Anfragen holen sie nach, statt bis zum nächsten

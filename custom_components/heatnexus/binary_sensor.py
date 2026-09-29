@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from . import bedingung, waermequelle
+from . import bedingung, texte, waermequelle
 from .automatik.entitaeten import anmelden as automatik_anmelden
 from .automatik.system import BINAER_ARTEN as SYSTEM_BINAER
 from .automatik.system import anmelden as system_anmelden
@@ -115,7 +115,6 @@ class WaermequelleBinarySensor(RestoreEntity, BinarySensorEntity):
 
     _attr_has_entity_name = True
     _attr_device_class = BinarySensorDeviceClass.RUNNING
-    _attr_name = "Wärmelieferung"
     # Die Entität hängt an Zustandsereignissen, nicht an einem Takt.
     # Abgefragt gäbe es nichts zu holen, geschrieben würde trotzdem.
     _attr_should_poll = False
@@ -124,6 +123,7 @@ class WaermequelleBinarySensor(RestoreEntity, BinarySensorEntity):
         self._regel = dict(beschreibung.get("bedingung") or {})
         self._beobachtet = bedingung.quellen(self._regel)
         self._attr_unique_id = beschreibung["id"]
+        self._attr_name = texte.woerterbuch_zu(coordinator)("Wärmelieferung")
         self._attr_device_info = waermequelle.geraet_info(coordinator, beschreibung)
         self._laeuft = False
 

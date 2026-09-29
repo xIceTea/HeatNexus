@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+import random
+import re
 
 import pytest
 
@@ -540,3 +542,57 @@ def test_versatz_der_ausrichtung_verschiebt_die_heizgrenze(m, w):
     stand = lage(m, mittel_heute=16.5, mittel_morgen=16.5, grenze_steuerung=18.0)
     assert m.grenze(stand, eco) == 16.0
     assert [a.art for a in m.entscheiden(stand, m.Gedaechtnis(), eco).aktionen] == ["nur_ww"]
+
+
+# Merkmale deutscher Sätze: Umlaute und häufige kurze Wörter.
+DEUTSCH = re.compile(
+    r"[äöüÄÖÜß]|\b(und|der|die|das|nicht|bis|von|mit|keine|seit|oder|für|zum|zur|Uhr|heute|"
+    r"Raum|Räume|Außen|Absenkung|Programm|Warmwasser|Sonnentag|Prognose)\b"
+)
+
+
+def test_jede_begruendung_kommt_auf_englisch_an(m, w):
+    """Ein festes Zufallsraster über Lage und Gedächtnis; kein Satz bleibt deutsch."""
+    texte = load_standalone("texte")
+    englisch = texte.Woerterbuch("en")
+    zufall = random.Random(7)
+    gedaechtnisse = [
+        m.Gedaechtnis(),
+        nur_ww(m, timedelta(hours=1)),
+        nur_ww(m, timedelta(hours=30)),
+        replace(nur_ww(m, timedelta(hours=1)), stark_bis=UNTERGANG),
+        sonnentag(m),
+        replace(sonnentag(m), absenkung_bis=MORGEN - timedelta(minutes=1)),
+        m.Gedaechtnis(
+            absenkung_art=m.ABWESEND,
+            absenkung_von=MORGEN,
+            absenkung_bis=MORGEN + timedelta(hours=6),
+        ),
+    ]
+    reste = set()
+    for _ in range(4000):
+        felder = {
+            "jetzt": MORGEN + timedelta(hours=zufall.choice([0, 3, 7, 11.5, 13])),
+            "at": zufall.choice([None, 2.0, 12.0, 15.5, 16.5, 20.0]),
+            "at_gedaempft": zufall.choice([None, 11.8, 16.0, 20.0]),
+            "raum": zufall.choice([None, 15.0, 19.5, 20.6, 21.4, 22.2, 23.5]),
+            "ruhig": zufall.choice([None, True, False]),
+            "sonnenquote": zufall.choice([None, 30.0, 78.0, 95.0]),
+            "mittel_heute": zufall.choice([None, 12.0, 19.0]),
+            "betriebswahl": zufall.choice([None, 0, 1, 6]),
+            "betriebsart": zufall.choice([None, 5]),
+            "daten_ok": zufall.random() > 0.1,
+            "daten_fehlen_seit": zufall.choice([None, MORGEN - timedelta(hours=3)]),
+            "fenster_offen": zufall.random() < 0.1,
+            "abwesend": zufall.random() < 0.1,
+            "pausiert_bis": zufall.choice([None, None, MORGEN + timedelta(hours=2)]),
+            "entscheidungszeit": zufall.random() < 0.5,
+            "vorrang_laeuft": zufall.choice([None, True, False]),
+            "vorrang_minuten": zufall.choice([None, 0.0, 120.0]),
+            "vorrang_name": zufall.choice([None, "Solar"]),
+        }
+        e = m.entscheiden(lage(m, **felder), zufall.choice(gedaechtnisse), w)
+        uebersetzt = englisch.satz(e.begruendung).replace("Solar", "")
+        if DEUTSCH.search(uebersetzt):
+            reste.add(e.begruendung)
+    assert not reste, sorted(reste)

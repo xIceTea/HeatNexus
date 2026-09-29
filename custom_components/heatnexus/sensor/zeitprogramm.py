@@ -8,7 +8,7 @@ import voluptuous as vol
 
 from ..entity import WindhagerEntity
 from ..error_texts import textsprache
-from ..exceptions import WindhagerValueError
+from ..exceptions import WindhagerValueError, mit_text
 
 # Schaltpunkt: {"time": "HH:MM", "value": <Temperatur>}
 _SWITCHPOINT_SCHEMA = vol.Schema(
@@ -138,7 +138,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
             key = str(d).strip().lower()
             code = cls._DAY_NORMALIZE.get(key)
             if code is None:
-                raise WindhagerValueError(f"Unbekannter Wochentag: {d}")
+                raise mit_text(WindhagerValueError, "wochentag_unbekannt", tag=d)
             if code not in out:
                 out.append(code)
         # in Wochenreihenfolge sortieren
@@ -151,9 +151,11 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
     @classmethod
     def _norm_points(cls, points: list) -> list:
         if len(points) > cls.MAX_SCHALTPUNKTE:
-            raise WindhagerValueError(
-                f"Höchstens {cls.MAX_SCHALTPUNKTE} Schaltpunkte je Block, "
-                f"angegeben wurden {len(points)}"
+            raise mit_text(
+                WindhagerValueError,
+                "zu_viele_schaltpunkte",
+                hoechstens=cls.MAX_SCHALTPUNKTE,
+                anzahl=len(points),
             )
         out = []
         for p in points:
@@ -161,7 +163,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
             h, m = t.split(":")
             hh, mm = int(h), int(m)
             if not (0 <= hh <= 23 and 0 <= mm <= 59):
-                raise WindhagerValueError(f"Ungültige Uhrzeit: {t}")
+                raise mit_text(WindhagerValueError, "uhrzeit_ungueltig", uhrzeit=t)
             val = float(p["value"])
             # Gerät erwartet ganze Zahl ohne Nachkommastelle, sonst .x
             num = int(val) if float(val).is_integer() else round(val, 1)
@@ -179,9 +181,9 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         d = self._descriptor
         full_oid = d.get("oid")
         if not full_oid or d.get("type") != "time_program":
-            raise WindhagerValueError("Diese Entität ist kein beschreibbares Zeitprogramm")
+            raise mit_text(WindhagerValueError, "kein_zeitprogramm")
         if d.get("write_prot"):
-            raise WindhagerValueError("Dieses Zeitprogramm ist schreibgeschützt")
+            raise mit_text(WindhagerValueError, "zeitprogramm_geschuetzt")
 
         if blocks:
             value = [
@@ -199,7 +201,7 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
                 }
             ]
         else:
-            raise WindhagerValueError("Bitte 'switch_points' oder 'blocks' angeben")
+            raise mit_text(WindhagerValueError, "schaltpunkte_fehlen")
 
         client = self.coordinator.client
         # Aktuelles Objekt als Envelope lesen (Felder wie OID/typeId erhalten).

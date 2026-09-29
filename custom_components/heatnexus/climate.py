@@ -22,7 +22,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import voluptuous as vol
 
 from .entity import async_setup_entities, geraet_info
-from .exceptions import WindhagerValueError
+from .exceptions import WindhagerValueError, mit_text
 from .helpers import get_oid_value
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
@@ -393,7 +393,9 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode (Betriebswahl)."""
         if preset_mode not in self._preset_modes:
-            raise WindhagerValueError(f"Unsupported preset {preset_mode}")
+            raise mit_text(
+                WindhagerValueError, "voreinstellung_unbekannt", voreinstellung=preset_mode
+            )
         # Sofort anzeigen (z.B. WW-Betrieb -> Heizprogramm 1 bleibt stehen, und
         # bei Heizmodi springt hvac_mode sofort auf HEIZEN).
         self._set_optimistic_mode(int(preset_mode))
@@ -415,7 +417,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         """Set the room comfort setpoint as a timed override (like the app)."""
         temp = kwargs.get(ATTR_TEMPERATURE)
         if temp is None:
-            raise WindhagerValueError("No temperature provided")
+            raise mit_text(WindhagerValueError, "temperatur_fehlt")
         await self.async_set_vorgabe(float(temp), OVERRIDE_DURATION_MIN)
 
     async def async_set_vorgabe(self, temperature: float, duration: float) -> None:
@@ -445,9 +447,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         # danach zurückgesprungen.
         mode = self.raw_selected_mode()
         if mode is None:
-            raise WindhagerValueError(
-                "Betriebswahl unbekannt – bitte warten, bis die Anlage gelesen ist."
-            )
+            raise mit_text(WindhagerValueError, "betriebswahl_unbekannt")
         if mode in self.OFF_MODES:
             self._modus_davor = mode
             self._vorgabe_gesehen = False

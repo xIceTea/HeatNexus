@@ -20,6 +20,8 @@ from .const import (
     ERSTABRUF_TIMEOUT,
     UPDATE_INTERVAL,
 )
+from .exceptions import mit_text
+from .texte import woerterbuch
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -125,7 +127,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         # stimmt nicht mehr. Home Assistant fragt dann von sich aus danach,
         # statt die Anlage still als „nicht verfügbar" stehen zu lassen.
         if getattr(self.client, "auth_errors", 0) >= AUTH_FEHLER_GRENZE:
-            raise ConfigEntryAuthFailed(f"Anlage {self.host} weist die Anmeldung ab")
+            raise mit_text(ConfigEntryAuthFailed, "anmeldung_abgewiesen", anlage=self.host)
         erster = bool(getattr(self.client, "erster_abruf", False))
         fenster = ERSTABRUF_TIMEOUT if erster else ABRUF_TIMEOUT
         try:
@@ -148,8 +150,10 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 self.consecutive_timeouts,
             )
             if self.consecutive_timeouts >= 3:
-                self._stoerung_melden("Sie antwortet nicht mehr.")
-                raise UpdateFailed(f"Anlage {self.host} antwortet wiederholt nicht: {err}") from err
+                self._stoerung_melden(woerterbuch(self.hass)("Sie antwortet nicht mehr."))
+                raise mit_text(
+                    UpdateFailed, "antwortet_nicht", anlage=self.host, fehler=err
+                ) from err
             # Ein verpasster Abruf lässt die zuletzt gelesenen Werte stehen.
             # Gibt es noch keine, ist nichts zu halten – dann muss der
             # Fehlschlag auch als Fehlschlag gelten. Ein leeres Ergebnis als
@@ -157,9 +161,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             # eine Anlage ohne Datenpunkte sah; daran hing in 1.5.0-beta.9 die
             # Stilllegung sämtlicher Entitäten.
             if not self.data:
-                raise UpdateFailed(
-                    f"Anlage {self.host} hat noch keine Werte geliefert: {err}"
-                ) from err
+                raise mit_text(UpdateFailed, "keine_werte", anlage=self.host, fehler=err) from err
             return self.data
         except ConfigEntryAuthFailed:
             raise
@@ -168,10 +170,14 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             self._ausfall_protokollieren("Fehler beim Abruf von %s: %s", self.host, err)
             if self._fehlschlaege >= 3:
                 self._stoerung_melden(str(err))
-                raise UpdateFailed(f"Fehler bei der Abfrage von {self.host}: {err}") from err
+                raise mit_text(
+                    UpdateFailed, "abfrage_fehler", anlage=self.host, fehler=err
+                ) from err
             # Ein einzelner Fehlschlag lässt die zuletzt gelesenen Werte stehen.
             # Alle Entitäten für einen Takt auf „nicht verfügbar" zu setzen
             # reißt jede Statistik auf. Ohne Werte bleibt es ein Fehlschlag.
             if not self.data:
-                raise UpdateFailed(f"Fehler bei der Abfrage von {self.host}: {err}") from err
+                raise mit_text(
+                    UpdateFailed, "abfrage_fehler", anlage=self.host, fehler=err
+                ) from err
             return self.data

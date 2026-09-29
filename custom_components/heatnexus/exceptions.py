@@ -2,6 +2,8 @@
 
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
+from .const import DOMAIN
+
 
 class WindhagerError(HomeAssistantError):
     """Base exception for Windhager integration."""
@@ -41,3 +43,15 @@ class WindhagerWriteError(WindhagerError):
     """
 
     pass
+
+
+def mit_text[F: HomeAssistantError](klasse: type[F], schluessel: str, **werte: object) -> F:
+    """Ein Fehler, dessen Meldung Home Assistant in der Sprache des Nutzers zeigt.
+
+    Die Texte stehen unter `exceptions` in `translations/`.
+    """
+    return klasse(
+        translation_domain=DOMAIN,
+        translation_key=schluessel,
+        translation_placeholders={name: str(wert) for name, wert in werte.items()},
+    )

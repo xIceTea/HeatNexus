@@ -12,6 +12,7 @@ from homeassistant.helpers.storage import Store
 from .const import DISCOVERY_STORE_VERSION, DOMAIN
 from .dashboard import dashboard_als_yaml
 from .erkennungsstand import laufzeitdaten, store_key, systems
+from .exceptions import mit_text
 
 
 def async_register_dashboard_export(hass: HomeAssistant) -> None:
@@ -26,7 +27,7 @@ def async_register_dashboard_export(hass: HomeAssistant) -> None:
         Wer es anpassen will, legt mit diesem Text ein eigenes Dashboard an.
         """
         if not hass.config_entries.async_entries(DOMAIN):
-            raise ServiceValidationError("Es ist keine Anlage eingerichtet.")
+            raise mit_text(ServiceValidationError, "keine_anlage")
         return {"yaml": dashboard_als_yaml(hass)}
 
     hass.services.async_register(
@@ -52,9 +53,7 @@ def async_register_rediscover_service(hass: HomeAssistant) -> None:
         """
         eintraege = hass.config_entries.async_entries(DOMAIN)
         if not eintraege:
-            raise ServiceValidationError(
-                "Es ist keine Anlage eingerichtet, die neu eingelesen werden könnte."
-            )
+            raise mit_text(ServiceValidationError, "keine_anlage_zum_einlesen")
         hass.data.get(DOMAIN, {}).get("_discovery_cache", {}).clear()
         anlagen: list[dict[str, Any]] = []
         for eintrag in eintraege:

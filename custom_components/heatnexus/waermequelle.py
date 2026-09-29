@@ -14,7 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from . import bedingung
+from . import bedingung, texte
 from .const import DOMAIN, QUELLEN_ARTEN, QUELLEN_MAX, SUBEINTRAG_QUELLE
 from .entity import steuerung_kennung, steuerung_verweis
 
@@ -159,11 +159,12 @@ def geraet_info(coordinator: Any, beschreibung: dict[str, Any]) -> DeviceInfo:
     """Gerätezuordnung: die Quelle als Teil unter ihrer Steuerung."""
     steuerung = (getattr(coordinator, "label", "") or "").strip()
     art = beschreibung.get("art")
-    name = beschreibung.get("name") or QUELLEN_ARTEN.get(art, TYP)
+    uebersetzt = texte.woerterbuch_zu(coordinator)
+    name = beschreibung.get("name") or uebersetzt(QUELLEN_ARTEN.get(art, TYP))
     return DeviceInfo(
         identifiers={(DOMAIN, beschreibung["id"])},
         name=f"{steuerung} · {name}" if steuerung else name,
-        model=QUELLEN_ARTEN.get(art, art),
+        model=uebersetzt(QUELLEN_ARTEN.get(art, art)),
         **steuerung_verweis(coordinator),
     )
 

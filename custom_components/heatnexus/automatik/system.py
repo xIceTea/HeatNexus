@@ -23,6 +23,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
+from ..texte import woerterbuch
 from . import eingaben, kennzahlen, regel
 from .laufzeit import SIGNAL_SYSTEM, Laufzeit
 from .verwaltung import (
@@ -157,7 +158,9 @@ class SystemLetzterEingriff(SystemEntitaet, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         juengster = self._juengster()
-        return {"text": juengster[1], "heizkreis": juengster[2]} if juengster else {}
+        if not juengster:
+            return {}
+        return {"text": woerterbuch(self.hass).satz(juengster[1]), "heizkreis": juengster[2]}
 
 
 class SystemNaechsteEntscheidung(SystemEntitaet, SensorEntity):

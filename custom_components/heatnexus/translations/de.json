@@ -220,6 +220,14 @@
         "schwelle": "Schwelle (Wert über oder unter einer Grenze)",
         "differenz": "Differenz zweier Fühler"
       }
+    },
+    "zusatzgruppen": {
+      "options": {
+        "laufzeit": "Laufzeit",
+        "zaehler": "Zähler",
+        "schaltpunkt": "Schaltpunkte",
+        "individuell": "Individuell – weiter zur Einzelauswahl"
+      }
     }
   },
   "entity": {
@@ -481,6 +489,127 @@
         "reconfigure_successful": "Die Wärmequelle wurde geändert.",
         "zu_viele": "Mehr Wärmequellen fasst das Schaubild nicht."
       }
+    }
+  },
+  "exceptions": {
+    "wert_abgelehnt": {
+      "message": "Die Anlage hat den Wert für {oid} abgelehnt (HTTP {status})."
+    },
+    "zeitprogramm_abgelehnt": {
+      "message": "Die Anlage hat das Zeitprogramm {oid} abgelehnt (HTTP {status})."
+    },
+    "voreinstellung_unbekannt": {
+      "message": "Die Voreinstellung {voreinstellung} gibt es nicht."
+    },
+    "temperatur_fehlt": {
+      "message": "Es wurde keine Temperatur angegeben."
+    },
+    "betriebswahl_unbekannt": {
+      "message": "Die Betriebswahl ist noch unbekannt. Bitte warten, bis die Anlage gelesen ist."
+    },
+    "keine_anlage": {
+      "message": "Es ist keine Anlage eingerichtet."
+    },
+    "keine_anlage_zum_einlesen": {
+      "message": "Es ist keine Anlage eingerichtet, die neu eingelesen werden könnte."
+    },
+    "einstellung_unbekannt": {
+      "message": "{name} kennt die Einstellung {option} nicht."
+    },
+    "wochentag_unbekannt": {
+      "message": "Unbekannter Wochentag: {tag}"
+    },
+    "zu_viele_schaltpunkte": {
+      "message": "Höchstens {hoechstens} Schaltpunkte je Block, angegeben wurden {anzahl}."
+    },
+    "uhrzeit_ungueltig": {
+      "message": "Ungültige Uhrzeit: {uhrzeit}"
+    },
+    "kein_zeitprogramm": {
+      "message": "Diese Entität ist kein beschreibbares Zeitprogramm."
+    },
+    "zeitprogramm_geschuetzt": {
+      "message": "Dieses Zeitprogramm ist schreibgeschützt."
+    },
+    "schaltpunkte_fehlen": {
+      "message": "Bitte „switch_points“ oder „blocks“ angeben."
+    },
+    "anmeldung_abgewiesen": {
+      "message": "Die Anlage {anlage} weist die Anmeldung ab."
+    },
+    "antwortet_nicht": {
+      "message": "Die Anlage {anlage} antwortet wiederholt nicht: {fehler}"
+    },
+    "keine_werte": {
+      "message": "Die Anlage {anlage} hat noch keine Werte geliefert: {fehler}"
+    },
+    "abfrage_fehler": {
+      "message": "Fehler bei der Abfrage von {anlage}: {fehler}"
+    },
+    "keine_anlage_im_eintrag": {
+      "message": "Im Konfigurationseintrag ist keine Anlage hinterlegt."
+    },
+    "verbinden_zeitueberschreitung": {
+      "message": "Zeitüberschreitung beim Verbinden mit {anlage}."
+    },
+    "verbinden_fehler": {
+      "message": "Fehler beim Verbinden mit {anlage}: {fehler}"
+    }
+  },
+  "services": {
+    "rediscover": {
+      "name": "Anlage neu erkennen",
+      "description": "Verwirft den gespeicherten Erkennungsstand und liest die Anlage komplett neu ein (Datenpunkte/Geräte). Nötig z.B. nach Umbauten an der Heizung oder wenn neue Heizkreise hinzugekommen sind. Dauert einmalig etwas länger und meldet danach je Anlage zurück, wie viele Entitäten, zyklisch abgefragte Datenpunkte und Zeitprogramme gefunden wurden."
+    },
+    "set_current_temp_compensation": {
+      "name": "Behaglichkeitskorrektur setzen",
+      "description": "Verschiebt die gemessene Raumtemperatur eines Heizkreises um einen festen Betrag. Gedacht für Fühler, die dauerhaft zu warm oder zu kalt messen, weil sie ungünstig hängen.",
+      "fields": {
+        "compensation": {
+          "name": "Korrektur",
+          "description": "Wird auf die gemessene Raumtemperatur aufgeschlagen."
+        }
+      }
+    },
+    "meldungen_loeschen": {
+      "name": "Meldungsliste leeren",
+      "description": "Leert die von HeatNexus geführte Meldungsliste einer Anlage. Die Anlage selbst führt diese Liste nicht über ihre Schnittstelle – gelöscht wird also nur die Sammlung in Home Assistant, nicht der Störspeicher am Bediengerät. Dort anstehende Meldungen bleiben unberührt und müssen wie gewohnt am Gerät zurückgesetzt werden."
+    },
+    "set_vorgabe": {
+      "name": "Befristete Vorgabe setzen",
+      "description": "Setzt für einen Heizkreis eine befristete Raumtemperatur-Vorgabe – dieselbe, die die Anlage „Eco / Comfort\" nennt. Danach stellt sie von selbst auf die Betriebswahl zurück; die Zeitprogramme bleiben unverändert. Steht der Kreis auf Standby oder WW-Betrieb, wird für die Dauer der Vorgabe in ein Heizprogramm geschaltet und anschließend zurückgesprungen.",
+      "fields": {
+        "temperature": {
+          "name": "Temperatur",
+          "description": "Raumtemperatur, die während der Vorgabe gilt."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Wie lange die Vorgabe gilt. 0 beendet eine laufende Vorgabe sofort."
+        }
+      }
+    },
+    "set_time_program": {
+      "name": "Zeitprogramm setzen",
+      "description": "Schreibt ein Heiz-/Warmwasser-Zeitprogramm (Ziel: ein Zeitprogramm-Sensor der Windhager-Integration). Entweder vereinfacht über switch_points (+ optional weekdays, Standard täglich) oder über blocks für volle Kontrolle (mehrere Wochentag-Gruppen, z.B. Mo-Fr und Sa-So).",
+      "fields": {
+        "switch_points": {
+          "name": "Schaltpunkte",
+          "description": "Liste von Schaltpunkten {time, value}. time im Format HH:MM, value = Soll-Temperatur. Gilt für den Block aus weekdays."
+        },
+        "weekdays": {
+          "name": "Wochentage",
+          "description": "Wochentage für die Schaltpunkte (Mo Di Mi Do Fr Sa So oder Mo Tu We Th Fr Sa Su). Standard: täglich."
+        },
+        "blocks": {
+          "name": "Blöcke (erweitert)",
+          "description": "Volle Programmstruktur als Liste von Blöcken, je Block mit weekdays und switch_points. Überschreibt switch_points/weekdays, wenn angegeben."
+        }
+      }
+    },
+    "dashboard_ausgeben": {
+      "name": "Dashboard als YAML ausgeben",
+      "description": "Gibt das mitgelieferte Dashboard als YAML-Text zurück. Es wird bei jedem Öffnen neu gebaut und lässt sich deshalb nicht bearbeiten – mit diesem Text legst du ein eigenes Dashboard an, das dir gehört: neues Dashboard anlegen, Rohkonfigurations-Editor öffnen, Text einfügen."
     }
   }
 }

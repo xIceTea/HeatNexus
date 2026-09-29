@@ -1106,6 +1106,8 @@ async def _eingerichtet(hass, verwaltung):
 
 
 async def test_automatik_bekommt_ein_eigenes_geraet(hass, anlage):
+    # Die Namen und Meldungen werden hier auf Deutsch geprüft; Englisch prüft test_texte.
+    hass.config.language = "de"
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
     from custom_components.heatnexus.const import DOMAIN
 
@@ -1238,6 +1240,8 @@ async def test_nur_administratoren_setzen_heizgrenzen(
 
 
 async def test_system_geraet_buendelt_die_automatiken(hass, anlage, freezer):
+    # Die Namen und Meldungen werden hier auf Deutsch geprüft; Englisch prüft test_texte.
+    hass.config.language = "de"
     from homeassistant.helpers import device_registry as dr
 
     from custom_components.heatnexus.automatik import system
@@ -1318,6 +1322,8 @@ async def test_diagnose_enthaelt_die_automatik(hass, anlage, freezer):
 
 async def test_teilweise_gesetzte_heizgrenzen_stehen_im_protokoll(hass, hass_ws_client, anlage):
     """Lehnt die Steuerung den zweiten Wert ab, bleibt der erste nachvollziehbar."""
+    # Die Namen und Meldungen werden hier auf Deutsch geprüft; Englisch prüft test_texte.
+    hass.config.language = "de"
     verwaltung, coordinator = anlage
     client = await hass_ws_client(hass)
     await _einrichten(client)

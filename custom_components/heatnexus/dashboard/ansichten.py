@@ -278,7 +278,7 @@ def auswertung(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
             {
                 "type": "statistic",
                 "entity": e["entity_id"],
-                "name": f"{e['name']} {beschriftung}",
+                "name": e["name"],
                 "stat_type": "change",
                 "period": {"calendar": {"period": zeitraum}},
             }

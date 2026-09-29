@@ -16,6 +16,7 @@ from homeassistant.helpers import entity_registry as er
 import voluptuous as vol
 
 from .const import DOMAIN
+from .texte import woerterbuch
 
 # Muss zu `BEZEICHNUNG_MAX` in `frontend/zeitprogramm.js` passen.
 BEZEICHNUNG_MAX = 40
@@ -59,7 +60,9 @@ def _ws_setzen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     try:
         bezeichnung_setzen(hass, msg["entity_id"], msg["bezeichnung"])
     except ValueError as err:
-        connection.send_error(msg["id"], websocket_api.ERR_NOT_FOUND, str(err))
+        connection.send_error(
+            msg["id"], websocket_api.ERR_NOT_FOUND, woerterbuch(hass).satz(str(err))
+        )
         return
     connection.send_result(msg["id"], {"gespeichert": True})
 

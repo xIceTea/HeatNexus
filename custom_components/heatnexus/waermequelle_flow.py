@@ -6,7 +6,7 @@ gewählten Art. Die Regel selbst prüft `bedingung.py`.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from homeassistant.config_entries import ConfigSubentryFlow, SubentryFlowResult
@@ -25,6 +25,7 @@ import voluptuous as vol
 
 from . import bedingung, waermequelle
 from .const import CONF_LABEL, CONF_SYSTEMS, QUELLE_SOLAR, QUELLEN_ARTEN, QUELLEN_MAX
+from .texte import woerterbuch_zu
 
 # Zustände, die für sich schon an oder aus bedeuten. Alles andere ist
 # Klartext: Dort entscheidet die Auswahl, welcher Text als liefernd gilt.
@@ -173,6 +174,7 @@ def stand_als_eingabe(stand: Mapping[str, Any]) -> dict[str, Any]:
 
 def quelle_aus_eingabe(
     user_input: Mapping[str, Any],
+    uebersetzt: Callable[[str], str] = str,
 ) -> tuple[dict[str, Any] | None, dict[str, str]]:
     """Die Eingabe zu einer Wärmequelle machen, oder die Fehler nennen."""
     regel = {
@@ -189,7 +191,8 @@ def quelle_aus_eingabe(
     return {
         # Ein leerer Name ließe den Subeintrag ohne Titel in der Übersicht
         # stehen. Die Bauart benennt die Quelle dann für ihn.
-        "name": (user_input.get("name") or "").strip() or QUELLEN_ARTEN.get(art, "Wärmequelle"),
+        "name": (user_input.get("name") or "").strip()
+        or uebersetzt(QUELLEN_ARTEN.get(art, "Wärmequelle")),
         "art": art,
         "pumpe": bool(user_input.get("pumpe", False)),
         "bedingung": waermequelle.bedingung_pruefen(regel),
@@ -294,7 +297,7 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             eingabe = {**stand_als_eingabe(self._stand), **user_input}
-            quelle, errors = quelle_aus_eingabe(eingabe)
+            quelle, errors = quelle_aus_eingabe(eingabe, woerterbuch_zu(self))
             if quelle is not None:
                 return self._sichern(quelle)
             # Nach einem Fehler steht wieder da, was eingegeben wurde.

@@ -28,6 +28,7 @@ from ..const import (
     SUBEINTRAG_AUTOMATIK,
 )
 from ..registrierung import geraet_suchen, in_untereintrag_verschieben
+from ..texte import woerterbuch
 from . import konfig as konfig_modul
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 
@@ -211,9 +212,9 @@ class Verwaltung:
             config_entry_id=entry.entry_id,
             config_subentry_id=sub_id,
             identifiers={(DOMAIN, system_kennung(entry.entry_id))},
-            name="HeatNexus Automatik",
+            name=woerterbuch(self.hass)("HeatNexus Automatik"),
             manufacturer="HeatNexus",
-            model="Automatik-System",
+            model=woerterbuch(self.hass)("Automatik-System"),
         )
 
     def _system_entfernen(self, entry_id: str) -> None:

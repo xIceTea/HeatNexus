@@ -81,6 +81,7 @@ from .formulare import (
     zusatzwerte_feld,
 )
 from .geraetetexte import SPRACHEN, sprache_aufloesen
+from .texte import woerterbuch_zu
 from .waermequelle_flow import WaermequelleSubentryFlow
 
 _LOGGER = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Name der Heizungsanlage und Anzahl der Steuerungen."""
         if user_input is not None:
-            self._name = user_input[CONF_NAME].strip() or "Heizung"
+            self._name = user_input[CONF_NAME].strip() or woerterbuch_zu(self)("Heizung")
             self._anzahl = int(user_input[CONF_COUNT])
             self._systeme = []
             return await self.async_step_system()
@@ -110,7 +111,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_NAME, default="Heizung"): str,
+                    vol.Required(CONF_NAME, default=woerterbuch_zu(self)("Heizung")): str,
                     vol.Required(CONF_COUNT, default=1): NumberSelector(
                         NumberSelectorConfig(
                             min=1, max=MAX_SYSTEMS, step=1, mode=NumberSelectorMode.BOX
@@ -147,7 +148,9 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                             CONF_HOST: host,
                             CONF_USERNAME: benutzer,
                             CONF_PASSWORD: user_input[CONF_PASSWORD],
-                            "gefunden": beschreibe(struktur),
+                            "gefunden": beschreibe(
+                                struktur, woerterbuch_zu(self)("keine Funktionen gemeldet")
+                            ),
                             "kennung": anlagenkennung(struktur),
                         }
                     )
@@ -159,7 +162,12 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="system",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_LABEL, default=f"Anlage {nummer}"): str,
+                    vol.Required(
+                        CONF_LABEL,
+                        default=woerterbuch_zu(self)("Anlage {nummer}").replace(
+                            "{nummer}", str(nummer)
+                        ),
+                    ): str,
                     vol.Required(CONF_HOST): str,
                     vol.Required(CONF_USERNAME, default=DEFAULT_USERNAME): benutzer_auswahl(),
                     vol.Required(CONF_PASSWORD): str,
@@ -377,6 +385,8 @@ class WindhagerOptionsFlow(OptionsFlow):
         # Anlage, Zugang und schon geprüfte Optionen, während der zweite
         # Schritt für die Einzelwerte offen ist.
         self._offen: tuple[str, str, dict[str, Any]] | None = None
+        # Die neue Bezeichnung der Anlage, bis der Dialog abschließt.
+        self._bezeichnung: str = ""
 
     def _systeme(self) -> list[dict[str, Any]]:
         return self.config_entry.data.get(CONF_SYSTEMS, [])
@@ -385,12 +395,10 @@ class WindhagerOptionsFlow(OptionsFlow):
         """Auswahl: allgemeine Einstellungen oder eine bestimmte Anlage."""
         systeme = self._systeme()
         # Das Menü erscheint auch bei einer einzigen Anlage. Sprang der Dialog
-        # Die neue Bezeichnung der Anlage, bis der Dialog abschließt.
-        self._bezeichnung: str = ""
         # dort direkt zur Anlage, war der Schritt „Allgemeine Einstellungen"
         # nach der Einrichtung nie wieder erreichbar – und mit ihm Sprache,
         # Dashboard, Panel, Erklärungen, Außentemperatur und Abfrageintervall.
-        auswahl = {"allgemein": "Allgemein (Oberfläche, Sprache, Abfrage)"}
+        auswahl = {"allgemein": woerterbuch_zu(self)("Allgemein (Oberfläche, Sprache, Abfrage)")}
         for i, system in enumerate(systeme):
             bezeichnung = system.get(CONF_LABEL) or system[CONF_HOST]
             auswahl[f"anlage_{i}"] = f"{bezeichnung} ({system[CONF_HOST]})"
@@ -514,6 +522,7 @@ class WindhagerOptionsFlow(OptionsFlow):
 
         if user_input is not None:
             benutzer = (user_input.pop(CONF_USERNAME, None) or DEFAULT_USERNAME).strip()
+            self._bezeichnung = (user_input.pop(CONF_LABEL, None) or "").strip()
             gruppen = user_input.pop(CONF_ZUSATZGRUPPEN, [])
             kandidaten = self._zusatzkandidaten(host)
             # Ohne Kandidaten stand das Feld nicht im Formular. Die gespeicherte
@@ -522,7 +531,6 @@ class WindhagerOptionsFlow(OptionsFlow):
                 user_input[CONF_ZUSATZWERTE] = gruppen_aufloesen(kandidaten, gruppen)
             else:
                 user_input[CONF_ZUSATZWERTE] = list(je_anlage.get(CONF_ZUSATZWERTE, []))
-            self._bezeichnung = (user_input.pop(CONF_LABEL, None) or "").strip()
             if GRUPPE_INDIVIDUELL in gruppen:
                 # Der zweite Schritt zeigt die Einzelwerte, vorbelegt mit dem,
                 # was die Gruppen ergeben.
@@ -588,7 +596,11 @@ class WindhagerOptionsFlow(OptionsFlow):
         einmalig = list(dict.fromkeys(begriffe))
         if not einmalig:
             return ""
-        return "Diese Anlage liefert nur über den Bus: " + ", ".join(einmalig) + "."
+        uebersetzt = woerterbuch_zu(self)
+        begriffe_text = ", ".join(uebersetzt(b) for b in einmalig)
+        return uebersetzt("Diese Anlage liefert nur über den Bus: {begriffe}.").replace(
+            "{begriffe}", begriffe_text
+        )
 
     def _zugang_uebernehmen(self, host: str, benutzer: str) -> None:
         """Zugang und Bezeichnung in die Anlagendaten schreiben.

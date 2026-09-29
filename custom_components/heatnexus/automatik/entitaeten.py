@@ -22,6 +22,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from ..const import DOMAIN
 from ..registrierung import uebergeordnet
+from ..texte import woerterbuch
 from . import kennzahlen, regel
 from .konfig import MODI
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
@@ -40,12 +41,13 @@ from .verwaltung import (
 def geraet_info(laufzeit: Laufzeit) -> DeviceInfo:
     """Ein eigenes Gerät je Automatik, unter dem System-Gerät „HeatNexus Automatik“."""
     anlage = getattr(laufzeit.coordinator, "label", "") or ""
-    name = f"Automatik {laufzeit.name}"
+    uebersetzt = woerterbuch(laufzeit.hass)
+    name = uebersetzt("Automatik {name}").replace("{name}", laufzeit.name)
     return DeviceInfo(
         identifiers={(DOMAIN, geraet_kennung(laufzeit.device_id))},
         name=f"{anlage} · {name}" if anlage else name,
         manufacturer="HeatNexus",
-        model="Automatik",
+        model=uebersetzt("Automatik"),
         **uebergeordnet(laufzeit.hass, system_kennung(laufzeit.entry_id), laufzeit.entry_id),
     )
 
@@ -152,7 +154,7 @@ class AutomatikZustand(AutomatikEntitaet, SensorEntity):
         if laufzeit is None:
             return {}
         return {
-            "begruendung": laufzeit.begruendung,
+            "begruendung": woerterbuch(self.hass).satz(laufzeit.begruendung),
             "pausiert_bis": laufzeit.pausiert_bis.isoformat() if laufzeit.pausiert_bis else None,
             "eingriffe_heute": laufzeit.steller.stand.eingriffe,
         }
@@ -265,7 +267,7 @@ class AutomatikLetzterEingriff(AutomatikWert):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         eintrag = kennzahlen.letzter_eingriff(self._laufzeit) if self._laufzeit else None
-        return {"text": eintrag["text"]} if eintrag else {}
+        return {"text": woerterbuch(self.hass).satz(eintrag["text"])} if eintrag else {}
 
 
 class AutomatikNaechsteEntscheidung(AutomatikWert):

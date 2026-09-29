@@ -7,6 +7,7 @@ wird deshalb beides gegen die Texte, die die Oberfläche wirklich setzt.
 
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 import re
@@ -113,7 +114,10 @@ def test_nur_bekannte_felder_werden_uebersetzt(texte):
             "Heizgrenzen der Steuerung: Heizbetrieb 18,0 °C, Absenkbetrieb 5,0 °C.",
             "Controller heating limits: Heating mode 18.0 °C, setback mode 5.0 °C.",
         ),
-        ("Solaranlage liefert – 21,0 °C bis 16:54.", "Solaranlage delivers – 21.0 °C until 16:54."),
+        (
+            "Solaranlage liefert – 21,0 °C bis 16:54.",
+            "Solar thermal system delivers – 21.0 °C until 16:54.",
+        ),
     ],
 )
 def test_saetze_mit_zahlen_kommen_uebersetzt(texte, deutsch, englisch):
@@ -219,3 +223,207 @@ def test_automatisch_folgt_home_assistant(texte):
 def test_regionalkennung_faellt_weg(texte):
     """„en-GB" ist Englisch; das Wörterbuch kennt nur den Sprachteil."""
     assert texte.sprache_der_oberflaeche(_Hass("en-GB", [_Eintrag({})])) == "en"
+
+
+# Texte, die HeatNexus selbst als Geräte-, Modell- oder Auswahlnamen vergibt.
+EIGENE_BEZEICHNUNGEN = (
+    "Heizungsanlage",
+    "HeatNexus Automatik",
+    "Automatik {name}",
+    "Automatik-System",
+    "Wärmelieferung",
+    "Wärmequelle",
+    "Heizung",
+    "Anlage {nummer}",
+    "Allgemein (Oberfläche, Sprache, Abfrage)",
+    "Diese Anlage liefert nur über den Bus: {begriffe}.",
+    "keine Funktionen gemeldet",
+)
+
+
+def _lon_namen() -> set[str]:
+    """Die gepflegten Begriffe der Busentitäten."""
+    lon = load_standalone("lon")
+    tabellen = [
+        wert
+        for wert in vars(lon).values()
+        if isinstance(wert, dict)
+        and wert
+        and all(isinstance(e, dict) and "name" in e for e in wert.values())
+    ]
+    return {e["name"] for tabelle in tabellen for e in tabelle.values()} | {
+        "Netzwerkvariable {index}",
+        "Knoten {knoten}",
+    }
+
+
+def test_jede_eigene_bezeichnung_hat_eine_englische_fassung():
+    """Modelle, Quellenarten, Gruppen und feste Gerätenamen erscheinen auf Englisch."""
+    geraete = load_standalone("geraete")
+    const = load_standalone("const")
+    englisch = json.loads((ORDNER / "en.json").read_text(encoding="utf-8"))
+    texte = {
+        *geraete.MODELLE.values(),
+        *geraete.MODELLE_JE_KLASSE.values(),
+        *const.QUELLEN_ARTEN.values(),
+        *const.ZUSATZGRUPPEN.values(),
+        *(begriff for begriffe in geraete.NUR_BUS.values() for begriff in begriffe),
+        *EIGENE_BEZEICHNUNGEN,
+        *_lon_namen(),
+    }
+    fehlend = sorted(t for t in texte if t not in englisch)
+    assert not fehlend, fehlend
+
+
+def _uebersetzungsaufrufe(baum: ast.Module):
+    """Jeder Text, den der Code durch ein Wörterbuch schickt, als Literal oder Modulkonstante."""
+    konstanten = {
+        ziel.id: knoten.value.value
+        for knoten in baum.body
+        if isinstance(knoten, ast.Assign) and isinstance(knoten.value, ast.Constant)
+        for ziel in knoten.targets
+        if isinstance(ziel, ast.Name) and isinstance(knoten.value.value, str)
+    }
+
+    def ist_woerterbuch(f: ast.expr) -> bool:
+        if isinstance(f, ast.Name):
+            return f.id == "uebersetzt"
+        if isinstance(f, ast.Call):
+            innen = f.func
+            name = innen.attr if isinstance(innen, ast.Attribute) else getattr(innen, "id", "")
+            return name in {"woerterbuch", "woerterbuch_zu", "Woerterbuch"}
+        return False
+
+    for knoten in ast.walk(baum):
+        if isinstance(knoten, ast.Call) and ist_woerterbuch(knoten.func) and knoten.args:
+            arg = knoten.args[0]
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                yield knoten.lineno, arg.value
+            elif isinstance(arg, ast.Name) and arg.id in konstanten:
+                yield knoten.lineno, konstanten[arg.id]
+
+
+def test_jeder_uebersetzte_text_steht_im_woerterbuch():
+    """Ein Text ohne Eintrag bliebe auf Englisch stumm deutsch."""
+    englisch = json.loads((ORDNER / "en.json").read_text(encoding="utf-8"))
+    fehlend = [
+        f"{datei.relative_to(ORDNER.parent).as_posix()}:{zeile} {text!r}"
+        for datei in sorted(ORDNER.parent.rglob("*.py"))
+        for zeile, text in _uebersetzungsaufrufe(ast.parse(datei.read_text(encoding="utf-8")))
+        if text not in englisch
+    ]
+    assert not fehlend, fehlend
+
+
+def test_jede_fehlermeldung_steht_in_jeder_sprache():
+    """`mit_text` verweist auf `exceptions` in translations/; ein fehlender Schlüssel zeigt nur ihn selbst."""
+    uebersetzungen = {
+        datei.stem: json.loads(datei.read_text(encoding="utf-8")).get("exceptions", {})
+        for datei in (ORDNER.parent / "translations").glob("*.json")
+    }
+    fehlend = []
+    for datei in sorted(ORDNER.parent.rglob("*.py")):
+        for knoten in ast.walk(ast.parse(datei.read_text(encoding="utf-8"))):
+            if not (
+                isinstance(knoten, ast.Call)
+                and getattr(knoten.func, "id", None) == "mit_text"
+                and len(knoten.args) >= 2
+                and isinstance(knoten.args[1], ast.Constant)
+            ):
+                continue
+            schluessel = knoten.args[1].value
+            werte = sorted(k.arg for k in knoten.keywords)
+            for sprache, eintraege in uebersetzungen.items():
+                text = eintraege.get(schluessel, {}).get("message")
+                if text is None or sorted(PLATZHALTER.findall(text)) != werte:
+                    fehlend.append(f"{sprache}: {schluessel} ({datei.name}:{knoten.lineno})")
+    assert not fehlend, fehlend
+
+
+# Module, deren ValueError-Text als Antwort im Panel erscheint.
+MELDENDE_MODULE = ("automatik/verwaltung.py", "automatik/laufzeit.py", "bezeichnung.py")
+
+
+def _als_muster(knoten: ast.expr) -> str | None:
+    if isinstance(knoten, ast.Constant) and isinstance(knoten.value, str):
+        return knoten.value
+    if isinstance(knoten, ast.JoinedStr):
+        teile = []
+        for teil in knoten.values:
+            if isinstance(teil, ast.Constant):
+                teile.append(teil.value)
+            elif isinstance(teil, ast.FormattedValue) and isinstance(teil.value, ast.Name):
+                teile.append("{" + teil.value.id + "}")
+            else:
+                return None
+        return "".join(teile)
+    return None
+
+
+def test_jede_ablehnung_an_das_panel_steht_im_woerterbuch():
+    """Fehlertexte aus Automatik und Bezeichnungen gehen übersetzt an die Oberfläche."""
+    englisch = json.loads((ORDNER / "en.json").read_text(encoding="utf-8"))
+    fehlend = []
+    for datei in sorted(ORDNER.parent.rglob("*.py")):
+        pfad = datei.relative_to(ORDNER.parent).as_posix()
+        for knoten in ast.walk(ast.parse(datei.read_text(encoding="utf-8"))):
+            text = None
+            if isinstance(knoten, ast.Call) and getattr(knoten.func, "id", None) == "_ablehnen":
+                text = _als_muster(knoten.args[-1])
+            elif (
+                pfad in MELDENDE_MODULE
+                and isinstance(knoten, ast.Raise)
+                and isinstance(knoten.exc, ast.Call)
+                and getattr(knoten.exc.func, "id", None) == "ValueError"
+            ):
+                text = _als_muster(knoten.exc.args[0])
+            if text is not None and text not in englisch:
+                fehlend.append(f"{pfad}:{knoten.lineno} {text!r}")
+    assert not fehlend, fehlend
+
+
+def test_jeder_dienst_ist_in_jeder_sprache_beschrieben():
+    """Dienste und ihre Felder tragen Name und Beschreibung in jeder Übersetzung."""
+    import yaml
+
+    dienste = yaml.safe_load((ORDNER.parent / "services.yaml").read_text(encoding="utf-8"))
+    erwartet = {name: sorted(d.get("fields") or {}) for name, d in dienste.items()}
+    for datei in (ORDNER.parent / "translations").glob("*.json"):
+        uebersetzt = json.loads(datei.read_text(encoding="utf-8")).get("services", {})
+        vorhanden = {
+            name: sorted(d.get("fields", {}))
+            for name, d in uebersetzt.items()
+            if d.get("name") and d.get("description")
+        }
+        assert vorhanden == erwartet, datei.name
+
+
+def _blaetter(daten: dict, pfad: str = ""):
+    for schluessel, wert in daten.items():
+        voll = f"{pfad}.{schluessel}" if pfad else schluessel
+        if isinstance(wert, dict):
+            yield from _blaetter(wert, voll)
+        else:
+            yield voll, wert
+
+
+def test_keine_uebersetzung_ist_der_deutsche_text():
+    """Ein aus dem Deutschen kopierter Eintrag fällt auf Englisch oder Französisch nicht auf."""
+    ordner = ORDNER.parent / "translations"
+    deutsch = dict(_blaetter(json.loads((ordner / "de.json").read_text(encoding="utf-8"))))
+    kopiert = [
+        f"{datei.stem}: {pfad}"
+        for datei in ordner.glob("*.json")
+        if datei.stem != "de"
+        for pfad, wert in _blaetter(json.loads(datei.read_text(encoding="utf-8")))
+        if wert == deutsch.get(pfad) and " " in wert.strip()
+    ]
+    assert not kopiert, kopiert
+
+
+def test_strings_json_ist_die_englische_fassung():
+    """`strings.json` ist die Quelle der englischen Übersetzung; ein zweiter Stand veraltet unbemerkt."""
+    komponente = ORDNER.parent
+    assert json.loads((komponente / "strings.json").read_text(encoding="utf-8")) == json.loads(
+        (komponente / "translations" / "en.json").read_text(encoding="utf-8")
+    )

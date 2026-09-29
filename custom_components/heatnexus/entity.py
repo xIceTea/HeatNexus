@@ -188,9 +188,11 @@ def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
         # gehört dorthin, **was** das Gerät ist. Kennt die kuratierte Tabelle
         # den Funktionstyp nicht, nennt die Anlage selbst die Werksbezeichnung
         # ihres Bausteins – für fremde Baureihen die einzige belastbare Angabe.
-        model=modell(fct_type, _geraeteklasse(coordinator, beschreibung))
-        or _werksbezeichnung(coordinator, beschreibung)
-        or funktion,
+        model=texte.woerterbuch_zu(coordinator)(
+            modell(fct_type, _geraeteklasse(coordinator, beschreibung))
+            or _werksbezeichnung(coordinator, beschreibung)
+            or funktion
+        ),
         **steuerung_verweis(coordinator),
     )
     if seriennummer := _seriennummer(coordinator, beschreibung):

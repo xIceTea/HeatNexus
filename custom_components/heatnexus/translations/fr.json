@@ -134,8 +134,8 @@
           "lon": "Read values from the LON bus",
           "lon_grundumfang": "Compléter les valeurs de base par le bus LON",
           "zusatzgruppen": "Valeurs dérivées",
-          "marken": "Labels in der Oberfläche zeigen",
-          "marken_status": "Diese Labels in den Systemstatus"
+          "marken": "Afficher les labels dans l'interface",
+          "marken_status": "Placer ces labels dans l'état du système"
         },
         "data_description": {
           "label": "Figure devant chaque nom d'appareil de ce système, par exemple « Chaufferie · Ballon tampon ».",
@@ -147,11 +147,11 @@
           "kesselwert": "Quelle deuxième valeur figure sur la chaudière. Le lit de braises suit toujours la puissance ; à défaut, il se règle sur la température de la chambre de combustion.",
           "modulpumpe": "La pompe du module n'apparaît dans le schéma que si la case est cochée. Le module indique une vitesse même sans pompe raccordée ; le module et ses voyants restent affichés dans tous les cas.",
           "zeitwerte": "L'horloge de la régulation. Sans la case cochée, elles sont créées désactivées ; les autres champs d'heure et de date ne sont pas concernés.",
-          "lon": "Liest zusätzlich den Bus-Adressraum der Steuerung: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und was sonst nur dort steht. An PuroWIN und Infinity bringt das wenig, weil dieselben Werte schon als Datenpunkt kommen.",
-          "lon_grundumfang": "Holt Pumpe, Mischer und die Kernwerte des Kessels aus dem Bus, wo die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Dafür muss „Werte vom LON-Bus lesen“ nicht eingeschaltet sein. Wo es den Datenpunkt gibt, gilt der Datenpunkt.",
+          "lon": "Lit en plus l'espace d'adresses du bus du régulateur : vitesse du ventilateur, chauffage de la sonde lambda, stock de granulés et ce qui n'est disponible que là. Sur PuroWIN et Infinity, l'apport est faible, car les mêmes valeurs arrivent déjà comme points de données.",
+          "lon_grundumfang": "Lit la pompe, la vanne mélangeuse et les valeurs principales de la chaudière depuis le bus lorsque le système ne les fournit pas comme points de données ; sinon elles manquent dans le schéma. « Lire les valeurs du bus LON » n'a pas besoin d'être activé pour cela. Lorsque le point de données existe, c'est lui qui s'applique.",
           "zusatzgruppen": "Valeurs calculées par HeatNexus à partir des compteurs et états existants : durées de fonctionnement (aujourd’hui, depuis le dernier démarrage), compteurs (démarrages, consommation, chaleur) et durée en cours. Les valeurs non cochées sont créées désactivées. Avec « Individuell », OK ouvre une seconde étape listant les valeurs individuelles.",
-          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant.",
-          "marken_status": "Werte dieser Labels stehen im Systemstatus statt in einer eigenen Karte. Gewählt werden kann nur, was oben auch gezeigt wird."
+          "marken": "Chaque label choisi devient sa propre carte dans la vue d'ensemble. Qui n'en a pas besoin la masque là-bas. Ce que chacun voit dans une carte dépend de ses droits dans Home Assistant.",
+          "marken_status": "Les valeurs de ces labels apparaissent dans l'état du système au lieu d'une carte propre. Seuls les labels affichés ci-dessus peuvent être choisis."
         }
       },
       "zusatzwerte": {
@@ -219,6 +219,14 @@
         "zustand": "État (marche/arrêt)",
         "schwelle": "Seuil (valeur au-dessus ou en dessous d’une limite)",
         "differenz": "Différence entre deux sondes"
+      }
+    },
+    "zusatzgruppen": {
+      "options": {
+        "laufzeit": "Durée de fonctionnement",
+        "zaehler": "Compteurs",
+        "schaltpunkt": "Points de commutation",
+        "individuell": "Personnalisé – passer à la sélection individuelle"
       }
     }
   },
@@ -481,6 +489,127 @@
         "reconfigure_successful": "La source de chaleur a été modifiée.",
         "zu_viele": "Le schéma ne peut pas contenir plus de sources de chaleur."
       }
+    }
+  },
+  "exceptions": {
+    "wert_abgelehnt": {
+      "message": "Le système a refusé la valeur pour {oid} (HTTP {status})."
+    },
+    "zeitprogramm_abgelehnt": {
+      "message": "Le système a refusé le programme horaire {oid} (HTTP {status})."
+    },
+    "voreinstellung_unbekannt": {
+      "message": "Le préréglage {voreinstellung} n'existe pas."
+    },
+    "temperatur_fehlt": {
+      "message": "Aucune température n'a été indiquée."
+    },
+    "betriebswahl_unbekannt": {
+      "message": "Le mode de fonctionnement n'est pas encore connu. Veuillez attendre la lecture du système."
+    },
+    "keine_anlage": {
+      "message": "Aucun système n'est configuré."
+    },
+    "keine_anlage_zum_einlesen": {
+      "message": "Aucun système configuré ne peut être relu."
+    },
+    "einstellung_unbekannt": {
+      "message": "{name} ne connaît pas le réglage {option}."
+    },
+    "wochentag_unbekannt": {
+      "message": "Jour de la semaine inconnu : {tag}"
+    },
+    "zu_viele_schaltpunkte": {
+      "message": "Au plus {hoechstens} points de commutation par bloc, {anzahl} ont été indiqués."
+    },
+    "uhrzeit_ungueltig": {
+      "message": "Heure invalide : {uhrzeit}"
+    },
+    "kein_zeitprogramm": {
+      "message": "Cette entité n'est pas un programme horaire modifiable."
+    },
+    "zeitprogramm_geschuetzt": {
+      "message": "Ce programme horaire est protégé en écriture."
+    },
+    "schaltpunkte_fehlen": {
+      "message": "Veuillez indiquer switch_points ou blocks."
+    },
+    "anmeldung_abgewiesen": {
+      "message": "Le système {anlage} refuse la connexion."
+    },
+    "antwortet_nicht": {
+      "message": "Le système {anlage} ne répond plus à plusieurs reprises : {fehler}"
+    },
+    "keine_werte": {
+      "message": "Le système {anlage} n'a encore fourni aucune valeur : {fehler}"
+    },
+    "abfrage_fehler": {
+      "message": "Erreur lors de l'interrogation de {anlage} : {fehler}"
+    },
+    "keine_anlage_im_eintrag": {
+      "message": "L'entrée de configuration ne contient aucun système."
+    },
+    "verbinden_zeitueberschreitung": {
+      "message": "Délai dépassé lors de la connexion à {anlage}."
+    },
+    "verbinden_fehler": {
+      "message": "Erreur lors de la connexion à {anlage} : {fehler}"
+    }
+  },
+  "services": {
+    "rediscover": {
+      "name": "Redétecter le système",
+      "description": "Supprime l'état de détection enregistré et relit entièrement le système (points de données et appareils). Nécessaire par exemple après des modifications du chauffage ou l'ajout de nouveaux circuits. Prend une fois plus de temps, puis indique pour chaque système combien d'entités, de points interrogés et de programmes horaires ont été trouvés."
+    },
+    "set_current_temp_compensation": {
+      "name": "Définir la correction de confort",
+      "description": "Décale la température ambiante mesurée d'un circuit de chauffage d'une valeur fixe. Prévu pour des sondes qui mesurent en permanence trop chaud ou trop froid à cause de leur emplacement.",
+      "fields": {
+        "compensation": {
+          "name": "Correction",
+          "description": "Ajoutée à la température ambiante mesurée."
+        }
+      }
+    },
+    "meldungen_loeschen": {
+      "name": "Vider la liste des messages",
+      "description": "Vide la liste des messages que HeatNexus tient pour un système. Le système ne fournit pas cette liste par son interface : seule la collection dans Home Assistant est vidée, pas la mémoire des défauts de l'unité de commande. Les messages en attente restent et doivent être réinitialisés sur l'appareil."
+    },
+    "set_vorgabe": {
+      "name": "Définir une consigne temporaire",
+      "description": "Définit une consigne de température ambiante temporaire pour un circuit, celle que le système appelle « Eco / Comfort ». Ensuite, le circuit revient seul à son mode ; les programmes horaires restent inchangés. En veille ou en mode eau chaude, le circuit passe pour la durée dans un programme de chauffage puis revient.",
+      "fields": {
+        "temperature": {
+          "name": "Température",
+          "description": "Température ambiante pendant la consigne."
+        },
+        "duration": {
+          "name": "Durée",
+          "description": "Durée de la consigne. 0 met fin immédiatement à une consigne en cours."
+        }
+      }
+    },
+    "set_time_program": {
+      "name": "Définir un programme horaire",
+      "description": "Écrit un programme horaire de chauffage ou d'eau chaude (cible : un capteur de programme de HeatNexus). Soit simplement avec switch_points (plus weekdays en option, quotidien par défaut), soit avec blocks pour un contrôle complet (plusieurs groupes de jours).",
+      "fields": {
+        "switch_points": {
+          "name": "Points de commutation",
+          "description": "Liste de points {time, value}. time au format HH:MM, value = température de consigne. S'applique au bloc de weekdays."
+        },
+        "weekdays": {
+          "name": "Jours de la semaine",
+          "description": "Jours pour les points de commutation (Mo Tu We Th Fr Sa Su ou Mo Di Mi Do Fr Sa So). Par défaut : tous les jours."
+        },
+        "blocks": {
+          "name": "Blocs (avancé)",
+          "description": "Structure complète sous forme de liste de blocs, chacun avec weekdays et switch_points. Remplace switch_points/weekdays s'il est indiqué."
+        }
+      }
+    },
+    "dashboard_ausgeben": {
+      "name": "Exporter le tableau de bord en YAML",
+      "description": "Renvoie le tableau de bord fourni sous forme de texte YAML. Il est reconstruit à chaque ouverture et ne peut donc pas être modifié. Avec ce texte, vous créez votre propre tableau de bord : ajouter un tableau de bord, ouvrir l'éditeur de configuration brute, coller le texte."
     }
   }
 }
