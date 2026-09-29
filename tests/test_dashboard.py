@@ -667,3 +667,129 @@ def test_auf_englisch_bleibt_im_dashboard_nichts_deutsch(ansichten):
 
     reste = sorted({t for t in _sichtbare_texte(fertig) if DEUTSCH.search(ohne_eigene(t))})
     assert not reste, f"auf Englisch noch deutsch: {reste}"
+
+
+@pytest.fixture(scope="module")
+def karten(dashboard):
+    from custom_components.heatnexus.dashboard import karten as modul
+
+    return modul
+
+
+@pytest.fixture(scope="module")
+def auswahl(dashboard):
+    from custom_components.heatnexus.dashboard import auswahl as modul
+
+    return modul
+
+
+def _e(entity_id: str, name: str, **rest) -> dict:
+    return {
+        "entity_id": entity_id,
+        "name": name,
+        "bereich": entity_id.split(".")[0],
+        "hat_wert": True,
+        "kategorie": None,
+        "state_class": None,
+        "abgeleitet": False,
+        "schluessel": None,
+        "meldungsart": None,
+        "wert": 70.0,
+        **rest,
+    }
+
+
+def _kessel() -> dict:
+    return {
+        "name": "PuroWIN",
+        "id": "kessel0123456789",
+        "fct_type": 25,
+        "symbol": "mdi:fire",
+        "rang": 10,
+        "entitaeten": [
+            _e("sensor.betriebsphase", "Betriebsphase", schluessel="operating_phase"),
+            _e("sensor.kessel_ist", "Kesseltemperatur Ist", schluessel="boiler_temperature"),
+            _e("sensor.leistung", "Kesselleistung", schluessel="boiler_power"),
+            _e("sensor.abgas", "Abgastemperatur", schluessel="flue_gas_temperature"),
+            _e("select.betriebswahl", "Betriebswahl", schluessel="mode_selection"),
+            _e("button.serviceausbrand", "Serviceausbrand"),
+            _e("number.kurve", "Heizkurve", kategorie="config"),
+            _e("sensor.software", "Softwareversion", kategorie="diagnostic"),
+            _e(
+                "sensor.klartext",
+                "Meldung Klartext",
+                kategorie="diagnostic",
+                meldungsart="fe01text",
+            ),
+            _e(
+                "binary_sensor.stoerung",
+                "Störung gemeldet",
+                kategorie="diagnostic",
+                meldungsart="fe01stoerung",
+            ),
+        ],
+    }
+
+
+def test_ansicht_traegt_titel_und_kein_symbol(karten):
+    ansicht = karten.ansicht("Wartung", "wartung", [])
+    assert ansicht["title"] == "Wartung"
+    assert "icon" not in ansicht
+    assert ansicht["type"] == "sections"
+
+
+def test_unteransicht_fuehrt_zurueck(karten):
+    ansicht = karten.ansicht("Kesselhaus · PuroWIN", "teil-abc", [], zurueck="anlage-xyz")
+    assert ansicht["subview"] is True
+    assert ansicht["back_path"] == "/heatnexus/anlage-xyz"
+
+
+def test_ueberschrift_mit_ziel_navigiert(karten):
+    karte = karten.ueberschrift("PuroWIN", ziel="teil-abc")
+    assert karte["tap_action"] == {"action": "navigate", "navigation_path": "/heatnexus/teil-abc"}
+
+
+def test_auswahl_trennt_messwert_bedienung_einstellung_diagnose(auswahl):
+    teil = _kessel()
+    assert [e["entity_id"] for e in auswahl.bedienung(teil)] == [
+        "select.betriebswahl",
+        "button.serviceausbrand",
+    ]
+    assert "sensor.abgas" in [e["entity_id"] for e in auswahl.messwerte(teil)]
+    assert [e["entity_id"] for e in auswahl.einstellungen(teil)] == ["number.kurve"]
+    assert "sensor.software" in [e["entity_id"] for e in auswahl.diagnose(teil)]
+
+
+def test_kernwerte_kommen_aus_dem_modul(auswahl):
+    assert [e["entity_id"] for e in auswahl.kernwerte(_kessel())] == [
+        "sensor.betriebsphase",
+        "sensor.kessel_ist",
+    ]
+
+
+def test_baureihe_ohne_eintrag_nimmt_die_ersten_messwerte(auswahl):
+    teil = {**_kessel(), "fct_type": 999}
+    assert len(auswahl.kernwerte(teil)) == 2
+    assert auswahl.zeigerinstrumente(teil) == []
+
+
+def test_zeigerinstrumente_nach_modul(auswahl):
+    paare = auswahl.zeigerinstrumente(_kessel())
+    assert [e["entity_id"] for e, _ in paare] == ["sensor.kessel_ist", "sensor.leistung"]
+    assert paare[0][1]["max"] == 95
+
+
+def test_meldungskarte_erscheint_nur_bei_stoerung(karten, auswahl):
+    teil = _kessel()
+    karte = karten.meldungskarte(auswahl.klartext(teil), "PuroWIN", auswahl.stoerung(teil))
+    assert karte["visibility"] == [
+        {"condition": "state", "entity": "binary_sensor.stoerung", "state": "on"}
+    ]
+    assert "state_attr('sensor.klartext', 'meldungen')" in karte["content"]
+
+
+def test_auswahl_und_zahl_bekommen_bedienfelder(karten):
+    auswahlkachel = karten.kachel(_e("select.betriebswahl", "Betriebswahl"))
+    zahl = karten.kachel(_e("number.korrektur", "Komfortkorrektur"))
+    assert auswahlkachel["features"] == [{"type": "select-options"}]
+    assert zahl["features"] == [{"type": "numeric-input", "style": "buttons"}]

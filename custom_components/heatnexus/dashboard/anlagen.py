@@ -173,6 +173,15 @@ def _schaubildwahl_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str, b
     return zuordnung
 
 
+_MELDUNGSARTEN = ("fe01stoerung", "fe01text", "fe01liste", "fe01")
+
+
+def _meldungsart(kennung: str) -> str | None:
+    """Welcher Meldungssensor eines Knotens das ist, sonst nichts."""
+    endung = kennung.rsplit("-", 1)[-1]
+    return endung if endung in _MELDUNGSARTEN else None
+
+
 def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:
     """Anlagen mit ihren Anlagenteilen und deren sichtbaren Entitäten.
 
@@ -272,6 +281,8 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
                 "optionen": auswahltexte.get(eintrag.unique_id, {}),
                 # Eigene Bezeichnung eines Zeitprogramms; der Name bleibt der der Anlage.
                 "bezeichnung": bezeichnung_lesen(eintrag),
+                # Meldungssensoren des Knotens (`client/gemeinsam.MELDUNGS_SENSOREN`).
+                "meldungsart": _meldungsart(eintrag.unique_id),
             }
         )
 

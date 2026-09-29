@@ -154,6 +154,25 @@ VERLAUF_SCHLUESSEL = (
 )
 
 
+# Zeitprogramm eines Kreises.
+# **Nicht einfach „programm".** Der Heizkreis führt unter `4/60` ein
+# Estrich-Ausheizprogramm, das schlicht „Programm" heißt (beenden,
+# Belegreifheizen, Funktionsheizen). Es ist kein Zeitprogramm, hat keine
+# Schaltzeiten und gehört weder in die Steuerungsübersicht noch in den Reiter
+# Zeitprogramme. Mit dem bloßen Teilwort stand es dort – und verdrängte als
+# erster Treffer die echten Programme, sobald jemand den Datenpunkt einschaltete.
+ZEITPROGRAMM = namensmuster(
+    r"programm\s*\d",
+    r"zeitprogramm",
+    r"\bww[- ]programm",
+    r"zirkulations?programm",
+)
+
+
+# Tasten, die in der Übersicht je Anlage stehen: alltäglich, ohne Rückfrage.
+UEBERSICHT_TASTEN = namensmuster(r"ww einmalladung", r"werte jetzt abfragen")
+
+
 # Plattformen, die der Nutzer bedient statt nur abliest.
 BEDIENBAR = frozenset({"climate", "select", "number", "switch", "button", "time", "date"})
 

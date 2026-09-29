@@ -9,7 +9,7 @@ und deshalb an einer Stelle statt verstreut über die Aufbereitung.
 
 from __future__ import annotations
 
-from ..dashboard.muster import namensmuster
+from ..dashboard.muster import ZEITPROGRAMM, namensmuster  # noqa: F401
 from ..schema import ANALOG_SOLLWERT
 
 # Aufbau einer Zeile: **Muster, Beschriftung, Symbol, kanonische Schlüssel.**
@@ -235,19 +235,6 @@ BETRIEBSWAHL = namensmuster(r"\bbetriebswahl\b")
 # „Temperatur" und „Dauer". Beide Schreibweisen gelten.
 UEBERSTEUERUNG_TEMPERATUR = namensmuster(r"^(eco/comfort )?temperatur$")
 UEBERSTEUERUNG_DAUER = namensmuster(r"^(eco/comfort )?dauer$")
-# Zeitprogramm eines Kreises.
-# **Nicht einfach „programm".** Der Heizkreis führt unter `4/60` ein
-# Estrich-Ausheizprogramm, das schlicht „Programm" heißt (beenden,
-# Belegreifheizen, Funktionsheizen). Es ist kein Zeitprogramm, hat keine
-# Schaltzeiten und gehört weder in die Steuerungsübersicht noch in den Reiter
-# Zeitprogramme. Mit dem bloßen Teilwort stand es dort – und verdrängte als
-# erster Treffer die echten Programme, sobald jemand den Datenpunkt einschaltete.
-ZEITPROGRAMM = namensmuster(
-    r"programm\s*\d",
-    r"zeitprogramm",
-    r"\bww[- ]programm",
-    r"zirkulations?programm",
-)
 # Das Zirkulationsprogramm und der Datenpunkt, der darüber entscheidet, ob es
 # überhaupt etwas tut: `5/6` „WW-Zirkulationspumpe" mit den Werten Aus, Mit
 # Zeitsteuerung, Mit Temperatursteuerung, Mit Impulssteuerung, EIN. Nur bei
