@@ -1420,7 +1420,13 @@ export const STIL = `
   .automatik-erweitert[open] .automatik-einstellungskopf .pfeil { transform: none; }
   .automatik-einstellungskopf .titelblock { flex: 1; min-width: 180px; }
   .automatik-einstellungskopf .unter { font-size: 12px; color: var(--hn-gedaempft); margin-top: 2px; }
-  .automatik-einstellungstasten { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .karte.automatik-erweitert { position: relative; }
+  /* Die Tasten stehen nach dem summary und sitzen optisch in dessen Zeile; zugeklappt sind sie verborgen. */
+  .automatik-einstellungstasten {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    position: absolute; top: 14px; right: 20px;
+  }
+  .automatik-erweitert[open] > .automatik-einstellungskopf { padding-right: 380px; }
   .automatik-erweitert:not([open]) .automatik-einstellungstasten { display: none; }
   .automatik-gruppen {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 0 20px 4px;
@@ -1547,5 +1553,7 @@ export const STIL = `
     .automatik-feld.breit select { min-width: 0; max-width: 55vw; }
     .automatik-gruppe + .automatik-gruppe, .automatik-schalter + .automatik-gruppe { padding-left: 0; border-left: none; }
     .automatik-stundenlegende { margin-left: 0; }
+    .automatik-einstellungstasten { position: static; padding: 0 20px 12px; }
+    .automatik-erweitert[open] > .automatik-einstellungskopf { padding-right: 20px; }
   }
 `;

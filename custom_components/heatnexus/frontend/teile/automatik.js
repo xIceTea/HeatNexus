@@ -1,17 +1,17 @@
 /**
  * Reiter „Automatik“.
  *
- * Je Heizkreis eine Karte mit Zustand, Begründung, Kennwerten, Tagesbild
- * und „Erweitert“, daneben das Protokoll. Einladung, Einrichtungsdialog und
- * „Erweitert“ stehen in `einrichtung.js`, das Tagesbild in `tagesbild.js`.
+ * Je Heizkreis vier Karten – Kopf, Kennwerte, Tagesverlauf, Einstellungen –
+ * und daneben das Protokoll. Einladung, Einrichtungsdialog und Einstellungen
+ * stehen in `einrichtung.js`, der Tagesverlauf in `tagesbild.js`.
  * Die Daten kommen über `heatnexus/automatik`.
  *
  * Teil der Oberfläche `heatnexus-panel.js`; eingebunden als Mixin.
  */
 
-// Höchstens so oft wird nachgeladen, solange der Reiter offen ist.
 // Wie auf dem Server: So lange darf ein Raumfühler denselben Wert zeigen, dann gilt er als veraltet.
 export const VERALTET_STUNDEN = 12;
+// Höchstens so oft wird nachgeladen, solange der Reiter offen ist.
 export const AUTOMATIK_TAKT_MS = 60 * 1000;
 // So viele Protokolleinträge stehen, bis „Alle anzeigen“ den Rest aufklappt.
 const PROTOKOLL_KURZ = 8;
@@ -106,6 +106,22 @@ export function raumzeile(raum, t = (text) => text) {
   return text;
 }
 
+/** Ob ein Wert vorliegt; null und undefined zählen nicht. */
+export function vorhanden(wert) {
+  return wert !== null && wert !== undefined;
+}
+
+/** Uhrzeit „HH:MM“ aus einem ISO-Zeitpunkt, in der Zeitzone des Browsers. */
+export function uhrAus(iso) {
+  return new Date(iso).toTimeString().slice(0, 5);
+}
+
+/** Datum „T.M.“ aus einem Zeitpunkt. */
+export function tagMonat(datum) {
+  const d = new Date(datum);
+  return `${d.getDate()}.${d.getMonth() + 1}.`;
+}
+
 export const AutomatikMixin = (Basis) =>
   class extends Basis {
     // -------------------------------------------------------------------
@@ -145,30 +161,47 @@ export const AutomatikMixin = (Basis) =>
       return this._raster({ id: "alle" }, this._automatikReiter(null), "Keine Heizkreise gefunden.");
     }
 
-    async _automatikHolen(erzwingen = false) {
-      if (this._automatikLaedt) return;
+    /**
+     * Stand vom Server holen. Ein erzwungener Abruf wartet einen laufenden ab, dessen Stand
+     * älter sein kann als die gerade geschriebene Änderung; `gespeichert` meldet sie danach.
+     */
+    async _automatikHolen(erzwingen = false, gespeichert = null) {
+      if (this._automatikLaeuft) {
+        if (!erzwingen) return;
+        await this._automatikLaeuft;
+      }
       if (!erzwingen && this._automatikZeit && Date.now() - this._automatikZeit < AUTOMATIK_TAKT_MS) return;
-      this._automatikLaedt = true;
+      if (gespeichert) this._automatikGespeichert = gespeichert;
+      this._automatikLaeuft = this._automatikLaden();
+      try {
+        await this._automatikLaeuft;
+      } finally {
+        this._automatikLaeuft = null;
+      }
+    }
+
+    async _automatikLaden() {
       try {
         this._automatik = await this._hass.callWS({ type: "heatnexus/automatik" });
         this._automatikZeit = Date.now();
         // Der Neuaufbau ersetzt den ganzen Baum; ein offener Dialog ginge mit.
         const dialogOffen = Boolean(this.shadowRoot.querySelector(".schleier"));
-        if (this._reiter === "automatik" && !this._automatikBearbeitet && !dialogOffen) {
-          // Der Neuaufbau leert die Seite kurz; ohne Merken spränge sie nach oben.
-          const lagen = this._automatikScrollLagen();
-          this._gebaut = false;
-          this._zeichnen();
-          lagen.forEach(([element, oben]) => {
-            element.scrollTop = oben;
-          });
-        }
+        if (this._reiter === "automatik" && !this._automatikBearbeitet && !dialogOffen) this._automatikNeuZeichnen();
+        else this._automatikGespeichert = null;
       } catch (err) {
         this._automatikZeit = Date.now();
         console.warn("HeatNexus: Automatik konnte nicht geladen werden", err);
-      } finally {
-        this._automatikLaedt = false;
       }
+    }
+
+    /** Neu aufbauen; der Neuaufbau leert die Seite kurz, ohne Merken spränge sie nach oben. */
+    _automatikNeuZeichnen() {
+      const lagen = this._automatikScrollLagen();
+      this._gebaut = false;
+      this._zeichnen();
+      lagen.forEach(([element, oben]) => {
+        element.scrollTop = oben;
+      });
     }
 
     /** Alle gescrollten Vorfahren, auch über Shadow-Grenzen, mit ihrer Lage. */
@@ -196,11 +229,11 @@ export const AutomatikMixin = (Basis) =>
       }, AUTOMATIK_TAKT_MS);
     }
 
-    async _automatikAufruf(nachricht) {
+    async _automatikAufruf(nachricht, gespeichert = null) {
       try {
         await this._hass.callWS(nachricht);
-        this._automatikBearbeitet = false;
-        await this._automatikHolen(true);
+        this._automatikBearbeitet = this._automatikHatEntwurf();
+        await this._automatikHolen(true, gespeichert);
         return true;
       } catch (err) {
         this._melden((err && err.message) || this._t("Die Automatik hat die Änderung nicht übernommen."));
@@ -208,8 +241,27 @@ export const AutomatikMixin = (Basis) =>
       }
     }
 
-    _automatikEinstellen(kreis, aenderung) {
-      return this._automatikAufruf({ type: "heatnexus/automatik/einstellen", heizkreis: kreis.heizkreis, ...aenderung });
+    _automatikEinstellen(kreis, aenderung, gespeichert = null) {
+      return this._automatikAufruf(
+        { type: "heatnexus/automatik/einstellen", heizkreis: kreis.heizkreis, ...aenderung },
+        gespeichert
+      );
+    }
+
+    /** Ein Schalter mit Text; `klein` für die Leiste im Tagesverlauf. */
+    _automatikSchalter(text, an, darf, klick, klein = false) {
+      const schalter = document.createElement("button");
+      schalter.type = "button";
+      schalter.className = `automatik-schalter${klein ? " klein" : ""}${an ? " an" : ""}`;
+      schalter.setAttribute("role", "switch");
+      schalter.setAttribute("aria-checked", String(!!an));
+      schalter.disabled = !darf;
+      const knopf = document.createElement("i");
+      const beschriftung = document.createElement("span");
+      beschriftung.textContent = this._t(text);
+      schalter.append(knopf, beschriftung);
+      schalter.addEventListener("click", klick);
+      return schalter;
     }
 
     // --- Karte ---------------------------------------------------------
@@ -290,17 +342,9 @@ export const AutomatikMixin = (Basis) =>
     _automatikSteuerzeile(kreis, darf) {
       const zeile = document.createElement("div");
       zeile.className = "automatik-zeile";
-      const schalter = document.createElement("button");
-      schalter.type = "button";
-      schalter.className = `automatik-schalter${kreis.konfig.aktiv ? " an" : ""}`;
-      schalter.setAttribute("role", "switch");
-      schalter.setAttribute("aria-checked", String(!!kreis.konfig.aktiv));
-      schalter.disabled = !darf;
-      const knopf = document.createElement("i");
-      const text = document.createElement("span");
-      text.textContent = this._t("Automatik aktiv");
-      schalter.append(knopf, text);
-      schalter.addEventListener("click", () => this._automatikEinstellen(kreis, { aktiv: !kreis.konfig.aktiv }));
+      const schalter = this._automatikSchalter("Automatik aktiv", kreis.konfig.aktiv, darf, () =>
+        this._automatikEinstellen(kreis, { aktiv: !kreis.konfig.aktiv })
+      );
 
       const modus = this._automatikSegment(
         "Modus",
@@ -346,12 +390,11 @@ export const AutomatikMixin = (Basis) =>
       teil(this._t(flaeche ? flaeche[1] : profil ? profil[1] : kreis.konfig.profil || ""));
       const entitaeten = kreis.entitaeten || {};
       this._klickbar(teil(this._tMit("{zahl} von {budget} Eingriffen heute", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" })), entitaeten.eingriffe);
-      const uhr = (iso) => new Date(iso).toTimeString().slice(0, 5);
       if (k.naechste_pruefung) {
-        this._klickbar(teil(this._tMit("Nächste Prüfung {zeit}", { zeit: uhr(k.naechste_pruefung) })), entitaeten.naechste_entscheidung);
+        this._klickbar(teil(this._tMit("Nächste Prüfung {zeit}", { zeit: uhrAus(k.naechste_pruefung) })), entitaeten.naechste_entscheidung);
       }
       if (k.modus_seit && kreis.zustand !== "programm" && ZUSTAENDE[kreis.zustand]) {
-        teil(this._tMit("{modus} seit {zeit}", { modus: this._t(ZUSTAENDE[kreis.zustand]), zeit: uhr(k.modus_seit) }));
+        teil(this._tMit("{modus} seit {zeit}", { modus: this._t(ZUSTAENDE[kreis.zustand]), zeit: uhrAus(k.modus_seit) }));
       }
       return meta;
     }
@@ -377,8 +420,7 @@ export const AutomatikMixin = (Basis) =>
       } else {
         const tage = Math.max(0, Math.floor((Date.now() - Date.parse(kreis.beobachtet_seit)) / 86400000));
         const haette = (kreis.protokoll || []).filter((e) => e.art === "haette").length;
-        const seit = new Date(kreis.beobachtet_seit);
-        const datum = `${seit.getDate()}.${seit.getMonth() + 1}.`;
+        const datum = tagMonat(kreis.beobachtet_seit);
         text.textContent = this._tMit("Beobachtungsmodus seit dem {datum} – vorgemerkte Eingriffe: {anzahl}. Nichts davon ging an die Steuerung.", { datum, anzahl: haette });
         taste.className = tage >= 7 ? "automatik-knopf" : "automatik-knopf leise";
         taste.textContent = this._t("Jetzt scharf schalten");
@@ -402,11 +444,11 @@ export const AutomatikMixin = (Basis) =>
         umschalten.type = "button";
         umschalten.className = "automatik-verweis";
         umschalten.textContent = this._t(alle ? "Weniger anzeigen" : "Alle anzeigen");
+        umschalten.setAttribute("aria-expanded", String(alle));
         umschalten.addEventListener("click", () => {
           if (alle) this._automatikProtokollAlle.delete(kreis.heizkreis);
           else this._automatikProtokollAlle.add(kreis.heizkreis);
-          this._gebaut = false;
-          this._zeichnen();
+          this._automatikNeuZeichnen();
         });
         kopf.appendChild(umschalten);
       }
@@ -424,7 +466,7 @@ export const AutomatikMixin = (Basis) =>
           ueberschrift.className = "automatik-protokolltag";
           if (tag === heute.toDateString()) ueberschrift.textContent = this._t("Heute");
           else if (tag === gestern.toDateString()) ueberschrift.textContent = this._t("Gestern");
-          else ueberschrift.textContent = `${datum.getDate()}.${datum.getMonth() + 1}.`;
+          else ueberschrift.textContent = tagMonat(datum);
           liste = document.createElement("ul");
           liste.className = "automatik-protokoll";
           karte.append(ueberschrift, liste);
@@ -432,7 +474,7 @@ export const AutomatikMixin = (Basis) =>
         const zeile = document.createElement("li");
         const zeit = document.createElement("span");
         zeit.className = "zeit";
-        zeit.textContent = datum.toTimeString().slice(0, 5);
+        zeit.textContent = uhrAus(datum);
         const inhalt = document.createElement("div");
         inhalt.className = "inhalt";
         const text = document.createElement("div");

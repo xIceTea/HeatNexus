@@ -28,8 +28,6 @@ export const EinrichtungMixin = (Basis) =>
      * Feld vom gespeicherten Wert abweicht; die Heizgrenzen gehen an die Steuerung.
      */
     _automatikErweitert(kreis, daten, darf) {
-      // Frisch gebaute Felder tragen keine Eingabe; Zuklappen gibt das Nachladen ebenso frei.
-      this._automatikBearbeitet = false;
       const bereich = document.createElement("details");
       bereich.className = "karte automatik-erweitert";
       // Offen bleibt offen, auch wenn Speichern oder Nachladen die Karte neu baut.
@@ -38,62 +36,20 @@ export const EinrichtungMixin = (Basis) =>
       bereich.addEventListener("toggle", () => {
         if (bereich.open) this._automatikOffen.add(kreis.heizkreis);
         else {
+          // Zuklappen verwirft, was nicht gespeichert ist, und gibt das Nachladen frei.
           this._automatikOffen.delete(kreis.heizkreis);
-          this._automatikBearbeitet = false;
+          this._automatikEntwurfVerwerfen(kreis.heizkreis);
         }
       });
-      const vorgabe = kreis.vorgabe || (daten.profile || {})[kreis.konfig.profil] || {};
-      const k = kreis.kennwerte || {};
-      const eingaben = {};
-      const grenzen = {};
-      const anfang = new Map();
-      const zeilen = { profil: this._automatikProfilZeile(kreis, darf) };
+      const felder = this._automatikEinstellungsfelder(kreis, daten, darf);
+      const { eingaben, grenzen, anfang } = felder;
 
-      zeilen.heizbetrieb = this._automatikGrenzZeile("Heizbetrieb bis", k.grenze_steuerung, 0, 30, darf, grenzen, "heizbetrieb");
-      zeilen.absenkbetrieb = this._automatikGrenzZeile("Absenkbetrieb bis", k.grenze_absenk, -10, 20, darf, grenzen, "absenkbetrieb");
-      let abweichend = 0;
-      FELDER.forEach((feld) => {
-        const wert = (kreis.werte || {})[feld.name];
-        const basis = vorgabe[feld.name];
-        const geaendert = wert !== basis;
-        if (geaendert) abweichend += 1;
-        const basisText = typeof basis === "number" ? zahl(basis, Number.isInteger(basis) ? 0 : 1) : basis || "–";
-        const anzeige = feld.art === "janein" ? this._t(basis ? "Ein" : "Aus") : `${basisText} ${feld.einheit ? this._t(feld.einheit) : ""}`.trim();
-        const zeile = this._automatikFeld(feld.titel, geaendert ? this._tMit("Profil: {wert}", { wert: anzeige || "–" }) : "", geaendert, feld.hilfe);
-        const eingabe = this._automatikEingabe(feld, wert, darf);
-        eingaben[feld.name] = [feld, eingabe];
-        zeile.querySelector(".eingabe").appendChild(eingabe);
-        if (feld.einheit && feld.art !== "wahl") {
-          const einheit = document.createElement("span");
-          einheit.className = "einheit";
-          einheit.textContent = this._t(feld.einheit);
-          zeile.querySelector(".eingabe").appendChild(einheit);
-        }
-        zeilen[feld.name] = zeile;
-      });
-      [...Object.values(eingaben).map(([, e]) => e), ...Object.values(grenzen)].forEach((e) => anfang.set(e, e.value));
-
-      const kopf = document.createElement("summary");
-      kopf.className = "automatik-einstellungskopf";
-      const titelblock = document.createElement("div");
-      titelblock.className = "titelblock";
-      const titel = document.createElement("h3");
-      titel.textContent = this._t("Einstellungen");
-      const unter = document.createElement("div");
-      unter.className = "unter";
-      const profil = PROFILE.find(([name]) => name === kreis.konfig.profil);
-      const profilText = this._tMit("Profil „{profil}“", { profil: this._t(profil ? profil[1] : kreis.konfig.profil || "–") });
-      unter.textContent = abweichend
-        ? `${profilText} · ${this._tMit(abweichend === 1 ? "{zahl} Wert weicht ab" : "{zahl} Werte weichen ab", { zahl: abweichend })}`
-        : profilText;
-      titelblock.append(titel, unter);
       const tasten = document.createElement("div");
       tasten.className = "automatik-einstellungstasten";
       const zuruecksetzen = this._automatikTaste("Profilwerte wiederherstellen", "automatik-knopf leise");
-      zuruecksetzen.disabled = !darf || !abweichend;
+      zuruecksetzen.disabled = !darf || !felder.abweichend;
       zuruecksetzen.addEventListener("click", () => this._automatikSpeichern(kreis, { eigene: {} }));
       const speichern = this._automatikTaste("Speichern", "automatik-knopf speichern");
-      speichern.disabled = true;
       speichern.addEventListener("click", () => this._automatikAllesSpeichern(kreis, eingaben, grenzen, anfang));
       // Das Hinweiszeichen nach dem Neuaufbau sagt, dass das Speichern geklappt hat.
       if (this._automatikGespeichert === kreis.heizkreis) {
@@ -105,28 +61,35 @@ export const EinrichtungMixin = (Basis) =>
         setTimeout(() => hinweis.remove(), GESPEICHERT_MS);
       }
       tasten.append(zuruecksetzen, speichern);
-      kopf.append(this._symbolKnoten("mdi:chevron-down", "pfeil"), titelblock, tasten);
-      bereich.appendChild(kopf);
+      bereich.append(this._automatikEinstellungskopf(kreis, felder.abweichend), tasten);
 
+      // Ein Entwurf überdauert jeden Neuaufbau, bis gespeichert oder zugeklappt wird.
+      const entwurf = this._automatikEntwurf(kreis.heizkreis);
+      const namen = new Map([...Object.entries(eingaben).map(([n, [, e]]) => [e, n]), ...Object.entries(grenzen).map(([n, e]) => [e, n])]);
       const pruefen = () => {
-        this._automatikBearbeitet = true;
-        const anders = [...anfang].some(([eingabe, wert]) => eingabe.value !== wert);
-        speichern.disabled = !darf || !anders;
+        namen.forEach((name, eingabe) => {
+          if (eingabe.value === anfang.get(eingabe)) delete entwurf[name];
+          else entwurf[name] = eingabe.value;
+        });
+        speichern.disabled = !darf || !Object.keys(entwurf).length;
+        this._automatikBearbeitet = this._automatikHatEntwurf();
       };
-      anfang.forEach((_, eingabe) => {
+      namen.forEach((name, eingabe) => {
+        if (name in entwurf) eingabe.value = entwurf[name];
         eingabe.addEventListener("input", pruefen);
         eingabe.addEventListener("change", pruefen);
       });
+      pruefen();
 
       const gruppen = document.createElement("div");
       gruppen.className = "automatik-gruppen";
-      EINSTELLUNGSGRUPPEN.forEach(([ueberschrift, namen]) => {
+      EINSTELLUNGSGRUPPEN.forEach(([ueberschrift, gruppenNamen]) => {
         const gruppe = document.createElement("section");
         gruppe.className = "automatik-einstellungsgruppe";
         const kopfzeile = document.createElement("h4");
         kopfzeile.textContent = this._t(ueberschrift);
         gruppe.appendChild(kopfzeile);
-        namen.forEach((name) => zeilen[name] && gruppe.appendChild(zeilen[name]));
+        gruppenNamen.forEach((name) => felder.zeilen[name] && gruppe.appendChild(felder.zeilen[name]));
         gruppen.appendChild(gruppe);
       });
       bereich.appendChild(gruppen);
@@ -141,16 +104,83 @@ export const EinrichtungMixin = (Basis) =>
       return bereich;
     }
 
-    /** Eine Taste in der Einstellungskarte; im Kopf klappt sie die Karte nicht mit auf oder zu. */
+    /** Die Zeilen der Einstellungen mit ihren Eingaben und dem gespeicherten Stand. */
+    _automatikEinstellungsfelder(kreis, daten, darf) {
+      const vorgabe = kreis.vorgabe || (daten.profile || {})[kreis.konfig.profil] || {};
+      const k = kreis.kennwerte || {};
+      const eingaben = {};
+      const grenzen = {};
+      const zeilen = { profil: this._automatikProfilZeile(kreis, darf) };
+      zeilen.heizbetrieb = this._automatikGrenzZeile("Heizbetrieb bis", k.grenze_steuerung, 0, 30, darf, grenzen, "heizbetrieb");
+      zeilen.absenkbetrieb = this._automatikGrenzZeile("Absenkbetrieb bis", k.grenze_absenk, -10, 20, darf, grenzen, "absenkbetrieb");
+      let abweichend = 0;
+      FELDER.forEach((feld) => {
+        const wert = (kreis.werte || {})[feld.name];
+        const basis = vorgabe[feld.name];
+        const geaendert = wert !== basis;
+        if (geaendert) abweichend += 1;
+        const basisText = typeof basis === "number" ? zahl(basis, Number.isInteger(basis) ? 0 : 1) : basis || "–";
+        const anzeige = feld.art === "janein" ? this._t(basis ? "Ein" : "Aus") : `${basisText} ${feld.einheit ? this._t(feld.einheit) : ""}`.trim();
+        const zeile = this._automatikFeld(feld.titel, geaendert ? this._tMit("Profil: {wert}", { wert: anzeige || "–" }) : "", geaendert, feld.hilfe);
+        const eingabe = this._automatikEingabe(feld, wert, darf);
+        eingabe.setAttribute("aria-label", this._t(feld.titel));
+        eingaben[feld.name] = [feld, eingabe];
+        zeile.querySelector(".eingabe").appendChild(eingabe);
+        if (feld.einheit && feld.art !== "wahl") {
+          const einheit = document.createElement("span");
+          einheit.className = "einheit";
+          einheit.textContent = this._t(feld.einheit);
+          zeile.querySelector(".eingabe").appendChild(einheit);
+        }
+        zeilen[feld.name] = zeile;
+      });
+      const anfang = new Map(
+        [...Object.values(eingaben).map(([, e]) => e), ...Object.values(grenzen)].map((e) => [e, e.value])
+      );
+      return { zeilen, eingaben, grenzen, anfang, abweichend };
+    }
+
+    /** Kopf der Karte: Pfeil, Titel und das Profil mit der Zahl eigener Werte. */
+    _automatikEinstellungskopf(kreis, abweichend) {
+      const kopf = document.createElement("summary");
+      kopf.className = "automatik-einstellungskopf";
+      const titelblock = document.createElement("div");
+      titelblock.className = "titelblock";
+      const titel = document.createElement("h3");
+      titel.textContent = this._t("Einstellungen");
+      const unter = document.createElement("div");
+      unter.className = "unter";
+      const profil = PROFILE.find(([name]) => name === kreis.konfig.profil);
+      const profilText = this._tMit("Profil „{profil}“", { profil: this._t(profil ? profil[1] : kreis.konfig.profil || "–") });
+      unter.textContent = abweichend
+        ? `${profilText} · ${this._tMit(abweichend === 1 ? "{zahl} Wert weicht ab" : "{zahl} Werte weichen ab", { zahl: abweichend })}`
+        : profilText;
+      titelblock.append(titel, unter);
+      kopf.append(this._symbolKnoten("mdi:chevron-down", "pfeil"), titelblock);
+      return kopf;
+    }
+
+    /** Der nicht gespeicherte Stand eines Kreises, Feldname → Eingabe. */
+    _automatikEntwurf(heizkreis) {
+      this._automatikEntwuerfe = this._automatikEntwuerfe || {};
+      this._automatikEntwuerfe[heizkreis] = this._automatikEntwuerfe[heizkreis] || {};
+      return this._automatikEntwuerfe[heizkreis];
+    }
+
+    _automatikHatEntwurf() {
+      return Object.values(this._automatikEntwuerfe || {}).some((entwurf) => Object.keys(entwurf).length);
+    }
+
+    _automatikEntwurfVerwerfen(heizkreis) {
+      if (this._automatikEntwuerfe) delete this._automatikEntwuerfe[heizkreis];
+      this._automatikBearbeitet = this._automatikHatEntwurf();
+    }
+
     _automatikTaste(text, klasse) {
       const taste = document.createElement("button");
       taste.type = "button";
       taste.className = klasse;
       taste.textContent = this._t(text);
-      taste.addEventListener("click", (ereignis) => {
-        ereignis.preventDefault();
-        ereignis.stopPropagation();
-      });
       return taste;
     }
 
@@ -164,6 +194,7 @@ export const EinrichtungMixin = (Basis) =>
       zeile.classList.add("breit");
       const wahl = document.createElement("select");
       wahl.disabled = !darf;
+      wahl.setAttribute("aria-label", this._t("Profil"));
       PROFILE.forEach(([name, titel]) => {
         const option = document.createElement("option");
         option.value = name;
@@ -171,7 +202,24 @@ export const EinrichtungMixin = (Basis) =>
         option.selected = name === kreis.konfig.profil;
         wahl.appendChild(option);
       });
-      wahl.addEventListener("change", () => this._automatikEinstellen(kreis, { profil: wahl.value, eigene: {} }));
+      wahl.addEventListener("change", async () => {
+        // Ein neues Profil ersetzt alle eigenen Werte; offene Eingaben gingen dabei verloren.
+        const offen = Object.keys(this._automatikEntwurf(kreis.heizkreis)).length;
+        const ja =
+          !offen ||
+          (await this._bestaetigen(
+            this._t("Profil wechseln?"),
+            this._t("Nicht gespeicherte Änderungen gehen dabei verloren."),
+            null,
+            { ja: this._t("Wechseln") }
+          ));
+        if (!ja) {
+          wahl.value = kreis.konfig.profil;
+          return;
+        }
+        this._automatikEntwurfVerwerfen(kreis.heizkreis);
+        this._automatikEinstellen(kreis, { profil: wahl.value, eigene: {} });
+      });
       zeile.querySelector(".eingabe").appendChild(wahl);
       return zeile;
     }
@@ -192,6 +240,7 @@ export const EinrichtungMixin = (Basis) =>
       eingabe.max = String(max);
       eingabe.value = wert === null || wert === undefined ? "" : String(wert);
       eingabe.disabled = !darf;
+      eingabe.setAttribute("aria-label", this._t(titel));
       const einheit = document.createElement("span");
       einheit.className = "einheit";
       einheit.textContent = "°C";
@@ -200,29 +249,39 @@ export const EinrichtungMixin = (Basis) =>
       return zeile;
     }
 
-    /** Erst die Heizgrenzen an die Steuerung, dann die eigenen Werte; beides nur, wenn es sich geändert hat. */
+    /**
+     * Erst die Heizgrenzen an die Steuerung, dann die eigenen Werte, danach einmal
+     * nachladen. Scheitert ein Schritt, bleibt der Entwurf mit den Eingaben stehen.
+     */
     async _automatikAllesSpeichern(kreis, eingaben, grenzen, anfang) {
       const geaendert = (eingabe) => eingabe.value !== anfang.get(eingabe);
-      const grenzenNeu = Object.values(grenzen).some(geaendert);
-      const eigeneNeu = Object.values(eingaben).some(([, eingabe]) => geaendert(eingabe));
-      if (grenzenNeu) {
-        const nachricht = { type: "heatnexus/automatik/heizgrenzen", heizkreis: kreis.heizkreis };
-        Object.entries(grenzen).forEach(([name, eingabe]) => {
-          if (eingabe.value !== "") nachricht[name] = Number(eingabe.value);
-        });
-        if (!eigeneNeu) this._automatikGespeichert = kreis.heizkreis;
-        if (!(await this._automatikAufruf(nachricht))) {
-          this._automatikGespeichert = null;
-          return;
+      try {
+        if (Object.values(grenzen).some(geaendert)) {
+          const nachricht = { type: "heatnexus/automatik/heizgrenzen", heizkreis: kreis.heizkreis };
+          Object.entries(grenzen).forEach(([name, eingabe]) => {
+            if (eingabe.value !== "") nachricht[name] = Number(eingabe.value);
+          });
+          await this._hass.callWS(nachricht);
         }
+        if (Object.values(eingaben).some(([, eingabe]) => geaendert(eingabe))) {
+          await this._hass.callWS({
+            type: "heatnexus/automatik/einstellen",
+            heizkreis: kreis.heizkreis,
+            eigene: this._automatikEigene(eingaben),
+          });
+        }
+      } catch (err) {
+        this._melden((err && err.message) || this._t("Die Automatik hat die Änderung nicht übernommen."));
+        return;
       }
-      if (eigeneNeu) await this._automatikSpeichern(kreis, { eigene: this._automatikEigene(eingaben) });
+      this._automatikEntwurfVerwerfen(kreis.heizkreis);
+      await this._automatikHolen(true, kreis.heizkreis);
     }
 
     /** Speichern der eigenen Werte; nach dem Neuaufbau steht dort „übernommen ✓“. */
     async _automatikSpeichern(kreis, aenderung) {
-      this._automatikGespeichert = kreis.heizkreis;
-      if (!(await this._automatikEinstellen(kreis, aenderung))) this._automatikGespeichert = null;
+      this._automatikEntwurfVerwerfen(kreis.heizkreis);
+      await this._automatikEinstellen(kreis, aenderung, kreis.heizkreis);
     }
 
     async _automatikEntfernen(kreis) {

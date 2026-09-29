@@ -602,5 +602,8 @@
   "{titel} – Pumpe": "{titel} – pump",
   "erhöhen": "increase",
   "verringern": "decrease",
-  "vorläufig": "provisional"
+  "vorläufig": "provisional",
+  "Profil wechseln?": "Change profile?",
+  "Nicht gespeicherte Änderungen gehen dabei verloren.": "Unsaved changes will be lost.",
+  "Wechseln": "Change"
 }

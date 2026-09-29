@@ -707,6 +707,22 @@ def test_prognose_anpassen_zeigt_seine_wirkung(durchlauf):
     assert automatik["korrektur"] == [["Außen −1,4 K", True], ["Sonne +12 %", True]]
 
 
+def test_eine_offene_eingabe_uebersteht_den_neuaufbau(durchlauf):
+    """Ein Klick im Tagesverlauf baut neu; die Heizgrenze 19 bleibt eingetragen und speicherbar."""
+    assert durchlauf["automatik"]["entwurfNachAufbau"] == ["19", False, True]
+
+
+def test_heizgrenze_und_eigener_wert_laden_einmal_nach(durchlauf):
+    """Beide Aufrufe gehen nacheinander hinaus, danach folgt genau ein Abruf; der Entwurf ist weg."""
+    automatik = durchlauf["automatik"]
+    assert automatik["gemeinsamGespeichert"] == [
+        "heatnexus/automatik/heizgrenzen",
+        "heatnexus/automatik/einstellen",
+        "heatnexus/automatik",
+    ]
+    assert automatik["entwurfNachSpeichern"] is False
+
+
 def test_speichern_ist_nur_mit_einer_abweichung_aktiv(durchlauf):
     """Grau ohne Änderung, aktiv nach einer Eingabe, grau nach der Rückkehr zum gespeicherten Wert."""
     automatik = durchlauf["automatik"]

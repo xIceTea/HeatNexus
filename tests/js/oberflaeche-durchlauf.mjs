@@ -814,6 +814,42 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     bilanz.automatik.speichernFolge = [nachAenderung, speichern.disabled];
   }
 
+  // Eine nicht gespeicherte Eingabe übersteht den Neuaufbau, etwa nach einem Klick ins Stundenraster.
+  {
+    const grenzfeld = () =>
+      wurzel.querySelectorAll(".automatik-feld").find((f) => f.classList.contains("grenze")).querySelector("input");
+    grenzfeld().value = "19";
+    grenzfeld().ausloesen("input");
+    flaeche._automatikNeuZeichnen();
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+    const speichern = wurzel.querySelectorAll(".automatik-knopf").find((k) => k.classList.contains("speichern"));
+    bilanz.automatik.entwurfNachAufbau = [grenzfeld().value, speichern.disabled, flaeche._automatikBearbeitet];
+
+    // Heizgrenze und eigener Wert zusammen: zwei Aufrufe, danach einmal nachladen.
+    const aufrufe = [];
+    const vorherWs = hass.callWS;
+    hass.callWS = async (nachricht) => {
+      aufrufe.push(nachricht.type);
+      return nachricht.type === "heatnexus/automatik" ? flaeche._automatik : {};
+    };
+    const hysterese = wurzel
+      .querySelectorAll(".automatik-feld")
+      .find((f) => String((f.querySelector(".automatik-feldtitel") || {}).textContent) === "Hysterese Saison")
+      .querySelector("input");
+    hysterese.value = "0.8";
+    hysterese.ausloesen("input");
+    speichern.ausloesen("click");
+    // Die Attrappe führt Zeitgeber selbst; die Aufrufe laufen über Microtasks durch.
+    for (let runde = 0; runde < 20; runde += 1) await Promise.resolve();
+    await flaeche._automatikLaeuft;
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+    hass.callWS = vorherWs;
+    bilanz.automatik.gemeinsamGespeichert = aufrufe;
+    bilanz.automatik.entwurfNachSpeichern = flaeche._automatikHatEntwurf();
+  }
+
   // Ein offener Dialog übersteht das Nachladen im Takt.
   const schleier = document.createElement("div");
   schleier.className = "schleier";
