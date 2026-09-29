@@ -277,6 +277,31 @@ def test_absenkung_wird_einmal_verlaengert(m, w):
     assert ende.gedaechtnis.absenkung_art is None
 
 
+def test_laufende_absenkung_nennt_das_geschriebene_ziel(m, w):
+    start = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), w)
+    (aktion,) = start.aktionen
+    staerker = replace(w, absenkung_k=w.absenkung_k + 0.5)
+    e = m.entscheiden(lage(m, jetzt=MORGEN + timedelta(hours=1)), start.gedaechtnis, staerker)
+    assert e.aktionen == ()
+    assert f"{aktion.soll:.1f}".replace(".", ",") in e.begruendung
+
+
+def test_verlaengerung_merkt_das_neue_ziel(m, w):
+    start = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), w).gedaechtnis
+    spaeter = MORGEN + timedelta(minutes=401)
+    e = m.entscheiden(lage(m, jetzt=spaeter, raum=21.2, soll=19.5), start, w)
+    (aktion,) = e.aktionen
+    assert e.gedaechtnis.absenkung_soll == aktion.soll
+
+
+def test_gedaechtnis_ohne_geschriebenes_ziel_bleibt_lesbar(m):
+    g = m.gedaechtnis_aus_dict({"absenkung_art": m.SONNE, "absenkung_basis": 21.0})
+    assert g.absenkung_soll is None
+    assert m.gedaechtnis_aus_dict(
+        m.gedaechtnis_als_dict(replace(g, absenkung_soll=19.5))
+    ) == replace(g, absenkung_soll=19.5)
+
+
 def test_kuehler_raum_beendet_den_sonnentag(m, w):
     start = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), w).gedaechtnis
     stand = lage(m, jetzt=MORGEN + timedelta(hours=2), raum=20.1, soll=19.5)

@@ -117,6 +117,7 @@ class Gedaechtnis:
     absenkung_bis: datetime | None = None
     absenkung_ziel: datetime | None = None
     absenkung_basis: float | None = None
+    absenkung_soll: float | None = None
     verlaengert: bool = False
 
 
@@ -162,6 +163,7 @@ def ohne_absenkung(g: Gedaechtnis) -> Gedaechtnis:
         absenkung_bis=None,
         absenkung_ziel=None,
         absenkung_basis=None,
+        absenkung_soll=None,
         verlaengert=False,
     )
 
@@ -375,6 +377,7 @@ def _abwesenheit(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheid
         absenkung_von=lage.jetzt,
         absenkung_bis=bis,
         absenkung_basis=soll,
+        absenkung_soll=ziel,
     )
     return Entscheidung(
         Zustand.ABWESEND,
@@ -429,11 +432,13 @@ def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
             Zustand.SONNENTAG,
             (Aktion("absenken", soll=ziel_soll, minuten=minuten),),
             f"Sonnentag verlängert – {_zahl(ziel_soll)} °C bis {_uhr(bis)}.",
-            replace(g, absenkung_bis=bis, verlaengert=True),
+            replace(g, absenkung_bis=bis, absenkung_soll=ziel_soll, verlaengert=True),
         )
     ende = g.absenkung_ziel or g.absenkung_bis
+    # Die Steuerung hält den geschriebenen Wert, auch wenn sich die Einstellung seither geändert hat.
+    aktiv = ziel_soll if g.absenkung_soll is None else g.absenkung_soll
     return Entscheidung(
-        Zustand.SONNENTAG, (), f"Sonnentag – {_zahl(ziel_soll)} °C bis {_uhr(ende)}.", g
+        Zustand.SONNENTAG, (), f"Sonnentag – {_zahl(aktiv)} °C bis {_uhr(ende)}.", g
     )
 
 
@@ -489,6 +494,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         absenkung_bis=lage.jetzt + timedelta(minutes=minuten),
         absenkung_ziel=ziel,
         absenkung_basis=soll,
+        absenkung_soll=ziel_soll,
         verlaengert=False,
     )
     return Entscheidung(
