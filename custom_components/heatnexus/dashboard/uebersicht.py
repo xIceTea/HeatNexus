@@ -5,9 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from . import auswahl
-from .anlage import schaubild
-from .anlagen import voller_name
-from .karten import abschnitt, ansicht, kachel, meldungskarte, pfad_anlage
+from .anlage import meldungsabschnitt, schaubild
+from .karten import abschnitt, ansicht, kachel, pfad_anlage
 
 
 def stoerungsbadges(anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -21,15 +20,6 @@ def stoerungsbadges(anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
         for anlage in anlagen
         for teil in anlage["teile"]
         if (sensor := auswahl.stoerung(teil))
-    ]
-
-
-def _meldungen(anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [
-        meldungskarte(text, voller_name(anlage, teil), stoerung)
-        for anlage in anlagen
-        for teil in anlage["teile"]
-        if (text := auswahl.klartext(teil)) and (stoerung := auswahl.stoerung(teil))
     ]
 
 
@@ -50,16 +40,7 @@ def uebersicht(
     anlagen: list[dict[str, Any]], als_karte: bool, badges: list[dict[str, Any]]
 ) -> dict[str, Any]:
     """Übersichtsansicht mit Meldungen, je Anlage einem Abschnitt und Störungsbadges."""
-    meldungen = _meldungen(anlagen)
-    abschnitte = abschnitt("Meldungen", meldungen, stil="subtitle", spanne=3)
-    if abschnitte:
-        # Die Überschrift ist sichtbar, solange eine der Meldungen es ist.
-        bedingungen = [b for karte in meldungen for b in karte["visibility"]]
-        abschnitte[0]["cards"][0]["visibility"] = (
-            bedingungen
-            if len(bedingungen) == 1
-            else [{"condition": "or", "conditions": bedingungen}]
-        )
+    abschnitte = meldungsabschnitt(anlagen)
     for anlage in anlagen:
         abschnitte += _anlagenspalte(anlage, als_karte)
     return ansicht(

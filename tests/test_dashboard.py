@@ -873,8 +873,43 @@ def test_arbeitsseite_zeigt_zeiger_zustand_bedienung(anlagenseite):
 
 def test_arbeitsseite_mit_schaubild_bei_einer_anlage(anlagenseite):
     seite = anlagenseite.arbeitsseite(_anlage(_kessel()), als_karte=True, mit_schaubild=True)
-    erste = seite["sections"][0]["cards"]
+    # Nach den Meldungen steht das Schaubild als erster Abschnitt.
+    erste = seite["sections"][1]["cards"]
     assert any(str(k.get("type", "")).startswith("custom:") for k in erste)
+
+
+def test_einzelanlage_zeigt_die_meldung_oben(anlagenseite):
+    seite = anlagenseite.arbeitsseite(_anlage(_kessel()), als_karte=True, mit_schaubild=True)
+    erste = seite["sections"][0]
+    kopf, meldung = erste["cards"][0], erste["cards"][1]
+    bedingung = [{"condition": "state", "entity": "binary_sensor.stoerung", "state": "on"}]
+    assert kopf["heading"] == "Meldungen" and kopf["visibility"] == bedingung
+    assert meldung["type"] == "markdown" and meldung["visibility"] == bedingung
+    assert erste["column_span"] == 3
+
+
+def test_arbeitsseite_neben_der_uebersicht_ohne_meldung(anlagenseite):
+    seite = anlagenseite.arbeitsseite(_anlage(_kessel()), als_karte=True, mit_schaubild=False)
+    assert not [k for k in _karten(seite) if k.get("type") == "markdown"]
+    assert "badges" not in seite
+
+
+async def test_einzelanlage_traegt_die_badges(dashboard, hass, monkeypatch):
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage(_kessel())])
+    seite = dashboard.dashboard_konfiguration(hass)["views"][0]
+    stoerung = [b for b in seite["badges"] if b["entity"] == "binary_sensor.stoerung"]
+    assert stoerung and stoerung[0]["visibility"][0]["state"] == "on"
+
+
+async def test_zwei_anlagen_melden_nur_in_der_uebersicht(dashboard, hass, monkeypatch):
+    zweite = _anlage(
+        {**_kessel(), "id": "zweiter0123456789"}, name="Werkstatt", kennung="werkst0123456789"
+    )
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage(_kessel()), zweite])
+    views = dashboard.dashboard_konfiguration(hass)["views"]
+    for seite in (v for v in views if v["path"].startswith("anlage-")):
+        assert not [k for k in _karten(seite) if k.get("type") == "markdown"]
+        assert "badges" not in seite
 
 
 def _abschnitt_mit(seite: dict, titel: str) -> list[dict]:

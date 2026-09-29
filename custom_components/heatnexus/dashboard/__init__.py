@@ -61,11 +61,16 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
             ],
         }
 
-    mehrere = len(anlagen) > 1
-    views: list[dict[str, Any]] = []
-    if mehrere:
-        views.append(uebersicht.uebersicht(anlagen, als_karte, _kennwerte(hass, anlagen)))
-    views += [anlage.arbeitsseite(a, als_karte, mit_schaubild=not mehrere) for a in anlagen]
+    kennwerte = _kennwerte(hass, anlagen)
+    views: list[dict[str, Any]]
+    if len(anlagen) == 1:
+        badges = [*kennwerte, *uebersicht.stoerungsbadges(anlagen)]
+        views = [anlage.arbeitsseite(anlagen[0], als_karte, mit_schaubild=True, badges=badges)]
+    else:
+        views = [
+            uebersicht.uebersicht(anlagen, als_karte, kennwerte),
+            *(anlage.arbeitsseite(a, als_karte, mit_schaubild=False) for a in anlagen),
+        ]
     views += [v for v in (wartung.wartung(anlagen), wartung.auswertung(anlagen)) if v]
     views += [v for a in anlagen for t in a["teile"] if (v := details.unteransicht(a, t))]
     return {"title": DASHBOARD_TITEL, "views": views}
