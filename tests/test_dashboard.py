@@ -818,3 +818,21 @@ def test_unteransicht_gliedert_nach_zweck(details):
 def test_teil_ohne_werte_hat_keine_unteransicht(details):
     leer = {**_kessel(), "entitaeten": []}
     assert details.unteransicht(_anlage(leer), leer) is None
+
+
+def test_unteransicht_zeigt_zeitprogramme(details):
+    """Zeitprogramme erscheinen in eigener Sektion zwischen Messwerte und Einstellungen."""
+    teil_mit_zeitprogramm = {
+        **_kessel(),
+        "entitaeten": [
+            *_kessel()["entitaeten"],
+            _e("sensor.heizprogramm_1", "Programm 1", schluessel="heating_program_1"),
+        ],
+    }
+    ansicht = details.unteransicht(_anlage(teil_mit_zeitprogramm), teil_mit_zeitprogramm)
+    titel = [s["cards"][0]["heading"] for s in ansicht["sections"]]
+    assert titel == ["Bedienung", "Messwerte", "Zeitprogramme", "Einstellungen", "Diagnose"]
+    # Programm 1 erscheint unter Zeitprogramme (Index 2), nicht unter Messwerte (Index 1)
+    zeitprogramme_section = ansicht["sections"][2]
+    entity_ids = [c.get("entity") for c in zeitprogramme_section["cards"]]
+    assert "sensor.heizprogramm_1" in entity_ids

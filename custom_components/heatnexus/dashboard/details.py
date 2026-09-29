@@ -16,6 +16,7 @@ def unteransicht(anlage: dict[str, Any], teil: dict[str, Any]) -> dict[str, Any]
             "Bedienung", [kachel(e) for e in [*auswahl.thermostate(teil), *auswahl.bedienung(teil)]]
         ),
         *abschnitt("Messwerte", [kachel(e) for e in auswahl.messwerte(teil)]),
+        *abschnitt("Zeitprogramme", [kachel(e) for e in auswahl.zeitprogramme(teil)]),
         *abschnitt("Einstellungen", [kachel(e) for e in auswahl.einstellungen(teil)]),
         *abschnitt("Diagnose", [kachel(e) for e in auswahl.diagnose(teil)]),
     ]
