@@ -147,6 +147,37 @@ def test_sicherheit_schreibt_trotz_sperre(s, regel):
     assert schreiber.aufrufe == [("/1/15/0/2/10/0", "0")]
 
 
+def test_abgelehnte_sicherheit_wartet_kurz_und_protokolliert_einmal(s, regel):
+    """Dauerhaft abgelehnt: kurze feste Frist statt Schreiben in jedem Takt, ein Protokolleintrag."""
+    schreiber = Schreiber(RuntimeError("HTTP 409"))
+    steller = s.Steller("/1/15/0", UML, schreiber)
+    sicher = entscheidung(regel, regel.Aktion("zurueck", sicherheit=True))
+    ausfuehren(steller, sicher)
+    schreiber.fehler = None
+    assert ausfuehren(steller, sicher, jetzt=JETZT + timedelta(minutes=5)) is False
+    assert schreiber.aufrufe == []
+    schreiber.fehler = RuntimeError("HTTP 409")
+    for minuten in (16, 32, 48):
+        assert ausfuehren(steller, sicher, jetzt=JETZT + timedelta(minutes=minuten)) is False
+    assert steller.stand.ablehnungen == 4
+    assert [e["art"] for e in steller.stand.protokoll].count("abgelehnt") == 1
+    schreiber.fehler = None
+    assert ausfuehren(steller, sicher, jetzt=JETZT + timedelta(minutes=64)) is True
+
+
+def test_andere_ablehnung_verdraengt_den_eintrag_nicht(s, regel):
+    """Nur dieselbe Ablehnung ersetzt ihren Eintrag; eine andere kommt dazu."""
+    schreiber = Schreiber(RuntimeError("HTTP 409"))
+    steller = s.Steller("/1/15/0", UML, schreiber)
+    ausfuehren(steller, entscheidung(regel, regel.Aktion("zurueck", sicherheit=True)))
+    ausfuehren(
+        steller,
+        entscheidung(regel, regel.Aktion("absenkung_ende", sicherheit=True)),
+        jetzt=JETZT + timedelta(minutes=20),
+    )
+    assert [e["art"] for e in steller.stand.protokoll].count("abgelehnt") == 2
+
+
 def test_rueckkehr_stellt_die_vorherige_wahl_her(s, regel):
     schreiber = Schreiber()
     steller = s.Steller("/1/15/0", INFINITY, schreiber)

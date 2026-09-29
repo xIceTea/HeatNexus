@@ -31,6 +31,8 @@ SCHONFRIST = timedelta(minutes=3)
 # Nach einer Ablehnung wartet der Steller, mit jeder weiteren doppelt so lang.
 SPERRE_START = timedelta(minutes=30)
 SPERRE_MAX = timedelta(hours=6)
+# Eine abgelehnte Sicherheitsaktion versucht es nach dieser festen Frist wieder, ohne Verdopplung.
+SPERRE_SICHERHEIT = timedelta(minutes=15)
 # Mehr heizen ist die sichere Richtung; das Budget begrenzt nur das Gegenteil.
 RUECKKEHR = frozenset({"zurueck", "absenkung_ende"})
 
@@ -158,9 +160,8 @@ class Steller:
         if beobachten:
             self.vermerken(jetzt, "haette", entscheidung.begruendung, paare)
             return True
-        # Die Sperre nach einer Ablehnung gilt nicht für Sicherheitsaktionen.
         sicherheit = any(aktion.sicherheit for aktion in entscheidung.aktionen)
-        if not erzwingen and not sicherheit and self._gesperrt(jetzt):
+        if not erzwingen and self._gesperrt(jetzt, sicherheit):
             return False
         zaehlt = any(
             aktion.art not in RUECKKEHR and not aktion.sicherheit
@@ -173,16 +174,22 @@ class Steller:
             for oid, wert in paare:
                 await self._schreiben(f"{self._prefix}{oid}", wert)
         except Exception as fehler:  # jede Ablehnung gehört ins Protokoll
-            self._abgelehnt(jetzt, fehler, paare)
+            self._abgelehnt(jetzt, fehler, paare, sicherheit)
             return False
         self.stand = replace(self.stand, ablehnungen=0, gesperrt_bis=None)
         self._merken(entscheidung.aktionen, betriebswahl, jetzt, zaehlt)
         self.vermerken(jetzt, "geschrieben", entscheidung.begruendung, paare)
         return True
 
-    def _gesperrt(self, jetzt: datetime) -> bool:
-        bis = self.stand.gesperrt_bis
-        return bis is not None and jetzt < datetime.fromisoformat(bis)
+    def _gesperrt(self, jetzt: datetime, sicherheit: bool = False) -> bool:
+        """Nach einer Ablehnung gesperrt; eine Sicherheitsaktion nur nach ihrer eigenen, und kurz."""
+        if not sicherheit:
+            bis = self.stand.gesperrt_bis
+            return bis is not None and jetzt < datetime.fromisoformat(bis)
+        letzte = next((e for e in self.stand.protokoll if e.get("art") == "abgelehnt"), None)
+        if not letzte or not letzte.get("sicherheit"):
+            return False
+        return jetzt < datetime.fromisoformat(letzte["zeit"]) + SPERRE_SICHERHEIT
 
     def _budget_vermerken(self, jetzt: datetime, budget: int, paare: list[tuple[str, str]]) -> None:
         letzter = self.stand.protokoll[0] if self.stand.protokoll else {}
@@ -191,16 +198,35 @@ class Steller:
         text = f"Tagesbudget von {budget} Eingriffen erreicht – nicht geschrieben."
         self.vermerken(jetzt, "budget", text, paare)
 
-    def _abgelehnt(self, jetzt: datetime, fehler: Exception, paare: list[tuple[str, str]]) -> None:
+    def _abgelehnt(
+        self, jetzt: datetime, fehler: Exception, paare: list[tuple[str, str]], sicherheit: bool
+    ) -> None:
         anzahl = self.stand.ablehnungen + 1
-        sperre = min(SPERRE_START * 2 ** (anzahl - 1), SPERRE_MAX)
+        sperre = (
+            SPERRE_SICHERHEIT if sicherheit else min(SPERRE_START * 2 ** (anzahl - 1), SPERRE_MAX)
+        )
         bis = jetzt + sperre
         self.stand = replace(self.stand, ablehnungen=anzahl, gesperrt_bis=bis.isoformat())
-        _LOGGER.warning("Automatik %s: Eingriff abgelehnt: %s", self._prefix, fehler)
         text = (
             f"Die Steuerung hat den Eingriff abgelehnt: {fehler}. Nächster Versuch ab {bis:%H:%M}."
         )
+        werte = [[oid, wert] for oid, wert in paare]
+        letzter = self.stand.protokoll[0] if self.stand.protokoll else {}
+        # Dieselbe Ablehnung noch einmal: Eintrag auffrischen statt das Protokoll zu füllen.
+        if letzter.get("art") == "abgelehnt" and letzter.get("werte") == werte:
+            _LOGGER.debug("Automatik %s: Eingriff erneut abgelehnt: %s", self._prefix, fehler)
+            neu = {**letzter, "zeit": jetzt.isoformat(), "text": text, "sicherheit": sicherheit}
+            self.stand = replace(self.stand, protokoll=(neu, *self.stand.protokoll[1:]))
+            return
+        _LOGGER.warning("Automatik %s: Eingriff abgelehnt: %s", self._prefix, fehler)
         self.vermerken(jetzt, "abgelehnt", text, paare)
+        self.stand = replace(
+            self.stand,
+            protokoll=(
+                {**self.stand.protokoll[0], "sicherheit": sicherheit},
+                *self.stand.protokoll[1:],
+            ),
+        )
 
     def handeingriff(
         self,
