@@ -213,6 +213,8 @@ if (vorlagePunkt) {
 bilanz.werkzeugeNachKlickZu = werkzeugliste.hidden === true;
 const yamlFeld = flaeche.shadowRoot.querySelector(".yaml-feld");
 bilanz.yamlImFenster = !!yamlFeld && String(yamlFeld.value || "").includes("views");
+const yamlHinweis = yamlFeld && yamlFeld.parentElement.querySelector(".dialog-text");
+bilanz.yamlHinweis = yamlHinweis ? String(yamlHinweis.textContent || "") : "";
 
 // Ohne Verwalterrecht fehlt der Eintrag, das Anordnen bleibt.
 hass.user = { is_admin: false };

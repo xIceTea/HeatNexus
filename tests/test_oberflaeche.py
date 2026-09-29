@@ -373,6 +373,11 @@ def test_die_dashboard_vorlage_steht_zum_kopieren_bereit(durchlauf):
     assert durchlauf["yamlImFenster"] is True
 
 
+def test_die_dashboard_vorlage_nennt_die_feste_adresse(durchlauf):
+    """Links und Zurück-Pfeile der Kopie führen weiter ins mitgelieferte Dashboard."""
+    assert "/heatnexus/" in durchlauf["yamlHinweis"]
+
+
 def test_ohne_verwalterrecht_keine_dashboard_vorlage(durchlauf):
     """Wer keine Dashboards anlegen darf, kann mit der Vorlage nichts anfangen."""
     assert durchlauf["werkzeugeOhneRecht"] == ["Ansicht bearbeiten"]

@@ -66,7 +66,7 @@ export const HilfeMixin = (Basis) =>
       const hinweis = document.createElement("p");
       hinweis.className = "dialog-text";
       hinweis.textContent = this._t(
-        "Das mitgelieferte Dashboard baut sich bei jedem Öffnen neu aus der Anlage auf und lässt sich deshalb nicht bearbeiten. Dieser Text ist sein heutiger Stand – eingefügt in ein neues Dashboard gehört er dir. Neue Werte erscheinen dort nicht von selbst, und die Karten hängen an den heutigen Entitäts-IDs."
+        "Das mitgelieferte Dashboard baut sich bei jedem Öffnen neu aus der Anlage auf und lässt sich deshalb nicht bearbeiten. Dieser Text ist sein heutiger Stand – eingefügt in ein neues Dashboard gehört er dir. Neue Werte erscheinen dort nicht von selbst, und die Karten hängen an den heutigen Entitäts-IDs. Links und Zurück-Pfeile führen in das mitgelieferte Dashboard unter /heatnexus/. Liegt die Kopie unter einer eigenen Adresse, ersetze /heatnexus/ im Text durch diese Adresse."
       );
 
       // Ein Textfeld statt eines Absatzes: So lässt sich der Inhalt auch dort
