@@ -207,17 +207,17 @@ def _uebersetzt(eintrag: dict[str, Any], woerterbuch: texte.Woerterbuch) -> dict
     """Begründung, Vorschau und Protokoll in der Sprache der Oberfläche; gespeichert bleibt Deutsch."""
     if not woerterbuch:
         return eintrag
-    satz = woerterbuch.satz
-    neu = dict(eintrag)
-    if eintrag.get("begruendung"):
-        neu["begruendung"] = satz(eintrag["begruendung"])
+
+    def feld(daten: dict[str, Any], name: str) -> dict[str, Any]:
+        # Nur vorhandenen Text ersetzen; die Form der Nutzlast hängt nicht an der Sprache.
+        text = daten.get(name)
+        return {**daten, name: woerterbuch.satz(text)} if isinstance(text, str) and text else daten
+
+    neu = feld(eintrag, "begruendung")
     if "vorschau" in eintrag:
-        neu["vorschau"] = [
-            {**tag, "begruendung": satz(tag.get("begruendung") or "")}
-            for tag in eintrag["vorschau"]
-        ]
+        neu["vorschau"] = [feld(tag, "begruendung") for tag in eintrag["vorschau"]]
     if "protokoll" in eintrag:
-        neu["protokoll"] = [{**e, "text": satz(e.get("text") or "")} for e in eintrag["protokoll"]]
+        neu["protokoll"] = [feld(e, "text") for e in eintrag["protokoll"]]
     return neu
 
 

@@ -57,3 +57,26 @@ def test_verschieben_nutzt_das_ziel_wo_es_das_gibt(monkeypatch):
     ]
     assert alt.aufrufe[0] == ("anlegen", "s1")
     assert alt.aufrufe[1][2]["remove_config_subentry_id"] is None
+
+
+@requires_ha()
+def test_ohne_eintrag_sucht_sie_im_register_statt_ueber_die_kennung():
+    """Die Suche über die Kennung allein warnt ab 2026.9; ohne Eintrag geht sie das Register durch."""
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus import registrierung
+
+    gesucht = SimpleNamespace(identifiers={("heatnexus", "x-automatik")})
+
+    class Register:
+        def __init__(self):
+            self.devices = {"a": SimpleNamespace(identifiers={("heatnexus", "y")}), "b": gesucht}
+
+        def async_get_device_by_identifier(self, kennung, entry_id):
+            raise AssertionError("ohne Eintrag nicht aufrufen")
+
+        def async_get_device(self, **felder):
+            raise AssertionError("abgekündigt")
+
+    assert registrierung.geraet_suchen(Register(), "x-automatik", None) is gesucht
+    assert registrierung.geraet_suchen(Register(), "fehlt", "") is None

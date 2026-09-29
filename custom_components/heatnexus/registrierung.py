@@ -42,11 +42,16 @@ def in_untereintrag_verschieben(registry: Any, geraet: Any, entry_id: str, sub_i
 
 
 def geraet_suchen(registry: Any, kennung: str, entry_id: str | None) -> Any:
-    """Das Gerät des Eintrags mit dieser Kennung, oder `None`; ohne Eintrag über die Kennung allein."""
+    """Das Gerät des Eintrags mit dieser Kennung, oder `None`; ohne Eintrag über die Kennung allein.
+
+    Die Suche über die Kennung allein ist ab 2026.9 abgekündigt; ohne Eintrag geht sie das Register durch.
+    """
     suche = getattr(registry, "async_get_device_by_identifier", None)
-    if suche is not None and entry_id:
+    if suche is None:
+        return registry.async_get_device(identifiers={(DOMAIN, kennung)})
+    if entry_id:
         return suche((DOMAIN, kennung), entry_id)
-    return registry.async_get_device(identifiers={(DOMAIN, kennung)})
+    return next((g for g in registry.devices.values() if (DOMAIN, kennung) in g.identifiers), None)
 
 
 def uebergeordnet(hass: Any, kennung: str, entry_id: str) -> dict[str, Any]:

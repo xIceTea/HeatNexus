@@ -179,8 +179,13 @@ async def test_lesen_auf_englisch_uebersetzt_begruendung_und_protokoll(
 
     (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
 
+    from custom_components.heatnexus.texte import Woerterbuch
+
+    englisch = Woerterbuch("en").satz
     deutsch = laufzeit.steller.stand.protokoll[0]["text"]
+    assert kreis["begruendung"] == englisch(laufzeit.begruendung)
     assert kreis["begruendung"] != laufzeit.begruendung
+    assert kreis["protokoll"][0]["text"] == englisch(deutsch)
     assert kreis["protokoll"][0]["text"] != deutsch
     assert laufzeit.steller.stand.protokoll[0]["text"] == deutsch
 
