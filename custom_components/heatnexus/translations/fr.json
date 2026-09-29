@@ -417,6 +417,11 @@
       "entry_type": "Automatisme",
       "initiate_flow": {
         "user": "Automatisme"
+      },
+      "step": {
+        "user": {
+          "title": "Automatisme"
+        }
       }
     },
     "waermequelle": {

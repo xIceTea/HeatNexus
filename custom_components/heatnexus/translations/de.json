@@ -417,6 +417,11 @@
       "entry_type": "Automatik",
       "initiate_flow": {
         "user": "Automatik"
+      },
+      "step": {
+        "user": {
+          "title": "Automatik"
+        }
       }
     },
     "waermequelle": {
