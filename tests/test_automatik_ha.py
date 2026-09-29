@@ -367,6 +367,29 @@ async def test_die_automatik_hat_einen_eigenen_untereintrag(hass, hass_ws_client
     assert all(g.config_entries_subentries[eintrag.entry_id] == {sub.subentry_id} for g in geraete)
 
 
+async def test_geloeschter_untereintrag_entfernt_die_automatiken(hass, hass_ws_client, anlage):
+    """Wer „HeatNexus Automatik“ löscht, will keine Automatik mehr; sie läuft nicht ohne Entitäten weiter."""
+    from custom_components.heatnexus import _async_options_updated
+    from custom_components.heatnexus.const import DOMAIN, SUBEINTRAG_AUTOMATIK
+    from custom_components.heatnexus.erkennungsstand import untereintraege_abzug
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    await hass.async_block_till_done()
+    [eintrag] = hass.config_entries.async_entries(DOMAIN)
+    eintrag.runtime_data |= {"optionen": {}, "untereintraege": untereintraege_abzug(eintrag)}
+    [sub] = [s for s in eintrag.subentries.values() if s.subentry_type == SUBEINTRAG_AUTOMATIK]
+
+    hass.config_entries.async_remove_subentry(eintrag, sub.subentry_id)
+    await _async_options_updated(hass, eintrag)
+    await hass.async_block_till_done()
+
+    assert HEIZKREIS not in verwaltung.laufzeiten
+    assert verwaltung.konfig(HEIZKREIS) is None
+    assert verwaltung.subeintrag(eintrag) is None
+
+
 async def test_vorhandene_automatik_geraete_wandern_in_den_untereintrag(
     hass, hass_ws_client, anlage
 ):

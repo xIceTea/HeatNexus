@@ -324,6 +324,17 @@ class Verwaltung:
                 del self.laufzeiten[device_id]
         await self._store.async_save(self._daten)
 
+    async def untereintrag_pruefen(self, entry: ConfigEntry) -> None:
+        """Fehlt „HeatNexus Automatik“, obwohl Automatiken eingerichtet sind, hat der Nutzer sie gelöscht.
+
+        Jede Automatik des Eintrags wird dann entfernt, eigene Eingriffe an der Steuerung zurückgenommen.
+        """
+        if self.subeintrag(entry) is not None:
+            return
+        for device_id, eintrag in list(self._daten["heizkreise"].items()):
+            if (eintrag.get("konfig") or {}).get("entry_id") == entry.entry_id:
+                await self.entfernen(device_id)
+
     async def eintrag_entfernt(self, entry_id: str) -> None:
         """Einstellungen eines gelöschten Eintrags verwerfen."""
         await self.laden()

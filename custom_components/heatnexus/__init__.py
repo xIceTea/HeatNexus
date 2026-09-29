@@ -474,6 +474,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
         daten.get("untereintraege") or {}, untereintraege
     ):
         daten["untereintraege"] = untereintraege
+        await verwaltung_holen(hass).untereintrag_pruefen(entry)
         return
     if nur_anzeige_geaendert(daten.get("optionen") or {}, dict(entry.options or {})):
         # Das Dashboard wird bei jedem Öffnen neu gebaut, die Oberfläche nicht:
