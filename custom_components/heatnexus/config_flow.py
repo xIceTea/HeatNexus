@@ -385,6 +385,8 @@ class WindhagerOptionsFlow(OptionsFlow):
         """Auswahl: allgemeine Einstellungen oder eine bestimmte Anlage."""
         systeme = self._systeme()
         # Das Menü erscheint auch bei einer einzigen Anlage. Sprang der Dialog
+        # Die neue Bezeichnung der Anlage, bis der Dialog abschließt.
+        self._bezeichnung: str = ""
         # dort direkt zur Anlage, war der Schritt „Allgemeine Einstellungen"
         # nach der Einrichtung nie wieder erreichbar – und mit ihm Sprache,
         # Dashboard, Panel, Erklärungen, Außentemperatur und Abfrageintervall.
@@ -520,6 +522,7 @@ class WindhagerOptionsFlow(OptionsFlow):
                 user_input[CONF_ZUSATZWERTE] = gruppen_aufloesen(kandidaten, gruppen)
             else:
                 user_input[CONF_ZUSATZWERTE] = list(je_anlage.get(CONF_ZUSATZWERTE, []))
+            self._bezeichnung = (user_input.pop(CONF_LABEL, None) or "").strip()
             if GRUPPE_INDIVIDUELL in gruppen:
                 # Der zweite Schritt zeigt die Einzelwerte, vorbelegt mit dem,
                 # was die Gruppen ergeben.
@@ -530,7 +533,10 @@ class WindhagerOptionsFlow(OptionsFlow):
             return self.async_create_entry(data=options)
 
         label = system.get(CONF_LABEL) or host
-        schema = level_schema(je_anlage, mit_intervall=False)
+        # Die Bezeichnung steht vor jedem Gerätenamen der Anlage; sie lässt sich hier ändern.
+        schema = vol.Schema({vol.Required(CONF_LABEL, default=label): str}).extend(
+            level_schema(je_anlage, mit_intervall=False).schema
+        )
         schema = schema.extend(
             {
                 vol.Required(
@@ -585,16 +591,21 @@ class WindhagerOptionsFlow(OptionsFlow):
         return "Diese Anlage liefert nur über den Bus: " + ", ".join(einmalig) + "."
 
     def _zugang_uebernehmen(self, host: str, benutzer: str) -> None:
-        """Einen geänderten Zugang in die Anlagendaten schreiben.
+        """Zugang und Bezeichnung in die Anlagendaten schreiben.
 
-        Er gehört zur Anmeldung, nicht zu den Optionen. Ein Wechsel ändert den
-        Umfang und lässt die Anlage neu einlesen.
+        Sie gehören zur Anmeldung, nicht zu den Optionen. Ein anderer Zugang
+        ändert den Umfang und lässt die Anlage neu einlesen.
         """
         systeme = self._systeme()
         vorher = next((s for s in systeme if s[CONF_HOST] == host), {})
-        if benutzer == (vorher.get(CONF_USERNAME) or DEFAULT_USERNAME):
+        neu = dict(vorher)
+        if benutzer != (vorher.get(CONF_USERNAME) or DEFAULT_USERNAME):
+            neu[CONF_USERNAME] = benutzer
+        if self._bezeichnung:
+            neu[CONF_LABEL] = self._bezeichnung
+        if neu == vorher:
             return
-        neue = [{**s, CONF_USERNAME: benutzer} if s[CONF_HOST] == host else s for s in systeme]
+        neue = [neu if s[CONF_HOST] == host else s for s in systeme]
         self.hass.config_entries.async_update_entry(
             self.config_entry, data={**self.config_entry.data, CONF_SYSTEMS: neue}
         )

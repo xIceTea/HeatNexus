@@ -122,6 +122,7 @@
         "title": "Niveaux",
         "description": "Paramètres pour {anlage}. {bus_hinweis}",
         "data": {
+          "label": "Désignation",
           "levels": "Niveaux",
           "enable_advanced": "Activer immédiatement les niveaux Service/Usine",
           "writable_advanced": "Rendre modifiables les paramètres Service/Usine",
@@ -137,6 +138,7 @@
           "marken_status": "Diese Labels in den Systemstatus"
         },
         "data_description": {
+          "label": "Figure devant chaque nom d'appareil de ce système, par exemple « Chaufferie · Ballon tampon ».",
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
           "enable_advanced": "Sans coche, les entités sont créées mais restent désactivées.",
           "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule.",

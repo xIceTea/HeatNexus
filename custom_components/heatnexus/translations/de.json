@@ -122,6 +122,7 @@
         "title": "Bedienebenen",
         "description": "Einstellungen für {anlage}. {bus_hinweis}",
         "data": {
+          "label": "Bezeichnung",
           "levels": "Bedienebenen",
           "enable_advanced": "Service-/Werksebene sofort aktivieren",
           "writable_advanced": "Service-/Werksebene bedienbar machen",
@@ -137,6 +138,7 @@
           "marken_status": "Diese Labels in den Systemstatus"
         },
         "data_description": {
+          "label": "Steht vor jedem Gerätenamen dieser Anlage, etwa „Kesselhaus · Pufferspeicher“.",
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
           "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
           "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",

@@ -122,6 +122,7 @@
         "title": "Levels",
         "description": "Settings for {anlage}. {bus_hinweis}",
         "data": {
+          "label": "Name",
           "levels": "Levels",
           "enable_advanced": "Enable service/factory level right away",
           "writable_advanced": "Allow writing service/factory parameters",
@@ -137,6 +138,7 @@
           "marken_status": "Diese Labels in den Systemstatus"
         },
         "data_description": {
+          "label": "Appears in front of every device name of this system, for example \"Boiler house · Buffer tank\".",
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",

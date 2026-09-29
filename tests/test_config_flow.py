@@ -289,6 +289,37 @@ async def test_ohne_kandidaten_bleibt_die_auswahl_stehen(flow, monkeypatch):
     assert gespeichert["192.0.2.10"][CONF_ZUSATZWERTE] == ["wert-a", "wert-b"]
 
 
+async def test_die_bezeichnung_der_anlage_laesst_sich_aendern(flow, monkeypatch):
+    """Sie steht vor jedem Gerätenamen; der Zugang bleibt dabei unverändert."""
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.const import CONF_LABEL, CONF_SYSTEMS
+
+    geschrieben = {}
+    eintrag = SimpleNamespace(
+        options={},
+        data={CONF_SYSTEMS: [{"host": "192.0.2.10", CONF_LABEL: "Anlage 1", "username": "USER"}]},
+    )
+    optionen = flow.WindhagerOptionsFlow()
+    optionen._host = "192.0.2.10"
+    optionen.hass = SimpleNamespace(
+        config_entries=SimpleNamespace(
+            async_update_entry=lambda _eintrag, data: geschrieben.update(data)
+        )
+    )
+    monkeypatch.setattr(type(optionen), "config_entry", property(lambda _self: eintrag))
+    monkeypatch.setattr(type(optionen), "_zusatzkandidaten", lambda _self, host: [])
+    monkeypatch.setattr(type(optionen), "async_create_entry", lambda _self, data: {})
+
+    await optionen.async_step_system(
+        {CONF_LABEL: " Kesselhaus ", "username": "USER", "levels": ["info"]}
+    )
+
+    assert geschrieben[CONF_SYSTEMS] == [
+        {"host": "192.0.2.10", CONF_LABEL: "Kesselhaus", "username": "USER"}
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Wärmequellen ohne Anschluss an die Steuerung
 # ---------------------------------------------------------------------------
