@@ -23,8 +23,8 @@
         "title": "Steuerung {nummer} von {anzahl}",
         "description": "Bezeichnung, IP-Adresse, Zugang und Service-Passwort.",
         "data": {
-          "label": "Bezeichnung",
-          "host": "IP-Adresse",
+          "label": "Name der Steuerung",
+          "host": "IP-Adresse der Steuerung",
           "password": "Service-Passwort",
           "username": "Zugang"
         },
@@ -62,7 +62,7 @@
         "title": "Passwort erneuern",
         "description": "Eine Steuerung hat die Anmeldung abgelehnt. Bitte auswählen und das Service-Passwort erneut eingeben.",
         "data": {
-          "host": "IP-Adresse",
+          "host": "Steuerung",
           "password": "Service-Passwort",
           "username": "Zugang"
         },
@@ -74,8 +74,8 @@
         "title": "Adresse ändern",
         "description": "Neue Adresse der Anlage eintragen. Geräte, Entitäten und Verlauf bleiben erhalten.",
         "data": {
-          "anlage": "Anlage",
-          "host": "Neue Adresse",
+          "anlage": "Steuerung",
+          "host": "Neue IP-Adresse der Steuerung",
           "username": "Zugang"
         },
         "data_description": {
@@ -122,7 +122,7 @@
         "title": "Bedienebenen",
         "description": "Einstellungen für {anlage}. {bus_hinweis}",
         "data": {
-          "label": "Bezeichnung",
+          "label": "Name der Steuerung",
           "levels": "Bedienebenen",
           "enable_advanced": "Service-/Werksebene sofort aktivieren",
           "writable_advanced": "Service-/Werksebene bedienbar machen",
@@ -138,7 +138,7 @@
           "marken_status": "Diese Labels in den Systemstatus"
         },
         "data_description": {
-          "label": "Steht vor jedem Gerätenamen dieser Anlage, etwa „Kesselhaus · Pufferspeicher“.",
+          "label": "Steht vor jedem Gerätenamen dieser Steuerung, etwa „Kesselhaus · Pufferspeicher“.",
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
           "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
           "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",
@@ -165,8 +165,8 @@
         "title": "Steuerung hinzufügen",
         "description": "Eine weitere Steuerung dieser Heizung. Nach dem Speichern lädt HeatNexus neu und liest sie ein; die vorhandenen Steuerungen bleiben unverändert.",
         "data": {
-          "label": "Bezeichnung",
-          "host": "IP-Adresse",
+          "label": "Name der Steuerung",
+          "host": "IP-Adresse der Steuerung",
           "username": "Zugang",
           "password": "Service-Passwort"
         },
@@ -484,7 +484,7 @@
           "title": "Anlage",
           "description": "Zu welcher Anlage gehört die Wärmequelle?",
           "data": {
-            "host": "Anlage"
+            "host": "Steuerung"
           }
         },
         "quelle": {

@@ -23,8 +23,8 @@
         "title": "Controller {nummer} of {anzahl}",
         "description": "Label, IP address, access and service password.",
         "data": {
-          "label": "Label",
-          "host": "IP address",
+          "label": "Controller name",
+          "host": "Controller IP address",
           "password": "Service password",
           "username": "Account"
         },
@@ -62,7 +62,7 @@
         "title": "Update password",
         "description": "A controller rejected the login. Select it and enter the service password again.",
         "data": {
-          "host": "IP address",
+          "host": "Controller",
           "password": "Service password",
           "username": "Account"
         },
@@ -74,8 +74,8 @@
         "title": "Change address",
         "description": "Enter the new address of the system. Devices, entities and history are kept.",
         "data": {
-          "anlage": "System",
-          "host": "New address",
+          "anlage": "Controller",
+          "host": "New controller IP address",
           "username": "Access"
         },
         "data_description": {
@@ -122,7 +122,7 @@
         "title": "Levels",
         "description": "Settings for {anlage}. {bus_hinweis}",
         "data": {
-          "label": "Name",
+          "label": "Controller name",
           "levels": "Levels",
           "enable_advanced": "Enable service/factory level right away",
           "writable_advanced": "Allow writing service/factory parameters",
@@ -138,7 +138,7 @@
           "marken_status": "Put these labels into the system status"
         },
         "data_description": {
-          "label": "Appears in front of every device name of this system, for example \"Boiler house · Buffer tank\".",
+          "label": "Appears in front of every device name of this controller, for example \"Boiler house · Buffer tank\".",
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
@@ -165,8 +165,8 @@
         "title": "Add controller",
         "description": "Another controller of this heating system. After saving, HeatNexus reloads and reads it in; the existing controllers stay unchanged.",
         "data": {
-          "label": "Name",
-          "host": "IP address",
+          "label": "Controller name",
+          "host": "Controller IP address",
           "username": "Access",
           "password": "Service password"
         },
@@ -484,7 +484,7 @@
           "title": "System",
           "description": "Which system does the heat source belong to?",
           "data": {
-            "host": "System"
+            "host": "Controller"
           }
         },
         "quelle": {
