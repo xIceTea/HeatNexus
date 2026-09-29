@@ -40,7 +40,7 @@ import xml.etree.ElementTree as ET
 BASIS = "https://connect-api.windhager.com/config"
 DATEIEN = ("de-parameters.json", "de-oem-parameters.json", "parameterLayer.json")
 # Fremdsprachen für Steuerungen, die ihr Textwerk nicht ausliefern.
-FREMDSPRACHEN = ("en",)
+FREMDSPRACHEN = ("en", "nl")
 EBENEN = ("overview", "info", "operate", "service", "oem")
 REPO = Path(__file__).resolve().parent.parent
 ZIEL = REPO / "custom_components" / "heatnexus"

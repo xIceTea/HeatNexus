@@ -1,0 +1,886 @@
+{
+ "AL1": {
+  "info": "Primaire luchtschuif blokkeert of defect.",
+  "text": "Primaire luchtschuif defect"
+ },
+ "AL10": {
+  "info": "Handleiding raadplegen",
+  "text": "Gloeibed schuif blokkeert"
+ },
+ "AL101": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "TWE sensor defect"
+ },
+ "AL103": {
+  "info": "Ketelsensor en aansluiting controleren.",
+  "text": "Ketelsensor defect"
+ },
+ "AL104": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Buffersensor TPE defect"
+ },
+ "AL105": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Buffersensor TPA defect"
+ },
+ "AL106": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Buffersensor TPO defect"
+ },
+ "AL11": {
+  "info": "Handleiding raadplegen",
+  "text": "As schuif blokkeert"
+ },
+ "AL114": {
+  "info": "Buffer- / verdelersensor aansluitingen controleren bij cascademodule.",
+  "text": "Buffer- / verdelersensor defect"
+ },
+ "AL115": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "ZSK ketelsensor defect"
+ },
+ "AL119": {
+  "info": "Handboek raadplegen",
+  "text": "Asbak niet beschikbaar"
+ },
+ "AL12": {
+  "info": "Handleiding raadplegen",
+  "text": "Vijzel in reservoir blokkeert"
+ },
+ "AL128": {
+  "info": "Ketel en brander schoonmaken",
+  "text": "Geen stabiele vlam in regelbedrijf"
+ },
+ "AL129": {
+  "info": "Groot onderhoud volgens voorschrift uitvoeren.",
+  "text": "Maximale uitbrandttijd overschreden"
+ },
+ "AL13": {
+  "info": "Handleiding raadplegen",
+  "text": "Brandervijzel blokkeert"
+ },
+ "AL130": {
+  "info": "Branderkamer en TC sensor controleren",
+  "text": "Branderkamertemperatuur te laag"
+ },
+ "AL131": {
+  "info": "Handleiding raadplegen",
+  "text": "Vlam dooft / Vochtgehalte brandstof controleren"
+ },
+ "AL133": {
+  "info": "Installatiedruk controleren",
+  "text": "Maximum temperatuur beveiliging"
+ },
+ "AL134": {
+  "info": "Handleiding raadplegen",
+  "text": "Temperatuurbewaking brandervijzel!"
+ },
+ "AL135": {
+  "info": "Invoerbuis / sensor controleren",
+  "text": "Temperatuur invoerbuis te hoog"
+ },
+ "AL144": {
+  "info": "Veiligheidscircuit controleren.",
+  "text": "Veiligheidscircuit onderbroken"
+ },
+ "AL147": {
+  "info": "Handleiding raadplegen",
+  "text": "Afsluitschuif onder defect"
+ },
+ "AL148": {
+  "info": "Handleiding raadplegen",
+  "text": "Afsluitschuif boven defect"
+ },
+ "AL149": {
+  "info": "Veiligheidscircuit bunker controleren, handleiding raadplegen",
+  "text": "Veiligheidscircuit bunker"
+ },
+ "AL15": {
+  "info": "controleer 230V voeding",
+  "text": "230V spanning ontbreekt"
+ },
+ "AL150": {
+  "info": "Inspectieluik zuigreservoir controleren, handleiding raadplegen",
+  "text": "Inspectieluik zuigreservoir open"
+ },
+ "AL151": {
+  "info": "Waterleiding controleren",
+  "text": "Geen doorstroming in afloop"
+ },
+ "AL152": {
+  "info": "Waterleiding afsluiten",
+  "text": "Ventiel van afloop sluit niet"
+ },
+ "AL153": {
+  "info": "Waterleiding controleren",
+  "text": "Geen doorstroming in warmtewiss. noodkoeling"
+ },
+ "AL154": {
+  "info": "Waterleiding afsluiten",
+  "text": "Ventiel van noodkoeling sluit niet"
+ },
+ "AL155": {
+  "info": "Installatiedruk / afsluiters controleren",
+  "text": "Laagwaterbeveiliging geactiveerd"
+ },
+ "AL156": {
+  "info": "Geen onderdruk vuurkamer of sensor defect",
+  "text": "Onderdruk vuurkamer ontbreekt"
+ },
+ "AL157": {
+  "info": "Handleiding raadplegen",
+  "text": "Primairluchthoeveelheid niet correct"
+ },
+ "AL16": {
+  "info": "Rookgasventilatorkast en schoepen reinigen",
+  "text": "Rookgasventilator defect"
+ },
+ "AL161": {
+  "info": "Handleiding raadplegen",
+  "text": "Alarmmelding warmtepomp"
+ },
+ "AL162": {
+  "info": "Handleiding raadplegen",
+  "text": "Alarmmelding warmtepomp"
+ },
+ "AL165": {
+  "info": "Handleiding raadplegen",
+  "text": "Alarmmelding warmtepomp"
+ },
+ "AL166": {
+  "info": "Handleiding raadplegen",
+  "text": "Storing communicatie met warmtepomp"
+ },
+ "AL167": {
+  "info": "Handleiding raadplegen",
+  "text": "Warmtepomp type onbekend"
+ },
+ "AL169": {
+  "info": "Handleiding raadplegen",
+  "text": "Stroomtoevoer voor warmtepomp ontbreekt"
+ },
+ "AL17": {
+  "info": "Schoepenrad rookgas reinigen",
+  "text": "Rookgasventilator blokkeert"
+ },
+ "AL171": {
+  "info": "Brander reinigen",
+  "text": "Opstarttijd overschreden"
+ },
+ "AL176": {
+  "info": "Handleiding raadplegen",
+  "text": "Voorspoelen niet succesvol"
+ },
+ "AL179": {
+  "info": "Handleiding raadplegen",
+  "text": "Primairontsteking niet succesvol"
+ },
+ "AL18": {
+  "info": "Rookgasventilatorkast en schoepen reinigen",
+  "text": "Rookgasventilator instabiel"
+ },
+ "AL180": {
+  "info": "Handleiding raadplegen",
+  "text": "Secundairtontsteking niet succesvol"
+ },
+ "AL186": {
+  "info": "Communicatie met MES module controleren",
+  "text": "Communicatiefout met MES module"
+ },
+ "AL187": {
+  "info": "Aansluitingen / verbinding branderautomaat controleren",
+  "text": "Communicatie branderautomaat ontbreekt"
+ },
+ "AL188": {
+  "info": "Interne fout",
+  "text": "Interne fout"
+ },
+ "AL189": {
+  "info": "Aansluitingen / verbinding uitbreidingsprint ontbreekt",
+  "text": "Communicatie uitbreidingdingsprint ontbreekt"
+ },
+ "AL191": {
+  "info": "Branderautomaat gasketel controleren",
+  "text": "GAS branderautomaat storing"
+ },
+ "AL194": {
+  "info": "Geen connectie met ketel, aansluitingen controleren",
+  "text": "Geen connectie met ketel"
+ },
+ "AL195": {
+  "info": "Voordeur controleren",
+  "text": "Branderkamerdeur tijdens bedrijf geopend"
+ },
+ "AL197": {
+  "info": "Handleiding raadplegen",
+  "text": "Aansturing zuigturbine mislukt"
+ },
+ "AL199": {
+  "info": "Netwerkverbinding onderbroken, controleer de internetverbinding met uw systeem.",
+  "text": "Installatie offline"
+ },
+ "AL2": {
+  "info": "Handleiding raadplegen",
+  "text": "Primaireluchtschuif opent niet"
+ },
+ "AL20": {
+  "info": "Handleiding raadplegen",
+  "text": "Zuigturbine defect"
+ },
+ "AL27": {
+  "info": "Ontsteking defect",
+  "text": "Ontsteking defect"
+ },
+ "AL29": {
+  "info": "Handleiding raadplegen",
+  "text": "Secundair ontsteking defect"
+ },
+ "AL3": {
+  "info": "Secundaire luchtschuif blokkeert of defect.",
+  "text": "Secundaire luchtschuif defect"
+ },
+ "AL35": {
+  "info": "Handleiding raadplegen",
+  "text": "Relais zuigmodule defect"
+ },
+ "AL37": {
+  "info": "Klep brandstoftoevoerunit controleren.",
+  "text": "Klep brandstoftoevoer opent niet"
+ },
+ "AL38": {
+  "info": "Bunker en toevoerslang controleren",
+  "text": "Geen brandstoftoevoer zuigmodule"
+ },
+ "AL39": {
+  "info": "Omschakelunit controleren",
+  "text": "Zuigsondeschakeling defect"
+ },
+ "AL40": {
+  "info": "Terugbrandklep opent of sluit niet",
+  "text": "Terugbrandklep defect"
+ },
+ "AL41": {
+  "info": "Schakelcontact inspectieluik controleren",
+  "text": "Schakelcontact inspectieluik defect"
+ },
+ "AL42": {
+  "info": "Stroom van ketel afzetten",
+  "text": "Relais zuigturbine defect"
+ },
+ "AL43": {
+  "info": "Handleiding raadplegen",
+  "text": "Bunkervijzel blokkeert"
+ },
+ "AL44": {
+  "info": "Handleiding raadplegen",
+  "text": "Bunkervijzel overvuld"
+ },
+ "AL45": {
+  "info": "Bunker en toevoerslang controleren",
+  "text": "Alle geselecteerde zuigsondes zijn leeg"
+ },
+ "AL5": {
+  "info": "Asuitvoer / Schudrooster blokkeert of defect. Brander reinigen.",
+  "text": "Asuitvoer / Schudrooster defect"
+ },
+ "AL50": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing brandervijzel defect"
+ },
+ "AL51": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing bunkervijzel defect"
+ },
+ "AL52": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing vijzel reservoir defect"
+ },
+ "AL53": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing bunkervijzel defect"
+ },
+ "AL54": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing stijgvijzel defect"
+ },
+ "AL55": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing zuigturbine defect"
+ },
+ "AL57": {
+  "info": "Vergrendelknop brander indrukken",
+  "text": "Branderstoring"
+ },
+ "AL6": {
+  "info": "Motor Transportvijzel defect.",
+  "text": "Motor Transportvijzel defect"
+ },
+ "AL62": {
+  "info": "Luchttoevoerschuif blokkeert of defect. Controleren.",
+  "text": "Luchttoevoerschuif defect"
+ },
+ "AL63": {
+  "info": "Handleiding raadplegen",
+  "text": "Stijgvijzel blokkeert"
+ },
+ "AL64": {
+  "info": "Handleiding raadplegen",
+  "text": "Overvulling stijgvijzel"
+ },
+ "AL68": {
+  "info": "Schakelaar voordeur controleren",
+  "text": "Schakelaar voordeur defect"
+ },
+ "AL69": {
+  "info": "Brandstofvoorraad / reservoir controleren , handleiding raadplegen!",
+  "text": "Brandstoftoevoer naar brander functioneert"
+ },
+ "AL7": {
+  "info": "Transportvijzel blokkeert",
+  "text": "Transportvijzel blokkeert"
+ },
+ "AL71": {
+  "info": "Nood stop- / veiligheidsschakelaar zelf controleren",
+  "text": "Nood stop- / veiligheidsschakelaar geactiveerd"
+ },
+ "AL72": {
+  "info": "Handleiding raadplegen",
+  "text": "Veiligheidsinrichting bunkervijzel"
+ },
+ "AL73": {
+  "info": "Handleiding raadplegen",
+  "text": "Interne stroomvoeding defect"
+ },
+ "AL76": {
+  "info": "Ketelsensor en aansluiting controleren.",
+  "text": "Ketelsensor defect"
+ },
+ "AL78": {
+  "info": "Thermocontrol en aansluitingen controleren",
+  "text": "Thermocontrol sensor defect"
+ },
+ "AL79": {
+  "info": "Handleiding raadplegen",
+  "text": "Aanvoersensor E-verwarming defect"
+ },
+ "AL8": {
+  "info": "Registerreiniging controleren",
+  "text": "Registerreiniging defect"
+ },
+ "AL81": {
+  "info": "Rookgassensor en kabel controleren",
+  "text": "Rookgassensor defect"
+ },
+ "AL82": {
+  "info": "Handleiding raadplegen",
+  "text": "Maximale uitlaattemperatuur overschreden"
+ },
+ "AL88": {
+  "info": "Lambdasonde en aansluitingen controleren",
+  "text": "Lambdasonde defect"
+ },
+ "AL89": {
+  "info": "Lambdasonde, trafo en aansluitingen controleren",
+  "text": "Lambdasonde verwarming defect"
+ },
+ "AL9": {
+  "info": "Handleiding raadplegen",
+  "text": "Asuitvoer blokkeert"
+ },
+ "AL90": {
+  "info": "O2 meetwaarde buiten grenswaarden, handleiding raadplegen!",
+  "text": "Fout in O2 meting"
+ },
+ "AL93": {
+  "info": "Handboek raadplegen",
+  "text": "0-10V warmtevraag verkeerd aangesloten"
+ },
+ "AL94": {
+  "info": "Handleiding raadplegen",
+  "text": "Warmtegeneratorpomp defect"
+ },
+ "FE204": {
+  "info": "Handboek raadplegen",
+  "text": "Uitlaatgasrecirculatieklep defect"
+ },
+ "FE206": {
+  "info": "Transportvijzel en contactsensor controleren",
+  "text": "Bewaking van transportvijzel defect"
+ },
+ "FE208": {
+  "info": "Registerreininging controleren",
+  "text": "Registerreininging defect"
+ },
+ "FE209": {
+  "info": "Handleiding raadplegen",
+  "text": "Asuitvoer blokkeert"
+ },
+ "FE214": {
+  "info": "Handleiding raadplegen",
+  "text": "Asuitvoer defect"
+ },
+ "FE226": {
+  "info": "Ontstekingsfout",
+  "text": "Geen vlamstabilisatie bij ontsteking"
+ },
+ "FE238": {
+  "info": "Bunker en toevoerslang controleren",
+  "text": "Geen brandstoftoevoer zuigmodule"
+ },
+ "FE239": {
+  "info": "Omschakelunit controleren",
+  "text": "Zuigsondeschakeling defect"
+ },
+ "FE240": {
+  "info": "Terugbrandklep sluit niet",
+  "text": "Terugbrandklep openen"
+ },
+ "FE241": {
+  "info": "Inspectieluik voorraad sluiten",
+  "text": "Inspectieluik voorraad open"
+ },
+ "FE245": {
+  "info": "Bunker en toevoerslang controleren",
+  "text": "Alle geselecteerde zuigsondes zijn leeg"
+ },
+ "FE247": {
+  "info": "Reservoir is leeg. Brandstof biijvullen. Brander vergrendeld",
+  "text": "Reservoir is leeg"
+ },
+ "FE250": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing brandervijzel defect"
+ },
+ "FE251": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing bunkervijzel defect"
+ },
+ "FE252": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing vijzel reservoir defect"
+ },
+ "FE253": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing bunkervijzel defect"
+ },
+ "FE254": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing stijgvijzel defect"
+ },
+ "FE255": {
+  "info": "Hoofdschakelaar Uit- / Aanschakelen, handleiding raadplegen",
+  "text": "Aansturing zuigturbine defect"
+ },
+ "FE260": {
+  "info": "Handleiding raadplegen",
+  "text": "Bunkervijzel blokkeert"
+ },
+ "FE261": {
+  "info": "Handleiding raadplegen",
+  "text": "Overvulling bunkervijzel"
+ },
+ "FE266": {
+  "info": "Niet meer bijvullen",
+  "text": "Schakelaar vuldeur defect"
+ },
+ "FE268": {
+  "info": "Schakelaar voordeur controleren",
+  "text": "Schakelaar voordeur defect"
+ },
+ "FE279": {
+  "info": "Handleiding raadplegen",
+  "text": "Voorloopsensor binnenunit defect"
+ },
+ "FE281": {
+  "info": "Rookgassensor en kabel controleren",
+  "text": "Rookgassensor defect"
+ },
+ "FE291": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Bovenste koelsensor van accumulator defect"
+ },
+ "FE292": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Koelaccumulatorsensor onderaan defect"
+ },
+ "FE294": {
+  "info": "Handleiding raadplegen",
+  "text": "Water-volumestroom te klein"
+ },
+ "FE295": {
+  "info": "Handleiding raadplegen",
+  "text": "Vorstbescherming warmtepomp"
+ },
+ "FE296": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Aanvoersensor defect"
+ },
+ "FE297": {
+  "info": "Communicatiebus ketelelektronica controleren",
+  "text": "Ingestelde temperatuur wordt niet bereikt"
+ },
+ "FE298": {
+  "info": "Handleiding raadplegen",
+  "text": "Ketel-minimale temperatuur niet bereikt"
+ },
+ "FE299": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Retoursensor defect"
+ },
+ "FE300": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Boilersensor defect"
+ },
+ "FE302": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Buitentemperatuursensor defect"
+ },
+ "FE306": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Buffersensor TPO defect"
+ },
+ "FE307": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Buffersensor TPM defect"
+ },
+ "FE308": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Buffersensor TPU defect"
+ },
+ "FE309": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Retoursensor defect"
+ },
+ "FE310": {
+  "info": "Handleiding raadplegen",
+  "text": "Minimale retourtemperatuur niet bereikt"
+ },
+ "FE311": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Circulatiesensor defect"
+ },
+ "FE313": {
+  "info": "Handleiding raadplegen",
+  "text": "Buffersensor TPS defect"
+ },
+ "FE316": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Collector sensor defect"
+ },
+ "FE317": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Circulatiesensor defect"
+ },
+ "FE318": {
+  "info": "Sensor en aansluiting controleren",
+  "text": "Buffersensor TPT defect"
+ },
+ "FE320": {
+  "info": "Aslade ledigen, as onder warmtewiss verwijderen. Thermocontrolsensor reinigen.",
+  "text": "Noodbedrijf! Reiniging"
+ },
+ "FE321": {
+  "info": "Groot onderhoud volgens voorschrift uitvoeren.",
+  "text": "Noodbedrijf! Hoofdreiniging"
+ },
+ "FE322": {
+  "info": "Aslade ledigen, branderkamer en brander reinigen.",
+  "text": "Noodbedrijf! Reiniging"
+ },
+ "FE323": {
+  "info": "Aslade ledigen, as onder warmtewiss verwijderen. Thermocontrolsensor reinigen.",
+  "text": "Noodbedrijf! Reinigingstrap 2"
+ },
+ "FE324": {
+  "info": "Tijdig onderhoud is garantievoorwaarde!",
+  "text": "Onderhoud"
+ },
+ "FE325": {
+  "info": "Ascontainer ledigen, handleding raadplegen",
+  "text": "Noodbedrijf! Ascontiner ledigen"
+ },
+ "FE326": {
+  "info": "Reiniging 2 volgens handleiding uitvoeren.",
+  "text": "Noodbedrijf! Hoofdreiniging"
+ },
+ "FE327": {
+  "info": "Tijdig onderhoud is garantievoorwaarde! Afspraak inplannen a.u.b.",
+  "text": "Onderhoud"
+ },
+ "FE330": {
+  "info": "Maximale uitbrandttijd overschreden",
+  "text": "Branderkamertemparatuur te laag"
+ },
+ "FE338": {
+  "info": "Handleiding raadplegen",
+  "text": "De communicatie met de elektrostatische fijnstoffilters is onderbroken."
+ },
+ "FE345": {
+  "info": "Brander vergrendeld.",
+  "text": "Branderkamerdeur open"
+ },
+ "FE346": {
+  "info": "Voordeur sluiten, handleiding raadplegen",
+  "text": "Voordeur open"
+ },
+ "FE350": {
+  "info": "Controleer dagelijks het zuigsysteem van de trechter, volgens de gebruiksaanwijzing",
+  "text": "Deksel van trechter aanzuigsysteem open"
+ },
+ "FE351": {
+  "info": "Waterleiding controleren",
+  "text": "Doorspoeling van afloop te gering"
+ },
+ "FE353": {
+  "info": "Waterleiding afsluiten",
+  "text": "Doorspoeling warmtewiss. Noodkoeling te gering"
+ },
+ "FE356": {
+  "info": "Onderdruksensor en branderkamer controleren",
+  "text": "Onderdruk branderkamer instabiel"
+ },
+ "FE362": {
+  "info": "Handleiding raadplegen",
+  "text": "Foutmelding warmtepomp"
+ },
+ "FE363": {
+  "info": "Handleiding raadplegen",
+  "text": "Externe ketel meldt storing"
+ },
+ "FE365": {
+  "info": "Handleiding raadplegen",
+  "text": "Foutmelding warmtepomp"
+ },
+ "FE368": {
+  "info": "Handleiding raadplegen",
+  "text": "E-verwarming functioneert niet"
+ },
+ "FE372": {
+  "info": "Branderkamer te koud tijdens opstart",
+  "text": "Opstart evaluatie"
+ },
+ "FE373": {
+  "info": "Te weinig warmteafname bij opstart",
+  "text": "Opstartfout"
+ },
+ "FE374": {
+  "info": "Branderkamer te koud tijdens opstart",
+  "text": "Opstartfase afgebroken"
+ },
+ "FE375": {
+  "info": "Handleiding raadplegen",
+  "text": "Opstarten bij de te hoge ketel of buffertanktemperatuur"
+ },
+ "FE377": {
+  "info": "Modbus controleren",
+  "text": "Communicatiestoring"
+ },
+ "FE381": {
+  "info": "Brandstoftoevoer door tijdprogramma inactief. In klantmenu tijden aanpassen.",
+  "text": "Reservoir leeg"
+ },
+ "FE382": {
+  "info": "Klep en contactschakelaar van reservoir controleren",
+  "text": "Klep of contactschakelaar van reservoir defect"
+ },
+ "FE383": {
+  "info": "Handleiding raadplegen",
+  "text": "Vulstandsmelding niet in orde"
+ },
+ "FE384": {
+  "info": "Controleer de internetverbinding",
+  "text": "Variabele elektriciteitstarieven downloadfout"
+ },
+ "FE387": {
+  "info": "Druk resetknop minimaal 5 sec in",
+  "text": "Communicatiefout met Branderautomaat"
+ },
+ "FE390": {
+  "info": "As verwijderen. Ketel en brander reinigen. Bevestig reiniging",
+  "text": "Noodbedrijf! Ketel en brander reinigen."
+ },
+ "FE393": {
+  "info": "Foutingang E1 controleren",
+  "text": "Foutmelding E1"
+ },
+ "FE394": {
+  "info": "Warmtegenerator controleren",
+  "text": "Storing van warmtegenerator"
+ },
+ "FE395": {
+  "info": "Brander geblokkeerd",
+  "text": "Branderkamer of asdeur open."
+ },
+ "FE396": {
+  "info": "Voordeur sluiten",
+  "text": "Voordeur geopend"
+ },
+ "IN408": {
+  "info": "Handleiding raadplegen",
+  "text": "Bewaking rookgasreiniging defect"
+ },
+ "IN409": {
+  "info": "Handleiding raadplegen",
+  "text": "Bewaking asuitvoer defect"
+ },
+ "IN414": {
+  "info": "Handleiding raadplegen",
+  "text": "Asuitvoer defect"
+ },
+ "IN418": {
+  "info": "Let op!: rookgas kan uittreden bij ontsteking",
+  "text": "Rookgasventilator tbv pelletketel defect"
+ },
+ "IN438": {
+  "info": "Brandstofvoorraad controleren",
+  "text": "1 zone in bunker is leeg"
+ },
+ "IN445": {
+  "info": "Waterleiding controleren",
+  "text": "Een zuigsonde is leeg"
+ },
+ "IN446": {
+  "info": "Waterleiding afsluiten",
+  "text": "Bunker raakt leeg"
+ },
+ "IN447": {
+  "info": "Reservoir is bijna leeg. Brandstof bijvullen.",
+  "text": "Brandstof bijvullen"
+ },
+ "IN481": {
+  "info": "Rookgassensor en kabel controleren",
+  "text": "RG-temp.sensor van warmtewisselaar defect"
+ },
+ "IN495": {
+  "info": "Handleiding raadplegen",
+  "text": "Vorstbeveiliging, geen automatsiche ketel"
+ },
+ "IN496": {
+  "info": "Vorstbewaking actief. Installatie controleren",
+  "text": "Vorstbewaking actief"
+ },
+ "IN499": {
+  "info": "Vorstbewaking kamertherm. Installatie controleren",
+  "text": "Vorstbewaking kamertherm. actief"
+ },
+ "IN500": {
+  "info": "Boiler vorstbewaking actief. Installatie controleren",
+  "text": "Boiler vorstbewaking actief"
+ },
+ "IN504": {
+  "info": "TP/TW vorstbewaking actief, installatie controleren",
+  "text": "TP/TW vorstbewaking actief"
+ },
+ "IN511": {
+  "info": "Handleiding raadplegen",
+  "text": "Fout volumestroom sensor"
+ },
+ "IN512": {
+  "info": "Handleiding raadplegen",
+  "text": "Fout warmtestroommeter"
+ },
+ "IN519": {
+  "info": "Handboek raadplegen",
+  "text": "Asbak niet beschikbaar"
+ },
+ "IN520": {
+  "info": "Aslade legen, brander en branderkamer reinigen.",
+  "text": "Reiniging"
+ },
+ "IN521": {
+  "info": "Hoofdreiniging volgens voorschrift uitvoeren",
+  "text": "Hoofdreiniging"
+ },
+ "IN522": {
+  "info": "Aslade ledigen, brander en branderkamer reinigen.",
+  "text": "Reiniging"
+ },
+ "IN523": {
+  "info": "Hoofdreiniging volgens voorschrift uitvoeren.",
+  "text": "Hoofdreiniging"
+ },
+ "IN524": {
+  "info": "Onderhoud is garantievoorwaarde!",
+  "text": "Onderhoud"
+ },
+ "IN525": {
+  "info": "Ascontainer ledigen, handleiding raadplegen",
+  "text": "Ascontainer ledigen"
+ },
+ "IN526": {
+  "info": "Groot onderhoud volgens handleiding uitvoeren.",
+  "text": "Groot onderhoud"
+ },
+ "IN527": {
+  "info": "Tijdig onderhoud is garantievoorwaarde! Afspraak binnen 3 maanden inplannen a.u.b.",
+  "text": "Onderhoud"
+ },
+ "IN537": {
+  "info": "Handleiding raadplegen",
+  "text": "Condensfunctie niet zinvol"
+ },
+ "IN551": {
+  "info": "Handleiding raadplegen",
+  "text": "Doorspoeling van afloop is te hoog"
+ },
+ "IN553": {
+  "info": "Handleiding raadplegen",
+  "text": "Doorspoeling warmtewiss. Noodkoeling te hoog"
+ },
+ "IN560": {
+  "info": "Handleiding raadplegen",
+  "text": "Condensatiebewaking"
+ },
+ "IN562": {
+  "info": "Handleiding raadplegen",
+  "text": "Foutmelding warmtepomp"
+ },
+ "IN563": {
+  "info": "Handleiding raadplegen",
+  "text": "Externe ketel meldt storing"
+ },
+ "IN564": {
+  "info": "Handleiding raadplegen",
+  "text": "Looptijd vlamstabilisatie overschreden"
+ },
+ "IN565": {
+  "info": "Handleiding raadplegen",
+  "text": "Onbekende foutmelding warmtepomp"
+ },
+ "IN570": {
+  "info": "Handleiding raadplegen",
+  "text": "Elektrische verwarming in werking"
+ },
+ "IN578": {
+  "info": "Houtketel niet aansteken!",
+  "text": "Rookgasventilator tbv houtketel geblokkeerd"
+ },
+ "IN581": {
+  "info": "Reservoir is bijna leeg. Brandstof bijvullen.",
+  "text": "Brandstof bijvullen"
+ },
+ "IN582": {
+  "info": "Reservoir is leeg. Brandstof biijvullen. Brander vergrendeld",
+  "text": "Reservoir is leeg"
+ },
+ "IN590": {
+  "info": "As verwijderen. Ketel en brander reinigen. Bevestig reiniging.",
+  "text": "Ketel en brander schoonmaken"
+ },
+ "IN591": {
+  "info": "Vuldeur min. 15 sec ontgrendeld laten",
+  "text": "Pas op bij openen vuldeur"
+ },
+ "IN595": {
+  "info": "Brander vergrendeld",
+  "text": "Deur open"
+ },
+ "IN598": {
+  "info": "Geen communicatie met PV-overschotmeter",
+  "text": "Energiemeter geen communicatie"
+ },
+ "IN599": {
+  "info": "Installatie offline",
+  "text": "Installatie-verbinding en monitoring"
+ }
+}
