@@ -28,6 +28,9 @@ export const STIL = `
     --hn-linie: rgba(255, 255, 255, 0.1);
     --hn-flaeche: rgba(255, 255, 255, 0.05);
     --hn-sonne: #f5c451;
+    --hn-ww: #5aa9e6;
+    --hn-gut: #7bd88f;
+    --hn-at: #4fd1b5;
   }
 
   :host {
@@ -1139,8 +1142,8 @@ export const STIL = `
   }
   .automatik-marke::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   .automatik-marke.z-sonnentag { background: color-mix(in srgb, var(--hn-sonne) 16%, transparent); color: var(--hn-sonne); }
-  .automatik-marke.z-nur_ww { background: rgba(90, 169, 230, 0.16); color: #5aa9e6; }
-  .automatik-marke.z-programm { background: rgba(67, 160, 71, 0.15); color: #7bd88f; }
+  .automatik-marke.z-nur_ww { background: color-mix(in srgb, var(--hn-ww) 16%, transparent); color: var(--hn-ww); }
+  .automatik-marke.z-programm { background: color-mix(in srgb, var(--hn-gut) 16%, transparent); color: var(--hn-gut); }
   .automatik-marke.z-pausiert, .automatik-marke.z-fenster, .automatik-marke.z-abwesend {
     background: color-mix(in srgb, var(--hn-akzent) 14%, transparent); color: var(--hn-akzent);
   }
@@ -1221,7 +1224,7 @@ export const STIL = `
   .automatik-knopf.speichern[disabled] {
     opacity: 1; background: var(--hn-flaeche); color: var(--hn-gedaempft); border-color: var(--hn-linie);
   }
-  .automatik-gespeichert { align-self: center; font-size: 12px; color: #7bd88f; }
+  .automatik-gespeichert { align-self: center; font-size: 12px; color: var(--hn-gut); }
   .automatik-bereich .klickbar { border-radius: 6px; }
   .automatik-bereich .klickbar:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 2px; }
 
@@ -1253,11 +1256,11 @@ export const STIL = `
   .automatik-skala .zone:first-child { border-radius: 2px 0 0 2px; }
   .automatik-skala .zone.heizt, .automatik-skala .zone.kalt { background: color-mix(in srgb, #ff8a80 55%, transparent); }
   .automatik-skala .zone.hysterese { background: color-mix(in srgb, var(--hn-text) 25%, transparent); }
-  .automatik-skala .zone.aus { background: color-mix(in srgb, #7bd88f 55%, transparent); }
+  .automatik-skala .zone.aus { background: color-mix(in srgb, var(--hn-gut) 55%, transparent); }
   .automatik-skala .zone.sonne { background: var(--hn-sonne); border-radius: 2px; }
   .automatik-skala .zone.neutral { background: color-mix(in srgb, var(--hn-text) 18%, transparent); }
   .automatik-skala .zone.moeglich { background: color-mix(in srgb, var(--hn-sonne) 45%, transparent); }
-  .automatik-skala .zone.ueber { background: color-mix(in srgb, #7bd88f 45%, transparent); }
+  .automatik-skala .zone.ueber { background: color-mix(in srgb, var(--hn-gut) 45%, transparent); }
   .automatik-skala .punkt-wert {
     position: absolute; top: -14px; transform: translateX(-50%);
     font-size: 11px; font-weight: 700; color: var(--hn-text); white-space: nowrap;
@@ -1301,7 +1304,7 @@ export const STIL = `
   }
   .automatik-stundenlegende i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
   .automatik-stundenlegende i.m-absenkung { background: var(--hn-sonne); }
-  .automatik-stundenlegende i.m-nur_ww { background: #5aa9e6; }
+  .automatik-stundenlegende i.m-nur_ww { background: var(--hn-ww); }
   .automatik-stundenlegende i.m-programm { background: color-mix(in srgb, var(--hn-text) 35%, transparent); }
   .automatik-vorschau {
     margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; font-size: 13px;
@@ -1332,7 +1335,7 @@ export const STIL = `
     background: color-mix(in srgb, var(--hn-text) 30%, transparent);
   }
   .automatik-stunde .streifen.absenkung { background: var(--hn-sonne); }
-  .automatik-stunde .streifen.nur_ww { background: #5aa9e6; }
+  .automatik-stunde .streifen.nur_ww { background: var(--hn-ww); }
   .automatik-stunde .raum { font-size: 11px; color: var(--hn-gedaempft); font-variant-numeric: tabular-nums; }
   .automatik-stundenkasten {
     margin: 0 0 14px; padding: 10px 14px; border-radius: 10px;
@@ -1342,7 +1345,7 @@ export const STIL = `
   .automatik-stundenwerte .kopf { font-weight: 700; }
   .automatik-stundenwerte .modus { font-weight: 600; }
   .automatik-stundenwerte .modus.m-absenkung { color: var(--hn-sonne); }
-  .automatik-stundenwerte .modus.m-nur_ww { color: #5aa9e6; }
+  .automatik-stundenwerte .modus.m-nur_ww { color: var(--hn-ww); }
   .automatik-stundenwerte .vorrang { color: var(--hn-sonne); }
   .automatik-verlaufkopf .korrektur {
     display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
@@ -1386,7 +1389,7 @@ export const STIL = `
   .automatik-tag .al-grund { fill: var(--hn-flaeche); }
   .automatik-tag .al-m-programm { fill: color-mix(in srgb, var(--hn-text) 28%, transparent); }
   .automatik-tag .al-m-absenkung, .automatik-tag .al-absenkung { fill: var(--hn-sonne); }
-  .automatik-tag .al-m-nur_ww { fill: #5aa9e6; }
+  .automatik-tag .al-m-nur_ww { fill: var(--hn-ww); }
   .automatik-tag .al-plan, .automatik-tag .al-verlaengerung { opacity: 0.45; }
   .automatik-tag .al-verlaengerung { fill: var(--hn-sonne); }
   .automatik-tag .al-jetzt {
@@ -1396,7 +1399,7 @@ export const STIL = `
   .automatik-tag .al-prognose {
     fill: none; stroke: #ffab6f; stroke-width: 2; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke;
   }
-  .automatik-tag .al-gedaempft { fill: none; stroke: #4fd1b5; stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .automatik-tag .al-gedaempft { fill: none; stroke: var(--hn-at); stroke-width: 2; vector-effect: non-scaling-stroke; }
   .automatik-tag .al-grenze { stroke: var(--hn-gedaempft); stroke-dasharray: 6 5; vector-effect: non-scaling-stroke; }
   .automatik-achse { display: flex; justify-content: space-between; font-size: 11px; color: var(--hn-gedaempft); margin-top: 6px; }
   .automatik-legende { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--hn-gedaempft); margin-top: 12px; }
@@ -1405,7 +1408,7 @@ export const STIL = `
   .automatik-legende i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; flex-shrink: 0; }
   .automatik-legende i.al-aussen { background: #ffab6f; height: 2px; }
   .automatik-legende i.al-prognose { height: 2px; background: repeating-linear-gradient(90deg, #ffab6f 0 3px, transparent 3px 6px); }
-  .automatik-legende i.al-gedaempft { background: #4fd1b5; height: 2px; }
+  .automatik-legende i.al-gedaempft { background: var(--hn-at); height: 2px; }
   .automatik-legende i.al-grenze { height: 2px; background: repeating-linear-gradient(90deg, var(--hn-gedaempft) 0 4px, transparent 4px 7px); }
   .automatik-legende i.al-sonne { background: color-mix(in srgb, var(--hn-sonne) 45%, transparent); }
 
@@ -1493,7 +1496,7 @@ export const STIL = `
   }
   .automatik-protokoll .inhalt { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
   .automatik-protokoll .art { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
-  .automatik-protokoll .art.geschrieben { background: rgba(67, 160, 71, 0.15); color: #7bd88f; }
+  .automatik-protokoll .art.geschrieben { background: color-mix(in srgb, var(--hn-gut) 16%, transparent); color: var(--hn-gut); }
   .automatik-protokoll .art.haette { border: 1px dashed rgba(245, 196, 81, 0.6); color: var(--hn-sonne); }
   .automatik-protokoll .art.abgelehnt { background: rgba(229, 57, 53, 0.15); color: #ff8a80; }
   .automatik-protokoll .art.budget, .automatik-protokoll .art.eingriff { background: rgba(255, 171, 111, 0.15); color: #ffab6f; }

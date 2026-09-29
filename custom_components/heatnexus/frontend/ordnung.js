@@ -146,6 +146,9 @@ export const PALETTEN = {
     "--hn-linie": "#262b33",
     "--hn-flaeche": "#262b33",
     "--hn-sonne": "#f5c451",
+    "--hn-ww": "#5aa9e6",
+    "--hn-gut": "#7bd88f",
+    "--hn-at": "#4fd1b5",
   },
   hell: {
     "--hn-grund": "#f4f5f7",
@@ -157,6 +160,9 @@ export const PALETTEN = {
     "--hn-linie": "#e0e3e8",
     "--hn-flaeche": "#eef1f5",
     "--hn-sonne": "#b7791f",
+    "--hn-ww": "#1f6fb2",
+    "--hn-gut": "#2e7d32",
+    "--hn-at": "#00796b",
   },
   terrakotta: {
     "--hn-grund": "#1a1816",
@@ -168,6 +174,9 @@ export const PALETTEN = {
     "--hn-linie": "#2c2926",
     "--hn-flaeche": "#2c2926",
     "--hn-sonne": "#f2c14e",
+    "--hn-ww": "#5aa9e6",
+    "--hn-gut": "#7bd88f",
+    "--hn-at": "#4fd1b5",
   },
   petrol: {
     "--hn-grund": "#10171a",
@@ -179,6 +188,9 @@ export const PALETTEN = {
     "--hn-linie": "#222d31",
     "--hn-flaeche": "#222d31",
     "--hn-sonne": "#f5c451",
+    "--hn-ww": "#5aa9e6",
+    "--hn-gut": "#7bd88f",
+    "--hn-at": "#4fd1b5",
   },
   pflaume: {
     "--hn-grund": "#16121c",
@@ -190,6 +202,9 @@ export const PALETTEN = {
     "--hn-linie": "#2b2336",
     "--hn-flaeche": "#2b2336",
     "--hn-sonne": "#f5c451",
+    "--hn-ww": "#5aa9e6",
+    "--hn-gut": "#7bd88f",
+    "--hn-at": "#4fd1b5",
   },
 };
 
