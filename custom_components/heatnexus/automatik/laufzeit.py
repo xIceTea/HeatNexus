@@ -69,6 +69,13 @@ def _ganzzahl(wert: float | None) -> int | None:
     return None if wert is None else int(wert)
 
 
+def _kommazahl(wert: Any) -> float | None:
+    """Eine Zahl aus dem Store; Unlesbares ergibt nichts."""
+    if isinstance(wert, bool) or not isinstance(wert, int | float):
+        return None
+    return float(wert)
+
+
 def naechster_morgen(jetzt: datetime) -> datetime:
     """Das nächste 05:00 nach `jetzt`; so lange hält eine Pause."""
     ziel = jetzt.replace(hour=PAUSE_BIS_STUNDE, minute=0, second=0, microsecond=0)
@@ -124,6 +131,8 @@ class Laufzeit(QuellenMixin):
         except ValueError:
             self.zustand = regel.Zustand.PROGRAMM
         self.begruendung = str(z.get("begruendung") or "")
+        # Die Heizgrenze der Steuerung ist eine Einstellung; bis zum ersten Abruf gilt die zuletzt gelesene.
+        self.grenze_zuletzt: float | None = _kommazahl(z.get("grenze_steuerung"))
         self.temperatur = korrektur.Temperaturkorrektur(z.get("temperatur"))
         self.pv = korrektur.Pvkorrektur(z.get("pv"))
         verlauf = z.get("verlauf") if isinstance(z.get("verlauf"), dict) else {}
@@ -204,6 +213,7 @@ class Laufzeit(QuellenMixin):
             },
             "zustand": self.zustand.value,
             "begruendung": self.begruendung,
+            "grenze_steuerung": self.grenze_zuletzt,
         }
 
     # --- Lebenszyklus --------------------------------------------------------
@@ -488,6 +498,11 @@ class Laufzeit(QuellenMixin):
         await self.auswerten()
 
     # --- Eingänge ------------------------------------------------------------
+    def _heizgrenze(self) -> float | None:
+        if (wert := self._wert("/3/21/0")) is not None:
+            self.grenze_zuletzt = wert
+        return self.grenze_zuletzt
+
     def _wert(self, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, self.prefix)
 
@@ -723,7 +738,7 @@ class Laufzeit(QuellenMixin):
             sonnenuntergang=untergang,
             betriebswahl=_ganzzahl(self._wert("/3/50/0")),
             betriebsart=_ganzzahl(self._wert("/2/9/0")),
-            grenze_steuerung=self._wert("/3/21/0"),
+            grenze_steuerung=self._heizgrenze(),
             daten_ok=daten_ok,
             daten_fehlen_seit=self._daten_fehlen_seit,
             fenster_offen=self._fenster(jetzt),

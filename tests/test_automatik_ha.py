@@ -1494,7 +1494,27 @@ async def test_regel_wartet_auf_die_werte_der_steuerung(hass, anlage, freezer):
     freezer.tick(timedelta(minutes=11))
     await laufzeit.auswerten()
     assert laufzeit._wartet is False
-    assert laufzeit.lage.grenze_steuerung is None
+    # Eine Einstellung der Steuerung bleibt gültig, bis ein neuer Wert gelesen ist.
+    assert laufzeit.lage.grenze_steuerung == 18.0
+
+
+async def test_nach_dem_start_gilt_die_zuletzt_gelesene_heizgrenze(hass, anlage, freezer):
+    """Der erste Abruf nach dem Start trägt `3/21` noch nicht; der Rückfall 17 °C wäre falsch."""
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit.auswerten()
+    zustand = laufzeit.als_dict()
+    assert zustand["grenze_steuerung"] == 18.0
+
+    del coordinator.data["oids"][f"{PREFIX}/3/21/0"]
+    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+    verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
+    await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
+    neu = verwaltung.laufzeiten[HEIZKREIS]
+    await neu.auswerten()
+
+    assert neu.lage.grenze_steuerung == 18.0
 
 
 async def test_laufzeiten_ohne_speicherstand_kommen_aus_dem_protokoll(hass, freezer):
