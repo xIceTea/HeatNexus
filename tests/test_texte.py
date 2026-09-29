@@ -98,6 +98,24 @@ def test_unbekannter_satz_bleibt_deutsch(texte):
     )
 
 
+def test_jedes_satzmuster_trifft_nur_sich_selbst(texte):
+    """Mit Beispielwerten gefüllt, übersetzt jedes Muster zu seiner eigenen Fassung.
+
+    Ein anderes Muster mit längerem festem Anteil darf den Satz nicht an sich ziehen.
+    """
+    englisch = texte.Woerterbuch("en")
+    for deutsch, fremd in json.loads((ORDNER / "en.json").read_text(encoding="utf-8")).items():
+        namen = PLATZHALTER.findall(deutsch)
+        fest = PLATZHALTER.sub("", deutsch).strip()
+        if not namen or len(fest) < texte.MUSTER_MIN_ZEICHEN:
+            continue
+        beispiel, erwartet = deutsch, fremd
+        for nummer, name in enumerate(namen):
+            beispiel = beispiel.replace("{" + name + "}", f"{nummer + 1},5")
+            erwartet = erwartet.replace("{" + name + "}", f"{nummer + 1},5")
+        assert englisch.satz(beispiel) == erwartet, deutsch
+
+
 def test_jede_uebersetzung_traegt_die_platzhalter_ihres_schluessels():
     """Ein vergessener oder umbenannter Platzhalter ließe einen Wert verschwinden."""
     for datei in ORDNER.glob("*.json"):
