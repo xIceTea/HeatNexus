@@ -73,10 +73,9 @@ def zeigerinstrumente(teil: dict[str, Any]) -> list[tuple[dict[str, Any], dict[s
 
 def kernwerte(teil: dict[str, Any]) -> list[dict[str, Any]]:
     """Die Werte für die Übersicht: nach Baureihenmodul, sonst die ersten Messwerte."""
-    schluessel = geraete.KERNWERTE.get(_fct(teil))
-    if schluessel is None:
-        return messwerte(teil)[:KERNWERTE_RUECKFALL]
-    return [e for s in schluessel if (e := _mit_schluessel(teil, s))]
+    schluessel = geraete.KERNWERTE.get(_fct(teil), ())
+    treffer = [e for s in schluessel if (e := _mit_schluessel(teil, s))]
+    return treffer or messwerte(teil)[:KERNWERTE_RUECKFALL]
 
 
 def zeitprogramme(teil: dict[str, Any]) -> list[dict[str, Any]]:
@@ -85,8 +84,10 @@ def zeitprogramme(teil: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def einstellungen(teil: dict[str, Any]) -> list[dict[str, Any]]:
-    """Konfigurationswerte des Anlagenteils."""
-    return [e for e in teil["entitaeten"] if e["kategorie"] == "config"]
+    """Konfigurationswerte des Anlagenteils; Zeitprogramme stehen in eigenem Abschnitt."""
+    return [
+        e for e in teil["entitaeten"] if e["kategorie"] == "config" and not _ist_zeitprogramm(e)
+    ]
 
 
 def diagnose(teil: dict[str, Any]) -> list[dict[str, Any]]:

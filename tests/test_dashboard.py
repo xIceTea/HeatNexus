@@ -124,14 +124,6 @@ def test_skala_rundet_auf_hunderter(anlagen):
     assert anlagen.skala(1180) == 1200
 
 
-def test_gleichnamige_anlagenteile_werden_erkannt(anlagen):
-    teile = [
-        {"name": "Kesselhaus", "teile": [{"name": "B-PLMi PUFFER"}, {"name": "PuroWIN"}]},
-        {"name": "Werkstatt", "teile": [{"name": "B-PLMi PUFFER"}]},
-    ]
-    assert anlagen.mehrfach_vergebene_namen(teile) == {"B-PLMi PUFFER"}
-
-
 def test_anlage_steht_vor_dem_anlagenteil(anlagen):
     anlage = {"name": "Kesselhaus"}
     assert anlagen.voller_name(anlage, {"name": "PuroWIN"}) == "Kesselhaus · PuroWIN"
@@ -791,6 +783,29 @@ def test_baureihe_ohne_eintrag_nimmt_die_ersten_messwerte(auswahl):
     assert auswahl.zeigerinstrumente(teil) == []
 
 
+def test_moduleintrag_ohne_treffer_nimmt_die_ersten_messwerte(auswahl):
+    teil = {
+        **_kessel(),
+        "entitaeten": [{**e, "schluessel": None} for e in _kessel()["entitaeten"]],
+    }
+    assert [e["entity_id"] for e in auswahl.kernwerte(teil)] == [
+        e["entity_id"] for e in auswahl.messwerte(teil)[: auswahl.KERNWERTE_RUECKFALL]
+    ]
+    assert auswahl.kernwerte(teil)
+
+
+def test_zeitprogramme_stehen_nicht_unter_einstellungen(auswahl):
+    teil = {
+        **_kessel(),
+        "entitaeten": [
+            *_kessel()["entitaeten"],
+            _e("sensor.heizprogramm_1", "Programm 1", kategorie="config"),
+        ],
+    }
+    assert "sensor.heizprogramm_1" not in [e["entity_id"] for e in auswahl.einstellungen(teil)]
+    assert "sensor.heizprogramm_1" in [e["entity_id"] for e in auswahl.zeitprogramme(teil)]
+
+
 def test_zeigerinstrumente_nach_modul(auswahl):
     paare = auswahl.zeigerinstrumente(_kessel())
     assert [e["entity_id"] for e, _ in paare] == ["sensor.kessel_ist", "sensor.leistung"]
@@ -899,6 +914,45 @@ async def test_einzelanlage_traegt_die_badges(dashboard, hass, monkeypatch):
     seite = dashboard.dashboard_konfiguration(hass)["views"][0]
     stoerung = [b for b in seite["badges"] if b["entity"] == "binary_sensor.stoerung"]
     assert stoerung and stoerung[0]["visibility"][0]["state"] == "on"
+
+
+def _automatikstatus(hass, eintrag, **rest):
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.automatik.verwaltung import system_unique_id
+
+    return er.async_get(hass).async_get_or_create(
+        "sensor",
+        "heatnexus",
+        system_unique_id(eintrag.entry_id, "status"),
+        config_entry=eintrag,
+        **rest,
+    )
+
+
+async def test_kennwerte_nehmen_die_gewaehlte_aussentemperatur(dashboard, hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import CONF_AUSSENTEMPERATUR
+
+    MockConfigEntry(domain="heatnexus", data={}).add_to_hass(hass)
+    gewaehlt = MockConfigEntry(
+        domain="heatnexus", data={}, options={CONF_AUSSENTEMPERATUR: "sensor.wetter"}
+    )
+    gewaehlt.add_to_hass(hass)
+    status = _automatikstatus(hass, gewaehlt)
+    badges = dashboard._kennwerte(hass, [_anlage(_kessel())])
+    assert [b["entity"] for b in badges] == ["sensor.wetter", status.entity_id]
+
+
+async def test_kennwerte_ohne_abgeschaltete_automatik(dashboard, hass):
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    eintrag = MockConfigEntry(domain="heatnexus", data={})
+    eintrag.add_to_hass(hass)
+    _automatikstatus(hass, eintrag, disabled_by=er.RegistryEntryDisabler.USER)
+    assert dashboard._kennwerte(hass, [_anlage(_kessel())]) == []
 
 
 async def test_zwei_anlagen_melden_nur_in_der_uebersicht(dashboard, hass, monkeypatch):

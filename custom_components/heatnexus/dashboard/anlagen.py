@@ -321,19 +321,6 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
     return sorted(anlagen.values(), key=lambda a: a["name"])
 
 
-def mehrfach_vergebene_namen(anlagen: list[dict[str, Any]]) -> set[str]:
-    """Namen, die in mehr als einem Anlagenteil vorkommen.
-
-    Zwei Pufferlademodule heißen beide "B-PLMi PUFFER". In den Reitern muss
-    dann die Anlage davor, sonst sind sie nicht auseinanderzuhalten.
-    """
-    gesehen: dict[str, int] = {}
-    for anlage in anlagen:
-        for teil in anlage["teile"]:
-            gesehen[teil["name"]] = gesehen.get(teil["name"], 0) + 1
-    return {name for name, anzahl in gesehen.items() if anzahl > 1}
-
-
 def voller_name(anlage: dict[str, Any], teil: dict[str, Any]) -> str:
     """Anlagenteil mit vorangestellter Anlage."""
     return f"{anlage['name']} · {teil['name']}" if anlage["name"] else teil["name"]

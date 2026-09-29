@@ -13,11 +13,13 @@ import logging
 from typing import Any
 
 from homeassistant.components import frontend, websocket_api
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 import voluptuous as vol
 import yaml
 
+from ..automatik.verwaltung import system_unique_id
 from ..const import CONF_AUSSENTEMPERATUR, DASHBOARD_TITEL, DASHBOARD_URL, DOMAIN
 from ..texte import LOVELACE_FELDER, uebersetze_baum, woerterbuch
 from . import anlage, details, uebersicht, wartung
@@ -79,7 +81,9 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
 def _kennwerte(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Außentemperatur (gewählt oder erste gemeldete) und Status der Automatik als Badges."""
     eintraege = hass.config_entries.async_entries(DOMAIN)
-    aussen = (eintraege[0].options or {}).get(CONF_AUSSENTEMPERATUR) if eintraege else None
+    aussen = next(
+        (w for e in eintraege if (w := (e.options or {}).get(CONF_AUSSENTEMPERATUR))), None
+    )
     aussen = aussen or next(
         (
             e["entity_id"]
@@ -90,16 +94,20 @@ def _kennwerte(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[
         ),
         None,
     )
+    return [
+        {"type": "entity", "entity": eid} for eid in (aussen, _automatik(hass, eintraege)) if eid
+    ]
+
+
+def _automatik(hass: HomeAssistant, eintraege: list[ConfigEntry]) -> str | None:
+    """Die Statusentität der ersten Automatik, die nicht abgeschaltet ist."""
     register = er.async_get(hass)
-    automatik = next(
-        (
-            e.entity_id
-            for e in register.entities.values()
-            if e.platform == DOMAIN and e.unique_id.endswith("-automatik-system-status")
-        ),
-        None,
-    )
-    return [{"type": "entity", "entity": eid} for eid in (aussen, automatik) if eid]
+    for eintrag in eintraege:
+        kennung = system_unique_id(eintrag.entry_id, "status")
+        entity_id = register.async_get_entity_id("sensor", DOMAIN, kennung)
+        if entity_id and not register.async_get(entity_id).disabled_by:
+            return entity_id
+    return None
 
 
 def als_yaml(konfiguration: dict[str, Any]) -> str:
