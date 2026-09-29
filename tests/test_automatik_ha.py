@@ -1238,14 +1238,15 @@ async def test_system_geraet_buendelt_die_automatiken(hass, anlage, freezer):
     from custom_components.heatnexus.automatik import system
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
     from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.registrierung import geraet_suchen
 
     verwaltung, _ = anlage
     freezer.move_to(MORGEN)
     entry = hass.config_entries.async_entries("heatnexus")[0]
     laufzeit = await _eingerichtet(hass, verwaltung)
 
-    geraet = dr.async_get(hass).async_get_device(
-        identifiers={(DOMAIN, system.system_kennung(entry.entry_id))}
+    geraet = geraet_suchen(
+        dr.async_get(hass), system.system_kennung(entry.entry_id), entry.entry_id
     )
     assert geraet is not None
     assert geraet.name == "HeatNexus Automatik"
@@ -1273,9 +1274,7 @@ async def test_system_geraet_buendelt_die_automatiken(hass, anlage, freezer):
 
     await verwaltung.entfernen(HEIZKREIS)
     assert (
-        dr.async_get(hass).async_get_device(
-            identifiers={(DOMAIN, system.system_kennung(entry.entry_id))}
-        )
+        geraet_suchen(dr.async_get(hass), system.system_kennung(entry.entry_id), entry.entry_id)
         is None
     )
 

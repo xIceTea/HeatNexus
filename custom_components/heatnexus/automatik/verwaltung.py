@@ -27,7 +27,7 @@ from ..const import (
     SIGNAL_NEUE_ENTITAETEN,
     SUBEINTRAG_AUTOMATIK,
 )
-from ..registrierung import geraet_suchen
+from ..registrierung import geraet_suchen, in_untereintrag_verschieben
 from . import konfig as konfig_modul
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 
@@ -120,15 +120,7 @@ def _geraete_umhaengen(register: dr.DeviceRegistry, entry: ConfigEntry, sub_id: 
             for bereich, wert in geraet.identifiers
         ):
             continue
-        # Erst dazu, dann weg: Ein Gerät ohne Eintrag entfernt Home Assistant.
-        register.async_get_or_create(
-            config_entry_id=entry.entry_id,
-            config_subentry_id=sub_id,
-            identifiers=set(geraet.identifiers),
-        )
-        register.async_update_device(
-            geraet.id, remove_config_entry_id=entry.entry_id, remove_config_subentry_id=None
-        )
+        in_untereintrag_verschieben(register, geraet, entry.entry_id, sub_id)
 
 
 class Verwaltung:
@@ -213,6 +205,8 @@ class Verwaltung:
     def _system_anlegen(self, entry: ConfigEntry) -> None:
         sub_id = self._subeintrag_anlegen(entry)
         register = dr.async_get(self.hass)
+        # Erst umhängen: Ein vorhandenes Gerät darf `async_get_or_create` nicht stillschweigend verschieben.
+        _geraete_umhaengen(register, entry, sub_id)
         register.async_get_or_create(
             config_entry_id=entry.entry_id,
             config_subentry_id=sub_id,
@@ -221,7 +215,6 @@ class Verwaltung:
             manufacturer="HeatNexus",
             model="Automatik-System",
         )
-        _geraete_umhaengen(register, entry, sub_id)
 
     def _system_entfernen(self, entry_id: str) -> None:
         """Mit der letzten Automatik des Eintrags gehen System-Entitäten und -Gerät."""
