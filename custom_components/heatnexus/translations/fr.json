@@ -595,7 +595,7 @@
       "fields": {
         "switch_points": {
           "name": "Points de commutation",
-          "description": "Liste de points {time, value}. time au format HH:MM, value = température de consigne. S'applique au bloc de weekdays."
+          "description": "Liste de points avec time et value. time au format HH:MM, value = température de consigne. S'applique au bloc de weekdays."
         },
         "weekdays": {
           "name": "Jours de la semaine",

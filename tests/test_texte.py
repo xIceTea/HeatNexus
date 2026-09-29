@@ -438,3 +438,18 @@ def test_strings_json_ist_die_englische_fassung():
     assert json.loads((komponente / "strings.json").read_text(encoding="utf-8")) == json.loads(
         (komponente / "translations" / "en.json").read_text(encoding="utf-8")
     )
+
+
+def test_platzhalter_in_uebersetzungen_sind_bezeichner():
+    """Die Prüfung hassfest lehnt `{time, value}` ab; jede geschweifte Klammer muss ein Platzhaltername sein."""
+    ordner = ORDNER.parent
+    falsch = [
+        f"{datei.name}: {pfad}"
+        for datei in [ordner / "strings.json", *(ordner / "translations").glob("*.json")]
+        for pfad, wert in _blaetter(json.loads(datei.read_text(encoding="utf-8")))
+        if any(
+            not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", inhalt)
+            for inhalt in re.findall(r"\{([^{}]*)\}", wert)
+        )
+    ]
+    assert not falsch, falsch

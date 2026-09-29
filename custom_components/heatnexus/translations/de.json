@@ -595,7 +595,7 @@
       "fields": {
         "switch_points": {
           "name": "Schaltpunkte",
-          "description": "Liste von Schaltpunkten {time, value}. time im Format HH:MM, value = Soll-Temperatur. Gilt für den Block aus weekdays."
+          "description": "Liste von Schaltpunkten mit time und value. time im Format HH:MM, value = Soll-Temperatur. Gilt für den Block aus weekdays."
         },
         "weekdays": {
           "name": "Wochentage",

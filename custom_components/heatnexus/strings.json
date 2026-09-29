@@ -595,7 +595,7 @@
       "fields": {
         "switch_points": {
           "name": "Switching points",
-          "description": "List of switching points {time, value}. time as HH:MM, value = target temperature. Applies to the block from weekdays."
+          "description": "List of switching points with time and value. time as HH:MM, value = target temperature. Applies to the block from weekdays."
         },
         "weekdays": {
           "name": "Weekdays",
