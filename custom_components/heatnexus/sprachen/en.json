@@ -605,5 +605,16 @@
   "vorläufig": "provisional",
   "Profil wechseln?": "Change profile?",
   "Nicht gespeicherte Änderungen gehen dabei verloren.": "Unsaved changes will be lost.",
-  "Wechseln": "Change"
+  "Wechseln": "Change",
+  "Serviceausbrand starten": "Start service burn-off",
+  "Kaminkehrerbetrieb": "Chimney sweep mode",
+  "Reinigung durchgeführt": "Cleaning done",
+  "Hauptreinigung durchgeführt": "Main cleaning done",
+  "Wartung durchgeführt": "Maintenance done",
+  "Hauptreinigung und Aschetonnen durchgeführt": "Main cleaning and ash bins done",
+  "Betriebswahl Kessel": "Boiler operating mode",
+  "Nennleistung": "Rated output",
+  "Gerätetyp": "Device type",
+  "Mischer Stellwert": "Mixing valve position",
+  "Mischer": "Mixing valve"
 }

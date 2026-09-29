@@ -8,11 +8,13 @@ werden auf ihr lesendes Gegenstück zurückgestuft.
 from __future__ import annotations
 
 import asyncio
+from collections import Counter
 import contextlib
 import json
 import logging
 import re as _re
 
+from .. import texte
 from ..const import (
     ADVANCED_LEVELS,
     OID_HARDWAREVERSION,
@@ -398,9 +400,22 @@ class MetadatenMixin:
         for (_geraet, _name), gruppe in namen_je_geraet.items():
             if len(gruppe) < 2:
                 continue
-            for d in gruppe:
+            for d in self._ueber_deutsch_trennen(gruppe):
                 praefix = d["oid"].rsplit("/", 3)[0]
                 d["name"] = f"{d['name']} ({self._gnmn(praefix, d['oid'])})"
+
+    def _ueber_deutsch_trennen(self, gruppe: list[dict]) -> list[dict]:
+        """Was nur in fremder Sprache gleich heißt, bekommt die Fassung seines deutschen Namens.
+
+        Zurück kommt, was danach noch gleich heißt und die Adresse braucht.
+        """
+        if self.sprache == "de" or len({d.get("name_de") for d in gruppe}) < 2:
+            return gruppe
+        for d in gruppe:
+            if fassung := texte.eigene_fassung(self.sprache, d.get("name_de") or ""):
+                d["name"] = fassung
+        zahl = Counter(d["name"].casefold() for d in gruppe)
+        return [d for d in gruppe if zahl[d["name"].casefold()] > 1]
 
     def _zusatzwerte_uebernehmen(self, kandidaten: list[dict]) -> None:
         """Angekreuzte Werte einschalten, die übrigen abgeschaltet anlegen.

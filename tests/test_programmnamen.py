@@ -154,3 +154,19 @@ async def test_auf_englisch_tragen_auch_gepflegte_kernnamen_keine_adresse(monkey
     namen = {d["oid"].split("/1/15/0/", 1)[1][:-2]: d["name"] for d in c.devices if d.get("oid")}
     assert namen.get("5/6") == "DHW circulation pump mode"
     assert "(" not in namen.get("5/0", "")
+
+
+@requires_ha()
+@pytest.mark.parametrize("fct_type", [1, 9, 10, 14, 16, 20, 25])
+async def test_auf_englisch_keine_adresse_die_es_auf_deutsch_nicht_gibt(monkeypatch, fct_type):
+    """Heißen zwei Werte nur auf Englisch gleich, trennt sie der übersetzte deutsche Name."""
+    namen = {}
+    for sprache in ("de", "en"):
+        c = await _erkennen(monkeypatch, sprache=sprache, fct_type=fct_type)
+        namen[sprache] = {d["id"]: d["name"] for d in c.devices if d.get("oid")}
+    nur_englisch = [
+        name
+        for kennung, name in namen["en"].items()
+        if "(" in name and "(" not in namen["de"].get(kennung, "(")
+    ]
+    assert nur_englisch == []
