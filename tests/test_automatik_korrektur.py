@@ -128,6 +128,33 @@ def test_vorlaeufig_gibt_es_den_pv_faktor_schon_nach_einem_tag(k):
     assert korrektur.faktor(14, heute, vorlaeufig=True) == pytest.approx(1.12)
 
 
+def test_eine_prognose_nach_dem_vormittag_zaehlt_nicht(k):
+    """Wer abends einrichtet, bekommt für diesen Tag kein Paar – die Tagesprognose fehlt dann."""
+    korrektur = k.Pvkorrektur()
+    abend = START + timedelta(hours=19)
+    korrektur.prognose_merken(abend, 0.125)
+    korrektur.ist_merken(abend, 16.5)
+    assert korrektur.lerntage(14, (START + timedelta(days=1)).date()) == 0
+
+
+def test_ein_unmoeglicher_tag_verzerrt_den_faktor_nicht(k):
+    """Ein Verhältnis über zehn ist ein Datenfehler; ein trüber Tag mit wenig Ertrag zählt weiter."""
+    korrektur = k.Pvkorrektur(
+        {
+            "tage": {
+                "2026-09-01": {"prognose": 0.125, "ist": 16.5},
+                "2026-09-02": {"prognose": 16.33, "ist": 15.28},
+                "2026-09-03": {"prognose": 16.0, "ist": 2.0},
+            }
+        }
+    )
+    heute = (START + timedelta(days=3)).date()
+    assert korrektur.lerntage(14, heute) == 2
+    assert korrektur.faktor(14, heute, vorlaeufig=True) == pytest.approx(
+        (15.28 + 2.0) / (16.33 + 16.0), abs=0.001
+    )
+
+
 def test_pv_faktor_ist_begrenzt(k):
     korrektur = pv_tage(k, 7, 10.0, 30.0)
     assert korrektur.faktor(14, (START + timedelta(days=7)).date()) == k.FAKTOR_MAX

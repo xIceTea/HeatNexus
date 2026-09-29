@@ -18,6 +18,10 @@ FAKTOR_MIN = 0.5
 FAKTOR_MAX = 1.5
 # Die PV-Prognose des Tages zählt ab dem Morgen; nachts rechnet sie oft noch mit gestern.
 MORGEN_AB = 5
+# Später gemerkt, deckt sie den Tag nicht mehr ab, etwa nach einer Einrichtung am Abend.
+MORGEN_BIS = 10
+# Ist ÷ Prognose außerhalb dieses Faktors ist ein Datenfehler, kein Wetter.
+PLAUSIBEL = 10.0
 
 
 def _stunde(zeit: datetime) -> str:
@@ -119,7 +123,7 @@ class Pvkorrektur:
 
     def prognose_merken(self, jetzt: datetime, kwh: float | None) -> None:
         """Die erste Prognose des Tages ab dem Morgen merken."""
-        if kwh is None or jetzt.hour < MORGEN_AB:
+        if kwh is None or not MORGEN_AB <= jetzt.hour < MORGEN_BIS:
             return
         tag = self._tag(jetzt)
         if tag["prognose"] is None:
@@ -137,7 +141,10 @@ class Pvkorrektur:
         return [
             (w["prognose"], w["ist"])
             for d, w in self._tage.items()
-            if von <= d < bis and (w["prognose"] or 0) > 0 and (w["ist"] or 0) > 0
+            if von <= d < bis
+            and (w["prognose"] or 0) > 0
+            and (w["ist"] or 0) > 0
+            and 1 / PLAUSIBEL <= w["ist"] / w["prognose"] <= PLAUSIBEL
         ]
 
     def lerntage(self, fenster: int, heute: date) -> int:
