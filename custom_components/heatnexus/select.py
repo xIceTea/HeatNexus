@@ -45,7 +45,8 @@ class WindhagerSelect(WindhagerEntity, SelectEntity):
             # restrict to values the device actually supports; unknown values
             # get a generic label so they are still selectable
             self._value_to_label = {
-                v: self.enum_map.get(v) or self._ersatztext("Wert {wert}", v) for v in allowed
+                v: self.enum_map[v] if v in self.enum_map else self._ersatztext("Wert {wert}", v)
+                for v in allowed
             }
         self._label_to_value: dict[str, int] = {}
         for value, label in sorted(self._value_to_label.items()):

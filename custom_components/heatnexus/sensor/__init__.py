@@ -161,7 +161,10 @@ class WindhagerEnumSensor(WindhagerEntity, SensorEntity):
         # Anzeige daran ausgerichtet, steht dort dauerhaft "Unbekannt".
         # Angezeigt wird deshalb aus der vollen Tabelle.
         werte = set(self.enum_map) | set(device_info.get("allowed") or ())
-        self._labels = {v: self.enum_map.get(v) or self._ersatzname(v) for v in sorted(werte)}
+        self._labels = {
+            v: self.enum_map[v] if v in self.enum_map else self._ersatzname(v)
+            for v in sorted(werte)
+        }
 
     def _ersatzname(self, raw: int) -> str:
         return self._ersatztext("Unbekannt ({wert})", raw)
