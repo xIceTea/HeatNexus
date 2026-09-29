@@ -349,8 +349,7 @@ export const TagesbildMixin = (Basis) =>
         taste.addEventListener("click", () => {
           this._automatikTagWahl[kreis.heizkreis] = index;
           delete (this._automatikStundeOffen || {})[kreis.heizkreis];
-          this._gebaut = false;
-          this._zeichnen();
+          this._automatikNeuZeichnen();
         });
         leiste.appendChild(taste);
       });
@@ -388,8 +387,7 @@ export const TagesbildMixin = (Basis) =>
         zelle.setAttribute("aria-pressed", String(eintrag.stunde === gezeigt));
         zelle.addEventListener("click", () => {
           this._automatikStundeOffen[kreis.heizkreis] = gewaehlt === eintrag.stunde ? null : eintrag.stunde;
-          this._gebaut = false;
-          this._zeichnen();
+          this._automatikNeuZeichnen();
         });
         const temperatur = eintrag.korrigiert ?? eintrag.roh;
         const symbol = wetterSymbol(eintrag.wolken, (sonne[eintrag.stunde] || 0) > 0);
@@ -488,20 +486,10 @@ export const TagesbildMixin = (Basis) =>
       if (!k) return null;
       const huelle = document.createElement("span");
       huelle.className = "korrektur";
-      const schalter = document.createElement("button");
-      schalter.type = "button";
-      schalter.className = `automatik-schalter klein${k.an ? " an" : ""}`;
-      schalter.setAttribute("role", "switch");
-      schalter.setAttribute("aria-checked", String(!!k.an));
-      schalter.disabled = !(this._automatik && this._automatik.darf_aendern);
-      const knopf = document.createElement("i");
-      const text = document.createElement("span");
-      text.textContent = this._t("Prognose anpassen");
-      schalter.append(knopf, text);
-      schalter.addEventListener("click", () =>
-        this._automatikEinstellen(kreis, { eigene: { ...(kreis.konfig.eigene || {}), anpassen: !k.an } })
-      );
-      huelle.appendChild(schalter);
+      const darf = !!(this._automatik && this._automatik.darf_aendern);
+      const umschalten = () =>
+        this._automatikEinstellen(kreis, { eigene: { ...(kreis.konfig.eigene || {}), anpassen: !k.an } });
+      huelle.appendChild(this._automatikSchalter("Prognose anpassen", k.an, darf, umschalten, true));
       korrekturMarken(k, (wort) => this._t(wort)).forEach(({ text: inhalt, wirkt }) => {
         const marke = document.createElement("span");
         marke.className = `automatik-korrekturmarke${wirkt ? " wirkt" : ""}`;
