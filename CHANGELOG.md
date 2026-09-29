@@ -40,6 +40,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Abgeleitete Werte, Tasten und unbekannte Auswahlwerte erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
 - Die Tooltips im Schaubild erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
 - Die Leiste „Ansicht bearbeiten“ bleibt beim Blättern oben stehen.
+- Auf Französisch und Italienisch tragen abgeleitete Werte Zusätze in der eigenen Sprache.
 
 ## [1.13.0-beta.3] - 2026-09-26
 
