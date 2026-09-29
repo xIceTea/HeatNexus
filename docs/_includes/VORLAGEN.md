@@ -146,3 +146,6 @@ Das mitgelieferte Dashboard wird bei jedem Öffnen neu gebaut und ist deshalb
 nicht bearbeitbar. Der Dienst gibt es als YAML zurück — damit lässt sich ein
 eigenes Dashboard anlegen: neues Dashboard erstellen, Rohkonfigurations-Editor
 öffnen, Text einfügen. Ab da gehört es dir und ändert sich nicht mehr mit.
+Links und Zurück-Pfeile der Kopie führen weiter zu `/heatnexus/`. Liegt die
+Kopie unter einer anderen Adresse, ersetze `/heatnexus/` im Text durch diese
+Adresse.

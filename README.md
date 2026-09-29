@@ -297,14 +297,15 @@ Entitäts-IDs eintragen, kein YAML kopieren. Jeder Reiter trägt seinen Namen:
   anliegende Störungen mit Text und Abhilfe. Darunter folgt je Anlage ein
   Abschnitt mit Schaubild, Kernwerten, Thermostaten und den alltäglichen
   Tasten. Außentemperatur, Störungen und, sofern eingerichtet, der Status der
-  Automatik stehen als Badges darüber. Ein Tippen auf den Anlagennamen öffnet die Arbeitsseite.
+  Automatik stehen als Badges darüber. Ein Tippen auf den Anlagennamen öffnet
+  die Arbeitsseite.
 - **Je Anlage eine Arbeitsseite** – sie zeigt je Anlagenteil Zeigerinstrumente,
   Zustand und Bedienung, bei Heizkreisen zuerst das Thermostat. Gibt es nur
   eine Anlage, steht diese Seite vorn und trägt oben Meldungen, Badges und das
   Schaubild mit Zustandsliste.
 - **Wartung** – Restlaufzeiten bis Ascheentleerung, Hauptreinigung und Wartung
   stehen als Rundinstrument, dazu Brennstoff, Vorratsbehälter und
-  Zählerstände. Die Seite ist je Anlage gegliedert.
+  Zählerstände. Die Abschnitte tragen den Namen von Anlage und Anlagenteil.
 - **Auswertung** – sie zeigt den Zuwachs der Zähler *heute* und *diesen Monat*
   (Brennerstarts, Betriebsstunden) sowie Temperaturverläufe der letzten
   48 Stunden, je Anlage gegliedert.

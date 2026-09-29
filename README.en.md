@@ -287,8 +287,8 @@ copy. Every tab shows its name:
   system this page comes first and carries messages, badges and the diagram
   with its state list at the top.
 - **Maintenance** — remaining runtimes until ash removal, main cleaning and
-  service appear as gauges, plus fuel, hopper and meter readings, grouped by
-  system.
+  service appear as gauges, plus fuel, hopper and meter readings. Each section
+  carries the name of the system and the part.
 - **Analysis** — it shows the meter increase *today* and *this month* (burner
   starts, operating hours) and temperature histories of the last 48 hours,
   grouped by system.

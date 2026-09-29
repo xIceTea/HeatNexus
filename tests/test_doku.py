@@ -33,3 +33,9 @@ def test_die_architektur_nennt_jedes_dashboardmodul():
 def test_die_readme_nennt_die_grenzen_der_kopie():
     for datei in ("README.md", "README.en.md"):
         assert "`/heatnexus/`" in _abschnitt(datei, "Dashboard"), datei
+
+
+def test_die_vorlagen_nennen_die_adresse_der_kopie():
+    text = (WURZEL / "docs" / "_includes" / "VORLAGEN.md").read_text(encoding="utf-8")
+    treffer = re.search(r"(?ms)^### Dashboard ausgeben\s*$(.*?)(?=^#|\Z)", text)
+    assert treffer and "`/heatnexus/`" in treffer.group(1)
