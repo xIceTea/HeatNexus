@@ -72,7 +72,7 @@
   "Darstellung": "Appearance",
   "Das Estrichprogramm fährt ein festes Temperaturprofil über Tage und lässt sich nicht einfach abbrechen. Wirklich starten?": "The screed drying program runs a fixed temperature profile over several days and cannot simply be cancelled. Really start?",
   "Das Schaubild konnte nicht geladen werden.": "The diagram could not be loaded.",
-  "Das mitgelieferte Dashboard baut sich bei jedem Öffnen neu aus der Anlage auf und lässt sich deshalb nicht bearbeiten. Dieser Text ist sein heutiger Stand – eingefügt in ein neues Dashboard gehört er dir.": "The bundled dashboard rebuilds itself from the system every time it is opened and therefore cannot be edited. This text is its state as of today - pasted into a new dashboard it is yours.",
+  "Das mitgelieferte Dashboard baut sich bei jedem Öffnen neu aus der Anlage auf und lässt sich deshalb nicht bearbeiten. Dieser Text ist sein heutiger Stand – eingefügt in ein neues Dashboard gehört er dir. Neue Werte erscheinen dort nicht von selbst, und die Karten hängen an den heutigen Entitäts-IDs.": "The bundled dashboard rebuilds itself from the system every time it is opened and therefore cannot be edited. This text is its state as of today – pasted into a new dashboard it is yours. New values do not appear there by themselves, and the cards depend on today's entity IDs.",
   "Dashboard-Vorlage": "Dashboard template",
   "Dashboards stehen noch nicht bereit": "Dashboards are not ready yet",
   "Der Kessel brennt den restlichen Brennstoff aus und geht danach in den Stillstand. Das dauert und verbraucht Brennstoff. Wirklich auslösen?": "The boiler burns off the remaining fuel and then comes to a standstill. This takes a while and consumes fuel. Really trigger?",

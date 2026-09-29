@@ -667,10 +667,11 @@ def _sichtbare_texte(wert, schluessel=None) -> list[str]:
     return []
 
 
-def test_auf_englisch_bleibt_im_dashboard_nichts_deutsch(
-    uebersichtsseite, anlagenseite, wartungsseite, details
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+def test_in_fremder_sprache_bleibt_im_dashboard_nichts_deutsch(
+    sprache, uebersichtsseite, anlagenseite, wartungsseite, details
 ):
-    """Jede Überschrift, jeder Kartenname und jede Rückfrage erscheint auf Englisch."""
+    """Jede Überschrift, jeder Kartenname und jede Rückfrage erscheint übersetzt."""
     from custom_components.heatnexus.texte import LOVELACE_FELDER, Woerterbuch, uebersetze_baum
 
     anlage = _dashboard_anlage()
@@ -686,7 +687,7 @@ def test_auf_englisch_bleibt_im_dashboard_nichts_deutsch(
     [teil] = englisch["teile"]
     fertig = uebersetze_baum(
         _alle_ansichten(englisch, teil, uebersichtsseite, anlagenseite, wartungsseite, details),
-        Woerterbuch("en"),
+        Woerterbuch(sprache),
         LOVELACE_FELDER,
     )
     eigene = {anlage["name"], teil["name"]}
@@ -697,7 +698,7 @@ def test_auf_englisch_bleibt_im_dashboard_nichts_deutsch(
         return text
 
     reste = sorted({t for t in _sichtbare_texte(fertig) if DEUTSCH.search(ohne_eigene(t))})
-    assert not reste, f"auf Englisch noch deutsch: {reste}"
+    assert not reste, f"{sprache}: noch deutsch: {reste}"
 
 
 def _e(entity_id: str, name: str, **rest) -> dict:

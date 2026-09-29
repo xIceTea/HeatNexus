@@ -65,10 +65,9 @@ export const HilfeMixin = (Basis) =>
 
       const hinweis = document.createElement("p");
       hinweis.className = "dialog-text";
-      hinweis.textContent =
-        "Das mitgelieferte Dashboard baut sich bei jedem Öffnen neu aus der " +
-        "Anlage auf und lässt sich deshalb nicht bearbeiten. Dieser Text ist " +
-        "sein heutiger Stand – eingefügt in ein neues Dashboard gehört er dir.";
+      hinweis.textContent = this._t(
+        "Das mitgelieferte Dashboard baut sich bei jedem Öffnen neu aus der Anlage auf und lässt sich deshalb nicht bearbeiten. Dieser Text ist sein heutiger Stand – eingefügt in ein neues Dashboard gehört er dir. Neue Werte erscheinen dort nicht von selbst, und die Karten hängen an den heutigen Entitäts-IDs."
+      );
 
       // Ein Textfeld statt eines Absatzes: So lässt sich der Inhalt auch dort
       // markieren, wo die Zwischenablage gesperrt ist.
