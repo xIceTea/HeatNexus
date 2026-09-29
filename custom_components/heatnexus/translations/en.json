@@ -160,9 +160,47 @@
         "data": {
           "zusatzwerte": "Values"
         }
+      },
+      "steuerung_neu": {
+        "title": "Add controller",
+        "description": "Another controller of this heating system. After saving, HeatNexus reloads and reads it in; the existing controllers stay unchanged.",
+        "data": {
+          "label": "Name",
+          "host": "IP address",
+          "username": "Access",
+          "password": "Service password"
+        },
+        "data_description": {
+          "username": "Out of the box the system knows \"USER\" and \"Service\". \"Service\" also delivers the specialist parameters."
+        }
+      },
+      "steuerung_entfernen": {
+        "title": "Remove controller",
+        "description": "Which controller should be removed from this heating system?",
+        "data": {
+          "host": "Controller"
+        }
+      },
+      "steuerung_entfernen_bestaetigen": {
+        "title": "Remove controller",
+        "description": "**{anlage}** is removed together with everything attached to it:\n\n- {geraete} devices with their entities and history\n- Automations: {automatiken}. Their interventions on the controller are reverted.\n- Heat sources: {quellen}\n\nThis cannot be undone. If the controller is added again later, it is read in from scratch.",
+        "data": {
+          "verstanden": "I understand and want to remove the controller"
+        }
       }
     },
-    "error": {}
+    "error": {
+      "bestaetigung_fehlt": "Please confirm that the controller should be removed with everything attached to it.",
+      "already_configured": "This address is already part of this heating system.",
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Login rejected - check the service password",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "steuerung_hinzugefuegt": "The controller has been added. HeatNexus reloads and reads it in.",
+      "steuerung_entfernt": "The controller has been removed. HeatNexus reloads.",
+      "letzte_steuerung": "The last controller cannot be removed. To remove the whole heating system, delete the entry."
+    }
   },
   "selector": {
     "levels": {

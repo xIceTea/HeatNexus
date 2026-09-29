@@ -160,9 +160,47 @@
         "data": {
           "zusatzwerte": "Valeurs"
         }
+      },
+      "steuerung_neu": {
+        "title": "Ajouter un régulateur",
+        "description": "Un autre régulateur de ce chauffage. Après l'enregistrement, HeatNexus recharge et le lit ; les régulateurs existants restent inchangés.",
+        "data": {
+          "label": "Désignation",
+          "host": "Adresse IP",
+          "username": "Accès",
+          "password": "Mot de passe service"
+        },
+        "data_description": {
+          "username": "Par défaut, le système connaît « USER » et « Service ». « Service » fournit en plus les paramètres techniques."
+        }
+      },
+      "steuerung_entfernen": {
+        "title": "Supprimer un régulateur",
+        "description": "Quel régulateur faut-il supprimer de ce chauffage ?",
+        "data": {
+          "host": "Régulateur"
+        }
+      },
+      "steuerung_entfernen_bestaetigen": {
+        "title": "Supprimer un régulateur",
+        "description": "**{anlage}** est supprimé avec tout ce qui en dépend :\n\n- {geraete} appareils avec leurs entités et leur historique\n- Automatisations : {automatiken}. Leurs interventions sur le régulateur sont annulées.\n- Sources de chaleur : {quellen}\n\nCette action est irréversible. Si le régulateur est ajouté plus tard, il est relu entièrement.",
+        "data": {
+          "verstanden": "J'ai compris et je veux supprimer le régulateur"
+        }
       }
     },
-    "error": {}
+    "error": {
+      "bestaetigung_fehlt": "Veuillez confirmer que le régulateur doit être supprimé avec tout ce qui en dépend.",
+      "already_configured": "Cette adresse fait déjà partie de ce chauffage.",
+      "cannot_connect": "Échec de la connexion",
+      "invalid_auth": "Connexion refusée – vérifiez le mot de passe service",
+      "unknown": "Erreur inattendue"
+    },
+    "abort": {
+      "steuerung_hinzugefuegt": "Le régulateur a été ajouté. HeatNexus recharge et le lit.",
+      "steuerung_entfernt": "Le régulateur a été supprimé. HeatNexus recharge.",
+      "letzte_steuerung": "Le dernier régulateur ne peut pas être supprimé. Pour supprimer tout le chauffage, supprimez l'entrée."
+    }
   },
   "selector": {
     "levels": {

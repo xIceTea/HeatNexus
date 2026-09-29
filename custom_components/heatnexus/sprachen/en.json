@@ -734,5 +734,8 @@
   "HeatNexus – Legionellenschutz nachbilden": "HeatNexus – Legionella protection",
   "HeatNexus – Störung melden": "HeatNexus – Report fault",
   "HeatNexus – Brennstoffvorrat niedrig": "HeatNexus – Low fuel stock",
-  "HeatNexus – Wartungswarnung mit Erinnerung": "HeatNexus – Maintenance warning with reminder"
+  "HeatNexus – Wartungswarnung mit Erinnerung": "HeatNexus – Maintenance warning with reminder",
+  "Steuerung hinzufügen": "Add controller",
+  "Steuerung entfernen": "Remove controller",
+  "keine": "none"
 }

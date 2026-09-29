@@ -232,6 +232,14 @@ class Verwaltung:
         ):
             self.hass.config_entries.async_remove_subentry(entry, sub_id)
 
+    def eingerichtet(self, entry_id: str) -> list[str]:
+        """Die Heizkreise des Eintrags, für die eine Automatik eingerichtet ist."""
+        return [
+            device_id
+            for device_id, eintrag in self._daten["heizkreise"].items()
+            if (eintrag.get("konfig") or {}).get("entry_id") == entry_id
+        ]
+
     def konfig(self, device_id: str) -> dict[str, Any] | None:
         """Die gespeicherten Einstellungen eines Heizkreises."""
         eintrag = self._daten["heizkreise"].get(device_id)
@@ -331,9 +339,8 @@ class Verwaltung:
         """
         if self.subeintrag(entry) is not None:
             return
-        for device_id, eintrag in list(self._daten["heizkreise"].items()):
-            if (eintrag.get("konfig") or {}).get("entry_id") == entry.entry_id:
-                await self.entfernen(device_id)
+        for device_id in self.eingerichtet(entry.entry_id):
+            await self.entfernen(device_id)
 
     async def eintrag_entfernt(self, entry_id: str) -> None:
         """Einstellungen eines gelöschten Eintrags verwerfen."""

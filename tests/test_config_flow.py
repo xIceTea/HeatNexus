@@ -346,6 +346,156 @@ async def test_die_bezeichnung_der_anlage_laesst_sich_aendern(flow, monkeypatch)
 
 
 # ---------------------------------------------------------------------------
+# Steuerungen nachträglich hinzufügen und entfernen
+# ---------------------------------------------------------------------------
+A, B, C = "192.0.2.10", "192.0.2.20", "192.0.2.30"
+
+
+def _optionen_mit(flow, monkeypatch, systeme, geschrieben):
+    """Ein Optionsdialog mit Eintrag, ohne laufendes Home Assistant."""
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.const import CONF_SYSTEMS
+
+    eintrag = SimpleNamespace(
+        entry_id="e1",
+        data={CONF_SYSTEMS: systeme},
+        options={A: {"levels": ["info", "operate"], "marken": ["x"]}, "sprache": "de"},
+        runtime_data={},
+    )
+    optionen = flow.WindhagerOptionsFlow()
+    optionen.hass = SimpleNamespace(
+        config_entries=SimpleNamespace(
+            async_entries=lambda _domain: [],
+            async_update_entry=lambda _e, **felder: geschrieben.update(felder),
+        )
+    )
+    monkeypatch.setattr(type(optionen), "config_entry", property(lambda _self: eintrag))
+    monkeypatch.setattr(
+        type(optionen),
+        "async_abort",
+        lambda _self, *, reason, description_placeholders=None: {"type": "abort", "reason": reason},
+    )
+    return optionen
+
+
+async def test_das_menue_bietet_hinzufuegen_und_entfernen_nur_bei_mehreren(flow, monkeypatch):
+    einzeln = _optionen_mit(flow, monkeypatch, [{"host": A, "label": "Kesselhaus"}], {})
+    menue_einzeln = (await einzeln.async_step_init())["menu_options"]
+    mehrere = _optionen_mit(
+        flow, monkeypatch, [{"host": A, "label": "Kesselhaus"}, {"host": B, "label": "Stall"}], {}
+    )
+    menue_mehrere = (await mehrere.async_step_init())["menu_options"]
+
+    assert "steuerung_neu" in menue_einzeln and "steuerung_entfernen" not in menue_einzeln
+    assert "steuerung_entfernen" in menue_mehrere
+
+
+async def test_eine_steuerung_kommt_nachtraeglich_dazu(flow, monkeypatch):
+    from custom_components.heatnexus.const import CONF_SYSTEMS
+
+    geschrieben = {}
+    optionen = _optionen_mit(
+        flow, monkeypatch, [{"host": A, "label": "Kesselhaus", "kennung": "k-a"}], geschrieben
+    )
+
+    async def verbinden(host, passwort, benutzer):
+        return [{"neuronId": "k-c", "functions": []}]
+
+    monkeypatch.setattr(flow, "validate_connection", verbinden)
+    ergebnis = await optionen.async_step_steuerung_neu(
+        {"label": "Werkstatt", "host": " 192.0.2.30 ", "username": "USER", "password": "geheim"}
+    )
+
+    assert ergebnis == {"type": "abort", "reason": "steuerung_hinzugefuegt"}
+    assert geschrieben["data"][CONF_SYSTEMS][-1] == {
+        "label": "Werkstatt",
+        "host": C,
+        "username": "USER",
+        "password": "geheim",
+        "kennung": "k-c",
+    }
+    assert geschrieben["options"][C] == {"levels": ["info", "operate"]}
+    assert geschrieben["options"]["sprache"] == "de"
+    assert geschrieben["unique_id"] == "k-a-k-c"
+
+
+async def test_eine_vorhandene_adresse_kommt_nicht_doppelt(flow, monkeypatch):
+    geschrieben = {}
+    optionen = _optionen_mit(flow, monkeypatch, [{"host": A, "label": "Kesselhaus"}], geschrieben)
+
+    ergebnis = await optionen.async_step_steuerung_neu(
+        {"label": "Doppelt", "host": A, "username": "USER", "password": "x"}
+    )
+
+    assert ergebnis["errors"] == {"base": "already_configured"}
+    assert not geschrieben
+
+
+async def test_ohne_verbindung_kommt_keine_steuerung_dazu(flow, monkeypatch):
+    from custom_components.heatnexus.exceptions import CannotConnect
+
+    geschrieben = {}
+    optionen = _optionen_mit(flow, monkeypatch, [{"host": A, "label": "Kesselhaus"}], geschrieben)
+
+    async def verbinden(host, passwort, benutzer):
+        raise CannotConnect
+
+    monkeypatch.setattr(flow, "validate_connection", verbinden)
+    ergebnis = await optionen.async_step_steuerung_neu(
+        {"label": "Werkstatt", "host": C, "username": "USER", "password": "x"}
+    )
+
+    assert ergebnis["errors"] == {"base": "cannot_connect"}
+    assert not geschrieben
+
+
+async def test_die_letzte_steuerung_laesst_sich_nicht_entfernen(flow, monkeypatch):
+    optionen = _optionen_mit(flow, monkeypatch, [{"host": A, "label": "Kesselhaus"}], {})
+
+    assert await optionen.async_step_steuerung_entfernen() == {
+        "type": "abort",
+        "reason": "letzte_steuerung",
+    }
+
+
+async def test_das_entfernen_nennt_die_folgen_und_verlangt_den_haken(flow, monkeypatch):
+    from custom_components.heatnexus.steuerungen import Folgen
+
+    optionen = _optionen_mit(
+        flow, monkeypatch, [{"host": A, "label": "Kesselhaus"}, {"host": B, "label": "Stall"}], {}
+    )
+    entfernt = []
+    monkeypatch.setattr(
+        flow.steuerungen,
+        "folgen",
+        lambda _hass, _eintrag, host: Folgen(3, ["Heizkreis 1"], ["Solaranlage"]),
+    )
+
+    async def entfernen(_hass, _eintrag, host):
+        entfernt.append(host)
+
+    monkeypatch.setattr(flow.steuerungen, "entfernen", entfernen)
+
+    auswahl = await optionen.async_step_steuerung_entfernen()
+    frage = await optionen.async_step_steuerung_entfernen({"host": B})
+    ohne_haken = await optionen.async_step_steuerung_entfernen_bestaetigen({"verstanden": False})
+    ende = await optionen.async_step_steuerung_entfernen_bestaetigen({"verstanden": True})
+
+    assert auswahl["step_id"] == "steuerung_entfernen"
+    assert frage["step_id"] == "steuerung_entfernen_bestaetigen"
+    assert frage["description_placeholders"] == {
+        "anlage": "Stall (192.0.2.20)",
+        "geraete": "3",
+        "automatiken": "Heizkreis 1",
+        "quellen": "Solaranlage",
+    }
+    assert ohne_haken["errors"] == {"base": "bestaetigung_fehlt"}
+    assert ende == {"type": "abort", "reason": "steuerung_entfernt"}
+    assert entfernt == [B]
+
+
+# ---------------------------------------------------------------------------
 # Wärmequellen ohne Anschluss an die Steuerung
 # ---------------------------------------------------------------------------
 SOLAR = {

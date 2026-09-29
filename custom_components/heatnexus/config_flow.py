@@ -35,6 +35,7 @@ from homeassistant.helpers.selector import (
 )
 import voluptuous as vol
 
+from . import steuerungen
 from .blueprints import verfuegbare as verfuegbare_vorlagen
 from .const import (
     CONF_AUSSENTEMPERATUR,
@@ -87,6 +88,36 @@ from .waermequelle_flow import WaermequelleSubentryFlow
 _LOGGER = logging.getLogger(__name__)
 
 
+async def _verbindung_pruefen(host: str, passwort: str, benutzer: str) -> tuple[list | None, str]:
+    """Die Struktur der Anlage, sonst der Fehlerschlüssel für das Formular."""
+    try:
+        return await validate_connection(host, passwort, benutzer), ""
+    except InvalidAuth:
+        return None, "invalid_auth"
+    except CannotConnect:
+        return None, "cannot_connect"
+    except Exception:
+        _LOGGER.exception("Unerwarteter Fehler beim Verbinden mit %s", host)
+        return None, "unknown"
+
+
+def _anzeigename(system: Mapping[str, Any]) -> str:
+    """Bezeichnung mit Adresse, wie im Menü."""
+    return f"{system.get(CONF_LABEL) or system[CONF_HOST]} ({system[CONF_HOST]})"
+
+
+def _steuerung_schema(bezeichnung: str) -> vol.Schema:
+    """Bezeichnung, Adresse, Zugang und Passwort einer Steuerung."""
+    return vol.Schema(
+        {
+            vol.Required(CONF_LABEL, default=bezeichnung): str,
+            vol.Required(CONF_HOST): str,
+            vol.Required(CONF_USERNAME, default=DEFAULT_USERNAME): benutzer_auswahl(),
+            vol.Required(CONF_PASSWORD): str,
+        }
+    )
+
+
 class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
     """Führt durch Name, Anzahl der Anlagen, deren Adressen und den Umfang."""
 
@@ -132,15 +163,11 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "already_configured"
             else:
                 benutzer = (user_input.get(CONF_USERNAME) or DEFAULT_USERNAME).strip()
-                try:
-                    struktur = await validate_connection(host, user_input[CONF_PASSWORD], benutzer)
-                except InvalidAuth:
-                    errors["base"] = "invalid_auth"
-                except CannotConnect:
-                    errors["base"] = "cannot_connect"
-                except Exception:
-                    _LOGGER.exception("Unerwarteter Fehler beim Verbinden mit %s", host)
-                    errors["base"] = "unknown"
+                struktur, fehler = await _verbindung_pruefen(
+                    host, user_input[CONF_PASSWORD], benutzer
+                )
+                if fehler:
+                    errors["base"] = fehler
                 else:
                     self._systeme.append(
                         {
@@ -160,18 +187,8 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="system",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_LABEL,
-                        default=woerterbuch_zu(self)("Anlage {nummer}").replace(
-                            "{nummer}", str(nummer)
-                        ),
-                    ): str,
-                    vol.Required(CONF_HOST): str,
-                    vol.Required(CONF_USERNAME, default=DEFAULT_USERNAME): benutzer_auswahl(),
-                    vol.Required(CONF_PASSWORD): str,
-                }
+            data_schema=_steuerung_schema(
+                woerterbuch_zu(self)("Anlage {nummer}").replace("{nummer}", str(nummer))
             ),
             errors=errors,
             description_placeholders={"nummer": str(nummer), "anzahl": str(self._anzahl)},
@@ -398,11 +415,102 @@ class WindhagerOptionsFlow(OptionsFlow):
         # dort direkt zur Anlage, war der Schritt „Allgemeine Einstellungen"
         # nach der Einrichtung nie wieder erreichbar – und mit ihm Sprache,
         # Dashboard, Panel, Erklärungen, Außentemperatur und Abfrageintervall.
-        auswahl = {"allgemein": woerterbuch_zu(self)("Allgemein (Oberfläche, Sprache, Abfrage)")}
+        uebersetzt = woerterbuch_zu(self)
+        auswahl = {"allgemein": uebersetzt("Allgemein (Oberfläche, Sprache, Abfrage)")}
         for i, system in enumerate(systeme):
-            bezeichnung = system.get(CONF_LABEL) or system[CONF_HOST]
-            auswahl[f"anlage_{i}"] = f"{bezeichnung} ({system[CONF_HOST]})"
+            auswahl[f"anlage_{i}"] = _anzeigename(system)
+        auswahl["steuerung_neu"] = uebersetzt("Steuerung hinzufügen")
+        # Die letzte Steuerung bleibt; eine ganze Heizung entfernt man mit dem Eintrag.
+        if len(systeme) > 1:
+            auswahl["steuerung_entfernen"] = uebersetzt("Steuerung entfernen")
         return self.async_show_menu(step_id="init", menu_options=auswahl)
+
+    async def async_step_steuerung_neu(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Eine weitere Steuerung an den Eintrag hängen; danach lädt er neu."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            host = clean_host(user_input[CONF_HOST])
+            benutzer = (user_input.get(CONF_USERNAME) or DEFAULT_USERNAME).strip()
+            if any(s[CONF_HOST] == host for s in self._systeme()):
+                errors["base"] = "already_configured"
+            else:
+                struktur, fehler = await _verbindung_pruefen(
+                    host, user_input[CONF_PASSWORD], benutzer
+                )
+                if fehler:
+                    errors["base"] = fehler
+                else:
+                    neu = {
+                        CONF_LABEL: user_input[CONF_LABEL].strip() or host,
+                        CONF_HOST: host,
+                        CONF_USERNAME: benutzer,
+                        CONF_PASSWORD: user_input[CONF_PASSWORD],
+                        "kennung": anlagenkennung(struktur or []),
+                    }
+                    steuerungen.hinzufuegen(self.hass, self.config_entry, neu)
+                    return self.async_abort(reason="steuerung_hinzugefuegt")
+        return self.async_show_form(
+            step_id="steuerung_neu",
+            data_schema=self.add_suggested_values_to_schema(
+                _steuerung_schema(""), user_input or {}
+            ),
+            errors=errors,
+        )
+
+    async def async_step_steuerung_entfernen(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Die Steuerung wählen, die mit allem, was an ihr hängt, entfernt wird."""
+        systeme = self._systeme()
+        if len(systeme) < 2:
+            return self.async_abort(reason="letzte_steuerung")
+        if user_input is not None:
+            self._host = user_input[CONF_HOST]
+            return await self.async_step_steuerung_entfernen_bestaetigen()
+        return self.async_show_form(
+            step_id="steuerung_entfernen",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_HOST): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(value=s[CONF_HOST], label=_anzeigename(s))
+                                for s in systeme
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_steuerung_entfernen_bestaetigen(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Aufzählen, was mitgeht; erst der Haken entfernt die Steuerung."""
+        host = self._host or ""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if user_input.get("verstanden"):
+                await steuerungen.entfernen(self.hass, self.config_entry, host)
+                return self.async_abort(reason="steuerung_entfernt")
+            errors["base"] = "bestaetigung_fehlt"
+        folgen = steuerungen.folgen(self.hass, self.config_entry, host)
+        keine = woerterbuch_zu(self)("keine")
+        system = next((s for s in self._systeme() if s[CONF_HOST] == host), {CONF_HOST: host})
+        return self.async_show_form(
+            step_id="steuerung_entfernen_bestaetigen",
+            data_schema=vol.Schema({vol.Required("verstanden", default=False): bool}),
+            errors=errors,
+            description_placeholders={
+                "anlage": _anzeigename(system),
+                "geraete": str(folgen.geraete),
+                "automatiken": ", ".join(folgen.automatiken) or keine,
+                "quellen": ", ".join(folgen.quellen) or keine,
+            },
+        )
 
     async def async_step_allgemein(
         self, user_input: dict[str, Any] | None = None

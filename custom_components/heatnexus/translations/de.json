@@ -160,9 +160,47 @@
         "data": {
           "zusatzwerte": "Werte"
         }
+      },
+      "steuerung_neu": {
+        "title": "Steuerung hinzufügen",
+        "description": "Eine weitere Steuerung dieser Heizung. Nach dem Speichern lädt HeatNexus neu und liest sie ein; die vorhandenen Steuerungen bleiben unverändert.",
+        "data": {
+          "label": "Bezeichnung",
+          "host": "IP-Adresse",
+          "username": "Zugang",
+          "password": "Service-Passwort"
+        },
+        "data_description": {
+          "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter."
+        }
+      },
+      "steuerung_entfernen": {
+        "title": "Steuerung entfernen",
+        "description": "Welche Steuerung soll aus dieser Heizung entfernt werden?",
+        "data": {
+          "host": "Steuerung"
+        }
+      },
+      "steuerung_entfernen_bestaetigen": {
+        "title": "Steuerung entfernen",
+        "description": "**{anlage}** wird mit allem entfernt, was an ihr hängt:\n\n- {geraete} Geräte mit ihren Entitäten und ihrem Verlauf\n- Automatiken: {automatiken}. Ihre Eingriffe an der Steuerung werden zurückgenommen.\n- Wärmequellen: {quellen}\n\nDas lässt sich nicht rückgängig machen. Kommt die Steuerung später wieder hinzu, wird sie neu eingelesen.",
+        "data": {
+          "verstanden": "Ich habe verstanden und will die Steuerung entfernen"
+        }
       }
     },
-    "error": {}
+    "error": {
+      "bestaetigung_fehlt": "Bitte bestätigen, dass die Steuerung mit allem entfernt werden soll.",
+      "already_configured": "Diese Adresse steht schon in dieser Heizung.",
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_auth": "Anmeldung abgelehnt – bitte Service-Passwort prüfen",
+      "unknown": "Unerwarteter Fehler"
+    },
+    "abort": {
+      "steuerung_hinzugefuegt": "Die Steuerung ist hinzugefügt. HeatNexus lädt neu und liest sie ein.",
+      "steuerung_entfernt": "Die Steuerung ist entfernt. HeatNexus lädt neu.",
+      "letzte_steuerung": "Die letzte Steuerung lässt sich nicht entfernen. Um die ganze Heizung zu entfernen, lösche den Eintrag."
+    }
   },
   "selector": {
     "levels": {
