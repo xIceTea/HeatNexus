@@ -94,31 +94,38 @@ def test_nur_bekannte_felder_werden_uebersetzt(texte):
 @pytest.mark.parametrize(
     ("deutsch", "englisch"),
     [
-        ("Sonnentag – 21,0 °C bis 16:54.", "Sunny day – 21,0 °C until 16:54."),
+        ("Sonnentag – 21,0 °C bis 16:54.", "Sunny day – 21.0 °C until 16:54."),
         (
             "Heizt nach Programm – gedämpfte AT 16,8 °C, Raum 21,3 °C. Die Räume fordern Wärme an.",
-            "Heating by program – damped outdoor temp. 16,8 °C, room 21,3 °C. The rooms call for heat.",
+            "Heating by program – damped outdoor temp. 16.8 °C, room 21.3 °C. The rooms call for heat.",
         ),
         (
             "Absenkung von Hand beendet. Pausiert bis 05:00.",
             "Setback ended by hand. Paused until 05:00.",
         ),
-        ("Außen 3,0 °C – zurück ins Programm.", "Outdoor 3,0 °C – back to the program."),
-        ("Räume −0,6 K – zurück ins Programm.", "Rooms −0,6 K – back to the program."),
+        ("Außen 3,0 °C – zurück ins Programm.", "Outdoor 3.0 °C – back to the program."),
+        ("Räume −0,6 K – zurück ins Programm.", "Rooms −0.6 K – back to the program."),
         (
             "Estrich an der Steuerung – keine Eingriffe.",
             "Screed drying at the controller – no interventions.",
         ),
         (
             "Heizgrenzen der Steuerung: Heizbetrieb 18,0 °C, Absenkbetrieb 5,0 °C.",
-            "Controller heating limits: Heating mode 18,0 °C, setback mode 5,0 °C.",
+            "Controller heating limits: Heating mode 18.0 °C, setback mode 5.0 °C.",
         ),
-        ("Solaranlage liefert – 21,0 °C bis 16:54.", "Solaranlage delivers – 21,0 °C until 16:54."),
+        ("Solaranlage liefert – 21,0 °C bis 16:54.", "Solaranlage delivers – 21.0 °C until 16:54."),
     ],
 )
 def test_saetze_mit_zahlen_kommen_uebersetzt(texte, deutsch, englisch):
     """Ein Satz mit Werten trifft sein Muster; die Werte bleiben, eingebettete Sätze werden mit übersetzt."""
     assert texte.Woerterbuch("en").satz(deutsch) == englisch
+
+
+def test_franzoesisch_behaelt_das_dezimalkomma(texte):
+    """Französisch schreibt Dezimalzahlen mit Komma, Englisch mit Punkt."""
+    satz = "Sonnentag – 21,0 °C bis 16:54."
+    assert "21,0" in texte.Woerterbuch("fr").satz(satz)
+    assert "21.0" in texte.Woerterbuch("en").satz(satz)
 
 
 def test_unbekannter_satz_bleibt_deutsch(texte):
@@ -144,7 +151,7 @@ def test_jedes_satzmuster_trifft_nur_sich_selbst(texte):
         beispiel, erwartet = deutsch, fremd
         for nummer, name in enumerate(namen):
             beispiel = beispiel.replace("{" + name + "}", f"{nummer + 1},5")
-            erwartet = erwartet.replace("{" + name + "}", f"{nummer + 1},5")
+            erwartet = erwartet.replace("{" + name + "}", f"{nummer + 1}.5")
         assert englisch.satz(beispiel) == erwartet, deutsch
 
 

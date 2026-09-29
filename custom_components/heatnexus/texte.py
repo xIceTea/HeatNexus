@@ -81,9 +81,16 @@ class Woerterbuch:
                 continue
             ergebnis = fremd
             for name, wert in zip(namen, treffer.groups(), strict=True):
-                ergebnis = ergebnis.replace("{" + name + "}", self.satz(wert))
+                ergebnis = ergebnis.replace("{" + name + "}", self._wert(wert))
             return ergebnis
         return text
+
+    def _wert(self, wert: str) -> str:
+        """Ein Wert im Satz, übersetzt und mit dem Dezimalzeichen der Sprache."""
+        wert = self.satz(wert)
+        if self.sprache in DEZIMALPUNKT:
+            wert = _DEZIMALKOMMA.sub(".", wert)
+        return wert
 
     def __bool__(self) -> bool:
         """Wahr, sobald es etwas zu übersetzen gibt."""
@@ -98,6 +105,10 @@ class Woerterbuch:
         """
         return dict(self._eintraege)
 
+
+# Sprachen, die Dezimalzahlen mit Punkt schreiben; die übrigen behalten das Komma.
+DEZIMALPUNKT = frozenset({"en"})
+_DEZIMALKOMMA = re.compile(r"(?<=\d),(?=\d)")
 
 # Sätze mit Zahlen stehen als Muster im Wörterbuch: „Sonnentag – {soll} °C bis {zeit}.“
 _PLATZHALTER = re.compile(r"\{(\w+)\}")
