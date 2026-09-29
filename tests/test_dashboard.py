@@ -65,6 +65,14 @@ def anlagenseite(dashboard):
     return modul
 
 
+@pytest.fixture(scope="module")
+def uebersichtsseite(dashboard):
+    import importlib
+
+    # `dashboard.uebersicht` ist als Attribut noch die Funktion aus `ansichten`.
+    return importlib.import_module("custom_components.heatnexus.dashboard.uebersicht")
+
+
 def test_kurzname_entfernt_steuerungspraefix(anlagen):
     assert anlagen.kurzname("Kesselhaus · PuroWIN") == "PuroWIN"
     assert anlagen.kurzname("PuroWIN") == "PuroWIN"
@@ -871,3 +879,42 @@ def test_arbeitsseite_mit_schaubild_bei_einer_anlage(anlagenseite):
     seite = anlagenseite.arbeitsseite(_anlage(_kessel()), als_karte=True, mit_schaubild=True)
     erste = seite["sections"][0]["cards"]
     assert any(str(k.get("type", "")).startswith("custom:") for k in erste)
+
+
+def _abschnitt_mit(seite: dict, titel: str) -> list[dict]:
+    return next(s["cards"] for s in seite["sections"] if s["cards"][0].get("heading") == titel)
+
+
+def test_uebersicht_je_anlage_schaubild_kernwerte_navigation(uebersichtsseite):
+    zweite = {**_kessel(), "id": "zweiter0123456789"}
+    anlagen = [_anlage(_kessel()), _anlage(zweite, name="Werkstatt", kennung="werkst0123456789")]
+    seite = uebersichtsseite.uebersicht(anlagen, als_karte=True, badges=[])
+    koepfe = [s["cards"][0] for s in seite["sections"] if "tap_action" in s["cards"][0]]
+    assert [k["heading"] for k in koepfe] == ["Kesselhaus", "Werkstatt"]
+    assert koepfe[0]["tap_action"]["navigation_path"] == "/heatnexus/anlage-anlage01"
+    erste = _abschnitt_mit(seite, "Kesselhaus")
+    bild = [k for k in erste if str(k.get("type", "")).startswith("custom:")]
+    assert bild and "zusatzwerte" not in bild[0]
+    kacheln = [k["entity"] for k in erste if k.get("type") == "tile"]
+    assert kacheln[:2] == ["sensor.betriebsphase", "sensor.kessel_ist"]
+
+
+def test_meldung_steht_nur_bei_stoerung_oben(uebersichtsseite):
+    seite = uebersichtsseite.uebersicht([_anlage(_kessel())], als_karte=False, badges=[])
+    erste = seite["sections"][0]
+    kopf, meldung = erste["cards"][0], erste["cards"][1]
+    assert kopf["heading"] == "Meldungen"
+    assert meldung["type"] == "markdown"
+    bedingung = [{"condition": "state", "entity": "binary_sensor.stoerung", "state": "on"}]
+    assert meldung["visibility"] == bedingung
+    # Die Überschrift verschwindet mit der Meldung.
+    assert kopf["visibility"] == bedingung
+    assert erste["column_span"] == 3
+
+
+def test_stoerungsbadge_nur_solange_eine_anliegt(uebersichtsseite):
+    [badge] = uebersichtsseite.stoerungsbadges([_anlage(_kessel())])
+    assert badge["entity"] == "binary_sensor.stoerung"
+    assert badge["visibility"] == [
+        {"condition": "state", "entity": "binary_sensor.stoerung", "state": "on"}
+    ]
