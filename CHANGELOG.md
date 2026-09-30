@@ -6,6 +6,36 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.13.0-beta.5] - 2026-09-30
+
+### Neu
+
+- Die Oberfläche gibt es auf Niederländisch, samt Datenpunkten und Störungstexten.
+- Das mitgelieferte Dashboard zeigt Reiter mit Namen, eine Seite je Anlage und Details je Anlagenteil.
+- Die Kopfzeile des Dashboards zeigt beschriftete Kennwerte, fällige Wartung und laufende Eingriffe der Automatik.
+- Bei nur einer Anlage steht eine anliegende Störung oben auf der Anlagenseite.
+- Der Dialog zur Dashboard-Vorlage erklärt, wohin die Links der Kopie führen.
+- Steuerungen lassen sich in den Optionen hinzufügen und entfernen.
+- Die Anlagenbezeichnung lässt sich in den Optionen ändern.
+
+### Geändert
+
+- Der Automatik-Status „Bereit“ heißt jetzt „Aktiv“.
+- Die Felder einer Steuerung heißen in Einrichtung und Optionen gleich.
+
+### Behoben
+
+- Dashboard, Einrichtung, Dienste und Fehlermeldungen erscheinen auf Englisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
+- Englische Namen tragen nur dort einen Adressanhang, wo auch die deutschen gleich heißen ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
+- Die Überschriften der Schaubild-Karte erscheinen übersetzt.
+- Englische Sätze der Automatik schreiben Zahlen mit Dezimalpunkt.
+- Das Protokoll nennt bei laufender Absenkung das geschriebene Ziel.
+- Die Automatik nutzt nach dem Start gleich die zuletzt bekannte Heizgrenze.
+- Die Summen der Automatik erscheinen gleich nach dem Start.
+- Ein gelöschter Automatik-Untereintrag entfernt auch die Automatiken.
+- Der Optionsdialog liest die Vorlagenliste, ohne Home Assistant zu blockieren.
+- Dienstbeschreibungen zeigen keine geschweiften Klammern mehr.
+
 ## [1.13.0-beta.4] - 2026-09-29
 
 ### Neu
