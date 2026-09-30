@@ -725,20 +725,23 @@ def test_in_fremder_sprache_bleibt_im_dashboard_nichts_deutsch(
             ],
         }
     )
+    zweite = _anlage(
+        {**fremd["teile"][0], "id": "zweiter0123456789"},
+        name="Werkstatt",
+        kennung="werkst0123456789",
+    )
     kopf = [
         badges.badge("sensor.x", "Außen"),
         badges.badge("sensor.y", "Automatik"),
     ]
-    urspruenglich = {"badges": [*badges.anlagenbadges([fremd]), *kopf]}
-    uebersetzt = uebersetze_baum(urspruenglich, Woerterbuch(sprache), LOVELACE_FELDER)
-    unuebersetzt = sorted(
-        {
-            a["name"]
-            for a, b in zip(urspruenglich["badges"], uebersetzt["badges"], strict=True)
-            if a["name"] == b["name"] and a["name"] not in eigene
-        }
-    )
-    assert not unuebersetzt, f"{sprache}: Badges ohne Übersetzung: {unuebersetzt}"
+    woerter = Woerterbuch(sprache)
+    liste = [*badges.anlagenbadges([fremd, zweite], uebersetze=woerter), *kopf]
+    uebersetzt = uebersetze_baum({"badges": liste}, woerter, LOVELACE_FELDER)
+    kurz = {b["name"].split(" · ")[-1] for b in uebersetzt["badges"]}
+    feste = ("Kessel", "Vorrat", "Asche", "Reinigung", "Hauptreinigung", "Wartung")
+    deutsch = sorted(kurz & {*feste, "Außen", "Automatik"})
+    assert not deutsch, f"{sprache}: Badges ohne Übersetzung: {deutsch}"
+    assert {woerter(n) for n in feste} <= kurz
     fertig = {"ansichten": fertig, "badges": uebersetzt}
 
     def ohne_eigene(text: str) -> str:
@@ -1187,6 +1190,20 @@ def test_bei_zwei_anlagen_steht_der_anlagenname_davor(badges):
     namen = [b["name"] for b in badges.anlagenbadges([_anlage(_kessel()), zweite])]
     assert "Kesselhaus · Kessel" in namen and "Werkstatt · PuroWIN" in namen
     assert "Kessel" not in namen
+
+
+async def test_kopfzeile_uebersetzt_die_namen_mehrerer_anlagen(badges, hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import CONF_SPRACHE
+
+    MockConfigEntry(domain="heatnexus", data={}, options={CONF_SPRACHE: "en"}).add_to_hass(hass)
+    zweite = _anlage(
+        {**_kessel(), "id": "zweiter0123456789"}, name="Werkstatt", kennung="werkst0123456789"
+    )
+    namen = [b["name"] for b in badges.kopfzeile(hass, [_anlage(_kessel()), zweite])]
+    assert "Kesselhaus · Boiler" in namen
+    assert not [n for n in namen if n.endswith("· Kessel")]
 
 
 async def test_kopfzeile_nennt_jede_entitaet_einmal(badges, hass):
