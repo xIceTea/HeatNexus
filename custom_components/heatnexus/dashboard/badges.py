@@ -20,6 +20,9 @@ from .muster import WARTUNG_HINWEIS_STUNDEN, WARTUNG_KURZNAMEN
 KESSEL = "Kessel"
 VORRAT = ("fuel_storage_status", "Vorrat")
 
+# Badges des laufenden Eingriffs: Art der System-Entität, Name; sichtbar nur bei „an“.
+EINGRIFFE = (("sonnentag_aktiv", "Sonnentag"), ("nur_ww_aktiv", "Nur Warmwasser"))
+
 # Eine Badge vor dem Zusammensetzen: Entität, Name, Sichtbarkeit.
 Eintrag = tuple[str, str, list[dict[str, Any]] | None]
 
@@ -135,7 +138,7 @@ def anlagenbadges(
 
 
 def allgemein(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Außentemperatur (gewählt oder erste gemeldete) und Status der Automatik."""
+    """Außentemperatur (gewählt oder erste gemeldete), Status der Automatik, laufender Eingriff."""
     eintraege = hass.config_entries.async_entries(DOMAIN)
     aussen = next(
         (w for e in eintraege if (w := (e.options or {}).get(CONF_AUSSENTEMPERATUR))), None
@@ -150,18 +153,34 @@ def allgemein(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[s
         ),
         None,
     )
-    paare = ((aussen, "Außen"), (_automatik(hass, eintraege), "Automatik"))
-    return [badge(eid, name) for eid, name in paare if eid]
+    ergebnis = [badge(aussen, "Außen")] if aussen else []
+    if automatik := _automatik(hass, eintraege):
+        status, eintrag = automatik
+        ergebnis.append(badge(status, "Automatik"))
+        for art, name in EINGRIFFE:
+            if entity_id := _aktive_entitaet(hass, "binary_sensor", eintrag, art):
+                bedingung = [{"condition": "state", "entity": entity_id, "state": "on"}]
+                ergebnis.append(badge(entity_id, name, bedingung))
+    return ergebnis
 
 
-def _automatik(hass: HomeAssistant, eintraege: list[ConfigEntry]) -> str | None:
-    """Die Statusentität der ersten Automatik, die nicht abgeschaltet ist."""
+def _aktive_entitaet(
+    hass: HomeAssistant, domaene: str, eintrag: ConfigEntry, art: str
+) -> str | None:
+    """Die System-Entität einer Art, sofern sie registriert und nicht abgeschaltet ist."""
     register = er.async_get(hass)
+    kennung = system_unique_id(eintrag.entry_id, art)
+    entity_id = register.async_get_entity_id(domaene, DOMAIN, kennung)
+    if entity_id and not register.async_get(entity_id).disabled_by:
+        return entity_id
+    return None
+
+
+def _automatik(hass: HomeAssistant, eintraege: list[ConfigEntry]) -> tuple[str, ConfigEntry] | None:
+    """Statusentität und Eintrag der ersten Automatik, die nicht abgeschaltet ist."""
     for eintrag in eintraege:
-        kennung = system_unique_id(eintrag.entry_id, "status")
-        entity_id = register.async_get_entity_id("sensor", DOMAIN, kennung)
-        if entity_id and not register.async_get(entity_id).disabled_by:
-            return entity_id
+        if entity_id := _aktive_entitaet(hass, "sensor", eintrag, "status"):
+            return entity_id, eintrag
     return None
 
 
