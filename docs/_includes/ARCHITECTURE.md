@@ -274,7 +274,7 @@ von Hand gepflegt.
 | `einlesen.py` | Vollabzug im Hintergrund und die Meldungen dazu |
 | `stilllegung.py` | Entitäten stilllegen oder löschen, die aus dem Umfang gefallen sind |
 | `dienste.py` | die Dienste `rediscover` und `dashboard_ausgeben` |
-| `dashboard/` | mitgeliefertes Dashboard, serverseitig gebaut: `anlagen` (die Teile aus den Registrierungen), `muster` (Rang und Namensmuster), `auswahl` (welcher Wert wohin), `karten` (Kartenbausteine), `uebersicht` (Reiter Übersicht), `anlage` (Arbeitsseite je Anlage), `details` (Unteransicht je Anlagenteil), `wartung` (Wartung und Auswertung), Zusammenbau und Anmeldung in `__init__` |
+| `dashboard/` | mitgeliefertes Dashboard, serverseitig gebaut: `anlagen` (die Teile aus den Registrierungen), `muster` (Rang und Namensmuster), `auswahl` (welcher Wert wohin), `karten` (Kartenbausteine), `badges` (Badges der Kopfzeile), `uebersicht` (Reiter Übersicht), `anlage` (Arbeitsseite je Anlage), `details` (Unteransicht je Anlagenteil), `wartung` (Wartung und Auswertung), Zusammenbau und Anmeldung in `__init__` |
 | `panel/` | eigener Eintrag in der Seitenleiste: Anmeldung, Aufteilung, Suchmuster, Erklärtexte |
 | `frontend/` | die Oberfläche selbst (siehe unten) |
 | `schema/` | Anlagenschaubild: `farben`, `werte`, `bauteile`, `zeichnung`, `karte` – aus den Bauteildateien in `anlagenteile/` |
