@@ -267,6 +267,17 @@ def test_der_text_zum_kopieren_setzt_die_eigene_karte(anlagenseite):
     assert "sensor.purowin_betriebsphase" in schaubild[0]["zusatzwerte"]
 
 
+@pytest.mark.parametrize(("sprache", "erwartet"), [("en", "State"), ("nl", "Toestand")])
+def test_die_ueberschrift_der_schaubildkarte_wird_uebersetzt(anlagenseite, sprache, erwartet):
+    from custom_components.heatnexus.texte import LOVELACE_FELDER, Woerterbuch, uebersetze_baum
+
+    ansicht = anlagenseite.arbeitsseite(_anlage_mit_teilen(), als_karte=True, mit_schaubild=True)
+    fertig = uebersetze_baum(ansicht, Woerterbuch(sprache), LOVELACE_FELDER)
+    karten = [k for a in fertig["sections"] for k in a["cards"]]
+    [schaubild] = [k for k in karten if k.get("type", "").startswith("custom:")]
+    assert schaubild["titel_liste"] == erwartet
+
+
 def test_ohne_kartenmodul_bleibt_die_zeichnung(anlagenseite):
     """Der Rückfall setzt kein Modul im Browser voraus."""
     ansicht = anlagenseite.arbeitsseite(_anlage_mit_teilen(), als_karte=False, mit_schaubild=True)
@@ -646,7 +657,18 @@ DEUTSCH = re.compile(
     r"[äöüÄÖÜß]|\b(und|der|die|das|nicht|bis|von|mit|keine|seit|oder|für|zum|zur|Uhr|heute|"
     r"Wert|Zähler|Anlage|Heizung|Monat|dieser)\b"
 )
-SICHTBAR = frozenset({"title", "name", "heading", "content", "confirmation_text", "text"})
+SICHTBAR = frozenset(
+    {
+        "title",
+        "name",
+        "heading",
+        "content",
+        "confirmation_text",
+        "text",
+        "titel_bild",
+        "titel_liste",
+    }
+)
 
 
 def _sichtbare_texte(wert, schluessel=None) -> list[str]:

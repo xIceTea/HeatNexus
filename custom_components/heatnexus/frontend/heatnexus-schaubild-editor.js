@@ -383,8 +383,8 @@ class HeatNexusSchaubildEditor extends HTMLElement {
       mischer: true,
       liste: "rechts",
       teile_aus: [],
-      titel_bild: "Anlagenübersicht",
-      titel_liste: "Werte",
+      titel_bild: this._t("Anlagenübersicht"),
+      titel_liste: this._t("Werte"),
       ...this._config,
       zusatzwerte: this._eintraege()
         .map((eintrag) => eintrag.entity)

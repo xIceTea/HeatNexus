@@ -425,6 +425,10 @@ def test_die_liste_zieht_aus_der_ganzen_anlage(durchlauf):
     assert durchlauf["zusatzwerteVorrat"] >= 6
 
 
+def test_der_editor_belegt_die_ueberschriften_in_der_sprache_vor(durchlauf):
+    assert durchlauf["vorbelegtEnglisch"] == ["Plant overview", "Values"]
+
+
 def test_alle_anlagen_stehen_zur_wahl(durchlauf):
     assert durchlauf["editorAnlagen"][0] == "Alle Anlagen"
 

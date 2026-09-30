@@ -148,7 +148,18 @@ TEXTFELDER = frozenset(
 )
 
 # Dieselben Felder in der Lovelace-Konfiguration des Dashboards.
-LOVELACE_FELDER = frozenset({"title", "name", "heading", "text", "confirmation_text", "content"})
+LOVELACE_FELDER = frozenset(
+    {
+        "title",
+        "name",
+        "heading",
+        "text",
+        "confirmation_text",
+        "content",
+        "titel_bild",
+        "titel_liste",
+    }
+)
 
 
 def uebersetze_baum(daten, woerterbuch: Woerterbuch, felder=TEXTFELDER):

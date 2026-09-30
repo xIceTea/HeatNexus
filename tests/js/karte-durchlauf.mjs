@@ -297,4 +297,16 @@ const zeichnungen = bildAb2.schema.find((f) => f.name === "zeichnungen");
 bilanz.zeichenbareTeile = zeichnungen.schema.map((f) => editor._beschriftung(f));
 bilanz.zeichnungenZurWahl = zeichnungen.schema[0].selector.select.options.length;
 
+// Die Vorbelegung der Überschriften folgt der Sprache.
+const englisch = await Klasse.getConfigElement();
+englisch.setConfig({});
+englisch.hass = {
+  states: {},
+  callWS: async ({ type }) =>
+    type === "heatnexus/texte" ? { "Werte": "Values", "Anlagenübersicht": "Plant overview" } : anlagen,
+};
+await englisch._laden;
+const vorbelegung = englisch._daten();
+bilanz.vorbelegtEnglisch = [vorbelegung.titel_bild, vorbelegung.titel_liste];
+
 console.log(JSON.stringify(bilanz));
