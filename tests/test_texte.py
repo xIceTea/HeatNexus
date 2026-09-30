@@ -46,6 +46,16 @@ def test_englisch_uebersetzt(texte):
     assert englisch("Nebengelass") == "Nebengelass"
 
 
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+@pytest.mark.parametrize(
+    ("kurz", "lang"), [("Vorrat", "Vorratsbehälter"), ("Asche", "Bis Ascheentleerung")]
+)
+def test_badge_nennt_den_begriff_ihres_sensors(texte, sprache, kurz, lang):
+    """Kurzname der Badge und Name des Sensors verwenden denselben Begriff."""
+    woerter = texte.Woerterbuch(sprache)
+    assert woerter(lang).lower().endswith(woerter(kurz).lower())
+
+
 def test_unbekannte_sprache_faellt_auf_englisch(texte):
     """Wer fremd wählt, versteht die deutsche Quelle meist nicht."""
     assert texte.Woerterbuch("it")("Übersicht") == "Overview"
