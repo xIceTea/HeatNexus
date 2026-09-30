@@ -13,16 +13,13 @@ import logging
 from typing import Any
 
 from homeassistant.components import frontend, websocket_api
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry as er
 import voluptuous as vol
 import yaml
 
-from ..automatik.verwaltung import system_unique_id
-from ..const import CONF_AUSSENTEMPERATUR, DASHBOARD_TITEL, DASHBOARD_URL, DOMAIN
+from ..const import DASHBOARD_TITEL, DASHBOARD_URL, DOMAIN
 from ..texte import LOVELACE_FELDER, uebersetze_baum, woerterbuch
-from . import anlage, details, uebersicht, wartung
+from . import anlage, badges, details, uebersicht, wartung
 from .anlagen import anlagen_lesen
 
 _LOGGER = logging.getLogger(__name__)
@@ -63,51 +60,18 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
             ],
         }
 
-    kennwerte = _kennwerte(hass, anlagen)
+    kopf = badges.kopfzeile(hass, anlagen)
     views: list[dict[str, Any]]
     if len(anlagen) == 1:
-        badges = [*kennwerte, *uebersicht.stoerungsbadges(anlagen)]
-        views = [anlage.arbeitsseite(anlagen[0], als_karte, mit_schaubild=True, badges=badges)]
+        views = [anlage.arbeitsseite(anlagen[0], als_karte, mit_schaubild=True, badges=kopf)]
     else:
         views = [
-            uebersicht.uebersicht(anlagen, als_karte, kennwerte),
+            uebersicht.uebersicht(anlagen, als_karte, kopf),
             *(anlage.arbeitsseite(a, als_karte, mit_schaubild=False) for a in anlagen),
         ]
     views += [v for v in (wartung.wartung(anlagen), wartung.auswertung(anlagen)) if v]
     views += [v for a in anlagen for t in a["teile"] if (v := details.unteransicht(a, t))]
     return {"title": DASHBOARD_TITEL, "views": views}
-
-
-def _kennwerte(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Außentemperatur (gewählt oder erste gemeldete) und Status der Automatik als Badges."""
-    eintraege = hass.config_entries.async_entries(DOMAIN)
-    aussen = next(
-        (w for e in eintraege if (w := (e.options or {}).get(CONF_AUSSENTEMPERATUR))), None
-    )
-    aussen = aussen or next(
-        (
-            e["entity_id"]
-            for a in anlagen
-            for t in a["teile"]
-            for e in t["entitaeten"]
-            if e.get("schluessel") == "outdoor_temperature" and e["hat_wert"]
-        ),
-        None,
-    )
-    return [
-        {"type": "entity", "entity": eid} for eid in (aussen, _automatik(hass, eintraege)) if eid
-    ]
-
-
-def _automatik(hass: HomeAssistant, eintraege: list[ConfigEntry]) -> str | None:
-    """Die Statusentität der ersten Automatik, die nicht abgeschaltet ist."""
-    register = er.async_get(hass)
-    for eintrag in eintraege:
-        kennung = system_unique_id(eintrag.entry_id, "status")
-        entity_id = register.async_get_entity_id("sensor", DOMAIN, kennung)
-        if entity_id and not register.async_get(entity_id).disabled_by:
-            return entity_id
-    return None
 
 
 def als_yaml(konfiguration: dict[str, Any]) -> str:

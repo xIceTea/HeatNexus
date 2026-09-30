@@ -12,20 +12,6 @@ from .karten import abschnitt, ansicht, kachel, pfad_anlage
 from .muster import ABFRAGETASTE
 
 
-def stoerungsbadges(anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Eine Badge je Störungssensor, sichtbar nur, solange die Störung anliegt."""
-    return [
-        {
-            "type": "entity",
-            "entity": sensor["entity_id"],
-            "visibility": [{"condition": "state", "entity": sensor["entity_id"], "state": "on"}],
-        }
-        for anlage in anlagen
-        for teil in anlage["teile"]
-        if (sensor := auswahl.stoerung(teil))
-    ]
-
-
 def _kernwerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
     """Kernwerte aller Teile; bei mehreren Teilen mit dem Teilnamen davor."""
     je_teil = [(teil, werte) for teil in anlage["teile"] if (werte := auswahl.kernwerte(teil))]
@@ -67,10 +53,8 @@ def _anlagenspalte(anlage: dict[str, Any], als_karte: bool) -> list[dict[str, An
 def uebersicht(
     anlagen: list[dict[str, Any]], als_karte: bool, badges: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    """Übersichtsansicht mit Meldungen, je Anlage einem Abschnitt und Störungsbadges."""
+    """Übersichtsansicht mit Meldungen, je Anlage einem Abschnitt und Kopfzeile."""
     abschnitte = meldungsabschnitt(anlagen)
     for anlage in anlagen:
         abschnitte += _anlagenspalte(anlage, als_karte)
-    return ansicht(
-        "Übersicht", "uebersicht", abschnitte, badges=[*badges, *stoerungsbadges(anlagen)]
-    )
+    return ansicht("Übersicht", "uebersicht", abschnitte, badges=badges)

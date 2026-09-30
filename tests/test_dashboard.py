@@ -68,6 +68,13 @@ def uebersichtsseite(dashboard):
 
 
 @pytest.fixture(scope="module")
+def badges(dashboard):
+    from custom_components.heatnexus.dashboard import badges as modul
+
+    return modul
+
+
+@pytest.fixture(scope="module")
 def wartungsseite(dashboard):
     from custom_components.heatnexus.dashboard import wartung as modul
 
@@ -952,7 +959,7 @@ def _automatikstatus(hass, eintrag, **rest):
     )
 
 
-async def test_kennwerte_nehmen_die_gewaehlte_aussentemperatur(dashboard, hass):
+async def test_kennwerte_nehmen_die_gewaehlte_aussentemperatur(badges, hass):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
     from custom_components.heatnexus.const import CONF_AUSSENTEMPERATUR
@@ -963,18 +970,19 @@ async def test_kennwerte_nehmen_die_gewaehlte_aussentemperatur(dashboard, hass):
     )
     gewaehlt.add_to_hass(hass)
     status = _automatikstatus(hass, gewaehlt)
-    badges = dashboard._kennwerte(hass, [_anlage(_kessel())])
-    assert [b["entity"] for b in badges] == ["sensor.wetter", status.entity_id]
+    liste = badges.allgemein(hass, [_anlage(_kessel())])
+    assert [b["entity"] for b in liste] == ["sensor.wetter", status.entity_id]
+    assert [b["name"] for b in liste] == ["Außen", "Automatik"]
 
 
-async def test_kennwerte_ohne_abgeschaltete_automatik(dashboard, hass):
+async def test_kennwerte_ohne_abgeschaltete_automatik(badges, hass):
     from homeassistant.helpers import entity_registry as er
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
     eintrag = MockConfigEntry(domain="heatnexus", data={})
     eintrag.add_to_hass(hass)
     _automatikstatus(hass, eintrag, disabled_by=er.RegistryEntryDisabler.USER)
-    assert dashboard._kennwerte(hass, [_anlage(_kessel())]) == []
+    assert badges.allgemein(hass, [_anlage(_kessel())]) == []
 
 
 async def test_zwei_anlagen_melden_nur_in_der_uebersicht(dashboard, hass, monkeypatch):
@@ -1092,12 +1100,71 @@ def test_meldung_steht_nur_bei_stoerung_oben(uebersichtsseite):
     assert erste["column_span"] == 3
 
 
-def test_stoerungsbadge_nur_solange_eine_anliegt(uebersichtsseite):
-    [badge] = uebersichtsseite.stoerungsbadges([_anlage(_kessel())])
-    assert badge["entity"] == "binary_sensor.stoerung"
-    assert badge["visibility"] == [
+def _kessel_mit_wartung() -> dict:
+    teil = _kessel()
+    teil["entitaeten"] = [
+        *teil["entitaeten"],
+        _e("sensor.vorrat", "Vorratsbehälter", schluessel="fuel_storage_status"),
+        _e(
+            "sensor.bis_reinigung",
+            "Laufzeit bis Reinigung",
+            schluessel="maintenance_cleaning_hours",
+            wert=120.0,
+        ),
+        _e(
+            "sensor.bis_asche",
+            "Laufzeit bis Asche",
+            schluessel="maintenance_ash_hours",
+            hat_wert=False,
+        ),
+    ]
+    return teil
+
+
+def test_jede_badge_traegt_einen_namen(badges):
+    liste = badges.anlagenbadges([_anlage(_kessel_mit_wartung())])
+    assert [(b["entity"], b["name"]) for b in liste] == [
+        ("sensor.betriebsphase", "Kessel"),
+        ("sensor.vorrat", "Vorrat"),
+        ("sensor.bis_reinigung", "Reinigung"),
+        ("binary_sensor.stoerung", "PuroWIN"),
+    ]
+    assert all(b["show_name"] is True and b["type"] == "entity" for b in liste)
+
+
+def test_wartung_erscheint_erst_unter_der_grenze(badges):
+    liste = badges.anlagenbadges([_anlage(_kessel_mit_wartung())])
+    [reinigung] = [b for b in liste if b["name"] == "Reinigung"]
+    assert reinigung["visibility"] == [
+        {"condition": "numeric_state", "entity": "sensor.bis_reinigung", "below": 50}
+    ]
+
+
+def test_stoerungsbadge_nur_solange_eine_anliegt(badges):
+    liste = badges.anlagenbadges([_anlage(_kessel())])
+    [stoerung] = [b for b in liste if b["entity"] == "binary_sensor.stoerung"]
+    assert stoerung["visibility"] == [
         {"condition": "state", "entity": "binary_sensor.stoerung", "state": "on"}
     ]
+
+
+def test_ohne_vorratsbehaelter_keine_vorrat_badge(badges):
+    assert "Vorrat" not in [b["name"] for b in badges.anlagenbadges([_anlage(_kessel())])]
+
+
+def test_bei_zwei_anlagen_steht_der_anlagenname_davor(badges):
+    zweite = _anlage(
+        {**_kessel(), "id": "zweiter0123456789"}, name="Werkstatt", kennung="werkst0123456789"
+    )
+    namen = [b["name"] for b in badges.anlagenbadges([_anlage(_kessel()), zweite])]
+    assert "Kesselhaus · Kessel" in namen and "Werkstatt · PuroWIN" in namen
+    assert "Kessel" not in namen
+
+
+async def test_kopfzeile_nennt_jede_entitaet_einmal(badges, hass):
+    liste = badges.kopfzeile(hass, [_anlage(_kessel())])
+    entitaeten = [b["entity"] for b in liste]
+    assert len(entitaeten) == len(set(entitaeten))
 
 
 async def test_eine_anlage_ohne_reiter_uebersicht(dashboard, hass, monkeypatch):

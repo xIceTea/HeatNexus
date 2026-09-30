@@ -55,12 +55,18 @@ UEBERSICHT_VORRANG: tuple[tuple[re.Pattern, tuple[str, ...]], ...] = (
 WARTUNG_RESTLAUFZEIT = namensmuster(r"laufzeit bis")
 
 
-WARTUNG_RESTLAUFZEIT_SCHLUESSEL = (
-    "maintenance_ash_hours",
-    "maintenance_cleaning_hours",
-    "maintenance_main_cleaning_hours",
-    "maintenance_service_hours",
-)
+# Restlaufzeit in Stunden, ab der eine Wartungs-Badge in der Kopfzeile erscheint.
+WARTUNG_HINWEIS_STUNDEN = 50
+
+# Kurzname der Wartungs-Badge je Restlaufzeit.
+WARTUNG_KURZNAMEN: dict[str, str] = {
+    "maintenance_ash_hours": "Asche",
+    "maintenance_cleaning_hours": "Reinigung",
+    "maintenance_main_cleaning_hours": "Hauptreinigung",
+    "maintenance_service_hours": "Wartung",
+}
+
+WARTUNG_RESTLAUFZEIT_SCHLUESSEL = tuple(WARTUNG_KURZNAMEN)
 
 
 WARTUNG_WEITERE = namensmuster(
