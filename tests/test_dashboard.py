@@ -1232,10 +1232,23 @@ async def test_kopfzeile_uebersetzt_die_namen_mehrerer_anlagen(badges, hass):
     assert not [n for n in namen if n.endswith("· Kessel")]
 
 
-async def test_kopfzeile_nennt_jede_entitaet_einmal(badges, hass):
-    liste = badges.kopfzeile(hass, [_anlage(_kessel())])
-    entitaeten = [b["entity"] for b in liste]
-    assert len(entitaeten) == len(set(entitaeten))
+async def test_aussen_und_automatik_bleiben_bei_zwei_anlagen_ohne_anlagennamen(badges, hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import CONF_AUSSENTEMPERATUR
+
+    eintrag = MockConfigEntry(
+        domain="heatnexus", data={}, options={CONF_AUSSENTEMPERATUR: "sensor.wetter"}
+    )
+    eintrag.add_to_hass(hass)
+    status = _automatikstatus(hass, eintrag)
+    zweite = _anlage(
+        {**_kessel(), "id": "zweiter0123456789"}, name="Werkstatt", kennung="werkst0123456789"
+    )
+    liste = badges.kopfzeile(hass, [_anlage(_kessel()), zweite])
+    namen = {b["entity"]: b["name"] for b in liste}
+    assert namen["sensor.wetter"] == "Außen"
+    assert namen[status.entity_id] == "Automatik"
 
 
 async def test_eine_anlage_ohne_reiter_uebersicht(dashboard, hass, monkeypatch):

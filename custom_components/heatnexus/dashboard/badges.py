@@ -166,11 +166,5 @@ def _automatik(hass: HomeAssistant, eintraege: list[ConfigEntry]) -> str | None:
 
 
 def kopfzeile(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Alle Badges der Kopfzeile; jede Entität nur einmal."""
-    gesehen: set[str] = set()
-    ergebnis: list[dict[str, Any]] = []
-    for b in (*allgemein(hass, anlagen), *anlagenbadges(anlagen, woerterbuch(hass))):
-        if b["entity"] not in gesehen:
-            gesehen.add(b["entity"])
-            ergebnis.append(b)
-    return ergebnis
+    """Alle Badges der Kopfzeile: erst die allgemeinen, dann die je Anlage."""
+    return [*allgemein(hass, anlagen), *anlagenbadges(anlagen, woerterbuch(hass))]
