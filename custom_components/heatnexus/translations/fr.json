@@ -362,7 +362,7 @@
         "state": {
           "aus": "Arrêt",
           "beobachten": "Observation",
-          "bereit": "Prêt",
+          "bereit": "Actif",
           "eingriff": "Intervention active",
           "pausiert": "En pause",
           "stoerung": "Défaut"

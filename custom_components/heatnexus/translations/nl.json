@@ -362,7 +362,7 @@
         "state": {
           "aus": "Uit",
           "beobachten": "Observeert",
-          "bereit": "Gereed",
+          "bereit": "Actief",
           "eingriff": "Ingreep actief",
           "pausiert": "Gepauzeerd",
           "stoerung": "Storing"

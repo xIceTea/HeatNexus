@@ -478,3 +478,15 @@ def test_platzhalter_in_uebersetzungen_sind_bezeichner():
         )
     ]
     assert not falsch, falsch
+
+
+@pytest.mark.parametrize(
+    ("sprache", "erwartet"),
+    [("de", "Aktiv"), ("en", "Active"), ("nl", "Actief"), ("fr", "Actif")],
+)
+def test_automatik_status_bereit_heisst_aktiv(sprache, erwartet):
+    """Der Zustand `bereit` bleibt als Schlüssel bestehen und wird als „Aktiv“ angezeigt."""
+    datei = ORDNER.parent / "translations" / f"{sprache}.json"
+    entitaeten = json.loads(datei.read_text(encoding="utf-8"))["entity"]["sensor"]
+    zustaende = entitaeten["automatik_system_status"]["state"]
+    assert zustaende["bereit"] == erwartet

@@ -362,7 +362,7 @@
         "state": {
           "aus": "Aus",
           "beobachten": "Beobachten",
-          "bereit": "Bereit",
+          "bereit": "Aktiv",
           "eingriff": "Eingriff aktiv",
           "pausiert": "Pausiert",
           "stoerung": "Störung"
