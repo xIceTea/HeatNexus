@@ -43,6 +43,16 @@ def bezeichnung(laufzeit: Laufzeit) -> str:
     return f"{anlage} · {laufzeit.name}" if anlage else laufzeit.name
 
 
+def kreisnamen(laufzeiten: list[Laufzeit]) -> dict[str, str]:
+    """Anzeigename je Heizkreis; doppelte Namen tragen die Kennung."""
+    namen = {lz.device_id: bezeichnung(lz) for lz in laufzeiten}
+    doppelt = Counter(namen.values())
+    return {
+        device_id: name if doppelt[name] == 1 else f"{name} ({device_id})"
+        for device_id, name in namen.items()
+    }
+
+
 class SystemEntitaet(Entity):
     """Grundlage: Kennung, Gerät, Signal des Eintrags."""
 
@@ -70,13 +80,9 @@ class SystemEntitaet(Entity):
 
     def _je_kreis(self, wert: Callable[[Laufzeit], Any]) -> dict[str, Any]:
         """Ein Wert je Heizkreis unter „Anlage · Heizkreis“; doppelte Namen tragen die Kennung."""
-        namen = {lz.device_id: bezeichnung(lz) for lz in self._laufzeiten}
-        doppelt = Counter(namen.values())
-        ergebnis: dict[str, Any] = {}
-        for lz in self._laufzeiten:
-            name = namen[lz.device_id]
-            ergebnis[name if doppelt[name] == 1 else f"{name} ({lz.device_id})"] = wert(lz)
-        return ergebnis
+        laufzeiten = self._laufzeiten
+        namen = kreisnamen(laufzeiten)
+        return {namen[lz.device_id]: wert(lz) for lz in laufzeiten}
 
     async def async_added_to_hass(self) -> None:
         self.async_on_remove(

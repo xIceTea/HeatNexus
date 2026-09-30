@@ -733,15 +733,15 @@ def test_in_fremder_sprache_bleibt_im_dashboard_nichts_deutsch(
     kopf = [
         badges.badge("sensor.x", "Außen"),
         badges.badge("sensor.y", "Automatik"),
-        badges.badge("binary_sensor.s", "Sonnentag"),
-        badges.badge("binary_sensor.w", "Nur Warmwasser"),
+        badges.badge("sensor.z", "Automatik · Kesselhaus"),
     ]
     woerter = Woerterbuch(sprache)
     liste = [*badges.anlagenbadges([fremd, zweite], uebersetze=woerter), *kopf]
     uebersetzt = uebersetze_baum({"badges": liste}, woerter, LOVELACE_FELDER)
     kurz = {b["name"].split(" · ")[-1] for b in uebersetzt["badges"]}
     feste = ("Kessel", "Vorrat", "Asche", "Reinigung", "Hauptreinigung", "Wartung")
-    deutsch = sorted(kurz & {*feste, "Außen", "Automatik", "Sonnentag", "Nur Warmwasser"})
+    kurz |= {b["name"].split(" · ")[0] for b in uebersetzt["badges"]}
+    deutsch = sorted(kurz & {*feste, "Außen", "Automatik"})
     assert not deutsch, f"{sprache}: Badges ohne Übersetzung: {deutsch}"
     assert {woerter(n) for n in feste} <= kurz
     fertig = {"ansichten": fertig, "badges": uebersetzt}
@@ -1008,64 +1008,106 @@ async def test_kennwerte_nehmen_die_gewaehlte_aussentemperatur(badges, hass):
     assert [b["name"] for b in liste] == ["Außen", "Automatik"]
 
 
-def _automatikbinaer(hass, eintrag, art, **rest):
+def _kreisautomatik(hass, eintrag, device_id, name, label="Kesselhaus", **rest):
+    """Laufzeit eines Heizkreises samt registriertem Zustandssensor."""
+    from types import SimpleNamespace
+
     from homeassistant.helpers import entity_registry as er
 
-    from custom_components.heatnexus.automatik.verwaltung import system_unique_id
+    from custom_components.heatnexus.automatik.verwaltung import unique_id, verwaltung_holen
 
+    verwaltung_holen(hass).laufzeiten[device_id] = SimpleNamespace(
+        entry_id=eintrag.entry_id,
+        device_id=device_id,
+        name=name,
+        coordinator=SimpleNamespace(label=label),
+    )
     return er.async_get(hass).async_get_or_create(
-        "binary_sensor",
+        "sensor",
         "heatnexus",
-        system_unique_id(eintrag.entry_id, art),
+        unique_id(device_id, "zustand"),
         config_entry=eintrag,
         **rest,
     )
 
 
-async def test_eingriffsbadges_folgen_dem_status(badges, hass):
+async def test_kreisbadge_zeigt_die_begruendung_bei_abweichung(badges, hass):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
     eintrag = MockConfigEntry(domain="heatnexus", data={})
     eintrag.add_to_hass(hass)
     status = _automatikstatus(hass, eintrag)
-    sonne = _automatikbinaer(hass, eintrag, "sonnentag_aktiv")
-    warmwasser = _automatikbinaer(hass, eintrag, "nur_ww_aktiv")
+    zustand = _kreisautomatik(hass, eintrag, "hk1", "Heizkreis 1")
     liste = badges.allgemein(hass, [_anlage(_kessel())])
-    assert [b["entity"] for b in liste] == [
-        status.entity_id,
-        sonne.entity_id,
-        warmwasser.entity_id,
+    assert [b["entity"] for b in liste] == [status.entity_id, zustand.entity_id]
+    assert [b["name"] for b in liste] == ["Automatik", "Kesselhaus · Heizkreis 1"]
+    assert liste[1]["state_content"] == "begruendung"
+    assert liste[1]["visibility"] == [
+        {"condition": "state", "entity": zustand.entity_id, "state_not": ["programm", "aus"]}
     ]
-    assert [b["name"] for b in liste] == ["Automatik", "Sonnentag", "Nur Warmwasser"]
-    for badge, entitaet in zip(liste[1:], (sonne, warmwasser), strict=True):
-        assert badge["visibility"] == [
-            {"condition": "state", "entity": entitaet.entity_id, "state": "on"}
-        ]
     assert "visibility" not in liste[0]
+    assert "state_content" not in liste[0]
 
 
-async def test_eingriffsbadges_fehlen_ohne_die_entitaeten(badges, hass):
+async def test_kreisbadges_je_heizkreis(badges, hass):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
     eintrag = MockConfigEntry(domain="heatnexus", data={})
     eintrag.add_to_hass(hass)
     _automatikstatus(hass, eintrag)
-    assert [b["name"] for b in badges.allgemein(hass, [_anlage(_kessel())])] == ["Automatik"]
+    erster = _kreisautomatik(hass, eintrag, "hk1", "Heizkreis 1")
+    zweiter = _kreisautomatik(hass, eintrag, "hk2", "Heizkreis 2", label="")
+    liste = badges.allgemein(hass, [_anlage(_kessel())])
+    assert [b["entity"] for b in liste[1:]] == [erster.entity_id, zweiter.entity_id]
+    assert [b["name"] for b in liste[1:]] == ["Kesselhaus · Heizkreis 1", "Heizkreis 2"]
 
 
-async def test_eingriffsbadges_fehlen_wenn_abgeschaltet(badges, hass):
+async def test_kreisbadges_gleichnamiger_heizkreise_tragen_die_kennung(badges, hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    eintrag = MockConfigEntry(domain="heatnexus", data={})
+    eintrag.add_to_hass(hass)
+    _kreisautomatik(hass, eintrag, "hk1", "Heizkreis")
+    _kreisautomatik(hass, eintrag, "hk2", "Heizkreis")
+    namen = [b["name"] for b in badges.allgemein(hass, [_anlage(_kessel())])]
+    assert namen == ["Kesselhaus · Heizkreis (hk1)", "Kesselhaus · Heizkreis (hk2)"]
+
+
+async def test_zwei_automatiksysteme_tragen_den_eintrag_im_namen(badges, hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    erster = MockConfigEntry(domain="heatnexus", data={}, title="Kesselhaus")
+    zweiter = MockConfigEntry(domain="heatnexus", data={}, title="Werkstatt")
+    erster.add_to_hass(hass)
+    zweiter.add_to_hass(hass)
+    status_eins = _automatikstatus(hass, erster)
+    status_zwei = _automatikstatus(hass, zweiter)
+    kreis = _kreisautomatik(hass, zweiter, "hk1", "Heizkreis 1", label="Werkstatt")
+    liste = badges.allgemein(hass, [_anlage(_kessel())])
+    assert [b["entity"] for b in liste] == [
+        status_eins.entity_id,
+        status_zwei.entity_id,
+        kreis.entity_id,
+    ]
+    assert [b["name"] for b in liste] == [
+        "Automatik · Kesselhaus",
+        "Automatik · Werkstatt",
+        "Werkstatt · Heizkreis 1",
+    ]
+
+
+async def test_kreisbadge_fehlt_wenn_abgeschaltet(badges, hass):
     from homeassistant.helpers import entity_registry as er
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
     eintrag = MockConfigEntry(domain="heatnexus", data={})
     eintrag.add_to_hass(hass)
     _automatikstatus(hass, eintrag)
-    aus = er.RegistryEntryDisabler.USER
-    _automatikbinaer(hass, eintrag, "sonnentag_aktiv", disabled_by=aus)
-    warmwasser = _automatikbinaer(hass, eintrag, "nur_ww_aktiv")
+    _kreisautomatik(hass, eintrag, "hk1", "Heizkreis 1", disabled_by=er.RegistryEntryDisabler.USER)
+    zweiter = _kreisautomatik(hass, eintrag, "hk2", "Heizkreis 2")
     liste = badges.allgemein(hass, [_anlage(_kessel())])
-    assert [b["name"] for b in liste] == ["Automatik", "Nur Warmwasser"]
-    assert liste[1]["entity"] == warmwasser.entity_id
+    assert [b["name"] for b in liste] == ["Automatik", "Kesselhaus · Heizkreis 2"]
+    assert liste[1]["entity"] == zweiter.entity_id
 
 
 async def test_kennwerte_ohne_abgeschaltete_automatik(badges, hass):
