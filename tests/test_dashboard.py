@@ -1192,6 +1192,32 @@ def test_bei_zwei_anlagen_steht_der_anlagenname_davor(badges):
     assert "Kessel" not in namen
 
 
+def _teil_mit_phase(name: str, fct_type: int, entity_id: str) -> dict:
+    return {
+        "name": name,
+        "id": f"{name.lower()}0123456789",
+        "fct_type": fct_type,
+        "entitaeten": [_e(entity_id, "Betriebsphase", schluessel="operating_phase")],
+    }
+
+
+def test_zwei_kessel_bekommen_je_eine_badge_mit_teilnamen(badges):
+    anlage = _anlage(_kessel(), _teil_mit_phase("BioWIN", 9, "sensor.phase_biowin"))
+    phasen = [
+        (b["entity"], b["name"])
+        for b in badges.anlagenbadges([anlage])
+        if b["entity"] in {"sensor.betriebsphase", "sensor.phase_biowin"}
+    ]
+    assert phasen == [("sensor.betriebsphase", "PuroWIN"), ("sensor.phase_biowin", "BioWIN")]
+
+
+def test_betriebsphase_ausserhalb_des_kessels_bleibt_ohne_badge(badges):
+    anlage = _anlage(_teil_mit_phase("Erzeugerpumpe", 24, "sensor.phase_pumpe"), _kessel())
+    liste = badges.anlagenbadges([anlage])
+    assert "sensor.phase_pumpe" not in [b["entity"] for b in liste]
+    assert ("sensor.betriebsphase", "Kessel") in [(b["entity"], b["name"]) for b in liste]
+
+
 async def test_kopfzeile_uebersetzt_die_namen_mehrerer_anlagen(badges, hass):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 

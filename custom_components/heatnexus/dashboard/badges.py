@@ -9,14 +9,19 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
+from .. import geraete
 from ..automatik.verwaltung import system_unique_id
 from ..const import CONF_AUSSENTEMPERATUR, DOMAIN
 from ..texte import woerterbuch
 from . import auswahl
 from .muster import WARTUNG_HINWEIS_STUNDEN, WARTUNG_KURZNAMEN
 
-# Kennwerte je Anlage: kanonischer Schlüssel und Name der Badge.
-ANLAGENWERTE = (("operating_phase", "Kessel"), ("fuel_storage_status", "Vorrat"))
+# Namen der Kennwert-Badges; bei mehreren Kesseln einer Anlage steht der Name des Teils.
+KESSEL = "Kessel"
+VORRAT = ("fuel_storage_status", "Vorrat")
+
+# Eine Badge vor dem Zusammensetzen: Entität, Name, Sichtbarkeit.
+Eintrag = tuple[str, str, list[dict[str, Any]] | None]
 
 
 def badge(
@@ -34,16 +39,23 @@ def badge(
     return ergebnis
 
 
-def _erste(anlage: dict[str, Any], schluessel: str) -> dict[str, Any] | None:
+def _mit_wert(teil: dict[str, Any], schluessel: str) -> dict[str, Any] | None:
     return next(
-        (
-            e
-            for teil in anlage["teile"]
-            for e in teil["entitaeten"]
-            if e.get("schluessel") == schluessel and e["hat_wert"]
-        ),
+        (e for e in teil["entitaeten"] if e.get("schluessel") == schluessel and e["hat_wert"]),
         None,
     )
+
+
+def _erste(anlage: dict[str, Any], schluessel: str) -> dict[str, Any] | None:
+    return next((e for teil in anlage["teile"] if (e := _mit_wert(teil, schluessel))), None)
+
+
+def _ist_kessel(teil: dict[str, Any]) -> bool:
+    """Wärmeerzeuger ist, was das Schaubild als Kessel zeichnet."""
+    try:
+        return geraete.SCHAUBILD_ARTEN.get(int(teil.get("fct_type"))) == "kessel"
+    except (TypeError, ValueError):
+        return False
 
 
 def _name(anlage: dict[str, Any], name: str, mehrere: bool) -> str:
@@ -52,6 +64,54 @@ def _name(anlage: dict[str, Any], name: str, mehrere: bool) -> str:
 
 def _gleich(text: str) -> str:
     return text
+
+
+def _kennwerte(anlage: dict[str, Any], uebersetze: Callable[[str], str]) -> list[Eintrag]:
+    """Betriebsphase je Wärmeerzeuger, dazu der erste Vorratsbehälter."""
+    phasen = [
+        (teil, e)
+        for teil in anlage["teile"]
+        if _ist_kessel(teil) and (e := _mit_wert(teil, "operating_phase"))
+    ]
+    einer = len(phasen) == 1
+    ergebnis: list[Eintrag] = [
+        (e["entity_id"], uebersetze(KESSEL) if einer else teil["name"], None) for teil, e in phasen
+    ]
+    if vorrat := _erste(anlage, VORRAT[0]):
+        ergebnis.append((vorrat["entity_id"], uebersetze(VORRAT[1]), None))
+    return ergebnis
+
+
+def _wartung(anlage: dict[str, Any], uebersetze: Callable[[str], str]) -> list[Eintrag]:
+    """Restlaufzeiten, sichtbar erst unter der Hinweisgrenze."""
+    return [
+        (
+            e["entity_id"],
+            uebersetze(name),
+            [
+                {
+                    "condition": "numeric_state",
+                    "entity": e["entity_id"],
+                    "below": WARTUNG_HINWEIS_STUNDEN,
+                }
+            ],
+        )
+        for schluessel, name in WARTUNG_KURZNAMEN.items()
+        if (e := _erste(anlage, schluessel))
+    ]
+
+
+def _stoerungen(anlage: dict[str, Any]) -> list[Eintrag]:
+    """Je Anlagenteil die Störung, sichtbar nur solange sie anliegt."""
+    return [
+        (
+            sensor["entity_id"],
+            teil["name"],
+            [{"condition": "state", "entity": sensor["entity_id"], "state": "on"}],
+        )
+        for teil in anlage["teile"]
+        if (sensor := auswahl.stoerung(teil))
+    ]
 
 
 def anlagenbadges(
@@ -63,30 +123,15 @@ def anlagenbadges(
     zusammengesetzten Text kennt kein Wörterbuch.
     """
     mehrere = len(anlagen) > 1
-    ergebnis: list[dict[str, Any]] = []
-    for anlage in anlagen:
-        for schluessel, name in ANLAGENWERTE:
-            if e := _erste(anlage, schluessel):
-                ergebnis.append(badge(e["entity_id"], _name(anlage, uebersetze(name), mehrere)))
-        for schluessel, name in WARTUNG_KURZNAMEN.items():
-            if e := _erste(anlage, schluessel):
-                bald = [
-                    {
-                        "condition": "numeric_state",
-                        "entity": e["entity_id"],
-                        "below": WARTUNG_HINWEIS_STUNDEN,
-                    }
-                ]
-                ergebnis.append(
-                    badge(e["entity_id"], _name(anlage, uebersetze(name), mehrere), bald)
-                )
-        for teil in anlage["teile"]:
-            if sensor := auswahl.stoerung(teil):
-                an = [{"condition": "state", "entity": sensor["entity_id"], "state": "on"}]
-                ergebnis.append(
-                    badge(sensor["entity_id"], _name(anlage, teil["name"], mehrere), an)
-                )
-    return ergebnis
+    return [
+        badge(entity_id, _name(anlage, name, mehrere), sichtbar)
+        for anlage in anlagen
+        for entity_id, name, sichtbar in (
+            *_kennwerte(anlage, uebersetze),
+            *_wartung(anlage, uebersetze),
+            *_stoerungen(anlage),
+        )
+    ]
 
 
 def allgemein(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
