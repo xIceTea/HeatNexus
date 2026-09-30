@@ -690,7 +690,7 @@ def _sichtbare_texte(wert, schluessel=None) -> list[str]:
 
 @pytest.mark.parametrize("sprache", ["en", "nl"])
 def test_in_fremder_sprache_bleibt_im_dashboard_nichts_deutsch(
-    sprache, uebersichtsseite, anlagenseite, wartungsseite, details
+    sprache, uebersichtsseite, anlagenseite, wartungsseite, details, badges
 ):
     """Jede Überschrift, jeder Kartenname und jede Rückfrage erscheint übersetzt."""
     from custom_components.heatnexus.texte import LOVELACE_FELDER, Woerterbuch, uebersetze_baum
@@ -712,6 +712,34 @@ def test_in_fremder_sprache_bleibt_im_dashboard_nichts_deutsch(
         LOVELACE_FELDER,
     )
     eigene = {anlage["name"], teil["name"]}
+    fremd = _anlage(
+        {
+            **_kessel(),
+            "entitaeten": [
+                _e("sensor.phase", "Operating phase", schluessel="operating_phase"),
+                _e("sensor.vorrat", "Fuel storage", schluessel="fuel_storage_status"),
+                _e("sensor.asche", "Ash", schluessel="maintenance_ash_hours"),
+                _e("sensor.reinigung", "Cleaning", schluessel="maintenance_cleaning_hours"),
+                _e("sensor.haupt", "Main", schluessel="maintenance_main_cleaning_hours"),
+                _e("sensor.service", "Service", schluessel="maintenance_service_hours"),
+            ],
+        }
+    )
+    kopf = [
+        badges.badge("sensor.x", "Außen"),
+        badges.badge("sensor.y", "Automatik"),
+    ]
+    urspruenglich = {"badges": [*badges.anlagenbadges([fremd]), *kopf]}
+    uebersetzt = uebersetze_baum(urspruenglich, Woerterbuch(sprache), LOVELACE_FELDER)
+    unuebersetzt = sorted(
+        {
+            a["name"]
+            for a, b in zip(urspruenglich["badges"], uebersetzt["badges"], strict=True)
+            if a["name"] == b["name"] and a["name"] not in eigene
+        }
+    )
+    assert not unuebersetzt, f"{sprache}: Badges ohne Übersetzung: {unuebersetzt}"
+    fertig = {"ansichten": fertig, "badges": uebersetzt}
 
     def ohne_eigene(text: str) -> str:
         for name in eigene:
