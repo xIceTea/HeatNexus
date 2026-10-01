@@ -328,6 +328,9 @@
           "begruendung": {
             "name": "Reason"
           },
+          "kurz": {
+            "name": "Summary"
+          },
           "pausiert_bis": {
             "name": "Paused until"
           },

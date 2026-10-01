@@ -1048,7 +1048,7 @@ def _kreisautomatik(hass, eintrag, device_id, name, label="Kesselhaus", **rest):
     )
 
 
-async def test_kreisbadge_zeigt_die_begruendung_bei_abweichung(badges, hass):
+async def test_kreisbadge_zeigt_die_kurzfassung_bei_abweichung(badges, hass):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
     eintrag = MockConfigEntry(domain="heatnexus", data={})
@@ -1058,7 +1058,7 @@ async def test_kreisbadge_zeigt_die_begruendung_bei_abweichung(badges, hass):
     liste = badges.allgemein(hass, [_anlage(_kessel())])
     assert [b["entity"] for b in liste] == [status.entity_id, zustand.entity_id]
     assert [b["name"] for b in liste] == ["Automatik", "Kesselhaus · Heizkreis 1"]
-    assert liste[1]["state_content"] == "begruendung"
+    assert liste[1]["state_content"] == "kurz"
     assert liste[1]["visibility"] == [
         {"condition": "state", "entity": zustand.entity_id, "state_not": ["programm", "aus"]}
     ]

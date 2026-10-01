@@ -328,6 +328,9 @@
           "begruendung": {
             "name": "Motif"
           },
+          "kurz": {
+            "name": "Résumé"
+          },
           "pausiert_bis": {
             "name": "En pause jusqu'à"
           },

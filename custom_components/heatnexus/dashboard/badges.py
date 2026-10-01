@@ -193,7 +193,7 @@ def _kreise(hass: HomeAssistant, eintrag: ConfigEntry) -> list[dict[str, Any]]:
             entity_id,
             namen[lz.device_id],
             [{"condition": "state", "entity": entity_id, "state_not": PLANMAESSIG}],
-            inhalt="begruendung",
+            inhalt="kurz",
         )
         for lz in laufzeiten
         if (entity_id := _aktive_entitaet(hass, unique_id(lz.device_id, "zustand")))

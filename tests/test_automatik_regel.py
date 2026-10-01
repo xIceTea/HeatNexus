@@ -596,3 +596,33 @@ def test_jede_begruendung_kommt_auf_englisch_an(m, w):
         if DEUTSCH.search(uebersetzt):
             reste.add(e.begruendung)
     assert not reste, sorted(reste)
+
+
+@pytest.mark.parametrize(
+    ("zustand", "felder", "erwartet"),
+    [
+        ("SONNENTAG", {"absenkung_soll": 19.5}, "Sonnentag · 19,5 °C"),
+        ("SONNENTAG", {}, "Sonnentag"),
+        ("ABWESEND", {"absenkung_soll": 18.0}, "Abwesend · 18,0 °C"),
+        ("NUR_WW", {}, "Nur Warmwasser"),
+        ("PROGRAMM", {"absenkung_soll": 19.5}, None),
+        ("AUS", {}, None),
+    ],
+)
+def test_die_kurzfassung_nennt_zustand_und_geschriebenen_sollwert(m, zustand, felder, erwartet):
+    assert m.kurz(m.Zustand[zustand], m.Gedaechtnis(**felder)) == erwartet
+
+
+def test_die_kurzfassung_nennt_das_ende_der_pause(m):
+    assert m.kurz(m.Zustand.PAUSIERT, m.Gedaechtnis(), MORGEN) == f"Pausiert bis {MORGEN:%H:%M}"
+
+
+def test_jede_kurzfassung_kommt_auf_englisch_an(m):
+    englisch = load_standalone("texte").Woerterbuch("en")
+    gedaechtnis = m.Gedaechtnis(absenkung_soll=19.5)
+    reste = {
+        text
+        for zustand in m.Zustand
+        if (text := m.kurz(zustand, gedaechtnis, MORGEN)) and DEUTSCH.search(englisch.satz(text))
+    }
+    assert not reste, sorted(reste)

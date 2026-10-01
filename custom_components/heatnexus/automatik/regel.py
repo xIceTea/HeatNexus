@@ -154,6 +154,25 @@ def _uhr(zeit: datetime) -> str:
     return zeit.strftime("%H:%M")
 
 
+_KURZ_MIT_SOLL = {Zustand.SONNENTAG: "Sonnentag", Zustand.ABWESEND: "Abwesend"}
+_KURZ = {
+    Zustand.NUR_WW: "Nur Warmwasser",
+    Zustand.PAUSIERT: "Pausiert",
+    Zustand.FENSTER: "Fenster offen",
+    Zustand.KEINE_DATEN: "Keine Daten",
+    Zustand.SICHERHEIT: "Sicherheit",
+}
+
+
+def kurz(zustand: Zustand, g: Gedaechtnis, pausiert_bis: datetime | None = None) -> str | None:
+    """Der Zustand in wenigen Worten, für eine Badge; im Programm nichts."""
+    if name := _KURZ_MIT_SOLL.get(zustand):
+        return name if g.absenkung_soll is None else f"{name} · {_zahl(g.absenkung_soll)} °C"
+    if zustand is Zustand.PAUSIERT and pausiert_bis is not None:
+        return f"Pausiert bis {_uhr(pausiert_bis)}"
+    return _KURZ.get(zustand)
+
+
 def ohne_absenkung(g: Gedaechtnis) -> Gedaechtnis:
     """Das Gedächtnis ohne laufende Absenkung."""
     return replace(

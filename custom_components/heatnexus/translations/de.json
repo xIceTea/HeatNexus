@@ -328,6 +328,9 @@
           "begruendung": {
             "name": "Begründung"
           },
+          "kurz": {
+            "name": "Kurzfassung"
+          },
           "pausiert_bis": {
             "name": "Pausiert bis"
           },

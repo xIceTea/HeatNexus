@@ -142,7 +142,7 @@ class AutomatikZustand(AutomatikEntitaet, SensorEntity):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = [zustand.value for zustand in Zustand]
     # Der Satz ändert sich mit jeder Messung; im Verlauf wäre er nur Ballast.
-    _unrecorded_attributes = frozenset({"begruendung"})
+    _unrecorded_attributes = frozenset({"begruendung", "kurz"})
 
     @property
     def native_value(self) -> str | None:
@@ -153,8 +153,10 @@ class AutomatikZustand(AutomatikEntitaet, SensorEntity):
         laufzeit = self._laufzeit
         if laufzeit is None:
             return {}
+        kurz = regel.kurz(laufzeit.zustand, laufzeit.gedaechtnis, laufzeit.pausiert_bis)
         return {
             "begruendung": woerterbuch(self.hass).satz(laufzeit.begruendung),
+            "kurz": woerterbuch(self.hass).satz(kurz) if kurz else None,
             "pausiert_bis": laufzeit.pausiert_bis.isoformat() if laufzeit.pausiert_bis else None,
             "eingriffe_heute": laufzeit.steller.stand.eingriffe,
         }

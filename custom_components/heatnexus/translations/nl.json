@@ -328,6 +328,9 @@
           "begruendung": {
             "name": "Reden"
           },
+          "kurz": {
+            "name": "Samenvatting"
+          },
           "pausiert_bis": {
             "name": "Gepauzeerd tot"
           },
