@@ -343,6 +343,41 @@ async def _anlage_vorbereiten(
     )
 
 
+def _heizungsanlage_anmelden(
+    hass: HomeAssistant, registry: dr.DeviceRegistry, entry: ConfigEntry, hub_name: str
+) -> None:
+    """Das übergeordnete Gerät anmelden: die Heizungsanlage als Ganzes."""
+    registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, entry.entry_id)},
+        name=hub_name,
+        manufacturer="Windhager",
+        model=woerterbuch(hass)("Heizungsanlage"),
+    )
+
+
+def _steuerung_anmelden(
+    hass: HomeAssistant, registry: dr.DeviceRegistry, entry: ConfigEntry, anlage: _Anlage
+) -> None:
+    """Die Steuerung als Untergerät der Heizungsanlage anmelden.
+
+    Ihre Kennung stammt aus den Seriennummern und übersteht einen Wechsel der
+    IP-Adresse; die alte, adressgebundene Kennung wird vorher umgeschrieben.
+    """
+    alte_kennung = f"{entry.entry_id}_{anlage.host}"
+    kennung = steuerung_kennung(anlage.coordinator)
+    if kennung != alte_kennung:
+        steuerung_umstellen(registry, entry.entry_id, alte_kennung, kennung)
+    registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, kennung)},
+        name=anlage.label,
+        manufacturer="Windhager",
+        **uebergeordnet(hass, entry.entry_id, entry.entry_id),
+        **steuerung_info(anlage.coordinator),
+    )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Einen Konfigurationseintrag mit einer oder mehreren Anlagen einrichten."""
     systeme = systems(entry)
@@ -363,15 +398,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     mem_cache = hass.data[DOMAIN].setdefault("_discovery_cache", {})
     hub_name = entry.data.get(CONF_NAME) or entry.title
 
-    # Übergeordnetes Gerät: die Heizungsanlage als Ganzes.
     registry = dr.async_get(hass)
-    registry.async_get_or_create(
-        config_entry_id=entry.entry_id,
-        identifiers={(DOMAIN, entry.entry_id)},
-        name=hub_name,
-        manufacturer="Windhager",
-        model=woerterbuch(hass)("Heizungsanlage"),
-    )
+    _heizungsanlage_anmelden(hass, registry, entry, hub_name)
 
     begonnen = monotonic()
     anlagen = await asyncio.gather(
@@ -381,27 +409,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinators: dict[str, WindhagerDataUpdateCoordinator] = {}
     nachzuladen: list[_Anlage] = []
     for anlage in anlagen:
-        host = anlage.host
-        coordinator = anlage.coordinator
-        coordinators[host] = coordinator
-
-        # Die Steuerung als Untergerät der Heizungsanlage. Ihre Kennung stammt
-        # aus den Seriennummern der Anlage und übersteht damit einen Wechsel
-        # der IP-Adresse; die alte, adressgebundene Kennung wird vorher
-        # umgeschrieben.
-        alte_kennung = f"{entry.entry_id}_{host}"
-        kennung = steuerung_kennung(coordinator)
-        if kennung != alte_kennung:
-            steuerung_umstellen(registry, entry.entry_id, alte_kennung, kennung)
-        registry.async_get_or_create(
-            config_entry_id=entry.entry_id,
-            identifiers={(DOMAIN, kennung)},
-            name=anlage.label,
-            manufacturer="Windhager",
-            **uebergeordnet(hass, entry.entry_id, entry.entry_id),
-            **steuerung_info(coordinator),
-        )
-
+        coordinators[anlage.host] = anlage.coordinator
+        _steuerung_anmelden(hass, registry, entry, anlage)
         if not anlage.restored or anlage.abgleichen:
             nachzuladen.append(anlage)
 
