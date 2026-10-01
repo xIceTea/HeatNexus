@@ -10,6 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Geändert
 
+- Die Badge eines Heizkreises zeigt nur Zustand und geschriebenen Sollwert.
 - Einzelne niederländische Begriffe folgen der Durchsicht ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
 
 ### Behoben
