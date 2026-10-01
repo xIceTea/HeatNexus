@@ -54,6 +54,7 @@ from .erkennungsstand import (
     abgleich_noetig,
     discovery_cache_valid,
     laufzeitdaten,
+    laufzeitdaten_anlegen,
     neustart_hinweis,
     nur_anzeige_geaendert,
     nur_automatik_untereintrag_geaendert,
@@ -425,28 +426,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Am Konfigurationseintrag, nicht in `hass.data`: Der Eintrag räumt seine
     # Laufzeitdaten selbst ab. In `hass.data` bleibt nur, was mehreren
     # Einträgen gehört (Erkennungsstände, vorgemerkte Abwahl).
-    entry.runtime_data = {
-        "name": hub_name,
-        # Die Fassung, mit der dieser Eintrag geladen wurde. Die Diagnose
-        # nennt sie; ohne sie ist bei einem Fehlerbericht offen, welcher
-        # Stand antwortet.
-        "fassung": version,
-        "coordinators": coordinators,
-        "hintergrund": hintergrund,
-        # Der Umfang, mit dem dieser Eintrag geladen wurde. Ändert der Nutzer
-        # ihn, lässt sich daran erkennen, ob er etwas abgewählt hat.
-        "umfang": {
-            system[CONF_HOST]: umfang_der_anlage(hass, entry, system[CONF_HOST])
-            for system in systeme
-        },
-        # Die Optionen, mit denen geladen wurde. Daran hängt die Entscheidung,
-        # ob eine Änderung ein Neuladen wert ist.
-        "optionen": deepcopy(dict(entry.options or {})),
-        # Ebenso die Untereinträge: Der Behälter der Automatik ist kein Grund zum Neuladen.
-        "untereintraege": untereintraege_abzug(entry),
-        # Anlagen, deren Vollabzug noch läuft – für die Meldung an den Nutzer.
-        "einlesen_offen": {anlage.host for anlage in nachzuladen},
-    }
+    entry.runtime_data = laufzeitdaten_anlegen(
+        hass,
+        entry,
+        hub_name,
+        version,
+        coordinators,
+        hintergrund,
+        {anlage.host for anlage in nachzuladen},
+    )
     # Erst die Kennungen umstellen, dann die Plattformen anlegen: Sonst
     # entstünden neben den umbenannten Einträgen zusätzlich neue.
     async_kennungen_umstellen(hass, entry, coordinators)

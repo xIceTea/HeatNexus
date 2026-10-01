@@ -6,6 +6,8 @@ Freigaben, Intervall, Zugang) entscheidet, ob er noch gilt.
 
 from __future__ import annotations
 
+from copy import deepcopy
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_USERNAME
 from homeassistant.core import HomeAssistant
@@ -169,6 +171,40 @@ def laufzeitdaten(entry: ConfigEntry) -> dict | None:
     """
     daten = getattr(entry, "runtime_data", None)
     return daten if isinstance(daten, dict) else None
+
+
+def laufzeitdaten_anlegen(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    name: str,
+    fassung: str,
+    coordinators: dict,
+    hintergrund: list,
+    einlesen_offen: set[str],
+) -> dict:
+    """Die Laufzeitdaten eines frisch eingerichteten Eintrags zusammenstellen."""
+    return {
+        "name": name,
+        # Die Fassung, mit der dieser Eintrag geladen wurde. Die Diagnose
+        # nennt sie; ohne sie ist bei einem Fehlerbericht offen, welcher
+        # Stand antwortet.
+        "fassung": fassung,
+        "coordinators": coordinators,
+        "hintergrund": hintergrund,
+        # Der Umfang, mit dem dieser Eintrag geladen wurde. Ändert der Nutzer
+        # ihn, lässt sich daran erkennen, ob er etwas abgewählt hat.
+        "umfang": {
+            system[CONF_HOST]: umfang_der_anlage(hass, entry, system[CONF_HOST])
+            for system in systems(entry)
+        },
+        # Die Optionen, mit denen geladen wurde. Daran hängt die Entscheidung,
+        # ob eine Änderung ein Neuladen wert ist.
+        "optionen": deepcopy(dict(entry.options or {})),
+        # Ebenso die Untereinträge: Der Behälter der Automatik ist kein Grund zum Neuladen.
+        "untereintraege": untereintraege_abzug(entry),
+        # Anlagen, deren Vollabzug noch läuft – für die Meldung an den Nutzer.
+        "einlesen_offen": einlesen_offen,
+    }
 
 
 def untereintraege_abzug(entry: ConfigEntry) -> dict[str, tuple]:
