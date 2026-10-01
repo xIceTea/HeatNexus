@@ -15,6 +15,7 @@ import logging
 # Wettlauf zwischen Plattform-Import und Einrichtung.
 from time import monotonic
 from types import MappingProxyType
+from typing import NamedTuple
 
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
@@ -176,6 +177,172 @@ def _marken_je_anlage_uebernehmen(
     hass.config_entries.async_update_entry(entry, options=optionen)
 
 
+class _Anlage(NamedTuple):
+    """Eine verbundene Anlage mit allem, was Plattformen und Vollabzug brauchen."""
+
+    host: str
+    label: str
+    coordinator: WindhagerDataUpdateCoordinator
+    client: WindhagerHttpClient
+    store: Store
+    fingerprint: str
+    cache_key: str
+    restored: bool
+    abgleichen: bool
+
+
+def _client_bauen(system: dict, scope: dict) -> WindhagerHttpClient:
+    """Den Client einer Anlage mit ihrem Umfang anlegen."""
+    return WindhagerHttpClient(
+        host=system[CONF_HOST],
+        password=system[CONF_PASSWORD],
+        username=scope["username"],
+        levels=scope["levels"],
+        enable_advanced=scope["enable_advanced"],
+        writable_advanced=scope["writable_advanced"],
+        zeitwerte=scope["zeitwerte"],
+        zusatzwerte=scope["zusatzwerte"],
+        lon=scope["lon"],
+        lon_grundumfang=scope["lon_grundumfang"],
+        update_interval=scope["update_interval"],
+        sprache=scope["sprache"],
+    )
+
+
+async def _erkennungsstand_laden(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    client: WindhagerHttpClient,
+    store: Store,
+    host: str,
+    scope: dict,
+    fingerprint: str,
+    cache_key: str,
+    mem_cache: dict,
+    version: str,
+) -> tuple[bool, bool]:
+    """Den Erkennungsstand übernehmen: erst Arbeitsspeicher, dann Platte.
+
+    Liefert, ob ein Stand übernommen wurde und ob er im Hintergrund gegen die
+    Anlage abzugleichen ist – das gilt nach einer Aktualisierung.
+    """
+    if (cached := mem_cache.get(cache_key)) is not None:
+        client.restore_discovery(cached)
+        return True, False
+    stored = await store.async_load()
+    # Ein kleiner gewordener Umfang verwirft den Stand – und genau
+    # hier ist die Abwahl noch ablesbar.
+    if abwahl_im_stand(stored, scope):
+        abwahl_vormerken(hass, entry)
+    if not discovery_cache_valid(stored, host, fingerprint):
+        return False, False
+    client.restore_discovery(stored["data"])
+    mem_cache[cache_key] = stored["data"]
+    abgleichen = abgleich_noetig(stored, version, scope["sprache"])
+    neustart_hinweis(hass, entry, host, stored.get("sprache", "de") != scope["sprache"])
+    if abgleichen:
+        _LOGGER.info(
+            "%s: Erkennungsstand stammt aus Fassung %s und Sprache %s – die "
+            "Werte sind sofort da, der Abgleich mit der Anlage läuft im "
+            "Hintergrund.",
+            host,
+            stored.get("version"),
+            stored.get("sprache", "de"),
+        )
+    return True, abgleichen
+
+
+async def _grunddaten_lesen(client: WindhagerHttpClient, host: str) -> None:
+    """Nur die Grunddaten abwarten – der Vollabzug folgt im Hintergrund."""
+    try:
+        async with asyncio.timeout(INIT_TIMEOUT):
+            await client.async_init_basic()
+    except TimeoutError as err:
+        await client.close()
+        raise mit_text(ConfigEntryNotReady, "verbinden_zeitueberschreitung", anlage=host) from err
+    except Exception as err:
+        await client.close()
+        raise mit_text(ConfigEntryNotReady, "verbinden_fehler", anlage=host, fehler=err) from err
+
+
+async def _geraeteinfo_nachholen(
+    client: WindhagerHttpClient, mem_cache: dict, cache_key: str
+) -> None:
+    """Modell und Firmwarestand zu einem Erkennungsstand ohne sie nachlesen.
+
+    Zwei Anfragen genügen, statt bis zum nächsten Neu-Einlesen ein Gerät ohne
+    diese Angaben zu zeigen.
+    """
+    with contextlib.suppress(Exception):
+        await client._lese_geraeteinfo()
+        await client._lese_knotendaten()
+        # Gleich in den Zwischenspeicher zurück, sonst zahlt jedes
+        # weitere Laden dieselben zwei Anfragen erneut.
+        mem_cache[cache_key] = client.export_discovery()
+
+
+async def _vorabstand_setzen(
+    entry: ConfigEntry,
+    client: WindhagerHttpClient,
+    coordinator: WindhagerDataUpdateCoordinator,
+    host: str,
+) -> None:
+    """Den ersten Stand aus dem Lesespeicher der Anlage übernehmen.
+
+    Damit entstehen die Entitäten gleich mit Wert; der erste Abruf
+    überschreibt ihn wenige Sekunden später.
+    """
+    try:
+        stand = await client.vorabstand(
+            int((entry.options or {}).get(CONF_STARTWERTE, STARTWERTE_VORGABE))
+        )
+    except Exception as fehler:
+        # Der Vorabstand ist eine Beigabe; ein Fehler darf die Einrichtung
+        # nicht anhalten, aber auch nicht spurlos bleiben.
+        _LOGGER.debug("%s: kein Vorabstand: %s", host, fehler)
+    else:
+        if stand:
+            coordinator.async_set_updated_data(stand)
+
+
+async def _anlage_vorbereiten(
+    hass: HomeAssistant, entry: ConfigEntry, system: dict, mem_cache: dict, version: str
+) -> _Anlage:
+    """Eine Anlage verbinden und ihren ersten Abruf machen.
+
+    Bewusst als eigene Aufgabe: Nacheinander eingerichtet wartet jede
+    Anlage, bis die vorige ihren vollständigen Erstabruf hinter sich hat.
+    Da sie über getrennte Verbindungen laufen, gibt es keinen Grund dafür.
+    """
+    host = system[CONF_HOST]
+    label = system.get(CONF_LABEL) or host
+    scope = umfang_der_anlage(hass, entry, host)
+    fingerprint = umfang_fingerprint(scope)
+    client = _client_bauen(system, scope)
+
+    store = Store(hass, DISCOVERY_STORE_VERSION, store_key(entry, host))
+    # Die Sprache gehört in den Schlüssel, nicht in den Fingerabdruck: Ein
+    # Wechsel soll den Stand von der Platte holen und abgleichen, statt
+    # den Stand im Arbeitsspeicher unverändert weiterzureichen.
+    cache_key = f"{host}|{fingerprint}|{scope['sprache']}"
+    restored, abgleichen = await _erkennungsstand_laden(
+        hass, entry, client, store, host, scope, fingerprint, cache_key, mem_cache, version
+    )
+    if not restored:
+        await _grunddaten_lesen(client, host)
+    if restored and not client.geraeteinfo:
+        await _geraeteinfo_nachholen(client, mem_cache, cache_key)
+
+    coordinator = WindhagerDataUpdateCoordinator(
+        hass, client, entry, host, label, scope["update_interval"]
+    )
+    await _vorabstand_setzen(entry, client, coordinator, host)
+    await coordinator.async_config_entry_first_refresh()
+    return _Anlage(
+        host, label, coordinator, client, store, fingerprint, cache_key, restored, abgleichen
+    )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Einen Konfigurationseintrag mit einer oder mehreren Anlagen einrichten."""
     systeme = systems(entry)
@@ -206,132 +373,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         model=woerterbuch(hass)("Heizungsanlage"),
     )
 
-    async def _anlage_vorbereiten(system: dict) -> tuple:
-        """Eine Anlage verbinden und ihren ersten Abruf machen.
-
-        Bewusst als eigene Aufgabe: Nacheinander eingerichtet wartet jede
-        Anlage, bis die vorige ihren vollständigen Erstabruf hinter sich hat.
-        Da sie über getrennte Verbindungen laufen, gibt es keinen Grund dafür.
-        """
-        host = system[CONF_HOST]
-        label = system.get(CONF_LABEL) or host
-        scope = umfang_der_anlage(hass, entry, host)
-        fingerprint = umfang_fingerprint(scope)
-
-        client = WindhagerHttpClient(
-            host=host,
-            password=system[CONF_PASSWORD],
-            username=scope["username"],
-            levels=scope["levels"],
-            enable_advanced=scope["enable_advanced"],
-            writable_advanced=scope["writable_advanced"],
-            zeitwerte=scope["zeitwerte"],
-            zusatzwerte=scope["zusatzwerte"],
-            lon=scope["lon"],
-            lon_grundumfang=scope["lon_grundumfang"],
-            update_interval=scope["update_interval"],
-            sprache=scope["sprache"],
-        )
-
-        # Erkennungsstand: erst Arbeitsspeicher, dann Platte, sonst neu lesen.
-        store = Store(hass, DISCOVERY_STORE_VERSION, store_key(entry, host))
-        # Die Sprache gehört in den Schlüssel, nicht in den Fingerabdruck: Ein
-        # Wechsel soll den Stand von der Platte holen und abgleichen, statt
-        # den Stand im Arbeitsspeicher unverändert weiterzureichen.
-        cache_key = f"{host}|{fingerprint}|{scope['sprache']}"
-        restored = False
-        # Nach einer Aktualisierung wird der bekannte Stand zwar benutzt, im
-        # Hintergrund aber gegen die Anlage abgeglichen.
-        abgleichen = False
-        if (cached := mem_cache.get(cache_key)) is not None:
-            client.restore_discovery(cached)
-            restored = True
-        else:
-            stored = await store.async_load()
-            # Ein kleiner gewordener Umfang verwirft den Stand – und genau
-            # hier ist die Abwahl noch ablesbar.
-            if abwahl_im_stand(stored, scope):
-                abwahl_vormerken(hass, entry)
-            if discovery_cache_valid(stored, host, fingerprint):
-                client.restore_discovery(stored["data"])
-                mem_cache[cache_key] = stored["data"]
-                restored = True
-                abgleichen = abgleich_noetig(stored, version, scope["sprache"])
-                neustart_hinweis(hass, entry, host, stored.get("sprache", "de") != scope["sprache"])
-                if abgleichen:
-                    _LOGGER.info(
-                        "%s: Erkennungsstand stammt aus Fassung %s und Sprache %s – die "
-                        "Werte sind sofort da, der Abgleich mit der Anlage läuft im "
-                        "Hintergrund.",
-                        host,
-                        stored.get("version"),
-                        stored.get("sprache", "de"),
-                    )
-
-        if not restored:
-            # Nur Grunddaten abwarten – der Vollabzug folgt im Hintergrund.
-            try:
-                async with asyncio.timeout(INIT_TIMEOUT):
-                    await client.async_init_basic()
-            except TimeoutError as err:
-                await client.close()
-                raise mit_text(
-                    ConfigEntryNotReady, "verbinden_zeitueberschreitung", anlage=host
-                ) from err
-            except Exception as err:
-                await client.close()
-                raise mit_text(
-                    ConfigEntryNotReady, "verbinden_fehler", anlage=host, fehler=err
-                ) from err
-
-        # Ein Erkennungsstand aus einer Fassung ohne diese Abfrage trägt sie
-        # nicht mit. Zwei Anfragen holen sie nach, statt bis zum nächsten
-        # Neu-Einlesen ein Gerät ohne Modell und Firmwarestand zu zeigen.
-        if restored and not client.geraeteinfo:
-            with contextlib.suppress(Exception):
-                await client._lese_geraeteinfo()
-                await client._lese_knotendaten()
-                # Gleich in den Zwischenspeicher zurück, sonst zahlt jedes
-                # weitere Laden dieselben zwei Anfragen erneut.
-                mem_cache[cache_key] = client.export_discovery()
-
-        coordinator = WindhagerDataUpdateCoordinator(
-            hass, client, entry, host, label, scope["update_interval"]
-        )
-        # Der erste Stand kommt aus dem Lesespeicher der Anlage, damit die
-        # Entitäten gleich mit Wert entstehen. Der erste Abruf überschreibt
-        # ihn wenige Sekunden später.
-        try:
-            stand = await client.vorabstand(
-                int((entry.options or {}).get(CONF_STARTWERTE, STARTWERTE_VORGABE))
-            )
-        except Exception as fehler:
-            # Der Vorabstand ist eine Beigabe; ein Fehler darf die Einrichtung
-            # nicht anhalten, aber auch nicht spurlos bleiben.
-            _LOGGER.debug("%s: kein Vorabstand: %s", host, fehler)
-        else:
-            if stand:
-                coordinator.async_set_updated_data(stand)
-
-        await coordinator.async_config_entry_first_refresh()
-        return host, label, coordinator, client, store, fingerprint, cache_key, restored, abgleichen
-
     begonnen = monotonic()
-    ergebnisse = await asyncio.gather(*(_anlage_vorbereiten(s) for s in systeme))
+    anlagen = await asyncio.gather(
+        *(_anlage_vorbereiten(hass, entry, s, mem_cache, version) for s in systeme)
+    )
 
     coordinators: dict[str, WindhagerDataUpdateCoordinator] = {}
-    nachzuladen: list[tuple] = []
-    for (
-        host,
-        label,
-        coordinator,
-        client,
-        store,
-        fingerprint,
-        cache_key,
-        restored,
-        abgleichen,
-    ) in ergebnisse:
+    nachzuladen: list[_Anlage] = []
+    for anlage in anlagen:
+        host = anlage.host
+        coordinator = anlage.coordinator
         coordinators[host] = coordinator
 
         # Die Steuerung als Untergerät der Heizungsanlage. Ihre Kennung stammt
@@ -345,14 +396,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         registry.async_get_or_create(
             config_entry_id=entry.entry_id,
             identifiers={(DOMAIN, kennung)},
-            name=label,
+            name=anlage.label,
             manufacturer="Windhager",
             **uebergeordnet(hass, entry.entry_id, entry.entry_id),
             **steuerung_info(coordinator),
         )
 
-        if not restored or abgleichen:
-            nachzuladen.append((coordinator, client, store, host, fingerprint, cache_key, restored))
+        if not anlage.restored or anlage.abgleichen:
+            nachzuladen.append(anlage)
 
     _LOGGER.info(
         "%d Anlage(n) verbunden in %.1f s (%s)",
@@ -385,7 +436,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Ebenso die Untereinträge: Der Behälter der Automatik ist kein Grund zum Neuladen.
         "untereintraege": untereintraege_abzug(entry),
         # Anlagen, deren Vollabzug noch läuft – für die Meldung an den Nutzer.
-        "einlesen_offen": {eintrag[3] for eintrag in nachzuladen},
+        "einlesen_offen": {anlage.host for anlage in nachzuladen},
     }
     # Erst die Kennungen umstellen, dann die Plattformen anlegen: Sonst
     # entstünden neben den umbenannten Einträgen zusätzlich neue.
@@ -415,27 +466,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Gemeldet wird nur das echte Ersteinlesen, nicht der Abgleich nach einem
     # Update – und auch das nur, wenn der Nutzer es eingeschaltet hat.
-    if any(not eintrag[6] for eintrag in nachzuladen):
+    if any(not anlage.restored for anlage in nachzuladen):
         einlesen_melden(hass, entry)
 
-    for coordinator, client, store, host, fingerprint, cache_key, war_im_cache in nachzuladen:
+    for anlage in nachzuladen:
         hintergrund.append(
             entry.async_create_background_task(
                 hass,
                 vollabzug(
                     hass,
                     entry,
-                    coordinator,
-                    client,
-                    store,
-                    host,
-                    fingerprint,
-                    cache_key,
+                    anlage.coordinator,
+                    anlage.client,
+                    anlage.store,
+                    anlage.host,
+                    anlage.fingerprint,
+                    anlage.cache_key,
                     mem_cache,
                     version,
-                    war_im_cache,
+                    anlage.restored,
                 ),
-                name=f"{DOMAIN}_vollabzug_{host}",
+                name=f"{DOMAIN}_vollabzug_{anlage.host}",
             )
         )
 
