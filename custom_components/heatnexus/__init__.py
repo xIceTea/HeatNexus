@@ -379,6 +379,32 @@ def _steuerung_anmelden(
     )
 
 
+async def _entitaeten_einrichten(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    registry: dr.DeviceRegistry,
+    coordinators: dict[str, WindhagerDataUpdateCoordinator],
+) -> None:
+    """Die Registrierung umstellen und die Plattformen anlegen."""
+    # Erst die Kennungen umstellen, dann die Plattformen anlegen: Sonst
+    # entstünden neben den umbenannten Einträgen zusätzlich neue.
+    async_kennungen_umstellen(hass, entry, coordinators)
+    # Vor den Plattformen: Ein Gerät, das noch am Haupteintrag hängt, stünde
+    # sonst neben seinem Subeintrag ein zweites Mal in der Übersicht.
+    waermequelle.geraete_entflechten(registry, entry)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    geraetenamen_angleichen(registry, entry, coordinators)
+    await verwaltung_holen(hass).eintrag_starten(entry)
+    async_entity_ids_umstellen(hass, entry)
+    # Beim ersten Lauf steht in der Registrierung noch der alte Anzeigename –
+    # die Plattformen melden ihn erst danach an. Ein zweiter Lauf, sobald Home
+    # Assistant steht, spart den Umweg über einen weiteren Start.
+    entry.async_on_unload(
+        async_at_started(hass, lambda _hass: async_entity_ids_umstellen(hass, entry))
+    )
+    abgewaehlte_entitaeten_stilllegen(hass, entry, coordinators)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Einen Konfigurationseintrag mit einer oder mehreren Anlagen einrichten."""
     systeme = systems(entry)
@@ -435,23 +461,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hintergrund,
         {anlage.host for anlage in nachzuladen},
     )
-    # Erst die Kennungen umstellen, dann die Plattformen anlegen: Sonst
-    # entstünden neben den umbenannten Einträgen zusätzlich neue.
-    async_kennungen_umstellen(hass, entry, coordinators)
-    # Vor den Plattformen: Ein Gerät, das noch am Haupteintrag hängt, stünde
-    # sonst neben seinem Subeintrag ein zweites Mal in der Übersicht.
-    waermequelle.geraete_entflechten(registry, entry)
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    geraetenamen_angleichen(registry, entry, coordinators)
-    await verwaltung_holen(hass).eintrag_starten(entry)
-    async_entity_ids_umstellen(hass, entry)
-    # Beim ersten Lauf steht in der Registrierung noch der alte Anzeigename –
-    # die Plattformen melden ihn erst danach an. Ein zweiter Lauf, sobald Home
-    # Assistant steht, spart den Umweg über einen weiteren Start.
-    entry.async_on_unload(
-        async_at_started(hass, lambda _hass: async_entity_ids_umstellen(hass, entry))
-    )
-    abgewaehlte_entitaeten_stilllegen(hass, entry, coordinators)
+    await _entitaeten_einrichten(hass, entry, registry, coordinators)
 
     if (entry.options or {}).get(CONF_DASHBOARD, True):
         await async_setup_dashboard(hass)
