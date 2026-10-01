@@ -17,6 +17,9 @@
         "data": {
           "name": "Name der Anlage",
           "count": "Anzahl der Steuerungen"
+        },
+        "data_description": {
+          "name": "Gilt für die ganze Anlage. Ein Ort passt besser als ein Kesselname, etwa „Keller“ oder „Scheune“."
         }
       },
       "system": {
@@ -29,7 +32,8 @@
           "username": "Zugang"
         },
         "data_description": {
-          "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter. Ein eigener Name lässt sich eintragen."
+          "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter. Ein eigener Name lässt sich eintragen.",
+          "label": "Steht vor jedem Gerät, etwa „Keller · Pufferspeicher“. Ein Ort passt besser als ein Kesselname."
         }
       },
       "scope": {
@@ -138,7 +142,7 @@
           "marken_status": "Diese Labels in den Systemstatus"
         },
         "data_description": {
-          "label": "Steht vor jedem Gerätenamen dieser Steuerung, etwa „Kesselhaus · Pufferspeicher“.",
+          "label": "Steht vor jedem Gerät, etwa „Keller · Pufferspeicher“. Ein Ort passt besser als ein Kesselname.",
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
           "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
           "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",
@@ -171,7 +175,8 @@
           "password": "Service-Passwort"
         },
         "data_description": {
-          "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter."
+          "username": "Ab Werk kennt die Anlage „USER“ und „Service“. „Service“ liefert zusätzlich die Fachparameter.",
+          "label": "Steht vor jedem Gerät, etwa „Keller · Pufferspeicher“. Ein Ort passt besser als ein Kesselname."
         }
       },
       "steuerung_entfernen": {

@@ -17,6 +17,9 @@
         "data": {
           "name": "Nom de l'installation",
           "count": "Nombre de régulations"
+        },
+        "data_description": {
+          "name": "S'applique à toute l'installation. Un lieu convient mieux qu'un nom de chaudière, par exemple « Cave » ou « Grange »."
         }
       },
       "system": {
@@ -29,7 +32,8 @@
           "username": "Compte"
         },
         "data_description": {
-          "username": "D'origine, l'installation connaît « USER » et « Service ». « Service » fournit en plus les paramètres experts. Un autre nom peut être saisi."
+          "username": "D'origine, l'installation connaît « USER » et « Service ». « Service » fournit en plus les paramètres experts. Un autre nom peut être saisi.",
+          "label": "Figure devant chaque appareil, par exemple « Cave · Ballon tampon ». Un lieu convient mieux qu'un nom de chaudière."
         }
       },
       "scope": {
@@ -138,7 +142,7 @@
           "marken_status": "Placer ces labels dans l'état du système"
         },
         "data_description": {
-          "label": "Figure devant chaque nom d'appareil de ce régulateur, par exemple « Chaufferie · Ballon tampon ».",
+          "label": "Figure devant chaque appareil, par exemple « Cave · Ballon tampon ». Un lieu convient mieux qu'un nom de chaudière.",
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
           "enable_advanced": "Sans coche, les entités sont créées mais restent désactivées.",
           "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule.",
@@ -171,7 +175,8 @@
           "password": "Mot de passe service"
         },
         "data_description": {
-          "username": "Par défaut, le système connaît « USER » et « Service ». « Service » fournit en plus les paramètres techniques."
+          "username": "Par défaut, le système connaît « USER » et « Service ». « Service » fournit en plus les paramètres techniques.",
+          "label": "Figure devant chaque appareil, par exemple « Cave · Ballon tampon ». Un lieu convient mieux qu'un nom de chaudière."
         }
       },
       "steuerung_entfernen": {

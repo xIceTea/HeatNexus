@@ -17,6 +17,9 @@
         "data": {
           "name": "Naam van de installatie",
           "count": "Aantal regelaars"
+        },
+        "data_description": {
+          "name": "Geldt voor de hele installatie. Een plaats past beter dan een ketelnaam, bijvoorbeeld \"Kelder\" of \"Schuur\"."
         }
       },
       "system": {
@@ -29,7 +32,8 @@
           "username": "Account"
         },
         "data_description": {
-          "username": "Standaard kent de installatie “USER” en “Service”. “Service” levert ook de expertparameters. Een andere naam kan worden ingevoerd."
+          "username": "Standaard kent de installatie “USER” en “Service”. “Service” levert ook de expertparameters. Een andere naam kan worden ingevoerd.",
+          "label": "Staat voor elk apparaat, bijvoorbeeld \"Kelder · Buffervat\". Een plaats past beter dan een ketelnaam."
         }
       },
       "scope": {
@@ -138,7 +142,7 @@
           "marken_status": "Deze labels in de installatiestatus opnemen"
         },
         "data_description": {
-          "label": "Staat voor elke apparaatnaam van deze regelaar, bijvoorbeeld \"Stookhok · Buffervat\".",
+          "label": "Staat voor elk apparaat, bijvoorbeeld \"Kelder · Buffervat\". Een plaats past beter dan een ketelnaam.",
           "levels": "Info: meetwaarden. Bediening: bedrijfsmodus, instelwaarden, programma's. Service: stooklijn, grenswaarden, droogprogramma smeervloer. Fabriek: verbrandingsregeling, ontsteking, aandrijvingen.",
           "enable_advanced": "Zonder vinkje worden de entiteiten aangemaakt, maar blijven ze uitgeschakeld en worden ze niet opgevraagd.",
           "writable_advanced": "Zonder vinkje worden deze parameters alleen weergegeven en niet geschreven.",
@@ -171,7 +175,8 @@
           "password": "Servicewachtwoord"
         },
         "data_description": {
-          "username": "Standaard kent de installatie \"USER\" en \"Service\". \"Service\" levert ook de vakmanparameters."
+          "username": "Standaard kent de installatie \"USER\" en \"Service\". \"Service\" levert ook de vakmanparameters.",
+          "label": "Staat voor elk apparaat, bijvoorbeeld \"Kelder · Buffervat\". Een plaats past beter dan een ketelnaam."
         }
       },
       "steuerung_entfernen": {

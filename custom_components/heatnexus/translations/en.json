@@ -17,6 +17,9 @@
         "data": {
           "name": "System name",
           "count": "Number of controllers"
+        },
+        "data_description": {
+          "name": "Applies to the whole system. A place fits better than a boiler name, such as \"Basement\" or \"Barn\"."
         }
       },
       "system": {
@@ -29,7 +32,8 @@
           "username": "Account"
         },
         "data_description": {
-          "username": "By default the system knows “USER” and “Service”. “Service” also returns the expert parameters. A different name can be entered."
+          "username": "By default the system knows “USER” and “Service”. “Service” also returns the expert parameters. A different name can be entered.",
+          "label": "Appears in front of every device, such as \"Basement · Buffer tank\". A place fits better than a boiler name."
         }
       },
       "scope": {
@@ -138,7 +142,7 @@
           "marken_status": "Put these labels into the system status"
         },
         "data_description": {
-          "label": "Appears in front of every device name of this controller, for example \"Boiler house · Buffer tank\".",
+          "label": "Appears in front of every device, such as \"Basement · Buffer tank\". A place fits better than a boiler name.",
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
@@ -171,7 +175,8 @@
           "password": "Service password"
         },
         "data_description": {
-          "username": "Out of the box the system knows \"USER\" and \"Service\". \"Service\" also delivers the specialist parameters."
+          "username": "Out of the box the system knows \"USER\" and \"Service\". \"Service\" also delivers the specialist parameters.",
+          "label": "Appears in front of every device, such as \"Basement · Buffer tank\". A place fits better than a boiler name."
         }
       },
       "steuerung_entfernen": {
