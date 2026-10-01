@@ -23,6 +23,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import slugify
 
 from .const import DOMAIN
 from .entity import steuerung_kennung
@@ -175,6 +176,35 @@ def async_kennungen_umstellen(hass: HomeAssistant, entry: ConfigEntry, coordinat
             geraete,
             entitaeten,
         )
+
+
+def entity_ids_umbenennen(
+    hass: HomeAssistant, entry: ConfigEntry, alt: str, neu: str
+) -> dict[str, str]:
+    """IDs einer Steuerung auf ihre neue Bezeichnung umschreiben, auf Wunsch des Nutzers.
+
+    Nur IDs, die mit der alten Bezeichnung beginnen und an einem ihrer Geräte hängen.
+    """
+    vorher, nachher = slugify(alt), slugify(neu)
+    if not vorher or not nachher or vorher == nachher:
+        return {}
+    registry = er.async_get(hass)
+    geraete = dr.async_get(hass)
+    umbenannt: dict[str, str] = {}
+    for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
+        domaene, objekt = eintrag.entity_id.split(".", 1)
+        if not objekt.startswith(f"{vorher}_"):
+            continue
+        geraet = geraete.async_get(eintrag.device_id) if eintrag.device_id else None
+        name = (geraet.name or "") if geraet else ""
+        if name != alt and not name.startswith(f"{alt} · "):
+            continue
+        ziel = f"{domaene}.{nachher}{objekt[len(vorher) :]}"
+        if registry.async_get(ziel) is not None:
+            continue
+        registry.async_update_entity(eintrag.entity_id, new_entity_id=ziel)
+        umbenannt[eintrag.entity_id] = ziel
+    return umbenannt
 
 
 def async_entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> None:

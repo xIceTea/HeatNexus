@@ -304,7 +304,9 @@ async def test_ohne_kandidaten_bleibt_die_auswahl_stehen(flow, monkeypatch):
     )
     monkeypatch.setattr(type(optionen), "_systeme", lambda _self: [{"host": "192.0.2.10"}])
     monkeypatch.setattr(type(optionen), "_zusatzkandidaten", lambda _self, host: [])
-    monkeypatch.setattr(type(optionen), "_zugang_uebernehmen", lambda _self, host, benutzer: None)
+    monkeypatch.setattr(
+        type(optionen), "_zugang_uebernehmen", lambda _self, host, benutzer, options: None
+    )
     monkeypatch.setattr(
         type(optionen), "async_create_entry", lambda _self, data: gespeichert.update(data) or {}
     )
@@ -343,6 +345,67 @@ async def test_die_bezeichnung_der_anlage_laesst_sich_aendern(flow, monkeypatch)
     assert geschrieben[CONF_SYSTEMS] == [
         {"host": "192.0.2.10", CONF_LABEL: "Kesselhaus", "username": "USER"}
     ]
+
+
+async def test_auf_wunsch_ziehen_die_ids_mit_der_bezeichnung_um(flow, monkeypatch):
+    """Die gewählte Außentemperatur folgt ihrer umbenannten Entität."""
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.const import CONF_AUSSENTEMPERATUR, CONF_LABEL, CONF_SYSTEMS
+
+    aufrufe = []
+    gespeichert = {}
+    eintrag = SimpleNamespace(
+        options={CONF_AUSSENTEMPERATUR: "sensor.anlage_1_aussen"},
+        data={CONF_SYSTEMS: [{"host": "192.0.2.10", CONF_LABEL: "Anlage 1", "username": "USER"}]},
+    )
+    optionen = flow.WindhagerOptionsFlow()
+    optionen._host = "192.0.2.10"
+    optionen.hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_update_entry=lambda _eintrag, data: None)
+    )
+    monkeypatch.setattr(type(optionen), "config_entry", property(lambda _self: eintrag))
+    monkeypatch.setattr(type(optionen), "_zusatzkandidaten", lambda _self, host: [])
+    monkeypatch.setattr(
+        type(optionen), "async_create_entry", lambda _self, data: gespeichert.update(data) or {}
+    )
+    monkeypatch.setattr(
+        flow,
+        "entity_ids_umbenennen",
+        lambda _hass, _eintrag, alt, neu: (
+            aufrufe.append((alt, neu)) or {"sensor.anlage_1_aussen": "sensor.keller_aussen"}
+        ),
+    )
+
+    await optionen.async_step_system(
+        {CONF_LABEL: "Keller", "ids_anpassen": True, "username": "USER", "levels": ["info"]}
+    )
+
+    assert aufrufe == [("Anlage 1", "Keller")]
+    assert gespeichert[CONF_AUSSENTEMPERATUR] == "sensor.keller_aussen"
+    assert "ids_anpassen" not in gespeichert["192.0.2.10"]
+
+
+async def test_ohne_haken_bleiben_die_ids(flow, monkeypatch):
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.const import CONF_LABEL, CONF_SYSTEMS
+
+    eintrag = SimpleNamespace(
+        options={},
+        data={CONF_SYSTEMS: [{"host": "192.0.2.10", CONF_LABEL: "Anlage 1", "username": "USER"}]},
+    )
+    optionen = flow.WindhagerOptionsFlow()
+    optionen._host = "192.0.2.10"
+    optionen.hass = SimpleNamespace(
+        config_entries=SimpleNamespace(async_update_entry=lambda _eintrag, data: None)
+    )
+    monkeypatch.setattr(type(optionen), "config_entry", property(lambda _self: eintrag))
+    monkeypatch.setattr(type(optionen), "_zusatzkandidaten", lambda _self, host: [])
+    monkeypatch.setattr(type(optionen), "async_create_entry", lambda _self, data: {})
+    monkeypatch.setattr(flow, "entity_ids_umbenennen", lambda *_: pytest.fail("umbenannt"))
+
+    await optionen.async_step_system({CONF_LABEL: "Keller", "username": "USER", "levels": ["info"]})
 
 
 # ---------------------------------------------------------------------------

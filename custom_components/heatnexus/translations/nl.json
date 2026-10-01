@@ -127,6 +127,7 @@
         "description": "Instellingen voor {anlage}. {bus_hinweis}",
         "data": {
           "label": "Naam van de regelaar",
+          "ids_anpassen": "Entiteit-ID's aan de nieuwe naam aanpassen",
           "levels": "Niveaus",
           "enable_advanced": "Service-/fabrieksniveau direct inschakelen",
           "writable_advanced": "Service-/fabrieksparameters bedienbaar maken",
@@ -143,6 +144,7 @@
         },
         "data_description": {
           "label": "Staat voor elk apparaat, bijvoorbeeld \"Kelder · Buffervat\". Een plaats past beter dan een ketelnaam.",
+          "ids_anpassen": "Hernoemt de ID's die met de vorige naam beginnen. Automatiseringen, scripts en eigen dashboards met de oude ID's moeten daarna worden aangepast.",
           "levels": "Info: meetwaarden. Bediening: bedrijfsmodus, instelwaarden, programma's. Service: stooklijn, grenswaarden, droogprogramma smeervloer. Fabriek: verbrandingsregeling, ontsteking, aandrijvingen.",
           "enable_advanced": "Zonder vinkje worden de entiteiten aangemaakt, maar blijven ze uitgeschakeld en worden ze niet opgevraagd.",
           "writable_advanced": "Zonder vinkje worden deze parameters alleen weergegeven en niet geschreven.",

@@ -127,6 +127,7 @@
         "description": "Paramètres pour {anlage}. {bus_hinweis}",
         "data": {
           "label": "Nom du régulateur",
+          "ids_anpassen": "Adapter les identifiants d'entité au nouveau nom",
           "levels": "Niveaux",
           "enable_advanced": "Activer immédiatement les niveaux Service/Usine",
           "writable_advanced": "Rendre modifiables les paramètres Service/Usine",
@@ -143,6 +144,7 @@
         },
         "data_description": {
           "label": "Figure devant chaque appareil, par exemple « Cave · Ballon tampon ». Un lieu convient mieux qu'un nom de chaudière.",
+          "ids_anpassen": "Renomme les identifiants qui commencent par l'ancien nom. Les automatisations, scripts et tableaux de bord personnels qui utilisent les anciens identifiants doivent ensuite être adaptés.",
           "levels": "Info : mesures. Exploitant : mode, consignes, programmes. Service : courbe de chauffe, limites. Usine : régulation de combustion.",
           "enable_advanced": "Sans coche, les entités sont créées mais restent désactivées.",
           "writable_advanced": "Sans coche, ces paramètres sont affichés en lecture seule.",

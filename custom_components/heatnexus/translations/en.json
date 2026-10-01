@@ -127,6 +127,7 @@
         "description": "Settings for {anlage}. {bus_hinweis}",
         "data": {
           "label": "Controller name",
+          "ids_anpassen": "Rename entity IDs to the new name",
           "levels": "Levels",
           "enable_advanced": "Enable service/factory level right away",
           "writable_advanced": "Allow writing service/factory parameters",
@@ -143,6 +144,7 @@
         },
         "data_description": {
           "label": "Appears in front of every device, such as \"Basement · Buffer tank\". A place fits better than a boiler name.",
+          "ids_anpassen": "Renames the IDs that start with the previous name. Automations, scripts and your own dashboards that use the old IDs need to be updated afterwards.",
           "levels": "Info: readings. Operator: mode, setpoints, programs. Service: heating curve, limits. Factory: combustion control, drives.",
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",

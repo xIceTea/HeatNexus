@@ -42,6 +42,7 @@ from .const import (
     CONF_COUNT,
     CONF_DASHBOARD,
     CONF_HILFE,
+    CONF_IDS_ANPASSEN,
     CONF_LABEL,
     CONF_MARKEN,
     CONF_MARKEN_STATUS,
@@ -82,6 +83,7 @@ from .formulare import (
     zusatzwerte_feld,
 )
 from .geraetetexte import SPRACHEN, sprache_aufloesen
+from .migration import entity_ids_umbenennen
 from .texte import woerterbuch_zu
 from .waermequelle_flow import WaermequelleSubentryFlow
 
@@ -404,6 +406,7 @@ class WindhagerOptionsFlow(OptionsFlow):
         self._offen: tuple[str, str, dict[str, Any]] | None = None
         # Die neue Bezeichnung der Anlage, bis der Dialog abschließt.
         self._bezeichnung: str = ""
+        self._ids_anpassen = False
 
     def _systeme(self) -> list[dict[str, Any]]:
         return self.config_entry.data.get(CONF_SYSTEMS, [])
@@ -631,6 +634,7 @@ class WindhagerOptionsFlow(OptionsFlow):
         if user_input is not None:
             benutzer = (user_input.pop(CONF_USERNAME, None) or DEFAULT_USERNAME).strip()
             self._bezeichnung = (user_input.pop(CONF_LABEL, None) or "").strip()
+            self._ids_anpassen = bool(user_input.pop(CONF_IDS_ANPASSEN, False))
             gruppen = user_input.pop(CONF_ZUSATZGRUPPEN, [])
             kandidaten = self._zusatzkandidaten(host)
             # Ohne Kandidaten stand das Feld nicht im Formular. Die gespeicherte
@@ -645,14 +649,17 @@ class WindhagerOptionsFlow(OptionsFlow):
                 self._offen = (host, benutzer, normalize_options(user_input))
                 return await self.async_step_zusatzwerte()
             options[host] = normalize_options(user_input)
-            self._zugang_uebernehmen(host, benutzer)
+            self._zugang_uebernehmen(host, benutzer, options)
             return self.async_create_entry(data=options)
 
         label = system.get(CONF_LABEL) or host
         # Die Bezeichnung steht vor jedem Gerätenamen der Anlage; sie lässt sich hier ändern.
-        schema = vol.Schema({vol.Required(CONF_LABEL, default=label): str}).extend(
-            level_schema(je_anlage, mit_intervall=False).schema
-        )
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_LABEL, default=label): str,
+                vol.Optional(CONF_IDS_ANPASSEN, default=False): bool,
+            }
+        ).extend(level_schema(je_anlage, mit_intervall=False).schema)
         schema = schema.extend(
             {
                 vol.Required(
@@ -710,7 +717,7 @@ class WindhagerOptionsFlow(OptionsFlow):
             "{begriffe}", begriffe_text
         )
 
-    def _zugang_uebernehmen(self, host: str, benutzer: str) -> None:
+    def _zugang_uebernehmen(self, host: str, benutzer: str, options: dict[str, Any]) -> None:
         """Zugang und Bezeichnung in die Anlagendaten schreiben.
 
         Sie gehören zur Anmeldung, nicht zu den Optionen. Ein anderer Zugang
@@ -723,6 +730,12 @@ class WindhagerOptionsFlow(OptionsFlow):
             neu[CONF_USERNAME] = benutzer
         if self._bezeichnung:
             neu[CONF_LABEL] = self._bezeichnung
+        if self._ids_anpassen and self._bezeichnung:
+            alt = vorher.get(CONF_LABEL) or host
+            umbenannt = entity_ids_umbenennen(self.hass, self.config_entry, alt, self._bezeichnung)
+            # Die gewählte Außentemperatur zieht mit, sonst zeigt sie ins Leere.
+            if (aussen := options.get(CONF_AUSSENTEMPERATUR)) in umbenannt:
+                options[CONF_AUSSENTEMPERATUR] = umbenannt[aussen]
         if neu == vorher:
             return
         neue = [neu if s[CONF_HOST] == host else s for s in systeme]
@@ -746,7 +759,7 @@ class WindhagerOptionsFlow(OptionsFlow):
                     if k in {c["id"] for c in kandidaten}
                 ],
             }
-            self._zugang_uebernehmen(host, benutzer)
+            self._zugang_uebernehmen(host, benutzer, options)
             return self.async_create_entry(data=options)
         return self.async_show_form(
             step_id="zusatzwerte",

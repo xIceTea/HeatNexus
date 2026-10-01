@@ -127,6 +127,7 @@
         "description": "Einstellungen für {anlage}. {bus_hinweis}",
         "data": {
           "label": "Name der Steuerung",
+          "ids_anpassen": "Entitäts-IDs an den neuen Namen anpassen",
           "levels": "Bedienebenen",
           "enable_advanced": "Service-/Werksebene sofort aktivieren",
           "writable_advanced": "Service-/Werksebene bedienbar machen",
@@ -143,6 +144,7 @@
         },
         "data_description": {
           "label": "Steht vor jedem Gerät, etwa „Keller · Pufferspeicher“. Ein Ort passt besser als ein Kesselname.",
+          "ids_anpassen": "Benennt die IDs um, die mit dem bisherigen Namen beginnen. Automationen, Skripte und eigene Dashboards mit den alten IDs müssen danach angepasst werden.",
           "levels": "Info: Messwerte. Betreiber: Betriebswahl, Sollwerte, Programme. Service: Heizkurve, Grenzwerte, Estrichprogramm. Werk: Verbrennungsregelung, Zündung, Antriebe.",
           "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
           "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",

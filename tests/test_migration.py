@@ -435,3 +435,62 @@ def test_ein_spaeterer_name_aendert_die_angeglichene_kennung_nicht(migration, ha
 
     assert migration._entity_ids_umstellen(hass, eintrag) == 0
     assert registry.async_get(kennung) is not None
+
+
+def _steuerung_mit_entitaeten(hass, *kennungen):
+    """Ein Gerät „Beispielhaus · Musterkessel“ mit Sensoren unter den angegebenen IDs."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = _config_entry(hass)
+    geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-3-0")},
+        name="Beispielhaus · Musterkessel",
+    )
+    registry = er.async_get(hass)
+    for nummer, kennung in enumerate(kennungen):
+        registry.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            f"SN1-3-0-0-{nummer}-0",
+            config_entry=eintrag,
+            device_id=geraet.id,
+            suggested_object_id=kennung,
+        )
+    return eintrag, registry
+
+
+def test_die_ids_ziehen_mit_der_neuen_bezeichnung_um(migration, hass):
+    eintrag, registry = _steuerung_mit_entitaeten(
+        hass, "beispielhaus_musterkessel_kesseltemperatur", "eigener_name"
+    )
+
+    umbenannt = migration.entity_ids_umbenennen(hass, eintrag, "Beispielhaus", "Keller")
+
+    assert umbenannt == {
+        "sensor.beispielhaus_musterkessel_kesseltemperatur": "sensor.keller_musterkessel_kesseltemperatur"
+    }
+    assert registry.async_get("sensor.keller_musterkessel_kesseltemperatur") is not None
+    assert registry.async_get("sensor.eigener_name") is not None
+
+
+def test_ein_belegtes_ziel_bleibt_beim_alten_namen(migration, hass):
+    from homeassistant.helpers import entity_registry as er
+
+    eintrag, registry = _steuerung_mit_entitaeten(hass, "beispielhaus_musterkessel_abgas")
+    er.async_get(hass).async_get_or_create(
+        "sensor", "andere", "fremd", suggested_object_id="keller_musterkessel_abgas"
+    )
+
+    assert migration.entity_ids_umbenennen(hass, eintrag, "Beispielhaus", "Keller") == {}
+    assert registry.async_get("sensor.beispielhaus_musterkessel_abgas") is not None
+
+
+def test_ein_fremdes_geraet_mit_gleichem_anfang_bleibt(migration, hass):
+    """Nur Geräte, deren Name mit der alten Bezeichnung beginnt, gehören zu dieser Steuerung."""
+    eintrag, _ = _steuerung_mit_entitaeten(hass, "beispiel_musterkessel_abgas")
+
+    assert migration.entity_ids_umbenennen(hass, eintrag, "Beispiel", "Keller") == {}
