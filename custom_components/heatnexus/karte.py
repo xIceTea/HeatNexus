@@ -14,7 +14,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 import voluptuous as vol
 
-from .auslieferung import async_dateien_ausliefern, karte_anmelden
+from .auslieferung import async_dateien_ausliefern, karte_als_ressource, karte_anmelden
 from .const import DOMAIN
 from .dashboard.anlagen import anlagen_lesen
 from .schema import schaubild_daten
@@ -89,5 +89,6 @@ async def async_setup_karte(hass: HomeAssistant, version: str = "") -> None:
             websocket_api.async_register_command(hass, _ws_texte)
             hass.data[f"{DOMAIN}_karte_ws"] = True
         karte_anmelden(hass, version)
+        await karte_als_ressource(hass, version)
     except Exception as err:
         _LOGGER.warning("Kartenmodul konnte nicht angemeldet werden: %s", err)

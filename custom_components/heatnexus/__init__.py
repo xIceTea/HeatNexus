@@ -28,6 +28,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.loader import async_get_integration
 
 from . import device_db, error_texts, verwaiste, waermequelle
+from .auslieferung import karte_ressource_entfernen
 from .automatik.verwaltung import verwaltung_holen
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
@@ -568,4 +569,5 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         ).async_remove()
     if not hass.config_entries.async_entries(DOMAIN):
         await async_remove_dashboard(hass)
+        await karte_ressource_entfernen(hass)
         await _oberflaeche_anwenden(hass, False)

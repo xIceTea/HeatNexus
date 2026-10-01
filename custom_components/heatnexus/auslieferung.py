@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from aiohttp import web
 from homeassistant.components import frontend
@@ -92,3 +93,50 @@ def karte_anmelden(hass: HomeAssistant, version: str = "") -> None:
     frontend.add_extra_js_url(hass, karte_js_pfad(version))
     hass.data[f"{DOMAIN}_karte_js"] = True
     _LOGGER.debug("Kartenmodul unter %s angemeldet", karte_js_pfad(version))
+
+
+def _ressourcen(hass: HomeAssistant) -> Any:
+    """Die Ressourcen von Lovelace, sofern sie in der Oberfläche gepflegt werden."""
+    daten = hass.data.get("lovelace")
+    ressourcen = getattr(daten, "resources", None)
+    if ressourcen is None and isinstance(daten, dict):
+        ressourcen = daten.get("resources")
+    return ressourcen if hasattr(ressourcen, "async_create_item") else None
+
+
+def _eigene_ressourcen(ressourcen: Any) -> list[dict[str, Any]]:
+    return [
+        r for r in ressourcen.async_items() if str(r.get("url", "")).startswith(KARTE_VERZEICHNIS)
+    ]
+
+
+async def karte_als_ressource(hass: HomeAssistant, version: str = "") -> None:
+    """Das Kartenmodul zusätzlich als Lovelace-Ressource führen, eine je Installation.
+
+    Zusatzmodule kennt nur eine Seite, die nach dem Start der Integration geladen
+    wurde; Ressourcen lädt das Dashboard selbst, auch auf Cast-Geräten.
+    """
+    ressourcen = _ressourcen(hass)
+    if ressourcen is None:
+        return
+    await ressourcen.async_get_info()
+    adresse = karte_js_pfad(version)
+    eigene = _eigene_ressourcen(ressourcen)
+    if not eigene:
+        await ressourcen.async_create_item({"res_type": "module", "url": adresse})
+        return
+    erste, *rest = eigene
+    if erste.get("url") != adresse:
+        await ressourcen.async_update_item(erste["id"], {"res_type": "module", "url": adresse})
+    for ueberzaehlig in rest:
+        await ressourcen.async_delete_item(ueberzaehlig["id"])
+
+
+async def karte_ressource_entfernen(hass: HomeAssistant) -> None:
+    """Die Ressource der Karte entfernen, wenn die Integration geht."""
+    ressourcen = _ressourcen(hass)
+    if ressourcen is None:
+        return
+    await ressourcen.async_get_info()
+    for eigene in _eigene_ressourcen(ressourcen):
+        await ressourcen.async_delete_item(eigene["id"])
