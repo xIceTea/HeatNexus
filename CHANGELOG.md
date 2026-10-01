@@ -8,6 +8,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unreleased]
 
+### Neu
+
+- Einrichtung und Optionen empfehlen einen Ort als Namen der Anlage.
+
 ### Geändert
 
 - Die Badge eines Heizkreises zeigt nur Zustand und geschriebenen Sollwert.
