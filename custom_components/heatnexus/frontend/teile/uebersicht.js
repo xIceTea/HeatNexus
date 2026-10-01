@@ -13,6 +13,7 @@ import {
   ABBRUCH_PAUSE_MS,
   ABBRUCH_VERSUCHE,
   ANNAHME_MS,
+  BETRIEBSARTEN,
   OHNE_WERT,
   RUECKMELDUNG_MS,
   SPERRE_MS,
@@ -228,12 +229,11 @@ export const UebersichtMixin = (Basis) =>
   }
 
   _presetName(zustand) {
-    // Die Betriebsarten heißen am Gerät "0".."7"; die Klartexte liefert die
-    // Übersetzung der Integration mit.
-    if (this._hass.formatEntityAttributeValue) {
-      return this._hass.formatEntityAttributeValue(zustand, "preset_mode");
-    }
-    return zustand.attributes.preset_mode;
+    // Die Betriebsarten heißen am Gerät "0".."7"; den Klartext liefert das
+    // Wörterbuch, damit er der Sprache der übrigen Seite folgt.
+    const wert = zustand.attributes.preset_mode;
+    const name = BETRIEBSARTEN[wert];
+    return name ? this._t(name) : wert;
   }
 
   /**

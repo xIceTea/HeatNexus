@@ -369,9 +369,11 @@ export const SchaubildMixin = (Basis) =>
         koerper.style.background =
           `linear-gradient(to bottom, ${farbe(oben)} 0%, ${farbe(oben)} 29%, ` +
           `${farbe((oben + unten) / 2)} 50%, ${farbe(unten)} 71%, ${farbe(unten)} 100%)`;
-        koerper.title =
-          `${eintrag.titel} – oben ${this._text(eintrag.oben)}, ` +
-          `unten ${this._text(eintrag.unten)}`;
+        koerper.title = this._tMit("{titel} – oben {oben}, unten {unten}", {
+          titel: eintrag.titel,
+          oben: this._text(eintrag.oben),
+          unten: this._text(eintrag.unten),
+        });
       });
     });
 

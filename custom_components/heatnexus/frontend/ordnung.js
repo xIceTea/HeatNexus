@@ -246,6 +246,20 @@ export const WOCHENTAGE = [
   ["Su", "So"],
 ];
 
+// Betriebsarten des Heizkreises (`preset_mode` "0".."7"), deutsch wie in
+// `translations/de.json`. Übersetzt wird über das Wörterbuch der Integration,
+// nicht über Home Assistant: Das folgt der Sprache des Nutzers, nicht der Option.
+export const BETRIEBSARTEN = {
+  0: "Standby",
+  1: "Heizprogramm 1",
+  2: "Heizprogramm 2",
+  3: "Heizprogramm 3",
+  4: "Heizbetrieb",
+  5: "Absenkbetrieb",
+  6: "WW-Betrieb",
+  7: "Handbetrieb",
+};
+
 // Mehr Schaltzeiten nimmt die Anlage je Block nicht an.
 export const SCHALTPUNKTE_MAX = 6;
 
