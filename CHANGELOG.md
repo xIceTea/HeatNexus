@@ -6,6 +6,19 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unreleased]
+
+### Geändert
+
+- Einzelne niederländische Begriffe folgen der Durchsicht ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
+
+### Behoben
+
+- Das Panel zeigt die Betriebsart des Heizkreises in der gewählten Sprache ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
+- Ein Sprachwechsel ändert die Entitäts-IDs nicht mehr ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
+- Fehlt die gewählte Außentemperatur, zeigt das Dashboard die erkannte ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
+- Der Hinweis zum Speicher im Schaubild erscheint übersetzt.
+
 ## [1.13.0-beta.5] - 2026-09-30
 
 ### Neu
