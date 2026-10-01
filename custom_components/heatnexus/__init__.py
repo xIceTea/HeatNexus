@@ -463,13 +463,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     await _entitaeten_einrichten(hass, entry, registry, coordinators)
 
-    if (entry.options or {}).get(CONF_DASHBOARD, True):
-        await async_setup_dashboard(hass)
-    else:
-        # Abgewählt: der Seitenleisten-Eintrag verschwindet beim nächsten Laden.
-        await async_remove_dashboard(hass)
-
-    await _oberflaeche_anwenden(hass, bool((entry.options or {}).get(CONF_PANEL, False)), version)
+    await _oberflaechen_einrichten(hass, entry, version)
 
     # Gemeldet wird nur das echte Ersteinlesen, nicht der Abgleich nach einem
     # Update – und auch das nur, wenn der Nutzer es eingeschaltet hat.
@@ -498,6 +492,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     return True
+
+
+async def _oberflaechen_einrichten(hass: HomeAssistant, entry: ConfigEntry, version: str) -> None:
+    """Dashboard und eigene Oberfläche nach den Optionen an- oder abmelden."""
+    if (entry.options or {}).get(CONF_DASHBOARD, True):
+        await async_setup_dashboard(hass)
+    else:
+        # Abgewählt: der Seitenleisten-Eintrag verschwindet beim nächsten Laden.
+        await async_remove_dashboard(hass)
+
+    await _oberflaeche_anwenden(hass, bool((entry.options or {}).get(CONF_PANEL, False)), version)
 
 
 async def _oberflaeche_anwenden(hass: HomeAssistant, gewuenscht: bool, version: str = "") -> None:
