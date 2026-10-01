@@ -11,6 +11,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Einrichtung und Optionen empfehlen einen Ort als Namen der Anlage.
+- Beim Umbenennen einer Steuerung lassen sich die Entitäts-IDs mit anpassen.
 
 ### Geändert
 
