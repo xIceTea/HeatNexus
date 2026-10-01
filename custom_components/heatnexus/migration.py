@@ -34,6 +34,10 @@ _LOGGER = logging.getLogger(__name__)
 # ändern, ihre Kennung nicht: Sie steckt in fremden Automationen und Karten.
 BLEIBENDE_KENNUNGEN = ("-laufzeit", "-laufzeit-heute")
 
+# Merker in den Entitätsoptionen: Diese ``entity_id`` ist angeglichen und bleibt.
+# Ein späterer Name, etwa nach einem Sprachwechsel, ändert sie nicht mehr.
+KENNUNG_FEST = "kennung_fest"
+
 
 def _beschreibungen(coordinators: dict) -> list[dict[str, Any]]:
     return [
@@ -113,7 +117,7 @@ def _freie_kennung(registry: er.EntityRegistry, eintrag: Any, gewuenscht: str) -
 
 
 def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
-    """Entitäts-IDs auf das Schema „Gerät + Datenpunkt" bringen.
+    """Entitäts-IDs auf das Schema „Gerät + Datenpunkt" bringen, je Entität einmal.
 
     Umbenannt wird nur bei freiem Zielnamen; eine vom Nutzer benannte Entität
     bleibt unangetastet, dort steckt eine Entscheidung drin.
@@ -123,7 +127,7 @@ def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
 
     umbenannt = 0
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
-        if eintrag.name:
+        if eintrag.name or (eintrag.options.get(DOMAIN) or {}).get(KENNUNG_FEST):
             continue
         if str(eintrag.unique_id or "").endswith(BLEIBENDE_KENNUNGEN):
             continue
@@ -138,15 +142,17 @@ def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
         # Funktion heißt anders und gibt es in älteren Fassungen noch nicht.
         # Deshalb erst die neue versuchen, dann die alte.
         vorschlag = _freie_kennung(registry, eintrag, " ".join(t for t in teile if t))
-        if vorschlag == eintrag.entity_id:
-            continue
         # Ein angehängter Zähler heißt: Der eigentliche Name ist belegt. Dann
         # bringt die Umbenennung nichts und wird gelassen.
-        if vorschlag.rsplit("_", 1)[-1].isdigit():
-            continue
-        registry.async_update_entity(eintrag.entity_id, new_entity_id=vorschlag)
-        umbenannt += 1
-        _LOGGER.debug("Entität %s -> %s", eintrag.entity_id, vorschlag)
+        if vorschlag != eintrag.entity_id and not vorschlag.rsplit("_", 1)[-1].isdigit():
+            registry.async_update_entity(eintrag.entity_id, new_entity_id=vorschlag)
+            umbenannt += 1
+            _LOGGER.debug("Entität %s -> %s", eintrag.entity_id, vorschlag)
+        # Ohne Datenpunktnamen ist die Kennung noch unfertig; der nächste Lauf holt ihn.
+        if eintrag.original_name:
+            kennung = registry.async_get_entity_id(eintrag.domain, DOMAIN, eintrag.unique_id)
+            optionen = {**(eintrag.options.get(DOMAIN) or {}), KENNUNG_FEST: True}
+            registry.async_update_entity_options(kennung, DOMAIN, optionen)
     return umbenannt
 
 

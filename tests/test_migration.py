@@ -403,3 +403,35 @@ def test_der_name_kommt_spaeter_und_die_angleichung_holt_ihn(migration, hass):
 
     assert migration._entity_ids_umstellen(hass, eintrag) == 1
     assert "abgastemperatur" in registry.async_get_entity_id("sensor", DOMAIN, "SN1-3-0-0-11-0")
+
+
+def test_ein_spaeterer_name_aendert_die_angeglichene_kennung_nicht(migration, hass):
+    """Ein Sprachwechsel benennt die Entität um, ihre ``entity_id`` bleibt."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = _config_entry(hass)
+    geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-3-0")},
+        name="Beispielhaus · Musterkessel",
+    )
+    registry = er.async_get(hass)
+    registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "SN1-3-0-0-7-0",
+        config_entry=eintrag,
+        device_id=geraet.id,
+        original_name="Kesseltemperatur Ist",
+        suggested_object_id="irgendwas_altes",
+    )
+    assert migration._entity_ids_umstellen(hass, eintrag) == 1
+    kennung = "sensor.beispielhaus_musterkessel_kesseltemperatur_ist"
+
+    registry.async_update_entity(kennung, original_name="Boiler temperature")
+
+    assert migration._entity_ids_umstellen(hass, eintrag) == 0
+    assert registry.async_get(kennung) is not None
