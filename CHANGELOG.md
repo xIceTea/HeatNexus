@@ -19,6 +19,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein Sprachwechsel ändert die Entitäts-IDs nicht mehr ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
 - Fehlt die gewählte Außentemperatur, zeigt das Dashboard die erkannte ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
 - Der Hinweis zum Speicher im Schaubild erscheint übersetzt.
+- Die Schaubild-Karte lädt auch auf einer Seite, die während des Starts geöffnet wurde.
 
 ## [1.13.0-beta.5] - 2026-09-30
 
