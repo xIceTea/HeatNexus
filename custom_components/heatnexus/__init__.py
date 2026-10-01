@@ -48,7 +48,7 @@ from .const import (
 from .coordinator import WindhagerDataUpdateCoordinator
 from .dashboard import async_remove_dashboard, async_setup_dashboard
 from .dienste import async_register_dashboard_export, async_register_rediscover_service
-from .einlesen import einlesen_melden, meldungs_id, vollabzug
+from .einlesen import meldungs_id, vollabzuege_starten
 from .entity import steuerung_info, steuerung_kennung
 from .erkennungsstand import (
     abgleich_noetig,
@@ -465,32 +465,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await _oberflaechen_einrichten(hass, entry, version)
 
-    # Gemeldet wird nur das echte Ersteinlesen, nicht der Abgleich nach einem
-    # Update – und auch das nur, wenn der Nutzer es eingeschaltet hat.
-    if any(not anlage.restored for anlage in nachzuladen):
-        einlesen_melden(hass, entry)
-
-    for anlage in nachzuladen:
-        hintergrund.append(
-            entry.async_create_background_task(
-                hass,
-                vollabzug(
-                    hass,
-                    entry,
-                    anlage.coordinator,
-                    anlage.client,
-                    anlage.store,
-                    anlage.host,
-                    anlage.fingerprint,
-                    anlage.cache_key,
-                    mem_cache,
-                    version,
-                    anlage.restored,
-                ),
-                name=f"{DOMAIN}_vollabzug_{anlage.host}",
-            )
-        )
-
+    hintergrund.extend(vollabzuege_starten(hass, entry, nachzuladen, mem_cache, version))
     return True
 
 

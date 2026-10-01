@@ -172,3 +172,34 @@ async def vollabzug(
             "data": data,
         }
     )
+
+
+def vollabzuege_starten(
+    hass: HomeAssistant, entry: ConfigEntry, anlagen: list, mem_cache: dict, version: str
+) -> list[asyncio.Task]:
+    """Den Vollabzug jeder Anlage als Hintergrundaufgabe des Eintrags starten."""
+    # Gemeldet wird nur das echte Ersteinlesen, nicht der Abgleich nach einem
+    # Update – und auch das nur, wenn der Nutzer es eingeschaltet hat.
+    if any(not anlage.restored for anlage in anlagen):
+        einlesen_melden(hass, entry)
+
+    return [
+        entry.async_create_background_task(
+            hass,
+            vollabzug(
+                hass,
+                entry,
+                anlage.coordinator,
+                anlage.client,
+                anlage.store,
+                anlage.host,
+                anlage.fingerprint,
+                anlage.cache_key,
+                mem_cache,
+                version,
+                anlage.restored,
+            ),
+            name=f"{DOMAIN}_vollabzug_{anlage.host}",
+        )
+        for anlage in anlagen
+    ]
