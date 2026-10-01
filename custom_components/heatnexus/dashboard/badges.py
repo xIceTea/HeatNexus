@@ -12,9 +12,10 @@ from homeassistant.helpers import entity_registry as er
 from .. import geraete
 from ..automatik.system import kreisnamen
 from ..automatik.verwaltung import DATEN_SCHLUESSEL, system_unique_id, unique_id
-from ..const import CONF_AUSSENTEMPERATUR, DOMAIN
+from ..const import DOMAIN
 from ..texte import woerterbuch
 from . import auswahl
+from .anlagen import gewaehlte_aussentemperatur
 from .muster import WARTUNG_HINWEIS_STUNDEN, WARTUNG_KURZNAMEN
 
 # Namen der Kennwert-Badges; bei mehreren Kesseln einer Anlage steht der Name des Teils.
@@ -149,10 +150,7 @@ def anlagenbadges(
 def allgemein(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Außentemperatur (gewählt oder erste gemeldete), dann je Automatik Status und Heizkreise."""
     eintraege = hass.config_entries.async_entries(DOMAIN)
-    aussen = next(
-        (w for e in eintraege if (w := (e.options or {}).get(CONF_AUSSENTEMPERATUR))), None
-    )
-    aussen = aussen or next(
+    aussen = gewaehlte_aussentemperatur(hass) or next(
         (
             e["entity_id"]
             for a in anlagen

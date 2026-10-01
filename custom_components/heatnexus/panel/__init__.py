@@ -37,7 +37,6 @@ from ..automatik.websocket import async_register_automatik
 from ..bezeichnung import async_register_bezeichnung
 from ..const import (
     COMFORT_TEMP_STANDARD,
-    CONF_AUSSENTEMPERATUR,
     CONF_COMFORT_DAUER,
     CONF_COMFORT_TEMP,
     CONF_ECO_DAUER,
@@ -53,7 +52,7 @@ from ..const import (
     panel_element,
     panel_js_pfad,
 )
-from ..dashboard.anlagen import anlagen_lesen
+from ..dashboard.anlagen import anlagen_lesen, gewaehlte_aussentemperatur
 from ..entity import steuerung_kennung
 from ..registrierung import geraet_suchen
 from ..texte import uebersetze_baum, woerterbuch
@@ -103,14 +102,6 @@ def _optionen(hass: HomeAssistant) -> list[dict[str, Any]]:
     return [dict(eintrag.options or {}) for eintrag in hass.config_entries.async_entries(DOMAIN)]
 
 
-def _gewaehlte_aussentemperatur(hass: HomeAssistant) -> str | None:
-    """In den Optionen festgelegte Außentemperatur, falls vorhanden."""
-    for optionen in _optionen(hass):
-        if gewaehlt := optionen.get(CONF_AUSSENTEMPERATUR):
-            return str(gewaehlt)
-    return None
-
-
 def _hilfe_gewuenscht(hass: HomeAssistant) -> bool:
     """Ob die Erklärungen angezeigt werden sollen (Standard: ja)."""
     for optionen in _optionen(hass):
@@ -153,7 +144,7 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     `benutzer` ist der Anfragende; seine Rechte entscheiden über die Zeilen
     der Markenkarten. Ohne ihn gilt keine Einschränkung.
     """
-    aussen = _gewaehlte_aussentemperatur(hass)
+    aussen = gewaehlte_aussentemperatur(hass)
     marken = _marken_je_anlage(hass, benutzer)
     daten = {
         "anlagen": [

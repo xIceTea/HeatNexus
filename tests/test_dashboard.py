@@ -1002,10 +1002,27 @@ async def test_kennwerte_nehmen_die_gewaehlte_aussentemperatur(badges, hass):
         domain="heatnexus", data={}, options={CONF_AUSSENTEMPERATUR: "sensor.wetter"}
     )
     gewaehlt.add_to_hass(hass)
+    hass.states.async_set("sensor.wetter", "12")
     status = _automatikstatus(hass, gewaehlt)
     liste = badges.allgemein(hass, [_anlage(_kessel())])
     assert [b["entity"] for b in liste] == ["sensor.wetter", status.entity_id]
     assert [b["name"] for b in liste] == ["Außen", "Automatik"]
+
+
+async def test_eine_verschwundene_aussentemperatur_weicht_der_erkannten(badges, hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import CONF_AUSSENTEMPERATUR
+
+    MockConfigEntry(
+        domain="heatnexus", data={}, options={CONF_AUSSENTEMPERATUR: "sensor.gibt_es_nicht"}
+    ).add_to_hass(hass)
+    kessel = _kessel()
+    kessel["entitaeten"].append(
+        _e("sensor.aussen", "Außentemperatur", schluessel="outdoor_temperature")
+    )
+    liste = badges.allgemein(hass, [_anlage(kessel)])
+    assert [b["entity"] for b in liste][:1] == ["sensor.aussen"]
 
 
 def _kreisautomatik(hass, eintrag, device_id, name, label="Kesselhaus", **rest):
@@ -1345,6 +1362,7 @@ async def test_aussen_und_automatik_bleiben_bei_zwei_anlagen_ohne_anlagennamen(b
         domain="heatnexus", data={}, options={CONF_AUSSENTEMPERATUR: "sensor.wetter"}
     )
     eintrag.add_to_hass(hass)
+    hass.states.async_set("sensor.wetter", "12")
     status = _automatikstatus(hass, eintrag)
     zweite = _anlage(
         {**_kessel(), "id": "zweiter0123456789"}, name="Werkstatt", kennung="werkst0123456789"

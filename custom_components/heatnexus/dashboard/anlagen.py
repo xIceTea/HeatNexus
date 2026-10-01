@@ -16,6 +16,7 @@ from .. import waermequelle
 from ..bezeichnung import bezeichnung_lesen
 from ..const import (
     AUTOMATIK_GERAET_ENDUNG,
+    CONF_AUSSENTEMPERATUR,
     CONF_KESSELART,
     CONF_KESSELWERT,
     CONF_MODULPUMPE,
@@ -33,6 +34,18 @@ from ..schema import passt as _passt
 from ..schema import traegt as _traegt
 from ..symbole import symbol_je_fct
 from .muster import FCT_RANG, OHNE_WERT, RANG_UNBEKANNT, UEBERSICHT_VORRANG
+
+
+def gewaehlte_aussentemperatur(hass: HomeAssistant) -> str | None:
+    """Die in den Optionen gewählte Außentemperatur, sofern es die Entität noch gibt.
+
+    Eine verschwundene Wahl gilt als keine; dann greift die erkannte.
+    """
+    for eintrag in hass.config_entries.async_entries(DOMAIN):
+        gewaehlt = (eintrag.options or {}).get(CONF_AUSSENTEMPERATUR)
+        if gewaehlt and (hass.states.get(gewaehlt) or er.async_get(hass).async_get(gewaehlt)):
+            return str(gewaehlt)
+    return None
 
 
 def kurzname(name: str | None) -> str:
