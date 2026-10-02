@@ -173,6 +173,13 @@ export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null) {
 // Farbe je Wettersymbol: Sonne und Mond gelb, Wolken grau.
 const SYMBOLFARBE = { "☀": "sonne", "☾": "mond", "☁": "wolke", "⛅": "teils" };
 
+/** Ob eine Stunde im Tageslicht liegt; ohne Auf- und Untergang zählt die Einstrahlung. */
+export function istHell(tag, stunde) {
+  const { aufgang, untergang } = tag || {};
+  if (typeof aufgang === "number" && typeof untergang === "number") return aufgang < stunde && stunde < untergang;
+  return (((tag && tag.sonne) || [])[stunde] || 0) > 0;
+}
+
 /** Wettersymbol einer Stunde aus Bewölkung und Tageslicht. */
 export function wetterSymbol(wolken, hell) {
   if (!hell) return "☾";
@@ -360,7 +367,6 @@ export const TagesbildMixin = (Basis) =>
       const raster = document.createElement("div");
       raster.className = "automatik-stunden";
       const stunden = ((kreis.tag || {}).stunden || []).filter((s) => s.stunde >= 6 && s.stunde <= 22);
-      const sonne = (kreis.tag || {}).sonne || [];
       const heute = (kreis.tag || {}).jetzt !== null && (kreis.tag || {}).jetzt !== undefined;
       const jetzt = heute ? Math.floor(Number(kreis.tag.jetzt)) : null;
       const grenze = (kreis.kennwerte || {}).heizgrenze;
@@ -390,7 +396,7 @@ export const TagesbildMixin = (Basis) =>
           this._automatikNeuZeichnen();
         });
         const temperatur = eintrag.korrigiert ?? eintrag.roh;
-        const symbol = wetterSymbol(eintrag.wolken, (sonne[eintrag.stunde] || 0) > 0);
+        const symbol = wetterSymbol(eintrag.wolken, istHell(kreis.tag, eintrag.stunde));
         const teile = [
           ["uhr", this._tMit("{zeit} Uhr", { zeit: String(eintrag.stunde).padStart(2, "0") })],
           [`sym ${SYMBOLFARBE[symbol] || ""}`.trim(), symbol],

@@ -52,6 +52,12 @@ def sonne(laufzeit: Laufzeit, tag: date) -> list[float]:
     return werte
 
 
+def tageslicht(laufzeit: Laufzeit, tag: date) -> dict[str, float | None]:
+    """Auf- und Untergang als Stundenzahl; das Raster zeigt danach Tag oder Nacht."""
+    aufgang, untergang = laufzeit.sonne(tag)
+    return {"aufgang": stunde_als_zahl(aufgang, tag), "untergang": stunde_als_zahl(untergang, tag)}
+
+
 def aktion(g: regel.Gedaechtnis, stunde: int, tag: date) -> str:
     """Was das Gedächtnis für eine Stunde vorsieht: nur_ww, absenkung oder programm."""
     if g.saison == regel.NUR_WW:
@@ -111,6 +117,7 @@ def heute(laufzeit: Laufzeit, jetzt: datetime) -> dict[str, Any]:
     werte, tag, g = laufzeit.werte, jetzt.date(), laufzeit.gedaechtnis
     return {
         "sonne": sonne(laufzeit, tag),
+        **tageslicht(laufzeit, tag),
         **_band(g, tag),
         "entscheidungen": [
             int(z[:2]) + int(z[3:]) / 60 for z in (werte.entscheidung, werte.nachpruefung) if z
@@ -173,6 +180,7 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
                 "sonnenquote": quote,
                 "tag": {
                     "sonne": sonne(laufzeit, tag),
+                    **tageslicht(laufzeit, tag),
                     **_band(entscheidung.gedaechtnis, tag),
                     "entscheidungen": [],
                     "jetzt": None,

@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 const modul = await import(pathToFileURL(process.argv[2]).href);
 const { zahl, kelvin, raumzeile, FELDER, ZUSTAENDE } = modul;
 const tagesbild = await import(new URL("./tagesbild.js", pathToFileURL(process.argv[2])).href);
-const { uhrzeit, tagesleisteSvg, tagesleisteTipp, stundenKasten, wetterSymbol, korrekturMarken, tagesleisteBereich } = tagesbild;
+const { uhrzeit, tagesleisteSvg, tagesleisteTipp, stundenKasten, wetterSymbol, istHell, korrekturMarken, tagesleisteBereich } = tagesbild;
 
 assert.equal(zahl(19.5), "19,5");
 assert.equal(zahl(78, 0), "78");
@@ -86,6 +86,16 @@ assert.equal(wetterSymbol(10, true), "☀");
 assert.equal(wetterSymbol(50, true), "⛅");
 assert.equal(wetterSymbol(90, true), "☁");
 assert.equal(wetterSymbol(10, false), "☾");
+
+// Tageslicht folgt Auf- und Untergang, nicht der Einstrahlung: bedeckter Mittag bleibt hell.
+const bedeckt = { aufgang: 7.2, untergang: 18.9, sonne: Array(25).fill(0) };
+assert.equal(istHell(bedeckt, 14), true);
+assert.equal(istHell(bedeckt, 7), false);
+assert.equal(istHell(bedeckt, 20), false);
+assert.equal(wetterSymbol(100, istHell(bedeckt, 14)), "☁");
+// Ohne Auf- und Untergang zählt weiter die Einstrahlung.
+assert.equal(istHell({ sonne: [0, 0.4] }, 1), true);
+assert.equal(istHell({ sonne: [0, 0.4] }, 0), false);
 
 
 // Wirkung der Prognoseanpassung: Versatz in K, Sonne in Prozent, sonst der Lernstand.

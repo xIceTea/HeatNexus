@@ -1100,6 +1100,27 @@ async def test_stundenraster_zeigt_was_je_stunde_galt(hass, anlage, freezer):
     assert aktionen[5] == "programm"
 
 
+async def test_tagesansicht_nennt_auf_und_untergang(hass, anlage, freezer):
+    """Das Raster entscheidet Tag oder Nacht nach der Sonne, nicht nach der Bewölkung."""
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import tagesansicht
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await laufzeit.auswerten()
+
+    tag = tagesansicht.heute(laufzeit, dt_util.now())
+    assert 0 < tag["aufgang"] < 12 < tag["untergang"] < 24
+    vorschau = tagesansicht.vorschau(laufzeit, dt_util.now())
+    assert all(0 < t["tag"]["aufgang"] < t["tag"]["untergang"] < 24 for t in vorschau)
+
+
 async def test_ausrichtung_ist_eine_auswahl_entitaet(hass, anlage):
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
     from custom_components.heatnexus.automatik.verwaltung import DOMAENE_JE_ART
