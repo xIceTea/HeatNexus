@@ -124,6 +124,24 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
         <p>Nur HTTP zur Steuerung im eigenen Netz. Keine Fremdbibliothek, keine Verbindung nach draußen.</p>
         <span class="weiter">Geräteschnittstelle</span>
       </a>
+      <a class="feld" href="ANLEITUNG#oberflaeche">
+        <span class="nr">10</span>
+        <h3>Automatik je Heizkreis</h3>
+        <p>Senkt an sonnigen Tagen ab und schaltet in der Übergangszeit auf nur Warmwasser. Beginnt im Beobachtungsmodus.</p>
+        <span class="weiter">Wie sie entscheidet</span>
+      </a>
+      <a class="feld" href="ANLEITUNG#einrichtung">
+        <span class="nr">11</span>
+        <h3>Drei Sprachen</h3>
+        <p>Oberfläche, Dashboard, Schaubild und Störungstexte auf Deutsch, Englisch und Niederländisch.</p>
+        <span class="weiter">Sprache wählen</span>
+      </a>
+      <a class="feld" href="ANLEITUNG#einrichtung">
+        <span class="nr">12</span>
+        <h3>Mehrere Steuerungen</h3>
+        <p>Mehrere Gebäude in einem Eintrag. Steuerungen lassen sich in den Optionen hinzufügen, entfernen und umbenennen.</p>
+        <span class="weiter">Einrichtung</span>
+      </a>
     </div>
   </div>
 </section>

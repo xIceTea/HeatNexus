@@ -63,7 +63,7 @@ nachgezogen werden, sonst meldet die Integration eine abgelehnte Anmeldung.
 > laufen App und HeatNexus wieder.
 
 Ein Konfigurationseintrag kann **mehrere Anlagen** führen — bis zu sechs. Jede
-bekommt eine eigene Bezeichnung, etwa `Heizhaus` und `Wohnhaus`. Diese
+bekommt eine eigene Bezeichnung, etwa `Kesselhaus` und `Altbau`. Diese
 Bezeichnung erscheint überall dort, wo sonst zweimal dasselbe stünde: Zwei
 Steuerungen melden beide ein `B-PLMi PUFFER`, und ohne Bezeichnung wäre nicht
 zu erkennen, welcher gemeint ist.
@@ -166,11 +166,11 @@ Oberfläche und lässt sich wie jede andere Entität in Automationen verwenden.
 ## Darstellung
 
 - **Sprache** wirkt auf zweierlei. Die Namen der Datenpunkte kommen dann aus
-  dem Textwerk der Steuerung; sie führt Deutsch, Englisch, Französisch und
-  Italienisch. Die eigene Oberfläche, das Dashboard und das Schaubild gibt es
-  auf Deutsch und Englisch — bei jeder anderen Wahl erscheinen sie englisch.
-  `Automatisch` lässt die Datenpunkte deutsch und richtet die Oberfläche nach
-  Home Assistant.
+  dem Textwerk der Steuerung oder aus den Herstellerdaten. Die eigene
+  Oberfläche, das Dashboard, das Schaubild und die Störungstexte gibt es auf
+  Deutsch, Englisch und Niederländisch; in jeder anderen Sprache von Home
+  Assistant erscheinen sie englisch. `Automatisch` lässt die Datenpunkte
+  deutsch und richtet die Oberfläche nach Home Assistant.
 
   Zwei Dinge ändern sich dabei nicht. Die Bezeichner der Entitäten
   (`sensor.kesseltemperatur_ist`) vergibt Home Assistant einmal und behält sie;

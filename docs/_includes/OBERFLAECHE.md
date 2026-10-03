@@ -79,10 +79,15 @@ ohnehin tut:
 - **Übergangszeit.** Sagt die Prognose für heute und morgen im Mittel
   mindestens die Heizgrenze voraus, oder liegt die gedämpfte Außentemperatur
   um die Hysterese darüber, schaltet sie den Heizkreis auf nur Warmwasser.
+  Voraussetzung ist eine milde Nacht: Weder die aktuelle Außentemperatur noch
+  die Stundenprognose bis 9 Uhr am nächsten Morgen darf unter die
+  Einschaltschwelle fallen. Sonst bräuchte der Heizkreis am Morgen wieder Wärme.
   Zurück geht es, wenn es kühler wird und die Räume auskühlen. Eine Hysterese
   und eine Mindestdauer verhindern häufiges Umschalten. Liegt die aktuelle
   Außentemperatur unter der Einschaltschwelle der Steuerung und fordern die
   Thermostate Wärme an, geht der Heizkreis sofort zurück ins Programm.
+- **Abwesenheit und Fenster** sind freiwillig. Sind alle Personen weg, senkt
+  sie ab. Ein offenes Fenster setzt die Entscheidungen aus.
 
 ### Die Heizgrenze der Steuerung
 
@@ -96,8 +101,6 @@ vorausschauend. Liefert ein Heizkreis die Heizgrenze nicht, rechnet sie mit
 Unter den Kacheln stehen die **Heizgrenzen der Steuerung** für Heiz- und
 Absenkbetrieb. Sie lassen sich dort ändern; das ist eine Einstellung von Hand,
 kein Eingriff der Automatik, und zählt nicht zum Budget.
-- **Abwesenheit und Fenster** sind freiwillig. Sind alle Personen weg, senkt
-  sie ab. Ein offenes Fenster setzt die Entscheidungen aus.
 
 Eingerichtet wird im Reiter **Automatik** je Heizkreis: Heizflächen, Räume,
 Wetter und optional PV-Prognose, Personen und Fenster. Die Art der Heizflächen

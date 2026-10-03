@@ -6,32 +6,65 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [Unreleased]
+## [1.13.0] - 2026-10-03
+
+Eine Automatik je Heizkreis nutzt Sonne und Wetterprognose: Sie senkt an
+sonnigen Tagen ab und schaltet in der Übergangszeit auf nur Warmwasser. Die
+Oberfläche gibt es auf Englisch und Niederländisch.
+
+Darunter führen die Vorabversionen jede Änderung einzeln auf; dieser Abschnitt
+nennt die Neuerungen gegenüber 1.12.0.
 
 ### Neu
 
-- Einrichtung und Optionen empfehlen einen Ort als Namen der Anlage.
+- Eine Automatik je Heizkreis senkt an sonnigen Tagen den Sollwert ab.
+- In der Übergangszeit schaltet die Automatik auf nur Warmwasser, sofern die Nacht mild bleibt.
+- Die Automatik beginnt im Beobachtungsmodus und schreibt erst nach Freigabe an die Steuerung.
+- Liefert eine Wärmequelle mit Vorrang, senkt die Automatik den Heizkreis ab.
+- Der Reiter „Automatik“ zeigt Zustand, Begründung, Tagesverlauf, Protokoll und Einstellungen.
+- Das Gerät „HeatNexus Automatik“ bündelt Sensoren zu Modus, Laufzeiten und Prognose.
+- Die Heizgrenzen der Steuerung lassen sich im Reiter „Automatik“ einstellen.
+- Oberfläche, Dashboard, Einrichtung und Störungstexte gibt es auf Englisch und Niederländisch ([#10](https://github.com/xIceTea/HeatNexus/issues/10)).
+- Das mitgelieferte Dashboard zeigt Reiter mit Namen, eine Seite je Anlage und das Schaubild.
+- Die Kopfzeile des Dashboards zeigt Kennwerte, fällige Wartung und laufende Eingriffe der Automatik.
+- Dashboard und Panel zeigen zu jeder Störung die Handlungsempfehlung von Windhager.
+- Steuerungen lassen sich in den Optionen hinzufügen, entfernen und umbenennen.
 - Beim Umbenennen einer Steuerung lassen sich die Entitäts-IDs mit anpassen.
+- Zeitprogramme lassen sich aktivieren und benennen; das gültige ist hervorgehoben.
+- Für Heizkreise Infinity PLUS entsteht ein Thermostat.
+- Werte der Übersicht im Windhager-Portal erscheinen auch ohne freigeschaltete Serviceebene.
+- Für den Brennstoffzähler seit Befüllung gibt es eine Taste zum Zurücksetzen.
+- Einstellungen, die einen Neustart der Steuerung auslösen, tragen das Attribut `neustart_erforderlich`.
+- Die Reiter des Panels lassen sich je Benutzer verschieben und ausblenden.
 
 ### Geändert
 
-- Die Badge eines Heizkreises zeigt nur Zustand und geschriebenen Sollwert.
 - Französisch und Italienisch entfallen als Sprache; eine solche Wahl erscheint englisch.
-- Nur Warmwasser beginnt erst, wenn auch die folgende Nacht über der Heizgrenze bleibt.
-- Einzelne niederländische Begriffe folgen der Durchsicht ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
+- Die Vorlaufprogramme am Infinity-Heizkreis tragen eigene Namen und neue Entitäts-IDs.
+- Der LogWIN erscheint als „LogWIN Holzvergaserkessel“ statt als Automatikkessel.
+- Der Alarmcode des BioWIN steht unter Diagnose statt in der Übersicht.
+- Gleichnamige Einträge im Schnellzugriff nennen zusätzlich den Anlagenteil.
+- Nach einer Bedienung gehen weniger Anfragen an die Anlage.
 
 ### Behoben
 
-- Das Panel zeigt die Betriebsart des Heizkreises in der gewählten Sprache ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
-- Ein Sprachwechsel ändert die Entitäts-IDs nicht mehr ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
-- Fehlt die gewählte Außentemperatur, zeigt das Dashboard die erkannte ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
-- Der Hinweis zum Speicher im Schaubild erscheint übersetzt.
-- Datenpunkte ohne niederländischen Herstellernamen erscheinen englisch statt deutsch.
-- Die Schaubild-Karte lädt auch auf einer Seite, die während des Starts geöffnet wurde.
-- Das Stundenraster zeigt bei bedecktem Himmel tagsüber eine Wolke statt eines Monds.
 - BioWIN 2 mit InfoWIN Touch zeigt auch Werte außerhalb der Menü-Ebenen ([#17](https://github.com/xIceTea/HeatNexus/issues/17)).
 - Werte einer beim Einlesen ausgefallenen Menü-Ebene fehlen nicht mehr ([#17](https://github.com/xIceTea/HeatNexus/issues/17)).
-- Home Assistant 2026.9.4 meldet keine Abkündigung zur Gerätezuordnung mehr.
+- Heiz- und Warmwasserprogramme am BioWIN 2 werden erkannt ([#13](https://github.com/xIceTea/HeatNexus/issues/13)).
+- Die Betriebsart Zuführung am BioWIN erscheint als Text und lässt sich einstellen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
+- Dashboard, Panel und Schaubild-Karte laden auch bei ungewöhnlichen Gerätekennungen anderer Integrationen ([#11](https://github.com/xIceTea/HeatNexus/issues/11)).
+- Zeitprogramme mit leerem Wertfeld erscheinen als Programm, nicht als Text ([#9](https://github.com/xIceTea/HeatNexus/issues/9)).
+- Automatikkessel, LogWIN und mehrere Kessel einer Anlage erscheinen im Schaubild ([#8](https://github.com/xIceTea/HeatNexus/issues/8)).
+- Kesselpumpe und Kesselmischer erscheinen im Schaubild ([#14](https://github.com/xIceTea/HeatNexus/issues/14)).
+- Gas- und Ölkessel erscheinen im Schaubild mit eigener Zeichnung.
+- Der Warmwasserspeicher erscheint in der Heizungsübersicht nur einmal ([#15](https://github.com/xIceTea/HeatNexus/issues/15)).
+- Home Assistant 2026.9 meldet keine Warnung zur Gerätezuordnung mehr ([#12](https://github.com/xIceTea/HeatNexus/issues/12)).
+- Ganzzahlige Werte wie Alarmcode und Brennerstarts erscheinen ohne „.0“.
+- Meldungen bleiben stehen, wenn eine Abfrage der Anlage scheitert.
+- Der Diagnose-Export schwärzt auch die Seriennummer des Bediengeräts.
+- Die Pumpenräder im Schaubild drehen sich in Safari und auf dem iPhone gleichmäßig.
+- Die Schaubild-Karte lädt auch auf einer Seite, die während des Starts geöffnet wurde.
+- Eco und Comfort erscheinen wieder im Reiter Steuerung.
 - Eine gescheiterte Einrichtung lässt keine offene Verbindung zurück.
 
 ## [1.13.0-beta.5] - 2026-09-30
