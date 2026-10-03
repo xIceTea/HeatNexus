@@ -437,6 +437,39 @@ def test_ein_spaeterer_name_aendert_die_angeglichene_kennung_nicht(migration, ha
     assert registry.async_get(kennung) is not None
 
 
+def test_ein_frei_gewordenes_ziel_wird_spaeter_genommen(migration, hass):
+    """Ist der Zielname belegt, bleibt die Entität offen für einen späteren Lauf."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = _config_entry(hass)
+    geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-3-0")},
+        name="Beispielhaus · Musterkessel",
+    )
+    registry = er.async_get(hass)
+    ziel = "sensor.beispielhaus_musterkessel_kesseltemperatur_ist"
+    blocker = registry.async_get_or_create("sensor", "fremd", "x", suggested_object_id=ziel[7:])
+    registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "SN1-3-0-0-7-0",
+        config_entry=eintrag,
+        device_id=geraet.id,
+        original_name="Kesseltemperatur Ist",
+        suggested_object_id="irgendwas_altes",
+    )
+    assert migration._entity_ids_umstellen(hass, eintrag) == 0
+
+    registry.async_remove(blocker.entity_id)
+
+    assert migration._entity_ids_umstellen(hass, eintrag) == 1
+    assert registry.async_get(ziel) is not None
+
+
 def _steuerung_mit_entitaeten(hass, *kennungen):
     """Ein Gerät „Beispielhaus · Musterkessel“ mit Sensoren unter den angegebenen IDs."""
     from homeassistant.helpers import device_registry as dr

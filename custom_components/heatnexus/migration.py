@@ -145,12 +145,13 @@ def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
         vorschlag = _freie_kennung(registry, eintrag, " ".join(t for t in teile if t))
         # Ein angehängter Zähler heißt: Der eigentliche Name ist belegt. Dann
         # bringt die Umbenennung nichts und wird gelassen.
-        if vorschlag != eintrag.entity_id and not vorschlag.rsplit("_", 1)[-1].isdigit():
+        belegt = vorschlag.rsplit("_", 1)[-1].isdigit()
+        if vorschlag != eintrag.entity_id and not belegt:
             registry.async_update_entity(eintrag.entity_id, new_entity_id=vorschlag)
             umbenannt += 1
             _LOGGER.debug("Entität %s -> %s", eintrag.entity_id, vorschlag)
-        # Ohne Datenpunktnamen ist die Kennung noch unfertig; der nächste Lauf holt ihn.
-        if eintrag.original_name:
+        # Ohne Datenpunktnamen oder bei belegtem Ziel ist die Kennung noch unfertig.
+        if eintrag.original_name and (vorschlag == eintrag.entity_id or not belegt):
             kennung = registry.async_get_entity_id(eintrag.domain, DOMAIN, eintrag.unique_id)
             optionen = {**(eintrag.options.get(DOMAIN) or {}), KENNUNG_FEST: True}
             registry.async_update_entity_options(kennung, DOMAIN, optionen)
