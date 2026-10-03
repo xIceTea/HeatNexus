@@ -147,6 +147,8 @@ class WindhagerHttpClient(
         # Funktionen, von denen eine Menü-Ebene ausfiel; ihre Ebenenadressen
         # prüft die Erkennung einzeln.
         self._menue_luecken: set[str] = set()
+        # Ob Einzeladressen über `datapoint` statt `lookup` zu lesen sind; offen bis zur ersten Antwort.
+        self._datapoint_statt_lookup: bool | None = None
         self._letzte_werte: dict[str, str | None] = {}
         self._letzte_objekte: dict = {}
         self._letzte_meldungen: dict[str, str] = {}

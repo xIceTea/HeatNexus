@@ -1287,6 +1287,42 @@ async def test_datapoint_wird_nur_nach_einem_404_gefragt(client):
     assert gefragt == ["http://192.0.2.10/api/1.0/lookup/1/60/5/0/4/0"]
 
 
+async def test_der_rueckfall_auf_datapoint_wird_einmal_gelernt(client):
+    """Antwortet lookup einmal mit Metadaten, kostet ein späteres 404 keine zweite Anfrage."""
+    gefragt = []
+
+    async def get(url, semaphore=None):
+        gefragt.append(url)
+        if url.endswith("/0/7/0"):
+            return {"value": "45.0", "unit": "°C"}, 200
+        return {"code": 404, "message": "Not Found", "reason": None}, 404
+
+    client._get = get
+    await client._fetch_json("/1/60/5/0/7/0")
+    await client._fetch_json("/1/60/5/3/99/0")
+
+    assert not any("/datapoint" in u for u in gefragt)
+
+
+async def test_ohne_lookup_geht_es_gleich_zu_datapoint(client):
+    """Hat datapoint einmal statt lookup geantwortet, entfällt der vergebliche Versuch."""
+    gefragt = []
+
+    async def get(url, semaphore=None):
+        gefragt.append(url)
+        if "/datapoint" in url:
+            return {"value": "1", "typeId": 9}, 200
+        return {"code": 404, "message": "Not Found", "reason": None}, 404
+
+    client._get = get
+    await client._fetch_json("/1/60/5/2/9/0")
+    gefragt.clear()
+    _oid, _daten, status = await client._fetch_json("/1/60/5/5/6/0")
+
+    assert gefragt == ["http://192.0.2.10/api/1.0/datapoint/1/60/5/5/6/0"]
+    assert status == 200
+
+
 async def test_ein_gescheiterter_strukturabruf_laesst_die_meldung_stehen(client):
     """Wie bei den Werten: Ein Fehlschlag ist keine neue Auskunft."""
     client.devices = [{"type": "message_text", "node_id": "60"}]

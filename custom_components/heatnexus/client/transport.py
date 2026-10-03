@@ -151,12 +151,19 @@ class TransportMixin:
         """Fetch one OID and return (oid, json_or_None, http_status).
 
         Manche Steuerungen beantworten `lookup` nur für Struktur und Menü-Ebenen;
-        nach einem 404 liefert dort `datapoint` denselben Metadatensatz.
+        dort liefert `datapoint` den Metadatensatz. Welcher Weg trägt, gilt ab der ersten Antwort.
         """
         try:
-            data, status = await self._get(f"http://{self.host}/api/1.0/lookup{oid}")
-            if status == 404:
+            if self._datapoint_statt_lookup:
                 data, status = await self._get(f"http://{self.host}/api/1.0/datapoint{oid}")
+                return oid, data, status
+            data, status = await self._get(f"http://{self.host}/api/1.0/lookup{oid}")
+            if status == 200:
+                self._datapoint_statt_lookup = False
+            elif status == 404 and self._datapoint_statt_lookup is None:
+                data, status = await self._get(f"http://{self.host}/api/1.0/datapoint{oid}")
+                if status == 200:
+                    self._datapoint_statt_lookup = True
             return oid, data, status
         except Exception as e:
             _LOGGER.debug("Metadaten zu %s nicht lesbar: %s", oid, e)
