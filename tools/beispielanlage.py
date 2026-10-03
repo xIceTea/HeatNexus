@@ -346,8 +346,8 @@ TEILE = [
 def anlage() -> dict:
     """Die Beispielanlage als Ganzes, wie `dashboard._anlagen` sie liefert."""
     return {
-        "id": "anlage_heizhaus",
-        "name": "Heizhaus",
+        "id": "anlage_kesselhaus",
+        "name": "Kesselhaus",
         "kesselwert": "leistung",
         "teile": TEILE,
     }

@@ -2,7 +2,7 @@
 
 **Was hier entsteht.** Ein GIF, das durch die Reiter der eigenen Oberfläche
 führt: Übersicht mit Heizungsübersicht, Schaubild und Systemstatus, eine
-anliegende Störung, die Steuerung, die Wartung mit ihren Restlaufzeiten, das
+anliegende Störung, die Steuerung, die Automatik mit ihrem Tagesverlauf, die Wartung mit ihren Restlaufzeiten, das
 Wochenraster der Zeitprogramme und der Verlauf. Wer vor der Installation wissen
 will, was die Integration eigentlich zeigt, sieht es damit.
 
@@ -43,6 +43,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from beispielanlage import KOMPONENTE, WURZEL, anlage, zustaende
+from beispielautomatik import automatik_daten
 
 ZIEL = WURZEL / "assets" / "panel_rundgang.gif"
 
@@ -117,6 +118,8 @@ AUFTRITTE = [
         "zustand": EINMALLADUNG,
         "titel": "Einmalladung läuft",
     },
+    {"reiter": "automatik", "dauer": 3600, "titel": "Automatik"},
+    {"reiter": "automatik", "ziel": "Tagesverlauf", "dauer": 3200, "titel": "Tagesverlauf"},
     {"reiter": "wartung", "dauer": 2400, "titel": "Wartung"},
     {"reiter": "zeitprogramme", "dauer": 2800, "titel": "Zeitprogramme"},
     # Der Reiter „Verlauf" fehlt mit Absicht: Er zeichnet mit der
@@ -168,7 +171,7 @@ def _symbolnamen(daten: dict) -> set[str]:
     sammeln(daten)
     # Die Oberfläche setzt weitere Symbole selbst – sie stehen im Quelltext.
     frontend = KOMPONENTE / "frontend"
-    for datei in [frontend / "heatnexus-panel.js", *sorted((frontend / "teile").glob("*.js"))]:
+    for datei in [*sorted(frontend.glob("*.js")), *sorted((frontend / "teile").glob("*.js"))]:
         text = datei.read_text(encoding="utf-8")
         for stelle in range(len(text)):
             if text.startswith("mdi:", stelle):
@@ -214,7 +217,7 @@ SEITE = """<!doctype html><meta charset="utf-8">
 </style>
 <div id="halter"></div>
 <script type="module">
-import { DATEN, STATES, MDI, REITER, ZIEL, PHASE, PRESETS } from "./auftritt.js";
+import { DATEN, STATES, MDI, REITER, ZIEL, PHASE, PRESETS, AUTOMATIK } from "./auftritt.js";
 
 // Die Bewegung an dieselbe Stelle stellen wie beim bewegten Schaubild.
 const halt = document.createElement("style");
@@ -248,7 +251,7 @@ const hass = {
   states: STATES,
   themes: { darkMode: true },
   callWS: async (nachricht) =>
-    nachricht.type === "heatnexus/panel_daten" ? DATEN : {},
+    ({ "heatnexus/panel_daten": DATEN, "heatnexus/automatik": AUTOMATIK })[nachricht.type] || {},
   callService: async () => {},
   formatEntityState: (zustand) => {
     const einheit = zustand.attributes && zustand.attributes.unit_of_measurement;
@@ -277,6 +280,8 @@ await new Promise((fertig) => setTimeout(fertig, 250));
 element._reiter = REITER;
 element._gebaut = false;
 element._zeichnen();
+// Manche Reiter holen ihre Daten erst beim Öffnen; erst danach stehen ihre Karten.
+await new Promise((fertig) => setTimeout(fertig, 300));
 
 // **Eine Karte nach oben holen, ohne zu rollen.** Gerollt wurde vorher mit
 // festen Bildpunktzahlen; die verrutschen, sobald eine Karte eine Zeile mehr
@@ -289,7 +294,7 @@ if (ZIEL) {
   const wurzel = element.shadowRoot || element;
   const karten = [...wurzel.querySelectorAll(".karte")];
   const gesucht = karten.find((karte) => {
-    const kopf = karte.querySelector("h2");
+    const kopf = karte.querySelector("h2, h3");
     return kopf && kopf.textContent.trim().startsWith(ZIEL);
   });
   if (gesucht) {
@@ -316,7 +321,8 @@ def _auftritt_schreiben(
         "export const REITER = " + json.dumps(auftritt["reiter"]) + ";\n"
         "export const ZIEL = " + json.dumps(auftritt.get("ziel")) + ";\n"
         "export const PHASE = " + json.dumps(round(phase, 2)) + ";\n"
-        "export const PRESETS = " + json.dumps(klartexte, ensure_ascii=False) + ";\n",
+        "export const PRESETS = " + json.dumps(klartexte, ensure_ascii=False) + ";\n"
+        "export const AUTOMATIK = " + json.dumps(automatik_daten(), ensure_ascii=False) + ";\n",
         encoding="utf-8",
     )
 
@@ -357,6 +363,38 @@ class _Stiller(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *args) -> None:
         pass
 
+    def end_headers(self) -> None:
+        # Jeder Auftritt schreibt `auftritt.js` neu; eine zwischengespeicherte Fassung zeigte den falschen.
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
+
+def _aufnehmen(browser: str, adresse: str, aufnahme: Path):
+    """Eine Aufnahme; ein einfarbiges Bild heißt, die Seite stand noch nicht, und wird wiederholt."""
+    from PIL import Image, ImageStat
+
+    for _versuch in range(4):
+        subprocess.run(
+            [
+                browser,
+                "--headless",
+                "--disable-gpu",
+                "--hide-scrollbars",
+                # Ein eigenes Profil je Lauf: Im gemeinsamen läge ein alter Zwischenspeicher.
+                f"--user-data-dir={aufnahme.parent / 'profil'}",
+                f"--window-size={BREITE},{HOEHE}",
+                "--virtual-time-budget=3000",
+                f"--screenshot={aufnahme}",
+                adresse,
+            ],
+            check=True,
+            capture_output=True,
+        )
+        bild = Image.open(aufnahme).convert("RGB")
+        if ImageStat.Stat(bild.convert("L")).stddev[0] > 2:
+            return bild
+    raise SystemExit(f"{adresse}: nach vier Versuchen nur ein leeres Bild")
+
 
 def main() -> None:
     from PIL import Image
@@ -386,21 +424,11 @@ def main() -> None:
                     for schritt, (phase, dauer) in enumerate(_schritte(auftritt)):
                         _auftritt_schreiben(ordner, daten, auftritt, mdi, klartexte, phase)
                         aufnahme = ordner / f"auftritt_{nummer}_{schritt}.png"
-                        subprocess.run(
-                            [
-                                browser,
-                                "--headless",
-                                "--disable-gpu",
-                                "--hide-scrollbars",
-                                f"--window-size={BREITE},{HOEHE}",
-                                "--virtual-time-budget=3000",
-                                f"--screenshot={aufnahme}",
-                                f"http://127.0.0.1:{tor}/index.html?a={nummer}_{schritt}",
-                            ],
-                            check=True,
-                            capture_output=True,
+                        bild = _aufnehmen(
+                            browser,
+                            f"http://127.0.0.1:{tor}/index.html?a={nummer}_{schritt}",
+                            aufnahme,
                         )
-                        bild = Image.open(aufnahme).convert("RGB")
                         hoehe = round(HOEHE * GIF_BREITE / BREITE)
                         bilder.append(bild.resize((GIF_BREITE, hoehe), Image.LANCZOS))
                         dauern.append(dauer)

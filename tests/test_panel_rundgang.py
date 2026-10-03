@@ -151,7 +151,7 @@ def test_die_aufteilung_entsteht_aus_der_beispielanlage(rundgang):
     """Dieselbe Anlage wie im Schaubild – sonst zeigte das README zwei Häuser."""
     daten = rundgang.panel_daten()
     anlage = daten["anlagen"][0]
-    assert anlage["name"] == "Heizhaus"
+    assert anlage["name"] == "Kesselhaus"
     assert anlage["kennwerte"], "keine Kennwerte"
     assert anlage["status"], "kein Systemstatus"
     assert anlage["zeitprogramme"], "keine Zeitprogramme"
