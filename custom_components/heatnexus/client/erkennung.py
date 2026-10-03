@@ -20,7 +20,7 @@ from ..const import (
     FCT_ENTITY_MAP,
     FCT_NV,
 )
-from ..device_db import get_enum, get_layers, get_name, get_programme
+from ..device_db import get_enum, get_layers, get_name, get_programme, hat_tabelle
 from ..helpers import messgroesse
 from .gemeinsam import EBENENFOLGE, MELDUNGS_SENSOREN, gelesene_ebenen
 
@@ -225,8 +225,10 @@ class ErkennungMixin:
         # Ein gepflegter Name trennt, was Gerät und Herstellertabelle gleich nennen.
         if gepflegt and (fassung := texte.eigene_fassung(self.sprache, gepflegt)):
             return fassung
-        # Liefert die Steuerung kein Textwerk, springt die Herstellertabelle ein.
-        return geraet or get_name(gnmn, self.sprache) or vorgabe
+        # Liefert die Steuerung kein Textwerk, springt die Herstellertabelle ein;
+        # deren Lücken füllt, wie im Wörterbuch, die englische.
+        englisch = get_name(gnmn, "en") if hat_tabelle(self.sprache) else None
+        return geraet or get_name(gnmn, self.sprache) or englisch or vorgabe
 
     def _namensfelder(
         self,

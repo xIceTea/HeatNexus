@@ -378,6 +378,12 @@ def test_ohne_geraetetext_springt_die_englische_herstellertabelle_ein(client_mod
     assert client._name_fuer("0/0", "Außentemperatur") == "Outside temperature"
 
 
+def test_eine_luecke_der_herstellertabelle_fuellt_die_englische(client_module):
+    """Die niederländische Tabelle führt `7/13` nicht; Englisch statt Deutsch, wie im Wörterbuch."""
+    client = _mit_texten(client_module, "nl", {})
+    assert client._name_fuer("7/13", "Mischerlaufzeit") == "Mixer speed"
+
+
 def test_der_geraetetext_geht_der_englischen_tabelle_vor(client_module):
     client = _mit_texten(client_module, "en", {"0/0": "Outdoor temp."})
     assert client._name_fuer("0/0", "Außentemperatur") == "Outdoor temp."

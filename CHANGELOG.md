@@ -25,6 +25,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein Sprachwechsel ändert die Entitäts-IDs nicht mehr ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
 - Fehlt die gewählte Außentemperatur, zeigt das Dashboard die erkannte ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
 - Der Hinweis zum Speicher im Schaubild erscheint übersetzt.
+- Datenpunkte ohne niederländischen Herstellernamen erscheinen englisch statt deutsch.
 - Die Schaubild-Karte lädt auch auf einer Seite, die während des Starts geöffnet wurde.
 - Das Stundenraster zeigt bei bedecktem Himmel tagsüber eine Wolke statt eines Monds.
 - BioWIN 2 mit InfoWIN Touch zeigt auch Werte außerhalb der Menü-Ebenen ([#17](https://github.com/xIceTea/HeatNexus/issues/17)).

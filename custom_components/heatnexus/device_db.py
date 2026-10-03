@@ -28,6 +28,11 @@ def _tabelle(sprache: str) -> dict:
     return (_db().get("sprachen") or {}).get(sprache) or {}
 
 
+def hat_tabelle(sprache: str) -> bool:
+    """Ob die Herstellerdaten diese Sprache führen."""
+    return bool(_tabelle(sprache))
+
+
 def get_name(gnmn: str, sprache: str = "de") -> str | None:
     """Display name for a 'gn/mn' datapoint in the given language."""
     return (_tabelle(sprache).get("names") or {}).get(gnmn)
