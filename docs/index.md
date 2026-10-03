@@ -124,7 +124,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
         <p>Nur HTTP zur Steuerung im eigenen Netz. Keine Fremdbibliothek, keine Verbindung nach draußen.</p>
         <span class="weiter">Geräteschnittstelle</span>
       </a>
-      <a class="feld" href="ANLEITUNG#oberflaeche">
+      <a class="feld" href="ANLEITUNG#automatik">
         <span class="nr">10</span>
         <h3>Automatik je Heizkreis</h3>
         <p>Senkt an sonnigen Tagen ab und schaltet in der Übergangszeit auf nur Warmwasser. Beginnt im Beobachtungsmodus.</p>

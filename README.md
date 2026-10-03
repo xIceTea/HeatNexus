@@ -30,10 +30,11 @@ Fehlersuche und die vollständige Referenz auf einer Seite.
   „lädt“ und „entlädt“, Speicher und Heizkörper färben sich nach ihren Fühlern.
   Beispielwerte.*
 
-[![Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Wartung, Zeitprogramme](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche)
+[![Rundgang durch die Oberfläche: Übersicht, Störung, Steuerung, Automatik, Wartung, Zeitprogramme](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche)
 
 *Die eigene Oberfläche in der Seitenleiste: Übersicht, anliegende Störung,
-  Steuerung mit laufender Warmwasserladung, Wartung, Zeitprogramme. Ausführlich
+  Steuerung mit laufender Warmwasserladung, Automatik mit Tagesverlauf, Wartung,
+  Zeitprogramme. Ausführlich
   in [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) – Beispielwerte,
   aufgenommen aus der ausgelieferten Oberfläche.*
 
@@ -58,11 +59,14 @@ Datenbank steht:
 | 🟢 | UML / UMLZ Heizkreismodul | an der Anlage geprüft |
 | 🟢 | B-PLMi Pufferlademodul | an der Anlage geprüft |
 | 🟢 | ZSP Pumpen- und Relaismodul | an der Anlage geprüft |
-| 🔵 | BioWIN, BioWIN 2 – Pellets | an einer fremden Anlage geprüft |
-| ⚪ | Wärmepumpe, E-Heizung | eingebunden, ungeprüft |
-| ⚪ | Gas- und Ölkessel | eingebunden, ungeprüft |
-| ⚪ | Solar, Kaskade, Umschaltung | eingebunden, ungeprüft |
-| ⚪ | Infinity PLUS Heizkreis und Warmwasser | eingebunden, ungeprüft |
+| 🔵 | BioWIN, BioWIN 2, PelletsWIN – Pellets | an einer fremden Anlage geprüft |
+| 🔵 | LogWIN, VarioWIN – Scheitholz | an einer fremden Anlage geprüft |
+| 🔵 | DuoWIN – Pellets und Scheitholz | an einer fremden Anlage geprüft |
+| 🔵 | Infinity PLUS Heizkreis und Warmwasser | an einer fremden Anlage geprüft |
+| 🔵 | Pufferspeicher am Kessel | an einer fremden Anlage geprüft |
+| ⚪ | AeroWIN und andere Wärmepumpen, E-Heizung | eingebunden, ungeprüft |
+| ⚪ | Gas- und Ölkessel, Brennwerttherme | eingebunden, ungeprüft |
+| ⚪ | Solar, Kaskade, Umschaltung, weitere Puffer | eingebunden, ungeprüft |
 
 „Eingebunden" heißt: Die Funktion ist in der mitgelieferten Datenbank
 beschrieben und wird mit Namen, Einheiten und Auswahlwerten erkannt – nur stand
@@ -90,6 +94,10 @@ Geräten sind willkommen – der Diagnose-Export der Integration reicht dafür.
   erlaubte Auswahlwerte stammen aus den Metadaten der Anlage.
 - **Thermostat je Heizkreis** mit Betriebswahl, Behaglichkeitskorrektur und
   befristetem Komfort-Sollwert.
+- **Automatik je Heizkreis**: Sie senkt an sonnigen Tagen den Sollwert ab und
+  schaltet in der Übergangszeit auf nur Warmwasser. Grundlage sind Wetter- und
+  PV-Prognose, Raumfühler und Wärmequellen mit Vorrang. Sie beginnt im
+  Beobachtungsmodus und schreibt erst nach Freigabe an die Steuerung.
 - **Zeitprogramme** für Heizung, Warmwasser und Zirkulation lesen und schreiben –
   in der eigenen Oberfläche als Wochenraster, mit Editor für Wochentage und
   Schaltzeiten.
@@ -108,9 +116,14 @@ Geräten sind willkommen – der Diagnose-Export der Integration reicht dafür.
   daneben, wählbaren Anlagenteilen und fünf Farbsätzen.
 - **Dashboard und Automations-Vorlagen** kommen mit und bauen sich aus dem,
   was die Anlage liefert.
+- **Eigene Wärmequellen** wie Solaranlage, Heizstab oder Fernwärme erscheinen
+  im Schaubild und melden, wann sie liefern.
 - **LON-Bus als zweite Quelle**: Netzwerkvariablen werden erkannt, benannt und
   je Anlage zugeschaltet.
-- Mehrere Anlagen parallel.
+- **Deutsch, Englisch und Niederländisch** für Oberfläche, Dashboard,
+  Schaubild, Datenpunkte und Störungstexte.
+- **Mehrere Steuerungen** in einem Eintrag; in den Optionen lassen sie sich
+  hinzufügen, entfernen und umbenennen.
 
 ## Installation
 
@@ -242,6 +255,8 @@ dazugekommen ist, ergänzt HeatNexus im Hintergrund.
 | `heatnexus.set_time_program` | Zeitprogramm setzen (`switch_points` mit `weekdays`, oder `blocks` für getrennte Wochenpläne) |
 | `heatnexus.set_vorgabe` | befristete Raumtemperatur-Vorgabe eines Heizkreises („Eco / Comfort") |
 | `heatnexus.set_current_temp_compensation` | Behaglichkeitskorrektur eines Heizkreises |
+| `heatnexus.meldungen_loeschen` | die von HeatNexus gesammelte Meldungsliste einer Anlage leeren |
+| `heatnexus.dashboard_ausgeben` | das mitgelieferte Dashboard als YAML ausgeben |
 | `heatnexus.rediscover` | Anlage neu einlesen, z. B. nach Umbauten |
 
 ```yaml
@@ -274,6 +289,10 @@ Reiter für Reiter in [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLE
   Schaltzeiten als Balken. Bearbeitet wird in Blöcken – Wochentage anhaken,
   Schaltzeiten setzen –, gespeichert wird das ganze Programm auf einmal, so wie
   die Anlage es führt.
+- **Automatik** je Heizkreis: Zustand mit Begründung, Kennwerte zu Außen,
+  Sonne und Räumen, Tagesverlauf mit Stundenraster und Vorschau auf morgen und
+  übermorgen, Protokoll und Einstellungen. Ausführlich in
+  [Automatik](https://xicetea.github.io/HeatNexus/ANLEITUNG#automatik).
 
 Ein „?" neben Karten und Bedienelementen erklärt, was ein Wert bedeutet und was
 eine Aktion auslöst. Beides – Oberfläche und Erklärungen – lässt sich unter
@@ -381,6 +400,7 @@ an keiner Formulierung.
 | Seite | Inhalt |
 |---|---|
 | [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) | die eigene Oberfläche, Reiter für Reiter |
+| [Automatik](https://xicetea.github.io/HeatNexus/ANLEITUNG#automatik) | wie die Automatik entscheidet und was sie schreibt |
 | [Schaubild als Karte](https://xicetea.github.io/HeatNexus/ANLEITUNG#karte) | das Anlagenschaubild als Lovelace-Karte |
 | [Geräteschnittstelle](https://xicetea.github.io/HeatNexus/ANLEITUNG#geraeteschnittstelle) | Geräte-API und OID-Aufbau |
 | [Aufbau](https://xicetea.github.io/HeatNexus/ANLEITUNG#aufbau) | Aufbau der Integration |

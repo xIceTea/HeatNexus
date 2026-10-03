@@ -22,6 +22,10 @@ so im Repo lesbar und werden hier nur zusammengesetzt.
 {% include OBERFLAECHE.md %}
 </section>
 
+<section id="automatik" class="teil" markdown="1">
+{% include AUTOMATIK.md %}
+</section>
+
 <section id="karte" class="teil" markdown="1">
 {% include KARTE.md %}
 </section>

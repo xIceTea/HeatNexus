@@ -35,11 +35,11 @@ The system is read and controlled directly over its HTTP API on your network.
 Boilers, heating circuits, buffer tanks, domestic hot water and circulation are
 covered, including the info, operator and service levels.
 
-**A note on language.** The integration speaks German, because the heating
-systems it talks to do: entity names, help texts and the bundled dashboard use
-the same wording as the InfoWIN Touch control panel, so what you read in Home
-Assistant matches what you read on the boiler. This page exists so you can
-decide whether the integration fits before you install it.
+**A note on language.** The integration speaks German, English and Dutch:
+panel, dashboard, plant diagram, datapoint names and fault texts follow the
+language chosen in the options. Datapoint names and fault texts come from
+Windhager's own files, so they match the wording of the control panel. The
+guides on the project site are German only.
 
 ![Animated plant diagram: boiler starts, buffer charges, heating circuit and hot water warm up](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/anlagenschema_animation.gif)
 
@@ -48,10 +48,11 @@ decide whether the integration fits before you install it.
   return show the direction, the buffer reports “charging” and “discharging”,
   tanks and radiators take the colour of their sensors. Example values.*
 
-[![Tour of the panel: overview, fault, controls, maintenance, time programmes](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche)
+[![Tour of the panel: overview, fault, controls, automation, maintenance, time programmes](https://raw.githubusercontent.com/xIceTea/HeatNexus/main/assets/panel_rundgang.gif)](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche)
 
 *The integration's own page in the sidebar: overview, an active fault,
-  controls with a hot-water charge running, maintenance, time programmes. In
+  controls with a hot-water charge running, the automation with its daily
+  view, maintenance, time programmes. In
   detail in [Die Oberfläche](https://xicetea.github.io/HeatNexus/ANLEITUNG#oberflaeche) (German) –
   example values, recorded from the shipped interface.*
 
@@ -63,11 +64,14 @@ decide whether the integration fits before you install it.
 | UML / UMLZ heating circuit module | verified against real hardware |
 | B-PLMi buffer charging module | verified against real hardware |
 | ZSP pump and relay module | verified against real hardware |
-| BioWIN, BioWIN 2 — pellets | verified on a contributed system |
-| Heat pump, electric heater | supported, unverified |
-| Gas and oil boilers | supported, unverified |
-| Solar, cascade, changeover | supported, unverified |
-| Infinity PLUS heating circuit and DHW | supported, unverified |
+| BioWIN, BioWIN 2, PelletsWIN — pellets | verified on a contributed system |
+| LogWIN, VarioWIN — logs | verified on a contributed system |
+| DuoWIN — pellets and logs | verified on a contributed system |
+| Infinity PLUS heating circuit and DHW | verified on a contributed system |
+| Buffer tank on the boiler | verified on a contributed system |
+| AeroWIN and other heat pumps, electric heater | supported, unverified |
+| Gas and oil boilers, condensing boiler | supported, unverified |
+| Solar, cascade, changeover, further buffers | supported, unverified |
 
 *Supported, unverified* means the function is described in the bundled device
 database and is recognised with its names, units and enumerations — there simply
@@ -93,6 +97,10 @@ welcome — the integration's diagnostics export is all it takes.
   enumeration values come from the controller's own metadata.
 - **A thermostat per heating circuit** with operating mode, comfort correction
   and a timed comfort setpoint.
+- **Automation per heating circuit**: it lowers the setpoint on sunny days and
+  switches to hot water only in the transition season, based on weather and PV
+  forecast, room sensors and heat sources with priority. It starts in observe
+  mode and only writes to the controller once released.
 - **Time programs** for heating, hot water and circulation, readable and
   writable — shown as a weekly grid in the panel, with an editor for weekdays
   and switch points.
@@ -107,7 +115,12 @@ welcome — the integration's diagnostics export is all it takes.
   pump, gas/oil — is detected and can be overridden per system.
 - **Dashboard and automation blueprints** ship with it and build themselves from
   whatever the system provides.
-- Multiple systems in parallel.
+- **Own heat sources** such as solar thermal, an immersion heater or district
+  heating appear in the plant diagram and report when they deliver.
+- **German, English and Dutch** for panel, dashboard, plant diagram, datapoints
+  and fault texts.
+- **Several controllers** in one entry; they can be added, removed and renamed
+  in the options.
 
 ## Installation
 
@@ -232,6 +245,7 @@ background.
 | `heatnexus.set_vorgabe` | timed room temperature override for a heating circuit ("Eco / Comfort") |
 | `heatnexus.set_current_temp_compensation` | comfort correction of a heating circuit |
 | `heatnexus.meldungen_loeschen` | clear the collected message list of a system |
+| `heatnexus.dashboard_ausgeben` | return the bundled dashboard as YAML |
 | `heatnexus.rediscover` | re-read the system, e.g. after modifications |
 
 ```yaml
@@ -263,6 +277,10 @@ system as a whole instead of as a pile of tiles:
 - **Time programs** as a weekly grid: seven rows per program, switch points as
   bars. Editing works in blocks — tick weekdays, set switch points — and saving
   writes the whole program at once, the way the system stores it.
+- **Automation** per heating circuit: state with its reason, key values for
+  outside, sun and rooms, a daily view with an hourly grid and a preview of the
+  next two days, a log and the settings. In detail in
+  [Automatik](https://xicetea.github.io/HeatNexus/ANLEITUNG#automatik) (German).
 
 A "?" next to cards and controls explains what a value means and what an action
 does. Both the panel and the explanations can be switched off under *Configure →
@@ -349,6 +367,7 @@ particular wording.
 
 | Page | Contents |
 |---|---|
+| [Automatik](https://xicetea.github.io/HeatNexus/ANLEITUNG#automatik) | how the automation decides and what it writes |
 | [Geräteschnittstelle](https://xicetea.github.io/HeatNexus/ANLEITUNG#geraeteschnittstelle) | device API and OID structure |
 | [Aufbau](https://xicetea.github.io/HeatNexus/ANLEITUNG#aufbau) | how the integration is built |
 | [Datenpunkte](https://xicetea.github.io/HeatNexus/ANLEITUNG#datenpunkte) | every datapoint per function type, with its level |
