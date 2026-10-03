@@ -148,9 +148,15 @@ class TransportMixin:
         return data
 
     async def _fetch_json(self, oid):
-        """Fetch one OID and return (oid, json_or_None, http_status)."""
+        """Fetch one OID and return (oid, json_or_None, http_status).
+
+        Manche Steuerungen beantworten `lookup` nur für Struktur und Menü-Ebenen;
+        nach einem 404 liefert dort `datapoint` denselben Metadatensatz.
+        """
         try:
             data, status = await self._get(f"http://{self.host}/api/1.0/lookup{oid}")
+            if status == 404:
+                data, status = await self._get(f"http://{self.host}/api/1.0/datapoint{oid}")
             return oid, data, status
         except Exception as e:
             _LOGGER.debug("Metadaten zu %s nicht lesbar: %s", oid, e)

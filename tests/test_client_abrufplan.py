@@ -1216,6 +1216,60 @@ async def test_ein_gewoehnlicher_datenpunkt_ohne_lookup_fragt_kein_objekt(client
     assert gefragt == []
 
 
+async def test_ohne_lookup_kommen_die_metadaten_ueber_datapoint(client):
+    """Manche Steuerungen beantworten lookup nur für Struktur und Menü-Ebenen.
+
+    Eine Einzeladresse außerhalb der Ebenen antwortet dort mit 404, unter
+    datapoint aber mit dem vollen Metadatensatz.
+    """
+    betriebsart = {
+        "enum": "[0,1,2]",
+        "value": "1",
+        "OID": "/1/60/5/2/9/0",
+        "typeId": 9,
+        "writeProt": False,
+    }
+
+    async def get(url, semaphore=None):
+        if url.endswith("/api/1.0/datapoint/1/60/5/2/9/0"):
+            return betriebsart, 200
+        return {"code": 404, "message": "Not Found", "reason": None}, 404
+
+    client._get = get
+    client.oids = {"/1/60/5/2/9/0", "/1/60/5/0/118/0"}
+    client.menu_meta = {}
+    client.devices = [
+        {"oid": "/1/60/5/2/9/0", "name": "Betriebsart", "type": "auto", "level": "operate"},
+        {"oid": "/1/60/5/0/118/0", "name": "Zirkulation", "type": "auto", "level": "info"},
+    ]
+
+    await client._apply_metadata()
+
+    assert [(d["oid"], d["type"]) for d in client.devices] == [("/1/60/5/2/9/0", "select")]
+    assert client.devices[0]["allowed"] == [0, 1, 2]
+    assert client.oids == {"/1/60/5/2/9/0"}
+
+
+async def test_datapoint_wird_nur_nach_einem_404_gefragt(client):
+    """Liefert lookup die Metadaten, bleibt es bei einer Anfrage je Adresse."""
+    gefragt = []
+
+    async def get(url, semaphore=None):
+        gefragt.append(url)
+        return {"value": "45.0", "unit": "°C", "writeProt": True}, 200
+
+    client._get = get
+    client.oids = {"/1/60/5/0/4/0"}
+    client.menu_meta = {}
+    client.devices = [
+        {"oid": "/1/60/5/0/4/0", "name": "Wert", "type": "auto", "level": "info", "fct_type": 14}
+    ]
+
+    await client._apply_metadata()
+
+    assert gefragt == ["http://192.0.2.10/api/1.0/lookup/1/60/5/0/4/0"]
+
+
 async def test_ein_gescheiterter_strukturabruf_laesst_die_meldung_stehen(client):
     """Wie bei den Werten: Ein Fehlschlag ist keine neue Auskunft."""
     client.devices = [{"type": "message_text", "node_id": "60"}]

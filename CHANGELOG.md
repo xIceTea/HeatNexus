@@ -26,6 +26,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Hinweis zum Speicher im Schaubild erscheint übersetzt.
 - Die Schaubild-Karte lädt auch auf einer Seite, die während des Starts geöffnet wurde.
 - Das Stundenraster zeigt bei bedecktem Himmel tagsüber eine Wolke statt eines Monds.
+- BioWIN 2 mit InfoWIN Touch zeigt auch Werte außerhalb der Menü-Ebenen ([#17](https://github.com/xIceTea/HeatNexus/issues/17)).
 
 ## [1.13.0-beta.5] - 2026-09-30
 
