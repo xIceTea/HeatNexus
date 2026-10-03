@@ -62,7 +62,9 @@ def _anlage(client_module, levels=("info", "operate")):
     return c
 
 
-async def _erkennen(client_module, monkeypatch, levels=("info", "operate"), menue=None):
+async def _erkennen(
+    client_module, monkeypatch, levels=("info", "operate"), menue=None, luecke=False
+):
     """Die Erkennung einmal vollständig laufen lassen."""
     c = _anlage(client_module, levels)
 
@@ -77,6 +79,8 @@ async def _erkennen(client_module, monkeypatch, levels=("info", "operate"), menu
         ]
 
     async def read_function_menus(prefix, fct_type):
+        if luecke:
+            c._menue_luecken.add(prefix)
         return dict(MENUE_DATEN if menue is None else menue)
 
     async def statische_adressen():
@@ -146,6 +150,19 @@ async def test_ein_geraet_ohne_menues_bleibt_bedienbar(client_module, monkeypatc
     """Ältere Firmware liefert keine Menüliste – dann trägt die Tabelle allein."""
     c = await _erkennen(client_module, monkeypatch, menue={})
     assert c.devices, "ohne Menü-Ebenen entstand keine einzige Beschreibung"
+
+
+async def test_eine_luecke_im_menue_prueft_die_ebenenadressen_einzeln(client_module, monkeypatch):
+    """Fällt eine Menü-Ebene aus, fehlten sonst ihre Adressen der gewählten Ebenen."""
+    ausserhalb = f"{PRAEFIX}/2/70/0"
+
+    vollstaendig = await _erkennen(client_module, monkeypatch)
+    assert ausserhalb not in {d["oid"] for d in vollstaendig.devices if d.get("oid")}
+
+    mit_luecke = await _erkennen(client_module, monkeypatch, luecke=True)
+    erkannt = {d["oid"] for d in mit_luecke.devices if d.get("oid")}
+    assert ausserhalb in erkannt
+    assert SERVICE not in erkannt
 
 
 async def test_der_kessel_bekommt_kein_thermostat(client_module, monkeypatch):

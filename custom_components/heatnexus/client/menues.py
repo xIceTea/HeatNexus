@@ -68,7 +68,10 @@ class MenuesMixin:
         while True:
             url = base if offset == 0 else f"{base}?offset={offset}"
             data, status = await self._get(url)
-            if status != 200 or not isinstance(data, list) or not data:
+            if status != 200 or not isinstance(data, list):
+                self._menue_luecken.add(prefix)
+                break
+            if not data:
                 break
             fresh = [i for i in data if brauchbar(i) and i[schluessel] not in seen]
             if not fresh:
@@ -227,6 +230,7 @@ class MenuesMixin:
         for menu_id, items in zip(menus, results, strict=True):
             if isinstance(items, BaseException):
                 self._ebene_ohne_antwort(prefix, menu_id, items)
+                self._menue_luecken.add(prefix)
                 continue
             for item in items:
                 oid = item.get("OID")

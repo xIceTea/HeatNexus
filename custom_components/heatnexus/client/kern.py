@@ -144,6 +144,9 @@ class WindhagerHttpClient(
         # Ob diese Steuerung eine ganze Menü-Ebene auf einmal liefert. Unbekannt
         # bis zum ersten Versuch; danach wird nicht mehr vergeblich gefragt.
         self._sammelseite: bool | None = None
+        # Funktionen, von denen eine Menü-Ebene ausfiel; ihre Ebenenadressen
+        # prüft die Erkennung einzeln.
+        self._menue_luecken: set[str] = set()
         self._letzte_werte: dict[str, str | None] = {}
         self._letzte_objekte: dict = {}
         self._letzte_meldungen: dict[str, str] = {}

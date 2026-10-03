@@ -328,6 +328,7 @@ async def test_eine_stumme_menue_ebene_kostet_nur_ihre_datenpunkte(client_module
     datenpunkte = await c._read_function_menus("/1/60/0", 25)
 
     assert list(datenpunkte) == ["/1/60/0/2/7/0"]
+    assert c._menue_luecken == {"/1/60/0"}
 
 
 class _EinmalStumm:

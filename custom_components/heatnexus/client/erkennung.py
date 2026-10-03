@@ -343,6 +343,7 @@ class ErkennungMixin:
         """
         self.oids = set()
         self.devices = []
+        self._menue_luecken = set()
         json_devices = await self.fetch("/1")
         if not self.geraeteinfo:
             await self._lese_geraeteinfo()
@@ -467,9 +468,9 @@ class ErkennungMixin:
                         candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
                         ergaenzt.add(gnmn)
 
-                if not menu_data and not nur_kern:
-                    # Ältere Firmware ohne Menüliste: auf die Datenbank
-                    # zurückfallen und jeden Datenpunkt einzeln prüfen.
+                if (not menu_data or prefix in self._menue_luecken) and not nur_kern:
+                    # Ohne Menüliste oder mit ausgefallener Ebene: auf die
+                    # Datenbank zurückfallen und jeden Datenpunkt einzeln prüfen.
                     for liste in gelesene_ebenen(self.levels):
                         for gnmn in layers.get(liste, []):
                             candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)

@@ -941,6 +941,23 @@ async def test_die_sammelseite_wird_nur_einmal_ausprobiert(client, monkeypatch):
     assert sum(1 for u in anfragen if "count=-1" in u) == 1
 
 
+async def test_eine_ebene_ohne_antwort_gilt_als_luecke(client, monkeypatch):
+    """Eine Seite mit 502 bricht die Ebene ab; die Erkennung muss davon wissen."""
+
+    async def antwort(url, semaphore=None):
+        if url.endswith("/103") or "/103?" in url:
+            return {"code": 502, "message": "Bad Gateway"}, 502
+        return [{"OID": "/1/60/0/0/7/0"}], 200
+
+    monkeypatch.setattr(client, "_get", antwort)
+
+    await client._read_menu("/1/60/0", "98", 1, None)
+    assert client._menue_luecken == set()
+
+    await client._read_menu("/1/60/0", "103", 85, None)
+    assert client._menue_luecken == {"/1/60/0"}
+
+
 def test_eine_taste_kostet_keinen_abruf(client):
     """Sie zeigt nichts an; ihre Adresse wird nur beschrieben."""
     client.devices = [
