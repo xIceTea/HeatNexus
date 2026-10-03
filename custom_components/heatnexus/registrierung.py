@@ -65,6 +65,18 @@ def geraet_suchen(registry: Any, kennung: str, entry_id: str | None) -> Any:
     return next((g for g in registry.devices.values() if (DOMAIN, kennung) in g.identifiers), None)
 
 
+def kurzname(name: str | None) -> str:
+    """Name ohne das vorangestellte Anlagenkürzel."""
+    return (name or "").split(" · ")[-1].strip()
+
+
+def geraetename(hass: Any, kennung: str, entry_id: str | None, rueckfall: str) -> str:
+    """Name des Geräts wie in der Geräteliste, ohne Anlagenkürzel; ohne Gerät der Rückfall."""
+    geraet = geraet_suchen(dr.async_get(hass), kennung, entry_id)
+    name = (geraet.name_by_user or geraet.name) if geraet is not None else None
+    return kurzname(name) if name else rueckfall
+
+
 def uebergeordnet(hass: Any, kennung: str, entry_id: str) -> dict[str, Any]:
     """Der Verweis auf das übergeordnete Gerät, als Feld für die Geräteangaben.
 

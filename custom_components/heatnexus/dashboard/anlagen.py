@@ -30,6 +30,7 @@ from ..helpers import enum_texte, mustername
 from ..kanonisch import gnmn, ist_ableitung
 from ..kanonisch import schluessel as kanonischer_schluessel
 from ..rechte import darf_lesen
+from ..registrierung import kurzname
 from ..schema import passt as _passt
 from ..schema import traegt as _traegt
 from ..symbole import symbol_je_fct
@@ -46,11 +47,6 @@ def gewaehlte_aussentemperatur(hass: HomeAssistant) -> str | None:
         if gewaehlt and (hass.states.get(gewaehlt) or er.async_get(hass).async_get(gewaehlt)):
             return str(gewaehlt)
     return None
-
-
-def kurzname(name: str | None) -> str:
-    """Name ohne das vorangestellte Anlagenkürzel."""
-    return (name or "").split(" · ")[-1].strip()
 
 
 def rang(fct_type: Any, art: str | None = None) -> int:

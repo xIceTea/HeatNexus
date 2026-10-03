@@ -27,6 +27,7 @@ from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
 from ..helpers import get_oid_value
+from ..registrierung import geraetename
 from . import eingaben, korrektur, nachladen, profile, regel, stundenmodus, tagesansicht
 from .quellen import QuellenMixin, ortszeit
 from .steller import Stand, Steller, nur_ww_wert
@@ -101,7 +102,8 @@ class Laufzeit(QuellenMixin):
         self.entry_id = entry_id
         self.device_id: str = beschreibung["device_id"]
         self.prefix: str = beschreibung.get("prefix", "")
-        self.name: str = beschreibung.get("device_name") or self.device_id
+        # Die Steuerung meldet Umlaute mitunter als Ersatzzeichen; das Gerät trägt den gepflegten Namen.
+        self._rohname: str = beschreibung.get("device_name") or self.device_id
         self.konfig = konfig
         self._speichern = speichern
         self._prognose_quelle = prognose
@@ -710,6 +712,11 @@ class Laufzeit(QuellenMixin):
             return False
         self._weg_seit = self._weg_seit or jetzt
         return jetzt - self._weg_seit >= ABWESEND_NACH
+
+    @property
+    def name(self) -> str:
+        """Name des Heizkreises wie in der Geräteliste."""
+        return geraetename(self.hass, self.device_id, self.entry_id, self._rohname)
 
     def _stundenwerte(self, jetzt: datetime) -> list[tuple[datetime, float | None]]:
         """Korrigierte Stundenprognose von heute und morgen, mit Zeitpunkt."""

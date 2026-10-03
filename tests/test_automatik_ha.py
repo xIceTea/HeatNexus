@@ -1601,6 +1601,30 @@ async def test_laufzeiten_ohne_speicherstand_kommen_aus_dem_protokoll(hass, free
     assert round(laufzeit.modus_lauf["nur_ww"].minuten) == 558
 
 
+async def test_der_heizkreis_heisst_wie_in_der_geraeteliste(hass):
+    """Die Steuerung kann Umlaute als Ersatzzeichen melden; das Gerät trägt den richtigen Namen."""
+    from homeassistant.helpers import device_registry as dr
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = MockConfigEntry(domain=DOMAIN, entry_id="e")
+    eintrag.add_to_hass(hass)
+    register = dr.async_get(hass)
+    register.async_get_or_create(
+        config_entry_id="e", identifiers={(DOMAIN, HEIZKREIS)}, name=f"{ANLAGE} · Hebebühne"
+    )
+    beschreibung = {"device_id": HEIZKREIS, "device_name": "Hebeb�hne", "prefix": PREFIX}
+
+    async def prognose(_art, _quelle):
+        return None
+
+    laufzeit = Laufzeit(hass, Coordinator(), beschreibung, {}, {}, lambda: None, "e", prognose)
+
+    assert laufzeit.name == "Hebebühne"
+
+
 def test_gleichnamige_heizkreise_bleiben_im_attribut_getrennt():
     from types import SimpleNamespace
 

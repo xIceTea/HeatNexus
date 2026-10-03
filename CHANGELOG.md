@@ -6,6 +6,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unreleased]
+
+### Behoben
+
+- Die Automatik zeigt Heizkreise mit Umlaut unter dem Namen aus der Geräteliste.
+
 ## [1.13.0] - 2026-10-03
 
 Eine Automatik je Heizkreis nutzt Sonne und Wetterprognose: Sie senkt an

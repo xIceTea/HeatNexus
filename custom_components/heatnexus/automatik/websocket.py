@@ -22,7 +22,7 @@ import voluptuous as vol
 from .. import texte
 from ..const import DOMAIN, SUBEINTRAG_QUELLE
 from ..rechte import darf_lesen
-from ..registrierung import geraet_suchen
+from ..registrierung import geraet_suchen, geraetename
 from . import eingaben, kennzahlen, korrektur, nachladen, profile, regel, tagesansicht
 from .konfig import (
     EIGENE_FELDER,
@@ -83,7 +83,7 @@ def _eintrag(
     geraet = geraet_suchen(dr.async_get(hass), device_id, entry_id)
     ergebnis: dict[str, Any] = {
         "heizkreis": device_id,
-        "name": b.get("device_name") or device_id,
+        "name": geraetename(hass, device_id, entry_id, b.get("device_name") or device_id),
         "anlage": getattr(coordinator, "label", "") or "",
         # Dieselbe Kennung wie die Anlage im Panel: das Gerät der Steuerung.
         "anlage_id": geraet.via_device_id if geraet else None,
