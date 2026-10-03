@@ -356,6 +356,7 @@ def _automatik_geraete(hass, eintrag):
 
 async def test_die_automatik_hat_einen_eigenen_untereintrag(hass, hass_ws_client, anlage):
     from custom_components.heatnexus.const import DOMAIN, SUBEINTRAG_AUTOMATIK
+    from custom_components.heatnexus.registrierung import untereintraege
 
     client = await hass_ws_client(hass)
     await _einrichten(client)
@@ -364,7 +365,7 @@ async def test_die_automatik_hat_einen_eigenen_untereintrag(hass, hass_ws_client
     [sub] = [s for s in eintrag.subentries.values() if s.subentry_type == SUBEINTRAG_AUTOMATIK]
     geraete = _automatik_geraete(hass, eintrag)
     assert geraete
-    assert all(g.config_entries_subentries[eintrag.entry_id] == {sub.subentry_id} for g in geraete)
+    assert all(untereintraege(g, eintrag.entry_id) == {sub.subentry_id} for g in geraete)
 
 
 async def test_geloeschter_untereintrag_entfernt_die_automatiken(hass, hass_ws_client, anlage):
@@ -398,6 +399,7 @@ async def test_vorhandene_automatik_geraete_wandern_in_den_untereintrag(
 
     from custom_components.heatnexus.automatik import verwaltung as verwaltung_modul
     from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.registrierung import untereintraege
 
     verwaltung, _ = anlage
     [eintrag] = hass.config_entries.async_entries(DOMAIN)
@@ -417,7 +419,7 @@ async def test_vorhandene_automatik_geraete_wandern_in_den_untereintrag(
     sub_id = verwaltung.subeintrag(eintrag)
     geraete = _automatik_geraete(hass, eintrag)
     assert len(geraete) == 2
-    assert all(g.config_entries_subentries[eintrag.entry_id] == {sub_id} for g in geraete)
+    assert all(untereintraege(g, eintrag.entry_id) == {sub_id} for g in geraete)
 
 
 async def test_gedaempfte_at_beginnt_beim_tagesmittel(hass, hass_ws_client, anlage):

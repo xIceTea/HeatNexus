@@ -10,6 +10,7 @@ from __future__ import annotations
 import inspect
 from typing import Any
 
+import attr
 from homeassistant.helpers import device_registry as dr
 
 from .const import DOMAIN
@@ -23,6 +24,16 @@ VERKNUEPFUNG_PER_ID = (
 VERSCHIEBEN_PER_ZIEL = (
     "new_config_subentry_id" in inspect.signature(dr.DeviceRegistry.async_update_device).parameters
 )
+
+# Ein Gerät mit eigenem `config_subentry_id` gehört genau einem Eintrag; die Sammelangabe ist abgekündigt.
+EIN_EINTRAG_JE_GERAET = "config_subentry_id" in attr.fields_dict(dr.DeviceEntry)
+
+
+def untereintraege(geraet: Any, entry_id: str) -> set[str | None]:
+    """Die Untereinträge des Eintrags, denen das Gerät angehört; `None` steht für den Eintrag selbst."""
+    if EIN_EINTRAG_JE_GERAET:
+        return {geraet.config_subentry_id} if geraet.config_entry_id == entry_id else set()
+    return geraet.config_entries_subentries.get(entry_id) or set()
 
 
 def in_untereintrag_verschieben(registry: Any, geraet: Any, entry_id: str, sub_id: str) -> None:

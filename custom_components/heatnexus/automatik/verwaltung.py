@@ -27,7 +27,7 @@ from ..const import (
     SIGNAL_NEUE_ENTITAETEN,
     SUBEINTRAG_AUTOMATIK,
 )
-from ..registrierung import geraet_suchen, in_untereintrag_verschieben
+from ..registrierung import geraet_suchen, in_untereintrag_verschieben, untereintraege
 from ..texte import woerterbuch
 from . import konfig as konfig_modul
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
@@ -115,7 +115,7 @@ def _geraete_umhaengen(register: dr.DeviceRegistry, entry: ConfigEntry, sub_id: 
     Hängt ein Gerät an beiden, steht es zweimal in der Übersicht der Integration.
     """
     for geraet in dr.async_entries_for_config_entry(register, entry.entry_id):
-        zuordnung = geraet.config_entries_subentries.get(entry.entry_id) or set()
+        zuordnung = untereintraege(geraet, entry.entry_id)
         if None not in zuordnung or not any(
             bereich == DOMAIN and str(wert).endswith(AUTOMATIK_GERAET_ENDUNG)
             for bereich, wert in geraet.identifiers

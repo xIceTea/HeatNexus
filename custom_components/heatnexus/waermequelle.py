@@ -17,6 +17,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from . import bedingung, texte
 from .const import DOMAIN, QUELLEN_ARTEN, QUELLEN_MAX, SUBEINTRAG_QUELLE
 from .entity import steuerung_kennung, steuerung_verweis
+from .registrierung import untereintraege
 
 TYP = SUBEINTRAG_QUELLE
 
@@ -121,7 +122,7 @@ def geraete_entflechten(registry: Any, entry: ConfigEntry) -> int:
     kennungen = {sub.subentry_id for sub in subeintraege(entry)}
     geloest = 0
     for geraet in dr.async_entries_for_config_entry(registry, entry.entry_id):
-        zuordnung = geraet.config_entries_subentries.get(entry.entry_id) or set()
+        zuordnung = untereintraege(geraet, entry.entry_id)
         if None not in zuordnung:
             continue
         if zuordnung & kennungen:
