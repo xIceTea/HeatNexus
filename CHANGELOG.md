@@ -29,6 +29,7 @@ wenn dort Vorabversionen zugelassen sind.
 - BioWIN 2 mit InfoWIN Touch zeigt auch Werte außerhalb der Menü-Ebenen ([#17](https://github.com/xIceTea/HeatNexus/issues/17)).
 - Antwortet eine Menü-Ebene nicht, liest die Erkennung ihre Datenpunkte einzeln ([#17](https://github.com/xIceTea/HeatNexus/issues/17)).
 - Home Assistant 2026.9.4 meldet keine Abkündigung zur Gerätezuordnung mehr.
+- Eine gescheiterte Einrichtung lässt keine offene Verbindung zurück.
 
 ## [1.13.0-beta.5] - 2026-09-30
 

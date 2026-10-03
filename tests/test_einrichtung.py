@@ -286,6 +286,62 @@ async def test_eine_unerreichbare_anlage_meldet_nicht_bereit(hass, eintrag):
     assert AttrappenClient.letzte.geschlossen is True
 
 
+async def test_ein_gescheiterter_erstabruf_schliesst_die_verbindung(hass, eintrag):
+    """Der Erstabruf wirft `ConfigEntryNotReady`; die Sitzung bleibt dabei nicht liegen."""
+    from homeassistant.config_entries import ConfigEntryState
+
+    class OhneWerte(AttrappenClient):
+        async def fetch_all(self, budget: float | None = None) -> dict[str, Any]:
+            raise OSError("Anlage antwortet nicht")
+
+    with patch("custom_components.heatnexus.WindhagerHttpClient", OhneWerte):
+        await hass.config_entries.async_setup(eintrag.entry_id)
+        await hass.async_block_till_done()
+
+    assert eintrag.state is ConfigEntryState.SETUP_RETRY
+    assert AttrappenClient.letzte.geschlossen is True
+
+
+async def test_scheitert_eine_anlage_schliesst_auch_die_andere(hass):
+    """Die erreichbare Anlage eines Eintrags hält ihre Verbindung sonst bis zum Neustart."""
+    from homeassistant.config_entries import ConfigEntryState
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    zwei = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        title="Zwei",
+        data={
+            "name": "Zwei",
+            CONF_SYSTEMS: [
+                {"host": "192.0.2.10", "password": "geheim", "label": "Haus A"},
+                {"host": "192.0.2.11", "password": "geheim", "label": "Haus B"},
+            ],
+        },
+        options={},
+    )
+    zwei.add_to_hass(hass)
+    clients: list[AttrappenClient] = []
+
+    class EineFehlt(AttrappenClient):
+        def __init__(self, **kwargs: Any) -> None:
+            super().__init__(**kwargs)
+            clients.append(self)
+
+        async def async_init_basic(self) -> None:
+            if self.host == "192.0.2.11":
+                raise OSError("Netzwerk nicht erreichbar")
+
+    with patch("custom_components.heatnexus.WindhagerHttpClient", EineFehlt):
+        await hass.config_entries.async_setup(zwei.entry_id)
+        await hass.async_block_till_done()
+
+    assert zwei.state is ConfigEntryState.SETUP_RETRY
+    assert [c.geschlossen for c in clients] == [True, True]
+    # Die geplante Wiederholung liefe sonst nach dem Test mit dem echten Client.
+    await hass.config_entries.async_unload(zwei.entry_id)
+
+
 async def test_eine_zeitueberschreitung_beim_verbinden_gilt_als_nicht_bereit(hass, eintrag):
     """Der Erstabruf hat ein eigenes, großzügiges Zeitfenster – reißt es, ist Schluss."""
     from homeassistant.config_entries import ConfigEntryState

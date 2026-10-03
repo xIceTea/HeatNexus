@@ -339,7 +339,11 @@ async def _anlage_vorbereiten(
         hass, client, entry, host, label, scope["update_interval"]
     )
     await _vorabstand_setzen(entry, client, coordinator, host)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except BaseException:
+        await client.close()
+        raise
     return _Anlage(
         host, label, coordinator, client, store, fingerprint, cache_key, restored, abgleichen
     )
@@ -430,9 +434,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _heizungsanlage_anmelden(hass, registry, entry, hub_name)
 
     begonnen = monotonic()
-    anlagen = await asyncio.gather(
-        *(_anlage_vorbereiten(hass, entry, s, mem_cache, version) for s in systeme)
+    ergebnisse = await asyncio.gather(
+        *(_anlage_vorbereiten(hass, entry, s, mem_cache, version) for s in systeme),
+        return_exceptions=True,
     )
+    # Scheitert eine Anlage, schließen die übrigen ihre Verbindung, bevor HA es erneut versucht.
+    if fehler := next((e for e in ergebnisse if isinstance(e, BaseException)), None):
+        for anlage in ergebnisse:
+            if isinstance(anlage, _Anlage):
+                await anlage.client.close()
+        raise fehler
+    anlagen = [a for a in ergebnisse if isinstance(a, _Anlage)]
 
     coordinators: dict[str, WindhagerDataUpdateCoordinator] = {}
     nachzuladen: list[_Anlage] = []
