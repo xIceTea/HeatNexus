@@ -27,7 +27,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Schaubild-Karte lädt auch auf einer Seite, die während des Starts geöffnet wurde.
 - Das Stundenraster zeigt bei bedecktem Himmel tagsüber eine Wolke statt eines Monds.
 - BioWIN 2 mit InfoWIN Touch zeigt auch Werte außerhalb der Menü-Ebenen ([#17](https://github.com/xIceTea/HeatNexus/issues/17)).
-- Antwortet eine Menü-Ebene nicht, liest die Erkennung ihre Datenpunkte einzeln ([#17](https://github.com/xIceTea/HeatNexus/issues/17)).
+- Fällt beim Einlesen eine Menü-Ebene aus, fehlen ihre Werte nicht mehr ([#17](https://github.com/xIceTea/HeatNexus/issues/17)).
 - Home Assistant 2026.9.4 meldet keine Abkündigung zur Gerätezuordnung mehr.
 - Eine gescheiterte Einrichtung lässt keine offene Verbindung zurück.
 
