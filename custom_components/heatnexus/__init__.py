@@ -444,7 +444,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if isinstance(anlage, _Anlage):
                 await anlage.client.close()
         raise fehler
-    anlagen = [a for a in ergebnisse if isinstance(a, _Anlage)]
+    anlagen: list[_Anlage] = ergebnisse
 
     coordinators: dict[str, WindhagerDataUpdateCoordinator] = {}
     nachzuladen: list[_Anlage] = []

@@ -95,13 +95,17 @@ def karte_anmelden(hass: HomeAssistant, version: str = "") -> None:
     _LOGGER.debug("Kartenmodul unter %s angemeldet", karte_js_pfad(version))
 
 
-def _ressourcen(hass: HomeAssistant) -> Any:
-    """Die Ressourcen von Lovelace, sofern sie in der Oberfläche gepflegt werden."""
-    daten = hass.data.get("lovelace")
-    ressourcen = getattr(daten, "resources", None)
-    if ressourcen is None and isinstance(daten, dict):
-        ressourcen = daten.get("resources")
-    return ressourcen if hasattr(ressourcen, "async_create_item") else None
+async def _ressourcen(hass: HomeAssistant) -> Any:
+    """Die geladenen Ressourcen von Lovelace, sofern sie in der Oberfläche gepflegt werden."""
+    try:
+        from homeassistant.components.lovelace.const import LOVELACE_DATA
+    except ImportError:  # pragma: no cover
+        return None
+    ressourcen = getattr(hass.data.get(LOVELACE_DATA), "resources", None)
+    if not hasattr(ressourcen, "async_create_item"):
+        return None
+    await ressourcen.async_get_info()
+    return ressourcen
 
 
 def _eigene_ressourcen(ressourcen: Any) -> list[dict[str, Any]]:
@@ -116,10 +120,9 @@ async def karte_als_ressource(hass: HomeAssistant, version: str = "") -> None:
     Zusatzmodule kennt nur eine Seite, die nach dem Start der Integration geladen
     wurde; Ressourcen lädt das Dashboard selbst, auch auf Cast-Geräten.
     """
-    ressourcen = _ressourcen(hass)
+    ressourcen = await _ressourcen(hass)
     if ressourcen is None:
         return
-    await ressourcen.async_get_info()
     adresse = karte_js_pfad(version)
     eigene = _eigene_ressourcen(ressourcen)
     if not eigene:
@@ -134,9 +137,8 @@ async def karte_als_ressource(hass: HomeAssistant, version: str = "") -> None:
 
 async def karte_ressource_entfernen(hass: HomeAssistant) -> None:
     """Die Ressource der Karte entfernen, wenn die Integration geht."""
-    ressourcen = _ressourcen(hass)
+    ressourcen = await _ressourcen(hass)
     if ressourcen is None:
         return
-    await ressourcen.async_get_info()
     for eigene in _eigene_ressourcen(ressourcen):
         await ressourcen.async_delete_item(eigene["id"])

@@ -154,9 +154,10 @@ class AutomatikZustand(AutomatikEntitaet, SensorEntity):
         if laufzeit is None:
             return {}
         kurz = regel.kurz(laufzeit.zustand, laufzeit.gedaechtnis, laufzeit.pausiert_bis)
+        t = woerterbuch(self.hass)
         return {
-            "begruendung": woerterbuch(self.hass).satz(laufzeit.begruendung),
-            "kurz": woerterbuch(self.hass).satz(kurz) if kurz else None,
+            "begruendung": t.satz(laufzeit.begruendung),
+            "kurz": t.satz(kurz) if kurz else None,
             "pausiert_bis": laufzeit.pausiert_bis.isoformat() if laufzeit.pausiert_bis else None,
             "eingriffe_heute": laufzeit.steller.stand.eingriffe,
         }

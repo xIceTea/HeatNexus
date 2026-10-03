@@ -152,9 +152,8 @@ def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
             _LOGGER.debug("Entität %s -> %s", eintrag.entity_id, vorschlag)
         # Ohne Datenpunktnamen oder bei belegtem Ziel ist die Kennung noch unfertig.
         if eintrag.original_name and (vorschlag == eintrag.entity_id or not belegt):
-            kennung = registry.async_get_entity_id(eintrag.domain, DOMAIN, eintrag.unique_id)
             optionen = {**(eintrag.options.get(DOMAIN) or {}), KENNUNG_FEST: True}
-            registry.async_update_entity_options(kennung, DOMAIN, optionen)
+            registry.async_update_entity_options(vorschlag, DOMAIN, optionen)
     return umbenannt
 
 
