@@ -493,26 +493,23 @@ async def test_englische_ableitungen_heissen_englisch(client_module, monkeypatch
     }
 
 
-async def test_franzoesische_ableitungen_heissen_franzoesisch(client_module, monkeypatch):
-    """Zusätze kommen aus der eigenen Sprache, nicht englisch an einen französischen Namen gehängt."""
-    client = client_module.WindhagerHttpClient("192.0.2.1", "secret", sprache="fr")
+async def test_niederlaendische_ableitungen_heissen_niederlaendisch(client_module, monkeypatch):
+    """Zusätze kommen aus der eigenen Sprache, nicht englisch an einen niederländischen Namen gehängt."""
+    client = client_module.WindhagerHttpClient("192.0.2.1", "secret", sprache="nl")
     await _kessel_erkennen(client, monkeypatch)
     quelle = {
         "id": "x-0-2-81-0",
         "oid": "/1/60/0/2/81/0",
-        "name": "Heures de service",
+        "name": "Bedrijfsuren",
         "name_de": "Betriebsstunden",
     }
 
     heute = client._ableitung(quelle, "heute", "zaehler_heute", "heute")
 
-    assert (heute["name"], heute["name_de"]) == (
-        "Heures de service aujourd'hui",
-        "Betriebsstunden heute",
-    )
+    assert (heute["name"], heute["name_de"]) == ("Bedrijfsuren vandaag", "Betriebsstunden heute")
     client._abfragetasten()
     assert {d["name"] for d in client.devices if d.get("type") == "refresh"} == {
-        "Actualiser les valeurs"
+        "Waarden nu opvragen"
     }
 
 

@@ -166,8 +166,8 @@ def test_ein_stand_ohne_sprache_gilt_als_deutsch(erkennungsstand, const):
 
 
 def test_die_gewaehlte_sprache_schlaegt_die_von_home_assistant(erkennungsstand, const):
-    eintrag = _eintrag(const, optionen={const.CONF_SPRACHE: "it"})
-    assert erkennungsstand.umfang_der_anlage(_hass("fr"), eintrag, HOST)["sprache"] == "it"
+    eintrag = _eintrag(const, optionen={const.CONF_SPRACHE: "nl"})
+    assert erkennungsstand.umfang_der_anlage(_hass("fr"), eintrag, HOST)["sprache"] == "nl"
 
 
 def test_automatisch_auf_dieselbe_sprache_aendert_die_kennung_nicht(erkennungsstand, const):
@@ -178,7 +178,7 @@ def test_automatisch_auf_dieselbe_sprache_aendert_die_kennung_nicht(erkennungsst
     )
     ausdruecklich = erkennungsstand.umfang_fingerprint(
         erkennungsstand.umfang_der_anlage(
-            _hass("fr"), _eintrag(const, optionen={const.CONF_SPRACHE: "fr"}), HOST
+            _hass("fr"), _eintrag(const, optionen={const.CONF_SPRACHE: "de"}), HOST
         )
     )
     assert automatisch == ausdruecklich

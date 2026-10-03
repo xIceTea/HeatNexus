@@ -85,7 +85,10 @@ def test_unlesbares_xml_ergibt_leeres_ergebnis(geraetetexte, kaputt):
         ("auto", "es", "de"),
         ("auto", None, "de"),
         # Die ausdrückliche Wahl gilt weiterhin.
-        ("it", "de", "it"),
+        ("nl", "de", "nl"),
+        # Früher wählbar; wer sie gewählt hat, liest die Steuerung englisch.
+        ("it", "de", "en"),
+        ("fr", None, "en"),
         ("en", "de", "en"),
         ("klingonisch", "fr", "de"),
     ],

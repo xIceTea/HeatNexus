@@ -144,8 +144,6 @@ SPRACHE_BESCHRIFTUNG: dict[str, str] = {
     "auto": "Automatisch",
     "de": "Deutsch",
     "en": "Englisch",
-    "fr": "Französisch",
-    "it": "Italienisch",
     "nl": "Niederländisch",
 }
 # Art des Wärmeerzeugers. Wirkt **nur auf die Zeichnung im Schaubild** – keine

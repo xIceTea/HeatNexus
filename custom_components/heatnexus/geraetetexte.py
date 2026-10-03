@@ -18,7 +18,9 @@ from xml.etree import ElementTree as ET
 
 _LOGGER = logging.getLogger(__name__)
 
-SPRACHEN = ("de", "en", "fr", "it", "nl")
+SPRACHEN = ("de", "en", "nl")
+# Früher wählbar, ohne vollständige Übersetzung; wer sie gewählt hat, liest Englisch.
+ENTFALLEN = frozenset({"fr", "it"})
 SPRACHE_AUTO = "auto"
 
 
@@ -155,6 +157,8 @@ def sprache_aufloesen(gewaehlt: str | None, ha_sprache: str | None) -> str:
     deshalb nicht ausgewertet und bleibt für den Tag, an dem jeder Datenpunkt
     der Muster einen kanonischen Schlüssel trägt.
     """
+    if gewaehlt in ENTFALLEN:
+        return "en"
     if gewaehlt and gewaehlt != SPRACHE_AUTO:
         return gewaehlt if gewaehlt in SPRACHEN else "de"
     return "de"

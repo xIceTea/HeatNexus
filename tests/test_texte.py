@@ -62,13 +62,13 @@ def test_unbekannte_sprache_faellt_auf_englisch(texte):
 
 
 def test_eigene_sprache_liegt_ueber_dem_englischen(texte):
-    """Französisch nimmt seine eigenen Einträge, für alles andere gilt Englisch."""
-    franzoesisch = texte.Woerterbuch("fr")
-    assert franzoesisch("heute") == "aujourd'hui"
-    assert franzoesisch("Übersicht") == "Overview"
+    """Niederländisch nimmt seine eigenen Einträge, für Fehlendes gilt Englisch."""
+    niederlaendisch = texte.Woerterbuch("nl")
+    assert niederlaendisch("heute") == "vandaag"
+    assert texte.Woerterbuch("fr")("heute") == "today"
 
 
-@pytest.mark.parametrize("sprache", ["fr", "it", "nl"])
+@pytest.mark.parametrize("sprache", ["nl"])
 def test_namenszusaetze_gibt_es_in_jeder_sprache_der_datenpunkte(sprache):
     """Diese Texte setzt HeatNexus selbst in Namen; ohne eigene Fassung entstünden Mischnamen."""
     englisch = json.loads((ORDNER / "en.json").read_text(encoding="utf-8"))
@@ -482,7 +482,7 @@ def test_platzhalter_in_uebersetzungen_sind_bezeichner():
 
 @pytest.mark.parametrize(
     ("sprache", "erwartet"),
-    [("de", "Aktiv"), ("en", "Active"), ("nl", "Actief"), ("fr", "Actif")],
+    [("de", "Aktiv"), ("en", "Active"), ("nl", "Actief")],
 )
 def test_automatik_status_bereit_heisst_aktiv(sprache, erwartet):
     """Der Zustand `bereit` bleibt als Schlüssel bestehen und wird als „Aktiv“ angezeigt."""
