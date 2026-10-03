@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections import deque
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 import logging
 from typing import Any
 
@@ -711,6 +711,15 @@ class Laufzeit(QuellenMixin):
         self._weg_seit = self._weg_seit or jetzt
         return jetzt - self._weg_seit >= ABWESEND_NACH
 
+    def _stundenwerte(self, jetzt: datetime) -> list[tuple[datetime, float | None]]:
+        """Korrigierte Stundenprognose von heute und morgen, mit Zeitpunkt."""
+        werte = []
+        for tag in (jetzt.date(), jetzt.date() + timedelta(days=1)):
+            for stunde, prognose in self.stundenprognose(tag).items():
+                zeit = datetime.combine(tag, time(stunde), jetzt.tzinfo)
+                werte.append((zeit, prognose["korrigiert"]))
+        return werte
+
     def _lage(self, jetzt: datetime, entscheidungszeit: bool) -> regel.Lage:
         messungen = self._messungen()
         if any(m.heizt for m in messungen):
@@ -738,6 +747,7 @@ class Laufzeit(QuellenMixin):
             sonnenquote=self.sonnenquote(jetzt.date(), self.konfig.get("pv")),
             mittel_heute=self.tagesmittel(jetzt.date()),
             mittel_morgen=self.tagesmittel(jetzt.date() + timedelta(days=1)),
+            minimum_bis_morgen=eingaben.minimum_bis_morgen(self._stundenwerte(jetzt), jetzt),
             sonnenuntergang=untergang,
             betriebswahl=_ganzzahl(self._wert("/3/50/0")),
             betriebsart=_ganzzahl(self._wert("/2/9/0")),

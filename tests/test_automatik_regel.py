@@ -120,20 +120,37 @@ def test_ohne_raumwert_keine_entscheidung(m, w):
 
 # --- Saison ------------------------------------------------------------------
 def test_warme_gedaempfte_at_schaltet_nur_ww(m, w):
-    e = m.entscheiden(lage(m, at_gedaempft=18.2, mittel_heute=None), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, at=17.5, at_gedaempft=18.2, mittel_heute=None), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.NUR_WW
     assert [a.art for a in e.aktionen] == ["nur_ww"]
     assert e.gedaechtnis.saison_soll == 21.0
 
 
 def test_milde_prognose_schaltet_nur_ww(m, w):
-    e = m.entscheiden(lage(m, mittel_heute=17.5, mittel_morgen=17.0), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, at=17.5, mittel_heute=17.5, mittel_morgen=17.0), m.Gedaechtnis(), w)
     assert [a.art for a in e.aktionen] == ["nur_ww"]
 
 
+def test_kalte_nacht_in_der_prognose_verhindert_nur_ww(m, w):
+    stand = lage(m, at=17.5, mittel_heute=17.5, mittel_morgen=17.0, minimum_bis_morgen=13.7)
+    assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
+
+
+def test_warme_nacht_in_der_prognose_erlaubt_nur_ww(m, w):
+    stand = lage(m, at=17.5, mittel_heute=17.5, mittel_morgen=17.0, minimum_bis_morgen=16.2)
+    assert [a.art for a in m.entscheiden(stand, m.Gedaechtnis(), w).aktionen] == ["nur_ww"]
+
+
+def test_kalte_luft_jetzt_verhindert_nur_ww_trotz_gedaempfter_at(m, w):
+    stand = lage(m, at=14.0, at_gedaempft=18.2, mittel_heute=None)
+    assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
+
+
 def test_nur_ww_merkt_seinen_grund(m, w):
-    warm = m.entscheiden(lage(m, at_gedaempft=18.2, mittel_heute=None), m.Gedaechtnis(), w)
-    mild = m.entscheiden(lage(m, mittel_heute=17.5, mittel_morgen=17.0), m.Gedaechtnis(), w)
+    warm = m.entscheiden(lage(m, at=17.5, at_gedaempft=18.2, mittel_heute=None), m.Gedaechtnis(), w)
+    mild = m.entscheiden(
+        lage(m, at=17.5, mittel_heute=17.5, mittel_morgen=17.0), m.Gedaechtnis(), w
+    )
     assert (warm.gedaechtnis.saison_grund, mild.gedaechtnis.saison_grund) == (
         "gedaempft",
         "prognose",
@@ -352,7 +369,7 @@ def test_kaputtes_gedaechtnis_wird_leer(m):
 
 
 def test_wechsel_auf_nur_ww_beendet_laufende_absenkung(m, w):
-    warm = lage(m, jetzt=MORGEN + timedelta(hours=1), at_gedaempft=18.5, betriebswahl=3)
+    warm = lage(m, at=17.5, jetzt=MORGEN + timedelta(hours=1), at_gedaempft=18.5, betriebswahl=3)
     e = m.entscheiden(warm, sonnentag(m), w)
     assert e.zustand == m.Zustand.NUR_WW
     assert [a.art for a in e.aktionen] == ["absenkung_ende", "nur_ww"]
@@ -409,7 +426,7 @@ def test_waermeanforderung_verhindert_nur_ww(m, w):
 
 
 def test_ruhige_raeume_erlauben_nur_ww(m, w):
-    e = m.entscheiden(lage(m, at_gedaempft=18.5, ruhig=True), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, at=17.5, at_gedaempft=18.5, ruhig=True), m.Gedaechtnis(), w)
     assert [a.art for a in e.aktionen] == ["nur_ww"]
 
 
@@ -496,7 +513,7 @@ def test_vor_vier_stunden_zaehlt_fehlende_waerme_nicht(m, w):
 
 # --- Ausgeschaltete Thermostate -----------------------------------------------
 def test_ausgeschaltete_raeume_sind_kein_fehlender_messwert(m, w):
-    stand = lage(m, at_gedaempft=18.5, raeume=(), aus=(19.0, 18.5))
+    stand = lage(m, at=17.5, at_gedaempft=18.5, raeume=(), aus=(19.0, 18.5))
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.NUR_WW
     assert stand.raum == 18.75
@@ -521,7 +538,7 @@ def test_hohe_heizgrenze_der_steuerung_haelt_den_heizkreis_im_programm(m, w):
 
 
 def test_niedrige_heizgrenze_der_steuerung_erlaubt_nur_ww(m, w):
-    stand = lage(m, mittel_heute=19.0, mittel_morgen=19.0, grenze_steuerung=18.0)
+    stand = lage(m, at=17.5, mittel_heute=19.0, mittel_morgen=19.0, grenze_steuerung=18.0)
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert [a.art for a in e.aktionen] == ["nur_ww"]
     assert "18,0 °C" in e.begruendung
@@ -539,7 +556,7 @@ def test_unplausible_heizgrenze_gilt_als_fehlend(m, w, wert):
 
 def test_versatz_der_ausrichtung_verschiebt_die_heizgrenze(m, w):
     eco = replace(w, grenze_versatz=-2.0)
-    stand = lage(m, mittel_heute=16.5, mittel_morgen=16.5, grenze_steuerung=18.0)
+    stand = lage(m, at=17.5, mittel_heute=16.5, mittel_morgen=16.5, grenze_steuerung=18.0)
     assert m.grenze(stand, eco) == 16.0
     assert [a.art for a in m.entscheiden(stand, m.Gedaechtnis(), eco).aktionen] == ["nur_ww"]
 

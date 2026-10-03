@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 import math
 from typing import Any, NamedTuple
 
@@ -163,6 +163,21 @@ def tagesmittel(tage: list[tuple[date, float | None, float | None]], tag: date) 
             continue
         return hoch if tief is None else (hoch + tief) / 2
     return None
+
+
+# Bis zu dieser Stunde reicht die Nacht, die ein Wechsel auf nur Warmwasser überstehen muss.
+MORGEN_STUNDE = 9
+
+
+def minimum_bis_morgen(
+    stunden: Iterable[tuple[datetime, float | None]], jetzt: datetime
+) -> float | None:
+    """Tiefster Prognosewert von der laufenden Stunde bis zum nächsten Morgen."""
+    tag = jetzt.date() + timedelta(days=1 if jetzt.hour >= MORGEN_STUNDE else 0)
+    ende = datetime.combine(tag, time(MORGEN_STUNDE), jetzt.tzinfo)
+    beginn = jetzt.replace(minute=0, second=0, microsecond=0)
+    werte = [wert for zeit, wert in stunden if wert is not None and beginn <= zeit <= ende]
+    return min(werte) if werte else None
 
 
 def temperatursturz(

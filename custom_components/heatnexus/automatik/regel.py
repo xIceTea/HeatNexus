@@ -81,6 +81,8 @@ class Lage:
     sonnenquote: float | None = None
     mittel_heute: float | None = None
     mittel_morgen: float | None = None
+    # Tiefster Prognosewert bis zum nächsten Morgen; fällt er unter die Einschaltschwelle, kein nur Warmwasser.
+    minimum_bis_morgen: float | None = None
     sonnenuntergang: datetime | None = None
     betriebswahl: int | None = None
     betriebsart: int | None = None
@@ -344,6 +346,10 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
     if abweichung(lage, soll) < -SAISON_RAUM_K:
         return None
     schwelle = grenze(lage, w)
+    # Wo die Steuerung jetzt oder in der Nacht wieder heizen will, hielte nur Warmwasser nicht bis morgen.
+    unten = schwelle - w.hysterese
+    if any(wert is not None and wert < unten for wert in (lage.at, lage.minimum_bis_morgen)):
+        return None
     warm = lage.at_gedaempft is not None and lage.at_gedaempft > schwelle + w.hysterese
     mild = (
         lage.mittel_heute is not None

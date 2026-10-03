@@ -161,3 +161,19 @@ def test_lauf_uebersteht_den_store(eingaben):
 )
 def test_heizgrenze_der_steuerung_mit_hysterese(eingaben, at, vorher, erwartet):
     assert eingaben.heizgrenze_halten(at, 18.0, vorher) is erwartet
+
+
+def test_minimum_bis_morgen_reicht_bis_neun_uhr(eingaben):
+    abend = datetime(2026, 10, 2, 17, 0, tzinfo=UTC)
+    stunden = [
+        (abend - timedelta(hours=2), 5.0),
+        (abend, 18.0),
+        (datetime(2026, 10, 3, 5, 0, tzinfo=UTC), 13.7),
+        (datetime(2026, 10, 3, 10, 0, tzinfo=UTC), 2.0),
+    ]
+    assert eingaben.minimum_bis_morgen(stunden, abend) == 13.7
+
+
+def test_minimum_bis_morgen_ohne_werte(eingaben):
+    jetzt = datetime(2026, 10, 3, 2, 0, tzinfo=UTC)
+    assert eingaben.minimum_bis_morgen([(jetzt, None)], jetzt) is None
