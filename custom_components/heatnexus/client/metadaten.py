@@ -112,6 +112,9 @@ class MetadatenMixin:
                     # Zirkulationszeiten stellt man ein, um sie danach
                     # anzusehen.
                     d["enabled_default"] = self.zeitwerte
+            if m and not self._schreibwerte_angeboten(d, m):
+                _LOGGER.debug("%s (%s) entfällt: Wert vom Gerät nicht angeboten", d["name"], oid)
+                continue
             if m:
                 # Text aus dem object-Endpunkt, gleich ob der Typ aus der
                 # kuratierten Tabelle oder aus den Metadaten stammt. Die Marke
@@ -248,6 +251,21 @@ class MetadatenMixin:
             if status == 200 and isinstance(data, dict) and data.get("typeId") == 30:
                 meta[oid] = data
                 missing.discard(oid)
+
+    @staticmethod
+    def _schreibwerte_angeboten(d: dict, m: dict) -> bool:
+        """Ob das Gerät jeden festen Wert anbietet, den eine Taste oder ein Schalter schreibt."""
+        if d["type"] == "button":
+            werte = [d.get("press_value")]
+        elif d["type"] == "switch":
+            werte = [d.get("ein_wert"), d.get("aus_wert")]
+        else:
+            return True
+        try:
+            angeboten = {int(v) for v in json.loads(m.get("enum") or "[]")}
+        except (ValueError, TypeError):
+            return True
+        return not angeboten or all(int(w) in angeboten for w in werte if w not in (None, ""))
 
     def _neustart_markieren(self) -> None:
         """Einstellungen markieren, deren Änderung die Steuerung neu startet."""

@@ -20,6 +20,7 @@ wenn dort Vorabversionen zugelassen sind.
 - „Warmwasser laden“ erkennt eine laufende Einmalladung auch während Eco / Comfort.
 - „Warmwasser laden“ liest Betriebsart und Ladepumpe nur aus dem Heizkreis der Ladung.
 - An der DuoWIN erscheint die Taste „Warmwasser laden“.
+- Quittungstasten erscheinen nur für Arbeiten, die die Steuerung anbietet.
 
 ## [1.13.0] - 2026-10-03
 
