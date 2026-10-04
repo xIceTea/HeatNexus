@@ -250,8 +250,8 @@ WARMWASSER_SOLL = namensmuster(r"\bww[- ]temperatur sollwert", r"\bwarmwasser so
 # Die ehrliche Rückmeldung der Einmalladung.
 #
 # Die Anlage trennt sauber zwischen dreierlei:
-#   2/16 „Freigabe starten"  Nein/Ja – ein Auslöser, kein Zustand. Er fällt
-#                            zurück, sobald der Auftrag angenommen ist.
+#   2/16 „Freigabe starten"  Nein/Ja – bleibt auf Ja, solange die Ladung
+#                            läuft.
 #   3/50 „Betriebswahl"      die dauerhafte Wahl (Standby, Programm 1–3,
 #                            Heizbetrieb, Absenkbetrieb, WW-Betrieb …).
 #   2/9  „Betriebsart"       was die Anlage **gerade tut**. Dort stehen die

@@ -377,13 +377,15 @@ export const UebersichtMixin = (Basis) =>
     // und Serviceausbrand, an einem reinen Heizkreis bleibt „Warmwasser laden"
     // allein übrig. Im zweispaltigen Raster stand sie dann als halbe Kachel
     // neben einem leeren Platz.
-    const tasten = eintraege.filter((eintrag) => eintrag.entity.split(".")[0] !== "select");
+    // Eine Auswahl Nein/Ja mit bekannten Texten ist ein Auslöser und wird Taste.
+    const istAuswahl = (eintrag) => eintrag.entity.split(".")[0] === "select" && !eintrag.ein_option;
+    const tasten = eintraege.filter((eintrag) => !istAuswahl(eintrag));
     const alleinstehend = tasten.length === 1;
 
     eintraege.forEach((roh) => {
       // Gleichnamige Bedienungen verschiedener Anlagenteile tragen ihren Teil.
       const eintrag = roh.anlagenteil ? { ...roh, titel: `${roh.titel} · ${roh.anlagenteil}` } : roh;
-      if (eintrag.entity.split(".")[0] === "select") {
+      if (istAuswahl(eintrag)) {
         const huelle = this._auswahlFeld(eintrag.titel, eintrag.entity, eintrag.hilfe);
         huelle.style.gridColumn = "1 / -1";
         gitter.appendChild(huelle);
@@ -402,27 +404,8 @@ export const UebersichtMixin = (Basis) =>
   _bedientaste(eintrag, breit) {
     const bereich = eintrag.entity.split(".")[0];
     // Manche Bedienungen melden ihren Zustand woanders: Die Warmwasserladung
-    // steht in der Betriebsart, ihr Auslöser fällt sofort zurück.
-    const lautAnlage = () => {
-      // **Die Betriebsart hat das letzte Wort.** Sie sagt, was die Anlage
-      // gerade tut. Die Ladepumpe ist nur ein Indiz: Sie **läuft nach**
-      // (`5/5` „Modus Ladepumpennachlauf") und drehte sich nach einem
-      // beendeten Auftrag noch minutenlang weiter. Solange sie hier vorne
-      // stand, meldete die Taste erneut „läuft", bot ein zweites Mal
-      // Abbrechen an – und der Nutzer brach eine Ladung ab, die es nicht
-      // mehr gab.
-      if (eintrag.zustand_an) {
-        const zustand = this._zustand(eintrag.zustand_an);
-        if (zustand && !OHNE_WERT.includes(String(zustand.state).toLowerCase())) {
-          return (eintrag.zustand_wenn || []).includes(zustand.state);
-        }
-      }
-      // Erst wenn die Betriebsart nichts hergibt, zählt die Pumpe. An einem
-      // Kreis mit nur einem zulässigen Wert (`allowed: [0]`) meldet die
-      // Betriebsart den Ladezustand gar nicht.
-      if (eintrag.zustand_pumpe && this._istAn(eintrag.zustand_pumpe)) return true;
-      return this._istAn(eintrag.entity);
-    };
+    // steht in der Betriebsart oder in ihrer Freigabe.
+    const lautAnlage = () => this._ladungLautAnlage(eintrag, true);
     // Zwischen Druck und Antwort der Anlage liegt ein Abrufabstand. Bis dahin
     // gilt, was gedrückt wurde – sonst sähe es aus, als sei nichts passiert.
     const laeuft = () => {
@@ -545,6 +528,8 @@ export const UebersichtMixin = (Basis) =>
             }
             if (bereich === "button") {
               await this._hass.callService("button", "press", { entity_id: eintrag.entity });
+            } else if (bereich === "select" && eintrag.ein_option) {
+              await this._hass.callService("select", "select_option", { entity_id: eintrag.entity, option: eintrag.ein_option });
             } else {
               await this._hass.callService(
                 "homeassistant",
@@ -554,7 +539,7 @@ export const UebersichtMixin = (Basis) =>
             }
             // Erst hier, nach dem gelungenen Aufruf: Eine abgewiesene
             // Bedienung darf die Taste nicht sperren.
-            if (eintrag.zustand_an) this._ladungAnnehmen(eintrag.entity, true);
+            if (eintrag.zustand_an || eintrag.zustand_wenn) this._ladungAnnehmen(eintrag.entity, true);
           },
           // Bestätigt ist der Auftrag, wenn die Anlage anfängt zu laden.
           // **Ohne die eigene Annahme** – die sagt sonst sofort ja, und die
@@ -573,7 +558,7 @@ export const UebersichtMixin = (Basis) =>
       taste.classList.toggle("an", an);
       // Läuft die Ladung, sagt die Taste, was ein Druck jetzt bewirkt.
       const abbrechbar =
-        an && !!eintrag.titel_abbrechen && !!(eintrag.betriebswahl || bereich === "switch");
+        an && !!eintrag.titel_abbrechen && !!(eintrag.betriebswahl || this._ausloeserAbschaltbar(eintrag));
       beschriftung.textContent = abbrechbar ? eintrag.titel_abbrechen : eintrag.titel;
       taste.classList.toggle("abbrechen", abbrechbar);
       // **Kein zweiter Druck, solange der erste noch unterwegs ist.** Er
@@ -583,7 +568,7 @@ export const UebersichtMixin = (Basis) =>
       // Solange eine Übertragung läuft, gehört die Zeile der Rückmeldung.
       if (rueckmeldung.dataset.belegt === "1") return;
       rueckmeldung.className = "rueckmeldung";
-      rueckmeldung.textContent = eintrag.zustand_an
+      rueckmeldung.textContent = eintrag.zustand_an || eintrag.zustand_wenn
         ? this._t(an ? "läuft" : "bereit")
         : this._tastenZustand(bereich, zustand, an);
     };
@@ -665,10 +650,9 @@ export const UebersichtMixin = (Basis) =>
    * Eine laufende Warmwasserladung beenden.
    *
    * Beendet wird über **beides**: den Auslöser (`2/16`) zurücknehmen und, wenn
-   * bekannt, die Betriebswahl auf den Stand von vor der Ladung stellen. Als
-   * Anzeige taugt der Auslöser nicht – er fällt zurück, sobald die Anlage den
-   * Auftrag angenommen hat –, als Gegenbewegung schon: Er hat die Ladung
-   * gestartet.
+   * bekannt, die Betriebswahl auf den Stand von vor der Ladung stellen. Der
+   * Auslöser hat die Ladung gestartet; ihn zurückzunehmen ist die
+   * Gegenbewegung.
    *
    * Geht es nicht, sagt die Taste warum. Ein stummes Nichts ist hier das
    * Schlimmste – es sieht aus wie eine kaputte Oberfläche und war es bis
@@ -678,8 +662,7 @@ export const UebersichtMixin = (Basis) =>
     // **Der Auslöser wird immer zurückgenommen.** Er hat die Ladung gestartet;
     // ihn auszuschalten ist die unmittelbare Gegenbewegung und kann nichts
     // verstellen.
-    const ausloeser =
-      eintrag.entity && eintrag.entity.startsWith("switch.") ? eintrag.entity : null;
+    const ausloeser = this._ausloeserAbschaltbar(eintrag) ? eintrag.entity : null;
     const ziel = eintrag.betriebswahl ? this._rueckkehrWahl(eintrag) : null;
     const steht = eintrag.betriebswahl ? this._zustand(eintrag.betriebswahl) : null;
     // **Denselben Wert noch einmal zu schreiben ändert an der Anlage nichts.**
@@ -704,7 +687,7 @@ export const UebersichtMixin = (Basis) =>
         rueckmeldung,
         async () => {
           if (ausloeser) {
-            await this._hass.callService("switch", "turn_off", { entity_id: ausloeser });
+            await this._ausloeserAus(eintrag);
           }
           if (wahlWirkt) {
             await this._hass.callService("select", "select_option", {
@@ -721,7 +704,7 @@ export const UebersichtMixin = (Basis) =>
         // Ladepumpennachlauf"), und solange sie läuft, gälte die Ladung als
         // aktiv: Die Rückmeldung hinge auf „wird ausgeführt …", obwohl das
         // Umschalten längst durch ist.
-        () => !this._laedtLautBetriebsart(eintrag)
+        () => !this._ladungLautAnlage(eintrag, false)
       );
       delete this._wahlVorLadung[eintrag.betriebswahl];
       this._nachfassen(eintrag);
@@ -755,9 +738,9 @@ export const UebersichtMixin = (Basis) =>
     for (let versuch = 0; versuch < ABBRUCH_VERSUCHE; versuch++) {
       await new Promise((weiter) => window.setTimeout(weiter, ABBRUCH_PAUSE_MS));
       if (this._abbruchLauf[ausloeser] !== marke || !this._hass) return;
-      if (!this._laedtLautBetriebsart(eintrag)) return;
+      if (!this._ladungLautAnlage(eintrag, false)) return;
       try {
-        await this._hass.callService("switch", "turn_off", { entity_id: ausloeser });
+        await this._ausloeserAus(eintrag);
       } catch (err) {
         console.warn("HeatNexus: Abbruch liess sich nicht wiederholen", err);
         return;
@@ -800,6 +783,46 @@ export const UebersichtMixin = (Basis) =>
    * gerade geladen wird. Für die Bestätigung eines Abbruchs zählt sie
    * gerade nicht.
    */
+  /**
+   * Ob die Anlage eine Ladung meldet: Betriebsart oder Freigabe `2/16`.
+   *
+   * Eine Vorgabe auf Zeit („Eco / Comfort“) verdeckt die Ladung in der Betriebsart;
+   * die Freigabe steht dann weiter auf Ja. Die Ladepumpe läuft nach und zählt nur
+   * ohne Betriebsart.
+   */
+  _ladungLautAnlage(eintrag, mitPumpe) {
+    if (this._laedtLautBetriebsart(eintrag)) return true;
+    if (this._ausloeserAn(eintrag)) return true;
+    if (eintrag.zustand_an) {
+      const zustand = this._zustand(eintrag.zustand_an);
+      if (zustand && !OHNE_WERT.includes(String(zustand.state).toLowerCase())) return false;
+    }
+    if (mitPumpe && eintrag.zustand_pumpe && this._istAn(eintrag.zustand_pumpe)) return true;
+    return this._istAn(eintrag.entity);
+  }
+
+  /** Ein Schalter oder eine Auswahl Nein/Ja lässt sich zurücknehmen. */
+  _ausloeserAbschaltbar(eintrag) {
+    const bereich = (eintrag.entity || "").split(".")[0];
+    return bereich === "switch" || (bereich === "select" && !!eintrag.aus_option);
+  }
+
+  _ausloeserAn(eintrag) {
+    const bereich = (eintrag.entity || "").split(".")[0];
+    if (bereich === "switch") return this._istAn(eintrag.entity);
+    if (bereich !== "select" || !eintrag.ein_option) return false;
+    const zustand = this._zustand(eintrag.entity);
+    return !!zustand && zustand.state === eintrag.ein_option;
+  }
+
+  async _ausloeserAus(eintrag) {
+    if (eintrag.entity.startsWith("select.")) {
+      await this._hass.callService("select", "select_option", { entity_id: eintrag.entity, option: eintrag.aus_option });
+    } else {
+      await this._hass.callService("switch", "turn_off", { entity_id: eintrag.entity });
+    }
+  }
+
   _laedtLautBetriebsart(eintrag) {
     if (!eintrag.zustand_an) return false;
     const zustand = this._zustand(eintrag.zustand_an);

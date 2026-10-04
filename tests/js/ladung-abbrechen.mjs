@@ -388,4 +388,76 @@ const abschaltungen = (gerufen) =>
   faelle.push("bestätigter Abbruch wird nicht nachgesetzt");
 }
 
+// --- Eine Vorgabe auf Zeit verdeckt die Ladung in der Betriebsart ----------
+{
+  const { element, taste, gerufen } = panelBauen({
+    laedt: false,
+    optionen: ["Standby", "Programm 1", "WW-Betrieb"],
+  });
+  element._hass.states[BETRIEBSART].state = "Eco / Comfort";
+  element._hass.states[AUSLOESER].state = "on";
+  element._hass.states[LADEPUMPE].state = "on";
+  taste.ausloesen("click");
+  await abwarten();
+  if (gerufen.some((r) => r.dienst === "turn_on" || r.dienst === "press")) {
+    throw new Error("bei Eco / Comfort wurde die laufende Ladung erneut ausgelöst");
+  }
+  if (!gerufen.some((r) => r.dienst === "turn_off" && r.daten.entity_id === AUSLOESER)) {
+    throw new Error("bei Eco / Comfort bot die Taste keinen Abbruch an");
+  }
+  faelle.push("Freigabe auf Ja bei Eco / Comfort: Taste bricht ab");
+}
+
+// --- Nachlauf der Pumpe ohne Freigabe ist keine Ladung ----------------------
+{
+  const { element, taste, gerufen } = panelBauen({
+    laedt: false,
+    optionen: ["Standby", "Programm 1", "WW-Betrieb"],
+  });
+  element._hass.states[LADEPUMPE].state = "on";
+  element._hass.states[BETRIEBSWAHL].state = "Programm 1";
+  element._hass.states["sensor.ww_ist"] = { entity_id: "sensor.ww_ist", state: "40", attributes: {} };
+  taste.ausloesen("click");
+  await abwarten();
+  if (gerufen.some((r) => r.dienst === "turn_off")) {
+    throw new Error("nachlaufende Pumpe galt als laufende Ladung");
+  }
+  faelle.push("nachlaufende Pumpe ohne Freigabe: keine Ladung");
+}
+
+// --- Auslöser als Auswahl Nein/Ja, ohne Betriebsart -------------------------
+{
+  const AUSWAHL = "select.ww_freigabe";
+  const bauen = (stand) => {
+    const { element, gerufen } = panelBauen({
+      laedt: false,
+      optionen: [],
+      betriebswahl: null,
+      zusatz: { entity: AUSWAHL, zustand_an: null, ein_option: "Ja", aus_option: "Nein" },
+    });
+    element._hass.states[AUSWAHL] = { entity_id: AUSWAHL, state: stand, attributes: {} };
+    return { element, gerufen };
+  };
+  const laufend = bauen("Ja");
+  laufend.element._bedientaste(
+    { entity: AUSWAHL, titel: "Warmwasser laden", titel_abbrechen: "Warmwasser laden abbrechen", zustand_wenn: ["WW-Ladung"], ein_option: "Ja", aus_option: "Nein" },
+    false
+  ).ausloesen("click");
+  await abwarten();
+  const aus = laufend.gerufen.find((r) => r.dienst === "select_option");
+  if (!aus || aus.daten.option !== "Nein") throw new Error("laufende Ladung über Auswahl nicht mit Nein beendet");
+  const ruhend = bauen("Nein");
+  ruhend.element._bedientaste(
+    { entity: AUSWAHL, titel: "Warmwasser laden", titel_abbrechen: "Warmwasser laden abbrechen", zustand_wenn: ["WW-Ladung"], ein_option: "Ja", aus_option: "Nein" },
+    false
+  ).ausloesen("click");
+  await abwarten();
+  const ein = ruhend.gerufen.find((r) => r.dienst === "select_option");
+  if (!ein || ein.daten.option !== "Ja") throw new Error("ruhende Ladung über Auswahl nicht mit Ja gestartet");
+  if (ruhend.gerufen.some((r) => r.dienst === "toggle" || r.dienst === "turn_on")) {
+    throw new Error("Auswahl wurde wie ein Schalter bedient");
+  }
+  faelle.push("Auswahl Nein/Ja: Ja startet, Nein beendet");
+}
+
 console.log(JSON.stringify({ faelle }, null, 1));

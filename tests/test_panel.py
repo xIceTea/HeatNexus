@@ -1377,7 +1377,7 @@ def test_warmwasser_laden_erkennt_englische_betriebswahl():
 
     from custom_components.heatnexus.panel.daten import _warmwasser_bedienung
 
-    bedienung = _warmwasser_bedienung([art, wahl], [wahl])
+    bedienung = _warmwasser_bedienung([art, wahl], [art, wahl])
 
     assert re.search(bedienung["betriebswahl_aus"], "Stand-by", re.IGNORECASE)
     assert not re.search(bedienung["betriebswahl_aus"], "Program 1", re.IGNORECASE)

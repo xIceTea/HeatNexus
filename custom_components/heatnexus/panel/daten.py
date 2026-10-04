@@ -194,6 +194,45 @@ def _wahlmuster(eintrag: dict[str, Any] | None, wert: int, muster: str) -> str:
     return "|".join([*texte, muster])
 
 
+# Funktionstypen, die laut Herstellerdaten `2/16` „Freigabe starten" führen.
+WW_FREIGABE_TYPEN = (2, 14)
+
+
+def _ww_ausloeser(teil: dict[str, Any]) -> dict[str, Any] | None:
+    """Der Auslöser der Einmalladung: am Namen, sonst an der Adresse `2/16`."""
+    treffer = _eintrag(teil["entitaeten"], EINMALLADUNG, ("switch", "button"))
+    if treffer is None and teil.get("fct_type") in WW_FREIGABE_TYPEN:
+        treffer = next(
+            (
+                e
+                for e in teil["entitaeten"]
+                if e.get("adresse") == "2/16" and e["bereich"] in ("switch", "select")
+            ),
+            None,
+        )
+    return treffer
+
+
+def _ww_ladetemperatur(entitaeten: list[dict[str, Any]], fct_type: Any) -> str | None:
+    """Die Temperatur der Einmalladung: am Namen, sonst an der Adresse `5/51`."""
+    if kennung := _kennung(entitaeten, EINMALLADUNG_TEMPERATUR, ("number",)):
+        return kennung
+    if fct_type not in WW_FREIGABE_TYPEN:
+        return None
+    treffer = next(
+        (e for e in entitaeten if e.get("adresse") == "5/51" and e["bereich"] == "number"), None
+    )
+    return treffer["entity_id"] if treffer else None
+
+
+def _ausloeser_optionen(ausloeser: dict[str, Any] | None) -> dict[str, Any]:
+    """Bei einer Auswahl Nein/Ja die Texte für Starten und Beenden."""
+    if not ausloeser or ausloeser["bereich"] != "select":
+        return {}
+    ja, nein = _optionstexte(ausloeser, 1), _optionstexte(ausloeser, 0)
+    return {"ein_option": ja[0], "aus_option": nein[0]} if ja and nein else {}
+
+
 def _warmwasser_bedienung(
     alle: list[dict[str, Any]], kreis: list[dict[str, Any]]
 ) -> dict[str, Any]:
@@ -206,13 +245,14 @@ def _warmwasser_bedienung(
 
     Die Anlage trennt dabei dreierlei:
 
-    * ``2/16`` „Freigabe starten" – ein Auslöser. Er fällt zurück, sobald der
-      Auftrag angenommen ist, und taugt deshalb nicht als Anzeige.
+    * ``2/16`` „Freigabe starten" – Nein/Ja. Er bleibt auf Ja, solange die
+      Ladung läuft, auch wenn eine Vorgabe auf Zeit die Betriebsart belegt.
     * ``3/50`` „Betriebswahl" – die dauerhafte Wahl.
     * ``2/9``  „Betriebsart" – was gerade läuft. Dort steht „Warmwasser
       Einmalladung", und dort steht auch „Urlaubsprogramm".
     """
-    art = _eintrag(alle, BETRIEBSART, ("sensor",), "operating_mode")
+    # Zustand nur aus dem Teil des Auslösers: Kessel und Puffer führen eine eigene „Betriebsart".
+    art = _eintrag(kreis, BETRIEBSART, ("sensor",), "operating_mode")
     wahl = _eintrag(kreis, BETRIEBSWAHL, ("select",), "mode_selection")
     laedt = _optionstexte(art, *WARMWASSER_LAEDT_WERTE)
     return {
@@ -223,7 +263,7 @@ def _warmwasser_bedienung(
         # an einem Kreis mit nur einem zulässigen Wert (`allowed: [0]`) meldet
         # sie den Ladezustand gar nicht.
         "zustand_pumpe": _kennung(
-            alle, WARMWASSER_LADEPUMPE, ("binary_sensor",), "dhw_charge_pump"
+            kreis, WARMWASSER_LADEPUMPE, ("binary_sensor",), "dhw_charge_pump"
         ),
         # Die Betriebswahl gehört zur Ladung dazu: Auf Standby ist der Kreis
         # abgeschaltet und nimmt den Auftrag nicht an, im Urlaubsprogramm
@@ -239,7 +279,9 @@ def _warmwasser_bedienung(
         # Betriebswahl-Eintrags.
         "zustand_urlaub": BETRIEBSART_URLAUB,
         "titel_abbrechen": "Warmwasser laden abbrechen",
-        **_ladeschwelle(alle),
+        **_ladeschwelle(
+            kreis if _erster(kreis, WARMWASSER_IST_KENNWERT, "dhw_temperature") else alle
+        ),
     }
 
 
@@ -359,22 +401,28 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
             ),
             alle,
         )
-        laden = _kennung(alle, EINMALLADUNG, ("switch", "button"))
+        # Die Ladung gehört zum Teil, der ihren Auslöser führt; dort stehen Betriebsart und Pumpe.
+        ww_teil, ausloeser = next(
+            ((t, a) for t in anlage["teile"] if (a := _ww_ausloeser(t)) is not None), (None, None)
+        )
+        laden = ausloeser["entity_id"] if ausloeser else None
+        if ww_teil is not None:
+            kreis = ww_teil["entitaeten"]
         warmwasser = {
             "ist": ist["entity_id"] if ist else None,
             "soll": _kennung(alle, WARMWASSER_SOLL),
             "laden": laden,
             # Die Temperatur der Einmalladung ist an der Anlage Teil derselben
             # Bedienung; ohne sie lädt man auf einen Wert, den man nicht sieht.
-            "laden_temperatur": _kennung(alle, EINMALLADUNG_TEMPERATUR, ("number",)),
+            "laden_temperatur": _ww_ladetemperatur(kreis, (ww_teil or {}).get("fct_type")),
             # Die Einschalthysterese: wie weit die Temperatur unter den
             # Sollwert fallen darf, bevor nachgeladen wird. Sie entscheidet
             # mit, ob ein Ladeauftrag überhaupt angenommen wird – deshalb
             # gehört sie neben die Taste und nicht in die Serviceebene.
-            "hysterese": _kennung(alle, WARMWASSER_HYSTERESE_MUSTER, ("number",)),
+            "hysterese": _kennung(kreis, WARMWASSER_HYSTERESE_MUSTER, ("number",)),
             # Was die Anlage gerade tut – daran hängt die Rückmeldung.
-            "betriebsart": _kennung(alle, BETRIEBSART, ("sensor",)),
-            "programm": _kennung(alle, namensmuster(r"ww[- ].*programm"), ("sensor",)),
+            "betriebsart": _kennung(kreis, BETRIEBSART, ("sensor",), "operating_mode"),
+            "programm": _kennung(kreis, namensmuster(r"ww[- ].*programm"), ("sensor",)),
             # **Dieselbe Taste wie in der Übersicht.** Beschreibung, Ladeschwelle
             # und Abbruch kommen aus einer Quelle; die Ansicht baut daraus nur
             # noch die Schaltfläche.
@@ -386,6 +434,7 @@ def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                     "frage": rueckfrage("WW Einmalladung"),
                     "hilfe": hilfe("Einmalladung"),
                     **_warmwasser_bedienung(alle, kreis),
+                    **_ausloeser_optionen(ausloeser),
                 }
                 if laden
                 else None
@@ -863,12 +912,15 @@ def _anlage_daten(
         for muster, beschriftung, symbol, schluessel in SCHNELLZUGRIFF:
             if not hat_warmwasser and _passt(beschriftung, WARMWASSER):
                 continue
-            treffer = _eintrag(
-                teil["entitaeten"],
-                namensmuster(muster),
-                ("switch", "button", "select"),
-                *schluessel,
-            )
+            if _passt(beschriftung, WARMWASSER):
+                treffer = _ww_ausloeser(teil)
+            else:
+                treffer = _eintrag(
+                    teil["entitaeten"],
+                    namensmuster(muster),
+                    ("switch", "button", "select"),
+                    *schluessel,
+                )
             if treffer is not None:
                 eintrag = {
                     "entity": treffer["entity_id"],
@@ -879,6 +931,7 @@ def _anlage_daten(
                 }
                 if _passt(beschriftung, WARMWASSER):
                     eintrag.update(_warmwasser_bedienung(alle, teil["entitaeten"]))
+                    eintrag.update(_ausloeser_optionen(treffer))
                 if _passt(mustername(treffer), KAMINKEHRER):
                     eintrag.update(_kaminkehrer_bedienung(teil["entitaeten"]))
                 eintrag["anlagenteil"] = teil["name"]

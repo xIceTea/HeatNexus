@@ -44,8 +44,8 @@ samt „abbrechen" — ein von Hand verschobener Sollwert überstimmt das
 Zeitprogramm nur auf Zeit. Und die Warmwasserkarte zeigt eine **laufende
 Einmalladung**: Die Betriebsart meldet „Warmwasser Einmalladung", die Taste
 heißt so lange „Warmwasser laden abbrechen". Erkannt wird das an der
-Betriebsart, nicht am Auslöser — der fällt zurück, sobald die Anlage den
-Auftrag angenommen hat.
+Betriebsart oder an der Freigabe der Einmalladung. Die Freigabe steht bis zum
+Ende der Ladung auf Ja, auch wenn eine Vorgabe auf Zeit die Betriebsart belegt.
 
 **Automatik.** Ein Sonnentag im Winter: Die Automatik hat um 07:00 die
 Sonnenquote geprüft und den Sollwert bis zum Nachmittag abgesenkt. Die Kacheln

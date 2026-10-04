@@ -465,6 +465,16 @@ def test_ohne_rueckkehrpunkt_bleibt_der_ausloeser_nicht_stehen(abbruch):
     assert "Betriebswahl ohne Zustand: nur der Auslöser, kein zweiter Start" in abbruch["faelle"]
 
 
+def test_eine_vorgabe_auf_zeit_verdeckt_die_ladung_nicht(abbruch):
+    """Die Betriebsart zeigt „Eco / Comfort“; die Freigabe belegt die Ladung."""
+    assert "Freigabe auf Ja bei Eco / Comfort: Taste bricht ab" in abbruch["faelle"]
+    assert "nachlaufende Pumpe ohne Freigabe: keine Ladung" in abbruch["faelle"]
+
+
+def test_eine_auswahl_nein_ja_startet_und_beendet_die_ladung(abbruch):
+    assert "Auswahl Nein/Ja: Ja startet, Nein beendet" in abbruch["faelle"]
+
+
 def test_ohne_laufende_ladung_loest_die_taste_aus(abbruch):
     """Die Gegenprobe – sonst ließe sich gar nicht mehr laden."""
     assert "ruhende Anlage: Ladung wird ausgelöst" in abbruch["faelle"]
