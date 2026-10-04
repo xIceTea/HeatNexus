@@ -14,6 +14,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Am Handy bleiben die Werte im Tagesverlauf nach einem Tipp sichtbar.
 - Langes Drücken im Tagesverlauf markiert am Handy keinen Text.
 - Umbenannte Entitäts-IDs gelten auch in Automatik, Wärmequellen und Außentemperatur.
+- Eine nur teilweise angenommene Umschaltung der Automatik gilt nicht als Handeingriff.
 
 ## [1.13.0] - 2026-10-03
 

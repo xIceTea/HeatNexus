@@ -189,6 +189,23 @@ def ohne_absenkung(g: Gedaechtnis) -> Gedaechtnis:
     )
 
 
+def nach_teilerfolg(g: Gedaechtnis, erledigt: tuple[Aktion, ...], jetzt: datetime) -> Gedaechtnis:
+    """Das Gedächtnis, wenn nur die ersten Aktionen einer Entscheidung angenommen wurden."""
+    for aktion in erledigt:
+        if aktion.art == "absenkung_ende":
+            g = ohne_absenkung(g)
+        elif aktion.art == "zurueck":
+            g = replace(
+                g,
+                saison=HEIZEN,
+                saison_seit=jetzt,
+                saison_soll=None,
+                saison_grund=None,
+                stark_bis=None,
+            )
+    return g
+
+
 def absenkung_laeuft(g: Gedaechtnis, jetzt: datetime) -> bool:
     """Ob eine eigene Absenkung an der Steuerung noch aktiv sein muss."""
     return g.absenkung_art is not None and g.absenkung_bis is not None and g.absenkung_bis > jetzt

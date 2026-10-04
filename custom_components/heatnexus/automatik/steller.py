@@ -110,6 +110,8 @@ class Steller:
         self._angeboten = tuple(angeboten)
         self._schreiben = schreiben
         self.stand = stand or Stand()
+        # Die Aktionen des letzten Schreibversuchs, die vollständig angenommen wurden.
+        self.erledigt: tuple[Aktion, ...] = ()
 
     @property
     def angeboten(self) -> tuple[int, ...]:
@@ -153,6 +155,7 @@ class Steller:
         erzwingen: bool = False,
     ) -> bool:
         """Schreibt die Aktionen; `True`, wenn alles angenommen oder nur beobachtet wurde."""
+        self.erledigt = ()
         self._tag_wechseln(jetzt)
         if not entscheidung.aktionen:
             return True
@@ -171,9 +174,14 @@ class Steller:
             self._budget_vermerken(jetzt, budget, paare)
             return False
         try:
-            for oid, wert in paare:
-                await self._schreiben(f"{self._prefix}{oid}", wert)
+            for aktion in entscheidung.aktionen:
+                for oid, wert in self.schreibvorgaenge(aktion):
+                    await self._schreiben(f"{self._prefix}{oid}", wert)
+                self.erledigt = (*self.erledigt, aktion)
         except Exception as fehler:  # jede Ablehnung gehört ins Protokoll
+            # Was schon angenommen ist, gilt; sonst sähe es beim nächsten Lauf nach einem Handeingriff aus.
+            if self.erledigt:
+                self._merken(self.erledigt, betriebswahl, jetzt, False)
             self._abgelehnt(jetzt, fehler, paare, sicherheit)
             return False
         self.stand = replace(self.stand, ablehnungen=0, gesperrt_bis=None)

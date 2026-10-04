@@ -28,13 +28,14 @@ def s(regel):
 
 
 class Schreiber:
-    def __init__(self, fehler: Exception | None = None):
-        """Merkt sich jeden Aufruf; mit `fehler` lehnt er jeden ab."""
+    def __init__(self, fehler: Exception | None = None, ab: int = 0):
+        """Merkt sich jeden Aufruf; mit `fehler` lehnt er jeden ab dem `ab`-ten ab."""
         self.aufrufe: list[tuple[str, str]] = []
         self.fehler = fehler
+        self.ab = ab
 
     async def __call__(self, oid: str, wert: str) -> None:
-        if self.fehler:
+        if self.fehler and len(self.aufrufe) >= self.ab:
             raise self.fehler
         self.aufrufe.append((oid, wert))
 
@@ -262,3 +263,42 @@ def test_unlesbare_zeiten_im_store_werden_verworfen(s):
     stand = s.Stand.aus_dict({"gesperrt_bis": "kaputt", "zuletzt": "auch kaputt"})
     assert stand.gesperrt_bis is None
     assert stand.zuletzt is None
+
+
+def test_teilweise_angenommen_gilt_nicht_als_handeingriff(s, regel):
+    steller = s.Steller("/1/15/0", UML, Schreiber())
+    ausfuehren(steller, entscheidung(regel, regel.Aktion("nur_ww")))
+    steller._schreiben = Schreiber(RuntimeError("abgelehnt"), ab=1)
+    rueckkehr = entscheidung(
+        regel,
+        regel.Aktion("zurueck", sicherheit=True),
+        regel.Aktion("absenkung_ende", sicherheit=True),
+    )
+
+    assert ausfuehren(steller, rueckkehr, betriebswahl=6) is False
+    assert [a.art for a in steller.erledigt] == ["zurueck"]
+    assert steller.stand.erwartet is None
+    g = regel.nach_teilerfolg(regel.Gedaechtnis(saison=regel.NUR_WW), steller.erledigt, JETZT)
+    assert g.saison == regel.HEIZEN
+    spaeter = JETZT + timedelta(minutes=10)
+    assert (
+        steller.handeingriff(g, jetzt=spaeter, betriebswahl=1, rest_min=None, betriebsart=1) is None
+    )
+
+
+def test_beendete_absenkung_bleibt_beendet_wenn_nur_ww_scheitert(s, regel):
+    steller = s.Steller("/1/15/0", UML, Schreiber(RuntimeError("abgelehnt"), ab=1))
+    g = regel.Gedaechtnis(absenkung_art=regel.SONNE, absenkung_bis=JETZT + timedelta(hours=3))
+    wechsel = entscheidung(regel, regel.Aktion("absenkung_ende"), regel.Aktion("nur_ww"))
+
+    assert ausfuehren(steller, wechsel) is False
+    neu = regel.nach_teilerfolg(g, steller.erledigt, JETZT)
+    assert not regel.absenkung_laeuft(neu, JETZT)
+    assert neu.saison == regel.HEIZEN
+
+
+def test_beobachten_vergisst_den_letzten_teilerfolg(s, regel):
+    steller = s.Steller("/1/15/0", UML, Schreiber(RuntimeError("abgelehnt"), ab=1))
+    ausfuehren(steller, entscheidung(regel, regel.Aktion("absenkung_ende"), regel.Aktion("nur_ww")))
+    ausfuehren(steller, entscheidung(regel, regel.Aktion("nur_ww")), beobachten=True)
+    assert steller.erledigt == ()

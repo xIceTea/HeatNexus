@@ -365,6 +365,8 @@ class Laufzeit(QuellenMixin):
         self._erzwingen = False
         if angenommen:
             self.gedaechtnis = entscheidung.gedaechtnis
+        elif self.steller.erledigt:
+            self.gedaechtnis = regel.nach_teilerfolg(self.gedaechtnis, self.steller.erledigt, jetzt)
         self._sicherheit_pruefen(entscheidung, angenommen)
         self.steller.abgleichen(self.gedaechtnis, jetzt)
         if entscheidungszeit and not entscheidung.aktionen:
@@ -417,6 +419,8 @@ class Laufzeit(QuellenMixin):
                 erzwingen=True,
             ):
                 # Das Gedächtnis bleibt, damit ein Wiedereinschalten den Eingriff kennt.
+                erledigt = self.steller.erledigt
+                self.gedaechtnis = regel.nach_teilerfolg(self.gedaechtnis, erledigt, jetzt)
                 self._meldung(kennung, "automatik_ruecknahme")
                 self._speichern()
                 return
