@@ -43,6 +43,16 @@ UMFAENGE = {
 }
 FAELLE = [(a, u) for a in anlagen() for u in UMFAENGE]
 BEREICHE = ("sensor", "binary_sensor", "switch", "select", "number", "button", "climate", "time")
+# Dienstnamen haben dieselbe Form wie Entitäts-IDs, sind aber keine.
+DIENSTE = {
+    "press",
+    "turn_on",
+    "turn_off",
+    "toggle",
+    "select_option",
+    "set_value",
+    "set_temperature",
+}
 
 
 @pytest.fixture(autouse=True)
@@ -112,6 +122,7 @@ def _entitaeten_in(wert, gefunden: set[str]) -> set[str]:
         and wert.count(".") == 1
         and wert.split(".")[0] in BEREICHE
         and " " not in wert
+        and wert.split(".")[1] not in DIENSTE
     ):
         gefunden.add(wert)
     return gefunden
