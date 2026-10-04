@@ -246,6 +246,7 @@ Derzeit ist das bei keiner nötig.
 | 5 | Inbetriebnahme |
 | 6 | Serviceausbrand |
 | 7 | Lagerraum befüllen |
+| 8 | Festbrennstoff-/Pufferbetrieb |
 
 ### `11/76`
 

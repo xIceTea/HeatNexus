@@ -89,13 +89,28 @@ def _uebernehmen(namen: dict[str, str], quelle: dict) -> None:
             namen[adresse] = text.strip()
 
 
+# Werte, die Geräte melden, die Tabelle aber nicht nennt: Text aus dem gleichbedeutenden Zustand.
+# `9/75 = 8` an BioWIN und LogWIN ist der Festbrennstoff-/Pufferbetrieb, Kesselzustand `2/59 = 2`.
+ENUM_ERGAENZUNG: dict[str, dict[str, tuple[str, str]]] = {"9/75": {"8": ("2/59", "2")}}
+
+
+def sammle_enums(parameter: dict) -> dict[str, dict]:
+    """Enum-Tabellen der Datei samt den Werten aus `ENUM_ERGAENZUNG`."""
+    enums = {k: dict(v) for k, v in parameter.get("enums", {}).items() if isinstance(v, dict)}
+    for adresse, werte in ENUM_ERGAENZUNG.items():
+        for wert, (quelle, quellwert) in werte.items():
+            text = (enums.get(quelle) or {}).get(quellwert)
+            if adresse in enums and wert not in enums[adresse] and text:
+                enums[adresse][wert] = text
+    return enums
+
+
 def sammle_sprache(parameter: dict, geraetetexte: dict[str, str]) -> dict[str, dict]:
     """Namen und Enum-Texte einer Fremdsprache, nach derselben Regel wie Deutsch."""
     namen: dict[str, str] = {}
     _uebernehmen(namen, geraetetexte)
     _uebernehmen(namen, parameter.get("oids", {}))
-    enums = {k: v for k, v in parameter.get("enums", {}).items() if isinstance(v, dict)}
-    return {"names": namen, "enums": enums}
+    return {"names": namen, "enums": sammle_enums(parameter)}
 
 
 def geraetetexte_fuer(deutsch: Path | None, sprache: str) -> Path | None:
@@ -369,7 +384,7 @@ def main() -> int:
 
     texte = parameter.get("emStrIds", {})
     namen = sammle_namen(parameter, oem, args.geraetetexte)
-    enums = {k: v for k, v in parameter.get("enums", {}).items() if isinstance(v, dict)}
+    enums = sammle_enums(parameter)
     ebenen = sammle_ebenen(layer, texte)
     ergaenzt = uebersteuern(ebenen)
     stoerungen = {"de": sammle_stoerungen(texte)}

@@ -1063,7 +1063,8 @@
    "4": "Aktorentest",
    "5": "Inbetriebnahme",
    "6": "Serviceausbrand",
-   "7": "Lagerraum befüllen"
+   "7": "Lagerraum befüllen",
+   "8": "Festbrennstoff-/Pufferbetrieb"
   }
  },
  "layers": {
@@ -9232,7 +9233,8 @@
      "4": "Actuator test",
      "5": "Start-up",
      "6": "Service burn-off",
-     "7": "Fill storage room"
+     "7": "Fill storage room",
+     "8": "Solid fuel/Accumulator mode"
     }
    },
    "names": {
@@ -12206,7 +12208,8 @@
      "4": "Aggregatentest",
      "5": "Inbedrijfname",
      "6": "Service uitbrandcyclus ",
-     "7": "Brandstof vullen"
+     "7": "Brandstof vullen",
+     "8": "Vastebrandstof-/Bufferbedrijf"
     }
    },
    "names": {

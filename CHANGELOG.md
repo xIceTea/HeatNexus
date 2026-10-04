@@ -22,6 +22,7 @@ wenn dort Vorabversionen zugelassen sind.
 - An der DuoWIN erscheint die Taste „Warmwasser laden“.
 - Quittungstasten erscheinen nur für Arbeiten, die die Steuerung anbietet.
 - Die Funktionsliste der BioWIN erzeugt keinen Fehler im Protokoll mehr.
+- Die Betriebswahl von BioWIN und LogWIN nennt den Festbrennstoff-/Pufferbetrieb.
 
 ## [1.13.0] - 2026-10-03
 
