@@ -203,7 +203,9 @@ class WindhagerStringSensor(WindhagerEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        return self.raw_value if self.raw_value is not None else self.letzter_zustand
+        wert = self.raw_value if self.raw_value is not None else self.letzter_zustand
+        # Home Assistant lehnt Zustände über 255 Zeichen ab und protokolliert einen Fehler.
+        return wert if wert is None or len(str(wert)) <= 255 else str(wert)[:254] + "…"
 
 
 class WindhagerPelletSensor(WindhagerEntity, SensorEntity):

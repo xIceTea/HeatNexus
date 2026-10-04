@@ -286,6 +286,9 @@ class MetadatenMixin:
             return "time" if writable else "string_sensor"
         if isinstance(value, str) and _re.fullmatch(r"\d{2}\.\d{2}\.\d{4}", value):
             return "date" if writable else "string_sensor"
+        # Die Funktionsliste (30/10) ist Struktur, kein Wert – auch wo die Baureihe sie mitschickt.
+        if m.get("typeId") == 30 and m.get("subtypeId") == 10:
+            return None
         if m.get("typeId") == 30 and (
             "value" not in m or m.get("subtypeId") == 14 or _herstellerprogramm(d)
         ):
