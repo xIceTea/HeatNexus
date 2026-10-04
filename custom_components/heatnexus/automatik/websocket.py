@@ -140,7 +140,11 @@ def _eintrag(
             ),
             "modus_seit": (s.isoformat() if (s := kennzahlen.modus_seit(laufzeit)) else None),
             "vorrang": (
-                {"laeuft": lage.vorrang_laeuft, "minuten": round(lage.vorrang_minuten or 0)}
+                {
+                    "laeuft": lage.vorrang_laeuft,
+                    "minuten": round(lage.vorrang_minuten or 0),
+                    "entity": _vorrang_entitaet(hass, laufzeit.konfig["vorrang"]),
+                }
                 if lage is not None and laufzeit.konfig["vorrang"]
                 else None
             ),
@@ -154,6 +158,14 @@ def _eintrag(
         entitaeten=_entitaeten(hass, device_id),
     )
     return ergebnis
+
+
+def _vorrang_entitaet(hass: HomeAssistant, quellen: list[str]) -> str:
+    """Die Quelle, die gerade liefert; sonst die erste gewählte."""
+    return next(
+        (q for q in quellen if (zustand := hass.states.get(q)) and zustand.state == "on"),
+        quellen[0],
+    )
 
 
 def _geladene(hass: HomeAssistant) -> list[ConfigEntry]:

@@ -133,7 +133,8 @@ export const KennwerteMixin = (Basis) =>
         skala,
         fuss
       );
-      kachel.title = this._t("Die gedämpfte Außentemperatur entscheidet über nur Warmwasser. Die Steuerung rechnet mit der aktuellen Außentemperatur.");
+      const hinweis = "Die gedämpfte Außentemperatur entscheidet über nur Warmwasser. Die Steuerung rechnet mit der aktuellen Außentemperatur.";
+      kachel.querySelector(".titel").appendChild(this._fragezeichen("Außentemperatur", hinweis));
       this._klickbar(kachel.querySelector(".neben"), (kreis.entitaeten || {}).gedaempft);
       return kachel;
     }
@@ -161,6 +162,8 @@ export const KennwerteMixin = (Basis) =>
       const aus = w.sonnentag === false ? knoten("div", "fuss", this._t("Sonnentag ausgeschaltet")) : null;
       const kachel = this._kachel("sonne", "Sonne heute", `${zahl(k.sonnenquote, 0)} %`, this._t("Sonnenquote"), skala, [aus]);
       this._klickbar(kachel.querySelector(".zahl"), (kreis.entitaeten || {}).sonnenquote);
+      const vorrangZeile = kachel.querySelector(".vorrang-zeile");
+      if (vorrangZeile && k.vorrang) this._klickbar(vorrangZeile, k.vorrang.entity);
       return kachel;
     }
 

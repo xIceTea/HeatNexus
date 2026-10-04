@@ -491,6 +491,7 @@ export const TagesbildMixin = (Basis) =>
         if (klasse) span.className = klasse;
         span.textContent = text;
         zeile.appendChild(span);
+        return span;
       };
       teil("kopf", this._tMit("{zeit} Uhr", { zeit: uhrzeit(stunde) }));
       const gemessen = heute && eintrag.at !== null && eintrag.at !== undefined;
@@ -499,7 +500,11 @@ export const TagesbildMixin = (Basis) =>
       if (eintrag.raum !== null && eintrag.raum !== undefined) teil("", `${this._t("Räume")} ${zahl(eintrag.raum)} °C`);
       const aktion = eintrag.aktion || "programm";
       teil(`modus m-${aktion}`, this._t(AKTIONEN[aktion] || aktion));
-      if (eintrag.vorrang) teil("vorrang", this._t("Vorrangquelle lieferte"));
+      if (eintrag.vorrang) {
+        const laufend = heute && stunde === new Date().getHours();
+        const quelle = ((kreis.kennwerte || {}).vorrang || {}).entity;
+        this._klickbar(teil("vorrang", this._t(laufend ? "Vorrangquelle liefert" : "Vorrangquelle lieferte")), quelle);
+      }
       kasten.appendChild(zeile);
       // Die Protokolleinträge dieser Stunde; Kopf und Messwerte stehen schon in der Zeile.
       stundenKasten(kreis.tag, stunde, heute ? kreis.protokoll : [], (text) => this._t(text))
@@ -537,7 +542,7 @@ export const TagesbildMixin = (Basis) =>
       const legende = document.createElement("div");
       legende.className = "automatik-stundenlegende";
       const hinweis =
-        "Der Balken unter jeder Stunde zeigt, was galt; blasse Stunden sind geplant. Ein Klick auf eine Stunde zeigt ihre Werte und Einträge.";
+        "Der Balken unter jeder Stunde zeigt, was galt; blasse Stunden sind geplant. Die Zahl darunter nennt die Räume im Mittel zu Beginn der Stunde. Ein Tipp auf eine Stunde zeigt ihre Werte und Einträge.";
       legende.title = this._t(hinweis);
       [
         ["m-absenkung", "Sonnentag"],

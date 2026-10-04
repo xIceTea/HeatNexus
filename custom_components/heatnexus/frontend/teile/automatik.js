@@ -335,6 +335,9 @@ export const AutomatikMixin = (Basis) =>
         });
         segment.appendChild(taste);
       });
+      // Am Handy erscheint kein `title`; das „?“ zeigt dieselben Tipps.
+      const tipps = eintraege.filter(([, , tipp]) => tipp).map(([, , tipp]) => this._t(tipp));
+      if (tipps.length) beschriftung.appendChild(this._fragezeichen(titel, tipps.join(". ") + "."));
       gruppe.append(beschriftung, segment);
       return gruppe;
     }

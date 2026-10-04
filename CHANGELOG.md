@@ -15,6 +15,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Langes Drücken im Tagesverlauf markiert am Handy keinen Text.
 - Umbenannte Entitäts-IDs gelten auch in Automatik, Wärmequellen und Außentemperatur.
 - Eine nur teilweise angenommene Umschaltung der Automatik gilt nicht als Handeingriff.
+- Ein Tipp auf die Vorrangquelle im Reiter Automatik öffnet ihren Verlauf.
+- Hinweise im Reiter Automatik stehen am Handy hinter einem Fragezeichen.
 
 ## [1.13.0] - 2026-10-03
 

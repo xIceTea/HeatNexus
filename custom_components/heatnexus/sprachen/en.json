@@ -472,7 +472,7 @@
   "Automatik aktiv": "Automation active",
   "Außen": "Outdoor",
   "Außen lernt noch": "Outdoor: learning",
-  "Der Balken unter jeder Stunde zeigt, was galt; blasse Stunden sind geplant. Ein Klick auf eine Stunde zeigt ihre Werte und Einträge.": "The bar under each hour shows what applied; faded hours are planned. Click an hour to see its values and entries.",
+  "Der Balken unter jeder Stunde zeigt, was galt; blasse Stunden sind geplant. Die Zahl darunter nennt die Räume im Mittel zu Beginn der Stunde. Ein Tipp auf eine Stunde zeigt ihre Werte und Einträge.": "The bar under each hour shows what applied; faded hours are planned. The number below gives the rooms' average at the start of the hour. Tapping an hour shows its values and entries.",
   "Die gedämpfte Außentemperatur entscheidet über nur Warmwasser. Die Steuerung rechnet mit der aktuellen Außentemperatur.": "The damped outdoor temperature decides on hot water only. The controller uses the current outdoor temperature.",
   "Gestern": "Yesterday",
   "Nicht eingerichtet": "Not set up",

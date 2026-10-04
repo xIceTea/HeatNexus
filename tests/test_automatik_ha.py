@@ -998,7 +998,7 @@ async def test_vorrangquelle_zaehlt_ihre_minuten(hass, hass_ws_client, anlage, f
     assert laufzeit.lage.vorrang_laeuft is False
     assert laufzeit.lage.vorrang_minuten == pytest.approx(30)
     kreis = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"][0]
-    assert kreis["kennwerte"]["vorrang"] == {"laeuft": False, "minuten": 30}
+    assert kreis["kennwerte"]["vorrang"] == {"laeuft": False, "minuten": 30, "entity": quelle}
     stunde = next(s for s in kreis["tag"]["stunden"] if s["stunde"] == 8)
     assert stunde["vorrang"] is True
 
