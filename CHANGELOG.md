@@ -13,6 +13,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Automatik zeigt Heizkreise mit Umlaut unter dem Namen aus der Geräteliste.
 - Am Handy bleiben die Werte im Tagesverlauf nach einem Tipp sichtbar.
 - Langes Drücken im Tagesverlauf markiert am Handy keinen Text.
+- Umbenannte Entitäts-IDs gelten auch in Automatik, Wärmequellen und Außentemperatur.
 
 ## [1.13.0] - 2026-10-03
 

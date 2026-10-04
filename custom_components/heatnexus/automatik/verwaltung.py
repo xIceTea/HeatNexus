@@ -240,6 +240,14 @@ class Verwaltung:
             if (eintrag.get("konfig") or {}).get("entry_id") == entry_id
         ]
 
+    def konfigurationen(self) -> list[tuple[str, dict[str, Any]]]:
+        """Heizkreis und Einstellungen jeder gespeicherten Automatik."""
+        return [
+            (device_id, eintrag["konfig"])
+            for device_id, eintrag in self._daten["heizkreise"].items()
+            if isinstance(eintrag, dict) and isinstance(eintrag.get("konfig"), dict)
+        ]
+
     def konfig(self, device_id: str) -> dict[str, Any] | None:
         """Die gespeicherten Einstellungen eines Heizkreises."""
         eintrag = self._daten["heizkreise"].get(device_id)

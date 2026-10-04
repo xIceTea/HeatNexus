@@ -1652,3 +1652,25 @@ def test_gleichnamige_heizkreise_bleiben_im_attribut_getrennt():
             "Anlage B · UMLZ HEIZKREIS (SN3-2-0)",
         ]
     }
+
+
+async def test_umbenannter_raumfuehler_bleibt_in_der_automatik(hass, anlage):
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.verweise import verweise_verfolgen
+
+    verwaltung, _ = anlage
+    verweise_verfolgen(hass)
+    register = er.async_get(hass)
+    fuehler = register.async_get_or_create("sensor", "test", "flur", suggested_object_id="flur")
+    hass.states.async_set(fuehler.entity_id, "20.5", {"device_class": "temperature"})
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {"heizkreis": HEIZKREIS, "raeume": [fuehler.entity_id], "wetter": "weather.home"},
+    )
+
+    register.async_update_entity(fuehler.entity_id, new_entity_id="sensor.stube")
+    await hass.async_block_till_done()
+
+    assert verwaltung.laufzeiten[HEIZKREIS].konfig["raeume"] == ["sensor.stube"]
+    assert verwaltung.konfig(HEIZKREIS)["raeume"] == ["sensor.stube"]

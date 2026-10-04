@@ -81,6 +81,7 @@ from .stilllegung import (
     umfang_verkleinert,
 )
 from .texte import woerterbuch
+from .verweise import verweise_verfolgen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -152,6 +153,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     hass.data.setdefault(DOMAIN, {})
     async_register_rediscover_service(hass)
     async_register_dashboard_export(hass)
+    verweise_verfolgen(hass)
     # Das Kartenmodul steht vor jeder Anlage bereit: Eine Seite, die während der
     # Einrichtung lädt, kennt es sonst nicht. Es hängt nicht am Panel-Schalter.
     integration = await async_get_integration(hass, DOMAIN)
