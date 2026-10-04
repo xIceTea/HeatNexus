@@ -1312,6 +1312,7 @@ export const STIL = `
   }
   .automatik-stunden {
     display: grid; grid-template-columns: repeat(17, minmax(0, 1fr)); gap: 2px; margin-bottom: 12px;
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
   }
   .automatik-stunde {
     text-align: center; font: inherit; font-size: 11px; color: var(--hn-gedaempft); cursor: pointer;
@@ -1363,7 +1364,10 @@ export const STIL = `
     opacity: 1; background: color-mix(in srgb, var(--hn-akzent) 16%, transparent); color: var(--hn-akzent);
   }
   .automatik-stundenkasten .protokoll { font-size: 12px; color: var(--hn-gedaempft); margin-top: 2px; }
-  .automatik-tag-bild { position: relative; touch-action: pan-y; cursor: crosshair; }
+  .automatik-tag-bild {
+    position: relative; touch-action: pan-y; cursor: crosshair;
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  }
   .automatik-tag-bild svg { display: block; width: 100%; height: 190px; }
   .automatik-bildmarke {
     position: absolute; transform: translateY(-110%); font-size: 11px; line-height: 1;

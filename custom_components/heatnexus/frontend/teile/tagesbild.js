@@ -233,11 +233,24 @@ export const TagesbildMixin = (Basis) =>
       linie.hidden = true;
       tipp.hidden = true;
       bild.append(linie, tipp);
+      let offen = null;
+      let gesperrt = false;
+      const verbergen = () => {
+        linie.hidden = true;
+        tipp.hidden = true;
+      };
       const zeigen = (ereignis) => {
         const rahmen = bild.getBoundingClientRect();
-        if (!rahmen.width) return;
+        if (!rahmen.width || (gesperrt && ereignis.type === "pointermove")) return;
         const anteil = Math.max(0, Math.min(1, (ereignis.clientX - rahmen.left) / rahmen.width));
         const stunde = Math.min(23, Math.floor(anteil * 24));
+        // Ein zweiter Tipp auf dieselbe Stunde schließt die Werte, bis der Finger loslässt.
+        if (ereignis.type === "pointerdown" && ereignis.pointerType !== "mouse" && !tipp.hidden && offen === stunde) {
+          verbergen();
+          gesperrt = true;
+          return;
+        }
+        offen = stunde;
         linie.style.left = `${((stunde + 0.5) / 24) * 100}%`;
         tipp.replaceChildren(
           ...tagesleisteTipp(tag, stunde, (text) => this._t(text)).map((text) => {
@@ -254,10 +267,24 @@ export const TagesbildMixin = (Basis) =>
       };
       bild.addEventListener("pointermove", zeigen);
       bild.addEventListener("pointerdown", zeigen);
-      bild.addEventListener("pointerleave", () => {
-        linie.hidden = true;
-        tipp.hidden = true;
+      bild.addEventListener("pointerup", () => (gesperrt = false));
+      bild.addEventListener("pointercancel", () => (gesperrt = false));
+      // Mit dem Finger bleiben die Werte stehen; nur die Maus blendet sie beim Verlassen aus.
+      bild.addEventListener("pointerleave", (ereignis) => {
+        if (ereignis.pointerType === "mouse") verbergen();
       });
+      bild.addEventListener("contextmenu", (ereignis) => ereignis.preventDefault());
+      // Ein Tipp außerhalb eines Tagesbilds schließt dessen Werte; ein Horcher je Seite genügt.
+      if (!this._automatikZeigerAussen && this.shadowRoot && this.shadowRoot.addEventListener) {
+        this._automatikZeigerAussen = true;
+        this.shadowRoot.addEventListener("pointerdown", (ereignis) => {
+          const pfad = ereignis.composedPath();
+          this.shadowRoot.querySelectorAll(".automatik-tag-bild").forEach((anderes) => {
+            if (pfad.includes(anderes)) return;
+            anderes.querySelectorAll(".automatik-zeiger, .automatik-tipp").forEach((teil) => (teil.hidden = true));
+          });
+        });
+      }
     }
 
     /** Karte „Tagesverlauf“: Tageswahl und Legende, Stundenraster, Stundenzeile, Tagesbild. */
