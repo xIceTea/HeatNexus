@@ -699,7 +699,10 @@ def _abwesend_tiefer(lage: Lage, g: Gedaechtnis, soll: float, ziel: float) -> bo
 
 def _heizpause(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung | None:
     if g.absenkung_art == PAUSE:
-        return _heizpause_laeuft(lage, g, soll, w)
+        if g.absenkung_bis is not None:
+            return _heizpause_laeuft(lage, g, soll, w)
+        # Ohne Ende ist das Gedächtnis beschädigt; die Regel rechnet ohne die Pause weiter.
+        g = ohne_absenkung(g)
     if not _pause_erlaubt(lage, g, soll, w) or (anlass := _pause_anlass(lage, w)) is None:
         return None
     if (ziel := pause_soll(lage, w)) is None or _abwesend_tiefer(lage, g, soll, ziel):

@@ -611,6 +611,13 @@ def test_pause_endet(m, w, abweichung):
     assert e.gedaechtnis.pause_sperre == jetzt.date().isoformat()
 
 
+def test_pause_ohne_ende_im_gedaechtnis_bricht_nicht_ab(m, w):
+    g = m.Gedaechtnis(absenkung_art=m.PAUSE, absenkung_soll=17.0)
+    e = m.entscheiden(lage(m, **{**MILD, "at_steuerung": None}), g, w)
+    assert e.zustand != m.Zustand.HEIZPAUSE
+    assert e.aktionen == ()
+
+
 def test_im_beobachten_beendet_der_vorlauf_die_pause_nicht(m, w):
     jetzt = MORGEN + timedelta(hours=1)
     e = m.entscheiden(lage(m, **MILD, jetzt=jetzt, vl_soll=35.0, beobachten=True), pause(m), w)
