@@ -366,3 +366,48 @@ def test_zurueck_und_pause_erwarten_die_wahl_nach_der_rueckkehr(s, regel):
         ("/1/15/0/2/10/0", "400"),
     ]
     assert steller.stand.erwartet == 1
+
+
+def test_empfehlen_schreibt_eine_absenkung_nicht(s, regel):
+    schreiber = Schreiber()
+    steller = s.Steller("/1/15/0", UML, schreiber)
+    e = entscheidung(regel, regel.Aktion("pause", soll=16.0, minuten=400))
+    assert ausfuehren(steller, e, empfehlen=True) is False
+    assert schreiber.aufrufe == []
+    assert steller.empfohlen is True
+    assert steller.stand.protokoll[0]["art"] == "empfohlen"
+    assert steller.stand.eingriffe == 0
+
+
+def test_empfehlen_vermerkt_dieselbe_empfehlung_nur_einmal(s, regel):
+    steller = s.Steller("/1/15/0", UML, Schreiber())
+    e = entscheidung(regel, regel.Aktion("nur_ww"))
+    ausfuehren(steller, e, empfehlen=True)
+    ausfuehren(steller, e, empfehlen=True)
+    assert [x["art"] for x in steller.stand.protokoll].count("empfohlen") == 1
+
+
+@pytest.mark.parametrize(
+    "aktion",
+    [
+        ("zurueck", {}),
+        ("absenkung_ende", {}),
+        ("pause", {"soll": 16.0, "minuten": 400, "erneuern": True}),
+        ("nur_ww", {"sicherheit": True}),
+    ],
+)
+def test_empfehlen_schreibt_rueckkehr_erneuern_und_sicherheit(s, regel, aktion):
+    art, felder = aktion
+    schreiber = Schreiber()
+    steller = s.Steller("/1/15/0", UML, schreiber, s.Stand(betriebswahl_vorher=1))
+    assert ausfuehren(steller, entscheidung(regel, regel.Aktion(art, **felder)), empfehlen=True)
+    assert schreiber.aufrufe
+    assert steller.empfohlen is False
+
+
+def test_zurueck_mit_pause_wird_als_ganzes_empfohlen(s, regel):
+    schreiber = Schreiber()
+    steller = s.Steller("/1/15/0", UML, schreiber, s.Stand(betriebswahl_vorher=1, erwartet=6))
+    e = entscheidung(regel, regel.Aktion("zurueck"), regel.Aktion("pause", soll=16.0, minuten=400))
+    assert ausfuehren(steller, e, empfehlen=True, betriebswahl=6) is False
+    assert schreiber.aufrufe == []

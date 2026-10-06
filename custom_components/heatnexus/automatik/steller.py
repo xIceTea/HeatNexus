@@ -36,8 +36,18 @@ SPERRE_MAX = timedelta(hours=6)
 SPERRE_SICHERHEIT = timedelta(minutes=15)
 # Mehr heizen ist die sichere Richtung; das Budget begrenzt nur das Gegenteil.
 RUECKKEHR = frozenset({"zurueck", "absenkung_ende"})
+# Diese Eingriffe heizen weniger; im Modus „empfehlen" warten sie auf eine Bestätigung.
+BESTAETIGEN = frozenset({"nur_ww", "absenken", "pause"})
 
 Schreiber = Callable[[str, str], Awaitable[None]]
+
+
+def braucht_bestaetigung(aktionen: Iterable[Aktion]) -> bool:
+    """Ob eine Entscheidung einen bestätigungspflichtigen Eingriff enthält und keinen der Sicherheit."""
+    liste = list(aktionen)
+    if any(aktion.sicherheit for aktion in liste):
+        return False
+    return any(aktion.art in BESTAETIGEN and not aktion.erneuern for aktion in liste)
 
 
 def nur_ww_wert(angeboten: Iterable[int]) -> int:
@@ -132,6 +142,8 @@ class Steller:
         self.stand = stand or Stand()
         # Die Aktionen des letzten Schreibversuchs, die vollständig angenommen wurden.
         self.erledigt: tuple[Aktion, ...] = ()
+        # Ob der letzte Lauf eine Empfehlung statt eines Schreibvorgangs ergab.
+        self.empfohlen = False
 
     @property
     def angeboten(self) -> tuple[int, ...]:
@@ -180,9 +192,11 @@ class Steller:
         budget: int,
         beobachten: bool,
         erzwingen: bool = False,
+        empfehlen: bool = False,
     ) -> bool:
         """Schreibt die Aktionen; `True`, wenn alles angenommen oder nur beobachtet wurde."""
         self.erledigt = ()
+        self.empfohlen = False
         self._tag_wechseln(jetzt)
         if not entscheidung.aktionen:
             return True
@@ -190,6 +204,10 @@ class Steller:
         if beobachten:
             self.vermerken(jetzt, "haette", entscheidung.begruendung, paare, entscheidung.aktionen)
             return True
+        if empfehlen and braucht_bestaetigung(entscheidung.aktionen):
+            self.empfohlen = True
+            self._empfehlung_vermerken(jetzt, entscheidung, paare)
+            return False
         sicherheit = any(aktion.sicherheit for aktion in entscheidung.aktionen)
         if not erzwingen and self._gesperrt(jetzt, sicherheit):
             return False
@@ -232,6 +250,15 @@ class Steller:
             return
         text = f"Tagesbudget von {budget} Eingriffen erreicht – nicht geschrieben."
         self.vermerken(jetzt, "budget", text, paare)
+
+    def _empfehlung_vermerken(
+        self, jetzt: datetime, entscheidung: Entscheidung, paare: list[tuple[str, str]]
+    ) -> None:
+        letzter = self.stand.protokoll[0] if self.stand.protokoll else {}
+        werte = [[oid, wert] for oid, wert in paare]
+        if letzter.get("art") == "empfohlen" and letzter.get("werte") == werte:
+            return
+        self.vermerken(jetzt, "empfohlen", entscheidung.begruendung, paare, entscheidung.aktionen)
 
     def _abgelehnt(
         self, jetzt: datetime, fehler: Exception, paare: list[tuple[str, str]], sicherheit: bool
