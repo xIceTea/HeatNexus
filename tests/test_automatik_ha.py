@@ -1687,3 +1687,21 @@ async def test_umbenannter_raumfuehler_bleibt_in_der_automatik(hass, anlage):
 
     assert verwaltung.laufzeiten[HEIZKREIS].konfig["raeume"] == ["sensor.stube"]
     assert verwaltung.konfig(HEIZKREIS)["raeume"] == ["sensor.stube"]
+
+
+async def test_nach_dem_start_gilt_die_zuletzt_gelesene_absenkgrenze(hass, anlage, freezer):
+    """Auch `3/2` steht nach dem Start sofort im Panel, nicht erst nach dem nächsten Abruf."""
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    coordinator.data["oids"][f"{PREFIX}/3/2/0"] = "5.0"
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit.auswerten()
+    zustand = laufzeit.als_dict()
+    assert zustand["grenze_absenk"] == 5.0
+
+    del coordinator.data["oids"][f"{PREFIX}/3/2/0"]
+    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+    verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
+    await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
+
+    assert verwaltung.laufzeiten[HEIZKREIS].grenze_absenk() == 5.0

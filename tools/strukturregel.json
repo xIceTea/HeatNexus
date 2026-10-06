@@ -1,6 +1,6 @@
 {
  "custom_components/heatnexus/automatik/laufzeit.py::Laufzeit.__init__": {
-  "zeilen": 85
+  "zeilen": 84
  },
  "custom_components/heatnexus/automatik/websocket.py::_eintrag": {
   "zeilen": 82

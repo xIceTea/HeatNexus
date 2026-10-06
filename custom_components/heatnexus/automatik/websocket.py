@@ -125,7 +125,7 @@ def _eintrag(
             "raum_art": laufzeit.konfig["raum_art"],
             "heizgrenze": regel.grenze(lage, werte) if lage else None,
             "grenze_steuerung": lage.grenze_steuerung if lage else None,
-            "grenze_absenk": laufzeit.wert("/3/2/0"),
+            "grenze_absenk": laufzeit.grenze_absenk(),
             "versatz": werte.grenze_versatz,
             "hysterese": werte.hysterese,
             "sonne_schwelle": werte.sonnenquote,

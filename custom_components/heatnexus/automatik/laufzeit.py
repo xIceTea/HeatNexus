@@ -138,8 +138,7 @@ class Laufzeit(QuellenMixin):
         except ValueError:
             self.zustand = regel.Zustand.PROGRAMM
         self.begruendung = str(z.get("begruendung") or "")
-        # Die Heizgrenze der Steuerung ist eine Einstellung; bis zum ersten Abruf gilt die zuletzt gelesene.
-        self.grenze_zuletzt: float | None = _kommazahl(z.get("grenze_steuerung"))
+        self._grenzen_laden(z)
         self.temperatur = korrektur.Temperaturkorrektur(z.get("temperatur"))
         self.pv = korrektur.Pvkorrektur(z.get("pv"))
         verlauf = z.get("verlauf") if isinstance(z.get("verlauf"), dict) else {}
@@ -223,6 +222,7 @@ class Laufzeit(QuellenMixin):
             "zustand": self.zustand.value,
             "begruendung": self.begruendung,
             "grenze_steuerung": self.grenze_zuletzt,
+            "grenze_absenk": self.absenk_zuletzt,
         }
 
     # --- Lebenszyklus --------------------------------------------------------
@@ -514,10 +514,22 @@ class Laufzeit(QuellenMixin):
         await self.auswerten()
 
     # --- Eingänge ------------------------------------------------------------
+    def _grenzen_laden(self, z: dict[str, Any]) -> None:
+        """Heizgrenzen sind Einstellungen; bis zum ersten Abruf gelten die zuletzt gelesenen."""
+        self.grenze_zuletzt: float | None = _kommazahl(z.get("grenze_steuerung"))
+        self.absenk_zuletzt: float | None = _kommazahl(z.get("grenze_absenk"))
+
     def _heizgrenze(self) -> float | None:
         if (wert := self._wert("/3/21/0")) is not None:
             self.grenze_zuletzt = wert
+        self.grenze_absenk()
         return self.grenze_zuletzt
+
+    def grenze_absenk(self) -> float | None:
+        """TA Absenkbetrieb (`3/2`); bis zum ersten Abruf nach dem Start die zuletzt gelesene."""
+        if (wert := self._wert("/3/2/0")) is not None:
+            self.absenk_zuletzt = wert
+        return self.absenk_zuletzt
 
     def _wert(self, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, self.prefix)
