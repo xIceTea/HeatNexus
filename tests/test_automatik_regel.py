@@ -638,6 +638,40 @@ def test_ende_des_starken_sonnentags_geht_in_die_heizpause(m, w):
     assert e.gedaechtnis.absenkung_art == m.PAUSE
 
 
+def test_nach_beendeter_pause_gleitet_nur_ww_nicht_in_eine_neue(m, w):
+    heute = MORGEN.date().isoformat()
+    g = replace(
+        nur_ww(m, timedelta(hours=1)), stark_bis=MORGEN + timedelta(hours=8), pause_sperre=heute
+    )
+    jetzt = MORGEN + timedelta(hours=9)
+    e = m.entscheiden(lage(m, **MILD, jetzt=jetzt, betriebswahl=6), g, w)
+    assert [a.art for a in e.aktionen] == ["zurueck"]
+    assert e.gedaechtnis.pause_sperre == heute
+
+
+def test_einstieg_in_nur_ww_behaelt_die_sperre(m, w):
+    heute = MORGEN.date().isoformat()
+    felder = {**MILD, "at_gedaempft": 19.0, "mittel_morgen": 17.5}
+    e = m.entscheiden(lage(m, **felder), m.Gedaechtnis(pause_sperre=heute), w)
+    assert [a.art for a in e.aktionen] == ["nur_ww"]
+    assert e.gedaechtnis.pause_sperre == heute
+
+
+def test_sicherheit_beendet_die_pause_und_sperrt_sie_fuer_heute(m, w):
+    jetzt = MORGEN + timedelta(hours=1)
+    e = m.entscheiden(lage(m, **{**MILD, "jetzt": jetzt, "raum": 15.5}), pause(m), w)
+    assert e.zustand == m.Zustand.SICHERHEIT
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.gedaechtnis.pause_sperre == jetzt.date().isoformat()
+
+
+def test_sicherheit_behaelt_eine_bestehende_sperre(m, w):
+    g = m.Gedaechtnis(pause_sperre="2026-09-26")
+    e = m.entscheiden(lage(m, raum=15.5), g, w)
+    assert e.zustand == m.Zustand.SICHERHEIT
+    assert e.gedaechtnis.pause_sperre == "2026-09-26"
+
+
 def test_kalte_raeume_gehen_ohne_heizpause_ins_programm(m, w):
     e = m.entscheiden(
         lage(m, **{**MILD, "raum": 19.5}, betriebswahl=6), nur_ww(m, timedelta(hours=1)), w

@@ -287,12 +287,12 @@ def _bereit(g: Gedaechtnis, jetzt: datetime, w: Werte) -> bool:
     return g.saison_seit is None or jetzt - g.saison_seit >= timedelta(hours=w.mindestdauer_h)
 
 
-def _zurueck(lage: Lage, grund: str) -> Entscheidung:
+def _zurueck(lage: Lage, g: Gedaechtnis, grund: str) -> Entscheidung:
     return Entscheidung(
         Zustand.PROGRAMM,
         (Aktion("zurueck"),),
         grund,
-        Gedaechtnis(saison=HEIZEN, saison_seit=lage.jetzt),
+        Gedaechtnis(saison=HEIZEN, saison_seit=lage.jetzt, pause_sperre=g.pause_sperre),
     )
 
 
@@ -317,11 +317,12 @@ def _sicherheit(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Ent
         aktionen.append(Aktion("absenkung_ende", sicherheit=True))
     folge = "zurück ins Programm." if aktionen else "die Automatik greift nicht ein."
     seit = lage.jetzt if g.saison == NUR_WW else g.saison_seit
+    sperre = lage.jetzt.date().isoformat() if g.absenkung_art == PAUSE else g.pause_sperre
     return Entscheidung(
         Zustand.SICHERHEIT,
         tuple(aktionen),
         f"{anlass} – {folge}",
-        Gedaechtnis(saison=HEIZEN, saison_seit=seit),
+        Gedaechtnis(saison=HEIZEN, saison_seit=seit, pause_sperre=sperre),
     )
 
 
@@ -360,18 +361,19 @@ def _saison_nur_ww(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entsche
             or abweichung(lage, soll) < -SAISON_RAUM_K
             or lage.ruhig is False
         ):
-            return _zurueck(lage, "Sonnentag vorbei – zurück ins Programm.")
+            return _zurueck(lage, g, "Sonnentag vorbei – zurück ins Programm.")
         return Entscheidung(
             Zustand.NUR_WW, (), f"Sehr sonnig – nur Warmwasser bis {_uhr(g.stark_bis)}.", g
         )
     abstand = abweichung(lage, soll)
     if abstand < -ZU_KALT_K:
-        return _zurueck(lage, f"Räume {_kelvin(abstand)} – zurück ins Programm.")
+        return _zurueck(lage, g, f"Räume {_kelvin(abstand)} – zurück ins Programm.")
     unten = grenze(lage, w) - w.hysterese
     # Unter ihrer Einschaltschwelle heizt die Steuerung; fordern die Thermostate Wärme an, gilt das sofort.
     if lage.at is not None and lage.at < unten and lage.ruhig is False and abstand < 0:
         return _zurueck(
             lage,
+            g,
             f"Außen {_zahl(lage.at)} °C unter {_zahl(unten)} °C, Thermostate fordern Wärme "
             "an – zurück ins Programm.",
         )
@@ -379,6 +381,7 @@ def _saison_nur_ww(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entsche
     if kuehl and _bereit(g, lage.jetzt, w) and abstand < -SAISON_RAUM_K:
         return _zurueck(
             lage,
+            g,
             f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C unter "
             f"{_zahl(unten)} °C – zurück ins Programm.",
         )
@@ -444,6 +447,7 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
         saison_seit=lage.jetzt,
         saison_soll=soll,
         saison_grund="gedaempft" if warm else "prognose",
+        pause_sperre=g.pause_sperre,
     )
     # Das neue Gedächtnis kennt die Absenkung nicht mehr; an der Steuerung liefe sie weiter.
     ende = (Aktion("absenkung_ende"),) if absenkung_laeuft(g, lage.jetzt) else ()
