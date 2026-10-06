@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from dataclasses import asdict, dataclass, fields, replace
 from datetime import datetime, timedelta
 from enum import StrEnum
+import math
 from typing import Any
 
 from .eingaben import raumwert
@@ -30,6 +31,18 @@ VERLAENGERN_REST = timedelta(minutes=5)
 # So lange nach Beginn der Absenkung muss eine Quelle mit Vorrang Wärme geliefert haben.
 VORRANG_PRUEFEN_NACH = timedelta(hours=4)
 VORRANG_MIN_MINUTEN = 15.0
+# Heizpause: Die Steuerung schaltet ab, wenn ihre AT über Raumsoll + 1 K liegt, und heizt unter Raumsoll − 1 K.
+PAUSE = "pause"
+PAUSE_ABSTAND = 1.5
+VORGABE_MIN = 6.0
+PAUSE_EINSTIEG_K = 1.5
+PAUSE_ERNEUERN_REST = timedelta(minutes=30)
+PAUSE_NACHRUECKEN_K = 1.0
+# Der Vorlauf-Soll steht nach dem Abschalten noch für den Pumpennachlauf.
+PAUSE_NACHLAUF = timedelta(minutes=15)
+PAUSE_SONNE_PLUS = 20.0
+VORRANG_PAUSE_MINUTEN = 60.0
+VORRANG_TAGE_MILD = 2
 PROGRAMMWAHL = frozenset({1, 2, 3, 4, 5})
 # Ohne lesbare Heizgrenze der Steuerung (`3/21`) gilt dieser Wert; außerhalb des Bereichs ebenso.
 HEIZGRENZE_RUECKFALL = 17.0
@@ -98,6 +111,11 @@ class Lage:
     vorrang_laeuft: bool | None = None
     vorrang_minuten: float | None = None
     vorrang_name: str | None = None
+    # AT und Vorlauf-Soll der Steuerung selbst; nach ihnen schaltet sie den Heizkreis.
+    at_steuerung: float | None = None
+    vl_soll: float | None = None
+    # An wie vielen der letzten drei Tage die Vorrangquelle nennenswert geliefert hat.
+    vorrang_tage: int | None = None
 
     @property
     def raum(self) -> float | None:
@@ -121,6 +139,8 @@ class Gedaechtnis:
     absenkung_basis: float | None = None
     absenkung_soll: float | None = None
     verlaengert: bool = False
+    # Tag, an dem eine Heizpause endete; am selben Tag beginnt keine neue.
+    pause_sperre: str | None = None
 
 
 @dataclass(frozen=True)
@@ -244,6 +264,14 @@ def grenze(lage: Lage, w: Werte) -> float:
     steuerung = lage.grenze_steuerung
     gueltig = steuerung is not None and HEIZGRENZE_BEREICH[0] <= steuerung <= HEIZGRENZE_BEREICH[1]
     return (steuerung if gueltig else HEIZGRENZE_RUECKFALL) + w.grenze_versatz
+
+
+def pause_soll(lage: Lage, w: Werte) -> float | None:
+    """Raumsoll der Heizpause: knapp unter der AT der Steuerung, höchstens Rückkehrgrenze + 1 K."""
+    if lage.at_steuerung is None:
+        return None
+    wert = min(grenze(lage, w) - w.hysterese + 1.0, lage.at_steuerung - PAUSE_ABSTAND)
+    return max(VORGABE_MIN, math.floor(wert * 2) / 2)
 
 
 def _bereit(g: Gedaechtnis, jetzt: datetime, w: Werte) -> bool:

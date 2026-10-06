@@ -487,6 +487,22 @@ def test_liefernde_vorrangquelle_bestaetigt_den_sonnentag(m, w):
     assert e.begruendung.startswith("Solaranlage liefert")
 
 
+# --- Heizpause ---------------------------------------------------------------
+@pytest.mark.parametrize(
+    ("at", "erwartet"),
+    [
+        (25.0, 17.0),  # Deckel: unten (16) + 1
+        (17.9, 16.0),  # AT − 1,5 = 16,4, auf 0,5 abgerundet
+        (16.9, 15.0),
+        (6.0, 6.0),  # Untergrenze der Vorgabe
+        (None, None),
+    ],
+)
+def test_pause_soll_liegt_knapp_unter_der_at_der_steuerung(m, w, at, erwartet):
+    # Grenze 17 (Steuerung), Hysterese 1 → Rückkehr unter 16.
+    assert m.pause_soll(lage(m, at_steuerung=at), w) == erwartet
+
+
 def test_vorrangquelle_ersetzt_eine_fehlende_sonnenquote(m, w):
     stand = lage(m, sonnenquote=None, entscheidungszeit=True, vorrang_laeuft=True)
     assert [a.art for a in m.entscheiden(stand, m.Gedaechtnis(), w).aktionen] == ["absenken"]
