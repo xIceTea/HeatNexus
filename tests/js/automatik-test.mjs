@@ -58,7 +58,7 @@ assert.deepEqual(
     "tau_h",
   ]
 );
-assert.equal(Object.keys(ZUSTAENDE).length, 9);
+assert.equal(Object.keys(ZUSTAENDE).length, 10);
 
 // Abweichung der Räume von ihrem Ziel, mit echtem Minuszeichen.
 assert.equal(kelvin(-0.14), "−0,1 K");

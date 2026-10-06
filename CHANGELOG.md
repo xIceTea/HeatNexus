@@ -8,6 +8,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [Unreleased]
 
+### Neu
+
+- Die Automatik pausiert den Heizkreis an milden Tagen; die Steuerung heizt bei Kälte selbst wieder.
+
 ### Behoben
 
 - Die Automatik zeigt Heizkreise mit Umlaut unter dem Namen aus der Geräteliste.

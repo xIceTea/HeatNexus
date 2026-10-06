@@ -322,6 +322,7 @@
           "programm": "Heating by program",
           "sonnentag": "Sunny day",
           "nur_ww": "Hot water only",
+          "heizpause": "Heating pause",
           "abwesend": "Away",
           "pausiert": "Paused",
           "fenster": "Window open",

@@ -45,6 +45,7 @@ export const ZUSTAENDE = {
   programm: "Heizen nach Programm",
   sonnentag: "Sonnentag",
   nur_ww: "Nur Warmwasser",
+  heizpause: "Heizpause",
   abwesend: "Abwesend",
   pausiert: "Pausiert",
   fenster: "Fenster offen",

@@ -1142,6 +1142,7 @@ export const STIL = `
   }
   .automatik-marke::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   .automatik-marke.z-sonnentag { background: color-mix(in srgb, var(--hn-sonne) 16%, transparent); color: var(--hn-sonne); }
+  .automatik-marke.z-heizpause { background: color-mix(in srgb, var(--hn-at) 16%, transparent); color: var(--hn-at); }
   .automatik-marke.z-nur_ww { background: color-mix(in srgb, var(--hn-ww) 16%, transparent); color: var(--hn-ww); }
   .automatik-marke.z-programm { background: color-mix(in srgb, var(--hn-gut) 16%, transparent); color: var(--hn-gut); }
   .automatik-marke.z-pausiert, .automatik-marke.z-fenster, .automatik-marke.z-abwesend {
@@ -1304,6 +1305,7 @@ export const STIL = `
   }
   .automatik-stundenlegende i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
   .automatik-stundenlegende i.m-absenkung { background: var(--hn-sonne); }
+  .automatik-stundenlegende i.m-heizpause { background: var(--hn-at); }
   .automatik-stundenlegende i.m-nur_ww { background: var(--hn-ww); }
   .automatik-stundenlegende i.m-programm { background: color-mix(in srgb, var(--hn-text) 35%, transparent); }
   .automatik-vorschau {
@@ -1336,6 +1338,7 @@ export const STIL = `
     background: color-mix(in srgb, var(--hn-text) 30%, transparent);
   }
   .automatik-stunde .streifen.absenkung { background: var(--hn-sonne); }
+  .automatik-stunde .streifen.heizpause { background: var(--hn-at); }
   .automatik-stunde .streifen.nur_ww { background: var(--hn-ww); }
   .automatik-stunde .raum { font-size: 11px; color: var(--hn-gedaempft); font-variant-numeric: tabular-nums; }
   .automatik-stundenkasten {
@@ -1346,6 +1349,7 @@ export const STIL = `
   .automatik-stundenwerte .kopf { font-weight: 700; }
   .automatik-stundenwerte .modus { font-weight: 600; }
   .automatik-stundenwerte .modus.m-absenkung { color: var(--hn-sonne); }
+  .automatik-stundenwerte .modus.m-heizpause { color: var(--hn-at); }
   .automatik-stundenwerte .modus.m-nur_ww { color: var(--hn-ww); }
   .automatik-stundenwerte .vorrang { color: var(--hn-sonne); }
   .automatik-verlaufkopf .korrektur {
@@ -1393,6 +1397,7 @@ export const STIL = `
   .automatik-tag .al-grund { fill: var(--hn-flaeche); }
   .automatik-tag .al-m-programm { fill: color-mix(in srgb, var(--hn-text) 28%, transparent); }
   .automatik-tag .al-m-absenkung, .automatik-tag .al-absenkung { fill: var(--hn-sonne); }
+  .automatik-tag .al-m-heizpause { fill: var(--hn-at); }
   .automatik-tag .al-m-nur_ww { fill: var(--hn-ww); }
   .automatik-tag .al-plan, .automatik-tag .al-verlaengerung { opacity: 0.45; }
   .automatik-tag .al-verlaengerung { fill: var(--hn-sonne); }

@@ -8,7 +8,7 @@
 import { kelvin, zahl } from "./automatik.js";
 
 // Dieselben Namen wie in der Legende des Tagesverlaufs.
-const AKTIONEN = { absenkung: "Sonnentag", nur_ww: "Nur Warmwasser", programm: "Programm" };
+const AKTIONEN = { absenkung: "Sonnentag", heizpause: "Heizpause", nur_ww: "Nur Warmwasser", programm: "Programm" };
 
 /** Die Werte einer Stunde im Tagesbild, als Zeilen für den Zeiger; Fehlendes entfällt. */
 export function tagesleisteTipp(tag, stunde, t = (text) => text) {
@@ -141,7 +141,7 @@ export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null) {
     );
   };
   stunden.forEach((s) => {
-    const modus = ["absenkung", "nur_ww"].includes(s.aktion) ? s.aktion : "programm";
+    const modus = ["absenkung", "heizpause", "nur_ww"].includes(s.aktion) ? s.aktion : "programm";
     const plan = jetzt !== null && s.stunde > Math.floor(jetzt);
     if (abschnitt && abschnitt[2] === modus && abschnitt[3] === plan && abschnitt[1] === s.stunde) {
       abschnitt[1] = s.stunde + 1;
@@ -546,6 +546,7 @@ export const TagesbildMixin = (Basis) =>
       legende.title = this._t(hinweis);
       [
         ["m-absenkung", "Sonnentag"],
+        ["m-heizpause", "Heizpause"],
         ["m-nur_ww", "Nur Warmwasser"],
         ["m-programm", "Programm"],
       ].forEach(([klasse, titel]) => {
