@@ -1,0 +1,67 @@
+blueprint:
+  name: HeatNexus – Empfehlung der Automatik melden
+  description: >
+    Meldet eine Empfehlung der Automatik im Modus „Manuell mit Empfehlung“ an
+    ein Mobilgerät der Home-Assistant-App. Die Mitteilung hat die Aktion
+    „Übernehmen“; ein Tipp darauf führt die Empfehlung aus.
+
+    Rückkehr ins Programm und Sicherheit schaltet die Automatik ohne
+    Rückfrage; gemeldet werden nur Eingriffe, die weniger heizen.
+  domain: automation
+  author: HeatNexus
+  source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/automatik_empfehlung.yaml
+  input:
+    geraet:
+      name: Mobilgerät
+      description: Das Gerät der Home-Assistant-App, das die Mitteilung bekommt.
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+    warten:
+      name: Auf Antwort warten
+      description: So lange gilt die Aktion „Übernehmen“. Danach bleibt die Empfehlung offen.
+      default:
+        hours: 2
+      selector:
+        duration: {}
+
+# parallel: Jeder Heizkreis meldet für sich; eine Meldung wartet nicht auf die andere.
+mode: parallel
+max: 5
+
+triggers:
+  - trigger: event
+    event_type: heatnexus_automatik_empfehlung
+
+variables:
+  aktion_id: "HEATNEXUS_EMPFEHLUNG_{{ trigger.event.data.heizkreis }}"
+  taste: "{{ trigger.event.data.taste }}"
+
+conditions:
+  # Ohne Taste gibt es nichts zu übernehmen.
+  - condition: template
+    value_template: "{{ taste not in [none, 'None', ''] }}"
+
+actions:
+  - alias: Empfehlung melden
+    domain: mobile_app
+    type: notify
+    device_id: !input geraet
+    title: "{{ trigger.event.data.name }}"
+    message: "{{ trigger.event.data.begruendung }}"
+    data:
+      tag: "{{ aktion_id }}"
+      actions:
+        - action: "{{ aktion_id }}"
+          title: Übernehmen
+  - wait_for_trigger:
+      - trigger: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "{{ aktion_id }}"
+    timeout: !input warten
+    continue_on_timeout: false
+  - action: button.press
+    target:
+      entity_id: "{{ taste }}"
