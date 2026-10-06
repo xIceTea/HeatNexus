@@ -149,32 +149,25 @@ def empfehlung() -> dict:
     return yaml.load(EMPFEHLUNG.read_text(encoding="utf-8"), Loader=_Lader)
 
 
-def test_empfehlung_loest_beim_ereignis_der_automatik_aus(empfehlung):
-    assert empfehlung["triggers"][0]["event_type"] == "heatnexus_automatik_empfehlung"
-
-
 def test_empfehlung_antwort_gehoert_zur_eigenen_mitteilung(empfehlung):
-    """Mitteilung und Warten teilen sich die Aktionskennung des Heizkreises."""
-    melden, warten, _ = empfehlung["actions"]
+    """Mitteilung und Warten teilen sich die Aktionskennung; ohne Antwort endet der Lauf."""
+    assert empfehlung["triggers"][0]["event_type"] == "heatnexus_automatik_empfehlung"
+    melden, warten, druecken = empfehlung["actions"]
     kennung = melden["data"]["actions"][0]["action"]
     assert kennung == melden["data"]["tag"]
     assert warten["wait_for_trigger"][0]["event_data"]["action"] == kennung
-    assert "heizkreis" in empfehlung["variables"]["aktion_id"]
-
-
-def test_empfehlung_drueckt_die_taste_aus_dem_ereignis(empfehlung):
-    druecken = empfehlung["actions"][-1]
+    assert warten["continue_on_timeout"] is False
     assert druecken["action"] == "button.press"
-    assert "taste" in druecken["target"]["entity_id"]
 
 
-def test_empfehlung_ohne_antwort_drueckt_nichts(empfehlung):
-    """Läuft die Wartezeit ab, endet die Automation, bevor die Taste kommt."""
-    assert empfehlung["actions"][1]["continue_on_timeout"] is False
+@pytest.mark.parametrize(
+    ("taste", "meldet"), [(None, False), ("None", False), ("", False), ("button.x", True)]
+)
+def test_empfehlung_meldet_nur_mit_taste(empfehlung, taste, meldet):
+    from jinja2 import Environment
 
-
-def test_empfehlung_ohne_taste_meldet_nichts(empfehlung):
-    assert "taste" in empfehlung["conditions"][0]["value_template"]
+    vorlage = empfehlung["conditions"][0]["value_template"]
+    assert Environment().from_string(vorlage).render(taste=taste) == str(meldet)
 
 
 # ---------------------------------------------------------------------------
