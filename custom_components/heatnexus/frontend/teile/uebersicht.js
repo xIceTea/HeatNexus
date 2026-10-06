@@ -777,13 +777,6 @@ export const UebersichtMixin = (Basis) =>
   }
 
   /**
-   * Lädt die Anlage laut Betriebsart – ohne die nachlaufende Ladepumpe.
-   *
-   * Für die Anzeige zählt die Pumpe mit: Sie ist der handfeste Beleg, dass
-   * gerade geladen wird. Für die Bestätigung eines Abbruchs zählt sie
-   * gerade nicht.
-   */
-  /**
    * Ob die Anlage eine Ladung meldet: Betriebsart oder Freigabe `2/16`.
    *
    * Eine Vorgabe auf Zeit („Eco / Comfort“) verdeckt die Ladung in der Betriebsart;
@@ -823,6 +816,13 @@ export const UebersichtMixin = (Basis) =>
     }
   }
 
+  /**
+   * Lädt die Anlage laut Betriebsart – ohne die nachlaufende Ladepumpe.
+   *
+   * Für die Anzeige zählt die Pumpe mit: Sie ist der handfeste Beleg, dass
+   * gerade geladen wird. Für die Bestätigung eines Abbruchs zählt sie
+   * gerade nicht.
+   */
   _laedtLautBetriebsart(eintrag) {
     if (!eintrag.zustand_an) return false;
     const zustand = this._zustand(eintrag.zustand_an);
