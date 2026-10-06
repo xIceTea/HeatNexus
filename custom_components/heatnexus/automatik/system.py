@@ -252,7 +252,7 @@ class SystemVorrangHeute(SystemLaufHeute):
 
 
 class SystemSonnentagAktiv(SystemEntitaet, BinarySensorEntity):
-    """An, solange ein Kreis am Sonnentag absenkt."""
+    """An, solange ein Kreis am Sonnentag absenkt; eine Heizpause zählt nicht."""
 
     ART = "sonnentag_aktiv"
     _attr_translation_key = "automatik_system_sonnentag_aktiv"
@@ -262,7 +262,9 @@ class SystemSonnentagAktiv(SystemEntitaet, BinarySensorEntity):
     def is_on(self) -> bool:
         jetzt = dt_util.now()
         return any(
-            kennzahlen.schaltet(lz) and regel.absenkung_laeuft(lz.gedaechtnis, jetzt)
+            kennzahlen.schaltet(lz)
+            and lz.gedaechtnis.absenkung_art != regel.PAUSE
+            and regel.absenkung_laeuft(lz.gedaechtnis, jetzt)
             for lz in self._laufzeiten
         )
 

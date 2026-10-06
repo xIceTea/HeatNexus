@@ -1377,6 +1377,32 @@ async def test_system_geraet_buendelt_die_automatiken(hass, anlage, freezer):
     )
 
 
+async def test_sonnentag_aktiv_bleibt_waehrend_der_heizpause_aus(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import regel, system
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    entry = hass.config_entries.async_entries("heatnexus")[0]
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await verwaltung.einstellen(HEIZKREIS, {"modus": "schalten"})
+    sensor = system.KLASSEN["sonnentag_aktiv"](verwaltung, entry.entry_id)
+    jetzt = dt_util.now()
+    laufend = {
+        "absenkung_von": jetzt,
+        "absenkung_bis": jetzt + timedelta(hours=3),
+        "absenkung_soll": 17.0,
+    }
+
+    laufzeit.gedaechtnis = regel.Gedaechtnis(absenkung_art=regel.PAUSE, **laufend)
+    assert sensor.is_on is False
+    laufzeit.gedaechtnis = regel.Gedaechtnis(absenkung_art=regel.SONNE, **laufend)
+    assert sensor.is_on is True
+
+
 async def test_system_kennungen_gelten_als_bekannt(hass, anlage):
     from custom_components.heatnexus.automatik import system
 
