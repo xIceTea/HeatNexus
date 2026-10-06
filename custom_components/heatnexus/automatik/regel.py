@@ -390,9 +390,25 @@ def _saison_nur_ww(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entsche
     return Entscheidung(Zustand.NUR_WW, (), text, g)
 
 
+def _gleitend(lage: Lage, e: Entscheidung, soll: float, w: Werte) -> Entscheidung:
+    """Der Ausstieg aus nur Warmwasser geht in die Heizpause, wenn sie heute noch passt."""
+    if [a.art for a in e.aktionen] != ["zurueck"] or any(a.sicherheit for a in e.aktionen):
+        return e
+    # Nach dem Zurückschalten steht die Betriebswahl wieder auf dem Programm.
+    nachher = replace(lage, betriebswahl=min(PROGRAMMWAHL))
+    if not _pause_erlaubt(nachher, e.gedaechtnis, soll, w) or _pause_anlass(lage, w) is None:
+        return e
+    if (ziel := pause_soll(lage, w)) is None:
+        return e
+    bis = lage.jetzt + timedelta(minutes=MAX_MINUTEN)
+    text = f"{e.begruendung} Danach Heizpause, {_zahl(ziel)} °C bis {_uhr(bis)}."
+    pause = _pause_schreiben(lage, e.gedaechtnis, soll, ziel, text, erneuern=False)
+    return replace(pause, aktionen=(*e.aktionen, *pause.aktionen))
+
+
 def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung | None:
     if g.saison == NUR_WW:
-        return _saison_nur_ww(lage, g, soll, w)
+        return _gleitend(lage, _saison_nur_ww(lage, g, soll, w), soll, w)
     if lage.betriebswahl not in PROGRAMMWAHL or not _bereit(g, lage.jetzt, w):
         return None
     if abweichung(lage, soll) < -SAISON_RAUM_K:
@@ -403,11 +419,14 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
     if any(wert is not None and wert < unten for wert in (lage.at, lage.minimum_bis_morgen)):
         return None
     warm = lage.at_gedaempft is not None and lage.at_gedaempft > schwelle + w.hysterese
-    mild = (
-        lage.mittel_heute is not None
-        and lage.mittel_morgen is not None
-        and min(lage.mittel_heute, lage.mittel_morgen) >= schwelle
+    tiefer = (
+        min(lage.mittel_heute, lage.mittel_morgen)
+        if lage.mittel_heute is not None and lage.mittel_morgen is not None
+        else None
     )
+    # Liefert die Vorrangquelle an mehreren Tagen, reicht ein Tagesmittel knapp unter der Grenze.
+    vorrang = (lage.vorrang_tage or 0) >= VORRANG_TAGE_MILD
+    mild = tiefer is not None and tiefer >= schwelle - (1.0 if vorrang else 0.0)
     # Fordert ein Thermostat noch Wärme an, braucht der Heizkreis sie auch.
     if not (warm or mild) or lage.ruhig is False:
         return None

@@ -593,6 +593,46 @@ def test_kurzfassung_der_heizpause(m):
     assert m.kurz(m.Zustand.HEIZPAUSE, m.Gedaechtnis(absenkung_soll=16.5)) == "Heizpause · 16,5 °C"
 
 
+def test_ende_des_starken_sonnentags_geht_in_die_heizpause(m, w):
+    g = replace(nur_ww(m, timedelta(hours=1)), stark_bis=MORGEN + timedelta(hours=8))
+    jetzt = MORGEN + timedelta(hours=9)
+    e = m.entscheiden(lage(m, **MILD, jetzt=jetzt, betriebswahl=6), g, w)
+    assert [a.art for a in e.aktionen] == ["zurueck", "pause"]
+    assert e.zustand == m.Zustand.HEIZPAUSE
+    assert e.gedaechtnis.saison == m.HEIZEN
+    assert e.gedaechtnis.absenkung_art == m.PAUSE
+
+
+def test_kalte_raeume_gehen_ohne_heizpause_ins_programm(m, w):
+    e = m.entscheiden(
+        lage(m, **{**MILD, "raum": 19.5}, betriebswahl=6), nur_ww(m, timedelta(hours=1)), w
+    )
+    assert [a.art for a in e.aktionen] == ["zurueck"]
+
+
+def test_sicherheit_geht_nie_in_die_heizpause(m, w):
+    e = m.entscheiden(
+        lage(m, **{**MILD, "at": 2.0}, betriebswahl=6), nur_ww(m, timedelta(hours=1)), w
+    )
+    assert [a.art for a in e.aktionen] == ["zurueck"]
+
+
+def test_vorrangtage_machen_einen_knapp_kuehlen_tag_mild(m, w):
+    felder = {
+        "at": 18.0,
+        "at_steuerung": 18.0,
+        "mittel_heute": 16.5,
+        "mittel_morgen": 16.5,
+        "minimum_bis_morgen": 16.5,
+        "at_gedaempft": 15.0,
+        "ruhig": True,
+    }
+    ohne = m.entscheiden(lage(m, **felder), m.Gedaechtnis(), w)
+    mit = m.entscheiden(lage(m, **felder, vorrang_tage=2), m.Gedaechtnis(), w)
+    assert "nur_ww" not in [a.art for a in ohne.aktionen]
+    assert "nur_ww" in [a.art for a in mit.aktionen]
+
+
 def test_vorrangquelle_ersetzt_eine_fehlende_sonnenquote(m, w):
     stand = lage(m, sonnenquote=None, entscheidungszeit=True, vorrang_laeuft=True)
     assert [a.art for a in m.entscheiden(stand, m.Gedaechtnis(), w).aktionen] == ["absenken"]
@@ -684,6 +724,7 @@ def test_jede_begruendung_kommt_auf_englisch_an(m, w):
         nur_ww(m, timedelta(hours=1)),
         nur_ww(m, timedelta(hours=30)),
         replace(nur_ww(m, timedelta(hours=1)), stark_bis=UNTERGANG),
+        replace(nur_ww(m, timedelta(hours=1)), stark_bis=MORGEN),
         sonnentag(m),
         replace(sonnentag(m), absenkung_bis=MORGEN - timedelta(minutes=1)),
         m.Gedaechtnis(
@@ -717,6 +758,7 @@ def test_jede_begruendung_kommt_auf_englisch_an(m, w):
             "vorrang_name": zufall.choice([None, "Solar"]),
             "at_steuerung": zufall.choice([None, 12.0, 17.0, 18.5, 22.0]),
             "vl_soll": zufall.choice([None, 0.0, 35.0]),
+            "vorrang_tage": zufall.choice([None, 0, 2]),
         }
         e = m.entscheiden(lage(m, **felder), zufall.choice(gedaechtnisse), w)
         uebersetzt = englisch.satz(e.begruendung).replace("Solar", "")

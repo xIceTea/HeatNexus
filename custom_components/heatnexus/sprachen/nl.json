@@ -546,6 +546,7 @@
   "Sonnenquote {quote} % – {soll} °C bis {zeit}.": "Zonaandeel {quote} % – {soll} °C tot {zeit}.",
   "Vorrangquelle": "Voorrangsbron",
   "{anlass}: Heizpause, {soll} °C bis {zeit}.": "{anlass}: verwarmingspauze, {soll} °C tot {zeit}.",
+  "{grund} Danach Heizpause, {soll} °C bis {zeit}.": "{grund} Daarna verwarmingspauze, {soll} °C tot {zeit}.",
   "Heizpause – {soll} °C bis {zeit}.": "Verwarmingspauze – {soll} °C tot {zeit}.",
   "Heizpause verlängert – {soll} °C bis {zeit}.": "Verwarmingspauze verlengd – {soll} °C tot {zeit}.",
   "{grund} – Heizpause beendet.": "{grund} – verwarmingspauze beëindigd.",

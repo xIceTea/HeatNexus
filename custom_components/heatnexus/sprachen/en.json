@@ -546,6 +546,7 @@
   "Sonnenquote {quote} % – {soll} °C bis {zeit}.": "Sun share {quote} % – {soll} °C until {zeit}.",
   "Vorrangquelle": "Priority source",
   "{anlass}: Heizpause, {soll} °C bis {zeit}.": "{anlass}: heating pause, {soll} °C until {zeit}.",
+  "{grund} Danach Heizpause, {soll} °C bis {zeit}.": "{grund} Then heating pause, {soll} °C until {zeit}.",
   "Heizpause – {soll} °C bis {zeit}.": "Heating pause – {soll} °C until {zeit}.",
   "Heizpause verlängert – {soll} °C bis {zeit}.": "Heating pause extended – {soll} °C until {zeit}.",
   "{grund} – Heizpause beendet.": "{grund} – heating pause ended.",
