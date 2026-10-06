@@ -75,10 +75,10 @@ Die Mitteilung enthält die Begründung und die Aktion „Übernehmen“. Ein Ti
 darauf drückt die Taste der Empfehlung und führt sie aus.
 
 Die Vorlage gehört zum Modus „Manuell mit Empfehlung“. Gemeldet werden nur
-Eingriffe, die weniger heizen. Rückkehr ins Programm und Sicherheit schaltet
-die Automatik ohne Rückfrage. Antwortet niemand innerhalb der eingestellten
-Wartezeit, bleibt die Empfehlung offen; sie lässt sich weiter im Reiter
-Automatik oder mit der Taste **Empfehlung übernehmen** ausführen.
+Eingriffe, die weniger heizen. Die Rückkehr ins Programm und Eingriffe zur
+Sicherheit schreibt die Automatik ohne Rückfrage. Antwortet niemand innerhalb
+der eingestellten Wartezeit, bleibt die Empfehlung offen. Sie lässt sich im
+Reiter Automatik oder mit der Taste **Empfehlung übernehmen** ausführen.
 
 ## Dienste
 

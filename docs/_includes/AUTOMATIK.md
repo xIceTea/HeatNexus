@@ -22,11 +22,13 @@ ohnehin tut:
   und eine Mindestdauer verhindern häufiges Umschalten. Liegt die aktuelle
   Außentemperatur unter der Einschaltschwelle der Steuerung und fordern die
   Thermostate Wärme an, geht der Heizkreis sofort zurück ins Programm.
-- **Heizpause.** An milden Tagen setzt sie einen befristeten Sollwert knapp
-  unter der Außentemperatur der Steuerung. Die Steuerung schaltet den
-  Heizkreis dann selbst aus und heizt von selbst wieder, sobald es kälter
-  wird. Die Vorgabe läuft von allein ab; die Automatik erneuert sie nur,
-  solange die Pause sinnvoll bleibt.
+- **Heizpause.** An milden Tagen schreibt die Automatik einen befristeten
+  Raumsollwert knapp unter die Außentemperatur der Steuerung. Die Steuerung
+  schaltet den Heizkreis damit ab und nimmt ihn bei Kälte wieder in Betrieb.
+  Auslöser sind eine gedämpfte Außentemperatur über der Heizgrenze, ein
+  Tagesmittel ab der Heizgrenze, starke Sonne oder eine laufende
+  Vorrangquelle. Die Vorgabe läuft ab. Die Automatik erneuert sie nur,
+  solange die Pause passt.
 - **Abwesenheit und Fenster** sind freiwillig. Sind alle Personen weg, senkt
   sie ab. Ein offenes Fenster setzt die Entscheidungen aus.
 
@@ -68,14 +70,15 @@ Ausrichtung vor.
 
 Der Modus bestimmt, was die Automatik mit ihrer Entscheidung tut:
 
-- **Beobachten** ist der Anfang. Die Automatik schreibt nichts an die
+- **Beobachten** ist die Voreinstellung. Die Automatik schreibt nichts an die
   Steuerung, und das Protokoll zeigt, was sie getan hätte.
-- **Manuell mit Empfehlung** schreibt nur, was nicht weniger heizt. Eingriffe,
-  die weniger heizen, schlägt sie vor: Die Empfehlung erscheint im Reiter
-  Automatik und als Sensor, und erst „Übernehmen“ führt sie aus. Die Rückkehr
-  ins Programm und alles, was der Sicherheit dient, schreibt sie sofort. Der
-  Blueprint „Empfehlung der Automatik melden“ schickt die Empfehlung aufs
-  Handy, mit der Aktion „Übernehmen“.
+- Im Modus **Manuell mit Empfehlung** schreibt die Automatik nur, was nicht
+  weniger heizt. Eingriffe, die weniger heizen, schlägt sie vor. Die
+  Empfehlung erscheint im Reiter Automatik und als Sensor, und erst
+  „Übernehmen“ führt sie aus. Die Rückkehr ins Programm und Eingriffe zur
+  Sicherheit schreibt die Automatik ohne Rückfrage. Der Blueprint „Empfehlung
+  der Automatik melden“ schickt die Empfehlung an ein Mobilgerät, mit der
+  Aktion „Übernehmen“.
 - **Automatisch** schreibt jede Entscheidung selbst.
 
 Weitere Regeln:
@@ -184,6 +187,7 @@ Darunter steht je Heizkreis das Gerät **Automatik <Heizkreis>**. Es führt:
 - den Schalter **Automatik** und die Auswahlen **Automatik-Modus** und
   **Automatik-Ausrichtung**,
 - den Sensor **Automatik-Zustand** mit der Begründung als Attribut,
+- den Sensor **Empfehlung** und die Taste **Empfehlung übernehmen**,
 - die Werte, mit denen sie rechnet: **Gedämpfte Außentemperatur**,
   **Heizgrenze** (die der Steuerung samt Ausrichtung), **Räume zum Ziel**,
   **Sonnenquote heute**,

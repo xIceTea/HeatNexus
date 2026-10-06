@@ -97,7 +97,9 @@ Geräten sind willkommen – der Diagnose-Export der Integration reicht dafür.
 - **Automatik je Heizkreis**: Sie senkt an sonnigen Tagen den Sollwert ab und
   schaltet in der Übergangszeit auf nur Warmwasser. Grundlage sind Wetter- und
   PV-Prognose, Raumfühler und Wärmequellen mit Vorrang. Sie beginnt im
-  Beobachtungsmodus und schreibt erst nach Freigabe an die Steuerung.
+  Beobachtungsmodus und schreibt erst nach Freigabe an die Steuerung. An milden
+  Tagen setzt sie eine Heizpause. Im Modus „Manuell mit Empfehlung“ schlägt sie
+  Eingriffe vor, die weniger heizen.
 - **Zeitprogramme** für Heizung, Warmwasser und Zirkulation lesen und schreiben –
   in der eigenen Oberfläche als Wochenraster, mit Editor für Wochentage und
   Schaltzeiten.
@@ -389,7 +391,7 @@ dem Netz:
 | Betriebsdauer erfassen | Misst, wie lange ein Anlagenteil ununterbrochen läuft |
 | Heizkreis bei Abwesenheit absenken | Absenken bei Abwesenheit, Rückstellen bei Rückkehr |
 | Legionellenschutz nachbilden | Fährt den Speicher in festem Turnus über die Einmalladung hoch — für Regler ohne eigene Legionellenschutzfunktion |
-| Empfehlung der Automatik melden | Meldet eine Empfehlung der Automatik aufs Handy; „Übernehmen“ führt sie aus |
+| Empfehlung der Automatik melden | Meldet eine Empfehlung der Automatik an ein Mobilgerät. „Übernehmen“ führt sie aus |
 
 Was bei einem Ereignis passieren soll, gibt die jeweilige Automation vor –
 Benachrichtigung, Ansage, Anruf, beliebige Aktion. Die Störungsvorlage wertet

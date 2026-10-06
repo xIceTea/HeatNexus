@@ -127,7 +127,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       <a class="feld" href="ANLEITUNG#automatik">
         <span class="nr">10</span>
         <h3>Automatik je Heizkreis</h3>
-        <p>Senkt an sonnigen Tagen ab und schaltet in der Übergangszeit auf nur Warmwasser. Beginnt im Beobachtungsmodus.</p>
+        <p>Senkt an sonnigen Tagen ab und schaltet in der Übergangszeit auf nur Warmwasser. Beginnt im Beobachtungsmodus. Schlägt Eingriffe auf Wunsch nur vor.</p>
         <span class="weiter">Wie sie entscheidet</span>
       </a>
       <a class="feld" href="ANLEITUNG#einrichtung">
