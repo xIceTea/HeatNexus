@@ -491,10 +491,10 @@ def _abwesenheit(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheid
 
 
 def _programm(lage: Lage, g: Gedaechtnis) -> Entscheidung:
-    # Ohne Vorlauf-Soll hält die Steuerung den Heizkreis über ihrer Heizgrenze selbst aus.
+    # Ohne Vorlauf-Soll ist der Heizkreis an der Steuerung aus, über ihrer Heizgrenze.
     if lage.vl_soll is not None and lage.vl_soll <= 0:
         at = lage.at_steuerung if lage.at_steuerung is not None else lage.at
-        text = f"Kein Eingriff – die Steuerung hält den Heizkreis aus, AT {_zahl(at)} °C."
+        text = f"Kein Eingriff – der Heizkreis ist an der Steuerung aus, AT {_zahl(at)} °C."
     else:
         text = (
             f"Heizt nach Programm – gedämpfte AT {_zahl(lage.at_gedaempft)} °C, "

@@ -531,7 +531,7 @@
   "Wieder jemand zu Hause – Absenkung beendet.": "Someone is home again – setback ended.",
   "Niemand zu Hause – abgesenkt bis {zeit}.": "Nobody home – set back until {zeit}.",
   "Niemand zu Hause – {soll} °C bis {zeit}.": "Nobody home – {soll} °C until {zeit}.",
-  "Kein Eingriff – die Steuerung hält den Heizkreis aus, AT {at} °C.": "No intervention – the controller keeps the heating circuit off, outdoor temp. {at} °C.",
+  "Kein Eingriff – der Heizkreis ist an der Steuerung aus, AT {at} °C.": "No intervention – the heating circuit is off at the controller, outdoor temp. {at} °C.",
   "Heizt nach Programm – gedämpfte AT {at} °C, Raum {raum} °C.": "Heating by program – damped outdoor temp. {at} °C, room {raum} °C.",
   "{text} Die Räume fordern Wärme an.": "{text} The rooms call for heat.",
   "Sonnentag ausgeschaltet – Absenkung beendet.": "Sunny day switched off – setback ended.",

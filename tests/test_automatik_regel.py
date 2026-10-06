@@ -880,9 +880,28 @@ def test_programm_nennt_den_von_der_steuerung_ausgeschalteten_heizkreis(m, w):
     e = m.entscheiden(lage(m, **felder), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.PROGRAMM
     assert e.begruendung == (
-        "Kein Eingriff – die Steuerung hält den Heizkreis aus, AT 17,6 °C. "
+        "Kein Eingriff – der Heizkreis ist an der Steuerung aus, AT 17,6 °C. "
         "Die Räume fordern Wärme an."
     )
+
+
+@pytest.mark.parametrize(
+    ("sprache", "erwartet"),
+    [
+        (
+            "en",
+            "No intervention – the heating circuit is off at the controller, outdoor temp. 17.6 °C.",
+        ),
+        (
+            "nl",
+            "Geen ingreep – het verwarmingscircuit staat uit op de regeling, buitentemp. 17,6 °C.",
+        ),
+    ],
+)
+def test_ausgeschalteter_heizkreis_auf_englisch_und_niederlaendisch(m, w, sprache, erwartet):
+    felder = {"at": 17.6, "at_steuerung": 17.6, "vl_soll": 0.0}
+    e = m.entscheiden(lage(m, **felder), m.Gedaechtnis(), w)
+    assert load_standalone("texte").Woerterbuch(sprache).satz(e.begruendung) == erwartet
 
 
 def test_programm_mit_vorlauf_heizt(m, w):
