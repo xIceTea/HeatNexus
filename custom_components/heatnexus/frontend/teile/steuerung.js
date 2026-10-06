@@ -179,7 +179,8 @@ export const SteuerungMixin = (Basis) =>
     hoch.type = "button";
     hoch.textContent = this._t("+");
     hoch.setAttribute("aria-label", "Sollwert anheben");
-    regler.append(runter, mitte, hoch);
+    // Ohne Raumfühler ist der Sollwert die große Zahl der Karte; auch er öffnet den Heizkreis.
+    regler.append(runter, this._klickbar(mitte, kreis.entity), hoch);
     karte.appendChild(regler);
 
     const rueckmeldung = document.createElement("div");

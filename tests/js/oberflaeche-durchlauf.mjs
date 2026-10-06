@@ -437,6 +437,13 @@ bilanz.betriebswahl.sollwert.abgelehnt = flaeche._sollwertText("climate.heizkrei
 hass.callService = echterAufruf;
 zeit.zeitLaufenLassen();
 
+// Ohne Raumfühler zeigt die Karte als große Zahl nur den Sollwert; auch er öffnet die Detailansicht.
+const geoeffnet = [];
+flaeche.addEventListener("hass-more-info", (ereignis) => geoeffnet.push(ereignis.detail.entityId));
+const heizkreisKarte = flaeche._heizkreisKarte({ titel: "Heizkreis", entity: "climate.heizkreis" });
+heizkreisKarte.querySelector(".sollwert").ausloesen("click");
+bilanz.betriebswahl.sollwertOeffnet = geoeffnet;
+
 // ---------------------------------------------------------------------------
 // Zeitprogramm-Dialog: erst lesen, dann bearbeiten
 //

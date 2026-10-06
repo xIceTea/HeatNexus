@@ -327,6 +327,11 @@ def test_nach_der_betriebswahl_laedt_der_sollwert(durchlauf):
     assert sollwert["danach"] == "20 °C"
 
 
+def test_der_sollwert_im_regler_oeffnet_den_heizkreis(durchlauf):
+    """Ohne Raumfühler ist der Sollwert die einzige große Zahl der Karte."""
+    assert durchlauf["betriebswahl"]["sollwertOeffnet"] == ["climate.heizkreis"]
+
+
 def test_eine_abgelehnte_betriebswahl_laesst_den_sollwert_stehen(durchlauf):
     """Nach einer Ablehnung kommt kein neuer Sollwert, auf den zu warten wäre."""
     assert durchlauf["betriebswahl"]["sollwert"]["abgelehnt"] == "20 °C"
