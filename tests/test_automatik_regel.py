@@ -503,6 +503,96 @@ def test_pause_soll_liegt_knapp_unter_der_at_der_steuerung(m, w, at, erwartet):
     assert m.pause_soll(lage(m, at_steuerung=at), w) == erwartet
 
 
+def pause(m, **felder):
+    werte = {
+        "absenkung_art": m.PAUSE,
+        "absenkung_von": MORGEN,
+        "absenkung_bis": MORGEN + timedelta(minutes=400),
+        "absenkung_basis": 21.0,
+        "absenkung_soll": 17.0,
+    }
+    werte.update(felder)
+    return m.Gedaechtnis(**werte)
+
+
+MILD = {"at": 18.5, "at_steuerung": 18.5, "mittel_heute": 17.5, "ruhig": True}
+
+
+def test_milder_tag_beginnt_die_heizpause(m, w):
+    e = m.entscheiden(lage(m, **MILD), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.HEIZPAUSE
+    assert [(a.art, a.soll, a.minuten) for a in e.aktionen] == [("pause", 17.0, 400)]
+    assert e.gedaechtnis.absenkung_art == m.PAUSE
+    assert e.gedaechtnis.saison == m.HEIZEN
+
+
+@pytest.mark.parametrize(
+    "abweichung",
+    [
+        {"at_steuerung": 17.0},  # unter unten + 1,5
+        {"ruhig": False},
+        {"raum": 20.4},  # 0,6 K unter Ziel
+        {"betriebswahl": 0},
+        {"absenkung_moeglich": False},
+        {"mittel_heute": 12.0, "at_gedaempft": 11.8, "sonnenquote": 30.0},
+    ],
+)
+def test_ohne_bedingung_keine_heizpause(m, w, abweichung):
+    e = m.entscheiden(lage(m, **{**MILD, **abweichung}), m.Gedaechtnis(), w)
+    assert all(a.art != "pause" for a in e.aktionen)
+
+
+def test_nach_einer_beendeten_pause_heute_keine_neue(m, w):
+    g = m.Gedaechtnis(pause_sperre=MORGEN.date().isoformat())
+    e = m.entscheiden(lage(m, **MILD), g, w)
+    assert all(a.art != "pause" for a in e.aktionen)
+
+
+def test_laufende_pause_wartet(m, w):
+    e = m.entscheiden(lage(m, **MILD, jetzt=MORGEN + timedelta(hours=1), vl_soll=0.0), pause(m), w)
+    assert e.zustand == m.Zustand.HEIZPAUSE
+    assert e.aktionen == ()
+
+
+def test_pause_wird_kurz_vor_ablauf_erneuert(m, w):
+    jetzt = MORGEN + timedelta(minutes=380)
+    e = m.entscheiden(lage(m, **MILD, jetzt=jetzt, vl_soll=0.0), pause(m), w)
+    assert [(a.art, a.minuten, a.erneuern) for a in e.aktionen] == [("pause", 400, True)]
+    assert e.gedaechtnis.absenkung_bis == jetzt + timedelta(minutes=400)
+
+
+def test_pause_rueckt_bei_steigender_at_nach(m, w):
+    g = pause(m, absenkung_soll=12.0)
+    e = m.entscheiden(lage(m, **MILD, jetzt=MORGEN + timedelta(hours=1)), g, w)
+    assert [(a.art, a.soll, a.erneuern) for a in e.aktionen] == [("pause", 17.0, True)]
+
+
+@pytest.mark.parametrize(
+    "abweichung",
+    [
+        {"raum": 20.0},  # 1 K unter Ziel, rueckkehr_k 0,8
+        {"ruhig": False},
+        {"vl_soll": 35.0},  # Steuerung heizt wieder
+    ],
+)
+def test_pause_endet(m, w, abweichung):
+    jetzt = MORGEN + timedelta(hours=1)
+    e = m.entscheiden(lage(m, **{**MILD, "jetzt": jetzt, **abweichung}), pause(m), w)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.gedaechtnis.absenkung_art is None
+    assert e.gedaechtnis.pause_sperre == jetzt.date().isoformat()
+
+
+def test_vorlauf_im_nachlauf_beendet_die_pause_nicht(m, w):
+    jetzt = MORGEN + timedelta(minutes=5)
+    e = m.entscheiden(lage(m, **MILD, jetzt=jetzt, vl_soll=42.0), pause(m), w)
+    assert e.aktionen == ()
+
+
+def test_kurzfassung_der_heizpause(m):
+    assert m.kurz(m.Zustand.HEIZPAUSE, m.Gedaechtnis(absenkung_soll=16.5)) == "Heizpause · 16,5 °C"
+
+
 def test_vorrangquelle_ersetzt_eine_fehlende_sonnenquote(m, w):
     stand = lage(m, sonnenquote=None, entscheidungszeit=True, vorrang_laeuft=True)
     assert [a.art for a in m.entscheiden(stand, m.Gedaechtnis(), w).aktionen] == ["absenken"]
@@ -580,7 +670,7 @@ def test_versatz_der_ausrichtung_verschiebt_die_heizgrenze(m, w):
 # Merkmale deutscher Sätze: Umlaute und häufige kurze Wörter.
 DEUTSCH = re.compile(
     r"[äöüÄÖÜß]|\b(und|der|die|das|nicht|bis|von|mit|keine|seit|oder|für|zum|zur|Uhr|heute|"
-    r"Raum|Räume|Außen|Absenkung|Programm|Warmwasser|Sonnentag|Prognose)\b"
+    r"Raum|Räume|Außen|Absenkung|Programm|Warmwasser|Sonnentag|Prognose|Heizpause)\b"
 )
 
 
@@ -601,6 +691,8 @@ def test_jede_begruendung_kommt_auf_englisch_an(m, w):
             absenkung_von=MORGEN,
             absenkung_bis=MORGEN + timedelta(hours=6),
         ),
+        pause(m),
+        pause(m, absenkung_soll=12.0),
     ]
     reste = set()
     for _ in range(4000):
@@ -623,6 +715,8 @@ def test_jede_begruendung_kommt_auf_englisch_an(m, w):
             "vorrang_laeuft": zufall.choice([None, True, False]),
             "vorrang_minuten": zufall.choice([None, 0.0, 120.0]),
             "vorrang_name": zufall.choice([None, "Solar"]),
+            "at_steuerung": zufall.choice([None, 12.0, 17.0, 18.5, 22.0]),
+            "vl_soll": zufall.choice([None, 0.0, 35.0]),
         }
         e = m.entscheiden(lage(m, **felder), zufall.choice(gedaechtnisse), w)
         uebersetzt = englisch.satz(e.begruendung).replace("Solar", "")
