@@ -117,7 +117,7 @@ class Lage:
     vl_soll: float | None = None
     # An wie vielen der letzten drei Tage die Vorrangquelle nennenswert geliefert hat.
     vorrang_tage: int | None = None
-    # Im Beobachten schreibt die Automatik nichts; die Steuerung kennt dann keine eigene Pause.
+    # Im Beobachten schreibt die Automatik nichts; der Vorlauf-Soll sagt dann nichts über die Pause.
     beobachten: bool = False
 
     @property
