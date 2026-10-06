@@ -1,0 +1,51 @@
+{
+ "custom_components/heatnexus/automatik/laufzeit.py::Laufzeit.__init__": {
+  "zeilen": 86
+ },
+ "custom_components/heatnexus/automatik/websocket.py::_eintrag": {
+  "zeilen": 82
+ },
+ "custom_components/heatnexus/client/erkennung.py::ErkennungMixin._discover": {
+  "komplexitaet": 33,
+  "zeilen": 240
+ },
+ "custom_components/heatnexus/client/kern.py::WindhagerHttpClient.__init__": {
+  "zeilen": 131
+ },
+ "custom_components/heatnexus/client/metadaten.py::MetadatenMixin._apply_metadata": {
+  "komplexitaet": 32,
+  "zeilen": 193
+ },
+ "custom_components/heatnexus/client/metadaten.py::MetadatenMixin._resolve_auto_type": {
+  "komplexitaet": 16
+ },
+ "custom_components/heatnexus/client/netzwerkvariablen.py::NetzwerkvariablenMixin._nv_deskriptor": {
+  "zeilen": 82
+ },
+ "custom_components/heatnexus/config_flow.py::WindhagerOptionsFlow.async_step_allgemein": {
+  "zeilen": 101
+ },
+ "custom_components/heatnexus/dashboard/anlagen.py::anlagen_lesen": {
+  "zeilen": 137
+ },
+ "custom_components/heatnexus/formulare.py::level_schema": {
+  "zeilen": 119
+ },
+ "custom_components/heatnexus/panel/daten.py::_anlage_daten": {
+  "komplexitaet": 23,
+  "zeilen": 216
+ },
+ "custom_components/heatnexus/panel/daten.py::_steuerung": {
+  "zeilen": 150
+ },
+ "custom_components/heatnexus/schema/karte.py::anlagenschema": {
+  "komplexitaet": 24,
+  "zeilen": 415
+ },
+ "custom_components/heatnexus/schema/werte.py::zeichenbare_module": {
+  "zeilen": 140
+ },
+ "custom_components/heatnexus/stilllegung.py::abgewaehlte_entitaeten_stilllegen": {
+  "zeilen": 106
+ }
+}

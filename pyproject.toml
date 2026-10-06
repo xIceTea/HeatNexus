@@ -39,8 +39,6 @@ ignore = [
 # ihren Namen; eigene Docstrings stehen dort, wo Verhalten begründet werden muss.
 "custom_components/heatnexus/*.py" = ["D102", "D107", "RUF012"]
 "custom_components/heatnexus/automatik/*.py" = ["D102", "D107"]
-# Wird durch die Digest-Unterstützung von aiohttp ersetzt.
-"custom_components/heatnexus/aiohelper.py" = ["D102", "D107", "UP031", "N802", "N806"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["custom_components"]

@@ -22,6 +22,7 @@ jobs:
       - run: pip install ruff
       - run: ruff check custom_components tests tools
       - run: ruff format --check custom_components tests tools
+      - run: python tools/strukturregel.py
 
   kommentare:
     name: Kommentarlänge

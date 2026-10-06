@@ -9,7 +9,13 @@ pip install -r requirements_test.txt
 pytest
 ruff check custom_components tests tools
 ruff format custom_components tests
+python tools/strukturregel.py
 ```
+
+`tools/strukturregel.py` begrenzt Komplexität und Länge jeder Funktion. Neue
+Funktionen bleiben unter der Grenze. Ältere Funktionen darüber stehen in
+`tools/strukturregel.json` und dürfen nicht wachsen. Nach einer Verkleinerung
+schreibt `--aktualisieren` den neuen Stand fest.
 
 Die Logiktests laufen ohne Home-Assistant-Installation. Tests, die Home
 Assistant benötigen, werden ohne installierte Umgebung übersprungen; die
