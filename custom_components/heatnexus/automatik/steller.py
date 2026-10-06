@@ -119,7 +119,12 @@ class Steller:
         return self._angeboten
 
     def vermerken(
-        self, jetzt: datetime, art: str, text: str, werte: Iterable[tuple[str, str]] = ()
+        self,
+        jetzt: datetime,
+        art: str,
+        text: str,
+        werte: Iterable[tuple[str, str]] = (),
+        aktionen: Iterable[Aktion] = (),
     ) -> None:
         """Einen Eintrag vorne ins Protokoll legen."""
         eintrag = {
@@ -128,6 +133,8 @@ class Steller:
             "text": text,
             "werte": [[oid, wert] for oid, wert in werte],
         }
+        if arten := [aktion.art for aktion in aktionen]:
+            eintrag["aktionen"] = arten
         protokoll = (eintrag, *self.stand.protokoll)[:PROTOKOLL_MAX]
         self.stand = replace(self.stand, protokoll=protokoll)
 
@@ -138,7 +145,7 @@ class Steller:
         if aktion.art == "zurueck":
             vorher = self.stand.betriebswahl_vorher
             return [(OID_BETRIEBSWAHL, str(PROGRAMM_1 if vorher is None else vorher))]
-        if aktion.art == "absenken":
+        if aktion.art in ("absenken", "pause"):
             return [(OID_TEMPERATUR, f"{aktion.soll:.1f}"), (OID_DAUER, str(aktion.minuten))]
         if aktion.art == "absenkung_ende":
             return [(OID_DAUER, "0")]
@@ -161,13 +168,13 @@ class Steller:
             return True
         paare = [p for aktion in entscheidung.aktionen for p in self.schreibvorgaenge(aktion)]
         if beobachten:
-            self.vermerken(jetzt, "haette", entscheidung.begruendung, paare)
+            self.vermerken(jetzt, "haette", entscheidung.begruendung, paare, entscheidung.aktionen)
             return True
         sicherheit = any(aktion.sicherheit for aktion in entscheidung.aktionen)
         if not erzwingen and self._gesperrt(jetzt, sicherheit):
             return False
         zaehlt = any(
-            aktion.art not in RUECKKEHR and not aktion.sicherheit
+            aktion.art not in RUECKKEHR and not aktion.sicherheit and not aktion.erneuern
             for aktion in entscheidung.aktionen
         )
         if zaehlt and self.stand.eingriffe >= budget:
@@ -186,7 +193,7 @@ class Steller:
             return False
         self.stand = replace(self.stand, ablehnungen=0, gesperrt_bis=None)
         self._merken(entscheidung.aktionen, betriebswahl, jetzt, zaehlt)
-        self.vermerken(jetzt, "geschrieben", entscheidung.begruendung, paare)
+        self.vermerken(jetzt, "geschrieben", entscheidung.begruendung, paare, entscheidung.aktionen)
         return True
 
     def _gesperrt(self, jetzt: datetime, sicherheit: bool = False) -> bool:
@@ -284,14 +291,16 @@ class Steller:
     ) -> None:
         eingriffe = self.stand.eingriffe + (1 if zaehlt else 0)
         stand = replace(self.stand, eingriffe=eingriffe, zuletzt=jetzt.isoformat())
+        # Die Betriebswahl, die nach der jeweils letzten Aktion an der Steuerung steht.
+        wirksam = betriebswahl
         for aktion in aktionen:
             if aktion.art == "nur_ww":
                 vorher = betriebswahl if betriebswahl in PROGRAMMWAHL else stand.betriebswahl_vorher
-                stand = replace(
-                    stand, betriebswahl_vorher=vorher, erwartet=nur_ww_wert(self._angeboten)
-                )
+                wirksam = nur_ww_wert(self._angeboten)
+                stand = replace(stand, betriebswahl_vorher=vorher, erwartet=wirksam)
             elif aktion.art == "zurueck":
+                wirksam = int(self.schreibvorgaenge(aktion)[0][1])
                 stand = replace(stand, betriebswahl_vorher=None, erwartet=None)
-            elif aktion.art == "absenken" and stand.erwartet is None:
-                stand = replace(stand, erwartet=betriebswahl)
+            elif aktion.art in ("absenken", "pause") and stand.erwartet is None:
+                stand = replace(stand, erwartet=wirksam)
         self.stand = stand

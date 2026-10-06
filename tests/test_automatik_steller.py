@@ -302,3 +302,37 @@ def test_beobachten_vergisst_den_letzten_teilerfolg(s, regel):
     ausfuehren(steller, entscheidung(regel, regel.Aktion("absenkung_ende"), regel.Aktion("nur_ww")))
     ausfuehren(steller, entscheidung(regel, regel.Aktion("nur_ww")), beobachten=True)
     assert steller.erledigt == ()
+
+
+def test_pause_schreibt_wie_eine_absenkung(s, regel):
+    schreiber = Schreiber()
+    steller = s.Steller("/1/15/0", UML, schreiber)
+    assert ausfuehren(steller, entscheidung(regel, regel.Aktion("pause", soll=16.0, minuten=400)))
+    assert schreiber.aufrufe == [("/1/15/0/3/4/0", "16.0"), ("/1/15/0/2/10/0", "400")]
+    assert steller.stand.eingriffe == 1
+    assert steller.stand.protokoll[0]["aktionen"] == ["pause"]
+
+
+def test_erneuern_zaehlt_nicht_gegen_das_budget(s, regel):
+    schreiber = Schreiber()
+    steller = s.Steller("/1/15/0", UML, schreiber)
+    erneuern = regel.Aktion("pause", soll=16.0, minuten=400, erneuern=True)
+    assert ausfuehren(steller, entscheidung(regel, erneuern), budget=0)
+    assert steller.stand.eingriffe == 0
+    assert len(schreiber.aufrufe) == 2
+
+
+def test_zurueck_und_pause_erwarten_die_wahl_nach_der_rueckkehr(s, regel):
+    schreiber = Schreiber()
+    stand = s.Stand(betriebswahl_vorher=1, erwartet=6)
+    steller = s.Steller("/1/15/0", UML, schreiber, stand)
+    wechsel = entscheidung(
+        regel, regel.Aktion("zurueck"), regel.Aktion("pause", soll=16.0, minuten=400)
+    )
+    assert ausfuehren(steller, wechsel, betriebswahl=6)
+    assert schreiber.aufrufe == [
+        ("/1/15/0/3/50/0", "1"),
+        ("/1/15/0/3/4/0", "16.0"),
+        ("/1/15/0/2/10/0", "400"),
+    ]
+    assert steller.stand.erwartet == 1
