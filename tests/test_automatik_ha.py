@@ -385,6 +385,45 @@ async def test_lesen_auf_englisch_uebersetzt_begruendung_und_protokoll(
     assert laufzeit.steller.stand.protokoll[0]["text"] == deutsch
 
 
+async def test_lesen_liefert_die_offene_empfehlung_uebersetzt(
+    hass, hass_ws_client, anlage, freezer
+):
+    verwaltung, _ = anlage
+    hass.config.language = "de"
+    laufzeit, client = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
+    assert kreis["empfehlung"]["zustand"] == "sonnentag"
+    assert kreis["empfehlung"]["begruendung"] == laufzeit.empfehlung["begruendung"]
+
+    hass.config.language = "en"
+    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
+
+    from custom_components.heatnexus.texte import Woerterbuch
+
+    deutsch = laufzeit.empfehlung["begruendung"]
+    assert kreis["empfehlung"]["begruendung"] == Woerterbuch("en").satz(deutsch)
+    assert kreis["empfehlung"]["begruendung"] != deutsch
+    assert laufzeit.empfehlung["begruendung"] == deutsch
+
+
+async def test_befehl_uebernimmt_die_empfehlung(hass, hass_ws_client, anlage, freezer):
+    verwaltung, coordinator = anlage
+    laufzeit, client = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+
+    antwort = await _senden(
+        client, type="heatnexus/automatik/empfehlung_uebernehmen", heizkreis=HEIZKREIS
+    )
+
+    assert antwort["success"], antwort
+    assert coordinator.client.geschrieben == [
+        (f"{PREFIX}/3/4/0", "19.5"),
+        (f"{PREFIX}/2/10/0", "400"),
+    ]
+    assert laufzeit.empfehlung is None
+    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
+    assert kreis["empfehlung"] is None
+
+
 async def test_schalten_schreibt_zur_entscheidungszeit(hass, hass_ws_client, anlage, freezer):
     verwaltung, coordinator = anlage
     client = await hass_ws_client(hass)

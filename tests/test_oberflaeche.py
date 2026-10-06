@@ -782,6 +782,20 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["stundeJeKreis"] == [["SN1-2-0", 10]]
 
 
+def test_eine_offene_empfehlung_hat_einen_uebernehmen_knopf(durchlauf):
+    """Im Modus „Manuell mit Empfehlung“ zeigt der Hinweis die Begründung und übernimmt per Knopf."""
+    empfehlung = durchlauf["automatikEmpfehlung"]
+    assert empfehlung["modus"] == [
+        ["Beobachten", "false"],
+        ["Manuell mit Empfehlung", "true"],
+        ["Automatisch", "false"],
+    ]
+    (hinweis,) = empfehlung["hinweise"]
+    assert "Heizpause empfohlen: 22 °C Außentemperatur." in hinweis
+    assert empfehlung["knopf"] == "Übernehmen"
+    assert empfehlung["aufrufe"][0] == ["heatnexus/automatik/empfehlung_uebernehmen", "SN1-2-0"]
+
+
 def test_die_automatik_steht_bei_allen_anlagen_in_einem_raster(durchlauf):
     """Eingerichtete Kreise zuerst, über Anlagen hinweg; die Anlage steht im Titel."""
     alle = durchlauf["automatikAlle"]

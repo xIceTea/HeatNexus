@@ -974,6 +974,50 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 }
 
 // ---------------------------------------------------------------------------
+// Reiter „Automatik“: Modus „Manuell mit Empfehlung“
+//
+// Eine offene Empfehlung steht als Hinweis mit Knopf unter dem Kreis; der Knopf
+// ruft den Übernahmebefehl auf.
+// ---------------------------------------------------------------------------
+{
+  const [kreis] = flaeche._automatik.heizkreise;
+  const vorherKonfig = kreis.konfig;
+  kreis.konfig = { ...vorherKonfig, modus: "empfehlen" };
+  kreis.empfehlung = { zustand: "heizpause", begruendung: "Heizpause empfohlen: 22 °C Außentemperatur.", seit: "2026-09-27T07:00:00+02:00" };
+  flaeche._reiter = "automatik";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  const wurzel = flaeche.shadowRoot;
+  const modus = wurzel
+    .querySelectorAll(".automatik-gruppe")
+    .find((g) => String((g.querySelector(".automatik-gruppentitel") || {}).textContent) === "Modus");
+  const hinweis = wurzel.querySelectorAll(".automatik-hinweis").find((h) => String(h.textContent).includes("Heizpause empfohlen"));
+  const knopf = hinweis && hinweis.querySelector("button");
+  const aufrufe = [];
+  const vorherWs = hass.callWS;
+  hass.callWS = async (nachricht) => {
+    aufrufe.push(nachricht);
+    return nachricht.type === "heatnexus/automatik" ? flaeche._automatik : {};
+  };
+  if (knopf) knopf.ausloesen("click");
+  for (let runde = 0; runde < 20; runde += 1) await Promise.resolve();
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  hass.callWS = vorherWs;
+  bilanz.automatikEmpfehlung = {
+    modus: modus ? modus.querySelectorAll("button").map((t) => [String(t.textContent || "").trim(), t.getAttribute("aria-pressed")]) : [],
+    hinweise: [...wurzel.querySelectorAll(".automatik-hinweis")].map((t) => String(t.textContent || "").trim()),
+    knopf: knopf ? String(knopf.textContent || "").trim() : null,
+    aufrufe: aufrufe.map((a) => [a.type, a.heizkreis]),
+  };
+  delete kreis.empfehlung;
+  kreis.konfig = vorherKonfig;
+  flaeche._gebaut = false;
+}
+
+// ---------------------------------------------------------------------------
 // Reiter „Automatik“ über alle Anlagen
 //
 // Die Automatik arbeitet je Heizkreis. Bei „Alle Anlagen“ stehen die Kreise

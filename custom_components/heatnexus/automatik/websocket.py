@@ -76,6 +76,17 @@ def _entitaeten(hass: HomeAssistant, device_id: str) -> dict[str, str | None]:
     }
 
 
+def _vorrang(laufzeit: Laufzeit, lage: Any) -> dict[str, Any] | None:
+    """Laufende Vorrangquelle samt Minuten; ohne konfigurierte Quelle nichts."""
+    if lage is None or not laufzeit.konfig["vorrang"]:
+        return None
+    return {
+        "laeuft": lage.vorrang_laeuft,
+        "minuten": round(lage.vorrang_minuten or 0),
+        "entity": (laufzeit.vorrang_liefert() or laufzeit.konfig["vorrang"])[0],
+    }
+
+
 def _eintrag(
     hass: HomeAssistant, verwaltung: Verwaltung, entry_id: str, coordinator: Any, b: dict
 ) -> dict:
@@ -111,6 +122,7 @@ def _eintrag(
         vorgabe=asdict(profile.vorgabe(laufzeit.konfig["profil"], laufzeit.konfig["ausrichtung"])),
         zustand=laufzeit.zustand.value,
         begruendung=laufzeit.begruendung,
+        empfehlung=dict(laufzeit.empfehlung) if laufzeit.empfehlung else None,
         kennwerte={
             "sonnenquote": lage.sonnenquote if lage else None,
             "raum": lage.raum if lage else None,
@@ -139,15 +151,7 @@ def _eintrag(
                 n.isoformat() if (n := kennzahlen.naechste_entscheidung(laufzeit)) else None
             ),
             "modus_seit": (s.isoformat() if (s := kennzahlen.modus_seit(laufzeit)) else None),
-            "vorrang": (
-                {
-                    "laeuft": lage.vorrang_laeuft,
-                    "minuten": round(lage.vorrang_minuten or 0),
-                    "entity": (laufzeit.vorrang_liefert() or laufzeit.konfig["vorrang"])[0],
-                }
-                if lage is not None and laufzeit.konfig["vorrang"]
-                else None
-            ),
+            "vorrang": _vorrang(laufzeit, lage),
         },
         tag=tagesansicht.heute(laufzeit, jetzt),
         vorschau=tagesansicht.vorschau(laufzeit, jetzt),
@@ -218,6 +222,8 @@ def _uebersetzt(eintrag: dict[str, Any], woerterbuch: texte.Woerterbuch) -> dict
         return {**daten, name: woerterbuch.satz(text)} if isinstance(text, str) and text else daten
 
     neu = feld(eintrag, "begruendung")
+    if isinstance(eintrag.get("empfehlung"), dict):
+        neu["empfehlung"] = feld(eintrag["empfehlung"], "begruendung")
     if "vorschau" in eintrag:
         neu["vorschau"] = [feld(tag, "begruendung") for tag in eintrag["vorschau"]]
     if "protokoll" in eintrag:
@@ -438,6 +444,21 @@ async def _ws_uebernehmen(hass: HomeAssistant, connection, msg: dict[str, Any]) 
 
 
 @websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/automatik/empfehlung_uebernehmen",
+        vol.Required("heizkreis"): KENNUNG,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _ws_empfehlung_uebernehmen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
+    """Die offene Empfehlung eines Heizkreises übernehmen."""
+    await _ausfuehren(
+        hass, connection, msg, verwaltung_holen(hass).empfehlung_uebernehmen(msg["heizkreis"])
+    )
+
+
+@websocket_api.websocket_command(
     {vol.Required("type"): f"{DOMAIN}/automatik/entfernen", vol.Required("heizkreis"): KENNUNG}
 )
 @websocket_api.require_admin
@@ -458,6 +479,7 @@ def async_register_automatik(hass: HomeAssistant) -> None:
         _ws_einrichten,
         _ws_einstellen,
         _ws_uebernehmen,
+        _ws_empfehlung_uebernehmen,
         _ws_heizgrenzen,
         _ws_entfernen,
     ):

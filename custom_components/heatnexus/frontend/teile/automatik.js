@@ -355,7 +355,8 @@ export const AutomatikMixin = (Basis) =>
         "",
         [
           ["beobachten", "Beobachten"],
-          ["schalten", "Schalten"],
+          ["empfehlen", "Manuell mit Empfehlung"],
+          ["schalten", "Automatisch"],
         ],
         kreis.konfig.modus,
         darf,
@@ -403,7 +404,30 @@ export const AutomatikMixin = (Basis) =>
       return meta;
     }
 
+    /** Eine offene Empfehlung: Begründung und Knopf zum Übernehmen. */
+    _automatikEmpfehlung(kreis, darf) {
+      const empfehlung = kreis.empfehlung;
+      if (!empfehlung || !kreis.konfig.aktiv || kreis.konfig.modus !== "empfehlen") return null;
+      const hinweis = document.createElement("div");
+      hinweis.className = "automatik-hinweis";
+      const text = document.createElement("div");
+      text.className = "text";
+      text.textContent = empfehlung.begruendung || "";
+      const taste = document.createElement("button");
+      taste.type = "button";
+      taste.className = "automatik-knopf";
+      taste.disabled = !darf;
+      taste.textContent = this._t("Übernehmen");
+      taste.addEventListener("click", () =>
+        this._automatikAufruf({ type: "heatnexus/automatik/empfehlung_uebernehmen", heizkreis: kreis.heizkreis })
+      );
+      hinweis.append(text, taste);
+      return hinweis;
+    }
+
     _automatikHinweis(kreis, darf) {
+      const empfohlen = this._automatikEmpfehlung(kreis, darf);
+      if (empfohlen) return empfohlen;
       const pausiert = kreis.zustand === "pausiert";
       const beobachtet = kreis.konfig.modus === "beobachten" && kreis.konfig.aktiv;
       if (!pausiert && !beobachtet) return null;

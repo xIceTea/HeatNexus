@@ -2,9 +2,6 @@
  "custom_components/heatnexus/automatik/laufzeit.py::Laufzeit.__init__": {
   "zeilen": 84
  },
- "custom_components/heatnexus/automatik/websocket.py::_eintrag": {
-  "zeilen": 82
- },
  "custom_components/heatnexus/client/erkennung.py::ErkennungMixin._discover": {
   "komplexitaet": 33,
   "zeilen": 240
