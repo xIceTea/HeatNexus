@@ -368,11 +368,14 @@ def test_zurueck_und_pause_erwarten_die_wahl_nach_der_rueckkehr(s, regel):
     assert steller.stand.erwartet == 1
 
 
-def test_empfehlen_schreibt_eine_absenkung_nicht(s, regel):
+@pytest.mark.parametrize("mit_zurueck", [False, True])
+def test_empfehlen_schreibt_eine_absenkung_nicht(s, regel, mit_zurueck):
     schreiber = Schreiber()
-    steller = s.Steller("/1/15/0", UML, schreiber)
-    e = entscheidung(regel, regel.Aktion("pause", soll=16.0, minuten=400))
-    assert ausfuehren(steller, e, empfehlen=True) is False
+    stand = s.Stand(betriebswahl_vorher=1, erwartet=6) if mit_zurueck else s.Stand()
+    steller = s.Steller("/1/15/0", UML, schreiber, stand)
+    aktionen = [regel.Aktion("zurueck")] if mit_zurueck else []
+    e = entscheidung(regel, *aktionen, regel.Aktion("pause", soll=16.0, minuten=400))
+    assert ausfuehren(steller, e, empfehlen=True, betriebswahl=6 if mit_zurueck else 2) is False
     assert schreiber.aufrufe == []
     assert steller.empfohlen is True
     assert steller.stand.protokoll[0]["art"] == "empfohlen"
@@ -403,11 +406,3 @@ def test_empfehlen_schreibt_rueckkehr_erneuern_und_sicherheit(s, regel, aktion):
     assert ausfuehren(steller, entscheidung(regel, regel.Aktion(art, **felder)), empfehlen=True)
     assert schreiber.aufrufe
     assert steller.empfohlen is False
-
-
-def test_zurueck_mit_pause_wird_als_ganzes_empfohlen(s, regel):
-    schreiber = Schreiber()
-    steller = s.Steller("/1/15/0", UML, schreiber, s.Stand(betriebswahl_vorher=1, erwartet=6))
-    e = entscheidung(regel, regel.Aktion("zurueck"), regel.Aktion("pause", soll=16.0, minuten=400))
-    assert ausfuehren(steller, e, empfehlen=True, betriebswahl=6) is False
-    assert schreiber.aufrufe == []

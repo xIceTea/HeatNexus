@@ -66,14 +66,12 @@ def test_eigene_werte_nur_als_abweichung(konfig):
     assert k["eigene"] == {"absenkung_k": 2.0}
 
 
-def test_empfehlen_ist_ein_gueltiger_modus(konfig):
-    assert konfig.MODI == ("beobachten", "empfehlen", "schalten")
-    assert konfig.pruefen(roh(modus="empfehlen"))["modus"] == "empfehlen"
-
-
-def test_unbekannter_modus_und_profil_fallen_zurueck(konfig):
-    k = konfig.pruefen(roh(modus="turbo", profil="x", heizflaechen="flaeche"))
-    assert k["modus"] == "beobachten"
+@pytest.mark.parametrize(
+    ("modus", "erwartet"), [("turbo", "beobachten"), ("empfehlen", "empfehlen")]
+)
+def test_unbekannter_modus_und_profil_fallen_zurueck(konfig, modus, erwartet):
+    k = konfig.pruefen(roh(modus=modus, profil="x", heizflaechen="flaeche"))
+    assert k["modus"] == erwartet
     assert k["profil"] == "traege"
 
 

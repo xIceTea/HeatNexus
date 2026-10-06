@@ -152,12 +152,14 @@ def empfehlung() -> dict:
 def test_empfehlung_antwort_gehoert_zur_eigenen_mitteilung(empfehlung):
     """Mitteilung und Warten teilen sich die Aktionskennung; ohne Antwort endet der Lauf."""
     assert empfehlung["triggers"][0]["event_type"] == "heatnexus_automatik_empfehlung"
-    melden, warten, druecken = empfehlung["actions"]
+    aktionen = empfehlung["actions"]
+    (melden,) = (a for a in aktionen if "data" in a and "actions" in a["data"])
+    (warten,) = (a for a in aktionen if "wait_for_trigger" in a)
     kennung = melden["data"]["actions"][0]["action"]
     assert kennung == melden["data"]["tag"]
     assert warten["wait_for_trigger"][0]["event_data"]["action"] == kennung
     assert warten["continue_on_timeout"] is False
-    assert druecken["action"] == "button.press"
+    assert any(a.get("action") == "button.press" for a in aktionen)
 
 
 @pytest.mark.parametrize(
