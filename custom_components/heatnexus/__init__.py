@@ -545,7 +545,14 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
     }
     if alt and umfang_verkleinert(alt, neu):
         abwahl_vormerken(hass, entry)
-    await hass.config_entries.async_reload(entry.entry_id)
+    # Mehrere Änderungen in Folge laden einmal neu: Das Setup liest sie erst nach dem Entladen.
+    if daten.get("neuladen"):
+        return
+    daten["neuladen"] = True
+    try:
+        await hass.config_entries.async_reload(entry.entry_id)
+    finally:
+        daten.pop("neuladen", None)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

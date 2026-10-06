@@ -71,3 +71,61 @@ async def test_aussentemperatur_und_waermequelle_folgen(hass):
     assert eintrag.options[CONF_AUSSENTEMPERATUR] == "sensor.garten"
     (sub,) = eintrag.subentries.values()
     assert sub.data["bedingung"] == {**regel, "quelle": "sensor.kollektor"}
+
+
+async def test_aenderungen_waehrend_des_neuladens_laden_nicht_noch_einmal(hass):
+    import asyncio
+    from unittest.mock import patch
+
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus import _async_options_updated
+    from custom_components.heatnexus.const import CONF_AUSSENTEMPERATUR, DOMAIN
+
+    eintrag = MockConfigEntry(domain=DOMAIN, options={CONF_AUSSENTEMPERATUR: "sensor.neu"})
+    eintrag.add_to_hass(hass)
+    eintrag.runtime_data = {"optionen": {CONF_AUSSENTEMPERATUR: "sensor.alt"}}
+    freigabe = asyncio.Event()
+    aufrufe: list[str] = []
+
+    async def neu_laden(entry_id: str) -> bool:
+        aufrufe.append(entry_id)
+        await freigabe.wait()
+        return True
+
+    with patch.object(hass.config_entries, "async_reload", neu_laden):
+        laeufe = [hass.async_create_task(_async_options_updated(hass, eintrag)) for _ in range(2)]
+        await asyncio.sleep(0)
+        freigabe.set()
+        await asyncio.gather(*laeufe)
+
+    assert aufrufe == [eintrag.entry_id]
+    assert "neuladen" not in eintrag.runtime_data
+
+
+async def test_ungueltige_automatik_haelt_die_uebrigen_nicht_auf(hass):
+    from unittest.mock import patch
+
+    from custom_components.heatnexus import verweise
+
+    class Verwaltung:
+        def __init__(self) -> None:
+            self.eingestellt: list[str] = []
+
+        async def laden(self) -> None:
+            return None
+
+        def konfigurationen(self):
+            return [("hk1", {"aussen": "sensor.x"}), ("hk2", {"aussen": "sensor.x"})]
+
+        async def einstellen(self, device_id: str, aenderung: dict) -> dict:
+            if device_id == "hk1":
+                raise ValueError("Raumfühler und Wetter-Entität sind nötig.")
+            self.eingestellt.append(device_id)
+            return aenderung
+
+    verwaltung = Verwaltung()
+    with patch.object(verweise, "verwaltung_holen", return_value=verwaltung):
+        await verweise.verweise_umschreiben(hass, "sensor.x", "sensor.y")
+
+    assert verwaltung.eingestellt == ["hk2"]

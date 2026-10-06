@@ -78,6 +78,12 @@ async def verweise_umschreiben(hass: HomeAssistant, alt: str, neu: str) -> None:
     verwaltung = verwaltung_holen(hass)
     await verwaltung.laden()
     for device_id, konfig in verwaltung.konfigurationen():
-        if aenderung := automatik_umschreiben(konfig, alt, neu):
+        if not (aenderung := automatik_umschreiben(konfig, alt, neu)):
+            continue
+        # Eine ungültige Automatik hält die übrigen nicht auf.
+        try:
             await verwaltung.einstellen(device_id, aenderung)
-            _LOGGER.debug("Automatik %s folgt %s -> %s", device_id, alt, neu)
+        except ValueError as fehler:
+            _LOGGER.warning("Automatik %s folgt %s nicht: %s", device_id, neu, fehler)
+            continue
+        _LOGGER.debug("Automatik %s folgt %s -> %s", device_id, alt, neu)
