@@ -10,7 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Die Automatik pausiert den Heizkreis an milden Tagen; die Steuerung heizt bei Kälte selbst wieder.
+- Eine Heizpause hält den Heizkreis an milden Tagen aus; bei Kälte heizt die Steuerung.
 
 ### Behoben
 
@@ -27,6 +27,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Quittungstasten erscheinen nur für Arbeiten, die die Steuerung anbietet.
 - Die Funktionsliste der BioWIN erzeugt keinen Fehler im Protokoll mehr.
 - Die Betriebswahl von BioWIN und LogWIN nennt den Festbrennstoff-/Pufferbetrieb.
+- „Absenkbetrieb bis“ steht nach einem Neustart sofort im Reiter Automatik.
+- Die Automatik zeigt, wenn der Heizkreis an der Steuerung aus ist.
 
 ## [1.13.0] - 2026-10-03
 
