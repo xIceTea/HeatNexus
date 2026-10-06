@@ -117,6 +117,8 @@ class Lage:
     vl_soll: float | None = None
     # An wie vielen der letzten drei Tage die Vorrangquelle nennenswert geliefert hat.
     vorrang_tage: int | None = None
+    # Im Beobachten schreibt die Automatik nichts; die Steuerung kennt dann keine eigene Pause.
+    beobachten: bool = False
 
     @property
     def raum(self) -> float | None:
@@ -657,7 +659,8 @@ def _pause_ende(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> str | None
     if lage.ruhig is False:
         return "Thermostate fordern Wärme an"
     nachlauf_vorbei = g.absenkung_von is not None and lage.jetzt - g.absenkung_von >= PAUSE_NACHLAUF
-    if nachlauf_vorbei and lage.vl_soll is not None and lage.vl_soll > 0:
+    heizt = lage.vl_soll is not None and lage.vl_soll > 0
+    if nachlauf_vorbei and heizt and not lage.beobachten:
         return "Die Steuerung heizt wieder"
     return None
 

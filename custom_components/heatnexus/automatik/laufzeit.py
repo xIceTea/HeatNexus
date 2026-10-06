@@ -794,5 +794,6 @@ class Laufzeit(QuellenMixin):
             absenkung_moeglich=self._wert("/2/10/0") is not None,
             at_steuerung=self._wert("/0/0/0"),
             vl_soll=self._wert("/1/2/0"),
+            beobachten=self.beobachten,
             **self._vorrang_lage(jetzt),
         )

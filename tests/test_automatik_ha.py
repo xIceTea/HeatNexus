@@ -474,6 +474,7 @@ async def test_lage_kennt_at_und_vorlauf_der_steuerung(hass, hass_ws_client, anl
     await laufzeit.auswerten()
     assert laufzeit.lage.at_steuerung == 18.4
     assert laufzeit.lage.vl_soll == 0.0
+    assert laufzeit.lage.beobachten is True
 
 
 async def test_einrichtung_laesst_sich_nachtraeglich_aendern(hass, hass_ws_client, anlage):
