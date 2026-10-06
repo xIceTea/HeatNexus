@@ -197,7 +197,12 @@ class Laufzeit(QuellenMixin):
 
     @property
     def beobachten(self) -> bool:
-        return self.konfig.get("modus") != "schalten"
+        return self.konfig.get("modus") == "beobachten"
+
+    @property
+    def empfehlen(self) -> bool:
+        """Eingriffe, die weniger heizen, warten auf eine Bestätigung."""
+        return self.konfig.get("modus") == "empfehlen"
 
     def als_dict(self) -> dict[str, Any]:
         """Was im Store bleibt."""

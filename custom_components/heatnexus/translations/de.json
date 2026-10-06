@@ -303,7 +303,8 @@
         "name": "Automatik-Modus",
         "state": {
           "beobachten": "Beobachten",
-          "schalten": "Schalten"
+          "empfehlen": "Manuell mit Empfehlung",
+          "schalten": "Automatisch"
         }
       },
       "automatik_ausrichtung": {

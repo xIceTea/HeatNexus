@@ -303,7 +303,8 @@
         "name": "Modus automatische regeling",
         "state": {
           "beobachten": "Observeren",
-          "schalten": "Schakelen"
+          "empfehlen": "Handmatig met advies",
+          "schalten": "Automatisch"
         }
       },
       "automatik_ausrichtung": {

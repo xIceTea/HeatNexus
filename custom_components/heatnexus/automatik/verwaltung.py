@@ -389,12 +389,12 @@ class Verwaltung:
             raise ValueError("Raumfühler und Wetter-Entität sind nötig.")
         neu = konfig_modul.klima_vorgabe(neu, alt["raeume"])
         if (laufzeit := self.laufzeiten.get(device_id)) is not None:
-            schaltete = alt["aktiv"] and alt["modus"] == "schalten"
-            schaltet = neu["aktiv"] and neu["modus"] == "schalten"
-            if schaltete and not schaltet:
+            schreibt_alt = alt["aktiv"] and alt["modus"] != "beobachten"
+            schreibt_neu = neu["aktiv"] and neu["modus"] != "beobachten"
+            if schreibt_alt and not schreibt_neu:
                 await laufzeit.zuruecknehmen()
             # Nur Beobachtetes verwerfen; ein nicht zurückgenommener Eingriff bleibt bekannt.
-            if schaltet and alt["modus"] != "schalten":
+            if schreibt_neu and alt["modus"] == "beobachten":
                 laufzeit.gedaechtnis_leeren()
             if neu["modus"] == "beobachten" and alt["modus"] != "beobachten":
                 laufzeit.beobachtet_seit = dt_util.now()

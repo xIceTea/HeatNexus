@@ -135,6 +135,19 @@ async def _schalten(client) -> None:
     assert antwort["success"], antwort
 
 
+async def test_empfehlen_schreibt_wie_schalten_und_beobachtet_nicht(hass, hass_ws_client, anlage):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    antwort = await _senden(
+        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, modus="empfehlen"
+    )
+    assert antwort["success"], antwort
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    assert laufzeit.empfehlen is True
+    assert laufzeit.beobachten is False
+
+
 async def test_einrichten_startet_im_beobachtungsmodus(hass, hass_ws_client, anlage, freezer):
     verwaltung, coordinator = anlage
     client = await hass_ws_client(hass)
