@@ -531,6 +531,7 @@
   "Wieder jemand zu Hause – Absenkung beendet.": "Weer iemand thuis – verlaging beëindigd.",
   "Niemand zu Hause – abgesenkt bis {zeit}.": "Niemand thuis – verlaagd tot {zeit}.",
   "Niemand zu Hause – {soll} °C bis {zeit}.": "Niemand thuis – {soll} °C tot {zeit}.",
+  "Kein Eingriff – die Steuerung hält den Heizkreis aus, AT {at} °C.": "Geen ingreep – de regeling houdt het verwarmingscircuit uit, buitentemp. {at} °C.",
   "Heizt nach Programm – gedämpfte AT {at} °C, Raum {raum} °C.": "Verwarmt volgens programma – gedempte buitentemp. {at} °C, ruimte {raum} °C.",
   "{text} Die Räume fordern Wärme an.": "{text} De ruimtes vragen om warmte.",
   "Sonnentag ausgeschaltet – Absenkung beendet.": "Zonnige dag uitgeschakeld – verlaging beëindigd.",

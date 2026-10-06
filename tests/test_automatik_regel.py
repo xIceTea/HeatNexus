@@ -795,3 +795,19 @@ def test_jede_kurzfassung_kommt_auf_englisch_an(m):
         if (text := m.kurz(zustand, gedaechtnis, MORGEN)) and DEUTSCH.search(englisch.satz(text))
     }
     assert not reste, sorted(reste)
+
+
+def test_programm_nennt_den_von_der_steuerung_ausgeschalteten_heizkreis(m, w):
+    """Ohne Vorlauf-Soll heizt die Steuerung nicht; „heizt nach Programm“ wäre falsch."""
+    felder = {"at": 17.6, "at_steuerung": 17.6, "vl_soll": 0.0, "ruhig": False}
+    e = m.entscheiden(lage(m, **felder), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.PROGRAMM
+    assert e.begruendung == (
+        "Kein Eingriff – die Steuerung hält den Heizkreis aus, AT 17,6 °C. "
+        "Die Räume fordern Wärme an."
+    )
+
+
+def test_programm_mit_vorlauf_heizt(m, w):
+    e = m.entscheiden(lage(m, vl_soll=42.0), m.Gedaechtnis(), w)
+    assert e.begruendung.startswith("Heizt nach Programm")
