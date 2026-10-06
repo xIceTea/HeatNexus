@@ -13,7 +13,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.sun import get_astral_event_date
 from homeassistant.util import dt as dt_util
 
-from . import eingaben, korrektur
+from . import eingaben, korrektur, regel
 
 
 def ortszeit(wert: Any) -> datetime | None:
@@ -147,6 +147,10 @@ class QuellenMixin:
             return
         liefert = bool(self.vorrang_liefert())
         self.vorrang = eingaben.lauf_fortschreiben(self.vorrang, jetzt, liefert)
+        # Die Minuten des Tages bleiben einige Tage stehen; daraus folgen die Vorrangtage.
+        self.vorrang_verlauf[self.vorrang.datum] = eingaben.lauf_minuten(self.vorrang, jetzt)
+        grenze = (jetzt.date() - timedelta(days=4)).isoformat()
+        self.vorrang_verlauf = {t: m for t, m in self.vorrang_verlauf.items() if t >= grenze}
         if liefert:
             self.stunde_nachtragen(jetzt.hour, vorrang=True)
 
@@ -158,6 +162,9 @@ class QuellenMixin:
             "vorrang_laeuft": bool(liefert),
             "vorrang_minuten": eingaben.lauf_minuten(self.vorrang, jetzt),
             "vorrang_name": self._quellenname(liefert[0]) if liefert else None,
+            "vorrang_tage": eingaben.vorrang_tage(
+                self.vorrang_verlauf, jetzt.date(), regel.VORRANG_MIN_MINUTEN
+            ),
         }
 
     def _quellenname(self, entity_id: str) -> str:

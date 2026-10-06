@@ -59,6 +59,7 @@ class Coordinator:
                 f"{PREFIX}/3/50/0": "1",
                 f"{PREFIX}/2/10/0": "0",
                 f"{PREFIX}/0/0/0": "12.0",
+                f"{PREFIX}/1/2/0": "35.0",
                 f"{PREFIX}/2/9/0": "1",
                 f"{PREFIX}/3/21/0": "18.0",
                 f"{PREFIX}/3/2/0": "5.0",
@@ -432,6 +433,18 @@ async def test_gedaempfte_at_beginnt_beim_tagesmittel(hass, hass_ws_client, anla
 
     assert stufen is not None
     assert stufen[1] == pytest.approx(10.0, abs=0.1)  # (14 + 6) / 2 aus der Tagesprognose
+
+
+async def test_lage_kennt_at_und_vorlauf_der_steuerung(hass, hass_ws_client, anlage):
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    coordinator.data["oids"][f"{PREFIX}/0/0/0"] = "18.4"
+    coordinator.data["oids"][f"{PREFIX}/1/2/0"] = "0.0"
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await laufzeit.auswerten()
+    assert laufzeit.lage.at_steuerung == 18.4
+    assert laufzeit.lage.vl_soll == 0.0
 
 
 async def test_einrichtung_laesst_sich_nachtraeglich_aendern(hass, hass_ws_client, anlage):

@@ -177,3 +177,16 @@ def test_minimum_bis_morgen_reicht_bis_neun_uhr(eingaben):
 def test_minimum_bis_morgen_ohne_werte(eingaben):
     jetzt = datetime(2026, 10, 3, 2, 0, tzinfo=UTC)
     assert eingaben.minimum_bis_morgen([(jetzt, None)], jetzt) is None
+
+
+def test_vorrangtage_zaehlen_die_letzten_drei_tage(eingaben):
+    heute = date(2026, 10, 6)
+    minuten = {
+        "2026-10-05": 40.0,
+        "2026-10-04": 5.0,
+        "2026-10-03": 90.0,
+        "2026-10-02": 300.0,  # liegt außerhalb der drei Tage
+        "2026-10-06": 500.0,  # heute zählt nicht
+    }
+    assert eingaben.vorrang_tage(minuten, heute, 15.0) == 2
+    assert eingaben.vorrang_tage({}, heute, 15.0) == 0

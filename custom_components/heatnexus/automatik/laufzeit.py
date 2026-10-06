@@ -50,7 +50,7 @@ STEUERUNG_WARTEN = timedelta(minutes=10)
 MODUS_ARTEN = ("absenkung", "nur_ww")
 # Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
 # Heizgrenzen der Steuerung (`3/21`, `3/2`) gehören dazu: an ihnen richtet sich die Regel aus.
-ABRUF = ("/2/9/0", "/0/0/0", "/3/21/0", "/3/2/0")
+ABRUF = ("/2/9/0", "/0/0/0", "/1/2/0", "/3/21/0", "/3/2/0")
 HEIZGRENZEN = {
     "heizbetrieb": ("/3/21/0", "Heizbetrieb"),
     "absenkbetrieb": ("/3/2/0", "Absenkbetrieb"),
@@ -75,6 +75,13 @@ def _kommazahl(wert: Any) -> float | None:
     if isinstance(wert, bool) or not isinstance(wert, int | float):
         return None
     return float(wert)
+
+
+def _tageswerte(roh: Any) -> dict[str, float]:
+    """Minuten je Tag aus dem Store; Unlesbares entfällt."""
+    if not isinstance(roh, dict):
+        return {}
+    return {str(k): w for k, v in roh.items() if (w := _kommazahl(v)) is not None}
 
 
 def naechster_morgen(jetzt: datetime) -> datetime:
@@ -125,9 +132,7 @@ class Laufzeit(QuellenMixin):
         self.beobachtet_seit = ortszeit(z.get("beobachtet_seit")) or dt_util.now()
         # Ohne Vorgeschichte gilt der Start als letzte Anforderung; das verzögert nur Warmwasser.
         self.anforderung_zuletzt = ortszeit(z.get("anforderung_zuletzt")) or dt_util.now()
-        self.pv_tage: dict[str, float] = {
-            str(k): float(v) for k, v in (z.get("pv_tage") or {}).items()
-        }
+        self.pv_tage = _tageswerte(z.get("pv_tage"))
         try:
             self.zustand = regel.Zustand(z.get("zustand") or regel.Zustand.PROGRAMM)
         except ValueError:
@@ -161,6 +166,7 @@ class Laufzeit(QuellenMixin):
         self.eingefroren: set[str] = set()
         # Wie lange Wärmequellen mit Vorrang vor dem Kessel heute geliefert haben.
         self.vorrang = eingaben.lauf_aus_dict(z.get("vorrang"))
+        self.vorrang_verlauf = _tageswerte(z.get("vorrang_verlauf"))
         # Wie lange Sonnentag und nur Warmwasser heute an der Steuerung galten.
         modus = z.get("modus_lauf")
         self.modus_lauf = (
@@ -210,6 +216,7 @@ class Laufzeit(QuellenMixin):
             "pv": self.pv.als_dict(),
             "verlauf": self.verlauf,
             "vorrang": eingaben.lauf_als_dict(self.vorrang),
+            "vorrang_verlauf": dict(self.vorrang_verlauf),
             "modus_lauf": {
                 art: eingaben.lauf_als_dict(lauf) for art, lauf in self.modus_lauf.items()
             },
@@ -770,5 +777,7 @@ class Laufzeit(QuellenMixin):
             pausiert_bis=self.pausiert_bis,
             entscheidungszeit=entscheidungszeit,
             absenkung_moeglich=self._wert("/2/10/0") is not None,
+            at_steuerung=self._wert("/0/0/0"),
+            vl_soll=self._wert("/1/2/0"),
             **self._vorrang_lage(jetzt),
         )

@@ -134,6 +134,12 @@ def lauf_aus_dict(roh: Any) -> Lauf:
         return Lauf()
 
 
+def vorrang_tage(minuten_je_tag: Mapping[str, float], heute: date, schwelle: float) -> int:
+    """An wie vielen der drei Tage vor `heute` die Vorrangquelle mindestens `schwelle` Minuten lieferte."""
+    tage = {(heute - timedelta(days=n)).isoformat() for n in (1, 2, 3)}
+    return sum(1 for tag, minuten in minuten_je_tag.items() if tag in tage and minuten >= schwelle)
+
+
 def sonnenquote_aus_bewoelkung(
     stunden: list[tuple[datetime, float | None]], aufgang: datetime, untergang: datetime
 ) -> float | None:
