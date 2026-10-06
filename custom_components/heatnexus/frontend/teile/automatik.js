@@ -57,6 +57,7 @@ export const ZUSTAENDE = {
 export const PROTOKOLL_ARTEN = {
   geschrieben: "geschrieben",
   haette: "hätte geschrieben",
+  empfohlen: "empfohlen",
   abgelehnt: "abgelehnt",
   budget: "Budget erreicht",
   geprueft: "geprüft",
