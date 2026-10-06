@@ -134,7 +134,8 @@ class QuellenMixin:
         self._geaendert = True
         self.hass.async_create_task(self.auswerten())
 
-    def _vorrang_liefert(self) -> list[str]:
+    def vorrang_liefert(self) -> list[str]:
+        """Die gewählten Vorrangquellen, die gerade liefern."""
         return [
             kennung
             for kennung in self.konfig["vorrang"]
@@ -144,7 +145,7 @@ class QuellenMixin:
     def _vorrang_fortschreiben(self, jetzt: datetime) -> None:
         if not self.konfig["vorrang"]:
             return
-        liefert = bool(self._vorrang_liefert())
+        liefert = bool(self.vorrang_liefert())
         self.vorrang = eingaben.lauf_fortschreiben(self.vorrang, jetzt, liefert)
         if liefert:
             self.stunde_nachtragen(jetzt.hour, vorrang=True)
@@ -152,7 +153,7 @@ class QuellenMixin:
     def _vorrang_lage(self, jetzt: datetime) -> dict[str, Any]:
         if not self.konfig["vorrang"]:
             return {}
-        liefert = self._vorrang_liefert()
+        liefert = self.vorrang_liefert()
         return {
             "vorrang_laeuft": bool(liefert),
             "vorrang_minuten": eingaben.lauf_minuten(self.vorrang, jetzt),
