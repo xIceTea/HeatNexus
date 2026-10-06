@@ -179,6 +179,7 @@ async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(
         ereignisse.append(ereignis)
 
     hass.bus.async_listen("heatnexus_automatik_empfehlung", merken)
+    hass.config.language = "en"
     laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
     await hass.async_block_till_done()
 
@@ -193,6 +194,7 @@ async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(
     assert ereignisse[0].data["heizkreis"] == HEIZKREIS
     assert ereignisse[0].data["zustand"] == "sonnentag"
     assert ereignisse[0].data["taste"] is None
+    assert ereignisse[0].data["begruendung"] != laufzeit.empfehlung["begruendung"]
 
     await laufzeit.auswerten(entscheidungszeit=True)
     await hass.async_block_till_done()

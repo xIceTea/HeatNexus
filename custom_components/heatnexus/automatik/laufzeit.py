@@ -28,6 +28,7 @@ from homeassistant.util import dt as dt_util
 from ..const import DOMAIN
 from ..helpers import get_oid_value
 from ..registrierung import geraetename
+from ..texte import woerterbuch
 from . import eingaben, korrektur, nachladen, profile, regel, stundenmodus, tagesansicht
 from .quellen import QuellenMixin, ortszeit
 from .steller import Stand, Steller, nur_ww_wert
@@ -462,7 +463,7 @@ class Laufzeit(QuellenMixin):
                 "heizkreis": self.device_id,
                 "name": self.name,
                 "zustand": neu,
-                "begruendung": entscheidung.begruendung,
+                "begruendung": woerterbuch(self.hass).satz(entscheidung.begruendung),
                 "taste": self.taste_entity_id,
             },
         )

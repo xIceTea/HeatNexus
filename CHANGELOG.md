@@ -11,7 +11,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Neu
 
 - Eine Heizpause hält den Heizkreis an milden Tagen aus; bei Kälte heizt die Steuerung.
-- Im Modus „Manuell mit Empfehlung“ schaltet die Automatik erst nach Bestätigung.
+- Der Modus „Manuell mit Empfehlung“ schlägt Eingriffe vor, die weniger heizen.
 - Ein Blueprint meldet Empfehlungen der Automatik mit der Aktion „Übernehmen“.
 
 ### Behoben
