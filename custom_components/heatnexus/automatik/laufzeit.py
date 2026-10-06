@@ -31,7 +31,7 @@ from ..registrierung import geraetename
 from ..texte import woerterbuch
 from . import eingaben, korrektur, nachladen, profile, regel, stundenmodus, tagesansicht
 from .quellen import QuellenMixin, ortszeit
-from .steller import Stand, Steller, nur_ww_wert
+from .steller import Stand, Steller, braucht_bestaetigung, nur_ww_wert
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,6 +91,18 @@ def naechster_morgen(jetzt: datetime) -> datetime:
     """Das nächste 05:00 nach `jetzt`; so lange hält eine Pause."""
     ziel = jetzt.replace(hour=PAUSE_BIS_STUNDE, minute=0, second=0, microsecond=0)
     return ziel if ziel > jetzt else ziel + timedelta(days=1)
+
+
+def _gueltige_empfehlung(wert: Any) -> dict[str, Any] | None:
+    """Eine gespeicherte Empfehlung gilt nur vollständig und mit lesbarer Zeit."""
+    if not isinstance(wert, dict) or not isinstance(wert.get("begruendung"), str):
+        return None
+    try:
+        regel.Zustand(wert["zustand"])
+        seit = datetime.fromisoformat(wert["seit"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return wert if seit.tzinfo is not None else None
 
 
 class Laufzeit(QuellenMixin):
@@ -377,7 +389,7 @@ class Laufzeit(QuellenMixin):
             self._pausieren(jetzt, grund)
             lage = replace(lage, pausiert_bis=self.pausiert_bis)
         entscheidung = regel.entscheiden(lage, self.gedaechtnis, self.werte)
-        bestaetigt = bestaetigung is not None
+        bestaetigt = self._bestaetigt(bestaetigung, entscheidung)
         angenommen = await self.steller.ausfuehren(
             entscheidung,
             jetzt=jetzt,
@@ -416,11 +428,15 @@ class Laufzeit(QuellenMixin):
         """Was auf einen Lauf wartet: Entscheidungszeit, Bestätigung, offene Empfehlung."""
         self._entscheidung_offen = False
         self._bestaetigt_offen = False
-        empfehlung = z.get("empfehlung")
-        self.empfehlung: dict[str, Any] | None = (
-            empfehlung if isinstance(empfehlung, dict) else None
+        self.empfehlung: dict[str, Any] | None = _gueltige_empfehlung(z.get("empfehlung"))
+
+    def _taste(self) -> str | None:
+        """Die Entität der Taste; sie entsteht erst nach dem ersten Lauf."""
+        from .verwaltung import unique_id
+
+        return er.async_get(self.hass).async_get_entity_id(
+            "button", DOMAIN, unique_id(self.device_id, "empfehlung_uebernehmen")
         )
-        self.taste_entity_id: str | None = None
 
     def _bestaetigung(self) -> bool | None:
         """Eine offene Bestätigung abholen: `None` ohne, sonst die Entscheidungszeit der Empfehlung."""
@@ -428,6 +444,14 @@ class Laufzeit(QuellenMixin):
         if not offen or self.empfehlung is None:
             return None
         return bool(self.empfehlung.get("entscheidungszeit"))
+
+    def _bestaetigt(self, bestaetigung: bool | None, entscheidung: regel.Entscheidung) -> bool:
+        """Die Zustimmung gilt nur für den Zustand, den der Nutzer gesehen hat."""
+        if bestaetigung is None or self.empfehlung is None:
+            return False
+        if not braucht_bestaetigung(entscheidung.aktionen):
+            return True
+        return entscheidung.zustand.value == self.empfehlung["zustand"]
 
     def _budget(self, bestaetigt: bool) -> int:
         """Eine Bestätigung ist die Entscheidung des Nutzers; das Tagesbudget hält sie nicht auf."""
@@ -449,7 +473,7 @@ class Laufzeit(QuellenMixin):
         """Eine neue Empfehlung melden; dieselbe bleibt still und frischt nur ihre Begründung auf."""
         neu = entscheidung.zustand.value
         if self.empfehlung is not None and self.empfehlung.get("zustand") == neu:
-            self.empfehlung["begruendung"] = entscheidung.begruendung
+            self.empfehlung = {**self.empfehlung, "begruendung": entscheidung.begruendung}
             return
         self.empfehlung = {
             "zustand": neu,
@@ -464,7 +488,7 @@ class Laufzeit(QuellenMixin):
                 "name": self.name,
                 "zustand": neu,
                 "begruendung": woerterbuch(self.hass).satz(entscheidung.begruendung),
-                "taste": self.taste_entity_id,
+                "taste": self._taste(),
             },
         )
 

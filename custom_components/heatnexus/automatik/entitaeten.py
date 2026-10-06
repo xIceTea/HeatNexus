@@ -104,7 +104,7 @@ class AutomatikSchalter(AutomatikEntitaet, SwitchEntity):
 
 
 class AutomatikModus(AutomatikEntitaet, SelectEntity):
-    """Beobachten oder Schalten."""
+    """Beobachten, Manuell mit Empfehlung oder Automatisch."""
 
     ART = "modus"
     _attr_translation_key = "automatik_modus"
@@ -196,11 +196,6 @@ class AutomatikEmpfehlungTaste(AutomatikEntitaet, ButtonEntity):
 
     ART = "empfehlung_uebernehmen"
     _attr_translation_key = "automatik_empfehlung_uebernehmen"
-
-    async def async_added_to_hass(self) -> None:
-        await super().async_added_to_hass()
-        if (laufzeit := self._laufzeit) is not None:
-            laufzeit.taste_entity_id = self.entity_id
 
     @property
     def available(self) -> bool:

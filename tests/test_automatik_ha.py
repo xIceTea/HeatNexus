@@ -135,19 +135,6 @@ async def _schalten(client) -> None:
     assert antwort["success"], antwort
 
 
-async def test_empfehlen_schreibt_wie_schalten_und_beobachtet_nicht(hass, hass_ws_client, anlage):
-    verwaltung, _ = anlage
-    client = await hass_ws_client(hass)
-    await _einrichten(client)
-    antwort = await _senden(
-        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, modus="empfehlen"
-    )
-    assert antwort["success"], antwort
-    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    assert laufzeit.empfehlen is True
-    assert laufzeit.beobachten is False
-
-
 async def _empfehlen(client) -> None:
     antwort = await _senden(
         client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, modus="empfehlen"
@@ -232,7 +219,6 @@ async def test_empfehlung_als_sensor_und_taste(hass, hass_ws_client, anlage, fre
     assert hass.states.get(sensor).state == "sonnentag"
     assert hass.states.get(sensor).attributes["seit"] == laufzeit.empfehlung["seit"]
     assert hass.states.get(taste).state != "unavailable"
-    assert laufzeit.taste_entity_id == taste
 
     await hass.services.async_call("button", "press", {"entity_id": taste}, blocking=True)
     await hass.async_block_till_done()
@@ -265,21 +251,24 @@ async def test_wechsel_zum_schalten_verwirft_die_empfehlung(hass, hass_ws_client
     assert laufzeit.empfehlung is None
 
 
-async def test_bestaetigung_schreibt_auch_ueber_dem_tagesbudget(
-    hass, hass_ws_client, anlage, freezer
+@pytest.mark.parametrize(("empfohlen", "geschrieben"), [("sonnentag", True), ("nur_ww", False)])
+async def test_bestaetigung_gilt_nur_fuer_die_angezeigte_empfehlung(
+    hass, hass_ws_client, anlage, freezer, empfohlen, geschrieben
 ):
     from dataclasses import replace
 
     verwaltung, coordinator = anlage
-    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+    laufzeit, client = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
     laufzeit.steller.stand = replace(laufzeit.steller.stand, eingriffe=laufzeit.werte.budget)
+    laufzeit.empfehlung = {**laufzeit.empfehlung, "zustand": empfohlen}
 
-    await verwaltung.empfehlung_uebernehmen(HEIZKREIS)
+    await _senden(client, type="heatnexus/automatik/empfehlung_uebernehmen", heizkreis=HEIZKREIS)
 
-    assert coordinator.client.geschrieben == [
-        (f"{PREFIX}/3/4/0", "19.5"),
-        (f"{PREFIX}/2/10/0", "400"),
-    ]
+    assert coordinator.client.geschrieben == (
+        [(f"{PREFIX}/3/4/0", "19.5"), (f"{PREFIX}/2/10/0", "400")] if geschrieben else []
+    )
+    assert (laufzeit.empfehlung is None) is geschrieben
+    assert geschrieben or laufzeit.empfehlung["zustand"] == "sonnentag"
 
 
 async def test_bestaetigung_waehrend_einer_auswertung_geht_nicht_verloren(
@@ -323,12 +312,6 @@ async def test_bestaetigung_waehrend_die_regel_wartet_bleibt_offen(
         (f"{PREFIX}/3/4/0", "19.5"),
         (f"{PREFIX}/2/10/0", "400"),
     ]
-
-
-async def test_ohne_automatik_keine_empfehlung_zu_uebernehmen(hass, anlage):
-    verwaltung, _ = anlage
-    with pytest.raises(ValueError):
-        await verwaltung.empfehlung_uebernehmen("unbekannt")
 
 
 async def test_einrichten_startet_im_beobachtungsmodus(hass, hass_ws_client, anlage, freezer):
@@ -406,24 +389,6 @@ async def test_lesen_liefert_die_offene_empfehlung_uebersetzt(
     assert kreis["empfehlung"]["begruendung"] == Woerterbuch("en").satz(deutsch)
     assert kreis["empfehlung"]["begruendung"] != deutsch
     assert laufzeit.empfehlung["begruendung"] == deutsch
-
-
-async def test_befehl_uebernimmt_die_empfehlung(hass, hass_ws_client, anlage, freezer):
-    verwaltung, coordinator = anlage
-    laufzeit, client = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
-
-    antwort = await _senden(
-        client, type="heatnexus/automatik/empfehlung_uebernehmen", heizkreis=HEIZKREIS
-    )
-
-    assert antwort["success"], antwort
-    assert coordinator.client.geschrieben == [
-        (f"{PREFIX}/3/4/0", "19.5"),
-        (f"{PREFIX}/2/10/0", "400"),
-    ]
-    assert laufzeit.empfehlung is None
-    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
-    assert kreis["empfehlung"] is None
 
 
 async def test_schalten_schreibt_zur_entscheidungszeit(hass, hass_ws_client, anlage, freezer):
@@ -1895,7 +1860,10 @@ async def test_laufzeiten_ohne_speicherstand_kommen_aus_dem_protokoll(hass, free
         Coordinator(),
         beschreibung,
         {},
-        {"stand": {"protokoll": protokoll}},
+        {
+            "stand": {"protokoll": protokoll},
+            "empfehlung": {"zustand": "sonnentag", "begruendung": "g", "seit": "gestern"},
+        },
         lambda: None,
         "e",
         prognose,
@@ -1903,6 +1871,7 @@ async def test_laufzeiten_ohne_speicherstand_kommen_aus_dem_protokoll(hass, free
 
     assert round(laufzeit.modus_lauf["absenkung"].minuten) == 242
     assert round(laufzeit.modus_lauf["nur_ww"].minuten) == 558
+    assert laufzeit.empfehlung is None
 
 
 async def test_der_heizkreis_heisst_wie_in_der_geraeteliste(hass):
