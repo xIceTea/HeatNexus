@@ -132,3 +132,30 @@ def test_heizpause_steht_als_eigener_modus(m):
     }
     ergebnis = m.ergaenzen({}, [eintrag_pause], TAG, 15, 6, TZ)
     assert (ergebnis[12], ergebnis[13], ergebnis[14]) == ("heizpause", "heizpause", "programm")
+
+
+def test_heizpause_nach_nur_ww_ersetzt_den_modus(m):
+    nur_ww = eintrag("08:00", ("/3/50/0", "6"))
+    kombi = {
+        **eintrag("12:00", ("/3/50/0", "1"), ("/3/4/0", "16.0"), ("/2/10/0", "120")),
+        "aktionen": ["zurueck", "pause"],
+    }
+    ergebnis = m.ergaenzen({}, [nur_ww, kombi], TAG, 15, 6, TZ)
+    assert ergebnis[10] == "nur_ww"
+    assert (ergebnis[12], ergebnis[13], ergebnis[14]) == ("heizpause", "heizpause", "programm")
+
+
+def test_heizpause_endet_mit_dem_absenkungsende(m):
+    pause = {
+        **eintrag("12:00", ("/3/4/0", "16.0"), ("/2/10/0", "120")),
+        "aktionen": ["pause"],
+    }
+    ende = eintrag("13:00", ("/2/10/0", "0"))
+    ergebnis = m.ergaenzen({}, [pause, ende], TAG, 15, 6, TZ)
+    assert (ergebnis[12], ergebnis[13]) == ("heizpause", "programm")
+    bis = datetime(2026, 9, 28, 14, 0, tzinfo=TZ)
+    assert m.minuten([pause, ende], TAG, bis, 6) == {
+        "absenkung": 0.0,
+        "nur_ww": 0.0,
+        "heizpause": 60.0,
+    }

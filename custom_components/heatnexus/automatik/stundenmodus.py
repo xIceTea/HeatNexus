@@ -39,12 +39,14 @@ def _ereignisse(
             continue
         werte = {str(oid): str(wert) for oid, wert in eintrag.get("werte") or ()}
         dauer = _minuten(werte.get(OID_DAUER))
-        if OID_BETRIEBSWAHL in werte:
+        pause = "pause" in (eintrag.get("aktionen") or ())
+        if pause and OID_SOLL in werte and dauer > 0:
+            liste.append((zeit, "heizpause", zeit + timedelta(minutes=dauer)))
+        elif OID_BETRIEBSWAHL in werte:
             modus = "nur_ww" if werte[OID_BETRIEBSWAHL] == str(nur_ww_wert) else PROGRAMM
             liste.append((zeit, modus, None))
         elif OID_SOLL in werte and dauer > 0:
-            modus = "heizpause" if "pause" in (eintrag.get("aktionen") or ()) else "absenkung"
-            liste.append((zeit, modus, zeit + timedelta(minutes=dauer)))
+            liste.append((zeit, "absenkung", zeit + timedelta(minutes=dauer)))
         elif OID_DAUER in werte and dauer == 0:
             liste.append((zeit, PROGRAMM, None))
     return sorted(liste, key=lambda e: e[0])
