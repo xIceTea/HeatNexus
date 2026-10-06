@@ -100,7 +100,9 @@ welcome — the integration's diagnostics export is all it takes.
 - **Automation per heating circuit**: it lowers the setpoint on sunny days and
   switches to hot water only in the transition season, based on weather and PV
   forecast, room sensors and heat sources with priority. It starts in observe
-  mode and only writes to the controller once released.
+  mode and only writes to the controller once released. In the
+  "Manual with recommendation" mode it proposes the interventions that heat
+  less.
 - **Time programs** for heating, hot water and circulation, readable and
   writable — shown as a weekly grid in the panel, with an editor for weekdays
   and switch points.
@@ -346,7 +348,7 @@ copy:
 
 ## Automation blueprints
 
-Six blueprints ship with the integration and are ready under *Settings →
+Seven blueprints ship with the integration and are ready under *Settings →
 Automations & Scenes → Blueprints* after setup — no import from the internet:
 
 | Blueprint | Purpose |
@@ -357,6 +359,7 @@ Automations & Scenes → Blueprints* after setup — no import from the internet
 | Record running time | measure how long a part runs uninterrupted |
 | Lower heating circuit while away | lower on absence, restore on return |
 | Emulate legionella protection | raises the cylinder on a fixed schedule via the one-off charge — for controllers without a built-in legionella function |
+| Report automation recommendation | sends a recommendation of the automation to a mobile device; "Apply" carries it out |
 
 What happens on an event is up to the individual automation — notification,
 announcement, phone call, any action. The fault blueprint evaluates the
