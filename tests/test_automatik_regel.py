@@ -707,6 +707,7 @@ def test_vorrangtage_machen_einen_knapp_kuehlen_tag_mild(m, w):
     mit = m.entscheiden(lage(m, **felder, vorrang_tage=2), m.Gedaechtnis(), w)
     assert "nur_ww" not in [a.art for a in ohne.aktionen]
     assert "nur_ww" in [a.art for a in mit.aktionen]
+    assert mit.begruendung == "Prognose heute und morgen im Mittel ab 16,0 °C – nur Warmwasser."
 
 
 def test_vorrangquelle_ersetzt_eine_fehlende_sonnenquote(m, w):

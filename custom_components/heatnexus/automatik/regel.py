@@ -431,7 +431,8 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
     )
     # Liefert die Vorrangquelle an mehreren Tagen, reicht ein Tagesmittel knapp unter der Grenze.
     vorrang = (lage.vorrang_tage or 0) >= VORRANG_TAGE_MILD
-    mild = tiefer is not None and tiefer >= schwelle - (1.0 if vorrang else 0.0)
+    mild_ab = schwelle - (1.0 if vorrang else 0.0)
+    mild = tiefer is not None and tiefer >= mild_ab
     # Fordert ein Thermostat noch Wärme an, braucht der Heizkreis sie auch.
     if not (warm or mild) or lage.ruhig is False:
         return None
@@ -441,7 +442,7 @@ def _saison(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung |
             f"{_zahl(schwelle + w.hysterese)} °C – nur Warmwasser."
         )
     else:
-        grund = f"Prognose heute und morgen im Mittel ab {_zahl(schwelle)} °C – nur Warmwasser."
+        grund = f"Prognose heute und morgen im Mittel ab {_zahl(mild_ab)} °C – nur Warmwasser."
     neu = Gedaechtnis(
         saison=NUR_WW,
         saison_seit=lage.jetzt,
