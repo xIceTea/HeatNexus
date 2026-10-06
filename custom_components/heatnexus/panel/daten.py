@@ -912,9 +912,8 @@ def _anlage_daten(
         for muster, beschriftung, symbol, schluessel in SCHNELLZUGRIFF:
             if not hat_warmwasser and _passt(beschriftung, WARMWASSER):
                 continue
-            if _passt(beschriftung, WARMWASSER):
-                treffer = _ww_ausloeser(teil)
-            else:
+            treffer = _ww_ausloeser(teil) if _passt(beschriftung, WARMWASSER) else None
+            if treffer is None:
                 treffer = _eintrag(
                     teil["entitaeten"],
                     namensmuster(muster),
