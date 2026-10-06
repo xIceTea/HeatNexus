@@ -229,6 +229,36 @@ def test_handeingriff_beendet_die_absenkung(s, regel):
     assert passt is None
 
 
+@pytest.mark.parametrize(
+    ("raumsoll", "erwartet"), [(18.0, "Absenkung von Hand geändert."), (17.2, None), (None, None)]
+)
+def test_handeingriff_am_raumsoll_der_pause(s, regel, raumsoll, erwartet):
+    steller = s.Steller("/1/15/0", UML, Schreiber())
+    g = regel.Gedaechtnis(
+        absenkung_art=regel.PAUSE,
+        absenkung_von=JETZT,
+        absenkung_bis=JETZT + timedelta(minutes=400),
+        absenkung_soll=17.0,
+    )
+    spaeter = JETZT + timedelta(hours=1)
+    kw = {"jetzt": spaeter, "betriebswahl": 1, "rest_min": 340, "betriebsart": 1}
+    assert steller.handeingriff(g, raumsoll=raumsoll, **kw) == erwartet
+
+
+def test_raumsoll_innerhalb_der_schonfrist_ist_kein_handeingriff(s, regel):
+    steller = s.Steller("/1/15/0", UML, Schreiber())
+    ausfuehren(steller, entscheidung(regel, regel.Aktion("pause", soll=17.0, minuten=400)))
+    g = regel.Gedaechtnis(
+        absenkung_art=regel.PAUSE,
+        absenkung_von=JETZT,
+        absenkung_bis=JETZT + timedelta(minutes=400),
+        absenkung_soll=17.0,
+    )
+    kurz = JETZT + timedelta(minutes=1)
+    kw = {"jetzt": kurz, "betriebswahl": 2, "rest_min": 399, "betriebsart": 1}
+    assert steller.handeingriff(g, raumsoll=21.0, **kw) is None
+
+
 def test_neuer_tag_setzt_das_budget_zurueck(s, regel):
     steller = s.Steller("/1/15/0", UML, Schreiber())
     absenken = regel.Aktion("absenken", soll=19.5, minuten=60)

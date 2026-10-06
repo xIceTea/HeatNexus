@@ -306,6 +306,35 @@ async def test_sicherheit_meldet_sich_erst_nach_der_wiederholung(
     assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is None
 
 
+async def test_geaenderter_raumsoll_der_pause_gilt_als_handeingriff(
+    hass, hass_ws_client, anlage, freezer
+):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import regel
+
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    jetzt = dt_util.now()
+    laufzeit.gedaechtnis = regel.Gedaechtnis(
+        absenkung_art=regel.PAUSE,
+        absenkung_von=jetzt - timedelta(hours=1),
+        absenkung_bis=jetzt + timedelta(minutes=340),
+        absenkung_soll=17.0,
+    )
+    coordinator.data["oids"][f"{PREFIX}/2/10/0"] = "340"
+
+    await laufzeit.auswerten()
+
+    assert laufzeit.pausiert_bis is not None
+
+
 async def test_nur_administratoren_richten_ein(
     hass, hass_ws_client, hass_read_only_access_token, anlage
 ):

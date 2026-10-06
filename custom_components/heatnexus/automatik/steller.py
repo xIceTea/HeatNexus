@@ -26,6 +26,7 @@ PROGRAMM_1 = 1
 WW_LADUNG = frozenset({3, 17, 18})
 PROTOKOLL_MAX = 200
 TOLERANZ_MIN = 5.0
+RAUMSOLL_TOLERANZ = 0.3
 # Der Abruf zeigt einen eigenen Schreibvorgang erst mit Verzug.
 SCHONFRIST = timedelta(minutes=3)
 # Nach einer Ablehnung wartet der Steller, mit jeder weiteren doppelt so lang.
@@ -86,6 +87,25 @@ class Stand:
 
 def _ganzzahl(wert: Any) -> int | None:
     return None if wert is None else int(wert)
+
+
+def _absenkung_von_hand(
+    g: Gedaechtnis, jetzt: datetime, rest_min: float | None, raumsoll: float | None
+) -> str | None:
+    if rest_min is not None:
+        soll_rest = (g.absenkung_bis - jetzt).total_seconds() / 60
+        if rest_min <= 0 and soll_rest > TOLERANZ_MIN:
+            return "Absenkung von Hand beendet."
+        if rest_min > soll_rest + TOLERANZ_MIN:
+            return "Absenkung von Hand geändert."
+    # Während der eigenen Absenkung zeigt `1/1` den geschriebenen Raumsoll.
+    if (
+        raumsoll is not None
+        and g.absenkung_soll is not None
+        and abs(raumsoll - g.absenkung_soll) > RAUMSOLL_TOLERANZ
+    ):
+        return "Absenkung von Hand geändert."
+    return None
 
 
 def _zeitpunkt(wert: Any) -> str | None:
@@ -251,6 +271,7 @@ class Steller:
         betriebswahl: int | None,
         rest_min: float | None,
         betriebsart: int | None,
+        raumsoll: float | None = None,
     ) -> str | None:
         """Beschreibt einen Eingriff von Hand gegen eine laufende eigene Aktion."""
         if betriebsart is not None and betriebsart in WW_LADUNG:
@@ -260,12 +281,8 @@ class Steller:
         erwartet = self.stand.erwartet
         if erwartet is not None and betriebswahl is not None and betriebswahl != erwartet:
             return f"Betriebswahl von Hand auf {betriebswahl} gestellt."
-        if absenkung_laeuft(g, jetzt) and rest_min is not None:
-            soll_rest = (g.absenkung_bis - jetzt).total_seconds() / 60
-            if rest_min <= 0 and soll_rest > TOLERANZ_MIN:
-                return "Absenkung von Hand beendet."
-            if rest_min > soll_rest + TOLERANZ_MIN:
-                return "Absenkung von Hand geändert."
+        if absenkung_laeuft(g, jetzt):
+            return _absenkung_von_hand(g, jetzt, rest_min, raumsoll)
         return None
 
     def abgleichen(self, g: Gedaechtnis, jetzt: datetime) -> None:

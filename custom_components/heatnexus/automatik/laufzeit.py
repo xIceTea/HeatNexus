@@ -356,6 +356,7 @@ class Laufzeit(QuellenMixin):
                 betriebswahl=lage.betriebswahl,
                 rest_min=self._wert("/2/10/0"),
                 betriebsart=_ganzzahl(self._wert("/2/9/0")),
+                raumsoll=self._wert("/1/1/0"),
             )
         ):
             self._pausieren(jetzt, grund)
