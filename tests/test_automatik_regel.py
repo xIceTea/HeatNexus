@@ -561,6 +561,14 @@ def test_pause_wird_kurz_vor_ablauf_erneuert(m, w):
     assert e.gedaechtnis.absenkung_bis == jetzt + timedelta(minutes=400)
 
 
+def test_erneuern_senkt_den_sollwert_nie(m, w):
+    jetzt = MORGEN + timedelta(minutes=380)
+    felder = {**MILD, "at": 14.0, "at_steuerung": 14.0, "jetzt": jetzt}
+    e = m.entscheiden(lage(m, **felder), pause(m), w)
+    assert [(a.art, a.soll, a.erneuern) for a in e.aktionen] == [("pause", 17.0, True)]
+    assert e.gedaechtnis.absenkung_soll == 17.0
+
+
 def test_pause_rueckt_bei_steigender_at_nach(m, w):
     g = pause(m, absenkung_soll=12.0)
     e = m.entscheiden(lage(m, **MILD, jetzt=MORGEN + timedelta(hours=1)), g, w)

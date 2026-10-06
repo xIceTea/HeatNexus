@@ -672,6 +672,8 @@ def _heizpause_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
     alt = g.absenkung_soll if g.absenkung_soll is not None else ziel
     knapp = g.absenkung_bis is None or g.absenkung_bis - lage.jetzt < PAUSE_ERNEUERN_REST
     if ziel is not None and (knapp or ziel >= alt + PAUSE_NACHRUECKEN_K):
+        # Ein tieferer Wert hielte den Heizkreis bei fallender AT länger aus; nachrücken nur nach oben.
+        ziel = max(ziel, alt)
         bis = lage.jetzt + timedelta(minutes=MAX_MINUTEN)
         text = f"Heizpause verlängert – {_zahl(ziel)} °C bis {_uhr(bis)}."
         return _pause_schreiben(lage, g, soll, ziel, text, erneuern=True)
