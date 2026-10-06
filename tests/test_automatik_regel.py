@@ -548,6 +548,26 @@ def test_nach_einer_beendeten_pause_heute_keine_neue(m, w):
     assert all(a.art != "pause" for a in e.aktionen)
 
 
+def test_tiefere_abwesenheit_bleibt_vor_der_heizpause(m, w):
+    g = m.Gedaechtnis(
+        absenkung_art=m.ABWESEND,
+        absenkung_von=MORGEN - timedelta(hours=1),
+        absenkung_bis=MORGEN + timedelta(hours=5),
+        absenkung_basis=21.0,
+        absenkung_soll=16.5,
+    )
+    e = m.entscheiden(lage(m, **MILD, abwesend=True), g, w)
+    assert e.zustand == m.Zustand.ABWESEND
+    assert e.aktionen == ()
+    assert e.gedaechtnis.absenkung_soll == 16.5
+
+
+def test_beginnende_abwesenheit_unter_dem_pausenziel_geht_vor(m, w):
+    e = m.entscheiden(lage(m, **MILD, abwesend=True, soll=19.5, raum=19.6), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.ABWESEND
+    assert [(a.art, a.soll) for a in e.aktionen] == [("absenken", 16.5)]
+
+
 def test_laufende_pause_wartet(m, w):
     e = m.entscheiden(lage(m, **MILD, jetzt=MORGEN + timedelta(hours=1), vl_soll=0.0), pause(m), w)
     assert e.zustand == m.Zustand.HEIZPAUSE

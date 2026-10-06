@@ -682,12 +682,20 @@ def _heizpause_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
     )
 
 
+def _abwesend_tiefer(lage: Lage, g: Gedaechtnis, soll: float, ziel: float) -> bool:
+    # Eine Pause mit höherem Raumsoll ersetzte die tiefere Abwesenheit und heizte mehr.
+    laeuft = g.absenkung_art == ABWESEND and g.absenkung_soll is not None
+    return (laeuft and ziel >= g.absenkung_soll) or (
+        lage.abwesend and ziel >= round(soll - ABWESEND_K, 1)
+    )
+
+
 def _heizpause(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung | None:
     if g.absenkung_art == PAUSE:
         return _heizpause_laeuft(lage, g, soll, w)
     if not _pause_erlaubt(lage, g, soll, w) or (anlass := _pause_anlass(lage, w)) is None:
         return None
-    if (ziel := pause_soll(lage, w)) is None:
+    if (ziel := pause_soll(lage, w)) is None or _abwesend_tiefer(lage, g, soll, ziel):
         return None
     bis = lage.jetzt + timedelta(minutes=MAX_MINUTEN)
     text = f"{anlass}: Heizpause, {_zahl(ziel)} °C bis {_uhr(bis)}."
