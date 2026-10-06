@@ -345,7 +345,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto ‚Ä
       </a>
       <a class="feld" href="ANLEITUNG#vorlagen">
         <h3>Vorlagen und Dienste</h3>
-        <p>Sechs Automations-Vorlagen und sechs Dienste, mit Beispielaufruf.</p>
+        <p>Sieben Automations-Vorlagen und sechs Dienste, mit Beispielaufruf.</p>
       </a>
       <a class="feld" href="ANLEITUNG#oberflaeche">
         <h3>Die eigene Oberfl√§che</h3>

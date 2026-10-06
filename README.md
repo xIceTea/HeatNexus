@@ -377,7 +377,7 @@ Ab da gehört es dir und bleibt, wie du es einrichtest. Für die Kopie gilt:
 
 ## Automations-Vorlagen
 
-Sechs Blueprints werden mitgeliefert und liegen nach der Einrichtung unter
+Sieben Blueprints werden mitgeliefert und liegen nach der Einrichtung unter
 *Einstellungen → Automationen & Szenen → Blueprints* bereit – ohne Import aus
 dem Netz:
 
@@ -389,6 +389,7 @@ dem Netz:
 | Betriebsdauer erfassen | Misst, wie lange ein Anlagenteil ununterbrochen läuft |
 | Heizkreis bei Abwesenheit absenken | Absenken bei Abwesenheit, Rückstellen bei Rückkehr |
 | Legionellenschutz nachbilden | Fährt den Speicher in festem Turnus über die Einmalladung hoch — für Regler ohne eigene Legionellenschutzfunktion |
+| Empfehlung der Automatik melden | Meldet eine Empfehlung der Automatik aufs Handy; „Übernehmen“ führt sie aus |
 
 Was bei einem Ereignis passieren soll, gibt die jeweilige Automation vor –
 Benachrichtigung, Ansage, Anruf, beliebige Aktion. Die Störungsvorlage wertet

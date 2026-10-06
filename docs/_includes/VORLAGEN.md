@@ -1,6 +1,6 @@
 # Vorlagen und Dienste
 
-HeatNexus liefert sechs Automations-Vorlagen und sechs Dienste mit. Die
+HeatNexus liefert sieben Automations-Vorlagen und sechs Dienste mit. Die
 Vorlagen landen bei der Einrichtung unter
 `blueprints/automation/heatnexus/` und werden mit jeder neuen Fassung
 aufgefrischt; welche mitkommen, steht in den Optionen.
@@ -67,6 +67,18 @@ Ladetemperatur zurück, Betriebswahl zurück.
 > **Kein zertifizierter Legionellenschutz.** Die Vorlage ahmt nach, was der
 > Regler sonst selbst täte. Sie prüft nicht, ob jede Leitung die Temperatur
 > erreicht, und ersetzt keine Anlage nach DVGW W 551.
+
+### Empfehlung der Automatik melden
+
+Meldet eine Empfehlung der Automatik an ein Mobilgerät der Home-Assistant-App.
+Die Mitteilung enthält die Begründung und die Aktion „Übernehmen“. Ein Tipp
+darauf drückt die Taste der Empfehlung und führt sie aus.
+
+Die Vorlage gehört zum Modus „Manuell mit Empfehlung“. Gemeldet werden nur
+Eingriffe, die weniger heizen. Rückkehr ins Programm und Sicherheit schaltet
+die Automatik ohne Rückfrage. Antwortet niemand innerhalb der eingestellten
+Wartezeit, bleibt die Empfehlung offen; sie lässt sich weiter im Reiter
+Automatik oder mit der Taste **Empfehlung übernehmen** ausführen.
 
 ## Dienste
 

@@ -22,6 +22,11 @@ ohnehin tut:
   und eine Mindestdauer verhindern häufiges Umschalten. Liegt die aktuelle
   Außentemperatur unter der Einschaltschwelle der Steuerung und fordern die
   Thermostate Wärme an, geht der Heizkreis sofort zurück ins Programm.
+- **Heizpause.** An milden Tagen setzt sie einen befristeten Sollwert knapp
+  unter der Außentemperatur der Steuerung. Die Steuerung schaltet den
+  Heizkreis dann selbst aus und heizt von selbst wieder, sobald es kälter
+  wird. Die Vorgabe läuft von allein ab; die Automatik erneuert sie nur,
+  solange die Pause sinnvoll bleibt.
 - **Abwesenheit und Fenster** sind freiwillig. Sind alle Personen weg, senkt
   sie ab. Ein offenes Fenster setzt die Entscheidungen aus.
 
@@ -59,11 +64,21 @@ und legt fest, wie weit die Automatik von der Heizgrenze der Steuerung abweicht:
 Unter „Erweitert“ lässt sich jeder Wert einzeln ändern; eigene Werte gehen der
 Ausrichtung vor.
 
-## Beobachten, schalten, Grenzen
+## Modus und Grenzen
 
-Die Automatik beginnt im **Beobachtungsmodus**. Dann schreibt sie nichts an
-die Steuerung, und das Protokoll zeigt, was sie getan hätte. Erst „Schalten“
-macht sie wirksam. Weitere Regeln:
+Der Modus bestimmt, was die Automatik mit ihrer Entscheidung tut:
+
+- **Beobachten** ist der Anfang. Die Automatik schreibt nichts an die
+  Steuerung, und das Protokoll zeigt, was sie getan hätte.
+- **Manuell mit Empfehlung** schreibt nur, was nicht weniger heizt. Eingriffe,
+  die weniger heizen, schlägt sie vor: Die Empfehlung erscheint im Reiter
+  Automatik und als Sensor, und erst „Übernehmen“ führt sie aus. Die Rückkehr
+  ins Programm und alles, was der Sicherheit dient, schreibt sie sofort. Der
+  Blueprint „Empfehlung der Automatik melden“ schickt die Empfehlung aufs
+  Handy, mit der Aktion „Übernehmen“.
+- **Automatisch** schreibt jede Entscheidung selbst.
+
+Weitere Regeln:
 
 - Eine Bedienung von Hand hat Vorrang und pausiert die Automatik bis 05:00 am
   nächsten Morgen.
