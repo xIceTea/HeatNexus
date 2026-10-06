@@ -44,6 +44,8 @@ DOMAENE_JE_ART = {
     "modus": "select",
     "ausrichtung": "select",
     "zustand": "sensor",
+    "empfehlung": "sensor",
+    "empfehlung_uebernehmen": "button",
     "gedaempft": "sensor",
     "heizgrenze": "sensor",
     "abweichung": "sensor",

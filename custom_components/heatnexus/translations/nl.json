@@ -346,6 +346,30 @@
           }
         }
       },
+      "automatik_empfehlung": {
+        "name": "Advies",
+        "state": {
+          "keine": "Geen",
+          "programm": "Verwarmt volgens programma",
+          "sonnentag": "Zonnige dag",
+          "nur_ww": "Alleen warm water",
+          "heizpause": "Verwarmingspauze",
+          "abwesend": "Afwezig",
+          "pausiert": "Gepauzeerd",
+          "fenster": "Raam open",
+          "keine_daten": "Geen gegevens",
+          "sicherheit": "Veiligheid",
+          "aus": "Uit"
+        },
+        "state_attributes": {
+          "begruendung": {
+            "name": "Reden"
+          },
+          "seit": {
+            "name": "Sinds"
+          }
+        }
+      },
       "automatik_gedaempft": {
         "name": "Gedempte buitentemperatuur"
       },
@@ -436,6 +460,11 @@
       },
       "automatik_system_ueber_heizgrenze": {
         "name": "Boven verwarmingsgrens van de regelaar"
+      }
+    },
+    "button": {
+      "automatik_empfehlung_uebernehmen": {
+        "name": "Advies overnemen"
       }
     }
   },

@@ -346,6 +346,30 @@
           }
         }
       },
+      "automatik_empfehlung": {
+        "name": "Empfehlung",
+        "state": {
+          "keine": "Keine",
+          "programm": "Heizen nach Programm",
+          "sonnentag": "Sonnentag",
+          "nur_ww": "Nur Warmwasser",
+          "heizpause": "Heizpause",
+          "abwesend": "Abwesend",
+          "pausiert": "Pausiert",
+          "fenster": "Fenster offen",
+          "keine_daten": "Keine Daten",
+          "sicherheit": "Sicherheit",
+          "aus": "Aus"
+        },
+        "state_attributes": {
+          "begruendung": {
+            "name": "Begründung"
+          },
+          "seit": {
+            "name": "Seit"
+          }
+        }
+      },
       "automatik_gedaempft": {
         "name": "Gedämpfte Außentemperatur"
       },
@@ -436,6 +460,11 @@
       },
       "automatik_system_ueber_heizgrenze": {
         "name": "Über Heizgrenze der Steuerung"
+      }
+    },
+    "button": {
+      "automatik_empfehlung_uebernehmen": {
+        "name": "Empfehlung übernehmen"
       }
     }
   },

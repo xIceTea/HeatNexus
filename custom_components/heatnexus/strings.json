@@ -346,6 +346,30 @@
           }
         }
       },
+      "automatik_empfehlung": {
+        "name": "Recommendation",
+        "state": {
+          "keine": "None",
+          "programm": "Heating by program",
+          "sonnentag": "Sunny day",
+          "nur_ww": "Hot water only",
+          "heizpause": "Heating pause",
+          "abwesend": "Away",
+          "pausiert": "Paused",
+          "fenster": "Window open",
+          "keine_daten": "No data",
+          "sicherheit": "Safety",
+          "aus": "Off"
+        },
+        "state_attributes": {
+          "begruendung": {
+            "name": "Reason"
+          },
+          "seit": {
+            "name": "Since"
+          }
+        }
+      },
       "automatik_gedaempft": {
         "name": "Damped outdoor temperature"
       },
@@ -436,6 +460,11 @@
       },
       "automatik_system_ueber_heizgrenze": {
         "name": "Above controller heating limit"
+      }
+    },
+    "button": {
+      "automatik_empfehlung_uebernehmen": {
+        "name": "Apply recommendation"
       }
     }
   },

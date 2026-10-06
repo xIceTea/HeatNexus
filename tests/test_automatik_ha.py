@@ -206,6 +206,39 @@ async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(
     assert laufzeit.empfehlung is None
 
 
+async def test_empfehlung_als_sensor_und_taste(hass, hass_ws_client, anlage, freezer):
+    from homeassistant.helpers import entity_registry as er
+    from homeassistant.setup import async_setup_component
+    from pytest_homeassistant_custom_component.common import MockEntityPlatform
+
+    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
+    from custom_components.heatnexus.automatik.verwaltung import unique_id
+
+    verwaltung, _ = anlage
+    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+    assert await async_setup_component(hass, "button", {})
+    for art, domaene in (("empfehlung", "sensor"), ("empfehlung_uebernehmen", "button")):
+        plattform = MockEntityPlatform(hass, domain=domaene, platform_name="heatnexus")
+        await plattform.async_add_entities([KLASSEN[art](verwaltung, HEIZKREIS)])
+    await hass.async_block_till_done()
+
+    reg = er.async_get(hass)
+    sensor = reg.async_get_entity_id("sensor", "heatnexus", unique_id(HEIZKREIS, "empfehlung"))
+    taste = reg.async_get_entity_id(
+        "button", "heatnexus", unique_id(HEIZKREIS, "empfehlung_uebernehmen")
+    )
+    assert hass.states.get(sensor).state == "sonnentag"
+    assert hass.states.get(sensor).attributes["seit"] == laufzeit.empfehlung["seit"]
+    assert hass.states.get(taste).state != "unavailable"
+    assert laufzeit.taste_entity_id == taste
+
+    await hass.services.async_call("button", "press", {"entity_id": taste}, blocking=True)
+    await hass.async_block_till_done()
+    assert laufzeit.empfehlung is None
+    assert hass.states.get(sensor).state == "keine"
+    assert hass.states.get(taste).state == "unavailable"
+
+
 async def test_empfehlung_bleibt_bis_sie_ueberholt_ist(hass, hass_ws_client, anlage, freezer):
     from datetime import timedelta
 

@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
+from homeassistant.components.button import ButtonEntity
 from homeassistant.components.select import SelectEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.components.switch import SwitchEntity
@@ -163,6 +164,52 @@ class AutomatikZustand(AutomatikEntitaet, SensorEntity):
         }
 
 
+class AutomatikEmpfehlung(AutomatikEntitaet, SensorEntity):
+    """Was die Automatik im Modus „Manuell mit Empfehlung“ vorschlägt."""
+
+    ART = "empfehlung"
+    _attr_translation_key = "automatik_empfehlung"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["keine", *(zustand.value for zustand in Zustand)]
+    _unrecorded_attributes = frozenset({"begruendung"})
+
+    @property
+    def native_value(self) -> str | None:
+        laufzeit = self._laufzeit
+        if laufzeit is None:
+            return None
+        return laufzeit.empfehlung["zustand"] if laufzeit.empfehlung else "keine"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        empfehlung = self._laufzeit.empfehlung if self._laufzeit else None
+        if not empfehlung:
+            return {}
+        return {
+            "begruendung": woerterbuch(self.hass).satz(empfehlung["begruendung"]),
+            "seit": empfehlung["seit"],
+        }
+
+
+class AutomatikEmpfehlungTaste(AutomatikEntitaet, ButtonEntity):
+    """Die offene Empfehlung übernehmen."""
+
+    ART = "empfehlung_uebernehmen"
+    _attr_translation_key = "automatik_empfehlung_uebernehmen"
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if (laufzeit := self._laufzeit) is not None:
+            laufzeit.taste_entity_id = self.entity_id
+
+    @property
+    def available(self) -> bool:
+        return self._laufzeit is not None and self._laufzeit.empfehlung is not None
+
+    async def async_press(self) -> None:
+        await self._verwaltung.empfehlung_uebernehmen(self._device_id)
+
+
 class AutomatikWert(AutomatikEntitaet, SensorEntity):
     """Ein Messwert der Automatik; ohne Lauf bleibt er leer."""
 
@@ -301,6 +348,8 @@ KLASSEN: dict[str, type[AutomatikEntitaet]] = {
     "modus": AutomatikModus,
     "ausrichtung": AutomatikAusrichtung,
     "zustand": AutomatikZustand,
+    "empfehlung": AutomatikEmpfehlung,
+    "empfehlung_uebernehmen": AutomatikEmpfehlungTaste,
     "gedaempft": AutomatikGedaempft,
     "heizgrenze": AutomatikHeizgrenze,
     "abweichung": AutomatikAbweichung,
@@ -313,6 +362,7 @@ KLASSEN: dict[str, type[AutomatikEntitaet]] = {
 # Welche Arten eine Plattform anlegt; die Domäne je Art steht in `verwaltung.DOMAENE_JE_ART`.
 SENSOR_ARTEN = (
     "zustand",
+    "empfehlung",
     "gedaempft",
     "heizgrenze",
     "abweichung",
@@ -321,6 +371,7 @@ SENSOR_ARTEN = (
     "letzter_eingriff",
     "naechste_entscheidung",
 )
+TASTEN_ARTEN = ("empfehlung_uebernehmen",)
 
 
 @callback

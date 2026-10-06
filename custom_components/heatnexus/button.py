@@ -8,6 +8,8 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
+from .automatik.entitaeten import TASTEN_ARTEN
+from .automatik.entitaeten import anmelden as automatik_anmelden
 from .entity import WindhagerEntity, async_setup_entities
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
@@ -20,6 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     """Set up Windhager buttons from a config entry."""
+    for art in TASTEN_ARTEN:
+        automatik_anmelden(hass, entry, async_add_entities, art)
     async_setup_entities(
         hass,
         entry,
