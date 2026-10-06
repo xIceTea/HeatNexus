@@ -1165,6 +1165,9 @@ export const STIL = `
     padding-left: 24px; border-left: 1px solid var(--hn-linie);
   }
   .automatik-gruppentitel { font-size: 13px; color: var(--hn-gedaempft); }
+  .automatik-gruppentitel .fragezeichen {
+    width: 18px; height: 18px; font-size: 11px; margin-left: 6px; vertical-align: middle;
+  }
   .automatik-schalter {
     display: inline-flex; align-items: center; gap: 10px; padding: 0; cursor: pointer;
     background: none; border: none; color: inherit; font: inherit; font-size: 14px; font-weight: 600;
