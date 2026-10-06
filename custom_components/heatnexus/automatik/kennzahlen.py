@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 # Aufsteigend nach Gewicht: Das System zeigt den schwersten Zustand seiner Automatiken.
 STATUS = ("aus", "beobachten", "bereit", "eingriff", "pausiert", "stoerung")
-_EINGRIFF = frozenset({Zustand.SONNENTAG, Zustand.NUR_WW, Zustand.ABWESEND})
+_EINGRIFF = frozenset({Zustand.SONNENTAG, Zustand.NUR_WW, Zustand.ABWESEND, Zustand.HEIZPAUSE})
 _PAUSE = frozenset({Zustand.PAUSIERT, Zustand.FENSTER})
 
 

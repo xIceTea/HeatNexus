@@ -59,13 +59,13 @@ def tageslicht(laufzeit: Laufzeit, tag: date) -> dict[str, float | None]:
 
 
 def aktion(g: regel.Gedaechtnis, stunde: int, tag: date) -> str:
-    """Was das Gedächtnis für eine Stunde vorsieht: nur_ww, absenkung oder programm."""
+    """Was das Gedächtnis für eine Stunde vorsieht: nur_ww, heizpause, absenkung oder programm."""
     if g.saison == regel.NUR_WW:
         return "nur_ww"
     von = stunde_als_zahl(g.absenkung_von, tag)
     bis = stunde_als_zahl(g.absenkung_ziel or g.absenkung_bis, tag)
     if von is not None and bis is not None and von <= stunde < bis:
-        return "absenkung"
+        return "heizpause" if g.absenkung_art == regel.PAUSE else "absenkung"
     return "programm"
 
 

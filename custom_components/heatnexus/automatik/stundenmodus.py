@@ -43,7 +43,8 @@ def _ereignisse(
             modus = "nur_ww" if werte[OID_BETRIEBSWAHL] == str(nur_ww_wert) else PROGRAMM
             liste.append((zeit, modus, None))
         elif OID_SOLL in werte and dauer > 0:
-            liste.append((zeit, "absenkung", zeit + timedelta(minutes=dauer)))
+            modus = "heizpause" if "pause" in (eintrag.get("aktionen") or ()) else "absenkung"
+            liste.append((zeit, modus, zeit + timedelta(minutes=dauer)))
         elif OID_DAUER in werte and dauer == 0:
             liste.append((zeit, PROGRAMM, None))
     return sorted(liste, key=lambda e: e[0])
@@ -63,7 +64,7 @@ def minuten(
 ) -> dict[str, float]:
     """Minuten je Modus von Mitternacht bis `bis`, aus den geschriebenen Eingriffen."""
     beginn = datetime.combine(tag, time(0), bis.tzinfo)
-    summe = {"absenkung": 0.0, "nur_ww": 0.0}
+    summe = {"absenkung": 0.0, "nur_ww": 0.0, "heizpause": 0.0}
     modus, ende, ab = PROGRAMM, None, beginn
     for zeit, neu, neues_ende in [*_ereignisse(protokoll, tag, nur_ww_wert), (bis, PROGRAMM, None)]:
         grenze = min(max(zeit, beginn), bis)

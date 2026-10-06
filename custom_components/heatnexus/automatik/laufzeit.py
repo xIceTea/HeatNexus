@@ -47,7 +47,7 @@ SICHERHEIT_WIEDERHOLEN_S = 60
 VERLAUF_LAENGE = 64
 # So lange wartet die Regel nach dem Start auf den ersten Abruf der Werte in `ABRUF`.
 STEUERUNG_WARTEN = timedelta(minutes=10)
-MODUS_ARTEN = ("absenkung", "nur_ww")
+MODUS_ARTEN = ("absenkung", "nur_ww", "heizpause")
 # Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
 # Heizgrenzen der Steuerung (`3/21`, `3/2`) gehören dazu: an ihnen richtet sich die Regel aus.
 ABRUF = ("/2/9/0", "/0/0/0", "/1/2/0", "/3/21/0", "/3/2/0")
@@ -639,9 +639,11 @@ class Laufzeit(QuellenMixin):
     def _modus_fortschreiben(self, jetzt: datetime) -> None:
         """Laufzeiten der Modi; im Beobachten ging nichts an die Steuerung."""
         g = self.gedaechtnis
+        absenkung = regel.absenkung_laeuft(g, jetzt)
         laeuft = {
-            "absenkung": regel.absenkung_laeuft(g, jetzt),
+            "absenkung": absenkung and g.absenkung_art != regel.PAUSE,
             "nur_ww": g.saison == regel.NUR_WW,
+            "heizpause": absenkung and g.absenkung_art == regel.PAUSE,
         }
         self.modus_lauf = {
             art: eingaben.lauf_fortschreiben(lauf, jetzt, laeuft[art] and not self.beobachten)

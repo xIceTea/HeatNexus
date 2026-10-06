@@ -1428,7 +1428,7 @@ async def test_die_volle_stunde_vermerkt_den_modus(hass, hass_ws_client, anlage,
     async_fire_time_changed(hass, naechste)
     await hass.async_block_till_done()
     assert laufzeit.verlauf["stunden"][str(naechste.hour)]["aktion"] == "programm"
-    assert set(laufzeit.als_dict()["modus_lauf"]) == {"absenkung", "nur_ww"}
+    assert set(laufzeit.als_dict()["modus_lauf"]) == {"absenkung", "nur_ww", "heizpause"}
 
 
 async def test_das_system_hat_die_neuen_sensoren(hass, hass_ws_client, anlage):
