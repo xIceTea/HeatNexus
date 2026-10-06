@@ -413,8 +413,11 @@ def main() -> int:
         return 0
 
     db = {"names": namen, "enums": enums, "layers": ebenen, "sprachen": sprachen}
+    # LF auch unter Windows: Sonst weicht die Arbeitskopie nach jedem Lauf vom Stand ab.
     (ZIEL / "device_db.json").write_text(
-        json.dumps(db, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8"
+        json.dumps(db, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
     )
     print(f"\ngeschrieben: {ZIEL / 'device_db.json'}")
     for sprache, tabelle in stoerungen.items():
@@ -422,6 +425,7 @@ def main() -> int:
         ziel.write_text(
             json.dumps(tabelle, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
             encoding="utf-8",
+            newline="\n",
         )
         print(f"geschrieben: {ziel}")
     return 0
