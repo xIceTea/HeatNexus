@@ -518,6 +518,27 @@ def pause(m, **felder):
 MILD = {"at": 18.5, "at_steuerung": 18.5, "mittel_heute": 17.5, "ruhig": True}
 
 
+@pytest.mark.parametrize(
+    ("g", "erwartet"),
+    [
+        ("leer", "PROGRAMM"),
+        ("nur_ww", "NUR_WW"),
+        ("pause", "HEIZPAUSE"),
+        ("sonne", "SONNENTAG"),
+        ("abgelaufen", "PROGRAMM"),
+    ],
+)
+def test_zustand_aus_dem_gedaechtnis(m, g, erwartet):
+    gedaechtnisse = {
+        "leer": m.Gedaechtnis(),
+        "nur_ww": nur_ww(m, timedelta(hours=1)),
+        "pause": pause(m),
+        "sonne": sonnentag(m),
+        "abgelaufen": replace(sonnentag(m), absenkung_bis=MORGEN + timedelta(minutes=10)),
+    }
+    assert m.zustand_aus(gedaechtnisse[g], MORGEN + timedelta(minutes=30)) == m.Zustand[erwartet]
+
+
 def test_milder_tag_beginnt_die_heizpause(m, w):
     e = m.entscheiden(lage(m, **MILD), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.HEIZPAUSE

@@ -240,6 +240,18 @@ def absenkung_laeuft(g: Gedaechtnis, jetzt: datetime) -> bool:
     return g.absenkung_art is not None and g.absenkung_bis is not None and g.absenkung_bis > jetzt
 
 
+_ZUSTAND_JE_ART = {SONNE: Zustand.SONNENTAG, ABWESEND: Zustand.ABWESEND, PAUSE: Zustand.HEIZPAUSE}
+
+
+def zustand_aus(g: Gedaechtnis, jetzt: datetime) -> Zustand:
+    """Was an der Steuerung gerade gilt, nur aus dem Gedächtnis."""
+    if g.saison == NUR_WW:
+        return Zustand.NUR_WW
+    if absenkung_laeuft(g, jetzt):
+        return _ZUSTAND_JE_ART.get(g.absenkung_art, Zustand.PROGRAMM)
+    return Zustand.PROGRAMM
+
+
 def _soll_bezug(lage: Lage, g: Gedaechtnis) -> float | None:
     # Während eigener Eingriffe zeigt `1/1` den gesetzten Wert, nicht den des Programms.
     if g.saison == NUR_WW and g.saison_soll is not None:

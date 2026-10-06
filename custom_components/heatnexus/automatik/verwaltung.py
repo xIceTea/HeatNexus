@@ -416,6 +416,12 @@ class Verwaltung:
             raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
         await laufzeit.uebernehmen()
 
+    async def empfehlung_uebernehmen(self, device_id: str) -> None:
+        """Die offene Empfehlung eines Heizkreises bestätigen."""
+        if (laufzeit := self.laufzeiten.get(device_id)) is None:
+            raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
+        await laufzeit.empfehlung_uebernehmen()
+
     async def entfernen(self, device_id: str) -> None:
         """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten abräumen."""
         if (laufzeit := self.laufzeiten.pop(device_id, None)) is not None:

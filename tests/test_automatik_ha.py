@@ -148,6 +148,154 @@ async def test_empfehlen_schreibt_wie_schalten_und_beobachtet_nicht(hass, hass_w
     assert laufzeit.beobachten is False
 
 
+async def _empfehlen(client) -> None:
+    antwort = await _senden(
+        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, modus="empfehlen"
+    )
+    assert antwort["success"], antwort
+
+
+async def _empfohlen(hass, hass_ws_client, verwaltung, freezer):
+    """Eine Empfehlung zur Entscheidungszeit, noch nichts geschrieben."""
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _empfehlen(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await laufzeit.auswerten(entscheidungszeit=True)
+    return laufzeit, client
+
+
+async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(
+    hass, hass_ws_client, anlage, freezer
+):
+    from homeassistant.core import callback
+
+    verwaltung, coordinator = anlage
+    ereignisse = []
+
+    @callback
+    def merken(ereignis) -> None:
+        ereignisse.append(ereignis)
+
+    hass.bus.async_listen("heatnexus_automatik_empfehlung", merken)
+    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+    await hass.async_block_till_done()
+
+    assert laufzeit.empfehlung is not None
+    assert laufzeit.empfehlung["zustand"] == "sonnentag"
+    assert laufzeit.empfehlung["entscheidungszeit"] is True
+    assert laufzeit.als_dict()["empfehlung"] == laufzeit.empfehlung
+    assert laufzeit.zustand.value == "programm"
+    assert laufzeit.begruendung.startswith("Empfehlung: ")
+    assert coordinator.client.geschrieben == []
+    assert len(ereignisse) == 1
+    assert ereignisse[0].data["heizkreis"] == HEIZKREIS
+    assert ereignisse[0].data["zustand"] == "sonnentag"
+    assert ereignisse[0].data["taste"] is None
+
+    await laufzeit.auswerten(entscheidungszeit=True)
+    await hass.async_block_till_done()
+    assert len(ereignisse) == 1
+
+    await verwaltung.empfehlung_uebernehmen(HEIZKREIS)
+    assert coordinator.client.geschrieben == [
+        (f"{PREFIX}/3/4/0", "19.5"),
+        (f"{PREFIX}/2/10/0", "400"),
+    ]
+    assert laufzeit.empfehlung is None
+
+
+async def test_empfehlung_bleibt_bis_sie_ueberholt_ist(hass, hass_ws_client, anlage, freezer):
+    from datetime import timedelta
+
+    verwaltung, _ = anlage
+    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+
+    freezer.tick(timedelta(minutes=5))
+    await laufzeit.auswerten()
+    assert laufzeit.empfehlung is not None
+
+    freezer.tick(timedelta(hours=7))
+    await laufzeit.auswerten()
+    assert laufzeit.empfehlung is None
+
+
+async def test_wechsel_zum_schalten_verwirft_die_empfehlung(hass, hass_ws_client, anlage, freezer):
+    verwaltung, _ = anlage
+    laufzeit, client = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+
+    await _schalten(client)
+
+    assert laufzeit.empfehlung is None
+
+
+async def test_bestaetigung_schreibt_auch_ueber_dem_tagesbudget(
+    hass, hass_ws_client, anlage, freezer
+):
+    from dataclasses import replace
+
+    verwaltung, coordinator = anlage
+    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+    laufzeit.steller.stand = replace(laufzeit.steller.stand, eingriffe=laufzeit.werte.budget)
+
+    await verwaltung.empfehlung_uebernehmen(HEIZKREIS)
+
+    assert coordinator.client.geschrieben == [
+        (f"{PREFIX}/3/4/0", "19.5"),
+        (f"{PREFIX}/2/10/0", "400"),
+    ]
+
+
+async def test_bestaetigung_waehrend_einer_auswertung_geht_nicht_verloren(
+    hass, hass_ws_client, anlage, freezer
+):
+    verwaltung, coordinator = anlage
+    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+    lauf = laufzeit._auswerten
+
+    async def bestaetigen_waehrend(entscheidungszeit: bool) -> None:
+        laufzeit._auswerten = lauf
+        await lauf(entscheidungszeit)
+        await verwaltung.empfehlung_uebernehmen(HEIZKREIS)
+
+    laufzeit._auswerten = bestaetigen_waehrend
+    await laufzeit.auswerten()
+    await hass.async_block_till_done()
+
+    assert coordinator.client.geschrieben == [
+        (f"{PREFIX}/3/4/0", "19.5"),
+        (f"{PREFIX}/2/10/0", "400"),
+    ]
+
+
+async def test_bestaetigung_waehrend_die_regel_wartet_bleibt_offen(
+    hass, hass_ws_client, anlage, freezer
+):
+    verwaltung, coordinator = anlage
+    laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+    grenze = coordinator.data["oids"].pop(f"{PREFIX}/3/21/0")
+    laufzeit._gestartet = laufzeit.lage.jetzt
+
+    await verwaltung.empfehlung_uebernehmen(HEIZKREIS)
+    await hass.async_block_till_done()
+    assert coordinator.client.geschrieben == []
+
+    coordinator.data["oids"][f"{PREFIX}/3/21/0"] = grenze
+    laufzeit._merken()
+    await hass.async_block_till_done()
+    assert coordinator.client.geschrieben == [
+        (f"{PREFIX}/3/4/0", "19.5"),
+        (f"{PREFIX}/2/10/0", "400"),
+    ]
+
+
+async def test_ohne_automatik_keine_empfehlung_zu_uebernehmen(hass, anlage):
+    verwaltung, _ = anlage
+    with pytest.raises(ValueError):
+        await verwaltung.empfehlung_uebernehmen("unbekannt")
+
+
 async def test_einrichten_startet_im_beobachtungsmodus(hass, hass_ws_client, anlage, freezer):
     verwaltung, coordinator = anlage
     client = await hass_ws_client(hass)

@@ -564,6 +564,7 @@
   "Absenkung von Hand beendet.": "Setback ended by hand.",
   "Absenkung von Hand geändert.": "Setback changed by hand.",
   "{grund} Pausiert bis {zeit}.": "{grund} Paused until {zeit}.",
+  "Empfehlung: {grund}": "Recommendation: {grund}",
   "Sonnentag · {soll} °C": "Sunny day · {soll} °C",
   "Heizpause": "Heating pause",
   "Heizpause · {soll} °C": "Heating pause · {soll} °C",

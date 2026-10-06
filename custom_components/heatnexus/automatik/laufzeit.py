@@ -58,6 +58,8 @@ HEIZGRENZEN = {
 
 SIGNAL_AKTUALISIERT = f"{DOMAIN}_automatik_{{}}"
 SIGNAL_SYSTEM = f"{DOMAIN}_automatik_system_{{}}"
+EREIGNIS_EMPFEHLUNG = f"{DOMAIN}_automatik_empfehlung"
+EMPFEHLUNG_MAX = timedelta(hours=6)
 
 
 def _messwert(zustand: Any) -> Any:
@@ -176,7 +178,7 @@ class Laufzeit(QuellenMixin):
         self._gestartet = dt_util.now()
         self._wartet = False
         self._lieferbeginn_am: date | None = None
-        self._entscheidung_offen = False
+        self._offenes_laden(z)
 
     # --- Eigenschaften -------------------------------------------------------
     @property
@@ -228,6 +230,7 @@ class Laufzeit(QuellenMixin):
             "begruendung": self.begruendung,
             "grenze_steuerung": self.grenze_zuletzt,
             "grenze_absenk": self.absenk_zuletzt,
+            "empfehlung": self.empfehlung,
         }
 
     # --- Lebenszyklus --------------------------------------------------------
@@ -333,10 +336,14 @@ class Laufzeit(QuellenMixin):
             await self._auswerten(entscheidungszeit)
         finally:
             self._laeuft = False
+        # Eine Bestätigung, die während des Laufs kam, wartet nicht auf den nächsten Takt.
+        if self._bestaetigt_offen and not self._wartet:
+            self.hass.async_create_task(self.auswerten())
 
     async def _auswerten(self, entscheidungszeit: bool) -> None:
         self._geaendert = False
-        entscheidungszeit = entscheidungszeit or self._entscheidung_offen
+        bestaetigung = self._bestaetigung()
+        entscheidungszeit = entscheidungszeit or self._entscheidung_offen or bool(bestaetigung)
         self._entscheidung_offen = False
         jetzt = dt_util.now()
         self._daempfen(jetzt)
@@ -345,11 +352,13 @@ class Laufzeit(QuellenMixin):
         lage = self._lage(jetzt, entscheidungszeit)
         self.lage = lage
         if not self.aktiv:
+            self.empfehlung = None
             self._setzen(regel.Zustand.AUS, "Automatik ausgeschaltet.")
             return
         self._wartet = self._steuerung_fehlt(jetzt)
         if self._wartet:
             self._geaendert = True
+            self._bestaetigt_offen |= bestaetigung is not None
             # Die Werte stehen schon in der Lage; die Sensoren zeigen sie, auch wenn die Regel noch wartet.
             async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
             async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
@@ -367,13 +376,15 @@ class Laufzeit(QuellenMixin):
             self._pausieren(jetzt, grund)
             lage = replace(lage, pausiert_bis=self.pausiert_bis)
         entscheidung = regel.entscheiden(lage, self.gedaechtnis, self.werte)
+        bestaetigt = bestaetigung is not None
         angenommen = await self.steller.ausfuehren(
             entscheidung,
             jetzt=jetzt,
             betriebswahl=lage.betriebswahl,
-            budget=self.werte.budget,
+            budget=self._budget(bestaetigt),
             beobachten=self.beobachten,
-            erzwingen=self._erzwingen,
+            erzwingen=self._erzwingen or bestaetigt,
+            empfehlen=self.empfehlen and not bestaetigt,
         )
         self._erzwingen = False
         if angenommen:
@@ -384,6 +395,10 @@ class Laufzeit(QuellenMixin):
         self.steller.abgleichen(self.gedaechtnis, jetzt)
         if entscheidungszeit and not entscheidung.aktionen:
             self.steller.vermerken(jetzt, "geprueft", entscheidung.begruendung)
+        if self.steller.empfohlen:
+            self._empfohlen(jetzt, entscheidung, entscheidungszeit)
+            return
+        self._empfehlung_pruefen(jetzt, entscheidung, entscheidungszeit, angenommen, bestaetigt)
         self._setzen(entscheidung.zustand, entscheidung.begruendung)
 
     def _setzen(self, zustand: regel.Zustand, begruendung: str) -> None:
@@ -394,6 +409,92 @@ class Laufzeit(QuellenMixin):
         self._speichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
         async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
+
+    # --- Empfehlung ----------------------------------------------------------
+    def _offenes_laden(self, z: dict[str, Any]) -> None:
+        """Was auf einen Lauf wartet: Entscheidungszeit, Bestätigung, offene Empfehlung."""
+        self._entscheidung_offen = False
+        self._bestaetigt_offen = False
+        empfehlung = z.get("empfehlung")
+        self.empfehlung: dict[str, Any] | None = (
+            empfehlung if isinstance(empfehlung, dict) else None
+        )
+        self.taste_entity_id: str | None = None
+
+    def _bestaetigung(self) -> bool | None:
+        """Eine offene Bestätigung abholen: `None` ohne, sonst die Entscheidungszeit der Empfehlung."""
+        offen, self._bestaetigt_offen = self._bestaetigt_offen, False
+        if not offen or self.empfehlung is None:
+            return None
+        return bool(self.empfehlung.get("entscheidungszeit"))
+
+    def _budget(self, bestaetigt: bool) -> int:
+        """Eine Bestätigung ist die Entscheidung des Nutzers; das Tagesbudget hält sie nicht auf."""
+        if not bestaetigt:
+            return self.werte.budget
+        return max(self.werte.budget, self.steller.stand.eingriffe + 1)
+
+    def _empfohlen(
+        self, jetzt: datetime, entscheidung: regel.Entscheidung, entscheidungszeit: bool
+    ) -> None:
+        """An der Steuerung bleibt alles, wie es ist; der Zustand zeigt das, die Begründung den Vorschlag."""
+        self._empfehlung_merken(jetzt, entscheidung, entscheidungszeit)
+        zustand = regel.zustand_aus(self.gedaechtnis, jetzt)
+        self._setzen(zustand, f"Empfehlung: {entscheidung.begruendung}")
+
+    def _empfehlung_merken(
+        self, jetzt: datetime, entscheidung: regel.Entscheidung, entscheidungszeit: bool
+    ) -> None:
+        """Eine neue Empfehlung melden; dieselbe bleibt still und frischt nur ihre Begründung auf."""
+        neu = entscheidung.zustand.value
+        if self.empfehlung is not None and self.empfehlung.get("zustand") == neu:
+            self.empfehlung["begruendung"] = entscheidung.begruendung
+            return
+        self.empfehlung = {
+            "zustand": neu,
+            "begruendung": entscheidung.begruendung,
+            "seit": jetzt.isoformat(),
+            "entscheidungszeit": entscheidungszeit,
+        }
+        self.hass.bus.async_fire(
+            EREIGNIS_EMPFEHLUNG,
+            {
+                "heizkreis": self.device_id,
+                "name": self.name,
+                "zustand": neu,
+                "begruendung": entscheidung.begruendung,
+                "taste": self.taste_entity_id,
+            },
+        )
+
+    def _empfehlung_pruefen(
+        self,
+        jetzt: datetime,
+        entscheidung: regel.Entscheidung,
+        entscheidungszeit: bool,
+        angenommen: bool,
+        bestaetigt: bool,
+    ) -> None:
+        """Eine offene Empfehlung gilt, bis sie überholt ist."""
+        if self.empfehlung is None:
+            return
+        seit = datetime.fromisoformat(self.empfehlung["seit"])
+        if (
+            (angenommen and (entscheidung.aktionen or bestaetigt))
+            or entscheidungszeit
+            or jetzt - seit > EMPFEHLUNG_MAX
+            or not self.empfehlen
+        ):
+            self.empfehlung = None
+
+    async def empfehlung_uebernehmen(self) -> None:
+        """Die offene Empfehlung ausführen: Die Regel rechnet sofort neu und darf schreiben."""
+        if self.empfehlung is None:
+            return
+        # Läuft gerade eine Auswertung, holt der nächste Lauf die Bestätigung nach.
+        self._bestaetigt_offen = True
+        self._geaendert = True
+        await self.auswerten()
 
     def _pausieren(self, jetzt: datetime, grund: str) -> None:
         self.pausiert_bis = naechster_morgen(jetzt)

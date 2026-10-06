@@ -135,6 +135,14 @@ def test_saetze_mit_zahlen_kommen_uebersetzt(texte, deutsch, englisch):
     assert texte.Woerterbuch("en").satz(deutsch) == englisch
 
 
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+def test_empfehlung_kommt_mit_ihrer_begruendung_uebersetzt(texte, sprache):
+    satz = "Empfehlung: Gedämpfte AT 18,0 °C über 17,0 °C: Heizpause, 16,5 °C bis 14:00."
+    uebersetzt = texte.Woerterbuch(sprache).satz(satz)
+    assert "Empfehlung" not in uebersetzt
+    assert "Heizpause" not in uebersetzt
+
+
 def test_franzoesisch_behaelt_das_dezimalkomma(texte):
     """Französisch schreibt Dezimalzahlen mit Komma, Englisch mit Punkt."""
     satz = "Sonnentag – 21,0 °C bis 16:54."
