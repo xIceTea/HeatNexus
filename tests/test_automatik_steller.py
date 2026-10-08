@@ -368,13 +368,16 @@ def test_zurueck_und_pause_erwarten_die_wahl_nach_der_rueckkehr(s, regel):
     assert steller.stand.erwartet == 1
 
 
-@pytest.mark.parametrize("mit_zurueck", [False, True])
-def test_empfehlen_schreibt_eine_absenkung_nicht(s, regel, mit_zurueck):
+@pytest.mark.parametrize(
+    ("mit_zurueck", "erneuern"), [(False, False), (True, False), (False, True)]
+)
+def test_empfehlen_schreibt_eine_absenkung_nicht(s, regel, mit_zurueck, erneuern):
     schreiber = Schreiber()
     stand = s.Stand(betriebswahl_vorher=1, erwartet=6) if mit_zurueck else s.Stand()
     steller = s.Steller("/1/15/0", UML, schreiber, stand)
     aktionen = [regel.Aktion("zurueck")] if mit_zurueck else []
-    e = entscheidung(regel, *aktionen, regel.Aktion("pause", soll=16.0, minuten=400))
+    pause = regel.Aktion("pause", soll=16.0, minuten=400, erneuern=erneuern)
+    e = entscheidung(regel, *aktionen, pause)
     assert ausfuehren(steller, e, empfehlen=True, betriebswahl=6 if mit_zurueck else 2) is False
     assert schreiber.aufrufe == []
     assert steller.empfohlen is True
@@ -395,11 +398,10 @@ def test_empfehlen_vermerkt_dieselbe_empfehlung_nur_einmal(s, regel):
     [
         ("zurueck", {}),
         ("absenkung_ende", {}),
-        ("pause", {"soll": 16.0, "minuten": 400, "erneuern": True}),
         ("nur_ww", {"sicherheit": True}),
     ],
 )
-def test_empfehlen_schreibt_rueckkehr_erneuern_und_sicherheit(s, regel, aktion):
+def test_empfehlen_schreibt_rueckkehr_und_sicherheit(s, regel, aktion):
     art, felder = aktion
     schreiber = Schreiber()
     steller = s.Steller("/1/15/0", UML, schreiber, s.Stand(betriebswahl_vorher=1))

@@ -43,11 +43,14 @@ Schreiber = Callable[[str, str], Awaitable[None]]
 
 
 def braucht_bestaetigung(aktionen: Iterable[Aktion]) -> bool:
-    """Ob eine Entscheidung einen bestätigungspflichtigen Eingriff enthält und keinen der Sicherheit."""
+    """Ob eine Entscheidung einen bestätigungspflichtigen Eingriff enthält und keinen der Sicherheit.
+
+    Auch Verlängern und Erneuern warten; ohne Zustimmung endet der Eingriff an der Steuerung von selbst.
+    """
     liste = list(aktionen)
     if any(aktion.sicherheit for aktion in liste):
         return False
-    return any(aktion.art in BESTAETIGEN and not aktion.erneuern for aktion in liste)
+    return any(aktion.art in BESTAETIGEN for aktion in liste)
 
 
 def nur_ww_wert(angeboten: Iterable[int]) -> int:
