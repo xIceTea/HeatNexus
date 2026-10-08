@@ -186,6 +186,7 @@ async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(
     assert coordinator.client.geschrieben == []
     assert len(ereignisse) == 1
     assert ereignisse[0].data["heizkreis"] == HEIZKREIS
+    assert ereignisse[0].data["name"] == f"{ANLAGE} · Heizkreis"
     assert ereignisse[0].data["zustand"] == "sonnentag"
     assert ereignisse[0].data["taste"] is None
     assert ereignisse[0].data["begruendung"] != laufzeit.empfehlung["begruendung"]
@@ -268,6 +269,7 @@ async def test_empfehlung_steht_in_der_seitenleiste_bis_sie_erledigt_ist(
     assert (kennung in meldungen) is melden
     if melden:
         assert "/heatnexus-anlage" in meldungen[kennung]["message"]
+        assert meldungen[kennung]["title"].endswith(f"{ANLAGE} · Heizkreis")
 
     await verwaltung.empfehlung_verwerfen(HEIZKREIS)
     assert kennung not in _async_get_or_create_notifications(hass)

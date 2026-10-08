@@ -230,6 +230,12 @@ class Laufzeit(QuellenMixin):
         return self.konfig.get("modus") == "beobachten"
 
     @property
+    def bezeichnung(self) -> str:
+        """„Anlage · Heizkreis“; zwei Anlagen führen oft gleichnamige Heizkreise."""
+        anlage = getattr(self.coordinator, "label", None)
+        return f"{anlage} · {self.name}" if anlage else self.name
+
+    @property
     def empfehlen(self) -> bool:
         """Eingriffe, die weniger heizen, warten auf eine Bestätigung."""
         return self.konfig.get("modus") == "empfehlen"
@@ -485,7 +491,7 @@ class Laufzeit(QuellenMixin):
         persistent_notification.async_create(
             self.hass,
             f"{w.satz(empfehlung['begruendung'])}\n\n{verweis}",
-            title=f"{w('Empfehlung der Automatik')} – {self.name}",
+            title=f"{w('Empfehlung der Automatik')} – {self.bezeichnung}",
             notification_id=f"{DOMAIN}_empfehlung_{self.device_id}",
         )
         self._gemeldet = stand
@@ -562,7 +568,7 @@ class Laufzeit(QuellenMixin):
             EREIGNIS_EMPFEHLUNG,
             {
                 "heizkreis": self.device_id,
-                "name": self.name,
+                "name": self.bezeichnung,
                 "zustand": neu,
                 "begruendung": woerterbuch(self.hass).satz(entscheidung.begruendung),
                 "taste": self._taste("empfehlung_uebernehmen"),
