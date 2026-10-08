@@ -28,7 +28,8 @@ wenn dort Vorabversionen zugelassen sind.
 - An der DuoWIN erscheint die Taste „Warmwasser laden“.
 - Quittungstasten erscheinen nur für Arbeiten, die die Steuerung anbietet.
 - Die Funktionsliste der BioWIN erzeugt keinen Fehler im Protokoll mehr.
-- Die Betriebswahl von BioWIN und LogWIN nennt den Festbrennstoff-/Pufferbetrieb.
+- In der Betriebswahl von BioWIN und LogWIN erscheint der Festbrennstoff-/Pufferbetrieb.
+- Ein Tipp auf den Sollwert im Reiter Steuerung öffnet den Heizkreis.
 - „Absenkbetrieb bis“ steht nach einem Neustart sofort im Reiter Automatik.
 - Die Automatik zeigt, wenn der Heizkreis an der Steuerung aus ist.
 
