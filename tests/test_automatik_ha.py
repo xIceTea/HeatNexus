@@ -344,8 +344,12 @@ async def test_verworfene_empfehlung_kommt_erst_am_naechsten_tag_wieder(
     assert laufzeit.empfehlung is None
     assert laufzeit.steller.stand.protokoll[0]["art"] == "verworfen"
     await laufzeit.auswerten(entscheidungszeit=True)
+    await laufzeit.auswerten(entscheidungszeit=True)
     assert laufzeit.empfehlung is None
     assert laufzeit.begruendung.startswith("Verworfen: ")
+    # Dieselbe Prüfung kurz hintereinander, etwa bei mehreren Moduswechseln, steht einmal im Protokoll.
+    arten = [e["art"] for e in laufzeit.steller.stand.protokoll]
+    assert arten[:2] == ["geprueft", "verworfen"]
     assert laufzeit.als_dict()["verworfen"]["zustaende"] == ["sonnentag"]
     assert coordinator.client.geschrieben == []
 

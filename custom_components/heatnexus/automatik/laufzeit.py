@@ -64,6 +64,8 @@ EREIGNIS_EMPFEHLUNG = f"{DOMAIN}_automatik_empfehlung"
 EMPFEHLUNG_MAX = timedelta(hours=6)
 # So lange gilt nach einer Rücknahme der Raumsoll vor dem Eingriff, solange `1/1` noch den geschriebenen zeigt.
 SOLL_NACHLAUF = timedelta(minutes=10)
+# Dieselbe Prüfung innerhalb dieser Zeit steht nur einmal im Protokoll, etwa bei mehreren Moduswechseln.
+GEPRUEFT_RUHE = timedelta(minutes=15)
 
 
 def _messwert(zustand: Any) -> Any:
@@ -422,12 +424,23 @@ class Laufzeit(QuellenMixin):
         self._sicherheit_pruefen(entscheidung, angenommen)
         self.steller.abgleichen(self.gedaechtnis, jetzt)
         if entscheidungszeit and not entscheidung.aktionen:
-            self.steller.vermerken(jetzt, "geprueft", entscheidung.begruendung)
+            self._geprueft(jetzt, entscheidung.begruendung)
         if self.steller.empfohlen:
             self._empfohlen(jetzt, entscheidung, entscheidungszeit)
             return
         self._empfehlung_pruefen(jetzt, entscheidung, entscheidungszeit, angenommen, bestaetigt)
         self._setzen(entscheidung.zustand, entscheidung.begruendung)
+
+    def _geprueft(self, jetzt: datetime, text: str) -> None:
+        letzter = next(iter(self.steller.stand.protokoll), None)
+        if (
+            letzter is not None
+            and letzter.get("art") == "geprueft"
+            and letzter.get("text") == text
+            and jetzt - datetime.fromisoformat(letzter["zeit"]) < GEPRUEFT_RUHE
+        ):
+            return
+        self.steller.vermerken(jetzt, "geprueft", text)
 
     def _setzen(self, zustand: regel.Zustand, begruendung: str) -> None:
         self.zustand = zustand
