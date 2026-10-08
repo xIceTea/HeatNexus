@@ -438,6 +438,7 @@ class Verwaltung:
         """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten abräumen."""
         if (laufzeit := self.laufzeiten.pop(device_id, None)) is not None:
             await laufzeit.zuruecknehmen()
+            laufzeit.meldung_entfernen()
             laufzeit.stoppen()
         entry_id = ((self._daten["heizkreise"].pop(device_id, None) or {}).get("konfig") or {}).get(
             "entry_id"

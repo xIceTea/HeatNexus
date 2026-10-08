@@ -80,6 +80,10 @@ Der Modus bestimmt, was die Automatik mit ihrer Entscheidung tut:
   Die Rückkehr ins Programm und Eingriffe zur Sicherheit schreibt die Automatik
   ohne Rückfrage. Der Blueprint „Empfehlung der Automatik melden“ schickt die
   Empfehlung an ein Mobilgerät, mit den Aktionen „Übernehmen“ und „Verwerfen“.
+  Solange eine Empfehlung offen ist, trägt der Reiter Automatik einen Punkt,
+  und in der Seitenleiste von Home Assistant steht eine Benachrichtigung. Die
+  Benachrichtigung lässt sich in den Einstellungen unter „Manuell mit
+  Empfehlung“ abschalten.
 - **Automatisch** schreibt jede Entscheidung selbst.
 
 Ein Wechsel weg von „Automatisch“ nimmt laufende Eingriffe der Automatik

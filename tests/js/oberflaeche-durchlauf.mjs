@@ -1006,11 +1006,29 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   clearInterval(flaeche._automatikUhr);
   flaeche._automatikUhr = null;
   hass.callWS = vorherWs;
+  // Der Punkt am Reiter folgt dem Sensor „Empfehlung“, auch ohne geladene Automatik.
+  const vorherEntities = hass.entities;
+  const sensor = "sensor.heizkreis_empfehlung";
+  hass.entities = { [sensor]: { entity_id: sensor, platform: "heatnexus", translation_key: "automatik_empfehlung" } };
+  const punkt = () => {
+    flaeche._aktualisieren();
+    const taste = wurzel.querySelector(".reiter").querySelectorAll("button").find((b) => b.dataset.reiter === "automatik");
+    return Boolean(taste && taste.classList.contains("punkt"));
+  };
+  const punktFolge = [];
+  for (const zustand of ["heizpause", "keine"]) {
+    states[sensor] = { entity_id: sensor, state: zustand, attributes: {} };
+    punktFolge.push(punkt());
+  }
+  delete states[sensor];
+  hass.entities = vorherEntities;
   bilanz.automatikEmpfehlung = {
     modus: modus ? modus.querySelectorAll("button").map((t) => [String(t.textContent || "").trim(), t.getAttribute("aria-pressed")]) : [],
     hinweise: [...wurzel.querySelectorAll(".automatik-hinweis")].map((t) => String(t.textContent || "").trim()),
     knopf: knopf ? String(knopf.textContent || "").trim() : null,
+    knoepfe: hinweis ? hinweis.querySelectorAll("button").map((t) => String(t.textContent || "").trim()) : [],
     aufrufe: aufrufe.map((a) => [a.type, a.heizkreis]),
+    punkt: punktFolge,
   };
   delete kreis.empfehlung;
   kreis.konfig = vorherKonfig;

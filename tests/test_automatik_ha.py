@@ -243,6 +243,36 @@ async def test_empfehlung_als_sensor_und_taste(hass, hass_ws_client, anlage, fre
     assert hass.states.get(taste).state == "unavailable"
 
 
+@pytest.mark.parametrize("melden", [True, False])
+async def test_empfehlung_steht_in_der_seitenleiste_bis_sie_erledigt_ist(
+    hass, hass_ws_client, anlage, freezer, melden
+):
+    from homeassistant.components.persistent_notification import (
+        _async_get_or_create_notifications,
+    )
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    if not melden:
+        await _senden(
+            client,
+            type="heatnexus/automatik/einstellen",
+            heizkreis=HEIZKREIS,
+            eigene={"melden": False},
+        )
+    await _empfehlen(client)
+    kennung = f"heatnexus_empfehlung_{HEIZKREIS}"
+    meldungen = _async_get_or_create_notifications(hass)
+    assert (kennung in meldungen) is melden
+    if melden:
+        assert "/heatnexus-anlage" in meldungen[kennung]["message"]
+
+    await verwaltung.empfehlung_verwerfen(HEIZKREIS)
+    assert kennung not in _async_get_or_create_notifications(hass)
+
+
 async def test_empfehlung_bleibt_bis_sie_ueberholt_ist(hass, hass_ws_client, anlage, freezer):
     from datetime import timedelta
 

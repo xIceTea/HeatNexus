@@ -13,6 +13,7 @@ from datetime import date, datetime, time, timedelta
 import logging
 from typing import Any
 
+from homeassistant.components import persistent_notification
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
@@ -25,7 +26,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from ..const import DOMAIN
+from ..const import DOMAIN, PANEL_URL
 from ..helpers import get_oid_value
 from ..registrierung import geraetename
 from ..texte import woerterbuch
@@ -433,6 +434,7 @@ class Laufzeit(QuellenMixin):
         self.begruendung = begruendung
         self._modus_fortschreiben(dt_util.now())
         self._aktion_merken(dt_util.now())
+        self._seitenleiste()
         self._speichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
         async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
@@ -445,6 +447,8 @@ class Laufzeit(QuellenMixin):
         self.empfehlung: dict[str, Any] | None = _gueltige_empfehlung(z.get("empfehlung"))
         self.verworfen: dict[str, Any] = _gueltig_verworfen(z.get("verworfen"))
         self._soll_ersatz: tuple[float, float, datetime] | None = None
+        # Was zuletzt in der Seitenleiste steht: Beginn und Begründung der Empfehlung.
+        self._gemeldet: tuple[str, str] | None = None
 
     def _taste(self, art: str) -> str | None:
         """Die Entität einer Taste; sie entsteht erst nach dem ersten Lauf."""
@@ -453,6 +457,33 @@ class Laufzeit(QuellenMixin):
         return er.async_get(self.hass).async_get_entity_id(
             "button", DOMAIN, unique_id(self.device_id, art)
         )
+
+    def _seitenleiste(self) -> None:
+        """Eine offene Empfehlung steht in der Seitenleiste; ist sie erledigt, verschwindet sie."""
+        empfehlung = self.empfehlung if self.empfehlen and self.werte.melden else None
+        if empfehlung is None:
+            self.meldung_entfernen()
+            return
+        stand = (empfehlung["seit"], empfehlung["begruendung"])
+        if stand == self._gemeldet:
+            return
+        w = woerterbuch(self.hass)
+        verweis = f"[{w('Im Reiter Automatik übernehmen oder verwerfen')}](/{PANEL_URL})"
+        persistent_notification.async_create(
+            self.hass,
+            f"{w.satz(empfehlung['begruendung'])}\n\n{verweis}",
+            title=f"{w('Empfehlung der Automatik')} – {self.name}",
+            notification_id=f"{DOMAIN}_empfehlung_{self.device_id}",
+        )
+        self._gemeldet = stand
+
+    def meldung_entfernen(self) -> None:
+        """Die Benachrichtigung zur Empfehlung aus der Seitenleiste nehmen."""
+        if self._gemeldet is not None:
+            persistent_notification.async_dismiss(
+                self.hass, f"{DOMAIN}_empfehlung_{self.device_id}"
+            )
+            self._gemeldet = None
 
     def _heute_verworfen(self, jetzt: datetime) -> list[str]:
         if self.verworfen.get("tag") != jetzt.date().isoformat():

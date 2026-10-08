@@ -126,6 +126,11 @@ export const STIL = `
   .reiter button[aria-selected="true"] {
     opacity: 1; color: var(--hn-akzent); border-bottom-color: var(--hn-akzent);
   }
+  .reiter button.punkt { position: relative; }
+  .reiter button.punkt::after {
+    content: ""; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--hn-akzent); box-shadow: 0 0 0 2px var(--hn-grund);
+  }
   .reiter button.versteckt { text-decoration: line-through; opacity: 0.35; }
   .reiter .reiter-griffe { display: inline-flex; align-items: center; margin-right: 8px; }
   .reiter .reiter-griffe button { padding: 4px; border-bottom: none; opacity: 0.6; }

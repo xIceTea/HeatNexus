@@ -14,6 +14,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Modus „Manuell mit Empfehlung“ schlägt Eingriffe vor, die weniger heizen.
 - Ein Blueprint meldet Empfehlungen der Automatik mit den Aktionen „Übernehmen“ und „Verwerfen“.
 - Eine verworfene Empfehlung kommt am selben Tag nicht wieder.
+- Eine offene Empfehlung erscheint in der Seitenleiste und als Punkt am Reiter „Automatik“.
 - Der Wechsel weg von „Automatisch“ beendet laufende Eingriffe und rechnet sofort neu.
 
 ### Behoben

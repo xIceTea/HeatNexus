@@ -436,6 +436,7 @@ class HeatNexusPanel extends Grundlage {
       const beschriftung = document.createElement("span");
       beschriftung.textContent = reiter.titel;
       taste.appendChild(beschriftung);
+      if (reiter.schluessel === "automatik") this._reiterPunkt(taste);
       taste.addEventListener("click", () => {
         this._reiter = reiter.schluessel;
         this._gebaut = false;
@@ -500,7 +501,34 @@ class HeatNexusPanel extends Grundlage {
   }
 
   // -------------------------------------------------------------------
+  /** Ob eine Automatik eine Empfehlung offen hat; gelesen am Sensor „Empfehlung“, nicht an der Automatik. */
+  _empfehlungOffen() {
+    const hass = this._hass;
+    if (!hass || !hass.entities) return false;
+    if (this._empfehlungQuelle !== hass.entities) {
+      this._empfehlungQuelle = hass.entities;
+      this._empfehlungSensoren = Object.values(hass.entities)
+        .filter((e) => e.platform === "heatnexus" && e.translation_key === "automatik_empfehlung")
+        .map((e) => e.entity_id);
+    }
+    return this._empfehlungSensoren.some((id) => {
+      const zustand = (hass.states[id] || {}).state;
+      return Boolean(zustand) && !["keine", "unknown", "unavailable"].includes(zustand);
+    });
+  }
+
+  /** Der Punkt am Reiter „Automatik“, solange eine Empfehlung auf Antwort wartet. */
+  _reiterPunkt(taste) {
+    const offen = this._empfehlungOffen();
+    taste.classList.toggle("punkt", offen);
+    if (offen) taste.title = this._t("Empfehlung offen");
+    else taste.removeAttribute("title");
+  }
+
   _aktualisieren() {
+    const leiste = this.shadowRoot.querySelector(".reiter");
+    const automatik = leiste && [...leiste.querySelectorAll("button")].find((b) => b.dataset.reiter === "automatik");
+    if (automatik) this._reiterPunkt(automatik);
     this._bindungen.forEach((binden) => binden());
     this._pruefeWartende();
     (this._verlaufskarten || []).forEach((karte) => {

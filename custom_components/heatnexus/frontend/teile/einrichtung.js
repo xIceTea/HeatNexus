@@ -18,6 +18,7 @@ export const EINSTELLUNGSGRUPPEN = [
   ["Sonnentag", ["sonnenquote", "sonnentag", "absenkung_k", "stark", "stark_k"]],
   ["Zeitplan", ["entscheidung", "nachpruefung", "mindestdauer_h", "budget"]],
   ["Schutz und Prognose", ["rueckkehr_k", "ruhe_h", "fenster_k_je_h", "anpassen", "lernfenster"]],
+  ["Manuell mit Empfehlung", ["melden"]],
 ];
 
 export const EinrichtungMixin = (Basis) =>

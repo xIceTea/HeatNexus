@@ -47,6 +47,8 @@ class Werte:
     fenster_k_je_h: float = 3.0
     lernfenster: int = 14
     anpassen: bool = True
+    # Im Modus „Manuell mit Empfehlung“: jede Empfehlung als Benachrichtigung in der Seitenleiste.
+    melden: bool = True
 
 
 VORGABEN: dict[str, Werte] = {
@@ -96,7 +98,7 @@ AUSRICHTUNG_FEST: dict[str, dict[str, Any]] = {
     KOMFORT: {"stark": False, "ruhe_h": 3.0},
 }
 UHRZEITEN = ("entscheidung", "nachpruefung")
-SCHALTER = ("sonnentag", "stark", "anpassen")
+SCHALTER = ("sonnentag", "stark", "anpassen", "melden")
 # Über so viele Tage lernt die Prognosekorrektur; andere Werte gelten nicht.
 LERNFENSTER = (3, 7, 14)
 

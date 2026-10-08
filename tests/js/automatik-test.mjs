@@ -47,6 +47,7 @@ assert.deepEqual(
     "grenze_versatz",
     "hysterese",
     "lernfenster",
+    "melden",
     "mindestdauer_h",
     "nachpruefung",
     "rueckkehr_k",

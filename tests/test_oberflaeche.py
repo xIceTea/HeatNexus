@@ -673,7 +673,7 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     """Eingerichtet: Karte mit Marke, Feldern und Protokoll; sonst die Einladung."""
     automatik = durchlauf["automatik"]
     assert automatik["marken"] == ["Sonnentag · beobachtet"]
-    assert automatik["felder"] == 20  # Profil, zwei Heizgrenzen und siebzehn Werte
+    assert automatik["felder"] == 21  # Profil, zwei Heizgrenzen und achtzehn Werte
     assert automatik["geaendert"] == 1
     assert automatik["protokoll"] == 1
     assert automatik["einladungen"] == 1
@@ -690,7 +690,13 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     # Innerhalb von ±2 K steht der Wert nur in der Kachel, nicht noch einmal am Punkt.
     assert automatik["raumWert"] == ""
     assert automatik["grenzenEingaben"] == 2
-    assert automatik["gruppen"] == ["Heizgrenze", "Sonnentag", "Zeitplan", "Schutz und Prognose"]
+    assert automatik["gruppen"] == [
+        "Heizgrenze",
+        "Sonnentag",
+        "Zeitplan",
+        "Schutz und Prognose",
+        "Manuell mit Empfehlung",
+    ]
     assert automatik["ausrichtung"] == [
         ["Eco", "false"],
         ["Ausgewogen", "true"],
@@ -793,7 +799,9 @@ def test_eine_offene_empfehlung_hat_einen_uebernehmen_knopf(durchlauf):
     (hinweis,) = empfehlung["hinweise"]
     assert "Heizpause empfohlen: 22 °C Außentemperatur." in hinweis
     assert empfehlung["knopf"] == "Übernehmen"
+    assert empfehlung["knoepfe"] == ["Übernehmen", "Verwerfen"]
     assert empfehlung["aufrufe"][0] == ["heatnexus/automatik/empfehlung_uebernehmen", "SN1-2-0"]
+    assert empfehlung["punkt"] == [True, False]
 
 
 def test_die_automatik_steht_bei_allen_anlagen_in_einem_raster(durchlauf):
