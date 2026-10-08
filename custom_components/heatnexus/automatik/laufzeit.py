@@ -61,6 +61,8 @@ SIGNAL_AKTUALISIERT = f"{DOMAIN}_automatik_{{}}"
 SIGNAL_SYSTEM = f"{DOMAIN}_automatik_system_{{}}"
 EREIGNIS_EMPFEHLUNG = f"{DOMAIN}_automatik_empfehlung"
 EMPFEHLUNG_MAX = timedelta(hours=6)
+# So lange gilt nach einer Rücknahme der Raumsoll vor dem Eingriff, solange `1/1` noch den geschriebenen zeigt.
+SOLL_NACHLAUF = timedelta(minutes=10)
 
 
 def _messwert(zustand: Any) -> Any:
@@ -442,6 +444,7 @@ class Laufzeit(QuellenMixin):
         self._bestaetigt_offen = False
         self.empfehlung: dict[str, Any] | None = _gueltige_empfehlung(z.get("empfehlung"))
         self.verworfen: dict[str, Any] = _gueltig_verworfen(z.get("verworfen"))
+        self._soll_ersatz: tuple[float, float, datetime] | None = None
 
     def _taste(self, art: str) -> str | None:
         """Die Entität einer Taste; sie entsteht erst nach dem ersten Lauf."""
@@ -611,6 +614,9 @@ class Laufzeit(QuellenMixin):
                 self._speichern()
                 return
         ir.async_delete_issue(self.hass, DOMAIN, kennung)
+        g = self.gedaechtnis
+        if aktionen and g.absenkung_soll is not None and g.absenkung_basis is not None:
+            self._soll_ersatz = (g.absenkung_soll, g.absenkung_basis, jetzt)
         self.gedaechtnis = regel.Gedaechtnis()
         self.steller.freigeben()
         self._speichern()
@@ -709,6 +715,17 @@ class Laufzeit(QuellenMixin):
         if (wert := self._wert("/3/2/0")) is not None:
             self.absenk_zuletzt = wert
         return self.absenk_zuletzt
+
+    def _soll(self, jetzt: datetime) -> float | None:
+        """Raumsoll `1/1`; direkt nach einer Rücknahme steht dort bis zum Abruf der geschriebene Wert."""
+        soll = self._wert("/1/1/0")
+        if self._soll_ersatz is None:
+            return soll
+        geschrieben, basis, seit = self._soll_ersatz
+        if soll is not None and abs(soll - geschrieben) < 0.05 and jetzt - seit < SOLL_NACHLAUF:
+            return basis
+        self._soll_ersatz = None
+        return soll
 
     def _wert(self, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, self.prefix)
@@ -950,7 +967,7 @@ class Laufzeit(QuellenMixin):
             jetzt=jetzt,
             at=at,
             at_gedaempft=self.stufen[1] if self.stufen else None,
-            soll=self._wert("/1/1/0"),
+            soll=self._soll(jetzt),
             raeume=tuple((m.ist, m.ziel) for m in messungen if not m.aus),
             aus=tuple(m.ist for m in messungen if m.aus),
             raum_art=self.konfig["raum_art"],

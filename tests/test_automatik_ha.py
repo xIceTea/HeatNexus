@@ -281,6 +281,8 @@ async def test_wechsel_weg_vom_schalten_beendet_den_eingriff_und_rechnet_neu(
         (f"{PREFIX}/2/10/0", "400"),
     ]
     coordinator.client.geschrieben.clear()
+    # Bis zum nächsten Abruf zeigt `1/1` noch den geschriebenen Wert.
+    coordinator.data["oids"][f"{PREFIX}/1/1/0"] = "19.5"
 
     antwort = await _senden(
         client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, modus=modus
@@ -291,6 +293,7 @@ async def test_wechsel_weg_vom_schalten_beendet_den_eingriff_und_rechnet_neu(
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
     if modus == "empfehlen":
         assert laufzeit.empfehlung["zustand"] == "sonnentag"
+        assert "19,5 °C" in laufzeit.empfehlung["begruendung"]
     else:
         assert laufzeit.steller.stand.protokoll[0]["art"] == "haette"
 
