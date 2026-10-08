@@ -58,6 +58,7 @@ export const PROTOKOLL_ARTEN = {
   geschrieben: "geschrieben",
   haette: "hätte geschrieben",
   empfohlen: "empfohlen",
+  verworfen: "verworfen",
   abgelehnt: "abgelehnt",
   budget: "Budget erreicht",
   geprueft: "geprüft",
@@ -405,7 +406,7 @@ export const AutomatikMixin = (Basis) =>
       return meta;
     }
 
-    /** Eine offene Empfehlung: Begründung und Knopf zum Übernehmen. */
+    /** Eine offene Empfehlung: Begründung, Knöpfe zum Übernehmen und Verwerfen. */
     _automatikEmpfehlung(kreis, darf) {
       const empfehlung = kreis.empfehlung;
       if (!empfehlung || !kreis.konfig.aktiv || kreis.konfig.modus !== "empfehlen") return null;
@@ -422,7 +423,15 @@ export const AutomatikMixin = (Basis) =>
       taste.addEventListener("click", () =>
         this._automatikAufruf({ type: "heatnexus/automatik/empfehlung_uebernehmen", heizkreis: kreis.heizkreis })
       );
-      hinweis.append(text, taste);
+      const verwerfen = document.createElement("button");
+      verwerfen.type = "button";
+      verwerfen.className = "automatik-knopf leise";
+      verwerfen.disabled = !darf;
+      verwerfen.textContent = this._t("Verwerfen");
+      verwerfen.addEventListener("click", () =>
+        this._automatikAufruf({ type: "heatnexus/automatik/empfehlung_verwerfen", heizkreis: kreis.heizkreis })
+      );
+      hinweis.append(text, taste, verwerfen);
       return hinweis;
     }
 

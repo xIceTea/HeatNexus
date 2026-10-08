@@ -391,7 +391,7 @@ dem Netz:
 | Betriebsdauer erfassen | Misst, wie lange ein Anlagenteil ununterbrochen läuft |
 | Heizkreis bei Abwesenheit absenken | Absenken bei Abwesenheit, Rückstellen bei Rückkehr |
 | Legionellenschutz nachbilden | Fährt den Speicher in festem Turnus über die Einmalladung hoch — für Regler ohne eigene Legionellenschutzfunktion |
-| Empfehlung der Automatik melden | Meldet eine Empfehlung der Automatik an ein Mobilgerät. „Übernehmen“ führt sie aus |
+| Empfehlung der Automatik melden | Meldet eine Empfehlung der Automatik an ein Mobilgerät. „Übernehmen“ führt sie aus, „Verwerfen“ lehnt sie ab |
 
 Was bei einem Ereignis passieren soll, gibt die jeweilige Automation vor –
 Benachrichtigung, Ansage, Anruf, beliebige Aktion. Die Störungsvorlage wertet

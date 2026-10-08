@@ -205,6 +205,16 @@ class AutomatikEmpfehlungTaste(AutomatikEntitaet, ButtonEntity):
         await self._verwaltung.empfehlung_uebernehmen(self._device_id)
 
 
+class AutomatikVerwerfenTaste(AutomatikEmpfehlungTaste):
+    """Die offene Empfehlung verwerfen."""
+
+    ART = "empfehlung_verwerfen"
+    _attr_translation_key = "automatik_empfehlung_verwerfen"
+
+    async def async_press(self) -> None:
+        await self._verwaltung.empfehlung_verwerfen(self._device_id)
+
+
 class AutomatikWert(AutomatikEntitaet, SensorEntity):
     """Ein Messwert der Automatik; ohne Lauf bleibt er leer."""
 
@@ -345,6 +355,7 @@ KLASSEN: dict[str, type[AutomatikEntitaet]] = {
     "zustand": AutomatikZustand,
     "empfehlung": AutomatikEmpfehlung,
     "empfehlung_uebernehmen": AutomatikEmpfehlungTaste,
+    "empfehlung_verwerfen": AutomatikVerwerfenTaste,
     "gedaempft": AutomatikGedaempft,
     "heizgrenze": AutomatikHeizgrenze,
     "abweichung": AutomatikAbweichung,
@@ -366,7 +377,7 @@ SENSOR_ARTEN = (
     "letzter_eingriff",
     "naechste_entscheidung",
 )
-TASTEN_ARTEN = ("empfehlung_uebernehmen",)
+TASTEN_ARTEN = ("empfehlung_uebernehmen", "empfehlung_verwerfen")
 
 
 @callback

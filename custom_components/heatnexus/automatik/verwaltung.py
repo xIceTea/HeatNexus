@@ -46,6 +46,7 @@ DOMAENE_JE_ART = {
     "zustand": "sensor",
     "empfehlung": "sensor",
     "empfehlung_uebernehmen": "button",
+    "empfehlung_verwerfen": "button",
     "gedaempft": "sensor",
     "heizgrenze": "sensor",
     "abweichung": "sensor",
@@ -381,7 +382,7 @@ class Verwaltung:
         return konfig
 
     async def einstellen(self, device_id: str, aenderung: dict[str, Any]) -> dict[str, Any]:
-        """Einstellungen ändern; beim Wechsel ins Beobachten oder Aus zurücknehmen."""
+        """Einstellungen ändern; ein Wechsel weg von „Automatisch" nimmt laufende Eingriffe zurück."""
         eintrag = self._daten["heizkreise"].get(device_id)
         if eintrag is None:
             raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
@@ -393,14 +394,17 @@ class Verwaltung:
         if (laufzeit := self.laufzeiten.get(device_id)) is not None:
             schreibt_alt = alt["aktiv"] and alt["modus"] != "beobachten"
             schreibt_neu = neu["aktiv"] and neu["modus"] != "beobachten"
-            if schreibt_alt and not schreibt_neu:
+            gewechselt = (alt["aktiv"], alt["modus"]) != (neu["aktiv"], neu["modus"])
+            # Ohne „Automatisch" läuft kein Eingriff ohne Zustimmung weiter; die Regel rechnet sofort neu.
+            selbst_neu = neu["aktiv"] and neu["modus"] == "schalten"
+            if schreibt_alt and not selbst_neu and gewechselt:
                 await laufzeit.zuruecknehmen()
             # Nur Beobachtetes verwerfen; ein nicht zurückgenommener Eingriff bleibt bekannt.
             if schreibt_neu and alt["modus"] == "beobachten":
                 laufzeit.gedaechtnis_leeren()
             if neu["modus"] == "beobachten" and alt["modus"] != "beobachten":
                 laufzeit.beobachtet_seit = dt_util.now()
-            await laufzeit.neu_starten(neu)
+            await laufzeit.neu_starten(neu, entscheidungszeit=gewechselt and neu["aktiv"])
         eintrag["konfig"] = neu
         self.speichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(device_id))
@@ -423,6 +427,12 @@ class Verwaltung:
         if (laufzeit := self.laufzeiten.get(device_id)) is None:
             raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
         await laufzeit.empfehlung_uebernehmen()
+
+    async def empfehlung_verwerfen(self, device_id: str) -> None:
+        """Die offene Empfehlung eines Heizkreises verwerfen."""
+        if (laufzeit := self.laufzeiten.get(device_id)) is None:
+            raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
+        await laufzeit.empfehlung_verwerfen()
 
     async def entfernen(self, device_id: str) -> None:
         """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten abräumen."""

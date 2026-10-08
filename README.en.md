@@ -359,7 +359,7 @@ Automations & Scenes → Blueprints* after setup — no import from the internet
 | Record running time | measure how long a part runs uninterrupted |
 | Lower heating circuit while away | lower on absence, restore on return |
 | Emulate legionella protection | raises the cylinder on a fixed schedule via the one-off charge — for controllers without a built-in legionella function |
-| Report automation recommendation | sends a recommendation of the automation to a mobile device; "Apply" carries it out |
+| Report automation recommendation | sends a recommendation of the automation to a mobile device; "Apply" carries it out, "Discard" rejects it |
 
 What happens on an event is up to the individual automation — notification,
 announcement, phone call, any action. The fault blueprint evaluates the

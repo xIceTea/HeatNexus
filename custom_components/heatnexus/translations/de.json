@@ -465,6 +465,9 @@
     "button": {
       "automatik_empfehlung_uebernehmen": {
         "name": "Empfehlung übernehmen"
+      },
+      "automatik_empfehlung_verwerfen": {
+        "name": "Empfehlung verwerfen"
       }
     }
   },

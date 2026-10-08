@@ -71,14 +71,16 @@ Ladetemperatur zurück, Betriebswahl zurück.
 ### Empfehlung der Automatik melden
 
 Meldet eine Empfehlung der Automatik an ein Mobilgerät der Home-Assistant-App.
-Die Mitteilung enthält die Begründung und die Aktion „Übernehmen“. Ein Tipp
-darauf drückt die Taste der Empfehlung und führt sie aus.
+Die Mitteilung enthält die Begründung und die Aktionen „Übernehmen“ und
+„Verwerfen“. „Übernehmen“ führt die Empfehlung aus. „Verwerfen“ lehnt sie ab;
+derselbe Vorschlag kommt am Tag nicht wieder.
 
 Die Vorlage gehört zum Modus „Manuell mit Empfehlung“. Gemeldet werden nur
 Eingriffe, die weniger heizen. Die Rückkehr ins Programm und Eingriffe zur
 Sicherheit schreibt die Automatik ohne Rückfrage. Antwortet niemand innerhalb
 der eingestellten Wartezeit, bleibt die Empfehlung offen. Sie lässt sich im
-Reiter Automatik oder mit der Taste **Empfehlung übernehmen** ausführen.
+Reiter Automatik oder mit den Tasten **Empfehlung übernehmen** und
+**Empfehlung verwerfen** beantworten.
 
 ## Dienste
 

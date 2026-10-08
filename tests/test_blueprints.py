@@ -155,11 +155,24 @@ def test_empfehlung_antwort_gehoert_zur_eigenen_mitteilung(empfehlung):
     aktionen = empfehlung["actions"]
     (melden,) = (a for a in aktionen if "data" in a and "actions" in a["data"])
     (warten,) = (a for a in aktionen if "wait_for_trigger" in a)
-    kennung = melden["data"]["actions"][0]["action"]
-    assert kennung == melden["data"]["tag"]
-    assert warten["wait_for_trigger"][0]["event_data"]["action"] == kennung
+    kennungen = [a["action"] for a in melden["data"]["actions"]]
+    assert kennungen[0] == melden["data"]["tag"]
+    assert [w["event_data"]["action"] for w in warten["wait_for_trigger"]] == kennungen
     assert warten["continue_on_timeout"] is False
     assert any(a.get("action") == "button.press" for a in aktionen)
+
+
+@pytest.mark.parametrize(
+    ("antwort", "taste"), [("ID", "button.ja"), ("ID_VERWERFEN", "button.nein")]
+)
+def test_empfehlung_drueckt_die_taste_zur_antwort(empfehlung, antwort, taste):
+    from jinja2 import Environment
+
+    (druecken,) = (a for a in empfehlung["actions"] if a.get("action") == "button.press")
+    vorlage = druecken["target"]["entity_id"]
+    wait = {"trigger": {"event": {"data": {"action": antwort}}}}
+    werte = {"aktion_id": "ID", "taste": "button.ja", "verwerfen": "button.nein", "wait": wait}
+    assert Environment().from_string(vorlage).render(**werte).strip() == taste
 
 
 @pytest.mark.parametrize(

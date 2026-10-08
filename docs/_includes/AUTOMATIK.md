@@ -73,13 +73,19 @@ Der Modus bestimmt, was die Automatik mit ihrer Entscheidung tut:
 - **Beobachten** ist die Voreinstellung. Die Automatik schreibt nichts an die
   Steuerung, und das Protokoll zeigt, was sie getan hätte.
 - Im Modus **Manuell mit Empfehlung** schreibt die Automatik nur, was nicht
-  weniger heizt. Eingriffe, die weniger heizen, schlägt sie vor. Die
-  Empfehlung erscheint im Reiter Automatik und als Sensor, und erst
-  „Übernehmen“ führt sie aus. Die Rückkehr ins Programm und Eingriffe zur
-  Sicherheit schreibt die Automatik ohne Rückfrage. Der Blueprint „Empfehlung
-  der Automatik melden“ schickt die Empfehlung an ein Mobilgerät, mit der
-  Aktion „Übernehmen“.
+  weniger heizt. Eingriffe, die weniger heizen, schlägt sie vor; das gilt auch
+  für das Verlängern eines Sonnentags oder einer Heizpause. Die Empfehlung
+  erscheint im Reiter Automatik und als Sensor, und erst „Übernehmen“ führt sie
+  aus. „Verwerfen“ lehnt sie ab; derselbe Vorschlag kommt am Tag nicht wieder.
+  Die Rückkehr ins Programm und Eingriffe zur Sicherheit schreibt die Automatik
+  ohne Rückfrage. Der Blueprint „Empfehlung der Automatik melden“ schickt die
+  Empfehlung an ein Mobilgerät, mit den Aktionen „Übernehmen“ und „Verwerfen“.
 - **Automatisch** schreibt jede Entscheidung selbst.
+
+Ein Wechsel weg von „Automatisch“ nimmt laufende Eingriffe der Automatik
+zurück, und die Regel rechnet sofort neu. Im Modus „Manuell mit Empfehlung“
+erscheint dann gleich die passende Empfehlung, im Beobachten der vorgemerkte
+Eingriff.
 
 Weitere Regeln:
 
@@ -187,7 +193,8 @@ Darunter steht je Heizkreis das Gerät **Automatik <Heizkreis>**. Es führt:
 - den Schalter **Automatik** und die Auswahlen **Automatik-Modus** und
   **Automatik-Ausrichtung**,
 - den Sensor **Automatik-Zustand** mit der Begründung als Attribut,
-- den Sensor **Empfehlung** und die Taste **Empfehlung übernehmen**,
+- den Sensor **Empfehlung** und die Tasten **Empfehlung übernehmen** und
+  **Empfehlung verwerfen**,
 - die Werte, mit denen sie rechnet: **Gedämpfte Außentemperatur**,
   **Heizgrenze** (die der Steuerung samt Ausrichtung), **Räume zum Ziel**,
   **Sonnenquote heute**,

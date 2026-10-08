@@ -770,5 +770,7 @@
   "Steuerung hinzufügen": "Add controller",
   "Steuerung entfernen": "Remove controller",
   "keine": "none",
+  "verworfen": "dismissed",
+  "Verworfen: {grund}": "Dismissed: {grund}",
   "Ausgewogen – zwischen Eco und Komfort": "Balanced – between Eco and Comfort"
 }

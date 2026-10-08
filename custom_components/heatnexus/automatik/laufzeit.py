@@ -105,6 +105,16 @@ def _gueltige_empfehlung(wert: Any) -> dict[str, Any] | None:
     return wert if seit.tzinfo is not None else None
 
 
+def _gueltig_verworfen(wert: Any) -> dict[str, Any]:
+    """Verworfene Zustände eines Tages; alles Unlesbare zählt als nichts verworfen."""
+    if not isinstance(wert, dict) or not isinstance(wert.get("tag"), str):
+        return {}
+    zustaende = wert.get("zustaende")
+    if not isinstance(zustaende, list) or not all(isinstance(z, str) for z in zustaende):
+        return {}
+    return {"tag": wert["tag"], "zustaende": zustaende}
+
+
 class Laufzeit(QuellenMixin):
     """Die Automatik eines Heizkreises."""
 
@@ -244,10 +254,11 @@ class Laufzeit(QuellenMixin):
             "grenze_steuerung": self.grenze_zuletzt,
             "grenze_absenk": self.absenk_zuletzt,
             "empfehlung": self.empfehlung,
+            "verworfen": self.verworfen,
         }
 
     # --- Lebenszyklus --------------------------------------------------------
-    async def starten(self) -> None:
+    async def starten(self, entscheidungszeit: bool = False) -> None:
         """Auslöser anmelden, Prognose holen, einmal auswerten."""
         self._gestartet = dt_util.now()
         client = self.coordinator.client
@@ -274,7 +285,7 @@ class Laufzeit(QuellenMixin):
                     )
                 )
         await self._prognose_holen()
-        await self.auswerten()
+        await self.auswerten(entscheidungszeit)
         self._nachladen = self.hass.async_create_background_task(
             nachladen.heute_nachtragen(self.hass, self), f"heatnexus_automatik_{self.device_id}"
         )
@@ -293,11 +304,11 @@ class Laufzeit(QuellenMixin):
         for adresse in ABRUF:
             client.unregister_poll_oid(f"{self.prefix}{adresse}")
 
-    async def neu_starten(self, konfig: dict[str, Any]) -> None:
+    async def neu_starten(self, konfig: dict[str, Any], entscheidungszeit: bool = False) -> None:
         """Mit geänderten Einstellungen weiterlaufen; der Zustand bleibt."""
         self.stoppen()
         self.konfig = konfig
-        await self.starten()
+        await self.starten(entscheidungszeit)
 
     # --- Auslöser ------------------------------------------------------------
     @callback
@@ -390,6 +401,7 @@ class Laufzeit(QuellenMixin):
             lage = replace(lage, pausiert_bis=self.pausiert_bis)
         entscheidung = regel.entscheiden(lage, self.gedaechtnis, self.werte)
         bestaetigt = self._bestaetigt(bestaetigung, entscheidung)
+        entscheidung = self._ohne_verworfenes(entscheidung, bestaetigt, jetzt)
         angenommen = await self.steller.ausfuehren(
             entscheidung,
             jetzt=jetzt,
@@ -429,14 +441,32 @@ class Laufzeit(QuellenMixin):
         self._entscheidung_offen = False
         self._bestaetigt_offen = False
         self.empfehlung: dict[str, Any] | None = _gueltige_empfehlung(z.get("empfehlung"))
+        self.verworfen: dict[str, Any] = _gueltig_verworfen(z.get("verworfen"))
 
-    def _taste(self) -> str | None:
-        """Die Entität der Taste; sie entsteht erst nach dem ersten Lauf."""
+    def _taste(self, art: str) -> str | None:
+        """Die Entität einer Taste; sie entsteht erst nach dem ersten Lauf."""
         from .verwaltung import unique_id
 
         return er.async_get(self.hass).async_get_entity_id(
-            "button", DOMAIN, unique_id(self.device_id, "empfehlung_uebernehmen")
+            "button", DOMAIN, unique_id(self.device_id, art)
         )
+
+    def _heute_verworfen(self, jetzt: datetime) -> list[str]:
+        if self.verworfen.get("tag") != jetzt.date().isoformat():
+            return []
+        return list(self.verworfen["zustaende"])
+
+    def _ohne_verworfenes(
+        self, entscheidung: regel.Entscheidung, bestaetigt: bool, jetzt: datetime
+    ) -> regel.Entscheidung:
+        """Was heute verworfen wurde, wird nicht erneut empfohlen; an der Steuerung bleibt alles."""
+        if bestaetigt or not self.empfehlen or not braucht_bestaetigung(entscheidung.aktionen):
+            return entscheidung
+        if entscheidung.zustand.value not in self._heute_verworfen(jetzt):
+            return entscheidung
+        zustand = regel.zustand_aus(self.gedaechtnis, jetzt)
+        text = f"Verworfen: {entscheidung.begruendung}"
+        return regel.Entscheidung(zustand, (), text, self.gedaechtnis)
 
     def _bestaetigung(self) -> bool | None:
         """Eine offene Bestätigung abholen: `None` ohne, sonst die Entscheidungszeit der Empfehlung."""
@@ -488,7 +518,8 @@ class Laufzeit(QuellenMixin):
                 "name": self.name,
                 "zustand": neu,
                 "begruendung": woerterbuch(self.hass).satz(entscheidung.begruendung),
-                "taste": self._taste(),
+                "taste": self._taste("empfehlung_uebernehmen"),
+                "verwerfen": self._taste("empfehlung_verwerfen"),
             },
         )
 
@@ -518,6 +549,22 @@ class Laufzeit(QuellenMixin):
             return
         # Läuft gerade eine Auswertung, holt der nächste Lauf die Bestätigung nach.
         self._bestaetigt_offen = True
+        self._geaendert = True
+        await self.auswerten()
+
+    async def empfehlung_verwerfen(self) -> None:
+        """Die offene Empfehlung verwerfen; derselbe Vorschlag kommt heute nicht wieder."""
+        if self.empfehlung is None:
+            return
+        jetzt = dt_util.now()
+        tag = jetzt.date().isoformat()
+        zustand = self.empfehlung["zustand"]
+        self.verworfen = {"tag": tag, "zustaende": sorted({*self._heute_verworfen(jetzt), zustand})}
+        if zustand == regel.Zustand.HEIZPAUSE.value:
+            # Ohne Heizpause rechnet die Regel neu; ein Ausstieg aus nur Warmwasser bleibt möglich.
+            self.gedaechtnis = replace(self.gedaechtnis, pause_sperre=tag)
+        self.steller.vermerken(jetzt, "verworfen", self.empfehlung["begruendung"])
+        self.empfehlung = None
         self._geaendert = True
         await self.auswerten()
 

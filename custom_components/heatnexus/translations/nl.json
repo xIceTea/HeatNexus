@@ -465,6 +465,9 @@
     "button": {
       "automatik_empfehlung_uebernehmen": {
         "name": "Advies overnemen"
+      },
+      "automatik_empfehlung_verwerfen": {
+        "name": "Advies verwerpen"
       }
     }
   },

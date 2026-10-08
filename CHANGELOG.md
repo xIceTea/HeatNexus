@@ -12,7 +12,9 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Eine Heizpause hält den Heizkreis an milden Tagen aus; bei Kälte heizt die Steuerung.
 - Der Modus „Manuell mit Empfehlung“ schlägt Eingriffe vor, die weniger heizen.
-- Ein Blueprint meldet Empfehlungen der Automatik mit der Aktion „Übernehmen“.
+- Ein Blueprint meldet Empfehlungen der Automatik mit den Aktionen „Übernehmen“ und „Verwerfen“.
+- Eine verworfene Empfehlung kommt am selben Tag nicht wieder.
+- Der Wechsel weg von „Automatisch“ beendet laufende Eingriffe und rechnet sofort neu.
 
 ### Behoben
 

@@ -459,6 +459,21 @@ async def _ws_empfehlung_uebernehmen(hass: HomeAssistant, connection, msg: dict[
 
 
 @websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/automatik/empfehlung_verwerfen",
+        vol.Required("heizkreis"): KENNUNG,
+    }
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _ws_empfehlung_verwerfen(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
+    """Die offene Empfehlung eines Heizkreises verwerfen."""
+    await _ausfuehren(
+        hass, connection, msg, verwaltung_holen(hass).empfehlung_verwerfen(msg["heizkreis"])
+    )
+
+
+@websocket_api.websocket_command(
     {vol.Required("type"): f"{DOMAIN}/automatik/entfernen", vol.Required("heizkreis"): KENNUNG}
 )
 @websocket_api.require_admin
@@ -480,6 +495,7 @@ def async_register_automatik(hass: HomeAssistant) -> None:
         _ws_einstellen,
         _ws_uebernehmen,
         _ws_empfehlung_uebernehmen,
+        _ws_empfehlung_verwerfen,
         _ws_heizgrenzen,
         _ws_entfernen,
     ):

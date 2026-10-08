@@ -135,6 +135,13 @@ async def _schalten(client) -> None:
     assert antwort["success"], antwort
 
 
+async def _schalten_ohne_eingriff(client, verwaltung, coordinator) -> None:
+    """Scharf schalten; den Sonnentag, den der Wechsel sofort schreibt, wieder zurücknehmen."""
+    await _schalten(client)
+    await verwaltung.laufzeiten[HEIZKREIS].zuruecknehmen()
+    coordinator.client.geschrieben.clear()
+
+
 async def _empfehlen(client) -> None:
     antwort = await _senden(
         client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, modus="empfehlen"
@@ -206,7 +213,12 @@ async def test_empfehlung_als_sensor_und_taste(hass, hass_ws_client, anlage, fre
     verwaltung, _ = anlage
     laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
     assert await async_setup_component(hass, "button", {})
-    for art, domaene in (("empfehlung", "sensor"), ("empfehlung_uebernehmen", "button")):
+    arten = (
+        ("empfehlung", "sensor"),
+        ("empfehlung_uebernehmen", "button"),
+        ("empfehlung_verwerfen", "button"),
+    )
+    for art, domaene in arten:
         plattform = MockEntityPlatform(hass, domain=domaene, platform_name="heatnexus")
         await plattform.async_add_entities([KLASSEN[art](verwaltung, HEIZKREIS)])
     await hass.async_block_till_done()
@@ -219,6 +231,10 @@ async def test_empfehlung_als_sensor_und_taste(hass, hass_ws_client, anlage, fre
     assert hass.states.get(sensor).state == "sonnentag"
     assert hass.states.get(sensor).attributes["seit"] == laufzeit.empfehlung["seit"]
     assert hass.states.get(taste).state != "unavailable"
+    verwerfen = reg.async_get_entity_id(
+        "button", "heatnexus", unique_id(HEIZKREIS, "empfehlung_verwerfen")
+    )
+    assert hass.states.get(verwerfen).state != "unavailable"
 
     await hass.services.async_call("button", "press", {"entity_id": taste}, blocking=True)
     await hass.async_block_till_done()
@@ -249,6 +265,61 @@ async def test_wechsel_zum_schalten_verwirft_die_empfehlung(hass, hass_ws_client
     await _schalten(client)
 
     assert laufzeit.empfehlung is None
+
+
+@pytest.mark.parametrize("modus", ["empfehlen", "beobachten"])
+async def test_wechsel_weg_vom_schalten_beendet_den_eingriff_und_rechnet_neu(
+    hass, hass_ws_client, anlage, freezer, modus
+):
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    assert coordinator.client.geschrieben == [
+        (f"{PREFIX}/3/4/0", "19.5"),
+        (f"{PREFIX}/2/10/0", "400"),
+    ]
+    coordinator.client.geschrieben.clear()
+
+    antwort = await _senden(
+        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, modus=modus
+    )
+
+    assert antwort["success"], antwort
+    assert coordinator.client.geschrieben == [(f"{PREFIX}/2/10/0", "0")]
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    if modus == "empfehlen":
+        assert laufzeit.empfehlung["zustand"] == "sonnentag"
+    else:
+        assert laufzeit.steller.stand.protokoll[0]["art"] == "haette"
+
+
+async def test_verworfene_empfehlung_kommt_erst_am_naechsten_tag_wieder(
+    hass, hass_ws_client, anlage, freezer
+):
+    from datetime import timedelta
+
+    verwaltung, coordinator = anlage
+    laufzeit, client = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
+
+    antwort = await _senden(
+        client, type="heatnexus/automatik/empfehlung_verwerfen", heizkreis=HEIZKREIS
+    )
+
+    assert antwort["success"], antwort
+    assert laufzeit.empfehlung is None
+    assert laufzeit.steller.stand.protokoll[0]["art"] == "verworfen"
+    await laufzeit.auswerten(entscheidungszeit=True)
+    assert laufzeit.empfehlung is None
+    assert laufzeit.begruendung.startswith("Verworfen: ")
+    assert laufzeit.als_dict()["verworfen"]["zustaende"] == ["sonnentag"]
+    assert coordinator.client.geschrieben == []
+
+    freezer.tick(timedelta(days=1))
+    await laufzeit._prognose_holen()
+    await laufzeit.auswerten(entscheidungszeit=True)
+    assert laufzeit.empfehlung["zustand"] == "sonnentag"
 
 
 @pytest.mark.parametrize(("empfohlen", "geschrieben"), [("sonnentag", True), ("nur_ww", False)])
@@ -519,7 +590,8 @@ async def test_geaenderter_raumsoll_der_pause_gilt_als_handeingriff(
     client = await hass_ws_client(hass)
     freezer.move_to(MORGEN)
     await _einrichten(client)
-    await _schalten(client)
+    await _schalten_ohne_eingriff(client, verwaltung, coordinator)
+    freezer.tick(timedelta(minutes=5))
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
     jetzt = dt_util.now()
     laufzeit.gedaechtnis = regel.Gedaechtnis(
@@ -1748,7 +1820,7 @@ async def test_entscheidungszeit_waehrend_einer_auswertung_geht_nicht_verloren(
     client = await hass_ws_client(hass)
     freezer.move_to(MORGEN)
     await _einrichten(client)
-    await _schalten(client)
+    await _schalten_ohne_eingriff(client, verwaltung, coordinator)
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
 
     laufzeit._laeuft = True
