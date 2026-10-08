@@ -1567,6 +1567,10 @@ export const STIL = `
     .automatik-werte { grid-template-columns: minmax(0, 1fr); }
     .automatik-feld.breit select { min-width: 0; max-width: 55vw; }
     .automatik-gruppe + .automatik-gruppe, .automatik-schalter + .automatik-gruppe { padding-left: 0; border-left: none; }
+    /* Das Segment nimmt die ganze Zeile unter dem Titel ein; lange Tasten brechen um, statt überzustehen. */
+    .automatik-gruppe { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; gap: 6px 10px; }
+    .automatik-segment { flex: 1 1 100%; min-width: 0; }
+    .automatik-segment button { flex: 1 1 0; min-width: 0; padding: 6px 8px; hyphens: auto; overflow-wrap: break-word; }
     .automatik-stundenlegende { margin-left: 0; }
     .automatik-einstellungstasten { position: static; padding: 0 20px 12px; }
     .automatik-erweitert[open] > .automatik-einstellungskopf { padding-right: 20px; }
