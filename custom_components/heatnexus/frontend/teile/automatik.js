@@ -73,7 +73,7 @@ export const PROFILE = [
 
 export const AUSRICHTUNGEN = [
   ["eco", "Eco – früh und kräftig eingreifen"],
-  ["ausgewogen", "Ausgewogen"],
+  ["ausgewogen", "Ausgewogen – zwischen Eco und Komfort"],
   ["komfort", "Komfort – spät und sanft eingreifen"],
 ];
 
