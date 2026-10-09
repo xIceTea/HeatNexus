@@ -798,9 +798,14 @@
   "Neu lernen": "Learn again",
   "Raum laut Vorhersage": "Room per forecast",
   "Sonne +{wert} K/h": "Sun +{wert} K/h",
-  "Heizen {wert}": "Heating {wert}",
-  "Wind zählt": "Wind counts",
   "±{fehler} K, ohne Modell ±{bleibt} K": "±{fehler} K, without model ±{bleibt} K",
   "beobachtet – {tage} von 14 Tagen": "observed – {tage} of 14 days",
-  "beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K": "observed – ±{fehler} K, without model ±{bleibt} K"
+  "beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K": "observed – ±{fehler} K, without model ±{bleibt} K",
+  "Die Aufzeichnung liefert keine Raumwerte, Außentemperatur oder Vorlauf.": "The recorder has no room values, outdoor temperature or flow temperature.",
+  "Noch zu wenige Stunden ohne Heizen.": "Not enough hours without heating yet.",
+  "Die Raumwerte ergeben noch keine plausible Auskühlzeit.": "The room values do not yet give a plausible cooling time.",
+  "Hausmodell neu lernen": "Relearn house model",
+  "Hausmodell neu lernen?": "Relearn house model?",
+  "Die Automatik verwirft die gelernten Hauswerte und rechnet sie aus der Aufzeichnung neu. Das lohnt sich nach geänderten Räumen oder Umbauten.": "The automation discards the learned house values and recalculates them from the recorder. This is useful after changing rooms or renovations.",
+  "Räume wählen, die dieser Heizkreis versorgt und die für das Haus typisch sind. Keller, Bad oder Wintergarten verfälschen das Mittel und das Hausmodell.": "Choose rooms that this heating circuit supplies and that are typical for the house. A basement, bathroom or conservatory distorts the average and the house model."
 }

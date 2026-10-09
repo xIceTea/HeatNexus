@@ -100,7 +100,10 @@ export const EinrichtungMixin = (Basis) =>
       const entfernen = this._automatikTaste("Automatik entfernen", "automatik-knopf leise warnung");
       entfernen.disabled = !darf;
       entfernen.addEventListener("click", () => this._automatikEntfernen(kreis));
-      leiste.append(entfernen);
+      const neuLernen = this._automatikTaste("Hausmodell neu lernen", "automatik-knopf leise");
+      neuLernen.disabled = !darf;
+      neuLernen.addEventListener("click", () => this._automatikHausmodellNeu(kreis));
+      leiste.append(neuLernen, entfernen);
       bereich.appendChild(leiste);
       return bereich;
     }
@@ -283,6 +286,17 @@ export const EinrichtungMixin = (Basis) =>
     async _automatikSpeichern(kreis, aenderung) {
       this._automatikEntwurfVerwerfen(kreis.heizkreis);
       await this._automatikEinstellen(kreis, aenderung, kreis.heizkreis);
+    }
+
+    async _automatikHausmodellNeu(kreis) {
+      const ja = await this._bestaetigen(
+        this._t("Hausmodell neu lernen?"),
+        this._t("Die Automatik verwirft die gelernten Hauswerte und rechnet sie aus der Aufzeichnung neu. Das lohnt sich nach geänderten Räumen oder Umbauten."),
+        null,
+        { ja: this._t("Neu lernen") }
+      );
+      if (!ja) return;
+      await this._automatikAufruf({ type: "heatnexus/automatik/hausmodell_neu", heizkreis: kreis.heizkreis });
     }
 
     async _automatikEntfernen(kreis) {
@@ -528,7 +542,11 @@ export const EinrichtungMixin = (Basis) =>
         ],
         [
           this._t("2 · Räume"),
-          [f.raeume, b("Zählt", f.raumArt), b("Wunschtemperatur für Temperaturfühler, °C (leer: Sollwert des Heizkreises)", f.raumZiel)],
+          [
+            b("Räume wählen, die dieser Heizkreis versorgt und die für das Haus typisch sind. Keller, Bad oder Wintergarten verfälschen das Mittel und das Hausmodell.", f.raeume),
+            b("Zählt", f.raumArt),
+            b("Wunschtemperatur für Temperaturfühler, °C (leer: Sollwert des Heizkreises)", f.raumZiel),
+          ],
         ],
         [
           this._t("3 · Wetter und PV-Prognose"),

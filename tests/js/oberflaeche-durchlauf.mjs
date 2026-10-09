@@ -1008,27 +1008,36 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   };
   bilanz.automatikHaus = {
     aktiv: zeigen(modell, [[9, 21.4], [10, 21.3]]),
-    mitWind: zeigen({ ...modell, wind: true }).fuss,
     beobachtetWenige: zeigen({ ...modell, status: "beobachtet", vergleiche: 3 }),
-    beobachtetVoll: zeigen({ ...modell, status: "beobachtet", fehler: 0.4, fehler_bleibt: 0.6 }),
-    lernt: zeigen({ status: "lernt" }),
+    beobachtetVoll: zeigen({ ...modell, status: "beobachtet", fehler: 0.36, fehler_bleibt: 0.41 }),
+    lernt: zeigen({ status: "lernt", grund: "ohne_heizen" }),
+    lerntOhneGrund: zeigen({ status: "lernt", grund: null }),
     ohneAngabe: zeigen(undefined),
   };
 
-  // Die Taste lässt das Modell neu lernen und lädt danach nach.
+  // „Hausmodell neu lernen“ steht in den Einstellungen und fragt vorher nach.
   zeigen(modell);
   const aufrufe = [];
+  const fragen = [];
   const vorherWs = hass.callWS;
+  const vorherFrage = flaeche._bestaetigen;
   hass.callWS = async (nachricht) => {
     aufrufe.push(nachricht);
     return nachricht.type === "heatnexus/automatik" ? flaeche._automatik : {};
   };
-  const taste = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("haus")).querySelector(".automatik-knopf");
+  flaeche._bestaetigen = async (titel) => {
+    fragen.push(titel);
+    return true;
+  };
+  const einstellungen = wurzel.querySelector(".automatik-erweitert");
+  const taste = einstellungen.querySelectorAll(".automatik-knopf").find((k) => text(k) === "Hausmodell neu lernen");
   taste.ausloesen("click");
   for (let runde = 0; runde < 20; runde += 1) await Promise.resolve();
   clearInterval(flaeche._automatikUhr);
   flaeche._automatikUhr = null;
   hass.callWS = vorherWs;
+  flaeche._bestaetigen = vorherFrage;
+  bilanz.automatikHaus.frage = fragen;
   bilanz.automatikHaus.neuLernen = aufrufe.map((a) => [a.type, a.heizkreis]);
 
   kreis.kennwerte = vorherKennwerte;

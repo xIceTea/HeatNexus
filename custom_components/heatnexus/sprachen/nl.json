@@ -803,9 +803,14 @@
   "Neu lernen": "Opnieuw leren",
   "Raum laut Vorhersage": "Ruimte volgens voorspelling",
   "Sonne +{wert} K/h": "Zon +{wert} K/u",
-  "Heizen {wert}": "Verwarmen {wert}",
-  "Wind zählt": "Wind telt mee",
   "±{fehler} K, ohne Modell ±{bleibt} K": "±{fehler} K, zonder model ±{bleibt} K",
   "beobachtet – {tage} von 14 Tagen": "geobserveerd – {tage} van 14 dagen",
-  "beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K": "geobserveerd – ±{fehler} K, zonder model ±{bleibt} K"
+  "beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K": "geobserveerd – ±{fehler} K, zonder model ±{bleibt} K",
+  "Die Aufzeichnung liefert keine Raumwerte, Außentemperatur oder Vorlauf.": "De opname levert geen ruimtewaarden, buitentemperatuur of aanvoertemperatuur.",
+  "Noch zu wenige Stunden ohne Heizen.": "Nog te weinig uren zonder verwarming.",
+  "Die Raumwerte ergeben noch keine plausible Auskühlzeit.": "De ruimtewaarden geven nog geen aannemelijke afkoeltijd.",
+  "Hausmodell neu lernen": "Huismodel opnieuw leren",
+  "Hausmodell neu lernen?": "Huismodel opnieuw leren?",
+  "Die Automatik verwirft die gelernten Hauswerte und rechnet sie aus der Aufzeichnung neu. Das lohnt sich nach geänderten Räumen oder Umbauten.": "De automatisering verwerpt de geleerde huiswaarden en berekent ze opnieuw uit de opname. Dat loont na gewijzigde ruimtes of verbouwingen.",
+  "Räume wählen, die dieser Heizkreis versorgt und die für das Haus typisch sind. Keller, Bad oder Wintergarten verfälschen das Mittel und das Hausmodell.": "Kies ruimtes die dit verwarmingscircuit voedt en die typisch zijn voor het huis. Een kelder, badkamer of serre vertekent het gemiddelde en het huismodel."
 }

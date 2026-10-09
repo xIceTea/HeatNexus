@@ -29,6 +29,12 @@ function knoten(tag, klasse = "", text = null) {
 
 // Vergleichstage, ab denen das Modell frei werden kann; wie `FREIGABE_TAGE` auf dem Server.
 const FREIGABE_TAGE = 14;
+// Warum noch kein Hausmodell besteht, je Grund aus der Laufzeit.
+const LERN_GRUENDE = {
+  daten: "Die Aufzeichnung liefert keine Raumwerte, Außentemperatur oder Vorlauf.",
+  ohne_heizen: "Noch zu wenige Stunden ohne Heizen.",
+  unpassend: "Die Raumwerte ergeben noch keine plausible Auskühlzeit.",
+};
 
 function vorhanden(wert) {
   return wert !== null && wert !== undefined && !Number.isNaN(Number(wert));
@@ -225,21 +231,17 @@ export const KennwerteMixin = (Basis) =>
       const h = (kreis.kennwerte || {}).hausmodell;
       if (!h) return null;
       const fuss = (text) => knoten("div", "fuss", text);
-      if (h.status === "lernt") return this._kachel("haus", "Haus", "–", this._t("lernt noch"));
-      const genau = { fehler: zahl(h.fehler), bleibt: zahl(h.fehler_bleibt) };
+      if (h.status === "lernt") {
+        const grund = LERN_GRUENDE[h.grund];
+        return this._kachel("haus", "Haus", "–", this._t("lernt noch"), null, [grund ? fuss(this._t(grund)) : null]);
+      }
+      const genau = { fehler: zahl(h.fehler, 2), bleibt: zahl(h.fehler_bleibt, 2) };
       let stand;
       if (h.status === "aktiv") stand = this._tMit("±{fehler} K, ohne Modell ±{bleibt} K", genau);
       else if ((h.vergleiche || 0) < FREIGABE_TAGE) stand = this._tMit("beobachtet – {tage} von 14 Tagen", { tage: h.vergleiche || 0 });
       else stand = this._tMit("beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K", genau);
-      const werte = [
-        this._tMit("Sonne +{wert} K/h", { wert: zahl(h.sonne_k_h, 2) }),
-        this._tMit("Heizen {wert}", { wert: zahl(h.heizwirkung, 2) }),
-        h.wind ? this._t("Wind zählt") : null,
-      ].filter(Boolean);
-      const taste = this._automatikTaste("Neu lernen", "automatik-knopf leise klein");
-      taste.disabled = !(this._automatik && this._automatik.darf_aendern);
-      taste.addEventListener("click", () => this._automatikAufruf({ type: "heatnexus/automatik/hausmodell_neu", heizkreis: kreis.heizkreis }));
-      return this._kachel("haus", "Haus", `${zahl(h.auskuehlzeit_h, 0)} h`, this._t("Auskühlzeit"), null, [fuss(stand), fuss(werte.join(" · ")), taste]);
+      const sonne = this._tMit("Sonne +{wert} K/h", { wert: zahl(h.sonne_k_h, 2) });
+      return this._kachel("haus", "Haus", `${zahl(h.auskuehlzeit_h, 0)} h`, this._t("Auskühlzeit"), null, [fuss(stand), fuss(sonne)]);
     }
 
     /** Eine Zeile je Raum: Name, Ist → Ziel, ob er heizt. */

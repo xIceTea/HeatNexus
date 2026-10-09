@@ -789,20 +789,25 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
 
 
 def test_die_kachel_haus_folgt_dem_stand_des_modells(durchlauf):
-    """Aktiv nennt Auskühlzeit und Treffsicherheit, beobachtet zählt die Tage, lernend schweigt."""
+    """Aktiv nennt Auskühlzeit und Treffsicherheit, beobachtet zählt die Tage, lernend nennt den Grund."""
     haus = durchlauf["automatikHaus"]
     aktiv = haus["aktiv"]
     assert (aktiv["titel"], aktiv["zahl"], aktiv["neben"]) == ("Haus", "40 h", "Auskühlzeit")
-    assert aktiv["fuss"] == ["±0,3 K, ohne Modell ±0,5 K", "Sonne +0,60 K/h · Heizen 0,03"]
-    assert aktiv["tasten"] == ["Neu lernen"]
-    assert haus["mitWind"][1] == "Sonne +0,60 K/h · Heizen 0,03 · Wind zählt"
+    assert aktiv["fuss"] == ["±0,30 K, ohne Modell ±0,50 K", "Sonne +0,60 K/h"]
+    assert aktiv["tasten"] == []
     assert haus["beobachtetWenige"]["fuss"][0] == "beobachtet – 3 von 14 Tagen"
-    assert haus["beobachtetVoll"]["fuss"][0] == "beobachtet – ±0,4 K, ohne Modell ±0,6 K"
+    assert haus["beobachtetVoll"]["fuss"][0] == "beobachtet – ±0,36 K, ohne Modell ±0,41 K"
     lernt = haus["lernt"]
     assert (lernt["titel"], lernt["zahl"], lernt["neben"]) == ("Haus", "–", "lernt noch")
-    assert (lernt["fuss"], lernt["tasten"]) == ([], [])
+    assert lernt["fuss"] == ["Noch zu wenige Stunden ohne Heizen."]
+    assert haus["lerntOhneGrund"]["fuss"] == []
     assert haus["ohneAngabe"]["kachel"] is False
-    assert haus["neuLernen"][0] == ["heatnexus/automatik/hausmodell_neu", "SN1-2-0"]
+
+
+def test_neu_lernen_steht_in_den_einstellungen_und_fragt_nach(durchlauf):
+    haus = durchlauf["automatikHaus"]
+    assert haus["frage"] == ["Hausmodell neu lernen?"]
+    assert ["heatnexus/automatik/hausmodell_neu", "SN1-2-0"] in haus["neuLernen"]
 
 
 def test_die_kurve_des_modells_erscheint_nur_mit_vorhersage(durchlauf):
