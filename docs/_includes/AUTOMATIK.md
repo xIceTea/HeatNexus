@@ -151,8 +151,12 @@ Für das Lernen braucht sie:
   verfälschen das Mittel.
 - Die Außentemperatur und den Vorlauf oder die Heizkreispumpe der Steuerung in
   der Aufzeichnung.
-- Stunden ohne Heizen, mindestens einen Tag zusammen. Heizt der Heizkreis rund
-  um die Uhr, lernt sie noch nicht. Die Kachel „Haus“ nennt dann den Grund.
+
+Heizt der Heizkreis fast rund um die Uhr, etwa im Winter, lernt sie Auskühlzeit
+und Heizwirkung gemeinsam aus den Heizstunden. Die Sonne bleibt dann außen vor,
+weil sie sich nicht von der Heizung trennen lässt. Neue Vergleichstage kommen
+erst mit Stunden ohne Heizen dazu. Fehlt etwas, nennt die Kachel „Haus“ den
+Grund.
 
 Zuerst beobachtet sie nur. Sie vergleicht ihre Vorhersage für die Stunden ohne
 Heizen mit dem gemessenen Raum und mit der Annahme, dass der Raum gleich bleibt.

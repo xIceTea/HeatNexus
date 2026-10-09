@@ -19,6 +19,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Automatik lernt das Haus und sagt den Raumverlauf des Tages voraus.
 - Trifft die Vorhersage über Wochen besser als ohne Modell, entscheidet sie mit.
 - Beim ersten Lernen rechnet die Automatik die vergangenen zwei Wochen nach.
+- Heizt der Heizkreis durchgehend, lernt das Hausmodell aus den Heizstunden.
 - Dann senkt sie bei Sonne früh ab oder legt eine Heizpause ein.
 - Die Ausrichtung legt fest, wie weit die Räume unter das Ziel sinken dürfen.
 - Der Reiter Automatik zeigt die gelernten Hauswerte und den vorhergesagten Raumverlauf.
