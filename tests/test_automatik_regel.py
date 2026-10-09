@@ -1212,3 +1212,88 @@ def test_ausgeschalteter_sonnentag_beendet_die_modellabsenkung(m, w, vh):
     e = m.entscheiden(stand, modell_absenkung(m), replace(w, sonnentag=False))
     assert [a.art for a in e.aktionen] == ["absenkung_ende"]
     assert e.begruendung == "Sonnentag ausgeschaltet – Absenkung beendet."
+
+
+def test_nach_dem_horizont_beginnt_die_bisherige_regel_keine_pause(m, w):
+    abend = MORGEN.replace(hour=21, minute=35)
+    g = pause(
+        m,
+        absenkung_von=MORGEN,
+        absenkung_bis=abend + timedelta(minutes=10),
+        absenkung_ziel=MORGEN.replace(hour=22, minute=0),
+        absenkung_anlass="modell",
+    )
+    stand = lage(m, **MILD, jetzt=abend, modell_freigegeben=True)
+    ende = m.entscheiden(stand, g, w)
+    assert [a.art for a in ende.aktionen] == ["absenkung_ende"]
+    assert ende.gedaechtnis.pause_sperre == MORGEN.date().isoformat()
+    danach = m.entscheiden(replace(stand, jetzt=abend + timedelta(minutes=5)), ende.gedaechtnis, w)
+    assert danach.aktionen == ()
+
+
+@pytest.mark.parametrize("entscheidungszeit", [False, True])
+def test_freigegebenes_modell_ohne_vorhersage_beginnt_keine_alte_stufe(m, w, entscheidungszeit):
+    stand = lage(m, **MILD, modell_freigegeben=True, entscheidungszeit=entscheidungszeit)
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert (e.zustand, e.aktionen) == (m.Zustand.PROGRAMM, ())
+
+
+def test_ohne_freigabe_beginnt_die_bisherige_regel_wie_bisher(m, w):
+    e = m.entscheiden(lage(m, **MILD, modell_freigegeben=False), m.Gedaechtnis(), w)
+    assert [(a.art, a.soll, a.minuten) for a in e.aktionen] == [("pause", 17.0, 400)]
+
+
+@pytest.mark.parametrize("mit_vorhersage", [False, True])
+@pytest.mark.parametrize(("pausensoll", "abwesend"), [(15.0, False), (19.0, True)])
+def test_abwesenheit_ersetzt_nur_eine_hoehere_modellstufe(
+    m, w, vh, mit_vorhersage, pausensoll, abwesend
+):
+    g = pause(
+        m,
+        absenkung_soll=pausensoll,
+        absenkung_ziel=MORGEN + timedelta(hours=10),
+        absenkung_anlass="modell",
+    )
+    v = _vh(vh, "pause") if mit_vorhersage else None
+    stand = lage(m, **MILD, abwesend=True, vorhersage=v, modell_freigegeben=True)
+    e = m.entscheiden(stand, g, w)
+    if abwesend:
+        assert e.zustand == m.Zustand.ABWESEND
+        assert [(a.art, a.soll) for a in e.aktionen] == [("absenken", 18.0)]
+    else:
+        assert (e.zustand, e.aktionen, e.gedaechtnis) == (m.Zustand.HEIZPAUSE, (), g)
+
+
+@pytest.mark.parametrize("abweichung", [{"sonnentag": False}, {"betriebsart": 2}])
+def test_modellpause_endet_ohne_sonnentag_text_wenn_die_absenkung_verboten_ist(
+    m, w, vh, abweichung
+):
+    werte = replace(w, sonnentag=abweichung.get("sonnentag", True))
+    betriebsart = {"betriebsart": abweichung["betriebsart"]} if "betriebsart" in abweichung else {}
+    stand = lage(m, **MILD, **betriebsart, vorhersage=_vh(vh, "absenkung"))
+    g = replace(pause(m), absenkung_anlass="modell")
+    e = m.entscheiden(stand, g, werte)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert (
+        e.begruendung == "Die Heizpause hält laut Prognose nicht bis 17:00 – zurück ins Programm."
+    )
+    assert e.gedaechtnis.pause_sperre == MORGEN.date().isoformat()
+
+
+def test_laufende_modellabsenkung_bleibt_im_absenkbetrieb(m, w, vh):
+    g = modell_absenkung(m, absenkung_bis=MORGEN + timedelta(hours=2))
+    stand = lage(m, **MILD, betriebsart=2, vorhersage=_vh(vh, "absenkung"))
+    e = m.entscheiden(stand, g, w)
+    assert (e.zustand, e.aktionen) == (m.Zustand.SONNENTAG, ())
+
+
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+@pytest.mark.parametrize("g", [None, "pause"])
+def test_verbotene_absenkung_ist_uebersetzt(m, w, vh, sprache, g):
+    alt = replace(pause(m), absenkung_anlass="modell") if g else m.Gedaechtnis()
+    stand = lage(m, **MILD, vorhersage=_vh(vh, "absenkung"))
+    e = m.entscheiden(stand, alt, replace(w, sonnentag=False))
+    uebersetzt = load_standalone("texte").Woerterbuch(sprache).satz(e.begruendung)
+    assert uebersetzt != e.begruendung
+    if sprache == "en":
+        assert not DEUTSCH.search(uebersetzt), uebersetzt

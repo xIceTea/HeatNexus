@@ -2440,6 +2440,7 @@ async def _mit_modell(hass, verwaltung, freezer, paare: int):
 async def test_freigegebenes_hausmodell_waehlt_die_heizpause(hass, anlage, freezer):
     verwaltung, _ = anlage
     laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
+    assert laufzeit.lage.modell_freigegeben is True
     v = laufzeit.lage.vorhersage
     # Ohne Heizen bleibt der Raum bis 21:00 über 21,0 − 0,2 + 0,3 K Modellfehler.
     assert (v.stufe, v.ziel_min, f"{v.bis:%H:%M}") == ("pause", 21.1, "22:00")
@@ -2455,6 +2456,7 @@ async def test_ohne_freigabe_wird_die_vorhersage_nur_beobachtet(hass, anlage, fr
     verwaltung, _ = anlage
     laufzeit = await _mit_modell(hass, verwaltung, freezer, 13)
     assert laufzeit.lage.vorhersage is None
+    assert laufzeit.lage.modell_freigegeben is False
     assert laufzeit._vorhersage_zuletzt is not None
     assert laufzeit._vorhersage_zuletzt.stufe == "pause"
     assert laufzeit.gedaechtnis.absenkung_anlass != "modell"

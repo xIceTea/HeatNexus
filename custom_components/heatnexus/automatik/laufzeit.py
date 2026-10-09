@@ -1072,4 +1072,8 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             beobachten=self.beobachten,
             **self._vorrang_lage(jetzt),
         )
-        return replace(lage, vorhersage=self.vorhersage_fuer(jetzt, lage))
+        return replace(
+            lage,
+            vorhersage=self.vorhersage_fuer(jetzt, lage),
+            modell_freigegeben=hausmodell.freigegeben(self.hausmodell),
+        )

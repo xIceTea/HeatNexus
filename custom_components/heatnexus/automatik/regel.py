@@ -132,6 +132,13 @@ class Lage:
     beobachten: bool = False
     # Nur mit freigegebenem Hausmodell gesetzt; dann wählt die Vorausschau die Stufe.
     vorhersage: Vorhersage | None = None
+    # Mit freigegebenem Hausmodell beginnt die bisherige Regel nichts, auch wenn eine Vorhersage fehlt.
+    modell_freigegeben: bool = False
+
+    @property
+    def modell_steuert(self) -> bool:
+        """Ob das Hausmodell statt der bisherigen Regel Stufen beginnt."""
+        return self.modell_freigegeben or self.vorhersage is not None
 
     @property
     def raum(self) -> float | None:
@@ -432,7 +439,7 @@ def _gleitend(lage: Lage, e: Entscheidung, soll: float, w: Werte) -> Entscheidun
     """Der Ausstieg aus nur Warmwasser geht in die Heizpause, wenn sie heute noch passt."""
     if [a.art for a in e.aktionen] != ["zurueck"] or any(a.sicherheit for a in e.aktionen):
         return e
-    if lage.vorhersage is not None:
+    if lage.modell_steuert:
         return e
     # Nach dem Zurückschalten steht die Betriebswahl wieder auf dem Programm.
     nachher = replace(lage, betriebswahl=min(PROGRAMMWAHL))
@@ -591,7 +598,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         return _sonnentag_laeuft(lage, g, soll, w)
     moeglich = (
         w.sonnentag
-        and lage.vorhersage is None
+        and not lage.modell_steuert
         and lage.entscheidungszeit
         and lage.betriebswahl in PROGRAMMWAHL
         and lage.absenkung_moeglich
@@ -763,7 +770,7 @@ def _heizpause(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
             return _heizpause_laeuft(lage, g, soll, w)
         # Ohne Ende ist das Gedächtnis beschädigt; die Regel rechnet ohne die Pause weiter.
         g = ohne_absenkung(g)
-    if lage.vorhersage is not None or not _pause_erlaubt(lage, g, soll, w):
+    if lage.modell_steuert or not _pause_erlaubt(lage, g, soll, w):
         return None
     if (anlass := _pause_anlass(lage, w)) is None:
         return None
@@ -805,22 +812,39 @@ def _vorausschau_ende(lage: Lage, g: Gedaechtnis, v: Vorhersage, eigen: bool) ->
 
 def _modell_ohne_vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung:
     """Eine Stufe des Modells ohne gültige Vorhersage: nicht verlängern, vor dem Horizont enden."""
-    if lage.abwesend and (abwesend := _abwesenheit(lage, g, soll, w)) is not None:
+    # Die Abwesenheit übernimmt nur, wenn ihr Sollwert nicht über dem der Stufe liegt.
+    tiefer = g.absenkung_soll is None or _abwesend_tiefer(lage, g, soll, g.absenkung_soll)
+    if lage.abwesend and tiefer and (abwesend := _abwesenheit(lage, g, soll, w)) is not None:
         return abwesend
+    gesperrt = replace(ohne_absenkung(g), pause_sperre=lage.jetzt.date().isoformat())
     if g.absenkung_bis <= lage.jetzt:
-        return _programm(lage, ohne_absenkung(g))
+        return _programm(lage, gesperrt)
     ende = g.absenkung_ziel or g.absenkung_bis
     if ende - lage.jetzt < timedelta(minutes=MIN_MINUTEN):
         text = f"Bis zum Horizont um {_uhr(ende)} bleibt keine Stunde – zurück ins Programm."
-        return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, ohne_absenkung(g))
+        return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, gesperrt)
     name = "Heizpause" if g.absenkung_art == PAUSE else "Sonnentag"
     text = f"{name} – {_zahl(g.absenkung_soll)} °C bis {_uhr(g.absenkung_bis)}."
     return Entscheidung(_ZUSTAND_JE_ART.get(g.absenkung_art, Zustand.PROGRAMM), (), text, g)
 
 
-def _absenkung_erlaubt(lage: Lage, w: Werte, eigen: bool) -> bool:
-    # Wie beim Sonnentag: nur eingeschaltet, und nicht, wenn das Programm schon absenkt.
-    return w.sonnentag and (eigen or lage.betriebsart != ABSENKBETRIEB)
+def _absenkung_verboten(
+    lage: Lage, g: Gedaechtnis, w: Werte, v: Vorhersage, eigen: bool
+) -> Entscheidung | None:
+    """Wie beim Sonnentag: Absenkung nur eingeschaltet und nicht, wenn das Programm schon absenkt."""
+    laeuft = eigen and g.absenkung_art == SONNE
+    if w.sonnentag and (laeuft or lage.betriebsart != ABSENKBETRIEB):
+        return None
+    if laeuft:
+        text = "Sonnentag ausgeschaltet – Absenkung beendet."
+        return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, ohne_absenkung(g))
+    folge = "zurück ins Programm" if eigen else "kein Eingriff"
+    text = f"Die Heizpause hält laut Prognose nicht bis {_uhr(v.bis)} – {folge}."
+    if not eigen:
+        return Entscheidung(Zustand.PROGRAMM, (), text, g)
+    # Wie nach jedem Ende einer Stufe des Modells: heute beginnt keine neue.
+    neu = replace(ohne_absenkung(g), pause_sperre=lage.jetzt.date().isoformat())
+    return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, neu)
 
 
 def _vorausschau_stufe(
@@ -870,11 +894,8 @@ def _vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheid
         return _vorausschau_ende(lage, g, v, eigen)
     if not eigen and g.pause_sperre == lage.jetzt.date().isoformat():
         return None
-    if v.stufe != V_PAUSE and not _absenkung_erlaubt(lage, w, eigen):
-        if not eigen:
-            return None
-        text = "Sonnentag ausgeschaltet – Absenkung beendet."
-        return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, ohne_absenkung(g))
+    if v.stufe != V_PAUSE and (verboten := _absenkung_verboten(lage, g, w, v, eigen)):
+        return verboten
     return _vorausschau_stufe(lage, g, soll, w, v, eigen)
 
 

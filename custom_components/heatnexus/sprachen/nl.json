@@ -564,6 +564,8 @@
   "Raum {raum} °C weicht von der Vorhersage ab – zurück ins Programm.": "Ruimte {raum} °C wijkt af van de voorspelling – terug naar het programma.",
   "Bis zum Horizont um {zeit} bleibt keine Stunde – kein Eingriff.": "Tot de horizon om {zeit} blijft geen uur over – geen ingreep.",
   "Bis zum Horizont um {zeit} bleibt keine Stunde – zurück ins Programm.": "Tot de horizon om {zeit} blijft geen uur over – terug naar het programma.",
+  "Die Heizpause hält laut Prognose nicht bis {zeit} – kein Eingriff.": "Volgens de prognose houdt een verwarmingspauze het niet tot {zeit} – geen ingreep.",
+  "Die Heizpause hält laut Prognose nicht bis {zeit} – zurück ins Programm.": "Volgens de prognose houdt de verwarmingspauze het niet tot {zeit} – terug naar het programma.",
   "Gedämpfte AT {wert} °C über {grenze} °C": "Gedempte buitentemp. {wert} °C boven {grenze} °C",
   "Tagesmittel heute {wert} °C": "Daggemiddelde vandaag {wert} °C",
   "Sonnenquote {quote} %": "Zonaandeel {quote} %",

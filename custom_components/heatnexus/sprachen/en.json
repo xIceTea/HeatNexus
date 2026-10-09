@@ -564,6 +564,8 @@
   "Raum {raum} °C weicht von der Vorhersage ab – zurück ins Programm.": "Room {raum} °C deviates from the prediction – back to the program.",
   "Bis zum Horizont um {zeit} bleibt keine Stunde – kein Eingriff.": "Less than an hour left until the horizon at {zeit} – no intervention.",
   "Bis zum Horizont um {zeit} bleibt keine Stunde – zurück ins Programm.": "Less than an hour left until the horizon at {zeit} – back to the program.",
+  "Die Heizpause hält laut Prognose nicht bis {zeit} – kein Eingriff.": "According to the forecast, a heating pause would not last until {zeit} – no intervention.",
+  "Die Heizpause hält laut Prognose nicht bis {zeit} – zurück ins Programm.": "According to the forecast, the heating pause would not last until {zeit} – back to the program.",
   "Gedämpfte AT {wert} °C über {grenze} °C": "Damped outdoor temp. {wert} °C above {grenze} °C",
   "Tagesmittel heute {wert} °C": "Daily mean today {wert} °C",
   "Sonnenquote {quote} %": "Sun share {quote} %",
