@@ -1194,6 +1194,65 @@ def test_modellpause_ohne_zielwert_der_pause_wird_nicht_verlaengert(m, w, vh):
     assert m.entscheiden(stand, g, w).aktionen == ()
 
 
+def _modellpause(m):
+    return pause(
+        m,
+        absenkung_bis=MORGEN + timedelta(minutes=300),
+        absenkung_ziel=MORGEN + timedelta(hours=10),
+        absenkung_anlass="modell",
+    )
+
+
+@pytest.mark.parametrize(
+    ("felder", "grund"),
+    [
+        ({"raum": 20.0}, "Räume"),
+        ({"ruhig": False}, "Thermostate fordern Wärme an"),
+    ],
+)
+def test_modellpause_ohne_vorhersage_endet_bei_unkomfort(m, w, felder, grund):
+    stand = lage(m, **{**MILD, **felder}, modell_freigegeben=True)
+    e = m.entscheiden(stand, _modellpause(m), w)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.zustand == m.Zustand.PROGRAMM
+    assert e.gedaechtnis.absenkung_art is None
+    assert e.gedaechtnis.pause_sperre == MORGEN.date().isoformat()
+    assert grund in e.begruendung
+    assert e.begruendung.endswith("Heizpause beendet.")
+    folge = m.entscheiden(stand, e.gedaechtnis, w)
+    assert folge.aktionen == ()
+
+
+def test_modellpause_ohne_vorhersage_mit_ruhigen_raeumen_bleibt(m, w):
+    stand = lage(m, **MILD, modell_freigegeben=True)
+    g = _modellpause(m)
+    e = m.entscheiden(stand, g, w)
+    assert (e.zustand, e.aktionen, e.gedaechtnis) == (m.Zustand.HEIZPAUSE, (), g)
+
+
+def test_modellabsenkung_ohne_vorhersage_endet_bei_zu_kalten_raeumen(m, w):
+    stand = lage(m, **{**MILD, "raum": 20.0}, modell_freigegeben=True)
+    e = m.entscheiden(stand, modell_absenkung(m), w)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.gedaechtnis.absenkung_art is None
+    assert e.gedaechtnis.pause_sperre == MORGEN.date().isoformat()
+    assert e.begruendung.endswith("Absenkung beendet.")
+    ruhig = m.entscheiden(lage(m, **MILD, modell_freigegeben=True), modell_absenkung(m), w)
+    assert ruhig.aktionen == ()
+
+
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+@pytest.mark.parametrize("art", ["pause", "absenkung"])
+def test_unkomfort_begruendung_ohne_vorhersage_ist_uebersetzt(m, w, sprache, art):
+    g = _modellpause(m) if art == "pause" else modell_absenkung(m)
+    stand = lage(m, **{**MILD, "raum": 20.0, "ruhig": False}, modell_freigegeben=True)
+    e = m.entscheiden(stand, g, w)
+    uebersetzt = load_standalone("texte").Woerterbuch(sprache).satz(e.begruendung)
+    assert uebersetzt != e.begruendung
+    if sprache == "en":
+        assert not DEUTSCH.search(uebersetzt), uebersetzt
+
+
 @pytest.mark.parametrize(
     "abweichung", [{"werte": {"sonnentag": False}}, {"lage": {"betriebsart": 2}}]
 )

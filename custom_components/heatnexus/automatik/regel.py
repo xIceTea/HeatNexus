@@ -810,6 +810,16 @@ def _vorausschau_ende(lage: Lage, g: Gedaechtnis, v: Vorhersage, eigen: bool) ->
     return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, neu)
 
 
+def _modell_komfort(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> str | None:
+    """Ohne Vorhersage prüft die Stufe die Räume wie die bisherige Regel: Pause und Sonnentag."""
+    if g.absenkung_art == PAUSE:
+        grund = _pause_ende(lage, g, soll, w)
+        return None if grund is None else f"{grund} – Heizpause beendet."
+    if (abstand := abweichung(lage, soll)) < -w.rueckkehr_k:
+        return f"Räume {_kelvin(abstand)} unter Ziel – Absenkung beendet."
+    return None
+
+
 def _modell_ohne_vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung:
     """Eine Stufe des Modells ohne gültige Vorhersage: nicht verlängern, vor dem Horizont enden."""
     # Die Abwesenheit übernimmt nur, wenn ihr Sollwert nicht über dem der Stufe liegt.
@@ -819,6 +829,8 @@ def _modell_ohne_vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) 
     gesperrt = replace(ohne_absenkung(g), pause_sperre=lage.jetzt.date().isoformat())
     if g.absenkung_bis <= lage.jetzt:
         return _programm(lage, gesperrt)
+    if (text := _modell_komfort(lage, g, soll, w)) is not None:
+        return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, gesperrt)
     ende = g.absenkung_ziel or g.absenkung_bis
     if ende - lage.jetzt < timedelta(minutes=MIN_MINUTEN):
         text = f"Bis zum Horizont um {_uhr(ende)} bleibt keine Stunde – zurück ins Programm."
