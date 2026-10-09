@@ -18,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 LERNTAGE = 14
 # Der Verlauf des Vortags liegt nach Mitternacht vollständig vor.
 LERNZEIT = {"hour": 0, "minute": 20, "second": 0}
-Reihe = list[tuple[datetime, float]]
+Reihe = list[tuple[datetime, float | None]]
 
 
 class Reihen(NamedTuple):
@@ -32,11 +32,9 @@ class Reihen(NamedTuple):
 
 
 def _schaltreihe(zustaende: list[Any]) -> Reihe:
-    """Zeitreihe eines Schalters: ein 1, aus 0."""
+    """Zeitreihe eines Schalters: ein 1, aus 0, sonst eine Lücke."""
     return [
-        (dt_util.as_local(z.last_updated), 1.0 if z.state == "on" else 0.0)
-        for z in zustaende
-        if z.state in ("on", "off")
+        (dt_util.as_local(z.last_updated), {"on": 1.0, "off": 0.0}.get(z.state)) for z in zustaende
     ]
 
 
@@ -87,10 +85,16 @@ class VorausschauMixin:
     def _lernen_starten(self) -> None:
         """Einmal jetzt und danach täglich lernen."""
         self._lernen_beenden()
+        self._lernen_anstossen()
+        self._abmelden.append(async_track_time_change(self.hass, self._hausmodell_takt, **LERNZEIT))
+
+    def _lernen_anstossen(self) -> None:
+        """Als Aufgabe lernen, damit `stoppen` sie abbrechen kann; ein laufender Lauf genügt."""
+        if self._lernaufgabe is not None and not self._lernaufgabe.done():
+            return
         self._lernaufgabe = self.hass.async_create_background_task(
             self.hausmodell_lernen(), f"heatnexus_hausmodell_{self.device_id}"
         )
-        self._abmelden.append(async_track_time_change(self.hass, self._hausmodell_takt, **LERNZEIT))
 
     def _lernen_beenden(self) -> None:
         if self._lernaufgabe is not None and not self._lernaufgabe.done():
@@ -98,19 +102,19 @@ class VorausschauMixin:
         self._lernaufgabe = None
 
     async def _hausmodell_takt(self, _jetzt: datetime) -> None:
-        await self.hausmodell_lernen()
+        self._lernen_anstossen()
 
     def _entitaet(self, adresse: str, plattform: str = "sensor") -> str | None:
         kennung = f"{self.device_id}-{adresse.strip('/').replace('/', '-')}"
         return er.async_get(self.hass).async_get_entity_id(plattform, DOMAIN, kennung)
 
-    def _heizquelle(self) -> tuple[str, str] | None:
-        """Art und Entität dessen, was die Heizleistung zeigt: Vorlauf, sonst die Pumpe."""
-        if vorlauf := self._entitaet("/0/2/0"):
-            return "vorlauf", vorlauf
-        if pumpe := self._entitaet("/1/20/0", "binary_sensor"):
-            return "pumpe", pumpe
-        return None
+    def _heizquellen(self) -> list[tuple[str, str]]:
+        """Was die Heizleistung zeigt, in der Reihenfolge der Wahl: Vorlauf, dann Pumpe."""
+        quellen = [
+            ("vorlauf", self._entitaet("/0/2/0")),
+            ("pumpe", self._entitaet("/1/20/0", "binary_sensor")),
+        ]
+        return [(art, entitaet) for art, entitaet in quellen if entitaet]
 
     async def _verlauf_lesen(
         self, mit_attributen: list[str], einfach: list[str], jetzt: datetime
@@ -178,32 +182,37 @@ class VorausschauMixin:
                 )
         return ergebnis
 
-    async def _lerndaten(self) -> dict[date, list[hausmodell.Stunde]]:
-        """Die Stunden der letzten 14 Tage aus dem Verlauf, je Tag."""
-        quelle = self._heizquelle()
-        if quelle is None:
-            return {}
-        art, heizer = quelle
-        k = self.konfig
-        aussen = self.aussen_entitaet()
+    def _reihen(self, zustaende: dict[str, list[Any]], art: str, heizer: str) -> Reihen:
+        k, aussen = self.konfig, self.aussen_entitaet()
+        wetter = zustaende.get(k["wetter"], [])
+        heizen = zustaende.get(heizer, [])
+        return Reihen(
+            [nachladen.raumreihe(zustaende, r, luecken=True) for r in k["raeume"]],
+            nachladen.zeitreihe(zustaende.get(aussen, []), luecken=True) if aussen else [],
+            _schaltreihe(heizen) if art == "pumpe" else nachladen.zeitreihe(heizen, luecken=True),
+            nachladen.zeitreihe(wetter, "cloud_coverage", luecken=True),
+            nachladen.zeitreihe(wetter, "wind_speed", luecken=True),
+        )
+
+    async def _lerndaten(self) -> tuple[str, dict[date, list[hausmodell.Stunde]]] | None:
+        """Die Heizart und die Stunden der letzten 14 Tage aus dem Verlauf, je Tag."""
+        quellen = self._heizquellen()
+        if not quellen:
+            return None
+        k, aussen = self.konfig, self.aussen_entitaet()
         thermostate = [r for r in k["raeume"] if eingaben.ist_thermostat(r)]
-        einfach = [r for r in k["raeume"] if r not in thermostate] + [heizer]
-        einfach += [aussen] if aussen else []
+        einfach = [r for r in k["raeume"] if r not in thermostate]
+        einfach += [entitaet for _, entitaet in quellen] + ([aussen] if aussen else [])
         jetzt = dt_util.now()
         zustaende = await self._verlauf_lesen([k["wetter"], *thermostate], einfach, jetzt)
         if not zustaende:
-            return {}
-        wetter = zustaende.get(k["wetter"], [])
-        reihen = Reihen(
-            [nachladen.raumreihe(zustaende, r) for r in k["raeume"]],
-            nachladen.zeitreihe(zustaende.get(aussen, [])) if aussen else [],
-            _schaltreihe(zustaende.get(heizer, []))
-            if art == "pumpe"
-            else nachladen.zeitreihe(zustaende.get(heizer, [])),
-            nachladen.zeitreihe(wetter, "cloud_coverage"),
-            nachladen.zeitreihe(wetter, "wind_speed"),
-        )
-        return self._je_tag(reihen, art, _lernzeiten(jetzt.date()))
+            return None
+        # Hat der Vorlauf keinen Verlauf, zählt die Pumpe.
+        for art, heizer in quellen:
+            reihen = self._reihen(zustaende, art, heizer)
+            if any(wert is not None for _, wert in reihen.heizen):
+                return art, self._je_tag(reihen, art, _lernzeiten(jetzt.date()))
+        return None
 
     def _mit_fehlern(
         self, neu: hausmodell.Modell, tag: date, stunden: list[hausmodell.Stunde]
@@ -214,8 +223,12 @@ class VorausschauMixin:
         bleibt = list(alt.fehler_bleibt) if alt else []
         gestern = hausmodell.tagesfehler(neu, stunden)
         ohne = hausmodell.tagesfehler_bleibt(stunden)
-        # Mehrere Läufe am Tag zählen den Vortag nur einmal.
-        if gestern is not None and ohne is not None and tag.isoformat() != self._fehler_tag:
+        # Der Vortag zählt einmal, und nie ein Tag vor dem zuletzt gezählten.
+        if (
+            gestern is not None
+            and ohne is not None
+            and (self._fehler_tag is None or tag.isoformat() > self._fehler_tag)
+        ):
             fehler.append(round(gestern, 3))
             bleibt.append(round(ohne, 3))
             self._fehler_tag = tag.isoformat()
@@ -224,12 +237,12 @@ class VorausschauMixin:
 
     async def hausmodell_lernen(self) -> None:
         """Die letzten 14 Tage lesen, lernen, den Fehler des Vortags fortschreiben."""
-        stunden_je_tag = await self._lerndaten()
-        if not stunden_je_tag:
+        daten = await self._lerndaten()
+        if daten is None or not daten[1]:
             return
+        heiz_art, stunden_je_tag = daten
         tage = sorted(stunden_je_tag)
         alle = [s for tag in tage[:-1] for s in stunden_je_tag[tag]]
-        heiz_art = "vorlauf" if self._entitaet("/0/2/0") else "pumpe"
         neu = hausmodell.lernen(alle, heiz_art, len(tage) - 1)
         if neu is None:
             return

@@ -5,7 +5,7 @@ Reine Rechnungen ohne Home Assistant; Zeiten kommen als `datetime` mit Zone.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
 import math
@@ -216,7 +216,9 @@ def heizgrenze_halten(
     return vorher
 
 
-def wert_zur_stunde(reihe: list[tuple[datetime, float]], stunde: datetime) -> float | None:
+def wert_zur_stunde(
+    reihe: Sequence[tuple[datetime, float | None]], stunde: datetime
+) -> float | None:
     """Der Wert, der zur vollen Stunde galt; davor der erste innerhalb der Stunde."""
     geltend = None
     for zeit, wert in reihe:

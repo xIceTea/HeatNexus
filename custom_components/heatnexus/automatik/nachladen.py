@@ -32,19 +32,27 @@ def _zahl(wert: Any) -> float | None:
         return None
 
 
-def zeitreihe(zustaende: list[Any], merkmal: str | None = None) -> list[tuple[datetime, float]]:
-    """Zeitreihe aus Zuständen; mit `merkmal` aus einem Attribut statt dem Zustand."""
+def zeitreihe(
+    zustaende: list[Any], merkmal: str | None = None, luecken: bool = False
+) -> list[tuple[datetime, Any]]:
+    """Zeitreihe aus Zuständen, mit `merkmal` aus einem Attribut statt dem Zustand.
+
+    Mit `luecken` beendet ein ungültiger Zustand den vorigen Wert, statt ihn fortzuführen.
+    """
     reihe = []
     for zustand in zustaende:
         roh = zustand.attributes.get(merkmal) if merkmal else zustand.state
-        if (wert := _zahl(roh)) is not None:
+        wert = _zahl(roh)
+        if wert is not None or luecken:
             reihe.append((dt_util.as_local(zustand.last_updated), wert))
     return reihe
 
 
-def raumreihe(zustaende: dict[str, list[Any]], kennung: str) -> list[tuple[datetime, float]]:
+def raumreihe(
+    zustaende: dict[str, list[Any]], kennung: str, luecken: bool = False
+) -> list[tuple[datetime, Any]]:
     """Zeitreihe des Messwerts eines Raums, beim Thermostat aus dem Attribut."""
-    return zeitreihe(zustaende.get(kennung, []), eingaben.messmerkmal(kennung))
+    return zeitreihe(zustaende.get(kennung, []), eingaben.messmerkmal(kennung), luecken)
 
 
 def eingefroren(
