@@ -748,7 +748,8 @@ def test_vorrangquelle_ersetzt_eine_fehlende_sonnenquote(m, w):
 def test_ohne_waerme_der_vorrangquellen_endet_der_sonnentag_nach_vier_stunden(m, w):
     spaeter = MORGEN + timedelta(hours=4)
     stand = lage(m, jetzt=spaeter, soll=19.5, vorrang_laeuft=False, vorrang_minuten=5.0)
-    e = m.entscheiden(stand, lange_absenkung(m), w)
+    g = replace(lange_absenkung(m), absenkung_anlass="vorrang")
+    e = m.entscheiden(stand, g, w)
     assert [a.art for a in e.aktionen] == ["absenkung_ende"]
     assert e.gedaechtnis.absenkung_art is None
 
@@ -937,3 +938,11 @@ def test_ausgeschalteter_heizkreis_auf_englisch_und_niederlaendisch(m, w, sprach
 def test_programm_mit_vorlauf_heizt(m, w):
     e = m.entscheiden(lage(m, vl_soll=42.0), m.Gedaechtnis(), w)
     assert e.begruendung.startswith("Heizt nach Programm")
+
+
+@pytest.mark.parametrize(("anlass", "endet"), [("quote", False), ("vorrang", True)])
+def test_vorrangpruefung_beendet_nur_den_sonnentag_der_vorrangquelle(m, w, anlass, endet):
+    g = replace(lange_absenkung(m), absenkung_anlass=anlass)
+    lg = lage(m, jetzt=MORGEN + timedelta(hours=4, minutes=30), vorrang_minuten=0.0)
+    e = m.entscheiden(lg, g, w)
+    assert any(a.art == "absenkung_ende" for a in e.aktionen) is endet

@@ -141,6 +141,8 @@ class Gedaechtnis:
     absenkung_ziel: datetime | None = None
     absenkung_basis: float | None = None
     absenkung_soll: float | None = None
+    # Woher die laufende Absenkung kommt: quote, vorrang oder modell.
+    absenkung_anlass: str | None = None
     verlaengert: bool = False
     # Tag, an dem eine Heizpause endete; am selben Tag beginnt keine neue.
     pause_sperre: str | None = None
@@ -214,6 +216,7 @@ def ohne_absenkung(g: Gedaechtnis) -> Gedaechtnis:
         absenkung_ziel=None,
         absenkung_basis=None,
         absenkung_soll=None,
+        absenkung_anlass=None,
         verlaengert=False,
     )
 
@@ -535,6 +538,7 @@ def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
     if (
         lage.vorrang_minuten is not None
         and lage.vorrang_minuten < VORRANG_MIN_MINUTEN
+        and g.absenkung_anlass == "vorrang"
         and g.absenkung_von is not None
         and lage.jetzt - g.absenkung_von >= VORRANG_PRUEFEN_NACH
     ):
@@ -615,6 +619,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         absenkung_ziel=ziel,
         absenkung_basis=soll,
         absenkung_soll=ziel_soll,
+        absenkung_anlass="vorrang" if lage.vorrang_laeuft else "quote",
         verlaengert=False,
     )
     return Entscheidung(
@@ -673,6 +678,7 @@ def _pause_schreiben(
         absenkung_bis=bis,
         absenkung_basis=g.absenkung_basis if erneuern else soll,
         absenkung_soll=ziel,
+        absenkung_anlass=g.absenkung_anlass if erneuern else None,
     )
     aktion = Aktion("pause", soll=ziel, minuten=MAX_MINUTEN, erneuern=erneuern)
     return Entscheidung(Zustand.HEIZPAUSE, (aktion,), text, neu)
