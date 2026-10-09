@@ -458,7 +458,7 @@ def test_ausschalten_beendet_einen_laufenden_sonnentag(m, w):
 
 
 def test_waermeanforderung_verhindert_nur_ww_am_sehr_sonnigen_tag(m, w):
-    stand = lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True, ruhig=False)
+    stand = lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True, ruhig=False, at=18.0)
     e = m.entscheiden(stand, m.Gedaechtnis(), replace(w, stark=True))
     assert [a.art for a in e.aktionen] == ["absenken"]
 
