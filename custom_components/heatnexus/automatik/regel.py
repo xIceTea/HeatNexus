@@ -86,6 +86,8 @@ class Lage:
     jetzt: datetime
     at: float | None = None
     at_gedaempft: float | None = None
+    # AT der vorigen Stunde; zwei Werte unter der Grenze gelten als anhaltend kalt.
+    at_vor_einer_stunde: float | None = None
     soll: float | None = None
     # Je Raum Ist und eigenes Ziel; ohne Ziel gilt der Sollwert des Heizkreises.
     raeume: tuple[tuple[float, float | None], ...] = ()
@@ -394,6 +396,11 @@ def _saison_nur_ww(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entsche
             f"Außen {_zahl(lage.at)} °C unter {_zahl(unten)} °C, Thermostate fordern Wärme "
             "an – zurück ins Programm.",
         )
+    kalt = [x for x in (lage.at, lage.at_vor_einer_stunde) if x is not None]
+    if len(kalt) == 2 and max(kalt) < unten:
+        return _zurueck(
+            lage, g, f"Außen seit einer Stunde unter {_zahl(unten)} °C – zurück ins Programm."
+        )
     kuehl = lage.at_gedaempft is not None and lage.at_gedaempft < unten
     if kuehl and _bereit(g, lage.jetzt, w) and abstand < -SAISON_RAUM_K:
         return _zurueck(
@@ -601,7 +608,14 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
     rest = int((ziel - lage.jetzt).total_seconds() // 60)
     if rest < MIN_MINUTEN:
         return Entscheidung(Zustand.PROGRAMM, (), "Zu spät am Tag für eine Absenkung.", g)
-    if w.stark and abstand >= w.stark_k and quote >= STARK_QUOTE and lage.ruhig is not False:
+    mild = lage.at is not None and lage.at >= grenze(lage, w) - w.hysterese
+    if (
+        w.stark
+        and abstand >= w.stark_k
+        and quote >= STARK_QUOTE
+        and lage.ruhig is not False
+        and mild
+    ):
         neu = replace(
             ohne_absenkung(g), saison=NUR_WW, saison_soll=soll, stark_bis=lage.sonnenuntergang
         )

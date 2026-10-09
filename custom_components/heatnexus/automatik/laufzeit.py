@@ -1011,6 +1011,12 @@ class Laufzeit(QuellenMixin):
                 werte.append((zeit, prognose["korrigiert"]))
         return werte
 
+    def _at_vorstunde(self, jetzt: datetime) -> float | None:
+        if self.verlauf.get("datum") != jetzt.date().isoformat():
+            return None
+        stunde = (self.verlauf.get("stunden") or {}).get(str(max(jetzt.hour - 1, 0))) or {}
+        return stunde.get("at")
+
     def _lage(self, jetzt: datetime, entscheidungszeit: bool) -> regel.Lage:
         messungen = self._messungen()
         if any(m.heizt for m in messungen):
@@ -1030,6 +1036,7 @@ class Laufzeit(QuellenMixin):
             jetzt=jetzt,
             at=at,
             at_gedaempft=self.stufen[1] if self.stufen else None,
+            at_vor_einer_stunde=self._at_vorstunde(jetzt),
             soll=self._soll(jetzt),
             raeume=tuple((m.ist, m.ziel) for m in messungen if not m.aus),
             aus=tuple(m.ist for m in messungen if m.aus),

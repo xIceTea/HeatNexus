@@ -329,9 +329,23 @@ def test_kuehler_raum_beendet_den_sonnentag(m, w):
     assert e.gedaechtnis.absenkung_art is None
 
 
+def test_starke_stufe_braucht_milde_aussenluft(m, w):
+    stark = replace(w, stark=True)
+    lg = lage(m, entscheidungszeit=True, sonnenquote=90.0, raum=22.5, at=3.5, ruhig=True)
+    e = m.entscheiden(lg, m.Gedaechtnis(), stark)
+    assert e.zustand != m.Zustand.NUR_WW
+
+
+def test_nur_ww_endet_wenn_es_seit_einer_stunde_kalt_ist(m, w):
+    g = nur_ww(m, timedelta(hours=30))
+    lg = lage(m, at=8.0, at_vor_einer_stunde=9.0, at_gedaempft=16.5, ruhig=None)
+    e = m.entscheiden(lg, g, w)
+    assert [a.art for a in e.aktionen] == ["zurueck"]
+
+
 def test_starke_stufe_schaltet_nur_ww_bis_sonnenuntergang(m, w):
     stark = replace(w, stark=True)
-    stand = lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True)
+    stand = lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True, at=18.0)
     e = m.entscheiden(stand, m.Gedaechtnis(), stark)
     assert [a.art for a in e.aktionen] == ["nur_ww"]
     assert e.gedaechtnis.stark_bis == UNTERGANG
@@ -452,7 +466,9 @@ def test_waermeanforderung_verhindert_nur_ww_am_sehr_sonnigen_tag(m, w):
 def test_waermeanforderung_beendet_nur_ww_des_sonnentags(m, w):
     stark = replace(w, stark=True)
     start = m.entscheiden(
-        lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True), m.Gedaechtnis(), stark
+        lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True, at=18.0),
+        m.Gedaechtnis(),
+        stark,
     )
     stand = lage(m, jetzt=MORGEN + timedelta(hours=2), raum=22.0, betriebswahl=6, ruhig=False)
     e = m.entscheiden(stand, start.gedaechtnis, stark)

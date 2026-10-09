@@ -525,6 +525,7 @@
   "Sehr sonnig – nur Warmwasser bis {zeit}.": "Zeer zonnig – alleen warm water tot {zeit}.",
   "Räume {abstand} – zurück ins Programm.": "Ruimtes {abstand} – terug naar het programma.",
   "Außen {at} °C unter {grenze} °C, Thermostate fordern Wärme an – zurück ins Programm.": "Buiten {at} °C onder {grenze} °C, thermostaten vragen om warmte – terug naar het programma.",
+  "Außen seit einer Stunde unter {grenze} °C – zurück ins Programm.": "Buiten al een uur onder {grenze} °C – terug naar het programma.",
   "Gedämpfte AT {at} °C unter {grenze} °C – zurück ins Programm.": "Gedempte buitentemp. {at} °C onder {grenze} °C – terug naar het programma.",
   "Übergangszeit – nur Warmwasser nach Prognose, Tagesmittel ab {wert} °C.": "Tussenseizoen – alleen warm water volgens verwachting, daggemiddelde vanaf {wert} °C.",
   "Übergangszeit – nur Warmwasser, gedämpfte AT {wert} °C.": "Tussenseizoen – alleen warm water, gedempte buitentemp. {wert} °C.",

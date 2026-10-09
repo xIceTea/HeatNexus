@@ -525,6 +525,7 @@
   "Sehr sonnig – nur Warmwasser bis {zeit}.": "Very sunny – hot water only until {zeit}.",
   "Räume {abstand} – zurück ins Programm.": "Rooms {abstand} – back to the program.",
   "Außen {at} °C unter {grenze} °C, Thermostate fordern Wärme an – zurück ins Programm.": "Outdoor {at} °C below {grenze} °C, thermostats call for heat – back to the program.",
+  "Außen seit einer Stunde unter {grenze} °C – zurück ins Programm.": "Outside below {grenze} °C for an hour – back to the program.",
   "Gedämpfte AT {at} °C unter {grenze} °C – zurück ins Programm.": "Damped outdoor temp. {at} °C below {grenze} °C – back to the program.",
   "Übergangszeit – nur Warmwasser nach Prognose, Tagesmittel ab {wert} °C.": "Transition season – hot water only by forecast, daily mean from {wert} °C.",
   "Übergangszeit – nur Warmwasser, gedämpfte AT {wert} °C.": "Transition season – hot water only, damped outdoor temp. {wert} °C.",
