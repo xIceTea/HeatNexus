@@ -15,6 +15,9 @@ from typing import Any
 
 from .eingaben import raumwert
 from .profile import Werte
+from .vorhersage import PAUSE as V_PAUSE
+from .vorhersage import PROGRAMM as PROGRAMM_STUFE
+from .vorhersage import Vorhersage
 
 AT_FROST = 3.0
 RAUM_MIN = 16.0
@@ -62,6 +65,10 @@ HEIZEN = "heizen"
 NUR_WW = "nur_ww"
 SONNE = "sonne"
 ABWESEND = "abwesend"
+# Woher eine Absenkung kommt: Sonnenquote, Vorrangquelle oder Hausmodell.
+ANLASS_QUOTE = "quote"
+ANLASS_VORRANG = "vorrang"
+ANLASS_MODELL = "modell"
 
 
 class Zustand(StrEnum):
@@ -123,6 +130,8 @@ class Lage:
     vorrang_tage: int | None = None
     # Im Beobachten schreibt die Automatik nichts; der Vorlauf-Soll sagt dann nichts über die Pause.
     beobachten: bool = False
+    # Nur mit freigegebenem Hausmodell gesetzt; dann wählt die Vorausschau die Stufe.
+    vorhersage: Vorhersage | None = None
 
     @property
     def raum(self) -> float | None:
@@ -259,8 +268,8 @@ def zustand_aus(g: Gedaechtnis, jetzt: datetime) -> Zustand:
     return Zustand.PROGRAMM
 
 
-def _soll_bezug(lage: Lage, g: Gedaechtnis) -> float | None:
-    # Während eigener Eingriffe zeigt `1/1` den gesetzten Wert, nicht den des Programms.
+def soll_bezug(lage: Lage, g: Gedaechtnis) -> float | None:
+    """Raumsoll des Programms; während eigener Eingriffe zeigt `1/1` den gesetzten Wert."""
     if g.saison == NUR_WW and g.saison_soll is not None:
         return g.saison_soll
     if g.absenkung_art is not None and g.absenkung_basis is not None:
@@ -423,6 +432,8 @@ def _gleitend(lage: Lage, e: Entscheidung, soll: float, w: Werte) -> Entscheidun
     """Der Ausstieg aus nur Warmwasser geht in die Heizpause, wenn sie heute noch passt."""
     if [a.art for a in e.aktionen] != ["zurueck"] or any(a.sicherheit for a in e.aktionen):
         return e
+    if lage.vorhersage is not None:
+        return e
     # Nach dem Zurückschalten steht die Betriebswahl wieder auf dem Programm.
     nachher = replace(lage, betriebswahl=min(PROGRAMMWAHL))
     if not _pause_erlaubt(nachher, e.gedaechtnis, soll, w) or _pause_anlass(lage, w) is None:
@@ -547,7 +558,7 @@ def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
     if (
         lage.vorrang_minuten is not None
         and lage.vorrang_minuten < VORRANG_MIN_MINUTEN
-        and g.absenkung_anlass == "vorrang"
+        and g.absenkung_anlass == ANLASS_VORRANG
         and g.absenkung_von is not None
         and lage.jetzt - g.absenkung_von >= VORRANG_PRUEFEN_NACH
     ):
@@ -580,6 +591,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         return _sonnentag_laeuft(lage, g, soll, w)
     moeglich = (
         w.sonnentag
+        and lage.vorhersage is None
         and lage.entscheidungszeit
         and lage.betriebswahl in PROGRAMMWAHL
         and lage.absenkung_moeglich
@@ -636,7 +648,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         absenkung_ziel=ziel,
         absenkung_basis=soll,
         absenkung_soll=ziel_soll,
-        absenkung_anlass="vorrang" if lage.vorrang_laeuft else "quote",
+        absenkung_anlass=ANLASS_VORRANG if lage.vorrang_laeuft else ANLASS_QUOTE,
         verlaengert=False,
     )
     return Entscheidung(
@@ -751,7 +763,9 @@ def _heizpause(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
             return _heizpause_laeuft(lage, g, soll, w)
         # Ohne Ende ist das Gedächtnis beschädigt; die Regel rechnet ohne die Pause weiter.
         g = ohne_absenkung(g)
-    if not _pause_erlaubt(lage, g, soll, w) or (anlass := _pause_anlass(lage, w)) is None:
+    if lage.vorhersage is not None or not _pause_erlaubt(lage, g, soll, w):
+        return None
+    if (anlass := _pause_anlass(lage, w)) is None:
         return None
     if (ziel := pause_soll(lage, w)) is None or _abwesend_tiefer(lage, g, soll, ziel):
         return None
@@ -760,14 +774,94 @@ def _heizpause(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
     return _pause_schreiben(lage, g, soll, ziel, text, erneuern=False)
 
 
+def _text_stufe(v: Vorhersage) -> str:
+    if v.stufe == V_PAUSE:
+        return (
+            f"Räume halten laut Prognose bis {_uhr(v.bis)} über {_zahl(v.tiefst)} °C – Heizpause."
+        )
+    return (
+        f"Mit Absenkung halten die Räume bis {_uhr(v.bis)} über {_zahl(v.tiefst)} °C – Absenkung."
+    )
+
+
+def _vorausschau_ende(lage: Lage, g: Gedaechtnis, v: Vorhersage, eigen: bool) -> Entscheidung:
+    """Keine Stufe: Eine Stufe des Modells endet, sonst bleibt das Programm."""
+    if v.rueckkehr and eigen:
+        text = f"Raum {_zahl(lage.raum)} °C weicht von der Vorhersage ab – zurück ins Programm."
+        # Wie nach einer beendeten Heizpause: heute beginnt keine neue Stufe, sonst pendelt es.
+        neu = replace(ohne_absenkung(g), pause_sperre=lage.jetzt.date().isoformat())
+        return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, neu)
+    folge = "zurück ins Programm" if eigen else "kein Eingriff"
+    if v.stufe == PROGRAMM_STUFE:
+        text = (
+            f"Laut Prognose fielen die Räume ohne Programm unter {_zahl(v.ziel_min)} °C – {folge}."
+        )
+    else:
+        text = f"Bis zum Horizont um {_uhr(v.bis)} bleibt keine Stunde – {folge}."
+    if not eigen:
+        return Entscheidung(Zustand.PROGRAMM, (), text, g)
+    return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, ohne_absenkung(g))
+
+
+def _vorausschau_stufe(
+    lage: Lage, g: Gedaechtnis, soll: float, w: Werte, v: Vorhersage, eigen: bool
+) -> Entscheidung | None:
+    """Heizpause oder Absenkung bis zum Horizont; eine laufende gleiche Stufe nur kurz vor Ablauf neu."""
+    art = PAUSE if v.stufe == V_PAUSE else SONNE
+    zustand = Zustand.HEIZPAUSE if art == PAUSE else Zustand.SONNENTAG
+    gleich = eigen and g.absenkung_art == art
+    knapp = g.absenkung_bis is None or g.absenkung_bis - lage.jetzt < PAUSE_ERNEUERN_REST
+    if gleich and not knapp:
+        return Entscheidung(zustand, (), _text_stufe(v), g)
+    ziel = pause_soll(lage, w) if art == PAUSE else round(soll - w.absenkung_k, 1)
+    if ziel is None:
+        return None
+    rest = int((v.bis - lage.jetzt).total_seconds() // 60)
+    minuten = max(MIN_MINUTEN, min(MAX_MINUTEN, rest))
+    aktion = Aktion(
+        "pause" if art == PAUSE else "absenken", soll=ziel, minuten=minuten, erneuern=gleich
+    )
+    neu = replace(
+        g if gleich else ohne_absenkung(g),
+        absenkung_art=art,
+        absenkung_anlass=ANLASS_MODELL,
+        absenkung_von=g.absenkung_von if gleich else lage.jetzt,
+        absenkung_bis=lage.jetzt + timedelta(minutes=minuten),
+        absenkung_ziel=v.bis,
+        absenkung_basis=g.absenkung_basis if gleich else soll,
+        absenkung_soll=ziel,
+        verlaengert=False,
+    )
+    return Entscheidung(zustand, (aktion,), _text_stufe(v), neu)
+
+
+def _vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung | None:
+    """Mit freigegebenem Hausmodell: die gewählte Stufe bis zum Horizont."""
+    v = lage.vorhersage
+    if v is None or lage.abwesend or not lage.absenkung_moeglich:
+        return None
+    if lage.betriebswahl not in PROGRAMMWAHL:
+        return None
+    eigen = g.absenkung_anlass == ANLASS_MODELL and g.absenkung_bis is not None
+    # Eine Absenkung der bisherigen Regel läuft nach ihren eigenen Bedingungen zu Ende.
+    if g.absenkung_art is not None and not eigen:
+        return None
+    zu_nah = v.bis - lage.jetzt < timedelta(minutes=MIN_MINUTEN)
+    if (v.rueckkehr and eigen) or v.stufe == PROGRAMM_STUFE or zu_nah:
+        return _vorausschau_ende(lage, g, v, eigen)
+    if not eigen and g.pause_sperre == lage.jetzt.date().isoformat():
+        return None
+    return _vorausschau_stufe(lage, g, soll, w, v, eigen)
+
+
 def entscheiden(lage: Lage, alt: Gedaechtnis, werte: Werte) -> Entscheidung:
-    """Nach Vorrang: Sicherheit, Pause, Sonderbetrieb, Fenster, Daten, Saison, Heizpause, Abwesenheit, Sonne."""
+    """Nach Vorrang: Sicherheit, Pause, Sonderbetrieb, Fenster, Daten, Saison, Vorausschau, Heizpause, Abwesenheit, Sonne."""
     g = _raeumen(lage, alt)
-    soll = _soll_bezug(lage, g)
+    soll = soll_bezug(lage, g)
     for pruefung in (_sicherheit, _pause, _sonderbetrieb, _fenster, _daten):
         if (ergebnis := pruefung(lage, g, soll, werte)) is not None:
             return ergebnis
-    for pruefung in (_saison, _heizpause, _abwesenheit):
+    for pruefung in (_saison, _vorausschau, _heizpause, _abwesenheit):
         if (ergebnis := pruefung(lage, g, soll, werte)) is not None:
             return ergebnis
     return _sonnentag(lage, g, soll, werte)

@@ -1042,7 +1042,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         elif self._daten_fehlen_seit is None:
             self._daten_fehlen_seit = jetzt
         untergang = self.sonne(jetzt.date())[1]
-        return regel.Lage(
+        lage = regel.Lage(
             jetzt=jetzt,
             at=at,
             at_gedaempft=self.stufen[1] if self.stufen else None,
@@ -1072,3 +1072,4 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             beobachten=self.beobachten,
             **self._vorrang_lage(jetzt),
         )
+        return replace(lage, vorhersage=self.vorhersage_fuer(jetzt, lage))

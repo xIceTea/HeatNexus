@@ -1,4 +1,4 @@
-"""Hausmodell in der Laufzeit: Lerndaten aus dem Verlauf, Modellpflege."""
+"""Hausmodell in der Laufzeit: Lerndaten aus dem Verlauf, Modellpflege, Vorhersage."""
 
 from __future__ import annotations
 
@@ -12,13 +12,16 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
-from . import eingaben, hausmodell, nachladen, tagesansicht
+from . import eingaben, hausmodell, nachladen, regel, tagesansicht, vorhersage, zeitprogramm
 
 _LOGGER = logging.getLogger(__name__)
 LERNTAGE = 14
 # Der Verlauf des Vortags liegt nach Mitternacht vollständig vor.
 LERNZEIT = {"hour": 0, "minute": 20, "second": 0}
 Reihe = list[tuple[datetime, float | None]]
+# Betriebswahl `3/50` → Zeitprogramm des Heizkreises.
+ZEITPROGRAMME = {1: "/3/61/0", 2: "/3/62/0", 3: "/3/63/0"}
+_STUFE_JE_ART = {regel.PAUSE: vorhersage.PAUSE, regel.SONNE: vorhersage.ABSENKUNG}
 
 
 class Reihen(NamedTuple):
@@ -57,6 +60,12 @@ def _lernstunde(
     return hausmodell.Stunde(raum, None, at, sonne, wind, heizen)
 
 
+def _kurvenwert(kurve: tuple[tuple[str, float], ...], jetzt: datetime) -> float | None:
+    """Der erwartete Raumwert zur laufenden Stunde: der letzte Punkt der Kurve bis jetzt."""
+    werte = [wert for zeit, wert in kurve if datetime.fromisoformat(zeit) <= jetzt]
+    return werte[-1] if werte else None
+
+
 def _lernzeiten(heute: date) -> list[datetime]:
     """Die vollen Stunden der Lerntage bis heute 00:00, diese Stunde als letzte."""
     anfang = dt_util.as_utc(dt_util.start_of_local_day(heute - timedelta(days=LERNTAGE)))
@@ -75,6 +84,9 @@ class VorausschauMixin:
         tag = z.get("hausmodell_tag")
         self._fehler_tag: str | None = tag if isinstance(tag, str) else None
         self._lernaufgabe: Any = None
+        self._vorhersage_zuletzt: vorhersage.Vorhersage | None = None
+        # Die Vorhersage, mit der die laufende Stufe des Modells begann; an ihr misst sich die Rückkehr.
+        self._vorhersage_bezug: vorhersage.Vorhersage | None = None
 
     def hausmodell_neu(self) -> None:
         """Von vorn lernen, etwa nach geänderten Räumen."""
@@ -248,3 +260,91 @@ class VorausschauMixin:
             return
         self.hausmodell = self._mit_fehlern(neu, tage[-1], stunden_je_tag[tage[-1]])
         self._speichern()
+
+    # --- Vorhersage ----------------------------------------------------------
+    def _zeitprogramm(self, betriebswahl: int | None) -> Any:
+        """Die Blöcke des aktiven Zeitprogramms; ohne Programm 1–3 oder ungelesen `None`."""
+        if (adresse := ZEITPROGRAMME.get(betriebswahl)) is None:
+            return None
+        daten = self.coordinator.data or {}
+        name = f"Programm {betriebswahl}"
+        for d in daten.get("devices") or []:
+            oid = str(d.get("oid") or "")
+            if d.get("type") != "time_program" or not oid.startswith(f"{self.prefix}/"):
+                continue
+            if oid == f"{self.prefix}{adresse}" or d.get("name") == name:
+                return (daten.get("objects") or {}).get(oid)
+        return None
+
+    def _ziel(self, lage: regel.Lage, bloecke: Any, zeit: datetime) -> float | None:
+        """Ziel einer Stunde: eigenes Raumziel, sonst Zeitprogramm, sonst Raumsoll des Heizkreises."""
+        if ziele := [ziel for _, ziel in lage.raeume if ziel is not None]:
+            return eingaben.raumwert(ziele, self.konfig["raum_art"])
+        if (soll := zeitprogramm.soll_um(bloecke, zeit)) is not None:
+            return soll
+        return regel.soll_bezug(lage, self.gedaechtnis)
+
+    def _eingaenge(
+        self, lage: regel.Lage, bloecke: Any, jetzt: datetime, bis: datetime
+    ) -> list[vorhersage.Stundeneingang] | None:
+        """Die Stunden ab der nächsten vollen bis vor den Horizont; fehlt eine AT, keine."""
+        prognose = self.stundenprognose(jetzt.date())
+        sonne = tagesansicht.sonne(self, jetzt.date())
+        eingaenge = []
+        zeit = jetzt.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        while zeit < bis:
+            stunde = prognose.get(zeit.hour) or {}
+            at, ziel = stunde.get("korrigiert"), self._ziel(lage, bloecke, zeit)
+            if at is None or ziel is None:
+                return None
+            anteil = sonne[zeit.hour] if zeit.hour < len(sonne) else 0.0
+            eingaenge.append(vorhersage.Stundeneingang(zeit, at, anteil, stunde.get("wind"), ziel))
+            zeit += timedelta(hours=1)
+        return eingaenge or None
+
+    def _rueckkehr(
+        self, v: vorhersage.Vorhersage, lage: regel.Lage, bloecke: Any, jetzt: datetime
+    ) -> bool:
+        """Ob eine laufende Stufe des Modells enden muss; ohne laufende Stufe nie."""
+        g = self.gedaechtnis
+        eigen = g.absenkung_anlass == regel.ANLASS_MODELL and regel.absenkung_laeuft(g, jetzt)
+        stufe = _STUFE_JE_ART.get(g.absenkung_art) if eigen else None
+        bezug = self._vorhersage_bezug
+        erwartet = None
+        if stufe is None or bezug is None or bezug.stufe != stufe:
+            self._vorhersage_bezug = v
+        else:
+            erwartet = _kurvenwert(bezug.kurve, jetzt)
+        if stufe is None or lage.raum is None:
+            return False
+        if (ziel := self._ziel(lage, bloecke, jetzt)) is None:
+            return False
+        return vorhersage.rueckkehr_noetig(
+            lage.raum, erwartet, ziel, self.werte.spielraum_k, v.fehler
+        )
+
+    def vorhersage_fuer(self, jetzt: datetime, lage: regel.Lage) -> vorhersage.Vorhersage | None:
+        """Die Vorhersage bis zum Horizont; steuern darf sie erst mit freigegebenem Hausmodell.
+
+        Ohne Freigabe wird sie nur gemerkt, damit Anzeige und Diagnose sie beobachten.
+        """
+        self._vorhersage_zuletzt = None
+        if self.hausmodell is None or lage.raum is None:
+            return None
+        bloecke = self._zeitprogramm(lage.betriebswahl)
+        bis = zeitprogramm.horizont(bloecke, jetzt)
+        if (eingaenge := self._eingaenge(lage, bloecke, jetzt, bis)) is None:
+            return None
+        w = self.werte
+        v = vorhersage.waehlen(
+            self.hausmodell,
+            lage.raum,
+            self._wert("/0/2/0"),
+            eingaenge,
+            w.absenkung_k,
+            w.spielraum_k,
+            bis,
+        )
+        v = replace(v, rueckkehr=self._rueckkehr(v, lage, bloecke, jetzt))
+        self._vorhersage_zuletzt = v
+        return v if hausmodell.freigegeben(self.hausmodell) else None

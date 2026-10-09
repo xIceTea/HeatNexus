@@ -985,3 +985,160 @@ def test_vorrangpruefung_beendet_nur_den_sonnentag_der_vorrangquelle(m, w, anlas
     lg = lage(m, jetzt=MORGEN + timedelta(hours=4, minutes=30), vorrang_minuten=0.0)
     e = m.entscheiden(lg, g, w)
     assert any(a.art == "absenkung_ende" for a in e.aktionen) is endet
+
+
+# --- Vorausschau mit dem Hausmodell -------------------------------------------
+@pytest.fixture(scope="module")
+def vh(m):
+    return load_standalone("automatik.vorhersage")
+
+
+def _vh(vh, stufe, rueckkehr=False, stunden=10):
+    bis = MORGEN + timedelta(hours=stunden)
+    return vh.Vorhersage(stufe, bis, 20.9, bis, (), 20.8, 0.2, rueckkehr)
+
+
+def modell_absenkung(m, **felder):
+    werte = {
+        "absenkung_art": m.SONNE,
+        "absenkung_von": MORGEN - timedelta(hours=1),
+        "absenkung_bis": MORGEN + timedelta(hours=3),
+        "absenkung_ziel": MORGEN + timedelta(hours=10),
+        "absenkung_basis": 21.0,
+        "absenkung_soll": 19.5,
+        "absenkung_anlass": "modell",
+    }
+    werte.update(felder)
+    return m.Gedaechtnis(**werte)
+
+
+@pytest.mark.parametrize(
+    ("stufe", "zustand", "art"),
+    [
+        ("pause", "HEIZPAUSE", "pause"),
+        ("absenkung", "SONNENTAG", "absenken"),
+        ("programm", "PROGRAMM", None),
+    ],
+)
+def test_vorausschau_waehlt_die_stufe(m, w, vh, stufe, zustand, art):
+    e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, stufe)), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand[zustand]
+    assert [a.art for a in e.aktionen] == ([art] if art else [])
+    if art:
+        assert e.aktionen[0].minuten <= 600 and e.gedaechtnis.absenkung_anlass == "modell"
+        assert e.gedaechtnis.absenkung_ziel == MORGEN + timedelta(hours=10)
+
+
+def test_vorausschau_schreibt_den_sollwert_der_stufe(m, w, vh):
+    pause_e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "pause")), m.Gedaechtnis(), w)
+    absenk_e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "absenkung")), m.Gedaechtnis(), w)
+    assert (pause_e.aktionen[0].soll, pause_e.aktionen[0].minuten) == (17.0, 400)
+    assert absenk_e.aktionen[0].soll == round(21.0 - w.absenkung_k, 1)
+
+
+def test_vorausschau_endet_am_horizont(m, w, vh):
+    e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "pause", stunden=3)), m.Gedaechtnis(), w)
+    assert e.aktionen[0].minuten == 180
+
+
+def test_horizont_unter_einer_stunde_beginnt_keine_stufe(m, w, vh):
+    v = _vh(vh, "pause", stunden=0.5)
+    e = m.entscheiden(lage(m, **MILD, vorhersage=v), m.Gedaechtnis(), w)
+    assert (e.zustand, e.aktionen) == (m.Zustand.PROGRAMM, ())
+    eigen = replace(pause(m), absenkung_anlass="modell")
+    e = m.entscheiden(lage(m, **MILD, vorhersage=v), eigen, w)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+
+
+def test_rueckkehr_beendet_den_eingriff_des_modells(m, w, vh):
+    g = replace(pause(m), absenkung_anlass="modell")
+    e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "pause", rueckkehr=True)), g, w)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.zustand == m.Zustand.PROGRAMM
+    assert e.gedaechtnis.absenkung_art is None
+    assert e.gedaechtnis.pause_sperre == MORGEN.date().isoformat()
+
+
+def test_nach_der_rueckkehr_beginnt_heute_keine_neue_stufe(m, w, vh):
+    g = m.Gedaechtnis(pause_sperre=MORGEN.date().isoformat())
+    e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "pause")), g, w)
+    assert (e.zustand, e.aktionen) == (m.Zustand.PROGRAMM, ())
+
+
+def test_ohne_vorhersage_gilt_die_bisherige_regel(m, w):
+    e = m.entscheiden(lage(m, **MILD), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.HEIZPAUSE  # wie test_milder_tag_beginnt_die_heizpause
+    assert e.gedaechtnis.absenkung_anlass is None
+
+
+def test_laufende_modellpause_mit_genug_rest_bleibt(m, w, vh):
+    g = replace(pause(m), absenkung_anlass="modell")
+    e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "pause")), g, w)
+    assert (e.zustand, e.aktionen, e.gedaechtnis) == (m.Zustand.HEIZPAUSE, (), g)
+
+
+def test_laufende_modellpause_kurz_vor_ablauf_wird_erneuert(m, w, vh):
+    g = pause(m, absenkung_bis=MORGEN + timedelta(minutes=20), absenkung_anlass="modell")
+    e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "pause")), g, w)
+    assert [(a.art, a.erneuern, a.minuten) for a in e.aktionen] == [("pause", True, 400)]
+    assert e.gedaechtnis.absenkung_von == MORGEN
+    assert e.gedaechtnis.absenkung_bis == MORGEN + timedelta(minutes=400)
+
+
+def test_modellabsenkung_wechselt_in_die_heizpause(m, w, vh):
+    e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "pause")), modell_absenkung(m), w)
+    assert [(a.art, a.erneuern) for a in e.aktionen] == [("pause", False)]
+    assert e.zustand == m.Zustand.HEIZPAUSE
+    assert (e.gedaechtnis.absenkung_art, e.gedaechtnis.absenkung_von) == (m.PAUSE, MORGEN)
+    assert e.gedaechtnis.absenkung_basis == 21.0
+
+
+def test_programm_beendet_die_modellabsenkung(m, w, vh):
+    e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "programm")), modell_absenkung(m), w)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.zustand == m.Zustand.PROGRAMM
+    assert e.gedaechtnis.absenkung_art is None
+
+
+def test_abwesenheit_geht_der_vorausschau_vor(m, w, vh):
+    stand = lage(m, **MILD, abwesend=True, vorhersage=_vh(vh, "pause"))
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.ABWESEND
+    assert e.gedaechtnis.absenkung_anlass is None
+
+
+def test_laufende_pause_der_bisherigen_regel_endet_nach_ihren_bedingungen(m, w, vh):
+    e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "programm")), pause(m), w)
+    assert e.zustand == m.Zustand.HEIZPAUSE
+    assert all(a.art != "absenkung_ende" for a in e.aktionen)
+    assert e.gedaechtnis.absenkung_anlass is None
+
+
+def test_mit_vorhersage_beginnt_kein_sonnentag_der_bisherigen_regel(m, w, vh):
+    stand = lage(m, entscheidungszeit=True, betriebswahl=1, vorhersage=_vh(vh, "programm"))
+    assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
+
+
+@pytest.mark.parametrize(
+    ("stufe", "g", "rueckkehr", "stunden"),
+    [
+        ("pause", None, False, 10),
+        ("absenkung", None, False, 10),
+        ("programm", None, False, 10),
+        ("programm", "eigen", False, 10),
+        ("pause", "eigen", True, 10),
+        ("pause", None, False, 0.5),
+        ("pause", "eigen", False, 0.5),
+    ],
+)
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+def test_jede_begruendung_der_vorausschau_ist_uebersetzt(
+    m, w, vh, stufe, g, rueckkehr, stunden, sprache
+):
+    alt = modell_absenkung(m) if g else m.Gedaechtnis()
+    v = _vh(vh, stufe, rueckkehr=rueckkehr, stunden=stunden)
+    e = m.entscheiden(lage(m, **MILD, vorhersage=v), alt, w)
+    uebersetzt = load_standalone("texte").Woerterbuch(sprache).satz(e.begruendung)
+    assert uebersetzt != e.begruendung
+    if sprache == "en":
+        assert not DEUTSCH.search(uebersetzt), uebersetzt

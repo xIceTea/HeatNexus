@@ -2401,3 +2401,82 @@ async def test_stoppen_bricht_das_lernen_ab(hass, hass_ws_client, anlage, freeze
     laufzeit.stoppen()
     await asyncio.sleep(0)
     assert aufgabe.cancelled()
+
+
+def _stundenprognose(at: float) -> list[dict]:
+    """Heute jede Stunde dieselbe AT, sonnig wie die Prognose der Attrappe."""
+    from homeassistant.util import dt as dt_util
+
+    heute = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    return [
+        {
+            "datetime": heute.replace(hour=h).isoformat(),
+            "temperature": at,
+            "cloud_coverage": 10,
+            "wind_speed": 3.0,
+        }
+        for h in range(24)
+    ]
+
+
+def _modell(paare: int):
+    from custom_components.heatnexus.automatik import hausmodell
+
+    return hausmodell.Modell(
+        40.0, 0.0, 0.6, 0.03, "vorlauf", 14, (0.3,) * paare, 0.0, (0.5,) * paare
+    )
+
+
+async def _mit_modell(hass, verwaltung, freezer, paare: int):
+    """Raum 21,4 °C, Sollwert 21 °C, sonnig bei 10 °C; Horizont 22:00 ohne Zeitprogramm."""
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    laufzeit.hausmodell = _modell(paare)
+    laufzeit.stunden = _stundenprognose(10.0)
+    await laufzeit.auswerten(entscheidungszeit=True)
+    return laufzeit
+
+
+async def test_freigegebenes_hausmodell_waehlt_die_heizpause(hass, anlage, freezer):
+    verwaltung, _ = anlage
+    laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
+    v = laufzeit.lage.vorhersage
+    # Ohne Heizen bleibt der Raum bis 21:00 über 21,0 − 0,2 + 0,3 K Modellfehler.
+    assert (v.stufe, v.ziel_min, f"{v.bis:%H:%M}") == ("pause", 21.1, "22:00")
+    assert round(v.tiefst, 1) == 21.4
+    g = laufzeit.gedaechtnis
+    assert (g.absenkung_art, g.absenkung_anlass, g.absenkung_soll) == ("pause", "modell", 10.5)
+    assert f"{g.absenkung_ziel:%H:%M}" == "22:00"
+    assert laufzeit.zustand.value == "heizpause"
+    assert laufzeit.begruendung == "Räume halten laut Prognose bis 22:00 über 21,4 °C – Heizpause."
+
+
+async def test_ohne_freigabe_wird_die_vorhersage_nur_beobachtet(hass, anlage, freezer):
+    verwaltung, _ = anlage
+    laufzeit = await _mit_modell(hass, verwaltung, freezer, 13)
+    assert laufzeit.lage.vorhersage is None
+    assert laufzeit._vorhersage_zuletzt is not None
+    assert laufzeit._vorhersage_zuletzt.stufe == "pause"
+    assert laufzeit.gedaechtnis.absenkung_anlass != "modell"
+
+
+@pytest.mark.parametrize(("raum", "zurueck"), [("21.2", False), ("20.9", True)])
+async def test_raum_unter_der_kurve_beendet_die_heizpause_des_modells(
+    hass, anlage, freezer, raum, zurueck
+):
+    """Die Kurve vom Beginn der Pause erwartet um 10:00 21,55 °C; 0,6 K darunter ist zu kalt."""
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
+    freezer.move_to(dt_util.parse_datetime(MORGEN) + timedelta(hours=2, minutes=30))
+    hass.states.async_set("sensor.wohnzimmer", raum, {"device_class": "temperature"})
+    await laufzeit.auswerten()
+    assert (laufzeit.gedaechtnis.absenkung_art is None) is zurueck
+    if zurueck:
+        assert laufzeit.begruendung == (
+            "Raum 20,9 °C weicht von der Vorhersage ab – zurück ins Programm."
+        )
+        assert laufzeit.gedaechtnis.pause_sperre == "2026-09-27"
