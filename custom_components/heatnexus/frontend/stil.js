@@ -1208,6 +1208,17 @@ export const STIL = `
     border: 1px dashed color-mix(in srgb, var(--hn-akzent) 45%, transparent);
   }
   .automatik-hinweis .text { flex: 1; }
+  .automatik-hinweis.empfehlung {
+    padding: 12px 16px; border: 1px solid var(--hn-akzent);
+    background: color-mix(in srgb, var(--hn-akzent) 16%, transparent);
+    box-shadow: inset 4px 0 0 var(--hn-akzent);
+  }
+  .empfehlung-titel {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--hn-akzent);
+  }
+  .empfehlung-titel ha-icon { --mdc-icon-size: 16px; }
+  .empfehlung-grund { font-size: 14px; line-height: 1.45; }
 
   /* Tasten */
   .automatik-knopf {

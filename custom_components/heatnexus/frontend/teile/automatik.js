@@ -412,10 +412,20 @@ export const AutomatikMixin = (Basis) =>
       const empfehlung = kreis.empfehlung;
       if (!empfehlung || !kreis.konfig.aktiv || kreis.konfig.modus !== "empfehlen") return null;
       const hinweis = document.createElement("div");
-      hinweis.className = "automatik-hinweis";
+      hinweis.className = "automatik-hinweis empfehlung";
+      hinweis.setAttribute("role", "status");
       const text = document.createElement("div");
       text.className = "text";
-      text.textContent = empfehlung.begruendung || "";
+      // Die Überschrift zeigt, dass dieser Kasten auf eine Antwort wartet; wie der Punkt am Reiter.
+      const titel = document.createElement("div");
+      titel.className = "empfehlung-titel";
+      const wort = document.createElement("span");
+      wort.textContent = this._t("Empfehlung");
+      titel.append(this._symbolKnoten("mdi:lightbulb-on-outline"), wort);
+      const grund = document.createElement("div");
+      grund.className = "empfehlung-grund";
+      grund.textContent = empfehlung.begruendung || "";
+      text.append(titel, grund);
       const taste = document.createElement("button");
       taste.type = "button";
       taste.className = "automatik-knopf";

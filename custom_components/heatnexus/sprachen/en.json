@@ -777,5 +777,6 @@
   "Im Modus „Manuell mit Empfehlung“ erscheint jede Empfehlung als Benachrichtigung in der Seitenleiste von Home Assistant. Sie verschwindet, sobald die Empfehlung übernommen, verworfen oder abgelaufen ist.": "In “Manual with recommendation” mode every recommendation appears as a notification in the Home Assistant sidebar. It disappears once the recommendation is applied, discarded or expired.",
   "Empfehlung offen": "Recommendation pending",
   "Empfehlung der Automatik": "Automation recommendation",
-  "Im Reiter Automatik übernehmen oder verwerfen": "Apply or discard in the Automation tab"
+  "Im Reiter Automatik übernehmen oder verwerfen": "Apply or discard in the Automation tab",
+  "Empfehlung": "Recommendation"
 }

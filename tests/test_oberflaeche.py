@@ -800,6 +800,9 @@ def test_eine_offene_empfehlung_hat_einen_uebernehmen_knopf(durchlauf):
     assert "Heizpause empfohlen: 22 °C Außentemperatur." in hinweis
     assert empfehlung["knopf"] == "Übernehmen"
     assert empfehlung["knoepfe"] == ["Übernehmen", "Verwerfen"]
+    # Der Kasten hebt sich als Empfehlung ab, nicht nur durch seine Knöpfe.
+    assert empfehlung["markiert"] is True
+    assert empfehlung["titel"] == ["Empfehlung"]
     assert empfehlung["aufrufe"][0] == ["heatnexus/automatik/empfehlung_uebernehmen", "SN1-2-0"]
     assert empfehlung["punkt"] == [True, False]
 

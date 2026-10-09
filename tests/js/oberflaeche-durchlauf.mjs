@@ -1027,6 +1027,8 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     hinweise: [...wurzel.querySelectorAll(".automatik-hinweis")].map((t) => String(t.textContent || "").trim()),
     knopf: knopf ? String(knopf.textContent || "").trim() : null,
     knoepfe: hinweis ? hinweis.querySelectorAll("button").map((t) => String(t.textContent || "").trim()) : [],
+    markiert: Boolean(hinweis && hinweis.classList.contains("empfehlung")),
+    titel: hinweis ? hinweis.querySelectorAll(".empfehlung-titel").map((t) => String(t.textContent || "").trim()) : [],
     aufrufe: aufrufe.map((a) => [a.type, a.heizkreis]),
     punkt: punktFolge,
   };

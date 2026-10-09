@@ -782,5 +782,6 @@
   "Im Modus „Manuell mit Empfehlung“ erscheint jede Empfehlung als Benachrichtigung in der Seitenleiste von Home Assistant. Sie verschwindet, sobald die Empfehlung übernommen, verworfen oder abgelaufen ist.": "In de modus “Handmatig met advies” verschijnt elk advies als melding in de zijbalk van Home Assistant. De melding verdwijnt zodra het advies is overgenomen, verworpen of verlopen.",
   "Empfehlung offen": "Advies openstaand",
   "Empfehlung der Automatik": "Advies van de automatische regeling",
-  "Im Reiter Automatik übernehmen oder verwerfen": "Overnemen of verwerpen op het tabblad Automatische regeling"
+  "Im Reiter Automatik übernehmen oder verwerfen": "Overnemen of verwerpen op het tabblad Automatische regeling",
+  "Empfehlung": "Advies"
 }
