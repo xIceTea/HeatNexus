@@ -2095,3 +2095,142 @@ async def test_nach_dem_start_gilt_die_zuletzt_gelesene_absenkgrenze(hass, anlag
     await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
 
     assert verwaltung.laufzeiten[HEIZKREIS].grenze_absenk() == 5.0
+
+
+async def test_hausmodell_wird_gespeichert_und_geladen(hass, hass_ws_client, anlage, freezer):
+    from custom_components.heatnexus.automatik import hausmodell
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit.hausmodell = hausmodell.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 6, (0.3,))
+    assert laufzeit.als_dict()["hausmodell"]["auskuehlzeit_h"] == 40.0
+    laufzeit.hausmodell_neu()
+    assert laufzeit.als_dict()["hausmodell"] is None
+
+
+def _lernstunden(tage: int):
+    """Stunden eines Hauses mit bekannten Werten, je Tag bis gestern."""
+    from datetime import timedelta
+    import math
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import hausmodell
+
+    heute = dt_util.now().date()
+    ergebnis: dict = {}
+    raum = 21.0
+    for tag in range(tage):
+        stunden = []
+        for stunde in range(24):
+            at = 10 + 6 * math.sin((stunde - 9) / 24 * 2 * math.pi)
+            sonne = max(0.0, math.sin((stunde - 7) / 12 * math.pi)) if 7 < stunde < 19 else 0.0
+            heizen = max(0.0, (40.0 if raum < 21.0 else 0.0) - raum)
+            danach = raum - (raum - at) / 40.0 + 0.6 * sonne + 0.03 * heizen
+            stunden.append(hausmodell.Stunde(raum, danach, at, sonne, 3.0, heizen))
+            raum = danach
+        ergebnis[heute - timedelta(days=tage - tag)] = stunden
+    return ergebnis
+
+
+async def test_hausmodell_lernt_und_schreibt_den_fehler_paarweise_fort(
+    hass, hass_ws_client, anlage, freezer, monkeypatch
+):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+
+    async def lerndaten():
+        return _lernstunden(7)
+
+    monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
+    await laufzeit.hausmodell_lernen()
+    modell = laufzeit.hausmodell
+    assert modell.tage == 6
+    assert len(modell.fehler) == 1
+    assert len(modell.fehler_bleibt) == 1
+
+    await laufzeit.hausmodell_lernen()
+    assert len(laufzeit.hausmodell.fehler) == 1
+    assert laufzeit.als_dict()["hausmodell"]["tage"] == 6
+
+    laufzeit.hausmodell_neu()
+    await laufzeit.hausmodell_lernen()
+    assert len(laufzeit.hausmodell.fehler) == 1
+
+
+async def test_lerndaten_kommen_stundenweise_aus_dem_verlauf(
+    hass, hass_ws_client, anlage, freezer, monkeypatch
+):
+    from datetime import timedelta
+
+    from homeassistant.components import recorder
+    from homeassistant.components.recorder import history
+    from homeassistant.core import State
+    from homeassistant.helpers import entity_registry as er
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    eintrag = hass.config_entries.async_entries("heatnexus")[0]
+    register = er.async_get(hass)
+    aussen = register.async_get_or_create(
+        "sensor", DOMAIN, f"{HEIZKREIS}-0-0-0", config_entry=eintrag
+    ).entity_id
+    vorlauf = register.async_get_or_create(
+        "sensor", DOMAIN, f"{HEIZKREIS}-0-2-0", config_entry=eintrag
+    ).entity_id
+    await _einrichten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+
+    anfang = dt_util.start_of_local_day(dt_util.now().date() - timedelta(days=14))
+    zeiten = [anfang + timedelta(hours=i) for i in range(14 * 24 + 1)]
+    zustaende = {
+        "sensor.wohnzimmer": [
+            State("sensor.wohnzimmer", f"{20 + i % 5 / 10}", {}, last_updated=z)
+            for i, z in enumerate(zeiten)
+        ],
+        aussen: [State(aussen, "5.0", {}, last_updated=zeiten[0])],
+        vorlauf: [State(vorlauf, "40.0", {}, last_updated=zeiten[0])],
+        "weather.home": [
+            State(
+                "weather.home",
+                "sunny",
+                {"cloud_coverage": 50, "wind_speed": 3.0},
+                last_updated=zeiten[0],
+            )
+        ],
+    }
+
+    class Instanz:
+        async def async_add_executor_job(self, aufgabe):
+            return aufgabe()
+
+    def verlauf(_hass, _anfang, _ende, kennungen, **_):
+        return {k: zustaende[k] for k in kennungen if k in zustaende}
+
+    monkeypatch.setattr(recorder, "get_instance", lambda _hass: Instanz(), raising=False)
+    monkeypatch.setattr(history, "get_significant_states", verlauf)
+    hass.config.components.add("recorder")
+
+    je_tag = await laufzeit._lerndaten()
+
+    assert len(je_tag) == 14
+    tage = sorted(je_tag)
+    assert all(len(je_tag[tag]) == 24 for tag in tage)
+    erste = je_tag[tage[0]]
+    assert erste[0].raum_danach == erste[1].raum
+    assert erste[23].raum_danach == je_tag[tage[1]][0].raum
+    assert erste[3].heizen == pytest.approx(40.0 - erste[3].raum)
+    assert erste[3].wind == 3.0
+    assert erste[3].at == 5.0
+    assert erste[3].sonne == 0.0
+    assert erste[12].sonne > 0.0

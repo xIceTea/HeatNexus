@@ -32,6 +32,15 @@ def stunde_als_zahl(zeit: datetime | None, tag: date) -> float | None:
     return lokal.hour + lokal.minute / 60
 
 
+def sonnenanteil(stunde: int, auf: float, unter: float, wolken: float | None) -> float:
+    """Relative Einstrahlung einer Stunde; ohne Bewölkungswert gilt halb bewölkt."""
+    if not auf < stunde < unter:
+        return 0.0
+    bogen = math.sin(math.pi * (stunde - auf) / (unter - auf))
+    anteil = 1 - (50.0 if wolken is None else float(wolken)) / 100
+    return round(max(0.0, bogen * anteil), 3)
+
+
 def sonne(laufzeit: Laufzeit, tag: date) -> list[float]:
     """Relative Einstrahlung je Stunde: Tagbogen mal (1 − Bewölkung)."""
     aufgang, untergang = laufzeit.sonne(tag)
@@ -40,16 +49,10 @@ def sonne(laufzeit: Laufzeit, tag: date) -> list[float]:
         return []
     auf = aufgang.hour + aufgang.minute / 60
     unter = untergang.hour + untergang.minute / 60
-    werte = []
-    for stunde in range(25):
-        if not auf < stunde < unter:
-            werte.append(0.0)
-            continue
-        wolken = (prognose.get(stunde) or {}).get("wolken")
-        bogen = math.sin(math.pi * (stunde - auf) / (unter - auf))
-        anteil = 1 - (50.0 if wolken is None else float(wolken)) / 100
-        werte.append(round(max(0.0, bogen * anteil), 3))
-    return werte
+    return [
+        sonnenanteil(stunde, auf, unter, (prognose.get(stunde) or {}).get("wolken"))
+        for stunde in range(25)
+    ]
 
 
 def tageslicht(laufzeit: Laufzeit, tag: date) -> dict[str, float | None]:

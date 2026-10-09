@@ -48,24 +48,30 @@ class QuellenMixin:
             stunde = self.verlauf["stunden"].setdefault(str(zeit.hour), {})
             stunde["prognose"] = eintrag.get("temperature")
             stunde["wolken"] = eintrag.get("cloud_coverage")
+            stunde["wind"] = eintrag.get("wind_speed")
 
     def stundenprognose(self, tag: date) -> dict[int, dict[str, float | None]]:
-        """Stundenprognose eines Tages: roh, korrigiert, Bewölkung."""
+        """Stundenprognose eines Tages: roh, korrigiert, Bewölkung, Wind."""
         fenster, heute = self.werte.lernfenster, dt_util.now().date()
-        roh_je_stunde: dict[int, tuple[Any, Any]] = {}
+        roh_je_stunde: dict[int, tuple[Any, Any, Any]] = {}
         if self.verlauf["datum"] == tag.isoformat():
             for stunde, werte in self.verlauf["stunden"].items():
                 if "prognose" in werte:
-                    roh_je_stunde[int(stunde)] = (werte.get("prognose"), werte.get("wolken"))
+                    roh_je_stunde[int(stunde)] = (
+                        werte.get("prognose"),
+                        werte.get("wolken"),
+                        werte.get("wind"),
+                    )
         for eintrag in self.stunden:
             zeit = ortszeit(eintrag.get("datetime"))
             if zeit is not None and zeit.date() == tag:
                 roh_je_stunde[zeit.hour] = (
                     eintrag.get("temperature"),
                     eintrag.get("cloud_coverage"),
+                    eintrag.get("wind_speed"),
                 )
         ergebnis: dict[int, dict[str, float | None]] = {}
-        for stunde, (roh, wolken) in roh_je_stunde.items():
+        for stunde, (roh, wolken, wind) in roh_je_stunde.items():
             versatz = (
                 self.temperatur.versatz(stunde, fenster, heute) if self.werte.anpassen else None
             )
@@ -73,6 +79,7 @@ class QuellenMixin:
                 "roh": roh,
                 "korrigiert": None if roh is None else round(roh + (versatz or 0.0), 1),
                 "wolken": wolken,
+                "wind": wind,
             }
         return ergebnis
 

@@ -30,9 +30,10 @@ from ..const import DOMAIN, PANEL_URL
 from ..helpers import get_oid_value
 from ..registrierung import geraetename
 from ..texte import woerterbuch
-from . import eingaben, korrektur, nachladen, profile, regel, stundenmodus, tagesansicht
+from . import eingaben, hausmodell, korrektur, nachladen, profile, regel, stundenmodus, tagesansicht
 from .quellen import QuellenMixin, ortszeit
 from .steller import Stand, Steller, braucht_bestaetigung, nur_ww_wert
+from .vorausschau import VorausschauMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,7 +53,9 @@ STEUERUNG_WARTEN = timedelta(minutes=10)
 MODUS_ARTEN = ("absenkung", "nur_ww", "heizpause")
 # Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
 # Heizgrenzen der Steuerung (`3/21`, `3/2`) gehören dazu: an ihnen richtet sich die Regel aus.
-ABRUF = ("/2/9/0", "/0/0/0", "/1/2/0", "/3/21/0", "/3/2/0")
+# Der Vorlauf-Ist dient nur dem Hausmodell; die Regel wartet nicht darauf.
+VORLAUF_IST = "/0/2/0"
+ABRUF = ("/2/9/0", "/0/0/0", "/1/2/0", "/3/21/0", "/3/2/0", VORLAUF_IST)
 HEIZGRENZEN = {
     "heizbetrieb": ("/3/21/0", "Heizbetrieb"),
     "absenkbetrieb": ("/3/2/0", "Absenkbetrieb"),
@@ -120,7 +123,7 @@ def _gueltig_verworfen(wert: Any) -> dict[str, Any]:
     return {"tag": wert["tag"], "zustaende": zustaende}
 
 
-class Laufzeit(QuellenMixin):
+class Laufzeit(QuellenMixin, VorausschauMixin):
     """Die Automatik eines Heizkreises."""
 
     def __init__(
@@ -266,6 +269,8 @@ class Laufzeit(QuellenMixin):
             "grenze_absenk": self.absenk_zuletzt,
             "empfehlung": self.empfehlung,
             "verworfen": self.verworfen,
+            "hausmodell": hausmodell.als_dict(self.hausmodell) if self.hausmodell else None,
+            "hausmodell_tag": self._fehler_tag,
         }
 
     # --- Lebenszyklus --------------------------------------------------------
@@ -300,6 +305,7 @@ class Laufzeit(QuellenMixin):
         self._nachladen = self.hass.async_create_background_task(
             nachladen.heute_nachtragen(self.hass, self), f"heatnexus_automatik_{self.device_id}"
         )
+        self._lernen_starten()
 
     def stoppen(self) -> None:
         """Alle Auslöser abmelden."""
@@ -311,6 +317,7 @@ class Laufzeit(QuellenMixin):
             self._wiederholung = None
         if self._nachladen is not None and not self._nachladen.done():
             self._nachladen.cancel()
+        self._lernen_beenden()
         client = self.coordinator.client
         for adresse in ABRUF:
             client.unregister_poll_oid(f"{self.prefix}{adresse}")
@@ -467,6 +474,7 @@ class Laufzeit(QuellenMixin):
         self.empfehlung: dict[str, Any] | None = _gueltige_empfehlung(z.get("empfehlung"))
         self.verworfen: dict[str, Any] = _gueltig_verworfen(z.get("verworfen"))
         self._soll_ersatz: tuple[float, float, datetime] | None = None
+        self._hausmodell_laden(z)
         # Was zuletzt in der Seitenleiste steht: Beginn und Begründung der Empfehlung.
         self._gemeldet: tuple[str, str] | None = None
 
@@ -896,7 +904,9 @@ class Laufzeit(QuellenMixin):
     def _steuerung_fehlt(self, jetzt: datetime) -> bool:
         """Ob Werte aus `ABRUF` seit dem Start noch nie gelesen wurden; gilt höchstens `STEUERUNG_WARTEN`."""
         oids = (self.coordinator.data or {}).get("oids") or {}
-        fehlt = any(f"{self.prefix}{adresse}" not in oids for adresse in ABRUF)
+        fehlt = any(
+            f"{self.prefix}{adresse}" not in oids for adresse in ABRUF if adresse != VORLAUF_IST
+        )
         return fehlt and jetzt - self._gestartet < STEUERUNG_WARTEN
 
     def _lauf_aus_protokoll(self, jetzt: datetime) -> dict[str, eingaben.Lauf]:

@@ -32,7 +32,7 @@ def _zahl(wert: Any) -> float | None:
         return None
 
 
-def _reihe(zustaende: list[Any], merkmal: str | None = None) -> list[tuple[datetime, float]]:
+def zeitreihe(zustaende: list[Any], merkmal: str | None = None) -> list[tuple[datetime, float]]:
     """Zeitreihe aus Zuständen; mit `merkmal` aus einem Attribut statt dem Zustand."""
     reihe = []
     for zustand in zustaende:
@@ -42,8 +42,9 @@ def _reihe(zustaende: list[Any], merkmal: str | None = None) -> list[tuple[datet
     return reihe
 
 
-def _raumreihe(zustaende: dict[str, list[Any]], kennung: str) -> list[tuple[datetime, float]]:
-    return _reihe(zustaende.get(kennung, []), eingaben.messmerkmal(kennung))
+def raumreihe(zustaende: dict[str, list[Any]], kennung: str) -> list[tuple[datetime, float]]:
+    """Zeitreihe des Messwerts eines Raums, beim Thermostat aus dem Attribut."""
+    return zeitreihe(zustaende.get(kennung, []), eingaben.messmerkmal(kennung))
 
 
 def eingefroren(
@@ -87,7 +88,7 @@ async def eingefrorene_fuehler(hass: HomeAssistant, kennungen: list[str]) -> dic
     except Exception as fehler:  # die Aufzeichnung ist eine Zugabe, kein Muss
         _LOGGER.debug("Automatik: Verlauf der Fühler nicht lesbar: %s", fehler)
         return {}
-    return eingefroren({k: _raumreihe(zustaende, k) for k in kennungen}, jetzt)
+    return eingefroren({k: raumreihe(zustaende, k) for k in kennungen}, jetzt)
 
 
 async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
@@ -115,10 +116,10 @@ async def heute_nachtragen(hass: HomeAssistant, laufzeit: Laufzeit) -> None:
         _LOGGER.debug("Automatik %s: heutiger Tag nicht nachladbar: %s", laufzeit.name, fehler)
         return
     wetter = zustaende.get(k["wetter"], [])
-    temperaturen = _reihe(wetter, "temperature")
-    wolken = _reihe(wetter, "cloud_coverage")
-    aussenreihe = _reihe(zustaende.get(aussen, [])) if aussen else []
-    raeume = [_raumreihe(zustaende, raum) for raum in k["raeume"]]
+    temperaturen = zeitreihe(wetter, "temperature")
+    wolken = zeitreihe(wetter, "cloud_coverage")
+    aussenreihe = zeitreihe(zustaende.get(aussen, [])) if aussen else []
+    raeume = [raumreihe(zustaende, raum) for raum in k["raeume"]]
     laufzeit.eingefroren = set(eingefroren(dict(zip(k["raeume"], raeume, strict=True)), jetzt))
     stufen = None
     for stunde in range(jetzt.hour):
