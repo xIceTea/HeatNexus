@@ -552,6 +552,7 @@
   "{grund} Danach Heizpause, {soll} °C bis {zeit}.": "{grund} Then heating pause, {soll} °C until {zeit}.",
   "Heizpause – {soll} °C bis {zeit}.": "Heating pause – {soll} °C until {zeit}.",
   "Heizpause verlängert – {soll} °C bis {zeit}.": "Heating pause extended – {soll} °C until {zeit}.",
+  "{grund} – Heizpause beendet. {weiter}": "{grund} – heating pause ended. {weiter}",
   "{grund} – Heizpause beendet.": "{grund} – heating pause ended.",
   "Gedämpfte AT {wert} °C über {grenze} °C": "Damped outdoor temp. {wert} °C above {grenze} °C",
   "Tagesmittel heute {wert} °C": "Daily mean today {wert} °C",

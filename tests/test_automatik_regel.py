@@ -635,10 +635,28 @@ def test_pause_rueckt_bei_steigender_at_nach(m, w):
 )
 def test_pause_endet(m, w, abweichung):
     jetzt = MORGEN + timedelta(hours=1)
-    e = m.entscheiden(lage(m, **{**MILD, "jetzt": jetzt, **abweichung}), pause(m), w)
+    stand = lage(m, **{**MILD, "jetzt": jetzt, "sonnenquote": 40.0, **abweichung})
+    e = m.entscheiden(stand, pause(m), w)
     assert [a.art for a in e.aktionen] == ["absenkung_ende"]
     assert e.gedaechtnis.absenkung_art is None
     assert e.gedaechtnis.pause_sperre == jetzt.date().isoformat()
+
+
+def test_endet_die_pause_folgt_der_sonnentag_wenn_er_passt(m, w):
+    g = pause(m)
+    stand = lage(m, **{**MILD, "ruhig": False}, jetzt=MORGEN + timedelta(hours=3), sonnenquote=85.0)
+    e = m.entscheiden(stand, g, w)
+    assert e.zustand == m.Zustand.SONNENTAG
+    assert [a.art for a in e.aktionen] == ["absenken"]
+    assert e.gedaechtnis.absenkung_art == m.SONNE
+    assert e.begruendung.startswith("Thermostate fordern Wärme an – Heizpause beendet. ")
+
+
+def test_kalte_raeume_beenden_die_pause_ohne_sonnentag(m, w):
+    stand = lage(m, **MILD, raum=19.5, jetzt=MORGEN + timedelta(hours=3), sonnenquote=85.0)
+    e = m.entscheiden(stand, pause(m), w)
+    assert e.zustand == m.Zustand.PROGRAMM
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
 
 
 def test_pause_ohne_ende_im_gedaechtnis_bricht_nicht_ab(m, w):

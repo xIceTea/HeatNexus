@@ -699,6 +699,10 @@ def _pause_ende(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> str | None
 def _heizpause_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung:
     if (grund := _pause_ende(lage, g, soll, w)) is not None:
         neu = replace(ohne_absenkung(g), pause_sperre=lage.jetzt.date().isoformat())
+        # Statt ins Programm direkt in den Sonnentag, wenn er jetzt passt; der schreibt die Vorgabe neu.
+        folge = _sonnentag(replace(lage, entscheidungszeit=True), neu, soll, w)
+        if folge.zustand is Zustand.SONNENTAG and folge.aktionen:
+            return replace(folge, begruendung=f"{grund} – Heizpause beendet. {folge.begruendung}")
         return Entscheidung(
             Zustand.PROGRAMM, (Aktion("absenkung_ende"),), f"{grund} – Heizpause beendet.", neu
         )

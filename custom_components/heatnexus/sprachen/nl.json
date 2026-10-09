@@ -552,6 +552,7 @@
   "{grund} Danach Heizpause, {soll} °C bis {zeit}.": "{grund} Daarna verwarmingspauze, {soll} °C tot {zeit}.",
   "Heizpause – {soll} °C bis {zeit}.": "Verwarmingspauze – {soll} °C tot {zeit}.",
   "Heizpause verlängert – {soll} °C bis {zeit}.": "Verwarmingspauze verlengd – {soll} °C tot {zeit}.",
+  "{grund} – Heizpause beendet. {weiter}": "{grund} – verwarmingspauze beëindigd. {weiter}",
   "{grund} – Heizpause beendet.": "{grund} – verwarmingspauze beëindigd.",
   "Gedämpfte AT {wert} °C über {grenze} °C": "Gedempte buitentemp. {wert} °C boven {grenze} °C",
   "Tagesmittel heute {wert} °C": "Daggemiddelde vandaag {wert} °C",
