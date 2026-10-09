@@ -134,6 +134,35 @@ Aufzeichnung von Home Assistant nach.
 Für morgen und übermorgen rechnet sie mit derselben Regel vor, was sie
 voraussichtlich tun wird. Dabei nimmt sie an, dass die Räume ihr Ziel halten.
 
+## Vorausschau
+
+Die Automatik lernt je Heizkreis, wie das Haus auf Außentemperatur, Sonne und
+Heizung reagiert. Grundlage sind die Raumtemperaturen und Wetterwerte der
+letzten zwei Wochen aus der Aufzeichnung von Home Assistant. Mit der
+Stundenprognose rechnet sie daraus den Raumverlauf bis zum Horizont. Der
+Horizont ist das Ende der Komfortzeit laut Zeitprogramm des Heizkreises.
+
+Zuerst beobachtet sie nur. Jeden Tag vergleicht sie ihre Vorhersage mit dem
+gemessenen Raum und mit der Annahme, dass der Raum gleich bleibt. Das
+Hausmodell entscheidet erst mit, wenn es an mindestens 14 Vergleichstagen im
+Mittel höchstens 0,5 K daneben lag. Sein Fehler darf dabei höchstens 80 % des
+Fehlers ohne Modell betragen. Bis dahin gelten die bisherigen Regeln für
+Sonnentag und Heizpause. Die Kachel „Haus“ im Reiter Automatik zeigt den Stand,
+der Tagesverlauf die vorhergesagte Raumkurve.
+
+Ist das Modell freigegeben, wählt die Automatik die tiefste Stufe, bei der die
+Räume bis zum Horizont nicht unter die Grenze fallen: zuerst die Heizpause,
+dann die Absenkung, sonst das Programm. Die Grenze ist das Raumziel abzüglich
+des Spielraums. Der mittlere Fehler des Modells hebt sie an. Den Spielraum legt
+die Ausrichtung fest: Eco 0,5 K, Ausgewogen 0,2 K, Komfort 0 K. Unter
+„Spielraum unter Ziel“ lässt er sich anpassen.
+
+Fällt der Raum unter die Grenze oder deutlich unter die Vorhersage, kehrt der
+Heizkreis ins Programm zurück. Fehlt die Prognose oder verliert das Modell die
+Freigabe, verlängert die Automatik keine Stufe. Sie prüft die Räume dann wie
+bei der bisherigen Heizpause. „Neu lernen“ verwirft das Modell und lernt aus
+der Aufzeichnung neu.
+
 ## Räume und ihr Ziel
 
 Ohne Raumfühler am Heizkreis regelt die Steuerung nur nach der

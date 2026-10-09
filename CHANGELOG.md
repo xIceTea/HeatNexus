@@ -16,6 +16,11 @@ wenn dort Vorabversionen zugelassen sind.
 - Eine verworfene Empfehlung kommt am selben Tag nicht wieder.
 - Eine offene Empfehlung erscheint in der Seitenleiste und als Punkt am Reiter „Automatik“.
 - Der Wechsel weg von „Automatisch“ beendet laufende Eingriffe und rechnet sofort neu.
+- Die Automatik lernt das Haus und sagt den Raumverlauf des Tages voraus.
+- Trifft die Vorhersage über Wochen besser als ohne Modell, entscheidet sie mit.
+- Dann senkt sie bei Sonne früh ab oder legt eine Heizpause ein.
+- Die Ausrichtung legt fest, wie weit die Räume unter das Ziel sinken dürfen.
+- Der Reiter Automatik zeigt die gelernten Hauswerte und den vorhergesagten Raumverlauf.
 
 ### Behoben
 
@@ -35,6 +40,9 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein Tipp auf den Sollwert im Reiter Steuerung öffnet den Heizkreis.
 - „Absenkbetrieb bis“ steht nach einem Neustart sofort im Reiter Automatik.
 - Die Automatik zeigt, wenn der Heizkreis an der Steuerung aus ist.
+- Ein Sonnentag aus der Sonnenquote endet nicht mehr ohne Wärme der Solaranlage.
+- Nach einer Heizpause beginnt bei Sonne direkt ein Sonnentag.
+- Bei Kälte endet nur Warmwasser früher.
 
 ## [1.13.0] - 2026-10-03
 
