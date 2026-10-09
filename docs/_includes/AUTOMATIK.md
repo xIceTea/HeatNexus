@@ -136,19 +136,32 @@ voraussichtlich tun wird. Dabei nimmt sie an, dass die Räume ihr Ziel halten.
 
 ## Vorausschau
 
-Die Automatik lernt je Heizkreis, wie das Haus auf Außentemperatur, Sonne und
-Heizung reagiert. Grundlage sind die Raumtemperaturen und Wetterwerte der
-letzten zwei Wochen aus der Aufzeichnung von Home Assistant. Mit der
-Stundenprognose rechnet sie daraus den Raumverlauf bis zum Horizont. Der
-Horizont ist das Ende der Komfortzeit laut Zeitprogramm des Heizkreises.
+Die Automatik lernt je Heizkreis, wie schnell das Haus ohne Heizen auskühlt und
+wie stark die Sonne es erwärmt. Grundlage sind die Stunden der letzten zwei
+Wochen, in denen der Heizkreis nicht geheizt hat, aus der Aufzeichnung von Home
+Assistant. Aus den Heizstunden lernt sie zusätzlich, wie viel der Vorlauf
+bewirkt. Mit der Stundenprognose rechnet sie daraus den Raumverlauf bis zum
+Horizont. Der Horizont ist das Ende der Komfortzeit laut Zeitprogramm des
+Heizkreises.
 
-Zuerst beobachtet sie nur. Jeden Tag vergleicht sie ihre Vorhersage mit dem
-gemessenen Raum und mit der Annahme, dass der Raum gleich bleibt. Das
-Hausmodell entscheidet erst mit, wenn es an mindestens 14 Vergleichstagen im
-Mittel höchstens 0,5 K daneben lag. Sein Fehler darf dabei höchstens 80 % des
-Fehlers ohne Modell betragen. Bis dahin gelten die bisherigen Regeln für
-Sonnentag und Heizpause. Die Kachel „Haus“ im Reiter Automatik zeigt den Stand,
-der Tagesverlauf die vorhergesagte Raumkurve.
+Für das Lernen braucht sie:
+
+- Räume mit Thermostat oder Temperaturfühler. Thermostate sind nicht nötig.
+  Die Räume sollen das Haus typisch abbilden; Keller, Bad oder Wintergarten
+  verfälschen das Mittel.
+- Die Außentemperatur und den Vorlauf oder die Heizkreispumpe der Steuerung in
+  der Aufzeichnung.
+- Stunden ohne Heizen, mindestens einen Tag zusammen. Heizt der Heizkreis rund
+  um die Uhr, lernt sie noch nicht. Die Kachel „Haus“ nennt dann den Grund.
+
+Zuerst beobachtet sie nur. Sie vergleicht ihre Vorhersage für die Stunden ohne
+Heizen mit dem gemessenen Raum und mit der Annahme, dass der Raum gleich bleibt.
+Beim ersten Lernen rechnet sie die vergangenen Tage nach: Jeder Tag zählt gegen
+ein Modell aus den Tagen davor. Das Hausmodell entscheidet erst mit, wenn es an
+mindestens 14 Vergleichstagen im Mittel höchstens 0,5 K daneben lag. Sein
+Fehler darf dabei höchstens 80 % des Fehlers ohne Modell betragen. Bis dahin
+gelten die bisherigen Regeln für Sonnentag und Heizpause. Die Kachel „Haus“ im
+Reiter Automatik zeigt den Stand, der Tagesverlauf die vorhergesagte Raumkurve.
 
 Ist das Modell freigegeben, wählt die Automatik die tiefste Stufe, bei der die
 Räume bis zum Horizont nicht unter die Grenze fallen: zuerst die Heizpause,
@@ -160,8 +173,8 @@ die Ausrichtung fest: Eco 0,5 K, Ausgewogen 0,2 K, Komfort 0 K. Unter
 Fällt der Raum unter die Grenze oder deutlich unter die Vorhersage, kehrt der
 Heizkreis ins Programm zurück. Fehlt die Prognose oder verliert das Modell die
 Freigabe, verlängert die Automatik keine Stufe. Sie prüft die Räume dann wie
-bei der bisherigen Heizpause. „Neu lernen“ verwirft das Modell und lernt aus
-der Aufzeichnung neu.
+bei der bisherigen Heizpause. „Hausmodell neu lernen“ in den Einstellungen
+verwirft das Modell und lernt aus der Aufzeichnung neu.
 
 ## Räume und ihr Ziel
 

@@ -18,9 +18,12 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Wechsel weg von „Automatisch“ beendet laufende Eingriffe und rechnet sofort neu.
 - Die Automatik lernt das Haus und sagt den Raumverlauf des Tages voraus.
 - Trifft die Vorhersage über Wochen besser als ohne Modell, entscheidet sie mit.
+- Beim ersten Lernen rechnet die Automatik die vergangenen zwei Wochen nach.
 - Dann senkt sie bei Sonne früh ab oder legt eine Heizpause ein.
 - Die Ausrichtung legt fest, wie weit die Räume unter das Ziel sinken dürfen.
 - Der Reiter Automatik zeigt die gelernten Hauswerte und den vorhergesagten Raumverlauf.
+- „Hausmodell neu lernen“ steht in den Einstellungen der Automatik.
+- Der Einrichtungsdialog empfiehlt Räume, die das Haus typisch abbilden.
 
 ### Behoben
 
