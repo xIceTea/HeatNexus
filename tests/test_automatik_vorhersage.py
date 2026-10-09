@@ -52,6 +52,18 @@ def test_spielraum_entscheidet_im_grenzfall(v, modell, spielraum, stufe):
     assert e.stufe == stufe
 
 
+def test_absenkung_haelt_wo_die_pause_nicht_reicht(v, modell):
+    e = v.waehlen(modell, 21.0, 40.0, _tag(v, 16.6, 0.15), 2.0, 0.0, START + timedelta(hours=12))
+    assert e.stufe == v.ABSENKUNG
+    assert e.tiefst >= e.ziel_min
+
+
+def test_ohne_vorlauf_gibt_es_keine_absenkung(v, modell):
+    for at, sonne in ((16.6, 0.15), (16.0, 0.6), (2.0, 0.0)):
+        e = v.waehlen(modell, 21.0, None, _tag(v, at, sonne), 2.0, 0.0, START + timedelta(hours=12))
+        assert e.stufe in (v.PAUSE, v.PROGRAMM)
+
+
 def test_modellfehler_macht_vorsichtiger(v):
     h = load_standalone("automatik.hausmodell")
     ungenau = h.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 10, (0.45,))

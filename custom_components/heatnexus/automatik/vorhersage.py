@@ -14,7 +14,7 @@ from .hausmodell import Modell, mittlerer_fehler, vorhersagen
 PAUSE = "pause"
 ABSENKUNG = "absenkung"
 PROGRAMM = "programm"
-# Vorlauf-Soll sinkt je K Raumsoll um diesen Wert (Messung an der Steuerung).
+# Mittlerer Anstieg der Heizkurve: Vorlauf-Soll je K Raumsoll.
 VL_JE_K = 2.3
 
 
@@ -82,7 +82,9 @@ def waehlen(
     relevant = [s for s in stunden if s.zeit < bis]
     ziel = min((s.ziel for s in relevant), default=raum)
     ziel_min = ziel - spielraum_k + fehler
-    stufen = (PAUSE, ABSENKUNG, PROGRAMM) if modell.heiz_art == "vorlauf" else (PAUSE, PROGRAMM)
+    # Ohne Vorlaufwert lässt sich die Absenkung nicht rechnen, sie wird dann nicht angeboten.
+    mit_absenkung = modell.heiz_art == "vorlauf" and vl is not None
+    stufen = (PAUSE, ABSENKUNG, PROGRAMM) if mit_absenkung else (PAUSE, PROGRAMM)
     for stufe in stufen:
         verlauf = _verlauf(modell, raum, vl, relevant, stufe, absenkung_k)
         tiefst = min(verlauf, default=raum)

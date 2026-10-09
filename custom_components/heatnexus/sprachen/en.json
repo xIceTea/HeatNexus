@@ -233,7 +233,7 @@
   "Ruhiges Dunkel mit Petrolgrün": "Calm dark with petrol green",
   "Rückkehr bei Raum unter Soll minus": "Return when room is below setpoint minus",
   "Spielraum unter Ziel": "Margin below target",
-  "So weit darf die Vorhersage die Räume am Ende unter das Ziel sinken lassen. Eco erlaubt mehr, Komfort nichts.": "How far the forecast may let the rooms fall below the target at the end. Eco allows more, Comfort none.",
+  "So weit darf die Vorhersage die Räume bis zum Horizont unter das Ziel sinken lassen. Eco erlaubt mehr, Komfort nichts.": "How far the forecast may let the rooms fall below the target up to the horizon. Eco allows more, Comfort none.",
   "Rücklauf": "Return",
   "Manuell mit Empfehlung": "Manual with recommendation",
   "Automatisch": "Automatic",
