@@ -13,7 +13,7 @@ import math
 from typing import Any
 
 # Ein Modell aus einem anderen Lernverfahren wird beim Laden verworfen und neu gelernt.
-FASSUNG = 2
+FASSUNG = 3
 FREIGABE_TAGE = 14
 FREIGABE_FEHLER_K = 0.5
 FREIGABE_ANTEIL = 0.8

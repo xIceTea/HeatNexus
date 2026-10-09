@@ -86,6 +86,26 @@ def test_wert_zur_stunde_nimmt_den_geltenden_stand(eingaben):
     assert eingaben.wert_zur_stunde([], t) is None
 
 
+def test_mittel_der_stunde_gewichtet_nach_zeit(eingaben):
+    t = datetime(2026, 9, 27, 8, tzinfo=UTC)
+    reihe = [(t - timedelta(minutes=10), 20.0), (t + timedelta(minutes=15), 22.0)]
+    assert eingaben.mittel_der_stunde(reihe, t) == pytest.approx(21.5)
+    # Ein Schalter ergibt den Anteil der Stunde, in der er an war.
+    pumpe = [(t, 1.0), (t + timedelta(minutes=12), 0.0)]
+    assert eingaben.mittel_der_stunde(pumpe, t) == pytest.approx(0.2)
+
+
+def test_mittel_der_stunde_braucht_eine_halbe_stunde_mit_wert(eingaben):
+    t = datetime(2026, 9, 27, 8, tzinfo=UTC)
+    spaet = [(t + timedelta(minutes=40), 20.0)]
+    assert eingaben.mittel_der_stunde(spaet, t) is None
+    luecke = [(t, 20.0), (t + timedelta(minutes=15), None), (t + timedelta(minutes=50), 21.0)]
+    assert eingaben.mittel_der_stunde(luecke, t) is None
+    halb = [(t, 20.0), (t + timedelta(minutes=10), None), (t + timedelta(minutes=40), 21.0)]
+    assert eingaben.mittel_der_stunde(halb, t) == pytest.approx((20.0 * 10 + 21.0 * 20) / 30)
+    assert eingaben.mittel_der_stunde([], t) is None
+
+
 def test_thermostat_liefert_ist_ziel_und_anforderung(eingaben):
     attribute = {"current_temperature": 20.8, "temperature": 21.0, "hvac_action": "heating"}
     assert eingaben.raum_messung("climate.bad", "heat", attribute) == eingaben.Messung(

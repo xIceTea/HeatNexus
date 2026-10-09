@@ -52,8 +52,9 @@ def _lernstunde(
     bogen: tuple[float, float] | None,
 ) -> hausmodell.Stunde | None:
     """Eine Stunde mit allen Werten; fehlt einer, entfällt sie."""
-    at = eingaben.wert_zur_stunde(reihen.at, zeit)
-    quelle = eingaben.wert_zur_stunde(reihen.heizen, zeit)
+    # Stundenmittel statt Augenblickswert: Raumfühler springen, die Pumpe zählt als Anteil der Stunde.
+    at = eingaben.mittel_der_stunde(reihen.at, zeit)
+    quelle = eingaben.mittel_der_stunde(reihen.heizen, zeit)
     if raum is None or at is None or quelle is None:
         return None
     wolken = eingaben.wert_zur_stunde(reihen.wolken, zeit)
@@ -189,7 +190,7 @@ class VorausschauMixin:
         """Lernstunden je Tag; eine Stunde ohne Folgestunde bekommt kein `raum_danach`."""
         raum = [
             eingaben.raumwert(
-                [eingaben.wert_zur_stunde(r, z) for r in reihen.raeume], self.konfig["raum_art"]
+                [eingaben.mittel_der_stunde(r, z) for r in reihen.raeume], self.konfig["raum_art"]
             )
             for z in zeiten
         ]

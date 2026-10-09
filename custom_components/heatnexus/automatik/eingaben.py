@@ -16,6 +16,8 @@ PV_MIN_TAGE = 7
 # Ein Thermostat in diesen Zuständen liefert nichts; er zählt dann nicht.
 NICHT_ERREICHBAR = frozenset({"unavailable", "unknown"})
 
+HALBE_STUNDE_S = 1800
+
 
 def daempfen(
     stufen: tuple[float, float] | None, messwert: float, dt_s: float, tau_h: float
@@ -214,6 +216,26 @@ def heizgrenze_halten(
     if at < grenze - hysterese:
         return False
     return vorher
+
+
+def mittel_der_stunde(
+    reihe: Sequence[tuple[datetime, float | None]], stunde: datetime
+) -> float | None:
+    """Zeitgewichtetes Mittel über die Stunde; deckt kein Wert eine halbe Stunde, `None`."""
+    ende = stunde + timedelta(hours=1)
+    summe, dauer = 0.0, 0.0
+    wert, seit = None, stunde
+    for zeit, neu in reihe:
+        if zeit >= ende:
+            break
+        if zeit > stunde and wert is not None:
+            summe += wert * (zeit - seit).total_seconds()
+            dauer += (zeit - seit).total_seconds()
+        wert, seit = neu, max(zeit, stunde)
+    if wert is not None:
+        summe += wert * (ende - seit).total_seconds()
+        dauer += (ende - seit).total_seconds()
+    return summe / dauer if dauer >= HALBE_STUNDE_S else None
 
 
 def wert_zur_stunde(
