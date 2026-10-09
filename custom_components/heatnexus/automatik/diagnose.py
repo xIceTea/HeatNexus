@@ -12,10 +12,11 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.util import dt as dt_util
 
-from . import eingaben, kennzahlen, regel
+from . import eingaben, hausmodell, kennzahlen, regel
 
 if TYPE_CHECKING:
     from .laufzeit import Laufzeit
+    from .vorhersage import Vorhersage
 
 
 def _lesbar(wert: Any) -> Any:
@@ -28,11 +29,25 @@ def _lesbar(wert: Any) -> Any:
     return wert
 
 
+def _vorhersage(v: Vorhersage | None) -> dict[str, Any] | None:
+    """Stufe, Horizont und Grenzen der letzten Vorhersage; die Kurve bleibt dem Panel."""
+    if v is None:
+        return None
+    return {
+        "stufe": v.stufe,
+        "bis": v.bis,
+        "tiefst": v.tiefst,
+        "ziel_min": v.ziel_min,
+        "fehler": v.fehler,
+    }
+
+
 def auszug(laufzeit: Laufzeit) -> dict[str, Any]:
     """Alles, was die Regel zuletzt gesehen und entschieden hat."""
     lage, werte, heute = laufzeit.lage, laufzeit.werte, dt_util.now().date()
     fenster = werte.lernfenster
     stand = laufzeit.steller.stand.als_dict()
+    modell = laufzeit.hausmodell
     return _lesbar(
         {
             "heizkreis": laufzeit.device_id,
@@ -60,5 +75,7 @@ def auszug(laufzeit: Laufzeit) -> dict[str, Any]:
                 "tage_sonne": laufzeit.pv.lerntage(fenster, heute),
             },
             "verlauf": laufzeit.verlauf,
+            "hausmodell": hausmodell.als_dict(modell) if modell else None,
+            "vorhersage": _vorhersage(laufzeit.vorhersage_zuletzt),
         }
     )

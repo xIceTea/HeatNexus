@@ -182,6 +182,11 @@ def mittlerer_fehler(modell: Modell) -> float | None:
     return sum(modell.fehler) / len(modell.fehler) if modell.fehler else None
 
 
+def mittlerer_fehler_bleibt(modell: Modell) -> float | None:
+    """Mittel der gespeicherten Tagesfehler von „Raum bleibt“, ohne Tage `None`."""
+    return sum(modell.fehler_bleibt) / len(modell.fehler_bleibt) if modell.fehler_bleibt else None
+
+
 def freigegeben(modell: Modell | None) -> bool:
     """Frei, wenn das Modell über genug Tage klein und deutlich besser als „Raum bleibt“ lag."""
     if modell is None or len(modell.fehler) != len(modell.fehler_bleibt):

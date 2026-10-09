@@ -2525,3 +2525,156 @@ async def test_kaeltester_raum_zaehlt_gegen_sein_eigenes_ziel(hass, anlage, free
     assert laufzeit.begruendung == (
         "Raum 20,5 °C weicht von der Vorhersage ab – zurück ins Programm."
     )
+
+
+async def _kreis(client) -> dict:
+    antwort = await _senden(client, type="heatnexus/automatik")
+    assert antwort["success"], antwort
+    (kreis,) = antwort["result"]["heizkreise"]
+    return kreis
+
+
+async def test_kennwerte_zeigen_das_freigegebene_hausmodell(hass, hass_ws_client, anlage, freezer):
+    from dataclasses import replace
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
+    laufzeit.hausmodell = replace(laufzeit.hausmodell, tage=6)
+
+    kreis = await _kreis(client)
+
+    assert kreis["kennwerte"]["hausmodell"] == {
+        "auskuehlzeit_h": 40.0,
+        "sonne_k_h": 0.6,
+        "heizwirkung": 0.03,
+        "wind": False,
+        "fehler": 0.3,
+        "fehler_bleibt": 0.5,
+        "vergleiche": 14,
+        "tage": 6,
+        "status": "aktiv",
+    }
+    kurve = laufzeit._vorhersage_zuletzt.kurve
+    assert len(kreis["tag"]["vorhersage"]) == len(kurve) > 0
+    assert kreis["tag"]["vorhersage"][0] == [9.0, kurve[0][1]]
+
+
+async def test_ohne_freigabe_ist_das_hausmodell_beobachtet(hass, hass_ws_client, anlage, freezer):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    await _mit_modell(hass, verwaltung, freezer, 3)
+
+    kreis = await _kreis(client)
+
+    modell = kreis["kennwerte"]["hausmodell"]
+    assert (modell["status"], modell["vergleiche"]) == ("beobachtet", 3)
+    assert (modell["fehler"], modell["fehler_bleibt"]) == (0.3, 0.5)
+    assert kreis["tag"]["vorhersage"]
+
+
+async def test_ohne_hausmodell_lernt_die_automatik_noch(hass, hass_ws_client, anlage, freezer):
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+
+    kreis = await _kreis(client)
+
+    assert kreis["kennwerte"]["hausmodell"] == {"status": "lernt"}
+    assert kreis["tag"]["vorhersage"] == []
+
+
+async def test_neu_lernen_verwirft_das_hausmodell(hass, hass_ws_client, anlage, freezer):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
+    assert laufzeit.hausmodell is not None
+
+    antwort = await _senden(client, type="heatnexus/automatik/hausmodell_neu", heizkreis=HEIZKREIS)
+
+    assert antwort["success"], antwort
+    assert laufzeit.hausmodell is None
+    assert laufzeit._vorhersage_zuletzt is None
+    assert (await _kreis(client))["kennwerte"]["hausmodell"] == {"status": "lernt"}
+
+
+async def test_nur_administratoren_lernen_neu(
+    hass, hass_ws_client, hass_read_only_access_token, anlage
+):
+    client = await hass_ws_client(hass, hass_read_only_access_token)
+
+    antwort = await _senden(client, type="heatnexus/automatik/hausmodell_neu", heizkreis=HEIZKREIS)
+
+    assert not antwort["success"]
+    assert antwort["error"]["code"] == "unauthorized"
+
+
+async def test_diagnose_enthaelt_hausmodell_und_vorhersage(hass, anlage, freezer):
+    import json
+
+    from custom_components.heatnexus import diagnostics
+
+    verwaltung, _ = anlage
+    laufzeit = await _mit_modell(hass, verwaltung, freezer, 14)
+    entry = hass.config_entries.async_entries("heatnexus")[0]
+
+    (auszug,) = diagnostics.automatik_auszug(hass, entry)["heizkreise"]
+
+    assert auszug["hausmodell"]["auskuehlzeit_h"] == 40.0
+    assert auszug["hausmodell"]["fehler_bleibt"] == [0.5] * 14
+    v = laufzeit._vorhersage_zuletzt
+    assert auszug["vorhersage"] == {
+        "stufe": "pause",
+        "bis": v.bis.isoformat(),
+        "tiefst": v.tiefst,
+        "ziel_min": v.ziel_min,
+        "fehler": v.fehler,
+    }
+    json.dumps(auszug)
+
+
+async def test_diagnose_ohne_hausmodell_nennt_nichts(hass, anlage, freezer):
+    from custom_components.heatnexus import diagnostics
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    await _eingerichtet(hass, verwaltung)
+    entry = hass.config_entries.async_entries("heatnexus")[0]
+
+    (auszug,) = diagnostics.automatik_auszug(hass, entry)["heizkreise"]
+
+    assert (auszug["hausmodell"], auszug["vorhersage"]) == (None, None)
+
+
+async def test_vorschau_folgt_dem_freigegebenen_modell(hass, hass_ws_client, anlage, freezer):
+    """Mit freigegebenem Modell beginnt die alte Regel keine Heizpause und keinen Sonnentag mehr."""
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    einheit = {"unit_of_measurement": "kWh", "device_class": "energy"}
+    hass.states.async_set("sensor.energy_production_today", "20.0", einheit)
+    hass.states.async_set("sensor.energy_production_tomorrow", "20.0", einheit)
+    hass.states.async_set("sensor.energy_production_day_3", "20.0", einheit)
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {
+            "heizkreis": HEIZKREIS,
+            "raeume": ["sensor.wohnzimmer"],
+            "wetter": "weather.home",
+            "pv": "sensor.energy_production_today",
+        },
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    heute = dt_util.now().date()
+    laufzeit.pv_tage = {(heute - timedelta(days=t)).isoformat(): 20.0 for t in range(1, 8)}
+    ohne = [t["zustand"] for t in (await _kreis(client))["vorschau"]]
+    assert ohne == ["sonnentag", "sonnentag"]
+
+    laufzeit.hausmodell = _modell(14)
+
+    mit = [t["zustand"] for t in (await _kreis(client))["vorschau"]]
+    assert mit == ["programm", "programm"]

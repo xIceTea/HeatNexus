@@ -88,11 +88,20 @@ class VorausschauMixin:
         # Die Vorhersage, mit der die laufende Stufe des Modells begann; an ihr misst sich die Rückkehr.
         self._vorhersage_bezug: vorhersage.Vorhersage | None = None
 
-    def hausmodell_neu(self) -> None:
-        """Von vorn lernen, etwa nach geänderten Räumen."""
+    @property
+    def vorhersage_zuletzt(self) -> vorhersage.Vorhersage | None:
+        """Die letzte Vorhersage, auch ohne Freigabe; für Anzeige und Diagnose."""
+        return self._vorhersage_zuletzt
+
+    def hausmodell_neu(self, sofort: bool = False) -> None:
+        """Von vorn lernen, etwa nach geänderten Räumen; `sofort` startet den Lauf gleich."""
         self.hausmodell = None
         self._fehler_tag = None
+        self._vorhersage_zuletzt = None
+        self._vorhersage_bezug = None
         self._speichern()
+        if sofort:
+            self._lernen_anstossen()
 
     def _lernen_starten(self) -> None:
         """Einmal jetzt und danach täglich lernen."""

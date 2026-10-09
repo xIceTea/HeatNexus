@@ -788,6 +788,31 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["stundeJeKreis"] == [["SN1-2-0", 10]]
 
 
+def test_die_kachel_haus_folgt_dem_stand_des_modells(durchlauf):
+    """Aktiv nennt Auskühlzeit und Treffsicherheit, beobachtet zählt die Tage, lernend schweigt."""
+    haus = durchlauf["automatikHaus"]
+    aktiv = haus["aktiv"]
+    assert (aktiv["titel"], aktiv["zahl"], aktiv["neben"]) == ("Haus", "40 h", "Auskühlzeit")
+    assert aktiv["fuss"] == ["±0,3 K, ohne Modell ±0,5 K", "Sonne +0,60 K/h · Heizen 0,03"]
+    assert aktiv["tasten"] == ["Neu lernen"]
+    assert haus["mitWind"][1] == "Sonne +0,60 K/h · Heizen 0,03 · Wind zählt"
+    assert haus["beobachtetWenige"]["fuss"][0] == "beobachtet – 3 von 14 Tagen"
+    assert haus["beobachtetVoll"]["fuss"][0] == "beobachtet – ±0,4 K, ohne Modell ±0,6 K"
+    lernt = haus["lernt"]
+    assert (lernt["titel"], lernt["zahl"], lernt["neben"]) == ("Haus", "–", "lernt noch")
+    assert (lernt["fuss"], lernt["tasten"]) == ([], [])
+    assert haus["ohneAngabe"]["kachel"] is False
+    assert haus["neuLernen"][0] == ["heatnexus/automatik/hausmodell_neu", "SN1-2-0"]
+
+
+def test_die_kurve_des_modells_erscheint_nur_mit_vorhersage(durchlauf):
+    haus = durchlauf["automatikHaus"]
+    assert haus["aktiv"]["kurve"] == 1
+    assert "Raum laut Vorhersage" in haus["aktiv"]["legende"]
+    assert haus["lernt"]["kurve"] == 0
+    assert "Raum laut Vorhersage" not in haus["lernt"]["legende"]
+
+
 def test_eine_offene_empfehlung_hat_einen_uebernehmen_knopf(durchlauf):
     """Im Modus „Manuell mit Empfehlung“ zeigt der Hinweis die Begründung und übernimmt per Knopf."""
     empfehlung = durchlauf["automatikEmpfehlung"]

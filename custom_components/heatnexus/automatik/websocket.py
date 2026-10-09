@@ -152,6 +152,7 @@ def _eintrag(
             ),
             "modus_seit": (s.isoformat() if (s := kennzahlen.modus_seit(laufzeit)) else None),
             "vorrang": _vorrang(laufzeit, lage),
+            "hausmodell": tagesansicht.hausmodell_stand(laufzeit),
         },
         tag=tagesansicht.heute(laufzeit, jetzt),
         vorschau=tagesansicht.vorschau(laufzeit, jetzt),
@@ -474,6 +475,18 @@ async def _ws_empfehlung_verwerfen(hass: HomeAssistant, connection, msg: dict[st
 
 
 @websocket_api.websocket_command(
+    {vol.Required("type"): f"{DOMAIN}/automatik/hausmodell_neu", vol.Required("heizkreis"): KENNUNG}
+)
+@websocket_api.require_admin
+@websocket_api.async_response
+async def _ws_hausmodell_neu(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
+    """Das Hausmodell eines Heizkreises verwerfen und neu lernen."""
+    await _ausfuehren(
+        hass, connection, msg, verwaltung_holen(hass).hausmodell_neu(msg["heizkreis"])
+    )
+
+
+@websocket_api.websocket_command(
     {vol.Required("type"): f"{DOMAIN}/automatik/entfernen", vol.Required("heizkreis"): KENNUNG}
 )
 @websocket_api.require_admin
@@ -497,6 +510,7 @@ def async_register_automatik(hass: HomeAssistant) -> None:
         _ws_empfehlung_uebernehmen,
         _ws_empfehlung_verwerfen,
         _ws_heizgrenzen,
+        _ws_hausmodell_neu,
         _ws_entfernen,
     ):
         websocket_api.async_register_command(hass, befehl)

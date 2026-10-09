@@ -1260,6 +1260,7 @@ export const STIL = `
   .automatik-wert.sonne .zahl { color: var(--hn-sonne); }
   .automatik-wert .neben { font-size: 13px; color: var(--hn-gedaempft); }
   .automatik-wert .fuss { font-size: 11px; margin-top: 8px; color: var(--hn-gedaempft); line-height: 1.4; }
+  .automatik-wert .automatik-knopf { margin-top: 10px; }
   .automatik-wert .raeume { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
   .automatik-wert .raeume .raum { display: flex; justify-content: space-between; gap: 10px; }
   .automatik-wert .raeume .name { color: var(--hn-gedaempft); }
@@ -1428,6 +1429,9 @@ export const STIL = `
     fill: none; stroke: #ffab6f; stroke-width: 2; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke;
   }
   .automatik-tag .al-gedaempft { fill: none; stroke: var(--hn-at); stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .automatik-tag .al-vorhersage {
+    fill: none; stroke: var(--hn-akzent); stroke-width: 2; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke;
+  }
   .automatik-tag .al-grenze { stroke: var(--hn-gedaempft); stroke-dasharray: 6 5; vector-effect: non-scaling-stroke; }
   .automatik-achse { display: flex; justify-content: space-between; font-size: 11px; color: var(--hn-gedaempft); margin-top: 6px; }
   .automatik-legende { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--hn-gedaempft); margin-top: 12px; }
@@ -1437,6 +1441,7 @@ export const STIL = `
   .automatik-legende i.al-aussen { background: #ffab6f; height: 2px; }
   .automatik-legende i.al-prognose { height: 2px; background: repeating-linear-gradient(90deg, #ffab6f 0 3px, transparent 3px 6px); }
   .automatik-legende i.al-gedaempft { background: var(--hn-at); height: 2px; }
+  .automatik-legende i.al-vorhersage { height: 2px; background: repeating-linear-gradient(90deg, var(--hn-akzent) 0 4px, transparent 4px 7px); }
   .automatik-legende i.al-grenze { height: 2px; background: repeating-linear-gradient(90deg, var(--hn-gedaempft) 0 4px, transparent 4px 7px); }
   .automatik-legende i.al-sonne { background: color-mix(in srgb, var(--hn-sonne) 45%, transparent); }
 

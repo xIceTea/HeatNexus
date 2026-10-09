@@ -974,6 +974,68 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 }
 
 // ---------------------------------------------------------------------------
+// Reiter „Automatik“: Kachel „Haus“ und Kurve „Raum laut Vorhersage“
+//
+// Die Kachel folgt dem Stand des Hausmodells: lernt, beobachtet, aktiv. Ohne
+// Angabe vom Server (ältere Fassung) fehlt sie.
+// ---------------------------------------------------------------------------
+{
+  const [kreis] = flaeche._automatik.heizkreise;
+  const vorherKennwerte = kreis.kennwerte;
+  const vorherTag = kreis.tag;
+  const wurzel = flaeche.shadowRoot;
+  const text = (knoten) => String((knoten || {}).textContent || "");
+  const modell = { auskuehlzeit_h: 40, sonne_k_h: 0.6, heizwirkung: 0.03, wind: false, fehler: 0.3, fehler_bleibt: 0.5, vergleiche: 14, tage: 6, status: "aktiv" };
+  const zeigen = (hausmodell, vorhersage = undefined) => {
+    kreis.kennwerte = { ...vorherKennwerte, hausmodell };
+    kreis.tag = { ...vorherTag, vorhersage };
+    flaeche._reiter = "automatik";
+    flaeche._gebaut = false;
+    flaeche._zeichnen();
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+    const kachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("haus"));
+    return {
+      kachel: Boolean(kachel),
+      titel: text(kachel && kachel.querySelector(".titel")),
+      zahl: text(kachel && kachel.querySelector(".zahl")),
+      neben: text(kachel && kachel.querySelector(".neben")),
+      fuss: kachel ? kachel.querySelectorAll(".fuss").map(text) : [],
+      tasten: kachel ? kachel.querySelectorAll(".automatik-knopf").map(text) : [],
+      kurve: wurzel.querySelectorAll(".al-vorhersage").length,
+      legende: wurzel.querySelectorAll(".automatik-legende").flatMap((l) => l.children.map(text)),
+    };
+  };
+  bilanz.automatikHaus = {
+    aktiv: zeigen(modell, [[9, 21.4], [10, 21.3]]),
+    mitWind: zeigen({ ...modell, wind: true }).fuss,
+    beobachtetWenige: zeigen({ ...modell, status: "beobachtet", vergleiche: 3 }),
+    beobachtetVoll: zeigen({ ...modell, status: "beobachtet", fehler: 0.4, fehler_bleibt: 0.6 }),
+    lernt: zeigen({ status: "lernt" }),
+    ohneAngabe: zeigen(undefined),
+  };
+
+  // Die Taste lässt das Modell neu lernen und lädt danach nach.
+  zeigen(modell);
+  const aufrufe = [];
+  const vorherWs = hass.callWS;
+  hass.callWS = async (nachricht) => {
+    aufrufe.push(nachricht);
+    return nachricht.type === "heatnexus/automatik" ? flaeche._automatik : {};
+  };
+  const taste = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("haus")).querySelector(".automatik-knopf");
+  taste.ausloesen("click");
+  for (let runde = 0; runde < 20; runde += 1) await Promise.resolve();
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  hass.callWS = vorherWs;
+  bilanz.automatikHaus.neuLernen = aufrufe.map((a) => [a.type, a.heizkreis]);
+
+  kreis.kennwerte = vorherKennwerte;
+  kreis.tag = vorherTag;
+}
+
+// ---------------------------------------------------------------------------
 // Reiter „Automatik“: Modus „Manuell mit Empfehlung“
 //
 // Eine offene Empfehlung steht als Hinweis mit Knopf unter dem Kreis; der Knopf

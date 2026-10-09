@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.util import dt as dt_util
 
-from . import eingaben, regel, stundenmodus
+from . import eingaben, hausmodell, regel, stundenmodus
 from .steller import nur_ww_wert
 
 if TYPE_CHECKING:
@@ -107,6 +107,41 @@ def stunden(laufzeit: Laufzeit, tag: date, g: regel.Gedaechtnis) -> list[dict[st
     ]
 
 
+def vorhersage_kurve(laufzeit: Laufzeit, tag: date) -> list[list[float]]:
+    """Die Raumkurve der letzten Vorhersage als [Stunde, Wert]; Punkte nach Mitternacht entfallen."""
+    v = laufzeit.vorhersage_zuletzt
+    if v is None:
+        return []
+    punkte = [(dt_util.parse_datetime(zeit), wert) for zeit, wert in v.kurve]
+    return [
+        [stunde_als_zahl(zeit, tag), wert]
+        for zeit, wert in punkte
+        if zeit is not None and dt_util.as_local(zeit).date() == tag
+    ]
+
+
+def _gerundet(wert: float | None, stellen: int) -> float | None:
+    return None if wert is None else round(wert, stellen)
+
+
+def hausmodell_stand(laufzeit: Laufzeit) -> dict[str, Any]:
+    """Das Hausmodell für die Kachel „Haus“: lernt noch, beobachtet oder aktiv."""
+    modell = laufzeit.hausmodell
+    if modell is None:
+        return {"status": "lernt"}
+    return {
+        "auskuehlzeit_h": round(modell.auskuehlzeit_h, 0),
+        "sonne_k_h": round(modell.sonne_k_h, 2),
+        "heizwirkung": round(modell.heizwirkung, 2),
+        "wind": modell.wind_je_ms > 0,
+        "fehler": _gerundet(hausmodell.mittlerer_fehler(modell), 1),
+        "fehler_bleibt": _gerundet(hausmodell.mittlerer_fehler_bleibt(modell), 1),
+        "vergleiche": len(modell.fehler),
+        "tage": modell.tage,
+        "status": "aktiv" if hausmodell.freigegeben(modell) else "beobachtet",
+    }
+
+
 def _band(g: regel.Gedaechtnis, tag: date) -> dict[str, float | None]:
     return {
         "absenkung_von": stunde_als_zahl(g.absenkung_von, tag),
@@ -127,6 +162,7 @@ def heute(laufzeit: Laufzeit, jetzt: datetime) -> dict[str, Any]:
         ],
         "jetzt": jetzt.hour + jetzt.minute / 60,
         "stunden": stunden(laufzeit, tag, g),
+        "vorhersage": vorhersage_kurve(laufzeit, tag),
     }
 
 
@@ -168,6 +204,8 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
             betriebswahl=6 if g.saison == regel.NUR_WW else 1,
             grenze_steuerung=laufzeit.lage.grenze_steuerung if laufzeit.lage else None,
             entscheidungszeit=True,
+            # Mit freigegebenem Modell beginnt die bisherige Regel keine Heizpause und keinen Sonnentag.
+            modell_freigegeben=hausmodell.freigegeben(laufzeit.hausmodell),
         )
         ausgang = regel.Gedaechtnis(saison=g.saison, saison_soll=g.saison_soll)
         entscheidung = regel.entscheiden(lage, ausgang, werte)

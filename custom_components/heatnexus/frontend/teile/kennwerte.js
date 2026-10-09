@@ -27,6 +27,9 @@ function knoten(tag, klasse = "", text = null) {
   return element;
 }
 
+// Vergleichstage, ab denen das Modell frei werden kann; wie `FREIGABE_TAGE` auf dem Server.
+const FREIGABE_TAGE = 14;
+
 function vorhanden(wert) {
   return wert !== null && wert !== undefined && !Number.isNaN(Number(wert));
 }
@@ -35,7 +38,9 @@ export const KennwerteMixin = (Basis) =>
   class extends Basis {
     _automatikKennwerte(kreis) {
       const raster = knoten("div", "automatik-werte");
-      raster.append(this._kachelAussen(kreis), this._kachelSonne(kreis), this._kachelRaeume(kreis));
+      raster.append(
+        ...[this._kachelAussen(kreis), this._kachelSonne(kreis), this._kachelRaeume(kreis), this._kachelHaus(kreis)].filter(Boolean)
+      );
       return raster;
     }
 
@@ -210,6 +215,31 @@ export const KennwerteMixin = (Basis) =>
       if (raeume.length > 1 || k.eigene_ziele) fuss.push(this._raumliste(raeume));
       else fuss.push(knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) })));
       return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, skala, fuss));
+    }
+
+    /**
+     * Das gelernte Hausmodell: die Auskühlzeit als Zahl, darunter Treffsicherheit oder Lernstand.
+     * Ohne Angabe vom Server fehlt die Kachel.
+     */
+    _kachelHaus(kreis) {
+      const h = (kreis.kennwerte || {}).hausmodell;
+      if (!h) return null;
+      const fuss = (text) => knoten("div", "fuss", text);
+      if (h.status === "lernt") return this._kachel("haus", "Haus", "–", this._t("lernt noch"));
+      const genau = { fehler: zahl(h.fehler), bleibt: zahl(h.fehler_bleibt) };
+      let stand;
+      if (h.status === "aktiv") stand = this._tMit("±{fehler} K, ohne Modell ±{bleibt} K", genau);
+      else if ((h.vergleiche || 0) < FREIGABE_TAGE) stand = this._tMit("beobachtet – {tage} von 14 Tagen", { tage: h.vergleiche || 0 });
+      else stand = this._tMit("beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K", genau);
+      const werte = [
+        this._tMit("Sonne +{wert} K/h", { wert: zahl(h.sonne_k_h, 2) }),
+        this._tMit("Heizen {wert}", { wert: zahl(h.heizwirkung, 2) }),
+        h.wind ? this._t("Wind zählt") : null,
+      ].filter(Boolean);
+      const taste = this._automatikTaste("Neu lernen", "automatik-knopf leise klein");
+      taste.disabled = !(this._automatik && this._automatik.darf_aendern);
+      taste.addEventListener("click", () => this._automatikAufruf({ type: "heatnexus/automatik/hausmodell_neu", heizkreis: kreis.heizkreis }));
+      return this._kachel("haus", "Haus", `${zahl(h.auskuehlzeit_h, 0)} h`, this._t("Auskühlzeit"), null, [fuss(stand), fuss(werte.join(" · ")), taste]);
     }
 
     /** Eine Zeile je Raum: Name, Ist → Ziel, ob er heizt. */

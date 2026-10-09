@@ -83,13 +83,14 @@ function reihen(tag) {
     gemessen: stunden.map((s) => [s.stunde, jetzt !== null && s.stunde > jetzt ? null : s.at]),
     prognose: stunden.map((s) => [s.stunde, jetzt !== null && s.stunde < Math.floor(jetzt) ? null : s.korrigiert ?? s.roh]),
     gedaempft: stunden.map((s) => [s.stunde, jetzt !== null && s.stunde > jetzt ? null : s.gedaempft]),
+    vorhersage: (tag && tag.vorhersage) || [],
   };
 }
 
 /** Temperaturbereich des Tagesbilds und die Lage einer Temperatur darin, in Prozent von oben. */
 export function tagesleisteBereich(tag, heizgrenze = null) {
-  const { gemessen, prognose, gedaempft } = reihen(tag);
-  const alle = [...gemessen, ...prognose, ...gedaempft].map(([, w]) => w).filter((w) => w !== null && w !== undefined);
+  const { gemessen, prognose, gedaempft, vorhersage } = reihen(tag);
+  const alle = [...gemessen, ...prognose, ...gedaempft, ...vorhersage].map(([, w]) => w).filter((w) => w !== null && w !== undefined);
   if (heizgrenze !== null && heizgrenze !== undefined) alle.push(Number(heizgrenze));
   if (!alle.length) return null;
   const min = Math.min(...alle) - 1;
@@ -116,7 +117,7 @@ export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null) {
     const punkte = sonne.map((wert, stunde) => `${x(stunde)},${(unten - Number(wert) * (unten - oben)).toFixed(1)}`);
     teile.push(`<polygon class="al-sonne" points="0,${unten} ${punkte.join(" ")} ${breite},${unten}"/>`);
   }
-  const { stunden, jetzt, gemessen, prognose, gedaempft } = reihen(tag);
+  const { stunden, jetzt, gemessen, prognose, gedaempft, vorhersage } = reihen(tag);
   const bereich = tagesleisteBereich(tag, heizgrenze);
   if (bereich) {
     const y = (wert) => bereich.y(wert).toFixed(1);
@@ -129,6 +130,8 @@ export function tagesleisteSvg(tag, breite = 1000, heizgrenze = null) {
     if (pfadPrognose) teile.push(`<path class="al-prognose" d="${pfadPrognose}"/>`);
     const pfadGedaempft = linie(gedaempft, x, y);
     if (pfadGedaempft) teile.push(`<path class="al-gedaempft" d="${pfadGedaempft}"/>`);
+    const pfadVorhersage = linie(vorhersage, x, y);
+    if (pfadVorhersage) teile.push(`<path class="al-vorhersage" d="${pfadVorhersage}"/>`);
   }
   teile.push(`<rect class="al-grund" x="0" y="${bandY}" width="${breite}" height="${band}" rx="4"/>`);
   // Gleiche Modi hintereinander bilden einen Abschnitt; künftige Stunden sind blass.
@@ -338,6 +341,7 @@ export const TagesbildMixin = (Basis) =>
         ["al-gedaempft", "Gedämpfte AT"],
         ["al-grenze", "Heizgrenze"],
         ["al-sonne", "Sonne laut Prognose"],
+        ...(((tag.vorhersage || []).length) ? [["al-vorhersage", "Raum laut Vorhersage"]] : []),
       ].forEach(([klasse, text]) => {
         const eintrag = document.createElement("span");
         const farbe = document.createElement("i");

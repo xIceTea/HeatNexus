@@ -791,5 +791,16 @@
   "Empfehlung offen": "Recommendation pending",
   "Empfehlung der Automatik": "Automation recommendation",
   "Im Reiter Automatik übernehmen oder verwerfen": "Apply or discard in the Automation tab",
-  "Empfehlung": "Recommendation"
+  "Empfehlung": "Recommendation",
+  "Haus": "House",
+  "Auskühlzeit": "Cool-down time",
+  "lernt noch": "still learning",
+  "Neu lernen": "Learn again",
+  "Raum laut Vorhersage": "Room per forecast",
+  "Sonne +{wert} K/h": "Sun +{wert} K/h",
+  "Heizen {wert}": "Heating {wert}",
+  "Wind zählt": "Wind counts",
+  "±{fehler} K, ohne Modell ±{bleibt} K": "±{fehler} K, without model ±{bleibt} K",
+  "beobachtet – {tage} von 14 Tagen": "observed – {tage} of 14 days",
+  "beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K": "observed – ±{fehler} K, without model ±{bleibt} K"
 }

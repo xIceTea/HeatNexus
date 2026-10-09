@@ -796,5 +796,16 @@
   "Empfehlung offen": "Advies openstaand",
   "Empfehlung der Automatik": "Advies van de automatische regeling",
   "Im Reiter Automatik übernehmen oder verwerfen": "Overnemen of verwerpen op het tabblad Automatische regeling",
-  "Empfehlung": "Advies"
+  "Empfehlung": "Advies",
+  "Haus": "Huis",
+  "Auskühlzeit": "Afkoeltijd",
+  "lernt noch": "leert nog",
+  "Neu lernen": "Opnieuw leren",
+  "Raum laut Vorhersage": "Ruimte volgens voorspelling",
+  "Sonne +{wert} K/h": "Zon +{wert} K/u",
+  "Heizen {wert}": "Verwarmen {wert}",
+  "Wind zählt": "Wind telt mee",
+  "±{fehler} K, ohne Modell ±{bleibt} K": "±{fehler} K, zonder model ±{bleibt} K",
+  "beobachtet – {tage} von 14 Tagen": "geobserveerd – {tage} van 14 dagen",
+  "beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K": "geobserveerd – ±{fehler} K, zonder model ±{bleibt} K"
 }

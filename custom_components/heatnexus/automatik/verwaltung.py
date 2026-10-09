@@ -434,6 +434,12 @@ class Verwaltung:
             raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
         await laufzeit.empfehlung_verwerfen()
 
+    async def hausmodell_neu(self, device_id: str) -> None:
+        """Das Hausmodell eines Heizkreises verwerfen und aus dem Verlauf neu lernen."""
+        if (laufzeit := self.laufzeiten.get(device_id)) is None:
+            raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
+        laufzeit.hausmodell_neu(sofort=True)
+
     async def entfernen(self, device_id: str) -> None:
         """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten abräumen."""
         if (laufzeit := self.laufzeiten.pop(device_id, None)) is not None:

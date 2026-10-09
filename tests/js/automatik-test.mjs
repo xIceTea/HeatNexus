@@ -83,6 +83,20 @@ assert.ok(mitTemperatur.includes("al-aussen"));
 assert.ok(mitTemperatur.includes("al-prognose"));
 assert.ok(mitTemperatur.includes("al-grenze"));
 assert.ok(!/NaN|undefined/.test(mitTemperatur), mitTemperatur);
+assert.ok(!mitTemperatur.includes("al-vorhersage"));
+
+// Die Kurve des Hausmodells liegt in derselben Skala wie die Außenlinien und erweitert sie auf die Raumwerte.
+const mitVorhersage = tagesleisteSvg(
+  { jetzt: 12.5, vorhersage: [[13, 21.2], [14, 21.0], [15, 20.8]], stunden: [{ stunde: 0, at: 10 }] },
+  1000,
+  17
+);
+assert.match(mitVorhersage, /<path class="al-vorhersage" d="M541\.7 [\d.]+ L583\.3 [\d.]+ L625\.0 [\d.]+"\/>/);
+assert.ok(!/NaN|undefined/.test(mitVorhersage), mitVorhersage);
+const mitRaum = tagesleisteBereich({ vorhersage: [[13, 21.2]], stunden: [{ stunde: 0, at: 10 }] });
+assert.equal(mitRaum.max, 22.2);
+// Lücken in der Kurve beginnen eine neue Linie.
+assert.ok(tagesleisteSvg({ vorhersage: [[1, 20], [2, null], [3, 20]], stunden: [] }).split("M").length >= 3);
 
 assert.equal(wetterSymbol(10, true), "☀");
 assert.equal(wetterSymbol(50, true), "⛅");
