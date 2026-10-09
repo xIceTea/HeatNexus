@@ -563,6 +563,15 @@ def test_ohne_bedingung_keine_heizpause(m, w, abweichung):
     assert all(a.art != "pause" for a in e.aktionen)
 
 
+@pytest.mark.parametrize(
+    ("jetzt", "pause"), [(MORGEN, True), (UNTERGANG - timedelta(hours=1), False)]
+)
+def test_sonne_als_anlass_der_heizpause_gilt_nur_bei_tag(m, w, jetzt, pause):
+    nur_sonne = {**MILD, "mittel_heute": 12.0, "at_gedaempft": 11.8, "sonnenquote": 90.0}
+    e = m.entscheiden(lage(m, **nur_sonne, jetzt=jetzt), m.Gedaechtnis(), w)
+    assert any(a.art == "pause" for a in e.aktionen) is pause
+
+
 def test_nach_einer_beendeten_pause_heute_keine_neue(m, w):
     g = m.Gedaechtnis(pause_sperre=MORGEN.date().isoformat())
     e = m.entscheiden(lage(m, **MILD), g, w)

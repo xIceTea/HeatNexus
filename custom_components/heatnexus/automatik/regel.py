@@ -632,7 +632,15 @@ def _pause_anlass(lage: Lage, w: Werte) -> str | None:
         return f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C über {_zahl(schwelle + w.hysterese)} °C"
     if lage.mittel_heute is not None and lage.mittel_heute >= schwelle:
         return f"Tagesmittel heute {_zahl(lage.mittel_heute)} °C"
-    if lage.sonnenquote is not None and lage.sonnenquote >= w.sonnenquote + PAUSE_SONNE_PLUS:
+    # Die Sonnenquote gilt für den ganzen Tag; nach Sonnenuntergang wärmt sie nicht mehr.
+    sonne_scheint = (
+        lage.sonnenuntergang is not None and lage.jetzt < lage.sonnenuntergang - VORLAUF_UNTERGANG
+    )
+    if (
+        sonne_scheint
+        and lage.sonnenquote is not None
+        and lage.sonnenquote >= w.sonnenquote + PAUSE_SONNE_PLUS
+    ):
         return f"Sonnenquote {lage.sonnenquote:.0f} %"
     if lage.vorrang_laeuft and (lage.vorrang_minuten or 0.0) >= VORRANG_PAUSE_MINUTEN:
         return f"{lage.vorrang_name or 'Vorrangquelle'} liefert"
