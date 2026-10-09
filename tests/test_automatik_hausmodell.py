@@ -59,11 +59,27 @@ def test_vorhersage_kuehlt_ohne_heizen_aus_und_waermt_mit_sonne(h):
     assert len(kalt) == 5
 
 
-def test_freigabe_braucht_fuenf_tage_und_kleinen_fehler(h):
-    gut = h.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 5, (0.3, 0.4))
-    assert h.freigegeben(gut)
-    assert not h.freigegeben(h.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 4, (0.3,)))
-    assert not h.freigegeben(h.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 9, (0.9, 0.8)))
+def _modell(h, fehler=(), bleibt=()):
+    return h.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 20, tuple(fehler), 0.0, tuple(bleibt))
+
+
+@pytest.mark.parametrize(
+    ("modell_fehler", "bleibt", "erwartet"),
+    [
+        (0.3, 0.5, True),
+        (0.45, 0.5, False),
+        (0.6, 1.0, False),
+    ],
+)
+def test_freigabe_braucht_vergleichstage_und_klaren_vorsprung(h, modell_fehler, bleibt, erwartet):
+    m = _modell(h, [modell_fehler] * 14, [bleibt] * 14)
+    assert h.freigegeben(m) is erwartet
+
+
+def test_freigabe_braucht_vierzehn_gleich_lange_reihen(h):
+    assert not h.freigegeben(_modell(h, [0.3] * 13, [0.5] * 13))
+    assert not h.freigegeben(_modell(h, [0.3] * 14, [0.5] * 13))
+    assert not h.freigegeben(_modell(h, [0.3] * 13, [0.5] * 14))
     assert not h.freigegeben(None)
 
 
@@ -151,5 +167,61 @@ def test_alter_speicherstand_ohne_mittelwind_wird_gelesen(h):
 
 
 def test_speichern_kappt_die_fehlerliste(h):
-    m = h.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 20, tuple(range(20)))
-    assert len(h.als_dict(m)["fehler"]) == 14
+    m = h.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 40, tuple(range(40)), 0.0, tuple(range(40)))
+    d = h.als_dict(m)
+    assert len(d["fehler"]) == 28
+    assert len(d["fehler_bleibt"]) == 28
+    assert len(h.aus_dict(d).fehler_bleibt) == 28
+
+
+def test_fehler_bleibt_laeuft_rund_und_fehlt_in_altem_stand(h):
+    m = h.Modell(40.0, 0.05, 0.6, 0.03, "pumpe", 7, (0.2,), 1.5, (0.4,))
+    assert h.aus_dict(h.als_dict(m)) == m
+    roh = h.als_dict(m)
+    del roh["fehler_bleibt"]
+    assert h.aus_dict(roh).fehler_bleibt == ()
+
+
+@pytest.mark.parametrize("wert", [float("nan"), float("inf")])
+def test_nicht_endliche_werte_in_fehler_bleibt_werden_verworfen(h, wert):
+    roh = h.als_dict(h.Modell(40.0, 0.05, 0.6, 0.03, "pumpe", 7, (0.2,), 0.0, (0.4,)))
+    assert h.aus_dict({**roh, "fehler_bleibt": [wert]}) is None
+
+
+def test_ueberlaufende_zahl_im_speicherstand_ergibt_kein_modell(h):
+    roh = h.als_dict(h.Modell(40.0, 0.05, 0.6, 0.03, "pumpe", 7))
+    assert h.aus_dict({**roh, "tage": float("inf")}) is None
+
+
+def test_negativer_sonnenanteil_entfaellt_statt_das_modell_zu_verwerfen(h):
+    m = h.lernen(_erzeugt(h, sonne=-0.3), "vorlauf", 10)
+    assert m is not None
+    assert m.sonne_k_h == 0.0
+    assert m.auskuehlzeit_h == pytest.approx(40.0, rel=0.15)
+    assert m.heizwirkung == pytest.approx(0.03, rel=0.3)
+
+
+def test_negative_heizwirkung_entfaellt_statt_das_modell_zu_verwerfen(h):
+    m = h.lernen(_erzeugt(h, heiz=-0.001), "vorlauf", 10)
+    assert m is not None
+    assert m.heizwirkung == 0.0
+    assert m.auskuehlzeit_h == pytest.approx(40.0, rel=0.15)
+    assert m.sonne_k_h == pytest.approx(0.6, rel=0.15)
+
+
+def test_tagesfehler_bleibt_misst_die_abweichung_vom_startwert(h):
+    tag = [h.Stunde(20.0, 20.5, 10.0, 0.0, None, 0.0)] * 12
+    assert h.tagesfehler_bleibt(tag) == pytest.approx(0.5)
+
+
+def test_tagesfehler_bleibt_startet_nach_einer_luecke_neu(h):
+    tag = [h.Stunde(20.0, 21.0, 10.0, 0.0, None, 0.0)] * 6
+    tag.append(h.Stunde(21.0, None, 10.0, 0.0, None, 0.0))
+    tag += [h.Stunde(30.0, 31.0, 10.0, 0.0, None, 0.0)] * 6
+    # Ohne Neustart bliebe der Startwert 20 und der Fehler nach der Lücke wäre 11
+    assert h.tagesfehler_bleibt(tag) == pytest.approx(1.0)
+
+
+def test_tagesfehler_bleibt_braucht_zwoelf_stunden(h):
+    tag = [h.Stunde(20.0, 20.5, 10.0, 0.0, None, 0.0)] * 11
+    assert h.tagesfehler_bleibt(tag) is None
