@@ -38,6 +38,8 @@ class Werte:
     nachpruefung: str = ""
     absenkung_k: float = 1.5
     rueckkehr_k: float = 0.8
+    # So weit darf die Vorhersage den Raum unter das Ziel sinken lassen.
+    spielraum_k: float = 0.2
     sonnenquote: float = 60.0
     sonnentag: bool = True
     stark: bool = False
@@ -80,6 +82,7 @@ GRENZEN: dict[str, tuple[float, float]] = {
     "mindestdauer_h": (1.0, 96.0),
     "absenkung_k": (0.5, 5.0),
     "rueckkehr_k": (0.2, 3.0),
+    "spielraum_k": (0.0, 1.5),
     "sonnenquote": (20.0, 100.0),
     "budget": (1.0, 12.0),
     "fenster_k_je_h": (1.0, 10.0),
@@ -94,8 +97,8 @@ AUSRICHTUNG_VERSATZ: dict[str, dict[str, float]] = {
     KOMFORT: {"grenze_versatz": 1.0, "sonnenquote": 10.0, "absenkung_k": -0.5, "rueckkehr_k": -0.3},
 }
 AUSRICHTUNG_FEST: dict[str, dict[str, Any]] = {
-    ECO: {"stark": True, "stark_k": 0.5, "ruhe_h": 1.0},
-    KOMFORT: {"stark": False, "ruhe_h": 3.0},
+    ECO: {"stark": True, "stark_k": 0.5, "ruhe_h": 1.0, "spielraum_k": 0.5},
+    KOMFORT: {"stark": False, "ruhe_h": 3.0, "spielraum_k": 0.0},
 }
 UHRZEITEN = ("entscheidung", "nachpruefung")
 SCHALTER = ("sonnentag", "stark", "anpassen", "melden")

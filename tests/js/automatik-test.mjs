@@ -54,6 +54,7 @@ assert.deepEqual(
     "ruhe_h",
     "sonnenquote",
     "sonnentag",
+    "spielraum_k",
     "stark",
     "stark_k",
     "tau_h",

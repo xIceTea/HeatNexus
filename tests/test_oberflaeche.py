@@ -673,7 +673,7 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     """Eingerichtet: Karte mit Marke, Feldern und Protokoll; sonst die Einladung."""
     automatik = durchlauf["automatik"]
     assert automatik["marken"] == ["Sonnentag · beobachtet"]
-    assert automatik["felder"] == 21  # Profil, zwei Heizgrenzen und achtzehn Werte
+    assert automatik["felder"] == 22  # Profil, zwei Heizgrenzen und neunzehn Werte
     assert automatik["geaendert"] == 1
     assert automatik["protokoll"] == 1
     assert automatik["einladungen"] == 1

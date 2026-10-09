@@ -232,6 +232,8 @@
   "Restlaufzeiten bis zur nächsten Arbeit, Brennstoff und Zählerstände. Erreicht eine Restlaufzeit null, fordert die Anlage die Arbeit an.": "Resterende tijden tot de volgende taak, brandstof en tellerstanden. Bereikt een resterende tijd nul, dan vraagt de installatie om de taak.",
   "Ruhiges Dunkel mit Petrolgrün": "Rustig donker met petrolgroen",
   "Rückkehr bei Raum unter Soll minus": "Terugkeer bij ruimte onder instelwaarde min",
+  "Spielraum unter Ziel": "Marge onder doel",
+  "So weit darf die Vorhersage die Räume am Ende unter das Ziel sinken lassen. Eco erlaubt mehr, Komfort nichts.": "Hoever de verwachting de ruimtes aan het einde onder het doel mag laten zakken. Eco staat meer toe, Comfort niets.",
   "Rücklauf": "Retour",
   "Manuell mit Empfehlung": "Handmatig met advies",
   "Automatisch": "Automatisch",

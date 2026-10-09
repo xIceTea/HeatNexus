@@ -232,6 +232,8 @@
   "Restlaufzeiten bis zur nächsten Arbeit, Brennstoff und Zählerstände. Erreicht eine Restlaufzeit null, fordert die Anlage die Arbeit an.": "Remaining runtimes until the next task, fuel and meter readings. When a remaining runtime reaches zero, the system requests the task.",
   "Ruhiges Dunkel mit Petrolgrün": "Calm dark with petrol green",
   "Rückkehr bei Raum unter Soll minus": "Return when room is below setpoint minus",
+  "Spielraum unter Ziel": "Margin below target",
+  "So weit darf die Vorhersage die Räume am Ende unter das Ziel sinken lassen. Eco erlaubt mehr, Komfort nichts.": "How far the forecast may let the rooms fall below the target at the end. Eco allows more, Comfort none.",
   "Rücklauf": "Return",
   "Manuell mit Empfehlung": "Manual with recommendation",
   "Automatisch": "Automatic",

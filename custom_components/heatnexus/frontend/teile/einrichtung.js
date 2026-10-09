@@ -17,7 +17,7 @@ export const EINSTELLUNGSGRUPPEN = [
   ["Heizgrenze", ["profil", "heizbetrieb", "absenkbetrieb", "grenze_versatz", "hysterese", "tau_h"]],
   ["Sonnentag", ["sonnenquote", "sonnentag", "absenkung_k", "stark", "stark_k"]],
   ["Zeitplan", ["entscheidung", "nachpruefung", "mindestdauer_h", "budget"]],
-  ["Schutz und Prognose", ["rueckkehr_k", "ruhe_h", "fenster_k_je_h", "anpassen", "lernfenster"]],
+  ["Schutz und Prognose", ["rueckkehr_k", "spielraum_k", "ruhe_h", "fenster_k_je_h", "anpassen", "lernfenster"]],
   ["Manuell mit Empfehlung", ["melden"]],
 ];
 

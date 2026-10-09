@@ -95,6 +95,12 @@ def test_komfort_greift_spaeter_und_sanfter_ein(profile):
     assert komfort.ruhe_h > basis.ruhe_h
 
 
+def test_spielraum_folgt_der_ausrichtung(profile):
+    assert profile.werte("schnell", {}, "eco").spielraum_k == 0.5
+    assert profile.werte("schnell", {}, "komfort").spielraum_k == 0.0
+    assert profile.werte("schnell", {}, "ausgewogen").spielraum_k == 0.2
+
+
 def test_ausrichtung_bleibt_in_den_grenzen(profile):
     assert profile.werte(profile.SCHNELL, ausrichtung=profile.KOMFORT).absenkung_k == 0.5
 
