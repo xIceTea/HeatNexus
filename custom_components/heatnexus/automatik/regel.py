@@ -786,10 +786,10 @@ def _text_stufe(v: Vorhersage) -> str:
 
 def _vorausschau_ende(lage: Lage, g: Gedaechtnis, v: Vorhersage, eigen: bool) -> Entscheidung:
     """Keine Stufe: Eine Stufe des Modells endet, sonst bleibt das Programm."""
+    # Wie nach einer beendeten Heizpause: heute beginnt keine neue Stufe, sonst pendelt es.
+    neu = replace(ohne_absenkung(g), pause_sperre=lage.jetzt.date().isoformat())
     if v.rueckkehr and eigen:
         text = f"Raum {_zahl(lage.raum)} °C weicht von der Vorhersage ab – zurück ins Programm."
-        # Wie nach einer beendeten Heizpause: heute beginnt keine neue Stufe, sonst pendelt es.
-        neu = replace(ohne_absenkung(g), pause_sperre=lage.jetzt.date().isoformat())
         return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, neu)
     folge = "zurück ins Programm" if eigen else "kein Eingriff"
     if v.stufe == PROGRAMM_STUFE:
@@ -800,7 +800,27 @@ def _vorausschau_ende(lage: Lage, g: Gedaechtnis, v: Vorhersage, eigen: bool) ->
         text = f"Bis zum Horizont um {_uhr(v.bis)} bleibt keine Stunde – {folge}."
     if not eigen:
         return Entscheidung(Zustand.PROGRAMM, (), text, g)
-    return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, ohne_absenkung(g))
+    return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, neu)
+
+
+def _modell_ohne_vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung:
+    """Eine Stufe des Modells ohne gültige Vorhersage: nicht verlängern, vor dem Horizont enden."""
+    if lage.abwesend and (abwesend := _abwesenheit(lage, g, soll, w)) is not None:
+        return abwesend
+    if g.absenkung_bis <= lage.jetzt:
+        return _programm(lage, ohne_absenkung(g))
+    ende = g.absenkung_ziel or g.absenkung_bis
+    if ende - lage.jetzt < timedelta(minutes=MIN_MINUTEN):
+        text = f"Bis zum Horizont um {_uhr(ende)} bleibt keine Stunde – zurück ins Programm."
+        return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, ohne_absenkung(g))
+    name = "Heizpause" if g.absenkung_art == PAUSE else "Sonnentag"
+    text = f"{name} – {_zahl(g.absenkung_soll)} °C bis {_uhr(g.absenkung_bis)}."
+    return Entscheidung(_ZUSTAND_JE_ART.get(g.absenkung_art, Zustand.PROGRAMM), (), text, g)
+
+
+def _absenkung_erlaubt(lage: Lage, w: Werte, eigen: bool) -> bool:
+    # Wie beim Sonnentag: nur eingeschaltet, und nicht, wenn das Programm schon absenkt.
+    return w.sonnentag and (eigen or lage.betriebsart != ABSENKBETRIEB)
 
 
 def _vorausschau_stufe(
@@ -815,7 +835,7 @@ def _vorausschau_stufe(
         return Entscheidung(zustand, (), _text_stufe(v), g)
     ziel = pause_soll(lage, w) if art == PAUSE else round(soll - w.absenkung_k, 1)
     if ziel is None:
-        return None
+        return _modell_ohne_vorausschau(lage, g, soll, w) if eigen else None
     rest = int((v.bis - lage.jetzt).total_seconds() // 60)
     minuten = max(MIN_MINUTEN, min(MAX_MINUTEN, rest))
     aktion = Aktion(
@@ -838,11 +858,10 @@ def _vorausschau_stufe(
 def _vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung | None:
     """Mit freigegebenem Hausmodell: die gewählte Stufe bis zum Horizont."""
     v = lage.vorhersage
-    if v is None or lage.abwesend or not lage.absenkung_moeglich:
-        return None
-    if lage.betriebswahl not in PROGRAMMWAHL:
-        return None
     eigen = g.absenkung_anlass == ANLASS_MODELL and g.absenkung_bis is not None
+    gesperrt = lage.abwesend or not lage.absenkung_moeglich or lage.betriebswahl not in PROGRAMMWAHL
+    if v is None or gesperrt:
+        return _modell_ohne_vorausschau(lage, g, soll, w) if eigen else None
     # Eine Absenkung der bisherigen Regel läuft nach ihren eigenen Bedingungen zu Ende.
     if g.absenkung_art is not None and not eigen:
         return None
@@ -851,6 +870,11 @@ def _vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheid
         return _vorausschau_ende(lage, g, v, eigen)
     if not eigen and g.pause_sperre == lage.jetzt.date().isoformat():
         return None
+    if v.stufe != V_PAUSE and not _absenkung_erlaubt(lage, w, eigen):
+        if not eigen:
+            return None
+        text = "Sonnentag ausgeschaltet – Absenkung beendet."
+        return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, ohne_absenkung(g))
     return _vorausschau_stufe(lage, g, soll, w, v, eigen)
 
 

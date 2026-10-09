@@ -2480,3 +2480,46 @@ async def test_raum_unter_der_kurve_beendet_die_heizpause_des_modells(
             "Raum 20,9 °C weicht von der Vorhersage ab – zurück ins Programm."
         )
         assert laufzeit.gedaechtnis.pause_sperre == "2026-09-27"
+
+
+async def test_kaeltester_raum_zaehlt_gegen_sein_eigenes_ziel(hass, anlage, freezer):
+    """Raum A 20,5 °C bei Ziel 22, Raum B 21,0 °C bei Ziel 20: A fehlen 1,5 K."""
+    from dataclasses import replace
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    _thermostat(hass, "climate.a", 20.5, 22.0)
+    _thermostat(hass, "climate.b", 21.0, 20.0)
+    await verwaltung.einrichten(
+        hass.config_entries.async_entries("heatnexus")[0],
+        {
+            "heizkreis": HEIZKREIS,
+            "raeume": ["climate.a", "climate.b"],
+            "raum_art": "minimum",
+            "wetter": "weather.home",
+        },
+    )
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit.hausmodell = _modell(14)
+    laufzeit.stunden = _stundenprognose(10.0)
+    jetzt = dt_util.now()
+    laufzeit.gedaechtnis = replace(
+        laufzeit.gedaechtnis,
+        absenkung_art="pause",
+        absenkung_von=jetzt,
+        absenkung_bis=jetzt + timedelta(hours=3),
+        absenkung_ziel=jetzt + timedelta(hours=10),
+        absenkung_basis=21.0,
+        absenkung_soll=10.5,
+        absenkung_anlass="modell",
+    )
+    await laufzeit.auswerten()
+    v = laufzeit.lage.vorhersage
+    assert (v.stufe, round(v.ziel_min, 1), v.rueckkehr) == ("programm", 22.1, True)
+    assert laufzeit.gedaechtnis.absenkung_art is None
+    assert laufzeit.begruendung == (
+        "Raum 20,5 °C weicht von der Vorhersage ab – zurück ins Programm."
+    )

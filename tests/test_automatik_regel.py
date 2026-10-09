@@ -1142,3 +1142,73 @@ def test_jede_begruendung_der_vorausschau_ist_uebersetzt(
     assert uebersetzt != e.begruendung
     if sprache == "en":
         assert not DEUTSCH.search(uebersetzt), uebersetzt
+
+
+def test_programm_sperrt_nach_dem_ende_der_modellstufe_den_tag(m, w, vh):
+    e = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "programm")), modell_absenkung(m), w)
+    assert e.gedaechtnis.pause_sperre == MORGEN.date().isoformat()
+    folge = m.entscheiden(lage(m, **MILD, vorhersage=_vh(vh, "pause")), e.gedaechtnis, w)
+    assert folge.aktionen == ()
+
+
+def test_modellpause_ohne_vorhersage_endet_vor_dem_horizont(m, w):
+    abend = MORGEN.replace(hour=21, minute=35)
+    g = pause(
+        m,
+        absenkung_von=MORGEN,
+        absenkung_bis=abend + timedelta(minutes=10),
+        absenkung_ziel=MORGEN.replace(hour=22, minute=0),
+        absenkung_anlass="modell",
+    )
+    e = m.entscheiden(lage(m, **MILD, jetzt=abend), g, w)
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.gedaechtnis.absenkung_art is None
+
+
+def test_modellpause_ohne_vorhersage_wird_nicht_verlaengert(m, w):
+    g = pause(
+        m,
+        absenkung_bis=MORGEN + timedelta(minutes=20),
+        absenkung_ziel=MORGEN + timedelta(hours=10),
+        absenkung_anlass="modell",
+    )
+    e = m.entscheiden(lage(m, **MILD), g, w)
+    assert (e.zustand, e.aktionen, e.gedaechtnis) == (m.Zustand.HEIZPAUSE, (), g)
+
+
+def test_abgelaufene_modellabsenkung_ohne_vorhersage_wird_nicht_verlaengert(m, w):
+    g = modell_absenkung(m, absenkung_bis=MORGEN - timedelta(minutes=5))
+    e = m.entscheiden(lage(m, **MILD), g, w)
+    assert e.aktionen == ()
+    assert e.gedaechtnis.absenkung_art is None
+
+
+def test_modellpause_ohne_zielwert_der_pause_wird_nicht_verlaengert(m, w, vh):
+    g = pause(
+        m,
+        absenkung_bis=MORGEN + timedelta(minutes=20),
+        absenkung_ziel=MORGEN + timedelta(hours=10),
+        absenkung_anlass="modell",
+    )
+    stand = lage(m, **{**MILD, "at_steuerung": None}, vorhersage=_vh(vh, "pause"))
+    assert m.entscheiden(stand, g, w).aktionen == ()
+
+
+@pytest.mark.parametrize(
+    "abweichung", [{"werte": {"sonnentag": False}}, {"lage": {"betriebsart": 2}}]
+)
+def test_modellabsenkung_folgt_schalter_und_absenkbetrieb(m, w, vh, abweichung):
+    werte = replace(w, **abweichung.get("werte", {}))
+    stand = lage(m, **MILD, **abweichung.get("lage", {}), vorhersage=_vh(vh, "absenkung"))
+    e = m.entscheiden(stand, m.Gedaechtnis(), werte)
+    assert all(a.art != "absenken" for a in e.aktionen)
+    assert e.gedaechtnis.absenkung_anlass is None
+    pause_e = m.entscheiden(replace(stand, vorhersage=_vh(vh, "pause")), m.Gedaechtnis(), werte)
+    assert [a.art for a in pause_e.aktionen] == ["pause"]
+
+
+def test_ausgeschalteter_sonnentag_beendet_die_modellabsenkung(m, w, vh):
+    stand = lage(m, **MILD, vorhersage=_vh(vh, "absenkung"))
+    e = m.entscheiden(stand, modell_absenkung(m), replace(w, sonnentag=False))
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.begruendung == "Sonnentag ausgeschaltet – Absenkung beendet."
