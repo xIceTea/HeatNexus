@@ -128,14 +128,14 @@ def hausmodell_stand(laufzeit: Laufzeit) -> dict[str, Any]:
     """Das Hausmodell für die Kachel „Haus“: lernt noch, beobachtet oder aktiv."""
     modell = laufzeit.hausmodell
     if modell is None:
-        return {"status": "lernt"}
+        return {"status": "lernt", "grund": laufzeit.lern_grund}
     return {
         "auskuehlzeit_h": round(modell.auskuehlzeit_h, 0),
         "sonne_k_h": round(modell.sonne_k_h, 2),
         "heizwirkung": round(modell.heizwirkung, 2),
         "wind": modell.wind_je_ms > 0,
-        "fehler": _gerundet(hausmodell.mittlerer_fehler(modell), 1),
-        "fehler_bleibt": _gerundet(hausmodell.mittlerer_fehler_bleibt(modell), 1),
+        "fehler": _gerundet(hausmodell.mittlerer_fehler(modell), 2),
+        "fehler_bleibt": _gerundet(hausmodell.mittlerer_fehler_bleibt(modell), 2),
         "vergleiche": len(modell.fehler),
         "tage": modell.tage,
         "status": "aktiv" if hausmodell.freigegeben(modell) else "beobachtet",

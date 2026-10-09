@@ -41,9 +41,9 @@ def test_lernen_findet_bekannte_hauswerte(h):
     assert m.wind_je_ms == 0.0
 
 
-def test_wind_bleibt_nur_wenn_er_erklaert(h):
+def test_wind_wird_nicht_gelernt(h):
     m = h.lernen(_erzeugt(h, wind=0.08), "vorlauf", 10)
-    assert m.wind_je_ms == pytest.approx(0.08, rel=0.3)
+    assert (m.wind_je_ms, m.wind_mittel) == (0.0, 0.0)
 
 
 def test_unsinnige_daten_ergeben_kein_modell(h):
@@ -105,7 +105,13 @@ def test_tagesfehler_ueberbrueckt_luecken(h):
     s = tag[12]
     tag[12] = h.Stunde(s.raum, None, s.at, s.sonne, s.wind, s.heizen)
     assert h.tagesfehler(m, tag) < 0.3
-    assert h.tagesfehler(m, tag[:8]) is None
+
+
+def test_tagesfehler_fehlt_an_einem_tag_ohne_pause(h):
+    m = h.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 10)
+    heizt = [h.Stunde(20.0, 20.1, 5.0, 0.0, None, 30.0)] * 24
+    assert h.tagesfehler(m, heizt) is None
+    assert h.tagesfehler_bleibt(heizt, "vorlauf") is None
 
 
 def test_wind_kuehlt_schneller_aus(h):
@@ -122,12 +128,6 @@ def test_fehlender_wind_gilt_als_mittlerer_wind(h):
     assert ohne_angabe < h.schritt(m, 21.0, 5.0, 0.0, 0.0, 0.0)
 
 
-def test_gelernter_mittelwind_stammt_aus_den_daten(h):
-    m = h.lernen(_erzeugt(h, wind=0.08), "vorlauf", 10)
-    assert m.wind_mittel == pytest.approx(3.5, rel=0.1)
-    assert h.lernen(_erzeugt(h), "vorlauf", 10).wind_mittel == 0.0
-
-
 def test_ohne_heizstunden_bleiben_auskuehlzeit_und_sonne_lernbar(h):
     m = h.lernen(_erzeugt(h, heizt=False), "vorlauf", 10)
     assert m is not None
@@ -138,10 +138,12 @@ def test_ohne_heizstunden_bleiben_auskuehlzeit_und_sonne_lernbar(h):
 
 @pytest.mark.parametrize("tau", [1000.0, 1.0])
 def test_unplausible_auskuehlzeit_ergibt_kein_modell(h, tau):
-    stunden = []
+    stunden, raum = [], 21.0
     for n in range(100):
-        raum, at, sonne = 20.0 + (n % 5) * 0.3, 5.0 + (n % 7), (n % 3) * 0.5
-        stunden.append(h.Stunde(raum, raum + (at - raum) / tau + 0.3 * sonne, at, sonne, None, 0.0))
+        at, sonne = 5.0 + (n % 7), (n % 3) * 0.5
+        danach = raum + (at - raum) / tau + 0.3 * sonne
+        stunden.append(h.Stunde(raum, danach, at, sonne, None, 0.0))
+        raum = danach
     assert h.lernen(stunden, "vorlauf", 5) is None
 
 
@@ -158,6 +160,12 @@ def test_unplausible_auskuehlzeit_ergibt_kein_modell(h, tau):
 def test_unsinnige_gespeicherte_werte_werden_verworfen(h, aenderung):
     roh = h.als_dict(h.Modell(40.0, 0.05, 0.6, 0.03, "pumpe", 7, (0.2,)))
     assert h.aus_dict({**roh, **aenderung}) is None
+
+
+def test_speicherstand_eines_anderen_lernverfahrens_wird_verworfen(h):
+    roh = h.als_dict(h.Modell(40.0, 0.05, 0.6, 0.03, "pumpe", 7))
+    assert h.aus_dict({k: v for k, v in roh.items() if k != "fassung"}) is None
+    assert h.aus_dict({**roh, "fassung": 1}) is None
 
 
 def test_alter_speicherstand_ohne_mittelwind_wird_gelesen(h):
@@ -194,24 +202,26 @@ def test_ueberlaufende_zahl_im_speicherstand_ergibt_kein_modell(h):
 
 
 def test_negativer_sonnenanteil_entfaellt_statt_das_modell_zu_verwerfen(h):
-    m = h.lernen(_erzeugt(h, sonne=-0.3), "vorlauf", 10)
-    assert m is not None
+    m = h.lernen(_erzeugt(h, sonne=-0.05, heizt=False), "vorlauf", 10)
     assert m.sonne_k_h == 0.0
     assert m.auskuehlzeit_h == pytest.approx(40.0, rel=0.15)
-    assert m.heizwirkung == pytest.approx(0.03, rel=0.3)
 
 
-def test_negative_heizwirkung_entfaellt_statt_das_modell_zu_verwerfen(h):
-    m = h.lernen(_erzeugt(h, heiz=-0.001), "vorlauf", 10)
-    assert m is not None
-    assert m.heizwirkung == 0.0
-    assert m.auskuehlzeit_h == pytest.approx(40.0, rel=0.15)
-    assert m.sonne_k_h == pytest.approx(0.6, rel=0.15)
+def test_ohne_stunden_ohne_heizen_entsteht_kein_modell(h):
+    stunden = _erzeugt(h, sonne=-0.3)
+    assert h.stunden_ohne_heizen(stunden, "vorlauf") < h.MIN_STUNDEN_AUS
+    assert h.lernen(stunden, "vorlauf", 10) is None
+
+
+def test_negative_heizwirkung_entfaellt(h):
+    heizstunden = [h.Stunde(20.0, 19.0, 20.0, 0.0, None, 30.0)] * 20
+    assert h._heizwirkung(heizstunden, "vorlauf", 40.0, 0.0) == 0.0
+    assert h._heizwirkung(heizstunden[:5], "vorlauf", 40.0, 0.0) == 0.0
 
 
 def test_tagesfehler_bleibt_misst_die_abweichung_vom_startwert(h):
     tag = [h.Stunde(20.0, 20.5, 10.0, 0.0, None, 0.0)] * 12
-    assert h.tagesfehler_bleibt(tag) == pytest.approx(0.5)
+    assert h.tagesfehler_bleibt(tag, "vorlauf") == pytest.approx(0.5)
 
 
 def test_tagesfehler_bleibt_startet_nach_einer_luecke_neu(h):
@@ -219,9 +229,32 @@ def test_tagesfehler_bleibt_startet_nach_einer_luecke_neu(h):
     tag.append(h.Stunde(21.0, None, 10.0, 0.0, None, 0.0))
     tag += [h.Stunde(30.0, 31.0, 10.0, 0.0, None, 0.0)] * 6
     # Ohne Neustart bliebe der Startwert 20 und der Fehler nach der Lücke wäre 11
-    assert h.tagesfehler_bleibt(tag) == pytest.approx(1.0)
+    assert h.tagesfehler_bleibt(tag, "vorlauf") == pytest.approx(1.0)
 
 
-def test_tagesfehler_bleibt_braucht_zwoelf_stunden(h):
-    tag = [h.Stunde(20.0, 20.5, 10.0, 0.0, None, 0.0)] * 11
-    assert h.tagesfehler_bleibt(tag) is None
+def test_tagesfehler_bleibt_braucht_drei_stunden_ohne_heizen(h):
+    tag = [h.Stunde(20.0, 20.5, 10.0, 0.0, None, 0.0)] * 2
+    assert h.tagesfehler_bleibt(tag, "vorlauf") is None
+
+
+def test_strecken_trennen_an_heizstunden_und_luecken(h):
+    aus = h.Stunde(20.0, 19.9, 10.0, 0.0, None, 2.0)
+    heizt = h.Stunde(20.0, 20.2, 10.0, 0.0, None, 30.0)
+    luecke = h.Stunde(20.0, None, 10.0, 0.0, None, 0.0)
+    stunden = [aus] * 4 + [heizt] + [aus] * 2 + [luecke] + [aus] * 14
+    assert [len(f) for f in h.strecken(stunden, "vorlauf")] == [4, 12, 11, 8, 5]
+    assert h.stunden_ohne_heizen(stunden, "vorlauf") == 18
+
+
+def test_pumpe_zaehlt_als_heizen_ab_einem_fuenftel_der_stunde(h):
+    assert h.heizt(h.Stunde(20.0, 20.0, 10.0, 0.0, None, 0.2), "pumpe")
+    assert not h.heizt(h.Stunde(20.0, 20.0, 10.0, 0.0, None, 0.1), "pumpe")
+
+
+def test_nachrechnen_vergleicht_jeden_tag_mit_einem_modell_der_tage_davor(h):
+    stunden = _erzeugt(h, tage=8)
+    tage = [stunden[i : i + 24] for i in range(0, len(stunden), 24)]
+    fehler, bleibt = h.nachrechnen(tage, "vorlauf")
+    assert 3 <= len(fehler) == len(bleibt) <= 7
+    assert sum(fehler) / len(fehler) < 0.8 * sum(bleibt) / len(bleibt)
+    assert h.nachrechnen(tage[:1], "vorlauf") == ([], [])

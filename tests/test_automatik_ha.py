@@ -2165,23 +2165,57 @@ async def test_hausmodell_lernt_und_schreibt_den_fehler_paarweise_fort(
     modell = laufzeit.hausmodell
     assert modell.tage == 6
     assert modell.heiz_art == "vorlauf"
-    assert len(modell.fehler) == 1
-    assert len(modell.fehler_bleibt) == 1
+    # Ohne bisheriges Modell rechnet der erste Lauf die vergangenen Tage nach.
+    nachgerechnet = len(modell.fehler)
+    assert nachgerechnet >= 3
+    assert len(modell.fehler_bleibt) == nachgerechnet
+    assert laufzeit.lern_grund is None
 
     await laufzeit.hausmodell_lernen()
-    assert len(laufzeit.hausmodell.fehler) == 1
-    assert len(laufzeit.hausmodell.fehler_bleibt) == 1
+    assert len(laufzeit.hausmodell.fehler) == nachgerechnet
+    assert len(laufzeit.hausmodell.fehler_bleibt) == nachgerechnet
     assert laufzeit.als_dict()["hausmodell"]["tage"] == 6
 
     # Ein Tag vor dem zuletzt gezählten wird nie nachgetragen.
     laufzeit._fehler_tag = "2999-01-01"
     await laufzeit.hausmodell_lernen()
-    assert len(laufzeit.hausmodell.fehler) == 1
-    assert len(laufzeit.hausmodell.fehler_bleibt) == 1
+    assert len(laufzeit.hausmodell.fehler) == nachgerechnet
 
     laufzeit.hausmodell_neu()
     await laufzeit.hausmodell_lernen()
-    assert len(laufzeit.hausmodell.fehler) == 1
+    assert len(laufzeit.hausmodell.fehler) == nachgerechnet
+
+
+async def test_hausmodell_nennt_den_grund_ohne_modell(
+    hass, hass_ws_client, anlage, freezer, monkeypatch
+):
+    from custom_components.heatnexus.automatik import hausmodell
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    heizt_immer = {
+        tag: [hausmodell.Stunde(20.0, 20.1, 5.0, 0.0, None, 30.0)] * 24 for tag in _lernstunden(7)
+    }
+
+    async def ohne_daten():
+        return None
+
+    async def nur_heizen():
+        return "vorlauf", heizt_immer
+
+    monkeypatch.setattr(laufzeit, "_lerndaten", ohne_daten)
+    await laufzeit.hausmodell_lernen()
+    assert laufzeit.lern_grund == "daten"
+    monkeypatch.setattr(laufzeit, "_lerndaten", nur_heizen)
+    await laufzeit.hausmodell_lernen()
+    assert laufzeit.lern_grund == "ohne_heizen"
+    assert (await _kreis(client))["kennwerte"]["hausmodell"] == {
+        "status": "lernt",
+        "grund": "ohne_heizen",
+    }
 
 
 async def test_pumpe_lernt_als_pumpe_und_die_art_bleibt_im_modell(
@@ -2580,7 +2614,7 @@ async def test_ohne_hausmodell_lernt_die_automatik_noch(hass, hass_ws_client, an
 
     kreis = await _kreis(client)
 
-    assert kreis["kennwerte"]["hausmodell"] == {"status": "lernt"}
+    assert kreis["kennwerte"]["hausmodell"]["status"] == "lernt"
     assert kreis["tag"]["vorhersage"] == []
 
 
@@ -2595,7 +2629,7 @@ async def test_neu_lernen_verwirft_das_hausmodell(hass, hass_ws_client, anlage, 
     assert antwort["success"], antwort
     assert laufzeit.hausmodell is None
     assert laufzeit._vorhersage_zuletzt is None
-    assert (await _kreis(client))["kennwerte"]["hausmodell"] == {"status": "lernt"}
+    assert (await _kreis(client))["kennwerte"]["hausmodell"]["status"] == "lernt"
 
 
 async def test_nur_administratoren_lernen_neu(

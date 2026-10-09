@@ -22,6 +22,10 @@ Reihe = list[tuple[datetime, float | None]]
 # Betriebswahl `3/50` → Zeitprogramm des Heizkreises.
 ZEITPROGRAMME = {1: "/3/61/0", 2: "/3/62/0", 3: "/3/63/0"}
 _STUFE_JE_ART = {regel.PAUSE: vorhersage.PAUSE, regel.SONNE: vorhersage.ABSENKUNG}
+# Warum noch kein Modell besteht; der Reiter Automatik zeigt es unter „lernt noch“.
+GRUND_DATEN = "daten"
+GRUND_OHNE_HEIZEN = "ohne_heizen"
+GRUND_UNPASSEND = "unpassend"
 
 
 class Reihen(NamedTuple):
@@ -84,6 +88,7 @@ class VorausschauMixin:
         tag = z.get("hausmodell_tag")
         self._fehler_tag: str | None = tag if isinstance(tag, str) else None
         self._lernaufgabe: Any = None
+        self.lern_grund: str | None = None
         self._vorhersage_zuletzt: vorhersage.Vorhersage | None = None
         # Die Vorhersage, mit der die laufende Stufe des Modells begann; an ihr misst sich die Rückkehr.
         self._vorhersage_bezug: vorhersage.Vorhersage | None = None
@@ -243,7 +248,7 @@ class VorausschauMixin:
         fehler = list(alt.fehler) if alt else []
         bleibt = list(alt.fehler_bleibt) if alt else []
         gestern = hausmodell.tagesfehler(neu, stunden)
-        ohne = hausmodell.tagesfehler_bleibt(stunden)
+        ohne = hausmodell.tagesfehler_bleibt(stunden, neu.heiz_art)
         # Der Vortag zählt einmal, und nie ein Tag vor dem zuletzt gezählten.
         if (
             gestern is not None
@@ -257,17 +262,31 @@ class VorausschauMixin:
         return replace(neu, fehler=tuple(fehler[-n:]), fehler_bleibt=tuple(bleibt[-n:]))
 
     async def hausmodell_lernen(self) -> None:
-        """Die letzten 14 Tage lesen, lernen, den Fehler des Vortags fortschreiben."""
+        """Die letzten 14 Tage lesen, lernen, den Fehler des Vortags fortschreiben.
+
+        Ohne bisheriges Modell rechnet es die vergangenen Tage nach, statt 14 Tage zu sammeln.
+        """
         daten = await self._lerndaten()
         if daten is None or not daten[1]:
+            self.lern_grund = GRUND_DATEN
             return
         heiz_art, stunden_je_tag = daten
         tage = sorted(stunden_je_tag)
         alle = [s for tag in tage[:-1] for s in stunden_je_tag[tag]]
-        neu = hausmodell.lernen(alle, heiz_art, len(tage) - 1)
+        ausfuehren = self.hass.async_add_executor_job
+        neu = await ausfuehren(hausmodell.lernen, alle, heiz_art, len(tage) - 1)
         if neu is None:
+            knapp = hausmodell.stunden_ohne_heizen(alle, heiz_art) < hausmodell.MIN_STUNDEN_AUS
+            self.lern_grund = GRUND_OHNE_HEIZEN if knapp else GRUND_UNPASSEND
             return
-        self.hausmodell = self._mit_fehlern(neu, tage[-1], stunden_je_tag[tage[-1]])
+        self.lern_grund = None
+        if self.hausmodell is None:
+            reihen = [stunden_je_tag[tag] for tag in tage]
+            fehler, bleibt = await ausfuehren(hausmodell.nachrechnen, reihen, heiz_art)
+            self.hausmodell = replace(neu, fehler=tuple(fehler), fehler_bleibt=tuple(bleibt))
+            self._fehler_tag = tage[-1].isoformat()
+        else:
+            self.hausmodell = self._mit_fehlern(neu, tage[-1], stunden_je_tag[tage[-1]])
         self._speichern()
 
     # --- Vorhersage ----------------------------------------------------------
