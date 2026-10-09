@@ -8,14 +8,18 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
+import math
 from typing import Any
 
 FREIGABE_TAGE = 5
 FREIGABE_FEHLER_K = 0.5
 FEHLER_TAGE = 14
+HEIZ_ARTEN = frozenset({"vorlauf", "pumpe"})
 # Wind bleibt nur, wenn er den mittleren Fehler um mindestens diesen Anteil senkt.
 WIND_NUTZEN = 0.05
 MIN_STUNDEN = 48
+MIN_AUSKUEHLZEIT_H = 2.0
+MAX_AUSKUEHLZEIT_H = 500.0
 
 
 @dataclass(frozen=True)
@@ -41,6 +45,7 @@ class Modell:
     heiz_art: str
     tage: int
     fehler: tuple[float, ...] = ()
+    wind_mittel: float = 0.0
 
 
 def _loesen(a: list[list[float]], b: list[float]) -> list[float] | None:
@@ -63,54 +68,68 @@ def _loesen(a: list[list[float]], b: list[float]) -> list[float] | None:
     return x
 
 
-def _merkmale(s: Stunde, mit_wind: bool) -> list[float]:
+def _merkmale(s: Stunde) -> list[float]:
     abstand = s.at - s.raum
-    werte = [abstand, s.sonne, s.heizen]
-    if mit_wind:
-        werte.insert(1, abstand * (s.wind or 0.0))
-    return werte
+    return [abstand, abstand * (s.wind or 0.0), s.sonne, s.heizen]
 
 
-def _ausgleich(stunden: Sequence[Stunde], mit_wind: bool) -> list[float] | None:
-    zeilen = [(_merkmale(s, mit_wind), s.raum_danach - s.raum) for s in stunden]
-    n = len(zeilen[0][0])
+def _anpassen(stunden: Sequence[Stunde], spalten: tuple[int, ...]) -> list[float] | None:
+    """Kleinste Quadrate über die Merkmalsspalten; vier Koeffizienten, unbenutzte sind 0."""
+    zeilen = [([_merkmale(s)[i] for i in spalten], s.raum_danach - s.raum) for s in stunden]
+    n = len(spalten)
     ata = [[sum(x[i] * x[j] for x, _ in zeilen) for j in range(n)] for i in range(n)]
     atb = [sum(x[i] * y for x, y in zeilen) for i in range(n)]
-    return _loesen(ata, atb)
+    loesung = _loesen(ata, atb)
+    if loesung is None or min(loesung) < 0 or loesung[0] <= 0:
+        return None
+    koeff = [0.0] * 4
+    for i, wert in zip(spalten, loesung, strict=True):
+        koeff[i] = wert
+    return koeff
 
 
-def _mae(stunden: Sequence[Stunde], koeff: list[float], mit_wind: bool) -> float:
+def _mae(stunden: Sequence[Stunde], koeff: list[float]) -> float:
     fehler = [
-        abs(
-            sum(k * x for k, x in zip(koeff, _merkmale(s, mit_wind), strict=True))
-            - (s.raum_danach - s.raum)
-        )
+        abs(sum(k * x for k, x in zip(koeff, _merkmale(s), strict=True)) - (s.raum_danach - s.raum))
         for s in stunden
     ]
     return sum(fehler) / len(fehler)
 
 
+def _ohne_wind(gut: Sequence[Stunde]) -> tuple[list[float], tuple[int, ...]] | None:
+    """Anpassung ohne Wind; ohne Heizstunden oder mit negativer Heizwirkung ohne Heizspalte."""
+    if any(s.heizen > 0 for s in gut) and (koeff := _anpassen(gut, (0, 2, 3))):
+        return koeff, (0, 2, 3)
+    koeff = _anpassen(gut, (0, 2))
+    return (koeff, (0, 2)) if koeff else None
+
+
 def lernen(stunden: list[Stunde], heiz_art: str, tage: int) -> Modell | None:
     """Kleinste Quadrate über vollständige Stunden; physikalisch Unsinniges ergibt `None`."""
     gut = [s for s in stunden if s.raum_danach is not None]
-    if len(gut) < MIN_STUNDEN:
+    if len(gut) < MIN_STUNDEN or (basis := _ohne_wind(gut)) is None:
         return None
-    ohne = _ausgleich(gut, mit_wind=False)
-    if ohne is None or ohne[0] <= 0 or ohne[1] < 0 or ohne[2] < 0:
-        return None
-    a, s, h, w = ohne[0], ohne[1], ohne[2], 0.0
-    mit = _ausgleich(gut, mit_wind=True) if all(x.wind is not None for x in gut) else None
-    plausibel = mit is not None and min(mit) >= 0 and mit[0] > 0
-    if plausibel and _mae(gut, mit, True) <= _mae(gut, ohne, False) * (1 - WIND_NUTZEN):
+    (a, _, s, h), spalten = basis
+    w, wind_mittel = 0.0, 0.0
+    mit = (
+        _anpassen(gut, tuple(sorted({*spalten, 1})))
+        if all(x.wind is not None for x in gut)
+        else None
+    )
+    if mit and _mae(gut, mit) <= _mae(gut, basis[0]) * (1 - WIND_NUTZEN):
         a, w, s, h = mit[0], mit[1] / mit[0], mit[2], mit[3]
-    return Modell(1 / a, w, s, h, heiz_art, tage)
+        wind_mittel = sum(x.wind for x in gut) / len(gut)
+    if not MIN_AUSKUEHLZEIT_H <= 1 / a <= MAX_AUSKUEHLZEIT_H:
+        return None
+    return Modell(1 / a, w, s, h, heiz_art, tage, (), wind_mittel)
 
 
 def schritt(
     modell: Modell, raum: float, at: float, sonne: float, wind: float | None, heizen: float
 ) -> float:
-    """Der Raumwert eine Stunde später."""
-    verlust = (raum - at) * (1 + modell.wind_je_ms * (wind or 0.0)) / modell.auskuehlzeit_h
+    """Der Raumwert eine Stunde später; fehlender Wind gilt als mittlerer Wind des Lernens."""
+    ms = modell.wind_mittel if wind is None else wind
+    verlust = (raum - at) * (1 + modell.wind_je_ms * ms) / modell.auskuehlzeit_h
     return raum - verlust + modell.sonne_k_h * sonne + modell.heizwirkung * heizen
 
 
@@ -126,13 +145,15 @@ def vorhersagen(
 
 
 def tagesfehler(modell: Modell, tag: list[Stunde]) -> float | None:
-    """Mittlerer absoluter Fehler, wenn das Modell den Tag aus dem ersten Wert vorrechnet."""
-    gut = [s for s in tag if s.raum_danach is not None]
-    if len(gut) < 12:
+    """Mittlerer absoluter Fehler; nach einer Lücke startet die Rechnung beim Messwert neu."""
+    if sum(s.raum_danach is not None for s in tag) < 12:
         return None
-    raum, fehler = gut[0].raum, []
-    for s in gut:
-        raum = schritt(modell, raum, s.at, s.sonne, s.wind, s.heizen)
+    raum, fehler = None, []
+    for s in tag:
+        if s.raum_danach is None:
+            raum = None
+            continue
+        raum = schritt(modell, s.raum if raum is None else raum, s.at, s.sonne, s.wind, s.heizen)
         fehler.append(abs(raum - s.raum_danach))
     return sum(fehler) / len(fehler)
 
@@ -151,16 +172,26 @@ def freigegeben(modell: Modell | None) -> bool:
 
 
 def als_dict(modell: Modell) -> dict[str, Any]:
-    """Für den Store; `fehler` als Liste."""
-    return {**asdict(modell), "fehler": list(modell.fehler)}
+    """Für den Store; `fehler` als Liste der letzten Tage."""
+    return {**asdict(modell), "fehler": list(modell.fehler[-FEHLER_TAGE:])}
+
+
+def _gueltig(modell: Modell) -> bool:
+    zahlen = (modell.auskuehlzeit_h, modell.wind_je_ms, modell.sonne_k_h, modell.heizwirkung)
+    zahlen += (modell.wind_mittel, *modell.fehler)
+    return (
+        all(math.isfinite(z) for z in zahlen)
+        and modell.auskuehlzeit_h > 0
+        and modell.heiz_art in HEIZ_ARTEN
+    )
 
 
 def aus_dict(roh: Any) -> Modell | None:
-    """Aus dem Store; Unlesbares ergibt `None`."""
+    """Aus dem Store; Unlesbares oder Unsinniges ergibt `None`."""
     if not isinstance(roh, dict):
         return None
     try:
-        return Modell(
+        modell = Modell(
             float(roh["auskuehlzeit_h"]),
             float(roh["wind_je_ms"]),
             float(roh["sonne_k_h"]),
@@ -168,6 +199,8 @@ def aus_dict(roh: Any) -> Modell | None:
             str(roh["heiz_art"]),
             int(roh["tage"]),
             tuple(float(f) for f in roh.get("fehler", ()))[-FEHLER_TAGE:],
+            float(roh.get("wind_mittel", 0.0)),
         )
     except (KeyError, TypeError, ValueError):
         return None
+    return modell if _gueltig(modell) else None
