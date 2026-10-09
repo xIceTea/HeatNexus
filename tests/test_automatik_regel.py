@@ -473,6 +473,11 @@ def test_warmwasserladung_ist_kein_sonderbetrieb(m, w):
     assert e.zustand == m.Zustand.SONNENTAG
 
 
+def test_im_absenkbetrieb_beginnt_kein_sonnentag(m, w):
+    e = m.entscheiden(lage(m, entscheidungszeit=True, betriebsart=2), m.Gedaechtnis(), w)
+    assert all(a.art != "absenken" for a in e.aktionen)
+
+
 # --- Wärmequellen mit Vorrang vor dem Kessel -----------------------------------
 def lange_absenkung(m):
     return replace(sonnentag(m), absenkung_bis=MORGEN + timedelta(hours=6))

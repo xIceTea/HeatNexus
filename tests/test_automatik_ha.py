@@ -330,6 +330,25 @@ async def test_wechsel_weg_vom_schalten_beendet_den_eingriff_und_rechnet_neu(
         assert laufzeit.steller.stand.protokoll[0]["art"] == "haette"
 
 
+async def test_nach_ablauf_gilt_der_raumsoll_vor_dem_eingriff(
+    hass, hass_ws_client, anlage, freezer
+):
+    from datetime import timedelta
+
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    g = laufzeit.gedaechtnis
+    assert g.absenkung_soll == 19.5
+    freezer.move_to(g.absenkung_bis + timedelta(minutes=1))
+    coordinator.data["oids"][f"{PREFIX}/1/1/0"] = "19.5"
+    await laufzeit.auswerten()
+    assert laufzeit.lage.soll == 21.0
+
+
 async def test_verworfene_empfehlung_kommt_erst_am_naechsten_tag_wieder(
     hass, hass_ws_client, anlage, freezer
 ):

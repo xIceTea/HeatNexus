@@ -384,6 +384,7 @@ class Laufzeit(QuellenMixin):
         self._daempfen(jetzt)
         self._lernen(jetzt)
         self._vorrang_fortschreiben(jetzt)
+        self._ablauf_merken(jetzt)
         lage = self._lage(jetzt, entscheidungszeit)
         self.lage = lage
         if not self.aktiv:
@@ -765,6 +766,18 @@ class Laufzeit(QuellenMixin):
         if (wert := self._wert("/3/2/0")) is not None:
             self.absenk_zuletzt = wert
         return self.absenk_zuletzt
+
+    def _ablauf_merken(self, jetzt: datetime) -> None:
+        """Läuft eine eigene Absenkung ab, gilt bis zum Abruf der Raumsoll vor dem Eingriff."""
+        g = self.gedaechtnis
+        if (
+            g.absenkung_bis is not None
+            and g.absenkung_bis <= jetzt
+            and g.absenkung_soll is not None
+            and g.absenkung_basis is not None
+            and self._soll_ersatz is None
+        ):
+            self._soll_ersatz = (g.absenkung_soll, g.absenkung_basis, jetzt)
 
     def _soll(self, jetzt: datetime) -> float | None:
         """Raumsoll `1/1`; direkt nach einer Rücknahme steht dort bis zum Abruf der geschriebene Wert."""

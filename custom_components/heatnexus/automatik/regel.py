@@ -44,6 +44,8 @@ PAUSE_SONNE_PLUS = 20.0
 VORRANG_PAUSE_MINUTEN = 60.0
 VORRANG_TAGE_MILD = 2
 PROGRAMMWAHL = frozenset({1, 2, 3, 4, 5})
+# `2/9` im Absenkbetrieb des Zeitprogramms; `1/1` zeigt dann den Absenksoll.
+ABSENKBETRIEB = 2
 # Ohne lesbare Heizgrenze der Steuerung (`3/21`) gilt dieser Wert; außerhalb des Bereichs ebenso.
 HEIZGRENZE_RUECKFALL = 17.0
 HEIZGRENZE_BEREICH = (0.0, 30.0)
@@ -574,6 +576,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         and lage.entscheidungszeit
         and lage.betriebswahl in PROGRAMMWAHL
         and lage.absenkung_moeglich
+        and lage.betriebsart != ABSENKBETRIEB
         and (lage.sonnenquote is not None or bool(lage.vorrang_laeuft))
         and lage.sonnenuntergang is not None
     )
