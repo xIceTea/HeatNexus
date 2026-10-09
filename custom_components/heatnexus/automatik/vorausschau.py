@@ -24,7 +24,6 @@ ZEITPROGRAMME = {1: "/3/61/0", 2: "/3/62/0", 3: "/3/63/0"}
 _STUFE_JE_ART = {regel.PAUSE: vorhersage.PAUSE, regel.SONNE: vorhersage.ABSENKUNG}
 # Warum noch kein Modell besteht; der Reiter Automatik zeigt es unter „lernt noch“.
 GRUND_DATEN = "daten"
-GRUND_OHNE_HEIZEN = "ohne_heizen"
 GRUND_UNPASSEND = "unpassend"
 
 
@@ -276,8 +275,7 @@ class VorausschauMixin:
         ausfuehren = self.hass.async_add_executor_job
         neu = await ausfuehren(hausmodell.lernen, alle, heiz_art, len(tage) - 1)
         if neu is None:
-            knapp = hausmodell.stunden_ohne_heizen(alle, heiz_art) < hausmodell.MIN_STUNDEN_AUS
-            self.lern_grund = GRUND_OHNE_HEIZEN if knapp else GRUND_UNPASSEND
+            self.lern_grund = GRUND_UNPASSEND
             return
         self.lern_grund = None
         if self.hausmodell is None:

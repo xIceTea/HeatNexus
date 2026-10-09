@@ -207,10 +207,26 @@ def test_negativer_sonnenanteil_entfaellt_statt_das_modell_zu_verwerfen(h):
     assert m.auskuehlzeit_h == pytest.approx(40.0, rel=0.15)
 
 
-def test_ohne_stunden_ohne_heizen_entsteht_kein_modell(h):
-    stunden = _erzeugt(h, sonne=-0.3)
+def _winter(h, tau=40.0, heiz=0.03, tage=10):
+    """Ein Heizkreis, der rund um die Uhr heizt, nachts mit abgesenktem Vorlauf."""
+    stunden, raum = [], 21.0
+    for n in range(24 * tage):
+        stunde = n % 24
+        at = -2 + 3 * math.sin((stunde - 9) / 24 * 2 * math.pi)
+        heizen = (35.0 if 6 <= stunde < 22 else 25.0) + (21.0 - raum) * 4 - raum + 21.0
+        neu = raum + (at - raum) / tau + heiz * heizen
+        stunden.append(h.Stunde(raum, neu, at, 0.0, None, heizen))
+        raum = neu
+    return stunden
+
+
+def test_im_winter_lernt_es_aus_den_heizstunden(h):
+    stunden = _winter(h)
     assert h.stunden_ohne_heizen(stunden, "vorlauf") < h.MIN_STUNDEN_AUS
-    assert h.lernen(stunden, "vorlauf", 10) is None
+    m = h.lernen(stunden, "vorlauf", 10)
+    assert m.auskuehlzeit_h == pytest.approx(40.0, rel=0.15)
+    assert m.heizwirkung == pytest.approx(0.03, rel=0.15)
+    assert m.sonne_k_h == 0.0
 
 
 def test_negative_heizwirkung_entfaellt(h):

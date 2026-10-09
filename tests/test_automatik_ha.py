@@ -2196,25 +2196,26 @@ async def test_hausmodell_nennt_den_grund_ohne_modell(
     freezer.move_to(MORGEN)
     await _einrichten(client)
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    heizt_immer = {
-        tag: [hausmodell.Stunde(20.0, 20.1, 5.0, 0.0, None, 30.0)] * 24 for tag in _lernstunden(7)
+    # Raum gleich Außenluft und kein Heizen: keine Auskühlzeit passt besser als eine andere.
+    unpassend = {
+        tag: [hausmodell.Stunde(21.0, 21.0, 21.0, 0.0, None, 0.0)] * 24 for tag in _lernstunden(7)
     }
 
     async def ohne_daten():
         return None
 
-    async def nur_heizen():
-        return "vorlauf", heizt_immer
+    async def ohne_aussage():
+        return "vorlauf", unpassend
 
     monkeypatch.setattr(laufzeit, "_lerndaten", ohne_daten)
     await laufzeit.hausmodell_lernen()
     assert laufzeit.lern_grund == "daten"
-    monkeypatch.setattr(laufzeit, "_lerndaten", nur_heizen)
+    monkeypatch.setattr(laufzeit, "_lerndaten", ohne_aussage)
     await laufzeit.hausmodell_lernen()
-    assert laufzeit.lern_grund == "ohne_heizen"
+    assert laufzeit.lern_grund == "unpassend"
     assert (await _kreis(client))["kennwerte"]["hausmodell"] == {
         "status": "lernt",
-        "grund": "ohne_heizen",
+        "grund": "unpassend",
     }
 
 

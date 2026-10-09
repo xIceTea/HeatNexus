@@ -32,7 +32,6 @@ const FREIGABE_TAGE = 14;
 // Warum noch kein Hausmodell besteht, je Grund aus der Laufzeit.
 const LERN_GRUENDE = {
   daten: "Die Aufzeichnung liefert keine Raumwerte, Außentemperatur oder Vorlauf.",
-  ohne_heizen: "Noch zu wenige Stunden ohne Heizen.",
   unpassend: "Die Raumwerte ergeben noch keine plausible Auskühlzeit.",
 };
 

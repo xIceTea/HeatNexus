@@ -1010,7 +1010,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     aktiv: zeigen(modell, [[9, 21.4], [10, 21.3]]),
     beobachtetWenige: zeigen({ ...modell, status: "beobachtet", vergleiche: 3 }),
     beobachtetVoll: zeigen({ ...modell, status: "beobachtet", fehler: 0.36, fehler_bleibt: 0.41 }),
-    lernt: zeigen({ status: "lernt", grund: "ohne_heizen" }),
+    lernt: zeigen({ status: "lernt", grund: "unpassend" }),
     lerntOhneGrund: zeigen({ status: "lernt", grund: null }),
     ohneAngabe: zeigen(undefined),
   };

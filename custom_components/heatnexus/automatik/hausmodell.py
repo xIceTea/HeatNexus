@@ -27,6 +27,7 @@ STRECKE_MIN = 3
 MIN_STUNDEN_AUS = 24
 MIN_HEIZSTUNDEN = 12
 MAX_SONNE_K_H = 2.0
+MAX_HEIZWIRKUNG = {"vorlauf": 0.1, "pumpe": 2.0}
 RASTER = 20
 MIN_AUSKUEHLZEIT_H = 2.0
 MAX_AUSKUEHLZEIT_H = 500.0
@@ -64,11 +65,11 @@ def heizt(stunde: Stunde, heiz_art: str) -> bool:
     return stunde.heizen >= AUS_GRENZE[heiz_art]
 
 
-def _laeufe(stunden: Sequence[Stunde], heiz_art: str) -> list[list[Stunde]]:
-    """Zusammenhängende Stunden ohne Heizen; eine Lücke oder eine Heizstunde trennt."""
+def _laeufe(stunden: Sequence[Stunde], passt: Any) -> list[list[Stunde]]:
+    """Zusammenhängende Stunden mit Folgewert, für die `passt` gilt; alles andere trennt."""
     laeufe, lauf = [], []
     for s in stunden:
-        if s.raum_danach is not None and not heizt(s, heiz_art):
+        if s.raum_danach is not None and passt(s):
             lauf.append(s)
             continue
         laeufe.append(lauf)
@@ -77,27 +78,32 @@ def _laeufe(stunden: Sequence[Stunde], heiz_art: str) -> list[list[Stunde]]:
     return [lauf for lauf in laeufe if len(lauf) >= STRECKE_MIN]
 
 
-def strecken(stunden: Sequence[Stunde], heiz_art: str) -> list[list[Stunde]]:
-    """Fenster ohne Heizen, höchstens `STRECKE_H` Stunden, Beginn alle `STRECKE_TAKT` Stunden."""
+def _fenster(laeufe: list[list[Stunde]]) -> list[list[Stunde]]:
+    """Fenster bis `STRECKE_H` Stunden, Beginn alle `STRECKE_TAKT` Stunden."""
     return [
         lauf[i : i + STRECKE_H]
-        for lauf in _laeufe(stunden, heiz_art)
+        for lauf in laeufe
         for i in range(0, len(lauf) - STRECKE_MIN + 1, STRECKE_TAKT)
     ]
 
 
+def strecken(stunden: Sequence[Stunde], heiz_art: str) -> list[list[Stunde]]:
+    """Fenster ohne Heizen."""
+    return _fenster(_laeufe(stunden, lambda s: not heizt(s, heiz_art)))
+
+
 def stunden_ohne_heizen(stunden: Sequence[Stunde], heiz_art: str) -> int:
     """Wie viele Stunden ohne Heizen zum Lernen taugen."""
-    return sum(len(lauf) for lauf in _laeufe(stunden, heiz_art))
+    return sum(len(lauf) for lauf in _laeufe(stunden, lambda s: not heizt(s, heiz_art)))
 
 
-def _streckenfehler(tau: float, sonne_k: float, fenster: list[list[Stunde]]) -> float:
-    """Mittlerer Fehler je Stunde, wenn jedes Fenster ohne Heizen vom Startwert aus läuft."""
+def _laufen(tau: float, sonne_k: float, heiz: float, fenster: list[list[Stunde]]) -> float:
+    """Mittlerer Fehler je Stunde, wenn jedes Fenster vom Startwert aus läuft."""
     summe, anzahl = 0.0, 0
     for stunden in fenster:
         raum = stunden[0].raum
         for s in stunden:
-            raum += (s.at - raum) / tau + sonne_k * s.sonne
+            raum += (s.at - raum) / tau + sonne_k * s.sonne + heiz * s.heizen
             summe += abs(raum - s.raum_danach)
             anzahl += 1
     return summe / anzahl
@@ -120,25 +126,25 @@ def _minimum(f: Any, a: float, b: float, schritte: int = 24) -> tuple[float, flo
     return (c, fc) if fc <= fd else (d, fd)
 
 
-def _anpassen(fenster: list[list[Stunde]]) -> tuple[float, float] | None:
-    """Auskühlzeit und Sonne, die den Verlauf der Fenster am besten treffen; am Rand `None`."""
+def _anpassen(fehler: Any, oben: float) -> tuple[float, float] | None:
+    """Auskühlzeit im Raster, dazu der zweite Wert mit dem kleinsten Fehler; am Rand `None`."""
 
-    def mit_bester_sonne(log_tau: float) -> float:
+    def mit_bestem(log_tau: float) -> float:
         tau = math.exp(log_tau)
-        return _minimum(lambda k: _streckenfehler(tau, k, fenster), 0.0, MAX_SONNE_K_H)[1]
+        return _minimum(lambda k: fehler(tau, k), 0.0, oben)[1]
 
-    unten, oben = math.log(MIN_AUSKUEHLZEIT_H), math.log(MAX_AUSKUEHLZEIT_H)
-    raster = [unten + (oben - unten) * i / (RASTER - 1) for i in range(RASTER)]
-    werte = [mit_bester_sonne(x) for x in raster]
+    unten_tau, oben_tau = math.log(MIN_AUSKUEHLZEIT_H), math.log(MAX_AUSKUEHLZEIT_H)
+    raster = [unten_tau + (oben_tau - unten_tau) * i / (RASTER - 1) for i in range(RASTER)]
+    werte = [mit_bestem(x) for x in raster]
     best = min(range(RASTER), key=werte.__getitem__)
     # Liegt das Minimum am Rand des Rasters, passt keine plausible Auskühlzeit.
     if best in (0, RASTER - 1):
         return None
-    log_tau, _ = _minimum(mit_bester_sonne, raster[best - 1], raster[best + 1], 16)
+    log_tau, _ = _minimum(mit_bestem, raster[best - 1], raster[best + 1], 16)
     tau = math.exp(log_tau)
-    sonne_k, _ = _minimum(lambda k: _streckenfehler(tau, k, fenster), 0.0, MAX_SONNE_K_H)
-    # Der goldene Schnitt erreicht den Rand nie genau; ein Rest nahe null ist keine Sonne.
-    return tau, 0.0 if sonne_k < 1e-3 else sonne_k
+    k, _ = _minimum(lambda k: fehler(tau, k), 0.0, oben)
+    # Der goldene Schnitt erreicht den Rand nie genau; ein Rest nahe null ist null.
+    return tau, 0.0 if k < oben * 1e-3 else k
 
 
 def _heizwirkung(gut: list[Stunde], heiz_art: str, tau: float, sonne_k: float) -> float:
@@ -154,11 +160,30 @@ def _heizwirkung(gut: list[Stunde], heiz_art: str, tau: float, sonne_k: float) -
     return max(0.0, sum(x * y for x, y in paare) / nenner)
 
 
-def lernen(stunden: list[Stunde], heiz_art: str, tage: int) -> Modell | None:
-    """Auskühlzeit und Sonne aus den Stunden ohne Heizen, danach die Heizwirkung."""
-    if stunden_ohne_heizen(stunden, heiz_art) < MIN_STUNDEN_AUS:
+def _aus_heizstunden(stunden: list[Stunde], heiz_art: str, tage: int) -> Modell | None:
+    """Ohne genug Stunden ohne Heizen: Auskühlzeit und Heizwirkung gemeinsam aus allen Stunden.
+
+    Die Sonne lässt sich so nicht von der Heizung trennen und bleibt null.
+    """
+    laeufe = _laeufe(stunden, lambda _s: True)
+    fenster = _fenster(laeufe)
+    if sum(len(lauf) for lauf in laeufe) < MIN_STUNDEN_AUS:
         return None
-    if (passend := _anpassen(strecken(stunden, heiz_art))) is None:
+    passend = _anpassen(lambda tau, h: _laufen(tau, 0.0, h, fenster), MAX_HEIZWIRKUNG[heiz_art])
+    if passend is None or passend[1] <= 0:
+        return None
+    return Modell(passend[0], 0.0, 0.0, passend[1], heiz_art, tage)
+
+
+def lernen(stunden: list[Stunde], heiz_art: str, tage: int) -> Modell | None:
+    """Auskühlzeit und Sonne aus den Stunden ohne Heizen, danach die Heizwirkung.
+
+    Heizt der Heizkreis fast durchgehend, etwa im Winter, lernt es aus den Heizstunden.
+    """
+    if stunden_ohne_heizen(stunden, heiz_art) < MIN_STUNDEN_AUS:
+        return _aus_heizstunden(stunden, heiz_art, tage)
+    fenster = strecken(stunden, heiz_art)
+    if (passend := _anpassen(lambda tau, k: _laufen(tau, k, 0.0, fenster), MAX_SONNE_K_H)) is None:
         return None
     tau, sonne_k = passend
     gut = [s for s in stunden if s.raum_danach is not None]
@@ -190,7 +215,7 @@ def tagesfehler(modell: Modell, tag: list[Stunde]) -> float | None:
     fenster = strecken(tag, modell.heiz_art)
     if not fenster:
         return None
-    return _streckenfehler(modell.auskuehlzeit_h, modell.sonne_k_h, fenster)
+    return _laufen(modell.auskuehlzeit_h, modell.sonne_k_h, 0.0, fenster)
 
 
 def tagesfehler_bleibt(tag: list[Stunde], heiz_art: str) -> float | None:

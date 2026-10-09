@@ -799,7 +799,7 @@ def test_die_kachel_haus_folgt_dem_stand_des_modells(durchlauf):
     assert haus["beobachtetVoll"]["fuss"][0] == "beobachtet – ±0,36 K, ohne Modell ±0,41 K"
     lernt = haus["lernt"]
     assert (lernt["titel"], lernt["zahl"], lernt["neben"]) == ("Haus", "–", "lernt noch")
-    assert lernt["fuss"] == ["Noch zu wenige Stunden ohne Heizen."]
+    assert lernt["fuss"] == ["Die Raumwerte ergeben noch keine plausible Auskühlzeit."]
     assert haus["lerntOhneGrund"]["fuss"] == []
     assert haus["ohneAngabe"]["kachel"] is False
 

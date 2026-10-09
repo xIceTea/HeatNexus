@@ -802,7 +802,6 @@
   "beobachtet – {tage} von 14 Tagen": "observed – {tage} of 14 days",
   "beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K": "observed – ±{fehler} K, without model ±{bleibt} K",
   "Die Aufzeichnung liefert keine Raumwerte, Außentemperatur oder Vorlauf.": "The recorder has no room values, outdoor temperature or flow temperature.",
-  "Noch zu wenige Stunden ohne Heizen.": "Not enough hours without heating yet.",
   "Die Raumwerte ergeben noch keine plausible Auskühlzeit.": "The room values do not yet give a plausible cooling time.",
   "Hausmodell neu lernen": "Relearn house model",
   "Hausmodell neu lernen?": "Relearn house model?",
