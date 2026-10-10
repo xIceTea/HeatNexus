@@ -258,7 +258,7 @@ def _art_des_brennstoffs(eintrag: dict[str, Any]) -> str | None:
         return None
     wert = next((w for w, t in (eintrag.get("optionen") or {}).items() if t == text), None)
     if wert is not None and eintrag.get("adresse") in BRENNSTOFF_ADRESSEN:
-        return "pellets" if int(wert) == BRENNSTOFF_PELLETS_WERT else "hackgut"
+        return "pellets" if str(wert) == str(BRENNSTOFF_PELLETS_WERT) else "hackgut"
     return next((art for m, art in BRENNSTOFF_ART if re.search(m, text, re.IGNORECASE)), None)
 
 
