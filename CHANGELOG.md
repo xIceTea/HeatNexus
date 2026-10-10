@@ -17,6 +17,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Eine nur teilweise angenommene Umschaltung der Automatik gilt nicht als Handeingriff.
 - Ein Tipp auf die Vorrangquelle im Reiter Automatik öffnet den Verlauf der Quelle.
 - Hinweise im Reiter Automatik stehen am Handy hinter einem Fragezeichen.
+- Ein Tipp auf den Sollwert im Reiter Steuerung öffnet den Heizkreis.
 - „Warmwasser laden“ erkennt eine laufende Einmalladung auch während Eco / Comfort.
 - „Warmwasser laden“ liest Betriebsart und Ladepumpe nur aus dem Heizkreis der Ladung.
 - An der DuoWIN erscheint die Taste „Warmwasser laden“.
