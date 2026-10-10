@@ -982,7 +982,10 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
         if "at" not in stunde:
             gedaempft = round(self.stufen[1], 2) if self.stufen else None
-            stunde.update(at=at, raum=self._raum(), gedaempft=gedaempft, **self._stundenfelder())
+            stunde.update(at=at, raum=self._raum(), gedaempft=gedaempft)
+        # Direkt nach dem Start fehlt die Lage noch; ihre Felder kommen beim nächsten Durchlauf der Stunde.
+        for name, wert in self._stundenfelder().items():
+            stunde.setdefault(name, wert)
 
     def _raum_verfolgen(self) -> None:
         if (raum := self._raum()) is None:

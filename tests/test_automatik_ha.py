@@ -2790,6 +2790,26 @@ async def test_die_stunde_vermerkt_abweichung_soll_vorlauf_und_betriebsart(hass,
     assert (stunde["soll"], stunde["vl"], stunde["ba"]) == (21.0, 35.0, 1)
 
 
+async def test_nach_dem_start_ergaenzt_die_stunde_ihre_felder(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    laufzeit.lage = None
+    laufzeit.verlauf = {"datum": dt_util.now().date().isoformat(), "stunden": {}}
+    await laufzeit.auswerten()
+    freezer.tick(timedelta(minutes=10))
+
+    await laufzeit.auswerten()
+
+    stunde = laufzeit.verlauf["stunden"][str(dt_util.now().hour)]
+    assert stunde["ab"] == pytest.approx(0.4)
+    assert stunde["ba"] == 1
+
+
 async def test_fehlende_werte_der_stunde_werden_nicht_eingetragen(hass, anlage, freezer):
     from datetime import timedelta
 
