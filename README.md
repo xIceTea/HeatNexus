@@ -314,16 +314,16 @@ Ein Dashboard **Heizung** erscheint nach der Einrichtung von selbst in der
 Seitenleiste. Es wird aus den tatsächlich gefundenen Geräten gebaut – keine
 Entitäts-IDs eintragen, kein YAML kopieren. Jeder Reiter trägt seinen Namen:
 
-- **Übersicht** – der Reiter erscheint erst ab zwei Anlagen. Oben stehen
-  anliegende Störungen mit Text und Abhilfe. Darunter folgt je Anlage ein
+- **Übersicht** – der Reiter steht vorn, auch bei einer einzelnen Anlage. Oben
+  stehen anliegende Störungen mit Text und Abhilfe. Darunter folgt je Anlage ein
   Abschnitt mit Schaubild, Kernwerten, Thermostaten und den alltäglichen
   Tasten. Außentemperatur, Störungen und, sofern eingerichtet, der Status der
   Automatik stehen als Badges darüber. Ein Tippen auf den Anlagennamen öffnet
   die Arbeitsseite.
 - **Je Anlage eine Arbeitsseite** – sie zeigt je Anlagenteil Zeigerinstrumente,
   Zustand und Bedienung, bei Heizkreisen zuerst das Thermostat. Gibt es nur
-  eine Anlage, steht diese Seite vorn und trägt oben Meldungen, Badges und das
-  Schaubild mit Zustandsliste.
+  eine Anlage, trägt diese Seite oben Meldungen, Badges und das Schaubild mit
+  Zustandsliste.
 - **Wartung** – Restlaufzeiten bis Ascheentleerung, Hauptreinigung und Wartung
   stehen als Rundinstrument, dazu Brennstoff, Vorratsbehälter und
   Zählerstände. Die Abschnitte tragen den Namen von Anlage und Anlagenteil.

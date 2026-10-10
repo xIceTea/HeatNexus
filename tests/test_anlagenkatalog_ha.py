@@ -266,3 +266,21 @@ async def test_die_uebersicht_zeigt_jede_testanlage_nach_rollen(hass, anlage):
         assert not fremd, fremd[:10]
     finally:
         await _abbauen(hass, eintrag)
+
+
+async def test_die_uebersicht_steht_bei_einer_anlage_vorn(hass):
+    from custom_components.heatnexus.dashboard import dashboard_konfiguration
+    from custom_components.heatnexus.dashboard.anlagen import anlagen_lesen
+    from custom_components.heatnexus.dashboard.karten import pfad_anlage
+
+    eintrag = await _einrichten(hass, "purowin-uml-puffer", "betreiber")
+    try:
+        [gelesen] = anlagen_lesen(hass)
+        erste, zweite, *_ = dashboard_konfiguration(hass, als_karte=True)["views"]
+        assert erste["path"] == "uebersicht"
+        koepfe = [s["cards"][0].get("heading") for s in erste["sections"]]
+        assert gelesen["name"] in koepfe
+        assert erste["badges"]
+        assert zweite["path"] == pfad_anlage(gelesen)
+    finally:
+        await _abbauen(hass, eintrag)

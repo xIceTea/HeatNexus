@@ -2,7 +2,7 @@
 
 Gebaut in Home Assistant aus Geräte- und Entitätsliste, ausgeliefert als fertige
 Lovelace-Konfiguration; kein Browsermodul, keine festen Entitäts-IDs. Ansichten:
-Übersicht (ab zwei Anlagen), je Anlage, Wartung, Auswertung, je Anlagenteil eine Unteransicht.
+Übersicht, je Anlage, Wartung, Auswertung, je Anlagenteil eine Unteransicht.
 Die Seiten einer Anlage und ihrer Teile stehen in der Sprache ihres Eintrags, der Rest gemeinsam.
 """
 
@@ -69,19 +69,19 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
         return _uebersetzt(leer, gemeinsam)
 
     eigene = [woerterbuch_der_anlage(hass, a) for a in anlagen]
-    views: list[dict[str, Any]]
-    if len(anlagen) == 1:
-        kopf = badges.kopfzeile(hass, anlagen, eigene[0])
-        seite = anlage.arbeitsseite(anlagen[0], als_karte, mit_schaubild=True, badges=kopf)
-        views = [_uebersetzt(seite, eigene[0])]
+    einzeln = len(anlagen) == 1
+    # Mit einer Anlage steht auch der Rahmen der Übersicht in ihrer Sprache.
+    rahmen = eigene[0] if einzeln else gemeinsam
+    kopf = badges.uebersichtszeile(hass, anlagen, rahmen)
+    views: list[dict[str, Any]] = [uebersicht.uebersicht(anlagen, als_karte, kopf, rahmen, eigene)]
+    if einzeln:
+        kopfzeile = badges.kopfzeile(hass, anlagen, eigene[0])
+        seite = anlage.arbeitsseite(anlagen[0], als_karte, mit_schaubild=True, badges=kopfzeile)
+        views.append(_uebersetzt(seite, eigene[0]))
     else:
-        kopf = badges.uebersichtszeile(hass, anlagen, gemeinsam)
-        views = [
-            uebersicht.uebersicht(anlagen, als_karte, kopf, gemeinsam, eigene),
-            *(
-                _uebersetzt(anlage.arbeitsseite(a, als_karte, mit_schaubild=False), buch)
-                for a, buch in zip(anlagen, eigene, strict=True)
-            ),
+        views += [
+            _uebersetzt(anlage.arbeitsseite(a, als_karte, mit_schaubild=False), buch)
+            for a, buch in zip(anlagen, eigene, strict=True)
         ]
     gemeinsame = (wartung.wartung(anlagen), wartung.auswertung(anlagen))
     views += [_uebersetzt(v, gemeinsam) for v in gemeinsame if v]

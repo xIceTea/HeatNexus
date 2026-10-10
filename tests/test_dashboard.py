@@ -1176,6 +1176,14 @@ async def test_kennwerte_ohne_abgeschaltete_automatik(badges, hass):
     assert badges.allgemein(hass, [_anlage(_kessel())]) == []
 
 
+async def test_einzelanlage_beginnt_mit_der_uebersicht(dashboard, hass, monkeypatch):
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage(_kessel())])
+    erste, zweite, *_ = dashboard.dashboard_konfiguration(hass)["views"]
+    assert erste["path"] == "uebersicht"
+    assert [s["cards"][0].get("heading") for s in erste["sections"]][-1] == "Kesselhaus"
+    assert zweite["path"] == "anlage-anlage01"
+
+
 async def test_zwei_anlagen_melden_nur_in_der_uebersicht(dashboard, hass, monkeypatch):
     zweite = _anlage(
         {**_kessel(), "id": "zweiter0123456789"}, name="Werkstatt", kennung="werkst0123456789"
@@ -1362,12 +1370,11 @@ async def test_aussen_und_automatik_bleiben_bei_zwei_anlagen_ohne_anlagennamen(b
     assert namen[status.entity_id] == "Automatik"
 
 
-async def test_eine_anlage_ohne_reiter_uebersicht(dashboard, hass, monkeypatch):
+async def test_eine_anlage_hat_reiter_ohne_symbol(dashboard, hass, monkeypatch):
     monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage(_kessel())])
     hass.data["heatnexus_karte_js"] = True
     views = dashboard.dashboard_konfiguration(hass)["views"]
-    assert views[0]["path"] == "anlage-anlage01"
-    assert not [v for v in views if v["path"] == "uebersicht"]
+    assert [v["path"] for v in views][:2] == ["uebersicht", "anlage-anlage01"]
     assert all("icon" not in v for v in views)
 
 
@@ -1519,8 +1526,9 @@ async def test_eine_anlage_in_eigener_sprache_traegt_ihre_badges(dashboard, hass
 
     _anlagen_in_zwei_sprachen(hass, monkeypatch, dashboard, _werkstatt_auf_niederlaendisch())
 
-    [seite, *_] = dashboard.dashboard_konfiguration(hass)["views"]
+    [uebersicht, seite, *_] = dashboard.dashboard_konfiguration(hass)["views"]
 
+    assert uebersicht["title"] == Woerterbuch("nl")("Übersicht")
     namen = {b["name"] for b in seite["badges"]}
     assert Woerterbuch("nl")("Kessel") in namen
     assert "Kessel" not in namen
