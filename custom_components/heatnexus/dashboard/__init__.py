@@ -3,6 +3,7 @@
 Gebaut in Home Assistant aus Geräte- und Entitätsliste, ausgeliefert als fertige
 Lovelace-Konfiguration; kein Browsermodul, keine festen Entitäts-IDs. Ansichten:
 Übersicht (ab zwei Anlagen), je Anlage, Wartung, Auswertung, je Anlagenteil eine Unteransicht.
+Die Seiten einer Anlage und ihrer Teile stehen in der Sprache ihres Eintrags, der Rest gemeinsam.
 """
 
 from __future__ import annotations
@@ -18,9 +19,9 @@ import voluptuous as vol
 import yaml
 
 from ..const import DASHBOARD_TITEL, DASHBOARD_URL, DOMAIN
-from ..texte import LOVELACE_FELDER, uebersetze_baum, woerterbuch
+from ..texte import LOVELACE_FELDER, Woerterbuch, uebersetze_baum, woerterbuch
 from . import anlage, badges, details, uebersicht, wartung
-from .anlagen import anlagen_lesen
+from .anlagen import anlagen_lesen, woerterbuch_der_anlage
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,14 +35,20 @@ def dashboard_konfiguration(hass: HomeAssistant, als_karte: bool | None = None) 
     """
     if als_karte is None:
         als_karte = bool(hass.data.get(f"{DOMAIN}_karte_js"))
-    return uebersetze_baum(_konfiguration(hass, als_karte), woerterbuch(hass), LOVELACE_FELDER)
+    return _konfiguration(hass, als_karte)
+
+
+def _uebersetzt(ansicht: dict[str, Any], buch: Woerterbuch) -> dict[str, Any]:
+    """Eine fertige Ansicht in der Sprache eines Wörterbuchs."""
+    return uebersetze_baum(ansicht, buch, LOVELACE_FELDER)
 
 
 def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
-    """Die Ansichten, noch in der Quellsprache."""
+    """Die Ansichten, jede in ihrer Sprache."""
+    gemeinsam = woerterbuch(hass)
     anlagen = anlagen_lesen(hass)
     if not anlagen:
-        return {
+        leer = {
             "title": DASHBOARD_TITEL,
             "views": [
                 {
@@ -59,19 +66,32 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
                 }
             ],
         }
+        return _uebersetzt(leer, gemeinsam)
 
-    kopf = badges.kopfzeile(hass, anlagen)
+    eigene = [woerterbuch_der_anlage(hass, a) for a in anlagen]
     views: list[dict[str, Any]]
     if len(anlagen) == 1:
-        views = [anlage.arbeitsseite(anlagen[0], als_karte, mit_schaubild=True, badges=kopf)]
+        kopf = badges.kopfzeile(hass, anlagen, eigene[0])
+        seite = anlage.arbeitsseite(anlagen[0], als_karte, mit_schaubild=True, badges=kopf)
+        views = [_uebersetzt(seite, eigene[0])]
     else:
+        kopf = badges.kopfzeile(hass, anlagen, gemeinsam)
         views = [
-            uebersicht.uebersicht(anlagen, als_karte, kopf),
-            *(anlage.arbeitsseite(a, als_karte, mit_schaubild=False) for a in anlagen),
+            _uebersetzt(uebersicht.uebersicht(anlagen, als_karte, kopf), gemeinsam),
+            *(
+                _uebersetzt(anlage.arbeitsseite(a, als_karte, mit_schaubild=False), buch)
+                for a, buch in zip(anlagen, eigene, strict=True)
+            ),
         ]
-    views += [v for v in (wartung.wartung(anlagen), wartung.auswertung(anlagen)) if v]
-    views += [v for a in anlagen for t in a["teile"] if (v := details.unteransicht(a, t))]
-    return {"title": DASHBOARD_TITEL, "views": views}
+    gemeinsame = (wartung.wartung(anlagen), wartung.auswertung(anlagen))
+    views += [_uebersetzt(v, gemeinsam) for v in gemeinsame if v]
+    views += [
+        _uebersetzt(v, buch)
+        for a, buch in zip(anlagen, eigene, strict=True)
+        for t in a["teile"]
+        if (v := details.unteransicht(a, t))
+    ]
+    return {"title": gemeinsam.satz(DASHBOARD_TITEL), "views": views}
 
 
 def als_yaml(konfiguration: dict[str, Any]) -> str:

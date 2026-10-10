@@ -220,7 +220,10 @@ class HeatNexusSchaubildKarte extends Grundlage {
     this.shadowRoot.appendChild(stil);
 
     const anlagen = this._gewaehlteAnlagen();
-    const bilder = anlagen.map((a) => this._schaubild(a)).filter(Boolean);
+    // Jedes Bild spricht die Sprache seiner Anlage; die Liste nur, wenn die Karte eine einzige zeigt.
+    const bilder = anlagen
+      .map((anlage) => this._inSprache(anlage, (sicht) => sicht._schaubild(anlage)))
+      .filter(Boolean);
     if (!bilder.length && !this._zusatzwerte().length) {
       this.shadowRoot.appendChild(this._hinweis());
       this._uebersetzen(this.shadowRoot);
@@ -234,7 +237,8 @@ class HeatNexusSchaubildKarte extends Grundlage {
         if (huelle) huelle.classList.add("ruhig");
       });
     }
-    const liste = this._werteliste();
+    const einzige = anlagen.length === 1 ? anlagen[0] : null;
+    const liste = this._inSprache(einzige, (sicht) => sicht._werteliste());
     const stelle = liste ? this._config.liste || "rechts" : "aus";
     const rahmen = document.createElement("div");
     rahmen.className = `karte-zweispaltig lage-${stelle}`;

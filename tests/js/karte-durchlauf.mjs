@@ -309,4 +309,22 @@ await englisch._laden;
 const vorbelegung = englisch._daten();
 bilanz.vorbelegtEnglisch = [vorbelegung.titel_bild, vorbelegung.titel_liste];
 
+// Eine Anlage mit eigener Sprache beschriftet Bild und Liste mit ihrem Wörterbuch.
+const eigene = anlagen.map((anlage, stelle) =>
+  stelle === 1 ? { ...anlage, sprache: "nl", texte: { Werte: "Waarden", "Anlagenübersicht": "Overzicht" } } : anlage
+);
+const niederlaendisch = new Klasse();
+niederlaendisch.setConfig({ anlage: anlagen[1].id, zusatzwerte: ["sensor.kessel"] });
+niederlaendisch.hass = {
+  states: { "sensor.kessel": { state: "70", attributes: {} } },
+  themes: { darkMode: true },
+  callWS: async ({ type }) => (type === "heatnexus/texte" ? {} : eigene),
+};
+await niederlaendisch._laden;
+const sprachteile = niederlaendisch.shadowRoot.querySelectorAll("[lang]");
+bilanz.eigeneSprache = {
+  lang: sprachteile.map((teil) => teil.getAttribute("lang")),
+  titel: niederlaendisch.shadowRoot.querySelectorAll("h2").map((titel) => titel.textContent),
+};
+
 console.log(JSON.stringify(bilanz));

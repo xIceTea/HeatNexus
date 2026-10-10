@@ -217,7 +217,8 @@ export const BedienenMixin = (Basis) =>
 
     anzeige.className = "rueckmeldung wartet";
     anzeige.textContent = this._t("wird ausgeführt …");
-    this._wartend.push({ anzeige, bestaetigt, kennung, seit: Date.now() });
+    // Die Sicht der Anlage geht mit: Bestätigt wird später, aus der ganzen Fläche heraus.
+    this._wartend.push({ anzeige, bestaetigt, kennung, seit: Date.now(), sicht: this });
     this._pruefeWartende();
     return true;
   }
@@ -263,15 +264,16 @@ export const BedienenMixin = (Basis) =>
         console.warn("HeatNexus: Zustand nicht prüfbar", err);
         fertig = true;
       }
+      const sicht = vorgang.sicht || this;
       if (fertig) {
         vorgang.anzeige.className = "rueckmeldung erfolg";
-        vorgang.anzeige.textContent = this._t("übernommen ✓");
+        vorgang.anzeige.textContent = sicht._t("übernommen ✓");
         this._freigeben(vorgang.anzeige, RUECKMELDUNG_MS);
         return;
       }
       if (Date.now() - vorgang.seit > BESTAETIGUNG_MAX_MS) {
         vorgang.anzeige.className = "rueckmeldung";
-        vorgang.anzeige.textContent = this._t("keine Rückmeldung");
+        vorgang.anzeige.textContent = sicht._t("keine Rückmeldung");
         this._freigeben(vorgang.anzeige, RUECKMELDUNG_MS);
         return;
       }

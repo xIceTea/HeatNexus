@@ -9,6 +9,10 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
+// Diese Methoden laufen immer am Element selbst, auch aus der Sicht einer Anlage heraus:
+// Sie zeichnen die ganze Fläche oder wählen die Sprache selbst.
+const AM_ELEMENT = new Set(["_zeichnen", "_aufbauen", "_aktualisieren", "_sicht", "_inSprache"]);
+
 export const BausteineMixin = (Basis) =>
   class extends Basis {
   /**
@@ -35,6 +39,41 @@ export const BausteineMixin = (Basis) =>
   }
 
   /**
+   * Dieselbe Oberfläche mit dem Wörterbuch einer Anlage, die eine eigene Sprache spricht.
+   * Was über die Sicht entsteht, hält sie fest: Bindungen, Klicks und Rückfragen übersetzen
+   * später mit demselben Wörterbuch. Zustand und eingebaute Methoden bleiben am Element.
+   */
+  _sicht(anlage) {
+    const texte = anlage && anlage.texte;
+    if (!texte) return this;
+    if (!this._sichten) this._sichten = new WeakMap();
+    if (!this._sichten.has(anlage)) {
+      const sicht = new Proxy(this, {
+        get(ziel, name) {
+          if (name === "_texte") return texte;
+          const amElement = AM_ELEMENT.has(name) || name in HTMLElement.prototype;
+          const wert = Reflect.get(ziel, name, amElement ? ziel : sicht);
+          return amElement && typeof wert === "function" ? wert.bind(ziel) : wert;
+        },
+        set: (ziel, name, wert) => Reflect.set(ziel, name, wert, ziel),
+      });
+      this._sichten.set(anlage, sicht);
+    }
+    return this._sichten.get(anlage);
+  }
+
+  /** Einen Teil der Anlage in ihrer Sprache bauen; `lang` hält den Rahmen davon fern. */
+  _inSprache(anlage, bauen) {
+    const sicht = this._sicht(anlage);
+    const knoten = bauen(sicht);
+    if (sicht !== this && knoten) {
+      sicht._uebersetzen(knoten);
+      knoten.setAttribute("lang", anlage.sprache || "");
+    }
+    return knoten;
+  }
+
+  /**
    * Den fertigen Baum in die eingestellte Sprache bringen.
    *
    * Fängt, was beim Aufbau entsteht; später gesetzte Texte gehen einzeln
@@ -47,6 +86,8 @@ export const BausteineMixin = (Basis) =>
       // Das Stylesheet ist ein Textknoten von zigtausend Zeichen und trägt
       // nichts zum Lesen bei.
       if (knoten.tagName === "STYLE" || knoten.tagName === "SCRIPT") return;
+      // Ein Teil mit eigener Sprache ist schon übersetzt.
+      if (knoten !== wurzel && knoten.getAttribute && knoten.getAttribute("lang")) return;
       if (knoten.getAttribute) {
         merkmale.forEach((merkmal) => {
           const wert = knoten.getAttribute(merkmal);

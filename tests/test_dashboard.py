@@ -1478,3 +1478,60 @@ def _verlaufslinien(knoten) -> list[str]:
 def test_der_verlauf_des_puffers_zeigt_alle_drei_fuehler(wartungsseite):
     linien = _verlaufslinien(wartungsseite.auswertung([_puffer_anlage()]))
     assert linien == ["sensor.oben", "sensor.mitte", "sensor.unten"]
+
+
+def _anlagen_in_zwei_sprachen(hass, monkeypatch, dashboard, *anlagen: dict) -> None:
+    """Gemeinsam Deutsch; der Eintrag „nl“ spricht Niederländisch, jeder andere Deutsch."""
+    from custom_components.heatnexus import texte
+
+    hass.config.language = "de"
+    monkeypatch.setattr(
+        texte,
+        "woerterbuch_des_eintrags",
+        lambda _hass, eintrag: texte.Woerterbuch("nl" if eintrag == "nl" else "de"),
+    )
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: list(anlagen))
+
+
+def _werkstatt_auf_niederlaendisch() -> dict:
+    teile, _namen = auf_englisch([{**_kessel(), "id": "zweiter0123456789"}])
+    return {**_anlage(*teile, name="Werkstatt", kennung="werkst0123456789"), "eintrag": "nl"}
+
+
+# „die“ ist auch niederländisch und zählt dort nicht als deutsches Merkmal.
+DEUTSCH_NEBEN_NL = re.compile(DEUTSCH.pattern.replace("|die|", "|"))
+
+
+def _deutsche_reste(ansichten: list[dict]) -> list[str]:
+    texte = _sichtbare_texte(ansichten)
+    return sorted({t for t in texte if DEUTSCH_NEBEN_NL.search(t.replace("Werkstatt", ""))})
+
+
+async def test_ansichten_einer_anlage_stehen_in_ihrer_sprache(dashboard, karten, hass, monkeypatch):
+    """Übersicht, Wartung und Auswertung bleiben gemeinsam; Seite und Teile der Anlage wechseln."""
+    werkstatt = _werkstatt_auf_niederlaendisch()
+    kesselhaus = {**_anlage(_kessel()), "eintrag": "de"}
+    _anlagen_in_zwei_sprachen(hass, monkeypatch, dashboard, kesselhaus, werkstatt)
+
+    views = dashboard.dashboard_konfiguration(hass)["views"]
+    pfad = karten.pfad_anlage(werkstatt)
+    eigene = [v for v in views if pfad in (v["path"], v.get("back_path", "").split("/")[-1])]
+    gemeinsame = [v for v in views if v not in eigene]
+
+    assert len(eigene) == 2
+    assert not _deutsche_reste(eigene), _deutsche_reste(eigene)
+    assert "Bediening" in _sichtbare_texte(eigene)
+    assert {"Übersicht", "Wartung", "Kesselhaus"} <= {v["title"] for v in gemeinsame}
+    assert "Bedienung" in _sichtbare_texte(gemeinsame)
+
+
+async def test_eine_anlage_in_eigener_sprache_traegt_ihre_badges(dashboard, hass, monkeypatch):
+    from custom_components.heatnexus.texte import Woerterbuch
+
+    _anlagen_in_zwei_sprachen(hass, monkeypatch, dashboard, _werkstatt_auf_niederlaendisch())
+
+    [seite, *_] = dashboard.dashboard_konfiguration(hass)["views"]
+
+    namen = {b["name"] for b in seite["badges"]}
+    assert Woerterbuch("nl")("Kessel") in namen
+    assert "Kessel" not in namen

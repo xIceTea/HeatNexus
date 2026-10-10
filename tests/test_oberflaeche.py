@@ -951,3 +951,93 @@ def test_auf_englisch_bleibt_kein_deutscher_text_ohne_eintrag(aufteilung, tmp_pa
 
     reste = sorted(t for t in json.loads(ergebnis.stdout) if DEUTSCH.search(ohne_namen(t)))
     assert not reste, f"auf Englisch noch deutsch: {reste}"
+
+
+SPRACHEN = Path(__file__).parent / "js" / "sprachen-durchlauf.mjs"
+# „die“ ist auch niederländisch und zählt dort nicht als deutsches Merkmal.
+DEUTSCH_NEBEN_NL = re.compile(DEUTSCH.pattern.replace("|die|", "|"))
+
+
+def _in_sprachen(aufteilung, eigene: str, gemeinsame: str = "de") -> dict:
+    """Dieselbe Anlage zweimal: A in der gemeinsamen Sprache, B in einer eigenen."""
+    from custom_components.heatnexus.dashboard.anlagen import anlage_in_sprache
+    from custom_components.heatnexus.texte import Woerterbuch
+
+    gemeinsam = Woerterbuch(gemeinsame)
+    [anlage] = aufteilung["anlagen"]
+    a = anlage_in_sprache({**anlage, "id": "a", "name": "Anlage A"}, gemeinsam, gemeinsam)
+    b = anlage_in_sprache({**anlage, "id": "b", "name": "Anlage B"}, Woerterbuch(eigene), gemeinsam)
+    return {**aufteilung, "anlagen": [a, b], "texte": gemeinsam.fuer_frontend}
+
+
+@pytest.fixture(scope="module")
+def zwei_sprachen(aufteilung, tmp_path_factory) -> tuple[dict, dict]:
+    nutzlast = _in_sprachen(aufteilung, "nl")
+    datei = tmp_path_factory.mktemp("sprachen") / "daten.json"
+    datei.write_text(json.dumps(nutzlast), encoding="utf-8")
+    ergebnis = subprocess.run(
+        ["node", str(SPRACHEN), str(PANEL_JS), str(datei)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    assert ergebnis.returncode == 0, ergebnis.stderr[:2000]
+    return nutzlast, json.loads(ergebnis.stdout)
+
+
+def test_nur_eine_abweichende_anlage_bringt_ihr_woerterbuch_mit(aufteilung):
+    nutzlast = _in_sprachen(aufteilung, "nl")
+    a, b = nutzlast["anlagen"]
+    assert (a["sprache"], b["sprache"]) == ("de", "nl")
+    assert "texte" not in a
+    assert b["texte"]["Verstanden"] == "Begrepen"
+    assert nutzlast["texte"] == {}
+
+
+def test_deutsch_als_eigene_sprache_bringt_ein_leeres_woerterbuch_mit(aufteilung):
+    """Sonst übersetzte der Browser die deutsche Anlage mit dem gemeinsamen Englisch."""
+    _, b = _in_sprachen(aufteilung, "de", gemeinsame="en")["anlagen"]
+    assert b["texte"] == {}
+
+
+def _ohne_namen(anlage: dict):
+    namen = sorted(_texte_der_nutzlast({k: v for k, v in anlage.items() if k != "texte"}), key=len)
+
+    def bereinigt(text: str) -> str:
+        for name in reversed(namen):
+            text = text.replace(name, "")
+        return text
+
+    return bereinigt
+
+
+def test_die_seite_einer_anlage_steht_in_ihrer_sprache(zwei_sprachen):
+    nutzlast, ergebnis = zwei_sprachen
+    ohne_namen = _ohne_namen(nutzlast["anlagen"][1])
+    texte = ergebnis["seite"]["anlage"] + ergebnis["seite"]["fenster"]
+    reste = sorted(t for t in texte if DEUTSCH_NEBEN_NL.search(ohne_namen(t)))
+    assert ergebnis["lang"] == "nl"
+    assert "Begrepen" in ergebnis["seite"]["fenster"]
+    assert not reste, f"auf der niederländischen Seite noch deutsch: {reste}"
+
+
+def test_der_rahmen_bleibt_in_der_gemeinsamen_sprache(zwei_sprachen):
+    _, ergebnis = zwei_sprachen
+    rahmen = ergebnis["seite"]["rahmen"]
+    assert {"Übersicht", "Steuerung", "Alle"} <= set(rahmen)
+    assert not {"Overzicht", "Bediening"} & set(rahmen)
+
+
+def test_unter_alle_steht_jede_anlage_in_ihrer_sprache(zwei_sprachen):
+    nutzlast, ergebnis = zwei_sprachen
+    ohne_namen = _ohne_namen(nutzlast["anlagen"][1])
+    reste = sorted(t for t in ergebnis["alle"]["anlage"] if DEUTSCH_NEBEN_NL.search(ohne_namen(t)))
+    assert not reste, f"Anlage B unter „Alle“ noch deutsch: {reste}"
+    assert any(DEUTSCH.search(t) for t in ergebnis["alle"]["rahmen"])
+
+
+def test_spaete_texte_folgen_der_sprache_der_anlage(zwei_sprachen):
+    """Klick, Rückfrage und Rückmeldung entstehen nach dem Aufbau und halten die Anlage fest."""
+    _, ergebnis = zwei_sprachen
+    assert ergebnis["geoeffnet"]
+    assert ergebnis["rueckmeldung"] == "overgenomen ✓"

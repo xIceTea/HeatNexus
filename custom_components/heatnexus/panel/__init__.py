@@ -52,7 +52,12 @@ from ..const import (
     panel_element,
     panel_js_pfad,
 )
-from ..dashboard.anlagen import anlagen_lesen, gewaehlte_aussentemperatur
+from ..dashboard.anlagen import (
+    anlage_in_sprache,
+    anlagen_lesen,
+    gewaehlte_aussentemperatur,
+    woerterbuch_der_anlage,
+)
 from ..entity import steuerung_kennung
 from ..registrierung import geraet_suchen
 from ..texte import uebersetze_baum, woerterbuch
@@ -138,6 +143,23 @@ def _marken_je_anlage(
     return je_anlage
 
 
+def _ohne_hilfe(anlage: dict[str, Any]) -> None:
+    """Die Erklärungen aus den Nutzdaten einer Anlage nehmen."""
+    anlage["hilfe"] = {}
+    for bereich in ("schnellzugriff", "zeitprogramme"):
+        for eintrag in anlage.get(bereich) or []:
+            eintrag.pop("hilfe", None)
+    steuerung = anlage.get("steuerung") or {}
+    for eintrag in steuerung.get("kessel") or []:
+        eintrag.pop("hilfe", None)
+    for kreis in steuerung.get("heizkreise") or []:
+        kreis.pop("betriebswahl_hilfe", None)
+    if steuerung.get("lagerraum"):
+        steuerung["lagerraum"].pop("hilfe", None)
+    if (wasser := steuerung.get("warmwasser")) and wasser.get("taste"):
+        wasser["taste"].pop("hilfe", None)
+
+
 def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     """Die vollständige Struktur für die Oberfläche.
 
@@ -146,40 +168,31 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     """
     aussen = gewaehlte_aussentemperatur(hass)
     marken = _marken_je_anlage(hass, benutzer)
-    daten = {
-        "anlagen": [
-            _anlage_daten(anlage, aussen, *marken.get(anlage.get("id"), ((), ())))
-            for anlage in anlagen_lesen(hass, benutzer)
-        ],
+    mit_hilfe = _hilfe_gewuenscht(hass)
+    # Übersetzt wird hier, damit die Daten und die Anzeige übereinstimmen –
+    # die Hilfesuche durchsucht die Titel der Nutzlast. Was der Browser
+    # selbst beschriftet, steht nicht im Baum und braucht das Wörterbuch.
+    gemeinsam = woerterbuch(hass)
+    anlagen = []
+    for anlage in anlagen_lesen(hass, benutzer):
+        nutzdaten = _anlage_daten(anlage, aussen, *marken.get(anlage.get("id"), ((), ())))
+        if not mit_hilfe:
+            # Abgewählt: Die Texte gar nicht erst mitschicken.
+            _ohne_hilfe(nutzdaten)
+        buch = woerterbuch_der_anlage(hass, anlage)
+        anlagen.append(anlage_in_sprache(nutzdaten, buch, gemeinsam))
+    gemeinsame_daten = {
         # Eco und Comfort gelten für alle Anlagen gemeinsam.
         "uebersteuerung": _uebersteuerung(hass),
         # Die Außentemperatur der Ansicht „Alle". Dort steht keine einzelne
         # Anlage im Vordergrund, also gilt die gewählte Entität – und nur dort.
         "aussentemperatur": aussen,
     }
-    if not _hilfe_gewuenscht(hass):
-        # Abgewählt: Die Texte gar nicht erst mitschicken.
-        for anlage in daten["anlagen"]:
-            anlage["hilfe"] = {}
-            for bereich in ("schnellzugriff", "zeitprogramme"):
-                for eintrag in anlage.get(bereich) or []:
-                    eintrag.pop("hilfe", None)
-            steuerung = anlage.get("steuerung") or {}
-            for eintrag in steuerung.get("kessel") or []:
-                eintrag.pop("hilfe", None)
-            for kreis in steuerung.get("heizkreise") or []:
-                kreis.pop("betriebswahl_hilfe", None)
-            if steuerung.get("lagerraum"):
-                steuerung["lagerraum"].pop("hilfe", None)
-            if (wasser := steuerung.get("warmwasser")) and wasser.get("taste"):
-                wasser["taste"].pop("hilfe", None)
-    # Übersetzt wird hier, damit die Daten und die Anzeige übereinstimmen –
-    # die Hilfesuche durchsucht die Titel der Nutzlast. Was der Browser
-    # selbst beschriftet, steht nicht im Baum und braucht das Wörterbuch.
-    buch = woerterbuch(hass)
-    daten = uebersetze_baum(daten, buch)
-    daten["texte"] = buch.fuer_frontend
-    return daten
+    return {
+        "anlagen": anlagen,
+        **uebersetze_baum(gemeinsame_daten, gemeinsam),
+        "texte": gemeinsam.fuer_frontend,
+    }
 
 
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/panel_daten"})

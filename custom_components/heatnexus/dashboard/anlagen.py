@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .. import waermequelle
+from .. import texte, waermequelle
 from ..bezeichnung import bezeichnung_lesen
 from ..const import (
     AUTOMATIK_GERAET_ENDUNG,
@@ -191,6 +191,40 @@ def _meldungsart(kennung: str) -> str | None:
     return endung if endung in _MELDUNGSARTEN else None
 
 
+def woerterbuch_der_anlage(hass: HomeAssistant, anlage: dict[str, Any]) -> texte.Woerterbuch:
+    """Das Wörterbuch des Eintrags, zu dem die Anlage gehört; ohne Eintrag das gemeinsame."""
+    if eintrag := anlage.get("eintrag"):
+        return texte.woerterbuch_des_eintrags(hass, eintrag)
+    return texte.woerterbuch(hass)
+
+
+def anlage_in_sprache(
+    daten: dict[str, Any], buch: texte.Woerterbuch, gemeinsam: texte.Woerterbuch
+) -> dict[str, Any]:
+    """Die Daten einer Anlage für den Browser, übersetzt mit dem Wörterbuch ihres Eintrags.
+
+    Weicht ihre Sprache von der gemeinsamen ab, reist das Wörterbuch mit: Der
+    Browser beschriftet damit, was zu dieser Anlage gehört.
+    """
+    fertig = {**texte.uebersetze_baum(daten, buch), "sprache": buch.sprache}
+    if buch.sprache != gemeinsam.sprache:
+        fertig["texte"] = buch.fuer_frontend
+    return fertig
+
+
+def _gruppe_abschliessen(gruppe: dict[str, Any]) -> None:
+    """Teile ordnen und die Schaubildwahl der Anlage aus ihren Teilen ableiten."""
+    gruppe["teile"].sort(key=lambda t: (t["rang"], t["name"]))
+    # Welcher zweite Wert am Kessel steht. Die erste ausdrückliche Angabe
+    # gilt; ohne Angabe bleibt es bei der Leistung.
+    gruppe["kesselwert"] = next(
+        (t["kesselwert_wahl"] for t in gruppe["teile"] if t.get("kesselwert_wahl")),
+        KESSELWERT_LEISTUNG,
+    )
+    # Erst wenn eine Anlage eine Pumpe am Modul bestätigt, steht sie im Bild.
+    gruppe["modulpumpe"] = any(t.get("modulpumpe_wahl") for t in gruppe["teile"])
+
+
 def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, Any]]:
     """Anlagen mit ihren Anlagenteilen und deren sichtbaren Entitäten.
 
@@ -210,12 +244,12 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
     # Nur die eigenen Geräte: Home Assistant prüft die Form der Kennungen nicht,
     # und fremde Integrationen halten sich nicht immer an das Paar.
     eigene = (
-        geraet
+        (entry.entry_id, geraet)
         for entry in hass.config_entries.async_entries(DOMAIN)
         for geraet in dr.async_entries_for_config_entry(geraete_registry, entry.entry_id)
     )
     teile: dict[str, dict[str, Any]] = {}
-    for geraet in eigene:
+    for entry_id, geraet in eigene:
         kennung = next((w for bereich, w in geraet.identifiers if bereich == DOMAIN), None)
         if kennung is None:
             continue
@@ -229,6 +263,7 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
             "name": kurzname(geraet.name_by_user or geraet.name),
             "id": geraet.id,
             "anlage_id": geraet.via_device_id,
+            "eintrag": entry_id,
             "fct_type": fct,
             "art": art,
             "quellenpumpe": bool(quelle.get("pumpe")),
@@ -310,6 +345,8 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
                 # der Name täte das auch, bis ihn jemand ändert.
                 "id": anlage_id,
                 "name": kurzname((teile.get(anlage_id) or {}).get("name")),
+                # Der Config-Eintrag; seine Sprache gilt für die Seiten der Anlage.
+                "eintrag": teil["eintrag"],
                 "teile": [],
             },
         )
@@ -317,15 +354,7 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
         teil["entitaeten"].sort(key=lambda e: e["name"])
 
     for gruppe in anlagen.values():
-        gruppe["teile"].sort(key=lambda t: (t["rang"], t["name"]))
-        # Welcher zweite Wert am Kessel steht. Die erste ausdrückliche Angabe
-        # gilt; ohne Angabe bleibt es bei der Leistung.
-        gruppe["kesselwert"] = next(
-            (t["kesselwert_wahl"] for t in gruppe["teile"] if t.get("kesselwert_wahl")),
-            KESSELWERT_LEISTUNG,
-        )
-        # Erst wenn eine Anlage eine Pumpe am Modul bestätigt, steht sie im Bild.
-        gruppe["modulpumpe"] = any(t.get("modulpumpe_wahl") for t in gruppe["teile"])
+        _gruppe_abschliessen(gruppe)
 
     return sorted(anlagen.values(), key=lambda a: a["name"])
 

@@ -13,7 +13,7 @@ from .. import geraete
 from ..automatik.system import kreisnamen
 from ..automatik.verwaltung import DATEN_SCHLUESSEL, system_unique_id, unique_id
 from ..const import DOMAIN
-from ..texte import woerterbuch
+from ..texte import Woerterbuch, woerterbuch
 from . import auswahl
 from .anlagen import gewaehlte_aussentemperatur
 from .muster import WARTUNG_HINWEIS_STUNDEN, WARTUNG_KURZNAMEN
@@ -209,6 +209,12 @@ def _aktive_entitaet(hass: HomeAssistant, kennung: str) -> str | None:
     return None
 
 
-def kopfzeile(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Alle Badges der Kopfzeile: erst die allgemeinen, dann die je Anlage."""
-    return [*allgemein(hass, anlagen), *anlagenbadges(anlagen, woerterbuch(hass))]
+def kopfzeile(
+    hass: HomeAssistant, anlagen: list[dict[str, Any]], uebersetze: Woerterbuch | None = None
+) -> list[dict[str, Any]]:
+    """Alle Badges der Kopfzeile: erst die allgemeinen, dann die je Anlage.
+
+    `uebersetze` ist das Wörterbuch der Ansicht, die sie trägt; ohne Angabe das gemeinsame.
+    """
+    buch = woerterbuch(hass) if uebersetze is None else uebersetze
+    return [*allgemein(hass, anlagen), *anlagenbadges(anlagen, buch)]

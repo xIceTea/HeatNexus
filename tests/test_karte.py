@@ -445,3 +445,8 @@ def test_ein_kalter_kessel_laedt_nicht(durchlauf):
 def test_die_karte_zeichnet_sofort_aus_dem_gemerkten_aufbau(durchlauf):
     """Ohne den gemerkten Stand steht die Karte leer, bis die Abfrage zurück ist."""
     assert durchlauf["sofortAusSpeicher"] is True
+
+
+def test_eine_anlage_mit_eigener_sprache_beschriftet_ihre_karte(durchlauf):
+    """Bild und Liste einer niederländischen Anlage, ohne dass die Karte selbst umstellt."""
+    assert durchlauf["eigeneSprache"] == {"lang": ["nl", "nl"], "titel": ["Overzicht", "Waarden"]}

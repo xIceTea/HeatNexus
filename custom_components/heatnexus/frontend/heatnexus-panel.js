@@ -249,10 +249,10 @@ class HeatNexusPanel extends Grundlage {
         const ueberschrift = document.createElement("div");
         ueberschrift.className = "anlagen-trenner";
         ueberschrift.textContent = eintrag.name || "Anlage";
-        inhalt.append(ueberschrift, this._inhalt(eintrag));
+        inhalt.append(ueberschrift, this._anlagenInhalt(eintrag));
       });
     } else {
-      inhalt.appendChild(this._inhalt(anlage));
+      inhalt.appendChild(this._anlagenInhalt(anlage));
     }
     this.shadowRoot.replaceChildren(stil, inhalt);
     this._verlaufKarteLaden();
@@ -466,6 +466,12 @@ class HeatNexusPanel extends Grundlage {
       griffe.appendChild(taste);
     });
     return griffe;
+  }
+
+  /** Der Inhalt einer Anlage in ihrer Sprache; die Automatik spricht die gemeinsame. */
+  _anlagenInhalt(anlage) {
+    if (this._reiter === "automatik") return this._inhalt(anlage);
+    return this._inSprache(anlage, (sicht) => sicht._inhalt(anlage));
   }
 
   _inhalt(anlage) {

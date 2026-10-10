@@ -16,9 +16,9 @@ import voluptuous as vol
 
 from .auslieferung import async_dateien_ausliefern, karte_als_ressource, karte_anmelden
 from .const import DOMAIN
-from .dashboard.anlagen import anlagen_lesen
+from .dashboard.anlagen import anlage_in_sprache, anlagen_lesen, woerterbuch_der_anlage
 from .schema import schaubild_daten
-from .texte import uebersetze_baum, woerterbuch
+from .texte import woerterbuch
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,9 +30,14 @@ def kartendaten(
     zeichnungen: dict[str, str] | None = None,
     mischer: bool = True,
 ) -> list[dict[str, Any]]:
-    """Alle Anlagen mit ihrem Schaubild, frisch aus der Registrierung."""
-    daten = schaubild_daten(anlagen_lesen(hass), auswahl, teile_aus or [], zeichnungen, mischer)
-    return uebersetze_baum(daten, woerterbuch(hass))
+    """Alle Anlagen mit ihrem Schaubild, frisch aus der Registrierung, jede in ihrer Sprache."""
+    anlagen = anlagen_lesen(hass)
+    gemeinsam = woerterbuch(hass)
+    daten = schaubild_daten(anlagen, auswahl, teile_aus or [], zeichnungen, mischer)
+    return [
+        anlage_in_sprache(eintrag, woerterbuch_der_anlage(hass, anlage), gemeinsam)
+        for anlage, eintrag in zip(anlagen, daten, strict=True)
+    ]
 
 
 # Obergrenzen, damit eine fehlerhafte Gegenstelle den Aufbau nicht sprengt.

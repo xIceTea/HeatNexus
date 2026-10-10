@@ -20,7 +20,7 @@
   "zeilen": 101
  },
  "custom_components/heatnexus/dashboard/anlagen.py::anlagen_lesen": {
-  "zeilen": 137
+  "zeilen": 132
  },
  "custom_components/heatnexus/formulare.py::level_schema": {
   "zeilen": 119
