@@ -258,11 +258,26 @@ def _sollwert(grundlage: list[Tag], seit: str | None) -> list[Hinweis]:
 
 
 def _morgen_spaet(grundlage: list[Tag], von: float | None, seit: str | None) -> list[Hinweis]:
+    """Vorhaltezeit verlängern; meldet die Steuerung keine, das Heizprogramm früher starten."""
     werte = [t.morgen_min for t in grundlage if t.morgen_min is not None]
-    if len(werte) < MIN_TAGE or von is None or (wert := median(werte)) < MORGEN_MIN:
+    if len(werte) < MIN_TAGE or (wert := median(werte)) < MORGEN_MIN:
         return []
-    nach = min(MAX_VORHALTEZEIT, von + _runden(wert, 15))
-    minuten = int(_runden(wert))
+    minuten, frueher = int(_runden(wert)), _runden(wert, 15)
+    if von is None:
+        return [
+            Hinweis(
+                "morgen_spaet",
+                len(werte),
+                seit,
+                None,
+                "zeitprogramm",
+                None,
+                frueher,
+                "min",
+                minuten,
+            )
+        ]
+    nach = min(MAX_VORHALTEZEIT, von + frueher)
     return [Hinweis("morgen_spaet", len(werte), seit, None, "3/6", von, nach, "min", minuten)]
 
 

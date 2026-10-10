@@ -334,6 +334,9 @@ export const KennwerteMixin = (Basis) =>
     _hinweisEmpfehlung(eintrag) {
       if (eintrag.art === "steuerung_passt_an") return this._t("Keine Empfehlung zur Kurve");
       if (eintrag.art === "sollwert_ausgleich") return this._t("Heizkurve anpassen statt Sollwert");
+      if (eintrag.parameter === "zeitprogramm" && vorhanden(eintrag.nach)) {
+        return this._tMit("Programmstart {minuten} min früher", { minuten: parameterwert(eintrag.nach) });
+      }
       if (!vorhanden(eintrag.von) || !vorhanden(eintrag.nach)) return null;
       const parameter = {
         "3/13": this._t("Vorlauf bei Auslegung"),

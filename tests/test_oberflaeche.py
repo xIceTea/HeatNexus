@@ -822,7 +822,7 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     assert sammelt["fragezeichen"] == 1
     assert sammelt["bloecke"] == []
     bereit = hinweise["bereit"]
-    assert (bereit["zahl"], bereit["neben"], bereit["fuss"]) == ("6", "Hinweise", [])
+    assert (bereit["zahl"], bereit["neben"], bereit["fuss"]) == ("7", "Hinweise", [])
     assert bereit["bloecke"] == [
         ["Heizkurve", "Keine Empfehlung zur Kurve", "Anpassung durch die Steuerung aktiv"],
         ["Heizkurve bei Frost", "Vorlauf bei Auslegung 80 → 86 °C", "−1,4 K · 18 Tage seit 14.11."],
@@ -830,6 +830,7 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
         ["Heizkurve", "Behaglichkeit 0 → −1 K", "+0,9 K · 20 Tage seit 14.11."],
         ["Raumsollwert", "Heizkurve anpassen statt Sollwert", "Sollwert 23,0 °C · 21 Tage"],
         ["Morgens zu spät warm", "Vorhaltezeit 60 → 135 min", "Ziel nach 95 min · 12 Tage"],
+        ["Morgens zu spät warm", "Programmstart 90 min früher", "Ziel nach 95 min · 8 Tage"],
     ]
 
 

@@ -1091,6 +1091,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
         { art: "heizkurve_parallel", tage: 20, seit: "2026-11-14", abweichung: 0.9, parameter: "3/58", von: 0, nach: -1, einheit: "K" },
         { art: "sollwert_ausgleich", tage: 21, seit: null, parameter: "3/51", von: 23, nach: null },
         { art: "morgen_spaet", tage: 12, seit: null, parameter: "3/6", von: 60, nach: 135, einheit: "min", minuten: 95 },
+        { art: "morgen_spaet", tage: 8, seit: null, parameter: "zeitprogramm", von: null, nach: 90, einheit: "min", minuten: 95 },
       ],
     }),
   };

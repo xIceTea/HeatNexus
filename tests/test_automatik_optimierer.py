@@ -430,7 +430,18 @@ def test_vorhaltezeit_grenzen(m):
     assert m.hinweise(reihe(m, 7, 2.0, 0.0, morgen=59), parameter(), HEUTE) == []
     tage = [*reihe(m, 6, 2.0, 0.0, morgen=90), tag(m, 6, 2.0, 0.0)]
     assert m.hinweise(tage, parameter(), HEUTE) == []
-    assert m.hinweise(reihe(m, 7, 2.0, 0.0, morgen=90), parameter(p3_6=None), HEUTE) == []
+
+
+def test_ohne_vorhaltezeit_empfiehlt_er_einen_frueheren_programmstart(m):
+    (h,) = m.hinweise(reihe(m, 7, 2.0, 0.0, morgen=95), parameter(p3_6=None), HEUTE)
+    assert (h.art, h.parameter, h.von, h.nach, h.einheit, h.minuten) == (
+        "morgen_spaet",
+        "zeitprogramm",
+        None,
+        90.0,
+        "min",
+        95,
+    )
 
 
 # --- Reihenfolge ----------------------------------------------------------

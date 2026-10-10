@@ -835,6 +835,7 @@
   "{tage} Tage": "{tage} days",
   "Ziel nach {minuten} min": "Target after {minuten} min",
   "Heizkurve anpassen statt Sollwert": "Adjust heating curve instead of setpoint",
+  "Programmstart {minuten} min früher": "Start program {minuten} min earlier",
   "Vorlauf bei Auslegung": "Design flow temperature",
   "Fußpunkt": "Base point",
   "Behaglichkeit": "Comfort correction",
