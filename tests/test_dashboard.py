@@ -1438,3 +1438,43 @@ async def test_die_vorlage_enthaelt_die_unteransichten(dashboard, hass, monkeypa
     monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [_anlage(_kessel())])
     views = yaml.safe_load(dashboard.dashboard_als_yaml(hass))["views"]
     assert [v["path"] for v in views if v.get("subview")] == ["teil-kessel01"]
+
+
+def _puffer_anlage() -> dict:
+    """Ein Puffer mit drei Fühlern, englisch benannt: Getroffen wird am Schlüssel."""
+
+    def fuehler(entity_id: str, name: str, schluessel: str) -> dict:
+        return {
+            "entity_id": entity_id,
+            "name": name,
+            "bereich": "sensor",
+            "hat_wert": True,
+            "kategorie": None,
+            "state_class": None,
+            "abgeleitet": False,
+            "schluessel": schluessel,
+        }
+
+    anlage = _anlage_mit_teilen()
+    anlage["teile"][0].update(name="Puffer", fct_type=21)
+    anlage["teile"][0]["entitaeten"] = [
+        fuehler("sensor.oben", "Accumulator top", "buffer_top"),
+        fuehler("sensor.mitte", "Accumulator centre", "buffer_middle"),
+        fuehler("sensor.unten", "Accumulator bottom", "buffer_bottom"),
+    ]
+    return anlage
+
+
+def _verlaufslinien(knoten) -> list[str]:
+    if isinstance(knoten, list):
+        return [e for k in knoten for e in _verlaufslinien(k)]
+    if not isinstance(knoten, dict):
+        return []
+    if knoten.get("type") == "history-graph":
+        return [e["entity"] for e in knoten["entities"]]
+    return [e for k in knoten.values() for e in _verlaufslinien(k)]
+
+
+def test_der_verlauf_des_puffers_zeigt_alle_drei_fuehler(wartungsseite):
+    linien = _verlaufslinien(wartungsseite.auswertung([_puffer_anlage()]))
+    assert linien == ["sensor.oben", "sensor.mitte", "sensor.unten"]

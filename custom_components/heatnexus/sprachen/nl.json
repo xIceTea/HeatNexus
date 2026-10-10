@@ -811,5 +811,8 @@
   "Hausmodell neu lernen": "Huismodel opnieuw leren",
   "Hausmodell neu lernen?": "Huismodel opnieuw leren?",
   "Die Automatik verwirft die gelernten Hauswerte und rechnet sie aus der Aufzeichnung neu. Das lohnt sich nach geänderten Räumen oder Umbauten.": "De automatisering verwerpt de geleerde huiswaarden en berekent ze opnieuw uit de opname. Dat loont na gewijzigde ruimtes of verbouwingen.",
-  "Räume wählen, die dieser Heizkreis versorgt und die für das Haus typisch sind. Keller, Bad oder Wintergarten verfälschen das Mittel und das Hausmodell.": "Kies ruimtes die dit verwarmingscircuit voedt en die typisch zijn voor het huis. Een kelder, badkamer of serre vertekent het gemiddelde en het huismodel."
+  "Räume wählen, die dieser Heizkreis versorgt und die für das Haus typisch sind. Keller, Bad oder Wintergarten verfälschen das Mittel und das Hausmodell.": "Kies ruimtes die dit verwarmingscircuit voedt en die typisch zijn voor het huis. Een kelder, badkamer of serre vertekent het gemiddelde en het huismodel.",
+  "noch bis {zeit}": "nog tot {zeit}",
+  "noch {minuten} min (bis {zeit})": "nog {minuten} min (tot {zeit})",
+  "Vorgabe {rest}": "Tijdelijke waarde {rest}"
 }

@@ -144,7 +144,7 @@
    "5": "Urlaubsprogramm",
    "6": "Estrich",
    "7": "Frostschutz",
-   "8": "Standby",
+   "8": "Standby Heizgrenze",
    "9": "Handbetrieb"
   },
   "20/0": {
@@ -1329,8 +1329,7 @@
     "2/72",
     "12/42",
     "20/111",
-    "20/65",
-    "9/75"
+    "20/65"
    ],
    "overview": [
     "2/59",
@@ -5128,8 +5127,7 @@
     "14/72",
     "14/73",
     "14/74",
-    "23/100",
-    "9/75"
+    "23/100"
    ],
    "overview": [
     "2/59",
@@ -8314,7 +8312,7 @@
      "5": "Holiday program",
      "6": "Screed",
      "7": "Frost protection",
-     "8": "Stand-by",
+     "8": "Stand-by heating limit",
      "9": "Manual mode"
     },
     "20/0": {
@@ -11289,7 +11287,7 @@
      "5": "Vakantieprogramma",
      "6": "Smeervloer",
      "7": "Vorstbewaking",
-     "8": "Standby",
+     "8": "Standby verwarmingsgrens",
      "9": "Handbedrijf"
     },
     "20/0": {

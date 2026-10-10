@@ -884,7 +884,7 @@ def test_auf_englisch_bleibt_kein_uebersetzbarer_text_deutsch(aufteilung, tmp_pa
 
 # Merkmale deutscher Sätze: Umlaute und häufige kurze Wörter.
 DEUTSCH = re.compile(
-    r"[äöüÄÖÜß]|(und|der|die|das|nicht|bis|von|mit|keine|seit|oder|für|zum|zur|Uhr|heute|Wert)"
+    r"[äöüÄÖÜß]|\b(und|der|die|das|nicht|bis|von|mit|keine|seit|oder|für|zum|zur|Uhr|heute|Wert)\b"
 )
 
 

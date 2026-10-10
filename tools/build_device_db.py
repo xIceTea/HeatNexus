@@ -89,28 +89,45 @@ def _uebernehmen(namen: dict[str, str], quelle: dict) -> None:
             namen[adresse] = text.strip()
 
 
-# Werte, die Geräte melden, die Tabelle aber nicht nennt: Text aus dem gleichbedeutenden Zustand.
-# `9/75 = 8` an BioWIN und LogWIN ist der Festbrennstoff-/Pufferbetrieb, Kesselzustand `2/59 = 2`.
+# Werte, die Geräte melden, die keine Tabelle des Herstellers nennt. `9/75 = 8`: Als Wahl bleibt
+# nur die Betriebsart, die die Anleitung ohne eigenen Wert führt (Festbrennstoff-/Pufferbetrieb).
 ENUM_ERGAENZUNG: dict[str, dict[str, tuple[str, str]]] = {"9/75": {"8": ("2/59", "2")}}
 
 
-def sammle_enums(parameter: dict) -> dict[str, dict]:
-    """Enum-Tabellen der Datei samt den Werten aus `ENUM_ERGAENZUNG`."""
+# Werte, die die Tabelle mit dem Text eines anderen Werts benennt. `2/9 = 8` ist der Stillstand
+# an der Heizgrenze: Text des Herstellers `EmStrId_STANDBY_HEATING_LIMIT`, nl ausgeschrieben.
+ENUM_PRAEZISIERUNG: dict[str, dict[str, dict[str, str]]] = {
+    "2/9": {
+        "8": {
+            "de": "Standby Heizgrenze",
+            "en": "Stand-by heating limit",
+            "nl": "Standby verwarmingsgrens",
+        }
+    },
+}
+
+
+def sammle_enums(parameter: dict, sprache: str = "de") -> dict[str, dict]:
+    """Enum-Tabellen der Datei samt `ENUM_ERGAENZUNG` und `ENUM_PRAEZISIERUNG`."""
     enums = {k: dict(v) for k, v in parameter.get("enums", {}).items() if isinstance(v, dict)}
     for adresse, werte in ENUM_ERGAENZUNG.items():
         for wert, (quelle, quellwert) in werte.items():
             text = (enums.get(quelle) or {}).get(quellwert)
             if adresse in enums and wert not in enums[adresse] and text:
                 enums[adresse][wert] = text
+    for adresse, werte in ENUM_PRAEZISIERUNG.items():
+        for wert, texte in werte.items():
+            if wert in enums.get(adresse, {}) and sprache in texte:
+                enums[adresse][wert] = texte[sprache]
     return enums
 
 
-def sammle_sprache(parameter: dict, geraetetexte: dict[str, str]) -> dict[str, dict]:
+def sammle_sprache(parameter: dict, geraetetexte: dict[str, str], sprache: str) -> dict[str, dict]:
     """Namen und Enum-Texte einer Fremdsprache, nach derselben Regel wie Deutsch."""
     namen: dict[str, str] = {}
     _uebernehmen(namen, geraetetexte)
     _uebernehmen(namen, parameter.get("oids", {}))
-    return {"names": namen, "enums": sammle_enums(parameter)}
+    return {"names": namen, "enums": sammle_enums(parameter, sprache)}
 
 
 def geraetetexte_fuer(deutsch: Path | None, sprache: str) -> Path | None:
@@ -249,10 +266,8 @@ def _gruppen(eintraege, texte: dict) -> dict[str, list[str]]:
 UEBERSTEUERUNG: dict[str, dict[str, list[str]]] = {
     # Automatik-/Zusatzkessel (LogWIN)
     "10": {
-        # Die Betriebswahl ist der Schalter, mit dem der Kessel überhaupt
-        # bedient wird – schreibbar, und in keiner Ebenenliste des Herstellers.
-        # Ohne Eintrag zählt sie als Werksebene und ist damit unsichtbar.
-        "operate": ["9/75"],
+        # `9/75` bleibt auf der Werksebene: Der Hersteller bietet sie hier nicht
+        # an, und ihre Werte folgen je nach Firmware nicht der Texttabelle.
         # Der Alarmcode gehört zur Diagnose und steht ebenfalls in keiner Ebene.
         # Kesselpumpe und Kesselmischer braucht das Schaubild; auf der
         # Serviceebene würden sie nicht gelesen.
@@ -262,9 +277,8 @@ UEBERSTEUERUNG: dict[str, dict[str, list[str]]] = {
     # Anlage dieser Baureihe; sie meldet 64 Datenpunkte, die Ebenenlisten des
     # Herstellers erfassen davon siebzehn nicht.
     "9": {
-        # Die Betriebswahl ist der Schalter, mit dem der Kessel bedient wird –
-        # ohne Eintrag zählt sie als Werksebene und wäre unsichtbar.
-        "operate": ["9/75"],
+        # `9/75` bleibt auf der Werksebene: Der Hersteller bietet sie hier nicht
+        # an, und ihre Werte folgen je nach Firmware nicht der Texttabelle.
         # Ablesbares: Alarmcode, Restlaufzeit der Kaminkehrerfunktion und die
         # Aufforderung, die Aschetonne zu entleeren. Dazu Kesselpumpe und
         # Kesselmischer für das Schaubild.
@@ -392,7 +406,7 @@ def main() -> int:
     for sprache in FREMDSPRACHEN:
         xml = geraetetexte_fuer(args.geraetetexte, sprache)
         fremd = lade(f"{sprache}-parameters.json", args.quelle)
-        sprachen[sprache] = sammle_sprache(fremd, lade_geraetetexte(xml) if xml else {})
+        sprachen[sprache] = sammle_sprache(fremd, lade_geraetetexte(xml) if xml else {}, sprache)
         stoerungen[sprache] = sammle_stoerungen(fremd.get("emStrIds", {}))
 
     print(f"\nDatenpunktnamen : {len(namen)}")

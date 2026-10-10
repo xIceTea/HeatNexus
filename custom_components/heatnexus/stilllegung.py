@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from . import verwaiste
+from . import kanonisch, verwaiste
 from .client import WindhagerHttpClient
 from .const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
 from .erkennungsstand import laufzeitdaten
@@ -72,6 +72,18 @@ def quelle_abgeschaltet(unique_id: str | None, umfaenge: dict[str, dict]) -> boo
     if "-nv-" not in (unique_id or ""):
         return False
     return not any(umfang.get("lon") for umfang in umfaenge.values())
+
+
+# Was HeatNexus selbst aus dem Umfang genommen hat, je Domäne und Adresse. Verwaist ist das
+# keine Lücke der Anlage, sondern eine Entscheidung: Es wird gelöscht, nicht stillgelegt.
+BEWUSST_ENTFALLEN: frozenset[tuple[str, str]] = frozenset({("select", "9/75")})
+
+
+def endgueltig_weg(eintrag: er.RegistryEntry, umfaenge: dict[str, dict]) -> bool:
+    """Ob eine Waise gelöscht wird statt stillgelegt, ohne dass der Nutzer etwas abwählte."""
+    if (eintrag.domain, kanonisch.gnmn(eintrag.unique_id)) in BEWUSST_ENTFALLEN:
+        return True
+    return quelle_abgeschaltet(eintrag.unique_id, umfaenge)
 
 
 def abwahl_vormerken(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -144,7 +156,7 @@ def abgewaehlte_entitaeten_stilllegen(
     verwaiste_ids = {e.entity_id for e in verwaiste.finden(hass, entry, coordinators)}
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
         if eintrag.entity_id in verwaiste_ids:
-            if loeschen or quelle_abgeschaltet(eintrag.unique_id, umfaenge):
+            if loeschen or endgueltig_weg(eintrag, umfaenge):
                 registry.async_remove(eintrag.entity_id)
                 entfernt += 1
                 continue

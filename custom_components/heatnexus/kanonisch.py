@@ -99,6 +99,7 @@ KANONISCH: dict[str, str] = {
     "21/66": "buffer_bottom",
     "0/15": "buffer_top",
     "0/16": "buffer_bottom",
+    "0/17": "buffer_middle",
     "1/22": "buffer_charge_pump",
     # Solar
     "0/14": "collector_temperature",

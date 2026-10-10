@@ -90,6 +90,7 @@ def test_bekannte_datenpunkte_bekommen_ihren_schluessel(kanonisch):
     assert kanonisch.schluessel("0000ABCD1234-0-0-7-0") == "boiler_temperature"
     assert kanonisch.schluessel("0000ABCD1234-0-3-50-0") == "mode_selection"
     assert kanonisch.schluessel("0000ABCD1234-0-0-0-0") == "outdoor_temperature"
+    assert kanonisch.schluessel("0000ABCD1234-9-0-17-0") == "buffer_middle"
 
 
 def test_auch_die_nachgereichten_datenpunkte_tragen_ihren_schluessel(kanonisch):

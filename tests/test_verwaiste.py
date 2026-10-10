@@ -372,3 +372,23 @@ async def test_die_entitaeten_einer_automatik_sind_nicht_verwaist(modul, hass):
     assert modul.bekannte_kennungen(eintrag, {"a": _koordinator([])}, hass)[
         "SN1-2-0-automatik-zustand"
     ]
+
+
+def test_die_betriebswahl_des_kessels_wird_geloescht_statt_stillgelegt(hass, modul):
+    """HeatNexus bietet `9/75` als Auswahl nicht mehr an; das ist kein Fall für den Hinweis."""
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus import stilllegung
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag, messwert = _eintrag_mit_entitaet(hass)
+    registry = er.async_get(hass)
+    auswahl = registry.async_get_or_create(
+        "select", DOMAIN, "SN1-0-9-75-0", config_entry=eintrag
+    ).entity_id
+
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(["fremd"])})
+
+    assert registry.async_get(auswahl) is None
+    assert registry.async_get(messwert).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert _hinweis(hass, eintrag, modul).translation_placeholders == {"anzahl": "1"}

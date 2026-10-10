@@ -165,6 +165,7 @@ ZIRKULATION_IST_KENNWERT = r"\bww-zirkulations?[- ]?(ist[- ])?temperatur(?!.*sol
 
 # Verlauf: Was standardmäßig als Linie erscheint. Der Nutzer kann in der
 # Ansicht jede Linie ab- und weitere dazuwählen; das hier ist nur der Start.
+# Ohne Puffermitte: Der Verlauf gilt der ganzen Anlage und hat `VERLAUF_MAX` Plätze.
 VERLAUF = namensmuster(
     r"kesseltemperatur ist",
     r"abgastemperatur",

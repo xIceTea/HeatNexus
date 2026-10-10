@@ -806,5 +806,8 @@
   "Hausmodell neu lernen": "Relearn house model",
   "Hausmodell neu lernen?": "Relearn house model?",
   "Die Automatik verwirft die gelernten Hauswerte und rechnet sie aus der Aufzeichnung neu. Das lohnt sich nach geänderten Räumen oder Umbauten.": "The automation discards the learned house values and recalculates them from the recorder. This is useful after changing rooms or renovations.",
-  "Räume wählen, die dieser Heizkreis versorgt und die für das Haus typisch sind. Keller, Bad oder Wintergarten verfälschen das Mittel und das Hausmodell.": "Choose rooms that this heating circuit supplies and that are typical for the house. A basement, bathroom or conservatory distorts the average and the house model."
+  "Räume wählen, die dieser Heizkreis versorgt und die für das Haus typisch sind. Keller, Bad oder Wintergarten verfälschen das Mittel und das Hausmodell.": "Choose rooms that this heating circuit supplies and that are typical for the house. A basement, bathroom or conservatory distorts the average and the house model.",
+  "noch bis {zeit}": "until {zeit}",
+  "noch {minuten} min (bis {zeit})": "{minuten} min left (until {zeit})",
+  "Vorgabe {rest}": "Override {rest}"
 }

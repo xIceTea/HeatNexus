@@ -28,6 +28,16 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+- „Absenkbetrieb bis“ steht nach einem Neustart sofort im Reiter Automatik.
+- Die Automatik zeigt, wenn der Heizkreis an der Steuerung aus ist.
+- Ein Sonnentag aus der Sonnenquote endet nicht mehr ohne Wärme der Solaranlage.
+- Nach einer Heizpause beginnt bei Sonne direkt ein Sonnentag.
+- Bei Kälte endet nur Warmwasser früher.
+
+## [1.13.1] - 2026-10-10
+
+### Behoben
+
 - Die Automatik zeigt Heizkreise mit Umlaut unter dem Namen aus der Geräteliste.
 - Am Handy bleiben die Werte im Tagesverlauf nach einem Tipp sichtbar.
 - Langes Drücken im Tagesverlauf markiert am Handy keinen Text.
@@ -35,18 +45,16 @@ wenn dort Vorabversionen zugelassen sind.
 - Eine nur teilweise angenommene Umschaltung der Automatik gilt nicht als Handeingriff.
 - Ein Tipp auf die Vorrangquelle im Reiter Automatik öffnet den Verlauf der Quelle.
 - Hinweise im Reiter Automatik stehen am Handy hinter einem Fragezeichen.
+- Ein Tipp auf den Sollwert im Reiter Steuerung öffnet den Heizkreis.
 - „Warmwasser laden“ erkennt eine laufende Einmalladung auch während Eco / Comfort.
 - „Warmwasser laden“ liest Betriebsart und Ladepumpe nur aus dem Heizkreis der Ladung.
 - An der DuoWIN erscheint die Taste „Warmwasser laden“.
 - Quittungstasten erscheinen nur für Arbeiten, die die Steuerung anbietet.
 - Die Funktionsliste der BioWIN erzeugt keinen Fehler im Protokoll mehr.
-- In der Betriebswahl von BioWIN und LogWIN erscheint der Festbrennstoff-/Pufferbetrieb.
-- Ein Tipp auf den Sollwert im Reiter Steuerung öffnet den Heizkreis.
-- „Absenkbetrieb bis“ steht nach einem Neustart sofort im Reiter Automatik.
-- Die Automatik zeigt, wenn der Heizkreis an der Steuerung aus ist.
-- Ein Sonnentag aus der Sonnenquote endet nicht mehr ohne Wärme der Solaranlage.
-- Nach einer Heizpause beginnt bei Sonne direkt ein Sonnentag.
-- Bei Kälte endet nur Warmwasser früher.
+- Die Restzeit einer Vorgabe am Heizkreis erscheint in der eingestellten Sprache.
+- Der Verlauf zeigt auch die mittlere Puffertemperatur.
+- Die Betriebsart des Heizkreises zeigt an der Heizgrenze „Standby Heizgrenze“.
+- Die Betriebswahl von BioWIN und LogWIN steht nur noch auf der Werksebene ([#19](https://github.com/xIceTea/HeatNexus/issues/19)).
 
 ## [1.13.0] - 2026-10-03
 
