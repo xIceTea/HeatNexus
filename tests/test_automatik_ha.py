@@ -210,6 +210,7 @@ async def test_empfehlung_als_sensor_und_taste(hass, hass_ws_client, anlage, fre
 
     from custom_components.heatnexus.automatik.entitaeten import KLASSEN
     from custom_components.heatnexus.automatik.verwaltung import unique_id
+    from custom_components.heatnexus.const import DOMAIN
 
     verwaltung, _ = anlage
     laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
@@ -219,8 +220,11 @@ async def test_empfehlung_als_sensor_und_taste(hass, hass_ws_client, anlage, fre
         ("empfehlung_uebernehmen", "button"),
         ("empfehlung_verwerfen", "button"),
     )
+    eintrag = hass.config_entries.async_entries(DOMAIN)[0]
     for art, domaene in arten:
         plattform = MockEntityPlatform(hass, domain=domaene, platform_name="heatnexus")
+        # Ein Gerät hängt nur an einer Entität, deren Plattform einen Config-Eintrag hat.
+        plattform.config_entry = eintrag
         await plattform.async_add_entities([KLASSEN[art](verwaltung, HEIZKREIS)])
     await hass.async_block_till_done()
 
