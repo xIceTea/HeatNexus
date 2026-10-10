@@ -279,7 +279,15 @@ def sprachwahl_umstellen(
         return None
     gemeinsam = _bisherige_wahl(optionen[0].get(CONF_SPRACHE))
     kuenftig = sprache_aufloesen(gemeinsam, ha_sprache)
-    return [_umgestellt(alt, gemeinsam, kuenftig) for alt in optionen]
+    neu = [_umgestellt(alt, gemeinsam, kuenftig) for alt in optionen]
+    if all(n is None for n in neu):
+        # Die Marke im ersten Eintrag hält einen späteren Start von der Umstellung ab.
+        neu[0] = {
+            **optionen[0],
+            CONF_SPRACHE: gemeinsam,
+            CONF_SPRACHE_ANLAGE: SPRACHE_WIE_HEATNEXUS,
+        }
+    return neu
 
 
 def _umgestellt(alt: Mapping, gemeinsam: str, kuenftig: str) -> dict | None:

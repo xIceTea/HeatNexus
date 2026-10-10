@@ -155,8 +155,12 @@ def test_umstellung_laeuft_nur_einmal(texte):
 
 
 def test_gleiche_wahl_bleibt_unberuehrt(texte):
-    """Wo die gemeinsame Sprache dasselbe bedeutet, wird nichts geschrieben."""
-    assert texte.sprachwahl_umstellen([{"sprache": "de"}, {"sprache": "de"}, {}]) == [None] * 3
+    """Wo die gemeinsame Sprache dasselbe bedeutet, bekommt nur der erste Eintrag die Marke."""
+    assert texte.sprachwahl_umstellen([{"sprache": "de"}, {"sprache": "de"}, {}]) == [
+        {"sprache": "de", "sprache_anlage": "wie_heatnexus"},
+        None,
+        None,
+    ]
 
 
 def test_umstellung_ohne_wahl_bleibt_automatisch(texte):
@@ -196,8 +200,12 @@ def test_umstellung_einer_entfallenen_sprache(texte):
                 {"sprache": "auto", "sprache_anlage": "en"},
             ],
         ),
-        ("de", [{}], [None]),
-        ("de", [{}, {"sprache": "auto"}], [None, None]),
+        ("de", [{}], [{"sprache": "auto", "sprache_anlage": "wie_heatnexus"}]),
+        (
+            "de",
+            [{}, {"sprache": "auto"}],
+            [{"sprache": "auto", "sprache_anlage": "wie_heatnexus"}, None],
+        ),
         (
             "nl",
             [{"sprache": "nl"}, {"sprache": "auto"}],
@@ -240,3 +248,13 @@ def test_umstellung_mit_ha_sprache_laeuft_nur_einmal(texte):
     umgestellt = [{"sprache": "auto", "sprache_anlage": "de"}, {}]
 
     assert texte.sprachwahl_umstellen(umgestellt, "en") is None
+
+
+def test_umstellung_ohne_aenderung_laeuft_trotzdem_nur_einmal(texte):
+    """Ein späterer Wechsel der Sprache von Home Assistant hält „Automatisch“ nicht auf Deutsch fest."""
+    alt = [{}, {}]
+
+    neu = texte.sprachwahl_umstellen(alt, "de")
+
+    assert neu == [{"sprache": "auto", "sprache_anlage": "wie_heatnexus"}, None]
+    assert texte.sprachwahl_umstellen(_angewandt(alt, neu), "en") is None
