@@ -20,5 +20,5 @@ def test_kein_rueckschritt_zeichen_im_quelltext():
         for p in (WURZEL / name).rglob("*")
         if p.suffix in ENDUNGEN and "__pycache__" not in p.parts
     ]
-    betroffen = [str(p.relative_to(WURZEL)) for p in dateien if "\x08" in p.read_text("utf-8")]
+    betroffen = [str(p.relative_to(WURZEL)) for p in dateien if b"\x08" in p.read_bytes()]
     assert betroffen == []
