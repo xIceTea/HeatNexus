@@ -76,7 +76,7 @@ def quelle_abgeschaltet(unique_id: str | None, umfaenge: dict[str, dict]) -> boo
 
 # Was HeatNexus selbst aus dem Umfang genommen hat, je Domäne und Adresse. Verwaist ist das
 # keine Lücke der Anlage, sondern eine Entscheidung: Es wird gelöscht, nicht stillgelegt.
-BEWUSST_ENTFALLEN: frozenset[tuple[str, str]] = frozenset({("select", "9/75")})
+BEWUSST_ENTFALLEN: frozenset[tuple[str, str]] = frozenset({("select", "9/75"), ("select", "39/94")})
 
 
 def endgueltig_weg(eintrag: er.RegistryEntry, umfaenge: dict[str, dict]) -> bool:

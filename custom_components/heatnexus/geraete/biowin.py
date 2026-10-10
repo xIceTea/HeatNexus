@@ -6,6 +6,8 @@ Schreibrecht folgen den Metadaten, die BioWIN-Anlagen tatsächlich melden.
 
 from __future__ import annotations
 
+from . import quittung
+
 FCT_TYPE = 9
 MODELL = "BioWIN Pelletskessel"
 RANG = 10
@@ -139,4 +141,5 @@ ENTITAETEN: list[dict] = [
         "category": "config",
         "icon": "mdi:transfer",
     },
+    *quittung.TASTEN,
 ]

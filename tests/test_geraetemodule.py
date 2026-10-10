@@ -27,6 +27,7 @@ def geraete():
 def test_jede_datei_im_ordner_wird_mitgezaehlt(geraete):
     """Ein vergessenes Modul bliebe sonst still ohne Wirkung."""
     dateien = {p.stem for p in ORDNER.glob("*.py") if p.stem != "__init__"}
+    dateien -= set(geraete.HILFSMODULE)
     gezaehlt = {m.__name__.rsplit(".", 1)[-1] for m in geraete.MODULE}
     assert dateien == gezaehlt
 

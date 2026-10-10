@@ -6,6 +6,8 @@ Datenpunkttabelle dieser Baureihe.
 
 from __future__ import annotations
 
+from . import quittung
+
 FCT_TYPE = 25
 MODELL = "PuroWIN Hackgutkessel"
 RANG = 10
@@ -361,45 +363,7 @@ ENTITAETEN: list[dict] = [
         "category": "config",
         "icon": "mdi:warehouse",
     },
-    # „Reinigung bestätigen" (39/94) ist am Gerät eine Auswahlliste aus vier
-    # Arbeiten. Je Arbeit eine eigene Taste ist eindeutig, eine Liste lädt zum
-    # Fehlgriff ein.
-    {
-        "oid": "/39/94/0",
-        "name": "Reinigung durchgeführt",
-        "platform": "button",
-        "press_value": "1",
-        "key_suffix": "reinigung",
-        "category": "config",
-        "icon": "mdi:broom",
-    },
-    {
-        "oid": "/39/94/0",
-        "name": "Hauptreinigung durchgeführt",
-        "platform": "button",
-        "press_value": "2",
-        "key_suffix": "hauptreinigung",
-        "category": "config",
-        "icon": "mdi:broom",
-    },
-    {
-        "oid": "/39/94/0",
-        "name": "Wartung durchgeführt",
-        "platform": "button",
-        "press_value": "3",
-        "key_suffix": "wartung",
-        "category": "config",
-        "icon": "mdi:wrench-check-outline",
-    },
-    {
-        "oid": "/39/94/0",
-        "name": "Hauptreinigung und Aschetonnen durchgeführt",
-        "platform": "button",
-        "press_value": "4",
-        "key_suffix": "hauptreinigung_asche",
-        "category": "config",
-        "icon": "mdi:delete-empty-outline",
-    },
+    *quittung.TASTEN,
     {
         "oid": "/9/75/0",
         "name": "Betriebswahl Kessel",

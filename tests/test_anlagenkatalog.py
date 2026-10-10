@@ -149,6 +149,24 @@ async def test_geschriebene_werte_bietet_das_geraet_an(anlage, umfang):
 
 
 @pytest.mark.parametrize(("anlage", "umfang"), FAELLE)
+async def test_eine_auswahl_kann_ihren_aktuellen_wert_zeigen(anlage, umfang):
+    # Ein Wert außerhalb der angebotenen Liste ließe die Auswahl ohne Zustand.
+    erg = await _lauf(anlage, umfang)
+    falsch = []
+    for d in _mit_oid(erg["devices"]):
+        if d.get("type") != "select" or not d.get("allowed"):
+            continue
+        roh = (erg["spiel"].metadaten(d["oid"]) or {}).get("value")
+        try:
+            wert = int(float(roh))
+        except (TypeError, ValueError):
+            continue
+        if wert not in d["allowed"]:
+            falsch.append(f"{d['oid']} {d['name']}: {wert} nicht in {d['allowed']}")
+    assert not falsch, falsch
+
+
+@pytest.mark.parametrize(("anlage", "umfang"), FAELLE)
 async def test_zahlenfelder_haben_gueltige_grenzen(anlage, umfang):
     erg = await _lauf(anlage, umfang)
     falsch = []

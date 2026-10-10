@@ -133,6 +133,13 @@
     "maxValue": "65534",
     "step": "1",
     "writeProt": true
+   },
+   "39/94": {
+    "typeId": 9,
+    "subtypeId": -1,
+    "unit": "",
+    "enum": "[1,2]",
+    "writeProt": false
    }
   },
   "1403/9": {

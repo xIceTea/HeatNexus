@@ -119,9 +119,17 @@ def test_die_genannten_auswahltabellen_gibt_es(geraete, db):
             assert schluessel in db["enums"], f"{schluessel} fehlt in der Geräte-Datenbank"
 
 
+def test_reinigung_bestaetigen_ist_je_arbeit_eine_taste(geraete):
+    """`39/94` ruht auf 0, das die Anlage nicht als Wahl anbietet; eine Auswahl bliebe leer."""
+    tasten = [e for e in geraete.biowin.ENTITAETEN if e["oid"] == "/39/94/0"]
+    assert {e["platform"] for e in tasten} == {"button"}
+    assert {e["press_value"] for e in tasten} == {"1", "2", "3", "4"}
+    assert tasten == [e for e in geraete.purowin.ENTITAETEN if e["oid"] == "/39/94/0"]
+
+
 def test_keine_adresse_steht_zweimal(geraete):
     """Zwei Entitäten auf derselben Adresse brauchten einen Namenszusatz."""
-    adressen = _adressen(geraete.biowin.ENTITAETEN)
+    adressen = _adressen(e for e in geraete.biowin.ENTITAETEN if not e.get("key_suffix"))
     doppelt = sorted({a for a in adressen if adressen.count(a) > 1})
     assert doppelt == [], f"doppelt: {doppelt}"
 

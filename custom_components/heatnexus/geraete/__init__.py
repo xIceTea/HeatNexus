@@ -78,6 +78,9 @@ MODULE: tuple[ModuleType, ...] = (
     zsp,
 )
 
+# Dateien, die mehrere Baureihen teilen; selbst keine Baureihe.
+HILFSMODULE: tuple[str, ...] = ("quittung",)
+
 # Was für ein Anlagenteil das ist – für die Geräteseite in Home Assistant. Der
 # Name der Anlage taugt dafür nicht: Er ist oft von Hand vergeben und
 # beschreibt den Raum, nicht das Gerät.

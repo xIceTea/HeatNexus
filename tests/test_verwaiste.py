@@ -374,8 +374,9 @@ async def test_die_entitaeten_einer_automatik_sind_nicht_verwaist(modul, hass):
     ]
 
 
-def test_die_betriebswahl_des_kessels_wird_geloescht_statt_stillgelegt(hass, modul):
-    """HeatNexus bietet `9/75` als Auswahl nicht mehr an; das ist kein Fall für den Hinweis."""
+@pytest.mark.parametrize("kennung", ["SN1-0-9-75-0", "SN1-0-39-94-0"])
+def test_eine_bewusst_entfallene_auswahl_wird_geloescht(hass, modul, kennung):
+    """`9/75` und `39/94` bietet HeatNexus nicht als Auswahl an; das ist kein Fall für den Hinweis."""
     from homeassistant.helpers import entity_registry as er
 
     from custom_components.heatnexus import stilllegung
@@ -384,7 +385,7 @@ def test_die_betriebswahl_des_kessels_wird_geloescht_statt_stillgelegt(hass, mod
     eintrag, messwert = _eintrag_mit_entitaet(hass)
     registry = er.async_get(hass)
     auswahl = registry.async_get_or_create(
-        "select", DOMAIN, "SN1-0-9-75-0", config_entry=eintrag
+        "select", DOMAIN, kennung, config_entry=eintrag
     ).entity_id
 
     stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(["fremd"])})
