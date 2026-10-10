@@ -75,7 +75,7 @@ LON_NAMEN: dict[str, dict] = {
     },
     # Puffer: oben, Mitte, unten.
     "WVF_nviTPO": {"name": "Puffer oben", "kanonisch": "buffer_top"},
-    "WVF_nviTPM": {"name": "Puffer Mitte"},
+    "WVF_nviTPM": {"name": "Puffer Mitte", "kanonisch": "buffer_middle"},
     "WVF_nviTPU": {"name": "Puffer unten", "kanonisch": "buffer_bottom"},
     # Raum und Außen.
     "nvoTa": {"name": "Außentemperatur", "kanonisch": "outdoor_temperature"},

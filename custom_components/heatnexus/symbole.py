@@ -63,7 +63,7 @@ WERT_SYMBOLE: tuple[tuple[re.Pattern[str], tuple[str, ...], str], ...] = (
     ),
     (
         re.compile(r"puffer (oben|unten|mitte)", re.IGNORECASE),
-        ("buffer_top", "buffer_bottom"),
+        ("buffer_top", "buffer_middle", "buffer_bottom"),
         "mdi:storage-tank",
     ),
     (

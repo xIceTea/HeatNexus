@@ -23,6 +23,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Quittungstasten erscheinen nur für Arbeiten, die die Steuerung anbietet.
 - Die Funktionsliste der BioWIN erzeugt keinen Fehler im Protokoll mehr.
 - Die Restzeit einer Vorgabe am Heizkreis erscheint in der eingestellten Sprache.
+- Der Verlauf zeigt auch die mittlere Puffertemperatur.
 - Die Betriebsart des Heizkreises zeigt an der Heizgrenze „Standby Heizgrenze“.
 - Die Betriebswahl von BioWIN und LogWIN steht nur noch auf der Werksebene ([#19](https://github.com/xIceTea/HeatNexus/issues/19)).
 
