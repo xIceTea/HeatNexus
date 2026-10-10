@@ -108,7 +108,8 @@
           "vorlagen": "Blauwdrukken voor automatiseringen",
           "aussentemperatur": "Buitentemperatuur",
           "hilfe": "Uitleg tonen",
-          "sprache": "Taal van de namen",
+          "sprache": "Taal van HeatNexus",
+          "sprache_anlage": "Taal van deze installatie",
           "startwerte": "Startwaarden van de installatie overnemen"
         },
         "data_description": {
@@ -119,7 +120,8 @@
           "vorlagen": "Welke blauwdrukken onder Instellingen → Automatiseringen beschikbaar zijn. Een blauwdruk die een automatisering nog gebruikt, blijft ook na het uitvinken staan.",
           "aussentemperatur": "Welke sensor in de kopregel als buitentemperatuur geldt. Leeg: HeatNexus zoekt hem zelf in de installatie.",
           "hilfe": "Zet een „?“ naast kaarten en bedieningselementen, dat uitlegt wat een waarde betekent en wat een bediening doet.",
-          "sprache": "Waar de namen van de datapunten vandaan komen. Bij “Automatisch” blijven ze Duits, en de interface volgt de taal van Home Assistant."
+          "sprache": "Geldt voor alle installaties in HeatNexus: namen van datapunten, interface en dashboard. Bij “Automatisch” geldt de taal van Home Assistant.",
+          "sprache_anlage": "Stelt alleen voor deze installatie een eigen taal in: voor namen, toestanden, storingsteksten en de eigen pagina in de interface. “Zoals HeatNexus” gebruikt de taal van HeatNexus."
         }
       },
       "system": {
@@ -238,6 +240,14 @@
     "sprache": {
       "options": {
         "auto": "Automatisch",
+        "de": "Duits",
+        "en": "Engels",
+        "nl": "Nederlands"
+      }
+    },
+    "sprache_anlage": {
+      "options": {
+        "wie_heatnexus": "Zoals HeatNexus",
         "de": "Duits",
         "en": "Engels",
         "nl": "Nederlands"

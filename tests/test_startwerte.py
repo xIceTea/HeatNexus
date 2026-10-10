@@ -198,9 +198,11 @@ def test_die_option_steht_nicht_im_umfang():
         data={CONF_SYSTEMS: [{CONF_HOST: "192.0.2.10"}]},
         options={CONF_STARTWERTE: 0},
     )
-    umfang = umfang_der_anlage(
-        SimpleNamespace(config=SimpleNamespace(language="de")), eintrag, "192.0.2.10"
+    hass = SimpleNamespace(
+        config=SimpleNamespace(language="de"),
+        config_entries=SimpleNamespace(async_entries=lambda _domain: [eintrag]),
     )
+    umfang = umfang_der_anlage(hass, eintrag, "192.0.2.10")
 
     assert CONF_STARTWERTE not in umfang
 

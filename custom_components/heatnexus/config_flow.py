@@ -49,6 +49,7 @@ from .const import (
     CONF_MELDUNG_EINLESEN,
     CONF_PANEL,
     CONF_SPRACHE,
+    CONF_SPRACHE_ANLAGE,
     CONF_STARTWERTE,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
@@ -63,6 +64,7 @@ from .const import (
     MIN_UPDATE_INTERVAL,
     NUR_BUS_JE_FCT,
     SPRACHE_BESCHRIFTUNG,
+    SPRACHE_WIE_HEATNEXUS,
     STARTWERTE_VORGABE,
     STARTWERTE_WAHL,
     SUBEINTRAG_QUELLE,
@@ -82,9 +84,9 @@ from .formulare import (
     zusatzgruppen_feld,
     zusatzwerte_feld,
 )
-from .geraetetexte import SPRACHEN, sprache_aufloesen
+from .geraetetexte import SPRACHE_AUTO, SPRACHEN
 from .migration import entity_ids_umbenennen
-from .texte import woerterbuch_zu
+from .texte import gemeinsame_wahl, woerterbuch_zu
 from .waermequelle_flow import WaermequelleSubentryFlow
 
 _LOGGER = logging.getLogger(__name__)
@@ -117,6 +119,21 @@ def _steuerung_schema(bezeichnung: str) -> vol.Schema:
             vol.Required(CONF_USERNAME, default=DEFAULT_USERNAME): benutzer_auswahl(),
             vol.Required(CONF_PASSWORD): str,
         }
+    )
+
+
+SPRACHWAHL = (SPRACHE_AUTO, *SPRACHEN)
+ANLAGENSPRACHWAHL = (SPRACHE_WIE_HEATNEXUS, *SPRACHEN)
+
+
+def _sprachauswahl(werte: tuple[str, ...], schluessel: str) -> SelectSelector:
+    """Eine Sprachauswahl; die deutsche Beschriftung gilt nur, wo die Übersetzung fehlt."""
+    return SelectSelector(
+        SelectSelectorConfig(
+            options=[SelectOptionDict(value=w, label=SPRACHE_BESCHRIFTUNG[w]) for w in werte],
+            mode=SelectSelectorMode.DROPDOWN,
+            translation_key=schluessel,
+        )
     )
 
 
@@ -515,6 +532,32 @@ class WindhagerOptionsFlow(OptionsFlow):
             },
         )
 
+    def _sprachfelder(self, options: Mapping[str, Any]) -> dict:
+        """Gemeinsame Sprache und Sprache dieser Anlage, vorbelegt mit der gespeicherten Wahl."""
+        eigene = options.get(CONF_SPRACHE_ANLAGE)
+        return {
+            vol.Required(CONF_SPRACHE, default=gemeinsame_wahl(self.hass)): _sprachauswahl(
+                SPRACHWAHL, "sprache"
+            ),
+            vol.Required(
+                CONF_SPRACHE_ANLAGE,
+                default=eigene if eigene in ANLAGENSPRACHWAHL else SPRACHE_WIE_HEATNEXUS,
+            ): _sprachauswahl(ANLAGENSPRACHWAHL, "sprache_anlage"),
+        }
+
+    def _sprache_uebernehmen(self, options: dict[str, Any], user_input: Mapping[str, Any]) -> None:
+        """Die eigene Wahl gilt nur hier; die gemeinsame geht an jeden anderen Eintrag."""
+        wahl = user_input.get(CONF_SPRACHE, SPRACHE_AUTO)
+        options[CONF_SPRACHE] = wahl
+        options[CONF_SPRACHE_ANLAGE] = user_input.get(CONF_SPRACHE_ANLAGE, SPRACHE_WIE_HEATNEXUS)
+        for eintrag in self.hass.config_entries.async_entries(DOMAIN):
+            if eintrag.entry_id == self.config_entry.entry_id:
+                continue
+            if (eintrag.options or {}).get(CONF_SPRACHE) != wahl:
+                self.hass.config_entries.async_update_entry(
+                    eintrag, options={**eintrag.options, CONF_SPRACHE: wahl}
+                )
+
     async def async_step_allgemein(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -531,7 +574,7 @@ class WindhagerOptionsFlow(OptionsFlow):
             # „Unknown error occurred“ abbrechen lassen.
             options[CONF_MELDUNG_EINLESEN] = bool(user_input.get(CONF_MELDUNG_EINLESEN, False))
             options[CONF_HILFE] = bool(user_input.get(CONF_HILFE, True))
-            options[CONF_SPRACHE] = user_input.get(CONF_SPRACHE, "de")
+            self._sprache_uebernehmen(options, user_input)
             options[CONF_VORLAGEN] = [v for v in user_input.get(CONF_VORLAGEN, []) if v in vorlagen]
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
             if gewaehlt:
@@ -573,22 +616,7 @@ class WindhagerOptionsFlow(OptionsFlow):
                         CONF_AUSSENTEMPERATUR,
                         description={"suggested_value": options.get(CONF_AUSSENTEMPERATUR, "")},
                     ): EntitySelector(EntitySelectorConfig(domain="sensor")),
-                    # Woher die Bezeichnungen kommen. „Automatisch" steht nicht
-                    # zur Wahl, gilt als gespeicherter Wert aber weiter und
-                    # bedeutet Deutsch – dafür die Auflösung in der Vorwahl.
-                    vol.Required(
-                        CONF_SPRACHE,
-                        default=sprache_aufloesen(options.get(CONF_SPRACHE), None),
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            options=[
-                                SelectOptionDict(value=wahl, label=SPRACHE_BESCHRIFTUNG[wahl])
-                                for wahl in SPRACHEN
-                            ],
-                            mode=SelectSelectorMode.DROPDOWN,
-                            translation_key="sprache",
-                        )
-                    ),
+                    **self._sprachfelder(options),
                     vol.Required(
                         CONF_UPDATE_INTERVAL,
                         default=int(options.get(CONF_UPDATE_INTERVAL, UPDATE_INTERVAL)),

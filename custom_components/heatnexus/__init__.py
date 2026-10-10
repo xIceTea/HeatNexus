@@ -80,7 +80,7 @@ from .stilllegung import (
     abwahl_vormerken,
     umfang_verkleinert,
 )
-from .texte import woerterbuch
+from .texte import sprachwahl_umstellen, woerterbuch_des_eintrags
 from .verweise import verweise_verfolgen
 
 _LOGGER = logging.getLogger(__name__)
@@ -151,6 +151,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     schon beim Speichern ungültig.
     """
     hass.data.setdefault(DOMAIN, {})
+    _sprachwahl_umstellen(hass)
     async_register_rediscover_service(hass)
     async_register_dashboard_export(hass)
     verweise_verfolgen(hass)
@@ -159,6 +160,18 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     integration = await async_get_integration(hass, DOMAIN)
     await async_setup_karte(hass, str(integration.version))
     return True
+
+
+def _sprachwahl_umstellen(hass: HomeAssistant) -> None:
+    """Die Sprachwahl einmalig auf gemeinsam und je Anlage umstellen.
+
+    Vor jedem Eintrag: So lädt keiner mit der alten Wahl, und das Schreiben löst kein Neuladen aus.
+    """
+    eintraege = hass.config_entries.async_entries(DOMAIN)
+    neu = sprachwahl_umstellen([dict(e.options or {}) for e in eintraege], hass.config.language)
+    for eintrag, optionen in zip(eintraege, neu or [None] * len(eintraege), strict=True):
+        if optionen is not None:
+            hass.config_entries.async_update_entry(eintrag, options=optionen)
 
 
 def _marken_je_anlage_uebernehmen(
@@ -360,7 +373,7 @@ def _heizungsanlage_anmelden(
         identifiers={(DOMAIN, entry.entry_id)},
         name=hub_name,
         manufacturer="Windhager",
-        model=woerterbuch(hass)("Heizungsanlage"),
+        model=woerterbuch_des_eintrags(hass, entry)("Heizungsanlage"),
     )
 
 

@@ -123,7 +123,7 @@ class WaermequelleBinarySensor(RestoreEntity, BinarySensorEntity):
         self._regel = dict(beschreibung.get("bedingung") or {})
         self._beobachtet = bedingung.quellen(self._regel)
         self._attr_unique_id = beschreibung["id"]
-        self._attr_name = texte.woerterbuch_zu(coordinator)("Wärmelieferung")
+        self._attr_name = texte.woerterbuch_des_koordinators(coordinator)("Wärmelieferung")
         self._attr_device_info = waermequelle.geraet_info(coordinator, beschreibung)
         self._laeuft = False
 

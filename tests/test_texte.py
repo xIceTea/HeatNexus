@@ -242,7 +242,12 @@ def test_die_gewaehlte_sprache_sticht(texte):
 def test_automatisch_folgt_home_assistant(texte):
     """Ohne Wahl gilt die Sprache von Home Assistant."""
     assert texte.sprache_der_oberflaeche(_Hass("en", [_Eintrag({"sprache": "auto"})])) == "en"
-    assert texte.sprache_der_oberflaeche(_Hass("fr", [_Eintrag({})])) == "fr"
+    assert texte.sprache_der_oberflaeche(_Hass("nl", [_Eintrag({})])) == "nl"
+
+
+def test_eine_sprache_ohne_woerterbuch_erscheint_englisch(texte):
+    """Oberfläche und Namen sprechen dieselbe Sprache; HeatNexus führt kein Französisch."""
+    assert texte.sprache_der_oberflaeche(_Hass("fr", [_Eintrag({})])) == "en"
 
 
 def test_regionalkennung_faellt_weg(texte):

@@ -207,6 +207,154 @@ async def test_die_vorlagen_werden_ausserhalb_der_ereignisschleife_gelesen(flow,
     assert ergebnis["step_id"] == "allgemein"
 
 
+# ---------------------------------------------------------------------------
+# Gemeinsame Sprache und Sprache je Anlage
+# ---------------------------------------------------------------------------
+def _sprachdialog(flow, monkeypatch, eigener, *andere):
+    """Der allgemeine Schritt eines Eintrags; geschriebene Optionen landen in `geschrieben`."""
+    from types import SimpleNamespace
+
+    geschrieben: dict[str, dict] = {}
+
+    async def im_executor(funktion, *argumente):
+        return funktion(*argumente)
+
+    def aktualisieren(eintrag, *, options):
+        geschrieben[eintrag.entry_id] = dict(options)
+        eintrag.options = dict(options)
+
+    optionen = flow.WindhagerOptionsFlow()
+    optionen.hass = SimpleNamespace(
+        async_add_executor_job=im_executor,
+        config=SimpleNamespace(language="de"),
+        config_entries=SimpleNamespace(
+            async_entries=lambda _domain: [eigener, *andere],
+            async_update_entry=aktualisieren,
+        ),
+    )
+    monkeypatch.setattr(type(optionen), "config_entry", property(lambda _self: eigener))
+    return optionen, geschrieben
+
+
+def _auswahl(ergebnis, feld):
+    """Vorgabe und Werte einer Auswahl im Formular."""
+    for schluessel, auswahl in ergebnis["data_schema"].schema.items():
+        if schluessel == feld:
+            return schluessel.default(), [o["value"] for o in auswahl.config["options"]]
+    raise AssertionError(feld)
+
+
+async def test_der_dialog_bietet_beide_sprachen_an(flow, monkeypatch):
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.const import CONF_SPRACHE, CONF_SPRACHE_ANLAGE
+
+    eigener = SimpleNamespace(entry_id="a", options={CONF_SPRACHE: "auto"})
+    optionen, _ = _sprachdialog(flow, monkeypatch, eigener)
+
+    ergebnis = await optionen.async_step_allgemein()
+
+    assert _auswahl(ergebnis, CONF_SPRACHE) == ("auto", ["auto", "de", "en", "nl"])
+    assert _auswahl(ergebnis, CONF_SPRACHE_ANLAGE) == (
+        "wie_heatnexus",
+        ["wie_heatnexus", "de", "en", "nl"],
+    )
+
+
+async def test_speichern_setzt_die_gemeinsame_sprache_in_jedem_eintrag(flow, monkeypatch):
+    """Die eigene Wahl bleibt beim Eintrag; die gemeinsame geht an alle."""
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.const import (
+        CONF_DASHBOARD,
+        CONF_PANEL,
+        CONF_SPRACHE,
+        CONF_SPRACHE_ANLAGE,
+        CONF_UPDATE_INTERVAL,
+    )
+
+    eigener = SimpleNamespace(entry_id="a", options={CONF_SPRACHE: "de"})
+    zweiter = SimpleNamespace(
+        entry_id="b", options={CONF_SPRACHE: "de", CONF_SPRACHE_ANLAGE: "nl", "x": 1}
+    )
+    dritter = SimpleNamespace(entry_id="c", options={CONF_SPRACHE: "en"})
+    optionen, geschrieben = _sprachdialog(flow, monkeypatch, eigener, zweiter, dritter)
+
+    ergebnis = await optionen.async_step_allgemein(
+        {
+            CONF_UPDATE_INTERVAL: 30,
+            CONF_DASHBOARD: True,
+            CONF_PANEL: True,
+            CONF_SPRACHE: "en",
+            CONF_SPRACHE_ANLAGE: "de",
+        }
+    )
+
+    assert ergebnis["data"][CONF_SPRACHE] == "en"
+    assert ergebnis["data"][CONF_SPRACHE_ANLAGE] == "de"
+    assert geschrieben == {"b": {CONF_SPRACHE: "en", CONF_SPRACHE_ANLAGE: "nl", "x": 1}}
+
+
+def test_die_umstellung_beim_start_schreibt_jeden_eintrag(monkeypatch):
+    """Einmal beim Start: erste Wahl gemeinsam, abweichende als eigene; Gleiches bleibt unberührt."""
+    from types import SimpleNamespace
+
+    import custom_components.heatnexus as integration
+    from custom_components.heatnexus.const import CONF_SPRACHE, CONF_SPRACHE_ANLAGE
+
+    eintraege = [
+        SimpleNamespace(entry_id=kennung, options={CONF_SPRACHE: sprache})
+        for kennung, sprache in (("a", "de"), ("b", "nl"), ("c", "en"))
+    ]
+    aufrufe: list[str] = []
+
+    def aktualisieren(eintrag, *, options):
+        aufrufe.append(eintrag.entry_id)
+        eintrag.options = dict(options)
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(language="en"),
+        config_entries=SimpleNamespace(
+            async_entries=lambda _domain: eintraege, async_update_entry=aktualisieren
+        ),
+    )
+
+    integration._sprachwahl_umstellen(hass)
+    integration._sprachwahl_umstellen(hass)
+
+    assert aufrufe == ["b", "c"]
+    assert [e.options[CONF_SPRACHE] for e in eintraege] == ["de", "de", "de"]
+    assert [e.options.get(CONF_SPRACHE_ANLAGE) for e in eintraege] == [None, "nl", "en"]
+
+
+def test_die_umstellung_beim_start_haelt_deutsch_ohne_wahl():
+    """Ohne Wahl waren die Namen deutsch; eine englische Home-Assistant-Sprache ändert das nicht."""
+    from types import SimpleNamespace
+
+    import custom_components.heatnexus as integration
+    from custom_components.heatnexus.const import CONF_SPRACHE, CONF_SPRACHE_ANLAGE
+
+    eintraege = [
+        SimpleNamespace(entry_id="a", options={}),
+        SimpleNamespace(entry_id="b", options={CONF_SPRACHE: "auto"}),
+    ]
+
+    def aktualisieren(eintrag, *, options):
+        eintrag.options = dict(options)
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(language="en"),
+        config_entries=SimpleNamespace(
+            async_entries=lambda _domain: eintraege, async_update_entry=aktualisieren
+        ),
+    )
+
+    integration._sprachwahl_umstellen(hass)
+
+    assert [e.options.get(CONF_SPRACHE) for e in eintraege] == ["auto", "auto"]
+    assert [e.options.get(CONF_SPRACHE_ANLAGE) for e in eintraege] == ["de", "de"]
+
+
 def test_der_dialog_nennt_die_werte_die_nur_der_bus_hergibt(flow, monkeypatch):
     """Sonst steht dort eine Sammelaussage, die je Baureihe stimmt oder nicht."""
     from types import SimpleNamespace

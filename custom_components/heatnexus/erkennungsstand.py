@@ -22,7 +22,6 @@ from .const import (
     CONF_LON,
     CONF_LON_GRUNDUMFANG,
     CONF_MODULPUMPE,
-    CONF_SPRACHE,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_WRITABLE_ADVANCED,
@@ -35,7 +34,7 @@ from .const import (
     SUBEINTRAG_AUTOMATIK,
     UPDATE_INTERVAL,
 )
-from .geraetetexte import sprache_aufloesen
+from .texte import sprache_des_eintrags
 
 
 def store_key(entry: ConfigEntry, host: str) -> str:
@@ -70,9 +69,7 @@ def umfang_der_anlage(hass: HomeAssistant, entry: ConfigEntry, host: str) -> dic
         "username": system.get(CONF_USERNAME) or DEFAULT_USERNAME,
         # Aufgelöst, nicht „auto": Sonst läse die Wahl von „auto" auf die
         # gleiche Sprache neu ein, obwohl sich nichts ändert.
-        "sprache": sprache_aufloesen(
-            options.get(CONF_SPRACHE), getattr(hass.config, "language", None)
-        ),
+        "sprache": sprache_des_eintrags(hass, entry),
     }
 
 

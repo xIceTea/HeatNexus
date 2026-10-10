@@ -56,9 +56,12 @@ def const():
     return const
 
 
-def _hass(sprache: str = "de"):
+def _hass(sprache: str = "de", eintraege=()):
     """Home Assistant nur so weit, wie der Umfang davon braucht."""
-    return SimpleNamespace(config=SimpleNamespace(language=sprache))
+    return SimpleNamespace(
+        config=SimpleNamespace(language=sprache),
+        config_entries=SimpleNamespace(async_entries=lambda _domain: list(eintraege)),
+    )
 
 
 def _eintrag(const, optionen=None, systeme=None):
@@ -167,21 +170,36 @@ def test_ein_stand_ohne_sprache_gilt_als_deutsch(erkennungsstand, const):
 
 def test_die_gewaehlte_sprache_schlaegt_die_von_home_assistant(erkennungsstand, const):
     eintrag = _eintrag(const, optionen={const.CONF_SPRACHE: "nl"})
-    assert erkennungsstand.umfang_der_anlage(_hass("fr"), eintrag, HOST)["sprache"] == "nl"
+    assert (
+        erkennungsstand.umfang_der_anlage(_hass("fr", [eintrag]), eintrag, HOST)["sprache"] == "nl"
+    )
+
+
+def test_die_sprache_der_anlage_gilt_fuer_ihre_namen(erkennungsstand, const):
+    eintrag = _eintrag(const, optionen={const.CONF_SPRACHE: "de", const.CONF_SPRACHE_ANLAGE: "nl"})
+    assert (
+        erkennungsstand.umfang_der_anlage(_hass("de", [eintrag]), eintrag, HOST)["sprache"] == "nl"
+    )
+
+
+def test_automatisch_folgt_home_assistant_auch_bei_den_namen(erkennungsstand, const):
+    eintrag = _eintrag(const, optionen={const.CONF_SPRACHE: "auto"})
+    assert (
+        erkennungsstand.umfang_der_anlage(_hass("nl", [eintrag]), eintrag, HOST)["sprache"] == "nl"
+    )
 
 
 def test_automatisch_auf_dieselbe_sprache_aendert_die_kennung_nicht(erkennungsstand, const):
     # „auto" wird aufgelöst gespeichert. Wer von „auto" auf genau die Sprache
     # umstellt, die ohnehin galt, soll keinen Neuabzug auslösen.
-    automatisch = erkennungsstand.umfang_fingerprint(
-        erkennungsstand.umfang_der_anlage(_hass("fr"), _eintrag(const), HOST)
+    automatisch = _eintrag(const, optionen={const.CONF_SPRACHE: "auto"})
+    ausdruecklich = _eintrag(const, optionen={const.CONF_SPRACHE: "nl"})
+    umfang_auto = erkennungsstand.umfang_der_anlage(_hass("nl", [automatisch]), automatisch, HOST)
+    umfang_nl = erkennungsstand.umfang_der_anlage(_hass("nl", [ausdruecklich]), ausdruecklich, HOST)
+    assert umfang_auto == umfang_nl
+    assert erkennungsstand.umfang_fingerprint(umfang_auto) == erkennungsstand.umfang_fingerprint(
+        umfang_nl
     )
-    ausdruecklich = erkennungsstand.umfang_fingerprint(
-        erkennungsstand.umfang_der_anlage(
-            _hass("fr"), _eintrag(const, optionen={const.CONF_SPRACHE: "de"}), HOST
-        )
-    )
-    assert automatisch == ausdruecklich
 
 
 # ---------------------------------------------------------------------------

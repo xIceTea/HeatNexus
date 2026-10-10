@@ -160,7 +160,7 @@ def geraet_info(coordinator: Any, beschreibung: dict[str, Any]) -> DeviceInfo:
     """Gerätezuordnung: die Quelle als Teil unter ihrer Steuerung."""
     steuerung = (getattr(coordinator, "label", "") or "").strip()
     art = beschreibung.get("art")
-    uebersetzt = texte.woerterbuch_zu(coordinator)
+    uebersetzt = texte.woerterbuch_des_koordinators(coordinator)
     name = beschreibung.get("name") or uebersetzt(QUELLEN_ARTEN.get(art, TYP))
     return DeviceInfo(
         identifiers={(DOMAIN, beschreibung["id"])},

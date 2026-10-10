@@ -77,20 +77,22 @@ def test_unlesbares_xml_ergibt_leeres_ergebnis(geraetetexte, kaputt):
 @pytest.mark.parametrize(
     ("gewaehlt", "ha", "erwartet"),
     [
-        # Ohne ausdrückliche Wahl bleibt es bei Deutsch, gleich welche Sprache
-        # Home Assistant führt: Die Kartenmuster der Oberfläche erkennen einen
-        # Datenpunkt am deutschen Namen und fänden ihn sonst nicht mehr.
-        (None, "fr", "de"),
-        ("auto", "en-GB", "de"),
-        ("auto", "es", "de"),
+        # Ohne ausdrückliche Wahl gilt die Sprache von Home Assistant; was
+        # HeatNexus nicht führt, erscheint englisch.
+        (None, "nl", "nl"),
+        ("auto", "en-GB", "en"),
+        ("auto", "de-CH", "de"),
+        ("auto", "es", "en"),
+        (None, "fr", "en"),
         ("auto", None, "de"),
-        # Die ausdrückliche Wahl gilt weiterhin.
+        # Die ausdrückliche Wahl gilt unabhängig davon.
         ("nl", "de", "nl"),
+        ("de", "en", "de"),
         # Früher wählbar; wer sie gewählt hat, liest die Steuerung englisch.
         ("it", "de", "en"),
         ("fr", None, "en"),
         ("en", "de", "en"),
-        ("klingonisch", "fr", "de"),
+        ("klingonisch", "fr", "en"),
     ],
 )
 def test_sprache_aufloesen(geraetetexte, gewaehlt, ha, erwartet):

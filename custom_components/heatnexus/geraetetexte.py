@@ -19,8 +19,6 @@ from xml.etree import ElementTree as ET
 _LOGGER = logging.getLogger(__name__)
 
 SPRACHEN = ("de", "en", "nl")
-# Früher wählbar, ohne vollständige Übersetzung; wer sie gewählt hat, liest Englisch.
-ENTFALLEN = frozenset({"fr", "it"})
 SPRACHE_AUTO = "auto"
 
 
@@ -149,19 +147,16 @@ def dateinamen_lesen(html: str) -> set[str]:
 
 
 def sprache_aufloesen(gewaehlt: str | None, ha_sprache: str | None) -> str:
-    """Die Sprache bestimmen, in der die Steuerung gelesen wird.
+    """Die Sprache, in der HeatNexus spricht und die Steuerung gelesen wird.
 
-    Nur die ausdrückliche Wahl zählt, alles andere ist Deutsch: Schaubild,
-    Kennwerte und Schnellzugriff erkennen einen Datenpunkt zum Teil an seinem
-    deutschen Namen und blieben mit fremden Namen leer. ``ha_sprache`` wird
-    deshalb nicht ausgewertet und bleibt für den Tag, an dem jeder Datenpunkt
-    der Muster einen kanonischen Schlüssel trägt.
+    „Automatisch“ folgt Home Assistant. Was HeatNexus nicht führt, erscheint englisch.
     """
-    if gewaehlt in ENTFALLEN:
-        return "en"
-    if gewaehlt and gewaehlt != SPRACHE_AUTO:
-        return gewaehlt if gewaehlt in SPRACHEN else "de"
-    return "de"
+    if isinstance(gewaehlt, str) and gewaehlt and gewaehlt != SPRACHE_AUTO:
+        return gewaehlt if gewaehlt in SPRACHEN else "en"
+    if not isinstance(ha_sprache, str) or not ha_sprache:
+        return "de"
+    sprache = ha_sprache.split("-")[0].lower()
+    return sprache if sprache in SPRACHEN else "en"
 
 
 async def laden(hole, sprache: str) -> Texte:

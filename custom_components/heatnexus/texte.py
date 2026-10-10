@@ -6,14 +6,15 @@ Deutsch zurück. Die Datenpunktnamen kommen aus `geraetetexte.py`.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from functools import lru_cache
 import json
 import logging
 from pathlib import Path
 import re
 
-from .const import CONF_SPRACHE, DOMAIN
-from .geraetetexte import SPRACHE_AUTO
+from .const import CONF_SPRACHE, CONF_SPRACHE_ANLAGE, DOMAIN, SPRACHE_WIE_HEATNEXUS
+from .geraetetexte import SPRACHE_AUTO, SPRACHEN, sprache_aufloesen
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -182,31 +183,114 @@ def uebersetze_baum(daten, woerterbuch: Woerterbuch, felder=TEXTFELDER):
     return daten
 
 
-def sprache_der_oberflaeche(hass) -> str:
-    """Die Sprache der Oberfläche; bei mehreren Anlagen gilt die erste.
+def _wahl(eintrag, schluessel: str) -> str | None:
+    """Eine gespeicherte Sprachwahl; nur echte Zeichenketten zählen."""
+    wert = (getattr(eintrag, "options", None) or {}).get(schluessel)
+    return wert if isinstance(wert, str) and wert else None
+
+
+def _ha_sprache(hass) -> str | None:
+    """Die Systemsprache von Home Assistant, sofern bekannt."""
+    sprache = getattr(getattr(hass, "config", None), "language", None)
+    return sprache if isinstance(sprache, str) else None
+
+
+def gemeinsame_sprache(hass) -> str:
+    """Die Sprache von HeatNexus: Rahmen der Oberfläche, Dashboard, Automatik.
 
     Gelesen aus den Optionen, nicht aus den Laufzeitdaten: Die Oberfläche
-    entsteht auch, während ein Eintrag noch lädt. Bei „Automatisch" gilt die
-    Sprache von Home Assistant – eigene Texte hängen an keinem Namensmuster.
+    entsteht auch, während ein Eintrag noch lädt.
+    """
+    if not hass.config_entries.async_entries(DOMAIN):
+        return QUELLSPRACHE
+    return sprache_aufloesen(gemeinsame_wahl(hass), _ha_sprache(hass))
+
+
+def gemeinsame_wahl(hass) -> str:
+    """Die gespeicherte gemeinsame Wahl („auto", „de" …).
+
+    Sie steht in jedem Eintrag gleich; es zählt der erste, der eine trägt.
     """
     eintraege = hass.config_entries.async_entries(DOMAIN)
-    if not eintraege:
-        return QUELLSPRACHE
-    gewaehlt = (eintraege[0].options or {}).get(CONF_SPRACHE)
-    if isinstance(gewaehlt, str) and gewaehlt and gewaehlt != SPRACHE_AUTO:
-        return gewaehlt
-    ha_sprache = getattr(hass.config, "language", None)
-    if not isinstance(ha_sprache, str) or not ha_sprache:
-        return QUELLSPRACHE
-    return ha_sprache.split("-")[0]
+    return _bisherige_wahl(next((w for e in eintraege if (w := _wahl(e, CONF_SPRACHE))), None))
+
+
+def sprache_des_eintrags(hass, eintrag) -> str:
+    """Die wirksame Sprache eines Eintrags: seine eigene Wahl, sonst die gemeinsame."""
+    eigene = _wahl(eintrag, CONF_SPRACHE_ANLAGE)
+    if eigene and eigene != SPRACHE_WIE_HEATNEXUS:
+        return sprache_aufloesen(eigene, _ha_sprache(hass))
+    return gemeinsame_sprache(hass)
+
+
+def woerterbuch_des_eintrags(hass, eintrag) -> Woerterbuch:
+    """Das Wörterbuch eines Eintrags; `eintrag` darf auch seine Kennung sein."""
+    if isinstance(eintrag, str):
+        eintrag = hass.config_entries.async_get_entry(eintrag)
+    return Woerterbuch(sprache_des_eintrags(hass, eintrag))
+
+
+def sprache_der_oberflaeche(hass) -> str:
+    """Die gemeinsame Sprache; der Name bleibt für bestehende Aufrufer."""
+    return gemeinsame_sprache(hass)
 
 
 def woerterbuch(hass) -> Woerterbuch:
-    """Das Wörterbuch für die eingestellte Sprache."""
-    return Woerterbuch(sprache_der_oberflaeche(hass))
+    """Das Wörterbuch für die gemeinsame Sprache."""
+    return Woerterbuch(gemeinsame_sprache(hass))
 
 
 def woerterbuch_zu(objekt) -> Woerterbuch:
     """Das Wörterbuch zum Home Assistant eines Objekts; ohne eines bleibt es deutsch."""
     hass = getattr(objekt, "hass", None)
     return woerterbuch(hass) if hass is not None else Woerterbuch(None)
+
+
+def woerterbuch_des_koordinators(koordinator) -> Woerterbuch:
+    """Das Wörterbuch des Eintrags, zu dem ein Koordinator gehört; ohne Home Assistant deutsch."""
+    hass = getattr(koordinator, "hass", None)
+    if hass is None:
+        return Woerterbuch(None)
+    return woerterbuch_des_eintrags(hass, getattr(koordinator, "config_entry", None))
+
+
+def _bisherige_wahl(wahl) -> str:
+    """Eine alte Wahl in heutiger Form: ohne Wahl „auto", entfallene Sprachen englisch."""
+    if not isinstance(wahl, str) or not wahl or wahl == SPRACHE_AUTO:
+        return SPRACHE_AUTO
+    return sprache_aufloesen(wahl, None)
+
+
+def _bisherige_sprache(wahl) -> str:
+    """Die Sprache der Namen vor der gemeinsamen Wahl: ohne Wahl deutsch, „fr"/„it" englisch."""
+    if wahl in SPRACHEN:
+        return wahl
+    return "en" if wahl in ("fr", "it") else QUELLSPRACHE
+
+
+def sprachwahl_umstellen(
+    optionen: list[Mapping], ha_sprache: str | None = None
+) -> list[dict | None] | None:
+    """Neue Optionen je Eintrag, `None` wo nichts zu schreiben ist; schon umgestellt: `None`.
+
+    Die Wahl des ersten Eintrags wird gemeinsam. Wer anders gewählt hatte, behält es als eigene.
+    """
+    if not optionen or any(CONF_SPRACHE_ANLAGE in o for o in optionen):
+        return None
+    gemeinsam = _bisherige_wahl(optionen[0].get(CONF_SPRACHE))
+    kuenftig = sprache_aufloesen(gemeinsam, ha_sprache)
+    return [_umgestellt(alt, gemeinsam, kuenftig) for alt in optionen]
+
+
+def _umgestellt(alt: Mapping, gemeinsam: str, kuenftig: str) -> dict | None:
+    """Die Optionen eines Eintrags mit eigener Sprache; `None`, wenn sie dasselbe bedeuten.
+
+    Eine eigene Sprache entsteht aus einer abweichenden Wahl oder wenn `kuenftig` umbenennen würde.
+    """
+    bisher = _bisherige_wahl(alt.get(CONF_SPRACHE))
+    sprache = _bisherige_sprache(alt.get(CONF_SPRACHE))
+    abweichend = bisher not in (gemeinsam, SPRACHE_AUTO) or sprache != kuenftig
+    eigene = sprache if abweichend else SPRACHE_WIE_HEATNEXUS
+    if eigene == SPRACHE_WIE_HEATNEXUS and (CONF_SPRACHE not in alt or bisher == gemeinsam):
+        return None
+    return {**alt, CONF_SPRACHE: gemeinsam, CONF_SPRACHE_ANLAGE: eigene}

@@ -136,12 +136,14 @@ CONF_HILFE = "hilfe"
 # Welche Automations-Vorlagen mitgeliefert werden. Fehlt die Angabe, kommen
 # alle mit – eine Aktualisierung ändert an einer bestehenden Anlage nichts.
 CONF_VORLAGEN = "vorlagen"
-# Sprache der Bezeichnungen, die die Steuerung selbst mitführt. „auto" folgt
-# der Spracheinstellung von Home Assistant. Die Wahl entscheidet, welche
-# Textdateien der Anlage gelesen werden.
+# Sprache von HeatNexus, in jedem Eintrag gleich; „auto" folgt Home Assistant.
 CONF_SPRACHE = "sprache"
+# Eigene Sprache eines Eintrags für Namen, Zustände und seine Ansichten.
+CONF_SPRACHE_ANLAGE = "sprache_anlage"
+SPRACHE_WIE_HEATNEXUS = "wie_heatnexus"
 SPRACHE_BESCHRIFTUNG: dict[str, str] = {
     "auto": "Automatisch",
+    SPRACHE_WIE_HEATNEXUS: "Wie HeatNexus",
     "de": "Deutsch",
     "en": "Englisch",
     "nl": "Niederländisch",

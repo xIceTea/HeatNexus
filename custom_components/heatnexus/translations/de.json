@@ -108,7 +108,8 @@
           "vorlagen": "Automations-Vorlagen",
           "aussentemperatur": "Außentemperatur",
           "hilfe": "Erklärungen anzeigen",
-          "sprache": "Sprache der Bezeichnungen",
+          "sprache": "Sprache von HeatNexus",
+          "sprache_anlage": "Sprache dieser Anlage",
           "startwerte": "Startwerte von der Anlage übernehmen"
         },
         "data_description": {
@@ -119,7 +120,8 @@
           "vorlagen": "Welche Vorlagen unter Einstellungen → Automationen bereitstehen. Eine Vorlage, die eine Automation benutzt, bleibt auch abgewählt liegen.",
           "aussentemperatur": "Welcher Sensor in der Kopfzeile als Außentemperatur gilt. Leer: HeatNexus sucht sie sich in der Anlage selbst.",
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
-          "sprache": "Woher die Namen der Datenpunkte kommen. Bei „Automatisch“ bleiben sie deutsch, und die Oberfläche folgt der Sprache von Home Assistant."
+          "sprache": "Gilt für alle Anlagen in HeatNexus: Namen der Datenpunkte, Oberfläche und Dashboard. Bei „Automatisch“ gilt die Sprache von Home Assistant.",
+          "sprache_anlage": "Legt eine eigene Sprache nur für diese Anlage fest: für Namen, Zustände, Störungstexte und ihre Seite in der Oberfläche. „Wie HeatNexus“ übernimmt die Sprache von HeatNexus."
         }
       },
       "system": {
@@ -238,6 +240,14 @@
     "sprache": {
       "options": {
         "auto": "Automatisch",
+        "de": "Deutsch",
+        "en": "Englisch",
+        "nl": "Niederländisch"
+      }
+    },
+    "sprache_anlage": {
+      "options": {
+        "wie_heatnexus": "Wie HeatNexus",
         "de": "Deutsch",
         "en": "Englisch",
         "nl": "Niederländisch"
