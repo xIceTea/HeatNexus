@@ -523,6 +523,7 @@
   "Testbetrieb": "Test mode",
   "Fenster offen – Entscheidungen ausgesetzt.": "Window open – decisions suspended.",
   "Messwerte oder Prognose fehlen – keine neue Entscheidung.": "Readings or forecast missing – no new decision.",
+  "Raumwerte fehlen – Absenkung beendet.": "Room readings missing – setback ended.",
   "Sonnentag vorbei – zurück ins Programm.": "Sunny day over – back to the program.",
   "Sehr sonnig – nur Warmwasser bis {zeit}.": "Very sunny – hot water only until {zeit}.",
   "Räume {abstand} – zurück ins Programm.": "Rooms {abstand} – back to the program.",

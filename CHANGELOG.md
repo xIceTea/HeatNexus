@@ -29,6 +29,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+- Fehlen alle Raumwerte, beendet die Automatik eine laufende Absenkung.
 - „Absenkbetrieb bis“ steht nach einem Neustart sofort im Reiter Automatik.
 - Die Automatik zeigt, wenn der Heizkreis an der Steuerung aus ist.
 - Ein Sonnentag aus der Sonnenquote endet nicht mehr ohne Wärme der Solaranlage.

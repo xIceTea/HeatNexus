@@ -384,6 +384,14 @@ def _fenster(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entsch
 def _daten(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entscheidung | None:
     if lage.daten_ok and lage.raum is not None and soll is not None:
         return None
+    # Ohne Raumwert merkt die Automatik nicht, wenn die Räume auskühlen; eine Absenkung endet.
+    if lage.raum is None and absenkung_laeuft(g, lage.jetzt):
+        return Entscheidung(
+            Zustand.KEINE_DATEN,
+            (Aktion("absenkung_ende", sicherheit=True),),
+            "Raumwerte fehlen – Absenkung beendet.",
+            ohne_absenkung(g),
+        )
     return Entscheidung(
         Zustand.KEINE_DATEN, (), "Messwerte oder Prognose fehlen – keine neue Entscheidung.", g
     )

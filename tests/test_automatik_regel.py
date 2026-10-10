@@ -118,6 +118,23 @@ def test_ohne_raumwert_keine_entscheidung(m, w):
     assert e.aktionen == ()
 
 
+def test_ohne_raumwert_endet_eine_laufende_absenkung(m, w):
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=1), raum=None)
+    e = m.entscheiden(stand, sonnentag(m), w)
+    assert e.zustand == m.Zustand.KEINE_DATEN
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.gedaechtnis.absenkung_art is None
+
+
+def test_ohne_prognose_laeuft_die_absenkung_weiter(m, w):
+    alt = sonnentag(m)
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=1), daten_ok=False)
+    e = m.entscheiden(stand, alt, w)
+    assert e.zustand == m.Zustand.KEINE_DATEN
+    assert e.aktionen == ()
+    assert e.gedaechtnis == alt
+
+
 # --- Saison ------------------------------------------------------------------
 def test_warme_gedaempfte_at_schaltet_nur_ww(m, w):
     e = m.entscheiden(lage(m, at=17.5, at_gedaempft=18.2, mittel_heute=None), m.Gedaechtnis(), w)
