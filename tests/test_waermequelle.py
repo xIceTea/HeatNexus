@@ -631,3 +631,18 @@ async def test_ohne_erreichbare_entitaet_bleibt_die_wahl_freiwillig(hass):
     marker = next(m for m in schema.schema if m == "zustaende")
 
     assert isinstance(marker, vol.Optional)
+
+
+def test_schaltzustaende_erscheinen_als_text_der_oberflaeche():
+    """Die Auswahl zeigt „on“ übersetzt, der gespeicherte Wert bleibt roh."""
+    from custom_components.heatnexus.waermequelle_flow import regel_schema
+
+    texte = {"Ein": "Aan", "Aus": "Uit"}
+    schema = regel_schema("zustand", {}, ["on", "off", "läuft"], lambda t: texte.get(t, t))
+    auswahl = schema.schema[next(m for m in schema.schema if m == "zustaende")]
+
+    assert [(o["value"], o["label"]) for o in auswahl.config["options"]] == [
+        ("on", "Aan"),
+        ("off", "Uit"),
+        ("läuft", "läuft"),
+    ]

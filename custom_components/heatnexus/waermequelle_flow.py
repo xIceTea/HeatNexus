@@ -30,6 +30,8 @@ from .texte import woerterbuch_zu
 # Zustände, die für sich schon an oder aus bedeuten. Alles andere ist
 # Klartext: Dort entscheidet die Auswahl, welcher Text als liefernd gilt.
 BINAERE_ZUSTAENDE = frozenset({"on", "off", "true", "false"})
+# Wie Home Assistant die beiden Schaltzustände anzeigt; der Wert bleibt roh.
+ZUSTANDSTEXTE = {"on": "Ein", "off": "Aus"}
 
 
 # Ersatzzustände von Home Assistant. Als Bedingung gewählt stünde die Quelle
@@ -85,7 +87,18 @@ def zustandsvorschlaege(hass: Any, entity_id: str | None) -> list[str]:
     return vorschlaege
 
 
-def regel_schema(art: str, vorhanden: Mapping[str, Any], vorschlaege: list[str]) -> vol.Schema:
+def _zustandstext(wert: str, uebersetzt: Callable[[str], str]) -> str:
+    """Schaltzustände in der Sprache der Oberfläche, fremder Klartext unverändert."""
+    text = ZUSTANDSTEXTE.get(wert.strip().lower())
+    return uebersetzt(text) if text else wert
+
+
+def regel_schema(
+    art: str,
+    vorhanden: Mapping[str, Any],
+    vorschlaege: list[str],
+    uebersetzt: Callable[[str], str] = str,
+) -> vol.Schema:
     """Der zweite Schritt: nur die Felder, die zur gewählten Bedingung gehören."""
     regel = dict(vorhanden.get("bedingung") or {})
     if art == bedingung.ART_ZUSTAND:
@@ -101,7 +114,13 @@ def regel_schema(art: str, vorhanden: Mapping[str, Any], vorschlaege: list[str])
                     "zustaende", description={"suggested_value": regel.get("zustaende")}
                 ): SelectSelector(
                     SelectSelectorConfig(
-                        options=[SelectOptionDict(value=wert, label=wert) for wert in optionen],
+                        options=[
+                            SelectOptionDict(
+                                value=wert,
+                                label=_zustandstext(wert, uebersetzt),
+                            )
+                            for wert in optionen
+                        ],
                         mode=SelectSelectorMode.DROPDOWN,
                         multiple=True,
                         custom_value=True,
@@ -310,6 +329,7 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
                 str(regel.get("art") or ""),
                 self._stand,
                 zustandsvorschlaege(self.hass, regel.get("quelle")),
+                woerterbuch_zu(self),
             ),
             errors=errors,
             description_placeholders={"quelle": self._quellenname(regel.get("quelle"))},
