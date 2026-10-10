@@ -6,6 +6,8 @@
  * verlangt: Konfiguration, `hass`, Größe im Raster.
  */
 
+// Die Karten der Übersicht reisen mit: Eine Ressource reicht für das ganze Dashboard.
+import "./heatnexus-kacheln.js";
 import { BausteineMixin } from "./teile/bausteine.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { WerteMixin } from "./teile/werte.js";
