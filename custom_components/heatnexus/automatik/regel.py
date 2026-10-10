@@ -114,6 +114,8 @@ class Lage:
     grenze_steuerung: float | None = None
     daten_ok: bool = True
     daten_fehlen_seit: datetime | None = None
+    # Seit wann weniger als die Hälfte der eingerichteten Räume einen Wert liefert.
+    raeume_fehlen_seit: datetime | None = None
     fenster_offen: bool = False
     abwesend: bool = False
     pausiert_bis: datetime | None = None
@@ -382,10 +384,15 @@ def _fenster(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entsch
 
 
 def _daten(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entscheidung | None:
-    if lage.daten_ok and lage.raum is not None and soll is not None:
+    fehlen = lage.raeume_fehlen_seit or (lage.jetzt if lage.raum is None else None)
+    if lage.daten_ok and fehlen is None and soll is not None:
         return None
-    # Ohne Raumwert merkt die Automatik nicht, wenn die Räume auskühlen; eine Absenkung endet.
-    if lage.raum is None and absenkung_laeuft(g, lage.jetzt):
+    # Ohne Raumwerte merkt die Automatik nicht, wenn die Räume auskühlen; nach der Wartezeit endet eine Absenkung.
+    if (
+        fehlen is not None
+        and absenkung_laeuft(g, lage.jetzt)
+        and lage.jetzt - fehlen >= timedelta(minutes=w.raum_fehlt_min)
+    ):
         return Entscheidung(
             Zustand.KEINE_DATEN,
             (Aktion("absenkung_ende", sicherheit=True),),
@@ -601,6 +608,21 @@ def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
     )
 
 
+def _sonne_reicht_nicht(lage: Lage, g: Gedaechtnis, quote: float, w: Werte) -> Entscheidung | None:
+    """Zu wenig Sonne, oder Frost ohne Hausmodell: kein Sonnentag."""
+    if quote < w.sonnenquote:
+        text = f"Sonnenquote {quote:.0f} % unter {w.sonnenquote:.0f} % – keine Absenkung."
+    # Bei Frost deckt die Sonne den Verlust selten; ohne Hausmodell fehlt der Beleg, dass sie wärmt.
+    elif lage.at_gedaempft is not None and lage.at_gedaempft < w.sonne_frost_at:
+        text = (
+            f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C unter {_zahl(w.sonne_frost_at)} °C "
+            "– ohne Hausmodell keine Absenkung."
+        )
+    else:
+        return None
+    return Entscheidung(Zustand.PROGRAMM, (), text, g)
+
+
 def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung:
     if g.absenkung_art == SONNE:
         return _sonnentag_laeuft(lage, g, soll, w)
@@ -620,13 +642,8 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
     # Liefert eine Quelle mit Vorrang, soll ihre Wärme den Heizkreis decken, nicht der Kessel.
     if lage.vorrang_laeuft:
         quote = max(quote, w.sonnenquote)
-    if quote < w.sonnenquote:
-        return Entscheidung(
-            Zustand.PROGRAMM,
-            (),
-            f"Sonnenquote {quote:.0f} % unter {w.sonnenquote:.0f} % – keine Absenkung.",
-            g,
-        )
+    if (gegen := _sonne_reicht_nicht(lage, g, quote, w)) is not None:
+        return gegen
     if (abstand := abweichung(lage, soll)) < -SONNE_RAUM_K:
         return Entscheidung(
             Zustand.PROGRAMM, (), f"Räume {_kelvin(abstand)} unter Ziel – keine Absenkung.", g

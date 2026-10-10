@@ -123,6 +123,12 @@ def _gueltig_verworfen(wert: Any) -> dict[str, Any]:
     return {"tag": wert["tag"], "zustaende": zustaende}
 
 
+def _verlauf_laden(roh: Any) -> dict[str, Any]:
+    """Der gespeicherte Tagesverlauf; Fremdes ergibt einen leeren."""
+    verlauf = roh if isinstance(roh, dict) else {}
+    return {"datum": str(verlauf.get("datum") or ""), "stunden": dict(verlauf.get("stunden") or {})}
+
+
 class Laufzeit(QuellenMixin, VorausschauMixin):
     """Die Automatik eines Heizkreises."""
 
@@ -174,11 +180,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._grenzen_laden(z)
         self.temperatur = korrektur.Temperaturkorrektur(z.get("temperatur"))
         self.pv = korrektur.Pvkorrektur(z.get("pv"))
-        verlauf = z.get("verlauf") if isinstance(z.get("verlauf"), dict) else {}
-        self.verlauf: dict[str, Any] = {
-            "datum": str(verlauf.get("datum") or ""),
-            "stunden": dict(verlauf.get("stunden") or {}),
-        }
+        self.verlauf: dict[str, Any] = _verlauf_laden(z.get("verlauf"))
         self.lage: regel.Lage | None = None
         self.stunden: list[dict[str, Any]] = []
         self._tage: list[tuple[date, float | None, float | None]] = []
@@ -187,6 +189,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._fenster_bis: datetime | None = None
         self._weg_seit: datetime | None = None
         self._daten_fehlen_seit: datetime | None = None
+        self._raeume_fehlen_seit: datetime | None = None
         self._geaendert = True
         self._laeuft = False
         self._abmelden: list[Callable[[], None]] = []
@@ -1041,6 +1044,11 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             self._daten_fehlen_seit = None
         elif self._daten_fehlen_seit is None:
             self._daten_fehlen_seit = jetzt
+        # Genug Räume: mindestens die Hälfte der eingerichteten liefert einen Wert.
+        if 2 * len(messungen) >= len(self.konfig["raeume"]) and messungen:
+            self._raeume_fehlen_seit = None
+        elif self._raeume_fehlen_seit is None:
+            self._raeume_fehlen_seit = jetzt
         untergang = self.sonne(jetzt.date())[1]
         lage = regel.Lage(
             jetzt=jetzt,
@@ -1062,6 +1070,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             grenze_steuerung=self._heizgrenze(),
             daten_ok=daten_ok,
             daten_fehlen_seit=self._daten_fehlen_seit,
+            raeume_fehlen_seit=self._raeume_fehlen_seit,
             fenster_offen=self._fenster(jetzt),
             abwesend=self._abwesend(jetzt),
             pausiert_bis=self.pausiert_bis,

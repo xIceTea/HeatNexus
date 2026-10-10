@@ -1021,6 +1021,32 @@ async def test_veralteter_raumfuehler_zaehlt_nicht(hass, hass_ws_client, anlage,
     assert raeume["sensor.wohnzimmer"]["veraltet"] is False
 
 
+async def test_raeume_fehlen_erst_wenn_weniger_als_die_haelfte_liefert(
+    hass, hass_ws_client, anlage
+):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    for name, wert in (("wohnzimmer", "21.0"), ("kueche", "20.5"), ("bad", "unavailable")):
+        hass.states.async_set(f"sensor.{name}", wert, {"device_class": "temperature"})
+    antwort = await _senden(
+        client,
+        type="heatnexus/automatik/einrichten",
+        heizkreis=HEIZKREIS,
+        raeume=["sensor.wohnzimmer", "sensor.kueche", "sensor.bad"],
+        wetter="weather.home",
+    )
+    assert antwort["success"], antwort
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+
+    await laufzeit.auswerten()
+    assert laufzeit.lage.raeume_fehlen_seit is None
+
+    hass.states.async_set("sensor.kueche", "unavailable", {"device_class": "temperature"})
+    await laufzeit.auswerten()
+    assert laufzeit.lage.raeume_fehlen_seit is not None
+    assert laufzeit.lage.raum == 21.0
+
+
 async def test_nachgerechnete_gedaempfte_at_ersetzt_einen_frischen_startwert(
     hass, anlage, monkeypatch, freezer
 ):

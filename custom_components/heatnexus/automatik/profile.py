@@ -51,6 +51,10 @@ class Werte:
     anpassen: bool = True
     # Im Modus „Manuell mit Empfehlung“: jede Empfehlung als Benachrichtigung in der Seitenleiste.
     melden: bool = True
+    # Darunter (gedämpfte AT) senkt der Sonnentag ohne freigegebenes Hausmodell nicht ab.
+    sonne_frost_at: float = 0.0
+    # So lange darf mehr als die Hälfte der Räume ohne Wert sein, bevor eine Absenkung endet.
+    raum_fehlt_min: float = 15.0
 
 
 VORGABEN: dict[str, Werte] = {
@@ -88,6 +92,8 @@ GRENZEN: dict[str, tuple[float, float]] = {
     "fenster_k_je_h": (1.0, 10.0),
     "stark_k": (0.3, 3.0),
     "ruhe_h": (0.5, 6.0),
+    "sonne_frost_at": (-15.0, 10.0),
+    "raum_fehlt_min": (0.0, 120.0),
 }
 
 # Die Ausrichtung verschiebt die Vorgabe der Heizflächen: Eco greift früher und

@@ -118,12 +118,52 @@ def test_ohne_raumwert_keine_entscheidung(m, w):
     assert e.aktionen == ()
 
 
-def test_ohne_raumwert_endet_eine_laufende_absenkung(m, w):
-    stand = lage(m, jetzt=MORGEN + timedelta(hours=1), raum=None)
+def test_fehlen_die_raeume_laenger_als_die_wartezeit_endet_die_absenkung(m, w):
+    jetzt = MORGEN + timedelta(hours=1)
+    stand = lage(m, jetzt=jetzt, raum=None, raeume_fehlen_seit=jetzt - timedelta(minutes=20))
     e = m.entscheiden(stand, sonnentag(m), w)
     assert e.zustand == m.Zustand.KEINE_DATEN
     assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+    assert e.aktionen[0].sicherheit
     assert e.gedaechtnis.absenkung_art is None
+
+
+def test_innerhalb_der_wartezeit_laeuft_die_absenkung_weiter(m, w):
+    jetzt = MORGEN + timedelta(hours=1)
+    alt = sonnentag(m)
+    stand = lage(m, jetzt=jetzt, raum=None, raeume_fehlen_seit=jetzt - timedelta(minutes=5))
+    e = m.entscheiden(stand, alt, w)
+    assert e.zustand == m.Zustand.KEINE_DATEN
+    assert e.aktionen == ()
+    assert e.gedaechtnis == alt
+
+
+def test_wartezeit_null_beendet_sofort(m, w):
+    jetzt = MORGEN + timedelta(hours=1)
+    stand = lage(m, jetzt=jetzt, raum=None, raeume_fehlen_seit=jetzt)
+    e = m.entscheiden(stand, sonnentag(m), replace(w, raum_fehlt_min=0.0))
+    assert [a.art for a in e.aktionen] == ["absenkung_ende"]
+
+
+def test_zu_wenige_raeume_halten_neue_entscheidungen_an(m, w):
+    stand = lage(m, entscheidungszeit=True, raeume_fehlen_seit=MORGEN)
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.KEINE_DATEN
+    assert e.aktionen == ()
+
+
+def test_unter_der_frostgrenze_kein_sonnentag_ohne_modell(m, w):
+    stand = lage(m, at=-8.0, at_gedaempft=-6.0, entscheidungszeit=True)
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.PROGRAMM
+    assert e.aktionen == ()
+    assert "-6,0 °C" in e.begruendung
+
+
+def test_frostgrenze_ist_einstellbar(m, w):
+    stand = lage(m, at=-8.0, at_gedaempft=-6.0, entscheidungszeit=True)
+    e = m.entscheiden(stand, m.Gedaechtnis(), replace(w, sonne_frost_at=-10.0))
+    assert e.zustand == m.Zustand.SONNENTAG
 
 
 def test_ohne_prognose_laeuft_die_absenkung_weiter(m, w):

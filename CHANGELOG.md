@@ -24,12 +24,13 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Ausrichtung legt fest, wie weit die Räume unter das Ziel sinken dürfen.
 - Der Reiter Automatik zeigt die gelernten Hauswerte und den vorhergesagten Raumverlauf.
 - Die Kachel „Haus“ ordnet die Auskühlzeit als schnell, mittel oder träge ein.
+- Ohne Hausmodell senkt der Sonnentag unter einer einstellbaren Außentemperatur nicht ab.
 - „Hausmodell neu lernen“ steht in den Einstellungen der Automatik.
 - Der Einrichtungsdialog empfiehlt Räume, die das Haus typisch abbilden.
 
 ### Behoben
 
-- Fehlen alle Raumwerte, beendet die Automatik eine laufende Absenkung.
+- Liefert weniger als die Hälfte der Räume Werte, endet eine Absenkung nach einstellbarer Wartezeit.
 - „Absenkbetrieb bis“ steht nach einem Neustart sofort im Reiter Automatik.
 - Die Automatik zeigt, wenn der Heizkreis an der Steuerung aus ist.
 - Ein Sonnentag aus der Sonnenquote endet nicht mehr ohne Wärme der Solaranlage.
