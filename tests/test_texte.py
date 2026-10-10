@@ -577,3 +577,11 @@ def test_automatik_status_bereit_heisst_aktiv(sprache, erwartet):
     entitaeten = json.loads(datei.read_text(encoding="utf-8"))["entity"]["sensor"]
     zustaende = entitaeten["automatik_system_status"]["state"]
     assert zustaende["bereit"] == erwartet
+
+
+def test_vorladen_fuellt_den_speicher_jeder_fremdsprache(texte):
+    texte._laden.cache_clear()
+    texte.vorladen()
+    assert texte._laden.cache_info().currsize == len(texte.SPRACHEN) - 1
+    texte.Woerterbuch("nl")
+    assert texte._laden.cache_info().misses == len(texte.SPRACHEN) - 1

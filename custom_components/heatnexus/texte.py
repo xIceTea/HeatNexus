@@ -27,8 +27,8 @@ RUECKFALL = "en"
 def _laden(sprache: str) -> dict[str, str]:
     """Wörterbuch einer Sprache; unlesbares oder fehlendes ergibt nichts.
 
-    Gelesen wird aus der Ereignisschleife heraus, deshalb nur einmal je
-    Sprache.
+    `vorladen` füllt den Zwischenspeicher im Executor; danach liest die
+    Ereignisschleife nur noch aus dem Speicher.
     """
     datei = ORDNER / f"{sprache}.json"
     try:
@@ -39,6 +39,13 @@ def _laden(sprache: str) -> dict[str, str]:
         _LOGGER.warning("Wörterbuch %s ist unlesbar; Texte bleiben deutsch", datei.name)
         return {}
     return inhalt if isinstance(inhalt, dict) else {}
+
+
+def vorladen() -> None:
+    """Alle Wörterbücher einlesen; blockiert, gehört in den Executor."""
+    for sprache in SPRACHEN:
+        if sprache != QUELLSPRACHE:
+            _laden(sprache)
 
 
 def eigene_fassung(sprache: str, text: str) -> str | None:

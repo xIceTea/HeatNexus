@@ -80,7 +80,7 @@ from .stilllegung import (
     abwahl_vormerken,
     umfang_verkleinert,
 )
-from .texte import sprachwahl_umstellen, woerterbuch_des_eintrags
+from .texte import sprachwahl_umstellen, vorladen, woerterbuch_des_eintrags
 from .verweise import verweise_verfolgen
 
 _LOGGER = logging.getLogger(__name__)
@@ -151,6 +151,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     schon beim Speichern ungültig.
     """
     hass.data.setdefault(DOMAIN, {})
+    await hass.async_add_executor_job(vorladen)
     _sprachwahl_umstellen(hass)
     async_register_rediscover_service(hass)
     async_register_dashboard_export(hass)
