@@ -212,28 +212,67 @@ KESSELART_JE_FCT: dict[int, str] = geraete.KESSELARTEN
 # `38/127`). Er ist eindeutig – ein PuroWIN kann Hackgut *oder* Pellets
 # verbrennen, die Baureihe allein verrät es nicht.
 BRENNSTOFF_ENTITAET = re.compile(r"(aktueller|gew(ä|ae)hlter) brennstoff", re.IGNORECASE)
+BRENNSTOFF_ADRESSEN = frozenset({"38/126", "38/127"})
+BRENNSTOFF_SCHLUESSEL = ("fuel_current", "fuel_selected")
 
+# Der Wert gilt in jeder Sprache: In der Auswahl der Anlage steht nur 2 für Pellets.
+BRENNSTOFF_PELLETS_WERT = 2
 
+# Rückfall auf den Text, wenn keine Auswahltexte vorliegen; Wörter aus den
+# Herstellertexten auf Deutsch, Englisch und Niederländisch.
 BRENNSTOFF_ART: tuple[tuple[str, str], ...] = (
     (r"pellet", "pellets"),
-    (r"hackgut|hackschnitzel", "hackgut"),
+    (r"hackgut|hackschnitzel|wood\s?chip|houtsnipper", "hackgut"),
     (r"scheitholz|st(ü|ue)ckholz|stueckholz", "scheitholz"),
 )
 
 
-# Dritte Quelle: der Name der Funktion. Die Windhager-Baureihen sind sprechend
-# genug, und bei fremden Anlagen ist es oft das Einzige, was vorliegt.
+# Dritte Quelle: das Modell der Baureihe, dann der Gerätename. Das Modell ist
+# deutsch und fest; der Name folgt der Sprache und jeder Umbenennung, deshalb
+# kennen die Muster auch die englischen und niederländischen Bezeichnungen.
 NAME_ART: tuple[tuple[str, str], ...] = (
-    (r"aerowin|w(ä|ae)rmepumpe|heat\s?pump", "waermepumpe"),
-    (r"purowin", "hackgut"),
+    (r"aerowin|w(ä|ae)rmepumpe|heat\s?pump|warmtepomp", "waermepumpe"),
+    (r"purowin|hackgut|hackschnitzel|wood\s?chip|houtsnipper", "hackgut"),
     (r"biowin|pelletswin|pelletskessel|\bpellet", "pellets"),
-    (r"logwin|vario\s?win|scheitholz|st(ü|ue)ckholz|holzvergaser", "scheitholz"),
-    (r"gas|\b(ö|oe)l\b|brennwert|therme", "gas_oel"),
+    (
+        r"logwin|vario\s?win|scheitholz|st(ü|ue)ckholz|holzvergaser|log\s?wood|houtvergasser",
+        "scheitholz",
+    ),
+    (r"gas|\b(ö|oe)l|\boil\b|\bolie|brennwert|therme", "gas_oel"),
 )
 
 
+def _ist_brennstoff(eintrag: dict[str, Any]) -> bool:
+    """Ob der Eintrag den gemeldeten Brennstoff trägt: Adresse, Schlüssel, deutscher Name."""
+    return (
+        eintrag.get("adresse") in BRENNSTOFF_ADRESSEN
+        or traegt(eintrag, BRENNSTOFF_SCHLUESSEL)
+        or bool(BRENNSTOFF_ENTITAET.search(mustername(eintrag)))
+    )
+
+
+def _art_des_brennstoffs(eintrag: dict[str, Any]) -> str | None:
+    """Art aus dem Auswahlwert, sonst aus dem angezeigten Text."""
+    text = str(eintrag.get("text") or "")
+    if not text:
+        return None
+    wert = next((w for w, t in (eintrag.get("optionen") or {}).items() if t == text), None)
+    if wert is not None and eintrag.get("adresse") in BRENNSTOFF_ADRESSEN:
+        return "pellets" if int(wert) == BRENNSTOFF_PELLETS_WERT else "hackgut"
+    return next((art for m, art in BRENNSTOFF_ART if re.search(m, text, re.IGNORECASE)), None)
+
+
+def _art_aus_namen(*namen: object) -> str | None:
+    """Erste Art, deren Muster in einem der Namen greift, in dieser Reihenfolge."""
+    for name in namen:
+        for muster, art in NAME_ART:
+            if re.search(muster, str(name or ""), re.IGNORECASE):
+                return art
+    return None
+
+
 def kesselart_des_teils(teil: dict[str, Any]) -> str | None:
-    """Art eines Wärmeerzeugers: Funktionstyp, gemeldeter Brennstoff, Funktionsname.
+    """Art eines Wärmeerzeugers: Funktionstyp, gemeldeter Brennstoff, Modell, Name.
 
     ``None`` heißt „neutral zeichnen" – nicht raten. Wirkt nur auf die Zeichnung.
     """
@@ -243,16 +282,9 @@ def kesselart_des_teils(teil: dict[str, Any]) -> str | None:
         if art := KESSELART_JE_FCT.get(int(teil.get("fct_type"))):
             return art
     for eintrag in teil.get("entitaeten", []):
-        if not BRENNSTOFF_ENTITAET.search(mustername(eintrag)):
-            continue
-        text = str(eintrag.get("text") or "")
-        for muster, art in BRENNSTOFF_ART:
-            if re.search(muster, text, re.IGNORECASE):
-                return art
-    for muster, art in NAME_ART:
-        if re.search(muster, teil.get("name") or "", re.IGNORECASE):
+        if _ist_brennstoff(eintrag) and (art := _art_des_brennstoffs(eintrag)):
             return art
-    return None
+    return _art_aus_namen(teil.get("modell"), teil.get("name"))
 
 
 def _kesselart(teil: dict[str, Any]) -> str | None:

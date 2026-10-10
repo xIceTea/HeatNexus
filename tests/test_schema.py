@@ -567,6 +567,69 @@ def test_kesselart_faellt_auf_den_namen_zurueck(werte):
     assert werte.kesselart_des_teils(_teil("AeroWIN", 25, [])) == "waermepumpe"
 
 
+_BRENNSTOFF_TEXTE = {
+    "de": {0: "Hackgut normal", 2: "Pellets"},
+    "en": {0: "Wood chips normal", 2: "Pellets"},
+    "nl": {0: "Houtsnippers normaal", 2: "Pellets"},
+}
+
+
+def _kessel_mit_brennstoff(sprache: str, wert: int, mit_optionen: bool = True) -> dict:
+    kessel = _teil("Kessel", 25, [])
+    kessel["entitaeten"].append(
+        {
+            "entity_id": "sensor.brennstoff",
+            "name": {"de": "Aktueller Brennstoff", "en": "Current fuel", "nl": "Brandstof"}[
+                sprache
+            ],
+            "adresse": "38/127",
+            "bereich": "sensor",
+            "hat_wert": True,
+            "text": _BRENNSTOFF_TEXTE[sprache][wert],
+            "optionen": _BRENNSTOFF_TEXTE[sprache] if mit_optionen else {},
+        }
+    )
+    return kessel
+
+
+@pytest.mark.parametrize("sprache", ["de", "en", "nl"])
+@pytest.mark.parametrize("mit_optionen", [True, False])
+def test_kesselart_aus_dem_brennstoff_gilt_in_jeder_sprache(werte, sprache, mit_optionen):
+    hackgut = _kessel_mit_brennstoff(sprache, 0, mit_optionen)
+    pellets = _kessel_mit_brennstoff(sprache, 2, mit_optionen)
+    assert werte.kesselart_des_teils(hackgut) == "hackgut"
+    assert werte.kesselart_des_teils(pellets) == "pellets"
+
+
+@pytest.mark.parametrize(
+    ("fct", "namen", "art"),
+    [
+        (25, ("Hackgutkessel", "Wood chip boiler", "Houtsnipperketel"), "hackgut"),
+        (10, ("Holzvergaserkessel", "Log wood boiler", "Houtvergasserketel"), "scheitholz"),
+        (10, ("Pelletskessel", "Pellet boiler", "Pelletketel"), "pellets"),
+        (10, ("Ölkessel", "Oil boiler", "Olieketel"), "gas_oel"),
+    ],
+)
+def test_kesselart_aus_dem_namen_gilt_in_jeder_sprache(werte, fct, namen, art):
+    for name in namen:
+        assert werte.kesselart_des_teils(_teil(name, fct, [])) == art, name
+
+
+@pytest.mark.parametrize(
+    ("fct", "modell", "art"),
+    [
+        (25, "PuroWIN Hackgutkessel", "hackgut"),
+        (9, "BioWIN Pelletskessel", "pellets"),
+        (10, "LogWIN Holzvergaserkessel", "scheitholz"),
+    ],
+)
+def test_kesselart_folgt_dem_modell_statt_dem_geraetenamen(werte, fct, modell, art):
+    """Das Modell steht deutsch fest; der Gerätename folgt Sprache und Umbenennung."""
+    for name in ("Keller", "Boiler", "Ketel"):
+        teil = {**_teil(name, fct, []), "modell": modell}
+        assert werte.kesselart_des_teils(teil) == art, name
+
+
 def test_kesselart_raet_nicht(werte):
     """Sagt weder Brennstoff noch Name etwas, wird neutral gezeichnet."""
     assert werte.kesselart_des_teils(_teil("Waermeerzeuger", 25, [])) is None

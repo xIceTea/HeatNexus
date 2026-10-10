@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .. import texte, waermequelle
+from .. import device_db, geraete, texte, waermequelle
 from ..bezeichnung import bezeichnung_lesen
 from ..const import (
     AUTOMATIK_GERAET_ENDUNG,
@@ -98,23 +98,39 @@ def skala(wert: float | None) -> int:
     return max(100, -(-int(wert) // 100) * 100)
 
 
-def _beschreibungen(hass: HomeAssistant):
-    """Jede Datenpunktbeschreibung aller geladenen Anlagen."""
+def _koordinatoren(hass: HomeAssistant):
+    """Jeder Koordinator aller geladenen Anlagen."""
     for entry in hass.config_entries.async_entries(DOMAIN):
         eintrag = getattr(entry, "runtime_data", None)
-        if not isinstance(eintrag, dict):
-            continue
-        for coordinator in (eintrag.get("coordinators") or {}).values():
-            yield from (coordinator.data or {}).get("devices", [])
+        if isinstance(eintrag, dict):
+            yield from (eintrag.get("coordinators") or {}).values()
 
 
-def _fct_je_geraet(hass: HomeAssistant) -> dict[str, Any]:
-    """Funktionstyp je Gerätekennung aus den Beschreibungen der Anlagen."""
-    zuordnung: dict[str, Any] = {}
-    for beschreibung in _beschreibungen(hass):
-        kennung = beschreibung.get("device_id")
-        if kennung and beschreibung.get("fct_type") is not None:
-            zuordnung.setdefault(kennung, beschreibung["fct_type"])
+def _beschreibungen(hass: HomeAssistant):
+    """Jede Datenpunktbeschreibung aller geladenen Anlagen."""
+    for coordinator in _koordinatoren(hass):
+        yield from (coordinator.data or {}).get("devices", [])
+
+
+def _knoten(beschreibung: dict[str, Any]) -> str | None:
+    """Die Knotennummer aus dem Präfix `/1/<knoten>/<fct>` einer Beschreibung."""
+    teile = str(beschreibung.get("prefix") or "").strip("/").split("/")
+    return teile[1] if len(teile) >= 2 else None
+
+
+def _fct_je_geraet(hass: HomeAssistant) -> dict[str, tuple[Any, str | None]]:
+    """Funktionstyp und deutsches Werksmodell je Gerätekennung.
+
+    Das Modell folgt weder der Sprache noch einer Umbenennung des Geräts.
+    """
+    zuordnung: dict[str, tuple[Any, str | None]] = {}
+    for coordinator in _koordinatoren(hass):
+        klassen = getattr(getattr(coordinator, "client", None), "geraeteklasse", None) or {}
+        for beschreibung in (coordinator.data or {}).get("devices", []):
+            kennung, fct = beschreibung.get("device_id"), beschreibung.get("fct_type")
+            if kennung and fct is not None and kennung not in zuordnung:
+                modell = geraete.modell(fct, klassen.get(_knoten(beschreibung)))
+                zuordnung[kennung] = (fct, modell)
     return zuordnung
 
 
@@ -127,9 +143,26 @@ def _auswahltexte(hass: HomeAssistant) -> dict[str, dict[int, str]]:
     return zuordnung
 
 
-def _deutsche_namen(hass: HomeAssistant) -> dict[str, str]:
-    """Deutscher Datenpunktname je Entitätskennung, unabhängig von Sprache und Umbenennung."""
-    return {b["id"]: mustername(b) for b in _beschreibungen(hass) if b.get("id")}
+def _deutsche_namen(hass: HomeAssistant):
+    """Deutscher Datenpunktname einer Registrierung, unabhängig von Sprache und Umbenennung.
+
+    Fehlt die Beschreibung, gilt bei fremder Sprache der Herstellername der Adresse.
+    """
+    namen = {b["id"]: mustername(b) for b in _beschreibungen(hass) if b.get("id")}
+    sprachen = {
+        e.entry_id: texte.sprache_des_eintrags(hass, e)
+        for e in hass.config_entries.async_entries(DOMAIN)
+    }
+
+    def name_de(eintrag) -> str:
+        if name := namen.get(eintrag.unique_id):
+            return name
+        fremd = sprachen.get(eintrag.config_entry_id, "de") != "de"
+        if fremd and (adresse := gnmn(eintrag.unique_id)) and (name := device_db.get_name(adresse)):
+            return name
+        return kurzname(eintrag.original_name or eintrag.name or eintrag.entity_id)
+
+    return name_de
 
 
 def quellen_nach_geraet(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
@@ -256,7 +289,7 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
         # Die Automatik hat ihren eigenen Reiter und ist kein Teil der Anlage.
         if kennung.endswith(AUTOMATIK_GERAET_ENDUNG):
             continue
-        fct = fct_je_geraet.get(kennung)
+        fct, modell = fct_je_geraet.get(kennung, (None, None))
         quelle = quellen_je_geraet.get(kennung) or {}
         art = quelle.get("art")
         teile[geraet.id] = {
@@ -265,6 +298,7 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
             "anlage_id": geraet.via_device_id,
             "eintrag": entry_id,
             "fct_type": fct,
+            "modell": modell,
             "art": art,
             "quellenpumpe": bool(quelle.get("pumpe")),
             "rang": rang(fct, art),
@@ -298,8 +332,7 @@ def anlagen_lesen(hass: HomeAssistant, benutzer: Any = None) -> list[dict[str, A
                 "entity_id": eintrag.entity_id,
                 "name": kurzname(eintrag.name or eintrag.original_name or eintrag.entity_id),
                 # Muster und Hilfetexte sind deutsch und suchen hier, nicht im Anzeigenamen.
-                "name_de": deutsche_namen.get(eintrag.unique_id)
-                or kurzname(eintrag.original_name or eintrag.name or eintrag.entity_id),
+                "name_de": deutsche_namen(eintrag),
                 # Der sprachunabhängige Schlüssel, sofern der Datenpunkt einen
                 # hat. Er kommt aus der Adresse in der Kennung und nicht aus
                 # dem Namen – siehe `kanonisch.py`. Wo er fehlt, bleibt es beim

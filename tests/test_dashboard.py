@@ -549,9 +549,10 @@ async def test_der_deutsche_name_kommt_aus_dem_deskriptor(hass, anlagen):
     from homeassistant.helpers import entity_registry as er
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-    from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.const import CONF_SPRACHE, DOMAIN
 
-    eigen = MockConfigEntry(domain=DOMAIN)
+    # Deutsch: Der Registrierungsname ohne Beschreibung ist dann schon deutsch.
+    eigen = MockConfigEntry(domain=DOMAIN, options={CONF_SPRACHE: "de"})
     eigen.add_to_hass(hass)
     eigen.runtime_data = {
         "coordinators": {
@@ -587,6 +588,44 @@ async def test_der_deutsche_name_kommt_aus_dem_deskriptor(hass, anlagen):
         "Eigener Name SN1-0-0-7-0": "Kesseltemperatur Ist",
         "Eigener Name SN1-0-3-62-0": "Heizprogramm 2",
     }
+
+
+async def test_ohne_deskriptor_kommt_der_deutsche_name_aus_der_adresse(hass, anlagen):
+    """Bei fremder Sprache und fehlender Beschreibung gilt der Herstellername der Adresse."""
+    from types import SimpleNamespace
+
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import CONF_SPRACHE, DOMAIN
+
+    eigen = MockConfigEntry(domain=DOMAIN, options={CONF_SPRACHE: "en"})
+    eigen.add_to_hass(hass)
+    eigen.runtime_data = {
+        "coordinators": {
+            "192.0.2.10": SimpleNamespace(
+                data={"devices": [{"device_id": "SN1-0", "fct_type": 10, "prefix": "/1/15/0"}]},
+                client=SimpleNamespace(geraeteklasse={"15": "2009"}),
+            )
+        }
+    }
+    kessel = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eigen.entry_id, identifiers={(DOMAIN, "SN1-0")}, name="Boiler"
+    )
+    er.async_get(hass).async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "SN1-0-0-7-0",
+        config_entry=eigen,
+        device_id=kessel.id,
+        original_name="Boiler temp. current value",
+    )
+
+    [anlage] = anlagen.anlagen_lesen(hass)
+    [teil] = anlage["teile"]
+    assert teil["modell"] == "LogWIN Holzvergaserkessel"
+    assert [e["name_de"] for e in teil["entitaeten"]] == ["Kesseltemperatur"]
 
 
 def _dashboard_anlage():
