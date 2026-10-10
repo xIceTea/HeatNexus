@@ -23,6 +23,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Dann senkt sie bei Sonne früh ab oder legt eine Heizpause ein.
 - Die Ausrichtung legt fest, wie weit die Räume unter das Ziel sinken dürfen.
 - Der Reiter Automatik zeigt die gelernten Hauswerte und den vorhergesagten Raumverlauf.
+- Die Kachel „Haus“ ordnet die Auskühlzeit als schnell, mittel oder träge ein.
 - „Hausmodell neu lernen“ steht in den Einstellungen der Automatik.
 - Der Einrichtungsdialog empfiehlt Räume, die das Haus typisch abbilden.
 

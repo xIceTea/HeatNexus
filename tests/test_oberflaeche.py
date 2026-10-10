@@ -792,7 +792,7 @@ def test_die_kachel_haus_folgt_dem_stand_des_modells(durchlauf):
     """Aktiv nennt Auskühlzeit und Treffsicherheit, beobachtet zählt die Tage, lernend nennt den Grund."""
     haus = durchlauf["automatikHaus"]
     aktiv = haus["aktiv"]
-    assert (aktiv["titel"], aktiv["zahl"], aktiv["neben"]) == ("Haus", "40 h", "Auskühlzeit")
+    assert (aktiv["titel"], aktiv["zahl"], aktiv["neben"]) == ("Haus", "40 h", "Auskühlzeit – mittel")
     assert aktiv["fuss"] == ["±0,30 K, ohne Modell ±0,50 K", "Sonne +0,60 K/h"]
     assert aktiv["tasten"] == []
     assert haus["beobachtetWenige"]["fuss"][0] == "beobachtet – 3 von 14 Tagen"

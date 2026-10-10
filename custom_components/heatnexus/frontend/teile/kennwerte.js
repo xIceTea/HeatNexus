@@ -20,6 +20,13 @@ export function aussenBereich(grenze) {
   return [Number(grenze) - 12, Number(grenze) + 8];
 }
 
+/** Einordnung der Auskühlzeit für Laien: Altbau mit wenig Masse kühlt unter 30 h, Neubau über 80 h. */
+export function traegheit(stunden) {
+  if (!vorhanden(stunden)) return null;
+  if (Number(stunden) < 30) return "schnell";
+  return Number(stunden) <= 80 ? "mittel" : "träge";
+}
+
 function knoten(tag, klasse = "", text = null) {
   const element = document.createElement(tag);
   if (klasse) element.className = klasse;
@@ -240,7 +247,13 @@ export const KennwerteMixin = (Basis) =>
       else if ((h.vergleiche || 0) < FREIGABE_TAGE) stand = this._tMit("beobachtet – {tage} von 14 Tagen", { tage: h.vergleiche || 0 });
       else stand = this._tMit("beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K", genau);
       const sonne = this._tMit("Sonne +{wert} K/h", { wert: zahl(h.sonne_k_h, 2) });
-      return this._kachel("haus", "Haus", `${zahl(h.auskuehlzeit_h, 0)} h`, this._t("Auskühlzeit"), null, [fuss(stand), fuss(sonne)]);
+      const einordnung = {
+        schnell: this._t("Auskühlzeit – schnell"),
+        mittel: this._t("Auskühlzeit – mittel"),
+        träge: this._t("Auskühlzeit – träge"),
+      }[traegheit(h.auskuehlzeit_h)];
+      const beisatz = einordnung || this._t("Auskühlzeit");
+      return this._kachel("haus", "Haus", `${zahl(h.auskuehlzeit_h, 0)} h`, beisatz, null, [fuss(stand), fuss(sonne)]);
     }
 
     /** Eine Zeile je Raum: Name, Ist → Ziel, ob er heizt. */
