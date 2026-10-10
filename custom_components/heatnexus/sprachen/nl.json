@@ -755,5 +755,8 @@
   "Fr": "Vr",
   "Sa": "Za",
   "Block": "Blok",
-  "+ Block": "+ Blok"
+  "+ Block": "+ Blok",
+  "noch bis {zeit}": "nog tot {zeit}",
+  "noch {minuten} min (bis {zeit})": "nog {minuten} min (tot {zeit})",
+  "Vorgabe {rest}": "Tijdelijke waarde {rest}"
 }

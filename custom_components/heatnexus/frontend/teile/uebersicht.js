@@ -250,8 +250,8 @@ export const UebersichtMixin = (Basis) =>
     const ende = new Date(Date.now() + minuten * 60000);
     const uhrzeit = ende.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
     return minuten >= 60
-      ? `noch bis ${uhrzeit}`
-      : `noch ${minuten} min (bis ${uhrzeit})`;
+      ? this._tMit("noch bis {zeit}", { zeit: uhrzeit })
+      : this._tMit("noch {minuten} min (bis {zeit})", { minuten, zeit: uhrzeit });
   }
 
   // -------------------------------------------------------------------

@@ -279,7 +279,7 @@ export const SteuerungMixin = (Basis) =>
       sollZahl.textContent = this._sollwertText(kreis.entity, zustand && zustand.attributes.temperature);
       const rest = this._restzeit(zustand);
       laufzeit.style.display = rest ? "inline-flex" : "none";
-      laufzeitText.textContent = rest ? `Vorgabe ${rest}` : "";
+      laufzeitText.textContent = rest ? this._tMit("Vorgabe {rest}", { rest }) : "";
       // Ohne laufende Vorgabe gibt es nichts zu beenden.
       laufzeit.hidden = !rest;
     });

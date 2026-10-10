@@ -750,5 +750,8 @@
   "HeatNexus – Wartungswarnung mit Erinnerung": "HeatNexus – Maintenance warning with reminder",
   "Steuerung hinzufügen": "Add controller",
   "Steuerung entfernen": "Remove controller",
-  "keine": "none"
+  "keine": "none",
+  "noch bis {zeit}": "until {zeit}",
+  "noch {minuten} min (bis {zeit})": "{minuten} min left (until {zeit})",
+  "Vorgabe {rest}": "Override {rest}"
 }

@@ -41,6 +41,9 @@ entitaeten.forEach((entity) => {
       friendly_name: entity,
       unit_of_measurement: "°C",
       stoerung_aktiv: false,
+      // Eine laufende Vorgabe am Heizkreis; ihre Restzeit setzt eine Bindung.
+      override_aktiv: true,
+      override_restzeit_min: 90,
       // Ein Schaltprogramm, damit das Wochenraster Ein und Aus beschriftet.
       blocks: [
         {
@@ -132,12 +135,16 @@ flaeche._automatik = {
 flaeche._automatikZeit = Date.now();
 flaeche._automatikOffen = new Set(["SN1-2-0"]);
 
-["uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme", "automatik"].forEach((reiter) => {
-  flaeche._reiter = reiter;
-  flaeche._gebaut = false;
-  flaeche._zeichnen();
-  flaeche._aktualisieren();
-  gehe(flaeche.shadowRoot);
+// Über und unter einer Stunde Restzeit lautet der Text anders.
+[90, 30].forEach((minuten) => {
+  Object.values(states).forEach((zustand) => (zustand.attributes.override_restzeit_min = minuten));
+  ["uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme", "automatik"].forEach((reiter) => {
+    flaeche._reiter = reiter;
+    flaeche._gebaut = false;
+    flaeche._zeichnen();
+    flaeche._aktualisieren();
+    gehe(flaeche.shadowRoot);
+  });
 });
 
 clearInterval(flaeche._automatikUhr);
