@@ -89,15 +89,21 @@ def _uebernehmen(namen: dict[str, str], quelle: dict) -> None:
             namen[adresse] = text.strip()
 
 
-# Werte, die Geräte melden, die Tabelle aber nicht nennt: Text aus dem gleichbedeutenden Zustand.
-# `9/75 = 8` an BioWIN und LogWIN ist der Festbrennstoff-/Pufferbetrieb, Kesselzustand `2/59 = 2`.
+# Werte, die Geräte melden, die keine Tabelle des Herstellers nennt. `9/75 = 8`: Als Wahl bleibt
+# nur die Betriebsart, die die Anleitung ohne eigenen Wert führt (Festbrennstoff-/Pufferbetrieb).
 ENUM_ERGAENZUNG: dict[str, dict[str, tuple[str, str]]] = {"9/75": {"8": ("2/59", "2")}}
 
 
-# Werte, die die Tabelle mit dem Text eines anderen Werts benennt. Text laut Modbus-Beschreibung
-# und Aufzählungstexten der Steuerung: `2/9 = 8` ist der Stillstand an der Heizgrenze.
+# Werte, die die Tabelle mit dem Text eines anderen Werts benennt. `2/9 = 8` ist der Stillstand
+# an der Heizgrenze: Text des Herstellers `EmStrId_STANDBY_HEATING_LIMIT`, nl ausgeschrieben.
 ENUM_PRAEZISIERUNG: dict[str, dict[str, dict[str, str]]] = {
-    "2/9": {"8": {"de": "Standby Heizgrenze", "en": "Stand-by heating limit"}},
+    "2/9": {
+        "8": {
+            "de": "Standby Heizgrenze",
+            "en": "Stand-by heating limit",
+            "nl": "Standby verwarmingsgrens",
+        }
+    },
 }
 
 

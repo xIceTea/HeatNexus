@@ -101,9 +101,8 @@ def test_standby_an_der_heizgrenze_hat_einen_eigenen_text(generator):
     assert generator.sammle_enums(datei)["2/9"] == {"0": "Standby", "8": "Standby Heizgrenze"}
     englisch = generator.sammle_enums({"enums": {"2/9": {"8": "Stand-by"}}}, "en")
     assert englisch["2/9"]["8"] == "Stand-by heating limit"
-    assert (
-        generator.sammle_enums({"enums": {"2/9": {"8": "Standby"}}}, "nl")["2/9"]["8"] == "Standby"
-    )
+    niederlaendisch = generator.sammle_enums({"enums": {"2/9": {"8": "Standby"}}}, "nl")
+    assert niederlaendisch["2/9"]["8"] == "Standby verwarmingsgrens"
 
 
 def test_die_geraetedatei_der_fremdsprache_liegt_neben_der_deutschen(generator, tmp_path):
