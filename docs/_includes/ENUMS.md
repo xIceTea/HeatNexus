@@ -62,7 +62,7 @@ Derzeit ist das bei keiner nötig.
 | 5 | Urlaubsprogramm |
 | 6 | Estrich |
 | 7 | Frostschutz |
-| 8 | Standby |
+| 8 | Standby Heizgrenze |
 | 9 | Handbetrieb |
 | 10 | Testbetrieb |
 | 11 | Kaminkehrer |

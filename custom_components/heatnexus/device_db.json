@@ -144,7 +144,7 @@
    "5": "Urlaubsprogramm",
    "6": "Estrich",
    "7": "Frostschutz",
-   "8": "Standby",
+   "8": "Standby Heizgrenze",
    "9": "Handbetrieb"
   },
   "20/0": {
@@ -8312,7 +8312,7 @@
      "5": "Holiday program",
      "6": "Screed",
      "7": "Frost protection",
-     "8": "Stand-by",
+     "8": "Stand-by heating limit",
      "9": "Manual mode"
     },
     "20/0": {

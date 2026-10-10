@@ -89,9 +89,21 @@ def test_fremdsprache_nimmt_namen_und_auswahltexte_der_herstellerdatei(generator
     sprache = generator.sammle_sprache(
         {"oids": {"0/0": "Outside temperature", "0/1": " "}, "enums": {"9/75": {"1": "On"}}},
         {"0/1": "Room temperature"},
+        "en",
     )
     assert sprache["names"] == {"0/0": "Outside temperature", "0/1": "Room temperature"}
     assert sprache["enums"] == {"9/75": {"1": "On"}}
+
+
+def test_standby_an_der_heizgrenze_hat_einen_eigenen_text(generator):
+    datei = {"enums": {"2/9": {"0": "Standby", "8": "Standby"}}}
+
+    assert generator.sammle_enums(datei)["2/9"] == {"0": "Standby", "8": "Standby Heizgrenze"}
+    englisch = generator.sammle_enums({"enums": {"2/9": {"8": "Stand-by"}}}, "en")
+    assert englisch["2/9"]["8"] == "Stand-by heating limit"
+    assert (
+        generator.sammle_enums({"enums": {"2/9": {"8": "Standby"}}}, "nl")["2/9"]["8"] == "Standby"
+    )
 
 
 def test_die_geraetedatei_der_fremdsprache_liegt_neben_der_deutschen(generator, tmp_path):

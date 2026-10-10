@@ -94,23 +94,34 @@ def _uebernehmen(namen: dict[str, str], quelle: dict) -> None:
 ENUM_ERGAENZUNG: dict[str, dict[str, tuple[str, str]]] = {"9/75": {"8": ("2/59", "2")}}
 
 
-def sammle_enums(parameter: dict) -> dict[str, dict]:
-    """Enum-Tabellen der Datei samt den Werten aus `ENUM_ERGAENZUNG`."""
+# Werte, die die Tabelle mit dem Text eines anderen Werts benennt. Text laut Modbus-Beschreibung
+# und Aufzählungstexten der Steuerung: `2/9 = 8` ist der Stillstand an der Heizgrenze.
+ENUM_PRAEZISIERUNG: dict[str, dict[str, dict[str, str]]] = {
+    "2/9": {"8": {"de": "Standby Heizgrenze", "en": "Stand-by heating limit"}},
+}
+
+
+def sammle_enums(parameter: dict, sprache: str = "de") -> dict[str, dict]:
+    """Enum-Tabellen der Datei samt `ENUM_ERGAENZUNG` und `ENUM_PRAEZISIERUNG`."""
     enums = {k: dict(v) for k, v in parameter.get("enums", {}).items() if isinstance(v, dict)}
     for adresse, werte in ENUM_ERGAENZUNG.items():
         for wert, (quelle, quellwert) in werte.items():
             text = (enums.get(quelle) or {}).get(quellwert)
             if adresse in enums and wert not in enums[adresse] and text:
                 enums[adresse][wert] = text
+    for adresse, werte in ENUM_PRAEZISIERUNG.items():
+        for wert, texte in werte.items():
+            if wert in enums.get(adresse, {}) and sprache in texte:
+                enums[adresse][wert] = texte[sprache]
     return enums
 
 
-def sammle_sprache(parameter: dict, geraetetexte: dict[str, str]) -> dict[str, dict]:
+def sammle_sprache(parameter: dict, geraetetexte: dict[str, str], sprache: str) -> dict[str, dict]:
     """Namen und Enum-Texte einer Fremdsprache, nach derselben Regel wie Deutsch."""
     namen: dict[str, str] = {}
     _uebernehmen(namen, geraetetexte)
     _uebernehmen(namen, parameter.get("oids", {}))
-    return {"names": namen, "enums": sammle_enums(parameter)}
+    return {"names": namen, "enums": sammle_enums(parameter, sprache)}
 
 
 def geraetetexte_fuer(deutsch: Path | None, sprache: str) -> Path | None:
@@ -389,7 +400,7 @@ def main() -> int:
     for sprache in FREMDSPRACHEN:
         xml = geraetetexte_fuer(args.geraetetexte, sprache)
         fremd = lade(f"{sprache}-parameters.json", args.quelle)
-        sprachen[sprache] = sammle_sprache(fremd, lade_geraetetexte(xml) if xml else {})
+        sprachen[sprache] = sammle_sprache(fremd, lade_geraetetexte(xml) if xml else {}, sprache)
         stoerungen[sprache] = sammle_stoerungen(fremd.get("emStrIds", {}))
 
     print(f"\nDatenpunktnamen : {len(namen)}")
