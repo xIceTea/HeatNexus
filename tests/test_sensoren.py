@@ -63,6 +63,18 @@ def test_enum_sensor_nennt_unbekannte_werte_beim_namen(sensoren):
     assert entity.native_value in entity.options
 
 
+def test_enum_sensor_listet_werte_ohne_text_nicht_als_zustand(sensoren):
+    """Ein gemeldeter Wertebereich über die Tabelle hinaus füllt die Liste nicht mit Platzhaltern."""
+    entity, _ = _entitaet(
+        sensoren.WindhagerEnumSensor,
+        {"/1/60/0/9/75/0": "1"},
+        type="enum_sensor",
+        enum="2/9",
+        allowed=[*range(32)],
+    )
+    assert not [o for o in entity.options if o.startswith("Unbekannt")]
+
+
 def test_enum_sensor_nennt_unbekannte_werte_in_seiner_sprache(sensoren):
     entity, _ = _entitaet(
         sensoren.WindhagerEnumSensor,
