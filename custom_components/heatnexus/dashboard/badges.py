@@ -16,6 +16,8 @@ from ..const import DOMAIN
 from ..texte import Woerterbuch, woerterbuch
 from . import auswahl
 from .anlagen import gewaehlte_aussentemperatur
+from .kacheln import KESSEL as KESSELROLLE
+from .kacheln import rolle
 from .muster import WARTUNG_HINWEIS_STUNDEN, WARTUNG_KURZNAMEN
 
 # Namen der Kennwert-Badges; bei mehreren Kesseln einer Anlage steht der Name des Teils.
@@ -27,6 +29,14 @@ PLANMAESSIG = ["programm", "aus"]
 
 # Eine Badge vor dem Zusammensetzen: Entität, Name, Sichtbarkeit.
 Eintrag = tuple[str, str, list[dict[str, Any]] | None]
+
+# Aussehen der Badges in der Übersicht mehrerer Anlagen.
+PHASE = {"show_state": True, "show_icon": True, "icon": "mdi:fire", "color": "deep-orange"}
+VORRAT_LEER = {"show_state": True, "show_icon": True, "icon": "mdi:silo", "color": "red"}
+WARTUNG_FARBE = "orange"
+STOERUNG_FARBE = "red"
+# Vorratsbehälter (`39/76`): 0 = Fehler, 1 = leer.
+VORRAT_WARNWERTE = (0, 1)
 
 
 def badge(
@@ -147,9 +157,64 @@ def anlagenbadges(
     ]
 
 
-def allgemein(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Außentemperatur (gewählt oder erste gemeldete), dann je Automatik Status und Heizkreise."""
+def _phasen(anlage: dict[str, Any], uebersetze: Callable[[str], str]) -> list[dict[str, Any]]:
+    """Betriebsphase je Kessel; mit zwei Kesseln steht der Teilname hinter der Anlage."""
+    kessel = [t for t in anlage["teile"] if rolle(t) == KESSELROLLE]
+    name = anlage["name"] or uebersetze(KESSEL)
+    return [
+        badge(e["entity_id"], f"{name} · {teil['name']}" if len(kessel) > 1 else name) | PHASE
+        for teil in kessel
+        if (e := _mit_wert(teil, "operating_phase"))
+    ]
+
+
+def _vorrat(anlage: dict[str, Any], uebersetze: Callable[[str], str]) -> list[dict[str, Any]]:
+    """Der Vorratsbehälter, sichtbar nur bei Fehler oder leer."""
+    e = _erste(anlage, VORRAT[0])
+    optionen = (e or {}).get("optionen") or {}
+    zustaende = [optionen[w] for w in VORRAT_WARNWERTE if w in optionen]
+    if not e or not zustaende:
+        return []
+    sichtbar = [{"condition": "state", "entity": e["entity_id"], "state": zustaende}]
+    name = _name(anlage, uebersetze(VORRAT[1]), True)
+    return [badge(e["entity_id"], name, sichtbar) | VORRAT_LEER]
+
+
+def uebersicht_anlagenbadges(
+    anlagen: list[dict[str, Any]], uebersetze: Callable[[str], str] = _gleich
+) -> list[dict[str, Any]]:
+    """Übersicht mehrerer Anlagen: Phasen, dann Wartung und Störung je Anlage, der Vorrat zuletzt."""
+    hinweise = [
+        badge(entity_id, _name(anlage, name, True), sichtbar) | {"color": farbe}
+        for anlage in anlagen
+        for farbe, eintraege in (
+            (WARTUNG_FARBE, _wartung(anlage, uebersetze)),
+            (STOERUNG_FARBE, _stoerungen(anlage)),
+        )
+        for entity_id, name, sichtbar in eintraege
+    ]
+    return [
+        *(b for anlage in anlagen for b in _phasen(anlage, uebersetze)),
+        *hinweise,
+        *(b for anlage in anlagen for b in _vorrat(anlage, uebersetze)),
+    ]
+
+
+def uebersichtszeile(
+    hass: HomeAssistant, anlagen: list[dict[str, Any]], uebersetze: Woerterbuch | None = None
+) -> list[dict[str, Any]]:
+    """Kopfzeile der Übersicht: Außen, die Badges der Anlagen, dann die Automatik."""
+    buch = woerterbuch(hass) if uebersetze is None else uebersetze
     eintraege = hass.config_entries.async_entries(DOMAIN)
+    return [
+        *_aussen(hass, anlagen),
+        *uebersicht_anlagenbadges(anlagen, buch),
+        *_automatiken(hass, eintraege),
+    ]
+
+
+def _aussen(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Außentemperatur: gewählt oder die erste gemeldete."""
     aussen = gewaehlte_aussentemperatur(hass) or next(
         (
             e["entity_id"]
@@ -160,8 +225,13 @@ def allgemein(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[s
         ),
         None,
     )
-    ergebnis = [badge(aussen, "Außen")] if aussen else []
-    return [*ergebnis, *_automatiken(hass, eintraege)]
+    return [badge(aussen, "Außen")] if aussen else []
+
+
+def allgemein(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Außentemperatur (gewählt oder erste gemeldete), dann je Automatik Status und Heizkreise."""
+    eintraege = hass.config_entries.async_entries(DOMAIN)
+    return [*_aussen(hass, anlagen), *_automatiken(hass, eintraege)]
 
 
 def _automatiken(hass: HomeAssistant, eintraege: list[ConfigEntry]) -> list[dict[str, Any]]:

@@ -230,3 +230,39 @@ async def test_die_volle_kette_steht(hass, caplog, tmp_path, anlage, umfang):
         assert not meldungen, meldungen[:10]
     finally:
         await _abbauen(hass, eintrag)
+
+
+# Karten der Übersicht je Testanlage, in der Reihenfolge Kessel, Puffer, Heizkreis, Warmwasser.
+UEBERSICHT_ERWARTET = {
+    "biowin-1403": ["leitwert", "kennwerte", *["tile", "kennwerte"] * 3],
+    "biowin-1415-puffer": ["leitwert", "kennwerte", "puffer", "tile", "kennwerte"],
+    "biowin-1415-touch2": ["leitwert", "kennwerte", "tile", "kennwerte"],
+    "duowin": [
+        *["leitwert", "kennwerte"] * 2,
+        "puffer",
+        *["tile", "kennwerte"] * 2,
+        "kennwerte",
+    ],
+    "purowin-uml-puffer": ["leitwert", "kennwerte", "puffer", "tile", "kennwerte"],
+    "uml-puffer": ["puffer", "tile", "kennwerte"],
+}
+
+
+@pytest.mark.parametrize("anlage", anlagen())
+async def test_die_uebersicht_zeigt_jede_testanlage_nach_rollen(hass, anlage):
+    from custom_components.heatnexus.dashboard import uebersicht
+    from custom_components.heatnexus.dashboard.anlagen import anlagen_lesen
+
+    eintrag = await _einrichten(hass, anlage, "betreiber")
+    try:
+        [gelesen] = anlagen_lesen(hass)
+        zweite = {**gelesen, "id": "zweite0123456789", "name": "Zweite"}
+        seite = uebersicht.uebersicht([gelesen, zweite], als_karte=True, badges=[])
+        [abschnitt, *_] = [s for s in seite["sections"] if s["cards"][0].get("heading") == "Anlage"]
+        typen = [str(k["type"]).removeprefix("custom:heatnexus-") for k in abschnitt["cards"]]
+        assert typen[:2] == ["heading", "schaubild"]
+        assert typen[2:] == UEBERSICHT_ERWARTET[anlage]
+        fremd = sorted(_entitaeten_in(abschnitt, set()) - set(hass.states.async_entity_ids()))
+        assert not fremd, fremd[:10]
+    finally:
+        await _abbauen(hass, eintrag)

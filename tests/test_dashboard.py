@@ -1191,7 +1191,7 @@ def _abschnitt_mit(seite: dict, titel: str) -> list[dict]:
     return next(s["cards"] for s in seite["sections"] if s["cards"][0].get("heading") == titel)
 
 
-def test_uebersicht_je_anlage_schaubild_kernwerte_navigation(uebersichtsseite):
+def test_uebersicht_je_anlage_schaubild_leitwert_navigation(uebersichtsseite):
     zweite = {**_kessel(), "id": "zweiter0123456789"}
     anlagen = [_anlage(_kessel()), _anlage(zweite, name="Werkstatt", kennung="werkst0123456789")]
     seite = uebersichtsseite.uebersicht(anlagen, als_karte=True, badges=[])
@@ -1201,22 +1201,8 @@ def test_uebersicht_je_anlage_schaubild_kernwerte_navigation(uebersichtsseite):
     erste = _abschnitt_mit(seite, "Kesselhaus")
     bild = [k for k in erste if str(k.get("type", "")).startswith("custom:")]
     assert bild and "zusatzwerte" not in bild[0]
-    kacheln = [k["entity"] for k in erste if k.get("type") == "tile"]
-    assert kacheln[:2] == ["sensor.betriebsphase", "sensor.kessel_ist"]
-
-
-def _heizkreis(kennung: str, name: str) -> dict:
-    return {
-        "name": name,
-        "id": kennung,
-        "fct_type": 14,
-        "symbol": "mdi:radiator",
-        "rang": 30,
-        "entitaeten": [
-            _e(f"sensor.{kennung}_vorlauf", "Vorlauftemperatur", schluessel="flow_temperature"),
-            _e(f"button.{kennung}_abfragen", "Werte jetzt abfragen"),
-        ],
-    }
+    [leitwert] = [k for k in erste if k.get("type") == "custom:heatnexus-leitwert"]
+    assert (leitwert["zustand"], leitwert["gross"]) == ("sensor.betriebsphase", "sensor.kessel_ist")
 
 
 def test_tasten_fuer_die_uebersicht(auswahl):
@@ -1232,42 +1218,6 @@ def test_tasten_fuer_die_uebersicht(auswahl):
         "button.abfragen",
         "button.einmalladung",
     ]
-
-
-def test_uebersicht_zeigt_die_abfragetaste_einmal_je_anlage(uebersichtsseite):
-    kessel = {
-        **_kessel(),
-        "entitaeten": [*_kessel()["entitaeten"], _e("button.k", "Werte jetzt abfragen")],
-    }
-    hk1, hk2 = _heizkreis("hk1", "Heizkreis 1"), _heizkreis("hk2", "Heizkreis 2")
-    for kreis in (hk1, hk2):
-        kreis["entitaeten"].append(_e(f"button.{kreis['id']}_ww", "WW Einmalladung"))
-    anlage = _anlage(kessel, hk1, hk2)
-    einzeln = _anlage(kessel, name="Werkstatt", kennung="werkst0123456789")
-    seite = uebersichtsseite.uebersicht([anlage, einzeln], False, [])
-    kacheln = [k for k in _abschnitt_mit(seite, "Kesselhaus") if k.get("type") == "tile"]
-    abfragen = [k for k in kacheln if k["entity"].endswith("abfragen") or k["entity"] == "button.k"]
-    # Die Taste liest nur ihren Anlagenteil; der Name sagt, welchen.
-    assert [(k["entity"], k["name"]) for k in abfragen] == [
-        ("button.k", "PuroWIN · Werte jetzt abfragen")
-    ]
-    # Mit nur einem Anlagenteil bleibt der Name, wie er ist.
-    werkstatt = [k for k in _abschnitt_mit(seite, "Werkstatt") if k.get("type") == "tile"]
-    assert [k["name"] for k in werkstatt if k["entity"] == "button.k"] == ["Werte jetzt abfragen"]
-    ladungen = [k["entity"] for k in kacheln if k["name"] == "WW Einmalladung"]
-    assert ladungen == ["button.hk1_ww", "button.hk2_ww"]
-
-
-def test_kernwerte_mehrerer_teile_tragen_den_teilnamen(uebersichtsseite):
-    anlage = _anlage(_kessel(), _heizkreis("hk1", "Heizkreis 1"), _heizkreis("hk2", "Heizkreis 2"))
-    seite = uebersichtsseite.uebersicht([anlage, _anlage(_kessel(), name="Werkstatt")], False, [])
-    namen = {k["entity"]: k["name"] for k in _abschnitt_mit(seite, "Kesselhaus") if "name" in k}
-    assert namen["sensor.hk1_vorlauf"] == "Heizkreis 1 · Vorlauftemperatur"
-    assert namen["sensor.hk2_vorlauf"] == "Heizkreis 2 · Vorlauftemperatur"
-    assert namen["sensor.kessel_ist"] == "PuroWIN · Kesseltemperatur Ist"
-    # Mit nur einem Teil bleibt der Name, wie er ist.
-    einzeln = _abschnitt_mit(seite, "Werkstatt")
-    assert "Kesseltemperatur Ist" in [k.get("name") for k in einzeln]
 
 
 def test_zusammengesetzte_namen_bleiben_beim_uebersetzen_stehen():

@@ -75,9 +75,9 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
         seite = anlage.arbeitsseite(anlagen[0], als_karte, mit_schaubild=True, badges=kopf)
         views = [_uebersetzt(seite, eigene[0])]
     else:
-        kopf = badges.kopfzeile(hass, anlagen, gemeinsam)
+        kopf = badges.uebersichtszeile(hass, anlagen, gemeinsam)
         views = [
-            _uebersetzt(uebersicht.uebersicht(anlagen, als_karte, kopf), gemeinsam),
+            uebersicht.uebersicht(anlagen, als_karte, kopf, gemeinsam, eigene),
             *(
                 _uebersetzt(anlage.arbeitsseite(a, als_karte, mit_schaubild=False), buch)
                 for a, buch in zip(anlagen, eigene, strict=True)

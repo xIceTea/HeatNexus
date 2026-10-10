@@ -1,60 +1,68 @@
-"""Reiter „Übersicht“: Meldungen, Kennwerte und je Anlage Bild, Kernwerte, Thermostate, Tasten."""
+"""Reiter „Übersicht“: Meldungen, dann je Anlage Schaubild und die Karten ihrer Teile.
+
+Der Rahmen steht in der gemeinsamen Sprache, jeder Anlagenabschnitt in der Sprache seiner Anlage.
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
-from ..helpers import mustername
-from ..schema import passt
-from . import auswahl
+from ..texte import LOVELACE_FELDER, Woerterbuch, uebersetze_baum
 from .anlage import meldungsabschnitt, schaubild
-from .karten import abschnitt, ansicht, kachel, pfad_anlage
-from .muster import ABFRAGETASTE
+from .kacheln import VOLLE_BREITE, anlagenkarten
+from .karten import ansicht, pfad_anlage, ueberschrift
+
+# Beschriftungen der eigenen Karten; sie gehen wie die Lovelace-Felder durch das Wörterbuch.
+KARTENFELDER = LOVELACE_FELDER | {
+    "ueberschrift",
+    "gross_name",
+    "titel",
+    "name_oben",
+    "name_mitte",
+    "name_unten",
+    "an",
+    "aus",
+}
 
 
-def _kernwerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
-    """Kernwerte aller Teile; bei mehreren Teilen mit dem Teilnamen davor."""
-    je_teil = [(teil, werte) for teil in anlage["teile"] if (werte := auswahl.kernwerte(teil))]
-    if len(je_teil) < 2:
-        return [e for _, werte in je_teil for e in werte]
-    return [
-        {**e, "name": f"{teil['name']} · {e['name']}"} for teil, werte in je_teil for e in werte
-    ]
+def _in_sprache(daten: Any, buch: Woerterbuch | None) -> Any:
+    return daten if buch is None else uebersetze_baum(daten, buch, KARTENFELDER)
 
 
-def _tasten(anlage: dict[str, Any]) -> list[dict[str, Any]]:
-    """Die Tasten aller Teile; „Werte jetzt abfragen“ nur die des ersten Teils."""
-    mehrteilig = len(anlage["teile"]) > 1
-    tasten: list[dict[str, Any]] = []
-    abgefragt = False
-    for teil in anlage["teile"]:
-        for e in auswahl.tasten(teil):
-            if not passt(mustername(e), ABFRAGETASTE):
-                tasten.append(e)
-            elif not abgefragt:
-                abgefragt = True
-                # Die Taste liest nur ihren Anlagenteil; der Name sagt, welchen.
-                name = f"{teil['name']} · {e['name']}" if mehrteilig else e["name"]
-                tasten.append({**e, "name_de": mustername(e), "name": name})
-    return tasten
+def _bild(anlage: dict[str, Any], als_karte: bool) -> dict[str, Any] | None:
+    """Schaubild ohne Werteliste, so breit wie der Abschnitt."""
+    bild = schaubild(anlage, als_karte, mit_liste=False)
+    if bild and als_karte:
+        bild = {**bild, "liste": "aus", "grid_options": {**VOLLE_BREITE, "rows": "auto"}}
+    return bild
 
 
-def _anlagenspalte(anlage: dict[str, Any], als_karte: bool) -> list[dict[str, Any]]:
-    karten: list[dict[str, Any]] = []
-    if bild := schaubild(anlage, als_karte, mit_liste=False):
-        karten.append(bild)
-    karten += [kachel(e) for e in _kernwerte(anlage)]
-    for teil in anlage["teile"]:
-        karten += [kachel(e) for e in auswahl.thermostate(teil)]
-    karten += [kachel(e) for e in _tasten(anlage)]
-    return abschnitt(anlage["name"] or "Anlage", karten, ziel=pfad_anlage(anlage))
+def anlagenabschnitt(anlage: dict[str, Any], als_karte: bool) -> list[dict[str, Any]]:
+    """Der Abschnitt einer Anlage: Überschrift, Schaubild, Karten ihrer Teile."""
+    kopf = {
+        **ueberschrift(anlage["name"] or "Anlage", ziel=pfad_anlage(anlage)),
+        "icon": "mdi:fire",
+    }
+    bild = _bild(anlage, als_karte)
+    karten = [*([bild] if bild else []), *anlagenkarten(anlage)]
+    return [{"type": "grid", "cards": [kopf, *karten]}] if karten else []
 
 
 def uebersicht(
-    anlagen: list[dict[str, Any]], als_karte: bool, badges: list[dict[str, Any]]
+    anlagen: list[dict[str, Any]],
+    als_karte: bool,
+    badges: list[dict[str, Any]],
+    gemeinsam: Woerterbuch | None = None,
+    buecher: list[Woerterbuch] | None = None,
 ) -> dict[str, Any]:
-    """Übersichtsansicht mit Meldungen, je Anlage einem Abschnitt und Kopfzeile."""
-    abschnitte = meldungsabschnitt(anlagen)
-    for anlage in anlagen:
-        abschnitte += _anlagenspalte(anlage, als_karte)
-    return ansicht("Übersicht", "uebersicht", abschnitte, badges=badges)
+    """Übersichtsansicht; ohne Wörterbücher bleiben alle Texte deutsch."""
+    rahmen = _in_sprache(
+        ansicht("Übersicht", "uebersicht", meldungsabschnitt(anlagen), badges=badges), gemeinsam
+    )
+    sprachen = buecher or [None] * len(anlagen)
+    abschnitte = [
+        abschnitt
+        for anlage, buch in zip(anlagen, sprachen, strict=True)
+        for abschnitt in _in_sprache(anlagenabschnitt(anlage, als_karte), buch)
+    ]
+    return {**rahmen, "sections": [*rahmen["sections"], *abschnitte]}
