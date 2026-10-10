@@ -153,15 +153,12 @@ def test_jeder_funktionstyp_hat_einen_namen():
     assert not ohne, f"Funktionstypen ohne Namen: {ohne}"
 
 
-def test_der_zusatzkessel_kann_bedient_werden(device_db):
-    """Die Betriebswahl steht in keiner Ebenenliste des Herstellers.
+@pytest.mark.parametrize("fct", [FCT_BIOWIN, FCT_ZUSATZKESSEL])
+def test_die_betriebswahl_des_kessels_bleibt_auf_der_werksebene(device_db, fct):
+    """Der Hersteller bietet `9/75` an BioWIN und LogWIN nicht an; ihre Werte folgen dort nicht der Tabelle."""
+    ebenen = device_db.get_layers(fct)
 
-    Ohne Eintrag zählt sie als Werksebene und ist damit unsichtbar – der
-    Schalter, mit dem der Kessel überhaupt bedient wird.
-    """
-    ebenen = device_db.get_layers(FCT_ZUSATZKESSEL)
-
-    assert "9/75" in ebenen["operate"]
+    assert all("9/75" not in adressen for adressen in ebenen.values())
     assert "2/0" in ebenen["info"]
 
 

@@ -28,8 +28,8 @@ hat.
 | 6 | Kessel (Gas / Öl) | Ionisationsstrom, Anlagendruck, Netzbetriebsstunden | 10 | – | 13 | – |
 | 7 | Wärmepumpe | COP, Silentmode, Betriebsstunden Heizen/Warmwasser | 23 | 10 | 50 | 74 |
 | 8 | E-Heizung / Zusatzheizung | Aktuelle Stufe, Betriebsstunden Stufe 1–3 | 9 | – | 10 | 23 |
-| 9 | Kessel (BioWIN) | Laufzeit bis Reinigung, Brennstoffverbrauch, Sonden | 26 | 28 | 106 | 376 |
-| 10 | Kessel (Automatik-/Zusatzkessel) | Startverzögerung, O2-Signal | 20 | 6 | 39 | – |
+| 9 | Kessel (BioWIN) | Laufzeit bis Reinigung, Brennstoffverbrauch, Sonden | 26 | 27 | 106 | 376 |
+| 10 | Kessel (Automatik-/Zusatzkessel) | Startverzögerung, O2-Signal | 20 | 5 | 39 | – |
 | 14 | Heizkreis (UML / UMLZ) | wie 1, ältere Baureihe, Warmwasser inbegriffen | 19 | 28 | 49 | 13 |
 | 15 | Umschaltung | Automatikkessel / Festbrennstoff / Puffer, Umschaltventil | 8 | 1 | 20 | – |
 | 16 | Puffer (B-PLMi) | TPE, TPA, TPT, Pufferladepumpe | 15 | 2 | 16 | – |
@@ -495,7 +495,6 @@ Datenpunkte und werden übersprungen.
 | `9/31` | Mindestlaufzeit mit Pufferspeicher | Service |
 | `9/32` | Minimalwert | Service |
 | `9/57` | Solltemperatur ext. Wärmeanforderung | Service, Werk |
-| `9/75` | Betriebswahl | Betreiber |
 | `9/90` | Kaminkehrer | Info |
 | `10/110` | Kaminkehrer Leistung | Service |
 | `11/27` | WEZ-Nummer | Info, Service, Werk |
@@ -972,7 +971,6 @@ Datenpunkte und werden übersprungen.
 | `4/92` | Softwareversion | Info |
 | `4/93` | Hardwareversion | Info |
 | `9/57` | Solltemperatur ext. Wärmeanforderung | Service |
-| `9/75` | Betriebswahl | Betreiber |
 | `12/38` | Gerätetyp | Info |
 | `12/40` | Kesseltemperatur für Neustart | Service |
 | `12/42` | Startverzögerung Automatikkessel | Betreiber |

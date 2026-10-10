@@ -249,10 +249,8 @@ def _gruppen(eintraege, texte: dict) -> dict[str, list[str]]:
 UEBERSTEUERUNG: dict[str, dict[str, list[str]]] = {
     # Automatik-/Zusatzkessel (LogWIN)
     "10": {
-        # Die Betriebswahl ist der Schalter, mit dem der Kessel überhaupt
-        # bedient wird – schreibbar, und in keiner Ebenenliste des Herstellers.
-        # Ohne Eintrag zählt sie als Werksebene und ist damit unsichtbar.
-        "operate": ["9/75"],
+        # `9/75` bleibt auf der Werksebene: Der Hersteller bietet sie hier nicht
+        # an, und ihre Werte folgen je nach Firmware nicht der Texttabelle.
         # Der Alarmcode gehört zur Diagnose und steht ebenfalls in keiner Ebene.
         # Kesselpumpe und Kesselmischer braucht das Schaubild; auf der
         # Serviceebene würden sie nicht gelesen.
@@ -262,9 +260,8 @@ UEBERSTEUERUNG: dict[str, dict[str, list[str]]] = {
     # Anlage dieser Baureihe; sie meldet 64 Datenpunkte, die Ebenenlisten des
     # Herstellers erfassen davon siebzehn nicht.
     "9": {
-        # Die Betriebswahl ist der Schalter, mit dem der Kessel bedient wird –
-        # ohne Eintrag zählt sie als Werksebene und wäre unsichtbar.
-        "operate": ["9/75"],
+        # `9/75` bleibt auf der Werksebene: Der Hersteller bietet sie hier nicht
+        # an, und ihre Werte folgen je nach Firmware nicht der Texttabelle.
         # Ablesbares: Alarmcode, Restlaufzeit der Kaminkehrerfunktion und die
         # Aufforderung, die Aschetonne zu entleeren. Dazu Kesselpumpe und
         # Kesselmischer für das Schaubild.
