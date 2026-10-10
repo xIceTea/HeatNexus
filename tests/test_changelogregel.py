@@ -65,6 +65,23 @@ def test_ein_verweis_zaehlt_nicht_zur_laenge():
     assert _arten(kurz) == []
 
 
+def test_baureihen_vorn_zaehlen_nicht_zur_laenge():
+    zeile = (
+        "BioWIN, LogWIN, PuroWIN: Die Betriebswahl des Kessels steht nur noch "
+        "auf der Werksebene und bleibt dort lesbar."
+    )
+    assert _arten(zeile) == []
+
+
+def test_unbekannte_baureihe_schlaegt_an():
+    assert "unbekannte Baureihe" in _arten("Biowin: Die Betriebswahl steht auf der Werksebene.")
+    assert "unbekannte Baureihe" in _arten("BioWIN, AeroWIN: Die Taste erscheint.")
+
+
+def test_doppelpunkt_ohne_baureihe_bleibt_unbeanstandet():
+    assert _arten("Hinweis: Die Karte zeigt die Werte des Puffers.") == []
+
+
 def test_wortwiederholung_schlaegt_an():
     assert "Wortwiederholung" in _arten(
         "Eigene Sensoren in der Werteliste, in einem eigenen Abschnitt."

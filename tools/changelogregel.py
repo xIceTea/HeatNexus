@@ -92,6 +92,11 @@ PERSONIFIZIEREND = re.compile(
 
 FETT_AM_ANFANG = re.compile(r"^\*\*")
 
+# Gilt eine Zeile nur für bestimmte Kessel, steht die Baureihe davor:
+# „BioWIN, LogWIN: …". Das Präfix zählt nicht zur Länge.
+BAUREIHEN = frozenset(("BioWIN", "DuoWIN", "FireWIN", "LogWIN", "PuroWIN", "VarioWIN"))
+VORSPANN = re.compile(r"^([^:„“\"`\[\]()]{1,60}?): ")
+
 
 @dataclass(frozen=True)
 class Befund:
@@ -154,6 +159,13 @@ def pruefe_eintrag(datei: str, nummer: int, text: str) -> list[Befund]:
         melde("personifizierendes Verb", treffer.group(1))
     if FETT_AM_ANFANG.match(text):
         melde("Fettdruck am Zeilenanfang")
+
+    if vorspann := VORSPANN.match(text):
+        namen = [name.strip() for name in vorspann.group(1).split(",")]
+        if any(name.lower().endswith("win") for name in namen):
+            if fremde := [name for name in namen if name not in BAUREIHEN]:
+                melde("unbekannte Baureihe", ", ".join(fremde))
+            text = text[vorspann.end() :]
 
     anzahl = len(_woerter(ohne_namen(text)))
     if anzahl > MAX_WOERTER:
