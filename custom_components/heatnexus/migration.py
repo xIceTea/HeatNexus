@@ -142,10 +142,11 @@ def _entity_ids_umstellen(hass: HomeAssistant, entry: ConfigEntry) -> int:
         # `async_generate_entity_id` ist abgekündigt und entfällt mit HA 2027.2; die neue
         # Funktion heißt anders und gibt es in älteren Fassungen noch nicht.
         # Deshalb erst die neue versuchen, dann die alte.
-        vorschlag = _freie_kennung(registry, eintrag, " ".join(t for t in teile if t))
-        # Ein angehängter Zähler heißt: Der eigentliche Name ist belegt. Dann
-        # bringt die Umbenennung nichts und wird gelassen.
-        belegt = vorschlag.rsplit("_", 1)[-1].isdigit()
+        gewuenscht = " ".join(t for t in teile if t)
+        vorschlag = _freie_kennung(registry, eintrag, gewuenscht)
+        # Weicht der Vorschlag vom Wunschnamen ab, hat HA einen Zähler angehängt:
+        # Der Name ist belegt. Eine Ziffer am Ende des Namens selbst zählt nicht.
+        belegt = vorschlag != f"{eintrag.domain}.{slugify(gewuenscht)}"
         if vorschlag != eintrag.entity_id and not belegt:
             registry.async_update_entity(eintrag.entity_id, new_entity_id=vorschlag)
             umbenannt += 1

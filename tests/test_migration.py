@@ -470,6 +470,52 @@ def test_ein_frei_gewordenes_ziel_wird_spaeter_genommen(migration, hass):
     assert registry.async_get(ziel) is not None
 
 
+def _entitaet_mit_ziffer(hass, original_name="Vorlauftemperatur 2"):
+    """Eine Entität, deren Datenpunktname auf eine Ziffer endet."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = _config_entry(hass)
+    geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id,
+        identifiers={(DOMAIN, "SN1-3-0")},
+        name="Beispielhaus · Heizkreis 1",
+    )
+    registry = er.async_get(hass)
+    registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "SN1-3-0-0-7-0",
+        config_entry=eintrag,
+        device_id=geraet.id,
+        original_name=original_name,
+        suggested_object_id="irgendwas_altes",
+    )
+    return eintrag, registry
+
+
+def test_eine_ziffer_am_namensende_ist_kein_zaehler(migration, hass):
+    """Endet der Name selbst auf eine Ziffer, zieht die Kennung nach."""
+    eintrag, registry = _entitaet_mit_ziffer(hass)
+
+    assert migration._entity_ids_umstellen(hass, eintrag) == 1
+    assert registry.async_get("sensor.beispielhaus_heizkreis_1_vorlauftemperatur_2") is not None
+
+
+def test_ein_zaehler_hinter_einer_ziffer_bleibt_ein_zaehler(migration, hass):
+    """Ist der Name mit Ziffer belegt, hängt HA einen Zähler an; dann bleibt die ID."""
+    from homeassistant.helpers import entity_registry as er
+
+    ziel = "beispielhaus_heizkreis_1_vorlauftemperatur_2"
+    er.async_get(hass).async_get_or_create("sensor", "fremd", "x", suggested_object_id=ziel)
+    eintrag, registry = _entitaet_mit_ziffer(hass)
+
+    assert migration._entity_ids_umstellen(hass, eintrag) == 0
+    assert registry.async_get("sensor.irgendwas_altes") is not None
+
+
 def _steuerung_mit_entitaeten(hass, *kennungen):
     """Ein Gerät „Beispielhaus · Musterkessel“ mit Sensoren unter den angegebenen IDs."""
     from homeassistant.helpers import device_registry as dr
