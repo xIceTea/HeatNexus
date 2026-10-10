@@ -42,6 +42,16 @@ def _vorhersage(v: Vorhersage | None) -> dict[str, Any] | None:
     }
 
 
+def _optimierer(laufzeit: Laufzeit, heute: date) -> dict[str, Any]:
+    """Grundlage und Ergebnis der Optimierungshinweise, auch bei ausgeschaltetem Schalter."""
+    return {
+        "tage": len(laufzeit.tage_archiv),
+        "parameter_gelesen": laufzeit.parameter_gelesen,
+        "parameter_verlauf": laufzeit.parameter_verlauf,
+        "hinweise": [asdict(h) for h in laufzeit.hinweise_liste(heute)],
+    }
+
+
 def auszug(laufzeit: Laufzeit) -> dict[str, Any]:
     """Alles, was die Regel zuletzt gesehen und entschieden hat."""
     lage, werte, heute = laufzeit.lage, laufzeit.werte, dt_util.now().date()
@@ -77,5 +87,6 @@ def auszug(laufzeit: Laufzeit) -> dict[str, Any]:
             "verlauf": laufzeit.verlauf,
             "hausmodell": hausmodell.als_dict(modell) if modell else None,
             "vorhersage": _vorhersage(laufzeit.vorhersage_zuletzt),
+            "optimierer": _optimierer(laufzeit, heute),
         }
     )

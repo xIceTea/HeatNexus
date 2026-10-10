@@ -1267,6 +1267,13 @@ export const STIL = `
   .automatik-wert .raeume .wert { font-variant-numeric: tabular-nums; text-align: right; }
   .automatik-wert .raeume .heizt { color: #ffab6f; }
   .automatik-wert .raeume .veraltet { color: #ffab6f; }
+  .automatik-wert .vorschlaege { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+  .automatik-wert .vorschlag { border-top: 1px solid var(--hn-linie); padding-top: 8px; }
+  .automatik-wert .vorschlag .kopf { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .automatik-wert .vorschlag .name { font-weight: 500; }
+  .automatik-wert .vorschlag .empfehlung { font-size: 12px; padding: 2px 8px; border-radius: 10px; text-align: right;
+    background: color-mix(in srgb, var(--hn-akzent) 18%, transparent); }
+  .automatik-wert .vorschlag .angabe { color: var(--hn-gedaempft); font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .automatik-skala { margin-top: 14px; }
   .automatik-skala .bahn { position: relative; height: 18px; }
   .automatik-skala .bahn::before {

@@ -808,6 +808,31 @@ def test_die_kachel_haus_folgt_dem_stand_des_modells(durchlauf):
     assert haus["ohneAngabe"]["kachel"] is False
 
 
+def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
+    """Sammelnd nennt sie die Grundlage, bereit je Hinweis Titel, Empfehlung und Angaben."""
+    hinweise = durchlauf["automatikHinweise"]
+    assert hinweise["ohneAngabe"]["kachel"] is False
+    sammelt = hinweise["sammelt"]
+    assert (sammelt["titel"], sammelt["zahl"], sammelt["neben"]) == (
+        "Hinweise",
+        "–",
+        "sammelt Daten",
+    )
+    assert sammelt["fuss"] == ["Grundlage: 3 von 7 Tagen"]
+    assert sammelt["fragezeichen"] == 1
+    assert sammelt["bloecke"] == []
+    bereit = hinweise["bereit"]
+    assert (bereit["zahl"], bereit["neben"], bereit["fuss"]) == ("6", "Hinweise", [])
+    assert bereit["bloecke"] == [
+        ["Heizkurve", "Keine Empfehlung zur Kurve", "Anpassung durch die Steuerung aktiv"],
+        ["Heizkurve bei Frost", "Vorlauf bei Auslegung 80 → 86 °C", "−1,4 K · 18 Tage seit 14.11."],
+        ["Heizkurve in der Übergangszeit", "Fußpunkt 45 → 43 °C", "+0,8 K · 9 Tage"],
+        ["Heizkurve", "Behaglichkeit 0 → −1 K", "+0,9 K · 20 Tage seit 14.11."],
+        ["Raumsollwert", "Heizkurve anpassen statt Sollwert", "Sollwert 23,0 °C · 21 Tage"],
+        ["Morgens zu spät warm", "Vorhaltezeit 60 → 135 min", "Ziel nach 95 min · 12 Tage"],
+    ]
+
+
 def test_neu_lernen_steht_in_den_einstellungen_und_fragt_nach(durchlauf):
     haus = durchlauf["automatikHaus"]
     assert haus["frage"] == ["Hausmodell neu lernen?"]

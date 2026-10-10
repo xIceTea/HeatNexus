@@ -31,6 +31,7 @@ from ..helpers import get_oid_value
 from ..registrierung import geraetename
 from ..texte import woerterbuch
 from . import eingaben, hausmodell, korrektur, nachladen, profile, regel, stundenmodus, tagesansicht
+from .optimierung import OptimierungMixin
 from .quellen import QuellenMixin, ortszeit
 from .steller import Stand, Steller, braucht_bestaetigung, nur_ww_wert
 from .vorausschau import VorausschauMixin
@@ -129,7 +130,7 @@ def _verlauf_laden(roh: Any) -> dict[str, Any]:
     return {"datum": str(verlauf.get("datum") or ""), "stunden": dict(verlauf.get("stunden") or {})}
 
 
-class Laufzeit(QuellenMixin, VorausschauMixin):
+class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
     """Die Automatik eines Heizkreises."""
 
     def __init__(
@@ -161,12 +162,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             coordinator.client.update,
             Stand.aus_dict(z.get("stand")),
         )
-        stufen = z.get("stufen")
-        self.stufen: tuple[float, float] | None = (
-            (float(stufen[0]), float(stufen[1])) if isinstance(stufen, list | tuple) else None
-        )
-        self.stufen_zeit = ortszeit(z.get("stufen_zeit"))
-        self.stufen_start = ortszeit(z.get("stufen_start"))
+        self._stufen_laden(z)
         self.pausiert_bis = ortszeit(z.get("pausiert_bis"))
         self.beobachtet_seit = ortszeit(z.get("beobachtet_seit")) or dt_util.now()
         # Ohne Vorgeschichte gilt der Start als letzte Anforderung; das verzögert nur Warmwasser.
@@ -181,6 +177,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self.temperatur = korrektur.Temperaturkorrektur(z.get("temperatur"))
         self.pv = korrektur.Pvkorrektur(z.get("pv"))
         self.verlauf: dict[str, Any] = _verlauf_laden(z.get("verlauf"))
+        self._optimierung_laden(z)
         self.lage: regel.Lage | None = None
         self.stunden: list[dict[str, Any]] = []
         self._tage: list[tuple[date, float | None, float | None]] = []
@@ -274,6 +271,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             "verworfen": self.verworfen,
             "hausmodell": hausmodell.als_dict(self.hausmodell) if self.hausmodell else None,
             "hausmodell_tag": self._fehler_tag,
+            **self.optimierung_als_dict(),
         }
 
     # --- Lebenszyklus --------------------------------------------------------
@@ -309,6 +307,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             nachladen.heute_nachtragen(self.hass, self), f"heatnexus_automatik_{self.device_id}"
         )
         self._lernen_starten()
+        self._optimierung_starten()
 
     def stoppen(self) -> None:
         """Alle Auslöser abmelden."""
@@ -321,6 +320,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         if self._nachladen is not None and not self._nachladen.done():
             self._nachladen.cancel()
         self._lernen_beenden()
+        self._optimierung_beenden()
         client = self.coordinator.client
         for adresse in ABRUF:
             client.unregister_poll_oid(f"{self.prefix}{adresse}")
@@ -766,6 +766,15 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self.grenze_zuletzt: float | None = _kommazahl(z.get("grenze_steuerung"))
         self.absenk_zuletzt: float | None = _kommazahl(z.get("grenze_absenk"))
 
+    def _stufen_laden(self, z: dict[str, Any]) -> None:
+        """Die gedämpfte AT mit ihrem Zeitpunkt und dem Beginn der laufenden Dämpfung."""
+        stufen = z.get("stufen")
+        self.stufen: tuple[float, float] | None = (
+            (float(stufen[0]), float(stufen[1])) if isinstance(stufen, list | tuple) else None
+        )
+        self.stufen_zeit = ortszeit(z.get("stufen_zeit"))
+        self.stufen_start = ortszeit(z.get("stufen_start"))
+
     def _heizgrenze(self) -> float | None:
         if (wert := self._wert("/3/21/0")) is not None:
             self.grenze_zuletzt = wert
@@ -888,9 +897,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
 
     def stunde_nachtragen(self, stunde: int, **werte: float | None) -> None:
         """Werte einer vergangenen Stunde von heute ergänzen; Vorhandenes bleibt."""
-        heute = dt_util.now().date().isoformat()
-        if self.verlauf["datum"] != heute:
-            self.verlauf = {"datum": heute, "stunden": {}}
+        self._tag_beginnen(dt_util.now().date().isoformat())
         eintrag = self.verlauf["stunden"].setdefault(str(stunde), {})
         for name, wert in werte.items():
             if wert is not None and eintrag.get(name) is None:
@@ -898,9 +905,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
 
     def _aktion_merken(self, jetzt: datetime) -> None:
         """Was in dieser Stunde an der Steuerung gilt; spätere Stunden zeigen nur den Plan."""
-        heute = jetzt.date().isoformat()
-        if self.verlauf["datum"] != heute:
-            self.verlauf = {"datum": heute, "stunden": {}}
+        self._tag_beginnen(jetzt.date().isoformat())
         stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
         stunde["aktion"] = tagesansicht.aktion(self.gedaechtnis, jetzt.hour, jetzt.date())
 
@@ -973,13 +978,11 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._pv_tag_merken(jetzt)
         if self.konfig.get("pv_ist"):
             self.pv.ist_merken(jetzt, self.kwh(self.konfig["pv_ist"]))
-        heute = jetzt.date().isoformat()
-        if self.verlauf["datum"] != heute:
-            self.verlauf = {"datum": heute, "stunden": {}}
+        self._tag_beginnen(jetzt.date().isoformat())
         stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
         if "at" not in stunde:
             gedaempft = round(self.stufen[1], 2) if self.stufen else None
-            stunde.update(at=at, raum=self._raum(), gedaempft=gedaempft)
+            stunde.update(at=at, raum=self._raum(), gedaempft=gedaempft, **self._stundenfelder())
 
     def _raum_verfolgen(self) -> None:
         if (raum := self._raum()) is None:

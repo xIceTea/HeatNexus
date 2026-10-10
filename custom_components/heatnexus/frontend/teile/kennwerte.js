@@ -46,12 +46,29 @@ function vorhanden(wert) {
   return wert !== null && wert !== undefined && !Number.isNaN(Number(wert));
 }
 
+/** Parameterwert ohne überflüssige Nachkommastelle, negativ mit echtem Minus. */
+function parameterwert(wert) {
+  return zahl(wert, Number.isInteger(Number(wert)) ? 0 : 1).replace("-", "−");
+}
+
+/** ISO-Datum als „14.11.“. */
+function tagMonat(datum) {
+  const teile = String(datum || "").split("-");
+  return teile.length === 3 ? `${teile[2]}.${teile[1]}.` : null;
+}
+
 export const KennwerteMixin = (Basis) =>
   class extends Basis {
     _automatikKennwerte(kreis) {
       const raster = knoten("div", "automatik-werte");
       raster.append(
-        ...[this._kachelAussen(kreis), this._kachelSonne(kreis), this._kachelRaeume(kreis), this._kachelHaus(kreis)].filter(Boolean)
+        ...[
+          this._kachelAussen(kreis),
+          this._kachelSonne(kreis),
+          this._kachelRaeume(kreis),
+          this._kachelHaus(kreis),
+          this._kachelHinweise(kreis),
+        ].filter(Boolean)
       );
       return raster;
     }
@@ -254,6 +271,79 @@ export const KennwerteMixin = (Basis) =>
       }[traegheit(h.auskuehlzeit_h)];
       const beisatz = einordnung || this._t("Auskühlzeit");
       return this._kachel("haus", "Haus", `${zahl(h.auskuehlzeit_h, 0)} h`, beisatz, null, [fuss(stand), fuss(sonne)]);
+    }
+
+    /**
+     * Hinweise zu Heizkurve, Sollwert und Zeitprogramm: je Hinweis Titel, Empfehlung und Grundlage.
+     * Ohne Angabe vom Server (Schalter aus) fehlt die Kachel.
+     */
+    _kachelHinweise(kreis) {
+      const h = (kreis.kennwerte || {}).hinweise;
+      if (!h) return null;
+      const bloecke = (h.eintraege || []).map((eintrag) => this._hinweisBlock(eintrag)).filter(Boolean);
+      let kachel;
+      if (h.status !== "bereit" || !bloecke.length) {
+        const grundlage = this._tMit("Grundlage: {tage} von {noetig} Tagen", { tage: h.tage || 0, noetig: h.noetig || 0 });
+        kachel = this._kachel("hinweise", "Hinweise", "–", this._t("sammelt Daten"), null, [knoten("div", "fuss", grundlage)]);
+      } else {
+        const liste = knoten("div", "vorschlaege");
+        liste.append(...bloecke);
+        kachel = this._kachel("hinweise", "Hinweise", String(bloecke.length), this._t("Hinweise"), liste);
+      }
+      const erklaerung = "Hinweise beruhen auf ungestörten Tagen seit der letzten Änderung der Heizkurve. Die Automatik ändert diese Werte nicht.";
+      kachel.querySelector(".titel").appendChild(this._fragezeichen("Hinweise", erklaerung));
+      return kachel;
+    }
+
+    /** Ein Hinweis: Titel und Empfehlung als Marke, darunter Abweichung und Grundlage in einer Zeile. */
+    _hinweisBlock(eintrag) {
+      const titel = {
+        heizkurve_frost: this._t("Heizkurve bei Frost"),
+        heizkurve_uebergang: this._t("Heizkurve in der Übergangszeit"),
+        heizkurve_parallel: this._t("Heizkurve"),
+        sollwert_ausgleich: this._t("Raumsollwert"),
+        morgen_spaet: this._t("Morgens zu spät warm"),
+        steuerung_passt_an: this._t("Heizkurve"),
+      }[eintrag.art];
+      if (!titel) return null;
+      const block = knoten("div", "vorschlag");
+      const kopf = knoten("div", "kopf");
+      kopf.appendChild(knoten("span", "name", titel));
+      const empfehlung = this._hinweisEmpfehlung(eintrag);
+      if (empfehlung) kopf.appendChild(knoten("span", "empfehlung", empfehlung));
+      block.append(kopf, knoten("div", "angabe", this._hinweisAngaben(eintrag).join(" · ")));
+      return block;
+    }
+
+    _hinweisAngaben(eintrag) {
+      if (eintrag.art === "steuerung_passt_an") return [this._t("Anpassung durch die Steuerung aktiv")];
+      const angaben = [];
+      if (eintrag.art === "sollwert_ausgleich") angaben.push(this._tMit("Sollwert {wert} °C", { wert: zahl(eintrag.von) }));
+      else if (vorhanden(eintrag.abweichung)) angaben.push(kelvin(eintrag.abweichung));
+      if (vorhanden(eintrag.minuten)) angaben.push(this._tMit("Ziel nach {minuten} min", { minuten: eintrag.minuten }));
+      const seit = tagMonat(eintrag.seit);
+      angaben.push(
+        seit
+          ? this._tMit("{tage} Tage seit {seit}", { tage: eintrag.tage, seit })
+          : this._tMit("{tage} Tage", { tage: eintrag.tage })
+      );
+      return angaben;
+    }
+
+    /** „Fußpunkt 45 → 43 °C“; ohne Zielwert keine Marke. */
+    _hinweisEmpfehlung(eintrag) {
+      if (eintrag.art === "steuerung_passt_an") return this._t("Keine Empfehlung zur Kurve");
+      if (eintrag.art === "sollwert_ausgleich") return this._t("Heizkurve anpassen statt Sollwert");
+      if (!vorhanden(eintrag.von) || !vorhanden(eintrag.nach)) return null;
+      const parameter = {
+        "3/13": this._t("Vorlauf bei Auslegung"),
+        "3/1": this._t("Fußpunkt"),
+        "3/58": this._t("Behaglichkeit"),
+        "3/6": this._t("Vorhaltezeit"),
+        "3/51": this._t("Raumsollwert"),
+      }[eintrag.parameter] || eintrag.parameter || "";
+      const werte = { parameter, von: parameterwert(eintrag.von), nach: parameterwert(eintrag.nach), einheit: eintrag.einheit || "" };
+      return this._tMit("{parameter} {von} → {nach} {einheit}", werte).trim();
     }
 
     /** Eine Zeile je Raum: Name, Ist → Ziel, ob er heizt. */

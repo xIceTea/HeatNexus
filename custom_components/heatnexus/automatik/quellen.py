@@ -39,8 +39,7 @@ class QuellenMixin:
     def _prognose_des_tages_merken(self, stunden: list[dict[str, Any]]) -> None:
         # Die Stundenprognose beginnt mit der laufenden Stunde; Vergangenes hält der Verlauf.
         heute = dt_util.now().date()
-        if self.verlauf["datum"] != heute.isoformat():
-            self.verlauf = {"datum": heute.isoformat(), "stunden": {}}
+        self._tag_beginnen(heute.isoformat())
         for eintrag in stunden:
             zeit = ortszeit(eintrag.get("datetime"))
             if zeit is None or zeit.date() != heute:

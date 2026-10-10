@@ -55,6 +55,8 @@ class Werte:
     sonne_frost_at: float = 0.0
     # So lange darf mehr als die Hälfte der Räume ohne Wert sein, bevor eine Absenkung endet.
     raum_fehlt_min: float = 15.0
+    # Zeigt die Optimierungshinweise; die Tage werden auch ohne den Schalter gesammelt.
+    hinweise: bool = False
 
 
 VORGABEN: dict[str, Werte] = {
@@ -107,7 +109,7 @@ AUSRICHTUNG_FEST: dict[str, dict[str, Any]] = {
     KOMFORT: {"stark": False, "ruhe_h": 3.0, "spielraum_k": 0.0},
 }
 UHRZEITEN = ("entscheidung", "nachpruefung")
-SCHALTER = ("sonnentag", "stark", "anpassen", "melden")
+SCHALTER = ("sonnentag", "stark", "anpassen", "melden", "hinweise")
 # Über so viele Tage lernt die Prognosekorrektur; andere Werte gelten nicht.
 LERNFENSTER = (3, 7, 14)
 

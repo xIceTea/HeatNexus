@@ -25,6 +25,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Reiter Automatik zeigt die gelernten Hauswerte und den vorhergesagten Raumverlauf.
 - Die Kachel „Haus“ ordnet die Auskühlzeit als schnell, mittel oder träge ein.
 - Ohne Hausmodell senkt der Sonnentag unter einer einstellbaren Außentemperatur nicht ab.
+- Auf Wunsch zeigt die Automatik Hinweise zu Heizkurve, Raumsollwert und Vorhaltezeit.
 - „Hausmodell neu lernen“ steht in den Einstellungen der Automatik.
 - Der Einrichtungsdialog empfiehlt Räume, die das Haus typisch abbilden.
 

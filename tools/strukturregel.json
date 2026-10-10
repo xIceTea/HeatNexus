@@ -1,7 +1,4 @@
 {
- "custom_components/heatnexus/automatik/laufzeit.py::Laufzeit.__init__": {
-  "zeilen": 81
- },
  "custom_components/heatnexus/client/erkennung.py::ErkennungMixin._discover": {
   "komplexitaet": 33,
   "zeilen": 240

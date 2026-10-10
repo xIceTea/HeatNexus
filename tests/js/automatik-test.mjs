@@ -45,6 +45,7 @@ assert.deepEqual(
     "entscheidung",
     "fenster_k_je_h",
     "grenze_versatz",
+    "hinweise",
     "hysterese",
     "lernfenster",
     "melden",

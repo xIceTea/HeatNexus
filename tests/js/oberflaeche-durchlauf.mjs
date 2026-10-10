@@ -1045,6 +1045,59 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 }
 
 // ---------------------------------------------------------------------------
+// Reiter „Automatik“: Kachel „Hinweise“
+//
+// Sammelt die Auswertung noch, nennt die Kachel die Grundlage; danach steht
+// je Hinweis Titel, Empfehlung und Grundlage. Ohne Angabe vom Server fehlt sie.
+// ---------------------------------------------------------------------------
+{
+  const [kreis] = flaeche._automatik.heizkreise;
+  const vorherKennwerte = kreis.kennwerte;
+  const wurzel = flaeche.shadowRoot;
+  const text = (knoten) => String((knoten || {}).textContent || "");
+  const zeigen = (hinweise) => {
+    kreis.kennwerte = { ...vorherKennwerte, hinweise };
+    flaeche._reiter = "automatik";
+    flaeche._gebaut = false;
+    flaeche._zeichnen();
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+    const kachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("hinweise"));
+    return {
+      kachel: Boolean(kachel),
+      titel: text(kachel && kachel.querySelector(".titel").firstChild),
+      zahl: text(kachel && kachel.querySelector(".zahl")),
+      neben: text(kachel && kachel.querySelector(".neben")),
+      fuss: kachel ? kachel.querySelectorAll(".fuss").map(text) : [],
+      fragezeichen: kachel ? kachel.querySelectorAll(".fragezeichen").length : 0,
+      bloecke: kachel
+        ? kachel
+            .querySelectorAll(".vorschlag")
+            .map((b) => [text(b.querySelector(".name")), text(b.querySelector(".empfehlung")), text(b.querySelector(".angabe"))])
+        : [],
+    };
+  };
+  bilanz.automatikHinweise = {
+    ohneAngabe: zeigen(undefined),
+    sammelt: zeigen({ status: "sammelt", tage: 3, noetig: 7, eintraege: [] }),
+    bereit: zeigen({
+      status: "bereit",
+      tage: 23,
+      noetig: 7,
+      eintraege: [
+        { art: "steuerung_passt_an", tage: 23, seit: null },
+        { art: "heizkurve_frost", tage: 18, seit: "2026-11-14", abweichung: -1.4, parameter: "3/13", von: 80, nach: 86, einheit: "°C" },
+        { art: "heizkurve_uebergang", tage: 9, seit: null, abweichung: 0.8, parameter: "3/1", von: 45, nach: 43, einheit: "°C" },
+        { art: "heizkurve_parallel", tage: 20, seit: "2026-11-14", abweichung: 0.9, parameter: "3/58", von: 0, nach: -1, einheit: "K" },
+        { art: "sollwert_ausgleich", tage: 21, seit: null, parameter: "3/51", von: 23, nach: null },
+        { art: "morgen_spaet", tage: 12, seit: null, parameter: "3/6", von: 60, nach: 135, einheit: "min", minuten: 95 },
+      ],
+    }),
+  };
+  kreis.kennwerte = vorherKennwerte;
+}
+
+// ---------------------------------------------------------------------------
 // Reiter „Automatik“: Modus „Manuell mit Empfehlung“
 //
 // Eine offene Empfehlung steht als Hinweis mit Knopf unter dem Kreis; der Knopf

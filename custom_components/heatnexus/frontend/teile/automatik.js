@@ -42,6 +42,7 @@ export const FELDER = [
     art: "janein",
   },
   { name: "melden", hilfe: "Im Modus „Manuell mit Empfehlung“ erscheint jede Empfehlung als Benachrichtigung in der Seitenleiste von Home Assistant. Sie verschwindet, sobald die Empfehlung übernommen, verworfen oder abgelaufen ist.", titel: "Empfehlung in der Seitenleiste melden", art: "janein" },
+  { name: "hinweise", hilfe: "Die Automatik wertet ungestörte Tage aus und zeigt Hinweise zu Heizkurve, Raumsollwert und Zeitprogramm. Sie ändert dabei nichts an der Steuerung.", titel: "Optimierungshinweise anzeigen", art: "janein" },
   { name: "lernfenster", hilfe: "Über so viele Tage vergleicht die Automatik Prognose und Messung und passt die Prognose daran an. Ein kurzes Fenster reagiert schneller, ein langes schwankt weniger.", titel: "Prognose lernen über", art: "wahl", optionen: [3, 7, 14], einheit: "Tage" },
 ];
 

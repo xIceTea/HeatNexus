@@ -24,6 +24,13 @@ class Client:
         """Merkt sich jeden Schreibvorgang; mit `ablehnen` scheitert jeder."""
         self.geschrieben: list[tuple[str, str]] = []
         self.ablehnen = False
+        self.parameter: dict[str, str] = {}
+        self.abfragen: list[list[str]] = []
+
+    async def fetch_oids(self, oids) -> dict:
+        """Liefert `parameter`; unbekannte Adressen meldet die Anlage ohne Wert."""
+        self.abfragen.append(list(oids))
+        return {oid: self.parameter.get(oid) for oid in oids}
 
     async def update(self, oid: str, wert: str) -> None:
         if self.ablehnen:
@@ -2743,3 +2750,271 @@ async def test_vorschau_folgt_dem_freigegebenen_modell(hass, hass_ws_client, anl
 
     mit = [t["zustand"] for t in (await _kreis(client))["vorschau"]]
     assert mit == ["programm", "programm"]
+
+
+# --- Optimierungshinweise ----------------------------------------------------
+def _frosttage(anzahl: int, abweichung: float) -> list[dict]:
+    """Ungestörte Frosttage, der letzte zwei Tage vor MORGEN."""
+    from datetime import date, timedelta
+
+    erster = date(2026, 9, 25) - timedelta(days=anzahl - 1)
+    return [
+        {
+            "datum": (erster + timedelta(days=i)).isoformat(),
+            "at": -4.0,
+            "abweichung": abweichung,
+            "soll": 21.0,
+            "morgen_min": None,
+            "ungestoert": True,
+            "stunden": 24,
+        }
+        for i in range(anzahl)
+    ]
+
+
+async def test_die_stunde_vermerkt_abweichung_soll_vorlauf_und_betriebsart(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit.auswerten()
+    freezer.tick(timedelta(hours=1))
+
+    await laufzeit.auswerten()
+
+    stunde = laufzeit.verlauf["stunden"][str(dt_util.now().hour)]
+    assert stunde["ab"] == pytest.approx(0.4)
+    assert (stunde["soll"], stunde["vl"], stunde["ba"]) == (21.0, 35.0, 1)
+
+
+async def test_fehlende_werte_der_stunde_werden_nicht_eingetragen(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    del coordinator.data["oids"][f"{PREFIX}/1/2/0"]
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit.auswerten()
+    freezer.tick(timedelta(hours=1))
+
+    await laufzeit.auswerten()
+
+    stunde = laufzeit.verlauf["stunden"][str(dt_util.now().hour)]
+    assert "vl" not in stunde
+    assert stunde["ba"] == 1
+
+
+async def test_der_tageswechsel_archiviert_den_vortag_einmal(hass, anlage, freezer):
+    from custom_components.heatnexus.automatik import optimierung
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    vortag = {
+        "datum": "2026-09-26",
+        "stunden": {"8": {"at": 5.0, "ab": -0.2, "soll": 21.0, "ba": 1, "aktion": "programm"}},
+    }
+    laufzeit.tage_archiv = _frosttage(optimierung.ARCHIV_TAGE, -1.0)[:-1]
+    laufzeit.tage_archiv.insert(0, {**laufzeit.tage_archiv[0], "datum": "2026-01-01"})
+    laufzeit.verlauf = vortag
+
+    await laufzeit.auswerten()
+    laufzeit.verlauf = dict(vortag)
+    await laufzeit.auswerten()
+
+    assert laufzeit.verlauf["datum"] == "2026-09-27"
+    assert len(laufzeit.tage_archiv) == optimierung.ARCHIV_TAGE
+    assert laufzeit.tage_archiv[0]["datum"] != "2026-01-01"
+    assert [t["datum"] for t in laufzeit.tage_archiv].count("2026-09-26") == 1
+    letzter = laufzeit.tage_archiv[-1]
+    assert (letzter["datum"], letzter["at"], letzter["abweichung"]) == ("2026-09-26", 5.0, -0.2)
+    assert letzter["ungestoert"] is True
+
+
+async def test_ein_tag_ohne_messwerte_wird_nicht_archiviert(hass, anlage, freezer):
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    laufzeit.tage_archiv = []
+    laufzeit.verlauf = {"datum": "2026-09-26", "stunden": {"8": {"aktion": "programm"}}}
+
+    await laufzeit.auswerten()
+
+    assert laufzeit.tage_archiv == []
+
+
+async def test_archiv_und_parameterverlauf_werden_gespeichert_und_geladen(hass, anlage, freezer):
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    laufzeit.tage_archiv = _frosttage(3, -1.0)
+    laufzeit.parameter_verlauf = {"3/13": [["2026-09-01", 80.0], ["2026-09-20", 86.0]]}
+    laufzeit.parameter_gelesen = "2026-09-27"
+    zustand = laufzeit.als_dict()
+
+    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+    verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
+    await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
+    geladen = verwaltung.laufzeiten[HEIZKREIS]
+
+    assert geladen is not laufzeit
+    assert geladen.tage_archiv == _frosttage(3, -1.0)
+    assert geladen.parameter_verlauf == {"3/13": [["2026-09-01", 80.0], ["2026-09-20", 86.0]]}
+    assert geladen.parameter_gelesen == "2026-09-27"
+
+
+async def test_unlesbares_archiv_wird_beim_laden_verworfen(hass, anlage, freezer):
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    zustand = laufzeit.als_dict() | {
+        "tage_archiv": [{"datum": "2026-09-01"}, "kaputt", *_frosttage(1, -1.0)],
+        "parameter_verlauf": {"3/13": "kaputt", "3/1": [["2026-09-01", 45.0], "x"]},
+        "parameter_gelesen": 17,
+    }
+
+    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+    verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
+    await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
+    geladen = verwaltung.laufzeiten[HEIZKREIS]
+
+    assert [t.datum for t in geladen.archivierte_tage()] == ["2026-09-25"]
+    assert geladen.parameter_verlauf == {"3/1": [["2026-09-01", 45.0]]}
+
+
+async def test_die_parameterlesung_traegt_nur_aenderungen_ein(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from custom_components.heatnexus.automatik import optimierung
+
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    laufzeit.parameter_verlauf = {}
+    coordinator.client.parameter = {f"{PREFIX}/3/13/0": "80.0", f"{PREFIX}/3/1/0": "45"}
+
+    await laufzeit.parameter_lesen()
+    freezer.tick(timedelta(days=1))
+    await laufzeit.parameter_lesen()
+    freezer.tick(timedelta(days=1))
+    coordinator.client.parameter[f"{PREFIX}/3/13/0"] = "86.0"
+    await laufzeit.parameter_lesen()
+
+    assert laufzeit.parameter_verlauf == {
+        "3/13": [["2026-09-27", 80.0], ["2026-09-29", 86.0]],
+        "3/1": [["2026-09-27", 45.0]],
+    }
+    assert laufzeit.parameter_gelesen == "2026-09-29"
+    assert sorted(coordinator.client.abfragen[-1]) == sorted(
+        f"{PREFIX}{adresse}" for adresse in optimierung.PARAMETER
+    )
+
+
+async def test_eine_gescheiterte_parameterlesung_wirft_nicht(hass, anlage, freezer):
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    laufzeit.parameter_gelesen = None
+
+    async def scheitern(_oids):
+        raise RuntimeError("nicht erreichbar")
+
+    coordinator.client.fetch_oids = scheitern
+    await laufzeit.parameter_lesen()
+
+    assert laufzeit.parameter_gelesen is None
+
+
+async def test_parameter_werden_beim_start_und_taeglich_gelesen(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    coordinator.client.parameter = {f"{PREFIX}/3/13/0": "80"}
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert laufzeit.parameter_gelesen == "2026-09-27"
+    anzahl = len(coordinator.client.abfragen)
+
+    await laufzeit.neu_starten(laufzeit.konfig)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(coordinator.client.abfragen) == anzahl
+
+    lesezeit = (dt_util.now() + timedelta(days=1)).replace(hour=0, minute=40, second=0)
+    freezer.move_to(lesezeit)
+    async_fire_time_changed(hass, lesezeit)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert laufzeit.parameter_gelesen == "2026-09-28"
+
+
+async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, anlage, freezer):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    assert "hinweise" not in (await _kreis(client))["kennwerte"]
+
+    antwort = await _senden(
+        client,
+        type="heatnexus/automatik/einstellen",
+        heizkreis=HEIZKREIS,
+        eigene={"hinweise": True},
+    )
+    assert antwort["success"], antwort
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit.tage_archiv = []
+    assert (await _kreis(client))["kennwerte"]["hinweise"] == {
+        "status": "sammelt",
+        "tage": 0,
+        "noetig": 7,
+        "eintraege": [],
+    }
+
+    laufzeit.tage_archiv = _frosttage(8, -1.4)
+    laufzeit.parameter_verlauf = {"3/13": [["2026-08-01", 80.0]]}
+    hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
+    assert (hinweise["status"], hinweise["tage"]) == ("bereit", 8)
+    assert hinweise["eintraege"] == [
+        {
+            "art": "heizkurve_frost",
+            "tage": 8,
+            "seit": None,
+            "abweichung": -1.4,
+            "parameter": "3/13",
+            "von": 80.0,
+            "nach": 86.0,
+            "einheit": "°C",
+            "minuten": None,
+        }
+    ]
+
+
+async def test_diagnose_enthaelt_den_optimierer(hass, anlage, freezer):
+    import json
+
+    from custom_components.heatnexus import diagnostics
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    laufzeit.tage_archiv = _frosttage(8, -1.4)
+    laufzeit.parameter_verlauf = {"3/13": [["2026-08-01", 80.0]]}
+    entry = hass.config_entries.async_entries("heatnexus")[0]
+
+    (auszug,) = diagnostics.automatik_auszug(hass, entry)["heizkreise"]
+
+    optimierer = auszug["optimierer"]
+    assert optimierer["tage"] == 8
+    assert optimierer["parameter_verlauf"] == {"3/13": [["2026-08-01", 80.0]]}
+    assert [h["art"] for h in optimierer["hinweise"]] == ["heizkurve_frost"]
+    json.dumps(auszug)

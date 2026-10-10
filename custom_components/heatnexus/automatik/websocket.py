@@ -153,6 +153,7 @@ def _eintrag(
             "modus_seit": (s.isoformat() if (s := kennzahlen.modus_seit(laufzeit)) else None),
             "vorrang": _vorrang(laufzeit, lage),
             "hausmodell": tagesansicht.hausmodell_stand(laufzeit),
+            **tagesansicht.hinweise(laufzeit, jetzt.date()),
         },
         tag=tagesansicht.heute(laufzeit, jetzt),
         vorschau=tagesansicht.vorschau(laufzeit, jetzt),
