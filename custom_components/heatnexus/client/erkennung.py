@@ -564,7 +564,7 @@ class ErkennungMixin:
                             alt_id=self._alte_kennung(f"{device_id}-{suffix}"),
                             type=typ,
                             node_id=str(node_id),
-                            name=name,
+                            **self._eigener_name(name),
                             stoerungstexte=self._stoerungstexte(),
                             sprache=self.sprache,
                             category="diagnostic",

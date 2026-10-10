@@ -333,7 +333,7 @@ export const UebersichtMixin = (Basis) =>
       abhilfe.className = "abhilfe";
       karte.appendChild(abhilfe);
       this._bindungen.push(() => {
-        links.textContent = this._name(eintrag.entity).replace(" Meldung Klartext", "");
+        links.textContent = this._name(eintrag.entity).replace(` ${this._t("Meldung Klartext")}`, "");
         const aktiv = this._stoerungAktiv(eintrag);
         wert.textContent = this._text(eintrag.entity);
         wert.className = `wert ${aktiv ? "schlecht" : "gut"}`;

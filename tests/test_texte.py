@@ -316,6 +316,88 @@ def test_jede_eigene_bezeichnung_hat_eine_englische_fassung():
     assert not fehlend, fehlend
 
 
+CLIENT = ORDNER.parent / "client"
+
+
+def _client_baeume() -> dict[str, ast.Module]:
+    return {
+        datei.name: ast.parse(datei.read_text(encoding="utf-8")) for datei in CLIENT.glob("*.py")
+    }
+
+
+def _namenstabellen(baeume: dict[str, ast.Module]) -> dict[str, list[tuple]]:
+    """Modulkonstanten aus Tupeln fester Werte, etwa `MELDUNGS_SENSOREN`."""
+    tabellen = {}
+    for baum in baeume.values():
+        for knoten in baum.body:
+            if not (isinstance(knoten, ast.Assign) and isinstance(knoten.value, ast.Tuple)):
+                continue
+            try:
+                zeilen = ast.literal_eval(knoten.value)
+            except ValueError:
+                continue
+            if zeilen and all(isinstance(z, tuple) for z in zeilen):
+                for ziel in knoten.targets:
+                    if isinstance(ziel, ast.Name):
+                        tabellen[ziel.id] = zeilen
+    return tabellen
+
+
+def _feste_namen_der_erkennung() -> tuple[set[str], list[str]]:
+    """Feste Namen, die der Client selbst vergibt, und Stellen ohne Wörterbuch.
+
+    Ein Name aus einer Tabelle oder als Literal muss über `_eigener_name` laufen.
+    """
+    baeume = _client_baeume()
+    tabellen = _namenstabellen(baeume)
+    namen: set[str] = set()
+    vorbei: list[str] = []
+
+    def aus_tabelle(wert: ast.expr, spalten: dict[str, list[str]]) -> list[str] | None:
+        if isinstance(wert, ast.Constant) and isinstance(wert.value, str) and wert.value:
+            return [wert.value]
+        return spalten.get(wert.id) if isinstance(wert, ast.Name) else None
+
+    for datei, baum in baeume.items():
+        spalten: dict[str, list[str]] = {}
+        for schleife in ast.walk(baum):
+            if (
+                isinstance(schleife, ast.For)
+                and isinstance(schleife.iter, ast.Name)
+                and schleife.iter.id in tabellen
+                and isinstance(schleife.target, ast.Tuple)
+            ):
+                for i, ziel in enumerate(schleife.target.elts):
+                    if isinstance(ziel, ast.Name):
+                        werte = [z[i] for z in tabellen[schleife.iter.id] if len(z) > i]
+                        spalten[ziel.id] = [w for w in werte if isinstance(w, str)]
+        for knoten in ast.walk(baum):
+            if not isinstance(knoten, ast.Call):
+                continue
+            funktion = getattr(knoten.func, "attr", getattr(knoten.func, "id", ""))
+            if funktion == "_eigener_name" and knoten.args:
+                namen.update(aus_tabelle(knoten.args[0], spalten) or [])
+            for wort in knoten.keywords:
+                if wort.arg == "name" and (treffer := aus_tabelle(wort.value, spalten)):
+                    namen.update(treffer)
+                    vorbei.append(f"{datei}:{wort.value.lineno}")
+    return namen, vorbei
+
+
+def test_kein_fester_name_der_erkennung_geht_am_woerterbuch_vorbei():
+    """Ein fester Name als `name=` bliebe in jeder Sprache deutsch."""
+    assert _feste_namen_der_erkennung()[1] == []
+
+
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+def test_jeder_feste_name_der_erkennung_steht_in_jeder_sprache(sprache):
+    """Meldungssensoren, Abfragetaste und andere eigene Namen erscheinen übersetzt."""
+    woerter = json.loads((ORDNER / f"{sprache}.json").read_text(encoding="utf-8"))
+    namen = _feste_namen_der_erkennung()[0]
+    assert "Meldung Klartext" in namen
+    assert sorted(n for n in namen if n not in woerter) == []
+
+
 def _uebersetzungsaufrufe(baum: ast.Module):
     """Jeder Text, den der Code durch ein Wörterbuch schickt, als Literal oder Modulkonstante."""
     konstanten = {
