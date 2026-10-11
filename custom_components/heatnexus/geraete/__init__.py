@@ -51,7 +51,6 @@ KANNFELDER = (
     "VERBRAUCHER_ABSTAND",
     "ROLLEN",
     "MODELLE_JE_KLASSE",
-    "KERNWERTE",
     "RUNDINSTRUMENTE",
     "NUR_ANZEIGE",
 )
@@ -148,11 +147,6 @@ VERBRAUCHER_ABSTAND: tuple[dict[str, object], ...] = tuple(
 
 ROLLEN_FILTER: dict[int, dict[str, object]] = {
     m.FCT_TYPE: m.ROLLEN for m in MODULE if getattr(m, "ROLLEN", None)
-}
-
-# Was das Dashboard je Baureihe zuerst zeigt; ohne Eintrag gilt die allgemeine Reihenfolge.
-KERNWERTE: dict[int, tuple[str, ...]] = {
-    m.FCT_TYPE: m.KERNWERTE for m in MODULE if getattr(m, "KERNWERTE", None)
 }
 
 RUNDINSTRUMENTE: dict[int, tuple[tuple[str, dict], ...]] = {

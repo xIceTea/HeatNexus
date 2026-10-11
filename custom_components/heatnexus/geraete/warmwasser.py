@@ -11,7 +11,6 @@ MODELL = "Warmwasser"
 RANG = 42
 SYMBOL = "mdi:water-boiler"
 SCHAUBILD = "wasser"
-KERNWERTE: tuple[str, ...] = ("dhw_temperature",)
 
 EXTRA_OIDS: tuple[str, ...] = ()
 KESSELART: str | None = None

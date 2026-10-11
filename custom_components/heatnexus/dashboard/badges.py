@@ -9,7 +9,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from .. import geraete
 from ..automatik.system import kreisnamen
 from ..automatik.verwaltung import DATEN_SCHLUESSEL, system_unique_id, unique_id
 from ..const import DOMAIN
@@ -30,7 +29,7 @@ PLANMAESSIG = ["programm", "aus"]
 # Eine Badge vor dem Zusammensetzen: Entität, Name, Sichtbarkeit.
 Eintrag = tuple[str, str, list[dict[str, Any]] | None]
 
-# Aussehen der Badges in der Übersicht mehrerer Anlagen.
+# Aussehen der Badges in der Übersicht.
 PHASE = {"show_state": True, "show_icon": True, "icon": "mdi:fire", "color": "deep-orange"}
 VORRAT_LEER = {"show_state": True, "show_icon": True, "icon": "mdi:silo", "color": "red"}
 WARTUNG_FARBE = "orange"
@@ -73,36 +72,12 @@ def _erste(anlage: dict[str, Any], schluessel: str) -> dict[str, Any] | None:
     return next((e for teil in anlage["teile"] if (e := _mit_wert(teil, schluessel))), None)
 
 
-def _ist_kessel(teil: dict[str, Any]) -> bool:
-    """Wärmeerzeuger ist, was das Schaubild als Kessel zeichnet."""
-    try:
-        return geraete.SCHAUBILD_ARTEN.get(int(teil.get("fct_type"))) == "kessel"
-    except (TypeError, ValueError):
-        return False
-
-
 def _name(anlage: dict[str, Any], name: str, mehrere: bool) -> str:
     return f"{anlage['name']} · {name}" if mehrere and anlage["name"] else name
 
 
 def _gleich(text: str) -> str:
     return text
-
-
-def _kennwerte(anlage: dict[str, Any], uebersetze: Callable[[str], str]) -> list[Eintrag]:
-    """Betriebsphase je Wärmeerzeuger, dazu der erste Vorratsbehälter."""
-    phasen = [
-        (teil, e)
-        for teil in anlage["teile"]
-        if _ist_kessel(teil) and (e := _mit_wert(teil, "operating_phase"))
-    ]
-    einer = len(phasen) == 1
-    ergebnis: list[Eintrag] = [
-        (e["entity_id"], uebersetze(KESSEL) if einer else teil["name"], None) for teil, e in phasen
-    ]
-    if vorrat := _erste(anlage, VORRAT[0]):
-        ergebnis.append((vorrat["entity_id"], uebersetze(VORRAT[1]), None))
-    return ergebnis
 
 
 def _wartung(anlage: dict[str, Any], uebersetze: Callable[[str], str]) -> list[Eintrag]:
@@ -134,26 +109,6 @@ def _stoerungen(anlage: dict[str, Any]) -> list[Eintrag]:
         )
         for teil in anlage["teile"]
         if (sensor := auswahl.stoerung(teil))
-    ]
-
-
-def anlagenbadges(
-    anlagen: list[dict[str, Any]], uebersetze: Callable[[str], str] = _gleich
-) -> list[dict[str, Any]]:
-    """Je Anlage Kessel, Vorrat, bald fällige Wartung und anliegende Störungen.
-
-    Feste Namen werden übersetzt, bevor der Anlagenname davorkommt: Den
-    zusammengesetzten Text kennt kein Wörterbuch.
-    """
-    mehrere = len(anlagen) > 1
-    return [
-        badge(entity_id, _name(anlage, name, mehrere), sichtbar)
-        for anlage in anlagen
-        for entity_id, name, sichtbar in (
-            *_kennwerte(anlage, uebersetze),
-            *_wartung(anlage, uebersetze),
-            *_stoerungen(anlage),
-        )
     ]
 
 
@@ -228,12 +183,6 @@ def _aussen(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str
     return [badge(aussen, "Außen")] if aussen else []
 
 
-def allgemein(hass: HomeAssistant, anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Außentemperatur (gewählt oder erste gemeldete), dann je Automatik Status und Heizkreise."""
-    eintraege = hass.config_entries.async_entries(DOMAIN)
-    return [*_aussen(hass, anlagen), *_automatiken(hass, eintraege)]
-
-
 def _automatiken(hass: HomeAssistant, eintraege: list[ConfigEntry]) -> list[dict[str, Any]]:
     """Je Eintrag der Status der Automatik, dahinter die Badges seiner Heizkreise."""
     status = {
@@ -277,14 +226,3 @@ def _aktive_entitaet(hass: HomeAssistant, kennung: str) -> str | None:
     if entity_id and not register.async_get(entity_id).disabled_by:
         return entity_id
     return None
-
-
-def kopfzeile(
-    hass: HomeAssistant, anlagen: list[dict[str, Any]], uebersetze: Woerterbuch | None = None
-) -> list[dict[str, Any]]:
-    """Alle Badges der Kopfzeile: erst die allgemeinen, dann die je Anlage.
-
-    `uebersetze` ist das Wörterbuch der Ansicht, die sie trägt; ohne Angabe das gemeinsame.
-    """
-    buch = woerterbuch(hass) if uebersetze is None else uebersetze
-    return [*allgemein(hass, anlagen), *anlagenbadges(anlagen, buch)]

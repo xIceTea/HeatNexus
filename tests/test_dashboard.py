@@ -756,13 +756,16 @@ def test_in_fremder_sprache_bleibt_im_dashboard_nichts_deutsch(
             **_kessel(),
             "entitaeten": [
                 _e("sensor.phase", "Operating phase", schluessel="operating_phase"),
-                _e("sensor.vorrat", "Fuel storage", schluessel="fuel_storage_status"),
+                _e("sensor.ist", "Boiler temperature", schluessel="boiler_temperature"),
+                _e("sensor.vorrat", "Fuel storage", schluessel="fuel_storage_status")
+                | {"optionen": {0: "Error", 1: "Empty"}},
                 _e("sensor.asche", "Ash", schluessel="maintenance_ash_hours"),
                 _e("sensor.reinigung", "Cleaning", schluessel="maintenance_cleaning_hours"),
                 _e("sensor.haupt", "Main", schluessel="maintenance_main_cleaning_hours"),
                 _e("sensor.service", "Service", schluessel="maintenance_service_hours"),
             ],
-        }
+        },
+        name="",
     )
     zweite = _anlage(
         {**fremd["teile"][0], "id": "zweiter0123456789"},
@@ -775,7 +778,7 @@ def test_in_fremder_sprache_bleibt_im_dashboard_nichts_deutsch(
         badges.badge("sensor.z", "Automatik · Kesselhaus"),
     ]
     woerter = Woerterbuch(sprache)
-    liste = [*badges.anlagenbadges([fremd, zweite], uebersetze=woerter), *kopf]
+    liste = [*badges.uebersicht_anlagenbadges([fremd, zweite], uebersetze=woerter), *kopf]
     uebersetzt = uebersetze_baum({"badges": liste}, woerter, LOVELACE_FELDER)
     kurz = {b["name"].split(" · ")[-1] for b in uebersetzt["badges"]}
     feste = ("Kessel", "Vorrat", "Asche", "Reinigung", "Hauptreinigung", "Wartung")
@@ -1024,7 +1027,7 @@ async def test_kennwerte_nehmen_die_gewaehlte_aussentemperatur(badges, hass):
     gewaehlt.add_to_hass(hass)
     hass.states.async_set("sensor.wetter", "12")
     status = _automatikstatus(hass, gewaehlt)
-    liste = badges.allgemein(hass, [_anlage(_kessel())])
+    liste = badges.uebersichtszeile(hass, [])
     assert [b["entity"] for b in liste] == ["sensor.wetter", status.entity_id]
     assert [b["name"] for b in liste] == ["Außen", "Automatik"]
 
@@ -1041,7 +1044,7 @@ async def test_eine_verschwundene_aussentemperatur_weicht_der_erkannten(badges, 
     kessel["entitaeten"].append(
         _e("sensor.aussen", "Außentemperatur", schluessel="outdoor_temperature")
     )
-    liste = badges.allgemein(hass, [_anlage(kessel)])
+    liste = badges.uebersichtszeile(hass, [_anlage(kessel)])
     assert [b["entity"] for b in liste][:1] == ["sensor.aussen"]
 
 
@@ -1075,7 +1078,7 @@ async def test_kreisbadge_zeigt_die_kurzfassung_bei_abweichung(badges, hass):
     eintrag.add_to_hass(hass)
     status = _automatikstatus(hass, eintrag)
     zustand = _kreisautomatik(hass, eintrag, "hk1", "Heizkreis 1")
-    liste = badges.allgemein(hass, [_anlage(_kessel())])
+    liste = badges.uebersichtszeile(hass, [])
     assert [b["entity"] for b in liste] == [status.entity_id, zustand.entity_id]
     assert [b["name"] for b in liste] == ["Automatik", "Kesselhaus · Heizkreis 1"]
     assert liste[1]["state_content"] == "kurz"
@@ -1094,7 +1097,7 @@ async def test_kreisbadges_je_heizkreis(badges, hass):
     _automatikstatus(hass, eintrag)
     erster = _kreisautomatik(hass, eintrag, "hk1", "Heizkreis 1")
     zweiter = _kreisautomatik(hass, eintrag, "hk2", "Heizkreis 2", label="")
-    liste = badges.allgemein(hass, [_anlage(_kessel())])
+    liste = badges.uebersichtszeile(hass, [])
     assert [b["entity"] for b in liste[1:]] == [erster.entity_id, zweiter.entity_id]
     assert [b["name"] for b in liste[1:]] == ["Kesselhaus · Heizkreis 1", "Heizkreis 2"]
 
@@ -1106,7 +1109,7 @@ async def test_kreisbadges_gleichnamiger_heizkreise_tragen_die_kennung(badges, h
     eintrag.add_to_hass(hass)
     _kreisautomatik(hass, eintrag, "hk1", "Heizkreis")
     _kreisautomatik(hass, eintrag, "hk2", "Heizkreis")
-    namen = [b["name"] for b in badges.allgemein(hass, [_anlage(_kessel())])]
+    namen = [b["name"] for b in badges.uebersichtszeile(hass, [])]
     assert namen == ["Kesselhaus · Heizkreis (hk1)", "Kesselhaus · Heizkreis (hk2)"]
 
 
@@ -1120,7 +1123,7 @@ async def test_zwei_automatiksysteme_tragen_den_eintrag_im_namen(badges, hass):
     status_eins = _automatikstatus(hass, erster)
     status_zwei = _automatikstatus(hass, zweiter)
     kreis = _kreisautomatik(hass, zweiter, "hk1", "Heizkreis 1", label="Werkstatt")
-    liste = badges.allgemein(hass, [_anlage(_kessel())])
+    liste = badges.uebersichtszeile(hass, [])
     assert [b["entity"] for b in liste] == [
         status_eins.entity_id,
         status_zwei.entity_id,
@@ -1142,7 +1145,7 @@ async def test_kreisbadge_fehlt_wenn_abgeschaltet(badges, hass):
     _automatikstatus(hass, eintrag)
     _kreisautomatik(hass, eintrag, "hk1", "Heizkreis 1", disabled_by=er.RegistryEntryDisabler.USER)
     zweiter = _kreisautomatik(hass, eintrag, "hk2", "Heizkreis 2")
-    liste = badges.allgemein(hass, [_anlage(_kessel())])
+    liste = badges.uebersichtszeile(hass, [])
     assert [b["name"] for b in liste] == ["Automatik", "Kesselhaus · Heizkreis 2"]
     assert liste[1]["entity"] == zweiter.entity_id
 
@@ -1154,7 +1157,7 @@ async def test_kennwerte_ohne_abgeschaltete_automatik(badges, hass):
     eintrag = MockConfigEntry(domain="heatnexus", data={})
     eintrag.add_to_hass(hass)
     _automatikstatus(hass, eintrag, disabled_by=er.RegistryEntryDisabler.USER)
-    assert badges.allgemein(hass, [_anlage(_kessel())]) == []
+    assert badges.uebersichtszeile(hass, []) == []
 
 
 async def test_einzelanlage_beginnt_mit_der_uebersicht(dashboard, hass, monkeypatch):
@@ -1240,26 +1243,25 @@ def _kessel_mit_wartung() -> dict:
 
 
 def test_jede_badge_traegt_einen_namen(badges):
-    liste = badges.anlagenbadges([_anlage(_kessel_mit_wartung())])
+    liste = badges.uebersicht_anlagenbadges([_anlage(_kessel_mit_wartung())])
     assert [(b["entity"], b["name"]) for b in liste] == [
-        ("sensor.betriebsphase", "Kessel"),
-        ("sensor.vorrat", "Vorrat"),
-        ("sensor.bis_reinigung", "Reinigung"),
-        ("binary_sensor.stoerung", "PuroWIN"),
+        ("sensor.betriebsphase", "Kesselhaus"),
+        ("sensor.bis_reinigung", "Kesselhaus · Reinigung"),
+        ("binary_sensor.stoerung", "Kesselhaus · PuroWIN"),
     ]
     assert all(b["show_name"] is True and b["type"] == "entity" for b in liste)
 
 
 def test_wartung_erscheint_erst_unter_der_grenze(badges):
-    liste = badges.anlagenbadges([_anlage(_kessel_mit_wartung())])
-    [reinigung] = [b for b in liste if b["name"] == "Reinigung"]
+    liste = badges.uebersicht_anlagenbadges([_anlage(_kessel_mit_wartung())])
+    [reinigung] = [b for b in liste if b["entity"] == "sensor.bis_reinigung"]
     assert reinigung["visibility"] == [
         {"condition": "numeric_state", "entity": "sensor.bis_reinigung", "below": 50}
     ]
 
 
 def test_stoerungsbadge_nur_solange_eine_anliegt(badges):
-    liste = badges.anlagenbadges([_anlage(_kessel())])
+    liste = badges.uebersicht_anlagenbadges([_anlage(_kessel())])
     [stoerung] = [b for b in liste if b["entity"] == "binary_sensor.stoerung"]
     assert stoerung["visibility"] == [
         {"condition": "state", "entity": "binary_sensor.stoerung", "state": "on"}
@@ -1267,16 +1269,17 @@ def test_stoerungsbadge_nur_solange_eine_anliegt(badges):
 
 
 def test_ohne_vorratsbehaelter_keine_vorrat_badge(badges):
-    assert "Vorrat" not in [b["name"] for b in badges.anlagenbadges([_anlage(_kessel())])]
+    liste = badges.uebersicht_anlagenbadges([_anlage(_kessel())])
+    assert not [b for b in liste if b["entity"] == "sensor.vorrat"]
 
 
 def test_bei_zwei_anlagen_steht_der_anlagenname_davor(badges):
     zweite = _anlage(
         {**_kessel(), "id": "zweiter0123456789"}, name="Werkstatt", kennung="werkst0123456789"
     )
-    namen = [b["name"] for b in badges.anlagenbadges([_anlage(_kessel()), zweite])]
-    assert "Kesselhaus · Kessel" in namen and "Werkstatt · PuroWIN" in namen
-    assert "Kessel" not in namen
+    namen = [b["name"] for b in badges.uebersicht_anlagenbadges([_anlage(_kessel()), zweite])]
+    assert "Kesselhaus · PuroWIN" in namen and "Werkstatt · PuroWIN" in namen
+    assert "PuroWIN" not in namen
 
 
 def _teil_mit_phase(name: str, fct_type: int, entity_id: str) -> dict:
@@ -1289,20 +1292,25 @@ def _teil_mit_phase(name: str, fct_type: int, entity_id: str) -> dict:
 
 
 def test_zwei_kessel_bekommen_je_eine_badge_mit_teilnamen(badges):
-    anlage = _anlage(_kessel(), _teil_mit_phase("BioWIN", 9, "sensor.phase_biowin"))
+    biowin = _teil_mit_phase("BioWIN", 9, "sensor.phase_biowin")
+    biowin["entitaeten"].append(_e("sensor.ist_biowin", "Kessel", schluessel="boiler_temperature"))
+    anlage = _anlage(_kessel(), biowin)
     phasen = [
         (b["entity"], b["name"])
-        for b in badges.anlagenbadges([anlage])
+        for b in badges.uebersicht_anlagenbadges([anlage])
         if b["entity"] in {"sensor.betriebsphase", "sensor.phase_biowin"}
     ]
-    assert phasen == [("sensor.betriebsphase", "PuroWIN"), ("sensor.phase_biowin", "BioWIN")]
+    assert phasen == [
+        ("sensor.betriebsphase", "Kesselhaus · PuroWIN"),
+        ("sensor.phase_biowin", "Kesselhaus · BioWIN"),
+    ]
 
 
 def test_betriebsphase_ausserhalb_des_kessels_bleibt_ohne_badge(badges):
     anlage = _anlage(_teil_mit_phase("Erzeugerpumpe", 24, "sensor.phase_pumpe"), _kessel())
-    liste = badges.anlagenbadges([anlage])
+    liste = badges.uebersicht_anlagenbadges([anlage])
     assert "sensor.phase_pumpe" not in [b["entity"] for b in liste]
-    assert ("sensor.betriebsphase", "Kessel") in [(b["entity"], b["name"]) for b in liste]
+    assert ("sensor.betriebsphase", "Kesselhaus") in [(b["entity"], b["name"]) for b in liste]
 
 
 async def test_kopfzeile_uebersetzt_die_namen_mehrerer_anlagen(badges, hass):
@@ -1312,11 +1320,13 @@ async def test_kopfzeile_uebersetzt_die_namen_mehrerer_anlagen(badges, hass):
 
     MockConfigEntry(domain="heatnexus", data={}, options={CONF_SPRACHE: "en"}).add_to_hass(hass)
     zweite = _anlage(
-        {**_kessel(), "id": "zweiter0123456789"}, name="Werkstatt", kennung="werkst0123456789"
+        {**_kessel_mit_wartung(), "id": "zweiter0123456789"},
+        name="Werkstatt",
+        kennung="werkst0123456789",
     )
-    namen = [b["name"] for b in badges.kopfzeile(hass, [_anlage(_kessel()), zweite])]
-    assert "Kesselhaus · Boiler" in namen
-    assert not [n for n in namen if n.endswith("· Kessel")]
+    namen = [b["name"] for b in badges.uebersichtszeile(hass, [_anlage(_kessel()), zweite])]
+    assert "Werkstatt · Cleaning" in namen
+    assert not [n for n in namen if n.endswith("· Reinigung")]
 
 
 async def test_aussen_und_automatik_bleiben_bei_zwei_anlagen_ohne_anlagennamen(badges, hass):
@@ -1333,7 +1343,7 @@ async def test_aussen_und_automatik_bleiben_bei_zwei_anlagen_ohne_anlagennamen(b
     zweite = _anlage(
         {**_kessel(), "id": "zweiter0123456789"}, name="Werkstatt", kennung="werkst0123456789"
     )
-    liste = badges.kopfzeile(hass, [_anlage(_kessel()), zweite])
+    liste = badges.uebersichtszeile(hass, [_anlage(_kessel()), zweite])
     namen = {b["entity"]: b["name"] for b in liste}
     assert namen["sensor.wetter"] == "Außen"
     assert namen[status.entity_id] == "Automatik"

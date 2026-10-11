@@ -13,7 +13,6 @@ MODELL = "PuroWIN Hackgutkessel"
 RANG = 10
 SYMBOL = "mdi:fire"
 SCHAUBILD = "kessel"
-KERNWERTE: tuple[str, ...] = ("operating_phase", "boiler_temperature")
 RUNDINSTRUMENTE: tuple[tuple[str, dict], ...] = (
     (
         "boiler_temperature",

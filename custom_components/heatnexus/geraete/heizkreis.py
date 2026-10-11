@@ -11,7 +11,6 @@ MODELL = "Heizkreis (UML/UMLZ)"
 RANG = 30
 SYMBOL = "mdi:radiator"
 SCHAUBILD = "heizkreis"
-KERNWERTE: tuple[str, ...] = ("flow_temperature",)
 
 # Zeitprogramme, Warmwasser- und Zirkulationswerte sowie die gemessene
 # Raumtemperatur tauchen in keiner Menü-Ebene auf.
