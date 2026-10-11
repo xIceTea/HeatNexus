@@ -13,9 +13,11 @@ import logging
 import math
 from typing import Any, NamedTuple
 
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
+from ..const import DOMAIN
 from ..helpers import enum_texte
 from . import eingaben, nachladen, nachrechnen, optimierer, regel
 from .vorausschau import LERNTAGE
@@ -29,6 +31,8 @@ LESEZEIT = {"hour": 0, "minute": 40, "second": 0}
 VERLAUFSWERTE = {"soll": "/1/1/0", "vl": "/1/2/0", "ba": "/2/9/0", "restzeit": "/2/10/0"}
 # So weit liest `_verlauf_lesen` zurück; so viele Tage vor heute lassen sich nachrechnen.
 NACHRECHNEN_TAGE = LERNTAGE
+# Die Klima-Entität des Heizkreises führt die Restzeit `2/10` als Merkmal.
+RESTZEIT_MERKMAL = "override_restzeit_min"
 
 
 class Quellen(NamedTuple):
@@ -38,13 +42,16 @@ class Quellen(NamedTuple):
     werte: dict[str, str | None]
     raeume: list[str]
     parameter: dict[str, str]
+    # Die Klima-Entität des Heizkreises; nur gesetzt, wenn `2/10` keine eigene Entität hat.
+    klima: str | None = None
 
     def lesen(self) -> tuple[list[str], list[str]]:
-        """Thermostate mit Attributen, alles andere ohne."""
+        """Thermostate und die Klima-Entität mit Attributen, alles andere ohne."""
         thermostate = [r for r in self.raeume if eingaben.ist_thermostat(r)]
         einfach = [r for r in self.raeume if r not in thermostate]
         einfach += [e for e in (self.aussen, *self.werte.values(), *self.parameter.values()) if e]
-        return thermostate, list(dict.fromkeys(einfach))
+        mit_attributen = [*thermostate, *([self.klima] if self.klima else [])]
+        return list(dict.fromkeys(mit_attributen)), list(dict.fromkeys(einfach))
 
 
 def _schluessel(adresse: str) -> str:
@@ -226,15 +233,25 @@ class OptimierungMixin:
         """Die Entität einer Adresse: schreibbar eine Zahl, schreibgeschützt ein Sensor."""
         return self._entitaet(adresse, "number") or self._entitaet(adresse)
 
+    def _klima_entitaet(self) -> str | None:
+        """Die Klima-Entität des Heizkreises, über seine Beschreibung wie im Reiter Automatik."""
+        for d in (self.coordinator.data or {}).get("devices") or []:
+            if d.get("type") == "climate" and d.get("device_id") == self.device_id:
+                kennung = d.get("id", "")
+                return er.async_get(self.hass).async_get_entity_id("climate", DOMAIN, kennung)
+        return None
+
     def _nachrechenquellen(self) -> Quellen:
         """Dieselben Quellen wie im laufenden Betrieb, als Entitäten mit Verlauf."""
+        werte = {name: self._verlaufsentitaet(a) for name, a in VERLAUFSWERTE.items()}
         return Quellen(
             aussen=self.aussen_entitaet(),
-            werte={name: self._verlaufsentitaet(a) for name, a in VERLAUFSWERTE.items()},
+            werte=werte,
             raeume=list(self.konfig["raeume"]),
             parameter={
                 _schluessel(a): kennung for a in PARAMETER if (kennung := self._verlaufsentitaet(a))
             },
+            klima=None if werte["restzeit"] else self._klima_entitaet(),
         )
 
     def _betriebsarten(self) -> dict[str, int]:
@@ -251,6 +268,9 @@ class OptimierungMixin:
             name: nachladen.zeitreihe(zustaende.get(kennung, []), luecken=True)
             for name, kennung in quellen.werte.items()
         }
+        if quellen.klima:
+            klima = zustaende.get(quellen.klima, [])
+            werte["restzeit"] = nachladen.zeitreihe(klima, RESTZEIT_MERKMAL, luecken=True)
         return nachrechnen.Reihen(
             at=nachladen.zeitreihe(zustaende.get(quellen.aussen, []), luecken=True),
             soll=werte["soll"],

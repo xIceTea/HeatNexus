@@ -21,6 +21,8 @@ HEIZTAGE = 10
 # Heute ist der 27.09. (`ha.MORGEN`); die Aufzeichnung reicht bis zum Vortag.
 TAGE = [(ERSTER + timedelta(days=i)).isoformat() for i in range(HEIZTAGE)]
 HEUTE = "2026-09-27"
+# Restzeit `2/10` als `(tag, stunde, minute, minuten)`: am dritten Tag 10:00 bis 10:30.
+VORGABE = ((0, 0, 0, 0), (2, 10, 0, 60), (2, 10, 30, 0))
 
 
 def _zeit(tag: int, stunde: int = 0, minute: int = 0):
@@ -40,21 +42,42 @@ def _zustaende(kennung: str, *werte, attribute: dict | None = None) -> list:
     ]
 
 
-def _historie(hass, coordinator) -> dict[str, list]:
+def _aufzeichnung(hass, monkeypatch, zustaende) -> None:
+    """Wie `ha._verlauf_bereit`; ohne Attribute gelesene Zustände verlieren sie dabei."""
+    from homeassistant.components.recorder import history
+    from homeassistant.core import State
+
+    ha._verlauf_bereit(hass, monkeypatch, zustaende)
+
+    def verlauf(_hass, _anfang, _ende, kennungen, no_attributes=False, **_):
+        return {
+            k: [
+                State(
+                    k, z.state, {} if no_attributes else z.attributes, last_updated=z.last_updated
+                )
+                for z in zustaende[k]
+            ]
+            for k in kennungen
+            if k in zustaende
+        }
+
+    monkeypatch.setattr(history, "get_significant_states", verlauf)
+
+
+def _historie(hass, coordinator, mit_restzeit: bool = True) -> dict[str, list]:
     """Zehn Tage im Heizbetrieb: AT 10 °C, Raum 21,2 °C bei Raumsoll 21 °C.
 
     Am dritten Tag läuft eine halbe Stunde lang eine Vorgabe am Gerät.
     """
-    aussen, soll, vl, ba, restzeit = ha._entitaeten(
-        hass,
-        [
-            ("sensor", "0-0-0"),
-            ("sensor", "1-1-0"),
-            ("sensor", "1-2-0"),
-            ("sensor", "2-9-0"),
-            ("number", "2-10-0"),
-        ],
-    )
+    plattformen = [
+        ("sensor", "0-0-0"),
+        ("sensor", "1-1-0"),
+        ("sensor", "1-2-0"),
+        ("sensor", "2-9-0"),
+    ]
+    if mit_restzeit:
+        plattformen.append(("number", "2-10-0"))
+    aussen, soll, vl, ba, *restzeit = ha._entitaeten(hass, plattformen)
     coordinator.data["devices"].append(
         {
             "type": "enum_sensor",
@@ -64,14 +87,16 @@ def _historie(hass, coordinator) -> dict[str, list]:
             "enum": "2/9",
         }
     )
-    return {
+    zustaende = {
         aussen: _zustaende(aussen, (0, 0, 0, 10.0)),
         soll: _zustaende(soll, (0, 0, 0, 21.0)),
         vl: _zustaende(vl, (0, 0, 0, 40.0)),
         ba: _zustaende(ba, (0, 0, 0, "Heizbetrieb")),
-        restzeit: _zustaende(restzeit, (0, 0, 0, 0), (2, 10, 0, 60), (2, 10, 30, 0)),
         "sensor.wohnzimmer": _zustaende("sensor.wohnzimmer", (0, 0, 0, 21.2)),
     }
+    for kennung in restzeit:
+        zustaende[kennung] = _zustaende(kennung, *VORGABE)
+    return zustaende
 
 
 async def _laufzeit(hass, verwaltung, freezer):
@@ -87,7 +112,7 @@ async def test_leeres_archiv_wird_beim_start_nachgerechnet(hass, anlage, freezer
     verwaltung, coordinator = anlage
     laufzeit = await _laufzeit(hass, verwaltung, freezer)
     assert laufzeit.archiv_nachgerechnet is False
-    ha._verlauf_bereit(hass, monkeypatch, _historie(hass, coordinator))
+    _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
 
     await laufzeit.neu_starten(laufzeit.konfig)
     await hass.async_block_till_done(wait_background_tasks=True)
@@ -102,10 +127,34 @@ async def test_leeres_archiv_wird_beim_start_nachgerechnet(hass, anlage, freezer
     assert laufzeit.als_dict()["archiv_nachgerechnet"] is True
 
 
+async def test_ohne_restzeit_entitaet_zaehlt_das_merkmal_des_heizkreises(
+    hass, anlage, freezer, monkeypatch
+):
+    from homeassistant.core import State
+    from homeassistant.helpers import entity_registry as er
+
+    verwaltung, coordinator = anlage
+    laufzeit = await _laufzeit(hass, verwaltung, freezer)
+    zustaende = _historie(hass, coordinator, mit_restzeit=False)
+    klima = er.async_get(hass).async_get_entity_id(
+        "climate", "heatnexus", f"{ha.HEIZKREIS}-thermostat"
+    )
+    zustaende[klima] = [
+        State(klima, "heat", {"override_restzeit_min": minuten}, last_updated=_zeit(t, h, m))
+        for t, h, m, minuten in VORGABE
+    ]
+    _aufzeichnung(hass, monkeypatch, zustaende)
+
+    assert await laufzeit.archiv_nachrechnen() == HEIZTAGE
+
+    tage = laufzeit.archivierte_tage()
+    assert [t.datum for t in tage if not t.ungestoert] == [TAGE[2]]
+
+
 async def test_nachrechnen_liefert_die_zahl_neuer_tage(hass, anlage, freezer, monkeypatch):
     verwaltung, coordinator = anlage
     laufzeit = await _laufzeit(hass, verwaltung, freezer)
-    ha._verlauf_bereit(hass, monkeypatch, _historie(hass, coordinator))
+    _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
 
     assert await laufzeit.archiv_nachrechnen() == HEIZTAGE
 
@@ -113,7 +162,7 @@ async def test_nachrechnen_liefert_die_zahl_neuer_tage(hass, anlage, freezer, mo
 async def test_nach_dem_nachrechnen_laeuft_kein_zweiter_lauf(hass, anlage, freezer, monkeypatch):
     verwaltung, coordinator = anlage
     laufzeit = await _laufzeit(hass, verwaltung, freezer)
-    ha._verlauf_bereit(hass, monkeypatch, _historie(hass, coordinator))
+    _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
     await laufzeit.archiv_nachrechnen()
     aufrufe = []
 
@@ -131,7 +180,7 @@ async def test_nach_dem_nachrechnen_laeuft_kein_zweiter_lauf(hass, anlage, freez
 async def test_die_marke_wird_gespeichert_und_geladen(hass, anlage, freezer, monkeypatch):
     verwaltung, coordinator = anlage
     laufzeit = await _laufzeit(hass, verwaltung, freezer)
-    ha._verlauf_bereit(hass, monkeypatch, _historie(hass, coordinator))
+    _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
     await laufzeit.archiv_nachrechnen()
     zustand = laufzeit.als_dict()
 
@@ -158,7 +207,7 @@ async def test_ein_lesefehler_setzt_keine_marke(hass, anlage, freezer, monkeypat
 
     verwaltung, coordinator = anlage
     laufzeit = await _laufzeit(hass, verwaltung, freezer)
-    ha._verlauf_bereit(hass, monkeypatch, _historie(hass, coordinator))
+    _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
 
     def scheitern(*_argumente, **_benannt):
         raise RuntimeError("Datenbank gesperrt")
@@ -183,7 +232,7 @@ async def test_ein_archivierter_tag_bleibt_unveraendert(hass, anlage, freezer, m
         "stunden": 20,
     }
     laufzeit.tage_archiv = [vorhanden]
-    ha._verlauf_bereit(hass, monkeypatch, _historie(hass, coordinator))
+    _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
 
     assert await laufzeit.archiv_nachrechnen() == HEIZTAGE - 1
 
@@ -200,7 +249,7 @@ async def test_ein_parameterwechsel_beginnt_die_grundlage_neu(hass, anlage, free
     (fusspunkt,) = ha._entitaeten(hass, [("number", "3-1-0")])
     zustaende[fusspunkt] = _zustaende(fusspunkt, (0, 0, 0, 45.0), (4, 10, 0, 47.0))
     laufzeit.parameter_verlauf = {"3/1": [[HEUTE, 47.0]], "3/13": [[HEUTE, 80.0]]}
-    ha._verlauf_bereit(hass, monkeypatch, zustaende)
+    _aufzeichnung(hass, monkeypatch, zustaende)
 
     await laufzeit.archiv_nachrechnen()
 
@@ -221,7 +270,7 @@ async def test_ein_spaeterer_wechsel_der_lesung_bleibt(hass, anlage, freezer, mo
     (fusspunkt,) = ha._entitaeten(hass, [("number", "3-1-0")])
     zustaende[fusspunkt] = _zustaende(fusspunkt, (0, 0, 0, 45.0))
     laufzeit.parameter_verlauf = {"3/1": [[HEUTE, 47.0]]}
-    ha._verlauf_bereit(hass, monkeypatch, zustaende)
+    _aufzeichnung(hass, monkeypatch, zustaende)
 
     await laufzeit.archiv_nachrechnen()
 
@@ -238,7 +287,7 @@ async def test_ein_ausgeschalteter_thermostat_verhindert_keine_abweichung(
         "climate.bad", (0, 0, 0, "off"), attribute={"current_temperature": 17.0}
     )
     laufzeit.konfig = {**laufzeit.konfig, "raeume": ["sensor.wohnzimmer", "climate.bad"]}
-    ha._verlauf_bereit(hass, monkeypatch, zustaende)
+    _aufzeichnung(hass, monkeypatch, zustaende)
 
     await laufzeit.archiv_nachrechnen()
 
@@ -258,7 +307,7 @@ async def test_raeume_zaehlen_gegen_ihr_eigenes_ziel(hass, anlage, freezer, monk
     )
     raeume = ["sensor.wohnzimmer", "climate.bad"]
     laufzeit.konfig = {**laufzeit.konfig, "raeume": raeume, "raum_ziel": 21.5}
-    ha._verlauf_bereit(hass, monkeypatch, zustaende)
+    _aufzeichnung(hass, monkeypatch, zustaende)
 
     await laufzeit.archiv_nachrechnen()
 
