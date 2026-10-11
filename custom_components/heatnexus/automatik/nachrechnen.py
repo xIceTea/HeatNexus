@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from typing import Any
 
-from .eingaben import raumwert
+from .eingaben import raumwert, wert_zur_stunde
 
 Reihe = list[tuple[datetime, float | None]]
 
@@ -34,19 +34,21 @@ class _Stufe:
     """Eine Reihe als Stufenfunktion; ein `None` in der Reihe beendet den vorigen Wert."""
 
     def __init__(self, reihe: Reihe) -> None:
+        self._reihe = reihe
         self._zeiten = [zeit for zeit, _ in reihe]
-        self._werte = [wert for _, wert in reihe]
 
-    def vor(self, zeit: datetime) -> float | None:
-        """Der Wert, der unmittelbar vor `zeit` galt; ein Wechsel genau um `zeit` zählt danach."""
-        i = bisect_left(self._zeiten, zeit)
-        return self._werte[i - 1] if i else None
+    def _ausschnitt(self, beginn: datetime, ende: datetime) -> Reihe:
+        """Der zu `beginn` geltende Eintrag und alle bis vor `ende`."""
+        i = bisect_right(self._zeiten, beginn)
+        return self._reihe[max(i - 1, 0) : bisect_left(self._zeiten, ende)]
+
+    def zur_stunde(self, beginn: datetime, ende: datetime) -> float | None:
+        """Der Wert zum Stundenbeginn, sonst der erste der Stunde; live gilt der erste gesehene."""
+        return wert_zur_stunde(self._ausschnitt(beginn, ende), beginn)
 
     def positiv(self, beginn: datetime, ende: datetime) -> bool:
         """Ob der Wert irgendwann von `beginn` bis vor `ende` über null lag."""
-        i = bisect_right(self._zeiten, beginn)
-        j = bisect_left(self._zeiten, ende)
-        return any(wert is not None and wert > 0 for wert in self._werte[max(i - 1, 0) : j])
+        return any(w is not None and w > 0 for _, w in self._ausschnitt(beginn, ende))
 
 
 @dataclass(frozen=True)
@@ -95,29 +97,34 @@ def _stunden(tag: date, zone: tzinfo | None) -> list[tuple[int, datetime, dateti
     ]
 
 
-def _abweichung(stufen: _Stufen, ende: datetime, soll: float | None) -> float | None:
-    """Raum minus Ziel wie im Live-Verlauf; fehlt ein Raumwert oder das Raumsoll, nichts."""
-    if soll is None or not stufen.raeume:
+def _abweichung(
+    stufen: _Stufen, beginn: datetime, ende: datetime, soll: float | None
+) -> float | None:
+    """Raum minus Ziel wie im Live-Verlauf; ohne Raumsoll oder mit zu wenigen Räumen nichts."""
+    if soll is None:
         return None
     werte: list[float | None] = []
     for ist_reihe, ziel in stufen.raeume:
-        if (ist := ist_reihe.vor(ende)) is None:
-            return None
-        eigen = ziel.vor(ende) if isinstance(ziel, _Stufe) else ziel
+        if (ist := ist_reihe.zur_stunde(beginn, ende)) is None:
+            continue
+        eigen = ziel.zur_stunde(beginn, ende) if isinstance(ziel, _Stufe) else ziel
         werte.append(ist - (soll if eigen is None else eigen))
+    # Wie `Laufzeit._lage`: mindestens die Hälfte der eingerichteten Räume liefert einen Wert.
+    if not werte or 2 * len(werte) < len(stufen.raeume):
+        return None
     ab = raumwert(werte, stufen.raum_art)
     return None if ab is None else round(ab, 2)
 
 
 def _felder(stufen: _Stufen, beginn: datetime, ende: datetime) -> dict[str, Any]:
-    """Die Felder einer Stunde aus den Werten zum Stundenende; eine Restzeit zählt jederzeit."""
-    soll = stufen.soll.vor(ende)
-    ba = stufen.ba.vor(ende)
+    """Die Felder einer Stunde aus den Werten zum Stundenbeginn; eine Restzeit zählt jederzeit."""
+    soll = stufen.soll.zur_stunde(beginn, ende)
+    ba = stufen.ba.zur_stunde(beginn, ende)
     felder = {
-        "at": stufen.at.vor(ende),
-        "ab": _abweichung(stufen, ende, soll),
+        "at": stufen.at.zur_stunde(beginn, ende),
+        "ab": _abweichung(stufen, beginn, ende, soll),
         "soll": soll,
-        "vl": stufen.vl.vor(ende),
+        "vl": stufen.vl.zur_stunde(beginn, ende),
         "ba": None if ba is None else int(ba),
         "vorgabe": stufen.restzeit.positiv(beginn, ende) or None,
     }

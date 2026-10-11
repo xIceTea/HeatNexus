@@ -58,8 +58,9 @@ def test_vollstaendiger_tag_ergibt_24_stunden(n):
     stunden = ergebnis[TAG.isoformat()]
     assert sorted(stunden, key=int) == [str(h) for h in range(24)]
     assert stunden["5"] == {"at": 3.0, "ab": -1.0, "soll": 18.0, "vl": 30.0, "ba": 2}
-    # Um 7:30 steigt der Raum auf 20,5; zum Ende der Stunde gilt dieser Wert.
-    assert stunden["7"] == {"at": 3.0, "ab": -0.5, "soll": 21.0, "vl": 45.0, "ba": 1}
+    # Um 7:30 steigt der Raum auf 20,5; die Stunde behält den Wert von ihrem Beginn.
+    assert stunden["7"] == {"at": 3.0, "ab": -4.0, "soll": 21.0, "vl": 45.0, "ba": 1}
+    assert stunden["8"]["ab"] == -0.5
     assert stunden["12"]["at"] == 5.0
     assert stunden["21"]["ab"] == pytest.approx(0.2)
     assert stunden["22"]["ba"] == 2
@@ -73,7 +74,7 @@ def test_stundenschluessel_und_betriebsart_wie_im_live_verlauf(n):
     assert "vorgabe" not in stunden["7"]
 
 
-def test_wechsel_genau_zum_stundenende_zaehlt_zur_naechsten_stunde(n):
+def test_wechsel_zur_vollen_stunde_gilt_fuer_diese_stunde(n):
     stunden = n.stunden_je_tag(reihen(n), [TAG])[TAG.isoformat()]
 
     assert stunden["5"]["soll"] == 18.0
@@ -85,8 +86,9 @@ def test_luecke_laesst_betroffene_stunden_ohne_feld(n):
 
     stunden = n.stunden_je_tag(reihen(n, at=at), [TAG])[TAG.isoformat()]
 
-    assert stunden["9"]["at"] == 3.0
-    assert all("at" not in stunden[str(h)] for h in (10, 11, 12))
+    assert stunden["10"]["at"] == 3.0
+    assert all("at" not in stunden[str(h)] for h in (11, 12))
+    # Gilt zum Stundenbeginn nichts, zählt der erste Wert innerhalb der Stunde.
     assert stunden["13"]["at"] == 6.0
 
 
@@ -97,6 +99,15 @@ def test_vor_dem_ersten_wert_fehlt_das_feld(n):
 
     assert "vl" not in stunden["5"]
     assert stunden["6"]["vl"] == 45.0
+
+
+def test_ohne_wert_zum_stundenbeginn_zaehlt_der_erste_der_stunde(n):
+    vl = [(zeit(6, 20), 45.0), (zeit(6, 40), 50.0)]
+
+    stunden = n.stunden_je_tag(reihen(n, vl=vl), [TAG])[TAG.isoformat()]
+
+    assert stunden["6"]["vl"] == 45.0
+    assert stunden["7"]["vl"] == 50.0
 
 
 def test_stunde_ganz_ohne_werte_entfaellt(n):
@@ -176,16 +187,28 @@ def test_kaeltester_raum_bei_art_minimum(n):
     assert stunden["12"]["ab"] == pytest.approx(-0.5)
 
 
-def test_fehlender_raumwert_laesst_abweichung_weg(n):
+def test_haelfte_der_raeume_genuegt_fuer_die_abweichung(n):
     raeume = [
         ([(vortag(), 20.0), (zeit(14, 10), None), (zeit(16), 20.0)], None),
-        ([(vortag(), 21.0)], None),
+        ([(vortag(), 21.5)], None),
     ]
 
     stunden = n.stunden_je_tag(reihen(n, raeume=raeume), [TAG])[TAG.isoformat()]
 
-    assert "ab" in stunden["13"]
-    assert "ab" not in stunden["14"] and "ab" not in stunden["15"]
+    assert stunden["14"]["ab"] == pytest.approx(-0.25)
+    # Ohne den ersten Raum zählt der verbliebene allein.
+    assert stunden["15"]["ab"] == pytest.approx(0.5)
+    assert stunden["16"]["ab"] == pytest.approx(-0.25)
+
+
+def test_weniger_als_die_haelfte_der_raeume_laesst_abweichung_weg(n):
+    luecke = [(vortag(), 20.0), (zeit(14, 10), None), (zeit(16), 20.0)]
+    raeume = [(luecke, None), (list(luecke), None), ([(vortag(), 21.5)], None)]
+
+    stunden = n.stunden_je_tag(reihen(n, raeume=raeume), [TAG])[TAG.isoformat()]
+
+    assert "ab" in stunden["14"]
+    assert "ab" not in stunden["15"]
     assert "ab" in stunden["16"]
 
 
