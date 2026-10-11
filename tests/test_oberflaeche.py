@@ -721,9 +721,31 @@ def test_reiter_lassen_sich_umordnen_und_ausblenden(durchlauf):
 
 def test_die_werte_der_automatik_oeffnen_ihre_entitaet(durchlauf):
     """Zustand, Eingriffe, nächste Prüfung und die Kachelwerte öffnen den Mehr-Info-Dialog."""
+    # Die Außentemperatur öffnet ihren Fühler, die gedämpfte den Sensor der Automatik.
     assert sorted(durchlauf["automatik"]["klickbar"]) == sorted(
-        ["automatik-marke", "klickbar", "klickbar", "neben", "zahl", "zahl"]
+        ["automatik-marke", "klickbar", "klickbar", "neben", "zahl", "zahl", "zahl"]
     )
+    haus = durchlauf["automatikHaus"]
+    assert haus["aktiv"]["klickbar"] == ["werte"]
+    assert haus["lernt"]["klickbar"] == []
+
+
+def test_nach_der_einrichtung_zeigt_die_seite_den_neuen_stand(durchlauf):
+    assert durchlauf["automatik"]["nachDemDialog"] == [0, True]
+
+
+def test_ja_nein_felder_der_einstellungen_sind_schalter(durchlauf):
+    automatik = durchlauf["automatik"]
+    assert automatik["jaNein"] == [
+        ["Sonnentag absenken", "false"],
+        ["Sehr sonnig: nur Warmwasser", "false"],
+        ["Prognose an Standort anpassen", "false"],
+        ["Empfehlung in der Seitenleiste melden", "false"],
+    ]
+    # Ein Klick schaltet um und gilt als Änderung; zurückgeschaltet ist Speichern wieder grau.
+    assert automatik["jaNeinKlick"] == ["false", "true", "true", False]
+    assert automatik["jaNeinZurueck"] == ["false", True]
+    assert automatik["textVorn"] is True
 
 
 def test_prognose_anpassen_zeigt_seine_wirkung(durchlauf):
@@ -811,17 +833,17 @@ def test_die_kachel_haus_folgt_dem_stand_des_modells(durchlauf):
 
 
 def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
-    """Die Kachel nennt den Fortschritt je Art, die Kachel daneben Hinweise und fertige Arten ohne Hinweis."""
+    """Ein Rahmen über zwei Spalten: je Art Fortschritt links, Hinweis, Tendenz oder Passt rechts."""
     hinweise = durchlauf["automatikHinweise"]
     assert hinweise["ohneAngabe"]["kachel"] is False
-    # Ausgeschaltet: Die Kachel bietet den Schalter an, Ergebnisse gibt es keine.
+    # Ausgeschaltet: Die Kachel bietet den Schalter an, Zeilen gibt es keine.
     aus = hinweise["aus"]
-    assert (aus["titel"], aus["zahl"], aus["schalter"]) == (
+    assert (aus["titel"], aus["zahl"], aus["schalter"], aus["zeilen"]) == (
         "Optimierung",
         "aus",
         ["Optimierungshinweise anzeigen"],
+        [],
     )
-    assert aus["ergebnis"] is None
     assert [(n["heizkreis"], n["hinweise"]) for n in hinweise["ausGesendet"]] == [("SN1-2-0", True)]
     # Unten in „Erweitert“: ein Schalter, der den Zustand umkehrt.
     assert hinweise["erweitertSchalter"] == 1
@@ -831,103 +853,121 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     assert hinweise["meldenMitHinweisen"] == [False]
     assert [n["hinweise_melden"] for n in hinweise["meldenGesendet"]] == [True]
     sammelt = hinweise["sammelt"]
-    assert (sammelt["titel"], sammelt["zahl"], sammelt["neben"]) == (
+    assert (sammelt["titel"], sammelt["zahl"], sammelt["neben"], sammelt["breit"]) == (
         "Optimierung",
         "2/4",
         "ausgewertet",
+        True,
     )
-    assert sammelt["fuss"] == [
-        "Heizkurve: Übergang 7/7 · Frost 2/7",
-        "Sollwert 7/7",
-        "Morgen 5/7",
-        "14 Tage aufgezeichnet · 2 nicht auswertbar",
-    ]
-    assert hinweise["ohneTage"]["fuss"][-1] == "Noch keine Tage aufgezeichnet"
-    assert hinweise["ohneEingriffe"]["fuss"][-1] == "Morgen 0/7"
     assert sammelt["fragezeichen"] == 1
-    assert sammelt["bloecke"] == []
-    ergebnis = sammelt["ergebnis"]
-    assert (ergebnis["titel"], ergebnis["zahl"], ergebnis["neben"]) == (
-        "Ergebnisse der Optimierung",
-        "0",
-        "Hinweise",
-    )
-    assert ergebnis["bloecke"] == [
+    assert sammelt["fuss"] == ["14 Tage aufgezeichnet · 2 nicht auswertbar"]
+    assert sammelt["zeilen"] == [
+        ["Heizkurve in der Übergangszeit", "7 Tage", "Keine Änderung nötig"],
+        ["Heizkurve bei Frost", "2 von 7 Tagen", "Sammelt noch Tage"],
+        ["Raumsollwert", "7 Tage", "Keine Änderung nötig"],
         [
             "Aufheizen am Morgen",
+            "5 von 7 Tagen",
             "Eher zu spät warm",
-            "Vorläufig · Ziel nach 75 min · 5 von 7 Tagen",
+            "Vorläufig · Ziel nach 75 min",
         ],
-        ["Heizkurve in der Übergangszeit", "Keine Änderung nötig", "7 Tage"],
-        ["Raumsollwert", "Keine Änderung nötig", "7 Tage"],
     ]
-    # Eine Zeile mit bekannter Entität öffnet deren Verlauf.
-    assert ergebnis["klickbar"] == ["Raumsollwert"]
-    # Tendenzen allein lassen die Kachel erscheinen; eine unbekannte Art fehlt.
-    tendenz = hinweise["tendenz"]["ergebnis"]
-    assert (tendenz["zahl"], tendenz["neben"]) == ("0", "Hinweise")
-    assert tendenz["bloecke"] == [
+    # Ein Ergebnis mit bekannter Entität öffnet deren Verlauf.
+    assert sammelt["klickbar"] == ["Raumsollwert"]
+    assert hinweise["ohneTage"]["fuss"] == ["Noch keine Tage aufgezeichnet"]
+    assert hinweise["ohneEingriffe"]["fuss"] == []
+    # Eine Tendenz nennt den zuletzt gelesenen Parameter; eine unbekannte Art fehlt.
+    assert hinweise["tendenz"]["zeilen"] == [
         [
             "Heizkurve in der Übergangszeit",
+            "4 von 7 Tagen",
             "Eher zu kühl",
-            "Vorläufig · −0,7 K · 4 von 7 Tagen",
+            "Vorläufig · −0,7 K",
             "Fußpunkt 45 °C seit 20.09.",
         ],
-        ["Raumsollwert", "Unauffällig", "Vorläufig · Sollwert 21,0 °C · 5 von 7 Tagen"],
+        ["Heizkurve bei Frost", "0 von 7 Tagen", "Sammelt noch Tage"],
+        ["Raumsollwert", "5 von 7 Tagen", "Unauffällig", "Vorläufig · Sollwert 21,0 °C"],
+        ["Aufheizen am Morgen", "2 von 7 Tagen", "Sammelt noch Tage"],
     ]
-    assert tendenz["klickbar"] == ["Heizkurve in der Übergangszeit"]
-    assert hinweise["ohneTage"]["ergebnis"] is None
+    assert hinweise["tendenz"]["klickbar"] == ["Heizkurve in der Übergangszeit"]
+    # Ein Hinweis zur ganzen Kurve steht bei der ersten Kurvenzeile; ohne Parameter öffnet er nichts.
     bereit = hinweise["bereit"]
-    assert (bereit["zahl"], bereit["neben"], len(bereit["fuss"])) == ("4/4", "ausgewertet", 3)
-    assert bereit["bloecke"] == []
-    assert (bereit["ergebnis"]["zahl"], bereit["ergebnis"]["neben"]) == ("7", "Hinweise")
-    # „Anpassung durch die Steuerung“ hat keinen eigenen Parameter und öffnet nichts.
-    assert bereit["ergebnis"]["klickbar"] == [
-        "Heizkurve bei Frost",
-        "Heizkurve in der Übergangszeit",
-        "Heizkurve",
+    assert (bereit["zahl"], bereit["neben"], bereit["fuss"]) == ("4/4", "ausgewertet", [])
+    assert bereit["zeilen"] == [
+        [
+            "Heizkurve in der Übergangszeit",
+            "9 Tage",
+            "Keine Empfehlung zur Kurve",
+            "Anpassung durch die Steuerung aktiv",
+            "Fußpunkt 45 → 43 °C",
+            "+0,8 K · 9 Tage",
+            "Behaglichkeit 0 → −1 K",
+            "+0,9 K · 20 Tage seit 14.11.",
+        ],
+        [
+            "Heizkurve bei Frost",
+            "18 Tage",
+            "Vorlauf bei Auslegung 80 → 86 °C",
+            "−1,4 K · 18 Tage seit 14.11.",
+        ],
+        [
+            "Raumsollwert",
+            "21 Tage",
+            "Heizkurve anpassen statt Sollwert",
+            "Sollwert 23,0 °C · 21 Tage",
+        ],
+        [
+            "Aufheizen am Morgen",
+            "12 Tage",
+            "Vorhaltezeit 60 → 135 min",
+            "Ziel nach 95 min · 12 Tage",
+            "Programmstart 90 min früher",
+            "Ziel nach 95 min · 8 Tage",
+        ],
     ]
-    assert bereit["ergebnis"]["bloecke"] == [
-        ["Heizkurve", "Keine Empfehlung zur Kurve", "Anpassung durch die Steuerung aktiv"],
-        ["Heizkurve bei Frost", "Vorlauf bei Auslegung 80 → 86 °C", "−1,4 K · 18 Tage seit 14.11."],
-        ["Heizkurve in der Übergangszeit", "Fußpunkt 45 → 43 °C", "+0,8 K · 9 Tage"],
-        ["Heizkurve", "Behaglichkeit 0 → −1 K", "+0,9 K · 20 Tage seit 14.11."],
-        ["Raumsollwert", "Heizkurve anpassen statt Sollwert", "Sollwert 23,0 °C · 21 Tage"],
-        ["Morgens zu spät warm", "Vorhaltezeit 60 → 135 min", "Ziel nach 95 min · 12 Tage"],
-        ["Morgens zu spät warm", "Programmstart 90 min früher", "Ziel nach 95 min · 8 Tage"],
+    assert bereit["klickbar"] == [
+        "Heizkurve in der Übergangszeit",
+        "Heizkurve in der Übergangszeit",
+        "Heizkurve bei Frost",
     ]
     # Ohne Kurvenpunkte: eine Zeile „Heizkurve“, gezählt wird nur, was der Server unter `arten` nennt.
     kurve = hinweise["kurve"]
     assert (kurve["zahl"], kurve["neben"]) == ("2/3", "ausgewertet")
-    assert kurve["fuss"] == ["Heizkurve 9/7", "Sollwert 3/7", "Morgen 8/7"]
-    assert (kurve["ergebnis"]["zahl"], kurve["ergebnis"]["neben"]) == ("5", "Hinweise")
-    assert kurve["ergebnis"]["bloecke"] == [
-        ["Heizkurve", "Behaglichkeit 0 → 1 K", "−0,8 K · 9 Tage"],
-        ["Heizkurve", "Heizkurve anheben", "−0,8 K · 9 Tage"],
-        ["Heizkurve", "Heizkurve absenken", "+0,6 K · 9 Tage"],
-        ["Morgens schon warm", "Vorhaltezeit 90 min kürzer möglich", "Ziel nach 0 min · 8 Tage"],
+    assert kurve["zeilen"] == [
         [
-            "Morgens schon warm",
+            "Heizkurve",
+            "9 Tage",
+            "Behaglichkeit 0 → 1 K",
+            "−0,8 K · 9 Tage",
+            "Heizkurve anheben",
+            "−0,8 K · 9 Tage",
+            "Heizkurve absenken",
+            "+0,6 K · 9 Tage",
+        ],
+        ["Raumsollwert", "3 von 7 Tagen", "Unauffällig", "Vorläufig · Sollwert 21,0 °C"],
+        [
+            "Aufheizen am Morgen",
+            "8 Tage",
+            "Vorhaltezeit 90 min kürzer möglich",
+            "Ziel nach 0 min · 8 Tage",
             "Absenkung vor Programmbeginn wirkt kaum",
             "Ziel nach 0 min · 8 Tage",
         ],
-        ["Raumsollwert", "Unauffällig", "Vorläufig · Sollwert 21,0 °C · 3 von 7 Tagen"],
     ]
     # Ein Hinweis nur mit Richtung hat keinen gelesenen Parameter und öffnet nichts.
-    assert kurve["ergebnis"]["klickbar"] == ["Heizkurve", "Morgens schon warm"]
+    assert kurve["klickbar"] == ["Heizkurve", "Aufheizen am Morgen"]
     tendenz_kurve = hinweise["kurveTendenz"]
-    assert (tendenz_kurve["zahl"], tendenz_kurve["fuss"]) == (
-        "0/3",
-        ["Heizkurve 5/7", "Sollwert 0/7", "Morgen 4/7"],
-    )
-    assert tendenz_kurve["ergebnis"]["bloecke"] == [
+    assert tendenz_kurve["zahl"] == "0/3"
+    assert tendenz_kurve["zeilen"] == [
         [
             "Heizkurve",
+            "5 von 7 Tagen",
             "Eher zu warm",
-            "Vorläufig · +0,6 K · 5 von 7 Tagen",
+            "Vorläufig · +0,6 K",
             "Behaglichkeit 1 K seit 20.09.",
         ],
-        ["Aufheizen am Morgen", "Eher früh warm", "Vorläufig · Ziel nach 0 min · 4 von 7 Tagen"],
+        ["Raumsollwert", "0 von 7 Tagen", "Sammelt noch Tage"],
+        ["Aufheizen am Morgen", "4 von 7 Tagen", "Eher früh warm", "Vorläufig · Ziel nach 0 min"],
     ]
 
 
@@ -935,38 +975,37 @@ def test_die_optimierung_folgt_den_arten_und_den_neuen_hinweisen(durchlauf):
     """Anschlag und Kurvenform zählen als Hinweis; Zeilen und Zähler folgen genau `arten`."""
     hinweise = durchlauf["automatikHinweise"]
     anschlag = hinweise["anschlag"]
-    assert (anschlag["zahl"], anschlag["fuss"]) == ("2/2", ["Heizkurve 10/7", "Sollwert 8/7"])
-    assert anschlag["ergebnis"]["zahl"] == "1"
-    assert anschlag["ergebnis"]["bloecke"] == [
-        ["Heizkurve", "Behaglichkeit am Anschlag", "−1,2 K · 10 Tage"],
-        ["Raumsollwert", "Keine Änderung nötig", "8 Tage"],
+    assert anschlag["zahl"] == "2/2"
+    assert anschlag["zeilen"] == [
+        ["Heizkurve", "10 Tage", "Behaglichkeit am Anschlag", "−1,2 K · 10 Tage"],
+        ["Raumsollwert", "8 Tage", "Keine Änderung nötig"],
     ]
-    assert anschlag["ergebnis"]["klickbar"] == ["Heizkurve"]
+    assert anschlag["klickbar"] == ["Heizkurve"]
     kurvenform = hinweise["kurvenform"]
-    assert (kurvenform["zahl"], kurvenform["ergebnis"]["zahl"]) == ("2/3", "1")
-    assert kurvenform["ergebnis"]["bloecke"] == [
-        ["Heizkurve", "Kurvenform prüfen", "Übergang −0,9 K · Frost +1,1 K · 12 Tage seit 14.11."],
-        ["Aufheizen am Morgen", "Keine Änderung nötig", "9 Tage"],
+    assert kurvenform["zahl"] == "2/3"
+    assert kurvenform["zeilen"] == [
+        [
+            "Heizkurve",
+            "12 Tage",
+            "Kurvenform prüfen",
+            "Übergang −0,9 K · Frost +1,1 K · 12 Tage seit 14.11.",
+        ],
+        ["Raumsollwert", "3 von 7 Tagen", "Sammelt noch Tage"],
+        ["Aufheizen am Morgen", "9 Tage", "Keine Änderung nötig"],
     ]
-    assert kurvenform["ergebnis"]["klickbar"] == ["Heizkurve"]
-    # Fußboden: keine Morgenzeile, keine Morgentendenz, kein „Keine Änderung nötig“ zum Morgen.
+    assert kurvenform["klickbar"] == ["Heizkurve"]
+    # Fußboden: keine Morgenzeile, keine Morgentendenz.
     ohne_morgen = hinweise["ohneMorgen"]
-    assert (ohne_morgen["zahl"], ohne_morgen["fuss"]) == (
-        "2/3",
-        ["Heizkurve: Übergang 7/7 · Frost 3/7", "Sollwert 7/7"],
-    )
-    assert ohne_morgen["ergebnis"]["bloecke"] == [
-        ["Heizkurve bei Frost", "Eher zu warm", "Vorläufig · +0,8 K · 4 von 7 Tagen"],
-        ["Heizkurve in der Übergangszeit", "Keine Änderung nötig", "7 Tage"],
-        ["Raumsollwert", "Keine Änderung nötig", "7 Tage"],
+    assert ohne_morgen["zahl"] == "2/3"
+    assert ohne_morgen["zeilen"] == [
+        ["Heizkurve in der Übergangszeit", "7 Tage", "Keine Änderung nötig"],
+        ["Heizkurve bei Frost", "3 von 7 Tagen", "Eher zu warm", "Vorläufig · +0,8 K"],
+        ["Raumsollwert", "7 Tage", "Keine Änderung nötig"],
     ]
     # Ohne Heizkurve: nur der Morgen, Kurven- und Sollwerttendenz fehlen.
     ohne_kurve = hinweise["ohneKurve"]
-    assert (ohne_kurve["zahl"], ohne_kurve["fuss"]) == ("1/1", ["Morgen 9/7"])
-    assert ohne_kurve["ergebnis"]["zahl"] == "0"
-    assert ohne_kurve["ergebnis"]["bloecke"] == [
-        ["Aufheizen am Morgen", "Keine Änderung nötig", "9 Tage"]
-    ]
+    assert ohne_kurve["zahl"] == "1/1"
+    assert ohne_kurve["zeilen"] == [["Aufheizen am Morgen", "9 Tage", "Keine Änderung nötig"]]
 
 
 def test_neu_lernen_steht_in_den_einstellungen_und_fragt_nach(durchlauf):

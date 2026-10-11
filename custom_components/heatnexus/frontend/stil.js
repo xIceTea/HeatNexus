@@ -1173,22 +1173,36 @@ export const STIL = `
   .automatik-gruppentitel .fragezeichen {
     width: 18px; height: 18px; font-size: 11px; margin-left: 6px; vertical-align: middle;
   }
+  /* Schalter: Text vorn, dahinter eine eckige Spur wie die Segmenttasten; eingeschaltet mit Haken. */
   .automatik-schalter {
-    display: inline-flex; align-items: center; gap: 10px; padding: 0; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 12px; padding: 0; cursor: pointer;
     background: none; border: none; color: inherit; font: inherit; font-size: 14px; font-weight: 600;
   }
   .automatik-schalter i {
-    width: 40px; height: 22px; border-radius: 999px; background: var(--hn-linie);
-    position: relative; transition: background 0.2s;
+    flex: none; width: 42px; height: 24px; border-radius: 8px; position: relative;
+    background: var(--hn-flaeche); border: 1px solid var(--hn-linie);
+    transition: background 0.2s, border-color 0.2s;
   }
   .automatik-schalter i::after {
-    content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
-    border-radius: 50%; background: var(--hn-text); transition: transform 0.2s;
+    content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 5px;
+    background: var(--hn-gedaempft); transition: transform 0.2s, background 0.2s;
   }
-  .automatik-schalter.an i { background: var(--hn-akzent); }
-  .automatik-schalter.an i::after { transform: translateX(18px); background: #fff; }
-  .automatik-schalter:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 3px; border-radius: 6px; }
-  .automatik-optimierung { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+  /* Der Haken sitzt im Knopf der eingeschalteten Seite. */
+  .automatik-schalter i::before {
+    content: ""; position: absolute; z-index: 1; top: 6px; left: 27px; width: 4px; height: 8px;
+    border: solid var(--hn-akzent-text); border-width: 0 2px 2px 0; transform: rotate(45deg);
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .automatik-schalter.an i {
+    background: color-mix(in srgb, var(--hn-akzent) 20%, transparent); border-color: var(--hn-akzent);
+  }
+  .automatik-schalter.an i::after { transform: translateX(18px); background: var(--hn-akzent); }
+  .automatik-schalter.an i::before { opacity: 1; }
+  .automatik-schalter:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 3px; border-radius: 8px; }
+  @media (prefers-reduced-motion: reduce) {
+    .automatik-schalter i, .automatik-schalter i::before, .automatik-schalter i::after { transition: none; }
+  }
+  .automatik-optimierung { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 16px 20px 0; }
   .automatik-segment {
     display: inline-flex; padding: 3px; border-radius: 10px;
     background: var(--hn-flaeche); border: 1px solid var(--hn-linie);
@@ -1255,7 +1269,26 @@ export const STIL = `
     padding: 16px 18px; border-radius: 16px; min-width: 0;
     background: var(--hn-karte); border: 1px solid var(--hn-flaeche);
   }
-  .automatik-wert .titel { font-size: 13px; color: var(--hn-gedaempft); margin-bottom: 8px; }
+  .automatik-wert .titel {
+    display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--hn-gedaempft); margin-bottom: 8px;
+  }
+  .automatik-wert .titel .fragezeichen { width: 18px; height: 18px; font-size: 11px; }
+  /* Die Optimierung steht in einem Rahmen über zwei Spalten: je Art Fortschritt links, Ergebnis rechts. */
+  .automatik-wert.breit { grid-column: span 2; }
+  .automatik-wert .optimierung-arten { margin-top: 12px; display: flex; flex-direction: column; }
+  .automatik-wert .optimierung-art {
+    display: grid; grid-template-columns: minmax(150px, 2fr) minmax(0, 5fr); gap: 16px; align-items: start;
+    padding: 12px 0; border-top: 1px solid var(--hn-linie);
+  }
+  .automatik-wert .optimierung-art:first-child { border-top: none; padding-top: 4px; }
+  .automatik-wert .art-kopf .name { font-size: 13px; font-weight: 600; }
+  .automatik-wert .art-kopf .stand { font-size: 11px; color: var(--hn-gedaempft); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .automatik-wert .art-kopf .balken { height: 4px; border-radius: 2px; background: var(--hn-flaeche); margin-top: 8px; overflow: hidden; }
+  .automatik-wert .art-kopf .balken i { display: block; height: 100%; border-radius: 2px; background: var(--hn-akzent); }
+  .automatik-wert .art-kopf .balken.fertig i { background: var(--hn-gut); }
+  .automatik-wert .optimierung-art .vorschlaege { margin-top: 0; gap: 8px; }
+  .automatik-wert .optimierung-art .vorschlag { border-top: none; padding: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+  .automatik-wert .optimierung-art .vorschlag + .vorschlag { padding-top: 8px; border-top: 1px dashed var(--hn-linie); }
   .automatik-wert .werte { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
   .automatik-wert .zahl { font-size: 30px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .automatik-wert.sonne .zahl { color: var(--hn-sonne); }
@@ -1387,9 +1420,10 @@ export const STIL = `
     font-size: 12px; color: var(--hn-gedaempft);
   }
   .automatik-schalter.klein { font-size: 12px; font-weight: 500; gap: 8px; }
-  .automatik-schalter.klein i { width: 30px; height: 18px; }
-  .automatik-schalter.klein i::after { width: 12px; height: 12px; }
-  .automatik-schalter.klein.an i::after { transform: translateX(12px); }
+  .automatik-schalter.klein i { width: 32px; height: 18px; border-radius: 6px; }
+  .automatik-schalter.klein i::after { top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 4px; }
+  .automatik-schalter.klein i::before { top: 4px; left: 21px; width: 3px; height: 6px; }
+  .automatik-schalter.klein.an i::after { transform: translateX(14px); }
   .automatik-korrekturmarke {
     padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap;
     background: var(--hn-flaeche); color: var(--hn-gedaempft); opacity: 0.75;
@@ -1596,6 +1630,8 @@ export const STIL = `
     }
     .automatik-stunde { scroll-snap-align: start; }
     .automatik-werte { grid-template-columns: minmax(0, 1fr); }
+    .automatik-wert.breit { grid-column: auto; }
+    .automatik-wert .optimierung-art { grid-template-columns: minmax(0, 1fr); gap: 8px; }
     .automatik-feld.breit select { min-width: 0; max-width: 55vw; }
     .automatik-gruppe + .automatik-gruppe, .automatik-schalter + .automatik-gruppe { padding-left: 0; border-left: none; }
     /* Das Segment nimmt die ganze Zeile unter dem Titel ein; lange Tasten brechen um, statt überzustehen. */

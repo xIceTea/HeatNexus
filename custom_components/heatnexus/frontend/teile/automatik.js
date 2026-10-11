@@ -104,6 +104,18 @@ export function kelvin(wert) {
   return `${v > 0 ? "+" : v < 0 ? "−" : "±"}${zahl(Math.abs(v))} K`;
 }
 
+/** Ein Schalter ohne Text: Spur mit Knopf, eingeschaltet mit Haken. */
+export function schalterKnopf(an, darf, klein = false) {
+  const schalter = document.createElement("button");
+  schalter.type = "button";
+  schalter.className = `automatik-schalter${klein ? " klein" : ""}${an ? " an" : ""}`;
+  schalter.setAttribute("role", "switch");
+  schalter.setAttribute("aria-checked", String(!!an));
+  schalter.disabled = !darf;
+  schalter.appendChild(document.createElement("i"));
+  return schalter;
+}
+
 /** Ein Raum mit Ist, eigenem Ziel und Wärmeanforderung. */
 export function raumzeile(raum, t = (text) => text) {
   let text = `${raum.name} ${zahl(raum.wert)} °C`;
@@ -255,18 +267,12 @@ export const AutomatikMixin = (Basis) =>
       );
     }
 
-    /** Ein Schalter mit Text; `klein` für die Leiste im Tagesverlauf. */
+    /** Ein Schalter, Text vorn und Schalter dahinter; `klein` für die Leiste im Tagesverlauf. */
     _automatikSchalter(text, an, darf, klick, klein = false) {
-      const schalter = document.createElement("button");
-      schalter.type = "button";
-      schalter.className = `automatik-schalter${klein ? " klein" : ""}${an ? " an" : ""}`;
-      schalter.setAttribute("role", "switch");
-      schalter.setAttribute("aria-checked", String(!!an));
-      schalter.disabled = !darf;
-      const knopf = document.createElement("i");
+      const schalter = schalterKnopf(an, darf, klein);
       const beschriftung = document.createElement("span");
       beschriftung.textContent = this._t(text);
-      schalter.append(knopf, beschriftung);
+      schalter.prepend(beschriftung);
       schalter.addEventListener("click", klick);
       return schalter;
     }

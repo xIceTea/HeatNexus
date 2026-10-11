@@ -746,6 +746,8 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
           abweichung: "sensor.heizkreis_automatik_abweichung",
           eingriffe: "sensor.heizkreis_automatik_eingriffe",
           naechste_entscheidung: "sensor.heizkreis_automatik_naechste_entscheidung",
+          aussen: "sensor.heizkreis_aussentemperatur",
+          auskuehlzeit: "sensor.heizkreis_automatik_auskuehlzeit",
         },
       },
       { heizkreis: "SN1-3-0", name: "Heizkreis 2", anlage_id: anlageId, eingerichtet: false },
@@ -798,6 +800,15 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       .filter((k) => k.classList.contains("klein"))
       .map((k) => k.getAttribute("aria-checked")),
     speichernGrau: (wurzel.querySelectorAll(".automatik-knopf").find((k) => k.classList.contains("speichern")) || {}).disabled,
+    // Ja/Nein-Felder der Einstellungen sind Schalter; jeder Schalter mit Text nennt ihn vor der Spur.
+    jaNein: wurzel
+      .querySelectorAll(".automatik-feld")
+      .flatMap((f) => f.querySelectorAll(".automatik-schalter"))
+      .map((k) => [k.getAttribute("aria-label"), k.getAttribute("aria-checked")]),
+    textVorn: wurzel
+      .querySelectorAll(".automatik-schalter")
+      .filter((k) => String(k.textContent || "").trim())
+      .every((k) => k.children[0].tagName === "SPAN" && k.children[k.children.length - 1].tagName === "I"),
     ausrichtung: wurzel
       .querySelectorAll(".automatik-segment")
       .filter((segment) => segment.classList.contains("ausrichtung"))
@@ -808,6 +819,20 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       .querySelector(".kartenkopf")
       .children.map((k) => (k.tagName === "H2" ? "h2" : String(k.className).split(" ")[0])),
   };
+
+  // Ein Klick auf einen Ja/Nein-Schalter ist eine Änderung wie jede Eingabe: Speichern wird aktiv.
+  {
+    const speichern = wurzel.querySelectorAll(".automatik-knopf").find((k) => k.classList.contains("speichern"));
+    const schalter = wurzel
+      .querySelectorAll(".automatik-feld")
+      .flatMap((f) => f.querySelectorAll(".automatik-schalter"))
+      .find((k) => k.getAttribute("aria-label") === "Sonnentag absenken");
+    const vorher = schalter.value;
+    schalter.ausloesen("click");
+    bilanz.automatik.jaNeinKlick = [vorher, schalter.value, schalter.getAttribute("aria-checked"), speichern.disabled];
+    schalter.ausloesen("click");
+    bilanz.automatik.jaNeinZurueck = [schalter.value, speichern.disabled];
+  }
 
   // Speichern wird erst mit einer Abweichung vom gespeicherten Wert aktiv, und zurück wieder grau.
   {
@@ -940,6 +965,53 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   if (kreuz) kreuz.ausloesen("click");
   bilanz.automatik.kreuzSchliesst = wurzel.querySelectorAll(".schleier").length === 0;
 
+  // Nach „Übernehmen“ zeigt die Seite den neuen Stand, obwohl er geladen wurde, als der Dialog noch offen war.
+  {
+    const [kreisVorher] = flaeche._automatik.heizkreise;
+    const bearbeitet = { ...kreisVorher, eingerichtet: true, konfig: { ...kreisVorher.konfig, raeume: ["sensor.raum"], wetter: "weather.test" } };
+    const raum = "sensor.raum";
+    const neuerStand = { ...flaeche._automatik, heizkreise: [{ ...bearbeitet, name: "Nach dem Bearbeiten" }, ...flaeche._automatik.heizkreise.slice(1)] };
+    const vorherStand = flaeche._automatik;
+    const vorherRuf = hass.callWS;
+    hass.callWS = async (nachricht) => {
+      if (nachricht.type === "heatnexus/automatik/kandidaten") {
+        return {
+          temperatur: [{ entity_id: raum, name: "Raum", bereich: "" }],
+          wetter: [{ entity_id: bearbeitet.konfig.wetter, name: "Wetter", bereich: "" }],
+          pv: [],
+          pv_ist: [],
+          personen: [],
+          fenster: [],
+          vorrang: [],
+        };
+      }
+      return nachricht.type === "heatnexus/automatik" ? neuerStand : {};
+    };
+    flaeche._reiter = "automatik";
+    // Die Attrappe kennt kein `:checked`; die Nachricht steht deshalb fest.
+    flaeche._automatikDialogNachricht = (k) => ({ type: "heatnexus/automatik/einstellen", heizkreis: k.heizkreis, raeume: [raum], wetter: "weather.test" });
+    await flaeche._automatikDialog(bearbeitet);
+    const uebernehmen = wurzel
+      .querySelector(".automatik-dialog")
+      .querySelectorAll("button")
+      .find((t) => String(t.textContent || "") === "Übernehmen");
+    uebernehmen.ausloesen("click");
+    for (let runde = 0; runde < 20; runde += 1) await Promise.resolve();
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+    hass.callWS = vorherRuf;
+    bilanz.automatik.nachDemDialog = [
+      wurzel.querySelectorAll(".schleier").length,
+      wurzel.querySelectorAll("h2").some((h) => String(h.textContent || "").includes("Nach dem Bearbeiten")),
+    ];
+    delete flaeche._automatikDialogNachricht;
+    flaeche._automatik = vorherStand;
+    flaeche._gebaut = false;
+    flaeche._zeichnen();
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+  }
+
   // Mit eigenen Zielen nennt die Raum-Kachel jeden Raum mit Ist und Ziel.
   const [mitZielen] = flaeche._automatik.heizkreise;
   const vorherKennwerte = mitZielen.kennwerte;
@@ -1011,6 +1083,8 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       neben: text(kachel && kachel.querySelector(".neben")),
       fuss: kachel ? kachel.querySelectorAll(".fuss").map(text) : [],
       tasten: kachel ? kachel.querySelectorAll(".automatik-knopf").map(text) : [],
+      // Zahl und Einordnung öffnen den Sensor der Auskühlzeit.
+      klickbar: kachel ? kachel.querySelectorAll(".klickbar").map((k) => String(k.className).split(" ")[0]) : [],
       kurve: wurzel.querySelectorAll(".al-vorhersage").length,
       legende: wurzel.querySelectorAll(".automatik-legende").flatMap((l) => l.children.map(text)),
     };
@@ -1071,12 +1145,19 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     flaeche._zeichnen();
     clearInterval(flaeche._automatikUhr);
     flaeche._automatikUhr = null;
-    const kacheln = wurzel.querySelectorAll(".automatik-wert");
-    const kachel = kacheln.find((k) => k.classList.contains("hinweise"));
-    const ergebnis = kacheln.find((k) => k.classList.contains("hinweise-ergebnis"));
-    return { ...lesen(kachel), ergebnis: ergebnis ? lesen(ergebnis) : null };
+    const kachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("hinweise"));
+    return lesen(kachel);
   };
+  // Je Zeile: Art, Tage, dann je Ergebnis Marke und Angaben; „Sammelt noch Tage“ steht allein.
+  const zeile = (z) => [
+    text(z.querySelector(".name")),
+    text(z.querySelector(".stand")),
+    ...z
+      .querySelector(".vorschlaege")
+      .children.flatMap((k) => (k.classList.contains("vorschlag") ? [text(k.querySelector(".empfehlung")), ...k.querySelectorAll(".angabe").map(text)] : [text(k)])),
+  ];
   const lesen = (kachel) => {
+    const zeilen = kachel ? kachel.querySelectorAll(".optimierung-art") : [];
     return {
       kachel: Boolean(kachel),
       titel: kachel ? text(kachel.querySelector(".titel").firstChild) || text(kachel.querySelector(".titel")) : "",
@@ -1085,12 +1166,14 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       fuss: kachel ? kachel.querySelectorAll(".fuss").map(text) : [],
       fragezeichen: kachel ? kachel.querySelectorAll(".fragezeichen").length : 0,
       schalter: kachel ? kachel.querySelectorAll(".automatik-schalter").map(text) : [],
-      klickbar: kachel ? kachel.querySelectorAll(".vorschlag").filter((b) => b.classList.contains("klickbar")).map((b) => text(b.querySelector(".name"))) : [],
-      bloecke: kachel
-        ? kachel
-            .querySelectorAll(".vorschlag")
-            .map((b) => [text(b.querySelector(".name")), text(b.querySelector(".empfehlung")), ...b.querySelectorAll(".angabe").map(text)])
-        : [],
+      breit: kachel ? kachel.classList.contains("breit") : false,
+      zeilen: zeilen.map(zeile),
+      klickbar: zeilen.flatMap((z) =>
+        z
+          .querySelectorAll(".vorschlag")
+          .filter((b) => b.classList.contains("klickbar"))
+          .map(() => text(z.querySelector(".name")))
+      ),
     };
   };
   bilanz.automatikHinweise = {

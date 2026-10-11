@@ -7,7 +7,7 @@
  * Teil der Oberfläche `heatnexus-panel.js`; eingebunden als Mixin.
  */
 
-import { AUSRICHTUNGEN, FELDER, HEIZFLAECHEN, PROFILE, PROFIL_JE_FLAECHE, VERALTET_STUNDEN, zahl } from "./automatik.js";
+import { AUSRICHTUNGEN, FELDER, HEIZFLAECHEN, PROFILE, PROFIL_JE_FLAECHE, VERALTET_STUNDEN, schalterKnopf, zahl } from "./automatik.js";
 
 // So lange steht „übernommen ✓“ neben den Tasten.
 const GESPEICHERT_MS = 4000;
@@ -366,21 +366,7 @@ export const EinrichtungMixin = (Basis) =>
         wahl.disabled = !darf;
         return wahl;
       }
-      if (feld.art === "janein") {
-        const wahl = document.createElement("select");
-        [
-          ["false", "Aus"],
-          ["true", "Ein"],
-        ].forEach(([schluessel, titel]) => {
-          const option = document.createElement("option");
-          option.value = schluessel;
-          option.textContent = this._t(titel);
-          option.selected = String(!!wert) === schluessel;
-          wahl.appendChild(option);
-        });
-        wahl.disabled = !darf;
-        return wahl;
-      }
+      if (feld.art === "janein") return this._automatikJaNein(!!wert, darf);
       const eingabe = document.createElement("input");
       eingabe.disabled = !darf;
       if (feld.art === "zeit") {
@@ -392,6 +378,25 @@ export const EinrichtungMixin = (Basis) =>
         eingabe.value = wert ?? "";
       }
       return eingabe;
+    }
+
+    /** Ein Schalter, der sich wie ein Eingabefeld liest: `value` ist "true" oder "false", ein Klick meldet `change`. */
+    _automatikJaNein(an, darf) {
+      const schalter = schalterKnopf(an, darf);
+      let wert = String(an);
+      Object.defineProperty(schalter, "value", {
+        get: () => wert,
+        set: (neu) => {
+          wert = String(neu) === "true" ? "true" : "false";
+          schalter.classList.toggle("an", wert === "true");
+          schalter.setAttribute("aria-checked", wert);
+        },
+      });
+      schalter.addEventListener("click", () => {
+        schalter.value = wert === "true" ? "false" : "true";
+        schalter.dispatchEvent(new Event("change"));
+      });
+      return schalter;
     }
 
     _automatikEigene(eingaben) {
@@ -482,7 +487,9 @@ export const EinrichtungMixin = (Basis) =>
           this._melden(this._t("Mindestens ein Raum und eine Wetter-Entität sind nötig."));
           return;
         }
-        if (await this._automatikAufruf(nachricht)) weg();
+        if (!(await this._automatikAufruf(nachricht))) return;
+        weg();
+        if (this._reiter === "automatik" && !this._automatikBearbeitet) this._automatikNeuZeichnen();
       });
       this.shadowRoot.appendChild(schleier);
     }
