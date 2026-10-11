@@ -856,6 +856,6 @@
   "Soll": "Setpoint",
   "Vorlauf Soll": "Flow setpoint",
   "Die Pelletsmenge, die nach dem Befüllen im Lagerraum liegt. Ist sie verbraucht, meldet die Anlage „Lagerraum wird leer“.\n\nWird der Wert nach einer Lieferung eingestellt, beginnt der Befüllgrad des Lagerraums wieder bei 100 %.": "The amount of pellets in the storage room after filling. Once it is used up, the system reports “Storage room running empty”.\n\nSetting the value after a delivery resets the storage room fill level to 100 %.",
-  "Die Steuerung errechnet den Wert aus dem Verbrauch. Er kann um etwa 15 % vom tatsächlichen Füllstand abweichen. Wird nach einer Lieferung der „Warnlevel Lagerraum“ eingestellt, beginnt er wieder bei 100 %.": "The controller calculates this value from consumption. It can differ from the actual level by about 15 %. Setting “Warnlevel Lagerraum” after a delivery resets it to 100 %.",
+  "Die Steuerung errechnet den Wert aus dem Verbrauch. Er kann um etwa 15 % vom tatsächlichen Füllstand abweichen. Wird nach einer Lieferung der „Warnlevel Lagerraum“ eingestellt, beginnt er wieder bei 100 %.": "The controller calculates this value from consumption. It can differ from the actual level by about 15 %. Setting “Warning level storage room” after a delivery resets it to 100 %.",
   "Die Steuerung errechnet den Wert aus dem Verbrauch. Er kann um etwa 15 % vom tatsächlichen Füllstand abweichen.": "The controller calculates this value from consumption. It can differ from the actual level by about 15 %."
 }
