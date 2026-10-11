@@ -321,9 +321,7 @@ Entitäts-IDs eintragen, kein YAML kopieren. Jeder Reiter trägt seinen Namen:
   Automatik stehen als Badges darüber. Ein Tippen auf den Anlagennamen öffnet
   die Arbeitsseite.
 - **Je Anlage eine Arbeitsseite** – sie zeigt je Anlagenteil Zeigerinstrumente,
-  Zustand und Bedienung, bei Heizkreisen zuerst das Thermostat. Gibt es nur
-  eine Anlage, trägt diese Seite oben Meldungen, Badges und das Schaubild mit
-  Zustandsliste.
+  Zustand und Bedienung, bei Heizkreisen zuerst das Thermostat.
 - **Wartung** – Restlaufzeiten bis Ascheentleerung, Hauptreinigung und Wartung
   stehen als Rundinstrument, dazu Brennstoff, Vorratsbehälter und
   Zählerstände. Die Abschnitte tragen den Namen von Anlage und Anlagenteil.

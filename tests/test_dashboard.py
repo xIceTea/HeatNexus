@@ -1163,6 +1163,9 @@ async def test_einzelanlage_beginnt_mit_der_uebersicht(dashboard, hass, monkeypa
     assert erste["path"] == "uebersicht"
     assert [s["cards"][0].get("heading") for s in erste["sections"]][-1] == "Kesselhaus"
     assert zweite["path"] == "anlage-anlage01"
+    assert "badges" not in zweite
+    assert not [k for k in _karten(zweite) if str(k.get("type", "")).startswith("custom:")]
+    assert not [k for k in _karten(zweite) if k.get("type") == "markdown"]
 
 
 async def test_zwei_anlagen_melden_nur_in_der_uebersicht(dashboard, hass, monkeypatch):
@@ -1487,7 +1490,9 @@ async def test_ansichten_einer_anlage_stehen_in_ihrer_sprache(dashboard, karten,
     assert "Bedienung" in _sichtbare_texte(gemeinsame)
 
 
-async def test_eine_anlage_in_eigener_sprache_traegt_ihre_badges(dashboard, hass, monkeypatch):
+async def test_eine_anlage_in_eigener_sprache_traegt_die_badges_in_der_uebersicht(
+    dashboard, hass, monkeypatch
+):
     from custom_components.heatnexus.texte import Woerterbuch
 
     _anlagen_in_zwei_sprachen(hass, monkeypatch, dashboard, _werkstatt_auf_niederlaendisch())
@@ -1495,6 +1500,4 @@ async def test_eine_anlage_in_eigener_sprache_traegt_ihre_badges(dashboard, hass
     [uebersicht, seite, *_] = dashboard.dashboard_konfiguration(hass)["views"]
 
     assert uebersicht["title"] == Woerterbuch("nl")("Übersicht")
-    namen = {b["name"] for b in seite["badges"]}
-    assert Woerterbuch("nl")("Kessel") in namen
-    assert "Kessel" not in namen
+    assert uebersicht["badges"] and "badges" not in seite

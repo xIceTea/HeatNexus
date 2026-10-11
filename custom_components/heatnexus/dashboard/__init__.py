@@ -69,20 +69,16 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
         return _uebersetzt(leer, gemeinsam)
 
     eigene = [woerterbuch_der_anlage(hass, a) for a in anlagen]
-    einzeln = len(anlagen) == 1
     # Mit einer Anlage steht auch der Rahmen der Übersicht in ihrer Sprache.
-    rahmen = eigene[0] if einzeln else gemeinsam
+    rahmen = eigene[0] if len(anlagen) == 1 else gemeinsam
     kopf = badges.uebersichtszeile(hass, anlagen, rahmen)
-    views: list[dict[str, Any]] = [uebersicht.uebersicht(anlagen, als_karte, kopf, rahmen, eigene)]
-    if einzeln:
-        kopfzeile = badges.kopfzeile(hass, anlagen, eigene[0])
-        seite = anlage.arbeitsseite(anlagen[0], als_karte, mit_schaubild=True, badges=kopfzeile)
-        views.append(_uebersetzt(seite, eigene[0]))
-    else:
-        views += [
+    views = [
+        uebersicht.uebersicht(anlagen, als_karte, kopf, rahmen, eigene),
+        *(
             _uebersetzt(anlage.arbeitsseite(a, als_karte, mit_schaubild=False), buch)
             for a, buch in zip(anlagen, eigene, strict=True)
-        ]
+        ),
+    ]
     gemeinsame = (wartung.wartung(anlagen), wartung.auswertung(anlagen))
     views += [_uebersetzt(v, gemeinsam) for v in gemeinsame if v]
     views += [
