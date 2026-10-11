@@ -373,21 +373,23 @@ export const KennwerteMixin = (Basis) =>
       let wert = kelvin(tendenz.wert);
       if (tendenz.art === "sollwert") wert = this._tMit("Sollwert {wert} °C", { wert: zahl(tendenz.wert) });
       else if (tendenz.art === "morgen") wert = this._tMit("Ziel nach {minuten} min", { minuten: tendenz.wert });
+      const tage = this._tMit("{tage} von {noetig} Tagen", { tage: tendenz.tage, noetig });
+      return this._ergebnisBlock(titel, "empfehlung vorlaeufig", marke, [this._t("Vorläufig"), wert, tage].join(" · "));
+    }
+
+    /** Ein Block der Ergebniskachel: Titel, Marke mit Klasse (ohne Text keine), darunter die Angabe. */
+    _ergebnisBlock(titel, klasse, marke, angabe) {
       const block = knoten("div", "vorschlag");
       const kopf = knoten("div", "kopf");
-      kopf.append(knoten("span", "name", titel), knoten("span", "empfehlung vorlaeufig", marke));
-      const tage = this._tMit("{tage} von {noetig} Tagen", { tage: tendenz.tage, noetig });
-      block.append(kopf, knoten("div", "angabe", [this._t("Vorläufig"), wert, tage].join(" · ")));
+      kopf.appendChild(knoten("span", "name", titel));
+      if (marke) kopf.appendChild(knoten("span", klasse, marke));
+      block.append(kopf, knoten("div", "angabe", angabe));
       return block;
     }
 
     /** Eine Art ohne Hinweis: Titel, Marke „Keine Änderung nötig“, darunter die Zahl der Tage. */
     _passtBlock(titel, tage) {
-      const block = knoten("div", "vorschlag");
-      const kopf = knoten("div", "kopf");
-      kopf.append(knoten("span", "name", titel), knoten("span", "empfehlung passt", this._t("Keine Änderung nötig")));
-      block.append(kopf, knoten("div", "angabe", this._tMit("{tage} Tage", { tage })));
-      return block;
+      return this._ergebnisBlock(titel, "empfehlung passt", this._t("Keine Änderung nötig"), this._tMit("{tage} Tage", { tage }));
     }
 
     /** Ein Hinweis: Titel und Empfehlung als Marke, darunter Abweichung und Grundlage in einer Zeile. */
@@ -401,13 +403,7 @@ export const KennwerteMixin = (Basis) =>
         steuerung_passt_an: this._t("Heizkurve"),
       }[eintrag.art];
       if (!titel) return null;
-      const block = knoten("div", "vorschlag");
-      const kopf = knoten("div", "kopf");
-      kopf.appendChild(knoten("span", "name", titel));
-      const empfehlung = this._hinweisEmpfehlung(eintrag);
-      if (empfehlung) kopf.appendChild(knoten("span", "empfehlung", empfehlung));
-      block.append(kopf, knoten("div", "angabe", this._hinweisAngaben(eintrag).join(" · ")));
-      return block;
+      return this._ergebnisBlock(titel, "empfehlung", this._hinweisEmpfehlung(eintrag), this._hinweisAngaben(eintrag).join(" · "));
     }
 
     _hinweisAngaben(eintrag) {

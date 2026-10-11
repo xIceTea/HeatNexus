@@ -5,11 +5,11 @@ Teil der Laufzeit; als Mixin, damit die Methoden an derselben Klasse hängen.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import date, datetime, timedelta
 from typing import Any
 
 from homeassistant.core import State
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
@@ -25,20 +25,12 @@ VORHERSAGEARTEN = {"daily": 1, "hourly": 2, "twice_daily": 4}
 PROGNOSE_MELDEN = timedelta(hours=3)
 
 
-class PrognoseFehler(HomeAssistantError):
-    """Die Wetter-Entität hat keine Vorhersage geliefert."""
-
-
 def vorhersagearten(zustand: State | None) -> set[str] | None:
     """Die Vorhersagearten der Entität; ohne Angabe unbekannt (`None`)."""
     merkmale = zustand.attributes.get("supported_features") if zustand else None
     if not isinstance(merkmale, int) or isinstance(merkmale, bool):
         return None
     return {art for art, bit in VORHERSAGEARTEN.items() if merkmale & bit}
-
-
-def _zahl(wert: Any) -> bool:
-    return isinstance(wert, int | float) and not isinstance(wert, bool)
 
 
 def tageswerte(
@@ -55,8 +47,8 @@ def tageswerte(
     for eintrag in eintraege:
         if (zeit := ortszeit(eintrag.get("datetime"))) is None:
             continue
-        werte = (eintrag.get("temperature"), eintrag.get("templow"))
-        je_tag.setdefault(zeit.date(), []).extend(w for w in werte if _zahl(w))
+        werte = (eingaben.zahl(eintrag.get(feld)) for feld in ("temperature", "templow"))
+        je_tag.setdefault(zeit.date(), []).extend(w for w in werte if w is not None)
     return [(tag, max(werte), min(werte)) for tag, werte in je_tag.items() if werte]
 
 
@@ -227,17 +219,14 @@ class QuellenMixin:
         )
         if geraet is not None and (name := geraet.name_by_user or geraet.name):
             return name
+        return self._anzeigename(entity_id)
+
+    def _anzeigename(self, entity_id: str) -> str:
         zustand = self.hass.states.get(entity_id)
         return str(zustand.attributes.get("friendly_name") or entity_id) if zustand else entity_id
 
     async def _prognose(self, art: str) -> list[dict[str, Any]] | None:
-        try:
-            daten = await self._prognose_quelle(self.konfig["wetter"], art)
-        except PrognoseFehler as fehler:
-            self.prognose_fehler[art] = (dt_util.now(), str(fehler))
-            return None
-        self.prognose_fehler.pop(art, None)
-        return daten
+        return await self._prognose_quelle(self.konfig["wetter"], art)
 
     async def _prognose_holen(self) -> None:
         """Stunden und Tage holen, nur was die Entität kann; ohne Tage gelten Halbtage.
@@ -270,31 +259,30 @@ class QuellenMixin:
 
     def _prognose_melden(self) -> None:
         """Fehlt die Vorhersage länger als `PROGNOSE_MELDEN`, eine Reparaturmeldung; sonst keine."""
-        kennung = f"automatik_prognose_{self.device_id}"
         # Eine ausgeschaltete Automatik braucht keine Vorhersage.
         if self.prognose_frisch or not self.aktiv:
             self._prognose_fehlt_seit = None
-            ir.async_delete_issue(self.hass, DOMAIN, kennung)
+            ir.async_delete_issue(self.hass, DOMAIN, self.prognose_kennung)
             return
         jetzt = dt_util.now()
         self._prognose_fehlt_seit = self._prognose_fehlt_seit or jetzt
-        if jetzt - self._prognose_fehlt_seit < PROGNOSE_MELDEN:
-            return
-        wetter = self.konfig["wetter"]
-        zustand = self.hass.states.get(wetter)
-        name = str(zustand.attributes.get("friendly_name") or wetter) if zustand else wetter
-        ir.async_create_issue(
-            self.hass,
-            DOMAIN,
-            kennung,
-            is_fixable=False,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="automatik_prognose",
-            translation_placeholders={"heizkreis": self.name, "wetter": name},
-        )
+        if jetzt - self._prognose_fehlt_seit >= PROGNOSE_MELDEN:
+            self._meldung(
+                self.prognose_kennung,
+                "automatik_prognose",
+                ir.IssueSeverity.WARNING,
+                wetter=self._anzeigename(self.konfig["wetter"]),
+            )
 
-    def wetter_stand(self) -> dict[str, Any]:
-        """Wetter-Entität, ihre Vorhersagearten und die letzten Fehler; für die Diagnose."""
+    @property
+    def prognose_kennung(self) -> str:
+        """Kennung der Reparaturmeldung „keine Wettervorhersage“."""
+        return f"automatik_prognose_{self.device_id}"
+
+    def wetter_stand(
+        self, fehler: Mapping[tuple[str, str], tuple[datetime, str]]
+    ) -> dict[str, Any]:
+        """Wetter-Entität, ihre Vorhersagearten und die letzten Fehler aus `fehler`; für die Diagnose."""
         wetter = self.konfig["wetter"]
         zustand = self.hass.states.get(wetter)
         eintrag = er.async_get(self.hass).async_get(wetter)
@@ -306,6 +294,7 @@ class QuellenMixin:
             "arten": sorted(arten) if arten is not None else None,
             "fehler": [
                 {"art": art, "zeit": zeit, "text": text}
-                for art, (zeit, text) in sorted(self.prognose_fehler.items())
+                for (entitaet, art), (zeit, text) in sorted(fehler.items())
+                if entitaet == wetter
             ],
         }

@@ -31,7 +31,6 @@ from ..registrierung import geraet_suchen, in_untereintrag_verschieben, unterein
 from ..texte import woerterbuch
 from . import konfig as konfig_modul
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
-from .quellen import PrognoseFehler
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -139,7 +138,8 @@ class Verwaltung:
         self.laufzeiten: dict[str, Laufzeit] = {}
         self._prognosen: dict[tuple[str, str], tuple[datetime, list[dict[str, Any]]]] = {}
         self._prognose_sperre = asyncio.Lock()
-        self._prognose_gewarnt: set[tuple[str, str]] = set()
+        # Je Wetter-Entität und Vorhersageart der letzte Fehler, bis ein Abruf gelingt.
+        self.prognose_fehler: dict[tuple[str, str], tuple[datetime, str]] = {}
 
     async def laden(self) -> None:
         """Den Store einmal lesen."""
@@ -269,8 +269,8 @@ class Verwaltung:
                     treffer.append((coordinator, beschreibung))
         return treffer
 
-    async def prognose(self, wetter: str, art: str) -> list[dict[str, Any]]:
-        """Vorhersage einer Wetter-Entität, kurz zwischengespeichert; ohne Antwort `PrognoseFehler`."""
+    async def prognose(self, wetter: str, art: str) -> list[dict[str, Any]] | None:
+        """Vorhersage einer Wetter-Entität, kurz zwischengespeichert; ein Fehler steht in `prognose_fehler`."""
         async with self._prognose_sperre:
             jetzt = dt_util.now()
             if (treffer := self._prognosen.get((wetter, art))) and jetzt - treffer[
@@ -287,17 +287,16 @@ class Verwaltung:
                 )
             except HomeAssistantError as fehler:
                 # Einmal als Warnung, danach leise, bis die Entität wieder liefert.
-                gewarnt = (wetter, art) in self._prognose_gewarnt
-                self._prognose_gewarnt.add((wetter, art))
                 _LOGGER.log(
-                    logging.DEBUG if gewarnt else logging.WARNING,
+                    logging.DEBUG if (wetter, art) in self.prognose_fehler else logging.WARNING,
                     "Automatik: %s liefert keine Vorhersage (%s): %s",
                     wetter,
                     art,
                     fehler,
                 )
-                raise PrognoseFehler(str(fehler) or type(fehler).__name__) from fehler
-            self._prognose_gewarnt.discard((wetter, art))
+                self.prognose_fehler[(wetter, art)] = (jetzt, str(fehler) or type(fehler).__name__)
+                return None
+            self.prognose_fehler.pop((wetter, art), None)
             daten = list(((antwort or {}).get(wetter) or {}).get("forecast") or [])
             self._prognosen[(wetter, art)] = (jetzt, daten)
             return daten

@@ -344,7 +344,7 @@ def hinweise(
         return _grundlage(tage, seit, str(heute), gruppe), seit
 
     kurve, seit = basis("kurve")
-    if any((_aktuell(parameter_verlauf, p) or 0) > 0 for p in ANPASSUNG):
+    if _passt_an(parameter_verlauf):
         liste = [Hinweis("steuerung_passt_an", len(kurve), seit)]
     else:
         liste = _kurve(kurve, parameter_verlauf, seit)
@@ -353,57 +353,58 @@ def hinweise(
     return liste + _morgen_spaet(morgen, _aktuell(parameter_verlauf, "3/6"), seit_morgen)
 
 
-def fortschritt(
+def _passt_an(parameter_verlauf: Mapping[str, Any]) -> bool:
+    """Ob die Steuerung die Kurve selbst anpasst; dann gibt es zur Kurve weder Hinweis noch Tendenz."""
+    return any((_aktuell(parameter_verlauf, p) or 0) > 0 for p in ANPASSUNG)
+
+
+def _reihen(
     tage: Sequence[Tag], parameter_verlauf: Mapping[str, Any], heute: date | str
-) -> dict[str, int]:
-    """Gezählte Tage je Hinweisart, mit denselben Filtern wie `hinweise`."""
+) -> dict[str, list[Any]]:
+    """Je Art die gezählten Werte, mit denselben Filtern wie `hinweise`: Tage im Band, Soll, Minuten."""
 
     def basis(gruppe: str) -> list[Tag]:
         return _grundlage(tage, _seit(parameter_verlauf, gruppe), str(heute), gruppe)
 
     kurve = basis("kurve")
     return {
-        "kurve_frost": len(_band(kurve, _frost)),
-        "kurve_uebergang": len(_band(kurve, _uebergang)),
-        "sollwert": sum(1 for t in basis("sollwert") if t.soll is not None),
-        "morgen": sum(1 for t in basis("morgen") if t.morgen_min is not None),
+        "kurve_uebergang": _band(kurve, _uebergang),
+        "kurve_frost": _band(kurve, _frost),
+        "sollwert": [t.soll for t in basis("sollwert") if t.soll is not None],
+        "morgen": [t.morgen_min for t in basis("morgen") if t.morgen_min is not None],
     }
+
+
+def fortschritt(
+    tage: Sequence[Tag], parameter_verlauf: Mapping[str, Any], heute: date | str
+) -> dict[str, int]:
+    """Gezählte Tage je Hinweisart."""
+    return {art: len(werte) for art, werte in _reihen(tage, parameter_verlauf, heute).items()}
 
 
 def _richtung(wert: float, schwelle: float, darueber: str) -> str:
     return darueber if wert >= schwelle else "unauffaellig"
 
 
-def _kurventendenz(band: list[Tag]) -> tuple[str, float]:
-    d = round(mean(t.abweichung for t in band), 1)
-    if abs(d) < SCHWELLE_K:
-        return "unauffaellig", d
-    return ("kalt" if d < 0 else "warm"), d
+def _tendenz(art: str, werte: list[Any]) -> Tendenz:
+    if art == "sollwert":
+        wert = median(werte)
+        return Tendenz(art, len(werte), _richtung(wert, SOLL_HOCH, "hoch"), wert)
+    if art == "morgen":
+        minuten = int(_runden(median(werte)))
+        return Tendenz(art, len(werte), _richtung(minuten, MORGEN_MIN, "spaet"), minuten)
+    d = round(mean(t.abweichung for t in werte), 1)
+    richtung = "unauffaellig" if abs(d) < SCHWELLE_K else ("kalt" if d < 0 else "warm")
+    return Tendenz(art, len(werte), richtung, d)
 
 
 def tendenzen(
     tage: Sequence[Tag], parameter_verlauf: Mapping[str, Any], heute: date | str
 ) -> list[Tendenz]:
     """Je Art mit mindestens `MIN_VORLAEUFIG`, aber weniger als `MIN_TAGE` Tagen eine Tendenz."""
-
-    def basis(gruppe: str) -> list[Tag]:
-        return _grundlage(tage, _seit(parameter_verlauf, gruppe), str(heute), gruppe)
-
-    def reicht(werte: Sequence[Any]) -> bool:
-        return MIN_VORLAEUFIG <= len(werte) < MIN_TAGE
-
-    liste: list[Tendenz] = []
-    if not any((_aktuell(parameter_verlauf, p) or 0) > 0 for p in ANPASSUNG):
-        kurve = basis("kurve")
-        for art, passt in (("kurve_uebergang", _uebergang), ("kurve_frost", _frost)):
-            if reicht(band := _band(kurve, passt)):
-                liste.append(Tendenz(art, len(band), *_kurventendenz(band)))
-    if reicht(soll := [t.soll for t in basis("sollwert") if t.soll is not None]):
-        wert = median(soll)
-        liste.append(Tendenz("sollwert", len(soll), _richtung(wert, SOLL_HOCH, "hoch"), wert))
-    if reicht(morgen := [t.morgen_min for t in basis("morgen") if t.morgen_min is not None]):
-        minuten = int(_runden(median(morgen)))
-        liste.append(
-            Tendenz("morgen", len(morgen), _richtung(minuten, MORGEN_MIN, "spaet"), minuten)
-        )
-    return liste
+    passt_an = _passt_an(parameter_verlauf)
+    return [
+        _tendenz(art, werte)
+        for art, werte in _reihen(tage, parameter_verlauf, heute).items()
+        if MIN_VORLAEUFIG <= len(werte) < MIN_TAGE and not (passt_an and art.startswith("kurve"))
+    ]

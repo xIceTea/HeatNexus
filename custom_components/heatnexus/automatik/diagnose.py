@@ -6,6 +6,7 @@ Werte, die letzte Lage, Gedächtnis, Protokoll und der Verlauf des Tages.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Any
@@ -54,8 +55,10 @@ def _optimierer(laufzeit: Laufzeit, heute: date) -> dict[str, Any]:
     }
 
 
-def auszug(laufzeit: Laufzeit) -> dict[str, Any]:
-    """Alles, was die Regel zuletzt gesehen und entschieden hat."""
+def auszug(
+    laufzeit: Laufzeit, prognose_fehler: Mapping[tuple[str, str], tuple[datetime, str]]
+) -> dict[str, Any]:
+    """Alles, was die Regel zuletzt gesehen und entschieden hat; dazu die Fehler der Vorhersage."""
     lage, werte, heute = laufzeit.lage, laufzeit.werte, dt_util.now().date()
     fenster = werte.lernfenster
     stand = laufzeit.steller.stand.als_dict()
@@ -75,7 +78,7 @@ def auszug(laufzeit: Laufzeit) -> dict[str, Any]:
             "steller": {name: inhalt for name, inhalt in stand.items() if name != "protokoll"},
             "protokoll": stand.get("protokoll", []),
             "prognose_frisch": laufzeit.prognose_frisch,
-            "wetter": laufzeit.wetter_stand(),
+            "wetter": laufzeit.wetter_stand(prognose_fehler),
             "pausiert_bis": laufzeit.pausiert_bis,
             "anforderung_zuletzt": laufzeit.anforderung_zuletzt,
             "vorrang": eingaben.lauf_als_dict(laufzeit.vorrang),

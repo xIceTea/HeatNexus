@@ -104,7 +104,7 @@ def automatik_auszug(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
             "automatiken": len(laufzeiten),
             "status": schwerster([status(lz) for lz in laufzeiten]),
         },
-        "heizkreise": [auszug(laufzeit) for laufzeit in laufzeiten],
+        "heizkreise": [auszug(laufzeit, verwaltung.prognose_fehler) for laufzeit in laufzeiten],
     }
 
 

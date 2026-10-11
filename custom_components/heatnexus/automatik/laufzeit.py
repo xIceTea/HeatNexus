@@ -183,8 +183,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._tage: list[tuple[date, float | None, float | None]] = []
         self._prognose_zeit: datetime | None = None
         self._prognose_fehlt_seit: datetime | None = None
-        # Je Vorhersageart der letzte Fehler der Wetter-Entität: Zeit und Text.
-        self.prognose_fehler: dict[str, tuple[datetime, str]] = {}
         self._verlauf: deque[tuple[float, float]] = deque(maxlen=VERLAUF_LAENGE)
         self._fenster_bis: datetime | None = None
         self._weg_seit: datetime | None = None
@@ -324,7 +322,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             self._nachladen.cancel()
         self._lernen_beenden()
         self._optimierung_beenden()
-        ir.async_delete_issue(self.hass, DOMAIN, f"automatik_prognose_{self.device_id}")
+        ir.async_delete_issue(self.hass, DOMAIN, self.prognose_kennung)
         client = self.coordinator.client
         for adresse in ABRUF:
             client.unregister_poll_oid(f"{self.prefix}{adresse}")
@@ -748,15 +746,21 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             return
         self._meldung(kennung, "automatik_sicherheit")
 
-    def _meldung(self, kennung: str, schluessel: str) -> None:
+    def _meldung(
+        self,
+        kennung: str,
+        schluessel: str,
+        stufe: ir.IssueSeverity = ir.IssueSeverity.ERROR,
+        **platzhalter: str,
+    ) -> None:
         ir.async_create_issue(
             self.hass,
             DOMAIN,
             kennung,
             is_fixable=False,
-            severity=ir.IssueSeverity.ERROR,
+            severity=stufe,
             translation_key=schluessel,
-            translation_placeholders={"heizkreis": self.name},
+            translation_placeholders={"heizkreis": self.name, **platzhalter},
         )
 
     async def _wiederholen(self, _jetzt: datetime) -> None:

@@ -3172,7 +3172,10 @@ async def test_fehlende_vorhersage_nennt_die_begruendung_und_warnt_einmal(
 
     assert laufzeit.zustand.value == "keine_daten"
     assert laufzeit.begruendung == "Wettervorhersage fehlt – keine neue Entscheidung."
-    assert sorted(laufzeit.prognose_fehler) == ["daily", "hourly"]
+    assert sorted(verwaltung.prognose_fehler) == [
+        ("weather.home", "daily"),
+        ("weather.home", "hourly"),
+    ]
     warnungen = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnungen) == 2
     assert all("weather.home" in r.getMessage() for r in warnungen)
@@ -3237,7 +3240,7 @@ async def test_reparaturmeldung_verschwindet_wenn_die_vorhersage_wieder_kommt(
     await laufzeit._prognose_holen()
 
     assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is None
-    assert laufzeit.prognose_fehler == {}
+    assert verwaltung.prognose_fehler == {}
 
 
 async def test_zweimal_taeglich_ersetzt_die_tagesvorhersage(hass, anlage, freezer):
@@ -3326,8 +3329,11 @@ async def test_entitaet_ohne_vorhersageart_wird_trotzdem_gefragt(hass, anlage, f
     aufrufe = _ohne_vorhersage(hass)
     caplog.set_level(logging.WARNING, logger="custom_components.heatnexus")
 
-    laufzeit = await _eingerichtet(hass, verwaltung)
+    await _eingerichtet(hass, verwaltung)
 
     assert set(aufrufe) == {"hourly", "daily"}
-    assert sorted(laufzeit.prognose_fehler) == ["daily", "hourly"]
+    assert sorted(verwaltung.prognose_fehler) == [
+        ("weather.home", "daily"),
+        ("weather.home", "hourly"),
+    ]
     assert any("weather.home" in r.getMessage() for r in caplog.records)
