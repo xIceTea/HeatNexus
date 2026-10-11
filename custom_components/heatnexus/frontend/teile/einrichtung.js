@@ -95,6 +95,15 @@ export const EinrichtungMixin = (Basis) =>
       });
       bereich.appendChild(gruppen);
 
+      // Die Optimierung ist eine Einstellung der Automatik, kein Feinwert: Sie gilt sofort und bleibt beim Zurücksetzen.
+      const optimierung = document.createElement("div");
+      optimierung.className = "automatik-optimierung";
+      const an = !!kreis.konfig.hinweise;
+      optimierung.appendChild(
+        this._automatikSchalter(this._t("Optimierungshinweise anzeigen"), an, darf, () => this._automatikEinstellen(kreis, { hinweise: !an }))
+      );
+      bereich.appendChild(optimierung);
+
       const leiste = document.createElement("div");
       leiste.className = "automatik-leiste";
       const entfernen = this._automatikTaste("Automatik entfernen", "automatik-knopf leise warnung");

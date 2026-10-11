@@ -823,6 +823,9 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     )
     assert aus["ergebnis"] is None
     assert [(n["heizkreis"], n["hinweise"]) for n in hinweise["ausGesendet"]] == [("SN1-2-0", True)]
+    # Unten in „Erweitert“: ein Schalter, der den Zustand umkehrt.
+    assert hinweise["erweitertSchalter"] == 1
+    assert [n["hinweise"] for n in hinweise["erweitertGesendet"]] == [False]
     sammelt = hinweise["sammelt"]
     assert (sammelt["titel"], sammelt["zahl"], sammelt["neben"]) == (
         "Optimierung",

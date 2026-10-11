@@ -1158,6 +1158,30 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     hass.callWS = vorherAufruf;
     bilanz.automatikHinweise.ausGesendet = gesendet.filter((n) => n.type === "heatnexus/automatik/einstellen");
   }
+  {
+    // Unten in „Erweitert“ schaltet ein Schalter die Optimierung ein und aus.
+    const vorherKonfig = kreis.konfig;
+    kreis.konfig = { ...vorherKonfig, hinweise: true };
+    zeigen({ status: "sammelt", tage: 0, noetig: 7, eintraege: [], fortschritt: {} });
+    const schalter = wurzel
+      .querySelectorAll(".automatik-optimierung")
+      .flatMap((bereich) => bereich.querySelectorAll(".automatik-schalter"))
+      .filter((s) => String(s.textContent || "").includes("Optimierungshinweise anzeigen"));
+    const gesendet = [];
+    const vorherAufruf = hass.callWS;
+    hass.callWS = async (nachricht) => {
+      gesendet.push(nachricht);
+      return flaeche._automatik;
+    };
+    if (schalter.length) schalter[0].ausloesen("click");
+    for (let schritt = 0; schritt < 10; schritt += 1) await Promise.resolve();
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+    hass.callWS = vorherAufruf;
+    kreis.konfig = vorherKonfig;
+    bilanz.automatikHinweise.erweitertSchalter = schalter.length;
+    bilanz.automatikHinweise.erweitertGesendet = gesendet.filter((n) => n.type === "heatnexus/automatik/einstellen");
+  }
   kreis.kennwerte = vorherKennwerte;
 }
 
