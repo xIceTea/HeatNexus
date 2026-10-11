@@ -36,6 +36,8 @@ K_RADIATOREN = (2.5, 3.5)
 K_FUSSBODEN = (1.3, 1.3)
 # Die Bänder hängen zusammen; empfohlen wird nur dieser Anteil der gerechneten Änderung.
 DAEMPFUNG = 0.7
+# Kleinste empfohlene Änderung eines Kurvenpunkts in °C.
+KURVE_SCHRITT = 1.0
 # Liegt der Vorlauf-Ist so weit unter dem Soll, misst die Stunde nicht die Heizkurve.
 VORLAUF_LUECKE_K = 3.0
 MORGEN_MIN = 60
@@ -60,6 +62,18 @@ BAENDER = ("3/1", "3/13")
 # `7/76` ändert Faktor und Arten.
 KURVE = ("3/1", "3/12", "3/13", "3/7", "3/58", "3/101", "7/76")
 GRUPPEN = {"kurve": KURVE, "sollwert": (*KURVE, "3/51"), "morgen": ("3/6",)}
+
+
+@dataclass(frozen=True)
+class Kreis:
+    """Was die Hinweise vom Heizkreis brauchen: den Typ `7/76` und ob die Steuerung einen Raumfühler hat."""
+
+    typ: int = RADIATOREN
+    raumfuehler: bool = False
+
+
+# Ohne Angabe: Radiatoren, Steuerung ohne Raumfühler.
+STANDARDKREIS = Kreis()
 
 
 @dataclass(frozen=True)
@@ -107,6 +121,18 @@ class Tendenz:
     tage: int
     richtung: str
     wert: float
+
+
+@dataclass(frozen=True)
+class Auswertung:
+    """Arten, Hinweise, Tendenzen und Fortschritt aus einem Durchgang über die Tage."""
+
+    arten: list[str]
+    hinweise: list[Hinweis]
+    tendenzen: list[Tendenz]
+    fortschritt: dict[str, int]
+    # Tage der Kurvengrundlage.
+    grundlage: int
 
 
 def _zahl(wert: Any) -> float | None:
@@ -229,7 +255,8 @@ def _seit(parameter_verlauf: Mapping[str, Any], gruppe: str = "sollwert") -> str
     return max(daten, default=None)
 
 
-def _aktuell(parameter_verlauf: Mapping[str, Any], schluessel: str) -> float | None:
+def aktuell(parameter_verlauf: Mapping[str, Any], schluessel: str) -> float | None:
+    """Der zuletzt gelesene Wert eines Parameters als Zahl."""
     verlauf = parameter_verlauf.get(schluessel) or []
     letzter = verlauf[-1] if verlauf else None
     return _zahl(letzter[1]) if letzter and len(letzter) > 1 else None
@@ -270,17 +297,15 @@ def _anteil(at: float, klimapunkt: float | None, am_fusspunkt: bool) -> float:
     return _begrenzt(anteil / (FUSS_AT - klimapunkt), MIN_ANTEIL, 1.0)
 
 
-def _behaglichkeit(
-    tage: int, seit: str | None, d: float, von: float | None, absolut: bool
-) -> list[Hinweis]:
+def _behaglichkeit(tage: int, seit: str | None, d: float, von: float | None) -> list[Hinweis]:
     """Die Kurve parallel über `3/58`; an der Grenze ohne Zielwert, ohne `3/58` nur die Richtung.
 
-    Enthält das Ziel der Abweichung die Behaglichkeit (`1/1`), braucht es absolut `−d`.
+    Die Abweichung zählt gegen das Raumsoll ohne Behaglichkeit; `von` verschiebt sich um `−d`.
     """
     art, ab = "heizkurve_parallel", round(d, 1)
     if von is None:
         return [Hinweis(art, tage, seit, ab)]
-    roh = (0.0 if absolut else von) - _runden(d, 0.5)
+    roh = von - _runden(d, 0.5)
     nach = _begrenzt(roh, *BEHAGLICHKEIT)
     if roh == von:
         return []
@@ -296,18 +321,32 @@ def _baender(frost: list[Tag], uebergang: list[Tag]) -> tuple[float, float] | No
     return mean(t.abweichung for t in frost), mean(t.abweichung for t in uebergang)
 
 
+def _bandlage(frost: list[Tag], uebergang: list[Tag]) -> tuple[str | None, float, float]:
+    """Liegen beide Bänder gleich weit (`gleich`) oder gegenläufig (`gegen`) daneben, dazu ihr Mittel.
+
+    Ohne genug Tage oder mit einem Band unter der Schwelle ist die Lage `None`.
+    """
+    if (mittel := _baender(frost, uebergang)) is None:
+        return None, 0.0, 0.0
+    d_frost, d_uebergang = mittel
+    lage = None
+    if min(abs(d_frost), abs(d_uebergang)) >= SCHWELLE_K:
+        if d_frost * d_uebergang < 0:
+            lage = "gegen"
+        elif abs(d_frost - d_uebergang) < SCHWELLE_K:
+            lage = "gleich"
+    return lage, d_frost, d_uebergang
+
+
 def _parallel(
-    frost: list[Tag], uebergang: list[Tag], von: float | None, seit: str | None, absolut: bool
+    frost: list[Tag], uebergang: list[Tag], von: float | None, seit: str | None
 ) -> list[Hinweis] | None:
     """Liegen beide Bänder gleich weit daneben, die Behaglichkeit; sonst und ohne `3/58` `None`."""
-    if von is None or (mittel := _baender(frost, uebergang)) is None:
-        return None
-    d_frost, d_uebergang = mittel
-    gleich = d_frost * d_uebergang > 0 and abs(d_frost - d_uebergang) < SCHWELLE_K
-    if not gleich or min(abs(d_frost), abs(d_uebergang)) < SCHWELLE_K:
+    lage, d_frost, d_uebergang = _bandlage(frost, uebergang)
+    if von is None or lage != "gleich":
         return None
     tage = len(frost) + len(uebergang)
-    return _behaglichkeit(tage, seit, (d_frost + d_uebergang) / 2, von, absolut)
+    return _behaglichkeit(tage, seit, (d_frost + d_uebergang) / 2, von)
 
 
 def _band_hinweis(
@@ -319,22 +358,20 @@ def _band_hinweis(
     if abs(d) < SCHWELLE_K:
         return []
     # Ein Hinweis über der Schwelle ändert den Parameter um mindestens ein Grad.
-    gerundet = _runden(d * k * DAEMPFUNG) or math.copysign(1, d)
+    gerundet = _runden(d * k * DAEMPFUNG, KURVE_SCHRITT) or math.copysign(KURVE_SCHRITT, d)
     aenderung = _begrenzt(gerundet, -MAX_KURVE, MAX_KURVE)
     return [Hinweis(art, len(band), seit, round(d, 1), parameter, von, von - aenderung, "°C")]
 
 
-def _kurve(
-    grundlage: list[Tag], p: Mapping[str, Any], seit: str | None, heizkreis_typ: int, absolut: bool
-) -> list[Hinweis]:
+def _kurve(grundlage: list[Tag], p: Mapping[str, Any], seit: str | None, typ: int) -> list[Hinweis]:
     """Hinweise zur Heizkurve aus dem Frost- und dem Übergangsband."""
     frost = _band(grundlage, _frost)
     uebergang = _band(grundlage, _uebergang)
-    parallel = _parallel(frost, uebergang, _aktuell(p, "3/58"), seit, absolut)
+    parallel = _parallel(frost, uebergang, aktuell(p, "3/58"), seit)
     if parallel is not None:
         return parallel
-    klima = _aktuell(p, "3/12")
-    k_frost, k_uebergang = K_FUSSBODEN if heizkreis_typ == FUSSBODEN else K_RADIATOREN
+    klima = aktuell(p, "3/12")
+    k_frost, k_uebergang = K_FUSSBODEN if typ == FUSSBODEN else K_RADIATOREN
     liste: list[Hinweis] = []
     # Eine Änderung am Kurvenende wirkt im Band nur anteilig; die Empfehlung rechnet das hoch.
     for art, name, band, k, am_fuss in (
@@ -342,7 +379,7 @@ def _kurve(
         ("heizkurve_uebergang", "3/1", uebergang, k_uebergang, True),
     ):
         anteil = _anteil(mean(t.at for t in band), klima, am_fuss) if band else 1.0
-        liste += _band_hinweis(art, name, band, _aktuell(p, name), k / anteil, seit)
+        liste += _band_hinweis(art, name, band, aktuell(p, name), k / anteil, seit)
     return liste
 
 
@@ -353,66 +390,55 @@ def _mit_abweichung(grundlage: list[Tag]) -> list[Tag]:
 def _kurvenform(grundlage: list[Tag], seit: str | None) -> Hinweis | None:
     """Beide Bänder gegenläufig daneben: eine Parallelverschiebung hilft nicht, die Form passt nicht."""
     frost, uebergang = _band(grundlage, _frost), _band(grundlage, _uebergang)
-    if (mittel := _baender(frost, uebergang)) is None:
-        return None
-    d_frost, d_uebergang = mittel
-    if d_frost * d_uebergang >= 0 or min(abs(d_frost), abs(d_uebergang)) < SCHWELLE_K:
+    lage, d_frost, d_uebergang = _bandlage(frost, uebergang)
+    if lage != "gegen":
         return None
     tage = len(frost) + len(uebergang)
     return Hinweis("kurvenform", tage, seit, round(d_uebergang, 1), frost=round(d_frost, 1))
 
 
-def _eine_kurve(
-    grundlage: list[Tag], von: float | None, seit: str | None, absolut: bool
-) -> list[Hinweis]:
+def _eine_kurve(grundlage: list[Tag], von: float | None, seit: str | None) -> list[Hinweis]:
     """Ohne Kurvenpunkte die ganze Kurve über die Behaglichkeit; ohne `3/58` nur die Richtung."""
     if (form := _kurvenform(grundlage, seit)) is not None:
         return [form]
     tage = _mit_abweichung(grundlage)
     if len(tage) < MIN_TAGE or abs(d := mean(t.abweichung for t in tage)) < SCHWELLE_K:
         return []
-    return _behaglichkeit(len(tage), seit, d, von, absolut)
+    return _behaglichkeit(len(tage), seit, d, von)
 
 
-def _sollwert(grundlage: list[Tag], seit: str | None) -> list[Hinweis]:
+def _sollwert(werte: list[float], seit: str | None) -> list[Hinweis]:
     """Ein dauerhaft hoher Raumsollwert gleicht meist eine zu flache Kurve aus."""
-    werte = [t.soll for t in grundlage if t.soll is not None]
     if len(werte) < MIN_TAGE or (wert := median(werte)) < SOLL_HOCH:
         return []
     return [Hinweis("sollwert_ausgleich", len(werte), seit, None, "3/51", wert, None, "°C")]
 
 
-def _morgen_spaet(grundlage: list[Tag], von: float | None, seit: str | None) -> list[Hinweis]:
+def _morgen_spaet(werte: list[int], von: float | None, seit: str | None) -> list[Hinweis]:
     """Vorhaltezeit verlängern; meldet die Steuerung keine, das Heizprogramm früher starten."""
-    werte = [t.morgen_min for t in grundlage if t.morgen_min is not None]
-    if len(werte) < MIN_TAGE or (wert := median(werte)) < MORGEN_MIN:
+    if (wert := median(werte)) < MORGEN_MIN:
         return []
     minuten, frueher = int(_runden(wert)), _runden(wert, 15)
     if von is None:
-        return [
-            Hinweis(
-                "morgen_spaet",
-                len(werte),
-                seit,
-                None,
-                "zeitprogramm",
-                None,
-                frueher,
-                "min",
-                minuten,
-            )
-        ]
-    nach = min(MAX_VORHALTEZEIT, von + frueher)
-    return [Hinweis("morgen_spaet", len(werte), seit, None, "3/6", von, nach, "min", minuten)]
+        name, nach = "zeitprogramm", frueher
+    else:
+        name, nach = "3/6", min(MAX_VORHALTEZEIT, von + frueher)
+    return [Hinweis("morgen_spaet", len(werte), seit, None, name, von, nach, "min", minuten)]
 
 
-def _morgen_frueh(grundlage: list[Tag], von: float | None, seit: str | None) -> list[Hinweis]:
+def _morgen_frueh(werte: list[int], von: float | None, seit: str | None) -> list[Hinweis]:
     """Schon zu Programmbeginn warm; einen Zielwert gibt es nicht, die Wärmespeicherung ist unbekannt."""
-    werte = [t.morgen_min for t in grundlage if t.morgen_min is not None]
-    if len(werte) < MIN_TAGE or median(werte) != MORGEN_SOFORT:
+    if median(werte) != MORGEN_SOFORT:
         return []
     name, wert = ("3/6", von) if von is not None and von > 0 else ("zeitprogramm", None)
     return [Hinweis("morgen_frueh", len(werte), seit, None, name, wert, None, "min", MORGEN_SOFORT)]
+
+
+def _morgen(werte: list[int], von: float | None, seit: str | None) -> list[Hinweis]:
+    """Die Hinweise zum Morgen aus den gemessenen Minuten bis zum Ziel."""
+    if len(werte) < MIN_TAGE:
+        return []
+    return _morgen_spaet(werte, von, seit) + _morgen_frueh(werte, von, seit)
 
 
 def grundlage(
@@ -423,18 +449,42 @@ def grundlage(
 
 
 def _kurvenhinweise(
-    kurve: list[Tag],
-    parameter_verlauf: Mapping[str, Any],
-    seit: str | None,
-    heizkreis_typ: int,
-    raumfuehler: bool,
-    absolut: bool,
+    kurve: list[Tag], seit: str | None, p: Mapping[str, Any], gezeigt: list[str], kreis: Kreis
 ) -> list[Hinweis]:
-    if _passt_an(parameter_verlauf, raumfuehler):
+    if "kurve_uebergang" not in gezeigt and "kurve" not in gezeigt:
+        return []
+    if _passt_an(p, kreis.raumfuehler):
         return [Hinweis("steuerung_passt_an", len(kurve), seit)]
-    if _zwei_baender(parameter_verlauf):
-        return _kurve(kurve, parameter_verlauf, seit, heizkreis_typ, absolut)
-    return _eine_kurve(kurve, _aktuell(parameter_verlauf, "3/58"), seit, absolut)
+    if "kurve_uebergang" in gezeigt:
+        return _kurve(kurve, p, seit, kreis.typ)
+    return _eine_kurve(kurve, aktuell(p, "3/58"), seit)
+
+
+# Je Gruppe die gezählten Tage und die jüngste Parameteränderung, nach der sie zählen.
+Basen = dict[str, tuple[list[Tag], str | None]]
+
+
+def _basen(tage: Sequence[Tag], parameter_verlauf: Mapping[str, Any], heute: date | str) -> Basen:
+    basen = {}
+    for gruppe in GRUPPEN:
+        seit = _seit(parameter_verlauf, gruppe)
+        basen[gruppe] = (_grundlage(tage, seit, str(heute), gruppe), seit)
+    return basen
+
+
+def _hinweise(
+    basen: Basen,
+    reihen: dict[str, list[Any]],
+    p: Mapping[str, Any],
+    gezeigt: list[str],
+    kreis: Kreis,
+) -> list[Hinweis]:
+    liste = _kurvenhinweise(*basen["kurve"], p, gezeigt, kreis)
+    if "sollwert" in gezeigt:
+        liste += _sollwert(reihen["sollwert"], basen["sollwert"][1])
+    if "morgen" in gezeigt:
+        liste += _morgen(reihen["morgen"], aktuell(p, "3/6"), basen["morgen"][1])
+    return liste
 
 
 def hinweise(
@@ -442,57 +492,37 @@ def hinweise(
     parameter_verlauf: Mapping[str, Any],
     heute: date | str,
     *,
-    heizkreis_typ: int = RADIATOREN,
-    raumfuehler: bool = False,
-    ziel_mit_behaglichkeit: bool = False,
+    kreis: Kreis = STANDARDKREIS,
 ) -> list[Hinweis]:
     """Die Hinweise zu den Arten aus `arten` in fester Reihenfolge.
 
     Passt die Steuerung die Kurve selbst an, gibt es keinen Hinweis zur Kurve.
-    `ziel_mit_behaglichkeit`: Die Abweichung ist gegen `1/1` gemessen, das `3/58` enthält.
     """
-    gezeigt = arten(parameter_verlauf, heizkreis_typ=heizkreis_typ)
-
-    def basis(gruppe: str) -> tuple[list[Tag], str | None]:
-        seit = _seit(parameter_verlauf, gruppe)
-        return _grundlage(tage, seit, str(heute), gruppe), seit
-
-    liste: list[Hinweis] = []
-    if any(art.startswith("kurve") for art in gezeigt):
-        kurve, seit = basis("kurve")
-        liste += _kurvenhinweise(
-            kurve, parameter_verlauf, seit, heizkreis_typ, raumfuehler, ziel_mit_behaglichkeit
-        )
-    if "sollwert" in gezeigt:
-        liste += _sollwert(*basis("sollwert"))
-    if "morgen" in gezeigt:
-        morgen, seit_morgen = basis("morgen")
-        vorhaltezeit = _aktuell(parameter_verlauf, "3/6")
-        liste += _morgen_spaet(morgen, vorhaltezeit, seit_morgen)
-        liste += _morgen_frueh(morgen, vorhaltezeit, seit_morgen)
-    return liste
+    basen = _basen(tage, parameter_verlauf, heute)
+    gezeigt = arten(parameter_verlauf, kreis=kreis)
+    return _hinweise(basen, _reihen(basen), parameter_verlauf, gezeigt, kreis)
 
 
 def _zwei_baender(parameter_verlauf: Mapping[str, Any]) -> bool:
-    return all(_aktuell(parameter_verlauf, name) is not None for name in BAENDER)
+    return all(aktuell(parameter_verlauf, name) is not None for name in BAENDER)
 
 
 def heizkreis_typ(parameter_verlauf: Mapping[str, Any], heizflaechen: str | None) -> int:
     """Der Typ aus `7/76`; ohne gelesenen Wert nach den Heizflächen der Einrichtung."""
-    wert = _aktuell(parameter_verlauf, "7/76")
+    wert = aktuell(parameter_verlauf, "7/76")
     if wert is not None and wert.is_integer():
         return int(wert)
     return HEIZFLAECHEN.get(heizflaechen or "", RADIATOREN)
 
 
-def arten(parameter_verlauf: Mapping[str, Any], *, heizkreis_typ: int = RADIATOREN) -> list[str]:
+def arten(parameter_verlauf: Mapping[str, Any], *, kreis: Kreis = STANDARDKREIS) -> list[str]:
     """Die Arten der Kachel in Anzeigereihenfolge; zwei Bänder nur mit beiden Kurvenpunkten.
 
     Ohne Heizkurve entfallen Kurve und Sollwert (sein Rat verweist auf die Kurve), bei Fußboden
     der Morgen.
     """
-    morgen = [] if heizkreis_typ == FUSSBODEN else ["morgen"]
-    if heizkreis_typ in OHNE_KURVE:
+    morgen = [] if kreis.typ == FUSSBODEN else ["morgen"]
+    if kreis.typ in OHNE_KURVE:
         return morgen
     kurve = ["kurve_uebergang", "kurve_frost"] if _zwei_baender(parameter_verlauf) else ["kurve"]
     return [*kurve, "sollwert", *morgen]
@@ -504,24 +534,18 @@ def _passt_an(parameter_verlauf: Mapping[str, Any], raumfuehler: bool) -> bool:
     Die Kompensation `3/7` passt nur mit einem Raumfühler an der Steuerung etwas an.
     """
     namen = [p for p in ANPASSUNG if raumfuehler or p != KOMPENSATION]
-    return any((_aktuell(parameter_verlauf, p) or 0) > 0 for p in namen)
+    return any((aktuell(parameter_verlauf, p) or 0) > 0 for p in namen)
 
 
-def _reihen(
-    tage: Sequence[Tag], parameter_verlauf: Mapping[str, Any], heute: date | str
-) -> dict[str, list[Any]]:
+def _reihen(basen: Basen) -> dict[str, list[Any]]:
     """Je Art die gezählten Werte, mit denselben Filtern wie `hinweise`: Tage im Band, Soll, Minuten."""
-
-    def basis(gruppe: str) -> list[Tag]:
-        return _grundlage(tage, _seit(parameter_verlauf, gruppe), str(heute), gruppe)
-
-    kurve = basis("kurve")
+    kurve = basen["kurve"][0]
     return {
         "kurve_uebergang": _band(kurve, _uebergang),
         "kurve_frost": _band(kurve, _frost),
         "kurve": _mit_abweichung(kurve),
-        "sollwert": [t.soll for t in basis("sollwert") if t.soll is not None],
-        "morgen": [t.morgen_min for t in basis("morgen") if t.morgen_min is not None],
+        "sollwert": [t.soll for t in basen["sollwert"][0] if t.soll is not None],
+        "morgen": [t.morgen_min for t in basen["morgen"][0] if t.morgen_min is not None],
     }
 
 
@@ -529,7 +553,8 @@ def fortschritt(
     tage: Sequence[Tag], parameter_verlauf: Mapping[str, Any], heute: date | str
 ) -> dict[str, int]:
     """Gezählte Tage je Hinweisart."""
-    return {art: len(werte) for art, werte in _reihen(tage, parameter_verlauf, heute).items()}
+    reihen = _reihen(_basen(tage, parameter_verlauf, heute))
+    return {art: len(werte) for art, werte in reihen.items()}
 
 
 def _richtung(wert: float, schwelle: float, darueber: str) -> str:
@@ -550,29 +575,54 @@ def _tendenz(art: str, werte: list[Any]) -> Tendenz:
     return Tendenz(art, len(werte), richtung, d)
 
 
+def _tendenzen(
+    reihen: dict[str, list[Any]], p: Mapping[str, Any], gezeigt: list[str], kreis: Kreis
+) -> list[Tendenz]:
+    passt_an = _passt_an(p, kreis.raumfuehler)
+    return [
+        _tendenz(art, reihen[art])
+        for art in gezeigt
+        if MIN_VORLAEUFIG <= len(reihen[art]) < MIN_TAGE
+        and not (passt_an and art.startswith("kurve"))
+    ]
+
+
 def tendenzen(
     tage: Sequence[Tag],
     parameter_verlauf: Mapping[str, Any],
     heute: date | str,
     *,
-    heizkreis_typ: int = RADIATOREN,
-    raumfuehler: bool = False,
+    kreis: Kreis = STANDARDKREIS,
 ) -> list[Tendenz]:
     """Je Art aus `arten` mit mindestens `MIN_VORLAEUFIG`, aber weniger als `MIN_TAGE` Tagen."""
-    passt_an = _passt_an(parameter_verlauf, raumfuehler)
-    reihen = _reihen(tage, parameter_verlauf, heute)
-    return [
-        _tendenz(art, reihen[art])
-        for art in arten(parameter_verlauf, heizkreis_typ=heizkreis_typ)
-        if MIN_VORLAEUFIG <= len(reihen[art]) < MIN_TAGE
-        and not (passt_an and art.startswith("kurve"))
-    ]
+    reihen = _reihen(_basen(tage, parameter_verlauf, heute))
+    return _tendenzen(reihen, parameter_verlauf, arten(parameter_verlauf, kreis=kreis), kreis)
+
+
+def auswerten(
+    tage: Sequence[Tag],
+    parameter_verlauf: Mapping[str, Any],
+    heute: date | str,
+    *,
+    kreis: Kreis = STANDARDKREIS,
+) -> Auswertung:
+    """Arten, Hinweise, Tendenzen und Fortschritt in einem Durchgang, wie die Einzelfunktionen."""
+    basen = _basen(tage, parameter_verlauf, heute)
+    reihen = _reihen(basen)
+    gezeigt = arten(parameter_verlauf, kreis=kreis)
+    return Auswertung(
+        arten=gezeigt,
+        hinweise=_hinweise(basen, reihen, parameter_verlauf, gezeigt, kreis),
+        tendenzen=_tendenzen(reihen, parameter_verlauf, gezeigt, kreis),
+        fortschritt={art: len(werte) for art, werte in reihen.items()},
+        grundlage=len(basen["kurve"][0]),
+    )
 
 
 def parameterstand(parameter_verlauf: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
     """Je Parameter der aktuelle Wert und das Datum der letzten Änderung; der Anfangsstand hat keins."""
     stand = {}
     for name, verlauf in parameter_verlauf.items():
-        if (wert := _aktuell(parameter_verlauf, name)) is not None:
+        if (wert := aktuell(parameter_verlauf, name)) is not None:
             stand[name] = {"wert": wert, "seit": str(verlauf[-1][0]) if len(verlauf) > 1 else None}
     return stand

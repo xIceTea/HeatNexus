@@ -112,11 +112,6 @@ def unique_id(device_id: str, art: str) -> str:
     return f"{device_id}{AUTOMATIK_MARKE}{art}"
 
 
-def _meldet_optimierung(konfig: dict[str, Any]) -> bool:
-    """Ob die Ergebnisse der Optimierung in der Seitenleiste stehen sollen."""
-    return bool(konfig.get("hinweise")) and bool(konfig.get("hinweise_melden"))
-
-
 def _geraete_umhaengen(register: dr.DeviceRegistry, entry: ConfigEntry, sub_id: str) -> None:
     """Automatik-Geräte vom Haupteintrag in den Untereintrag verschieben.
 
@@ -421,8 +416,6 @@ class Verwaltung:
             if neu["modus"] == "beobachten" and alt["modus"] != "beobachten":
                 laufzeit.beobachtet_seit = dt_util.now()
             await laufzeit.neu_starten(neu, entscheidungszeit=gewechselt and neu["aktiv"])
-            if _meldet_optimierung(alt) != _meldet_optimierung(neu):
-                laufzeit.optimierung_melden()
         eintrag["konfig"] = neu
         self.speichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(device_id))

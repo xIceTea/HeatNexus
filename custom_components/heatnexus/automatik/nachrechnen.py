@@ -31,6 +31,10 @@ class Reihen:
     # Je Raum in der Reihenfolge von `raeume`: 1, solange sein Thermostat aus ist; ohne Reihe nie.
     aus: list[Reihe] = field(default_factory=list)
     vi: Reihe = field(default_factory=list)  # Vorlauf-Ist `0/2`
+    # Behaglichkeit `3/58`; sie verschiebt `1/1`. Das Raumsoll der Stunde zählt ohne sie.
+    behaglichkeit: Reihe = field(default_factory=list)
+    # Mit eigenen Raumzielen bleibt die Abweichung gegen diese Ziele unverändert.
+    eigene_ziele: bool = False
 
 
 class _Stufe:
@@ -65,6 +69,8 @@ class _Stufen:
     raum_art: str
     aus: list[_Stufe]
     vi: _Stufe
+    behaglichkeit: _Stufe
+    eigene_ziele: bool
 
 
 def _vorbereiten(reihen: Reihen) -> _Stufen:
@@ -81,6 +87,8 @@ def _vorbereiten(reihen: Reihen) -> _Stufen:
         raum_art=reihen.raum_art,
         aus=[_Stufe(reihe) for reihe in reihen.aus],
         vi=_Stufe(reihen.vi),
+        behaglichkeit=_Stufe(reihen.behaglichkeit),
+        eigene_ziele=reihen.eigene_ziele,
     )
 
 
@@ -131,11 +139,13 @@ def _abweichung(
 def _felder(stufen: _Stufen, beginn: datetime, ende: datetime) -> dict[str, Any]:
     """Die Felder einer Stunde aus den Werten zum Stundenbeginn; eine Restzeit zählt jederzeit."""
     soll = stufen.soll.zur_stunde(beginn, ende)
+    behaglichkeit = stufen.behaglichkeit.zur_stunde(beginn, ende) or 0.0
+    basis = None if soll is None else round(soll - behaglichkeit, 2)
     ba = stufen.ba.zur_stunde(beginn, ende)
     felder = {
         "at": stufen.at.zur_stunde(beginn, ende),
-        "ab": _abweichung(stufen, beginn, ende, soll),
-        "soll": soll,
+        "ab": _abweichung(stufen, beginn, ende, soll if stufen.eigene_ziele else basis),
+        "soll": basis,
         "vl": stufen.vl.zur_stunde(beginn, ende),
         "vi": stufen.vi.zur_stunde(beginn, ende),
         "ba": None if ba is None else int(ba),

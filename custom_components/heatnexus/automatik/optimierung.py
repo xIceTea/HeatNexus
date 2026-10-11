@@ -26,20 +26,21 @@ from .vorausschau import LERNTAGE
 
 _LOGGER = logging.getLogger(__name__)
 ARCHIV_TAGE = 150
-# Heizkurve, Behaglichkeit, Vorhaltezeit, Raumsollwert, die eigene Anpassung der Steuerung
-# und der Heizkreistyp.
-HEIZKREISTYP = "/7/76/0"
+# Heizkurve, Behaglichkeit, Vorhaltezeit, Raumsollwert und die eigene Anpassung der Steuerung.
+BEHAGLICHKEIT = "/3/58/0"
 PARAMETER = (
     "/3/1/0",
     "/3/12/0",
     "/3/13/0",
     "/3/7/0",
-    "/3/58/0",
+    BEHAGLICHKEIT,
     "/3/6/0",
     "/3/51/0",
     "/3/101/0",
-    HEIZKREISTYP,
 )
+# Der Heizkreistyp wird mit den Parametern gelesen, hat aber keine Entität in der Kachel.
+HEIZKREISTYP = "/7/76/0"
+GELESEN = (*PARAMETER, HEIZKREISTYP)
 LESEZEIT = {"hour": 0, "minute": 40, "second": 0}
 # Raumsoll, Vorlauf-Soll und -Ist, Betriebsart und Restzeit: was `_stundenfelder` live liest.
 VORLAUF_IST = "/0/2/0"
@@ -171,9 +172,17 @@ def _parameterwert(roh: Any) -> float | str | None:
     return zahl if math.isfinite(zahl) else str(roh)
 
 
-def _ziel_mit_behaglichkeit(konfig: dict[str, Any]) -> bool:
-    """Ob die Abweichung gegen `1/1` zählt: ohne Thermostat und ohne eigene Wunschtemperatur."""
-    return not eingaben.hat_thermostat(konfig["raeume"]) and konfig.get("raum_ziel") is None
+def _tagesstufen(eintraege: list[list[Any]], anfang: date) -> nachrechnen.Reihe:
+    """Ein Parameterverlauf als Reihe ab Tagesbeginn; der erste Stand gilt schon ab `anfang`."""
+    reihe: nachrechnen.Reihe = []
+    for datum, wert in eintraege:
+        try:
+            tag = anfang if not reihe else max(date.fromisoformat(str(datum)), anfang)
+        except ValueError:
+            continue
+        zahl = _parameterwert(wert)
+        reihe.append((dt_util.start_of_local_day(tag), zahl if isinstance(zahl, float) else None))
+    return reihe
 
 
 def _parameter_laden(roh: Any) -> dict[str, list[list[Any]]]:
@@ -208,7 +217,7 @@ class OptimierungMixin:
         self.parameter_eingeschaltet = z.get("parameter_eingeschaltet") is True
         self._parameteraufgabe: Any = None
         self._nachrechenaufgabe: Any = None
-        # Nur im Speicher: Eine Steuerung ohne `7/76` wird nicht bei jedem Start erneut gelesen.
+        # Nur im Speicher: Fehlt `7/76`, wird je Start von Home Assistant einmal zusätzlich gelesen.
         self._typ_versucht = False
 
     def optimierung_als_dict(self) -> dict[str, Any]:
@@ -247,14 +256,25 @@ class OptimierungMixin:
                 continue
         return tage
 
+    def _behaglichkeit(self) -> float:
+        """Die Behaglichkeit `3/58` jetzt; ungelesen der zuletzt gelesene Stand, sonst 0."""
+        wert = self._wert(BEHAGLICHKEIT)
+        if wert is None:
+            wert = optimierer.aktuell(self.parameter_verlauf, _schluessel(BEHAGLICHKEIT))
+        return wert or 0.0
+
     def _stundenfelder(self) -> dict[str, Any]:
         """Abweichung, Raumsoll, Vorlauf-Soll und -Ist und Betriebsart aus der letzten Lage.
 
-        Eine Vorgabe des Nutzers und das Beobachten werden vermerkt; sie entscheiden, ob der Tag zählt.
+        Raumsoll und Abweichung zählen ohne die Behaglichkeit, die `1/1` verschiebt; eigene
+        Raumziele bleiben. Vorgabe des Nutzers und Beobachten entscheiden, ob der Tag zählt.
         """
         if (lage := self.lage) is None:
             return {}
+        behaglichkeit = self._behaglichkeit()
         soll = regel.soll_bezug(lage, self.gedaechtnis)
+        if soll is not None and not eingaben.eigene_ziele(self.konfig):
+            soll -= behaglichkeit
         genug = lage.raeume and lage.raeume_fehlen_seit is None
         ab = round(regel.abweichung(lage, soll), 2) if soll is not None and genug else None
         # Eine Restzeit ohne eigene Absenkung stammt vom Nutzer (Eco/Comfort an Steuerung oder App).
@@ -263,7 +283,7 @@ class OptimierungMixin:
         vorgabe = (self._wert("/2/10/0") or 0) > 0 and not eigen
         felder = {
             "ab": ab,
-            "soll": lage.soll,
+            "soll": None if lage.soll is None else round(lage.soll - behaglichkeit, 2),
             "vl": lage.vl_soll,
             "vi": self._wert(VORLAUF_IST),
             "ba": lage.betriebsart,
@@ -285,9 +305,10 @@ class OptimierungMixin:
             ende = dt_util.start_of_local_day(heute)
             if (zustaende := await self._verlauf_lesen(*quellen.lesen(), ende)) is None:
                 return 0
-            neu = self._tage_nachrechnen(zustaende, quellen, offen)
+            # Zuerst die Parameter: Ihr Verlauf liefert die Behaglichkeit der nachgerechneten Tage.
             anfang = heute - timedelta(days=NACHRECHNEN_TAGE)
             self._parameter_nachtragen(zustaende, quellen.parameter, anfang)
+            neu = self._tage_nachrechnen(zustaende, quellen, offen)
         self.archiv_nachgerechnet = NACHRECHNEN_FASSUNG
         self.nachgetragen()
         return len(neu)
@@ -312,7 +333,7 @@ class OptimierungMixin:
             werte=werte,
             raeume=list(self.konfig["raeume"]),
             parameter={
-                _schluessel(a): kennung for a in PARAMETER if (kennung := self._verlaufsentitaet(a))
+                _schluessel(a): kennung for a in GELESEN if (kennung := self._verlaufsentitaet(a))
             },
             klima=None if werte["restzeit"] else self._klima_entitaet(),
         )
@@ -344,6 +365,11 @@ class OptimierungMixin:
             raeume=[(ist, ziel) for ist, ziel, _ in raeume],
             raum_art=self.konfig["raum_art"],
             aus=[aus for _, _, aus in raeume],
+            behaglichkeit=_tagesstufen(
+                self.parameter_verlauf.get(_schluessel(BEHAGLICHKEIT), []),
+                dt_util.now().date() - timedelta(days=NACHRECHNEN_TAGE),
+            ),
+            eigene_ziele=eingaben.eigene_ziele(self.konfig),
         )
 
     def _tage_nachrechnen(
@@ -406,7 +432,7 @@ class OptimierungMixin:
             return
         register = er.async_get(self.hass)
         for adresse in PARAMETER:
-            if adresse == HEIZKREISTYP or _schluessel(adresse) not in stand:
+            if _schluessel(adresse) not in stand:
                 continue
             kennung = self._verlaufsentitaet(adresse)
             eintrag = register.async_get(kennung) if kennung else None
@@ -440,7 +466,7 @@ class OptimierungMixin:
     async def parameter_lesen(self) -> None:
         """Die Kurvenparameter lesen; ein Eintrag entsteht nur, wo sich der Wert geändert hat."""
         heute = dt_util.now().date().isoformat()
-        oids = {f"{self.prefix}{adresse}": _schluessel(adresse) for adresse in PARAMETER}
+        oids = {f"{self.prefix}{adresse}": _schluessel(adresse) for adresse in GELESEN}
         try:
             gelesen = await self.coordinator.client.fetch_oids(list(oids))
         except Exception as fehler:  # die Hinweise sind eine Zugabe; der Betrieb läuft weiter
@@ -459,23 +485,14 @@ class OptimierungMixin:
         self._speichern()
 
     # --- Auswertung ----------------------------------------------------------
-    def _heizkreis(self) -> dict[str, Any]:
+    def _heizkreis(self) -> optimierer.Kreis:
         """Heizkreistyp und Raumfühler, wie der Optimierer sie erwartet."""
-        return {
-            "heizkreis_typ": optimierer.heizkreis_typ(
-                self.parameter_verlauf, self.konfig.get("heizflaechen")
-            ),
-            "raumfuehler": self._wert(RAUMFUEHLER) is not None,
-        }
+        typ = optimierer.heizkreis_typ(self.parameter_verlauf, self.konfig.get("heizflaechen"))
+        return optimierer.Kreis(typ, raumfuehler=self._wert(RAUMFUEHLER) is not None)
 
     def hinweise_liste(self, heute: date | str) -> list[optimierer.Hinweis]:
-        return optimierer.hinweise(
-            self.archivierte_tage(),
-            self.parameter_verlauf,
-            heute,
-            **self._heizkreis(),
-            ziel_mit_behaglichkeit=_ziel_mit_behaglichkeit(self.konfig),
-        )
+        tage = self.archivierte_tage()
+        return optimierer.hinweise(tage, self.parameter_verlauf, heute, kreis=self._heizkreis())
 
     def hinweise_stand(self, heute: date | str) -> dict[str, Any]:
         """Die Kachel „Optimierung“; ohne eingeschalteten Schalter nur `{"status": "aus"}`.
@@ -488,27 +505,21 @@ class OptimierungMixin:
         if not self.konfig.get("hinweise"):
             return {"status": "aus"}
         tage = self.archivierte_tage()
-        kreis = self._heizkreis()
-        eintraege = self.hinweise_liste(heute)
-        grundlage = optimierer.grundlage(tage, self.parameter_verlauf, heute)
+        a = optimierer.auswerten(tage, self.parameter_verlauf, heute, kreis=self._heizkreis())
         zuletzt = _letzte_tage(tage, heute)
+        stand = optimierer.parameterstand(self.parameter_verlauf)
         return {
-            "status": "bereit" if eintraege else "sammelt",
-            "tage": len(grundlage),
+            "status": "bereit" if a.hinweise else "sammelt",
+            "tage": a.grundlage,
             "noetig": optimierer.MIN_TAGE,
-            "eintraege": [asdict(h) for h in eintraege],
-            "fortschritt": optimierer.fortschritt(tage, self.parameter_verlauf, heute),
+            "eintraege": [asdict(h) for h in a.hinweise],
+            "fortschritt": a.fortschritt,
             "aufgezeichnet": len(zuletzt),
             "ohne_grundlage": sum(not t.ungestoert for t in zuletzt),
-            "entitaeten": self._ergebnis_entitaeten(
-                stand := optimierer.parameterstand(self.parameter_verlauf)
-            ),
-            "vorlaeufig": [
-                asdict(t)
-                for t in optimierer.tendenzen(tage, self.parameter_verlauf, heute, **kreis)
-            ],
+            "entitaeten": self._ergebnis_entitaeten(stand),
+            "vorlaeufig": [asdict(t) for t in a.tendenzen],
             "parameter": stand,
-            "arten": optimierer.arten(self.parameter_verlauf, heizkreis_typ=kreis["heizkreis_typ"]),
+            "arten": a.arten,
         }
 
     # --- Seitenleiste --------------------------------------------------------

@@ -61,7 +61,7 @@ const PARAMETERNAMEN = {
 };
 
 /** Hinweise zur Kurve ohne eigenen Parameter öffnen die Behaglichkeit. */
-const KURVE_OHNE_PARAMETER = { kurvenform: "3/58", heizkurve_parallel: "3/58" };
+const KURVE_OHNE_PARAMETER = { kurvenform: "3/58" };
 
 /** Ausgewertete Arten, wenn der Server keine `arten` nennt: Kurve in zwei Bändern. */
 const STANDARD_ARTEN = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"];

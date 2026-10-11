@@ -129,7 +129,7 @@ def _eintrag(
             "raum": lage.raum if lage else None,
             "soll": soll,
             "abweichung": abweichung,
-            "eigene_ziele": thermostate or laufzeit.konfig.get("raum_ziel") is not None,
+            "eigene_ziele": eingaben.eigene_ziele(laufzeit.konfig),
             # Gemeinsamer Bezug der Raumwerte im Stundenraster; Thermostate haben je Raum eigene.
             "raum_bezug": None if thermostate else laufzeit.konfig.get("raum_ziel") or soll,
             "at": lage.at if lage else None,

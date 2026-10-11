@@ -2984,7 +2984,7 @@ async def test_die_parameterlesung_traegt_nur_aenderungen_ein(hass, anlage, free
     }
     assert laufzeit.parameter_gelesen == "2026-09-29"
     assert sorted(coordinator.client.abfragen[-1]) == sorted(
-        f"{PREFIX}{adresse}" for adresse in optimierung.PARAMETER
+        f"{PREFIX}{adresse}" for adresse in optimierung.GELESEN
     )
 
 
@@ -3182,29 +3182,34 @@ async def test_kompensation_zaehlt_nur_mit_raumfuehler(hass, hass_ws_client, anl
 
 
 @pytest.mark.parametrize(
-    ("raeume", "raum_ziel", "nach"),
+    ("raum_ziel", "behaglichkeit", "verlauf", "ab"),
     [
-        (["sensor.wohnzimmer"], None, None),
-        (["sensor.wohnzimmer"], 21.0, 1.0),
-        (["climate.bad"], None, 1.0),
+        (None, "1.0", None, 0.0),
+        (None, None, 1.0, 0.0),
+        (None, None, None, -1.0),
+        (21.0, "1.0", None, 1.0),
     ],
 )
-async def test_behaglichkeit_folgt_dem_bezug_der_abweichung(
-    hass, anlage, freezer, raeume, raum_ziel, nach
+async def test_die_stunde_zaehlt_gegen_das_raumsoll_ohne_behaglichkeit(
+    hass, anlage, freezer, raum_ziel, behaglichkeit, verlauf, ab
 ):
-    # Gegen `1/1` gemessen ist die eingestellte Behaglichkeit von 0,5 K schon enthalten.
-    verwaltung, _ = anlage
+    # `1/1` = 23 °C enthält 1 K Behaglichkeit; ungelesen gilt der gelesene Stand, sonst 0.
+    verwaltung, coordinator = anlage
     freezer.move_to(MORGEN)
     laufzeit = await _eingerichtet(hass, verwaltung)
-    laufzeit.konfig = {**laufzeit.konfig, "raeume": raeume, "raum_ziel": raum_ziel}
-    laufzeit.tage_archiv = _frosttage(8, -0.7)
-    laufzeit.parameter_verlauf = {"3/58": [["2026-08-01", 0.5]]}
+    laufzeit.konfig = {**laufzeit.konfig, "raum_ziel": raum_ziel}
+    coordinator.data["oids"][f"{PREFIX}/1/1/0"] = "23.0"
+    if behaglichkeit is not None:
+        coordinator.data["oids"][f"{PREFIX}/3/58/0"] = behaglichkeit
+    if verlauf is not None:
+        laufzeit.parameter_verlauf = {"3/58": [["2026-08-01", verlauf]]}
+    hass.states.async_set("sensor.wohnzimmer", "22.0")
+    await laufzeit.auswerten()
 
-    liste = laufzeit.hinweise_liste(MORGEN[:10])
+    felder = laufzeit._stundenfelder()
 
-    assert [(h.art, h.von, h.nach) for h in liste] == (
-        [] if nach is None else [("heizkurve_parallel", 0.5, nach)]
-    )
+    assert felder["ab"] == ab
+    assert felder["soll"] == (23.0 if ab == -1.0 else 22.0)
 
 
 OPTIMIERUNG = f"heatnexus_optimierung_{HEIZKREIS}"

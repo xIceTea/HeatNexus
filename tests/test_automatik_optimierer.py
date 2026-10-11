@@ -449,7 +449,7 @@ def test_aktueller_wert_ist_letzter_eintrag(m):
 def test_steuerung_passt_an_unterdrueckt_kurvenhinweise(m):
     tage = reihe(m, 7, -3.0, -1.4) + reihe(m, 7, 10.0, 1.0, ab_tag=7)
     for p in (parameter(p3_7=2.0), parameter(p3_101=5.0)):
-        (h,) = m.hinweise(tage, p, HEUTE, raumfuehler=True)
+        (h,) = m.hinweise(tage, p, HEUTE, kreis=m.Kreis(raumfuehler=True))
         assert (h.art, h.tage, h.seit) == ("steuerung_passt_an", 14, None)
 
 
@@ -515,9 +515,11 @@ def test_eine_kurve_ohne_behaglichkeit_nennt_nur_die_richtung(m):
 
 def test_steuerung_passt_an_gilt_auch_fuer_eine_kurve(m):
     tage = reihe(m, 7, 2.0, -1.4, soll=None)
-    (h,) = m.hinweise(tage, ohne_baender(p3_7=1.5), HEUTE, raumfuehler=True)
+    (h,) = m.hinweise(tage, ohne_baender(p3_7=1.5), HEUTE, kreis=m.Kreis(raumfuehler=True))
     assert (h.art, h.tage) == ("steuerung_passt_an", 7)
-    assert m.tendenzen(tage[:4], ohne_baender(p3_7=1.5), HEUTE, raumfuehler=True) == []
+    assert (
+        m.tendenzen(tage[:4], ohne_baender(p3_7=1.5), HEUTE, kreis=m.Kreis(raumfuehler=True)) == []
+    )
 
 
 def test_arten_folgen_den_kurvenpunkten(m):
@@ -648,7 +650,7 @@ def test_reihenfolge(m):
         "sollwert_ausgleich",
         "morgen_spaet",
     ]
-    assert arten(m.hinweise(tage, parameter(p3_7=1.0), HEUTE, raumfuehler=True)) == [
+    assert arten(m.hinweise(tage, parameter(p3_7=1.0), HEUTE, kreis=m.Kreis(raumfuehler=True))) == [
         "steuerung_passt_an",
         "sollwert_ausgleich",
         "morgen_spaet",
@@ -822,7 +824,7 @@ def test_tendenzen_folgen_den_arten(m):
 
 def test_steuerung_passt_an_unterdrueckt_kurventendenz(m):
     tage = reihe(m, 4, 10.0, -1.0, soll=None)
-    assert m.tendenzen(tage, parameter(p3_7=1.0), HEUTE, raumfuehler=True) == []
+    assert m.tendenzen(tage, parameter(p3_7=1.0), HEUTE, kreis=m.Kreis(raumfuehler=True)) == []
 
 
 def test_tendenz_zaehlt_wie_der_fortschritt(m):
@@ -882,30 +884,30 @@ def test_kurvenform_nur_bei_einer_kurve(m):
 def test_heizkreis_ohne_kurve_bekommt_keine_kurvenhinweise(m, typ):
     # Ohne Heizkurve entfällt auch der Sollwert: sein Rat verweist auf die Kurve.
     tage = reihe(m, 7, -3.0, -1.4, soll=23.0)
-    assert m.arten(parameter(), heizkreis_typ=typ) == ["morgen"]
-    assert m.hinweise(tage, parameter(), HEUTE, heizkreis_typ=typ) == []
+    assert m.arten(parameter(), kreis=m.Kreis(typ)) == ["morgen"]
+    assert m.hinweise(tage, parameter(), HEUTE, kreis=m.Kreis(typ)) == []
     p = parameter(p3_7=2.0)
-    assert m.hinweise(tage, p, HEUTE, heizkreis_typ=typ, raumfuehler=True) == []
+    assert m.hinweise(tage, p, HEUTE, kreis=m.Kreis(typ, raumfuehler=True)) == []
     kurz = reihe(m, 4, -3.0, -1.4, soll=23.0)
-    assert m.tendenzen(kurz, parameter(), HEUTE, heizkreis_typ=typ) == []
+    assert m.tendenzen(kurz, parameter(), HEUTE, kreis=m.Kreis(typ)) == []
     morgen = reihe(m, 7, -3.0, -1.4, soll=23.0, morgen=90)
-    assert arten(m.hinweise(morgen, parameter(), HEUTE, heizkreis_typ=typ)) == ["morgen_spaet"]
+    assert arten(m.hinweise(morgen, parameter(), HEUTE, kreis=m.Kreis(typ))) == ["morgen_spaet"]
 
 
 def test_fussboden_bekommt_keine_morgenhinweise(m):
     tage = reihe(m, 7, 2.0, 0.0, morgen=90)
-    assert m.arten(parameter(), heizkreis_typ=2) == ["kurve_uebergang", "kurve_frost", "sollwert"]
-    assert m.arten(ohne_baender(), heizkreis_typ=2) == ["kurve", "sollwert"]
-    assert m.hinweise(tage, parameter(), HEUTE, heizkreis_typ=2) == []
-    assert m.hinweise(reihe(m, 7, 2.0, 0.0, morgen=0), parameter(), HEUTE, heizkreis_typ=2) == []
+    assert m.arten(parameter(), kreis=m.Kreis(2)) == ["kurve_uebergang", "kurve_frost", "sollwert"]
+    assert m.arten(ohne_baender(), kreis=m.Kreis(2)) == ["kurve", "sollwert"]
+    assert m.hinweise(tage, parameter(), HEUTE, kreis=m.Kreis(2)) == []
+    assert m.hinweise(reihe(m, 7, 2.0, 0.0, morgen=0), parameter(), HEUTE, kreis=m.Kreis(2)) == []
     kurz = reihe(m, 4, 2.0, 0.0, soll=None, morgen=90)
-    assert m.tendenzen(kurz, parameter(), HEUTE, heizkreis_typ=2) == []
+    assert m.tendenzen(kurz, parameter(), HEUTE, kreis=m.Kreis(2)) == []
 
 
 def test_fussboden_rechnet_mit_kleinerem_faktor(m):
     # −1,4 K × 1,3 × 0,7 = −1,27 K; +0,8 K × 1,3 × 0,7 = +0,73 K.
     tage = reihe(m, 7, -3.0, -1.4) + reihe(m, 7, 10.0, 0.8, ab_tag=7)
-    liste = m.hinweise(tage, parameter(), HEUTE, heizkreis_typ=2)
+    liste = m.hinweise(tage, parameter(), HEUTE, kreis=m.Kreis(2))
     assert [(h.art, h.nach) for h in liste] == [
         ("heizkurve_frost", 81.0),
         ("heizkurve_uebergang", 44.0),
@@ -915,9 +917,9 @@ def test_fussboden_rechnet_mit_kleinerem_faktor(m):
 def test_hinweis_ueber_der_schwelle_aendert_mindestens_ein_grad(m):
     # −0,52 K × 1,3 × 0,7 = −0,47 K rundet auf null; der Hinweis nennt dann ein Grad.
     p = parameter(p3_13=60.0)
-    (h,) = m.hinweise(reihe(m, 7, -3.0, -0.52), p, HEUTE, heizkreis_typ=2)
+    (h,) = m.hinweise(reihe(m, 7, -3.0, -0.52), p, HEUTE, kreis=m.Kreis(2))
     assert (h.art, h.von, h.nach) == ("heizkurve_frost", 60.0, 61.0)
-    (h,) = m.hinweise(reihe(m, 7, -3.0, 0.52), p, HEUTE, heizkreis_typ=2)
+    (h,) = m.hinweise(reihe(m, 7, -3.0, 0.52), p, HEUTE, kreis=m.Kreis(2))
     assert (h.art, h.von, h.nach) == ("heizkurve_frost", 60.0, 59.0)
 
 
@@ -930,7 +932,7 @@ def test_aenderung_des_heizkreistyps_setzt_die_kurvengrundlage_zurueck(m):
 
 def test_behaglichkeit_wird_nicht_gedaempft(m):
     tage = reihe(m, 7, -3.0, -1.0) + reihe(m, 7, 10.0, -1.0, ab_tag=7)
-    (h,) = m.hinweise(tage, parameter(), HEUTE, heizkreis_typ=2)
+    (h,) = m.hinweise(tage, parameter(), HEUTE, kreis=m.Kreis(2))
     assert (h.art, h.nach) == ("heizkurve_parallel", 1.0)
 
 
@@ -967,50 +969,54 @@ def test_stunde_mit_verfehltem_vorlauf_ist_nicht_sauber(m):
     assert m.tag_aus_stunden("2026-11-03", stunden).sauber == 14
 
 
-# --- Behaglichkeit, wenn die Abweichung gegen `1/1` gemessen ist ----------
+# --- Behaglichkeit, die Abweichung gilt dem Raumsoll ohne `3/58` -------------
 
 
 @pytest.mark.parametrize(
-    ("von", "d", "absolut", "nach"),
+    ("von", "d", "nach"),
     [
-        (0.0, -0.7, False, 0.5),
-        (0.5, -0.9, False, 1.5),
-        (0.0, -0.7, True, 0.5),
-        (0.5, -1.4, True, 1.5),
-        (2.0, 1.0, True, -1.0),
-        (2.0, 1.0, False, 1.0),
+        (0.0, -0.7, 0.5),
+        (0.5, -0.7, 1.0),
+        (0.5, -0.9, 1.5),
+        (1.0, 1.0, 0.0),
+        (2.0, 1.0, 1.0),
     ],
 )
-def test_behaglichkeit_gegen_den_raumsoll_gilt_absolut(m, von, d, absolut, nach):
-    # `1/1` enthält die Behaglichkeit: Raum = Basis + c + d, also braucht es absolut c = −d.
-    p = ohne_baender(p3_58=von)
-    (h,) = m.hinweise(reihe(m, 7, 2.0, d), p, HEUTE, ziel_mit_behaglichkeit=absolut)
+def test_behaglichkeit_verschiebt_sich_um_die_abweichung(m, von, d, nach):
+    # Raum = Basis + Fehler der Kurve, gemessen gegen die Basis: die neue Behaglichkeit ist c − d.
+    (h,) = m.hinweise(reihe(m, 7, 2.0, d), ohne_baender(p3_58=von), HEUTE)
     assert (h.art, h.parameter, h.von, h.nach) == ("heizkurve_parallel", "3/58", von, nach)
 
 
-def test_eingestellte_behaglichkeit_wird_nicht_weiter_erhoeht(m):
-    # c = 0,5 K und −0,7 K gegen `1/1`: absolut gerundet 0,5 K, eingestellt ist sie schon.
-    tage = reihe(m, 7, 2.0, -0.7)
-    assert m.hinweise(tage, ohne_baender(p3_58=0.5), HEUTE, ziel_mit_behaglichkeit=True) == []
-    (h,) = m.hinweise(tage, ohne_baender(p3_58=0.5), HEUTE)
-    assert h.nach == 1.0
-    (h,) = m.hinweise(tage, ohne_baender(p3_58=0.0), HEUTE, ziel_mit_behaglichkeit=True)
-    assert (h.von, h.nach) == (0.0, 0.5)
+def test_kleine_abweichung_aendert_die_behaglichkeit_nicht(m):
+    assert m.hinweise(reihe(m, 7, 2.0, -0.2), ohne_baender(p3_58=0.5), HEUTE) == []
 
 
-def test_parallele_baender_gegen_den_raumsoll(m):
+def test_parallele_baender_verschieben_die_behaglichkeit(m):
     tage = reihe(m, 7, -3.0, -0.7) + reihe(m, 7, 10.0, -0.7, ab_tag=7)
-    assert m.hinweise(tage, parameter(p3_58=0.5), HEUTE, ziel_mit_behaglichkeit=True) == []
-    (h,) = m.hinweise(tage, parameter(p3_58=0.0), HEUTE, ziel_mit_behaglichkeit=True)
-    assert (h.art, h.von, h.nach) == ("heizkurve_parallel", 0.0, 0.5)
+    (h,) = m.hinweise(tage, parameter(p3_58=0.5), HEUTE)
+    assert (h.art, h.von, h.nach) == ("heizkurve_parallel", 0.5, 1.0)
 
 
-def test_behaglichkeit_gegen_den_raumsoll_am_anschlag(m):
-    tage = reihe(m, 7, 2.0, -4.0)
-    (h,) = m.hinweise(tage, ohne_baender(p3_58=3.0), HEUTE, ziel_mit_behaglichkeit=True)
+def test_behaglichkeit_an_der_grenze(m):
+    tage = reihe(m, 7, 2.0, -1.0)
+    (h,) = m.hinweise(tage, ohne_baender(p3_58=3.0), HEUTE)
     assert (h.von, h.nach, h.anschlag) == (3.0, None, True)
-    (h,) = m.hinweise(tage, ohne_baender(p3_58=1.0), HEUTE, ziel_mit_behaglichkeit=True)
-    assert (h.von, h.nach, h.anschlag) == (1.0, 3.0, False)
+    (h,) = m.hinweise(tage, ohne_baender(p3_58=2.5), HEUTE)
+    assert (h.von, h.nach, h.anschlag) == (2.5, 3.0, False)
+
+
+def test_auswertung_entspricht_den_einzelfunktionen(m):
+    tage = reihe(m, 7, -3.0, -1.4, soll=23.0, morgen=90) + reihe(m, 5, 10.0, 0.6, ab_tag=7)
+    p = parameter()
+    kreis = m.Kreis(m.FUSSBODEN)
+    a = m.auswerten(tage, p, HEUTE, kreis=kreis)
+    assert a.arten == m.arten(p, kreis=kreis)
+    assert a.hinweise == m.hinweise(tage, p, HEUTE, kreis=kreis)
+    assert a.tendenzen == m.tendenzen(tage, p, HEUTE, kreis=kreis)
+    assert a.fortschritt == m.fortschritt(tage, p, HEUTE)
+    assert a.grundlage == len(m.grundlage(tage, p, HEUTE)) == 12
+    assert a.hinweise and a.tendenzen
 
 
 # --- Text für die Seitenleiste --------------------------------------------

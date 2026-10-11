@@ -913,13 +913,8 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
         ],
         ["Raumsollwert", "Unauffällig", "Vorläufig · Sollwert 21,0 °C · 3 von 7 Tagen"],
     ]
-    # Auch die Hinweise ohne Parameter öffnen die Behaglichkeit.
-    assert kurve["ergebnis"]["klickbar"] == [
-        "Heizkurve",
-        "Heizkurve",
-        "Heizkurve",
-        "Morgens schon warm",
-    ]
+    # Ein Hinweis nur mit Richtung hat keinen gelesenen Parameter und öffnet nichts.
+    assert kurve["ergebnis"]["klickbar"] == ["Heizkurve", "Morgens schon warm"]
     tendenz_kurve = hinweise["kurveTendenz"]
     assert (tendenz_kurve["zahl"], tendenz_kurve["fuss"]) == (
         "0/3",

@@ -70,6 +70,11 @@ def hat_thermostat(raeume: Iterable[str]) -> bool:
     return any(map(ist_thermostat, raeume))
 
 
+def eigene_ziele(konfig: Mapping[str, Any]) -> bool:
+    """Ob die Räume eigene Ziele haben (Thermostate oder Wunschtemperatur); sonst gilt `1/1`."""
+    return hat_thermostat(konfig["raeume"]) or konfig.get("raum_ziel") is not None
+
+
 def messmerkmal(entity_id: str) -> str | None:
     """Wo der Messwert eines Raums steht: im Zustand, beim Thermostat in einem Attribut."""
     return "current_temperature" if ist_thermostat(entity_id) else None

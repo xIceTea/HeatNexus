@@ -384,6 +384,40 @@ async def test_raeume_zaehlen_gegen_ihr_eigenes_ziel(hass, anlage, freezer, monk
     assert laufzeit.archivierte_tage()[0].abweichung == pytest.approx((-0.3 + 0.5) / 2)
 
 
+async def test_nachgerechnete_tage_zaehlen_ohne_behaglichkeit(hass, anlage, freezer, monkeypatch):
+    verwaltung, coordinator = anlage
+    laufzeit = await _laufzeit(hass, verwaltung, freezer)
+    zustaende = _historie(hass, coordinator)
+    (behaglichkeit,) = ha._entitaeten(hass, [("number", "3-58-0")])
+    zustaende[behaglichkeit] = _zustaende(behaglichkeit, (0, 0, 0, 1.0), (5, 0, 0, 0.0))
+    _aufzeichnung(hass, monkeypatch, zustaende)
+
+    await laufzeit.archiv_nachrechnen()
+
+    # `1/1` = 21 °C enthält bis zum fünften Tag 1 K Behaglichkeit; die Basis ist 20 °C.
+    tage = laufzeit.archivierte_tage()
+    assert [t.soll for t in tage] == [20.0] * 5 + [21.0] * 5
+    assert [t.abweichung for t in tage] == pytest.approx([1.2] * 5 + [0.2] * 5)
+
+
+@pytest.mark.parametrize(("raum_ziel", "ab"), [(None, 1.2), (21.5, -0.3)])
+async def test_ohne_aufzeichnung_gilt_der_gelesene_stand_der_behaglichkeit(
+    hass, anlage, freezer, monkeypatch, raum_ziel, ab
+):
+    verwaltung, coordinator = anlage
+    laufzeit = await _laufzeit(hass, verwaltung, freezer)
+    laufzeit.konfig = {**laufzeit.konfig, "raum_ziel": raum_ziel}
+    laufzeit.parameter_verlauf = {"3/58": [[HEUTE, 1.0]]}
+    _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
+
+    await laufzeit.archiv_nachrechnen()
+
+    # Eine eigene Wunschtemperatur bleibt das Ziel; nur das Raumsoll zählt ohne Behaglichkeit.
+    tage = laufzeit.archivierte_tage()
+    assert all(t.soll == 20.0 for t in tage)
+    assert all(t.abweichung == pytest.approx(ab) for t in tage)
+
+
 async def test_diagnose_zaehlt_nachgerechnete_tage(hass, anlage, freezer):
     from custom_components.heatnexus import diagnostics
 
