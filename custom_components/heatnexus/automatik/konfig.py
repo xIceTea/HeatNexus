@@ -117,6 +117,8 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         "personen": _liste(roh.get("personen"), LISTEN_MAX["personen"]),
         "fenster": _liste(roh.get("fenster"), LISTEN_MAX["fenster"]),
         "fenster_erkennung": bool(roh.get("fenster_erkennung", False)),
+        # Ältere Einstellungen führen den Schalter der Optimierung unter den eigenen Werten.
+        "hinweise": bool(roh.get("hinweise", eigene_roh.get("hinweise", False))),
         "vorrang": _liste(roh.get("vorrang"), LISTEN_MAX["vorrang"]),
         "eigene": abweichungen(profil, eigene, ausrichtung),
     }

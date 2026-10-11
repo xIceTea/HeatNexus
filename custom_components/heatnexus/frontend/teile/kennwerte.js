@@ -68,7 +68,7 @@ function tagMonat(datum) {
 
 export const KennwerteMixin = (Basis) =>
   class extends Basis {
-    _automatikKennwerte(kreis) {
+    _automatikKennwerte(kreis, darf = false) {
       const raster = knoten("div", "automatik-werte");
       raster.append(
         ...[
@@ -76,7 +76,7 @@ export const KennwerteMixin = (Basis) =>
           this._kachelSonne(kreis),
           this._kachelRaeume(kreis),
           this._kachelHaus(kreis),
-          this._kachelHinweise(kreis),
+          this._kachelHinweise(kreis, darf),
           this._kachelErgebnisse(kreis),
         ].filter(Boolean)
       );
@@ -287,9 +287,15 @@ export const KennwerteMixin = (Basis) =>
      * Fortschritt der Optimierung: gezählte Tage je Hinweisart. Die Ergebnisse stehen in der Kachel daneben.
      * Ohne Angabe vom Server (Schalter aus) fehlt die Kachel.
      */
-    _kachelHinweise(kreis) {
+    _kachelHinweise(kreis, darf = false) {
       const h = (kreis.kennwerte || {}).hinweise;
       if (!h) return null;
+      if (h.status === "aus") {
+        const schalter = this._automatikSchalter(this._t("Optimierungshinweise anzeigen"), false, darf, () =>
+          this._automatikEinstellen(kreis, { hinweise: true })
+        );
+        return this._kachel("hinweise", "Optimierung", this._t("aus"), null, schalter);
+      }
       const f = h.fortschritt || {};
       const arten = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"];
       const fertig = arten.filter((art) => h.noetig > 0 && (f[art] || 0) >= h.noetig).length;
@@ -325,7 +331,7 @@ export const KennwerteMixin = (Basis) =>
      */
     _kachelErgebnisse(kreis) {
       const h = (kreis.kennwerte || {}).hinweise;
-      if (!h) return null;
+      if (!h || h.status === "aus") return null;
       const entitaeten = h.entitaeten || {};
       const bloecke = (h.eintraege || [])
         .map((eintrag) => {

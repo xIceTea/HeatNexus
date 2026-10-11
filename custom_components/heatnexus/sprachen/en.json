@@ -533,6 +533,7 @@
   "{a}, {b}, {c} und {d} fehlen – keine neue Entscheidung.": "{a}, {b}, {c} and {d} missing – no new decision.",
   "Wettervorhersage": "Weather forecast",
   "ohne Vorhersage": "no forecast",
+  "6 · Optional: Optimierung": "6 · Optional: Optimisation",
   "{parameter} {wert} {einheit} seit {seit}": "{parameter} {wert} {einheit} since {seit}",
   "{parameter} {wert} {einheit}": "{parameter} {wert} {einheit}",
   "Raumwerte fehlen – Absenkung beendet.": "Room readings missing – setback ended.",

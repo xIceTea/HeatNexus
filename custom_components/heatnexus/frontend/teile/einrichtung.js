@@ -507,6 +507,9 @@ export const EinrichtungMixin = (Basis) =>
       const erkennung = document.createElement("input");
       erkennung.type = "checkbox";
       erkennung.checked = !!(k && k.fenster_erkennung);
+      const hinweise = document.createElement("input");
+      hinweise.type = "checkbox";
+      hinweise.checked = !!(k && k.hinweise);
       return {
         heizflaechen: this._automatikAuswahl(HEIZFLAECHEN, (k && k.heizflaechen) || "gemischt"),
         ausrichtung: this._automatikAuswahl(AUSRICHTUNGEN, (k && k.ausrichtung) || "ausgewogen"),
@@ -529,6 +532,7 @@ export const EinrichtungMixin = (Basis) =>
         fenster: this._automatikHaken(kandidaten.fenster, k ? k.fenster : []),
         vorrang: this._automatikHaken(kandidaten.vorrang || [], k ? k.vorrang || [] : []),
         erkennung,
+        hinweise,
       };
     }
 
@@ -563,6 +567,15 @@ export const EinrichtungMixin = (Basis) =>
           this._t("5 · Optional: Wärmequellen mit Vorrang vor dem Kessel"),
           [b("Liefert eine dieser Quellen, soll ihre Wärme den Heizkreis decken statt der Kessel.", f.vorrang)],
         ],
+        [
+          this._t("6 · Optional: Optimierung"),
+          [
+            b(
+              "Die Automatik wertet ungestörte Heizstunden aus und zeigt Hinweise zu Heizkurve, Raumsollwert und Zeitprogramm. Sie ändert dabei nichts an der Steuerung.",
+              this._automatikMitText(f.hinweise, this._t("Optimierungshinweise anzeigen"))
+            ),
+          ],
+        ],
       ];
     }
 
@@ -584,6 +597,7 @@ export const EinrichtungMixin = (Basis) =>
         fenster: gewaehlt(f.fenster),
         vorrang: gewaehlt(f.vorrang),
         fenster_erkennung: f.erkennung.checked,
+        hinweise: f.hinweise.checked,
       };
       // Andere Heizflächen heißen anderes Profil; eigene Werte gehörten zum alten.
       if (k && nachricht.heizflaechen !== k.heizflaechen) {

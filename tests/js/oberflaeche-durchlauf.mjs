@@ -929,6 +929,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     .querySelectorAll("option")
     .filter((o) => String(o.value).startsWith("weather."))
     .map((o) => String(o.textContent || ""));
+  bilanz.automatik.dialogHinweise = String(dialog.textContent || "").includes("Optimierungshinweise anzeigen");
   bilanz.automatik.vorrangWahl = dialog
     .querySelectorAll("input")
     .some((e) => e.value === "binary_sensor.solaranlage");
@@ -1083,6 +1084,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       neben: text(kachel && kachel.querySelector(".neben")),
       fuss: kachel ? kachel.querySelectorAll(".fuss").map(text) : [],
       fragezeichen: kachel ? kachel.querySelectorAll(".fragezeichen").length : 0,
+      schalter: kachel ? kachel.querySelectorAll(".automatik-schalter").map(text) : [],
       klickbar: kachel ? kachel.querySelectorAll(".vorschlag").filter((b) => b.classList.contains("klickbar")).map((b) => text(b.querySelector(".name"))) : [],
       bloecke: kachel
         ? kachel
@@ -1093,6 +1095,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   };
   bilanz.automatikHinweise = {
     ohneAngabe: zeigen(undefined),
+    aus: zeigen({ status: "aus" }),
     sammelt: zeigen({
       status: "sammelt",
       tage: 3,
@@ -1139,6 +1142,22 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       ],
     }),
   };
+  {
+    zeigen({ status: "aus" });
+    const kachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("hinweise"));
+    const gesendet = [];
+    const vorherAufruf = hass.callWS;
+    hass.callWS = async (nachricht) => {
+      gesendet.push(nachricht);
+      return flaeche._automatik;
+    };
+    kachel.querySelector(".automatik-schalter").ausloesen("click");
+    for (let schritt = 0; schritt < 10; schritt += 1) await Promise.resolve();
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+    hass.callWS = vorherAufruf;
+    bilanz.automatikHinweise.ausGesendet = gesendet.filter((n) => n.type === "heatnexus/automatik/einstellen");
+  }
   kreis.kennwerte = vorherKennwerte;
 }
 

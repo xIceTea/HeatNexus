@@ -3027,13 +3027,13 @@ async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, 
     client = await hass_ws_client(hass)
     freezer.move_to(MORGEN)
     await _einrichten(client)
-    assert "hinweise" not in (await _kreis(client))["kennwerte"]
+    assert (await _kreis(client))["kennwerte"]["hinweise"] == {"status": "aus"}
 
     antwort = await _senden(
         client,
         type="heatnexus/automatik/einstellen",
         heizkreis=HEIZKREIS,
-        eigene={"hinweise": True},
+        hinweise=True,
     )
     assert antwort["success"], antwort
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
@@ -3089,7 +3089,7 @@ async def test_kachel_zaehlt_aufgezeichnete_tage_und_eingriffe(
         client,
         type="heatnexus/automatik/einstellen",
         heizkreis=HEIZKREIS,
-        eigene={"hinweise": True},
+        hinweise=True,
     )
     # 20 Tage bis zum 25.09., drei mit Eingriffen; in den letzten 14 Tagen liegen 13, zwei davon gestört.
     tage = _frosttage(20, -1.4)
@@ -3371,7 +3371,7 @@ async def test_hinweise_schalten_die_kurvenparameter_einmal_ein(hass, hass_ws_cl
         client,
         type="heatnexus/automatik/einstellen",
         heizkreis=HEIZKREIS,
-        eigene={"hinweise": True},
+        hinweise=True,
     )
     assert antwort["success"], antwort
 

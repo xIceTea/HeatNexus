@@ -354,6 +354,7 @@ EINSTELLUNGEN = {
     vol.Optional("personen"): _liste(LISTEN_MAX["personen"]),
     vol.Optional("fenster"): _liste(LISTEN_MAX["fenster"]),
     vol.Optional("fenster_erkennung"): bool,
+    vol.Optional("hinweise"): bool,
     vol.Optional("vorrang"): _liste(LISTEN_MAX["vorrang"]),
 }
 

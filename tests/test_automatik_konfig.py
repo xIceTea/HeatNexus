@@ -181,3 +181,14 @@ def test_vorrangquellen_sind_eine_begrenzte_liste(konfig):
     k = konfig.pruefen(roh(vorrang=[*quellen, "kein id"]))
     assert k["vorrang"] == quellen[: konfig.LISTEN_MAX["vorrang"]]
     assert konfig.pruefen(roh())["vorrang"] == []
+
+
+def test_hinweise_sind_eine_eigene_einstellung(konfig):
+    assert konfig.pruefen(roh())["hinweise"] is False
+    assert konfig.pruefen(roh(hinweise=True))["hinweise"] is True
+
+
+def test_hinweise_aus_den_eigenen_werten_gelten_weiter(konfig):
+    k = konfig.pruefen(roh(eigene={"hinweise": True}))
+    assert k["hinweise"] is True
+    assert "hinweise" not in k["eigene"]

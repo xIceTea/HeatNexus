@@ -777,6 +777,7 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["raumSkalaMitListe"] == 4
     assert automatik["raumKachel"] == ["−0,2 K", "Ø 21,4 °C"]
     assert automatik["vorrangWahl"] is True
+    assert automatik["dialogHinweise"] is True
     assert automatik["wetterOptionen"] == ["weather.alt – ohne Vorhersage"]
     assert automatik["vorrangZeile"] == ["Vorrangquellen 1,5 h"]
     assert automatik["modusStunden"] > 0
@@ -813,6 +814,15 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     """Die Kachel nennt den Fortschritt je Art, die Kachel daneben Hinweise und fertige Arten ohne Hinweis."""
     hinweise = durchlauf["automatikHinweise"]
     assert hinweise["ohneAngabe"]["kachel"] is False
+    # Ausgeschaltet: Die Kachel bietet den Schalter an, Ergebnisse gibt es keine.
+    aus = hinweise["aus"]
+    assert (aus["titel"], aus["zahl"], aus["schalter"]) == (
+        "Optimierung",
+        "aus",
+        ["Optimierungshinweise anzeigen"],
+    )
+    assert aus["ergebnis"] is None
+    assert [(n["heizkreis"], n["hinweise"]) for n in hinweise["ausGesendet"]] == [("SN1-2-0", True)]
     sammelt = hinweise["sammelt"]
     assert (sammelt["titel"], sammelt["zahl"], sammelt["neben"]) == (
         "Optimierung",

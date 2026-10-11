@@ -349,7 +349,7 @@ class OptimierungMixin:
         Tage aus der Aufzeichnung nachgerechnet.
         """
         self._abmelden.append(async_track_time_change(self.hass, self._parameter_takt, **LESEZEIT))
-        if self.werte.hinweise and not self.parameter_eingeschaltet:
+        if self.konfig.get("hinweise") and not self.parameter_eingeschaltet:
             self._parameter_einschalten()
         if self.parameter_gelesen != dt_util.now().date().isoformat():
             self._parameter_anstossen()
@@ -413,16 +413,16 @@ class OptimierungMixin:
     def hinweise_liste(self, heute: date | str) -> list[optimierer.Hinweis]:
         return optimierer.hinweise(self.archivierte_tage(), self.parameter_verlauf, heute)
 
-    def hinweise_stand(self, heute: date | str) -> dict[str, Any] | None:
-        """Die Kachel „Optimierung“; ohne eingeschalteten Schalter `None`.
+    def hinweise_stand(self, heute: date | str) -> dict[str, Any]:
+        """Die Kachel „Optimierung“; ohne eingeschalteten Schalter nur `{"status": "aus"}`.
 
         `aufgezeichnet` zählt die Archivtage der letzten zwei Wochen, `ohne_grundlage` die mit Eingriffen.
         `entitaeten` nennt je Kurvenparameter die aktive Entität, deren Verlauf ein Klick zeigt.
         `parameter` nennt je Kurvenparameter Wert und letzte Änderung, auch ohne aktive Entität.
         `vorlaeufig` nennt die Tendenz der Arten, denen für eine Empfehlung noch Tage fehlen.
         """
-        if not self.werte.hinweise:
-            return None
+        if not self.konfig.get("hinweise"):
+            return {"status": "aus"}
         tage = self.archivierte_tage()
         eintraege = optimierer.hinweise(tage, self.parameter_verlauf, heute)
         grundlage = optimierer.grundlage(tage, self.parameter_verlauf, heute)

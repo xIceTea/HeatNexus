@@ -144,8 +144,7 @@ def hausmodell_stand(laufzeit: Laufzeit) -> dict[str, Any]:
 
 def hinweise(laufzeit: Laufzeit, tag: date) -> dict[str, Any]:
     """Die Kachel „Hinweise“ als Teil der Kennwerte; mit ausgeschaltetem Schalter fehlt sie."""
-    stand = laufzeit.hinweise_stand(tag)
-    return {} if stand is None else {"hinweise": stand}
+    return {"hinweise": laufzeit.hinweise_stand(tag)}
 
 
 def _band(g: regel.Gedaechtnis, tag: date) -> dict[str, float | None]:
