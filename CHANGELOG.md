@@ -36,6 +36,10 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Kachel „Optimierung“ zeigt den Fortschritt je Hinweis und die Tage mit Eingriffen.
 - Eine eigene Kachel zeigt die Ergebnisse der Optimierung, auch ohne nötige Änderung.
 - Die Ergebnisse der Optimierung zeigen ab vier Tagen eine vorläufige Tendenz.
+- Die Automatik nennt, ob Raumtemperatur, Außentemperatur oder Wettervorhersage fehlen.
+- Fehlt die Wettervorhersage länger, erscheint eine Reparaturmeldung.
+- Die Wetterauswahl zeigt nur Entitäten mit Vorhersage.
+- Die Automatik nutzt auch Vorhersagen, die nur zweimal täglich kommen.
 - BioWIN: Zwei Tasten quittieren Reinigung und Wartung.
 
 ### Behoben
