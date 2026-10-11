@@ -473,3 +473,64 @@ def test_aenderung_der_vorhaltezeit_laesst_die_kurvengrundlage_stehen(m):
     p = parameter()
     p["3/6"].append(["2027-02-27", 90.0])
     assert arten(m.hinweise(reihe(m, 7, -4.0, -1.0), p, HEUTE)) == ["heizkurve_frost"]
+
+
+# --- Markierung und Fortschritt -------------------------------------------
+
+
+def test_archiveintrag_ohne_markierung_bleibt_lesbar(m):
+    eintrag = {
+        "datum": "2026-11-01",
+        "at": 2.0,
+        "abweichung": 0.0,
+        "soll": 21.0,
+        "morgen_min": None,
+        "ungestoert": True,
+        "stunden": 24,
+    }
+    assert m.Tag(**eintrag).nachgerechnet is False
+
+
+def fortschritt_tage(m):
+    """7 Frost-, 3 Übergangstage; Sollwert an 5, Morgenzeit an 2 Tagen; dazu gestört und heute."""
+    frost = [tag(m, i, -3.0, -1.0, soll=23.0 if i < 5 else None) for i in range(7)]
+    uebergang = [tag(m, i, 10.0, 0.0, soll=None, morgen=90) for i in range(7, 9)]
+    uebergang.append(tag(m, 9, 10.0, 0.0, soll=None))
+    gestoert = tag(m, 10, -3.0, -1.0, soll=23.0, morgen=90, ungestoert=False)
+    heute = m.Tag(HEUTE, -3.0, -1.0, 23.0, 90, True, 24)
+    return [*frost, *uebergang, gestoert, heute]
+
+
+def test_fortschritt_zaehlt_je_art(m):
+    assert m.fortschritt(fortschritt_tage(m), parameter(), HEUTE) == {
+        "kurve_frost": 7,
+        "kurve_uebergang": 3,
+        "sollwert": 5,
+        "morgen": 2,
+    }
+
+
+def test_fortschritt_zaehlt_nach_einer_kurvenaenderung_neu(m):
+    p = parameter()
+    p["3/1"].append([(START + timedelta(days=3)).isoformat(), 46.0])
+    assert m.fortschritt(fortschritt_tage(m), p, date.fromisoformat(HEUTE)) == {
+        "kurve_frost": 3,
+        "kurve_uebergang": 3,
+        "sollwert": 1,
+        "morgen": 2,
+    }
+
+
+@pytest.mark.parametrize("anzahl", [6, 7])
+def test_fortschritt_und_hinweise_passen_zusammen(m, anzahl):
+    felder = {"soll": 23.0, "morgen": 90}
+    tage = reihe(m, anzahl, -3.0, -1.4, **felder) + reihe(m, 3, 10.0, 0.0, ab_tag=7, soll=None)
+    stand = m.fortschritt(tage, parameter(), HEUTE)
+    gefunden = arten(m.hinweise(tage, parameter(), HEUTE))
+    for art, schluessel in (
+        ("heizkurve_frost", "kurve_frost"),
+        ("sollwert_ausgleich", "sollwert"),
+        ("morgen_spaet", "morgen"),
+    ):
+        assert stand[schluessel] == anzahl
+        assert (art in gefunden) == (stand[schluessel] >= m.MIN_TAGE)

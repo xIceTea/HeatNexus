@@ -52,6 +52,8 @@ class Tag:
     morgen_min: int | None
     ungestoert: bool
     stunden: int
+    # Aus der Historie gerechnet statt live archiviert.
+    nachgerechnet: bool = False
 
 
 @dataclass(frozen=True)
@@ -189,6 +191,14 @@ def _band(grundlage: list[Tag], passt: Any) -> list[Tag]:
     return [t for t in grundlage if t.at is not None and t.abweichung is not None and passt(t.at)]
 
 
+def _frost(at: float) -> bool:
+    return at < FROST
+
+
+def _uebergang(at: float) -> bool:
+    return UEBERGANG[0] <= at <= UEBERGANG[1]
+
+
 def _anteil(at: float, klimapunkt: float | None, am_fusspunkt: bool) -> float:
     """Wie stark eine Änderung an einem Kurvenende bei dieser Außentemperatur durchschlägt."""
     if klimapunkt is None or klimapunkt >= FUSS_AT:
@@ -232,8 +242,8 @@ def _band_hinweis(
 
 def _kurve(grundlage: list[Tag], p: Mapping[str, Any], seit: str | None) -> list[Hinweis]:
     """Hinweise zur Heizkurve aus dem Frost- und dem Übergangsband."""
-    frost = _band(grundlage, lambda at: at < FROST)
-    uebergang = _band(grundlage, lambda at: UEBERGANG[0] <= at <= UEBERGANG[1])
+    frost = _band(grundlage, _frost)
+    uebergang = _band(grundlage, _uebergang)
     parallel = _parallel(frost, uebergang, _aktuell(p, "3/58"), seit)
     if parallel is not None:
         return parallel
@@ -305,3 +315,20 @@ def hinweise(
     liste += _sollwert(*basis("sollwert"))
     morgen, seit_morgen = basis("morgen")
     return liste + _morgen_spaet(morgen, _aktuell(parameter_verlauf, "3/6"), seit_morgen)
+
+
+def fortschritt(
+    tage: Sequence[Tag], parameter_verlauf: Mapping[str, Any], heute: date | str
+) -> dict[str, int]:
+    """Gezählte Tage je Hinweisart, mit denselben Filtern wie `hinweise`."""
+
+    def basis(gruppe: str) -> list[Tag]:
+        return _grundlage(tage, _seit(parameter_verlauf, gruppe), str(heute))
+
+    kurve = basis("kurve")
+    return {
+        "kurve_frost": len(_band(kurve, _frost)),
+        "kurve_uebergang": len(_band(kurve, _uebergang)),
+        "sollwert": sum(1 for t in basis("sollwert") if t.soll is not None),
+        "morgen": sum(1 for t in basis("morgen") if t.morgen_min is not None),
+    }
