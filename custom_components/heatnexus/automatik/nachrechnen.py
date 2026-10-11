@@ -7,7 +7,7 @@ Tage bildet. Reine Rechnung ohne Home Assistant; Zeiten kommen als `datetime` in
 from __future__ import annotations
 
 from bisect import bisect_left, bisect_right
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from typing import Any
 
@@ -28,6 +28,8 @@ class Reihen:
     # Je Raum die Ist-Reihe und das Ziel: eine Reihe, ein fester Wert oder `None` für das Raumsoll.
     raeume: list[tuple[Reihe, Reihe | float | None]]
     raum_art: str
+    # Je Raum in der Reihenfolge von `raeume`: 1, solange sein Thermostat aus ist; ohne Reihe nie.
+    aus: list[Reihe] = field(default_factory=list)
 
 
 class _Stufe:
@@ -60,6 +62,7 @@ class _Stufen:
     restzeit: _Stufe
     raeume: list[tuple[_Stufe, _Stufe | float | None]]
     raum_art: str
+    aus: list[_Stufe]
 
 
 def _vorbereiten(reihen: Reihen) -> _Stufen:
@@ -74,6 +77,7 @@ def _vorbereiten(reihen: Reihen) -> _Stufen:
             for ist, ziel in reihen.raeume
         ],
         raum_art=reihen.raum_art,
+        aus=[_Stufe(reihe) for reihe in reihen.aus],
     )
 
 
@@ -104,13 +108,18 @@ def _abweichung(
     if soll is None:
         return None
     werte: list[float | None] = []
-    for ist_reihe, ziel in stufen.raeume:
+    gemeldet = 0
+    for i, (ist_reihe, ziel) in enumerate(stufen.raeume):
         if (ist := ist_reihe.zur_stunde(beginn, ende)) is None:
+            continue
+        gemeldet += 1
+        # Ausgeschaltet: gemeldet, aber ohne Ziel; live fehlt der Raum in `Lage.raeume`.
+        if i < len(stufen.aus) and stufen.aus[i].zur_stunde(beginn, ende):
             continue
         eigen = ziel.zur_stunde(beginn, ende) if isinstance(ziel, _Stufe) else ziel
         werte.append(ist - (soll if eigen is None else eigen))
     # Wie `Laufzeit._lage`: mindestens die Hälfte der eingerichteten Räume liefert einen Wert.
-    if not werte or 2 * len(werte) < len(stufen.raeume):
+    if not werte or 2 * gemeldet < len(stufen.raeume):
         return None
     ab = raumwert(werte, stufen.raum_art)
     return None if ab is None else round(ab, 2)

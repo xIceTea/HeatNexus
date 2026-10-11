@@ -212,6 +212,38 @@ def test_weniger_als_die_haelfte_der_raeume_laesst_abweichung_weg(n):
     assert "ab" in stunden["16"]
 
 
+def test_ausgeschalteter_thermostat_zaehlt_nicht_zur_abweichung(n):
+    raeume = [([(vortag(), 20.0)], None), ([(vortag(), 17.0)], 20.0)]
+    aus = [[], [(vortag(), 1.0), (zeit(12), 0.0)]]
+
+    stunden = n.stunden_je_tag(reihen(n, raeume=raeume, aus=aus), [TAG])[TAG.isoformat()]
+
+    # Bis 12 Uhr ist der Thermostat aus; es zählt der erste Raum gegen das Raumsoll 21.
+    assert stunden["11"]["ab"] == pytest.approx(-1.0)
+    assert stunden["12"]["ab"] == pytest.approx(-2.0)
+
+
+def test_nur_ausgeschaltete_thermostate_ergeben_keine_abweichung(n):
+    raeume = [([(vortag(), 17.0)], 20.0)]
+    aus = [[(vortag(), 1.0)]]
+
+    stunden = n.stunden_je_tag(reihen(n, raeume=raeume, aus=aus), [TAG])[TAG.isoformat()]
+
+    assert all("ab" not in s for s in stunden.values())
+
+
+def test_ausgeschalteter_thermostat_gilt_fuer_die_haelfte_als_gemeldet(n):
+    luecke = [(vortag(), 20.0), (zeit(14, 10), None), (zeit(16), 20.0)]
+    raeume = [(luecke, None), ([(vortag(), 17.0)], 20.0), ([(vortag(), 21.5)], None)]
+    raeume.append((list(luecke), None))
+    aus = [[], [(vortag(), 1.0)]]
+
+    stunden = n.stunden_je_tag(reihen(n, raeume=raeume, aus=aus), [TAG])[TAG.isoformat()]
+
+    # Um 15 Uhr melden zwei von vier Räumen, einer davon ausgeschaltet; es zählt der dritte allein.
+    assert stunden["15"]["ab"] == pytest.approx(0.5)
+
+
 def test_ohne_raeume_und_ohne_raumsoll_keine_abweichung(n):
     ohne_raeume = n.stunden_je_tag(reihen(n, raeume=[]), [TAG])[TAG.isoformat()]
     ohne_soll = n.stunden_je_tag(reihen(n, soll=[]), [TAG])[TAG.isoformat()]
