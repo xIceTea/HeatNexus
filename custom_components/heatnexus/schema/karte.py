@@ -46,6 +46,7 @@ from .zeichnung import (
     ZSP_GEHAEUSE,
     ZSP_KLEMMEN,
     ZSP_PUMPE,
+    Buch,
     beschriftungen,
     datenadresse,
     schaubild_svg,
@@ -61,11 +62,13 @@ def anlagenschema(
     zeichnungen: dict[str, str] | None = None,
     mischer: bool = True,
     modulpumpe: bool = False,
+    buch: Buch | None = None,
 ) -> dict[str, Any] | None:
     """Eine `picture-elements`-Karte für eine Anlage – oder nichts.
 
     Erwartet die Anlagenteile in der Form, die `dashboard.anlagen_lesen` liefert.
-    Die Kesselzeichnung gilt je Kessel: die Wahl am Gerät, sonst die erkannte Art.
+    Kesselzeichnung je Kessel: die Wahl am Gerät, sonst die erkannte Art.
+    `buch` übersetzt die Namen im Bild; ohne bleibt es deutsch.
 
     **Beide Farbsätze werden mitgeliefert**, nicht einer nach Vorgabe: Das Bild
     steckt als `data:`-Adresse in einem `<img>` und erbt dort kein CSS, die
@@ -77,12 +80,11 @@ def anlagenschema(
     (`panel/daten.py`).
     """
     module = zeichenbare_module(teile, kesselwert, auswahl, teile_aus, zeichnungen, modulpumpe)
-    # Ein Bild aus lauter leeren Kästen hilft niemandem: Mindestens ein
-    # Anlagenteil muss etwas messen.
+    # Ein Bild aus lauter leeren Kästen hilft niemandem: Ein Anlagenteil muss messen.
     if not any(m["werte"] for m in module):
         return None
 
-    svg, breite = schaubild_svg(module, mischer)
+    svg, breite = schaubild_svg(module, mischer, buch)
 
     elemente: list[dict[str, Any]] = []
     pumpen: list[dict[str, Any]] = []
@@ -435,8 +437,7 @@ def anlagenschema(
         "type": "picture-elements",
         "image": datenadresse(farben_umstellen(svg, THEMA_HELL)),
         "dark_mode_image": datenadresse(svg),
-        # Die `picture-elements`-Karte kennt nur hell und dunkel. Wer mehr
-        # Farbsätze braucht, stellt die Zeichnung selbst um.
+        # `picture-elements` kennt nur hell und dunkel; weitere Farbsätze stellen selbst um.
         "svg": svg,
         # Die Breite der Zeichnung. Damit rechnet die Oberfläche ihre
         # Überlagerungen auf denselben Maßstab wie das Bild.
@@ -476,18 +477,20 @@ def schaubild_daten(
     teile_aus: list[str] | tuple[str, ...] = (),
     zeichnungen: dict[str, str] | None = None,
     mischer: bool = True,
+    buecher: list[Buch] | None = None,
 ) -> list[dict[str, Any]]:
     """Schaubild je Anlage, wie die Lovelace-Karte es bekommt.
 
     Die Kennung entscheidet, welche Anlage eine Karte zeigt – nicht die Reihenfolge.
+    `buecher` trägt je Anlage ihr Wörterbuch, in derselben Reihenfolge.
     """
     return [
         {
             "id": anlage.get("id") or anlage["name"],
             "name": anlage["name"],
-            **schaubild_nutzdaten(anlage, auswahl, teile_aus, zeichnungen, mischer),
+            **schaubild_nutzdaten(anlage, auswahl, teile_aus, zeichnungen, mischer, buch),
         }
-        for anlage in anlagen
+        for anlage, buch in zip(anlagen, buecher or [None] * len(anlagen), strict=True)
     ]
 
 
@@ -497,6 +500,7 @@ def schaubild_nutzdaten(
     teile_aus: list[str] | tuple[str, ...] = (),
     zeichnungen: dict[str, str] | None = None,
     mischer: bool = True,
+    buch: Buch | None = None,
 ) -> dict[str, Any]:
     """Die Schaubild-Felder einer Anlage – Bilder, Lagen, Bewegung.
 
@@ -510,6 +514,7 @@ def schaubild_nutzdaten(
         zeichnungen=zeichnungen,
         mischer=mischer,
         modulpumpe=anlage.get("modulpumpe", False),
+        buch=buch,
     )
     return {
         # Die Zeichnung geht **einmal** hinaus, dazu die Farbtabellen. Welcher

@@ -29,21 +29,25 @@ def _in_sprache(daten: Any, buch: Woerterbuch | None) -> Any:
     return daten if buch is None else uebersetze_baum(daten, buch, KARTENFELDER)
 
 
-def _bild(anlage: dict[str, Any], als_karte: bool) -> dict[str, Any] | None:
+def _bild(
+    anlage: dict[str, Any], als_karte: bool, buch: Woerterbuch | None
+) -> dict[str, Any] | None:
     """Schaubild ohne Werteliste, so breit wie der Abschnitt."""
-    bild = schaubild(anlage, als_karte, mit_liste=False)
+    bild = schaubild(anlage, als_karte, mit_liste=False, buch=buch)
     if bild and als_karte:
         bild = {**bild, "liste": "aus", "grid_options": {**VOLLE_BREITE, "rows": "auto"}}
     return bild
 
 
-def anlagenabschnitt(anlage: dict[str, Any], als_karte: bool) -> list[dict[str, Any]]:
+def anlagenabschnitt(
+    anlage: dict[str, Any], als_karte: bool, buch: Woerterbuch | None = None
+) -> list[dict[str, Any]]:
     """Der Abschnitt einer Anlage: Überschrift, Schaubild, Karten ihrer Teile."""
     kopf = {
         **ueberschrift(anlage["name"] or "Anlage", ziel=pfad_anlage(anlage)),
         "icon": "mdi:fire",
     }
-    bild = _bild(anlage, als_karte)
+    bild = _bild(anlage, als_karte, buch)
     karten = [*([bild] if bild else []), *anlagenkarten(anlage)]
     return [{"type": "grid", "cards": [kopf, *karten]}] if karten else []
 
@@ -63,6 +67,6 @@ def uebersicht(
     abschnitte = [
         abschnitt
         for anlage, buch in zip(anlagen, sprachen, strict=True)
-        for abschnitt in _in_sprache(anlagenabschnitt(anlage, als_karte), buch)
+        for abschnitt in _in_sprache(anlagenabschnitt(anlage, als_karte, buch), buch)
     ]
     return {**rahmen, "sections": [*rahmen["sections"], *abschnitte]}

@@ -33,10 +33,11 @@ def kartendaten(
     """Alle Anlagen mit ihrem Schaubild, frisch aus der Registrierung, jede in ihrer Sprache."""
     anlagen = anlagen_lesen(hass)
     gemeinsam = woerterbuch(hass)
-    daten = schaubild_daten(anlagen, auswahl, teile_aus or [], zeichnungen, mischer)
+    buecher = [woerterbuch_der_anlage(hass, anlage) for anlage in anlagen]
+    daten = schaubild_daten(anlagen, auswahl, teile_aus or [], zeichnungen, mischer, buecher)
     return [
-        anlage_in_sprache(eintrag, woerterbuch_der_anlage(hass, anlage), gemeinsam)
-        for anlage, eintrag in zip(anlagen, daten, strict=True)
+        anlage_in_sprache(eintrag, buch, gemeinsam)
+        for buch, eintrag in zip(buecher, daten, strict=True)
     ]
 
 

@@ -7,6 +7,7 @@ Die Maße gelten je Anlagenart; daraus entstehen SVG-Text und die
 from __future__ import annotations
 
 import base64
+from collections.abc import Callable
 from typing import Any
 
 from .bauteile import aus_datei
@@ -42,6 +43,13 @@ WERT_HOEHEN_STANDARD = (170, 250)
 
 
 WERT_HOEHE_EINZELN = 206
+
+# Übersetzt einen deutschen Text; was das Wörterbuch nicht kennt, bleibt stehen.
+Buch = Callable[[str], str]
+
+
+def _gleich(text: str) -> str:
+    return text
 
 
 def _escape(text: str) -> str:
@@ -322,8 +330,10 @@ def _ersatzform(art: str) -> str:
     )
 
 
-def _kasten(x: int, platz: int, modul: dict[str, Any], mischer: bool = True) -> str:
-    """Ein Anlagenteil an seinem Platz im Gesamtbild."""
+def _kasten(
+    x: int, platz: int, modul: dict[str, Any], mischer: bool = True, buch: Buch | None = None
+) -> str:
+    """Ein Anlagenteil an seinem Platz im Gesamtbild, beschriftet über `buch`."""
     art = modul["art"]
     # Der Speicherkörper bleibt leer, wenn die Oberfläche die gemessene
     # Temperatur darunterlegt – sonst deckt sie die Zeichnung zu.
@@ -363,7 +373,7 @@ def _kasten(x: int, platz: int, modul: dict[str, Any], mischer: bool = True) -> 
     titel = (
         f'<text x="{MITTE}" y="{RUECKLAUF_Y + 58}" text-anchor="middle" '
         f'fill="{FARBE_TITEL}" font-size="19" font-weight="600" font-family="{SCHRIFT}">'
-        f"{_escape(modul['titel'])}</text>"
+        f"{_escape((buch or _gleich)(modul['titel']))}</text>"
     )
     return f'<g transform="translate({x},0)">{anschluss}{inhalt}{titel}</g>'
 
@@ -402,8 +412,10 @@ def beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str,
     return elemente
 
 
-def schaubild_svg(module: list[dict[str, Any]], mischer: bool = True) -> tuple[str, int]:
-    """Das Schaubild als SVG-Text und seine Breite."""
+def schaubild_svg(
+    module: list[dict[str, Any]], mischer: bool = True, buch: Buch | None = None
+) -> tuple[str, int]:
+    """Das Schaubild als SVG-Text und seine Breite, beschriftet in der Sprache von `buch`."""
     breite = max(2 * RAND + len(module) * MODUL_BREITE, 400)
     teile = [
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {breite} {HOEHE}" '
@@ -411,7 +423,7 @@ def schaubild_svg(module: list[dict[str, Any]], mischer: bool = True) -> tuple[s
         _rohre(breite),
     ]
     for platz, modul in enumerate(module):
-        teile.append(_kasten(RAND + platz * MODUL_BREITE, platz, modul, mischer))
+        teile.append(_kasten(RAND + platz * MODUL_BREITE, platz, modul, mischer, buch))
     teile.append("</svg>")
     return "".join(teile), breite
 

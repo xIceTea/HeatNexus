@@ -6,6 +6,7 @@ from typing import Any
 
 from ..const import KARTE_ELEMENT
 from ..schema import anlagenschema
+from ..texte import Woerterbuch
 from . import auswahl
 from .anlagen import trifft, voller_name
 from .karten import (
@@ -53,8 +54,10 @@ def meldungsabschnitt(anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return abschnitte
 
 
-def schaubild(anlage: dict[str, Any], als_karte: bool, mit_liste: bool) -> dict[str, Any] | None:
-    """Schaubild als eigene Karte (bewegt, im Editor offen) oder als feste Zeichnung."""
+def schaubild(
+    anlage: dict[str, Any], als_karte: bool, mit_liste: bool, buch: Woerterbuch | None = None
+) -> dict[str, Any] | None:
+    """Schaubild als eigene Karte (bewegt) oder als feste Zeichnung in der Sprache von `buch`."""
     if als_karte:
         karte: dict[str, Any] = {
             "type": f"custom:{KARTE_ELEMENT}",
@@ -71,7 +74,7 @@ def schaubild(anlage: dict[str, Any], als_karte: bool, mit_liste: bool) -> dict[
         if mit_liste and (werte := zustandswerte(anlage)):
             karte["zusatzwerte"] = [e["entity_id"] for e in werte]
         return karte
-    return anlagenschema(anlage["teile"], modulpumpe=anlage.get("modulpumpe", False))
+    return anlagenschema(anlage["teile"], modulpumpe=anlage.get("modulpumpe", False), buch=buch)
 
 
 def teilabschnitt(teil: dict[str, Any]) -> list[dict[str, Any]]:

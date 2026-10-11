@@ -7,11 +7,13 @@ Aufbau der Seite im Browser-Nachbau.
 
 from __future__ import annotations
 
+import base64
 from datetime import timedelta
 from functools import partial
 import json
 import logging
 from pathlib import Path
+import re
 import shutil
 import subprocess
 from unittest.mock import patch
@@ -29,6 +31,7 @@ if not ha_fehlt():  # pragma: no branch - ohne HA wird die Datei übersprungen
         CONF_ENABLE_ADVANCED,
         CONF_LEVELS,
         CONF_PANEL,
+        CONF_SPRACHE_ANLAGE,
         CONF_SYSTEMS,
         CONF_WRITABLE_ADVANCED,
         DOMAIN,
@@ -78,9 +81,10 @@ def _client_fuer(anlage: str):
     return NachspielClient
 
 
-async def _einrichten(hass, anlage: str, umfang: str):
+async def _einrichten(hass, anlage: str, umfang: str, sprache: str | None = None):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+    optionen = _optionen(umfang) | ({CONF_SPRACHE_ANLAGE: sprache} if sprache else {})
     eintrag = MockConfigEntry(
         domain=DOMAIN,
         version=2,
@@ -89,7 +93,7 @@ async def _einrichten(hass, anlage: str, umfang: str):
             "name": "Anlage",
             CONF_SYSTEMS: [{"host": HOST, "password": "x", "label": "Anlage"}],
         },
-        options=_optionen(umfang),
+        options=optionen,
     )
     eintrag.add_to_hass(hass)
     with patch("custom_components.heatnexus.WindhagerHttpClient", _client_fuer(anlage)):
@@ -282,5 +286,62 @@ async def test_die_uebersicht_steht_bei_einer_anlage_vorn(hass):
         assert gelesen["name"] in koepfe
         assert erste["badges"]
         assert zweite["path"] == pfad_anlage(gelesen)
+    finally:
+        await _abbauen(hass, eintrag)
+
+
+def _texte_im_bild(svg: str) -> list[str]:
+    return re.findall(r"<text[^>]*>([^<]*)</text>", svg)
+
+
+def _bild_aus_adresse(adresse: str) -> str:
+    return base64.b64decode(adresse.split(",", 1)[1]).decode("utf-8")
+
+
+def _schaubilder(hass) -> list[str]:
+    """Jedes Schaubild-SVG: Karte, Oberfläche und festes Bild der Übersicht."""
+    from custom_components.heatnexus.dashboard import dashboard_konfiguration
+    from custom_components.heatnexus.karte import kartendaten
+    from custom_components.heatnexus.panel import panel_daten
+
+    bilder = [a["schema_svg"] for a in kartendaten(hass)]
+    bilder += [a["schema_svg"] for a in panel_daten(hass)["anlagen"]]
+    fest = json.dumps(dashboard_konfiguration(hass, als_karte=False))
+    bilder += [_bild_aus_adresse(a) for a in re.findall(r'"dark_mode_image": "([^"]+)"', fest)]
+    return [b for b in bilder if b]
+
+
+async def _werksnamen_deutsch(hass, eintrag, buch) -> None:
+    """Gerätenamen auf den deutschen Werksnamen zurücksetzen, wie nach einem Sprachwechsel."""
+    from homeassistant.helpers import device_registry as dr
+
+    deutsch = {fremd: de for de, fremd in buch.fuer_frontend.items()}
+    register = dr.async_get(hass)
+    for geraet in dr.async_entries_for_config_entry(register, eintrag.entry_id):
+        if (name := deutsch.get(geraet.name or "")) is not None:
+            register.async_update_device(geraet.id, name=name)
+
+
+# Wörter deutscher Werksnamen, die in keiner anderen Sprache im Bild stehen dürfen.
+WERKSDEUTSCH = re.compile(r"Warmwasser|Pelletskessel|Puffer|Kessel|Heizkreis|Zirkulation")
+
+
+@pytest.mark.parametrize(("anlage", "sprache"), [("biowin-1403", "en"), ("duowin", "nl")])
+async def test_das_schaubild_beschriftet_in_der_sprache_der_anlage(hass, anlage, sprache):
+    """Kein deutscher Werksname bleibt im Bild einer Anlage mit eigener Sprache."""
+    from custom_components.heatnexus.texte import Woerterbuch
+
+    hass.config.language = "de"
+    buch = Woerterbuch(sprache)
+    eintrag = await _einrichten(hass, anlage, "betreiber", sprache)
+    try:
+        await _werksnamen_deutsch(hass, eintrag, buch)
+        bilder = _schaubilder(hass)
+        assert len(bilder) >= 3
+        for svg in bilder:
+            texte = _texte_im_bild(svg)
+            assert texte
+            deutsch = [t for t in texte if buch(t) != t or WERKSDEUTSCH.search(t)]
+            assert not deutsch, deutsch
     finally:
         await _abbauen(hass, eintrag)

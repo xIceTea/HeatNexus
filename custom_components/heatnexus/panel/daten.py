@@ -13,6 +13,7 @@ Woran ein Datenpunkt erkannt wird, steht in :mod:`.muster`; was er bedeutet, in
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable
 import contextlib
 import re
 from typing import Any
@@ -779,11 +780,12 @@ def _anlage_daten(
     aussen_gewaehlt: str | None = None,
     marken: list[dict[str, Any]] | None = None,
     marken_status: list[dict[str, str]] | None = None,
+    buch: Callable[[str], str] | None = None,
 ) -> dict[str, Any]:
     """Alles, was die Oberfläche für eine Anlage braucht.
 
     `marken` sind die Karten aus den Labels, die für genau diese Anlage
-    gewählt sind.
+    gewählt sind; `buch` beschriftet das Schaubild in ihrer Sprache.
     """
     alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
 
@@ -982,9 +984,8 @@ def _anlage_daten(
             for e in alle
             if e["kategorie"] is None and e["bereich"] == "sensor"
         ],
-        # Bilder, Lagen und Bewegung des Schaubilds. Dieselben Felder bekommt
-        # die Lovelace-Karte.
-        **schaubild_nutzdaten(anlage),
+        # Bilder, Lagen und Bewegung des Schaubilds, wie die Lovelace-Karte sie bekommt.
+        **schaubild_nutzdaten(anlage, buch=buch),
     }
     # Braucht die fertigen Nutzdaten: Ob eine Karte gebaut wird, steht erst
     # darin.

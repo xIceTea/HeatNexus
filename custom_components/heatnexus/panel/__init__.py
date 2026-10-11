@@ -175,11 +175,13 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     gemeinsam = woerterbuch(hass)
     anlagen = []
     for anlage in anlagen_lesen(hass, benutzer):
-        nutzdaten = _anlage_daten(anlage, aussen, *marken.get(anlage.get("id"), ((), ())))
+        buch = woerterbuch_der_anlage(hass, anlage)
+        nutzdaten = _anlage_daten(
+            anlage, aussen, *marken.get(anlage.get("id"), ((), ())), buch=buch
+        )
         if not mit_hilfe:
             # Abgewählt: Die Texte gar nicht erst mitschicken.
             _ohne_hilfe(nutzdaten)
-        buch = woerterbuch_der_anlage(hass, anlage)
         anlagen.append(anlage_in_sprache(nutzdaten, buch, gemeinsam))
     gemeinsame_daten = {
         # Eco und Comfort gelten für alle Anlagen gemeinsam.

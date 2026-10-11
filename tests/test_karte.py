@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -450,3 +451,57 @@ def test_die_karte_zeichnet_sofort_aus_dem_gemerkten_aufbau(durchlauf):
 def test_eine_anlage_mit_eigener_sprache_beschriftet_ihre_karte(durchlauf):
     """Bild und Liste einer niederländischen Anlage, ohne dass die Karte selbst umstellt."""
     assert durchlauf["eigeneSprache"] == {"lang": ["nl", "nl"], "titel": ["Overzicht", "Waarden"]}
+
+
+# ---------------------------------------------------------------------------
+# Beschriftung in der Sprache der Anlage
+# ---------------------------------------------------------------------------
+ENGLISCH = {
+    "BioWIN Pelletskessel": "BioWIN pellet boiler",
+    "Warmwasser": "Domestic hot water",
+    "Zirkulation": "Circulation",
+}
+
+
+def _texte_im_bild(svg: str) -> list[str]:
+    return re.findall(r"<text[^>]*>([^<]*)</text>", svg)
+
+
+def _anlage_mit_warmwasser() -> dict:
+    return {
+        "id": "anlage-3",
+        "name": "Anlage",
+        "teile": [
+            _teil("BioWIN Pelletskessel", 9, [("sensor.kessel", "Kesseltemperatur Ist")]),
+            _teil(
+                "HK1 OG1/2",
+                14,
+                [
+                    ("sensor.vorlauf", "Vorlauftemperatur Ist"),
+                    ("sensor.ww", "Warmwasser Ist-Temperatur"),
+                    ("sensor.zirk", "WW-Zirkulationstemperatur"),
+                ],
+            ),
+        ],
+    }
+
+
+def test_das_bild_beschriftet_in_der_sprache_der_anlage(karte):
+    """Bauteilnamen und abgeleitete Teile stehen übersetzt im Bild, eigene Namen bleiben."""
+    buch = lambda text: ENGLISCH.get(text, text)  # noqa: E731
+    nutzdaten = karte.schaubild_nutzdaten(_anlage_mit_warmwasser(), buch=buch)
+    texte = _texte_im_bild(nutzdaten["schema_svg"])
+    assert "BioWIN pellet boiler" in texte
+    assert "Domestic hot water" in texte
+    assert "Circulation" in texte
+    assert "HK1 OG1/2" in texte
+    assert not set(texte) & set(ENGLISCH)
+
+
+def test_die_karte_beschriftet_jede_anlage_mit_ihrem_woerterbuch(karte):
+    """Das feste Bild der Lovelace-Karte trägt dieselben Namen."""
+    bild = karte.anlagenschema(
+        _anlage_mit_warmwasser()["teile"], buch=lambda text: ENGLISCH.get(text, text)
+    )
+    assert "Domestic hot water" in _texte_im_bild(bild["svg"])
+    assert "Warmwasser" not in _texte_im_bild(bild["svg"])
