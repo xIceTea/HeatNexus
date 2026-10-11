@@ -34,7 +34,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Übersicht erscheint auch bei einer einzelnen Anlage.
 - Beim Einschalten rechnen die Hinweise die vergangenen zwei Wochen aus der Historie nach.
 - Die Kachel „Optimierung“ zeigt den Fortschritt je Hinweis und die Tage mit Eingriffen.
-- Eine eigene Kachel zeigt die Ergebnisse der Optimierung, auch wenn alles passt.
+- Eine eigene Kachel zeigt die Ergebnisse der Optimierung, auch ohne nötige Änderung.
+- Die Ergebnisse der Optimierung zeigen ab vier Tagen eine vorläufige Tendenz.
 - BioWIN: Zwei Tasten quittieren Reinigung und Wartung.
 
 ### Behoben
