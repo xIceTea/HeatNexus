@@ -84,6 +84,9 @@ def test_der_fortschritt_der_hinweise_steht_in_jedem_woerterbuch():
         "{tage} von {noetig} Tagen",
         "ohne Vorhersage",
         "{parameter} {wert} {einheit} seit {seit}",
+        "Behaglichkeit am Anschlag",
+        "Kurvenform prüfen",
+        "Übergang {uebergang} · Frost {frost}",
     }
     for sprache in ("en", "nl"):
         datei = WURZEL / "sprachen" / f"{sprache}.json"

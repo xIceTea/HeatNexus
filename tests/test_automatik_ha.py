@@ -2777,8 +2777,9 @@ async def test_die_stunde_vermerkt_abweichung_soll_vorlauf_und_betriebsart(hass,
 
     from homeassistant.util import dt as dt_util
 
-    verwaltung, _ = anlage
+    verwaltung, coordinator = anlage
     freezer.move_to(MORGEN)
+    coordinator.data["oids"][f"{PREFIX}/0/2/0"] = "33.5"
     laufzeit = await _eingerichtet(hass, verwaltung)
     await laufzeit.auswerten()
     freezer.tick(timedelta(hours=1))
@@ -2787,7 +2788,7 @@ async def test_die_stunde_vermerkt_abweichung_soll_vorlauf_und_betriebsart(hass,
 
     stunde = laufzeit.verlauf["stunden"][str(dt_util.now().hour)]
     assert stunde["ab"] == pytest.approx(0.4)
-    assert (stunde["soll"], stunde["vl"], stunde["ba"]) == (21.0, 35.0, 1)
+    assert (stunde["soll"], stunde["vl"], stunde["vi"], stunde["ba"]) == (21.0, 35.0, 33.5, 1)
 
 
 async def test_nach_dem_start_ergaenzt_die_stunde_ihre_felder(hass, anlage, freezer):
@@ -2826,6 +2827,7 @@ async def test_fehlende_werte_der_stunde_werden_nicht_eingetragen(hass, anlage, 
 
     stunde = laufzeit.verlauf["stunden"][str(dt_util.now().hour)]
     assert "vl" not in stunde
+    assert "vi" not in stunde
     assert stunde["ba"] == 1
 
 
@@ -2962,7 +2964,11 @@ async def test_die_parameterlesung_traegt_nur_aenderungen_ein(hass, anlage, free
     laufzeit = await _eingerichtet(hass, verwaltung)
     await hass.async_block_till_done(wait_background_tasks=True)
     laufzeit.parameter_verlauf = {}
-    coordinator.client.parameter = {f"{PREFIX}/3/13/0": "80.0", f"{PREFIX}/3/1/0": "45"}
+    coordinator.client.parameter = {
+        f"{PREFIX}/3/13/0": "80.0",
+        f"{PREFIX}/3/1/0": "45",
+        f"{PREFIX}/7/76/0": "1",
+    }
 
     await laufzeit.parameter_lesen()
     freezer.tick(timedelta(days=1))
@@ -2974,6 +2980,7 @@ async def test_die_parameterlesung_traegt_nur_aenderungen_ein(hass, anlage, free
     assert laufzeit.parameter_verlauf == {
         "3/13": [["2026-09-27", 80.0], ["2026-09-29", 86.0]],
         "3/1": [["2026-09-27", 45.0]],
+        "7/76": [["2026-09-27", 1.0]],
     }
     assert laufzeit.parameter_gelesen == "2026-09-29"
     assert sorted(coordinator.client.abfragen[-1]) == sorted(
@@ -3087,11 +3094,64 @@ async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, 
             "abweichung": -1.4,
             "parameter": "3/13",
             "von": 80.0,
-            "nach": 86.0,
+            "nach": 82.0,
             "einheit": "°C",
             "minuten": None,
+            "anschlag": False,
+            "frost": None,
         }
     ]
+
+
+async def test_kachel_folgt_dem_heizkreistyp(hass, hass_ws_client, anlage, freezer):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, hinweise=True)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit.tage_archiv = _frosttage(8, -1.4)
+    basis = {"3/13": [["2026-08-01", 80.0]], "3/1": [["2026-08-01", 45.0]]}
+
+    laufzeit.parameter_verlauf = {**basis, "7/76": [["2026-08-01", 3.0]]}
+    hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
+    assert hinweise["arten"] == ["sollwert", "morgen"]
+    assert hinweise["eintraege"] == []
+    assert hinweise["parameter"]["7/76"]["wert"] == 3.0
+
+    laufzeit.parameter_verlauf = {**basis, "7/76": [["2026-08-01", 2.0]]}
+    hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
+    assert hinweise["arten"] == ["kurve_uebergang", "kurve_frost", "sollwert"]
+    # Fußboden: −1,4 K × 1,3 × 0,7 = −1,27 K.
+    assert [(h["art"], h["nach"]) for h in hinweise["eintraege"]] == [("heizkurve_frost", 81.0)]
+
+    laufzeit.parameter_verlauf = basis
+    laufzeit.konfig = {**laufzeit.konfig, "heizflaechen": "flaeche"}
+    hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
+    assert hinweise["arten"] == ["kurve_uebergang", "kurve_frost", "sollwert"]
+
+
+async def test_kompensation_zaehlt_nur_mit_raumfuehler(hass, hass_ws_client, anlage, freezer):
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, hinweise=True)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit.tage_archiv = _frosttage(8, -1.4)
+    laufzeit.parameter_verlauf = {
+        "3/13": [["2026-08-01", 80.0]],
+        "3/1": [["2026-08-01", 45.0]],
+        "3/7": [["2026-08-01", 1.5]],
+    }
+
+    hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
+    assert [h["art"] for h in hinweise["eintraege"]] == ["heizkurve_frost"]
+
+    coordinator.data["oids"][f"{PREFIX}/0/1/0"] = "21.3"
+    hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
+    assert [h["art"] for h in hinweise["eintraege"]] == ["steuerung_passt_an"]
+    assert [h.art for h in laufzeit.hinweise_liste(MORGEN[:10])] == ["steuerung_passt_an"]
 
 
 async def test_kachel_zaehlt_aufgezeichnete_tage_und_eingriffe(
@@ -3380,16 +3440,19 @@ async def test_hinweise_schalten_die_kurvenparameter_einmal_ein(hass, hass_ws_cl
     client = await hass_ws_client(hass)
     await _einrichten(client)
     register = er.async_get(hass)
-    fusspunkt, vorlauf, vorhaltezeit = _entitaeten(
-        hass, [("number", "3-1-0"), ("number", "3-13-0"), ("number", "3-6-0")]
+    fusspunkt, vorlauf, vorhaltezeit, typ = _entitaeten(
+        hass,
+        [("number", "3-1-0"), ("number", "3-13-0"), ("number", "3-6-0"), ("sensor", "7-76-0")],
     )
     register.async_update_entity(fusspunkt, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
     register.async_update_entity(vorlauf, disabled_by=er.RegistryEntryDisabler.USER)
     register.async_update_entity(vorhaltezeit, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
+    register.async_update_entity(typ, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
     # Die Steuerung liefert Fußpunkt und Vorlauf, für die Vorhaltezeit nur „-“.
     verwaltung.laufzeiten[HEIZKREIS].parameter_verlauf = {
         "3/1": [["2026-08-01", 45.0]],
         "3/13": [["2026-08-01", 80.0]],
+        "7/76": [["2026-08-01", 1.0]],
     }
 
     antwort = await _senden(
@@ -3404,6 +3467,8 @@ async def test_hinweise_schalten_die_kurvenparameter_einmal_ein(hass, hass_ws_cl
     # Was der Nutzer selbst abgeschaltet hat, bleibt aus; ohne gelesenen Wert bleibt die Entität aus.
     assert register.async_get(vorlauf).disabled_by is er.RegistryEntryDisabler.USER
     assert register.async_get(vorhaltezeit).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    # Der Heizkreistyp ist kein Kurvenparameter.
+    assert register.async_get(typ).disabled_by is er.RegistryEntryDisabler.INTEGRATION
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
     assert laufzeit.parameter_eingeschaltet is True
 

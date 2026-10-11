@@ -30,6 +30,7 @@ class Reihen:
     raum_art: str
     # Je Raum in der Reihenfolge von `raeume`: 1, solange sein Thermostat aus ist; ohne Reihe nie.
     aus: list[Reihe] = field(default_factory=list)
+    vi: Reihe = field(default_factory=list)  # Vorlauf-Ist `0/2`
 
 
 class _Stufe:
@@ -63,6 +64,7 @@ class _Stufen:
     raeume: list[tuple[_Stufe, _Stufe | float | None]]
     raum_art: str
     aus: list[_Stufe]
+    vi: _Stufe
 
 
 def _vorbereiten(reihen: Reihen) -> _Stufen:
@@ -78,6 +80,7 @@ def _vorbereiten(reihen: Reihen) -> _Stufen:
         ],
         raum_art=reihen.raum_art,
         aus=[_Stufe(reihe) for reihe in reihen.aus],
+        vi=_Stufe(reihen.vi),
     )
 
 
@@ -134,6 +137,7 @@ def _felder(stufen: _Stufen, beginn: datetime, ende: datetime) -> dict[str, Any]
         "ab": _abweichung(stufen, beginn, ende, soll),
         "soll": soll,
         "vl": stufen.vl.zur_stunde(beginn, ende),
+        "vi": stufen.vi.zur_stunde(beginn, ende),
         "ba": None if ba is None else int(ba),
         "vorgabe": stufen.restzeit.positiv(beginn, ende) or None,
     }
@@ -141,7 +145,7 @@ def _felder(stufen: _Stufen, beginn: datetime, ende: datetime) -> dict[str, Any]
 
 
 def stunden_je_tag(reihen: Reihen, tage: list[date]) -> dict[str, dict[str, dict[str, Any]]]:
-    """`{"JJJJ-MM-TT": {"H": {"at", "ab", "soll", "vl", "ba", "vorgabe"}}}` wie der Live-Verlauf.
+    """`{"JJJJ-MM-TT": {"H": {"at", "ab", "soll", "vl", "vi", "ba", "vorgabe"}}}` wie live.
 
     Die Stunde steht ohne führende Null; Stunden und Tage ohne jeden Wert entfallen.
     """

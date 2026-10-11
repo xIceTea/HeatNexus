@@ -924,6 +924,42 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     ]
 
 
+def test_die_optimierung_folgt_den_arten_und_den_neuen_hinweisen(durchlauf):
+    """Anschlag und Kurvenform zählen als Hinweis; Zeilen und Zähler folgen genau `arten`."""
+    hinweise = durchlauf["automatikHinweise"]
+    anschlag = hinweise["anschlag"]
+    assert (anschlag["zahl"], anschlag["fuss"]) == ("2/2", ["Heizkurve 10/7", "Sollwert 8/7"])
+    assert anschlag["ergebnis"]["zahl"] == "1"
+    assert anschlag["ergebnis"]["bloecke"] == [
+        ["Heizkurve", "Behaglichkeit am Anschlag", "−1,2 K · 10 Tage"],
+        ["Raumsollwert", "Keine Änderung nötig", "8 Tage"],
+    ]
+    assert anschlag["ergebnis"]["klickbar"] == ["Heizkurve"]
+    kurvenform = hinweise["kurvenform"]
+    assert (kurvenform["zahl"], kurvenform["ergebnis"]["zahl"]) == ("2/3", "1")
+    assert kurvenform["ergebnis"]["bloecke"] == [
+        ["Heizkurve", "Kurvenform prüfen", "Übergang −0,9 K · Frost +1,1 K · 12 Tage seit 14.11."],
+        ["Aufheizen am Morgen", "Keine Änderung nötig", "9 Tage"],
+    ]
+    assert kurvenform["ergebnis"]["klickbar"] == []
+    # Fußboden: keine Morgenzeile, keine Morgentendenz, kein „Keine Änderung nötig“ zum Morgen.
+    ohne_morgen = hinweise["ohneMorgen"]
+    assert (ohne_morgen["zahl"], ohne_morgen["fuss"]) == (
+        "2/3",
+        ["Heizkurve: Übergang 7/7 · Frost 3/7", "Sollwert 7/7"],
+    )
+    assert ohne_morgen["ergebnis"]["bloecke"] == [
+        ["Heizkurve bei Frost", "Eher zu warm", "Vorläufig · +0,8 K · 4 von 7 Tagen"],
+        ["Heizkurve in der Übergangszeit", "Keine Änderung nötig", "7 Tage"],
+        ["Raumsollwert", "Keine Änderung nötig", "7 Tage"],
+    ]
+    # Ohne Heizkurve: nur der Sollwert, die Kurventendenz fehlt.
+    ohne_kurve = hinweise["ohneKurve"]
+    assert (ohne_kurve["zahl"], ohne_kurve["fuss"]) == ("1/1", ["Sollwert 9/7"])
+    assert ohne_kurve["ergebnis"]["zahl"] == "0"
+    assert ohne_kurve["ergebnis"]["bloecke"] == [["Raumsollwert", "Keine Änderung nötig", "9 Tage"]]
+
+
 def test_neu_lernen_steht_in_den_einstellungen_und_fragt_nach(durchlauf):
     haus = durchlauf["automatikHaus"]
     assert haus["frage"] == ["Hausmodell neu lernen?"]

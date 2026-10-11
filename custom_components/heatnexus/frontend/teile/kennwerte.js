@@ -377,7 +377,7 @@ export const KennwerteMixin = (Basis) =>
         [
           ["kurve_uebergang", this._t("Heizkurve in der Übergangszeit"), ["heizkurve_uebergang", ...kurve], "3/1"],
           ["kurve_frost", this._t("Heizkurve bei Frost"), ["heizkurve_frost", ...kurve], "3/13"],
-          ["kurve", this._t("Heizkurve"), kurve, "3/58"],
+          ["kurve", this._t("Heizkurve"), [...kurve, "kurvenform"], "3/58"],
           ["sollwert", this._t("Raumsollwert"), ["sollwert_ausgleich"], "3/51"],
           ["morgen", this._t("Aufheizen am Morgen"), ["morgen_spaet", "morgen_frueh"], "3/6"],
         ].map((art) => [art[0], art])
@@ -453,6 +453,7 @@ export const KennwerteMixin = (Basis) =>
         morgen_spaet: this._t("Morgens zu spät warm"),
         morgen_frueh: this._t("Morgens schon warm"),
         steuerung_passt_an: this._t("Heizkurve"),
+        kurvenform: this._t("Heizkurve"),
       }[eintrag.art];
       if (!titel) return null;
       return this._ergebnisBlock(titel, "empfehlung", this._hinweisEmpfehlung(eintrag), this._hinweisAngaben(eintrag).join(" · "));
@@ -462,7 +463,9 @@ export const KennwerteMixin = (Basis) =>
       if (eintrag.art === "steuerung_passt_an") return [this._t("Anpassung durch die Steuerung aktiv")];
       const angaben = [];
       if (eintrag.art === "sollwert_ausgleich") angaben.push(this._tMit("Sollwert {wert} °C", { wert: zahl(eintrag.von) }));
-      else if (vorhanden(eintrag.abweichung)) angaben.push(kelvin(eintrag.abweichung));
+      else if (eintrag.art === "kurvenform") {
+        angaben.push(this._tMit("Übergang {uebergang} · Frost {frost}", { uebergang: kelvin(eintrag.abweichung), frost: kelvin(eintrag.frost) }));
+      } else if (vorhanden(eintrag.abweichung)) angaben.push(kelvin(eintrag.abweichung));
       if (vorhanden(eintrag.minuten)) angaben.push(this._tMit("Ziel nach {minuten} min", { minuten: eintrag.minuten }));
       const seit = tagMonat(eintrag.seit);
       angaben.push(
@@ -478,6 +481,10 @@ export const KennwerteMixin = (Basis) =>
       if (eintrag.art === "steuerung_passt_an") return this._t("Keine Empfehlung zur Kurve");
       if (eintrag.art === "sollwert_ausgleich") return this._t("Heizkurve anpassen statt Sollwert");
       if (eintrag.art === "morgen_frueh") return this._morgenFruehEmpfehlung(eintrag);
+      // Beide Bänder liegen gegenläufig daneben; eine Parallelverschiebung hilft dann nicht.
+      if (eintrag.art === "kurvenform") return this._t("Kurvenform prüfen");
+      // Die Behaglichkeit steht schon am Rand ihres Bereichs; weiter verstellen lässt sie sich nicht.
+      if (eintrag.art === "heizkurve_parallel" && eintrag.anschlag) return this._t("Behaglichkeit am Anschlag");
       // Ohne einstellbaren Parameter nennt der Hinweis nur die Richtung; zu kühl heißt anheben.
       if (eintrag.art === "heizkurve_parallel" && !eintrag.parameter && vorhanden(eintrag.abweichung)) {
         return Number(eintrag.abweichung) < 0 ? this._t("Heizkurve anheben") : this._t("Heizkurve absenken");

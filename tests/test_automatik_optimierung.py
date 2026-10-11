@@ -23,7 +23,7 @@ TAGE = [(ERSTER + timedelta(days=i)).isoformat() for i in range(HEIZTAGE)]
 HEUTE = "2026-09-27"
 # Restzeit `2/10` als `(tag, stunde, minute, minuten)`: am dritten Tag 10:00 bis 10:30.
 VORGABE = ((0, 0, 0, 0), (2, 10, 0, 60), (2, 10, 30, 0))
-FASSUNG = 2
+FASSUNG = 3
 
 
 def _zeit(tag: int, stunde: int = 0, minute: int = 0):
@@ -75,10 +75,11 @@ def _historie(hass, coordinator, mit_restzeit: bool = True) -> dict[str, list]:
         ("sensor", "1-1-0"),
         ("sensor", "1-2-0"),
         ("sensor", "2-9-0"),
+        ("sensor", "0-2-0"),
     ]
     if mit_restzeit:
         plattformen.append(("number", "2-10-0"))
-    aussen, soll, vl, ba, *restzeit = ha._entitaeten(hass, plattformen)
+    aussen, soll, vl, ba, vi, *restzeit = ha._entitaeten(hass, plattformen)
     coordinator.data["devices"].append(
         {
             "type": "enum_sensor",
@@ -92,6 +93,7 @@ def _historie(hass, coordinator, mit_restzeit: bool = True) -> dict[str, list]:
         aussen: _zustaende(aussen, (0, 0, 0, 10.0)),
         soll: _zustaende(soll, (0, 0, 0, 21.0)),
         vl: _zustaende(vl, (0, 0, 0, 40.0)),
+        vi: _zustaende(vi, (0, 0, 0, 39.0)),
         ba: _zustaende(ba, (0, 0, 0, "Heizbetrieb")),
         "sensor.wohnzimmer": _zustaende("sensor.wohnzimmer", (0, 0, 0, 21.2)),
     }
@@ -285,6 +287,26 @@ async def test_eine_aeltere_marke_rechnet_einmal_neu(hass, anlage, freezer, monk
     neu = verwaltung.laufzeiten[ha.HEIZKREIS]
     assert neu.archiv_nachgerechnet == FASSUNG
     assert all(t.ungestoert and t.sauber is not None for t in neu.archivierte_tage())
+
+
+async def test_ein_verfehlter_vorlauf_nimmt_die_tage_aus_der_grundlage(
+    hass, anlage, freezer, monkeypatch
+):
+    from homeassistant.helpers import entity_registry as er
+
+    verwaltung, coordinator = anlage
+    laufzeit = await _laufzeit(hass, verwaltung, freezer)
+    zustaende = _historie(hass, coordinator)
+    vi = er.async_get(hass).async_get_entity_id("sensor", "heatnexus", f"{ha.HEIZKREIS}-0-2-0")
+    # Ab dem sechsten Tag bleibt der Vorlauf mehr als 3 K unter dem Soll von 40 °C.
+    zustaende[vi] = _zustaende(vi, (0, 0, 0, 39.0), (5, 0, 0, 36.0))
+    _aufzeichnung(hass, monkeypatch, zustaende)
+
+    await laufzeit.archiv_nachrechnen()
+
+    tage = laufzeit.archivierte_tage()
+    assert [t.ungestoert for t in tage] == [True] * 5 + [False] * 5
+    assert [t.sauber for t in tage[5:]] == [0] * 5
 
 
 async def test_ein_parameterwechsel_beginnt_die_grundlage_neu(hass, anlage, freezer, monkeypatch):

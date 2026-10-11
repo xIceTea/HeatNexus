@@ -24,15 +24,36 @@ from .vorausschau import LERNTAGE
 
 _LOGGER = logging.getLogger(__name__)
 ARCHIV_TAGE = 150
-# Heizkurve, Behaglichkeit, Vorhaltezeit, Raumsollwert und die eigene Anpassung der Steuerung.
-PARAMETER = ("/3/1/0", "/3/12/0", "/3/13/0", "/3/7/0", "/3/58/0", "/3/6/0", "/3/51/0", "/3/101/0")
+# Heizkurve, Behaglichkeit, Vorhaltezeit, Raumsollwert, die eigene Anpassung der Steuerung
+# und der Heizkreistyp.
+HEIZKREISTYP = "/7/76/0"
+PARAMETER = (
+    "/3/1/0",
+    "/3/12/0",
+    "/3/13/0",
+    "/3/7/0",
+    "/3/58/0",
+    "/3/6/0",
+    "/3/51/0",
+    "/3/101/0",
+    HEIZKREISTYP,
+)
 LESEZEIT = {"hour": 0, "minute": 40, "second": 0}
-# Raumsoll, Vorlauf-Soll, Betriebsart und Restzeit: die Adressen, die `_stundenfelder` live liest.
-VERLAUFSWERTE = {"soll": "/1/1/0", "vl": "/1/2/0", "ba": "/2/9/0", "restzeit": "/2/10/0"}
+# Raumsoll, Vorlauf-Soll und -Ist, Betriebsart und Restzeit: was `_stundenfelder` live liest.
+VORLAUF_IST = "/0/2/0"
+VERLAUFSWERTE = {
+    "soll": "/1/1/0",
+    "vl": "/1/2/0",
+    "vi": VORLAUF_IST,
+    "ba": "/2/9/0",
+    "restzeit": "/2/10/0",
+}
+# Raumfühler an der Steuerung; nur mit ihm wirkt die Kompensation `3/7`.
+RAUMFUEHLER = "/0/1/0"
 # So weit liest `_verlauf_lesen` zurück; so viele Tage vor heute lassen sich nachrechnen.
 NACHRECHNEN_TAGE = LERNTAGE
 # Fassung der Tageswertung; ein Archiv aus einer älteren Fassung wird einmal neu gerechnet.
-NACHRECHNEN_FASSUNG = 2
+NACHRECHNEN_FASSUNG = 3
 VOLLER_TAG = 24
 # Die Klima-Entität des Heizkreises führt die Restzeit `2/10` als Merkmal.
 RESTZEIT_MERKMAL = "override_restzeit_min"
@@ -218,7 +239,7 @@ class OptimierungMixin:
         return tage
 
     def _stundenfelder(self) -> dict[str, Any]:
-        """Abweichung, Raumsoll, Vorlauf-Soll und Betriebsart aus der letzten Lage.
+        """Abweichung, Raumsoll, Vorlauf-Soll und -Ist und Betriebsart aus der letzten Lage.
 
         Eine Vorgabe des Nutzers und das Beobachten werden vermerkt; sie entscheiden, ob der Tag zählt.
         """
@@ -235,6 +256,7 @@ class OptimierungMixin:
             "ab": ab,
             "soll": lage.soll,
             "vl": lage.vl_soll,
+            "vi": self._wert(VORLAUF_IST),
             "ba": lage.betriebsart,
             "vorgabe": vorgabe or None,
             "beobachtet": self.beobachten or None,
@@ -307,6 +329,7 @@ class OptimierungMixin:
             at=nachladen.zeitreihe(zustaende.get(quellen.aussen, []), luecken=True),
             soll=werte["soll"],
             vl=werte["vl"],
+            vi=werte["vi"],
             ba=_textreihe(zustaende.get(quellen.werte["ba"], []), self._betriebsarten()),
             restzeit=werte["restzeit"],
             raeume=[(ist, ziel) for ist, ziel, _ in raeume],
@@ -367,7 +390,7 @@ class OptimierungMixin:
             return
         register = er.async_get(self.hass)
         for adresse in PARAMETER:
-            if _schluessel(adresse) not in stand:
+            if adresse == HEIZKREISTYP or _schluessel(adresse) not in stand:
                 continue
             kennung = self._verlaufsentitaet(adresse)
             eintrag = register.async_get(kennung) if kennung else None
@@ -415,8 +438,19 @@ class OptimierungMixin:
         self._speichern()
 
     # --- Auswertung ----------------------------------------------------------
+    def _heizkreis(self) -> dict[str, Any]:
+        """Heizkreistyp und Raumfühler, wie der Optimierer sie erwartet."""
+        return {
+            "heizkreis_typ": optimierer.heizkreis_typ(
+                self.parameter_verlauf, self.konfig.get("heizflaechen")
+            ),
+            "raumfuehler": self._wert(RAUMFUEHLER) is not None,
+        }
+
     def hinweise_liste(self, heute: date | str) -> list[optimierer.Hinweis]:
-        return optimierer.hinweise(self.archivierte_tage(), self.parameter_verlauf, heute)
+        return optimierer.hinweise(
+            self.archivierte_tage(), self.parameter_verlauf, heute, **self._heizkreis()
+        )
 
     def hinweise_stand(self, heute: date | str) -> dict[str, Any]:
         """Die Kachel „Optimierung“; ohne eingeschalteten Schalter nur `{"status": "aus"}`.
@@ -429,7 +463,8 @@ class OptimierungMixin:
         if not self.konfig.get("hinweise"):
             return {"status": "aus"}
         tage = self.archivierte_tage()
-        eintraege = optimierer.hinweise(tage, self.parameter_verlauf, heute)
+        kreis = self._heizkreis()
+        eintraege = optimierer.hinweise(tage, self.parameter_verlauf, heute, **kreis)
         grundlage = optimierer.grundlage(tage, self.parameter_verlauf, heute)
         zuletzt = _letzte_tage(tage, heute)
         return {
@@ -444,10 +479,11 @@ class OptimierungMixin:
                 stand := optimierer.parameterstand(self.parameter_verlauf)
             ),
             "vorlaeufig": [
-                asdict(t) for t in optimierer.tendenzen(tage, self.parameter_verlauf, heute)
+                asdict(t)
+                for t in optimierer.tendenzen(tage, self.parameter_verlauf, heute, **kreis)
             ],
             "parameter": stand,
-            "arten": optimierer.arten(self.parameter_verlauf),
+            "arten": optimierer.arten(self.parameter_verlauf, heizkreis_typ=kreis["heizkreis_typ"]),
         }
 
     def _ergebnis_entitaeten(self, stand: dict[str, Any]) -> dict[str, str]:

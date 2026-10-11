@@ -110,6 +110,25 @@ def test_ohne_wert_zum_stundenbeginn_zaehlt_der_erste_der_stunde(n):
     assert stunden["7"]["vl"] == 50.0
 
 
+def test_vorlauf_ist_als_eigenes_feld(n):
+    vi = [(vortag(), 28.0), (zeit(6, 30), 44.0)]
+
+    stunden = n.stunden_je_tag(reihen(n, vi=vi), [TAG])[TAG.isoformat()]
+
+    assert (stunden["5"]["vi"], stunden["6"]["vi"], stunden["7"]["vi"]) == (28.0, 28.0, 44.0)
+    assert "vi" not in n.stunden_je_tag(reihen(n), [TAG])[TAG.isoformat()]["7"]
+
+
+def test_verfehlter_vorlauf_nimmt_die_heizstunden_heraus(n, o):
+    voll = n.stunden_je_tag(reihen(n), [TAG])[TAG.isoformat()]
+    # Ab 14 Uhr bleibt der Vorlauf mehr als 3 K unter dem Soll von 45 °C.
+    vi = [(vortag(), 30.0), (zeit(6), 45.0), (zeit(14), 41.0)]
+    knapp = n.stunden_je_tag(reihen(n, vi=vi), [TAG])[TAG.isoformat()]
+
+    ohne = o.tag_aus_stunden(TAG.isoformat(), voll).sauber
+    assert o.tag_aus_stunden(TAG.isoformat(), knapp).sauber == ohne - 8
+
+
 def test_stunde_ganz_ohne_werte_entfaellt(n):
     leer = n.Reihen(
         at=[(zeit(10), 4.0)], soll=[], vl=[], ba=[], restzeit=[], raeume=[], raum_art="mittel"

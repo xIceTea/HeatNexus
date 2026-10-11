@@ -1175,6 +1175,61 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
         { art: "morgen", tage: 4, richtung: "frueh", wert: 0 },
       ],
     }),
+    // Behaglichkeit am Rand ihres Bereichs: ein Hinweis ohne Zielwert, kein „Keine Änderung nötig“.
+    anschlag: zeigen({
+      status: "bereit",
+      arten: ["kurve", "sollwert"],
+      entitaeten: { "3/58": "number.behaglichkeit" },
+      tage: 10,
+      noetig: 7,
+      fortschritt: { kurve: 10, sollwert: 8, morgen: 9 },
+      aufgezeichnet: 10,
+      ohne_grundlage: 0,
+      eintraege: [
+        { art: "heizkurve_parallel", tage: 10, seit: null, abweichung: -1.2, parameter: "3/58", von: 3, nach: null, einheit: "K", anschlag: true },
+      ],
+    }),
+    // Beide Bänder gegenläufig daneben: ein Hinweis zur Kurvenform ohne Parameter.
+    kurvenform: zeigen({
+      status: "bereit",
+      arten: ["kurve", "sollwert", "morgen"],
+      entitaeten: { "3/58": "number.behaglichkeit" },
+      tage: 12,
+      noetig: 7,
+      fortschritt: { kurve: 12, sollwert: 3, morgen: 9 },
+      aufgezeichnet: 12,
+      ohne_grundlage: 0,
+      eintraege: [
+        { art: "kurvenform", tage: 12, seit: "2026-11-14", abweichung: -0.9, frost: 1.1, parameter: null, von: null, nach: null },
+      ],
+    }),
+    // Fußboden: ohne Morgen, auch wenn Tage oder Tendenzen dafür vorliegen.
+    ohneMorgen: zeigen({
+      status: "sammelt",
+      arten: ["kurve_uebergang", "kurve_frost", "sollwert"],
+      tage: 9,
+      noetig: 7,
+      eintraege: [],
+      fortschritt: { kurve_uebergang: 7, kurve_frost: 3, sollwert: 7, morgen: 9 },
+      aufgezeichnet: 9,
+      ohne_grundlage: 0,
+      vorlaeufig: [
+        { art: "morgen", tage: 5, richtung: "spaet", wert: 60 },
+        { art: "kurve_frost", tage: 4, richtung: "warm", wert: 0.8 },
+      ],
+    }),
+    // Heizkreis ohne Heizkurve: nur der Sollwert.
+    ohneKurve: zeigen({
+      status: "bereit",
+      arten: ["sollwert"],
+      tage: 9,
+      noetig: 7,
+      eintraege: [],
+      fortschritt: { kurve: 9, kurve_uebergang: 8, kurve_frost: 8, sollwert: 9, morgen: 9 },
+      aufgezeichnet: 9,
+      ohne_grundlage: 0,
+      vorlaeufig: [{ art: "kurve", tage: 5, richtung: "kalt", wert: -0.5 }],
+    }),
   };
   {
     zeigen({ status: "aus" });
