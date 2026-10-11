@@ -3348,3 +3348,34 @@ async def test_entitaet_ohne_vorhersageart_wird_trotzdem_gefragt(hass, anlage, f
         ("weather.home", "hourly"),
     ]
     assert any("weather.home" in r.getMessage() for r in caplog.records)
+
+
+async def test_hinweise_schalten_die_kurvenparameter_einmal_ein(hass, hass_ws_client, anlage):
+    from homeassistant.helpers import entity_registry as er
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    register = er.async_get(hass)
+    fusspunkt, vorlauf = _entitaeten(hass, [("number", "3-1-0"), ("number", "3-13-0")])
+    register.async_update_entity(fusspunkt, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
+    register.async_update_entity(vorlauf, disabled_by=er.RegistryEntryDisabler.USER)
+
+    antwort = await _senden(
+        client,
+        type="heatnexus/automatik/einstellen",
+        heizkreis=HEIZKREIS,
+        eigene={"hinweise": True},
+    )
+    assert antwort["success"], antwort
+
+    assert register.async_get(fusspunkt).disabled_by is None
+    # Was der Nutzer selbst abgeschaltet hat, bleibt aus.
+    assert register.async_get(vorlauf).disabled_by is er.RegistryEntryDisabler.USER
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    assert laufzeit.parameter_eingeschaltet is True
+
+    # Einmal genügt: Schaltet die Integration ihn später wieder ab, bleibt er aus.
+    register.async_update_entity(fusspunkt, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
+    await laufzeit.neu_starten(laufzeit.konfig)
+    assert register.async_get(fusspunkt).disabled_by is er.RegistryEntryDisabler.INTEGRATION

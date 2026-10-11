@@ -14,10 +14,11 @@ import math
 from typing import Any, NamedTuple
 
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from ..const import DOMAIN
+from ..const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
 from ..helpers import enum_texte
 from . import eingaben, nachladen, nachrechnen, optimierer, regel
 from .vorausschau import LERNTAGE
@@ -167,6 +168,7 @@ class OptimierungMixin:
     parameter_verlauf: dict[str, list[list[Any]]]
     parameter_gelesen: str | None
     archiv_nachgerechnet: int
+    parameter_eingeschaltet: bool
 
     def _optimierung_laden(self, z: dict[str, Any]) -> None:
         archiv = z.get("tage_archiv")
@@ -176,6 +178,7 @@ class OptimierungMixin:
         gelesen = z.get("parameter_gelesen")
         self.parameter_gelesen = gelesen if isinstance(gelesen, str) else None
         self.archiv_nachgerechnet = _fassung(z.get("archiv_nachgerechnet"))
+        self.parameter_eingeschaltet = z.get("parameter_eingeschaltet") is True
         self._parameteraufgabe: Any = None
         self._nachrechenaufgabe: Any = None
 
@@ -185,6 +188,7 @@ class OptimierungMixin:
             "parameter_verlauf": self.parameter_verlauf,
             "parameter_gelesen": self.parameter_gelesen,
             "archiv_nachgerechnet": self.archiv_nachgerechnet,
+            "parameter_eingeschaltet": self.parameter_eingeschaltet,
         }
 
     # --- Tage ----------------------------------------------------------------
@@ -346,12 +350,32 @@ class OptimierungMixin:
         Tage aus der Aufzeichnung nachgerechnet.
         """
         self._abmelden.append(async_track_time_change(self.hass, self._parameter_takt, **LESEZEIT))
+        if self.werte.hinweise and not self.parameter_eingeschaltet:
+            self._parameter_einschalten()
         if self.parameter_gelesen != dt_util.now().date().isoformat():
             self._parameter_anstossen()
         if self.archiv_nachgerechnet < NACHRECHNEN_FASSUNG:
             self._nachrechenaufgabe = self.hass.async_create_background_task(
                 self.archiv_nachrechnen(), f"heatnexus_nachrechnen_{self.device_id}"
             )
+
+    def _parameter_einschalten(self) -> None:
+        """Die Kurvenparameter, die HeatNexus deaktiviert anlegt, einmal einschalten; ihr Verlauf zeigt die Hinweise.
+
+        Was der Nutzer selbst abgeschaltet hat, bleibt aus; danach entscheidet er allein.
+        """
+        register = er.async_get(self.hass)
+        eingeschaltet = False
+        for adresse in PARAMETER:
+            kennung = self._verlaufsentitaet(adresse)
+            eintrag = register.async_get(kennung) if kennung else None
+            if eintrag is not None and eintrag.disabled_by is er.RegistryEntryDisabler.INTEGRATION:
+                register.async_update_entity(eintrag.entity_id, disabled_by=None)
+                eingeschaltet = True
+        self.parameter_eingeschaltet = True
+        self._speichern()
+        if eingeschaltet:
+            async_dispatcher_send(self.hass, SIGNAL_NEUE_ENTITAETEN.format(self.entry_id))
 
     def _optimierung_beenden(self) -> None:
         for aufgabe in (self._parameteraufgabe, self._nachrechenaufgabe):
