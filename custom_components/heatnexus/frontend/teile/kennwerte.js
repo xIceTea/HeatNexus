@@ -317,25 +317,31 @@ export const KennwerteMixin = (Basis) =>
     _kachelErgebnisse(kreis) {
       const h = (kreis.kennwerte || {}).hinweise;
       if (!h) return null;
-      const bloecke = (h.eintraege || []).map((eintrag) => this._hinweisBlock(eintrag)).filter(Boolean);
-      const passt = this._hinweisePassen(h).map(([titel, tage]) => this._passtBlock(titel, tage));
+      const entitaeten = h.entitaeten || {};
+      const bloecke = (h.eintraege || [])
+        .map((eintrag) => {
+          const block = this._hinweisBlock(eintrag);
+          return block && this._klickbar(block, entitaeten[eintrag.parameter]);
+        })
+        .filter(Boolean);
+      const passt = this._hinweisePassen(h).map(([titel, tage, , parameter]) => this._klickbar(this._passtBlock(titel, tage), entitaeten[parameter]));
       if (!bloecke.length && !passt.length) return null;
       const liste = knoten("div", "vorschlaege");
       liste.append(...bloecke, ...passt);
       return this._kachel("hinweise-ergebnis", "Ergebnisse der Optimierung", String(bloecke.length), this._t("Hinweise"), liste);
     }
 
-    /** Arten mit genug Tagen, zu denen kein Hinweis vorliegt, als `[Titel, Tage, Hinweisarten]`. */
+    /** Arten mit genug Tagen, zu denen kein Hinweis vorliegt, als `[Titel, Tage, Hinweisarten, Parameter]`. */
     _hinweisePassen(h) {
       const f = h.fortschritt || {};
       const noetig = h.noetig || 0;
       const arten = new Set((h.eintraege || []).map((eintrag) => eintrag.art));
       const kurve = ["heizkurve_parallel", "steuerung_passt_an"];
       return [
-        [this._t("Heizkurve in der Übergangszeit"), f.kurve_uebergang, ["heizkurve_uebergang", ...kurve]],
-        [this._t("Heizkurve bei Frost"), f.kurve_frost, ["heizkurve_frost", ...kurve]],
-        [this._t("Raumsollwert"), f.sollwert, ["sollwert_ausgleich"]],
-        [this._t("Aufheizen am Morgen"), f.morgen, ["morgen_spaet"]],
+        [this._t("Heizkurve in der Übergangszeit"), f.kurve_uebergang, ["heizkurve_uebergang", ...kurve], "3/1"],
+        [this._t("Heizkurve bei Frost"), f.kurve_frost, ["heizkurve_frost", ...kurve], "3/13"],
+        [this._t("Raumsollwert"), f.sollwert, ["sollwert_ausgleich"], "3/51"],
+        [this._t("Aufheizen am Morgen"), f.morgen, ["morgen_spaet"], "3/6"],
       ]
         .filter(([, tage, eigene]) => noetig > 0 && (tage || 0) >= noetig && !eigene.some((art) => arten.has(art)));
     }

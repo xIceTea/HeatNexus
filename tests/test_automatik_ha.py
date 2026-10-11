@@ -3046,6 +3046,7 @@ async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, 
         "fortschritt": {"kurve_frost": 0, "kurve_uebergang": 0, "sollwert": 0, "morgen": 0},
         "aufgezeichnet": 0,
         "ohne_grundlage": 0,
+        "entitaeten": {},
     }
 
     laufzeit.tage_archiv = _frosttage(8, -1.4)
@@ -3087,10 +3088,12 @@ async def test_kachel_zaehlt_aufgezeichnete_tage_und_eingriffe(
     for i in (0, 10, 18):
         tage[i] = {**tage[i], "ungestoert": False}
     verwaltung.laufzeiten[HEIZKREIS].tage_archiv = tage
+    (sollwert,) = _entitaeten(hass, [("number", "3-51-0")])
 
     hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
 
     assert (hinweise["aufgezeichnet"], hinweise["ohne_grundlage"]) == (13, 2)
+    assert hinweise["entitaeten"] == {"3/51": sollwert}
 
 
 async def test_diagnose_enthaelt_den_optimierer(hass, anlage, freezer):

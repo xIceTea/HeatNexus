@@ -1075,6 +1075,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       neben: text(kachel && kachel.querySelector(".neben")),
       fuss: kachel ? kachel.querySelectorAll(".fuss").map(text) : [],
       fragezeichen: kachel ? kachel.querySelectorAll(".fragezeichen").length : 0,
+      klickbar: kachel ? kachel.querySelectorAll(".vorschlag").filter((b) => b.classList.contains("klickbar")).map((b) => text(b.querySelector(".name"))) : [],
       bloecke: kachel
         ? kachel
             .querySelectorAll(".vorschlag")
@@ -1092,11 +1093,13 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       fortschritt: { kurve_frost: 2, kurve_uebergang: 7, sollwert: 7, morgen: 5 },
       aufgezeichnet: 14,
       ohne_grundlage: 2,
+      entitaeten: { "3/51": "number.raumsollwert" },
     }),
     ohneTage: zeigen({ status: "sammelt", tage: 0, noetig: 7, eintraege: [], fortschritt: {}, aufgezeichnet: 0, ohne_grundlage: 0 }),
     ohneEingriffe: zeigen({ status: "sammelt", tage: 5, noetig: 7, eintraege: [], fortschritt: {}, aufgezeichnet: 5, ohne_grundlage: 0 }),
     bereit: zeigen({
       status: "bereit",
+      entitaeten: { "3/13": "number.vorlauf_auslegung", "3/1": "number.fusspunkt" },
       tage: 23,
       noetig: 7,
       fortschritt: { kurve_frost: 18, kurve_uebergang: 9, sollwert: 21, morgen: 12 },

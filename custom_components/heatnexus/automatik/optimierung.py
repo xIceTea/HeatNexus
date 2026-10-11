@@ -398,6 +398,7 @@ class OptimierungMixin:
         """Die Kachel „Optimierung“; ohne eingeschalteten Schalter `None`.
 
         `aufgezeichnet` zählt die Archivtage der letzten zwei Wochen, `ohne_grundlage` die mit Eingriffen.
+        `entitaeten` nennt je Kurvenparameter die Entität, deren Verlauf ein Klick zeigt.
         """
         if not self.werte.hinweise:
             return None
@@ -413,4 +414,7 @@ class OptimierungMixin:
             "fortschritt": optimierer.fortschritt(tage, self.parameter_verlauf, heute),
             "aufgezeichnet": len(zuletzt),
             "ohne_grundlage": sum(not t.ungestoert for t in zuletzt),
+            "entitaeten": {
+                _schluessel(a): kennung for a in PARAMETER if (kennung := self._verlaufsentitaet(a))
+            },
         }

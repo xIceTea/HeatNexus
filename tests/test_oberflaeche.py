@@ -838,11 +838,17 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
         ["Heizkurve in der Übergangszeit", "Keine Änderung nötig", "7 Tage"],
         ["Raumsollwert", "Keine Änderung nötig", "7 Tage"],
     ]
+    # Eine Zeile mit bekannter Entität öffnet deren Verlauf.
+    assert ergebnis["klickbar"] == ["Raumsollwert"]
     assert hinweise["ohneTage"]["ergebnis"] is None
     bereit = hinweise["bereit"]
     assert (bereit["zahl"], bereit["neben"], len(bereit["fuss"])) == ("4/4", "ausgewertet", 3)
     assert bereit["bloecke"] == []
     assert (bereit["ergebnis"]["zahl"], bereit["ergebnis"]["neben"]) == ("7", "Hinweise")
+    assert bereit["ergebnis"]["klickbar"] == [
+        "Heizkurve bei Frost",
+        "Heizkurve in der Übergangszeit",
+    ]
     assert bereit["ergebnis"]["bloecke"] == [
         ["Heizkurve", "Keine Empfehlung zur Kurve", "Anpassung durch die Steuerung aktiv"],
         ["Heizkurve bei Frost", "Vorlauf bei Auslegung 80 → 86 °C", "−1,4 K · 18 Tage seit 14.11."],
