@@ -2897,7 +2897,8 @@ async def test_der_tageswechsel_archiviert_den_vortag_einmal(hass, anlage, freez
     assert [t["datum"] for t in laufzeit.tage_archiv].count("2026-09-26") == 1
     letzter = laufzeit.tage_archiv[-1]
     assert (letzter["datum"], letzter["at"], letzter["abweichung"]) == ("2026-09-26", 5.0, -0.2)
-    assert letzter["ungestoert"] is True
+    # Eine einzige Heizstunde reicht nicht für die Kurvengrundlage.
+    assert (letzter["sauber"], letzter["ungestoert"]) == (1, False)
 
 
 async def test_ein_tag_ohne_messwerte_wird_nicht_archiviert(hass, anlage, freezer):

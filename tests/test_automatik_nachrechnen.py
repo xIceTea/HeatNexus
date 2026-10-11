@@ -312,4 +312,5 @@ def test_durchgang_bis_zum_tag(n, o):
     assert erster.stunden == 24
     assert erster.morgen_min == 120
     assert erster.soll == 21.0
-    assert zweiter.ungestoert is False
+    # Die Vorgabe nimmt ihre Stunde und zwei Erholungsstunden heraus.
+    assert (zweiter.sauber, zweiter.ungestoert) == (erster.sauber - 3, True)

@@ -122,7 +122,8 @@ async def test_leeres_archiv_wird_beim_start_nachgerechnet(hass, anlage, freezer
     assert all(t.nachgerechnet for t in tage)
     assert (tage[0].at, tage[0].soll, tage[0].stunden) == (10.0, 21.0, 24)
     assert tage[0].abweichung == pytest.approx(0.2)
-    assert [t.datum for t in tage if not t.ungestoert] == [TAGE[2]]
+    assert all(t.ungestoert for t in tage)
+    assert [t.datum for t in tage if t.sauber < tage[0].sauber] == [TAGE[2]]
     assert laufzeit.archiv_nachgerechnet is True
     assert laufzeit.als_dict()["archiv_nachgerechnet"] is True
 
@@ -148,7 +149,8 @@ async def test_ohne_restzeit_entitaet_zaehlt_das_merkmal_des_heizkreises(
     assert await laufzeit.archiv_nachrechnen() == HEIZTAGE
 
     tage = laufzeit.archivierte_tage()
-    assert [t.datum for t in tage if not t.ungestoert] == [TAGE[2]]
+    assert all(t.ungestoert for t in tage)
+    assert [t.datum for t in tage if t.sauber < tage[0].sauber] == [TAGE[2]]
 
 
 async def test_nachrechnen_liefert_die_zahl_neuer_tage(hass, anlage, freezer, monkeypatch):

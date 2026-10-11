@@ -1,6 +1,6 @@
 """Optimierungshinweise: wie gut Heizkurve, Sollwert und Zeitprogramm zum Haus passen.
 
-Ausgewertet werden ungestörte Tage seit der letzten Änderung der Kurvenparameter.
+Ausgewertet werden ungestörte Heizstunden seit der letzten Änderung der Kurvenparameter.
 Die Hinweise sind Empfehlungen; geschrieben wird nichts. Ohne Home Assistant testbar.
 """
 
@@ -16,6 +16,9 @@ from typing import Any
 # Betriebsart `2/9` im Heizbetrieb des Zeitprogramms.
 HEIZBETRIEB = 1
 MIN_STUNDEN = 12
+# Stunden nach einem Eingriff, die noch nicht zählen; ab so vielen sauberen Stunden zählt der Tag.
+ERHOLUNG_H = 2
+MIN_SAUBER = 6
 MIN_TAGE = 7
 SCHWELLE_K = 0.5
 FROST = 0.0
@@ -54,6 +57,8 @@ class Tag:
     stunden: int
     # Aus der Historie gerechnet statt live archiviert.
     nachgerechnet: bool = False
+    # Saubere Heizstunden; fehlt bei älteren Einträgen, dann gilt das gespeicherte `ungestoert`.
+    sauber: int | None = None
 
 
 @dataclass(frozen=True)
@@ -115,7 +120,9 @@ def _aufheizen(stunden: dict[int, dict[str, Any]]) -> tuple[int | None, set[int]
     while heizt.get(h):
         ab = _zahl(stunden[h].get("ab"))
         if ab is not None and ab >= WARM_K:
-            return (h - beginn) * 60, set(range(beginn, h))
+            # Ein Eingriff von der Stunde vor Blockbeginn bis zum Warmwerden verfälscht die Zeit.
+            stoerung = any(not _ungestoert(stunden[x]) for x in range(beginn - 1, h + 1))
+            return None if stoerung else (h - beginn) * 60, set(range(beginn, h))
         h += 1
     return None, set(range(beginn, h))
 
@@ -125,6 +132,19 @@ def _ungestoert(stunde: dict[str, Any]) -> bool:
     if stunde.get("vorgabe"):
         return False
     return stunde.get("aktion") in (None, "programm") or bool(stunde.get("beobachtet"))
+
+
+def _saubere(gelesen: dict[int, dict[str, Any]], aufheizen: set[int]) -> list[dict[str, Any]]:
+    """Heizstunden mit Abweichung, ohne Aufheizen, Eingriff und die Erholung danach."""
+    gestoert = {h for h, s in gelesen.items() if not _ungestoert(s)}
+    return [
+        s
+        for h, s in gelesen.items()
+        if _heizt(s)
+        and h not in aufheizen
+        and _zahl(s.get("ab")) is not None
+        and not any(h - e in gestoert for e in range(ERHOLUNG_H + 1))
+    ]
 
 
 def _stunden_lesen(stunden: Mapping[str, Any]) -> dict[int, dict[str, Any]]:
@@ -144,8 +164,8 @@ def tag_aus_stunden(datum: str, stunden: Mapping[str, Any]) -> Tag | None:
         return None
     morgen, aufheizen = _aufheizen(gelesen)
     # Die Aufheizphase liegt naturgemäß unter dem Ziel; sie betrifft die Vorhaltezeit, nicht die Kurve.
-    heizen = [s for h, s in gelesen.items() if _heizt(s) and h not in aufheizen]
-    ab_heizen = _werte(heizen, "ab")
+    sauber = _saubere(gelesen, aufheizen)
+    ab_heizen = _werte(sauber, "ab")
     soll = _werte([s for s in alle if _heizt(s)], "soll")
     return Tag(
         datum=datum,
@@ -153,8 +173,9 @@ def tag_aus_stunden(datum: str, stunden: Mapping[str, Any]) -> Tag | None:
         abweichung=mean(ab_heizen) if ab_heizen else None,
         soll=median(soll) if soll else None,
         morgen_min=morgen,
-        ungestoert=all(_ungestoert(s) for s in alle),
+        ungestoert=len(sauber) >= MIN_SAUBER,
         stunden=len(ab),
+        sauber=len(sauber),
     )
 
 
@@ -175,12 +196,15 @@ def _aktuell(parameter_verlauf: Mapping[str, Any], schluessel: str) -> float | N
     return _zahl(letzter[1]) if letzter and len(letzter) > 1 else None
 
 
-def _grundlage(tage: Sequence[Tag], seit: str | None, heute: str) -> list[Tag]:
-    """Ungestörte, ausreichend gemessene Tage nach `seit` und vor heute."""
+def _grundlage(tage: Sequence[Tag], seit: str | None, heute: str, gruppe: str = "") -> list[Tag]:
+    """Ungestörte, ausreichend gemessene Tage nach `seit` und vor heute.
+
+    Die Morgenzeit prüft ihre Stunden selbst; nur ältere Einträge ohne `sauber` brauchen `ungestoert`.
+    """
     return [
         t
         for t in tage
-        if t.ungestoert
+        if (t.ungestoert or (gruppe == "morgen" and t.sauber is not None))
         and t.stunden >= MIN_STUNDEN
         and t.datum < heute
         and (seit is None or t.datum > seit)
@@ -305,7 +329,7 @@ def hinweise(
 
     def basis(gruppe: str) -> tuple[list[Tag], str | None]:
         seit = _seit(parameter_verlauf, gruppe)
-        return _grundlage(tage, seit, str(heute)), seit
+        return _grundlage(tage, seit, str(heute), gruppe), seit
 
     kurve, seit = basis("kurve")
     if any((_aktuell(parameter_verlauf, p) or 0) > 0 for p in ANPASSUNG):
@@ -323,7 +347,7 @@ def fortschritt(
     """Gezählte Tage je Hinweisart, mit denselben Filtern wie `hinweise`."""
 
     def basis(gruppe: str) -> list[Tag]:
-        return _grundlage(tage, _seit(parameter_verlauf, gruppe), str(heute))
+        return _grundlage(tage, _seit(parameter_verlauf, gruppe), str(heute), gruppe)
 
     kurve = basis("kurve")
     return {

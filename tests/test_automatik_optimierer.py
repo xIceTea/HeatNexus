@@ -41,9 +41,19 @@ def stunden_eines_tages(**abweichend):
     return stunden
 
 
-def tag(m, i, at, ab, *, soll=21.0, morgen=None, ungestoert=True, stunden=24):
+def tag(m, i, at, ab, *, soll=21.0, morgen=None, ungestoert=True, stunden=24, sauber=None):
     datum = (START + timedelta(days=i)).isoformat()
-    return m.Tag(datum, at, ab, soll, morgen, ungestoert, stunden)
+    return m.Tag(datum, at, ab, soll, morgen, ungestoert, stunden, sauber=sauber)
+
+
+def heiztag(gestoert, ab_gestoert=-2.0):
+    """Heizbetrieb rund um die Uhr; `gestoert` sind Stunden mit Vorgabe."""
+    stunden = {}
+    for h in range(24):
+        stunden[str(h)] = {"aktion": "programm", "at": 3.0, "ab": 0.5, "soll": 21.0, "ba": 1}
+        if h in gestoert:
+            stunden[str(h)].update(vorgabe=True, ab=ab_gestoert)
+    return stunden
 
 
 def reihe(m, anzahl, at, ab, *, ab_tag=0, **felder):
@@ -92,15 +102,62 @@ def test_abweichung_ohne_heizbetrieb_fehlt(m):
     assert t.stunden == 24
 
 
-def test_andere_aktion_stoert_den_tag(m):
+def test_andere_aktion_nimmt_die_stunde_und_die_erholung_heraus(m):
     for aktion in ("absenkung", "heizpause", "nur_ww"):
-        stunden = stunden_eines_tages(h13={"aktion": aktion})
-        assert m.tag_aus_stunden("2026-11-03", stunden).ungestoert is False
+        stunden = stunden_eines_tages(
+            h13={"aktion": aktion, "ab": 5.0}, h14={"ab": 5.0}, h15={"ab": 5.0}
+        )
+        t = m.tag_aus_stunden("2026-11-03", stunden)
+        # Heizstunden 8 bis 21 ohne 13 und die zwei Erholungsstunden.
+        assert t.sauber == 11
+        assert t.abweichung == pytest.approx((-0.2 + 10 * 0.4) / 11)
+        assert t.ungestoert is True
 
 
-def test_vorgabe_des_nutzers_stoert_den_tag(m):
+def test_vorgabe_des_nutzers_stoert_die_stunde(m):
     stunden = stunden_eines_tages(h19={"vorgabe": True})
-    assert m.tag_aus_stunden("2026-11-03", stunden).ungestoert is False
+    assert m.tag_aus_stunden("2026-11-03", stunden).sauber == 14 - 3
+
+
+def test_vorgabe_am_tag_laesst_die_stunden_davor_und_danach_zaehlen(m):
+    t = m.tag_aus_stunden("2026-11-03", heiztag(range(7, 17)))
+    # 0 bis 6 und 19 bis 23; 17 und 18 sind Erholung.
+    assert t.sauber == 12
+    assert t.abweichung == pytest.approx(0.5)
+    assert t.ungestoert is True
+    assert t.stunden == 24
+
+
+@pytest.mark.parametrize(("gestoert", "erwartet"), [(range(16), True), (range(17), False)])
+def test_ungestoert_braucht_genug_saubere_stunden(m, gestoert, erwartet):
+    t = m.tag_aus_stunden("2026-11-03", heiztag(gestoert))
+    assert (t.sauber >= m.MIN_SAUBER) is erwartet
+    assert t.ungestoert is erwartet
+
+
+def test_ohne_saubere_stunde_keine_abweichung(m):
+    t = m.tag_aus_stunden("2026-11-03", heiztag(range(24)))
+    assert t.sauber == 0
+    assert t.abweichung is None
+    assert t.ungestoert is False
+
+
+def test_saubere_stunde_braucht_eine_abweichung(m):
+    stunden = heiztag(())
+    for h in range(10):
+        del stunden[str(h)]["ab"]
+    assert m.tag_aus_stunden("2026-11-03", stunden).sauber == 14
+
+
+@pytest.mark.parametrize("stunde", ["h5", "h6", "h7", "h8"])
+def test_eingriff_im_aufheizen_verwirft_die_morgenzeit(m, stunde):
+    stunden = stunden_eines_tages(**{stunde: {"aktion": "absenkung"}})
+    assert m.tag_aus_stunden("2026-11-03", stunden).morgen_min is None
+
+
+def test_eingriff_vor_dem_aufheizen_laesst_die_morgenzeit_stehen(m):
+    stunden = stunden_eines_tages(h4={"vorgabe": True}, h9={"vorgabe": True})
+    assert m.tag_aus_stunden("2026-11-03", stunden).morgen_min == 120
 
 
 def test_im_beobachten_zaehlt_ein_geplanter_eingriff_nicht(m):
@@ -489,6 +546,32 @@ def test_archiveintrag_ohne_markierung_bleibt_lesbar(m):
         "stunden": 24,
     }
     assert m.Tag(**eintrag).nachgerechnet is False
+    assert m.Tag(**eintrag).sauber is None
+
+
+def test_alter_eintrag_behaelt_sein_ungestoert(m):
+    alt = {"at": -3.0, "abweichung": -1.4, "soll": 21.0, "morgen_min": 90, "stunden": 24}
+    tage = [
+        m.Tag(datum=(START + timedelta(days=i)).isoformat(), ungestoert=i != 0, **alt)
+        for i in range(7)
+    ]
+    assert m.fortschritt(tage, parameter(), HEUTE)["kurve_frost"] == 6
+    assert m.fortschritt(tage, parameter(), HEUTE)["morgen"] == 6
+    assert m.hinweise(tage, parameter(), HEUTE) == []
+
+
+def test_morgenzeit_zaehlt_auch_an_tagen_mit_eingriffen(m):
+    tage = reihe(m, 7, 2.0, 0.0, morgen=90, ungestoert=False, sauber=3)
+    assert m.fortschritt(tage, parameter(), HEUTE)["morgen"] == 7
+    assert arten(m.hinweise(tage, parameter(), HEUTE)) == ["morgen_spaet"]
+
+
+def test_morgenzeit_braucht_genug_stunden_und_gilt_erst_nach_der_aenderung(m):
+    p = parameter()
+    p["3/6"].append([(START + timedelta(days=1)).isoformat(), 90.0])
+    tage = reihe(m, 7, 2.0, 0.0, morgen=90, ungestoert=False, sauber=0)
+    tage.append(tag(m, 7, 2.0, 0.0, morgen=90, sauber=6, stunden=m.MIN_STUNDEN - 1))
+    assert m.fortschritt(tage, p, HEUTE)["morgen"] == 5
 
 
 def fortschritt_tage(m):
@@ -522,8 +605,10 @@ def test_fortschritt_zaehlt_nach_einer_kurvenaenderung_neu(m):
 
 
 @pytest.mark.parametrize("anzahl", [6, 7])
-def test_fortschritt_und_hinweise_passen_zusammen(m, anzahl):
-    felder = {"soll": 23.0, "morgen": 90}
+@pytest.mark.parametrize("ungestoert", [True, False])
+def test_fortschritt_und_hinweise_passen_zusammen(m, anzahl, ungestoert):
+    # Gestörte Tage mit Stundenwertung zählen nur noch für die Morgenzeit.
+    felder = {"soll": 23.0, "morgen": 90, "ungestoert": ungestoert, "sauber": 6 * ungestoert}
     tage = reihe(m, anzahl, -3.0, -1.4, **felder) + reihe(m, 3, 10.0, 0.0, ab_tag=7, soll=None)
     stand = m.fortschritt(tage, parameter(), HEUTE)
     gefunden = arten(m.hinweise(tage, parameter(), HEUTE))
@@ -532,5 +617,6 @@ def test_fortschritt_und_hinweise_passen_zusammen(m, anzahl):
         ("sollwert_ausgleich", "sollwert"),
         ("morgen_spaet", "morgen"),
     ):
-        assert stand[schluessel] == anzahl
+        erwartet = anzahl if ungestoert or schluessel == "morgen" else 0
+        assert stand[schluessel] == erwartet
         assert (art in gefunden) == (stand[schluessel] >= m.MIN_TAGE)
