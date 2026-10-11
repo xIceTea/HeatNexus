@@ -1,32 +1,105 @@
 """Optimierungshinweise in der Laufzeit: Tage archivieren, Kurvenparameter lesen, auswerten.
 
 Gelesen wird nur; an die Steuerung geht nichts. Archiv und Parameterverlauf liegen im
-Speicher der Automatik und hängen nicht an der Aufzeichnung von Home Assistant.
+Speicher der Automatik. Aus der Aufzeichnung von Home Assistant werden einmal die
+vergangenen Tage nachgerechnet; danach hängt das Archiv nicht mehr an ihr.
 """
 
 from __future__ import annotations
 
-from dataclasses import asdict
-from datetime import date, datetime
+from dataclasses import asdict, replace
+from datetime import date, datetime, timedelta
 import logging
 import math
-from typing import Any
+from typing import Any, NamedTuple
 
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from . import optimierer, regel
+from ..helpers import enum_texte
+from . import eingaben, nachladen, nachrechnen, optimierer, regel
+from .vorausschau import LERNTAGE
 
 _LOGGER = logging.getLogger(__name__)
 ARCHIV_TAGE = 150
 # Heizkurve, Behaglichkeit, Vorhaltezeit, Raumsollwert und die eigene Anpassung der Steuerung.
 PARAMETER = ("/3/1/0", "/3/12/0", "/3/13/0", "/3/7/0", "/3/58/0", "/3/6/0", "/3/51/0", "/3/101/0")
 LESEZEIT = {"hour": 0, "minute": 40, "second": 0}
+# Raumsoll, Vorlauf-Soll, Betriebsart und Restzeit: die Adressen, die `_stundenfelder` live liest.
+VERLAUFSWERTE = {"soll": "/1/1/0", "vl": "/1/2/0", "ba": "/2/9/0", "restzeit": "/2/10/0"}
+# So weit liest `_verlauf_lesen` zurück; so viele Tage vor heute lassen sich nachrechnen.
+NACHRECHNEN_TAGE = LERNTAGE
+
+
+class Quellen(NamedTuple):
+    """Die Entitäten, aus deren Verlauf die Tage des Archivs nachgerechnet werden."""
+
+    aussen: str | None
+    werte: dict[str, str | None]
+    raeume: list[str]
+    parameter: dict[str, str]
+
+    def lesen(self) -> tuple[list[str], list[str]]:
+        """Thermostate mit Attributen, alles andere ohne."""
+        thermostate = [r for r in self.raeume if eingaben.ist_thermostat(r)]
+        einfach = [r for r in self.raeume if r not in thermostate]
+        einfach += [e for e in (self.aussen, *self.werte.values(), *self.parameter.values()) if e]
+        return thermostate, list(dict.fromkeys(einfach))
 
 
 def _schluessel(adresse: str) -> str:
     """`/3/13/0` → `3/13`, wie der Optimierer die Parameter nennt."""
     return adresse.strip("/").rsplit("/", 1)[0]
+
+
+def _offene_tage(archiv: list[dict[str, Any]], heute: date) -> list[date]:
+    """Die Tage vor heute im Zeitraum des Nachrechnens, die das Archiv noch nicht kennt."""
+    vorhanden = {t.get("datum") for t in archiv}
+    tage = [heute - timedelta(days=n) for n in range(NACHRECHNEN_TAGE, 0, -1)]
+    return [t for t in tage if t.isoformat() not in vorhanden]
+
+
+def _ausreihe(zustaende: list[Any]) -> nachrechnen.Reihe:
+    """Wann ein Thermostat aus war (1) und wann nicht (0)."""
+    return [(dt_util.as_local(z.last_updated), float(z.state == "off")) for z in zustaende]
+
+
+def _raum(
+    zustaende: dict[str, list[Any]], kennung: str, raum_ziel: float | None
+) -> tuple[nachrechnen.Reihe, nachrechnen.Reihe | float | None, nachrechnen.Reihe]:
+    """Ist, Ziel und Ausschaltung eines Raums; ohne eigenes Ziel gilt die Wunschtemperatur."""
+    ist = nachladen.raumreihe(zustaende, kennung, luecken=True)
+    if not eingaben.ist_thermostat(kennung):
+        return ist, raum_ziel, []
+    eigen = nachladen.zeitreihe(zustaende.get(kennung, []), "temperature", luecken=True)
+    ziel = [(zeit, raum_ziel if wert is None else wert) for zeit, wert in eigen]
+    return ist, ziel, _ausreihe(zustaende.get(kennung, []))
+
+
+def _textreihe(zustaende: list[Any], werte_je_text: dict[str, int]) -> nachrechnen.Reihe:
+    """Eine Auswahl als Zahl; die Entität zeichnet ihren Text auf."""
+    return [(dt_util.as_local(z.last_updated), werte_je_text.get(z.state)) for z in zustaende]
+
+
+def _wertwechsel(reihe: nachrechnen.Reihe, anfang: date) -> list[list[Any]]:
+    """Anfangsstand und jeder Wechsel als `[datum, wert]`; der Anfangsstand gilt ab `anfang`."""
+    eintraege: list[list[Any]] = []
+    for zeit, wert in reihe:
+        if wert is not None and (not eintraege or eintraege[-1][1] != wert):
+            eintraege.append([max(zeit.date(), anfang).isoformat(), wert])
+    return eintraege
+
+
+def _zusammenfuehren(frueher: list[list[Any]], gelesen: list[list[Any]]) -> list[list[Any]]:
+    """Aufgezeichnete Wechsel vor die gelesenen Einträge; ab der ersten Lesung gilt die Lesung.
+
+    Zeigt die erste Lesung denselben Wert wie die Aufzeichnung, ist sie kein Wechsel.
+    """
+    if gelesen:
+        frueher = [e for e in frueher if e[0] < str(gelesen[0][0])]
+        if frueher and frueher[-1][1] == gelesen[0][1]:
+            gelesen = gelesen[1:]
+    return [*frueher, *gelesen]
 
 
 def _parameterwert(roh: Any) -> float | str | None:
@@ -58,6 +131,7 @@ class OptimierungMixin:
     tage_archiv: list[dict[str, Any]]
     parameter_verlauf: dict[str, list[list[Any]]]
     parameter_gelesen: str | None
+    archiv_nachgerechnet: bool
 
     def _optimierung_laden(self, z: dict[str, Any]) -> None:
         archiv = z.get("tage_archiv")
@@ -66,13 +140,16 @@ class OptimierungMixin:
         self.parameter_verlauf = _parameter_laden(z.get("parameter_verlauf"))
         gelesen = z.get("parameter_gelesen")
         self.parameter_gelesen = gelesen if isinstance(gelesen, str) else None
+        self.archiv_nachgerechnet = z.get("archiv_nachgerechnet") is True
         self._parameteraufgabe: Any = None
+        self._nachrechenaufgabe: Any = None
 
     def optimierung_als_dict(self) -> dict[str, Any]:
         return {
             "tage_archiv": self.tage_archiv,
             "parameter_verlauf": self.parameter_verlauf,
             "parameter_gelesen": self.parameter_gelesen,
+            "archiv_nachgerechnet": self.archiv_nachgerechnet,
         }
 
     # --- Tage ----------------------------------------------------------------
@@ -125,17 +202,111 @@ class OptimierungMixin:
         }
         return {name: wert for name, wert in felder.items() if wert is not None}
 
+    # --- Nachrechnen ----------------------------------------------------------
+    async def archiv_nachrechnen(self) -> int:
+        """Offene Tage der letzten zwei Wochen aus der Aufzeichnung archivieren; liefert ihre Zahl.
+
+        Ohne Aufzeichnung oder bei einem Lesefehler bleibt die Marke offen, für den nächsten Start.
+        """
+        heute = dt_util.now().date()
+        neu: list[dict[str, Any]] = []
+        if offen := _offene_tage(self.tage_archiv, heute):
+            quellen = self._nachrechenquellen()
+            ende = dt_util.start_of_local_day(heute)
+            if (zustaende := await self._verlauf_lesen(*quellen.lesen(), ende)) is None:
+                return 0
+            neu = self._tage_nachrechnen(zustaende, quellen, offen)
+            anfang = heute - timedelta(days=NACHRECHNEN_TAGE)
+            self._parameter_nachtragen(zustaende, quellen.parameter, anfang)
+        self.archiv_nachgerechnet = True
+        self.nachgetragen()
+        return len(neu)
+
+    def _verlaufsentitaet(self, adresse: str) -> str | None:
+        """Die Entität einer Adresse: schreibbar eine Zahl, schreibgeschützt ein Sensor."""
+        return self._entitaet(adresse, "number") or self._entitaet(adresse)
+
+    def _nachrechenquellen(self) -> Quellen:
+        """Dieselben Quellen wie im laufenden Betrieb, als Entitäten mit Verlauf."""
+        return Quellen(
+            aussen=self.aussen_entitaet(),
+            werte={name: self._verlaufsentitaet(a) for name, a in VERLAUFSWERTE.items()},
+            raeume=list(self.konfig["raeume"]),
+            parameter={
+                _schluessel(a): kennung for a in PARAMETER if (kennung := self._verlaufsentitaet(a))
+            },
+        )
+
+    def _betriebsarten(self) -> dict[str, int]:
+        """Die Zahl je Text der Betriebsart, wie die Entität ihn anzeigt."""
+        oid = f"{self.prefix}{VERLAUFSWERTE['ba']}"
+        geraete = (self.coordinator.data or {}).get("devices") or []
+        beschreibung = next((d for d in geraete if d.get("oid") == oid), {"enum": "2/9"})
+        return {text: wert for wert, text in enum_texte(beschreibung).items()}
+
+    def _tagesreihen(self, zustaende: dict[str, list[Any]], quellen: Quellen) -> nachrechnen.Reihen:
+        """Die Zeitreihen des Heizkreises aus dem gelesenen Verlauf."""
+        raeume = [_raum(zustaende, r, self.konfig.get("raum_ziel")) for r in quellen.raeume]
+        werte = {
+            name: nachladen.zeitreihe(zustaende.get(kennung, []), luecken=True)
+            for name, kennung in quellen.werte.items()
+        }
+        return nachrechnen.Reihen(
+            at=nachladen.zeitreihe(zustaende.get(quellen.aussen, []), luecken=True),
+            soll=werte["soll"],
+            vl=werte["vl"],
+            ba=_textreihe(zustaende.get(quellen.werte["ba"], []), self._betriebsarten()),
+            restzeit=werte["restzeit"],
+            raeume=[(ist, ziel) for ist, ziel, _ in raeume],
+            raum_art=self.konfig["raum_art"],
+            aus=[aus for _, _, aus in raeume],
+        )
+
+    def _tage_nachrechnen(
+        self, zustaende: dict[str, list[Any]], quellen: Quellen, offen: list[date]
+    ) -> list[dict[str, Any]]:
+        """Die Tage aus dem Verlauf; ein Tag, den das Archiv inzwischen kennt, bleibt dessen."""
+        vorhanden = {t.get("datum") for t in self.tage_archiv}
+        tage = [t for t in offen if t.isoformat() not in vorhanden]
+        je_tag = nachrechnen.stunden_je_tag(self._tagesreihen(zustaende, quellen), tage)
+        neu = []
+        for datum, stunden in je_tag.items():
+            if (tag := optimierer.tag_aus_stunden(datum, stunden)) is not None:
+                neu.append(asdict(replace(tag, nachgerechnet=True)))
+        archiv = sorted([*self.tage_archiv, *neu], key=lambda t: str(t.get("datum") or ""))
+        self.tage_archiv = archiv[-ARCHIV_TAGE:]
+        return neu
+
+    def _parameter_nachtragen(
+        self, zustaende: dict[str, list[Any]], parameter: dict[str, str], anfang: date
+    ) -> None:
+        """Aufgezeichnete Wechsel der Parameter vor den gelesenen Verlauf stellen."""
+        verlauf = dict(self.parameter_verlauf)
+        for name, kennung in parameter.items():
+            if frueher := _wertwechsel(nachladen.zeitreihe(zustaende.get(kennung, [])), anfang):
+                verlauf[name] = _zusammenfuehren(frueher, verlauf.get(name, []))
+        self.parameter_verlauf = verlauf
+
     # --- Parameter -----------------------------------------------------------
     def _optimierung_starten(self) -> None:
-        """Täglich lesen; beim Start sofort, wenn heute noch nichts gelesen wurde."""
+        """Täglich lesen; beim Start sofort, wenn heute noch nichts gelesen wurde.
+
+        Fehlt die Marke, werden einmal die vergangenen Tage aus der Aufzeichnung nachgerechnet.
+        """
         self._abmelden.append(async_track_time_change(self.hass, self._parameter_takt, **LESEZEIT))
         if self.parameter_gelesen != dt_util.now().date().isoformat():
             self._parameter_anstossen()
+        if not self.archiv_nachgerechnet:
+            self._nachrechenaufgabe = self.hass.async_create_background_task(
+                self.archiv_nachrechnen(), f"heatnexus_nachrechnen_{self.device_id}"
+            )
 
     def _optimierung_beenden(self) -> None:
-        if self._parameteraufgabe is not None and not self._parameteraufgabe.done():
-            self._parameteraufgabe.cancel()
+        for aufgabe in (self._parameteraufgabe, self._nachrechenaufgabe):
+            if aufgabe is not None and not aufgabe.done():
+                aufgabe.cancel()
         self._parameteraufgabe = None
+        self._nachrechenaufgabe = None
 
     def _parameter_anstossen(self) -> None:
         if self._parameteraufgabe is not None and not self._parameteraufgabe.done():

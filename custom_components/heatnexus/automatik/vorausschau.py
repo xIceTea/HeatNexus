@@ -170,7 +170,7 @@ class VorausschauMixin:
         try:
             return await get_instance(self.hass).async_add_executor_job(abfrage)
         except Exception as fehler:  # die Aufzeichnung ist eine Zugabe, kein Muss
-            _LOGGER.debug("Automatik %s: Lerndaten nicht lesbar: %s", self.name, fehler)
+            _LOGGER.debug("Automatik %s: Verlauf nicht lesbar: %s", self.name, fehler)
             return None
 
     def _sonnenboegen(self, tage: set[date]) -> dict[date, tuple[float, float]]:
