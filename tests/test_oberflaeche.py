@@ -809,7 +809,7 @@ def test_die_kachel_haus_folgt_dem_stand_des_modells(durchlauf):
 
 
 def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
-    """Sammelnd nennt sie die Grundlage, bereit je Hinweis Titel, Empfehlung und Angaben."""
+    """Sammelnd nennt sie den Fortschritt je Art, bereit je Hinweis Titel, Empfehlung und Angaben."""
     hinweise = durchlauf["automatikHinweise"]
     assert hinweise["ohneAngabe"]["kachel"] is False
     sammelt = hinweise["sammelt"]
@@ -818,7 +818,11 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
         "–",
         "sammelt Daten",
     )
-    assert sammelt["fuss"] == ["Grundlage: 3 von 7 Tagen"]
+    assert sammelt["fuss"] == [
+        "Heizkurve: Übergang 7/7 · Frost 2/7",
+        "Sollwert 7/7",
+        "Morgen 5/7",
+    ]
     assert sammelt["fragezeichen"] == 1
     assert sammelt["bloecke"] == []
     bereit = hinweise["bereit"]

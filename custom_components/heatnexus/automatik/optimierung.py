@@ -183,4 +183,5 @@ class OptimierungMixin:
             "tage": len(grundlage),
             "noetig": optimierer.MIN_TAGE,
             "eintraege": [asdict(h) for h in eintraege],
+            "fortschritt": optimierer.fortschritt(tage, self.parameter_verlauf, heute),
         }

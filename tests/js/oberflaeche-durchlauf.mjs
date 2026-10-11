@@ -1047,7 +1047,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 // ---------------------------------------------------------------------------
 // Reiter „Automatik“: Kachel „Hinweise“
 //
-// Sammelt die Auswertung noch, nennt die Kachel die Grundlage; danach steht
+// Sammelt die Auswertung noch, nennt die Kachel den Fortschritt je Art; danach steht
 // je Hinweis Titel, Empfehlung und Grundlage. Ohne Angabe vom Server fehlt sie.
 // ---------------------------------------------------------------------------
 {
@@ -1079,11 +1079,18 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   };
   bilanz.automatikHinweise = {
     ohneAngabe: zeigen(undefined),
-    sammelt: zeigen({ status: "sammelt", tage: 3, noetig: 7, eintraege: [] }),
+    sammelt: zeigen({
+      status: "sammelt",
+      tage: 3,
+      noetig: 7,
+      eintraege: [],
+      fortschritt: { kurve_frost: 2, kurve_uebergang: 7, sollwert: 7, morgen: 5 },
+    }),
     bereit: zeigen({
       status: "bereit",
       tage: 23,
       noetig: 7,
+      fortschritt: { kurve_frost: 18, kurve_uebergang: 9, sollwert: 21, morgen: 12 },
       eintraege: [
         { art: "steuerung_passt_an", tage: 23, seit: null },
         { art: "heizkurve_frost", tage: 18, seit: "2026-11-14", abweichung: -1.4, parameter: "3/13", von: 80, nach: 86, einheit: "°C" },

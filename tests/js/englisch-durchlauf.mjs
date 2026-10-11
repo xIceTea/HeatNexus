@@ -115,6 +115,13 @@ flaeche._automatik = {
         abweichung: 0.4, raum: 21.4, soll: 21, eigene_ziele: true, raum_art: "minimum", eingriffe: 1, budget: 4,
         naechste_pruefung: "2026-09-28T07:00:00+02:00", modus_seit: "2026-09-28T11:00:00+02:00",
         vorrang: { laeuft: false, minuten: 90 },
+        hinweise: {
+          status: "sammelt",
+          tage: 3,
+          noetig: 7,
+          eintraege: [],
+          fortschritt: { kurve_frost: 2, kurve_uebergang: 7, sollwert: 7, morgen: 5 },
+        },
         raeume: [
           { entity_id: "climate.bad", name: "Bath", wert: 20.8, ziel: 21, heizt: true },
           { entity_id: "sensor.alt", name: "Old", wert: 19, veraltet: true },

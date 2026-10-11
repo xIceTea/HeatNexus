@@ -55,3 +55,15 @@ def test_die_seite_holt_keine_texte_aus_der_sprache_von_home_assistant():
         if re.search(r"formatEntityAttribute(Value|Name)", datei.read_text(encoding="utf-8"))
     ]
     assert not treffer
+
+
+def test_der_fortschritt_der_hinweise_steht_in_jedem_woerterbuch():
+    texte = {
+        "Heizkurve: Übergang {uebergang}/{noetig} · Frost {frost}/{noetig}",
+        "Sollwert {tage}/{noetig}",
+        "Morgen {tage}/{noetig}",
+    }
+    for sprache in ("en", "nl"):
+        datei = WURZEL / "sprachen" / f"{sprache}.json"
+        woerterbuch = json.loads(datei.read_text(encoding="utf-8"))
+        assert not sorted(texte - set(woerterbuch)), sprache

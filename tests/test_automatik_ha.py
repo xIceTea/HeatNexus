@@ -2998,12 +2998,14 @@ async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, 
         "tage": 0,
         "noetig": 7,
         "eintraege": [],
+        "fortschritt": {"kurve_frost": 0, "kurve_uebergang": 0, "sollwert": 0, "morgen": 0},
     }
 
     laufzeit.tage_archiv = _frosttage(8, -1.4)
     laufzeit.parameter_verlauf = {"3/13": [["2026-08-01", 80.0]]}
     hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
     assert (hinweise["status"], hinweise["tage"]) == ("bereit", 8)
+    assert hinweise["fortschritt"]["kurve_frost"] == 8
     assert hinweise["eintraege"] == [
         {
             "art": "heizkurve_frost",

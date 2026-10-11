@@ -283,8 +283,7 @@ export const KennwerteMixin = (Basis) =>
       const bloecke = (h.eintraege || []).map((eintrag) => this._hinweisBlock(eintrag)).filter(Boolean);
       let kachel;
       if (h.status !== "bereit" || !bloecke.length) {
-        const grundlage = this._tMit("Grundlage: {tage} von {noetig} Tagen", { tage: h.tage || 0, noetig: h.noetig || 0 });
-        kachel = this._kachel("hinweise", "Hinweise", "–", this._t("sammelt Daten"), null, [knoten("div", "fuss", grundlage)]);
+        kachel = this._kachel("hinweise", "Hinweise", "–", this._t("sammelt Daten"), null, this._hinweisFortschritt(h));
       } else {
         const liste = knoten("div", "vorschlaege");
         liste.append(...bloecke);
@@ -293,6 +292,22 @@ export const KennwerteMixin = (Basis) =>
       const erklaerung = "Hinweise beruhen auf ungestörten Tagen seit der letzten Änderung der Heizkurve. Die Automatik ändert diese Werte nicht.";
       kachel.querySelector(".titel").appendChild(this._fragezeichen("Hinweise", erklaerung));
       return kachel;
+    }
+
+    /** Gezählte Tage je Hinweisart, je Art eine Zeile. */
+    _hinweisFortschritt(h) {
+      const f = h.fortschritt || {};
+      const noetig = h.noetig || 0;
+      const zeilen = [
+        this._tMit("Heizkurve: Übergang {uebergang}/{noetig} · Frost {frost}/{noetig}", {
+          uebergang: f.kurve_uebergang || 0,
+          frost: f.kurve_frost || 0,
+          noetig,
+        }),
+        this._tMit("Sollwert {tage}/{noetig}", { tage: f.sollwert || 0, noetig }),
+        this._tMit("Morgen {tage}/{noetig}", { tage: f.morgen || 0, noetig }),
+      ];
+      return zeilen.map((zeile) => knoten("div", "fuss", zeile));
     }
 
     /** Ein Hinweis: Titel und Empfehlung als Marke, darunter Abweichung und Grundlage in einer Zeile. */
