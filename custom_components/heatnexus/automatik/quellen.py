@@ -240,8 +240,11 @@ class QuellenMixin:
         return daten
 
     async def _prognose_holen(self) -> None:
-        """Stunden und Tage holen, nur was die Entität kann; ohne Tage gelten Halbtage."""
-        arten = vorhersagearten(self.hass.states.get(self.konfig["wetter"]))
+        """Stunden und Tage holen, nur was die Entität kann; ohne Tage gelten Halbtage.
+
+        Nennt die Entität keine Art, wird trotzdem gefragt: Ihr Fehler gehört in Protokoll und Diagnose.
+        """
+        arten = vorhersagearten(self.hass.states.get(self.konfig["wetter"])) or None
         stunden = await self._prognose("hourly") if arten is None or "hourly" in arten else None
         tage, halbtage = None, False
         if arten is None or "daily" in arten:
@@ -268,7 +271,8 @@ class QuellenMixin:
     def _prognose_melden(self) -> None:
         """Fehlt die Vorhersage länger als `PROGNOSE_MELDEN`, eine Reparaturmeldung; sonst keine."""
         kennung = f"automatik_prognose_{self.device_id}"
-        if self.prognose_frisch:
+        # Eine ausgeschaltete Automatik braucht keine Vorhersage.
+        if self.prognose_frisch or not self.aktiv:
             self._prognose_fehlt_seit = None
             ir.async_delete_issue(self.hass, DOMAIN, kennung)
             return

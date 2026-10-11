@@ -3296,3 +3296,38 @@ async def test_diagnose_nennt_die_wetter_entitaet_und_ihre_fehler(hass, anlage, 
     assert [f["art"] for f in wetter["fehler"]] == ["daily", "hourly"]
     assert "does not support" in wetter["fehler"][0]["text"]
     json.dumps(auszug)
+
+
+async def test_ausgeschaltete_automatik_meldet_keine_fehlende_vorhersage(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    _ohne_vorhersage(hass)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    laufzeit.konfig["aktiv"] = False
+
+    freezer.tick(timedelta(hours=4))
+    await laufzeit._prognose_holen()
+
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"automatik_prognose_{HEIZKREIS}") is None
+
+
+async def test_entitaet_ohne_vorhersageart_wird_trotzdem_gefragt(hass, anlage, freezer, caplog):
+    import logging
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    hass.states.async_set("weather.home", "sunny", {"supported_features": 0})
+    aufrufe = _ohne_vorhersage(hass)
+    caplog.set_level(logging.WARNING, logger="custom_components.heatnexus")
+
+    laufzeit = await _eingerichtet(hass, verwaltung)
+
+    assert set(aufrufe) == {"hourly", "daily"}
+    assert sorted(laufzeit.prognose_fehler) == ["daily", "hourly"]
+    assert any("weather.home" in r.getMessage() for r in caplog.records)
