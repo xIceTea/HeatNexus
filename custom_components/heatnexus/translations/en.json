@@ -392,6 +392,9 @@
       "automatik_sonnenquote": {
         "name": "Sunshine share today"
       },
+      "automatik_auskuehlzeit": {
+        "name": "House cooling time"
+      },
       "automatik_eingriffe": {
         "name": "Interventions today"
       },

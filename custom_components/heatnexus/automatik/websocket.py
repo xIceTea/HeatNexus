@@ -162,7 +162,7 @@ def _eintrag(
         protokoll=list(laufzeit.steller.stand.protokoll[:PROTOKOLL_ANZEIGE]),
         beobachtet_seit=laufzeit.beobachtet_seit.isoformat(),
         pausiert_bis=laufzeit.pausiert_bis.isoformat() if laufzeit.pausiert_bis else None,
-        entitaeten=_entitaeten(hass, device_id),
+        entitaeten={**_entitaeten(hass, device_id), "aussen": laufzeit.aussen_entitaet()},
     )
     return ergebnis
 

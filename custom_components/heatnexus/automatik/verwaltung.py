@@ -51,6 +51,7 @@ DOMAENE_JE_ART = {
     "heizgrenze": "sensor",
     "abweichung": "sensor",
     "sonnenquote": "sensor",
+    "auskuehlzeit": "sensor",
     "eingriffe": "sensor",
     "letzter_eingriff": "sensor",
     "naechste_entscheidung": "sensor",

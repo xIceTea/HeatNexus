@@ -392,6 +392,9 @@
       "automatik_sonnenquote": {
         "name": "Zonaandeel vandaag"
       },
+      "automatik_auskuehlzeit": {
+        "name": "Afkoeltijd van het huis"
+      },
       "automatik_eingriffe": {
         "name": "Ingrepen vandaag"
       },

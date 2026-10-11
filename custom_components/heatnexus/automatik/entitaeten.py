@@ -24,7 +24,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from ..const import DOMAIN
 from ..registrierung import uebergeordnet
 from ..texte import woerterbuch
-from . import kennzahlen, regel
+from . import hausmodell, kennzahlen, regel
 from .konfig import MODI
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 from .profile import AUSGEWOGEN, AUSRICHTUNGEN
@@ -293,6 +293,31 @@ class AutomatikSonnenquote(AutomatikWert):
         return None if quote is None else round(quote)
 
 
+class AutomatikAuskuehlzeit(AutomatikWert):
+    """Die gelernte Auskühlzeit des Hauses; solange das Modell lernt, leer."""
+
+    ART = "auskuehlzeit"
+    _attr_translation_key = "automatik_auskuehlzeit"
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = "h"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+
+    def _wert(self, laufzeit: Laufzeit) -> float | None:
+        modell = laufzeit.hausmodell
+        return None if modell is None else round(modell.auskuehlzeit_h, 1)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        modell = self._laufzeit.hausmodell if self._laufzeit else None
+        if modell is None:
+            return {}
+        return {
+            "freigegeben": hausmodell.freigegeben(modell),
+            "sonne_k_h": round(modell.sonne_k_h, 2),
+        }
+
+
 class AutomatikEingriffe(AutomatikWert):
     """Eingriffe an die Steuerung heute; das Budget steht als Attribut."""
 
@@ -360,6 +385,7 @@ KLASSEN: dict[str, type[AutomatikEntitaet]] = {
     "heizgrenze": AutomatikHeizgrenze,
     "abweichung": AutomatikAbweichung,
     "sonnenquote": AutomatikSonnenquote,
+    "auskuehlzeit": AutomatikAuskuehlzeit,
     "eingriffe": AutomatikEingriffe,
     "letzter_eingriff": AutomatikLetzterEingriff,
     "naechste_entscheidung": AutomatikNaechsteEntscheidung,
@@ -373,6 +399,7 @@ SENSOR_ARTEN = (
     "heizgrenze",
     "abweichung",
     "sonnenquote",
+    "auskuehlzeit",
     "eingriffe",
     "letzter_eingriff",
     "naechste_entscheidung",

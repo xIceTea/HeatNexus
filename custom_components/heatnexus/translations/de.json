@@ -392,6 +392,9 @@
       "automatik_sonnenquote": {
         "name": "Sonnenquote heute"
       },
+      "automatik_auskuehlzeit": {
+        "name": "Auskühlzeit des Hauses"
+      },
       "automatik_eingriffe": {
         "name": "Eingriffe heute"
       },

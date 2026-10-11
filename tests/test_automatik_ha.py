@@ -1606,6 +1606,23 @@ async def test_sensoren_der_automatik(hass, anlage, freezer):
     assert (naechste.hour, naechste.minute) == (7, 0)
 
 
+async def test_auskuehlzeit_erscheint_mit_dem_hausmodell(hass, anlage, freezer):
+    from types import SimpleNamespace
+
+    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    laufzeit.hausmodell = None
+    sensor = KLASSEN["auskuehlzeit"](verwaltung, HEIZKREIS)
+    assert (sensor.native_value, sensor.native_unit_of_measurement) == (None, "h")
+    laufzeit.hausmodell = SimpleNamespace(auskuehlzeit_h=42.37)
+    assert sensor.native_value == 42.4
+    # Das Speichern erwartet ein echtes Modell.
+    laufzeit.hausmodell = None
+
+
 async def test_stoerung_meldet_eine_gesperrte_steuerung(hass, anlage, freezer):
     from dataclasses import replace
     from datetime import timedelta
