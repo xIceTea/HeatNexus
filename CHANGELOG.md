@@ -33,12 +33,16 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Übersicht zeigt eigene Karten für Kessel, Puffer, Heizkreis und Warmwasser.
 - Die Übersicht erscheint auch bei einer einzelnen Anlage.
 - Beim Einschalten rechnen die Hinweise die vergangenen zwei Wochen aus der Historie nach.
-- Die Kachel „Optimierung“ zeigt den Fortschritt je Hinweis und die Tage mit Eingriffen.
+- Die Kachel „Optimierung“ zeigt den Fortschritt je Hinweis und die nicht auswertbaren Tage.
 - Eine eigene Kachel zeigt die Ergebnisse der Optimierung, auch ohne nötige Änderung.
 - Die Ergebnisse der Optimierung zeigen ab vier Tagen eine vorläufige Tendenz.
 - Die Ergebnisse der Optimierung nennen den aktuellen Wert der Heizkurve.
 - Beim Einschalten der Hinweise werden die Parameter der Heizkurve aktiviert.
 - Die Optimierung lässt sich im Einrichtungsdialog und in der Kachel „Optimierung“ einschalten.
+- Die Optimierung berät nach den Einstellungen, die die Steuerung tatsächlich anbietet.
+- Die Optimierung berücksichtigt Fußbodenheizung und Heizkreise ohne Heizkurve.
+- Tage, an denen der Vorlauf den Sollwert nicht erreicht, zählen für die Optimierung nicht.
+- Ergebnisse der Optimierung lassen sich täglich in der Seitenleiste melden.
 - Die Automatik nennt, ob Raumtemperatur, Außentemperatur oder Wettervorhersage fehlen.
 - Fehlt die Wettervorhersage länger, erscheint eine Reparaturmeldung.
 - Die Wetterauswahl zeigt nur Entitäten mit Vorhersage.
