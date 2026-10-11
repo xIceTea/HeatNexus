@@ -36,6 +36,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Kachel „Optimierung“ zeigt den Fortschritt je Hinweis und die Tage mit Eingriffen.
 - Eine eigene Kachel zeigt die Ergebnisse der Optimierung, auch ohne nötige Änderung.
 - Die Ergebnisse der Optimierung zeigen ab vier Tagen eine vorläufige Tendenz.
+- Die Ergebnisse der Optimierung nennen den aktuellen Wert der Heizkurve.
+- Beim Einschalten der Hinweise werden die Parameter der Heizkurve aktiviert.
 - Die Automatik nennt, ob Raumtemperatur, Außentemperatur oder Wettervorhersage fehlen.
 - Fehlt die Wettervorhersage länger, erscheint eine Reparaturmeldung.
 - Die Wetterauswahl zeigt nur Entitäten mit Vorhersage.
