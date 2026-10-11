@@ -56,8 +56,9 @@ KOMPENSATION = "3/7"
 ANPASSUNG = ("3/101", KOMPENSATION)
 # Kurvenpunkte der beiden Bänder; fehlt einer, gilt die Kurve als Ganzes.
 BAENDER = ("3/1", "3/13")
-# Welche Parameteränderung die Grundlage welcher Hinweise zurücksetzt.
-KURVE = ("3/1", "3/12", "3/13", "3/7", "3/58", "3/101")
+# Welche Parameteränderung die Grundlage welcher Hinweise zurücksetzt; der Heizkreistyp
+# `7/76` ändert Faktor und Arten.
+KURVE = ("3/1", "3/12", "3/13", "3/7", "3/58", "3/101", "7/76")
 GRUPPEN = {"kurve": KURVE, "sollwert": (*KURVE, "3/51"), "morgen": ("3/6",)}
 
 
@@ -309,7 +310,9 @@ def _band_hinweis(
     d = mean(t.abweichung for t in band)
     if abs(d) < SCHWELLE_K:
         return []
-    aenderung = _begrenzt(_runden(d * k * DAEMPFUNG), -MAX_KURVE, MAX_KURVE)
+    # Ein Hinweis über der Schwelle ändert den Parameter um mindestens ein Grad.
+    gerundet = _runden(d * k * DAEMPFUNG) or math.copysign(1, d)
+    aenderung = _begrenzt(gerundet, -MAX_KURVE, MAX_KURVE)
     return [Hinweis(art, len(band), seit, round(d, 1), parameter, von, von - aenderung, "°C")]
 
 
@@ -442,10 +445,11 @@ def hinweise(
         return _grundlage(tage, seit, str(heute), gruppe), seit
 
     liste: list[Hinweis] = []
-    if gezeigt[0].startswith("kurve"):
+    if any(art.startswith("kurve") for art in gezeigt):
         kurve, seit = basis("kurve")
         liste += _kurvenhinweise(kurve, parameter_verlauf, seit, heizkreis_typ, raumfuehler)
-    liste += _sollwert(*basis("sollwert"))
+    if "sollwert" in gezeigt:
+        liste += _sollwert(*basis("sollwert"))
     if "morgen" in gezeigt:
         morgen, seit_morgen = basis("morgen")
         vorhaltezeit = _aktuell(parameter_verlauf, "3/6")
@@ -469,15 +473,13 @@ def heizkreis_typ(parameter_verlauf: Mapping[str, Any], heizflaechen: str | None
 def arten(parameter_verlauf: Mapping[str, Any], *, heizkreis_typ: int = RADIATOREN) -> list[str]:
     """Die Arten der Kachel in Anzeigereihenfolge; zwei Bänder nur mit beiden Kurvenpunkten.
 
-    Ohne Heizkurve entfällt die Kurve, bei Fußboden der Morgen.
+    Ohne Heizkurve entfallen Kurve und Sollwert (sein Rat verweist auf die Kurve), bei Fußboden
+    der Morgen.
     """
-    if heizkreis_typ in OHNE_KURVE:
-        kurve = []
-    elif _zwei_baender(parameter_verlauf):
-        kurve = ["kurve_uebergang", "kurve_frost"]
-    else:
-        kurve = ["kurve"]
     morgen = [] if heizkreis_typ == FUSSBODEN else ["morgen"]
+    if heizkreis_typ in OHNE_KURVE:
+        return morgen
+    kurve = ["kurve_uebergang", "kurve_frost"] if _zwei_baender(parameter_verlauf) else ["kurve"]
     return [*kurve, "sollwert", *morgen]
 
 

@@ -3029,6 +3029,33 @@ async def test_parameter_werden_beim_start_und_taeglich_gelesen(hass, anlage, fr
     assert laufzeit.parameter_gelesen == "2026-09-28"
 
 
+async def test_fehlt_der_heizkreistyp_wird_einmal_nachgelesen(hass, anlage, freezer):
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    zustand = laufzeit.als_dict() | {
+        "parameter_verlauf": {"3/13": [["2026-09-01", 80.0]]},
+        "parameter_gelesen": "2026-09-27",
+    }
+    coordinator.client.parameter = {f"{PREFIX}/3/13/0": "80", f"{PREFIX}/7/76/0": "2"}
+    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+    verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
+    anzahl = len(coordinator.client.abfragen)
+
+    await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
+    await hass.async_block_till_done(wait_background_tasks=True)
+    geladen = verwaltung.laufzeiten[HEIZKREIS]
+    assert len(coordinator.client.abfragen) == anzahl + 1
+    assert geladen.parameter_verlauf["7/76"] == [["2026-09-27", 2.0]]
+
+    # Liefert die Steuerung keinen Typ, liest ein weiterer Start nicht erneut.
+    geladen.parameter_verlauf.pop("7/76")
+    await geladen.neu_starten(geladen.konfig)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert len(coordinator.client.abfragen) == anzahl + 1
+
+
 async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, anlage, freezer):
     verwaltung, _ = anlage
     client = await hass_ws_client(hass)
@@ -3115,7 +3142,7 @@ async def test_kachel_folgt_dem_heizkreistyp(hass, hass_ws_client, anlage, freez
 
     laufzeit.parameter_verlauf = {**basis, "7/76": [["2026-08-01", 3.0]]}
     hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
-    assert hinweise["arten"] == ["sollwert", "morgen"]
+    assert hinweise["arten"] == ["morgen"]
     assert hinweise["eintraege"] == []
     assert hinweise["parameter"]["7/76"]["wert"] == 3.0
 

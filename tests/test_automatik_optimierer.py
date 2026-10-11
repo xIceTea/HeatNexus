@@ -880,15 +880,16 @@ def test_kurvenform_nur_bei_einer_kurve(m):
 
 @pytest.mark.parametrize("typ", [0, 3, 4, 5])
 def test_heizkreis_ohne_kurve_bekommt_keine_kurvenhinweise(m, typ):
+    # Ohne Heizkurve entfällt auch der Sollwert: sein Rat verweist auf die Kurve.
     tage = reihe(m, 7, -3.0, -1.4, soll=23.0)
-    assert m.arten(parameter(), heizkreis_typ=typ) == ["sollwert", "morgen"]
-    assert arten(m.hinweise(tage, parameter(), HEUTE, heizkreis_typ=typ)) == ["sollwert_ausgleich"]
+    assert m.arten(parameter(), heizkreis_typ=typ) == ["morgen"]
+    assert m.hinweise(tage, parameter(), HEUTE, heizkreis_typ=typ) == []
     p = parameter(p3_7=2.0)
-    assert arten(m.hinweise(tage, p, HEUTE, heizkreis_typ=typ, raumfuehler=True)) == [
-        "sollwert_ausgleich"
-    ]
-    kurz = reihe(m, 4, -3.0, -1.4, soll=None)
+    assert m.hinweise(tage, p, HEUTE, heizkreis_typ=typ, raumfuehler=True) == []
+    kurz = reihe(m, 4, -3.0, -1.4, soll=23.0)
     assert m.tendenzen(kurz, parameter(), HEUTE, heizkreis_typ=typ) == []
+    morgen = reihe(m, 7, -3.0, -1.4, soll=23.0, morgen=90)
+    assert arten(m.hinweise(morgen, parameter(), HEUTE, heizkreis_typ=typ)) == ["morgen_spaet"]
 
 
 def test_fussboden_bekommt_keine_morgenhinweise(m):
@@ -909,6 +910,22 @@ def test_fussboden_rechnet_mit_kleinerem_faktor(m):
         ("heizkurve_frost", 81.0),
         ("heizkurve_uebergang", 44.0),
     ]
+
+
+def test_hinweis_ueber_der_schwelle_aendert_mindestens_ein_grad(m):
+    # −0,52 K × 1,3 × 0,7 = −0,47 K rundet auf null; der Hinweis nennt dann ein Grad.
+    p = parameter(p3_13=60.0)
+    (h,) = m.hinweise(reihe(m, 7, -3.0, -0.52), p, HEUTE, heizkreis_typ=2)
+    assert (h.art, h.von, h.nach) == ("heizkurve_frost", 60.0, 61.0)
+    (h,) = m.hinweise(reihe(m, 7, -3.0, 0.52), p, HEUTE, heizkreis_typ=2)
+    assert (h.art, h.von, h.nach) == ("heizkurve_frost", 60.0, 59.0)
+
+
+def test_aenderung_des_heizkreistyps_setzt_die_kurvengrundlage_zurueck(m):
+    p = parameter()
+    p["7/76"] = [["2026-10-01", 1.0], ["2026-11-10", 2.0]]
+    tage = reihe(m, 20, -3.0, -1.4)
+    assert m.grundlage(tage, p, HEUTE)[0].datum == "2026-11-11"
 
 
 def test_behaglichkeit_wird_nicht_gedaempft(m):

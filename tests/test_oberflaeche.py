@@ -836,7 +836,7 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
         "Heizkurve: Übergang 7/7 · Frost 2/7",
         "Sollwert 7/7",
         "Morgen 5/7",
-        "14 Tage aufgezeichnet · 2 mit Eingriffen",
+        "14 Tage aufgezeichnet · 2 nicht auswertbar",
     ]
     assert hinweise["ohneTage"]["fuss"][-1] == "Noch keine Tage aufgezeichnet"
     assert hinweise["ohneEingriffe"]["fuss"][-1] == "Morgen 0/7"
@@ -877,9 +877,11 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     assert (bereit["zahl"], bereit["neben"], len(bereit["fuss"])) == ("4/4", "ausgewertet", 3)
     assert bereit["bloecke"] == []
     assert (bereit["ergebnis"]["zahl"], bereit["ergebnis"]["neben"]) == ("7", "Hinweise")
+    # „Anpassung durch die Steuerung“ hat keinen eigenen Parameter und öffnet nichts.
     assert bereit["ergebnis"]["klickbar"] == [
         "Heizkurve bei Frost",
         "Heizkurve in der Übergangszeit",
+        "Heizkurve",
     ]
     assert bereit["ergebnis"]["bloecke"] == [
         ["Heizkurve", "Keine Empfehlung zur Kurve", "Anpassung durch die Steuerung aktiv"],
@@ -907,7 +909,13 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
         ],
         ["Raumsollwert", "Unauffällig", "Vorläufig · Sollwert 21,0 °C · 3 von 7 Tagen"],
     ]
-    assert kurve["ergebnis"]["klickbar"] == ["Heizkurve", "Morgens schon warm"]
+    # Auch die Hinweise ohne Parameter öffnen die Behaglichkeit.
+    assert kurve["ergebnis"]["klickbar"] == [
+        "Heizkurve",
+        "Heizkurve",
+        "Heizkurve",
+        "Morgens schon warm",
+    ]
     tendenz_kurve = hinweise["kurveTendenz"]
     assert (tendenz_kurve["zahl"], tendenz_kurve["fuss"]) == (
         "0/3",
@@ -941,7 +949,7 @@ def test_die_optimierung_folgt_den_arten_und_den_neuen_hinweisen(durchlauf):
         ["Heizkurve", "Kurvenform prüfen", "Übergang −0,9 K · Frost +1,1 K · 12 Tage seit 14.11."],
         ["Aufheizen am Morgen", "Keine Änderung nötig", "9 Tage"],
     ]
-    assert kurvenform["ergebnis"]["klickbar"] == []
+    assert kurvenform["ergebnis"]["klickbar"] == ["Heizkurve"]
     # Fußboden: keine Morgenzeile, keine Morgentendenz, kein „Keine Änderung nötig“ zum Morgen.
     ohne_morgen = hinweise["ohneMorgen"]
     assert (ohne_morgen["zahl"], ohne_morgen["fuss"]) == (
@@ -953,11 +961,13 @@ def test_die_optimierung_folgt_den_arten_und_den_neuen_hinweisen(durchlauf):
         ["Heizkurve in der Übergangszeit", "Keine Änderung nötig", "7 Tage"],
         ["Raumsollwert", "Keine Änderung nötig", "7 Tage"],
     ]
-    # Ohne Heizkurve: nur der Sollwert, die Kurventendenz fehlt.
+    # Ohne Heizkurve: nur der Morgen, Kurven- und Sollwerttendenz fehlen.
     ohne_kurve = hinweise["ohneKurve"]
-    assert (ohne_kurve["zahl"], ohne_kurve["fuss"]) == ("1/1", ["Sollwert 9/7"])
+    assert (ohne_kurve["zahl"], ohne_kurve["fuss"]) == ("1/1", ["Morgen 9/7"])
     assert ohne_kurve["ergebnis"]["zahl"] == "0"
-    assert ohne_kurve["ergebnis"]["bloecke"] == [["Raumsollwert", "Keine Änderung nötig", "9 Tage"]]
+    assert ohne_kurve["ergebnis"]["bloecke"] == [
+        ["Aufheizen am Morgen", "Keine Änderung nötig", "9 Tage"]
+    ]
 
 
 def test_neu_lernen_steht_in_den_einstellungen_und_fragt_nach(durchlauf):

@@ -201,6 +201,8 @@ class OptimierungMixin:
         self.parameter_eingeschaltet = z.get("parameter_eingeschaltet") is True
         self._parameteraufgabe: Any = None
         self._nachrechenaufgabe: Any = None
+        # Nur im Speicher: Eine Steuerung ohne `7/76` wird nicht bei jedem Start erneut gelesen.
+        self._typ_versucht = False
 
     def optimierung_als_dict(self) -> dict[str, Any]:
         return {
@@ -366,14 +368,18 @@ class OptimierungMixin:
 
     # --- Parameter -----------------------------------------------------------
     def _optimierung_starten(self) -> None:
-        """Täglich lesen; beim Start sofort, wenn heute noch nichts gelesen wurde.
+        """Täglich lesen; beim Start sofort, wenn heute noch nichts gelesen wurde oder der Typ fehlt.
 
         Fehlt die Marke oder stammt sie aus einer älteren Fassung, werden einmal die vergangenen
         Tage aus der Aufzeichnung nachgerechnet.
         """
         self._abmelden.append(async_track_time_change(self.hass, self._parameter_takt, **LESEZEIT))
         self._parameter_einschalten()
-        if self.parameter_gelesen != dt_util.now().date().isoformat():
+        typ_fehlt = _schluessel(HEIZKREISTYP) not in self.parameter_verlauf
+        if self.parameter_gelesen != dt_util.now().date().isoformat() or (
+            typ_fehlt and not self._typ_versucht
+        ):
+            self._typ_versucht = True
             self._parameter_anstossen()
         if self.archiv_nachgerechnet < NACHRECHNEN_FASSUNG:
             self._nachrechenaufgabe = self.hass.async_create_background_task(
@@ -455,7 +461,7 @@ class OptimierungMixin:
     def hinweise_stand(self, heute: date | str) -> dict[str, Any]:
         """Die Kachel „Optimierung“; ohne eingeschalteten Schalter nur `{"status": "aus"}`.
 
-        `aufgezeichnet` zählt die Archivtage der letzten zwei Wochen, `ohne_grundlage` die mit Eingriffen.
+        `aufgezeichnet` zählt die Archivtage der letzten zwei Wochen, `ohne_grundlage` die nicht auswertbaren.
         `entitaeten` nennt je Kurvenparameter die aktive Entität, deren Verlauf ein Klick zeigt.
         `parameter` nennt je Kurvenparameter Wert und letzte Änderung, auch ohne aktive Entität.
         `vorlaeufig` nennt die Tendenz der Arten, denen für eine Empfehlung noch Tage fehlen.

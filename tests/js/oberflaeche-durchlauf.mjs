@@ -1127,7 +1127,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     ohneEingriffe: zeigen({ status: "sammelt", tage: 5, noetig: 7, eintraege: [], fortschritt: {}, aufgezeichnet: 5, ohne_grundlage: 0 }),
     bereit: zeigen({
       status: "bereit",
-      entitaeten: { "3/13": "number.vorlauf_auslegung", "3/1": "number.fusspunkt" },
+      entitaeten: { "3/13": "number.vorlauf_auslegung", "3/1": "number.fusspunkt", "3/58": "number.behaglichkeit" },
       tage: 23,
       noetig: 7,
       fortschritt: { kurve_frost: 18, kurve_uebergang: 9, sollwert: 21, morgen: 12 },
@@ -1218,17 +1218,20 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
         { art: "kurve_frost", tage: 4, richtung: "warm", wert: 0.8 },
       ],
     }),
-    // Heizkreis ohne Heizkurve: nur der Sollwert.
+    // Heizkreis ohne Heizkurve: nur der Morgen.
     ohneKurve: zeigen({
       status: "bereit",
-      arten: ["sollwert"],
+      arten: ["morgen"],
       tage: 9,
       noetig: 7,
       eintraege: [],
       fortschritt: { kurve: 9, kurve_uebergang: 8, kurve_frost: 8, sollwert: 9, morgen: 9 },
       aufgezeichnet: 9,
       ohne_grundlage: 0,
-      vorlaeufig: [{ art: "kurve", tage: 5, richtung: "kalt", wert: -0.5 }],
+      vorlaeufig: [
+        { art: "kurve", tage: 5, richtung: "kalt", wert: -0.5 },
+        { art: "sollwert", tage: 5, richtung: "hoch", wert: 23 },
+      ],
     }),
   };
   {

@@ -60,6 +60,9 @@ const PARAMETERNAMEN = {
   "3/51": ["Raumsollwert", "°C"],
 };
 
+/** Hinweise zur Kurve ohne eigenen Parameter öffnen die Behaglichkeit. */
+const KURVE_OHNE_PARAMETER = { kurvenform: "3/58", heizkurve_parallel: "3/58" };
+
 /** Ausgewertete Arten, wenn der Server keine `arten` nennt: Kurve in zwei Bändern. */
 const STANDARD_ARTEN = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"];
 
@@ -303,7 +306,7 @@ export const KennwerteMixin = (Basis) =>
       const arten = this._hinweisArten(h);
       const fertig = arten.filter((art) => h.noetig > 0 && (f[art] || 0) >= h.noetig).length;
       const kachel = this._kachel("hinweise", "Optimierung", `${fertig}/${arten.length}`, this._t("ausgewertet"), null, this._hinweisFortschritt(h));
-      const erklaerung = "Hinweise beruhen auf ungestörten Heizstunden seit der letzten Änderung der Heizkurve. Stunden mit einem Eingriff zählen nicht. Ab 4 Tagen erscheint eine vorläufige Tendenz, ab 7 Tagen eine Empfehlung. Die Automatik ändert diese Werte nicht.";
+      const erklaerung = "Hinweise beruhen auf ungestörten Heizstunden seit der letzten Änderung der Heizkurve. Stunden mit einem Eingriff zählen nicht. Auch Stunden, in denen der Vorlauf sein Soll nicht erreicht, zählen nicht. Ab 4 Tagen erscheint eine vorläufige Tendenz, ab 7 Tagen eine Empfehlung. Die Automatik ändert diese Werte nicht.";
       kachel.querySelector(".titel").appendChild(this._fragezeichen("Optimierung", erklaerung));
       return kachel;
     }
@@ -313,7 +316,7 @@ export const KennwerteMixin = (Basis) =>
       return Array.isArray(h.arten) && h.arten.length ? h.arten : STANDARD_ARTEN;
     }
 
-    /** Gezählte Tage je Hinweisart, je Art eine Zeile; darunter, wie viele Tage Eingriffe hatten. */
+    /** Gezählte Tage je Hinweisart, je Art eine Zeile; darunter, wie viele Tage nicht auswertbar waren. */
     _hinweisFortschritt(h) {
       const f = h.fortschritt || {};
       const noetig = h.noetig || 0;
@@ -334,7 +337,7 @@ export const KennwerteMixin = (Basis) =>
         .map((art) => zeile[art]());
       if (h.aufgezeichnet === 0) zeilen.push(this._t("Noch keine Tage aufgezeichnet"));
       else if (h.ohne_grundlage > 0) {
-        zeilen.push(this._tMit("{tage} Tage aufgezeichnet · {eingriffe} mit Eingriffen", { tage: h.aufgezeichnet, eingriffe: h.ohne_grundlage }));
+        zeilen.push(this._tMit("{tage} Tage aufgezeichnet · {eingriffe} nicht auswertbar", { tage: h.aufgezeichnet, eingriffe: h.ohne_grundlage }));
       }
       return zeilen.map((zeile) => knoten("div", "fuss", zeile));
     }
@@ -350,7 +353,7 @@ export const KennwerteMixin = (Basis) =>
       const bloecke = (h.eintraege || [])
         .map((eintrag) => {
           const block = this._hinweisBlock(eintrag);
-          return block && this._klickbar(block, entitaeten[eintrag.parameter]);
+          return block && this._klickbar(block, entitaeten[eintrag.parameter || KURVE_OHNE_PARAMETER[eintrag.art]]);
         })
         .filter(Boolean);
       const arten = new Map(this._optimierungsArten(h).map((art) => [art[0], art]));
