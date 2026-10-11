@@ -119,6 +119,7 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         "fenster_erkennung": bool(roh.get("fenster_erkennung", False)),
         # Ältere Einstellungen führen den Schalter der Optimierung unter den eigenen Werten.
         "hinweise": bool(roh.get("hinweise", eigene_roh.get("hinweise", False))),
+        "hinweise_melden": bool(roh.get("hinweise_melden", False)),
         "vorrang": _liste(roh.get("vorrang"), LISTEN_MAX["vorrang"]),
         "eigene": abweichungen(profil, eigene, ausrichtung),
     }

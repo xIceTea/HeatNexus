@@ -3181,6 +3181,146 @@ async def test_kompensation_zaehlt_nur_mit_raumfuehler(hass, hass_ws_client, anl
     assert [h.art for h in laufzeit.hinweise_liste(MORGEN[:10])] == ["steuerung_passt_an"]
 
 
+@pytest.mark.parametrize(
+    ("raeume", "raum_ziel", "nach"),
+    [
+        (["sensor.wohnzimmer"], None, None),
+        (["sensor.wohnzimmer"], 21.0, 1.0),
+        (["climate.bad"], None, 1.0),
+    ],
+)
+async def test_behaglichkeit_folgt_dem_bezug_der_abweichung(
+    hass, anlage, freezer, raeume, raum_ziel, nach
+):
+    # Gegen `1/1` gemessen ist die eingestellte Behaglichkeit von 0,5 K schon enthalten.
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    laufzeit.konfig = {**laufzeit.konfig, "raeume": raeume, "raum_ziel": raum_ziel}
+    laufzeit.tage_archiv = _frosttage(8, -0.7)
+    laufzeit.parameter_verlauf = {"3/58": [["2026-08-01", 0.5]]}
+
+    liste = laufzeit.hinweise_liste(MORGEN[:10])
+
+    assert [(h.art, h.von, h.nach) for h in liste] == (
+        [] if nach is None else [("heizkurve_parallel", 0.5, nach)]
+    )
+
+
+OPTIMIERUNG = f"heatnexus_optimierung_{HEIZKREIS}"
+
+
+def _optimierungsmeldungen(hass) -> dict:
+    from homeassistant.components.persistent_notification import (
+        _async_get_or_create_notifications,
+    )
+
+    meldungen = _async_get_or_create_notifications(hass)
+    return {k: v for k, v in meldungen.items() if k.startswith("heatnexus_optimierung")}
+
+
+async def _optimierung_bereit(hass, hass_ws_client, verwaltung, freezer):
+    """Hinweise eingeschaltet, acht Frosttage 1,4 K zu kühl, Kurve in zwei Bändern."""
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, hinweise=True)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit.tage_archiv = _frosttage(8, -1.4)
+    laufzeit.parameter_verlauf = {"3/13": [["2026-08-01", 80.0]], "3/1": [["2026-08-01", 45.0]]}
+    return laufzeit, client
+
+
+async def test_optimierung_meldet_ihre_ergebnisse_taeglich(hass, hass_ws_client, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    verwaltung, _ = anlage
+    laufzeit, client = await _optimierung_bereit(hass, hass_ws_client, verwaltung, freezer)
+    assert _optimierungsmeldungen(hass) == {}
+
+    antwort = await _senden(
+        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, hinweise_melden=True
+    )
+    assert antwort["success"], antwort
+    assert antwort["result"]["hinweise_melden"] is True
+    # Die Testumgebung spricht Englisch; die Meldung folgt der Sprache samt Dezimalpunkt.
+    meldung = _optimierungsmeldungen(hass)[OPTIMIERUNG]
+    assert meldung["title"] == f"Optimization – {ANLAGE} · Heizkreis"
+    assert meldung["message"].split("\n")[:3] == [
+        "- Heating curve in frost: Design flow temperature 80 → 82 °C (−1.4 K, 8 days)",
+        "",
+        "The automation does not change these values.",
+    ]
+    assert "/heatnexus-anlage" in meldung["message"]
+
+    # Zur täglichen Lesung ersetzt der neue Stand die Meldung.
+    laufzeit.tage_archiv = _frosttage(9, -2.0)
+    lesezeit = (dt_util.now() + timedelta(days=1)).replace(hour=0, minute=40, second=0)
+    freezer.move_to(lesezeit)
+    async_fire_time_changed(hass, lesezeit)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    meldungen = _optimierungsmeldungen(hass)
+    assert list(meldungen) == [OPTIMIERUNG]
+    assert meldungen[OPTIMIERUNG]["message"].startswith(
+        "- Heating curve in frost: Design flow temperature 80 → 84 °C (−2.0 K, 9 days)"
+    )
+
+    # Ohne Hinweis verschwindet sie.
+    laufzeit.tage_archiv = []
+    lesezeit += timedelta(days=1)
+    freezer.move_to(lesezeit)
+    async_fire_time_changed(hass, lesezeit)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert _optimierungsmeldungen(hass) == {}
+
+
+async def test_optimierungsmeldung_kommt_nach_einem_neustart_gleich_wieder(
+    hass, hass_ws_client, anlage, freezer
+):
+    from homeassistant.components import persistent_notification
+
+    verwaltung, _ = anlage
+    laufzeit, client = await _optimierung_bereit(hass, hass_ws_client, verwaltung, freezer)
+    await _senden(
+        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, hinweise_melden=True
+    )
+    # Ein Neustart von Home Assistant verliert die Benachrichtigung; gelesen wurde heute schon.
+    persistent_notification.async_dismiss(hass, OPTIMIERUNG)
+    assert laufzeit.parameter_gelesen == "2026-09-27"
+
+    await laufzeit.neu_starten(laufzeit.konfig)
+
+    assert OPTIMIERUNG in _optimierungsmeldungen(hass)
+
+
+@pytest.mark.parametrize(
+    "aenderung", [{"hinweise_melden": False}, {"hinweise": False}, {"entfernen": True}]
+)
+async def test_optimierungsmeldung_verschwindet_mit_dem_schalter(
+    hass, hass_ws_client, anlage, freezer, aenderung
+):
+    verwaltung, _ = anlage
+    _, client = await _optimierung_bereit(hass, hass_ws_client, verwaltung, freezer)
+    await _senden(
+        client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, hinweise_melden=True
+    )
+    assert OPTIMIERUNG in _optimierungsmeldungen(hass)
+
+    if aenderung.pop("entfernen", False):
+        antwort = await _senden(client, type="heatnexus/automatik/entfernen", heizkreis=HEIZKREIS)
+    else:
+        antwort = await _senden(
+            client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, **aenderung
+        )
+
+    assert antwort["success"], antwort
+    assert _optimierungsmeldungen(hass) == {}
+
+
 async def test_kachel_zaehlt_aufgezeichnete_tage_und_eingriffe(
     hass, hass_ws_client, anlage, freezer
 ):

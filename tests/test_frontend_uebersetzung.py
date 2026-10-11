@@ -88,6 +88,7 @@ def test_der_fortschritt_der_hinweise_steht_in_jedem_woerterbuch():
         "Behaglichkeit am Anschlag",
         "Kurvenform prüfen",
         "Übergang {uebergang} · Frost {frost}",
+        "Ergebnisse in der Seitenleiste melden",
     }
     for sprache in ("en", "nl"):
         datei = WURZEL / "sprachen" / f"{sprache}.json"

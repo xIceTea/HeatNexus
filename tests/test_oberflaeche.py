@@ -826,6 +826,10 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     # Unten in „Erweitert“: ein Schalter, der den Zustand umkehrt.
     assert hinweise["erweitertSchalter"] == 1
     assert [n["hinweise"] for n in hinweise["erweitertGesendet"]] == [False]
+    # Darunter das Melden in der Seitenleiste, nur mit eingeschalteten Hinweisen bedienbar.
+    assert hinweise["meldenOhneHinweise"] == [True]
+    assert hinweise["meldenMitHinweisen"] == [False]
+    assert [n["hinweise_melden"] for n in hinweise["meldenGesendet"]] == [True]
     sammelt = hinweise["sammelt"]
     assert (sammelt["titel"], sammelt["zahl"], sammelt["neben"]) == (
         "Optimierung",

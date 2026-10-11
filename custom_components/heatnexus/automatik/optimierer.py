@@ -270,15 +270,23 @@ def _anteil(at: float, klimapunkt: float | None, am_fusspunkt: bool) -> float:
     return _begrenzt(anteil / (FUSS_AT - klimapunkt), MIN_ANTEIL, 1.0)
 
 
-def _behaglichkeit(tage: int, seit: str | None, d: float, von: float | None) -> Hinweis:
-    """Die Kurve parallel über `3/58`; an der Grenze ohne Zielwert, ohne `3/58` nur die Richtung."""
+def _behaglichkeit(
+    tage: int, seit: str | None, d: float, von: float | None, absolut: bool
+) -> list[Hinweis]:
+    """Die Kurve parallel über `3/58`; an der Grenze ohne Zielwert, ohne `3/58` nur die Richtung.
+
+    Enthält das Ziel der Abweichung die Behaglichkeit (`1/1`), braucht es absolut `−d`.
+    """
     art, ab = "heizkurve_parallel", round(d, 1)
     if von is None:
-        return Hinweis(art, tage, seit, ab)
-    nach = _begrenzt(von - _runden(d, 0.5), *BEHAGLICHKEIT)
+        return [Hinweis(art, tage, seit, ab)]
+    roh = (0.0 if absolut else von) - _runden(d, 0.5)
+    nach = _begrenzt(roh, *BEHAGLICHKEIT)
+    if roh == von:
+        return []
     if nach == von:
-        return Hinweis(art, tage, seit, ab, "3/58", von, None, "K", anschlag=True)
-    return Hinweis(art, tage, seit, ab, "3/58", von, nach, "K")
+        return [Hinweis(art, tage, seit, ab, "3/58", von, None, "K", anschlag=True)]
+    return [Hinweis(art, tage, seit, ab, "3/58", von, nach, "K")]
 
 
 def _baender(frost: list[Tag], uebergang: list[Tag]) -> tuple[float, float] | None:
@@ -289,7 +297,7 @@ def _baender(frost: list[Tag], uebergang: list[Tag]) -> tuple[float, float] | No
 
 
 def _parallel(
-    frost: list[Tag], uebergang: list[Tag], von: float | None, seit: str | None
+    frost: list[Tag], uebergang: list[Tag], von: float | None, seit: str | None, absolut: bool
 ) -> list[Hinweis] | None:
     """Liegen beide Bänder gleich weit daneben, die Behaglichkeit; sonst und ohne `3/58` `None`."""
     if von is None or (mittel := _baender(frost, uebergang)) is None:
@@ -299,7 +307,7 @@ def _parallel(
     if not gleich or min(abs(d_frost), abs(d_uebergang)) < SCHWELLE_K:
         return None
     tage = len(frost) + len(uebergang)
-    return [_behaglichkeit(tage, seit, (d_frost + d_uebergang) / 2, von)]
+    return _behaglichkeit(tage, seit, (d_frost + d_uebergang) / 2, von, absolut)
 
 
 def _band_hinweis(
@@ -317,12 +325,12 @@ def _band_hinweis(
 
 
 def _kurve(
-    grundlage: list[Tag], p: Mapping[str, Any], seit: str | None, heizkreis_typ: int
+    grundlage: list[Tag], p: Mapping[str, Any], seit: str | None, heizkreis_typ: int, absolut: bool
 ) -> list[Hinweis]:
     """Hinweise zur Heizkurve aus dem Frost- und dem Übergangsband."""
     frost = _band(grundlage, _frost)
     uebergang = _band(grundlage, _uebergang)
-    parallel = _parallel(frost, uebergang, _aktuell(p, "3/58"), seit)
+    parallel = _parallel(frost, uebergang, _aktuell(p, "3/58"), seit, absolut)
     if parallel is not None:
         return parallel
     klima = _aktuell(p, "3/12")
@@ -354,14 +362,16 @@ def _kurvenform(grundlage: list[Tag], seit: str | None) -> Hinweis | None:
     return Hinweis("kurvenform", tage, seit, round(d_uebergang, 1), frost=round(d_frost, 1))
 
 
-def _eine_kurve(grundlage: list[Tag], von: float | None, seit: str | None) -> list[Hinweis]:
+def _eine_kurve(
+    grundlage: list[Tag], von: float | None, seit: str | None, absolut: bool
+) -> list[Hinweis]:
     """Ohne Kurvenpunkte die ganze Kurve über die Behaglichkeit; ohne `3/58` nur die Richtung."""
     if (form := _kurvenform(grundlage, seit)) is not None:
         return [form]
     tage = _mit_abweichung(grundlage)
     if len(tage) < MIN_TAGE or abs(d := mean(t.abweichung for t in tage)) < SCHWELLE_K:
         return []
-    return [_behaglichkeit(len(tage), seit, d, von)]
+    return _behaglichkeit(len(tage), seit, d, von, absolut)
 
 
 def _sollwert(grundlage: list[Tag], seit: str | None) -> list[Hinweis]:
@@ -418,12 +428,13 @@ def _kurvenhinweise(
     seit: str | None,
     heizkreis_typ: int,
     raumfuehler: bool,
+    absolut: bool,
 ) -> list[Hinweis]:
     if _passt_an(parameter_verlauf, raumfuehler):
         return [Hinweis("steuerung_passt_an", len(kurve), seit)]
     if _zwei_baender(parameter_verlauf):
-        return _kurve(kurve, parameter_verlauf, seit, heizkreis_typ)
-    return _eine_kurve(kurve, _aktuell(parameter_verlauf, "3/58"), seit)
+        return _kurve(kurve, parameter_verlauf, seit, heizkreis_typ, absolut)
+    return _eine_kurve(kurve, _aktuell(parameter_verlauf, "3/58"), seit, absolut)
 
 
 def hinweise(
@@ -433,10 +444,12 @@ def hinweise(
     *,
     heizkreis_typ: int = RADIATOREN,
     raumfuehler: bool = False,
+    ziel_mit_behaglichkeit: bool = False,
 ) -> list[Hinweis]:
     """Die Hinweise zu den Arten aus `arten` in fester Reihenfolge.
 
     Passt die Steuerung die Kurve selbst an, gibt es keinen Hinweis zur Kurve.
+    `ziel_mit_behaglichkeit`: Die Abweichung ist gegen `1/1` gemessen, das `3/58` enthält.
     """
     gezeigt = arten(parameter_verlauf, heizkreis_typ=heizkreis_typ)
 
@@ -447,7 +460,9 @@ def hinweise(
     liste: list[Hinweis] = []
     if any(art.startswith("kurve") for art in gezeigt):
         kurve, seit = basis("kurve")
-        liste += _kurvenhinweise(kurve, parameter_verlauf, seit, heizkreis_typ, raumfuehler)
+        liste += _kurvenhinweise(
+            kurve, parameter_verlauf, seit, heizkreis_typ, raumfuehler, ziel_mit_behaglichkeit
+        )
     if "sollwert" in gezeigt:
         liste += _sollwert(*basis("sollwert"))
     if "morgen" in gezeigt:

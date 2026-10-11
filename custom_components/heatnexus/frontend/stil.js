@@ -1188,6 +1188,7 @@ export const STIL = `
   .automatik-schalter.an i { background: var(--hn-akzent); }
   .automatik-schalter.an i::after { transform: translateX(18px); background: #fff; }
   .automatik-schalter:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 3px; border-radius: 6px; }
+  .automatik-optimierung { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
   .automatik-segment {
     display: inline-flex; padding: 3px; border-radius: 10px;
     background: var(--hn-flaeche); border: 1px solid var(--hn-linie);

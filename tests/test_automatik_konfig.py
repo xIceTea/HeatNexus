@@ -192,3 +192,8 @@ def test_hinweise_aus_den_eigenen_werten_gelten_weiter(konfig):
     k = konfig.pruefen(roh(eigene={"hinweise": True}))
     assert k["hinweise"] is True
     assert "hinweise" not in k["eigene"]
+
+
+def test_melden_der_hinweise_ist_eine_eigene_einstellung(konfig):
+    assert konfig.pruefen(roh())["hinweise_melden"] is False
+    assert konfig.pruefen(roh(hinweise_melden=True))["hinweise_melden"] is True

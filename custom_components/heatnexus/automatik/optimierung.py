@@ -13,13 +13,15 @@ import logging
 import math
 from typing import Any, NamedTuple
 
+from homeassistant.components import persistent_notification
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from ..const import DOMAIN
+from ..const import DOMAIN, PANEL_URL
 from ..helpers import enum_texte
-from . import eingaben, nachladen, nachrechnen, optimierer, regel
+from ..texte import DEZIMALPUNKT, woerterbuch
+from . import eingaben, ergebnistext, nachladen, nachrechnen, optimierer, regel
 from .vorausschau import LERNTAGE
 
 _LOGGER = logging.getLogger(__name__)
@@ -167,6 +169,11 @@ def _parameterwert(roh: Any) -> float | str | None:
     except (TypeError, ValueError):
         return str(roh)
     return zahl if math.isfinite(zahl) else str(roh)
+
+
+def _ziel_mit_behaglichkeit(konfig: dict[str, Any]) -> bool:
+    """Ob die Abweichung gegen `1/1` zählt: ohne Thermostat und ohne eigene Wunschtemperatur."""
+    return not eingaben.hat_thermostat(konfig["raeume"]) and konfig.get("raum_ziel") is None
 
 
 def _parameter_laden(roh: Any) -> dict[str, list[list[Any]]]:
@@ -381,6 +388,9 @@ class OptimierungMixin:
         ):
             self._typ_versucht = True
             self._parameter_anstossen()
+        else:
+            # Benachrichtigungen überstehen keinen Neustart; ohne neues Lesen gleich wieder melden.
+            self.optimierung_melden()
         if self.archiv_nachgerechnet < NACHRECHNEN_FASSUNG:
             self._nachrechenaufgabe = self.hass.async_create_background_task(
                 self.archiv_nachrechnen(), f"heatnexus_nachrechnen_{self.device_id}"
@@ -416,8 +426,13 @@ class OptimierungMixin:
         if self._parameteraufgabe is not None and not self._parameteraufgabe.done():
             return
         self._parameteraufgabe = self.hass.async_create_background_task(
-            self.parameter_lesen(), f"heatnexus_parameter_{self.device_id}"
+            self._lesen_und_melden(), f"heatnexus_parameter_{self.device_id}"
         )
+
+    async def _lesen_und_melden(self) -> None:
+        """Die tägliche Lesung; danach stehen die Ergebnisse des Tages in der Seitenleiste."""
+        await self.parameter_lesen()
+        self.optimierung_melden()
 
     async def _parameter_takt(self, _jetzt: datetime) -> None:
         self._parameter_anstossen()
@@ -455,7 +470,11 @@ class OptimierungMixin:
 
     def hinweise_liste(self, heute: date | str) -> list[optimierer.Hinweis]:
         return optimierer.hinweise(
-            self.archivierte_tage(), self.parameter_verlauf, heute, **self._heizkreis()
+            self.archivierte_tage(),
+            self.parameter_verlauf,
+            heute,
+            **self._heizkreis(),
+            ziel_mit_behaglichkeit=_ziel_mit_behaglichkeit(self.konfig),
         )
 
     def hinweise_stand(self, heute: date | str) -> dict[str, Any]:
@@ -470,7 +489,7 @@ class OptimierungMixin:
             return {"status": "aus"}
         tage = self.archivierte_tage()
         kreis = self._heizkreis()
-        eintraege = optimierer.hinweise(tage, self.parameter_verlauf, heute, **kreis)
+        eintraege = self.hinweise_liste(heute)
         grundlage = optimierer.grundlage(tage, self.parameter_verlauf, heute)
         zuletzt = _letzte_tage(tage, heute)
         return {
@@ -491,6 +510,32 @@ class OptimierungMixin:
             "parameter": stand,
             "arten": optimierer.arten(self.parameter_verlauf, heizkreis_typ=kreis["heizkreis_typ"]),
         }
+
+    # --- Seitenleiste --------------------------------------------------------
+    @property
+    def _optimierungsmeldung(self) -> str:
+        return f"{DOMAIN}_optimierung_{self.device_id}"
+
+    def optimierung_melden(self) -> None:
+        """Die Hinweise in der Seitenleiste; ohne Hinweis oder mit ausgeschaltetem Schalter keine."""
+        w = woerterbuch(self.hass)
+        text = None
+        if self.konfig.get("hinweise") and self.konfig.get("hinweise_melden"):
+            liste = self.hinweise_liste(dt_util.now().date())
+            text = ergebnistext.text(liste, w, punkt=w.sprache in DEZIMALPUNKT)
+        if text is None:
+            self.optimierung_entfernen()
+            return
+        verweis = f"[{w('Im Reiter Automatik ansehen')}](/{PANEL_URL})"
+        persistent_notification.async_create(
+            self.hass,
+            f"{text}\n\n{verweis}",
+            title=f"{w('Optimierung')} – {self.bezeichnung}",
+            notification_id=self._optimierungsmeldung,
+        )
+
+    def optimierung_entfernen(self) -> None:
+        persistent_notification.async_dismiss(self.hass, self._optimierungsmeldung)
 
     def _ergebnis_entitaeten(self, stand: dict[str, Any]) -> dict[str, str]:
         """Je Parameter mit gelesenem Wert die aktive Entität, deren Verlauf ein Klick zeigt.

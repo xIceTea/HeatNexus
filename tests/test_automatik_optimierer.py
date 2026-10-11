@@ -965,3 +965,111 @@ def test_stunde_mit_verfehltem_vorlauf_ist_nicht_sauber(m):
     stunden["11"].update(vi=30.0)
     del stunden["11"]["vl"]
     assert m.tag_aus_stunden("2026-11-03", stunden).sauber == 14
+
+
+# --- Behaglichkeit, wenn die Abweichung gegen `1/1` gemessen ist ----------
+
+
+@pytest.mark.parametrize(
+    ("von", "d", "absolut", "nach"),
+    [
+        (0.0, -0.7, False, 0.5),
+        (0.5, -0.9, False, 1.5),
+        (0.0, -0.7, True, 0.5),
+        (0.5, -1.4, True, 1.5),
+        (2.0, 1.0, True, -1.0),
+        (2.0, 1.0, False, 1.0),
+    ],
+)
+def test_behaglichkeit_gegen_den_raumsoll_gilt_absolut(m, von, d, absolut, nach):
+    # `1/1` enthält die Behaglichkeit: Raum = Basis + c + d, also braucht es absolut c = −d.
+    p = ohne_baender(p3_58=von)
+    (h,) = m.hinweise(reihe(m, 7, 2.0, d), p, HEUTE, ziel_mit_behaglichkeit=absolut)
+    assert (h.art, h.parameter, h.von, h.nach) == ("heizkurve_parallel", "3/58", von, nach)
+
+
+def test_eingestellte_behaglichkeit_wird_nicht_weiter_erhoeht(m):
+    # c = 0,5 K und −0,7 K gegen `1/1`: absolut gerundet 0,5 K, eingestellt ist sie schon.
+    tage = reihe(m, 7, 2.0, -0.7)
+    assert m.hinweise(tage, ohne_baender(p3_58=0.5), HEUTE, ziel_mit_behaglichkeit=True) == []
+    (h,) = m.hinweise(tage, ohne_baender(p3_58=0.5), HEUTE)
+    assert h.nach == 1.0
+    (h,) = m.hinweise(tage, ohne_baender(p3_58=0.0), HEUTE, ziel_mit_behaglichkeit=True)
+    assert (h.von, h.nach) == (0.0, 0.5)
+
+
+def test_parallele_baender_gegen_den_raumsoll(m):
+    tage = reihe(m, 7, -3.0, -0.7) + reihe(m, 7, 10.0, -0.7, ab_tag=7)
+    assert m.hinweise(tage, parameter(p3_58=0.5), HEUTE, ziel_mit_behaglichkeit=True) == []
+    (h,) = m.hinweise(tage, parameter(p3_58=0.0), HEUTE, ziel_mit_behaglichkeit=True)
+    assert (h.art, h.von, h.nach) == ("heizkurve_parallel", 0.0, 0.5)
+
+
+def test_behaglichkeit_gegen_den_raumsoll_am_anschlag(m):
+    tage = reihe(m, 7, 2.0, -4.0)
+    (h,) = m.hinweise(tage, ohne_baender(p3_58=3.0), HEUTE, ziel_mit_behaglichkeit=True)
+    assert (h.von, h.nach, h.anschlag) == (3.0, None, True)
+    (h,) = m.hinweise(tage, ohne_baender(p3_58=1.0), HEUTE, ziel_mit_behaglichkeit=True)
+    assert (h.von, h.nach, h.anschlag) == (1.0, 3.0, False)
+
+
+# --- Text für die Seitenleiste --------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def text():
+    load_standalone("automatik")
+    return load_standalone("automatik.ergebnistext")
+
+
+def _alle_arten(m):
+    h = m.Hinweis
+    return [
+        h("heizkurve_frost", 9, None, -1.4, "3/13", 80.0, 82.0, "°C"),
+        h("heizkurve_parallel", 8, None, -0.7, "3/58", 0.0, 0.5, "K"),
+        h("heizkurve_parallel", 8, None, -1.2, "3/58", 3.0, None, "K", anschlag=True),
+        h("heizkurve_parallel", 8, None, 0.6),
+        h("kurvenform", 14, None, 0.8, frost=-1.0),
+        h("sollwert_ausgleich", 7, None, None, "3/51", 23.0, None, "°C"),
+        h("morgen_spaet", 7, None, None, "3/6", 60.0, 135.0, "min", 75),
+        h("morgen_spaet", 7, None, None, "zeitprogramm", None, 60.0, "min", 60),
+        h("morgen_frueh", 7, None, None, "3/6", 45.0, None, "min", 0),
+        h("steuerung_passt_an", 7, None),
+    ]
+
+
+def test_seitenleiste_nennt_je_hinweis_eine_zeile(m, text):
+    assert text.text(_alle_arten(m), lambda t: t).split("\n") == [
+        "- Heizkurve bei Frost: Vorlauf bei Auslegung 80 → 82 °C (−1,4 K, 9 Tage)",
+        "- Heizkurve: Behaglichkeit 0 → 0,5 K (−0,7 K, 8 Tage)",
+        "- Heizkurve: Behaglichkeit am Anschlag (−1,2 K, 8 Tage)",
+        "- Heizkurve: Heizkurve absenken (+0,6 K, 8 Tage)",
+        "- Heizkurve: Kurvenform prüfen (Übergang +0,8 K · Frost −1,0 K, 14 Tage)",
+        "- Raumsollwert: Heizkurve anpassen statt Sollwert (Sollwert 23,0 °C, 7 Tage)",
+        "- Morgens zu spät warm: Vorhaltezeit 60 → 135 min (Ziel nach 75 min, 7 Tage)",
+        "- Morgens zu spät warm: Programmstart 60 min früher (Ziel nach 60 min, 7 Tage)",
+        "- Morgens schon warm: Vorhaltezeit 45 min kürzer möglich (Ziel nach 0 min, 7 Tage)",
+        "",
+        "Die Automatik ändert diese Werte nicht.",
+    ]
+
+
+def test_seitenleiste_ohne_empfehlung_bleibt_leer(m, text):
+    assert text.text([], lambda t: t) is None
+    assert text.text([m.Hinweis("steuerung_passt_an", 7, None)], lambda t: t) is None
+
+
+@pytest.mark.parametrize(
+    ("sprache", "punkt", "erwartet"),
+    [
+        ("en", True, "Heating curve: Comfort correction 0 → 0.5 K (−0.7 K, 8 days)"),
+        ("nl", False, "Stooklijn: Comfortcorrectie 0 → 0,5 K (−0,7 K, 8 dagen)"),
+    ],
+)
+def test_seitenleiste_spricht_die_sprache_der_anlage(m, text, sprache, punkt, erwartet):
+    woerter = load_standalone("texte").Woerterbuch(sprache)
+    hinweis = m.Hinweis("heizkurve_parallel", 8, None, -0.7, "3/58", 0.0, 0.5, "K")
+    assert text.zeile(hinweis, woerter, punkt) == erwartet
+    deutsch = [z for h in _alle_arten(m) if (z := text.zeile(h, lambda t: t)) is not None]
+    fremd = text.text(_alle_arten(m), woerter, punkt).split("\n")
+    assert not set(fremd) & {f"- {z}" for z in deutsch}

@@ -1274,6 +1274,35 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     bilanz.automatikHinweise.erweitertSchalter = schalter.length;
     bilanz.automatikHinweise.erweitertGesendet = gesendet.filter((n) => n.type === "heatnexus/automatik/einstellen");
   }
+  {
+    // Darunter meldet ein zweiter Schalter die Ergebnisse in der Seitenleiste; ohne Hinweise ist er gesperrt.
+    const vorherKonfig = kreis.konfig;
+    const meldeSchalter = () =>
+      wurzel
+        .querySelectorAll(".automatik-optimierung")
+        .flatMap((bereich) => bereich.querySelectorAll(".automatik-schalter"))
+        .filter((s) => String(s.textContent || "").includes("Ergebnisse in der Seitenleiste melden"));
+    kreis.konfig = { ...vorherKonfig, hinweise: false, hinweise_melden: false };
+    zeigen({ status: "aus" });
+    bilanz.automatikHinweise.meldenOhneHinweise = meldeSchalter().map((s) => s.disabled === true);
+    kreis.konfig = { ...vorherKonfig, hinweise: true, hinweise_melden: false };
+    zeigen({ status: "sammelt", tage: 0, noetig: 7, eintraege: [], fortschritt: {} });
+    const schalter = meldeSchalter();
+    bilanz.automatikHinweise.meldenMitHinweisen = schalter.map((s) => s.disabled === true);
+    const gesendet = [];
+    const vorherAufruf = hass.callWS;
+    hass.callWS = async (nachricht) => {
+      gesendet.push(nachricht);
+      return flaeche._automatik;
+    };
+    if (schalter.length) schalter[0].ausloesen("click");
+    for (let schritt = 0; schritt < 10; schritt += 1) await Promise.resolve();
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+    hass.callWS = vorherAufruf;
+    kreis.konfig = vorherKonfig;
+    bilanz.automatikHinweise.meldenGesendet = gesendet.filter((n) => n.type === "heatnexus/automatik/einstellen");
+  }
   kreis.kennwerte = vorherKennwerte;
 }
 

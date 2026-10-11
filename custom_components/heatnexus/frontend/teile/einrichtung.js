@@ -102,6 +102,13 @@ export const EinrichtungMixin = (Basis) =>
       optimierung.appendChild(
         this._automatikSchalter(this._t("Optimierungshinweise anzeigen"), an, darf, () => this._automatikEinstellen(kreis, { hinweise: !an }))
       );
+      // Die Meldung fasst die Hinweise einmal täglich zusammen; ohne Hinweise gibt es nichts zu melden.
+      const melden = !!kreis.konfig.hinweise_melden;
+      optimierung.appendChild(
+        this._automatikSchalter(this._t("Ergebnisse in der Seitenleiste melden"), melden, darf && an, () =>
+          this._automatikEinstellen(kreis, { hinweise_melden: !melden })
+        )
+      );
       bereich.appendChild(optimierung);
 
       const leiste = document.createElement("div");
