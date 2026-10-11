@@ -349,8 +349,7 @@ class OptimierungMixin:
         Tage aus der Aufzeichnung nachgerechnet.
         """
         self._abmelden.append(async_track_time_change(self.hass, self._parameter_takt, **LESEZEIT))
-        if self.konfig.get("hinweise") and not self.parameter_eingeschaltet:
-            self._parameter_einschalten()
+        self._parameter_einschalten()
         if self.parameter_gelesen != dt_util.now().date().isoformat():
             self._parameter_anstossen()
         if self.archiv_nachgerechnet < NACHRECHNEN_FASSUNG:
@@ -359,12 +358,17 @@ class OptimierungMixin:
             )
 
     def _parameter_einschalten(self) -> None:
-        """Die Kurvenparameter, die HeatNexus deaktiviert anlegt, einmal einschalten; ihr Verlauf zeigt die Hinweise.
+        """Mit Hinweisen die deaktiviert angelegten Kurvenparameter einmal einschalten, sobald sie gelesen sind.
 
-        Was der Nutzer selbst abgeschaltet hat, bleibt aus; Home Assistant lädt den Eintrag danach neu.
+        Nur Parameter mit Wert; was der Nutzer selbst abgeschaltet hat, bleibt aus.
         """
+        stand = optimierer.parameterstand(self.parameter_verlauf)
+        if not self.konfig.get("hinweise") or self.parameter_eingeschaltet or not stand:
+            return
         register = er.async_get(self.hass)
         for adresse in PARAMETER:
+            if _schluessel(adresse) not in stand:
+                continue
             kennung = self._verlaufsentitaet(adresse)
             eintrag = register.async_get(kennung) if kennung else None
             if eintrag is not None and eintrag.disabled_by is er.RegistryEntryDisabler.INTEGRATION:
@@ -407,6 +411,7 @@ class OptimierungMixin:
             if not verlauf or verlauf[-1][1] != wert:
                 verlauf.append([heute, wert])
         self.parameter_gelesen = heute
+        self._parameter_einschalten()
         self._speichern()
 
     # --- Auswertung ----------------------------------------------------------
@@ -435,21 +440,24 @@ class OptimierungMixin:
             "fortschritt": optimierer.fortschritt(tage, self.parameter_verlauf, heute),
             "aufgezeichnet": len(zuletzt),
             "ohne_grundlage": sum(not t.ungestoert for t in zuletzt),
-            "entitaeten": self._ergebnis_entitaeten(),
+            "entitaeten": self._ergebnis_entitaeten(
+                stand := optimierer.parameterstand(self.parameter_verlauf)
+            ),
             "vorlaeufig": [
                 asdict(t) for t in optimierer.tendenzen(tage, self.parameter_verlauf, heute)
             ],
-            "parameter": optimierer.parameterstand(self.parameter_verlauf),
+            "parameter": stand,
         }
 
-    def _ergebnis_entitaeten(self) -> dict[str, str]:
-        """Je Parameter die aktive Entität, deren Verlauf ein Klick zeigt.
+    def _ergebnis_entitaeten(self, stand: dict[str, Any]) -> dict[str, str]:
+        """Je Parameter mit gelesenem Wert die aktive Entität, deren Verlauf ein Klick zeigt.
 
         Der Hinweis zum Raumsollwert bewertet den wirksamen Sollwert; den zeigt das Thermostat, nicht `3/51`.
         """
         kennungen = {
-            _schluessel(a): self._klima_entitaet() if a == "/3/51/0" else self._verlaufsentitaet(a)
+            name: self._klima_entitaet() if name == "3/51" else self._verlaufsentitaet(a)
             for a in PARAMETER
+            if (name := _schluessel(a)) == "3/51" or name in stand
         }
         return {name: k for name, k in kennungen.items() if k and self._aktiv(k)}
 

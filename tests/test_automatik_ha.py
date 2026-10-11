@@ -3363,9 +3363,17 @@ async def test_hinweise_schalten_die_kurvenparameter_einmal_ein(hass, hass_ws_cl
     client = await hass_ws_client(hass)
     await _einrichten(client)
     register = er.async_get(hass)
-    fusspunkt, vorlauf = _entitaeten(hass, [("number", "3-1-0"), ("number", "3-13-0")])
+    fusspunkt, vorlauf, vorhaltezeit = _entitaeten(
+        hass, [("number", "3-1-0"), ("number", "3-13-0"), ("number", "3-6-0")]
+    )
     register.async_update_entity(fusspunkt, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
     register.async_update_entity(vorlauf, disabled_by=er.RegistryEntryDisabler.USER)
+    register.async_update_entity(vorhaltezeit, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
+    # Die Steuerung liefert Fußpunkt und Vorlauf, für die Vorhaltezeit nur „-“.
+    verwaltung.laufzeiten[HEIZKREIS].parameter_verlauf = {
+        "3/1": [["2026-08-01", 45.0]],
+        "3/13": [["2026-08-01", 80.0]],
+    }
 
     antwort = await _senden(
         client,
@@ -3376,8 +3384,9 @@ async def test_hinweise_schalten_die_kurvenparameter_einmal_ein(hass, hass_ws_cl
     assert antwort["success"], antwort
 
     assert register.async_get(fusspunkt).disabled_by is None
-    # Was der Nutzer selbst abgeschaltet hat, bleibt aus.
+    # Was der Nutzer selbst abgeschaltet hat, bleibt aus; ohne gelesenen Wert bleibt die Entität aus.
     assert register.async_get(vorlauf).disabled_by is er.RegistryEntryDisabler.USER
+    assert register.async_get(vorhaltezeit).disabled_by is er.RegistryEntryDisabler.INTEGRATION
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
     assert laufzeit.parameter_eingeschaltet is True
 
@@ -3385,3 +3394,41 @@ async def test_hinweise_schalten_die_kurvenparameter_einmal_ein(hass, hass_ws_cl
     register.async_update_entity(fusspunkt, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
     await laufzeit.neu_starten(laufzeit.konfig)
     assert register.async_get(fusspunkt).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+
+async def test_ohne_gelesene_parameter_wartet_das_einschalten(hass, hass_ws_client, anlage):
+    from homeassistant.helpers import entity_registry as er
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    register = er.async_get(hass)
+    (fusspunkt,) = _entitaeten(hass, [("number", "3-1-0")])
+    register.async_update_entity(fusspunkt, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit.parameter_verlauf = {}
+
+    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, hinweise=True)
+    assert laufzeit.parameter_eingeschaltet is False
+    assert register.async_get(fusspunkt).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+    # Nach dem Lesen der Parameter holt die Optimierung das Einschalten nach.
+    laufzeit.parameter_verlauf = {"3/1": [["2026-08-01", 45.0]]}
+    laufzeit._parameter_einschalten()
+    assert register.async_get(fusspunkt).disabled_by is None
+    assert laufzeit.parameter_eingeschaltet is True
+
+
+async def test_parameter_ohne_wert_werden_nicht_verlinkt(hass, hass_ws_client, anlage):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    await _einrichten(client)
+    fusspunkt, _ = _entitaeten(hass, [("number", "3-1-0"), ("number", "3-6-0")])
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit.parameter_verlauf = {"3/1": [["2026-08-01", 45.0]], "3/6": [["2026-08-01", None]]}
+    await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, hinweise=True)
+
+    entitaeten = (await _kreis(client))["kennwerte"]["hinweise"]["entitaeten"]
+
+    assert entitaeten["3/1"] == fusspunkt
+    assert "3/6" not in entitaeten
