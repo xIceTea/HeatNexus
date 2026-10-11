@@ -1062,10 +1062,15 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     flaeche._zeichnen();
     clearInterval(flaeche._automatikUhr);
     flaeche._automatikUhr = null;
-    const kachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("hinweise"));
+    const kacheln = wurzel.querySelectorAll(".automatik-wert");
+    const kachel = kacheln.find((k) => k.classList.contains("hinweise"));
+    const ergebnis = kacheln.find((k) => k.classList.contains("hinweise-ergebnis"));
+    return { ...lesen(kachel), ergebnis: ergebnis ? lesen(ergebnis) : null };
+  };
+  const lesen = (kachel) => {
     return {
       kachel: Boolean(kachel),
-      titel: text(kachel && kachel.querySelector(".titel").firstChild),
+      titel: kachel ? text(kachel.querySelector(".titel").firstChild) || text(kachel.querySelector(".titel")) : "",
       zahl: text(kachel && kachel.querySelector(".zahl")),
       neben: text(kachel && kachel.querySelector(".neben")),
       fuss: kachel ? kachel.querySelectorAll(".fuss").map(text) : [],

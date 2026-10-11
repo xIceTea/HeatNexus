@@ -68,6 +68,7 @@ export const KennwerteMixin = (Basis) =>
           this._kachelRaeume(kreis),
           this._kachelHaus(kreis),
           this._kachelHinweise(kreis),
+          this._kachelErgebnisse(kreis),
         ].filter(Boolean)
       );
       return raster;
@@ -274,21 +275,16 @@ export const KennwerteMixin = (Basis) =>
     }
 
     /**
-     * Hinweise zu Heizkurve, Sollwert und Zeitprogramm: je Hinweis Titel, Empfehlung und Grundlage.
+     * Fortschritt der Optimierung: gezählte Tage je Hinweisart. Die Ergebnisse stehen in der Kachel daneben.
      * Ohne Angabe vom Server (Schalter aus) fehlt die Kachel.
      */
     _kachelHinweise(kreis) {
       const h = (kreis.kennwerte || {}).hinweise;
       if (!h) return null;
-      const bloecke = (h.eintraege || []).map((eintrag) => this._hinweisBlock(eintrag)).filter(Boolean);
-      let kachel;
-      if (h.status !== "bereit" || !bloecke.length) {
-        kachel = this._kachel("hinweise", "Optimierung", "–", this._t("sammelt Daten"), null, this._hinweisFortschritt(h));
-      } else {
-        const liste = knoten("div", "vorschlaege");
-        liste.append(...bloecke);
-        kachel = this._kachel("hinweise", "Optimierung", String(bloecke.length), this._t("Hinweise"), liste);
-      }
+      const f = h.fortschritt || {};
+      const fertig = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"].every((art) => (f[art] || 0) >= (h.noetig || 0));
+      const beisatz = this._t(fertig ? "ausgewertet" : "sammelt Daten");
+      const kachel = this._kachel("hinweise", "Optimierung", "–", beisatz, null, this._hinweisFortschritt(h));
       const erklaerung = "Hinweise beruhen auf ungestörten Heizstunden seit der letzten Änderung der Heizkurve. Stunden mit einem Eingriff zählen nicht. Die Automatik ändert diese Werte nicht.";
       kachel.querySelector(".titel").appendChild(this._fragezeichen("Optimierung", erklaerung));
       return kachel;
@@ -312,6 +308,45 @@ export const KennwerteMixin = (Basis) =>
         zeilen.push(this._tMit("{tage} Tage aufgezeichnet · {eingriffe} mit Eingriffen", { tage: h.aufgezeichnet, eingriffe: h.ohne_grundlage }));
       }
       return zeilen.map((zeile) => knoten("div", "fuss", zeile));
+    }
+
+    /**
+     * Ergebnisse der Optimierung: je Hinweis die Empfehlung, je fertig ausgewerteter Art ohne Hinweis „passt“.
+     * Ohne Ergebnis fehlt die Kachel.
+     */
+    _kachelErgebnisse(kreis) {
+      const h = (kreis.kennwerte || {}).hinweise;
+      if (!h) return null;
+      const bloecke = (h.eintraege || []).map((eintrag) => this._hinweisBlock(eintrag)).filter(Boolean);
+      const passt = this._hinweisePassen(h).map(([titel, tage]) => this._passtBlock(titel, tage));
+      if (!bloecke.length && !passt.length) return null;
+      const liste = knoten("div", "vorschlaege");
+      liste.append(...bloecke, ...passt);
+      return this._kachel("hinweise-ergebnis", "Ergebnisse der Optimierung", String(bloecke.length), this._t("Hinweise"), liste);
+    }
+
+    /** Arten mit genug Tagen, zu denen kein Hinweis vorliegt, als `[Titel, Tage, Hinweisarten]`. */
+    _hinweisePassen(h) {
+      const f = h.fortschritt || {};
+      const noetig = h.noetig || 0;
+      const arten = new Set((h.eintraege || []).map((eintrag) => eintrag.art));
+      const kurve = ["heizkurve_parallel", "steuerung_passt_an"];
+      return [
+        [this._t("Heizkurve in der Übergangszeit"), f.kurve_uebergang, ["heizkurve_uebergang", ...kurve]],
+        [this._t("Heizkurve bei Frost"), f.kurve_frost, ["heizkurve_frost", ...kurve]],
+        [this._t("Raumsollwert"), f.sollwert, ["sollwert_ausgleich"]],
+        [this._t("Aufheizen am Morgen"), f.morgen, ["morgen_spaet"]],
+      ]
+        .filter(([, tage, eigene]) => noetig > 0 && (tage || 0) >= noetig && !eigene.some((art) => arten.has(art)));
+    }
+
+    /** Eine Art ohne Hinweis: Titel, Marke „passt“, darunter die Zahl der Tage. */
+    _passtBlock(titel, tage) {
+      const block = knoten("div", "vorschlag");
+      const kopf = knoten("div", "kopf");
+      kopf.append(knoten("span", "name", titel), knoten("span", "empfehlung passt", this._t("passt")));
+      block.append(kopf, knoten("div", "angabe", this._tMit("{tage} Tage", { tage })));
+      return block;
     }
 
     /** Ein Hinweis: Titel und Empfehlung als Marke, darunter Abweichung und Grundlage in einer Zeile. */

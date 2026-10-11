@@ -809,7 +809,7 @@ def test_die_kachel_haus_folgt_dem_stand_des_modells(durchlauf):
 
 
 def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
-    """Sammelnd nennt sie den Fortschritt je Art, bereit je Hinweis Titel, Empfehlung und Angaben."""
+    """Die Kachel nennt den Fortschritt je Art, die Kachel daneben Hinweise und fertige Arten ohne Hinweis."""
     hinweise = durchlauf["automatikHinweise"]
     assert hinweise["ohneAngabe"]["kachel"] is False
     sammelt = hinweise["sammelt"]
@@ -828,9 +828,22 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     assert hinweise["ohneEingriffe"]["fuss"][-1] == "Morgen 0/7"
     assert sammelt["fragezeichen"] == 1
     assert sammelt["bloecke"] == []
+    ergebnis = sammelt["ergebnis"]
+    assert (ergebnis["titel"], ergebnis["zahl"], ergebnis["neben"]) == (
+        "Ergebnisse der Optimierung",
+        "0",
+        "Hinweise",
+    )
+    assert ergebnis["bloecke"] == [
+        ["Heizkurve in der Übergangszeit", "passt", "7 Tage"],
+        ["Raumsollwert", "passt", "7 Tage"],
+    ]
+    assert hinweise["ohneTage"]["ergebnis"] is None
     bereit = hinweise["bereit"]
-    assert (bereit["zahl"], bereit["neben"], bereit["fuss"]) == ("7", "Hinweise", [])
-    assert bereit["bloecke"] == [
+    assert (bereit["zahl"], bereit["neben"], len(bereit["fuss"])) == ("–", "ausgewertet", 3)
+    assert bereit["bloecke"] == []
+    assert (bereit["ergebnis"]["zahl"], bereit["ergebnis"]["neben"]) == ("7", "Hinweise")
+    assert bereit["ergebnis"]["bloecke"] == [
         ["Heizkurve", "Keine Empfehlung zur Kurve", "Anpassung durch die Steuerung aktiv"],
         ["Heizkurve bei Frost", "Vorlauf bei Auslegung 80 → 86 °C", "−1,4 K · 18 Tage seit 14.11."],
         ["Heizkurve in der Übergangszeit", "Fußpunkt 45 → 43 °C", "+0,8 K · 9 Tage"],
