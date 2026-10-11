@@ -832,7 +832,7 @@
   "ausgewertet": "evaluated",
   "Ergebnisse der Optimierung": "Optimization results",
   "Aufheizen am Morgen": "Morning heat-up",
-  "passt": "fits",
+  "Keine Änderung nötig": "No change needed",
   "Noch keine Tage aufgezeichnet": "No days recorded yet",
   "{tage} Tage aufgezeichnet · {eingriffe} mit Eingriffen": "{tage} days recorded · {eingriffe} with interventions",
   "Hinweise beruhen auf ungestörten Heizstunden seit der letzten Änderung der Heizkurve. Stunden mit einem Eingriff zählen nicht. Die Automatik ändert diese Werte nicht.": "Suggestions are based on undisturbed heating hours since the last change to the heating curve. Hours with an intervention do not count. The automation does not change these values.",

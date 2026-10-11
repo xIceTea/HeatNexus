@@ -815,8 +815,8 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     sammelt = hinweise["sammelt"]
     assert (sammelt["titel"], sammelt["zahl"], sammelt["neben"]) == (
         "Optimierung",
-        "–",
-        "sammelt Daten",
+        "2/4",
+        "ausgewertet",
     )
     assert sammelt["fuss"] == [
         "Heizkurve: Übergang 7/7 · Frost 2/7",
@@ -835,12 +835,12 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
         "Hinweise",
     )
     assert ergebnis["bloecke"] == [
-        ["Heizkurve in der Übergangszeit", "passt", "7 Tage"],
-        ["Raumsollwert", "passt", "7 Tage"],
+        ["Heizkurve in der Übergangszeit", "Keine Änderung nötig", "7 Tage"],
+        ["Raumsollwert", "Keine Änderung nötig", "7 Tage"],
     ]
     assert hinweise["ohneTage"]["ergebnis"] is None
     bereit = hinweise["bereit"]
-    assert (bereit["zahl"], bereit["neben"], len(bereit["fuss"])) == ("–", "ausgewertet", 3)
+    assert (bereit["zahl"], bereit["neben"], len(bereit["fuss"])) == ("4/4", "ausgewertet", 3)
     assert bereit["bloecke"] == []
     assert (bereit["ergebnis"]["zahl"], bereit["ergebnis"]["neben"]) == ("7", "Hinweise")
     assert bereit["ergebnis"]["bloecke"] == [

@@ -282,9 +282,9 @@ export const KennwerteMixin = (Basis) =>
       const h = (kreis.kennwerte || {}).hinweise;
       if (!h) return null;
       const f = h.fortschritt || {};
-      const fertig = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"].every((art) => (f[art] || 0) >= (h.noetig || 0));
-      const beisatz = this._t(fertig ? "ausgewertet" : "sammelt Daten");
-      const kachel = this._kachel("hinweise", "Optimierung", "–", beisatz, null, this._hinweisFortschritt(h));
+      const arten = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"];
+      const fertig = arten.filter((art) => h.noetig > 0 && (f[art] || 0) >= h.noetig).length;
+      const kachel = this._kachel("hinweise", "Optimierung", `${fertig}/${arten.length}`, this._t("ausgewertet"), null, this._hinweisFortschritt(h));
       const erklaerung = "Hinweise beruhen auf ungestörten Heizstunden seit der letzten Änderung der Heizkurve. Stunden mit einem Eingriff zählen nicht. Die Automatik ändert diese Werte nicht.";
       kachel.querySelector(".titel").appendChild(this._fragezeichen("Optimierung", erklaerung));
       return kachel;
@@ -311,7 +311,7 @@ export const KennwerteMixin = (Basis) =>
     }
 
     /**
-     * Ergebnisse der Optimierung: je Hinweis die Empfehlung, je fertig ausgewerteter Art ohne Hinweis „passt“.
+     * Ergebnisse der Optimierung: je Hinweis die Empfehlung, je fertig ausgewerteter Art ohne Hinweis „Keine Änderung nötig“.
      * Ohne Ergebnis fehlt die Kachel.
      */
     _kachelErgebnisse(kreis) {
@@ -340,11 +340,11 @@ export const KennwerteMixin = (Basis) =>
         .filter(([, tage, eigene]) => noetig > 0 && (tage || 0) >= noetig && !eigene.some((art) => arten.has(art)));
     }
 
-    /** Eine Art ohne Hinweis: Titel, Marke „passt“, darunter die Zahl der Tage. */
+    /** Eine Art ohne Hinweis: Titel, Marke „Keine Änderung nötig“, darunter die Zahl der Tage. */
     _passtBlock(titel, tage) {
       const block = knoten("div", "vorschlag");
       const kopf = knoten("div", "kopf");
-      kopf.append(knoten("span", "name", titel), knoten("span", "empfehlung passt", this._t("passt")));
+      kopf.append(knoten("span", "name", titel), knoten("span", "empfehlung passt", this._t("Keine Änderung nötig")));
       block.append(kopf, knoten("div", "angabe", this._tMit("{tage} Tage", { tage })));
       return block;
     }
