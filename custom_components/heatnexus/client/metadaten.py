@@ -14,7 +14,7 @@ import json
 import logging
 import re as _re
 
-from .. import texte
+from .. import geraete, texte
 from ..const import (
     ADVANCED_LEVELS,
     OID_HARDWAREVERSION,
@@ -34,6 +34,11 @@ _LOGGER = logging.getLogger(__name__)
 def _herstellerprogramm(d: dict) -> bool:
     """Ob der Hersteller die Adresse dieses Datenpunkts als Zeitprogramm führt."""
     return gnmn_aus_oid(d.get("oid")) in get_programme(d.get("fct_type"))
+
+
+def _nur_anzeige(d: dict) -> bool:
+    """Ob die Baureihe die Adresse als Anzeige führt, gleich was `writeProt` meldet."""
+    return gnmn_aus_oid(d.get("oid")) in geraete.NUR_ANZEIGE.get(d.get("fct_type"), ())
 
 
 class MetadatenMixin:
@@ -276,7 +281,7 @@ class MetadatenMixin:
     @staticmethod
     def _resolve_auto_type(d: dict, m: dict) -> str | None:
         """Map an auto-discovered datapoint to a HA platform via metadata."""
-        writable = m.get("writeProt") is False
+        writable = m.get("writeProt") is False and not _nur_anzeige(d)
         value = m.get("value")
         unit = m.get("unit") or ""
         has_enum = bool(m.get("enum")) or bool(get_enum(d.get("enum") or ""))

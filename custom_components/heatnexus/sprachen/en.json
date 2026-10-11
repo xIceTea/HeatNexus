@@ -854,5 +854,6 @@
   "Ladepumpe": "Charge pump",
   "Pumpe": "Pump",
   "Soll": "Setpoint",
-  "Vorlauf Soll": "Flow setpoint"
+  "Vorlauf Soll": "Flow setpoint",
+  "Die Pelletsmenge, die nach dem Befüllen im Lagerraum liegt. Ist sie verbraucht, meldet die Anlage „Lagerraum wird leer“.\n\nWird der Wert nach einer Lieferung eingestellt, beginnt der Befüllgrad des Lagerraums wieder bei 100 %.": "The amount of pellets in the storage room after filling. Once it is used up, the system reports “Storage room running empty”.\n\nSetting the value after a delivery resets the storage room fill level to 100 %."
 }

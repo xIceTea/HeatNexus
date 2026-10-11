@@ -859,5 +859,6 @@
   "Ladepumpe": "Laadpomp",
   "Pumpe": "Pomp",
   "Soll": "Instelwaarde",
-  "Vorlauf Soll": "Aanvoer instelwaarde"
+  "Vorlauf Soll": "Aanvoer instelwaarde",
+  "Die Pelletsmenge, die nach dem Befüllen im Lagerraum liegt. Ist sie verbraucht, meldet die Anlage „Lagerraum wird leer“.\n\nWird der Wert nach einer Lieferung eingestellt, beginnt der Befüllgrad des Lagerraums wieder bei 100 %.": "De hoeveelheid pellets in de brandstofbunker na het vullen. Is die verbruikt, dan meldt de installatie „Brandstofbunker wordt leeg”.\n\nWordt de waarde na een levering ingesteld, dan begint de vulgraad van de brandstofbunker weer bij 100 %."
 }

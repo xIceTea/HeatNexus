@@ -53,6 +53,7 @@ KANNFELDER = (
     "MODELLE_JE_KLASSE",
     "KERNWERTE",
     "RUNDINSTRUMENTE",
+    "NUR_ANZEIGE",
 )
 
 MODULE: tuple[ModuleType, ...] = (
@@ -125,6 +126,11 @@ EXTRA_OIDS: dict[int, tuple[str, ...]] = {m.FCT_TYPE: m.EXTRA_OIDS for m in MODU
 
 # Begriffe, die eine Baureihe nur über den LON-Bus hergibt.
 NUR_BUS: dict[int, tuple[str, ...]] = {m.FCT_TYPE: m.NUR_BUS for m in MODULE if m.NUR_BUS}
+
+# Adressen, die eine Anzeige bleiben, auch wenn die Steuerung sie schreiben lässt.
+NUR_ANZEIGE: dict[int, frozenset[str]] = {
+    m.FCT_TYPE: frozenset(m.NUR_ANZEIGE) for m in MODULE if getattr(m, "NUR_ANZEIGE", None)
+}
 
 # Namen, die erst im Zusammenhang einer Baureihe eindeutig sind.
 NAMEN: dict[int, dict[str, str]] = {m.FCT_TYPE: m.NAMEN for m in MODULE if m.NAMEN}

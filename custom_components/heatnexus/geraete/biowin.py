@@ -47,6 +47,10 @@ NAMEN: dict[str, str] = {
 
 NUR_BUS: tuple[str, ...] = ("Brennkammertemperatur", "Gebläsedrehzahl", "Pelletsvorrat")
 
+# Errechnete Werte, die die Steuerung ohne Schreibschutz meldet. Der Befüllgrad
+# kehrt auf 100 % zurück, wenn der Warnlevel `43/77` gesetzt wird.
+NUR_ANZEIGE: tuple[str, ...] = ("43/42", "43/78")
+
 # Jeder Eintrag ist doppelt belegt: über die `overview`-Ebene des Herstellers
 # und über ein öffentliches BioWIN-II-Projekt an einer laufenden Anlage. Die
 # Wartungszähler liegen anders als beim PuroWIN (20/61..63 statt 39/91..93).

@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from . import kanonisch, verwaiste
+from . import geraete, kanonisch, verwaiste
 from .client import WindhagerHttpClient
 from .const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
 from .erkennungsstand import laufzeitdaten
@@ -76,7 +76,11 @@ def quelle_abgeschaltet(unique_id: str | None, umfaenge: dict[str, dict]) -> boo
 
 # Was HeatNexus selbst aus dem Umfang genommen hat, je Domäne und Adresse. Verwaist ist das
 # keine Lücke der Anlage, sondern eine Entscheidung: Es wird gelöscht, nicht stillgelegt.
-BEWUSST_ENTFALLEN: frozenset[tuple[str, str]] = frozenset({("select", "9/75"), ("select", "39/94")})
+# Ein Eingabefeld auf einer Adresse, die nur Anzeige ist, gehört dazu.
+BEWUSST_ENTFALLEN: frozenset[tuple[str, str]] = frozenset(
+    {("select", "9/75"), ("select", "39/94")}
+    | {("number", adresse) for adressen in geraete.NUR_ANZEIGE.values() for adresse in adressen}
+)
 
 
 def endgueltig_weg(eintrag: er.RegistryEntry, umfaenge: dict[str, dict]) -> bool:
