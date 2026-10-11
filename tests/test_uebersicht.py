@@ -259,6 +259,43 @@ def test_warmwasser_mit_eigenem_titel(uebersicht):
     ]
 
 
+def _ohne_wert(teil: dict) -> dict:
+    return {**teil, "entitaeten": [{**e, "hat_wert": False} for e in teil["entitaeten"]]}
+
+
+def test_kessel_ohne_aktuelle_werte_behaelt_seine_karte(uebersicht):
+    anlage = _anlage(_ohne_wert(_kessel()))
+    karten = _abschnitt(uebersicht.uebersicht([anlage], True, []), "Kesselhaus")
+    [leitwert] = [k for k in karten if k["type"] == "custom:heatnexus-leitwert"]
+    assert (leitwert["zustand"], leitwert["gross"]) == ("sensor.k_phase", "sensor.k_ist")
+
+
+def test_puffer_mit_unbekanntem_oberem_fuehler_behaelt_seine_karte(uebersicht):
+    puffer = _puffer()
+    puffer["entitaeten"][0]["hat_wert"] = False
+    karten = _abschnitt(uebersicht.uebersicht([_anlage(puffer)], True, []), "Kesselhaus")
+    [karte] = [k for k in karten if k["type"] == "custom:heatnexus-puffer"]
+    assert (karte["oben"], karte["unten"]) == ("sensor.puffer_oben", "sensor.puffer_unten")
+
+
+def test_warmwasser_ohne_aktuelle_werte_behaelt_seine_karte(uebersicht):
+    anlage = _anlage(_ohne_wert(_warmwasser()))
+    karten = _abschnitt(uebersicht.uebersicht([anlage], True, []), "Kesselhaus")
+    [wasser] = [k for k in karten if k.get("titel") == "Speicher"]
+    assert [w["entity"] for w in wasser["werte"]] == ["sensor.ww_ist"]
+
+
+def test_unter_gleichen_schluesseln_gewinnt_die_entitaet_mit_wert():
+    from custom_components.heatnexus.dashboard import kacheln
+
+    leer = _e("sensor.alt", "Alt", schluessel="boiler_temperature", hat_wert=False)
+    voll = _e("sensor.neu", "Neu", schluessel="boiler_temperature")
+    teil = {"entitaeten": [leer, voll]}
+    assert kacheln.entitaeten_je_schluessel(teil)["boiler_temperature"] is voll
+    teil = {"entitaeten": [leer, {**voll, "hat_wert": False}]}
+    assert kacheln.entitaeten_je_schluessel(teil)["boiler_temperature"] is leer
+
+
 # ---------------------------------------------------------------------------
 # Kopfzeile
 # ---------------------------------------------------------------------------
@@ -294,6 +331,11 @@ def test_badges_der_uebersicht(badges):
             "state": ["Fehler Vorratsbehälter", "Vorratsbehälter leer"],
         }
     ]
+
+
+def test_phase_ohne_aktuellen_wert_bleibt_in_der_kopfzeile(badges):
+    liste = badges.uebersicht_anlagenbadges([_anlage(_ohne_wert(_kessel()))])
+    assert [b["entity"] for b in liste if b.get("icon") == "mdi:fire"] == ["sensor.k_phase"]
 
 
 def test_vorrat_ohne_auswahltexte_bleibt_ohne_badge(badges):

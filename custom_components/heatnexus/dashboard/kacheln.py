@@ -62,25 +62,39 @@ PUFFER_FUEHLER = (("oben", "buffer_top", "Oben"), ("mitte", "buffer_middle", "Mi
 PUFFER_UNTEN = ("unten", "buffer_bottom", "Unten")
 
 
-def werte_je_schluessel(teil: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    """Je kanonischem Schlüssel die erste Entität, die gerade einen Wert hat."""
+def entitaeten_je_schluessel(teil: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Je kanonischem Schlüssel eine Entität, auch ohne aktuellen Wert.
+
+    Unter gleichen Schlüsseln gewinnt die erste mit Wert, sonst die erste.
+    """
     gefunden: dict[str, dict[str, Any]] = {}
     for e in teil["entitaeten"]:
-        if (schluessel := e.get("schluessel")) and e["hat_wert"]:
-            gefunden.setdefault(schluessel, e)
+        if not (schluessel := e.get("schluessel")):
+            continue
+        bisher = gefunden.get(schluessel)
+        if bisher is None or (e["hat_wert"] and not bisher["hat_wert"]):
+            gefunden[schluessel] = e
     return gefunden
 
 
+def werte_je_schluessel(teil: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Je kanonischem Schlüssel die erste Entität, die gerade einen Wert hat."""
+    return {s: e for s, e in entitaeten_je_schluessel(teil).items() if e["hat_wert"]}
+
+
 def rolle(teil: dict[str, Any]) -> str | None:
-    """Was ein Anlagenteil in der Übersicht ist, oder nichts."""
-    werte = werte_je_schluessel(teil)
-    if "operating_phase" in werte and "boiler_temperature" in werte:
+    """Was ein Anlagenteil in der Übersicht ist, oder nichts.
+
+    Es zählt, welche Schlüssel der Teil hat, nicht ihr Wert: Nach einem Neustart fehlt er kurz.
+    """
+    alle = entitaeten_je_schluessel(teil)
+    if "operating_phase" in alle and "boiler_temperature" in alle:
         return KESSEL
-    if "buffer_top" in werte:
+    if "buffer_top" in alle:
         return PUFFERSPEICHER
     if auswahl.thermostate(teil):
         return HEIZKREIS
-    if "dhw_temperature" in werte:
+    if "dhw_temperature" in alle:
         return WARMWASSER
     return None
 
@@ -112,12 +126,13 @@ def _kennwerte(
 
 
 def _kessel(teil: dict[str, Any], werte: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
-    phase = werte["operating_phase"]
+    alle = entitaeten_je_schluessel(teil)
+    phase = alle["operating_phase"]
     leitwert = {
         "type": LEITWERT,
         "ueberschrift": teil["name"],
         "zustand": phase["entity_id"],
-        "gross": werte["boiler_temperature"]["entity_id"],
+        "gross": alle["boiler_temperature"]["entity_id"],
         "gross_name": "Kessel",
         "akzent": AKZENT,
         "aktiv": _laufphasen(phase),
@@ -133,6 +148,8 @@ def _kessel(teil: dict[str, Any], werte: dict[str, dict[str, Any]]) -> list[dict
 
 def _puffer(teil: dict[str, Any], werte: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     karte: dict[str, Any] = {"type": PUFFER, "titel": teil["name"]}
+    # Der obere Fühler macht den Puffer aus; die Karte zeigt ihn auch ohne Wert.
+    werte = {"buffer_top": entitaeten_je_schluessel(teil)["buffer_top"], **werte}
     for feld, schluessel, name in (*PUFFER_FUEHLER, PUFFER_UNTEN):
         e = werte.get(schluessel)
         karte |= {feld: e["entity_id"] if e else None, f"name_{feld}": name}
@@ -155,7 +172,10 @@ def _heizkreis(teil: dict[str, Any], werte: dict[str, dict[str, Any]]) -> list[d
 
 
 def teilkarten(teil: dict[str, Any]) -> list[dict[str, Any]]:
-    """Die Karten eines Anlagenteils nach seiner Rolle; ohne Rolle keine."""
+    """Die Karten eines Anlagenteils nach seiner Rolle; ohne Rolle keine.
+
+    Nebenwerte ohne Wert entfallen, denn ein fehlender Fühler meldet dauerhaft keinen.
+    """
     werte = werte_je_schluessel(teil)
     art = rolle(teil)
     if art == KESSEL:
@@ -165,6 +185,7 @@ def teilkarten(teil: dict[str, Any]) -> list[dict[str, Any]]:
     if art == HEIZKREIS:
         return _heizkreis(teil, werte)
     if art == WARMWASSER:
+        werte = {"dhw_temperature": entitaeten_je_schluessel(teil)["dhw_temperature"], **werte}
         return _kennwerte(werte, WARMWASSER_WERTE, titel=teil["name"])
     return []
 

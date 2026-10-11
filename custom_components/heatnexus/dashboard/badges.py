@@ -16,7 +16,7 @@ from ..texte import Woerterbuch, woerterbuch
 from . import auswahl
 from .anlagen import gewaehlte_aussentemperatur
 from .kacheln import KESSEL as KESSELROLLE
-from .kacheln import rolle
+from .kacheln import entitaeten_je_schluessel, rolle
 from .muster import WARTUNG_HINWEIS_STUNDEN, WARTUNG_KURZNAMEN
 
 # Namen der Kennwert-Badges; bei mehreren Kesseln einer Anlage steht der Name des Teils.
@@ -119,7 +119,7 @@ def _phasen(anlage: dict[str, Any], uebersetze: Callable[[str], str]) -> list[di
     return [
         badge(e["entity_id"], f"{name} · {teil['name']}" if len(kessel) > 1 else name) | PHASE
         for teil in kessel
-        if (e := _mit_wert(teil, "operating_phase"))
+        if (e := entitaeten_je_schluessel(teil).get("operating_phase"))
     ]
 
 
