@@ -46,31 +46,8 @@ function vorhanden(wert) {
   return wert !== null && wert !== undefined && !Number.isNaN(Number(wert));
 }
 
-/** Parameterwert ohne überflüssige Nachkommastelle, negativ mit echtem Minus. */
-function parameterwert(wert) {
-  return zahl(wert, Number.isInteger(Number(wert)) ? 0 : 1).replace("-", "−");
-}
-
-/** Name und Einheit der Kurvenparameter, wie Empfehlung und Ergebniszeile sie nennen. */
-const PARAMETERNAMEN = {
-  "3/13": ["Vorlauf bei Auslegung", "°C"],
-  "3/1": ["Fußpunkt", "°C"],
-  "3/58": ["Behaglichkeit", "K"],
-  "3/6": ["Vorhaltezeit", "min"],
-  "3/51": ["Raumsollwert", "°C"],
-};
-
-/** Hinweise zur Kurve ohne eigenen Parameter öffnen die Behaglichkeit. */
-const KURVE_OHNE_PARAMETER = { kurvenform: "3/58" };
-
 /** Ausgewertete Arten, wenn der Server keine `arten` nennt: Kurve in zwei Bändern. */
 const STANDARD_ARTEN = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"];
-
-/** ISO-Datum als „14.11.“. */
-function tagMonat(datum) {
-  const teile = String(datum || "").split("-");
-  return teile.length === 3 ? `${teile[2]}.${teile[1]}.` : null;
-}
 
 export const KennwerteMixin = (Basis) =>
   class extends Basis {
@@ -353,7 +330,7 @@ export const KennwerteMixin = (Basis) =>
       const bloecke = (h.eintraege || [])
         .map((eintrag) => {
           const block = this._hinweisBlock(eintrag);
-          return block && this._klickbar(block, entitaeten[eintrag.parameter || KURVE_OHNE_PARAMETER[eintrag.art]]);
+          return block && this._klickbar(block, eintrag.entity);
         })
         .filter(Boolean);
       const arten = new Map(this._optimierungsArten(h).map((art) => [art[0], art]));
@@ -430,14 +407,8 @@ export const KennwerteMixin = (Basis) =>
 
     /** Hängt „Fußpunkt 45 °C seit 20.09.“ an: den Kurvenparameter der Art, wie ihn die Optimierung zuletzt las. */
     _mitParameter(block, h, parameter) {
-      // Der Raumsollwert-Hinweis bewertet den wirksamen Sollwert aus dem Programm, nicht `3/51`.
-      const name = parameter !== "3/51" && PARAMETERNAMEN[parameter];
       const stand = (h.parameter || {})[parameter];
-      if (!block || !name || !stand || !vorhanden(stand.wert)) return block;
-      const werte = { parameter: this._t(name[0]), wert: parameterwert(stand.wert), einheit: name[1] };
-      const seit = tagMonat(stand.seit);
-      const zeile = seit ? this._tMit("{parameter} {wert} {einheit} seit {seit}", { ...werte, seit }) : this._tMit("{parameter} {wert} {einheit}", werte);
-      block.appendChild(knoten("div", "angabe", zeile));
+      if (block && stand && stand.zeile) block.appendChild(knoten("div", "angabe", stand.zeile));
       return block;
     }
 
@@ -446,68 +417,11 @@ export const KennwerteMixin = (Basis) =>
       return this._ergebnisBlock(titel, "empfehlung passt", this._t("Keine Änderung nötig"), this._tMit("{tage} Tage", { tage }));
     }
 
-    /** Ein Hinweis: Titel und Empfehlung als Marke, darunter Abweichung und Grundlage in einer Zeile. */
+    /** Ein Hinweis: Titel und Empfehlung als Marke, darunter die Angaben; die Texte baut der Server. */
     _hinweisBlock(eintrag) {
-      const titel = {
-        heizkurve_frost: this._t("Heizkurve bei Frost"),
-        heizkurve_uebergang: this._t("Heizkurve in der Übergangszeit"),
-        heizkurve_parallel: this._t("Heizkurve"),
-        sollwert_ausgleich: this._t("Raumsollwert"),
-        morgen_spaet: this._t("Morgens zu spät warm"),
-        morgen_frueh: this._t("Morgens schon warm"),
-        steuerung_passt_an: this._t("Heizkurve"),
-        kurvenform: this._t("Heizkurve"),
-      }[eintrag.art];
-      if (!titel) return null;
-      return this._ergebnisBlock(titel, "empfehlung", this._hinweisEmpfehlung(eintrag), this._hinweisAngaben(eintrag).join(" · "));
-    }
-
-    _hinweisAngaben(eintrag) {
-      if (eintrag.art === "steuerung_passt_an") return [this._t("Anpassung durch die Steuerung aktiv")];
-      const angaben = [];
-      if (eintrag.art === "sollwert_ausgleich") angaben.push(this._tMit("Sollwert {wert} °C", { wert: zahl(eintrag.von) }));
-      else if (eintrag.art === "kurvenform") {
-        angaben.push(this._tMit("Übergang {uebergang} · Frost {frost}", { uebergang: kelvin(eintrag.abweichung), frost: kelvin(eintrag.frost) }));
-      } else if (vorhanden(eintrag.abweichung)) angaben.push(kelvin(eintrag.abweichung));
-      if (vorhanden(eintrag.minuten)) angaben.push(this._tMit("Ziel nach {minuten} min", { minuten: eintrag.minuten }));
-      const seit = tagMonat(eintrag.seit);
-      angaben.push(
-        seit
-          ? this._tMit("{tage} Tage seit {seit}", { tage: eintrag.tage, seit })
-          : this._tMit("{tage} Tage", { tage: eintrag.tage })
-      );
-      return angaben;
-    }
-
-    /** „Fußpunkt 45 → 43 °C“; ohne Zielwert keine Marke. */
-    _hinweisEmpfehlung(eintrag) {
-      if (eintrag.art === "steuerung_passt_an") return this._t("Keine Empfehlung zur Kurve");
-      if (eintrag.art === "sollwert_ausgleich") return this._t("Heizkurve anpassen statt Sollwert");
-      if (eintrag.art === "morgen_frueh") return this._morgenFruehEmpfehlung(eintrag);
-      // Beide Bänder liegen gegenläufig daneben; eine Parallelverschiebung hilft dann nicht.
-      if (eintrag.art === "kurvenform") return this._t("Kurvenform prüfen");
-      // Die Behaglichkeit steht schon am Rand ihres Bereichs; weiter verstellen lässt sie sich nicht.
-      if (eintrag.art === "heizkurve_parallel" && eintrag.anschlag) return this._t("Behaglichkeit am Anschlag");
-      // Ohne einstellbaren Parameter nennt der Hinweis nur die Richtung; zu kühl heißt anheben.
-      if (eintrag.art === "heizkurve_parallel" && !eintrag.parameter && vorhanden(eintrag.abweichung)) {
-        return Number(eintrag.abweichung) < 0 ? this._t("Heizkurve anheben") : this._t("Heizkurve absenken");
-      }
-      if (eintrag.parameter === "zeitprogramm" && vorhanden(eintrag.nach)) {
-        return this._tMit("Programmstart {minuten} min früher", { minuten: parameterwert(eintrag.nach) });
-      }
-      if (!vorhanden(eintrag.von) || !vorhanden(eintrag.nach)) return null;
-      const name = PARAMETERNAMEN[eintrag.parameter];
-      const parameter = name ? this._t(name[0]) : eintrag.parameter || "";
-      const werte = { parameter, von: parameterwert(eintrag.von), nach: parameterwert(eintrag.nach), einheit: eintrag.einheit || "" };
-      return this._tMit("{parameter} {von} → {nach} {einheit}", werte).trim();
-    }
-
-    /** Raum schon zu Programmbeginn warm: kürzere Vorhaltezeit, ohne sie die Absenkung davor. Kein Zielwert. */
-    _morgenFruehEmpfehlung(eintrag) {
-      if (eintrag.parameter === "3/6" && vorhanden(eintrag.von)) {
-        return this._tMit("Vorhaltezeit {von} min kürzer möglich", { von: parameterwert(eintrag.von) });
-      }
-      return this._t("Absenkung vor Programmbeginn wirkt kaum");
+      const text = eintrag.text;
+      if (!text || !text.titel) return null;
+      return this._ergebnisBlock(text.titel, "empfehlung", text.empfehlung, (text.angaben || []).join(" · "));
     }
 
     /** Eine Zeile je Raum: Name, Ist → Ziel, ob er heizt. */

@@ -13,34 +13,26 @@ import logging
 import math
 from typing import Any, NamedTuple
 
-from homeassistant.components import persistent_notification
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from ..const import DOMAIN, PANEL_URL
+from ..const import DOMAIN
 from ..helpers import enum_texte
 from ..texte import DEZIMALPUNKT, woerterbuch
-from . import eingaben, ergebnistext, nachladen, nachrechnen, optimierer, regel
+from . import eingaben, ergebnistext, nachladen, nachrechnen, optimierer, regel, seitenleiste
+from .stellgroessen import TABELLE
 from .vorausschau import LERNTAGE
 
 _LOGGER = logging.getLogger(__name__)
 ARCHIV_TAGE = 150
-# Heizkurve, Behaglichkeit, Vorhaltezeit, Raumsollwert und die eigene Anpassung der Steuerung.
 BEHAGLICHKEIT = "/3/58/0"
-PARAMETER = (
-    "/3/1/0",
-    "/3/12/0",
-    "/3/13/0",
-    "/3/7/0",
-    BEHAGLICHKEIT,
-    "/3/6/0",
-    "/3/51/0",
-    "/3/101/0",
-)
-# Der Heizkreistyp wird mit den Parametern gelesen, hat aber keine Entität in der Kachel.
 HEIZKREISTYP = "/7/76/0"
-GELESEN = (*PARAMETER, HEIZKREISTYP)
+# Alle Parameter der Tabelle werden gelesen; die Kachel zeigt die mit eigener Entität.
+GELESEN = tuple(f"/{name}/0" for name in TABELLE)
+PARAMETER = tuple(f"/{name}/0" for name, g in TABELLE.items() if g.kachel)
+# Hinweise ohne eigenen Parameter öffnen die Behaglichkeit.
+VERWEIS = {"kurvenform": "3/58"}
 LESEZEIT = {"hour": 0, "minute": 40, "second": 0}
 # Raumsoll, Vorlauf-Soll und -Ist, Betriebsart und Restzeit: was `_stundenfelder` live liest.
 VORLAUF_IST = "/0/2/0"
@@ -508,25 +500,32 @@ class OptimierungMixin:
         a = optimierer.auswerten(tage, self.parameter_verlauf, heute, kreis=self._heizkreis())
         zuletzt = _letzte_tage(tage, heute)
         stand = optimierer.parameterstand(self.parameter_verlauf)
+        entitaeten = self._ergebnis_entitaeten(stand)
+        w = woerterbuch(self.hass)
+        punkt = w.sprache in DEZIMALPUNKT
+        eintraege = [
+            {
+                **asdict(h),
+                "text": ergebnistext.texte(h, w, punkt),
+                "entity": entitaeten.get(h.parameter or VERWEIS.get(h.art, "")),
+            }
+            for h in a.hinweise
+        ]
         return {
             "status": "bereit" if a.hinweise else "sammelt",
             "tage": a.grundlage,
             "noetig": optimierer.MIN_TAGE,
-            "eintraege": [asdict(h) for h in a.hinweise],
+            "eintraege": eintraege,
             "fortschritt": a.fortschritt,
             "aufgezeichnet": len(zuletzt),
             "ohne_grundlage": sum(not t.ungestoert for t in zuletzt),
-            "entitaeten": self._ergebnis_entitaeten(stand),
+            "entitaeten": entitaeten,
             "vorlaeufig": [asdict(t) for t in a.tendenzen],
-            "parameter": stand,
+            "parameter": ergebnistext.parameterstand(stand, w, punkt),
             "arten": a.arten,
         }
 
     # --- Seitenleiste --------------------------------------------------------
-    @property
-    def _optimierungsmeldung(self) -> str:
-        return f"{DOMAIN}_optimierung_{self.device_id}"
-
     def optimierung_melden(self) -> None:
         """Die Hinweise in der Seitenleiste; ohne Hinweis oder mit ausgeschaltetem Schalter keine."""
         w = woerterbuch(self.hass)
@@ -537,27 +536,25 @@ class OptimierungMixin:
         if text is None:
             self.optimierung_entfernen()
             return
-        verweis = f"[{w('Im Reiter Automatik ansehen')}](/{PANEL_URL})"
-        persistent_notification.async_create(
-            self.hass,
-            f"{text}\n\n{verweis}",
-            title=f"{w('Optimierung')} – {self.bezeichnung}",
-            notification_id=self._optimierungsmeldung,
-        )
+        titel = f"{w('Optimierung')} – {self.bezeichnung}"
+        verweis = w("Im Reiter Automatik ansehen")
+        seitenleiste.melden(self.hass, "optimierung", self.device_id, titel, text, verweis)
 
     def optimierung_entfernen(self) -> None:
-        persistent_notification.async_dismiss(self.hass, self._optimierungsmeldung)
+        seitenleiste.entfernen(self.hass, "optimierung", self.device_id)
 
     def _ergebnis_entitaeten(self, stand: dict[str, Any]) -> dict[str, str]:
         """Je Parameter mit gelesenem Wert die aktive Entität, deren Verlauf ein Klick zeigt.
 
-        Der Hinweis zum Raumsollwert bewertet den wirksamen Sollwert; den zeigt das Thermostat, nicht `3/51`.
+        Ein Parameter mit Bezug `klima` zeigt das Thermostat, das den wirksamen Sollwert führt.
         """
-        kennungen = {
-            name: self._klima_entitaet() if name == "3/51" else self._verlaufsentitaet(a)
-            for a in PARAMETER
-            if (name := _schluessel(a)) == "3/51" or name in stand
-        }
+        kennungen = {}
+        for adresse in PARAMETER:
+            name = _schluessel(adresse)
+            if TABELLE[name].bezug == "klima":
+                kennungen[name] = self._klima_entitaet()
+            elif name in stand:
+                kennungen[name] = self._verlaufsentitaet(adresse)
         return {name: k for name, k in kennungen.items() if k and self._aktiv(k)}
 
     def _aktiv(self, entity_id: str) -> bool:

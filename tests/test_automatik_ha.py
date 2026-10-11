@@ -3126,6 +3126,13 @@ async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, 
             "minuten": None,
             "anschlag": False,
             "frost": None,
+            # Die Texte baut der Server in der Sprache der Oberfläche.
+            "text": {
+                "titel": "Heating curve in frost",
+                "empfehlung": "Design flow temperature 80 → 82 °C",
+                "angaben": ["−1.4 K", "8 days"],
+            },
+            "entity": None,
         }
     ]
 
@@ -3365,7 +3372,9 @@ async def test_kachel_zaehlt_aufgezeichnete_tage_und_eingriffe(
     # Eine deaktivierte Entität zeigt keinen Verlauf; ihre Zeile nennt den Wert selbst.
     # Der Raumsollwert öffnet das Thermostat: Es zeigt den wirksamen Sollwert, `3/51` nicht.
     assert hinweise["entitaeten"] == {"3/51": thermostat}
-    assert hinweise["parameter"] == {"3/1": {"wert": 44.0, "seit": "2026-09-20"}}
+    assert hinweise["parameter"] == {
+        "3/1": {"wert": 44.0, "seit": "2026-09-20", "zeile": "Base point 44 °C since 20.09."}
+    }
 
 
 async def test_diagnose_enthaelt_den_optimierer(hass, anlage, freezer):

@@ -13,7 +13,6 @@ from datetime import date, datetime, time, timedelta
 import logging
 from typing import Any
 
-from homeassistant.components import persistent_notification
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
@@ -26,11 +25,21 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from ..const import DOMAIN, PANEL_URL
+from ..const import DOMAIN
 from ..helpers import get_oid_value
 from ..registrierung import geraetename
 from ..texte import woerterbuch
-from . import eingaben, hausmodell, korrektur, nachladen, profile, regel, stundenmodus, tagesansicht
+from . import (
+    eingaben,
+    hausmodell,
+    korrektur,
+    nachladen,
+    profile,
+    regel,
+    seitenleiste,
+    stundenmodus,
+    tagesansicht,
+)
 from .optimierung import OptimierungMixin
 from .quellen import QuellenMixin, ortszeit
 from .steller import Stand, Steller, braucht_bestaetigung, nur_ww_wert
@@ -502,21 +511,16 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         if stand == self._gemeldet:
             return
         w = woerterbuch(self.hass)
-        verweis = f"[{w('Im Reiter Automatik übernehmen oder verwerfen')}](/{PANEL_URL})"
-        persistent_notification.async_create(
-            self.hass,
-            f"{w.satz(empfehlung['begruendung'])}\n\n{verweis}",
-            title=f"{w('Empfehlung der Automatik')} – {self.bezeichnung}",
-            notification_id=f"{DOMAIN}_empfehlung_{self.device_id}",
-        )
+        titel = f"{w('Empfehlung der Automatik')} – {self.bezeichnung}"
+        text = w.satz(empfehlung["begruendung"])
+        verweis = w("Im Reiter Automatik übernehmen oder verwerfen")
+        seitenleiste.melden(self.hass, "empfehlung", self.device_id, titel, text, verweis)
         self._gemeldet = stand
 
     def meldung_entfernen(self) -> None:
         """Die Benachrichtigung zur Empfehlung aus der Seitenleiste nehmen."""
         if self._gemeldet is not None:
-            persistent_notification.async_dismiss(
-                self.hass, f"{DOMAIN}_empfehlung_{self.device_id}"
-            )
+            seitenleiste.entfernen(self.hass, "empfehlung", self.device_id)
             self._gemeldet = None
 
     def _heute_verworfen(self, jetzt: datetime) -> list[str]:

@@ -1116,7 +1116,11 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       aufgezeichnet: 6,
       ohne_grundlage: 1,
       entitaeten: { "3/1": "number.fusspunkt" },
-      parameter: { "3/1": { wert: 45, seit: "2026-09-20" }, "3/13": { wert: 80, seit: null }, "3/51": { wert: 11.5, seit: null } },
+      parameter: {
+        "3/1": { wert: 45, seit: "2026-09-20", zeile: "Fußpunkt 45 °C seit 20.09." },
+        "3/13": { wert: 80, seit: null, zeile: "Vorlauf bei Auslegung 80 °C" },
+        "3/51": { wert: 11.5, seit: null },
+      },
       vorlaeufig: [
         { art: "kurve_uebergang", tage: 4, richtung: "kalt", wert: -0.7 },
         { art: "sollwert", tage: 5, richtung: "unauffaellig", wert: 21 },
@@ -1132,13 +1136,13 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       noetig: 7,
       fortschritt: { kurve_frost: 18, kurve_uebergang: 9, sollwert: 21, morgen: 12 },
       eintraege: [
-        { art: "steuerung_passt_an", tage: 23, seit: null },
-        { art: "heizkurve_frost", tage: 18, seit: "2026-11-14", abweichung: -1.4, parameter: "3/13", von: 80, nach: 86, einheit: "°C" },
-        { art: "heizkurve_uebergang", tage: 9, seit: null, abweichung: 0.8, parameter: "3/1", von: 45, nach: 43, einheit: "°C" },
-        { art: "heizkurve_parallel", tage: 20, seit: "2026-11-14", abweichung: 0.9, parameter: "3/58", von: 0, nach: -1, einheit: "K" },
-        { art: "sollwert_ausgleich", tage: 21, seit: null, parameter: "3/51", von: 23, nach: null },
-        { art: "morgen_spaet", tage: 12, seit: null, parameter: "3/6", von: 60, nach: 135, einheit: "min", minuten: 95 },
-        { art: "morgen_spaet", tage: 8, seit: null, parameter: "zeitprogramm", von: null, nach: 90, einheit: "min", minuten: 95 },
+        { art: "steuerung_passt_an", tage: 23, seit: null, text: { titel: "Heizkurve", empfehlung: "Keine Empfehlung zur Kurve", angaben: ["Anpassung durch die Steuerung aktiv"] } },
+        { art: "heizkurve_frost", tage: 18, seit: "2026-11-14", entity: "number.vorlauf_auslegung", text: { titel: "Heizkurve bei Frost", empfehlung: "Vorlauf bei Auslegung 80 → 86 °C", angaben: ["−1,4 K", "18 Tage seit 14.11."] } },
+        { art: "heizkurve_uebergang", tage: 9, seit: null, entity: "number.fusspunkt", text: { titel: "Heizkurve in der Übergangszeit", empfehlung: "Fußpunkt 45 → 43 °C", angaben: ["+0,8 K", "9 Tage"] } },
+        { art: "heizkurve_parallel", tage: 20, seit: "2026-11-14", entity: "number.behaglichkeit", text: { titel: "Heizkurve", empfehlung: "Behaglichkeit 0 → −1 K", angaben: ["+0,9 K", "20 Tage seit 14.11."] } },
+        { art: "sollwert_ausgleich", tage: 21, seit: null, text: { titel: "Raumsollwert", empfehlung: "Heizkurve anpassen statt Sollwert", angaben: ["Sollwert 23,0 °C", "21 Tage"] } },
+        { art: "morgen_spaet", tage: 12, seit: null, text: { titel: "Morgens zu spät warm", empfehlung: "Vorhaltezeit 60 → 135 min", angaben: ["Ziel nach 95 min", "12 Tage"] } },
+        { art: "morgen_spaet", tage: 8, seit: null, text: { titel: "Morgens zu spät warm", empfehlung: "Programmstart 90 min früher", angaben: ["Ziel nach 95 min", "8 Tage"] } },
       ],
     }),
     // Ohne Kurvenpunkte wertet der Server die Kurve als Ganzes aus.
@@ -1149,13 +1153,13 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       tage: 12,
       noetig: 7,
       fortschritt: { kurve_uebergang: 0, kurve_frost: 0, kurve: 9, sollwert: 3, morgen: 8 },
-      parameter: { "3/58": { wert: 0, seit: null } },
+      parameter: { "3/58": { wert: 0, seit: null, zeile: "Behaglichkeit 0 K" } },
       eintraege: [
-        { art: "heizkurve_parallel", tage: 9, seit: null, abweichung: -0.8, parameter: "3/58", von: 0, nach: 1, einheit: "K" },
-        { art: "heizkurve_parallel", tage: 9, seit: null, abweichung: -0.8, parameter: null, von: null, nach: null },
-        { art: "heizkurve_parallel", tage: 9, seit: null, abweichung: 0.6, parameter: null, von: null, nach: null },
-        { art: "morgen_frueh", tage: 8, seit: null, parameter: "3/6", von: 90, nach: null, einheit: "min", minuten: 0 },
-        { art: "morgen_frueh", tage: 8, seit: null, parameter: "zeitprogramm", von: null, nach: null, minuten: 0 },
+        { art: "heizkurve_parallel", tage: 9, seit: null, entity: "number.behaglichkeit", text: { titel: "Heizkurve", empfehlung: "Behaglichkeit 0 → 1 K", angaben: ["−0,8 K", "9 Tage"] } },
+        { art: "heizkurve_parallel", tage: 9, seit: null, text: { titel: "Heizkurve", empfehlung: "Heizkurve anheben", angaben: ["−0,8 K", "9 Tage"] } },
+        { art: "heizkurve_parallel", tage: 9, seit: null, text: { titel: "Heizkurve", empfehlung: "Heizkurve absenken", angaben: ["+0,6 K", "9 Tage"] } },
+        { art: "morgen_frueh", tage: 8, seit: null, entity: "number.vorhaltezeit", text: { titel: "Morgens schon warm", empfehlung: "Vorhaltezeit 90 min kürzer möglich", angaben: ["Ziel nach 0 min", "8 Tage"] } },
+        { art: "morgen_frueh", tage: 8, seit: null, text: { titel: "Morgens schon warm", empfehlung: "Absenkung vor Programmbeginn wirkt kaum", angaben: ["Ziel nach 0 min", "8 Tage"] } },
       ],
       vorlaeufig: [
         { art: "sollwert", tage: 3, richtung: "unauffaellig", wert: 21 },
@@ -1169,7 +1173,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       noetig: 7,
       eintraege: [],
       fortschritt: { kurve: 5, sollwert: 0, morgen: 4 },
-      parameter: { "3/58": { wert: 1, seit: "2026-09-20" } },
+      parameter: { "3/58": { wert: 1, seit: "2026-09-20", zeile: "Behaglichkeit 1 K seit 20.09." } },
       vorlaeufig: [
         { art: "kurve", tage: 5, richtung: "warm", wert: 0.6 },
         { art: "morgen", tage: 4, richtung: "frueh", wert: 0 },
@@ -1186,7 +1190,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       aufgezeichnet: 10,
       ohne_grundlage: 0,
       eintraege: [
-        { art: "heizkurve_parallel", tage: 10, seit: null, abweichung: -1.2, parameter: "3/58", von: 3, nach: null, einheit: "K", anschlag: true },
+        { art: "heizkurve_parallel", tage: 10, seit: null, entity: "number.behaglichkeit", text: { titel: "Heizkurve", empfehlung: "Behaglichkeit am Anschlag", angaben: ["−1,2 K", "10 Tage"] } },
       ],
     }),
     // Beide Bänder gegenläufig daneben: ein Hinweis zur Kurvenform ohne Parameter.
@@ -1200,7 +1204,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       aufgezeichnet: 12,
       ohne_grundlage: 0,
       eintraege: [
-        { art: "kurvenform", tage: 12, seit: "2026-11-14", abweichung: -0.9, frost: 1.1, parameter: null, von: null, nach: null },
+        { art: "kurvenform", tage: 12, seit: "2026-11-14", entity: "number.behaglichkeit", text: { titel: "Heizkurve", empfehlung: "Kurvenform prüfen", angaben: ["Übergang −0,9 K · Frost +1,1 K", "12 Tage seit 14.11."] } },
       ],
     }),
     // Fußboden: ohne Morgen, auch wenn Tage oder Tendenzen dafür vorliegen.

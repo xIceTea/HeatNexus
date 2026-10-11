@@ -1079,3 +1079,67 @@ def test_seitenleiste_spricht_die_sprache_der_anlage(m, text, sprache, punkt, er
     deutsch = [z for h in _alle_arten(m) if (z := text.zeile(h, lambda t: t)) is not None]
     fremd = text.text(_alle_arten(m), woerter, punkt).split("\n")
     assert not set(fremd) & {f"- {z}" for z in deutsch}
+
+
+def test_kachel_und_seitenleiste_nutzen_dieselben_texte(m, text):
+    h = m.Hinweis
+    faelle = [
+        (
+            h("steuerung_passt_an", 23, None),
+            ["Heizkurve", "Keine Empfehlung zur Kurve", "Anpassung durch die Steuerung aktiv"],
+        ),
+        (
+            h("heizkurve_frost", 18, "2026-11-14", -1.4, "3/13", 80.0, 86.0, "°C"),
+            [
+                "Heizkurve bei Frost",
+                "Vorlauf bei Auslegung 80 → 86 °C",
+                "−1,4 K",
+                "18 Tage seit 14.11.",
+            ],
+        ),
+        (
+            h("heizkurve_parallel", 20, None, 0.9, "3/58", 0.0, -1.0, "K"),
+            ["Heizkurve", "Behaglichkeit 0 → −1 K", "+0,9 K", "20 Tage"],
+        ),
+        (
+            h("kurvenform", 12, None, -0.9, frost=1.1),
+            ["Heizkurve", "Kurvenform prüfen", "Übergang −0,9 K · Frost +1,1 K", "12 Tage"],
+        ),
+    ]
+    for hinweis, (titel, empfehlung, *angaben) in faelle:
+        t = text.texte(hinweis, lambda s: s)
+        assert (t["titel"], t["empfehlung"], t["angaben"]) == (titel, empfehlung, angaben)
+
+
+def test_parameterzeile_nur_fuer_parameter_mit_eigenem_verlauf(text):
+    stand = {
+        "3/1": {"wert": 45.0, "seit": "2026-09-20"},
+        "3/58": {"wert": -0.5, "seit": None},
+        "3/51": {"wert": 21.0, "seit": None},
+        "3/12": {"wert": -12.0, "seit": None},
+    }
+    zeilen = {name: e.get("zeile") for name, e in text.parameterstand(stand, lambda s: s).items()}
+    assert zeilen == {
+        "3/1": "Fußpunkt 45 °C seit 20.09.",
+        "3/58": "Behaglichkeit −0,5 K",
+        "3/51": None,
+        "3/12": None,
+    }
+
+
+def test_texte_der_kachel_stehen_in_jedem_woerterbuch(m, text):
+    for sprache in ("en", "nl"):
+        woerter = load_standalone("texte").Woerterbuch(sprache)
+        for hinweis in [
+            *_alle_arten(m),
+            m.Hinweis("heizkurve_frost", 9, "2026-11-14", -1.4, "3/13", 80.0, 82.0, "°C"),
+        ]:
+            deutsch = text.texte(hinweis, lambda s: s)
+            fremd = text.texte(hinweis, woerter, sprache == "en")
+            assert fremd["titel"] != deutsch["titel"], (sprache, hinweis.art)
+            assert not set(fremd["angaben"]) & set(deutsch["angaben"]) - {
+                "−1,4 K",
+                "+0,6 K",
+                "−0,7 K",
+                "−1,2 K",
+            }, (sprache, hinweis.art)

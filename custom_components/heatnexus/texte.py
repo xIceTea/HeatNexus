@@ -53,6 +53,13 @@ def eigene_fassung(sprache: str, text: str) -> str | None:
     return _laden(sprache).get(text) if sprache != QUELLSPRACHE else None
 
 
+def fuellen(vorlage: str, **werte: object) -> str:
+    """Die Platzhalter `{name}` einer Vorlage mit Werten füllen."""
+    for name, wert in werte.items():
+        vorlage = vorlage.replace("{" + name + "}", str(wert))
+    return vorlage
+
+
 class Woerterbuch:
     """Übersetzt Oberflächentexte, oder gibt den deutschen zurück."""
 
@@ -87,10 +94,8 @@ class Woerterbuch:
         for suche, namen, fremd in _muster(self.sprache):
             if (treffer := suche.match(text)) is None:
                 continue
-            ergebnis = fremd
-            for name, wert in zip(namen, treffer.groups(), strict=True):
-                ergebnis = ergebnis.replace("{" + name + "}", self._wert(wert))
-            return ergebnis
+            werte = zip(namen, map(self._wert, treffer.groups()), strict=True)
+            return fuellen(fremd, **dict(werte))
         return text
 
     def _wert(self, wert: str) -> str:

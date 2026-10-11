@@ -13,6 +13,9 @@ import math
 from statistics import mean, median
 from typing import Any
 
+from .stellgroessen import TABELLE
+from .stellgroessen import gruppe as parametergruppe
+
 # Betriebsart `2/9` im Heizbetrieb des Zeitprogramms.
 HEIZBETRIEB = 1
 MIN_STUNDEN = 12
@@ -36,8 +39,6 @@ K_RADIATOREN = (2.5, 3.5)
 K_FUSSBODEN = (1.3, 1.3)
 # Die Bänder hängen zusammen; empfohlen wird nur dieser Anteil der gerechneten Änderung.
 DAEMPFUNG = 0.7
-# Kleinste empfohlene Änderung eines Kurvenpunkts in °C.
-KURVE_SCHRITT = 1.0
 # Liegt der Vorlauf-Ist so weit unter dem Soll, misst die Stunde nicht die Heizkurve.
 VORLAUF_LUECKE_K = 3.0
 MORGEN_MIN = 60
@@ -47,8 +48,8 @@ SOLL_HOCH = 22.5
 # Ab dieser Abweichung gilt der Raum morgens als warm.
 WARM_K = -0.3
 MAX_KURVE = 10
-BEHAGLICHKEIT = (-3.0, 3.0)
-MAX_VORHALTEZEIT = 240
+BEHAGLICHKEIT = TABELLE["3/58"].grenzen
+MAX_VORHALTEZEIT = TABELLE["3/6"].grenzen[1]
 # Außentemperatur, bei der die Kurve am Fußpunkt liegt; bei Windhager nicht belegt, übliche Auslegung.
 FUSS_AT = 20.0
 # Kleinster Anteil, mit dem eine Änderung am Kurvenende auf das Band durchschlägt.
@@ -59,9 +60,13 @@ ANPASSUNG = ("3/101", KOMPENSATION)
 # Kurvenpunkte der beiden Bänder; fehlt einer, gilt die Kurve als Ganzes.
 BAENDER = ("3/1", "3/13")
 # Welche Parameteränderung die Grundlage welcher Hinweise zurücksetzt; der Heizkreistyp
-# `7/76` ändert Faktor und Arten.
-KURVE = ("3/1", "3/12", "3/13", "3/7", "3/58", "3/101", "7/76")
-GRUPPEN = {"kurve": KURVE, "sollwert": (*KURVE, "3/51"), "morgen": ("3/6",)}
+# `7/76` ändert Faktor und Arten, eine geänderte Kurve auch den Sollwert-Hinweis.
+KURVE = parametergruppe("kurve")
+GRUPPEN = {
+    "kurve": KURVE,
+    "sollwert": (*KURVE, *parametergruppe("sollwert")),
+    "morgen": parametergruppe("morgen"),
+}
 
 
 @dataclass(frozen=True)
@@ -305,7 +310,7 @@ def _behaglichkeit(tage: int, seit: str | None, d: float, von: float | None) -> 
     art, ab = "heizkurve_parallel", round(d, 1)
     if von is None:
         return [Hinweis(art, tage, seit, ab)]
-    roh = von - _runden(d, 0.5)
+    roh = von - _runden(d, TABELLE["3/58"].schritt)
     nach = _begrenzt(roh, *BEHAGLICHKEIT)
     if roh == von:
         return []
@@ -357,8 +362,9 @@ def _band_hinweis(
     d = mean(t.abweichung for t in band)
     if abs(d) < SCHWELLE_K:
         return []
-    # Ein Hinweis über der Schwelle ändert den Parameter um mindestens ein Grad.
-    gerundet = _runden(d * k * DAEMPFUNG, KURVE_SCHRITT) or math.copysign(KURVE_SCHRITT, d)
+    # Ein Hinweis über der Schwelle ändert den Parameter um mindestens einen Schritt.
+    schritt = TABELLE[parameter].schritt
+    gerundet = _runden(d * k * DAEMPFUNG, schritt) or math.copysign(schritt, d)
     aenderung = _begrenzt(gerundet, -MAX_KURVE, MAX_KURVE)
     return [Hinweis(art, len(band), seit, round(d, 1), parameter, von, von - aenderung, "°C")]
 

@@ -18,6 +18,7 @@ from .profile import Werte
 from .vorhersage import PAUSE as V_PAUSE
 from .vorhersage import PROGRAMM as PROGRAMM_STUFE
 from .vorhersage import Vorhersage
+from .zahlen import kelvin
 
 AT_FROST = 3.0
 RAUM_MIN = 16.0
@@ -196,11 +197,6 @@ class Entscheidung:
 
 def _zahl(wert: float | None) -> str:
     return "–" if wert is None else f"{wert:.1f}".replace(".", ",")
-
-
-def _kelvin(wert: float) -> str:
-    text = f"{abs(wert):.1f} K".replace(".", ",")
-    return ("\u2212" if wert < -0.05 else "+" if wert >= 0.05 else "\u00b1") + text
 
 
 def _uhr(zeit: datetime) -> str:
@@ -436,7 +432,7 @@ def _saison_nur_ww(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entsche
         )
     abstand = abweichung(lage, soll)
     if abstand < -ZU_KALT_K:
-        return _zurueck(lage, g, f"Räume {_kelvin(abstand)} – zurück ins Programm.")
+        return _zurueck(lage, g, f"Räume {kelvin(abstand)} – zurück ins Programm.")
     unten = grenze(lage, w) - w.hysterese
     # Unter ihrer Einschaltschwelle heizt die Steuerung; fordern die Thermostate Wärme an, gilt das sofort.
     if lage.at is not None and lage.at < unten and lage.ruhig is False and abstand < 0:
@@ -593,7 +589,7 @@ def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
         return Entscheidung(
             Zustand.PROGRAMM,
             (Aktion("absenkung_ende"),),
-            f"Räume {_kelvin(abstand)} unter Ziel – Absenkung beendet.",
+            f"Räume {kelvin(abstand)} unter Ziel – Absenkung beendet.",
             ohne_absenkung(g),
         )
     if (
@@ -665,7 +661,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         return gegen
     if (abstand := abweichung(lage, soll)) < -SONNE_RAUM_K:
         return Entscheidung(
-            Zustand.PROGRAMM, (), f"Räume {_kelvin(abstand)} unter Ziel – keine Absenkung.", g
+            Zustand.PROGRAMM, (), f"Räume {kelvin(abstand)} unter Ziel – keine Absenkung.", g
         )
     ziel = lage.sonnenuntergang - VORLAUF_UNTERGANG
     rest = int((ziel - lage.jetzt).total_seconds() // 60)
@@ -766,7 +762,7 @@ def _pause_schreiben(
 
 def _pause_ende(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> str | None:
     if (abstand := abweichung(lage, soll)) < -w.rueckkehr_k:
-        return f"Räume {_kelvin(abstand)} unter Ziel"
+        return f"Räume {kelvin(abstand)} unter Ziel"
     if lage.ruhig is False:
         return "Thermostate fordern Wärme an"
     nachlauf_vorbei = g.absenkung_von is not None and lage.jetzt - g.absenkung_von >= PAUSE_NACHLAUF
@@ -860,7 +856,7 @@ def _modell_komfort(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> str | 
         grund = _pause_ende(lage, g, soll, w)
         return None if grund is None else f"{grund} – Heizpause beendet."
     if (abstand := abweichung(lage, soll)) < -w.rueckkehr_k:
-        return f"Räume {_kelvin(abstand)} unter Ziel – Absenkung beendet."
+        return f"Räume {kelvin(abstand)} unter Ziel – Absenkung beendet."
     return None
 
 
