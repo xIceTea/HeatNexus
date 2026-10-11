@@ -120,7 +120,7 @@
           "vorlagen": "Which blueprints appear under Settings → Automations. A blueprint an automation still uses stays in place.",
           "aussentemperatur": "Which sensor counts as the outside temperature in the header. Empty: HeatNexus finds it in the plant itself.",
           "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does.",
-          "sprache": "Applies to every system in HeatNexus: datapoint names, interface and dashboard. With “Automatic” the language of Home Assistant applies.",
+          "sprache": "Applies to every system in HeatNexus: datapoint names, interface and dashboard. With “Automatic” the language of Home Assistant applies. A change here switches all systems.",
           "sprache_anlage": "Sets a separate language for this system only: for names, states, fault texts and its page in the interface. “Same as HeatNexus” uses the HeatNexus language."
         }
       },
