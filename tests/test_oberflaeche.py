@@ -814,7 +814,7 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     assert hinweise["ohneAngabe"]["kachel"] is False
     sammelt = hinweise["sammelt"]
     assert (sammelt["titel"], sammelt["zahl"], sammelt["neben"]) == (
-        "Hinweise",
+        "Optimierung",
         "–",
         "sammelt Daten",
     )

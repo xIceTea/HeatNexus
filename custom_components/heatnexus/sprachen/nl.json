@@ -828,6 +828,7 @@
   "noch bis {zeit}": "nog tot {zeit}",
   "noch {minuten} min (bis {zeit})": "nog {minuten} min (tot {zeit})",
   "Vorgabe {rest}": "Tijdelijke waarde {rest}",
+  "Optimierung": "Optimalisatie",
   "Hinweise": "Suggesties",
   "sammelt Daten": "verzamelt gegevens",
   "Heizkurve: Übergang {uebergang}/{noetig} · Frost {frost}/{noetig}": "Stooklijn: overgangsseizoen {uebergang}/{noetig} · vorst {frost}/{noetig}",

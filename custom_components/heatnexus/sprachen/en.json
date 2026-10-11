@@ -823,6 +823,7 @@
   "noch bis {zeit}": "until {zeit}",
   "noch {minuten} min (bis {zeit})": "{minuten} min left (until {zeit})",
   "Vorgabe {rest}": "Override {rest}",
+  "Optimierung": "Optimization",
   "Hinweise": "Suggestions",
   "sammelt Daten": "collecting data",
   "Heizkurve: Übergang {uebergang}/{noetig} · Frost {frost}/{noetig}": "Heating curve: transition season {uebergang}/{noetig} · frost {frost}/{noetig}",

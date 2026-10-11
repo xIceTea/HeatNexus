@@ -283,14 +283,14 @@ export const KennwerteMixin = (Basis) =>
       const bloecke = (h.eintraege || []).map((eintrag) => this._hinweisBlock(eintrag)).filter(Boolean);
       let kachel;
       if (h.status !== "bereit" || !bloecke.length) {
-        kachel = this._kachel("hinweise", "Hinweise", "–", this._t("sammelt Daten"), null, this._hinweisFortschritt(h));
+        kachel = this._kachel("hinweise", "Optimierung", "–", this._t("sammelt Daten"), null, this._hinweisFortschritt(h));
       } else {
         const liste = knoten("div", "vorschlaege");
         liste.append(...bloecke);
-        kachel = this._kachel("hinweise", "Hinweise", String(bloecke.length), this._t("Hinweise"), liste);
+        kachel = this._kachel("hinweise", "Optimierung", String(bloecke.length), this._t("Hinweise"), liste);
       }
       const erklaerung = "Hinweise beruhen auf ungestörten Tagen seit der letzten Änderung der Heizkurve. Die Automatik ändert diese Werte nicht.";
-      kachel.querySelector(".titel").appendChild(this._fragezeichen("Hinweise", erklaerung));
+      kachel.querySelector(".titel").appendChild(this._fragezeichen("Optimierung", erklaerung));
       return kachel;
     }
 
