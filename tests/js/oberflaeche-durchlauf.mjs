@@ -1085,7 +1085,11 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       noetig: 7,
       eintraege: [],
       fortschritt: { kurve_frost: 2, kurve_uebergang: 7, sollwert: 7, morgen: 5 },
+      aufgezeichnet: 14,
+      ohne_grundlage: 2,
     }),
+    ohneTage: zeigen({ status: "sammelt", tage: 0, noetig: 7, eintraege: [], fortschritt: {}, aufgezeichnet: 0, ohne_grundlage: 0 }),
+    ohneEingriffe: zeigen({ status: "sammelt", tage: 5, noetig: 7, eintraege: [], fortschritt: {}, aufgezeichnet: 5, ohne_grundlage: 0 }),
     bereit: zeigen({
       status: "bereit",
       tage: 23,

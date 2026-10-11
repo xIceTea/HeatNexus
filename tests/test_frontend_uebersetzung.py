@@ -62,6 +62,8 @@ def test_der_fortschritt_der_hinweise_steht_in_jedem_woerterbuch():
         "Heizkurve: Übergang {uebergang}/{noetig} · Frost {frost}/{noetig}",
         "Sollwert {tage}/{noetig}",
         "Morgen {tage}/{noetig}",
+        "Noch keine Tage aufgezeichnet",
+        "{tage} Tage aufgezeichnet · {eingriffe} mit Eingriffen",
     }
     for sprache in ("en", "nl"):
         datei = WURZEL / "sprachen" / f"{sprache}.json"

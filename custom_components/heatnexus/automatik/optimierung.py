@@ -87,6 +87,13 @@ def _offene_tage(archiv: list[dict[str, Any]], heute: date) -> list[date]:
     return [t for t in tage if _ersetzbar(je_datum.get(t.isoformat()), VOLLER_TAG)]
 
 
+def _letzte_tage(tage: list[optimierer.Tag], heute: date | str) -> list[optimierer.Tag]:
+    """Die Archivtage im Zeitraum des Nachrechnens vor heute."""
+    bis = date.fromisoformat(str(heute))
+    von = (bis - timedelta(days=NACHRECHNEN_TAGE)).isoformat()
+    return [t for t in tage if von <= t.datum < bis.isoformat()]
+
+
 def _ausreihe(zustaende: list[Any]) -> nachrechnen.Reihe:
     """Wann ein Thermostat aus war (1) und wann nicht (0)."""
     return [(dt_util.as_local(z.last_updated), float(z.state == "off")) for z in zustaende]
@@ -388,16 +395,22 @@ class OptimierungMixin:
         return optimierer.hinweise(self.archivierte_tage(), self.parameter_verlauf, heute)
 
     def hinweise_stand(self, heute: date | str) -> dict[str, Any] | None:
-        """Die Kachel „Hinweise“; ohne eingeschalteten Schalter `None`."""
+        """Die Kachel „Optimierung“; ohne eingeschalteten Schalter `None`.
+
+        `aufgezeichnet` zählt die Archivtage der letzten zwei Wochen, `ohne_grundlage` die mit Eingriffen.
+        """
         if not self.werte.hinweise:
             return None
         tage = self.archivierte_tage()
         eintraege = optimierer.hinweise(tage, self.parameter_verlauf, heute)
         grundlage = optimierer.grundlage(tage, self.parameter_verlauf, heute)
+        zuletzt = _letzte_tage(tage, heute)
         return {
             "status": "bereit" if eintraege else "sammelt",
             "tage": len(grundlage),
             "noetig": optimierer.MIN_TAGE,
             "eintraege": [asdict(h) for h in eintraege],
             "fortschritt": optimierer.fortschritt(tage, self.parameter_verlauf, heute),
+            "aufgezeichnet": len(zuletzt),
+            "ohne_grundlage": sum(not t.ungestoert for t in zuletzt),
         }

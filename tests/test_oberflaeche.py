@@ -822,7 +822,10 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
         "Heizkurve: Übergang 7/7 · Frost 2/7",
         "Sollwert 7/7",
         "Morgen 5/7",
+        "14 Tage aufgezeichnet · 2 mit Eingriffen",
     ]
+    assert hinweise["ohneTage"]["fuss"][-1] == "Noch keine Tage aufgezeichnet"
+    assert hinweise["ohneEingriffe"]["fuss"][-1] == "Morgen 0/7"
     assert sammelt["fragezeichen"] == 1
     assert sammelt["bloecke"] == []
     bereit = hinweise["bereit"]

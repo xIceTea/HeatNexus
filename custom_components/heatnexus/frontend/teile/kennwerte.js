@@ -289,12 +289,12 @@ export const KennwerteMixin = (Basis) =>
         liste.append(...bloecke);
         kachel = this._kachel("hinweise", "Optimierung", String(bloecke.length), this._t("Hinweise"), liste);
       }
-      const erklaerung = "Hinweise beruhen auf ungestörten Tagen seit der letzten Änderung der Heizkurve. Die Automatik ändert diese Werte nicht.";
+      const erklaerung = "Hinweise beruhen auf ungestörten Heizstunden seit der letzten Änderung der Heizkurve. Stunden mit einem Eingriff zählen nicht. Die Automatik ändert diese Werte nicht.";
       kachel.querySelector(".titel").appendChild(this._fragezeichen("Optimierung", erklaerung));
       return kachel;
     }
 
-    /** Gezählte Tage je Hinweisart, je Art eine Zeile. */
+    /** Gezählte Tage je Hinweisart, je Art eine Zeile; darunter, wie viele Tage Eingriffe hatten. */
     _hinweisFortschritt(h) {
       const f = h.fortschritt || {};
       const noetig = h.noetig || 0;
@@ -307,6 +307,10 @@ export const KennwerteMixin = (Basis) =>
         this._tMit("Sollwert {tage}/{noetig}", { tage: f.sollwert || 0, noetig }),
         this._tMit("Morgen {tage}/{noetig}", { tage: f.morgen || 0, noetig }),
       ];
+      if (h.aufgezeichnet === 0) zeilen.push(this._t("Noch keine Tage aufgezeichnet"));
+      else if (h.ohne_grundlage > 0) {
+        zeilen.push(this._tMit("{tage} Tage aufgezeichnet · {eingriffe} mit Eingriffen", { tage: h.aufgezeichnet, eingriffe: h.ohne_grundlage }));
+      }
       return zeilen.map((zeile) => knoten("div", "fuss", zeile));
     }
 
