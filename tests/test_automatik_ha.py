@@ -2829,6 +2829,32 @@ async def test_fehlende_werte_der_stunde_werden_nicht_eingetragen(hass, anlage, 
     assert stunde["ba"] == 1
 
 
+async def test_beim_beobachten_zaehlt_die_restzeit_als_vorgabe(hass, anlage, freezer):
+    from dataclasses import replace
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import regel
+
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit.auswerten()
+    assert laufzeit.beobachten
+    laufzeit.gedaechtnis = replace(
+        laufzeit.gedaechtnis,
+        absenkung_art=regel.SONNE,
+        absenkung_bis=dt_util.now() + timedelta(hours=3),
+    )
+    coordinator.data["oids"][f"{PREFIX}/2/10/0"] = "120"
+
+    felder = laufzeit._stundenfelder()
+
+    assert felder["vorgabe"] is True
+    assert felder["beobachtet"] is True
+
+
 async def test_der_tageswechsel_archiviert_den_vortag_einmal(hass, anlage, freezer):
     from custom_components.heatnexus.automatik import optimierung
 

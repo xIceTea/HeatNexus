@@ -197,7 +197,8 @@ class OptimierungMixin:
         genug = lage.raeume and lage.raeume_fehlen_seit is None
         ab = round(regel.abweichung(lage, soll), 2) if soll is not None and genug else None
         # Eine Restzeit ohne eigene Absenkung stammt vom Nutzer (Eco/Comfort an Steuerung oder App).
-        eigen = regel.absenkung_laeuft(self.gedaechtnis, lage.jetzt)
+        # Beim Beobachten ist die Absenkung nur gerechnet; jede Restzeit stammt dann vom Nutzer.
+        eigen = regel.absenkung_laeuft(self.gedaechtnis, lage.jetzt) and not self.beobachten
         vorgabe = (self._wert("/2/10/0") or 0) > 0 and not eigen
         felder = {
             "ab": ab,
