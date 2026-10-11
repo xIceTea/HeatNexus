@@ -14,11 +14,10 @@ import math
 from typing import Any, NamedTuple
 
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
-from ..const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
+from ..const import DOMAIN
 from ..helpers import enum_texte
 from . import eingaben, nachladen, nachrechnen, optimierer, regel
 from .vorausschau import LERNTAGE
@@ -362,20 +361,16 @@ class OptimierungMixin:
     def _parameter_einschalten(self) -> None:
         """Die Kurvenparameter, die HeatNexus deaktiviert anlegt, einmal einschalten; ihr Verlauf zeigt die Hinweise.
 
-        Was der Nutzer selbst abgeschaltet hat, bleibt aus; danach entscheidet er allein.
+        Was der Nutzer selbst abgeschaltet hat, bleibt aus; Home Assistant lädt den Eintrag danach neu.
         """
         register = er.async_get(self.hass)
-        eingeschaltet = False
         for adresse in PARAMETER:
             kennung = self._verlaufsentitaet(adresse)
             eintrag = register.async_get(kennung) if kennung else None
             if eintrag is not None and eintrag.disabled_by is er.RegistryEntryDisabler.INTEGRATION:
                 register.async_update_entity(eintrag.entity_id, disabled_by=None)
-                eingeschaltet = True
         self.parameter_eingeschaltet = True
         self._speichern()
-        if eingeschaltet:
-            async_dispatcher_send(self.hass, SIGNAL_NEUE_ENTITAETEN.format(self.entry_id))
 
     def _optimierung_beenden(self) -> None:
         for aufgabe in (self._parameteraufgabe, self._nachrechenaufgabe):
@@ -452,8 +447,10 @@ class OptimierungMixin:
 
         Der Hinweis zum Raumsollwert bewertet den wirksamen Sollwert; den zeigt das Thermostat, nicht `3/51`.
         """
-        kennungen = {_schluessel(a): self._verlaufsentitaet(a) for a in PARAMETER}
-        kennungen["3/51"] = self._klima_entitaet()
+        kennungen = {
+            _schluessel(a): self._klima_entitaet() if a == "/3/51/0" else self._verlaufsentitaet(a)
+            for a in PARAMETER
+        }
         return {name: k for name, k in kennungen.items() if k and self._aktiv(k)}
 
     def _aktiv(self, entity_id: str) -> bool:
