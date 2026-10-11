@@ -3046,7 +3046,7 @@ async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, 
         "fortschritt": {"kurve_frost": 0, "kurve_uebergang": 0, "sollwert": 0, "morgen": 0},
         "aufgezeichnet": 0,
         "ohne_grundlage": 0,
-        "entitaeten": {},
+        "entitaeten": {"3/51": "climate.heatnexus_sn1_2_0_thermostat"},
         "vorlaeufig": [],
         "parameter": {},
     }
@@ -3098,7 +3098,12 @@ async def test_kachel_zaehlt_aufgezeichnete_tage_und_eingriffe(
     verwaltung.laufzeiten[HEIZKREIS].tage_archiv = tage
     from homeassistant.helpers import entity_registry as er
 
-    sollwert, fusspunkt = _entitaeten(hass, [("number", "3-51-0"), ("number", "3-1-0")])
+    from custom_components.heatnexus.const import DOMAIN
+
+    _, fusspunkt = _entitaeten(hass, [("number", "3-51-0"), ("number", "3-1-0")])
+    thermostat = er.async_get(hass).async_get_entity_id(
+        "climate", DOMAIN, f"{HEIZKREIS}-thermostat"
+    )
     er.async_get(hass).async_update_entity(
         fusspunkt, disabled_by=er.RegistryEntryDisabler.INTEGRATION
     )
@@ -3110,7 +3115,8 @@ async def test_kachel_zaehlt_aufgezeichnete_tage_und_eingriffe(
 
     assert (hinweise["aufgezeichnet"], hinweise["ohne_grundlage"]) == (13, 2)
     # Eine deaktivierte Entität zeigt keinen Verlauf; ihre Zeile nennt den Wert selbst.
-    assert hinweise["entitaeten"] == {"3/51": sollwert}
+    # Der Raumsollwert öffnet das Thermostat: Es zeigt den wirksamen Sollwert, `3/51` nicht.
+    assert hinweise["entitaeten"] == {"3/51": thermostat}
     assert hinweise["parameter"] == {"3/1": {"wert": 44.0, "seit": "2026-09-20"}}
 
 

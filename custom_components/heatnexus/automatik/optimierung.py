@@ -440,16 +440,21 @@ class OptimierungMixin:
             "fortschritt": optimierer.fortschritt(tage, self.parameter_verlauf, heute),
             "aufgezeichnet": len(zuletzt),
             "ohne_grundlage": sum(not t.ungestoert for t in zuletzt),
-            "entitaeten": {
-                _schluessel(a): kennung
-                for a in PARAMETER
-                if (kennung := self._verlaufsentitaet(a)) and self._aktiv(kennung)
-            },
+            "entitaeten": self._ergebnis_entitaeten(),
             "vorlaeufig": [
                 asdict(t) for t in optimierer.tendenzen(tage, self.parameter_verlauf, heute)
             ],
             "parameter": optimierer.parameterstand(self.parameter_verlauf),
         }
+
+    def _ergebnis_entitaeten(self) -> dict[str, str]:
+        """Je Parameter die aktive Entität, deren Verlauf ein Klick zeigt.
+
+        Der Hinweis zum Raumsollwert bewertet den wirksamen Sollwert; den zeigt das Thermostat, nicht `3/51`.
+        """
+        kennungen = {_schluessel(a): self._verlaufsentitaet(a) for a in PARAMETER}
+        kennungen["3/51"] = self._klima_entitaet()
+        return {name: k for name, k in kennungen.items() if k and self._aktiv(k)}
 
     def _aktiv(self, entity_id: str) -> bool:
         """Ob die Entität eingeschaltet ist; eine deaktivierte hat keinen Verlauf."""
