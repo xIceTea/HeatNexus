@@ -25,7 +25,7 @@ import voluptuous as vol
 
 from . import bedingung, waermequelle
 from .const import CONF_LABEL, CONF_SYSTEMS, QUELLE_SOLAR, QUELLEN_ARTEN, QUELLEN_MAX
-from .texte import woerterbuch_zu
+from .texte import woerterbuch_des_eintrags
 
 # Zustände, die für sich schon an oder aus bedeuten. Alles andere ist
 # Klartext: Dort entscheidet die Auswahl, welcher Text als liefernd gilt.
@@ -316,7 +316,9 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             eingabe = {**stand_als_eingabe(self._stand), **user_input}
-            quelle, errors = quelle_aus_eingabe(eingabe, woerterbuch_zu(self))
+            quelle, errors = quelle_aus_eingabe(
+                eingabe, woerterbuch_des_eintrags(self.hass, self._get_entry())
+            )
             if quelle is not None:
                 return self._sichern(quelle)
             # Nach einem Fehler steht wieder da, was eingegeben wurde.
@@ -329,7 +331,7 @@ class WaermequelleSubentryFlow(ConfigSubentryFlow):
                 str(regel.get("art") or ""),
                 self._stand,
                 zustandsvorschlaege(self.hass, regel.get("quelle")),
-                woerterbuch_zu(self),
+                woerterbuch_des_eintrags(self.hass, self._get_entry()),
             ),
             errors=errors,
             description_placeholders={"quelle": self._quellenname(regel.get("quelle"))},

@@ -646,3 +646,31 @@ def test_schaltzustaende_erscheinen_als_text_der_oberflaeche():
         ("off", "Uit"),
         ("läuft", "läuft"),
     ]
+
+
+async def test_die_schaltzustaende_folgen_der_sprache_der_anlage(hass):
+    """Eine Anlage mit eigener Sprache zeigt „on“ in ihrer Sprache, nicht in der gemeinsamen."""
+    from custom_components.heatnexus.const import (
+        CONF_SPRACHE,
+        CONF_SPRACHE_ANLAGE,
+        SUBEINTRAG_QUELLE,
+    )
+
+    hass.states.async_set("binary_sensor.pumpe", "on")
+    eintrag = _mock_eintrag(hass, {CONF_SPRACHE: "de", CONF_SPRACHE_ANLAGE: "en"})
+    ablauf = await hass.config_entries.subentries.async_init(
+        (eintrag.entry_id, SUBEINTRAG_QUELLE), context={"source": "user"}
+    )
+    regel = await hass.config_entries.subentries.async_configure(
+        ablauf["flow_id"],
+        {
+            "name": "Fernwärme",
+            "art": "fremdquelle",
+            "bedingung_art": "zustand",
+            "quelle": "binary_sensor.pumpe",
+        },
+    )
+
+    schema = regel["data_schema"]
+    auswahl = schema.schema[next(m for m in schema.schema if m == "zustaende")]
+    assert ("on", "On") in [(o["value"], o["label"]) for o in auswahl.config["options"]]
