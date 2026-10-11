@@ -35,6 +35,7 @@ from .konfig import (
     raumfuehler_passt,
 )
 from .laufzeit import Laufzeit
+from .quellen import vorhersagearten
 from .verwaltung import DOMAENE_JE_ART, Verwaltung, unique_id, verwaltung_holen
 
 PROTOKOLL_ANZEIGE = 20
@@ -285,7 +286,7 @@ async def _ws_kandidaten(hass: HomeAssistant, connection, msg: dict[str, Any]) -
             and not (eintrag and eintrag.platform == DOMAIN)
         ):
             ziel, art = "temperatur", "thermostat"
-        elif domaene == "weather":
+        elif domaene == "weather" and vorhersagearten(zustand) != set():
             ziel = "wetter"
         elif (
             domaene == "sensor"

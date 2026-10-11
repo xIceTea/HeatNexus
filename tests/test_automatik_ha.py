@@ -3122,3 +3122,177 @@ async def test_diagnose_enthaelt_den_optimierer(hass, anlage, freezer):
     assert optimierer["parameter_verlauf"] == {"3/13": [["2026-08-01", 80.0]]}
     assert [h["art"] for h in optimierer["hinweise"]] == ["heizkurve_frost"]
     json.dumps(auszug)
+
+
+# --- Wettervorhersage -------------------------------------------------------
+
+
+def _ohne_vorhersage(hass):
+    """`get_forecasts` lehnt jede Anfrage ab, wie eine Entität ohne Vorhersage."""
+    from homeassistant.core import SupportsResponse
+    from homeassistant.exceptions import ServiceValidationError
+
+    aufrufe = []
+
+    async def ablehnen(call):
+        aufrufe.append(call.data["type"])
+        raise ServiceValidationError("Weather entity does not support forecast")
+
+    hass.services.async_register(
+        "weather", "get_forecasts", ablehnen, supports_response=SupportsResponse.ONLY
+    )
+    return aufrufe
+
+
+async def test_wetter_ohne_vorhersage_steht_nicht_zur_wahl(hass, hass_ws_client, anlage):
+    client = await hass_ws_client(hass)
+    hass.states.async_set("weather.nur_jetzt", "sunny", {"supported_features": 0})
+    hass.states.async_set("weather.tage", "sunny", {"supported_features": 1})
+
+    antwort = await _senden(client, type="heatnexus/automatik/kandidaten")
+
+    kennungen = [e["entity_id"] for e in antwort["result"]["wetter"]]
+    assert "weather.nur_jetzt" not in kennungen
+    assert {"weather.tage", "weather.home"} <= set(kennungen)
+
+
+async def test_fehlende_vorhersage_nennt_die_begruendung_und_warnt_einmal(
+    hass, anlage, freezer, caplog
+):
+    import logging
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    _ohne_vorhersage(hass)
+    caplog.set_level(logging.DEBUG, logger="custom_components.heatnexus")
+
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit._prognose_holen()
+    await laufzeit.auswerten()
+
+    assert laufzeit.zustand.value == "keine_daten"
+    assert laufzeit.begruendung == "Wettervorhersage fehlt – keine neue Entscheidung."
+    assert sorted(laufzeit.prognose_fehler) == ["daily", "hourly"]
+    warnungen = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnungen) == 2
+    assert all("weather.home" in r.getMessage() for r in warnungen)
+
+
+async def test_fehlt_die_vorhersage_drei_stunden_erscheint_eine_reparaturmeldung(
+    hass, anlage, freezer
+):
+    from datetime import timedelta
+
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    _ohne_vorhersage(hass)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    kennung = f"automatik_prognose_{HEIZKREIS}"
+    register = ir.async_get(hass)
+
+    freezer.tick(timedelta(hours=2, minutes=59))
+    await laufzeit._prognose_holen()
+    assert register.async_get_issue(DOMAIN, kennung) is None
+
+    freezer.tick(timedelta(minutes=1))
+    await laufzeit._prognose_holen()
+    meldung = register.async_get_issue(DOMAIN, kennung)
+    assert meldung is not None
+    assert meldung.severity == ir.IssueSeverity.WARNING
+    assert meldung.translation_placeholders["wetter"] == "weather.home"
+
+    await verwaltung.entfernen(HEIZKREIS)
+    assert register.async_get_issue(DOMAIN, kennung) is None
+
+
+async def test_reparaturmeldung_verschwindet_wenn_die_vorhersage_wieder_kommt(
+    hass, anlage, freezer
+):
+    from datetime import timedelta
+
+    from homeassistant.core import SupportsResponse
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    _ohne_vorhersage(hass)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    freezer.tick(timedelta(hours=3))
+    await laufzeit._prognose_holen()
+    kennung = f"automatik_prognose_{HEIZKREIS}"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is not None
+
+    async def liefern(call):
+        return {"weather.home": {"forecast": []}}
+
+    hass.services.async_register(
+        "weather", "get_forecasts", liefern, supports_response=SupportsResponse.ONLY
+    )
+    await laufzeit._prognose_holen()
+
+    assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is None
+    assert laufzeit.prognose_fehler == {}
+
+
+async def test_zweimal_taeglich_ersetzt_die_tagesvorhersage(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.core import SupportsResponse
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    hass.states.async_set("weather.home", "sunny", {"supported_features": 4})
+    aufrufe = []
+
+    async def halbtage(call):
+        aufrufe.append(call.data["type"])
+        mittag = dt_util.now().replace(hour=12, minute=0)
+        eintraege = [
+            {"datetime": mittag.isoformat(), "temperature": 16, "templow": 9},
+            {"datetime": (mittag + timedelta(hours=10)).isoformat(), "temperature": 7},
+        ]
+        return {"weather.home": {"forecast": eintraege}}
+
+    hass.services.async_register(
+        "weather", "get_forecasts", halbtage, supports_response=SupportsResponse.ONLY
+    )
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit._prognose_holen()
+
+    assert set(aufrufe) == {"twice_daily"}
+    assert laufzeit.prognose_frisch
+    assert laufzeit.tagesmittel(dt_util.now().date()) == pytest.approx(11.5, abs=3.0)
+    assert laufzeit._tage[0][1:] == (16, 7)
+
+
+async def test_diagnose_nennt_die_wetter_entitaet_und_ihre_fehler(hass, anlage, freezer):
+    import json
+
+    from custom_components.heatnexus import diagnostics
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    hass.states.async_set("weather.home", "sunny", {"supported_features": 3})
+    _ohne_vorhersage(hass)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit._prognose_holen()
+    entry = hass.config_entries.async_entries("heatnexus")[0]
+
+    (auszug,) = diagnostics.automatik_auszug(hass, entry)["heizkreise"]
+
+    wetter = auszug["wetter"]
+    assert (wetter["entitaet"], wetter["zustand"], wetter["arten"]) == (
+        "weather.home",
+        "sunny",
+        ["daily", "hourly"],
+    )
+    assert [f["art"] for f in wetter["fehler"]] == ["daily", "hourly"]
+    assert "does not support" in wetter["fehler"][0]["text"]
+    json.dumps(auszug)

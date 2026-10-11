@@ -511,6 +511,10 @@
     "automatik_ruecknahme": {
       "title": "Automatische regeling {heizkreis}: terugdraaien mislukt",
       "description": "Bij het uitschakelen of verwijderen van de automatische regeling weigerde de regelaar haar ingrepen op het verwarmingscircuit **{heizkreis}** terug te draaien. Het verwarmingscircuit staat mogelijk nog op alleen warm water of op een verlaagde instelwaarde.\n\nControleer de bedrijfsmodus en de instelwaarde van het verwarmingscircuit en stel ze handmatig in. Deze melding verdwijnt zodra het terugdraaien lukt."
+    },
+    "automatik_prognose": {
+      "title": "Automatisering {heizkreis}: geen weersverwachting",
+      "description": "De automatisering van het verwarmingscircuit **{heizkreis}** ontvangt al enkele uren geen verwachting van de weerentiteit **{wetter}**. Zonder verwachting neemt ze geen nieuwe beslissingen.\n\nControleer of de weerentiteit beschikbaar is en een dag- of uurverwachting levert, of kies in de instellingen van de automatisering een andere weerentiteit. Deze melding verdwijnt zodra er weer een verwachting binnenkomt."
     }
   },
   "config_subentries": {

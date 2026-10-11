@@ -75,6 +75,7 @@ def test_der_fortschritt_der_hinweise_steht_in_jedem_woerterbuch():
         "Unauffällig",
         "Vorläufig",
         "{tage} von {noetig} Tagen",
+        "ohne Vorhersage",
     }
     for sprache in ("en", "nl"):
         datei = WURZEL / "sprachen" / f"{sprache}.json"

@@ -918,9 +918,17 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     fenster: [],
     vorrang: [{ entity_id: "binary_sensor.solaranlage", name: "Solaranlage", bereich: "" }],
   });
+  // Eine eingetragene Wetter-Entität, die nicht mehr zur Wahl steht, liefert keine Vorhersage.
+  const vorherKonfig = flaeche._automatik.heizkreise[0].konfig;
+  flaeche._automatik.heizkreise[0].konfig = { ...vorherKonfig, wetter: "weather.alt" };
   await flaeche._automatikDialog(flaeche._automatik.heizkreise[0]);
+  flaeche._automatik.heizkreise[0].konfig = vorherKonfig;
   hass.callWS = vorherDialog;
   const dialog = wurzel.querySelector(".automatik-dialog");
+  bilanz.automatik.wetterOptionen = dialog
+    .querySelectorAll("option")
+    .filter((o) => String(o.value).startsWith("weather."))
+    .map((o) => String(o.textContent || ""));
   bilanz.automatik.vorrangWahl = dialog
     .querySelectorAll("input")
     .some((e) => e.value === "binary_sensor.solaranlage");

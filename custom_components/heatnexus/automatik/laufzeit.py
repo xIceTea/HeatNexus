@@ -182,6 +182,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self.stunden: list[dict[str, Any]] = []
         self._tage: list[tuple[date, float | None, float | None]] = []
         self._prognose_zeit: datetime | None = None
+        self._prognose_fehlt_seit: datetime | None = None
+        # Je Vorhersageart der letzte Fehler der Wetter-Entität: Zeit und Text.
+        self.prognose_fehler: dict[str, tuple[datetime, str]] = {}
         self._verlauf: deque[tuple[float, float]] = deque(maxlen=VERLAUF_LAENGE)
         self._fenster_bis: datetime | None = None
         self._weg_seit: datetime | None = None
@@ -321,6 +324,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             self._nachladen.cancel()
         self._lernen_beenden()
         self._optimierung_beenden()
+        ir.async_delete_issue(self.hass, DOMAIN, f"automatik_prognose_{self.device_id}")
         client = self.coordinator.client
         for adresse in ABRUF:
             client.unregister_poll_oid(f"{self.prefix}{adresse}")
@@ -1079,6 +1083,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             betriebsart=_ganzzahl(self._wert("/2/9/0")),
             grenze_steuerung=self._heizgrenze(),
             daten_ok=daten_ok,
+            prognose_ok=frisch,
             daten_fehlen_seit=self._daten_fehlen_seit,
             raeume_fehlen_seit=self._raeume_fehlen_seit,
             fenster_offen=self._fenster(jetzt),

@@ -113,6 +113,8 @@ class Lage:
     betriebsart: int | None = None
     grenze_steuerung: float | None = None
     daten_ok: bool = True
+    # Ob eine Wettervorhersage vorliegt, die jünger als sechs Stunden ist.
+    prognose_ok: bool = True
     daten_fehlen_seit: datetime | None = None
     # Seit wann weniger als die Hälfte der eingerichteten Räume einen Wert liefert.
     raeume_fehlen_seit: datetime | None = None
@@ -399,9 +401,26 @@ def _daten(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entschei
             "Raumwerte fehlen – Absenkung beendet.",
             ohne_absenkung(g),
         )
-    return Entscheidung(
-        Zustand.KEINE_DATEN, (), "Messwerte oder Prognose fehlen – keine neue Entscheidung.", g
-    )
+    teile = [
+        name
+        for name, fehlt in (
+            ("Raumtemperatur", fehlen is not None),
+            ("Außentemperatur", lage.at is None),
+            ("Wettervorhersage", not lage.prognose_ok),
+            ("Raumsollwert", soll is None),
+        )
+        if fehlt
+    ]
+    return Entscheidung(Zustand.KEINE_DATEN, (), _was_fehlt(teile), g)
+
+
+def _was_fehlt(teile: list[str]) -> str:
+    """„X fehlt“, „X und Y fehlen“, „X, Y und Z fehlen“; ohne Angabe der allgemeine Satz."""
+    if not teile:
+        return "Messwerte oder Prognose fehlen – keine neue Entscheidung."
+    if len(teile) == 1:
+        return f"{teile[0]} fehlt – keine neue Entscheidung."
+    return f"{', '.join(teile[:-1])} und {teile[-1]} fehlen – keine neue Entscheidung."
 
 
 def _saison_nur_ww(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidung:

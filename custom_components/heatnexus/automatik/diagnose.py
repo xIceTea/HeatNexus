@@ -75,6 +75,7 @@ def auszug(laufzeit: Laufzeit) -> dict[str, Any]:
             "steller": {name: inhalt for name, inhalt in stand.items() if name != "protokoll"},
             "protokoll": stand.get("protokoll", []),
             "prognose_frisch": laufzeit.prognose_frisch,
+            "wetter": laufzeit.wetter_stand(),
             "pausiert_bis": laufzeit.pausiert_bis,
             "anforderung_zuletzt": laufzeit.anforderung_zuletzt,
             "vorrang": eingaben.lauf_als_dict(laufzeit.vorrang),

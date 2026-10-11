@@ -175,6 +175,32 @@ def test_ohne_prognose_laeuft_die_absenkung_weiter(m, w):
     assert e.gedaechtnis == alt
 
 
+@pytest.mark.parametrize(
+    ("felder", "text"),
+    [
+        ({"prognose_ok": False, "daten_ok": False}, "Wettervorhersage fehlt"),
+        ({"at": None, "daten_ok": False}, "Außentemperatur fehlt"),
+        (
+            {"raum": None, "prognose_ok": False, "daten_ok": False},
+            "Raumtemperatur und Wettervorhersage fehlen",
+        ),
+        (
+            {"raum": None, "at": None, "prognose_ok": False, "daten_ok": False},
+            "Raumtemperatur, Außentemperatur und Wettervorhersage fehlen",
+        ),
+        (
+            {"raum": None, "at": None, "prognose_ok": False, "soll": None, "daten_ok": False},
+            "Raumtemperatur, Außentemperatur, Wettervorhersage und Raumsollwert fehlen",
+        ),
+        ({"daten_ok": False}, "Messwerte oder Prognose fehlen"),
+    ],
+)
+def test_ohne_daten_nennt_die_begruendung_was_fehlt(m, w, felder, text):
+    e = m.entscheiden(lage(m, entscheidungszeit=True, **felder), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.KEINE_DATEN
+    assert e.begruendung == f"{text} – keine neue Entscheidung."
+
+
 # --- Saison ------------------------------------------------------------------
 def test_warme_gedaempfte_at_schaltet_nur_ww(m, w):
     e = m.entscheiden(lage(m, at=17.5, at_gedaempft=18.2, mittel_heute=None), m.Gedaechtnis(), w)

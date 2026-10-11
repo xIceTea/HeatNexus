@@ -520,7 +520,7 @@ export const EinrichtungMixin = (Basis) =>
         ),
         raumZiel,
         wetter: this._automatikAuswahl(
-          this._automatikMitGewaehlt(kandidaten.wetter.map((e) => [e.entity_id, e.name]), k && k.wetter),
+          this._automatikMitGewaehlt(kandidaten.wetter.map((e) => [e.entity_id, e.name]), k && k.wetter, this._t("ohne Vorhersage")),
           (k && k.wetter) || ""
         ),
         pv: this._automatikAuswahl(mitKeine(kandidaten.pv, k && k.pv), (k && k.pv) || ""),
@@ -642,9 +642,10 @@ export const EinrichtungMixin = (Basis) =>
       return rahmen;
     }
 
-    _automatikMitGewaehlt(eintraege, gewaehlt) {
+    /** Die gewählte Entität bleibt wählbar, auch wenn sie nicht mehr zur Wahl steht; `zusatz` sagt, warum. */
+    _automatikMitGewaehlt(eintraege, gewaehlt, zusatz = "") {
       if (!gewaehlt || eintraege.some(([wert]) => wert === gewaehlt)) return eintraege;
-      return [...eintraege, [gewaehlt, gewaehlt]];
+      return [...eintraege, [gewaehlt, zusatz ? `${gewaehlt} – ${zusatz}` : gewaehlt]];
     }
 
     _automatikMitText(eingabe, text) {

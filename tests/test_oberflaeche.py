@@ -777,6 +777,7 @@ def test_der_reiter_automatik_laedt_nach_ohne_zu_stoeren(durchlauf):
     assert automatik["raumSkalaMitListe"] == 4
     assert automatik["raumKachel"] == ["−0,2 K", "Ø 21,4 °C"]
     assert automatik["vorrangWahl"] is True
+    assert automatik["wetterOptionen"] == ["weather.alt – ohne Vorhersage"]
     assert automatik["vorrangZeile"] == ["Vorrangquellen 1,5 h"]
     assert automatik["modusStunden"] > 0
     assert automatik["stundenLegende"] == 1
