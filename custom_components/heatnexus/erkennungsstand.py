@@ -229,7 +229,7 @@ def nur_anzeige_geaendert(alt: dict, neu: dict) -> bool:
     Sie ändern kein Entität und keinen Abruf – nur die Zeichnung. Ein
     Neuladen dafür risse jeden Verlauf für einen Takt auf „nicht verfügbar".
     """
-    if not alt or set(alt) != set(neu):
+    if not alt or alt == neu or set(alt) != set(neu):
         return False
     nur_anzeige = True
     for schluessel, wert in neu.items():

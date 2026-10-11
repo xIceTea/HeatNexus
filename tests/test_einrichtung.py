@@ -513,6 +513,12 @@ def test_eine_schaubildoption_allein_laedt_nicht_neu():
     assert nur_anzeige_geaendert(alt, neu) is True
 
 
+def test_unveraenderte_optionen_sind_keine_anzeigeaenderung():
+    """Ein neuer Untereintrag ändert keine Option und muss trotzdem neu laden."""
+    optionen = {"192.0.2.10": {CONF_LEVELS: ["info"], CONF_MODULPUMPE: False}, "sprache": "auto"}
+    assert nur_anzeige_geaendert(optionen, dict(optionen)) is False
+
+
 def test_ein_geaenderter_umfang_laedt_neu():
     alt = {"192.0.2.10": {CONF_LEVELS: ["info"], CONF_KESSELART: "auto"}}
     neu = {"192.0.2.10": {CONF_LEVELS: ["info", "service"], CONF_KESSELART: "hackgut"}}
