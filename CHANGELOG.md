@@ -28,6 +28,13 @@ wenn dort Vorabversionen zugelassen sind.
 - Auf Wunsch zeigt die Automatik Hinweise zu Heizkurve, Raumsollwert und Vorhaltezeit.
 - „Hausmodell neu lernen“ steht in den Einstellungen der Automatik.
 - Der Einrichtungsdialog empfiehlt Räume, die das Haus typisch abbilden.
+- Die Sprache lässt sich gemeinsam oder für jede Anlage einzeln wählen.
+- Panel, Dashboard und Schaubild erscheinen in der Sprache der jeweiligen Anlage.
+- Die Übersicht zeigt eigene Karten für Kessel, Puffer, Heizkreis und Warmwasser.
+- Die Übersicht erscheint auch bei einer einzelnen Anlage.
+- Beim Einschalten rechnen die Hinweise die vergangenen zwei Wochen aus der Historie nach.
+- Die Kachel „Optimierung“ zeigt je Hinweis, wie viele Tage noch fehlen.
+- BioWIN: Zwei Tasten quittieren Reinigung und Wartung.
 
 ### Behoben
 
@@ -37,6 +44,14 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein Sonnentag aus der Sonnenquote endet nicht mehr ohne Wärme der Solaranlage.
 - Nach einer Heizpause beginnt bei Sonne direkt ein Sonnentag.
 - Bei Kälte endet nur Warmwasser früher.
+- Entitäts-IDs mit einer Ziffer am Namensende erhalten den richtigen Namen.
+- Meldungssensoren erscheinen in der Sprache der Anlage.
+- Das Schaubild erkennt die Kesselart auch auf Englisch und Niederländisch.
+- Die Zustände einer Wärmequelle erscheinen übersetzt.
+- Ein neuer Untereintrag lädt die Integration auch bei gleichen Optionen neu.
+- Die Anlagenseite zeigt das Schaubild bei einer einzelnen Anlage nur einmal.
+- Zustandslisten zeigen keinen Platzhalter für Werte ohne Text.
+- BioWIN: Der Befüllgrad des Lagerraums ist nur noch eine Anzeige.
 
 ## [1.13.1] - 2026-10-10
 
