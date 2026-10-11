@@ -2829,6 +2829,24 @@ async def test_fehlende_werte_der_stunde_werden_nicht_eingetragen(hass, anlage, 
     assert stunde["ba"] == 1
 
 
+async def test_die_neue_stunde_traegt_die_aktuelle_lage_ein(hass, anlage, freezer):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    verwaltung, coordinator = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await laufzeit.auswerten()
+    coordinator.data["oids"][f"{PREFIX}/2/9/0"] = "2"
+    freezer.tick(timedelta(hours=1))
+
+    await laufzeit.auswerten()
+
+    stunde = laufzeit.verlauf["stunden"][str(dt_util.now().hour)]
+    assert stunde["ba"] == laufzeit.lage.betriebsart == 2
+
+
 async def test_beim_beobachten_zaehlt_die_restzeit_als_vorgabe(hass, anlage, freezer):
     from dataclasses import replace
     from datetime import timedelta

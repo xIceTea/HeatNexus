@@ -397,6 +397,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._ablauf_merken(jetzt)
         lage = self._lage(jetzt, entscheidungszeit)
         self.lage = lage
+        self._stunde_ergaenzen(jetzt)
         if not self.aktiv:
             self.empfehlung = None
             self._setzen(regel.Zustand.AUS, "Automatik ausgeschaltet.")
@@ -983,7 +984,10 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         if "at" not in stunde:
             gedaempft = round(self.stufen[1], 2) if self.stufen else None
             stunde.update(at=at, raum=self._raum(), gedaempft=gedaempft)
-        # Direkt nach dem Start fehlt die Lage noch; ihre Felder kommen beim nächsten Durchlauf der Stunde.
+
+    def _stunde_ergaenzen(self, jetzt: datetime) -> None:
+        """Die Felder der Lage in die Stunde schreiben; der erste Lauf der Stunde setzt sie."""
+        stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
         for name, wert in self._stundenfelder().items():
             stunde.setdefault(name, wert)
 
