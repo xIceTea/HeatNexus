@@ -75,3 +75,16 @@ def test_das_alte_eingabefeld_wird_geloescht(hass, adresse):
 
     assert registry.async_get(feld.entity_id) is None
     assert registry.async_get(anzeige.entity_id).disabled_by is None
+
+
+@pytest.mark.parametrize(
+    ("name", "lieferung"),
+    [("Befüllgrad Lagerraum", True), ("Befüllgrad Vorratsbehälter", False)],
+)
+def test_der_befuellgrad_hat_eine_eigene_erklaerung(name, lieferung):
+    """Die allgemeinen Muster für Lagerraum und Vorratsbehälter beschreiben etwas anderes."""
+    from custom_components.heatnexus.panel.hilfe import hilfe
+
+    text = hilfe(name)
+    assert "15 %" in text
+    assert ("Warnlevel Lagerraum" in text) is lieferung

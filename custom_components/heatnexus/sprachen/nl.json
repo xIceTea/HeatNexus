@@ -860,5 +860,7 @@
   "Pumpe": "Pomp",
   "Soll": "Instelwaarde",
   "Vorlauf Soll": "Aanvoer instelwaarde",
-  "Die Pelletsmenge, die nach dem Befüllen im Lagerraum liegt. Ist sie verbraucht, meldet die Anlage „Lagerraum wird leer“.\n\nWird der Wert nach einer Lieferung eingestellt, beginnt der Befüllgrad des Lagerraums wieder bei 100 %.": "De hoeveelheid pellets in de brandstofbunker na het vullen. Is die verbruikt, dan meldt de installatie „Brandstofbunker wordt leeg”.\n\nWordt de waarde na een levering ingesteld, dan begint de vulgraad van de brandstofbunker weer bij 100 %."
+  "Die Pelletsmenge, die nach dem Befüllen im Lagerraum liegt. Ist sie verbraucht, meldet die Anlage „Lagerraum wird leer“.\n\nWird der Wert nach einer Lieferung eingestellt, beginnt der Befüllgrad des Lagerraums wieder bei 100 %.": "De hoeveelheid pellets in de brandstofbunker na het vullen. Is die verbruikt, dan meldt de installatie „Brandstofbunker wordt leeg”.\n\nWordt de waarde na een levering ingesteld, dan begint de vulgraad van de brandstofbunker weer bij 100 %.",
+  "Die Steuerung errechnet den Wert aus dem Verbrauch. Er kann um etwa 15 % vom tatsächlichen Füllstand abweichen. Wird nach einer Lieferung der „Warnlevel Lagerraum“ eingestellt, beginnt er wieder bei 100 %.": "De regelaar berekent deze waarde uit het verbruik. Ze kan ongeveer 15 % afwijken van de werkelijke vulgraad. Wordt na een levering het „Warnlevel Lagerraum” ingesteld, dan begint ze weer bij 100 %.",
+  "Die Steuerung errechnet den Wert aus dem Verbrauch. Er kann um etwa 15 % vom tatsächlichen Füllstand abweichen.": "De regelaar berekent deze waarde uit het verbruik. Ze kan ongeveer 15 % afwijken van de werkelijke vulgraad."
 }

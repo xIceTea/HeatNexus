@@ -35,6 +35,14 @@ HILFE: tuple[tuple[str, str], ...] = (
         "Fährt den Kessel auf eine feste Leistung und hält sie, damit die Abgasmessung unter gleichbleibenden Bedingungen läuft. Ohne diese Funktion moduliert der Kessel während der Messung, und das Ergebnis taugt nichts.\n\nDie Leistung wird vor dem Start abgefragt; welcher Wert gilt, sagt der Kaminkehrer. Wie lange die Funktion noch läuft, steht unter „Kaminkehrer“ — null heißt, sie läuft nicht.\n\nNach 60 Minuten kehrt der Kessel von selbst in den normalen Betrieb zurück; wer früher aufhören will, schaltet den Kaminkehrerbetrieb wieder aus.",
     ),
     (
+        r"bef(ü|ue)llgrad lagerraum",
+        "Die Steuerung errechnet den Wert aus dem Verbrauch. Er kann um etwa 15 % vom tatsächlichen Füllstand abweichen. Wird nach einer Lieferung der „Warnlevel Lagerraum“ eingestellt, beginnt er wieder bei 100 %.",
+    ),
+    (
+        r"bef(ü|ue)llgrad",
+        "Die Steuerung errechnet den Wert aus dem Verbrauch. Er kann um etwa 15 % vom tatsächlichen Füllstand abweichen.",
+    ),
+    (
         r"warnlevel lagerraum",
         "Die Pelletsmenge, die nach dem Befüllen im Lagerraum liegt. Ist sie verbraucht, meldet die Anlage „Lagerraum wird leer“.\n\nWird der Wert nach einer Lieferung eingestellt, beginnt der Befüllgrad des Lagerraums wieder bei 100 %.",
     ),
