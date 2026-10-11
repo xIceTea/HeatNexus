@@ -156,12 +156,6 @@ ZEITPROGRAMM = namensmuster(
 )
 
 
-# Tasten, die in der Übersicht je Anlage stehen: alltäglich, ohne Rückfrage.
-UEBERSICHT_TASTEN = namensmuster(r"ww einmalladung", r"werte jetzt abfragen")
-# Diese Taste führt jeder Anlagenteil; in der Übersicht steht sie einmal je Anlage.
-ABFRAGETASTE = namensmuster(r"werte jetzt abfragen")
-
-
 # Plattformen, die der Nutzer bedient statt nur abliest.
 BEDIENBAR = frozenset({"climate", "select", "number", "switch", "button", "time", "date"})
 

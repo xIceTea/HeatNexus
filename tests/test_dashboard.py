@@ -871,28 +871,9 @@ def test_auswahl_trennt_messwert_bedienung_einstellung_diagnose(auswahl):
     assert "sensor.software" in [e["entity_id"] for e in auswahl.diagnose(teil)]
 
 
-def test_kernwerte_kommen_aus_dem_modul(auswahl):
-    assert [e["entity_id"] for e in auswahl.kernwerte(_kessel())] == [
-        "sensor.betriebsphase",
-        "sensor.kessel_ist",
-    ]
-
-
-def test_baureihe_ohne_eintrag_nimmt_die_ersten_messwerte(auswahl):
+def test_baureihe_ohne_eintrag_hat_keine_zeigerinstrumente(auswahl):
     teil = {**_kessel(), "fct_type": 999}
-    assert len(auswahl.kernwerte(teil)) == 2
     assert auswahl.zeigerinstrumente(teil) == []
-
-
-def test_moduleintrag_ohne_treffer_nimmt_die_ersten_messwerte(auswahl):
-    teil = {
-        **_kessel(),
-        "entitaeten": [{**e, "schluessel": None} for e in _kessel()["entitaeten"]],
-    }
-    assert [e["entity_id"] for e in auswahl.kernwerte(teil)] == [
-        e["entity_id"] for e in auswahl.messwerte(teil)[: auswahl.KERNWERTE_RUECKFALL]
-    ]
-    assert auswahl.kernwerte(teil)
 
 
 def test_zeitprogramme_stehen_nicht_unter_einstellungen(auswahl):
@@ -1211,21 +1192,6 @@ def test_uebersicht_je_anlage_schaubild_leitwert_navigation(uebersichtsseite):
     assert bild and "zusatzwerte" not in bild[0]
     [leitwert] = [k for k in erste if k.get("type") == "custom:heatnexus-leitwert"]
     assert (leitwert["zustand"], leitwert["gross"]) == ("sensor.betriebsphase", "sensor.kessel_ist")
-
-
-def test_tasten_fuer_die_uebersicht(auswahl):
-    teil = {
-        **_kessel(),
-        "entitaeten": [
-            *_kessel()["entitaeten"],
-            _e("button.abfragen", "Werte jetzt abfragen"),
-            _e("button.einmalladung", "WW Einmalladung"),
-        ],
-    }
-    assert [e["entity_id"] for e in auswahl.tasten(teil)] == [
-        "button.abfragen",
-        "button.einmalladung",
-    ]
 
 
 def test_zusammengesetzte_namen_bleiben_beim_uebersetzen_stehen():

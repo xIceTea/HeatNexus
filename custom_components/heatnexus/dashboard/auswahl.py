@@ -8,10 +8,8 @@ from .. import geraete
 from ..helpers import mustername
 from ..schema import passt as _passt
 from .anlagen import vorrang
-from .muster import BEDIENBAR, UEBERSICHT_TASTEN, ZEITPROGRAMM
+from .muster import BEDIENBAR, ZEITPROGRAMM
 
-# Ohne Eintrag im Baureihenmodul: so viele Werte nach `vorrang()` in der Übersicht.
-KERNWERTE_RUECKFALL = 2
 ZEIGER_MAX = 2
 
 
@@ -71,13 +69,6 @@ def zeigerinstrumente(teil: dict[str, Any]) -> list[tuple[dict[str, Any], dict[s
     return paare[:ZEIGER_MAX]
 
 
-def kernwerte(teil: dict[str, Any]) -> list[dict[str, Any]]:
-    """Die Werte für die Übersicht: nach Baureihenmodul, sonst die ersten Messwerte."""
-    schluessel = geraete.KERNWERTE.get(_fct(teil), ())
-    treffer = [e for s in schluessel if (e := _mit_schluessel(teil, s))]
-    return treffer or messwerte(teil)[:KERNWERTE_RUECKFALL]
-
-
 def zeitprogramme(teil: dict[str, Any]) -> list[dict[str, Any]]:
     """Die Zeitprogramm-Sensoren des Anlagenteils."""
     return [e for e in teil["entitaeten"] if _ist_zeitprogramm(e)]
@@ -107,12 +98,3 @@ def klartext(teil: dict[str, Any]) -> dict[str, Any] | None:
 def stoerung(teil: dict[str, Any]) -> dict[str, Any] | None:
     """Der Störungssensor, falls vorhanden."""
     return _meldung(teil, "fe01stoerung")
-
-
-def tasten(teil: dict[str, Any]) -> list[dict[str, Any]]:
-    """Alltägliche Tasten für die Übersicht."""
-    return [
-        e
-        for e in teil["entitaeten"]
-        if e["bereich"] == "button" and _passt(mustername(e), UEBERSICHT_TASTEN)
-    ]
