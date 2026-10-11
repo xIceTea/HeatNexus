@@ -33,7 +33,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Übersicht zeigt eigene Karten für Kessel, Puffer, Heizkreis und Warmwasser.
 - Die Übersicht erscheint auch bei einer einzelnen Anlage.
 - Beim Einschalten rechnen die Hinweise die vergangenen zwei Wochen aus der Historie nach.
-- Die Kachel „Optimierung“ zeigt je Hinweis, wie viele Tage noch fehlen.
+- Die Kachel „Optimierung“ zeigt den Fortschritt je Hinweis und die Tage mit Eingriffen.
+- Eine eigene Kachel zeigt die Ergebnisse der Optimierung, auch wenn alles passt.
 - BioWIN: Zwei Tasten quittieren Reinigung und Wartung.
 
 ### Behoben
