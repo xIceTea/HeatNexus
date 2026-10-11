@@ -620,3 +620,59 @@ def test_fortschritt_und_hinweise_passen_zusammen(m, anzahl, ungestoert):
         erwartet = anzahl if ungestoert or schluessel == "morgen" else 0
         assert stand[schluessel] == erwartet
         assert (art in gefunden) == (stand[schluessel] >= m.MIN_TAGE)
+
+
+# --- Vorläufige Tendenz ---------------------------------------------------
+
+
+def richtungen(liste):
+    return {t.art: (t.richtung, t.tage, t.wert) for t in liste}
+
+
+def test_tendenz_erst_ab_vier_tagen(m):
+    assert m.tendenzen(reihe(m, 3, 10.0, -1.0, soll=None), parameter(), HEUTE) == []
+    assert richtungen(m.tendenzen(reihe(m, 4, 10.0, -1.0, soll=None), parameter(), HEUTE)) == {
+        "kurve_uebergang": ("kalt", 4, -1.0),
+    }
+
+
+def test_ab_sieben_tagen_keine_tendenz_mehr(m):
+    tage = reihe(m, 7, 10.0, -1.0, soll=23.0, morgen=90)
+    assert m.tendenzen(tage, parameter(), HEUTE) == []
+
+
+@pytest.mark.parametrize(
+    ("ab", "erwartet"),
+    [(-0.5, "kalt"), (-0.4, "unauffaellig"), (0.4, "unauffaellig"), (0.5, "warm")],
+)
+def test_kurventendenz_folgt_der_schwelle(m, ab, erwartet):
+    tage = reihe(m, 5, -3.0, ab, soll=None)
+    assert richtungen(m.tendenzen(tage, parameter(), HEUTE))["kurve_frost"][0] == erwartet
+
+
+def test_sollwert_und_morgen_als_median(m):
+    tage = reihe(m, 4, 20.0, 0.0, soll=22.5, morgen=60) + reihe(m, 1, 20.0, 0.0, ab_tag=4)
+    assert richtungen(m.tendenzen(tage, parameter(), HEUTE)) == {
+        "sollwert": ("hoch", 5, 22.5),
+        "morgen": ("spaet", 4, 60),
+    }
+
+
+def test_niedriger_sollwert_und_frueh_warm_sind_unauffaellig(m):
+    tage = reihe(m, 4, 20.0, 0.0, soll=21.0, morgen=30)
+    assert richtungen(m.tendenzen(tage, parameter(), HEUTE)) == {
+        "sollwert": ("unauffaellig", 4, 21.0),
+        "morgen": ("unauffaellig", 4, 30),
+    }
+
+
+def test_steuerung_passt_an_unterdrueckt_kurventendenz(m):
+    tage = reihe(m, 4, 10.0, -1.0, soll=None)
+    assert m.tendenzen(tage, parameter(p3_7=1.0), HEUTE) == []
+
+
+def test_tendenz_zaehlt_wie_der_fortschritt(m):
+    tage = fortschritt_tage(m)
+    stand = m.fortschritt(tage, parameter(), HEUTE)
+    for t in m.tendenzen(tage, parameter(), HEUTE):
+        assert t.tage == stand[t.art]

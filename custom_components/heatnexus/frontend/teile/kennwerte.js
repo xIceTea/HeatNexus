@@ -285,7 +285,7 @@ export const KennwerteMixin = (Basis) =>
       const arten = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"];
       const fertig = arten.filter((art) => h.noetig > 0 && (f[art] || 0) >= h.noetig).length;
       const kachel = this._kachel("hinweise", "Optimierung", `${fertig}/${arten.length}`, this._t("ausgewertet"), null, this._hinweisFortschritt(h));
-      const erklaerung = "Hinweise beruhen auf ungestörten Heizstunden seit der letzten Änderung der Heizkurve. Stunden mit einem Eingriff zählen nicht. Die Automatik ändert diese Werte nicht.";
+      const erklaerung = "Hinweise beruhen auf ungestörten Heizstunden seit der letzten Änderung der Heizkurve. Stunden mit einem Eingriff zählen nicht. Ab 4 Tagen erscheint eine vorläufige Tendenz, ab 7 Tagen eine Empfehlung. Die Automatik ändert diese Werte nicht.";
       kachel.querySelector(".titel").appendChild(this._fragezeichen("Optimierung", erklaerung));
       return kachel;
     }
@@ -311,7 +311,7 @@ export const KennwerteMixin = (Basis) =>
     }
 
     /**
-     * Ergebnisse der Optimierung: je Hinweis die Empfehlung, je fertig ausgewerteter Art ohne Hinweis „Keine Änderung nötig“.
+     * Ergebnisse der Optimierung: Hinweise, vorläufige Tendenzen und fertige Arten ohne Hinweis („Keine Änderung nötig“).
      * Ohne Ergebnis fehlt die Kachel.
      */
     _kachelErgebnisse(kreis) {
@@ -324,11 +324,30 @@ export const KennwerteMixin = (Basis) =>
           return block && this._klickbar(block, entitaeten[eintrag.parameter]);
         })
         .filter(Boolean);
+      const arten = new Map(this._optimierungsArten().map((art) => [art[0], art]));
+      const vorlaeufig = (h.vorlaeufig || [])
+        .map((tendenz) => {
+          const [, titel, , parameter] = arten.get(tendenz.art) || [];
+          const block = titel && this._tendenzBlock(tendenz, titel, h.noetig);
+          return block && this._klickbar(block, entitaeten[parameter]);
+        })
+        .filter(Boolean);
       const passt = this._hinweisePassen(h).map(([titel, tage, , parameter]) => this._klickbar(this._passtBlock(titel, tage), entitaeten[parameter]));
-      if (!bloecke.length && !passt.length) return null;
+      if (!bloecke.length && !vorlaeufig.length && !passt.length) return null;
       const liste = knoten("div", "vorschlaege");
-      liste.append(...bloecke, ...passt);
+      liste.append(...bloecke, ...vorlaeufig, ...passt);
       return this._kachel("hinweise-ergebnis", "Ergebnisse der Optimierung", String(bloecke.length), this._t("Hinweise"), liste);
+    }
+
+    /** Je ausgewertete Art: Schlüssel im Fortschritt, Titel, zugehörige Hinweisarten, Parameter. */
+    _optimierungsArten() {
+      const kurve = ["heizkurve_parallel", "steuerung_passt_an"];
+      return [
+        ["kurve_uebergang", this._t("Heizkurve in der Übergangszeit"), ["heizkurve_uebergang", ...kurve], "3/1"],
+        ["kurve_frost", this._t("Heizkurve bei Frost"), ["heizkurve_frost", ...kurve], "3/13"],
+        ["sollwert", this._t("Raumsollwert"), ["sollwert_ausgleich"], "3/51"],
+        ["morgen", this._t("Aufheizen am Morgen"), ["morgen_spaet"], "3/6"],
+      ];
     }
 
     /** Arten mit genug Tagen, zu denen kein Hinweis vorliegt, als `[Titel, Tage, Hinweisarten, Parameter]`. */
@@ -336,14 +355,30 @@ export const KennwerteMixin = (Basis) =>
       const f = h.fortschritt || {};
       const noetig = h.noetig || 0;
       const arten = new Set((h.eintraege || []).map((eintrag) => eintrag.art));
-      const kurve = ["heizkurve_parallel", "steuerung_passt_an"];
-      return [
-        [this._t("Heizkurve in der Übergangszeit"), f.kurve_uebergang, ["heizkurve_uebergang", ...kurve], "3/1"],
-        [this._t("Heizkurve bei Frost"), f.kurve_frost, ["heizkurve_frost", ...kurve], "3/13"],
-        [this._t("Raumsollwert"), f.sollwert, ["sollwert_ausgleich"], "3/51"],
-        [this._t("Aufheizen am Morgen"), f.morgen, ["morgen_spaet"], "3/6"],
-      ]
+      return this._optimierungsArten()
+        .map(([schluessel, titel, eigene, parameter]) => [titel, f[schluessel], eigene, parameter])
         .filter(([, tage, eigene]) => noetig > 0 && (tage || 0) >= noetig && !eigene.some((art) => arten.has(art)));
+    }
+
+    /** Eine vorläufige Tendenz: Titel, gedämpfte Marke, darunter Wert und Tage bis zur Empfehlung. */
+    _tendenzBlock(tendenz, titel, noetig) {
+      const marke = {
+        kalt: this._t("Eher zu kühl"),
+        warm: this._t("Eher zu warm"),
+        hoch: this._t("Eher hoch"),
+        spaet: this._t("Eher zu spät warm"),
+        unauffaellig: this._t("Bisher unauffällig"),
+      }[tendenz.richtung];
+      if (!marke) return null;
+      let wert = kelvin(tendenz.wert);
+      if (tendenz.art === "sollwert") wert = this._tMit("Sollwert {wert} °C", { wert: zahl(tendenz.wert) });
+      else if (tendenz.art === "morgen") wert = this._tMit("Ziel nach {minuten} min", { minuten: tendenz.wert });
+      const block = knoten("div", "vorschlag");
+      const kopf = knoten("div", "kopf");
+      kopf.append(knoten("span", "name", titel), knoten("span", "empfehlung vorlaeufig", marke));
+      const tage = this._tMit("{tage} von {noetig} Tagen", { tage: tendenz.tage, noetig });
+      block.append(kopf, knoten("div", "angabe", [this._t("Vorläufig"), wert, tage].join(" · ")));
+      return block;
     }
 
     /** Eine Art ohne Hinweis: Titel, Marke „Keine Änderung nötig“, darunter die Zahl der Tage. */

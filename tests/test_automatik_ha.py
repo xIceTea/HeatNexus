@@ -3047,7 +3047,14 @@ async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, 
         "aufgezeichnet": 0,
         "ohne_grundlage": 0,
         "entitaeten": {},
+        "vorlaeufig": [],
     }
+
+    laufzeit.tage_archiv = _frosttage(5, -1.4)
+    assert (await _kreis(client))["kennwerte"]["hinweise"]["vorlaeufig"] == [
+        {"art": "kurve_frost", "tage": 5, "richtung": "kalt", "wert": -1.4},
+        {"art": "sollwert", "tage": 5, "richtung": "unauffaellig", "wert": 21.0},
+    ]
 
     laufzeit.tage_archiv = _frosttage(8, -1.4)
     laufzeit.parameter_verlauf = {"3/13": [["2026-08-01", 80.0]]}

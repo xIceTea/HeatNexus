@@ -399,6 +399,7 @@ class OptimierungMixin:
 
         `aufgezeichnet` zählt die Archivtage der letzten zwei Wochen, `ohne_grundlage` die mit Eingriffen.
         `entitaeten` nennt je Kurvenparameter die Entität, deren Verlauf ein Klick zeigt.
+        `vorlaeufig` nennt die Tendenz der Arten, denen für eine Empfehlung noch Tage fehlen.
         """
         if not self.werte.hinweise:
             return None
@@ -417,4 +418,7 @@ class OptimierungMixin:
             "entitaeten": {
                 _schluessel(a): kennung for a in PARAMETER if (kennung := self._verlaufsentitaet(a))
             },
+            "vorlaeufig": [
+                asdict(t) for t in optimierer.tendenzen(tage, self.parameter_verlauf, heute)
+            ],
         }

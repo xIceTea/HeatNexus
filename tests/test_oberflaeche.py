@@ -835,11 +835,24 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
         "Hinweise",
     )
     assert ergebnis["bloecke"] == [
+        [
+            "Aufheizen am Morgen",
+            "Eher zu spät warm",
+            "Vorläufig · Ziel nach 75 min · 5 von 7 Tagen",
+        ],
         ["Heizkurve in der Übergangszeit", "Keine Änderung nötig", "7 Tage"],
         ["Raumsollwert", "Keine Änderung nötig", "7 Tage"],
     ]
     # Eine Zeile mit bekannter Entität öffnet deren Verlauf.
     assert ergebnis["klickbar"] == ["Raumsollwert"]
+    # Tendenzen allein lassen die Kachel erscheinen; eine unbekannte Art fehlt.
+    tendenz = hinweise["tendenz"]["ergebnis"]
+    assert (tendenz["zahl"], tendenz["neben"]) == ("0", "Hinweise")
+    assert tendenz["bloecke"] == [
+        ["Heizkurve in der Übergangszeit", "Eher zu kühl", "Vorläufig · −0,7 K · 4 von 7 Tagen"],
+        ["Raumsollwert", "Bisher unauffällig", "Vorläufig · Sollwert 21,0 °C · 5 von 7 Tagen"],
+    ]
+    assert tendenz["klickbar"] == ["Heizkurve in der Übergangszeit"]
     assert hinweise["ohneTage"]["ergebnis"] is None
     bereit = hinweise["bereit"]
     assert (bereit["zahl"], bereit["neben"], len(bereit["fuss"])) == ("4/4", "ausgewertet", 3)

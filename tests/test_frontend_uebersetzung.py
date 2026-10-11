@@ -68,6 +68,13 @@ def test_der_fortschritt_der_hinweise_steht_in_jedem_woerterbuch():
         "Ergebnisse der Optimierung",
         "Aufheizen am Morgen",
         "Keine Änderung nötig",
+        "Eher zu kühl",
+        "Eher zu warm",
+        "Eher hoch",
+        "Eher zu spät warm",
+        "Bisher unauffällig",
+        "Vorläufig",
+        "{tage} von {noetig} Tagen",
     }
     for sprache in ("en", "nl"):
         datei = WURZEL / "sprachen" / f"{sprache}.json"

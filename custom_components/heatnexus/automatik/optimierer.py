@@ -20,6 +20,8 @@ MIN_STUNDEN = 12
 ERHOLUNG_H = 2
 MIN_SAUBER = 6
 MIN_TAGE = 7
+# Ab so vielen Tagen erscheint eine Tendenz ohne Empfehlung.
+MIN_VORLAEUFIG = 4
 SCHWELLE_K = 0.5
 FROST = 0.0
 UEBERGANG = (5.0, 15.0)
@@ -75,6 +77,16 @@ class Hinweis:
     einheit: str | None = None
     # Gemessene Minuten bis zum Ziel; nur bei „morgens zu spät warm“.
     minuten: int | None = None
+
+
+@dataclass(frozen=True)
+class Tendenz:
+    """Vorläufige Richtung einer Hinweisart, solange die Tage für eine Empfehlung nicht reichen."""
+
+    art: str
+    tage: int
+    richtung: str
+    wert: float
 
 
 def _zahl(wert: Any) -> float | None:
@@ -356,3 +368,42 @@ def fortschritt(
         "sollwert": sum(1 for t in basis("sollwert") if t.soll is not None),
         "morgen": sum(1 for t in basis("morgen") if t.morgen_min is not None),
     }
+
+
+def _richtung(wert: float, schwelle: float, darueber: str) -> str:
+    return darueber if wert >= schwelle else "unauffaellig"
+
+
+def _kurventendenz(band: list[Tag]) -> tuple[str, float]:
+    d = round(mean(t.abweichung for t in band), 1)
+    if abs(d) < SCHWELLE_K:
+        return "unauffaellig", d
+    return ("kalt" if d < 0 else "warm"), d
+
+
+def tendenzen(
+    tage: Sequence[Tag], parameter_verlauf: Mapping[str, Any], heute: date | str
+) -> list[Tendenz]:
+    """Je Art mit mindestens `MIN_VORLAEUFIG`, aber weniger als `MIN_TAGE` Tagen eine Tendenz."""
+
+    def basis(gruppe: str) -> list[Tag]:
+        return _grundlage(tage, _seit(parameter_verlauf, gruppe), str(heute), gruppe)
+
+    def reicht(werte: Sequence[Any]) -> bool:
+        return MIN_VORLAEUFIG <= len(werte) < MIN_TAGE
+
+    liste: list[Tendenz] = []
+    if not any((_aktuell(parameter_verlauf, p) or 0) > 0 for p in ANPASSUNG):
+        kurve = basis("kurve")
+        for art, passt in (("kurve_uebergang", _uebergang), ("kurve_frost", _frost)):
+            if reicht(band := _band(kurve, passt)):
+                liste.append(Tendenz(art, len(band), *_kurventendenz(band)))
+    if reicht(soll := [t.soll for t in basis("sollwert") if t.soll is not None]):
+        wert = median(soll)
+        liste.append(Tendenz("sollwert", len(soll), _richtung(wert, SOLL_HOCH, "hoch"), wert))
+    if reicht(morgen := [t.morgen_min for t in basis("morgen") if t.morgen_min is not None]):
+        minuten = int(_runden(median(morgen)))
+        liste.append(
+            Tendenz("morgen", len(morgen), _richtung(minuten, MORGEN_MIN, "spaet"), minuten)
+        )
+    return liste

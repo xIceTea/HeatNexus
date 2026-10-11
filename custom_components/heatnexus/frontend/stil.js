@@ -1274,6 +1274,7 @@ export const STIL = `
   .automatik-wert .vorschlag .empfehlung { font-size: 12px; padding: 2px 8px; border-radius: 10px; text-align: right;
     background: color-mix(in srgb, var(--hn-akzent) 18%, transparent); }
   .automatik-wert .vorschlag .empfehlung.passt { background: color-mix(in srgb, var(--hn-gut) 22%, transparent); }
+  .automatik-wert .vorschlag .empfehlung.vorlaeufig { background: transparent; border: 1px dashed var(--hn-gedaempft); }
   .automatik-wert .vorschlag .angabe { color: var(--hn-gedaempft); font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .automatik-skala { margin-top: 14px; }
   .automatik-skala .bahn { position: relative; height: 18px; }
