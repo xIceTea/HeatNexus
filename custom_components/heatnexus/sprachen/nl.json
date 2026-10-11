@@ -830,7 +830,6 @@
   "Vorgabe {rest}": "Tijdelijke waarde {rest}",
   "Hinweise": "Suggesties",
   "sammelt Daten": "verzamelt gegevens",
-  "Grundlage: {tage} von {noetig} Tagen": "Basis: {tage} van {noetig} dagen",
   "Heizkurve: Übergang {uebergang}/{noetig} · Frost {frost}/{noetig}": "Stooklijn: overgangsseizoen {uebergang}/{noetig} · vorst {frost}/{noetig}",
   "Sollwert {tage}/{noetig}": "Instelwaarde {tage}/{noetig}",
   "Morgen {tage}/{noetig}": "Ochtendopwarming {tage}/{noetig}",

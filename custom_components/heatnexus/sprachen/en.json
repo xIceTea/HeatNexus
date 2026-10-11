@@ -825,7 +825,6 @@
   "Vorgabe {rest}": "Override {rest}",
   "Hinweise": "Suggestions",
   "sammelt Daten": "collecting data",
-  "Grundlage: {tage} von {noetig} Tagen": "Basis: {tage} of {noetig} days",
   "Heizkurve: Übergang {uebergang}/{noetig} · Frost {frost}/{noetig}": "Heating curve: transition season {uebergang}/{noetig} · frost {frost}/{noetig}",
   "Sollwert {tage}/{noetig}": "Setpoint {tage}/{noetig}",
   "Morgen {tage}/{noetig}": "Morning heat-up {tage}/{noetig}",
