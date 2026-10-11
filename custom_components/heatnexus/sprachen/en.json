@@ -533,6 +533,8 @@
   "{a}, {b}, {c} und {d} fehlen – keine neue Entscheidung.": "{a}, {b}, {c} and {d} missing – no new decision.",
   "Wettervorhersage": "Weather forecast",
   "ohne Vorhersage": "no forecast",
+  "{parameter} {wert} {einheit} seit {seit}": "{parameter} {wert} {einheit} since {seit}",
+  "{parameter} {wert} {einheit}": "{parameter} {wert} {einheit}",
   "Raumwerte fehlen – Absenkung beendet.": "Room readings missing – setback ended.",
   "Gedämpfte AT {at} °C unter {grenze} °C – ohne Hausmodell keine Absenkung.": "Damped outdoor temp. {at} °C below {grenze} °C – no setback without house model.",
   "Sonnentag ohne Hausmodell ab": "Sunny day without house model from",

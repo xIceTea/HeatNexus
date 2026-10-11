@@ -676,3 +676,18 @@ def test_tendenz_zaehlt_wie_der_fortschritt(m):
     stand = m.fortschritt(tage, parameter(), HEUTE)
     for t in m.tendenzen(tage, parameter(), HEUTE):
         assert t.tage == stand[t.art]
+
+
+# --- Parameterstand -------------------------------------------------------
+
+
+def test_parameterstand_nennt_wert_und_letzte_aenderung(m):
+    verlauf = {
+        "3/1": [["2026-08-14", 45.0]],
+        "3/13": [["2026-08-14", 80.0], ["2026-10-02", 78.0]],
+        "3/6": [["2026-08-14", None]],
+    }
+    assert m.parameterstand(verlauf) == {
+        "3/1": {"wert": 45.0, "seit": None},
+        "3/13": {"wert": 78.0, "seit": "2026-10-02"},
+    }

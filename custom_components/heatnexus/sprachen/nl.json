@@ -533,6 +533,8 @@
   "{a}, {b}, {c} und {d} fehlen – keine neue Entscheidung.": "{a}, {b}, {c} en {d} ontbreken – geen nieuwe beslissing.",
   "Wettervorhersage": "Weersverwachting",
   "ohne Vorhersage": "zonder verwachting",
+  "{parameter} {wert} {einheit} seit {seit}": "{parameter} {wert} {einheit} sinds {seit}",
+  "{parameter} {wert} {einheit}": "{parameter} {wert} {einheit}",
   "Raumwerte fehlen – Absenkung beendet.": "Ruimtewaarden ontbreken – verlaging beëindigd.",
   "Gedämpfte AT {at} °C unter {grenze} °C – ohne Hausmodell keine Absenkung.": "Gedempte buitentemp. {at} °C onder {grenze} °C – geen verlaging zonder huismodel.",
   "Sonnentag ohne Hausmodell ab": "Zonnige dag zonder huismodel vanaf",

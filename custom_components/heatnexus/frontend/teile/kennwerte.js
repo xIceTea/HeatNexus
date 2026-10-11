@@ -328,11 +328,13 @@ export const KennwerteMixin = (Basis) =>
       const vorlaeufig = (h.vorlaeufig || [])
         .map((tendenz) => {
           const [, titel, , parameter] = arten.get(tendenz.art) || [];
-          const block = titel && this._tendenzBlock(tendenz, titel, h.noetig);
+          const block = titel && this._tendenzBlock(tendenz, titel, h.noetig, this._parameterZeile(h, parameter));
           return block && this._klickbar(block, entitaeten[parameter]);
         })
         .filter(Boolean);
-      const passt = this._hinweisePassen(h).map(([titel, tage, , parameter]) => this._klickbar(this._passtBlock(titel, tage), entitaeten[parameter]));
+      const passt = this._hinweisePassen(h).map(([titel, tage, , parameter]) =>
+        this._klickbar(this._passtBlock(titel, tage, this._parameterZeile(h, parameter)), entitaeten[parameter])
+      );
       if (!bloecke.length && !vorlaeufig.length && !passt.length) return null;
       const liste = knoten("div", "vorschlaege");
       liste.append(...bloecke, ...vorlaeufig, ...passt);
@@ -361,7 +363,7 @@ export const KennwerteMixin = (Basis) =>
     }
 
     /** Eine vorläufige Tendenz: Titel, gedämpfte Marke, darunter Wert und Tage bis zur Empfehlung. */
-    _tendenzBlock(tendenz, titel, noetig) {
+    _tendenzBlock(tendenz, titel, noetig, zusatz = null) {
       const marke = {
         kalt: this._t("Eher zu kühl"),
         warm: this._t("Eher zu warm"),
@@ -374,22 +376,33 @@ export const KennwerteMixin = (Basis) =>
       if (tendenz.art === "sollwert") wert = this._tMit("Sollwert {wert} °C", { wert: zahl(tendenz.wert) });
       else if (tendenz.art === "morgen") wert = this._tMit("Ziel nach {minuten} min", { minuten: tendenz.wert });
       const tage = this._tMit("{tage} von {noetig} Tagen", { tage: tendenz.tage, noetig });
-      return this._ergebnisBlock(titel, "empfehlung vorlaeufig", marke, [this._t("Vorläufig"), wert, tage].join(" · "));
+      return this._ergebnisBlock(titel, "empfehlung vorlaeufig", marke, [this._t("Vorläufig"), wert, tage].join(" · "), zusatz);
     }
 
     /** Ein Block der Ergebniskachel: Titel, Marke mit Klasse (ohne Text keine), darunter die Angabe. */
-    _ergebnisBlock(titel, klasse, marke, angabe) {
+    _ergebnisBlock(titel, klasse, marke, angabe, zusatz = null) {
       const block = knoten("div", "vorschlag");
       const kopf = knoten("div", "kopf");
       kopf.appendChild(knoten("span", "name", titel));
       if (marke) kopf.appendChild(knoten("span", klasse, marke));
       block.append(kopf, knoten("div", "angabe", angabe));
+      if (zusatz) block.appendChild(knoten("div", "angabe", zusatz));
       return block;
     }
 
+    /** „Fußpunkt 45 °C seit 20.09.“: der Kurvenparameter einer Art, wie ihn die Optimierung zuletzt las. */
+    _parameterZeile(h, parameter) {
+      const name = { "3/1": ["Fußpunkt", "°C"], "3/13": ["Vorlauf bei Auslegung", "°C"], "3/6": ["Vorhaltezeit", "min"] }[parameter];
+      const stand = (h.parameter || {})[parameter];
+      if (!name || !stand || !vorhanden(stand.wert)) return null;
+      const werte = { parameter: this._t(name[0]), wert: parameterwert(stand.wert), einheit: name[1] };
+      const seit = tagMonat(stand.seit);
+      return seit ? this._tMit("{parameter} {wert} {einheit} seit {seit}", { ...werte, seit }) : this._tMit("{parameter} {wert} {einheit}", werte);
+    }
+
     /** Eine Art ohne Hinweis: Titel, Marke „Keine Änderung nötig“, darunter die Zahl der Tage. */
-    _passtBlock(titel, tage) {
-      return this._ergebnisBlock(titel, "empfehlung passt", this._t("Keine Änderung nötig"), this._tMit("{tage} Tage", { tage }));
+    _passtBlock(titel, tage, zusatz = null) {
+      return this._ergebnisBlock(titel, "empfehlung passt", this._t("Keine Änderung nötig"), this._tMit("{tage} Tage", { tage }), zusatz);
     }
 
     /** Ein Hinweis: Titel und Empfehlung als Marke, darunter Abweichung und Grundlage in einer Zeile. */

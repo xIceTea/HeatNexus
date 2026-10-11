@@ -3048,6 +3048,7 @@ async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, 
         "ohne_grundlage": 0,
         "entitaeten": {},
         "vorlaeufig": [],
+        "parameter": {},
     }
 
     laufzeit.tage_archiv = _frosttage(5, -1.4)
@@ -3095,12 +3096,22 @@ async def test_kachel_zaehlt_aufgezeichnete_tage_und_eingriffe(
     for i in (0, 10, 18):
         tage[i] = {**tage[i], "ungestoert": False}
     verwaltung.laufzeiten[HEIZKREIS].tage_archiv = tage
-    (sollwert,) = _entitaeten(hass, [("number", "3-51-0")])
+    from homeassistant.helpers import entity_registry as er
+
+    sollwert, fusspunkt = _entitaeten(hass, [("number", "3-51-0"), ("number", "3-1-0")])
+    er.async_get(hass).async_update_entity(
+        fusspunkt, disabled_by=er.RegistryEntryDisabler.INTEGRATION
+    )
+    verwaltung.laufzeiten[HEIZKREIS].parameter_verlauf = {
+        "3/1": [["2026-08-01", 45.0], ["2026-09-20", 44.0]]
+    }
 
     hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
 
     assert (hinweise["aufgezeichnet"], hinweise["ohne_grundlage"]) == (13, 2)
+    # Eine deaktivierte Entität zeigt keinen Verlauf; ihre Zeile nennt den Wert selbst.
     assert hinweise["entitaeten"] == {"3/51": sollwert}
+    assert hinweise["parameter"] == {"3/1": {"wert": 44.0, "seit": "2026-09-20"}}
 
 
 async def test_diagnose_enthaelt_den_optimierer(hass, anlage, freezer):

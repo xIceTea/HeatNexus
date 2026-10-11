@@ -398,7 +398,8 @@ class OptimierungMixin:
         """Die Kachel „Optimierung“; ohne eingeschalteten Schalter `None`.
 
         `aufgezeichnet` zählt die Archivtage der letzten zwei Wochen, `ohne_grundlage` die mit Eingriffen.
-        `entitaeten` nennt je Kurvenparameter die Entität, deren Verlauf ein Klick zeigt.
+        `entitaeten` nennt je Kurvenparameter die aktive Entität, deren Verlauf ein Klick zeigt.
+        `parameter` nennt je Kurvenparameter Wert und letzte Änderung, auch ohne aktive Entität.
         `vorlaeufig` nennt die Tendenz der Arten, denen für eine Empfehlung noch Tage fehlen.
         """
         if not self.werte.hinweise:
@@ -416,9 +417,17 @@ class OptimierungMixin:
             "aufgezeichnet": len(zuletzt),
             "ohne_grundlage": sum(not t.ungestoert for t in zuletzt),
             "entitaeten": {
-                _schluessel(a): kennung for a in PARAMETER if (kennung := self._verlaufsentitaet(a))
+                _schluessel(a): kennung
+                for a in PARAMETER
+                if (kennung := self._verlaufsentitaet(a)) and self._aktiv(kennung)
             },
             "vorlaeufig": [
                 asdict(t) for t in optimierer.tendenzen(tage, self.parameter_verlauf, heute)
             ],
+            "parameter": optimierer.parameterstand(self.parameter_verlauf),
         }
+
+    def _aktiv(self, entity_id: str) -> bool:
+        """Ob die Entität eingeschaltet ist; eine deaktivierte hat keinen Verlauf."""
+        eintrag = er.async_get(self.hass).async_get(entity_id)
+        return eintrag is not None and not eintrag.disabled

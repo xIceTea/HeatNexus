@@ -1087,7 +1087,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       bloecke: kachel
         ? kachel
             .querySelectorAll(".vorschlag")
-            .map((b) => [text(b.querySelector(".name")), text(b.querySelector(".empfehlung")), text(b.querySelector(".angabe"))])
+            .map((b) => [text(b.querySelector(".name")), text(b.querySelector(".empfehlung")), ...b.querySelectorAll(".angabe").map(text)])
         : [],
     };
   };
@@ -1113,6 +1113,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
       aufgezeichnet: 6,
       ohne_grundlage: 1,
       entitaeten: { "3/1": "number.fusspunkt" },
+      parameter: { "3/1": { wert: 45, seit: "2026-09-20" }, "3/13": { wert: 80, seit: null }, "3/51": { wert: 11.5, seit: null } },
       vorlaeufig: [
         { art: "kurve_uebergang", tage: 4, richtung: "kalt", wert: -0.7 },
         { art: "sollwert", tage: 5, richtung: "unauffaellig", wert: 21 },

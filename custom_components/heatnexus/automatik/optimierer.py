@@ -408,3 +408,12 @@ def tendenzen(
         for art, werte in _reihen(tage, parameter_verlauf, heute).items()
         if MIN_VORLAEUFIG <= len(werte) < MIN_TAGE and not (passt_an and art.startswith("kurve"))
     ]
+
+
+def parameterstand(parameter_verlauf: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    """Je Parameter der aktuelle Wert und das Datum der letzten Änderung; der Anfangsstand hat keins."""
+    stand = {}
+    for name, verlauf in parameter_verlauf.items():
+        if (wert := _aktuell(parameter_verlauf, name)) is not None:
+            stand[name] = {"wert": wert, "seit": str(verlauf[-1][0]) if len(verlauf) > 1 else None}
+    return stand
