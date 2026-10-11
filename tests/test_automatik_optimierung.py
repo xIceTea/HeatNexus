@@ -23,6 +23,7 @@ TAGE = [(ERSTER + timedelta(days=i)).isoformat() for i in range(HEIZTAGE)]
 HEUTE = "2026-09-27"
 # Restzeit `2/10` als `(tag, stunde, minute, minuten)`: am dritten Tag 10:00 bis 10:30.
 VORGABE = ((0, 0, 0, 0), (2, 10, 0, 60), (2, 10, 30, 0))
+FASSUNG = 2
 
 
 def _zeit(tag: int, stunde: int = 0, minute: int = 0):
@@ -111,7 +112,7 @@ async def _laufzeit(hass, verwaltung, freezer):
 async def test_leeres_archiv_wird_beim_start_nachgerechnet(hass, anlage, freezer, monkeypatch):
     verwaltung, coordinator = anlage
     laufzeit = await _laufzeit(hass, verwaltung, freezer)
-    assert laufzeit.archiv_nachgerechnet is False
+    assert laufzeit.archiv_nachgerechnet == 0
     _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
 
     await laufzeit.neu_starten(laufzeit.konfig)
@@ -124,8 +125,8 @@ async def test_leeres_archiv_wird_beim_start_nachgerechnet(hass, anlage, freezer
     assert tage[0].abweichung == pytest.approx(0.2)
     assert all(t.ungestoert for t in tage)
     assert [t.datum for t in tage if t.sauber < tage[0].sauber] == [TAGE[2]]
-    assert laufzeit.archiv_nachgerechnet is True
-    assert laufzeit.als_dict()["archiv_nachgerechnet"] is True
+    assert laufzeit.archiv_nachgerechnet == FASSUNG
+    assert laufzeit.als_dict()["archiv_nachgerechnet"] == FASSUNG
 
 
 async def test_ohne_restzeit_entitaet_zaehlt_das_merkmal_des_heizkreises(
@@ -190,7 +191,7 @@ async def test_die_marke_wird_gespeichert_und_geladen(hass, anlage, freezer, mon
     verwaltung._daten["heizkreise"][ha.HEIZKREIS]["zustand"] = zustand
     await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
 
-    assert verwaltung.laufzeiten[ha.HEIZKREIS].archiv_nachgerechnet is True
+    assert verwaltung.laufzeiten[ha.HEIZKREIS].archiv_nachgerechnet == FASSUNG
 
 
 async def test_ohne_aufzeichnung_bleibt_alles_offen(hass, anlage, freezer):
@@ -201,7 +202,7 @@ async def test_ohne_aufzeichnung_bleibt_alles_offen(hass, anlage, freezer):
     assert await laufzeit.archiv_nachrechnen() == 0
 
     assert laufzeit.tage_archiv == []
-    assert laufzeit.archiv_nachgerechnet is False
+    assert laufzeit.archiv_nachgerechnet == 0
 
 
 async def test_ein_lesefehler_setzt_keine_marke(hass, anlage, freezer, monkeypatch):
@@ -218,21 +219,26 @@ async def test_ein_lesefehler_setzt_keine_marke(hass, anlage, freezer, monkeypat
 
     assert await laufzeit.archiv_nachrechnen() == 0
     assert laufzeit.tage_archiv == []
-    assert laufzeit.archiv_nachgerechnet is False
+    assert laufzeit.archiv_nachgerechnet == 0
 
 
-async def test_ein_archivierter_tag_bleibt_unveraendert(hass, anlage, freezer, monkeypatch):
-    verwaltung, coordinator = anlage
-    laufzeit = await _laufzeit(hass, verwaltung, freezer)
-    vorhanden = {
-        "datum": TAGE[4],
+def _archivtag(datum: str, stunden: int, **felder) -> dict:
+    eintrag = {
+        "datum": datum,
         "at": -2.0,
         "abweichung": -0.7,
         "soll": 20.0,
         "morgen_min": 90,
         "ungestoert": True,
-        "stunden": 20,
+        "stunden": stunden,
     }
+    return {**eintrag, **felder}
+
+
+async def test_ein_vollstaendiger_live_tag_bleibt_unveraendert(hass, anlage, freezer, monkeypatch):
+    verwaltung, coordinator = anlage
+    laufzeit = await _laufzeit(hass, verwaltung, freezer)
+    vorhanden = _archivtag(TAGE[4], 24)
     laufzeit.tage_archiv = [vorhanden]
     _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
 
@@ -240,6 +246,45 @@ async def test_ein_archivierter_tag_bleibt_unveraendert(hass, anlage, freezer, m
 
     assert [t["datum"] for t in laufzeit.tage_archiv] == TAGE
     assert laufzeit.tage_archiv[4] == vorhanden
+
+
+@pytest.mark.parametrize(
+    "vorhanden",
+    [
+        pytest.param({"stunden": 20}, id="live begonnener Teiltag"),
+        pytest.param({"stunden": 24, "nachgerechnet": True}, id="nachgerechnet"),
+    ],
+)
+async def test_ein_nachgerechneter_tag_ersetzt(hass, anlage, freezer, monkeypatch, vorhanden):
+    verwaltung, coordinator = anlage
+    laufzeit = await _laufzeit(hass, verwaltung, freezer)
+    laufzeit.tage_archiv = [_archivtag(TAGE[4], **vorhanden)]
+    _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
+
+    assert await laufzeit.archiv_nachrechnen() == HEIZTAGE
+
+    assert [t["datum"] for t in laufzeit.tage_archiv] == TAGE
+    ersetzt = laufzeit.archivierte_tage()[4]
+    assert (ersetzt.nachgerechnet, ersetzt.at, ersetzt.stunden) == (True, 10.0, 24)
+    assert ersetzt.sauber is not None
+
+
+@pytest.mark.parametrize("marke", [True, 1])
+async def test_eine_aeltere_marke_rechnet_einmal_neu(hass, anlage, freezer, monkeypatch, marke):
+    verwaltung, coordinator = anlage
+    laufzeit = await _laufzeit(hass, verwaltung, freezer)
+    laufzeit.tage_archiv = [_archivtag(t, 24, nachgerechnet=True, ungestoert=False) for t in TAGE]
+    zustand = {**laufzeit.als_dict(), "archiv_nachgerechnet": marke}
+    _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
+
+    verwaltung.laufzeiten.pop(ha.HEIZKREIS).stoppen()
+    verwaltung._daten["heizkreise"][ha.HEIZKREIS]["zustand"] = zustand
+    await verwaltung._nachholen(hass.config_entries.async_entries("heatnexus")[0])
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    neu = verwaltung.laufzeiten[ha.HEIZKREIS]
+    assert neu.archiv_nachgerechnet == FASSUNG
+    assert all(t.ungestoert and t.sauber is not None for t in neu.archivierte_tage())
 
 
 async def test_ein_parameterwechsel_beginnt_die_grundlage_neu(hass, anlage, freezer, monkeypatch):
@@ -330,4 +375,4 @@ async def test_diagnose_zaehlt_nachgerechnete_tage(hass, anlage, freezer):
     (auszug,) = diagnostics.automatik_auszug(hass, entry)["heizkreise"]
 
     assert auszug["optimierer"]["nachgerechnete_tage"] == 2
-    assert auszug["optimierer"]["archiv_nachgerechnet"] is False
+    assert auszug["optimierer"]["archiv_nachgerechnet"] == 0

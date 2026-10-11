@@ -31,6 +31,9 @@ LESEZEIT = {"hour": 0, "minute": 40, "second": 0}
 VERLAUFSWERTE = {"soll": "/1/1/0", "vl": "/1/2/0", "ba": "/2/9/0", "restzeit": "/2/10/0"}
 # So weit liest `_verlauf_lesen` zurück; so viele Tage vor heute lassen sich nachrechnen.
 NACHRECHNEN_TAGE = LERNTAGE
+# Fassung der Tageswertung; ein Archiv aus einer älteren Fassung wird einmal neu gerechnet.
+NACHRECHNEN_FASSUNG = 2
+VOLLER_TAG = 24
 # Die Klima-Entität des Heizkreises führt die Restzeit `2/10` als Merkmal.
 RESTZEIT_MERKMAL = "override_restzeit_min"
 
@@ -59,11 +62,29 @@ def _schluessel(adresse: str) -> str:
     return adresse.strip("/").rsplit("/", 1)[0]
 
 
+def _fassung(roh: Any) -> int:
+    """Die gespeicherte Marke als Fassung; `True` stammt aus der ersten Fassung."""
+    if roh is True:
+        return 1
+    return roh if isinstance(roh, int) and not isinstance(roh, bool) and roh > 0 else 0
+
+
+def _ersetzbar(alt: dict[str, Any] | None, stunden: int) -> bool:
+    """Ob ein nachgerechneter Tag mit `stunden` Stunden den Archivtag `alt` ersetzt.
+
+    Ein live archivierter Tag bleibt, außer er hat weniger Stunden (live begonnener Teiltag).
+    """
+    if alt is None or alt.get("nachgerechnet"):
+        return True
+    vorhanden = alt.get("stunden")
+    return not isinstance(vorhanden, int) or vorhanden < stunden
+
+
 def _offene_tage(archiv: list[dict[str, Any]], heute: date) -> list[date]:
-    """Die Tage vor heute im Zeitraum des Nachrechnens, die das Archiv noch nicht kennt."""
-    vorhanden = {t.get("datum") for t in archiv}
+    """Die Tage vor heute im Zeitraum des Nachrechnens, die ein nachgerechneter Tag ersetzen kann."""
+    je_datum = {t.get("datum"): t for t in archiv}
     tage = [heute - timedelta(days=n) for n in range(NACHRECHNEN_TAGE, 0, -1)]
-    return [t for t in tage if t.isoformat() not in vorhanden]
+    return [t for t in tage if _ersetzbar(je_datum.get(t.isoformat()), VOLLER_TAG)]
 
 
 def _ausreihe(zustaende: list[Any]) -> nachrechnen.Reihe:
@@ -138,7 +159,7 @@ class OptimierungMixin:
     tage_archiv: list[dict[str, Any]]
     parameter_verlauf: dict[str, list[list[Any]]]
     parameter_gelesen: str | None
-    archiv_nachgerechnet: bool
+    archiv_nachgerechnet: int
 
     def _optimierung_laden(self, z: dict[str, Any]) -> None:
         archiv = z.get("tage_archiv")
@@ -147,7 +168,7 @@ class OptimierungMixin:
         self.parameter_verlauf = _parameter_laden(z.get("parameter_verlauf"))
         gelesen = z.get("parameter_gelesen")
         self.parameter_gelesen = gelesen if isinstance(gelesen, str) else None
-        self.archiv_nachgerechnet = z.get("archiv_nachgerechnet") is True
+        self.archiv_nachgerechnet = _fassung(z.get("archiv_nachgerechnet"))
         self._parameteraufgabe: Any = None
         self._nachrechenaufgabe: Any = None
 
@@ -212,7 +233,7 @@ class OptimierungMixin:
 
     # --- Nachrechnen ----------------------------------------------------------
     async def archiv_nachrechnen(self) -> int:
-        """Offene Tage der letzten zwei Wochen aus der Aufzeichnung archivieren; liefert ihre Zahl.
+        """Tage der letzten zwei Wochen aus der Aufzeichnung archivieren; liefert die Zahl geschriebener.
 
         Ohne Aufzeichnung oder bei einem Lesefehler bleibt die Marke offen, für den nächsten Start.
         """
@@ -226,7 +247,7 @@ class OptimierungMixin:
             neu = self._tage_nachrechnen(zustaende, quellen, offen)
             anfang = heute - timedelta(days=NACHRECHNEN_TAGE)
             self._parameter_nachtragen(zustaende, quellen.parameter, anfang)
-        self.archiv_nachgerechnet = True
+        self.archiv_nachgerechnet = NACHRECHNEN_FASSUNG
         self.nachgetragen()
         return len(neu)
 
@@ -286,15 +307,17 @@ class OptimierungMixin:
     def _tage_nachrechnen(
         self, zustaende: dict[str, list[Any]], quellen: Quellen, offen: list[date]
     ) -> list[dict[str, Any]]:
-        """Die Tage aus dem Verlauf; ein Tag, den das Archiv inzwischen kennt, bleibt dessen."""
-        vorhanden = {t.get("datum") for t in self.tage_archiv}
-        tage = [t for t in offen if t.isoformat() not in vorhanden]
-        je_tag = nachrechnen.stunden_je_tag(self._tagesreihen(zustaende, quellen), tage)
+        """Die Tage aus dem Verlauf; ein vollständiger live archivierter Tag bleibt."""
+        je_tag = nachrechnen.stunden_je_tag(self._tagesreihen(zustaende, quellen), offen)
+        je_datum = {t.get("datum"): t for t in self.tage_archiv}
         neu = []
         for datum, stunden in je_tag.items():
-            if (tag := optimierer.tag_aus_stunden(datum, stunden)) is not None:
+            tag = optimierer.tag_aus_stunden(datum, stunden)
+            if tag is not None and _ersetzbar(je_datum.get(datum), tag.stunden):
                 neu.append(asdict(replace(tag, nachgerechnet=True)))
-        archiv = sorted([*self.tage_archiv, *neu], key=lambda t: str(t.get("datum") or ""))
+        ersetzt = {t["datum"] for t in neu}
+        bleibt = [t for t in self.tage_archiv if t.get("datum") not in ersetzt]
+        archiv = sorted([*bleibt, *neu], key=lambda t: str(t.get("datum") or ""))
         self.tage_archiv = archiv[-ARCHIV_TAGE:]
         return neu
 
@@ -312,12 +335,13 @@ class OptimierungMixin:
     def _optimierung_starten(self) -> None:
         """Täglich lesen; beim Start sofort, wenn heute noch nichts gelesen wurde.
 
-        Fehlt die Marke, werden einmal die vergangenen Tage aus der Aufzeichnung nachgerechnet.
+        Fehlt die Marke oder stammt sie aus einer älteren Fassung, werden einmal die vergangenen
+        Tage aus der Aufzeichnung nachgerechnet.
         """
         self._abmelden.append(async_track_time_change(self.hass, self._parameter_takt, **LESEZEIT))
         if self.parameter_gelesen != dt_util.now().date().isoformat():
             self._parameter_anstossen()
-        if not self.archiv_nachgerechnet:
+        if self.archiv_nachgerechnet < NACHRECHNEN_FASSUNG:
             self._nachrechenaufgabe = self.hass.async_create_background_task(
                 self.archiv_nachrechnen(), f"heatnexus_nachrechnen_{self.device_id}"
             )
