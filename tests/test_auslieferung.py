@@ -29,6 +29,24 @@ def test_nur_dateien_aus_dem_frontend_ordner(auslieferung):
     assert auslieferung.datei_im_ordner("gibtsnicht.js") is None
 
 
+async def test_eine_geaenderte_datei_ergibt_eine_neue_fassung(
+    hass, auslieferung, tmp_path, monkeypatch
+):
+    """Bei gleicher Versionsnummer trennt die Prüfsumme zwei Stände der Dateien."""
+    (tmp_path / "teile").mkdir()
+    datei = tmp_path / "teile" / "kennwerte.js"
+    datei.write_text("alt", encoding="utf-8")
+    monkeypatch.setattr(auslieferung, "_FRONTEND", tmp_path)
+
+    alt = await auslieferung.async_fassung(hass, "1.14.0")
+    assert alt == await auslieferung.async_fassung(hass, "1.14.0")
+    assert alt.startswith("1.14.0-")
+    datei.write_text("neu", encoding="utf-8")
+    hass.data.pop("heatnexus_frontend_summe")
+
+    assert await auslieferung.async_fassung(hass, "1.14.0") != alt
+
+
 async def test_ein_alter_fassungspfad_bleibt_erreichbar(hass, auslieferung):
     """Sonst fehlt der offenen Seite das Modul und die Karte meldet einen Fehler."""
     from homeassistant.setup import async_setup_component

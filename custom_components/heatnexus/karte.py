@@ -14,7 +14,12 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 import voluptuous as vol
 
-from .auslieferung import async_dateien_ausliefern, karte_als_ressource, karte_anmelden
+from .auslieferung import (
+    async_dateien_ausliefern,
+    async_fassung,
+    karte_als_ressource,
+    karte_anmelden,
+)
 from .const import DOMAIN
 from .dashboard.anlagen import anlage_in_sprache, anlagen_lesen, woerterbuch_der_anlage
 from .schema import schaubild_daten
@@ -89,6 +94,7 @@ async def async_setup_karte(hass: HomeAssistant, version: str = "") -> None:
     Schlägt das fehl, bleibt alles andere nutzbar – die Karte ist Beiwerk.
     """
     try:
+        version = await async_fassung(hass, version)
         await async_dateien_ausliefern(hass, version)
         if not hass.data.get(f"{DOMAIN}_karte_ws"):
             websocket_api.async_register_command(hass, _ws_schaubild)

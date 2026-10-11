@@ -32,7 +32,7 @@ from homeassistant.helpers import device_registry as dr
 import voluptuous as vol
 
 from ..anordnung import async_register_anordnung
-from ..auslieferung import async_dateien_ausliefern
+from ..auslieferung import async_dateien_ausliefern, async_fassung
 from ..automatik.websocket import async_register_automatik
 from ..bezeichnung import async_register_bezeichnung
 from ..const import (
@@ -230,6 +230,7 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
     # **Der Ordner, nicht die Datei.** Die Oberfläche besteht aus mehreren
     # ES-Modulen, die einander relativ laden (`./stil.js`); ein einzeln
     # angemeldeter Pfad ließe die Nachbardateien ins Leere laufen.
+    version = await async_fassung(hass, version)
     await async_dateien_ausliefern(hass, version)
     if not hass.data.get(f"{DOMAIN}_panel_datei"):
         websocket_api.async_register_command(hass, _ws_panel_daten)

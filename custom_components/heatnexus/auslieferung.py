@@ -8,6 +8,7 @@ Adressen ohne Suchteil und lieferte sonst die alte Datei weiter aus.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,29 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 _FRONTEND = Path(__file__).parent / "frontend"
+# Stellen der Prüfsumme im Pfad; genug, um zwei Stände derselben Versionsnummer zu trennen.
+PRUEFSUMME_STELLEN = 8
+
+
+def _pruefsumme() -> str:
+    """Prüfsumme über Namen und Inhalt aller Frontend-Dateien."""
+    summe = hashlib.sha256()
+    for datei in sorted(_FRONTEND.rglob("*")):
+        if datei.is_file() and "__pycache__" not in datei.parts:
+            summe.update(datei.relative_to(_FRONTEND).as_posix().encode())
+            summe.update(datei.read_bytes())
+    return summe.hexdigest()[:PRUEFSUMME_STELLEN]
+
+
+async def async_fassung(hass: HomeAssistant, version: str) -> str:
+    """Fassung für die Pfade der Oberfläche: Versionsnummer und Prüfsumme der Dateien.
+
+    Ändert sich eine Datei bei gleicher Versionsnummer, entsteht trotzdem ein neuer Pfad.
+    """
+    if (summe := hass.data.get(f"{DOMAIN}_frontend_summe")) is None:
+        summe = await hass.async_add_executor_job(_pruefsumme)
+        hass.data[f"{DOMAIN}_frontend_summe"] = summe
+    return f"{version}-{summe}"
 
 
 async def async_dateien_ausliefern(hass: HomeAssistant, version: str = "") -> None:
