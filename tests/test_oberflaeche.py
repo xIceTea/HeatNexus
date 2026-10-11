@@ -850,7 +850,7 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
     assert (tendenz["zahl"], tendenz["neben"]) == ("0", "Hinweise")
     assert tendenz["bloecke"] == [
         ["Heizkurve in der Übergangszeit", "Eher zu kühl", "Vorläufig · −0,7 K · 4 von 7 Tagen"],
-        ["Raumsollwert", "Bisher unauffällig", "Vorläufig · Sollwert 21,0 °C · 5 von 7 Tagen"],
+        ["Raumsollwert", "Unauffällig", "Vorläufig · Sollwert 21,0 °C · 5 von 7 Tagen"],
     ]
     assert tendenz["klickbar"] == ["Heizkurve in der Übergangszeit"]
     assert hinweise["ohneTage"]["ergebnis"] is None

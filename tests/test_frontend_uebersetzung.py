@@ -72,7 +72,7 @@ def test_der_fortschritt_der_hinweise_steht_in_jedem_woerterbuch():
         "Eher zu warm",
         "Eher hoch",
         "Eher zu spät warm",
-        "Bisher unauffällig",
+        "Unauffällig",
         "Vorläufig",
         "{tage} von {noetig} Tagen",
     }

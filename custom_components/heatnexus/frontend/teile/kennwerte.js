@@ -367,7 +367,7 @@ export const KennwerteMixin = (Basis) =>
         warm: this._t("Eher zu warm"),
         hoch: this._t("Eher hoch"),
         spaet: this._t("Eher zu spät warm"),
-        unauffaellig: this._t("Bisher unauffällig"),
+        unauffaellig: this._t("Unauffällig"),
       }[tendenz.richtung];
       if (!marke) return null;
       let wert = kelvin(tendenz.wert);
