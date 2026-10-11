@@ -38,7 +38,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Ergebnisse der Optimierung zeigen ab vier Tagen eine vorläufige Tendenz.
 - Die Ergebnisse der Optimierung nennen den aktuellen Wert der Heizkurve.
 - Beim Einschalten der Hinweise werden die Parameter der Heizkurve aktiviert.
-- Die Optimierung lässt sich im Einrichtungsdialog und in ihrer Kachel einschalten.
+- Die Optimierung lässt sich im Einrichtungsdialog und in der Kachel „Optimierung“ einschalten.
 - Die Automatik nennt, ob Raumtemperatur, Außentemperatur oder Wettervorhersage fehlen.
 - Fehlt die Wettervorhersage länger, erscheint eine Reparaturmeldung.
 - Die Wetterauswahl zeigt nur Entitäten mit Vorhersage.
