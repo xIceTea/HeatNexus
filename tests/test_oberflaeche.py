@@ -890,6 +890,38 @@ def test_die_kachel_hinweise_folgt_dem_stand_der_auswertung(durchlauf):
         ["Morgens zu spät warm", "Vorhaltezeit 60 → 135 min", "Ziel nach 95 min · 12 Tage"],
         ["Morgens zu spät warm", "Programmstart 90 min früher", "Ziel nach 95 min · 8 Tage"],
     ]
+    # Ohne Kurvenpunkte: eine Zeile „Heizkurve“, gezählt wird nur, was der Server unter `arten` nennt.
+    kurve = hinweise["kurve"]
+    assert (kurve["zahl"], kurve["neben"]) == ("2/3", "ausgewertet")
+    assert kurve["fuss"] == ["Heizkurve 9/7", "Sollwert 3/7", "Morgen 8/7"]
+    assert (kurve["ergebnis"]["zahl"], kurve["ergebnis"]["neben"]) == ("5", "Hinweise")
+    assert kurve["ergebnis"]["bloecke"] == [
+        ["Heizkurve", "Behaglichkeit 0 → 1 K", "−0,8 K · 9 Tage"],
+        ["Heizkurve", "Heizkurve anheben", "−0,8 K · 9 Tage"],
+        ["Heizkurve", "Heizkurve absenken", "+0,6 K · 9 Tage"],
+        ["Morgens schon warm", "Vorhaltezeit 90 min kürzer möglich", "Ziel nach 0 min · 8 Tage"],
+        [
+            "Morgens schon warm",
+            "Absenkung vor Programmbeginn wirkt kaum",
+            "Ziel nach 0 min · 8 Tage",
+        ],
+        ["Raumsollwert", "Unauffällig", "Vorläufig · Sollwert 21,0 °C · 3 von 7 Tagen"],
+    ]
+    assert kurve["ergebnis"]["klickbar"] == ["Heizkurve", "Morgens schon warm"]
+    tendenz_kurve = hinweise["kurveTendenz"]
+    assert (tendenz_kurve["zahl"], tendenz_kurve["fuss"]) == (
+        "0/3",
+        ["Heizkurve 5/7", "Sollwert 0/7", "Morgen 4/7"],
+    )
+    assert tendenz_kurve["ergebnis"]["bloecke"] == [
+        [
+            "Heizkurve",
+            "Eher zu warm",
+            "Vorläufig · +0,6 K · 5 von 7 Tagen",
+            "Behaglichkeit 1 K seit 20.09.",
+        ],
+        ["Aufheizen am Morgen", "Eher früh warm", "Vorläufig · Ziel nach 0 min · 4 von 7 Tagen"],
+    ]
 
 
 def test_neu_lernen_steht_in_den_einstellungen_und_fragt_nach(durchlauf):

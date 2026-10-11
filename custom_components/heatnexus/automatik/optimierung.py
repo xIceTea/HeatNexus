@@ -447,6 +447,7 @@ class OptimierungMixin:
                 asdict(t) for t in optimierer.tendenzen(tage, self.parameter_verlauf, heute)
             ],
             "parameter": stand,
+            "arten": optimierer.arten(self.parameter_verlauf),
         }
 
     def _ergebnis_entitaeten(self, stand: dict[str, Any]) -> dict[str, str]:

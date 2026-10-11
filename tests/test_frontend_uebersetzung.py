@@ -60,6 +60,7 @@ def test_die_seite_holt_keine_texte_aus_der_sprache_von_home_assistant():
 def test_der_fortschritt_der_hinweise_steht_in_jedem_woerterbuch():
     texte = {
         "Heizkurve: Übergang {uebergang}/{noetig} · Frost {frost}/{noetig}",
+        "Heizkurve {tage}/{noetig}",
         "Sollwert {tage}/{noetig}",
         "Morgen {tage}/{noetig}",
         "Noch keine Tage aufgezeichnet",
@@ -72,6 +73,12 @@ def test_der_fortschritt_der_hinweise_steht_in_jedem_woerterbuch():
         "Eher zu warm",
         "Eher hoch",
         "Eher zu spät warm",
+        "Eher früh warm",
+        "Morgens schon warm",
+        "Heizkurve anheben",
+        "Heizkurve absenken",
+        "Vorhaltezeit {von} min kürzer möglich",
+        "Absenkung vor Programmbeginn wirkt kaum",
         "Unauffällig",
         "Vorläufig",
         "{tage} von {noetig} Tagen",

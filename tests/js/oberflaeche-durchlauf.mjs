@@ -1141,6 +1141,40 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
         { art: "morgen_spaet", tage: 8, seit: null, parameter: "zeitprogramm", von: null, nach: 90, einheit: "min", minuten: 95 },
       ],
     }),
+    // Ohne Kurvenpunkte wertet der Server die Kurve als Ganzes aus.
+    kurve: zeigen({
+      status: "bereit",
+      arten: ["kurve", "sollwert", "morgen"],
+      entitaeten: { "3/58": "number.behaglichkeit", "3/6": "number.vorhaltezeit" },
+      tage: 12,
+      noetig: 7,
+      fortschritt: { kurve_uebergang: 0, kurve_frost: 0, kurve: 9, sollwert: 3, morgen: 8 },
+      parameter: { "3/58": { wert: 0, seit: null } },
+      eintraege: [
+        { art: "heizkurve_parallel", tage: 9, seit: null, abweichung: -0.8, parameter: "3/58", von: 0, nach: 1, einheit: "K" },
+        { art: "heizkurve_parallel", tage: 9, seit: null, abweichung: -0.8, parameter: null, von: null, nach: null },
+        { art: "heizkurve_parallel", tage: 9, seit: null, abweichung: 0.6, parameter: null, von: null, nach: null },
+        { art: "morgen_frueh", tage: 8, seit: null, parameter: "3/6", von: 90, nach: null, einheit: "min", minuten: 0 },
+        { art: "morgen_frueh", tage: 8, seit: null, parameter: "zeitprogramm", von: null, nach: null, minuten: 0 },
+      ],
+      vorlaeufig: [
+        { art: "sollwert", tage: 3, richtung: "unauffaellig", wert: 21 },
+        { art: "kurve_uebergang", tage: 4, richtung: "kalt", wert: -0.7 },
+      ],
+    }),
+    kurveTendenz: zeigen({
+      status: "sammelt",
+      arten: ["kurve", "sollwert", "morgen"],
+      tage: 5,
+      noetig: 7,
+      eintraege: [],
+      fortschritt: { kurve: 5, sollwert: 0, morgen: 4 },
+      parameter: { "3/58": { wert: 1, seit: "2026-09-20" } },
+      vorlaeufig: [
+        { art: "kurve", tage: 5, richtung: "warm", wert: 0.6 },
+        { art: "morgen", tage: 4, richtung: "frueh", wert: 0 },
+      ],
+    }),
   };
   {
     zeigen({ status: "aus" });

@@ -3043,23 +3043,39 @@ async def test_kennwerte_nennen_hinweise_nur_mit_schalter(hass, hass_ws_client, 
         "tage": 0,
         "noetig": 7,
         "eintraege": [],
-        "fortschritt": {"kurve_frost": 0, "kurve_uebergang": 0, "sollwert": 0, "morgen": 0},
+        "fortschritt": {
+            "kurve_uebergang": 0,
+            "kurve_frost": 0,
+            "kurve": 0,
+            "sollwert": 0,
+            "morgen": 0,
+        },
         "aufgezeichnet": 0,
         "ohne_grundlage": 0,
         "entitaeten": {"3/51": "climate.heatnexus_sn1_2_0_thermostat"},
         "vorlaeufig": [],
         "parameter": {},
+        "arten": ["kurve", "sollwert", "morgen"],
     }
 
     laufzeit.tage_archiv = _frosttage(5, -1.4)
     assert (await _kreis(client))["kennwerte"]["hinweise"]["vorlaeufig"] == [
-        {"art": "kurve_frost", "tage": 5, "richtung": "kalt", "wert": -1.4},
+        {"art": "kurve", "tage": 5, "richtung": "kalt", "wert": -1.4},
         {"art": "sollwert", "tage": 5, "richtung": "unauffaellig", "wert": 21.0},
     ]
 
     laufzeit.tage_archiv = _frosttage(8, -1.4)
-    laufzeit.parameter_verlauf = {"3/13": [["2026-08-01", 80.0]]}
+    laufzeit.parameter_verlauf = {"3/13": [["2026-08-01", 80.0]], "3/58": [["2026-08-01", 0.0]]}
     hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
+    assert hinweise["arten"] == ["kurve", "sollwert", "morgen"]
+    assert hinweise["fortschritt"]["kurve"] == 8
+    assert [(h["art"], h["parameter"], h["nach"]) for h in hinweise["eintraege"]] == [
+        ("heizkurve_parallel", "3/58", 1.5)
+    ]
+
+    laufzeit.parameter_verlauf["3/1"] = [["2026-08-01", 45.0]]
+    hinweise = (await _kreis(client))["kennwerte"]["hinweise"]
+    assert hinweise["arten"] == ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"]
     assert (hinweise["status"], hinweise["tage"]) == ("bereit", 8)
     assert hinweise["fortschritt"]["kurve_frost"] == 8
     assert (hinweise["aufgezeichnet"], hinweise["ohne_grundlage"]) == (8, 0)
@@ -3129,14 +3145,15 @@ async def test_diagnose_enthaelt_den_optimierer(hass, anlage, freezer):
     freezer.move_to(MORGEN)
     laufzeit = await _eingerichtet(hass, verwaltung)
     laufzeit.tage_archiv = _frosttage(8, -1.4)
-    laufzeit.parameter_verlauf = {"3/13": [["2026-08-01", 80.0]]}
+    verlauf = {"3/1": [["2026-08-01", 45.0]], "3/13": [["2026-08-01", 80.0]]}
+    laufzeit.parameter_verlauf = verlauf
     entry = hass.config_entries.async_entries("heatnexus")[0]
 
     (auszug,) = diagnostics.automatik_auszug(hass, entry)["heizkreise"]
 
     optimierer = auszug["optimierer"]
     assert optimierer["tage"] == 8
-    assert optimierer["parameter_verlauf"] == {"3/13": [["2026-08-01", 80.0]]}
+    assert optimierer["parameter_verlauf"] == verlauf
     assert [h["art"] for h in optimierer["hinweise"]] == ["heizkurve_frost"]
     json.dumps(auszug)
 

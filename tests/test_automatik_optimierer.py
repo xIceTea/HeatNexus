@@ -67,6 +67,13 @@ def parameter(**werte):
     return {k[1:].replace("_", "/"): [["2026-10-01", v]] for k, v in basis.items()}
 
 
+def ohne_baender(**werte):
+    """Parameterstand ohne Kurvenpunkte `3/1` und `3/13`, etwa bei einem DuoWIN."""
+    p = parameter(**werte)
+    del p["3/1"], p["3/13"]
+    return p
+
+
 def arten(liste):
     return [h.art for h in liste]
 
@@ -400,13 +407,7 @@ def test_ein_band_klein_ergibt_nur_das_andere(m):
     assert arten(m.hinweise(tage, parameter(), HEUTE)) == ["heizkurve_frost"]
 
 
-def test_ohne_bekannten_wert_kein_kurvenhinweis(m):
-    tage = reihe(m, 7, -3.0, -1.4) + reihe(m, 7, 10.0, 1.0, ab_tag=7)
-    p = parameter()
-    del p["3/13"]
-    assert arten(m.hinweise(tage, p, HEUTE)) == ["heizkurve_uebergang"]
-    p = parameter(p3_1=None)
-    assert arten(m.hinweise(tage, p, HEUTE)) == ["heizkurve_frost"]
+def test_ohne_behaglichkeit_kein_paralleler_hinweis(m):
     gleich = reihe(m, 7, -3.0, -1.0) + reihe(m, 7, 10.0, -0.8, ab_tag=7)
     assert m.hinweise(gleich, parameter(p3_58=None), HEUTE) == []
 
@@ -414,7 +415,8 @@ def test_ohne_bekannten_wert_kein_kurvenhinweis(m):
 def test_aktueller_wert_ist_letzter_eintrag(m):
     p = parameter()
     p["3/13"] += [["2026-10-05", 82.0], ["2026-10-06", None]]
-    assert m.hinweise(reihe(m, 7, -3.0, -1.4), p, HEUTE) == []
+    # Ohne gelesenen Wert für `3/13` gibt es nur die eine Kurve.
+    assert arten(m.hinweise(reihe(m, 7, -3.0, -1.4), p, HEUTE)) == ["heizkurve_parallel"]
     p["3/13"].append(["2026-10-07", "84.0"])
     (h,) = m.hinweise(reihe(m, 7, -3.0, -1.4), p, HEUTE)
     assert h.von == 84.0
@@ -425,6 +427,60 @@ def test_steuerung_passt_an_unterdrueckt_kurvenhinweise(m):
     for p in (parameter(p3_7=2.0), parameter(p3_101=5.0)):
         (h,) = m.hinweise(tage, p, HEUTE)
         assert (h.art, h.tage, h.seit) == ("steuerung_passt_an", 14, None)
+
+
+# --- Eine Kurve ohne Kurvenpunkte -----------------------------------------
+
+
+@pytest.mark.parametrize("fehlt", ["3/1", "3/13", "beide"])
+def test_ohne_kurvenpunkte_eine_kurve_ueber_die_behaglichkeit(m, fehlt):
+    p = ohne_baender() if fehlt == "beide" else parameter(**{f"p{fehlt.replace('/', '_')}": None})
+    tage = reihe(m, 7, -3.0, -1.0) + reihe(m, 7, 10.0, -0.8, ab_tag=7)
+    (h,) = m.hinweise(tage, p, HEUTE)
+    assert (h.art, h.tage, h.parameter, h.von, h.nach, h.einheit) == (
+        "heizkurve_parallel",
+        14,
+        "3/58",
+        0.0,
+        1.0,
+        "K",
+    )
+    assert h.abweichung == pytest.approx(-0.9)
+
+
+def test_eine_kurve_zaehlt_alle_tage_mit_abweichung(m):
+    # Tage zwischen den Bändern und ohne Außentemperatur zählen mit.
+    tage = reihe(m, 4, 2.0, 1.2) + reihe(m, 3, None, 1.2, ab_tag=4)
+    tage.append(tag(m, 7, 2.0, None))
+    (h,) = m.hinweise(tage, ohne_baender(p3_58=-1.0), HEUTE)
+    assert (h.tage, h.abweichung, h.von, h.nach) == (7, 1.2, -1.0, -2.0)
+
+
+def test_eine_kurve_grenzen(m):
+    assert m.hinweise(reihe(m, 6, 2.0, -1.4), ohne_baender(), HEUTE) == []
+    assert m.hinweise(reihe(m, 7, 2.0, -0.4), ohne_baender(), HEUTE) == []
+    assert m.hinweise(reihe(m, 7, 2.0, -1.0), ohne_baender(p3_58=3.0), HEUTE) == []
+    (h,) = m.hinweise(reihe(m, 7, 2.0, -5.0), ohne_baender(p3_58=1.0), HEUTE)
+    assert h.nach == 3.0
+
+
+def test_eine_kurve_ohne_behaglichkeit_nennt_nur_die_richtung(m):
+    (h,) = m.hinweise(reihe(m, 7, 2.0, -1.44), ohne_baender(p3_58=None), HEUTE)
+    assert h == m.Hinweis(art="heizkurve_parallel", tage=7, seit=None, abweichung=-1.4)
+
+
+def test_steuerung_passt_an_gilt_auch_fuer_eine_kurve(m):
+    tage = reihe(m, 7, 2.0, -1.4, soll=None)
+    (h,) = m.hinweise(tage, ohne_baender(p3_7=1.5), HEUTE)
+    assert (h.art, h.tage) == ("steuerung_passt_an", 7)
+    assert m.tendenzen(tage[:4], ohne_baender(p3_7=1.5), HEUTE) == []
+
+
+def test_arten_folgen_den_kurvenpunkten(m):
+    assert m.arten(parameter()) == ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"]
+    assert m.arten(ohne_baender()) == ["kurve", "sollwert", "morgen"]
+    assert m.arten(parameter(p3_13=None)) == ["kurve", "sollwert", "morgen"]
+    assert m.arten({}) == ["kurve", "sollwert", "morgen"]
 
 
 def test_steuerung_passt_an_nicht_bei_null(m):
@@ -499,6 +555,41 @@ def test_ohne_vorhaltezeit_empfiehlt_er_einen_frueheren_programmstart(m):
         "min",
         95,
     )
+
+
+def test_schon_warm_mit_vorhaltezeit(m):
+    (h,) = m.hinweise(reihe(m, 7, 2.0, 0.0, morgen=0), parameter(), HEUTE)
+    assert h == m.Hinweis(
+        art="morgen_frueh",
+        tage=7,
+        seit=None,
+        parameter="3/6",
+        von=60.0,
+        einheit="min",
+        minuten=0,
+    )
+
+
+@pytest.mark.parametrize("vorhaltezeit", [None, 0.0])
+def test_schon_warm_ohne_vorhaltezeit_nennt_das_zeitprogramm(m, vorhaltezeit):
+    tage = reihe(m, 7, 2.0, 0.0, morgen=0)
+    (h,) = m.hinweise(tage, parameter(p3_6=vorhaltezeit), HEUTE)
+    assert (h.art, h.parameter, h.von, h.nach, h.einheit, h.minuten) == (
+        "morgen_frueh",
+        "zeitprogramm",
+        None,
+        None,
+        "min",
+        0,
+    )
+
+
+def test_schon_warm_braucht_median_null_und_genug_tage(m):
+    assert m.hinweise(reihe(m, 6, 2.0, 0.0, morgen=0), parameter(), HEUTE) == []
+    tage = reihe(m, 4, 2.0, 0.0, morgen=0) + reihe(m, 3, 2.0, 0.0, morgen=60, ab_tag=4)
+    assert arten(m.hinweise(tage, parameter(), HEUTE)) == ["morgen_frueh"]
+    tage = reihe(m, 3, 2.0, 0.0, morgen=0) + reihe(m, 4, 2.0, 0.0, morgen=15, ab_tag=3)
+    assert m.hinweise(tage, parameter(), HEUTE) == []
 
 
 # --- Reihenfolge ----------------------------------------------------------
@@ -586,6 +677,7 @@ def fortschritt_tage(m):
 
 def test_fortschritt_zaehlt_je_art(m):
     assert m.fortschritt(fortschritt_tage(m), parameter(), HEUTE) == {
+        "kurve": 10,
         "kurve_frost": 7,
         "kurve_uebergang": 3,
         "sollwert": 5,
@@ -597,6 +689,7 @@ def test_fortschritt_zaehlt_nach_einer_kurvenaenderung_neu(m):
     p = parameter()
     p["3/1"].append([(START + timedelta(days=3)).isoformat(), 46.0])
     assert m.fortschritt(fortschritt_tage(m), p, date.fromisoformat(HEUTE)) == {
+        "kurve": 6,
         "kurve_frost": 3,
         "kurve_uebergang": 3,
         "sollwert": 1,
@@ -664,6 +757,22 @@ def test_niedriger_sollwert_und_frueh_warm_sind_unauffaellig(m):
         "sollwert": ("unauffaellig", 4, 21.0),
         "morgen": ("unauffaellig", 4, 30),
     }
+
+
+def test_morgen_tendenz_frueh_bei_median_null(m):
+    tage = reihe(m, 4, 20.0, 0.0, soll=None, morgen=0)
+    assert richtungen(m.tendenzen(tage, parameter(), HEUTE)) == {"morgen": ("frueh", 4, 0)}
+
+
+def test_tendenz_der_einen_kurve(m):
+    tage = reihe(m, 2, -3.0, -1.0, soll=None) + reihe(m, 3, 2.0, -0.6, ab_tag=2, soll=None)
+    assert richtungen(m.tendenzen(tage, ohne_baender(), HEUTE)) == {"kurve": ("kalt", 5, -0.8)}
+
+
+def test_tendenzen_folgen_den_arten(m):
+    tage = reihe(m, 4, -3.0, -1.0, soll=None)
+    assert set(richtungen(m.tendenzen(tage, parameter(), HEUTE))) == {"kurve_frost"}
+    assert set(richtungen(m.tendenzen(tage, ohne_baender(), HEUTE))) == {"kurve"}
 
 
 def test_steuerung_passt_an_unterdrueckt_kurventendenz(m):

@@ -60,6 +60,9 @@ const PARAMETERNAMEN = {
   "3/51": ["Raumsollwert", "°C"],
 };
 
+/** Ausgewertete Arten, wenn der Server keine `arten` nennt: Kurve in zwei Bändern. */
+const STANDARD_ARTEN = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"];
+
 /** ISO-Datum als „14.11.“. */
 function tagMonat(datum) {
   const teile = String(datum || "").split("-");
@@ -297,7 +300,7 @@ export const KennwerteMixin = (Basis) =>
         return this._kachel("hinweise", "Optimierung", this._t("aus"), null, schalter);
       }
       const f = h.fortschritt || {};
-      const arten = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"];
+      const arten = this._hinweisArten(h);
       const fertig = arten.filter((art) => h.noetig > 0 && (f[art] || 0) >= h.noetig).length;
       const kachel = this._kachel("hinweise", "Optimierung", `${fertig}/${arten.length}`, this._t("ausgewertet"), null, this._hinweisFortschritt(h));
       const erklaerung = "Hinweise beruhen auf ungestörten Heizstunden seit der letzten Änderung der Heizkurve. Stunden mit einem Eingriff zählen nicht. Ab 4 Tagen erscheint eine vorläufige Tendenz, ab 7 Tagen eine Empfehlung. Die Automatik ändert diese Werte nicht.";
@@ -305,19 +308,30 @@ export const KennwerteMixin = (Basis) =>
       return kachel;
     }
 
+    /** Die ausgewerteten Arten in Anzeigereihenfolge, wie der Server sie nach den vorhandenen Parametern nennt. */
+    _hinweisArten(h) {
+      return Array.isArray(h.arten) && h.arten.length ? h.arten : STANDARD_ARTEN;
+    }
+
     /** Gezählte Tage je Hinweisart, je Art eine Zeile; darunter, wie viele Tage Eingriffe hatten. */
     _hinweisFortschritt(h) {
       const f = h.fortschritt || {};
       const noetig = h.noetig || 0;
-      const zeilen = [
-        this._tMit("Heizkurve: Übergang {uebergang}/{noetig} · Frost {frost}/{noetig}", {
-          uebergang: f.kurve_uebergang || 0,
-          frost: f.kurve_frost || 0,
-          noetig,
-        }),
-        this._tMit("Sollwert {tage}/{noetig}", { tage: f.sollwert || 0, noetig }),
-        this._tMit("Morgen {tage}/{noetig}", { tage: f.morgen || 0, noetig }),
-      ];
+      // Die beiden Bänder der Kurve teilen sich eine Zeile.
+      const zeile = {
+        kurve_uebergang: () =>
+          this._tMit("Heizkurve: Übergang {uebergang}/{noetig} · Frost {frost}/{noetig}", {
+            uebergang: f.kurve_uebergang || 0,
+            frost: f.kurve_frost || 0,
+            noetig,
+          }),
+        kurve: () => this._tMit("Heizkurve {tage}/{noetig}", { tage: f.kurve || 0, noetig }),
+        sollwert: () => this._tMit("Sollwert {tage}/{noetig}", { tage: f.sollwert || 0, noetig }),
+        morgen: () => this._tMit("Morgen {tage}/{noetig}", { tage: f.morgen || 0, noetig }),
+      };
+      const zeilen = this._hinweisArten(h)
+        .filter((art) => zeile[art])
+        .map((art) => zeile[art]());
       if (h.aufgezeichnet === 0) zeilen.push(this._t("Noch keine Tage aufgezeichnet"));
       else if (h.ohne_grundlage > 0) {
         zeilen.push(this._tMit("{tage} Tage aufgezeichnet · {eingriffe} mit Eingriffen", { tage: h.aufgezeichnet, eingriffe: h.ohne_grundlage }));
@@ -339,7 +353,7 @@ export const KennwerteMixin = (Basis) =>
           return block && this._klickbar(block, entitaeten[eintrag.parameter]);
         })
         .filter(Boolean);
-      const arten = new Map(this._optimierungsArten().map((art) => [art[0], art]));
+      const arten = new Map(this._optimierungsArten(h).map((art) => [art[0], art]));
       const vorlaeufig = (h.vorlaeufig || [])
         .map((tendenz) => {
           const [, titel, , parameter] = arten.get(tendenz.art) || [];
@@ -356,15 +370,21 @@ export const KennwerteMixin = (Basis) =>
       return this._kachel("hinweise-ergebnis", "Ergebnisse der Optimierung", String(bloecke.length), this._t("Hinweise"), liste);
     }
 
-    /** Je ausgewertete Art: Schlüssel im Fortschritt, Titel, zugehörige Hinweisarten, Parameter. */
-    _optimierungsArten() {
+    /** Je ausgewertete Art in Anzeigereihenfolge: Schlüssel im Fortschritt, Titel, zugehörige Hinweisarten, Parameter. */
+    _optimierungsArten(h) {
       const kurve = ["heizkurve_parallel", "steuerung_passt_an"];
-      return [
-        ["kurve_uebergang", this._t("Heizkurve in der Übergangszeit"), ["heizkurve_uebergang", ...kurve], "3/1"],
-        ["kurve_frost", this._t("Heizkurve bei Frost"), ["heizkurve_frost", ...kurve], "3/13"],
-        ["sollwert", this._t("Raumsollwert"), ["sollwert_ausgleich"], "3/51"],
-        ["morgen", this._t("Aufheizen am Morgen"), ["morgen_spaet"], "3/6"],
-      ];
+      const alle = new Map(
+        [
+          ["kurve_uebergang", this._t("Heizkurve in der Übergangszeit"), ["heizkurve_uebergang", ...kurve], "3/1"],
+          ["kurve_frost", this._t("Heizkurve bei Frost"), ["heizkurve_frost", ...kurve], "3/13"],
+          ["kurve", this._t("Heizkurve"), kurve, "3/58"],
+          ["sollwert", this._t("Raumsollwert"), ["sollwert_ausgleich"], "3/51"],
+          ["morgen", this._t("Aufheizen am Morgen"), ["morgen_spaet", "morgen_frueh"], "3/6"],
+        ].map((art) => [art[0], art])
+      );
+      return this._hinweisArten(h)
+        .map((schluessel) => alle.get(schluessel))
+        .filter(Boolean);
     }
 
     /** Arten mit genug Tagen, zu denen kein Hinweis vorliegt, als `[Titel, Tage, Hinweisarten, Parameter]`. */
@@ -372,7 +392,7 @@ export const KennwerteMixin = (Basis) =>
       const f = h.fortschritt || {};
       const noetig = h.noetig || 0;
       const arten = new Set((h.eintraege || []).map((eintrag) => eintrag.art));
-      return this._optimierungsArten()
+      return this._optimierungsArten(h)
         .map(([schluessel, titel, eigene, parameter]) => [titel, f[schluessel], eigene, parameter])
         .filter(([, tage, eigene]) => noetig > 0 && (tage || 0) >= noetig && !eigene.some((art) => arten.has(art)));
     }
@@ -384,6 +404,7 @@ export const KennwerteMixin = (Basis) =>
         warm: this._t("Eher zu warm"),
         hoch: this._t("Eher hoch"),
         spaet: this._t("Eher zu spät warm"),
+        frueh: this._t("Eher früh warm"),
         unauffaellig: this._t("Unauffällig"),
       }[tendenz.richtung];
       if (!marke) return null;
@@ -430,6 +451,7 @@ export const KennwerteMixin = (Basis) =>
         heizkurve_parallel: this._t("Heizkurve"),
         sollwert_ausgleich: this._t("Raumsollwert"),
         morgen_spaet: this._t("Morgens zu spät warm"),
+        morgen_frueh: this._t("Morgens schon warm"),
         steuerung_passt_an: this._t("Heizkurve"),
       }[eintrag.art];
       if (!titel) return null;
@@ -455,6 +477,11 @@ export const KennwerteMixin = (Basis) =>
     _hinweisEmpfehlung(eintrag) {
       if (eintrag.art === "steuerung_passt_an") return this._t("Keine Empfehlung zur Kurve");
       if (eintrag.art === "sollwert_ausgleich") return this._t("Heizkurve anpassen statt Sollwert");
+      if (eintrag.art === "morgen_frueh") return this._morgenFruehEmpfehlung(eintrag);
+      // Ohne einstellbaren Parameter nennt der Hinweis nur die Richtung; zu kühl heißt anheben.
+      if (eintrag.art === "heizkurve_parallel" && !eintrag.parameter && vorhanden(eintrag.abweichung)) {
+        return Number(eintrag.abweichung) < 0 ? this._t("Heizkurve anheben") : this._t("Heizkurve absenken");
+      }
       if (eintrag.parameter === "zeitprogramm" && vorhanden(eintrag.nach)) {
         return this._tMit("Programmstart {minuten} min früher", { minuten: parameterwert(eintrag.nach) });
       }
@@ -463,6 +490,14 @@ export const KennwerteMixin = (Basis) =>
       const parameter = name ? this._t(name[0]) : eintrag.parameter || "";
       const werte = { parameter, von: parameterwert(eintrag.von), nach: parameterwert(eintrag.nach), einheit: eintrag.einheit || "" };
       return this._tMit("{parameter} {von} → {nach} {einheit}", werte).trim();
+    }
+
+    /** Raum schon zu Programmbeginn warm: kürzere Vorhaltezeit, ohne sie die Absenkung davor. Kein Zielwert. */
+    _morgenFruehEmpfehlung(eintrag) {
+      if (eintrag.parameter === "3/6" && vorhanden(eintrag.von)) {
+        return this._tMit("Vorhaltezeit {von} min kürzer möglich", { von: parameterwert(eintrag.von) });
+      }
+      return this._t("Absenkung vor Programmbeginn wirkt kaum");
     }
 
     /** Eine Zeile je Raum: Name, Ist → Ziel, ob er heizt. */

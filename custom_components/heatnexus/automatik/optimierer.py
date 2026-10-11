@@ -29,6 +29,8 @@ UEBERGANG = (5.0, 15.0)
 K_VORLAUF = 4.0
 K_FUSSPUNKT = 3.0
 MORGEN_MIN = 60
+# Median der Morgenzeit, bei dem der Raum schon zu Programmbeginn warm ist.
+MORGEN_SOFORT = 0
 SOLL_HOCH = 22.5
 # Ab dieser Abweichung gilt der Raum morgens als warm.
 WARM_K = -0.3
@@ -41,6 +43,8 @@ FUSS_AT = 20.0
 MIN_ANTEIL = 0.25
 # Liest die Steuerung hier einen Wert über null, passt sie die Kurve selbst an.
 ANPASSUNG = ("3/101", "3/7")
+# Kurvenpunkte der beiden Bänder; fehlt einer, gilt die Kurve als Ganzes.
+BAENDER = ("3/1", "3/13")
 # Welche Parameteränderung die Grundlage welcher Hinweise zurücksetzt.
 KURVE = ("3/1", "3/12", "3/13", "3/7", "3/58", "3/101")
 GRUPPEN = {"kurve": KURVE, "sollwert": (*KURVE, "3/51"), "morgen": ("3/6",)}
@@ -295,6 +299,23 @@ def _kurve(grundlage: list[Tag], p: Mapping[str, Any], seit: str | None) -> list
     return liste
 
 
+def _mit_abweichung(grundlage: list[Tag]) -> list[Tag]:
+    return [t for t in grundlage if t.abweichung is not None]
+
+
+def _eine_kurve(grundlage: list[Tag], von: float | None, seit: str | None) -> list[Hinweis]:
+    """Ohne Kurvenpunkte die ganze Kurve über die Behaglichkeit; ohne `3/58` nur die Richtung."""
+    tage = _mit_abweichung(grundlage)
+    if len(tage) < MIN_TAGE or abs(d := mean(t.abweichung for t in tage)) < SCHWELLE_K:
+        return []
+    if von is None:
+        return [Hinweis("heizkurve_parallel", len(tage), seit, round(d, 1))]
+    nach = _begrenzt(von - _runden(d, 0.5), *BEHAGLICHKEIT)
+    if nach == von:
+        return []
+    return [Hinweis("heizkurve_parallel", len(tage), seit, round(d, 1), "3/58", von, nach, "K")]
+
+
 def _sollwert(grundlage: list[Tag], seit: str | None) -> list[Hinweis]:
     """Ein dauerhaft hoher Raumsollwert gleicht meist eine zu flache Kurve aus."""
     werte = [t.soll for t in grundlage if t.soll is not None]
@@ -327,6 +348,15 @@ def _morgen_spaet(grundlage: list[Tag], von: float | None, seit: str | None) -> 
     return [Hinweis("morgen_spaet", len(werte), seit, None, "3/6", von, nach, "min", minuten)]
 
 
+def _morgen_frueh(grundlage: list[Tag], von: float | None, seit: str | None) -> list[Hinweis]:
+    """Schon zu Programmbeginn warm; einen Zielwert gibt es nicht, die Wärmespeicherung ist unbekannt."""
+    werte = [t.morgen_min for t in grundlage if t.morgen_min is not None]
+    if len(werte) < MIN_TAGE or median(werte) != MORGEN_SOFORT:
+        return []
+    name, wert = ("3/6", von) if von is not None and von > 0 else ("zeitprogramm", None)
+    return [Hinweis("morgen_frueh", len(werte), seit, None, name, wert, None, "min", MORGEN_SOFORT)]
+
+
 def grundlage(
     tage: Sequence[Tag], parameter_verlauf: Mapping[str, Any], heute: date | str
 ) -> list[Tag]:
@@ -346,11 +376,28 @@ def hinweise(
     kurve, seit = basis("kurve")
     if _passt_an(parameter_verlauf):
         liste = [Hinweis("steuerung_passt_an", len(kurve), seit)]
-    else:
+    elif _zwei_baender(parameter_verlauf):
         liste = _kurve(kurve, parameter_verlauf, seit)
+    else:
+        liste = _eine_kurve(kurve, _aktuell(parameter_verlauf, "3/58"), seit)
     liste += _sollwert(*basis("sollwert"))
     morgen, seit_morgen = basis("morgen")
-    return liste + _morgen_spaet(morgen, _aktuell(parameter_verlauf, "3/6"), seit_morgen)
+    vorhaltezeit = _aktuell(parameter_verlauf, "3/6")
+    return (
+        liste
+        + _morgen_spaet(morgen, vorhaltezeit, seit_morgen)
+        + _morgen_frueh(morgen, vorhaltezeit, seit_morgen)
+    )
+
+
+def _zwei_baender(parameter_verlauf: Mapping[str, Any]) -> bool:
+    return all(_aktuell(parameter_verlauf, name) is not None for name in BAENDER)
+
+
+def arten(parameter_verlauf: Mapping[str, Any]) -> list[str]:
+    """Die Arten der Kachel in Anzeigereihenfolge; zwei Bänder nur mit beiden Kurvenpunkten."""
+    kurve = ["kurve_uebergang", "kurve_frost"] if _zwei_baender(parameter_verlauf) else ["kurve"]
+    return [*kurve, "sollwert", "morgen"]
 
 
 def _passt_an(parameter_verlauf: Mapping[str, Any]) -> bool:
@@ -370,6 +417,7 @@ def _reihen(
     return {
         "kurve_uebergang": _band(kurve, _uebergang),
         "kurve_frost": _band(kurve, _frost),
+        "kurve": _mit_abweichung(kurve),
         "sollwert": [t.soll for t in basis("sollwert") if t.soll is not None],
         "morgen": [t.morgen_min for t in basis("morgen") if t.morgen_min is not None],
     }
@@ -391,8 +439,10 @@ def _tendenz(art: str, werte: list[Any]) -> Tendenz:
         wert = median(werte)
         return Tendenz(art, len(werte), _richtung(wert, SOLL_HOCH, "hoch"), wert)
     if art == "morgen":
-        minuten = int(_runden(median(werte)))
-        return Tendenz(art, len(werte), _richtung(minuten, MORGEN_MIN, "spaet"), minuten)
+        wert = median(werte)
+        minuten = int(_runden(wert))
+        richtung = "frueh" if wert == MORGEN_SOFORT else _richtung(minuten, MORGEN_MIN, "spaet")
+        return Tendenz(art, len(werte), richtung, minuten)
     d = round(mean(t.abweichung for t in werte), 1)
     richtung = "unauffaellig" if abs(d) < SCHWELLE_K else ("kalt" if d < 0 else "warm")
     return Tendenz(art, len(werte), richtung, d)
@@ -401,12 +451,14 @@ def _tendenz(art: str, werte: list[Any]) -> Tendenz:
 def tendenzen(
     tage: Sequence[Tag], parameter_verlauf: Mapping[str, Any], heute: date | str
 ) -> list[Tendenz]:
-    """Je Art mit mindestens `MIN_VORLAEUFIG`, aber weniger als `MIN_TAGE` Tagen eine Tendenz."""
+    """Je Art aus `arten` mit mindestens `MIN_VORLAEUFIG`, aber weniger als `MIN_TAGE` Tagen."""
     passt_an = _passt_an(parameter_verlauf)
+    reihen = _reihen(tage, parameter_verlauf, heute)
     return [
-        _tendenz(art, werte)
-        for art, werte in _reihen(tage, parameter_verlauf, heute).items()
-        if MIN_VORLAEUFIG <= len(werte) < MIN_TAGE and not (passt_an and art.startswith("kurve"))
+        _tendenz(art, reihen[art])
+        for art in arten(parameter_verlauf)
+        if MIN_VORLAEUFIG <= len(reihen[art]) < MIN_TAGE
+        and not (passt_an and art.startswith("kurve"))
     ]
 
 
