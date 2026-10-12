@@ -224,6 +224,9 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_UPDATE_INTERVAL: intervall,
                 CONF_DASHBOARD: dashboard,
                 CONF_PANEL: oberflaeche,
+                # Mit beiden Sprachfeldern gilt der Eintrag nicht als Altbestand für die Umstellung.
+                CONF_SPRACHE: gemeinsame_wahl(self.hass),
+                CONF_SPRACHE_ANLAGE: SPRACHE_WIE_HEATNEXUS,
             }
             # Die Auswahl gilt zunächst für alle Anlagen; sie lässt sich
             # später je Anlage getrennt ändern.

@@ -258,3 +258,13 @@ def test_umstellung_ohne_aenderung_laeuft_trotzdem_nur_einmal(texte):
 
     assert neu == [{"sprache": "auto", "sprache_anlage": "wie_heatnexus"}, None]
     assert texte.sprachwahl_umstellen(_angewandt(alt, neu), "en") is None
+
+
+@pytest.mark.parametrize("ha", ["en", "nl", "de"])
+def test_ein_frischer_eintrag_bleibt_bei_der_sprache_von_home_assistant(texte, ha):
+    """Der Dialog legt beide Sprachfelder an; die Umstellung lässt den Eintrag dann stehen."""
+    frisch = [{"update_interval": 30, "sprache": "auto", "sprache_anlage": "wie_heatnexus"}]
+
+    assert texte.sprachwahl_umstellen(frisch, ha) is None
+    hass = _Hass(ha, [_Eintrag(frisch[0])])
+    assert texte.sprache_des_eintrags(hass, hass.config_entries.async_entries("heatnexus")[0]) == ha
