@@ -298,6 +298,14 @@ def test_ohne_kartenmodul_bleibt_die_zeichnung(anlagenseite):
     assert [k for k in karten if k.get("type") == "picture-elements"]
 
 
+def test_die_feste_zeichnung_traegt_nur_was_lovelace_liest(uebersichtsseite):
+    """Zeichnung und Hilfslisten der Oberfläche gehören nicht in die Lovelace-Konfiguration."""
+    seite = uebersichtsseite.uebersicht([_anlage_mit_teilen()], als_karte=False, badges=[])
+    karten = [k for abschnitt in seite["sections"] for k in abschnitt["cards"]]
+    [bild] = [k for k in karten if k.get("type") == "picture-elements"]
+    assert set(bild) == {"type", "image", "dark_mode_image", "elements"}
+
+
 def _kartentypen(konfiguration: dict) -> list[str]:
     return [
         str(karte.get("type", ""))

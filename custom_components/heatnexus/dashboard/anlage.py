@@ -54,6 +54,9 @@ def meldungsabschnitt(anlagen: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return abschnitte
 
 
+BILDKARTE_FELDER = ("type", "image", "dark_mode_image", "elements")
+
+
 def schaubild(
     anlage: dict[str, Any], als_karte: bool, mit_liste: bool, buch: Woerterbuch | None = None
 ) -> dict[str, Any] | None:
@@ -74,7 +77,9 @@ def schaubild(
         if mit_liste and (werte := zustandswerte(anlage)):
             karte["zusatzwerte"] = [e["entity_id"] for e in werte]
         return karte
-    return anlagenschema(anlage["teile"], modulpumpe=anlage.get("modulpumpe", False), buch=buch)
+    bild = anlagenschema(anlage["teile"], modulpumpe=anlage.get("modulpumpe", False), buch=buch)
+    # Lovelace liest nur diese Felder; Zeichnung und Hilfslisten dienen der Oberfläche.
+    return {feld: bild[feld] for feld in BILDKARTE_FELDER} if bild else None
 
 
 def teilabschnitt(teil: dict[str, Any]) -> list[dict[str, Any]]:
