@@ -68,7 +68,6 @@ wenn dort Vorabversionen zugelassen sind.
 - Das Schaubild erkennt die Kesselart auch auf Englisch und Niederländisch.
 - Die Zustände einer Wärmequelle erscheinen übersetzt.
 - Ein neuer Untereintrag lädt die Integration auch bei gleichen Optionen neu.
-- BioWIN: Der Befüllgrad des Lagerraums ist nur noch eine Anzeige.
 - Die Anlagenseite zeigt das Schaubild bei einer einzelnen Anlage nur einmal.
 - Zustandslisten zeigen keinen Platzhalter für Werte ohne Text.
 - BioWIN: Der Befüllgrad des Lagerraums ist nur noch eine Anzeige.
