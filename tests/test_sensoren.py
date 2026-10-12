@@ -242,6 +242,36 @@ def test_meldungsliste_zaehlt_dieselbe_meldung_nicht_hoch(sensoren):
     assert len(entity.extra_state_attributes["meldungen"]) == 1
 
 
+def test_meldungsliste_zaehlt_eine_wiederkehrende_meldung(sensoren):
+    """Tür auf, zu, wieder auf: zwei Ereignisse."""
+    entity, koordinator = _liste(sensoren)
+    for roh in ("PUR 09E346", "PUR 09  OK", "PUR 09E346", "PUR 09E346"):
+        _melden(entity, koordinator, roh)
+
+    [eintrag] = entity.extra_state_attributes["meldungen"]
+    assert eintrag["anzahl"] == 2
+
+
+def test_meldungsliste_zaehlt_nach_dem_neustart_nicht_doppelt(sensoren):
+    """Eine über den Neustart anstehende Meldung bleibt ein Ereignis."""
+    entity, koordinator = _liste(sensoren)
+    _melden(entity, koordinator, "PUR 09E346")
+    gespeichert = entity.extra_state_attributes["meldungen"]
+
+    neu, koordinator = _liste(sensoren)
+    neu._eintraege = {int(e["code"]): dict(e) for e in gespeichert}
+    _melden(neu, koordinator, "PUR 09E346")
+
+    assert neu.extra_state_attributes["meldungen"][0]["anzahl"] == 1
+
+
+def test_meldungsliste_hat_keine_einheit_und_keine_liste_im_verlauf(sensoren):
+    """Eine Einheit „Meldungen" stünde auch in Englisch so da; die Liste belastet den Rekorder."""
+    entity, _ = _liste(sensoren)
+    assert entity.native_unit_of_measurement is None
+    assert "meldungen" in entity._unrecorded_attributes
+
+
 def test_meldungsliste_sammelt_verschiedene_codes(sensoren):
     entity, koordinator = _liste(sensoren)
     _melden(entity, koordinator, "PUR 09E346")

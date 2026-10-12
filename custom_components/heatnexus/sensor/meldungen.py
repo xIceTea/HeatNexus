@@ -111,7 +111,8 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
 
     _attr_icon = "mdi:format-list-bulleted"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = "Meldungen"
+    # Die Liste steht für den Neustart im Zustand, gehört aber nicht in den Verlauf.
+    _unrecorded_attributes = frozenset({"meldungen"})
     # Quelle ist die /1-Discovery, nicht das OID-Polling.
     _register_poll_oid = False
     # Der Zustand ist die Länge der eigenen Liste, kein Wert der Anlage. Ohne
@@ -148,7 +149,9 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
             return
         jetzt = dt_util.utcnow().isoformat(timespec="seconds")
         texte = self._descriptor.get("stoerungstexte")
+        anstehend = set()
         for meldung in parse_messages(roh, texte, self._descriptor.get("sprache") or "de"):
+            anstehend.add(meldung["code"])
             vorhanden = self._eintraege.get(meldung["code"])
             if vorhanden is None:
                 self._eintraege[meldung["code"]] = {
@@ -156,11 +159,16 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
                     "zuerst": jetzt,
                     "zuletzt": jetzt,
                     "anzahl": 1,
+                    "aktiv": True,
                 }
                 continue
-            # Dieselbe Meldung im nächsten Abruf ist kein neues Ereignis –
-            # sonst zählte eine offene Tür alle 30 Sekunden weiter hoch.
+            # Nur ein Wiederauftreten zählt: Dieselbe Meldung im nächsten Abruf
+            # ist kein neues Ereignis.
+            if not vorhanden.get("aktiv"):
+                vorhanden["anzahl"] = int(vorhanden.get("anzahl") or 0) + 1
             vorhanden["zuletzt"] = jetzt
+        for code, eintrag in self._eintraege.items():
+            eintrag["aktiv"] = code in anstehend
 
     @callback
     def leeren(self) -> None:
