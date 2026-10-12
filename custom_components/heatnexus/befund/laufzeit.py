@@ -14,7 +14,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from ..automatik import eingaben
+from ..automatik.eingaben import raum_messung, raumwert
 from ..automatik.tagesansicht import hausmodell_stand
 from ..automatik.verwaltung import Verwaltung, verwaltung_holen
 from ..const import DOMAIN
@@ -35,7 +35,8 @@ TA_ABSENK = "/3/2/0"
 STARTS = "/2/80/0"
 BH = "/2/81/0"
 LEISTUNG = "/0/9/0"
-NENN = "/11/2/0"
+# Nennleistung: PuroWIN führt sie unter `39/61`, andere Wärmeerzeuger unter `11/2`.
+NENN = ("/39/61/0", "/11/2/0")
 KESSEL = {"starts": STARTS, "bh": BH, "leistung": LEISTUNG}
 SCHLUESSEL = f"{DOMAIN}_befund"
 
@@ -103,13 +104,16 @@ class Sammler:
     def _wert(self, prefix: str, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, prefix)
 
+    def _nenn(self, prefix: str) -> float | None:
+        return next((w for a in NENN if (w := self._wert(prefix, a))), None)
+
     def _raeume(self, device_id: str) -> dict[str, list[float | None]]:
         raeume = {}
         for kennung in (verwaltung_holen(self.hass).konfig(device_id) or {}).get("raeume", []):
             zustand = self.hass.states.get(kennung)
             if zustand is None:
                 continue
-            messung = eingaben.raum_messung(kennung, zustand.state, zustand.attributes)
+            messung = raum_messung(kennung, zustand.state, zustand.attributes)
             if messung is not None and not messung.aus:
                 raeume[kennung] = [messung.ist, messung.ziel]
         return raeume
@@ -126,7 +130,7 @@ class Sammler:
             werte["raeume"] = self._raeume(b["device_id"])
             self.archiv.messen(b["device_id"], zeit, werte)
         for p in kessel_praefixe(self.coordinator):
-            nenn, leistung = self._wert(p, NENN), self._wert(p, LEISTUNG)
+            nenn, leistung = self._nenn(p), self._wert(p, LEISTUNG)
             kw = leistung / 100 * nenn if leistung is not None and nenn else None
             zaehler = {"starts": self._wert(p, STARTS), "bh": self._wert(p, BH), "kw": kw}
             self.archiv.messen_kessel(p, zeit, zaehler)
@@ -180,7 +184,7 @@ class Sammler:
         return stunden
 
     def _kessel_stunden(self, prefix: str, stunden: dict[str, dict[str, Any]]) -> None:
-        nenn = self._wert(prefix, NENN)
+        nenn = self._nenn(prefix)
         for stunde in stunden.values():
             leistung = stunde.pop("leistung", None)
             stunde["kwh"] = leistung / 100 * nenn if leistung is not None and nenn else None
@@ -216,7 +220,7 @@ class Sammler:
             name=b.get("device_name") or device_id,
             raeume=list(konfig.get("raeume", [])),
             modell=hausmodell_stand(laufzeit) if laufzeit is not None else None,
-            raum=eingaben.raumwert(ist, konfig.get("raum_art", "mittel")) if ist else None,
+            raum=raumwert(ist, konfig.get("raum_art", "mittel")) if ist else None,
             ta_heiz=self._wert(p, TA_HEIZ),
             ta_absenk=self._wert(p, TA_ABSENK),
         )
@@ -226,7 +230,7 @@ class Sammler:
         return auswertung.Kessel(
             kennung=prefix,
             name=getattr(self.coordinator, "label", "") or prefix,
-            nennleistung=self._wert(prefix, NENN),
+            nennleistung=self._nenn(prefix),
             zaehler=(starts, bh) if starts and bh else None,
         )
 
