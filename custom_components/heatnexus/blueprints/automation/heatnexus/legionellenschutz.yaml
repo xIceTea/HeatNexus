@@ -193,15 +193,15 @@ actions:
       sequence:
         - variables:
             # Wie die Betriebswahl ihre Einträge nennt, meldet die Anlage
-            # selbst – geraten wird nichts. Verglichen wird gegen die
-            # bekannten Schreibweisen statt per Regex: Ob `match` als
-            # Jinja-Test zur Verfügung steht, hängt an der HA-Fassung.
+            # selbst, in der Sprache von HeatNexus. Verglichen wird gegen die
+            # Schreibweisen jeder Sprache; `match` gibt es nicht in jeder Fassung.
             ww_eintrag: >
               {% set ns = namespace(treffer='') %}
               {% for eintrag in (state_attr(repeat.item, 'options') or []) %}
                 {% if ns.treffer == ''
                       and eintrag | lower | replace(' ', '-')
-                          in ['ww-betrieb', 'warmwasserbetrieb'] %}
+                          in ['ww-betrieb', 'warmwasserbetrieb', 'dhw-operation',
+                              'dhw-mode', 'boiler-bedrijf', 'warmwaterbedrijf'] %}
                   {% set ns.treffer = eintrag %}
                 {% endif %}
               {% endfor %}
@@ -211,33 +211,34 @@ actions:
               value_template: "{{ ww_eintrag != '' and states(repeat.item) != ww_eintrag }}"
           then:
             - action: select.select_option
+              continue_on_error: true
               target:
                 entity_id: "{{ repeat.item }}"
               data:
                 option: "{{ ww_eintrag }}"
 
+  # Jede schreibende Aktion läuft bei einem Fehler weiter, damit das Aufräumen
+  # unten in jedem Fall stattfindet.
   - action: number.set_value
+    continue_on_error: true
     target:
       entity_id: !input ladetemperatur
     data:
       value: !input zieltemperatur
 
   - action: switch.turn_on
+    continue_on_error: true
     target:
       entity_id: !input einmalladung
 
-  # Ein halbes Grad Nachsicht: Der Fühler meldet in Zehntelschritten, und auf
-  # das letzte Zehntel zu warten hieße im Zweifel, bis zur Höchstdauer zu
-  # warten.
-  - wait_for_trigger:
-      - trigger: numeric_state
-        entity_id: !input warmwasser_ist
-        above: "{{ ziel | float - 0.5 }}"
+  # Eine Vorlage statt eines Auslösers: Ist der Speicher schon warm, geht es
+  # sofort weiter. Ein halbes Grad Nachsicht, weil der Fühler in Zehnteln meldet.
+  - wait_template: "{{ states(fuehler) | float(0) >= ziel | float - 0.5 }}"
     timeout: !input hoechstdauer
     continue_on_timeout: true
 
   - variables:
-      erreicht: "{{ wait.trigger is not none }}"
+      erreicht: "{{ wait.completed }}"
       erreichte_temperatur: "{{ states(fuehler) }}"
 
   - if:
@@ -250,6 +251,7 @@ actions:
   # Ladetemperatur auf 60 °C stehen, heizte die Anlage ab sofort jede normale
   # Ladung dorthin.
   - action: switch.turn_off
+    continue_on_error: true
     target:
       entity_id: !input einmalladung
 
@@ -258,6 +260,7 @@ actions:
         value_template: "{{ vorherige_temperatur not in ['unknown', 'unavailable', 'none'] }}"
     then:
       - action: number.set_value
+        continue_on_error: true
         target:
           entity_id: !input ladetemperatur
         data:
@@ -276,6 +279,7 @@ actions:
                    and states(repeat.item) != vorher }}
           then:
             - action: select.select_option
+              continue_on_error: true
               target:
                 entity_id: "{{ repeat.item }}"
               data:

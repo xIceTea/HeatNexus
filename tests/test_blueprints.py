@@ -112,12 +112,69 @@ def test_aufraeumen_haengt_an_keiner_bedingung(legionellen):
 
 def test_die_ladung_wird_spaetestens_nach_der_hoechstdauer_beendet(legionellen):
     """Ohne Zeitgrenze liefe die Ladung im Zweifel bis zum nächsten Lauf."""
-    warten = [s for s in legionellen["actions"] if isinstance(s, dict) and "wait_for_trigger" in s]
+    warten = [s for s in legionellen["actions"] if isinstance(s, dict) and "wait_template" in s]
     assert warten, "Es wird gar nicht auf die Zieltemperatur gewartet"
     assert warten[0].get("timeout"), "Das Warten hat keine Zeitgrenze"
     assert warten[0].get("continue_on_timeout") is True, (
         "Nach der Zeitgrenze bricht der Ablauf ab, statt aufzuräumen"
     )
+
+
+@pytest.mark.parametrize(("ist", "erreicht"), [("61.2", True), ("59.6", True), ("45", False)])
+def test_ein_schon_warmer_speicher_gilt_sofort_als_erreicht(legionellen, ist, erreicht):
+    """Ein Auslöser feuerte nur beim Überschreiten; ein schon warmer Speicher wartete bis zur Grenze."""
+    (warten,) = [s for s in legionellen["actions"] if isinstance(s, dict) and "wait_template" in s]
+    ergebnis = _rendern(
+        warten["wait_template"], states=lambda _e: ist, fuehler="sensor.ww", ziel=60
+    )
+    assert ergebnis == str(erreicht)
+    (merken,) = [s for s in legionellen["actions"] if "erreicht" in s.get("variables", {})]
+    assert merken["variables"]["erreicht"] == "{{ wait.completed }}"
+
+
+def _schreibende(schritt) -> list[dict]:
+    """Alle Aktionen, die einen Wert an der Anlage stellen, beliebig tief geschachtelt."""
+    gefunden: list[dict] = []
+    if isinstance(schritt, dict):
+        if str(schritt.get("action", "")).split(".")[0] in {"select", "number", "switch"}:
+            gefunden.append(schritt)
+        for wert in schritt.values():
+            gefunden.extend(_schreibende(wert))
+    elif isinstance(schritt, list):
+        for eintrag in schritt:
+            gefunden.extend(_schreibende(eintrag))
+    return gefunden
+
+
+def test_eine_gescheiterte_aktion_haelt_das_aufraeumen_nicht_auf(legionellen):
+    """Sonst bliebe nach einem Schreibfehler die Ladetemperatur auf dem Zielwert stehen."""
+    schreibende = _schreibende(legionellen["actions"])
+    assert len(schreibende) == 6
+    assert all(s.get("continue_on_error") is True for s in schreibende)
+
+
+def _ww_namen() -> list[str]:
+    """Wie „WW-Betrieb" in jeder Sprache heißt: Herstellertabelle und eigene Texte."""
+    import json
+
+    paket = VORLAGEN.parent.parent.parent
+    datenbank = json.loads((paket / "device_db.json").read_text(encoding="utf-8"))
+    namen = [datenbank["enums"]["3/50"]["6"]]
+    namen += [t["enums"]["3/50"]["6"] for t in datenbank.get("sprachen", {}).values()]
+    for datei in sorted((paket / "sprachen").glob("*.json")):
+        namen.append(json.loads(datei.read_text(encoding="utf-8"))["WW-Betrieb"])
+    return namen
+
+
+@pytest.mark.parametrize("name", _ww_namen())
+def test_der_ww_betrieb_wird_in_jeder_sprache_gefunden(legionellen, name):
+    (umstellen,) = [s for s in legionellen["actions"] if isinstance(s, dict) and "repeat" in s][:1]
+    vorlage = umstellen["repeat"]["sequence"][0]["variables"]["ww_eintrag"]
+    optionen = ["Standby", "Programm 1", name]
+    ergebnis = _rendern(
+        vorlage, state_attr=lambda _e, _a: optionen, repeat={"item": "select.betriebswahl"}
+    )
+    assert ergebnis == name
 
 
 def test_ein_gescheiterter_lauf_bleibt_nicht_still(legionellen):
