@@ -15,8 +15,8 @@ jobs:
     name: Ruff
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install ruff
@@ -28,11 +28,11 @@ jobs:
     name: Kommentarlänge
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # Die Prüfung braucht den Vergleichsstand, nicht nur den letzten Commit.
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: git fetch origin main --depth=50
@@ -54,8 +54,8 @@ jobs:
           - { ha: neueste, python: "3.14", titel: "pytest (neueste HA)" }
           - { ha: aelteste, python: "3.13", titel: "pytest (älteste HA)", paket: "0.13.251" }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           # Muss zur Home-Assistant-Fassung passen: ab HA 2026.4 Python 3.14.
           python-version: ${{ matrix.python }}
