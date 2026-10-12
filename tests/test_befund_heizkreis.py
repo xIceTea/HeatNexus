@@ -104,3 +104,16 @@ def test_vorlauf_anteil_und_folge(hk):
     for t in tage[:3]:
         t |= {"unter": 4, "folge": 4}
     assert hk.vorlauf(tage).status == "hinweis"
+
+
+def test_naechte_ein_ausreisser_kippt_den_befund_nicht(hk):
+    stunden = []
+    for d in range(1, 9):
+        datum = f"2026-10-{d:02d}"
+        ist = 29.7 if d == 1 else 20.3
+        nacht = {"climate.a": [ist, 20.0]}
+        stunden += [stunde(f"{datum} {h:02d}", at=11.0, raeume=nacht) for h in range(5)]
+        stunden += [stunde(f"{datum} 05", at=11.0, raeume={"climate.a": [20.4, 22.5]})]
+    befund = hk.naechte(stunden)
+    assert befund.wert == pytest.approx(0.3)
+    assert befund.status == "unauffaellig"

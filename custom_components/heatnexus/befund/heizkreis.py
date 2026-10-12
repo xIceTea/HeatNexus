@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from statistics import mean
+from statistics import mean, median
 from typing import Any
 
 from . import form
@@ -108,7 +108,10 @@ def _nacht_wert(stunden: list[dict[str, Any]]) -> float | None:
 
 
 def naechte(stunden: list[dict[str, Any]]) -> form.Befund:
-    """Mittel über Nächte mit 5 bis 15 °C außen; Hinweis ab mehr als 1 K Abstand."""
+    """Median über Nächte mit 5 bis 15 °C außen, robust gegen Ausreißer eines Fühlers.
+
+    Hinweis ab mehr als 1 K Abstand.
+    """
     je_nacht: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for s in stunden:
         if int(s["zeit"][11:13]) < MITTAG and s.get("raeume"):
@@ -122,7 +125,7 @@ def naechte(stunden: list[dict[str, Any]]) -> form.Befund:
             werte.append([datum, round(wert, 1)])
     if not werte:
         return form.Befund("naechte", form.SAMMELT) if je_nacht else form.fehlt("naechte", "raeume")
-    mittel = round(mean(w for _, w in werte), 1)
+    mittel = round(median(w for _, w in werte), 1)
     stufe = form.stufe(len(werte), **STUFEN)
     status = form.status_aus(stufe, abs(mittel) > NACHT_HINWEIS_K)
     return form.Befund("naechte", status, mittel, "K", stufe, {"naechte": werte})
