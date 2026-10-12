@@ -11,9 +11,6 @@
  "custom_components/heatnexus/config_flow.py::WindhagerOptionsFlow.async_step_allgemein": {
   "zeilen": 86
  },
- "custom_components/heatnexus/dashboard/anlagen.py::anlagen_lesen": {
-  "zeilen": 132
- },
  "custom_components/heatnexus/formulare.py::level_schema": {
   "zeilen": 119
  },
