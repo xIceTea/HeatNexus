@@ -1685,5 +1685,6 @@ export const STIL = `
   .befund-legende i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
   .befund-vergleich { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; font-size: 14px; margin-top: 12px; }
   .befund-vergleich span:nth-child(odd) { color: var(--hn-gedaempft); }
+  .befund-sprung { align-self: flex-start; margin-top: 10px; font: inherit; font-size: 13px; color: var(--hn-akzent); background: none; border: 1px solid var(--hn-linie); border-radius: 10px; padding: 6px 12px; cursor: pointer; }
   .befund-fuss { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hn-linie); color: var(--hn-gedaempft); font-size: 13px; }
 `;

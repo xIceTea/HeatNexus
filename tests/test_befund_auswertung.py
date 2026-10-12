@@ -83,3 +83,11 @@ def test_leeres_archiv(m):
     ergebnis = aus.anlage(arch.Archiv(), kontext(aus))
     assert ergebnis["lage"]["seit"] is None
     assert ergebnis["lage"]["befunde"] == 7
+
+
+def test_waermespeicher_ohne_laufende_automatik_nennt_den_grund(m):
+    aus, arch = m
+    haus = aus.anlage(gefuellt(arch), kontext(aus))["abschnitte"][0]
+    speicher = haus["befunde"][0]
+    assert speicher["status"] == "braucht_daten"
+    assert speicher["grund"] == "automatik"

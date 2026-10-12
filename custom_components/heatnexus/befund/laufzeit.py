@@ -122,25 +122,21 @@ class Sammler:
     async def messen(self, jetzt: datetime) -> None:
         """Ein Wert je Heizkreis und Kessel; nach jeder abgeschlossenen Stunde speichern."""
         zeit = dt_util.as_local(jetzt).replace(tzinfo=None)
-        vorher = self._stundenzahl()
+        geschlossen = False
         for b in self.kreise():
             p = b.get("prefix", "")
             werte: dict[str, Any] = {n: self._wert(p, a) for n, a in HEIZKREIS.items()}
             werte["eingriff"] = (self._wert(p, RESTZEIT) or 0) > 0
             werte["raeume"] = self._raeume(b["device_id"])
-            self.archiv.messen(b["device_id"], zeit, werte)
+            geschlossen |= self.archiv.messen(b["device_id"], zeit, werte)
         for p in kessel_praefixe(self.coordinator):
             nenn, leistung = self._nenn(p), self._wert(p, LEISTUNG)
             kw = leistung / 100 * nenn if leistung is not None and nenn else None
             zaehler = {"starts": self._wert(p, STARTS), "bh": self._wert(p, BH), "kw": kw}
-            self.archiv.messen_kessel(p, zeit, zaehler)
-        if self._stundenzahl() != vorher:
+            geschlossen |= self.archiv.messen_kessel(p, zeit, zaehler)
+        if geschlossen:
             self.archiv.kuerzen(zeit.date())
             self.speichern()
-
-    def _stundenzahl(self) -> int:
-        quellen = (self.archiv.stunden_hk, self.archiv.stunden_k)
-        return sum(len(s) for q in quellen for s in q.values())
 
     # --- Nachrechnen ----------------------------------------------------------
     def _reihen(self) -> dict[tuple[str, str], dict[str, str]]:
@@ -205,6 +201,7 @@ class Sammler:
                 self._kessel_stunden(kennung, stunden)
                 neu += self.archiv.nachtragen_kessel(kennung, stunden)
         self.archiv.nachgerechnet = NACHRECHNEN_FASSUNG
+        self.archiv.kuerzen(dt_util.now().date())
         self.speichern()
         return neu
 

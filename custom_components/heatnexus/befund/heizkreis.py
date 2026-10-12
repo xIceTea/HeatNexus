@@ -68,18 +68,18 @@ def _je_raum(stunden: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
     return ergebnis
 
 
-def raeume(stunden: list[dict[str, Any]], grenze: float | None) -> list[form.Befund]:
+def raeume(stunden: list[dict[str, Any]], grenze: float | None) -> form.Befund:
     """Je Band die Anteile je Raum; gezeigt wird das Band mit den meisten Tagen."""
     gut = [s for s in saubere(stunden) if s.get("raeume")]
     if not gut:
-        return [form.fehlt("raeume", "raeume")]
+        return form.fehlt("raeume", "raeume")
     je_band: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for s in gut:
         if (band := _band(s.get("at"), grenze)) is not None:
             je_band[band].append(s)
     tage = {b: len({s["zeit"][:10] for s in liste}) for b, liste in je_band.items()}
     if not tage:
-        return [form.Befund("raeume", form.SAMMELT)]
+        return form.Befund("raeume", form.SAMMELT)
     band = max(tage, key=lambda b: tage[b])
     je_raum = _je_raum(je_band[band])
     auffaellig = any(
@@ -88,7 +88,7 @@ def raeume(stunden: list[dict[str, Any]], grenze: float | None) -> list[form.Bef
     stufe = form.stufe(tage[band], **STUFEN)
     warm = round(mean(w["am"] + w["leicht"] + w["ueber"] for w in je_raum.values()))
     angaben = {"band": band, "baender": tage, "je_raum": je_raum, "tage": tage[band]}
-    return [form.Befund("raeume", form.status_aus(stufe, auffaellig), warm, "%", stufe, angaben)]
+    return form.Befund("raeume", form.status_aus(stufe, auffaellig), warm, "%", stufe, angaben)
 
 
 def _nacht_wert(stunden: list[dict[str, Any]]) -> float | None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from statistics import mean
 from typing import Any
 
@@ -57,10 +58,16 @@ def laufzeit(tage: list[dict[str, Any]], zaehler: tuple[float, float] | None) ->
 
 
 def _wochenpunkte(tage: list[dict[str, Any]]) -> list[list[float]]:
-    """Gleitende 7-Tage-Mittel von Außentemperatur und Wärme, jeden dritten Tag ein Punkt."""
+    """Gleitende 7-Tage-Mittel von Außentemperatur und Wärme, jeden dritten Tag ein Punkt.
+
+    Ein Fenster mit fehlenden Tagen fällt weg; es mischte sonst verschiedene Witterungen.
+    """
     punkte = []
     for i in range(WOCHE - 1, len(tage), PUNKT_ABSTAND):
         woche = tage[i - WOCHE + 1 : i + 1]
+        spanne = date.fromisoformat(woche[-1]["datum"]) - date.fromisoformat(woche[0]["datum"])
+        if spanne.days != WOCHE - 1:
+            continue
         at = round(mean(t["at"] for t in woche), 1)
         punkte.append([at, round(mean(t["kwh"] for t in woche), 1)])
     return punkte

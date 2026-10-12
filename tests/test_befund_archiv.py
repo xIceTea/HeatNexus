@@ -109,3 +109,20 @@ def test_kaputter_speicher_ergibt_leeres_archiv(a, roh):
     archiv = a.Archiv.aus_dict(roh)
     assert archiv.stunden("hk") == []
     assert archiv.nachgerechnet == 0
+
+
+def test_vortag_entsteht_auch_nach_neustart_ueber_mitternacht(a):
+    archiv = a.Archiv()
+    archiv.messen("hk", datetime(2026, 10, 1, 22, 0), werte())
+    archiv.messen("hk", datetime(2026, 10, 1, 23, 0), werte())
+    neu = a.Archiv.aus_dict(archiv.als_dict())
+    assert neu.tage_heizkreis("hk") == []
+    neu.messen("hk", datetime(2026, 10, 2, 0, 10), werte())
+    assert [t["datum"] for t in neu.tage_heizkreis("hk")] == ["2026-10-01"]
+
+
+def test_messen_meldet_abgeschlossene_stunde(a):
+    archiv = a.Archiv()
+    assert archiv.messen("hk", datetime(2026, 10, 1, 10, 0), werte()) is False
+    assert archiv.messen("hk", datetime(2026, 10, 1, 10, 5), werte()) is False
+    assert archiv.messen("hk", datetime(2026, 10, 1, 11, 0), werte()) is True

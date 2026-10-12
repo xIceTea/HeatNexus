@@ -54,10 +54,13 @@ def _runden(wert: float | None) -> float | None:
 
 def _haus(archiv: Archiv, kreis: Kreis, grenze: float) -> dict[str, Any]:
     tage = archiv.tage_heizkreis(kreis.kennung)
-    if kreis.raeume:
-        speicher = haus.waermespeicher(kreis.modell, kreis.raum, kreis.aussen_nacht)
-    else:
+    if not kreis.raeume:
         speicher = form.fehlt("waermespeicher", "raeume")
+    elif kreis.modell is None:
+        # Das Hausmodell gehört zur Automatik; ohne eingerichteten Heizkreis gibt es keins.
+        speicher = form.fehlt("waermespeicher", "automatik")
+    else:
+        speicher = haus.waermespeicher(kreis.modell, kreis.raum, kreis.aussen_nacht)
     je_gt = haus.heizstunden_je_gradtag(tage[-kessel.FENSTER :], grenze)
     befunde = [
         _als_dict(speicher),
@@ -74,7 +77,7 @@ def _haus(archiv: Archiv, kreis: Kreis, grenze: float) -> dict[str, Any]:
 def _heizkreis(archiv: Archiv, kreis: Kreis, heizgrenze: float | None) -> dict[str, Any]:
     if kreis.raeume:
         stunden = archiv.stunden(kreis.kennung)
-        raeume = heizkreis.raeume(stunden, heizgrenze)[0]
+        raeume = heizkreis.raeume(stunden, heizgrenze)
         naechte = heizkreis.naechte(stunden)
     else:
         raeume = form.fehlt("raeume", "raeume")

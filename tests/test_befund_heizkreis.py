@@ -35,7 +35,7 @@ def test_raeume_anteile_je_raum(hk):
     for d in range(1, 8):
         stunden += tagesstunden(f"2026-10-{d:02d}", 21.2)
         stunden += [stunde(f"2026-10-{d:02d} 22", raeume={"climate.a": [22.5, 21.0]})]
-    befund = hk.raeume(stunden, grenze=17.0)[0]
+    befund = hk.raeume(stunden, grenze=17.0)
     werte = befund.angaben["je_raum"]["climate.a"]
     assert werte["am"] + werte["ueber"] == 100
     assert werte["ueber"] == 6  # 7 von 119 Stunden
@@ -48,7 +48,7 @@ def test_raeume_hinweis_ab_15_prozent_darueber(hk):
     for d in range(1, 8):
         stunden += tagesstunden(f"2026-10-{d:02d}", 21.0)[:12]
         stunden += tagesstunden(f"2026-10-{d:02d}", 22.3)[12:]
-    assert hk.raeume(stunden, grenze=17.0)[0].status == "hinweis"
+    assert hk.raeume(stunden, grenze=17.0).status == "hinweis"
 
 
 def test_raeume_ohne_heizen_und_nach_eingriff_zaehlen_nicht(hk):
@@ -59,19 +59,19 @@ def test_raeume_ohne_heizen_und_nach_eingriff_zaehlen_nicht(hk):
         stunde("2026-10-01 12", raeume=kalt),
         stunde("2026-10-01 14", raeume={"climate.a": [21.0, 21.0]}),
     ]
-    werte = hk.raeume(stunden, grenze=17.0)[0].angaben["je_raum"]["climate.a"]
+    werte = hk.raeume(stunden, grenze=17.0).angaben["je_raum"]["climate.a"]
     assert werte["stunden"] == 1
     assert werte["am"] == 100
 
 
 def test_raeume_ohne_ziel_nimmt_das_raumsoll(hk):
     stunden = [stunde("2026-10-01 10", raeume={"sensor.a": [21.2, None]}, soll=21.0)]
-    werte = hk.raeume(stunden, grenze=17.0)[0].angaben["je_raum"]["sensor.a"]
+    werte = hk.raeume(stunden, grenze=17.0).angaben["je_raum"]["sensor.a"]
     assert werte["am"] == 100
 
 
 def test_raeume_ohne_raum_braucht_daten(hk):
-    assert hk.raeume([stunde("2026-10-01 10")], grenze=17.0)[0].status == "braucht_daten"
+    assert hk.raeume([stunde("2026-10-01 10")], grenze=17.0).status == "braucht_daten"
 
 
 def test_naechte_vor_dem_anstieg(hk):

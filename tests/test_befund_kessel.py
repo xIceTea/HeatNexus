@@ -76,3 +76,10 @@ def test_energie_gerade_je_kelvin(k):
         )
     punkte = k.energie(tage, grenze=15.0, heizgrenze=17.0).angaben
     assert punkte["gerade"] == pytest.approx(10.0)
+
+
+def test_wochenpunkte_ueberspringen_luecken(k):
+    tage = reihe(20, monat=11, kwh=120.0, at=10.0)
+    del tage[8:12]
+    punkte = k.energie(tage, grenze=15.0, heizgrenze=17.0).angaben["punkte"]
+    assert len(punkte) == 2

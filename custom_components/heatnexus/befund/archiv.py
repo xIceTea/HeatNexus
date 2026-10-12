@@ -135,25 +135,36 @@ class Archiv:
         return self.stunden_k, self.tage_k
 
     # --- Sammeln ----------------------------------------------------------
-    def messen(self, kreis: str, zeit: datetime, werte: dict[str, Any]) -> None:
-        """Ein Wert eines Heizkreises; die Stunde schließt mit dem ersten Wert der nächsten."""
-        self._messen(HEIZKREIS, kreis, zeit, werte)
+    def messen(self, kreis: str, zeit: datetime, werte: dict[str, Any]) -> bool:
+        """Ein Wert eines Heizkreises; die Stunde schließt mit dem ersten Wert der nächsten.
 
-    def messen_kessel(self, kessel: str, zeit: datetime, werte: dict[str, Any]) -> None:
+        Liefert, ob dabei eine Stunde abgeschlossen wurde.
+        """
+        return self._messen(HEIZKREIS, kreis, zeit, werte)
+
+    def messen_kessel(self, kessel: str, zeit: datetime, werte: dict[str, Any]) -> bool:
         """Ein Wert eines Kessels: Zählerstände und Leistung in kW."""
-        self._messen(KESSEL, kessel, zeit, werte)
+        return self._messen(KESSEL, kessel, zeit, werte)
 
-    def _messen(self, art: str, kennung: str, zeit: datetime, werte: dict[str, Any]) -> None:
+    def _messen(self, art: str, kennung: str, zeit: datetime, werte: dict[str, Any]) -> bool:
         schluessel = _schluessel(zeit)
         offen = self._offen.get((art, kennung))
-        if offen and offen[0] != schluessel:
+        if offen and offen[0] == schluessel:
+            offen[1].append(werte)
+            return False
+        if offen:
             self._abschliessen(art, kennung, offen[0], offen[1])
-            if offen[0][:10] != schluessel[:10]:
-                self._tage_bilden(art, kennung, [offen[0][:10]])
-            offen = None
-        liste = offen[1] if offen else []
-        liste.append(werte)
-        self._offen[(art, kennung)] = (schluessel, liste)
+        self._offen[(art, kennung)] = (schluessel, [werte])
+        self._tage_bilden(art, kennung, self._offene_tage(art, kennung, schluessel[:10]))
+        return offen is not None
+
+    def _offene_tage(self, art: str, kennung: str, heute: str) -> set[str]:
+        """Vergangene Tage mit Stunden, aber ohne Tageswert – auch nach einem Neustart über Mitternacht."""
+        stunden, tage = self._quellen(art)
+        vorhanden = tage.get(kennung, {})
+        return {
+            k[:10] for k in stunden.get(kennung, {}) if k[:10] < heute and k[:10] not in vorhanden
+        }
 
     def _abschliessen(
         self, art: str, kennung: str, schluessel: str, messungen: list[dict[str, Any]]
@@ -161,10 +172,6 @@ class Archiv:
         stunden, _ = self._quellen(art)
         verdichten = _stunde_heizkreis if art == HEIZKREIS else _stunde_kessel
         stunden.setdefault(kennung, {})[schluessel] = verdichten(messungen)
-
-    def offene_stunde(self) -> bool:
-        """Ob gerade eine Stunde gesammelt wird; nach dem Laden ist keine offen."""
-        return bool(self._offen)
 
     # --- Nachtragen -------------------------------------------------------
     def nachtragen(self, kreis: str, stunden: dict[str, dict[str, Any]]) -> int:
@@ -186,13 +193,17 @@ class Archiv:
 
     # --- Tage ---------------------------------------------------------------
     def _tage_bilden(self, art: str, kennung: str, tage: Iterable[str]) -> None:
+        gesucht = set(tage)
+        if not gesucht:
+            return
         stunden, ziel = self._quellen(art)
-        alle = stunden.get(kennung, {})
+        je_tag: dict[str, list[dict[str, Any]]] = {}
+        for k, v in sorted(stunden.get(kennung, {}).items()):
+            if k[:10] in gesucht:
+                je_tag.setdefault(k[:10], []).append({"zeit": k, **v})
         bilden = _tag_heizkreis if art == HEIZKREIS else _tag_kessel
-        for datum in tage:
-            liste = [{"zeit": k, **v} for k, v in sorted(alle.items()) if k.startswith(datum)]
-            if liste:
-                ziel.setdefault(kennung, {})[datum] = bilden(liste)
+        for datum, liste in je_tag.items():
+            ziel.setdefault(kennung, {})[datum] = bilden(liste)
 
     # --- Lesen --------------------------------------------------------------
     def stunden(self, kreis: str) -> list[dict[str, Any]]:

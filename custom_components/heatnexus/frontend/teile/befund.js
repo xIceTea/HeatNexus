@@ -5,7 +5,11 @@
  * Server (`befund/`), hier entstehen nur Text und Bild.
  */
 
+import { zahl } from "./automatik.js";
+
 const NS = "http://www.w3.org/2000/svg";
+// So alt darf der Stand werden, solange der Reiter offen ist; danach lädt er neu.
+const BEFUND_TAKT_MS = 5 * 60 * 1000;
 
 function knoten(tag, klasse, text) {
   const el = document.createElement(tag);
@@ -58,6 +62,7 @@ export const BefundMixin = (Basis) =>
         .callWS({ type: "heatnexus/befund" })
         .then((daten) => {
           this._befund = (daten && daten.anlagen) || {};
+          this._befundZeit = Date.now();
         })
         .catch((err) => {
           console.warn("HeatNexus: Befund konnte nicht geladen werden", err);
@@ -72,9 +77,9 @@ export const BefundMixin = (Basis) =>
         });
     }
 
+    /** Ganze Zahlen ohne Nachkommastelle, sonst wie in der Automatik. */
     _befundZahl(wert, stellen = 1) {
-      if (wert === null || wert === undefined) return "–";
-      return Number(wert).toLocaleString(this._sprache || "de", { maximumFractionDigits: stellen });
+      return Number.isInteger(Number(wert)) ? zahl(wert, 0) : zahl(wert, stellen);
     }
 
     /** Karten für das Raster: zuerst die Lage, dann je Abschnitt die Befunde. */
@@ -83,6 +88,7 @@ export const BefundMixin = (Basis) =>
         this._befundLaden();
         return [{ id: "befund", titel: "Befund", knoten: this._befundHinweis("Der Befund lädt …") }];
       }
+      if (Date.now() - (this._befundZeit || 0) > BEFUND_TAKT_MS) this._befundLaden();
       const stand = this._befund[anlage && anlage.id];
       if (!stand) return [];
       const karten = [{ id: "befund-lage", titel: "Befund", knoten: this._befundLage(stand), breite: 2 }];
@@ -124,7 +130,7 @@ export const BefundMixin = (Basis) =>
           })
         )
       );
-      const seit = l.seit ? new Date(l.seit).toLocaleDateString(this._sprache || "de") : null;
+      const seit = l.seit ? l.seit.split("-").reverse().join(".") : null;
       zeile.appendChild(knoten("span", null, seit ? this._tMit("Daten seit {datum}", { datum: seit }) : this._t("Sammelt seit dem Start")));
       karte.appendChild(zeile);
       karte.appendChild(knoten("div", "befund-leise", this._t("Gemessene Werte, keine Empfehlung. Der Befund ändert nichts an der Anlage.")));
@@ -149,6 +155,7 @@ export const BefundMixin = (Basis) =>
       karte.appendChild(kopf);
       if (b.status === "braucht_daten" || b.wert === null || b.wert === undefined) {
         karte.appendChild(this._hinweisKnoten(this._befundGrund(b)));
+        if (b.grund === "raeume" || b.grund === "automatik") karte.appendChild(this._befundZurAutomatik());
         return karte;
       }
       const wert = knoten("div", "befund-wert");
@@ -166,8 +173,21 @@ export const BefundMixin = (Basis) =>
       return this._t({ sammelt: "sammelt", vorlaeufig: "vorläufig", belastbar: "belastbar" }[stufe] || stufe);
     }
 
+    /** Räume und Hausmodell entstehen in der Automatik; der Knopf führt dorthin. */
+    _befundZurAutomatik() {
+      const taste = knoten("button", "befund-sprung", this._t("Zur Automatik"));
+      taste.type = "button";
+      taste.addEventListener("click", () => {
+        this._reiter = "automatik";
+        this._gebaut = false;
+        this._zeichnen();
+      });
+      return taste;
+    }
+
     _befundGrund(b) {
       if (b.grund === "raeume") return this._t("Braucht Räume. Die Räume werden in der Automatik gewählt.");
+      if (b.grund === "automatik") return this._t("Das Hausmodell entsteht, sobald für diesen Heizkreis die Automatik eingerichtet ist. Der Modus „Beobachten“ genügt; geschrieben wird dann nichts.");
       if (b.grund === "kessel") return this._t("Braucht die Zähler des Kessels.");
       if (b.grund === "energie") return this._t("Braucht Kesselleistung und Nennleistung.");
       return this._t("Sammelt noch Tage.");
