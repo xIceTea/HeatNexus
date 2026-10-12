@@ -140,6 +140,42 @@ def test_restlaufzeit_bleibt_messwert(helpers):
     assert beschreibung["state_class"] == "measurement"
 
 
+@pytest.mark.parametrize(
+    ("name", "einheit", "erwartet"),
+    [
+        ("Betriebsstunden bis Wartung", "h", "measurement"),
+        ("Betriebsstunden bis Hauptreinigung", "h", "measurement"),
+        ("Betriebsstunden bis Reinigungsausbrand", "h", "measurement"),
+        ("Durchfluss Wärmemengenzähler", "l/h", "measurement"),
+        ("Durchfluss Wärmemengenzähler", None, None),
+        ("Temperatur Verbraucher unten TUx", "°C", "measurement"),
+        ("Energiezähler Wärmepumpe Wirkleistung", "kW", "measurement"),
+        ("Bitmuster für Auswahl Wärmemengenzähler (43-103)", None, None),
+        ("Offset FLOW Wärmemengenzähler", "%", "measurement"),
+        ("Länge Solarleitung gesamt", None, None),
+    ],
+)
+def test_kein_zaehler_trotz_zaehlerwort(helpers, name, einheit, erwartet):
+    """Restzeiten, Raten, Temperaturen und Einstellwerte laufen nicht nur nach oben."""
+    assert helpers.messgroesse(_sensor(name=name, unit=einheit)).get("state_class") == erwartet
+
+
+@pytest.mark.parametrize(
+    ("name", "einheit"),
+    [
+        ("Betriebsstunden", "h"),
+        ("Brennstoffverbrauch gesamt", "t"),
+        ("Wärmemengenzähler", "kWh"),
+        ("Laufzeit Sekundärzündung gesamt", "h"),
+        ("Staubabscheider Kurzschlusszähler", None),
+    ],
+)
+def test_echte_zaehler_bleiben_summe(helpers, name, einheit):
+    assert (
+        helpers.messgroesse(_sensor(name=name, unit=einheit))["state_class"] == "total_increasing"
+    )
+
+
 def test_kuratierte_angabe_hat_vorrang(helpers):
     beschreibung = helpers.messgroesse(
         _sensor(name="Brennstoffverbrauch", unit="h", state_class="total")

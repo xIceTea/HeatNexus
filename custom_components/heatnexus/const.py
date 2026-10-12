@@ -484,6 +484,13 @@ ZAEHLER_WOERTER = (
     "gesamt",
 )
 
+# Namensbestandteile, die trotz Zählerwort keinen Zählerstand meinen: Restzeiten
+# („Betriebsstunden bis …") zählen herunter, die übrigen sind Raten oder Einstellwerte.
+ZAEHLER_AUSNAHMEN = (" bis ", "durchfluss", "bitmuster", "offset", "länge", "temperatur")
+
+# Einheiten, in denen ein Zählerstand vorkommt; Raten und Temperaturen zählen nie.
+ZAEHLER_EINHEITEN = frozenset({"h", "min", "s", "d", "kWh", "MWh", "t", "kg"})
+
 # Gleichzeitige Anfragen an die Anlage. Die Steuerung arbeitet Anfragen nacheinander
 # ab; mehr Parallelität verkürzt keinen Durchlauf und belastet sie nur stärker.
 # Der wirksame Hebel ist, weniger zu fragen.

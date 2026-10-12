@@ -11,7 +11,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .const import EINHEITEN, ENUMS, POLL_ZIEL_SEKUNDEN, UPDATE_INTERVAL, ZAEHLER_WOERTER
+from .const import (
+    EINHEITEN,
+    ENUMS,
+    POLL_ZIEL_SEKUNDEN,
+    UPDATE_INTERVAL,
+    ZAEHLER_AUSNAHMEN,
+    ZAEHLER_EINHEITEN,
+    ZAEHLER_WOERTER,
+)
 from .device_db import get_enum
 
 _LOGGER = logging.getLogger(__name__)
@@ -138,6 +146,16 @@ def nachkommastellen(schritt: Any) -> int | None:
     return len(str(schritt).rstrip("0").partition(".")[2]) or None
 
 
+def ist_zaehler(beschreibung: dict[str, Any], einheit: str | None) -> bool:
+    """Ob der Name einen Zählerstand nennt, der nur nach oben läuft."""
+    if einheit is not None and einheit not in ZAEHLER_EINHEITEN:
+        return False
+    name = f" {mustername(beschreibung).lower()} "
+    if any(wort in name for wort in ZAEHLER_AUSNAHMEN):
+        return False
+    return any(wort in name for wort in ZAEHLER_WOERTER)
+
+
 def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
     """Einheit, Geräteklasse, Statistikklasse und Genauigkeit festlegen.
 
@@ -157,10 +175,12 @@ def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
         # Ein Zählerstand braucht keine Einheit, um einer zu sein: Brennerstarts
         # zählt Vorgänge. Ohne Statistikklasse führt der Rekorder für ihn keinen
         # Langzeitverlauf.
-        if beschreibung.get("type") == "sensor" and beschreibung.get("state_class") is None:
-            name = mustername(beschreibung).lower()
-            if any(wort in name for wort in ZAEHLER_WOERTER):
-                beschreibung["state_class"] = "total_increasing"
+        if (
+            beschreibung.get("type") == "sensor"
+            and beschreibung.get("state_class") is None
+            and ist_zaehler(beschreibung, None)
+        ):
+            beschreibung["state_class"] = "total_increasing"
         return beschreibung
     # „20" und „21" meldet die Anlage als Einheit von Datum und Uhrzeit – das
     # sind Formatkennungen, keine Maßeinheiten.
@@ -179,8 +199,7 @@ def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
         # Zahlenfelder kennen weder Statistik noch Anzeigegenauigkeit.
         return beschreibung
     if beschreibung.get("state_class") is None:
-        name = mustername(beschreibung).lower()
-        if any(wort in name for wort in ZAEHLER_WOERTER):
+        if ist_zaehler(beschreibung, einheit):
             statistik = "total_increasing"
         beschreibung["state_class"] = statistik
     if beschreibung.get("precision") is None:
