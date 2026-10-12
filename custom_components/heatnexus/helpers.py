@@ -127,7 +127,7 @@ def poll_takte(intervall: int | None) -> dict[str, int]:
     return {klasse: max(1, round(ziel / takt)) for klasse, ziel in POLL_ZIEL_SEKUNDEN.items()}
 
 
-def _nachkommastellen(schritt: Any) -> int | None:
+def nachkommastellen(schritt: Any) -> int | None:
     """Wie viele Stellen die Schrittweite der Anlage verlangt."""
     try:
         wert = float(schritt)
@@ -184,7 +184,7 @@ def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
             statistik = "total_increasing"
         beschreibung["state_class"] = statistik
     if beschreibung.get("precision") is None:
-        genauer = _nachkommastellen(beschreibung.get("step"))
+        genauer = nachkommastellen(beschreibung.get("step"))
         beschreibung["precision"] = max(stellen, genauer) if genauer else stellen
     return beschreibung
 

@@ -263,6 +263,29 @@ def test_number_ohne_grenzen_der_anlage_bleibt_benutzbar(number_klasse):
     assert entity.native_step == 1
 
 
+def test_number_haelt_die_obergrenze_null(number_klasse):
+    """Ein Bereich von -20 bis 0 endet bei 0, nicht bei der Vorgabe 100."""
+    entity, koordinator = _entitaet(number_klasse, {}, type="number", min=-20, max=0, step=1)
+    assert entity.native_max_value == 0
+    asyncio.run(entity.async_set_native_value(50.0))
+    assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "0")]
+
+
+def test_number_haelt_die_untergrenze_aus_text(number_klasse):
+    """Grenzen kommen auch als Text; „0“ bleibt 0."""
+    entity, _ = _entitaet(number_klasse, {}, type="number", min="0", max="0.5", step="0.01")
+    assert (entity.native_min_value, entity.native_max_value) == (0, 0.5)
+    assert entity.native_step == 0.01
+
+
+@pytest.mark.parametrize(("eingabe", "erwartet"), [(0.25, "0.25"), (0.3, "0.30"), (1.0, "1.00")])
+def test_number_schreibt_so_viele_stellen_wie_die_schrittweite(number_klasse, eingabe, erwartet):
+    """Bei Schrittweite 0,01 wird 0,25 nicht auf 0,2 gerundet."""
+    entity, koordinator = _entitaet(number_klasse, {}, type="number", min=0, max=2, step=0.01)
+    asyncio.run(entity.async_set_native_value(eingabe))
+    assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", erwartet)]
+
+
 # ---------------------------------------------------------------------------
 # switch, button
 # ---------------------------------------------------------------------------

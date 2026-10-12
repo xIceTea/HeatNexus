@@ -7,6 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .entity import WindhagerEntity, async_setup_entities
+from .helpers import nachkommastellen
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
 # begrenzt der Client über seine eigene Warteschlange. Eine zweite Bremse in
@@ -32,12 +33,10 @@ class WindhagerNumber(WindhagerEntity, NumberEntity):
 
     def __init__(self, coordinator, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
-        # Der Deskriptor trägt die Schlüssel immer – ohne Angabe der Anlage
-        # aber mit dem Wert None. `float(None)` würde die Entity beim Anlegen
-        # abbrechen und die ganze Plattform mitreißen; deshalb `or`.
-        self._attr_native_min_value = float(device_info.get("min") or 0)
-        self._attr_native_max_value = float(device_info.get("max") or 100)
-        self._attr_native_step = float(device_info.get("step") or 1)
+        self._attr_native_min_value = _grenze(device_info.get("min"), 0)
+        self._attr_native_max_value = _grenze(device_info.get("max"), 100)
+        self._attr_native_step = _grenze(device_info.get("step"), 1) or 1
+        self._stellen = nachkommastellen(device_info.get("step"))
         self._attr_native_unit_of_measurement = device_info.get("unit")
         device_class = device_info.get("device_class")
         if device_class in DEVICE_CLASSES:
@@ -50,8 +49,23 @@ class WindhagerNumber(WindhagerEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         # Clamp defensively, HA UI should already enforce the limits
         value = max(self._attr_native_min_value, min(self._attr_native_max_value, value))
-        if self._attr_native_step >= 1 and float(value).is_integer():
+        if self._stellen:
+            payload = f"{value:.{self._stellen}f}"
+        elif float(value).is_integer():
             payload = str(int(value))
         else:
             payload = f"{value:.1f}"
         await self._async_write(payload)
+
+
+def _grenze(wert, vorgabe: float) -> float:
+    """Grenze der Anlage als Zahl; nur eine fehlende Angabe nimmt die Vorgabe.
+
+    Eine Grenze von 0 ist eine echte Grenze: Bereiche wie -20 bis 0 enden dort.
+    """
+    if wert is None or wert == "":
+        return float(vorgabe)
+    try:
+        return float(wert)
+    except (TypeError, ValueError):
+        return float(vorgabe)
