@@ -95,4 +95,4 @@ jobs:
           print(json.loads((Path(f.__file__).parent / "manifest.json").read_text())["requirements"][0])
           PY
           )"
-      - run: pytest --cov=custom_components/heatnexus --cov-report=term-missing
+      - run: pytest -rs --cov=custom_components/heatnexus --cov-report=term-missing

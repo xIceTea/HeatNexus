@@ -52,3 +52,7 @@ markers = [
   "requires_ha: Test benötigt eine installierte Home-Assistant-Umgebung",
   "requires_aiohttp: Test benötigt aiohttp (Client-Modul)",
 ]
+
+[tool.coverage.report]
+# Untergrenze knapp unter dem gemessenen Stand; sie darf nur steigen.
+fail_under = 90
