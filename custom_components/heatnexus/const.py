@@ -497,9 +497,9 @@ ZAEHLER_WOERTER = (
 FETCH_CONCURRENCY = 3
 POLL_CONCURRENCY = 3
 
-# Nach je so vielen gelesenen Datenpunkten prüft der Abruf, ob seine Zeit noch
-# reicht. Klein genug, um das Zeitfenster nicht zu überziehen, groß genug, dass
-# die Warteschlange nicht leerläuft.
+# So viele Datenpunkte liest der Abruf höchstens am Stück. Vor jedem Block
+# schätzt er nach der gemessenen Dauer je Wert, wie viele noch in sein
+# Zeitfenster passen. Groß genug, dass die Warteschlange nicht leerläuft.
 POLL_BLOCK = POLL_CONCURRENCY * 5
 
 # Ein Menü-Abruf liefert höchstens so viele Datenpunkte; der Rest kommt über

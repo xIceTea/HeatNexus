@@ -467,7 +467,7 @@ class AbrufMixin:
         # fällig – unabhängig von seiner Klasse.
         return faellig | (self._rest - self._abgemeldet)
 
-    async def _lese_faellige(self, faellig: set, ende: float | None = None) -> tuple[list, set]:
+    async def _lese_faellige(self, faellig: set, ende: float | None = None) -> tuple[set, int]:
         """Die fälligen OIDs lesen – jede einzeln, bis die Zeit aufgebraucht ist.
 
         Eine Menü-Ebene lässt sich mit `count`/`offset` in einer Anfrage
@@ -477,30 +477,53 @@ class AbrufMixin:
         kostet, sondern das Zusammenstellen der Metadaten, die dabei
         anfallen und beim Abruf niemand braucht.
 
-        Gelesen wird in Blöcken, damit zwischendurch die Zeit geprüft werden
-        kann. Reicht sie nicht, endet der Durchlauf mit dem, was er hat, und
-        gibt den Rest zurück. Zurückgegeben wird ``(Gelesenes, Rest)``.
+        Gelesen wird in Blöcken; jeder geht sofort in den Bestand. Bis dahin
+        gilt alles Fällige als offen: Endet der Durchlauf vorzeitig oder wird er
+        abgebrochen, kommt der Rest im nächsten zuerst. Zurück kommen die
+        misslungenen Adressen und die Zahl der Lesungen.
         """
         # Der Rest des letzten Durchlaufs zuerst: Seine Werte sind die
         # ältesten, und ohne Vorrang käme er bei knapper Zeit nie an die Reihe.
         reihenfolge = sorted(faellig, key=lambda oid: (oid not in self._rest, oid))
-        gelesen: list = []
-        offen = set(faellig)
-        for anfang in range(0, len(reihenfolge), POLL_BLOCK):
-            block = reihenfolge[anfang : anfang + POLL_BLOCK]
-            gelesen += await asyncio.gather(*(self._fetch_oid(oid) for oid in block))
-            offen.difference_update(block)
-            if offen and ende is not None and time.monotonic() >= ende:
+        self._rest |= faellig - self._abgemeldet
+        misslungen: set[str] = set()
+        anzahl = 0
+        while anzahl < len(reihenfolge):
+            groesse = self._blockgroesse(ende, len(reihenfolge) - anzahl, erster=not anzahl)
+            if not groesse:
                 _LOGGER.debug(
                     "Poll: Zeit reicht für %d von %d OIDs, %d kommen im nächsten Durchlauf zuerst",
-                    len(gelesen),
+                    anzahl,
                     len(faellig),
-                    len(offen),
+                    len(reihenfolge) - anzahl,
                 )
                 break
-        self._poll_anfragen = len(gelesen)
-        _LOGGER.debug("Poll: %d OIDs einzeln", len(gelesen))
-        return gelesen, offen - self._abgemeldet
+            block = reihenfolge[anzahl : anzahl + groesse]
+            begonnen = time.monotonic()
+            ergebnisse = await asyncio.gather(*(self._fetch_oid(oid) for oid in block))
+            self._sekunden_je_wert = (time.monotonic() - begonnen) / len(block)
+            misslungen |= self._gelesenes_uebernehmen(ergebnisse)
+            anzahl += len(block)
+        self._poll_anfragen = anzahl
+        _LOGGER.debug("Poll: %d OIDs einzeln", anzahl)
+        return misslungen, anzahl
+
+    def _blockgroesse(self, ende: float | None, offen: int, erster: bool) -> int:
+        """Wie viele Werte der nächste Block liest: höchstens so viele, wie in die Zeit passen.
+
+        Geschätzt wird nach der zuletzt gemessenen Dauer je Wert. Der erste Block eines
+        Durchlaufs liest mindestens eine Runde, sonst käme eine knappe Anlage nie voran.
+        """
+        groesse = min(POLL_BLOCK, offen)
+        if ende is None or self._sekunden_je_wert is None:
+            passend = groesse
+        elif self._sekunden_je_wert <= 0:
+            passend = groesse if time.monotonic() < ende else 0
+        else:
+            passend = int((ende - time.monotonic()) / self._sekunden_je_wert)
+        if erster:
+            passend = max(passend, POLL_CONCURRENCY)
+        return max(0, min(groesse, passend))
 
     async def _startwerte_lesen(self, max_alter_min: int, bezugszeit=None) -> int:
         """Den Lesespeicher der Anlage einmal auswerten.
@@ -668,14 +691,11 @@ class AbrufMixin:
             self._letzte_objekte = await self._fetch_time_programs()
         status = await self._fetch_status()
         faellig = self._faellig()
-        results, self._rest = await self._lese_faellige(faellig, ende)
-
         # Ein misslungener Abruf ist kein Messwert: Der zuletzt gelesene Wert
         # bleibt stehen, und die Adresse ist im nächsten Durchlauf wieder
         # fällig – unabhängig von ihrer Poll-Klasse.
-        misslungen = self._gelesenes_uebernehmen(results)
-        self._rest |= misslungen - self._abgemeldet
-        self._ausfall_pruefen(misslungen, len(results))
+        misslungen, anzahl = await self._lese_faellige(faellig, ende)
+        self._ausfall_pruefen(misslungen, anzahl)
         # Abgemeldete Entities dürfen nicht ewig als alter Wert weiterleben.
         aktuell = self.abrufplan
         for oid in list(self._letzte_werte):

@@ -177,6 +177,8 @@ class WindhagerHttpClient(
         # im Protokoll steht.
         self._letzter_lesefehler: Exception | None = None
         self._teilausfall_gemeldet = False
+        # Zuletzt gemessene Dauer je gelesenem Wert; bemisst den nächsten Block.
+        self._sekunden_je_wert: float | None = None
         self.gestartet = time.monotonic()
         self._session = None
         self._semaphore = asyncio.Semaphore(FETCH_CONCURRENCY)
