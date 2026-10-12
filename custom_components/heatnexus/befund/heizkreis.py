@@ -8,6 +8,7 @@ from statistics import mean, median
 from typing import Any
 
 from . import form
+from .archiv import STUNDE
 from .haus import heiztag
 
 ERHOLUNG_H = 2
@@ -22,11 +23,10 @@ FOLGE_STUNDEN = 3
 FOLGE_TAGE = 3
 STUFEN = {"vorlaeufig": 4, "belastbar": 7}
 KLASSEN = ("unter", "am", "leicht", "ueber")
-FORMAT = "%Y-%m-%d %H"
 
 
 def _plus(zeit: str, stunden: int) -> str:
-    return (datetime.strptime(zeit, FORMAT) + timedelta(hours=stunden)).strftime(FORMAT)
+    return (datetime.strptime(zeit, STUNDE) + timedelta(hours=stunden)).strftime(STUNDE)
 
 
 def saubere(stunden: list[dict[str, Any]]) -> list[dict[str, Any]]:

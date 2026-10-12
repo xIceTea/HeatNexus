@@ -14,10 +14,12 @@ FASSUNG = 1
 HEIZKREIS = "hk"
 KESSEL = "k"
 MESSWERTE = ("at", "vl", "vi", "soll")
+# Schlüssel einer Stunde in Ortszeit; Heizkreis-Befunde und Nachrechnen lesen ihn ebenso.
+STUNDE = "%Y-%m-%d %H"
 
 
 def _schluessel(zeit: datetime) -> str:
-    return zeit.strftime("%Y-%m-%d %H")
+    return zeit.strftime(STUNDE)
 
 
 def _mittel(werte: Iterable[Any]) -> float | None:

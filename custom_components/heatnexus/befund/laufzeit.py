@@ -21,7 +21,7 @@ from ..const import DOMAIN
 from ..helpers import get_oid_value
 from ..registrierung import geraet_suchen
 from . import auswertung
-from .archiv import Archiv
+from .archiv import STUNDE, Archiv
 
 _LOGGER = logging.getLogger(__name__)
 TAKT = timedelta(minutes=5)
@@ -62,7 +62,7 @@ def _entitaet(register: Any, device_id: str, adresse: str) -> str | None:
 def _stunde(zeile: dict[str, Any]) -> str:
     start = zeile["start"]
     zeit = dt_util.utc_from_timestamp(start) if isinstance(start, int | float) else start
-    return dt_util.as_local(zeit).strftime("%Y-%m-%d %H")
+    return dt_util.as_local(zeit).strftime(STUNDE)
 
 
 class Sammler:

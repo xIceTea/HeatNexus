@@ -42,13 +42,17 @@ def _darf(hass: HomeAssistant, user: Any, sammler: Sammler) -> bool:
     return False
 
 
-async def _nacht_einsetzen(hass: HomeAssistant, stand: dict[str, Any]) -> None:
-    """Die Nacht ohne Heizung braucht die Wettervorhersage; sie wird erst hier gelesen."""
+async def _nacht_einsetzen(
+    hass: HomeAssistant, stand: dict[str, Any], vorhersagen: dict[str | None, float | None]
+) -> None:
+    """Die Nacht ohne Heizung braucht die Wettervorhersage; je Wetter-Entität einmal gelesen."""
     for abschnitt in stand["abschnitte"]:
         if abschnitt["art"] != "haus":
             continue
-        konfig = verwaltung_holen(hass).konfig(abschnitt["kennung"]) or {}
-        aussen = await _aussen_nacht(hass, konfig.get("wetter"))
+        wetter = (verwaltung_holen(hass).konfig(abschnitt["kennung"]) or {}).get("wetter")
+        if wetter not in vorhersagen:
+            vorhersagen[wetter] = await _aussen_nacht(hass, wetter)
+        aussen = vorhersagen[wetter]
         for befund in abschnitt["befunde"]:
             if befund["art"] == "waermespeicher" and befund["wert"]:
                 raum = befund["angaben"].get("raum")
@@ -59,11 +63,12 @@ async def _nacht_einsetzen(hass: HomeAssistant, stand: dict[str, Any]) -> None:
 @websocket_api.async_response
 async def _ws_befund(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     anlagen = {}
+    vorhersagen: dict[str | None, float | None] = {}
     for anlage_id, sammler in befund_holen(hass).sammler.items():
         if not _darf(hass, connection.user, sammler):
             continue
         stand = sammler.stand()
-        await _nacht_einsetzen(hass, stand)
+        await _nacht_einsetzen(hass, stand, vorhersagen)
         anlagen[anlage_id] = stand
     connection.send_result(msg["id"], {"anlagen": anlagen})
 
