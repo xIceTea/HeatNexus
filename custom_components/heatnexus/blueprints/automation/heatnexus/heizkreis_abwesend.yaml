@@ -4,10 +4,13 @@ blueprint:
     Senkt einen Heizkreis ab, sobald niemand mehr zu Hause ist, und stellt
     ihn bei der Rückkehr wieder auf den vorherigen Betrieb. Gesteuert wird
     über das Thermostat des Heizkreises; die Betriebsart wird vor dem
-    Absenken gemerkt.
+    Absenken gemerkt. Zurückgestellt wird nur, wenn der Heizkreis noch in
+    der Betriebsart für Abwesenheit steht. Eine Änderung von Hand bleibt so
+    erhalten. Ein Neustart von Home Assistant während der Abwesenheit
+    beendet das Warten; der Heizkreis bleibt dann abgesenkt.
   domain: automation
   author: HeatNexus
-  source_url: https://github.com/xIceTea/HeatNexus/blob/main/blueprints/automation/heatnexus/heizkreis_abwesend.yaml
+  source_url: https://github.com/xIceTea/HeatNexus/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/heizkreis_abwesend.yaml
   input:
     anwesenheit:
       name: Anwesenheit
@@ -50,49 +53,48 @@ blueprint:
       selector:
         duration: {}
 
+# single: Der Lauf wartet bis zur Rückkehr. Wer währenddessen ebenfalls geht,
+# startet keinen zweiten Lauf, der den abgesenkten Wert als „vorher“ merkte.
 mode: single
+max_exceeded: silent
 
 triggers:
   - trigger: state
     entity_id: !input anwesenheit
     to: not_home
     for: !input verzoegerung
-    id: abwesend
-  - trigger: state
-    entity_id: !input anwesenheit
-    to: home
-    id: anwesend
 
 variables:
   anwesende: !input anwesenheit
+  heizkreis: !input heizkreis
   modus_abwesend: !input modus_abwesend
+  # Nur die Betriebsart, keine Szene: Eine Szene stellte auch die
+  # Solltemperatur zurück und schriebe damit eine befristete Vorgabe.
+  vorher: "{{ state_attr(heizkreis, 'preset_mode') | string }}"
+
+conditions:
+  - condition: template
+    value_template: >
+      {{ anwesende | select('is_state', 'home') | list | count == 0 }}
+  - condition: template
+    value_template: >
+      {{ vorher not in ['None', '', modus_abwesend | string] }}
 
 actions:
-  - choose:
-      - conditions:
-          - condition: trigger
-            id: abwesend
-          - condition: template
-            value_template: >
-              {{ anwesende | select('is_state', 'home') | list | count == 0 }}
-        sequence:
-          - action: scene.create
-            data:
-              scene_id: heatnexus_heizkreis_vorher
-              snapshot_entities: !input heizkreis
-          - action: climate.set_preset_mode
-            target:
-              entity_id: !input heizkreis
-            data:
-              preset_mode: "{{ modus_abwesend }}"
-      - conditions:
-          - condition: trigger
-            id: anwesend
-        sequence:
-          - if:
-              - condition: template
-                value_template: "{{ states('scene.heatnexus_heizkreis_vorher') not in ['unknown', 'unavailable'] }}"
-            then:
-              - action: scene.turn_on
-                target:
-                  entity_id: scene.heatnexus_heizkreis_vorher
+  - action: climate.set_preset_mode
+    target:
+      entity_id: !input heizkreis
+    data:
+      preset_mode: "{{ modus_abwesend }}"
+  # Eine Vorlage statt eines Auslösers: Ist schon jemand zurück, geht es
+  # sofort weiter.
+  - wait_template: >
+      {{ anwesende | select('is_state', 'home') | list | count > 0 }}
+  - condition: template
+    value_template: >
+      {{ state_attr(heizkreis, 'preset_mode') | string == modus_abwesend | string }}
+  - action: climate.set_preset_mode
+    target:
+      entity_id: !input heizkreis
+    data:
+      preset_mode: "{{ vorher }}"

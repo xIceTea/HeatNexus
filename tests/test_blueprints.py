@@ -273,3 +273,78 @@ def test_ohne_auswahl_liest_der_executor_die_vorlagen(modul, tmp_path):
     assert len(list((tmp_path / "blueprints" / "automation" / "heatnexus").glob("*.yaml"))) == len(
         _dateien()
     )
+
+
+@pytest.mark.parametrize("datei", _dateien(), ids=lambda p: p.name)
+def test_die_quelle_zeigt_auf_die_datei_im_repo(datei: Path):
+    inhalt = yaml.load(datei.read_text(encoding="utf-8"), Loader=_Lader)
+    assert inhalt["blueprint"]["source_url"].endswith(
+        f"/blob/main/custom_components/heatnexus/blueprints/automation/heatnexus/{datei.name}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Heizkreis bei Abwesenheit: gemerkt wird nur die Betriebsart, keine Szene
+# ---------------------------------------------------------------------------
+ABWESEND = VORLAGEN / "heizkreis_abwesend.yaml"
+
+
+@pytest.fixture(scope="module")
+def abwesend() -> dict:
+    return yaml.load(ABWESEND.read_text(encoding="utf-8"), Loader=_Lader)
+
+
+def _rendern(vorlage: str, zustaende: dict | None = None, **werte) -> str:
+    """Eine Vorlage rendern; `is_state` liest aus `zustaende`."""
+    from jinja2 import Environment
+
+    umgebung = Environment()
+    umgebung.tests["is_state"] = lambda entitaet, zustand: (
+        (zustaende or {}).get(entitaet) == zustand
+    )
+    return umgebung.from_string(vorlage).render(**werte).strip()
+
+
+def test_abwesend_ohne_szene(abwesend):
+    """Eine feste Szene teilten sich alle Automationen aus der Vorlage."""
+    assert not [a for a in _aktionen(abwesend["actions"]) if a.startswith("scene.")]
+    assert set(_aktionen(abwesend["actions"])) == {"climate.set_preset_mode"}
+
+
+def test_abwesend_merkt_die_betriebsart_vor_dem_absenken(abwesend):
+    vorher = abwesend["variables"]["vorher"]
+    assert _rendern(vorher, state_attr=lambda _e, _a: "3", heizkreis="climate.hk") == "3"
+    absenken, zurueck = (a for a in abwesend["actions"] if a.get("action"))
+    assert absenken["data"]["preset_mode"] == "{{ modus_abwesend }}"
+    assert zurueck["data"]["preset_mode"] == "{{ vorher }}"
+
+
+@pytest.mark.parametrize(
+    ("vorher", "modus", "senkt"),
+    [("3", "5", True), ("5", "5", False), ("None", "5", False), ("", "5", False)],
+)
+def test_abwesend_senkt_nur_aus_einer_anderen_betriebsart(abwesend, vorher, modus, senkt):
+    (bedingung,) = [b for b in abwesend["conditions"] if "vorher" in b.get("value_template", "")]
+    ergebnis = _rendern(bedingung["value_template"], vorher=vorher, modus_abwesend=modus)
+    assert ergebnis == str(senkt)
+
+
+def test_abwesend_wartet_auch_auf_eine_schon_erfolgte_rueckkehr(abwesend):
+    """Ein Warten auf den Zustandswechsel verpasste eine Rückkehr während des Absenkens."""
+    (warten,) = [a for a in abwesend["actions"] if "wait_template" in a]
+    personen = ["person.a", "person.b"]
+    da = _rendern(warten["wait_template"], {"person.b": "home"}, anwesende=personen)
+    weg = _rendern(warten["wait_template"], {"person.b": "not_home"}, anwesende=personen)
+    assert (da, weg) == ("True", "False")
+
+
+@pytest.mark.parametrize(("jetzt", "stellt_zurueck"), [("5", True), ("4", False), ("0", False)])
+def test_abwesend_laesst_eine_handaenderung_stehen(abwesend, jetzt, stellt_zurueck):
+    (bedingung,) = [a for a in abwesend["actions"] if a.get("condition") == "template"]
+    ergebnis = _rendern(
+        bedingung["value_template"],
+        state_attr=lambda _e, _a: jetzt,
+        heizkreis="climate.hk",
+        modus_abwesend="5",
+    )
+    assert ergebnis == str(stellt_zurueck)
