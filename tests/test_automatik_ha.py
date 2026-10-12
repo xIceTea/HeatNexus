@@ -418,10 +418,10 @@ async def test_bestaetigung_waehrend_einer_auswertung_geht_nicht_verloren(
     laufzeit, _ = await _empfohlen(hass, hass_ws_client, verwaltung, freezer)
     lauf = laufzeit._auswerten
 
-    async def bestaetigen_waehrend(entscheidungszeit: bool) -> None:
+    async def bestaetigen_waehrend() -> None:
         laufzeit._auswerten = lauf
-        await lauf(entscheidungszeit)
-        await verwaltung.empfehlung_uebernehmen(HEIZKREIS)
+        await lauf()
+        hass.async_create_task(verwaltung.empfehlung_uebernehmen(HEIZKREIS))
 
     laufzeit._auswerten = bestaetigen_waehrend
     await laufzeit.auswerten()
@@ -1935,11 +1935,11 @@ async def test_entscheidungszeit_waehrend_einer_auswertung_geht_nicht_verloren(
     await _schalten_ohne_eingriff(client, verwaltung, coordinator)
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
 
-    laufzeit._laeuft = True
-    await laufzeit._entscheidungszeit(None)
+    await laufzeit._sperre.acquire()
+    aufgabe = hass.async_create_task(laufzeit._entscheidungszeit(None))
     assert coordinator.client.geschrieben == []
-    laufzeit._laeuft = False
-    await laufzeit._takt(None)
+    laufzeit._sperre.release()
+    await aufgabe
 
     assert coordinator.client.geschrieben == [
         (f"{PREFIX}/3/4/0", "19.5"),

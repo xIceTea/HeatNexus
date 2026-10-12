@@ -171,10 +171,8 @@ class QuellenMixin:
         if self._lieferbeginn_am == heute:
             return
         self._lieferbeginn_am = heute
-        # Vorgemerkt: Läuft gerade eine Auswertung, holt der nächste Lauf die Entscheidung nach.
-        self._entscheidung_offen = True
         self._geaendert = True
-        self.hass.async_create_task(self.auswerten())
+        self._aufgabe(self.auswerten(entscheidungszeit=True))
 
     def vorrang_liefert(self) -> list[str]:
         """Die gewählten Vorrangquellen, die gerade liefern."""

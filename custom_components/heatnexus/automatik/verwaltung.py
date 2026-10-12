@@ -347,12 +347,18 @@ class Verwaltung:
         return True
 
     async def eintrag_stoppen(self, entry: ConfigEntry) -> None:
-        """Die Automatiken des Eintrags anhalten; ihr Zustand bleibt im Store."""
+        """Die Automatiken des Eintrags anhalten; ihr Zustand bleibt im Store.
+
+        Ein laufender Lauf endet vorher; danach schreibt keine Automatik des Eintrags mehr.
+        """
+        gestoppt = [lz for lz in self.laufzeiten.values() if lz.entry_id == entry.entry_id]
+        for laufzeit in gestoppt:
+            laufzeit.stoppen()
+        for laufzeit in gestoppt:
+            await laufzeit.abwarten()
         self._abzug()
-        for device_id, laufzeit in list(self.laufzeiten.items()):
-            if laufzeit.entry_id == entry.entry_id:
-                laufzeit.stoppen()
-                del self.laufzeiten[device_id]
+        for laufzeit in gestoppt:
+            self.laufzeiten.pop(laufzeit.device_id, None)
         await self._store.async_save(self._daten)
 
     async def untereintrag_pruefen(self, entry: ConfigEntry) -> None:
@@ -409,6 +415,9 @@ class Verwaltung:
             gewechselt = (alt["aktiv"], alt["modus"]) != (neu["aktiv"], neu["modus"])
             # Ohne „Automatisch" läuft kein Eingriff ohne Zustimmung weiter; die Regel rechnet sofort neu.
             selbst_neu = neu["aktiv"] and neu["modus"] == "schalten"
+            # Kein Lauf mit den alten Einstellungen mehr, solange umgestellt wird.
+            laufzeit.aussetzen()
+            await laufzeit.abwarten()
             if schreibt_alt and not selbst_neu and gewechselt:
                 await laufzeit.zuruecknehmen()
             # Nur Beobachtetes verwerfen; ein nicht zurückgenommener Eingriff bleibt bekannt.
@@ -455,10 +464,10 @@ class Verwaltung:
     async def entfernen(self, device_id: str) -> None:
         """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten abräumen."""
         if (laufzeit := self.laufzeiten.pop(device_id, None)) is not None:
+            laufzeit.stoppen()
             await laufzeit.zuruecknehmen()
             laufzeit.meldung_entfernen()
             laufzeit.optimierung_entfernen()
-            laufzeit.stoppen()
         entry_id = ((self._daten["heizkreise"].pop(device_id, None) or {}).get("konfig") or {}).get(
             "entry_id"
         )

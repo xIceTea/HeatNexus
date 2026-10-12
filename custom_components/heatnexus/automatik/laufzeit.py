@@ -6,8 +6,9 @@ Minuten und zu den Entscheidungszeiten des Profils.
 
 from __future__ import annotations
 
+import asyncio
 from collections import deque
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
 from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 import logging
@@ -198,8 +199,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._daten_fehlen_seit: datetime | None = None
         self._raeume_fehlen_seit: datetime | None = None
         self._geaendert = True
-        self._laeuft = False
-        self._abmelden: list[Callable[[], None]] = []
+        self._ablauf_vorbereiten()
         self._wiederholung: Callable[[], None] | None = None
         self._fehlschlaege = 0
         self._erzwingen = False
@@ -285,12 +285,31 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         }
 
     # --- Lebenszyklus --------------------------------------------------------
+    def _ablauf_vorbereiten(self) -> None:
+        """Ein Lauf zur Zeit; Schreiben von Hand und Rücknahme warten auf dieselbe Sperre."""
+        self._sperre = asyncio.Lock()
+        self._vorgemerkt = False
+        self._gestoppt = False
+        self._laufend: asyncio.Task[Any] | None = None
+        self._aufgaben: set[asyncio.Task[Any]] = set()
+        self._angemeldet = False
+        self._abmelden: list[Callable[[], None]] = []
+
+    def _aufgabe(self, ablauf: Coroutine[Any, Any, Any]) -> None:
+        """Eine Aufgabe, die `stoppen` abbricht; ein laufender Lauf endet vorher regulär."""
+        aufgabe = self.hass.async_create_task(ablauf, f"heatnexus_automatik_{self.device_id}")
+        self._aufgaben.add(aufgabe)
+        aufgabe.add_done_callback(self._aufgaben.discard)
+
     async def starten(self, entscheidungszeit: bool = False) -> None:
         """Auslöser anmelden, Prognose holen, einmal auswerten."""
+        self._gestoppt = False
         self._gestartet = dt_util.now()
         client = self.coordinator.client
-        for adresse in ABRUF:
-            client.register_poll_oid(f"{self.prefix}{adresse}")
+        if not self._angemeldet:
+            for adresse in ABRUF:
+                client.register_poll_oid(f"{self.prefix}{adresse}")
+            self._angemeldet = True
         k = self.konfig
         quellen = [*k["raeume"], *k["personen"], *k["fenster"], *k["vorrang"]]
         quellen += [e for e in (k.get("pv"), k.get("pv_ist"), k.get("aussen")) if e]
@@ -319,26 +338,42 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._lernen_starten()
         self._optimierung_starten()
 
-    def stoppen(self) -> None:
-        """Alle Auslöser abmelden."""
+    def aussetzen(self) -> None:
+        """Auslöser abmelden; danach beginnt kein Lauf mehr, ein laufender endet regulär."""
+        self._gestoppt = True
         for abmelden in self._abmelden:
             abmelden()
         self._abmelden.clear()
         if self._wiederholung:
             self._wiederholung()
             self._wiederholung = None
+        for aufgabe in list(self._aufgaben):
+            if aufgabe is not self._laufend:
+                aufgabe.cancel()
+
+    async def abwarten(self) -> None:
+        """Warten, bis ein laufender Lauf, eine Rücknahme oder ein Schreiben von Hand fertig ist."""
+        async with self._sperre:
+            pass
+
+    def stoppen(self) -> None:
+        """Alle Auslöser abmelden und die Arbeit im Hintergrund abbrechen."""
+        self.aussetzen()
         if self._nachladen is not None and not self._nachladen.done():
             self._nachladen.cancel()
         self._lernen_beenden()
         self._optimierung_beenden()
         ir.async_delete_issue(self.hass, DOMAIN, self.prognose_kennung)
-        client = self.coordinator.client
-        for adresse in ABRUF:
-            client.unregister_poll_oid(f"{self.prefix}{adresse}")
+        if self._angemeldet:
+            client = self.coordinator.client
+            for adresse in ABRUF:
+                client.unregister_poll_oid(f"{self.prefix}{adresse}")
+            self._angemeldet = False
 
     async def neu_starten(self, konfig: dict[str, Any], entscheidungszeit: bool = False) -> None:
         """Mit geänderten Einstellungen weiterlaufen; der Zustand bleibt."""
         self.stoppen()
+        await self.abwarten()
         self.konfig = konfig
         await self.starten(entscheidungszeit)
 
@@ -348,7 +383,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._geaendert = True
         if self._wartet and not self._steuerung_fehlt(dt_util.now()):
             self._wartet = False
-            self.hass.async_create_task(self.auswerten())
+            self._aufgabe(self.auswerten())
 
     @callback
     def _ereignis(self, event: Event) -> None:
@@ -373,10 +408,8 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             await self.auswerten()
 
     async def _entscheidungszeit(self, _jetzt: datetime) -> None:
-        # Läuft gerade eine Auswertung, holt der nächste Lauf die Entscheidung nach.
-        self._entscheidung_offen = True
         self._geaendert = True
-        await self.auswerten()
+        await self.auswerten(entscheidungszeit=True)
 
     async def _prognose_takt(self, _jetzt: datetime) -> None:
         await self._prognose_holen()
@@ -384,23 +417,35 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
 
     # --- Ablauf --------------------------------------------------------------
     async def auswerten(self, entscheidungszeit: bool = False) -> None:
-        """Ein Lauf der Regel; läuft nie doppelt."""
-        if self._laeuft:
-            return
-        self._laeuft = True
-        try:
-            await self._auswerten(entscheidungszeit)
-        finally:
-            self._laeuft = False
-        # Eine Bestätigung, die während des Laufs kam, wartet nicht auf den nächsten Takt.
-        if self._bestaetigt_offen and not self._wartet:
-            self.hass.async_create_task(self.auswerten())
+        """Ein Lauf der Regel; läuft nie doppelt.
 
-    async def _auswerten(self, entscheidungszeit: bool) -> None:
+        Kommt ein Anlass während eines Laufs, folgt ein weiterer; die Entscheidungszeit bleibt vorgemerkt.
+        """
+        if self._gestoppt:
+            return
+        self._entscheidung_offen |= entscheidungszeit
+        if self._vorgemerkt:
+            return
+        self._vorgemerkt = True
+        try:
+            await self._sperre.acquire()
+        except asyncio.CancelledError:
+            self._vorgemerkt = False
+            raise
+        try:
+            self._vorgemerkt = False
+            self._laufend = asyncio.current_task()
+            if not self._gestoppt:
+                await self._auswerten()
+        finally:
+            self._laufend = None
+            self._sperre.release()
+
+    async def _auswerten(self) -> None:
         self._geaendert = False
         bestaetigung = self._bestaetigung()
-        entscheidungszeit = entscheidungszeit or self._entscheidung_offen or bool(bestaetigung)
-        self._entscheidung_offen = False
+        offen, self._entscheidung_offen = self._entscheidung_offen, False
+        entscheidungszeit = offen or bool(bestaetigung)
         jetzt = dt_util.now()
         self._daempfen(jetzt)
         self._lernen(jetzt)
@@ -415,24 +460,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             return
         self._wartet = self._steuerung_fehlt(jetzt)
         if self._wartet:
-            self._geaendert = True
-            self._bestaetigt_offen |= bestaetigung is not None
-            # Die Werte stehen schon in der Lage; die Sensoren zeigen sie, auch wenn die Regel noch wartet.
-            async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
-            async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
+            self._warten(bestaetigung, offen)
             return
-        if not self.beobachten and (
-            grund := self.steller.handeingriff(
-                self.gedaechtnis,
-                jetzt=jetzt,
-                betriebswahl=lage.betriebswahl,
-                rest_min=self._wert("/2/10/0"),
-                betriebsart=_ganzzahl(self._wert("/2/9/0")),
-                raumsoll=self._wert("/1/1/0"),
-            )
-        ):
-            self._pausieren(jetzt, grund)
-            lage = replace(lage, pausiert_bis=self.pausiert_bis)
+        lage = self._handeingriff_pruefen(lage, jetzt)
         entscheidung = regel.entscheiden(lage, self.gedaechtnis, self.werte)
         bestaetigt = self._bestaetigt(bestaetigung, entscheidung)
         entscheidung = self._ohne_verworfenes(entscheidung, bestaetigt, jetzt)
@@ -446,6 +476,32 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             return
         self._empfehlung_pruefen(jetzt, entscheidung, entscheidungszeit, angenommen, bestaetigt)
         self._setzen(entscheidung.zustand, entscheidung.begruendung)
+
+    def _warten(self, bestaetigung: bool | None, offen: bool) -> None:
+        """Bis zum ersten Abruf bleiben Bestätigung und Entscheidungszeit für den nächsten Lauf."""
+        self._geaendert = True
+        self._bestaetigt_offen |= bestaetigung is not None
+        self._entscheidung_offen |= offen
+        # Die Werte stehen schon in der Lage; die Sensoren zeigen sie, auch wenn die Regel noch wartet.
+        async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
+        async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
+
+    def _handeingriff_pruefen(self, lage: regel.Lage, jetzt: datetime) -> regel.Lage:
+        """Hat jemand eine eigene Aktion von Hand geändert, pausiert die Automatik."""
+        if self.beobachten:
+            return lage
+        grund = self.steller.handeingriff(
+            self.gedaechtnis,
+            jetzt=jetzt,
+            betriebswahl=lage.betriebswahl,
+            rest_min=self._wert("/2/10/0"),
+            betriebsart=_ganzzahl(self._wert("/2/9/0")),
+            raumsoll=self._wert("/1/1/0"),
+        )
+        if not grund:
+            return lage
+        self._pausieren(jetzt, grund)
+        return replace(lage, pausiert_bis=self.pausiert_bis)
 
     async def _ausfuehren(
         self, entscheidung: regel.Entscheidung, lage: regel.Lage, jetzt: datetime, bestaetigt: bool
@@ -633,25 +689,27 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         """Die offene Empfehlung ausführen: Die Regel rechnet sofort neu und darf schreiben."""
         if self.empfehlung is None:
             return
-        # Läuft gerade eine Auswertung, holt der nächste Lauf die Bestätigung nach.
+        # Läuft gerade eine Auswertung, holt der folgende Lauf die Bestätigung nach.
         self._bestaetigt_offen = True
         self._geaendert = True
         await self.auswerten()
 
     async def empfehlung_verwerfen(self) -> None:
         """Die offene Empfehlung verwerfen; derselbe Vorschlag kommt heute nicht wieder."""
-        if self.empfehlung is None:
-            return
-        jetzt = dt_util.now()
-        tag = jetzt.date().isoformat()
-        zustand = self.empfehlung["zustand"]
-        self.verworfen = {"tag": tag, "zustaende": sorted({*self._heute_verworfen(jetzt), zustand})}
-        if zustand == regel.Zustand.HEIZPAUSE.value:
-            # Ohne Heizpause rechnet die Regel neu; ein Ausstieg aus nur Warmwasser bleibt möglich.
-            self.gedaechtnis = replace(self.gedaechtnis, pause_sperre=tag)
-        self.steller.vermerken(jetzt, "verworfen", self.empfehlung["begruendung"])
-        self.empfehlung = None
-        self._geaendert = True
+        async with self._sperre:
+            if self.empfehlung is None:
+                return
+            jetzt = dt_util.now()
+            tag = jetzt.date().isoformat()
+            zustand = self.empfehlung["zustand"]
+            verworfen = sorted({*self._heute_verworfen(jetzt), zustand})
+            self.verworfen = {"tag": tag, "zustaende": verworfen}
+            if zustand == regel.Zustand.HEIZPAUSE.value:
+                # Ohne Heizpause rechnet die Regel neu; ein Ausstieg aus nur Warmwasser bleibt möglich.
+                self.gedaechtnis = replace(self.gedaechtnis, pause_sperre=tag)
+            self.steller.vermerken(jetzt, "verworfen", self.empfehlung["begruendung"])
+            self.empfehlung = None
+            self._geaendert = True
         await self.auswerten()
 
     def _pausieren(self, jetzt: datetime, grund: str) -> None:
@@ -663,11 +721,16 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
 
     async def uebernehmen(self) -> None:
         """Eine Pause nach Handeingriff sofort aufheben."""
-        self.pausiert_bis = None
+        async with self._sperre:
+            self.pausiert_bis = None
         await self.auswerten()
 
     async def zuruecknehmen(self) -> None:
-        """Eigene Eingriffe zurücknehmen und das Gedächtnis leeren."""
+        """Eigene Eingriffe zurücknehmen und das Gedächtnis leeren; nie während eines Laufs."""
+        async with self._sperre:
+            await self._zuruecknehmen()
+
+    async def _zuruecknehmen(self) -> None:
         jetzt = dt_util.now()
         aktionen: list[regel.Aktion] = []
         if self.gedaechtnis.saison == regel.NUR_WW:
@@ -706,6 +769,10 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
 
     async def heizgrenzen_setzen(self, werte: dict[str, float]) -> None:
         """Heizgrenzen der Steuerung von Hand setzen: kein Budget, kein Eingriff der Automatik."""
+        async with self._sperre:
+            await self._heizgrenzen_schreiben(werte)
+
+    async def _heizgrenzen_schreiben(self, werte: dict[str, float]) -> None:
         geschrieben: dict[str, float] = {}
         fehler: Exception | None = None
         for name, wert in werte.items():
