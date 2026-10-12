@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, fields, replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 import math
 from typing import Any
@@ -195,6 +195,20 @@ class Entscheidung:
     gedaechtnis: Gedaechtnis
 
 
+def nach_minuten(zeit: datetime, minuten: float) -> datetime:
+    """`minuten` echte Minuten nach `zeit`; über UTC, so zählt eine Zeitumstellung nicht mit."""
+    return (zeit.astimezone(UTC) + timedelta(minutes=minuten)).astimezone(zeit.tzinfo)
+
+
+def dauer(von: datetime, bis: datetime) -> timedelta:
+    """Echte Zeit von `von` bis `bis`; der Timer `2/10` der Steuerung zählt ebenso."""
+    return timedelta(seconds=bis.timestamp() - von.timestamp())
+
+
+def _ganze_minuten(von: datetime, bis: datetime) -> int:
+    return int(dauer(von, bis).total_seconds() // 60)
+
+
 def _zahl(wert: float | None) -> str:
     return "–" if wert is None else f"{wert:.1f}".replace(".", ",")
 
@@ -260,7 +274,11 @@ def nach_teilerfolg(g: Gedaechtnis, erledigt: tuple[Aktion, ...], jetzt: datetim
 
 def absenkung_laeuft(g: Gedaechtnis, jetzt: datetime) -> bool:
     """Ob eine eigene Absenkung an der Steuerung noch aktiv sein muss."""
-    return g.absenkung_art is not None and g.absenkung_bis is not None and g.absenkung_bis > jetzt
+    return (
+        g.absenkung_art is not None
+        and g.absenkung_bis is not None
+        and dauer(jetzt, g.absenkung_bis) > timedelta(0)
+    )
 
 
 _ZUSTAND_JE_ART = {SONNE: Zustand.SONNENTAG, ABWESEND: Zustand.ABWESEND, PAUSE: Zustand.HEIZPAUSE}
@@ -285,13 +303,13 @@ def soll_bezug(lage: Lage, g: Gedaechtnis) -> float | None:
 
 
 def _raeumen(lage: Lage, g: Gedaechtnis) -> Gedaechtnis:
-    if g.absenkung_art is None or g.absenkung_bis is None or g.absenkung_bis > lage.jetzt:
+    if g.absenkung_art is None or g.absenkung_bis is None or absenkung_laeuft(g, lage.jetzt):
         return g
     verlaengerbar = (
         g.absenkung_art == SONNE
         and not g.verlaengert
         and g.absenkung_ziel is not None
-        and g.absenkung_ziel - lage.jetzt >= timedelta(minutes=MIN_MINUTEN)
+        and dauer(lage.jetzt, g.absenkung_ziel) >= timedelta(minutes=MIN_MINUTEN)
     )
     weiter_weg = g.absenkung_art == ABWESEND and lage.abwesend
     return g if verlaengerbar or weiter_weg else ohne_absenkung(g)
@@ -325,7 +343,7 @@ def pause_soll(lage: Lage, w: Werte) -> float | None:
 
 
 def _bereit(g: Gedaechtnis, jetzt: datetime, w: Werte) -> bool:
-    return g.saison_seit is None or jetzt - g.saison_seit >= timedelta(hours=w.mindestdauer_h)
+    return g.saison_seit is None or dauer(g.saison_seit, jetzt) >= timedelta(hours=w.mindestdauer_h)
 
 
 def _zurueck(lage: Lage, g: Gedaechtnis, grund: str) -> Entscheidung:
@@ -346,7 +364,7 @@ def _sicherheit(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Ent
     elif (
         g.saison == NUR_WW
         and lage.daten_fehlen_seit is not None
-        and lage.jetzt - lage.daten_fehlen_seit >= OHNE_DATEN_MAX
+        and dauer(lage.daten_fehlen_seit, lage.jetzt) >= OHNE_DATEN_MAX
     ):
         anlass = "Seit zwei Stunden ohne Messwerte"
     else:
@@ -395,7 +413,7 @@ def _daten(lage: Lage, g: Gedaechtnis, soll: float | None, w: Werte) -> Entschei
     if (
         fehlen is not None
         and absenkung_laeuft(g, lage.jetzt)
-        and lage.jetzt - fehlen >= timedelta(minutes=w.raum_fehlt_min)
+        and dauer(fehlen, lage.jetzt) >= timedelta(minutes=w.raum_fehlt_min)
     ):
         return Entscheidung(
             Zustand.KEINE_DATEN,
@@ -483,7 +501,7 @@ def _gleitend(lage: Lage, e: Entscheidung, soll: float, w: Werte) -> Entscheidun
         return e
     if (ziel := pause_soll(lage, w)) is None:
         return e
-    bis = lage.jetzt + timedelta(minutes=MAX_MINUTEN)
+    bis = nach_minuten(lage.jetzt, MAX_MINUTEN)
     text = f"{e.begruendung} Danach Heizpause, {_zahl(ziel)} °C bis {_uhr(bis)}."
     pause = _pause_schreiben(lage, e.gedaechtnis, soll, ziel, text, erneuern=False)
     return replace(pause, aktionen=(*e.aktionen, *pause.aktionen))
@@ -546,12 +564,12 @@ def _abwesenheit(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheid
         )
     if lage.betriebswahl not in PROGRAMMWAHL or not lage.absenkung_moeglich:
         return None
-    if laeuft and g.absenkung_bis - lage.jetzt > VERLAENGERN_REST:
+    if laeuft and dauer(lage.jetzt, g.absenkung_bis) > VERLAENGERN_REST:
         return Entscheidung(
             Zustand.ABWESEND, (), f"Niemand zu Hause – abgesenkt bis {_uhr(g.absenkung_bis)}.", g
         )
     ziel = round(soll - ABWESEND_K, 1)
-    bis = lage.jetzt + timedelta(minutes=MAX_MINUTEN)
+    bis = nach_minuten(lage.jetzt, MAX_MINUTEN)
     neu = replace(
         ohne_absenkung(g),
         absenkung_art=ABWESEND,
@@ -603,7 +621,7 @@ def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
         and lage.vorrang_minuten < VORRANG_MIN_MINUTEN
         and g.absenkung_anlass == ANLASS_VORRANG
         and g.absenkung_von is not None
-        and lage.jetzt - g.absenkung_von >= VORRANG_PRUEFEN_NACH
+        and dauer(g.absenkung_von, lage.jetzt) >= VORRANG_PRUEFEN_NACH
     ):
         return Entscheidung(
             Zustand.PROGRAMM,
@@ -612,9 +630,10 @@ def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
             ohne_absenkung(g),
         )
     ziel_soll = round(soll - w.absenkung_k, 1)
-    if g.absenkung_bis is not None and g.absenkung_bis <= lage.jetzt and g.absenkung_ziel:
-        minuten = min(MAX_MINUTEN, int((g.absenkung_ziel - lage.jetzt).total_seconds() // 60))
-        bis = lage.jetzt + timedelta(minutes=minuten)
+    abgelaufen = g.absenkung_bis is not None and not absenkung_laeuft(g, lage.jetzt)
+    if abgelaufen and g.absenkung_ziel:
+        minuten = min(MAX_MINUTEN, _ganze_minuten(lage.jetzt, g.absenkung_ziel))
+        bis = nach_minuten(lage.jetzt, minuten)
         return Entscheidung(
             Zustand.SONNENTAG,
             (Aktion("absenken", soll=ziel_soll, minuten=minuten),),
@@ -670,7 +689,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
             Zustand.PROGRAMM, (), f"Räume {kelvin(abstand)} unter Ziel – keine Absenkung.", g
         )
     ziel = lage.sonnenuntergang - VORLAUF_UNTERGANG
-    rest = int((ziel - lage.jetzt).total_seconds() // 60)
+    rest = _ganze_minuten(lage.jetzt, ziel)
     if rest < MIN_MINUTEN:
         return Entscheidung(Zustand.PROGRAMM, (), "Zu spät am Tag für eine Absenkung.", g)
     mild = lage.at is not None and lage.at >= grenze(lage, w) - w.hysterese
@@ -697,7 +716,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         g,
         absenkung_art=SONNE,
         absenkung_von=lage.jetzt,
-        absenkung_bis=lage.jetzt + timedelta(minutes=minuten),
+        absenkung_bis=nach_minuten(lage.jetzt, minuten),
         absenkung_ziel=ziel,
         absenkung_basis=soll,
         absenkung_soll=ziel_soll,
@@ -751,7 +770,7 @@ def _pause_erlaubt(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> bool:
 def _pause_schreiben(
     lage: Lage, g: Gedaechtnis, soll: float, ziel: float, text: str, *, erneuern: bool
 ) -> Entscheidung:
-    bis = lage.jetzt + timedelta(minutes=MAX_MINUTEN)
+    bis = nach_minuten(lage.jetzt, MAX_MINUTEN)
     basis = g if erneuern else ohne_absenkung(g)
     neu = replace(
         basis,
@@ -771,7 +790,9 @@ def _pause_ende(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> str | None
         return f"Räume {kelvin(abstand)} unter Ziel"
     if lage.ruhig is False:
         return "Thermostate fordern Wärme an"
-    nachlauf_vorbei = g.absenkung_von is not None and lage.jetzt - g.absenkung_von >= PAUSE_NACHLAUF
+    nachlauf_vorbei = (
+        g.absenkung_von is not None and dauer(g.absenkung_von, lage.jetzt) >= PAUSE_NACHLAUF
+    )
     heizt = lage.vl_soll is not None and lage.vl_soll > 0
     if nachlauf_vorbei and heizt and not lage.beobachten:
         return "Die Steuerung heizt wieder"
@@ -790,11 +811,11 @@ def _heizpause_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
         )
     ziel = pause_soll(lage, w)
     alt = g.absenkung_soll if g.absenkung_soll is not None else ziel
-    knapp = g.absenkung_bis is None or g.absenkung_bis - lage.jetzt < PAUSE_ERNEUERN_REST
+    knapp = g.absenkung_bis is None or dauer(lage.jetzt, g.absenkung_bis) < PAUSE_ERNEUERN_REST
     if ziel is not None and (knapp or ziel >= alt + PAUSE_NACHRUECKEN_K):
         # Ein tieferer Wert hielte den Heizkreis bei fallender AT länger aus; nachrücken nur nach oben.
         ziel = max(ziel, alt)
-        bis = lage.jetzt + timedelta(minutes=MAX_MINUTEN)
+        bis = nach_minuten(lage.jetzt, MAX_MINUTEN)
         text = f"Heizpause verlängert – {_zahl(ziel)} °C bis {_uhr(bis)}."
         return _pause_schreiben(lage, g, soll, ziel, text, erneuern=True)
     return Entscheidung(
@@ -822,7 +843,7 @@ def _heizpause(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         return None
     if (ziel := pause_soll(lage, w)) is None or _abwesend_tiefer(lage, g, soll, ziel):
         return None
-    bis = lage.jetzt + timedelta(minutes=MAX_MINUTEN)
+    bis = nach_minuten(lage.jetzt, MAX_MINUTEN)
     text = f"{anlass}: Heizpause, {_zahl(ziel)} °C bis {_uhr(bis)}."
     return _pause_schreiben(lage, g, soll, ziel, text, erneuern=False)
 
@@ -873,12 +894,12 @@ def _modell_ohne_vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) 
     if lage.abwesend and tiefer and (abwesend := _abwesenheit(lage, g, soll, w)) is not None:
         return abwesend
     gesperrt = replace(ohne_absenkung(g), pause_sperre=lage.jetzt.date().isoformat())
-    if g.absenkung_bis <= lage.jetzt:
+    if not absenkung_laeuft(g, lage.jetzt):
         return _programm(lage, gesperrt)
     if (text := _modell_komfort(lage, g, soll, w)) is not None:
         return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, gesperrt)
     ende = g.absenkung_ziel or g.absenkung_bis
-    if ende - lage.jetzt < timedelta(minutes=MIN_MINUTEN):
+    if dauer(lage.jetzt, ende) < timedelta(minutes=MIN_MINUTEN):
         text = f"Bis zum Horizont um {_uhr(ende)} bleibt keine Stunde – zurück ins Programm."
         return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, gesperrt)
     name = "Heizpause" if g.absenkung_art == PAUSE else "Sonnentag"
@@ -912,14 +933,13 @@ def _vorausschau_stufe(
     art = PAUSE if v.stufe == V_PAUSE else SONNE
     zustand = Zustand.HEIZPAUSE if art == PAUSE else Zustand.SONNENTAG
     gleich = eigen and g.absenkung_art == art
-    knapp = g.absenkung_bis is None or g.absenkung_bis - lage.jetzt < PAUSE_ERNEUERN_REST
+    knapp = g.absenkung_bis is None or dauer(lage.jetzt, g.absenkung_bis) < PAUSE_ERNEUERN_REST
     if gleich and not knapp:
         return Entscheidung(zustand, (), _text_stufe(v), g)
     ziel = pause_soll(lage, w) if art == PAUSE else round(soll - w.absenkung_k, 1)
     if ziel is None:
         return _modell_ohne_vorausschau(lage, g, soll, w) if eigen else None
-    rest = int((v.bis - lage.jetzt).total_seconds() // 60)
-    minuten = max(MIN_MINUTEN, min(MAX_MINUTEN, rest))
+    minuten = max(MIN_MINUTEN, min(MAX_MINUTEN, _ganze_minuten(lage.jetzt, v.bis)))
     aktion = Aktion(
         "pause" if art == PAUSE else "absenken", soll=ziel, minuten=minuten, erneuern=gleich
     )
@@ -928,7 +948,7 @@ def _vorausschau_stufe(
         absenkung_art=art,
         absenkung_anlass=ANLASS_MODELL,
         absenkung_von=g.absenkung_von if gleich else lage.jetzt,
-        absenkung_bis=lage.jetzt + timedelta(minutes=minuten),
+        absenkung_bis=nach_minuten(lage.jetzt, minuten),
         absenkung_ziel=v.bis,
         absenkung_basis=g.absenkung_basis if gleich else soll,
         absenkung_soll=ziel,
@@ -947,7 +967,7 @@ def _vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheid
     # Eine Absenkung der bisherigen Regel läuft nach ihren eigenen Bedingungen zu Ende.
     if g.absenkung_art is not None and not eigen:
         return None
-    zu_nah = v.bis - lage.jetzt < timedelta(minutes=MIN_MINUTEN)
+    zu_nah = dauer(lage.jetzt, v.bis) < timedelta(minutes=MIN_MINUTEN)
     if (v.rueckkehr and eigen) or v.stufe == PROGRAMM_STUFE or zu_nah:
         return _vorausschau_ende(lage, g, v, eigen)
     if not eigen and g.pause_sperre == lage.jetzt.date().isoformat():

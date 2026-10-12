@@ -12,7 +12,15 @@ from datetime import datetime, timedelta
 import logging
 from typing import Any
 
-from .regel import NUR_WW, PROGRAMMWAHL, Aktion, Entscheidung, Gedaechtnis, absenkung_laeuft
+from .regel import (
+    NUR_WW,
+    PROGRAMMWAHL,
+    Aktion,
+    Entscheidung,
+    Gedaechtnis,
+    absenkung_laeuft,
+    dauer,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -106,7 +114,7 @@ def _absenkung_von_hand(
     g: Gedaechtnis, jetzt: datetime, rest_min: float | None, raumsoll: float | None
 ) -> str | None:
     if rest_min is not None:
-        soll_rest = (g.absenkung_bis - jetzt).total_seconds() / 60
+        soll_rest = dauer(jetzt, g.absenkung_bis).total_seconds() / 60
         if rest_min <= 0 and soll_rest > TOLERANZ_MIN:
             return "Absenkung von Hand beendet."
         if rest_min > soll_rest + TOLERANZ_MIN:
