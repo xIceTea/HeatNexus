@@ -18,6 +18,9 @@ from .stellgroessen import gruppe as parametergruppe
 
 # Betriebsart `2/9` im Heizbetrieb des Zeitprogramms.
 HEIZBETRIEB = 1
+# Betriebsarten, in denen der Heizkreis nach Programm nicht heizt: Standby, Absenkbetrieb, Urlaub,
+# Frostschutz, Standby Heizgrenze. Eine Warmwasserladung unterbricht den Morgen nicht.
+AUS = frozenset({0, 2, 5, 7, 8, 21})
 MIN_STUNDEN = 12
 # Stunden nach einem Eingriff, die noch nicht zählen; ab so vielen sauberen Stunden zählt der Tag.
 ERHOLUNG_H = 2
@@ -202,6 +205,12 @@ def _quelle(stunden: dict[int, dict[str, Any]], beginn: int) -> str:
     return "steuerung" if "ziel" not in stunden[beginn] else "raeume"
 
 
+def _heizt_weiter(stunde: dict[str, Any], hoch: float) -> bool:
+    """Ob der Morgen weiterläuft: Das Ziel bleibt oben und der Heizkreis ist nach Programm an."""
+    ba = _zahl(stunde.get("ba"))
+    return (ba is None or int(ba) not in AUS) and (_ziel(stunde) or 0) >= hoch - 0.05
+
+
 def _aufheizen(stunden: dict[int, dict[str, Any]]) -> tuple[int | None, set[int], str | None]:
     """Minuten vom Anstieg des Ziels bis der Raum warm ist, die Stunden davor und wer anhob.
 
@@ -212,9 +221,7 @@ def _aufheizen(stunden: dict[int, dict[str, Any]]) -> tuple[int | None, set[int]
     beginn, hoch = anfang
     quelle = _quelle(stunden, beginn)
     h = beginn
-    while (
-        h in stunden and _heizt(stunden[h]) is not False and (_ziel(stunden[h]) or 0) >= hoch - 0.05
-    ):
+    while h in stunden and _heizt_weiter(stunden[h], hoch):
         ab = _zahl(stunden[h].get("ab"))
         if ab is not None and ab >= WARM_K:
             # Ein Eingriff von der Stunde vor dem Anstieg bis zum Warmwerden verfälscht die Zeit.

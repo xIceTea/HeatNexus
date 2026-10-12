@@ -23,7 +23,7 @@ TAGE = [(ERSTER + timedelta(days=i)).isoformat() for i in range(HEIZTAGE)]
 HEUTE = "2026-09-27"
 # Restzeit `2/10` als `(tag, stunde, minute, minuten)`: am dritten Tag 10:00 bis 10:30.
 VORGABE = ((0, 0, 0, 0), (2, 10, 0, 60), (2, 10, 30, 0))
-FASSUNG = 4
+FASSUNG = 5
 
 
 def _zeit(tag: int, stunde: int = 0, minute: int = 0):

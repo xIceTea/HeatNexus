@@ -215,6 +215,17 @@ def test_heizbetrieb_ab_mitternacht_misst_ab_dem_anstieg_des_sollwerts(m):
     assert (tag.morgen_min, tag.morgen_quelle) == (120, "steuerung")
 
 
+def test_warmwasserladung_am_morgen_unterbricht_die_messung_nicht(m):
+    # Um 6 Uhr lädt der Kessel Warmwasser (Betriebsart 3); der Raum wird trotzdem um 8 Uhr warm.
+    stunden = stunden_eines_tages(h6={"ba": 3})
+    assert m.tag_aus_stunden("2026-11-03", stunden).morgen_min == 120
+
+
+def test_absenkbetrieb_beendet_die_messung(m):
+    stunden = stunden_eines_tages(h7={"ba": 2})
+    assert m.tag_aus_stunden("2026-11-03", stunden).morgen_min is None
+
+
 def test_ohne_anstieg_des_ziels_gibt_es_keinen_morgen(m):
     stunden = stunden_eines_tages()
     for s in stunden.values():

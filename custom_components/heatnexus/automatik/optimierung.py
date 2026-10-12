@@ -48,7 +48,7 @@ RAUMFUEHLER = "/0/1/0"
 # So weit liest `_verlauf_lesen` zurück; so viele Tage vor heute lassen sich nachrechnen.
 NACHRECHNEN_TAGE = LERNTAGE
 # Fassung der Tageswertung; ein Archiv aus einer älteren Fassung wird einmal neu gerechnet.
-NACHRECHNEN_FASSUNG = 4
+NACHRECHNEN_FASSUNG = 5
 VOLLER_TAG = 24
 # Die Klima-Entität des Heizkreises führt die Restzeit `2/10` als Merkmal.
 RESTZEIT_MERKMAL = "override_restzeit_min"
