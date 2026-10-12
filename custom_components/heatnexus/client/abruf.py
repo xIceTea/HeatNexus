@@ -321,37 +321,57 @@ class AbrufMixin:
         for tp, (data, status) in zip(objekte, results, strict=False):
             self._objekte_versucht.add(tp["oid"])
             if status != 200 or not isinstance(data, dict) or "value" not in data:
+                # Nur eine Absage der Anlage nimmt das Objekt weg; ein Verbindungsfehler
+                # lässt den zuletzt gelesenen Stand stehen.
+                if status not in self._OBJEKT_ABSAGE and tp["oid"] in self._letzte_objekte:
+                    objects[tp["oid"]] = self._letzte_objekte[tp["oid"]]
                 continue
             any_ok = True
-            wert = data["value"]
-            if wert is None or (isinstance(wert, str | list | dict) and not wert):
-                # Eine leere Antwort ist kein Textwert. Als Text geführt stünde
-                # „None" in der Entität, und ein Zeitprogramm bliebe umgestuft.
-                continue
-            if ist_zeitprogramm(wert):
-                objects[tp["oid"]] = wert
-                continue
-            # Kein Zeitprogramm, sondern ein einfacher Wert (Modulinfo,
-            # Software-/Hardwarestand). Als Textsensor führen.
-            self._object_texts[tp["oid"]] = str(wert)
-            tp["type"] = "string_sensor"
-            tp["objekt"] = True
-            _LOGGER.debug(
-                "%s (%s) ist kein Zeitprogramm, sondern ein Textwert", tp.get("name"), tp["oid"]
-            )
+            self._objekt_einordnen(tp, data["value"], objects)
 
-        if self._objects_supported is None:
-            self._objects_supported = any_ok
-            if not any_ok:
-                _LOGGER.info(
-                    "object-Endpunkt lokal nicht verfügbar – Zeitprogramme werden übersprungen"
-                )
-                tp_oids = {tp["oid"] for tp in objekte}
-                self.devices = [d for d in self.devices if d.get("oid") not in tp_oids]
-                objekte = []
+        objekte = self._objektendpunkt_entscheiden(objekte, [st for _, st in results], any_ok)
         self.time_programs = [tp for tp in objekte if tp.get("type") == "time_program"]
         self.objekt_texte = [tp for tp in objekte if tp.get("type") != "time_program"]
         return objects
+
+    # Antworten, mit denen die Anlage ein Objekt ausdrücklich nicht führt.
+    _OBJEKT_ABSAGE = (404, 409)
+
+    def _objekt_einordnen(self, tp: dict, wert, objects: dict) -> None:
+        """Ein gelesenes Objekt als Zeitprogramm oder als Textwert ablegen."""
+        if wert is None or (isinstance(wert, str | list | dict) and not wert):
+            # Eine leere Antwort ist kein Textwert. Als Text geführt stünde
+            # „None" in der Entität, und ein Zeitprogramm bliebe umgestuft.
+            return
+        if ist_zeitprogramm(wert):
+            objects[tp["oid"]] = wert
+            return
+        # Kein Zeitprogramm, sondern ein einfacher Wert (Modulinfo,
+        # Software-/Hardwarestand). Als Textsensor führen.
+        self._object_texts[tp["oid"]] = str(wert)
+        tp["type"] = "string_sensor"
+        tp["objekt"] = True
+        _LOGGER.debug(
+            "%s (%s) ist kein Zeitprogramm, sondern ein Textwert", tp.get("name"), tp["oid"]
+        )
+
+    def _objektendpunkt_entscheiden(self, objekte: list, status: list, any_ok: bool) -> list:
+        """Beim ersten Lesen festhalten, ob die Anlage den object-Endpunkt führt.
+
+        Ohne Antwort bleibt es offen. Erst eine Absage (4xx außer Anmeldung) entscheidet.
+        """
+        if self._objects_supported is not None:
+            return objekte
+        if any_ok:
+            self._objects_supported = True
+            return objekte
+        if not any(400 <= st < 500 and st not in (401, 403) for st in status):
+            return objekte
+        self._objects_supported = False
+        _LOGGER.info("object-Endpunkt lokal nicht verfügbar – Zeitprogramme werden übersprungen")
+        tp_oids = {tp["oid"] for tp in objekte}
+        self.devices = [d for d in self.devices if d.get("oid") not in tp_oids]
+        return []
 
     async def refresh_object(self, oid: str):
         """Ein einzelnes Zeitprogramm sofort neu lesen.
