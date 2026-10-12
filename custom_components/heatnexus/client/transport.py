@@ -15,7 +15,7 @@ import aiohttp
 from yarl import URL
 
 from ..const import ANFRAGE_TIMEOUT, FETCH_CONCURRENCY, POLL_CONCURRENCY, VERBINDUNG_TIMEOUT
-from ..exceptions import WindhagerWriteError, mit_text
+from ..exceptions import CannotConnect, WindhagerWriteError, mit_text
 from .gemeinsam import FEHLGESCHLAGEN
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,6 +40,9 @@ class TransportMixin:
         mit, statt sich jedes Mal einen `401` abzuholen. Bei einer Steuerung,
         die pro Abruf dutzende Anfragen bekommt, ist das die halbe Last.
         """
+        if self._geschlossen:
+            # Nach dem Entladen öffnet eine späte Aufgabe keine neue Sitzung mehr.
+            raise CannotConnect(f"Verbindung zu {self.host} ist geschlossen")
         if self._session is None:
             self._session = aiohttp.ClientSession(
                 # Ohne eigene Grenze wartet aiohttp fünf Minuten auf eine
@@ -67,6 +70,7 @@ class TransportMixin:
 
     async def close(self):
         """Close the client session."""
+        self._geschlossen = True
         if self._session:
             await self._session.close()
             self._session = None

@@ -197,6 +197,8 @@ class WindhagerHttpClient(
         self._sekunden_je_wert: float | None = None
         self.gestartet = time.monotonic()
         self._session = None
+        # Nach `close()` gesetzt: Der Client öffnet dann keine Sitzung mehr.
+        self._geschlossen = False
         self._semaphore = asyncio.Semaphore(FETCH_CONCURRENCY)
         # Für das zyklische Abrufen einzelner Werte gilt eine eigene, höhere
         # Grenze: Dort sind die Antworten klein, und die Warteschlange war der
