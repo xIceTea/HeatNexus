@@ -161,6 +161,8 @@ class Steller:
         self.erledigt: tuple[Aktion, ...] = ()
         # Ob der letzte Lauf eine Empfehlung statt eines Schreibvorgangs ergab.
         self.empfohlen = False
+        # Raumsoll, der nach dem letzten Lauf ohne neue Dauer an der Steuerung steht.
+        self.halb_soll: float | None = None
 
     @property
     def angeboten(self) -> tuple[int, ...]:
@@ -210,10 +212,15 @@ class Steller:
         beobachten: bool,
         erzwingen: bool = False,
         empfehlen: bool = False,
+        soll_vorher: float | None = None,
     ) -> bool:
-        """Schreibt die Aktionen; `True`, wenn alles angenommen oder nur beobachtet wurde."""
+        """Schreibt die Aktionen; `True`, wenn alles angenommen oder nur beobachtet wurde.
+
+        `soll_vorher` ist der Raumsoll einer laufenden eigenen Absenkung, sonst `None`.
+        """
         self.erledigt = ()
         self.empfohlen = False
+        self.halb_soll = None
         self._tag_wechseln(jetzt)
         if not entscheidung.aktionen:
             return True
@@ -235,12 +242,7 @@ class Steller:
         if zaehlt and self.stand.eingriffe >= budget:
             self._budget_vermerken(jetzt, budget, paare)
             return False
-        try:
-            for aktion in entscheidung.aktionen:
-                for oid, wert in self.schreibvorgaenge(aktion):
-                    await self._schreiben(f"{self._prefix}{oid}", wert)
-                self.erledigt = (*self.erledigt, aktion)
-        except Exception as fehler:  # jede Ablehnung gehört ins Protokoll
+        if (fehler := await self._alle_schreiben(entscheidung.aktionen, soll_vorher)) is not None:
             # Was schon angenommen ist, gilt; sonst sähe es beim nächsten Lauf nach einem Handeingriff aus.
             if self.erledigt:
                 self._merken(self.erledigt, betriebswahl, jetzt, False)
@@ -250,6 +252,45 @@ class Steller:
         self._merken(entscheidung.aktionen, betriebswahl, jetzt, zaehlt)
         self.vermerken(jetzt, "geschrieben", entscheidung.begruendung, paare, entscheidung.aktionen)
         return True
+
+    async def _alle_schreiben(
+        self, aktionen: tuple[Aktion, ...], soll_vorher: float | None
+    ) -> Exception | None:
+        """Die Aktionen der Reihe nach schreiben; die erste Ablehnung beendet den Vorgang."""
+        for aktion in aktionen:
+            geschrieben: list[tuple[str, str]] = []
+            try:
+                for oid, wert in self.schreibvorgaenge(aktion):
+                    await self._schreiben(f"{self._prefix}{oid}", wert)
+                    geschrieben.append((oid, wert))
+            except Exception as fehler:  # jede Ablehnung gehört ins Protokoll
+                if geschrieben:
+                    await self._halb_aufraeumen(dict(geschrieben), soll_vorher, fehler)
+                return fehler
+            self.erledigt = (*self.erledigt, aktion)
+        return None
+
+    async def _halb_aufraeumen(
+        self, geschrieben: dict[str, str], soll_vorher: float | None, fehler: Exception
+    ) -> None:
+        """Steht `3/4` ohne `2/10`, wirkt er nur in einer laufenden Absenkung; dort zurückstellen.
+
+        Scheitert auch das, gilt der neue Raumsoll mit der alten Dauer (`halb_soll`).
+        """
+        if (neu := geschrieben.get(OID_TEMPERATUR)) is None:
+            return
+        _LOGGER.warning(
+            "Automatik %s: Raumsoll %s ohne Dauer geschrieben: %s", self._prefix, neu, fehler
+        )
+        if soll_vorher is None:
+            return
+        try:
+            await self._schreiben(f"{self._prefix}{OID_TEMPERATUR}", f"{soll_vorher:.1f}")
+        except Exception as zweiter:  # dann gilt der neue Wert
+            _LOGGER.warning(
+                "Automatik %s: Raumsoll nicht zurückgestellt: %s", self._prefix, zweiter
+            )
+            self.halb_soll = float(neu)
 
     def _gesperrt(self, jetzt: datetime, sicherheit: bool = False) -> bool:
         """Nach einer Ablehnung gesperrt; eine Sicherheitsaktion nur nach ihrer eigenen, und kurz."""

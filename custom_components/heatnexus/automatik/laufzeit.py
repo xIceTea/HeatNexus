@@ -436,20 +436,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         entscheidung = regel.entscheiden(lage, self.gedaechtnis, self.werte)
         bestaetigt = self._bestaetigt(bestaetigung, entscheidung)
         entscheidung = self._ohne_verworfenes(entscheidung, bestaetigt, jetzt)
-        angenommen = await self.steller.ausfuehren(
-            entscheidung,
-            jetzt=jetzt,
-            betriebswahl=lage.betriebswahl,
-            budget=self._budget(bestaetigt),
-            beobachten=self.beobachten,
-            erzwingen=self._erzwingen or bestaetigt,
-            empfehlen=self.empfehlen and not bestaetigt,
-        )
-        self._erzwingen = False
-        if angenommen:
-            self.gedaechtnis = entscheidung.gedaechtnis
-        elif self.steller.erledigt:
-            self.gedaechtnis = regel.nach_teilerfolg(self.gedaechtnis, self.steller.erledigt, jetzt)
+        angenommen = await self._ausfuehren(entscheidung, lage, jetzt, bestaetigt)
         self._sicherheit_pruefen(entscheidung, angenommen)
         self.steller.abgleichen(self.gedaechtnis, jetzt)
         if entscheidungszeit and not entscheidung.aktionen:
@@ -459,6 +446,33 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             return
         self._empfehlung_pruefen(jetzt, entscheidung, entscheidungszeit, angenommen, bestaetigt)
         self._setzen(entscheidung.zustand, entscheidung.begruendung)
+
+    async def _ausfuehren(
+        self, entscheidung: regel.Entscheidung, lage: regel.Lage, jetzt: datetime, bestaetigt: bool
+    ) -> bool:
+        """Die Entscheidung schreiben und das Gedächtnis dem anpassen, was die Steuerung annahm."""
+        laeuft = regel.absenkung_laeuft(self.gedaechtnis, jetzt)
+        angenommen = await self.steller.ausfuehren(
+            entscheidung,
+            jetzt=jetzt,
+            betriebswahl=lage.betriebswahl,
+            budget=self._budget(bestaetigt),
+            beobachten=self.beobachten,
+            erzwingen=self._erzwingen or bestaetigt,
+            empfehlen=self.empfehlen and not bestaetigt,
+            soll_vorher=self.gedaechtnis.absenkung_soll if laeuft else None,
+        )
+        self._erzwingen = False
+        if angenommen:
+            self.gedaechtnis = entscheidung.gedaechtnis
+            return True
+        if self.steller.erledigt:
+            self.gedaechtnis = regel.nach_teilerfolg(self.gedaechtnis, self.steller.erledigt, jetzt)
+        # Ein Raumsoll ohne neue Dauer gilt in der laufenden Absenkung; sonst sähe er nach Handeingriff aus.
+        halb = self.steller.halb_soll
+        if halb is not None and regel.absenkung_laeuft(self.gedaechtnis, jetzt):
+            self.gedaechtnis = replace(self.gedaechtnis, absenkung_soll=halb)
+        return False
 
     def _geprueft(self, jetzt: datetime, text: str) -> None:
         letzter = next(iter(self.steller.stand.protokoll), None)
