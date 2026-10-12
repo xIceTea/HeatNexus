@@ -215,6 +215,21 @@ def test_heizbetrieb_ab_mitternacht_misst_ab_dem_anstieg_des_sollwerts(m):
     assert (tag.morgen_min, tag.morgen_quelle) == (120, "steuerung")
 
 
+def test_ein_spaeterer_kleiner_anstieg_verdraengt_den_morgen_nicht(m):
+    # Hauptanstieg um 6 Uhr, um 10 Uhr hebt ein Thermostat noch einmal um 0,5 K an.
+    stunden = stunden_eines_tages()
+    for h in range(10, 22):
+        stunden[str(h)]["soll"] = 22.5
+    assert m.tag_aus_stunden("2026-11-03", stunden).morgen_min == 120
+
+
+def test_ohne_raumsoll_der_steuerung_gilt_sie_als_quelle(m):
+    stunden = _thermostattag()
+    del stunden["3"]["soll"]
+    tag = m.tag_aus_stunden("2026-11-03", stunden)
+    assert (tag.morgen_min, tag.morgen_quelle) == (120, "steuerung")
+
+
 def test_warmwasserladung_am_morgen_unterbricht_die_messung_nicht(m):
     # Um 6 Uhr lädt der Kessel Warmwasser (Betriebsart 3); der Raum wird trotzdem um 8 Uhr warm.
     stunden = stunden_eines_tages(h6={"ba": 3})

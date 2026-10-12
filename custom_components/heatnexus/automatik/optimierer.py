@@ -50,7 +50,7 @@ MORGEN_SOFORT = 0
 SOLL_HOCH = 22.5
 # Ab dieser Abweichung gilt der Raum morgens als warm.
 WARM_K = -0.3
-# Der Morgen ist der Anstieg des Ziels um mindestens so viel auf seinen Höchstwert, gesucht bis Mittag.
+# Der Morgen ist der größte Anstieg des Ziels von einer Stunde zur nächsten, mindestens so viel, bis Mittag.
 ANSTIEG_K = 0.5
 MORGEN_BIS = 12
 MAX_KURVE = 10
@@ -185,22 +185,22 @@ def _ziel(stunde: dict[str, Any]) -> float | None:
 
 
 def _morgenbeginn(stunden: dict[int, dict[str, Any]]) -> tuple[int, float] | None:
-    """Die Stunde, in der das Ziel bis Mittag auf seinen Höchstwert steigt, und dieser Wert."""
+    """Die Stunde des größten Anstiegs bis Mittag und das erreichte Ziel; bei Gleichstand die frühere.
+
+    Ein kleiner späterer Anstieg, etwa ein Thermostat am Vormittag, verdrängt den Morgen nicht.
+    """
     ziele = {h: z for h, s in stunden.items() if h < MORGEN_BIS and (z := _ziel(s)) is not None}
-    if not ziele:
+    anstiege = [(z - ziele[h - 1], h) for h, z in sorted(ziele.items()) if h - 1 in ziele]
+    groesster = max(anstiege, key=lambda a: (a[0], -a[1]), default=None)
+    if groesster is None or groesster[0] < ANSTIEG_K:
         return None
-    hoch = max(ziele.values())
-    for h in sorted(ziele):
-        vorher = ziele.get(h - 1)
-        if vorher is not None and ziele[h] >= hoch - 0.05 and ziele[h] - vorher >= ANSTIEG_K:
-            return h, hoch
-    return None
+    return groesster[1], ziele[groesster[1]]
 
 
 def _quelle(stunden: dict[int, dict[str, Any]], beginn: int) -> str:
-    """`steuerung`, wenn `1/1` mit dem Ziel anstieg; sonst haben die Thermostate angehoben."""
+    """`raeume`, wenn nur das Ziel der Thermostate stieg; mit `1/1` oder ohne seinen Wert die Steuerung."""
     jetzt, vorher = _zahl(stunden[beginn].get("soll")), _zahl(stunden[beginn - 1].get("soll"))
-    if jetzt is not None and vorher is not None and jetzt - vorher >= ANSTIEG_K:
+    if jetzt is None or vorher is None or jetzt - vorher >= ANSTIEG_K:
         return "steuerung"
     return "steuerung" if "ziel" not in stunden[beginn] else "raeume"
 
