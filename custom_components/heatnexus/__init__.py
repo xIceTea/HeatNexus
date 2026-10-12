@@ -30,6 +30,7 @@ from homeassistant.loader import async_get_integration
 from . import device_db, error_texts, verwaiste, waermequelle
 from .auslieferung import karte_ressource_entfernen
 from .automatik.verwaltung import verwaltung_holen
+from .befund.laufzeit import befund_holen
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
@@ -436,6 +437,7 @@ async def _entitaeten_einrichten(
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     geraetenamen_angleichen(registry, entry, coordinators)
     await verwaltung_holen(hass).eintrag_starten(entry)
+    await befund_holen(hass).eintrag_starten(entry)
     async_entity_ids_umstellen(hass, entry)
     # Beim ersten Lauf steht in der Registrierung noch der alte Anzeigename –
     # die Plattformen melden ihn erst danach an. Ein zweiter Lauf, sobald Home
@@ -642,6 +644,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Einen Konfigurationseintrag entladen."""
     await verwaltung_holen(hass).eintrag_stoppen(entry)
+    await befund_holen(hass).eintrag_stoppen(entry)
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         daten = laufzeitdaten(entry) or {}
