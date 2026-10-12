@@ -35,7 +35,7 @@ const HILFE = {
   waermespeicher:
     "Gemessen wird, wie schnell die Räume ohne Heizung zur Außentemperatur hin abkühlen. Grundlage ist die Zeitkonstante aus Wärmespeicherfähigkeit und Wärmeverlust, wie in DIN V 18599-2. Eine Einordnung wie leicht oder schwer erscheint erst mit belegter Skala.",
   heizgrenze:
-    "Je Tag zählt das Mittel der Außentemperatur und ob der Heizkreis mindestens zwei Stunden geheizt hat. Die Heizgrenze ist die Temperatur, an der Heiztage und heizfreie Tage kippen. Die Rechengrenze nach VDI 3807 ist eine Konvention für Gradtagzahlen, kein Zielwert.",
+    "Je Tag zählt das Mittel der Außentemperatur und ob der Heizkreis mindestens zwei Stunden geheizt hat. Die Heizgrenze ist die Temperatur, an der Heiztage und heizfreie Tage kippen. Die Heizgrenze der Gradtagzahl nach VDI 3807 ist eine Konvention für den Vergleich von Verbräuchen, kein Zielwert für die Anlage.",
   raeume:
     "Gezählt werden Heizstunden ohne Eingriff. Thermostate drosseln, sobald ein Raum warm ist; eine zu hohe Heizkurve zeigt sich deshalb kaum. Sonne und Öfen sind nicht herausgerechnet. Laut Windhager-Anleitung hilft bei zu hoher oder zu niedriger Raumtemperatur: Auslegungstemperatur und/oder Fußpunkt korrigieren oder Behaglichkeit.",
   naechte:
@@ -141,7 +141,7 @@ export const BefundMixin = (Basis) =>
 
     _befundKarte(abschnitt, b) {
       const karte = this._karte(this._t(TITEL[b.art] || b.art), this._t(HILFE[b.art] || ""));
-      karte.classList.add("befund-karte", b.status);
+      karte.classList.add("befund-karte", `befund-${b.status}`);
       const kopf = knoten("div", "befund-kopf");
       kopf.appendChild(knoten("span", "befund-abschnitt", `${this._t(ABSCHNITT[abschnitt.art] || "")} · ${abschnitt.titel}`));
       const marke = { unauffaellig: "unauffällig", hinweis: "Hinweis", sammelt: "sammelt" }[b.status];
@@ -197,7 +197,7 @@ export const BefundMixin = (Basis) =>
       const grad = (wert) => `${this._befundZahl(wert)} °C`;
       const zeilen = [
         [v.eingestellt, "Eingestellt an der Steuerung (TA Heizbetrieb)", grad],
-        [v.rechengrenze, "Rechengrenze nach VDI 3807", grad],
+        [v.rechengrenze, "Heizgrenze der Gradtagzahl (VDI 3807)", grad],
         [v.heizstunden_je_gt, "Heizstunden je Heizgradtag", (w) => `${this._befundZahl(w)} h`],
         [v.ta_absenk, "Heizgrenze Absenkbetrieb (TA Absenkbetrieb)", grad],
         [a.sonne, "Sonne wärmt bei vollem Sonnenschein", (w) => this._tMit("+{k} K je Stunde", { k: this._befundZahl(w) })],
