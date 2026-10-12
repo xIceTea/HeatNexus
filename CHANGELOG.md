@@ -34,7 +34,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Übersicht erscheint auch bei einer einzelnen Anlage.
 - Beim Einschalten rechnen die Hinweise die vergangenen zwei Wochen aus der Historie nach.
 - Die Kachel „Optimierung“ zeigt den Fortschritt je Hinweis und die nicht auswertbaren Tage.
-- Eine eigene Kachel zeigt die Ergebnisse der Optimierung, auch ohne nötige Änderung.
+- Optimierung und Ergebnisse stehen in einem Rahmen, je Auswertung eine Zeile.
 - Die Ergebnisse der Optimierung zeigen ab vier Tagen eine vorläufige Tendenz.
 - Die Ergebnisse der Optimierung nennen den aktuellen Wert der Heizkurve.
 - Beim Einschalten der Hinweise werden die Parameter der Heizkurve aktiviert.
@@ -43,6 +43,12 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Optimierung berücksichtigt Fußbodenheizung und Heizkreise ohne Heizkurve.
 - Tage, an denen der Vorlauf den Sollwert nicht erreicht, zählen für die Optimierung nicht.
 - Ergebnisse der Optimierung lassen sich täglich in der Seitenleiste melden.
+- Die Optimierung bewertet Räume gegen den Sollwert ohne Behaglichkeit.
+- Den Morgen misst die Optimierung ab dem Anstieg des Raumziels.
+- Die Optimierung empfiehlt bei Thermostaten, deren Zeitprogramm früher zu starten.
+- Die Auskühlzeit des Hauses steht als eigener Sensor bereit.
+- Außentemperatur und Auskühlzeit im Reiter Automatik öffnen per Klick den Verlauf.
+- Ja/Nein-Einstellungen der Automatik sind jetzt Schalter.
 - Die Automatik nennt, ob Raumtemperatur, Außentemperatur oder Wettervorhersage fehlen.
 - Fehlt die Wettervorhersage länger, erscheint eine Reparaturmeldung.
 - Die Wetterauswahl zeigt nur Entitäten mit Vorhersage.
