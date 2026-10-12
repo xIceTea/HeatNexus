@@ -252,6 +252,16 @@ async def test_jede_art_bekommt_die_domaene_ihrer_plattform(hass, eintrag):
     assert TYP_DOMAENE["time_program"] == "sensor"
 
 
+async def test_die_dienste_stehen_ohne_eintrag_bereit(hass):
+    """Angemeldet werden sie in `async_setup`; eine Automation mit ihnen bleibt so gültig."""
+    from homeassistant.setup import async_setup_component
+
+    assert await async_setup_component(hass, DOMAIN, {})
+
+    assert hass.services.has_service(DOMAIN, "rediscover")
+    assert hass.services.has_service(DOMAIN, "dashboard_ausgeben")
+
+
 async def test_ohne_anlage_im_eintrag_wird_nicht_eingerichtet(hass):
     """Ein Eintrag ohne Anlage ist kein Grund, halb zu starten."""
     from homeassistant.config_entries import ConfigEntryState

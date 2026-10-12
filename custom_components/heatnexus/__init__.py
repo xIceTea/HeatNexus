@@ -449,8 +449,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _marken_je_anlage_uebernehmen(hass, entry, systeme)
 
     hass.data.setdefault(DOMAIN, {})
-    async_register_rediscover_service(hass)
-    async_register_dashboard_export(hass)
     await hass.async_add_executor_job(_preload_data)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
