@@ -6,7 +6,6 @@ import asyncio
 from datetime import timedelta
 import logging
 
-from homeassistant.const import CONF_NAME
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -52,14 +51,12 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             always_update=False,
         )
         self.client = client
-        self.entry = entry
         self.host = host
         self.label = label
-        self.hub_name = entry.data.get(CONF_NAME) or entry.title
-        self.consecutive_timeouts = 0
         # Der gewählte Takt. Bei Störungen wird langsamer gefragt, danach
         # wieder genau hierauf zurückgestellt.
         self._takt = update_interval
+        # Fehlschläge in Folge, gleich welcher Art; die erste Antwort setzt sie zurück.
         self._fehlschlaege = 0
         # Ob der Ausfall schon im Protokoll steht. Eine Anlage, die über Nacht
         # weg ist, schriebe sonst je Abruf eine Zeile.
@@ -111,7 +108,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         ir.async_create_issue(
             self.hass,
             DOMAIN,
-            f"nicht_erreichbar_{self.entry.entry_id}_{self.host}",
+            f"nicht_erreichbar_{self.config_entry.entry_id}_{self.host}",
             is_fixable=False,
             severity=ir.IssueSeverity.ERROR,
             translation_key="nicht_erreichbar",
@@ -120,7 +117,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
 
     def _stoerung_zuruecknehmen(self) -> None:
         ir.async_delete_issue(
-            self.hass, DOMAIN, f"nicht_erreichbar_{self.entry.entry_id}_{self.host}"
+            self.hass, DOMAIN, f"nicht_erreichbar_{self.config_entry.entry_id}_{self.host}"
         )
 
     async def _async_update_data(self):
@@ -128,30 +125,27 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         # Mehrere abgewiesene Anfragen hintereinander heißen: Das Passwort
         # stimmt nicht mehr. Home Assistant fragt dann von sich aus danach,
         # statt die Anlage still als „nicht verfügbar" stehen zu lassen.
-        if getattr(self.client, "auth_errors", 0) >= AUTH_FEHLER_GRENZE:
+        if self.client.auth_errors >= AUTH_FEHLER_GRENZE:
             raise mit_text(ConfigEntryAuthFailed, "anmeldung_abgewiesen", anlage=self.host)
-        erster = bool(getattr(self.client, "erster_abruf", False))
-        fenster = ERSTABRUF_TIMEOUT if erster else ABRUF_TIMEOUT
+        fenster = ERSTABRUF_TIMEOUT if self.client.erster_abruf else ABRUF_TIMEOUT
         try:
             # Der Abruf bekommt sein Zeitfenster mit und hört von selbst
             # rechtzeitig auf. Die Zeitüberschreitung bleibt der Notnagel für
             # eine Anlage, die gar nicht mehr antwortet.
             async with asyncio.timeout(fenster):
                 data = await self.client.fetch_all(budget=fenster - ABRUF_RESERVE)
-                self.consecutive_timeouts = 0
                 self._wieder_normal_fragen()
                 self._rueckkehr_protokollieren()
                 self._stoerung_zuruecknehmen()
                 return data
         except TimeoutError as err:
-            self.consecutive_timeouts += 1
             self._langsamer_fragen()
             self._ausfall_protokollieren(
                 "Zeitüberschreitung beim Abruf von %s (Versuch %d)",
                 self.host,
-                self.consecutive_timeouts,
+                self._fehlschlaege,
             )
-            if self.consecutive_timeouts >= 3:
+            if self._fehlschlaege >= 3:
                 self._stoerung_melden(woerterbuch(self.hass)("Sie antwortet nicht mehr."))
                 raise mit_text(
                     UpdateFailed, "antwortet_nicht", anlage=self.host, fehler=err

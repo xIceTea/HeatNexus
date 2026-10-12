@@ -91,7 +91,7 @@ async def test_die_erste_antwort_stellt_den_takt_zurueck(coordinator):
     coordinator.client.fetch_all.side_effect = None
     await coordinator._async_update_data()
     assert coordinator.update_interval == timedelta(seconds=30)
-    assert coordinator.consecutive_timeouts == 0
+    assert coordinator._fehlschlaege == 0
 
 
 async def test_ein_einzelner_fehler_haelt_die_werte(coordinator):

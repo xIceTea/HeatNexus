@@ -46,7 +46,7 @@ def coordinator(hass):
 
 def _stoerung(hass, coordinator):
     return ir.async_get(hass).async_get_issue(
-        DOMAIN, f"nicht_erreichbar_{coordinator.entry.entry_id}_{coordinator.host}"
+        DOMAIN, f"nicht_erreichbar_{coordinator.config_entry.entry_id}_{coordinator.host}"
     )
 
 

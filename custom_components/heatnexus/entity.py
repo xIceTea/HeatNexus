@@ -229,12 +229,12 @@ def steuerung_kennung(coordinator: Any) -> str:
     eigene = getattr(coordinator.client, "steuerung_kennung", None)
     if callable(eigene) and (kennung := eigene()):
         return kennung
-    return f"{coordinator.entry.entry_id}_{coordinator.host}"
+    return f"{coordinator.config_entry.entry_id}_{coordinator.host}"
 
 
 def steuerung_verweis(coordinator: Any) -> dict[str, Any]:
     """Der Verweis eines Anlagenteils auf seine Steuerung, für die Geräteangaben."""
-    eintrag = getattr(coordinator, "entry", None)
+    eintrag = getattr(coordinator, "config_entry", None)
     return uebergeordnet(
         getattr(coordinator, "hass", None),
         steuerung_kennung(coordinator),
