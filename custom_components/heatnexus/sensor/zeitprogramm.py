@@ -121,19 +121,24 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
     # Schreiben (Service heatnexus.set_time_program)
     # ------------------------------------------------------------------
     ALL_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
-    # Eingabe (deutsch ODER englisch) -> von der API erwartete Codes
+    # Eingabe in jeder angezeigten Sprache, gekürzt oder ausgeschrieben -> Code der API.
+    # Deutsch und Niederländisch teilen sich „di" und „do" mit derselben Bedeutung.
     _DAY_NORMALIZE = {
-        "mo": "Mo",
-        "di": "Tu",
-        "tu": "Tu",
-        "mi": "We",
-        "we": "We",
-        "do": "Th",
-        "th": "Th",
-        "fr": "Fr",
-        "sa": "Sa",
-        "so": "Su",
-        "su": "Su",
+        name: code
+        for code, namen in zip(
+            ALL_DAYS,
+            (
+                ("mo", "montag", "monday", "ma", "maandag"),
+                ("di", "tu", "dienstag", "tuesday", "dinsdag"),
+                ("mi", "we", "mittwoch", "wednesday", "wo", "woensdag"),
+                ("do", "th", "donnerstag", "thursday", "donderdag"),
+                ("fr", "freitag", "friday", "vr", "vrijdag"),
+                ("sa", "samstag", "saturday", "za", "zaterdag"),
+                ("so", "su", "sonntag", "sunday", "zo", "zondag"),
+            ),
+            strict=True,
+        )
+        for name in namen
     }
 
     @classmethod

@@ -482,6 +482,20 @@ def test_zeitprogramm_folgt_der_sprache_der_datenpunkte(sensoren, sprache, erwar
     assert entity.native_value == erwartet
 
 
+@pytest.mark.parametrize(
+    ("eingabe", "erwartet"),
+    [
+        (["Ma", "Wo", "Vr", "Za", "Zo"], ["Mo", "We", "Fr", "Sa", "Su"]),
+        (["Monday", "tuesday", "Sunday"], ["Mo", "Tu", "Su"]),
+        (["Montag", "Mittwoch"], ["Mo", "We"]),
+        (["maandag", "donderdag"], ["Mo", "Th"]),
+    ],
+)
+def test_wochentage_werden_in_jeder_sprache_angenommen(sensoren, eingabe, erwartet):
+    """Angezeigt wird niederländisch; dieselben Kürzel muss der Dienst annehmen."""
+    assert sensoren.WindhagerTimeProgramSensor._norm_days(eingabe) == erwartet
+
+
 def test_zeitprogramm_ohne_daten_ist_nicht_verfuegbar(sensoren):
     """Zeitprogramme kommen über den object-Endpunkt; fehlt er, fehlt alles."""
     entity, koordinator = _entitaet(
