@@ -30,6 +30,13 @@ _LOGGER = logging.getLogger(__name__)
 # einräumt.
 MELDUNG_VERZOEGERUNG = 10
 
+# Wartezeiten (s) vor dem zweiten und dritten Versuch, die Anlage vollständig einzulesen.
+VOLLABZUG_PAUSEN = (60, 300)
+
+EINLESEN_VOLL = "voll"
+EINLESEN_LUECKEN = "luecken"
+EINLESEN_FEHLER = "fehler"
+
 TEXT_LAEUFT = (
     "**{titel}** wird gerade vollständig eingelesen.\n\n"
     "Bisher angelegt: {anzahl} Entitäten. "
@@ -87,8 +94,13 @@ def einlesen_melden(hass: HomeAssistant, entry: ConfigEntry) -> None:
     )
 
 
-def _einlesen_abgeschlossen(hass: HomeAssistant, entry: ConfigEntry, host: str) -> None:
-    """Eine Anlage ist durch; sind alle durch, das Ergebnis melden."""
+def _einlesen_abgeschlossen(
+    hass: HomeAssistant, entry: ConfigEntry, host: str, erfolgreich: bool = True
+) -> None:
+    """Eine Anlage ist durch; sind alle durch, das Ergebnis melden.
+
+    Ist eine nicht vollständig eingelesen, verschwindet die Meldung, statt Erfolg zu behaupten.
+    """
     daten = laufzeitdaten(entry)
     if not isinstance(daten, dict):
         return
@@ -96,9 +108,12 @@ def _einlesen_abgeschlossen(hass: HomeAssistant, entry: ConfigEntry, host: str) 
     if not isinstance(offen, set):
         return
     offen.discard(host)
-    if offen:
+    if not erfolgreich:
+        daten.setdefault("einlesen_gescheitert", set()).add(host)
+    if offen or not meldung_erwuenscht(entry.options):
         return
-    if not meldung_erwuenscht(entry.options):
+    if daten.get("einlesen_gescheitert"):
+        persistent_notification.async_dismiss(hass, meldungs_id(entry))
         return
 
     uebersetzt = woerterbuch(hass)
@@ -132,15 +147,11 @@ async def vollabzug(
     einer Aktualisierung: Die Anzeige steht schon, hier kommt nur dazu, was
     die neue Fassung zusätzlich erkennt.
     """
-    try:
-        await client.async_init(erzwingen=war_im_cache)
-    except asyncio.CancelledError:
-        # Der Eintrag wird gerade entladen – kein Grund für eine Warnung.
-        raise
-    except Exception as err:
-        _LOGGER.warning("%s konnte nicht vollständig eingelesen werden: %s", host, err)
-        _einlesen_abgeschlossen(hass, entry, host)
+    ergebnis = await _einlesen_mit_wiederholung(client, host, war_im_cache)
+    if ergebnis == EINLESEN_FEHLER:
+        _einlesen_abgeschlossen(hass, entry, host, erfolgreich=False)
         return
+    vollstaendig = ergebnis == EINLESEN_VOLL
 
     await coordinator.async_refresh()
     async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id))
@@ -152,8 +163,13 @@ async def vollabzug(
     # den Dispatcher verlassen hat – die Erfolgsmeldung wartet das ab, sonst
     # nennt sie eine zu kleine Zahl.
     async_call_later(
-        hass, MELDUNG_VERZOEGERUNG, lambda _jetzt: _einlesen_abgeschlossen(hass, entry, host)
+        hass,
+        MELDUNG_VERZOEGERUNG,
+        lambda _jetzt: _einlesen_abgeschlossen(hass, entry, host, vollstaendig),
     )
+    # Ein Stand mit Lücken bleibt im Speicher; der nächste Start liest neu ein.
+    if not vollstaendig:
+        return
 
     data = client.export_discovery()
     mem_cache[cache_key] = data
@@ -172,6 +188,38 @@ async def vollabzug(
             "data": data,
         }
     )
+
+
+async def _einlesen_mit_wiederholung(client, host: str, erzwingen: bool) -> str:
+    """Die Anlage vollständig einlesen, bei Fehler oder Lücken nach einer Pause erneut.
+
+    Zurück kommt `EINLESEN_VOLL`, `EINLESEN_LUECKEN` (gelesen, aber mit Lücken) oder `EINLESEN_FEHLER`.
+    """
+    ergebnis = EINLESEN_FEHLER
+    for versuch, pause in enumerate((*VOLLABZUG_PAUSEN, None), start=1):
+        try:
+            await client.async_init(erzwingen=erzwingen or versuch > 1)
+        except asyncio.CancelledError:
+            # Der Eintrag wird gerade entladen – kein Grund für eine Warnung.
+            raise
+        except Exception as err:
+            grund = str(err) or type(err).__name__
+        else:
+            if not client.erkennung_unvollstaendig:
+                return EINLESEN_VOLL
+            ergebnis, grund = EINLESEN_LUECKEN, "Metadaten unvollständig"
+        if pause is None:
+            _LOGGER.warning("%s konnte nicht vollständig eingelesen werden: %s", host, grund)
+            return ergebnis
+        _LOGGER.info(
+            "%s: Einlesen gescheitert (%s), Versuch %d folgt in %d s",
+            host,
+            grund,
+            versuch + 1,
+            pause,
+        )
+        await asyncio.sleep(pause)
+    return ergebnis
 
 
 def vollabzuege_starten(

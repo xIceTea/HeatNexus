@@ -8,6 +8,7 @@ andere steht in den Modulen daneben.
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
 import time
 
@@ -152,9 +153,22 @@ class WindhagerHttpClient(
         self._letzte_werte: dict[str, str | None] = {}
         self._letzte_objekte: dict = {}
         self._letzte_meldungen: dict[str, str] = {}
+        self._erkennungslauf_anlegen()
+        self._verbindung_anlegen()
+
+    def _erkennungslauf_anlegen(self) -> None:
+        """Was ein Erkennungslauf über sich selbst festhält."""
         # Ist der vollständige Abzug (Menü-Ebenen) bereits gelaufen?
         self._vollstaendig = False
-        self._verbindung_anlegen()
+        # Die Geräteliste vor einem laufenden Erkennungslauf; sonst None.
+        self._geraete_waehrend_einlesen: list[dict] | None = None
+        # Adressen, zu denen der letzte Lauf keine Metadaten erhielt, weil die Anlage nicht antwortete.
+        self._metadaten_luecken: set[str] = set()
+
+    @property
+    def erkennung_unvollstaendig(self) -> bool:
+        """Sagen, ob der letzte Erkennungslauf Adressen ohne Antwort zurückließ."""
+        return bool(self._metadaten_luecken)
 
     def _verbindung_anlegen(self) -> None:
         """Sitzung, Warteschlangen und Zähler der Anfragen an die Anlage."""
@@ -224,6 +238,30 @@ class WindhagerHttpClient(
             time.monotonic() - begonnen,
         )
 
+    # Was ein Erkennungslauf neu aufbaut. Scheitert er, gilt wieder der Stand davor.
+    _ERKENNUNGSSTAND = (
+        "devices",
+        "oids",
+        "menu_meta",
+        "poll_oids",
+        "poll_class",
+        "time_programs",
+        "objekt_texte",
+        "zusatzkandidaten",
+        "_menue_luecken",
+        "_texte",
+        "_vollstaendig",
+    )
+
+    def _stand_sichern(self) -> dict:
+        """Flache Kopie des Erkennungsstands, bevor ein Lauf ihn neu aufbaut."""
+        return {name: copy.copy(getattr(self, name)) for name in self._ERKENNUNGSSTAND}
+
+    def _stand_zuruecksetzen(self, stand: dict) -> None:
+        """Den gesicherten Erkennungsstand wieder einsetzen."""
+        for name, wert in stand.items():
+            setattr(self, name, wert)
+
     def _erkennung_zu_mager(self, vorheriger: dict | None) -> bool:
         """Prüfen, ob dieser Lauf deutlich weniger fand als der Stand davor.
 
@@ -260,11 +298,19 @@ class WindhagerHttpClient(
         self.request_count = 0
         # Der bisherige Stand als Rückfall, solange er vollständig war.
         vorheriger = self.export_discovery() if self._vollstaendig else None
-        self.oids = None
-        await self._discover()
-        nach_discovery = self.request_count
-        await self._apply_metadata()
-        self._compute_poll_oids()
+        stand = self._stand_sichern()
+        # Der Abruf liefert bis zum Ende des Laufs die bekannte Geräteliste, nicht die halbe.
+        self._geraete_waehrend_einlesen = stand["devices"]
+        try:
+            await self._discover()
+            nach_discovery = self.request_count
+            await self._apply_metadata()
+            self._compute_poll_oids()
+        except BaseException:
+            self._stand_zuruecksetzen(stand)
+            raise
+        finally:
+            self._geraete_waehrend_einlesen = None
         self._vollstaendig = True
 
         if self._erkennung_zu_mager(vorheriger):

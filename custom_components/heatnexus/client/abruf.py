@@ -94,6 +94,13 @@ class AbrufMixin:
             klassen[oid] = klasse
 
     @property
+    def geraeteliste(self) -> list[dict]:
+        """Die Deskriptoren für den Abruf; während eines Erkennungslaufs die bisherigen."""
+        if self._geraete_waehrend_einlesen is not None:
+            return self._geraete_waehrend_einlesen
+        return self.devices
+
+    @property
     def abrufplan(self) -> set[str]:
         """Alle Adressen, die zyklisch gelesen werden.
 
@@ -400,7 +407,7 @@ class AbrufMixin:
         mitliefert. Nur nötig, wenn ein Meldungs-/Klartext-Sensor existiert.
         """
         typen = {typ for _, typ, _, _ in MELDUNGS_SENSOREN}
-        if not any(d.get("type") in typen for d in self.devices):
+        if not any(d.get("type") in typen for d in self.geraeteliste):
             return {}
         try:
             devs = await self.fetch("/1")
@@ -600,7 +607,7 @@ class AbrufMixin:
         if await self._startwerte_lesen(max_alter_min, bezugszeit) == 0:
             return None
         return {
-            "devices": self.devices,
+            "devices": self.geraeteliste,
             "oids": dict(self._letzte_werte),
             "objects": {},
             "status": {},
@@ -729,7 +736,7 @@ class AbrufMixin:
         werte.update(self._object_texts)
         werte = self.ueberlagern(werte)
         return {
-            "devices": self.devices,
+            "devices": self.geraeteliste,
             "oids": werte,
             "objects": dict(self._letzte_objekte),
             "status": status,

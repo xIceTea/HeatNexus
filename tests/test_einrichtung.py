@@ -75,6 +75,7 @@ class AttrappenClient:
     """
 
     letzte: AttrappenClient | None = None
+    erkennung_unvollstaendig = False
 
     def __init__(self, **kwargs: Any) -> None:
         """Die Anlagenangaben nimmt sie entgegen und legt sie beiseite."""
