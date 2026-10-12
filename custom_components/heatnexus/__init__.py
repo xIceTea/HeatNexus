@@ -74,6 +74,7 @@ from .migration import (
     steuerung_umstellen,
 )
 from .registrierung import uebergeordnet
+from .repairs import adresshinweise_entfernen
 from .stilllegung import (
     abgewaehlte_entitaeten_stilllegen,
     abwahl_im_stand,
@@ -598,6 +599,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     await verwaltung_holen(hass).eintrag_entfernt(entry.entry_id)
     persistent_notification.async_dismiss(hass, meldungs_id(entry))
     verwaiste.hinweis_pflegen(hass, entry, 0)
+    adresshinweise_entfernen(hass, entry.entry_id)
     for system in systems(entry):
         await Store(
             hass, DISCOVERY_STORE_VERSION, store_key(entry, system[CONF_HOST])

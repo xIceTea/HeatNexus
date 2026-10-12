@@ -2,13 +2,15 @@
   "config": {
     "abort": {
       "already_configured": "Deze installatie is al ingesteld",
-      "reauth_successful": "Wachtwoord bijgewerkt"
+      "reauth_successful": "Wachtwoord bijgewerkt",
+      "reconfigure_successful": "Adres gewijzigd"
     },
     "error": {
       "cannot_connect": "Verbinding mislukt",
       "invalid_auth": "Aanmelding geweigerd - controleer het servicewachtwoord",
       "unknown": "Onverwachte fout",
-      "already_configured": "Dit adres is al toegevoegd"
+      "already_configured": "Dit adres is al toegevoegd",
+      "andere_steuerung": "Op dit adres antwoordt een andere regelaar"
     },
     "step": {
       "user": {

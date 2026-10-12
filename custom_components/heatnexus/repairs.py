@@ -8,12 +8,27 @@ from typing import Any
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import issue_registry as ir
 import voluptuous as vol
 
 from . import verwaiste
+from .const import DOMAIN
 from .erkennungsstand import laufzeitdaten
 
 _LOGGER = logging.getLogger(__name__)
+
+# Hinweise, deren Kennung auf `<präfix>_<entry_id>_<adresse>` endet.
+ADRESSHINWEISE = ("nicht_erreichbar", "sprache_neustart")
+
+
+def adresshinweise_entfernen(hass: HomeAssistant, entry_id: str, host: str = "") -> None:
+    """Die Hinweise einer Adresse des Eintrags löschen; ohne Adresse die aller Adressen."""
+    anfaenge = tuple(f"{praefix}_{entry_id}_" for praefix in ADRESSHINWEISE)
+    for domaene, kennung in list(ir.async_get(hass).issues):
+        if domaene != DOMAIN or not kennung.startswith(anfaenge):
+            continue
+        if not host or kennung in {anfang + host for anfang in anfaenge}:
+            ir.async_delete_issue(hass, DOMAIN, kennung)
 
 
 class VerwaisteFlow(RepairsFlow):

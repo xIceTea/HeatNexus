@@ -2,13 +2,15 @@
   "config": {
     "abort": {
       "already_configured": "Diese Anlage ist bereits eingerichtet",
-      "reauth_successful": "Passwort aktualisiert"
+      "reauth_successful": "Passwort aktualisiert",
+      "reconfigure_successful": "Adresse geändert"
     },
     "error": {
       "cannot_connect": "Verbindung fehlgeschlagen",
       "invalid_auth": "Anmeldung abgelehnt – bitte Service-Passwort prüfen",
       "unknown": "Unerwarteter Fehler",
-      "already_configured": "Diese Adresse wurde bereits eingetragen"
+      "already_configured": "Diese Adresse wurde bereits eingetragen",
+      "andere_steuerung": "Unter dieser Adresse antwortet eine andere Steuerung"
     },
     "step": {
       "user": {

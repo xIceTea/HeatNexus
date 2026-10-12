@@ -2,13 +2,15 @@
   "config": {
     "abort": {
       "already_configured": "This system is already configured",
-      "reauth_successful": "Password updated"
+      "reauth_successful": "Password updated",
+      "reconfigure_successful": "Address changed"
     },
     "error": {
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Login rejected - check the service password",
       "unknown": "Unexpected error",
-      "already_configured": "This address was already added"
+      "already_configured": "This address was already added",
+      "andere_steuerung": "A different controller answers at this address"
     },
     "step": {
       "user": {

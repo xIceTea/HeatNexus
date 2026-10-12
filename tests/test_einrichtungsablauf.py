@@ -126,3 +126,220 @@ async def test_ein_frischer_eintrag_folgt_der_sprache_von_home_assistant(hass, h
 
     assert eintrag.options[CONF_SPRACHE_ANLAGE] == SPRACHE_WIE_HEATNEXUS
     assert sprache_des_eintrags(hass, eintrag) == ha_sprache
+
+
+# ---------------------------------------------------------------------------
+# Neu konfigurieren
+# ---------------------------------------------------------------------------
+async def _neu_konfigurieren(hass, eintrag, host: str = NEU, verbindung=None) -> dict:
+    """Die Adresse der Steuerung im Dialog ändern; zurück kommt das Ergebnis des Schritts."""
+    with (
+        patch(
+            "custom_components.heatnexus.config_flow.validate_connection",
+            verbindung or _verbindung(),
+        ),
+        patch("custom_components.heatnexus.WindhagerHttpClient", AttrappenClient),
+    ):
+        ablauf = await eintrag.start_reconfigure_flow(hass)
+        ergebnis = await hass.config_entries.flow.async_configure(
+            ablauf["flow_id"], {"anlage": ALT, "host": host, "username": "USER"}
+        )
+        await hass.async_block_till_done()
+    return ergebnis
+
+
+def _neuladen_zaehlen(hass) -> list[str]:
+    """Jedes Neuladen eines Eintrags mitschreiben, ohne es zu verhindern."""
+    aufrufe: list[str] = []
+    original = hass.config_entries.async_reload
+
+    async def zaehlen(entry_id: str) -> bool:
+        aufrufe.append(entry_id)
+        return await original(entry_id)
+
+    hass.config_entries.async_reload = zaehlen
+    return aufrufe
+
+
+async def test_neu_konfigurieren_zieht_mit_adresse_und_optionen_um(hass, eintrag):
+    await _einrichten(hass, eintrag)
+
+    ergebnis = await _neu_konfigurieren(hass, eintrag)
+
+    assert ergebnis["type"] == "abort"
+    assert ergebnis["reason"] == "reconfigure_successful"
+    assert [s["host"] for s in eintrag.data[CONF_SYSTEMS]] == [NEU]
+    assert NEU in eintrag.options and ALT not in eintrag.options
+
+
+async def test_neu_konfigurieren_laedt_den_eintrag_einmal(hass, eintrag):
+    """Der Update-Listener lädt neu; ein zweites Neuladen aus dem Ablauf kostet einen Abruf."""
+    await _einrichten(hass, eintrag)
+    aufrufe = _neuladen_zaehlen(hass)
+
+    await _neu_konfigurieren(hass, eintrag)
+
+    assert aufrufe == [eintrag.entry_id]
+
+
+async def test_neu_konfigurieren_gilt_nicht_als_abwahl(hass, eintrag):
+    """Eine neue Adresse wählt nichts ab; verwaiste Entitäten werden nur stillgelegt."""
+    await _einrichten(hass, eintrag)
+    abwahl: list[bool] = []
+
+    def merken(_hass, _entry) -> None:
+        abwahl.append(True)
+
+    with patch("custom_components.heatnexus.abwahl_vormerken", merken):
+        await _neu_konfigurieren(hass, eintrag)
+
+    assert not abwahl
+
+
+async def test_neu_konfigurieren_lehnt_eine_andere_steuerung_ab(hass, eintrag):
+    fremd = [{"nodeId": 15, "neuronId": "0000FFFF0000", "functions": []}]
+    ergebnis = await _neu_konfigurieren(hass, eintrag, verbindung=_verbindung(fremd))
+
+    assert ergebnis["type"] == "form"
+    assert ergebnis["errors"] == {"base": "andere_steuerung"}
+    assert [s["host"] for s in eintrag.data[CONF_SYSTEMS]] == [ALT]
+
+
+async def test_neu_konfigurieren_lehnt_eine_vergebene_adresse_ab(hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    zwei = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        minor_version=2,
+        title="Zwei",
+        unique_id=f"{KENNUNG}-0000BBBB0000",
+        data={
+            "name": "Zwei",
+            CONF_SYSTEMS: [
+                {"host": ALT, "password": "geheim", "label": "Haus A"},
+                {"host": NEU, "password": "geheim", "label": "Haus B"},
+            ],
+        },
+        options={},
+    )
+    zwei.add_to_hass(hass)
+
+    ergebnis = await _neu_konfigurieren(hass, zwei)
+
+    assert ergebnis["errors"] == {"base": "already_configured"}
+    assert [s["host"] for s in zwei.data[CONF_SYSTEMS]] == [ALT, NEU]
+
+
+async def test_neu_konfigurieren_meldet_einen_unerwarteten_fehler(hass, eintrag):
+    ergebnis = await _neu_konfigurieren(
+        hass, eintrag, verbindung=_verbindung(fehler=RuntimeError("kaputt"))
+    )
+
+    assert ergebnis["type"] == "form"
+    assert ergebnis["errors"] == {"base": "unknown"}
+
+
+async def test_neu_konfigurieren_raeumt_hinweise_und_erkennungsstand_der_alten_adresse_ab(
+    hass, eintrag
+):
+    from homeassistant.helpers import issue_registry as ir
+    from homeassistant.helpers.storage import Store
+
+    from custom_components.heatnexus.const import DISCOVERY_STORE_VERSION
+    from custom_components.heatnexus.erkennungsstand import store_key
+
+    await _einrichten(hass, eintrag)
+    for praefix in ("nicht_erreichbar", "sprache_neustart"):
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            f"{praefix}_{eintrag.entry_id}_{ALT}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=praefix,
+        )
+    alter_stand = Store(hass, DISCOVERY_STORE_VERSION, store_key(eintrag, ALT))
+    await alter_stand.async_save({"data": {}})
+
+    await _neu_konfigurieren(hass, eintrag)
+
+    offen = [k for (domaene, k) in ir.async_get(hass).issues if domaene == DOMAIN]
+    assert not [k for k in offen if k.endswith(f"_{ALT}")]
+    assert await alter_stand.async_load() is None
+
+
+# ---------------------------------------------------------------------------
+# Neu anmelden
+# ---------------------------------------------------------------------------
+async def _neu_anmelden(hass, eintrag, verbindung=None) -> dict:
+    with (
+        patch(
+            "custom_components.heatnexus.config_flow.validate_connection",
+            verbindung or _verbindung(),
+        ),
+        patch("custom_components.heatnexus.WindhagerHttpClient", AttrappenClient),
+    ):
+        ablauf = await eintrag.start_reauth_flow(hass)
+        ergebnis = await hass.config_entries.flow.async_configure(
+            ablauf["flow_id"], {"host": ALT, "username": "USER", "password": "neu"}
+        )
+        await hass.async_block_till_done()
+    return ergebnis
+
+
+async def test_neu_anmelden_laedt_den_eintrag_einmal(hass, eintrag):
+    await _einrichten(hass, eintrag)
+    aufrufe = _neuladen_zaehlen(hass)
+
+    ergebnis = await _neu_anmelden(hass, eintrag)
+
+    assert ergebnis["reason"] == "reauth_successful"
+    assert eintrag.data[CONF_SYSTEMS][0]["password"] == "neu"
+    assert aufrufe == [eintrag.entry_id]
+
+
+async def test_neu_anmelden_laedt_einen_nicht_geladenen_eintrag(hass, eintrag):
+    """Ohne geladenen Eintrag gibt es keinen Update-Listener; der Ablauf lädt selbst."""
+    aufrufe = _neuladen_zaehlen(hass)
+
+    await _neu_anmelden(hass, eintrag)
+
+    assert aufrufe == [eintrag.entry_id]
+
+
+async def test_neu_anmelden_meldet_einen_unerwarteten_fehler(hass, eintrag):
+    ergebnis = await _neu_anmelden(
+        hass, eintrag, verbindung=_verbindung(fehler=RuntimeError("kaputt"))
+    )
+
+    assert ergebnis["errors"] == {"base": "unknown"}
+
+
+# ---------------------------------------------------------------------------
+# Entfernen
+# ---------------------------------------------------------------------------
+async def test_entfernen_raeumt_die_hinweise_des_eintrags_ab(hass, eintrag):
+    from homeassistant.helpers import issue_registry as ir
+
+    await _einrichten(hass, eintrag)
+    for kennung in (
+        f"nicht_erreichbar_{eintrag.entry_id}_{ALT}",
+        f"sprache_neustart_{eintrag.entry_id}_{ALT}",
+        # Eine Adresse, die der Eintrag nicht mehr führt.
+        f"nicht_erreichbar_{eintrag.entry_id}_192.0.2.99",
+    ):
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            kennung,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="nicht_erreichbar",
+        )
+
+    await hass.config_entries.async_remove(eintrag.entry_id)
+    await hass.async_block_till_done()
+
+    offen = [k for (domaene, k) in ir.async_get(hass).issues if domaene == DOMAIN]
+    assert not [k for k in offen if eintrag.entry_id in k]

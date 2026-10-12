@@ -12,6 +12,7 @@ import logging
 from typing import Any
 
 from homeassistant.config_entries import (
+    SOURCE_RECONFIGURE,
     ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
@@ -33,6 +34,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
 )
+from homeassistant.helpers.storage import Store
 import voluptuous as vol
 
 from . import steuerungen
@@ -57,6 +59,7 @@ from .const import (
     CONF_ZUSATZGRUPPEN,
     CONF_ZUSATZWERTE,
     DEFAULT_USERNAME,
+    DISCOVERY_STORE_VERSION,
     DOMAIN,
     GRUPPE_INDIVIDUELL,
     MAX_SYSTEMS,
@@ -70,6 +73,7 @@ from .const import (
     SUBEINTRAG_QUELLE,
     UPDATE_INTERVAL,
 )
+from .erkennungsstand import laufzeitdaten, store_key
 from .exceptions import CannotConnect, InvalidAuth
 from .formulare import (
     anlagenkennung,
@@ -86,6 +90,7 @@ from .formulare import (
 )
 from .geraetetexte import SPRACHE_AUTO, SPRACHEN
 from .migration import entity_ids_umbenennen
+from .repairs import adresshinweise_entfernen
 from .texte import gemeinsame_wahl, woerterbuch_zu
 from .waermequelle_flow import WaermequelleSubentryFlow
 
@@ -120,6 +125,39 @@ def _steuerung_schema(bezeichnung: str) -> vol.Schema:
             vol.Required(CONF_PASSWORD): str,
         }
     )
+
+
+def _anlagenwahl(feld: str, systeme: list[dict[str, Any]]) -> dict:
+    """Auswahl der Steuerung eines Eintrags, vorbelegt mit der ersten."""
+    return {
+        vol.Required(feld, default=systeme[0][CONF_HOST] if systeme else ""): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=s[CONF_HOST], label=_anzeigename(s)) for s in systeme
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        )
+    }
+
+
+def _zugangsfeld(systeme: list[dict[str, Any]]) -> dict:
+    """Der Zugang, vorbelegt mit dem der ersten Steuerung."""
+    vorgabe = (systeme[0].get(CONF_USERNAME) if systeme else None) or DEFAULT_USERNAME
+    return {vol.Required(CONF_USERNAME, default=vorgabe): benutzer_auswahl()}
+
+
+def _gleiche_steuerung(entry: ConfigEntry, system: Mapping[str, Any], struktur: list) -> bool:
+    """Ob unter der neuen Adresse die Steuerung antwortet, die der Eintrag kennt.
+
+    Verglichen wird die Seriennummer; fehlt sie auf einer Seite, lässt sich nichts prüfen.
+    """
+    neu = anlagenkennung(struktur)
+    bekannt = {system["kennung"]} if system.get("kennung") else set()
+    bekannt = bekannt or set(str(entry.unique_id or "").split("-")) - {""}
+    if not neu or not bekannt or system.get(CONF_HOST) in bekannt:
+        return True
+    return neu in bekannt
 
 
 SPRACHWAHL = (SPRACHE_AUTO, *SPRACHEN)
@@ -280,12 +318,9 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             host = user_input[CONF_HOST]
             benutzer = (user_input.get(CONF_USERNAME) or DEFAULT_USERNAME).strip()
-            try:
-                await validate_connection(host, user_input[CONF_PASSWORD], benutzer)
-            except InvalidAuth:
-                errors["base"] = "invalid_auth"
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
+            _, fehler = await _verbindung_pruefen(host, user_input[CONF_PASSWORD], benutzer)
+            if fehler:
+                errors["base"] = fehler
             else:
                 neu = [
                     (
@@ -295,31 +330,14 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
                     for s in systeme
                 ]
-                return self.async_update_reload_and_abort(entry, data_updates={CONF_SYSTEMS: neu})
+                return self._uebernehmen_und_beenden(entry, {**entry.data, CONF_SYSTEMS: neu})
 
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        CONF_HOST, default=systeme[0][CONF_HOST] if systeme else ""
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            options=[
-                                SelectOptionDict(
-                                    value=s[CONF_HOST],
-                                    label=f"{s[CONF_LABEL]} ({s[CONF_HOST]})",
-                                )
-                                for s in systeme
-                            ],
-                            mode=SelectSelectorMode.DROPDOWN,
-                        )
-                    ),
-                    vol.Required(
-                        CONF_USERNAME,
-                        default=(systeme[0].get(CONF_USERNAME) if systeme else DEFAULT_USERNAME)
-                        or DEFAULT_USERNAME,
-                    ): benutzer_auswahl(),
+                    **_anlagenwahl(CONF_HOST, systeme),
+                    **_zugangsfeld(systeme),
                     vol.Required(CONF_PASSWORD): str,
                 }
             ),
@@ -343,62 +361,82 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             alt = user_input["anlage"]
             neu_host = clean_host(user_input[CONF_HOST])
             system = next((s for s in systeme if s[CONF_HOST] == alt), {})
-            passwort = system.get(CONF_PASSWORD, "")
             # Der Zugang lässt sich hier mitändern. „Service" sieht
-            # Datenpunkte, die „USER" gar nicht erst geliefert bekommt –
-            # bisher kam man an diese Umstellung nur über eine fehlgeschlagene
-            # Anmeldung heran.
+            # Datenpunkte, die „USER" gar nicht erst geliefert bekommt.
             benutzer = (
                 user_input.get(CONF_USERNAME) or system.get(CONF_USERNAME) or DEFAULT_USERNAME
             ).strip()
-            try:
-                await validate_connection(neu_host, passwort, benutzer)
-            except InvalidAuth:
-                errors["base"] = "invalid_auth"
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
+            fehler = await self._neue_adresse_pruefen(entry, system, neu_host, benutzer)
+            if fehler:
+                errors["base"] = fehler
             else:
-                neu = [
-                    {**s, CONF_HOST: neu_host, CONF_USERNAME: benutzer}
-                    if s[CONF_HOST] == alt
-                    else s
-                    for s in systeme
-                ]
-                # Die Optionen sind je Adresse abgelegt und ziehen mit um.
-                optionen = dict(entry.options)
-                if alt in optionen:
-                    optionen[neu_host] = optionen.pop(alt)
-                self.hass.config_entries.async_update_entry(entry, options=optionen)
-                return self.async_update_reload_and_abort(entry, data_updates={CONF_SYSTEMS: neu})
+                return await self._adresse_umstellen(entry, alt, neu_host, benutzer)
 
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        "anlage", default=systeme[0][CONF_HOST] if systeme else ""
-                    ): SelectSelector(
-                        SelectSelectorConfig(
-                            options=[
-                                SelectOptionDict(
-                                    value=s[CONF_HOST],
-                                    label=f"{s[CONF_LABEL]} ({s[CONF_HOST]})",
-                                )
-                                for s in systeme
-                            ],
-                            mode=SelectSelectorMode.DROPDOWN,
-                        )
-                    ),
+                    **_anlagenwahl("anlage", systeme),
                     vol.Required(CONF_HOST): str,
-                    vol.Required(
-                        CONF_USERNAME,
-                        default=(systeme[0].get(CONF_USERNAME) if systeme else DEFAULT_USERNAME)
-                        or DEFAULT_USERNAME,
-                    ): benutzer_auswahl(),
+                    **_zugangsfeld(systeme),
                 }
             ),
             errors=errors,
         )
+
+    async def _neue_adresse_pruefen(
+        self, entry: ConfigEntry, system: Mapping[str, Any], neu_host: str, benutzer: str
+    ) -> str:
+        """Den Fehlerschlüssel für eine neue Adresse; leer, wenn sie passt."""
+        alt = system.get(CONF_HOST)
+        if neu_host != alt and any(s[CONF_HOST] == neu_host for s in entry.data[CONF_SYSTEMS]):
+            return "already_configured"
+        struktur, fehler = await _verbindung_pruefen(
+            neu_host, system.get(CONF_PASSWORD, ""), benutzer
+        )
+        if fehler:
+            return fehler
+        return "" if _gleiche_steuerung(entry, system, struktur or []) else "andere_steuerung"
+
+    async def _adresse_umstellen(
+        self, entry: ConfigEntry, alt: str, neu_host: str, benutzer: str
+    ) -> ConfigFlowResult:
+        """Adresse, Zugang und Optionen umschreiben; was an der alten Adresse hing, entfällt."""
+        systeme = entry.data.get(CONF_SYSTEMS, [])
+        neu = [
+            {**s, CONF_HOST: neu_host, CONF_USERNAME: benutzer} if s[CONF_HOST] == alt else s
+            for s in systeme
+        ]
+        # Die Optionen sind je Adresse abgelegt und ziehen mit um.
+        optionen = dict(entry.options)
+        if alt in optionen:
+            optionen[neu_host] = optionen.pop(alt)
+        if neu_host != alt:
+            # Der geladene Umfang zieht mit, sonst gilt die alte Adresse als abgewählt.
+            umfang = (laufzeitdaten(entry) or {}).get("umfang")
+            if isinstance(umfang, dict) and alt in umfang:
+                umfang[neu_host] = umfang.pop(alt)
+            adresshinweise_entfernen(self.hass, entry.entry_id, alt)
+            await Store(self.hass, DISCOVERY_STORE_VERSION, store_key(entry, alt)).async_remove()
+        return self._uebernehmen_und_beenden(
+            entry, {**entry.data, CONF_SYSTEMS: neu}, options=optionen
+        )
+
+    def _uebernehmen_und_beenden(
+        self, entry: ConfigEntry, daten: Mapping[str, Any], **optionen: Any
+    ) -> ConfigFlowResult:
+        """Daten und Optionen in einem Schritt schreiben und den Eintrag einmal neu laden.
+
+        Ein geladener Eintrag lädt über seinen Update-Listener neu; nur ohne ihn lädt der Ablauf.
+        """
+        if not entry.update_listeners:
+            return self.async_update_reload_and_abort(entry, data=daten, **optionen)
+        if not self.hass.config_entries.async_update_entry(entry, data=daten, **optionen):
+            self.hass.config_entries.async_schedule_reload(entry.entry_id)
+        grund = (
+            "reconfigure_successful" if self.source == SOURCE_RECONFIGURE else "reauth_successful"
+        )
+        return self.async_abort(reason=grund)
 
     @staticmethod
     @callback
