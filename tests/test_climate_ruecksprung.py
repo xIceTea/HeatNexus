@@ -75,6 +75,9 @@ class _Anlage:
     def hass(self):
         return self._Hass(self)
 
+    def _im_hintergrund(self, coro, _name):
+        self.hass.async_create_task(coro)
+
     def _modus_schreiben(self, modus):  # wird von async_create_task erwartet
         async def _leer():
             return None

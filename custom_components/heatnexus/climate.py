@@ -17,6 +17,7 @@ from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 import voluptuous as vol
@@ -147,6 +148,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         # Wurde die vorgemerkte Vorgabe überhaupt schon einmal als laufend
         # gelesen? Vorher kann sie nicht abgelaufen sein.
         self._vorgabe_gesehen = False
+        self._ablauf_abbrechen = None
         self._device_info = geraet_info(coordinator, device_info)
 
     @callback
@@ -218,7 +220,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
             return
 
         self._set_optimistic_mode(ziel)
-        self.hass.async_create_task(self._modus_schreiben(ziel))
+        self._im_hintergrund(self._modus_schreiben(ziel), "ruecksprung")
 
     async def _modus_schreiben(self, modus: int) -> None:
         """Die Betriebswahl setzen; ein Fehler darf die Anzeige nicht zerreißen."""
@@ -248,6 +250,63 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         # entsteht nur mit einer laufenden Vorgabe, und der erste Abruf danach
         # liest alle Werte gemeinsam.
         self._vorgabe_gesehen = True
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Den geplanten Ablauf der optimistischen Anzeige verwerfen."""
+        if self._ablauf_abbrechen is not None:
+            self._ablauf_abbrechen()
+            self._ablauf_abbrechen = None
+        await super().async_will_remove_from_hass()
+
+    def _im_hintergrund(self, coro, name: str) -> None:
+        """Eine Aufgabe am Konfigurationseintrag starten; sie hält den Start nicht auf."""
+        eintrag = getattr(getattr(self, "platform", None), "config_entry", None)
+        kennung = f"heatnexus_{name}_{self._id}"
+        if eintrag is not None:
+            eintrag.async_create_background_task(self.hass, coro, kennung)
+        else:
+            self.hass.async_create_background_task(coro, kennung)
+
+    def _ablauf_planen(self) -> None:
+        """Die Anzeige nach Ablauf der Zeitgrenze neu schreiben, auch ohne Abruf."""
+        if self._ablauf_abbrechen is not None:
+            self._ablauf_abbrechen()
+        self._ablauf_abbrechen = async_call_later(
+            self.hass, OPTIMISTIC_MAX_AGE_S + 1, self._optimistisch_abgelaufen
+        )
+
+    @callback
+    def _optimistisch_abgelaufen(self, _jetzt) -> None:
+        self._ablauf_abbrechen = None
+        self.async_write_ha_state()
+
+    def _stand(self) -> tuple:
+        """Anzeige und Merker vor einem Schreibversuch."""
+        return (
+            self._optimistic_target,
+            self._optimistic_ts,
+            self._optimistic_mode,
+            self._optimistic_mode_ts,
+            self._modus_davor,
+            self._vorgabe_gesehen,
+        )
+
+    async def _schreiben(self, stand: tuple, *werte: tuple[str, str]) -> None:
+        """Nacheinander schreiben; scheitert es, gilt wieder der Stand davor."""
+        try:
+            for adresse, wert in werte:
+                await self.client.update(f"{self._prefix}{adresse}", wert)
+        except Exception:
+            (
+                self._optimistic_target,
+                self._optimistic_ts,
+                self._optimistic_mode,
+                self._optimistic_mode_ts,
+                self._modus_davor,
+                self._vorgabe_gesehen,
+            ) = stand
+            self.async_write_ha_state()
+            raise
 
     @property
     def unique_id(self) -> str:
@@ -338,7 +397,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
     # ------------------------------------------------------------------
     def _start_fast_refresh(self) -> None:
         """Kurzen, gezielten Nachlade-Burst der Climate-Werte anstoßen."""
-        self.hass.async_create_task(self._fast_refresh_burst())
+        self._im_hintergrund(self._fast_refresh_burst(), "nachlesen")
 
     async def _fast_refresh_burst(self) -> None:
         for _ in range(FAST_REFRESH_COUNT):
@@ -350,7 +409,8 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         """Die Werte dieses Heizkreises gezielt lesen und eintragen."""
         try:
             aktuell = await self.client.fetch_oids(self.client.climate_oids(self._prefix))
-        except Exception:
+        except Exception as err:  # Nachlesen ist ein Zusatz; der nächste Abruf folgt.
+            _LOGGER.debug("Nachlesen von %s fehlgeschlagen: %s", self._prefix, err)
             return False
         daten = self.coordinator.data
         if daten is not None and aktuell:
@@ -388,7 +448,13 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         self._optimistic_mode_ts = time.monotonic()
         # frische Eingabe gewinnt: alten optimistischen Sollwert nicht behalten
         self._optimistic_target = None
+        self._ablauf_planen()
         self.async_write_ha_state()
+
+    def _ruecksprung_verwerfen(self) -> None:
+        """Eine eigene Wahl der Betriebswahl ersetzt den vorgemerkten Rücksprung."""
+        self._modus_davor = None
+        self._vorgabe_gesehen = False
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode (Betriebswahl)."""
@@ -398,19 +464,22 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
             )
         # Sofort anzeigen (z.B. WW-Betrieb -> Heizprogramm 1 bleibt stehen, und
         # bei Heizmodi springt hvac_mode sofort auf HEIZEN).
+        stand = self._stand()
+        laeuft = self.raw_custom_temp_remaining_time() > 0
+        self._ruecksprung_verwerfen()
         self._set_optimistic_mode(int(preset_mode))
-        await self.client.update(f"{self._prefix}/3/50/0", preset_mode)
-
-        # Cancel a running manual temperature override
-        if self.raw_custom_temp_remaining_time() > 0:
-            await self.client.update(f"{self._prefix}/2/10/0", "0")
+        # Eine laufende Vorgabe endet mit der neuen Wahl.
+        werte = [("/3/50/0", preset_mode)] + ([("/2/10/0", "0")] if laeuft else [])
+        await self._schreiben(stand, *werte)
         self._start_fast_refresh()
 
     async def async_set_hvac_mode(self, hvac_mode: str) -> None:
         """Set new target hvac mode (OFF = Standby, HEAT = Programm 1)."""
         new_mode = 0 if hvac_mode == HVACMode.OFF else 1
+        stand = self._stand()
+        self._ruecksprung_verwerfen()
         self._set_optimistic_mode(new_mode)
-        await self.client.update(f"{self._prefix}/3/50/0", str(new_mode))
+        await self._schreiben(stand, ("/3/50/0", str(new_mode)))
         self._start_fast_refresh()
 
     async def async_set_temperature(self, **kwargs) -> None:
@@ -428,8 +497,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
           3/4  = gewünschte Temperatur
           2/10 = Dauer in Minuten (Resthandzeit/Timer)
         Der aktive Sollwert erscheint dann in 1/1 (von dort lesen wir zurück).
-        3/51 ("Heizbetrieb") ist NICHT der aktive Sollwert (blieb in der Probe
-        konstant) – das war der Fehler in v0.6.2.
+        3/51 ("Heizbetrieb") ist der feste Komfortsollwert, nicht der aktive.
 
         **Eco und Comfort gehen denselben Weg.** Sie schreiben nicht `3/4` und
         `2/10` an der Klimaentität vorbei, sondern hier hindurch – sonst fehlte
@@ -448,16 +516,13 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         mode = self.raw_selected_mode()
         if mode is None:
             raise mit_text(WindhagerValueError, "betriebswahl_unbekannt")
+        stand = self._stand()
+        werte = []
         if mode in self.OFF_MODES:
             self._modus_davor = mode
             self._vorgabe_gesehen = False
             self._set_optimistic_mode(HEIZPROGRAMM)
-            await self.client.update(f"{self._prefix}/3/50/0", str(HEIZPROGRAMM))
-            _LOGGER.debug(
-                "Vorgabe aus Modus %s: schalte auf Programm %s, Rücksprung vorgemerkt",
-                mode,
-                HEIZPROGRAMM,
-            )
+            werte.append(("/3/50/0", str(HEIZPROGRAMM)))
 
         temp = max(MIN_TEMP, min(MAX_TEMP, float(temperature)))
         dauer = max(0, min(OVERRIDE_DURATION_MAX, round(float(duration))))
@@ -465,9 +530,10 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         # Sofort anzeigen, dann Override + Dauer schreiben und Refresh anstoßen.
         self._optimistic_target = temp
         self._optimistic_ts = time.monotonic()
+        self._ablauf_planen()
         self.async_write_ha_state()
-        await self.client.update(f"{self._prefix}/3/4/0", f"{temp:.1f}")
-        await self.client.update(f"{self._prefix}/2/10/0", str(dauer))
+        werte += [("/3/4/0", f"{temp:.1f}"), ("/2/10/0", str(dauer))]
+        await self._schreiben(stand, *werte)
         self._start_fast_refresh()
 
 
