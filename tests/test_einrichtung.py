@@ -548,6 +548,26 @@ async def test_ein_bekannter_erkennungsstand_spart_das_neue_einlesen(hass, eintr
     assert len(zweiter.devices) == len(ZUSAETZLICH)
 
 
+async def test_eine_fehlende_geraeteinfo_steht_im_protokoll(hass, eintrag, caplog):
+    """Das Nachlesen ist eine Beigabe; scheitert es, bleibt die Einrichtung stehen, aber nicht stumm."""
+    import logging
+
+    class OhneGeraeteinfo(AttrappenClient):
+        async def _lese_geraeteinfo(self) -> None:
+            raise OSError("Anlage antwortet nicht")
+
+    assert await _einrichten(hass, eintrag) is True
+    assert await hass.config_entries.async_unload(eintrag.entry_id) is True
+    await hass.async_block_till_done()
+
+    caplog.set_level(logging.DEBUG, logger="custom_components.heatnexus")
+    with patch("custom_components.heatnexus.WindhagerHttpClient", OhneGeraeteinfo):
+        assert await hass.config_entries.async_setup(eintrag.entry_id) is True
+        await hass.async_block_till_done()
+
+    assert "Anlage antwortet nicht" in caplog.text
+
+
 async def _untereintrag_hinzufuegen(hass, eintrag, art: str) -> bool:
     """Einen Untereintrag anlegen; zurück kommt, ob der Eintrag neu laden wollte."""
     from types import MappingProxyType

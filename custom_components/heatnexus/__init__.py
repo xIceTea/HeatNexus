@@ -292,12 +292,15 @@ async def _geraeteinfo_nachholen(
     Zwei Anfragen genügen, statt bis zum nächsten Neu-Einlesen ein Gerät ohne
     diese Angaben zu zeigen.
     """
-    with contextlib.suppress(Exception):
+    try:
         await client._lese_geraeteinfo()
         await client._lese_knotendaten()
-        # Gleich in den Zwischenspeicher zurück, sonst zahlt jedes
-        # weitere Laden dieselben zwei Anfragen erneut.
-        mem_cache[cache_key] = client.export_discovery()
+    except Exception as fehler:
+        _LOGGER.debug("Modell und Firmwarestand nicht nachgelesen: %s", fehler)
+        return
+    # Gleich in den Zwischenspeicher zurück, sonst zahlt jedes
+    # weitere Laden dieselben zwei Anfragen erneut.
+    mem_cache[cache_key] = client.export_discovery()
 
 
 async def _vorabstand_setzen(
