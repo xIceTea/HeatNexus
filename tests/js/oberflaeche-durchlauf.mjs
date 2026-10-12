@@ -283,7 +283,7 @@ bilanz.palette = { terrakotta: beiWahl, auto: flaeche.style.getPropertyValue("--
   flaeche._gebaut = false;
   flaeche._zeichnen();
   const ohneHilfe = reiterfolge();
-  for (let i = 0; i < 4; i += 1) flaeche._reiterVerschieben("zeitprogramme", -1);
+  for (let i = 0; i < 5; i += 1) flaeche._reiterVerschieben("zeitprogramme", -1);
   const verschoben = reiterfolge();
   flaeche._reiterAusblenden("verlauf");
   bilanz.reiter = {

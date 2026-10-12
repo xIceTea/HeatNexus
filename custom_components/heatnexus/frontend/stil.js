@@ -1648,4 +1648,42 @@ export const STIL = `
     .automatik-einstellungstasten { position: static; padding: 0 20px 12px; }
     .automatik-erweitert[open] > .automatik-einstellungskopf { padding-right: 20px; }
   }
+
+  /* Reiter „Befund“: gemessene Kennwerte, gleiche Karten wie die anderen Reiter. */
+  .befund-lage { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 15px; }
+  .befund-leise { color: var(--hn-gedaempft); font-size: 13px; }
+  .befund-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -4px 0 6px; }
+  .befund-abschnitt { color: var(--hn-gedaempft); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .befund-marke { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--hn-flaeche); }
+  .befund-marke.unauffaellig { color: var(--hn-gut); }
+  .befund-marke.hinweis { color: var(--hn-sonne); }
+  .befund-marke.sammelt { color: var(--hn-akzent); }
+  .befund-wert { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 6px 0 4px; }
+  .befund-wert .zahl { font-size: 44px; font-weight: 600; line-height: 1; color: var(--hn-text); }
+  .befund-wert .einheit { font-size: 20px; color: var(--hn-gedaempft); }
+  .befund-wert .neben { color: var(--hn-gedaempft); font-size: 15px; }
+  .befund-feld { background: var(--hn-flaeche); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+  .befund-feld svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .befund-feld svg text { fill: var(--hn-gedaempft); font-size: 11px; }
+  .befund-feld .linie { fill: none; stroke: var(--hn-gut); stroke-width: 2.5; }
+  .befund-feld .punkt { fill: var(--hn-gedaempft); }
+  .befund-feld .punkt.an { fill: var(--hn-gut); }
+  .befund-feld circle.punkt:not(.an) { stroke: var(--hn-text); stroke-width: 2; fill: var(--hn-karte); }
+  .befund-feld .balken { fill: var(--hn-linie); }
+  .befund-feld .balken.an { fill: var(--hn-gut); }
+  .befund-feld .balken.warn { fill: var(--hn-sonne); }
+  .befund-feld .marke { stroke: var(--hn-text); stroke-dasharray: 4 3; }
+  .befund-feld .achse { stroke: var(--hn-linie); }
+  .befund-feld .zone { fill: var(--hn-gut); opacity: 0.12; }
+  .befund-raum { display: grid; grid-template-columns: minmax(80px, 30%) 1fr auto; gap: 10px; align-items: center; margin: 6px 0; font-size: 14px; }
+  .befund-stapel { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--hn-linie); }
+  .befund-stapel .unter, .befund-legende i.unter { background: var(--hn-akzent); }
+  .befund-stapel .am, .befund-legende i.am { background: var(--hn-gut); }
+  .befund-stapel .leicht, .befund-legende i.leicht { background: color-mix(in srgb, var(--hn-gut) 50%, transparent); }
+  .befund-stapel .ueber, .befund-legende i.ueber { background: var(--hn-sonne); }
+  .befund-legende { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--hn-gedaempft); font-size: 12px; margin-top: 8px; }
+  .befund-legende i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .befund-vergleich { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; font-size: 14px; margin-top: 12px; }
+  .befund-vergleich span:nth-child(odd) { color: var(--hn-gedaempft); }
+  .befund-fuss { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hn-linie); color: var(--hn-gedaempft); font-size: 13px; }
 `;

@@ -29,6 +29,7 @@ import { REITER } from "./ordnung.js";
 import { AnordnenMixin } from "./teile/anordnen.js";
 import { AutomatikMixin } from "./teile/automatik.js";
 import { BausteineMixin } from "./teile/bausteine.js";
+import { BefundMixin } from "./teile/befund.js";
 import { EinrichtungMixin } from "./teile/einrichtung.js";
 import { KennwerteMixin } from "./teile/kennwerte.js";
 import { BedienenMixin } from "./teile/bedienen.js";
@@ -46,7 +47,7 @@ const Grundlage = HilfeMixin(
   ZeitprogrammeMixin(
     WartungMixin(
       VerlaufMixin(
-        AutomatikMixin(
+        BefundMixin(AutomatikMixin(
           EinrichtungMixin(
             KennwerteMixin(
               TagesbildMixin(
@@ -58,7 +59,7 @@ const Grundlage = HilfeMixin(
               )
             )
           )
-        )
+        ))
       )
     )
   )
@@ -439,6 +440,7 @@ class HeatNexusPanel extends Grundlage {
       if (reiter.schluessel === "automatik") this._reiterPunkt(taste);
       taste.addEventListener("click", () => {
         this._reiter = reiter.schluessel;
+        if (reiter.schluessel === "befund") this._befund = undefined;
         this._gebaut = false;
         this._zeichnen();
       });
@@ -482,6 +484,9 @@ class HeatNexusPanel extends Grundlage {
     }
     if (this._reiter === "automatik") {
       return this._raster(anlage, this._automatikReiter(anlage), "Keine Heizkreise gefunden.");
+    }
+    if (this._reiter === "befund") {
+      return this._raster(anlage, this._befundReiter(anlage), "Für diese Anlage liegt noch kein Befund vor.");
     }
     if (this._reiter === "wartung") {
       return this._raster(anlage, this._wartung(anlage), "Keine Wartungswerte gefunden.");
