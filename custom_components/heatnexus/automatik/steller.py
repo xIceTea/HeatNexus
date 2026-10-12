@@ -98,7 +98,7 @@ class Stand:
                 zuletzt=_zeitpunkt(roh.get("zuletzt")),
                 ablehnungen=int(roh.get("ablehnungen") or 0),
                 gesperrt_bis=_zeitpunkt(roh.get("gesperrt_bis")),
-                protokoll=tuple(e for e in roh.get("protokoll") or () if isinstance(e, dict))[
+                protokoll=tuple(e for e in roh.get("protokoll") or () if _lesbar(e))[
                     :PROTOKOLL_MAX
                 ],
             )
@@ -130,11 +130,17 @@ def _absenkung_von_hand(
 
 
 def _zeitpunkt(wert: Any) -> str | None:
-    # Ein unlesbarer Zeitpunkt ließe später jeden Lauf scheitern.
+    # Ein unlesbarer Zeitpunkt oder einer ohne Zone ließe später jeden Vergleich mit `jetzt` scheitern.
     try:
-        return datetime.fromisoformat(wert).isoformat() if wert else None
+        zeit = datetime.fromisoformat(wert) if wert else None
     except (TypeError, ValueError):
         return None
+    return zeit.isoformat() if zeit is not None and zeit.tzinfo is not None else None
+
+
+def _lesbar(eintrag: Any) -> bool:
+    """Ein Protokolleintrag mit lesbarer Zeit; nur solche vergleicht der Steller mit `jetzt`."""
+    return isinstance(eintrag, dict) and _zeitpunkt(eintrag.get("zeit")) is not None
 
 
 class Steller:
