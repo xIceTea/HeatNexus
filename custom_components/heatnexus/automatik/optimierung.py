@@ -508,10 +508,8 @@ class OptimierungMixin:
     def hinweise_stand(self, heute: date | str) -> dict[str, Any]:
         """Die Kachel „Optimierung“; ohne eingeschalteten Schalter nur `{"status": "aus"}`.
 
-        `aufgezeichnet` zählt die Archivtage der letzten zwei Wochen, `ohne_grundlage` die nicht auswertbaren.
-        `entitaeten` nennt je Kurvenparameter die aktive Entität, deren Verlauf ein Klick zeigt.
-        `parameter` nennt je Kurvenparameter Wert und letzte Änderung, auch ohne aktive Entität.
-        `vorlaeufig` nennt die Tendenz der Arten, denen für eine Empfehlung noch Tage fehlen.
+        `aufgezeichnet`/`ohne_grundlage`: Archivtage der letzten zwei Wochen, davon nicht auswertbar.
+        `entitaeten` und `parameter` je Kurvenparameter; `vorlaeufig` die Tendenzen ohne genug Tage.
         """
         if not self.konfig.get("hinweise"):
             return {"status": "aus"}
