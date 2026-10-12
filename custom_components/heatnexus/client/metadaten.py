@@ -61,162 +61,220 @@ class MetadatenMixin:
         _LOGGER.debug(
             "Metadaten: %d aus Menü-Ebenen, %d werden einzeln gelesen", len(meta), len(offen)
         )
-
-        results = await asyncio.gather(*(self._fetch_json(oid) for oid in offen))
-        missing = set()
-        for oid, data, status in results:
-            reason = (data or {}).get("reason", "") if isinstance(data, dict) else ""
-            if status == 404 or (status == 409 and "invalid Identifier" in reason):
-                # Datenpunkt existiert auf dieser Anlage nicht
-                missing.add(oid)
-            elif isinstance(data, dict) and "code" not in data:
-                meta[oid] = data
+        gelesen, missing, self._metadaten_luecken = await self._metadaten_lesen(offen)
+        meta.update(gelesen)
         await self._programme_am_objekt(meta, missing)
 
+        # Ohne Antwort der Anlage bleibt ein schon bekannter Datenpunkt, wie er war.
+        vorher = {d.get("id"): d for d in self._geraete_waehrend_einlesen or ()}
         kept = []
         for d in self.devices:
             oid = d.get("oid")
             if oid in missing and d["type"] != "climate":
                 _LOGGER.debug("%s (%s) entfällt: an dieser Anlage nicht vorhanden", d["name"], oid)
                 continue
-            m = meta.get(oid)
-            if d["type"] == "auto":
-                if not m:
-                    _LOGGER.debug("%s (%s) entfällt: keine Metadaten", d["name"], oid)
-                    continue
-                resolved = self._resolve_auto_type(d, m)
-                if not resolved:
-                    _LOGGER.debug("%s (%s) entfällt: unlesbare Datenpunktart", d["name"], oid)
-                    continue
-                d["type"] = resolved
-                if d["type"] == "time_program":
-                    # Gelesen/geschrieben über ?OID=<vollständige OID>.
-                    d["enabled_default"] = True
-                    # für den PUT-Envelope beim Schreiben merken
-                    d["typeId"] = m.get("typeId", 30)
-                    d["subtypeId"] = m.get("subtypeId", 14)
-                    d["write_prot"] = m.get("writeProt")
-                elif d["type"] in ("select", "number", "switch", "time", "date") and d.get(
-                    "level"
-                ) in ("operate", "service"):
-                    d["category"] = "config"
-                # `string_sensor` gehört dazu: Eine schreibgeschützte Systemuhr
-                # wird als Text gelesen und liefe sonst an der Auswahl vorbei.
-                if d["type"] in ("time", "date", "string_sensor") and (
-                    mustername(d) in SYSTEMZEIT_NAMEN
-                ):
-                    # **Systemuhr und Systemdatum sind Einstellwerte, keine
-                    # Messwerte.** Man stellt sie einmal und danach jahrelang
-                    # nicht mehr. Standardmäßig angelegt füllten sie die
-                    # Entitätsliste und kosteten in jedem Durchlauf eine
-                    # Anfrage an eine Anlage, die ohnehin knapp zwei Sekunden
-                    # je Anfrage braucht.
-                    #
-                    # Nur diese beiden: Ein Feld mit Datum darin ist noch kein
-                    # Systemdatum. „Urlaubsprogramm bis" und die
-                    # Zirkulationszeiten stellt man ein, um sie danach
-                    # anzusehen.
-                    d["enabled_default"] = self.zeitwerte
-            if m and not self._schreibwerte_angeboten(d, m):
-                _LOGGER.debug("%s (%s) entfällt: Wert vom Gerät nicht angeboten", d["name"], oid)
+            if oid in self._metadaten_luecken and d["type"] == "auto" and d.get("id") in vorher:
+                kept.append(dict(vorher[d["id"]]))
                 continue
-            if m:
-                # Text aus dem object-Endpunkt, gleich ob der Typ aus der
-                # kuratierten Tabelle oder aus den Metadaten stammt. Die Marke
-                # hält die Adresse aus dem lookup-Abruf heraus.
-                if d["type"] == "string_sensor" and m.get("typeId") == 30:
-                    d["objekt"] = True
-                    d["typeId"] = 30
-                    d["subtypeId"] = m.get("subtypeId", 9)
-                    d["write_prot"] = m.get("writeProt")
-                # Device reports the actually allowed enum values, e.g. "[1,2]"
-                enum_raw = m.get("enum")
-                if enum_raw and d["type"] in ("select", "enum_sensor", "switch"):
-                    try:
-                        allowed = [int(v) for v in __import__("json").loads(enum_raw)]
-                        if allowed:
-                            d["allowed"] = allowed
-                    except (ValueError, TypeError):
-                        _LOGGER.debug("Enum-Tabelle %r für %s unlesbar", enum_raw, oid)
-                if d["type"] in ("select", "enum_sensor") and not d.get("allowed"):
-                    # Gerät meldet zwar keine Enum-Liste, aber einen Wertebereich
-                    with contextlib.suppress(TypeError, ValueError, KeyError):
-                        lo, hi = int(float(m["minValue"])), int(float(m["maxValue"]))
-                        emap = (
-                            ENUMS_FALLBACK.get(d.get("enum") or "")
-                            or get_enum(d.get("enum") or "")
-                            or {}
-                        )
-                        allowed = [v for v in emap if lo <= v <= hi]
-                        if allowed:
-                            d["allowed"] = allowed
-                if d["type"] == "number":
-                    with contextlib.suppress(ValueError, TypeError, KeyError):
-                        lo = float(m["minValue"]) if m.get("minValue") not in (None, "") else None
-                        hi = float(m["maxValue"]) if m.get("maxValue") not in (None, "") else None
-                        st = float(m["step"]) if m.get("step") not in (None, "") else None
-                        if lo is not None and hi is not None and lo < hi:
-                            d["min"], d["max"] = lo, hi
-                        if st and st > 0:
-                            d["step"] = st
-                if m.get("unit") and d["type"] in ("number", "sensor"):
-                    d["unit"] = m["unit"]
-                if m.get("writeProt") is True and d["type"] in self._READONLY_FALLBACK:
-                    fallback = lesetyp(d["type"], m.get("unit") or d.get("unit"))
-                    _LOGGER.debug(
-                        "%s (%s) ist schreibgeschützt und wird nur angezeigt", d["name"], oid
-                    )
-                    d["type"] = fallback
-                    # Nur bedienbare Entitäten dürfen die Kategorie
-                    # "Konfiguration" tragen; Home Assistant lehnt sie
-                    # bei reinen Sensoren ab.
-                    if d.get("category") == "config":
-                        d["category"] = None
-                d["write_prot"] = m.get("writeProt")
-                # Ein Fühlereingang ohne Fühler meldet die Leermarke. Die
-                # Entität entsteht abgeschaltet statt dauerhaft „nicht
-                # verfügbar"; wer sie einmal einschaltet, behält sie.
-                if (
-                    m.get("value") in ("-.-", "-")
-                    and d["type"] not in ("select", "number", "switch", "time", "date", "button")
-                    and d.get("enabled_default", True)
-                ):
-                    d["enabled_default"] = False
-                    d["leer_beim_einlesen"] = True
-                # read-only-Punkt ganz ohne Wert (z.B. Softwareversion).
-                # Objekte ausgenommen: Sie tragen im lookup nie einen Wert;
-                # ohne die Ausnahme fiele der Gerätetyp jeder Baureihe weg.
-                if (
-                    "value" not in m
-                    and m.get("writeProt") is True
-                    and not d.get("objekt")
-                    and d["type"]
-                    not in ("select", "number", "switch", "time", "button", "time_program")
-                ):
-                    _LOGGER.debug("%s (%s) entfällt: kein Wert geliefert", d["name"], oid)
-                    continue
-            # Service- und Werksebene bleiben nur lesbar, solange der Nutzer sie
-            # in den Optionen nicht ausdrücklich freigegeben hat.
-            if (
-                d.get("level") in ADVANCED_LEVELS
-                and not self.writable_advanced
-                and d["type"] in self._READONLY_FALLBACK
-            ):
-                d["type"] = lesetyp(d["type"], d.get("unit"))
-                if d.get("category") == "config":
-                    d["category"] = None
-
-            if d["type"] == "climate":
-                m50 = meta.get(f"{d['prefix']}/3/50/0")
-                if m50 and m50.get("enum"):
-                    with contextlib.suppress(ValueError, TypeError):
-                        d["preset_allowed"] = [int(v) for v in json.loads(m50["enum"])]
-            # Zum Schluss, wenn der endgültige Typ feststeht: Einheit in die
-            # HA-Schreibweise bringen und Geräte-/Statistikklasse setzen.
-            messgroesse(d)
-            kept.append(d)
+            if self._deskriptor_verfeinern(d, meta.get(oid), meta):
+                kept.append(d)
         self.devices = kept
         self.oids -= missing
+        await self._nachbearbeiten(meta)
+
+    async def _metadaten_lesen(self, offen: list[str]) -> tuple[dict, set[str], set[str]]:
+        """Metadaten einzeln lesen: zurück kommen Metadaten, fehlende Adressen und Lücken.
+
+        Eine Anfrage ohne Antwort wird einmal wiederholt; bleibt sie ohne, ist es eine Lücke.
+        """
+        results = await asyncio.gather(*(self._fetch_json(oid) for oid in offen))
+        ohne_antwort = [oid for oid, _data, status in results if status == 0]
+        if ohne_antwort:
+            results = [r for r in results if r[2] != 0]
+            results += await asyncio.gather(*(self._fetch_json(oid) for oid in ohne_antwort))
+        meta: dict = {}
+        missing: set[str] = set()
+        luecken: set[str] = set()
+        for oid, data, status in results:
+            reason = (data or {}).get("reason", "") if isinstance(data, dict) else ""
+            if status == 0:
+                luecken.add(oid)
+            elif status == 404 or (status == 409 and "invalid Identifier" in reason):
+                # Datenpunkt existiert auf dieser Anlage nicht
+                missing.add(oid)
+            elif isinstance(data, dict) and "code" not in data:
+                meta[oid] = data
+        if luecken:
+            _LOGGER.warning(
+                "%s: %d Datenpunkte ohne Antwort beim Einlesen der Metadaten",
+                self.host,
+                len(luecken),
+            )
+        return meta, missing, luecken
+
+    def _deskriptor_verfeinern(self, d: dict, m: dict | None, meta: dict) -> bool:
+        """Einen Deskriptor nach den Metadaten ausrichten; False heißt: er entfällt."""
+        oid = d.get("oid")
+        if d["type"] == "auto" and not self._auto_aufloesen(d, m):
+            return False
+        if m and not self._schreibwerte_angeboten(d, m):
+            _LOGGER.debug("%s (%s) entfällt: Wert vom Gerät nicht angeboten", d["name"], oid)
+            return False
+        if m and not self._metadaten_anwenden(d, m):
+            return False
+        self._fachebene_nur_lesend(d)
+        if d["type"] == "climate":
+            m50 = meta.get(f"{d['prefix']}/3/50/0")
+            if m50 and m50.get("enum"):
+                with contextlib.suppress(ValueError, TypeError):
+                    d["preset_allowed"] = [int(v) for v in json.loads(m50["enum"])]
+        # Zum Schluss, wenn der endgültige Typ feststeht: Einheit in die
+        # HA-Schreibweise bringen und Geräte-/Statistikklasse setzen.
+        messgroesse(d)
+        return True
+
+    def _auto_aufloesen(self, d: dict, m: dict | None) -> bool:
+        """Einem automatisch erkannten Datenpunkt seine Plattform geben."""
+        oid = d.get("oid")
+        if not m:
+            _LOGGER.debug("%s (%s) entfällt: keine Metadaten", d["name"], oid)
+            return False
+        resolved = self._resolve_auto_type(d, m)
+        if not resolved:
+            _LOGGER.debug("%s (%s) entfällt: unlesbare Datenpunktart", d["name"], oid)
+            return False
+        d["type"] = resolved
+        if d["type"] == "time_program":
+            # Gelesen/geschrieben über ?OID=<vollständige OID>.
+            d["enabled_default"] = True
+            # für den PUT-Envelope beim Schreiben merken
+            d["typeId"] = m.get("typeId", 30)
+            d["subtypeId"] = m.get("subtypeId", 14)
+            d["write_prot"] = m.get("writeProt")
+        elif d["type"] in ("select", "number", "switch", "time", "date") and d.get("level") in (
+            "operate",
+            "service",
+        ):
+            d["category"] = "config"
+        # `string_sensor` gehört dazu: Eine schreibgeschützte Systemuhr
+        # wird als Text gelesen und liefe sonst an der Auswahl vorbei.
+        if d["type"] in ("time", "date", "string_sensor") and (mustername(d) in SYSTEMZEIT_NAMEN):
+            # **Systemuhr und Systemdatum sind Einstellwerte, keine
+            # Messwerte.** Man stellt sie einmal und danach jahrelang
+            # nicht mehr. Standardmäßig angelegt füllten sie die
+            # Entitätsliste und kosteten in jedem Durchlauf eine
+            # Anfrage an eine träge Anlage.
+            #
+            # Nur diese beiden: Ein Feld mit Datum darin ist noch kein
+            # Systemdatum. „Urlaubsprogramm bis" und die
+            # Zirkulationszeiten stellt man ein, um sie danach
+            # anzusehen.
+            d["enabled_default"] = self.zeitwerte
+        return True
+
+    def _metadaten_anwenden(self, d: dict, m: dict) -> bool:
+        """Was die Anlage über den Datenpunkt meldet, in den Deskriptor übernehmen."""
+        # Text aus dem object-Endpunkt, gleich ob der Typ aus der
+        # kuratierten Tabelle oder aus den Metadaten stammt. Die Marke
+        # hält die Adresse aus dem lookup-Abruf heraus.
+        if d["type"] == "string_sensor" and m.get("typeId") == 30:
+            d["objekt"] = True
+            d["typeId"] = 30
+            d["subtypeId"] = m.get("subtypeId", 9)
+            d["write_prot"] = m.get("writeProt")
+        self._auswahl_eingrenzen(d, m)
+        self._zahlenbereich(d, m)
+        if m.get("unit") and d["type"] in ("number", "sensor"):
+            d["unit"] = m["unit"]
+        self._schreibschutz_anwenden(d, m)
+        # Ein Fühlereingang ohne Fühler meldet die Leermarke. Die
+        # Entität entsteht abgeschaltet statt dauerhaft „nicht
+        # verfügbar"; wer sie einmal einschaltet, behält sie.
+        if (
+            m.get("value") in ("-.-", "-")
+            and d["type"] not in ("select", "number", "switch", "time", "date", "button")
+            and d.get("enabled_default", True)
+        ):
+            d["enabled_default"] = False
+            d["leer_beim_einlesen"] = True
+        # read-only-Punkt ganz ohne Wert (z.B. Softwareversion).
+        # Objekte ausgenommen: Sie tragen im lookup nie einen Wert;
+        # ohne die Ausnahme fiele der Gerätetyp jeder Baureihe weg.
+        if (
+            "value" not in m
+            and m.get("writeProt") is True
+            and not d.get("objekt")
+            and d["type"] not in ("select", "number", "switch", "time", "button", "time_program")
+        ):
+            _LOGGER.debug("%s (%s) entfällt: kein Wert geliefert", d["name"], d.get("oid"))
+            return False
+        return True
+
+    @staticmethod
+    def _auswahl_eingrenzen(d: dict, m: dict) -> None:
+        """Die Werte, die die Anlage für eine Auswahl tatsächlich anbietet."""
+        # Device reports the actually allowed enum values, e.g. "[1,2]"
+        enum_raw = m.get("enum")
+        if enum_raw and d["type"] in ("select", "enum_sensor", "switch"):
+            try:
+                allowed = [int(v) for v in json.loads(enum_raw)]
+                if allowed:
+                    d["allowed"] = allowed
+            except (ValueError, TypeError):
+                _LOGGER.debug("Enum-Tabelle %r für %s unlesbar", enum_raw, d.get("oid"))
+        if d["type"] in ("select", "enum_sensor") and not d.get("allowed"):
+            # Gerät meldet zwar keine Enum-Liste, aber einen Wertebereich
+            with contextlib.suppress(TypeError, ValueError, KeyError):
+                lo, hi = int(float(m["minValue"])), int(float(m["maxValue"]))
+                emap = (
+                    ENUMS_FALLBACK.get(d.get("enum") or "") or get_enum(d.get("enum") or "") or {}
+                )
+                allowed = [v for v in emap if lo <= v <= hi]
+                if allowed:
+                    d["allowed"] = allowed
+
+    @staticmethod
+    def _zahlenbereich(d: dict, m: dict) -> None:
+        """Grenzen und Schrittweite einer Zahl aus den Metadaten."""
+        if d["type"] != "number":
+            return
+        with contextlib.suppress(ValueError, TypeError, KeyError):
+            lo = float(m["minValue"]) if m.get("minValue") not in (None, "") else None
+            hi = float(m["maxValue"]) if m.get("maxValue") not in (None, "") else None
+            st = float(m["step"]) if m.get("step") not in (None, "") else None
+            if lo is not None and hi is not None and lo < hi:
+                d["min"], d["max"] = lo, hi
+            if st and st > 0:
+                d["step"] = st
+
+    def _schreibschutz_anwenden(self, d: dict, m: dict) -> None:
+        """Ein schreibgeschützter Datenpunkt wird nur angezeigt."""
+        if m.get("writeProt") is True and d["type"] in self._READONLY_FALLBACK:
+            fallback = lesetyp(d["type"], m.get("unit") or d.get("unit"))
+            _LOGGER.debug(
+                "%s (%s) ist schreibgeschützt und wird nur angezeigt", d["name"], d.get("oid")
+            )
+            d["type"] = fallback
+            # Nur bedienbare Entitäten dürfen die Kategorie
+            # "Konfiguration" tragen; Home Assistant lehnt sie
+            # bei reinen Sensoren ab.
+            if d.get("category") == "config":
+                d["category"] = None
+        d["write_prot"] = m.get("writeProt")
+
+    def _fachebene_nur_lesend(self, d: dict) -> None:
+        """Service- und Werksebene bleiben nur lesbar, solange der Nutzer sie nicht freigibt."""
+        if (
+            d.get("level") in ADVANCED_LEVELS
+            and not self.writable_advanced
+            and d["type"] in self._READONLY_FALLBACK
+        ):
+            d["type"] = lesetyp(d["type"], d.get("unit"))
+            if d.get("category") == "config":
+                d["category"] = None
+
+    async def _nachbearbeiten(self, meta: dict) -> None:
+        """Die Schritte nach dem Abgleich: Markierungen, Filter, abgeleitete Werte."""
         self._neustart_markieren()
         self._rollen_filter(meta)
         # Erst die Doppelten heraus, dann der Fühlertest: Er kostet eine Anfrage
