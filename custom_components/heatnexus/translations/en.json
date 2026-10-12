@@ -654,6 +654,12 @@
     },
     "verbinden_fehler": {
       "message": "Error while connecting to {anlage}: {fehler}"
+    },
+    "werte_nicht_lesbar": {
+      "message": "The system {anlage} returns no values."
+    },
+    "struktur_unlesbar": {
+      "message": "The system {anlage} does not return its structure (HTTP {status})."
     }
   },
   "services": {

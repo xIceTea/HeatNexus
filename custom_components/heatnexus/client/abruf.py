@@ -30,6 +30,7 @@ from ..const import (
     UHR_TIMEOUT,
     VORMERK_MAX_ALTER_S,
 )
+from ..exceptions import CannotConnect, mit_text
 from ..helpers import mustername, poll_takte
 from ..lon import zuordnen as lon_zuordnen
 from .gemeinsam import FEHLGESCHLAGEN, MELDUNGS_SENSOREN
@@ -674,6 +675,7 @@ class AbrufMixin:
         # fällig – unabhängig von ihrer Poll-Klasse.
         misslungen = self._gelesenes_uebernehmen(results)
         self._rest |= misslungen - self._abgemeldet
+        self._ausfall_pruefen(misslungen, len(results))
         # Abgemeldete Entities dürfen nicht ewig als alter Wert weiterleben.
         aktuell = self.abrufplan
         for oid in list(self._letzte_werte):
@@ -692,6 +694,28 @@ class AbrufMixin:
             "objects": dict(self._letzte_objekte),
             "status": status,
         }
+
+    def _ausfall_pruefen(self, misslungen: set[str], gelesen: int) -> None:
+        """Scheitert jede Lesung, ist der Durchlauf gescheitert; ein Teilausfall meldet sich einmal.
+
+        Den Totalausfall behandelt der Coordinator: Abstand, Reparatureintrag, Verfügbarkeit.
+        """
+        if gelesen and len(misslungen) == gelesen:
+            raise self._letzter_lesefehler or mit_text(
+                CannotConnect, "werte_nicht_lesbar", anlage=self.host
+            )
+        if not misslungen:
+            self._teilausfall_gemeldet = False
+            return
+        melden = _LOGGER.debug if self._teilausfall_gemeldet else _LOGGER.warning
+        self._teilausfall_gemeldet = True
+        melden(
+            "%s: %d von %d Werten nicht lesbar, zuletzt: %s",
+            self.host,
+            len(misslungen),
+            gelesen,
+            self._letzter_lesefehler,
+        )
 
     async def geraet_abfragen(self, device_id: str) -> dict:
         """Die zyklisch abgefragten Werte eines Anlagenteils sofort lesen.

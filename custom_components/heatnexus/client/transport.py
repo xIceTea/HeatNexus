@@ -206,7 +206,10 @@ class TransportMixin:
             value = data.get("value") if isinstance(data, dict) else None
             return oid, self._wert_oder_none(value)
         except Exception as e:
-            _LOGGER.warning("Fehler beim Lesen von %s: %s", oid, e)
+            # Je Adresse nur Debug: Bei einem Ausfall scheitert jede. Die Sammelzeile
+            # schreibt der Abruf.
+            _LOGGER.debug("Fehler beim Lesen von %s: %s", oid, e)
+            self._letzter_lesefehler = e
             return oid, FEHLGESCHLAGEN
 
     async def update(self, oid, value):

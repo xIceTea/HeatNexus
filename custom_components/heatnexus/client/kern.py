@@ -152,6 +152,12 @@ class WindhagerHttpClient(
         self._letzte_werte: dict[str, str | None] = {}
         self._letzte_objekte: dict = {}
         self._letzte_meldungen: dict[str, str] = {}
+        # Ist der vollständige Abzug (Menü-Ebenen) bereits gelaufen?
+        self._vollstaendig = False
+        self._verbindung_anlegen()
+
+    def _verbindung_anlegen(self) -> None:
+        """Sitzung, Warteschlangen und Zähler der Anfragen an die Anlage."""
         # Anzahl der Anfragen an die Anlage (für die Startmeldung)
         self.request_count = 0
         # Abfragestatistik: Ohne Zahlen ist jede Optimierung geraten. Gezählt
@@ -167,9 +173,11 @@ class WindhagerHttpClient(
         self.poll_seconds = 0.0
         # Was der letzte Durchlauf gekostet hat – geht in die Diagnose ein.
         self._poll_anfragen = 0
+        # Der letzte Fehler einer einzelnen Lesung und ob ein Teilausfall schon
+        # im Protokoll steht.
+        self._letzter_lesefehler: Exception | None = None
+        self._teilausfall_gemeldet = False
         self.gestartet = time.monotonic()
-        # Ist der vollständige Abzug (Menü-Ebenen) bereits gelaufen?
-        self._vollstaendig = False
         self._session = None
         self._semaphore = asyncio.Semaphore(FETCH_CONCURRENCY)
         # Für das zyklische Abrufen einzelner Werte gilt eine eigene, höhere

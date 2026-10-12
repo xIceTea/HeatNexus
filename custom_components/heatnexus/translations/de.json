@@ -654,6 +654,12 @@
     },
     "verbinden_fehler": {
       "message": "Fehler beim Verbinden mit {anlage}: {fehler}"
+    },
+    "werte_nicht_lesbar": {
+      "message": "Die Anlage {anlage} liefert keinen Wert."
+    },
+    "struktur_unlesbar": {
+      "message": "Die Anlage {anlage} liefert ihren Aufbau nicht (HTTP {status})."
     }
   },
   "services": {

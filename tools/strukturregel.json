@@ -4,7 +4,7 @@
   "zeilen": 240
  },
  "custom_components/heatnexus/client/kern.py::WindhagerHttpClient.__init__": {
-  "zeilen": 131
+  "zeilen": 110
  },
  "custom_components/heatnexus/client/metadaten.py::MetadatenMixin._apply_metadata": {
   "komplexitaet": 32,

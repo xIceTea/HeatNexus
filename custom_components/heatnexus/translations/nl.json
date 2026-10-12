@@ -654,6 +654,12 @@
     },
     "verbinden_fehler": {
       "message": "Fout bij het verbinden met {anlage}: {fehler}"
+    },
+    "werte_nicht_lesbar": {
+      "message": "De installatie {anlage} levert geen waarden."
+    },
+    "struktur_unlesbar": {
+      "message": "De installatie {anlage} levert haar opbouw niet (HTTP {status})."
     }
   },
   "services": {

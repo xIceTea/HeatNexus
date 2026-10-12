@@ -658,9 +658,11 @@ async def test_eine_zeitueberschreitung_loescht_den_bekannten_wert_nicht(client,
 
     zustand["antworten"] = False
     client._tick = 0  # auch ein träger Wert ist wieder fällig
-    daten = await client.fetch_all()
+    # Scheitert jede Lesung, scheitert der Durchlauf; der Coordinator hält die Werte.
+    with pytest.raises(TimeoutError):
+        await client.fetch_all()
 
-    assert daten["oids"]["/1/60/0/2/81/0"] == "18116"
+    assert client._letzte_werte["/1/60/0/2/81/0"] == "18116"
 
 
 async def test_ein_misslungener_abruf_wird_sofort_wiederholt(client, monkeypatch):
@@ -676,7 +678,8 @@ async def test_ein_misslungener_abruf_wird_sofort_wiederholt(client, monkeypatch
     ]
     client._compute_poll_oids()
 
-    await client.fetch_all()
+    with pytest.raises(TimeoutError):
+        await client.fetch_all()
     client._tick = 1  # kein träger Durchlauf
 
     assert "/1/60/0/2/81/0" in client._faellig()
