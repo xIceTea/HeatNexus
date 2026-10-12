@@ -26,7 +26,7 @@ from ..const import (
     QUELLEN_RANG,
     QUELLEN_SYMBOLE,
 )
-from ..helpers import enum_texte, mustername
+from ..helpers import enum_texte, knoten, mustername
 from ..kanonisch import gnmn, ist_ableitung
 from ..kanonisch import schluessel as kanonischer_schluessel
 from ..rechte import darf_lesen
@@ -112,25 +112,27 @@ def _beschreibungen(hass: HomeAssistant):
         yield from (coordinator.data or {}).get("devices", [])
 
 
-def _knoten(beschreibung: dict[str, Any]) -> str | None:
-    """Die Knotennummer aus dem Präfix `/1/<knoten>/<fct>` einer Beschreibung."""
-    teile = str(beschreibung.get("prefix") or "").strip("/").split("/")
-    return teile[1] if len(teile) >= 2 else None
-
-
 def _fct_je_geraet(hass: HomeAssistant) -> dict[str, tuple[Any, str | None]]:
     """Funktionstyp und deutsches Werksmodell je Gerätekennung.
 
     Das Modell folgt weder der Sprache noch einer Umbenennung des Geräts.
     """
     zuordnung: dict[str, tuple[Any, str | None]] = {}
+    # Erst eine Beschreibung mit Knoten legt das Modell fest; ohne Knoten gilt
+    # das Modell des Funktionstyps nur, bis eine mit Knoten kommt.
+    mit_knoten: set[str] = set()
     for coordinator in _koordinatoren(hass):
         klassen = getattr(getattr(coordinator, "client", None), "geraeteklasse", None) or {}
         for beschreibung in (coordinator.data or {}).get("devices", []):
             kennung, fct = beschreibung.get("device_id"), beschreibung.get("fct_type")
-            if kennung and fct is not None and kennung not in zuordnung:
-                modell = geraete.modell(fct, klassen.get(_knoten(beschreibung)))
-                zuordnung[kennung] = (fct, modell)
+            if not kennung or fct is None or kennung in mit_knoten:
+                continue
+            knoten_nr = knoten(beschreibung)
+            if knoten_nr is not None:
+                mit_knoten.add(kennung)
+            elif kennung in zuordnung:
+                continue
+            zuordnung[kennung] = (fct, geraete.modell(fct, klassen.get(knoten_nr)))
     return zuordnung
 
 

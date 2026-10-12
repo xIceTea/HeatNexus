@@ -7,6 +7,19 @@ import re
 import pytest
 
 
+@pytest.mark.parametrize(
+    ("beschreibung", "erwartet"),
+    [
+        ({"prefix": "/1/15/0"}, "15"),
+        ({"oid": "/1/60/0/0/7/0"}, "60"),
+        ({"prefix": "", "oid": "/1/16/1/1/1/0"}, "16"),
+        ({}, None),
+    ],
+)
+def test_knoten_aus_praefix_oder_adresse(helpers, beschreibung, erwartet):
+    assert helpers.knoten(beschreibung) == erwartet
+
+
 def test_decimals_survive(helpers):
     assert helpers.parse_value("45.7", float) == pytest.approx(45.7)
 

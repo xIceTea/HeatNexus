@@ -633,6 +633,41 @@ async def test_ohne_deskriptor_kommt_der_deutsche_name_aus_der_adresse(hass, anl
     assert [e["name_de"] for e in teil["entitaeten"]] == ["Kesseltemperatur"]
 
 
+async def test_das_modell_kommt_auch_aus_der_adresse(hass, anlagen):
+    """Die meisten Beschreibungen tragen den Knoten nur in `oid`, nicht in `prefix`."""
+    from types import SimpleNamespace
+
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    eigen = MockConfigEntry(domain=DOMAIN)
+    eigen.add_to_hass(hass)
+    beschreibungen = [
+        {"device_id": "SN1-0", "fct_type": 10, "id": "SN1-0-status"},
+        {"device_id": "SN1-0", "fct_type": 10, "oid": "/1/15/0/0/7/0", "id": "SN1-0-0-7-0"},
+    ]
+    eigen.runtime_data = {
+        "coordinators": {
+            "192.0.2.10": SimpleNamespace(
+                data={"devices": beschreibungen},
+                client=SimpleNamespace(geraeteklasse={"15": "2009"}),
+            )
+        }
+    }
+    kessel = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eigen.entry_id, identifiers={(DOMAIN, "SN1-0")}, name="Kessel"
+    )
+    er.async_get(hass).async_get_or_create(
+        "sensor", DOMAIN, "SN1-0-0-7-0", config_entry=eigen, device_id=kessel.id
+    )
+
+    [anlage] = anlagen.anlagen_lesen(hass)
+    assert anlage["teile"][0]["modell"] == "LogWIN Holzvergaserkessel"
+
+
 def _dashboard_anlage():
     def eintrag(entity_id: str, name: str, **rest):
         return {

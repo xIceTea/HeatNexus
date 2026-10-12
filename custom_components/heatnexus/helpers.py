@@ -33,6 +33,13 @@ def mustername(eintrag: dict[str, Any]) -> str:
     return eintrag.get("name_de") or eintrag.get("name") or ""
 
 
+def knoten(beschreibung: dict[str, Any]) -> str | None:
+    """Die Knotennummer einer Beschreibung, aus `prefix` oder sonst aus `oid`."""
+    quelle = beschreibung.get("prefix") or beschreibung.get("oid") or ""
+    teile = str(quelle).strip("/").split("/")
+    return teile[1] if len(teile) >= 2 else None
+
+
 def enum_texte(beschreibung: dict[str, Any]) -> dict[int, str]:
     """Auswahltexte eines Datenpunkts: zuerst die der Anlage, sonst die Tabellen.
 
