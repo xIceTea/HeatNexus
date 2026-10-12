@@ -62,7 +62,9 @@ def _richtung(h: Hinweis, w: Uebersetzen, punkt: bool) -> str | None:
     if h.parameter == "zeitprogramm" and h.nach is not None:
         return _mit(w, "Programmstart {minuten} min früher", minuten=zahl(h.nach, punkt))
     if h.parameter == "thermostate" and h.nach is not None:
-        return _mit(w, "Thermostate {minuten} min früher hochschalten", minuten=zahl(h.nach, punkt))
+        return _mit(
+            w, "Zeitsteuerung der Thermostate {minuten} min früher", minuten=zahl(h.nach, punkt)
+        )
     return None
 
 

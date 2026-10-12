@@ -1248,7 +1248,7 @@ def test_texte_zum_morgen_der_thermostate(m, text):
     frueh = text.texte(
         h("morgen_frueh", 7, None, None, "thermostate", None, None, "min", 0), lambda s: s
     )
-    assert spaet["empfehlung"] == "Thermostate 90 min früher hochschalten"
+    assert spaet["empfehlung"] == "Zeitsteuerung der Thermostate 90 min früher"
     assert frueh["empfehlung"] == "Absenkung der Thermostate wirkt kaum"
     for sprache in ("en", "nl"):
         woerter = load_standalone("texte").Woerterbuch(sprache)
