@@ -342,6 +342,71 @@ async def test_scheitert_eine_anlage_schliesst_auch_die_andere(hass):
     await hass.config_entries.async_unload(zwei.entry_id)
 
 
+def _zwei_anlagen(hass):
+    """Ein Eintrag mit zwei Steuerungen."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    zwei = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        title="Zwei",
+        data={
+            "name": "Zwei",
+            CONF_SYSTEMS: [
+                {"host": "192.0.2.10", "password": "geheim", "label": "Haus A"},
+                {"host": "192.0.2.11", "password": "geheim", "label": "Haus B"},
+            ],
+        },
+        options={},
+    )
+    zwei.add_to_hass(hass)
+    return zwei
+
+
+async def test_scheitert_eine_anlage_wartet_die_einrichtung_nicht_auf_die_andere(hass):
+    """Die langsame Anlage wird abgebrochen und geschlossen, statt bis zu ihrem Ende zu warten."""
+    from homeassistant.config_entries import ConfigEntryState
+
+    zwei = _zwei_anlagen(hass)
+    clients: list[AttrappenClient] = []
+
+    class EineHaengt(AttrappenClient):
+        def __init__(self, **kwargs: Any) -> None:
+            super().__init__(**kwargs)
+            clients.append(self)
+
+        async def async_init_basic(self) -> None:
+            if self.host == "192.0.2.10":
+                await asyncio.Event().wait()
+            raise OSError("Netzwerk nicht erreichbar")
+
+    with patch("custom_components.heatnexus.WindhagerHttpClient", EineHaengt):
+        await asyncio.wait_for(hass.config_entries.async_setup(zwei.entry_id), timeout=10)
+        await hass.async_block_till_done()
+
+    assert zwei.state is ConfigEntryState.SETUP_RETRY
+    assert [c.geschlossen for c in clients] == [True, True]
+    await hass.config_entries.async_unload(zwei.entry_id)
+
+
+async def test_ein_fehler_nach_dem_verbinden_schliesst_die_verbindung(hass, eintrag):
+    """Nach einem gescheiterten Setup ruft Home Assistant kein Entladen auf."""
+    import custom_components.heatnexus as modul
+
+    async def kaputt(*_argumente) -> None:
+        raise RuntimeError("Plattform kaputt")
+
+    with (
+        patch("custom_components.heatnexus.WindhagerHttpClient", AttrappenClient),
+        patch.object(modul, "_entitaeten_einrichten", kaputt),
+    ):
+        await hass.config_entries.async_setup(eintrag.entry_id)
+        await hass.async_block_till_done()
+
+    assert AttrappenClient.letzte.geschlossen is True
+    assert modul.laufzeitdaten(eintrag) is None
+
+
 async def test_eine_zeitueberschreitung_beim_verbinden_gilt_als_nicht_bereit(hass, eintrag):
     """Der Erstabruf hat ein eigenes, großzügiges Zeitfenster – reißt es, ist Schluss."""
     from homeassistant.config_entries import ConfigEntryState

@@ -333,12 +333,29 @@ async def _anlage_vorbereiten(
     Anlage, bis die vorige ihren vollständigen Erstabruf hinter sich hat.
     Da sie über getrennte Verbindungen laufen, gibt es keinen Grund dafür.
     """
+    scope = umfang_der_anlage(hass, entry, system[CONF_HOST])
+    client = _client_bauen(system, scope)
+    try:
+        return await _anlage_verbinden(hass, entry, system, client, scope, mem_cache, version)
+    except BaseException:
+        # Auch ein Abbruch, weil eine andere Anlage scheiterte, schließt die Verbindung.
+        await client.close()
+        raise
+
+
+async def _anlage_verbinden(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    system: dict,
+    client: WindhagerHttpClient,
+    scope: dict,
+    mem_cache: dict,
+    version: str,
+) -> _Anlage:
+    """Erkennungsstand laden, Grunddaten lesen und den ersten Abruf machen."""
     host = system[CONF_HOST]
     label = system.get(CONF_LABEL) or host
-    scope = umfang_der_anlage(hass, entry, host)
     fingerprint = umfang_fingerprint(scope)
-    client = _client_bauen(system, scope)
-
     store = Store(hass, DISCOVERY_STORE_VERSION, store_key(entry, host))
     # Die Sprache gehört in den Schlüssel, nicht in den Fingerabdruck: Ein
     # Wechsel soll den Stand von der Platte holen und abgleichen, statt
@@ -356,11 +373,7 @@ async def _anlage_vorbereiten(
         hass, client, entry, host, label, scope["update_interval"]
     )
     await _vorabstand_setzen(entry, client, coordinator, host)
-    try:
-        await coordinator.async_config_entry_first_refresh()
-    except BaseException:
-        await client.close()
-        raise
+    await coordinator.async_config_entry_first_refresh()
     return _Anlage(
         host, label, coordinator, client, store, fingerprint, cache_key, restored, abgleichen
     )
@@ -451,18 +464,53 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _heizungsanlage_anmelden(hass, registry, entry, hub_name)
 
     begonnen = monotonic()
-    ergebnisse = await asyncio.gather(
-        *(_anlage_vorbereiten(hass, entry, s, mem_cache, version) for s in systeme),
-        return_exceptions=True,
-    )
-    # Scheitert eine Anlage, schließen die übrigen ihre Verbindung, bevor HA es erneut versucht.
-    if fehler := next((e for e in ergebnisse if isinstance(e, BaseException)), None):
-        for anlage in ergebnisse:
-            if isinstance(anlage, _Anlage):
-                await anlage.client.close()
-        raise fehler
-    anlagen: list[_Anlage] = ergebnisse
+    anlagen = await _anlagen_vorbereiten(hass, entry, systeme, mem_cache, version)
+    try:
+        await _anlagen_einbinden(
+            hass, entry, registry, anlagen, (hub_name, version, begonnen), mem_cache
+        )
+    except BaseException:
+        await _einrichtung_zuruecknehmen(hass, entry, anlagen)
+        raise
+    return True
 
+
+async def _anlagen_vorbereiten(
+    hass: HomeAssistant, entry: ConfigEntry, systeme: list[dict], mem_cache: dict, version: str
+) -> list[_Anlage]:
+    """Alle Anlagen gleichzeitig verbinden.
+
+    Scheitert eine, bricht die Gruppe die übrigen sofort ab, statt auf die langsamste zu warten.
+    """
+    aufgaben: list[asyncio.Task] = []
+    try:
+        async with asyncio.TaskGroup() as gruppe:
+            for system in systeme:
+                aufgaben.append(
+                    gruppe.create_task(_anlage_vorbereiten(hass, entry, system, mem_cache, version))
+                )
+    except BaseExceptionGroup as gruppe_fehler:
+        fehler: BaseException = gruppe_fehler.exceptions[0]
+    except BaseException as abbruch:
+        fehler = abbruch
+    else:
+        return [aufgabe.result() for aufgabe in aufgaben]
+    for aufgabe in aufgaben:
+        if aufgabe.done() and not aufgabe.cancelled() and aufgabe.exception() is None:
+            await aufgabe.result().client.close()
+    raise fehler
+
+
+async def _anlagen_einbinden(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    registry: dr.DeviceRegistry,
+    anlagen: list[_Anlage],
+    kopf: tuple[str, str, float],
+    mem_cache: dict,
+) -> None:
+    """Steuerungen anmelden, Plattformen und Oberflächen einrichten, Vollabzug starten."""
+    hub_name, version, begonnen = kopf
     coordinators: dict[str, WindhagerDataUpdateCoordinator] = {}
     nachzuladen: list[_Anlage] = []
     for anlage in anlagen:
@@ -496,7 +544,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _oberflaechen_einrichten(hass, entry, version)
 
     hintergrund.extend(vollabzuege_starten(hass, entry, nachzuladen, mem_cache, version))
-    return True
+
+
+async def _einrichtung_zuruecknehmen(
+    hass: HomeAssistant, entry: ConfigEntry, anlagen: list[_Anlage]
+) -> None:
+    """Nach einem Fehler mitten im Setup aufräumen; Home Assistant ruft dann kein Entladen auf."""
+    try:
+        await verwaltung_holen(hass).eintrag_stoppen(entry)
+    except Exception as fehler:
+        _LOGGER.debug("Automatik ließ sich nicht anhalten: %s", fehler)
+    for aufgabe in (laufzeitdaten(entry) or {}).get("hintergrund", []):
+        aufgabe.cancel()
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            await aufgabe
+    for anlage in anlagen:
+        await anlage.coordinator.async_shutdown()
+        await anlage.client.close()
+    entry.runtime_data = None
 
 
 async def _oberflaechen_einrichten(hass: HomeAssistant, entry: ConfigEntry, version: str) -> None:
