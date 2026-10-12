@@ -10,52 +10,70 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
+#### Automatik: Heizpause und Empfehlung
+
 - Eine Heizpause hält den Heizkreis an milden Tagen aus; bei Kälte heizt die Steuerung.
 - Der Modus „Manuell mit Empfehlung“ schlägt Eingriffe vor, die weniger heizen.
-- Ein Blueprint meldet Empfehlungen der Automatik mit den Aktionen „Übernehmen“ und „Verwerfen“.
-- Eine verworfene Empfehlung kommt am selben Tag nicht wieder.
 - Eine offene Empfehlung erscheint in der Seitenleiste und als Punkt am Reiter „Automatik“.
+- Eine verworfene Empfehlung kommt am selben Tag nicht wieder.
+- Ein Blueprint meldet Empfehlungen der Automatik mit den Aktionen „Übernehmen“ und „Verwerfen“.
 - Der Wechsel weg von „Automatisch“ beendet laufende Eingriffe und rechnet sofort neu.
+- Die Ausrichtung legt fest, wie weit die Räume unter das Ziel sinken dürfen.
+- Ja/Nein-Einstellungen der Automatik sind jetzt Schalter.
+
+#### Automatik: Hausmodell und Vorhersage
+
 - Die Automatik lernt das Haus und sagt den Raumverlauf des Tages voraus.
-- Trifft die Vorhersage über Wochen besser als ohne Modell, entscheidet sie mit.
 - Beim ersten Lernen rechnet die Automatik die vergangenen zwei Wochen nach.
 - Heizt der Heizkreis durchgehend, lernt das Hausmodell aus den Heizstunden.
-- Dann senkt sie bei Sonne früh ab oder legt eine Heizpause ein.
-- Die Ausrichtung legt fest, wie weit die Räume unter das Ziel sinken dürfen.
+- Trifft die Vorhersage über Wochen besser als ohne Modell, entscheidet sie mit.
+- Mit Hausmodell senkt die Automatik bei Sonne früh ab oder legt eine Heizpause ein.
+- Ohne Hausmodell senkt der Sonnentag unter einer einstellbaren Außentemperatur nicht ab.
 - Der Reiter Automatik zeigt die gelernten Hauswerte und den vorhergesagten Raumverlauf.
 - Die Kachel „Haus“ ordnet die Auskühlzeit als schnell, mittel oder träge ein.
-- Ohne Hausmodell senkt der Sonnentag unter einer einstellbaren Außentemperatur nicht ab.
-- Auf Wunsch zeigt die Automatik Hinweise zu Heizkurve, Raumsollwert und Vorhaltezeit.
-- „Hausmodell neu lernen“ steht in den Einstellungen der Automatik.
-- Der Einrichtungsdialog empfiehlt Räume, die das Haus typisch abbilden.
-- Die Sprache lässt sich gemeinsam oder für jede Anlage einzeln wählen.
-- Panel, Dashboard und Schaubild erscheinen in der Sprache der jeweiligen Anlage.
-- Die Übersicht zeigt eigene Karten für Kessel, Puffer, Heizkreis und Warmwasser.
-- Die Übersicht erscheint auch bei einer einzelnen Anlage.
-- Beim Einschalten rechnen die Hinweise die vergangenen zwei Wochen aus der Historie nach.
-- Die Kachel „Optimierung“ zeigt den Fortschritt je Hinweis und die nicht auswertbaren Tage.
-- Optimierung und Ergebnisse stehen in einem Rahmen, je Auswertung eine Zeile.
-- Die Ergebnisse der Optimierung zeigen ab vier Tagen eine vorläufige Tendenz.
-- Die Ergebnisse der Optimierung nennen den aktuellen Wert der Heizkurve.
-- Beim Einschalten der Hinweise werden die Parameter der Heizkurve aktiviert.
-- Die Optimierung lässt sich im Einrichtungsdialog und in der Kachel „Optimierung“ einschalten.
-- Die Optimierung berät nach den Einstellungen, die die Steuerung tatsächlich anbietet.
-- Die Optimierung berücksichtigt Fußbodenheizung und Heizkreise ohne Heizkurve.
-- Tage, an denen der Vorlauf den Sollwert nicht erreicht, zählen für die Optimierung nicht.
-- Ergebnisse der Optimierung lassen sich täglich in der Seitenleiste melden.
-- Die Optimierung bewertet Räume gegen den Sollwert ohne Behaglichkeit.
-- Den Morgen misst die Optimierung ab dem Anstieg des Raumziels.
-- Die Optimierung empfiehlt bei Thermostaten, deren Zeitprogramm früher zu starten.
 - Die Auskühlzeit des Hauses steht als eigener Sensor bereit.
 - Außentemperatur und Auskühlzeit im Reiter Automatik öffnen per Klick den Verlauf.
-- Ja/Nein-Einstellungen der Automatik sind jetzt Schalter.
+- „Hausmodell neu lernen“ steht in den Einstellungen der Automatik.
+
+#### Automatik: Räume und Wetter
+
+- Der Einrichtungsdialog empfiehlt Räume, die das Haus typisch abbilden.
 - Die Automatik nennt, ob Raumtemperatur, Außentemperatur oder Wettervorhersage fehlen.
 - Fehlt die Wettervorhersage länger, erscheint eine Reparaturmeldung.
 - Die Wetterauswahl zeigt nur Entitäten mit Vorhersage.
 - Die Automatik nutzt auch Vorhersagen, die nur zweimal täglich kommen.
+
+#### Optimierung
+
+- Auf Wunsch zeigt die Automatik Hinweise zu Heizkurve, Raumsollwert und Vorhaltezeit.
+- Die Optimierung lässt sich im Einrichtungsdialog und in der Kachel „Optimierung“ einschalten.
+- Beim Einschalten rechnet die Optimierung die vergangenen zwei Wochen aus der Historie nach.
+- Beim Einschalten werden die Parameter der Heizkurve aktiviert.
+- Ein Rahmen zeigt je Auswertung den Fortschritt und das Ergebnis.
+- Ab vier Tagen erscheint eine vorläufige Tendenz, ab sieben eine Empfehlung.
+- Die Ergebnisse nennen den aktuellen Wert der Heizkurve.
+- Ergebnisse der Optimierung lassen sich täglich in der Seitenleiste melden.
+- Die Optimierung berät nach den Einstellungen, die die Steuerung tatsächlich anbietet.
+- Die Optimierung berücksichtigt Fußbodenheizung und Heizkreise ohne Heizkurve.
+- Die Optimierung bewertet Räume gegen den Sollwert ohne Behaglichkeit.
+- Tage, an denen der Vorlauf den Sollwert nicht erreicht, zählen nicht.
+- Den Morgen misst die Optimierung ab dem Anstieg des Raumziels.
+- Bei Thermostaten rät die Optimierung, die Temperatur früher zu erhöhen.
+
+#### Sprache und Übersicht
+
+- Die Sprache lässt sich gemeinsam oder für jede Anlage einzeln wählen.
+- Panel, Dashboard und Schaubild erscheinen in der Sprache der jeweiligen Anlage.
+- Die Übersicht zeigt eigene Karten für Kessel, Puffer, Heizkreis und Warmwasser.
+- Die Übersicht erscheint auch bei einer einzelnen Anlage.
+
+#### Kessel
+
 - BioWIN: Zwei Tasten quittieren Reinigung und Wartung.
 
 ### Behoben
+
+#### Automatik
 
 - Liefert weniger als die Hälfte der Räume Werte, endet eine Absenkung nach einstellbarer Wartezeit.
 - „Absenkbetrieb bis“ steht nach einem Neustart sofort im Reiter Automatik.
@@ -63,13 +81,22 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein Sonnentag aus der Sonnenquote endet nicht mehr ohne Wärme der Solaranlage.
 - Nach einer Heizpause beginnt bei Sonne direkt ein Sonnentag.
 - Bei Kälte endet nur Warmwasser früher.
-- Entitäts-IDs mit einer Ziffer am Namensende erhalten den richtigen Namen.
+
+#### Sprache und Anzeige
+
 - Meldungssensoren erscheinen in der Sprache der Anlage.
 - Das Schaubild erkennt die Kesselart auch auf Englisch und Niederländisch.
 - Die Zustände einer Wärmequelle erscheinen übersetzt.
-- Ein neuer Untereintrag lädt die Integration auch bei gleichen Optionen neu.
-- Die Anlagenseite zeigt das Schaubild bei einer einzelnen Anlage nur einmal.
 - Zustandslisten zeigen keinen Platzhalter für Werte ohne Text.
+- Die Anlagenseite zeigt das Schaubild bei einer einzelnen Anlage nur einmal.
+
+#### Einrichtung
+
+- Entitäts-IDs mit einer Ziffer am Namensende erhalten den richtigen Namen.
+- Ein neuer Untereintrag lädt die Integration auch bei gleichen Optionen neu.
+
+#### Kessel
+
 - BioWIN: Der Befüllgrad des Lagerraums ist nur noch eine Anzeige.
 
 ## [1.13.1] - 2026-10-10
