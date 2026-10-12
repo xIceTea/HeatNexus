@@ -1,8 +1,4 @@
 {
- "custom_components/heatnexus/client/erkennung.py::ErkennungMixin._discover": {
-  "komplexitaet": 33,
-  "zeilen": 240
- },
  "custom_components/heatnexus/client/kern.py::WindhagerHttpClient.__init__": {
   "zeilen": 110
  },

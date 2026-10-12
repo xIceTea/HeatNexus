@@ -369,7 +369,15 @@ class ErkennungMixin:
             statisch = await self._statische_adressen()
             self._texte = await self._lade_geraetetexte()
 
-        # Erst die Seriennummern einsammeln – alle Kennungen hängen daran.
+        self._seriennummern_sammeln(json_devices)
+        for device in json_devices:
+            if device.get("nodeId") is not None:
+                await self._knoten_erkennen(device, statisch, nur_kern)
+
+        self._abfragetasten()
+
+    def _seriennummern_sammeln(self, json_devices: list[dict]) -> None:
+        """Erst die Seriennummern einsammeln – alle Kennungen hängen daran."""
         for device in json_devices:
             if device.get("nodeId") is None:
                 continue
@@ -379,216 +387,248 @@ class ErkennungMixin:
             if klasse := geraete.geraeteklasse(device.get("programId")):
                 self.geraeteklasse[knoten] = klasse
 
-        for device in json_devices:
-            node_id = device["nodeId"]
-            device_id = f"/1/{node_id}"
-            primary_prefix = None
-            primary_name = None
-            primary_type = None
+    async def _knoten_erkennen(self, device: dict, statisch: set[str], nur_kern: bool) -> None:
+        """Die Funktionen eines Knotens, seinen LON-Adressraum und seine Meldungen anlegen."""
+        node_id = device["nodeId"]
+        device_id = f"/1/{node_id}"
+        # Präfix, Name und Typ der ersten verwertbaren Funktion des Knotens = Primärgerät
+        # (daran hängt der Geräte-Meldungssensor aus FE01msg)
+        primaer: tuple | None = None
+        nv_funktionen: list[dict] = []
+        for fct in await self._funktionen_des_knotens(device, device_id, nur_kern):
+            fct_type = fct.get("fctType")
+            if fct.get("lock"):
+                continue
+            if fct_type == FCT_NV:
+                # Der LON-Adressraum kennt keine Bedienebenen und keine
+                # kuratierte Tabelle; er läuft über seinen eigenen Weg –
+                # und erst, wenn die Funktionen dieses Knotens gelesen
+                # sind: Seine Werte gehören an das Gerät der Funktion,
+                # nicht in ein zweites daneben.
+                nv_funktionen.append(fct)
+                continue
+            if fct_type not in FCT_ENTITY_MAP and not get_layers(fct_type):
+                continue
+            prefix = f"{device_id}/{fct['fctId']}"
+            primaer = primaer or (prefix, fct["name"], fct_type)
+            await self._funktion_erkennen(fct, prefix, device_id, statisch, nur_kern)
 
-            nv_funktionen: list[dict] = []
-            funktionen = list(device.get("functions", []))
-            brauchbar = any(
-                not f.get("lock")
-                and (f.get("fctType") in FCT_ENTITY_MAP or get_layers(f.get("fctType")))
-                for f in funktionen
+        # Der LON-Adressraum, jetzt mit bekanntem Primärgerät. Ein Knoten
+        # ohne brauchbare Funktion – das Bedienteil – bekommt darüber sein
+        # eigenes Gerät; einen Kessel ergänzen die Werte an seinem.
+        if not nur_kern and (self.lon or self.lon_grundumfang):
+            for fct in nv_funktionen:
+                await self._lese_nv(f"{device_id}/{fct['fctId']}", *(primaer or (None,) * 3))
+
+        if device.get("FE01msg") is not None and primaer is not None:
+            self._meldungssensoren_anlegen(node_id, device_id, primaer)
+
+    async def _funktionen_des_knotens(
+        self, device: dict, device_id: str, nur_kern: bool
+    ) -> list[dict]:
+        """Die gemeldeten Funktionen, bei Bedarf ergänzt um die nicht gemeldeten."""
+        funktionen = list(device.get("functions", []))
+        brauchbar = any(
+            not f.get("lock")
+            and (f.get("fctType") in FCT_ENTITY_MAP or get_layers(f.get("fctType")))
+            for f in funktionen
+        )
+        if not brauchbar and not nur_kern:
+            funktionen += await self._ungemeldete_funktionen(device_id, funktionen)
+        return funktionen
+
+    async def _funktion_erkennen(
+        self, fct: dict, prefix: str, device_id: str, statisch: set[str], nur_kern: bool
+    ) -> None:
+        """Die Datenpunkte einer Funktion anlegen: kuratiert, aus den Menüs, ergänzt."""
+        fct_type = fct.get("fctType")
+        # Kuratierte Tabellen: beim Kurzdurchlauf übersprungen, damit
+        # die Einrichtung nur wenige Anfragen kostet. Thermostat und
+        # Meldungen entstehen weiter unten und reichen für den Start.
+        if not nur_kern:
+            for definition in FCT_ENTITY_MAP.get(fct_type, []):
+                self._add_entity(definition, prefix, device_id, fct)
+
+        # Sammel-Lesezugriff: Die Menü-Ebenen der Funktion liefern
+        # sämtliche vorhandenen Datenpunkte inklusive Metadaten in
+        # wenigen Anfragen. Das ist die Hauptquelle der Erkennung.
+        # Eine nicht gemeldete Funktion wurde schon gelesen – ihr Typ
+        # stammt aus genau diesen Datenpunkten. Ein zweiter Abruf
+        # brächte nichts und kostete die Anlage ein Menü mehr.
+        menu_data = fct.get("_menus")
+        if menu_data is None:
+            menu_data = {} if nur_kern else await self._read_function_menus(prefix, fct_type)
+        self.menu_meta.update(menu_data)
+
+        layers = get_layers(fct_type) or {}
+        candidates, ergaenzt = self._kandidaten(
+            prefix, fct_type, menu_data, layers, statisch, nur_kern
+        )
+        self._kandidaten_anlegen(candidates, ergaenzt, layers, fct, prefix)
+
+        # Heizkreis additionally gets a climate entity
+        if fct_type in FCT_CLIMATE_TYPES:
+            self._thermostat_anlegen(fct, prefix, device_id)
+
+    def _kandidaten(
+        self,
+        prefix: str,
+        fct_type,
+        menu_data: dict,
+        layers: dict,
+        statisch: set[str],
+        nur_kern: bool,
+    ) -> tuple[dict[str, str], set[str]]:
+        """Die Adressen einer Funktion, die als Datenpunkt in Frage kommen, und die ergänzten."""
+        # Datenpunkte, die die Anlage meldet, plus die bekannten
+        # Ergänzungen, die in keinem Menü stehen (Zeitprogramme u. a.).
+        candidates = {oid: self._gnmn(prefix, oid) for oid in menu_data}
+        # Die Ergänzungen stehen in keiner Bedienebene – sonst wären sie
+        # im Menü. Ohne eigenen Vermerk fielen sie deshalb gleich unten
+        # als „Werksebene" wieder heraus, und das war kein theoretischer
+        # Fall: `39/107` („Lagerraum befüllen: freigegeben/gesperrt")
+        # und `39/5` (Restlaufzeit der Freigabe) wurden abgefragt,
+        # angelegt wurden sie nie. Die Karte „Lagerraum befüllen" zeigte
+        # deshalb weder Freigabe noch Restzeit – genau die zwei Angaben,
+        # wegen derer man beim Befüllen überhaupt hinschaut.
+        ergaenzt: set[str] = set()
+        if nur_kern:
+            return candidates, ergaenzt
+        # Die statische Navigation gilt für die ganze Anlage und
+        # nennt nicht, an welcher Funktion eine Position tatsächlich
+        # sitzt. Sie wird deshalb überall angeboten; wo es sie nicht
+        # gibt, antwortet die Anlage mit 404 oder 409 und die
+        # Metadatenabfrage wirft den Datenpunkt wieder heraus.
+        for gnmn in (
+            *EXTRA_OIDS_BY_FCT.get(fct_type, ()),
+            *statisch,
+            *sorted(get_programme(fct_type)),
+        ):
+            candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
+            ergaenzt.add(gnmn)
+
+        if not menu_data or prefix in self._menue_luecken:
+            # Ohne Menüliste oder mit ausgefallener Ebene: auf die
+            # Datenbank zurückfallen und jeden Datenpunkt einzeln prüfen.
+            for liste in gelesene_ebenen(self.levels):
+                for gnmn in layers.get(liste, []):
+                    candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
+        return candidates, ergaenzt
+
+    @staticmethod
+    def _ebenen_und_gruppen(layers: dict) -> tuple[dict[str, str], dict[str, str]]:
+        """Bedienebene und Bereichsname je Adresse aus der Herstellerliste."""
+        # Die Herstellerliste führt Datenpunkte mehrfach: `9/57` steht
+        # an der Serviceebene *und* an der Werksebene. Es gilt die
+        # zugänglichste, sonst verschluckt die Werksebene sie alle.
+        level_of: dict[str, str] = {}
+        for liste, level in EBENENFOLGE:
+            for gnmn in layers.get(liste, []):
+                level_of.setdefault(gnmn, level)
+        # Bereichsnamen der Bedienebenen als Rückfall für Datenpunkte
+        # ohne eigenen Namen (z.B. "Zündung 39/4").
+        gruppe_of = {
+            gnmn: bereich
+            for bereich, adressen in (layers.get("groups") or {}).items()
+            for gnmn in adressen
+        }
+        return level_of, gruppe_of
+
+    def _kandidaten_anlegen(
+        self, candidates: dict[str, str], ergaenzt: set[str], layers: dict, fct: dict, prefix: str
+    ) -> None:
+        """Je Kandidat in einer gewählten Ebene einen Deskriptor anlegen."""
+        fct_type = fct.get("fctType")
+        level_of, gruppe_of = self._ebenen_und_gruppen(layers)
+        for oid, gnmn in candidates.items():
+            if oid in self.oids:
+                continue
+            # Datenpunkte, die keiner Bedienebene zugeordnet sind,
+            # gehören zur Werksebene: Sie erscheinen nur, wenn diese
+            # ausdrücklich gewählt wurde. Die ausdrücklich ergänzten
+            # sind davon ausgenommen – sie stehen von Hand in
+            # `EXTRA_OIDS_BY_FCT`, gerade *weil* die Anlage sie in
+            # keiner Ebene führt, und das ist eine Entscheidung und
+            # kein Zufall.
+            level = level_of.get(gnmn) or ("operate" if gnmn in ergaenzt else "oem")
+            if level not in self.levels:
+                continue
+            self.devices.append(
+                self._deskriptor(
+                    id=self._kennung(oid),
+                    alt_id=self._alte_kennung(oid),
+                    oid=oid,
+                    **self._namensfelder(
+                        gnmn,
+                        name_override(fct_type, gnmn) or get_name(gnmn),
+                        (f"{gruppe_of[gnmn]} {gnmn}" if gnmn in gruppe_of else None)
+                        or f"Datenpunkt {gnmn}",
+                        gepflegt=name_override(fct_type, gnmn),
+                    ),
+                    level=level,
+                    # Service- und Werksebene sind vorhanden, aber
+                    # standardmäßig deaktiviert (pro Entity in Home
+                    # Assistant aktivierbar oder über die Optionen).
+                    enabled_default=(level not in ADVANCED_LEVELS or self.enable_advanced),
+                    enum=gnmn if get_enum(gnmn) else None,
+                    enum_texte=self._enum_texte_fuer(gnmn),
+                    device_id=self._geraetekennung(prefix),
+                    alt_device_id=self._alte_kennung(prefix),
+                    device_name=fct["name"],
+                    fct_type=fct_type,
+                )
             )
-            if not brauchbar and not nur_kern:
-                funktionen += await self._ungemeldete_funktionen(device_id, funktionen)
+            self.oids.add(oid)
 
-            for fct in funktionen:
-                fct_type = fct.get("fctType")
-                if fct.get("lock"):
-                    continue
-                if fct_type == FCT_NV:
-                    # Der LON-Adressraum kennt keine Bedienebenen und keine
-                    # kuratierte Tabelle; er läuft über seinen eigenen Weg –
-                    # und erst, wenn die Funktionen dieses Knotens gelesen
-                    # sind: Seine Werte gehören an das Gerät der Funktion,
-                    # nicht in ein zweites daneben.
-                    nv_funktionen.append(fct)
-                    continue
-                if fct_type not in FCT_ENTITY_MAP and not get_layers(fct_type):
-                    continue
+    def _thermostat_anlegen(self, fct: dict, prefix: str, device_id: str) -> None:
+        """Ein Heizkreis bekommt zusätzlich ein Thermostat und dessen Hilfsadressen."""
+        self.devices.append(
+            {
+                "id": f"{self._geraetekennung(prefix)}-thermostat",
+                "alt_id": self._alte_kennung(device_id),
+                "name": fct["name"],
+                "type": "climate",
+                "prefix": prefix,
+                "device_id": self._geraetekennung(prefix),
+                "alt_device_id": self._alte_kennung(prefix),
+                "device_name": fct["name"],
+                "fct_type": fct.get("fctType"),
+            }
+        )
+        self.oids.update(
+            [
+                f"{prefix}/0/1/0",  # Raumtemperatur Ist
+                f"{prefix}/1/1/0",  # Raumtemperatur Soll
+                f"{prefix}/3/50/0",  # Betriebswahl
+                f"{prefix}/2/10/0",  # Dauer Eco/Party (Resthandzeit)
+                f"{prefix}/3/58/0",  # Behaglichkeitskorrektur
+            ]
+        )
 
-                prefix = f"{device_id}/{fct['fctId']}"
+    def _meldungssensoren_anlegen(self, node_id, device_id: str, primaer: tuple) -> None:
+        """Geräte-Meldung (FE01msg, z.B. "PUR 09  OK") als Sensoren je Knoten.
 
-                # erste verwertbare Funktion des Knotens = Primärgerät
-                # (daran hängt der Geräte-Meldungssensor aus FE01msg)
-                if primary_prefix is None:
-                    primary_prefix = prefix
-                    primary_name = fct["name"]
-                    primary_type = fct_type
-
-                # Kuratierte Tabellen: beim Kurzdurchlauf übersprungen, damit
-                # die Einrichtung nur wenige Anfragen kostet. Thermostat und
-                # Meldungen entstehen weiter unten und reichen für den Start.
-                if not nur_kern:
-                    for definition in FCT_ENTITY_MAP.get(fct_type, []):
-                        self._add_entity(definition, prefix, device_id, fct)
-
-                # Sammel-Lesezugriff: Die Menü-Ebenen der Funktion liefern
-                # sämtliche vorhandenen Datenpunkte inklusive Metadaten in
-                # wenigen Anfragen. Das ist die Hauptquelle der Erkennung.
-                # Eine nicht gemeldete Funktion wurde schon gelesen – ihr Typ
-                # stammt aus genau diesen Datenpunkten. Ein zweiter Abruf
-                # brächte nichts und kostete die Anlage ein Menü mehr.
-                menu_data = fct.get("_menus")
-                if menu_data is None:
-                    menu_data = (
-                        {} if nur_kern else await self._read_function_menus(prefix, fct_type)
-                    )
-                self.menu_meta.update(menu_data)
-
-                layers = get_layers(fct_type) or {}
-                # Die Herstellerliste führt Datenpunkte mehrfach: `9/57` steht
-                # an der Serviceebene *und* an der Werksebene. Es gilt die
-                # zugänglichste, sonst verschluckt die Werksebene sie alle.
-                level_of: dict[str, str] = {}
-                for liste, level in EBENENFOLGE:
-                    for gnmn in layers.get(liste, []):
-                        level_of.setdefault(gnmn, level)
-                # Bereichsnamen der Bedienebenen als Rückfall für Datenpunkte
-                # ohne eigenen Namen (z.B. "Zündung 39/4").
-                gruppe_of = {
-                    gnmn: bereich
-                    for bereich, adressen in (layers.get("groups") or {}).items()
-                    for gnmn in adressen
-                }
-
-                # Datenpunkte, die die Anlage meldet, plus die bekannten
-                # Ergänzungen, die in keinem Menü stehen (Zeitprogramme u. a.).
-                candidates = {oid: self._gnmn(prefix, oid) for oid in menu_data}
-                # Die Ergänzungen stehen in keiner Bedienebene – sonst wären sie
-                # im Menü. Ohne eigenen Vermerk fielen sie deshalb gleich unten
-                # als „Werksebene" wieder heraus, und das war kein theoretischer
-                # Fall: `39/107` („Lagerraum befüllen: freigegeben/gesperrt")
-                # und `39/5` (Restlaufzeit der Freigabe) wurden abgefragt,
-                # angelegt wurden sie nie. Die Karte „Lagerraum befüllen" zeigte
-                # deshalb weder Freigabe noch Restzeit – genau die zwei Angaben,
-                # wegen derer man beim Befüllen überhaupt hinschaut.
-                ergaenzt: set[str] = set()
-                if not nur_kern:
-                    # Die statische Navigation gilt für die ganze Anlage und
-                    # nennt nicht, an welcher Funktion eine Position tatsächlich
-                    # sitzt. Sie wird deshalb überall angeboten; wo es sie nicht
-                    # gibt, antwortet die Anlage mit 404 oder 409 und die
-                    # Metadatenabfrage wirft den Datenpunkt wieder heraus.
-                    for gnmn in (
-                        *EXTRA_OIDS_BY_FCT.get(fct_type, ()),
-                        *statisch,
-                        *sorted(get_programme(fct_type)),
-                    ):
-                        candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
-                        ergaenzt.add(gnmn)
-
-                if (not menu_data or prefix in self._menue_luecken) and not nur_kern:
-                    # Ohne Menüliste oder mit ausgefallener Ebene: auf die
-                    # Datenbank zurückfallen und jeden Datenpunkt einzeln prüfen.
-                    for liste in gelesene_ebenen(self.levels):
-                        for gnmn in layers.get(liste, []):
-                            candidates.setdefault(f"{prefix}/{gnmn}/0", gnmn)
-
-                for oid, gnmn in candidates.items():
-                    if oid in self.oids:
-                        continue
-                    # Datenpunkte, die keiner Bedienebene zugeordnet sind,
-                    # gehören zur Werksebene: Sie erscheinen nur, wenn diese
-                    # ausdrücklich gewählt wurde. Die ausdrücklich ergänzten
-                    # sind davon ausgenommen – sie stehen von Hand in
-                    # `EXTRA_OIDS_BY_FCT`, gerade *weil* die Anlage sie in
-                    # keiner Ebene führt, und das ist eine Entscheidung und
-                    # kein Zufall.
-                    level = level_of.get(gnmn) or ("operate" if gnmn in ergaenzt else "oem")
-                    if level not in self.levels:
-                        continue
-                    self.devices.append(
-                        self._deskriptor(
-                            id=self._kennung(oid),
-                            alt_id=self._alte_kennung(oid),
-                            oid=oid,
-                            **self._namensfelder(
-                                gnmn,
-                                name_override(fct_type, gnmn) or get_name(gnmn),
-                                (f"{gruppe_of[gnmn]} {gnmn}" if gnmn in gruppe_of else None)
-                                or f"Datenpunkt {gnmn}",
-                                gepflegt=name_override(fct_type, gnmn),
-                            ),
-                            level=level,
-                            # Service- und Werksebene sind vorhanden, aber
-                            # standardmäßig deaktiviert (pro Entity in Home
-                            # Assistant aktivierbar oder über die Optionen).
-                            enabled_default=(level not in ADVANCED_LEVELS or self.enable_advanced),
-                            enum=gnmn if get_enum(gnmn) else None,
-                            enum_texte=self._enum_texte_fuer(gnmn),
-                            device_id=self._geraetekennung(prefix),
-                            alt_device_id=self._alte_kennung(prefix),
-                            device_name=fct["name"],
-                            fct_type=fct_type,
-                        )
-                    )
-                    self.oids.add(oid)
-
-                # Heizkreis additionally gets a climate entity
-                if fct_type in FCT_CLIMATE_TYPES:
-                    self.devices.append(
-                        {
-                            "id": f"{self._geraetekennung(prefix)}-thermostat",
-                            "alt_id": self._alte_kennung(device_id),
-                            "name": fct["name"],
-                            "type": "climate",
-                            "prefix": prefix,
-                            "device_id": self._geraetekennung(prefix),
-                            "alt_device_id": self._alte_kennung(prefix),
-                            "device_name": fct["name"],
-                            "fct_type": fct_type,
-                        }
-                    )
-                    self.oids.update(
-                        [
-                            f"{prefix}/0/1/0",  # Raumtemperatur Ist
-                            f"{prefix}/1/1/0",  # Raumtemperatur Soll
-                            f"{prefix}/3/50/0",  # Betriebswahl
-                            f"{prefix}/2/10/0",  # Dauer Eco/Party (Resthandzeit)
-                            f"{prefix}/3/58/0",  # Behaglichkeitskorrektur
-                        ]
-                    )
-
-            # Der LON-Adressraum, jetzt mit bekanntem Primärgerät. Ein Knoten
-            # ohne brauchbare Funktion – das Bedienteil – bekommt darüber sein
-            # eigenes Gerät; einen Kessel ergänzen die Werte an seinem.
-            if not nur_kern and (self.lon or self.lon_grundumfang):
-                for fct in nv_funktionen:
-                    await self._lese_nv(
-                        f"{device_id}/{fct['fctId']}",
-                        primary_prefix,
-                        primary_name,
-                        primary_type,
-                    )
-
-            # Geräte-Meldung (FE01msg, z.B. "PUR 09  OK") als Sensoren je Knoten,
-            # angehängt an das Primärgerät. Quelle ist die /1-Discovery selbst.
-            if device.get("FE01msg") is not None and primary_prefix is not None:
-                for suffix, typ, name, icon in MELDUNGS_SENSOREN:
-                    self.devices.append(
-                        self._deskriptor(
-                            id=f"{self._neuron(node_id)}-{suffix}",
-                            alt_id=self._alte_kennung(f"{device_id}-{suffix}"),
-                            type=typ,
-                            node_id=str(node_id),
-                            **self._eigener_name(name),
-                            stoerungstexte=self._stoerungstexte(),
-                            sprache=self.sprache,
-                            category="diagnostic",
-                            icon=icon,
-                            device_id=self._geraetekennung(primary_prefix),
-                            alt_device_id=self._alte_kennung(primary_prefix),
-                            device_name=primary_name,
-                            fct_type=primary_type,
-                        )
-                    )
-
-        self._abfragetasten()
+        Angehängt an das Primärgerät. Quelle ist die /1-Discovery selbst.
+        """
+        primary_prefix, primary_name, primary_type = primaer
+        for suffix, typ, name, icon in MELDUNGS_SENSOREN:
+            self.devices.append(
+                self._deskriptor(
+                    id=f"{self._neuron(node_id)}-{suffix}",
+                    alt_id=self._alte_kennung(f"{device_id}-{suffix}"),
+                    type=typ,
+                    node_id=str(node_id),
+                    **self._eigener_name(name),
+                    stoerungstexte=self._stoerungstexte(),
+                    sprache=self.sprache,
+                    category="diagnostic",
+                    icon=icon,
+                    device_id=self._geraetekennung(primary_prefix),
+                    alt_device_id=self._alte_kennung(primary_prefix),
+                    device_name=primary_name,
+                    fct_type=primary_type,
+                )
+            )
 
     def _abfragetasten(self) -> None:
         """Je Anlagenteil eine Taste, die seine Werte sofort liest.
