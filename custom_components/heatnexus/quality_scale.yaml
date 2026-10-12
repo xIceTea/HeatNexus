@@ -48,7 +48,7 @@ rules:
   reauthentication-flow: done
   test-coverage:
     status: todo
-    comment: Drei Viertel des Codes sind geprüft, verlangt sind 95 Prozent.
+    comment: Die Tests decken weniger als die verlangten 95 Prozent des Codes ab.
 
   # ------------------------------------------------------------------ Gold
   devices: done
@@ -82,12 +82,10 @@ rules:
   entity-translations:
     status: todo
     comment: >-
-      Die Namen kommen aus der Anlage und aus der Geräte-Datenbank, nicht aus
-      Übersetzungsschlüsseln. Voraussetzung dafür sind stabile Schlüssel je
-      Datenpunkt; bis dahin ist die Oberfläche deutsch.
-  exception-translations:
-    status: todo
-    comment: Fehlermeldungen der Dienste stehen im Klartext, nicht als Schlüssel.
+      Die Namen kommen in der gewählten Sprache aus der Geräte-Datenbank, nicht
+      aus Übersetzungsschlüsseln. Nur die Entitäten der Automatik tragen einen
+      Übersetzungsschlüssel.
+  exception-translations: done
   icon-translations:
     status: todo
     comment: Symbole werden je Entität gesetzt statt über icons.json.
