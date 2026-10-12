@@ -48,7 +48,7 @@ RAUMFUEHLER = "/0/1/0"
 # So weit liest `_verlauf_lesen` zurück; so viele Tage vor heute lassen sich nachrechnen.
 NACHRECHNEN_TAGE = LERNTAGE
 # Fassung der Tageswertung; ein Archiv aus einer älteren Fassung wird einmal neu gerechnet.
-NACHRECHNEN_FASSUNG = 3
+NACHRECHNEN_FASSUNG = 4
 VOLLER_TAG = 24
 # Die Klima-Entität des Heizkreises führt die Restzeit `2/10` als Merkmal.
 RESTZEIT_MERKMAL = "override_restzeit_min"
@@ -96,11 +96,14 @@ def _ersetzbar(alt: dict[str, Any] | None, stunden: int) -> bool:
     return not isinstance(vorhanden, int) or vorhanden < stunden
 
 
-def _offene_tage(archiv: list[dict[str, Any]], heute: date) -> list[date]:
-    """Die Tage vor heute im Zeitraum des Nachrechnens, die ein nachgerechneter Tag ersetzen kann."""
+def _offene_tage(archiv: list[dict[str, Any]], heute: date, alle: bool = False) -> list[date]:
+    """Die Tage vor heute im Zeitraum des Nachrechnens, die ein nachgerechneter Tag ersetzen kann.
+
+    `alle`: auch live archivierte Tage, deren Morgen eine neue Fassung neu rechnet.
+    """
     je_datum = {t.get("datum"): t for t in archiv}
     tage = [heute - timedelta(days=n) for n in range(NACHRECHNEN_TAGE, 0, -1)]
-    return [t for t in tage if _ersetzbar(je_datum.get(t.isoformat()), VOLLER_TAG)]
+    return [t for t in tage if alle or _ersetzbar(je_datum.get(t.isoformat()), VOLLER_TAG)]
 
 
 def _letzte_tage(tage: list[optimierer.Tag], heute: date | str) -> list[optimierer.Tag]:
@@ -269,12 +272,14 @@ class OptimierungMixin:
             soll -= behaglichkeit
         genug = lage.raeume and lage.raeume_fehlen_seit is None
         ab = round(regel.abweichung(lage, soll), 2) if soll is not None and genug else None
+        ziel = regel.mittleres_ziel(lage, soll) if soll is not None and genug else None
         # Eine Restzeit ohne eigene Absenkung stammt vom Nutzer (Eco/Comfort an Steuerung oder App).
         # Beim Beobachten ist die Absenkung nur gerechnet; jede Restzeit stammt dann vom Nutzer.
         eigen = regel.absenkung_laeuft(self.gedaechtnis, lage.jetzt) and not self.beobachten
         vorgabe = (self._wert("/2/10/0") or 0) > 0 and not eigen
         felder = {
             "ab": ab,
+            "ziel": ziel,
             "soll": None if lage.soll is None else round(lage.soll - behaglichkeit, 2),
             "vl": lage.vl_soll,
             "vi": self._wert(VORLAUF_IST),
@@ -292,7 +297,9 @@ class OptimierungMixin:
         """
         heute = dt_util.now().date()
         neu: list[dict[str, Any]] = []
-        if offen := _offene_tage(self.tage_archiv, heute):
+        # Eine ältere Fassung rechnete den Morgen anders; live archivierte Tage bekommen ihn neu.
+        aufwerten = 0 < self.archiv_nachgerechnet < NACHRECHNEN_FASSUNG
+        if offen := _offene_tage(self.tage_archiv, heute, aufwerten):
             quellen = self._nachrechenquellen()
             ende = dt_util.start_of_local_day(heute)
             if (zustaende := await self._verlauf_lesen(*quellen.lesen(), ende)) is None:
@@ -300,7 +307,7 @@ class OptimierungMixin:
             # Zuerst die Parameter: Ihr Verlauf liefert die Behaglichkeit der nachgerechneten Tage.
             anfang = heute - timedelta(days=NACHRECHNEN_TAGE)
             self._parameter_nachtragen(zustaende, quellen.parameter, anfang)
-            neu = self._tage_nachrechnen(zustaende, quellen, offen)
+            neu = self._tage_nachrechnen(zustaende, quellen, offen, aufwerten)
         self.archiv_nachgerechnet = NACHRECHNEN_FASSUNG
         self.nachgetragen()
         return len(neu)
@@ -365,16 +372,28 @@ class OptimierungMixin:
         )
 
     def _tage_nachrechnen(
-        self, zustaende: dict[str, list[Any]], quellen: Quellen, offen: list[date]
+        self,
+        zustaende: dict[str, list[Any]],
+        quellen: Quellen,
+        offen: list[date],
+        aufwerten: bool = False,
     ) -> list[dict[str, Any]]:
-        """Die Tage aus dem Verlauf; ein vollständiger live archivierter Tag bleibt."""
+        """Die Tage aus dem Verlauf; ein vollständiger live archivierter Tag bleibt.
+
+        `aufwerten`: Er behält alles außer dem Morgen, den die Aufzeichnung neu liefert.
+        """
         je_tag = nachrechnen.stunden_je_tag(self._tagesreihen(zustaende, quellen), offen)
         je_datum = {t.get("datum"): t for t in self.tage_archiv}
         neu = []
         for datum, stunden in je_tag.items():
-            tag = optimierer.tag_aus_stunden(datum, stunden)
-            if tag is not None and _ersetzbar(je_datum.get(datum), tag.stunden):
+            if (tag := optimierer.tag_aus_stunden(datum, stunden)) is None:
+                continue
+            alt = je_datum.get(datum)
+            if _ersetzbar(alt, tag.stunden):
                 neu.append(asdict(replace(tag, nachgerechnet=True)))
+            elif aufwerten and alt is not None:
+                morgen = {"morgen_min": tag.morgen_min, "morgen_quelle": tag.morgen_quelle}
+                neu.append({**alt, **morgen})
         ersetzt = {t["datum"] for t in neu}
         bleibt = [t for t in self.tage_archiv if t.get("datum") not in ersetzt]
         archiv = sorted([*bleibt, *neu], key=lambda t: str(t.get("datum") or ""))

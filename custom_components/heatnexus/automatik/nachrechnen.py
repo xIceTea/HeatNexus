@@ -9,6 +9,7 @@ from __future__ import annotations
 from bisect import bisect_left, bisect_right
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time, timedelta, tzinfo
+from statistics import mean
 from typing import Any
 
 from .eingaben import raumwert, wert_zur_stunde
@@ -114,11 +115,12 @@ def _stunden(tag: date, zone: tzinfo | None) -> list[tuple[int, datetime, dateti
 
 def _abweichung(
     stufen: _Stufen, beginn: datetime, ende: datetime, soll: float | None
-) -> float | None:
-    """Raum minus Ziel wie im Live-Verlauf; ohne Raumsoll oder mit zu wenigen Räumen nichts."""
+) -> tuple[float | None, float | None]:
+    """Raum minus Ziel wie im Live-Verlauf und das mittlere Ziel; mit zu wenigen Räumen nichts."""
     if soll is None:
-        return None
+        return None, None
     werte: list[float | None] = []
+    ziele: list[float] = []
     gemeldet = 0
     for i, (ist_reihe, ziel) in enumerate(stufen.raeume):
         if (ist := ist_reihe.zur_stunde(beginn, ende)) is None:
@@ -128,12 +130,13 @@ def _abweichung(
         if i < len(stufen.aus) and stufen.aus[i].zur_stunde(beginn, ende):
             continue
         eigen = ziel.zur_stunde(beginn, ende) if isinstance(ziel, _Stufe) else ziel
-        werte.append(ist - (soll if eigen is None else eigen))
+        ziele.append(soll if eigen is None else eigen)
+        werte.append(ist - ziele[-1])
     # Wie `Laufzeit._lage`: mindestens die Hälfte der eingerichteten Räume liefert einen Wert.
     if not werte or 2 * gemeldet < len(stufen.raeume):
-        return None
+        return None, None
     ab = raumwert(werte, stufen.raum_art)
-    return None if ab is None else round(ab, 2)
+    return (None if ab is None else round(ab, 2)), round(mean(ziele), 2)
 
 
 def _felder(stufen: _Stufen, beginn: datetime, ende: datetime) -> dict[str, Any]:
@@ -142,9 +145,11 @@ def _felder(stufen: _Stufen, beginn: datetime, ende: datetime) -> dict[str, Any]
     behaglichkeit = stufen.behaglichkeit.zur_stunde(beginn, ende) or 0.0
     basis = None if soll is None else round(soll - behaglichkeit, 2)
     ba = stufen.ba.zur_stunde(beginn, ende)
+    ab, ziel = _abweichung(stufen, beginn, ende, soll if stufen.eigene_ziele else basis)
     felder = {
         "at": stufen.at.zur_stunde(beginn, ende),
-        "ab": _abweichung(stufen, beginn, ende, soll if stufen.eigene_ziele else basis),
+        "ab": ab,
+        "ziel": ziel,
         "soll": basis,
         "vl": stufen.vl.zur_stunde(beginn, ende),
         "vi": stufen.vi.zur_stunde(beginn, ende),
@@ -155,7 +160,7 @@ def _felder(stufen: _Stufen, beginn: datetime, ende: datetime) -> dict[str, Any]
 
 
 def stunden_je_tag(reihen: Reihen, tage: list[date]) -> dict[str, dict[str, dict[str, Any]]]:
-    """`{"JJJJ-MM-TT": {"H": {"at", "ab", "soll", "vl", "vi", "ba", "vorgabe"}}}` wie live.
+    """`{"JJJJ-MM-TT": {"H": {"at", "ab", "ziel", "soll", "vl", "vi", "ba", "vorgabe"}}}` wie live.
 
     Die Stunde steht ohne führende Null; Stunden und Tage ohne jeden Wert entfallen.
     """

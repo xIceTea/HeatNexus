@@ -56,9 +56,13 @@ def _richtung(h: Hinweis, w: Uebersetzen, punkt: bool) -> str | None:
     if h.art == "morgen_frueh":
         if h.parameter == "3/6" and h.von is not None:
             return _mit(w, "Vorhaltezeit {von} min kürzer möglich", von=zahl(h.von, punkt))
+        if h.parameter == "thermostate":
+            return w("Absenkung der Thermostate wirkt kaum")
         return w("Absenkung vor Programmbeginn wirkt kaum")
     if h.parameter == "zeitprogramm" and h.nach is not None:
         return _mit(w, "Programmstart {minuten} min früher", minuten=zahl(h.nach, punkt))
+    if h.parameter == "thermostate" and h.nach is not None:
+        return _mit(w, "Thermostate {minuten} min früher hochschalten", minuten=zahl(h.nach, punkt))
     return None
 
 

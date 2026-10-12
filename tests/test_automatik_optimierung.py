@@ -23,7 +23,7 @@ TAGE = [(ERSTER + timedelta(days=i)).isoformat() for i in range(HEIZTAGE)]
 HEUTE = "2026-09-27"
 # Restzeit `2/10` als `(tag, stunde, minute, minuten)`: am dritten Tag 10:00 bis 10:30.
 VORGABE = ((0, 0, 0, 0), (2, 10, 0, 60), (2, 10, 30, 0))
-FASSUNG = 3
+FASSUNG = 4
 
 
 def _zeit(tag: int, stunde: int = 0, minute: int = 0):
@@ -269,6 +269,23 @@ async def test_ein_nachgerechneter_tag_ersetzt(hass, anlage, freezer, monkeypatc
     ersetzt = laufzeit.archivierte_tage()[4]
     assert (ersetzt.nachgerechnet, ersetzt.at, ersetzt.stunden) == (True, 10.0, 24)
     assert ersetzt.sauber is not None
+
+
+async def test_eine_aeltere_marke_rechnet_den_morgen_live_archivierter_tage_neu(
+    hass, anlage, freezer, monkeypatch
+):
+    # Die Aufzeichnung heizt durchgehend auf 21 °C: Ein Morgen lässt sich nicht erkennen.
+    verwaltung, coordinator = anlage
+    laufzeit = await _laufzeit(hass, verwaltung, freezer)
+    laufzeit.tage_archiv = [_archivtag(TAGE[4], 24)]
+    laufzeit.archiv_nachgerechnet = FASSUNG - 1
+    _aufzeichnung(hass, monkeypatch, _historie(hass, coordinator))
+
+    await laufzeit.archiv_nachrechnen()
+
+    tag = next(t for t in laufzeit.tage_archiv if t["datum"] == TAGE[4])
+    assert (tag["abweichung"], tag["stunden"], tag["morgen_min"]) == (-0.7, 24, None)
+    assert "nachgerechnet" not in tag
 
 
 @pytest.mark.parametrize("marke", [True, 1])

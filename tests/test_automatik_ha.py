@@ -3234,6 +3234,8 @@ async def test_die_stunde_zaehlt_gegen_das_raumsoll_ohne_behaglichkeit(
 
     assert felder["ab"] == ab
     assert felder["soll"] == (23.0 if ab == -1.0 else 22.0)
+    # Das Ziel der Räume: die eigene Wunschtemperatur, sonst das Raumsoll ohne Behaglichkeit.
+    assert felder["ziel"] == (raum_ziel if raum_ziel is not None else felder["soll"])
 
 
 OPTIMIERUNG = f"heatnexus_optimierung_{HEIZKREIS}"

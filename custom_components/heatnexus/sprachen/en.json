@@ -873,6 +873,8 @@
   "Programmstart {minuten} min früher": "Start program {minuten} min earlier",
   "Vorhaltezeit {von} min kürzer möglich": "Pre-heat time of {von} min can be shorter",
   "Absenkung vor Programmbeginn wirkt kaum": "Setback before program start has little effect",
+  "Absenkung der Thermostate wirkt kaum": "Thermostat setback has little effect",
+  "Thermostate {minuten} min früher hochschalten": "Raise thermostats {minuten} min earlier",
   "Vorlauf bei Auslegung": "Design flow temperature",
   "Fußpunkt": "Base point",
   "Behaglichkeit": "Comfort correction",

@@ -303,6 +303,12 @@ def abweichung(lage: Lage, soll: float) -> float:
     return raumwert(werte, lage.raum_art) or 0.0
 
 
+def mittleres_ziel(lage: Lage, soll: float) -> float | None:
+    """Das mittlere Ziel der Räume, gegen das `abweichung` misst; ohne eigenes Ziel `soll`."""
+    ziele = [soll if ziel is None else ziel for _, ziel in lage.raeume]
+    return round(sum(ziele) / len(ziele), 2) if ziele else None
+
+
 def grenze(lage: Lage, w: Werte) -> float:
     """Die Heizgrenze der Steuerung, verschoben um die Ausrichtung."""
     steuerung = lage.grenze_steuerung

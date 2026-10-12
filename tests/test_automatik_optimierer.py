@@ -6,6 +6,7 @@ Tagen einen Hinweis zu Heizkurve, Raumsollwert oder Vorhaltezeit ableitet.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, timedelta
 
 import pytest
@@ -172,11 +173,11 @@ def test_im_beobachten_zaehlt_ein_geplanter_eingriff_nicht(m):
     assert m.tag_aus_stunden("2026-11-03", stunden).ungestoert is True
 
 
-def test_stunde_ohne_betriebsart_beginnt_keinen_heizblock(m):
+def test_ohne_betriebsart_bestimmt_der_anstieg_des_sollwerts_den_morgen(m):
     stunden = stunden_eines_tages()
     for h in range(6):
         del stunden[str(h)]["ba"]
-    assert m.tag_aus_stunden("2026-11-03", stunden).morgen_min is None
+    assert m.tag_aus_stunden("2026-11-03", stunden).morgen_min == 120
 
 
 def test_tag_ohne_aktion_bleibt_ungestoert(m):
@@ -206,11 +207,57 @@ def test_morgen_zaehlt_nur_den_ersten_heizblock(m):
     assert m.tag_aus_stunden("2026-11-03", stunden).morgen_min is None
 
 
-def test_heizbetrieb_ab_mitternacht_hat_keine_morgenzeit(m):
+def test_heizbetrieb_ab_mitternacht_misst_ab_dem_anstieg_des_sollwerts(m):
     stunden = stunden_eines_tages()
     for s in stunden.values():
         s["ba"] = 1
+    tag = m.tag_aus_stunden("2026-11-03", stunden)
+    assert (tag.morgen_min, tag.morgen_quelle) == (120, "steuerung")
+
+
+def test_ohne_anstieg_des_ziels_gibt_es_keinen_morgen(m):
+    stunden = stunden_eines_tages()
+    for s in stunden.values():
+        s.update(ba=1, soll=22.0)
     assert m.tag_aus_stunden("2026-11-03", stunden).morgen_min is None
+
+
+def _thermostattag(**abweichend):
+    """Steuerung heizt durchgehend auf 22 °C; die Thermostate heben ihr Ziel um 4 Uhr auf 22,5 °C."""
+    stunden = {}
+    for h in range(24):
+        stunden[str(h)] = {
+            "aktion": "programm",
+            "at": 3.0,
+            "ba": 1,
+            "soll": 21.0 if h < 1 or h >= 22 else 22.0,
+            "ziel": 22.5 if 4 <= h < 22 else 21.0,
+            "vl": 45.0,
+            "ab": 0.2 if h < 4 else (-1.2 if h < 6 else 0.1),
+        }
+    for h, felder in abweichend.items():
+        stunden[h.lstrip("h")].update(felder)
+    return stunden
+
+
+def test_morgen_beginnt_mit_dem_anstieg_des_ziels_der_thermostate(m):
+    tag = m.tag_aus_stunden("2026-11-03", _thermostattag())
+    assert (tag.morgen_min, tag.morgen_quelle) == (120, "raeume")
+
+
+def test_hebt_die_steuerung_mit_an_gilt_ihr_programm(m):
+    stunden = _thermostattag(h3={"soll": 20.0}, h4={"soll": 22.0})
+    tag = m.tag_aus_stunden("2026-11-03", stunden)
+    assert (tag.morgen_min, tag.morgen_quelle) == (120, "steuerung")
+
+
+def test_der_morgen_ist_der_anstieg_auf_das_hoechste_ziel(m):
+    # Kleine Stufe um 2 Uhr, das Tagesziel erst um 5 Uhr; warm um 6 Uhr.
+    stunden = stunden_eines_tages()
+    for h, s in stunden.items():
+        s.update(ba=1, soll=20.5 if int(h) < 2 else (21.0 if int(h) < 5 else 22.0), ab=0.0)
+    stunden["5"]["ab"] = -0.8
+    assert m.tag_aus_stunden("2026-11-03", stunden).morgen_min == 60
 
 
 def test_stunden_zaehlt_nur_stunden_mit_abweichung(m):
@@ -628,6 +675,28 @@ def test_schon_warm_ohne_vorhaltezeit_nennt_das_zeitprogramm(m, vorhaltezeit):
         "min",
         0,
     )
+
+
+def test_morgen_der_thermostate_empfiehlt_ihr_programm(m):
+    tage = [replace(t, morgen_quelle="raeume") for t in reihe(m, 7, 2.0, 0.0, morgen=95)]
+    (h,) = m.hinweise(tage, parameter(), HEUTE)
+    assert (h.art, h.parameter, h.von, h.nach, h.minuten) == (
+        "morgen_spaet",
+        "thermostate",
+        None,
+        90.0,
+        95,
+    )
+    tage = [replace(t, morgen_quelle="raeume") for t in reihe(m, 7, 2.0, 0.0, morgen=0)]
+    (h,) = m.hinweise(tage, parameter(), HEUTE)
+    assert (h.art, h.parameter, h.von) == ("morgen_frueh", "thermostate", None)
+
+
+def test_die_mehrheit_der_tage_bestimmt_die_quelle(m):
+    tage = [replace(t, morgen_quelle="raeume") for t in reihe(m, 4, 2.0, 0.0, morgen=90)]
+    tage += reihe(m, 3, 2.0, 0.0, morgen=90, ab_tag=4)
+    (h,) = m.hinweise(tage, parameter(), HEUTE)
+    assert h.parameter == "thermostate"
 
 
 def test_schon_warm_braucht_median_null_und_genug_tage(m):
@@ -1143,3 +1212,21 @@ def test_texte_der_kachel_stehen_in_jedem_woerterbuch(m, text):
                 "−0,7 K",
                 "−1,2 K",
             }, (sprache, hinweis.art)
+
+
+def test_texte_zum_morgen_der_thermostate(m, text):
+    h = m.Hinweis
+    spaet = text.texte(
+        h("morgen_spaet", 7, None, None, "thermostate", None, 90.0, "min", 95), lambda s: s
+    )
+    frueh = text.texte(
+        h("morgen_frueh", 7, None, None, "thermostate", None, None, "min", 0), lambda s: s
+    )
+    assert spaet["empfehlung"] == "Thermostate 90 min früher hochschalten"
+    assert frueh["empfehlung"] == "Absenkung der Thermostate wirkt kaum"
+    for sprache in ("en", "nl"):
+        woerter = load_standalone("texte").Woerterbuch(sprache)
+        fremd = text.texte(
+            h("morgen_frueh", 7, None, None, "thermostate", None, None, "min", 0), woerter
+        )
+        assert fremd["empfehlung"] != frueh["empfehlung"], sprache

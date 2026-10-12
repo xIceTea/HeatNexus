@@ -878,6 +878,8 @@
   "Programmstart {minuten} min früher": "Programma {minuten} min eerder starten",
   "Vorhaltezeit {von} min kürzer möglich": "Voorlooptijd van {von} min kan korter",
   "Absenkung vor Programmbeginn wirkt kaum": "Verlaging vóór programmastart heeft weinig effect",
+  "Absenkung der Thermostate wirkt kaum": "Verlaging van de thermostaten heeft weinig effect",
+  "Thermostate {minuten} min früher hochschalten": "Thermostaten {minuten} min eerder hoger zetten",
   "Vorlauf bei Auslegung": "Aanvoer bij ontwerptemperatuur",
   "Fußpunkt": "Voetpunt",
   "Behaglichkeit": "Comfortcorrectie",

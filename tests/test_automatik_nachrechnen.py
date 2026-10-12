@@ -57,9 +57,9 @@ def test_vollstaendiger_tag_ergibt_24_stunden(n):
 
     stunden = ergebnis[TAG.isoformat()]
     assert sorted(stunden, key=int) == [str(h) for h in range(24)]
-    assert stunden["5"] == {"at": 3.0, "ab": -1.0, "soll": 18.0, "vl": 30.0, "ba": 2}
+    assert stunden["5"] == {"at": 3.0, "ab": -1.0, "ziel": 18.0, "soll": 18.0, "vl": 30.0, "ba": 2}
     # Um 7:30 steigt der Raum auf 20,5; die Stunde behält den Wert von ihrem Beginn.
-    assert stunden["7"] == {"at": 3.0, "ab": -4.0, "soll": 21.0, "vl": 45.0, "ba": 1}
+    assert stunden["7"] == {"at": 3.0, "ab": -4.0, "ziel": 21.0, "soll": 21.0, "vl": 45.0, "ba": 1}
     assert stunden["8"]["ab"] == -0.5
     assert stunden["12"]["at"] == 5.0
     assert stunden["21"]["ab"] == pytest.approx(0.2)
@@ -186,6 +186,37 @@ def test_raum_mit_festem_ziel_und_raum_mit_raumsoll(n):
     assert stunden["12"]["ab"] == pytest.approx(0.25)
     # 3 Uhr, Raumsoll 18: (20 − 20,5) und (22 − 18) gemittelt.
     assert stunden["3"]["ab"] == pytest.approx(1.75)
+
+
+def test_ziel_ist_das_mittel_der_raumziele(n):
+    raeume = [
+        ([(vortag(), 20.0)], 20.5),
+        ([(vortag(), 22.0)], None),
+    ]
+
+    stunden = n.stunden_je_tag(reihen(n, raeume=raeume), [TAG])[TAG.isoformat()]
+
+    # Der Raum ohne eigenes Ziel zählt mit dem Raumsoll: 21 um 12 Uhr, 18 um 3 Uhr.
+    assert stunden["12"]["ziel"] == pytest.approx(20.75)
+    assert stunden["3"]["ziel"] == pytest.approx(19.25)
+
+
+def test_thermostate_heben_morgens_an_ohne_die_steuerung(n, o):
+    # Die Steuerung heizt ab Mitternacht auf 21 °C, die Thermostate heben um 4 Uhr von 19 auf 21 °C.
+    ziel = [(vortag(), 19.0), (zeit(4), 21.0), (zeit(22), 19.0)]
+    raum = [(vortag(), 20.8), (zeit(4), 19.8), (zeit(6), 20.9)]
+    felder = {
+        "soll": [(vortag(), 21.0)],
+        "ba": [(vortag(), 1.0)],
+        "raeume": [(raum, ziel)],
+        "eigene_ziele": True,
+    }
+
+    stunden = n.stunden_je_tag(reihen(n, **felder), [TAG])[TAG.isoformat()]
+    tag = o.tag_aus_stunden(TAG.isoformat(), stunden)
+
+    assert (stunden["3"]["ziel"], stunden["4"]["ziel"]) == (19.0, 21.0)
+    assert (tag.morgen_min, tag.morgen_quelle) == (120, "raeume")
 
 
 def test_raum_mit_zielreihe_faellt_ohne_ziel_auf_raumsoll_zurueck(n):

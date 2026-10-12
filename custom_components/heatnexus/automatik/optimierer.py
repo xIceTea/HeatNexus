@@ -47,6 +47,9 @@ MORGEN_SOFORT = 0
 SOLL_HOCH = 22.5
 # Ab dieser Abweichung gilt der Raum morgens als warm.
 WARM_K = -0.3
+# Der Morgen ist der Anstieg des Ziels um mindestens so viel auf seinen Höchstwert, gesucht bis Mittag.
+ANSTIEG_K = 0.5
+MORGEN_BIS = 12
 MAX_KURVE = 10
 BEHAGLICHKEIT = TABELLE["3/58"].grenzen
 MAX_VORHALTEZEIT = TABELLE["3/6"].grenzen[1]
@@ -96,6 +99,8 @@ class Tag:
     nachgerechnet: bool = False
     # Saubere Heizstunden; fehlt bei älteren Einträgen, dann gilt das gespeicherte `ungestoert`.
     sauber: int | None = None
+    # Wer das Ziel morgens anhob: `steuerung` (`1/1`) oder `raeume` (Thermostate); fehlt: Steuerung.
+    morgen_quelle: str | None = None
 
 
 @dataclass(frozen=True)
@@ -170,24 +175,55 @@ def _heizt(stunde: dict[str, Any]) -> bool | None:
     return None if ba is None else ba == HEIZBETRIEB
 
 
-def _aufheizen(stunden: dict[int, dict[str, Any]]) -> tuple[int | None, set[int]]:
-    """Minuten vom Beginn des ersten Heizblocks bis der Raum warm ist, dazu die Stunden davor.
+def _ziel(stunde: dict[str, Any]) -> float | None:
+    """Das Ziel, gegen das die Räume gemessen werden; ältere Stunden kennen nur das Raumsoll."""
+    ziel = _zahl(stunde.get("ziel"))
+    return ziel if ziel is not None else _zahl(stunde.get("soll"))
 
-    Der Block beginnt nach einer Stunde mit vermerkter anderer Betriebsart; sonst gibt es keinen Morgen.
+
+def _morgenbeginn(stunden: dict[int, dict[str, Any]]) -> tuple[int, float] | None:
+    """Die Stunde, in der das Ziel bis Mittag auf seinen Höchstwert steigt, und dieser Wert."""
+    ziele = {h: z for h, s in stunden.items() if h < MORGEN_BIS and (z := _ziel(s)) is not None}
+    if not ziele:
+        return None
+    hoch = max(ziele.values())
+    for h in sorted(ziele):
+        vorher = ziele.get(h - 1)
+        if vorher is not None and ziele[h] >= hoch - 0.05 and ziele[h] - vorher >= ANSTIEG_K:
+            return h, hoch
+    return None
+
+
+def _quelle(stunden: dict[int, dict[str, Any]], beginn: int) -> str:
+    """`steuerung`, wenn `1/1` mit dem Ziel anstieg; sonst haben die Thermostate angehoben."""
+    jetzt, vorher = _zahl(stunden[beginn].get("soll")), _zahl(stunden[beginn - 1].get("soll"))
+    if jetzt is not None and vorher is not None and jetzt - vorher >= ANSTIEG_K:
+        return "steuerung"
+    return "steuerung" if "ziel" not in stunden[beginn] else "raeume"
+
+
+def _aufheizen(stunden: dict[int, dict[str, Any]]) -> tuple[int | None, set[int], str | None]:
+    """Minuten vom Anstieg des Ziels bis der Raum warm ist, die Stunden davor und wer anhob.
+
+    Gemessen wird, solange geheizt wird und das Ziel oben bleibt; sonst gibt es keinen Morgen.
     """
-    heizt = {h: _heizt(s) for h, s in stunden.items()}
-    beginn = next((h for h in sorted(heizt) if heizt[h] and heizt.get(h - 1) is False), None)
-    if beginn is None:
-        return None, set()
+    if (anfang := _morgenbeginn(stunden)) is None:
+        return None, set(), None
+    beginn, hoch = anfang
+    quelle = _quelle(stunden, beginn)
     h = beginn
-    while heizt.get(h):
+    while (
+        h in stunden and _heizt(stunden[h]) is not False and (_ziel(stunden[h]) or 0) >= hoch - 0.05
+    ):
         ab = _zahl(stunden[h].get("ab"))
         if ab is not None and ab >= WARM_K:
-            # Ein Eingriff von der Stunde vor Blockbeginn bis zum Warmwerden verfälscht die Zeit.
-            stoerung = any(not _ungestoert(stunden[x]) for x in range(beginn - 1, h + 1))
-            return None if stoerung else (h - beginn) * 60, set(range(beginn, h))
+            # Ein Eingriff von der Stunde vor dem Anstieg bis zum Warmwerden verfälscht die Zeit.
+            stoerung = any(
+                not _ungestoert(stunden[x]) for x in range(beginn - 1, h + 1) if x in stunden
+            )
+            return (None if stoerung else (h - beginn) * 60), set(range(beginn, h)), quelle
         h += 1
-    return None, set(range(beginn, h))
+    return None, set(range(beginn, h)), quelle
 
 
 def _ungestoert(stunde: dict[str, Any]) -> bool:
@@ -232,7 +268,7 @@ def tag_aus_stunden(datum: str, stunden: Mapping[str, Any]) -> Tag | None:
     at, ab = _werte(alle, "at"), _werte(alle, "ab")
     if not at and not ab:
         return None
-    morgen, aufheizen = _aufheizen(gelesen)
+    morgen, aufheizen, quelle = _aufheizen(gelesen)
     # Die Aufheizphase liegt naturgemäß unter dem Ziel; sie betrifft die Vorhaltezeit, nicht die Kurve.
     sauber = _saubere(gelesen, aufheizen)
     ab_heizen = _werte(sauber, "ab")
@@ -244,6 +280,7 @@ def tag_aus_stunden(datum: str, stunden: Mapping[str, Any]) -> Tag | None:
         soll=median(soll) if soll else None,
         morgen_min=morgen,
         ungestoert=len(sauber) >= MIN_SAUBER,
+        morgen_quelle=quelle if morgen is not None else None,
         stunden=len(ab),
         sauber=len(sauber),
     )
@@ -420,31 +457,44 @@ def _sollwert(werte: list[float], seit: str | None) -> list[Hinweis]:
     return [Hinweis("sollwert_ausgleich", len(werte), seit, None, "3/51", wert, None, "°C")]
 
 
-def _morgen_spaet(werte: list[int], von: float | None, seit: str | None) -> list[Hinweis]:
-    """Vorhaltezeit verlängern; meldet die Steuerung keine, das Heizprogramm früher starten."""
+def _morgen_spaet(
+    werte: list[int], von: float | None, seit: str | None, ohne: str
+) -> list[Hinweis]:
+    """Vorhaltezeit verlängern; ohne sie das Programm `ohne` (Steuerung, Thermostate) früher starten."""
     if (wert := median(werte)) < MORGEN_MIN:
         return []
     minuten, frueher = int(_runden(wert)), _runden(wert, 15)
     if von is None:
-        name, nach = "zeitprogramm", frueher
+        name, nach = ohne, frueher
     else:
         name, nach = "3/6", min(MAX_VORHALTEZEIT, von + frueher)
     return [Hinweis("morgen_spaet", len(werte), seit, None, name, von, nach, "min", minuten)]
 
 
-def _morgen_frueh(werte: list[int], von: float | None, seit: str | None) -> list[Hinweis]:
-    """Schon zu Programmbeginn warm; einen Zielwert gibt es nicht, die Wärmespeicherung ist unbekannt."""
+def _morgen_frueh(
+    werte: list[int], von: float | None, seit: str | None, ohne: str
+) -> list[Hinweis]:
+    """Schon beim Anstieg des Ziels warm; einen Zielwert gibt es nicht, die Wärmespeicherung ist unbekannt."""
     if median(werte) != MORGEN_SOFORT:
         return []
-    name, wert = ("3/6", von) if von is not None and von > 0 else ("zeitprogramm", None)
+    name, wert = ("3/6", von) if von is not None and von > 0 else (ohne, None)
     return [Hinweis("morgen_frueh", len(werte), seit, None, name, wert, None, "min", MORGEN_SOFORT)]
 
 
-def _morgen(werte: list[int], von: float | None, seit: str | None) -> list[Hinweis]:
-    """Die Hinweise zum Morgen aus den gemessenen Minuten bis zum Ziel."""
+def _morgen(werte: list[int], von: float | None, seit: str | None, quelle: str) -> list[Hinweis]:
+    """Die Hinweise zum Morgen; hoben die Thermostate an, betrifft der Rat ihr Programm."""
     if len(werte) < MIN_TAGE:
         return []
-    return _morgen_spaet(werte, von, seit) + _morgen_frueh(werte, von, seit)
+    ohne = "zeitprogramm"
+    if quelle == "raeume":
+        von, ohne = None, "thermostate"
+    return _morgen_spaet(werte, von, seit, ohne) + _morgen_frueh(werte, von, seit, ohne)
+
+
+def _morgenquelle(tage: list[Tag]) -> str:
+    """Wer an der Mehrheit der gemessenen Morgen das Ziel anhob."""
+    quellen = [t.morgen_quelle for t in tage if t.morgen_min is not None]
+    return "raeume" if 2 * quellen.count("raeume") > len(quellen) else "steuerung"
 
 
 def grundlage(
@@ -489,7 +539,8 @@ def _hinweise(
     if "sollwert" in gezeigt:
         liste += _sollwert(reihen["sollwert"], basen["sollwert"][1])
     if "morgen" in gezeigt:
-        liste += _morgen(reihen["morgen"], aktuell(p, "3/6"), basen["morgen"][1])
+        tage, seit = basen["morgen"]
+        liste += _morgen(reihen["morgen"], aktuell(p, "3/6"), seit, _morgenquelle(tage))
     return liste
 
 
