@@ -247,11 +247,35 @@ class AbrufMixin:
     async def fetch_oids(self, oids) -> dict:
         """Nur eine gezielte OID-Menge abfragen (für schnellen Burst-Refresh).
 
-        Was die Anlage nicht beantwortet hat, fehlt im Ergebnis: Die Aufrufer
-        tragen es in den Bestand des Abrufs ein.
+        Was die Anlage nicht beantwortet hat, fehlt im Ergebnis. Gelesene Werte
+        des Abrufplans gehen in den Bestand, sonst ersetzte der nächste Durchlauf
+        sie durch den älteren Stand.
         """
         results = await asyncio.gather(*(self._fetch_oid(o) for o in oids))
+        self._gelesenes_uebernehmen(results, nur_plan=True)
         return self.ueberlagern({oid: wert for oid, wert in results if wert is not FEHLGESCHLAGEN})
+
+    def _gelesenes_uebernehmen(self, ergebnisse, nur_plan: bool = False) -> set[str]:
+        """Gelesene Werte in den Bestand legen; zurück kommen die misslungenen Adressen.
+
+        Springt ein Wert von bekannt auf leer, bleibt die Adresse offen und wird einmal
+        nachgelesen: Unter Last meldet die Steuerung für eine gültige Adresse ihre Leermarke.
+        """
+        plan = self.abrufplan if nur_plan else None
+        misslungen: set[str] = set()
+        for oid, wert in ergebnisse:
+            if wert is FEHLGESCHLAGEN:
+                misslungen.add(oid)
+                continue
+            if plan is not None and oid not in plan:
+                continue
+            verloren = wert is None and self._letzte_werte.get(oid) is not None
+            self._letzte_werte[oid] = wert
+            if verloren and oid not in self._abgemeldet:
+                self._rest.add(oid)
+            else:
+                self._rest.discard(oid)
+        return misslungen
 
     def vormerken(self, oid: str, wert: str) -> None:
         """Einen geschriebenen Wert bis zur Bestätigung durch die Anlage anzeigen.
@@ -648,18 +672,8 @@ class AbrufMixin:
         # Ein misslungener Abruf ist kein Messwert: Der zuletzt gelesene Wert
         # bleibt stehen, und die Adresse ist im nächsten Durchlauf wieder
         # fällig – unabhängig von ihrer Poll-Klasse.
-        misslungen = {oid for oid, wert in results if wert is FEHLGESCHLAGEN}
-        gelesen = {oid: wert for oid, wert in results if wert is not FEHLGESCHLAGEN}
-        # Dasselbe für einen Wert, der von bekannt auf leer springt: Unter Last
-        # antwortet die Steuerung auf eine gültige Adresse schon einmal mit
-        # ihrer Leermarke. Nachgelesen wird einmal; bleibt es leer, gilt es.
-        verloren = {
-            oid
-            for oid, wert in gelesen.items()
-            if wert is None and self._letzte_werte.get(oid) is not None
-        }
-        self._letzte_werte.update(gelesen)
-        self._rest |= (misslungen | verloren) - self._abgemeldet
+        misslungen = self._gelesenes_uebernehmen(results)
+        self._rest |= misslungen - self._abgemeldet
         # Abgemeldete Entities dürfen nicht ewig als alter Wert weiterleben.
         aktuell = self.abrufplan
         for oid in list(self._letzte_werte):
