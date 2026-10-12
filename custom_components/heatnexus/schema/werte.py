@@ -478,6 +478,100 @@ def _gewaehlte_werte(
     return werte
 
 
+def _entitaet_wenn(
+    bedingung: bool, entitaeten: list[dict[str, Any]], muster: str, schluessel: str
+) -> str | None:
+    """Die Kennung der passenden Entität, sofern die Bedingung gilt."""
+    if not bedingung:
+        return None
+    gefunden = finde(entitaeten, muster, schluessel)
+    return gefunden["entity_id"] if gefunden else None
+
+
+def _hauptmodul(
+    teil: dict[str, Any],
+    art: str,
+    werte: list[dict[str, Any]],
+    zeichnungen: dict[str, str] | None,
+    modulpumpe: bool,
+) -> dict[str, Any]:
+    """Der Kasten eines Anlagenteils mit allem, woran Lampen und Flüsse hängen."""
+    entitaeten = teil["entitaeten"]
+    kennung = teil_kennung(teil)
+    # Ein Solarkreis der Steuerung trägt dieselbe Bauart wie eine
+    # angelegte Solaranlage. Nur die mitgebrachte Bauart trennt beide.
+    ist_quelle = bool(teil.get("art"))
+    return {
+        "kennung": kennung,
+        "zeichnung": (zeichnungen or {}).get(kennung),
+        "titel": teil["name"],
+        "art": art,
+        # Jeder Kessel trägt seine eigene Zeichnung, auch zwei an einer Steuerung.
+        "kesselart": _kesselart(teil) if art == "kessel" else None,
+        "werte": werte,
+        # Am Pumpen-/Relaismodul ist die Drehzahl nur dann eine
+        # Pumpe, wenn auch eine angeschlossen ist. Das entscheidet
+        # die Option, nicht der Datenpunkt.
+        "pumpe": (_pumpe(entitaeten, art) if modulpumpe or art != "pumpenmodul" else None),
+        # Die Wärmelieferung tritt bei einer Quelle an die Stelle der
+        # Pumpe: An ihr hängen Lampe und Fluss.
+        "lieferung": _entitaet_wenn(ist_quelle, entitaeten, LIEFERUNG, "heat_delivery"),
+        # Ob die Quelle ein Laufrad bekommt, sagt ihre Einstellung:
+        # Eine Solaranlage hat eine Pumpe, ein Heizstab nicht.
+        "quellenpumpe": ist_quelle and bool(teil.get("quellenpumpe")),
+        "mischer": _mischer(entitaeten, art),
+        # Die Temperatur, die tatsächlich in den Heizkörper geht.
+        # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn
+        # der Kreis abgeschaltet ist und der Körper kalt hängt.
+        "vorlauf": _entitaet_wenn(art == "heizkreis", entitaeten, VORLAUF_IST, "flow_temperature"),
+        # Für Auswertungen, die über die angezeigten Werte
+        # hinausgehen – etwa die Lampen des Pumpen-/Relaismoduls.
+        "entitaeten": entitaeten,
+        # Für das Glutbett, unabhängig davon, welcher Wert im Bild
+        # steht: Leistung zuerst, Brennkammertemperatur als Ersatz.
+        "leistung": _entitaet_wenn(art == "kessel", entitaeten, KESSELLEISTUNG_IST, "boiler_power"),
+        "brennkammer": _entitaet_wenn(
+            art == "kessel", entitaeten, BRENNKAMMER_IST, "combustion_chamber_temperature"
+        ),
+    }
+
+
+def _angehaengt(
+    teil: dict[str, Any], art: str, zeichnungen: dict[str, str] | None
+) -> dict[str, Any] | None:
+    """Warmwasser oder Zirkulation, die als Datenpunkte an einem Kreis hängen."""
+    werte = _werte(teil["entitaeten"], art)
+    if not werte:
+        return None
+    kennung = f"{teil_kennung(teil)}-{art}"
+    return {
+        "kennung": kennung,
+        "zeichnung": (zeichnungen or {}).get(kennung),
+        "titel": "Warmwasser" if art == "wasser" else "Zirkulation",
+        "art": art,
+        "werte": werte,
+        "pumpe": _pumpe(teil["entitaeten"], art),
+    }
+
+
+def _nebenmodule(
+    teil: dict[str, Any], art: str, zeichnungen: dict[str, str] | None
+) -> list[dict[str, Any]]:
+    """Was an einem Kreis hängt und als eigener Anlagenteil dahinter steht."""
+    neben = []
+    # Hängt an diesem Kreis eine Warmwasserbereitung, wird sie als eigener
+    # Anlagenteil dahinter gezeichnet.
+    if art == "heizkreis" and finde(teil["entitaeten"], WARMWASSER_IST, "dhw_temperature"):
+        neben.append(_angehaengt(teil, "wasser", zeichnungen))
+    # Auch an einer eigenständigen Warmwasserfunktion (fctType 2) hängt die
+    # Zirkulation als Datenpunkt, nicht als eigene Funktion.
+    if art in ("heizkreis", "wasser") and finde(
+        teil["entitaeten"], ZIRKULATION_IST, "dhw_circulation_temperature"
+    ):
+        neben.append(_angehaengt(teil, "zirkulation", zeichnungen))
+    return [modul for modul in neben if modul]
+
+
 def zeichenbare_module(
     teile: list[dict[str, Any]],
     kesselwert: str | None = None,
@@ -495,11 +589,7 @@ def zeichenbare_module(
     for teil in teile:
         # Eine Wärmequelle bringt ihre Bauart selbst mit; sie hat keinen
         # Funktionstyp, weil sie nicht an der Steuerung hängt.
-        eigene_art = teil.get("art")
-        art = eigene_art or _art(teil.get("fct_type"))
-        # Ein Solarkreis der Steuerung trägt dieselbe Bauart wie eine
-        # angelegte Solaranlage. Nur die mitgebrachte Bauart trennt beide.
-        ist_quelle = bool(eigene_art)
+        art = teil.get("art") or _art(teil.get("fct_type"))
         kennung = teil_kennung(teil)
         if kennung in set(teile_aus or ()):
             continue
@@ -519,102 +609,7 @@ def zeichenbare_module(
             continue
         # Eine Wärmequelle wird auch ohne Messwert gezeichnet: Dass sie in der
         # Anlage steht, ist die Aussage; ob sie liefert, sagt ihre Lampe.
-        if werte or art == "pumpenmodul" or ist_quelle:
-            module.append(
-                {
-                    "kennung": kennung,
-                    "zeichnung": (zeichnungen or {}).get(kennung),
-                    "titel": teil["name"],
-                    "art": art,
-                    # Jeder Kessel trägt seine eigene Zeichnung, auch zwei an einer Steuerung.
-                    "kesselart": _kesselart(teil) if art == "kessel" else None,
-                    "werte": werte,
-                    # Am Pumpen-/Relaismodul ist die Drehzahl nur dann eine
-                    # Pumpe, wenn auch eine angeschlossen ist. Das entscheidet
-                    # die Option, nicht der Datenpunkt.
-                    "pumpe": (
-                        _pumpe(teil["entitaeten"], art)
-                        if modulpumpe or art != "pumpenmodul"
-                        else None
-                    ),
-                    # Die Wärmelieferung tritt bei einer Quelle an die Stelle der
-                    # Pumpe: An ihr hängen Lampe und Fluss.
-                    "lieferung": (
-                        e["entity_id"]
-                        if ist_quelle and (e := finde(teil["entitaeten"], LIEFERUNG))
-                        else None
-                    ),
-                    # Ob die Quelle ein Laufrad bekommt, sagt ihre Einstellung:
-                    # Eine Solaranlage hat eine Pumpe, ein Heizstab nicht.
-                    "quellenpumpe": ist_quelle and bool(teil.get("quellenpumpe")),
-                    "mischer": _mischer(teil["entitaeten"], art),
-                    # Die Temperatur, die tatsächlich in den Heizkörper geht.
-                    # Nicht der Sollwert: Der steht auch dann auf 45 °C, wenn
-                    # der Kreis abgeschaltet ist und der Körper kalt hängt.
-                    "vorlauf": (
-                        e["entity_id"]
-                        if art == "heizkreis"
-                        and (e := finde(teil["entitaeten"], VORLAUF_IST, "flow_temperature"))
-                        else None
-                    ),
-                    # Für Auswertungen, die über die angezeigten Werte
-                    # hinausgehen – etwa die Lampen des Pumpen-/Relaismoduls.
-                    "entitaeten": teil["entitaeten"],
-                    # Für das Glutbett, unabhängig davon, welcher Wert im Bild
-                    # steht: Leistung zuerst, Brennkammertemperatur als Ersatz.
-                    "leistung": (
-                        e["entity_id"]
-                        if art == "kessel"
-                        and (e := finde(teil["entitaeten"], KESSELLEISTUNG_IST, "boiler_power"))
-                        else None
-                    ),
-                    "brennkammer": (
-                        e["entity_id"]
-                        if art == "kessel"
-                        and (
-                            e := finde(
-                                teil["entitaeten"],
-                                BRENNKAMMER_IST,
-                                "combustion_chamber_temperature",
-                            )
-                        )
-                        else None
-                    ),
-                }
-            )
-        # Hängt an diesem Kreis eine Warmwasserbereitung, wird sie als eigener
-        # Anlagenteil dahinter gezeichnet.
-        if (
-            art == "heizkreis"
-            and finde(teil["entitaeten"], WARMWASSER_IST, "dhw_temperature") is not None
-        ):
-            wasser = _werte(teil["entitaeten"], "wasser")
-            if wasser:
-                module.append(
-                    {
-                        "kennung": f"{kennung}-wasser",
-                        "zeichnung": (zeichnungen or {}).get(f"{kennung}-wasser"),
-                        "titel": "Warmwasser",
-                        "art": "wasser",
-                        "werte": wasser,
-                        "pumpe": _pumpe(teil["entitaeten"], "wasser"),
-                    }
-                )
-        # Auch an einer eigenständigen Warmwasserfunktion (fctType 2) hängt die
-        # Zirkulation als Datenpunkt, nicht als eigene Funktion.
-        if art in ("heizkreis", "wasser") and finde(
-            teil["entitaeten"], ZIRKULATION_IST, "dhw_circulation_temperature"
-        ):
-            kreis = _werte(teil["entitaeten"], "zirkulation")
-            if kreis:
-                module.append(
-                    {
-                        "kennung": f"{kennung}-zirkulation",
-                        "zeichnung": (zeichnungen or {}).get(f"{kennung}-zirkulation"),
-                        "titel": "Zirkulation",
-                        "art": "zirkulation",
-                        "werte": kreis,
-                        "pumpe": _pumpe(teil["entitaeten"], "zirkulation"),
-                    }
-                )
+        if werte or art == "pumpenmodul" or teil.get("art"):
+            module.append(_hauptmodul(teil, art, werte, zeichnungen, modulpumpe))
+        module.extend(_nebenmodule(teil, art, zeichnungen))
     return module

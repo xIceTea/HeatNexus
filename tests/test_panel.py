@@ -1317,6 +1317,16 @@ def test_eine_waermequelle_bekommt_ihre_zeile(panel):
     assert zeilen[0]["entity"] == "binary_sensor.q_waerme"
 
 
+def test_eine_englische_waermequelle_bekommt_ihre_zeile(panel):
+    eintrag = quelle("Solar", "solar")
+    eintrag["entitaeten"][0].update(name="Heat delivery", name_de="Heat delivery")
+    eintrag["entitaeten"][0]["schluessel"] = "heat_delivery"
+
+    zeilen = panel._anlage_daten(anlage(eintrag))["kennwerte"]
+
+    assert [z["entity"] for z in zeilen] == ["binary_sensor.q_waerme"]
+
+
 def test_jede_bauart_bringt_ihr_eigenes_symbol(panel):
     solar = panel._anlage_daten(anlage(quelle("Solaranlage", "solar")))["kennwerte"][0]
     stab = panel._anlage_daten(anlage(quelle("Heizstab", "heizstab")))["kennwerte"][0]

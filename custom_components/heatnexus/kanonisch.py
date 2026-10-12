@@ -7,6 +7,7 @@ Funktionstyp bedeutet, entscheidet `KENNWERT_JE_FCT`. Geprüft gegen `device_db.
 
 from __future__ import annotations
 
+from .const import SUBEINTRAG_QUELLE
 from .lon import schluessel_aus_kennung as lon_schluessel
 
 # gn/mn -> kanonischer Schlüssel.
@@ -243,6 +244,9 @@ def schluessel(unique_id: str | None, bereich: str | None = None) -> str | None:
             geschwister = GESCHWISTER_JE_ART.get((adresse, bereich))
         return geschwister or KANONISCH.get(adresse) or lon_schluessel(kennung)
 
+    # Eine Wärmequelle trägt keine Adresse; ihre einzige Entität ist die Lieferung.
+    if f"-{SUBEINTRAG_QUELLE}-" in str(unique_id or ""):
+        return "heat_delivery"
     kennung, zusatz = _zerlegen(unique_id)
     basis = _basis(kennung)
     if not zusatz:

@@ -260,3 +260,9 @@ def test_ableitung_bleibt_von_geschwistern_unberuehrt(kanonisch):
     """Ein Zusatz aus der Geschwistertabelle ist keine Ableitung."""
     assert not kanonisch.ist_ableitung("abc123-1-39-94-0-reinigung")
     assert kanonisch.ist_ableitung("abc123-1-0-7-0-heute")
+
+
+def test_die_waermelieferung_traegt_ihren_schluessel(kanonisch):
+    """Die Wärmelieferung einer Quelle heißt in jeder Sprache anders."""
+    assert kanonisch.schluessel("SN1-waermequelle-q1", "binary_sensor") == "heat_delivery"
+    assert kanonisch.schluessel("SN1-waermequelle-q12") == "heat_delivery"

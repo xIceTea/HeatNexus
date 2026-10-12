@@ -1632,6 +1632,16 @@ def test_die_bauart_der_quelle_sticht_den_funktionstyp(werte):
     assert module[0]["art"] == "heizstab"
 
 
+def test_eine_englische_quelle_findet_ihre_lieferung(werte):
+    """Der Schlüssel trägt, wo der deutsche Name fehlt."""
+    teil = _quelle("Solar", "solar")
+    teil["entitaeten"][0].update(name="Heat delivery", schluessel="heat_delivery")
+
+    module = werte.zeichenbare_module([teil])
+
+    assert module[0]["lieferung"] == "binary_sensor.solar_waermelieferung"
+
+
 def test_ein_solarkreis_der_steuerung_traegt_keine_lieferung(werte):
     """Nur eine angelegte Wärmequelle bekommt Lampe und Strang."""
     teil = _teil("Solarkreis", 5, [("sensor.kollektor", "Kollektortemperatur")])
