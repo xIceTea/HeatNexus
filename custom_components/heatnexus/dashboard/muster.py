@@ -221,7 +221,7 @@ RUECKFRAGE: tuple[tuple[re.Pattern, str], ...] = (
         re.compile(r"kaminkehrerbetrieb", re.IGNORECASE),
         "Der Kessel fährt auf die eingestellte Kaminkehrer-Leistung und hält "
         "sie für die Abgasmessung. Ausschalten stellt die Betriebswahl zurück "
-        "auf EIN; nach 60 Minuten endet die Messung von selbst.",
+        "auf EIN; nach der eingestellten Laufzeit endet die Messung von selbst.",
     ),
     (
         re.compile(r"lagerraumbef(ü|ue)llung anfordern|lagerraum bef(ü|ue)llen", re.IGNORECASE),

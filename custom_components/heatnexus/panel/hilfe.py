@@ -32,7 +32,7 @@ HILFE: tuple[tuple[str, str], ...] = (
     ),
     (
         r"kaminkehrer",
-        "Fährt den Kessel auf eine feste Leistung und hält sie, damit die Abgasmessung unter gleichbleibenden Bedingungen läuft. Ohne diese Funktion moduliert der Kessel während der Messung, und das Ergebnis taugt nichts.\n\nDie Leistung wird vor dem Start abgefragt; welcher Wert gilt, sagt der Kaminkehrer. Wie lange die Funktion noch läuft, steht unter „Kaminkehrer“ — null heißt, sie läuft nicht.\n\nNach 60 Minuten kehrt der Kessel von selbst in den normalen Betrieb zurück; wer früher aufhören will, schaltet den Kaminkehrerbetrieb wieder aus.",
+        "Fährt den Kessel auf eine feste Leistung und hält sie, damit die Abgasmessung unter gleichbleibenden Bedingungen läuft. Ohne diese Funktion moduliert der Kessel während der Messung, und das Ergebnis taugt nichts.\n\nDie Leistung wird vor dem Start abgefragt; welcher Wert gilt, sagt der Kaminkehrer. Wie lange die Funktion noch läuft, steht unter „Kaminkehrer“ — null heißt, sie läuft nicht.\n\nNach der eingestellten Kaminkehrer-Laufzeit kehrt der Kessel von selbst in den normalen Betrieb zurück; wer früher aufhören will, schaltet den Kaminkehrerbetrieb wieder aus.",
     ),
     (
         r"bef(ü|ue)llgrad lagerraum",

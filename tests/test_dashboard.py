@@ -146,6 +146,11 @@ def test_symbol_je_anlagenteil(anlagen):
 # ---------------------------------------------------------------------------
 # Rückfragen vor Eingriffen
 # ---------------------------------------------------------------------------
+def test_rueckfrage_kaminkehrer_nennt_keine_feste_dauer(muster):
+    """Die Laufzeit ist einstellbar; eine feste Zahl wäre an mancher Anlage falsch."""
+    assert "Minuten" not in muster.rueckfrage("Kaminkehrerbetrieb")
+
+
 def test_rueckfrage_nur_bei_eingriffen(muster):
     assert muster.rueckfrage("Serviceausbrand")
     assert muster.rueckfrage("Reinigung bestätigt")
