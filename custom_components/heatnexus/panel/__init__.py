@@ -17,7 +17,7 @@ eingelesen: Der Vollabzug läuft im Hintergrund weiter, und die Werte der
 zuerst angelegten Entitäten stehen teils noch aus. Eine damals berechnete
 Aufteilung bliebe für immer halb leer – genau daran fehlten Kennwerte,
 Systemstatus, Warmwasser, Schaubild und Verlauf. Die Konfiguration des Panels
-enthält weiterhin einen Stand, damit die Ansicht sofort etwas zeigt.
+trägt keine Anlagendaten: Sie geht an jeden Benutzer, ohne Rechteprüfung.
 """
 
 from __future__ import annotations
@@ -240,8 +240,7 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
     async_register_bezeichnung(hass)
     async_register_automatik(hass)
 
-    daten = panel_daten(hass)
-    if not daten["anlagen"]:
+    if not anlagen_lesen(hass):
         return
 
     # update=True ersetzt eine bestehende Anmeldung – nötig, weil sich mit dem
@@ -259,7 +258,6 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
                 "embed_iframe": False,
                 "trust_external": False,
             },
-            "daten": daten,
         },
         require_admin=False,
         update=True,

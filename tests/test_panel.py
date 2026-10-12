@@ -1287,6 +1287,28 @@ def _anlage_ins_register(hass) -> None:
     assert steuerung.id
 
 
+async def test_die_anmeldung_traegt_keine_anlagendaten(hass, panel, monkeypatch):
+    """Die Panel-Konfiguration geht an jeden Benutzer; die Daten holt die Seite selbst."""
+    from homeassistant.components.frontend import DATA_PANELS
+
+    from custom_components.heatnexus.const import PANEL_URL
+
+    async def _fassung(_hass, version):
+        return version or "1.0.0"
+
+    async def _ausliefern(_hass, _version):
+        return None
+
+    monkeypatch.setattr(panel, "async_fassung", _fassung)
+    monkeypatch.setattr(panel, "async_dateien_ausliefern", _ausliefern)
+    _anlage_ins_register(hass)
+
+    await panel.async_setup_panel(hass, "1.0.0")
+
+    konfiguration = hass.data[DATA_PANELS][PANEL_URL].config
+    assert set(konfiguration) == {"_panel_custom"}
+
+
 async def test_ohne_rechte_bleibt_der_abzug_leer(hass, panel):
     """Die Oberfläche steht auch Nicht-Verwaltern offen.
 
