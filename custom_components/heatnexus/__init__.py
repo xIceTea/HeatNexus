@@ -21,7 +21,7 @@ from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.storage import Store
@@ -65,7 +65,7 @@ from .erkennungsstand import (
     umfang_fingerprint,
     untereintraege_abzug,
 )
-from .exceptions import mit_text
+from .exceptions import InvalidAuth, mit_text
 from .karte import async_setup_karte
 from .migration import (
     async_entity_ids_umstellen,
@@ -279,6 +279,9 @@ async def _grunddaten_lesen(client: WindhagerHttpClient, host: str) -> None:
     except TimeoutError as err:
         await client.close()
         raise mit_text(ConfigEntryNotReady, "verbinden_zeitueberschreitung", anlage=host) from err
+    except InvalidAuth as err:
+        await client.close()
+        raise mit_text(ConfigEntryAuthFailed, "anmeldung_abgewiesen", anlage=host) from err
     except Exception as err:
         await client.close()
         raise mit_text(ConfigEntryNotReady, "verbinden_fehler", anlage=host, fehler=err) from err

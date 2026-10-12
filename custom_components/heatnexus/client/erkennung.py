@@ -21,6 +21,7 @@ from ..const import (
     FCT_NV,
 )
 from ..device_db import get_enum, get_layers, get_name, get_programme, hat_tabelle
+from ..exceptions import CannotConnect, InvalidAuth, mit_text
 from ..helpers import messgroesse
 from .gemeinsam import EBENENFOLGE, MELDUNGS_SENSOREN, gelesene_ebenen
 
@@ -337,6 +338,17 @@ class ErkennungMixin:
         self.devices.append(descriptor)
         self.oids.add(oid)
 
+    async def _struktur_lesen(self) -> list[dict]:
+        """Knoten und Funktionen der Anlage (`/1`); eine Absage wird zum passenden Fehler."""
+        daten = await self.fetch("/1")
+        if isinstance(daten, list):
+            return daten
+        if self._letzter_status in (401, 403):
+            raise mit_text(InvalidAuth, "anmeldung_abgewiesen", anlage=self.host)
+        raise mit_text(
+            CannotConnect, "struktur_unlesbar", anlage=self.host, status=self._letzter_status
+        )
+
     async def _discover(self, nur_kern: bool = False):
         """Geräte und Datenpunkte der Anlage ermitteln.
 
@@ -346,7 +358,7 @@ class ErkennungMixin:
         self.oids = set()
         self.devices = []
         self._menue_luecken = set()
-        json_devices = await self.fetch("/1")
+        json_devices = await self._struktur_lesen()
         if not self.geraeteinfo:
             await self._lese_geraeteinfo()
         if not self.werksbezeichnung:

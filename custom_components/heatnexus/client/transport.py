@@ -143,7 +143,9 @@ class TransportMixin:
 
     async def fetch(self, url, semaphore=None):
         """GET /api/1.0/lookup<url> and return the parsed JSON."""
-        data, _status = await self._get(f"http://{self.host}/api/1.0/lookup{url}", semaphore)
+        data, self._letzter_status = await self._get(
+            f"http://{self.host}/api/1.0/lookup{url}", semaphore
+        )
         _LOGGER.debug("Antwort von %s: %s", url, data)
         return data
 

@@ -173,6 +173,8 @@ class WindhagerHttpClient(
         self.poll_seconds = 0.0
         # Was der letzte Durchlauf gekostet hat – geht in die Diagnose ein.
         self._poll_anfragen = 0
+        # HTTP-Status der letzten Antwort auf `fetch`.
+        self._letzter_status = 0
         # Der letzte Fehler einer einzelnen Lesung und ob ein Teilausfall schon
         # im Protokoll steht.
         self._letzter_lesefehler: Exception | None = None
