@@ -1359,6 +1359,9 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     hass.callWS = vorherAufruf;
     kreis.konfig = vorherKonfig;
     bilanz.automatikHinweise.erweitertSchalter = schalter.length;
+    bilanz.automatikHinweise.erweitertTitel = wurzel
+      .querySelectorAll(".automatik-optimierung")
+      .map((bereich) => String((bereich.querySelector("h4") || {}).textContent || ""));
     bilanz.automatikHinweise.erweitertGesendet = gesendet.filter((n) => n.type === "heatnexus/automatik/einstellen");
   }
   {

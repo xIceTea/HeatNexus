@@ -98,6 +98,9 @@ export const EinrichtungMixin = (Basis) =>
       // Die Optimierung ist eine Einstellung der Automatik, kein Feinwert: Sie gilt sofort und bleibt beim Zurücksetzen.
       const optimierung = document.createElement("div");
       optimierung.className = "automatik-optimierung";
+      const optimierungTitel = document.createElement("h4");
+      optimierungTitel.textContent = this._t("Optimierung");
+      optimierung.appendChild(optimierungTitel);
       const an = !!kreis.konfig.hinweise;
       optimierung.appendChild(
         this._automatikSchalter(this._t("Optimierungshinweise anzeigen"), an, darf, () => this._automatikEinstellen(kreis, { hinweise: !an }))
