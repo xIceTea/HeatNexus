@@ -239,3 +239,37 @@ def test_eine_benutzte_vorlage_bleibt_liegen(modul, tmp_path):
 
     assert entfernt == 0
     assert (ziel / "stoerung_melden.yaml").is_file()
+
+
+def test_ohne_auswahl_liest_der_executor_die_vorlagen(modul, tmp_path):
+    """Das Verzeichnis der Vorlagen wird nicht in der Ereignisschleife gelesen."""
+    import asyncio
+    from types import SimpleNamespace
+
+    im_executor: list = []
+    globale = modul._kopieren.__globals__
+    original = globale["verfuegbare"]
+    gelesen: list[bool] = []
+
+    def verfuegbare():
+        gelesen.append(bool(im_executor))
+        return original()
+
+    async def executor(funktion, *argumente):
+        im_executor.append(funktion)
+        return funktion(*argumente)
+
+    hass = SimpleNamespace(
+        config=SimpleNamespace(path=lambda *teile: str(tmp_path.joinpath(*teile))),
+        async_add_executor_job=executor,
+    )
+    globale["verfuegbare"] = verfuegbare
+    try:
+        asyncio.run(modul.async_install_blueprints(hass, "1.0.0"))
+    finally:
+        globale["verfuegbare"] = original
+
+    assert gelesen == [True]
+    assert len(list((tmp_path / "blueprints" / "automation" / "heatnexus").glob("*.yaml"))) == len(
+        _dateien()
+    )

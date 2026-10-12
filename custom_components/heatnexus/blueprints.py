@@ -60,8 +60,10 @@ def _wird_benutzt(automationen: Path, kennung: str) -> bool:
     return True
 
 
-def _kopieren(ziel: Path, version: str, gewaehlt: set[str], automationen: Path) -> tuple[int, int]:
-    """Vorlagen ablegen und abgewählte entfernen.
+def _kopieren(
+    ziel: Path, version: str, gewaehlt: set[str] | None, automationen: Path
+) -> tuple[int, int]:
+    """Vorlagen ablegen und abgewählte entfernen; ohne Auswahl alle.
 
     Zurück kommt ``(geschrieben, entfernt)``. Eine Vorlage, die eine
     Automation benutzt, bleibt auch abgewählt liegen – sonst stünde die
@@ -69,6 +71,8 @@ def _kopieren(ziel: Path, version: str, gewaehlt: set[str], automationen: Path) 
     """
     if not _QUELLE.is_dir():
         return 0, 0
+    if gewaehlt is None:
+        gewaehlt = set(verfuegbare())
 
     marke = ziel / _MARKE
     bekannt = marke.read_text(encoding="utf-8").strip() if marke.is_file() else ""
@@ -106,7 +110,7 @@ async def async_install_blueprints(
     """
     ziel = Path(hass.config.path("blueprints", "automation", DOMAIN))
     automationen = Path(hass.config.path("automations.yaml"))
-    wahl = set(verfuegbare()) if gewaehlt is None else set(gewaehlt)
+    wahl = None if gewaehlt is None else set(gewaehlt)
     try:
         geschrieben, entfernt = await hass.async_add_executor_job(
             _kopieren, ziel, version, wahl, automationen
