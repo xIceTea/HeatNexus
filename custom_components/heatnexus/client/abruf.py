@@ -764,17 +764,14 @@ class AbrufMixin:
             self._letzter_lesefehler,
         )
 
-    async def geraet_abfragen(self, device_id: str) -> dict:
-        """Die zyklisch abgefragten Werte eines Anlagenteils sofort lesen.
+    def geraet_oids(self, device_id: str) -> list[str]:
+        """Die zyklisch abgefragten Adressen eines Anlagenteils, für „Werte jetzt abfragen“.
 
         Nur diese, nicht jeden Datenpunkt: Ein Kessel führt mehrere hundert.
         """
         aktiv = self.abrufplan
-        oids = [
+        return [
             d["oid"]
-            for d in self.devices
+            for d in self.geraeteliste
             if d.get("device_id") == device_id and d.get("oid") in aktiv
         ]
-        if not oids:
-            return {}
-        return await self.fetch_oids(oids)

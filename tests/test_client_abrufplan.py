@@ -746,32 +746,18 @@ def test_eine_taste_ohne_datenpunkt_entsteht_nicht(client):
     assert not [d for d in client.devices if d.get("type") == "refresh"]
 
 
-async def test_die_taste_liest_nur_das_eigene_anlagenteil(client, monkeypatch):
-    gelesen = []
-
-    async def fetch_oids(oids):
-        gelesen.extend(oids)
-        return dict.fromkeys(oids, "1")
-
-    monkeypatch.setattr(client, "fetch_oids", fetch_oids)
+def test_die_taste_liest_nur_das_eigene_anlagenteil(client):
     client.devices = [
         {"oid": "/1/60/0/0/7/0", "device_id": "abcd-0", "name": "Kessel", "type": "temperature"},
         {"oid": "/1/15/0/0/2/0", "device_id": "abcd-1", "name": "Vorlauf", "type": "temperature"},
     ]
     client._compute_poll_oids()
 
-    await client.geraet_abfragen("abcd-0")
-
-    assert gelesen == ["/1/60/0/0/7/0"]
+    assert client.geraet_oids("abcd-0") == ["/1/60/0/0/7/0"]
 
 
-async def test_die_taste_fragt_nicht_ab_was_der_abruf_auslaesst(client, monkeypatch):
+def test_die_taste_fragt_nicht_ab_was_der_abruf_auslaesst(client):
     """Ein Kessel führt mehrere hundert Positionen; gelesen wird das Aktive."""
-
-    async def fetch_oids(oids):
-        return dict.fromkeys(oids, "1")
-
-    monkeypatch.setattr(client, "fetch_oids", fetch_oids)
     client.devices = [
         {
             "oid": "/1/60/0/9/31/0",
@@ -782,7 +768,7 @@ async def test_die_taste_fragt_nicht_ab_was_der_abruf_auslaesst(client, monkeypa
     ]
     client._compute_poll_oids()
 
-    assert await client.geraet_abfragen("abcd-0") == {}
+    assert client.geraet_oids("abcd-0") == []
 
 
 # ---------------------------------------------------------------------------

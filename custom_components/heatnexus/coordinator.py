@@ -18,6 +18,8 @@ from .const import (
     BACKOFF_MAX,
     DOMAIN,
     ERSTABRUF_TIMEOUT,
+    NACHFASS_ANZAHL,
+    NACHFASS_INTERVALL,
     UPDATE_INTERVAL,
 )
 from .exceptions import mit_text
@@ -181,3 +183,48 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                     UpdateFailed, "abfrage_fehler", anlage=self.host, fehler=err
                 ) from err
             return self.data
+
+    async def werte_nachlesen(self, oids: list[str]) -> dict | None:
+        """Einzelne Adressen sofort lesen und in den Bestand legen; None bei Fehlschlag.
+
+        Geweckt werden nur die Zuhörer – kein Durchlauf durch die ganze Anlage.
+        """
+        try:
+            gelesen = await self.client.fetch_oids(oids)
+        except Exception as err:
+            # Nachlesen ist eine Beschleunigung: Der reguläre Durchlauf holt den Wert ohnehin.
+            _LOGGER.debug("Gezieltes Nachlesen von %s fehlgeschlagen: %s", oids, err)
+            return None
+        if gelesen and self.data is not None:
+            self.data.setdefault("oids", {}).update(gelesen)
+            self.async_update_listeners()
+        return gelesen
+
+    def nachfassen(
+        self,
+        oids: list[str],
+        erwartet: dict[str, str] | None = None,
+        anzahl: int = NACHFASS_ANZAHL,
+        abstand: float = NACHFASS_INTERVALL,
+    ) -> None:
+        """Adressen nach einer Bedienung kurz engmaschig nachlesen.
+
+        Als Aufgabe des Eintrags: Beim Entladen bricht Home Assistant sie ab.
+        """
+        self.config_entry.async_create_background_task(
+            self.hass,
+            self._nachfass_lauf(list(oids), erwartet, anzahl, abstand),
+            name=f"{DOMAIN}_nachfassen_{self.host}",
+        )
+
+    async def _nachfass_lauf(
+        self, oids: list[str], erwartet: dict[str, str] | None, anzahl: int, abstand: float
+    ) -> None:
+        for _ in range(anzahl):
+            await asyncio.sleep(abstand)
+            gelesen = await self.werte_nachlesen(oids)
+            if gelesen is None:
+                return
+            # Meldet die Anlage den erwarteten Wert, ist nichts mehr nachzufassen.
+            if erwartet and all(str(gelesen.get(o)) == str(w) for o, w in erwartet.items()):
+                return

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import logging
 from typing import Any
@@ -19,8 +18,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import texte
 from .const import (
     DOMAIN,
-    NACHFASS_ANZAHL,
-    NACHFASS_INTERVALL,
     OID_HARDWAREVERSION,
     OID_SOFTWAREVERSION,
     SIGNAL_NEUE_ENTITAETEN,
@@ -378,31 +375,15 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
 
         `homeassistant.update_entity` landet über `CoordinatorEntity` sonst bei
         `async_request_refresh` – und das ist ein **vollständiger** Durchlauf
-        über alle aktiven OIDs. Auf einer Anlage mit knapp zwei Sekunden
-        Antwortzeit dauert der zwanzig Sekunden und mehr.
+        über alle aktiven OIDs. Auf einer trägen Anlage dauert er viele Sekunden.
 
         Genau darauf wartet aber die Oberfläche, wenn sie nach einer Bedienung
-        nachfasst: Nach dem Beenden einer Warmwasserladung lief die Ladepumpe
-        im Schaubild weiter, obwohl die Anlage längst umgeschaltet hatte. Ein
-        gezielter Abruf braucht eine Anfrage.
-
-        Dieselbe Bauart benutzt das Thermostat schon für seinen Nachlade-Burst.
+        nachfasst. Ein gezielter Abruf braucht eine Anfrage.
         """
         if not self._oid or self.coordinator.data is None:
             await super().async_update()
             return
-        try:
-            gelesen = await self.coordinator.client.fetch_oids([self._oid])
-        except Exception as err:
-            # Nachfassen ist eine Beschleunigung, keine Pflicht: Der reguläre
-            # Durchlauf holt den Wert ohnehin.
-            _LOGGER.debug("Gezieltes Nachlesen von %s fehlgeschlagen: %s", self._oid, err)
-            return
-        if not gelesen:
-            return
-        self.coordinator.data.setdefault("oids", {}).update(gelesen)
-        # Nur die Zuhörer wecken – kein zweiter Durchlauf durch die Anlage.
-        self.coordinator.async_update_listeners()
+        await self.coordinator.werte_nachlesen([self._oid])
 
     @property
     def _sprache(self) -> str:
@@ -462,10 +443,12 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         return super().available and self._alter_zustand is not None
 
     async def _async_write(self, value: str) -> None:
-        """Write a value to this entity's OID and refresh."""
+        """Einen Wert schreiben, sofort anzeigen und gezielt nachlesen.
+
+        Kein voller Durchlauf: Ein Dienstaufruf wartete sonst, bis die ganze Anlage gelesen ist.
+        """
         await self.coordinator.client.update(self._oid, value)
         self._sofort_anzeigen(value)
-        await self.coordinator.async_request_refresh()
         self._nachfassen(value)
 
     def _sofort_anzeigen(self, value: str) -> None:
@@ -494,20 +477,7 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         vorhanden = (self.coordinator.data or {}).get("oids", {})
         if self._oid in vorhanden:
             return
-        self.hass.async_create_task(self._sofort_lauf())
-
-    async def _sofort_lauf(self) -> None:
-        try:
-            aktuell = await self.coordinator.client.fetch_oids([self._oid])
-        except Exception as err:
-            _LOGGER.debug("Sofortabruf für %s fehlgeschlagen: %s", self._oid, err)
-            return
-        daten = self.coordinator.data
-        if daten is None or not aktuell or not self.hass:
-            return
-        daten.setdefault("oids", {}).update(aktuell)
-        with contextlib.suppress(Exception):
-            self.coordinator.async_update_listeners()
+        self.coordinator.nachfassen([self._oid], anzahl=1, abstand=0)
 
     def _nachfassen(self, erwartet: str | None = None) -> None:
         """Den geschriebenen Datenpunkt kurz engmaschig nachlesen.
@@ -521,25 +491,6 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         """
         if not self._oid or not self.hass:
             return
-        self.hass.async_create_task(self._nachfass_lauf(erwartet))
-
-    async def _nachfass_lauf(self, erwartet: str | None) -> None:
-        for _ in range(NACHFASS_ANZAHL):
-            await asyncio.sleep(NACHFASS_INTERVALL)
-            if not self.hass:
-                return
-            try:
-                aktuell = await self.coordinator.client.fetch_oids([self._oid])
-            except Exception as err:
-                _LOGGER.debug("Nachfassen für %s fehlgeschlagen: %s", self._oid, err)
-                return
-            daten = self.coordinator.data
-            if daten is None or not aktuell:
-                continue
-            daten.setdefault("oids", {}).update(aktuell)
-            with contextlib.suppress(Exception):
-                self.coordinator.async_update_listeners()
-            # Sobald die Anlage den erwarteten Wert meldet, ist nichts mehr
-            # nachzufassen.
-            if erwartet is not None and str(aktuell.get(self._oid)) == str(erwartet):
-                return
+        self.coordinator.nachfassen(
+            [self._oid], {self._oid: str(erwartet)} if erwartet is not None else None
+        )

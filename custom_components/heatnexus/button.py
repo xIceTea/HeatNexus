@@ -70,10 +70,6 @@ class WindhagerAbfrageTaste(WindhagerEntity, ButtonEntity):
     _require_value_for_available = False
 
     async def async_press(self) -> None:
-        kennung = self._descriptor.get("device_id")
-        gelesen = await self.coordinator.client.geraet_abfragen(kennung)
-        if not gelesen:
-            return
-        self.coordinator.data.setdefault("oids", {}).update(gelesen)
-        # Nur die Zuhörer wecken – kein zweiter Durchlauf durch die Anlage.
-        self.coordinator.async_update_listeners()
+        oids = self.coordinator.client.geraet_oids(self._descriptor.get("device_id"))
+        if oids:
+            await self.coordinator.werte_nachlesen(oids)

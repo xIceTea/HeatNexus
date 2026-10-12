@@ -411,20 +411,23 @@ def test_stoerungssensor_wird_nicht_gepollt():
 # ---------------------------------------------------------------------------
 # Gemeinsames Verhalten aller schreibenden Plattformen
 # ---------------------------------------------------------------------------
-def test_schreiben_stoesst_immer_einen_abruf_an():
-    """Nach jedem Schreiben wird nachgelesen.
+def test_schreiben_stoesst_das_nachfassen_an():
+    """Nach jedem Schreiben wird die geschriebene Adresse nachgelesen.
 
-    Ohne das stünde bis zum nächsten Takt – bis zu 30 Sekunden – der alte
-    Wert da, und die Bedienung wirkte folgenlos.
+    Ohne das stünde bis zum nächsten Takt der alte Wert da, und die Bedienung
+    wirkte folgenlos. Ein voller Durchlauf wird dabei nicht abgewartet.
     """
     from custom_components.heatnexus.switch import WindhagerSwitch
 
     entity, koordinator = _entitaet(WindhagerSwitch, {}, type="switch")
+    entity.hass = object()
     gerufen: list[str] = []
     koordinator.async_request_refresh = _merker(gerufen)
+    koordinator.async_update_listeners = lambda: None
+    koordinator.nachfassen = lambda oids, erwartet=None: gerufen.append(oids[0])
 
     asyncio.run(entity.async_turn_on())
-    assert gerufen == ["refresh"]
+    assert gerufen == ["/1/60/0/9/75/0"]
 
 
 def _merker(liste: list[str]):
