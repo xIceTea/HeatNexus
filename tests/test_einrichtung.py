@@ -568,6 +568,55 @@ async def test_eine_fehlende_geraeteinfo_steht_im_protokoll(hass, eintrag, caplo
     assert "Anlage antwortet nicht" in caplog.text
 
 
+class Vollstaendig(AttrappenClient):
+    """Meldet nach dem Vollabzug, dass die Anlage ganz eingelesen ist."""
+
+    _vollstaendig = False
+
+    async def async_init(self, erzwingen: bool = False) -> None:
+        await super().async_init(erzwingen)
+        self._vollstaendig = True
+
+
+async def _neu_erkennen(hass) -> dict:
+    with patch("custom_components.heatnexus.WindhagerHttpClient", Vollstaendig):
+        antwort = await hass.services.async_call(
+            DOMAIN, "rediscover", {}, blocking=True, return_response=True
+        )
+        await hass.async_block_till_done()
+    return antwort
+
+
+async def test_neu_erkennen_meldet_den_stand_nach_dem_vollabzug(hass, eintrag):
+    """Die Rückgabe nennt, was der Vollabzug fand, nicht den Stand der Grunddaten."""
+    assert await _einrichten(hass, eintrag) is True
+
+    antwort = await _neu_erkennen(hass)
+
+    (anlage,) = antwort["anlagen"]
+    assert anlage["entitaeten"] == len(ZUSAETZLICH)
+    assert anlage["vollstaendig"] is True
+
+
+async def test_neu_erkennen_kennzeichnet_einen_unfertigen_vollabzug(hass, eintrag, monkeypatch):
+    from custom_components.heatnexus import dienste
+
+    class Langsam(Vollstaendig):
+        async def async_init(self, erzwingen: bool = False) -> None:
+            await asyncio.Event().wait()
+
+    monkeypatch.setattr(dienste, "WARTEZEIT_VOLLABZUG", 0.05)
+    assert await _einrichten(hass, eintrag) is True
+
+    with patch("custom_components.heatnexus.WindhagerHttpClient", Langsam):
+        antwort = await hass.services.async_call(
+            DOMAIN, "rediscover", {}, blocking=True, return_response=True
+        )
+
+    (anlage,) = antwort["anlagen"]
+    assert anlage["vollstaendig"] is False
+
+
 async def _untereintrag_hinzufuegen(hass, eintrag, art: str) -> bool:
     """Einen Untereintrag anlegen; zurück kommt, ob der Eintrag neu laden wollte."""
     from types import MappingProxyType
