@@ -117,3 +117,10 @@ def test_naechte_ein_ausreisser_kippt_den_befund_nicht(hk):
     befund = hk.naechte(stunden)
     assert befund.wert == pytest.approx(0.3)
     assert befund.status == "unauffaellig"
+
+
+def test_raeume_nur_die_heute_gewaehlten(hk):
+    stunden = tagesstunden("2026-10-01", 21.0)
+    stunden += [stunde("2026-10-01 22", raeume={"climate.alt": [18.0, 21.0]})]
+    befund = hk.raeume(stunden, grenze=17.0, gewaehlt=["climate.a"])
+    assert set(befund.angaben["je_raum"]) == {"climate.a"}

@@ -7,6 +7,7 @@ import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -18,6 +19,7 @@ from ..automatik.eingaben import raum_messung, raumwert
 from ..automatik.tagesansicht import hausmodell_stand
 from ..automatik.verwaltung import Verwaltung, verwaltung_holen
 from ..const import DOMAIN
+from ..erkennungsstand import systems
 from ..helpers import get_oid_value
 from ..registrierung import geraet_suchen
 from . import auswertung
@@ -48,6 +50,17 @@ def befund_holen(hass: HomeAssistant) -> BefundVerwaltung:
     return hass.data[SCHLUESSEL]
 
 
+def speicher(hass: HomeAssistant, entry_id: str, host: str) -> Store:
+    """Der Speicher einer Anlage; der Schlüssel trägt Eintrag und Adresse ohne Punkte."""
+    return Store(hass, 1, f"{DOMAIN}.befund_{entry_id}_{host.replace('.', '_')}")
+
+
+async def eintrag_entfernt(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Die Archive eines gelöschten Eintrags verwerfen."""
+    for system in systems(entry):
+        await speicher(hass, entry.entry_id, str(system.get(CONF_HOST) or "")).async_remove()
+
+
 def kessel_praefixe(coordinator: Any) -> list[str]:
     """Jede Funktion mit Brennerstarts `2/80` ist ein Kessel."""
     oids = (coordinator.data or {}).get("oids") or {}
@@ -76,8 +89,9 @@ class Sammler:
         self.coordinator = coordinator
         self.anlage_id = anlage_id
         self.archiv = Archiv()
-        host = str(getattr(coordinator, "host", "") or anlage_id).replace(".", "_")
-        self._store: Store = Store(hass, 1, f"{DOMAIN}.befund_{entry.entry_id}_{host}")
+        self._store = speicher(
+            hass, entry.entry_id, str(getattr(coordinator, "host", "") or anlage_id)
+        )
         self._aufgabe: Any = None
 
     # --- Speicher -----------------------------------------------------------
@@ -108,14 +122,17 @@ class Sammler:
         return next((w for a in NENN if (w := self._wert(prefix, a))), None)
 
     def _raeume(self, device_id: str) -> dict[str, list[float | None]]:
+        """Ist und Ziel je Raum; ein Fühler ohne eigenes Ziel nimmt das Raumziel der Automatik."""
+        konfig = verwaltung_holen(self.hass).konfig(device_id) or {}
         raeume = {}
-        for kennung in (verwaltung_holen(self.hass).konfig(device_id) or {}).get("raeume", []):
+        for kennung in konfig.get("raeume", []):
             zustand = self.hass.states.get(kennung)
             if zustand is None:
                 continue
             messung = raum_messung(kennung, zustand.state, zustand.attributes)
             if messung is not None and not messung.aus:
-                raeume[kennung] = [messung.ist, messung.ziel]
+                ziel = messung.ziel if messung.ziel is not None else konfig.get("raum_ziel")
+                raeume[kennung] = [messung.ist, ziel]
         return raeume
 
     # --- Sammeln ------------------------------------------------------------

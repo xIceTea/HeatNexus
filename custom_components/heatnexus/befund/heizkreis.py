@@ -68,8 +68,15 @@ def _je_raum(stunden: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
     return ergebnis
 
 
-def raeume(stunden: list[dict[str, Any]], grenze: float | None) -> form.Befund:
-    """Je Band die Anteile je Raum; gezeigt wird das Band mit den meisten Tagen."""
+def raeume(
+    stunden: list[dict[str, Any]], grenze: float | None, gewaehlt: list[str] | None = None
+) -> form.Befund:
+    """Je Band die Anteile je Raum; gezeigt wird das Band mit den meisten Tagen.
+
+    `gewaehlt` beschränkt auf die heute eingestellten Räume; früher gewählte bleiben außen vor.
+    """
+    if gewaehlt is not None:
+        stunden = [s | {"raeume": _nur(s.get("raeume"), gewaehlt)} for s in stunden]
     gut = [s for s in saubere(stunden) if s.get("raeume")]
     if not gut:
         return form.fehlt("raeume", "raeume")
@@ -89,6 +96,10 @@ def raeume(stunden: list[dict[str, Any]], grenze: float | None) -> form.Befund:
     warm = round(mean(w["am"] + w["leicht"] + w["ueber"] for w in je_raum.values()))
     angaben = {"band": band, "baender": tage, "je_raum": je_raum, "tage": tage[band]}
     return form.Befund("raeume", form.status_aus(stufe, auffaellig), warm, "%", stufe, angaben)
+
+
+def _nur(raeume: dict[str, Any] | None, gewaehlt: list[str]) -> dict[str, Any]:
+    return {r: w for r, w in (raeume or {}).items() if r in gewaehlt}
 
 
 def _nacht_wert(stunden: list[dict[str, Any]]) -> float | None:

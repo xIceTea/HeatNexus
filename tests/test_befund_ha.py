@@ -124,3 +124,15 @@ async def test_websocket_liefert_anlagen(hass, hass_ws_client, anlage):
     assert antwort["success"]
     stand = next(iter(antwort["result"]["anlagen"].values()))
     assert {"lage", "abschnitte", "anlage", "stand"} <= set(stand)
+
+
+async def test_entfernen_verwirft_das_archiv(hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus.befund.laufzeit import eintrag_entfernt, speicher
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag = MockConfigEntry(domain=DOMAIN, data={"systems": [{"host": "192.0.2.10"}]})
+    await speicher(hass, eintrag.entry_id, "192.0.2.10").async_save({"fassung": 1})
+    await eintrag_entfernt(hass, eintrag)
+    assert await speicher(hass, eintrag.entry_id, "192.0.2.10").async_load() is None

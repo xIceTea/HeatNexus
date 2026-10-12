@@ -31,6 +31,7 @@ from . import device_db, error_texts, verwaiste, waermequelle
 from .auslieferung import karte_ressource_entfernen
 from .automatik.verwaltung import verwaltung_holen
 from .befund.laufzeit import befund_holen
+from .befund.laufzeit import eintrag_entfernt as befund_entfernen
 from .blueprints import async_install_blueprints
 from .client import WindhagerHttpClient
 from .const import (
@@ -669,6 +670,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Gespeicherten Erkennungsstand und Dashboard abräumen."""
     await verwaltung_holen(hass).eintrag_entfernt(entry.entry_id)
+    await befund_entfernen(hass, entry)
     persistent_notification.async_dismiss(hass, meldungs_id(entry))
     verwaiste.hinweis_pflegen(hass, entry, 0)
     adresshinweise_entfernen(hass, entry.entry_id)

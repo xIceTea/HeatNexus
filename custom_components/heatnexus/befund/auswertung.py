@@ -77,7 +77,7 @@ def _haus(archiv: Archiv, kreis: Kreis, grenze: float) -> dict[str, Any]:
 def _heizkreis(archiv: Archiv, kreis: Kreis, heizgrenze: float | None) -> dict[str, Any]:
     if kreis.raeume:
         stunden = archiv.stunden(kreis.kennung)
-        raeume = heizkreis.raeume(stunden, heizgrenze)
+        raeume = heizkreis.raeume(stunden, heizgrenze, kreis.raeume)
         naechte = heizkreis.naechte(stunden)
     else:
         raeume = form.fehlt("raeume", "raeume")
