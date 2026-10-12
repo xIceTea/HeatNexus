@@ -7,7 +7,7 @@ Neustart; `zahl_aus_zustand` liest den gespeicherten Zustand zurück.
 from __future__ import annotations
 
 import contextlib
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
@@ -181,21 +181,35 @@ class WindhagerLaufzeitSensor(WindhagerEntity, SensorEntity):
             self._beginn = jetzt
         elif not laeuft and self._beginn is not None:
             self._letzte = self._minuten()
-            self._heute += self._letzte
+            self._heute += self._minuten(seit_mitternacht=True)
             self._beginn = None
 
-    def _minuten(self) -> float:
+    def _minuten(self, seit_mitternacht: bool = False) -> float:
+        """Dauer des laufenden Brands; für den Tageswert nur der Teil seit Mitternacht."""
         if not self._beginn:
             return 0.0
-        return round((dt_util.utcnow() - self._beginn).total_seconds() / 60, 1)
+        beginn = self._beginn
+        if seit_mitternacht:
+            beginn = max(beginn, dt_util.start_of_local_day())
+        return round((dt_util.utcnow() - beginn).total_seconds() / 60, 1)
+
+    @property
+    def last_reset(self) -> datetime | None:
+        """Der Tageswert beginnt um Mitternacht neu; der Zykluswert kennt keinen Rücksetzpunkt."""
+        if not self._tageswert or not self._tag:
+            return None
+        with contextlib.suppress(ValueError):
+            return dt_util.start_of_local_day(date.fromisoformat(self._tag))
+        return None
 
     @property
     def native_value(self) -> float | None:
         if self._laeuft is None:
             return None
-        laufend = self._minuten()
         if self._tageswert:
-            return round(self._heute + laufend, 1)
+            heute = self._heute if self._tag == dt_util.now().date().isoformat() else 0.0
+            return round(heute + self._minuten(seit_mitternacht=True), 1)
+        laufend = self._minuten()
         # Läuft gerade nichts, bleibt der letzte Lauf stehen – eine Null sagte
         # nur, dass es still ist, und das steht im Attribut.
         return laufend if self._beginn else self._letzte

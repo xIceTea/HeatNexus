@@ -126,6 +126,36 @@ def test_ein_neuer_tag_beginnt_bei_null(sensoren):
     assert entity.native_value == 0
 
 
+def test_der_tageswert_traegt_den_tagesbeginn_als_ruecksetzpunkt(sensoren):
+    """Ohne `last_reset` summiert die Langzeitstatistik über die Tage falsch."""
+    from homeassistant.util import dt as dt_util
+
+    entity, _ = _laufzeit(sensoren, RUHE, typ="laufzeit_heute")
+    entity._fortschreiben()
+    assert entity.last_reset == dt_util.start_of_local_day()
+
+
+def test_der_zykluswert_hat_keinen_ruecksetzpunkt(sensoren):
+    entity, _ = _laufzeit(sensoren, RUHE)
+    entity._fortschreiben()
+    assert entity.last_reset is None
+
+
+def test_ein_brand_ueber_mitternacht_zaehlt_heute_erst_ab_mitternacht(sensoren):
+    from homeassistant.util import dt as dt_util
+
+    entity, koordinator = _laufzeit(sensoren, LAUF, typ="laufzeit_heute")
+    entity._fortschreiben()
+    seit_mitternacht = (dt_util.utcnow() - dt_util.start_of_local_day()).total_seconds() / 60
+    entity._beginn = dt_util.start_of_local_day() - timedelta(minutes=30)
+    assert entity.native_value == pytest.approx(seit_mitternacht, abs=0.3)
+    _phase(entity, koordinator, RUHE)
+    assert entity.native_value == pytest.approx(seit_mitternacht, abs=0.3)
+    assert entity.extra_state_attributes["letzte_dauer"] == pytest.approx(
+        seit_mitternacht + 30, abs=0.3
+    )
+
+
 def test_der_stand_steht_im_zustand(sensoren):
     """Nur so übersteht ein angefangener Brand den Neustart."""
     entity, koordinator = _laufzeit(sensoren, RUHE)
