@@ -91,6 +91,7 @@ def waermespeicher(
     bleibt = modell.get("fehler_bleibt")
     sonne = modell.get("sonne_k_h") or 0
     angaben = {
+        "raum": raum,
         "nacht": nacht(tau, raum, aussen),
         "sonne": sonne if sonne > 0 else None,
         "fehler": modell.get("fehler"),

@@ -112,3 +112,15 @@ async def test_stoppen_speichert_und_entfernt(hass, anlage):
     verwaltung, eintrag = anlage
     await verwaltung.eintrag_stoppen(eintrag)
     assert verwaltung.anlagen() == []
+
+
+async def test_websocket_liefert_anlagen(hass, hass_ws_client, anlage):
+    from custom_components.heatnexus.befund.websocket import async_register_befund
+
+    async_register_befund(hass)
+    client = await hass_ws_client(hass)
+    await client.send_json({"id": 1, "type": "heatnexus/befund"})
+    antwort = await client.receive_json()
+    assert antwort["success"]
+    stand = next(iter(antwort["result"]["anlagen"].values()))
+    assert {"lage", "abschnitte", "anlage", "stand"} <= set(stand)
