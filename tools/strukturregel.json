@@ -30,8 +30,5 @@
  },
  "custom_components/heatnexus/schema/werte.py::zeichenbare_module": {
   "zeilen": 140
- },
- "custom_components/heatnexus/stilllegung.py::abgewaehlte_entitaeten_stilllegen": {
-  "zeilen": 106
  }
 }

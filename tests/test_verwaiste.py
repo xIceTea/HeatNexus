@@ -393,3 +393,26 @@ def test_eine_bewusst_entfallene_auswahl_wird_geloescht(hass, modul, kennung):
     assert registry.async_get(auswahl) is None
     assert registry.async_get(messwert).disabled_by is er.RegistryEntryDisabler.INTEGRATION
     assert _hinweis(hass, eintrag, modul).translation_placeholders == {"anzahl": "1"}
+
+
+def _registereintrag(domaene, adresse):
+    return SimpleNamespace(domain=domaene, unique_id=f"SN1-25-{adresse.replace('/', '-')}-0")
+
+
+@pytest.mark.parametrize(
+    ("domaene", "adresse", "erwartet"),
+    [
+        ("select", "9/75", True),
+        ("number", "43/42", True),
+        ("number", "43/78", True),
+        ("button", "9/75", False),
+        ("switch", "9/75", False),
+        ("sensor", "43/42", False),
+    ],
+)
+def test_bewusst_entfallene_zeilen_werden_nur_in_ihrer_domaene_geloescht(
+    domaene, adresse, erwartet
+):
+    from custom_components.heatnexus import stilllegung
+
+    assert stilllegung.endgueltig_weg(_registereintrag(domaene, adresse), {}) is erwartet

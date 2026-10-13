@@ -104,6 +104,52 @@ def abwahl_abholen(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+def _abgleich_moeglich(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> bool:
+    """Ob der Bestand der Anlage für den Abgleich taugt."""
+    if not all(getattr(c.client, "_vollstaendig", False) for c in coordinators.values()):
+        # Vor dem Vollabzug ist die Liste noch unvollständig – nichts anfassen.
+        return False
+    # Keine Daten heißen nicht: keine Datenpunkte. Ein Erkennungsstand aus dem
+    # Zwischenspeicher gilt sofort als vollständig, der erste Abruf kann aber
+    # in die Zeitüberschreitung laufen. Dann gälte jede Entität als abgewählt.
+    if any(not (coordinator.data or {}).get("devices") for coordinator in coordinators.values()):
+        _LOGGER.debug("Abruf noch ohne Daten – es wird nichts stillgelegt")
+        # Ein früherer Hinweis nennt eine Zahl, die hier niemand nachrechnen kann.
+        verwaiste.hinweis_pflegen(hass, entry, 0)
+        return False
+    return True
+
+
+def _zusatzwert_nachziehen(
+    registry: er.EntityRegistry, eintrag: er.RegistryEntry, standardmaessig_an: bool
+) -> int:
+    """Einen Zusatzwert der Auswahl in den Optionen folgen lassen; 1, wenn er wieder an ist.
+
+    Das Häkchen ist die Entscheidung, auch wenn jemand den Wert von Hand
+    eingeschaltet hat. Sonst ließe es sich nie zurücknehmen.
+    """
+    gewuenscht = None if standardmaessig_an else er.RegistryEntryDisabler.INTEGRATION
+    if eintrag.disabled_by is gewuenscht:
+        return 0
+    registry.async_update_entity(eintrag.entity_id, disabled_by=gewuenscht)
+    return int(gewuenscht is None)
+
+
+def _verwaiste_behandeln(
+    registry: er.EntityRegistry, eintrag: er.RegistryEntry, entfernen: bool
+) -> bool:
+    """Eine Waise löschen oder stilllegen; True, wenn sie stehen bleibt."""
+    if entfernen:
+        registry.async_remove(eintrag.entity_id)
+        return False
+    if eintrag.disabled_by is None:
+        _LOGGER.debug("Lege abgewählte Entität %s still", eintrag.entity_id)
+        registry.async_update_entity(
+            eintrag.entity_id, disabled_by=er.RegistryEntryDisabler.INTEGRATION
+        )
+    return True
+
+
 def abgewaehlte_entitaeten_stilllegen(
     hass: HomeAssistant, entry: ConfigEntry, coordinators: dict
 ) -> None:
@@ -118,27 +164,10 @@ def abgewaehlte_entitaeten_stilllegen(
       Dann werden sie nur **stillgelegt**: Kommt er zurück, sind eigene Namen,
       Symbole, Bereichszuordnung und Verlauf noch da.
     """
-    vollstaendig = all(getattr(c.client, "_vollstaendig", False) for c in coordinators.values())
-    if not vollstaendig:
-        # Vor dem Vollabzug ist die Liste noch unvollständig – nichts anfassen.
-        return
-
-    # **Keine Daten heißt nicht: keine Datenpunkte.** Kommt der Erkennungsstand
-    # aus dem Zwischenspeicher, gilt die Anlage sofort als vollständig
-    # eingelesen – der erste Abruf kann trotzdem in die Zeitüberschreitung
-    # laufen, und `data` bleibt leer. Ohne diese Prüfung ist die Liste der
-    # bekannten Datenpunkte dann leer und **jede** Entität des Eintrags gilt
-    # als abgewählt – die ganze Anlage läge still und zeigte keinen Wert mehr.
-    # Aufgeräumt wird deshalb erst, wenn jede Anlage etwas gemeldet hat.
-    if any(not (coordinator.data or {}).get("devices") for coordinator in coordinators.values()):
-        _LOGGER.debug("Abruf noch ohne Daten – es wird nichts stillgelegt")
-        # Ein Hinweis aus einem früheren Lauf nennt eine Zahl, die hier
-        # niemand nachrechnen kann. Kein Hinweis ist besser als ein falscher.
-        verwaiste.hinweis_pflegen(hass, entry, 0)
+    if not _abgleich_moeglich(hass, entry, coordinators):
         return
 
     loeschen = abwahl_abholen(hass, entry)
-
     # Entitäten der Serviceebene sind absichtlich deaktiviert angelegt; sie
     # dürfen beim Wiederdazuwählen nicht versehentlich eingeschaltet werden.
     standardmaessig_an = verwaiste.bekannte_kennungen(entry, coordinators, hass)
@@ -152,43 +181,24 @@ def abgewaehlte_entitaeten_stilllegen(
     }
     umfaenge = (laufzeitdaten(entry) or {}).get("umfang") or {}
     registry = er.async_get(hass)
-    entfernt = 0
-    ohne_datenpunkt = 0
-    wieder_an = 0
+    entfernt = ohne_datenpunkt = wieder_an = 0
     # Dieselbe Regel wie der Reparatureintrag: Kennung **und** Domäne. Sonst
     # gilt eine Zeile hier als vorhanden, die dort verwaist heißt.
     verwaiste_ids = {e.entity_id for e in verwaiste.finden(hass, entry, coordinators)}
+    von_integration = er.RegistryEntryDisabler.INTEGRATION
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
         if eintrag.entity_id in verwaiste_ids:
-            if loeschen or endgueltig_weg(eintrag, umfaenge):
-                registry.async_remove(eintrag.entity_id)
+            if _verwaiste_behandeln(
+                registry, eintrag, loeschen or endgueltig_weg(eintrag, umfaenge)
+            ):
+                ohne_datenpunkt += 1
+            else:
                 entfernt += 1
-                continue
-            ohne_datenpunkt += 1
-            if eintrag.disabled_by is None:
-                _LOGGER.debug("Lege abgewählte Entität %s still", eintrag.entity_id)
-                registry.async_update_entity(
-                    eintrag.entity_id, disabled_by=er.RegistryEntryDisabler.INTEGRATION
-                )
-        elif eintrag.unique_id in zusatzwerte and eintrag.disabled_by in (
-            None,
-            er.RegistryEntryDisabler.INTEGRATION,
-        ):
-            # Zusatzwerte folgen der Auswahl in den Optionen, auch wenn sie
-            # jemand von Hand eingeschaltet hat: Das Häkchen ist die
-            # Entscheidung, und ohne diesen Zweig ließe es sich nie zurücknehmen.
-            gewuenscht = (
-                None
-                if standardmaessig_an[eintrag.unique_id]
-                else er.RegistryEntryDisabler.INTEGRATION
+        elif eintrag.unique_id in zusatzwerte and eintrag.disabled_by in (None, von_integration):
+            wieder_an += _zusatzwert_nachziehen(
+                registry, eintrag, standardmaessig_an[eintrag.unique_id]
             )
-            if eintrag.disabled_by is not gewuenscht:
-                registry.async_update_entity(eintrag.entity_id, disabled_by=gewuenscht)
-                wieder_an += gewuenscht is None
-        elif (
-            standardmaessig_an[eintrag.unique_id]
-            and eintrag.disabled_by is er.RegistryEntryDisabler.INTEGRATION
-        ):
+        elif standardmaessig_an[eintrag.unique_id] and eintrag.disabled_by is von_integration:
             # Wieder dazugewählt – die eigene Stilllegung wird aufgehoben.
             # Eine Abschaltung durch den Nutzer (disabled_by USER) bleibt.
             _LOGGER.debug("Nehme %s wieder in Betrieb", eintrag.entity_id)
@@ -201,12 +211,10 @@ def abgewaehlte_entitaeten_stilllegen(
             "Beim Wiederdazuwählen werden sie neu angelegt.",
             entfernt,
         )
-
     # Die Plattformen stehen zu diesem Zeitpunkt schon; eine gerade
     # eingeschaltete Entität entstünde sonst erst beim nächsten Laden.
     if wieder_an:
         async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id))
-
     # Stillgelegte ohne Datenpunkt bleiben stehen. Ob sie verschwinden, ist
     # eine Entscheidung des Nutzers – der Reparatureintrag holt sie ein.
     verwaiste.hinweis_pflegen(hass, entry, ohne_datenpunkt)
