@@ -45,9 +45,20 @@ def _anlage(client, monkeypatch, antworten: dict):
     return gefragt
 
 
+def _warnungen(caplog) -> list:
+    """Warnungen der Integration; asyncio meldet unter Last langsame Tasks."""
+    return [
+        z
+        for z in caplog.records
+        if z.levelno >= logging.WARNING and z.name.startswith("custom_components")
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Totalausfall: Scheitert jede Lesung, ist der Durchlauf gescheitert
 # ---------------------------------------------------------------------------
+
+
 async def test_scheitert_jede_lesung_scheitert_der_durchlauf(client, monkeypatch):
     client.poll_oids = {"/1/60/0/0/7/0", "/1/60/0/0/8/0"}
     client.poll_class = dict.fromkeys(client.poll_oids, "fast")
@@ -84,7 +95,7 @@ async def test_eine_einzelne_unerreichbare_adresse_schreibt_nur_debug(client, ca
     with caplog.at_level(logging.DEBUG):
         await client._fetch_oid("/1/60/0/0/7/0")
 
-    assert not [z for z in caplog.records if z.levelno >= logging.WARNING]
+    assert not _warnungen(caplog)
     assert "Verbindung abgelehnt" in str(client._letzter_lesefehler)
 
 
@@ -97,5 +108,5 @@ async def test_ein_teilausfall_meldet_sich_einmal(client, monkeypatch, caplog):
         await client.fetch_all()
         await client.fetch_all()
 
-    warnungen = [z for z in caplog.records if z.levelno >= logging.WARNING]
+    warnungen = _warnungen(caplog)
     assert len(warnungen) == 1
