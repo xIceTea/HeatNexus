@@ -87,8 +87,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             "device_status": WindhagerDeviceStatusSensor,
             "message_text": WindhagerMessageTextSensor,
             "message_list": WindhagerMessageListSensor,
-            "total": WindhagerPelletSensor,
-            "total_increasing": WindhagerPelletSensor,
             "zaehler_heute": WindhagerAbleitungSensor,
             "zaehler_start": WindhagerAbleitungSensor,
             "schaltpunkt": WindhagerSchaltpunktSensor,
@@ -206,21 +204,3 @@ class WindhagerStringSensor(WindhagerEntity, SensorEntity):
         wert = self.raw_value if self.raw_value is not None else self.letzter_zustand
         # Home Assistant lehnt Zustände über 255 Zeichen ab und protokolliert einen Fehler.
         return wert if wert is None or len(str(wert)) <= 255 else str(wert)[:254] + "…"
-
-
-class WindhagerPelletSensor(WindhagerEntity, SensorEntity):
-    """Pellet/fuel consumption sensor (legacy)."""
-
-    _attr_native_unit_of_measurement = "t"
-    _wiederherstellbar = True
-
-    def __init__(self, coordinator: Any, device_info: dict) -> None:
-        super().__init__(coordinator, device_info)
-        state_class = device_info.get("type")
-        if state_class in STATE_CLASS_MAP:
-            self._attr_state_class = STATE_CLASS_MAP[state_class]
-
-    @property
-    def native_value(self) -> float | None:
-        wert = self.float_value
-        return wert if wert is not None else zahl_aus_zustand(self.letzter_zustand)
