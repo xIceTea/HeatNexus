@@ -99,9 +99,9 @@ STATUS: tuple[Zeile, ...] = (
     (r"abgastemperatur", "Abgastemperatur", "mdi:smoke", ("flue_gas_temperature",)),
     (r"aktueller brennstoff", "Brennstoff", "mdi:sack", ("fuel_current",)),
     (r"vorratsbeh", "Vorratsbehälter", "mdi:battery-70", ("fuel_storage_status",)),
-    (r"brennerstarts", "Brennerstarts", "mdi:restart", ("burner_starts",)),
+    (r"^(anzahl der )?brennerstarts$", "Brennerstarts", "mdi:restart", ("burner_starts",)),
     (r"^brennerstarts heute$", "Brennerstarts heute", "mdi:restart", ("burner_starts_today",)),
-    (r"betriebsstunden", "Betriebsstunden", "mdi:clock-outline", ("operating_hours",)),
+    (r"^betriebsstunden$", "Betriebsstunden", "mdi:clock-outline", ("operating_hours",)),
     (
         r"^betriebsstunden heute$",
         "Betriebsstunden heute",

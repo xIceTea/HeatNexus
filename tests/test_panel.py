@@ -1420,3 +1420,19 @@ def test_warmwasser_laden_erkennt_englische_betriebswahl():
     # Ohne bekannte Texte bleiben die deutschen Muster.
     assert re.search(bedienung["betriebswahl_aus"], "Standby", re.IGNORECASE)
     assert "WW-Ladung" in bedienung["zustand_wenn"]
+
+
+@pytest.mark.parametrize(
+    ("name", "gesucht"),
+    [
+        ("Betriebsstunden", "Betriebsstunden"),
+        ("Betriebsstunden Warmwasser", None),
+        ("Anzahl der Brennerstarts", "Brennerstarts"),
+        ("Brennerstarts heute", "Brennerstarts heute"),
+    ],
+)
+def test_zaehlermuster_treffen_nur_den_ganzen_namen(name, gesucht):
+    from custom_components.heatnexus.panel.muster import STATUS
+
+    treffer = [titel for muster, titel, *_ in STATUS if re.search(muster, name.lower())]
+    assert treffer[:1] == ([gesucht] if gesucht else [])
