@@ -16,6 +16,9 @@
 // verdeckt: Am echten Element gibt es diese Ablage gar nicht.
 const TEXT = Symbol("textinhalt");
 
+// Welches Element zuletzt `focus()` bekam; `activeElement` liest es.
+const fokus = { element: null };
+
 class KlassenListe {
   constructor() {
     this._werte = new Set();
@@ -128,6 +131,20 @@ class Knoten {
   get childElementCount() {
     return this.children.length;
   }
+  // Am Schattenbaum ist der Elternknoten kein Element; hier steht beides gleich.
+  get parentNode() {
+    return this.parentElement;
+  }
+  contains(knoten) {
+    for (let stelle = knoten; stelle; stelle = stelle.parentElement) {
+      if (stelle === this) return true;
+    }
+    return false;
+  }
+  /** Das fokussierte Element, sofern es in diesem Teilbaum liegt. */
+  get activeElement() {
+    return fokus.element && fokus.element !== this && this.contains(fokus.element) ? fokus.element : null;
+  }
 
   // --- Baum ---------------------------------------------------------------
   appendChild(kind) {
@@ -158,6 +175,7 @@ class Knoten {
   }
   prepend(kind) {
     if (!kind) return;
+    if (kind.parentElement) kind.parentElement.removeChild(kind);
     kind.parentElement = this;
     this.children.unshift(kind);
   }
@@ -176,9 +194,16 @@ class Knoten {
     this.children = [];
     this.append(...kinder);
   }
+  replaceWith(neu) {
+    const eltern = this.parentElement;
+    if (!eltern) return;
+    eltern.insertBefore(neu, this);
+    eltern.removeChild(this);
+  }
   insertBefore(kind, vor) {
     const stelle = this.children.indexOf(vor);
     if (stelle < 0) return this.appendChild(kind);
+    if (kind.parentElement) kind.parentElement.removeChild(kind);
     kind.parentElement = this;
     this.children.splice(stelle, 0, kind);
     return kind;
@@ -221,9 +246,17 @@ class Knoten {
   }
 
   // --- Ereignisse ---------------------------------------------------------
-  addEventListener(art, ruf) {
+  // Wie im Browser: Ein abgebrochenes `signal` meldet den Hörer wieder ab.
+  addEventListener(art, ruf, optionen) {
+    const signal = optionen && optionen.signal;
+    if (signal && signal.aborted) return;
     if (!this._hoerer.has(art)) this._hoerer.set(art, []);
     this._hoerer.get(art).push(ruf);
+    if (signal) signal.addEventListener("abort", () => this.removeEventListener(art, ruf), { once: true });
+  }
+  /** Wie viele Hörer für eine Ereignisart angemeldet sind. */
+  hoererZahl(art) {
+    return (this._hoerer.get(art) || []).length;
   }
   removeEventListener(art, ruf) {
     const liste = this._hoerer.get(art) || [];
@@ -242,13 +275,21 @@ class Knoten {
     liste.forEach((ruf) => ruf({ type: art, target: this, preventDefault() {}, stopPropagation() {}, ...ereignis }));
     return liste.length;
   }
-  focus() {}
+  focus() {
+    fokus.element = this;
+  }
+  blur() {
+    if (fokus.element === this) fokus.element = null;
+  }
 }
 
 /** Die Attrappe in `globalThis` einhängen. Gibt die Zeitschaltung zurück. */
 export function browserAttrappe() {
   const auftraege = [];
-  globalThis.document = {
+  const bilder = [];
+  let naechsteKennung = 0;
+  fokus.element = null;
+  globalThis.document = Object.assign(new Knoten("#document"), {
     // Registrierte eigene Elemente werden aufgewertet, wie im Browser.
     createElement: (name) => {
       const Klasse = globalThis.customElements && globalThis.customElements.get(name);
@@ -259,9 +300,7 @@ export function browserAttrappe() {
     },
     // Das Schaubild zeichnet sein Laufrad selbst; dafür braucht es SVG-Knoten.
     createElementNS: (_raum, name) => new Knoten(name),
-    addEventListener() {},
-    removeEventListener() {},
-  };
+  });
   globalThis.HTMLElement = class extends Knoten {
     constructor() {
       super("html-element");
@@ -282,7 +321,15 @@ export function browserAttrappe() {
     }
     attachShadow() {
       this.shadowRoot = new Knoten("shadow-root");
+      this.shadowRoot.host = this;
+      this.shadowRoot.adoptedStyleSheets = [];
       return this.shadowRoot;
+    }
+  };
+  // Ein geteiltes Stylesheet; `replaceSync` legt den Text nur ab.
+  globalThis.CSSStyleSheet = class {
+    replaceSync(text) {
+      this.text = String(text);
     }
   };
   globalThis.CustomEvent = class {
@@ -322,18 +369,46 @@ export function browserAttrappe() {
     setItem: (schluessel, wert) => speicher.set(schluessel, String(wert)),
     removeItem: (schluessel) => speicher.delete(schluessel),
   };
-  globalThis.setTimeout = (ruf, ms) => {
-    auftraege.push({ ruf, ms });
-    return auftraege.length;
+  const austragen = (liste, kennung) => {
+    const stelle = liste.findIndex((eintrag) => eintrag.kennung === kennung);
+    if (stelle >= 0) liste.splice(stelle, 1);
   };
-  globalThis.clearTimeout = () => {};
+  globalThis.setTimeout = (ruf, ms) => {
+    const kennung = ++naechsteKennung;
+    auftraege.push({ ruf, ms, kennung });
+    return kennung;
+  };
+  globalThis.clearTimeout = (kennung) => austragen(auftraege, kennung);
+  // Ein Takt läuft nur, wenn der Test ihn ausdrücklich anstößt.
+  const takte = [];
+  globalThis.setInterval = (ruf, ms) => {
+    const kennung = ++naechsteKennung;
+    takte.push({ ruf, ms, kennung });
+    return kennung;
+  };
+  globalThis.clearInterval = (kennung) => austragen(takte, kennung);
+  globalThis.requestAnimationFrame = (ruf) => {
+    const kennung = ++naechsteKennung;
+    bilder.push({ ruf, kennung });
+    return kennung;
+  };
+  globalThis.cancelAnimationFrame = (kennung) => austragen(bilder, kennung);
 
   return {
-    /** Alle wartenden Zeitaufträge ausführen – ohne echte Wartezeit. */
+    /** Alle wartenden Zeitaufträge und Bilder ausführen – ohne echte Wartezeit. */
     zeitLaufenLassen() {
-      while (auftraege.length) auftraege.shift().ruf();
+      while (auftraege.length || bilder.length) {
+        if (bilder.length) bilder.shift().ruf(0);
+        else auftraege.shift().ruf();
+      }
+    },
+    /** Nur die vorgemerkten Bilder zeichnen. */
+    bilderLaufenLassen() {
+      while (bilder.length) bilder.shift().ruf(0);
     },
     offeneAuftraege: () => auftraege.length,
+    offeneBilder: () => bilder.length,
+    offeneTakte: () => takte.length,
   };
 }
 

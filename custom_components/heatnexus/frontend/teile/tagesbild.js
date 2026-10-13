@@ -6,6 +6,7 @@
  */
 
 import { kelvin, zahl } from "./automatik.js";
+import { kalendertagIn, serverzone, uhr24, zeitTeile } from "./zeit.js";
 
 // Dieselben Namen wie in der Legende des Tagesverlaufs.
 const AKTIONEN = { absenkung: "Sonnentag", heizpause: "Heizpause", nur_ww: "Nur Warmwasser", programm: "Programm" };
@@ -29,16 +30,19 @@ export function tagesleisteTipp(tag, stunde, t = (text) => text) {
   return zeilen;
 }
 
-/** Inhalt des Kastens zu einer Stunde: Modus, heutige Protokolleinträge dieser Stunde, Vorrang, Messwerte. */
-export function stundenKasten(tag, stunde, protokoll, t = (text) => text) {
+/**
+ * Inhalt des Kastens zu einer Stunde: Modus, heutige Protokolleinträge dieser Stunde, Vorrang, Messwerte.
+ * `zone` ist die Zone, in der der Server die Stunden des Tages zählt; ohne sie gilt die des Browsers.
+ */
+export function stundenKasten(tag, stunde, protokoll, t = (text) => text, zone = undefined) {
   const eintrag = ((tag && tag.stunden) || []).find((s) => s.stunde === stunde) || {};
   const bis = `${String(stunde + 1).padStart(2, "0")}:00`;
   const zeilen = [`${uhrzeit(stunde)}–${bis} · ${t(AKTIONEN[eintrag.aktion || "programm"])}`];
-  const heute = new Date().toDateString();
+  const heute = kalendertagIn(Date.now(), zone);
   (protokoll || [])
-    .filter((e) => new Date(e.zeit).getHours() === stunde && new Date(e.zeit).toDateString() === heute)
+    .filter((e) => zeitTeile(e.zeit, zone).stunde === stunde && kalendertagIn(e.zeit, zone) === heute)
     .sort((a, b) => new Date(a.zeit) - new Date(b.zeit))
-    .forEach((e) => zeilen.push(`${new Date(e.zeit).toTimeString().slice(0, 5)} ${e.text}`));
+    .forEach((e) => zeilen.push(`${uhr24(e.zeit, zone)} ${e.text}`));
   if (eintrag.vorrang) zeilen.push(t("Vorrangquelle lieferte"));
   [
     ["Außen gemessen", eintrag.at],
@@ -505,13 +509,13 @@ export const TagesbildMixin = (Basis) =>
       const aktion = eintrag.aktion || "programm";
       teil(`modus m-${aktion}`, this._t(AKTIONEN[aktion] || aktion));
       if (eintrag.vorrang) {
-        const laufend = heute && stunde === new Date().getHours();
+        const laufend = heute && stunde === Math.floor(Number(kreis.tag.jetzt));
         const quelle = ((kreis.kennwerte || {}).vorrang || {}).entity;
         this._klickbar(teil("vorrang", this._t(laufend ? "Vorrangquelle liefert" : "Vorrangquelle lieferte")), quelle);
       }
       kasten.appendChild(zeile);
       // Die Protokolleinträge dieser Stunde; Kopf und Messwerte stehen schon in der Zeile.
-      stundenKasten(kreis.tag, stunde, heute ? kreis.protokoll : [], (text) => this._t(text))
+      stundenKasten(kreis.tag, stunde, heute ? kreis.protokoll : [], (text) => this._t(text), serverzone(this._hass))
         .filter((text) => /^\d\d:\d\d /.test(text))
         .forEach((text) => {
           const eintragZeile = document.createElement("div");

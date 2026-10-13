@@ -776,8 +776,12 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     kacheln: wurzel.querySelectorAll(".automatik-wert").map((k) => String(k.className).split(" ")[1]),
     skalen: wurzel.querySelectorAll(".automatik-skala").length,
     meta: String((wurzel.querySelector(".automatik-meta") || {}).textContent || ""),
-    // Zur Laufzeit lokal formatiert wie die Karte selbst – TZ-unabhängig prüfbar.
-    naechstePruefungUhrzeit: new Date("2026-09-28T07:00:00+02:00").toTimeString().slice(0, 5),
+    // In der Zone von Home Assistant, nicht in der des Rechners, auf dem der Test läuft.
+    naechstePruefungUhrzeit: new Intl.DateTimeFormat("de", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: (hass.config || {}).time_zone,
+    }).format(new Date("2026-09-28T07:00:00+02:00")),
     alteEingriffe: wurzel.querySelectorAll(".automatik-eingriffe").length,
     alteProfilzeile: wurzel.querySelectorAll(".automatik-profil").length,
     raumZonen: (wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("raum")) || { querySelectorAll: () => [] })

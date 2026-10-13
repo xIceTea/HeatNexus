@@ -18,6 +18,7 @@ import {
   RUECKMELDUNG_MS,
   SPERRE_MS,
 } from "../ordnung.js";
+import { uhrzeitText } from "./zeit.js";
 
 export const UebersichtMixin = (Basis) =>
   class extends Basis {
@@ -248,7 +249,7 @@ export const UebersichtMixin = (Basis) =>
     const minuten = Number(zustand.attributes.override_restzeit_min) || 0;
     if (minuten <= 0) return "";
     const ende = new Date(Date.now() + minuten * 60000);
-    const uhrzeit = ende.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    const uhrzeit = uhrzeitText(ende, this._hass);
     return minuten >= 60
       ? this._tMit("noch bis {zeit}", { zeit: uhrzeit })
       : this._tMit("noch {minuten} min (bis {zeit})", { minuten, zeit: uhrzeit });

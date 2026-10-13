@@ -9,6 +9,8 @@
  * Teil der Oberfläche `heatnexus-panel.js`; eingebunden als Mixin.
  */
 
+import { kalendertagIn, tagMonatIn, uhrzeitText, zeitzone } from "./zeit.js";
+
 // Wie auf dem Server: So lange darf ein Raumfühler denselben Wert zeigen, dann gilt er als veraltet.
 export const VERALTET_STUNDEN = 12;
 // Höchstens so oft wird nachgeladen, solange der Reiter offen ist.
@@ -130,15 +132,14 @@ export function vorhanden(wert) {
   return wert !== null && wert !== undefined;
 }
 
-/** Uhrzeit „HH:MM“ aus einem ISO-Zeitpunkt, in der Zeitzone des Browsers. */
-export function uhrAus(iso) {
-  return new Date(iso).toTimeString().slice(0, 5);
+/** Uhrzeit aus einem ISO-Zeitpunkt, in Zone und Zeitformat aus Home Assistant. */
+export function uhrAus(iso, hass) {
+  return uhrzeitText(iso, hass);
 }
 
-/** Datum „T.M.“ aus einem Zeitpunkt. */
-export function tagMonat(datum) {
-  const d = new Date(datum);
-  return `${d.getDate()}.${d.getMonth() + 1}.`;
+/** Datum „T.M.“ aus einem Zeitpunkt; ohne Zone in der des Browsers. */
+export function tagMonat(datum, zone) {
+  return tagMonatIn(datum, zone);
 }
 
 export const AutomatikMixin = (Basis) =>
@@ -408,10 +409,10 @@ export const AutomatikMixin = (Basis) =>
       const entitaeten = kreis.entitaeten || {};
       this._klickbar(teil(this._tMit("{zahl} von {budget} Eingriffen heute", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" })), entitaeten.eingriffe);
       if (k.naechste_pruefung) {
-        this._klickbar(teil(this._tMit("Nächste Prüfung {zeit}", { zeit: uhrAus(k.naechste_pruefung) })), entitaeten.naechste_entscheidung);
+        this._klickbar(teil(this._tMit("Nächste Prüfung {zeit}", { zeit: uhrAus(k.naechste_pruefung, this._hass) })), entitaeten.naechste_entscheidung);
       }
       if (k.modus_seit && kreis.zustand !== "programm" && ZUSTAENDE[kreis.zustand]) {
-        teil(this._tMit("{modus} seit {zeit}", { modus: this._t(ZUSTAENDE[kreis.zustand]), zeit: uhrAus(k.modus_seit) }));
+        teil(this._tMit("{modus} seit {zeit}", { modus: this._t(ZUSTAENDE[kreis.zustand]), zeit: uhrAus(k.modus_seit, this._hass) }));
       }
       return meta;
     }
@@ -478,7 +479,7 @@ export const AutomatikMixin = (Basis) =>
       } else {
         const tage = Math.max(0, Math.floor((Date.now() - Date.parse(kreis.beobachtet_seit)) / 86400000));
         const haette = (kreis.protokoll || []).filter((e) => e.art === "haette").length;
-        const datum = tagMonat(kreis.beobachtet_seit);
+        const datum = tagMonat(kreis.beobachtet_seit, zeitzone(this._hass));
         text.textContent = this._tMit("Beobachtungsmodus seit dem {datum} – vorgemerkte Eingriffe: {anzahl}. Nichts davon ging an die Steuerung.", { datum, anzahl: haette });
         taste.className = tage >= 7 ? "automatik-knopf" : "automatik-knopf leise";
         taste.textContent = this._t("Jetzt scharf schalten");
@@ -511,20 +512,21 @@ export const AutomatikMixin = (Basis) =>
         kopf.appendChild(umschalten);
       }
       if (!eintraege.length) karte.appendChild(this._hinweisKnoten("Noch keine Entscheidung."));
-      const heute = new Date();
-      const gestern = new Date(heute.getTime() - 86400000);
+      const zone = zeitzone(this._hass);
+      const heute = kalendertagIn(Date.now(), zone);
+      const gestern = kalendertagIn(Date.now() - 86400000, zone);
       let liste = null;
       let letzterTag = null;
       (alle ? eintraege : eintraege.slice(0, PROTOKOLL_KURZ)).forEach((eintrag) => {
         const datum = new Date(eintrag.zeit);
-        const tag = datum.toDateString();
+        const tag = kalendertagIn(datum, zone);
         if (tag !== letzterTag) {
           letzterTag = tag;
           const ueberschrift = document.createElement("h4");
           ueberschrift.className = "automatik-protokolltag";
-          if (tag === heute.toDateString()) ueberschrift.textContent = this._t("Heute");
-          else if (tag === gestern.toDateString()) ueberschrift.textContent = this._t("Gestern");
-          else ueberschrift.textContent = tagMonat(datum);
+          if (tag === heute) ueberschrift.textContent = this._t("Heute");
+          else if (tag === gestern) ueberschrift.textContent = this._t("Gestern");
+          else ueberschrift.textContent = tagMonat(datum, zone);
           liste = document.createElement("ul");
           liste.className = "automatik-protokoll";
           karte.append(ueberschrift, liste);
@@ -532,7 +534,7 @@ export const AutomatikMixin = (Basis) =>
         const zeile = document.createElement("li");
         const zeit = document.createElement("span");
         zeit.className = "zeit";
-        zeit.textContent = uhrAus(datum);
+        zeit.textContent = uhrAus(datum, this._hass);
         const inhalt = document.createElement("div");
         inhalt.className = "inhalt";
         const text = document.createElement("div");
