@@ -62,17 +62,18 @@ from ..entity import steuerung_kennung
 from ..registrierung import geraet_suchen
 from ..texte import uebersetze_baum, woerterbuch
 from . import marken as markenmodul
-from .daten import _anlage_daten, _erster
+from .daten import anlage_daten
 from .hilfe import hilfe
+from .suche import erster
 
-# Was von außen benutzt wird. `_anlage_daten` und `_erster` stehen mit in der
+# Was von außen benutzt wird. `anlage_daten` und `erster` stehen mit in der
 # Liste, weil die Tests die Aufteilung direkt prüfen – sie ist der Vertrag
 # zwischen Integration und Browser und gehört geprüft, nicht bloß benutzt.
 __all__ = [
-    "_anlage_daten",
-    "_erster",
+    "anlage_daten",
     "async_remove_panel",
     "async_setup_panel",
+    "erster",
     "hilfe",
     "panel_daten",
 ]
@@ -176,9 +177,7 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     anlagen = []
     for anlage in anlagen_lesen(hass, benutzer):
         buch = woerterbuch_der_anlage(hass, anlage)
-        nutzdaten = _anlage_daten(
-            anlage, aussen, *marken.get(anlage.get("id"), ((), ())), buch=buch
-        )
+        nutzdaten = anlage_daten(anlage, aussen, *marken.get(anlage.get("id"), ((), ())), buch=buch)
         if not mit_hilfe:
             # Abgewählt: Die Texte gar nicht erst mitschicken.
             _ohne_hilfe(nutzdaten)

@@ -127,9 +127,9 @@ BETRIEBSWAHL_KESSEL = {
 
 @pytest.fixture(scope="module")
 def daten():
-    from custom_components.heatnexus.panel.daten import _anlage_daten
+    from custom_components.heatnexus.panel.daten import anlage_daten
 
-    return {name: _anlage_daten({"name": name, "teile": t}) for name, t in BAUREIHEN.items()}
+    return {name: anlage_daten({"name": name, "teile": t}) for name, t in BAUREIHEN.items()}
 
 
 @pytest.mark.parametrize("baureihe", sorted(BAUREIHEN))

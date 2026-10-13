@@ -147,7 +147,7 @@ def aufteilung() -> dict:
     ]
     return {
         "anlagen": [
-            modul._anlage_daten(
+            modul.anlage_daten(
                 {"name": "Heizhaus", "teile": [kessel, heizkreis, puffer, zsp]}, None, labelkarte
             )
         ],

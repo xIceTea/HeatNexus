@@ -196,10 +196,10 @@ def presets() -> dict[str, str]:
 
 def panel_daten() -> dict:
     """Die Aufteilung, die die Oberfläche sonst über den Websocket holt."""
-    from custom_components.heatnexus.panel import _anlage_daten
+    from custom_components.heatnexus.panel import anlage_daten
 
     return {
-        "anlagen": [_anlage_daten(anlage(), "sensor.aussentemperatur")],
+        "anlagen": [anlage_daten(anlage(), "sensor.aussentemperatur")],
         "uebersteuerung": {},
         "aussentemperatur": "sensor.aussentemperatur",
     }

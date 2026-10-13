@@ -277,7 +277,7 @@ WARMWASSER_ABSTAND = 5.0
 # Werkswert oben.
 WARMWASSER_HYSTERESE = r"^hysterese ein$"
 # Dieselbe Adresse als Mustertupel, für die Suche nach der bedienbaren
-# Entität (`_kennung` erwartet ein Tupel, `_erster` eine Zeichenkette).
+# Entität (`kennung_suchen` erwartet ein Tupel, `erster` eine Zeichenkette).
 WARMWASSER_HYSTERESE_MUSTER = namensmuster(WARMWASSER_HYSTERESE)
 
 # Betriebsarten (2/9), die eine laufende Warmwasserladung bedeuten.

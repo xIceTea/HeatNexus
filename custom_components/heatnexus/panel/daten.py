@@ -14,17 +14,11 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Callable
-import contextlib
-import re
 from typing import Any
 
-from ..const import FCT_BUFFER, FCT_ZSP, QUELLEN_SYMBOLE
+from ..const import FCT_ZSP, QUELLEN_SYMBOLE
 from ..dashboard.anlagen import trifft
 from ..dashboard.muster import (
-    WARTUNG_RESTLAUFZEIT,
-    WARTUNG_RESTLAUFZEIT_SCHLUESSEL,
-    WARTUNG_WEITERE,
-    WARTUNG_WEITERE_SCHLUESSEL,
     namensmuster,
     rueckfrage,
 )
@@ -32,698 +26,35 @@ from ..device_db import get_layers
 from ..helpers import mustername
 from ..schema import modul_in_betrieb, schaubild_nutzdaten
 from ..schema import passt as _passt
-from ..schema import traegt as _traegt
-from ..schema import treffer as _treffer
 from .hilfe import HILFE_KARTEN, KARTE_BEDINGUNG, hilfe
 from .muster import (
     AUSSENTEMPERATUR,
-    BETRIEBSART,
-    BETRIEBSART_URLAUB,
-    BETRIEBSWAHL,
-    BETRIEBSWAHL_STANDBY,
-    BETRIEBSWAHL_STANDBY_WERT,
-    BETRIEBSWAHL_WW,
-    BETRIEBSWAHL_WW_WERT,
-    BETRIEBSWAHL_ZURUECK,
-    EINMALLADUNG,
-    EINMALLADUNG_TEMPERATUR,
     KAMINKEHRER,
-    KAMINKEHRER_LAUFZEIT,
-    KAMINKEHRER_LEISTUNG,
     KENNWERT,
     KENNWERT_JE_FCT,
     KENNWERT_QUELLE,
-    KESSEL_BEDIENUNG,
-    LAGERRAUM_ANFORDERN,
-    LAGERRAUM_ZEILEN,
     SCHNELLZUGRIFF,
     STATUS,
     STOERUNGSMELDER,
-    UEBERSTEUERUNG_DAUER,
-    UEBERSTEUERUNG_TEMPERATUR,
     VERLAUF,
     VERLAUF_MAX,
     VERLAUF_SCHLUESSEL,
     WARMWASSER,
-    WARMWASSER_ABSTAND,
-    WARMWASSER_HYSTERESE,
-    WARMWASSER_HYSTERESE_MUSTER,
-    WARMWASSER_IST,
     WARMWASSER_IST_KENNWERT,
-    WARMWASSER_KREIS,
-    WARMWASSER_LADEPUMPE,
-    WARMWASSER_LAEDT,
-    WARMWASSER_LAEDT_WERTE,
-    WARMWASSER_MAX,
-    WARMWASSER_SCHLUESSEL,
-    WARMWASSER_SOLL,
-    WARTUNG_BRENNSTOFF,
-    WARTUNG_BRENNSTOFF_SCHLUESSEL,
-    ZEITPROGRAMM,
     ZIRKULATION_IST_KENNWERT,
-    ZIRKULATIONSPROGRAMM,
-    ZIRKULATIONSPUMPE,
-    Zeile,
 )
-
-
-def _erster(
-    entitaeten: list[dict[str, Any]], muster: str, *schluessel: str
-) -> dict[str, Any] | None:
-    """Erste passende Entität; eine mit Wert hat Vorrang.
-
-    Ein vorhandener Wert darf keine Bedingung sein: Beim ersten Aufbau ist die
-    Anlage noch nicht fertig eingelesen. Was jetzt noch leer ist, bekommt
-    trotzdem seine Zeile und füllt sich mit dem nächsten Abruf.
-
-    Sind kanonische Schlüssel angegeben, zählen sie zuerst; das Muster bleibt
-    der Rückfall (siehe `dashboard.anlagen.trifft`).
-    """
-    regex = re.compile(muster, re.IGNORECASE)
-    treffer = _treffer(entitaeten, (regex,), *schluessel)
-    if not treffer:
-        return None
-    return next((e for e in treffer if e.get("hat_wert")), treffer[0])
-
-
-def _zeilen(entitaeten: list[dict[str, Any]], vorlage: tuple[Zeile, ...]) -> list[dict[str, str]]:
-    """Aus einer Mustervorlage die vorhandenen Entitäten als Zeilen."""
-    zeilen = []
-    for muster, beschriftung, symbol, schluessel in vorlage:
-        if (treffer := _erster(entitaeten, muster, *schluessel)) is not None:
-            zeilen.append(
-                {
-                    "entity": treffer["entity_id"],
-                    "titel": beschriftung,
-                    "symbol": symbol,
-                }
-            )
-    return zeilen
-
-
-def _bereitet_warmwasser(entitaeten: list[dict[str, Any]]) -> bool:
-    """Prüfen, ob diese Anlage überhaupt Warmwasser bereitet.
-
-    Zwei Belege lässt die Anlage zu: eine gemessene Warmwassertemperatur oder
-    einen gemeldeten Warmwasserkreis ungleich null. Solange der Vollabzug noch
-    läuft, hat der Istwert womöglich noch keinen Wert – vorhanden sein reicht
-    deshalb, ein Wert ist nicht nötig.
-    """
-    for eintrag in entitaeten:
-        if trifft(eintrag, WARMWASSER_IST, "dhw_temperature"):
-            return True
-        if trifft(eintrag, WARMWASSER_KREIS, "dhw_circuit") and (eintrag.get("wert") or 0) != 0:
-            return True
-    return False
-
-
-def _warmwasser(entitaeten: list[dict[str, Any]]) -> list[dict[str, str]]:
-    """Zeilen der Warmwasserkarte – leer, wo es kein Warmwasser gibt."""
-    if not _bereitet_warmwasser(entitaeten):
-        return []
-    return [
-        {"entity": e["entity_id"], "titel": e["name"]}
-        for e in entitaeten
-        if e["kategorie"] is None
-        and e["bereich"] != "climate"
-        and not e.get("abgeleitet")
-        and trifft(e, WARMWASSER, *WARMWASSER_SCHLUESSEL)
-    ][:WARMWASSER_MAX]
-
-
-def _ladeschwelle(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
-    """Ab wann die Anlage eine Einmalladung überhaupt annimmt.
-
-    Drei Werte, und der mittlere ist leicht zu verwechseln:
-
-    * **Ist** – die gemessene Warmwassertemperatur.
-    * **Soll** – die Temperatur, auf die die *Einmalladung* lädt (``5/51``).
-      **Nicht** der gewöhnliche Warmwasser-Sollwert (``1/4``): Der liegt
-      niedriger, und die Taste verweigerte damit Ladungen, die die Anlage
-      klaglos ausgeführt hätte. Der Abstand sah dann nach der Hysterese aus,
-      war aber die Differenz der beiden Sollwerte.
-    * **Abstand** – „Hysterese EIN". Die Anleitung nennt 5 K als Werkswert bei
-      einem Bereich von 1 bis 20 K; meldet die Anlage den Parameter (``5/0``,
-      Serviceebene), gilt ihr eigener Wert.
-    """
-    ist = _erster(entitaeten, WARMWASSER_IST_KENNWERT, "dhw_temperature")
-    soll = _kennung(entitaeten, EINMALLADUNG_TEMPERATUR, ("number", "sensor")) or _kennung(
-        entitaeten, WARMWASSER_SOLL, ("number", "sensor"), "dhw_temperature_target"
-    )
-    abstand = WARMWASSER_ABSTAND
-    if (hysterese := _erster(entitaeten, WARMWASSER_HYSTERESE)) is not None:
-        with contextlib.suppress(TypeError, ValueError):
-            if (gemeldet := hysterese.get("wert")) is not None:
-                abstand = float(gemeldet)
-    return {
-        "ist": ist["entity_id"] if ist else None,
-        "soll": soll,
-        "abstand": abstand,
-    }
-
-
-def _optionstexte(eintrag: dict[str, Any] | None, *werte: int) -> list[str]:
-    """Die Texte, die eine Entität für diese Werte anzeigt, soweit bekannt."""
-    optionen = (eintrag or {}).get("optionen") or {}
-    texte = (optionen.get(w) or optionen.get(str(w)) for w in werte)
-    return [t for t in texte if t]
-
-
-def _wahlmuster(eintrag: dict[str, Any] | None, wert: int, muster: str) -> str:
-    """Muster für einen Eintrag der Betriebswahl: sein Text, das deutsche Wort als Rückfall."""
-    texte = [f"^{re.escape(t)}$" for t in _optionstexte(eintrag, wert)]
-    return "|".join([*texte, muster])
-
-
-# Funktionstypen, die laut Herstellerdaten `2/16` „Freigabe starten" führen.
-WW_FREIGABE_TYPEN = (2, 14)
-
-
-def _ww_ausloeser(teil: dict[str, Any]) -> dict[str, Any] | None:
-    """Der Auslöser der Einmalladung: am Namen, sonst an der Adresse `2/16`."""
-    treffer = _eintrag(teil["entitaeten"], EINMALLADUNG, ("switch", "button"))
-    if treffer is None and teil.get("fct_type") in WW_FREIGABE_TYPEN:
-        treffer = next(
-            (
-                e
-                for e in teil["entitaeten"]
-                if e.get("adresse") == "2/16" and e["bereich"] in ("switch", "select")
-            ),
-            None,
-        )
-    return treffer
-
-
-def _ww_ladetemperatur(entitaeten: list[dict[str, Any]], fct_type: Any) -> str | None:
-    """Die Temperatur der Einmalladung: am Namen, sonst an der Adresse `5/51`."""
-    if kennung := _kennung(entitaeten, EINMALLADUNG_TEMPERATUR, ("number",)):
-        return kennung
-    if fct_type not in WW_FREIGABE_TYPEN:
-        return None
-    treffer = next(
-        (e for e in entitaeten if e.get("adresse") == "5/51" and e["bereich"] == "number"), None
-    )
-    return treffer["entity_id"] if treffer else None
-
-
-def _ausloeser_optionen(ausloeser: dict[str, Any] | None) -> dict[str, Any]:
-    """Bei einer Auswahl Nein/Ja die Texte für Starten und Beenden."""
-    if not ausloeser or ausloeser["bereich"] != "select":
-        return {}
-    ja, nein = _optionstexte(ausloeser, 1), _optionstexte(ausloeser, 0)
-    return {"ein_option": ja[0], "aus_option": nein[0]} if ja and nein else {}
-
-
-def _warmwasser_bedienung(
-    alle: list[dict[str, Any]], kreis: list[dict[str, Any]]
-) -> dict[str, Any]:
-    """Alles, was die Taste „Warmwasser laden" über die Anlage wissen muss.
-
-    **Eine Beschreibung für beide Tasten.** Übersicht und Steuerung bauen ihre
-    Taste aus denselben Angaben. Zwei getrennte Fassungen hießen: Ladeschwelle,
-    Betriebswahl oder Abbruch fehlen in einer davon, und dieselbe Ladung ließe
-    sich in der einen Ansicht beenden und in der anderen nicht.
-
-    Die Anlage trennt dabei dreierlei:
-
-    * ``2/16`` „Freigabe starten" – Nein/Ja. Er bleibt auf Ja, solange die
-      Ladung läuft, auch wenn eine Vorgabe auf Zeit die Betriebsart belegt.
-    * ``3/50`` „Betriebswahl" – die dauerhafte Wahl.
-    * ``2/9``  „Betriebsart" – was gerade läuft. Dort steht „Warmwasser
-      Einmalladung", und dort steht auch „Urlaubsprogramm".
-    """
-    # Zustand nur aus dem Teil des Auslösers: Kessel und Puffer führen eine eigene „Betriebsart".
-    art = _eintrag(kreis, BETRIEBSART, ("sensor",), "operating_mode")
-    wahl = _eintrag(kreis, BETRIEBSWAHL, ("select",), "mode_selection")
-    laedt = _optionstexte(art, *WARMWASSER_LAEDT_WERTE)
-    return {
-        "zustand_an": art["entity_id"] if art else None,
-        "zustand_wenn": [*laedt, *(t for t in WARMWASSER_LAEDT if t not in laedt)],
-        # Zweiter Beleg für „lädt gerade": die Ladepumpe. Die Betriebsart
-        # allein genügt nicht – sie meldet je nach Baureihe andere Worte, und
-        # an einem Kreis mit nur einem zulässigen Wert (`allowed: [0]`) meldet
-        # sie den Ladezustand gar nicht.
-        "zustand_pumpe": _kennung(
-            kreis, WARMWASSER_LADEPUMPE, ("binary_sensor",), "dhw_charge_pump"
-        ),
-        # Die Betriebswahl gehört zur Ladung dazu: Auf Standby ist der Kreis
-        # abgeschaltet und nimmt den Auftrag nicht an, im Urlaubsprogramm
-        # ebenso wenig. Nur dann wird auf WW-Betrieb umgeschaltet – und
-        # hinterher genau auf den Wert zurück, der vorher stand.
-        "betriebswahl": wahl["entity_id"] if wahl else None,
-        "betriebswahl_aus": _wahlmuster(wahl, BETRIEBSWAHL_STANDBY_WERT, BETRIEBSWAHL_STANDBY),
-        "betriebswahl_ww": _wahlmuster(wahl, BETRIEBSWAHL_WW_WERT, BETRIEBSWAHL_WW),
-        "betriebswahl_zurueck": BETRIEBSWAHL_ZURUECK,
-        # „Urlaubsprogramm" ist kein Eintrag der Betriebswahl (3/50 kennt ihn
-        # nicht), sondern ein Zustand der Betriebsart. Erkennbar ist er nur
-        # dort – deshalb ein eigenes Muster statt eines weiteren
-        # Betriebswahl-Eintrags.
-        "zustand_urlaub": BETRIEBSART_URLAUB,
-        "titel_abbrechen": "Warmwasser laden abbrechen",
-        **_ladeschwelle(
-            kreis if _erster(kreis, WARMWASSER_IST_KENNWERT, "dhw_temperature") else alle
-        ),
-    }
-
-
-def _kaminkehrer_bedienung(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
-    """Die Leistung, mit der die Kaminkehrerfunktion fährt.
-
-    Sie wird vor dem Auslösen abgefragt: Die Abgasmessung gilt für genau
-    diesen Wert, und nachträglich verstellen hieße neu messen.
-    """
-    # Solange die Messung läuft, beendet ein Druck sie. Ohne die zweite
-    # Beschriftung steht auf der Kachel weiter „Kaminkehrer".
-    bedienung: dict[str, Any] = {
-        "titel_abbrechen": "Kaminkehrer beenden",
-        "frage_abbrechen": (
-            "Der Kessel kehrt in den normalen Betrieb zurück. "
-            "Eine laufende Abgasmessung gilt danach nicht mehr."
-        ),
-    }
-    if leistung := _kennung(entitaeten, KAMINKEHRER_LEISTUNG, ("number",)):
-        bedienung["leistung"] = leistung
-    # Die Laufzeit steht nur dann als Feld im Dialog, wenn die Anlage sie
-    # schreiben lässt; sonst demotiert die Erkennung sie zum Sensor.
-    if laufzeit := _kennung(entitaeten, KAMINKEHRER_LAUFZEIT, ("number",)):
-        bedienung["laufzeit"] = laufzeit
-    return bedienung
-
-
-def _eintrag(
-    entitaeten: list[dict[str, Any]],
-    muster: tuple,
-    bereiche: tuple = (),
-    *schluessel: str,
-) -> dict[str, Any] | None:
-    """Die erste passende Entität, optional auf Plattformen begrenzt.
-
-    Sind kanonische Schlüssel angegeben, zählen sie zuerst; das Muster bleibt
-    der Rückfall (siehe `schema.treffer`). Beide Durchläufe halten beim ersten
-    Treffer an – die Liste einer Anlage wird oft durchsucht.
-    """
-    infrage = [e for e in entitaeten if e["bereich"] in bereiche] if bereiche else entitaeten
-    return next((e for e in infrage if _traegt(e, schluessel)), None) or next(
-        (e for e in infrage if _passt(mustername(e), muster)), None
-    )
-
-
-def _kennung(
-    entitaeten: list[dict[str, Any]],
-    muster: tuple,
-    bereiche: tuple = (),
-    *schluessel: str,
-) -> str | None:
-    """Entity-ID der ersten passenden Entität."""
-    treffer = _eintrag(entitaeten, muster, bereiche, *schluessel)
-    return treffer["entity_id"] if treffer else None
-
-
-def _steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
-    """Der Reiter „Steuerung": alles, was man an der Anlage wirklich verstellt.
-
-    Vorbild ist die Bedienung der Anlage selbst – Heizkreis, Warmwasser,
-    Kessel. Was nur abgelesen wird, gehört in die Übersicht.
-    """
-    alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
-
-    heizkreise = []
-    for teil in anlage["teile"]:
-        thermostat = next((e for e in teil["entitaeten"] if e["bereich"] == "climate"), None)
-        if thermostat is None:
-            continue
-        heizkreise.append(
-            {
-                # Die Gerätekennung überlebt eine erneute Erkennung und ist
-                # damit der einzige Anker, an dem eine selbst gewählte
-                # Anordnung diese Karte wiedererkennt.
-                "id": teil["id"],
-                "entity": thermostat["entity_id"],
-                "titel": teil["name"],
-                "betriebswahl": _kennung(
-                    teil["entitaeten"], BETRIEBSWAHL, ("select",), "mode_selection"
-                ),
-                "betriebswahl_hilfe": hilfe("Betriebswahl"),
-                "programm": _kennung(teil["entitaeten"], ZEITPROGRAMM, ("sensor",)),
-                # Eco und Comfort schreiben dieselbe befristete Übersteuerung
-                # wie das Bediengerät: Temperatur (3/4) und Dauer (2/10). Die
-                # Anlage kennt nur einen Übersteuerungswert – ob er Eco oder
-                # Comfort heißt, entscheidet sie daran, ob er unter oder über
-                # dem Programmsollwert liegt.
-                "uebersteuerung_temperatur": _kennung(
-                    teil["entitaeten"], UEBERSTEUERUNG_TEMPERATUR, ("number",)
-                ),
-                "uebersteuerung_dauer": _kennung(
-                    teil["entitaeten"], UEBERSTEUERUNG_DAUER, ("number",)
-                ),
-                "vorlauf": (
-                    v["entity_id"]
-                    if (
-                        v := _erster(
-                            teil["entitaeten"], r"vorlauftemperatur ist", "flow_temperature"
-                        )
-                    )
-                    else None
-                ),
-            }
-        )
-
-    warmwasser = None
-    if _bereitet_warmwasser(alle):
-        ist = _erster(alle, r"\bww[- ]temperatur aktueller|\bwarmwasser ist", "dhw_temperature")
-        # Der Kreis, an dem das Warmwasser hängt – seine Betriebswahl ist die,
-        # die für die Ladung umgeschaltet und hinterher wiederhergestellt wird.
-        kreis = next(
-            (
-                teil["entitaeten"]
-                for teil in anlage["teile"]
-                if _erster(teil["entitaeten"], WARMWASSER_IST_KENNWERT, "dhw_temperature")
-                is not None
-            ),
-            alle,
-        )
-        # Die Ladung gehört zum Teil, der ihren Auslöser führt; dort stehen Betriebsart und Pumpe.
-        ww_teil, ausloeser = next(
-            ((t, a) for t in anlage["teile"] if (a := _ww_ausloeser(t)) is not None), (None, None)
-        )
-        laden = ausloeser["entity_id"] if ausloeser else None
-        if ww_teil is not None:
-            kreis = ww_teil["entitaeten"]
-        warmwasser = {
-            "ist": ist["entity_id"] if ist else None,
-            "soll": _kennung(alle, WARMWASSER_SOLL),
-            "laden": laden,
-            # Die Temperatur der Einmalladung ist an der Anlage Teil derselben
-            # Bedienung; ohne sie lädt man auf einen Wert, den man nicht sieht.
-            "laden_temperatur": _ww_ladetemperatur(kreis, (ww_teil or {}).get("fct_type")),
-            # Die Einschalthysterese: wie weit die Temperatur unter den
-            # Sollwert fallen darf, bevor nachgeladen wird. Sie entscheidet
-            # mit, ob ein Ladeauftrag überhaupt angenommen wird – deshalb
-            # gehört sie neben die Taste und nicht in die Serviceebene.
-            "hysterese": _kennung(kreis, WARMWASSER_HYSTERESE_MUSTER, ("number",)),
-            # Was die Anlage gerade tut – daran hängt die Rückmeldung.
-            "betriebsart": _kennung(kreis, BETRIEBSART, ("sensor",), "operating_mode"),
-            "programm": _kennung(kreis, namensmuster(r"ww[- ].*programm"), ("sensor",)),
-            # **Dieselbe Taste wie in der Übersicht.** Beschreibung, Ladeschwelle
-            # und Abbruch kommen aus einer Quelle; die Ansicht baut daraus nur
-            # noch die Schaltfläche.
-            "taste": (
-                {
-                    "entity": laden,
-                    "titel": "Warmwasser laden",
-                    "symbol": "mdi:water-boiler",
-                    "frage": rueckfrage("WW Einmalladung"),
-                    "hilfe": hilfe("Einmalladung"),
-                    **_warmwasser_bedienung(alle, kreis),
-                    **_ausloeser_optionen(ausloeser),
-                }
-                if laden
-                else None
-            ),
-        }
-
-    kessel = []
-    for teil in anlage["teile"]:
-        for muster, beschriftung, symbol, schluessel in KESSEL_BEDIENUNG:
-            treffer = _eintrag(
-                teil["entitaeten"],
-                namensmuster(muster),
-                ("switch", "button", "select"),
-                *schluessel,
-            )
-            if treffer is not None:
-                eintrag = {
-                    "entity": treffer["entity_id"],
-                    "titel": beschriftung,
-                    "symbol": symbol,
-                    "frage": rueckfrage(mustername(treffer)),
-                    "hilfe": hilfe(mustername(treffer)) or hilfe(beschriftung),
-                }
-                if _passt(mustername(treffer), KAMINKEHRER):
-                    eintrag.update(_kaminkehrer_bedienung(teil["entitaeten"]))
-                kessel.append(eintrag)
-
-    # Lagerraumbefüllung: anfordern und dann ablesen, ob freigegeben ist.
-    # Ohne die Anforderungstaste hat die Karte keinen Zweck.
-    lagerraum = None
-    if (anfordern := _kennung(alle, LAGERRAUM_ANFORDERN, ("switch", "button"))) is not None:
-        lagerraum = {
-            "anfordern": anfordern,
-            "titel_abbrechen": "Befüllung beenden",
-            "frage_abbrechen": (
-                "Erst beenden, wenn die Befüllung abgeschlossen ist. "
-                "Das Rührwerk steht danach still."
-            ),
-            "frage": rueckfrage("Lagerraumbefüllung anfordern"),
-            "hilfe": HILFE_KARTEN.get("Lagerraum befüllen", ""),
-            "zeilen": [
-                {"entity": treffer["entity_id"], "titel": beschriftung}
-                for muster, beschriftung, schluessel in LAGERRAUM_ZEILEN
-                if (treffer := _erster(alle, muster, *schluessel)) is not None
-            ],
-        }
-
-    return {
-        "heizkreise": heizkreise,
-        "warmwasser": warmwasser,
-        "kessel": kessel,
-        "lagerraum": lagerraum,
-    }
-
-
-def _zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
-    """Alle Zeitprogramme der Anlage, für den eigenen Reiter.
-
-    Die Blöcke selbst holt die Oberfläche aus den Attributen der Entität – sie
-    stehen dort schon, und ein zweiter Weg über den Server würde nur dieselben
-    Daten ein zweites Mal aufbereiten.
-
-    Was hier steht, ist eine **Vorauswahl am Namen**: Ob eine Entität wirklich
-    ein Zeitprogramm führt, sagt erst ihr Attribut ``blocks``. Die Oberfläche
-    lässt Karten ohne Blöcke weg. Andersherum ginge es nicht – die
-    Registry-Einträge, aus denen diese Liste entsteht, tragen die Typkennung
-    der Anlage nicht mit.
-    """
-    programme: list[dict[str, str]] = []
-    for teil in anlage["teile"]:
-        for eintrag in teil["entitaeten"]:
-            if eintrag["bereich"] != "sensor" or not _passt(mustername(eintrag), ZEITPROGRAMM):
-                continue
-            programm = {
-                "entity": eintrag["entity_id"],
-                "titel": eintrag["name"],
-                "anlagenteil": teil["name"],
-                # Das Symbol des **Programms**, nicht des Anlagenteils.
-                # Warmwasser und Zirkulation hängen als Datenpunkte am
-                # Heizkreis; mit dessen Symbol trugen beide einen Heizkörper.
-                "symbol": _programmsymbol(eintrag, teil),
-            }
-            if text := hilfe(mustername(eintrag)):
-                programm["hilfe"] = text
-            if bezeichnung := eintrag.get("bezeichnung"):
-                programm["bezeichnung"] = bezeichnung
-            if (wirkung := _wirkt_nur_wenn(eintrag, teil)) is not None:
-                programm["wirkung"] = wirkung
-            programme.append(programm)
-    return programme
-
-
-def _programmsymbol(eintrag: dict[str, Any], teil: dict[str, Any]) -> str | None:
-    """Das Symbol einer Zeitprogramm-Karte.
-
-    Dieselben Bilder wie in der Heizungsübersicht – aber nach dem, was das
-    Programm steuert, nicht nach dem Anlagenteil, an dem sein Datenpunkt
-    hängt. Warmwasser und Zirkulation sitzen beide am Heizkreis und trugen
-    deshalb dessen Heizkörper.
-    """
-    name = mustername(eintrag)
-    if _passt(name, ZIRKULATIONSPROGRAMM) or trifft(
-        eintrag,
-        ZIRKULATIONSPROGRAMM,
-        "dhw_circulation_program_time",
-        "dhw_circulation_program_temperature",
-    ):
-        return "mdi:reload"
-    if _passt(name, WARMWASSER):
-        return "mdi:water-boiler"
-    return teil.get("symbol")
-
-
-def _auswahltext(wahl: dict[str, Any], wert: int, ersatz: str) -> str:
-    """Der Text, den die Auswahl für diesen Wert zeigt, klein geschrieben.
-
-    Ohne bekannte Texte bleibt das deutsche Ersatzwort.
-    """
-    return ((wahl.get("optionen") or {}).get(wert) or ersatz).lower()
-
-
-def _ziel(wahl: dict[str, Any], wert: int) -> dict[str, str]:
-    """Worauf „Aktivieren" die Auswahl stellt – nur bei `select` und bekanntem Text."""
-    text = (wahl.get("optionen") or {}).get(wert)
-    if wahl.get("bereich") != "select" or not text:
-        return {}
-    return {"ziel": text, "wahl_name": wahl.get("name") or ""}
-
-
-def _puffer_wirkung(teil: dict[str, Any]) -> dict[str, str] | None:
-    """Das Zeitprogramm des Puffers greift nur in einer Betriebswahl.
-
-    `20/15` kennt Standby, Automatikbetrieb, Festbrennstoff-, Pufferbetrieb,
-    **Auto mit Zeitprogramm**, Hand- und Kaminkehrerbetrieb. Nur in „Auto mit
-    Zeitprogramm" richtet sich der Puffer nach seinem Programm; in allen
-    anderen läuft das schönste Programm ins Leere.
-
-    Versteckt wird die Karte trotzdem nicht: Anders als bei der Zirkulation
-    gibt es hier kein zweites Programm, das stattdessen gilt – es gäbe also
-    nichts zu sehen, und vorbereiten können muss man es.
-    """
-    wahl = next(
-        (
-            e
-            for e in teil["entitaeten"]
-            if e["bereich"] in ("select", "sensor")
-            and trifft(e, BETRIEBSWAHL, "buffer_mode_selection")
-        ),
-        None,
-    )
-    if wahl is None:
-        return None
-    return {
-        "entity": wahl["entity_id"],
-        "muster": _auswahltext(wahl, 4, "zeitprogramm"),
-        "hinweis": "Wirkt erst, wenn die Betriebswahl auf „Auto mit Zeitprogramm“ steht.",
-        **_ziel(wahl, 4),
-    }
-
-
-# Die drei Heizprogramme eines Kreises liegen auf `3/61` bis `3/63`, und die
-# Betriebswahl `3/50` bietet dieselben drei unter ihren eigenen Namen an.
-HEIZPROGRAMM_ADRESSEN = ("3/61", "3/62", "3/63")
-
-# Das Warmwasserprogramm des Kreises.
-WW_PROGRAMM_ADRESSE = "5/61"
-
-
-def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str, str] | None:
-    """Woran hängt, ob ein Programm des Heizkreises gerade gilt.
-
-    `3/61`–`3/63` entsprechen den Werten 1–3 der Betriebswahl `3/50`, Standby ist 0.
-    """
-    adresse = programm.get("adresse")
-    if adresse not in (*HEIZPROGRAMM_ADRESSEN, WW_PROGRAMM_ADRESSE):
-        return None
-    wahl = _eintrag(teil["entitaeten"], BETRIEBSWAHL, ("select", "sensor"), "mode_selection")
-    if wahl is None:
-        return None
-    if adresse == WW_PROGRAMM_ADRESSE:
-        # „WW-Betrieb" heißt nur Warmwasser, „Programm 1–3", „Heizbetrieb" und
-        # „Absenkbetrieb" heißen Heizung und Warmwasser. Übrig bleibt Standby,
-        # und dort nimmt der Kreis nicht einmal einen Ladebefehl an.
-        return {
-            "entity": wahl["entity_id"],
-            "muster_nicht": _auswahltext(wahl, 0, "standby"),
-            "hinweis": "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.",
-        }
-    wert = HEIZPROGRAMM_ADRESSEN.index(adresse) + 1
-    return {
-        "entity": wahl["entity_id"],
-        "muster": _auswahltext(wahl, wert, programm.get("name") or ""),
-        "hinweis": "Wirkt erst, wenn die Betriebswahl auf diesem Programm steht.",
-        **_ziel(wahl, wert),
-    }
-
-
-def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str, str] | None:
-    """Der Datenpunkt, an dem hängt, ob ein Programm überhaupt etwas bewirkt.
-
-    **Die Anlage führt zwei Zirkulationsprogramme.** In der Herstellerdatei
-    heißen sie wortgleich „WW-Zirkulationsprogramm"; auseinanderhalten lassen
-    sie sich nur an der Adresse. `5/65` gilt, wenn die Zirkulationspumpe
-    (`5/6`) auf **Zeitsteuerung** steht, `5/64` bei **Temperatursteuerung**.
-    Ohne diese Unterscheidung standen zwei gleichnamige Karten nebeneinander,
-    und keine sagte, welche gerade wirkt.
-
-    Deshalb zweierlei: Das Programm der *anderen* Steuerungsart verschwindet
-    (`verbergen_bei`), und was übrig bleibt, trägt einen Hinweis, solange die
-    Pumpe auf keiner der beiden steht – aus, nach Impuls oder durchlaufend.
-    Versteckt wird also nur, was nachweislich eine andere Art betrifft; bei
-    „Aus" bleiben beide sichtbar, damit man sein Programm vorbereiten kann,
-    bevor man die Steuerung umstellt.
-    """
-    if not _passt(mustername(programm), ZIRKULATIONSPROGRAMM):
-        # Kein Zirkulationsprogramm – am Puffer entscheidet seine eigene
-        # Betriebswahl, am Heizkreis die des Kreises.
-        if teil.get("fct_type") == FCT_BUFFER:
-            return _puffer_wirkung(teil)
-        return _heizkreis_wirkung(programm, teil)
-    pumpe = next(
-        (
-            e
-            for e in teil["entitaeten"]
-            if e["bereich"] in ("select", "sensor")
-            # `5/6` ist der Modus, an dem hängt, ob das Programm überhaupt
-            # greift – nicht `1/65`, der nur meldet, ob die Pumpe gerade läuft.
-            and trifft(e, ZIRKULATIONSPUMPE, "dhw_circulation_mode")
-        ),
-        None,
-    )
-    if pumpe is None:
-        return None
-    wirkung = {
-        "entity": pumpe["entity_id"],
-        "muster": _auswahltext(pumpe, 1, "zeitsteuerung"),
-        "hinweis": "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Zeitsteuerung“ steht.",
-    }
-    # Welche Art dieses Programm ist, sagt allein sein Schlüssel – der Name
-    # taugt dafür nicht, beide heißen gleich.
-    schluessel = programm.get("schluessel")
-    if schluessel == "dhw_circulation_program_time":
-        wirkung["verbergen_bei"] = _auswahltext(pumpe, 2, "temperatursteuerung")
-    elif schluessel == "dhw_circulation_program_temperature":
-        wirkung["verbergen_bei"] = _auswahltext(pumpe, 1, "zeitsteuerung")
-        wirkung["muster"] = _auswahltext(pumpe, 2, "temperatursteuerung")
-        wirkung["hinweis"] = (
-            "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Temperatursteuerung“ steht."
-        )
-    temperatur = schluessel == "dhw_circulation_program_temperature"
-    wirkung.update(_ziel(pumpe, 2 if temperatur else 1))
-    return wirkung
-
-
-def wartung(anlage: dict[str, Any]) -> dict[str, Any]:
-    """Der Reiter „Wartung": Restlaufzeiten, Brennstoff, Zählerstände."""
-    alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
-
-    def zeilen(bedingung) -> list[dict[str, str]]:
-        return [
-            {"entity": e["entity_id"], "titel": e["name"]}
-            for e in alle
-            if e["kategorie"] is None and bedingung(e)
-        ]
-
-    return {
-        "restlaufzeiten": zeilen(
-            lambda e: trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
-        ),
-        "brennstoff": zeilen(
-            lambda e: (
-                trifft(e, WARTUNG_BRENNSTOFF, *WARTUNG_BRENNSTOFF_SCHLUESSEL)
-                and not trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
-            )
-        ),
-        # Zählerstände erkennt man an der Statistikklasse, nicht am Namen.
-        # `total` gehört dazu: Ein Tageswert ist ein Zählerstand, er beginnt
-        # nur jeden Tag neu.
-        "zaehler": zeilen(lambda e: e.get("state_class") in ("total_increasing", "total")),
-        "weitere": zeilen(
-            lambda e: (
-                trifft(e, WARTUNG_WEITERE, *WARTUNG_WEITERE_SCHLUESSEL)
-                and not trifft(e, WARTUNG_RESTLAUFZEIT, *WARTUNG_RESTLAUFZEIT_SCHLUESSEL)
-                and not trifft(e, WARTUNG_BRENNSTOFF, *WARTUNG_BRENNSTOFF_SCHLUESSEL)
-                and e.get("state_class") not in ("total_increasing", "total")
-            )
-        ),
-    }
+from .programme import zeitprogramme
+from .steuerung import (
+    ausloeser_optionen,
+    bereitet_warmwasser,
+    kaminkehrer_bedienung,
+    steuerung,
+    warmwasser_bedienung,
+    warmwasser_zeilen,
+    ww_ausloeser,
+)
+from .suche import eintrag_suchen, erster, kennung_suchen, zeilen_aus
+from .wartung import wartung
 
 
 def _hilfe_liste(anlage: dict[str, Any], nutzdaten: dict[str, Any]) -> list[dict[str, str]]:
@@ -769,13 +100,13 @@ def _leitwert_aus_uebersicht(teil: dict[str, Any]) -> dict[str, Any] | None:
     treffer = [je_adresse[a] for a in uebersicht if a in je_adresse]
     if not treffer:
         return None
-    # Ein gefüllter Wert hat Vorrang – wie in `_erster`. Beim ersten Aufbau ist
+    # Ein gefüllter Wert hat Vorrang – wie in `erster`. Beim ersten Aufbau ist
     # erst ein Teil der Anlage gelesen; die Reihenfolge des Herstellers allein
     # zeigte dann eine leere Zeile, obwohl daneben schon ein Wert bereitstand.
     return next((e for e in treffer if e.get("hat_wert")), treffer[0])
 
 
-def _anlage_daten(
+def anlage_daten(
     anlage: dict[str, Any],
     aussen_gewaehlt: str | None = None,
     marken: list[dict[str, Any]] | None = None,
@@ -801,7 +132,7 @@ def _anlage_daten(
         # Baureihe; ihre Zeile zeigt, ob sie gerade Wärme liefert.
         if (art := teil.get("art")) in QUELLEN_SYMBOLE:
             muster, beschriftung, _, schluessel = KENNWERT_QUELLE
-            if (treffer := _erster(teil["entitaeten"], muster, *schluessel)) is not None:
+            if (treffer := erster(teil["entitaeten"], muster, *schluessel)) is not None:
                 kennwerte.append(
                     {
                         "entity": treffer["entity_id"],
@@ -815,7 +146,7 @@ def _anlage_daten(
         vorlage = KENNWERT_JE_FCT.get(teil.get("fct_type")) or KENNWERT
         gefunden = False
         for muster, beschriftung, symbol, schluessel in vorlage:
-            if (treffer := _erster(teil["entitaeten"], muster, *schluessel)) is not None:
+            if (treffer := erster(teil["entitaeten"], muster, *schluessel)) is not None:
                 gefunden = True
                 eintrag = {
                     "entity": treffer["entity_id"],
@@ -858,7 +189,7 @@ def _anlage_daten(
                 ("dhw_circulation_temperature",),
             ),
         ):
-            treffer = _erster(teil["entitaeten"], muster, *schluessel)
+            treffer = erster(teil["entitaeten"], muster, *schluessel)
             if treffer is not None and treffer["entity_id"] not in gelistet:
                 kennwerte.append(
                     {
@@ -884,7 +215,7 @@ def _anlage_daten(
                 "vorlauf": (
                     v["entity_id"]
                     if (
-                        v := _erster(
+                        v := erster(
                             teil["entitaeten"], r"vorlauftemperatur ist", "flow_temperature"
                         )
                     )
@@ -893,13 +224,13 @@ def _anlage_daten(
             }
         )
 
-    warmwasser = _warmwasser(alle)
+    warmwasser = warmwasser_zeilen(alle)
 
     # Der Klartext trägt den Text, der Ja/Nein-Sensor desselben Anlagenteils
     # sagt, ob etwas ansteht. Zwei Entitäten, eine Auskunft je Zweck.
     stoerungen = []
     for teil in anlage["teile"]:
-        melder = _kennung(teil["entitaeten"], STOERUNGSMELDER, ("binary_sensor",))
+        melder = kennung_suchen(teil["entitaeten"], STOERUNGSMELDER, ("binary_sensor",))
         stoerungen += [
             {"entity": e["entity_id"], "titel": e["name"], "melder": melder}
             for e in teil["entitaeten"]
@@ -908,15 +239,15 @@ def _anlage_daten(
 
     # Ohne Warmwasserbereitung hat auch die Taste „Warmwasser laden" nichts
     # verloren – der Datenpunkt existiert am Heizkreis trotzdem.
-    hat_warmwasser = _bereitet_warmwasser(alle)
+    hat_warmwasser = bereitet_warmwasser(alle)
     schnellzugriff = []
     for teil in anlage["teile"]:
         for muster, beschriftung, symbol, schluessel in SCHNELLZUGRIFF:
             if not hat_warmwasser and _passt(beschriftung, WARMWASSER):
                 continue
-            treffer = _ww_ausloeser(teil) if _passt(beschriftung, WARMWASSER) else None
+            treffer = ww_ausloeser(teil) if _passt(beschriftung, WARMWASSER) else None
             if treffer is None:
-                treffer = _eintrag(
+                treffer = eintrag_suchen(
                     teil["entitaeten"],
                     namensmuster(muster),
                     ("switch", "button", "select"),
@@ -931,10 +262,10 @@ def _anlage_daten(
                     "hilfe": hilfe(mustername(treffer)) or hilfe(beschriftung),
                 }
                 if _passt(beschriftung, WARMWASSER):
-                    eintrag.update(_warmwasser_bedienung(alle, teil["entitaeten"]))
-                    eintrag.update(_ausloeser_optionen(treffer))
+                    eintrag.update(warmwasser_bedienung(alle, teil["entitaeten"]))
+                    eintrag.update(ausloeser_optionen(treffer))
                 if _passt(mustername(treffer), KAMINKEHRER):
-                    eintrag.update(_kaminkehrer_bedienung(teil["entitaeten"]))
+                    eintrag.update(kaminkehrer_bedienung(teil["entitaeten"]))
                 eintrag["anlagenteil"] = teil["name"]
                 schnellzugriff.append(eintrag)
     # Den Anlagenteil nennt nur, wer sich sonst nicht unterscheiden ließe.
@@ -947,7 +278,10 @@ def _anlage_daten(
     # gewählte Entität gilt nur für die Ansicht „Alle" – dort gibt es keine
     # einzelne Anlage, deren Fühler man nehmen könnte. Überschriebe sie jede
     # Anlage, zeigte eine plötzlich den Fühler der anderen.
-    aussen = _kennung(alle, AUSSENTEMPERATUR, ("sensor",), "outdoor_temperature") or aussen_gewaehlt
+    aussen = (
+        kennung_suchen(alle, AUSSENTEMPERATUR, ("sensor",), "outdoor_temperature")
+        or aussen_gewaehlt
+    )
     nutzdaten = {
         # Die Anordnung der Karten wird je Anlage gespeichert. Ohne eigene
         # Kennung teilten sich zwei Anlagen eines Eintrags eine Reihenfolge.
@@ -961,11 +295,11 @@ def _anlage_daten(
         # Die Außentemperatur gilt für die ganze Anlage und steht deshalb oben,
         # nicht in der Liste der Anlagenteile.
         "aussentemperatur": aussen,
-        "steuerung": _steuerung(anlage),
-        "zeitprogramme": _zeitprogramme(anlage),
+        "steuerung": steuerung(anlage),
+        "zeitprogramme": zeitprogramme(anlage),
         "wartung": wartung(anlage),
         "kennwerte": kennwerte,
-        "status": _zeilen(alle, STATUS) + list(marken_status or []),
+        "status": zeilen_aus(alle, STATUS) + list(marken_status or []),
         "heizkreise": heizkreise,
         "warmwasser": warmwasser,
         "stoerungen": stoerungen,

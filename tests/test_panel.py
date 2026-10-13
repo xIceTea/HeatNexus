@@ -100,7 +100,7 @@ def test_zeilen_entstehen_auch_ohne_werte(panel, kessel_und_heizkreis):
         for e in anlagenteil["entitaeten"]:
             e["hat_wert"] = False
 
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
 
     assert daten["kennwerte"], "Kennwerte fehlen, obwohl die Entitäten existieren"
     assert daten["status"], "Systemstatus fehlt, obwohl die Entitäten existieren"
@@ -137,7 +137,7 @@ def test_die_oberflaeche_findet_auch_ohne_deutsche_namen(panel):
         ],
     )
 
-    daten = panel._anlage_daten(anlage(kessel))
+    daten = panel.anlage_daten(anlage(kessel))
 
     assert [k["untertitel"] for k in daten["kennwerte"]] == ["Kesseltemperatur"]
     assert [z["titel"] for z in daten["status"]] == [
@@ -168,7 +168,7 @@ def test_die_laufzeit_verdraengt_den_betriebszustand_nicht(panel):
         ],
     )
 
-    zeilen = {z["titel"]: z["entity"] for z in panel._anlage_daten(anlage(kessel))["status"]}
+    zeilen = {z["titel"]: z["entity"] for z in panel.anlage_daten(anlage(kessel))["status"]}
 
     assert zeilen["Betriebszustand"] == "sensor.betriebsphase"
 
@@ -188,7 +188,7 @@ def test_die_stoerung_nennt_ihren_melder(panel):
         ],
     )
 
-    stoerungen = panel._anlage_daten(anlage(kessel))["stoerungen"]
+    stoerungen = panel.anlage_daten(anlage(kessel))["stoerungen"]
 
     assert stoerungen == [
         {
@@ -207,7 +207,7 @@ def test_ohne_melder_bleibt_die_stoerung_bestehen(panel):
         [entitaet("sensor.meldung_klartext", "Meldung Klartext", kategorie="diagnostic")],
     )
 
-    stoerungen = panel._anlage_daten(anlage(kessel))["stoerungen"]
+    stoerungen = panel.anlage_daten(anlage(kessel))["stoerungen"]
 
     assert stoerungen[0]["melder"] is None
 
@@ -222,7 +222,7 @@ def test_wert_hat_vorrang_vor_wertloser_entitaet(panel):
             entitaet("sensor.neu", "Kesseltemperatur Ist", hat_wert=True),
         ],
     )
-    treffer = panel._erster(anlagenteil["entitaeten"], r"kesseltemperatur ist")
+    treffer = panel.erster(anlagenteil["entitaeten"], r"kesseltemperatur ist")
     assert treffer["entity_id"] == "sensor.neu"
 
 
@@ -230,7 +230,7 @@ def test_wert_hat_vorrang_vor_wertloser_entitaet(panel):
 # Warmwasser hängt am Heizkreis, nicht an einem eigenen Anlagenteil
 # ---------------------------------------------------------------------------
 def test_warmwasser_wird_am_heizkreis_gefunden(panel, kessel_und_heizkreis):
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
     namen = [w["titel"] for w in daten["warmwasser"]]
     assert "Warmwasser Ist-Temperatur" in namen
     assert "WW-Zirkulationspumpe" in namen
@@ -248,7 +248,7 @@ def test_ohne_warmwasser_bleibt_die_karte_leer(panel):
             ],
         )
     )
-    assert panel._anlage_daten(ohne)["warmwasser"] == []
+    assert panel.anlage_daten(ohne)["warmwasser"] == []
 
 
 def test_reine_parameter_beweisen_kein_warmwasser(panel):
@@ -271,7 +271,7 @@ def test_reine_parameter_beweisen_kein_warmwasser(panel):
             ],
         )
     )
-    assert panel._anlage_daten(ohne)["warmwasser"] == []
+    assert panel.anlage_daten(ohne)["warmwasser"] == []
 
 
 def test_gemeldeter_warmwasserkreis_genuegt(panel):
@@ -287,7 +287,7 @@ def test_gemeldeter_warmwasserkreis_genuegt(panel):
             ],
         )
     )
-    assert panel._anlage_daten(mit)["warmwasser"]
+    assert panel.anlage_daten(mit)["warmwasser"]
 
 
 def test_abgas_rezirkulation_ist_kein_warmwasser(panel):
@@ -302,14 +302,14 @@ def test_abgas_rezirkulation_ist_kein_warmwasser(panel):
             ],
         )
     )
-    namen = [w["titel"] for w in panel._anlage_daten(kessel)["warmwasser"]]
+    namen = [w["titel"] for w in panel.anlage_daten(kessel)["warmwasser"]]
     assert "Abgas-Rezirkulation" not in namen
 
 
 def test_thermostat_zaehlt_nicht_als_warmwasser(panel):
     """Ein Heizkreis namens „Warmwasser" ist trotzdem ein Heizkreis."""
     seltsam = anlage(teil("Warmwasser Nord", 14, [entitaet("climate.ww_nord", "Warmwasser Nord")]))
-    daten = panel._anlage_daten(seltsam)
+    daten = panel.anlage_daten(seltsam)
     assert daten["warmwasser"] == []
     assert daten["heizkreise"][0]["entity"] == "climate.ww_nord"
 
@@ -318,7 +318,7 @@ def test_thermostat_zaehlt_nicht_als_warmwasser(panel):
 # Reiter „Steuerung" und „Wartung"
 # ---------------------------------------------------------------------------
 def test_steuerung_findet_heizkreis_und_warmwasser(panel, kessel_und_heizkreis):
-    steuerung = panel._anlage_daten(kessel_und_heizkreis)["steuerung"]
+    steuerung = panel.anlage_daten(kessel_und_heizkreis)["steuerung"]
     assert steuerung["heizkreise"][0]["entity"] == "climate.umlz_heizkreis"
     assert steuerung["warmwasser"]["ist"] == "sensor.warmwasser_ist"
     assert steuerung["warmwasser"]["laden"] == "switch.ww_einmalladung"
@@ -326,7 +326,7 @@ def test_steuerung_findet_heizkreis_und_warmwasser(panel, kessel_und_heizkreis):
 
 def test_steuerung_ohne_warmwasser_bleibt_leer(panel):
     ohne = anlage(teil("Südbau", 14, [entitaet("climate.hebebuehne", "Südbau")]))
-    assert panel._anlage_daten(ohne)["steuerung"]["warmwasser"] is None
+    assert panel.anlage_daten(ohne)["steuerung"]["warmwasser"] is None
 
 
 def test_steuerung_nimmt_die_betriebswahl_des_kreises(panel):
@@ -341,7 +341,7 @@ def test_steuerung_nimmt_die_betriebswahl_des_kreises(panel):
             ],
         )
     )
-    kreis = panel._anlage_daten(mit)["steuerung"]["heizkreise"][0]
+    kreis = panel.anlage_daten(mit)["steuerung"]["heizkreise"][0]
     assert kreis["betriebswahl"] == "select.betriebswahl"
     assert kreis["programm"] == "sensor.heizprogramm"
 
@@ -362,7 +362,7 @@ def test_steuerung_findet_die_einsteller_von_eco_und_comfort(panel):
             ],
         )
     )
-    kreis = panel._anlage_daten(mit)["steuerung"]["heizkreise"][0]
+    kreis = panel.anlage_daten(mit)["steuerung"]["heizkreise"][0]
     assert kreis["uebersteuerung_dauer"] == "number.dauer"
     assert kreis["uebersteuerung_temperatur"] == "number.temperatur"
 
@@ -377,7 +377,7 @@ def test_wartung_trennt_restlaufzeit_von_zaehler(panel):
             entitaet("sensor.vorratsbehaelter", "Vorratsbehälter"),
         ],
     )
-    wartung = panel._anlage_daten(anlage(anlagenteil))["wartung"]
+    wartung = panel.anlage_daten(anlage(anlagenteil))["wartung"]
     assert [z["titel"] for z in wartung["restlaufzeiten"]] == ["Laufzeit bis Ascheentleerung"]
     assert [z["titel"] for z in wartung["zaehler"]] == ["Betriebsstunden"]
     assert [z["titel"] for z in wartung["brennstoff"]] == ["Vorratsbehälter"]
@@ -403,7 +403,7 @@ def _kreis_mit_programmen():
 
 def test_ein_heizprogramm_nennt_seine_betriebswahl(panel):
     """Sonst sieht man der Karte nicht an, ob dieses Programm gerade gilt."""
-    programme = panel._anlage_daten(_kreis_mit_programmen())["zeitprogramme"]
+    programme = panel.anlage_daten(_kreis_mit_programmen())["zeitprogramme"]
     karte = next(p for p in programme if p["titel"] == "Programm 2")
 
     assert karte["wirkung"]["entity"] == "select.betriebswahl"
@@ -434,7 +434,7 @@ def _kreis_mit_texten(betriebswahl_bereich: str = "select"):
 
 def test_ein_heizprogramm_nennt_sein_ziel(panel):
     """Die Taste „Aktivieren" braucht den Optionstext so, wie die Auswahl ihn führt."""
-    programme = {p["titel"]: p for p in panel._anlage_daten(_kreis_mit_texten())["zeitprogramme"]}
+    programme = {p["titel"]: p for p in panel.anlage_daten(_kreis_mit_texten())["zeitprogramme"]}
 
     wirkung = programme["Programm 2"]["wirkung"]
     assert wirkung["ziel"] == "Programm 2"
@@ -443,14 +443,14 @@ def test_ein_heizprogramm_nennt_sein_ziel(panel):
 
 def test_das_ww_programm_hat_kein_ziel(panel):
     """Es gilt in jeder Betriebswahl außer Standby; es gibt keinen einzelnen Eintrag."""
-    programme = {p["titel"]: p for p in panel._anlage_daten(_kreis_mit_texten())["zeitprogramme"]}
+    programme = {p["titel"]: p for p in panel.anlage_daten(_kreis_mit_texten())["zeitprogramme"]}
 
     assert "ziel" not in programme["WW-Programm"]["wirkung"]
 
 
 def test_eine_schreibgeschuetzte_betriebswahl_hat_kein_ziel(panel):
     programme = {
-        p["titel"]: p for p in panel._anlage_daten(_kreis_mit_texten("sensor"))["zeitprogramme"]
+        p["titel"]: p for p in panel.anlage_daten(_kreis_mit_texten("sensor"))["zeitprogramme"]
     }
 
     assert "ziel" not in programme["Programm 2"]["wirkung"]
@@ -458,7 +458,7 @@ def test_eine_schreibgeschuetzte_betriebswahl_hat_kein_ziel(panel):
 
 def test_ohne_optionstext_gibt_es_kein_ziel(panel):
     """Der Ersatztext ist geraten; auf ihn schaltet die Taste nicht."""
-    programme = panel._anlage_daten(_kreis_mit_programmen())["zeitprogramme"]
+    programme = panel.anlage_daten(_kreis_mit_programmen())["zeitprogramme"]
     karte = next(p for p in programme if p["titel"] == "Programm 2")
 
     assert "ziel" not in karte["wirkung"]
@@ -468,7 +468,7 @@ def test_der_hinweis_zum_heizprogramm_steht_im_woerterbuch(panel):
     """Ein Text mit eingesetztem Namen träfe keinen Eintrag und bliebe deutsch."""
     from custom_components.heatnexus.texte import Woerterbuch
 
-    programme = panel._anlage_daten(_kreis_mit_programmen())["zeitprogramme"]
+    programme = panel.anlage_daten(_kreis_mit_programmen())["zeitprogramme"]
     hinweis = next(p for p in programme if p["titel"] == "Programm 2")["wirkung"]["hinweis"]
 
     assert Woerterbuch("en")(hinweis) != hinweis
@@ -489,7 +489,7 @@ def test_das_ww_programm_gilt_ausserhalb_von_standby(panel):
             ],
         )
     )
-    (karte,) = panel._anlage_daten(mit)["zeitprogramme"]
+    (karte,) = panel.anlage_daten(mit)["zeitprogramme"]
 
     assert karte["wirkung"]["entity"] == "select.betriebswahl"
     assert karte["wirkung"]["muster_nicht"] == "standby"
@@ -518,7 +518,7 @@ def test_die_wirkung_folgt_dem_auswahltext_der_gewaehlten_sprache(panel):
             ],
         )
     )
-    programme = {p["titel"]: p for p in panel._anlage_daten(kreis)["zeitprogramme"]}
+    programme = {p["titel"]: p for p in panel.anlage_daten(kreis)["zeitprogramme"]}
 
     assert programme["Programm 2"]["wirkung"]["muster"] == "program 2"
     assert programme["WW-Programm"]["wirkung"]["muster_nicht"] == "stand-by"
@@ -541,7 +541,7 @@ def test_ein_umbenanntes_heizprogramm_behaelt_seine_betriebswahl(panel):
             ],
         )
     )
-    (karte,) = panel._anlage_daten(kreis)["zeitprogramme"]
+    (karte,) = panel.anlage_daten(kreis)["zeitprogramme"]
 
     assert karte["wirkung"]["muster"] == "programm 2"
 
@@ -560,7 +560,7 @@ def test_die_pufferwirkung_folgt_dem_auswahltext(panel):
             ),
         ],
     )
-    (karte,) = panel._anlage_daten(anlage(puffer))["zeitprogramme"]
+    (karte,) = panel.anlage_daten(anlage(puffer))["zeitprogramme"]
 
     assert karte["wirkung"]["muster"] == "auto with time program"
     assert karte["wirkung"]["ziel"] == "Auto with time program"
@@ -578,7 +578,7 @@ def test_eine_schreibgeschuetzte_betriebswahl_zeigt_das_gueltige_programm(panel)
             ],
         )
     )
-    (karte,) = panel._anlage_daten(kreis)["zeitprogramme"]
+    (karte,) = panel.anlage_daten(kreis)["zeitprogramme"]
 
     assert karte["wirkung"]["entity"] == "sensor.betriebswahl"
 
@@ -592,7 +592,7 @@ def test_ohne_betriebswahl_bleibt_das_heizprogramm_ohne_hinweis(panel):
             [entitaet("sensor.programm_2", "Programm 2", adresse="3/62")],
         )
     )
-    (karte,) = panel._anlage_daten(ohne)["zeitprogramme"]
+    (karte,) = panel.anlage_daten(ohne)["zeitprogramme"]
 
     assert "wirkung" not in karte
 
@@ -613,7 +613,7 @@ def test_zeitprogramme_tragen_ihren_anlagenteil(panel):
             entitaet("sensor.vorlauftemperatur_ist", "Vorlauftemperatur Ist"),
         ],
     )
-    programme = panel._anlage_daten(anlage(kreis))["zeitprogramme"]
+    programme = panel.anlage_daten(anlage(kreis))["zeitprogramme"]
     assert [p["titel"] for p in programme] == ["Programm 1", "WW-Programm"]
     assert {p["anlagenteil"] for p in programme} == {"UMLZ HEIZKREIS"}
     assert programme[0]["entity"] == "sensor.programm_1"
@@ -635,7 +635,7 @@ def test_zirkulationsprogramm_sagt_wann_es_wirkt(panel):
             entitaet("sensor.programm_1", "Programm 1"),
         ],
     )
-    programme = {p["titel"]: p for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]}
+    programme = {p["titel"]: p for p in panel.anlage_daten(anlage(kreis))["zeitprogramme"]}
     wirkung = programme["WW-Zirkulationsprogramm"]["wirkung"]
     assert wirkung["entity"] == "select.ww_zirkulationspumpe"
     assert wirkung["muster"] == "zeitsteuerung"
@@ -672,7 +672,7 @@ def test_von_zwei_zirkulationsprogrammen_bleibt_das_wirksame(panel):
             ),
         ],
     )
-    programme = {p["entity"]: p for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]}
+    programme = {p["entity"]: p for p in panel.anlage_daten(anlage(kreis))["zeitprogramme"]}
     nach_zeit = programme["sensor.zirkulationsprogramm_zeit"]["wirkung"]
     nach_temperatur = programme["sensor.zirkulationsprogramm_temperatur"]["wirkung"]
 
@@ -708,7 +708,7 @@ def test_jedes_zirkulationsprogramm_nennt_seine_steuerungsart_als_ziel(panel):
             ),
         ],
     )
-    programme = {p["entity"]: p for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]}
+    programme = {p["entity"]: p for p in panel.anlage_daten(anlage(kreis))["zeitprogramme"]}
 
     assert programme["sensor.zirkulationsprogramm_zeit"]["wirkung"]["ziel"] == "Mit Zeitsteuerung"
     assert (
@@ -731,7 +731,7 @@ def test_ein_einzelnes_zirkulationsprogramm_wird_nie_versteckt(panel):
             entitaet("select.ww_zirkulationspumpe", "WW-Zirkulationspumpe"),
         ],
     )
-    programme = {p["titel"]: p for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]}
+    programme = {p["titel"]: p for p in panel.anlage_daten(anlage(kreis))["zeitprogramme"]}
     assert "verbergen_bei" not in programme["WW-Zirkulationsprogramm"]["wirkung"]
 
 
@@ -750,7 +750,7 @@ def test_nur_sensoren_kommen_als_zeitprogramm_in_frage(panel):
             entitaet("number.urlaubsprogramm", "Urlaubsprogramm"),
         ],
     )
-    assert panel._anlage_daten(anlage(kreis))["zeitprogramme"] == []
+    assert panel.anlage_daten(anlage(kreis))["zeitprogramme"] == []
 
 
 def test_die_bezeichnung_kommt_in_die_programmkarte(panel):
@@ -766,7 +766,7 @@ def test_die_bezeichnung_kommt_in_die_programmkarte(panel):
             ],
         )
     )
-    programme = {p["titel"]: p for p in panel._anlage_daten(kreis)["zeitprogramme"]}
+    programme = {p["titel"]: p for p in panel.anlage_daten(kreis)["zeitprogramme"]}
 
     assert programme["Programm 2"]["bezeichnung"] == "Übergangszeit"
     assert "bezeichnung" not in programme["Programm 3"]
@@ -776,14 +776,14 @@ def test_die_bezeichnung_kommt_in_die_programmkarte(panel):
 # Rückfragen
 # ---------------------------------------------------------------------------
 def test_serviceausbrand_fragt_nach(panel, kessel_und_heizkreis):
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
     eintraege = {e["titel"]: e for e in daten["schnellzugriff"]}
     assert eintraege["Serviceausbrand"]["frage"], "Serviceausbrand muss nachfragen"
 
 
 def test_warmwasserladung_fragt_nicht_nach(panel, kessel_und_heizkreis):
     """Was harmlos ist, darf nicht mit einer Rückfrage genervt werden."""
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
     eintraege = {e["titel"]: e for e in daten["schnellzugriff"]}
     assert eintraege["Warmwasser laden"]["frage"] == ""
 
@@ -794,7 +794,7 @@ def test_gleiche_bedienungen_nennen_ihren_anlagenteil(panel):
     log = teil("LogWIN", 10, [entitaet("select.betriebswahl_log", "Betriebswahl")])
     ofen = teil("PuroWIN", 25, [entitaet("button.serviceausbrand", "Serviceausbrand")])
 
-    eintraege = panel._anlage_daten(anlage(bio, log, ofen))["schnellzugriff"]
+    eintraege = panel.anlage_daten(anlage(bio, log, ofen))["schnellzugriff"]
 
     teile = {e["entity"]: e.get("anlagenteil") for e in eintraege}
     assert teile["select.betriebswahl_bio"] == "BioWIN"
@@ -806,7 +806,7 @@ def test_gleiche_bedienungen_nennen_ihren_anlagenteil(panel):
 # Störungen und Kennwerte
 # ---------------------------------------------------------------------------
 def test_stoerungen_kommen_aus_der_diagnose(panel, kessel_und_heizkreis):
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
     assert [s["entity"] for s in daten["stoerungen"]] == ["sensor.meldung_klartext"]
 
 
@@ -818,7 +818,7 @@ def test_je_anlagenteil_ein_leitwert(panel, kessel_und_heizkreis):
     eigene Zeile. Ohne die Ausnahme stünde am Heizkreis nur die Raumtemperatur
     und das Warmwasser gar nicht.
     """
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
     leitwerte = [
         e for e in daten["kennwerte"] if e["untertitel"] not in ("Warmwasser", "Zirkulation")
     ]
@@ -863,7 +863,7 @@ def test_ein_eigener_warmwasserspeicher_erscheint_einmal(panel):
             ),
         ],
     )
-    daten = panel._anlage_daten(anlage(kreis, speicher))
+    daten = panel.anlage_daten(anlage(kreis, speicher))
 
     zeilen = [(k["titel"], k["entity"]) for k in daten["kennwerte"]]
     assert zeilen == [
@@ -873,7 +873,7 @@ def test_ein_eigener_warmwasserspeicher_erscheint_einmal(panel):
 
 
 def test_leere_anlage_ergibt_leere_aufteilung(panel):
-    daten = panel._anlage_daten(anlage())
+    daten = panel.anlage_daten(anlage())
     assert daten["kennwerte"] == []
     assert daten["heizkreise"] == []
     assert daten["schema_svg"] is None
@@ -901,7 +901,7 @@ def test_das_pufferprogramm_nennt_seine_betriebswahl(panel):
             ),
         ],
     )
-    programme = {p["titel"]: p for p in panel._anlage_daten(anlage(puffer))["zeitprogramme"]}
+    programme = {p["titel"]: p for p in panel.anlage_daten(anlage(puffer))["zeitprogramme"]}
     wirkung = programme["Zeitprogramm"]["wirkung"]
     assert wirkung["entity"] == "select.puffer_betriebswahl"
     assert wirkung["muster"] == "zeitprogramm"
@@ -926,7 +926,7 @@ def test_das_estrichprogramm_ist_kein_zeitprogramm(panel):
             entitaet("sensor.programm_1", "Programm 1"),
         ],
     )
-    daten = panel._anlage_daten(anlage(kreis))
+    daten = panel.anlage_daten(anlage(kreis))
 
     titel = [p["titel"] for p in daten["zeitprogramme"]]
     assert "Programm" not in titel
@@ -951,7 +951,7 @@ def test_jedes_zeitprogramm_traegt_sein_eigenes_symbol(panel):
         ],
     )
     kreis["symbol"] = "mdi:radiator"
-    symbole = {p["titel"]: p["symbol"] for p in panel._anlage_daten(anlage(kreis))["zeitprogramme"]}
+    symbole = {p["titel"]: p["symbol"] for p in panel.anlage_daten(anlage(kreis))["zeitprogramme"]}
     assert symbole["WW-Zirkulationsprogramm"] == "mdi:reload"
     assert symbole["WW-Programm"] == "mdi:water-boiler"
     assert symbole["Heizprogramm 1"] == "mdi:radiator"
@@ -968,7 +968,7 @@ def test_ein_unbekanntes_anlagenteil_bekommt_seinen_leitwert(panel):
     diesen Funktionstyp steht, ist die Antwort des Herstellers auf dieselbe
     Frage.
     """
-    daten = panel._anlage_daten(
+    daten = panel.anlage_daten(
         anlage(
             teil(
                 "Fremdkessel",
@@ -987,7 +987,7 @@ def test_ein_unbekanntes_anlagenteil_bekommt_seinen_leitwert(panel):
 
 def test_das_namensmuster_geht_der_uebersichtsebene_vor(panel):
     """Es ist an einer echten Anlage entstanden, die Ebene nur abgeleitet."""
-    daten = panel._anlage_daten(
+    daten = panel.anlage_daten(
         anlage(
             teil(
                 "PuroWIN",
@@ -1008,7 +1008,7 @@ def test_der_leitwert_nimmt_lieber_einen_gefuellten_wert(panel):
     Steht der leere Eintrag in der Herstellerliste vorn, zeigte die Zeile
     nichts, obwohl daneben schon ein Wert derselben Liste bereitstand.
     """
-    daten = panel._anlage_daten(
+    daten = panel.anlage_daten(
         anlage(
             teil(
                 "Fremdkessel",
@@ -1026,7 +1026,7 @@ def test_der_leitwert_nimmt_lieber_einen_gefuellten_wert(panel):
 
 def test_ohne_uebersichtsebene_bleibt_es_beim_bisherigen(panel):
     """Ein unbekannter Funktionstyp ohne Beleg erfindet nichts."""
-    daten = panel._anlage_daten(
+    daten = panel.anlage_daten(
         anlage(teil("Unbekannt", 99, [entitaet("sensor.x", "Irgendwas", adresse="99/99")]))
     )
     assert daten["kennwerte"] == []
@@ -1037,7 +1037,7 @@ def test_ohne_uebersichtsebene_bleibt_es_beim_bisherigen(panel):
 # ---------------------------------------------------------------------------
 def test_hilfe_liste_zeigt_nur_was_die_anlage_fuehrt(panel):
     """Ein Reiter, der nicht verbaute Technik erklärt, schickt in die Irre."""
-    daten = panel._anlage_daten(
+    daten = panel.anlage_daten(
         anlage(teil("PuroWIN", 25, [entitaet("button.serviceausbrand", "Serviceausbrand")]))
     )
     titel = [e["titel"] for e in daten["hilfe_liste"]]
@@ -1048,7 +1048,7 @@ def test_hilfe_liste_zeigt_nur_was_die_anlage_fuehrt(panel):
 
 
 def test_hilfe_liste_ist_sortiert_und_ohne_dubletten(panel, kessel_und_heizkreis):
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
     titel = [e["titel"] for e in daten["hilfe_liste"]]
     assert titel == sorted(titel)
     assert len(titel) == len(set(titel))
@@ -1057,7 +1057,7 @@ def test_hilfe_liste_ist_sortiert_und_ohne_dubletten(panel, kessel_und_heizkreis
 
 def test_hilfe_liste_bleibt_leer_statt_zu_scheitern(panel):
     """Eine Anlage ohne passende Datenpunkte ist kein Fehlerfall."""
-    daten = panel._anlage_daten(anlage(teil("Unbekannt", 99, [])))
+    daten = panel.anlage_daten(anlage(teil("Unbekannt", 99, [])))
     assert isinstance(daten["hilfe_liste"], list)
 
 
@@ -1086,7 +1086,7 @@ def test_wartung_zaehlt_tageswerte_zu_den_zaehlerstaenden(panel):
             entitaet("sensor.laufzeit_heute", "Laufzeit heute", state_class="total"),
         ],
     )
-    wartung = panel._anlage_daten(anlage(anlagenteil))["wartung"]
+    wartung = panel.anlage_daten(anlage(anlagenteil))["wartung"]
 
     assert [z["titel"] for z in wartung["zaehler"]] == [
         "Betriebsstunden",
@@ -1110,7 +1110,7 @@ def test_ein_abstand_verdraengt_die_warmwassertemperatur_nicht(panel, kessel_und
             entitaet("sensor.ww_einschaltpunkt_delta", "WW-Einschaltpunkt Delta", abgeleitet=True),
         )
 
-    namen = [w["titel"] for w in panel._anlage_daten(kessel_und_heizkreis)["warmwasser"]]
+    namen = [w["titel"] for w in panel.anlage_daten(kessel_und_heizkreis)["warmwasser"]]
 
     assert "WW-Einschaltpunkt Delta" not in namen
     assert "Warmwasser Ist-Temperatur" in namen
@@ -1126,7 +1126,7 @@ def test_der_kaminkehrer_fragt_nach_der_leistung(panel, kessel_und_heizkreis):
             entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
         ]
 
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
     taste = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
 
     assert taste["leistung"] == "number.kaminkehrer_leistung"
@@ -1145,7 +1145,7 @@ def test_der_kaminkehrer_fragt_auch_nach_der_laufzeit(panel, kessel_und_heizkrei
             entitaet("number.kaminkehrer_laufzeit", "Kaminkehrer Laufzeit"),
         ]
 
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
     taste = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
 
     assert taste["laufzeit"] == "number.kaminkehrer_laufzeit"
@@ -1162,7 +1162,7 @@ def test_eine_schreibgeschuetzte_laufzeit_bleibt_aus_dem_dialog(panel, kessel_un
             entitaet("sensor.kaminkehrer_laufzeit", "Kaminkehrer Laufzeit"),
         ]
 
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
     taste = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
 
     assert "laufzeit" not in taste
@@ -1178,7 +1178,7 @@ def test_das_beenden_eines_eingriffs_kuendigt_sich_an(panel, kessel_und_heizkrei
             entitaet("switch.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
         ]
 
-    daten = panel._anlage_daten(kessel_und_heizkreis)
+    daten = panel.anlage_daten(kessel_und_heizkreis)
     kaminkehrer = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
 
     assert kaminkehrer["titel_abbrechen"] == "Kaminkehrer beenden"
@@ -1199,7 +1199,7 @@ def test_die_lagerraumkarte_nimmt_auch_einen_schalter(panel, kessel_und_heizkrei
             entitaet("sensor.lagerraum_restlaufzeit", "Lagerraumbefüllung Restlaufzeit"),
         ]
 
-    lagerraum = panel._anlage_daten(kessel_und_heizkreis)["steuerung"]["lagerraum"]
+    lagerraum = panel.anlage_daten(kessel_und_heizkreis)["steuerung"]["lagerraum"]
 
     assert lagerraum["anfordern"] == "switch.lagerraumbefuellung"
     assert lagerraum["titel_abbrechen"]
@@ -1216,7 +1216,7 @@ def test_der_kaminkehrer_steht_auch_in_der_steuerung(panel, kessel_und_heizkreis
             entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
         ]
 
-    kessel = panel._anlage_daten(kessel_und_heizkreis)["steuerung"]["kessel"]
+    kessel = panel.anlage_daten(kessel_und_heizkreis)["steuerung"]["kessel"]
     taste = next(e for e in kessel if e["titel"] == "Kaminkehrer")
 
     assert taste["leistung"] == "number.kaminkehrer_leistung"
@@ -1331,7 +1331,7 @@ def quelle(name: str, art: str):
 
 
 def test_eine_waermequelle_bekommt_ihre_zeile(panel):
-    daten = panel._anlage_daten(anlage(quelle("Solaranlage", "solar")))
+    daten = panel.anlage_daten(anlage(quelle("Solaranlage", "solar")))
 
     zeilen = daten["kennwerte"]
     assert [z["titel"] for z in zeilen] == ["Solaranlage"]
@@ -1344,14 +1344,14 @@ def test_eine_englische_waermequelle_bekommt_ihre_zeile(panel):
     eintrag["entitaeten"][0].update(name="Heat delivery", name_de="Heat delivery")
     eintrag["entitaeten"][0]["schluessel"] = "heat_delivery"
 
-    zeilen = panel._anlage_daten(anlage(eintrag))["kennwerte"]
+    zeilen = panel.anlage_daten(anlage(eintrag))["kennwerte"]
 
     assert [z["entity"] for z in zeilen] == ["binary_sensor.q_waerme"]
 
 
 def test_jede_bauart_bringt_ihr_eigenes_symbol(panel):
-    solar = panel._anlage_daten(anlage(quelle("Solaranlage", "solar")))["kennwerte"][0]
-    stab = panel._anlage_daten(anlage(quelle("Heizstab", "heizstab")))["kennwerte"][0]
+    solar = panel.anlage_daten(anlage(quelle("Solaranlage", "solar")))["kennwerte"][0]
+    stab = panel.anlage_daten(anlage(quelle("Heizstab", "heizstab")))["kennwerte"][0]
 
     assert solar["symbol"] != stab["symbol"]
 
@@ -1361,7 +1361,7 @@ def test_ohne_lieferungsmeldung_bleibt_die_zeile_weg(panel):
     ohne = quelle("Solaranlage", "solar")
     ohne["entitaeten"] = []
 
-    assert panel._anlage_daten(anlage(ohne))["kennwerte"] == []
+    assert panel.anlage_daten(anlage(ohne))["kennwerte"] == []
 
 
 def test_englische_namen_ergeben_dieselbe_oberflaeche(panel, kessel_und_heizkreis):
@@ -1377,10 +1377,10 @@ def test_englische_namen_ergeben_dieselbe_oberflaeche(panel, kessel_und_heizkrei
         entitaet("sensor.ww_zirkulationsprogramm", "WW-Zirkulationsprogramm"),
         entitaet("select.betriebswahl", "Betriebswahl"),
     ]
-    deutsch = panel._anlage_daten(kessel_und_heizkreis)
+    deutsch = panel.anlage_daten(kessel_und_heizkreis)
     englisch, namen = auf_englisch(kessel_und_heizkreis["teile"])
 
-    ergebnis = zurueck_auf_deutsch(panel._anlage_daten(anlage(*englisch)), namen)
+    ergebnis = zurueck_auf_deutsch(panel.anlage_daten(anlage(*englisch)), namen)
 
     # Hilfeliste und Schaubildwerte sind nach dem angezeigten Namen sortiert.
     for daten in (deutsch, ergebnis):
@@ -1407,9 +1407,9 @@ def test_warmwasser_laden_erkennt_englische_betriebswahl():
         optionen={3: "DHW charging", 17: "Hot water hygiene programme", 18: "DHW single charge"},
     )
 
-    from custom_components.heatnexus.panel.daten import _warmwasser_bedienung
+    from custom_components.heatnexus.panel.steuerung import warmwasser_bedienung
 
-    bedienung = _warmwasser_bedienung([art, wahl], [art, wahl])
+    bedienung = warmwasser_bedienung([art, wahl], [art, wahl])
 
     assert re.search(bedienung["betriebswahl_aus"], "Stand-by", re.IGNORECASE)
     assert not re.search(bedienung["betriebswahl_aus"], "Program 1", re.IGNORECASE)
