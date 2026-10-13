@@ -44,10 +44,10 @@ export const AUTOMATIK = `
   .automatik-gruppe + .automatik-gruppe, .automatik-schalter + .automatik-gruppe {
     padding-left: 24px; border-left: 1px solid var(--hn-linie);
   }
-  .automatik-gruppentitel { font-size: 13px; color: var(--hn-gedaempft); }
-  .automatik-gruppentitel .fragezeichen {
-    width: 18px; height: 18px; font-size: 11px; margin-left: 6px; vertical-align: middle;
+  .automatik-gruppentitel {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--hn-gedaempft);
   }
+  .automatik-gruppentitel .fragezeichen { width: 18px; height: 18px; font-size: 11px; }
   /* Schalter: Text vorn, dahinter eine eckige Spur wie die Segmenttasten; eingeschaltet mit Haken. */
   .automatik-schalter {
     display: inline-flex; align-items: center; gap: 12px; padding: 0; cursor: pointer;
@@ -515,8 +515,8 @@ export const AUTOMATIK = `
     .automatik-gruppe + .automatik-gruppe, .automatik-schalter + .automatik-gruppe { padding-left: 0; border-left: none; }
     /* Das Segment nimmt die ganze Zeile unter dem Titel ein; lange Tasten brechen um, statt überzustehen. */
     .automatik-gruppe { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; gap: 6px 10px; }
-    .automatik-segment { flex: 1 1 100%; min-width: 0; }
-    .automatik-segment button { flex: 1 1 0; min-width: 0; padding: 6px 8px; hyphens: auto; overflow-wrap: break-word; }
+    .automatik-segment { flex: 1 1 100%; min-width: 0; flex-wrap: wrap; }
+    .automatik-segment button { flex: 1 1 auto; padding: 6px 8px; white-space: nowrap; }
     .automatik-hinweis { flex-wrap: wrap; }
     .automatik-hinweis .text { flex: 1 1 100%; }
     .automatik-stundenlegende { margin-left: 0; }
