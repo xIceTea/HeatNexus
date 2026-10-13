@@ -31,3 +31,7 @@ def befund() -> dict:
 
 def test_der_neuaufbau_haeuft_keine_klickhoerer_an(befund):
     assert befund["klickhoererNachFuenfAufbauten"] <= 1
+
+
+def test_gleiche_daten_loesen_keinen_neuaufbau_aus(befund):
+    assert befund["neuaufbauBeiGleichenDaten"] is False

@@ -65,4 +65,15 @@ const befund = {};
   befund.klickhoererNachFuenfAufbauten = flaeche.shadowRoot.hoererZahl("click");
 }
 
+// --- Gleiche Daten lösen keinen Neuaufbau aus -------------------------------
+{
+  const { flaeche } = bauen({ ws: async () => JSON.parse(JSON.stringify(DATEN)) });
+  await abwarten();
+  const knoten = inhalt(flaeche);
+  await flaeche._datenHolen();
+  flaeche.panel = { config: { daten: DATEN } };
+  await abwarten();
+  befund.neuaufbauBeiGleichenDaten = inhalt(flaeche) !== knoten;
+}
+
 process.stdout.write(JSON.stringify(befund, null, 2));

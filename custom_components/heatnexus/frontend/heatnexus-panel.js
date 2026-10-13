@@ -131,13 +131,24 @@ class HeatNexusPanel extends Grundlage {
     this._zeichnen();
   }
 
+  /** Gleicher Inhalt, auch bei neuem Objekt: Nur Änderungen lösen einen Neuaufbau aus. */
+  _inhaltGleich(a, b) {
+    try {
+      return JSON.stringify(a) === JSON.stringify(b);
+    } catch (err) {
+      return false;
+    }
+  }
+
   async _datenHolen() {
     try {
       const daten = await this._hass.callWS({ type: "heatnexus/panel_daten" });
       if (!daten || !daten.anlagen || !daten.anlagen.length) return;
+      const geaendert = !this._inhaltGleich(daten, this._daten);
       this._eigeneDaten = true;
       this._daten = daten;
       this._texte = daten.texte || {};
+      if (!geaendert && this._gebaut) return;
       this._gebaut = false;
       this._zeichnen();
     } catch (err) {
@@ -150,8 +161,11 @@ class HeatNexusPanel extends Grundlage {
   /** Die eigene Anordnung holen; ohne sie gilt die Standardanordnung. */
   async _anordnungHolen() {
     try {
-      this._anordnung = (await this._hass.callWS({ type: "heatnexus/anordnung" })) || {};
+      const neu = (await this._hass.callWS({ type: "heatnexus/anordnung" })) || {};
+      const geaendert = !this._inhaltGleich(neu, this._anordnung);
+      this._anordnung = neu;
       this._farbsatzMerken(this._einstellungen().farbsatz);
+      if (!geaendert && this._gebaut) return;
       this._gebaut = false;
       this._zeichnen();
     } catch (err) {
