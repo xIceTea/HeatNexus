@@ -1155,13 +1155,29 @@ async def test_kreisbadge_zeigt_die_kurzfassung_bei_abweichung(badges, hass):
     zustand = _kreisautomatik(hass, eintrag, "hk1", "Heizkreis 1")
     liste = badges.uebersichtszeile(hass, [])
     assert [b["entity"] for b in liste] == [status.entity_id, zustand.entity_id]
-    assert [b["name"] for b in liste] == ["Automatik", "Kesselhaus · Heizkreis 1"]
+    assert [b["name"] for b in liste] == ["Automatik", "Automatik Kesselhaus · Heizkreis 1"]
     assert liste[1]["state_content"] == "kurz"
     assert liste[1]["visibility"] == [
         {"condition": "state", "entity": zustand.entity_id, "state_not": ["programm", "aus"]}
     ]
-    assert "visibility" not in liste[0]
     assert "state_content" not in liste[0]
+
+
+async def test_der_automatikstatus_erscheint_nur_bei_abweichung(badges, hass):
+    """Bereit, beobachtend oder aus ist der Normalfall und braucht keine Badge."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    eintrag = MockConfigEntry(domain="heatnexus", data={})
+    eintrag.add_to_hass(hass)
+    status = _automatikstatus(hass, eintrag)
+    [badge] = badges.uebersichtszeile(hass, [])
+    assert badge["visibility"] == [
+        {
+            "condition": "state",
+            "entity": status.entity_id,
+            "state_not": ["aus", "beobachten", "bereit"],
+        }
+    ]
 
 
 async def test_kreisbadges_je_heizkreis(badges, hass):
@@ -1174,7 +1190,10 @@ async def test_kreisbadges_je_heizkreis(badges, hass):
     zweiter = _kreisautomatik(hass, eintrag, "hk2", "Heizkreis 2", label="")
     liste = badges.uebersichtszeile(hass, [])
     assert [b["entity"] for b in liste[1:]] == [erster.entity_id, zweiter.entity_id]
-    assert [b["name"] for b in liste[1:]] == ["Kesselhaus · Heizkreis 1", "Heizkreis 2"]
+    assert [b["name"] for b in liste[1:]] == [
+        "Automatik Kesselhaus · Heizkreis 1",
+        "Automatik Heizkreis 2",
+    ]
 
 
 async def test_kreisbadges_gleichnamiger_heizkreise_tragen_die_kennung(badges, hass):
@@ -1185,7 +1204,10 @@ async def test_kreisbadges_gleichnamiger_heizkreise_tragen_die_kennung(badges, h
     _kreisautomatik(hass, eintrag, "hk1", "Heizkreis")
     _kreisautomatik(hass, eintrag, "hk2", "Heizkreis")
     namen = [b["name"] for b in badges.uebersichtszeile(hass, [])]
-    assert namen == ["Kesselhaus · Heizkreis (hk1)", "Kesselhaus · Heizkreis (hk2)"]
+    assert namen == [
+        "Automatik Kesselhaus · Heizkreis (hk1)",
+        "Automatik Kesselhaus · Heizkreis (hk2)",
+    ]
 
 
 async def test_zwei_automatiksysteme_tragen_den_eintrag_im_namen(badges, hass):
@@ -1207,7 +1229,7 @@ async def test_zwei_automatiksysteme_tragen_den_eintrag_im_namen(badges, hass):
     assert [b["name"] for b in liste] == [
         "Automatik · Kesselhaus",
         "Automatik · Werkstatt",
-        "Werkstatt · Heizkreis 1",
+        "Automatik Werkstatt · Heizkreis 1",
     ]
 
 
@@ -1221,7 +1243,7 @@ async def test_kreisbadge_fehlt_wenn_abgeschaltet(badges, hass):
     _kreisautomatik(hass, eintrag, "hk1", "Heizkreis 1", disabled_by=er.RegistryEntryDisabler.USER)
     zweiter = _kreisautomatik(hass, eintrag, "hk2", "Heizkreis 2")
     liste = badges.uebersichtszeile(hass, [])
-    assert [b["name"] for b in liste] == ["Automatik", "Kesselhaus · Heizkreis 2"]
+    assert [b["name"] for b in liste] == ["Automatik", "Automatik Kesselhaus · Heizkreis 2"]
     assert liste[1]["entity"] == zweiter.entity_id
 
 

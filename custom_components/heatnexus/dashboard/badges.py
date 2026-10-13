@@ -25,6 +25,8 @@ VORRAT = ("fuel_storage_status", "Vorrat")
 
 # Zustände, in denen ein Heizkreis seinem Programm folgt; nur Abweichungen zeigen eine Badge.
 PLANMAESSIG = ["programm", "aus"]
+# Zustände der Automatik ohne Abweichung; die Badge erscheint nur bei den übrigen.
+AUTOMATIK_RUHIG = ["aus", "beobachten", "bereit"]
 
 # Eine Badge vor dem Zusammensetzen: Entität, Name, Sichtbarkeit.
 Eintrag = tuple[str, str, list[dict[str, Any]] | None]
@@ -195,7 +197,8 @@ def _automatiken(hass: HomeAssistant, eintraege: list[ConfigEntry]) -> list[dict
     for eintrag in eintraege:
         if entity_id := status.get(eintrag.entry_id):
             name = f"Automatik · {eintrag.title}" if mehrere and eintrag.title else "Automatik"
-            ergebnis.append(badge(entity_id, name))
+            sichtbar = [{"condition": "state", "entity": entity_id, "state_not": AUTOMATIK_RUHIG}]
+            ergebnis.append(badge(entity_id, name, sichtbar))
         ergebnis.extend(_kreise(hass, eintrag))
     return ergebnis
 
@@ -210,7 +213,7 @@ def _kreise(hass: HomeAssistant, eintrag: ConfigEntry) -> list[dict[str, Any]]:
     return [
         badge(
             entity_id,
-            namen[lz.device_id],
+            f"Automatik {namen[lz.device_id]}",
             [{"condition": "state", "entity": entity_id, "state_not": PLANMAESSIG}],
             inhalt="kurz",
         )
