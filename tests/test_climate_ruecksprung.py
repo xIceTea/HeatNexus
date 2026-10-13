@@ -220,5 +220,7 @@ def test_zeitgrenze_ist_kuerzer_als_der_nachlade_burst_lang(climate):
     Sonst verfiele die Anzeige, während die Anlage noch nachzieht – und der
     Regler spränge genau in dem Moment zurück, in dem der Nutzer hinsieht.
     """
-    burst = climate.FAST_REFRESH_COUNT * climate.FAST_REFRESH_INTERVAL
+    from custom_components.heatnexus.const import NACHFASS_ANZAHL, NACHFASS_INTERVALL
+
+    burst = NACHFASS_ANZAHL * NACHFASS_INTERVALL
     assert burst < climate.OPTIMISTIC_MAX_AGE_S

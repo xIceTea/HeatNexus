@@ -115,8 +115,7 @@ async def test_die_optimistische_anzeige_laeuft_auch_ohne_abruf_ab(thermostat):
     assert min(entitaet.geplant) > modul.OPTIMISTIC_MAX_AGE_S
 
 
-async def test_das_nachfassen_laeuft_als_hintergrundaufgabe_des_eintrags(thermostat):
-    entitaet, _, _ = thermostat
+async def test_nach_der_bedienung_liest_der_koordinator_nach(thermostat):
+    entitaet, koordinator, _ = thermostat
     await entitaet.async_set_preset_mode("4")
-    assert entitaet.platform.config_entry.hintergrund
-    assert not entitaet.hass.aufgaben
+    assert koordinator.nachgefasst

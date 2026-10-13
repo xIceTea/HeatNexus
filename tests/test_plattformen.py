@@ -45,6 +45,9 @@ class FakeClient:
         """Die Kennung aus den Seriennummern, wie sie der echte Client bildet."""
         return "SN1"
 
+    def climate_oids(self, prefix: str) -> list[str]:
+        return [f"{prefix}/1/1/0"]
+
     def register_poll_oid(self, oid: str) -> None:
         self.angemeldet.append(oid)
 
@@ -62,6 +65,15 @@ class FakeCoordinator:
         self.label = "Heizhaus"
         self.host = "192.0.2.10"
         self.neuron_id = "SN1"
+        self.nachgefasst: list[list[str]] = []
+        self.nachgelesen: list[list[str]] = []
+
+    async def werte_nachlesen(self, oids) -> dict:
+        self.nachgelesen.append(list(oids))
+        return {}
+
+    def nachfassen(self, oids, *_args, **_kwargs) -> None:
+        self.nachgefasst.append(list(oids))
 
     def async_add_listener(self, *_args, **_kwargs):
         return lambda: None
@@ -571,30 +583,13 @@ def schalter_modul():
 async def test_die_climate_entitaet_liest_nur_ihre_eigenen_werte_nach():
     """Die Oberfläche fasst nach einer Bedienung mehrfach nach.
 
-    Ein vollständiger Durchlauf dauert auf einer trägen Anlage zwanzig Sekunden.
+    Ein vollständiger Durchlauf dauert auf einer trägen Anlage deutlich länger.
     """
     from custom_components.heatnexus import climate as modul
 
     entitaet, koordinator = _entitaet(
         modul.WindhagerThermostatClimate, {}, prefix="/1/15/0", id="SN1-15-0-1-1-0"
     )
-    gelesen: list[list[str]] = []
-    durchlaeufe: list[int] = []
-
-    async def fetch_oids(oids):
-        gelesen.append(list(oids))
-        return dict.fromkeys(oids, "21")
-
-    async def async_request_refresh():
-        durchlaeufe.append(1)
-
-    koordinator.async_request_refresh = async_request_refresh
-    koordinator.async_update_listeners = lambda: None
-    entitaet.client.climate_oids = lambda prefix: [f"{prefix}/1/1/0"]
-    entitaet.client.fetch_oids = fetch_oids
-
     await entitaet.async_update()
 
-    assert gelesen == [["/1/15/0/1/1/0"]]
-    assert not durchlaeufe
-    assert koordinator.data["oids"]["/1/15/0/1/1/0"] == "21"
+    assert koordinator.nachgelesen == [["/1/15/0/1/1/0"]]

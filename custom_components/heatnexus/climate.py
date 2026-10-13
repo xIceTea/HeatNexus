@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 
@@ -52,12 +51,6 @@ HEIZPROGRAMM = 1
 # Neustart von Home Assistant übersteht: Sonst bliebe ein Heizkreis, dessen
 # Vorgabe während des Neustarts abläuft, für immer im Heizprogramm stehen.
 ATTR_MODUS_DAVOR = "modus_vor_vorgabe"
-
-# Schneller Nachlade-Burst nach einer Climate-Bedienung: das Gerät übernimmt
-# sofort, der normale 30-s-Poll ist aber zu träge. Daher kurz hochfrequent nur
-# die Climate-Werte nachladen (Anzahl x Intervall-Sekunden).
-FAST_REFRESH_COUNT = 6
-FAST_REFRESH_INTERVAL = 3
 
 # Sicherheits-Fallback: spätestens nach dieser Zeit wird der optimistische
 # Sollwert verworfen, auch wenn das Gerät ihn nie exakt bestätigt.
@@ -392,32 +385,13 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
             attrs[ATTR_MODUS_DAVOR] = self._modus_davor
         return attrs
 
-    # ------------------------------------------------------------------
-    # Schneller Nachlade-Burst (fängt den Poll-Delay nach einer Bedienung ab)
-    # ------------------------------------------------------------------
     def _start_fast_refresh(self) -> None:
-        """Kurzen, gezielten Nachlade-Burst der Climate-Werte anstoßen."""
-        self._im_hintergrund(self._fast_refresh_burst(), "nachlesen")
+        """Die Werte dieses Heizkreises nach einer Bedienung kurz engmaschig nachlesen."""
+        self.coordinator.nachfassen(self.client.climate_oids(self._prefix))
 
-    async def _fast_refresh_burst(self) -> None:
-        for _ in range(FAST_REFRESH_COUNT):
-            await asyncio.sleep(FAST_REFRESH_INTERVAL)
-            if not await self._werte_nachlesen():
-                break
-
-    async def _werte_nachlesen(self) -> bool:
+    async def _werte_nachlesen(self) -> None:
         """Die Werte dieses Heizkreises gezielt lesen und eintragen."""
-        try:
-            aktuell = await self.client.fetch_oids(self.client.climate_oids(self._prefix))
-        except Exception as err:  # Nachlesen ist ein Zusatz; der nächste Abruf folgt.
-            _LOGGER.debug("Nachlesen von %s fehlgeschlagen: %s", self._prefix, err)
-            return False
-        daten = self.coordinator.data
-        if daten is not None and aktuell:
-            daten.setdefault("oids", {}).update(aktuell)
-            # nur die Listener benachrichtigen (kein voller Geräte-Poll)
-            self.coordinator.async_update_listeners()
-        return True
+        await self.coordinator.werte_nachlesen(self.client.climate_oids(self._prefix))
 
     async def async_update(self) -> None:
         """Nur die Werte dieses Heizkreises neu lesen, nicht die ganze Anlage."""
