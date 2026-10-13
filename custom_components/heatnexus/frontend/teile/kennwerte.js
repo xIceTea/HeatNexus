@@ -20,13 +20,6 @@ export function aussenBereich(grenze) {
   return [Number(grenze) - 12, Number(grenze) + 8];
 }
 
-/** Einordnung der Auskühlzeit für Laien: Altbau mit wenig Masse kühlt unter 30 h, Neubau über 80 h. */
-export function traegheit(stunden) {
-  if (!vorhanden(stunden)) return null;
-  if (Number(stunden) < 30) return "schnell";
-  return Number(stunden) <= 80 ? "mittel" : "träge";
-}
-
 function knoten(tag, klasse = "", text = null) {
   const element = document.createElement(tag);
   if (klasse) element.className = klasse;
@@ -34,32 +27,20 @@ function knoten(tag, klasse = "", text = null) {
   return element;
 }
 
-// Vergleichstage, ab denen das Modell frei werden kann; wie `FREIGABE_TAGE` auf dem Server.
-const FREIGABE_TAGE = 14;
-// Warum noch kein Hausmodell besteht, je Grund aus der Laufzeit.
-const LERN_GRUENDE = {
-  daten: "Die Aufzeichnung liefert keine Raumwerte, Außentemperatur oder Vorlauf.",
-  unpassend: "Die Raumwerte ergeben noch keine plausible Auskühlzeit.",
-};
-
 function vorhanden(wert) {
   return wert !== null && wert !== undefined && !Number.isNaN(Number(wert));
 }
 
-/** Ausgewertete Arten, wenn der Server keine `arten` nennt: Kurve in zwei Bändern. */
-const STANDARD_ARTEN = ["kurve_uebergang", "kurve_frost", "sollwert", "morgen"];
-
 export const KennwerteMixin = (Basis) =>
   class extends Basis {
-    _automatikKennwerte(kreis, darf = false) {
+    _automatikKennwerte(kreis) {
       const raster = knoten("div", "automatik-werte");
       raster.append(
         ...[
           this._kachelAussen(kreis),
           this._kachelSonne(kreis),
           this._kachelRaeume(kreis),
-          this._kachelHaus(kreis),
-          this._kachelOptimierung(kreis, darf),
+          this._befundKompakt(kreis),
         ].filter(Boolean)
       );
       return raster;
@@ -237,172 +218,6 @@ export const KennwerteMixin = (Basis) =>
       if (raeume.length > 1 || k.eigene_ziele) fuss.push(this._raumliste(raeume));
       else fuss.push(knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) })));
       return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, skala, fuss));
-    }
-
-    /**
-     * Das gelernte Hausmodell: die Auskühlzeit als Zahl, darunter Treffsicherheit oder Lernstand.
-     * Ohne Angabe vom Server fehlt die Kachel.
-     */
-    _kachelHaus(kreis) {
-      const h = (kreis.kennwerte || {}).hausmodell;
-      if (!h) return null;
-      const fuss = (text) => knoten("div", "fuss", text);
-      if (h.status === "lernt") {
-        const grund = LERN_GRUENDE[h.grund];
-        return this._kachel("haus", "Haus", "–", this._t("lernt noch"), null, [grund ? fuss(this._t(grund)) : null]);
-      }
-      const genau = { fehler: zahl(h.fehler, 2), bleibt: zahl(h.fehler_bleibt, 2) };
-      let stand;
-      if (h.status === "aktiv") stand = this._tMit("±{fehler} K, ohne Modell ±{bleibt} K", genau);
-      else if ((h.vergleiche || 0) < FREIGABE_TAGE) stand = this._tMit("beobachtet – {tage} von 14 Tagen", { tage: h.vergleiche || 0 });
-      else stand = this._tMit("beobachtet – ±{fehler} K, ohne Modell ±{bleibt} K", genau);
-      const sonne = this._tMit("Sonne +{wert} K/h", { wert: zahl(h.sonne_k_h, 2) });
-      const einordnung = {
-        schnell: this._t("Auskühlzeit – schnell"),
-        mittel: this._t("Auskühlzeit – mittel"),
-        träge: this._t("Auskühlzeit – träge"),
-      }[traegheit(h.auskuehlzeit_h)];
-      const beisatz = einordnung || this._t("Auskühlzeit");
-      const kachel = this._kachel("haus", "Haus", `${zahl(h.auskuehlzeit_h, 0)} h`, beisatz, null, [fuss(stand), fuss(sonne)]);
-      this._klickbar(kachel.querySelector(".werte"), (kreis.entitaeten || {}).auskuehlzeit);
-      return kachel;
-    }
-
-    /**
-     * Die Optimierung in einem Rahmen über zwei Spalten: je ausgewertete Art eine Zeile, links der
-     * Fortschritt, rechts Hinweis, Tendenz oder „Keine Änderung nötig“. Ohne Angabe vom Server fehlt sie.
-     */
-    _kachelOptimierung(kreis, darf = false) {
-      const h = (kreis.kennwerte || {}).hinweise;
-      if (!h) return null;
-      if (h.status === "aus") {
-        const schalter = this._automatikSchalter(this._t("Optimierungshinweise anzeigen"), false, darf, () =>
-          this._automatikEinstellen(kreis, { hinweise: true })
-        );
-        return this._kachel("hinweise", "Optimierung", this._t("aus"), null, schalter);
-      }
-      const f = h.fortschritt || {};
-      const arten = this._optimierungsArten(h);
-      const fertig = arten.filter(([schluessel]) => h.noetig > 0 && (f[schluessel] || 0) >= h.noetig).length;
-      const zeilen = knoten("div", "optimierung-arten");
-      zeilen.append(...this._optimierungsZeilen(h, arten));
-      const kachel = this._kachel("hinweise breit", "Optimierung", `${fertig}/${arten.length}`, this._t("ausgewertet"), zeilen, [
-        this._optimierungsFuss(h),
-      ]);
-      const erklaerung = "Hinweise beruhen auf ungestörten Heizstunden seit der letzten Änderung der Heizkurve. Stunden mit einem Eingriff zählen nicht. Auch Stunden, in denen der Vorlauf sein Soll nicht erreicht, zählen nicht. Ab 4 Tagen erscheint eine vorläufige Tendenz, ab 7 Tagen eine Empfehlung. Die Automatik ändert diese Werte nicht.";
-      kachel.querySelector(".titel").appendChild(this._fragezeichen("Optimierung", erklaerung));
-      return kachel;
-    }
-
-    /** Die ausgewerteten Arten in Anzeigereihenfolge, wie der Server sie nach den vorhandenen Parametern nennt. */
-    _hinweisArten(h) {
-      return Array.isArray(h.arten) && h.arten.length ? h.arten : STANDARD_ARTEN;
-    }
-
-    /** Je ausgewertete Art in Anzeigereihenfolge: Schlüssel im Fortschritt, Titel, zugehörige Hinweisarten, Parameter. */
-    _optimierungsArten(h) {
-      const kurve = ["heizkurve_parallel", "steuerung_passt_an"];
-      const alle = new Map(
-        [
-          ["kurve_uebergang", this._t("Heizkurve in der Übergangszeit"), ["heizkurve_uebergang", ...kurve], "3/1"],
-          ["kurve_frost", this._t("Heizkurve bei Frost"), ["heizkurve_frost", ...kurve], "3/13"],
-          ["kurve", this._t("Heizkurve"), [...kurve, "kurvenform"], "3/58"],
-          ["sollwert", this._t("Raumsollwert"), ["sollwert_ausgleich"], "3/51"],
-          ["morgen", this._t("Aufheizen am Morgen"), ["morgen_spaet", "morgen_frueh"], "3/6"],
-        ].map((art) => [art[0], art])
-      );
-      return this._hinweisArten(h)
-        .map((schluessel) => alle.get(schluessel))
-        .filter(Boolean);
-    }
-
-    /** Eine Zeile je Art; ein Hinweis zur ganzen Kurve steht bei der ersten Art, zu der er gehört. */
-    _optimierungsZeilen(h, arten) {
-      const f = h.fortschritt || {};
-      const noetig = h.noetig || 0;
-      const entitaeten = h.entitaeten || {};
-      const offen = [...(h.eintraege || [])];
-      return arten.map(([schluessel, titel, eigene, parameter]) => {
-        const tage = f[schluessel] || 0;
-        const eigeneHinweise = offen.filter((eintrag) => eigene.includes(eintrag.art));
-        eigeneHinweise.forEach((eintrag) => offen.splice(offen.indexOf(eintrag), 1));
-        let bloecke = eigeneHinweise.map((eintrag) => this._hinweisBlock(eintrag)).filter(Boolean);
-        if (!bloecke.length) {
-          const tendenz = (h.vorlaeufig || []).find((t) => t.art === schluessel);
-          let block = tendenz ? this._tendenzBlock(tendenz) : null;
-          if (!block && noetig > 0 && tage >= noetig) block = this._ergebnisBlock("empfehlung passt", this._t("Keine Änderung nötig"), null);
-          if (block) bloecke = [this._klickbar(this._mitParameter(block, h, parameter), entitaeten[parameter])];
-        }
-        return this._optimierungsZeile(titel, tage, noetig, bloecke);
-      });
-    }
-
-    /** Links Name, Tage und Balken; rechts die Ergebnisse, solange nichts vorliegt ein Hinweis aufs Sammeln. */
-    _optimierungsZeile(titel, tage, noetig, bloecke) {
-      const zeile = knoten("div", "optimierung-art");
-      const links = knoten("div", "art-kopf");
-      links.appendChild(knoten("div", "name", titel));
-      const stand = tage >= noetig ? this._tMit("{tage} Tage", { tage }) : this._tMit("{tage} von {noetig} Tagen", { tage, noetig });
-      links.appendChild(knoten("div", "stand", stand));
-      const balken = knoten("div", tage >= noetig ? "balken fertig" : "balken");
-      const fuellung = knoten("i");
-      fuellung.style.width = `${noetig > 0 ? Math.min(100, Math.round((tage / noetig) * 100)) : 0}%`;
-      balken.appendChild(fuellung);
-      links.appendChild(balken);
-      const rechts = knoten("div", "vorschlaege");
-      if (bloecke.length) rechts.append(...bloecke);
-      else rechts.appendChild(knoten("div", "angabe", this._t("Sammelt noch Tage")));
-      zeile.append(links, rechts);
-      return zeile;
-    }
-
-    /** Wie viele Tage der letzten zwei Wochen aufgezeichnet und wie viele davon nicht auswertbar waren. */
-    _optimierungsFuss(h) {
-      if (h.aufgezeichnet === 0) return knoten("div", "fuss", this._t("Noch keine Tage aufgezeichnet"));
-      if (h.ohne_grundlage > 0) {
-        return knoten("div", "fuss", this._tMit("{tage} Tage aufgezeichnet · {eingriffe} nicht auswertbar", { tage: h.aufgezeichnet, eingriffe: h.ohne_grundlage }));
-      }
-      return null;
-    }
-
-    /** Eine vorläufige Tendenz: gedämpfte Marke, darunter der Wert. */
-    _tendenzBlock(tendenz) {
-      const marke = {
-        kalt: this._t("Eher zu kühl"),
-        warm: this._t("Eher zu warm"),
-        hoch: this._t("Eher hoch"),
-        spaet: this._t("Eher zu spät warm"),
-        frueh: this._t("Eher früh warm"),
-        unauffaellig: this._t("Unauffällig"),
-      }[tendenz.richtung];
-      if (!marke) return null;
-      let wert = kelvin(tendenz.wert);
-      if (tendenz.art === "sollwert") wert = this._tMit("Sollwert {wert} °C", { wert: zahl(tendenz.wert) });
-      else if (tendenz.art === "morgen") wert = this._tMit("Ziel nach {minuten} min", { minuten: tendenz.wert });
-      return this._ergebnisBlock("empfehlung vorlaeufig", marke, [this._t("Vorläufig"), wert].join(" · "));
-    }
-
-    /** Ein Ergebnis: Marke mit Klasse (ohne Text keine), darunter die Angabe. */
-    _ergebnisBlock(klasse, marke, angabe) {
-      const block = knoten("div", "vorschlag");
-      if (marke) block.appendChild(knoten("span", klasse, marke));
-      if (angabe) block.appendChild(knoten("div", "angabe", angabe));
-      return block;
-    }
-
-    /** Hängt „Fußpunkt 45 °C seit 20.09.“ an: den Kurvenparameter der Art, wie ihn die Optimierung zuletzt las. */
-    _mitParameter(block, h, parameter) {
-      const stand = (h.parameter || {})[parameter];
-      if (block && stand && stand.zeile) block.appendChild(knoten("div", "angabe", stand.zeile));
-      return block;
-    }
-
-    /** Ein Hinweis: Empfehlung als Marke, darunter die Angaben; die Texte baut der Server. */
-    _hinweisBlock(eintrag) {
-      const text = eintrag.text;
-      if (!text || !text.titel) return null;
-      const block = this._ergebnisBlock("empfehlung", text.empfehlung, (text.angaben || []).join(" · "));
-      return this._klickbar(block, eintrag.entity);
     }
 
     /** Eine Zeile je Raum: Name, Ist → Ziel, ob er heizt. */

@@ -25,6 +25,7 @@ import { ZEITPROGRAMME } from "./stil/zeitprogramme.js";
 import { ALLGEMEIN } from "./stil/allgemein.js";
 import { HILFE } from "./stil/hilfe.js";
 import { AUTOMATIK } from "./stil/automatik.js";
+import { BEFUND } from "./stil/befund.js";
 
 // Die Reihenfolge ist die Kaskade: Ein späterer Teil schlägt einen früheren.
 export const STIL = [
@@ -42,4 +43,5 @@ export const STIL = [
   ALLGEMEIN,
   HILFE,
   AUTOMATIK,
+  BEFUND,
 ].join("");

@@ -16,9 +16,13 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Abschlussdialog der Einrichtung nennt das einmalige Neuladen der Seite.
 - Linien im Verlauf lassen sich suchen, einzeln entfernen und auf Standard zurücksetzen ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
 - Die gewählten Linien im Verlauf bleiben nach dem Neuladen der Seite erhalten ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
+- Der Reiter Befund zeigt gemessene Kennwerte von Haus, Heizkreis und Kessel.
+- Die Kennwerte des Befunds stehen als Sensoren an Heizkreis und Kessel bereit.
+- Hinweise des Befunds lassen sich in der Seitenleiste melden.
 
 ### Geändert
 
+- Die Automatik zeigt eine Befundkachel statt der Kacheln Haus und Optimierung.
 - Automationen mit den Schaltern Kaminkehrerbetrieb, Lagerraumbefüllung oder Automatik müssen angepasst werden.
 - Kaminkehrer und Lagerraumbefüllung haben je eine Taste zum Starten und Beenden.
 - Die Auswahl „Automatik-Modus“ enthält „Aus“; der Schalter „Automatik“ entfällt.

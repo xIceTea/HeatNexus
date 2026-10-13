@@ -34,6 +34,7 @@ import voluptuous as vol
 from ..anordnung import async_register_anordnung
 from ..auslieferung import async_dateien_ausliefern, async_fassung
 from ..automatik.websocket import async_register_automatik
+from ..befund.websocket import async_register_befund
 from ..bezeichnung import async_register_bezeichnung
 from ..const import (
     COMFORT_TEMP_STANDARD,
@@ -238,6 +239,7 @@ async def _async_setup_panel(hass: HomeAssistant, version: str = "") -> None:
     async_register_anordnung(hass)
     async_register_bezeichnung(hass)
     async_register_automatik(hass)
+    async_register_befund(hass)
 
     if not anlagen_lesen(hass):
         return

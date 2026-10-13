@@ -49,6 +49,7 @@ REITER = (
     "uebersicht",
     "steuerung",
     "automatik",
+    "befund",
     "wartung",
     "verlauf",
     "zeitprogramme",

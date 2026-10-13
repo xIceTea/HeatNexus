@@ -283,7 +283,7 @@ bilanz.palette = { terrakotta: beiWahl, auto: flaeche.style.getPropertyValue("--
   flaeche._gebaut = false;
   flaeche._zeichnen();
   const ohneHilfe = reiterfolge();
-  for (let i = 0; i < 4; i += 1) flaeche._reiterVerschieben("zeitprogramme", -1);
+  for (let i = 0; i < 5; i += 1) flaeche._reiterVerschieben("zeitprogramme", -1);
   const verschoben = reiterfolge();
   flaeche._reiterAusblenden("verlauf");
   bilanz.reiter = {
@@ -959,7 +959,6 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     .querySelectorAll("option")
     .filter((o) => String(o.value).startsWith("weather."))
     .map((o) => String(o.textContent || ""));
-  bilanz.automatik.dialogHinweise = String(dialog.textContent || "").includes("Optimierungshinweise anzeigen");
   bilanz.automatik.vorrangWahl = dialog
     .querySelectorAll("input")
     .some((e) => e.value === "binary_sensor.solaranlage");
@@ -1134,275 +1133,6 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 }
 
 // ---------------------------------------------------------------------------
-// Reiter „Automatik“: Kachel „Hinweise“
-//
-// Sammelt die Auswertung noch, nennt die Kachel den Fortschritt je Art; danach steht
-// je Hinweis Titel, Empfehlung und Grundlage. Ohne Angabe vom Server fehlt sie.
-// ---------------------------------------------------------------------------
-{
-  const [kreis] = flaeche._automatik.heizkreise;
-  const vorherKennwerte = kreis.kennwerte;
-  const wurzel = flaeche.shadowRoot;
-  const text = (knoten) => String((knoten || {}).textContent || "");
-  const zeigen = (hinweise) => {
-    kreis.kennwerte = { ...vorherKennwerte, hinweise };
-    flaeche._reiter = "automatik";
-    flaeche._gebaut = false;
-    flaeche._zeichnen();
-    clearInterval(flaeche._automatikUhr);
-    flaeche._automatikUhr = null;
-    const kachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("hinweise"));
-    return lesen(kachel);
-  };
-  // Je Zeile: Art, Tage, dann je Ergebnis Marke und Angaben; „Sammelt noch Tage“ steht allein.
-  const zeile = (z) => [
-    text(z.querySelector(".name")),
-    text(z.querySelector(".stand")),
-    ...z
-      .querySelector(".vorschlaege")
-      .children.flatMap((k) => (k.classList.contains("vorschlag") ? [text(k.querySelector(".empfehlung")), ...k.querySelectorAll(".angabe").map(text)] : [text(k)])),
-  ];
-  const lesen = (kachel) => {
-    const zeilen = kachel ? kachel.querySelectorAll(".optimierung-art") : [];
-    return {
-      kachel: Boolean(kachel),
-      titel: kachel ? text(kachel.querySelector(".titel").firstChild) || text(kachel.querySelector(".titel")) : "",
-      zahl: text(kachel && kachel.querySelector(".zahl")),
-      neben: text(kachel && kachel.querySelector(".neben")),
-      fuss: kachel ? kachel.querySelectorAll(".fuss").map(text) : [],
-      fragezeichen: kachel ? kachel.querySelectorAll(".fragezeichen").length : 0,
-      schalter: kachel ? kachel.querySelectorAll(".automatik-schalter").map(text) : [],
-      breit: kachel ? kachel.classList.contains("breit") : false,
-      zeilen: zeilen.map(zeile),
-      klickbar: zeilen.flatMap((z) =>
-        z
-          .querySelectorAll(".vorschlag")
-          .filter((b) => b.classList.contains("klickbar"))
-          .map(() => text(z.querySelector(".name")))
-      ),
-    };
-  };
-  bilanz.automatikHinweise = {
-    ohneAngabe: zeigen(undefined),
-    aus: zeigen({ status: "aus" }),
-    sammelt: zeigen({
-      status: "sammelt",
-      tage: 3,
-      noetig: 7,
-      eintraege: [],
-      fortschritt: { kurve_frost: 2, kurve_uebergang: 7, sollwert: 7, morgen: 5 },
-      aufgezeichnet: 14,
-      ohne_grundlage: 2,
-      entitaeten: { "3/51": "number.raumsollwert" },
-      vorlaeufig: [{ art: "morgen", tage: 5, richtung: "spaet", wert: 75 }],
-    }),
-    tendenz: zeigen({
-      status: "sammelt",
-      tage: 5,
-      noetig: 7,
-      eintraege: [],
-      fortschritt: { kurve_frost: 0, kurve_uebergang: 4, sollwert: 5, morgen: 2 },
-      aufgezeichnet: 6,
-      ohne_grundlage: 1,
-      entitaeten: { "3/1": "number.fusspunkt" },
-      parameter: {
-        "3/1": { wert: 45, seit: "2026-09-20", zeile: "Fußpunkt 45 °C seit 20.09." },
-        "3/13": { wert: 80, seit: null, zeile: "Vorlauf bei Auslegung 80 °C" },
-        "3/51": { wert: 11.5, seit: null },
-      },
-      vorlaeufig: [
-        { art: "kurve_uebergang", tage: 4, richtung: "kalt", wert: -0.7 },
-        { art: "sollwert", tage: 5, richtung: "unauffaellig", wert: 21 },
-        { art: "unbekannt", tage: 5, richtung: "kalt", wert: 1 },
-      ],
-    }),
-    ohneTage: zeigen({ status: "sammelt", tage: 0, noetig: 7, eintraege: [], fortschritt: {}, aufgezeichnet: 0, ohne_grundlage: 0 }),
-    ohneEingriffe: zeigen({ status: "sammelt", tage: 5, noetig: 7, eintraege: [], fortschritt: {}, aufgezeichnet: 5, ohne_grundlage: 0 }),
-    bereit: zeigen({
-      status: "bereit",
-      entitaeten: { "3/13": "number.vorlauf_auslegung", "3/1": "number.fusspunkt", "3/58": "number.behaglichkeit" },
-      tage: 23,
-      noetig: 7,
-      fortschritt: { kurve_frost: 18, kurve_uebergang: 9, sollwert: 21, morgen: 12 },
-      eintraege: [
-        { art: "steuerung_passt_an", tage: 23, seit: null, text: { titel: "Heizkurve", empfehlung: "Keine Empfehlung zur Kurve", angaben: ["Anpassung durch die Steuerung aktiv"] } },
-        { art: "heizkurve_frost", tage: 18, seit: "2026-11-14", entity: "number.vorlauf_auslegung", text: { titel: "Heizkurve bei Frost", empfehlung: "Vorlauf bei Auslegung 80 → 86 °C", angaben: ["−1,4 K", "18 Tage seit 14.11."] } },
-        { art: "heizkurve_uebergang", tage: 9, seit: null, entity: "number.fusspunkt", text: { titel: "Heizkurve in der Übergangszeit", empfehlung: "Fußpunkt 45 → 43 °C", angaben: ["+0,8 K", "9 Tage"] } },
-        { art: "heizkurve_parallel", tage: 20, seit: "2026-11-14", entity: "number.behaglichkeit", text: { titel: "Heizkurve", empfehlung: "Behaglichkeit 0 → −1 K", angaben: ["+0,9 K", "20 Tage seit 14.11."] } },
-        { art: "sollwert_ausgleich", tage: 21, seit: null, text: { titel: "Raumsollwert", empfehlung: "Heizkurve anpassen statt Sollwert", angaben: ["Sollwert 23,0 °C", "21 Tage"] } },
-        { art: "morgen_spaet", tage: 12, seit: null, text: { titel: "Morgens zu spät warm", empfehlung: "Vorhaltezeit 60 → 135 min", angaben: ["Ziel nach 95 min", "12 Tage"] } },
-        { art: "morgen_spaet", tage: 8, seit: null, text: { titel: "Morgens zu spät warm", empfehlung: "Programmstart 90 min früher", angaben: ["Ziel nach 95 min", "8 Tage"] } },
-      ],
-    }),
-    // Ohne Kurvenpunkte wertet der Server die Kurve als Ganzes aus.
-    kurve: zeigen({
-      status: "bereit",
-      arten: ["kurve", "sollwert", "morgen"],
-      entitaeten: { "3/58": "number.behaglichkeit", "3/6": "number.vorhaltezeit" },
-      tage: 12,
-      noetig: 7,
-      fortschritt: { kurve_uebergang: 0, kurve_frost: 0, kurve: 9, sollwert: 3, morgen: 8 },
-      parameter: { "3/58": { wert: 0, seit: null, zeile: "Behaglichkeit 0 K" } },
-      eintraege: [
-        { art: "heizkurve_parallel", tage: 9, seit: null, entity: "number.behaglichkeit", text: { titel: "Heizkurve", empfehlung: "Behaglichkeit 0 → 1 K", angaben: ["−0,8 K", "9 Tage"] } },
-        { art: "heizkurve_parallel", tage: 9, seit: null, text: { titel: "Heizkurve", empfehlung: "Heizkurve anheben", angaben: ["−0,8 K", "9 Tage"] } },
-        { art: "heizkurve_parallel", tage: 9, seit: null, text: { titel: "Heizkurve", empfehlung: "Heizkurve absenken", angaben: ["+0,6 K", "9 Tage"] } },
-        { art: "morgen_frueh", tage: 8, seit: null, entity: "number.vorhaltezeit", text: { titel: "Morgens schon warm", empfehlung: "Vorhaltezeit 90 min kürzer möglich", angaben: ["Ziel nach 0 min", "8 Tage"] } },
-        { art: "morgen_frueh", tage: 8, seit: null, text: { titel: "Morgens schon warm", empfehlung: "Absenkung vor Programmbeginn wirkt kaum", angaben: ["Ziel nach 0 min", "8 Tage"] } },
-      ],
-      vorlaeufig: [
-        { art: "sollwert", tage: 3, richtung: "unauffaellig", wert: 21 },
-        { art: "kurve_uebergang", tage: 4, richtung: "kalt", wert: -0.7 },
-      ],
-    }),
-    kurveTendenz: zeigen({
-      status: "sammelt",
-      arten: ["kurve", "sollwert", "morgen"],
-      tage: 5,
-      noetig: 7,
-      eintraege: [],
-      fortschritt: { kurve: 5, sollwert: 0, morgen: 4 },
-      parameter: { "3/58": { wert: 1, seit: "2026-09-20", zeile: "Behaglichkeit 1 K seit 20.09." } },
-      vorlaeufig: [
-        { art: "kurve", tage: 5, richtung: "warm", wert: 0.6 },
-        { art: "morgen", tage: 4, richtung: "frueh", wert: 0 },
-      ],
-    }),
-    // Behaglichkeit am Rand ihres Bereichs: ein Hinweis ohne Zielwert, kein „Keine Änderung nötig“.
-    anschlag: zeigen({
-      status: "bereit",
-      arten: ["kurve", "sollwert"],
-      entitaeten: { "3/58": "number.behaglichkeit" },
-      tage: 10,
-      noetig: 7,
-      fortschritt: { kurve: 10, sollwert: 8, morgen: 9 },
-      aufgezeichnet: 10,
-      ohne_grundlage: 0,
-      eintraege: [
-        { art: "heizkurve_parallel", tage: 10, seit: null, entity: "number.behaglichkeit", text: { titel: "Heizkurve", empfehlung: "Behaglichkeit am Anschlag", angaben: ["−1,2 K", "10 Tage"] } },
-      ],
-    }),
-    // Beide Bänder gegenläufig daneben: ein Hinweis zur Kurvenform ohne Parameter.
-    kurvenform: zeigen({
-      status: "bereit",
-      arten: ["kurve", "sollwert", "morgen"],
-      entitaeten: { "3/58": "number.behaglichkeit" },
-      tage: 12,
-      noetig: 7,
-      fortschritt: { kurve: 12, sollwert: 3, morgen: 9 },
-      aufgezeichnet: 12,
-      ohne_grundlage: 0,
-      eintraege: [
-        { art: "kurvenform", tage: 12, seit: "2026-11-14", entity: "number.behaglichkeit", text: { titel: "Heizkurve", empfehlung: "Kurvenform prüfen", angaben: ["Übergang −0,9 K · Frost +1,1 K", "12 Tage seit 14.11."] } },
-      ],
-    }),
-    // Fußboden: ohne Morgen, auch wenn Tage oder Tendenzen dafür vorliegen.
-    ohneMorgen: zeigen({
-      status: "sammelt",
-      arten: ["kurve_uebergang", "kurve_frost", "sollwert"],
-      tage: 9,
-      noetig: 7,
-      eintraege: [],
-      fortschritt: { kurve_uebergang: 7, kurve_frost: 3, sollwert: 7, morgen: 9 },
-      aufgezeichnet: 9,
-      ohne_grundlage: 0,
-      vorlaeufig: [
-        { art: "morgen", tage: 5, richtung: "spaet", wert: 60 },
-        { art: "kurve_frost", tage: 4, richtung: "warm", wert: 0.8 },
-      ],
-    }),
-    // Heizkreis ohne Heizkurve: nur der Morgen.
-    ohneKurve: zeigen({
-      status: "bereit",
-      arten: ["morgen"],
-      tage: 9,
-      noetig: 7,
-      eintraege: [],
-      fortschritt: { kurve: 9, kurve_uebergang: 8, kurve_frost: 8, sollwert: 9, morgen: 9 },
-      aufgezeichnet: 9,
-      ohne_grundlage: 0,
-      vorlaeufig: [
-        { art: "kurve", tage: 5, richtung: "kalt", wert: -0.5 },
-        { art: "sollwert", tage: 5, richtung: "hoch", wert: 23 },
-      ],
-    }),
-  };
-  {
-    zeigen({ status: "aus" });
-    const kachel = wurzel.querySelectorAll(".automatik-wert").find((k) => k.classList.contains("hinweise"));
-    const gesendet = [];
-    const vorherAufruf = hass.callWS;
-    hass.callWS = async (nachricht) => {
-      gesendet.push(nachricht);
-      return flaeche._automatik;
-    };
-    kachel.querySelector(".automatik-schalter").ausloesen("click");
-    for (let schritt = 0; schritt < 10; schritt += 1) await Promise.resolve();
-    clearInterval(flaeche._automatikUhr);
-    flaeche._automatikUhr = null;
-    hass.callWS = vorherAufruf;
-    bilanz.automatikHinweise.ausGesendet = gesendet.filter((n) => n.type === "heatnexus/automatik/einstellen");
-  }
-  {
-    // Unten in „Erweitert“ schaltet ein Schalter die Optimierung ein und aus.
-    const vorherKonfig = kreis.konfig;
-    kreis.konfig = { ...vorherKonfig, hinweise: true };
-    zeigen({ status: "sammelt", tage: 0, noetig: 7, eintraege: [], fortschritt: {} });
-    const schalter = wurzel
-      .querySelectorAll(".automatik-optimierung")
-      .flatMap((bereich) => bereich.querySelectorAll(".automatik-schalter"))
-      .filter((s) => String(s.textContent || "").includes("Optimierungshinweise anzeigen"));
-    const gesendet = [];
-    const vorherAufruf = hass.callWS;
-    hass.callWS = async (nachricht) => {
-      gesendet.push(nachricht);
-      return flaeche._automatik;
-    };
-    if (schalter.length) schalter[0].ausloesen("click");
-    for (let schritt = 0; schritt < 10; schritt += 1) await Promise.resolve();
-    clearInterval(flaeche._automatikUhr);
-    flaeche._automatikUhr = null;
-    hass.callWS = vorherAufruf;
-    kreis.konfig = vorherKonfig;
-    bilanz.automatikHinweise.erweitertSchalter = schalter.length;
-    bilanz.automatikHinweise.erweitertTitel = wurzel
-      .querySelectorAll(".automatik-optimierung")
-      .map((bereich) => String((bereich.querySelector("h4") || {}).textContent || ""));
-    bilanz.automatikHinweise.erweitertGesendet = gesendet.filter((n) => n.type === "heatnexus/automatik/einstellen");
-  }
-  {
-    // Darunter meldet ein zweiter Schalter die Ergebnisse in der Seitenleiste; ohne Hinweise ist er gesperrt.
-    const vorherKonfig = kreis.konfig;
-    const meldeSchalter = () =>
-      wurzel
-        .querySelectorAll(".automatik-optimierung")
-        .flatMap((bereich) => bereich.querySelectorAll(".automatik-schalter"))
-        .filter((s) => String(s.textContent || "").includes("Ergebnisse in der Seitenleiste melden"));
-    kreis.konfig = { ...vorherKonfig, hinweise: false, hinweise_melden: false };
-    zeigen({ status: "aus" });
-    bilanz.automatikHinweise.meldenOhneHinweise = meldeSchalter().map((s) => s.disabled === true);
-    kreis.konfig = { ...vorherKonfig, hinweise: true, hinweise_melden: false };
-    zeigen({ status: "sammelt", tage: 0, noetig: 7, eintraege: [], fortschritt: {} });
-    const schalter = meldeSchalter();
-    bilanz.automatikHinweise.meldenMitHinweisen = schalter.map((s) => s.disabled === true);
-    const gesendet = [];
-    const vorherAufruf = hass.callWS;
-    hass.callWS = async (nachricht) => {
-      gesendet.push(nachricht);
-      return flaeche._automatik;
-    };
-    if (schalter.length) schalter[0].ausloesen("click");
-    for (let schritt = 0; schritt < 10; schritt += 1) await Promise.resolve();
-    clearInterval(flaeche._automatikUhr);
-    flaeche._automatikUhr = null;
-    hass.callWS = vorherAufruf;
-    kreis.konfig = vorherKonfig;
-    bilanz.automatikHinweise.meldenGesendet = gesendet.filter((n) => n.type === "heatnexus/automatik/einstellen");
-  }
-  kreis.kennwerte = vorherKennwerte;
-}
-
-// ---------------------------------------------------------------------------
 // Reiter „Automatik“: Modus „Manuell mit Empfehlung“
 //
 // Eine offene Empfehlung steht als Hinweis mit Knopf unter dem Kreis; der Knopf
@@ -1525,6 +1255,65 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   };
   flaeche._daten = vorherDaten;
   flaeche._anlageIndex = vorherIndex;
+  flaeche._gebaut = false;
+}
+
+// ---------------------------------------------------------------------------
+// Reiter „Befund“
+//
+// Ein Befund mit Wert bekommt eine Karte, die übrigen stehen in einer Kachel.
+// Antippen eines Balkens schreibt seinen Wert unter das Bild.
+// ---------------------------------------------------------------------------
+{
+  const anlageId = (daten.anlagen[0] || {}).id;
+  const kreis = flaeche._automatik.heizkreise.find((k) => k.eingerichtet);
+  const kennung = kreis.heizkreis;
+  const befund = (art, status, wert, angaben = {}, grund = null) => ({ art, status, wert, einheit: "", stufe: "vorlaeufig", angaben, grund, vergleich: {} });
+  const stand = {
+    lage: { befunde: 3, seit: "2026-08-01", unauffaellig: 1, hinweise: 0, sammelt: 1, braucht_daten: 1 },
+    abschnitte: [
+      { art: "haus", kennung, titel: "Heizkreis", befunde: [befund("waermespeicher", "braucht_daten", null, {}, "raeume")] },
+      {
+        art: "heizkreis",
+        kennung,
+        titel: "Heizkreis",
+        befunde: [
+          befund("vorlauf", "unauffaellig", 3.5, { je_tag: [["2026-10-01", 0], ["2026-10-02", 4]] }),
+          befund("naechte", "sammelt", null),
+        ],
+      },
+    ],
+  };
+  flaeche._befund = { [anlageId]: stand, [kreis.anlage_id]: stand };
+  flaeche._befundZeit = Date.now();
+  flaeche._reiter = "befund";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  const wurzel = flaeche.shadowRoot;
+  const balken = wurzel.querySelectorAll(".ablesbar");
+  if (balken[1]) balken[1].ausloesen("click");
+  bilanz.befund = {
+    titel: [...wurzel.querySelectorAll(".kartenkopf")].map((kopf) => String(kopf.textContent || "").trim()),
+    offen: (wurzel.querySelector(".befund-offen") || { children: [] }).children.length,
+    zurAutomatik: wurzel.querySelectorAll(".befund-sprung").length,
+    ablesbar: balken.length,
+    abgelesen: [...wurzel.querySelectorAll(".befund-ablesen")].map((a) => String(a.textContent)),
+  };
+
+  // Im Reiter Automatik steht dieselbe Liste kompakt; Antippen öffnet den Befund.
+  flaeche._reiter = "automatik";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  clearInterval(flaeche._automatikUhr);
+  flaeche._automatikUhr = null;
+  const zeilen = wurzel.querySelectorAll(".befund-zeile");
+  bilanz.befund.automatik = {
+    zeilen: zeilen.length,
+    optimierung: wurzel.querySelectorAll(".optimierung-art").length + wurzel.querySelectorAll(".automatik-optimierung").length,
+  };
+  if (zeilen[0]) zeilen[0].ausloesen("click");
+  bilanz.befund.automatik.nachKlick = flaeche._reiter;
+  flaeche._befund = undefined;
   flaeche._gebaut = false;
 }
 

@@ -210,11 +210,6 @@ assert.equal(kennwerte.skalaProzent(-3, 6, 26), 0);
 assert.equal(kennwerte.skalaProzent(null, 0, 10), null);
 assert.deepEqual(kennwerte.aussenBereich(18), [6, 26]);
 assert.deepEqual(kennwerte.aussenBereich(null), [5, 25]);
-assert.equal(kennwerte.traegheit(29), "schnell");
-assert.equal(kennwerte.traegheit(30), "mittel");
-assert.equal(kennwerte.traegheit(80), "mittel");
-assert.equal(kennwerte.traegheit(81), "träge");
-assert.equal(kennwerte.traegheit(null), null);
 // Uhrzeiten folgen der Zeitzone und dem Zeitformat aus Home Assistant, nicht dem Browser.
 const zeit = await import(new URL("./zeit.js", pathToFileURL(process.argv[2])).href);
 const sieben = "2026-09-28T07:00:00+02:00";

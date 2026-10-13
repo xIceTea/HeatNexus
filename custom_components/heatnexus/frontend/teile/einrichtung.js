@@ -95,24 +95,19 @@ export const EinrichtungMixin = (Basis) =>
       });
       bereich.appendChild(gruppen);
 
-      // Die Optimierung ist eine Einstellung der Automatik, kein Feinwert: Sie gilt sofort und bleibt beim Zurücksetzen.
-      const optimierung = document.createElement("div");
-      optimierung.className = "automatik-optimierung";
-      const optimierungTitel = document.createElement("h4");
-      optimierungTitel.textContent = this._t("Optimierung");
-      optimierung.appendChild(optimierungTitel);
-      const an = !!kreis.konfig.hinweise;
-      optimierung.appendChild(
-        this._automatikSchalter(this._t("Optimierungshinweise anzeigen"), an, darf, () => this._automatikEinstellen(kreis, { hinweise: !an }))
-      );
-      // Die Meldung fasst die Hinweise einmal täglich zusammen; ohne Hinweise gibt es nichts zu melden.
-      const melden = !!kreis.konfig.hinweise_melden;
-      optimierung.appendChild(
-        this._automatikSchalter(this._t("Ergebnisse in der Seitenleiste melden"), melden, darf && an, () =>
-          this._automatikEinstellen(kreis, { hinweise_melden: !melden })
+      // Wie die übrigen Schalter gilt er sofort und bleibt beim Zurücksetzen der Werte.
+      const befund = document.createElement("div");
+      befund.className = "automatik-befundschalter";
+      const befundTitel = document.createElement("h4");
+      befundTitel.textContent = this._t("Befund");
+      const melden = !!kreis.konfig.befund_melden;
+      befund.append(
+        befundTitel,
+        this._automatikSchalter(this._t("Hinweise des Befunds in der Seitenleiste melden"), melden, darf, () =>
+          this._automatikEinstellen(kreis, { befund_melden: !melden })
         )
       );
-      bereich.appendChild(optimierung);
+      bereich.appendChild(befund);
 
       const leiste = document.createElement("div");
       leiste.className = "automatik-leiste";
@@ -524,9 +519,6 @@ export const EinrichtungMixin = (Basis) =>
       const erkennung = document.createElement("input");
       erkennung.type = "checkbox";
       erkennung.checked = !!(k && k.fenster_erkennung);
-      const hinweise = document.createElement("input");
-      hinweise.type = "checkbox";
-      hinweise.checked = !!(k && k.hinweise);
       return {
         heizflaechen: this._automatikAuswahl(HEIZFLAECHEN, (k && k.heizflaechen) || "gemischt"),
         ausrichtung: this._automatikAuswahl(AUSRICHTUNGEN, (k && k.ausrichtung) || "ausgewogen"),
@@ -549,7 +541,6 @@ export const EinrichtungMixin = (Basis) =>
         fenster: this._automatikHaken(kandidaten.fenster, k ? k.fenster : []),
         vorrang: this._automatikHaken(kandidaten.vorrang || [], k ? k.vorrang || [] : []),
         erkennung,
-        hinweise,
       };
     }
 
@@ -584,15 +575,6 @@ export const EinrichtungMixin = (Basis) =>
           this._t("5 · Optional: Wärmequellen mit Vorrang vor dem Kessel"),
           [b("Liefert eine dieser Quellen, soll ihre Wärme den Heizkreis decken statt der Kessel.", f.vorrang)],
         ],
-        [
-          this._t("6 · Optional: Optimierung"),
-          [
-            b(
-              "Die Automatik wertet ungestörte Heizstunden aus und zeigt Hinweise zu Heizkurve, Raumsollwert und Zeitprogramm. Sie ändert dabei nichts an der Steuerung.",
-              this._automatikMitText(f.hinweise, this._t("Optimierungshinweise anzeigen"))
-            ),
-          ],
-        ],
       ];
     }
 
@@ -614,7 +596,6 @@ export const EinrichtungMixin = (Basis) =>
         fenster: gewaehlt(f.fenster),
         vorrang: gewaehlt(f.vorrang),
         fenster_erkennung: f.erkennung.checked,
-        hinweise: f.hinweise.checked,
       };
       // Andere Heizflächen heißen anderes Profil; eigene Werte gehörten zum alten.
       if (k && nachricht.heizflaechen !== k.heizflaechen) {
