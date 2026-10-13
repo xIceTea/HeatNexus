@@ -657,6 +657,11 @@ ENDPUNKT_KANDIDATEN = (
     "scan",
     "led",
     "update",
+    # Neuere Steuerungen ordnen Knoten Zonen und einem gewählten Kessel zu;
+    # beide Listen sagen, unter welcher Zone ein Knoten zu lesen ist.
+    "Zones",
+    "kesselwahl",
+    "scan/status",
 )
 
 # Basispfade, unter denen die Kandidaten gesucht werden.
