@@ -342,9 +342,44 @@ def test_die_vormerkung_gilt_genau_einmal(stilllegung, const, hass):
     """Sonst räumte auch der übernächste Ladevorgang noch auf."""
     eintrag = _eintrag(const)
     assert not stilllegung.abwahl_abholen(hass, eintrag)
-    stilllegung.abwahl_vormerken(hass, eintrag)
-    assert stilllegung.abwahl_abholen(hass, eintrag)
+    stilllegung.abwahl_vormerken(hass, eintrag, {"SN1-0-9-1-0": "SN1-0"})
+    assert stilllegung.abwahl_abholen(hass, eintrag) == {"SN1-0-9-1-0": "SN1-0"}
     assert not stilllegung.abwahl_abholen(hass, eintrag)
+
+
+_ALTE_BESCHREIBUNGEN = [
+    {"id": "SN1-0-0-7-0", "level": "info", "device_id": "SN1-0"},
+    {"id": "SN1-0-9-1-0", "level": "service", "device_id": "SN1-0"},
+    {"id": "SN1-nv-0-1-nvostatus", "device_id": "SN1-nv"},
+]
+
+
+def test_nur_die_beschreibungen_der_abgewaehlten_ebene_gelten(stilllegung):
+    alt = _umfang(["info", "service"])
+    neu = _umfang(["info"])
+    assert stilllegung.abgewaehlte_kennungen(alt, neu, _ALTE_BESCHREIBUNGEN) == {
+        "SN1-0-9-1-0": "SN1-0"
+    }
+
+
+def test_ein_abgeschalteter_bus_waehlt_seine_netzwerkvariablen_ab(stilllegung):
+    alt = _umfang(["info"], lon=True)
+    neu = _umfang(["info"], lon=False)
+    assert set(stilllegung.abgewaehlte_kennungen(alt, neu, _ALTE_BESCHREIBUNGEN)) == {
+        "SN1-nv-0-1-nvostatus"
+    }
+
+
+def test_eine_entfernte_anlage_waehlt_alles_ohne_geraeteschutz_ab(stilllegung):
+    kennungen = stilllegung.abgewaehlte_kennungen(_umfang(["info"]), None, _ALTE_BESCHREIBUNGEN)
+    assert set(kennungen) == {d["id"] for d in _ALTE_BESCHREIBUNGEN}
+    assert set(kennungen.values()) == {None}
+
+
+def test_der_stand_auf_der_platte_liefert_die_abgewaehlten_kennungen(stilllegung):
+    stand = {"umfang": _umfang(["info", "service"]), "data": {"devices": _ALTE_BESCHREIBUNGEN}}
+    assert set(stilllegung.abwahl_aus_stand(stand, _umfang(["info"]))) == {"SN1-0-9-1-0"}
+    assert not stilllegung.abwahl_aus_stand(stand, _umfang(["info", "service"]))
 
 
 def _eintrag_in_hass(hass):
@@ -418,6 +453,48 @@ def test_ein_wirklich_weggefallener_datenpunkt_wird_stillgelegt(stilllegung, has
     assert (
         er.async_get(hass).async_get(entitaet).disabled_by is er.RegistryEntryDisabler.INTEGRATION
     )
+
+
+def _beschreibung(kennung, geraet="SN1-0"):
+    return {"id": kennung, "enabled_default": True, "device_id": geraet}
+
+
+def test_eine_abgewaehlte_entitaet_wird_geloescht(stilllegung, hass):
+    from homeassistant.helpers import entity_registry as er
+
+    eintrag, entitaet = _eintrag_in_hass(hass)
+    stilllegung.abwahl_vormerken(hass, eintrag, {"SN1-0-0-7-0": "SN1-0"})
+    koordinator = _koordinator({"devices": [_beschreibung("SN1-0-0-8-0")]})
+
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+
+    assert er.async_get(hass).async_get(entitaet) is None
+
+
+def test_eine_fehlende_entitaet_ausserhalb_der_abwahl_bleibt(stilllegung, hass):
+    """Abgewählt ist eine andere Kennung; die fehlende behält Name und Verlauf."""
+    from homeassistant.helpers import entity_registry as er
+
+    eintrag, entitaet = _eintrag_in_hass(hass)
+    stilllegung.abwahl_vormerken(hass, eintrag, {"SN1-0-9-1-0": "SN1-0"})
+    koordinator = _koordinator({"devices": [_beschreibung("SN1-0-0-8-0")]})
+
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+
+    assert er.async_get(hass).async_get(entitaet) is not None
+
+
+def test_ein_stummes_geraet_schuetzt_seine_abgewaehlten_entitaeten(stilllegung, hass):
+    """Ohne einen Datenpunkt des Geräts ist nicht belegt, dass die Abwahl es traf."""
+    from homeassistant.helpers import entity_registry as er
+
+    eintrag, entitaet = _eintrag_in_hass(hass)
+    stilllegung.abwahl_vormerken(hass, eintrag, {"SN1-0-0-7-0": "SN1-0"})
+    koordinator = _koordinator({"devices": [_beschreibung("SN1-1-0-8-0", "SN1-1")]})
+
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+
+    assert er.async_get(hass).async_get(entitaet) is not None
 
 
 # ---------------------------------------------------------------------------

@@ -77,7 +77,8 @@ from .registrierung import uebergeordnet
 from .repairs import adresshinweise_entfernen
 from .stilllegung import (
     abgewaehlte_entitaeten_stilllegen,
-    abwahl_im_stand,
+    abgewaehlte_kennungen,
+    abwahl_aus_stand,
     abwahl_vormerken,
     umfang_verkleinert,
 )
@@ -251,8 +252,8 @@ async def _erkennungsstand_laden(
     stored = await store.async_load()
     # Ein kleiner gewordener Umfang verwirft den Stand – und genau
     # hier ist die Abwahl noch ablesbar.
-    if abwahl_im_stand(stored, scope):
-        abwahl_vormerken(hass, entry)
+    if abgewaehlt := abwahl_aus_stand(stored, scope):
+        abwahl_vormerken(hass, entry, abgewaehlt)
     if not discovery_cache_valid(stored, host, fingerprint):
         return False, False
     client.restore_discovery(stored["data"])
@@ -599,6 +600,16 @@ async def _oberflaeche_anwenden(hass: HomeAssistant, gewuenscht: bool, version: 
         await async_remove_panel(hass)
 
 
+def _abwahl_vor_dem_neuladen(daten: dict, alt: dict, neu: dict) -> dict[str, str | None]:
+    """Die abgewählten Kennungen aus den Beschreibungen, die noch geladen sind."""
+    abgewaehlt: dict[str, str | None] = {}
+    for host, alt_umfang in alt.items():
+        coordinator = (daten.get("coordinators") or {}).get(host)
+        beschreibungen = list(getattr(getattr(coordinator, "client", None), "devices", None) or [])
+        abgewaehlt.update(abgewaehlte_kennungen(alt_umfang, neu.get(host), beschreibungen))
+    return abgewaehlt
+
+
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Nach geänderten Optionen neu laden (anderer Umfang = andere Entitäten).
 
@@ -628,7 +639,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
         for system in systems(entry)
     }
     if alt and umfang_verkleinert(alt, neu):
-        abwahl_vormerken(hass, entry)
+        abwahl_vormerken(hass, entry, _abwahl_vor_dem_neuladen(daten, alt, neu))
     # Mehrere Änderungen in Folge laden einmal neu: Das Setup liest sie erst nach dem Entladen.
     if daten.get("neuladen"):
         return

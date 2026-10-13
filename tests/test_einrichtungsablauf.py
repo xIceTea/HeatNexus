@@ -187,7 +187,7 @@ async def test_neu_konfigurieren_gilt_nicht_als_abwahl(hass, eintrag):
     await _einrichten(hass, eintrag)
     abwahl: list[bool] = []
 
-    def merken(_hass, _entry) -> None:
+    def merken(_hass, _entry, *_kennungen) -> None:
         abwahl.append(True)
 
     with patch("custom_components.heatnexus.abwahl_vormerken", merken):

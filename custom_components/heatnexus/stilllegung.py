@@ -6,6 +6,7 @@ Datenpunkt, den die Anlage nicht mehr liefert, wird nur abgeschaltet.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -15,7 +16,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from . import geraete, kanonisch, verwaiste
 from .client import WindhagerHttpClient
-from .const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
+from .const import ADVANCED_LEVELS, DOMAIN, SIGNAL_NEUE_ENTITAETEN
 from .erkennungsstand import laufzeitdaten
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,6 +46,48 @@ def umfang_verkleinert(alt: dict[str, dict], neu: dict[str, dict]) -> bool:
             if isinstance(alt_wert, list) and set(alt_wert) - set(neu_wert or ()):
                 return True
     return False
+
+
+def _teil_der_abwahl(alt: dict, neu: dict) -> Callable[[dict], bool]:
+    """Prüfung, ob eine alte Beschreibung zum abgewählten Teil des Umfangs gehört."""
+    ebenen = set(alt.get("levels") or ()) - set(neu.get("levels") or ())
+    zusatz = set(alt.get("zusatzwerte") or ()) - set(neu.get("zusatzwerte") or ())
+    fach_gesperrt = bool(alt.get("writable_advanced")) and not neu.get("writable_advanced")
+    bus_weg = any(alt.get(s) and not neu.get(s) for s in ("lon", "lon_grundumfang"))
+
+    def passt(beschreibung: dict) -> bool:
+        kennung = beschreibung.get("id") or ""
+        ebene = beschreibung.get("level")
+        return (
+            ebene in ebenen
+            or kennung in zusatz
+            or (fach_gesperrt and ebene in ADVANCED_LEVELS)
+            or (bus_weg and "-nv-" in kennung)
+        )
+
+    return passt
+
+
+def abgewaehlte_kennungen(
+    alt: dict, neu: dict | None, beschreibungen: list[dict]
+) -> dict[str, str | None]:
+    """Kennung und Gerät jeder alten Beschreibung, die der Nutzer abgewählt hat.
+
+    Das Gerät ist None, wenn die ganze Anlage wegfiel. Sonst schützt es die
+    Waisen eines Geräts, das beim neuen Einlesen gar nicht antwortete.
+    """
+    if neu is None:
+        return {d["id"]: None for d in beschreibungen if d.get("id")}
+    passt = _teil_der_abwahl(alt, neu)
+    return {d["id"]: d.get("device_id") or "" for d in beschreibungen if d.get("id") and passt(d)}
+
+
+def abwahl_aus_stand(stored, scope: dict) -> dict[str, str | None]:
+    """Die abgewählten Kennungen, abgelesen am gespeicherten Stand einer Anlage."""
+    if not abwahl_im_stand(stored, scope):
+        return {}
+    beschreibungen = (stored.get("data") or {}).get("devices") or []
+    return abgewaehlte_kennungen(stored["umfang"], scope, beschreibungen)
 
 
 def abwahl_im_stand(stored, scope: dict) -> bool:
@@ -90,18 +133,29 @@ def endgueltig_weg(eintrag: er.RegistryEntry, umfaenge: dict[str, dict]) -> bool
     return quelle_abgeschaltet(eintrag.unique_id, umfaenge)
 
 
-def abwahl_vormerken(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Merken, dass der nächste Ladevorgang nach einer Abwahl aufräumen darf."""
-    hass.data.setdefault(DOMAIN, {}).setdefault("_abwahl", set()).add(entry.entry_id)
+def abwahl_vormerken(
+    hass: HomeAssistant, entry: ConfigEntry, kennungen: dict[str, str | None]
+) -> None:
+    """Merken, welche Kennungen der nächste Ladevorgang nach einer Abwahl löschen darf."""
+    offen = hass.data.setdefault(DOMAIN, {}).setdefault("_abwahl", {})
+    offen[entry.entry_id] = {**offen.get(entry.entry_id, {}), **kennungen}
 
 
-def abwahl_abholen(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+def abwahl_abholen(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, str | None]:
     """Die Vormerkung einlösen – sie gilt genau einmal."""
     offen = hass.data.get(DOMAIN, {}).get("_abwahl")
-    if not isinstance(offen, set) or entry.entry_id not in offen:
+    if not isinstance(offen, dict):
+        return {}
+    return offen.pop(entry.entry_id, {})
+
+
+def _abgewaehlt(unique_id: str | None, abgewaehlt: dict[str, str | None], geantwortet: set) -> bool:
+    """Ob eine Waise zum abgewählten Teil gehört und ihr Gerät beim Einlesen antwortete."""
+    if unique_id not in abgewaehlt:
         return False
-    offen.discard(entry.entry_id)
-    return True
+    geraet = abgewaehlt[unique_id]
+    # Ein Gerät ohne jeden Datenpunkt hat nicht geantwortet; seine Entitäten bleiben.
+    return geraet is None or geraet in geantwortet
 
 
 def _abgleich_moeglich(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> bool:
@@ -158,7 +212,7 @@ def abgewaehlte_entitaeten_stilllegen(
     Was mit ihnen geschieht, hängt davon ab, **warum** sie weg sind:
 
     * Der Nutzer hat eine Bedienebene **abgewählt** – eine bewusste
-      Entscheidung. Dann werden die Einträge gelöscht, sonst stünden sie
+      Entscheidung. Dann werden ihre Einträge gelöscht, sonst stünden sie
       dauerhaft als abgeschaltete Zeilen in der Integrationsübersicht.
     * Die Anlage liefert den Datenpunkt nicht mehr (Umbau, andere Firmware).
       Dann werden sie nur **stillgelegt**: Kommt er zurück, sind eigene Namen,
@@ -167,7 +221,12 @@ def abgewaehlte_entitaeten_stilllegen(
     if not _abgleich_moeglich(hass, entry, coordinators):
         return
 
-    loeschen = abwahl_abholen(hass, entry)
+    abgewaehlt = abwahl_abholen(hass, entry)
+    geantwortet = {
+        beschreibung.get("device_id")
+        for coordinator in coordinators.values()
+        for beschreibung in (coordinator.data or {}).get("devices", [])
+    }
     # Entitäten der Serviceebene sind absichtlich deaktiviert angelegt; sie
     # dürfen beim Wiederdazuwählen nicht versehentlich eingeschaltet werden.
     standardmaessig_an = verwaiste.bekannte_kennungen(entry, coordinators, hass)
@@ -188,9 +247,10 @@ def abgewaehlte_entitaeten_stilllegen(
     von_integration = er.RegistryEntryDisabler.INTEGRATION
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
         if eintrag.entity_id in verwaiste_ids:
-            if _verwaiste_behandeln(
-                registry, eintrag, loeschen or endgueltig_weg(eintrag, umfaenge)
-            ):
+            entfernen = endgueltig_weg(eintrag, umfaenge) or _abgewaehlt(
+                eintrag.unique_id, abgewaehlt, geantwortet
+            )
+            if _verwaiste_behandeln(registry, eintrag, entfernen):
                 ohne_datenpunkt += 1
             else:
                 entfernt += 1
