@@ -456,25 +456,25 @@
         "name": "Prognosekorrektur"
       },
       "befund_waermespeicher": {
-        "name": "Befund Wärmespeicher"
+        "name": "Auswertung Wärmespeicher"
       },
       "befund_heizgrenze": {
-        "name": "Befund gemessene Heizgrenze"
+        "name": "Auswertung gemessene Heizgrenze"
       },
       "befund_raeume": {
-        "name": "Befund Räume am Ziel"
+        "name": "Auswertung Räume am Ziel"
       },
       "befund_naechte": {
-        "name": "Befund Nachtabsenkung"
+        "name": "Auswertung Nachtabsenkung"
       },
       "befund_vorlauf": {
-        "name": "Befund Vorlauf unter Soll"
+        "name": "Auswertung Vorlauf unter Soll"
       },
       "befund_laufzeit": {
-        "name": "Befund Laufzeit je Start"
+        "name": "Auswertung Laufzeit je Start"
       },
       "befund_energie": {
-        "name": "Befund Energie je Heizgradtag"
+        "name": "Auswertung Energie je Heizgradtag"
       }
     },
     "binary_sensor": {

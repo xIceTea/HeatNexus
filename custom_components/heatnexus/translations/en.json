@@ -456,25 +456,25 @@
         "name": "Forecast correction"
       },
       "befund_waermespeicher": {
-        "name": "Findings heat storage"
+        "name": "Analysis heat storage"
       },
       "befund_heizgrenze": {
-        "name": "Findings measured heating limit"
+        "name": "Analysis measured heating limit"
       },
       "befund_raeume": {
-        "name": "Findings rooms at target"
+        "name": "Analysis rooms at target"
       },
       "befund_naechte": {
-        "name": "Findings night setback"
+        "name": "Analysis night setback"
       },
       "befund_vorlauf": {
-        "name": "Findings flow below setpoint"
+        "name": "Analysis flow below setpoint"
       },
       "befund_laufzeit": {
-        "name": "Findings run time per start"
+        "name": "Analysis run time per start"
       },
       "befund_energie": {
-        "name": "Findings energy per heating degree day"
+        "name": "Analysis energy per heating degree day"
       }
     },
     "binary_sensor": {

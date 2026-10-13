@@ -377,8 +377,8 @@ class HeatNexusPanel extends Grundlage {
     if (this._anordnen) leiste.appendChild(this._anordnenLeiste());
     inhalt.appendChild(leiste);
     const flaechen = [];
-    if (this._alleAnlagen() && this._reiter === "automatik") {
-      flaechen.push(this._automatikAlle());
+    if (this._alleAnlagen() && (this._reiter === "automatik" || this._reiter === "befund")) {
+      flaechen.push(this._reiter === "automatik" ? this._automatikAlle() : this._befundAlle());
       inhalt.appendChild(flaechen[0]);
     } else if (this._alleAnlagen()) {
       this._anlagen().forEach((eintrag) => {
@@ -717,7 +717,7 @@ class HeatNexusPanel extends Grundlage {
       return this._raster(anlage, this._automatikReiter(anlage), "Keine Heizkreise gefunden.");
     }
     if (this._reiter === "befund") {
-      return this._raster(anlage, this._befundReiter(anlage), "Für diese Anlage liegt noch kein Befund vor.");
+      return this._raster(anlage, this._befundReiter(anlage), "Für diese Anlage liegt noch keine Auswertung vor.");
     }
     if (this._reiter === "wartung") {
       return this._raster(anlage, this._wartung(anlage), "Keine Wartungswerte gefunden.");

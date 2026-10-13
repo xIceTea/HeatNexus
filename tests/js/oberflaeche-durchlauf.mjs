@@ -1292,13 +1292,53 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   const wurzel = flaeche.shadowRoot;
   const balken = wurzel.querySelectorAll(".ablesbar");
   if (balken[1]) balken[1].ausloesen("click");
+  const klappe = wurzel.querySelector(".klappkarte");
   bilanz.befund = {
-    titel: [...wurzel.querySelectorAll(".kartenkopf")].map((kopf) => String(kopf.textContent || "").trim()),
+    titel: [...wurzel.querySelectorAll(".kartenkopf"), ...wurzel.querySelectorAll("summary")].map((kopf) => String(kopf.textContent || "").trim()),
     offen: (wurzel.querySelector(".befund-offen") || { children: [] }).children.length,
+    eingeklappt: klappe ? !klappe.open : null,
+    zahlmarke: String((wurzel.querySelector(".befund-zahlmarke") || {}).textContent || ""),
     zurAutomatik: wurzel.querySelectorAll(".befund-sprung").length,
     ablesbar: balken.length,
     abgelesen: [...wurzel.querySelectorAll(".befund-ablesen")].map((a) => String(a.textContent)),
   };
+
+  // Unter „Alle“ stehen beide Anlagen in einem Stand: eine Kopfkarte, Zählung addiert,
+  // jede Karte mit ihrer Anlage, kein Verweis auf den fremden Kessel.
+  const vorherDaten = flaeche._daten;
+  const vorherIndex = flaeche._anlageIndex;
+  flaeche._daten = {
+    ...vorherDaten,
+    anlagen: [
+      { ...vorherDaten.anlagen[0], id: "anlage-a", name: "Anlage A" },
+      { ...vorherDaten.anlagen[0], id: "anlage-b", name: "Anlage B" },
+    ],
+  };
+  flaeche._anlageIndex = -1;
+  const ohneKessel = {
+    lage: { ...stand.lage },
+    abschnitte: [...stand.abschnitte, { art: "waermeerzeuger", kennung: "", titel: "", befunde: [] }],
+  };
+  const mitKessel = {
+    lage: { befunde: 1, seit: "2026-07-15", unauffaellig: 1, hinweise: 0, sammelt: 0, braucht_daten: 0 },
+    abschnitte: [{ art: "kessel", kennung: "/1/60/0", titel: "Kessel", befunde: [befund("laufzeit", "unauffaellig", 2.4)] }],
+  };
+  flaeche._befund = { "anlage-a": ohneKessel, "anlage-b": mitKessel };
+  flaeche._reiter = "befund";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  bilanz.befundAlle = {
+    raster: wurzel.querySelectorAll(".raster").length,
+    trenner: wurzel.querySelectorAll(".anlagen-trenner").length,
+    anzahlen: [...wurzel.querySelectorAll(".befund-anzahl")].map((s) => String(s.textContent)),
+    herkunft: [...wurzel.querySelectorAll(".befund-abschnitt")].map((s) => String(s.textContent)),
+    offen: (wurzel.querySelector(".befund-offen") || { children: [] }).children.length,
+    seit: String((wurzel.querySelector(".befund-seit") || {}).textContent || ""),
+    waermeerzeuger: [...wurzel.querySelectorAll("h2")].filter((h) => String(h.textContent) === "Wärmeerzeuger").length,
+  };
+  flaeche._daten = vorherDaten;
+  flaeche._anlageIndex = vorherIndex;
+  flaeche._befund = { [anlageId]: stand, [kreis.anlage_id]: stand };
 
   // Im Reiter Automatik steht dieselbe Liste kompakt; Antippen öffnet den Befund.
   flaeche._reiter = "automatik";

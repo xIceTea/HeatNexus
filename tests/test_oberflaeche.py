@@ -1047,6 +1047,23 @@ def test_befunde_ohne_wert_stehen_gesammelt_in_einer_kachel(durchlauf):
     assert sum("Noch ohne Ergebnis" in titel for titel in befund["titel"]) == 1
 
 
+def test_noch_ohne_ergebnis_ist_eingeklappt_und_nennt_die_anzahl(durchlauf):
+    befund = durchlauf["befund"]
+    assert befund["eingeklappt"] is True
+    assert befund["zahlmarke"] == "2"
+
+
+def test_alle_anlagen_stehen_in_einer_auswertung(durchlauf):
+    alle = durchlauf["befundAlle"]
+    assert alle["raster"] == 1
+    assert alle["trenner"] == 0
+    assert alle["anzahlen"] == ["2", "0", "2"]
+    assert alle["seit"] == "Daten seit 15.07.2026"
+    assert alle["herkunft"] == ["Anlage A · Heizkreis · Heizkreis", "Anlage B · Kessel · Kessel"]
+    assert alle["offen"] == 2
+    assert alle["waermeerzeuger"] == 0
+
+
 def test_die_automatik_zeigt_die_befunde_ihres_heizkreises(durchlauf):
     kompakt = durchlauf["befund"]["automatik"]
     assert kompakt["zeilen"] == 3

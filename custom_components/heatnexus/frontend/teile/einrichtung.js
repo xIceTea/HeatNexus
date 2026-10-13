@@ -99,11 +99,11 @@ export const EinrichtungMixin = (Basis) =>
       const befund = document.createElement("div");
       befund.className = "automatik-befundschalter";
       const befundTitel = document.createElement("h4");
-      befundTitel.textContent = this._t("Befund");
+      befundTitel.textContent = this._t("Auswertung");
       const melden = !!kreis.konfig.befund_melden;
       befund.append(
         befundTitel,
-        this._automatikSchalter(this._t("Hinweise des Befunds in der Seitenleiste melden"), melden, darf, () =>
+        this._automatikSchalter(this._t("Hinweise der Auswertung in der Seitenleiste melden"), melden, darf, () =>
           this._automatikEinstellen(kreis, { befund_melden: !melden })
         )
       );

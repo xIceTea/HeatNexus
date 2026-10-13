@@ -1,4 +1,4 @@
-"""Aus Archiv und Kontext einer Anlage die Abschnitte des Reiters „Befund“ bauen."""
+"""Aus Archiv und Kontext einer Anlage die Abschnitte des Reiters „Auswertung“ bauen."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 /**
- * Reiter „Befund“: gemessene Kennwerte je Anlage, ohne Empfehlung und ohne Bedienung.
+ * Reiter „Auswertung“: gemessene Kennwerte je Anlage, ohne Empfehlung und ohne Bedienung.
  *
  * Teil der Oberfläche `heatnexus-panel.js`; eingebunden als Mixin. Die Zahlen rechnet der
  * Server (`befund/`), hier entstehen nur Text und Bild.
@@ -119,16 +119,50 @@ export const BefundMixin = (Basis) =>
       return Number.isInteger(Number(wert)) ? zahl(wert, 0) : zahl(wert, stellen);
     }
 
-    /** Karten für das Raster: zuerst die Lage, dann je Abschnitt die Befunde. */
+    /** Unter „Alle“ ein gemeinsamer Stand über alle Anlagen, wie in der Automatik. */
+    _befundAlle() {
+      this._hilfe = (this._anlagen()[0] || {}).hilfe || {};
+      return this._raster({ id: "alle" }, this._befundReiter(null), "Für keine Anlage liegt eine Auswertung vor.");
+    }
+
+    /**
+     * Die Stände aller Anlagen zu einem zusammenfassen: Zählung addiert, jeder Abschnitt mit
+     * seiner Anlage. Der Verweis auf den fremden Kessel entfällt, sobald ein Kessel dabei ist.
+     */
+    _befundGesamt() {
+      const staende = this._anlagen()
+        .map((anlage) => [anlage, this._befund[anlage.id]])
+        .filter(([, stand]) => stand);
+      if (staende.length < 2) return staende.length ? staende[0][1] : null;
+      const mitKessel = staende.some(([, stand]) => stand.abschnitte.some((a) => a.art === "kessel"));
+      const lage = { befunde: 0, unauffaellig: 0, hinweise: 0, sammelt: 0, braucht_daten: 0, seit: null };
+      const abschnitte = [];
+      staende.forEach(([anlage, stand]) => {
+        ["befunde", "unauffaellig", "hinweise", "sammelt", "braucht_daten"].forEach((k) => (lage[k] += stand.lage[k] || 0));
+        if (stand.lage.seit && (!lage.seit || stand.lage.seit < lage.seit)) lage.seit = stand.lage.seit;
+        stand.abschnitte.forEach((abschnitt) => {
+          if (abschnitt.art === "waermeerzeuger" && mitKessel) return;
+          abschnitte.push({ ...abschnitt, anlage: anlage.name || "", anlageId: anlage.id });
+        });
+      });
+      return { lage, abschnitte };
+    }
+
+    /** „Anlage · Heizkreis · Name“; die Anlage nur, wenn mehrere zusammen stehen. */
+    _befundHerkunft(abschnitt, mitArt = true) {
+      return [abschnitt.anlage, mitArt ? this._t(ABSCHNITT[abschnitt.art] || "") : "", abschnitt.titel].filter(Boolean).join(" · ");
+    }
+
+    /** Karten für das Raster: zuerst die Lage, dann je Abschnitt die Befunde; ohne Anlage alle zusammen. */
     _befundReiter(anlage) {
       if (this._befund === undefined) {
         this._befundLaden();
-        return [{ id: "befund", titel: "Befund", knoten: this._befundHinweis("Der Befund lädt …") }];
+        return [{ id: "befund", titel: "Auswertung", knoten: this._befundHinweis("Die Auswertung lädt …") }];
       }
       if (Date.now() - (this._befundZeit || 0) > BEFUND_TAKT_MS) this._befundLaden();
-      const stand = this._befund[anlage && anlage.id];
+      const stand = anlage ? this._befund[anlage.id] : this._befundGesamt();
       if (!stand) return [];
-      const karten = [{ id: "befund-lage", titel: "Befund", knoten: this._befundLage(stand), breite: 2 }];
+      const karten = [{ id: "befund-lage", titel: "Auswertung", knoten: this._befundLage(stand), breite: 2 }];
       const offen = [];
       stand.abschnitte.forEach((abschnitt) => {
         if (abschnitt.art === "waermeerzeuger") {
@@ -141,7 +175,7 @@ export const BefundMixin = (Basis) =>
             return;
           }
           karten.push({
-            id: `befund:${abschnitt.kennung}:${befund.art}`,
+            id: `befund:${abschnitt.anlageId ? `${abschnitt.anlageId}:` : ""}${abschnitt.kennung}:${befund.art}`,
             titel: this._t(TITEL[befund.art] || befund.art),
             knoten: this._befundKarte(abschnitt, befund),
           });
@@ -151,25 +185,33 @@ export const BefundMixin = (Basis) =>
       return karten;
     }
 
-    /** Befunde ohne Wert stehen gesammelt in einer Kachel, je Zeile mit dem Grund. */
+    /**
+     * Befunde ohne Wert stehen gesammelt in einer Kachel, je Zeile mit dem Grund. Sie ist
+     * eingeklappt und bleibt offen, wenn jemand sie geöffnet hat.
+     */
     _befundOffen(offen) {
       const karte = this._karte(this._t("Noch ohne Ergebnis"));
+      const kopf = karte.querySelector(".kartenkopf");
+      if (kopf) kopf.appendChild(knoten("span", "befund-zahlmarke", String(offen.length)));
       const liste = knoten("div", "befund-offen");
       offen.forEach(({ abschnitt, b }) => {
         const zeile = knoten("div");
         zeile.append(
-          knoten("span", null, `${this._t(TITEL[b.art] || b.art)} · ${abschnitt.titel}`),
+          knoten("span", null, `${this._t(TITEL[b.art] || b.art)} · ${this._befundHerkunft(abschnitt, false)}`),
           knoten("span", "befund-leise", this._befundGrund(b))
         );
         liste.appendChild(zeile);
       });
       karte.appendChild(liste);
       if (offen.some(({ b }) => b.grund === "raeume" || b.grund === "automatik")) karte.appendChild(this._befundZurAutomatik());
-      return karte;
+      const klappe = this._klappbar(karte);
+      klappe.open = Boolean(this._befundOffenAuf);
+      klappe.addEventListener("toggle", () => (this._befundOffenAuf = klappe.open));
+      return klappe;
     }
 
     _befundHinweis(text) {
-      const karte = this._karte(this._t("Befund"));
+      const karte = this._karte(this._t("Auswertung"));
       karte.appendChild(this._hinweisKnoten(this._t(text)));
       return karte;
     }
@@ -177,7 +219,7 @@ export const BefundMixin = (Basis) =>
     /** Kopfkarte: Ring mit einem Teil je Befund, daneben die Zahl je Stand mit den Namen. */
     _befundLage(stand) {
       const l = stand.lage;
-      const karte = this._karte(this._t("Befund"));
+      const karte = this._karte(this._t("Auswertung"));
       const seit = l.seit ? l.seit.split("-").reverse().join(".") : null;
       const kopf = karte.querySelector(".kartenkopf");
       const datum = knoten("span", "befund-seit", seit ? this._tMit("Daten seit {datum}", { datum: seit }) : this._t("Sammelt seit dem Start"));
@@ -188,7 +230,7 @@ export const BefundMixin = (Basis) =>
       const gruppen = [
         ["gut", l.unauffaellig, "unauffällig", namen(["unauffaellig"]), "Nichts gemessen"],
         ["hinweis", l.hinweise, "Hinweise", namen(["hinweis"]), "Nichts Auffälliges gemessen"],
-        ["offen", l.sammelt + l.braucht_daten, "noch ohne Ergebnis", namen(["sammelt", "braucht_daten"]), "Alle Befunde haben einen Wert"],
+        ["offen", l.sammelt + l.braucht_daten, "noch ohne Ergebnis", namen(["sammelt", "braucht_daten"]), "Alle Kennwerte haben einen Wert"],
       ];
       const inhalt = knoten("div", "befund-lage");
       inhalt.appendChild(this._befundRing(alle, l.befunde));
@@ -203,7 +245,7 @@ export const BefundMixin = (Basis) =>
       inhalt.appendChild(liste);
       karte.appendChild(inhalt);
       const fuss = knoten("div", "befund-schutz");
-      fuss.append(ikone("mdi:shield-check-outline"), knoten("span", null, this._t("Nur Beobachtung: gemessene Werte, keine Empfehlung. Der Befund ändert nichts an der Anlage.")));
+      fuss.append(ikone("mdi:shield-check-outline"), knoten("span", null, this._t("Nur Beobachtung: gemessene Werte, keine Empfehlung. Die Auswertung ändert nichts an der Anlage.")));
       karte.appendChild(fuss);
       return karte;
     }
@@ -220,7 +262,7 @@ export const BefundMixin = (Basis) =>
       });
       s.append(
         svg("text", { x: 60, y: 62, "text-anchor": "middle", class: "ring-zahl" }, String(anzahl)),
-        svg("text", { x: 60, y: 82, "text-anchor": "middle", class: "ring-text" }, this._t("Befunde"))
+        svg("text", { x: 60, y: 82, "text-anchor": "middle", class: "ring-text" }, this._t("Kennwerte"))
       );
       return s;
     }
@@ -238,10 +280,10 @@ export const BefundMixin = (Basis) =>
       const kachel = knoten("div", "automatik-wert breit befund-kompakt");
       const kopf = knoten("div", "befund-kompakt-kopf");
       const seit = stand.lage.seit ? this._tMit("Daten seit {datum}", { datum: stand.lage.seit.split("-").reverse().join(".") }) : "";
-      const alle = knoten("button", "befund-sprung", this._t("Alle Befunde"));
+      const alle = knoten("button", "befund-sprung", this._t("Alle Kennwerte"));
       alle.type = "button";
       alle.addEventListener("click", () => this._befundOeffnen());
-      kopf.append(knoten("div", "titel", this._t("Befund")), knoten("span", "befund-leise", seit), alle);
+      kopf.append(knoten("div", "titel", this._t("Auswertung")), knoten("span", "befund-leise", seit), alle);
       const inhalt = knoten("div", "befund-kompakt-inhalt");
       const liste = knoten("div", "befund-liste");
       befunde.forEach((b) => liste.appendChild(this._befundZeile(b)));
@@ -254,7 +296,7 @@ export const BefundMixin = (Basis) =>
     _befundUebersicht(befunde) {
       const links = knoten("div", "befund-uebersicht");
       const gross = knoten("div", "befund-gross");
-      gross.append(knoten("span", "zahl", String(befunde.length)), knoten("span", "befund-leise", this._t("Befunde")));
+      gross.append(knoten("span", "zahl", String(befunde.length)), knoten("span", "befund-leise", this._t("Kennwerte")));
       const kaesten = knoten("div", "befund-kaesten");
       befunde.forEach((b) => {
         const kasten = knoten("span", `befund-kasten ${b.status}`);
@@ -321,7 +363,7 @@ export const BefundMixin = (Basis) =>
       const karte = this._karte(this._t(TITEL[b.art] || b.art), this._t(HILFE[b.art] || ""));
       karte.classList.add("befund-karte", `befund-${b.status}`);
       const kopf = knoten("div", "befund-kopf");
-      kopf.appendChild(knoten("span", "befund-abschnitt", `${this._t(ABSCHNITT[abschnitt.art] || "")} · ${abschnitt.titel}`));
+      kopf.appendChild(knoten("span", "befund-abschnitt", this._befundHerkunft(abschnitt)));
       const marke = { unauffaellig: "unauffällig", hinweis: "Hinweis", sammelt: "sammelt" }[b.status];
       if (marke) kopf.appendChild(knoten("span", `befund-marke ${b.status}`, this._t(marke)));
       karte.appendChild(kopf);

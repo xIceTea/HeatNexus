@@ -456,25 +456,25 @@
         "name": "Correctie weersverwachting"
       },
       "befund_waermespeicher": {
-        "name": "Bevinding warmteopslag"
+        "name": "Analyse warmteopslag"
       },
       "befund_heizgrenze": {
-        "name": "Bevinding gemeten stookgrens"
+        "name": "Analyse gemeten stookgrens"
       },
       "befund_raeume": {
-        "name": "Bevinding ruimtes op doel"
+        "name": "Analyse ruimtes op doel"
       },
       "befund_naechte": {
-        "name": "Bevinding nachtverlaging"
+        "name": "Analyse nachtverlaging"
       },
       "befund_vorlauf": {
-        "name": "Bevinding aanvoer onder setpoint"
+        "name": "Analyse aanvoer onder setpoint"
       },
       "befund_laufzeit": {
-        "name": "Bevinding looptijd per start"
+        "name": "Analyse looptijd per start"
       },
       "befund_energie": {
-        "name": "Bevinding energie per graaddag"
+        "name": "Analyse energie per graaddag"
       }
     },
     "binary_sensor": {

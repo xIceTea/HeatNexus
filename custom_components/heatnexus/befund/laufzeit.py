@@ -381,16 +381,16 @@ class Sammler:
             w = woerterbuch(self.hass)
             namen = ", ".join(w(TITEL[art]) for art in sorted(hinweise))
             name = b.get("device_name") or device_id
-            text = w("{name}: Der Befund meldet einen Hinweis zu {befunde}.").replace(
+            text = w("{name}: Die Auswertung meldet einen Hinweis zu {befunde}.").replace(
                 "{name}", name
             )
             meldung_setzen(
                 self.hass,
                 "befund",
                 device_id,
-                w("Befund"),
+                w("Auswertung"),
                 text.replace("{befunde}", namen),
-                w("Zum Befund"),
+                w("Zur Auswertung"),
             )
 
     def befund(self, kennung: str, art: str) -> dict[str, Any] | None:
