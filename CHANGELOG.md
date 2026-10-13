@@ -10,91 +10,32 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Reiter, Anlagenwahl und Werkzeugmenü lassen sich mit Pfeiltasten bedienen.
-- Fenster halten den Tastaturfokus und schließen mit Escape.
-- Reiter und Zahlenfelder zeigen einen sichtbaren Fokusrahmen.
-- Der Abschlussdialog der Einrichtung nennt das einmalige Neuladen der Seite.
-- Linien im Verlauf lassen sich suchen, einzeln entfernen und auf Standard zurücksetzen ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
-- Die gewählten Linien im Verlauf bleiben nach dem Neuladen der Seite erhalten ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
-- Der Reiter Auswertung zeigt gemessene Kennwerte von Haus, Heizkreis und Kessel.
-- Unter „Alle“ steht jeder Kennwert aller Anlagen in einer gemeinsamen Kachel.
-- Kennwerte ohne Ergebnis stehen eingeklappt in einer eigenen Kachel.
-- Die Kennwerte der Auswertung stehen als Sensoren an Heizkreis und Kessel bereit.
+- Der Reiter Auswertung zeigt Kennwerte von Haus, Heizkreis und Kessel, auch als Sensoren.
 - Hinweise der Auswertung lassen sich in der Seitenleiste melden.
+- Linien im Verlauf lassen sich suchen und entfernen und bleiben gespeichert ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
+- Das Panel lässt sich vollständig mit der Tastatur bedienen.
 
 ### Geändert
 
-- Die Automatik zeigt eine Kachel Auswertung statt der Kacheln Haus und Optimierung.
-- Die Optimierungshinweise und ihre Meldung in der Seitenleiste entfallen.
-- Die Dashboard-Ansicht Auswertung heißt jetzt Statistik.
-- Automationen mit den Schaltern Kaminkehrerbetrieb, Lagerraumbefüllung oder Automatik müssen angepasst werden.
-- Kaminkehrer und Lagerraumbefüllung haben je eine Taste zum Starten und Beenden.
-- Die Auswahl „Automatik-Modus“ enthält „Aus“; der Schalter „Automatik“ entfällt.
-- `rediscover` wartet auf das vollständige Einlesen und meldet `vollstaendig`.
-- Das Schreiben einer Einstellung wartet nicht mehr auf den vollständigen Abruf.
-- Die Diagnose nennt den Zustand des Abrufs und verbirgt Hostnamen.
-- Hysteresen und Differenzen erscheinen in Kelvin.
-- Fehlermeldungen beim Schreiben nennen eine mögliche Ursache.
-- Die Automatik rechnet das Hausmodell beim Start ohne spürbare Pause.
-- Die Automatik-Geräte tragen den Namen des zugehörigen Heizkreises.
-- Mehrere Automatik-Werte tragen sprechende Namen, etwa „Mittlere Raumtemperatur“.
+- Kaminkehrer und Lagerraumbefüllung haben Tasten statt Schalter; Automationen müssen angepasst werden.
+- Der Automatik-Modus enthält „Aus“; der Schalter „Automatik“ entfällt.
+- Die Automatik zeigt die Auswertung statt der Optimierungshinweise.
 - Der Sonnentag senkt bei kalter Außentemperatur weniger ab.
-- Die Automatik schreibt Zustandswechsel ins Protokoll von Home Assistant.
-- Ein Fehler beim Lesen des Verlaufs erscheint einmal als Warnung im Protokoll.
-- Die Automatik-Badge erscheint nur bei einer Abweichung.
-- Zeitprogramme erscheinen als Kachel ohne langen Zustandstext.
-- Die leere Ansicht nennt das Laden der Anlage.
-- Der Farbsatz Auto folgt dem hellen und dem dunklen Theme von Home Assistant.
-- Inaktive Reiter haben mehr Kontrast.
-- Die Pfeile des Zahlenfelds sind am Telefon größer.
-- Die Kennwerte-Karte zeigt bei schmaler Breite zwei statt drei Spalten.
-- Das Panel aktualisiert sich seltener und lädt schneller.
-- Die Menütaste erscheint nur bei schmalem Fenster oder ausgeblendeter Seitenleiste.
-- Die Meldungsliste führt keine Einheit mehr und zählt nur wiederkehrende Meldungen.
-- Uhrzeiten folgen Zeitzone und Format von Home Assistant.
-- Gleichnamige Datenpunkte tragen eindeutige Namen, etwa bei Heizkurve und Gerätetyp.
+- Die Dashboard-Ansicht Auswertung heißt jetzt Statistik.
+- Automatik-Geräte und -Werte tragen sprechende Namen.
+- Das Panel lädt schneller und folgt dem hellen und dunklen Theme.
+- Die Meldungsliste führt keine Einheit mehr; Home Assistant fragt einmal nach der Statistik.
 
 ### Behoben
 
-- Abfragen, die die Steuerung abbricht, werden nach kurzer Pause wiederholt ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
-- Eine neue Anlage übernimmt die Sprache von Home Assistant statt Deutsch.
-- Neu konfigurieren lehnt eine fremde Steuerung und eine schon eingetragene Adresse ab.
-- Neu konfigurieren und Neu anmelden laden den Eintrag nur einmal neu.
-- Beim Entfernen und beim Adresswechsel verschwinden die Hinweise der alten Adresse.
-- Scheitert eine von mehreren Steuerungen, bricht die Einrichtung sofort ab.
-- Eine Abwahl in den Optionen löscht nur die Entitäten des abgewählten Umfangs.
-- Ein falsches Passwort beim Start öffnet die Passwortabfrage.
+- Abgebrochene Abfragen werden wiederholt; ein großer Abruf verliert keine Werte ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
 - Eine nicht erreichbare Anlage erscheint als Störung statt mit eingefrorenen Werten.
-- Ein Ausfall der Anlage schreibt nur noch eine Zeile ins Protokoll.
-- Ein großer Abruf bleibt im Zeitfenster und verliert keine gelesenen Werte.
-- Ein gescheitertes Einlesen stellt den bekannten Stand wieder her und wird wiederholt.
-- „Werte jetzt abfragen“ behält den frischen Wert auch nach dem nächsten Abruf.
-- Zeitprogramme verschwinden nicht mehr nach einem Verbindungsfehler.
+- Neu konfigurieren lehnt fremde Steuerungen ab; eine Abwahl löscht nur den abgewählten Umfang.
+- Ein falsches Passwort beim Start öffnet die Passwortabfrage.
+- Zeitprogramme bleiben nach einem Verbindungsfehler erhalten und nehmen Wochentage jeder Sprache an.
 - Das Schaubild im Dashboard erscheint, sobald die HeatNexus-Oberfläche geöffnet wurde ([#21](https://github.com/xIceTea/HeatNexus/discussions/21)).
-- Die Vorlage für Abwesenheit stellt nur die Betriebsart zurück und behält Handänderungen.
-- Die Vorlage für den Legionellenschutz lässt sich laden und räumt nach Fehlern auf.
-- Die Vorlage für den Legionellenschutz findet den WW-Betrieb in jeder Sprache.
-- Die Automatik übersteht eine Zeitumstellung, ohne eine Absenkung als beendet zu werten.
-- Schlägt das Setzen der Absenkungsdauer fehl, stellt die Automatik den Raumsoll zurück.
-- Ein unlesbarer Speicher der Automatik verhindert den Start der Integration nicht mehr.
-- Ein Fehler der Automatik an einem Heizkreis betrifft nicht mehr die ganze Integration.
-- Die Automatik schreibt Einstellungen seltener in den Speicher.
-- Der Hinweis zum vorzeitigen Ende einer Absenkung nennt nicht mehr die Heizpause.
-- Die Vorhersage der Automatik berücksichtigt die Behaglichkeit.
-- Der Alarmcode 65535 erscheint als unbekannt statt als Störung.
-- Zeitprogramme nehmen Wochentage in jeder angezeigten Sprache an.
-- Das Thermostat zeigt nach einem Schreibfehler wieder den vorherigen Wert.
-- Restzeiten und Raten erscheinen nicht mehr als Zähler.
-- Die Laufzeit heute beginnt um Mitternacht neu.
-- Das Panel behält offene Fenster und Eingaben, wenn sich im Hintergrund Werte ändern.
-- Eine geänderte Anordnung wird beim Verlassen des Panels gespeichert.
-- Anlagennamen werden nicht mehr übersetzt.
-- Ein Zahlenfeld akzeptiert die Grenze 0 und feine Schrittweiten.
-- Eine Auswahl mit doppelten Beschriftungen bleibt vollständig wählbar.
-- Gleichnamige Heizkreise stehen in fester Reihenfolge.
-- Namen der Anlagenteile erscheinen ohne doppelte Leerzeichen.
-- Die Störung 242 (Relais Saugturbine) erscheint mit Text und Hinweis.
-- Die Einstellungen der Automatik zeigen die Frostgrenze und das Warten auf Raumwerte.
+- Die Abwesenheitsvorlage behält Handänderungen; die Legionellenvorlage findet den WW-Betrieb in jeder Sprache.
+- Die Automatik übersteht Zeitumstellung, Speicherfehler und den Ausfall einzelner Heizkreise.
 - DuoWIN: Die Werte des LogWIN der ersten Generation am InfoWIN Plus erscheinen ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
 
 ## [1.14.0-beta.1] - 2026-10-12
