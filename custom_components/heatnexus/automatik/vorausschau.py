@@ -387,7 +387,8 @@ class VorausschauMixin:
     def _ziel(self, lage: regel.Lage, bloecke: Any, zeit: datetime) -> float | None:
         """Ziel einer Stunde, passend zum Raumwert: Raum minus Abweichung, wie die Regel sie rechnet.
 
-        Ohne eigene Raumziele folgt es dem Zeitprogramm; eigene Ziele bleiben über die Stunden gleich.
+        Ohne eigene Raumziele folgt es dem Zeitprogramm samt der Behaglichkeit, die `1/1` verschiebt;
+        eigene Ziele bleiben über die Stunden gleich.
         """
         soll = regel.soll_bezug(lage, self.gedaechtnis)
         if soll is None or lage.raum is None:
@@ -395,7 +396,9 @@ class VorausschauMixin:
         jetzt = lage.raum - regel.abweichung(lage, soll)
         eigene = any(ziel is not None for _, ziel in lage.raeume)
         programm = None if eigene else zeitprogramm.soll_um(bloecke, zeit)
-        return jetzt if programm is None else jetzt + programm - soll
+        if programm is None:
+            return jetzt
+        return jetzt - soll + programm + self._behaglichkeit()
 
     def _eingaenge(
         self, lage: regel.Lage, bloecke: Any, jetzt: datetime, bis: datetime

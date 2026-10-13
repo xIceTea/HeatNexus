@@ -156,3 +156,32 @@ async def test_ein_lesefehler_warnt_einmal(hass, anlage, freezer, monkeypatch, c
 
     meldungen = [r for r in caplog.records if "Verlauf nicht lesbar" in r.getMessage()]
     assert [r.levelno for r in meldungen] == [logging.WARNING, logging.DEBUG]
+
+
+PROGRAMM = [
+    {
+        "weekdays": ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+        "switchPoints": [{"time": "00:00", "value": "21"}, {"time": "18:00", "value": "20.5"}],
+    }
+]
+
+
+@pytest.mark.parametrize(("behaglichkeit", "erwartet"), [(None, 20.5), ("1.0", 21.5)])
+async def test_kuenftiges_ziel_behaelt_die_behaglichkeit(
+    hass, anlage, freezer, behaglichkeit, erwartet
+):
+    # `1/1` enthält die Behaglichkeit `3/58`, die Schaltpunkte des Programms nicht.
+    verwaltung, coordinator = anlage
+    freezer.move_to(ha.MORGEN)
+    laufzeit = await ha._eingerichtet(hass, verwaltung)
+    zuschlag = float(behaglichkeit or 0)
+    coordinator.data["oids"][f"{ha.PREFIX}/1/1/0"] = str(21.0 + zuschlag)
+    if behaglichkeit is not None:
+        coordinator.data["oids"][f"{ha.PREFIX}/3/58/0"] = behaglichkeit
+    hass.states.async_set("sensor.wohnzimmer", "21.8")
+    await laufzeit.auswerten()
+    lage = laufzeit.lage
+    abends = lage.jetzt.replace(hour=19, minute=0)
+
+    assert laufzeit._ziel(lage, PROGRAMM, lage.jetzt.replace(hour=12)) == 21.0 + zuschlag
+    assert laufzeit._ziel(lage, PROGRAMM, abends) == pytest.approx(erwartet)
