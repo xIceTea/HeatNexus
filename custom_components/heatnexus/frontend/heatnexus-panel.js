@@ -306,7 +306,8 @@ class HeatNexusPanel extends Grundlage {
   /** Den gewählten Farbsatz am Wirtselement setzen; `auto` räumt ihn ab. */
   _paletteAnwenden() {
     const palette = PALETTEN[this._farbsatz()] || null;
-    const bekannt = new Set(Object.keys(PALETTEN.dunkel));
+    // Alle Farbsätze zusammen nennen die Eigenschaften, die wieder zu entfernen sind.
+    const bekannt = new Set(Object.values(PALETTEN).flatMap((satz) => Object.keys(satz)));
     bekannt.forEach((name) => {
       if (palette) this.style.setProperty(name, palette[name]);
       else this.style.removeProperty(name);
