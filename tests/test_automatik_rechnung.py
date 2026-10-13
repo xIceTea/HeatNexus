@@ -113,3 +113,26 @@ def test_fruehling_laesst_die_fehlende_stunde_aus(n):
     assert "2" not in stunden
     assert len(stunden) == 23
     assert stunden["3"]["at"] == stunden["1"]["at"] + 2.0
+
+
+SPRECHENDE_NAMEN = {
+    ("sensor", "automatik_abweichung"): "Abstand zum Raumziel",
+    ("sensor", "automatik_system_raeume"): "Mittlere Raumtemperatur",
+    ("sensor", "automatik_system_sonnentag_heute"): "Dauer Sonnentag heute",
+    ("sensor", "automatik_system_nur_ww_heute"): "Dauer nur Warmwasser heute",
+    ("sensor", "automatik_system_vorrang_heute"): "Laufzeit Vorrangquelle heute",
+    ("binary_sensor", "automatik_system_ueber_heizgrenze"): "Außentemperatur über Heizgrenze",
+}
+
+
+def test_automatik_werte_nennen_ihre_groesse():
+    import json
+    from pathlib import Path
+
+    ordner = Path(__file__).parents[1] / "custom_components" / "heatnexus" / "translations"
+    deutsch = json.loads((ordner / "de.json").read_text(encoding="utf-8"))["entity"]
+
+    for (plattform, schluessel), name in SPRECHENDE_NAMEN.items():
+        assert deutsch[plattform][schluessel]["name"] == name
+    for schluessel in ("automatik_zustand", "automatik_empfehlung"):
+        assert deutsch["sensor"][schluessel]["state"]["sicherheit"] == "Sicherheitsregel aktiv"

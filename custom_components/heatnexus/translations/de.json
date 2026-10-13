@@ -340,7 +340,7 @@
           "pausiert": "Pausiert",
           "fenster": "Fenster offen",
           "keine_daten": "Keine Daten",
-          "sicherheit": "Sicherheit",
+          "sicherheit": "Sicherheitsregel aktiv",
           "aus": "Aus"
         },
         "state_attributes": {
@@ -370,7 +370,7 @@
           "pausiert": "Pausiert",
           "fenster": "Fenster offen",
           "keine_daten": "Keine Daten",
-          "sicherheit": "Sicherheit",
+          "sicherheit": "Sicherheitsregel aktiv",
           "aus": "Aus"
         },
         "state_attributes": {
@@ -389,7 +389,7 @@
         "name": "Heizgrenze"
       },
       "automatik_abweichung": {
-        "name": "Räume zum Ziel"
+        "name": "Abstand zum Raumziel"
       },
       "automatik_sonnenquote": {
         "name": "Sonnenquote heute"
@@ -430,13 +430,13 @@
         "name": "Nächste Entscheidung"
       },
       "automatik_system_sonnentag_heute": {
-        "name": "Sonnentag heute"
+        "name": "Dauer Sonnentag heute"
       },
       "automatik_system_nur_ww_heute": {
-        "name": "Nur Warmwasser heute"
+        "name": "Dauer nur Warmwasser heute"
       },
       "automatik_system_vorrang_heute": {
-        "name": "Vorrangquelle heute"
+        "name": "Laufzeit Vorrangquelle heute"
       },
       "automatik_system_absenkung_bis": {
         "name": "Absenkung bis"
@@ -445,7 +445,7 @@
         "name": "Modus seit"
       },
       "automatik_system_raeume": {
-        "name": "Räume"
+        "name": "Mittlere Raumtemperatur"
       },
       "automatik_system_prognose_max": {
         "name": "Prognose Höchstwert heute"
@@ -474,7 +474,7 @@
         "name": "Nur Warmwasser"
       },
       "automatik_system_ueber_heizgrenze": {
-        "name": "Über Heizgrenze der Steuerung"
+        "name": "Außentemperatur über Heizgrenze"
       }
     },
     "button": {

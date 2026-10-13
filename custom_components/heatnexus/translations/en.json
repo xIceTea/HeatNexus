@@ -340,7 +340,7 @@
           "pausiert": "Paused",
           "fenster": "Window open",
           "keine_daten": "No data",
-          "sicherheit": "Safety",
+          "sicherheit": "Safety rule active",
           "aus": "Off"
         },
         "state_attributes": {
@@ -370,7 +370,7 @@
           "pausiert": "Paused",
           "fenster": "Window open",
           "keine_daten": "No data",
-          "sicherheit": "Safety",
+          "sicherheit": "Safety rule active",
           "aus": "Off"
         },
         "state_attributes": {
@@ -389,7 +389,7 @@
         "name": "Heating limit"
       },
       "automatik_abweichung": {
-        "name": "Rooms to target"
+        "name": "Deviation from room target"
       },
       "automatik_sonnenquote": {
         "name": "Sunshine share today"
@@ -430,13 +430,13 @@
         "name": "Next decision"
       },
       "automatik_system_sonnentag_heute": {
-        "name": "Sunny day today"
+        "name": "Sunny day duration today"
       },
       "automatik_system_nur_ww_heute": {
-        "name": "Hot water only today"
+        "name": "Hot water only duration today"
       },
       "automatik_system_vorrang_heute": {
-        "name": "Priority source today"
+        "name": "Priority source runtime today"
       },
       "automatik_system_absenkung_bis": {
         "name": "Setback until"
@@ -445,7 +445,7 @@
         "name": "Mode since"
       },
       "automatik_system_raeume": {
-        "name": "Rooms"
+        "name": "Average room temperature"
       },
       "automatik_system_prognose_max": {
         "name": "Forecast high today"
@@ -474,7 +474,7 @@
         "name": "Hot water only"
       },
       "automatik_system_ueber_heizgrenze": {
-        "name": "Above controller heating limit"
+        "name": "Outdoor temperature above heating limit"
       }
     },
     "button": {

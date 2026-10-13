@@ -340,7 +340,7 @@
           "pausiert": "Gepauzeerd",
           "fenster": "Raam open",
           "keine_daten": "Geen gegevens",
-          "sicherheit": "Veiligheid",
+          "sicherheit": "Veiligheidsregel actief",
           "aus": "Uit"
         },
         "state_attributes": {
@@ -370,7 +370,7 @@
           "pausiert": "Gepauzeerd",
           "fenster": "Raam open",
           "keine_daten": "Geen gegevens",
-          "sicherheit": "Veiligheid",
+          "sicherheit": "Veiligheidsregel actief",
           "aus": "Uit"
         },
         "state_attributes": {
@@ -389,7 +389,7 @@
         "name": "Verwarmingsgrens"
       },
       "automatik_abweichung": {
-        "name": "Ruimtes t.o.v. doel"
+        "name": "Afwijking van ruimtedoel"
       },
       "automatik_sonnenquote": {
         "name": "Zonaandeel vandaag"
@@ -430,13 +430,13 @@
         "name": "Volgende beslissing"
       },
       "automatik_system_sonnentag_heute": {
-        "name": "Zonnige dag vandaag"
+        "name": "Duur zonnige dag vandaag"
       },
       "automatik_system_nur_ww_heute": {
-        "name": "Alleen warm water vandaag"
+        "name": "Duur alleen warm water vandaag"
       },
       "automatik_system_vorrang_heute": {
-        "name": "Voorrangsbron vandaag"
+        "name": "Looptijd voorrangsbron vandaag"
       },
       "automatik_system_absenkung_bis": {
         "name": "Verlaging tot"
@@ -445,7 +445,7 @@
         "name": "Modus sinds"
       },
       "automatik_system_raeume": {
-        "name": "Ruimtes"
+        "name": "Gemiddelde ruimtetemperatuur"
       },
       "automatik_system_prognose_max": {
         "name": "Verwachte maximumtemperatuur vandaag"
@@ -474,7 +474,7 @@
         "name": "Alleen warm water"
       },
       "automatik_system_ueber_heizgrenze": {
-        "name": "Boven verwarmingsgrens van de regelaar"
+        "name": "Buitentemperatuur boven verwarmingsgrens"
       }
     },
     "button": {
