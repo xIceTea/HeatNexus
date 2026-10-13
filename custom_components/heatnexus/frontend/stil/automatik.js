@@ -12,7 +12,7 @@ export const AUTOMATIK = `
 
   /* Kopfkarte */
   .karte.automatik { padding: 18px 20px; }
-  .karte.automatik > .kartenkopf { flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .karte.automatik > .kartenkopf { margin-bottom: 0; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
   .karte.automatik > .kartenkopf h2 { flex: 0 1 auto; min-width: 0; margin: 0; overflow-wrap: anywhere; line-height: 1.25; }
   .karte.automatik > .kartenkopf .automatik-knopf { margin-left: auto; }
   .automatik-marke {
@@ -430,7 +430,7 @@ export const AUTOMATIK = `
 
   /* Protokoll */
   .automatik-protokollkarte { padding: 18px 20px; }
-  .automatik-protokollkarte > .kartenkopf h2 { margin: 0; }
+  .automatik-protokollkarte > .kartenkopf { margin-bottom: 0; }
   .automatik-verweis {
     padding: 0; border: none; background: none; cursor: pointer;
     font: inherit; font-size: 13px; color: var(--hn-akzent);
@@ -460,7 +460,7 @@ export const AUTOMATIK = `
 
   /* Einladung */
   .automatik-einladungskarte { border-style: dashed; padding: 18px 20px; }
-  .automatik-einladungskarte > .kartenkopf h2 { margin: 0; }
+  .automatik-einladungskarte > .kartenkopf { margin-bottom: 0; }
   .automatik-stand { margin-left: auto; font-size: 12px; color: var(--hn-gedaempft); white-space: nowrap; }
   .automatik-einladung { font-size: 13px; line-height: 1.55; color: var(--hn-gedaempft); margin: 10px 0 14px; }
   .karte > .automatik-knopf { align-self: flex-start; }

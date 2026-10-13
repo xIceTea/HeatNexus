@@ -34,11 +34,13 @@ export const KARTEN = `
     border-color: var(--hn-akzent);
     box-shadow: inset 5px 0 0 0 var(--hn-akzent), 0 0 0 1px var(--hn-akzent);
   }
-  .kartenkopf { display: flex; align-items: center; gap: 8px; }
+  /* Der Abstand liegt am Kopf, nicht am Titel; sonst rückt das „?“ unter die Titelmitte. */
+  .kartenkopf { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
   .zp-aktiv { margin-left: 6px; color: var(--hn-akzent); font-weight: 600; }
-  .kartenkopf h2 { flex: 1; }
+  .kartenkopf h2 { flex: 1; margin-bottom: 0; }
   .fragezeichen {
-    width: 22px; height: 22px; flex: none; border-radius: 50%;
+    width: 22px; height: 22px; flex: none; border-radius: 50%; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
     font: inherit; font-size: 13px; font-weight: 700; line-height: 1;
     cursor: pointer; color: var(--hn-akzent);
     background: color-mix(in srgb, var(--hn-akzent) 12%, transparent);
