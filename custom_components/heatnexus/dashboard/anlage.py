@@ -86,7 +86,7 @@ def teilabschnitt(teil: dict[str, Any]) -> list[dict[str, Any]]:
     """Abschnitt eines Anlagenteils: Thermostate, Zeiger, Zustand und Bedienung."""
     zeiger = auswahl.zeigerinstrumente(teil)
     gezeigt = {e["entity_id"] for e, _ in zeiger}
-    zustand = [e for e in auswahl.messwerte(teil) if e["entity_id"] not in gezeigt]
+    zustand = [e for e in auswahl.zustand(teil) if e["entity_id"] not in gezeigt]
     bedienung = auswahl.bedienung(teil)
     karten: list[dict[str, Any]] = [
         *(kachel(e) for e in auswahl.thermostate(teil)),

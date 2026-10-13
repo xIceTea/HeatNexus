@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .. import geraete
+from ..const import GERAETEINFO_ADRESSEN
 from ..helpers import mustername
 from ..schema import passt as _passt
 from .anlagen import vorrang
@@ -35,14 +36,31 @@ def _ist_zeitprogramm(e: dict[str, Any]) -> bool:
     return e["bereich"] == "sensor" and _passt(mustername(e), ZEITPROGRAMM)
 
 
+def _ist_geraeteinfo(e: dict[str, Any]) -> bool:
+    return e.get("adresse") in GERAETEINFO_ADRESSEN
+
+
+def _ohne_namen(e: dict[str, Any]) -> bool:
+    """Ein Datenpunkt, für den es nur die Adresse als Namen gibt."""
+    return mustername(e).startswith("Datenpunkt ")
+
+
 def messwerte(teil: dict[str, Any]) -> list[dict[str, Any]]:
     """Abzulesende Werte, die wichtigsten zuerst."""
     werte = [
         e
         for e in teil["entitaeten"]
-        if _sichtbar(e) and e["bereich"] not in BEDIENBAR and not _ist_zeitprogramm(e)
+        if _sichtbar(e)
+        and e["bereich"] not in BEDIENBAR
+        and not _ist_zeitprogramm(e)
+        and not _ist_geraeteinfo(e)
     ]
     return sorted(werte, key=lambda e: (vorrang(e), e["name"]))
+
+
+def zustand(teil: dict[str, Any]) -> list[dict[str, Any]]:
+    """Die Messwerte für den Abschnitt „Zustand“, ohne namenlose Datenpunkte."""
+    return [e for e in messwerte(teil) if not _ohne_namen(e)]
 
 
 def bedienung(teil: dict[str, Any]) -> list[dict[str, Any]]:
@@ -82,8 +100,12 @@ def einstellungen(teil: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def diagnose(teil: dict[str, Any]) -> list[dict[str, Any]]:
-    """Diagnosewerte des Anlagenteils."""
-    return [e for e in teil["entitaeten"] if e["kategorie"] == "diagnostic"]
+    """Diagnosewerte des Anlagenteils, dazu die Angaben über das Gerät selbst."""
+    return [
+        e
+        for e in teil["entitaeten"]
+        if e["kategorie"] == "diagnostic" or (e["kategorie"] is None and _ist_geraeteinfo(e))
+    ]
 
 
 def _meldung(teil: dict[str, Any], art: str) -> dict[str, Any] | None:

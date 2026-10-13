@@ -488,6 +488,26 @@ ZAEHLER_WOERTER = (
 # („Betriebsstunden bis …") zählen herunter, die übrigen sind Raten oder Einstellwerte.
 ZAEHLER_AUSNAHMEN = (" bis ", "durchfluss", "bitmuster", "offset", "länge", "temperatur")
 
+# Datenpunkte, die das Gerät beschreiben statt seinen Zustand: Typ, Versionen,
+# Kennungen. Sie gehören in die Diagnose, nicht zwischen die Messwerte.
+GERAETEINFO_ADRESSEN = frozenset(
+    {
+        "4/5",  # Modulinfo Funktionsbezeichnung
+        "4/90",  # Geräteidentifikation
+        "4/92",  # Softwareversion
+        "4/93",  # Hardwareversion
+        "4/94",  # SW ID Nr.
+        "11/27",  # WEZ-Nummer
+        "12/38",  # Gerätetyp
+        "20/127",  # IOP Softwareversion
+        "39/61",  # Nennleistung
+        "39/82",  # Softwareversion EWM
+        "39/112",  # MAC-Adresse
+        "39/115",  # Seriennummer
+        "44/78",  # Staubabscheider Softwareversion
+    }
+)
+
 # Einheiten, in denen ein Zählerstand vorkommt; Raten und Temperaturen zählen nie.
 ZAEHLER_EINHEITEN = frozenset({"h", "min", "s", "d", "kWh", "MWh", "t", "kg"})
 

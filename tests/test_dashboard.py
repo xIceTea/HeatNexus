@@ -965,6 +965,33 @@ def _anlage(*teile: dict, name: str = "Kesselhaus", kennung: str = "anlage012345
     return {"id": kennung, "name": name, "teile": list(teile)}
 
 
+def _kessel_mit_geraeteinfo() -> dict:
+    teil = _kessel()
+    teil["entitaeten"] += [
+        _e("sensor.hardware", "Hardwareversion", adresse="4/93"),
+        _e("sensor.mac", "MAC-Adresse", adresse="39/112"),
+        _e("sensor.dp_39_14", "Datenpunkt 39/14", adresse="39/14"),
+    ]
+    return teil
+
+
+def test_der_zustand_zeigt_keine_geraeteinfo(anlagenseite):
+    """Versionen, Kennungen und namenlose Datenpunkte stehen nicht zwischen den Messwerten."""
+    seite = anlagenseite.arbeitsseite(
+        _anlage(_kessel_mit_geraeteinfo()), als_karte=True, mit_schaubild=False
+    )
+    kacheln = [k["entity"] for s in seite["sections"] for k in s["cards"] if k["type"] == "tile"]
+    assert "sensor.abgas" in kacheln
+    assert not {"sensor.hardware", "sensor.mac", "sensor.dp_39_14"} & set(kacheln)
+
+
+def test_die_geraeteinfo_steht_in_der_diagnose(details):
+    teil = _kessel_mit_geraeteinfo()
+    ansicht = details.unteransicht(_anlage(teil), teil)
+    [diagnose] = [s for s in ansicht["sections"] if s["cards"][0]["heading"] == "Diagnose"]
+    assert {"sensor.hardware", "sensor.mac"} <= {k.get("entity") for k in diagnose["cards"]}
+
+
 def test_unteransicht_gliedert_nach_zweck(details):
     ansicht = details.unteransicht(_anlage(_kessel()), _kessel())
     titel = [s["cards"][0]["heading"] for s in ansicht["sections"]]
