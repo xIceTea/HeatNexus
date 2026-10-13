@@ -268,36 +268,6 @@ def _anlage_mit_teilen():
     }
 
 
-def test_der_text_zum_kopieren_setzt_die_eigene_karte(anlagenseite):
-    """Nur als Karte lässt sich das Schaubild im Editor bearbeiten."""
-    ansicht = anlagenseite.arbeitsseite(_anlage_mit_teilen(), als_karte=True, mit_schaubild=True)
-    karten = [k for abschnitt in ansicht["sections"] for k in abschnitt["cards"]]
-    schaubild = [k for k in karten if k.get("type", "").startswith("custom:")]
-    assert len(schaubild) == 1
-    assert schaubild[0]["anlage"] == "anlage-1"
-    assert schaubild[0]["liste"] == "rechts"
-    assert "sensor.purowin_betriebsphase" in schaubild[0]["zusatzwerte"]
-
-
-@pytest.mark.parametrize(("sprache", "erwartet"), [("en", "State"), ("nl", "Toestand")])
-def test_die_ueberschrift_der_schaubildkarte_wird_uebersetzt(anlagenseite, sprache, erwartet):
-    from custom_components.heatnexus.texte import LOVELACE_FELDER, Woerterbuch, uebersetze_baum
-
-    ansicht = anlagenseite.arbeitsseite(_anlage_mit_teilen(), als_karte=True, mit_schaubild=True)
-    fertig = uebersetze_baum(ansicht, Woerterbuch(sprache), LOVELACE_FELDER)
-    karten = [k for a in fertig["sections"] for k in a["cards"]]
-    [schaubild] = [k for k in karten if k.get("type", "").startswith("custom:")]
-    assert schaubild["titel_liste"] == erwartet
-
-
-def test_ohne_kartenmodul_bleibt_die_zeichnung(anlagenseite):
-    """Der Rückfall setzt kein Modul im Browser voraus."""
-    ansicht = anlagenseite.arbeitsseite(_anlage_mit_teilen(), als_karte=False, mit_schaubild=True)
-    karten = [k for abschnitt in ansicht["sections"] for k in abschnitt["cards"]]
-    assert not [k for k in karten if str(k.get("type", "")).startswith("custom:")]
-    assert [k for k in karten if k.get("type") == "picture-elements"]
-
-
 def test_die_feste_zeichnung_traegt_nur_was_lovelace_liest(uebersichtsseite):
     """Zeichnung und Hilfslisten der Oberfläche gehören nicht in die Lovelace-Konfiguration."""
     seite = uebersichtsseite.uebersicht([_anlage_mit_teilen()], als_karte=False, badges=[])
@@ -339,12 +309,6 @@ async def test_ohne_angemeldetes_modul_baut_das_dashboard_die_zeichnung(
 
     assert "picture-elements" in typen
     assert "custom:heatnexus-schaubild" not in typen
-
-
-def test_das_schaubild_bekommt_zwei_spalten(anlagenseite):
-    """Neben dem Bild steht die Werteliste – in einer Spalte wird beides eng."""
-    ansicht = anlagenseite.arbeitsseite(_anlage_mit_teilen(), als_karte=True, mit_schaubild=True)
-    assert ansicht["sections"][0]["column_span"] == 2
 
 
 async def test_das_geraet_einer_quelle_traegt_ihre_bauart(hass, anlagen):
@@ -720,7 +684,7 @@ def _alle_ansichten(anlage, teil, uebersichtsseite, anlagenseite, wartungsseite,
     """Alle Ansichten einer Anlage; fehlende (`None`) entfallen."""
     ansichten = [
         uebersichtsseite.uebersicht([anlage], als_karte=False, badges=[]),
-        anlagenseite.arbeitsseite(anlage, als_karte=False, mit_schaubild=True),
+        anlagenseite.arbeitsseite(anlage),
         wartungsseite.wartung([anlage]),
         wartungsseite.auswertung([anlage]),
         details.unteransicht(anlage, teil),
@@ -977,9 +941,7 @@ def _kessel_mit_geraeteinfo() -> dict:
 
 def test_der_zustand_zeigt_keine_geraeteinfo(anlagenseite):
     """Versionen, Kennungen und namenlose Datenpunkte stehen nicht zwischen den Messwerten."""
-    seite = anlagenseite.arbeitsseite(
-        _anlage(_kessel_mit_geraeteinfo()), als_karte=True, mit_schaubild=False
-    )
+    seite = anlagenseite.arbeitsseite(_anlage(_kessel_mit_geraeteinfo()))
     kacheln = [k["entity"] for s in seite["sections"] for k in s["cards"] if k["type"] == "tile"]
     assert "sensor.abgas" in kacheln
     assert not {"sensor.hardware", "sensor.mac", "sensor.dp_39_14"} & set(kacheln)
@@ -1035,7 +997,7 @@ def _karten(ansicht: dict) -> list[dict]:
 
 
 def test_arbeitsseite_zeigt_zeiger_zustand_bedienung(anlagenseite):
-    seite = anlagenseite.arbeitsseite(_anlage(_kessel()), als_karte=False, mit_schaubild=False)
+    seite = anlagenseite.arbeitsseite(_anlage(_kessel()))
     karten = _karten(seite)
     kopf = karten[0]
     assert kopf["heading"] == "PuroWIN"
@@ -1052,25 +1014,8 @@ def test_arbeitsseite_zeigt_zeiger_zustand_bedienung(anlagenseite):
     assert "icon" not in seite and seite["path"] == "anlage-anlage01"
 
 
-def test_arbeitsseite_mit_schaubild_bei_einer_anlage(anlagenseite):
-    seite = anlagenseite.arbeitsseite(_anlage(_kessel()), als_karte=True, mit_schaubild=True)
-    # Nach den Meldungen steht das Schaubild als erster Abschnitt.
-    erste = seite["sections"][1]["cards"]
-    assert any(str(k.get("type", "")).startswith("custom:") for k in erste)
-
-
-def test_einzelanlage_zeigt_die_meldung_oben(anlagenseite):
-    seite = anlagenseite.arbeitsseite(_anlage(_kessel()), als_karte=True, mit_schaubild=True)
-    erste = seite["sections"][0]
-    kopf, meldung = erste["cards"][0], erste["cards"][1]
-    bedingung = [{"condition": "state", "entity": "binary_sensor.stoerung", "state": "on"}]
-    assert kopf["heading"] == "Meldungen" and kopf["visibility"] == bedingung
-    assert meldung["type"] == "markdown" and meldung["visibility"] == bedingung
-    assert erste["column_span"] == 3
-
-
 def test_arbeitsseite_neben_der_uebersicht_ohne_meldung(anlagenseite):
-    seite = anlagenseite.arbeitsseite(_anlage(_kessel()), als_karte=True, mit_schaubild=False)
+    seite = anlagenseite.arbeitsseite(_anlage(_kessel()))
     assert not [k for k in _karten(seite) if k.get("type") == "markdown"]
     assert "badges" not in seite
 

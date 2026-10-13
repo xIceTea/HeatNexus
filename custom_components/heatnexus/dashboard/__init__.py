@@ -75,7 +75,7 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
     views = [
         uebersicht.uebersicht(anlagen, als_karte, kopf, rahmen, eigene),
         *(
-            _uebersetzt(anlage.arbeitsseite(a, als_karte, mit_schaubild=False), buch)
+            _uebersetzt(anlage.arbeitsseite(a), buch)
             for a, buch in zip(anlagen, eigene, strict=True)
         ),
     ]

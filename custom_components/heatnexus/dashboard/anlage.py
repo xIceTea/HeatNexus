@@ -100,18 +100,10 @@ def teilabschnitt(teil: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def arbeitsseite(
-    anlage: dict[str, Any],
-    als_karte: bool,
-    mit_schaubild: bool,
-    badges: list[dict[str, Any]] | None = None,
+    anlage: dict[str, Any], badges: list[dict[str, Any]] | None = None
 ) -> dict[str, Any]:
-    """Ansicht einer Anlage; als einzige Anlage mit Meldungen und Schaubild obenauf."""
-    abschnitte: list[dict[str, Any]] = meldungsabschnitt([anlage]) if mit_schaubild else []
-    if mit_schaubild and (bild := schaubild(anlage, als_karte, mit_liste=True)):
-        abschnitte += abschnitt(anlage["name"] or "Anlage", [bild], spanne=2)
-        if not als_karte:
-            werte = zustandswerte(anlage)
-            abschnitte += abschnitt("Zustand", [kachel(e) for e in werte], stil="subtitle")
+    """Ansicht einer Anlage mit allen ihren Teilen; Meldungen und Schaubild stehen in der Übersicht."""
+    abschnitte: list[dict[str, Any]] = []
     for teil in anlage["teile"]:
         abschnitte += teilabschnitt(teil)
     return ansicht(anlage["name"] or "Anlage", pfad_anlage(anlage), abschnitte, badges=badges)
