@@ -316,6 +316,43 @@ UEBERSTEUERUNG: dict[str, dict[str, list[str]]] = {
 }
 
 
+# Beleg je Hebung: Funktionstyp -> Quelle -> Adressen. Jede neue Zeile in
+# UEBERSTEUERUNG braucht hier einen Eintrag; `tests/test_herstellerebenen.py`
+# führt die Hebungen ohne Beleg als eingefrorene Ausnahmeliste.
+BELEGE: dict[str, dict[str, list[str]]] = {
+    "9": {
+        "Vollabzug einer laufenden BioWIN-Anlage": [
+            "2/0",
+            "9/90",
+            "39/57",
+            "58/12",
+            "58/115",
+            "10/110",
+            "23/99",
+            "39/23",
+        ],
+    },
+    "14": {
+        "Anlagenabzug, Wertebereich laut Bedienungsanleitung": [
+            "3/0",
+            "3/23",
+            "7/45",
+            "5/58",
+            "5/0",
+            "5/1",
+            "7/13",
+            "7/3",
+            "5/3",
+            "5/80",
+        ],
+    },
+    "25": {
+        "Anlagenabzug PuroWIN, Typ als Text über den object-Endpunkt": ["12/38"],
+        "Bedienungsanleitung PuroWIN, Serviceebene": ["39/23", "39/100", "20/96"],
+    },
+}
+
+
 def uebersteuern(ebenen: dict[str, dict]) -> int:
     """Gemessene Datenpunkte in die Ebene heben, in die sie gehören."""
     ergaenzt = 0

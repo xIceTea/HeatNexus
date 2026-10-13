@@ -136,3 +136,44 @@ def test_ein_herstellertext_hat_vorrang_vor_der_ergaenzung(generator):
     tabelle = {"FE242": {"text": "vom Hersteller"}}
     generator.ergaenze_stoerungen(tabelle, "de")
     assert tabelle["FE242"] == {"text": "vom Hersteller"}
+
+
+# Hebungen über die Herstellerebene, für die noch keine Quelle verzeichnet ist.
+# Die Liste darf nur schrumpfen: Wer einen Beleg in BELEGE einträgt, nimmt die
+# Adresse hier heraus; eine neue Hebung ohne Beleg lässt den Test scheitern.
+OHNE_BELEG: frozenset[str] = frozenset(
+    {"10:2/0", "10:58/12", "10:58/115"}
+    | {f"16:{a}" for a in ("1/7", "1/15", "1/22", "1/100", "22/75", "9/0", "5/1")}
+)
+
+
+def _hebungen(generator) -> set[str]:
+    return {
+        f"{fct}:{adresse}"
+        for fct, je_ebene in generator.UEBERSTEUERUNG.items()
+        for adressen in je_ebene.values()
+        for adresse in adressen
+    }
+
+
+def _belegt(generator) -> set[str]:
+    return {
+        f"{fct}:{adresse}"
+        for fct, quellen in generator.BELEGE.items()
+        for adressen in quellen.values()
+        for adresse in adressen
+    }
+
+
+def test_jede_hebung_ueber_die_herstellerebene_hat_einen_beleg(generator):
+    unbelegt = _hebungen(generator) - _belegt(generator)
+    assert sorted(unbelegt - OHNE_BELEG) == [], "neue Hebung ohne Eintrag in BELEGE"
+
+
+def test_die_ausnahmeliste_enthaelt_nur_hebungen_ohne_beleg(generator):
+    assert sorted(OHNE_BELEG & _belegt(generator)) == [], "belegt: aus OHNE_BELEG streichen"
+    assert sorted(OHNE_BELEG - _hebungen(generator)) == [], "keine Hebung mehr: streichen"
+
+
+def test_kein_beleg_ohne_hebung(generator):
+    assert sorted(_belegt(generator) - _hebungen(generator)) == []
