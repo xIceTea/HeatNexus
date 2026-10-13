@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Verbinding mislukt",
       "invalid_auth": "Aanmelding geweigerd - controleer het servicewachtwoord",
-      "unknown": "Onverwachte fout",
+      "unknown": "Onverwachte fout. Details staan in het logboek van Home Assistant.",
       "already_configured": "Dit adres is al toegevoegd",
       "andere_steuerung": "Op dit adres antwoordt een andere regelaar"
     },
@@ -153,7 +153,7 @@
           "enable_advanced": "Zonder vinkje worden de entiteiten aangemaakt, maar blijven ze uitgeschakeld en worden ze niet opgevraagd.",
           "writable_advanced": "Zonder vinkje worden deze parameters alleen weergegeven en niet geschreven.",
           "username": "USER ziet info- en bedieningsniveau, Service daarnaast de vakmanparameters. Een wijziging leest de installatie opnieuw in.",
-          "kesselart": "Welk toestel het installatieschema tekent. Werkt alleen op de tekening – geen entiteit, geen waarde verandert.",
+          "kesselart": "Welk ketelsymbool het installatieschema toont. Werkt alleen op de tekening – geen entiteit, geen waarde verandert.",
           "kesselwert": "Welke tweede waarde bij de ketel staat. Het gloeibed volgt verder het vermogen; meldt de installatie dat niet, dan geldt de branderkamertemperatuur.",
           "modulpumpe": "Alleen met vinkje verschijnt de pomp van de module in het schema. De module meldt ook een toerental als er niets op is aangesloten; de module zelf en haar lampjes worden altijd getoond.",
           "zeitwerte": "De klok van de regelaar. Zonder vinkje uitgeschakeld aangemaakt; alle andere tijd- en datumvelden blijven hierdoor ongewijzigd.",
@@ -205,7 +205,7 @@
       "already_configured": "Dit adres hoort al bij deze verwarmingsinstallatie.",
       "cannot_connect": "Verbinding mislukt",
       "invalid_auth": "Aanmelding geweigerd - controleer het servicewachtwoord",
-      "unknown": "Onverwachte fout"
+      "unknown": "Onverwachte fout. Details staan in het logboek van Home Assistant."
     },
     "abort": {
       "steuerung_hinzugefuegt": "De regelaar is toegevoegd. HeatNexus laadt opnieuw en leest hem in.",
@@ -485,7 +485,7 @@
   "issues": {
     "nicht_erreichbar": {
       "title": "{anlage} is niet bereikbaar",
-      "description": "HeatNexus ontvangt geen waarden meer van **{anlage}**.\n\nGemeld: {grund}\n\nControleer of de regelaar is ingeschakeld en via het netwerk bereikbaar is. Deze melding verdwijnt vanzelf zodra de installatie weer antwoordt."
+      "description": "Van **{anlage}** komen geen waarden meer.\n\nGemeld: {grund}\n\nControleer of de regelaar is ingeschakeld en via het netwerk bereikbaar is. Deze melding verdwijnt vanzelf zodra de installatie weer antwoordt."
     },
     "sprache_neustart": {
       "title": "Taal gewijzigd – herstart nodig",
@@ -507,7 +507,7 @@
     },
     "automatik_sicherheit": {
       "title": "Automatische regeling {heizkreis}: terugzetten naar programma mislukt",
-      "description": "Voor de veiligheid probeerde de automatische regeling het verwarmingscircuit **{heizkreis}** terug te zetten naar zijn programma. De regelaar heeft dit twee keer geweigerd.\n\nControleer de bedrijfsmodus van het verwarmingscircuit en stel die handmatig in. Deze melding verdwijnt zodra de regelaar weer een ingreep van de automatische regeling aanneemt."
+      "description": "Voor de veiligheid moest het verwarmingscircuit **{heizkreis}** terugkeren naar zijn programma. De regelaar heeft dit twee keer geweigerd.\n\nControleer de bedrijfsmodus van het verwarmingscircuit en stel die handmatig in. Deze melding verdwijnt zodra de regelaar weer een ingreep van de automatische regeling aanneemt."
     },
     "automatik_ruecknahme": {
       "title": "Automatische regeling {heizkreis}: terugdraaien mislukt",
@@ -519,7 +519,7 @@
     },
     "automatik_prognose": {
       "title": "Automatisering {heizkreis}: geen weersverwachting",
-      "description": "De automatisering van het verwarmingscircuit **{heizkreis}** ontvangt al enkele uren geen verwachting van de weerentiteit **{wetter}**. Zonder verwachting neemt ze geen nieuwe beslissingen.\n\nControleer of de weerentiteit beschikbaar is en een dag- of uurverwachting levert, of kies in de instellingen van de automatisering een andere weerentiteit. Deze melding verdwijnt zodra er weer een verwachting binnenkomt."
+      "description": "Voor de automatisering van het verwarmingscircuit **{heizkreis}** levert de weerentiteit **{wetter}** al enkele uren geen verwachting. Zonder verwachting neemt ze geen nieuwe beslissingen.\n\nControleer of de weerentiteit beschikbaar is en een dag- of uurverwachting levert, of kies in de instellingen van de automatisering een andere weerentiteit. Deze melding verdwijnt zodra er weer een verwachting binnenkomt."
     }
   },
   "config_subentries": {
@@ -574,7 +574,7 @@
             "aus": "Uitschakelwaarde"
           },
           "data_description": {
-            "zustaende": "Alleen deze toestanden gelden als leverend, elke andere als uit. Ontbreekt er een in de lijst, typ die dan in.",
+            "zustaende": "Alleen deze toestanden gelden als leverend, elke andere als uit. Ontbrekende toestanden kunnen aan de lijst worden toegevoegd.",
             "gegen": "De waarde ervan wordt van de eerste entiteit afgetrokken.",
             "ein": "Vanaf deze waarde geldt de bron als leverend.",
             "aus": "Pas daaronder geldt ze weer als uit. Leeg betekent dezelfde waarde."
@@ -593,10 +593,10 @@
   },
   "exceptions": {
     "wert_abgelehnt": {
-      "message": "De installatie heeft de waarde voor {oid} geweigerd (HTTP {status})."
+      "message": "De installatie heeft de nieuwe waarde niet aangenomen. De instelling is in de huidige toestand van de installatie vergrendeld of niet te wijzigen. Datapunt {oid}, HTTP {status}."
     },
     "zeitprogramm_abgelehnt": {
-      "message": "De installatie heeft het tijdprogramma {oid} geweigerd (HTTP {status})."
+      "message": "De installatie heeft het tijdprogramma niet aangenomen. Controleer de schakeltijden. Datapunt {oid}, HTTP {status}."
     },
     "voreinstellung_unbekannt": {
       "message": "De voorinstelling {voreinstellung} bestaat niet."
@@ -697,7 +697,7 @@
     },
     "set_time_program": {
       "name": "Tijdprogramma instellen",
-      "description": "Schrijft een verwarmings- of warmwaterprogramma (doel: een tijdprogrammasensor van HeatNexus). Ofwel vereenvoudigd met switch_points (plus optioneel weekdays, standaard dagelijks), ofwel met blocks voor volledige controle (meerdere groepen weekdagen, bijvoorbeeld ma–vr en za–zo).",
+      "description": "Schrijft een verwarmings- of warmwaterprogramma. Het doel is een tijdprogrammasensor van HeatNexus. Voor een programma dat dagelijks of op bepaalde dagen geldt, volstaan schakelpunten en weekdagen. Meerdere groepen weekdagen zoals ma–vr en za–zo kunnen als blokken worden geschreven.",
       "fields": {
         "switch_points": {
           "name": "Schakelpunten",

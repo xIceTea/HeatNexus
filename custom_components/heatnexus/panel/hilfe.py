@@ -139,7 +139,7 @@ HILFE_KARTEN = {
         "im Raum nimmt sie jeden eigenen Eingriff sofort zurück."
     ),
     "Lagerraum befüllen": (
-        "Erst anfordern, dann warten, bis „freigegeben“ dasteht. Vorher darf "
+        "Erst anfordern, dann warten, bis „freigegeben“ angezeigt wird. Vorher darf "
         "nur bis etwa einen Meter Schütthöhe befüllt werden, sonst kann das "
         "Rührwerk Schaden nehmen."
     ),
@@ -147,7 +147,7 @@ HILFE_KARTEN = {
         "Meldungen der Anlage im Klartext. Fehler und Alarme müssen am "
         "Bediengerät zurückgesetzt werden, bevor die Anlage weiterläuft."
     ),
-    "Schnellzugriff": "Die Bedienungen, die man im Alltag wirklich anfasst.",
+    "Schnellzugriff": "Die Bedienungen, die im Alltag am häufigsten gebraucht werden.",
     "Kessel": (
         "Die Eingriffe am Kessel. Die Bestätigungstasten setzen jeweils nur "
         "den Zähler zurück, um den es geht – bitte erst drücken, wenn die "

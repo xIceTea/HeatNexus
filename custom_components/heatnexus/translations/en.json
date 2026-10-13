@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Login rejected - check the service password",
-      "unknown": "Unexpected error",
+      "unknown": "Unexpected error. Details are in the Home Assistant log.",
       "already_configured": "This address was already added",
       "andere_steuerung": "A different controller answers at this address"
     },
@@ -153,7 +153,7 @@
           "enable_advanced": "Unchecked, the entities are created but stay disabled and cause no polling.",
           "writable_advanced": "Unchecked, these parameters are shown read-only.",
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
-          "kesselart": "Which appliance the plant diagram draws. Affects the drawing only – no entity, no value changes.",
+          "kesselart": "Which boiler symbol the plant diagram shows. Affects the drawing only – no entity, no value changes.",
           "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature.",
           "modulpumpe": "Only with the tick does the module's pump appear in the diagram. The module reports a speed even when nothing is wired to it; the module itself and its lamps are shown either way.",
           "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
@@ -205,7 +205,7 @@
       "already_configured": "This address is already part of this heating system.",
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Login rejected - check the service password",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error. Details are in the Home Assistant log."
     },
     "abort": {
       "steuerung_hinzugefuegt": "The controller has been added. HeatNexus reloads and reads it in.",
@@ -485,7 +485,7 @@
   "issues": {
     "nicht_erreichbar": {
       "title": "{anlage} cannot be reached",
-      "description": "HeatNexus no longer receives values from **{anlage}**.\n\nReported: {grund}\n\nPlease check that the controller is powered on and reachable on the network. This message disappears by itself once the system responds again."
+      "description": "No more values arrive from **{anlage}**.\n\nReported: {grund}\n\nPlease check that the controller is powered on and reachable on the network. This message disappears by itself once the system responds again."
     },
     "sprache_neustart": {
       "title": "Language changed – restart required",
@@ -507,7 +507,7 @@
     },
     "automatik_sicherheit": {
       "title": "Automation {heizkreis}: return to program failed",
-      "description": "For safety, the automation tried to return the heating circuit **{heizkreis}** to its program. The controller rejected this twice.\n\nPlease check the operating mode of the heating circuit and set it manually. This message disappears as soon as the controller accepts an intervention of the automation again."
+      "description": "For safety, the heating circuit **{heizkreis}** was to return to its program. The controller rejected this twice.\n\nPlease check the operating mode of the heating circuit and set it manually. This message disappears as soon as the controller accepts an intervention of the automation again."
     },
     "automatik_ruecknahme": {
       "title": "Automation {heizkreis}: undo failed",
@@ -519,7 +519,7 @@
     },
     "automatik_prognose": {
       "title": "Automation {heizkreis}: no weather forecast",
-      "description": "The automation of the heating circuit **{heizkreis}** has received no forecast from the weather entity **{wetter}** for several hours. Without a forecast it makes no new decisions.\n\nPlease check that the weather entity is available and provides a daily or hourly forecast, or choose a different weather entity in the automation settings. This message disappears as soon as a forecast arrives."
+      "description": "For the automation of the heating circuit **{heizkreis}**, the weather entity **{wetter}** has provided no forecast for several hours. Without a forecast it makes no new decisions.\n\nPlease check that the weather entity is available and provides a daily or hourly forecast, or choose a different weather entity in the automation settings. This message disappears as soon as a forecast arrives."
     }
   },
   "config_subentries": {
@@ -574,7 +574,7 @@
             "aus": "Switch-off value"
           },
           "data_description": {
-            "zustaende": "Only these states count as delivering, every other one as off. If one is missing from the list, type it in.",
+            "zustaende": "Only these states count as delivering, every other one as off. Missing states can be added to the list.",
             "gegen": "Its value is subtracted from the first entity.",
             "ein": "From this value the source counts as delivering.",
             "aus": "Only below this it counts as off again. Empty means the same value."
@@ -593,10 +593,10 @@
   },
   "exceptions": {
     "wert_abgelehnt": {
-      "message": "The system rejected the value for {oid} (HTTP {status})."
+      "message": "The system did not accept the new value. The setting is locked or cannot be changed in the current state of the system. Data point {oid}, HTTP {status}."
     },
     "zeitprogramm_abgelehnt": {
-      "message": "The system rejected the schedule {oid} (HTTP {status})."
+      "message": "The system did not accept the schedule. Please check the switching times. Data point {oid}, HTTP {status}."
     },
     "voreinstellung_unbekannt": {
       "message": "The preset {voreinstellung} does not exist."
@@ -697,7 +697,7 @@
     },
     "set_time_program": {
       "name": "Set schedule",
-      "description": "Writes a heating or hot water schedule (target: a schedule sensor of HeatNexus). Either simplified with switch_points (plus optional weekdays, daily by default) or with blocks for full control (several weekday groups, for example Mon–Fri and Sat–Sun).",
+      "description": "Writes a heating or hot water schedule. The target is a schedule sensor of HeatNexus. Switch points and weekdays are enough for a schedule that applies daily or on certain days. Several weekday groups such as Mon–Fri and Sat–Sun can be written as blocks.",
       "fields": {
         "switch_points": {
           "name": "Switching points",

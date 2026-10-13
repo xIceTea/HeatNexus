@@ -177,7 +177,7 @@ RUECKFRAGE: tuple[tuple[re.Pattern, str], ...] = (
     ),
     (
         re.compile(r"reinigung best", re.IGNORECASE),
-        "Damit meldest du der Anlage, dass die Reinigung erledigt ist: Die "
+        "Die Bestätigung meldet der Anlage, dass die Reinigung erledigt ist: Die "
         "Wartungszähler beginnen von vorn. Wirklich bestätigen?",
     ),
     # Die einzelnen Bestätigungstasten fragen jede für sich nach – sie setzen
@@ -210,8 +210,8 @@ RUECKFRAGE: tuple[tuple[re.Pattern, str], ...] = (
     ),
     (
         re.compile(r"estrich", re.IGNORECASE),
-        "Das Estrichprogramm fährt ein festes Temperaturprofil über Tage und "
-        "lässt sich nicht einfach abbrechen. Wirklich starten?",
+        "Das Estrichprogramm fährt über mehrere Tage ein festes Temperaturprofil. "
+        "Wirklich starten?",
     ),
     (
         re.compile(r"legionellen", re.IGNORECASE),

@@ -2,10 +2,10 @@ rediscover:
   name: Anlage neu erkennen
   description: >-
     Verwirft den gespeicherten Erkennungsstand und liest die Anlage komplett neu
-    ein (Datenpunkte/Geräte). Nötig z.B. nach Umbauten an der Heizung oder wenn
-    neue Heizkreise hinzugekommen sind. Dauert einmalig etwas länger und meldet
-    danach je Anlage zurück, wie viele Entitäten, zyklisch abgefragte
-    Datenpunkte und Zeitprogramme gefunden wurden.
+    ein (Datenpunkte und Geräte). Das ist zum Beispiel nach Umbauten an der
+    Heizung nötig oder wenn neue Heizkreise hinzugekommen sind. Der Lauf dauert
+    einmalig länger und meldet danach je Anlage, wie viele Entitäten, zyklisch
+    abgefragte Datenpunkte und Zeitprogramme gefunden wurden.
 
 set_current_temp_compensation:
   name: Behaglichkeitskorrektur setzen
@@ -46,10 +46,10 @@ set_vorgabe:
   name: Befristete Vorgabe setzen
   description: >-
     Setzt für einen Heizkreis eine befristete Raumtemperatur-Vorgabe – dieselbe,
-    die die Anlage „Eco / Comfort" nennt. Danach stellt sie von selbst auf die
-    Betriebswahl zurück; die Zeitprogramme bleiben unverändert. Steht der Kreis
-    auf Standby oder WW-Betrieb, wird für die Dauer der Vorgabe in ein
-    Heizprogramm geschaltet und anschließend zurückgesprungen.
+    die die Anlage „Eco / Comfort“ nennt. Danach kehrt der Heizkreis von selbst
+    zur Betriebswahl zurück; die Zeitprogramme bleiben unverändert. Steht der
+    Kreis auf Standby oder WW-Betrieb, schaltet er für die Dauer der Vorgabe in
+    ein Heizprogramm und danach zurück.
   target:
     entity:
       integration: heatnexus
@@ -81,10 +81,10 @@ set_vorgabe:
 set_time_program:
   name: Zeitprogramm setzen
   description: >-
-    Schreibt ein Heiz-/Warmwasser-Zeitprogramm (Ziel: ein Zeitprogramm-Sensor
-    der Windhager-Integration). Entweder vereinfacht über switch_points
-    (+ optional weekdays, Standard täglich) oder über blocks für volle Kontrolle
-    (mehrere Wochentag-Gruppen, z.B. Mo-Fr und Sa-So).
+    Schreibt ein Heiz- oder Warmwasser-Zeitprogramm. Ziel ist ein
+    Zeitprogramm-Sensor von HeatNexus. Für ein Programm, das täglich oder an
+    bestimmten Tagen gilt, genügen Schaltpunkte und Wochentage. Mehrere
+    Wochentag-Gruppen wie Mo–Fr und Sa–So lassen sich über Blöcke schreiben.
   target:
     entity:
       integration: heatnexus

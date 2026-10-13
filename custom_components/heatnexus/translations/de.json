@@ -8,7 +8,7 @@
     "error": {
       "cannot_connect": "Verbindung fehlgeschlagen",
       "invalid_auth": "Anmeldung abgelehnt – bitte Service-Passwort prüfen",
-      "unknown": "Unerwarteter Fehler",
+      "unknown": "Unerwarteter Fehler. Einzelheiten stehen im Protokoll von Home Assistant.",
       "already_configured": "Diese Adresse wurde bereits eingetragen",
       "andere_steuerung": "Unter dieser Adresse antwortet eine andere Steuerung"
     },
@@ -60,7 +60,7 @@
           "dashboard": "Legt ein Dashboard „Heizung“ in der Seitenleiste an, das sich aus den erkannten Geräten aufbaut.",
           "panel": "Legt einen Eintrag „HeatNexus“ in der Seitenleiste an: Anlagenschaubild, Zustand, Heizkreise und Schnellzugriff.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
-          "lon": "Die Steuerung führt neben den Datenpunkten einen vollständigen Bus-Adressraum. Für tiefe Einblicke: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und alles Übrige. Bei PuroWIN und Infinity bringt er kaum etwas, weil dieselben Werte schon als Datenpunkt dastehen.",
+          "lon": "Die Steuerung führt neben den Datenpunkten einen vollständigen Bus-Adressraum. Für tiefe Einblicke: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und alles Übrige. Bei PuroWIN und Infinity bringt er kaum etwas, weil dieselben Werte schon als Datenpunkt vorliegen.",
           "lon_grundumfang": "Holt Pumpe, Mischer und die Kernmesswerte des Kessels aus dem Bus, wenn die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Doppelte Werte entstehen dabei nicht: Wo es den Datenpunkt gibt, gilt er."
         }
       },
@@ -153,14 +153,14 @@
           "enable_advanced": "Ohne Haken werden die Entitäten angelegt, bleiben aber deaktiviert und erzeugen keine Abfragen.",
           "writable_advanced": "Ohne Haken werden diese Parameter nur angezeigt und nicht beschrieben.",
           "username": "„USER“ sieht Info- und Betreiberebene, „Service“ zusätzlich die Fachparameter. Ein Wechsel liest die Anlage neu ein.",
-          "kesselart": "Welches Gerät das Anlagenschaubild zeichnet. Wirkt nur auf die Zeichnung – keine Entität, kein Wert ändert sich.",
+          "kesselart": "Welches Kesselsymbol das Anlagenschaubild zeigt. Wirkt nur auf die Zeichnung – keine Entität, kein Wert ändert sich.",
           "kesselwert": "Welcher zweite Wert am Kessel steht. Das Glutbett folgt weiterhin der Leistung – fehlt sie, richtet es sich nach der Brennkammertemperatur.",
           "modulpumpe": "Nur mit Haken erscheint die Pumpe des Moduls im Schaubild. Das Modul meldet seine Drehzahl auch dann, wenn nichts angeklemmt ist – das Modul selbst und seine Lampen stehen unabhängig davon im Bild.",
           "zeitwerte": "Die Uhr der Steuerung. Ohne Haken deaktiviert angelegt; alle anderen Zeit- und Datumsfelder bleiben davon unberührt.",
           "lon": "Liest zusätzlich den Bus-Adressraum der Steuerung: Gebläsedrehzahl, Lambdasonden-Heizung, Pelletsvorrat und was sonst nur dort steht. An PuroWIN und Infinity bringt das wenig, weil dieselben Werte schon als Datenpunkt kommen.",
           "lon_grundumfang": "Holt Pumpe, Mischer und die Kernwerte des Kessels aus dem Bus, wo die Anlage sie nicht als Datenpunkt führt — sonst fehlen sie im Schaubild. Dafür muss „Werte vom LON-Bus lesen“ nicht eingeschaltet sein. Wo es den Datenpunkt gibt, gilt der Datenpunkt.",
           "zusatzgruppen": "Werte, die HeatNexus aus vorhandenen Zählern und Zuständen bildet: Laufzeiten (heute, seit dem letzten Start), Zähler (Starts, Verbrauch, Wärmemenge) und die Betriebsdauer. Was nicht angekreuzt ist, entsteht abgeschaltet. Mit „Individuell“ folgt nach OK ein zweiter Schritt mit den Einzelwerten.",
-          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant.",
+          "marken": "Jedes gewählte Label wird eine eigene Karte in der Übersicht. Wer eine davon nicht braucht, blendet sie dort aus. Jede Person sieht in einer Karte nur, was ihre Rechte in Home Assistant erlauben.",
           "marken_status": "Werte dieser Labels stehen im Systemstatus statt in einer eigenen Karte. Gewählt werden kann nur, was oben auch gezeigt wird."
         }
       },
@@ -205,12 +205,12 @@
       "already_configured": "Diese Adresse steht schon in dieser Heizung.",
       "cannot_connect": "Verbindung fehlgeschlagen",
       "invalid_auth": "Anmeldung abgelehnt – bitte Service-Passwort prüfen",
-      "unknown": "Unerwarteter Fehler"
+      "unknown": "Unerwarteter Fehler. Einzelheiten stehen im Protokoll von Home Assistant."
     },
     "abort": {
       "steuerung_hinzugefuegt": "Die Steuerung ist hinzugefügt. HeatNexus lädt neu und liest sie ein.",
       "steuerung_entfernt": "Die Steuerung ist entfernt. HeatNexus lädt neu.",
-      "letzte_steuerung": "Die letzte Steuerung lässt sich nicht entfernen. Um die ganze Heizung zu entfernen, lösche den Eintrag."
+      "letzte_steuerung": "Die letzte Steuerung lässt sich nicht entfernen. Um die ganze Heizung zu entfernen, den Eintrag löschen."
     }
   },
   "selector": {
@@ -485,7 +485,7 @@
   "issues": {
     "nicht_erreichbar": {
       "title": "{anlage} ist nicht erreichbar",
-      "description": "HeatNexus bekommt von der Anlage **{anlage}** keine Werte mehr.\n\nGemeldet wird: {grund}\n\nBitte prüfen, ob die Steuerung eingeschaltet und im Netz erreichbar ist. Diese Meldung verschwindet von selbst, sobald die Anlage wieder antwortet."
+      "description": "Von der Anlage **{anlage}** kommen keine Werte mehr.\n\nGemeldet wird: {grund}\n\nBitte prüfen, ob die Steuerung eingeschaltet und im Netz erreichbar ist. Diese Meldung verschwindet von selbst, sobald die Anlage wieder antwortet."
     },
     "sprache_neustart": {
       "title": "Sprache geändert – Neustart erforderlich",
@@ -507,7 +507,7 @@
     },
     "automatik_sicherheit": {
       "title": "Automatik {heizkreis}: Rückkehr ins Programm gescheitert",
-      "description": "Die Automatik wollte den Heizkreis **{heizkreis}** zur Sicherheit in sein Programm zurückstellen. Die Steuerung hat das zweimal abgelehnt.\n\nBitte die Betriebswahl des Heizkreises prüfen und von Hand einstellen. Diese Meldung verschwindet, sobald ein Eingriff der Automatik wieder angenommen wird."
+      "description": "Zur Sicherheit sollte der Heizkreis **{heizkreis}** in sein Programm zurückkehren. Die Steuerung hat das zweimal abgelehnt.\n\nBitte die Betriebswahl des Heizkreises prüfen und von Hand einstellen. Diese Meldung verschwindet, sobald ein Eingriff der Automatik wieder angenommen wird."
     },
     "automatik_ruecknahme": {
       "title": "Automatik {heizkreis}: Rücknahme gescheitert",
@@ -519,7 +519,7 @@
     },
     "automatik_prognose": {
       "title": "Automatik {heizkreis}: keine Wettervorhersage",
-      "description": "Die Automatik des Heizkreises **{heizkreis}** bekommt seit einigen Stunden keine Vorhersage von der Wetter-Entität **{wetter}**. Ohne Vorhersage trifft sie keine neuen Entscheidungen.\n\nBitte prüfen, ob die Wetter-Entität verfügbar ist und eine Tages- oder Stundenvorhersage liefert, oder in den Einstellungen der Automatik eine andere Wetter-Entität wählen. Die Meldung verschwindet, sobald wieder eine Vorhersage ankommt."
+      "description": "Für die Automatik des Heizkreises **{heizkreis}** liefert die Wetter-Entität **{wetter}** seit einigen Stunden keine Vorhersage. Ohne Vorhersage trifft sie keine neuen Entscheidungen.\n\nBitte prüfen, ob die Wetter-Entität verfügbar ist und eine Tages- oder Stundenvorhersage liefert, oder in den Einstellungen der Automatik eine andere Wetter-Entität wählen. Die Meldung verschwindet, sobald wieder eine Vorhersage ankommt."
     }
   },
   "config_subentries": {
@@ -574,7 +574,7 @@
             "aus": "Ausschaltwert"
           },
           "data_description": {
-            "zustaende": "Nur diese Zustände gelten als liefernd, jeder andere als aus. Fehlt einer in der Liste, trage ihn ein.",
+            "zustaende": "Nur diese Zustände gelten als liefernd, jeder andere als aus. Fehlende Zustände lassen sich in der Liste ergänzen.",
             "gegen": "Ihr Wert wird von der ersten Entität abgezogen.",
             "ein": "Ab diesem Wert gilt die Quelle als liefernd.",
             "aus": "Erst darunter gilt sie wieder als aus. Leer heißt: derselbe Wert."
@@ -593,10 +593,10 @@
   },
   "exceptions": {
     "wert_abgelehnt": {
-      "message": "Die Anlage hat den Wert für {oid} abgelehnt (HTTP {status})."
+      "message": "Die Anlage hat den neuen Wert nicht angenommen. Die Einstellung ist im aktuellen Zustand der Anlage gesperrt oder nicht änderbar. Datenpunkt {oid}, HTTP {status}."
     },
     "zeitprogramm_abgelehnt": {
-      "message": "Die Anlage hat das Zeitprogramm {oid} abgelehnt (HTTP {status})."
+      "message": "Die Anlage hat das Zeitprogramm nicht angenommen. Bitte die Schaltzeiten prüfen. Datenpunkt {oid}, HTTP {status}."
     },
     "voreinstellung_unbekannt": {
       "message": "Die Voreinstellung {voreinstellung} gibt es nicht."
@@ -665,7 +665,7 @@
   "services": {
     "rediscover": {
       "name": "Anlage neu erkennen",
-      "description": "Verwirft den gespeicherten Erkennungsstand und liest die Anlage komplett neu ein (Datenpunkte/Geräte). Nötig z.B. nach Umbauten an der Heizung oder wenn neue Heizkreise hinzugekommen sind. Dauert einmalig etwas länger und meldet danach je Anlage zurück, wie viele Entitäten, zyklisch abgefragte Datenpunkte und Zeitprogramme gefunden wurden."
+      "description": "Verwirft den gespeicherten Erkennungsstand und liest die Anlage komplett neu ein (Datenpunkte und Geräte). Das ist zum Beispiel nach Umbauten an der Heizung nötig oder wenn neue Heizkreise hinzugekommen sind. Der Lauf dauert einmalig länger und meldet danach je Anlage, wie viele Entitäten, zyklisch abgefragte Datenpunkte und Zeitprogramme gefunden wurden."
     },
     "set_current_temp_compensation": {
       "name": "Behaglichkeitskorrektur setzen",
@@ -683,7 +683,7 @@
     },
     "set_vorgabe": {
       "name": "Befristete Vorgabe setzen",
-      "description": "Setzt für einen Heizkreis eine befristete Raumtemperatur-Vorgabe – dieselbe, die die Anlage „Eco / Comfort\" nennt. Danach stellt sie von selbst auf die Betriebswahl zurück; die Zeitprogramme bleiben unverändert. Steht der Kreis auf Standby oder WW-Betrieb, wird für die Dauer der Vorgabe in ein Heizprogramm geschaltet und anschließend zurückgesprungen.",
+      "description": "Setzt für einen Heizkreis eine befristete Raumtemperatur-Vorgabe – dieselbe, die die Anlage „Eco / Comfort“ nennt. Danach kehrt der Heizkreis von selbst zur Betriebswahl zurück; die Zeitprogramme bleiben unverändert. Steht der Kreis auf Standby oder WW-Betrieb, schaltet er für die Dauer der Vorgabe in ein Heizprogramm und danach zurück.",
       "fields": {
         "temperature": {
           "name": "Temperatur",
@@ -697,7 +697,7 @@
     },
     "set_time_program": {
       "name": "Zeitprogramm setzen",
-      "description": "Schreibt ein Heiz-/Warmwasser-Zeitprogramm (Ziel: ein Zeitprogramm-Sensor der Windhager-Integration). Entweder vereinfacht über switch_points (+ optional weekdays, Standard täglich) oder über blocks für volle Kontrolle (mehrere Wochentag-Gruppen, z.B. Mo-Fr und Sa-So).",
+      "description": "Schreibt ein Heiz- oder Warmwasser-Zeitprogramm. Ziel ist ein Zeitprogramm-Sensor von HeatNexus. Für ein Programm, das täglich oder an bestimmten Tagen gilt, genügen Schaltpunkte und Wochentage. Mehrere Wochentag-Gruppen wie Mo–Fr und Sa–So lassen sich über Blöcke schreiben.",
       "fields": {
         "switch_points": {
           "name": "Schaltpunkte",
@@ -715,7 +715,7 @@
     },
     "dashboard_ausgeben": {
       "name": "Dashboard als YAML ausgeben",
-      "description": "Gibt das mitgelieferte Dashboard als YAML-Text zurück. Es wird bei jedem Öffnen neu gebaut und lässt sich deshalb nicht bearbeiten – mit diesem Text legst du ein eigenes Dashboard an, das dir gehört: neues Dashboard anlegen, Rohkonfigurations-Editor öffnen, Text einfügen."
+      "description": "Gibt das mitgelieferte Dashboard als YAML-Text zurück. Es wird bei jedem Öffnen neu gebaut und lässt sich deshalb nicht bearbeiten. Aus diesem Text entsteht ein eigenes, bearbeitbares Dashboard: neues Dashboard anlegen, Rohkonfigurations-Editor öffnen, Text einfügen."
     }
   }
 }

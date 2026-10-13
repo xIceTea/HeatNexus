@@ -41,7 +41,7 @@ TEXT_LAEUFT = (
     "**{titel}** wird gerade vollständig eingelesen.\n\n"
     "Bisher angelegt: {anzahl} Entitäten. "
     "Je nach Anlage dauert es 30 bis 120 Sekunden, bis alle Werte da "
-    "sind – Sie müssen nichts tun, die Meldung meldet sich wieder."
+    "sind. Es ist nichts zu tun; diese Meldung zeigt danach das Ergebnis."
 )
 TEXT_FERTIG = (
     "**{titel}** ist vollständig eingelesen: {anzahl} Entitäten.\n\n"
