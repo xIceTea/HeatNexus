@@ -44,7 +44,7 @@ from . import (
 from .optimierung import OptimierungMixin
 from .quellen import QuellenMixin, ortszeit
 from .steller import Stand, Steller, braucht_bestaetigung, nur_ww_wert
-from .vorausschau import VorausschauMixin
+from .vorausschau import LERNZEIT, VorausschauMixin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -296,6 +296,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._aufgaben: set[asyncio.Task[Any]] = set()
         self._angemeldet = False
         self._abmelden: list[Callable[[], None]] = []
+        # Ein Neustart der Laufzeit (jede Einstellung) lernt und trägt nur einmal am Tag nach.
+        self._gelernt_am: date | None = None
+        self._nachgetragen_am: date | None = None
 
     def _aufgabe(self, ablauf: Coroutine[Any, Any, Any], hintergrund: bool = False) -> None:
         """Eine Aufgabe, die `stoppen` abbricht; ein laufender Lauf endet vorher regulär."""
@@ -322,11 +325,31 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         else:
             await self._prognose_holen()
             await self.auswerten(entscheidungszeit)
-        self._nachladen = self.hass.async_create_background_task(
-            nachladen.heute_nachtragen(self.hass, self), f"heatnexus_automatik_{self.device_id}"
-        )
-        self._lernen_starten()
+        self._nebenlaeufe_starten(self._gestartet.date())
+
+    def _nebenlaeufe_starten(self, heute: date) -> None:
+        """Nachtragen, Hausmodell und Optimierung; was heute schon lief oder noch läuft, bleibt."""
+        if self._nachgetragen_am != heute:
+            self._nachgetragen_am = heute
+            self._nachladen = self.hass.async_create_background_task(
+                nachladen.heute_nachtragen(self.hass, self), f"heatnexus_automatik_{self.device_id}"
+            )
+        if self._gelernt_am != heute:
+            self._lernen_starten()
+        else:
+            self._abmelden.append(
+                async_track_time_change(self.hass, self._hausmodell_takt, **LERNZEIT)
+            )
         self._optimierung_starten()
+
+    def _lernen_anstossen(self) -> None:
+        self._gelernt_am = dt_util.now().date()
+        super()._lernen_anstossen()
+
+    def modell_neu_lernen(self) -> None:
+        """Das Hausmodell verwerfen und sofort neu lernen; ein laufender Lernlauf endet vorher."""
+        self._lernen_beenden()
+        self.hausmodell_neu(sofort=True)
 
     def _ausloeser_anmelden(self) -> None:
         client = self.coordinator.client
@@ -391,7 +414,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self.aussetzen()
         if self._nachladen is not None and not self._nachladen.done():
             self._nachladen.cancel()
+        self._nachgetragen_am = None
         self._lernen_beenden()
+        self._gelernt_am = None
         self._optimierung_beenden()
         ir.async_delete_issue(self.hass, DOMAIN, self.prognose_kennung)
         if self._angemeldet:
@@ -401,8 +426,10 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             self._angemeldet = False
 
     async def neu_starten(self, konfig: dict[str, Any], entscheidungszeit: bool = False) -> None:
-        """Mit geänderten Einstellungen weiterlaufen; der Zustand bleibt."""
-        self.stoppen()
+        """Mit geänderten Einstellungen weiterlaufen; Zustand, Nachtragen und Lernen bleiben."""
+        self.aussetzen()
+        self._optimierung_beenden()
+        ir.async_delete_issue(self.hass, DOMAIN, self.prognose_kennung)
         await self.abwarten()
         self.konfig = konfig
         await self.starten(entscheidungszeit)

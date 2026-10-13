@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import replace
 from datetime import timedelta
 
+import pytest
+
 from . import test_automatik_ha as ha
 from .conftest import requires_ha
 
@@ -288,7 +290,7 @@ async def test_der_erste_lauf_nach_dem_start_wartet_nicht_auf_die_prognose(hass,
 
     verwaltung, _ = anlage
     freezer.move_to(ha.MORGEN)
-    laufzeit = await ha._eingerichtet(hass, verwaltung)
+    await ha._eingerichtet(hass, verwaltung)
     await hass.async_block_till_done(wait_background_tasks=True)
     weiter = asyncio.Event()
 
@@ -308,3 +310,76 @@ async def test_der_erste_lauf_nach_dem_start_wartet_nicht_auf_die_prognose(hass,
     weiter.set()
     await hass.async_block_till_done(wait_background_tasks=True)
     assert neu.lage is not None
+
+
+# --- Lernen und Nachtragen ---------------------------------------------------
+def _zaehlen(monkeypatch):
+    """Zählt, wie oft Hausmodell gelernt und der Tag nachgetragen wird."""
+    from custom_components.heatnexus.automatik import laufzeit as modul
+    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
+
+    aufrufe = {"lernen": 0, "nachtragen": 0}
+
+    async def lernen(self):
+        aufrufe["lernen"] += 1
+
+    async def nachtragen(_hass, _laufzeit):
+        aufrufe["nachtragen"] += 1
+
+    monkeypatch.setattr(Laufzeit, "hausmodell_lernen", lernen)
+    monkeypatch.setattr(modul.nachladen, "heute_nachtragen", nachtragen)
+    return aufrufe
+
+
+async def _einstellen(verwaltung, hass, **aenderung):
+    await verwaltung.einstellen(ha.HEIZKREIS, aenderung)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+
+async def test_eine_einstellung_lernt_und_traegt_nicht_erneut_nach(
+    hass, anlage, freezer, monkeypatch
+):
+    from custom_components.heatnexus.automatik import hausmodell
+
+    verwaltung, _ = anlage
+    aufrufe = _zaehlen(monkeypatch)
+    freezer.move_to(ha.MORGEN)
+    laufzeit = await ha._eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    modell = hausmodell.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 6, (0.3,), 0.0, (0.5,))
+    laufzeit.hausmodell = modell
+    assert aufrufe == {"lernen": 1, "nachtragen": 1}
+
+    await _einstellen(verwaltung, hass, modus="empfehlen")
+    await _einstellen(verwaltung, hass, ausrichtung="eco")
+
+    assert aufrufe == {"lernen": 1, "nachtragen": 1}
+    assert laufzeit.hausmodell == modell
+
+
+@pytest.mark.parametrize(
+    "aenderung",
+    [
+        {"raeume": ["sensor.wohnzimmer", "sensor.kueche"]},
+        {"raum_art": "minimum"},
+        {"wetter": "weather.zweites"},
+    ],
+)
+async def test_geaenderte_raeume_oder_wetter_lernen_das_hausmodell_neu(
+    hass, anlage, freezer, monkeypatch, aenderung
+):
+    from custom_components.heatnexus.automatik import hausmodell
+
+    verwaltung, _ = anlage
+    hass.states.async_set("sensor.kueche", "20.5", {"device_class": "temperature"})
+    hass.states.async_set("weather.zweites", "sunny")
+    aufrufe = _zaehlen(monkeypatch)
+    freezer.move_to(ha.MORGEN)
+    laufzeit = await ha._eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    laufzeit.hausmodell = hausmodell.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 6, (0.3,), 0.0, (0.5,))
+
+    await _einstellen(verwaltung, hass, **aenderung)
+
+    assert laufzeit.hausmodell is None
+    assert aufrufe["lernen"] == 2

@@ -468,6 +468,9 @@ class Verwaltung:
             if neu["modus"] == "beobachten" and alt["modus"] != "beobachten":
                 laufzeit.beobachtet_seit = dt_util.now()
             await laufzeit.neu_starten(neu, entscheidungszeit=gewechselt and neu["aktiv"])
+            # Andere Räume oder anderes Wetter: Das gelernte Hausmodell passt nicht mehr.
+            if any(alt.get(k) != neu.get(k) for k in ("raeume", "raum_art", "wetter")):
+                laufzeit.modell_neu_lernen()
         eintrag["konfig"] = neu
         self.speichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(device_id))
@@ -501,7 +504,7 @@ class Verwaltung:
         """Das Hausmodell eines Heizkreises verwerfen und aus dem Verlauf neu lernen."""
         if (laufzeit := self.laufzeiten.get(device_id)) is None:
             raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
-        laufzeit.hausmodell_neu(sofort=True)
+        laufzeit.modell_neu_lernen()
 
     async def entfernen(self, device_id: str) -> None:
         """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten abräumen."""
