@@ -315,10 +315,10 @@ class Sammler:
         async_dispatcher_send(self.hass, SIGNAL_STAND.format(self.anlage_id))
 
     def befund(self, kennung: str, art: str) -> dict[str, Any] | None:
-        for abschnitt in (self.letzter or {}).get("abschnitte", []):
-            if abschnitt["kennung"] == kennung:
-                return next((b for b in abschnitt["befunde"] if b["art"] == art), None)
-        return None
+        """Haus und Heizkreis tragen dieselbe Kennung; gesucht wird über beide Abschnitte."""
+        abschnitte = (self.letzter or {}).get("abschnitte", [])
+        befunde = (b for a in abschnitte if a["kennung"] == kennung for b in a["befunde"])
+        return next((b for b in befunde if b["art"] == art), None)
 
 
 class BefundVerwaltung:

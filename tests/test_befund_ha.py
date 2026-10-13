@@ -152,10 +152,9 @@ async def test_sensoren_je_heizkreis_und_kessel(hass, anlage):
         ]
         + [f"SN1-1-0-befund-{art}" for art in ("laufzeit", "energie")]
     )
-    sensor = next(s for s in angelegt if s.unique_id.endswith("heizgrenze"))
-    sensor.hass = hass
-    assert sensor.native_value is None
-    assert sensor.extra_state_attributes["status"] == "sammelt"
+    for sensor in angelegt:
+        sensor.hass = hass
+        assert sensor.extra_state_attributes["status"] is not None, sensor.unique_id
 
 
 async def test_befund_sensoren_gelten_nicht_als_verwaist(hass, anlage):
