@@ -185,3 +185,43 @@ async def test_kuenftiges_ziel_behaelt_die_behaglichkeit(
 
     assert laufzeit._ziel(lage, PROGRAMM, lage.jetzt.replace(hour=12)) == 21.0 + zuschlag
     assert laufzeit._ziel(lage, PROGRAMM, abends) == pytest.approx(erwartet)
+
+
+@pytest.mark.parametrize(
+    ("raum_ziel", "behaglichkeit", "restzeit"),
+    [(None, "1.0", "0"), (21.0, "1.0", "0"), (None, "0.0", "90"), (None, "-0.5", "0")],
+)
+async def test_nachrechnen_ergibt_dieselbe_stunde_wie_live(
+    hass, anlage, freezer, raum_ziel, behaglichkeit, restzeit
+):
+    from custom_components.heatnexus.automatik import eingaben, nachrechnen
+
+    verwaltung, coordinator = anlage
+    freezer.move_to(ha.MORGEN)
+    laufzeit = await ha._eingerichtet(hass, verwaltung)
+    laufzeit.konfig = {**laufzeit.konfig, "raum_ziel": raum_ziel}
+    werte = {"1/1": 23.0, "1/2": 45.0, "0/2": 44.0, "2/9": 1, "2/10": float(restzeit)}
+    for adresse, wert in {**werte, "3/58": behaglichkeit}.items():
+        coordinator.data["oids"][f"{ha.PREFIX}/{adresse}/0"] = str(wert)
+    hass.states.async_set("sensor.wohnzimmer", "21.8")
+    await laufzeit.auswerten()
+    live = laufzeit._stundenfelder()
+
+    beginn = laufzeit.lage.jetzt.replace(minute=0, second=0, microsecond=0)
+    reihe = {name: [(beginn, wert)] for name, wert in werte.items()}
+    reihen = nachrechnen.Reihen(
+        at=[],
+        soll=reihe["1/1"],
+        vl=reihe["1/2"],
+        ba=reihe["2/9"],
+        restzeit=reihe["2/10"],
+        raeume=[([(beginn, 21.8)], raum_ziel)],
+        raum_art="mittel",
+        vi=reihe["0/2"],
+        behaglichkeit=[(beginn, float(behaglichkeit))],
+        eigene_ziele=eingaben.eigene_ziele(laufzeit.konfig),
+    )
+    tag = nachrechnen.stunden_je_tag(reihen, [beginn.date()], beginn.tzinfo)
+    nachgerechnet = tag[beginn.date().isoformat()][str(beginn.hour)]
+
+    assert {k: v for k, v in live.items() if k != "beobachtet"} == nachgerechnet
