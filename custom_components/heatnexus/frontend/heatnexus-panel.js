@@ -219,6 +219,9 @@ class HeatNexusPanel extends Grundlage {
   }
 
   _aufbauen() {
+    // Hörer an Knoten, die den Neuaufbau überleben, hängen an diesem Signal.
+    if (this._aufbauAbbruch) this._aufbauAbbruch.abort();
+    this._aufbauAbbruch = new AbortController();
     this._bindungen = [];
     this._verlaufskarten = [];
     this._wartend = [];
@@ -405,10 +408,14 @@ class HeatNexusPanel extends Grundlage {
     });
     // Ein Klick daneben schließt. Gehorcht wird dem Schattenbaum, nicht dem
     // Dokument: Von dort aus zeigt jedes Ereignis auf das Wirtselement.
-    this.shadowRoot.addEventListener("click", (ereignis) => {
-      const pfad = ereignis.composedPath ? ereignis.composedPath() : [];
-      if (!liste.hidden && !pfad.includes(huelle)) zu();
-    });
+    this.shadowRoot.addEventListener(
+      "click",
+      (ereignis) => {
+        const pfad = ereignis.composedPath ? ereignis.composedPath() : [];
+        if (!liste.hidden && !pfad.includes(huelle)) zu();
+      },
+      { signal: this._aufbauAbbruch.signal }
+    );
 
     huelle.append(taste, liste);
     return huelle;
