@@ -501,9 +501,12 @@ class HeatNexusSchaubildEditor extends HTMLElement {
       symbol.icon = eintrag.symbol || bekannt.symbol || "mdi:gauge";
       const text = document.createElement("div");
       text.style.flex = "1";
-      text.innerHTML =
-        `<div>${eintrag.name || bekannt.name || eintrag.entity}</div>` +
-        `<div style="font-size:12px;opacity:0.6">${bekannt.teil || ""}</div>`;
+      const titel = document.createElement("div");
+      titel.textContent = eintrag.name || bekannt.name || eintrag.entity;
+      const untertitel = document.createElement("div");
+      untertitel.style.cssText = "font-size:12px;color:var(--secondary-text-color)";
+      untertitel.textContent = bekannt.teil || "";
+      text.append(titel, untertitel);
       const pfeil = document.createElement("ha-icon");
       pfeil.icon = "mdi:chevron-right";
       zeile.append(griff, symbol, text, pfeil);
