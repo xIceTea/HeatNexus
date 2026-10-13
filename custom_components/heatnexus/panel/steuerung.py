@@ -238,110 +238,109 @@ def kaminkehrer_bedienung(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
     return bedienung
 
 
-def steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
-    """Der Reiter „Steuerung": alles, was man an der Anlage wirklich verstellt.
+def _heizkreis_karte(teil: dict[str, Any], thermostat: dict[str, Any]) -> dict[str, Any]:
+    """Die Bedienkarte eines Heizkreises."""
+    entitaeten = teil["entitaeten"]
+    vorlauf = erster(entitaeten, r"vorlauftemperatur ist", "flow_temperature")
+    return {
+        # Die Gerätekennung überlebt eine erneute Erkennung und ist damit der
+        # einzige Anker, an dem eine selbst gewählte Anordnung diese Karte
+        # wiedererkennt.
+        "id": teil["id"],
+        "entity": thermostat["entity_id"],
+        "titel": teil["name"],
+        "betriebswahl": kennung_suchen(entitaeten, BETRIEBSWAHL, ("select",), "mode_selection"),
+        "betriebswahl_hilfe": hilfe("Betriebswahl"),
+        "programm": kennung_suchen(entitaeten, ZEITPROGRAMM, ("sensor",)),
+        # Eco und Comfort schreiben dieselbe befristete Übersteuerung wie das
+        # Bediengerät: Temperatur (3/4) und Dauer (2/10). Ob sie Eco oder Comfort
+        # heißt, folgt daraus, ob sie unter oder über dem Programmsollwert liegt.
+        "uebersteuerung_temperatur": kennung_suchen(
+            entitaeten, UEBERSTEUERUNG_TEMPERATUR, ("number",)
+        ),
+        "uebersteuerung_dauer": kennung_suchen(entitaeten, UEBERSTEUERUNG_DAUER, ("number",)),
+        "vorlauf": vorlauf["entity_id"] if vorlauf else None,
+    }
 
-    Vorbild ist die Bedienung der Anlage selbst – Heizkreis, Warmwasser,
-    Kessel. Was nur abgelesen wird, gehört in die Übersicht.
-    """
-    alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
 
-    heizkreise = []
+def _heizkreise(anlage: dict[str, Any]) -> list[dict[str, Any]]:
+    """Die Bedienkarten aller Heizkreise, das sind die Anlagenteile mit Thermostat."""
+    karten = []
     for teil in anlage["teile"]:
         thermostat = next((e for e in teil["entitaeten"] if e["bereich"] == "climate"), None)
-        if thermostat is None:
-            continue
-        heizkreise.append(
-            {
-                # Die Gerätekennung überlebt eine erneute Erkennung und ist
-                # damit der einzige Anker, an dem eine selbst gewählte
-                # Anordnung diese Karte wiedererkennt.
-                "id": teil["id"],
-                "entity": thermostat["entity_id"],
-                "titel": teil["name"],
-                "betriebswahl": kennung_suchen(
-                    teil["entitaeten"], BETRIEBSWAHL, ("select",), "mode_selection"
-                ),
-                "betriebswahl_hilfe": hilfe("Betriebswahl"),
-                "programm": kennung_suchen(teil["entitaeten"], ZEITPROGRAMM, ("sensor",)),
-                # Eco und Comfort schreiben dieselbe befristete Übersteuerung
-                # wie das Bediengerät: Temperatur (3/4) und Dauer (2/10). Die
-                # Anlage kennt nur einen Übersteuerungswert – ob er Eco oder
-                # Comfort heißt, entscheidet sie daran, ob er unter oder über
-                # dem Programmsollwert liegt.
-                "uebersteuerung_temperatur": kennung_suchen(
-                    teil["entitaeten"], UEBERSTEUERUNG_TEMPERATUR, ("number",)
-                ),
-                "uebersteuerung_dauer": kennung_suchen(
-                    teil["entitaeten"], UEBERSTEUERUNG_DAUER, ("number",)
-                ),
-                "vorlauf": (
-                    v["entity_id"]
-                    if (
-                        v := erster(
-                            teil["entitaeten"], r"vorlauftemperatur ist", "flow_temperature"
-                        )
-                    )
-                    else None
-                ),
-            }
-        )
+        if thermostat is not None:
+            karten.append(_heizkreis_karte(teil, thermostat))
+    return karten
 
-    warmwasser = None
-    if bereitet_warmwasser(alle):
-        ist = erster(alle, r"\bww[- ]temperatur aktueller|\bwarmwasser ist", "dhw_temperature")
-        # Der Kreis, an dem das Warmwasser hängt – seine Betriebswahl ist die,
-        # die für die Ladung umgeschaltet und hinterher wiederhergestellt wird.
-        kreis = next(
-            (
-                teil["entitaeten"]
-                for teil in anlage["teile"]
-                if erster(teil["entitaeten"], WARMWASSER_IST_KENNWERT, "dhw_temperature")
-                is not None
-            ),
-            alle,
-        )
-        # Die Ladung gehört zum Teil, der ihren Auslöser führt; dort stehen Betriebsart und Pumpe.
-        ww_teil, ausloeser = next(
-            ((t, a) for t in anlage["teile"] if (a := ww_ausloeser(t)) is not None), (None, None)
-        )
-        laden = ausloeser["entity_id"] if ausloeser else None
-        if ww_teil is not None:
-            kreis = ww_teil["entitaeten"]
-        warmwasser = {
-            "ist": ist["entity_id"] if ist else None,
-            "soll": kennung_suchen(alle, WARMWASSER_SOLL),
-            "laden": laden,
-            # Die Temperatur der Einmalladung ist an der Anlage Teil derselben
-            # Bedienung; ohne sie lädt man auf einen Wert, den man nicht sieht.
-            "laden_temperatur": _ww_ladetemperatur(kreis, (ww_teil or {}).get("fct_type")),
-            # Die Einschalthysterese: wie weit die Temperatur unter den
-            # Sollwert fallen darf, bevor nachgeladen wird. Sie entscheidet
-            # mit, ob ein Ladeauftrag überhaupt angenommen wird – deshalb
-            # gehört sie neben die Taste und nicht in die Serviceebene.
-            "hysterese": kennung_suchen(kreis, WARMWASSER_HYSTERESE_MUSTER, ("number",)),
-            # Was die Anlage gerade tut – daran hängt die Rückmeldung.
-            "betriebsart": kennung_suchen(kreis, BETRIEBSART, ("sensor",), "operating_mode"),
-            "programm": kennung_suchen(kreis, namensmuster(r"ww[- ].*programm"), ("sensor",)),
-            # **Dieselbe Taste wie in der Übersicht.** Beschreibung, Ladeschwelle
-            # und Abbruch kommen aus einer Quelle; die Ansicht baut daraus nur
-            # noch die Schaltfläche.
-            "taste": (
-                {
-                    "entity": laden,
-                    "titel": "Warmwasser laden",
-                    "symbol": "mdi:water-boiler",
-                    "frage": rueckfrage("WW Einmalladung"),
-                    "hilfe": hilfe("Einmalladung"),
-                    **warmwasser_bedienung(alle, kreis),
-                    **ausloeser_optionen(ausloeser),
-                }
-                if laden
-                else None
-            ),
-        }
 
-    kessel = []
+def _warmwasser_kreis(anlage: dict[str, Any], alle: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Die Entitäten des Kreises, an dem das Warmwasser hängt.
+
+    Seine Betriebswahl ist die, die für die Ladung umgeschaltet und hinterher
+    wiederhergestellt wird.
+    """
+    return next(
+        (
+            teil["entitaeten"]
+            for teil in anlage["teile"]
+            if erster(teil["entitaeten"], WARMWASSER_IST_KENNWERT, "dhw_temperature") is not None
+        ),
+        alle,
+    )
+
+
+def _warmwasser_taste(
+    ausloeser: dict[str, Any], alle: list[dict[str, Any]], kreis: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Dieselbe Taste wie in der Übersicht.
+
+    Beschreibung, Ladeschwelle und Abbruch kommen aus einer Quelle; die Ansicht
+    baut daraus nur noch die Schaltfläche.
+    """
+    return {
+        "entity": ausloeser["entity_id"],
+        "titel": "Warmwasser laden",
+        "symbol": "mdi:water-boiler",
+        "frage": rueckfrage("WW Einmalladung"),
+        "hilfe": hilfe("Einmalladung"),
+        **warmwasser_bedienung(alle, kreis),
+        **ausloeser_optionen(ausloeser),
+    }
+
+
+def _warmwasser_karte(anlage: dict[str, Any], alle: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Die Bedienkarte des Warmwassers; ohne Warmwasserbereitung entfällt sie."""
+    if not bereitet_warmwasser(alle):
+        return None
+    ist = erster(alle, r"\bww[- ]temperatur aktueller|\bwarmwasser ist", "dhw_temperature")
+    kreis = _warmwasser_kreis(anlage, alle)
+    # Die Ladung gehört zum Teil, der ihren Auslöser führt; dort stehen Betriebsart und Pumpe.
+    ww_teil, ausloeser = next(
+        ((t, a) for t in anlage["teile"] if (a := ww_ausloeser(t)) is not None), (None, None)
+    )
+    laden = ausloeser["entity_id"] if ausloeser else None
+    if ww_teil is not None:
+        kreis = ww_teil["entitaeten"]
+    return {
+        "ist": ist["entity_id"] if ist else None,
+        "soll": kennung_suchen(alle, WARMWASSER_SOLL),
+        "laden": laden,
+        # Die Temperatur der Einmalladung ist an der Anlage Teil derselben
+        # Bedienung; ohne sie lädt man auf einen Wert, den man nicht sieht.
+        "laden_temperatur": _ww_ladetemperatur(kreis, (ww_teil or {}).get("fct_type")),
+        # Die Einschalthysterese entscheidet mit, ob ein Ladeauftrag angenommen
+        # wird – deshalb gehört sie neben die Taste und nicht in die Serviceebene.
+        "hysterese": kennung_suchen(kreis, WARMWASSER_HYSTERESE_MUSTER, ("number",)),
+        # Was die Anlage gerade tut – daran hängt die Rückmeldung.
+        "betriebsart": kennung_suchen(kreis, BETRIEBSART, ("sensor",), "operating_mode"),
+        "programm": kennung_suchen(kreis, namensmuster(r"ww[- ].*programm"), ("sensor",)),
+        "taste": _warmwasser_taste(ausloeser, alle, kreis) if laden else None,
+    }
+
+
+def _kessel_karten(anlage: dict[str, Any]) -> list[dict[str, Any]]:
+    """Die Tasten und Schalter am Kessel."""
+    karten = []
     for teil in anlage["teile"]:
         for muster, beschriftung, symbol, schluessel in KESSEL_BEDIENUNG:
             treffer = eintrag_suchen(
@@ -350,41 +349,55 @@ def steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
                 ("switch", "button", "select"),
                 *schluessel,
             )
-            if treffer is not None:
-                eintrag = {
-                    "entity": treffer["entity_id"],
-                    "titel": beschriftung,
-                    "symbol": symbol,
-                    "frage": rueckfrage(mustername(treffer)),
-                    "hilfe": hilfe(mustername(treffer)) or hilfe(beschriftung),
-                }
-                if _passt(mustername(treffer), KAMINKEHRER):
-                    eintrag.update(kaminkehrer_bedienung(teil["entitaeten"]))
-                kessel.append(eintrag)
+            if treffer is None:
+                continue
+            karte = {
+                "entity": treffer["entity_id"],
+                "titel": beschriftung,
+                "symbol": symbol,
+                "frage": rueckfrage(mustername(treffer)),
+                "hilfe": hilfe(mustername(treffer)) or hilfe(beschriftung),
+            }
+            if _passt(mustername(treffer), KAMINKEHRER):
+                karte.update(kaminkehrer_bedienung(teil["entitaeten"]))
+            karten.append(karte)
+    return karten
 
-    # Lagerraumbefüllung: anfordern und dann ablesen, ob freigegeben ist.
-    # Ohne die Anforderungstaste hat die Karte keinen Zweck.
-    lagerraum = None
-    if (anfordern := kennung_suchen(alle, LAGERRAUM_ANFORDERN, ("switch", "button"))) is not None:
-        lagerraum = {
-            "anfordern": anfordern,
-            "titel_abbrechen": "Befüllung beenden",
-            "frage_abbrechen": (
-                "Erst beenden, wenn die Befüllung abgeschlossen ist. "
-                "Das Rührwerk steht danach still."
-            ),
-            "frage": rueckfrage("Lagerraumbefüllung anfordern"),
-            "hilfe": HILFE_KARTEN.get("Lagerraum befüllen", ""),
-            "zeilen": [
-                {"entity": treffer["entity_id"], "titel": beschriftung}
-                for muster, beschriftung, schluessel in LAGERRAUM_ZEILEN
-                if (treffer := erster(alle, muster, *schluessel)) is not None
-            ],
-        }
 
+def _lagerraum_karte(alle: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Lagerraumbefüllung: anfordern und dann ablesen, ob freigegeben ist.
+
+    Ohne die Anforderungstaste hat die Karte keinen Zweck.
+    """
+    anfordern = kennung_suchen(alle, LAGERRAUM_ANFORDERN, ("switch", "button"))
+    if anfordern is None:
+        return None
     return {
-        "heizkreise": heizkreise,
-        "warmwasser": warmwasser,
-        "kessel": kessel,
-        "lagerraum": lagerraum,
+        "anfordern": anfordern,
+        "titel_abbrechen": "Befüllung beenden",
+        "frage_abbrechen": (
+            "Erst beenden, wenn die Befüllung abgeschlossen ist. Das Rührwerk steht danach still."
+        ),
+        "frage": rueckfrage("Lagerraumbefüllung anfordern"),
+        "hilfe": HILFE_KARTEN.get("Lagerraum befüllen", ""),
+        "zeilen": [
+            {"entity": treffer["entity_id"], "titel": beschriftung}
+            for muster, beschriftung, schluessel in LAGERRAUM_ZEILEN
+            if (treffer := erster(alle, muster, *schluessel)) is not None
+        ],
+    }
+
+
+def steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
+    """Der Reiter „Steuerung": alles, was man an der Anlage wirklich verstellt.
+
+    Vorbild ist die Bedienung der Anlage selbst – Heizkreis, Warmwasser,
+    Kessel. Was nur abgelesen wird, gehört in die Übersicht.
+    """
+    alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
+    return {
+        "heizkreise": _heizkreise(anlage),
+        "warmwasser": _warmwasser_karte(anlage, alle),
+        "kessel": _kessel_karten(anlage),
+        "lagerraum": _lagerraum_karte(alle),
     }
