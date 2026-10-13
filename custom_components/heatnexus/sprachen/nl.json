@@ -976,5 +976,16 @@
   "{datum}: {wert} K": "{datum}: {wert} K",
   "{raum}: {p} % {klasse}": "{raum}: {p} % {klasse}",
   "{von} bis {bis} °C: an {h} von {n} Tagen geheizt": "{von} tot {bis} °C: op {h} van {n} dagen gestookt",
-  "{zeit}: {wert} °C": "{zeit}: {wert} °C"
+  "{zeit}: {wert} °C": "{zeit}: {wert} °C",
+  "Befunde": "bevindingen",
+  "{n} Befunde": "{n} bevindingen",
+  "Wärmespeicher": "Warmteopslag",
+  "Nächte": "Nachten",
+  "Energie": "Energie",
+  "noch ohne Ergebnis": "nog geen resultaat",
+  "Nichts gemessen": "Niets gemeten",
+  "Nichts Auffälliges gemessen": "Niets opvallends gemeten",
+  "Alle Befunde haben einen Wert": "Alle bevindingen hebben een waarde",
+  "nicht eingerichtet": "niet ingesteld",
+  "Nur Beobachtung: gemessene Werte, keine Empfehlung. Der Befund ändert nichts an der Anlage.": "Alleen observatie: gemeten waarden, geen aanbeveling. De bevindingen veranderen niets aan de installatie."
 }

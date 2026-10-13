@@ -285,7 +285,7 @@ export const AutomatikMixin = (Basis) =>
       const darf = !!daten.darf_aendern;
       bereich.append(
         this._automatikKarte(kreis, daten),
-        this._automatikKennwerte(kreis, darf),
+        this._automatikKennwerte(kreis),
         this._automatikTag(kreis),
         this._automatikErweitert(kreis, daten, darf)
       );

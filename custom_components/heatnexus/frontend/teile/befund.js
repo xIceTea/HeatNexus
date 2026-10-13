@@ -23,6 +23,15 @@ function kurzdatum(datum) {
   return `${datum.slice(8, 10)}.${datum.slice(5, 7)}.`;
 }
 
+/** Pfad eines Kreisbogens von `von` bis `bis` Grad, im Uhrzeigersinn ab zwölf Uhr. */
+function bogen(cx, cy, r, von, bis) {
+  const punkt = (grad) => {
+    const w = ((grad - 90) * Math.PI) / 180;
+    return `${(cx + r * Math.cos(w)).toFixed(2)} ${(cy + r * Math.sin(w)).toFixed(2)}`;
+  };
+  return `M${punkt(von)} A${r} ${r} 0 ${bis - von > 180 ? 1 : 0} 1 ${punkt(bis)}`;
+}
+
 function svg(tag, attribute = {}, text) {
   const el = document.createElementNS(NS, tag);
   Object.entries(attribute).forEach(([name, wert]) => el.setAttribute(name, String(wert)));
@@ -59,6 +68,19 @@ const HILFE = {
 
 const ABSCHNITT = { haus: "Haus", heizkreis: "Heizkreis", kessel: "Kessel" };
 
+// Kurzname je Befund für Aufzählungen in der Kopfkarte.
+const KURZ = {
+  waermespeicher: "Wärmespeicher",
+  heizgrenze: "Heizgrenze",
+  raeume: "Räume",
+  naechte: "Nächte",
+  vorlauf: "Vorlauf",
+  laufzeit: "Laufzeit",
+  energie: "Energie",
+};
+
+const MARKE = { unauffaellig: "unauffällig", hinweis: "Hinweis", sammelt: "sammelt", braucht_daten: "nicht eingerichtet" };
+
 export const BefundMixin = (Basis) =>
   class extends Basis {
     _befundLaden() {
@@ -78,6 +100,8 @@ export const BefundMixin = (Basis) =>
           if (this._reiter === "befund") {
             this._gebaut = false;
             this._zeichnen();
+          } else if (this._reiter === "automatik" && !this._automatikBearbeitet && !this.shadowRoot.querySelector(".schleier")) {
+            this._automatikNeuZeichnen();
           }
         });
     }
@@ -142,27 +166,93 @@ export const BefundMixin = (Basis) =>
       return karte;
     }
 
+    /** Kopfkarte: Ring mit einem Teil je Befund, daneben die Zahl je Stand mit den Namen. */
     _befundLage(stand) {
       const l = stand.lage;
       const karte = this._karte(this._t("Befund"));
-      const zeile = knoten("div", "befund-lage");
-      zeile.appendChild(
-        knoten(
-          "span",
-          null,
-          this._tMit("{n} Befunde · {u} unauffällig · {h} Hinweise · {s} sammeln", {
-            n: l.befunde,
-            u: l.unauffaellig,
-            h: l.hinweise,
-            s: l.sammelt + l.braucht_daten,
-          })
-        )
-      );
       const seit = l.seit ? l.seit.split("-").reverse().join(".") : null;
-      zeile.appendChild(knoten("span", null, seit ? this._tMit("Daten seit {datum}", { datum: seit }) : this._t("Sammelt seit dem Start")));
-      karte.appendChild(zeile);
-      karte.appendChild(knoten("div", "befund-leise", this._t("Gemessene Werte, keine Empfehlung. Der Befund ändert nichts an der Anlage.")));
+      const kopf = karte.querySelector(".kartenkopf");
+      const datum = knoten("span", "befund-seit", seit ? this._tMit("Daten seit {datum}", { datum: seit }) : this._t("Sammelt seit dem Start"));
+      if (kopf) kopf.appendChild(datum);
+      else karte.appendChild(datum);
+      const alle = stand.abschnitte.flatMap((a) => a.befunde);
+      const namen = (stati) => [...new Set(alle.filter((b) => stati.includes(b.status)).map((b) => this._t(KURZ[b.art] || b.art)))].join(" · ");
+      const gruppen = [
+        ["gut", l.unauffaellig, "unauffällig", namen(["unauffaellig"]), "Nichts gemessen"],
+        ["hinweis", l.hinweise, "Hinweise", namen(["hinweis"]), "Nichts Auffälliges gemessen"],
+        ["offen", l.sammelt + l.braucht_daten, "noch ohne Ergebnis", namen(["sammelt", "braucht_daten"]), "Alle Befunde haben einen Wert"],
+      ];
+      const inhalt = knoten("div", "befund-lage");
+      inhalt.appendChild(this._befundRing(alle, l.befunde));
+      const liste = knoten("div", "befund-gruppen");
+      gruppen.forEach(([klasse, anzahl, titel, text, leer]) => {
+        const zeile = knoten("div", `befund-gruppe ${anzahl ? klasse : "null"}`);
+        const rechts = knoten("div");
+        rechts.append(knoten("div", "befund-gruppentitel", this._t(titel)), knoten("div", "befund-leise", text || this._t(leer)));
+        zeile.append(knoten("span", "befund-anzahl", String(anzahl)), rechts);
+        liste.appendChild(zeile);
+      });
+      inhalt.appendChild(liste);
+      karte.appendChild(inhalt);
+      const fuss = knoten("div", "befund-schutz");
+      const ikone = document.createElement("ha-icon");
+      ikone.setAttribute("icon", "mdi:shield-check-outline");
+      fuss.append(ikone, knoten("span", null, this._t("Nur Beobachtung: gemessene Werte, keine Empfehlung. Der Befund ändert nichts an der Anlage.")));
+      karte.appendChild(fuss);
       return karte;
+    }
+
+    /** Ein Ring aus je einem Bogen pro Befund, in der Farbe seines Stands. */
+    _befundRing(befunde, anzahl) {
+      const s = svg("svg", { viewBox: "0 0 120 120", class: "befund-ring" });
+      const n = Math.max(1, befunde.length);
+      const luecke = n > 1 ? 4 : 0;
+      befunde.forEach((b, i) => {
+        const von = (i * 360) / n + luecke / 2;
+        const bis = ((i + 1) * 360) / n - luecke / 2;
+        s.appendChild(svg("path", { d: bogen(60, 60, 48, von, bis), class: `bogen ${b.status}` }));
+      });
+      s.append(
+        svg("text", { x: 60, y: 62, "text-anchor": "middle", class: "ring-zahl" }, String(anzahl)),
+        svg("text", { x: 60, y: 82, "text-anchor": "middle", class: "ring-text" }, this._t("Befunde"))
+      );
+      return s;
+    }
+
+    /**
+     * Kurzliste der Befunde eines Heizkreises für den Reiter Automatik. Ohne geladenen Befund
+     * fehlt sie; Antippen öffnet den Reiter Befund.
+     */
+    _befundKompakt(kreis) {
+      if (this._befund === undefined || Date.now() - (this._befundZeit || 0) > BEFUND_TAKT_MS) this._befundLaden();
+      const stand = (this._befund || {})[kreis.anlage_id];
+      if (!stand) return null;
+      const befunde = stand.abschnitte.filter((a) => a.kennung === kreis.heizkreis).flatMap((a) => a.befunde);
+      if (!befunde.length) return null;
+      const kachel = knoten("div", "automatik-wert breit befund-kompakt");
+      const titel = knoten("div", "titel", this._t("Befund"));
+      titel.appendChild(knoten("span", "befund-leise", ` · ${this._tMit("{n} Befunde", { n: befunde.length })}`));
+      kachel.appendChild(titel);
+      befunde.forEach((b) => {
+        const zeile = knoten("button", `befund-zeile ${b.status}`);
+        zeile.type = "button";
+        const wert = b.wert === null || b.wert === undefined ? "–" : `${this._befundZahl(b.wert)} ${b.einheit}`.trim();
+        zeile.append(
+          knoten("i", "punkt"),
+          knoten("span", "name", this._t(TITEL[b.art] || b.art)),
+          knoten("span", "wert", wert),
+          knoten("span", `befund-marke ${b.status}`, this._t(MARKE[b.status] || b.status))
+        );
+        zeile.addEventListener("click", () => this._befundOeffnen());
+        kachel.appendChild(zeile);
+      });
+      return kachel;
+    }
+
+    _befundOeffnen() {
+      this._reiter = "befund";
+      this._gebaut = false;
+      this._zeichnen();
     }
 
     _befundVerweis() {

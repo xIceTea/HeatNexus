@@ -971,5 +971,16 @@
   "{datum}: {wert} K": "{datum}: {wert} K",
   "{raum}: {p} % {klasse}": "{raum}: {p} % {klasse}",
   "{von} bis {bis} °C: an {h} von {n} Tagen geheizt": "{von} to {bis} °C: heated on {h} of {n} days",
-  "{zeit}: {wert} °C": "{zeit}: {wert} °C"
+  "{zeit}: {wert} °C": "{zeit}: {wert} °C",
+  "Befunde": "findings",
+  "{n} Befunde": "{n} findings",
+  "Wärmespeicher": "Heat storage",
+  "Nächte": "Nights",
+  "Energie": "Energy",
+  "noch ohne Ergebnis": "no result yet",
+  "Nichts gemessen": "Nothing measured",
+  "Nichts Auffälliges gemessen": "Nothing unusual measured",
+  "Alle Befunde haben einen Wert": "All findings have a value",
+  "nicht eingerichtet": "not set up",
+  "Nur Beobachtung: gemessene Werte, keine Empfehlung. Der Befund ändert nichts an der Anlage.": "Observation only: measured values, no recommendation. The findings change nothing on the system."
 }
