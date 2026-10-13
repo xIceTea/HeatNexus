@@ -17,12 +17,15 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from ..automatik.eingaben import raum_messung, raumwert
+from ..automatik.seitenleiste import entfernen as meldung_entfernen
+from ..automatik.seitenleiste import melden as meldung_setzen
 from ..automatik.tagesansicht import hausmodell_stand
 from ..automatik.verwaltung import Verwaltung, verwaltung_holen
 from ..const import DOMAIN
 from ..erkennungsstand import systems
 from ..helpers import get_oid_value
 from ..registrierung import geraet_suchen
+from ..texte import woerterbuch
 from . import auswertung
 from .archiv import STUNDE, Archiv
 
@@ -47,6 +50,18 @@ SIGNAL_NEU = f"{DOMAIN}_befund_neu_{{}}"
 SIGNAL_STAND = f"{DOMAIN}_befund_stand_{{}}"
 ARTEN_KREIS = ("waermespeicher", "heizgrenze", "raeume", "naechte", "vorlauf")
 ARTEN_KESSEL = ("laufzeit", "energie")
+# Namen wie im Reiter; in der Seitenleiste nennt die Meldung, wozu es einen Hinweis gibt.
+TITEL = {
+    "waermespeicher": "Wärmespeicher des Hauses",
+    "heizgrenze": "Heizgrenze im Betrieb",
+    "raeume": "Räume erreichen ihr Ziel",
+    "naechte": "Übergangszeit nachts",
+    "vorlauf": "Vorlauf erreicht sein Soll",
+    "laufzeit": "Starts und Laufzeit",
+    "energie": "Energie je Heizgradtag",
+}
+# Der Sensor hinter dem Bild eines Befunds; Heizkreis oder Kessel.
+QUELLE = {"vorlauf": HEIZKREIS["vi"], "laufzeit": BH, "energie": LEISTUNG}
 
 
 def befund_holen(hass: HomeAssistant) -> BefundVerwaltung:
@@ -109,6 +124,11 @@ def unique_id(device_id: str, art: str) -> str:
     return f"{device_id}-befund-{art}"
 
 
+def quelle_entitaet(register: Any, device_id: str, adresse: str) -> str | None:
+    """Die Sensor-Entität einer Adresse am Gerät, nach dem Kennungsschema der Integration."""
+    return _entitaet(register, device_id, adresse)
+
+
 def _entitaet(register: Any, device_id: str, adresse: str) -> str | None:
     kennung = f"{device_id}-{adresse.strip('/').replace('/', '-')}"
     return register.async_get_entity_id("sensor", DOMAIN, kennung)
@@ -132,6 +152,8 @@ class Sammler:
         self.anlage_id = anlage_id
         self.archiv = Archiv()
         self.letzter: dict[str, Any] | None = None
+        # Je Heizkreis die Befunde, deren Hinweis zuletzt in der Seitenleiste stand.
+        self._gemeldet: dict[str, frozenset[str]] = {}
         # Die übrigen Sammler desselben Eintrags; die Verwaltung setzt sie.
         self.nachbarn: Any = list
         self._store = speicher(
@@ -333,6 +355,44 @@ class Sammler:
             return
         async_dispatcher_send(self.hass, SIGNAL_STAND.format(self.anlage_id))
 
+    def melden(self) -> None:
+        """Hinweise je Heizkreis in die Seitenleiste, wenn er es will; nur bei geänderten Hinweisen."""
+        verwaltung = verwaltung_holen(self.hass)
+        for b in self.kreise():
+            device_id = b["device_id"]
+            konfig = verwaltung.konfig(device_id) or {}
+            hinweise = (
+                frozenset(
+                    x["art"]
+                    for a in (self.letzter or {}).get("abschnitte", [])
+                    if a["kennung"] == device_id
+                    for x in a["befunde"]
+                    if x["status"] == "hinweis"
+                )
+                if konfig.get("befund_melden")
+                else frozenset()
+            )
+            if hinweise == self._gemeldet.get(device_id, frozenset()):
+                continue
+            self._gemeldet[device_id] = hinweise
+            if not hinweise:
+                meldung_entfernen(self.hass, "befund", device_id)
+                continue
+            w = woerterbuch(self.hass)
+            namen = ", ".join(w(TITEL[art]) for art in sorted(hinweise))
+            name = b.get("device_name") or device_id
+            text = w("{name}: Der Befund meldet einen Hinweis zu {befunde}.").replace(
+                "{name}", name
+            )
+            meldung_setzen(
+                self.hass,
+                "befund",
+                device_id,
+                w("Befund"),
+                text.replace("{befunde}", namen),
+                w("Zum Befund"),
+            )
+
     def befund(self, kennung: str, art: str) -> dict[str, Any] | None:
         """Haus und Heizkreis tragen dieselbe Kennung; gesucht wird über beide Abschnitte."""
         abschnitte = (self.letzter or {}).get("abschnitte", [])
@@ -390,6 +450,7 @@ class BefundVerwaltung:
         for sammler in list(self.sammler.values()):
             try:
                 await sammler.messen(jetzt)
+                sammler.melden()
             except Exception:  # der Befund ist eine Zugabe; der Betrieb läuft weiter
                 _LOGGER.debug("Befund %s: Messung fehlgeschlagen", sammler.anlage_id, exc_info=True)
 

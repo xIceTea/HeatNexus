@@ -95,6 +95,20 @@ export const EinrichtungMixin = (Basis) =>
       });
       bereich.appendChild(gruppen);
 
+      // Wie die übrigen Schalter gilt er sofort und bleibt beim Zurücksetzen der Werte.
+      const befund = document.createElement("div");
+      befund.className = "automatik-optimierung";
+      const befundTitel = document.createElement("h4");
+      befundTitel.textContent = this._t("Befund");
+      const melden = !!kreis.konfig.befund_melden;
+      befund.append(
+        befundTitel,
+        this._automatikSchalter(this._t("Hinweise des Befunds in der Seitenleiste melden"), melden, darf, () =>
+          this._automatikEinstellen(kreis, { befund_melden: !melden })
+        )
+      );
+      bereich.appendChild(befund);
+
       const leiste = document.createElement("div");
       leiste.className = "automatik-leiste";
       const entfernen = this._automatikTaste("Automatik entfernen", "automatik-knopf leise warnung");

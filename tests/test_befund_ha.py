@@ -164,3 +164,26 @@ async def test_befund_sensoren_gelten_nicht_als_verwaist(hass, anlage):
     bekannt = verwaiste.bekannte_kennungen(eintrag, eintrag.runtime_data["coordinators"])
     assert bekannt[f"{HEIZKREIS}-befund-heizgrenze"] is True
     assert bekannt["SN1-1-0-befund-energie"] is True
+
+
+async def test_hinweis_erscheint_in_der_seitenleiste_wenn_gewuenscht(hass, anlage, monkeypatch):
+    from homeassistant.components import persistent_notification
+
+    from custom_components.heatnexus.automatik.verwaltung import Verwaltung
+
+    verwaltung, _ = anlage
+    sammler = next(iter(verwaltung.sammler.values()))
+    hinweis = {"art": "raeume", "status": "hinweis"}
+    sammler.letzter = {"abschnitte": [{"kennung": HEIZKREIS, "befunde": [hinweis]}]}
+    gewuenscht = {"befund_melden": False}
+    monkeypatch.setattr(Verwaltung, "konfig", lambda _self, _kreis: gewuenscht)
+
+    sammler.melden()
+    assert persistent_notification._async_get_or_create_notifications(hass) == {}
+    gewuenscht["befund_melden"] = True
+    sammler.melden()
+    meldungen = persistent_notification._async_get_or_create_notifications(hass)
+    assert list(meldungen) == [f"heatnexus_befund_{HEIZKREIS}"]
+    hinweis["status"] = "unauffaellig"
+    sammler.melden()
+    assert persistent_notification._async_get_or_create_notifications(hass) == {}

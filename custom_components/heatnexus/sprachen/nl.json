@@ -993,5 +993,8 @@
   "{k} K unter der Einstellung": "{k} K onder de instelling",
   "{k} K über der Einstellung": "{k} K boven de instelling",
   "passt zur Einstellung": "past bij de instelling",
-  "Heizgrenze der Gradtagzahl (VDI 3807, fester Rechenwert)": "Stookgrens graaddagen (VDI 3807, vaste rekenwaarde)"
+  "Heizgrenze der Gradtagzahl (VDI 3807, fester Rechenwert)": "Stookgrens graaddagen (VDI 3807, vaste rekenwaarde)",
+  "Hinweise des Befunds in der Seitenleiste melden": "Opmerkingen van de bevindingen in de zijbalk melden",
+  "{name}: Der Befund meldet einen Hinweis zu {befunde}.": "{name}: De bevindingen melden een opmerking over {befunde}.",
+  "Zum Befund": "Naar de bevindingen"
 }

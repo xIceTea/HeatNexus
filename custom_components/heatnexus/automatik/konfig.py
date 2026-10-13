@@ -120,6 +120,7 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
         # Ältere Einstellungen führen den Schalter der Optimierung unter den eigenen Werten.
         "hinweise": bool(roh.get("hinweise", eigene_roh.get("hinweise", False))),
         "hinweise_melden": bool(roh.get("hinweise_melden", False)),
+        "befund_melden": bool(roh.get("befund_melden", False)),
         "vorrang": _liste(roh.get("vorrang"), LISTEN_MAX["vorrang"]),
         "eigene": abweichungen(profil, eigene, ausrichtung),
     }

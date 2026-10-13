@@ -14,7 +14,7 @@ from ..automatik.verwaltung import verwaltung_holen
 from ..const import DOMAIN
 from ..rechte import darf_lesen
 from . import haus
-from .laufzeit import Sammler, befund_holen, unique_id
+from .laufzeit import QUELLE, Sammler, befund_holen, quelle_entitaet, unique_id
 
 NACHT_EINTRAEGE = 8
 
@@ -68,6 +68,10 @@ def _entitaeten_einsetzen(hass: HomeAssistant, sammler: Sammler, stand: dict[str
         for befund in abschnitt["befunde"]:
             kennung = unique_id(device_id, befund["art"]) if device_id else ""
             befund["entity"] = register.async_get_entity_id("sensor", DOMAIN, kennung)
+            adresse = QUELLE.get(befund["art"])
+            befund["quelle"] = (
+                quelle_entitaet(register, device_id, adresse) if adresse and device_id else None
+            )
 
 
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/befund"})

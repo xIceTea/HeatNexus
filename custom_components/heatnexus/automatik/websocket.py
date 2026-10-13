@@ -356,6 +356,7 @@ EINSTELLUNGEN = {
     vol.Optional("fenster_erkennung"): bool,
     vol.Optional("hinweise"): bool,
     vol.Optional("hinweise_melden"): bool,
+    vol.Optional("befund_melden"): bool,
     vol.Optional("vorrang"): _liste(LISTEN_MAX["vorrang"]),
 }
 

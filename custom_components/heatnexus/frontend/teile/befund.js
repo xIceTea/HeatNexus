@@ -132,7 +132,7 @@ export const BefundMixin = (Basis) =>
       const offen = [];
       stand.abschnitte.forEach((abschnitt) => {
         if (abschnitt.art === "waermeerzeuger") {
-          karten.push({ id: "befund-waermeerzeuger", titel: "Wärmeerzeuger", knoten: this._befundVerweis(), breite: 2 });
+          karten.push({ id: "befund-waermeerzeuger", titel: "Wärmeerzeuger", knoten: this._befundVerweis() });
           return;
         }
         abschnitt.befunde.forEach((befund) => {
@@ -427,18 +427,23 @@ export const BefundMixin = (Basis) =>
       if (b.art === "raeume" && a.je_raum) return this._bildRaeume(a.je_raum);
       if (b.art === "naechte" && (a.naechte || []).length) return this._bildPunkte(a.naechte);
       if (b.art === "vorlauf" && (a.je_tag || []).length) {
-        return this._bildBalken(a.je_tag, "Stunden unter Soll je Heiztag", "warn", (d, n) => this._tMit("{datum}: {h} h unter Soll", { datum: kurzdatum(d), h: n }));
+        return this._bildBalken(a.je_tag, "Stunden unter Soll je Heiztag", "warn", b.quelle, (d, n) => this._tMit("{datum}: {h} h unter Soll", { datum: kurzdatum(d), h: n }));
       }
       if (b.art === "laufzeit" && (a.je_tag || []).length) {
-        return this._bildBalken(a.je_tag, "Betriebsstunden je Tag", "an", (d, h) => this._tMit("{datum}: {h} Betriebsstunden", { datum: kurzdatum(d), h: this._befundZahl(h) }));
+        return this._bildBalken(a.je_tag, "Betriebsstunden je Tag", "an", b.quelle, (d, h) => this._tMit("{datum}: {h} Betriebsstunden", { datum: kurzdatum(d), h: this._befundZahl(h) }));
       }
-      if (b.art === "energie" && (a.punkte || []).length) return this._bildSignatur(a.punkte);
+      if (b.art === "energie" && (a.punkte || []).length) return this._bildSignatur(a.punkte, b.quelle);
       return null;
     }
 
-    _befundFeld(beschriftung) {
+    /** Ein Feld für ein Bild; mit `quelle` öffnet die Beschriftung den Verlauf des Sensors dahinter. */
+    _befundFeld(beschriftung, quelle = null) {
       const feld = knoten("div", "befund-feld");
-      if (beschriftung) feld.appendChild(knoten("div", "befund-leise", this._t(beschriftung)));
+      if (beschriftung) {
+        const kopf = knoten("div", "befund-leise befund-feldkopf", this._t(beschriftung));
+        if (quelle) kopf.prepend(ikone("mdi:chart-line"));
+        feld.appendChild(this._klickbar(kopf, quelle));
+      }
       feld.anzeige = knoten("div", "befund-ablesen befund-leise", this._t("Antippen zeigt den Wert."));
       return feld;
     }
@@ -548,8 +553,8 @@ export const BefundMixin = (Basis) =>
     }
 
     /** Balken je Tag; `eintraege` sind [Datum, Wert], `text` beschreibt einen Balken. */
-    _bildBalken(eintraege, beschriftung, klasse, text) {
-      const feld = this._befundFeld(beschriftung);
+    _bildBalken(eintraege, beschriftung, klasse, quelle, text) {
+      const feld = this._befundFeld(beschriftung, quelle);
       const s = svg("svg", { viewBox: "0 0 460 80" });
       const werte = eintraege.map(([, wert]) => wert || 0);
       const hoch = Math.max(1, ...werte);
@@ -568,8 +573,8 @@ export const BefundMixin = (Basis) =>
       return this._befundFertig(feld, s);
     }
 
-    _bildSignatur(punkte) {
-      const feld = this._befundFeld("Wärme je Tag gegen Außentemperatur · Wochenmittel");
+    _bildSignatur(punkte, quelle) {
+      const feld = this._befundFeld("Wärme je Tag gegen Außentemperatur · Wochenmittel", quelle);
       const s = svg("svg", { viewBox: "0 0 460 150" });
       const ats = punkte.map(([at]) => at);
       const lo = Math.floor(Math.min(...ats));

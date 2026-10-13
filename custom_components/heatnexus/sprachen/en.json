@@ -988,5 +988,8 @@
   "{k} K unter der Einstellung": "{k} K below the setting",
   "{k} K über der Einstellung": "{k} K above the setting",
   "passt zur Einstellung": "matches the setting",
-  "Heizgrenze der Gradtagzahl (VDI 3807, fester Rechenwert)": "Degree-day heating limit (VDI 3807, fixed calculation value)"
+  "Heizgrenze der Gradtagzahl (VDI 3807, fester Rechenwert)": "Degree-day heating limit (VDI 3807, fixed calculation value)",
+  "Hinweise des Befunds in der Seitenleiste melden": "Report findings notes in the sidebar",
+  "{name}: Der Befund meldet einen Hinweis zu {befunde}.": "{name}: The findings report a note on {befunde}.",
+  "Zum Befund": "Open findings"
 }
