@@ -14,7 +14,7 @@ from ..automatik.verwaltung import verwaltung_holen
 from ..const import DOMAIN
 from ..rechte import darf_lesen
 from . import haus
-from .laufzeit import Sammler, befund_holen
+from .laufzeit import Sammler, befund_holen, unique_id
 
 NACHT_EINTRAEGE = 8
 
@@ -59,6 +59,17 @@ async def _nacht_einsetzen(
                 befund["angaben"]["nacht"] = haus.nacht(befund["wert"], raum, aussen)
 
 
+def _entitaeten_einsetzen(hass: HomeAssistant, sammler: Sammler, stand: dict[str, Any]) -> None:
+    """Je Befund die Entität des Sensors; die Seite öffnet darüber den Verlauf."""
+    register = er.async_get(hass)
+    geraete = {kennung: device_id for kennung, device_id, _ in sammler.geraete()}
+    for abschnitt in stand["abschnitte"]:
+        device_id = geraete.get(abschnitt["kennung"])
+        for befund in abschnitt["befunde"]:
+            kennung = unique_id(device_id, befund["art"]) if device_id else ""
+            befund["entity"] = register.async_get_entity_id("sensor", DOMAIN, kennung)
+
+
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/befund"})
 @websocket_api.async_response
 async def _ws_befund(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
@@ -68,6 +79,7 @@ async def _ws_befund(hass: HomeAssistant, connection, msg: dict[str, Any]) -> No
         if not _darf(hass, connection.user, sammler):
             continue
         stand = sammler.stand()
+        _entitaeten_einsetzen(hass, sammler, stand)
         await _nacht_einsetzen(hass, stand, vorhersagen)
         anlagen[anlage_id] = stand
     connection.send_result(msg["id"], {"anlagen": anlagen})

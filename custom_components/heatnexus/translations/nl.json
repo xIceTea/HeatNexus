@@ -455,6 +455,27 @@
       },
       "automatik_system_prognosekorrektur": {
         "name": "Correctie weersverwachting"
+      },
+      "befund_waermespeicher": {
+        "name": "Bevinding warmteopslag"
+      },
+      "befund_heizgrenze": {
+        "name": "Bevinding gemeten stookgrens"
+      },
+      "befund_raeume": {
+        "name": "Bevinding ruimtes op doel"
+      },
+      "befund_naechte": {
+        "name": "Bevinding nachtverlaging"
+      },
+      "befund_vorlauf": {
+        "name": "Bevinding aanvoer onder setpoint"
+      },
+      "befund_laufzeit": {
+        "name": "Bevinding looptijd per start"
+      },
+      "befund_energie": {
+        "name": "Bevinding energie per graaddag"
       }
     },
     "binary_sensor": {

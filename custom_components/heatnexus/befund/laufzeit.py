@@ -11,6 +11,7 @@ from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -41,6 +42,11 @@ LEISTUNG = "/0/9/0"
 NENN = ("/39/61/0", "/11/2/0")
 KESSEL = {"starts": STARTS, "bh": BH, "leistung": LEISTUNG}
 SCHLUESSEL = f"{DOMAIN}_befund"
+# Neue Sammler eines Eintrags; neuer Stand einer Anlage.
+SIGNAL_NEU = f"{DOMAIN}_befund_neu_{{}}"
+SIGNAL_STAND = f"{DOMAIN}_befund_stand_{{}}"
+ARTEN_KREIS = ("waermespeicher", "heizgrenze", "raeume", "naechte", "vorlauf")
+ARTEN_KESSEL = ("laufzeit", "energie")
 
 
 def befund_holen(hass: HomeAssistant) -> BefundVerwaltung:
@@ -67,6 +73,11 @@ def kessel_praefixe(coordinator: Any) -> list[str]:
     return sorted({k[: -len(STARTS)] for k in oids if k.endswith(STARTS)})
 
 
+def unique_id(device_id: str, art: str) -> str:
+    """Kennung eines Befund-Sensors am Gerät des Heizkreises oder Kessels."""
+    return f"{device_id}-befund-{art}"
+
+
 def _entitaet(register: Any, device_id: str, adresse: str) -> str | None:
     kennung = f"{device_id}-{adresse.strip('/').replace('/', '-')}"
     return register.async_get_entity_id("sensor", DOMAIN, kennung)
@@ -89,6 +100,7 @@ class Sammler:
         self.coordinator = coordinator
         self.anlage_id = anlage_id
         self.archiv = Archiv()
+        self.letzter: dict[str, Any] | None = None
         self._store = speicher(
             hass, entry.entry_id, str(getattr(coordinator, "host", "") or anlage_id)
         )
@@ -101,6 +113,7 @@ class Sammler:
             self._aufgabe = self.hass.async_create_background_task(
                 self.nachrechnen(), f"heatnexus_befund_{self.anlage_id}"
             )
+        self.aktualisieren()
 
     def speichern(self) -> None:
         self._store.async_delay_save(self.archiv.als_dict, SPEICHERN_S)
@@ -114,6 +127,18 @@ class Sammler:
     def kreise(self) -> list[dict[str, Any]]:
         """Die Klima-Beschreibungen der Heizkreise dieser Anlage."""
         return [b for c, b in Verwaltung.heizkreise(self.entry) if c is self.coordinator]
+
+    def kessel_geraet(self, prefix: str) -> str | None:
+        geraete = (self.coordinator.data or {}).get("devices") or []
+        return next((d["device_id"] for d in geraete if d.get("prefix") == prefix), None)
+
+    def geraete(self) -> list[tuple[str, str, tuple[str, ...]]]:
+        """Je Heizkreis und Kessel: Kennung im Befund, Gerät, Arten der Sensoren."""
+        liste = [(b["device_id"], b["device_id"], ARTEN_KREIS) for b in self.kreise()]
+        for p in kessel_praefixe(self.coordinator):
+            if (device_id := self.kessel_geraet(p)) is not None:
+                liste.append((p, device_id, ARTEN_KESSEL))
+        return liste
 
     def _wert(self, prefix: str, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, prefix)
@@ -154,6 +179,7 @@ class Sammler:
         if geschlossen:
             self.archiv.kuerzen(zeit.date())
             self.speichern()
+            self.aktualisieren()
 
     # --- Nachrechnen ----------------------------------------------------------
     def _reihen(self) -> dict[tuple[str, str], dict[str, str]]:
@@ -163,10 +189,8 @@ class Sammler:
         for b in self.kreise():
             felder = {n: _entitaet(register, b["device_id"], a) for n, a in HEIZKREIS.items()}
             reihen[("hk", b["device_id"])] = {n: e for n, e in felder.items() if e}
-        geraete = (self.coordinator.data or {}).get("devices") or []
         for p in kessel_praefixe(self.coordinator):
-            device_id = next((d["device_id"] for d in geraete if d.get("prefix") == p), None)
-            if device_id:
+            if device_id := self.kessel_geraet(p):
                 felder = {n: _entitaet(register, device_id, a) for n, a in KESSEL.items()}
                 reihen[("k", p)] = {n: e for n, e in felder.items() if e}
         return reihen
@@ -220,6 +244,7 @@ class Sammler:
         self.archiv.nachgerechnet = NACHRECHNEN_FASSUNG
         self.archiv.kuerzen(dt_util.now().date())
         self.speichern()
+        self.aktualisieren()
         return neu
 
     # --- Auswerten ------------------------------------------------------------
@@ -258,6 +283,21 @@ class Sammler:
         ergebnis = auswertung.anlage(self.archiv, kontext or self.kontext())
         return ergebnis | {"anlage": self.anlage_id, "stand": dt_util.now().isoformat()}
 
+    def aktualisieren(self) -> None:
+        """Den Stand für die Sensoren neu rechnen; sie lesen ihn über das Signal."""
+        try:
+            self.letzter = self.stand()
+        except Exception:  # die Sensoren behalten den letzten Stand
+            _LOGGER.debug("Befund %s: Auswertung fehlgeschlagen", self.anlage_id, exc_info=True)
+            return
+        async_dispatcher_send(self.hass, SIGNAL_STAND.format(self.anlage_id))
+
+    def befund(self, kennung: str, art: str) -> dict[str, Any] | None:
+        for abschnitt in (self.letzter or {}).get("abschnitte", []):
+            if abschnitt["kennung"] == kennung:
+                return next((b for b in abschnitt["befunde"] if b["art"] == art), None)
+        return None
+
 
 class BefundVerwaltung:
     """Alle Sammler; ein gemeinsamer Takt je Eintrag."""
@@ -294,6 +334,7 @@ class BefundVerwaltung:
                     "Befund %s: Speicher nicht lesbar", sammler.anlage_id, exc_info=True
                 )
             self.sammler[sammler.anlage_id] = sammler
+        async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))
         if entry.entry_id not in self._abmelden:
             self._abmelden[entry.entry_id] = async_track_time_interval(self.hass, self._takt, TAKT)
 

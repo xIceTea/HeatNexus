@@ -982,5 +982,9 @@
   "Nichts Auffälliges gemessen": "Nothing unusual measured",
   "Alle Befunde haben einen Wert": "All findings have a value",
   "nicht eingerichtet": "not set up",
-  "Nur Beobachtung: gemessene Werte, keine Empfehlung. Der Befund ändert nichts an der Anlage.": "Observation only: measured values, no recommendation. The findings change nothing on the system."
+  "Nur Beobachtung: gemessene Werte, keine Empfehlung. Der Befund ändert nichts an der Anlage.": "Observation only: measured values, no recommendation. The findings change nothing on the system.",
+  "Alle Befunde": "All findings",
+  "Gemessene Werte": "Measured values",
+  "Keine Empfehlung": "No recommendation",
+  "Ändert nichts an der Anlage": "Changes nothing on the system"
 }

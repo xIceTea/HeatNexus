@@ -987,5 +987,9 @@
   "Nichts Auffälliges gemessen": "Niets opvallends gemeten",
   "Alle Befunde haben einen Wert": "Alle bevindingen hebben een waarde",
   "nicht eingerichtet": "niet ingesteld",
-  "Nur Beobachtung: gemessene Werte, keine Empfehlung. Der Befund ändert nichts an der Anlage.": "Alleen observatie: gemeten waarden, geen aanbeveling. De bevindingen veranderen niets aan de installatie."
+  "Nur Beobachtung: gemessene Werte, keine Empfehlung. Der Befund ändert nichts an der Anlage.": "Alleen observatie: gemeten waarden, geen aanbeveling. De bevindingen veranderen niets aan de installatie.",
+  "Alle Befunde": "Alle bevindingen",
+  "Gemessene Werte": "Gemeten waarden",
+  "Keine Empfehlung": "Geen aanbeveling",
+  "Ändert nichts an der Anlage": "Verandert niets aan de installatie"
 }

@@ -1669,6 +1669,31 @@ export const STIL = `
   .befund-schutz { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hn-linie); color: var(--hn-gedaempft); font-size: 13px; }
   .befund-schutz ha-icon { --mdc-icon-size: 20px; flex: none; }
   .automatik-wert.befund-kompakt { grid-column: 1 / -1; }
+  .befund-kompakt-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+  .befund-kompakt-kopf .befund-sprung { margin: 0 0 0 auto; }
+  .befund-kompakt-inhalt { display: grid; grid-template-columns: minmax(200px, 300px) 1fr; gap: 16px 28px; margin-top: 12px; }
+  .befund-uebersicht { padding-right: 24px; border-right: 1px solid var(--hn-linie); }
+  .befund-gross { display: flex; align-items: baseline; gap: 10px; }
+  .befund-gross .zahl { font-size: 56px; font-weight: 600; line-height: 1; color: var(--hn-text); }
+  .befund-kaesten { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+  .befund-kasten { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 9px; border: 2px dashed var(--hn-linie); color: var(--hn-gedaempft); box-sizing: border-box; }
+  .befund-kasten ha-icon { --mdc-icon-size: 20px; }
+  .befund-kasten.unauffaellig { background: var(--hn-gut); border: none; color: var(--hn-karte); }
+  .befund-kasten.hinweis { background: var(--hn-sonne); border: none; color: var(--hn-karte); }
+  .befund-zaehlung { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 14px; }
+  .befund-zaehlung .anzahl { font-weight: 600; text-align: right; }
+  .befund-zaehlung .anzahl.gut { color: var(--hn-gut); }
+  .befund-zaehlung .anzahl.hinweis { color: var(--hn-sonne); }
+  .befund-zaehlung .anzahl.null { color: var(--hn-gedaempft); }
+  .befund-liste { display: grid; align-content: start; }
+  .befund-merkmale { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .befund-merkmal { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: var(--hn-flaeche); color: var(--hn-gedaempft); font-size: 13px; }
+  .befund-merkmal ha-icon { --mdc-icon-size: 16px; color: var(--hn-gut); }
+  .befund-zahl.klickbar { cursor: pointer; }
+  @media (max-width: 700px) {
+    .befund-kompakt-inhalt { grid-template-columns: 1fr; }
+    .befund-uebersicht { padding-right: 0; border-right: none; padding-bottom: 12px; border-bottom: 1px solid var(--hn-linie); }
+  }
   .befund-zeile { display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 12px; width: 100%; padding: 9px 2px; font: inherit; font-size: 14px; color: var(--hn-text); text-align: left; background: none; border: none; border-bottom: 1px solid var(--hn-linie); cursor: pointer; }
   .befund-zeile:last-child { border-bottom: none; }
   .befund-zeile .punkt { width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--hn-gedaempft); box-sizing: border-box; }

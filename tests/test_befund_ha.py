@@ -136,3 +136,23 @@ async def test_entfernen_verwirft_das_archiv(hass):
     await speicher(hass, eintrag.entry_id, "192.0.2.10").async_save({"fassung": 1})
     await eintrag_entfernt(hass, eintrag)
     assert await speicher(hass, eintrag.entry_id, "192.0.2.10").async_load() is None
+
+
+async def test_sensoren_je_heizkreis_und_kessel(hass, anlage):
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+
+    _, eintrag = anlage
+    angelegt = []
+    anmelden(hass, eintrag, angelegt.extend)
+    kennungen = sorted(s.unique_id for s in angelegt)
+    assert kennungen == sorted(
+        [
+            f"{HEIZKREIS}-befund-{art}"
+            for art in ("waermespeicher", "heizgrenze", "raeume", "naechte", "vorlauf")
+        ]
+        + [f"SN1-1-0-befund-{art}" for art in ("laufzeit", "energie")]
+    )
+    sensor = next(s for s in angelegt if s.unique_id.endswith("heizgrenze"))
+    sensor.hass = hass
+    assert sensor.native_value is None
+    assert sensor.extra_state_attributes["status"] == "sammelt"
