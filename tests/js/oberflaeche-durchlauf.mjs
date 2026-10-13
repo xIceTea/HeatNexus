@@ -889,6 +889,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   }
 
   // Ein offener Dialog übersteht das Nachladen im Takt.
+  flaeche._dialogeSchliessen();
   const schleier = document.createElement("div");
   schleier.className = "schleier";
   wurzel.appendChild(schleier);
@@ -994,6 +995,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     flaeche._reiter = "automatik";
     // Die Attrappe kennt kein `:checked`; die Nachricht steht deshalb fest.
     flaeche._automatikDialogNachricht = (k) => ({ type: "heatnexus/automatik/einstellen", heizkreis: k.heizkreis, raeume: [raum], wetter: "weather.test" });
+    flaeche._dialogeSchliessen();
     await flaeche._automatikDialog(bearbeitet);
     const uebernehmen = wurzel
       .querySelector(".automatik-dialog")

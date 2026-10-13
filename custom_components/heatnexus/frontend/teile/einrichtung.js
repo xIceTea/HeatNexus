@@ -474,14 +474,7 @@ export const EinrichtungMixin = (Basis) =>
       einrichten.textContent = k ? this._t("Übernehmen") : this._t("Einrichten");
       leiste.append(abbrechen, einrichten);
       dialog.appendChild(leiste);
-      const beiTaste = (ereignis) => {
-        if (ereignis.key === "Escape") weg();
-      };
-      const weg = () => {
-        document.removeEventListener("keydown", beiTaste);
-        schleier.remove();
-      };
-      document.addEventListener("keydown", beiTaste);
+      const weg = this._dialogOeffnen(schleier, { fokus: kreuz });
       abbrechen.addEventListener("click", weg);
       kreuz.addEventListener("click", weg);
       einrichten.addEventListener("click", async () => {
@@ -494,7 +487,6 @@ export const EinrichtungMixin = (Basis) =>
         weg();
         if (this._reiter === "automatik" && !this._automatikBearbeitet) this._automatikNeuZeichnen();
       });
-      this.shadowRoot.appendChild(schleier);
     }
 
     /** Schleier, Dialog und fester Kopf; nur der Inhalt dazwischen scrollt. */
@@ -503,7 +495,6 @@ export const EinrichtungMixin = (Basis) =>
       schleier.className = "schleier";
       const dialog = document.createElement("div");
       dialog.className = "dialog automatik-dialog";
-      dialog.setAttribute("role", "dialog");
       const titel = document.createElement("h3");
       titel.className = "dialog-titel";
       titel.textContent = titelText;

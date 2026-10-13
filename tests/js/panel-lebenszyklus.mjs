@@ -115,4 +115,29 @@ const befund = {};
   befund.gespeichertBeimAbbau = gerufen.filter((n) => n.type === "heatnexus/anordnung/setzen").length;
 }
 
+// --- Fenster: Gerüst, Neuaufbau, Escape, Abbau ------------------------------
+{
+  const { flaeche } = bauen();
+  const ausloeser = flaeche.shadowRoot.querySelector("button");
+  ausloeser.focus();
+  flaeche._erklaeren("Heizgrenze", "Ab dieser Außentemperatur heizt der Kreis.");
+  const schleier = () => flaeche.shadowRoot.querySelectorAll(".schleier");
+  document.ausloesen("keydown", { key: "Escape" });
+  befund.fokusZurueck = flaeche.shadowRoot.activeElement === ausloeser;
+  flaeche._erklaeren("Heizgrenze", "Ab dieser Außentemperatur heizt der Kreis.");
+  const fenster = flaeche.shadowRoot.querySelector(".dialog");
+  befund.fensterRolle = [fenster.getAttribute("role"), fenster.getAttribute("aria-modal")];
+  befund.fensterBeschriftet = Boolean(fenster.getAttribute("aria-labelledby"));
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  befund.fensterNachNeuaufbau = schleier().length;
+  document.ausloesen("keydown", { key: "Escape" });
+  befund.fensterNachEscape = schleier().length;
+  befund.tastenhoerer = document.hoererZahl("keydown");
+  flaeche._erklaeren("A", "B");
+  flaeche.disconnectedCallback();
+  befund.fensterNachAbbau = schleier().length;
+  befund.tastenhoererNachAbbau = document.hoererZahl("keydown");
+}
+
 process.stdout.write(JSON.stringify(befund, null, 2));

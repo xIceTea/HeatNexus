@@ -57,7 +57,6 @@ export const HilfeMixin = (Basis) =>
       schleier.className = "schleier";
       const dialog = document.createElement("div");
       dialog.className = "dialog erklaerung";
-      dialog.setAttribute("role", "dialog");
 
       const ueberschrift = document.createElement("h3");
       ueberschrift.className = "dialog-titel";
@@ -91,13 +90,7 @@ export const HilfeMixin = (Basis) =>
       dialog.append(ueberschrift, hinweis, feld, leiste);
       schleier.appendChild(dialog);
 
-      const weg = () => {
-        schleier.remove();
-        document.removeEventListener("keydown", beiTaste);
-      };
-      const beiTaste = (ereignis) => {
-        if (ereignis.key === "Escape") weg();
-      };
+      const weg = this._dialogOeffnen(schleier, { fokus: schliessen });
       kopieren.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(text);
@@ -108,12 +101,6 @@ export const HilfeMixin = (Basis) =>
         }
       });
       schliessen.addEventListener("click", weg);
-      schleier.addEventListener("click", (e) => {
-        if (e.target === schleier) weg();
-      });
-      document.addEventListener("keydown", beiTaste);
-      this.shadowRoot.appendChild(schleier);
-      schliessen.focus();
     }
 
     _hilfeReiter(anlage) {

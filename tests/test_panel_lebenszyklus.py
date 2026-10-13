@@ -57,3 +57,23 @@ def test_das_stylesheet_wird_geteilt_und_nicht_neu_angelegt(befund):
     assert befund["stilknoten"] == 0
     assert befund["geteilteBoegen"] == 1
     assert befund["bogenGeteilt"] is True
+
+
+def test_ein_fenster_hat_rolle_und_beschriftung(befund):
+    assert befund["fensterRolle"] == ["dialog", "true"]
+    assert befund["fensterBeschriftet"] is True
+
+
+def test_ein_offenes_fenster_uebersteht_den_neuaufbau(befund):
+    assert befund["fensterNachNeuaufbau"] == 1
+
+
+def test_escape_schliesst_das_fenster_und_loest_den_hoerer(befund):
+    assert befund["fensterNachEscape"] == 0
+    assert befund["tastenhoerer"] == 0
+    assert befund["fokusZurueck"] is True
+
+
+def test_der_abbau_schliesst_offene_fenster(befund):
+    assert befund["fensterNachAbbau"] == 0
+    assert befund["tastenhoererNachAbbau"] == 0

@@ -569,13 +569,7 @@ export const AnordnenMixin = (Basis) =>
     ueberschrift.textContent = titel;
     dialog.appendChild(ueberschrift);
 
-    const weg = () => {
-      schleier.remove();
-      document.removeEventListener("keydown", beiTaste);
-    };
-    const beiTaste = (ereignis) => {
-      if (ereignis.key === "Escape") weg();
-    };
+    let weg = () => {};
 
     eintraege.forEach((eintrag) => {
       const taste = document.createElement("button");
@@ -607,10 +601,6 @@ export const AnordnenMixin = (Basis) =>
     dialog.appendChild(leiste);
 
     schleier.appendChild(dialog);
-    schleier.addEventListener("click", (ereignis) => {
-      if (ereignis.target === schleier) weg();
-    });
-    document.addEventListener("keydown", beiTaste);
-    this.shadowRoot.appendChild(schleier);
+    weg = this._dialogOeffnen(schleier, { fokus: schliessen });
   }
   };

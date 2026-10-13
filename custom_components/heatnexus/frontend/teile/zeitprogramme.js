@@ -249,7 +249,6 @@ export const ZeitprogrammeMixin = (Basis) =>
     schleier.className = "schleier";
     const dialog = document.createElement("div");
     dialog.className = "dialog zp-dialog";
-    dialog.setAttribute("role", "dialog");
 
     const ueberschrift = document.createElement("h3");
     ueberschrift.className = "dialog-titel";
@@ -278,18 +277,8 @@ export const ZeitprogrammeMixin = (Basis) =>
     dialog.append(ueberschrift, platz, meldung, leiste);
     schleier.appendChild(dialog);
 
-    const weg = () => {
-      schleier.remove();
-      document.removeEventListener("keydown", beiTaste);
-    };
-    const beiTaste = (ereignis) => {
-      if (ereignis.key === "Escape") weg();
-    };
+    const weg = this._dialogOeffnen(schleier, { fokus: speichern });
     abbrechen.addEventListener("click", weg);
-    schleier.addEventListener("click", (ereignis) => {
-      if (ereignis.target === schleier) weg();
-    });
-    document.addEventListener("keydown", beiTaste);
 
     // Im Lesezustand liegt hier nichts; erst *Bearbeiten* legt den Editor an.
     let editor = null;
@@ -363,7 +352,5 @@ export const ZeitprogrammeMixin = (Basis) =>
       this._nachfassen({ entity: programm.entity });
     });
 
-    this.shadowRoot.appendChild(schleier);
-    speichern.focus();
   }
   };

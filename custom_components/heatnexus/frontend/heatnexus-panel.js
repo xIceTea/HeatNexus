@@ -134,6 +134,7 @@ class HeatNexusPanel extends Grundlage {
   disconnectedCallback() {
     this._abgebaut = true;
     this._anordnungSchreiben();
+    this._dialogeSchliessen();
     this._zeitgeberListe.forEach((auftrag) => auftrag.loesen());
     this._zeitgeberListe.clear();
     if (this._bildGeplant) cancelAnimationFrame(this._bildGeplant);
@@ -328,6 +329,16 @@ class HeatNexusPanel extends Grundlage {
     return [stil];
   }
 
+  /** Ersetzt die Oberfläche, lässt aber offene Fenster stehen: Wer gerade eines ausfüllt, verliert es nicht. */
+  _flaecheErsetzen(...knoten) {
+    const wurzel = this.shadowRoot;
+    [...wurzel.children]
+      .filter((kind) => !(kind.classList && kind.classList.contains("schleier")))
+      .forEach((kind) => kind.remove());
+    const fenster = wurzel.children[0];
+    knoten.forEach((kind) => wurzel.insertBefore(kind, fenster || null));
+  }
+
   _aufbauen() {
     // Hörer an Knoten, die den Neuaufbau überleben, hängen an diesem Signal.
     if (this._aufbauAbbruch) this._aufbauAbbruch.abort();
@@ -341,7 +352,7 @@ class HeatNexusPanel extends Grundlage {
     const stil = this._stilEinsetzen();
     this._paletteAnwenden();
     if (!anlage) {
-      this.shadowRoot.replaceChildren(...stil);
+      this._flaecheErsetzen(...stil);
       return;
     }
 
@@ -367,7 +378,7 @@ class HeatNexusPanel extends Grundlage {
     } else {
       inhalt.appendChild(this._anlagenInhalt(anlage));
     }
-    this.shadowRoot.replaceChildren(...stil, inhalt);
+    this._flaecheErsetzen(...stil, inhalt);
     this._verlaufKarteLaden();
   }
 

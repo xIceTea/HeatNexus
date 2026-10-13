@@ -178,7 +178,6 @@ export const BausteineMixin = (Basis) =>
     schleier.className = "schleier";
     const dialog = document.createElement("div");
     dialog.className = "dialog erklaerung";
-    dialog.setAttribute("role", "dialog");
 
     const ueberschrift = document.createElement("h3");
     ueberschrift.className = "dialog-titel";
@@ -198,20 +197,88 @@ export const BausteineMixin = (Basis) =>
 
     dialog.append(ueberschrift, inhalt, leiste);
     schleier.appendChild(dialog);
-    const weg = () => {
+    const weg = this._dialogOeffnen(schleier, { fokus: schliessen });
+    schliessen.addEventListener("click", weg);
+  }
+
+  /**
+   * Hängt ein fertig gebautes Fenster (Schleier mit `.dialog`) in die Oberfläche.
+   *
+   * Es sorgt für Rolle und Beschriftung, Escape, Klick daneben, eine Fokusfalle
+   * und den Fokus zurück an den Auslöser. Alle Hörer hängen an einem
+   * AbortController, den das Schließen und der Abbau der Oberfläche auslösen.
+   * Das Ergebnis ist die Funktion zum Schließen; `beiAbbruch` läuft, wenn
+   * Escape, ein Klick daneben oder der Abbau das Fenster schließen.
+   */
+  _dialogOeffnen(schleier, { fokus = null, beiAbbruch = null } = {}) {
+    const dialog = schleier.querySelector(".dialog");
+    const titel = dialog.querySelector(".dialog-titel");
+    if (!dialog.getAttribute("role")) dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    if (titel) {
+      this._dialogZaehler = (this._dialogZaehler || 0) + 1;
+      titel.id = titel.id || `dialog-titel-${this._dialogZaehler}`;
+      dialog.setAttribute("aria-labelledby", titel.id);
+    }
+    const ausloeser = this.shadowRoot.activeElement || null;
+    const abbruch = new AbortController();
+    const stapel = this._dialogStapel || (this._dialogStapel = []);
+    let offen = true;
+    const zu = () => {
+      if (!offen) return;
+      offen = false;
+      abbruch.abort();
       schleier.remove();
-      document.removeEventListener("keydown", beiTaste);
+      const stelle = stapel.indexOf(abbrechen);
+      if (stelle >= 0) stapel.splice(stelle, 1);
+      if (ausloeser && this.shadowRoot.contains(ausloeser)) ausloeser.focus();
+    };
+    const abbrechen = () => {
+      if (!offen) return;
+      zu();
+      if (beiAbbruch) beiAbbruch();
     };
     const beiTaste = (ereignis) => {
-      if (ereignis.key === "Escape") weg();
+      if (stapel[stapel.length - 1] !== abbrechen) return;
+      if (ereignis.key === "Escape") abbrechen();
+      else if (ereignis.key === "Tab") this._fokusHalten(dialog, ereignis);
     };
-    schliessen.addEventListener("click", weg);
-    schleier.addEventListener("click", (e) => {
-      if (e.target === schleier) weg();
-    });
-    document.addEventListener("keydown", beiTaste);
+    document.addEventListener("keydown", beiTaste, { signal: abbruch.signal });
+    schleier.addEventListener(
+      "click",
+      (ereignis) => {
+        if (ereignis.target === schleier) abbrechen();
+      },
+      { signal: abbruch.signal }
+    );
+    stapel.push(abbrechen);
     this.shadowRoot.appendChild(schleier);
-    schliessen.focus();
+    if (fokus) fokus.focus();
+    return zu;
+  }
+
+  /** Tab bleibt im Fenster: vom letzten Bedienelement zurück zum ersten und umgekehrt. */
+  _fokusHalten(dialog, ereignis) {
+    const ziele = [...dialog.querySelectorAll("button, input, select, textarea, [tabindex]")].filter(
+      (knoten) => !knoten.disabled && knoten.getAttribute("tabindex") !== "-1"
+    );
+    if (!ziele.length) return;
+    const aktiv = this.shadowRoot.activeElement;
+    const erstes = ziele[0];
+    const letztes = ziele[ziele.length - 1];
+    if (ereignis.shiftKey && (aktiv === erstes || !dialog.contains(aktiv))) {
+      ereignis.preventDefault();
+      letztes.focus();
+    } else if (!ereignis.shiftKey && (aktiv === letztes || !dialog.contains(aktiv))) {
+      ereignis.preventDefault();
+      erstes.focus();
+    }
+  }
+
+  /** Schließt alle offenen Fenster, zuletzt geöffnetes zuerst; der Abbau der Oberfläche ruft es. */
+  _dialogeSchliessen() {
+    const stapel = this._dialogStapel || [];
+    while (stapel.length) stapel[stapel.length - 1]();
   }
 
   _symbolKnoten(symbol, klasse) {

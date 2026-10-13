@@ -146,8 +146,7 @@ export const BedienenMixin = (Basis) =>
       schleier.appendChild(dialog);
 
       const schliessen = (antwort) => {
-        schleier.remove();
-        document.removeEventListener("keydown", beiTaste);
+        zu();
         antworten(antwort);
       };
       const abgebrochen = () => (zahl ? null : false);
@@ -157,18 +156,12 @@ export const BedienenMixin = (Basis) =>
         if (werte.some((wert) => !Number.isFinite(wert))) return null;
         return mehrere ? werte : werte[0];
       };
-      const beiTaste = (ereignis) => {
-        if (ereignis.key === "Escape") schliessen(abgebrochen());
-      };
       abbrechen.addEventListener("click", () => schliessen(abgebrochen()));
       ausloesen.addEventListener("click", () => schliessen(bestaetigt()));
-      schleier.addEventListener("click", (ereignis) => {
-        if (ereignis.target === schleier) schliessen(abgebrochen());
+      const zu = this._dialogOeffnen(schleier, {
+        fokus: ausloesen,
+        beiAbbruch: () => antworten(abgebrochen()),
       });
-      document.addEventListener("keydown", beiTaste);
-
-      this.shadowRoot.appendChild(schleier);
-      ausloesen.focus();
     });
   }
 
