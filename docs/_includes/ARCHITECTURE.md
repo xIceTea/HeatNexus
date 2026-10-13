@@ -64,7 +64,10 @@ auseinander: Zwei führten `level` und `enabled_default`, die dritte nicht.
 Die Einrichtung wartet nur auf die Grunddaten (`async_init_basic()`, eigenes
 Zeitlimit `INIT_TIMEOUT`, getrennt vom Zeitlimit des Pollings). Der Vollabzug
 läuft danach als Hintergrundaufgabe und meldet die zusätzlich gefundenen
-Entities nach.
+Entities nach. Scheitert er oder bleibt er lückenhaft, stellt er den bekannten
+Stand wieder her und versucht es nach einer Pause erneut, insgesamt dreimal
+(`einlesen.VOLLABZUG_PAUSEN`). Die Meldung „vollständig eingelesen“ erscheint
+nur nach einem vollständigen Lauf.
 
 Wird der Umfang verkleinert, werden die betroffenen Entities **stillgelegt,
 nicht gelöscht** – eigene Namen, Bereichszuordnung und Verlauf bleiben damit
@@ -151,7 +154,7 @@ Umfangs-Fingerabdruck, ein Wechsel liest die Anlage also nicht neu ein.
 `schema/` importiert nichts aus Home Assistant und ist ohne HA testbar.
 
 Die Bewegung steckt **nicht** in der Zeichnung: Sie liegt als eigene Ebene
-darüber (`frontend/teile/schaubild.js` mit den Regeln aus `frontend/stil.js`) –
+darüber (`frontend/teile/schaubild.js` mit den Regeln aus `frontend/stil/schaubild.js`) –
 strömende Bänder auf den Leitungen, drehende Pumpen, das Glutbett nach
 Kesselleistung, die Schichtung des Puffers zwischen seinen beiden Fühlern.
 
@@ -234,6 +237,18 @@ es beim mittleren Takt: eine Anfrage zu viel ist harmloser als eine Anzeige,
 die nachhinkt. Die Ziele sind Sollwerte; der tatsächliche Takt ergibt sich aus
 dem eingestellten Abfrageintervall.
 
+### Blöcke und Ausfall
+
+Ein Durchlauf liest in Blöcken. Wie groß der nächste Block ist, richtet sich
+nach der zuletzt gemessenen Dauer je Wert und der verbleibenden Zeit
+(`_blockgroesse`). Gelesenes geht blockweise in den Bestand; eine
+Zeitüberschreitung verwirft also nichts, was schon gelesen ist.
+
+Scheitert jede Lesung eines Durchlaufs, gilt der Durchlauf als gescheitert.
+Der Coordinator fragt dann seltener, schreibt den Ausfall einmal ins Protokoll
+und meldet nach drei Fehlschlägen in Folge eine Reparatur „nicht erreichbar“.
+Ein einzelner Fehlschlag lässt die zuletzt gelesenen Werte stehen.
+
 ## Enums
 
 Enum-Tabellen sind `dict[int, str]`, da die Wertebereiche Lücken enthalten
@@ -275,9 +290,9 @@ von Hand gepflegt.
 | `stilllegung.py` | Entitäten stilllegen oder löschen, die aus dem Umfang gefallen sind |
 | `dienste.py` | die Dienste `rediscover` und `dashboard_ausgeben` |
 | `dashboard/` | mitgeliefertes Dashboard, serverseitig gebaut: `anlagen` (die Teile aus den Registrierungen), `muster` (Rang und Namensmuster), `auswahl` (welcher Wert wohin), `karten` (Kartenbausteine), `badges` (Badges der Kopfzeile), `uebersicht` (Reiter Übersicht), `kacheln` (Karten der Übersicht je Anlagenteil nach Rolle), `anlage` (Arbeitsseite je Anlage), `details` (Unteransicht je Anlagenteil), `wartung` (Wartung und Auswertung), Zusammenbau und Anmeldung in `__init__` |
-| `panel/` | eigener Eintrag in der Seitenleiste: Anmeldung, Aufteilung, Suchmuster, Erklärtexte |
+| `panel/` | eigener Eintrag in der Seitenleiste: Anmeldung, `daten` (Aufteilung je Anlage), je Reiter `uebersicht`, `steuerung`, `programme`, `wartung`; `suche` (Entitäten nach Muster), `muster`, `hilfe`, `marken` |
 | `frontend/` | die Oberfläche selbst (siehe unten) |
-| `schema/` | Anlagenschaubild: `farben`, `werte`, `bauteile`, `zeichnung`, `karte` – aus den Bauteildateien in `anlagenteile/` |
+| `schema/` | Anlagenschaubild: `farben`, `werte`, `bauteile`, `zeichnung`, `ebenen` (Überlagerungen je Bauteil), `karte` – aus den Bauteildateien in `anlagenteile/` |
 | `blueprints.py` | Automations-Vorlagen bereitstellen |
 | `diagnostics.py` | Diagnosedaten für Fehlerberichte |
 | `entity.py` | Basisklasse: unique_id, Gerätezuordnung, Poll-Registrierung |
@@ -323,7 +338,8 @@ was dort steht, lädt der Browser genau so.
 | Datei | Aufgabe |
 |---|---|
 | `heatnexus-panel.js` | das Element selbst: Lebenszyklus, Werte-Zugriff, Aufbau, Kopf- und Reiterleiste |
-| `stil.js` | das gesamte CSS |
+| `stil.js` | setzt das CSS aus den Teilen in `stil/` in fester Reihenfolge zusammen |
+| `stil/*.js` | das CSS, je Bereich ein Teil (Grund, Raster, Karten, Dialog, …) |
 | `ordnung.js` | Reihenfolge der Karten und Zeitkonstanten – dieselbe Rechnung wie `anordnung.py` auf dem Server |
 | `zeitprogramm.js` | Zeitprogramme: Abschnitte, Prüfung, Nutzlast, Wochenraster, Editor |
 | `teile/*.js` | die Abschnitte der Oberfläche, je einer als Mixin |

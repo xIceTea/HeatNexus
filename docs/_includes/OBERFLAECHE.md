@@ -82,8 +82,8 @@ der Oberfläche zeigen". Jedes gewählte Label wird zu einer eigenen Karte in de
 Übersicht. Sie lässt sich verschieben, verbreitern und ausblenden wie jede
 andere Karte.
 
-Was jemand in einer Karte sieht, hängt an seinen Rechten in Home Assistant:
-Werte, die er nicht lesen darf, stehen nicht darin.
+Jede Person sieht in einer Karte nur, was ihre Rechte in Home Assistant
+erlauben: Werte ohne Leserecht fehlen darin.
 
 Der Reiter **Verlauf** fehlt im Rundgang. Er benutzt die Verlaufskarte von
 Home Assistant, und die zeichnet nur mit einer laufenden Anlage dahinter. Eine
@@ -92,7 +92,7 @@ leere Karte im Bild würde also etwas Falsches zeigen.
 ## Wie das Bild entsteht
 
 Es ist **kein Nachbau**. Aufgenommen wird `frontend/heatnexus-panel.js` selbst,
-mit `frontend/stil.js`, in einem kopflosen Browser:
+mit `frontend/stil.js` und seinen Teilen unter `frontend/stil/`, in einem kopflosen Browser:
 
 - Die Aufteilung rechnet `panel.panel_daten` über eine Beispielanlage
   (`tools/beispielanlage.py`) — dieselbe, aus der auch das Anlagenschaubild im
