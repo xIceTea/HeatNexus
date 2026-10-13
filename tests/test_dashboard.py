@@ -1022,6 +1022,12 @@ def test_unteransicht_zeigt_zeitprogramme(details):
     zeitprogramme_section = ansicht["sections"][2]
     entity_ids = [c.get("entity") for c in zeitprogramme_section["cards"]]
     assert "sensor.heizprogramm_1" in entity_ids
+    kachel = next(
+        c for c in zeitprogramme_section["cards"] if c.get("entity") == "sensor.heizprogramm_1"
+    )
+    # Der Zustand wäre ein langer Satz; die Kachel zeigt ihn nicht und führt zum Panel.
+    assert kachel["state_content"] == []
+    assert kachel["tap_action"]["action"] == "navigate"
 
 
 def _karten(ansicht: dict) -> list[dict]:
