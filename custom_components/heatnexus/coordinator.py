@@ -150,12 +150,9 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 raise mit_text(
                     UpdateFailed, "antwortet_nicht", anlage=self.host, fehler=err
                 ) from err
-            # Ein verpasster Abruf lässt die zuletzt gelesenen Werte stehen.
-            # Gibt es noch keine, ist nichts zu halten – dann muss der
-            # Fehlschlag auch als Fehlschlag gelten. Ein leeres Ergebnis als
-            # *Erfolg* abzulegen hieß, dass jeder Leser der Koordinatordaten
-            # eine Anlage ohne Datenpunkte sah; daran hing in 1.5.0-beta.9 die
-            # Stilllegung sämtlicher Entitäten.
+            # Ein verpasster Abruf lässt die zuletzt gelesenen Werte stehen. Gibt es
+            # noch keine, bleibt es ein Fehlschlag: Ein leeres Ergebnis als Erfolg zeigte
+            # jedem Leser eine Anlage ohne Datenpunkte, und die Entitäten würden stillgelegt.
             if not self.data:
                 raise mit_text(UpdateFailed, "keine_werte", anlage=self.host, fehler=err) from err
             return self.data

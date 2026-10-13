@@ -484,16 +484,9 @@ ZAEHLER_WOERTER = (
     "gesamt",
 )
 
-# Gleichzeitige Anfragen an die Anlage.
-#
-# Drei – und zwar gemessen, nicht geschätzt. Der Versuch mit sechs brachte
-# nichts: Die Antwortzeit je Datenpunkt stieg von 765 ms auf 1287 ms, während
-# ein vollständiger Abruf nur von 11,0 s auf 10,4 s sank. Die Steuerung
-# arbeitet Anfragen praktisch nacheinander ab; mehr Parallelität verteilt
-# dieselbe Zeit auf mehr Verbindungen und belastet sie stärker.
-#
-# Der einzige wirksame Hebel ist deshalb, **weniger zu fragen** – nicht,
-# schneller zu fragen.
+# Gleichzeitige Anfragen an die Anlage. Die Steuerung arbeitet Anfragen nacheinander
+# ab; mehr Parallelität verkürzt keinen Durchlauf und belastet sie nur stärker.
+# Der wirksame Hebel ist, weniger zu fragen.
 FETCH_CONCURRENCY = 3
 POLL_CONCURRENCY = 3
 
@@ -512,14 +505,9 @@ MENU_PAGE_SIZE = 10
 # schnellen zyklischen Poll-Timeout.
 INIT_TIMEOUT = 240
 
-# Zeitfenster (s) für einen zyklischen Abruf.
-#
-# Der **erste** Abruf nach dem Start ist der größte: Da ist noch kein Wert da,
-# also ist jede Poll-Klasse fällig – auch die trägen, die sonst nur jeden
-# fünfzehnten Durchlauf drankommen. Auf einer Anlage mit knapp zwei Sekunden
-# Antwortzeit je Anfrage passte das nicht mehr in dreißig Sekunden; der Abruf
-# lief in die Zeitüberschreitung und die Oberfläche blieb leer. Danach hält
-# der reguläre Takt das Fenster locker ein.
+# Zeitfenster (s) für einen zyklischen Abruf. Der erste nach dem Start ist der
+# größte: Ohne Werte ist jede Poll-Klasse fällig, auch die trägen. Auf einer
+# langsamen Anlage braucht er deshalb ein weiteres Fenster als der Takt danach.
 ABRUF_TIMEOUT = 30
 ERSTABRUF_TIMEOUT = 180
 

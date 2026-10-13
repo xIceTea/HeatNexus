@@ -143,8 +143,7 @@ def _modulwert(coordinator: Any, beschreibung: dict, gn_mn: str) -> str | None:
 def _seriennummer(coordinator: Any, beschreibung: dict) -> str | None:
     """Die `neuronId` des Knotens, an dem diese Funktion hängt.
 
-    Sie bildet ohnehin schon jede Entitätskennung – sie steht nur bisher
-    nirgends, wo man sie ablesen könnte.
+    Sie bildet ohnehin jede Entitätskennung; an der Geräteseite lässt sie sich ablesen.
     """
     if (knoten := _knoten(beschreibung)) is None:
         return None
@@ -204,10 +203,9 @@ def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
 def steuerung_info(coordinator: Any) -> dict[str, str]:
     """Modell und Firmwarestand der Steuerung für ihre Geräteseite.
 
-    Die Angaben stammen aus `info/deviceinfo`. Die dort ebenfalls gelieferte
-    Seriennummer bleibt bewusst draußen: Sie identifiziert die Anlage und
-    stünde damit auf einer Seite, von der Bildschirmabzüge in Fehlerberichte
-    wandern. In der Diagnose steht sie geschwärzt.
+    Ohne die Seriennummer aus `info/deviceinfo`: Sie identifiziert die Anlage, und Abzüge der
+    Seite wandern in Fehlerberichte. Die `neuronId` an den Funktionsgeräten steckt dagegen
+    ohnehin in jeder Entitätskennung.
     """
     auskunft = getattr(coordinator.client, "geraeteinfo", None) or {}
     info = {"model": str(auskunft.get("device") or "").strip() or "Steuerung"}
@@ -340,11 +338,8 @@ class WindhagerEntity(CoordinatorEntity, RestoreEntity):
         await super().async_added_to_hass()
         if self._register_poll_oid and self._oid and not self._descriptor.get("objekt"):
             self.coordinator.client.register_poll_oid(self._oid)
-            # **Den einen Wert sofort holen, nicht erst beim nächsten Takt.**
-            # Wer eine abgeschaltete Entität einschaltet, lädt damit den ganzen
-            # Eintrag neu – und sah danach bis zu dreißig Sekunden lang „nicht
-            # verfügbar", obwohl alle anderen Werte längst standen. Gelesen wird
-            # nur diese Adresse; der Rest kommt mit dem regulären Abruf.
+            # Den einen Wert sofort holen: Wer eine Entität einschaltet, lädt den Eintrag
+            # neu, und sie stünde sonst bis zum nächsten Takt ohne Wert da.
             self._wert_sofort_holen()
         if not self._wiederherstellbar:
             return
