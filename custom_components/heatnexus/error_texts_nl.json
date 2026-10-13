@@ -439,6 +439,10 @@
   "info": "Inspectieluik voorraad sluiten",
   "text": "Inspectieluik voorraad open"
  },
+ "FE242": {
+  "info": "Hoofdschakelaar uitschakelen en tegen opnieuw inschakelen beveiligen. Klantenservice of verwarmingsinstallateur waarschuwen.",
+  "text": "Relais zuigturbine defect"
+ },
  "FE245": {
   "info": "Bunker en toevoerslang controleren",
   "text": "Alle geselecteerde zuigsondes zijn leeg"

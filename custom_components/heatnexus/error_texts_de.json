@@ -439,6 +439,10 @@
   "info": "Deckel Vorratsbehälter schließen.",
   "text": "Deckel Vorratsbehälter offen"
  },
+ "FE242": {
+  "info": "Hauptschalter ausschalten und gegen Wiedereinschalten sichern. Kundendienst oder Heizungsfachmann verständigen.",
+  "text": "Relais Saugturbine defekt"
+ },
  "FE245": {
   "info": "Brennstoffvorrat im Lagerraum und Zuführschlauch\nüberprüfen.",
   "text": "Alle ausgewählten Sonden sind leer"

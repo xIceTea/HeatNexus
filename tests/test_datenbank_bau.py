@@ -123,3 +123,16 @@ def test_jede_erzeugte_stoerungstabelle_wird_gelesen(generator, error_texts):
 
 def test_die_englischen_stoerungstexte_decken_die_deutschen_ab(error_texts):
     assert set(error_texts._table("en")) == set(error_texts._table("de"))
+
+
+def test_eine_ergaenzte_stoerung_steht_in_allen_sprachen(generator):
+    for sprache in ("de", *generator.FREMDSPRACHEN):
+        tabelle: dict = {}
+        generator.ergaenze_stoerungen(tabelle, sprache)
+        assert set(tabelle["FE242"]) == {"text", "info"}
+
+
+def test_ein_herstellertext_hat_vorrang_vor_der_ergaenzung(generator):
+    tabelle = {"FE242": {"text": "vom Hersteller"}}
+    generator.ergaenze_stoerungen(tabelle, "de")
+    assert tabelle["FE242"] == {"text": "vom Hersteller"}

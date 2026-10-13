@@ -379,6 +379,37 @@ def sammle_stoerungen(texte: dict) -> dict[str, dict[str, str]]:
     return ergebnis
 
 
+# Störungen, die die Bedienungsanleitung nennt und die in den Herstellertexten
+# fehlen. Die Texte sind eigenständig formuliert; ein Herstellertext hat Vorrang.
+ERGAENZTE_STOERUNGEN: dict[str, dict[str, dict[str, str]]] = {
+    # Bedienungsanleitung InfoWIN Touch PuroWIN, Störungstabelle „Fehler 242".
+    "FE242": {
+        "de": {
+            "text": "Relais Saugturbine defekt",
+            "info": "Hauptschalter ausschalten und gegen Wiedereinschalten sichern. "
+            "Kundendienst oder Heizungsfachmann verständigen.",
+        },
+        "en": {
+            "text": "Suction turbine relay faulty",
+            "info": "Switch off the main switch and secure it against being switched on again. "
+            "Contact customer service or a heating specialist.",
+        },
+        "nl": {
+            "text": "Relais zuigturbine defect",
+            "info": "Hoofdschakelaar uitschakelen en tegen opnieuw inschakelen beveiligen. "
+            "Klantenservice of verwarmingsinstallateur waarschuwen.",
+        },
+    },
+}
+
+
+def ergaenze_stoerungen(tabelle: dict[str, dict[str, str]], sprache: str) -> None:
+    """Fehlende Störungscodes aus ERGAENZTE_STOERUNGEN in die Tabelle übernehmen."""
+    for code, je_sprache in ERGAENZTE_STOERUNGEN.items():
+        if code not in tabelle and sprache in je_sprache:
+            tabelle[code] = dict(je_sprache[sprache])
+
+
 def main() -> int:
     """Kommandozeile."""
     parser = argparse.ArgumentParser(
@@ -402,12 +433,14 @@ def main() -> int:
     ebenen = sammle_ebenen(layer, texte)
     ergaenzt = uebersteuern(ebenen)
     stoerungen = {"de": sammle_stoerungen(texte)}
+    ergaenze_stoerungen(stoerungen["de"], "de")
     sprachen = {}
     for sprache in FREMDSPRACHEN:
         xml = geraetetexte_fuer(args.geraetetexte, sprache)
         fremd = lade(f"{sprache}-parameters.json", args.quelle)
         sprachen[sprache] = sammle_sprache(fremd, lade_geraetetexte(xml) if xml else {}, sprache)
         stoerungen[sprache] = sammle_stoerungen(fremd.get("emStrIds", {}))
+        ergaenze_stoerungen(stoerungen[sprache], sprache)
 
     print(f"\nDatenpunktnamen : {len(namen)}")
     print(f"davon ergänzt   : {ergaenzt} (an der Anlage gemessen, siehe UEBERSTEUERUNG)")

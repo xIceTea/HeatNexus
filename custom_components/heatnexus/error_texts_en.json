@@ -439,6 +439,10 @@
   "info": "Close cover fuel hopper",
   "text": "Cover fuel hopper open"
  },
+ "FE242": {
+  "info": "Switch off the main switch and secure it against being switched on again. Contact customer service or a heating specialist.",
+  "text": "Suction turbine relay faulty"
+ },
  "FE245": {
   "info": "Verify fuel supply in storage room and feed hose",
   "text": "All select probes without fuel"
