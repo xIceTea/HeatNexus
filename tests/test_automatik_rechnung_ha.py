@@ -127,6 +127,8 @@ async def test_hausmodell_und_nachrechnen_teilen_eine_abfrage(hass, anlage, free
 
     monkeypatch.setattr(history, "get_significant_states", gezaehlt)
     monkeypatch.setattr(recorder, "get_instance", lambda _hass: _Executor(), raising=False)
+    # Am selben Tag lernt das Hausmodell nur nach einem Zurücksetzen erneut.
+    laufzeit._gelernt_am = None
 
     await laufzeit.neu_starten(laufzeit.konfig)
     await hass.async_block_till_done(wait_background_tasks=True)
