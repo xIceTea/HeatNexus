@@ -42,6 +42,11 @@ const STIL_KENNWERTE = `
   .raster { display: grid; grid-template-columns: repeat(var(--hn-spalten), minmax(0,1fr));
     gap: 12px 10px; }
   .raster > div { padding: 2px 4px; }
+  /* Schmale Karte: höchstens zwei Spalten, sonst brechen die Werte um. */
+  :host { container-type: inline-size; }
+  @container (max-width: 340px) {
+    .raster { grid-template-columns: repeat(min(var(--hn-spalten), 2), minmax(0,1fr)); }
+  }
 `;
 
 const STIL_PUFFER = `
