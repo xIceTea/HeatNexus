@@ -41,7 +41,7 @@ from . import (
     stundenmodus,
     tagesansicht,
 )
-from .optimierung import OptimierungMixin
+from .optimierung import VORLAUF_IST, OptimierungMixin
 from .quellen import QuellenMixin, ortszeit
 from .steller import Stand, Steller, braucht_bestaetigung, nur_ww_wert
 from .vorausschau import LERNZEIT, VorausschauMixin
@@ -64,10 +64,10 @@ VERLAUF_LAENGE = 64
 # So lange wartet die Regel nach dem Start auf den ersten Abruf der Werte in `ABRUF`.
 STEUERUNG_WARTEN = timedelta(minutes=10)
 MODUS_ARTEN = ("absenkung", "nur_ww", "heizpause")
+RAUMANSTIEG_K = 0.1  # Anstieg der Raumtemperatur, ab dem ein Fenster als wieder geschlossen gilt
 # Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
 # Heizgrenzen der Steuerung (`3/21`, `3/2`) gehören dazu: an ihnen richtet sich die Regel aus.
 # Der Vorlauf-Ist dient nur dem Hausmodell; die Regel wartet nicht darauf.
-VORLAUF_IST = "/0/2/0"
 ABRUF = ("/2/9/0", "/0/0/0", "/1/2/0", "/3/21/0", "/3/2/0", VORLAUF_IST)
 HEIZGRENZEN = {
     "heizbetrieb": ("/3/21/0", "Heizbetrieb"),
@@ -609,10 +609,14 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self.steller.vermerken(jetzt, "geprueft", text)
 
     def _setzen(self, zustand: regel.Zustand, begruendung: str) -> None:
+        wechsel = zustand != self.zustand
         self.zustand = zustand
         self.begruendung = begruendung
-        self._modus_fortschreiben(dt_util.now())
-        self._aktion_merken(dt_util.now())
+        if wechsel:
+            _LOGGER.info("Automatik %s: %s – %s", self.name, zustand.name, begruendung)
+        jetzt = dt_util.now()
+        self._modus_fortschreiben(jetzt)
+        self._aktion_merken(jetzt)
         self._seitenleiste()
         self._sichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
@@ -1171,7 +1175,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         if (raum := self._raum()) is None:
             return
         jetzt = dt_util.now()
-        if self._fenster_bis and self._verlauf and raum > self._verlauf[-1][1] + 0.1:
+        if self._fenster_bis and self._verlauf and raum > self._verlauf[-1][1] + RAUMANSTIEG_K:
             self._fenster_bis = None
         self._verlauf.append((jetzt.timestamp(), raum))
         if self.konfig.get("fenster_erkennung") and eingaben.temperatursturz(
