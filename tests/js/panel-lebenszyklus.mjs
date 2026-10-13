@@ -63,6 +63,10 @@ const befund = {};
     flaeche._zeichnen();
   }
   befund.klickhoererNachFuenfAufbauten = flaeche.shadowRoot.hoererZahl("click");
+  befund.stilknoten = flaeche.shadowRoot.children.filter((kind) => kind.tagName === "STYLE").length;
+  befund.geteilteBoegen = flaeche.shadowRoot.adoptedStyleSheets.length;
+  const zweite = bauen().flaeche;
+  befund.bogenGeteilt = zweite.shadowRoot.adoptedStyleSheets[0] === flaeche.shadowRoot.adoptedStyleSheets[0];
 }
 
 // --- Gleiche Daten lösen keinen Neuaufbau aus -------------------------------

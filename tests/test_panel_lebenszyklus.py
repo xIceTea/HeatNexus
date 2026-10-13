@@ -51,3 +51,9 @@ def test_der_abbau_beendet_zeitgeber(befund):
 
 def test_der_abbau_schreibt_die_wartende_anordnung(befund):
     assert befund["gespeichertBeimAbbau"] == 1
+
+
+def test_das_stylesheet_wird_geteilt_und_nicht_neu_angelegt(befund):
+    assert befund["stilknoten"] == 0
+    assert befund["geteilteBoegen"] == 1
+    assert befund["bogenGeteilt"] is True

@@ -42,6 +42,9 @@ import { WartungMixin } from "./teile/wartung.js";
 import { WerteMixin } from "./teile/werte.js";
 import { ZeitprogrammeMixin } from "./teile/zeitprogramme.js";
 
+/** Das Stylesheet wird je Seitensitzung einmal geparst und von allen Instanzen geteilt. */
+const STILBOGEN = { bogen: null };
+
 const Grundlage = HilfeMixin(
   ZeitprogrammeMixin(
     WartungMixin(
@@ -302,6 +305,29 @@ class HeatNexusPanel extends Grundlage {
     });
   }
 
+  /**
+   * Das Stylesheet geteilt einsetzen; die Liste enthält Knoten, die vor den Inhalt gehören.
+   * Ohne `adoptedStyleSheets` bleibt der Rückfall auf ein `<style>`-Element.
+   */
+  _stilEinsetzen() {
+    const wurzel = this.shadowRoot;
+    if (typeof CSSStyleSheet === "function" && "adoptedStyleSheets" in wurzel) {
+      try {
+        if (!STILBOGEN.bogen) {
+          STILBOGEN.bogen = new CSSStyleSheet();
+          STILBOGEN.bogen.replaceSync(STIL);
+        }
+        wurzel.adoptedStyleSheets = [STILBOGEN.bogen];
+        return [];
+      } catch (err) {
+        console.warn("HeatNexus: Geteiltes Stylesheet nicht möglich", err);
+      }
+    }
+    const stil = document.createElement("style");
+    stil.textContent = STIL;
+    return [stil];
+  }
+
   _aufbauen() {
     // Hörer an Knoten, die den Neuaufbau überleben, hängen an diesem Signal.
     if (this._aufbauAbbruch) this._aufbauAbbruch.abort();
@@ -312,11 +338,10 @@ class HeatNexusPanel extends Grundlage {
     this._wartend = [];
     this._zeitprogrammStand = new Map();
     const anlage = this._aktuelleAnlage();
-    const stil = document.createElement("style");
-    stil.textContent = STIL;
+    const stil = this._stilEinsetzen();
     this._paletteAnwenden();
     if (!anlage) {
-      this.shadowRoot.replaceChildren(stil);
+      this.shadowRoot.replaceChildren(...stil);
       return;
     }
 
@@ -342,7 +367,7 @@ class HeatNexusPanel extends Grundlage {
     } else {
       inhalt.appendChild(this._anlagenInhalt(anlage));
     }
-    this.shadowRoot.replaceChildren(stil, inhalt);
+    this.shadowRoot.replaceChildren(...stil, inhalt);
     this._verlaufKarteLaden();
   }
 
