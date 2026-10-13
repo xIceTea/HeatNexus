@@ -15,9 +15,9 @@ const GESPEICHERT_MS = 4000;
 // Die Einstellungen in Gruppen; „heizbetrieb“ und „absenkbetrieb“ sind die Heizgrenzen der Steuerung.
 export const EINSTELLUNGSGRUPPEN = [
   ["Heizgrenze", ["profil", "heizbetrieb", "absenkbetrieb", "grenze_versatz", "hysterese", "tau_h"]],
-  ["Sonnentag", ["sonnenquote", "sonnentag", "absenkung_k", "stark", "stark_k"]],
+  ["Sonnentag", ["sonnenquote", "sonnentag", "absenkung_k", "sonne_voll_at", "sonne_frost_at", "stark", "stark_k"]],
   ["Zeitplan", ["entscheidung", "nachpruefung", "mindestdauer_h", "budget"]],
-  ["Schutz und Prognose", ["rueckkehr_k", "spielraum_k", "ruhe_h", "fenster_k_je_h", "anpassen", "lernfenster"]],
+  ["Schutz und Prognose", ["rueckkehr_k", "spielraum_k", "ruhe_h", "fenster_k_je_h", "raum_fehlt_min", "anpassen", "lernfenster"]],
   ["Manuell mit Empfehlung", ["melden"]],
 ];
 

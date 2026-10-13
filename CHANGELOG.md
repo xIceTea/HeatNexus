@@ -79,6 +79,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Gleichnamige Heizkreise stehen in fester Reihenfolge.
 - Namen der Anlagenteile erscheinen ohne doppelte Leerzeichen.
 - Die Störung 242 (Relais Saugturbine) erscheint mit Text und Hinweis.
+- Die Einstellungen der Automatik zeigen die Frostgrenze und das Warten auf Raumwerte.
 
 ## [1.14.0-beta.1] - 2026-10-12
 

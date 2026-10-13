@@ -236,4 +236,8 @@ nachtUtc.setUTCMinutes(15, 0, 0);
 const stundeWien = zeit.zeitTeile(nachtUtc, "Europe/Vienna").stunde;
 const kastenWien = stundenKasten({ stunden: [] }, stundeWien, [{ zeit: nachtUtc.toISOString(), text: "Wien" }], undefined, "Europe/Vienna");
 assert.ok(kastenWien.includes(`${zeit.uhr24(nachtUtc, "Europe/Vienna")} Wien`), kastenWien.join("|"));
+// Jedes Feld steht in genau einer Gruppe, sonst erscheint es nicht in den Einstellungen.
+const { EINSTELLUNGSGRUPPEN } = await import(new URL("./einrichtung.js", pathToFileURL(process.argv[2])).href);
+const gruppiert = EINSTELLUNGSGRUPPEN.flatMap(([, namen]) => namen);
+for (const feld of FELDER) assert.equal(gruppiert.filter((n) => n === feld.name).length, 1, feld.name);
 console.log("ok");
