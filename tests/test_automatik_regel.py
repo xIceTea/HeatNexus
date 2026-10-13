@@ -1417,7 +1417,7 @@ def test_modellpause_endet_ohne_sonnentag_text_wenn_die_absenkung_verboten_ist(
     e = m.entscheiden(stand, g, werte)
     assert [a.art for a in e.aktionen] == ["absenkung_ende"]
     assert (
-        e.begruendung == "Die Heizpause hält laut Prognose nicht bis 17:00 – zurück ins Programm."
+        e.begruendung == "Die Absenkung hält laut Prognose nicht bis 17:00 – zurück ins Programm."
     )
     assert e.gedaechtnis.pause_sperre == MORGEN.date().isoformat()
 

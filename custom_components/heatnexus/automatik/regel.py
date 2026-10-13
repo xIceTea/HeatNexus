@@ -918,7 +918,8 @@ def _absenkung_verboten(
         text = "Sonnentag ausgeschaltet – Absenkung beendet."
         return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, ohne_absenkung(g))
     folge = "zurück ins Programm" if eigen else "kein Eingriff"
-    text = f"Die Heizpause hält laut Prognose nicht bis {_uhr(v.bis)} – {folge}."
+    stufe = "Heizpause" if v.stufe == V_PAUSE else "Absenkung"
+    text = f"Die {stufe} hält laut Prognose nicht bis {_uhr(v.bis)} – {folge}."
     if not eigen:
         return Entscheidung(Zustand.PROGRAMM, (), text, g)
     # Wie nach jedem Ende einer Stufe des Modells: heute beginnt keine neue.
