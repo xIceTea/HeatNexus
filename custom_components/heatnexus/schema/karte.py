@@ -555,7 +555,6 @@ def schaubild_nutzdaten(
         # läuft, das Glutbett glimmt, solange der Kessel Leistung bringt.
         "schema_leitungen": bild.get("leitungen") if bild else None,
         "schema_brenner": bild.get("brenner", []) if bild else [],
-        "schema_anforderung": bild.get("anforderung", []) if bild else [],
         "schema_mischer": bild.get("mischer", []) if bild else [],
         # Der Heizkörper färbt sich nach seiner Vorlauftemperatur.
         "schema_heizkoerper": bild.get("heizkoerper", []) if bild else [],

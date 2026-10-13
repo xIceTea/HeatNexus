@@ -102,7 +102,6 @@ FELDER = (
     "schema_pumpen",
     "schema_leitungen",
     "schema_brenner",
-    "schema_anforderung",
     "schema_mischer",
     "schema_heizkoerper",
     "schema_schichtung",
