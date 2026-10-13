@@ -17,6 +17,7 @@ from . import verwaiste
 from .automatik.diagnose import auszug
 from .automatik.kennzahlen import schwerster, status
 from .automatik.verwaltung import DATEN_SCHLUESSEL
+from .erkennungsstand import laufzeitdaten
 
 # Zugangsdaten und eindeutige Gerätekennungen bleiben draußen.
 #
@@ -57,7 +58,12 @@ async def async_get_config_entry_diagnostics(
     steckt, wird durch einen gleichbleibenden Platzhalter ersetzt. Wer zwei
     Anlagen vergleicht, kann sie weiterhin auseinanderhalten.
     """
-    eintrag = entry.runtime_data
+    eintrag = laufzeitdaten(entry)
+    if eintrag is None:
+        # Ein nicht geladener Eintrag hat keine Anlagen; der Export nennt das, statt zu scheitern.
+        return {
+            "eintrag": {"geladen": False, "home_assistant": HA_VERSION, "version": entry.version}
+        }
     anlagen = {}
     nummer_je_host: dict[str, str] = {}
     for nummer, (host, coordinator) in enumerate(eintrag["coordinators"].items(), start=1):
@@ -69,11 +75,13 @@ async def async_get_config_entry_diagnostics(
     # dieselbe Nummer wie oben – ein gemeinsamer Platzhalter ließe von zwei
     # Anlagen nur eine übrig, und Abweichungen wären nicht mehr zu sehen.
     optionen = {
-        (nummer_je_host.get(schluessel, "anlage") if _ist_adresse(schluessel) else schluessel): wert
+        nummer_je_host.get(schluessel)
+        or ("anlage" if _ist_adresse(schluessel) else schluessel): wert
         for schluessel, wert in optionen.items()
     }
     daten = {
         "eintrag": {
+            "geladen": True,
             "name": eintrag["name"],
             # Die Fassung der Integration ist die erste Frage zu jedem
             # Fehlerbericht. `entry.version` ist die Fassung des
@@ -88,7 +96,7 @@ async def async_get_config_entry_diagnostics(
         "anlagen": async_redact_data(anlagen, ZU_SCHWAERZEN),
         "automatik": automatik_auszug(hass, entry),
     }
-    return _anonymisieren(daten, _seriennummern(eintrag))
+    return _anonymisieren(daten, {**_seriennummern(eintrag), **nummer_je_host})
 
 
 def automatik_auszug(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
@@ -164,7 +172,7 @@ def _seriennummern(eintrag: dict[str, Any]) -> dict[str, str]:
 
 
 def _anonymisieren(wert: Any, ersatz: dict[str, str]) -> Any:
-    """Seriennummern und Adressen in allen Zeichenketten ersetzen.
+    """Seriennummern, bekannte Hosts und Adressen in allen Zeichenketten ersetzen.
 
     Auch in zusammengesetzten Kennungen wie ``12345678-0-7-0``.
     """
@@ -176,8 +184,9 @@ def _anonymisieren(wert: Any, ersatz: dict[str, str]) -> Any:
     if isinstance(wert, list):
         return [_anonymisieren(eintrag, ersatz) for eintrag in wert]
     if isinstance(wert, str):
-        for seriennummer, platzhalter in ersatz.items():
-            wert = wert.replace(seriennummer, platzhalter)
+        # Längere zuerst: Ein Hostname kann eine kürzere Kennung enthalten.
+        for bekannt in sorted(ersatz, key=len, reverse=True):
+            wert = wert.replace(bekannt, ersatz[bekannt])
         return _ADRESSE_IM_TEXT.sub("<adresse>", wert)
     return wert
 
@@ -200,6 +209,23 @@ def _geraete(beschreibungen: list[dict[str, Any]]) -> list[dict[str, Any]]:
         )
         eintrag["entitaeten"] += 1
     return list(je_geraet.values())
+
+
+def _abrufzustand(coordinator) -> dict[str, Any]:
+    """Wie es dem Abruf gerade geht: letzter Erfolg, letzter Fehler, Takt, Absagen."""
+    client = coordinator.client
+    takt = coordinator.update_interval
+    fehler = coordinator.last_exception
+    return {
+        "letzter_abruf_erfolgreich": coordinator.last_update_success,
+        "letzter_fehler": f"{type(fehler).__name__}: {fehler}" if fehler else None,
+        "takt_s": takt.total_seconds() if takt else None,
+        "fehlschlaege_in_folge": coordinator._fehlschlaege,
+        "abgewiesene_anmeldungen": client.auth_errors,
+        "abgemeldet": sorted(client._abgemeldet),
+        "metadaten_ohne_antwort": len(client._metadaten_luecken),
+        "sprache": client.sprache,
+    }
 
 
 def _anlage(coordinator) -> dict[str, Any]:
@@ -260,6 +286,7 @@ def _anlage(coordinator) -> dict[str, Any]:
         },
         # Ohne diese Zahlen ist jede Aussage über das Abrufverhalten geschätzt.
         "abrufverhalten": client.statistik() if hasattr(client, "statistik") else {},
+        "abruf": _abrufzustand(coordinator),
         "entitaeten_nach_typ": dict(sorted(nach_typ.items())),
         "entitaeten_nach_ebene": dict(sorted(nach_ebene.items())),
         # Je Gerät eine Zeile, nicht je Datenpunkt: Sonst füllen die

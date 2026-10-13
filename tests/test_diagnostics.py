@@ -52,12 +52,20 @@ def _client():
         host=ADRESSE,
         geraeteinfo=dict(GERAETEINFO),
         statistik=lambda: {"anfragen": 42, "anfragen_je_stunde": 120},
+        auth_errors=0,
+        _abgemeldet={"/1/60/0/9/9/0"},
+        _metadaten_luecken=set(),
+        sprache="de",
     )
 
 
 def _coordinator():
     return SimpleNamespace(
         label="Heizhaus",
+        last_update_success=True,
+        last_exception=None,
+        update_interval=None,
+        _fehlschlaege=0,
         client=_client(),
         data={
             "devices": [
