@@ -134,3 +134,25 @@ async def test_hausmodell_und_nachrechnen_teilen_eine_abfrage(hass, anlage, free
     assert sorted(lerntage) == [False, True]
     assert len(laufzeit.archivierte_tage()) == opt.HEIZTAGE
     assert laufzeit.archiv_nachgerechnet == opt.FASSUNG
+
+
+async def test_ein_lesefehler_warnt_einmal(hass, anlage, freezer, monkeypatch, caplog):
+    import logging
+
+    from homeassistant.components.recorder import history
+
+    verwaltung, coordinator = anlage
+    laufzeit = await opt._laufzeit(hass, verwaltung, freezer)
+    opt._aufzeichnung(hass, monkeypatch, opt._historie(hass, coordinator))
+
+    def scheitern(*_argumente, **_benannt):
+        raise RuntimeError("Datenbank gesperrt")
+
+    monkeypatch.setattr(history, "get_significant_states", scheitern)
+    caplog.set_level(logging.DEBUG)
+
+    for _ in range(2):
+        assert await laufzeit._verlauf_lesen([], ["sensor.wohnzimmer"], _jetzt()) is None
+
+    meldungen = [r for r in caplog.records if "Verlauf nicht lesbar" in r.getMessage()]
+    assert [r.levelno for r in meldungen] == [logging.WARNING, logging.DEBUG]

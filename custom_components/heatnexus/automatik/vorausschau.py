@@ -147,6 +147,7 @@ class VorausschauMixin:
         # Die Vorhersage, mit der die laufende Stufe des Modells begann; an ihr misst sich die Rückkehr.
         self._vorhersage_bezug: vorhersage.Vorhersage | None = None
         self._lesung: _Lesung | None = None
+        self._verlauf_gewarnt = False
 
     @property
     def vorhersage_zuletzt(self) -> vorhersage.Vorhersage | None:
@@ -262,8 +263,12 @@ class VorausschauMixin:
         try:
             zustaende = await get_instance(self.hass).async_add_executor_job(abfrage)
         except Exception as fehler:  # die Aufzeichnung ist eine Zugabe, kein Muss
-            _LOGGER.debug("Automatik %s: Verlauf nicht lesbar: %s", self.name, fehler)
+            # Der erste Fehler erscheint als Warnung, Wiederholungen nur im Debug-Protokoll.
+            melden = _LOGGER.debug if self._verlauf_gewarnt else _LOGGER.warning
+            self._verlauf_gewarnt = True
+            melden("Automatik %s: Verlauf nicht lesbar: %s", self.name, fehler)
             return None
+        self._verlauf_gewarnt = False
         return zustaende
 
     def _sonnenboegen(self, tage: set[date]) -> dict[date, tuple[float, float]]:
