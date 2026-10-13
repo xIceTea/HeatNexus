@@ -60,7 +60,7 @@ def anlagenschema(
     auswahl: dict[str, list[str]] | None = None,
     teile_aus: list[str] | tuple[str, ...] = (),
     zeichnungen: dict[str, str] | None = None,
-    mischer: bool = True,
+    mit_mischer: bool = True,
     modulpumpe: bool = False,
     buch: Buch | None = None,
 ) -> dict[str, Any] | None:
@@ -84,7 +84,7 @@ def anlagenschema(
     if not any(m["werte"] for m in module):
         return None
 
-    svg, breite = schaubild_svg(module, mischer, buch)
+    svg, breite = schaubild_svg(module, mit_mischer, buch)
 
     elemente: list[dict[str, Any]] = []
     pumpen: list[dict[str, Any]] = []
@@ -512,7 +512,7 @@ def schaubild_nutzdaten(
         auswahl=auswahl,
         teile_aus=teile_aus,
         zeichnungen=zeichnungen,
-        mischer=mischer,
+        mit_mischer=mischer,
         modulpumpe=anlage.get("modulpumpe", False),
         buch=buch,
     )

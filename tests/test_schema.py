@@ -118,7 +118,7 @@ def test_der_mischer_laesst_sich_aus_der_zeichnung_nehmen(karte):
         [("sensor.vorlauf", "Vorlauftemperatur Ist"), ("sensor.mischer", "Mischer Stellwert")],
     )
     mit = karte.anlagenschema([teil])
-    ohne = karte.anlagenschema([teil], mischer=False)
+    ohne = karte.anlagenschema([teil], mit_mischer=False)
     assert "M 86 104" in mit["svg"]
     assert "M 86 104" not in ohne["svg"]
 
@@ -402,7 +402,7 @@ def _kessel_mit_mischer() -> dict:
 def test_der_kesselmischer_steht_im_bild(karte):
     """Ventil in der Zeichnung, Anzeiger darüber – wie am Heizkreis."""
     mit = karte.anlagenschema([_kessel_mit_mischer()])
-    ohne = karte.anlagenschema([_kessel_mit_mischer()], mischer=False)
+    ohne = karte.anlagenschema([_kessel_mit_mischer()], mit_mischer=False)
     assert [e["entity"] for e in mit["mischer"]] == ["sensor.kesselmischer"]
     assert "M 86 104" in mit["svg"]
     assert "M 86 104" not in ohne["svg"]
