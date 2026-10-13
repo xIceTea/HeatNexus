@@ -183,17 +183,8 @@ def test_vorrangquellen_sind_eine_begrenzte_liste(konfig):
     assert konfig.pruefen(roh())["vorrang"] == []
 
 
-def test_hinweise_sind_eine_eigene_einstellung(konfig):
-    assert konfig.pruefen(roh())["hinweise"] is False
-    assert konfig.pruefen(roh(hinweise=True))["hinweise"] is True
-
-
-def test_hinweise_aus_den_eigenen_werten_gelten_weiter(konfig):
-    k = konfig.pruefen(roh(eigene={"hinweise": True}))
-    assert k["hinweise"] is True
+def test_schalter_der_optimierung_werden_verworfen(konfig):
+    k = konfig.pruefen(roh(hinweise=True, hinweise_melden=True, eigene={"hinweise": True}))
+    assert "hinweise" not in k
+    assert "hinweise_melden" not in k
     assert "hinweise" not in k["eigene"]
-
-
-def test_melden_der_hinweise_ist_eine_eigene_einstellung(konfig):
-    assert konfig.pruefen(roh())["hinweise_melden"] is False
-    assert konfig.pruefen(roh(hinweise_melden=True))["hinweise_melden"] is True

@@ -221,10 +221,9 @@ class VorausschauMixin:
         return {k: [z for z in liste if z.last_updated < bis] for k, liste in zustaende.items()}
 
     def _lesung_starten(self, anfang: datetime, mit: list[str], einfach: list[str]) -> _Lesung:
-        """Eine Abfrage bis jetzt, dazu was das Nachrechnen noch braucht; sie endet mit sich selbst."""
-        dazu_mit, dazu_einfach = self._verlauf_dazu()
-        alle_mit = list(dict.fromkeys([*mit, *dazu_mit]))
-        alle = [k for k in dict.fromkeys([*einfach, *dazu_einfach]) if k not in alle_mit]
+        """Eine Abfrage bis jetzt; sie endet mit sich selbst."""
+        alle_mit = list(dict.fromkeys(mit))
+        alle = [k for k in dict.fromkeys(einfach) if k not in alle_mit]
         aufgabe = self.hass.async_create_background_task(
             self._verlauf_abfragen(anfang, alle_mit, alle), f"heatnexus_verlauf_{self.device_id}"
         )

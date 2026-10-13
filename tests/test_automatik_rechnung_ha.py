@@ -1,4 +1,4 @@
-"""Rechnungen der Automatik mit Home Assistant: Lernstunden, gemeinsamer Verlauf, Ziel der Stunde.
+"""Rechnungen der Automatik mit Home Assistant: Lernstunden, Lesefehler, Ziel der Stunde.
 
 Die Lernstunden werden gegen die lineare Rechnung geprüft, die Aufzeichnung ist eine Attrappe.
 """
@@ -14,7 +14,6 @@ import time
 import pytest
 
 from . import test_automatik_ha as ha
-from . import test_automatik_optimierung as opt
 from .conftest import requires_ha
 from .test_automatik_rechnung import zufallsreihe
 
@@ -109,43 +108,16 @@ class _Executor:
         return aufgabe()
 
 
-async def test_hausmodell_und_nachrechnen_teilen_eine_abfrage(hass, anlage, freezer, monkeypatch):
-    from homeassistant.components import recorder
-    from homeassistant.components.recorder import history
-
-    verwaltung, coordinator = anlage
-    laufzeit = await opt._laufzeit(hass, verwaltung, freezer)
-    opt._aufzeichnung(hass, monkeypatch, opt._historie(hass, coordinator))
-    gelesen = history.get_significant_states
-    lerntage = []
-
-    def gezaehlt(_hass, anfang, *argumente, **benannt):
-        # Das Nachtragen von heute liest nur den laufenden Tag; gezählt werden die Lerntage.
-        if anfang < _jetzt() - timedelta(days=2):
-            lerntage.append(benannt.get("no_attributes"))
-        return gelesen(_hass, anfang, *argumente, **benannt)
-
-    monkeypatch.setattr(history, "get_significant_states", gezaehlt)
-    monkeypatch.setattr(recorder, "get_instance", lambda _hass: _Executor(), raising=False)
-    # Am selben Tag lernt das Hausmodell nur nach einem Zurücksetzen erneut.
-    laufzeit._gelernt_am = None
-
-    await laufzeit.neu_starten(laufzeit.konfig)
-    await hass.async_block_till_done(wait_background_tasks=True)
-
-    assert sorted(lerntage) == [False, True]
-    assert len(laufzeit.archivierte_tage()) == opt.HEIZTAGE
-    assert laufzeit.archiv_nachgerechnet == opt.FASSUNG
-
-
 async def test_ein_lesefehler_warnt_einmal(hass, anlage, freezer, monkeypatch, caplog):
     import logging
 
     from homeassistant.components.recorder import history
 
-    verwaltung, coordinator = anlage
-    laufzeit = await opt._laufzeit(hass, verwaltung, freezer)
-    opt._aufzeichnung(hass, monkeypatch, opt._historie(hass, coordinator))
+    verwaltung, _ = anlage
+    freezer.move_to(ha.MORGEN)
+    laufzeit = await ha._eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    ha._verlauf_bereit(hass, monkeypatch, {})
 
     def scheitern(*_argumente, **_benannt):
         raise RuntimeError("Datenbank gesperrt")
@@ -189,46 +161,6 @@ async def test_kuenftiges_ziel_behaelt_die_behaglichkeit(
     assert laufzeit._ziel(lage, PROGRAMM, abends) == pytest.approx(erwartet)
 
 
-@pytest.mark.parametrize(
-    ("raum_ziel", "behaglichkeit", "restzeit"),
-    [(None, "1.0", "0"), (21.0, "1.0", "0"), (None, "0.0", "90"), (None, "-0.5", "0")],
-)
-async def test_nachrechnen_ergibt_dieselbe_stunde_wie_live(
-    hass, anlage, freezer, raum_ziel, behaglichkeit, restzeit
-):
-    from custom_components.heatnexus.automatik import eingaben, nachrechnen
-
-    verwaltung, coordinator = anlage
-    freezer.move_to(ha.MORGEN)
-    laufzeit = await ha._eingerichtet(hass, verwaltung)
-    laufzeit.konfig = {**laufzeit.konfig, "raum_ziel": raum_ziel}
-    werte = {"1/1": 23.0, "1/2": 45.0, "0/2": 44.0, "2/9": 1, "2/10": float(restzeit)}
-    for adresse, wert in {**werte, "3/58": behaglichkeit}.items():
-        coordinator.data["oids"][f"{ha.PREFIX}/{adresse}/0"] = str(wert)
-    hass.states.async_set("sensor.wohnzimmer", "21.8")
-    await laufzeit.auswerten()
-    live = laufzeit._stundenfelder()
-
-    beginn = laufzeit.lage.jetzt.replace(minute=0, second=0, microsecond=0)
-    reihe = {name: [(beginn, wert)] for name, wert in werte.items()}
-    reihen = nachrechnen.Reihen(
-        at=[],
-        soll=reihe["1/1"],
-        vl=reihe["1/2"],
-        ba=reihe["2/9"],
-        restzeit=reihe["2/10"],
-        raeume=[([(beginn, 21.8)], raum_ziel)],
-        raum_art="mittel",
-        vi=reihe["0/2"],
-        behaglichkeit=[(beginn, float(behaglichkeit))],
-        eigene_ziele=eingaben.eigene_ziele(laufzeit.konfig),
-    )
-    tag = nachrechnen.stunden_je_tag(reihen, [beginn.date()], beginn.tzinfo)
-    nachgerechnet = tag[beginn.date().isoformat()][str(beginn.hour)]
-
-    assert {k: v for k, v in live.items() if k != "beobachtet"} == nachgerechnet
-
-
 async def test_system_geraet_traegt_den_namen_der_anlage(hass, anlage):
     hass.config.language = "de"
     from homeassistant.helpers import device_registry as dr
@@ -254,15 +186,3 @@ async def test_system_geraet_traegt_den_namen_der_anlage(hass, anlage):
     assert status.unique_id == system.system_unique_id(entry.entry_id, "status")
 
 
-def test_betriebsarten_gelten_in_jeder_sprache():
-    from custom_components.heatnexus.automatik.optimierung import betriebsart_zahlen
-    from custom_components.heatnexus.device_db import get_enum
-
-    zahlen = betriebsart_zahlen({"enum": "2/9"})
-    deutsch = get_enum("2/9", "de") or {}
-    assert deutsch
-    for sprache in ("de", "en", "nl"):
-        for text in (get_enum("2/9", sprache) or {}).values():
-            assert text in zahlen
-    angezeigt = betriebsart_zahlen({"enum": "2/9", "enum_texte": {"7": "Anzeige"}})
-    assert angezeigt["Anzeige"] == 7

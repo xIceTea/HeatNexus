@@ -154,7 +154,6 @@ def _eintrag(
             "modus_seit": (s.isoformat() if (s := kennzahlen.modus_seit(laufzeit)) else None),
             "vorrang": _vorrang(laufzeit, lage),
             "hausmodell": tagesansicht.hausmodell_stand(laufzeit),
-            **tagesansicht.hinweise(laufzeit, jetzt.date()),
         },
         tag=tagesansicht.heute(laufzeit, jetzt),
         vorschau=tagesansicht.vorschau(laufzeit, jetzt),
@@ -354,8 +353,6 @@ EINSTELLUNGEN = {
     vol.Optional("personen"): _liste(LISTEN_MAX["personen"]),
     vol.Optional("fenster"): _liste(LISTEN_MAX["fenster"]),
     vol.Optional("fenster_erkennung"): bool,
-    vol.Optional("hinweise"): bool,
-    vol.Optional("hinweise_melden"): bool,
     vol.Optional("befund_melden"): bool,
     vol.Optional("vorrang"): _liste(LISTEN_MAX["vorrang"]),
 }

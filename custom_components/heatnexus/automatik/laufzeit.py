@@ -41,7 +41,6 @@ from . import (
     stundenmodus,
     tagesansicht,
 )
-from .optimierung import VORLAUF_IST, OptimierungMixin
 from .quellen import QuellenMixin, ortszeit
 from .steller import Stand, Steller, braucht_bestaetigung, nur_ww_wert
 from .vorausschau import LERNZEIT, VorausschauMixin
@@ -67,8 +66,11 @@ MODUS_ARTEN = ("absenkung", "nur_ww", "heizpause")
 RAUMANSTIEG_K = 0.1  # Anstieg der Raumtemperatur, ab dem ein Fenster als wieder geschlossen gilt
 # Diese Adressen braucht die Automatik, auch wenn keine Entität sie abonniert.
 # Heizgrenzen der Steuerung (`3/21`, `3/2`) gehören dazu: an ihnen richtet sich die Regel aus.
-# Der Vorlauf-Ist dient nur dem Hausmodell; die Regel wartet nicht darauf.
-ABRUF = ("/2/9/0", "/0/0/0", "/1/2/0", "/3/21/0", "/3/2/0", VORLAUF_IST)
+# Vorlauf-Ist (Hausmodell) und Behaglichkeit (Vorausschau) sind Zugaben; die Regel wartet nicht darauf.
+VORLAUF_IST = "/0/2/0"
+BEHAGLICHKEIT = "/3/58/0"
+ABRUF = ("/2/9/0", "/0/0/0", "/1/2/0", "/3/21/0", "/3/2/0", VORLAUF_IST, BEHAGLICHKEIT)
+ZUGABEN = {VORLAUF_IST, BEHAGLICHKEIT}
 HEIZGRENZEN = {
     "heizbetrieb": ("/3/21/0", "Heizbetrieb"),
     "absenkbetrieb": ("/3/2/0", "Absenkbetrieb"),
@@ -142,7 +144,7 @@ def _verlauf_laden(roh: Any) -> dict[str, Any]:
     return {"datum": str(verlauf.get("datum") or ""), "stunden": dict(verlauf.get("stunden") or {})}
 
 
-class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
+class Laufzeit(QuellenMixin, VorausschauMixin):
     """Die Automatik eines Heizkreises."""
 
     def __init__(
@@ -193,7 +195,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self.temperatur = korrektur.Temperaturkorrektur(z.get("temperatur"))
         self.pv = korrektur.Pvkorrektur(z.get("pv"))
         self.verlauf: dict[str, Any] = _verlauf_laden(z.get("verlauf"))
-        self._optimierung_laden(z)
         self._fluechtiges_vorbereiten()
         self._ablauf_vorbereiten()
         self._laeufe_laden(z)
@@ -291,7 +292,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             "verworfen": self.verworfen,
             "hausmodell": hausmodell.als_dict(self.hausmodell) if self.hausmodell else None,
             "hausmodell_tag": self._fehler_tag,
-            **self.optimierung_als_dict(),
         }
 
     # --- Lebenszyklus --------------------------------------------------------
@@ -340,7 +340,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._nebenlaeufe_starten(self._gestartet.date())
 
     def _nebenlaeufe_starten(self, heute: date) -> None:
-        """Nachtragen, Hausmodell und Optimierung; was heute schon lief oder noch läuft, bleibt."""
+        """Nachtragen und Hausmodell; was heute schon lief oder noch läuft, bleibt."""
         if self._nachgetragen_am != heute:
             self._nachgetragen_am = heute
             self._nachladen = self.hass.async_create_background_task(
@@ -352,7 +352,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             self._abmelden.append(
                 async_track_time_change(self.hass, self._hausmodell_takt, **LERNZEIT)
             )
-        self._optimierung_starten()
 
     def _lernen_anstossen(self) -> None:
         self._gelernt_am = dt_util.now().date()
@@ -429,7 +428,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._nachgetragen_am = None
         self._lernen_beenden()
         self._gelernt_am = None
-        self._optimierung_beenden()
         ir.async_delete_issue(self.hass, DOMAIN, self.prognose_kennung)
         if self._angemeldet:
             client = self.coordinator.client
@@ -440,7 +438,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
     async def neu_starten(self, konfig: dict[str, Any], entscheidungszeit: bool = False) -> None:
         """Mit geänderten Einstellungen weiterlaufen; Zustand, Nachtragen und Lernen bleiben."""
         self.aussetzen()
-        self._optimierung_beenden()
         ir.async_delete_issue(self.hass, DOMAIN, self.prognose_kennung)
         await self.abwarten()
         self.konfig = konfig
@@ -522,7 +519,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._ablauf_merken(jetzt)
         lage = self._lage(jetzt, entscheidungszeit)
         self.lage = lage
-        self._stunde_ergaenzen(jetzt)
         if not self.aktiv:
             self.empfehlung = None
             self._setzen(regel.Zustand.AUS, "Automatik ausgeschaltet.")
@@ -996,6 +992,15 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
     def _wert(self, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, self.prefix)
 
+    def _behaglichkeit(self) -> float:
+        """Die Behaglichkeit `3/58` jetzt; ungelesen 0."""
+        return self._wert(BEHAGLICHKEIT) or 0.0
+
+    def _tag_beginnen(self, heute: str) -> None:
+        """Den Tagesverlauf auf `heute` stellen; der Vortag entfällt."""
+        if self.verlauf["datum"] != heute:
+            self.verlauf = {"datum": heute, "stunden": {}}
+
     def wert(self, adresse: str) -> float | None:
         """Ein Wert des Heizkreises, Adresse relativ zum Präfix."""
         return self._wert(adresse)
@@ -1096,7 +1101,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         """Ob Werte aus `ABRUF` seit dem Start noch nie gelesen wurden; gilt höchstens `STEUERUNG_WARTEN`."""
         oids = (self.coordinator.data or {}).get("oids") or {}
         fehlt = any(
-            f"{self.prefix}{adresse}" not in oids for adresse in ABRUF if adresse != VORLAUF_IST
+            f"{self.prefix}{adresse}" not in oids for adresse in ABRUF if adresse not in ZUGABEN
         )
         return fehlt and jetzt - self._gestartet < STEUERUNG_WARTEN
 
@@ -1166,12 +1171,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         if "at" not in stunde:
             gedaempft = round(self.stufen[1], 2) if self.stufen else None
             stunde.update(at=at, raum=self._raum(), gedaempft=gedaempft)
-
-    def _stunde_ergaenzen(self, jetzt: datetime) -> None:
-        """Die Felder der Lage in die Stunde schreiben; der erste Lauf der Stunde setzt sie."""
-        stunde = self.verlauf["stunden"].setdefault(str(jetzt.hour), {})
-        for name, wert in self._stundenfelder().items():
-            stunde.setdefault(name, wert)
 
     def _raum_verfolgen(self) -> None:
         if (raum := self._raum()) is None:

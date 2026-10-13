@@ -569,7 +569,6 @@ class Verwaltung:
             laufzeit.stoppen()
             await laufzeit.zuruecknehmen()
             laufzeit.meldung_entfernen()
-            laufzeit.optimierung_entfernen()
         entry_id = ((self._daten["heizkreise"].pop(device_id, None) or {}).get("konfig") or {}).get(
             "entry_id"
         )

@@ -152,22 +152,8 @@ export const AUTOMATIK = `
     display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--hn-gedaempft); margin-bottom: 8px;
   }
   .automatik-wert .titel .fragezeichen { width: 18px; height: 18px; font-size: 11px; }
-  /* Die Optimierung steht in einem Rahmen über zwei Spalten: je Art Fortschritt links, Ergebnis rechts. */
+  /* Breite Kacheln wie die Auswertung stehen über zwei Spalten. */
   .automatik-wert.breit { grid-column: span 2; }
-  .automatik-wert .optimierung-arten { margin-top: 12px; display: flex; flex-direction: column; }
-  .automatik-wert .optimierung-art {
-    display: grid; grid-template-columns: minmax(150px, 2fr) minmax(0, 5fr); gap: 16px; align-items: start;
-    padding: 12px 0; border-top: 1px solid var(--hn-linie);
-  }
-  .automatik-wert .optimierung-art:first-child { border-top: none; padding-top: 4px; }
-  .automatik-wert .art-kopf .name { font-size: 13px; font-weight: 600; }
-  .automatik-wert .art-kopf .stand { font-size: 11px; color: var(--hn-gedaempft); margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .automatik-wert .art-kopf .balken { height: 4px; border-radius: 2px; background: var(--hn-flaeche); margin-top: 8px; overflow: hidden; }
-  .automatik-wert .art-kopf .balken i { display: block; height: 100%; border-radius: 2px; background: var(--hn-akzent); }
-  .automatik-wert .art-kopf .balken.fertig i { background: var(--hn-gut); }
-  .automatik-wert .optimierung-art .vorschlaege { margin-top: 0; gap: 8px; }
-  .automatik-wert .optimierung-art .vorschlag { border-top: none; padding: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
-  .automatik-wert .optimierung-art .vorschlag + .vorschlag { padding-top: 8px; border-top: 1px dashed var(--hn-linie); }
   .automatik-wert .werte { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
   .automatik-wert .zahl { font-size: 30px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .automatik-wert.sonne .zahl { color: var(--hn-sonne); }
@@ -510,7 +496,6 @@ export const AUTOMATIK = `
     .automatik-stunde { scroll-snap-align: start; }
     .automatik-werte { grid-template-columns: minmax(0, 1fr); }
     .automatik-wert.breit { grid-column: auto; }
-    .automatik-wert .optimierung-art { grid-template-columns: minmax(0, 1fr); gap: 8px; }
     .automatik-feld.breit select { min-width: 0; max-width: 55vw; }
     .automatik-gruppe + .automatik-gruppe, .automatik-schalter + .automatik-gruppe { padding-left: 0; border-left: none; }
     /* Das Segment nimmt die ganze Zeile unter dem Titel ein; lange Tasten brechen um, statt überzustehen. */

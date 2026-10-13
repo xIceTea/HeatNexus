@@ -25,6 +25,8 @@ wenn dort Vorabversionen zugelassen sind.
 ### Geändert
 
 - Die Automatik zeigt eine Kachel Auswertung statt der Kacheln Haus und Optimierung.
+- Die Optimierungshinweise und ihre Meldung in der Seitenleiste entfallen.
+- Die Dashboard-Ansicht Auswertung heißt jetzt Statistik.
 - Automationen mit den Schaltern Kaminkehrerbetrieb, Lagerraumbefüllung oder Automatik müssen angepasst werden.
 - Kaminkehrer und Lagerraumbefüllung haben je eine Taste zum Starten und Beenden.
 - Die Auswahl „Automatik-Modus“ enthält „Aus“; der Schalter „Automatik“ entfällt.
