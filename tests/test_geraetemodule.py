@@ -97,6 +97,20 @@ def test_uebersteuerte_namen_gehoeren_zu_einer_baureihe(geraete):
         assert all("/" in adresse for adresse in namen)
 
 
+def test_jeder_gepflegte_name_hat_eine_eigene_fassung(geraete):
+    """Ohne Fassung fiele eine fremde Sprache auf den Herstellernamen zurück, der doppelt ist."""
+    import json
+    from pathlib import Path
+
+    ordner = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "sprachen"
+    for sprache in ("en", "nl"):
+        buch = json.loads((ordner / f"{sprache}.json").read_text(encoding="utf-8"))
+        fehlend = sorted(
+            {name for namen in geraete.NAMEN.values() for name in namen.values()} - set(buch)
+        )
+        assert not fehlend, (sprache, fehlend)
+
+
 def test_kein_modul_fuehrt_ein_unbekanntes_feld(geraete):
     """Ein Tippfehler im Feldnamen bliebe sonst ohne Wirkung und ohne Meldung."""
     erlaubt = set(geraete.PFLICHTFELDER) | set(geraete.KANNFELDER)

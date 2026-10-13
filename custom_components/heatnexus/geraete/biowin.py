@@ -42,6 +42,9 @@ NAMEN: dict[str, str] = {
     "14/80": "Heizflächenreinigung Dauer",
     # In der Tabelle heißt er wie der Heizkreismischer.
     "58/115": "Mischer Wärmeerzeuger",
+    # „Gerätetyp" heißt auch 12/38; 39/61 meldet die Leistung in kW.
+    "39/61": "Nennleistung",
+    "43/103": "Wärmemengenzähler Auswahl",
 }
 
 NUR_BUS: tuple[str, ...] = ("Brennkammertemperatur", "Gebläsedrehzahl", "Pelletsvorrat")

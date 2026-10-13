@@ -195,6 +195,24 @@ async def test_keine_beschreibung_fuer_fehlende_datenpunkte(anlage, umfang):
     assert not fehlend, fehlend
 
 
+# Adressen, deren Herstellername an derselben Funktion doppelt vorkommt und
+# die deshalb einen eigenen Namen tragen.
+EIGENE_NAMEN = ("3/50", "4/14", "5/64", "5/65", "58/48", "58/49", "63/2", "58/52", "59/18")
+EIGENE_NAMEN_KESSEL = ("12/38", "39/61", "43/103")
+
+
+@pytest.mark.parametrize(("anlage", "umfang"), FAELLE)
+async def test_doppelte_herstellernamen_tragen_keine_adresse(anlage, umfang):
+    erg = await _lauf(anlage, umfang)
+    mit_adresse = sorted(
+        d["name"]
+        for d in _mit_oid(erg["devices"])
+        if re.search(r"\((\d+/\d+)\)$", d.get("name") or "")
+        and re.search(r"\((\d+/\d+)\)$", d["name"]).group(1) in EIGENE_NAMEN + EIGENE_NAMEN_KESSEL
+    )
+    assert not mit_adresse, mit_adresse
+
+
 @pytest.mark.parametrize(("anlage", "umfang"), FAELLE)
 async def test_der_abruf_fragt_nur_bekannte_adressen(anlage, umfang):
     erg = await _lauf(anlage, umfang)

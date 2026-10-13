@@ -19,7 +19,13 @@ KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
 # Der Kesselmischer heißt in der Tabelle wie der Heizkreismischer.
-NAMEN: dict[str, str] = {"0/7": "Kesseltemperatur Ist", "58/115": "Mischer Wärmeerzeuger"}
+NAMEN: dict[str, str] = {
+    "0/7": "Kesseltemperatur Ist",
+    "58/115": "Mischer Wärmeerzeuger",
+    # „Gerätetyp" heißt auch 12/38; 39/61 meldet die Leistung in kW.
+    "39/61": "Nennleistung",
+    "43/103": "Wärmemengenzähler Auswahl",
+}
 
 NUR_BUS: tuple[str, ...] = ()
 ENTITAETEN: list[dict] = []

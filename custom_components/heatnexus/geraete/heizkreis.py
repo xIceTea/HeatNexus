@@ -44,6 +44,18 @@ NAMEN: dict[str, str] = {
     "3/23": "Frostschutzgrenze Außentemperatur",
     "7/45": "Frostschutzgrenze Vorlauftemperatur",
     "5/58": "Frostschutzgrenze WW-Speicher",
+    # Heizkurve und Raumsollwerte: Allein stehend sagen „Vorlauf" oder
+    # „Heizbetrieb" nicht, dass es Einstellwerte sind.
+    "3/1": "Fußpunkt",
+    "3/11": "Außentemperatur Fußpunkt Vorlaufkennlinie",
+    "3/12": "Klimapunkt",
+    "3/13": "Vorlauf Auslegung",
+    "3/51": "Raumtemperatur Heizbetrieb",
+    "3/53": "Raumtemperatur Absenkbetrieb",
+    # Die Herstellertabelle vergibt diese Namen an derselben Funktion doppelt.
+    "4/14": "Betriebswahl Verbund",
+    "5/64": "WW-Zirkulationsprogramm Temperatursteuerung",
+    "5/65": "WW-Zirkulationsprogramm Zeitsteuerung",
 }
 
 NUR_BUS: tuple[str, ...] = ()

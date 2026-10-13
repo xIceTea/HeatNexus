@@ -16,7 +16,11 @@ EXTRA_OIDS: tuple[str, ...] = ()
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
-NAMEN: dict[str, str] = {}
+# Die Pumpen gibt es als Zustand und als Prozentwert; der Wert trägt den Zusatz.
+NAMEN: dict[str, str] = {
+    "58/52": "WW-Ladepumpe Drehzahl",
+    "59/18": "WW-Zirkulationspumpe Drehzahl",
+}
 
 NUR_BUS: tuple[str, ...] = ()
 ENTITAETEN: list[dict] = []

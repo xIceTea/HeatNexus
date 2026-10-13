@@ -24,6 +24,15 @@ NAMEN: dict[str, str] = {
     "58/80": "Programm 3 Vorlauftemperatur",
     "58/81": "Vorlauftemperatur Heizbetrieb",
     "58/82": "Vorlauftemperatur Absenkbetrieb",
+    "3/1": "Fußpunkt",
+    "3/12": "Klimapunkt",
+    "3/13": "Vorlauf Auslegung",
+    "3/51": "Raumtemperatur Heizbetrieb",
+    "3/53": "Raumtemperatur Absenkbetrieb",
+    # Pumpe und Mischer gibt es als Zustand und als Prozentwert; der Wert trägt den Zusatz.
+    "58/48": "Heizkreispumpe Drehzahl",
+    "58/49": "Mischer Stellwert",
+    "63/2": "Mischer vorhanden",
 }
 
 NUR_BUS: tuple[str, ...] = ()
