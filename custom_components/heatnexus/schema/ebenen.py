@@ -453,15 +453,10 @@ def _fuehler(modul: dict[str, Any], beschriftung: str) -> str | None:
 
 
 def speicher(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
-    """Ob der Puffer gerade beladen oder entleert wird.
+    """Ob der Puffer gerade lädt oder entlädt.
 
-    „lädt" heißt: Die Ladepumpe fördert **und** der Kessel ist wärmer als der obere
-    Pufferbereich. Die Pumpe allein genügt nicht – sie läuft auch, wenn der Kessel
-    gerade direkt in einen Heizkreis fährt und dem Puffer nichts zugeht.
-
-    „entlädt": Ein Verbraucher zieht, ohne dass geladen wird. Läuft beides, bleibt
-    es bei „lädt"; welche Richtung netto überwiegt, hängt vom Massenstrom ab, und
-    den misst die Anlage nicht.
+    „Lädt" braucht eine fördernde Ladepumpe und einen Kessel, der wärmer ist als der
+    obere Bereich. Läuft zugleich ein Verbraucher, bleibt es bei „lädt".
     """
     kessel_ist = _kesseltemperatur(module)
     ergebnis: Ebene = []
