@@ -35,12 +35,16 @@ class Kessel:
 
 @dataclass(frozen=True)
 class Kontext:
-    """Was zur Anlage gehört; ohne Kessel und mit fremder Wärme folgt ein Verweis."""
+    """Was zur Anlage gehört; ohne Kessel und mit fremder Wärme folgt ein Verweis.
+
+    `versorgte_heiztage` sind die Heiztage der Anlagen ohne eigenen Kessel, die dieser mitheizt.
+    """
 
     land: str | None
     heizkreise: list[Kreis] = field(default_factory=list)
     kessel: list[Kessel] = field(default_factory=list)
     waermequelle_extern: bool = False
+    versorgte_heiztage: dict[str, bool] = field(default_factory=dict)
 
 
 def _als_dict(befund: form.Befund, **vergleich: Any) -> dict[str, Any]:
@@ -90,15 +94,25 @@ def _heizkreis(archiv: Archiv, kreis: Kreis, heizgrenze: float | None) -> dict[s
     return {"art": "heizkreis", "kennung": kreis.kennung, "titel": kreis.name, "befunde": befunde}
 
 
-def _anlagentage(archiv: Archiv, kontext: Kontext) -> tuple[dict[str, float], dict[str, bool]]:
-    """Tagesmittel außen und ob an dem Tag ein Heizkreis der Anlage geheizt hat."""
-    at_je_tag: dict[str, float] = {}
+def heiztage(archiv: Archiv, kennungen: list[str]) -> dict[str, bool]:
+    """Je Tag, ob einer der Heizkreise geheizt hat."""
     heiz_je_tag: dict[str, bool] = {}
+    for kennung in kennungen:
+        for t in archiv.tage_heizkreis(kennung):
+            heiz_je_tag[t["datum"]] = heiz_je_tag.get(t["datum"], False) or haus.heiztag(t)
+    return heiz_je_tag
+
+
+def _anlagentage(archiv: Archiv, kontext: Kontext) -> tuple[dict[str, float], dict[str, bool]]:
+    """Tagesmittel außen und ob an dem Tag ein Heizkreis geheizt hat, auch ein mitversorgter."""
+    at_je_tag: dict[str, float] = {}
     for kreis in kontext.heizkreise:
         for t in archiv.tage_heizkreis(kreis.kennung):
             if t.get("at") is not None:
                 at_je_tag.setdefault(t["datum"], t["at"])
-            heiz_je_tag[t["datum"]] = heiz_je_tag.get(t["datum"], False) or haus.heiztag(t)
+    heiz_je_tag = heiztage(archiv, [k.kennung for k in kontext.heizkreise])
+    for datum, geheizt in kontext.versorgte_heiztage.items():
+        heiz_je_tag[datum] = heiz_je_tag.get(datum, False) or geheizt
     return at_je_tag, heiz_je_tag
 
 

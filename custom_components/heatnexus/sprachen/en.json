@@ -953,7 +953,6 @@
   "In Nächten mit 5 bis 15 °C außen zählt der Raum am Ende der Absenkung gegen das Absenkziel. Laut Windhager-Anleitung hilft bei zu hoher oder zu niedriger Raumtemperatur nachts in der Übergangszeit: Heizgrenze Absenkbetrieb verringern bzw. erhöhen.": "In nights with 5 to 15 °C outdoors, the room at the end of setback counts against the setback target. According to the Windhager manual, if the room temperature at night in the transition season is too high or too low: lower or raise the setback heating limit.",
   "Gezählt werden Heizstunden, in denen der Vorlauf mehr als 3 K unter seinem Soll bleibt. Mögliche Gründe: Puffer leer, Kessel nicht in Betrieb, Mischer am Anschlag, Wärme über eine Fernleitung.": "Heating hours in which the flow stays more than 3 K below its setpoint are counted. Possible reasons: buffer empty, boiler not running, mixer at its limit, heat via a district line.",
   "Die Zähler der Steuerung für Brennerstarts und Betriebsstunden. Verglichen wird nur mit dem Kessel selbst; für die Laufzeit je Start gibt es weder Norm noch Herstellerangabe.": "The controller's counters for burner starts and operating hours. Compared only with the boiler itself; there is neither a standard nor a manufacturer value for run time per start.",
-  "Erzeugte Wärme aus Kesselleistung und Nennleistung, ohne den Sockel an Tagen ohne Heizen. Die Gradtagzahl nach VDI 3807 rechnet das Wetter heraus; so lassen sich Jahre vergleichen. Der Wert gilt für die ganze Anlage.": "Heat produced from boiler output and rated output, without the base load on days without heating. Degree days per VDI 3807 remove the weather, so years can be compared. The value applies to the whole system.",
   "Heizgrenze der Gradtagzahl (VDI 3807)": "Degree-day heating limit (VDI 3807)",
   "Zur Automatik": "Go to automation",
   "Das Hausmodell entsteht, sobald für diesen Heizkreis die Automatik eingerichtet ist. Der Modus „Beobachten“ genügt; geschrieben wird dann nichts.": "The house model appears once the automation is set up for this heating circuit. The mode “Observe” is enough; nothing is written then.",
@@ -986,5 +985,6 @@
   "Alle Befunde": "All findings",
   "Gemessene Werte": "Measured values",
   "Keine Empfehlung": "No recommendation",
-  "Ändert nichts an der Anlage": "Changes nothing on the system"
+  "Ändert nichts an der Anlage": "Changes nothing on the system",
+  "Erzeugte Wärme aus Kesselleistung und Nennleistung, ohne den Sockel an Tagen ohne Heizen. Die Gradtagzahl nach VDI 3807 rechnet das Wetter heraus; so lassen sich Jahre vergleichen. Der Wert gilt für die ganze Anlage. Als Heiztag zählt auch ein Tag, an dem eine mitversorgte Anlage ohne eigenen Kessel geheizt hat.": "Heat produced from boiler output and rated output, without the base load on days without heating. Degree days per VDI 3807 remove the weather, so years can be compared. The value applies to the whole system. A day also counts as a heating day when a system without its own boiler that it supplies was heating."
 }

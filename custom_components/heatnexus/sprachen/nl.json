@@ -958,7 +958,6 @@
   "In Nächten mit 5 bis 15 °C außen zählt der Raum am Ende der Absenkung gegen das Absenkziel. Laut Windhager-Anleitung hilft bei zu hoher oder zu niedriger Raumtemperatur nachts in der Übergangszeit: Heizgrenze Absenkbetrieb verringern bzw. erhöhen.": "In nachten met 5 tot 15 °C buiten telt de ruimte aan het einde van de verlaging tegen het verlagingsdoel. Volgens de Windhager-handleiding bij te hoge of te lage ruimtetemperatuur 's nachts in het tussenseizoen: stookgrens verlaagd bedrijf verlagen of verhogen.",
   "Gezählt werden Heizstunden, in denen der Vorlauf mehr als 3 K unter seinem Soll bleibt. Mögliche Gründe: Puffer leer, Kessel nicht in Betrieb, Mischer am Anschlag, Wärme über eine Fernleitung.": "Geteld worden verwarmingsuren waarin de aanvoer meer dan 3 K onder zijn setpoint blijft. Mogelijke oorzaken: buffer leeg, ketel niet in bedrijf, menger tegen de aanslag, warmte via een transportleiding.",
   "Die Zähler der Steuerung für Brennerstarts und Betriebsstunden. Verglichen wird nur mit dem Kessel selbst; für die Laufzeit je Start gibt es weder Norm noch Herstellerangabe.": "De tellers van de regeling voor branderstarts en bedrijfsuren. Vergeleken wordt alleen met de ketel zelf; voor de looptijd per start bestaat noch een norm noch een fabrikantwaarde.",
-  "Erzeugte Wärme aus Kesselleistung und Nennleistung, ohne den Sockel an Tagen ohne Heizen. Die Gradtagzahl nach VDI 3807 rechnet das Wetter heraus; so lassen sich Jahre vergleichen. Der Wert gilt für die ganze Anlage.": "Opgewekte warmte uit ketelvermogen en nominaal vermogen, zonder de basislast op dagen zonder verwarmen. Graaddagen volgens VDI 3807 rekenen het weer weg; zo zijn jaren te vergelijken. De waarde geldt voor de hele installatie.",
   "Heizgrenze der Gradtagzahl (VDI 3807)": "Stookgrens van de graaddagen (VDI 3807)",
   "Zur Automatik": "Naar automatiek",
   "Das Hausmodell entsteht, sobald für diesen Heizkreis die Automatik eingerichtet ist. Der Modus „Beobachten“ genügt; geschrieben wird dann nichts.": "Het huismodel ontstaat zodra de automatiek voor dit circuit is ingericht. De modus „Observeren” volstaat; er wordt dan niets geschreven.",
@@ -991,5 +990,6 @@
   "Alle Befunde": "Alle bevindingen",
   "Gemessene Werte": "Gemeten waarden",
   "Keine Empfehlung": "Geen aanbeveling",
-  "Ändert nichts an der Anlage": "Verandert niets aan de installatie"
+  "Ändert nichts an der Anlage": "Verandert niets aan de installatie",
+  "Erzeugte Wärme aus Kesselleistung und Nennleistung, ohne den Sockel an Tagen ohne Heizen. Die Gradtagzahl nach VDI 3807 rechnet das Wetter heraus; so lassen sich Jahre vergleichen. Der Wert gilt für die ganze Anlage. Als Heiztag zählt auch ein Tag, an dem eine mitversorgte Anlage ohne eigenen Kessel geheizt hat.": "Opgewekte warmte uit ketelvermogen en nominaal vermogen, zonder de basislast op dagen zonder verwarmen. Graaddagen volgens VDI 3807 rekenen het weer weg; zo zijn jaren te vergelijken. De waarde geldt voor de hele installatie. Een dag telt ook als stookdag wanneer een meeverwarmde installatie zonder eigen ketel heeft gestookt."
 }

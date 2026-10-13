@@ -132,6 +132,8 @@ class Sammler:
         self.anlage_id = anlage_id
         self.archiv = Archiv()
         self.letzter: dict[str, Any] | None = None
+        # Die übrigen Sammler desselben Eintrags; die Verwaltung setzt sie.
+        self.nachbarn: Any = list
         self._store = speicher(
             hass, entry.entry_id, str(getattr(coordinator, "host", "") or anlage_id)
         )
@@ -295,11 +297,28 @@ class Sammler:
             zaehler=(starts, bh) if starts and bh else None,
         )
 
+    def heiztage(self) -> dict[str, bool]:
+        kennungen = [b["device_id"] for b in self.kreise()]
+        return auswertung.heiztage(self.archiv, kennungen)
+
+    def _versorgte_heiztage(self) -> dict[str, bool]:
+        """Heiztage der Anlagen ohne eigenen Kessel; ihre Wärme kommt aus diesem."""
+        versorgt: dict[str, bool] = {}
+        for nachbar in self.nachbarn():
+            if kessel_praefixe(nachbar.coordinator):
+                continue
+            for datum, geheizt in nachbar.heiztage().items():
+                versorgt[datum] = versorgt.get(datum, False) or geheizt
+        return versorgt
+
     def kontext(self) -> auswertung.Kontext:
         kessel = [self._kessel(p) for p in kessel_praefixe(self.coordinator)]
         kreise = [self._kreis(b) for b in self.kreise()]
         land = getattr(self.hass.config, "country", None)
-        return auswertung.Kontext(land, kreise, kessel, waermequelle_extern=not kessel)
+        versorgt = self._versorgte_heiztage() if kessel else {}
+        return auswertung.Kontext(
+            land, kreise, kessel, waermequelle_extern=not kessel, versorgte_heiztage=versorgt
+        )
 
     def stand(self, kontext: auswertung.Kontext | None = None) -> dict[str, Any]:
         ergebnis = auswertung.anlage(self.archiv, kontext or self.kontext())
@@ -349,6 +368,7 @@ class BefundVerwaltung:
         coordinators = ((getattr(entry, "runtime_data", None) or {}).get("coordinators")) or {}
         for coordinator in coordinators.values():
             sammler = Sammler(self.hass, entry, coordinator, self._anlage_id(entry, coordinator))
+            sammler.nachbarn = self._nachbarn(sammler)
             try:
                 await sammler.laden()
             except Exception:  # ein defekter Befund darf die Einrichtung nicht aufhalten
@@ -359,6 +379,12 @@ class BefundVerwaltung:
         async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))
         if entry.entry_id not in self._abmelden:
             self._abmelden[entry.entry_id] = async_track_time_interval(self.hass, self._takt, TAKT)
+
+    def _nachbarn(self, sammler: Sammler) -> Any:
+        eintrag = sammler.entry.entry_id
+        return lambda: [
+            s for s in self.sammler.values() if s.entry.entry_id == eintrag and s is not sammler
+        ]
 
     async def _takt(self, jetzt: datetime) -> None:
         for sammler in list(self.sammler.values()):

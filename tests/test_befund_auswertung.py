@@ -91,3 +91,19 @@ def test_waermespeicher_ohne_laufende_automatik_nennt_den_grund(m):
     speicher = haus["befunde"][0]
     assert speicher["status"] == "braucht_daten"
     assert speicher["grund"] == "automatik"
+
+
+def test_versorgte_heiztage_zaehlen_beim_kessel(m):
+    aus, arch = m
+    archiv = gefuellt(arch)
+    kreis = aus.Kreis("leer", "Heizhaus", [])
+    kessel = aus.Kessel("k", "PuroWIN", 40.0, (6585.0, 18201.0))
+    ohne = aus.anlage(archiv, aus.Kontext("DE", [kreis], [kessel]))
+    versorgt = aus.heiztage(archiv, ["hk"])
+    mit = aus.anlage(archiv, aus.Kontext("DE", [kreis], [kessel], versorgte_heiztage=versorgt))
+    lauf = {
+        name: next(b for b in e["abschnitte"][-1]["befunde"] if b["art"] == "laufzeit")
+        for name, e in (("ohne", ohne), ("mit", mit))
+    }
+    assert lauf["ohne"]["angaben"]["starts"] == 0
+    assert lauf["mit"]["angaben"]["starts"] > 0
