@@ -23,6 +23,7 @@ from . import eingaben, korrektur, regel
 VORHERSAGEARTEN = {"daily": 1, "hourly": 2, "twice_daily": 4}
 # So lange darf die Vorhersage fehlen, bevor eine Reparaturmeldung erscheint.
 PROGNOSE_MELDEN = timedelta(hours=3)
+SONNENZEITEN_MAX = 8  # Tage, die `sonne` je Heizkreis vorhält
 
 
 def vorhersagearten(zustand: State | None) -> set[str] | None:
@@ -67,13 +68,17 @@ def ortszeit(wert: Any) -> datetime | None:
 class QuellenMixin:
     """Prognose holen und merken, Sonnenquote, Vorrangquellen."""
 
-    def tagesmittel(self, tag: date) -> float | None:
+    _sonnenzeiten: dict[date, tuple[datetime | None, datetime | None]]
+
+    def tagesmittel(self, tag: date, heute: date | None = None) -> float | None:
         """Tagesmittel der Prognose, um den gelernten Versatz verschoben."""
         if (mittel := eingaben.tagesmittel(self._tage, tag)) is None:
             return None
         if not self.werte.anpassen:
             return mittel
-        versatz = self.temperatur.tagesversatz(self.werte.lernfenster, dt_util.now().date())
+        versatz = self.temperatur.tagesversatz(
+            self.werte.lernfenster, heute or dt_util.now().date()
+        )
         return mittel + (versatz or 0.0)
 
     def _prognose_des_tages_merken(self, stunden: list[dict[str, Any]]) -> None:
@@ -89,9 +94,11 @@ class QuellenMixin:
             stunde["wolken"] = eintrag.get("cloud_coverage")
             stunde["wind"] = eintrag.get("wind_speed")
 
-    def stundenprognose(self, tag: date) -> dict[int, dict[str, float | None]]:
+    def stundenprognose(
+        self, tag: date, heute: date | None = None
+    ) -> dict[int, dict[str, float | None]]:
         """Stundenprognose eines Tages: roh, korrigiert, Bewölkung, Wind."""
-        fenster, heute = self.werte.lernfenster, dt_util.now().date()
+        fenster, heute = self.werte.lernfenster, heute or dt_util.now().date()
         roh_je_stunde: dict[int, tuple[Any, Any, Any]] = {}
         if self.verlauf["datum"] == tag.isoformat():
             for stunde, werte in self.verlauf["stunden"].items():
@@ -124,12 +131,18 @@ class QuellenMixin:
 
     def sonne(self, tag: date) -> tuple[datetime | None, datetime | None]:
         """Sonnenauf- und -untergang des Tages in Ortszeit."""
+        if (bekannt := self._sonnenzeiten.get(tag)) is not None:
+            return bekannt
         aufgang = get_astral_event_date(self.hass, "sunrise", tag)
         untergang = get_astral_event_date(self.hass, "sunset", tag)
-        return (
+        zeiten = (
             dt_util.as_local(aufgang) if aufgang else None,
             dt_util.as_local(untergang) if untergang else None,
         )
+        if len(self._sonnenzeiten) >= SONNENZEITEN_MAX:
+            self._sonnenzeiten.clear()
+        self._sonnenzeiten[tag] = zeiten
+        return zeiten
 
     def _pv_tag_merken(self, jetzt: datetime) -> None:
         """Die PV-Prognose des Tages als Maßstab für spätere Tage ablegen."""
@@ -140,9 +153,11 @@ class QuellenMixin:
         grenze = (jetzt.date() - timedelta(days=korrektur.PV_TAGE)).isoformat()
         self.pv_tage = {tag: wert for tag, wert in self.pv_tage.items() if tag > grenze}
 
-    def sonnenquote(self, tag: date, pv_sensor: str | None) -> float | None:
+    def sonnenquote(
+        self, tag: date, pv_sensor: str | None, heute: date | None = None
+    ) -> float | None:
         """Sonnenquote eines Tages; Betrieb und Vorschau rechnen sie gleich."""
-        heute = dt_util.now().date()
+        heute = heute or dt_util.now().date()
         if self.konfig.get("pv_ist") and self.werte.anpassen:
             quote = korrektur.sonnenquote_korrigiert(
                 self.kwh(pv_sensor),

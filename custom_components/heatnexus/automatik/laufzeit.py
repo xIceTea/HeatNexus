@@ -204,6 +204,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self.lage: regel.Lage | None = None
         self.stunden: list[dict[str, Any]] = []
         self._tage: list[tuple[date, float | None, float | None]] = []
+        self._sonnenzeiten = {}
         self._prognose_zeit: datetime | None = None
         self._prognose_fehlt_seit: datetime | None = None
         self._verlauf: deque[tuple[float, float]] = deque(maxlen=VERLAUF_LAENGE)
@@ -328,6 +329,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         `im_hintergrund` lässt Prognose und ersten Lauf nach dem Start folgen; das Setup wartet nicht.
         """
         self._gestoppt = False
+        self._sonnenzeiten.clear()
         self._gestartet = dt_util.now()
         self._ausloeser_anmelden()
         if im_hintergrund:
@@ -1209,7 +1211,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         """Korrigierte Stundenprognose von heute und morgen, mit Zeitpunkt."""
         werte = []
         for tag in (jetzt.date(), jetzt.date() + timedelta(days=1)):
-            for stunde, prognose in self.stundenprognose(tag).items():
+            for stunde, prognose in self.stundenprognose(tag, jetzt.date()).items():
                 zeit = datetime.combine(tag, time(stunde), jetzt.tzinfo)
                 werte.append((zeit, prognose["korrigiert"]))
         return werte
@@ -1250,9 +1252,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
             aus=tuple(m.ist for m in messungen if m.aus),
             raum_art=self.konfig["raum_art"],
             ruhig=self._ruhig(jetzt),
-            sonnenquote=self.sonnenquote(jetzt.date(), self.konfig.get("pv")),
-            mittel_heute=self.tagesmittel(jetzt.date()),
-            mittel_morgen=self.tagesmittel(jetzt.date() + timedelta(days=1)),
+            sonnenquote=self.sonnenquote(jetzt.date(), self.konfig.get("pv"), jetzt.date()),
+            mittel_heute=self.tagesmittel(jetzt.date(), jetzt.date()),
+            mittel_morgen=self.tagesmittel(jetzt.date() + timedelta(days=1), jetzt.date()),
             minimum_bis_morgen=eingaben.minimum_bis_morgen(self._stundenwerte(jetzt), jetzt),
             sonnenuntergang=untergang,
             betriebswahl=_ganzzahl(self._wert("/3/50/0")),
