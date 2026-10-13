@@ -395,19 +395,23 @@ export const AnordnenMixin = (Basis) =>
    */
   _anordnungSichern(reiter, anordnung) {
     if (this._speicherAuftrag) clearTimeout(this._speicherAuftrag);
-    this._speicherAuftrag = setTimeout(async () => {
-      this._speicherAuftrag = null;
-      try {
-        await this._hass.callWS({
-          type: "heatnexus/anordnung/setzen",
-          reiter,
-          anordnung,
-        });
-      } catch (err) {
-        console.warn("HeatNexus: Anordnung konnte nicht gespeichert werden", err);
-        this._melden("Die Anordnung konnte nicht gespeichert werden.");
-      }
-    }, SPEICHERN_MS);
+    this._speicherNutzlast = { reiter, anordnung };
+    this._speicherAuftrag = setTimeout(() => this._anordnungSchreiben(), SPEICHERN_MS);
+  }
+
+  /** Schreibt den wartenden Speicherauftrag sofort; ohne Auftrag geschieht nichts. */
+  async _anordnungSchreiben() {
+    const nutzlast = this._speicherNutzlast;
+    if (this._speicherAuftrag) clearTimeout(this._speicherAuftrag);
+    this._speicherAuftrag = null;
+    this._speicherNutzlast = null;
+    if (!nutzlast || !this._hass) return;
+    try {
+      await this._hass.callWS({ type: "heatnexus/anordnung/setzen", ...nutzlast });
+    } catch (err) {
+      console.warn("HeatNexus: Anordnung konnte nicht gespeichert werden", err);
+      this._melden("Die Anordnung konnte nicht gespeichert werden.");
+    }
   }
 
   _anordnenUmschalten() {
@@ -525,6 +529,7 @@ export const AnordnenMixin = (Basis) =>
     if (this._speicherAuftrag) {
       clearTimeout(this._speicherAuftrag);
       this._speicherAuftrag = null;
+      this._speicherNutzlast = null;
     }
     if (reiter) {
       const rest = { ...this._anordnung };

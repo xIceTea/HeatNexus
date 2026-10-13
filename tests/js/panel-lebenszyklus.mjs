@@ -97,4 +97,18 @@ const befund = {};
   befund.durchlaeufeBeiGelesenerEntitaet = durchlaeufe;
 }
 
+// --- Abbau: Zeitgeber und offener Speicherauftrag --------------------------
+{
+  const { flaeche, gerufen } = bauen();
+  let nachgefasst = 0;
+  flaeche._zeitgeber(() => nachgefasst++, 5000);
+  flaeche._takt(() => nachgefasst++, 1000);
+  flaeche._anordnungSichern("uebersicht", { karten: ["a"] });
+  flaeche.disconnectedCallback();
+  zeit.zeitLaufenLassen();
+  await abwarten();
+  befund.zeitgeberNachAbbau = nachgefasst;
+  befund.gespeichertBeimAbbau = gerufen.filter((n) => n.type === "heatnexus/anordnung/setzen").length;
+}
+
 process.stdout.write(JSON.stringify(befund, null, 2));

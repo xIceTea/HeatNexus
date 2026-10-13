@@ -59,7 +59,7 @@ export const EinrichtungMixin = (Basis) =>
         hinweis.className = "automatik-gespeichert";
         hinweis.textContent = this._t("übernommen ✓");
         tasten.append(hinweis);
-        setTimeout(() => hinweis.remove(), GESPEICHERT_MS);
+        this._zeitgeber(() => hinweis.remove(), GESPEICHERT_MS);
       }
       tasten.append(zuruecksetzen, speichern);
       bereich.append(this._automatikEinstellungskopf(kreis, felder.abweichend), tasten);

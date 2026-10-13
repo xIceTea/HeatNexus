@@ -737,7 +737,7 @@ export const UebersichtMixin = (Basis) =>
     this._abbruchLauf[ausloeser] = marke;
 
     for (let versuch = 0; versuch < ABBRUCH_VERSUCHE; versuch++) {
-      await new Promise((weiter) => window.setTimeout(weiter, ABBRUCH_PAUSE_MS));
+      await new Promise((weiter) => this._zeitgeber(weiter, ABBRUCH_PAUSE_MS));
       if (this._abbruchLauf[ausloeser] !== marke || !this._hass) return;
       if (!this._ladungLautAnlage(eintrag, false)) return;
       try {
@@ -840,7 +840,7 @@ export const UebersichtMixin = (Basis) =>
     // zweiten Druck nicht noch einmal.
     void taste.offsetWidth;
     taste.classList.add("blinkt");
-    window.setTimeout(() => taste.classList.remove("blinkt"), 1200);
+    this._zeitgeber(() => taste.classList.remove("blinkt"), 1200);
     this._freigeben(anzeige, RUECKMELDUNG_MS);
   }
   };

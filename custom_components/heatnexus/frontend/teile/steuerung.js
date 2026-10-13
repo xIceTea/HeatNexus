@@ -430,13 +430,13 @@ export const SteuerungMixin = (Basis) =>
       );
     };
     const anstossen = () => {
-      if (warteschlange) window.clearTimeout(warteschlange);
-      warteschlange = window.setTimeout(senden, ZAHL_VERZOEGERUNG_MS);
+      if (warteschlange) this._zeitgeberLoesen(warteschlange);
+      warteschlange = this._zeitgeber(senden, ZAHL_VERZOEGERUNG_MS);
     };
     feld.addEventListener("input", anstossen);
     // Wer das Feld verlässt oder Enter drückt, will nicht warten.
     feld.addEventListener("change", () => {
-      if (warteschlange) window.clearTimeout(warteschlange);
+      if (warteschlange) this._zeitgeberLoesen(warteschlange);
       senden();
     });
 
@@ -493,7 +493,7 @@ export const SteuerungMixin = (Basis) =>
       bis: Date.now() + SOLLWERT_WARTEN_MS,
     };
     // Ohne neuen Zustand liefe keine Bindung; die Anzeige kehrte nie zurück.
-    window.setTimeout(() => this._aktualisieren(), SOLLWERT_WARTEN_MS + 100);
+    this._zeitgeber(() => this._aktualisieren(), SOLLWERT_WARTEN_MS + 100);
   }
 
   _sollwertText(entity, soll) {

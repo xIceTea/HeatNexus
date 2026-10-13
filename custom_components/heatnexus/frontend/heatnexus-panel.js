@@ -73,6 +73,7 @@ class HeatNexusPanel extends Grundlage {
     // Ob die Aufteilung schon selbst geholt wurde. Danach gilt sie und nicht
     // mehr der Abzug aus der Panel-Anmeldung.
     this._eigeneDaten = false;
+    this._zeitgeberListe = new Map();
     this._gelesen = new Set();
     this._bindungen = [];
     this._verlaufskarten = [];
@@ -117,6 +118,47 @@ class HeatNexusPanel extends Grundlage {
       this._gebaut = false;
     }
     this._zeichnen();
+  }
+
+  connectedCallback() {
+    if (!this._abgebaut) return;
+    // Nach dem Abbau sind Hörer und Zeitgeber weg; die Oberfläche entsteht neu.
+    this._abgebaut = false;
+    this._gebaut = false;
+    this._zeichnen();
+  }
+
+  disconnectedCallback() {
+    this._abgebaut = true;
+    this._anordnungSchreiben();
+    this._zeitgeberListe.forEach((auftrag) => auftrag.loesen());
+    this._zeitgeberListe.clear();
+    if (this._bildGeplant) cancelAnimationFrame(this._bildGeplant);
+    this._bildGeplant = 0;
+    if (this._aufbauAbbruch) this._aufbauAbbruch.abort();
+  }
+
+  /** Eine einmalige Verzögerung, die der Abbau der Oberfläche beendet. */
+  _zeitgeber(ruf, ms) {
+    const kennung = setTimeout(() => {
+      this._zeitgeberListe.delete(kennung);
+      ruf();
+    }, ms);
+    this._zeitgeberListe.set(kennung, { loesen: () => clearTimeout(kennung) });
+    return kennung;
+  }
+
+  /** Ein wiederkehrender Takt, den der Abbau der Oberfläche beendet. */
+  _takt(ruf, ms) {
+    const kennung = setInterval(ruf, ms);
+    this._zeitgeberListe.set(kennung, { loesen: () => clearInterval(kennung) });
+    return kennung;
+  }
+
+  _zeitgeberLoesen(kennung) {
+    const auftrag = this._zeitgeberListe.get(kennung);
+    if (auftrag) auftrag.loesen();
+    this._zeitgeberListe.delete(kennung);
   }
 
   set hass(hass) {

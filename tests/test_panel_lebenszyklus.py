@@ -43,3 +43,11 @@ def test_fremde_entitaeten_loesen_keine_aktualisierung_aus(befund):
 
 def test_gelesene_entitaeten_werden_je_bild_einmal_aktualisiert(befund):
     assert befund["durchlaeufeBeiGelesenerEntitaet"] == 1
+
+
+def test_der_abbau_beendet_zeitgeber(befund):
+    assert befund["zeitgeberNachAbbau"] == 0
+
+
+def test_der_abbau_schreibt_die_wartende_anordnung(befund):
+    assert befund["gespeichertBeimAbbau"] == 1

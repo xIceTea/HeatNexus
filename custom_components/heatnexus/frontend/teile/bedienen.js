@@ -62,7 +62,7 @@ export const BedienenMixin = (Basis) =>
     };
     NACHFASS_PLAN.forEach((sekunden) => {
       if (sekunden === 0) lesen();
-      else window.setTimeout(lesen, sekunden * 1000);
+      else this._zeitgeber(lesen, sekunden * 1000);
     });
   }
 
@@ -240,7 +240,7 @@ export const BedienenMixin = (Basis) =>
    * besitzt, füllt sie im gleich folgenden `_aktualisieren` wieder.
    */
   _freigeben(anzeige, verzoegerung) {
-    window.setTimeout(() => {
+    this._zeitgeber(() => {
       delete anzeige.dataset.belegt;
       anzeige.className = "rueckmeldung";
       anzeige.textContent = "";

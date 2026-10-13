@@ -239,9 +239,9 @@ export const AutomatikMixin = (Basis) =>
 
     _automatikUhrStellen() {
       if (this._automatikUhr) return;
-      this._automatikUhr = setInterval(() => {
+      this._automatikUhr = this._takt(() => {
         if (!this.isConnected || this._reiter !== "automatik") {
-          clearInterval(this._automatikUhr);
+          this._zeitgeberLoesen(this._automatikUhr);
           this._automatikUhr = null;
           return;
         }
