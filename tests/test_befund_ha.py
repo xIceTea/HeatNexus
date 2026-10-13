@@ -156,3 +156,12 @@ async def test_sensoren_je_heizkreis_und_kessel(hass, anlage):
     sensor.hass = hass
     assert sensor.native_value is None
     assert sensor.extra_state_attributes["status"] == "sammelt"
+
+
+async def test_befund_sensoren_gelten_nicht_als_verwaist(hass, anlage):
+    from custom_components.heatnexus import verwaiste
+
+    _, eintrag = anlage
+    bekannt = verwaiste.bekannte_kennungen(eintrag, eintrag.runtime_data["coordinators"])
+    assert bekannt[f"{HEIZKREIS}-befund-heizgrenze"] is True
+    assert bekannt["SN1-1-0-befund-energie"] is True

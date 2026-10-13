@@ -73,6 +73,37 @@ def kessel_praefixe(coordinator: Any) -> list[str]:
     return sorted({k[: -len(STARTS)] for k in oids if k.endswith(STARTS)})
 
 
+def kessel_geraet(coordinator: Any, prefix: str) -> str | None:
+    """Das Gerät eines Kessels; Sensor-Beschreibungen tragen nur ihre volle Adresse."""
+    oid = f"{prefix}{STARTS}"
+    geraete = (coordinator.data or {}).get("devices") or []
+    return next((d["device_id"] for d in geraete if d.get("oid") == oid), None)
+
+
+def geraete_der_anlage(coordinator: Any) -> list[tuple[str, str, tuple[str, ...]]]:
+    """Je Heizkreis und Kessel: Kennung im Befund, Gerät, Arten der Sensoren."""
+    liste = [
+        (b["device_id"], b["device_id"], ARTEN_KREIS)
+        for b in (coordinator.data or {}).get("devices") or []
+        if b.get("type") == "climate" and b.get("device_id")
+    ]
+    for p in kessel_praefixe(coordinator):
+        if (device_id := kessel_geraet(coordinator, p)) is not None:
+            liste.append((p, device_id, ARTEN_KESSEL))
+    return liste
+
+
+def kennungen(entry: ConfigEntry) -> dict[str, str]:
+    """Kennung -> Domäne aller Befund-Sensoren; ohne sie gälten sie beim Aufräumen als verwaist."""
+    coordinators = ((getattr(entry, "runtime_data", None) or {}).get("coordinators")) or {}
+    return {
+        unique_id(device_id, art): "sensor"
+        for coordinator in coordinators.values()
+        for _, device_id, arten in geraete_der_anlage(coordinator)
+        for art in arten
+    }
+
+
 def unique_id(device_id: str, art: str) -> str:
     """Kennung eines Befund-Sensors am Gerät des Heizkreises oder Kessels."""
     return f"{device_id}-befund-{art}"
@@ -128,19 +159,8 @@ class Sammler:
         """Die Klima-Beschreibungen der Heizkreise dieser Anlage."""
         return [b for c, b in Verwaltung.heizkreise(self.entry) if c is self.coordinator]
 
-    def kessel_geraet(self, prefix: str) -> str | None:
-        """Das Gerät eines Kessels; Sensor-Beschreibungen tragen nur ihre volle Adresse."""
-        geraete = (self.coordinator.data or {}).get("devices") or []
-        oid = f"{prefix}{STARTS}"
-        return next((d["device_id"] for d in geraete if d.get("oid") == oid), None)
-
     def geraete(self) -> list[tuple[str, str, tuple[str, ...]]]:
-        """Je Heizkreis und Kessel: Kennung im Befund, Gerät, Arten der Sensoren."""
-        liste = [(b["device_id"], b["device_id"], ARTEN_KREIS) for b in self.kreise()]
-        for p in kessel_praefixe(self.coordinator):
-            if (device_id := self.kessel_geraet(p)) is not None:
-                liste.append((p, device_id, ARTEN_KESSEL))
-        return liste
+        return geraete_der_anlage(self.coordinator)
 
     def _wert(self, prefix: str, adresse: str) -> float | None:
         return get_oid_value(self.coordinator, adresse, prefix)
@@ -192,7 +212,7 @@ class Sammler:
             felder = {n: _entitaet(register, b["device_id"], a) for n, a in HEIZKREIS.items()}
             reihen[("hk", b["device_id"])] = {n: e for n, e in felder.items() if e}
         for p in kessel_praefixe(self.coordinator):
-            if device_id := self.kessel_geraet(p):
+            if device_id := kessel_geraet(self.coordinator, p):
                 felder = {n: _entitaet(register, device_id, a) for n, a in KESSEL.items()}
                 reihen[("k", p)] = {n: e for n, e in felder.items() if e}
         return reihen

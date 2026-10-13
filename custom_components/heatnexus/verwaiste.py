@@ -32,6 +32,13 @@ def _automatik(hass: HomeAssistant | None, entry: ConfigEntry) -> dict[str, str]
     return verwaltung_holen(hass).kennungen(entry.entry_id)
 
 
+def _befund(entry: ConfigEntry) -> dict[str, str]:
+    # Die Befund-Sensoren stehen in keinem Abzug; sie folgen den Heizkreisen und Kesseln.
+    from .befund.laufzeit import kennungen
+
+    return kennungen(entry)
+
+
 @callback
 def bekannte_kennungen(
     entry: ConfigEntry, coordinators: dict, hass: HomeAssistant | None = None
@@ -47,7 +54,7 @@ def bekannte_kennungen(
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
     quellen = dict.fromkeys(waermequelle.kennungen(entry, coordinators), True)
-    return bekannt | quellen | dict.fromkeys(_automatik(hass, entry), True)
+    return bekannt | quellen | dict.fromkeys({**_automatik(hass, entry), **_befund(entry)}, True)
 
 
 @callback
@@ -83,7 +90,7 @@ def erwartete_domaenen(
         if beschreibung.get("id") and beschreibung.get("type") in TYP_DOMAENE
     }
     quellen = dict.fromkeys(waermequelle.kennungen(entry, coordinators), "binary_sensor")
-    return domaenen | quellen | _automatik(hass, entry)
+    return domaenen | quellen | _automatik(hass, entry) | _befund(entry)
 
 
 @callback
