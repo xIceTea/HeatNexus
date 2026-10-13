@@ -5,6 +5,7 @@ Die Lernstunden werden gegen die lineare Rechnung geprüft, die Aufzeichnung ist
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 import random
@@ -12,12 +13,23 @@ import time
 
 import pytest
 
+from . import test_automatik_ha as ha
+from . import test_automatik_optimierung as opt
 from .conftest import requires_ha
 from .test_automatik_rechnung import zufallsreihe
 
 pytestmark = requires_ha()
 
+# Die Anlage mit Automatik aus den übrigen Automatiktests.
+anlage = ha.anlage
+
 ANFANG = datetime(2026, 10, 1, tzinfo=UTC)
+
+
+def _jetzt() -> datetime:
+    from homeassistant.util import dt as dt_util
+
+    return dt_util.now()
 
 
 def _linear(reihen, art, raum_art, zeiten, boegen):
@@ -87,3 +99,38 @@ def test_lernstunden_aus_minutenwerten_blockieren_nicht():
 
     assert sum(len(s) for s in stunden.values()) == 14 * 24
     assert dauer < 1.0
+
+
+class _Executor:
+    """Wie der Executor der Aufzeichnung: Die Abfrage kehrt erst nach einem Wechsel zurück."""
+
+    async def async_add_executor_job(self, aufgabe):
+        await asyncio.sleep(0)
+        return aufgabe()
+
+
+async def test_hausmodell_und_nachrechnen_teilen_eine_abfrage(hass, anlage, freezer, monkeypatch):
+    from homeassistant.components import recorder
+    from homeassistant.components.recorder import history
+
+    verwaltung, coordinator = anlage
+    laufzeit = await opt._laufzeit(hass, verwaltung, freezer)
+    opt._aufzeichnung(hass, monkeypatch, opt._historie(hass, coordinator))
+    gelesen = history.get_significant_states
+    lerntage = []
+
+    def gezaehlt(_hass, anfang, *argumente, **benannt):
+        # Das Nachtragen von heute liest nur den laufenden Tag; gezählt werden die Lerntage.
+        if anfang < _jetzt() - timedelta(days=2):
+            lerntage.append(benannt.get("no_attributes"))
+        return gelesen(_hass, anfang, *argumente, **benannt)
+
+    monkeypatch.setattr(history, "get_significant_states", gezaehlt)
+    monkeypatch.setattr(recorder, "get_instance", lambda _hass: _Executor(), raising=False)
+
+    await laufzeit.neu_starten(laufzeit.konfig)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert sorted(lerntage) == [False, True]
+    assert len(laufzeit.archivierte_tage()) == opt.HEIZTAGE
+    assert laufzeit.archiv_nachgerechnet == opt.FASSUNG

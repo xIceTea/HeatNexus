@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import replace
 from datetime import date, datetime, timedelta
 import logging
@@ -115,6 +116,22 @@ def _lernzeiten(heute: date) -> list[datetime]:
     return [dt_util.as_local(anfang + timedelta(hours=i)) for i in range(stunden + 1)]
 
 
+class _Lesung(NamedTuple):
+    """Eine laufende Abfrage des Verlaufs und was sie liest."""
+
+    anfang: datetime
+    mit_attributen: frozenset[str]
+    alle: frozenset[str]
+    aufgabe: Any
+
+    def deckt(self, anfang: datetime, mit_attributen: list[str], einfach: list[str]) -> bool:
+        return (
+            anfang == self.anfang
+            and self.mit_attributen.issuperset(mit_attributen)
+            and self.alle.issuperset(einfach)
+        )
+
+
 class VorausschauMixin:
     """Teil der `Laufzeit`: Hausmodell lernen, laden, verwerfen."""
 
@@ -129,6 +146,7 @@ class VorausschauMixin:
         self._vorhersage_zuletzt: vorhersage.Vorhersage | None = None
         # Die Vorhersage, mit der die laufende Stufe des Modells begann; an ihr misst sich die Rückkehr.
         self._vorhersage_bezug: vorhersage.Vorhersage | None = None
+        self._lesung: _Lesung | None = None
 
     @property
     def vorhersage_zuletzt(self) -> vorhersage.Vorhersage | None:
@@ -180,14 +198,51 @@ class VorausschauMixin:
         return [(art, entitaet) for art, entitaet in quellen if entitaet]
 
     async def _verlauf_lesen(
-        self, mit_attributen: list[str], einfach: list[str], jetzt: datetime
+        self, mit_attributen: list[str], einfach: list[str], bis: datetime
     ) -> dict[str, list[Any]] | None:
-        """Der Verlauf der Lerntage; ohne Aufzeichnung oder bei Fehler nichts."""
+        """Der Verlauf der Lerntage bis vor `bis`; ohne Aufzeichnung oder bei Fehler nichts.
+
+        Eine laufende Abfrage, die alles Verlangte enthält, wird geteilt statt wiederholt.
+        """
         if "recorder" not in self.hass.config.components:
             return None
+        anfang = dt_util.start_of_local_day(bis.date() - timedelta(days=LERNTAGE))
+        lesung = self._lesung
+        if (
+            lesung is None
+            or lesung.aufgabe.done()
+            or not lesung.deckt(anfang, mit_attributen, einfach)
+        ):
+            lesung = self._lesung_starten(anfang, mit_attributen, einfach)
+        zustaende = await asyncio.shield(lesung.aufgabe)
+        if zustaende is None:
+            return None
+        return {k: [z for z in liste if z.last_updated < bis] for k, liste in zustaende.items()}
+
+    def _lesung_starten(self, anfang: datetime, mit: list[str], einfach: list[str]) -> _Lesung:
+        """Eine Abfrage bis jetzt, dazu was das Nachrechnen noch braucht; sie endet mit sich selbst."""
+        dazu_mit, dazu_einfach = self._verlauf_dazu()
+        alle_mit = list(dict.fromkeys([*mit, *dazu_mit]))
+        alle = [k for k in dict.fromkeys([*einfach, *dazu_einfach]) if k not in alle_mit]
+        aufgabe = self.hass.async_create_background_task(
+            self._verlauf_abfragen(anfang, alle_mit, alle), f"heatnexus_verlauf_{self.device_id}"
+        )
+        lesung = _Lesung(anfang, frozenset(alle_mit), frozenset([*alle_mit, *alle]), aufgabe)
+        self._lesung = lesung
+
+        def freigeben(_aufgabe: Any) -> None:
+            if self._lesung is lesung:
+                self._lesung = None
+
+        aufgabe.add_done_callback(freigeben)
+        return lesung
+
+    async def _verlauf_abfragen(
+        self, anfang: datetime, mit_attributen: list[str], einfach: list[str]
+    ) -> dict[str, list[Any]] | None:
         from homeassistant.components.recorder import get_instance, history
 
-        anfang = dt_util.start_of_local_day(jetzt.date() - timedelta(days=LERNTAGE))
+        jetzt = dt_util.now()
 
         def abfrage() -> dict[str, list[Any]]:
             zustaende: dict[str, list[Any]] = {}
@@ -205,10 +260,11 @@ class VorausschauMixin:
             return zustaende
 
         try:
-            return await get_instance(self.hass).async_add_executor_job(abfrage)
+            zustaende = await get_instance(self.hass).async_add_executor_job(abfrage)
         except Exception as fehler:  # die Aufzeichnung ist eine Zugabe, kein Muss
             _LOGGER.debug("Automatik %s: Verlauf nicht lesbar: %s", self.name, fehler)
             return None
+        return zustaende
 
     def _sonnenboegen(self, tage: set[date]) -> dict[date, tuple[float, float]]:
         boegen = {}

@@ -312,6 +312,15 @@ class OptimierungMixin:
         self.nachgetragen()
         return len(neu)
 
+    def _verlauf_dazu(self) -> tuple[list[str], list[str]]:
+        """Was ein anstehendes Nachrechnen liest; die Abfrage des Hausmodells nimmt es mit."""
+        if self.archiv_nachgerechnet >= NACHRECHNEN_FASSUNG:
+            return [], []
+        aufwerten = self.archiv_nachgerechnet > 0
+        if not _offene_tage(self.tage_archiv, dt_util.now().date(), aufwerten):
+            return [], []
+        return self._nachrechenquellen().lesen()
+
     def _verlaufsentitaet(self, adresse: str) -> str | None:
         """Die Entität einer Adresse: schreibbar eine Zahl, schreibgeschützt ein Sensor."""
         return self._entitaet(adresse, "number") or self._entitaet(adresse)
