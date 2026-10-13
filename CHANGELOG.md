@@ -50,9 +50,13 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Kennwerte-Karte zeigt bei schmaler Breite zwei statt drei Spalten.
 - Das Panel aktualisiert sich seltener und lädt schneller.
 - Die Menütaste erscheint nur bei schmalem Fenster oder ausgeblendeter Seitenleiste.
+- Die Meldungsliste führt keine Einheit mehr und zählt nur wiederkehrende Meldungen.
+- Uhrzeiten folgen Zeitzone und Format von Home Assistant.
+- Gleichnamige Datenpunkte tragen eindeutige Namen, etwa bei Heizkurve und Gerätetyp.
 
 ### Behoben
 
+- Abfragen, die die Steuerung abbricht, werden nach kurzer Pause wiederholt ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
 - Eine neue Anlage übernimmt die Sprache von Home Assistant statt Deutsch.
 - Neu konfigurieren lehnt eine fremde Steuerung und eine schon eingetragene Adresse ab.
 - Neu konfigurieren und Neu anmelden laden den Eintrag nur einmal neu.
@@ -66,7 +70,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein gescheitertes Einlesen stellt den bekannten Stand wieder her und wird wiederholt.
 - „Werte jetzt abfragen“ behält den frischen Wert auch nach dem nächsten Abruf.
 - Zeitprogramme verschwinden nicht mehr nach einem Verbindungsfehler.
-- Das Schaubild im Dashboard erscheint, sobald die HeatNexus-Oberfläche geöffnet wurde.
+- Das Schaubild im Dashboard erscheint, sobald die HeatNexus-Oberfläche geöffnet wurde ([#21](https://github.com/xIceTea/HeatNexus/discussions/21)).
 - Die Vorlage für Abwesenheit stellt nur die Betriebsart zurück und behält Handänderungen.
 - Die Vorlage für den Legionellenschutz lässt sich laden und räumt nach Fehlern auf.
 - Die Vorlage für den Legionellenschutz findet den WW-Betrieb in jeder Sprache.
@@ -77,6 +81,14 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Automatik schreibt Einstellungen seltener in den Speicher.
 - Der Hinweis zum vorzeitigen Ende einer Absenkung nennt nicht mehr die Heizpause.
 - Die Vorhersage der Automatik berücksichtigt die Behaglichkeit.
+- Die Störung FE242 erscheint mit Text und Abhilfe.
+- Der Alarmcode 65535 erscheint als unbekannt statt als Störung.
+- Zeitprogramme nehmen Wochentage in jeder angezeigten Sprache an.
+- Das Thermostat zeigt nach einem Schreibfehler wieder den vorherigen Wert.
+- Zahlenfelder halten die Grenze 0 und feine Schrittweiten der Anlage.
+- Restzeiten und Raten erscheinen nicht mehr als Zähler.
+- Die Laufzeit heute beginnt um Mitternacht neu.
+- Auswahlen mit doppelten Texten bleiben vollständig wählbar.
 - Das Nachrechnen vergangener Tage bricht bei fehlenden Messreihen nicht mehr ab.
 - Das Nachrechnen erkennt die Betriebsart auch nach einem Sprachwechsel.
 - Das Panel behält offene Fenster und Eingaben, wenn sich im Hintergrund Werte ändern.
@@ -88,6 +100,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Namen der Anlagenteile erscheinen ohne doppelte Leerzeichen.
 - Die Störung 242 (Relais Saugturbine) erscheint mit Text und Hinweis.
 - Die Einstellungen der Automatik zeigen die Frostgrenze und das Warten auf Raumwerte.
+- DuoWIN: Die Werte des LogWIN der ersten Generation am InfoWIN Plus erscheinen ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
 
 ## [1.14.0-beta.1] - 2026-10-12
 
