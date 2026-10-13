@@ -2,6 +2,9 @@
 
 export const BEFUND = `
   /* --- Befund: gemessene Kennwerte, gleiche Karten wie die anderen Reiter --- */
+  /* Der Stand „hinweis“ heißt wie die allgemeine, abgeblendete Hinweisklasse; hier gilt er voll. */
+  .befund-zeile.hinweis, .befund-marke.hinweis, .befund-gruppe.hinweis, .befund-kasten.hinweis,
+  .befund-ring .bogen.hinweis { opacity: 1; }
   .befund-lage { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px; margin: 8px 0 4px; }
   .befund-seit { margin-left: auto; color: var(--hn-gedaempft); font-size: 14px; font-weight: normal; }
   .befund-ring { width: 150px; height: 150px; flex: none; }
