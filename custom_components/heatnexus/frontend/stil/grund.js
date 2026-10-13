@@ -12,11 +12,13 @@ export const GRUND = `
     --hn-grund: var(--primary-background-color, #0e1419);
     --hn-karte: var(--card-background-color, #151d26);
     --hn-text: var(--primary-text-color, #e6edf3);
-    --hn-gedaempft: color-mix(in srgb, var(--hn-text) 65%, transparent);
-    --hn-akzent: #6fb2f5;
-    --hn-akzent-text: #0e1419;
-    --hn-linie: rgba(255, 255, 255, 0.1);
-    --hn-flaeche: rgba(255, 255, 255, 0.05);
+    --hn-gedaempft: color-mix(in srgb, var(--hn-text) 72%, transparent);
+    /* Der Akzent mischt etwas Textfarbe zu: Im hellen Erscheinungsbild wird
+       er dunkler, im dunklen heller; beide erreichen so 4,5:1 zum Grund. */
+    --hn-akzent: color-mix(in srgb, var(--primary-color, #6fb2f5) 60%, var(--hn-text));
+    --hn-akzent-text: var(--hn-grund);
+    --hn-linie: color-mix(in srgb, var(--hn-text) 14%, transparent);
+    --hn-flaeche: color-mix(in srgb, var(--hn-text) 7%, transparent);
     --hn-sonne: #f5c451;
     --hn-ww: #5aa9e6;
     --hn-gut: #7bd88f;
