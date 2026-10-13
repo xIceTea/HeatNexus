@@ -361,7 +361,7 @@ async def test_die_entitaeten_einer_automatik_sind_nicht_verwaist(modul, hass):
         "zustand": {},
     }
     register = er.async_get(hass)
-    for domaene, art in (("switch", "schalter"), ("select", "modus"), ("sensor", "zustand")):
+    for domaene, art in (("select", "modus"), ("sensor", "zustand")):
         register.async_get_or_create(
             domaene, DOMAIN, f"SN1-2-0-automatik-{art}", config_entry=eintrag
         )
@@ -416,3 +416,19 @@ def test_bewusst_entfallene_zeilen_werden_nur_in_ihrer_domaene_geloescht(
     from custom_components.heatnexus import stilllegung
 
     assert stilllegung.endgueltig_weg(_registereintrag(domaene, adresse), {}) is erwartet
+
+
+@pytest.mark.parametrize(
+    ("domaene", "kennung", "erwartet"),
+    [
+        ("switch", "SN1-2-0-automatik-schalter", True),
+        ("select", "SN1-2-0-automatik-modus", False),
+        ("sensor", "SN1-2-0-automatik-schalter", False),
+    ],
+)
+def test_ein_ersetzter_eintrag_wird_geloescht(domaene, kennung, erwartet):
+    """Der Schalter der Automatik ging in der Auswahl auf; seine Waise ist kein Fall für den Hinweis."""
+    from custom_components.heatnexus import stilllegung
+
+    eintrag = SimpleNamespace(domain=domaene, unique_id=kennung)
+    assert stilllegung.endgueltig_weg(eintrag, {}) is erwartet

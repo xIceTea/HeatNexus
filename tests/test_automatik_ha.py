@@ -1569,11 +1569,44 @@ async def test_automatik_bekommt_ein_eigenes_geraet(hass, anlage):
 
     verwaltung, _ = anlage
     await _eingerichtet(hass, verwaltung)
-    for art in ("schalter", "zustand", "gedaempft"):
+    for art in ("modus", "zustand", "gedaempft"):
         geraet = KLASSEN[art](verwaltung, HEIZKREIS).device_info
         assert geraet["identifiers"] == {(DOMAIN, f"{HEIZKREIS}-automatik")}
         assert geraet["name"] == f"{ANLAGE} · Automatik Heizkreis"
         assert geraet["model"] == "Automatik"
+
+
+async def test_auswahl_fuehrt_aus_und_die_modi(hass, anlage):
+    """„Aus" setzt `aktiv` zurück; der Modus bleibt im Store und kehrt beim Einschalten zurück."""
+    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    await verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"})
+    auswahl = KLASSEN["modus"](verwaltung, HEIZKREIS)
+    assert auswahl.options == ["aus", "beobachten", "empfehlen", "schalten"]
+    assert "schalter" not in KLASSEN
+
+    await auswahl.async_select_option("aus")
+    konfig = verwaltung.laufzeiten[HEIZKREIS].konfig
+    assert (konfig["aktiv"], konfig["modus"]) == (False, "empfehlen")
+    assert KLASSEN["modus"](verwaltung, HEIZKREIS).current_option == "aus"
+
+    await auswahl.async_select_option("schalten")
+    neu = KLASSEN["modus"](verwaltung, HEIZKREIS)
+    assert verwaltung.laufzeiten[HEIZKREIS].konfig["aktiv"] is True
+    assert neu.current_option == "schalten"
+
+
+async def test_gespeicherte_abgeschaltete_automatik_zeigt_aus(hass, anlage):
+    """Ein Store mit `aktiv` = False aus der Zeit des Schalters erscheint in der Auswahl als „Aus"."""
+    from custom_components.heatnexus.automatik.entitaeten import KLASSEN
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    await verwaltung.einstellen(HEIZKREIS, {"aktiv": False, "modus": "beobachten"})
+
+    assert KLASSEN["modus"](verwaltung, HEIZKREIS).current_option == "aus"
 
 
 async def test_sensoren_der_automatik(hass, anlage, freezer):
@@ -1732,7 +1765,7 @@ async def test_system_geraet_buendelt_die_automatiken(hass, anlage, freezer):
     )
     assert geraet is not None
     assert geraet.name == "HeatNexus Automatik"
-    kreis = KLASSEN["schalter"](verwaltung, HEIZKREIS).device_info
+    kreis = KLASSEN["modus"](verwaltung, HEIZKREIS).device_info
     assert kreis.get("via_device_id") == geraet.id or kreis.get("via_device") == (
         DOMAIN,
         system.system_kennung(entry.entry_id),
@@ -1919,7 +1952,7 @@ async def test_entitaeten_der_automatik_gehoeren_dem_untereintrag(hass, hass_ws_
     entry = hass.config_entries.async_entries(DOMAIN)[0]
 
     aufnahme = _Aufnahme()
-    entitaeten.anmelden(hass, entry, aufnahme, "schalter")
+    entitaeten.anmelden(hass, entry, aufnahme, "modus")
 
     assert aufnahme.entitaeten
     assert aufnahme.untereintraege == [verwaltung.subeintrag(entry)] != [None]

@@ -305,15 +305,11 @@
         }
       }
     },
-    "switch": {
-      "automatik": {
-        "name": "Automation"
-      }
-    },
     "select": {
       "automatik_modus": {
         "name": "Automation mode",
         "state": {
+          "aus": "Off",
           "beobachten": "Observe",
           "empfehlen": "Manual with recommendation",
           "schalten": "Automatic"

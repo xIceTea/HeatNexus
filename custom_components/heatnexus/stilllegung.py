@@ -125,10 +125,17 @@ BEWUSST_ENTFALLEN: frozenset[tuple[str, str]] = frozenset(
     | {("number", adresse) for adressen in geraete.NUR_ANZEIGE.values() for adresse in adressen}
 )
 
+# Einzelne Entitäten, die HeatNexus durch eine andere ersetzt hat: Domäne und Kennungsende.
+# Der Schalter der Automatik ging in der Auswahl „Automatik-Modus" auf.
+ERSETZT: frozenset[tuple[str, str]] = frozenset({("switch", "-automatik-schalter")})
+
 
 def endgueltig_weg(eintrag: er.RegistryEntry, umfaenge: dict[str, dict]) -> bool:
     """Ob eine Waise gelöscht wird statt stillgelegt, ohne dass der Nutzer etwas abwählte."""
     if (eintrag.domain, kanonisch.gnmn(eintrag.unique_id)) in BEWUSST_ENTFALLEN:
+        return True
+    kennung = eintrag.unique_id or ""
+    if any(eintrag.domain == d and kennung.endswith(ende) for d, ende in ERSETZT):
         return True
     return quelle_abgeschaltet(eintrag.unique_id, umfaenge)
 

@@ -1,4 +1,4 @@
-"""Schalter, Modus und Zustand der Automatik als Entitäten am Heizkreis.
+"""Modus und Zustand der Automatik als Entitäten am Heizkreis.
 
 Sie hängen am vorhandenen Heizkreis-Gerät und folgen der Laufzeit über ein
 Signal; abgefragt wird nichts.
@@ -13,7 +13,6 @@ from homeassistant.components.binary_sensor import BinarySensorDeviceClass, Bina
 from homeassistant.components.button import ButtonEntity
 from homeassistant.components.select import SelectEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -37,6 +36,9 @@ from .verwaltung import (
     unique_id,
     verwaltung_holen,
 )
+
+# Die Option der Auswahl, die die Automatik abschaltet.
+AUS = "aus"
 
 
 def geraet_info(laufzeit: Laufzeit) -> DeviceInfo:
@@ -86,36 +88,26 @@ class AutomatikEntitaet(Entity):
         self.async_write_ha_state()
 
 
-class AutomatikSchalter(AutomatikEntitaet, SwitchEntity):
-    """Automatik an oder aus."""
-
-    ART = "schalter"
-    _attr_translation_key = "automatik"
-
-    @property
-    def is_on(self) -> bool | None:
-        return self._laufzeit.aktiv if self._laufzeit else None
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        await self._verwaltung.einstellen(self._device_id, {"aktiv": True})
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        await self._verwaltung.einstellen(self._device_id, {"aktiv": False})
-
-
 class AutomatikModus(AutomatikEntitaet, SelectEntity):
-    """Beobachten, Manuell mit Empfehlung oder Automatisch."""
+    """Aus, Beobachten, Manuell mit Empfehlung oder Automatisch.
+
+    „Aus" setzt nur `aktiv` zurück; der gewählte Modus bleibt im Store erhalten.
+    """
 
     ART = "modus"
     _attr_translation_key = "automatik_modus"
-    _attr_options = list(MODI)
+    _attr_options = [AUS, *MODI]
 
     @property
     def current_option(self) -> str | None:
-        return self._laufzeit.konfig.get("modus") if self._laufzeit else None
+        laufzeit = self._laufzeit
+        if laufzeit is None:
+            return None
+        return laufzeit.konfig.get("modus") if laufzeit.aktiv else AUS
 
     async def async_select_option(self, option: str) -> None:
-        await self._verwaltung.einstellen(self._device_id, {"modus": option})
+        aenderung = {"aktiv": False} if option == AUS else {"aktiv": True, "modus": option}
+        await self._verwaltung.einstellen(self._device_id, aenderung)
 
 
 class AutomatikAusrichtung(AutomatikEntitaet, SelectEntity):
@@ -374,7 +366,6 @@ class AutomatikStoerung(AutomatikEntitaet, BinarySensorEntity):
 
 
 KLASSEN: dict[str, type[AutomatikEntitaet]] = {
-    "schalter": AutomatikSchalter,
     "modus": AutomatikModus,
     "ausrichtung": AutomatikAusrichtung,
     "zustand": AutomatikZustand,

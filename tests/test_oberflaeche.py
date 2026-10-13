@@ -1027,10 +1027,12 @@ def test_eine_offene_empfehlung_hat_einen_uebernehmen_knopf(durchlauf):
     """Im Modus „Manuell mit Empfehlung“ zeigt der Hinweis die Begründung und übernimmt per Knopf."""
     empfehlung = durchlauf["automatikEmpfehlung"]
     assert empfehlung["modus"] == [
+        ["Aus", "false"],
         ["Beobachten", "false"],
         ["Manuell mit Empfehlung", "true"],
         ["Automatisch", "false"],
     ]
+    assert empfehlung["ausGesendet"] == [{"aktiv": False}]
     (hinweis,) = empfehlung["hinweise"]
     assert "Heizpause empfohlen: 22 °C Außentemperatur." in hinweis
     assert empfehlung["knopf"] == "Übernehmen"

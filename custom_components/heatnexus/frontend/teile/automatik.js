@@ -359,21 +359,20 @@ export const AutomatikMixin = (Basis) =>
     _automatikSteuerzeile(kreis, darf) {
       const zeile = document.createElement("div");
       zeile.className = "automatik-zeile";
-      const schalter = this._automatikSchalter("Automatik aktiv", kreis.konfig.aktiv, darf, () =>
-        this._automatikEinstellen(kreis, { aktiv: !kreis.konfig.aktiv })
-      );
-
+      // „Aus" ist dieselbe Auswahl wie die Modi, wie bei der Entität „Automatik-Modus".
       const modus = this._automatikSegment(
         "Modus",
         "",
         [
+          ["aus", "Aus"],
           ["beobachten", "Beobachten"],
           ["empfehlen", "Manuell mit Empfehlung"],
           ["schalten", "Automatisch"],
         ],
-        kreis.konfig.modus,
+        kreis.konfig.aktiv ? kreis.konfig.modus : "aus",
         darf,
-        (wert) => this._automatikEinstellen(kreis, { modus: wert })
+        (wert) =>
+          this._automatikEinstellen(kreis, wert === "aus" ? { aktiv: false } : { aktiv: true, modus: wert })
       );
       // Die Ausrichtung ist die Einstellung, die man im Alltag wechselt; sie steht deshalb hier.
       const stil = this._automatikSegment(
@@ -388,7 +387,7 @@ export const AutomatikMixin = (Basis) =>
         darf,
         (wert) => this._automatikEinstellen(kreis, { ausrichtung: wert })
       );
-      zeile.append(schalter, modus, stil);
+      zeile.append(modus, stil);
       return zeile;
     }
 

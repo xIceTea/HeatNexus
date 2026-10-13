@@ -50,7 +50,6 @@ SPEICHER_RUHIG_S = 600
 DATEN_SCHLUESSEL = f"{DOMAIN}_automatik"
 SIGNAL_NEU = f"{DOMAIN}_automatik_neu_{{}}"
 DOMAENE_JE_ART = {
-    "schalter": "switch",
     "modus": "select",
     "ausrichtung": "select",
     "zustand": "sensor",

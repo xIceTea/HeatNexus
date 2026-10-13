@@ -1461,6 +1461,23 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     aufrufe: aufrufe.map((a) => [a.type, a.heizkreis]),
     punkt: punktFolge,
   };
+  // „Aus“ steht in derselben Auswahl wie die Modi und schaltet nur `aktiv` ab.
+  {
+    const aus = modus ? modus.querySelectorAll("button").find((t) => String(t.textContent || "").trim() === "Aus") : null;
+    const gesendet = [];
+    hass.callWS = async (nachricht) => {
+      gesendet.push(nachricht);
+      return flaeche._automatik;
+    };
+    if (aus) aus.ausloesen("click");
+    for (let runde = 0; runde < 20; runde += 1) await Promise.resolve();
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+    hass.callWS = vorherWs;
+    bilanz.automatikEmpfehlung.ausGesendet = gesendet
+      .filter((n) => n.type === "heatnexus/automatik/einstellen")
+      .map(({ aktiv, modus: wahl }) => ({ aktiv, modus: wahl }));
+  }
   delete kreis.empfehlung;
   kreis.konfig = vorherKonfig;
   flaeche._gebaut = false;

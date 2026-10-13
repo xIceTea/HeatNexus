@@ -70,6 +70,8 @@ Ausrichtung vor.
 
 Der Modus bestimmt, was die Automatik mit ihrer Entscheidung tut:
 
+- **Aus** schaltet die Automatik ab. Der zuletzt gewählte Modus bleibt
+  gespeichert.
 - **Beobachten** ist die Voreinstellung. Die Automatik schreibt nichts an die
   Steuerung, und das Protokoll zeigt, was sie getan hätte.
 - Im Modus **Manuell mit Empfehlung** schreibt die Automatik nur, was nicht
@@ -240,8 +242,8 @@ bündelt alle Automatiken des Eintrags:
 
 Darunter steht je Heizkreis das Gerät **Automatik <Heizkreis>**. Es führt:
 
-- den Schalter **Automatik** und die Auswahlen **Automatik-Modus** und
-  **Automatik-Ausrichtung**,
+- die Auswahl **Automatik-Modus** mit „Aus“ und den drei Modi sowie die
+  Auswahl **Automatik-Ausrichtung**,
 - den Sensor **Automatik-Zustand** mit der Begründung als Attribut,
 - den Sensor **Empfehlung** und die Tasten **Empfehlung übernehmen** und
   **Empfehlung verwerfen**,

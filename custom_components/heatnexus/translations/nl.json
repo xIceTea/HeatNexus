@@ -305,15 +305,11 @@
         }
       }
     },
-    "switch": {
-      "automatik": {
-        "name": "Automatische regeling"
-      }
-    },
     "select": {
       "automatik_modus": {
         "name": "Modus automatische regeling",
         "state": {
+          "aus": "Uit",
           "beobachten": "Observeren",
           "empfehlen": "Handmatig met advies",
           "schalten": "Automatisch"
