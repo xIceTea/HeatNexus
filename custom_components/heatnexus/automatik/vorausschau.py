@@ -44,8 +44,23 @@ def _schaltreihe(zustaende: list[Any]) -> Reihe:
     ]
 
 
+class _Stundenreihen(NamedTuple):
+    """`Reihen` für viele Stundenabfragen vorbereitet."""
+
+    raeume: list[eingaben.Stundenreihe]
+    at: eingaben.Stundenreihe
+    heizen: eingaben.Stundenreihe
+    wolken: eingaben.Stundenreihe
+    wind: eingaben.Stundenreihe
+
+    @classmethod
+    def aus(cls, reihen: Reihen) -> _Stundenreihen:
+        r = eingaben.Stundenreihe
+        return cls([r(raum) for raum in reihen.raeume], *map(r, reihen[1:]))
+
+
 def _lernstunde(
-    reihen: Reihen,
+    reihen: _Stundenreihen,
     art: str,
     raum: float | None,
     zeit: datetime,
@@ -53,15 +68,37 @@ def _lernstunde(
 ) -> hausmodell.Stunde | None:
     """Eine Stunde mit allen Werten; fehlt einer, entfällt sie."""
     # Stundenmittel statt Augenblickswert: Raumfühler springen, die Pumpe zählt als Anteil der Stunde.
-    at = eingaben.mittel_der_stunde(reihen.at, zeit)
-    quelle = eingaben.mittel_der_stunde(reihen.heizen, zeit)
+    at = reihen.at.mittel(zeit)
+    quelle = reihen.heizen.mittel(zeit)
     if raum is None or at is None or quelle is None:
         return None
-    wolken = eingaben.wert_zur_stunde(reihen.wolken, zeit)
+    wolken = reihen.wolken.zur_stunde(zeit)
     sonne = 0.0 if bogen is None else tagesansicht.sonnenanteil(zeit.hour, *bogen, wolken)
     heizen = quelle if art == "pumpe" else max(0.0, quelle - raum)
-    wind = eingaben.wert_zur_stunde(reihen.wind, zeit)
+    wind = reihen.wind.zur_stunde(zeit)
     return hausmodell.Stunde(raum, None, at, sonne, wind, heizen)
+
+
+def lernstunden(
+    reihen: Reihen,
+    art: str,
+    raum_art: str,
+    zeiten: list[datetime],
+    boegen: dict[date, tuple[float, float]],
+) -> dict[date, list[hausmodell.Stunde]]:
+    """Lernstunden je Tag; eine Stunde ohne Folgestunde bekommt kein `raum_danach`."""
+    stunden = _Stundenreihen.aus(reihen)
+    raum = [eingaben.raumwert([r.mittel(z) for r in stunden.raeume], raum_art) for z in zeiten]
+    ganz = [
+        _lernstunde(stunden, art, r, z, boegen.get(z.date()))
+        for z, r in zip(zeiten, raum, strict=True)
+    ]
+    ergebnis: dict[date, list[hausmodell.Stunde]] = {}
+    for i, stunde in enumerate(ganz[:-1]):
+        if stunde is not None:
+            danach = raum[i + 1] if ganz[i + 1] is not None else None
+            ergebnis.setdefault(zeiten[i].date(), []).append(replace(stunde, raum_danach=danach))
+    return ergebnis
 
 
 def _kurvenwert(kurve: tuple[tuple[str, float], ...], jetzt: datetime) -> float | None:
@@ -187,26 +224,9 @@ class VorausschauMixin:
     def _je_tag(
         self, reihen: Reihen, art: str, zeiten: list[datetime]
     ) -> dict[date, list[hausmodell.Stunde]]:
-        """Lernstunden je Tag; eine Stunde ohne Folgestunde bekommt kein `raum_danach`."""
-        raum = [
-            eingaben.raumwert(
-                [eingaben.mittel_der_stunde(r, z) for r in reihen.raeume], self.konfig["raum_art"]
-            )
-            for z in zeiten
-        ]
+        """Lernstunden je Tag aus den Reihen, mit dem Sonnenbogen jedes Tages."""
         boegen = self._sonnenboegen({z.date() for z in zeiten})
-        ganz = [
-            _lernstunde(reihen, art, r, z, boegen.get(z.date()))
-            for z, r in zip(zeiten, raum, strict=True)
-        ]
-        ergebnis: dict[date, list[hausmodell.Stunde]] = {}
-        for i, stunde in enumerate(ganz[:-1]):
-            if stunde is not None:
-                danach = raum[i + 1] if ganz[i + 1] is not None else None
-                ergebnis.setdefault(zeiten[i].date(), []).append(
-                    replace(stunde, raum_danach=danach)
-                )
-        return ergebnis
+        return lernstunden(reihen, art, self.konfig["raum_art"], zeiten, boegen)
 
     def _reihen(self, zustaende: dict[str, list[Any]], art: str, heizer: str) -> Reihen:
         k, aussen = self.konfig, self.aussen_entitaet()

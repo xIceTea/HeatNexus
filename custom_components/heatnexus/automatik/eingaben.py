@@ -5,6 +5,7 @@ Reine Rechnungen ohne Home Assistant; Zeiten kommen als `datetime` mit Zone.
 
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
@@ -256,3 +257,26 @@ def wert_zur_stunde(
         else:
             break
     return geltend
+
+
+class Stundenreihe:
+    """Eine aufsteigende Reihe für viele Stunden: jede Abfrage sucht ihren Ausschnitt per Bisektion.
+
+    Das Ergebnis gleicht `mittel_der_stunde` und `wert_zur_stunde` auf der ganzen Reihe.
+    """
+
+    def __init__(self, reihe: Sequence[tuple[datetime, float | None]]) -> None:
+        self._reihe = reihe
+        self._zeiten = [zeit for zeit, _ in reihe]
+
+    def _ausschnitt(self, stunde: datetime) -> Sequence[tuple[datetime, float | None]]:
+        """Der zur Stunde geltende Eintrag und alle bis vor ihr Ende."""
+        beginn = bisect_right(self._zeiten, stunde)
+        ende = bisect_left(self._zeiten, stunde + timedelta(hours=1))
+        return self._reihe[max(beginn - 1, 0) : ende]
+
+    def mittel(self, stunde: datetime) -> float | None:
+        return mittel_der_stunde(self._ausschnitt(stunde), stunde)
+
+    def zur_stunde(self, stunde: datetime) -> float | None:
+        return wert_zur_stunde(self._ausschnitt(stunde), stunde)
