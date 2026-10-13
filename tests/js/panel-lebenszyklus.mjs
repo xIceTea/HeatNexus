@@ -163,4 +163,19 @@ const befund = {};
   befund.menueNachEscape = [liste.hidden, wurzel.activeElement === taste];
 }
 
+// --- Menütaste ---------------------------------------------------------------
+{
+  const { flaeche } = bauen();
+  const taste = () => flaeche.shadowRoot.querySelector(".menue-taste").style.display;
+  const ergebnis = { breit: (flaeche._aktualisieren(), taste()) };
+  flaeche.narrow = true;
+  zeit.zeitLaufenLassen();
+  ergebnis.schmal = taste();
+  flaeche.narrow = false;
+  flaeche.hass = { ...flaeche._hass, dockedSidebar: "always_hidden" };
+  zeit.zeitLaufenLassen();
+  ergebnis.versteckteLeiste = taste();
+  befund.menuetaste = ergebnis;
+}
+
 process.stdout.write(JSON.stringify(befund, null, 2));

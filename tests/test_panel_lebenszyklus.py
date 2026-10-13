@@ -93,3 +93,7 @@ def test_werkzeugmenue_oeffnet_und_schliesst_per_tastatur(befund):
     assert befund["menueOffen"] is True
     assert befund["menueFokus"] is True
     assert befund["menueNachEscape"] == [True, True]
+
+
+def test_menutaste_nur_wo_die_seitenleiste_nicht_fest_steht(befund):
+    assert befund["menuetaste"] == {"breit": "none", "schmal": "", "versteckteLeiste": ""}
