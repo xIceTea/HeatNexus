@@ -468,23 +468,6 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
-    // Wärmeanforderung: Steht der Analog-Sollwert über null, fordert das
-    // Modul gerade Wärme an – und mit welcher Temperatur.
-    (anlage.schema_anforderung || []).forEach((eintrag) => {
-      const marke = document.createElement("div");
-      marke.className = "speicher anforderung";
-      marke.style.left = eintrag.left;
-      marke.style.top = eintrag.top;
-      huelle.appendChild(marke);
-      this._bindungen.push(() => {
-        const soll = this._zahl(eintrag.entity);
-        const an = soll !== null && soll > 0;
-        marke.classList.toggle("laedt", an);
-        marke.textContent = an ? this._tMit("fordert {grad} °C", { grad: Math.round(soll) }) : "";
-        marke.title = `${eintrag.titel} – ${this._t(an ? "Wärmeanforderung" : "keine Anforderung")}`;
-      });
-    });
-
     // Puffer: lädt, entlädt oder steht. Zwei Temperaturen allein sagen keine
     // Richtung – maßgeblich ist, welche Pumpe fördert.
     (anlage.schema_speicher || []).forEach((eintrag) => {
