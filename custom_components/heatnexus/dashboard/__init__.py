@@ -38,6 +38,17 @@ def dashboard_konfiguration(hass: HomeAssistant, als_karte: bool | None = None) 
     return _konfiguration(hass, als_karte)
 
 
+_LEER_KEINE = (
+    "### Keine Anlage gefunden\n\n"
+    "Richte die Integration **HeatNexus** unter Einstellungen → Geräte & Dienste ein."
+)
+_LEER_LAEDT = (
+    "### Anlage wird geladen\n\n"
+    "HeatNexus ist eingerichtet, die Anlage liefert noch keine Geräte. "
+    "Lade die Ansicht neu, sobald der Start abgeschlossen ist."
+)
+
+
 def _uebersetzt(ansicht: dict[str, Any], buch: Woerterbuch) -> dict[str, Any]:
     """Eine fertige Ansicht in der Sprache eines Wörterbuchs."""
     return uebersetze_baum(ansicht, buch, LOVELACE_FELDER)
@@ -48,6 +59,7 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
     gemeinsam = woerterbuch(hass)
     anlagen = anlagen_lesen(hass)
     if not anlagen:
+        eingerichtet = bool(hass.config_entries.async_entries(DOMAIN))
         leer = {
             "title": DASHBOARD_TITEL,
             "views": [
@@ -56,11 +68,7 @@ def _konfiguration(hass: HomeAssistant, als_karte: bool) -> dict[str, Any]:
                     "cards": [
                         {
                             "type": "markdown",
-                            "content": (
-                                "### Keine Anlage gefunden\n\n"
-                                "Richte die Integration **HeatNexus** unter "
-                                "Einstellungen → Geräte & Dienste ein."
-                            ),
+                            "content": _LEER_LAEDT if eingerichtet else _LEER_KEINE,
                         }
                     ],
                 }

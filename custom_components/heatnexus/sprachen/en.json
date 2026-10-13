@@ -685,6 +685,7 @@
   "Zähler – {beschriftung}": "Counters – {beschriftung}",
   "Heizung": "Heating",
   "### Keine Anlage gefunden\n\nRichte die Integration **HeatNexus** unter Einstellungen → Geräte & Dienste ein.": "### No system found\n\nSet up the **HeatNexus** integration under Settings → Devices & services.",
+  "### Anlage wird geladen\n\nHeatNexus ist eingerichtet, die Anlage liefert noch keine Geräte. Lade die Ansicht neu, sobald der Start abgeschlossen ist.": "### System is loading\n\nHeatNexus is set up, but the system has not provided any devices yet. Reload the view once startup has finished.",
   "Allgemein (Oberfläche, Sprache, Abfrage)": "General (interface, language, polling)",
   "Anlage {nummer}": "System {nummer}",
   "Automatik {name}": "Automation {name}",

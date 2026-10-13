@@ -685,6 +685,7 @@
   "Zähler – {beschriftung}": "Tellers – {beschriftung}",
   "Heizung": "Verwarming",
   "### Keine Anlage gefunden\n\nRichte die Integration **HeatNexus** unter Einstellungen → Geräte & Dienste ein.": "### Geen installatie gevonden\n\nStel de integratie **HeatNexus** in onder Instellingen → Apparaten & diensten.",
+  "### Anlage wird geladen\n\nHeatNexus ist eingerichtet, die Anlage liefert noch keine Geräte. Lade die Ansicht neu, sobald der Start abgeschlossen ist.": "### Installatie wordt geladen\n\nHeatNexus is ingesteld, maar de installatie heeft nog geen apparaten geleverd. Laad de weergave opnieuw zodra het opstarten klaar is.",
   "Allgemein (Oberfläche, Sprache, Abfrage)": "Algemeen (interface, taal, polling)",
   "Anlage {nummer}": "Installatie {nummer}",
   "Automatik {name}": "Automatische regeling {name}",

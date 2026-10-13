@@ -1559,3 +1559,18 @@ async def test_eine_anlage_in_eigener_sprache_traegt_die_badges_in_der_uebersich
 
     assert uebersicht["title"] == Woerterbuch("nl")("Übersicht")
     assert uebersicht["badges"] and "badges" not in seite
+
+
+async def test_leere_ansicht_unterscheidet_laden_von_fehlender_einrichtung(
+    dashboard, hass, monkeypatch
+):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    monkeypatch.setattr(dashboard, "anlagen_lesen", lambda _hass: [])
+
+    def inhalt() -> str:
+        return dashboard.dashboard_konfiguration(hass)["views"][0]["cards"][0]["content"]
+
+    assert "Keine Anlage gefunden" in inhalt()
+    MockConfigEntry(domain="heatnexus", data={}).add_to_hass(hass)
+    assert "System is loading" in inhalt()
