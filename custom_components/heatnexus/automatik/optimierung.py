@@ -382,7 +382,8 @@ class OptimierungMixin:
 
         `aufwerten`: Er behält alles außer dem Morgen, den die Aufzeichnung neu liefert.
         """
-        je_tag = nachrechnen.stunden_je_tag(self._tagesreihen(zustaende, quellen), offen)
+        reihen = self._tagesreihen(zustaende, quellen)
+        je_tag = nachrechnen.stunden_je_tag(reihen, offen, dt_util.DEFAULT_TIME_ZONE)
         je_datum = {t.get("datum"): t for t in self.tage_archiv}
         neu = []
         for datum, stunden in je_tag.items():

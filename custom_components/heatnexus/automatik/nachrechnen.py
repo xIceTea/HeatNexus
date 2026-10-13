@@ -38,21 +38,26 @@ class Reihen:
     eigene_ziele: bool = False
 
 
+def _utc(zeit: datetime) -> datetime:
+    """In UTC: Ortszeiten derselben Zone vergleicht Python ohne Versatz, die doppelte Stunde kippt."""
+    return zeit if zeit.tzinfo is None else zeit.astimezone(UTC)
+
+
 class _Stufe:
     """Eine Reihe als Stufenfunktion; ein `None` in der Reihe beendet den vorigen Wert."""
 
     def __init__(self, reihe: Reihe) -> None:
-        self._reihe = reihe
-        self._zeiten = [zeit for zeit, _ in reihe]
+        self._reihe = [(_utc(zeit), wert) for zeit, wert in reihe]
+        self._zeiten = [zeit for zeit, _ in self._reihe]
 
     def _ausschnitt(self, beginn: datetime, ende: datetime) -> Reihe:
         """Der zu `beginn` geltende Eintrag und alle bis vor `ende`."""
-        i = bisect_right(self._zeiten, beginn)
-        return self._reihe[max(i - 1, 0) : bisect_left(self._zeiten, ende)]
+        i = bisect_right(self._zeiten, _utc(beginn))
+        return self._reihe[max(i - 1, 0) : bisect_left(self._zeiten, _utc(ende))]
 
     def zur_stunde(self, beginn: datetime, ende: datetime) -> float | None:
         """Der Wert zum Stundenbeginn, sonst der erste der Stunde; live gilt der erste gesehene."""
-        return wert_zur_stunde(self._ausschnitt(beginn, ende), beginn)
+        return wert_zur_stunde(self._ausschnitt(beginn, ende), _utc(beginn))
 
     def positiv(self, beginn: datetime, ende: datetime) -> bool:
         """Ob der Wert irgendwann von `beginn` bis vor `ende` über null lag."""
@@ -95,8 +100,11 @@ def _vorbereiten(reihen: Reihen) -> _Stufen:
 
 def _zone(reihen: Reihen) -> tzinfo | None:
     """Die Zeitzone der Reihen; die Stunden des Tages gelten in dieser Ortszeit."""
-    alle = [reihen.at, reihen.soll, reihen.vl, reihen.ba, reihen.restzeit]
-    for reihe in [*alle, *(ist for ist, _ in reihen.raeume)]:
+    alle = [reihen.at, reihen.soll, reihen.vl, reihen.ba, reihen.restzeit, reihen.vi]
+    alle += [reihen.behaglichkeit, *reihen.aus]
+    for ist, ziel in reihen.raeume:
+        alle += [ist, ziel] if isinstance(ziel, list) else [ist]
+    for reihe in alle:
         if reihe:
             return reihe[0][0].tzinfo
     return None
@@ -159,13 +167,16 @@ def _felder(stufen: _Stufen, beginn: datetime, ende: datetime) -> dict[str, Any]
     return {name: wert for name, wert in felder.items() if wert is not None}
 
 
-def stunden_je_tag(reihen: Reihen, tage: list[date]) -> dict[str, dict[str, dict[str, Any]]]:
+def stunden_je_tag(
+    reihen: Reihen, tage: list[date], zone: tzinfo | None = None
+) -> dict[str, dict[str, dict[str, Any]]]:
     """`{"JJJJ-MM-TT": {"H": {"at", "ab", "ziel", "soll", "vl", "vi", "ba", "vorgabe"}}}` wie live.
 
-    Die Stunde steht ohne führende Null; Stunden und Tage ohne jeden Wert entfallen.
+    Die Stunden gelten in `zone`, ohne sie in der Zone der Reihen. Die Stunde steht ohne
+    führende Null; Stunden und Tage ohne jeden Wert entfallen.
     """
     stufen = _vorbereiten(reihen)
-    zone = _zone(reihen)
+    zone = zone or _zone(reihen)
     ergebnis: dict[str, dict[str, dict[str, Any]]] = {}
     for tag in tage:
         stunden = {
