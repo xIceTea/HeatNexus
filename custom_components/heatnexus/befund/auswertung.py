@@ -52,11 +52,7 @@ def _als_dict(befund: form.Befund, **vergleich: Any) -> dict[str, Any]:
     return asdict(befund) | {"vergleich": gesetzt}
 
 
-def _runden(wert: float | None) -> float | None:
-    return round(wert, 1) if wert is not None else None
-
-
-def _haus(archiv: Archiv, kreis: Kreis, grenze: float) -> dict[str, Any]:
+def _haus(archiv: Archiv, kreis: Kreis) -> dict[str, Any]:
     tage = archiv.tage_heizkreis(kreis.kennung)
     if not kreis.raeume:
         speicher = form.fehlt("waermespeicher", "raeume")
@@ -65,15 +61,9 @@ def _haus(archiv: Archiv, kreis: Kreis, grenze: float) -> dict[str, Any]:
         speicher = form.fehlt("waermespeicher", "automatik")
     else:
         speicher = haus.waermespeicher(kreis.modell, kreis.raum, kreis.aussen_nacht)
-    je_gt = haus.heizstunden_je_gradtag(tage[-kessel.FENSTER :], grenze)
     befunde = [
         _als_dict(speicher),
-        _als_dict(
-            haus.heizgrenze(tage),
-            eingestellt=kreis.ta_heiz,
-            rechengrenze=grenze,
-            heizstunden_je_gt=_runden(je_gt),
-        ),
+        _als_dict(haus.heizgrenze(tage, kreis.ta_heiz), eingestellt=kreis.ta_heiz),
     ]
     return {"art": "haus", "kennung": kreis.kennung, "titel": kreis.name, "befunde": befunde}
 
@@ -126,7 +116,11 @@ def _kessel(
     ]
     befunde = [
         _als_dict(kessel.laufzeit(tage, k.zaehler)),
-        _als_dict(kessel.energie(tage, grenze, heizgrenze), nennleistung=k.nennleistung),
+        _als_dict(
+            kessel.energie(tage, grenze, heizgrenze),
+            nennleistung=k.nennleistung,
+            rechengrenze=grenze,
+        ),
     ]
     return {"art": "kessel", "kennung": k.kennung, "titel": k.name, "befunde": befunde}
 
@@ -151,7 +145,7 @@ def anlage(archiv: Archiv, kontext: Kontext) -> dict[str, Any]:
     abschnitte: list[dict[str, Any]] = []
     heizgrenze = None
     for kreis in kontext.heizkreise:
-        teil = _haus(archiv, kreis, grenze)
+        teil = _haus(archiv, kreis)
         eigene = teil["befunde"][1]["wert"]
         heizgrenze = heizgrenze if heizgrenze is not None else eigene
         abschnitte += [teil, _heizkreis(archiv, kreis, eigene)]

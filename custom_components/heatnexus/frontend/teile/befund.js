@@ -47,7 +47,7 @@ function svg(tag, attribute = {}, text) {
 
 const TITEL = {
   waermespeicher: "Wärmespeicher des Hauses",
-  heizgrenze: "Gemessene Heizgrenze",
+  heizgrenze: "Heizgrenze im Betrieb",
   raeume: "Räume erreichen ihr Ziel",
   naechte: "Übergangszeit nachts",
   vorlauf: "Vorlauf erreicht sein Soll",
@@ -59,7 +59,7 @@ const HILFE = {
   waermespeicher:
     "Die Zahl ist die Zeitkonstante des Hauses nach DIN V 18599-2. In dieser Zeit verliert ein Raum ohne Heizung knapp zwei Drittel seines Abstands zur Außentemperatur. Je größer sie ist, desto länger hält das Haus die Wärme. Eine Einordnung wie leicht oder schwer erscheint erst mit belegter Skala.",
   heizgrenze:
-    "Bis zu dieser Außentemperatur im Tagesmittel heizt der Heizkreis tatsächlich. Je Tag zählt das Mittel der Außentemperatur und ob der Heizkreis mindestens zwei Stunden geheizt hat. Die Heizgrenze ist die Temperatur, an der Heiztage und heizfreie Tage kippen. Die Heizgrenze der Gradtagzahl nach VDI 3807 ist eine Konvention für den Vergleich von Verbräuchen, kein Zielwert für die Anlage.",
+    "Geprüft wird, ob der Heizkreis bei der eingestellten Heizgrenze (TA Heizbetrieb) heizt. Je Tag zählen das Mittel der Außentemperatur und ob der Heizkreis mindestens zwei Stunden geheizt hat. Weicht die gemessene Grenze um mehr als 2 K ab, begrenzt etwas anderes das Heizen, etwa Thermostate, ein leerer Puffer oder fremde Wärme.",
   raeume:
     "Gezählt werden Heizstunden ohne Eingriff. Thermostate drosseln, sobald ein Raum warm ist; eine zu hohe Heizkurve zeigt sich deshalb kaum. Sonne und Öfen sind nicht herausgerechnet. Laut Windhager-Anleitung hilft bei zu hoher oder zu niedriger Raumtemperatur: Auslegungstemperatur und/oder Fußpunkt korrigieren oder Behaglichkeit.",
   naechte:
@@ -69,7 +69,7 @@ const HILFE = {
   laufzeit:
     "Die Zähler der Steuerung für Brennerstarts und Betriebsstunden. Verglichen wird nur mit dem Kessel selbst; für die Laufzeit je Start gibt es weder Norm noch Herstellerangabe.",
   energie:
-    "Erzeugte Wärme aus Kesselleistung und Nennleistung, ohne den Sockel an Tagen ohne Heizen. Die Gradtagzahl nach VDI 3807 rechnet das Wetter heraus; so lassen sich Jahre vergleichen. Der Wert gilt für die ganze Anlage. Als Heiztag zählt auch ein Tag, an dem eine mitversorgte Anlage ohne eigenen Kessel geheizt hat.",
+    "Erzeugte Wärme aus Kesselleistung und Nennleistung, ohne den Sockel an Tagen ohne Heizen. Die Gradtagzahl nach VDI 3807 rechnet das Wetter heraus; so lassen sich Jahre vergleichen. Sie zählt jeden Tag, dessen Mittel außen unter der Heizgrenze der Norm liegt, mit 20 °C minus Tagesmittel. Diese Grenze ist ein fester Rechenwert, in Deutschland 15 °C, in Österreich und der Schweiz 12 °C, und keine Einstellung der Anlage. Der Wert gilt für die ganze Anlage. Als Heiztag zählt auch ein Tag, an dem eine mitversorgte Anlage ohne eigenen Kessel geheizt hat.",
 };
 
 const ABSCHNITT = { haus: "Haus", heizkreis: "Heizkreis", kessel: "Kessel" };
@@ -325,6 +325,7 @@ export const BefundMixin = (Basis) =>
       const marke = { unauffaellig: "unauffällig", hinweis: "Hinweis", sammelt: "sammelt" }[b.status];
       if (marke) kopf.appendChild(knoten("span", `befund-marke ${b.status}`, this._t(marke)));
       karte.appendChild(kopf);
+      if (b.art === "heizgrenze") return this._befundPruefung(karte, b);
       const wert = knoten("div", "befund-wert");
       const zahlUndEinheit = knoten("span", "befund-zahl");
       zahlUndEinheit.append(knoten("span", "zahl", this._befundZahl(b.wert)), knoten("span", "einheit", b.einheit));
@@ -335,6 +336,27 @@ export const BefundMixin = (Basis) =>
       const vergleich = this._befundVergleich(b);
       if (vergleich) karte.appendChild(vergleich);
       karte.appendChild(knoten("div", "befund-fuss", this._tMit("Verlässlichkeit: {stufe}", { stufe: this._befundStufe(b.stufe) })));
+      return karte;
+    }
+
+    /** Die Heizgrenze als Prüfung: eingestellt gegen gemessen, ohne große Zahl. */
+    _befundPruefung(karte, b) {
+      const v = b.vergleich || {};
+      const ab = (b.angaben || {}).abweichung;
+      const zeile = knoten("div", "befund-pruefung");
+      const gemessen = knoten("span", null, this._tMit("geheizt ab {wert} °C im Tagesmittel", { wert: this._befundZahl(b.wert) }));
+      zeile.append(
+        knoten("span", null, this._tMit("Eingestellt {wert} °C", { wert: this._befundZahl(v.eingestellt) })),
+        this._klickbar(gemessen, b.entity)
+      );
+      karte.appendChild(zeile);
+      let urteil = this._t("Ohne eingestellte Heizgrenze kein Vergleich.");
+      if (ab !== undefined && ab !== null) {
+        const k = this._befundZahl(Math.abs(ab));
+        if (b.status === "hinweis") urteil = this._tMit(ab < 0 ? "{k} K unter der Einstellung" : "{k} K über der Einstellung", { k });
+        else urteil = this._t("passt zur Einstellung");
+      }
+      karte.appendChild(knoten("div", "befund-leise", urteil));
       return karte;
     }
 
@@ -370,7 +392,6 @@ export const BefundMixin = (Basis) =>
       return this._t(
         {
           waermespeicher: "Zeitkonstante",
-          heizgrenze: "Außentemperatur im Tagesmittel",
           raeume: "der Heizstunden am Ziel oder darüber",
           naechte: "am Morgen über dem Absenkziel",
           vorlauf: "der Heizstunden mehr als 3 K unter Soll",
@@ -386,8 +407,7 @@ export const BefundMixin = (Basis) =>
       const grad = (wert) => `${this._befundZahl(wert)} °C`;
       const zeilen = [
         [v.eingestellt, "Eingestellt an der Steuerung (TA Heizbetrieb)", grad],
-        [v.rechengrenze, "Heizgrenze der Gradtagzahl (VDI 3807)", grad],
-        [v.heizstunden_je_gt, "Heizstunden je Heizgradtag", (w) => `${this._befundZahl(w)} h`],
+        [v.rechengrenze, "Heizgrenze der Gradtagzahl (VDI 3807, fester Rechenwert)", grad],
         [v.ta_absenk, "Heizgrenze Absenkbetrieb (TA Absenkbetrieb)", grad],
         [a.sonne, "Sonne wärmt bei vollem Sonnenschein", (w) => this._tMit("+{k} K je Stunde", { k: this._befundZahl(w) })],
         [a.gesamt_h_je_start, "Seit Inbetriebnahme", (w) => this._tMit("{h} h je Start", { h: this._befundZahl(w) })],
@@ -404,7 +424,6 @@ export const BefundMixin = (Basis) =>
     _befundBild(b) {
       const a = b.angaben || {};
       if (b.art === "waermespeicher" && a.nacht) return this._bildNacht(b.wert, a.nacht);
-      if (b.art === "heizgrenze" && (a.klassen || []).length) return this._bildKlassen(a.klassen, b.wert);
       if (b.art === "raeume" && a.je_raum) return this._bildRaeume(a.je_raum);
       if (b.art === "naechte" && (a.naechte || []).length) return this._bildPunkte(a.naechte);
       if (b.art === "vorlauf" && (a.je_tag || []).length) {
@@ -481,31 +500,6 @@ export const BefundMixin = (Basis) =>
         const zeit = t ? `+${t} h` : this._t("jetzt");
         s.appendChild(this._befundPunkt(feld, x(t), y(f(t)), "stelle", this._tMit("{zeit}: {wert} °C", { zeit, wert: this._befundZahl(f(t)) }), 3));
       }
-      return this._befundFertig(feld, s);
-    }
-
-    _bildKlassen(klassen, grenze) {
-      const feld = this._befundFeld("Anteil der Heiztage je Außentemperatur");
-      const s = svg("svg", { viewBox: "0 0 460 130" });
-      const lo = 10;
-      const hi = 25;
-      const x = (v) => 30 + ((v - lo) / (hi - lo)) * 410;
-      const y = (p) => 110 - p * 90;
-      klassen
-        .filter(([k]) => k >= lo && k < hi)
-        .forEach(([k, n, h]) => {
-          const p = n ? h / n : 0;
-          const breite = 410 / (hi - lo);
-          const g = svg("g");
-          g.append(
-            svg("rect", { x: x(k), y: 8, width: breite, height: 102, class: "treffer" }),
-            svg("rect", { x: x(k) + 2, y: y(p), width: breite - 4, height: Math.max(1.5, 110 - y(p)), rx: 3, class: p > 0.5 ? "balken an" : "balken" })
-          );
-          this._befundAblesbar(feld, g, this._tMit("{von} bis {bis} °C: an {h} von {n} Tagen geheizt", { von: k, bis: k + 1, h, n }));
-          s.appendChild(g);
-        });
-      if (grenze !== null && grenze !== undefined) s.appendChild(svg("line", { x1: x(grenze), x2: x(grenze), y1: 8, y2: 110, class: "marke" }));
-      [10, 15, 20, 25].forEach((v) => s.appendChild(svg("text", { x: x(v), y: 126, "text-anchor": "middle" }, `${v} °C`)));
       return this._befundFertig(feld, s);
     }
 

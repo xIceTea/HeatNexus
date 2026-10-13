@@ -1690,6 +1690,7 @@ export const STIL = `
   .befund-merkmal { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: var(--hn-flaeche); color: var(--hn-gedaempft); font-size: 13px; }
   .befund-merkmal ha-icon { --mdc-icon-size: 16px; color: var(--hn-gut); }
   .befund-zahl.klickbar { cursor: pointer; }
+  .befund-pruefung { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 16px; margin: 6px 0 4px; }
   @media (max-width: 700px) {
     .befund-kompakt-inhalt { grid-template-columns: 1fr; }
     .befund-uebersicht { padding-right: 0; border-right: none; padding-bottom: 12px; border-bottom: 1px solid var(--hn-linie); }

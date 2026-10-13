@@ -6,12 +6,14 @@ from itertools import pairwise
 import math
 from typing import Any
 
-from . import form, gradtage
+from . import form
 
 HEIZTAG_STUNDEN = 2
 MIN_SEITE = 5
 BEREICH = (10, 22)
 NACHT_H = 8
+# Ab dieser Abweichung von TA Heizbetrieb begrenzt etwas anderes als die Einstellung das Heizen.
+ABWEICHUNG_K = 2.0
 # Freigabe des Hausmodells: Fehler höchstens 0,5 K und höchstens 0,8 × „Raum bleibt“.
 FREIGABE_K = 0.5
 FREIGABE_ANTEIL = 0.8
@@ -44,31 +46,25 @@ def _uebergang(klassen: dict[int, list[int]]) -> float | None:
     return treffer
 
 
-def heizgrenze(tage: list[dict[str, Any]]) -> form.Befund:
-    """Die Außentemperatur, an der Heiztage und heizfreie Tage kippen; mit Klassen fürs Bild."""
+def heizgrenze(tage: list[dict[str, Any]], eingestellt: float | None = None) -> form.Befund:
+    """Prüft, ob der Heizkreis bei TA Heizbetrieb heizt: dort, wo Heiztage und heizfreie Tage kippen.
+
+    Ein Hinweis folgt erst, wenn die gemessene Grenze mehr als `ABWEICHUNG_K` daneben liegt.
+    """
     klassen = _klassen(tage)
     gemessen = [t for t in tage if t.get("at") is not None]
     im_bereich = [t for t in gemessen if BEREICH[0] <= t["at"] < BEREICH[1]]
     heiz = sum(heiztag(t) for t in im_bereich)
-    angaben = {
-        "klassen": [[k, n, h] for k, (n, h) in sorted(klassen.items())],
-        "tage": len(gemessen),
-        "heiztage": sum(heiztag(t) for t in gemessen),
-    }
+    angaben: dict[str, Any] = {"tage": len(gemessen), "heiztage": sum(heiztag(t) for t in gemessen)}
     grenze = _uebergang(klassen)
     if heiz < MIN_SEITE or len(im_bereich) - heiz < MIN_SEITE or grenze is None:
         return form.Befund("heizgrenze", form.SAMMELT, angaben=angaben)
-    return form.Befund(
-        "heizgrenze", form.UNAUFFAELLIG, round(grenze, 1), "°C", form.BELASTBAR, angaben
-    )
-
-
-def heizstunden_je_gradtag(tage: list[dict[str, Any]], grenze: float) -> float | None:
-    """Heizstunden je Kelvin-Tag über die Tage mit Gradtag; ohne Gradtag `None`."""
-    mit = [(t, gradtage.gradtag(t["at"], grenze)) for t in tage if t.get("at") is not None]
-    mit = [(t, g) for t, g in mit if g > 0]
-    summe = sum(g for _, g in mit)
-    return sum(t.get("heizh") or 0 for t, _ in mit) / summe if summe else None
+    auffaellig = False
+    if eingestellt is not None:
+        angaben["abweichung"] = round(grenze - eingestellt, 1)
+        auffaellig = abs(grenze - eingestellt) > ABWEICHUNG_K
+    status = form.status_aus(form.BELASTBAR, auffaellig)
+    return form.Befund("heizgrenze", status, round(grenze, 1), "°C", form.BELASTBAR, angaben)
 
 
 def nacht(tau: float, raum: float | None, aussen: float | None) -> dict[str, Any] | None:

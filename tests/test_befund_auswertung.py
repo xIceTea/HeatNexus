@@ -58,8 +58,10 @@ def test_heizgrenze_mit_vergleich(m):
     aus, arch = m
     haus = aus.anlage(gefuellt(arch), kontext(aus))["abschnitte"][0]
     grenze = next(b for b in haus["befunde"] if b["art"] == "heizgrenze")
-    assert grenze["vergleich"]["eingestellt"] == 18.0
-    assert grenze["vergleich"]["rechengrenze"] == 15.0
+    assert grenze["vergleich"] == {"eingestellt": 18.0}
+    kessel = aus.anlage(gefuellt(arch), kontext(aus))["abschnitte"][-1]
+    energie = next(b for b in kessel["befunde"] if b["art"] == "energie")
+    assert energie["vergleich"]["rechengrenze"] == 15.0
 
 
 def test_ohne_kessel_verweis_auf_waermeerzeuger(m):

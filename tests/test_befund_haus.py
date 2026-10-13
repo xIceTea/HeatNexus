@@ -1,4 +1,4 @@
-"""Befunde zum Haus: tatsächliche Heizgrenze, Heizstunden je Gradtag, Wärmespeicher."""
+"""Befunde zum Haus: Heizgrenze im Betrieb gegen TA Heizbetrieb, Wärmespeicher."""
 
 from __future__ import annotations
 
@@ -39,16 +39,16 @@ def test_heizgrenze_sammelt_ohne_heizfreie_tage(haus):
 
 
 def test_heizgrenze_zaehlt_klassen(haus):
-    klassen = {k: (n, h) for k, n, h in haus.heizgrenze(kippt_bei_17()).angaben["klassen"]}
-    assert klassen[16] == (3, 2)
-    assert klassen[17] == (3, 1)
+    klassen = haus._klassen(kippt_bei_17())
+    assert klassen[16] == [3, 2]
+    assert klassen[17] == [3, 1]
 
 
-def test_heizstunden_je_gradtag(haus):
-    tage = [tag(10.0, 20), tag(12.0, 16), tag(16.0, 10)]
-    # Gradtage 10 + 8 = 18 (16 °C zählt nicht), Heizstunden an diesen Tagen 36
-    assert haus.heizstunden_je_gradtag(tage, 15.0) == pytest.approx(2.0)
-    assert haus.heizstunden_je_gradtag([tag(16.0, 10)], 15.0) is None
+@pytest.mark.parametrize(("eingestellt", "status"), [(18.0, "unauffaellig"), (20.0, "hinweis")])
+def test_heizgrenze_prueft_gegen_die_einstellung(haus, eingestellt, status):
+    befund = haus.heizgrenze(kippt_bei_17(), eingestellt)
+    assert befund.status == status
+    assert befund.angaben["abweichung"] == pytest.approx(17.0 - eingestellt, abs=0.05)
 
 
 def test_waermespeicher_rechnet_die_nacht(haus):
