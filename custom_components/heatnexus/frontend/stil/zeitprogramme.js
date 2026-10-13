@@ -26,8 +26,9 @@ export const ZEITPROGRAMME = `
     font: inherit; font-size: 14px; font-weight: 600;
     color: var(--hn-text);
   }
-  .zahl-feld input:focus {
-    outline: none; border-color: var(--hn-akzent);
+  .zahl-feld input:focus-visible {
+    outline: 2px solid var(--hn-akzent); outline-offset: 1px;
+    border-color: var(--hn-akzent);
     background: color-mix(in srgb, var(--hn-akzent) 12%, transparent);
   }
   .zahl-feld input::-webkit-outer-spin-button,
@@ -47,6 +48,11 @@ export const ZEITPROGRAMME = `
   }
   .zahl-pfeil:hover { background: color-mix(in srgb, var(--hn-akzent) 18%, transparent); border-color: var(--hn-akzent); }
   .zahl-pfeil:active { background: color-mix(in srgb, var(--hn-akzent) 30%, transparent); }
+  .zahl-pfeil:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 1px; }
+  /* Am Telefon braucht ein Finger mehr Fläche als ein Mauszeiger. */
+  @media (max-width: 700px) {
+    .zahl-pfeil { width: 40px; height: 24px; font-size: 13px; }
+  }
   .zeitraster { display: flex; flex-direction: column; gap: 4px; }
   .zeitraster-skala {
     display: flex; justify-content: space-between;
