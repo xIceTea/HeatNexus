@@ -593,3 +593,16 @@ async def test_die_climate_entitaet_liest_nur_ihre_eigenen_werte_nach():
     await entitaet.async_update()
 
     assert koordinator.nachgelesen == [["/1/15/0/1/1/0"]]
+
+
+def test_select_macht_doppelte_beschriftungen_unterscheidbar(select_klasse):
+    entity, koordinator = _entitaet(
+        select_klasse,
+        {"/1/60/0/9/75/0": "6"},
+        type="select",
+        enum_texte={4: "Auto", 6: "Auto"},
+    )
+    assert len(set(entity.options)) == len(entity.options) == 2
+    assert entity.current_option == "Auto (6)"
+    asyncio.run(entity.async_select_option("Auto (6)"))
+    assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "6")]

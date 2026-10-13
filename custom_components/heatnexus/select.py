@@ -50,9 +50,13 @@ class WindhagerSelect(WindhagerEntity, SelectEntity):
             }
         self._label_to_value: dict[str, int] = {}
         for value, label in sorted(self._value_to_label.items()):
-            # first value wins if labels are duplicated
-            self._label_to_value.setdefault(label, value)
+            # Doppelte Beschriftungen bekommen den Wert dazu, damit jede Option wählbar bleibt.
+            if label in self._label_to_value:
+                label = f"{label} ({value})"
+                self._value_to_label[value] = label
+            self._label_to_value[label] = value
         self._attr_options = [self._value_to_label[v] for v in sorted(self._value_to_label)]
+        self._unbekannt_gemeldet: int | None = None
 
     @property
     def current_option(self) -> str | None:
@@ -60,7 +64,8 @@ class WindhagerSelect(WindhagerEntity, SelectEntity):
         if raw is None:
             return None
         label = self._value_to_label.get(raw)
-        if label is None:
+        if label is None and raw != self._unbekannt_gemeldet:
+            self._unbekannt_gemeldet = raw
             _LOGGER.debug(
                 "Enum-Wert %s steht nicht in der Tabelle für %s (%s)", raw, self.name, self._oid
             )

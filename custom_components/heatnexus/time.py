@@ -41,11 +41,17 @@ class WindhagerTime(WindhagerEntity, TimeEntity):
     """Writable time datapoint (e.g. Zuführung Freigabezeit)."""
 
     _require_value_for_available = False
+    _unlesbar_gemeldet: str | None = None
 
     @property
     def native_value(self) -> dt_time | None:
         value = parse_time(self.raw_value)
-        if value is None and self.raw_value is not None:
+        if (
+            value is None
+            and self.raw_value is not None
+            and self.raw_value != self._unlesbar_gemeldet
+        ):
+            self._unlesbar_gemeldet = self.raw_value
             _LOGGER.debug(
                 "Uhrzeit %r von %s (%s) nicht lesbar",
                 self.raw_value,
