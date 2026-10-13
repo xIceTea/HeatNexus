@@ -144,12 +144,19 @@ def zustand(bild: int) -> dict:
 # Die Ebenen über dem Bild – dieselbe Aufteilung wie `frontend/teile/schaubild.js`
 # ---------------------------------------------------------------------------
 def _stil() -> str:
-    """Das Stylesheet der Oberfläche aus `stil.js` herausholen."""
+    """Das Stylesheet der Oberfläche aus den Teildateien von `stil.js` herausholen."""
     quelle = STIL_DATEI.read_text(encoding="utf-8")
-    treffer = re.search(r"export const STIL = `(.*)`;", quelle, re.S)
-    if not treffer:
-        raise SystemExit("STIL in stil.js nicht gefunden.")
-    return treffer.group(1)
+    teile = re.findall(r'from "\./(stil/[a-z]+\.js)"', quelle)
+    if not teile:
+        raise SystemExit("Teilstile in stil.js nicht gefunden.")
+    ergebnis = []
+    for teil in teile:
+        text = (STIL_DATEI.parent / teil).read_text(encoding="utf-8")
+        treffer = re.search(r"export const [A-Z]+ = `(.*)`;", text, re.S)
+        if not treffer:
+            raise SystemExit(f"Stil in {teil} nicht gefunden.")
+        ergebnis.append(treffer.group(1))
+    return "".join(ergebnis)
 
 
 # Die Temperaturfarben des dunklen Satzes. Sie stehen als Vorgabe hier, weil

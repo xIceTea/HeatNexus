@@ -6,8 +6,10 @@ from pathlib import Path
 import re
 
 WURZEL = Path(__file__).resolve().parents[1]
-STIL = (WURZEL / "custom_components" / "heatnexus" / "frontend" / "stil.js").read_text(
-    encoding="utf-8"
+FRONTEND = WURZEL / "custom_components" / "heatnexus" / "frontend"
+# Die Teilstile liegen in `frontend/stil/`; `stil.js` setzt sie zusammen.
+STIL = "".join(
+    datei.read_text(encoding="utf-8") for datei in sorted((FRONTEND / "stil").glob("*.js"))
 )
 
 
