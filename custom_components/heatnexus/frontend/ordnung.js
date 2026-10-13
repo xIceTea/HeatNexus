@@ -108,6 +108,10 @@ export const FARBSATZ_SPEICHER = "heatnexus.farbsatz";
 // Karte beim Öffnen leer, bis die Anlagendaten über WebSocket da sind.
 export const SCHAUBILD_SPEICHER = "heatnexus.schaubild";
 
+// Unter diesem Schlüssel liegt die Linienwahl der Verlaufskarten: in den
+// Nutzerdaten von Home Assistant, ohne sie im Browserspeicher.
+export const LINIEN_SPEICHER = "heatnexus.verlauf_linien";
+
 export const FARBSAETZE = [
   { schluessel: "auto", titel: "Auto", hinweis: "Folgt dem Erscheinungsbild von Home Assistant" },
   { schluessel: "dunkel", titel: "Dunkel", hinweis: "Graphit mit blauem Akzent" },

@@ -927,5 +927,12 @@
   "Seriennummer": "Serienummer",
   "Rücklaufhochhaltung": "Retourtemperatuurverhoging",
   "Rücklaufhochhaltung Stellwert": "Retourtemperatuurverhoging stuurwaarde",
-  "Geräteidentifikation": "Apparaatidentificatie"
+  "Geräteidentifikation": "Apparaatidentificatie",
+  "Standard": "Standaard",
+  "Vorauswahl der Integration wiederherstellen": "Standaardselectie van de integratie herstellen",
+  "{name} entfernen": "{name} verwijderen",
+  "Keine Linie gewählt.": "Geen lijn gekozen.",
+  "Linie hinzufügen …": "Lijn toevoegen …",
+  "Sensor für den Verlauf suchen": "Sensor voor de geschiedenis zoeken",
+  "Kein Sensor passt zu dieser Suche.": "Geen sensor past bij deze zoekopdracht."
 }

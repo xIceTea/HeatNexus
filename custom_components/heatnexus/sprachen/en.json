@@ -922,5 +922,12 @@
   "Seriennummer": "Serial number",
   "Rücklaufhochhaltung": "Return temperature boost",
   "Rücklaufhochhaltung Stellwert": "Return temperature boost output",
-  "Geräteidentifikation": "Device identification"
+  "Geräteidentifikation": "Device identification",
+  "Standard": "Standard",
+  "Vorauswahl der Integration wiederherstellen": "Restore the integration's default selection",
+  "{name} entfernen": "Remove {name}",
+  "Keine Linie gewählt.": "No line selected.",
+  "Linie hinzufügen …": "Add line …",
+  "Sensor für den Verlauf suchen": "Search a sensor for the history",
+  "Kein Sensor passt zu dieser Suche.": "No sensor matches this search."
 }

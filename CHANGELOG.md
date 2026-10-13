@@ -14,6 +14,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Fenster halten den Tastaturfokus und schließen mit Escape.
 - Reiter und Zahlenfelder zeigen einen sichtbaren Fokusrahmen.
 - Der Abschlussdialog der Einrichtung nennt das einmalige Neuladen der Seite.
+- Linien im Verlauf lassen sich suchen, einzeln entfernen und auf Standard zurücksetzen ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
+- Die gewählten Linien im Verlauf bleiben nach dem Neuladen der Seite erhalten ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
 
 ### Geändert
 

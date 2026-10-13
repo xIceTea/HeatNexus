@@ -175,6 +175,7 @@ class HeatNexusPanel extends Grundlage {
     if (erster) {
       this._datenHolen();
       this._anordnungHolen();
+      this._linienHolen();
     }
     if (!erster && this._gebaut && !this._hassGeaendert(vorher, hass)) return;
     this._zeichnenPlanen();

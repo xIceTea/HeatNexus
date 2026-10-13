@@ -399,18 +399,48 @@ export const SCHAUBILD = `
     border-radius: 0.55em; white-space: nowrap;
   }
 
-  .linienwahl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .linienwahl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .linie {
-    padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px;
-    font-weight: 600; cursor: pointer; color: inherit; opacity: 0.45;
-    background: var(--hn-flaeche);
-    border: 1px solid var(--hn-linie);
-  }
-  .linie:hover { opacity: 0.8; }
-  .linie[aria-pressed="true"] {
-    opacity: 1; color: var(--hn-akzent);
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 4px 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    color: var(--hn-akzent);
     background: color-mix(in srgb, var(--hn-akzent) 15%, transparent);
-    border-color: color-mix(in srgb, var(--hn-akzent) 45%, transparent);
+    border: 1px solid color-mix(in srgb, var(--hn-akzent) 45%, transparent);
   }
+  .linie-weg {
+    width: 20px; height: 20px; padding: 0; border: none; border-radius: 50%;
+    font: inherit; font-size: 14px; line-height: 1; cursor: pointer;
+    color: inherit; background: transparent;
+  }
+  .linie-weg:hover { background: color-mix(in srgb, var(--hn-akzent) 25%, transparent); }
+  .linie-weg:focus-visible, .linien-standard:focus-visible, .linien-suche:focus-visible {
+    outline: 2px solid var(--hn-akzent); outline-offset: 2px;
+  }
+  .linien-leer { font-size: 12px; color: var(--hn-gedaempft); padding: 4px 0; }
+  .linien-werkzeuge { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 12px; }
+  .linien-suche-huelle { position: relative; flex: 1; min-width: 0; }
+  .linien-suche {
+    width: 100%; box-sizing: border-box; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid var(--hn-linie); background: var(--hn-flaeche); color: inherit; font: inherit;
+  }
+  .linien-vorschlaege {
+    position: absolute; z-index: 3; left: 0; right: 0; top: calc(100% + 4px);
+    margin: 0; padding: 4px 0; list-style: none; max-height: 280px; overflow-y: auto;
+    border-radius: 8px; border: 1px solid var(--hn-linie);
+    background: var(--hn-karte);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  .linien-vorschlaege[hidden], .linien-standard[hidden] { display: none; }
+  .linien-vorschlag { display: flex; flex-direction: column; padding: 6px 10px; cursor: pointer; }
+  .linien-vorschlag small { color: var(--hn-gedaempft); font-size: 11px; overflow-wrap: anywhere; }
+  .linien-vorschlag[aria-selected="true"], .linien-vorschlag:hover {
+    background: color-mix(in srgb, var(--hn-akzent) 15%, transparent);
+  }
+  .linien-vorschlag.leer { cursor: default; color: var(--hn-gedaempft); background: none; }
+  .linien-standard {
+    padding: 6px 12px; border-radius: 8px; font: inherit; font-size: 12px; font-weight: 600;
+    cursor: pointer; color: inherit; background: var(--hn-flaeche); border: 1px solid var(--hn-linie);
+  }
+  .linien-standard:hover { border-color: var(--hn-akzent); }
   .gitter { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 `;
