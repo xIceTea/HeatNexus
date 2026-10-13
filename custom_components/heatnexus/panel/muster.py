@@ -212,14 +212,17 @@ SCHNELLZUGRIFF: tuple[Zeile, ...] = (
         ("main_cleaning_done",),
     ),
     (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ("service_burnout",)),
-    (r"kaminkehrerbetrieb", "Kaminkehrer", "mdi:account-hard-hat", ("chimney_sweep",)),
+    (r"kaminkehrer starten", "Kaminkehrer", "mdi:account-hard-hat", ("chimney_sweep",)),
     (r"betriebswahl", "Betriebswahl", "mdi:tune", ("mode_selection",)),
     (r"gew(ä|ae)hlter brennstoff", "Brennstoff wählen", "mdi:sack", ("fuel_selected",)),
 )
 
 # Die Leistung, mit der die Kaminkehrerfunktion fährt. Sie wird vor dem
 # Auslösen abgefragt, weil die Messung an genau diesem Wert hängt.
-KAMINKEHRER = namensmuster(r"kaminkehrerbetrieb")
+KAMINKEHRER = namensmuster(r"kaminkehrer starten")
+KAMINKEHRER_BEENDEN = namensmuster(r"kaminkehrer beenden")
+# Ob ein Eingriff läuft, steht in der Betriebswahl des Kessels (`9/75`).
+BETRIEBSWAHL_KESSEL = namensmuster(r"^betriebswahl kessel$")
 KAMINKEHRER_LEISTUNG = namensmuster(r"kaminkehrer leistung")
 KAMINKEHRER_LAUFZEIT = namensmuster(r"kaminkehrer laufzeit")
 
@@ -312,6 +315,7 @@ STOERUNGSMELDER = namensmuster(r"st(ö|oe)rung gemeldet")
 # Kesseltemperatur bzw. Vorratsbehälter-Status, Restlaufzeit, der Freigabe
 # („freigegeben"/„gesperrt") und der Betriebsphase – in dieser Reihenfolge.
 LAGERRAUM_ANFORDERN = namensmuster(r"lagerraumbef(ü|ue)llung anfordern")
+LAGERRAUM_BEENDEN = namensmuster(r"lagerraumbef(ü|ue)llung beenden")
 LAGERRAUM_ZEILEN: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (r"kesseltemperatur ist", "Kesseltemperatur", ("boiler_temperature",)),
     (r"vorratsbeh", "Vorratsbehälter", ("fuel_storage_status",)),
@@ -352,7 +356,7 @@ KESSEL_BEDIENUNG: tuple[Zeile, ...] = (
         ("maintenance_done",),
     ),
     (r"serviceausbrand", "Serviceausbrand", "mdi:fire-off", ("service_burnout",)),
-    (r"kaminkehrerbetrieb", "Kaminkehrer", "mdi:account-hard-hat", ("chimney_sweep",)),
+    (r"kaminkehrer starten", "Kaminkehrer", "mdi:account-hard-hat", ("chimney_sweep",)),
 )
 
 # ---------------------------------------------------------------------------

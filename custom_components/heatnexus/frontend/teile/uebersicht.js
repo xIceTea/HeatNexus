@@ -560,7 +560,7 @@ export const UebersichtMixin = (Basis) =>
       // Läuft die Ladung, sagt die Taste, was ein Druck jetzt bewirkt.
       const abbrechbar =
         an && !!eintrag.titel_abbrechen && !!(eintrag.betriebswahl || this._ausloeserAbschaltbar(eintrag));
-      beschriftung.textContent = abbrechbar ? eintrag.titel_abbrechen : eintrag.titel;
+      beschriftung.textContent = this._t(abbrechbar ? eintrag.titel_abbrechen : eintrag.titel);
       taste.classList.toggle("abbrechen", abbrechbar);
       // **Kein zweiter Druck, solange der erste noch unterwegs ist.** Er
       // träfe auf den alten Zustand und kehrte den ersten wieder um.
@@ -795,9 +795,10 @@ export const UebersichtMixin = (Basis) =>
     return this._istAn(eintrag.entity);
   }
 
-  /** Ein Schalter oder eine Auswahl Nein/Ja lässt sich zurücknehmen. */
+  /** Ein Schalter, eine Auswahl Nein/Ja oder eine Taste mit Gegentaste lässt sich zurücknehmen. */
   _ausloeserAbschaltbar(eintrag) {
     const bereich = (eintrag.entity || "").split(".")[0];
+    if (bereich === "button") return !!eintrag.abbrechen;
     return bereich === "switch" || (bereich === "select" && !!eintrag.aus_option);
   }
 
@@ -810,7 +811,9 @@ export const UebersichtMixin = (Basis) =>
   }
 
   async _ausloeserAus(eintrag) {
-    if (eintrag.entity.startsWith("select.")) {
+    if (eintrag.abbrechen) {
+      await this._hass.callService("button", "press", { entity_id: eintrag.abbrechen });
+    } else if (eintrag.entity.startsWith("select.")) {
       await this._hass.callService("select", "select_option", { entity_id: eintrag.entity, option: eintrag.aus_option });
     } else {
       await this._hass.callService("switch", "turn_off", { entity_id: eintrag.entity });

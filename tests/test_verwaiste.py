@@ -422,12 +422,16 @@ def test_bewusst_entfallene_zeilen_werden_nur_in_ihrer_domaene_geloescht(
     ("domaene", "kennung", "erwartet"),
     [
         ("switch", "SN1-2-0-automatik-schalter", True),
+        ("switch", "SN1-25-9-75-0-kaminkehrer", True),
+        ("switch", "SN1-25-9-75-0-befuellen", True),
+        ("button", "SN1-25-9-75-0-kaminkehrer", False),
+        ("switch", "SN1-25-9-75-0-ein_aus", False),
         ("select", "SN1-2-0-automatik-modus", False),
         ("sensor", "SN1-2-0-automatik-schalter", False),
     ],
 )
 def test_ein_ersetzter_eintrag_wird_geloescht(domaene, kennung, erwartet):
-    """Der Schalter der Automatik ging in der Auswahl auf; seine Waise ist kein Fall für den Hinweis."""
+    """Ersetzte Schalter sind kein Fall für den Hinweis; ihr Nachfolger bleibt."""
     from custom_components.heatnexus import stilllegung
 
     eintrag = SimpleNamespace(domain=domaene, unique_id=kennung)

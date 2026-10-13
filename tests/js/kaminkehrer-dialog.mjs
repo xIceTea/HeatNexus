@@ -21,16 +21,20 @@ await import(pathToFileURL(pfadPanel).href);
 const [klasse] = [...globalThis.customElements._klassen.values()];
 if (!klasse) throw new Error("Die Oberfläche hat kein Element angemeldet");
 
-const AUSLOESER = "switch.kaminkehrerbetrieb";
+const AUSLOESER = "button.kaminkehrer_starten";
+const BEENDEN = "button.kaminkehrer_beenden";
+const WAHL = "sensor.betriebswahl_kessel";
 const LEISTUNG = "number.kaminkehrer_leistung";
 const LAUFZEIT = "number.kaminkehrer_laufzeit";
 
-function panelBauen({ laufzeit = LAUFZEIT } = {}) {
+function panelBauen({ laufzeit = LAUFZEIT, wahl = "EIN" } = {}) {
   const element = new klasse();
   const gerufen = [];
   element._hass = {
     states: {
-      [AUSLOESER]: { entity_id: AUSLOESER, state: "off", attributes: {} },
+      [AUSLOESER]: { entity_id: AUSLOESER, state: "unknown", attributes: {} },
+      [BEENDEN]: { entity_id: BEENDEN, state: "unknown", attributes: {} },
+      [WAHL]: { entity_id: WAHL, state: wahl, attributes: {} },
       [LEISTUNG]: {
         entity_id: LEISTUNG,
         state: "50",
@@ -52,6 +56,11 @@ function panelBauen({ laufzeit = LAUFZEIT } = {}) {
     symbol: "mdi:account-hard-hat",
     frage: "Der Kessel fährt auf feste Leistung.",
     leistung: LEISTUNG,
+    titel_abbrechen: "Kaminkehrer beenden",
+    frage_abbrechen: "Der Kessel kehrt in den normalen Betrieb zurück.",
+    abbrechen: BEENDEN,
+    zustand_an: WAHL,
+    zustand_wenn: ["Kaminkehrer"],
     ...(laufzeit ? { laufzeit } : {}),
   };
   const taste = element._bedientaste(eintrag, false);
@@ -128,4 +137,21 @@ const faelle = [];
   faelle.push("ohne Laufzeit: nur die Leistung");
 }
 
-process.stdout.write(JSON.stringify({ faelle }, null, 2));
+// --- Läuft der Kaminkehrer, drückt die Kachel die Taste zum Beenden ----------
+{
+  const { element, taste, gerufen } = panelBauen({ wahl: "Kaminkehrer" });
+  taste.ausloesen("click");
+  await abwarten();
+  knopf(element, "Kaminkehrer beenden").ausloesen("click");
+  await abwarten();
+
+  const gedrueckt = gerufen.filter((ruf) => ruf.bereich === "button" && ruf.dienst === "press");
+  if (gedrueckt.length !== 1 || gedrueckt[0].daten.entity_id !== BEENDEN) {
+    throw new Error(`Beenden drückte ${JSON.stringify(gedrueckt)}`);
+  }
+  if (gerufen.some((ruf) => ruf.dienst === "set_value")) throw new Error("Beenden schrieb Werte");
+  faelle.push("läuft: Beenden drückt die Gegentaste");
+}
+
+// Das Nachsetzen des Abbruchs wartet auf Zeitgeber; die Fälle stehen fest.
+process.stdout.write(JSON.stringify({ faelle }, null, 2), () => process.exit(0));

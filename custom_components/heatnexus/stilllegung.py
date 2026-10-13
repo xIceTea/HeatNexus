@@ -126,8 +126,15 @@ BEWUSST_ENTFALLEN: frozenset[tuple[str, str]] = frozenset(
 )
 
 # Einzelne Entitäten, die HeatNexus durch eine andere ersetzt hat: Domäne und Kennungsende.
-# Der Schalter der Automatik ging in der Auswahl „Automatik-Modus" auf.
-ERSETZT: frozenset[tuple[str, str]] = frozenset({("switch", "-automatik-schalter")})
+# Der Schalter der Automatik ging in der Auswahl „Automatik-Modus" auf, die Schalter für
+# Kaminkehrer und Lagerraumbefüllung in Tasten.
+ERSETZT: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("switch", "-automatik-schalter"),
+        ("switch", "-9-75-0-kaminkehrer"),
+        ("switch", "-9-75-0-befuellen"),
+    }
+)
 
 
 def endgueltig_weg(eintrag: er.RegistryEntry, umfaenge: dict[str, dict]) -> bool:

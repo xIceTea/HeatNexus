@@ -18,6 +18,7 @@ from .muster import (
     BETRIEBSART,
     BETRIEBSART_URLAUB,
     BETRIEBSWAHL,
+    BETRIEBSWAHL_KESSEL,
     BETRIEBSWAHL_STANDBY,
     BETRIEBSWAHL_STANDBY_WERT,
     BETRIEBSWAHL_WW,
@@ -26,10 +27,12 @@ from .muster import (
     EINMALLADUNG,
     EINMALLADUNG_TEMPERATUR,
     KAMINKEHRER,
+    KAMINKEHRER_BEENDEN,
     KAMINKEHRER_LAUFZEIT,
     KAMINKEHRER_LEISTUNG,
     KESSEL_BEDIENUNG,
     LAGERRAUM_ANFORDERN,
+    LAGERRAUM_BEENDEN,
     LAGERRAUM_ZEILEN,
     UEBERSTEUERUNG_DAUER,
     UEBERSTEUERUNG_TEMPERATUR,
@@ -214,6 +217,27 @@ def warmwasser_bedienung(alle: list[dict[str, Any]], kreis: list[dict[str, Any]]
     }
 
 
+# Werte der Betriebswahl `9/75`, solange der Eingriff läuft; der Text dient als Rückfall.
+KAMINKEHRER_WERT, KAMINKEHRER_TEXT = 3, "Kaminkehrer"
+BEFUELLEN_WERT, BEFUELLEN_TEXT = 7, "Lagerraum befüllen"
+
+
+def eingriff_bedienung(
+    entitaeten: list[dict[str, Any]], beenden: tuple, wert: int, text: str
+) -> dict[str, Any]:
+    """Die Taste, die einen Eingriff beendet, und woran die Kachel erkennt, dass er läuft."""
+    taste = kennung_suchen(entitaeten, beenden, ("button",))
+    wahl = eintrag_suchen(entitaeten, BETRIEBSWAHL_KESSEL, ("sensor",))
+    if taste is None or wahl is None:
+        return {}
+    texte = _optionstexte(wahl, wert)
+    return {
+        "abbrechen": taste,
+        "zustand_an": wahl["entity_id"],
+        "zustand_wenn": [*texte, *([text] if text not in texte else [])],
+    }
+
+
 def kaminkehrer_bedienung(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
     """Die Leistung, mit der die Kaminkehrerfunktion fährt.
 
@@ -229,6 +253,9 @@ def kaminkehrer_bedienung(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
             "Eine laufende Abgasmessung gilt danach nicht mehr."
         ),
     }
+    bedienung.update(
+        eingriff_bedienung(entitaeten, KAMINKEHRER_BEENDEN, KAMINKEHRER_WERT, KAMINKEHRER_TEXT)
+    )
     if leistung := kennung_suchen(entitaeten, KAMINKEHRER_LEISTUNG, ("number",)):
         bedienung["leistung"] = leistung
     # Die Laufzeit steht nur dann als Feld im Dialog, wenn die Anlage sie
@@ -374,6 +401,7 @@ def _lagerraum_karte(alle: list[dict[str, Any]]) -> dict[str, Any] | None:
         return None
     return {
         "anfordern": anfordern,
+        **eingriff_bedienung(alle, LAGERRAUM_BEENDEN, BEFUELLEN_WERT, BEFUELLEN_TEXT),
         "titel_abbrechen": "Befüllung beenden",
         "frage_abbrechen": (
             "Erst beenden, wenn die Befüllung abgeschlossen ist. Das Rührwerk steht danach still."

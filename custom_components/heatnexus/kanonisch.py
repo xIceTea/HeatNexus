@@ -186,7 +186,9 @@ GESCHWISTER: dict[tuple[str, str | None], str] = {
     ("39/94", "wartung"): "maintenance_done",
     ("39/94", "hauptreinigung_asche"): "main_cleaning_ash_done",
     ("9/75", "kaminkehrer"): "chimney_sweep",
+    ("9/75", "kaminkehrer_aus"): "chimney_sweep_stop",
     ("9/75", "befuellen"): "storage_fill",
+    ("9/75", "befuellen_aus"): "storage_fill_stop",
 }
 
 

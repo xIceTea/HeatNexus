@@ -1122,7 +1122,7 @@ def test_der_kaminkehrer_fragt_nach_der_leistung(panel, kessel_und_heizkreis):
         if anlagenteil["fct_type"] != 25:
             continue
         anlagenteil["entitaeten"] += [
-            entitaet("switch.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
+            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
             entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
         ]
 
@@ -1140,7 +1140,7 @@ def test_der_kaminkehrer_fragt_auch_nach_der_laufzeit(panel, kessel_und_heizkrei
         if anlagenteil["fct_type"] != 25:
             continue
         anlagenteil["entitaeten"] += [
-            entitaet("switch.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
+            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
             entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
             entitaet("number.kaminkehrer_laufzeit", "Kaminkehrer Laufzeit"),
         ]
@@ -1158,7 +1158,7 @@ def test_eine_schreibgeschuetzte_laufzeit_bleibt_aus_dem_dialog(panel, kessel_un
         if anlagenteil["fct_type"] != 25:
             continue
         anlagenteil["entitaeten"] += [
-            entitaet("switch.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
+            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
             entitaet("sensor.kaminkehrer_laufzeit", "Kaminkehrer Laufzeit"),
         ]
 
@@ -1174,8 +1174,8 @@ def test_das_beenden_eines_eingriffs_kuendigt_sich_an(panel, kessel_und_heizkrei
         if anlagenteil["fct_type"] != 25:
             continue
         anlagenteil["entitaeten"] += [
-            entitaet("switch.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
-            entitaet("switch.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
+            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
+            entitaet("button.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
         ]
 
     daten = panel.anlage_daten(kessel_und_heizkreis)
@@ -1186,24 +1186,52 @@ def test_das_beenden_eines_eingriffs_kuendigt_sich_an(panel, kessel_und_heizkrei
     assert daten["steuerung"]["lagerraum"]["frage_abbrechen"]
 
 
-def test_die_lagerraumkarte_nimmt_auch_einen_schalter(panel, kessel_und_heizkreis):
-    """Der Eingriff ist ein Zustand der Betriebswahl, also ein Schalter.
-
-    Suchte die Karte weiterhin nur nach einer Taste, bliebe sie leer.
-    """
+def test_die_lagerraumkarte_beendet_ueber_die_gegentaste(panel, kessel_und_heizkreis):
+    """Ob die Befüllung läuft, steht in der Betriebswahl; beendet wird sie mit der zweiten Taste."""
     for anlagenteil in kessel_und_heizkreis["teile"]:
         if anlagenteil["fct_type"] != 25:
             continue
         anlagenteil["entitaeten"] += [
-            entitaet("switch.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
+            entitaet("button.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
+            entitaet("button.lagerraumbefuellung_beenden", "Lagerraumbefüllung beenden"),
+            entitaet(
+                "sensor.betriebswahl_kessel",
+                "Betriebswahl Kessel",
+                optionen={1: "EIN", 3: "Kaminkehrer", 7: "Lagerraum befüllen"},
+            ),
             entitaet("sensor.lagerraum_restlaufzeit", "Lagerraumbefüllung Restlaufzeit"),
         ]
 
     lagerraum = panel.anlage_daten(kessel_und_heizkreis)["steuerung"]["lagerraum"]
 
-    assert lagerraum["anfordern"] == "switch.lagerraumbefuellung"
+    assert lagerraum["anfordern"] == "button.lagerraumbefuellung"
+    assert lagerraum["abbrechen"] == "button.lagerraumbefuellung_beenden"
+    assert lagerraum["zustand_an"] == "sensor.betriebswahl_kessel"
+    assert lagerraum["zustand_wenn"] == ["Lagerraum befüllen"]
     assert lagerraum["titel_abbrechen"]
     assert "Restlaufzeit" in [z["titel"] for z in lagerraum["zeilen"]]
+
+
+def test_der_kaminkehrer_endet_ueber_seine_gegentaste(panel, kessel_und_heizkreis):
+    """Die Kachel liest den Zustand aus der Betriebswahl und drückt zum Beenden die zweite Taste."""
+    for anlagenteil in kessel_und_heizkreis["teile"]:
+        if anlagenteil["fct_type"] != 25:
+            continue
+        anlagenteil["entitaeten"] += [
+            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
+            entitaet("button.kaminkehrer_beenden", "Kaminkehrer beenden"),
+            entitaet(
+                "sensor.betriebswahl_kessel", "Betriebswahl Kessel", optionen={3: "Chimney sweep"}
+            ),
+        ]
+
+    daten = panel.anlage_daten(kessel_und_heizkreis)
+    taste = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
+
+    assert taste["entity"] == "button.kaminkehrer_starten"
+    assert taste["abbrechen"] == "button.kaminkehrer_beenden"
+    assert taste["zustand_an"] == "sensor.betriebswahl_kessel"
+    assert taste["zustand_wenn"] == ["Chimney sweep", "Kaminkehrer"]
 
 
 def test_der_kaminkehrer_steht_auch_in_der_steuerung(panel, kessel_und_heizkreis):
@@ -1212,7 +1240,7 @@ def test_der_kaminkehrer_steht_auch_in_der_steuerung(panel, kessel_und_heizkreis
         if anlagenteil["fct_type"] != 25:
             continue
         anlagenteil["entitaeten"] += [
-            entitaet("switch.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
+            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
             entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
         ]
 
@@ -1368,7 +1396,7 @@ def test_englische_namen_ergeben_dieselbe_oberflaeche(panel, kessel_und_heizkrei
     """Muster, Rückfragen und Hilfetexte greifen am deutschen Namen der Entität."""
     kessel, heizkreis = kessel_und_heizkreis["teile"]
     kessel["entitaeten"] += [
-        entitaet("button.kaminkehrerbetrieb", "Kaminkehrerbetrieb"),
+        entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
         entitaet("number.kaminkehrer_leistung", "Kaminkehrer Leistung"),
         entitaet("binary_sensor.stoerung_gemeldet", "Störung gemeldet", kategorie="diagnostic"),
     ]

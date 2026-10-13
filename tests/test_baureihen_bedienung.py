@@ -170,7 +170,8 @@ def test_eingriffe_auf_der_kesselbetriebswahl_passen_zu_jedem_geraet():
                 if fct_type == modul.FCT_TYPE:
                     geprueft += 1
                     assert {int(w) for w in werte} <= angeboten, (baureihe, d["name"], werte)
-            # Name und Herstellertext des geschriebenen Werts meinen dasselbe.
+            # Name und Herstellertext des geschriebenen Werts meinen dasselbe; `…_aus` kehrt auf EIN zurück.
             wort = texte[int(werte[0])].lower().split()[0][:8]
-            assert wort in d["name"].lower() or d.get("key_suffix") == "ein_aus", (d["name"], wort)
+            rueckkehr = str(d.get("key_suffix") or "").endswith("_aus")
+            assert wort in d["name"].lower() or rueckkehr, (d["name"], wort)
     assert geprueft, "kein Eingriff auf 9/75 geprüft"

@@ -78,7 +78,7 @@ def aufteilung() -> dict:
             _entitaet("sensor.laufzeit_asche", "Laufzeit bis Ascheentleerung"),
             _entitaet("sensor.betriebsstunden", "Betriebsstunden", state_class="total_increasing"),
             _entitaet("button.serviceausbrand", "Serviceausbrand"),
-            _entitaet("switch.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
+            _entitaet("button.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
             _entitaet("select.gewaehlter_brennstoff", "Gewählter Brennstoff"),
             _entitaet("switch.kaminkehrer", "Kaminkehrer"),
             _entitaet("sensor.meldung_klartext", "Meldung Klartext", kategorie="diagnostic"),
@@ -572,6 +572,11 @@ def test_ein_abgebrochener_dialog_schreibt_nichts(dialog):
 def test_ohne_schreibbare_laufzeit_bleibt_ein_feld(dialog):
     """Meldet die Anlage Schreibschutz, fehlt das zweite Feld."""
     assert "ohne Laufzeit: nur die Leistung" in dialog["faelle"]
+
+
+def test_ein_laufender_kaminkehrer_endet_ueber_die_gegentaste(dialog):
+    """Die Kachel liest den Zustand aus der Betriebswahl und drückt zum Beenden die zweite Taste."""
+    assert "läuft: Beenden drückt die Gegentaste" in dialog["faelle"]
 
 
 def test_unter_der_stoerung_steht_die_abhilfe(durchlauf):

@@ -254,6 +254,8 @@ def test_ohne_zusatz_entscheidet_die_art_der_entitaet(kanonisch):
     assert kanonisch.schluessel("abc123-1-9-75-0") is None
     assert kanonisch.schluessel("abc123-1-9-75-0-kaminkehrer") == "chimney_sweep"
     assert kanonisch.schluessel("abc123-1-9-75-0-befuellen") == "storage_fill"
+    assert kanonisch.schluessel("abc123-1-9-75-0-kaminkehrer_aus") == "chimney_sweep_stop"
+    assert kanonisch.schluessel("abc123-1-9-75-0-befuellen_aus") == "storage_fill_stop"
 
 
 def test_ableitung_bleibt_von_geschwistern_unberuehrt(kanonisch):

@@ -338,31 +338,42 @@ ENTITAETEN: list[dict] = [
         "category": "config",
         "icon": "mdi:power",
     },
-    # Ein Schalter, kein Auslöser: Die Anlage bleibt in Betriebswahl 3, bis
-    # jemand zurückschaltet oder die Laufzeit aus `37/53` abgelaufen ist.
-    # Ausschalten heißt Betriebswahl 1, also normaler Betrieb.
+    # Kaminkehrer (3) und Lagerraumbefüllung (7) halten die Betriebswahl, bis
+    # jemand zurückschaltet. Je Eingriff eine Taste zum Starten und eine, die
+    # mit 1 in den normalen Betrieb zurückkehrt; ob er läuft, zeigt `9/75`.
     {
         "oid": "/9/75/0",
-        "name": "Kaminkehrerbetrieb",
-        "platform": "switch",
-        "ein_wert": "3",
-        "aus_wert": "1",
+        "name": "Kaminkehrer starten",
+        "platform": "button",
+        "press_value": "3",
         "key_suffix": "kaminkehrer",
-        "poll_class": "fast",
         "category": "config",
         "icon": "mdi:account-hard-hat",
     },
-    # Wie der Kaminkehrer ein Zustand der Betriebswahl, kein Auslöser: Die
-    # Anlage bleibt auf 7, bis jemand zurückschaltet. Ausschalten heißt
-    # Betriebswahl 1, also normaler Betrieb.
+    {
+        "oid": "/9/75/0",
+        "name": "Kaminkehrer beenden",
+        "platform": "button",
+        "press_value": "1",
+        "key_suffix": "kaminkehrer_aus",
+        "category": "config",
+        "icon": "mdi:account-hard-hat",
+    },
     {
         "oid": "/9/75/0",
         "name": "Lagerraumbefüllung anfordern",
-        "platform": "switch",
-        "ein_wert": "7",
-        "aus_wert": "1",
+        "platform": "button",
+        "press_value": "7",
         "key_suffix": "befuellen",
-        "poll_class": "fast",
+        "category": "config",
+        "icon": "mdi:warehouse",
+    },
+    {
+        "oid": "/9/75/0",
+        "name": "Lagerraumbefüllung beenden",
+        "platform": "button",
+        "press_value": "1",
+        "key_suffix": "befuellen_aus",
         "category": "config",
         "icon": "mdi:warehouse",
     },

@@ -22,8 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 class WindhagerSwitch(WindhagerEntity, SwitchEntity):
     """Schreibbarer Datenpunkt mit zwei Zuständen.
 
-    Ab Werk 1 und 0. Eine Betriebswahl kennt andere Werte: Der Kaminkehrer
-    steht auf 3 und kehrt mit 1 in den normalen Betrieb zurück.
+    Ab Werk 1 und 0; `ein_wert` und `aus_wert` in der Beschreibung setzen andere Werte.
     """
 
     _require_value_for_available = False

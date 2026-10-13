@@ -534,7 +534,7 @@ def test_der_kaminkehrer_schreibt_drei_auf_die_betriebswahl():
 
 
 async def test_ein_schalter_mit_eigenen_werten(schalter_modul):
-    """Der Kaminkehrer ist eine Betriebswahl: 3 heißt ein, 1 heißt aus."""
+    """Eine Betriebswahl als Schalter: 3 heißt ein, 1 heißt aus."""
     entitaet, koordinator = _entitaet(
         schalter_modul.WindhagerSwitch,
         {"/1/60/0/9/75/0": "3"},
