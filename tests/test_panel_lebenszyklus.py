@@ -77,3 +77,19 @@ def test_escape_schliesst_das_fenster_und_loest_den_hoerer(befund):
 def test_der_abbau_schliesst_offene_fenster(befund):
     assert befund["fensterNachAbbau"] == 0
     assert befund["tastenhoererNachAbbau"] == 0
+
+
+def test_reiter_haben_roving_tabindex_und_flaeche(befund):
+    assert befund["reiterTabindex"].count("0") == 1
+    assert befund["reiterSteuernFlaeche"] is True
+    assert befund["flaecheBeschriftet"] >= 1
+
+
+def test_pfeiltaste_bewegt_den_fokus_im_reiter(befund):
+    assert befund["pfeilFokus"] is True
+
+
+def test_werkzeugmenue_oeffnet_und_schliesst_per_tastatur(befund):
+    assert befund["menueOffen"] is True
+    assert befund["menueFokus"] is True
+    assert befund["menueNachEscape"] == [True, True]

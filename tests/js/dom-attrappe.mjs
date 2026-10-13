@@ -226,7 +226,12 @@ class Knoten {
   _passt(wahl) {
     if (wahl.startsWith(".")) return this._klassen.contains(wahl.slice(1));
     if (wahl.startsWith("[") && wahl.endsWith("]")) {
-      const name = wahl.slice(1, -1);
+      const [name, soll] = wahl.slice(1, -1).split("=");
+      if (soll !== undefined) {
+        const wert = soll.replace(/^"|"$/g, "");
+        const ist = name.startsWith("data-") ? this.dataset[name.slice(5)] : this.getAttribute(name);
+        return ist !== undefined && ist !== null && String(ist) === wert;
+      }
       return this.attribute.has(name) || name.replace(/^data-/, "") in this.dataset;
     }
     return this.tagName === wahl.toUpperCase();

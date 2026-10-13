@@ -366,19 +366,30 @@ class HeatNexusPanel extends Grundlage {
     // Beim Anordnen steht die Leiste mit im Kasten, damit Spalten und Farbsatz beim Blättern erreichbar bleiben.
     if (this._anordnen) leiste.appendChild(this._anordnenLeiste());
     inhalt.appendChild(leiste);
+    const flaechen = [];
     if (this._alleAnlagen() && this._reiter === "automatik") {
-      inhalt.appendChild(this._automatikAlle());
+      flaechen.push(this._automatikAlle());
+      inhalt.appendChild(flaechen[0]);
     } else if (this._alleAnlagen()) {
       this._anlagen().forEach((eintrag) => {
         const ueberschrift = document.createElement("div");
         ueberschrift.className = "anlagen-trenner";
         ueberschrift.textContent = eintrag.name || "Anlage";
-        inhalt.append(ueberschrift, this._anlagenInhalt(eintrag));
+        const flaeche = this._anlagenInhalt(eintrag);
+        flaechen.push(flaeche);
+        inhalt.append(ueberschrift, flaeche);
       });
     } else {
-      inhalt.appendChild(this._anlagenInhalt(anlage));
+      flaechen.push(this._anlagenInhalt(anlage));
+      inhalt.appendChild(flaechen[0]);
     }
+    this._reiterFlaechen(inhalt, flaechen);
     this._flaecheErsetzen(...stil, inhalt);
+    if (this._tastaturFokus) {
+      const taste = inhalt.querySelector(this._tastaturFokus);
+      this._tastaturFokus = null;
+      if (taste) taste.focus();
+    }
     this._verlaufKarteLaden();
   }
 
@@ -450,14 +461,17 @@ class HeatNexusPanel extends Grundlage {
         taste.type = "button";
         taste.setAttribute("role", "tab");
         taste.setAttribute("aria-selected", String(index === this._anlageIndex));
+        taste.dataset.anlage = String(index);
         taste.textContent = name;
-        taste.addEventListener("click", () => {
+        taste.addEventListener("click", (ereignis) => {
+          this._tastaturFokus = ereignis.detail === 0 ? `[data-anlage="${index}"]` : null;
           this._anlageIndex = index;
           this._gebaut = false;
           this._zeichnen();
         });
         waehler.appendChild(taste);
       });
+      this._reiterTastatur(waehler);
       leiste.appendChild(waehler);
     }
 
@@ -501,6 +515,7 @@ class HeatNexusPanel extends Grundlage {
       const punkt = document.createElement("button");
       punkt.type = "button";
       punkt.setAttribute("role", "menuitem");
+      punkt.setAttribute("tabindex", "-1");
       punkt.appendChild(this._symbolKnoten(symbol));
       const text = document.createElement("span");
       text.textContent = this._t(titel);
@@ -522,10 +537,40 @@ class HeatNexusPanel extends Grundlage {
       eintrag("Dashboard-Vorlage", "mdi:code-braces", () => this._dashboardVorlageOeffnen());
     }
 
+    const punkte = () => [...liste.children];
+    const auf = (fokusPunkt) => {
+      liste.hidden = false;
+      taste.setAttribute("aria-expanded", "true");
+      if (fokusPunkt) {
+        const alle = punkte();
+        (fokusPunkt === "letzter" ? alle[alle.length - 1] : alle[0]).focus();
+      }
+    };
     taste.addEventListener("click", (ereignis) => {
       ereignis.stopPropagation();
-      liste.hidden = !liste.hidden;
-      taste.setAttribute("aria-expanded", String(!liste.hidden));
+      if (liste.hidden) auf(ereignis.detail === 0 ? "erster" : null);
+      else zu();
+    });
+    huelle.addEventListener("keydown", (ereignis) => {
+      const alle = punkte();
+      const stelle = alle.indexOf(ereignis.target);
+      if (ereignis.key === "Escape" && !liste.hidden) {
+        ereignis.preventDefault();
+        zu();
+        taste.focus();
+      } else if (ereignis.target === taste && ["ArrowDown", "ArrowUp"].includes(ereignis.key)) {
+        ereignis.preventDefault();
+        auf(ereignis.key === "ArrowUp" ? "letzter" : "erster");
+      } else if (stelle >= 0) {
+        if (ereignis.key === "Tab") {
+          zu();
+          return;
+        }
+        const ziel = this._pfeilZiel(alle, stelle, ereignis.key, false);
+        if (!ziel) return;
+        ereignis.preventDefault();
+        ziel.focus();
+      }
     });
     // Ein Klick daneben schließt. Gehorcht wird dem Schattenbaum, nicht dem
     // Dokument: Von dort aus zeigt jedes Ereignis auf das Wirtselement.
@@ -559,13 +604,15 @@ class HeatNexusPanel extends Grundlage {
       taste.dataset.reiter = reiter.schluessel;
       if (versteckt.has(reiter.schluessel)) taste.classList.add("versteckt");
       taste.setAttribute("role", "tab");
+      taste.id = `reiter-${reiter.schluessel}`;
       taste.setAttribute("aria-selected", String(reiter.schluessel === this._reiter));
       taste.appendChild(this._symbolKnoten(reiter.symbol));
       const beschriftung = document.createElement("span");
       beschriftung.textContent = reiter.titel;
       taste.appendChild(beschriftung);
       if (reiter.schluessel === "automatik") this._reiterPunkt(taste);
-      taste.addEventListener("click", () => {
+      taste.addEventListener("click", (ereignis) => {
+        this._tastaturFokus = ereignis.detail === 0 ? `[data-reiter="${reiter.schluessel}"]` : null;
         this._reiter = reiter.schluessel;
         this._gebaut = false;
         this._zeichnen();
@@ -573,7 +620,49 @@ class HeatNexusPanel extends Grundlage {
       leiste.appendChild(taste);
       if (this._anordnen) leiste.appendChild(this._reiterGriffe(reiter, versteckt.has(reiter.schluessel)));
     });
+    this._reiterTastatur(leiste);
     return leiste;
+  }
+
+  /**
+   * Tastaturmuster für Reiter: nur der gewählte Reiter ist Tabulatorziel,
+   * Pfeile, Pos1 und Ende bewegen den Fokus, Eingabe wählt.
+   */
+  _reiterTastatur(leiste) {
+    const reiter = [...leiste.children].filter((kind) => kind.getAttribute("role") === "tab");
+    reiter.forEach((taste) => {
+      taste.setAttribute("tabindex", taste.getAttribute("aria-selected") === "true" ? "0" : "-1");
+    });
+    leiste.addEventListener("keydown", (ereignis) => {
+      const stelle = reiter.indexOf(ereignis.target);
+      if (stelle < 0) return;
+      const ziel = this._pfeilZiel(reiter, stelle, ereignis.key, true);
+      if (!ziel) return;
+      ereignis.preventDefault();
+      ziel.focus();
+    });
+  }
+
+  /** Das Ziel einer Pfeiltaste in einer Reihe von Bedienelementen; null bei anderen Tasten. */
+  _pfeilZiel(elemente, stelle, taste, waagerecht) {
+    const zurueck = waagerecht ? "ArrowLeft" : "ArrowUp";
+    const vor = waagerecht ? "ArrowRight" : "ArrowDown";
+    if (taste === "Home") return elemente[0];
+    if (taste === "End") return elemente[elemente.length - 1];
+    if (taste === vor) return elemente[(stelle + 1) % elemente.length];
+    if (taste === zurueck) return elemente[(stelle - 1 + elemente.length) % elemente.length];
+    return null;
+  }
+
+  /** Verbindet die Reiter mit den Flächen, die sie zeigen (`tabpanel`). */
+  _reiterFlaechen(inhalt, flaechen) {
+    const ids = flaechen.map((flaeche, nr) => {
+      flaeche.id = `reiterflaeche-${nr}`;
+      flaeche.setAttribute("role", "tabpanel");
+      flaeche.setAttribute("aria-labelledby", `reiter-${this._reiter}`);
+      return flaeche.id;
+    });
+    inhalt.querySelectorAll('[role="tab"]').forEach((taste) => taste.setAttribute("aria-controls", ids.join(" ")));
   }
 
   /** Beim Bearbeiten: Reiter nach links, nach rechts, aus- oder einblenden. */

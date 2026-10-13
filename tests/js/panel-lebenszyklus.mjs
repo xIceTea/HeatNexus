@@ -140,4 +140,27 @@ const befund = {};
   befund.tastenhoererNachAbbau = document.hoererZahl("keydown");
 }
 
+// --- Reiter und Werkzeugmenü per Tastatur ------------------------------------
+{
+  const { flaeche } = bauen();
+  const wurzel = flaeche.shadowRoot;
+  const reiter = [...wurzel.querySelector(".reiter").children];
+  befund.reiterTabindex = reiter.map((taste) => taste.getAttribute("tabindex"));
+  befund.reiterSteuernFlaeche = Boolean(reiter[0].getAttribute("aria-controls"));
+  befund.flaecheBeschriftet = wurzel.querySelectorAll('[role="tabpanel"]').length;
+  const aktiv = reiter.findIndex((taste) => taste.getAttribute("aria-selected") === "true");
+  reiter[aktiv].focus();
+  wurzel.querySelector(".reiter").ausloesen("keydown", { key: "ArrowRight", target: reiter[aktiv] });
+  befund.pfeilFokus = reiter.indexOf(wurzel.activeElement) === (aktiv + 1) % reiter.length;
+
+  const huelle = wurzel.querySelector(".werkzeuge");
+  const taste = huelle.querySelector("button");
+  taste.ausloesen("click", { detail: 0 });
+  const liste = huelle.querySelector(".werkzeugliste");
+  befund.menueOffen = !liste.hidden;
+  befund.menueFokus = wurzel.activeElement === liste.children[0];
+  huelle.ausloesen("keydown", { key: "Escape", target: liste.children[0] });
+  befund.menueNachEscape = [liste.hidden, wurzel.activeElement === taste];
+}
+
 process.stdout.write(JSON.stringify(befund, null, 2));
