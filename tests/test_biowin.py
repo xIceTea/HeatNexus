@@ -18,6 +18,7 @@ Zeilen wundert.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
@@ -27,6 +28,10 @@ from .conftest import load_standalone
 
 KOMPONENTE = Path(__file__).parent.parent / "custom_components" / "heatnexus"
 FCT_BIOWIN = "9"
+WERKZEUG = Path(__file__).resolve().parents[1] / "tools" / "build_device_db.py"
+# Einträge der Tabelle, die nur über eine belegte Hebung des Generators in den
+# Ebenen stehen. Wächst die Liste, braucht die neue Adresse einen Messbeleg.
+AUS_HEBUNG: tuple[str, ...] = ("2/0",)
 
 
 @pytest.fixture(scope="module")
@@ -73,17 +78,28 @@ def test_die_tabelle_deckt_die_uebersicht_des_herstellers_ab(geraete, db):
     assert fehlend == [], f"aus der Übersichtsebene nicht abgedeckt: {fehlend}"
 
 
+def _hebungen_des_generators() -> set[str]:
+    """Adressen, die der Generator selbst in die Ebenen des BioWIN hebt."""
+    spec = importlib.util.spec_from_file_location("heatnexus_ebenenbau", WERKZEUG)
+    generator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(generator)
+    return {a for adressen in generator.UEBERSTEUERUNG[FCT_BIOWIN].values() for a in adressen}
+
+
 def test_nichts_steht_darin_das_der_hersteller_nicht_nennt(geraete, db):
     """Die Gegenrichtung: keine Adresse ohne Beleg.
 
-    Erlaubt ist, was in der Übersichts-, Info- oder Betreiberebene des
-    Funktionstyps steht. Alles andere wäre von einem anderen Kessel
-    abgeschrieben.
+    Die Herstellerlisten sind um die Hebungen des Generators bereinigt, denn
+    sonst läge deren Inhalt schon in `device_db.json`. Eine Adresse, die nur
+    durch eine Hebung dazukam, muss dort mit Messbeleg stehen.
     """
     ebenen = db["layers"][FCT_BIOWIN]
-    belegt = set(ebenen["overview"]) | set(ebenen["info"]) | set(ebenen["operate"])
-    ueberzaehlig = sorted(set(_adressen(geraete.biowin.ENTITAETEN)) - belegt)
-    assert ueberzaehlig == [], f"ohne Beleg in den Ebenen des fctType 9: {ueberzaehlig}"
+    hebungen = _hebungen_des_generators()
+    hersteller = set(ebenen["overview"]) | set(ebenen["info"]) | set(ebenen["operate"])
+    hersteller -= hebungen
+    ueberzaehlig = set(_adressen(geraete.biowin.ENTITAETEN)) - hersteller
+    assert sorted(ueberzaehlig - hebungen) == [], "weder Herstellerliste noch Hebung"
+    assert sorted(ueberzaehlig) == sorted(AUS_HEBUNG), "Hebung ohne Eintrag in AUS_HEBUNG"
 
 
 def test_die_wartungszaehler_sind_die_des_biowin(geraete):
