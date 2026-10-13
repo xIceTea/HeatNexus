@@ -70,8 +70,9 @@ def test_raeume_ohne_ziel_nimmt_das_raumsoll(hk):
     assert werte["am"] == 100
 
 
-def test_raeume_ohne_raum_braucht_daten(hk):
-    assert hk.raeume([stunde("2026-10-01 10")], grenze=17.0).status == "braucht_daten"
+def test_raeume_ohne_messwerte_sammelt(hk):
+    assert hk.raeume([stunde("2026-10-01 10")], grenze=17.0).status == "sammelt"
+    assert hk.naechte([stunde("2026-10-01 03")]).status == "sammelt"
 
 
 def test_naechte_vor_dem_anstieg(hk):

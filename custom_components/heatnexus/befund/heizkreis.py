@@ -78,8 +78,6 @@ def raeume(
     if gewaehlt is not None:
         stunden = [s | {"raeume": _nur(s.get("raeume"), gewaehlt)} for s in stunden]
     gut = [s for s in saubere(stunden) if s.get("raeume")]
-    if not gut:
-        return form.fehlt("raeume", "raeume")
     je_band: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for s in gut:
         if (band := _band(s.get("at"), grenze)) is not None:
@@ -135,7 +133,7 @@ def naechte(stunden: list[dict[str, Any]]) -> form.Befund:
         if (wert := _nacht_wert(liste)) is not None:
             werte.append([datum, round(wert, 1)])
     if not werte:
-        return form.Befund("naechte", form.SAMMELT) if je_nacht else form.fehlt("naechte", "raeume")
+        return form.Befund("naechte", form.SAMMELT)
     mittel = round(median(w for _, w in werte), 1)
     stufe = form.stufe(len(werte), **STUFEN)
     status = form.status_aus(stufe, abs(mittel) > NACHT_HINWEIS_K)
