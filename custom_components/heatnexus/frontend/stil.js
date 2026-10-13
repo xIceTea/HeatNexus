@@ -1202,8 +1202,8 @@ export const STIL = `
   @media (prefers-reduced-motion: reduce) {
     .automatik-schalter i, .automatik-schalter i::before, .automatik-schalter i::after { transition: none; }
   }
-  .automatik-optimierung { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 16px 20px 0; }
-  .automatik-optimierung h4 {
+  .automatik-befundschalter { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; padding: 16px 20px 0; }
+  .automatik-befundschalter h4 {
     flex: 1 1 100%; margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
     text-transform: uppercase; color: var(--hn-gedaempft);
   }

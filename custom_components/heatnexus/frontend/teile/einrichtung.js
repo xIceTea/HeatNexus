@@ -97,7 +97,7 @@ export const EinrichtungMixin = (Basis) =>
 
       // Wie die übrigen Schalter gilt er sofort und bleibt beim Zurücksetzen der Werte.
       const befund = document.createElement("div");
-      befund.className = "automatik-optimierung";
+      befund.className = "automatik-befundschalter";
       const befundTitel = document.createElement("h4");
       befundTitel.textContent = this._t("Befund");
       const melden = !!kreis.konfig.befund_melden;
