@@ -791,3 +791,11 @@ const ELEMENT = FASSUNG ? `heatnexus-panel-${FASSUNG}` : "heatnexus-panel";
 if (!customElements.get(ELEMENT)) {
   customElements.define(ELEMENT, HeatNexusPanel);
 }
+
+// Eine Seite von vor der Einrichtung kennt das Kartenmodul nicht; Lovelace lädt es dort nie nach.
+// Ist es hier definiert, baut das Dashboard seine Fehlerkarten über `whenDefined` selbst neu.
+if (!customElements.get("heatnexus-schaubild")) {
+  import("./heatnexus-schaubild-karte.js").catch((err) =>
+    console.warn("HeatNexus: Kartenmodul konnte nicht geladen werden", err)
+  );
+}
