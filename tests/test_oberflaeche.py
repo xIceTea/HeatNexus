@@ -1057,11 +1057,18 @@ def test_alle_anlagen_stehen_in_einer_auswertung(durchlauf):
     alle = durchlauf["befundAlle"]
     assert alle["raster"] == 1
     assert alle["trenner"] == 0
-    assert alle["anzahlen"] == ["2", "0", "2"]
+    assert alle["anzahlen"] == ["2", "1", "2"]
     assert alle["seit"] == "Daten seit 15.07.2026"
-    assert alle["herkunft"] == ["Anlage A · Heizkreis · Heizkreis", "Anlage B · Kessel · Kessel"]
+    assert alle["herkunft"] == ["Anlage B · Kessel · Kessel"]
     assert alle["offen"] == 2
     assert alle["waermeerzeuger"] == 0
+
+
+def test_alle_fasst_denselben_kennwert_in_einer_kachel_zusammen(durchlauf):
+    [karte] = durchlauf["befundAlle"]["sammelkarten"]
+    assert karte["titel"] == "Vorlauf erreicht sein Soll"
+    assert karte["hinweis"] is True
+    assert karte["zeilen"] == ["Anlage A · Heizkreis · Heizkreis", "Anlage B · Heizkreis · Heizkreis 2"]
 
 
 def test_die_automatik_zeigt_die_befunde_ihres_heizkreises(durchlauf):

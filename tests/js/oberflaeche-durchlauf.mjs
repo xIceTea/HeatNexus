@@ -1320,8 +1320,11 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     abschnitte: [...stand.abschnitte, { art: "waermeerzeuger", kennung: "", titel: "", befunde: [] }],
   };
   const mitKessel = {
-    lage: { befunde: 1, seit: "2026-07-15", unauffaellig: 1, hinweise: 0, sammelt: 0, braucht_daten: 0 },
-    abschnitte: [{ art: "kessel", kennung: "/1/60/0", titel: "Kessel", befunde: [befund("laufzeit", "unauffaellig", 2.4)] }],
+    lage: { befunde: 2, seit: "2026-07-15", unauffaellig: 1, hinweise: 1, sammelt: 0, braucht_daten: 0 },
+    abschnitte: [
+      { art: "heizkreis", kennung: "SN9-2-0", titel: "Heizkreis 2", befunde: [befund("vorlauf", "hinweis", 12)] },
+      { art: "kessel", kennung: "/1/60/0", titel: "Kessel", befunde: [befund("laufzeit", "unauffaellig", 2.4)] },
+    ],
   };
   flaeche._befund = { "anlage-a": ohneKessel, "anlage-b": mitKessel };
   flaeche._reiter = "befund";
@@ -1335,6 +1338,13 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     offen: (wurzel.querySelector(".befund-offen") || { children: [] }).children.length,
     seit: String((wurzel.querySelector(".befund-seit") || {}).textContent || ""),
     waermeerzeuger: [...wurzel.querySelectorAll("h2")].filter((h) => String(h.textContent) === "Wärmeerzeuger").length,
+    sammelkarten: [...wurzel.querySelectorAll(".befund-karte")]
+      .filter((k) => k.querySelector(".befund-liste"))
+      .map((k) => ({
+        titel: String(k.querySelector("h2").textContent),
+        hinweis: k.classList.contains("befund-hinweis"),
+        zeilen: [...k.querySelectorAll(".name")].map((n) => String(n.textContent)),
+      })),
   };
   flaeche._daten = vorherDaten;
   flaeche._anlageIndex = vorherIndex;

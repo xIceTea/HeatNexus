@@ -17,7 +17,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Linien im Verlauf lassen sich suchen, einzeln entfernen und auf Standard zurücksetzen ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
 - Die gewählten Linien im Verlauf bleiben nach dem Neuladen der Seite erhalten ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
 - Der Reiter Auswertung zeigt gemessene Kennwerte von Haus, Heizkreis und Kessel.
-- Unter „Alle“ fasst die Auswertung alle Anlagen in einer Ansicht zusammen.
+- Unter „Alle“ steht jeder Kennwert aller Anlagen in einer gemeinsamen Kachel.
 - Kennwerte ohne Ergebnis stehen eingeklappt in einer eigenen Kachel.
 - Die Kennwerte der Auswertung stehen als Sensoren an Heizkreis und Kessel bereit.
 - Hinweise der Auswertung lassen sich in der Seitenleiste melden.

@@ -56,6 +56,7 @@ export const BEFUND = `
   .befund-zeile.hinweis .punkt { background: var(--hn-sonne); border-color: var(--hn-sonne); }
   .befund-zeile .wert { color: var(--hn-gedaempft); white-space: nowrap; }
   .befund-zeile .befund-marke { white-space: nowrap; }
+  .befund-zeile .beisatz { grid-column: 2 / -1; margin-top: -6px; }
   .befund-leise { color: var(--hn-gedaempft); font-size: 13px; }
   .befund-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -4px 0 6px; }
   .befund-abschnitt { color: var(--hn-gedaempft); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }

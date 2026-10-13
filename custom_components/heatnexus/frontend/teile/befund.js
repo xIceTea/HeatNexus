@@ -164,6 +164,8 @@ export const BefundMixin = (Basis) =>
       if (!stand) return [];
       const karten = [{ id: "befund-lage", titel: "Auswertung", knoten: this._befundLage(stand), breite: 2 }];
       const offen = [];
+      // Je Kennwert alle Stellen mit Wert, in der Reihenfolge ihres ersten Auftretens.
+      const jeArt = new Map();
       stand.abschnitte.forEach((abschnitt) => {
         if (abschnitt.art === "waermeerzeuger") {
           karten.push({ id: "befund-waermeerzeuger", titel: "Wärmeerzeuger", knoten: this._befundVerweis() });
@@ -174,15 +176,46 @@ export const BefundMixin = (Basis) =>
             offen.push({ abschnitt, b: befund });
             return;
           }
-          karten.push({
-            id: `befund:${abschnitt.anlageId ? `${abschnitt.anlageId}:` : ""}${abschnitt.kennung}:${befund.art}`,
-            titel: this._t(TITEL[befund.art] || befund.art),
-            knoten: this._befundKarte(abschnitt, befund),
-          });
+          if (!jeArt.has(befund.art)) jeArt.set(befund.art, []);
+          jeArt.get(befund.art).push({ abschnitt, b: befund });
         });
+      });
+      jeArt.forEach((stellen, art) => {
+        // Unter „Alle“ fasst eine Kachel denselben Kennwert aller Anlagen zusammen.
+        const einzeln = anlage || stellen.length === 1 ? stellen : null;
+        if (!einzeln) {
+          karten.push({ id: `befund-art:${art}`, titel: this._t(TITEL[art] || art), knoten: this._befundSammelkarte(art, stellen) });
+          return;
+        }
+        einzeln.forEach(({ abschnitt, b }) =>
+          karten.push({
+            id: `befund:${abschnitt.anlageId ? `${abschnitt.anlageId}:` : ""}${abschnitt.kennung}:${b.art}`,
+            titel: this._t(TITEL[b.art] || b.art),
+            knoten: this._befundKarte(abschnitt, b),
+          })
+        );
       });
       if (offen.length) karten.push({ id: "befund-offen", titel: "Noch ohne Ergebnis", knoten: this._befundOffen(offen), breite: 2 });
       return karten;
+    }
+
+    /**
+     * Ein Kennwert mehrerer Stellen in einer Kachel: je Stelle Herkunft, Wert und Stand.
+     * Die Kachel trägt den auffälligsten Stand; eine Zeile öffnet den Verlauf ihres Sensors.
+     */
+    _befundSammelkarte(art, stellen) {
+      const karte = this._karte(this._t(TITEL[art] || art), this._t(HILFE[art] || ""));
+      const status = ["hinweis", "unauffaellig", "sammelt"].find((s) => stellen.some(({ b }) => b.status === s)) || stellen[0].b.status;
+      karte.classList.add("befund-karte", `befund-${status}`);
+      const liste = knoten("div", "befund-liste");
+      stellen.forEach(({ abschnitt, b }) => {
+        const zeile = this._befundZeile(b, this._befundHerkunft(abschnitt));
+        const beisatz = this._befundBeisatz(b);
+        if (beisatz) zeile.appendChild(knoten("span", "befund-leise beisatz", beisatz));
+        liste.appendChild(zeile);
+      });
+      karte.appendChild(liste);
+      return karte;
     }
 
     /**
@@ -315,13 +348,14 @@ export const BefundMixin = (Basis) =>
       return links;
     }
 
-    _befundZeile(b) {
+    /** Eine Zeile je Befund; `name` ersetzt den Titel, etwa durch die Herkunft. */
+    _befundZeile(b, name = null) {
       const zeile = knoten("button", `befund-zeile ${b.status}`);
       zeile.type = "button";
       const wert = b.wert === null || b.wert === undefined ? "–" : `${this._befundZahl(b.wert)} ${b.einheit}`.trim();
       zeile.append(
         knoten("i", "punkt"),
-        knoten("span", "name", this._t(TITEL[b.art] || b.art)),
+        knoten("span", "name", name || this._t(TITEL[b.art] || b.art)),
         knoten("span", "wert", wert),
         knoten("span", `befund-marke ${b.status}`, this._t(MARKE[b.status] || b.status))
       );
