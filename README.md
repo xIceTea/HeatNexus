@@ -325,7 +325,7 @@ Entitäts-IDs eintragen, kein YAML kopieren. Jeder Reiter trägt seinen Namen:
 - **Wartung** – Restlaufzeiten bis Ascheentleerung, Hauptreinigung und Wartung
   stehen als Rundinstrument, dazu Brennstoff, Vorratsbehälter und
   Zählerstände. Die Abschnitte tragen den Namen von Anlage und Anlagenteil.
-- **Auswertung** – sie zeigt den Zuwachs der Zähler *heute* und *diesen Monat*
+- **Statistik** – sie zeigt den Zuwachs der Zähler *heute* und *diesen Monat*
   (Brennerstarts, Betriebsstunden) sowie Temperaturverläufe der letzten
   48 Stunden, je Anlage gegliedert.
 - **Je Anlagenteil eine Unteransicht** – sie gliedert alle Werte des Teils in

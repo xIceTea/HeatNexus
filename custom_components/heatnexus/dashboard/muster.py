@@ -112,7 +112,7 @@ ZUSTAND_SCHLUESSEL = (
 )
 
 
-# Auswertung: was in einen Verlauf gehört.
+# Statistik: was in einen Verlauf gehört.
 VERLAUF = namensmuster(
     r"kesseltemperatur",
     r"abgastemperatur",

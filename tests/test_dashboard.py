@@ -1533,7 +1533,7 @@ def _deutsche_reste(ansichten: list[dict]) -> list[str]:
 
 
 async def test_ansichten_einer_anlage_stehen_in_ihrer_sprache(dashboard, karten, hass, monkeypatch):
-    """Übersicht, Wartung und Auswertung bleiben gemeinsam; Seite und Teile der Anlage wechseln."""
+    """Übersicht, Wartung und Statistik bleiben gemeinsam; Seite und Teile der Anlage wechseln."""
     werkstatt = _werkstatt_auf_niederlaendisch()
     kesselhaus = {**_anlage(_kessel()), "eintrag": "de"}
     _anlagen_in_zwei_sprachen(hass, monkeypatch, dashboard, kesselhaus, werkstatt)

@@ -2,7 +2,7 @@
 
 Gebaut in Home Assistant aus Geräte- und Entitätsliste, ausgeliefert als fertige
 Lovelace-Konfiguration; kein Browsermodul, keine festen Entitäts-IDs. Ansichten:
-Übersicht, je Anlage, Wartung, Auswertung, je Anlagenteil eine Unteransicht.
+Übersicht, je Anlage, Wartung, Statistik, je Anlagenteil eine Unteransicht.
 Die Seiten einer Anlage und ihrer Teile stehen in der Sprache ihres Eintrags, der Rest gemeinsam.
 """
 

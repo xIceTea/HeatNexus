@@ -1,4 +1,4 @@
-"""Reiter „Wartung“ und „Auswertung“, je Anlage gegliedert."""
+"""Reiter „Wartung“ und „Statistik“, je Anlage gegliedert."""
 
 from __future__ import annotations
 
@@ -93,4 +93,4 @@ def auswertung(anlagen: list[dict[str, Any]]) -> dict[str, Any] | None:
                 0, {"type": "grid", "column_span": 3, "cards": [ueberschrift(anlage["name"])]}
             )
         abschnitte += teil_abschnitte
-    return ansicht("Auswertung", "auswertung", abschnitte) if abschnitte else None
+    return ansicht("Statistik", "auswertung", abschnitte) if abschnitte else None
