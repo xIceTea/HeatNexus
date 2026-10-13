@@ -51,6 +51,8 @@ _LOGGER = logging.getLogger(__name__)
 TAKT = timedelta(minutes=5)
 PROGNOSE_TAKT = timedelta(hours=1)
 PROGNOSE_MAX_ALTER = timedelta(hours=6)
+# Fehlt die Prognose beim Start, wird sie nach dieser Zeit noch einmal gefragt.
+PROGNOSE_WIEDERHOLEN_S = 120
 ABWESEND_NACH = timedelta(minutes=30)
 # Ein ausgefallener Fühler meldet in HA seinen letzten Wert weiter; bleibt er so lange gleich, zählt er nicht.
 RAUM_VERALTET = timedelta(hours=12)
@@ -295,16 +297,38 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._angemeldet = False
         self._abmelden: list[Callable[[], None]] = []
 
-    def _aufgabe(self, ablauf: Coroutine[Any, Any, Any]) -> None:
+    def _aufgabe(self, ablauf: Coroutine[Any, Any, Any], hintergrund: bool = False) -> None:
         """Eine Aufgabe, die `stoppen` abbricht; ein laufender Lauf endet vorher regulär."""
-        aufgabe = self.hass.async_create_task(ablauf, f"heatnexus_automatik_{self.device_id}")
+        name = f"heatnexus_automatik_{self.device_id}"
+        if hintergrund:
+            aufgabe = self.hass.async_create_background_task(ablauf, name)
+        else:
+            aufgabe = self.hass.async_create_task(ablauf, name)
         self._aufgaben.add(aufgabe)
         aufgabe.add_done_callback(self._aufgaben.discard)
 
-    async def starten(self, entscheidungszeit: bool = False) -> None:
-        """Auslöser anmelden, Prognose holen, einmal auswerten."""
+    async def starten(
+        self, entscheidungszeit: bool = False, *, im_hintergrund: bool = False
+    ) -> None:
+        """Auslöser anmelden, Prognose holen, einmal auswerten.
+
+        `im_hintergrund` lässt Prognose und ersten Lauf nach dem Start folgen; das Setup wartet nicht.
+        """
         self._gestoppt = False
         self._gestartet = dt_util.now()
+        self._ausloeser_anmelden()
+        if im_hintergrund:
+            self._aufgabe(self._anlaufen(entscheidungszeit), hintergrund=True)
+        else:
+            await self._prognose_holen()
+            await self.auswerten(entscheidungszeit)
+        self._nachladen = self.hass.async_create_background_task(
+            nachladen.heute_nachtragen(self.hass, self), f"heatnexus_automatik_{self.device_id}"
+        )
+        self._lernen_starten()
+        self._optimierung_starten()
+
+    def _ausloeser_anmelden(self) -> None:
         client = self.coordinator.client
         if not self._angemeldet:
             for adresse in ABRUF:
@@ -330,13 +354,19 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
                         self.hass, self._entscheidungszeit, hour=stunde, minute=minute, second=0
                     )
                 )
-        await self._prognose_holen()
-        await self.auswerten(entscheidungszeit)
-        self._nachladen = self.hass.async_create_background_task(
-            nachladen.heute_nachtragen(self.hass, self), f"heatnexus_automatik_{self.device_id}"
-        )
-        self._lernen_starten()
-        self._optimierung_starten()
+
+    async def _anlaufen(self, entscheidungszeit: bool) -> None:
+        """Erste Prognose und erster Lauf; fehlt die Prognose, wird sie bald noch einmal gefragt."""
+        try:
+            await self._prognose_holen()
+            if not self.prognose_frisch:
+                self._abmelden.append(
+                    async_call_later(self.hass, PROGNOSE_WIEDERHOLEN_S, self._prognose_takt)
+                )
+            await self.auswerten(entscheidungszeit)
+        except Exception:  # der Takt versucht es wieder; das Setup bleibt davon unberührt
+            _LOGGER.exception("Automatik %s: Erster Lauf nach dem Start gescheitert", self.name)
+            self._geaendert = True
 
     def aussetzen(self) -> None:
         """Auslöser abmelden; danach beginnt kein Lauf mehr, ein laufender endet regulär."""

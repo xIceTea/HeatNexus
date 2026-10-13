@@ -228,3 +228,83 @@ async def test_entladen_wartet_auf_den_lauf_und_danach_schreibt_nichts_mehr(
     await laufzeit.auswerten()
     await hass.async_block_till_done()
     assert coordinator.client.geschrieben == []
+
+
+# --- Start ------------------------------------------------------------------
+def _eintrag(hass):
+    return hass.config_entries.async_entries("heatnexus")[0]
+
+
+async def _neu_laden(verwaltung, hass, zustand=None):
+    """Die Automatik wie nach einem Neustart von Home Assistant aus dem Store starten."""
+    alt = verwaltung.laufzeiten.pop(ha.HEIZKREIS)
+    alt.stoppen()
+    eintrag = verwaltung._daten["heizkreise"][ha.HEIZKREIS]
+    eintrag["zustand"] = alt.als_dict() if zustand is None else zustand
+    await verwaltung._nachholen(_eintrag(hass))
+
+
+async def test_ein_gescheiterter_start_reisst_den_eintrag_nicht_mit(
+    hass, anlage, freezer, monkeypatch
+):
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    freezer.move_to(ha.MORGEN)
+    await ha._eingerichtet(hass, verwaltung)
+    starten = Laufzeit.starten
+
+    async def scheitern(self, *args, **kw):
+        await starten(self, *args, **kw)
+        raise RuntimeError("kaputt")
+
+    monkeypatch.setattr(Laufzeit, "starten", scheitern)
+
+    await _neu_laden(verwaltung, hass)
+
+    # Abgemeldete Auslöser: Ein übrig gebliebener Zeitgeber ließe den Test scheitern.
+    assert ha.HEIZKREIS not in verwaltung.laufzeiten
+    kennung = f"automatik_start_{ha.HEIZKREIS}"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, kennung) is not None
+
+
+async def test_ein_unlesbarer_zustand_reisst_den_eintrag_nicht_mit(hass, anlage, freezer):
+    verwaltung, _ = anlage
+    freezer.move_to(ha.MORGEN)
+    await ha._eingerichtet(hass, verwaltung)
+
+    await _neu_laden(verwaltung, hass, zustand={"stufen": ["x", "y"]})
+
+    assert ha.HEIZKREIS not in verwaltung.laufzeiten
+
+
+async def test_der_erste_lauf_nach_dem_start_wartet_nicht_auf_die_prognose(hass, anlage, freezer):
+    import asyncio
+
+    from homeassistant.core import SupportsResponse
+
+    verwaltung, _ = anlage
+    freezer.move_to(ha.MORGEN)
+    laufzeit = await ha._eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    weiter = asyncio.Event()
+
+    async def langsam(call):
+        await weiter.wait()
+        return {"weather.home": {"forecast": []}}
+
+    hass.services.async_register(
+        "weather", "get_forecasts", langsam, supports_response=SupportsResponse.ONLY
+    )
+    verwaltung._prognosen.clear()
+
+    await _neu_laden(verwaltung, hass)
+    neu = verwaltung.laufzeiten[ha.HEIZKREIS]
+    assert neu.lage is None
+
+    weiter.set()
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert neu.lage is not None

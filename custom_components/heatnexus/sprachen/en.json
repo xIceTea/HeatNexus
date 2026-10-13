@@ -727,6 +727,7 @@
   "Sie antwortet nicht mehr.": "It no longer responds.",
   "Raumfühler und Wetter-Entität sind nötig.": "A room sensor and a weather entity are required.",
   "Für diesen Heizkreis gibt es schon eine Automatik.": "This heating circuit already has an automation.",
+  "Die Automatik ließ sich nicht starten.": "The automation could not be started.",
   "Diesen Heizkreis kennt die Anlage nicht.": "The system does not know this heating circuit.",
   "Für diesen Heizkreis gibt es keine Automatik.": "This heating circuit has no automation.",
   "Diesen Heizkreis kennt keine Anlage.": "No system knows this heating circuit.",

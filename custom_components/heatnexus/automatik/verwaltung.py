@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
@@ -27,7 +28,12 @@ from ..const import (
     SIGNAL_NEUE_ENTITAETEN,
     SUBEINTRAG_AUTOMATIK,
 )
-from ..registrierung import geraet_suchen, in_untereintrag_verschieben, untereintraege
+from ..registrierung import (
+    geraet_suchen,
+    geraetename,
+    in_untereintrag_verschieben,
+    untereintraege,
+)
 from ..texte import woerterbuch
 from . import konfig as konfig_modul
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
@@ -321,9 +327,15 @@ class Verwaltung:
         for device_id, eintrag in list(self._daten["heizkreise"].items()):
             konfig = eintrag.get("konfig") or {}
             if konfig.get("entry_id") == entry.entry_id and device_id not in self.laufzeiten:
-                await self._starten(entry, device_id)
+                # Eine Automatik, die nicht startet, hält weder die anderen noch den Eintrag auf.
+                try:
+                    await self._starten(entry, device_id, im_hintergrund=True)
+                except Exception:  # protokolliert und gemeldet in `_starten`
+                    continue
 
-    async def _starten(self, entry: ConfigEntry, device_id: str) -> bool:
+    async def _starten(
+        self, entry: ConfigEntry, device_id: str, im_hintergrund: bool = False
+    ) -> bool:
         treffer = next((t for t in self.heizkreise(entry) if t[1]["device_id"] == device_id), None)
         eintrag = self._daten["heizkreise"].get(device_id)
         if treffer is None or eintrag is None:
@@ -331,20 +343,43 @@ class Verwaltung:
         coordinator, beschreibung = treffer
         # Das System-Gerät muss stehen, bevor der Heizkreis darauf verweist.
         self._system_anlegen(entry)
-        laufzeit = Laufzeit(
-            self.hass,
-            coordinator,
-            beschreibung,
-            eintrag["konfig"],
-            eintrag.get("zustand"),
-            self.speichern,
-            entry.entry_id,
-            self.prognose,
-        )
-        self.laufzeiten[device_id] = laufzeit
-        async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))
-        await laufzeit.starten()
+        kennung = f"automatik_start_{device_id}"
+        try:
+            laufzeit = Laufzeit(
+                self.hass,
+                coordinator,
+                beschreibung,
+                eintrag["konfig"],
+                eintrag.get("zustand"),
+                self.speichern,
+                entry.entry_id,
+                self.prognose,
+            )
+            self.laufzeiten[device_id] = laufzeit
+            async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))
+            await laufzeit.starten(im_hintergrund=im_hintergrund)
+        except Exception:
+            name = geraetename(
+                self.hass, device_id, entry.entry_id, beschreibung.get("device_name") or device_id
+            )
+            self._start_gescheitert(device_id, kennung, name)
+            raise
+        ir.async_delete_issue(self.hass, DOMAIN, kennung)
         return True
+
+    def _start_gescheitert(self, device_id: str, kennung: str, name: str) -> None:
+        _LOGGER.exception("Automatik %s: Start gescheitert", name)
+        if (laufzeit := self.laufzeiten.pop(device_id, None)) is not None:
+            laufzeit.stoppen()
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            kennung,
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="automatik_start",
+            translation_placeholders={"heizkreis": name},
+        )
 
     async def eintrag_stoppen(self, entry: ConfigEntry) -> None:
         """Die Automatiken des Eintrags anhalten; ihr Zustand bleibt im Store.
@@ -393,7 +428,14 @@ class Verwaltung:
         if device_id in self.laufzeiten:
             raise ValueError("Für diesen Heizkreis gibt es schon eine Automatik.")
         self._daten["heizkreise"][device_id] = {"konfig": konfig, "zustand": {}}
-        if not await self._starten(entry, device_id):
+        try:
+            gestartet = await self._starten(entry, device_id)
+        except Exception as fehler:
+            del self._daten["heizkreise"][device_id]
+            # Die Antwort an das Panel nennt den Fehler; eine Reparaturmeldung bliebe ohne Automatik stehen.
+            ir.async_delete_issue(self.hass, DOMAIN, f"automatik_start_{device_id}")
+            raise ValueError("Die Automatik ließ sich nicht starten.") from fehler
+        if not gestartet:
             del self._daten["heizkreise"][device_id]
             raise ValueError("Diesen Heizkreis kennt die Anlage nicht.")
         self.speichern()

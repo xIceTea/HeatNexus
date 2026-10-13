@@ -517,6 +517,10 @@
       "title": "Automatik {heizkreis}: Rücknahme gescheitert",
       "description": "Beim Ausschalten oder Entfernen der Automatik hat die Steuerung die Rücknahme ihrer Eingriffe am Heizkreis **{heizkreis}** abgelehnt. Der Heizkreis kann noch auf „nur Warmwasser“ stehen oder abgesenkt sein.\n\nBitte Betriebswahl und Sollwert des Heizkreises prüfen und von Hand einstellen. Die Meldung verschwindet, sobald eine Rücknahme gelingt."
     },
+    "automatik_start": {
+      "title": "Automatik {heizkreis}: Start gescheitert",
+      "description": "Die Automatik des Heizkreises **{heizkreis}** ließ sich nicht starten. Die übrigen Automatiken und die Integration laufen weiter.\n\nDie Ursache steht im Protokoll von Home Assistant. Ein Neuladen der Integration startet die Automatik erneut. Die Meldung verschwindet, sobald der Start gelingt."
+    },
     "automatik_prognose": {
       "title": "Automatik {heizkreis}: keine Wettervorhersage",
       "description": "Die Automatik des Heizkreises **{heizkreis}** bekommt seit einigen Stunden keine Vorhersage von der Wetter-Entität **{wetter}**. Ohne Vorhersage trifft sie keine neuen Entscheidungen.\n\nBitte prüfen, ob die Wetter-Entität verfügbar ist und eine Tages- oder Stundenvorhersage liefert, oder in den Einstellungen der Automatik eine andere Wetter-Entität wählen. Die Meldung verschwindet, sobald wieder eine Vorhersage ankommt."

@@ -727,6 +727,7 @@
   "Sie antwortet nicht mehr.": "Ze antwoordt niet meer.",
   "Raumfühler und Wetter-Entität sind nötig.": "Een ruimtesensor en een weerentiteit zijn nodig.",
   "Für diesen Heizkreis gibt es schon eine Automatik.": "Dit verwarmingscircuit heeft al een automatische regeling.",
+  "Die Automatik ließ sich nicht starten.": "De automatische regeling kon niet worden gestart.",
   "Diesen Heizkreis kennt die Anlage nicht.": "De installatie kent dit verwarmingscircuit niet.",
   "Für diesen Heizkreis gibt es keine Automatik.": "Dit verwarmingscircuit heeft geen automatische regeling.",
   "Diesen Heizkreis kennt keine Anlage.": "Geen installatie kent dit verwarmingscircuit.",
