@@ -135,11 +135,17 @@ class WindhagerGenericSensor(WindhagerEntity, SensorEntity):
             self._attr_device_class = SensorDeviceClass(device_class)
         if (stellen := device_info.get("precision")) is not None:
             self._attr_suggested_display_precision = stellen
+        # Ein Wert über dem Höchstwert ist die Platzhaltermarke der Anlage, keine Messung.
+        self._hoechstwert = zahl_aus_zustand(device_info.get("max"))
 
     @property
     def native_value(self) -> int | float | None:
         wert = anzeigezahl(self.raw_value)
-        return wert if wert is not None else anzeigezahl(self.letzter_zustand)
+        if wert is None:
+            return anzeigezahl(self.letzter_zustand)
+        if self._hoechstwert is not None and wert > self._hoechstwert:
+            return None
+        return wert
 
 
 class WindhagerEnumSensor(WindhagerEntity, SensorEntity):

@@ -131,6 +131,8 @@ ENTITAETEN: list[dict] = [
         "oid": "/2/0/0",
         "name": "Alarmcode",
         "platform": "sensor",
+        # 65535 liegt über dem gemeldeten Bereich und steht für „kein Code".
+        "max": 65534,
         "category": "diagnostic",
         "icon": "mdi:alert-circle-outline",
     },

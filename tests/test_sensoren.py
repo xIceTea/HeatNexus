@@ -425,6 +425,21 @@ def test_ganzzahl_bleibt_ganzzahl(sensoren, roh, erwartet):
     assert type(entity.native_value) is type(erwartet)
 
 
+def test_ein_wert_ueber_dem_hoechstwert_gilt_als_unbekannt(sensoren):
+    """Der Alarmcode meldet 65535 bei einem Bereich bis 65534: Das ist keine Meldung."""
+    entity, _ = _entitaet(
+        sensoren.WindhagerGenericSensor, {"/1/60/0/9/75/0": "65535"}, type="sensor", max=65534
+    )
+    assert entity.native_value is None
+
+
+def test_ein_wert_im_bereich_bleibt_stehen(sensoren):
+    entity, _ = _entitaet(
+        sensoren.WindhagerGenericSensor, {"/1/60/0/9/75/0": "245"}, type="sensor", max=65534
+    )
+    assert entity.native_value == 245
+
+
 # ---------------------------------------------------------------------------
 # Zeitprogramm
 # ---------------------------------------------------------------------------
