@@ -1,4 +1,4 @@
-"""Das Gerät „HeatNexus Automatik“ je Eintrag: Überblick über alle Automatiken.
+"""Das Gerät „Automatik <Heizung>“ je Eintrag: Überblick über alle Automatiken.
 
 Die Automatik je Heizkreis hängt als eigenes Gerät darunter. Das System-Gerät
 entsteht mit der ersten Automatik und verschwindet mit der letzten.
@@ -14,7 +14,7 @@ from typing import Any
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTemperature, UnitOfTime
+from homeassistant.const import CONF_NAME, UnitOfTemperature, UnitOfTime
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -43,6 +43,14 @@ def bezeichnung(laufzeit: Laufzeit) -> str:
     return f"{anlage} · {laufzeit.name}" if anlage else laufzeit.name
 
 
+def systemname(hass: HomeAssistant, entry_id: str) -> str:
+    """„Automatik <Heizung>“; mehrere Einträge führen sonst gleichnamige System-Geräte."""
+    w = woerterbuch(hass)
+    entry = hass.config_entries.async_get_entry(entry_id)
+    anlage = (entry.data.get(CONF_NAME) or entry.title) if entry else None
+    return w("Automatik {name}").replace("{name}", anlage) if anlage else w("HeatNexus Automatik")
+
+
 def kreisnamen(laufzeiten: list[Laufzeit]) -> dict[str, str]:
     """Anzeigename je Heizkreis; doppelte Namen tragen die Kennung."""
     namen = {lz.device_id: bezeichnung(lz) for lz in laufzeiten}
@@ -64,7 +72,14 @@ class SystemEntitaet(Entity):
         self._verwaltung = verwaltung
         self._entry_id = entry_id
         self._attr_unique_id = system_unique_id(entry_id, self.ART)
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, system_kennung(entry_id))})
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Erst beim Anlegen gefragt; der Name folgt dem Eintrag."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, system_kennung(self._entry_id))},
+            name=systemname(self._verwaltung.hass, self._entry_id),
+        )
 
     @property
     def _laufzeiten(self) -> list[Laufzeit]:

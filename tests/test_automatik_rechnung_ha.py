@@ -225,3 +225,28 @@ async def test_nachrechnen_ergibt_dieselbe_stunde_wie_live(
     nachgerechnet = tag[beginn.date().isoformat()][str(beginn.hour)]
 
     assert {k: v for k, v in live.items() if k != "beobachtet"} == nachgerechnet
+
+
+async def test_system_geraet_traegt_den_namen_der_anlage(hass, anlage):
+    hass.config.language = "de"
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.heatnexus.automatik import system
+    from custom_components.heatnexus.registrierung import geraet_suchen
+
+    verwaltung, _ = anlage
+    entry = hass.config_entries.async_entries("heatnexus")[0]
+    hass.config_entries.async_update_entry(entry, title="Hebebühne")
+    await ha._eingerichtet(hass, verwaltung)
+    register = dr.async_get(hass)
+    geraet = geraet_suchen(register, system.system_kennung(entry.entry_id), entry.entry_id)
+    register.async_update_device(geraet.id, name_by_user="Mein System")
+
+    status = system.KLASSEN["status"](verwaltung, entry.entry_id)
+    info = status.device_info
+    # So legt die Plattform das Gerät an: Ein vorhandenes behält den Namen des Nutzers.
+    neu = register.async_get_or_create(config_entry_id=entry.entry_id, **info)
+
+    assert info["name"] == "Automatik Hebebühne"
+    assert (neu.id, neu.name, neu.name_by_user) == (geraet.id, "Automatik Hebebühne", "Mein System")
+    assert status.unique_id == system.system_unique_id(entry.entry_id, "status")
