@@ -1232,3 +1232,16 @@ def test_spaete_texte_folgen_der_sprache_der_anlage(zwei_sprachen):
     _, ergebnis = zwei_sprachen
     assert ergebnis["geoeffnet"]
     assert ergebnis["rueckmeldung"] == "overgenomen ✓"
+
+
+def test_befunde_ohne_wert_stehen_gesammelt_in_einer_kachel(durchlauf):
+    befund = durchlauf["befund"]
+    assert befund["offen"] == 2
+    assert befund["zurAutomatik"] == 1
+    assert sum("Noch ohne Ergebnis" in titel for titel in befund["titel"]) == 1
+
+
+def test_antippen_zeigt_den_wert_eines_balkens(durchlauf):
+    befund = durchlauf["befund"]
+    assert befund["ablesbar"] == 2
+    assert befund["abgelesen"] == ["02.10.: 4 h unter Soll"]

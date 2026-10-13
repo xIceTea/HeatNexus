@@ -1506,6 +1506,50 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 }
 
 // ---------------------------------------------------------------------------
+// Reiter „Befund“
+//
+// Ein Befund mit Wert bekommt eine Karte, die übrigen stehen in einer Kachel.
+// Antippen eines Balkens schreibt seinen Wert unter das Bild.
+// ---------------------------------------------------------------------------
+{
+  const anlageId = (daten.anlagen[0] || {}).id;
+  const befund = (art, status, wert, angaben = {}, grund = null) => ({ art, status, wert, einheit: "", stufe: "vorlaeufig", angaben, grund, vergleich: {} });
+  flaeche._befund = {
+    [anlageId]: {
+      lage: { befunde: 3, seit: "2026-08-01", unauffaellig: 1, hinweise: 0, sammelt: 1, braucht_daten: 1 },
+      abschnitte: [
+        { art: "haus", kennung: "hk", titel: "Heizkreis", befunde: [befund("waermespeicher", "braucht_daten", null, {}, "raeume")] },
+        {
+          art: "heizkreis",
+          kennung: "hk",
+          titel: "Heizkreis",
+          befunde: [
+            befund("vorlauf", "unauffaellig", 3.5, { je_tag: [["2026-10-01", 0], ["2026-10-02", 4]] }),
+            befund("naechte", "sammelt", null),
+          ],
+        },
+      ],
+    },
+  };
+  flaeche._befundZeit = Date.now();
+  flaeche._reiter = "befund";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  const wurzel = flaeche.shadowRoot;
+  const balken = wurzel.querySelectorAll(".ablesbar");
+  if (balken[1]) balken[1].ausloesen("click");
+  bilanz.befund = {
+    titel: [...wurzel.querySelectorAll(".kartenkopf")].map((kopf) => String(kopf.textContent || "").trim()),
+    offen: (wurzel.querySelector(".befund-offen") || { children: [] }).children.length,
+    zurAutomatik: wurzel.querySelectorAll(".befund-sprung").length,
+    ablesbar: balken.length,
+    abgelesen: [...wurzel.querySelectorAll(".befund-ablesen")].map((a) => String(a.textContent)),
+  };
+  flaeche._befund = undefined;
+  flaeche._gebaut = false;
+}
+
+// ---------------------------------------------------------------------------
 // Misslungenes Speichern
 //
 // Die Attrappe wirft bei jedem `callWS`. Wer die Farbwahl anfasst, muss das

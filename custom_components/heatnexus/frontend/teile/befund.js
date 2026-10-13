@@ -18,6 +18,11 @@ function knoten(tag, klasse, text) {
   return el;
 }
 
+/** „2026-10-01“ wird „01.10.“ */
+function kurzdatum(datum) {
+  return `${datum.slice(8, 10)}.${datum.slice(5, 7)}.`;
+}
+
 function svg(tag, attribute = {}, text) {
   const el = document.createElementNS(NS, tag);
   Object.entries(attribute).forEach(([name, wert]) => el.setAttribute(name, String(wert)));
@@ -27,7 +32,7 @@ function svg(tag, attribute = {}, text) {
 
 const TITEL = {
   waermespeicher: "Wärmespeicher des Hauses",
-  heizgrenze: "Tatsächliche Heizgrenze",
+  heizgrenze: "Gemessene Heizgrenze",
   raeume: "Räume erreichen ihr Ziel",
   naechte: "Übergangszeit nachts",
   vorlauf: "Vorlauf erreicht sein Soll",
@@ -37,9 +42,9 @@ const TITEL = {
 
 const HILFE = {
   waermespeicher:
-    "Gemessen wird, wie schnell die Räume ohne Heizung zur Außentemperatur hin abkühlen. Grundlage ist die Zeitkonstante aus Wärmespeicherfähigkeit und Wärmeverlust, wie in DIN V 18599-2. Eine Einordnung wie leicht oder schwer erscheint erst mit belegter Skala.",
+    "Die Zahl ist die Zeitkonstante des Hauses nach DIN V 18599-2. In dieser Zeit verliert ein Raum ohne Heizung knapp zwei Drittel seines Abstands zur Außentemperatur. Je größer sie ist, desto länger hält das Haus die Wärme. Eine Einordnung wie leicht oder schwer erscheint erst mit belegter Skala.",
   heizgrenze:
-    "Je Tag zählt das Mittel der Außentemperatur und ob der Heizkreis mindestens zwei Stunden geheizt hat. Die Heizgrenze ist die Temperatur, an der Heiztage und heizfreie Tage kippen. Die Heizgrenze der Gradtagzahl nach VDI 3807 ist eine Konvention für den Vergleich von Verbräuchen, kein Zielwert für die Anlage.",
+    "Bis zu dieser Außentemperatur im Tagesmittel heizt der Heizkreis tatsächlich. Je Tag zählt das Mittel der Außentemperatur und ob der Heizkreis mindestens zwei Stunden geheizt hat. Die Heizgrenze ist die Temperatur, an der Heiztage und heizfreie Tage kippen. Die Heizgrenze der Gradtagzahl nach VDI 3807 ist eine Konvention für den Vergleich von Verbräuchen, kein Zielwert für die Anlage.",
   raeume:
     "Gezählt werden Heizstunden ohne Eingriff. Thermostate drosseln, sobald ein Raum warm ist; eine zu hohe Heizkurve zeigt sich deshalb kaum. Sonne und Öfen sind nicht herausgerechnet. Laut Windhager-Anleitung hilft bei zu hoher oder zu niedriger Raumtemperatur: Auslegungstemperatur und/oder Fußpunkt korrigieren oder Behaglichkeit.",
   naechte:
@@ -92,12 +97,17 @@ export const BefundMixin = (Basis) =>
       const stand = this._befund[anlage && anlage.id];
       if (!stand) return [];
       const karten = [{ id: "befund-lage", titel: "Befund", knoten: this._befundLage(stand), breite: 2 }];
+      const offen = [];
       stand.abschnitte.forEach((abschnitt) => {
         if (abschnitt.art === "waermeerzeuger") {
           karten.push({ id: "befund-waermeerzeuger", titel: "Wärmeerzeuger", knoten: this._befundVerweis(), breite: 2 });
           return;
         }
         abschnitt.befunde.forEach((befund) => {
+          if (befund.wert === null || befund.wert === undefined) {
+            offen.push({ abschnitt, b: befund });
+            return;
+          }
           karten.push({
             id: `befund:${abschnitt.kennung}:${befund.art}`,
             titel: this._t(TITEL[befund.art] || befund.art),
@@ -105,7 +115,25 @@ export const BefundMixin = (Basis) =>
           });
         });
       });
+      if (offen.length) karten.push({ id: "befund-offen", titel: "Noch ohne Ergebnis", knoten: this._befundOffen(offen), breite: 2 });
       return karten;
+    }
+
+    /** Befunde ohne Wert stehen gesammelt in einer Kachel, je Zeile mit dem Grund. */
+    _befundOffen(offen) {
+      const karte = this._karte(this._t("Noch ohne Ergebnis"));
+      const liste = knoten("div", "befund-offen");
+      offen.forEach(({ abschnitt, b }) => {
+        const zeile = knoten("div");
+        zeile.append(
+          knoten("span", null, `${this._t(TITEL[b.art] || b.art)} · ${abschnitt.titel}`),
+          knoten("span", "befund-leise", this._befundGrund(b))
+        );
+        liste.appendChild(zeile);
+      });
+      karte.appendChild(liste);
+      if (offen.some(({ b }) => b.grund === "raeume" || b.grund === "automatik")) karte.appendChild(this._befundZurAutomatik());
+      return karte;
     }
 
     _befundHinweis(text) {
@@ -153,11 +181,6 @@ export const BefundMixin = (Basis) =>
       const marke = { unauffaellig: "unauffällig", hinweis: "Hinweis", sammelt: "sammelt" }[b.status];
       if (marke) kopf.appendChild(knoten("span", `befund-marke ${b.status}`, this._t(marke)));
       karte.appendChild(kopf);
-      if (b.status === "braucht_daten" || b.wert === null || b.wert === undefined) {
-        karte.appendChild(this._hinweisKnoten(this._befundGrund(b)));
-        if (b.grund === "raeume" || b.grund === "automatik") karte.appendChild(this._befundZurAutomatik());
-        return karte;
-      }
       const wert = knoten("div", "befund-wert");
       wert.append(knoten("span", "zahl", this._befundZahl(b.wert)), knoten("span", "einheit", b.einheit), knoten("span", "neben", this._befundBeisatz(b)));
       karte.appendChild(wert);
@@ -200,11 +223,11 @@ export const BefundMixin = (Basis) =>
       }
       return this._t(
         {
-          waermespeicher: "hält die Wärme",
-          heizgrenze: "Tagesmittel",
+          waermespeicher: "Zeitkonstante",
+          heizgrenze: "Außentemperatur im Tagesmittel",
           raeume: "der Heizstunden am Ziel oder darüber",
           naechte: "am Morgen über dem Absenkziel",
-          vorlauf: "der Heizstunden unter Soll",
+          vorlauf: "der Heizstunden mehr als 3 K unter Soll",
           laufzeit: "je Start",
           energie: "je Heizgradtag",
         }[b.art] || ""
@@ -238,8 +261,12 @@ export const BefundMixin = (Basis) =>
       if (b.art === "heizgrenze" && (a.klassen || []).length) return this._bildKlassen(a.klassen, b.wert);
       if (b.art === "raeume" && a.je_raum) return this._bildRaeume(a.je_raum);
       if (b.art === "naechte" && (a.naechte || []).length) return this._bildPunkte(a.naechte);
-      if (b.art === "vorlauf" && (a.je_tag || []).length) return this._bildBalken(a.je_tag.map(([, n]) => n), "Stunden unter Soll je Heiztag", "warn");
-      if (b.art === "laufzeit" && (a.je_tag || []).length) return this._bildBalken(a.je_tag.map(([, h]) => h || 0), "Betriebsstunden je Tag", "an");
+      if (b.art === "vorlauf" && (a.je_tag || []).length) {
+        return this._bildBalken(a.je_tag, "Stunden unter Soll je Heiztag", "warn", (d, n) => this._tMit("{datum}: {h} h unter Soll", { datum: kurzdatum(d), h: n }));
+      }
+      if (b.art === "laufzeit" && (a.je_tag || []).length) {
+        return this._bildBalken(a.je_tag, "Betriebsstunden je Tag", "an", (d, h) => this._tMit("{datum}: {h} Betriebsstunden", { datum: kurzdatum(d), h: this._befundZahl(h) }));
+      }
       if (b.art === "energie" && (a.punkte || []).length) return this._bildSignatur(a.punkte);
       return null;
     }
@@ -247,6 +274,32 @@ export const BefundMixin = (Basis) =>
     _befundFeld(beschriftung) {
       const feld = knoten("div", "befund-feld");
       if (beschriftung) feld.appendChild(knoten("div", "befund-leise", this._t(beschriftung)));
+      feld.anzeige = knoten("div", "befund-ablesen befund-leise", this._t("Antippen zeigt den Wert."));
+      return feld;
+    }
+
+    /** Antippen oder Überfahren schreibt den Wert eines Bildteils unter das Bild. */
+    _befundAblesbar(feld, element, text) {
+      element.classList.add("ablesbar");
+      const zeigen = () => {
+        feld.anzeige.textContent = text;
+        feld.querySelectorAll(".gewaehlt").forEach((e) => e.classList.remove("gewaehlt"));
+        element.classList.add("gewaehlt");
+      };
+      element.addEventListener("click", zeigen);
+      element.addEventListener("mouseenter", zeigen);
+    }
+
+    /** Ein Punkt mit größerer, unsichtbarer Trefferfläche für den Finger. */
+    _befundPunkt(feld, cx, cy, klasse, text, r = 4.5) {
+      const g = svg("g");
+      g.append(svg("circle", { cx, cy, r: 11, class: "treffer" }), svg("circle", { cx, cy, r, class: klasse }));
+      this._befundAblesbar(feld, g, text);
+      return g;
+    }
+
+    _befundFertig(feld, bild) {
+      feld.append(bild, feld.anzeige);
       return feld;
     }
 
@@ -254,11 +307,12 @@ export const BefundMixin = (Basis) =>
       const feld = this._befundFeld();
       const kuehler = this._befundZahl(nacht.von - nacht.nach);
       feld.appendChild(
-        knoten("div", "befund-leise", this._tMit("Ohne Heizung heute Nacht: nach {h} h {k} K kühler ({von} → {nach} °C)", {
+        knoten("div", "befund-leise", this._tMit("Ohne Heizung ab jetzt: nach {h} h {k} K kühler ({von} → {nach} °C), bei {aussen} °C außen", {
           h: nacht.stunden,
           k: kuehler,
           von: this._befundZahl(nacht.von),
           nach: this._befundZahl(nacht.nach),
+          aussen: this._befundZahl(nacht.aussen),
         }))
       );
       const f = (t) => nacht.aussen + (nacht.von - nacht.aussen) * Math.exp(-t / tau);
@@ -277,8 +331,11 @@ export const BefundMixin = (Basis) =>
         svg("text", { x: x(8), y: 106, "text-anchor": "middle" }, "+8 h"),
         svg("text", { x: 440, y: 106, "text-anchor": "end" }, "+24 h")
       );
-      feld.appendChild(s);
-      return feld;
+      for (let t = 0; t <= 24; t += 2) {
+        const zeit = t ? `+${t} h` : this._t("jetzt");
+        s.appendChild(this._befundPunkt(feld, x(t), y(f(t)), "stelle", this._tMit("{zeit}: {wert} °C", { zeit, wert: this._befundZahl(f(t)) }), 3));
+      }
+      return this._befundFertig(feld, s);
     }
 
     _bildKlassen(klassen, grenze) {
@@ -292,16 +349,23 @@ export const BefundMixin = (Basis) =>
         .filter(([k]) => k >= lo && k < hi)
         .forEach(([k, n, h]) => {
           const p = n ? h / n : 0;
-          s.appendChild(svg("rect", { x: x(k) + 2, y: y(p), width: 410 / (hi - lo) - 4, height: Math.max(1.5, 110 - y(p)), rx: 3, class: p > 0.5 ? "balken an" : "balken" }));
+          const breite = 410 / (hi - lo);
+          const g = svg("g");
+          g.append(
+            svg("rect", { x: x(k), y: 8, width: breite, height: 102, class: "treffer" }),
+            svg("rect", { x: x(k) + 2, y: y(p), width: breite - 4, height: Math.max(1.5, 110 - y(p)), rx: 3, class: p > 0.5 ? "balken an" : "balken" })
+          );
+          this._befundAblesbar(feld, g, this._tMit("{von} bis {bis} °C: an {h} von {n} Tagen geheizt", { von: k, bis: k + 1, h, n }));
+          s.appendChild(g);
         });
       if (grenze !== null && grenze !== undefined) s.appendChild(svg("line", { x1: x(grenze), x2: x(grenze), y1: 8, y2: 110, class: "marke" }));
       [10, 15, 20, 25].forEach((v) => s.appendChild(svg("text", { x: x(v), y: 126, "text-anchor": "middle" }, `${v} °C`)));
-      feld.appendChild(s);
-      return feld;
+      return this._befundFertig(feld, s);
     }
 
     _bildRaeume(jeRaum) {
       const feld = this._befundFeld();
+      const klassen = { unter: "unter Ziel", am: "am Ziel ±0,5 K", leicht: "0,5–1 K darüber", ueber: "über 1 K darüber" };
       Object.entries(jeRaum).forEach(([kennung, w]) => {
         const zustand = this._hass.states[kennung];
         const name = (zustand && zustand.attributes.friendly_name) || kennung;
@@ -311,25 +375,19 @@ export const BefundMixin = (Basis) =>
           if (!w[klasse]) return;
           const teil = knoten("span", klasse);
           teil.style.width = `${w[klasse]}%`;
-          teil.title = `${w[klasse]} %`;
+          this._befundAblesbar(feld, teil, this._tMit("{raum}: {p} % {klasse}", { raum: name, p: w[klasse], klasse: this._t(klassen[klasse]) }));
           stapel.appendChild(teil);
         });
         zeile.append(knoten("span", null, name), stapel, knoten("span", "befund-leise", `${w.stunden} h`));
         feld.appendChild(zeile);
       });
       const legende = knoten("div", "befund-legende");
-      [
-        ["unter", "unter Ziel"],
-        ["am", "am Ziel ±0,5 K"],
-        ["leicht", "0,5–1 K darüber"],
-        ["ueber", "über 1 K darüber"],
-      ].forEach(([klasse, text]) => {
+      Object.entries(klassen).forEach(([klasse, text]) => {
         const eintrag = knoten("span", null, this._t(text));
         eintrag.prepend(knoten("i", klasse));
         legende.appendChild(eintrag);
       });
-      feld.appendChild(legende);
-      return feld;
+      return this._befundFertig(feld, legende);
     }
 
     _bildPunkte(naechte) {
@@ -342,23 +400,32 @@ export const BefundMixin = (Basis) =>
         svg("line", { x1: 30, x2: 450, y1: y(0), y2: y(0), class: "marke" }),
         svg("text", { x: 26, y: y(0) + 4, "text-anchor": "end" }, this._t("Ziel"))
       );
-      naechte.forEach(([, wert], i) => s.appendChild(svg("circle", { cx: x(i), cy: y(wert), r: 4.5, class: Math.abs(wert) <= 0.5 ? "punkt an" : "punkt" })));
-      feld.appendChild(s);
-      return feld;
+      naechte.forEach(([datum, wert], i) => {
+        const text = this._tMit("{datum}: {wert} K", { datum: kurzdatum(datum), wert: (wert > 0 ? "+" : "") + this._befundZahl(wert) });
+        s.appendChild(this._befundPunkt(feld, x(i), y(wert), Math.abs(wert) <= 0.5 ? "punkt an" : "punkt", text));
+      });
+      return this._befundFertig(feld, s);
     }
 
-    _bildBalken(werte, beschriftung, klasse) {
+    /** Balken je Tag; `eintraege` sind [Datum, Wert], `text` beschreibt einen Balken. */
+    _bildBalken(eintraege, beschriftung, klasse, text) {
       const feld = this._befundFeld(beschriftung);
       const s = svg("svg", { viewBox: "0 0 460 80" });
+      const werte = eintraege.map(([, wert]) => wert || 0);
       const hoch = Math.max(1, ...werte);
       const breite = 420 / werte.length;
       werte.forEach((wert, i) => {
         const h = (wert / hoch) * 60;
-        s.appendChild(svg("rect", { x: 30 + i * breite + 0.5, y: 68 - h, width: Math.max(1, breite - 1), height: Math.max(wert ? 1.5 : 0, h), rx: 1.5, class: `balken ${klasse}` }));
+        const g = svg("g");
+        g.append(
+          svg("rect", { x: 30 + i * breite, y: 4, width: breite, height: 64, class: "treffer" }),
+          svg("rect", { x: 30 + i * breite + 0.5, y: 68 - h, width: Math.max(1, breite - 1), height: Math.max(wert ? 1.5 : 0, h), rx: 1.5, class: `balken ${klasse}` })
+        );
+        this._befundAblesbar(feld, g, text(eintraege[i][0], wert));
+        s.appendChild(g);
       });
       s.append(svg("line", { x1: 30, x2: 450, y1: 68, y2: 68, class: "achse" }), svg("text", { x: 26, y: 14, "text-anchor": "end" }, this._befundZahl(hoch, 0)));
-      feld.appendChild(s);
-      return feld;
+      return this._befundFertig(feld, s);
     }
 
     _bildSignatur(punkte) {
@@ -371,13 +438,15 @@ export const BefundMixin = (Basis) =>
       const x = (v) => 40 + ((v - lo) / Math.max(1, hi - lo)) * 400;
       const y = (v) => 128 - (v / kwhMax) * 112;
       s.appendChild(svg("line", { x1: 40, x2: 440, y1: 128, y2: 128, class: "achse" }));
-      punkte.forEach(([at, kwh]) => s.appendChild(svg("circle", { cx: x(at), cy: y(kwh), r: 4, class: "punkt an" })));
+      punkte.forEach(([at, kwh]) => {
+        const text = `${this._befundZahl(at)} °C: ${this._tMit("{kwh} kWh am Tag", { kwh: this._befundZahl(kwh) })}`;
+        s.appendChild(this._befundPunkt(feld, x(at), y(kwh), "punkt an", text, 4));
+      });
       s.append(
         svg("text", { x: 40, y: 144 }, `${lo} °C`),
         svg("text", { x: 440, y: 144, "text-anchor": "end" }, `${hi} °C`),
         svg("text", { x: 34, y: 16, "text-anchor": "end" }, `${this._befundZahl(kwhMax, 0)} kWh`)
       );
-      feld.appendChild(s);
-      return feld;
+      return this._befundFertig(feld, s);
     }
   };

@@ -1686,5 +1686,14 @@ export const STIL = `
   .befund-vergleich { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; font-size: 14px; margin-top: 12px; }
   .befund-vergleich span:nth-child(odd) { color: var(--hn-gedaempft); }
   .befund-sprung { align-self: flex-start; margin-top: 10px; font: inherit; font-size: 13px; color: var(--hn-akzent); background: none; border: 1px solid var(--hn-linie); border-radius: 10px; padding: 6px 12px; cursor: pointer; }
+  .befund-feld .ablesbar { cursor: pointer; }
+  .befund-feld .treffer { fill: transparent; }
+  .befund-feld .stelle { fill: transparent; }
+  .befund-feld .gewaehlt .treffer { fill: var(--hn-akzent); opacity: 0.14; }
+  .befund-feld .gewaehlt .stelle { fill: var(--hn-akzent); }
+  .befund-stapel span.gewaehlt { box-shadow: inset 0 0 0 2px var(--hn-text); }
+  .befund-ablesen { margin-top: 6px; min-height: 1.4em; }
+  .befund-offen { display: grid; gap: 8px; font-size: 14px; }
+  .befund-offen > div { display: flex; flex-wrap: wrap; gap: 2px 12px; }
   .befund-fuss { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hn-linie); color: var(--hn-gedaempft); font-size: 13px; }
 `;
