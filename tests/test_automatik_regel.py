@@ -336,6 +336,38 @@ def test_sonnentag_senkt_zur_entscheidungszeit_ab(m, w):
     assert "16:55" in e.begruendung
 
 
+@pytest.mark.parametrize(
+    ("gedaempft", "soll"),
+    [(10.0, 19.5), (9.0, 19.5), (7.0, 20.0), (5.0, 20.0), (2.0, 20.5), (0.0, 20.5)],
+)
+def test_sonnentag_senkt_bei_kaelte_weniger_ab(m, w, gedaempft, soll):
+    stand = lage(m, at=gedaempft, at_gedaempft=gedaempft, entscheidungszeit=True)
+    (aktion,) = m.entscheiden(stand, m.Gedaechtnis(), w).aktionen
+    assert aktion.soll == soll
+
+
+def test_kleinere_absenkung_steht_in_der_begruendung(m, w):
+    stand = lage(m, at=5.0, at_gedaempft=5.0, entscheidungszeit=True)
+    e = m.entscheiden(stand, m.Gedaechtnis(), w)
+    assert e.begruendung.endswith("Gedämpfte AT 5,0 °C – Absenkung nur 1,0 K.")
+    assert e.gedaechtnis.absenkung_soll == 20.0
+
+
+def test_volle_absenkung_ab_einstellbarer_temperatur(m, w):
+    stand = lage(m, at=5.0, at_gedaempft=5.0, entscheidungszeit=True)
+    e = m.entscheiden(stand, m.Gedaechtnis(), replace(w, sonne_voll_at=5.0))
+    assert e.aktionen[0].soll == 19.5
+    assert "nur" not in e.begruendung
+
+
+def test_verlaengerung_folgt_der_kaelte(m, w):
+    alt = sonnentag(m, absenkung_ziel=UNTERGANG - timedelta(hours=2), absenkung_soll=19.5)
+    stand = lage(m, jetzt=MORGEN + timedelta(hours=3, minutes=1), at_gedaempft=5.0)
+    (aktion,) = m.entscheiden(stand, alt, w).aktionen
+    assert aktion.art == "absenken"
+    assert aktion.soll == 20.0
+
+
 def test_ausserhalb_der_entscheidungszeit_keine_neue_absenkung(m, w):
     e = m.entscheiden(lage(m), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.PROGRAMM

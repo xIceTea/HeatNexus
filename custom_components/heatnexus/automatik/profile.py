@@ -53,6 +53,8 @@ class Werte:
     melden: bool = True
     # Darunter (gedämpfte AT) senkt der Sonnentag ohne freigegebenes Hausmodell nicht ab.
     sonne_frost_at: float = 0.0
+    # Ab dieser gedämpften AT gilt am Sonnentag die volle Absenkung, darunter eine kleinere.
+    sonne_voll_at: float = 10.0
     # So lange darf mehr als die Hälfte der Räume ohne Wert sein, bevor eine Absenkung endet.
     raum_fehlt_min: float = 15.0
 
@@ -93,6 +95,7 @@ GRENZEN: dict[str, tuple[float, float]] = {
     "stark_k": (0.3, 3.0),
     "ruhe_h": (0.5, 6.0),
     "sonne_frost_at": (-15.0, 10.0),
+    "sonne_voll_at": (-10.0, 25.0),
     "raum_fehlt_min": (0.0, 120.0),
 }
 

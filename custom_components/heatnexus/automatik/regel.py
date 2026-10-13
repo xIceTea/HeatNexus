@@ -26,6 +26,8 @@ OHNE_DATEN_MAX = timedelta(hours=2)
 SAISON_RAUM_K = 0.5
 ZU_KALT_K = 1.0
 SONNE_RAUM_K = 0.3
+# Kleinste Absenkung am Sonnentag; in diesen Schritten nimmt die Steuerung den Sollwert an.
+ABSENKUNG_SCHRITT = 0.5
 STARK_QUOTE = 80.0
 ABWESEND_K = 3.0
 MAX_MINUTEN = 400
@@ -334,6 +336,25 @@ def grenze(lage: Lage, w: Werte) -> float:
     return (steuerung if gueltig else HEIZGRENZE_RUECKFALL) + w.grenze_versatz
 
 
+def sonne_absenkung(lage: Lage, w: Werte) -> float:
+    """Absenkung am Sonnentag: voll ab `sonne_voll_at`, darunter kleiner bis zur Frostgrenze."""
+    at = lage.at_gedaempft if lage.at_gedaempft is not None else lage.at
+    spanne = w.sonne_voll_at - w.sonne_frost_at
+    if at is None or spanne <= 0 or at >= w.sonne_voll_at:
+        return w.absenkung_k
+    anteil = max(0.0, (at - w.sonne_frost_at) / spanne)
+    stufen = math.floor(w.absenkung_k * anteil / ABSENKUNG_SCHRITT + 0.5)
+    return min(w.absenkung_k, max(ABSENKUNG_SCHRITT, stufen * ABSENKUNG_SCHRITT))
+
+
+def _kaelte_text(lage: Lage, k: float, w: Werte) -> str:
+    """Zusatz zur Begründung, wenn die Kälte die Absenkung verkleinert."""
+    if k >= w.absenkung_k:
+        return ""
+    at = lage.at_gedaempft if lage.at_gedaempft is not None else lage.at
+    return f" Gedämpfte AT {_zahl(at)} °C – Absenkung nur {_zahl(k)} K."
+
+
 def pause_soll(lage: Lage, w: Werte) -> float | None:
     """Raumsoll der Heizpause: knapp unter der AT der Steuerung, höchstens Rückkehrgrenze + 1 K."""
     if lage.at_steuerung is None:
@@ -629,7 +650,8 @@ def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
             f"Keine Wärme aus den Vorrangquellen seit {_uhr(g.absenkung_von)} – Absenkung beendet.",
             ohne_absenkung(g),
         )
-    ziel_soll = round(soll - w.absenkung_k, 1)
+    k = sonne_absenkung(lage, w)
+    ziel_soll = round(soll - k, 1)
     abgelaufen = g.absenkung_bis is not None and not absenkung_laeuft(g, lage.jetzt)
     if abgelaufen and g.absenkung_ziel:
         minuten = min(MAX_MINUTEN, _ganze_minuten(lage.jetzt, g.absenkung_ziel))
@@ -637,7 +659,8 @@ def _sonnentag_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
         return Entscheidung(
             Zustand.SONNENTAG,
             (Aktion("absenken", soll=ziel_soll, minuten=minuten),),
-            f"Sonnentag verlängert – {_zahl(ziel_soll)} °C bis {_uhr(bis)}.",
+            f"Sonnentag verlängert – {_zahl(ziel_soll)} °C bis {_uhr(bis)}."
+            + _kaelte_text(lage, k, w),
             replace(g, absenkung_bis=bis, absenkung_soll=ziel_soll, verlaengert=True),
         )
     ende = g.absenkung_ziel or g.absenkung_bis
@@ -711,7 +734,8 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
             neu,
         )
     minuten = min(MAX_MINUTEN, rest)
-    ziel_soll = round(soll - w.absenkung_k, 1)
+    k = sonne_absenkung(lage, w)
+    ziel_soll = round(soll - k, 1)
     neu = replace(
         g,
         absenkung_art=SONNE,
@@ -727,7 +751,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         Zustand.SONNENTAG,
         (Aktion("absenken", soll=ziel_soll, minuten=minuten),),
         f"{f'{lage.vorrang_name or "Vorrangquelle"} liefert' if lage.vorrang_laeuft else f'Sonnenquote {quote:.0f} %'} – "
-        f"{_zahl(ziel_soll)} °C bis {_uhr(ziel)}.",
+        f"{_zahl(ziel_soll)} °C bis {_uhr(ziel)}." + _kaelte_text(lage, k, w),
         neu,
     )
 

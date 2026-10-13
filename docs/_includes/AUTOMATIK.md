@@ -11,7 +11,9 @@ ohnehin tut:
   sie hoch genug und der Raum warm genug, senkt sie den Sollwert befristet ab,
   auf demselben Weg wie Eco in der Steuerung. Die Absenkung endet an der Anlage
   von selbst, spätestens zwei Stunden vor Sonnenuntergang. Fällt der Raum unter
-  die Rückkehrschwelle, beendet die Automatik sie vorher.
+  die Rückkehrschwelle, beendet die Automatik sie vorher. Je kälter es ist, desto
+  kleiner fällt die Absenkung aus. Ab 10 °C gedämpfter Außentemperatur gilt der
+  volle Wert, an der Frostgrenze nur 0,5 K.
 - **Übergangszeit.** Sagt die Prognose für heute und morgen im Mittel
   mindestens die Heizgrenze voraus, oder liegt die gedämpfte Außentemperatur
   um die Hysterese darüber, schaltet sie den Heizkreis auf nur Warmwasser.

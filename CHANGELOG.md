@@ -30,6 +30,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Automatik rechnet das Hausmodell beim Start ohne spürbare Pause.
 - Die Automatik-Geräte tragen den Namen des zugehörigen Heizkreises.
 - Mehrere Automatik-Werte tragen sprechende Namen, etwa „Mittlere Raumtemperatur“.
+- Der Sonnentag senkt bei kalter Außentemperatur weniger ab.
 - Die Automatik schreibt Zustandswechsel ins Protokoll von Home Assistant.
 - Ein Fehler beim Lesen des Verlaufs erscheint einmal als Warnung im Protokoll.
 - Die Automatik-Badge erscheint nur bei einer Abweichung.
