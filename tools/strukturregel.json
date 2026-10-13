@@ -13,19 +13,5 @@
  },
  "custom_components/heatnexus/formulare.py::level_schema": {
   "zeilen": 119
- },
- "custom_components/heatnexus/panel/daten.py::anlage_daten": {
-  "komplexitaet": 23,
-  "zeilen": 219
- },
- "custom_components/heatnexus/panel/steuerung.py::steuerung": {
-  "zeilen": 150
- },
- "custom_components/heatnexus/schema/karte.py::anlagenschema": {
-  "komplexitaet": 24,
-  "zeilen": 415
- },
- "custom_components/heatnexus/schema/werte.py::zeichenbare_module": {
-  "zeilen": 140
  }
 }
