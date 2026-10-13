@@ -5,6 +5,9 @@
       "reauth_successful": "Password updated",
       "reconfigure_successful": "Address changed"
     },
+    "create_entry": {
+      "default": "The system is set up. Reload the page once so that the cards appear in the dashboard."
+    },
     "error": {
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Login rejected - check the service password",

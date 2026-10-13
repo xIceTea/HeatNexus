@@ -5,6 +5,9 @@
       "reauth_successful": "Wachtwoord bijgewerkt",
       "reconfigure_successful": "Adres gewijzigd"
     },
+    "create_entry": {
+      "default": "De installatie is ingericht. Laad de pagina één keer opnieuw, zodat de kaarten in het dashboard verschijnen."
+    },
     "error": {
       "cannot_connect": "Verbinding mislukt",
       "invalid_auth": "Aanmelding geweigerd - controleer het servicewachtwoord",

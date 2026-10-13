@@ -5,6 +5,9 @@
       "reauth_successful": "Passwort aktualisiert",
       "reconfigure_successful": "Adresse geändert"
     },
+    "create_entry": {
+      "default": "Die Anlage ist eingerichtet. Damit die Karten im Dashboard erscheinen, die Seite einmal neu laden."
+    },
     "error": {
       "cannot_connect": "Verbindung fehlgeschlagen",
       "invalid_auth": "Anmeldung abgelehnt – bitte Service-Passwort prüfen",
