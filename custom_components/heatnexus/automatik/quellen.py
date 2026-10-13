@@ -39,7 +39,11 @@ def tageswerte(
     """Höchst- und Tiefstwert je Tag; Halbtage (`twice_daily`) fasst sie je Ortsdatum zusammen."""
     if not halbtage:
         return [
-            (zeit.date(), eintrag.get("temperature"), eintrag.get("templow"))
+            (
+                zeit.date(),
+                eingaben.zahl(eintrag.get("temperature")),
+                eingaben.zahl(eintrag.get("templow")),
+            )
             for eintrag in eintraege
             if (zeit := ortszeit(eintrag.get("datetime"))) is not None
         ]

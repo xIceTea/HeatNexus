@@ -517,3 +517,11 @@ async def test_eine_aeltere_fassung_geht_durch_dieselbe_pruefung(hass):
     daten = await store._async_migrate_func(1, 0, {"heizkreise": {"a": 1, "b": {"konfig": {}}}})
 
     assert daten == {"heizkreise": {"b": {"konfig": {}, "zustand": {}}}}
+
+
+def test_tageswerte_verwerfen_unbrauchbare_zahlen():
+    from custom_components.heatnexus.automatik.quellen import tageswerte
+
+    eintraege = [{"datetime": "2026-10-13T00:00:00+02:00", "temperature": "x", "templow": 4}]
+
+    assert tageswerte(eintraege)[0][1:] == (None, 4.0)
