@@ -250,3 +250,17 @@ async def test_system_geraet_traegt_den_namen_der_anlage(hass, anlage):
     assert info["name"] == "Automatik Hebebühne"
     assert (neu.id, neu.name, neu.name_by_user) == (geraet.id, "Automatik Hebebühne", "Mein System")
     assert status.unique_id == system.system_unique_id(entry.entry_id, "status")
+
+
+def test_betriebsarten_gelten_in_jeder_sprache():
+    from custom_components.heatnexus.automatik.optimierung import betriebsart_zahlen
+    from custom_components.heatnexus.device_db import get_enum
+
+    zahlen = betriebsart_zahlen({"enum": "2/9"})
+    deutsch = get_enum("2/9", "de") or {}
+    assert deutsch
+    for sprache in ("de", "en", "nl"):
+        for text in (get_enum("2/9", sprache) or {}).values():
+            assert text in zahlen
+    angezeigt = betriebsart_zahlen({"enum": "2/9", "enum_texte": {"7": "Anzeige"}})
+    assert angezeigt["Anzeige"] == 7

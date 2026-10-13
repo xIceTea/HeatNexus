@@ -18,6 +18,7 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
+from ..device_db import get_enum
 from ..helpers import enum_texte
 from ..texte import DEZIMALPUNKT, woerterbuch
 from . import eingaben, ergebnistext, nachladen, nachrechnen, optimierer, regel, seitenleiste
@@ -128,6 +129,18 @@ def _raum(
     eigen = nachladen.zeitreihe(zustaende.get(kennung, []), "temperature", luecken=True)
     ziel = [(zeit, raum_ziel if wert is None else wert) for zeit, wert in eigen]
     return ist, ziel, _ausreihe(zustaende.get(kennung, []))
+
+
+def betriebsart_zahlen(beschreibung: dict[str, Any]) -> dict[str, int]:
+    """Die Zahl je Text einer Auswahl in allen Sprachen; die aktuelle Anzeige hat Vorrang."""
+    schluessel = beschreibung.get("enum") or ""
+    zahlen: dict[str, int] = {}
+    for texte in (
+        *(get_enum(schluessel, s) or {} for s in ("de", "en", "nl")),
+        enum_texte(beschreibung),
+    ):
+        zahlen.update({text: wert for wert, text in texte.items()})
+    return zahlen
 
 
 def _textreihe(zustaende: list[Any], werte_je_text: dict[str, int]) -> nachrechnen.Reihe:
@@ -351,7 +364,7 @@ class OptimierungMixin:
         oid = f"{self.prefix}{VERLAUFSWERTE['ba']}"
         geraete = (self.coordinator.data or {}).get("devices") or []
         beschreibung = next((d for d in geraete if d.get("oid") == oid), {"enum": "2/9"})
-        return {text: wert for wert, text in enum_texte(beschreibung).items()}
+        return betriebsart_zahlen(beschreibung)
 
     def _tagesreihen(self, zustaende: dict[str, list[Any]], quellen: Quellen) -> nachrechnen.Reihen:
         """Die Zeitreihen des Heizkreises aus dem gelesenen Verlauf."""

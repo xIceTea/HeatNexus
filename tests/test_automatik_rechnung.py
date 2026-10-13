@@ -136,3 +136,4 @@ def test_automatik_werte_nennen_ihre_groesse():
         assert deutsch[plattform][schluessel]["name"] == name
     for schluessel in ("automatik_zustand", "automatik_empfehlung"):
         assert deutsch["sensor"][schluessel]["state"]["sicherheit"] == "Sicherheitsregel aktiv"
+
