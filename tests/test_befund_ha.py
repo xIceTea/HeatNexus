@@ -34,7 +34,7 @@ class Coordinator:
                     "type": "sensor",
                     "id": "SN1-1-0-2-80-0",
                     "device_id": "SN1-1-0",
-                    "prefix": KESSEL,
+                    "oid": f"{KESSEL}/2/80/0",
                 },
             ],
             "oids": {

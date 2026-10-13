@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 TAKT = timedelta(minutes=5)
 SPEICHERN_S = 60
 NACHRECHNEN_TAGE = 400
-NACHRECHNEN_FASSUNG = 1
+NACHRECHNEN_FASSUNG = 2
 HEIZKREIS = {"at": "/0/0/0", "vl": "/1/2/0", "vi": "/0/2/0", "soll": "/1/1/0"}
 RESTZEIT = "/2/10/0"
 TA_HEIZ = "/3/21/0"
@@ -129,8 +129,10 @@ class Sammler:
         return [b for c, b in Verwaltung.heizkreise(self.entry) if c is self.coordinator]
 
     def kessel_geraet(self, prefix: str) -> str | None:
+        """Das Gerät eines Kessels; Sensor-Beschreibungen tragen nur ihre volle Adresse."""
         geraete = (self.coordinator.data or {}).get("devices") or []
-        return next((d["device_id"] for d in geraete if d.get("prefix") == prefix), None)
+        oid = f"{prefix}{STARTS}"
+        return next((d["device_id"] for d in geraete if d.get("oid") == oid), None)
 
     def geraete(self) -> list[tuple[str, str, tuple[str, ...]]]:
         """Je Heizkreis und Kessel: Kennung im Befund, Gerät, Arten der Sensoren."""
