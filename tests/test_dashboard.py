@@ -85,6 +85,7 @@ def test_kurzname_entfernt_steuerungspraefix(anlagen):
     assert anlagen.kurzname("Kesselhaus · PuroWIN") == "PuroWIN"
     assert anlagen.kurzname("PuroWIN") == "PuroWIN"
     assert anlagen.kurzname(None) == ""
+    assert anlagen.kurzname("Keller · Heizk./WW  (1)") == "Heizk./WW (1)"
 
 
 def test_kessel_steht_vor_puffer_und_heizkreis(anlagen):

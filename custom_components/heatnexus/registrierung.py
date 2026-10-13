@@ -66,8 +66,8 @@ def geraet_suchen(registry: Any, kennung: str, entry_id: str | None) -> Any:
 
 
 def kurzname(name: str | None) -> str:
-    """Name ohne das vorangestellte Anlagenkürzel."""
-    return (name or "").split(" · ")[-1].strip()
+    """Name ohne das vorangestellte Anlagenkürzel und ohne doppelte Leerzeichen."""
+    return " ".join((name or "").split(" · ")[-1].split())
 
 
 def geraetename(hass: Any, kennung: str, entry_id: str | None, rueckfall: str) -> str:
