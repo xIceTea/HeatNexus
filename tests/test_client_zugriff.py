@@ -46,6 +46,28 @@ class _Antwort:
         return json.loads(self._rohdaten.decode("utf-8"))
 
 
+class _Anfrage:
+    """Was `session.request` liefert: ein Kontext um die Antwort, wie bei aiohttp."""
+
+    def __init__(self, erzeuger):
+        self._erzeuger = erzeuger
+
+    async def __aenter__(self):
+        return await self._erzeuger()
+
+    async def __aexit__(self, *_args):
+        return False
+
+
+def _scheitert(fehler: Exception):
+    """Eine Anfrage, die mit `fehler` abbricht."""
+
+    async def erzeuger():
+        raise fehler
+
+    return lambda *_args, **_kwargs: _Anfrage(erzeuger)
+
+
 class _Sitzung:
     """Merkt sich jede Anfrage und gibt der Reihe nach vorbereitete Antworten."""
 
@@ -53,9 +75,14 @@ class _Sitzung:
         self._antworten = list(antworten) or [_Antwort()]
         self.anfragen: list[tuple] = []
 
-    async def request(self, methode, url, data=None):
+    def request(self, methode, url, data=None):
         self.anfragen.append((methode, str(url), data))
-        return self._antworten.pop(0) if len(self._antworten) > 1 else self._antworten[0]
+        antwort = self._antworten.pop(0) if len(self._antworten) > 1 else self._antworten[0]
+
+        async def erzeuger():
+            return antwort
+
+        return _Anfrage(erzeuger)
 
     async def close(self):
         return None
@@ -167,11 +194,7 @@ async def test_ein_einzelner_401_ist_noch_kein_falsches_passwort(client):
 
 async def test_ein_abbruch_wird_als_fehler_gezaehlt(client, client_module):
     c = client()
-
-    async def scheitern(*_args, **_kwargs):
-        raise OSError("Netz weg")
-
-    c._session.request = scheitern
+    c._session.request = _scheitert(OSError("Netz weg"))
     with pytest.raises(OSError):
         await c._get("http://egal/")
     assert c.request_errors == 1
@@ -188,7 +211,13 @@ async def test_ein_wert_wird_geschrieben(client):
     methode, url, rumpf = c._session.anfragen[0]
     assert methode == "PUT"
     assert url.endswith("/api/1.0/datapoint")
-    assert json.loads(rumpf) == {"OID": "/1/15/0/3/4/0", "value": "21.5"}
+    assert rumpf == b'{"OID":"/1/15/0/3/4/0","value":"21.5"}'
+
+
+async def test_ein_zahlwert_geht_als_zeichenkette(client):
+    c = client(_Antwort(200, b""))
+    await c.update("/1/15/0/3/50/0", 3)
+    assert c._session.anfragen[0][2] == b'{"OID":"/1/15/0/3/50/0","value":"3"}'
 
 
 async def test_ein_abgelehnter_schreibvorgang_bleibt_nicht_still(client):
@@ -230,11 +259,7 @@ async def test_ein_zeitprogramm_wird_gelesen(client):
 async def test_ein_unlesbares_objekt_meldet_status_null(client):
     """`0` heißt: gar keine Antwort. Das ist etwas anderes als ein Fehlercode."""
     c = client()
-
-    async def scheitern(*_args, **_kwargs):
-        raise OSError("Netz weg")
-
-    c._session.request = scheitern
+    c._session.request = _scheitert(OSError("Netz weg"))
     assert await c.fetch_object("/1/15/0/5/64/0") == (None, 0)
 
 
@@ -293,9 +318,9 @@ class _StummeSitzung:
     def __init__(self):
         self.anfragen: list[tuple] = []
 
-    async def request(self, methode, url, data=None):
+    def request(self, methode, url, data=None):
         self.anfragen.append((methode, str(url), data))
-        raise TimeoutError
+        return _scheitert(TimeoutError())()
 
     async def close(self):
         return None
@@ -338,9 +363,9 @@ class _EinmalStumm:
         self.fehler = fehler
         self.anfragen: list[str] = []
 
-    async def request(self, methode, url, data=None):
+    def request(self, methode, url, data=None):
         self.anfragen.append(str(url))
-        raise self.fehler
+        return _scheitert(self.fehler)()
 
     async def close(self):
         return None

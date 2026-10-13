@@ -108,8 +108,8 @@ class TransportMixin:
             begonnen = time.monotonic()
             self.queue_seconds += begonnen - angefragt
             try:
-                ret = await self._session.request("GET", url)
-                raw = await ret.read()
+                async with self._session.request("GET", url) as ret:
+                    raw = await ret.read()
             except Exception:
                 self.request_errors += 1
                 raise
@@ -136,8 +136,10 @@ class TransportMixin:
         """
         try:
             await self._ensure_session()
-            async with self._semaphore:
-                ret = await self._session.request("GET", f"http://{self.host}/res/{pfad}")
+            async with (
+                self._semaphore,
+                self._session.request("GET", f"http://{self.host}/res/{pfad}") as ret,
+            ):
                 if ret.status != 200:
                     return None
                 return self._decode(await ret.read())
@@ -221,12 +223,15 @@ class TransportMixin:
     async def update(self, oid, value):
         """PUT a new value to a datapoint."""
         await self._ensure_session()
-        async with self._semaphore:
-            ret = await self._session.request(
-                "PUT",
-                f"http://{self.host}/api/1.0/datapoint",
-                data=bytes(f'{{"OID":"{oid}","value":"{value}"}}', "utf-8"),
-            )
+        rumpf = json.dumps(
+            {"OID": oid, "value": str(value)}, separators=(",", ":"), ensure_ascii=False
+        )
+        async with (
+            self._semaphore,
+            self._session.request(
+                "PUT", f"http://{self.host}/api/1.0/datapoint", data=rumpf.encode()
+            ) as ret,
+        ):
             if ret.status >= 400:
                 body = await ret.text()
                 _LOGGER.debug("Schreiben auf %s scheitert mit HTTP %s: %s", oid, ret.status, body)
@@ -252,8 +257,10 @@ class TransportMixin:
         """
         try:
             await self._ensure_session()
-            async with self._semaphore:
-                ret = await self._session.request("GET", self._object_url(full_oid))
+            async with (
+                self._semaphore,
+                self._session.request("GET", self._object_url(full_oid)) as ret,
+            ):
                 status = ret.status
                 try:
                     data = await ret.json()
@@ -267,12 +274,12 @@ class TransportMixin:
     async def write_object(self, full_oid, payload: dict):
         """PUT a structured object (Zeitprogramm) via ?OID=<full_oid>."""
         await self._ensure_session()
-        async with self._semaphore:
-            ret = await self._session.request(
-                "PUT",
-                self._object_url(full_oid),
-                data=bytes(json.dumps(payload), "utf-8"),
-            )
+        async with (
+            self._semaphore,
+            self._session.request(
+                "PUT", self._object_url(full_oid), data=bytes(json.dumps(payload), "utf-8")
+            ) as ret,
+        ):
             if ret.status >= 400:
                 body = await ret.text()
                 _LOGGER.debug(
