@@ -383,3 +383,51 @@ async def test_geaenderte_raeume_oder_wetter_lernen_das_hausmodell_neu(
 
     assert laufzeit.hausmodell is None
     assert aufrufe["lernen"] == 2
+
+
+# --- Speichern -------------------------------------------------------------
+def _speicherplan(verwaltung):
+    """Die Verzögerung jedes geplanten Schreibvorgangs des Stores."""
+    plan: list[float] = []
+    original = verwaltung._store.async_delay_save
+
+    def merken(daten, verzoegerung=0):
+        plan.append(verzoegerung)
+        original(daten, verzoegerung)
+
+    verwaltung._store.async_delay_save = merken
+    return plan
+
+
+async def test_ein_lauf_ohne_neuen_zustand_speichert_gedrosselt(hass, anlage, freezer):
+    from custom_components.heatnexus.automatik import verwaltung as modul
+
+    verwaltung, _ = anlage
+    freezer.move_to(ha.MORGEN)
+    laufzeit = await ha._eingerichtet(hass, verwaltung)
+    await laufzeit.auswerten()
+    await hass.async_block_till_done(wait_background_tasks=True)
+    verwaltung._abzug()
+    plan = _speicherplan(verwaltung)
+
+    for _ in range(3):
+        await laufzeit.auswerten()
+
+    assert plan == [modul.SPEICHER_RUHIG_S]
+
+
+async def test_ein_neuer_zustand_speichert_bald(hass, anlage, freezer, monkeypatch):
+    from custom_components.heatnexus.automatik import regel
+    from custom_components.heatnexus.automatik import verwaltung as modul
+
+    verwaltung, _ = anlage
+    laufzeit = await _schaltend(hass, verwaltung, freezer)
+    laufzeit.gedaechtnis = regel.Gedaechtnis()
+    await laufzeit.auswerten()
+    verwaltung._abzug()
+    plan = _speicherplan(verwaltung)
+    _absenkung_festlegen(monkeypatch)
+
+    await laufzeit.auswerten()
+
+    assert plan[-1] == modul.SPEICHER_VERZOEGERUNG_S

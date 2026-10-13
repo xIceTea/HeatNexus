@@ -43,6 +43,8 @@ _LOGGER = logging.getLogger(__name__)
 STORE_KEY = f"{DOMAIN}.automatik"
 STORE_VERSION = 1
 SPEICHER_VERZOEGERUNG_S = 30
+# Läufe ohne neuen Zustand ändern nur Verlauf und Messwerte; die gehen gesammelt in den Store.
+SPEICHER_RUHIG_S = 600
 DATEN_SCHLUESSEL = f"{DOMAIN}_automatik"
 SIGNAL_NEU = f"{DOMAIN}_automatik_neu_{{}}"
 DOMAENE_JE_ART = {
@@ -142,6 +144,7 @@ class Verwaltung:
         self._store: Store = Store(hass, STORE_VERSION, STORE_KEY)
         self._daten: dict[str, Any] = {"heizkreise": {}}
         self._geladen = False
+        self._geplant = False
         self.laufzeiten: dict[str, Laufzeit] = {}
         self._prognosen: dict[tuple[str, str], tuple[datetime, list[dict[str, Any]]]] = {}
         self._prognose_sperre = asyncio.Lock()
@@ -166,9 +169,19 @@ class Verwaltung:
     @callback
     def speichern(self) -> None:
         """Verzögert sichern; viele Läufe kurz hintereinander ergeben einen Schreibvorgang."""
+        self._geplant = True
         self._store.async_delay_save(self._abzug, SPEICHER_VERZOEGERUNG_S)
 
+    @callback
+    def speichern_ruhig(self) -> None:
+        """Gedrosselt sichern; ein schon geplanter Schreibvorgang nimmt es mit."""
+        if self._geplant:
+            return
+        self._geplant = True
+        self._store.async_delay_save(self._abzug, SPEICHER_RUHIG_S)
+
     def _abzug(self) -> dict[str, Any]:
+        self._geplant = False
         for device_id, laufzeit in self.laufzeiten.items():
             if eintrag := self._daten["heizkreise"].get(device_id):
                 eintrag["zustand"] = laufzeit.als_dict()
@@ -354,6 +367,7 @@ class Verwaltung:
                 self.speichern,
                 entry.entry_id,
                 self.prognose,
+                self.speichern_ruhig,
             )
             self.laufzeiten[device_id] = laufzeit
             async_dispatcher_send(self.hass, SIGNAL_NEU.format(entry.entry_id))

@@ -155,6 +155,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         speichern: Callable[[], None],
         entry_id: str,
         prognose: Callable[[str, str], Awaitable[list[dict[str, Any]] | None]],
+        speichern_ruhig: Callable[[], None] | None = None,
     ) -> None:
         self.hass = hass
         self.coordinator = coordinator
@@ -165,6 +166,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._rohname: str = beschreibung.get("device_name") or self.device_id
         self.konfig = konfig
         self._speichern = speichern
+        # Ohne neuen Zustand genügt ein seltener Schreibvorgang; der Verlauf ist kein Notfall.
+        self._speichern_ruhig = speichern_ruhig or speichern
+        self._gespeichert: tuple[Any, ...] | None = None
         self._prognose_quelle = prognose
         z = zustand or {}
         self.gedaechtnis = regel.gedaechtnis_aus_dict(z.get("gedaechtnis"))
@@ -190,6 +194,13 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self.pv = korrektur.Pvkorrektur(z.get("pv"))
         self.verlauf: dict[str, Any] = _verlauf_laden(z.get("verlauf"))
         self._optimierung_laden(z)
+        self._fluechtiges_vorbereiten()
+        self._ablauf_vorbereiten()
+        self._laeufe_laden(z)
+        self._offenes_laden(z)
+
+    def _fluechtiges_vorbereiten(self) -> None:
+        """Was nur im Speicher lebt: Lage, Prognose, Fenster, Abwesenheit, fehlende Daten."""
         self.lage: regel.Lage | None = None
         self.stunden: list[dict[str, Any]] = []
         self._tage: list[tuple[date, float | None, float | None]] = []
@@ -201,27 +212,23 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._daten_fehlen_seit: datetime | None = None
         self._raeume_fehlen_seit: datetime | None = None
         self._geaendert = True
-        self._ablauf_vorbereiten()
-        self._wiederholung: Callable[[], None] | None = None
-        self._fehlschlaege = 0
-        self._erzwingen = False
         self._nachladen: Any = None
         # Raumfühler, deren Wert laut Verlauf eingefroren ist; ein neuer Wert löst sie.
         self.eingefroren: set[str] = set()
-        # Wie lange Wärmequellen mit Vorrang vor dem Kessel heute geliefert haben.
+        self._gestartet = dt_util.now()
+        self._wartet = False
+        self._lieferbeginn_am: date | None = None
+
+    def _laeufe_laden(self, z: dict[str, Any]) -> None:
+        """Wie lange Vorrangquellen lieferten und Sonnentag oder nur Warmwasser heute galten."""
         self.vorrang = eingaben.lauf_aus_dict(z.get("vorrang"))
         self.vorrang_verlauf = _tageswerte(z.get("vorrang_verlauf"))
-        # Wie lange Sonnentag und nur Warmwasser heute an der Steuerung galten.
         modus = z.get("modus_lauf")
         self.modus_lauf = (
             {art: eingaben.lauf_aus_dict(modus.get(art)) for art in MODUS_ARTEN}
             if isinstance(modus, dict)
             else self._lauf_aus_protokoll(dt_util.now())
         )
-        self._gestartet = dt_util.now()
-        self._wartet = False
-        self._lieferbeginn_am: date | None = None
-        self._offenes_laden(z)
 
     # --- Eigenschaften -------------------------------------------------------
     @property
@@ -296,6 +303,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._aufgaben: set[asyncio.Task[Any]] = set()
         self._angemeldet = False
         self._abmelden: list[Callable[[], None]] = []
+        self._wiederholung: Callable[[], None] | None = None
+        self._fehlschlaege = 0
+        self._erzwingen = False
         # Ein Neustart der Laufzeit (jede Einstellung) lernt und trägt nur einmal am Tag nach.
         self._gelernt_am: date | None = None
         self._nachgetragen_am: date | None = None
@@ -604,9 +614,25 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         self._modus_fortschreiben(dt_util.now())
         self._aktion_merken(dt_util.now())
         self._seitenleiste()
-        self._speichern()
+        self._sichern()
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
         async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
+
+    def _sichern(self) -> None:
+        """Bald speichern, was die Steuerung betrifft; sonst nur gedrosselt."""
+        merkmal = (
+            self.zustand,
+            self.gedaechtnis,
+            self.steller.stand,
+            self.pausiert_bis,
+            self.empfehlung,
+            self.verworfen,
+        )
+        if merkmal == self._gespeichert:
+            self._speichern_ruhig()
+            return
+        self._gespeichert = merkmal
+        self._speichern()
 
     # --- Empfehlung ----------------------------------------------------------
     def _offenes_laden(self, z: dict[str, Any]) -> None:
@@ -1096,7 +1122,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin, OptimierungMixin):
         jetzt = dt_util.now()
         self._modus_fortschreiben(jetzt)
         self._aktion_merken(jetzt)
-        self._speichern()
+        self._speichern_ruhig()
         async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
 
     def stufen_uebernehmen(self, stufen: tuple[float, float], zeit: datetime) -> None:
