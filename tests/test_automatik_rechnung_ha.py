@@ -184,5 +184,3 @@ async def test_system_geraet_traegt_den_namen_der_anlage(hass, anlage):
     assert info["name"] == "Automatik Hebebühne"
     assert (neu.id, neu.name, neu.name_by_user) == (geraet.id, "Automatik Hebebühne", "Mein System")
     assert status.unique_id == system.system_unique_id(entry.entry_id, "status")
-
-

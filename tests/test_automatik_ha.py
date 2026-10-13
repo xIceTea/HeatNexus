@@ -3035,5 +3035,3 @@ async def test_entitaet_ohne_vorhersageart_wird_trotzdem_gefragt(hass, anlage, f
         ("weather.home", "hourly"),
     ]
     assert any("weather.home" in r.getMessage() for r in caplog.records)
-
-
