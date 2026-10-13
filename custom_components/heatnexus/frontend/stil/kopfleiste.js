@@ -75,22 +75,26 @@ export const KOPFLEISTE = `
   .reiter button {
     display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
     padding: 10px 16px; border: none; border-bottom: 2px solid transparent;
-    background: none; color: inherit; font: inherit; font-size: 14px;
-    font-weight: 600; cursor: pointer; opacity: 0.55;
+    background: none; font: inherit; font-size: 14px;
+    font-weight: 600; cursor: pointer; color: var(--hn-gedaempft);
   }
-  .reiter button:hover { opacity: 0.85; }
+  .reiter button:hover { color: var(--hn-text); }
   .reiter button[aria-selected="true"] {
-    opacity: 1; color: var(--hn-akzent); border-bottom-color: var(--hn-akzent);
+    color: var(--hn-akzent); border-bottom-color: var(--hn-akzent);
   }
   .reiter button.punkt { position: relative; }
   .reiter button.punkt::after {
     content: ""; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%;
     background: var(--hn-akzent); box-shadow: 0 0 0 2px var(--hn-grund);
   }
-  .reiter button.versteckt { text-decoration: line-through; opacity: 0.35; }
+  .reiter button.versteckt { text-decoration: line-through; color: var(--hn-gedaempft); }
   .reiter .reiter-griffe { display: inline-flex; align-items: center; margin-right: 8px; }
-  .reiter .reiter-griffe button { padding: 4px; border-bottom: none; opacity: 0.6; }
-  .reiter .reiter-griffe button:hover { opacity: 1; }
+  .reiter .reiter-griffe button { padding: 4px; border-bottom: none; }
+  .reiter .reiter-griffe button:hover { color: var(--hn-text); }
+  .menue-taste:focus-visible, .werkzeugliste button:focus-visible,
+  .waehler button:focus-visible, .reiter button:focus-visible {
+    outline: 2px solid var(--hn-akzent); outline-offset: 2px;
+  }
   .anlagen-trenner {
     display: flex; align-items: center; gap: 12px;
     margin: 8px 16px 0; padding-top: 16px;
