@@ -11,7 +11,7 @@ from ..error_texts import textsprache
 from ..exceptions import WindhagerValueError, mit_text
 
 # Schaltpunkt: {"time": "HH:MM", "value": <Temperatur>}
-_SWITCHPOINT_SCHEMA = vol.Schema(
+SCHALTPUNKT_SCHEMA = vol.Schema(
     {
         vol.Required("time"): cv.matches_regex(r"^\d{1,2}:\d{2}$"),
         vol.Required("value"): vol.Coerce(float),
@@ -20,10 +20,10 @@ _SWITCHPOINT_SCHEMA = vol.Schema(
 
 
 # Block: Wochentage + Schaltpunkte
-_BLOCK_SCHEMA = vol.Schema(
+BLOCK_SCHEMA = vol.Schema(
     {
         vol.Optional("weekdays"): [cv.string],
-        vol.Required("switch_points"): [_SWITCHPOINT_SCHEMA],
+        vol.Required("switch_points"): [SCHALTPUNKT_SCHEMA],
     }
 )
 

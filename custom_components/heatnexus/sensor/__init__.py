@@ -36,7 +36,7 @@ from .meldungen import (
     WindhagerMessageListSensor,
     WindhagerMessageTextSensor,
 )
-from .zeitprogramm import _BLOCK_SCHEMA, _SWITCHPOINT_SCHEMA, WindhagerTimeProgramSensor
+from .zeitprogramm import BLOCK_SCHEMA, SCHALTPUNKT_SCHEMA, WindhagerTimeProgramSensor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,8 +67,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         "set_time_program",
         {
             vol.Optional("weekdays"): [cv.string],
-            vol.Optional("switch_points"): [_SWITCHPOINT_SCHEMA],
-            vol.Optional("blocks"): [_BLOCK_SCHEMA],
+            vol.Optional("switch_points"): [SCHALTPUNKT_SCHEMA],
+            vol.Optional("blocks"): [BLOCK_SCHEMA],
         },
         "async_set_time_program",
     )
