@@ -33,8 +33,9 @@ function anlage(name, id) {
 const DATEN = { anlagen: [anlage("Heizhaus", "a"), anlage("Wohnhaus", "b")] };
 
 /** Eine Oberfläche mit zwei Anlagen im Reiter „Hilfe“; `ws` beantwortet WebSocket-Aufrufe. */
-function bauen({ ws = async () => ({}), daten = DATEN, reiter = "hilfe" } = {}) {
+function bauen({ ws = async () => ({}), daten = DATEN, reiter = "hilfe", texte = {} } = {}) {
   const flaeche = new klasse();
+  flaeche._texte = texte;
   const gerufen = [];
   flaeche._reiter = reiter;
   flaeche.hass = {
@@ -176,6 +177,13 @@ const befund = {};
   zeit.zeitLaufenLassen();
   ergebnis.versteckteLeiste = taste();
   befund.menuetaste = ergebnis;
+}
+
+// --- Namen aus der Anlage werden nicht übersetzt -----------------------------
+{
+  const { flaeche } = bauen({ texte: { Wohnhaus: "Residence", Hilfe: "Help" } });
+  const knoepfe = flaeche.shadowRoot.querySelector(".waehler").children.map((taste) => taste.textContent);
+  befund.anlagenNamen = knoepfe;
 }
 
 process.stdout.write(JSON.stringify(befund, null, 2));

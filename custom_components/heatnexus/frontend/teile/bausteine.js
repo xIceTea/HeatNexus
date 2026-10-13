@@ -86,6 +86,8 @@ export const BausteineMixin = (Basis) =>
       // Das Stylesheet ist ein Textknoten von zigtausend Zeichen und trägt
       // nichts zum Lesen bei.
       if (knoten.tagName === "STYLE" || knoten.tagName === "SCRIPT") return;
+      // Namen aus der Anlage (`data-roh`) bleiben, wie sie sind.
+      if (knoten.dataset && knoten.dataset.roh !== undefined) return;
       // Ein Teil mit eigener Sprache ist schon übersetzt.
       if (knoten !== wurzel && knoten.getAttribute && knoten.getAttribute("lang")) return;
       if (knoten.getAttribute) {

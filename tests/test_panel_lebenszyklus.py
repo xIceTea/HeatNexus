@@ -97,3 +97,7 @@ def test_werkzeugmenue_oeffnet_und_schliesst_per_tastatur(befund):
 
 def test_menutaste_nur_wo_die_seitenleiste_nicht_fest_steht(befund):
     assert befund["menuetaste"] == {"breit": "none", "schmal": "", "versteckteLeiste": ""}
+
+
+def test_anlagennamen_bleiben_wie_sie_sind(befund):
+    assert befund["anlagenNamen"][1:] == ["Heizhaus", "Wohnhaus"]

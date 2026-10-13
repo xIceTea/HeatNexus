@@ -383,6 +383,7 @@ class HeatNexusPanel extends Grundlage {
         const ueberschrift = document.createElement("div");
         ueberschrift.className = "anlagen-trenner";
         ueberschrift.textContent = eintrag.name || "Anlage";
+        ueberschrift.dataset.roh = "";
         const flaeche = this._anlagenInhalt(eintrag);
         flaechen.push(flaeche);
         inhalt.append(ueberschrift, flaeche);
@@ -474,6 +475,7 @@ class HeatNexusPanel extends Grundlage {
         taste.setAttribute("aria-selected", String(index === this._anlageIndex));
         taste.dataset.anlage = String(index);
         taste.textContent = name;
+        if (index >= 0) taste.dataset.roh = "";
         taste.addEventListener("click", (ereignis) => {
           this._tastaturFokus = ereignis.detail === 0 ? `[data-anlage="${index}"]` : null;
           this._anlageIndex = index;
