@@ -4,53 +4,20 @@ from __future__ import annotations
 
 from typing import Any
 
-from .bauteile import bauteilnamen, kessellampe, lampenpunkt, waermeflaeche
+from . import ebenen
+from .bauteile import bauteilnamen
 from .farben import FARBABBILDUNGEN, FARBEN, THEMA_HELL, farben_umstellen
 from .werte import (
-    ANALOG_SOLLWERT,
-    BRENNKAMMER_HEISS,
-    BRENNKAMMER_KALT,
-    ERZEUGER_ARTEN,
-    finde,
     waehlbare_werte,
     zeichenbare_module,
 )
 from .zeichnung import (
-    ENTNAHME_ARTEN,
-    GLUTBETT_BREITE,
-    GLUTBETT_Y,
-    HEIZKOERPER_ANZAHL,
-    HEIZKOERPER_BREITE,
-    HEIZKOERPER_GLANZ_BIS,
-    HEIZKOERPER_GLANZ_VON,
-    HEIZKOERPER_GLIED,
-    HEIZKOERPER_HEISS,
-    HEIZKOERPER_HOEHE,
-    HEIZKOERPER_KALT,
-    HEIZKOERPER_RASTER,
-    HEIZKOERPER_X,
-    HEIZKOERPER_Y,
-    HOEHE,
-    KANTEN_JE_ART,
-    KANTEN_STANDARD,
-    LADE_TOLERANZ,
-    MISCHER_JE_ART,
-    MISCHER_MARKE,
     MODUL_BREITE,
     RAND,
-    RUECKLAUF_Y,
-    SPEICHER_ARTEN,
-    SPEICHER_Y,
-    VORLAUF_Y,
-    ZSP_BETRIEBSLAMPE,
-    ZSP_GEHAEUSE,
-    ZSP_KLEMMEN,
-    ZSP_PUMPE,
     Buch,
     beschriftungen,
     datenadresse,
     schaubild_svg,
-    speicherfuehler,
 )
 
 
@@ -86,352 +53,12 @@ def anlagenschema(
 
     svg, breite = schaubild_svg(module, mit_mischer, buch)
 
+    rahmen = ebenen.Rahmen.aus_modulen(module, breite)
     elemente: list[dict[str, Any]] = []
-    pumpen: list[dict[str, Any]] = []
-    brenner: list[dict[str, Any]] = []
-    mischer: list[dict[str, Any]] = []
-    heizkoerper: list[dict[str, Any]] = []
-    schichtung: list[dict[str, Any]] = []
-    speicher: list[dict[str, Any]] = []
-    lampen: list[dict[str, Any]] = []
-    waerme: list[dict[str, Any]] = []
-    uebergabe: list[dict[str, Any]] = []
-    # Wer dem Speicher Wärme entnimmt: alle Pumpen der Verbraucher. Wird
-    # gleich zweimal gebraucht – für die Marke am Speicher und für seine
-    # Stichleitung.
-    entnahme = [m["pumpe"] for m in module if m.get("pumpe") and m["art"] in ENTNAHME_ARTEN]
-    # Wer dem Speicher Wärme zuführt, ohne an der Steuerung zu hängen. Eine
-    # liefernde Quelle lädt ihn, auch wenn die Ladepumpe steht.
-    lieferungen = [m["lieferung"] for m in module if m.get("lieferung")]
-
     for platz, modul in enumerate(module):
-        x = RAND + platz * MODUL_BREITE
-        elemente += beschriftungen(x, modul, breite)
-        if modul.get("pumpe"):
-            # Die Pumpe sitzt im Rücklauf, unterhalb ihres Anlagenteils.
-            mitte = x + MODUL_BREITE // 2
-            oben, unten = KANTEN_JE_ART.get(modul["art"], KANTEN_STANDARD)
-            pumpen.append(
-                {
-                    "entity": modul["pumpe"],
-                    "left": f"{mitte / breite * 100:.2f}%",
-                    "top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
-                    "titel": modul["titel"],
-                    # Die beiden senkrechten Stichleitungen dieses Anlagenteils.
-                    # Sie strömen nur, solange **seine** Pumpe fördert – daran
-                    # sieht man, wohin die Wärme gerade geht. Die waagrechten
-                    # Leitungen strömen dagegen immer, sobald irgendwo etwas
-                    # läuft: Dort steht das Wasser ja auch nicht still.
-                    "vorlauf_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
-                    "vorlauf_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
-                    "ruecklauf_top": f"{unten / HOEHE * 100:.2f}%",
-                    "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
-                    # Ein Speicher strömt in beide Richtungen: Seine eigene
-                    # Pumpe lädt ihn, entnommen wird ihm von den Pumpen der
-                    # Verbraucher – und dabei dreht die Ladepumpe nicht.
-                    "entnahme": entnahme if modul["art"] == "puffer" else [],
-                    # Eine Quelle lädt den Speicher, ohne dass seine Ladepumpe
-                    # fördert. Ohne sie stünde die Stichleitung still, während
-                    # der Speicher „lädt" anzeigt.
-                    "quellen": lieferungen if modul["art"] == "puffer" else [],
-                    "erzeuger": modul["art"] in ERZEUGER_ARTEN,
-                }
-            )
-        # Eine Wärmequelle führt keinen Pumpendatenpunkt, speist aber ein.
-        # Stichleitung, Lampe und Laufrad hängen deshalb an ihrer Wärmelieferung.
-        if modul.get("lieferung"):
-            mitte = x + MODUL_BREITE // 2
-            oben, unten = KANTEN_JE_ART.get(modul["art"], KANTEN_STANDARD)
-            pumpen.append(
-                {
-                    "entity": modul["lieferung"],
-                    "left": f"{mitte / breite * 100:.2f}%",
-                    "top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
-                    "titel": modul["titel"],
-                    "nur_strang": not modul.get("quellenpumpe"),
-                    "erzeuger": True,
-                    "vorlauf_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
-                    "vorlauf_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
-                    "ruecklauf_top": f"{unten / HOEHE * 100:.2f}%",
-                    "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
-                }
-            )
-            # Die Wärme im Bauteil selbst, wie am Pumpen-/Relaismodul: Sie sagt,
-            # dass die Quelle arbeitet, ohne eine Temperatur zu behaupten.
-            if (flaeche := waermeflaeche(modul["art"], modul.get("zeichnung"))) is not None:
-                waerme.append(
-                    {
-                        "entity": modul["lieferung"],
-                        "left": f"{(x + flaeche['x']) / breite * 100:.2f}%",
-                        "top": f"{flaeche['y'] / HOEHE * 100:.2f}%",
-                        "breite": f"{flaeche['breite'] / breite * 100:.2f}%",
-                        "hoehe": f"{flaeche['hoehe'] / HOEHE * 100:.2f}%",
-                        "ecke": (
-                            f"{flaeche['ecke'] / flaeche['breite'] * 100:.2f}% /"
-                            f" {flaeche['ecke'] / flaeche['hoehe'] * 100:.2f}%"
-                        ),
-                        "dreh": flaeche["dreh"],
-                        "titel": modul["titel"],
-                    }
-                )
-            stelle = lampenpunkt(modul["art"], zeichnung=modul.get("zeichnung"))
-            if stelle is not None:
-                lx, ly, lr = stelle
-                lampen.append(
-                    {
-                        "entity": modul["lieferung"],
-                        "left": f"{(x + lx) / breite * 100:.2f}%",
-                        "top": f"{ly / HOEHE * 100:.2f}%",
-                        "groesse": f"{(2 * lr) / breite * 100:.2f}%",
-                        "art": "betrieb",
-                        "zweck": "quelle",
-                        "titel": modul["titel"],
-                    }
-                )
-        # Der Mischer zeigt seine Stellung, nicht Bewegung: Ein dauernd
-        # drehendes Ventil läse sich wie eine Pumpe, und die dreht sich im
-        # Bild schon. Der Anzeiger schwenkt, das Stück Vorlauf darüber färbt
-        # sich nach der Beimischung.
-        if modul.get("mischer") and modul["art"] in MISCHER_JE_ART:
-            mitte = x + MODUL_BREITE // 2
-            ventil, oben = MISCHER_JE_ART[modul["art"]]
-            mischer.append(
-                {
-                    "entity": modul["mischer"],
-                    "left": f"{mitte / breite * 100:.2f}%",
-                    "top": f"{ventil / HOEHE * 100:.2f}%",
-                    "groesse": f"{MISCHER_MARKE / breite * 100:.2f}%",
-                    # Das Stück Vorlauf zwischen Leitung und Ventil.
-                    "stutzen_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
-                    "stutzen_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
-                    "titel": modul["titel"],
-                }
-            )
-        # Der Heizkörper färbt sich nach dem, was durch ihn fließt: kalt in der
-        # Farbe des Rücklaufs, heiß in der des Vorlaufs. Ohne gemessene
-        # Vorlauftemperatur bleibt es bei der Zeichnung.
-        if modul["art"] == "heizkreis" and modul.get("vorlauf"):
-            heizkoerper.append(
-                {
-                    "entity": modul["vorlauf"],
-                    "left": f"{(x + HEIZKOERPER_X) / breite * 100:.2f}%",
-                    "top": f"{HEIZKOERPER_Y / HOEHE * 100:.2f}%",
-                    "breite": f"{HEIZKOERPER_BREITE / breite * 100:.2f}%",
-                    "hoehe": f"{HEIZKOERPER_HOEHE / HOEHE * 100:.2f}%",
-                    # Anteile der Ebenenbreite, nicht Bildpunkte – siehe
-                    # HEIZKOERPER_GLIED.
-                    "glied": f"{HEIZKOERPER_GLIED / HEIZKOERPER_BREITE * 100:.4f}%",
-                    "raster": f"{HEIZKOERPER_RASTER / HEIZKOERPER_BREITE * 100:.4f}%",
-                    "glanz_von": f"{HEIZKOERPER_GLANZ_VON / HEIZKOERPER_BREITE * 100:.4f}%",
-                    "glanz_bis": f"{HEIZKOERPER_GLANZ_BIS / HEIZKOERPER_BREITE * 100:.4f}%",
-                    "anzahl": HEIZKOERPER_ANZAHL,
-                    "kalt": HEIZKOERPER_KALT,
-                    "heiss": HEIZKOERPER_HEISS,
-                    "titel": modul["titel"],
-                }
-            )
-
-        # Der Wärmeerzeuger bekommt ein Glutbett, das mitgeht, solange er
-        # Leistung bringt. Maßgeblich ist die Kesselleistung: Die Betriebsphase
-        # heißt auf jeder Baureihe anders, eine Zahl über null nicht.
-        if modul["art"] == "kessel":
-            # Erste Wahl bleibt die Leistung, unabhängig davon, welcher Wert
-            # angezeigt wird. Fehlt sie, dient die Brennkammertemperatur als
-            # Ersatzskala – dort heißt kalt 100 °C und voll 500 °C.
-            leistung = modul.get("leistung")
-            ersatz = modul.get("brennkammer")
-            if leistung or ersatz:
-                mitte = x + MODUL_BREITE // 2
-                brenner.append(
-                    {
-                        "entity": leistung,
-                        "ersatz": ersatz,
-                        "ersatz_min": BRENNKAMMER_KALT,
-                        "ersatz_max": BRENNKAMMER_HEISS,
-                        "left": f"{mitte / breite * 100:.2f}%",
-                        "top": f"{GLUTBETT_Y / HOEHE * 100:.2f}%",
-                        "breite": f"{GLUTBETT_BREITE / breite * 100:.2f}%",
-                        "titel": modul["titel"],
-                    }
-                )
-                # Die Betriebslampe über dem gezeichneten roten Punkt. Sie
-                # leuchtet grün, solange der Erzeuger läuft, und deckt das Rot
-                # dabei ab.
-                if (
-                    stelle := kessellampe(modul.get("kesselart"), modul.get("zeichnung"))
-                ) is not None:
-                    lx, ly, lr = stelle
-                    lampen.append(
-                        {
-                            "entity": leistung,
-                            "ersatz": ersatz,
-                            "ersatz_min": BRENNKAMMER_KALT,
-                            "left": f"{(x + lx) / breite * 100:.2f}%",
-                            "top": f"{ly / HOEHE * 100:.2f}%",
-                            "groesse": f"{(2 * lr) / breite * 100:.2f}%",
-                            "art": "betrieb",
-                            "zweck": "erzeuger",
-                            "titel": modul["titel"],
-                        }
-                    )
-
-    # Der Wärmeerzeuger meldet keine eigene Pumpe – sein Wasser bewegt die
-    # Pufferladepumpe. Nur die Leitung, keine Pumpenmarke: An dieser Stelle
-    # sitzt keine Pumpe.
-    ladepumpe = next((m["pumpe"] for m in module if m["art"] == "puffer" and m.get("pumpe")), None)
-    if ladepumpe:
-        for platz, modul in enumerate(module):
-            if modul["art"] != "kessel" or modul.get("pumpe"):
-                continue
-            mitte = RAND + platz * MODUL_BREITE + MODUL_BREITE // 2
-            oben, unten = KANTEN_JE_ART.get("kessel", KANTEN_STANDARD)
-            pumpen.append(
-                {
-                    "entity": ladepumpe,
-                    "left": f"{mitte / breite * 100:.2f}%",
-                    "top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
-                    "titel": modul["titel"],
-                    "nur_strang": True,
-                    "erzeuger": True,
-                    "vorlauf_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
-                    "vorlauf_hoehe": f"{(oben - VORLAUF_Y) / HOEHE * 100:.2f}%",
-                    "ruecklauf_top": f"{unten / HOEHE * 100:.2f}%",
-                    "ruecklauf_hoehe": f"{(RUECKLAUF_Y - unten) / HOEHE * 100:.2f}%",
-                }
-            )
-
-    # Die Lampen des Pumpen-/Relaismoduls. Sie hängen am Analog-Sollwert: über
-    # null fordert das Modul Wärme an.
-    for platz, modul in enumerate(module):
-        if modul["art"] != "pumpenmodul":
-            continue
-        soll = finde(modul.get("entitaeten") or [], ANALOG_SOLLWERT, "analog_setpoint")
-        if soll is None:
-            continue
-        x = RAND + platz * MODUL_BREITE
-        for lx, ly, r in (*ZSP_KLEMMEN, ZSP_BETRIEBSLAMPE):
-            lampen.append(
-                {
-                    "entity": soll["entity_id"],
-                    "left": f"{(x + lx) / breite * 100:.2f}%",
-                    "top": f"{ly / HOEHE * 100:.2f}%",
-                    "groesse": f"{(2 * r) / breite * 100:.2f}%",
-                    "art": "betrieb" if (lx, ly, r) == ZSP_BETRIEBSLAMPE else "klemme",
-                    "zweck": "anforderung",
-                    "titel": modul["titel"],
-                }
-            )
-        gx, gy, gb, gh = ZSP_GEHAEUSE
-        px, py, pr = ZSP_PUMPE
-        uebergabe.append(
-            {
-                "entity": soll["entity_id"],
-                "left": f"{(x + gx) / breite * 100:.2f}%",
-                "top": f"{gy / HOEHE * 100:.2f}%",
-                "breite": f"{gb / breite * 100:.2f}%",
-                "hoehe": f"{gh / HOEHE * 100:.2f}%",
-                "ecke": f"{12 / gb * 100:.2f}% / {12 / gh * 100:.2f}%",
-                # Das gezeichnete Laufrad steht still. Darüber liegt ein eigenes,
-                # das sich dreht, solange angefordert wird.
-                "rad_left": f"{(x + px) / breite * 100:.2f}%",
-                "rad_top": f"{py / HOEHE * 100:.2f}%",
-                "rad_groesse": f"{(2 * pr) / breite * 100:.2f}%",
-                "titel": modul["titel"],
-            }
-        )
-
-    # Die Kesseltemperatur des ersten Wärmeerzeugers. Ohne sie liesse sich
-    # nicht sagen, ob die laufende Ladepumpe wirklich Wärme in den Puffer
-    # bringt oder nur umwälzt.
-    kessel_ist = next(
-        (
-            w["entity_id"]
-            for m in module
-            if m["art"] == "kessel"
-            for w in m["werte"]
-            if w.get("beschriftung") == "Kessel"
-        ),
-        None,
-    )
-    # Der eingefärbte Inhalt von Puffer und Boiler. Beide laufen über dieselbe
-    # Ebene: Der Puffer hat zwei Fühler und zeigt damit eine Schichtung, der
-    # Boiler einen und wird gleichmäßig eingefärbt.
-    for platz, modul in enumerate(module):
-        masse = SPEICHER_ARTEN.get(modul["art"])
-        if masse is None:
-            continue
-        oben, unten = speicherfuehler(modul)
-        if oben is None:
-            continue
-        x = RAND + platz * MODUL_BREITE
-        schichtung.append(
-            {
-                "oben": oben,
-                "unten": unten,
-                "left": f"{(x + masse['x']) / breite * 100:.2f}%",
-                "top": f"{masse['y'] / HOEHE * 100:.2f}%",
-                "breite": f"{masse['breite'] / breite * 100:.2f}%",
-                "hoehe": f"{masse['hoehe'] / HOEHE * 100:.2f}%",
-                # Der Eckradius als Anteil je Achse – sonst verzieht er sich,
-                # sobald die Karte das Bild skaliert.
-                "ecke": (
-                    f"{masse['ecke'] / masse['breite'] * 100:.2f}%"
-                    f" / {masse['ecke'] / masse['hoehe'] * 100:.2f}%"
-                ),
-                "kalt": masse["kalt"],
-                "heiss": masse["heiss"],
-                # Ohne Messwerte trägt die Fläche denselben Verlauf, den die
-                # Zeichnung sonst selbst gemalt hätte.
-                "grund": masse["grund"],
-                "titel": modul["titel"],
-            }
-        )
-
-    for platz, modul in enumerate(module):
-        if modul["art"] != "puffer":
-            continue
-        mitte = RAND + platz * MODUL_BREITE + MODUL_BREITE // 2
-        oben = next(
-            (w["entity_id"] for w in modul["werte"] if w.get("beschriftung") == "oben"),
-            None,
-        )
-        unten = next(
-            (w["entity_id"] for w in modul["werte"] if w.get("beschriftung") == "unten"),
-            None,
-        )
-        speicher.append(
-            {
-                # „lädt" heißt: Die Ladepumpe fördert **und** der Kessel ist
-                # wärmer als der obere Pufferbereich. Die Pumpe allein genügt
-                # nicht – sie läuft auch, wenn der Kessel gerade direkt in
-                # einen Heizkreis fährt und dem Puffer nichts zugeht.
-                #
-                # „entlädt": Ein Verbraucher zieht, ohne dass geladen wird.
-                # Läuft beides, bleibt es bei „lädt"; welche Richtung netto
-                # überwiegt, hängt vom Massenstrom ab, und den misst die
-                # Anlage nicht.
-                "laden": modul.get("pumpe"),
-                "quellen": lieferungen,
-                "kessel": kessel_ist,
-                "oben": oben,
-                "unten": unten,
-                "toleranz": LADE_TOLERANZ,
-                "entnahme": entnahme,
-                "left": f"{mitte / breite * 100:.2f}%",
-                "top": f"{SPEICHER_Y / HOEHE * 100:.2f}%",
-                "titel": modul["titel"],
-            }
-        )
-
-    # Lage der beiden Leitungen in Prozent des Bildes. Die Oberfläche legt
-    # darüber eine bewegte Ebene: Ein Bild als Daten-URL kennt keine Zustände
-    # aus Home Assistant, es kann also nicht selbst anzeigen, ob etwas fließt.
-    leitungen = {
-        "left": f"{RAND / breite * 100:.2f}%",
-        "width": f"{(breite - 2 * RAND) / breite * 100:.2f}%",
-        "vorlauf_top": f"{VORLAUF_Y / HOEHE * 100:.2f}%",
-        "ruecklauf_top": f"{RUECKLAUF_Y / HOEHE * 100:.2f}%",
-    }
+        elemente += beschriftungen(RAND + platz * MODUL_BREITE, modul, breite)
+    module_lampen, uebergabe = ebenen.pumpenmodule(module, rahmen)
+    lampen = [*ebenen.lampen_der_erzeuger(module, rahmen), *module_lampen]
 
     return {
         "type": "picture-elements",
@@ -448,26 +75,26 @@ def anlagenschema(
             {"id": m.get("kennung") or m["titel"], "titel": m["titel"], "art": m["art"]}
             for m in module
         ],
-        "leitungen": leitungen,
+        "leitungen": ebenen.leitungen(rahmen),
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht
         # drehen. Sie werden als eigene Marken darübergelegt.
-        "pumpen": pumpen,
+        "pumpen": ebenen.pumpen(module, rahmen),
         # Ebenso das Glutbett der Wärmeerzeuger und die Mischerstellung.
-        "brenner": brenner,
-        "mischer": mischer,
+        "brenner": ebenen.brenner(module, rahmen),
+        "mischer": ebenen.mischer(module, rahmen),
         # Der Heizkörper, eingefärbt nach seiner Vorlauftemperatur.
-        "heizkoerper": heizkoerper,
+        "heizkoerper": ebenen.heizkoerper(module, rahmen),
         # Die Schichtung des Puffers aus seinen beiden Fühlern.
-        "schichtung": schichtung,
+        "schichtung": ebenen.schichtung(module, rahmen),
         # Ob der Puffer gerade beladen oder entleert wird.
-        "speicher": speicher,
+        "speicher": ebenen.speicher(module, rahmen),
         # Die Lampen des Pumpen-/Relaismoduls, siehe ZSP_KLEMMEN.
         "lampen": lampen,
         # Wärme im Gehäuse, drehendes Laufrad und Abgabe nach außen, solange
         # das Modul Wärme anfordert.
         "uebergabe": uebergabe,
         # Wärme im Bauteil einer Quelle, solange sie liefert.
-        "waerme": waerme,
+        "waerme": ebenen.waerme(module, rahmen),
     }
 
 
