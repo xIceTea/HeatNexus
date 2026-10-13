@@ -930,8 +930,66 @@ async def test_die_sammelseite_wird_nur_einmal_ausprobiert(client, monkeypatch):
     assert sum(1 for u in anfragen if "count=-1" in u) == 1
 
 
+async def test_ein_gateway_fehler_wird_wiederholt(client, monkeypatch):
+    """Eine Ebene, die erst mit 502 abbricht und dann antwortet, zählt nicht als Lücke."""
+    from custom_components.heatnexus.client import menues
+
+    monkeypatch.setattr(menues, "MENU_WIEDERHOLPAUSE_S", 0)
+    versuche: list[str] = []
+
+    async def antwort(url, semaphore=None):
+        versuche.append(url)
+        if len(versuche) == 1:
+            return {"code": 502, "message": "Bad Gateway"}, 502
+        return [{"OID": "/1/60/0/0/7/0"}], 200
+
+    monkeypatch.setattr(client, "_get", antwort)
+
+    items = await client._read_menu("/1/60/0", "104", 1, None)
+    assert [i["OID"] for i in items] == ["/1/60/0/0/7/0"]
+    assert len(versuche) == 2
+    assert client._menue_luecken == set()
+
+
+async def test_ein_bleibender_gateway_fehler_endet_nach_den_wiederholungen(client, monkeypatch):
+    """Antwortet die Ebene nie, bleibt es bei drei Abrufen und einer Lücke."""
+    from custom_components.heatnexus.client import menues
+
+    monkeypatch.setattr(menues, "MENU_WIEDERHOLPAUSE_S", 0)
+    versuche: list[str] = []
+
+    async def antwort(url, semaphore=None):
+        versuche.append(url)
+        return None, 504
+
+    monkeypatch.setattr(client, "_get", antwort)
+
+    assert await client._menue_ebenen("/1/65/0") is None
+    assert len(versuche) == 1 + menues.MENU_WIEDERHOLUNGEN
+
+
+async def test_ein_gateway_fehler_beim_metadatenlesen_ist_eine_luecke(client, monkeypatch):
+    """Ein 504 sagt nicht, dass der Datenpunkt fehlt; er wird einmal nachgefragt."""
+    abrufe: list[str] = []
+
+    async def fetch(oid):
+        abrufe.append(oid)
+        return oid, {"code": 504, "reason": "No response from Device"}, 504
+
+    monkeypatch.setattr(client, "_fetch_json", fetch)
+
+    meta, fehlt, luecken = await client._metadaten_lesen(["/1/65/0/0/7/0"])
+    assert meta == {}
+    assert fehlt == set()
+    assert luecken == {"/1/65/0/0/7/0"}
+    assert len(abrufe) == 2
+
+
 async def test_eine_ebene_ohne_antwort_gilt_als_luecke(client, monkeypatch):
     """Eine Seite mit 502 bricht die Ebene ab; die Erkennung muss davon wissen."""
+    from custom_components.heatnexus.client import menues
+
+    monkeypatch.setattr(menues, "MENU_WIEDERHOLPAUSE_S", 0)
 
     async def antwort(url, semaphore=None):
         if url.endswith("/103") or "/103?" in url:

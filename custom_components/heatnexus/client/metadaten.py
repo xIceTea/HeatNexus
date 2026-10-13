@@ -17,6 +17,7 @@ import re as _re
 from .. import geraete, texte
 from ..const import (
     ADVANCED_LEVELS,
+    GATEWAY_FEHLER,
     OID_HARDWAREVERSION,
     OID_SOFTWAREVERSION,
     ROLLEN_FILTER,
@@ -88,16 +89,18 @@ class MetadatenMixin:
         Eine Anfrage ohne Antwort wird einmal wiederholt; bleibt sie ohne, ist es eine Lücke.
         """
         results = await asyncio.gather(*(self._fetch_json(oid) for oid in offen))
-        ohne_antwort = [oid for oid, _data, status in results if status == 0]
+        ohne_antwort = [
+            oid for oid, _data, status in results if status == 0 or status in GATEWAY_FEHLER
+        ]
         if ohne_antwort:
-            results = [r for r in results if r[2] != 0]
+            results = [r for r in results if r[2] != 0 and r[2] not in GATEWAY_FEHLER]
             results += await asyncio.gather(*(self._fetch_json(oid) for oid in ohne_antwort))
         meta: dict = {}
         missing: set[str] = set()
         luecken: set[str] = set()
         for oid, data, status in results:
             reason = (data or {}).get("reason", "") if isinstance(data, dict) else ""
-            if status == 0:
+            if status == 0 or status in GATEWAY_FEHLER:
                 luecken.add(oid)
             elif status == 404 or (status == 409 and "invalid Identifier" in reason):
                 # Datenpunkt existiert auf dieser Anlage nicht

@@ -49,6 +49,8 @@ TIMEOUT = 30  # große Menü-Ebenen brauchen deutlich länger als eine Einzelabf
 DEFAULT_WORKERS = 3
 RETRIES = 2  # Wiederholungen bei Zeitüberschreitung/Verbindungsabbruch
 RETRY_PAUSE = 1.5
+# Ein ausgelasteter InfoWIN Plus bricht Abrufe mit 502/504 ab; die Pause wächst je Versuch.
+GATEWAY_RETRIES = 3
 PAGE_SIZE = 10  # das Gerät liefert je Menü-Abruf höchstens 10 Datenpunkte
 # Adressen, mit denen der Stapelabruf gemessen wird. Genug für einen
 # belastbaren Vergleich, wenig genug, dass der Lauf Sekunden dauert.
@@ -153,7 +155,7 @@ class Probe:
     def get(self, url: str):
         """GET mit Zählung und Wiederholung; gibt (json_oder_None, status) zurück."""
         last = ({"error": "unbekannt"}, 0)
-        for attempt in range(RETRIES + 1):
+        for attempt in range(max(RETRIES, GATEWAY_RETRIES) + 1):
             with self._lock:
                 self.requests += 1
             try:
@@ -178,8 +180,8 @@ class Probe:
                 if err.code == 401 and attempt == 0:
                     self._local.opener = None
                     continue
-                if err.code >= 500 and attempt < RETRIES:
-                    time.sleep(RETRY_PAUSE)
+                if err.code >= 500 and attempt < GATEWAY_RETRIES:
+                    time.sleep(RETRY_PAUSE * (attempt + 1))
                     continue
                 try:
                     return json.loads(body), err.code
@@ -192,6 +194,7 @@ class Probe:
                     continue
                 with self._lock:
                     self.errors += 1
+                break
         return last
 
     def lookup(self, path: str):
@@ -1710,6 +1713,8 @@ def run_host(
 ) -> dict:
     """Alle gewählten Aktionen für eine Anlage ausführen."""
     print(f"\n=== {host}")
+    print("    Hinweis: HeatNexus in Home Assistant vorher deaktivieren, sonst bricht die")
+    print("    Steuerung unter der doppelten Last Abfragen ab.")
     if not reachable(host):
         print("    nicht erreichbar (Port 80 antwortet nicht)")
         return {"host": host, "ok": False}

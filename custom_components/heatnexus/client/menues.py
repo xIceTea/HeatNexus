@@ -16,7 +16,10 @@ from ..const import (
     FCT_IDS_UNGEMELDET,
     FCT_MODELL,
     FINGERABDRUCK_MIN_TREFFER,
+    GATEWAY_FEHLER,
     MENU_PAGE_SIZE,
+    MENU_WIEDERHOLPAUSE_S,
+    MENU_WIEDERHOLUNGEN,
 )
 from ..device_db import get_layers
 from .gemeinsam import gelesene_ebenen
@@ -26,6 +29,18 @@ _LOGGER = logging.getLogger(__name__)
 
 class MenuesMixin:
     """Datenpunkte über die Menü-Ebenen einer Funktion einlesen."""
+
+    async def _menue_abruf(self, url: str):
+        """Ein Menüabruf, nach einem Gateway-Fehler mit wachsender Pause wiederholt.
+
+        Manche Steuerungen brechen lange Menüantworten mit 502 oder 504 ab; derselbe Abruf gelingt danach.
+        """
+        for versuch in range(MENU_WIEDERHOLUNGEN + 1):
+            data, status = await self._get(url)
+            if status not in GATEWAY_FEHLER or versuch == MENU_WIEDERHOLUNGEN:
+                return data, status
+            await asyncio.sleep(MENU_WIEDERHOLPAUSE_S * (versuch + 1))
+        return data, status
 
     async def _read_menu(
         self, prefix: str, menu_id: str, expected: int, gewuenscht, schluessel: str = "OID"
@@ -57,7 +72,7 @@ class MenuesMixin:
         # Ebene auf einmal an. Es gibt Steuerungen, die darauf mit einer leeren
         # Liste antworten; dort wird nach dem ersten Versuch geblättert.
         if expected > MENU_PAGE_SIZE and self._sammelseite is not False:
-            data, status = await self._get(f"{base}?count=-1&offset=0")
+            data, status = await self._menue_abruf(f"{base}?count=-1&offset=0")
             if status == 200 and isinstance(data, list):
                 # Eine Antwort zählt, ein Fehler nicht: Sonst schaltete eine
                 # einzelne Störung das Sammeln dauerhaft ab.
@@ -67,7 +82,7 @@ class MenuesMixin:
 
         while True:
             url = base if offset == 0 else f"{base}?offset={offset}"
-            data, status = await self._get(url)
+            data, status = await self._menue_abruf(url)
             if status != 200 or not isinstance(data, list):
                 self._menue_luecken.add(prefix)
                 break
@@ -197,7 +212,7 @@ class MenuesMixin:
         # Ein Knoten, der die Verbindung annimmt und dann schweigt, gilt als
         # ohne Menüliste. Der Rest der Anlage wird deswegen nicht aufgegeben.
         try:
-            root, status = await self._get(f"http://{self.host}/api/1.0/lookup{prefix}")
+            root, status = await self._menue_abruf(f"http://{self.host}/api/1.0/lookup{prefix}")
         except TimeoutError:
             _LOGGER.warning("%s antwortet nicht und wird übergangen", prefix)
             return None

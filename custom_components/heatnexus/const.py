@@ -529,6 +529,11 @@ POLL_BLOCK = POLL_CONCURRENCY * 5
 # ?offset=<n> nach.
 MENU_PAGE_SIZE = 10
 
+# Antworten, mit denen eine Steuerung einen Abruf abbricht, der kurz danach gelingt.
+GATEWAY_FEHLER = frozenset({502, 503, 504})
+MENU_WIEDERHOLUNGEN = 3
+MENU_WIEDERHOLPAUSE_S = 2.0
+
 
 # Timeout (s) für die einmalige Erstinitialisierung (Discovery + Metadaten
 # aller Datenpunkte inkl. Serviceebene). Bewusst großzügig, da getrennt vom
