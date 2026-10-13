@@ -35,3 +35,11 @@ def test_der_neuaufbau_haeuft_keine_klickhoerer_an(befund):
 
 def test_gleiche_daten_loesen_keinen_neuaufbau_aus(befund):
     assert befund["neuaufbauBeiGleichenDaten"] is False
+
+
+def test_fremde_entitaeten_loesen_keine_aktualisierung_aus(befund):
+    assert befund["durchlaeufeBeiFremderEntitaet"] == 0
+
+
+def test_gelesene_entitaeten_werden_je_bild_einmal_aktualisiert(befund):
+    assert befund["durchlaeufeBeiGelesenerEntitaet"] == 1

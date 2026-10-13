@@ -76,4 +76,25 @@ const befund = {};
   befund.neuaufbauBeiGleichenDaten = inhalt(flaeche) !== knoten;
 }
 
+// --- Zustandsmeldungen: nur gelesene Entitäten, gebündelt je Bild -------------
+{
+  const { flaeche } = bauen();
+  let durchlaeufe = 0;
+  const alt = flaeche._aktualisieren.bind(flaeche);
+  flaeche._aktualisieren = () => {
+    durchlaeufe++;
+    alt();
+  };
+  const hass = flaeche._hass;
+  flaeche._gelesen.add("sensor.aussen");
+  const mit = (zustaende) => ({ ...hass, states: { ...hass.states, ...zustaende } });
+  flaeche.hass = mit({ "sensor.fremd": { state: "1", attributes: {} } });
+  zeit.zeitLaufenLassen();
+  befund.durchlaeufeBeiFremderEntitaet = durchlaeufe;
+  flaeche.hass = mit({ "sensor.aussen": { state: "6", attributes: {} } });
+  flaeche.hass = mit({ "sensor.aussen": { state: "7", attributes: {} } });
+  zeit.zeitLaufenLassen();
+  befund.durchlaeufeBeiGelesenerEntitaet = durchlaeufe;
+}
+
 process.stdout.write(JSON.stringify(befund, null, 2));

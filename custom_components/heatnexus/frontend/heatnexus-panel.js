@@ -73,6 +73,7 @@ class HeatNexusPanel extends Grundlage {
     // Ob die Aufteilung schon selbst geholt wurde. Danach gilt sie und nicht
     // mehr der Abzug aus der Panel-Anmeldung.
     this._eigeneDaten = false;
+    this._gelesen = new Set();
     this._bindungen = [];
     this._verlaufskarten = [];
     // „Alle" ist der Standard: Wer zwei Anlagen hat, will beide sehen, nicht
@@ -119,7 +120,8 @@ class HeatNexusPanel extends Grundlage {
   }
 
   set hass(hass) {
-    const erster = !this._hass;
+    const vorher = this._hass;
+    const erster = !vorher;
     this._hass = hass;
     // Die Aufteilung aus `panel.config` stammt aus dem Augenblick der
     // Einrichtung – da war die Anlage erst zur Hälfte eingelesen. Deshalb
@@ -128,7 +130,33 @@ class HeatNexusPanel extends Grundlage {
       this._datenHolen();
       this._anordnungHolen();
     }
-    this._zeichnen();
+    if (!erster && this._gebaut && !this._hassGeaendert(vorher, hass)) return;
+    this._zeichnenPlanen();
+  }
+
+  /** Ob sich etwas geändert hat, das die Anzeige liest: gelesene Entitäten oder Umgebung. */
+  _hassGeaendert(alt, neu) {
+    const umgebung = ["entities", "devices", "language", "locale", "config", "user", "themes"];
+    if (umgebung.some((schluessel) => alt[schluessel] !== neu[schluessel])) return true;
+    if (alt.states === neu.states) return false;
+    const gelesen = this._gelesen || new Set();
+    for (const entitaet of gelesen) {
+      if ((alt.states || {})[entitaet] !== (neu.states || {})[entitaet]) return true;
+    }
+    return false;
+  }
+
+  /** Mehrere Zustandsmeldungen kurz hintereinander ergeben einen Durchlauf je Bild. */
+  _zeichnenPlanen() {
+    if (!this._gebaut) {
+      this._zeichnen();
+      return;
+    }
+    if (this._bildGeplant) return;
+    this._bildGeplant = requestAnimationFrame(() => {
+      this._bildGeplant = 0;
+      this._zeichnen();
+    });
   }
 
   /** Gleicher Inhalt, auch bei neuem Objekt: Nur Änderungen lösen einen Neuaufbau aus. */
@@ -236,6 +264,7 @@ class HeatNexusPanel extends Grundlage {
     // Hörer an Knoten, die den Neuaufbau überleben, hängen an diesem Signal.
     if (this._aufbauAbbruch) this._aufbauAbbruch.abort();
     this._aufbauAbbruch = new AbortController();
+    this._gelesen = new Set();
     this._bindungen = [];
     this._verlaufskarten = [];
     this._wartend = [];
@@ -539,7 +568,7 @@ class HeatNexusPanel extends Grundlage {
         .map((e) => e.entity_id);
     }
     return this._empfehlungSensoren.some((id) => {
-      const zustand = (hass.states[id] || {}).state;
+      const zustand = (this._zustand(id) || {}).state;
       return Boolean(zustand) && !["keine", "unknown", "unavailable"].includes(zustand);
     });
   }

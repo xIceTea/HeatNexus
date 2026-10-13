@@ -10,6 +10,7 @@ import { OHNE_WERT } from "../ordnung.js";
 export const WerteMixin = (Basis) =>
   class extends Basis {
     _zustand(entity) {
+      if (this._gelesen) this._gelesen.add(entity);
       return this._hass && this._hass.states ? this._hass.states[entity] : undefined;
     }
 
