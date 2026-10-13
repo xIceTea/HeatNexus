@@ -12,6 +12,7 @@ import logging
 from typing import Any
 
 from .const import (
+    DIFFERENZ_WOERTER,
     EINHEITEN,
     ENUMS,
     POLL_ZIEL_SEKUNDEN,
@@ -163,6 +164,12 @@ def ist_zaehler(beschreibung: dict[str, Any], einheit: str | None) -> bool:
     return any(wort in name for wort in ZAEHLER_WOERTER)
 
 
+def _ist_differenz(beschreibung: dict[str, Any]) -> bool:
+    """Ob der Name eine Temperaturdifferenz nennt, die in Kelvin gehört."""
+    name = mustername(beschreibung).lower()
+    return any(wort in name for wort in DIFFERENZ_WOERTER)
+
+
 def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
     """Einheit, Geräteklasse, Statistikklasse und Genauigkeit festlegen.
 
@@ -195,6 +202,8 @@ def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
         beschreibung["unit"] = None
         return beschreibung
 
+    if roh == "°C" and _ist_differenz(beschreibung):
+        roh = "K"
     eintrag = EINHEITEN.get(roh)
     if eintrag is None:
         return beschreibung

@@ -508,6 +508,9 @@ GERAETEINFO_ADRESSEN = frozenset(
     }
 )
 
+# Namensbestandteile von Differenzen: Die Anlage gibt sie in °C an, gemeint ist Kelvin.
+DIFFERENZ_WOERTER = ("hysterese", "differenz", "spreizung")
+
 # Einheiten, in denen ein Zählerstand vorkommt; Raten und Temperaturen zählen nie.
 ZAEHLER_EINHEITEN = frozenset({"h", "min", "s", "d", "kWh", "MWh", "t", "kg"})
 

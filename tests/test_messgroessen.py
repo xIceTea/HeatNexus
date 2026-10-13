@@ -61,6 +61,13 @@ def test_kelvin_ist_keine_temperatur(helpers):
     assert beschreibung["state_class"] == "measurement"
 
 
+@pytest.mark.parametrize("typ", ["sensor", "number"])
+def test_eine_hysterese_in_grad_celsius_ist_eine_differenz_in_kelvin(helpers, typ):
+    beschreibung = helpers.messgroesse(_sensor(name="Hysterese Ausschalten", unit="°C", type=typ))
+    assert beschreibung["unit"] == "K"
+    assert beschreibung["device_class"] is None
+
+
 def test_jede_einheit_passt_zu_ihrer_geraeteklasse():
     """Die ganze Tabelle gegen die Vorgaben von Home Assistant halten.
 
