@@ -9,6 +9,8 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta
 import logging
+from pathlib import Path
+import shutil
 from types import MappingProxyType
 from typing import Any
 
@@ -136,12 +138,45 @@ def _geraete_umhaengen(register: dr.DeviceRegistry, entry: ConfigEntry, sub_id: 
         in_untereintrag_verschieben(register, geraet, entry.entry_id, sub_id)
 
 
+def _normalisiert(roh: Any) -> dict[str, Any]:
+    """Nur Heizkreise mit Einstellungen als Zuordnung; Fremdes fällt weg und steht im Protokoll."""
+    heizkreise = roh.get("heizkreise") if isinstance(roh, dict) else None
+    ergebnis: dict[str, Any] = {}
+    for device_id, eintrag in (heizkreise if isinstance(heizkreise, dict) else {}).items():
+        if not isinstance(eintrag, dict) or not isinstance(eintrag.get("konfig"), dict):
+            _LOGGER.warning("Automatik: unlesbarer Eintrag %s im Store verworfen", device_id)
+            continue
+        zustand = eintrag.get("zustand")
+        ergebnis[str(device_id)] = {
+            **eintrag,
+            "zustand": zustand if isinstance(zustand, dict) else {},
+        }
+    return {"heizkreise": ergebnis}
+
+
+def _sichern(pfad: str) -> None:
+    """Eine unlesbare Datei neben sich kopieren, bevor der nächste Schreibvorgang sie ersetzt."""
+    datei = Path(pfad)
+    if datei.exists():
+        shutil.copy2(datei, datei.with_name(f"{datei.name}.kaputt-{dt_util.now():%Y%m%d%H%M%S}"))
+
+
+class _AutomatikStore(Store[dict[str, Any]]):
+    """Eine andere Fassung des Stores geht durch dieselbe Prüfung wie jeder Ladevorgang."""
+
+    async def _async_migrate_func(
+        self, old_major_version: int, old_minor_version: int, old_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        return _normalisiert(old_data)
+
+
 class Verwaltung:
     """Hält die Laufzeiten und den gemeinsamen Store."""
 
     def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
-        self._store: Store = Store(hass, STORE_VERSION, STORE_KEY)
+        self._store: Store = _AutomatikStore(hass, STORE_VERSION, STORE_KEY)
+        self._lade_sperre = asyncio.Lock()
         self._daten: dict[str, Any] = {"heizkreise": {}}
         self._geladen = False
         self._geplant = False
@@ -152,19 +187,28 @@ class Verwaltung:
         self.prognose_fehler: dict[tuple[str, str], tuple[datetime, str]] = {}
 
     async def laden(self) -> None:
-        """Den Store einmal lesen."""
-        if self._geladen:
-            return
-        roh = await self._store.async_load() or {}
-        heizkreise = roh.get("heizkreise") if isinstance(roh, dict) else None
-        self._daten = {"heizkreise": heizkreise if isinstance(heizkreise, dict) else {}}
-        # Gespeichertes geht noch einmal durch die Prüfung; neue Regeln gelten auch für Altes.
-        for eintrag in self._daten["heizkreise"].values():
-            if isinstance(eintrag, dict) and (
-                neu := konfig_modul.pruefen(eintrag.get("konfig") or {})
-            ):
-                eintrag["konfig"] = neu
-        self._geladen = True
+        """Den Store einmal lesen; zwei Einträge, die zugleich starten, warten aufeinander."""
+        async with self._lade_sperre:
+            if self._geladen:
+                return
+            self._daten = _normalisiert(await self._roh_laden())
+            # Gespeichertes geht noch einmal durch die Prüfung; neue Regeln gelten auch für Altes.
+            for eintrag in self._daten["heizkreise"].values():
+                if neu := konfig_modul.pruefen(eintrag["konfig"]):
+                    eintrag["konfig"] = neu
+            self._geladen = True
+
+    async def _roh_laden(self) -> Any:
+        """Der Inhalt des Stores; ist er unlesbar, bleibt eine Kopie und die Automatik beginnt leer."""
+        try:
+            return await self._store.async_load()
+        except Exception:  # eine unlesbare Datei darf das Setup nicht verhindern
+            _LOGGER.exception("Automatik: Store %s unlesbar, beginne ohne Einstellungen", STORE_KEY)
+        try:
+            await self.hass.async_add_executor_job(_sichern, self._store.path)
+        except OSError as fehler:
+            _LOGGER.error("Automatik: Store %s nicht gesichert: %s", STORE_KEY, fehler)
+        return None
 
     @callback
     def speichern(self) -> None:

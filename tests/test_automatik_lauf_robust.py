@@ -431,3 +431,89 @@ async def test_ein_neuer_zustand_speichert_bald(hass, anlage, freezer, monkeypat
     await laufzeit.auswerten()
 
     assert plan[-1] == modul.SPEICHER_VERZOEGERUNG_S
+
+
+# --- Store laden -------------------------------------------------------------
+def _verwaltung(hass, monkeypatch, laden):
+    from custom_components.heatnexus.automatik.verwaltung import Verwaltung
+
+    verwaltung = Verwaltung(hass)
+    monkeypatch.setattr(verwaltung._store, "async_load", laden)
+    return verwaltung
+
+
+async def test_fremde_eintraege_im_store_fallen_weg(hass, monkeypatch):
+    gueltig = {"konfig": {"entry_id": "e1"}, "zustand": "kaputt"}
+
+    async def laden():
+        return {"heizkreise": {"a": "x", "b": {"konfig": [1]}, "c": None, "d": gueltig}}
+
+    verwaltung = _verwaltung(hass, monkeypatch, laden)
+    await verwaltung.laden()
+
+    assert verwaltung._daten == {"heizkreise": {"d": {"konfig": {"entry_id": "e1"}, "zustand": {}}}}
+    assert verwaltung.eingerichtet("e1") == ["d"]
+    assert verwaltung.kennungen("e2") == {}
+    await verwaltung.eintrag_entfernt("e2")
+
+
+def _datei_anlegen(pfad: str) -> None:
+    from pathlib import Path
+
+    datei = Path(pfad)
+    datei.parent.mkdir(parents=True, exist_ok=True)
+    datei.write_text('{"version": 9}', encoding="utf-8")
+
+
+def _gesichert(pfad: str) -> list[str]:
+    from pathlib import Path
+
+    datei = Path(pfad)
+    return [g.read_text(encoding="utf-8") for g in datei.parent.glob(f"{datei.name}.kaputt-*")]
+
+
+async def test_ein_unlesbarer_store_wird_gesichert_und_leer_begonnen(hass, monkeypatch, tmp_path):
+    async def laden():
+        raise RuntimeError("Fassung unbekannt")
+
+    verwaltung = _verwaltung(hass, monkeypatch, laden)
+    pfad = str(tmp_path / ".storage" / "heatnexus.automatik")
+    # Nicht im gemeinsamen Konfigurationsordner der Tests schreiben.
+    verwaltung._store.__dict__["path"] = pfad
+    await hass.async_add_executor_job(_datei_anlegen, pfad)
+
+    await verwaltung.laden()
+
+    assert verwaltung._daten == {"heizkreise": {}}
+    assert await hass.async_add_executor_job(_gesichert, pfad) == ['{"version": 9}']
+
+
+async def test_zwei_eintraege_lesen_den_store_einmal(hass, monkeypatch):
+    import asyncio
+
+    aufrufe = []
+    weiter = asyncio.Event()
+
+    async def laden():
+        aufrufe.append(1)
+        await weiter.wait()
+        return {"heizkreise": {}}
+
+    verwaltung = _verwaltung(hass, monkeypatch, laden)
+    erster = asyncio.ensure_future(verwaltung.laden())
+    zweiter = asyncio.ensure_future(verwaltung.laden())
+    for _ in range(5):
+        await asyncio.sleep(0)
+    weiter.set()
+    await asyncio.gather(erster, zweiter)
+
+    assert aufrufe == [1]
+
+
+async def test_eine_aeltere_fassung_geht_durch_dieselbe_pruefung(hass):
+    from custom_components.heatnexus.automatik.verwaltung import Verwaltung
+
+    store = Verwaltung(hass)._store
+    daten = await store._async_migrate_func(1, 0, {"heizkreise": {"a": 1, "b": {"konfig": {}}}})
+
+    assert daten == {"heizkreise": {"b": {"konfig": {}, "zustand": {}}}}
