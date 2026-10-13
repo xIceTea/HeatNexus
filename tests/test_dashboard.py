@@ -1575,3 +1575,15 @@ async def test_leere_ansicht_unterscheidet_laden_von_fehlender_einrichtung(
     assert "Keine Anlage gefunden" in inhalt()
     MockConfigEntry(domain="heatnexus", data={}).add_to_hass(hass)
     assert "System is loading" in inhalt()
+
+
+def test_gleichnamige_kreise_stehen_in_der_reihenfolge_ihrer_kennung(anlagen):
+    gruppe = {
+        "teile": [
+            {"rang": 1, "name": "Heizkreis", "kennung": "SN1-16-0-10"},
+            {"rang": 1, "name": "Heizkreis", "kennung": "SN1-16-0-2"},
+        ],
+        "kesselwert": None,
+    }
+    anlagen._gruppe_abschliessen(gruppe)
+    assert [t["kennung"] for t in gruppe["teile"]] == ["SN1-16-0-2", "SN1-16-0-10"]

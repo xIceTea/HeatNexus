@@ -249,9 +249,14 @@ def anlage_in_sprache(
     return fertig
 
 
+def _kennungsfolge(kennung: str) -> tuple[int, ...]:
+    """Die Zahlen einer Gerätekennung als Sortierschlüssel; gleichnamige Kreise bleiben in Reihe."""
+    return tuple(int(ziffern) for ziffern in re.findall(r"\d+", kennung))
+
+
 def _gruppe_abschliessen(gruppe: dict[str, Any]) -> None:
     """Teile ordnen und die Schaubildwahl der Anlage aus ihren Teilen ableiten."""
-    gruppe["teile"].sort(key=lambda t: (t["rang"], t["name"]))
+    gruppe["teile"].sort(key=lambda t: (t["rang"], t["name"], _kennungsfolge(t["kennung"])))
     # Welcher zweite Wert am Kessel steht. Die erste ausdrückliche Angabe
     # gilt; ohne Angabe bleibt es bei der Leistung.
     gruppe["kesselwert"] = next(
@@ -295,6 +300,7 @@ def _teil(entry_id: str, geraet: Any, kennung: str, stand: _Lesestand) -> dict[s
     return {
         "name": kurzname(geraet.name_by_user or geraet.name),
         "id": geraet.id,
+        "kennung": kennung,
         "anlage_id": geraet.via_device_id,
         "eintrag": entry_id,
         "fct_type": fct,
