@@ -392,7 +392,7 @@ class ErkennungMixin:
         node_id = device["nodeId"]
         device_id = f"/1/{node_id}"
         # Präfix, Name und Typ der ersten verwertbaren Funktion des Knotens = Primärgerät
-        # (daran hängt der Geräte-Meldungssensor aus FE01msg)
+        # (daran hängen die Meldungssensoren des Knotens)
         primaer: tuple | None = None
         nv_funktionen: list[dict] = []
         for fct in await self._funktionen_des_knotens(device, device_id, nur_kern):
@@ -420,7 +420,9 @@ class ErkennungMixin:
             for fct in nv_funktionen:
                 await self._lese_nv(f"{device_id}/{fct['fctId']}", *(primaer or (None,) * 3))
 
-        if device.get("FE01msg") is not None and primaer is not None:
+        # Nicht an `FE01msg` dieses einen Abzugs knüpfen: Fehlt das Feld beim
+        # Einlesen, bliebe der Knoten bis zur nächsten Erkennung ohne Störmeldung.
+        if primaer is not None:
             self._meldungssensoren_anlegen(node_id, device_id, primaer)
 
     async def _funktionen_des_knotens(

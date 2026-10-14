@@ -10,6 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+- Störungsmeldungen eines Geräts fehlen nicht mehr, wenn die Steuerung sie beim Einlesen auslässt.
 - Hilfetexte, Rückfragen und Prüfmeldungen erscheinen auf Englisch und Niederländisch ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
 - Die Warmwasser-Taste rechnet mit der eingestellten Einschalthysterese statt mit 5 K.
 - Die Automatik meldet bei langem Abfrageintervall keinen Handeingriff mehr ohne Grund ([#22](https://github.com/xIceTea/HeatNexus/issues/22)).

@@ -419,6 +419,30 @@ async def test_meldungssensoren_tragen_die_sprache(client_module, monkeypatch):
     assert all(d["sprache"] == "en" for d in meldungen)
 
 
+async def test_meldungssensoren_entstehen_auch_ohne_fe01msg_im_abzug(client_module, monkeypatch):
+    """Fehlt `FE01msg` beim Einlesen, meldet der Kessel trotzdem Störungen."""
+    client = _mit_texten(client_module, "de", {})
+    client.geraeteinfo = {"device": "MB66xx", "version": "1.0"}
+    client.werksbezeichnung = {"60": "PuroWIN"}
+
+    async def fetch(url, semaphore=None):
+        return [
+            {
+                "nodeId": 60,
+                "neuronId": "0000PUROWIN1",
+                "functions": [{"fctId": 0, "fctType": 25, "lock": False, "name": "PuroWIN"}],
+            },
+            {"nodeId": 90, "neuronId": "0000BEDIEN01", "functions": []},
+        ]
+
+    monkeypatch.setattr(client, "fetch", fetch)
+    await client._discover(nur_kern=True)
+
+    typen = {d["type"] for d in client.devices if d["id"].startswith("0000PUROWIN1-fe01")}
+    assert typen == {"device_status", "message_text", "stoerung", "message_list"}
+    assert not [d for d in client.devices if d["id"].startswith("0000BEDIEN01")]
+
+
 async def _kessel_erkennen(client, monkeypatch) -> dict[str, dict]:
     """Volle Erkennung eines Kessels mit einem Datenpunkt aus dem Menü, je Adresse."""
     from custom_components.heatnexus import geraetetexte
