@@ -42,7 +42,7 @@ class TransportMixin:
         """
         if self._geschlossen:
             # Nach dem Entladen öffnet eine späte Aufgabe keine neue Sitzung mehr.
-            raise CannotConnect(f"Verbindung zu {self.host} ist geschlossen")
+            raise mit_text(CannotConnect, "verbindung_geschlossen", anlage=self.host)
         if self._session is None:
             self._session = aiohttp.ClientSession(
                 # Ohne eigene Grenze wartet aiohttp fünf Minuten auf eine

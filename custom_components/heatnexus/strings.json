@@ -684,6 +684,9 @@
     },
     "struktur_unlesbar": {
       "message": "The system {anlage} does not return its structure (HTTP {status})."
+    },
+    "verbindung_geschlossen": {
+      "message": "The connection to {anlage} is closed."
     }
   },
   "services": {

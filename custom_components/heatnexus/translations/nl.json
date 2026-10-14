@@ -684,6 +684,9 @@
     },
     "struktur_unlesbar": {
       "message": "De installatie {anlage} levert haar opbouw niet (HTTP {status})."
+    },
+    "verbindung_geschlossen": {
+      "message": "De verbinding met {anlage} is gesloten."
     }
   },
   "services": {

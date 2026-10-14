@@ -213,6 +213,8 @@ export const BausteineMixin = (Basis) =>
      * Escape, ein Klick daneben oder der Abbau das Fenster schließen.
      */
     _dialogOeffnen(schleier, { fokus = null, beiAbbruch = null } = {}) {
+      // Dialoge entstehen nach dem Übersetzungsdurchlauf; feste Texte holt er hier nach.
+      this._uebersetzen(schleier);
       const dialog = schleier.querySelector(".dialog");
       const titel = dialog.querySelector(".dialog-titel");
       if (!dialog.getAttribute("role")) dialog.setAttribute("role", "dialog");

@@ -684,6 +684,9 @@
     },
     "struktur_unlesbar": {
       "message": "Die Anlage {anlage} liefert ihren Aufbau nicht (HTTP {status})."
+    },
+    "verbindung_geschlossen": {
+      "message": "Die Verbindung zu {anlage} ist geschlossen."
     }
   },
   "services": {

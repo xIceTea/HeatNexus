@@ -10,6 +10,8 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+- Hilfetexte, Rückfragen und Prüfmeldungen erscheinen auf Englisch und Niederländisch ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
+- Die Warmwasser-Taste rechnet mit der eingestellten Einschalthysterese statt mit 5 K.
 - Die Automatik meldet bei langem Abfrageintervall keinen Handeingriff mehr ohne Grund ([#22](https://github.com/xIceTea/HeatNexus/issues/22)).
 
 ## [1.14.0-beta.2]

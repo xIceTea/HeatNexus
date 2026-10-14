@@ -56,7 +56,7 @@ HILFE: tuple[tuple[str, str], ...] = (
     ),
     (
         r"einmalladung|ww[- ]ladung",
-        "Lädt den Warmwasserspeicher einmalig auf, auch während einer Sperrzeit des Warmwasserprogramms.\n\nDie Anlage startet nur, wenn die Warmwassertemperatur mindestens 5 K unter dem eingestellten Wert liegt. Die eingestellte Temperatur ist der Ausschaltpunkt.",
+        "Lädt den Warmwasserspeicher einmalig auf, auch während einer Sperrzeit des Warmwasserprogramms.\n\nDie Anlage startet erst, wenn die Warmwassertemperatur um die Einschalthysterese unter dem eingestellten Wert liegt. Die Hysterese ist unter „Freigabe ab Abweichung“ einstellbar, ab Werk 5 K. Die eingestellte Temperatur ist der Ausschaltpunkt.",
     ),
     (
         r"betriebswahl",
@@ -125,8 +125,9 @@ HILFE_KARTEN = {
         "stellt danach von selbst zurück; die Zeitprogramme bleiben unberührt."
     ),
     "Warmwasser": (
-        "Die eingestellte Warmwassertemperatur ist der Ausschaltpunkt – "
-        "geladen wird, sobald die Temperatur etwa 5 K darunter fällt."
+        "Die eingestellte Warmwassertemperatur ist der Ausschaltpunkt. Geladen "
+        "wird, sobald die Temperatur um die Einschalthysterese darunter fällt; "
+        "ab Werk sind das 5 K."
     ),
     "Automatik": (
         "Die Automatik verschiebt, was die Anlage ohnehin tut. An einem sonnigen "

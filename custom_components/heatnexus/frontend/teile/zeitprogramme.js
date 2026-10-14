@@ -299,7 +299,7 @@ export const ZeitprogrammeMixin = (Basis) =>
         return;
       }
       const neu = editor.lesen();
-      const fehler = pruefen(neu);
+      const fehler = pruefen(neu, this._t.bind(this));
       if (fehler.length) {
         meldung.className = "zp-meldung fehler";
         meldung.textContent = fehler.join(" ");

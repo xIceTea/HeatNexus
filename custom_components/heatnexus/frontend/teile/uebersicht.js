@@ -462,12 +462,16 @@ export const UebersichtMixin = (Basis) =>
       if (eintrag.ist && eintrag.soll) {
         const ist = this._zahl(eintrag.ist);
         const soll = this._zahl(eintrag.soll);
-        const abstand = Number(eintrag.abstand) || 0;
+        const gemeldet = eintrag.abstand_entity ? this._zahl(eintrag.abstand_entity) : null;
+        const abstand = gemeldet !== null ? gemeldet : Number(eintrag.abstand) || 0;
         if (ist !== null && soll !== null && ist > soll - abstand) {
           this._abgelehnt(
             taste,
             rueckmeldung,
-            `schon ${Math.round(ist)} °C – erst ab ${Math.round(soll - abstand)} °C`
+            this._tMit("schon {ist} °C – erst ab {ab} °C", {
+              ist: Math.round(ist),
+              ab: Math.round(soll - abstand),
+            })
           );
           return;
         }

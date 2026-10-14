@@ -112,6 +112,8 @@ def _ladeschwelle(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
         "ist": ist["entity_id"] if ist else None,
         "soll": soll,
         "abstand": abstand,
+        # Im Browser gilt der aktuelle Zustand; `abstand` ist nur der Rückfall.
+        "abstand_entity": hysterese["entity_id"] if hysterese else None,
     }
 
 

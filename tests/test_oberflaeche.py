@@ -915,10 +915,14 @@ DEUTSCH = re.compile(
 )
 
 
+# Felder mit eigenen Sätzen, nie Namen: Ein deutscher Rest dort ist ein Fehler.
+SAETZE = frozenset({"hilfe", "hinweis", "frage", "frage_abbrechen", "betriebswahl_hilfe"})
+
+
 def _texte_der_nutzlast(wert) -> set[str]:
     """Namen aus den Daten: Sie dürfen deutsch sein, die Oberfläche übersetzt sie nicht."""
     if isinstance(wert, dict):
-        return set().union(*(_texte_der_nutzlast(v) for v in wert.values()))
+        return set().union(*(_texte_der_nutzlast(v) for k, v in wert.items() if k not in SAETZE))
     if isinstance(wert, list):
         return set().union(*(_texte_der_nutzlast(v) for v in wert)) if wert else set()
     return {wert} if isinstance(wert, str) and len(wert) > 2 else set()

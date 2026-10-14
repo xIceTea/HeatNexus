@@ -506,12 +506,15 @@ export const AnordnenMixin = (Basis) =>
 
   /** Das Menü hinter „⋮": nur das Zurücksetzen, jeweils mit Rückfrage. */
   _anordnenMenue() {
-    const reiterName = (REITER.find((r) => r.schluessel === this._reiter) || {}).titel || "Reiter";
+    const reiterName = this._t((REITER.find((r) => r.schluessel === this._reiter) || {}).titel || "Reiter");
     this._menueDialog("Anordnung zurücksetzen", [
       {
-        titel: `Nur „${reiterName}" zurücksetzen`,
+        titel: this._tMit("Nur „{reiter}“ zurücksetzen", { reiter: reiterName }),
         symbol: "mdi:restore",
-        frage: `Die eigene Anordnung des Reiters „${reiterName}" verwerfen und zur Standardanordnung zurückgehen?`,
+        frage: this._tMit(
+          "Die eigene Anordnung des Reiters „{reiter}“ verwerfen und zur Standardanordnung zurückgehen?",
+          { reiter: reiterName }
+        ),
         tun: () => this._zuruecksetzen(this._reiter),
       },
       {

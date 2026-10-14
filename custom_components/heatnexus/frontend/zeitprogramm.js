@@ -265,6 +265,11 @@ export function wertText(wert, grenzen, t = OHNE) {
   return `${gerundet} °C`;
 }
 
+/** Platzhalter wie `{nummer}` durch Werte ersetzen. */
+export function einsetzen(text, werte) {
+  return Object.entries(werte).reduce((s, [k, v]) => s.split(`{${k}}`).join(String(v)), text);
+}
+
 /**
  * Was die Anlage nicht annehmen würde.
  *
@@ -272,33 +277,40 @@ export function wertText(wert, grenzen, t = OHNE) {
  * Schaltzeiten je Block schneidet es ab, und ein Wochentag in zwei Blöcken
  * ergibt zwei widersprüchliche Programme für denselben Tag.
  */
-export function pruefen(bloecke) {
+export function pruefen(bloecke, t = OHNE) {
   const fehler = [];
+  const satz = (text, werte) => einsetzen(t(text), werte);
   if (!bloecke || !bloecke.length) {
-    return ["Mindestens ein Block wird gebraucht."];
+    return [t("Mindestens ein Block wird gebraucht.")];
   }
   const vergeben = new Map();
   bloecke.forEach((block, stelle) => {
     const nummer = stelle + 1;
-    if (!block.tage.length) fehler.push(`Block ${nummer}: kein Wochentag gewählt.`);
-    if (!block.punkte.length) fehler.push(`Block ${nummer}: keine Schaltzeit angegeben.`);
+    if (!block.tage.length) fehler.push(satz("Block {nummer}: kein Wochentag gewählt.", { nummer }));
+    if (!block.punkte.length) fehler.push(satz("Block {nummer}: keine Schaltzeit angegeben.", { nummer }));
     if (block.punkte.length > SCHALTPUNKTE_MAX) {
-      fehler.push(`Block ${nummer}: höchstens ${SCHALTPUNKTE_MAX} Schaltzeiten.`);
+      fehler.push(satz("Block {nummer}: höchstens {max} Schaltzeiten.", { nummer, max: SCHALTPUNKTE_MAX }));
     }
     const zeiten = new Set();
     block.punkte.forEach((punkt) => {
       if (punkt.zeit === null || !Number.isFinite(punkt.wert)) {
-        fehler.push(`Block ${nummer}: unvollständige Schaltzeit.`);
+        fehler.push(satz("Block {nummer}: unvollständige Schaltzeit.", { nummer }));
         return;
       }
       if (zeiten.has(punkt.zeit)) {
-        fehler.push(`Block ${nummer}: ${uhrzeit(punkt.zeit)} steht doppelt.`);
+        fehler.push(satz("Block {nummer}: {zeit} steht doppelt.", { nummer, zeit: uhrzeit(punkt.zeit) }));
       }
       zeiten.add(punkt.zeit);
     });
     block.tage.forEach((tag) => {
       if (vergeben.has(tag)) {
-        fehler.push(`${tagText(tag)} steht in Block ${vergeben.get(tag)} und ${nummer}.`);
+        fehler.push(
+          satz("{tag} steht in Block {erster} und {nummer}.", {
+            tag: tagText(tag, t),
+            erster: vergeben.get(tag),
+            nummer,
+          })
+        );
       } else {
         vergeben.set(tag, nummer);
       }

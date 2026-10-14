@@ -1464,3 +1464,18 @@ def test_zaehlermuster_treffen_nur_den_ganzen_namen(name, gesucht):
 
     treffer = [titel for muster, titel, *_ in STATUS if re.search(muster, name.lower())]
     assert treffer[:1] == ([gesucht] if gesucht else [])
+
+
+def test_die_ladeschwelle_nennt_die_hysterese_als_entitaet(panel):
+    """Der Browser rechnet mit dem aktuellen Wert; die Zahl ist nur der Rückfall."""
+    from custom_components.heatnexus.panel import steuerung
+
+    kreis = [
+        entitaet("sensor.ww_ist", "Warmwasser Ist-Temperatur"),
+        entitaet("number.hysterese_ein", "Hysterese EIN", wert="8"),
+    ]
+    schwelle = steuerung._ladeschwelle(kreis)
+
+    assert schwelle["abstand_entity"] == "number.hysterese_ein"
+    assert schwelle["abstand"] == 8.0
+    assert steuerung._ladeschwelle(kreis[:1])["abstand_entity"] is None

@@ -8,7 +8,7 @@ import re
 
 WURZEL = Path(__file__).parent.parent / "custom_components" / "heatnexus"
 # Hilfetexte stehen als `hilfe: "…"` in Tabellen und gehen erst im Fenster durch `_t`.
-AUFRUF = re.compile(r'(?:\bt\(|\._t\(|\._tMit\(|\bhilfe:)\s*"([^"]+)"')
+AUFRUF = re.compile(r'(?:\bt\(|\bsatz\(|\._t\(|\._tMit\(|\bhilfe:)\s*"([^"]+)"')
 # Texte, die auf Englisch genauso lauten.
 GLEICH = {"+ Block", "Block", "HeatNexus"}
 
