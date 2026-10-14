@@ -335,6 +335,40 @@ def test_button_schreibt_seinen_festen_wert():
     assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "7")]
 
 
+@pytest.mark.parametrize(
+    ("oid", "press_value", "endung", "folgen"),
+    [
+        (
+            "/1/60/0/39/94/0",
+            "1",
+            "reinigung",
+            ["/1/60/0/39/91/0", "/1/60/0/39/92/0", "/1/60/0/39/93/0"],
+        ),
+        ("/1/60/0/9/75/0", "7", "befuellen", ["/1/60/0/39/5/0", "/1/60/0/39/107/0"]),
+        ("/1/60/0/9/75/0", "1", "befuellen_aus", ["/1/60/0/39/5/0", "/1/60/0/39/107/0"]),
+        ("/1/60/0/9/75/0", "1", "kaminkehrer_aus", ["/1/60/0/9/90/0", "/1/60/0/2/1/0"]),
+    ],
+)
+def test_eine_taste_liest_sofort_nach_was_sie_veraendert(oid, press_value, endung, folgen):
+    """Nicht erst im Takt; zwei Tasten mit 1 auf `9/75` trennt das Kennungsende."""
+    from custom_components.heatnexus.button import WindhagerButton
+
+    entity, koordinator = _entitaet(
+        WindhagerButton,
+        {},
+        type="button",
+        id=f"SN1-3-0-{oid.split('/', 4)[4].replace('/', '-')}-{endung}",
+        oid=oid,
+        press_value=press_value,
+        fct_type=25,
+    )
+    entity.hass = object()
+    koordinator.client.abrufplan = set(folgen)
+    asyncio.run(entity.async_press())
+
+    assert koordinator.nachgefasst == [folgen]
+
+
 def test_button_ohne_angabe_schreibt_eins():
     from custom_components.heatnexus.button import WindhagerButton
 

@@ -414,6 +414,8 @@ BACKOFF_MAX = 300
 # Poll-Set: Das kostet sechs Anfragen statt sechsmal siebzig.
 NACHFASS_ANZAHL = 6
 NACHFASS_INTERVALL = 3
+# Folgewerte einer Taste stehen nach wenigen Sekunden; mehr Durchgänge kosten nur Anfragen.
+NACHFASS_FOLGEN = 3
 
 # Wie lange ein geschriebener Wert angezeigt wird, bevor die Anlage ihn
 # bestätigt hat. Bestätigt sie früher, endet die Vormerkung sofort.

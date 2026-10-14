@@ -197,6 +197,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         erwartet: dict[str, str] | None = None,
         anzahl: int = NACHFASS_ANZAHL,
         abstand: float = NACHFASS_INTERVALL,
+        vorher: dict[str, str | None] | None = None,
     ) -> None:
         """Adressen nach einer Bedienung kurz engmaschig nachlesen.
 
@@ -204,12 +205,17 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
         """
         self.config_entry.async_create_background_task(
             self.hass,
-            self._nachfass_lauf(list(oids), erwartet, anzahl, abstand),
+            self._nachfass_lauf(list(oids), erwartet, anzahl, abstand, vorher),
             name=f"{DOMAIN}_nachfassen_{self.host}",
         )
 
     async def _nachfass_lauf(
-        self, oids: list[str], erwartet: dict[str, str] | None, anzahl: int, abstand: float
+        self,
+        oids: list[str],
+        erwartet: dict[str, str] | None,
+        anzahl: int,
+        abstand: float,
+        vorher: dict[str, str | None] | None = None,
     ) -> None:
         for _ in range(anzahl):
             await asyncio.sleep(abstand)
@@ -218,4 +224,7 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
                 return
             # Meldet die Anlage den erwarteten Wert, ist nichts mehr nachzufassen.
             if erwartet and all(str(gelesen.get(o)) == str(w) for o, w in erwartet.items()):
+                return
+            # Hat sich ein Folgewert bewegt, hat die Anlage den Auftrag angenommen.
+            if vorher and any(o in gelesen and gelesen[o] != w for o, w in vorher.items()):
                 return

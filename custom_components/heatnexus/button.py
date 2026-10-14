@@ -10,6 +10,8 @@ from homeassistant.core import HomeAssistant
 
 from .automatik.entitaeten import TASTEN_ARTEN
 from .automatik.entitaeten import anmelden as automatik_anmelden
+from .client.gemeinsam import gnmn_aus_oid
+from .const import FCT_ENTITY_MAP, NACHFASS_FOLGEN
 from .entity import WindhagerEntity, async_setup_entities
 
 # Der Coordinator holt jeden Wert gebündelt, und die Anfragen an die Anlage
@@ -62,6 +64,34 @@ class WindhagerButton(WindhagerEntity, ButtonEntity):
             self._oid,
         )
         await self._async_write(self._press_value)
+
+    def _nachfassen(self, erwartet: str | None = None) -> None:
+        """Statt der eigenen Adresse, die nirgends erscheint, das lesen, was die Taste verändert."""
+        folgen = self._folgewerte() if self.hass else []
+        if not folgen:
+            super()._nachfassen(erwartet)
+            return
+        bekannt = (self.coordinator.data or {}).get("oids", {})
+        vorher = {oid: bekannt.get(oid) for oid in folgen}
+        self.coordinator.nachfassen(folgen, anzahl=NACHFASS_FOLGEN, vorher=vorher)
+
+    def _folgewerte(self) -> list[str]:
+        """Was die Taste an der Anlage verändert; es steht sonst erst im nächsten Takt da."""
+        eigene = f"/{gnmn_aus_oid(self._oid)}/0"
+        praefix = self._oid.removesuffix(eigene)
+        for definition in FCT_ENTITY_MAP.get(self._descriptor.get("fct_type"), ()):
+            # Mehrere Tasten schreiben denselben Wert auf `9/75`; erst das Kennungsende trennt sie.
+            endung = definition.get("key_suffix")
+            if (
+                definition["oid"] == eigene
+                and definition.get("press_value") == self._press_value
+                and (not endung or str(self._descriptor.get("id", "")).endswith(f"-{endung}"))
+            ):
+                # Was nicht im Abrufplan steht, zeigt niemand an; es zu lesen kostete nur Anfragen.
+                bekannt = self.coordinator.client.abrufplan
+                folgen = (f"{praefix}/{a}/0" for a in definition.get("nachlesen", ()))
+                return [oid for oid in folgen if oid in bekannt]
+        return []
 
 
 class WindhagerAbfrageTaste(WindhagerEntity, ButtonEntity):
