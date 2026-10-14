@@ -110,6 +110,14 @@ def _ganzzahl(wert: Any) -> int | None:
     return None if wert is None else int(wert)
 
 
+def _gealtert(rest_min: float | None, gelesen: datetime | None, jetzt: datetime) -> float | None:
+    """Die Restzeit auf `jetzt` fortgeschrieben; sie stammt aus dem letzten Abruf."""
+    if rest_min is None or gelesen is None or rest_min <= 0:
+        return rest_min
+    alter = max(dauer(gelesen, jetzt).total_seconds() / 60, 0.0)
+    return max(rest_min - alter, 0.0)
+
+
 def _absenkung_von_hand(
     g: Gedaechtnis, jetzt: datetime, rest_min: float | None, raumsoll: float | None
 ) -> str | None:
@@ -357,6 +365,7 @@ class Steller:
         rest_min: float | None,
         betriebsart: int | None,
         raumsoll: float | None = None,
+        gelesen: datetime | None = None,
     ) -> str | None:
         """Beschreibt einen Eingriff von Hand gegen eine laufende eigene Aktion."""
         if betriebsart is not None and betriebsart in WW_LADUNG:
@@ -367,7 +376,7 @@ class Steller:
         if erwartet is not None and betriebswahl is not None and betriebswahl != erwartet:
             return f"Betriebswahl von Hand auf {betriebswahl} gestellt."
         if absenkung_laeuft(g, jetzt):
-            return _absenkung_von_hand(g, jetzt, rest_min, raumsoll)
+            return _absenkung_von_hand(g, jetzt, _gealtert(rest_min, gelesen, jetzt), raumsoll)
         return None
 
     def abgleichen(self, g: Gedaechtnis, jetzt: datetime) -> None:

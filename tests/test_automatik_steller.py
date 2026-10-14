@@ -229,6 +229,24 @@ def test_handeingriff_beendet_die_absenkung(s, regel):
     assert passt is None
 
 
+def test_alte_restzeit_aus_langsamem_abruf_ist_kein_handeingriff(s, regel):
+    """Abruf alle 300 s: Die gelesene Restzeit ist älter als die Toleranz."""
+    steller = s.Steller("/1/15/0", UML, Schreiber())
+    g = regel.Gedaechtnis(
+        absenkung_art=regel.SONNE,
+        absenkung_von=JETZT,
+        absenkung_bis=JETZT + timedelta(minutes=400),
+    )
+    gelesen = JETZT + timedelta(minutes=60)
+    pruefung = JETZT + timedelta(minutes=65)
+    kw = {"jetzt": pruefung, "betriebswahl": 1, "betriebsart": 1}
+    assert steller.handeingriff(g, rest_min=341, gelesen=gelesen, **kw) is None
+    assert (
+        steller.handeingriff(g, rest_min=370, gelesen=gelesen, **kw)
+        == "Absenkung von Hand geändert."
+    )
+
+
 @pytest.mark.parametrize(
     ("raumsoll", "erwartet"), [(18.0, "Absenkung von Hand geändert."), (17.2, None), (None, None)]
 )

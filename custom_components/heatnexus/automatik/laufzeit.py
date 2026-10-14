@@ -42,7 +42,7 @@ from . import (
     tagesansicht,
 )
 from .quellen import QuellenMixin, ortszeit
-from .steller import Stand, Steller, braucht_bestaetigung, nur_ww_wert
+from .steller import OID_DAUER, Stand, Steller, braucht_bestaetigung, nur_ww_wert
 from .vorausschau import LERNZEIT, VorausschauMixin
 
 _LOGGER = logging.getLogger(__name__)
@@ -214,6 +214,8 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._daten_fehlen_seit: datetime | None = None
         self._raeume_fehlen_seit: datetime | None = None
         self._geaendert = True
+        # Restzeit `2/10` und seit wann sie so dasteht; sie zählt minütlich herunter.
+        self._restzeit: tuple[float | None, datetime | None] = (None, None)
         self._nachladen: Any = None
         # Raumfühler, deren Wert laut Verlauf eingefroren ist; ein neuer Wert löst sie.
         self.eingefroren: set[str] = set()
@@ -447,6 +449,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
     @callback
     def _merken(self, *_: Any) -> None:
         self._geaendert = True
+        # Nur ein neuer Wert ist ein frisch gelesener; Nachlesen anderer Adressen weckt hier auch.
+        if (rest := self._wert(OID_DAUER)) != self._restzeit[0]:
+            self._restzeit = (rest, dt_util.now())
         if self._wartet and not self._steuerung_fehlt(dt_util.now()):
             self._wartet = False
             self._aufgabe(self.auswerten())
@@ -555,13 +560,16 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         """Hat jemand eine eigene Aktion von Hand geändert, pausiert die Automatik."""
         if self.beobachten:
             return lage
+        rest = self._wert(OID_DAUER)
+        wert, seit = self._restzeit
         grund = self.steller.handeingriff(
             self.gedaechtnis,
             jetzt=jetzt,
             betriebswahl=lage.betriebswahl,
-            rest_min=self._wert("/2/10/0"),
+            rest_min=rest,
             betriebsart=_ganzzahl(self._wert("/2/9/0")),
             raumsoll=self._wert("/1/1/0"),
+            gelesen=seit if wert == rest else None,
         )
         if not grund:
             return lage
