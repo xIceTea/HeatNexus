@@ -133,6 +133,8 @@ CONF_IDS_ANPASSEN = "ids_anpassen"
 # Erklärungen („?") in der eigenen Oberfläche. Standardmäßig an – wer die
 # Anlage kennt, schaltet sie ab.
 CONF_HILFE = "hilfe"
+# Ob HeatNexus eine Störung am Kessel zurücksetzen darf (Störspeicher, wie die Taste am Bediengerät).
+CONF_STOERUNG_ZURUECKSETZEN = "stoerung_zuruecksetzen"
 # Welche Automations-Vorlagen mitgeliefert werden. Fehlt die Angabe, kommen
 # alle mit – eine Aktualisierung ändert an einer bestehenden Anlage nichts.
 CONF_VORLAGEN = "vorlagen"

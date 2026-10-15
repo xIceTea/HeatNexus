@@ -115,7 +115,8 @@
           "hilfe": "Uitleg tonen",
           "sprache": "Taal van HeatNexus",
           "sprache_anlage": "Taal van deze installatie",
-          "startwerte": "Startwaarden van de installatie overnemen"
+          "startwerte": "Startwaarden van de installatie overnemen",
+          "stoerung_zuruecksetzen": "Storingen aan de ketel resetten toestaan"
         },
         "data_description": {
           "update_interval": "Hoe vaak de installatie wordt opgevraagd. De waarde geldt voor de snelle waarden (thermostaat, temperaturen, pompen); trage waarden houden hun eigen interval — 2 minuten voor bedrijfswaarden, 15 minuten voor tellers. Aanbevolen: 30 seconden voor één installatie, 60 seconden voor meerdere of voor installaties met veel datapunten.",
@@ -126,7 +127,8 @@
           "aussentemperatur": "Welke sensor in de kopregel als buitentemperatuur geldt. Leeg: HeatNexus zoekt hem zelf in de installatie.",
           "hilfe": "Zet een „?“ naast kaarten en bedieningselementen, dat uitlegt wat een waarde betekent en wat een bediening doet.",
           "sprache": "Geldt voor alle installaties in HeatNexus: namen van datapunten, interface en dashboard. Bij “Automatisch” geldt de taal van Home Assistant. Een wijziging hier geldt voor alle installaties.",
-          "sprache_anlage": "Stelt alleen voor deze installatie een eigen taal in: voor namen, toestanden, storingsteksten en de eigen pagina in de interface. “Zoals HeatNexus” gebruikt de taal van HeatNexus."
+          "sprache_anlage": "Stelt alleen voor deze installatie een eigen taal in: voor namen, toestanden, storingsteksten en de eigen pagina in de interface. “Zoals HeatNexus” gebruikt de taal van HeatNexus.",
+          "stoerung_zuruecksetzen": "Schakelt in het storingsgeheugen de knop „Resetten” vrij. Die werkt als de knop op het bedieningspaneel: besturingen vanaf versie 2 heffen daarmee een storing aan de ketel op, ook een vergrendelende. Reset alleen als u de oorzaak kent en hebt verholpen."
         }
       },
       "system": {
@@ -475,6 +477,9 @@
       },
       "befund_energie": {
         "name": "Analyse energie per graaddag"
+      },
+      "stoerspeicher": {
+        "name": "Storingsgeheugen"
       }
     },
     "binary_sensor": {
@@ -687,6 +692,24 @@
     },
     "verbindung_geschlossen": {
       "message": "De verbinding met {anlage} is gesloten."
+    },
+    "stoerspeicher_abgelehnt": {
+      "message": "De besturing heeft de actie in het storingsgeheugen geweigerd. HTTP {status}."
+    },
+    "kein_stoerspeicher": {
+      "message": "Deze besturing heeft geen storingsgeheugen."
+    },
+    "eintrag_fehlt": {
+      "message": "Item {eintrag} bestaat niet meer in het storingsgeheugen."
+    },
+    "zuruecksetzen_aus": {
+      "message": "Het resetten van storingen is uitgeschakeld. U kunt het inschakelen in de opties onder „Algemeen”."
+    },
+    "nicht_zuruecksetzbar": {
+      "message": "Item {eintrag} kan niet worden gereset. De storing is niet meer actief, of ze hoort bij een ander bedieningspaneel."
+    },
+    "nicht_loeschbar": {
+      "message": "Item {eintrag} kan pas worden verwijderd als de storing niet meer actief is."
     }
   },
   "services": {
@@ -706,7 +729,7 @@
     },
     "meldungen_loeschen": {
       "name": "Meldingenlijst wissen",
-      "description": "Wist de meldingenlijst die HeatNexus voor een installatie bijhoudt. De installatie levert deze lijst niet via haar interface. Daarom wordt alleen de verzameling in Home Assistant gewist, niet het storingsgeheugen op de bedieningseenheid. Meldingen die daar openstaan, blijven staan en moeten zoals gewoonlijk op het toestel worden gereset."
+      "description": "Leegt de meldingenlijst van een apparaat. Als de besturing een storingsgeheugen heeft, verwijdert de actie daar de items van dit apparaat waarvan de storing niet meer actief is. Anders leegt ze alleen de lijst in Home Assistant."
     },
     "set_vorgabe": {
       "name": "Tijdelijke instelwaarde zetten",
@@ -743,6 +766,36 @@
     "dashboard_ausgeben": {
       "name": "Dashboard als YAML uitvoeren",
       "description": "Geeft het meegeleverde dashboard terug als YAML-tekst. Het wordt bij elke keer openen opnieuw opgebouwd en kan daarom niet worden bewerkt. Met deze tekst maak je een eigen dashboard: voeg een nieuw dashboard toe, open de editor voor de ruwe configuratie en plak de tekst."
+    },
+    "stoerung_quittieren": {
+      "name": "Storing bevestigen",
+      "description": "Markeert een item in het storingsgeheugen van de besturing als gelezen. Op het bedieningspaneel sluit de melding. De storing aan de ketel blijft bestaan.",
+      "fields": {
+        "eintrag": {
+          "name": "Item",
+          "description": "Nummer van het item in het storingsgeheugen, zoals vermeld in het attribuut „eintraege” van de sensor storingsgeheugen."
+        }
+      }
+    },
+    "stoerung_zuruecksetzen": {
+      "name": "Storing resetten",
+      "description": "Reset een actieve storing zoals de knop op het bedieningspaneel. Besturingen vanaf versie 2 heffen daarmee de storing aan de ketel op. In de opties moet „Storingen aan de ketel resetten toestaan” zijn ingeschakeld.",
+      "fields": {
+        "eintrag": {
+          "name": "Item",
+          "description": "Nummer van het item in het storingsgeheugen, zoals vermeld in het attribuut „eintraege” van de sensor storingsgeheugen."
+        }
+      }
+    },
+    "stoerung_loeschen": {
+      "name": "Melding verwijderen",
+      "description": "Verwijdert een item uit het storingsgeheugen van de besturing. Alleen items waarvan de storing niet meer actief is, kunnen worden verwijderd.",
+      "fields": {
+        "eintrag": {
+          "name": "Item",
+          "description": "Nummer van het item in het storingsgeheugen, zoals vermeld in het attribuut „eintraege” van de sensor storingsgeheugen."
+        }
+      }
     }
   }
 }

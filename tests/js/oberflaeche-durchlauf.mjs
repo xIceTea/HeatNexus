@@ -126,6 +126,15 @@ if (states["select.betriebswahl"]) states["select.betriebswahl"].state = "Progra
 // Eine anstehende Störung, damit die Störungskarte ihre Zeilen zeigt.
 if (states["sensor.meldung_klartext"]) states["sensor.meldung_klartext"].attributes.stoerung_aktiv = true;
 
+// Der Störspeicher: ein erledigter Eintrag und darunter ein älterer, der noch anliegt.
+const STOERSPEICHER = [
+  { id: 156, code: 346, symbol: "E", art: "Fehler", text: "Verkleidungstür offen", geraet: "PuroWIN",
+    aktiv: false, status: "receipted", zuerst: "2026-10-14T21:41:00+02:00", zuruecksetzbar: false, quittierbar: false, loeschbar: true },
+  { id: 155, code: 346, symbol: "E", art: "Fehler", text: "Verkleidungstür offen", geraet: "PuroWIN",
+    aktiv: true, status: "new", zuerst: "2026-10-14T21:40:34+02:00", zuruecksetzbar: false, quittierbar: true, loeschbar: false },
+];
+const ANLIEGEND = STOERSPEICHER[1];
+
 const bilanz = {};
 const REITER = ["uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme"];
 REITER.forEach((reiter) => {
@@ -1373,6 +1382,59 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 // Die Attrappe wirft bei jedem `callWS`. Wer die Farbwahl anfasst, muss das
 // erfahren – sonst springt die Ansicht beim nächsten Laden zurück.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Störspeicher: Zeilen, Tasten im Detail, Dienstaufruf
+// ---------------------------------------------------------------------------
+// Erst hier: Der Übersichtslauf oben prüft den Weg ohne Störspeicher.
+const speicherZustand = flaeche._hass.states["sensor.stoerspeicher"];
+if (speicherZustand) speicherZustand.attributes.eintraege = STOERSPEICHER;
+flaeche._reiter = "uebersicht";
+flaeche._gebaut = false;
+flaeche._zeichnen();
+flaeche._aktualisieren();
+const speicherZeilen = [...flaeche.shadowRoot.querySelectorAll(".stoerspeicher-zeile")];
+flaeche._stoerspeicherDetail(ANLIEGEND, "sensor.stoerspeicher");
+const tasten = [...flaeche.shadowRoot.querySelectorAll(".dialog-taste")].map((t) => String(t.textContent || "").trim());
+const echtesBestaetigen = flaeche._bestaetigen;
+flaeche._bestaetigen = async () => true;
+const vorQuittung = dienstAufrufe.length;
+await flaeche._stoerspeicherAktion("quittieren", ANLIEGEND, "sensor.stoerspeicher");
+flaeche._bestaetigen = echtesBestaetigen;
+bilanz.stoerspeicher = {
+  zeilen: speicherZeilen.length,
+  kacheln: [...flaeche.shadowRoot.querySelectorAll(".stoerspeicher-kachel")].map((k) => String(k.className)),
+  kachelTasten: [...flaeche.shadowRoot.querySelectorAll(".stoerspeicher-taste")].map((t) => t.getAttribute("aria-label")),
+  stoerungImKopf: flaeche._stoerung({ stoerungen: [], stoerspeicher: "sensor.stoerspeicher" }),
+  stufen: (() => {
+    const stufe = (eintraege) => {
+      flaeche._hass.states["sensor.stufe"] = { entity_id: "sensor.stufe", state: "1", attributes: { eintraege } };
+      return flaeche._stoerungsstufe({ stoerungen: [], stoerspeicher: "sensor.stufe" });
+    };
+    // Eine Gerätezeile mit E346; ihr Melder liegt an.
+    const mitZeile = (eintraege) => {
+      flaeche._hass.states["sensor.zeile"] = {
+        entity_id: "sensor.zeile",
+        state: "Verkleidungstür offen",
+        attributes: { stoerung_aktiv: true, meldungen: [{ code: 346 }] },
+      };
+      flaeche._hass.states["sensor.stufe"] = { entity_id: "sensor.stufe", state: "1", attributes: { eintraege } };
+      return flaeche._stoerungsstufe({ stoerungen: [{ entity: "sensor.zeile" }], stoerspeicher: "sensor.stufe" });
+    };
+    return {
+      leer: stufe([]),
+      info: stufe([{ aktiv: true, symbol: "I" }]),
+      fehler: stufe([{ aktiv: true, symbol: "I" }, { aktiv: true, symbol: "E" }]),
+      alarm: stufe([{ aktiv: true, symbol: "I" }, { aktiv: true, symbol: "A" }]),
+      erledigt: stufe([{ aktiv: false, symbol: "A" }]),
+      zeileOhneEintrag: mitZeile([{ aktiv: true, symbol: "I", code: 9 }]),
+      zeileImSpeicher: mitZeile([{ aktiv: true, symbol: "I", code: 346 }]),
+    };
+  })(),
+  muell: flaeche.shadowRoot.querySelectorAll(".stoerspeicher-muell").length,
+  tasten,
+  aufruf: dienstAufrufe[vorQuittung],
+};
+
 const meldungen = [];
 flaeche.addEventListener("hass-notification", (ereignis) => {
   meldungen.push(ereignis.detail && ereignis.detail.message);

@@ -50,4 +50,39 @@ export const ZEILEN = `
     padding: 0 0 8px; white-space: pre-line;
   }
   ha-icon { --mdc-icon-size: 22px; opacity: 0.85; flex: none; }
+  .stoerspeicher-kopf {
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hn-flaeche);
+    font-size: 13px; font-weight: 600; color: var(--hn-gedaempft);
+  }
+  .stoerspeicher-kacheln { display: grid; }
+  .stoerspeicher-kachel, .stoerspeicher-zeile {
+    display: grid; grid-template-columns: 36px minmax(0, 1fr) 32px; gap: 12px; align-items: center;
+    padding: 8px; cursor: pointer;
+  }
+  .stoerspeicher-kachel {
+    padding-left: 5px; border-left: 3px solid var(--hn-farbe); background: var(--hn-ton);
+  }
+  .stoerspeicher-kachel .stoerspeicher-text { font-weight: 600; }
+  .stoerspeicher-kachel .stoerspeicher-herkunft { color: var(--hn-farbe); }
+  .stoerspeicher-zeile { border-bottom: 1px solid var(--hn-flaeche); }
+  .stoerspeicher-zeile:last-child { border-bottom: none; }
+  .stoerspeicher-taste, .stoerspeicher-muell {
+    background: none; border: none; color: var(--hn-gedaempft); cursor: pointer; padding: 4px;
+    display: flex; align-items: center; justify-content: center; border-radius: 6px;
+  }
+  .stoerspeicher-taste { color: var(--hn-farbe); }
+  .stoerspeicher-taste:hover, .stoerspeicher-muell:hover { background: rgba(255, 255, 255, 0.08); }
+  .stoerspeicher-text { font-size: 14px; overflow-wrap: anywhere; }
+  .stoerspeicher-herkunft { font-size: 12px; color: var(--hn-gedaempft); }
+  .stoerspeicher-symbol {
+    width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    background: var(--hn-ton); color: var(--hn-farbe);
+  }
+  .stoerspeicher-symbol ha-icon { opacity: 1; }
+  .stoerspeicher-kachel.alarm, .stoerspeicher-symbol.alarm { --hn-ton: rgba(229, 57, 53, 0.14); --hn-farbe: #ff8a80; }
+  .stoerspeicher-kachel.fehler, .stoerspeicher-symbol.fehler { --hn-ton: rgba(255, 193, 7, 0.12); --hn-farbe: #ffd54f; }
+  .stoerspeicher-kachel.info, .stoerspeicher-symbol.info { --hn-ton: rgba(66, 165, 245, 0.14); --hn-farbe: #64b5f6; }
+  .stoerspeicher-symbol.erledigt { --hn-ton: var(--hn-flaeche); --hn-farbe: var(--hn-gedaempft); }
+  .stoerspeicher-kachel .stoerspeicher-symbol { background: rgba(0, 0, 0, 0.18); }
+  .stoerspeicher-ende { display: flex; justify-content: center; }
 `;

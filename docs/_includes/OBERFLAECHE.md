@@ -32,7 +32,26 @@ Stichleitungen sieht man, wohin die Wärme gerade geht.
 **Störung.** Liegt eine Meldung an, wechselt der Balken oben von „Anlage in
 Ordnung" auf „Störung anliegend", und die Störungskarte nennt den Klartext des
 Herstellers samt Abhilfe. Verschwindet die Meldung an der Anlage, verschwindet
-auch die Anzeige — sie wird nicht quittiert, sondern gelesen.
+auch die Anzeige.
+
+<a id="stoerspeicher"></a>
+
+**Störspeicher.** Führt die Steuerung einen Störspeicher, steht er unter der
+Störungskarte. Es ist dieselbe Liste wie am Bediengerät: Jede Zeile nennt den
+Klartext, darunter Gerät, Art und Code, rechts die Zeit. Ein Tippen öffnet das
+Detail mit den Tasten, die für den Eintrag gelten.
+
+| Taste | Wann | Wirkung |
+|---|---|---|
+| Quittieren | Der Eintrag ist neu. | Die Meldung gilt als gelesen und schließt sich am Bediengerät. Die Störung am Kessel bleibt bestehen. |
+| Löschen | Die Störung liegt nicht mehr an. | Der Eintrag verschwindet aus der Liste des Bediengeräts. |
+| Zurücksetzen | Die Störung liegt an, und die Option ist eingeschaltet. | Wirkt wie die Taste am Bediengerät. Steuerungen ab Fassung 2 heben damit die Störung am Kessel auf. |
+
+Zurücksetzen ist ab Werk ausgeschaltet. Die Option „Störungen am Kessel
+zurücksetzen erlauben“ steht unter Einstellungen → Geräte & Dienste → HeatNexus
+→ Optionen → Allgemein. Sie gilt für die ganze Anlage und bleibt über Updates
+erhalten. Zurücksetzen sollte nur, wer die Ursache kennt und behoben hat. Jede
+Aktion steht mit dem auslösenden Benutzer im Logbuch.
 
 **Steuerung.** Was man an der Anlage wirklich verstellt: Sollwert des
 Heizkreises, Eco und Comfort als befristete Übersteuerung, die Betriebswahl,

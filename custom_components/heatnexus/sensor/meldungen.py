@@ -12,6 +12,7 @@ from homeassistant.util import dt as dt_util
 from ..const import ERROR_TEXTS
 from ..entity import MeldungsQuelle, WindhagerEntity
 from ..error_texts import keine_stoerung, klartext, parse_messages, textsprache, unbekannt
+from .stoerspeicher import eintraege_aufbereiten, zuruecksetzen_erlaubt
 
 
 class WindhagerErrorTextSensor(WindhagerEntity, SensorEntity):
@@ -102,11 +103,10 @@ class WindhagerMessageTextSensor(MeldungsQuelle, WindhagerEntity, SensorEntity):
 
 
 class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
-    """Fortlaufende Liste aller Meldungen, die diese Anlage gezeigt hat.
+    """Die Meldungen dieses Geräts, wie sie das Bediengerät gesammelt hat.
 
-    ``FE01msg`` nennt nur das Anliegende, die Liste des Bediengeräts ist über
-    die Schnittstelle nicht lesbar. Je Code ein Eintrag mit erstem und letztem
-    Auftreten und Zähler; der Zustand ist die Anzahl.
+    Führt die Steuerung einen Störspeicher, spiegelt die Liste dessen Einträge.
+    Sonst sammelt sie selbst aus ``FE01msg``: je Code ein Eintrag mit Zähler.
     """
 
     _attr_icon = "mdi:format-list-bulleted"
@@ -140,8 +140,17 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Neue Meldungen aufnehmen, bevor der Zustand geschrieben wird."""
-        self._aufnehmen()
+        if self._spiegel is None:
+            self._aufnehmen()
         super()._handle_coordinator_update()
+
+    @property
+    def _spiegel(self) -> list[dict] | None:
+        """Die Einträge dieses Geräts im Störspeicher; `None` ohne Störspeicher."""
+        alle = (self.coordinator.data or {}).get("stoerspeicher")
+        if alle is None:
+            return None
+        return [e for e in alle if str(e.get("knoten")) == self._node_id]
 
     def _aufnehmen(self) -> None:
         roh = (self.coordinator.data or {}).get("status", {}).get(self._node_id)
@@ -170,9 +179,14 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
         for code, eintrag in self._eintraege.items():
             eintrag["aktiv"] = code in anstehend
 
-    @callback
-    def leeren(self) -> None:
-        """Die Liste der Integration verwerfen, nicht die der Anlage."""
+    async def leeren(self) -> None:
+        """Mit Störspeicher dessen erledigte Einträge löschen, sonst die eigene Liste."""
+        if (spiegel := self._spiegel) is not None:
+            for eintrag in spiegel:
+                if eintrag.get("loeschbar"):
+                    await self.coordinator.client.stoerung_loeschen(eintrag["id"])
+            await self.coordinator.async_request_refresh()
+            return
         self._eintraege.clear()
         # Wie in `entity._nachfassen`: Ohne angemeldete Entität gibt es
         # nichts zu schreiben. Home Assistant leitet einen Dienst zwar nur an
@@ -183,12 +197,24 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
 
     @property
     def native_value(self) -> int:
-        return len(self._eintraege)
+        spiegel = self._spiegel
+        return len(self._eintraege) if spiegel is None else len(spiegel)
 
     @property
     def extra_state_attributes(self):
-        # Neueste zuerst: Wer nachschaut, sucht meist das Letzte.
-        eintraege = sorted(
-            self._eintraege.values(), key=lambda e: e.get("zuletzt") or "", reverse=True
-        )
+        if (spiegel := self._spiegel) is not None:
+            erlaubt = zuruecksetzen_erlaubt(self.coordinator)
+            eintraege = eintraege_aufbereiten(self.coordinator.client, spiegel, erlaubt)
+            return {
+                "meldungen": [{**e, "kind": e.get("art"), "anzahl": 1} for e in eintraege],
+                "eigene_liste": False,
+            }
+        # Neueste zuerst: Wer nachschaut, sucht meist das Letzte. Kopien, denn
+        # Home Assistant vergleicht mit dem geschriebenen Stand und schreibt nur bei Abweichung.
+        eintraege = [
+            dict(e)
+            for e in sorted(
+                self._eintraege.values(), key=lambda e: e.get("zuletzt") or "", reverse=True
+            )
+        ]
         return {"meldungen": eintraege, "eigene_liste": True}

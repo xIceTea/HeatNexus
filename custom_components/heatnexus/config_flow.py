@@ -53,6 +53,7 @@ from .const import (
     CONF_SPRACHE,
     CONF_SPRACHE_ANLAGE,
     CONF_STARTWERTE,
+    CONF_STOERUNG_ZURUECKSETZEN,
     CONF_SYSTEMS,
     CONF_UPDATE_INTERVAL,
     CONF_VORLAGEN,
@@ -453,6 +454,16 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         return {SUBEINTRAG_QUELLE: WaermequelleSubentryFlow}
 
 
+# Ja/Nein-Einstellungen unter „Allgemein“ mit ihrer Vorgabe, in der Reihenfolge des Dialogs.
+ALLGEMEINE_SCHALTER = (
+    (CONF_DASHBOARD, True),
+    (CONF_PANEL, False),
+    (CONF_HILFE, True),
+    (CONF_MELDUNG_EINLESEN, False),
+    (CONF_STOERUNG_ZURUECKSETZEN, False),
+)
+
+
 class WindhagerOptionsFlow(OptionsFlow):
     """Umfang je Anlage und Abfrageintervall nachträglich ändern."""
 
@@ -609,12 +620,10 @@ class WindhagerOptionsFlow(OptionsFlow):
         if user_input is not None:
             options[CONF_UPDATE_INTERVAL] = int(user_input[CONF_UPDATE_INTERVAL])
             options[CONF_STARTWERTE] = int(user_input.get(CONF_STARTWERTE, STARTWERTE_VORGABE))
-            options[CONF_DASHBOARD] = bool(user_input[CONF_DASHBOARD])
-            options[CONF_PANEL] = bool(user_input[CONF_PANEL])
             # .get statt [] – ein fehlendes Feld darf den Dialog nicht mit
             # „Unknown error occurred“ abbrechen lassen.
-            options[CONF_MELDUNG_EINLESEN] = bool(user_input.get(CONF_MELDUNG_EINLESEN, False))
-            options[CONF_HILFE] = bool(user_input.get(CONF_HILFE, True))
+            for schluessel, vorgabe in ALLGEMEINE_SCHALTER:
+                options[schluessel] = bool(user_input.get(schluessel, vorgabe))
             self._sprache_uebernehmen(options, user_input)
             options[CONF_VORLAGEN] = [v for v in user_input.get(CONF_VORLAGEN, []) if v in vorlagen]
             gewaehlt = (user_input.get(CONF_AUSSENTEMPERATUR) or "").strip()
@@ -628,15 +637,12 @@ class WindhagerOptionsFlow(OptionsFlow):
             step_id="allgemein",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        CONF_DASHBOARD, default=bool(options.get(CONF_DASHBOARD, True))
-                    ): bool,
-                    vol.Required(CONF_PANEL, default=bool(options.get(CONF_PANEL, False))): bool,
-                    vol.Required(CONF_HILFE, default=bool(options.get(CONF_HILFE, True))): bool,
-                    vol.Required(
-                        CONF_MELDUNG_EINLESEN,
-                        default=bool(options.get(CONF_MELDUNG_EINLESEN, False)),
-                    ): bool,
+                    **{
+                        vol.Required(
+                            schluessel, default=bool(options.get(schluessel, vorgabe))
+                        ): bool
+                        for schluessel, vorgabe in ALLGEMEINE_SCHALTER
+                    },
                     # Vorlagen erscheinen unter Einstellungen → Automationen.
                     # Ohne gespeicherte Auswahl gelten alle als gewählt, damit
                     # eine Aktualisierung keine wegnimmt.

@@ -27,6 +27,8 @@ export const ALLGEMEIN = `
   }
   .gut { color: #7bd88f; }
   .schlecht { color: #ff8a80; }
+  .warnung { color: #ffd54f; }
+  .info-farbe { color: #64b5f6; }
   .mitte { text-align: center; padding: 18px 0; }
   .mitte ha-icon { --mdc-icon-size: 46px; opacity: 0.8; }
   .mitte .haupt { font-size: 16px; font-weight: 600; margin-top: 10px; }

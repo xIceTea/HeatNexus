@@ -101,6 +101,14 @@ def anlage_daten(
         "heizkreise": uebersicht.heizkreise(anlage),
         "warmwasser": warmwasser_zeilen(alle),
         "stoerungen": uebersicht.stoerungen(anlage),
+        "stoerspeicher": next(
+            (
+                e["entity_id"]
+                for e in anlage.get("steuerung_entitaeten", [])
+                if e.get("uebersetzung") == "stoerspeicher"
+            ),
+            None,
+        ),
         "schnellzugriff": uebersicht.schnellzugriff(anlage, alle),
         # Nur Messwerte: Ein Einsteller trägt oft denselben Namen wie der
         # Wert, den er begrenzt, und gehört nicht als Linie in den Verlauf.

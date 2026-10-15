@@ -71,5 +71,7 @@ export const KARTEN = `
     padding: 8px 14px; border-radius: 999px; font-weight: 600; font-size: 14px;
     background: rgba(67, 160, 71, 0.15); color: #7bd88f;
   }
-  .abzeichen.stoerung { background: rgba(229, 57, 53, 0.15); color: #ff8a80; }
+  .abzeichen.alarm { background: rgba(229, 57, 53, 0.15); color: #ff8a80; }
+  .abzeichen.fehler { background: rgba(255, 193, 7, 0.15); color: #ffd54f; }
+  .abzeichen.info { background: rgba(66, 165, 245, 0.15); color: #64b5f6; }
 `;

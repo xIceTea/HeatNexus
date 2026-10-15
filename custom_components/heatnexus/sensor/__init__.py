@@ -37,6 +37,7 @@ from .meldungen import (
     WindhagerMessageListSensor,
     WindhagerMessageTextSensor,
 )
+from .stoerspeicher import anmelden as stoerspeicher_anmelden
 from .zeitprogramm import BLOCK_SCHEMA, SCHALTPUNKT_SCHEMA, WindhagerTimeProgramSensor
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,9 +58,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         system_anmelden(hass, entry, async_add_entities, art)
     befund_anmelden(hass, entry, async_add_entities)
 
-    # Leert die Meldungsliste der Integration, nicht die des Bediengeräts;
-    # die Dienstbeschreibung sagt das, damit sie nicht wie eine Quittung wirkt.
     platform.async_register_entity_service("meldungen_loeschen", {}, "leeren")
+    # Quittieren, Zurücksetzen und Löschen im Störspeicher des Bediengeräts.
+    eintrag = {vol.Required("eintrag"): vol.Coerce(int)}
+    platform.async_register_entity_service("stoerung_quittieren", eintrag, "async_quittieren")
+    platform.async_register_entity_service("stoerung_zuruecksetzen", eintrag, "async_zuruecksetzen")
+    platform.async_register_entity_service("stoerung_loeschen", eintrag, "async_loeschen")
+    stoerspeicher_anmelden(hass, entry, async_add_entities)
 
     # Service zum Schreiben eines Zeitprogramms (Heiz-/WW-Programm). Ziel ist
     # eine Zeitprogramm-Sensor-Entity. Entweder mehrere "blocks" (volle

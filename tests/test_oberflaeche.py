@@ -148,7 +148,20 @@ def aufteilung() -> dict:
     return {
         "anlagen": [
             modul.anlage_daten(
-                {"name": "Heizhaus", "teile": [kessel, heizkreis, puffer, zsp]}, None, labelkarte
+                {
+                    "name": "Heizhaus",
+                    "teile": [kessel, heizkreis, puffer, zsp],
+                    "steuerung_entitaeten": [
+                        _entitaet(
+                            "sensor.stoerspeicher",
+                            "Störspeicher",
+                            kategorie="diagnostic",
+                            uebersetzung="stoerspeicher",
+                        )
+                    ],
+                },
+                None,
+                labelkarte,
             )
         ],
         "uebersteuerung": {
@@ -1089,3 +1102,45 @@ def test_antippen_zeigt_den_wert_eines_balkens(durchlauf):
     befund = durchlauf["befund"]
     assert befund["ablesbar"] == 2
     assert befund["abgelesen"] == ["02.10.: 4 h unter Soll"]
+
+
+# ---------------------------------------------------------------------------
+# Störspeicher in der Störungskarte
+# ---------------------------------------------------------------------------
+def test_der_stoerspeicher_steht_in_der_stoerungskarte(durchlauf):
+    """Der erledigte Eintrag steht im Verlauf und trägt den Papierkorb."""
+    assert durchlauf["stoerspeicher"]["zeilen"] == 1
+    assert durchlauf["stoerspeicher"]["muell"] == 1
+
+
+def test_ein_anliegender_eintrag_wird_kachel_in_der_farbe_seiner_art(durchlauf):
+    assert durchlauf["stoerspeicher"]["kacheln"] == ["stoerspeicher-kachel fehler"]
+    assert durchlauf["stoerspeicher"]["kachelTasten"] == ["Quittieren"]
+
+
+def test_ein_anliegender_eintrag_im_stoerspeicher_ist_eine_stoerung(durchlauf):
+    assert durchlauf["stoerspeicher"]["stoerungImKopf"] is True
+
+
+def test_die_schwerste_anliegende_meldungsart_bestimmt_die_stufe(durchlauf):
+    assert durchlauf["stoerspeicher"]["stufen"] == {
+        "leer": "ok",
+        "info": "info",
+        "fehler": "fehler",
+        "alarm": "alarm",
+        "erledigt": "ok",
+        "zeileOhneEintrag": "fehler",
+        "zeileImSpeicher": "info",
+    }
+
+
+def test_das_detail_zeigt_nur_die_erlaubten_tasten(durchlauf):
+    """Ohne Erlaubnis kein Zurücksetzen; der neue Eintrag lässt sich quittieren."""
+    assert durchlauf["stoerspeicher"]["tasten"] == ["Schließen", "Quittieren"]
+
+
+def test_quittieren_ruft_den_dienst_mit_dem_eintrag(durchlauf):
+    assert durchlauf["stoerspeicher"]["aufruf"] == {
+        "dienst": "heatnexus.stoerung_quittieren",
+        "angaben": {"entity_id": "sensor.stoerspeicher", "eintrag": 155},
+    }

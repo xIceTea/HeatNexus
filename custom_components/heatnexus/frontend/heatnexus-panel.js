@@ -36,6 +36,7 @@ import { BedienenMixin } from "./teile/bedienen.js";
 import { HilfeMixin } from "./teile/hilfe.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { SteuerungMixin } from "./teile/steuerung.js";
+import { StoerspeicherMixin } from "./teile/stoerspeicher.js";
 import { TagesbildMixin } from "./teile/tagesbild.js";
 import { UebersichtMixin } from "./teile/uebersicht.js";
 import { VerlaufMixin } from "./teile/verlauf.js";
@@ -55,9 +56,9 @@ const Grundlage = HilfeMixin(
             KennwerteMixin(
               TagesbildMixin(
                 SteuerungMixin(
-                  UebersichtMixin(
+                  UebersichtMixin(StoerspeicherMixin(
                     SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
-                  )
+                  ))
                 )
               )
             )
@@ -274,8 +275,35 @@ class HeatNexusPanel extends Grundlage {
     return !!zustand && zustand.attributes.stoerung_aktiv === true;
   }
 
+  /** Ob jede Meldung dieser Gerätezeile als anliegender Eintrag im Störspeicher steht. */
+  _stoerungImSpeicher(eintrag, anlage) {
+    const codes = new Set(
+      this._stoerspeicherEintraege(anlage.stoerspeicher).filter((e) => e.aktiv).map((e) => String(e.code))
+    );
+    const zustand = this._zustand(eintrag.entity);
+    const meldungen = (zustand && zustand.attributes.meldungen) || [];
+    return meldungen.length > 0 && meldungen.every((m) => codes.has(String(m.code)));
+  }
+
+  /**
+   * „ok“, „info“, „fehler“ oder „alarm“: die schwerste anliegende Meldungsart. Im Störspeicher
+   * zählt der Kennbuchstabe; eine Gerätemeldung ohne Eintrag zählt als Fehler, ein Alarm als Alarm.
+   */
+  _stoerungsstufe(anlage) {
+    const arten = this._stoerspeicherEintraege(anlage.stoerspeicher)
+      .filter((e) => e.aktiv)
+      .map((e) => ({ A: "alarm", I: "info" })[e.symbol] || "fehler");
+    for (const s of anlage.stoerungen || []) {
+      if (!this._stoerungAktiv(s) || this._stoerungImSpeicher(s, anlage)) continue;
+      const zustand = this._zustand(s.entity);
+      const meldungen = (zustand && zustand.attributes.meldungen) || [];
+      arten.push(meldungen.some((m) => m.kind === "Alarm") ? "alarm" : "fehler");
+    }
+    return ["alarm", "fehler", "info"].find((art) => arten.includes(art)) || "ok";
+  }
+
   _stoerung(anlage) {
-    return (anlage.stoerungen || []).some((s) => this._stoerungAktiv(s));
+    return this._stoerungsstufe(anlage) !== "ok";
   }
 
   // -------------------------------------------------------------------

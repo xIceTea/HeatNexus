@@ -374,6 +374,19 @@ async def test_die_entitaeten_einer_automatik_sind_nicht_verwaist(modul, hass):
     ]
 
 
+def test_der_stoerspeicher_der_steuerung_ist_nicht_verwaist(modul, hass):
+    """Er hängt an der Steuerung, nicht an einem Datenpunkt eines Geräts."""
+    eintrag, entitaet = _eintrag_mit_entitaet(hass, "steuerung-SN1-stoerspeicher")
+    koordinator = _koordinator(["SN1-0-0-7-0"])
+    koordinator.data["stoerspeicher"] = []
+    koordinator.client.steuerung_kennung = lambda: "steuerung-SN1"
+
+    assert modul.finden(hass, eintrag, {"a": koordinator}) == []
+
+    koordinator.data["stoerspeicher"] = None
+    assert [e.entity_id for e in modul.finden(hass, eintrag, {"a": koordinator})] == [entitaet]
+
+
 @pytest.mark.parametrize("kennung", ["SN1-0-9-75-0", "SN1-0-39-94-0"])
 def test_eine_bewusst_entfallene_auswahl_wird_geloescht(hass, modul, kennung):
     """`9/75` und `39/94` bietet HeatNexus nicht als Auswahl an; das ist kein Fall für den Hinweis."""

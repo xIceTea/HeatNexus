@@ -29,6 +29,7 @@ from .kennungen import KennungenMixin
 from .menues import MenuesMixin
 from .metadaten import MetadatenMixin
 from .netzwerkvariablen import NetzwerkvariablenMixin
+from .stoerspeicher import StoerspeicherMixin
 from .transport import TransportMixin
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,6 +44,7 @@ class WindhagerHttpClient(
     MetadatenMixin,
     AbleitungenMixin,
     AbrufMixin,
+    StoerspeicherMixin,
 ):
     """Zugriff auf eine Anlage: Erkennung, Metadaten und zyklischer Abruf."""
 

@@ -349,6 +349,8 @@ def _entitaet(hass: HomeAssistant, eintrag: Any, stand: _Lesestand) -> dict[str,
     bereich = eintrag.entity_id.split(".")[0]
     return {
         "entity_id": eintrag.entity_id,
+        # Feste Entitäten ohne Datenpunkt (der Störspeicher) erkennt man an ihrem Übersetzungsschlüssel.
+        "uebersetzung": eintrag.translation_key,
         "name": kurzname(eintrag.name or eintrag.original_name or eintrag.entity_id),
         # Muster und Hilfetexte sind deutsch und suchen hier, nicht im Anzeigenamen.
         "name_de": stand.deutsche_namen(eintrag),
@@ -402,11 +404,13 @@ def _entitaeten_einsortieren(
 def _gruppieren(teile: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     """Anlagenteile ihren Steuerungen zuordnen.
 
-    Die Steuerungen selbst tragen keine Entitäten und erscheinen nur als Gruppe.
+    Eine Steuerung ist kein Teil, sondern die Gruppe; ihre eigenen Entitäten
+    (der Störspeicher) stehen unter `steuerung_entitaeten`.
     """
+    steuerungen = {t["anlage_id"] for t in teile.values() if t["anlage_id"]}
     anlagen: dict[str, dict[str, Any]] = {}
     for teil in teile.values():
-        if not teil["entitaeten"]:
+        if not teil["entitaeten"] or teil["id"] in steuerungen:
             continue
         anlage_id = teil["anlage_id"] or teil["id"]
         gruppe = anlagen.setdefault(
@@ -426,6 +430,7 @@ def _gruppieren(teile: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
         teil["entitaeten"].sort(key=lambda e: e["name"])
 
     for gruppe in anlagen.values():
+        gruppe["steuerung_entitaeten"] = (teile.get(gruppe["id"]) or {}).get("entitaeten", [])
         _gruppe_abschliessen(gruppe)
     return sorted(anlagen.values(), key=lambda a: a["name"])
 

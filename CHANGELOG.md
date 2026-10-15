@@ -8,6 +8,19 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [1.14.0-beta.3]
 
+### Neu
+
+- Der Störspeicher des Bediengeräts erscheint im Panel; Einträge lassen sich quittieren und löschen.
+- Eine Option erlaubt, Störungen wie am Bediengerät zurückzusetzen; ab Werk ist sie aus.
+- Die Diagnose nennt, was die Steuerung anbietet.
+- Das Detail einer Störung zeigt die Abhilfe aus den Bedienungsanleitungen.
+- Die Störungskarte zeigt Info, Fehler und Alarm in den Farben von Windhager.
+
+### Geändert
+
+- Die Meldungsliste eines Geräts zeigt die Einträge des Störspeichers, sofern die Steuerung einen führt.
+- „Meldungsliste leeren“ löscht mit Störspeicher dessen erledigte Einträge am Bediengerät.
+
 ### Behoben
 
 - Störungsmeldungen eines Geräts fehlen nicht mehr, wenn die Steuerung sie beim Einlesen auslässt.

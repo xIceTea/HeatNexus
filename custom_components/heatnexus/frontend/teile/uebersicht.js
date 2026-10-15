@@ -20,6 +20,30 @@ import {
 } from "../ordnung.js";
 import { uhrzeitText } from "./zeit.js";
 
+// Großes Symbol und Abzeichen je Stufe, in den Farben der Meldungsarten von Windhager:
+// Info blau, Fehler gelb, Alarm rot.
+const STUFEN = {
+  ok: {
+    symbol: "mdi:shield-check-outline", farbe: "gut", haupt: "Keine Störung", neben: "Alles läuft.",
+    abzeichen: "Anlage in Ordnung", abzeichenSymbol: "mdi:check-circle-outline",
+  },
+  info: {
+    symbol: "mdi:information-outline", farbe: "info-farbe", haupt: "Meldung anliegend",
+    neben: "Ein Hinweis ohne Handlungsbedarf.",
+    abzeichen: "Meldung anliegend", abzeichenSymbol: "mdi:information-outline",
+  },
+  fehler: {
+    symbol: "mdi:alert-outline", farbe: "warnung", haupt: "Fehler anliegend",
+    neben: "Ein Fehler sollte zeitnah geprüft werden.",
+    abzeichen: "Fehler anliegend", abzeichenSymbol: "mdi:alert-outline",
+  },
+  alarm: {
+    symbol: "mdi:shield-alert-outline", farbe: "schlecht", haupt: "Alarm anliegend",
+    neben: "Ein Alarm erfordert eine Kontrolle an der Anlage.",
+    abzeichen: "Alarm anliegend", abzeichenSymbol: "mdi:alert-circle-outline",
+  },
+};
+
 export const UebersichtMixin = (Basis) =>
   class extends Basis {
   // -------------------------------------------------------------------
@@ -101,13 +125,10 @@ export const UebersichtMixin = (Basis) =>
     abzeichen.appendChild(abzeichenText);
     karte.appendChild(abzeichen);
     this._bindungen.push(() => {
-      const stoerung = this._stoerung(anlage);
-      abzeichen.classList.toggle("stoerung", stoerung);
-      abzeichenText.textContent = this._t(stoerung ? "Störung anliegend" : "Anlage in Ordnung");
-      abzeichen.firstChild.setAttribute(
-        "icon",
-        stoerung ? "mdi:alert-circle-outline" : "mdi:check-circle-outline"
-      );
+      const stufe = this._stoerungsstufe(anlage);
+      for (const name of ["info", "fehler", "alarm"]) abzeichen.classList.toggle(name, stufe === name);
+      abzeichenText.textContent = this._t(STUFEN[stufe].abzeichen);
+      abzeichen.firstChild.setAttribute("icon", STUFEN[stufe].abzeichenSymbol);
     });
 
     const liste = document.createElement("div");
@@ -336,30 +357,30 @@ export const UebersichtMixin = (Basis) =>
       this._bindungen.push(() => {
         links.textContent = this._name(eintrag.entity).replace(` ${this._t("Meldung Klartext")}`, "");
         const aktiv = this._stoerungAktiv(eintrag);
+        // Steht die Störung als Kachel im Störspeicher, zeigt die Kachel sie ausführlicher.
+        const sichtbar = aktiv && !this._stoerungImSpeicher(eintrag, anlage);
         wert.textContent = this._text(eintrag.entity);
         wert.className = `wert ${aktiv ? "schlecht" : "gut"}`;
         // Ohne Störung sagt der Kasten oben schon alles; die Zeilen sind dann
         // nur Wiederholung.
-        zeile.style.display = aktiv ? "flex" : "none";
+        zeile.style.display = sichtbar ? "flex" : "none";
         const zustand = this._zustand(eintrag.entity);
         const hinweise = ((zustand && zustand.attributes.meldungen) || [])
           .map((meldung) => String(meldung.info || "").replace(/\s+/g, " ").trim())
           .filter(Boolean);
         abhilfe.textContent = hinweise.join("\n");
-        abhilfe.style.display = aktiv && hinweise.length ? "block" : "none";
+        abhilfe.style.display = sichtbar && hinweise.length ? "block" : "none";
       });
     });
 
     this._bindungen.push(() => {
-      const stoerung = this._stoerung(anlage);
-      symbol.setAttribute("icon", stoerung ? "mdi:shield-alert-outline" : "mdi:shield-check-outline");
-      symbol.className = stoerung ? "schlecht" : "gut";
-      haupt.textContent = this._t(stoerung ? "Störung anliegend" : "Keine Störung");
-      neben.textContent = this._t(
-        stoerung ? "Die Anlage meldet mindestens eine aktive Störung." : "Alles läuft."
-      );
-      mitte.style.display = stoerung ? "none" : "block";
+      const stufe = STUFEN[this._stoerungsstufe(anlage)];
+      symbol.setAttribute("icon", stufe.symbol);
+      symbol.className = stufe.farbe;
+      haupt.textContent = this._t(stufe.haupt);
+      neben.textContent = this._t(stufe.neben);
     });
+    this._stoerspeicherListe(karte, anlage.stoerspeicher, mitte);
     return karte;
   }
 

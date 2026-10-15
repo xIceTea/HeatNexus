@@ -12,6 +12,8 @@ der Fantasie.
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from .conftest import requires_ha
@@ -228,6 +230,17 @@ def test_meldungsliste_behaelt_was_wieder_verschwindet(sensoren):
     assert eintrag["zuerst"] and eintrag["zuletzt"]
 
 
+def test_meldungsliste_aendert_geschriebene_attribute_nicht_nachtraeglich(sensoren):
+    """Home Assistant schreibt nur, wenn sich die Attribute vom letzten Stand unterscheiden."""
+    entity, koordinator = _liste(sensoren)
+    _melden(entity, koordinator, "PUR 09E346")
+    geschrieben = entity.extra_state_attributes
+    _melden(entity, koordinator, "PUR 09  OK")
+
+    assert geschrieben["meldungen"][0]["aktiv"] is True
+    assert entity.extra_state_attributes != geschrieben
+
+
 def test_meldungsliste_zaehlt_dieselbe_meldung_nicht_hoch(sensoren):
     """Eine offene Tür über zehn Abrufe ist ein Ereignis, nicht zehn.
 
@@ -284,7 +297,7 @@ def test_meldungsliste_sammelt_verschiedene_codes(sensoren):
 def test_meldungsliste_laesst_sich_leeren(sensoren):
     entity, koordinator = _liste(sensoren)
     _melden(entity, koordinator, "PUR 09E346")
-    entity.leeren()
+    asyncio.run(entity.leeren())
     assert entity.native_value == 0
     assert entity.extra_state_attributes["meldungen"] == []
 

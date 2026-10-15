@@ -85,6 +85,28 @@ Alles Weitere wird über die allgemeine Erkennung eingebunden: Was die Steuerung
 liefert, erscheint auch in Home Assistant. Rückmeldungen zu nicht gelisteten
 Geräten sind willkommen – der Diagnose-Export der Integration reicht dafür.
 
+### Was vom Bediengerät abhängt
+
+Nicht jedes Bediengerät bietet dasselbe an. HeatNexus fragt beim Start, was die
+Steuerung kann, und zeigt nur das. Was erkannt wurde, steht im Diagnose-Export
+unter `faehigkeiten`.
+
+| | InfoWIN Touch 0.10 | InfoWIN Touch ab 2 | InfoWIN Plus |
+|---|---|---|---|
+| Störspeicher lesen | 🟢 | ⚪ | ⚪ |
+| Quittieren schließt die Meldung am Bediengerät | 🟢 | ⚪ | – eigene Anzeige |
+| Zurücksetzen hebt die Störung am Kessel auf | – | ⚪ | ⚪ |
+| Eine Anforderung aus Home Assistant öffnet die Seite am Bediengerät | – | – | – |
+
+🟢 an der Anlage geprüft · ⚪ aus der Bedienoberfläche des Herstellers abgeleitet,
+an der Anlage nicht geprüft · – gibt es nicht.
+
+Ohne Störspeicher sammelt HeatNexus die Meldungen selbst. Fordert Home
+Assistant die Lagerraumbefüllung oder den Kaminkehrer an, zeigt das
+Bediengerät die neue Betriebsart in der Statuszeile, öffnet aber keine eigene
+Seite. Die Seite am Gerät beendet den Vorgang beim Verlassen; aus Home
+Assistant beendet ihn die Taste „beenden“.
+
 ## Funktionsumfang
 
 - **Automatische Erkennung** aller freigeschalteten Funktionen der Anlage.
@@ -104,6 +126,8 @@ Geräten sind willkommen – der Diagnose-Export der Integration reicht dafür.
   in der eigenen Oberfläche als Wochenraster, mit Editor für Wochentage und
   Schaltzeiten.
 - **Störungen im Klartext** mit Code, Art und Handlungsempfehlung.
+- **Störspeicher des Bediengeräts** in der Störungskarte: Einträge lassen sich
+  quittieren und löschen, auf Wunsch auch zurücksetzen.
 - **Serviceebene** vollständig verfügbar, standardmäßig deaktiviert und pro
   Entity zuschaltbar.
 - **Eigene Oberfläche** in der Seitenleiste: Anlagenschaubild, Kennwerte,
@@ -257,7 +281,10 @@ dazugekommen ist, ergänzt HeatNexus im Hintergrund.
 | `heatnexus.set_time_program` | Zeitprogramm setzen (`switch_points` mit `weekdays`, oder `blocks` für getrennte Wochenpläne) |
 | `heatnexus.set_vorgabe` | befristete Raumtemperatur-Vorgabe eines Heizkreises („Eco / Comfort") |
 | `heatnexus.set_current_temp_compensation` | Behaglichkeitskorrektur eines Heizkreises |
-| `heatnexus.meldungen_loeschen` | die von HeatNexus gesammelte Meldungsliste einer Anlage leeren |
+| `heatnexus.meldungen_loeschen` | die Meldungsliste eines Geräts leeren; mit Störspeicher dessen erledigte Einträge löschen |
+| `heatnexus.stoerung_quittieren` | einen Eintrag im Störspeicher quittieren (`eintrag`: Nummer) |
+| `heatnexus.stoerung_loeschen` | einen erledigten Eintrag aus dem Störspeicher löschen |
+| `heatnexus.stoerung_zuruecksetzen` | eine anliegende Störung zurücksetzen; nur mit eingeschalteter Option |
 | `heatnexus.dashboard_ausgeben` | das mitgelieferte Dashboard als YAML ausgeben |
 | `heatnexus.rediscover` | Anlage neu einlesen, z. B. nach Umbauten |
 

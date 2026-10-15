@@ -221,6 +221,27 @@ Die Namen der Dateien sind nicht überall gleich; ein Verzeichnislisting unter
 Beschreibung des Herstellers – er ist eine Zugabe, kein Teil der
 Datenschnittstelle, und jeder Fehlschlag muss folgenlos bleiben.
 
+### Störspeicher
+
+Das Bediengerät führt eine eigene Liste aller Meldungen. Jede Meldung eines
+Geräts wird ein Eintrag, bis jemand ihn löscht. Tritt dieselbe Meldung nach
+einem „OK“ wieder auf, entsteht ein neuer Eintrag.
+
+| Aufruf | Wirkung |
+|---|---|
+| `GET /InfoWinFehlerlog/api/1.0/fehlerlog` | Liste der Einträge: `id`, `code`, `FE01Msg`, `symbol` (`E`, `A`, `I`), `active`, `status` (`new`, `receipted`, `ignored`), `timestamp`, `lastRxTime`, `nodeId`, `nodeName`, `subnet` |
+| `PUT /InfoWinFehlerlog/api/1.0/fehlerlog/{id}?status=receipted` | Quittieren. Ändert nur die Liste; das Bediengerät schließt die Meldung. |
+| `PUT /InfoWinFehlerlog/api/1.0/fehlerlog/reset/{id}` | Zurücksetzen. Ab Fassung 2 schreibt die Steuerung den Code an das Gerät und hebt die Störung dort auf. |
+| `DELETE /InfoWinFehlerlog/api/1.0/fehlerlog/{id}` | Löschen. |
+| `GET /InfoWinHeartbeat/api/1.0/heartbeat` | Kopplung des Bediengeräts: `peerId` und `subnet` des Kessels. |
+
+Ein Eintrag liegt an, solange `active` gesetzt ist und die letzte Meldung
+höchstens sieben Minuten zurückliegt. Die Oberfläche des Bediengeräts erlaubt
+Zurücksetzen nur bei anliegender Störung, und bei Kesseln (Knoten 55–80) nur am
+gekoppelten Kessel. Quittieren gibt es bei Status `new`, Löschen bei erledigten
+Einträgen. Die Taste „Zurücksetzen“ ruft erst `reset`, dann `receipted`.
+Steuerungen ohne Störspeicher antworten mit `404` oder `503`.
+
 ### Endpunkte, die nichts einbringen
 
 | Aufruf | Warum nicht |

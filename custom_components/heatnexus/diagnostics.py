@@ -270,6 +270,12 @@ def _anlage(coordinator) -> dict[str, Any]:
         "steuerung": async_redact_data(
             dict(getattr(client, "geraeteinfo", {}) or {}), ZU_SCHWAERZEN
         ),
+        # Was diese Steuerung anbietet; Bediengeräte unterscheiden sich darin je Fassung.
+        "faehigkeiten": {
+            "stoerspeicher": getattr(client, "stoerspeicher_vorhanden", None),
+            "stoerspeicher_eintraege": len(daten.get("stoerspeicher") or []),
+            "kopplung": getattr(client, "_stoerspeicher_partner", None),
+        },
         "anlage": {
             "vollstaendig_eingelesen": getattr(client, "_vollstaendig", None),
             "datenpunkte": len(client.oids or []),

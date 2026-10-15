@@ -115,7 +115,8 @@
           "hilfe": "Erklärungen anzeigen",
           "sprache": "Sprache von HeatNexus",
           "sprache_anlage": "Sprache dieser Anlage",
-          "startwerte": "Startwerte von der Anlage übernehmen"
+          "startwerte": "Startwerte von der Anlage übernehmen",
+          "stoerung_zuruecksetzen": "Störungen am Kessel zurücksetzen erlauben"
         },
         "data_description": {
           "update_interval": "Wie oft die Anlage gefragt wird. Der Wert gilt für die schnellen Werte (Thermostat, Temperaturen, Pumpen); träge Werte behalten ihren Abstand — 2 Minuten für Betriebswerte, 15 Minuten für Zähler. Empfohlen: 30 Sekunden für eine Anlage, 60 Sekunden für mehrere oder für Anlagen mit vielen Datenpunkten.",
@@ -126,7 +127,8 @@
           "aussentemperatur": "Welcher Sensor in der Kopfzeile als Außentemperatur gilt. Leer: HeatNexus sucht sie sich in der Anlage selbst.",
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
           "sprache": "Gilt für alle Anlagen in HeatNexus: Namen der Datenpunkte, Oberfläche und Dashboard. Bei „Automatisch“ gilt die Sprache von Home Assistant. Eine Änderung hier stellt alle Anlagen um.",
-          "sprache_anlage": "Legt eine eigene Sprache nur für diese Anlage fest: für Namen, Zustände, Störungstexte und ihre Seite in der Oberfläche. „Wie HeatNexus“ übernimmt die Sprache von HeatNexus."
+          "sprache_anlage": "Legt eine eigene Sprache nur für diese Anlage fest: für Namen, Zustände, Störungstexte und ihre Seite in der Oberfläche. „Wie HeatNexus“ übernimmt die Sprache von HeatNexus.",
+          "stoerung_zuruecksetzen": "Schaltet im Störspeicher die Taste „Zurücksetzen“ frei. Sie wirkt wie die Taste am Bediengerät: Steuerungen ab Fassung 2 heben damit eine Störung am Kessel auf, auch eine verriegelnde. Zurücksetzen sollte nur, wer die Ursache kennt und behoben hat."
         }
       },
       "system": {
@@ -475,6 +477,9 @@
       },
       "befund_energie": {
         "name": "Auswertung Energie je Heizgradtag"
+      },
+      "stoerspeicher": {
+        "name": "Störspeicher"
       }
     },
     "binary_sensor": {
@@ -687,6 +692,24 @@
     },
     "verbindung_geschlossen": {
       "message": "Die Verbindung zu {anlage} ist geschlossen."
+    },
+    "stoerspeicher_abgelehnt": {
+      "message": "Die Steuerung hat die Aktion im Störspeicher abgelehnt. HTTP {status}."
+    },
+    "kein_stoerspeicher": {
+      "message": "Diese Steuerung führt keinen Störspeicher."
+    },
+    "eintrag_fehlt": {
+      "message": "Den Eintrag {eintrag} gibt es im Störspeicher nicht mehr."
+    },
+    "zuruecksetzen_aus": {
+      "message": "Das Zurücksetzen von Störungen ist ausgeschaltet. Es lässt sich in den Optionen unter „Allgemein“ einschalten."
+    },
+    "nicht_zuruecksetzbar": {
+      "message": "Der Eintrag {eintrag} lässt sich nicht zurücksetzen. Die Störung liegt nicht mehr an, oder sie gehört zu einem anderen Bediengerät."
+    },
+    "nicht_loeschbar": {
+      "message": "Der Eintrag {eintrag} lässt sich erst löschen, wenn die Störung nicht mehr anliegt."
     }
   },
   "services": {
@@ -706,7 +729,7 @@
     },
     "meldungen_loeschen": {
       "name": "Meldungsliste leeren",
-      "description": "Leert die von HeatNexus geführte Meldungsliste einer Anlage. Die Anlage selbst führt diese Liste nicht über ihre Schnittstelle – gelöscht wird also nur die Sammlung in Home Assistant, nicht der Störspeicher am Bediengerät. Dort anstehende Meldungen bleiben unberührt und müssen wie gewohnt am Gerät zurückgesetzt werden."
+      "description": "Leert die Meldungsliste eines Geräts. Führt die Steuerung einen Störspeicher, löscht der Dienst dort die Einträge dieses Geräts, deren Störung nicht mehr anliegt. Sonst leert er nur die Liste in Home Assistant."
     },
     "set_vorgabe": {
       "name": "Befristete Vorgabe setzen",
@@ -743,6 +766,36 @@
     "dashboard_ausgeben": {
       "name": "Dashboard als YAML ausgeben",
       "description": "Gibt das mitgelieferte Dashboard als YAML-Text zurück. Es wird bei jedem Öffnen neu gebaut und lässt sich deshalb nicht bearbeiten. Aus diesem Text entsteht ein eigenes, bearbeitbares Dashboard: neues Dashboard anlegen, Rohkonfigurations-Editor öffnen, Text einfügen."
+    },
+    "stoerung_quittieren": {
+      "name": "Störung quittieren",
+      "description": "Markiert einen Eintrag im Störspeicher der Steuerung als gelesen. Am Bediengerät schließt sich die Meldung. Die Störung am Kessel bleibt bestehen.",
+      "fields": {
+        "eintrag": {
+          "name": "Eintrag",
+          "description": "Nummer des Eintrags im Störspeicher, wie sie im Attribut „eintraege“ des Sensors Störspeicher steht."
+        }
+      }
+    },
+    "stoerung_zuruecksetzen": {
+      "name": "Störung zurücksetzen",
+      "description": "Setzt eine anliegende Störung zurück wie die Taste am Bediengerät. Steuerungen ab Fassung 2 heben damit die Störung am Kessel auf. Dafür muss in den Optionen „Störungen am Kessel zurücksetzen erlauben“ eingeschaltet sein.",
+      "fields": {
+        "eintrag": {
+          "name": "Eintrag",
+          "description": "Nummer des Eintrags im Störspeicher, wie sie im Attribut „eintraege“ des Sensors Störspeicher steht."
+        }
+      }
+    },
+    "stoerung_loeschen": {
+      "name": "Meldung löschen",
+      "description": "Nimmt einen Eintrag aus dem Störspeicher der Steuerung. Löschen lassen sich nur Einträge, deren Störung nicht mehr anliegt.",
+      "fields": {
+        "eintrag": {
+          "name": "Eintrag",
+          "description": "Nummer des Eintrags im Störspeicher, wie sie im Attribut „eintraege“ des Sensors Störspeicher steht."
+        }
+      }
     }
   }
 }
