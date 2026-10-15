@@ -25,6 +25,15 @@ export const DIALOG = `
     border: 1px solid var(--divider-color); background: var(--card-background-color);
     color: var(--primary-text-color); font-size: 15px; }
   .dialog-leiste { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+  /* Ein Fenster ist höchstens so hoch wie der Bildschirm und scrollt in sich. Die Leiste mit
+     Schließen und Übernehmen klebt unten; sie reicht über den Innenabstand bis an den Rand. */
+  .dialog { max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; }
+  .dialog:not(.automatik-dialog) > .dialog-leiste {
+    position: sticky; bottom: -22px; z-index: 1;
+    margin: 8px -24px -22px; padding: 14px 24px 22px;
+    background: var(--hn-karte);
+    box-shadow: 0 -10px 12px -10px rgba(0, 0, 0, 0.45);
+  }
   .dialog-taste {
     padding: 9px 16px; border-radius: 10px; font: inherit; font-weight: 600;
     cursor: pointer; color: inherit;

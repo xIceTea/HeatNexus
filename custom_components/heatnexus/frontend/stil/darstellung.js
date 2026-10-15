@@ -2,7 +2,7 @@
 
 export const DARSTELLUNG = `
   /* --- Darstellung ----------------------------------------------------- */
-  .dialog.darstellung { max-width: 560px; max-height: calc(100vh - 32px); overflow-y: auto; }
+  .dialog.darstellung { max-width: 560px; }
   .darstellung-name {
     margin: 18px 0 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
     text-transform: uppercase; color: var(--hn-gedaempft);

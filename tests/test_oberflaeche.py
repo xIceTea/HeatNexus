@@ -1353,3 +1353,13 @@ def test_das_automatik_abzeichen_zeigt_nur_abweichungen(durchlauf):
 def test_das_fenster_darstellung_beginnt_oben(durchlauf):
     """Der Fokus liegt auf „Schließen“ ganz unten; das Fenster darf dafür nicht nach unten scrollen."""
     assert durchlauf["darstellung"]["beimOeffnen"] == {"fokusOhneScrollen": True, "oben": True}
+
+
+def test_die_leiste_eines_fensters_bleibt_sichtbar():
+    """Ein langes Fenster scrollt in sich; Schließen und Übernehmen kleben unten."""
+    stil = (PANEL_JS.parent / "stil" / "dialog.js").read_text(encoding="utf-8")
+    regel = stil[stil.index(".dialog:not(.automatik-dialog) > .dialog-leiste") :]
+    regel = regel[: regel.index("}")]
+    assert "position: sticky" in regel
+    assert "bottom: -22px" in regel
+    assert "overflow-y: auto" in stil[stil.index("  .dialog { max-height") :].split("}")[0]
