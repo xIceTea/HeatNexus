@@ -53,6 +53,8 @@ async def test_waehrend_des_laufs_liefert_der_abruf_den_bekannten_stand(client, 
     monkeypatch.setattr(client, "_discover", discover)
     monkeypatch.setattr(client, "_apply_metadata", nichts)
     monkeypatch.setattr(client, "_fetch_oid", _wert)
+    # Die Meldungsliste fragte sonst die Adresse wirklich an.
+    monkeypatch.setattr(client, "_fetch_stoerspeicher", lambda meldungen=None: nichts())
 
     await client.async_init()
 
