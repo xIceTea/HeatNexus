@@ -17,11 +17,18 @@ wenn dort Vorabversionen zugelassen sind.
 - „Alle“ fasst auf Wunsch gleiche Karten aller Anlagen in einem Rahmen zusammen.
 - Die Übersicht zeigt am Heizkreis Sonnentag, Heizpause und andere Eingriffe der Automatik.
 
+**Zeitprogramme**
+- Der Streifen „Heute“ zeigt je Anlagenteil den geltenden Wert und den nächsten Wechsel.
+
 ### Geändert
 
 **Panel**
 - „Warmwasser laden“ fragt vor dem Start nach und zeigt die Ladetemperatur.
 - Die Hilfe unter „Alle“ nennt jede Erklärung nur einmal.
+
+**Zeitprogramme**
+- Jeder Anlagenteil hat eine Karte; das geltende Programm erscheint als Wochenraster.
+- Gleiche Temperaturen tragen in allen Programmen dieselbe Farbe.
 
 ### Behoben
 
@@ -29,6 +36,12 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Menütaste steht wieder in jeder Ansicht und öffnet die Seitenleiste.
 - Die Kopfleiste bleibt am iPhone beim Blättern unter der Statusleiste sichtbar.
 - Die Linienwahl im Verlauf zeigt alle verfügbaren Linien auch ohne Suchbegriff.
+- Fenster öffnen oben im Bild; die Fußleiste bleibt beim Blättern sichtbar.
+- Der gewählte Reiter bleibt am Telefon in der Reiterleiste sichtbar.
+
+**Zeitprogramme**
+- Beide Zirkulationsprogramme bleiben sichtbar und lassen sich aktivieren.
+- Vorlaufprogramme ohne Optionstexte zeigen richtig an, wann sie gelten.
 
 ## [1.14.0-beta.3]
 
