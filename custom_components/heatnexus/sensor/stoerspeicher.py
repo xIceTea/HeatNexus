@@ -161,9 +161,9 @@ class StoerspeicherSensor(CoordinatorEntity, SensorEntity):
         await self._abschliessen("loeschen", gefunden)
 
     async def _abschliessen(self, aktion: str, eintrag: dict) -> None:
-        """Im Logbuch festhalten, wer was getan hat, und die Liste neu lesen."""
+        """Im Logbuch festhalten, wer was getan hat, und die Liste sofort neu lesen."""
         logbuch(self.hass, self, aktion, eintrag)
-        await self.coordinator.async_request_refresh()
+        self.coordinator.meldungen_nachfassen()
 
 
 @callback

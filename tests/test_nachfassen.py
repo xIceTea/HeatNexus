@@ -59,6 +59,30 @@ async def test_ohne_erwartung_liest_es_jedes_mal(coordinator, hass):
     assert coordinator.client.fetch_oids.await_count == 4
 
 
+async def test_die_meldungsliste_wird_sofort_nachgelesen(coordinator, hass):
+    neu = [{"id": 154, "status": "receipted"}]
+    coordinator.client.meldungsliste_nachlesen = AsyncMock(return_value=({"60": "PUR 09  OK"}, neu))
+    coordinator.data["stoerspeicher"] = [{"id": 154, "status": "new"}]
+
+    coordinator.meldungen_nachfassen(anzahl=6, abstand=3)
+    await hass.async_block_till_done()
+
+    assert coordinator.client.meldungsliste_nachlesen.await_count == 1
+    assert coordinator.data["stoerspeicher"] == neu
+    assert coordinator.data["status"] == {"60": "PUR 09  OK"}
+
+
+async def test_ohne_aenderung_liest_es_die_meldungsliste_mehrmals(coordinator, hass):
+    gleich = [{"id": 154, "status": "new"}]
+    coordinator.client.meldungsliste_nachlesen = AsyncMock(return_value=({}, gleich))
+    coordinator.data["stoerspeicher"] = gleich
+
+    coordinator.meldungen_nachfassen(anzahl=3, abstand=3)
+    await hass.async_block_till_done()
+
+    assert coordinator.client.meldungsliste_nachlesen.await_count == 3
+
+
 # ---------------------------------------------------------------------------
 # Nach dem Schließen öffnet der Client keine neue Sitzung
 # ---------------------------------------------------------------------------
@@ -95,3 +119,29 @@ async def test_schreiben_wartet_nicht_auf_den_abruf(hass):
     koordinator.async_request_refresh.assert_not_awaited()
     koordinator.nachfassen.assert_called_once()
     assert koordinator.nachfassen.call_args.args[0] == [OID]
+
+
+async def test_behaglichkeit_liest_raum_und_vorlaufsoll_gezielt_nach(hass):
+    from custom_components.heatnexus.climate import WindhagerThermostatClimate
+
+    from .test_plattformen import FakeCoordinator
+
+    koordinator = FakeCoordinator({"/1/15/0/1/1/0": "22.0"})
+    koordinator.client.update = AsyncMock()
+    koordinator.async_update_listeners = MagicMock()
+    koordinator.async_request_refresh = AsyncMock()
+    koordinator.nachfassen = MagicMock()
+    klima = WindhagerThermostatClimate(
+        koordinator, {"id": "SN1-15-0", "name": "Heizkreis", "prefix": "/1/15/0"}
+    )
+    klima.hass = hass
+
+    await klima.set_current_temp_compensation(1.0)
+
+    koordinator.async_request_refresh.assert_not_awaited()
+    assert koordinator.data["oids"]["/1/15/0/3/58/0"] == "1.0"
+    assert koordinator.nachfassen.call_args.args[0] == [
+        "/1/15/0/3/58/0",
+        "/1/15/0/1/1/0",
+        "/1/15/0/1/2/0",
+    ]

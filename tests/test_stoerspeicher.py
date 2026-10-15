@@ -77,6 +77,17 @@ def test_quittierter_eintrag_ist_nicht_erneut_quittierbar(speicher):
     assert not eintrag["quittierbar"]
 
 
+def test_eintrag_ist_erledigt_sobald_das_geraet_ok_meldet(speicher):
+    eintrag = speicher.eintrag_aufbereiten(_roh(), PARTNER, JETZT, "PUR 09  OK")
+    assert not eintrag["aktiv"] and eintrag["loeschbar"]
+
+
+def test_eintrag_liegt_an_solange_das_geraet_seinen_code_meldet(speicher):
+    alt = (JETZT - timedelta(minutes=20)).strftime("%Y-%m-%d %H:%M:%S")
+    eintrag = speicher.eintrag_aufbereiten(_roh(lastRxTime=alt), PARTNER, JETZT, "PUR 09E346")
+    assert eintrag["aktiv"] and not eintrag["loeschbar"]
+
+
 def test_eintrag_ohne_kennung_faellt_weg(speicher):
     assert speicher.eintrag_aufbereiten({"nodeId": 60}, PARTNER, JETZT) is None
 
@@ -140,6 +151,18 @@ def test_aussetzer_nach_erster_antwort_schaltet_den_stoerspeicher_nicht_ab(speic
     client._get = _client({"/fehlerlog": (None, 503)})[0]._get
     assert asyncio.run(client._fetch_stoerspeicher()) == erster
     assert client.stoerspeicher_vorhanden is True
+
+
+def test_nachlesen_koppelt_die_eintraege_an_die_geraetemeldung(speicher):
+    client, _ = _client({"/fehlerlog": ([_roh()], 200), "/heartbeat": (PARTNER, 200)})
+
+    async def _status():
+        return {"60": "PUR 09  OK"}
+
+    client._fetch_status = _status
+    status, eintraege = asyncio.run(client.meldungsliste_nachlesen())
+    assert status == {"60": "PUR 09  OK"}
+    assert eintraege[0]["aktiv"] is False
 
 
 def test_kopplung_ohne_antwort_wird_nicht_bei_jedem_abruf_erneut_gefragt(speicher):
@@ -290,6 +313,12 @@ def test_mit_option_setzt_der_sensor_zurueck(speicher):
     koordinator = _koordinator(speicher, _jetzt(), zuruecksetzen=True)
     asyncio.run(_sensor(koordinator).async_zuruecksetzen(154))
     assert koordinator.client.aktionen == [("zuruecksetzen", 154)]
+
+
+def test_nach_einer_aktion_liest_der_sensor_die_liste_sofort_nach(speicher):
+    koordinator = _koordinator(speicher, _jetzt())
+    asyncio.run(_sensor(koordinator).async_quittieren(154))
+    assert koordinator.nachgefasst == [["meldungsliste"]]
 
 
 def test_anliegende_stoerung_laesst_sich_nicht_loeschen(speicher):

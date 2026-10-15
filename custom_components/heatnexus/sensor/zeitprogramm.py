@@ -237,4 +237,3 @@ class WindhagerTimeProgramSensor(WindhagerEntity, SensorEntity):
         if geschrieben is not None and (daten := self.coordinator.data) is not None:
             daten.setdefault("objects", {})[full_oid] = geschrieben
             self.coordinator.async_update_listeners()
-        await self.coordinator.async_request_refresh()

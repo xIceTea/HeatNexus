@@ -81,6 +81,9 @@ class FakeCoordinator:
     async def async_request_refresh(self) -> None:
         return None
 
+    def meldungen_nachfassen(self) -> None:
+        self.nachgefasst.append(["meldungsliste"])
+
 
 def _beschreibung(**felder) -> dict:
     grund = {

@@ -532,5 +532,12 @@ class WindhagerThermostatClimate(WindhagerBaseThermostat):
 
     async def set_current_temp_compensation(self, compensation: float) -> None:
         """Set the heating-curve comfort correction (Behaglichkeit, 3/58)."""
-        await self.client.update(f"{self._prefix}/3/58/0", f"{compensation:.1f}")
-        await self.coordinator.async_request_refresh()
+        oid, wert = f"{self._prefix}/3/58/0", f"{compensation:.1f}"
+        await self.client.update(oid, wert)
+        if (daten := self.coordinator.data) is not None:
+            daten.setdefault("oids", {})[oid] = wert
+            self.coordinator.async_update_listeners()
+        # Die Behaglichkeit verschiebt Raum- und Vorlaufsoll; gelesen wird nur, was sich bewegt.
+        folgen = [oid, f"{self._prefix}/1/1/0", f"{self._prefix}/1/2/0"]
+        vorher = {o: (daten or {}).get("oids", {}).get(o) for o in folgen[1:]}
+        self.coordinator.nachfassen(folgen, vorher=vorher)

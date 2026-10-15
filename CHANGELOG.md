@@ -32,6 +32,9 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Warmwasser-Taste rechnet mit der eingestellten Einschalthysterese statt mit 5 K.
 - Die Sonnenquote der Automatik zählt nur die restlichen Stunden des Tages.
 - Die Sonnenquote aus PV-Erträgen rechnet den Sonnenstand der Jahreszeit heraus.
+- Zurücksetzen und Löschen in der Meldungsliste erscheinen sofort, ohne auf den nächsten Abruf zu warten.
+- Ein Eintrag gilt als erledigt, sobald das Gerät die Meldung nicht mehr anzeigt.
+- Behaglichkeitskorrektur und Zeitprogramme warten nach dem Schreiben nicht mehr auf einen vollen Abruf.
 - Die Automatik meldet bei langem Abfrageintervall keinen Handeingriff mehr ohne Grund ([#22](https://github.com/xIceTea/HeatNexus/issues/22)).
 
 ## [1.14.0-beta.2]

@@ -13,6 +13,7 @@ import logging
 
 from homeassistant.util import dt as dt_util
 
+from ..error_texts import _CODE_RE
 from ..exceptions import WindhagerWriteError, mit_text
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,10 +37,17 @@ def _zeit(roh) -> datetime | None:
         return None
 
 
-def eintrag_aufbereiten(roh: dict, partner: dict | None, jetzt: datetime) -> dict | None:
+def _codes(meldung: str) -> set[int]:
+    return {int(code) for _, code in _CODE_RE.findall(meldung)}
+
+
+def eintrag_aufbereiten(
+    roh: dict, partner: dict | None, jetzt: datetime, meldung: str | None = None
+) -> dict | None:
     """Ein Eintrag der Steuerung mit den Regeln der Oberfläche.
 
-    Zeiten bleiben in der Uhrzeit der Steuerung; `jetzt` muss dieselbe sein.
+    `meldung` ist die aktuelle FE01msg des Geräts; sie entscheidet sofort, ob der Eintrag anliegt.
+    Ohne sie gilt die Regel der Oberfläche. Zeiten in der Uhrzeit der Steuerung, wie `jetzt`.
     """
     try:
         kennung = int(roh["id"])
@@ -47,7 +55,10 @@ def eintrag_aufbereiten(roh: dict, partner: dict | None, jetzt: datetime) -> dic
     except (KeyError, TypeError, ValueError):
         return None
     zuletzt = _zeit(roh.get("lastRxTime"))
-    aktiv = bool(roh.get("active")) and (zuletzt is None or jetzt - zuletzt <= AKTIV_HOECHSTENS)
+    if meldung is not None:
+        aktiv = bool(roh.get("active")) and _code(roh) in _codes(meldung)
+    else:
+        aktiv = bool(roh.get("active")) and (zuletzt is None or jetzt - zuletzt <= AKTIV_HOECHSTENS)
     subnetz = roh.get("subnet")
     partner = partner or {}
     bearbeitbar = knoten not in KESSELKNOTEN or (
@@ -70,6 +81,13 @@ def eintrag_aufbereiten(roh: dict, partner: dict | None, jetzt: datetime) -> dic
         "quittierbar": status == "new",
         "loeschbar": not aktiv,
     }
+
+
+def _code(roh: dict) -> int | None:
+    try:
+        return int(roh.get("code"))
+    except (TypeError, ValueError):
+        return None
 
 
 class StoerspeicherMixin:
@@ -100,8 +118,16 @@ class StoerspeicherMixin:
         self._stoerspeicher_tick += 1
         return self._stoerspeicher_tick % NEU_PRUEFEN_NACH == 0
 
-    async def _fetch_stoerspeicher(self) -> list[dict] | None:
-        """Die Einträge lesen; `None`, wenn die Steuerung keinen Störspeicher hat."""
+    async def meldungsliste_nachlesen(self) -> tuple[dict, list[dict] | None]:
+        """Gerätemeldungen und Meldungsliste sofort neu lesen, etwa nach einer Aktion."""
+        status = await self._fetch_status()
+        return status, await self._fetch_stoerspeicher(status)
+
+    async def _fetch_stoerspeicher(self, meldungen: dict | None = None) -> list[dict] | None:
+        """Die Einträge lesen; `None`, wenn die Steuerung keinen Störspeicher hat.
+
+        `meldungen` sind die aktuellen Gerätemeldungen je Knoten aus demselben Abruf.
+        """
         if not self._stoerspeicher_faellig():
             return None
         try:
@@ -124,11 +150,16 @@ class StoerspeicherMixin:
         self.stoerspeicher_vorhanden = True
         # Die Steuerung führt Ortszeit; Home Assistant kennt dieselbe Zeitzone.
         jetzt = dt_util.now().replace(tzinfo=None)
+        meldungen = meldungen or {}
         eintraege = [
             e
             for roh in daten
             if isinstance(roh, dict)
-            and (e := eintrag_aufbereiten(roh, self._stoerspeicher_partner, jetzt))
+            and (
+                e := eintrag_aufbereiten(
+                    roh, self._stoerspeicher_partner, jetzt, meldungen.get(str(roh.get("nodeId")))
+                )
+            )
         ]
         self._stoerspeicher = sorted(eintraege, key=lambda e: e["id"], reverse=True)
         return self._stoerspeicher

@@ -185,7 +185,7 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
             for eintrag in spiegel:
                 if eintrag.get("loeschbar"):
                     await self.coordinator.client.stoerung_loeschen(eintrag["id"])
-            await self.coordinator.async_request_refresh()
+            self.coordinator.meldungen_nachfassen()
             return
         self._eintraege.clear()
         # Wie in `entity._nachfassen`: Ohne angemeldete Entität gibt es

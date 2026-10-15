@@ -717,7 +717,7 @@ class AbrufMixin:
         if langsam_faellig:
             self._letzte_objekte = await self._fetch_time_programs()
         status = await self._fetch_status()
-        stoerspeicher = await self._fetch_stoerspeicher()
+        stoerspeicher = await self._fetch_stoerspeicher(status)
         faellig = self._faellig()
         # Ein misslungener Abruf ist kein Messwert: Der zuletzt gelesene Wert
         # bleibt stehen, und die Adresse ist im nächsten Durchlauf wieder

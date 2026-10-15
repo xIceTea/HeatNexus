@@ -209,6 +209,32 @@ class WindhagerDataUpdateCoordinator(DataUpdateCoordinator):
             name=f"{DOMAIN}_nachfassen_{self.host}",
         )
 
+    def meldungen_nachfassen(
+        self, anzahl: int = NACHFASS_ANZAHL, abstand: float = NACHFASS_INTERVALL
+    ) -> None:
+        """Nach einer Aktion die Meldungsliste sofort und danach kurz engmaschig neu lesen."""
+        self.config_entry.async_create_background_task(
+            self.hass, self._meldungen_lauf(anzahl, abstand), name=f"{DOMAIN}_meldungen_{self.host}"
+        )
+
+    async def _meldungen_lauf(self, anzahl: int, abstand: float) -> None:
+        vorher = (self.data or {}).get("stoerspeicher")
+        for runde in range(anzahl):
+            if runde:
+                await asyncio.sleep(abstand)
+            try:
+                status, liste = await self.client.meldungsliste_nachlesen()
+            except Exception as err:
+                # Nachlesen beschleunigt nur; der reguläre Durchlauf holt die Liste ohnehin.
+                _LOGGER.debug("Meldungsliste nicht nachlesbar: %s", err)
+                return
+            if self.data is not None:
+                self.data["status"] = status
+                self.data["stoerspeicher"] = liste
+                self.async_update_listeners()
+            if liste != vorher:
+                return
+
     async def _nachfass_lauf(
         self,
         oids: list[str],
