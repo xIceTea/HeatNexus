@@ -50,7 +50,7 @@ def test_abschnitte_mit_kessel(m):
     ergebnis = aus.anlage(gefuellt(arch), kontext(aus))
     assert [a["art"] for a in ergebnis["abschnitte"]] == ["haus", "heizkreis", "kessel"]
     assert ergebnis["abschnitte"][0]["kennung"] == "hk"
-    assert ergebnis["lage"]["befunde"] == 7
+    assert ergebnis["lage"]["befunde"] == 8
     assert ergebnis["lage"]["seit"] == "2026-09-01"
 
 
@@ -84,7 +84,7 @@ def test_leeres_archiv(m):
     aus, arch = m
     ergebnis = aus.anlage(arch.Archiv(), kontext(aus))
     assert ergebnis["lage"]["seit"] is None
-    assert ergebnis["lage"]["befunde"] == 7
+    assert ergebnis["lage"]["befunde"] == 8
 
 
 def test_waermespeicher_ohne_laufende_automatik_nennt_den_grund(m):
@@ -109,3 +109,17 @@ def test_versorgte_heiztage_zaehlen_beim_kessel(m):
     }
     assert lauf["ohne"]["angaben"]["starts"] == 0
     assert lauf["mit"]["angaben"]["starts"] > 0
+
+
+def test_kessel_vergleicht_starts_mit_und_ohne_automatik(m):
+    aus, arch = m
+    archiv = gefuellt(arch)
+    befunde = aus.anlage(archiv, kontext(aus))["abschnitte"][-1]["befunde"]
+    assert [b["art"] for b in befunde] == ["laufzeit", "starts", "energie"]
+
+
+def test_eingriffstage_der_mitversorgten_zaehlen_beim_kessel(m):
+    aus, arch = m
+    archiv = gefuellt(arch)
+    tage = aus.eingriffstage(archiv, ["hk"])
+    assert tage and set(tage.values()) == {None}

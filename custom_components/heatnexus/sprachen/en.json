@@ -1016,5 +1016,13 @@
   "Alarm anliegend": "Alarm present",
   "Ein Hinweis ohne Handlungsbedarf.": "A notice with no action required.",
   "Ein Fehler sollte zeitnah geprüft werden.": "An error should be checked soon.",
-  "Ein Alarm erfordert eine Kontrolle an der Anlage.": "An alarm requires a check at the system."
+  "Ein Alarm erfordert eine Kontrolle an der Anlage.": "An alarm requires a check at the system.",
+  "Starts mit Automatik": "Starts with automation",
+  "Verglichen werden Brennerstarts je Gradtag an Heiztagen mit Eingriff der Automatik und an Heiztagen ohne. Als Eingriff zählen mindestens zwei Stunden Sonnentag, Heizpause, nur Warmwasser oder Abwesenheit. Ein Gradtag ist hier 20 °C minus Tagesmittel außen. Die Automatik greift eher an milden, sonnigen Tagen ein; der Wert zeigt deshalb einen Zusammenhang, keinen Beweis.": "Burner starts per degree day are compared between heating days with an automation intervention and heating days without. An intervention means at least two hours of sunny day, heating pause, hot water only or absence. A degree day here is 20 °C minus the daily mean outside. The automation tends to act on mild, sunny days, so the value shows a correlation, not proof.",
+  "Starts": "Starts",
+  "Starts je Gradtag mit Automatik gegenüber ohne": "Starts per degree day with automation compared to without",
+  "Mit Eingriff der Automatik": "With automation intervention",
+  "Ohne Eingriff der Automatik": "Without automation intervention",
+  "{s} Starts je Gradtag · {n} Tage": "{s} starts per degree day · {n} days",
+  "Die Räume liegen meist mehr als 0,5 K über dem Ziel. Der Heizkreis liefert mehr Wärme, als sie abnehmen. Laut Windhager-Anleitung hilft: Auslegungstemperatur oder Fußpunkt senken oder Behaglichkeit verringern.": "The rooms are mostly more than 0.5 K above target. The heating circuit supplies more heat than they take. According to the Windhager manual: lower the design temperature or base point, or reduce comfort."
 }

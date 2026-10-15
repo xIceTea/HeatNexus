@@ -8,6 +8,9 @@ from typing import Any
 from . import form, gradtage, haus, heizkreis, kessel
 from .archiv import Archiv
 
+# Ab so vielen Stunden mit Eingriff der Automatik zählt ein Tag als Tag mit Eingriff.
+EINGRIFF_H = 2
+
 
 @dataclass(frozen=True)
 class Kreis:
@@ -37,7 +40,8 @@ class Kessel:
 class Kontext:
     """Was zur Anlage gehört; ohne Kessel und mit fremder Wärme folgt ein Verweis.
 
-    `versorgte_heiztage` sind die Heiztage der Anlagen ohne eigenen Kessel, die dieser mitheizt.
+    `versorgte_heiztage` sind die Heiztage der Anlagen ohne eigenen Kessel, die dieser mitheizt;
+    `versorgte_eingriffe` ihre Tage mit Eingriff der Automatik.
     """
 
     land: str | None
@@ -45,6 +49,7 @@ class Kontext:
     kessel: list[Kessel] = field(default_factory=list)
     waermequelle_extern: bool = False
     versorgte_heiztage: dict[str, bool] = field(default_factory=dict)
+    versorgte_eingriffe: dict[str, bool | None] = field(default_factory=dict)
 
 
 def _als_dict(befund: form.Befund, **vergleich: Any) -> dict[str, Any]:
@@ -93,6 +98,26 @@ def heiztage(archiv: Archiv, kennungen: list[str]) -> dict[str, bool]:
     return heiz_je_tag
 
 
+def eingriffstage(archiv: Archiv, kennungen: list[str]) -> dict[str, bool | None]:
+    """Je Tag, ob die Automatik an einem Heizkreis mindestens zwei Stunden eingriff; `None` ohne Angabe."""
+    tage: dict[str, bool | None] = {}
+    for kennung in kennungen:
+        for t in archiv.tage_heizkreis(kennung):
+            tage[t["datum"]] = _oder(tage.get(t["datum"]), _eingriff(t.get("automatik_h")))
+    return tage
+
+
+def _eingriff(stunden: int | None) -> bool | None:
+    return None if stunden is None else stunden >= EINGRIFF_H
+
+
+def _oder(a: bool | None, b: bool | None) -> bool | None:
+    """Wahr, wenn eins wahr ist; unbekannt nur, wenn beide unbekannt sind."""
+    if a is None or b is None:
+        return b if a is None else a
+    return a or b
+
+
 def _anlagentage(archiv: Archiv, kontext: Kontext) -> tuple[dict[str, float], dict[str, bool]]:
     """Tagesmittel außen und ob an dem Tag ein Heizkreis geheizt hat, auch ein mitversorgter."""
     at_je_tag: dict[str, float] = {}
@@ -110,12 +135,16 @@ def _kessel(
     archiv: Archiv, k: Kessel, kontext: Kontext, grenze: float, heizgrenze: float | None
 ) -> dict[str, Any]:
     at_je_tag, heiz_je_tag = _anlagentage(archiv, kontext)
+    eingriffe = eingriffstage(archiv, [kreis.kennung for kreis in kontext.heizkreise])
+    for datum, eingriff in kontext.versorgte_eingriffe.items():
+        eingriffe[datum] = _oder(eingriffe.get(datum), eingriff)
     tage = [
-        t | {"heiztag": heiz_je_tag.get(t["datum"], False)}
+        t | {"heiztag": heiz_je_tag.get(t["datum"], False), "eingriff": eingriffe.get(t["datum"])}
         for t in archiv.tage_kessel(k.kennung, at_je_tag)
     ]
     befunde = [
         _als_dict(kessel.laufzeit(tage, k.zaehler)),
+        _als_dict(kessel.starts(tage)),
         _als_dict(
             kessel.energie(tage, grenze, heizgrenze),
             nennleistung=k.nennleistung,

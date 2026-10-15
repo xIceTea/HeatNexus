@@ -52,6 +52,7 @@ const TITEL = {
   naechte: "Übergangszeit nachts",
   vorlauf: "Vorlauf erreicht sein Soll",
   laufzeit: "Starts und Laufzeit",
+  starts: "Starts mit Automatik",
   energie: "Energie je Heizgradtag",
 };
 
@@ -68,6 +69,8 @@ const HILFE = {
     "Gezählt werden Heizstunden, in denen der Vorlauf mehr als 3 K unter seinem Soll bleibt. Mögliche Gründe: Puffer leer, Kessel nicht in Betrieb, Mischer am Anschlag, Wärme über eine Fernleitung.",
   laufzeit:
     "Die Zähler der Steuerung für Brennerstarts und Betriebsstunden. Verglichen wird nur mit dem Kessel selbst; für die Laufzeit je Start gibt es weder Norm noch Herstellerangabe.",
+  starts:
+    "Verglichen werden Brennerstarts je Gradtag an Heiztagen mit Eingriff der Automatik und an Heiztagen ohne. Als Eingriff zählen mindestens zwei Stunden Sonnentag, Heizpause, nur Warmwasser oder Abwesenheit. Ein Gradtag ist hier 20 °C minus Tagesmittel außen. Die Automatik greift eher an milden, sonnigen Tagen ein; der Wert zeigt deshalb einen Zusammenhang, keinen Beweis.",
   energie:
     "Erzeugte Wärme aus Kesselleistung und Nennleistung, ohne den Sockel an Tagen ohne Heizen. Die Gradtagzahl nach VDI 3807 rechnet das Wetter heraus; so lassen sich Jahre vergleichen. Sie zählt jeden Tag, dessen Mittel außen unter der Heizgrenze der Norm liegt, mit 20 °C minus Tagesmittel. Diese Grenze ist ein fester Rechenwert, in Deutschland 15 °C, in Österreich und der Schweiz 12 °C, und keine Einstellung der Anlage. Der Wert gilt für die ganze Anlage. Als Heiztag zählt auch ein Tag, an dem eine mitversorgte Anlage ohne eigenen Kessel geheizt hat.",
 };
@@ -82,6 +85,7 @@ const KURZ = {
   naechte: "Nächte",
   vorlauf: "Vorlauf",
   laufzeit: "Laufzeit",
+  starts: "Starts",
   energie: "Energie",
 };
 
@@ -411,6 +415,7 @@ export const BefundMixin = (Basis) =>
       if (bild) karte.appendChild(bild);
       const vergleich = this._befundVergleich(b);
       if (vergleich) karte.appendChild(vergleich);
+      if (b.art === "raeume" && (b.angaben || {}).zu_warm) karte.appendChild(knoten("div", "befund-leise", this._t("Die Räume liegen meist mehr als 0,5 K über dem Ziel. Der Heizkreis liefert mehr Wärme, als sie abnehmen. Laut Windhager-Anleitung hilft: Auslegungstemperatur oder Fußpunkt senken oder Behaglichkeit verringern.")));
       karte.appendChild(knoten("div", "befund-fuss", this._tMit("Verlässlichkeit: {stufe}", { stufe: this._befundStufe(b.stufe) })));
       return karte;
     }
@@ -472,6 +477,7 @@ export const BefundMixin = (Basis) =>
           naechte: "am Morgen über dem Absenkziel",
           vorlauf: "der Heizstunden mehr als 3 K unter Soll",
           laufzeit: "je Start",
+          starts: "Starts je Gradtag mit Automatik gegenüber ohne",
           energie: "je Heizgradtag",
         }[b.art] || ""
       );
@@ -490,11 +496,17 @@ export const BefundMixin = (Basis) =>
         [a.sockel, "Sockel ohne Heizen", (w) => this._tMit("{kwh} kWh am Tag", { kwh: this._befundZahl(w) })],
         [a.gerade, "Mehr Wärme je Kelvin kälter", (w) => `${this._befundZahl(w)} kWh`],
         [a.ohne_gradtag || null, "Heiztage ohne Gradtag nach VDI 3807", (w) => String(w)],
+        [b.art === "starts" ? a.mit : null, "Mit Eingriff der Automatik", (g) => this._befundGruppe(g)],
+        [b.art === "starts" ? a.ohne : null, "Ohne Eingriff der Automatik", (g) => this._befundGruppe(g)],
       ].filter(([wert]) => wert !== null && wert !== undefined);
       if (!zeilen.length) return null;
       const liste = knoten("div", "befund-vergleich");
       zeilen.forEach(([wert, text, format]) => liste.append(knoten("span", null, this._t(text)), knoten("span", null, format(wert))));
       return liste;
+    }
+
+    _befundGruppe(g) {
+      return this._tMit("{s} Starts je Gradtag · {n} Tage", { s: this._befundZahl(g.starts_je_gt), n: g.tage });
     }
 
     _befundBild(b) {

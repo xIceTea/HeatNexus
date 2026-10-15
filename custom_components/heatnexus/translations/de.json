@@ -475,6 +475,9 @@
       "befund_laufzeit": {
         "name": "Auswertung Laufzeit je Start"
       },
+      "befund_starts": {
+        "name": "Auswertung Starts mit Automatik"
+      },
       "befund_energie": {
         "name": "Auswertung Energie je Heizgradtag"
       },

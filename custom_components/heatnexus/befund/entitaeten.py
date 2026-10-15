@@ -23,6 +23,7 @@ ART: dict[str, tuple[str, SensorDeviceClass | None]] = {
     "naechte": ("K", None),
     "vorlauf": ("%", None),
     "laufzeit": (UnitOfTime.HOURS, SensorDeviceClass.DURATION),
+    "starts": ("%", None),
     "energie": ("kWh/Kd", None),
 }
 

@@ -49,7 +49,7 @@ SCHLUESSEL = f"{DOMAIN}_befund"
 SIGNAL_NEU = f"{DOMAIN}_befund_neu_{{}}"
 SIGNAL_STAND = f"{DOMAIN}_befund_stand_{{}}"
 ARTEN_KREIS = ("waermespeicher", "heizgrenze", "raeume", "naechte", "vorlauf")
-ARTEN_KESSEL = ("laufzeit", "energie")
+ARTEN_KESSEL = ("laufzeit", "starts", "energie")
 # Namen wie im Reiter; in der Seitenleiste nennt die Meldung, wozu es einen Hinweis gibt.
 TITEL = {
     "waermespeicher": "Wärmespeicher des Hauses",
@@ -58,8 +58,11 @@ TITEL = {
     "naechte": "Übergangszeit nachts",
     "vorlauf": "Vorlauf erreicht sein Soll",
     "laufzeit": "Starts und Laufzeit",
+    "starts": "Starts mit Automatik",
     "energie": "Energie je Heizgradtag",
 }
+# Zustände der Automatik, in denen sie an der Steuerung etwas verändert hat.
+EINGRIFFE = frozenset({"sonnentag", "nur_ww", "heizpause", "abwesend"})
 # Der Sensor hinter dem Bild eines Befunds; Heizkreis oder Kessel.
 QUELLE = {"vorlauf": HEIZKREIS["vi"], "laufzeit": BH, "energie": LEISTUNG}
 
@@ -206,6 +209,13 @@ class Sammler:
                 raeume[kennung] = [messung.ist, ziel]
         return raeume
 
+    def _automatik_greift(self, device_id: str) -> bool:
+        """Ob die Automatik dieses Heizkreises gerade schaltet und etwas verändert hat."""
+        laufzeit = verwaltung_holen(self.hass).laufzeiten.get(device_id)
+        if laufzeit is None or laufzeit.konfig.get("modus") != "schalten":
+            return False
+        return str(getattr(laufzeit.zustand, "value", laufzeit.zustand)) in EINGRIFFE
+
     # --- Sammeln ------------------------------------------------------------
     async def messen(self, jetzt: datetime) -> None:
         """Ein Wert je Heizkreis und Kessel; nach jeder abgeschlossenen Stunde speichern."""
@@ -215,6 +225,7 @@ class Sammler:
             p = b.get("prefix", "")
             werte: dict[str, Any] = {n: self._wert(p, a) for n, a in HEIZKREIS.items()}
             werte["eingriff"] = (self._wert(p, RESTZEIT) or 0) > 0
+            werte["automatik"] = self._automatik_greift(b["device_id"])
             werte["raeume"] = self._raeume(b["device_id"])
             geschlossen |= self.archiv.messen(b["device_id"], zeit, werte)
         for p in kessel_praefixe(self.coordinator):
@@ -323,6 +334,9 @@ class Sammler:
         kennungen = [b["device_id"] for b in self.kreise()]
         return auswertung.heiztage(self.archiv, kennungen)
 
+    def eingriffstage(self) -> dict[str, bool | None]:
+        return auswertung.eingriffstage(self.archiv, [b["device_id"] for b in self.kreise()])
+
     def _versorgte_heiztage(self) -> dict[str, bool]:
         """Heiztage der Anlagen ohne eigenen Kessel; ihre Wärme kommt aus diesem."""
         versorgt: dict[str, bool] = {}
@@ -339,8 +353,24 @@ class Sammler:
         land = getattr(self.hass.config, "country", None)
         versorgt = self._versorgte_heiztage() if kessel else {}
         return auswertung.Kontext(
-            land, kreise, kessel, waermequelle_extern=not kessel, versorgte_heiztage=versorgt
+            land,
+            kreise,
+            kessel,
+            waermequelle_extern=not kessel,
+            versorgte_heiztage=versorgt,
+            versorgte_eingriffe=self._versorgte_eingriffe() if kessel else {},
         )
+
+    def _versorgte_eingriffe(self) -> dict[str, bool | None]:
+        """Tage mit Eingriff der Automatik in Anlagen ohne eigenen Kessel, die dieser mitheizt."""
+        versorgt: dict[str, bool | None] = {}
+        for nachbar in self.nachbarn():
+            if kessel_praefixe(nachbar.coordinator):
+                continue
+            for datum, eingriff in nachbar.eingriffstage().items():
+                alt = versorgt.get(datum)
+                versorgt[datum] = eingriff if alt is None else (alt or bool(eingriff))
+        return versorgt
 
     def stand(self, kontext: auswertung.Kontext | None = None) -> dict[str, Any]:
         ergebnis = auswertung.anlage(self.archiv, kontext or self.kontext())

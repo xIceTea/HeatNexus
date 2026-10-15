@@ -15,6 +15,8 @@ ERHOLUNG_H = 2
 BAND_FROST = 0.0
 BAND_KUEHL = 5.0
 HINWEIS_ANTEIL = 15
+# Liegen die Räume im Mittel so oft mehr als 0,5 K über Ziel, liefert der Kreis mehr als nötig.
+ZU_WARM_ANTEIL = 50
 NACHT_BAND = (5.0, 15.0)
 NACHT_HINWEIS_K = 1.0
 MITTAG = 12
@@ -90,10 +92,18 @@ def raeume(
     auffaellig = any(
         w["unter"] >= HINWEIS_ANTEIL or w["ueber"] >= HINWEIS_ANTEIL for w in je_raum.values()
     )
+    zu_warm = mean(w["leicht"] + w["ueber"] for w in je_raum.values()) >= ZU_WARM_ANTEIL
     stufe = form.stufe(tage[band], **STUFEN)
     warm = round(mean(w["am"] + w["leicht"] + w["ueber"] for w in je_raum.values()))
-    angaben = {"band": band, "baender": tage, "je_raum": je_raum, "tage": tage[band]}
-    return form.Befund("raeume", form.status_aus(stufe, auffaellig), warm, "%", stufe, angaben)
+    angaben = {
+        "band": band,
+        "baender": tage,
+        "je_raum": je_raum,
+        "tage": tage[band],
+        "zu_warm": zu_warm,
+    }
+    status = form.status_aus(stufe, auffaellig or zu_warm)
+    return form.Befund("raeume", status, warm, "%", stufe, angaben)
 
 
 def _nur(raeume: dict[str, Any] | None, gewaehlt: list[str]) -> dict[str, Any]:

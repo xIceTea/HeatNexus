@@ -475,6 +475,9 @@
       "befund_laufzeit": {
         "name": "Analysis run time per start"
       },
+      "befund_starts": {
+        "name": "Analysis starts with automation"
+      },
       "befund_energie": {
         "name": "Analysis energy per heating degree day"
       },

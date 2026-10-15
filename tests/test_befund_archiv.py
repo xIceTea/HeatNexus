@@ -126,3 +126,19 @@ def test_messen_meldet_abgeschlossene_stunde(a):
     assert archiv.messen("hk", datetime(2026, 10, 1, 10, 0), werte()) is False
     assert archiv.messen("hk", datetime(2026, 10, 1, 10, 5), werte()) is False
     assert archiv.messen("hk", datetime(2026, 10, 1, 11, 0), werte()) is True
+
+
+def test_tag_zaehlt_die_stunden_mit_eingriff_der_automatik(a):
+    archiv = a.Archiv()
+    t = datetime(2026, 10, 1, 0, 0)
+    for h in range(25):
+        archiv.messen("hk", t + timedelta(hours=h), werte() | {"automatik": 9 <= h < 13})
+    assert archiv.tage_heizkreis("hk")[0]["automatik_h"] == 4
+
+
+def test_tag_ohne_angabe_zur_automatik_bleibt_offen(a):
+    archiv = a.Archiv()
+    t = datetime(2026, 10, 1, 0, 0)
+    for h in range(25):
+        archiv.messen("hk", t + timedelta(hours=h), werte())
+    assert archiv.tage_heizkreis("hk")[0]["automatik_h"] is None

@@ -125,3 +125,21 @@ def test_raeume_nur_die_heute_gewaehlten(hk):
     stunden += [stunde("2026-10-01 22", raeume={"climate.alt": [18.0, 21.0]})]
     befund = hk.raeume(stunden, grenze=17.0, gewaehlt=["climate.a"])
     assert set(befund.angaben["je_raum"]) == {"climate.a"}
+
+
+def test_raeume_meist_ueber_ziel_ist_ein_hinweis(hk):
+    stunden = []
+    for d in range(1, 8):
+        stunden += tagesstunden(f"2026-10-{d:02d}", 21.8)
+    befund = hk.raeume(stunden, grenze=17.0)
+    assert befund.angaben["zu_warm"] is True
+    assert befund.status == "hinweis"
+
+
+def test_raeume_am_ziel_sind_nicht_zu_warm(hk):
+    stunden = []
+    for d in range(1, 8):
+        stunden += tagesstunden(f"2026-10-{d:02d}", 21.3)
+    befund = hk.raeume(stunden, grenze=17.0)
+    assert befund.angaben["zu_warm"] is False
+    assert befund.status == "unauffaellig"

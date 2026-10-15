@@ -1021,5 +1021,13 @@
   "Alarm anliegend": "Alarm aanwezig",
   "Ein Hinweis ohne Handlungsbedarf.": "Een melding zonder actie.",
   "Ein Fehler sollte zeitnah geprüft werden.": "Een fout moet binnenkort worden gecontroleerd.",
-  "Ein Alarm erfordert eine Kontrolle an der Anlage.": "Een alarm vereist een controle bij de installatie."
+  "Ein Alarm erfordert eine Kontrolle an der Anlage.": "Een alarm vereist een controle bij de installatie.",
+  "Starts mit Automatik": "Starts met automatisering",
+  "Verglichen werden Brennerstarts je Gradtag an Heiztagen mit Eingriff der Automatik und an Heiztagen ohne. Als Eingriff zählen mindestens zwei Stunden Sonnentag, Heizpause, nur Warmwasser oder Abwesenheit. Ein Gradtag ist hier 20 °C minus Tagesmittel außen. Die Automatik greift eher an milden, sonnigen Tagen ein; der Wert zeigt deshalb einen Zusammenhang, keinen Beweis.": "Branderstarts per graaddag worden vergeleken tussen stookdagen met een ingreep van de automatisering en stookdagen zonder. Als ingreep telt minstens twee uur zonnige dag, verwarmingspauze, alleen warm water of afwezigheid. Een graaddag is hier 20 °C min het daggemiddelde buiten. De automatisering grijpt vooral in op milde, zonnige dagen; de waarde toont daarom een samenhang, geen bewijs.",
+  "Starts": "Starts",
+  "Starts je Gradtag mit Automatik gegenüber ohne": "Starts per graaddag met automatisering ten opzichte van zonder",
+  "Mit Eingriff der Automatik": "Met ingreep van de automatisering",
+  "Ohne Eingriff der Automatik": "Zonder ingreep van de automatisering",
+  "{s} Starts je Gradtag · {n} Tage": "{s} starts per graaddag · {n} dagen",
+  "Die Räume liegen meist mehr als 0,5 K über dem Ziel. Der Heizkreis liefert mehr Wärme, als sie abnehmen. Laut Windhager-Anleitung hilft: Auslegungstemperatur oder Fußpunkt senken oder Behaglichkeit verringern.": "De ruimtes liggen meestal meer dan 0,5 K boven het doel. Het verwarmingscircuit levert meer warmte dan ze afnemen. Volgens de Windhager-handleiding helpt: ontwerptemperatuur of voetpunt verlagen of comfort verminderen."
 }

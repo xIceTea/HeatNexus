@@ -1144,3 +1144,14 @@ def test_quittieren_ruft_den_dienst_mit_dem_eintrag(durchlauf):
         "dienst": "heatnexus.stoerung_quittieren",
         "angaben": {"entity_id": "sensor.stoerspeicher", "eintrag": 155},
     }
+
+
+def test_starts_mit_und_ohne_automatik_stehen_im_vergleich(durchlauf):
+    text = durchlauf["befund"]["starts"]
+    assert "Mit Eingriff der Automatik" in text
+    assert "0,1 Starts je Gradtag · 6 Tage" in text
+    assert "0,2 Starts je Gradtag · 8 Tage" in text
+
+
+def test_zu_warme_raeume_nennen_die_abhilfe(durchlauf):
+    assert "mehr als 0,5 K über dem Ziel" in durchlauf["befund"]["zuWarm"]

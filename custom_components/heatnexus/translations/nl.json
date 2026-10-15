@@ -475,6 +475,9 @@
       "befund_laufzeit": {
         "name": "Analyse looptijd per start"
       },
+      "befund_starts": {
+        "name": "Analyse starts met automatisering"
+      },
       "befund_energie": {
         "name": "Analyse energie per graaddag"
       },

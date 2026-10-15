@@ -19,6 +19,10 @@ PUNKT_ABSTAND = 3
 MIN_PUNKTE = 3
 # Mehr Zuwachs an einem Tag ist kein Betrieb, sondern ein Sprung im Zähler.
 MAX_JE_TAG = {"starts": 100.0, "bh": 24.0}
+# Gradtage des Vergleichs: 20 °C minus Tagesmittel an jedem Heiztag, auch an milden Tagen.
+RAUM = 20.0
+VERGLEICH_TAGE = 90
+STARTS_STUFEN = {"vorlaeufig": 5, "belastbar": 14}
 
 
 def _deltas(tage: list[dict[str, Any]], feld: str) -> list[float | None]:
@@ -54,6 +58,43 @@ def laufzeit(tage: list[dict[str, Any]], zaehler: tuple[float, float] | None) ->
     stufe = form.stufe(len(fenster), **LAUFZEIT_STUFEN)
     return form.Befund(
         "laufzeit", form.UNAUFFAELLIG, round(stunden / starts, 1), "h", stufe, angaben
+    )
+
+
+def _gruppe(paare: list[tuple[dict[str, Any], float]]) -> dict[str, Any]:
+    gradtage = sum(RAUM - t["at"] for t, _ in paare)
+    starts = sum(s for _, s in paare)
+    return {
+        "tage": len(paare),
+        "starts": starts,
+        "gradtage": round(gradtage, 1),
+        "starts_je_gt": round(starts / gradtage, 3) if gradtage > 0 else None,
+    }
+
+
+def starts(tage: list[dict[str, Any]]) -> form.Befund:
+    """Starts je Gradtag an Heiztagen mit Eingriff der Automatik gegen Tage ohne.
+
+    Ein Zusammenhang, kein Beweis: Die Automatik greift eher an milden, sonnigen Tagen ein.
+    """
+    paare = [
+        (t, s)
+        for t, s in zip(tage, _deltas(tage, "starts"), strict=True)
+        if t.get("heiztag")
+        and t.get("eingriff") is not None
+        and s is not None
+        and t.get("at") is not None
+        and t["at"] < RAUM
+    ][-VERGLEICH_TAGE:]
+    mit = _gruppe([p for p in paare if p[0]["eingriff"]])
+    ohne = _gruppe([p for p in paare if not p[0]["eingriff"]])
+    angaben = {"mit": mit, "ohne": ohne}
+    stufe = form.stufe(min(mit["tage"], ohne["tage"]), **STARTS_STUFEN)
+    if stufe == form.SAMMELT or not ohne["starts_je_gt"] or mit["starts_je_gt"] is None:
+        return form.Befund("starts", form.SAMMELT, angaben=angaben)
+    verhaeltnis = (mit["starts"] / mit["gradtage"]) / (ohne["starts"] / ohne["gradtage"])
+    return form.Befund(
+        "starts", form.UNAUFFAELLIG, round(100 * (verhaeltnis - 1)), "%", stufe, angaben
     )
 
 

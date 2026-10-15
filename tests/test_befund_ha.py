@@ -150,7 +150,7 @@ async def test_sensoren_je_heizkreis_und_kessel(hass, anlage):
             f"{HEIZKREIS}-befund-{art}"
             for art in ("waermespeicher", "heizgrenze", "raeume", "naechte", "vorlauf")
         ]
-        + [f"SN1-1-0-befund-{art}" for art in ("laufzeit", "energie")]
+        + [f"SN1-1-0-befund-{art}" for art in ("laufzeit", "starts", "energie")]
     )
     for sensor in angelegt:
         sensor.hass = hass

@@ -15,6 +15,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Diagnose nennt, was die Steuerung anbietet.
 - Das Detail einer Störung zeigt die Abhilfe aus den Bedienungsanleitungen.
 - Die Störungskarte zeigt Info, Fehler und Alarm in den Farben von Windhager.
+- Die Auswertung vergleicht Kesselstarts je Gradtag mit und ohne Eingriff der Automatik.
+- Die Auswertung meldet Räume, die meist über dem Ziel liegen, samt Abhilfe.
 
 ### Geändert
 

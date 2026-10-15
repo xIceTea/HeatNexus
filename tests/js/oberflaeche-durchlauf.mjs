@@ -1311,6 +1311,15 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     ablesbar: balken.length,
     abgelesen: [...wurzel.querySelectorAll(".befund-ablesen")].map((a) => String(a.textContent)),
   };
+  // Einzelne Karten: Starts mit und ohne Automatik, Räume meist zu warm.
+  const gruppe = (tage, starts, gradtage) => ({ tage, starts, gradtage, starts_je_gt: starts / gradtage });
+  const startsKarte = flaeche._befundKarte(
+    { art: "kessel", kennung: "/1/60/0", titel: "Kessel" },
+    befund("starts", "unauffaellig", -50, { mit: gruppe(6, 6, 60), ohne: gruppe(8, 16, 80) })
+  );
+  const warmKarte = flaeche._befundKarte({ art: "heizkreis", kennung, titel: "Heizkreis" }, befund("raeume", "hinweis", 95, { zu_warm: true }));
+  bilanz.befund.starts = String(startsKarte.textContent || "");
+  bilanz.befund.zuWarm = String(warmKarte.textContent || "");
 
   // Unter „Alle“ stehen beide Anlagen in einem Stand: eine Kopfkarte, Zählung addiert,
   // jede Karte mit ihrer Anlage, kein Verweis auf den fremden Kessel.

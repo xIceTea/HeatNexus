@@ -35,6 +35,9 @@ def _stunde_heizkreis(messungen: list[dict[str, Any]]) -> dict[str, Any]:
     """Messwerte gemittelt, Eingriff wenn einer, Räume je Eintrag gemittelt."""
     stunde: dict[str, Any] = {f: _mittel(m.get(f) for m in messungen) for f in MESSWERTE}
     stunde["eingriff"] = any(m.get("eingriff") for m in messungen)
+    # `None`: ohne Angabe, etwa bei nachgerechneten Stunden; dann zählt der Tag im Vergleich nicht.
+    automatik = [m["automatik"] for m in messungen if m.get("automatik") is not None]
+    stunde["automatik"] = any(automatik) if automatik else None
     raeume: dict[str, list[list[Any]]] = {}
     for m in messungen:
         for raum, paar in (m.get("raeume") or {}).items():
@@ -73,7 +76,12 @@ def _tag_heizkreis(stunden: list[dict[str, Any]]) -> dict[str, Any]:
         "heizh": sum((s.get("vl") or 0) > 0 for s in stunden),
         "unter": unter,
         "folge": folge,
+        "automatik_h": sum(bekannt) if (bekannt := _bekannt(stunden, "automatik")) else None,
     }
+
+
+def _bekannt(stunden: list[dict[str, Any]], feld: str) -> list[bool]:
+    return [bool(s[feld]) for s in stunden if s.get(feld) is not None]
 
 
 def _tag_kessel(stunden: list[dict[str, Any]]) -> dict[str, Any]:

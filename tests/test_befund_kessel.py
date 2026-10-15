@@ -83,3 +83,45 @@ def test_wochenpunkte_ueberspringen_luecken(k):
     del tage[8:12]
     punkte = k.energie(tage, grenze=15.0, heizgrenze=17.0).angaben["punkte"]
     assert len(punkte) == 2
+
+
+def vergleichsreihe(ohne: int, mit: int, offen: int = 0):
+    """Ohne Eingriff zwei Starts am Tag, mit Eingriff einer; jeweils 10 Gradtage."""
+    tage, starts, bh = [], 1000.0, 5000.0
+    arten = [False] * ohne + [True] * mit + [None] * offen
+    for i, eingriff in enumerate(arten):
+        starts += 1 if eingriff else 2
+        bh += 3
+        tage.append(
+            {
+                "datum": f"2026-10-{i + 1:02d}",
+                "starts": starts,
+                "bh": bh,
+                "at": 10.0,
+                "heiztag": True,
+                "eingriff": eingriff,
+            }
+        )
+    return tage
+
+
+def test_starts_je_gradtag_mit_und_ohne_automatik(k):
+    befund = k.starts(vergleichsreihe(10, 10))
+    assert befund.art == "starts"
+    assert befund.wert == -50
+    assert befund.einheit == "%"
+    assert befund.status == "unauffaellig"
+    assert befund.stufe == "vorlaeufig"
+    assert befund.angaben["mit"]["tage"] == 10
+    assert befund.angaben["ohne"]["starts_je_gt"] == pytest.approx(0.2)
+
+
+def test_starts_ohne_tage_mit_eingriff_sammelt(k):
+    befund = k.starts(vergleichsreihe(12, 0))
+    assert befund.status == "sammelt"
+    assert befund.wert is None
+
+
+def test_starts_tage_ohne_angabe_zaehlen_nicht(k):
+    befund = k.starts(vergleichsreihe(6, 6, offen=5))
+    assert befund.angaben["mit"]["tage"] + befund.angaben["ohne"]["tage"] == 11
