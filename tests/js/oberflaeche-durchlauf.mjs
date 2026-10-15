@@ -725,21 +725,24 @@ if (nameZwei) {
 bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 
 // ---------------------------------------------------------------------------
-// Reiterleiste am Telefon: Der gewählte Reiter rückt nach dem Neuaufbau ins Bild.
+// Reiterleiste am Telefon: Sie behält ihre Position; nur ein verdeckter Reiter rückt nach.
 // ---------------------------------------------------------------------------
 {
   const inhalt = flaeche.shadowRoot;
   const leiste = inhalt.querySelector(".reiter");
   const taste = leiste.querySelector('[aria-selected="true"]');
-  Object.assign(leiste, { scrollWidth: 900, clientWidth: 375, scrollLeft: 0 });
-  leiste.getBoundingClientRect = () => ({ left: 0, width: 375 });
-  taste.getBoundingClientRect = () => ({ left: 600, width: 120 });
-  flaeche._reiterZeigen(inhalt);
-  const mitte = leiste.scrollLeft;
-  leiste.scrollWidth = 300;
-  leiste.scrollLeft = 0;
-  flaeche._reiterZeigen(inhalt);
-  bilanz.reiterImBild = { gewaehlt: taste.dataset.reiter, mitte, ohneUeberlauf: leiste.scrollLeft };
+  Object.assign(leiste, { scrollWidth: 900, clientWidth: 375 });
+  leiste.getBoundingClientRect = () => ({ left: 0, right: 375, width: 375 });
+  taste.getBoundingClientRect = () => ({ left: 100, right: 220, width: 120 });
+  flaeche._reiterZeigen(inhalt, 200);
+  const sichtbar = leiste.scrollLeft;
+  taste.getBoundingClientRect = () => ({ left: 600, right: 720, width: 120 });
+  flaeche._reiterZeigen(inhalt, 0);
+  const rechtsVerdeckt = leiste.scrollLeft;
+  taste.getBoundingClientRect = () => ({ left: -50, right: 70, width: 120 });
+  flaeche._reiterZeigen(inhalt, 300);
+  const linksVerdeckt = leiste.scrollLeft;
+  bilanz.reiterImBild = { gewaehlt: taste.dataset.reiter, sichtbar, rechtsVerdeckt, linksVerdeckt };
 }
 
 // ---------------------------------------------------------------------------

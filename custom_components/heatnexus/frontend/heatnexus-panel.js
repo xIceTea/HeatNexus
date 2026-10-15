@@ -417,8 +417,10 @@ class HeatNexusPanel extends Grundlage {
       inhalt.appendChild(flaechen[0]);
     }
     this._reiterFlaechen(inhalt, flaechen);
+    const alteLeiste = this.shadowRoot.querySelector(".reiter");
+    const vorher = (alteLeiste && alteLeiste.scrollLeft) || 0;
     this._flaecheErsetzen(...stil, inhalt);
-    this._reiterZeigen(inhalt);
+    this._reiterZeigen(inhalt, vorher);
     if (this._tastaturFokus) {
       const taste = inhalt.querySelector(this._tastaturFokus);
       this._tastaturFokus = null;
@@ -661,16 +663,19 @@ class HeatNexusPanel extends Grundlage {
   }
 
   /**
-   * Am Telefon passen nicht alle Reiter in die Leiste, und der Neuaufbau setzt sie an den Anfang.
-   * Der gewählte Reiter rückt deshalb in die Mitte der Leiste.
+   * Am Telefon passen nicht alle Reiter in die Leiste. Der Neuaufbau behält ihre Position;
+   * nur ein verdeckter gewählter Reiter rückt so weit nach, dass er ganz zu sehen ist.
    */
-  _reiterZeigen(inhalt) {
+  _reiterZeigen(inhalt, vorher) {
     const leiste = inhalt.querySelector(".reiter");
-    const taste = leiste && leiste.querySelector('[aria-selected="true"]');
+    if (!leiste) return;
+    leiste.scrollLeft = vorher;
+    const taste = leiste.querySelector('[aria-selected="true"]');
     if (!taste || !(leiste.scrollWidth > leiste.clientWidth) || !taste.getBoundingClientRect) return;
     const rand = leiste.getBoundingClientRect();
     const knopf = taste.getBoundingClientRect();
-    leiste.scrollLeft += knopf.left - rand.left - (leiste.clientWidth - knopf.width) / 2;
+    if (knopf.left < rand.left) leiste.scrollLeft -= rand.left - knopf.left;
+    else if (knopf.right > rand.right) leiste.scrollLeft += knopf.right - rand.right;
   }
 
   /**

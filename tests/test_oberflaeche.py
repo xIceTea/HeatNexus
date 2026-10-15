@@ -269,13 +269,18 @@ def test_ein_leeres_programm_braucht_nur_eine_zeile(durchlauf):
     assert (leer["spuren"], leer["aktivieren"]) == (0, 0)
 
 
-def test_der_gewaehlte_reiter_rueckt_in_die_mitte_der_leiste(durchlauf):
-    """Am Telefon passen nicht alle Reiter in die Leiste; der Neuaufbau setzt sie an den Anfang."""
+def test_die_reiterleiste_behaelt_ihre_position(durchlauf):
+    """Ein sichtbarer Reiter wird nur hervorgehoben; die Leiste springt nicht."""
     imbild = durchlauf["reiterImBild"]
     assert imbild["gewaehlt"] == "zeitprogramme"
-    # Knopf bei 600 px, 120 px breit, Leiste 375 px: 600 - (375 - 120) / 2.
-    assert imbild["mitte"] == 472.5
-    assert imbild["ohneUeberlauf"] == 0
+    assert imbild["sichtbar"] == 200
+
+
+def test_ein_verdeckter_reiter_rueckt_gerade_so_weit_nach(durchlauf):
+    """Rechts verdeckt: um 720 - 375 nach rechts; links verdeckt: um 50 zurück."""
+    imbild = durchlauf["reiterImBild"]
+    assert imbild["rechtsVerdeckt"] == 345
+    assert imbild["linksVerdeckt"] == 250
 
 
 def test_unter_alle_steht_ein_streifen_mit_jeder_anlage(durchlauf):
