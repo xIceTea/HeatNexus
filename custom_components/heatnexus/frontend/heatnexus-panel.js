@@ -185,7 +185,7 @@ class HeatNexusPanel extends Grundlage {
 
   /** Ob sich etwas geändert hat, das die Anzeige liest: gelesene Entitäten oder Umgebung. */
   _hassGeaendert(alt, neu) {
-    const umgebung = ["entities", "devices", "language", "locale", "config", "user", "themes", "dockedSidebar"];
+    const umgebung = ["entities", "devices", "language", "locale", "config", "user", "themes"];
     if (umgebung.some((schluessel) => alt[schluessel] !== neu[schluessel])) return true;
     if (alt.states === neu.states) return false;
     const gelesen = this._gelesen || new Set();
@@ -251,15 +251,8 @@ class HeatNexusPanel extends Grundlage {
     }
   }
 
-  set narrow(schmal) {
-    this._schmal = Boolean(schmal);
-    if (this._gebaut) this._zeichnenPlanen();
-  }
-
-  /** Die Menütaste erscheint, wo die Seitenleiste nicht fest danebensteht. */
-  _menueSichtbar() {
-    const verborgen = this._hass && this._hass.dockedSidebar === "always_hidden";
-    return Boolean(this._schmal) || Boolean(verborgen);
+  set narrow(_narrow) {
+    /* Die Aufteilung regelt CSS; die Menütaste steht immer da. */
   }
 
   // -------------------------------------------------------------------
@@ -454,9 +447,6 @@ class HeatNexusPanel extends Grundlage {
       this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
     });
     leiste.appendChild(menue);
-    this._bindungen.push(() => {
-      menue.style.display = this._menueSichtbar() ? "" : "none";
-    });
 
     const marke = document.createElement("div");
     marke.className = "marke";

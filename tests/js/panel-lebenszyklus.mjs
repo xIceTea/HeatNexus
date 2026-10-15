@@ -167,7 +167,7 @@ const befund = {};
 // --- Menütaste ---------------------------------------------------------------
 {
   const { flaeche } = bauen();
-  const taste = () => flaeche.shadowRoot.querySelector(".menue-taste").style.display;
+  const taste = () => flaeche.shadowRoot.querySelector(".menue-taste").style.display || "";
   const ergebnis = { breit: (flaeche._aktualisieren(), taste()) };
   flaeche.narrow = true;
   zeit.zeitLaufenLassen();

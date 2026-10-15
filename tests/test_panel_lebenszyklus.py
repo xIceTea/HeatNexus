@@ -95,8 +95,9 @@ def test_werkzeugmenue_oeffnet_und_schliesst_per_tastatur(befund):
     assert befund["menueNachEscape"] == [True, True]
 
 
-def test_menutaste_nur_wo_die_seitenleiste_nicht_fest_steht(befund):
-    assert befund["menuetaste"] == {"breit": "none", "schmal": "", "versteckteLeiste": ""}
+def test_menutaste_steht_bei_jeder_seitenleiste_da(befund):
+    """Am PC öffnet sie die eingeklappte Seitenleiste, am Handy die verdeckte."""
+    assert befund["menuetaste"] == {"breit": "", "schmal": "", "versteckteLeiste": ""}
 
 
 def test_anlagennamen_bleiben_wie_sie_sind(befund):
