@@ -52,8 +52,34 @@ def zeitprogramme(anlage: dict[str, Any]) -> list[dict[str, str]]:
                 programm["bezeichnung"] = bezeichnung
             if (wirkung := _wirkt_nur_wenn(eintrag, teil)) is not None:
                 programm["wirkung"] = wirkung
+            programm.update(_einordnung(eintrag, teil))
             programme.append(programm)
     return programme
+
+
+def _einordnung(eintrag: dict[str, Any], teil: dict[str, Any]) -> dict[str, Any]:
+    """Anlagenteil, Gruppe, Farbskala und Programmnummer einer Karte.
+
+    Die Oberfläche fasst damit die Programme eines Anlagenteils in einer Karte zusammen.
+    """
+    einordnung: dict[str, Any] = {"teil": teil.get("id") or teil["name"]}
+    adresse = eintrag.get("adresse")
+    if adresse in HEIZPROGRAMM_ADRESSEN:
+        nummer = HEIZPROGRAMM_ADRESSEN.index(adresse) + 1
+        return {**einordnung, "gruppe": "heizen", "art": "raum", "nummer": nummer}
+    if adresse in VORLAUFPROGRAMM_ADRESSEN:
+        nummer = VORLAUFPROGRAMM_ADRESSEN.index(adresse) + 1
+        return {**einordnung, "gruppe": "heizen", "art": "vorlauf", "nummer": nummer}
+    if _ist_zirkulation(eintrag):
+        # Nur das Temperaturprogramm führt Temperaturen; das Zeitprogramm schaltet ein und aus.
+        if eintrag.get("schluessel") == "dhw_circulation_program_temperature":
+            einordnung["art"] = "wasser"
+        return {**einordnung, "gruppe": "zirkulation"}
+    if adresse == WW_PROGRAMM_ADRESSE or _passt(mustername(eintrag), WARMWASSER):
+        return {**einordnung, "gruppe": "warmwasser", "art": "wasser"}
+    if teil.get("fct_type") == FCT_BUFFER:
+        return {**einordnung, "gruppe": "puffer", "art": "wasser"}
+    return einordnung
 
 
 def _programmsymbol(eintrag: dict[str, Any], teil: dict[str, Any]) -> str | None:
@@ -64,17 +90,20 @@ def _programmsymbol(eintrag: dict[str, Any], teil: dict[str, Any]) -> str | None
     hängt. Warmwasser und Zirkulation sitzen beide am Heizkreis und trugen
     deshalb dessen Heizkörper.
     """
-    name = mustername(eintrag)
-    if _passt(name, ZIRKULATIONSPROGRAMM) or trifft(
+    if _ist_zirkulation(eintrag):
+        return "mdi:reload"
+    if _passt(mustername(eintrag), WARMWASSER):
+        return "mdi:water-boiler"
+    return teil.get("symbol")
+
+
+def _ist_zirkulation(eintrag: dict[str, Any]) -> bool:
+    return _passt(mustername(eintrag), ZIRKULATIONSPROGRAMM) or trifft(
         eintrag,
         ZIRKULATIONSPROGRAMM,
         "dhw_circulation_program_time",
         "dhw_circulation_program_temperature",
-    ):
-        return "mdi:reload"
-    if _passt(name, WARMWASSER):
-        return "mdi:water-boiler"
-    return teil.get("symbol")
+    )
 
 
 def _auswahltext(wahl: dict[str, Any], wert: int, ersatz: str) -> str:
@@ -133,13 +162,18 @@ HEIZPROGRAMM_ADRESSEN = ("3/61", "3/62", "3/63")
 WW_PROGRAMM_ADRESSE = "5/61"
 
 
+# Vorlaufprogramme 1–3 (Infinity PLUS, DuoWIN). Sie gelten bei derselben Betriebswahl wie das
+# Raumprogramm gleicher Nummer; ob der Kreis Raum- oder Vorlaufwerte fährt, entscheidet `7/76`.
+VORLAUFPROGRAMM_ADRESSEN = ("58/78", "58/79", "58/80")
+
+
 def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str, str] | None:
     """Woran hängt, ob ein Programm des Heizkreises gerade gilt.
 
     `3/61`–`3/63` entsprechen den Werten 1–3 der Betriebswahl `3/50`, Standby ist 0.
     """
     adresse = programm.get("adresse")
-    if adresse not in (*HEIZPROGRAMM_ADRESSEN, WW_PROGRAMM_ADRESSE):
+    if adresse not in (*HEIZPROGRAMM_ADRESSEN, *VORLAUFPROGRAMM_ADRESSEN, WW_PROGRAMM_ADRESSE):
         return None
     wahl = eintrag_suchen(teil["entitaeten"], BETRIEBSWAHL, ("select", "sensor"), "mode_selection")
     if wahl is None:
@@ -153,7 +187,10 @@ def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[s
             "muster_nicht": _auswahltext(wahl, 0, "standby"),
             "hinweis": "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.",
         }
-    wert = HEIZPROGRAMM_ADRESSEN.index(adresse) + 1
+    nummern = (
+        HEIZPROGRAMM_ADRESSEN if adresse in HEIZPROGRAMM_ADRESSEN else VORLAUFPROGRAMM_ADRESSEN
+    )
+    wert = nummern.index(adresse) + 1
     return {
         "entity": wahl["entity_id"],
         "muster": _auswahltext(wahl, wert, programm.get("name") or ""),

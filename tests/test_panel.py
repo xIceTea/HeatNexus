@@ -564,6 +564,63 @@ def test_die_pufferwirkung_folgt_dem_auswahltext(panel):
 
     assert karte["wirkung"]["muster"] == "auto with time program"
     assert karte["wirkung"]["ziel"] == "Auto with time program"
+    assert karte["gruppe"] == "puffer"
+    assert karte["art"] == "wasser"
+
+
+def _kreis_mit_allen_programmen():
+    return teil(
+        "UMLZ HEIZKREIS",
+        14,
+        [
+            entitaet(
+                "select.betriebswahl", "Betriebswahl", adresse="3/50", optionen=BETRIEBSWAHL_TEXTE
+            ),
+            entitaet("sensor.programm_1", "Programm 1", adresse="3/61"),
+            entitaet("sensor.programm_3", "Programm 3", adresse="3/63"),
+            entitaet("sensor.vorlauf_2", "Programm 2 Vorlauftemperatur", adresse="58/79"),
+            entitaet("sensor.ww_programm", "WW-Programm", adresse="5/61"),
+            entitaet(
+                "sensor.zirkulation_zeit",
+                "WW-Zirkulationsprogramm",
+                adresse="5/65",
+                schluessel="dhw_circulation_program_time",
+            ),
+            entitaet(
+                "sensor.zirkulation_temperatur",
+                "WW-Zirkulationsprogramm",
+                adresse="5/64",
+                schluessel="dhw_circulation_program_temperature",
+            ),
+            entitaet("sensor.freigabezeit", "Zeitprogramm Freigabezeit", adresse="60/3"),
+        ],
+    )
+
+
+def test_zeitprogramme_tragen_gruppe_art_und_nummer(panel):
+    """Die Karte je Anlagenteil ordnet nach Gruppe und färbt nach Art."""
+    programme = panel.anlage_daten(anlage(_kreis_mit_allen_programmen()))["zeitprogramme"]
+    einordnung = {p["entity"]: (p.get("gruppe"), p.get("art"), p.get("nummer")) for p in programme}
+
+    assert einordnung == {
+        "sensor.programm_1": ("heizen", "raum", 1),
+        "sensor.programm_3": ("heizen", "raum", 3),
+        "sensor.vorlauf_2": ("heizen", "vorlauf", 2),
+        "sensor.ww_programm": ("warmwasser", "wasser", None),
+        "sensor.zirkulation_zeit": ("zirkulation", None, None),
+        "sensor.zirkulation_temperatur": ("zirkulation", "wasser", None),
+        "sensor.freigabezeit": (None, None, None),
+    }
+    assert {p["teil"] for p in programme} == {"geraet_UMLZ HEIZKREIS"}
+
+
+def test_ein_vorlaufprogramm_gilt_bei_der_betriebswahl_seiner_nummer(panel):
+    programme = panel.anlage_daten(anlage(_kreis_mit_allen_programmen()))["zeitprogramme"]
+    vorlauf = next(p for p in programme if p["entity"] == "sensor.vorlauf_2")
+
+    assert vorlauf["wirkung"]["entity"] == "select.betriebswahl"
+    assert vorlauf["wirkung"]["muster"] == "programm 2"
+    assert vorlauf["wirkung"]["ziel"] == "Programm 2"
 
 
 def test_eine_schreibgeschuetzte_betriebswahl_zeigt_das_gueltige_programm(panel):
