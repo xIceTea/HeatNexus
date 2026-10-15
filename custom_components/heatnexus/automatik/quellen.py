@@ -154,35 +154,47 @@ class QuellenMixin:
         self.pv_tage = {tag: wert for tag, wert in self.pv_tage.items() if tag > grenze}
 
     def sonnenquote(
-        self, tag: date, pv_sensor: str | None, heute: date | None = None
+        self,
+        tag: date,
+        pv_sensor: str | None,
+        heute: date | None = None,
+        ab: datetime | None = None,
     ) -> float | None:
-        """Sonnenquote eines Tages; Betrieb und Vorschau rechnen sie gleich."""
+        """Sonnenquote eines Tages; Betrieb und Vorschau rechnen sie gleich.
+
+        `ab` beschränkt die Bewölkung auf die restlichen Stunden; PV-Prognosen gelten je Tag.
+        """
         heute = heute or dt_util.now().date()
+        breite = self.hass.config.latitude
         if self.konfig.get("pv_ist") and self.werte.anpassen:
             quote = korrektur.sonnenquote_korrigiert(
                 self.kwh(pv_sensor),
                 self.pv.faktor(self.werte.lernfenster, heute),
-                self.pv.bester_ist(heute),
+                self.pv.bester_ist(heute, breite, tag),
             )
             if quote is not None:
                 return quote
-        bisher = [wert for datum, wert in self.pv_tage.items() if datum != heute.isoformat()]
+        bisher = korrektur.auf_heute(
+            {datum: wert for datum, wert in self.pv_tage.items() if datum != heute.isoformat()},
+            tag,
+            breite,
+        )
         if (quote := eingaben.sonnenquote_aus_pv(self.zahl(pv_sensor), bisher)) is not None:
             return quote
         aufgang, untergang = self.sonne(tag)
         if aufgang is None or untergang is None:
             return None
-        return self.quote_aus_bewoelkung(tag, aufgang, untergang)
+        return self.quote_aus_bewoelkung(tag, aufgang, untergang, ab)
 
     def quote_aus_bewoelkung(
-        self, tag: date, aufgang: datetime, untergang: datetime
+        self, tag: date, aufgang: datetime, untergang: datetime, ab: datetime | None = None
     ) -> float | None:
-        # Aus allen Stunden des Tages, auch den schon vergangenen aus dem Verlauf.
+        # Aus den Stunden des Tages, mit `ab` nur aus denen, die noch kommen.
         stunden = [
             (aufgang.replace(hour=stunde, minute=0, second=0, microsecond=0), werte["wolken"])
             for stunde, werte in self.stundenprognose(tag).items()
         ]
-        return eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang)
+        return eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang, ab)
 
     def _lieferbeginn(self) -> None:
         """Einmal am Tag sofort entscheiden, statt bis zur nächsten Entscheidungszeit zu warten."""

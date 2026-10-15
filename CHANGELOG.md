@@ -28,6 +28,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Nach einer Quittung oder einem Eingriff am Kessel erscheinen die neuen Werte sofort.
 - Hilfetexte, Rückfragen und Prüfmeldungen erscheinen auf Englisch und Niederländisch ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
 - Die Warmwasser-Taste rechnet mit der eingestellten Einschalthysterese statt mit 5 K.
+- Die Sonnenquote der Automatik zählt nur die restlichen Stunden des Tages.
+- Die Sonnenquote aus PV-Erträgen rechnet den Sonnenstand der Jahreszeit heraus.
 - Die Automatik meldet bei langem Abfrageintervall keinen Handeingriff mehr ohne Grund ([#22](https://github.com/xIceTea/HeatNexus/issues/22)).
 
 ## [1.14.0-beta.2]

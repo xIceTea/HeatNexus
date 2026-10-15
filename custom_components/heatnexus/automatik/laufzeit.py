@@ -1259,7 +1259,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             aus=tuple(m.ist for m in messungen if m.aus),
             raum_art=self.konfig["raum_art"],
             ruhig=self._ruhig(jetzt),
-            sonnenquote=self.sonnenquote(jetzt.date(), self.konfig.get("pv"), jetzt.date()),
+            sonnenquote=self.sonnenquote(jetzt.date(), self.konfig.get("pv"), jetzt.date(), jetzt),
             mittel_heute=self.tagesmittel(jetzt.date(), jetzt.date()),
             mittel_morgen=self.tagesmittel(jetzt.date() + timedelta(days=1), jetzt.date()),
             minimum_bis_morgen=eingaben.minimum_bis_morgen(self._stundenwerte(jetzt), jetzt),

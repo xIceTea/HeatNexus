@@ -53,6 +53,17 @@ def test_sonnenquote_ohne_prognose_ist_unbekannt(eingaben):
     assert eingaben.sonnenquote_aus_bewoelkung([(tag, None)], tag, tag + timedelta(hours=1)) is None
 
 
+def test_sonnenquote_zaehlt_nur_die_restlichen_hellen_stunden(eingaben):
+    tag = datetime(2026, 9, 27, tzinfo=UTC)
+    stunden = [(tag + timedelta(hours=h), 100.0 if h < 13 else 0.0) for h in range(24)]
+    aufgang, untergang = tag + timedelta(hours=7), tag + timedelta(hours=19)
+    assert eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang) == 50.0
+    ab = tag + timedelta(hours=13, minutes=40)
+    assert eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang, ab=ab) == 100.0
+    nach = tag + timedelta(hours=19, minutes=5)
+    assert eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang, ab=nach) is None
+
+
 def test_pv_quote_braucht_eine_woche_vergleich(eingaben):
     assert eingaben.sonnenquote_aus_pv(5.0, [8.0] * 6) is None
     assert eingaben.sonnenquote_aus_pv(4.0, [8.0] * 7) == 50.0

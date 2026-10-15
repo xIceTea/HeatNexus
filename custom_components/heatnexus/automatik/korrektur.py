@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from datetime import date, datetime, timedelta
+import math
 from typing import Any
 
 FENSTER_MAX = 14
@@ -26,6 +27,34 @@ PLAUSIBEL = 10.0
 
 def _stunde(zeit: datetime) -> str:
     return zeit.strftime("%Y-%m-%dT%H")
+
+
+def klarer_tag(breite: float, tag: date) -> float:
+    """Tagessumme der Strahlung über der Atmosphäre, relativ; misst, was die Jahreszeit erlaubt."""
+    n = tag.timetuple().tm_yday
+    phi = math.radians(breite)
+    delta = math.radians(23.45) * math.sin(2 * math.pi * (284 + n) / 365)
+    omega = math.acos(max(-1.0, min(1.0, -math.tan(phi) * math.tan(delta))))
+    abstand = 1 + 0.033 * math.cos(2 * math.pi * n / 365)
+    return abstand * (
+        math.cos(phi) * math.cos(delta) * math.sin(omega) + omega * math.sin(phi) * math.sin(delta)
+    )
+
+
+def auf_heute(werte: Mapping[str, float], tag: date, breite: float | None) -> list[float]:
+    """Erträge vergangener Tage, umgerechnet auf den Sonnenstand von `tag`."""
+    if breite is None:
+        return list(werte.values())
+    jetzt = klarer_tag(breite, tag)
+    aus = []
+    for datum, wert in werte.items():
+        try:
+            damals = klarer_tag(breite, date.fromisoformat(datum))
+        except ValueError:
+            continue
+        if damals > 0:
+            aus.append(wert * jetzt / damals)
+    return aus
 
 
 def _begrenzt(wert: float, grenze: float) -> float:
@@ -162,9 +191,17 @@ class Pvkorrektur:
         faktor = sum(ist for _, ist in paare) / sum(prognose for prognose, _ in paare)
         return round(max(FAKTOR_MIN, min(FAKTOR_MAX, faktor)), 3)
 
-    def bester_ist(self, heute: date) -> float | None:
-        """Höchster Ist-Ertrag der vergangenen Tage – der Maßstab für einen klaren Tag."""
-        werte = [w["ist"] for d, w in self._tage.items() if d < heute.isoformat() and w["ist"]]
+    def bester_ist(
+        self, heute: date, breite: float | None = None, tag: date | None = None
+    ) -> float | None:
+        """Höchster Ist-Ertrag vor `heute` – der Maßstab für einen klaren Tag.
+
+        Mit `breite` zählt jeder Tag umgerechnet auf den Sonnenstand von `tag` (sonst `heute`).
+        """
+        vergangen = {
+            d: w["ist"] for d, w in self._tage.items() if d < heute.isoformat() and w["ist"]
+        }
+        werte = auf_heute(vergangen, tag or heute, breite)
         return max(werte) if werte else None
 
     def als_dict(self) -> dict[str, Any]:

@@ -149,9 +149,14 @@ def vorrang_tage(minuten_je_tag: Mapping[str, float], heute: date, schwelle: flo
 
 
 def sonnenquote_aus_bewoelkung(
-    stunden: list[tuple[datetime, float | None]], aufgang: datetime, untergang: datetime
+    stunden: list[tuple[datetime, float | None]],
+    aufgang: datetime,
+    untergang: datetime,
+    ab: datetime | None = None,
 ) -> float | None:
-    """100 minus mittlere Bewölkung der Stunden zwischen Auf- und Untergang."""
+    """100 minus mittlere Bewölkung der hellen Stunden; mit `ab` nur der Rest des Tages."""
+    if ab is not None:
+        aufgang = max(aufgang, ab.replace(minute=0, second=0, microsecond=0))
     werte = [
         wolken for zeit, wolken in stunden if wolken is not None and aufgang <= zeit < untergang
     ]

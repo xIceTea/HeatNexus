@@ -116,6 +116,38 @@ def test_pv_faktor_aus_ist_und_prognose(k):
     assert korrektur.bester_ist(heute) == pytest.approx(8.8)
 
 
+def test_klarer_tag_folgt_der_jahreszeit(k):
+    sommer = k.klarer_tag(48.0, START.date().replace(month=6, day=21))
+    winter = k.klarer_tag(48.0, START.date().replace(month=12, day=21))
+    assert 4.0 < sommer / winter < 5.5
+
+
+def test_bester_tag_wird_auf_den_sonnenstand_von_heute_umgerechnet(k):
+    korrektur = pv_tage(k, 7, 10.0, 8.8)
+    heute = (START + timedelta(days=7)).date()
+    spaeter = heute.replace(month=heute.month + 1) if heute.month < 12 else heute
+    roh = korrektur.bester_ist(spaeter)
+    umgerechnet = korrektur.bester_ist(spaeter, breite=48.0)
+    assert roh == pytest.approx(8.8)
+    assert umgerechnet != pytest.approx(roh)
+    erwartet = max(
+        8.8 * k.klarer_tag(48.0, spaeter) / k.klarer_tag(48.0, (START + timedelta(days=t)).date())
+        for t in range(7)
+    )
+    assert umgerechnet == pytest.approx(erwartet)
+
+
+def test_vergangene_tage_auf_heute_umrechnen(k):
+    heute = START.date().replace(month=11, day=15)
+    september = START.date().replace(month=9, day=15)
+    werte = k.auf_heute({september.isoformat(): 10.0}, heute, 48.0)
+    assert werte == [
+        pytest.approx(10.0 * k.klarer_tag(48.0, heute) / k.klarer_tag(48.0, september))
+    ]
+    assert werte[0] < 10.0
+    assert k.auf_heute({september.isoformat(): 10.0}, heute, None) == [10.0]
+
+
 def test_pv_faktor_braucht_tage_und_zaehlt_heute_nicht(k):
     korrektur = pv_tage(k, 7, 10.0, 8.8)
     assert korrektur.faktor(14, (START + timedelta(days=6)).date()) is None
