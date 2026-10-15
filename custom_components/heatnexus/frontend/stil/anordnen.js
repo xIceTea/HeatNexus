@@ -26,9 +26,11 @@ export const ANORDNEN = `
   }
   .anordnen-taste ha-icon { --mdc-icon-size: 18px; }
   /* Die Spaltenwahl sieht aus wie die Anlagenwahl oben – gleiche Geste. */
-  /* Umbrechend statt überlaufend: Auf einem Telefon stehen sechs Farbsätze
-     nicht nebeneinander, und was rechts hinausläuft, ist nicht erreichbar. */
+  /* Umbrechend statt überlaufend: Was auf einem Telefon rechts hinausläuft,
+     ist nicht erreichbar. */
   .spaltenwahl { display: flex; flex-wrap: wrap; gap: 4px; max-width: 100%; }
+  .spalten-feld { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .wahl-name { font-size: 13px; font-weight: 600; color: var(--hn-gedaempft); }
   .spaltenwahl button {
     min-width: 34px; padding: 7px 10px; border-radius: 999px;
     font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;

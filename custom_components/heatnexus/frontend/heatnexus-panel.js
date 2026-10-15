@@ -43,11 +43,13 @@ import { VerlaufMixin } from "./teile/verlauf.js";
 import { WartungMixin } from "./teile/wartung.js";
 import { WerteMixin } from "./teile/werte.js";
 import { ZeitprogrammeMixin } from "./teile/zeitprogramme.js";
+import { DarstellungMixin } from "./teile/darstellung.js";
+import { GemeinsamMixin } from "./teile/gemeinsam.js";
 
 /** Das Stylesheet wird je Seitensitzung einmal geparst und von allen Instanzen geteilt. */
 const STILBOGEN = { bogen: null };
 
-const Grundlage = HilfeMixin(
+const Grundlage = GemeinsamMixin(HilfeMixin(
   ZeitprogrammeMixin(
     WartungMixin(
       VerlaufMixin(
@@ -57,7 +59,7 @@ const Grundlage = HilfeMixin(
               TagesbildMixin(
                 SteuerungMixin(
                   UebersichtMixin(StoerspeicherMixin(
-                    SchaubildMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))
+                    SchaubildMixin(DarstellungMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement))))))
                   ))
                 )
               )
@@ -67,7 +69,7 @@ const Grundlage = HilfeMixin(
       )
     )
   )
-);
+));
 
 class HeatNexusPanel extends Grundlage {
   constructor() {
@@ -241,7 +243,7 @@ class HeatNexusPanel extends Grundlage {
       const neu = (await this._hass.callWS({ type: "heatnexus/anordnung" })) || {};
       const geaendert = !this._inhaltGleich(neu, this._anordnung);
       this._anordnung = neu;
-      this._farbsatzMerken(this._einstellungen().farbsatz);
+      this._einstellungenMerken();
       if (!geaendert && this._gebaut) return;
       this._gebaut = false;
       this._zeichnen();
@@ -394,13 +396,14 @@ class HeatNexusPanel extends Grundlage {
     const leiste = document.createElement("div");
     leiste.className = "leiste";
     leiste.append(this._kopfleiste(anlage), this._reiterleiste());
-    // Beim Anordnen steht die Leiste mit im Kasten, damit Spalten und Farbsatz beim Blättern erreichbar bleiben.
+    // Beim Anordnen steht die Leiste mit im Kasten, damit Spalten und „Fertig“ beim Blättern erreichbar bleiben.
     if (this._anordnen) leiste.appendChild(this._anordnenLeiste());
     inhalt.appendChild(leiste);
     const flaechen = [];
-    if (this._alleAnlagen() && (this._reiter === "automatik" || this._reiter === "befund")) {
-      flaechen.push(this._reiter === "automatik" ? this._automatikAlle() : this._befundAlle());
-      inhalt.appendChild(flaechen[0]);
+    const gemeinsam = this._alleAnlagen() && this._gemeinsameFlaeche();
+    if (gemeinsam) {
+      flaechen.push(gemeinsam);
+      inhalt.appendChild(gemeinsam);
     } else if (this._alleAnlagen()) {
       if (this._reiter === "zeitprogramme") inhalt.appendChild(this._zeitprogrammeHeute());
       this._anlagen().forEach((eintrag) => {
@@ -435,27 +438,8 @@ class HeatNexusPanel extends Grundlage {
     leiste.className = "kopfleiste";
 
     // Auf schmalen Bildschirmen verdeckt das Panel die Seitenleiste; über
-    // diese Taste kommt sie zurück. Das Ereignis ist dasselbe, das die
-    // eigenen Ansichten von Home Assistant benutzen – es muss den
-    // Schattenbaum verlassen, daher `composed`.
-    const menue = document.createElement("button");
-    menue.className = "menue-taste";
-    menue.type = "button";
-    menue.title = "Seitenleiste anzeigen (Karten, Energie, Einstellungen)";
-    menue.setAttribute("aria-label", "Seitenleiste anzeigen");
-    // Das eigene Symbol statt eines Hamburgers: Es ist zugleich der Weg
-    // zurueck in die uebrigen Ansichten von Home Assistant - auf dem Handy
-    // sonst nur ueber eine Wischgeste erreichbar.
-    menue.appendChild(this._symbolKnoten("mdi:radiator"));
-    menue.addEventListener("click", () => {
-      this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
-    });
-    leiste.appendChild(menue);
-
-    const marke = document.createElement("div");
-    marke.className = "marke";
-    marke.textContent = this._t("HeatNexus");
-    leiste.appendChild(marke);
+    // das Zeichen oder die Menütaste davor kommt sie zurück.
+    leiste.append(...this._kopfanfang());
 
     const abstand = document.createElement("div");
     abstand.className = "abstand";
@@ -569,6 +553,7 @@ class HeatNexusPanel extends Grundlage {
       this._anordnen ? "mdi:check" : "mdi:view-dashboard-edit-outline",
       () => this._anordnenUmschalten()
     );
+    eintrag("Darstellung", "mdi:palette-outline", () => this._darstellungOeffnen());
     // Die Vorlage taugt nur dem, der Dashboards anlegen darf.
     if (this._hass && this._hass.user && this._hass.user.is_admin) {
       eintrag("Dashboard-Vorlage", "mdi:code-braces", () => this._dashboardVorlageOeffnen());
@@ -746,38 +731,24 @@ class HeatNexusPanel extends Grundlage {
   }
 
   _inhalt(anlage) {
+    const { karten, leer } = this._reiterKarten(anlage);
+    return this._raster(anlage, karten, leer);
+  }
+
+  /** Die Karten des offenen Reiters für eine Anlage, dazu der Text, falls keine da ist. */
+  _reiterKarten(anlage) {
     // Die Karten holen ihre Erklärung über den Titel.
     this._hilfe = anlage.hilfe || {};
-    if (this._reiter === "steuerung") {
-      return this._raster(anlage, this._steuerung(anlage), "Keine bedienbaren Werte gefunden.");
-    }
-    if (this._reiter === "automatik") {
-      return this._raster(anlage, this._automatikReiter(anlage), "Keine Heizkreise gefunden.");
-    }
-    if (this._reiter === "befund") {
-      return this._raster(anlage, this._befundReiter(anlage), "Für diese Anlage liegt noch keine Auswertung vor.");
-    }
-    if (this._reiter === "wartung") {
-      return this._raster(anlage, this._wartung(anlage), "Keine Wartungswerte gefunden.");
-    }
-    if (this._reiter === "verlauf") {
-      return this._raster(
-        anlage,
-        this._verlaufReiter(anlage),
-        "Keine Werte für einen Verlauf gefunden."
-      );
-    }
-    if (this._reiter === "zeitprogramme") {
-      return this._raster(
-        anlage,
-        this._zeitprogrammeReiter(anlage),
-        "Diese Anlage meldet keine Zeitprogramme."
-      );
-    }
-    if (this._reiter === "hilfe") {
-      return this._raster(anlage, this._hilfeReiter(anlage), "Keine Erklärungen gefunden.");
-    }
-    return this._raster(anlage, this._uebersicht(anlage), "Keine Werte gefunden.");
+    const reiter = {
+      steuerung: [() => this._steuerung(anlage), "Keine bedienbaren Werte gefunden."],
+      automatik: [() => this._automatikReiter(anlage), "Keine Heizkreise gefunden."],
+      befund: [() => this._befundReiter(anlage), "Für diese Anlage liegt noch keine Auswertung vor."],
+      wartung: [() => this._wartung(anlage), "Keine Wartungswerte gefunden."],
+      verlauf: [() => this._verlaufReiter(anlage), "Keine Werte für einen Verlauf gefunden."],
+      zeitprogramme: [() => this._zeitprogrammeReiter(anlage), "Diese Anlage meldet keine Zeitprogramme."],
+      hilfe: [() => this._hilfeReiter(anlage), "Keine Erklärungen gefunden."],
+    }[this._reiter] || [() => this._uebersicht(anlage), "Keine Werte gefunden."];
+    return { karten: reiter[0](), leer: reiter[1] };
   }
 
   // -------------------------------------------------------------------

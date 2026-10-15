@@ -343,6 +343,7 @@ was dort steht, lädt der Browser genau so.
 | `ordnung.js` | Reihenfolge der Karten und Zeitkonstanten – dieselbe Rechnung wie `anordnung.py` auf dem Server |
 | `zeitprogramm.js` | Zeitprogramme: Abschnitte, Farbskala, nächster Wechsel, Prüfung, Nutzlast, Wochenraster, Editor |
 | `zeitprogrammseite.js` | Reiter Zeitprogramme: Gruppen je Anlagenteil, Text im Heute-Streifen, Legende |
+| `zeichen.js` | das HeatNexus-Zeichen als SVG für Kopfzeile und Fenster „Darstellung“ |
 | `teile/*.js` | die Abschnitte der Oberfläche, je einer als Mixin |
 
 Ein Web-Component ist **eine** Klasse. Um sie trotzdem auf mehrere Dateien zu

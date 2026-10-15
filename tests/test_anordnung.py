@@ -181,8 +181,8 @@ ANORDNUNG_PY = (
 )
 
 
-def _reiter_der_serverseite() -> list[str]:
-    """`REITER` aus ``anordnung.py`` lesen, ohne das Modul zu laden.
+def _liste_der_serverseite(name: str = "REITER") -> list[str]:
+    """Eine Liste aus ``anordnung.py`` lesen, ohne das Modul zu laden.
 
     Das Modul zieht Home Assistant nach; hier geht es allein um eine Liste
     von Zeichenketten. Über den Syntaxbaum gelesen läuft die Prüfung auch
@@ -190,9 +190,9 @@ def _reiter_der_serverseite() -> list[str]:
     """
     baum = ast.parse(ANORDNUNG_PY.read_text(encoding="utf-8"))
     for knoten in baum.body:
-        if isinstance(knoten, ast.Assign) and getattr(knoten.targets[0], "id", "") == "REITER":
+        if isinstance(knoten, ast.Assign) and getattr(knoten.targets[0], "id", "") == name:
             return list(ast.literal_eval(knoten.value))
-    raise AssertionError("REITER steht nicht mehr in anordnung.py")
+    raise AssertionError(f"{name} steht nicht mehr in anordnung.py")
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
@@ -211,12 +211,30 @@ def test_jeder_reiter_der_oberflaeche_darf_gespeichert_werden(tmp_path):
     )
     ausgabe = subprocess.run(["node", str(skript)], capture_output=True, text=True, check=True)
     im_browser = json.loads(ausgabe.stdout)
-    am_server = _reiter_der_serverseite()
+    am_server = _liste_der_serverseite()
 
     assert not set(im_browser) - set(am_server), (
         "Reiter der Oberfläche ohne Gegenstück in anordnung.REITER: "
         f"{sorted(set(im_browser) - set(am_server))}"
     )
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
+def test_jede_wahl_der_darstellung_darf_gespeichert_werden(tmp_path):
+    """Kopfzeile, Seitenleiste und „Alle“ bieten an, was ``anordnung.py`` per ``vol.In`` annimmt."""
+    skript = tmp_path / "darstellung.mjs"
+    skript.write_text(
+        f'import {{ DARSTELLUNG }} from "{ORDNUNG_JS.resolve().as_uri()}";\n'
+        "console.log(JSON.stringify(Object.fromEntries(Object.entries(DARSTELLUNG)"
+        ".map(([k, stile]) => [k, stile.map((s) => s.schluessel)]))));\n",
+        encoding="utf-8",
+    )
+    ausgabe = subprocess.run(["node", str(skript)], capture_output=True, text=True, check=True)
+    im_browser = json.loads(ausgabe.stdout)
+
+    assert im_browser["kopf"] == _liste_der_serverseite("KOPFSTILE")
+    assert im_browser["menue"] == _liste_der_serverseite("MENUESTILE")
+    assert im_browser["alle"] == _liste_der_serverseite("ALLESTILE")
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")

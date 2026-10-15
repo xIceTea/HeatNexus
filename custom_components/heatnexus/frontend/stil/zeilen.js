@@ -23,6 +23,17 @@ export const ZEILEN = `
   .betriebsart-klein.heizt { color: #ffab6f; }
   .betriebsart-klein.abgesenkt { color: var(--hn-akzent); }
   .kreis-symbole { display: flex; gap: 10px; margin-left: 12px; }
+  /* Abweichung der Automatik unter der Betriebsart; Sonne warm, alles andere im Akzent. */
+  .automatik-abzeichen {
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 2px 8px 2px 6px;
+    border: none; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    color: var(--hn-akzent); background: color-mix(in srgb, var(--hn-akzent) 15%, transparent);
+    --mdc-icon-size: 15px;
+  }
+  .automatik-abzeichen[hidden] { display: none; }
+  .automatik-abzeichen[data-zustand="sonnentag"] {
+    color: var(--hn-sonne); background: color-mix(in srgb, var(--hn-sonne) 16%, transparent);
+  }
   .kreis-symbole ha-icon { --mdc-icon-size: 20px; opacity: 0.7; }
   .kreis-symbole ha-icon.heizt { color: #ffab6f; opacity: 1; }
   .kreis-symbole ha-icon.abgesenkt { color: var(--hn-akzent); opacity: 1; }

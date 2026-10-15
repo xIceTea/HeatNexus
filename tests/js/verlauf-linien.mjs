@@ -86,6 +86,23 @@ bilanz.suche = {
   nichts: (tippen(karte, "xyz"), vorschlaege(karte)),
 };
 
+// Ohne Suchbegriff zeigen ein Klick ins Feld, die Taste daneben und Pfeil nach unten alle freien Linien.
+const suchfeld = tippen(karte, "");
+suchfeld.ausloesen("keydown", { key: "Escape" });
+const offen = () => !karte.querySelector(".linien-vorschlaege").hidden;
+const aufklappen = karte.querySelector(".linien-aufklappen");
+const zuBeginn = offen();
+suchfeld.ausloesen("click");
+const perKlick = vorschlaege(karte);
+aufklappen.ausloesen("mousedown");
+const zweiterDruck = offen();
+aufklappen.ausloesen("mousedown");
+const perTaste = vorschlaege(karte);
+suchfeld.ausloesen("keydown", { key: "Escape" });
+suchfeld.ausloesen("keydown", { key: "ArrowDown" });
+bilanz.aufklappen = { zuBeginn, perKlick, zweiterDruck, perTaste, perPfeil: vorschlaege(karte) };
+suchfeld.ausloesen("keydown", { key: "Escape" });
+
 // Escape schließt die Liste.
 const feld = tippen(karte, "e");
 const offenVorEscape = !karte.querySelector(".linien-vorschlaege").hidden;

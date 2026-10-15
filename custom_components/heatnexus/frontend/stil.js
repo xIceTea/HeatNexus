@@ -21,6 +21,7 @@ import { SCHAUBILD } from "./stil/schaubild.js";
 import { TASTEN } from "./stil/tasten.js";
 import { STEUERUNG } from "./stil/steuerung.js";
 import { DIALOG } from "./stil/dialog.js";
+import { DARSTELLUNG } from "./stil/darstellung.js";
 import { ZEITPROGRAMME } from "./stil/zeitprogramme.js";
 import { ALLGEMEIN } from "./stil/allgemein.js";
 import { HILFE } from "./stil/hilfe.js";
@@ -39,6 +40,7 @@ export const STIL = [
   TASTEN,
   STEUERUNG,
   DIALOG,
+  DARSTELLUNG,
   ZEITPROGRAMME,
   ALLGEMEIN,
   HILFE,

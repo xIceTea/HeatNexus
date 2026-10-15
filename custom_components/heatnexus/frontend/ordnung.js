@@ -100,10 +100,35 @@ export const REITER = [
 // auf der Serverseite - was hier gewählt wird, muss dort gespeichert werden
 // können. Die Werte stehen in `PALETTEN` und gelten für Oberfläche und
 // Schaubild gemeinsam.
-// Wo der zuletzt gewählte Farbsatz im Browser liegt. Er wird gebraucht, bevor
-// die Einstellungen vom Server da sind – der erste Aufbau soll nicht im
-// Standardanstrich stehen und dann umspringen.
-export const FARBSATZ_SPEICHER = "heatnexus.farbsatz";
+
+// Marke in der Kopfzeile, Weg zur Seitenleiste und Ansicht „Alle“. Die Schlüssel
+// decken sich mit `KOPFSTILE`, `MENUESTILE` und `ALLESTILE` in `anordnung.py`.
+export const KOPFSTILE = [
+  { schluessel: "standard", titel: "Standard", hinweis: "Zeichen, Name und Hersteller", farbig: false, unterzeile: true },
+  { schluessel: "schlicht", titel: "Schlicht", hinweis: "Zeichen und Name ohne Hersteller", farbig: false, unterzeile: false },
+  {
+    schluessel: "farbig",
+    titel: "Farbig",
+    hinweis: "Name in den Farben des Zeichens, Hersteller darunter",
+    farbig: true,
+    unterzeile: true,
+  },
+  {
+    schluessel: "farbig_schlicht",
+    titel: "Farbig schlicht",
+    hinweis: "Nur der Name in den Farben des Zeichens",
+    farbig: true,
+    unterzeile: false,
+  },
+];
+export const MENUESTILE = [
+  { schluessel: "zeichen", titel: "Über das Zeichen", hinweis: "Ein Klick auf das Zeichen öffnet die Seitenleiste" },
+  { schluessel: "taste", titel: "Eigene Menütaste", hinweis: "Eine Menütaste steht vor dem Zeichen" },
+];
+export const ALLESTILE = [
+  { schluessel: "getrennt", titel: "Getrennt", hinweis: "Jede Anlage für sich, untereinander" },
+  { schluessel: "zusammen", titel: "Zusammen", hinweis: "Gleiche Karten in einem Rahmen, ein Abschnitt je Anlage" },
+];
 
 // Wo der zuletzt gelesene Aufbau der Schaubild-Karte liegt. Ohne ihn steht die
 // Karte beim Öffnen leer, bis die Anlagendaten über WebSocket da sind.
@@ -121,6 +146,16 @@ export const FARBSAETZE = [
   { schluessel: "petrol", titel: "Petrol", hinweis: "Ruhiges Dunkel mit Petrolgrün" },
   { schluessel: "pflaume", titel: "Pflaume", hinweis: "Dunkles Violett mit Pflaume" },
 ];
+
+// Die Einstellungen im Fenster „Darstellung“: Schlüssel am Server, dazu die
+// erlaubten Werte. Der Browser merkt sich jede Wahl, weil der erste Aufbau
+// vor den Einstellungen vom Server steht und sonst umspringen würde.
+export const DARSTELLUNG = { farbsatz: FARBSAETZE, kopf: KOPFSTILE, menue: MENUESTILE, alle: ALLESTILE };
+
+/** Wo eine Wahl der Darstellung im Browser liegt. */
+export function darstellungSpeicher(schluessel) {
+  return `heatnexus.${schluessel}`;
+}
 
 // Wie groß die Marken im Schaubild stehen. Der Faktor wirkt auf die Schrift,
 // nicht auf die Zeichnung – die bleibt im Maßstab der Karte.
@@ -318,5 +353,76 @@ export function ordnungAnwenden(standard, gespeichert) {
     (gespeichert || []).filter((kennung) => vorhanden.has(kennung)),
     standard
   );
+}
+
+/** Die Art einer Karte: ihre Kennung ohne Anlage davor und ohne Gerät dahinter. */
+export function kartenart(kennung) {
+  return kennung.slice(kennung.indexOf("|") + 1).split(":")[0];
+}
+
+/** Karten gleicher Art zusammenrücken; Arten und Karten behalten die Folge ihrer ersten Nennung. */
+export function nachArtOrdnen(reihenfolge) {
+  const jeArt = new Map();
+  reihenfolge.forEach((kennung) => {
+    const art = kartenart(kennung);
+    if (!jeArt.has(art)) jeArt.set(art, []);
+    jeArt.get(art).push(kennung);
+  });
+  return [...jeArt.values()].flat();
+}
+
+/** Einen Eintrag um einen Platz schieben; am Rand kommt dieselbe Liste zurück. */
+export function schritt(liste, eintrag, richtung) {
+  const stelle = liste.indexOf(eintrag);
+  const ziel = stelle + richtung;
+  if (stelle < 0 || ziel < 0 || ziel >= liste.length) return liste;
+  const neu = [...liste];
+  neu.splice(ziel, 0, neu.splice(stelle, 1)[0]);
+  return neu;
+}
+
+/** Einen Eintrag vor oder hinter ein Ziel legen; fehlt das Ziel, kommt dieselbe Liste zurück. */
+export function ablegen(liste, eintrag, ziel, davor) {
+  const ohne = liste.filter((vorhanden) => vorhanden !== eintrag);
+  const stelle = ohne.indexOf(ziel);
+  if (stelle < 0) return liste;
+  ohne.splice(davor ? stelle : stelle + 1, 0, eintrag);
+  return ohne;
+}
+
+/** Eine nach Art geordnete Folge in ihre Gruppen zerlegen, je Art eine Liste. */
+function artGruppen(reihenfolge) {
+  const gruppen = [];
+  let letzteArt = null;
+  reihenfolge.forEach((kennung) => {
+    const art = kartenart(kennung);
+    if (gruppen.length && art === letzteArt) gruppen[gruppen.length - 1].push(kennung);
+    else gruppen.push([kennung]);
+    letzteArt = art;
+  });
+  return gruppen;
+}
+
+/** Eine Karte um einen Platz schieben; am Rand ihrer Gruppe wandert die ganze Gruppe. Ohne Wirkung die alte Folge. */
+export function artSchritt(reihenfolge, kennung, richtung) {
+  const gruppen = artGruppen(reihenfolge);
+  const gruppe = gruppen.find((liste) => liste.includes(kennung));
+  if (!gruppe) return reihenfolge;
+  const innen = schritt(gruppe, kennung, richtung);
+  const neu = innen !== gruppe ? gruppen.map((liste) => (liste === gruppe ? innen : liste)) : schritt(gruppen, gruppe, richtung);
+  return neu === gruppen ? reihenfolge : neu.flat();
+}
+
+/** Eine Karte vor oder hinter eine andere legen; liegt das Ziel in einer anderen Art, wandert die ganze Gruppe. */
+export function artAblegen(reihenfolge, kennung, ziel, davor) {
+  const gruppen = artGruppen(reihenfolge);
+  const von = gruppen.find((liste) => liste.includes(kennung));
+  const nach = gruppen.find((liste) => liste.includes(ziel));
+  if (!von || !nach) return reihenfolge;
+  const neu =
+    von === nach
+      ? gruppen.map((liste) => (liste === von ? ablegen(liste, kennung, ziel, davor) : liste))
+      : ablegen(gruppen, von, nach, davor);
+  return neu.flat();
 }
 

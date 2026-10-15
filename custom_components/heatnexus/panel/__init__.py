@@ -29,10 +29,12 @@ from typing import Any
 from homeassistant.components import frontend, websocket_api
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 import voluptuous as vol
 
 from ..anordnung import async_register_anordnung
 from ..auslieferung import async_dateien_ausliefern, async_fassung
+from ..automatik.verwaltung import unique_id as automatik_kennung
 from ..automatik.websocket import async_register_automatik
 from ..befund.websocket import async_register_befund
 from ..bezeichnung import async_register_bezeichnung
@@ -162,6 +164,15 @@ def _ohne_hilfe(anlage: dict[str, Any]) -> None:
         wasser["taste"].pop("hilfe", None)
 
 
+def _automatik_zuordnen(hass: HomeAssistant, nutzdaten: dict[str, Any]) -> None:
+    """Jeder Heizkreis der Übersicht erfährt den Zustandssensor seiner Automatik, falls eingerichtet."""
+    register = er.async_get(hass)
+    for kreis in nutzdaten.get("heizkreise") or []:
+        kreis["automatik"] = register.async_get_entity_id(
+            "sensor", DOMAIN, automatik_kennung(kreis.pop("geraet"), "zustand")
+        )
+
+
 def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     """Die vollständige Struktur für die Oberfläche.
 
@@ -179,6 +190,7 @@ def panel_daten(hass: HomeAssistant, benutzer: Any = None) -> dict[str, Any]:
     for anlage in anlagen_lesen(hass, benutzer):
         buch = woerterbuch_der_anlage(hass, anlage)
         nutzdaten = anlage_daten(anlage, aussen, *marken.get(anlage.get("id"), ((), ())), buch=buch)
+        _automatik_zuordnen(hass, nutzdaten)
         if not mit_hilfe:
             # Abgewählt: Die Texte gar nicht erst mitschicken.
             _ohne_hilfe(nutzdaten)

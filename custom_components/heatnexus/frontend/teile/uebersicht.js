@@ -20,6 +20,18 @@ import {
 } from "../ordnung.js";
 import { uhrzeitText } from "./zeit.js";
 
+// Symbol je Zustand der Automatik (`automatik_zustand`), für das Abzeichen am Heizkreis.
+const AUTOMATIK_SYMBOLE = {
+  sonnentag: "mdi:weather-sunny",
+  heizpause: "mdi:pause-circle-outline",
+  nur_ww: "mdi:water-boiler",
+  abwesend: "mdi:home-export-outline",
+  pausiert: "mdi:timer-pause-outline",
+  fenster: "mdi:window-open-variant",
+  sicherheit: "mdi:shield-alert-outline",
+  keine_daten: "mdi:cloud-question-outline",
+};
+
 // Großes Symbol und Abzeichen je Stufe, in den Farben der Meldungsarten von Windhager:
 // Info blau, Fehler gelb, Alarm rot.
 const STUFEN = {
@@ -209,6 +221,7 @@ export const UebersichtMixin = (Basis) =>
     const unten = document.createElement("div");
     unten.className = "betriebsart-klein";
     text.append(oben, unten);
+    if (kreis.automatik) text.appendChild(this._automatikAbzeichen(kreis.automatik));
 
     const rechts = document.createElement("div");
     rechts.className = "rechts";
@@ -248,6 +261,37 @@ export const UebersichtMixin = (Basis) =>
       uhr.style.display = kreis.programm ? "" : "none";
     });
     return this._klickbar(zeile, kreis.entity);
+  }
+
+  /**
+   * Was die Automatik am Kreis gerade anders macht, etwa Sonnentag oder Heizpause.
+   * Im Programm bleibt das Abzeichen verborgen; ein Klick öffnet den Reiter Automatik.
+   */
+  _automatikAbzeichen(entity) {
+    const abzeichen = document.createElement("button");
+    abzeichen.type = "button";
+    abzeichen.className = "automatik-abzeichen";
+    abzeichen.hidden = true;
+    const symbol = this._symbolKnoten("mdi:robot-outline");
+    const text = document.createElement("span");
+    abzeichen.append(symbol, text);
+    abzeichen.title = this._t("Zur Automatik");
+    abzeichen.addEventListener("click", (ereignis) => {
+      ereignis.stopPropagation();
+      this._reiter = "automatik";
+      this._gebaut = false;
+      this._zeichnen();
+    });
+    this._bindungen.push(() => {
+      const zustand = this._zustand(entity);
+      const kurz = zustand && zustand.attributes.kurz;
+      abzeichen.hidden = !kurz;
+      if (!kurz) return;
+      text.textContent = kurz;
+      abzeichen.dataset.zustand = zustand.state;
+      symbol.setAttribute("icon", AUTOMATIK_SYMBOLE[zustand.state] || "mdi:robot-outline");
+    });
+    return abzeichen;
   }
 
   _presetName(zustand) {
@@ -506,6 +550,9 @@ export const UebersichtMixin = (Basis) =>
       }
       if (eintrag.laufzeit) {
         felder.push(this._zahlenfeld(eintrag.laufzeit, "Laufzeit", "min"));
+      }
+      if (eintrag.laden_temperatur) {
+        felder.push(this._zahlenfeld(eintrag.laden_temperatur, "Ladetemperatur", "°C"));
       }
       let werte = null;
       if (felder.length) {

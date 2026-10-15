@@ -28,6 +28,7 @@ from .steuerung import (
     bereitet_warmwasser,
     kaminkehrer_bedienung,
     warmwasser_bedienung,
+    warmwasser_rueckfrage,
     ww_ausloeser,
 )
 from .suche import eintrag_suchen, erster, kennung_suchen
@@ -107,7 +108,7 @@ def kennwerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def heizkreise(anlage: dict[str, Any]) -> list[dict[str, Any]]:
-    """Thermostat und Vorlauf je Heizkreis."""
+    """Thermostat und Vorlauf je Heizkreis; `geraet` führt zur Automatik des Kreises."""
     zeilen = []
     for teil in anlage["teile"]:
         thermostat = next((e for e in teil["entitaeten"] if e["bereich"] == "climate"), None)
@@ -119,6 +120,7 @@ def heizkreise(anlage: dict[str, Any]) -> list[dict[str, Any]]:
                 "entity": thermostat["entity_id"],
                 "titel": teil["name"],
                 "vorlauf": vorlauf["entity_id"] if vorlauf else None,
+                "geraet": teil["id"],
             }
         )
     return zeilen
@@ -165,6 +167,7 @@ def _schnellzugriff_eintrag(
     }
     if _passt(beschriftung, WARMWASSER):
         eintrag.update(warmwasser_bedienung(alle, teil["entitaeten"]))
+        eintrag.update(warmwasser_rueckfrage(teil["entitaeten"], teil.get("fct_type")))
         eintrag.update(ausloeser_optionen(treffer))
     if _passt(mustername(treffer), KAMINKEHRER):
         eintrag.update(kaminkehrer_bedienung(teil["entitaeten"]))

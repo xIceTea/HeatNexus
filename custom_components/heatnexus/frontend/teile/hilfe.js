@@ -103,6 +103,32 @@ export const HilfeMixin = (Basis) =>
       schliessen.addEventListener("click", weg);
     }
 
+    /** Unter „Alle“ eine Liste je Sprache; gleiche Erklärungen stehen darin nur einmal. */
+    _hilfeAlle() {
+      const gruppen = new Map();
+      this._anlagen().forEach((anlage) => {
+        const sprache = anlage.sprache || "";
+        if (!gruppen.has(sprache)) gruppen.set(sprache, { anlage, namen: [], liste: [], gesehen: new Set() });
+        const gruppe = gruppen.get(sprache);
+        gruppe.namen.push(anlage.name || "");
+        (anlage.hilfe_liste || []).forEach((eintrag) => {
+          const schluessel = `${eintrag.titel}\n${eintrag.text}`;
+          if (gruppe.gesehen.has(schluessel)) return;
+          gruppe.gesehen.add(schluessel);
+          gruppe.liste.push(eintrag);
+        });
+      });
+      const mehrere = gruppen.size > 1;
+      const karten = [...gruppen.entries()].flatMap(([sprache, { anlage, namen, liste }]) => {
+        const sammlung = { ...anlage, hilfe_liste: liste };
+        return this._kartenInSprache(anlage, (sicht) => sicht._hilfeReiter(sammlung)).map((karte) => {
+          if (mehrere) this._anlageMarkieren(karte.knoten, namen.filter(Boolean).join(", "));
+          return { ...karte, id: mehrere ? `${karte.id}:${sprache}` : karte.id };
+        });
+      });
+      return this._raster({ id: "alle" }, karten, "Keine Erklärungen gefunden.");
+    }
+
     _hilfeReiter(anlage) {
       const eintraege = anlage.hilfe_liste || [];
       if (!eintraege.length) return [{ id: "hilfe", titel: "Hilfe", knoten: null }];

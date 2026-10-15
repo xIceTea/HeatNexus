@@ -113,8 +113,8 @@ export const VerlaufMixin = (Basis) =>
   }
 
   /**
-   * Suchfeld mit Vorschlagsliste. Pfeiltasten wandern durch die Treffer,
-   * Enter übernimmt den markierten, Escape schließt die Liste.
+   * Suchfeld mit Vorschlagsliste. Ein Klick, die Taste daneben oder Pfeil nach unten zeigen alle
+   * freien Linien; Tippen filtert, Enter übernimmt den markierten Treffer, Escape schließt.
    */
   _linienSuche(wahl) {
     const huelle = document.createElement("div");
@@ -130,7 +130,14 @@ export const VerlaufMixin = (Basis) =>
     liste.className = "linien-vorschlaege";
     liste.setAttribute("role", "listbox");
     liste.hidden = true;
-    huelle.append(feld, liste);
+    const aufklappen = document.createElement("button");
+    aufklappen.type = "button";
+    aufklappen.className = "linien-aufklappen";
+    aufklappen.tabIndex = -1;
+    aufklappen.title = this._t("Alle Linien zeigen");
+    aufklappen.setAttribute("aria-label", this._t("Alle Linien zeigen"));
+    aufklappen.appendChild(this._symbolKnoten("mdi:menu-down"));
+    huelle.append(feld, aufklappen, liste);
 
     const suche = { feld, liste, treffer: [], aktiv: -1 };
     suche.waehlen = (kennung) => {
@@ -141,6 +148,14 @@ export const VerlaufMixin = (Basis) =>
       feld.focus();
     };
     feld.addEventListener("input", () => this._linienVorschlaegeZeigen(wahl, suche, true));
+    feld.addEventListener("click", () => this._linienVorschlaegeZeigen(wahl, suche, true));
+    // `mousedown` hält den Fokus im Feld; sonst schlösse `blur` die Liste gleich wieder.
+    aufklappen.addEventListener("mousedown", (ereignis) => {
+      ereignis.preventDefault();
+      const zu = liste.hidden;
+      if (zu) feld.focus();
+      this._linienVorschlaegeZeigen(wahl, suche, zu);
+    });
     feld.addEventListener("blur", () => this._linienVorschlaegeZeigen(wahl, suche, false));
     feld.addEventListener("keydown", (ereignis) => this._linienTaste(wahl, suche, ereignis));
     return huelle;
@@ -159,19 +174,19 @@ export const VerlaufMixin = (Basis) =>
     } else if (offen && ereignis.key === "Enter") {
       ereignis.preventDefault();
       suche.waehlen(suche.treffer[Math.max(suche.aktiv, 0)].entity);
+    } else if (!offen && ereignis.key === "ArrowDown") {
+      ereignis.preventDefault();
+      this._linienVorschlaegeZeigen(wahl, suche, true);
     }
   }
 
-  /** Treffer auf Titel und Entitäts-ID, ohne die schon gewählten; `offen` false schließt. */
+  /** Ohne Begriff alle freien Linien, sonst Treffer auf Titel und Entitäts-ID; `offen` false schließt. */
   _linienVorschlaegeZeigen(wahl, suche, offen) {
     const begriff = String(suche.feld.value || "").trim().toLowerCase();
-    suche.treffer =
-      offen && begriff
-        ? wahl.moeglich
-            .filter((e) => !wahl.gewaehlt.has(e.entity))
-            .filter((e) => `${e.titel} ${e.entity}`.toLowerCase().includes(begriff))
-            .slice(0, LINIEN_VORSCHLAEGE)
-        : [];
+    const frei = offen ? wahl.moeglich.filter((e) => !wahl.gewaehlt.has(e.entity)) : [];
+    suche.treffer = begriff
+      ? frei.filter((e) => `${e.titel} ${e.entity}`.toLowerCase().includes(begriff)).slice(0, LINIEN_VORSCHLAEGE)
+      : frei;
     suche.aktiv = suche.treffer.length ? 0 : -1;
     const eintraege = suche.treffer.map((eintrag) => {
       const zeile = document.createElement("li");
@@ -192,10 +207,10 @@ export const VerlaufMixin = (Basis) =>
       });
       return zeile;
     });
-    if (offen && begriff && !eintraege.length) {
+    if (offen && !eintraege.length) {
       const leer = document.createElement("li");
       leer.className = "linien-vorschlag leer";
-      leer.textContent = this._t("Kein Sensor passt zu dieser Suche.");
+      leer.textContent = this._t(begriff ? "Kein Sensor passt zu dieser Suche." : "Alle Linien sind gewählt.");
       eintraege.push(leer);
     }
     suche.liste.replaceChildren(...eintraege);

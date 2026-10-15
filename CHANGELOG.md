@@ -8,10 +8,27 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [1.14.0-beta.4]
 
+### Neu
+
+**Panel**
+- Das Werkzeugmenü öffnet das Fenster „Darstellung“ mit Farbsatz, Kopfzeile und Seitenleiste.
+- Die Kopfzeile zeigt das HeatNexus-Zeichen in vier Stilen, wahlweise ohne Hersteller.
+- Ein Klick auf das Zeichen öffnet die Seitenleiste; eine eigene Menütaste ist wählbar.
+- „Alle“ fasst auf Wunsch gleiche Karten aller Anlagen in einem Rahmen zusammen.
+- Die Übersicht zeigt am Heizkreis Sonnentag, Heizpause und andere Eingriffe der Automatik.
+
+### Geändert
+
+**Panel**
+- „Warmwasser laden“ fragt vor dem Start nach und zeigt die Ladetemperatur.
+- Die Hilfe unter „Alle“ nennt jede Erklärung nur einmal.
+
 ### Behoben
 
 **Panel**
 - Die Menütaste steht wieder in jeder Ansicht und öffnet die Seitenleiste.
+- Die Kopfleiste bleibt am iPhone beim Blättern unter der Statusleiste sichtbar.
+- Die Linienwahl im Verlauf zeigt alle verfügbaren Linien auch ohne Suchbegriff.
 
 ## [1.14.0-beta.3]
 

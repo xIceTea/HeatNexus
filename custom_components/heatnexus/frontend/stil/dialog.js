@@ -34,4 +34,9 @@ export const DIALOG = `
   .dialog-taste:hover { background: var(--hn-linie); }
   .dialog-taste.betont { background: rgba(229, 57, 53, 0.2); border-color: rgba(229, 57, 53, 0.5);
     color: #ff8a80; }
+  .dialog-taste.akzent {
+    color: var(--hn-akzent); background: color-mix(in srgb, var(--hn-akzent) 18%, transparent);
+    border-color: color-mix(in srgb, var(--hn-akzent) 50%, transparent);
+  }
+  .dialog-taste[hidden] { display: none; }
 `;

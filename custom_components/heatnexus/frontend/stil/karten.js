@@ -38,6 +38,21 @@ export const KARTEN = `
   .kartenkopf { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
   .zp-aktiv { margin-left: 6px; color: var(--hn-akzent); font-weight: 600; }
   .kartenkopf h2 { flex: 1; margin-bottom: 0; }
+  /* Unter „Alle“ im gemeinsamen Raster: der Name der Anlage vor dem Kartentitel. */
+  .karten-anlage {
+    display: inline-flex; align-items: center; flex: none; padding: 3px 9px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; line-height: 1.2; white-space: nowrap;
+    color: var(--hn-akzent); background: color-mix(in srgb, var(--hn-akzent) 15%, transparent);
+  }
+  .karte > .karten-anlage { align-self: flex-start; margin-bottom: 8px; }
+  /* Gleiche Karten mehrerer Anlagen in einem Rahmen: je Anlage ein Abschnitt ohne eigenen Rahmen. */
+  .karte.verschmolzen > .eingebettet {
+    background: none; border: none; border-radius: 0; box-shadow: none; padding: 0; margin: 0;
+  }
+  .karte.verschmolzen > .eingebettet + .eingebettet {
+    margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hn-linie);
+  }
+  .eingebettet .karten-anlage { margin-right: auto; }
   .fragezeichen {
     width: 22px; height: 22px; flex: none; border-radius: 50%; padding: 0;
     display: inline-flex; align-items: center; justify-content: center;

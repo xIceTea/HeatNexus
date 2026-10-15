@@ -11,12 +11,15 @@
 
 import {
   BREITE_MAX,
-  FARBSAETZE,
-  FARBSATZ_SPEICHER,
   REITER,
   SPEICHERN_MS,
+  ablegen,
+  artAblegen,
+  artSchritt,
+  nachArtOrdnen,
   ordnungAnwenden,
   reihenfolgeMischen,
+  schritt,
 } from "../ordnung.js";
 
 export const AnordnenMixin = (Basis) =>
@@ -32,36 +35,6 @@ export const AnordnenMixin = (Basis) =>
   /** Die Einstellungen der Oberfläche – sie gelten über alle Reiter. */
   _einstellungen() {
     return (this._anordnung && this._anordnung.einstellungen) || {};
-  }
-
-  /**
-   * Der gewählte Farbsatz des Schaubilds.
-   *
-   * Die Einstellungen kommen erst über WebSocket; bis dahin gilt der zuletzt
-   * gemerkte Satz. Ohne ihn stünde der erste Aufbau im Standardanstrich und
-   * wechselte die Farbe vor den Augen des Nutzers.
-   */
-  _farbsatz() {
-    return this._einstellungen().farbsatz || this._farbsatzGemerkt() || "auto";
-  }
-
-  /** Der zuletzt gewählte Farbsatz aus dem Browserspeicher. */
-  _farbsatzGemerkt() {
-    try {
-      return window.localStorage.getItem(FARBSATZ_SPEICHER) || "";
-    } catch (err) {
-      return "";
-    }
-  }
-
-  /** Ihn dort ablegen; ein gesperrter Speicher darf nichts umwerfen. */
-  _farbsatzMerken(farbsatz) {
-    try {
-      if (farbsatz) window.localStorage.setItem(FARBSATZ_SPEICHER, farbsatz);
-      else window.localStorage.removeItem(FARBSATZ_SPEICHER);
-    } catch (err) {
-      /* Ohne Browserspeicher bleibt es beim Flackern, nicht bei einem Fehler. */
-    }
   }
 
   /** Reiter in der Reihenfolge des Benutzers; neue stehen an ihrem Standardplatz. */
@@ -99,28 +72,31 @@ export const AnordnenMixin = (Basis) =>
 
   _reiterSichern(folge, versteckt) {
     const teil = { reiter: folge, reiter_versteckt: folge.filter((schluessel) => versteckt.has(schluessel)) };
+    this._einstellungSetzen(teil, "Die Reiterfolge konnte nicht gespeichert werden.");
+  }
+
+  _einstellungSetzen(teil, meldung) {
+    // Ein Klick auf die schon gewählte Kachel baut nichts neu und schreibt nichts.
+    const jetzt = this._einstellungen();
+    if (Object.entries(teil).every(([schluessel, wert]) => JSON.stringify(jetzt[schluessel]) === JSON.stringify(wert))) return;
     this._anordnung = { ...this._anordnung, einstellungen: { ...this._einstellungen(), ...teil } };
+    this._einstellungenMerken();
     this._gebaut = false;
     this._zeichnen();
     this._hass.callWS({ type: "heatnexus/anordnung/einstellungen", einstellungen: teil }).catch((err) => {
-      console.warn("HeatNexus: Reiterfolge konnte nicht gespeichert werden", err);
-      this._melden("Die Reiterfolge konnte nicht gespeichert werden.");
+      console.warn("HeatNexus: Einstellung konnte nicht gespeichert werden", err);
+      this._melden(meldung);
     });
   }
 
-  /** Einen Farbsatz wählen, sofort anzeigen und sichern. */
-  _farbsatzSetzen(farbsatz) {
-    const einstellungen = { ...this._einstellungen(), farbsatz };
-    this._anordnung = { ...this._anordnung, einstellungen };
-    this._farbsatzMerken(farbsatz);
-    this._gebaut = false;
-    this._zeichnen();
-    this._hass
-      .callWS({ type: "heatnexus/anordnung/einstellungen", einstellungen: { farbsatz } })
-      .catch((err) => {
-        console.warn("HeatNexus: Farbsatz konnte nicht gespeichert werden", err);
-        this._melden("Die Farbwahl konnte nicht gespeichert werden.");
-      });
+  /** Was einer Kartenkennung vorangestellt wird, damit jede Anlage ihre eigene Anordnung hat. */
+  _kartenVorwahl(anlage) {
+    return `${anlage.id || anlage.name || ""}|`;
+  }
+
+  /** Eine Karte um einen Platz schieben; nach Art geordnet wandert am Gruppenrand die ganze Gruppe. */
+  _schritt(reihenfolge, kennung, richtung, nachArt) {
+    return (nachArt ? artSchritt : schritt)(reihenfolge, kennung, richtung);
   }
 
   /**
@@ -129,16 +105,15 @@ export const AnordnenMixin = (Basis) =>
    * Karten ohne Knoten gibt es an dieser Anlage nicht; sie fallen weg, bevor
    * die Reihenfolge gebildet wird. Damit verschiebt eine Anlage ohne
    * Warmwasser nichts, und die gespeicherte Reihenfolge bleibt für beide
-   * Anlagen dieselbe.
+   * Anlagen dieselbe. Mit `nachArt` stehen Karten gleicher Art beieinander.
    */
-  _raster(anlage, karten, leerText) {
+  _raster(anlage, karten, leerText, { nachArt = false } = {}) {
     const raster = document.createElement("div");
     raster.className = "raster";
 
-    // Die Kennung trägt die Anlage vorneweg. Ohne sie teilten sich Heizhaus
-    // und Wohnhaus dieselbe „schnellzugriff"-Karte: Wer im Heizhaus schob,
-    // schob im Wohnhaus mit.
-    const vorwahl = `${(anlage && anlage.id) || anlage.name || ""}|`;
+    // Die Kennung trägt die Anlage vorneweg; sonst schöbe, wer die Karten der
+    // einen Anlage ordnet, die der anderen mit. Ohne Anlage bringen die Karten ihre Vorwahl mit.
+    const vorwahl = anlage ? this._kartenVorwahl(anlage) : "";
     const vorhanden = (karten || [])
       .filter((karte) => karte && karte.knoten)
       .map((karte) => ({ ...karte, id: vorwahl + karte.id }));
@@ -150,10 +125,8 @@ export const AnordnenMixin = (Basis) =>
     const versteckt = new Set(anordnung.versteckt || []);
     const breiten = anordnung.breite || {};
 
-    const reihenfolge = ordnungAnwenden(
-      vorhanden.map((karte) => karte.id),
-      anordnung.ordnung || []
-    );
+    const folge = ordnungAnwenden(vorhanden.map((karte) => karte.id), anordnung.ordnung || []);
+    const reihenfolge = nachArt ? nachArtOrdnen(folge) : folge;
     const jeKennung = new Map(vorhanden.map((karte) => [karte.id, karte]));
 
     reihenfolge.forEach((kennung) => {
@@ -163,7 +136,7 @@ export const AnordnenMixin = (Basis) =>
       if (istVersteckt && !this._anordnen) return;
       const breite = Math.max(1, Math.min(BREITE_MAX, breiten[kennung] || karte.breite || 1));
       const knoten = this._anordnen
-        ? this._anordner(karte, breite, istVersteckt, reihenfolge)
+        ? this._anordner(karte, breite, istVersteckt, reihenfolge, nachArt)
         : karte.knoten;
       knoten.style.setProperty("--breite", String(breite));
       raster.appendChild(knoten);
@@ -184,7 +157,7 @@ export const AnordnenMixin = (Basis) =>
    * Tablet vor dem Kessel ist Ziehen unzuverlässig, und ohne Tasten käme man
    * mit der Tastatur gar nicht weiter.
    */
-  _anordner(karte, breite, istVersteckt, reihenfolge) {
+  _anordner(karte, breite, istVersteckt, reihenfolge, nachArt) {
     const huelle = document.createElement("div");
     huelle.className = istVersteckt ? "anordner versteckt" : "anordner";
     huelle.dataset.kennung = karte.id;
@@ -198,19 +171,13 @@ export const AnordnenMixin = (Basis) =>
     name.textContent = karte.titel || karte.id;
     griff.appendChild(name);
 
-    const platz = reihenfolge.indexOf(karte.id);
+    // Gesperrt ist eine Richtung, in der ein Schritt nichts verändert.
+    const fest = (richtung) => this._schritt(reihenfolge, karte.id, richtung, nachArt) === reihenfolge;
     griff.appendChild(
-      this._griffTaste("mdi:chevron-left", "Nach vorn", platz <= 0, () =>
-        this._verschieben(karte.id, -1)
-      )
+      this._griffTaste("mdi:chevron-left", "Nach vorn", fest(-1), () => this._verschieben(karte.id, -1, nachArt))
     );
     griff.appendChild(
-      this._griffTaste(
-        "mdi:chevron-right",
-        "Nach hinten",
-        platz < 0 || platz >= reihenfolge.length - 1,
-        () => this._verschieben(karte.id, 1)
-      )
+      this._griffTaste("mdi:chevron-right", "Nach hinten", fest(1), () => this._verschieben(karte.id, 1, nachArt))
     );
 
     // Breite: schmaler, Anzeige, breiter. Vorher lief eine einzige Taste im
@@ -243,7 +210,7 @@ export const AnordnenMixin = (Basis) =>
     );
 
     huelle.append(griff, karte.knoten);
-    this._ziehenVerdrahten(huelle, griff, karte.id);
+    this._ziehenVerdrahten(huelle, griff, karte.id, nachArt);
     return huelle;
   }
 
@@ -259,7 +226,7 @@ export const AnordnenMixin = (Basis) =>
   }
 
   /** Ziehen und Ablegen: der schnelle Weg für die Maus. */
-  _ziehenVerdrahten(huelle, griff, kennung) {
+  _ziehenVerdrahten(huelle, griff, kennung, nachArt) {
     huelle.draggable = true;
     // Nur am Griff anfassen: Sonst startete jeder Klick in der Karte – etwa
     // auf ein Auswahlfeld – einen Ziehvorgang.
@@ -296,31 +263,21 @@ export const AnordnenMixin = (Basis) =>
       huelle.classList.remove("ziel-vor", "ziel-nach");
       const gezogen = this._gezogen;
       this._gezogen = null;
-      if (gezogen && gezogen !== kennung) this._ablegen(gezogen, kennung, davor);
+      if (gezogen && gezogen !== kennung) this._ablegen(gezogen, kennung, davor, nachArt);
     });
   }
 
   /** Eine Karte vor oder hinter eine andere setzen. */
-  _ablegen(kennung, ziel, davor) {
-    this._ordnungAendern((reihenfolge) => {
-      const ohne = reihenfolge.filter((eintrag) => eintrag !== kennung);
-      const stelle = ohne.indexOf(ziel);
-      if (stelle < 0) return reihenfolge;
-      ohne.splice(davor ? stelle : stelle + 1, 0, kennung);
-      return ohne;
-    });
+  _ablegen(kennung, ziel, davor, nachArt) {
+    this._ordnungAendern(
+      (reihenfolge) => (nachArt ? artAblegen : ablegen)(reihenfolge, kennung, ziel, davor),
+      nachArt
+    );
   }
 
   /** Eine Karte um einen Platz verschieben. */
-  _verschieben(kennung, richtung) {
-    this._ordnungAendern((reihenfolge) => {
-      const stelle = reihenfolge.indexOf(kennung);
-      const ziel = stelle + richtung;
-      if (stelle < 0 || ziel < 0 || ziel >= reihenfolge.length) return reihenfolge;
-      const neu = [...reihenfolge];
-      neu.splice(ziel, 0, neu.splice(stelle, 1)[0]);
-      return neu;
-    });
+  _verschieben(kennung, richtung, nachArt) {
+    this._ordnungAendern((reihenfolge) => this._schritt(reihenfolge, kennung, richtung, nachArt), nachArt);
   }
 
   /**
@@ -332,11 +289,12 @@ export const AnordnenMixin = (Basis) =>
    * gerade nicht auf dem Bildschirm steht, wird deshalb wieder eingefügt –
    * dort, wo es vorher stand.
    */
-  _ordnungAendern(aenderung) {
+  _ordnungAendern(aenderung, nachArt = false) {
     const anordnung = this._reiterAnordnung();
     const sichtbar = this._sichtbareKennungen();
     const alt = anordnung.ordnung || [];
-    const neu = aenderung(ordnungAnwenden(sichtbar, alt));
+    // Nach Art geordnet weicht die Anzeige von der gespeicherten Folge ab; geschoben wird, was zu sehen ist.
+    const neu = aenderung(nachArt ? sichtbar : ordnungAnwenden(sichtbar, alt));
     this._anordnungSetzen({ ...anordnung, ordnung: reihenfolgeMischen(neu, alt) });
   }
 
@@ -349,7 +307,7 @@ export const AnordnenMixin = (Basis) =>
    */
   _sichtbareKennungen() {
     const kennungen = [];
-    this.shadowRoot.querySelectorAll(".anordner[data-kennung]").forEach((knoten) => {
+    this.shadowRoot.querySelectorAll(".anordner").forEach((knoten) => {
       if (!kennungen.includes(knoten.dataset.kennung)) kennungen.push(knoten.dataset.kennung);
     });
     return kennungen;
@@ -434,8 +392,8 @@ export const AnordnenMixin = (Basis) =>
     hinweis.className = "hinweis";
     hinweis.textContent =
       "Karten am Griff ziehen, in der Breite ändern oder ausblenden; dazu die " +
-      "Spaltenzahl. Das gilt nur für dich und nur für diesen Reiter. Der Farbsatz " +
-      "unten gilt für die ganze Oberfläche.";
+      "Spaltenzahl. Das gilt nur für dich und nur für diesen Reiter. Farben und " +
+      "Kopfzeile stehen unter „Darstellung“ im Werkzeugmenü.";
     leiste.appendChild(hinweis);
 
     const wahl = document.createElement("div");
@@ -458,26 +416,13 @@ export const AnordnenMixin = (Basis) =>
       taste.addEventListener("click", () => this._spaltenSetzen(wert));
       wahl.appendChild(taste);
     });
-    leiste.appendChild(wahl);
-
-    // Der Farbsatz des Schaubilds gilt für die ganze Oberfläche, nicht nur
-    // für diesen Reiter. Er steht hier, weil es der Ort ist, an dem man die
-    // Ansicht einrichtet.
-    const farben = document.createElement("div");
-    farben.className = "spaltenwahl farbwahl";
-    farben.setAttribute("role", "group");
-    farben.setAttribute("aria-label", "Farben des Schaubilds");
-    const gewaehlt = this._farbsatz();
-    FARBSAETZE.forEach(({ schluessel, titel, hinweis }) => {
-      const taste = document.createElement("button");
-      taste.type = "button";
-      taste.textContent = titel;
-      taste.title = hinweis;
-      taste.setAttribute("aria-pressed", String(schluessel === gewaehlt));
-      taste.addEventListener("click", () => this._farbsatzSetzen(schluessel));
-      farben.appendChild(taste);
-    });
-    leiste.appendChild(farben);
+    const spalten = document.createElement("div");
+    spalten.className = "spalten-feld";
+    const spaltenName = document.createElement("span");
+    spaltenName.className = "wahl-name";
+    spaltenName.textContent = this._t("Spalten");
+    spalten.append(spaltenName, wahl);
+    leiste.appendChild(spalten);
 
     const fertig = document.createElement("button");
     fertig.type = "button";
@@ -599,11 +544,11 @@ export const AnordnenMixin = (Basis) =>
     schliessen.type = "button";
     schliessen.className = "dialog-taste";
     schliessen.textContent = this._t("Schließen");
-    schliessen.addEventListener("click", weg);
     leiste.appendChild(schliessen);
     dialog.appendChild(leiste);
 
     schleier.appendChild(dialog);
     weg = this._dialogOeffnen(schleier, { fokus: schliessen });
+    schliessen.addEventListener("click", weg);
   }
   };

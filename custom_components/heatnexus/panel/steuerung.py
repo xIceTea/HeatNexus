@@ -161,6 +161,14 @@ def _ww_ladetemperatur(entitaeten: list[dict[str, Any]], fct_type: Any) -> str |
     return treffer["entity_id"] if treffer else None
 
 
+def warmwasser_rueckfrage(entitaeten: list[dict[str, Any]], fct_type: Any) -> dict[str, Any]:
+    """Vor dem Laden fragt die Taste nach; die Ladetemperatur steht vorbelegt im selben Dialog."""
+    return {
+        "frage": "Warmwasser jetzt einmal laden?",
+        "laden_temperatur": _ww_ladetemperatur(entitaeten, fct_type),
+    }
+
+
 def ausloeser_optionen(ausloeser: dict[str, Any] | None) -> dict[str, Any]:
     """Bei einer Auswahl Nein/Ja die Texte für Starten und Beenden."""
     if not ausloeser or ausloeser["bereich"] != "select":
@@ -319,7 +327,10 @@ def _warmwasser_kreis(anlage: dict[str, Any], alle: list[dict[str, Any]]) -> lis
 
 
 def _warmwasser_taste(
-    ausloeser: dict[str, Any], alle: list[dict[str, Any]], kreis: list[dict[str, Any]]
+    ausloeser: dict[str, Any],
+    alle: list[dict[str, Any]],
+    kreis: list[dict[str, Any]],
+    fct_type: Any,
 ) -> dict[str, Any]:
     """Dieselbe Taste wie in der Übersicht.
 
@@ -330,8 +341,8 @@ def _warmwasser_taste(
         "entity": ausloeser["entity_id"],
         "titel": "Warmwasser laden",
         "symbol": "mdi:water-boiler",
-        "frage": rueckfrage("WW Einmalladung"),
         "hilfe": hilfe("Einmalladung"),
+        **warmwasser_rueckfrage(kreis, fct_type),
         **warmwasser_bedienung(alle, kreis),
         **ausloeser_optionen(ausloeser),
     }
@@ -363,7 +374,9 @@ def _warmwasser_karte(anlage: dict[str, Any], alle: list[dict[str, Any]]) -> dic
         # Was die Anlage gerade tut – daran hängt die Rückmeldung.
         "betriebsart": kennung_suchen(kreis, BETRIEBSART, ("sensor",), "operating_mode"),
         "programm": kennung_suchen(kreis, namensmuster(r"ww[- ].*programm"), ("sensor",)),
-        "taste": _warmwasser_taste(ausloeser, alle, kreis) if laden else None,
+        "taste": _warmwasser_taste(ausloeser, alle, kreis, (ww_teil or {}).get("fct_type"))
+        if laden
+        else None,
     }
 
 

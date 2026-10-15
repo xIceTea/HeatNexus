@@ -73,6 +73,13 @@ export const BausteineMixin = (Basis) =>
       return knoten;
     }
 
+    /** Wie `_inSprache`, nur für eine Kartenliste: Jede Karte mit Knoten trägt die Sprache ihrer Anlage. */
+    _kartenInSprache(anlage, bauen) {
+      const karten = (bauen(this._sicht(anlage)) || []).filter((karte) => karte && karte.knoten);
+      karten.forEach((karte) => this._inSprache(anlage, () => karte.knoten));
+      return karten;
+    }
+
     /**
      * Den fertigen Baum in die eingestellte Sprache bringen.
      *
