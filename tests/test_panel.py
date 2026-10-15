@@ -1531,3 +1531,17 @@ def test_die_ladeschwelle_nennt_die_hysterese_als_entitaet(panel):
     assert schwelle["abstand_entity"] == "number.hysterese_ein"
     assert schwelle["abstand"] == 8.0
     assert steuerung._ladeschwelle(kreis[:1])["abstand_entity"] is None
+
+
+def test_ein_vorlaufprogramm_ohne_optionstexte_folgt_seiner_nummer(panel):
+    """Der Name „Programm 2 Vorlauftemperatur“ taugt nicht als Muster für „Programm 2“."""
+    kreis = teil(
+        "HEIZKREIS",
+        1,
+        [
+            entitaet("select.betriebswahl", "Betriebswahl", adresse="3/50"),
+            entitaet("sensor.vorlauf_2", "Programm 2 Vorlauftemperatur", adresse="58/79"),
+        ],
+    )
+    (karte,) = panel.anlage_daten(anlage(kreis))["zeitprogramme"]
+    assert karte["wirkung"]["muster"] == "programm 2"

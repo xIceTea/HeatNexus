@@ -193,7 +193,8 @@ def _heizkreis_wirkung(programm: dict[str, Any], teil: dict[str, Any]) -> dict[s
     wert = nummern.index(adresse) + 1
     return {
         "entity": wahl["entity_id"],
-        "muster": _auswahltext(wahl, wert, programm.get("name") or ""),
+        # Ohne Optionstexte das deutsche Ersatzwort; der Name taugt nicht, er kann „Vorlauftemperatur“ tragen.
+        "muster": _auswahltext(wahl, wert, f"Programm {wert}"),
         "hinweis": "Wirkt erst, wenn die Betriebswahl auf diesem Programm steht.",
         **_ziel(wahl, wert),
     }
