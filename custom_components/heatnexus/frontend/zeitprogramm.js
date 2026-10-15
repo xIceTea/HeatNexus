@@ -139,21 +139,32 @@ export function wochenraster(bloecke) {
   });
 }
 
+// Ein Formatter je Zone: Sein Aufbau kostet, und die Oberfläche fragt bei jeder Aktualisierung.
+const FORMATTER = new Map();
+
+function formatter(zone) {
+  if (!FORMATTER.has(zone)) {
+    FORMATTER.set(
+      zone,
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: zone,
+        weekday: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      })
+    );
+  }
+  return FORMATTER.get(zone);
+}
+
 /** Wochentag und Minute in der Zeitzone von Home Assistant; ohne gültige Zone die des Browsers. */
 export function ortszeit(datum, zeitzone) {
-  const zerlegen = (zone) =>
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: zone,
-      weekday: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).formatToParts(datum);
   let teile;
   try {
-    teile = zerlegen(zeitzone || undefined);
+    teile = formatter(zeitzone || undefined).formatToParts(datum);
   } catch {
-    teile = zerlegen(undefined);
+    teile = formatter(undefined).formatToParts(datum);
   }
   const teil = (art) => (teile.find((eintrag) => eintrag.type === art) || {}).value || "";
   return {
@@ -442,6 +453,18 @@ export function spurKnoten(stuecke, grenzen, optionen = {}) {
   return spur;
 }
 
+/** Die Stundenmarken über einer 24-h-Spur. */
+export function skalaKnoten() {
+  const kopf = document.createElement("div");
+  kopf.className = "zeitraster-skala";
+  [0, 6, 12, 18, 24].forEach((stunde) => {
+    const marke = document.createElement("span");
+    marke.textContent = `${stunde}`;
+    kopf.appendChild(marke);
+  });
+  return kopf;
+}
+
 function rasterZeile(text, spur, klasse = "") {
   const reihe = document.createElement("div");
   reihe.className = `zeitraster-zeile ${klasse}`.trim();
@@ -463,15 +486,7 @@ export function rasterKnoten(bloecke, optionen = {}) {
   const jetzt = optionen.jetzt || null;
   const raster = document.createElement("div");
   raster.className = "zeitraster";
-
-  const kopf = document.createElement("div");
-  kopf.className = "zeitraster-skala";
-  [0, 6, 12, 18, 24].forEach((stunde) => {
-    const marke = document.createElement("span");
-    marke.textContent = `${stunde}`;
-    kopf.appendChild(marke);
-  });
-  raster.appendChild(kopf);
+  raster.appendChild(skalaKnoten());
 
   const zeilen = blockraster(bloecke, t);
   const vorlauf = optionen.vorlauf ? blockraster(optionen.vorlauf, t) : null;

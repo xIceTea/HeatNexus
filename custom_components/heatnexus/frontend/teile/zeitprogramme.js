@@ -14,8 +14,10 @@ import {
   nachDienst,
   ortszeit,
   pruefen,
+  TAG_MINUTEN,
   rasterKnoten,
   skala,
+  skalaKnoten,
   spurKnoten,
   tagesabschnitte,
   uebersichtKnoten,
@@ -31,6 +33,14 @@ const FUSS = {
 /** Ein Programm ohne Schaltzeit braucht nur eine Zeile. */
 const istLeer = (bloecke) => bloecke.every((block) => !block.punkte.length);
 
+// Jetzt-Linie und „ab HH:MM“ rücken auch dann vor, wenn sich an der Anlage nichts ändert.
+const UHR_TAKT_MS = 60 * 1000;
+
+// Gelesene Blöcke je Attribut: Home Assistant ersetzt das Attribut bei jeder Änderung;
+// solange es dasselbe ist, gilt auch das Gelesene. Die Nummer kennzeichnet den Stand.
+const GELESEN = new WeakMap();
+let lesestand = 0;
+
 export const ZeitprogrammeMixin = (Basis) =>
   class extends Basis {
   /**
@@ -39,6 +49,7 @@ export const ZeitprogrammeMixin = (Basis) =>
    * Unter „Alle“ setzt das Panel einen gemeinsamen Streifen über alle Anlagen.
    */
   _zeitprogrammeReiter(anlage) {
+    this._zeitprogrammUhrStellen();
     const karten = nachTeilen(anlage.zeitprogramme).map((teil) => ({
       id: `zeitprogramme:${teil.teil}`,
       titel: teil.anlagenteil,
@@ -58,11 +69,31 @@ export const ZeitprogrammeMixin = (Basis) =>
     return this._raster({ id: "alle" }, [karte], "");
   }
 
-  /** Die Blöcke eines Programms; 'null', wenn die Entität keine führt. */
-  _bloecke(entity) {
+  /** Solange der Reiter offen ist, einmal je Minute die Bindungen laufen lassen. */
+  _zeitprogrammUhrStellen() {
+    if (this._zeitprogrammUhr && this._zeitgeberListe.has(this._zeitprogrammUhr)) return;
+    this._zeitprogrammUhr = this._takt(() => {
+      if (!this.isConnected || this._reiter !== "zeitprogramme") {
+        this._zeitgeberLoesen(this._zeitprogrammUhr);
+        this._zeitprogrammUhr = null;
+        return;
+      }
+      this._aktualisieren();
+    }, UHR_TAKT_MS);
+  }
+
+  /** Die Blöcke eines Programms mit einer Nummer für ihren Stand; 'null', wenn die Entität keine führt. */
+  _blockstand(entity) {
     const zustand = this._zustand(entity);
     const roh = zustand && zustand.attributes && zustand.attributes.blocks;
-    return Array.isArray(roh) ? bloeckeLesen(roh) : null;
+    if (!Array.isArray(roh)) return null;
+    if (!GELESEN.has(roh)) GELESEN.set(roh, { bloecke: bloeckeLesen(roh), nummer: (lesestand += 1) });
+    return GELESEN.get(roh);
+  }
+
+  _bloecke(entity) {
+    const stand = this._blockstand(entity);
+    return stand ? stand.bloecke : null;
   }
 
   _ortszeit() {
@@ -79,11 +110,19 @@ export const ZeitprogrammeMixin = (Basis) =>
     return wirkung.muster_nicht ? !text.includes(wirkung.muster_nicht) : text.includes(wirkung.muster);
   }
 
+  /**
+   * Ob ein Programm in seiner Gruppe gilt. Ohne bekannte Auswahl gilt ein einzelnes Programm immer;
+   * von mehreren lässt sich dann keines als geltend zeigen.
+   */
+  _giltInGruppe(gruppe, programm) {
+    return programm.wirkung ? this._gilt(programm) : gruppe.eintraege.length === 1;
+  }
+
   /** Sichtbare Programme der Gruppe, das geltende und das, das groß steht. */
   _gruppenStand(gruppe) {
     // Auch das Programm, das gerade nicht gilt, bleibt sichtbar: klein, mit „Aktivieren“.
     const sichtbar = gruppe.eintraege.filter(({ programm }) => this._bloecke(programm.entity) !== null);
-    const aktiv = sichtbar.find(({ programm }) => this._gilt(programm)) || null;
+    const aktiv = sichtbar.find(({ programm }) => this._giltInGruppe(gruppe, programm)) || null;
     // Ein einzelnes Programm steht immer groß, auch wenn es gerade nicht wirkt.
     const gross = gruppe.eintraege.length === 1 ? sichtbar[0] || null : aktiv;
     return { sichtbar, aktiv, gross };
@@ -121,14 +160,7 @@ export const ZeitprogrammeMixin = (Basis) =>
     karte.classList.add("zp-heute");
     const kopf = document.createElement("div");
     kopf.className = "zp-heute-zeile zp-heute-kopf";
-    const marken = document.createElement("div");
-    marken.className = "zeitraster-skala";
-    [0, 6, 12, 18, 24].forEach((stunde) => {
-      const marke = document.createElement("span");
-      marke.textContent = `${stunde}`;
-      marken.appendChild(marke);
-    });
-    kopf.append(document.createElement("span"), marken, document.createElement("span"));
+    kopf.append(document.createElement("span"), skalaKnoten(), document.createElement("span"));
     karte.appendChild(kopf);
     mitProgramm.forEach((anlage) => {
       karte.appendChild(this._inSprache(anlage, (sicht) => sicht._heuteAnlage(anlage, anlagen.length > 1)));
@@ -180,7 +212,8 @@ export const ZeitprogrammeMixin = (Basis) =>
     const teile = { programm, spur, text, anlagenteil: teil.anlagenteil };
     let stand = null;
     this._bindungen.push(() => {
-      const kennung = this._gruppenKennung(gruppe);
+      // Die Zeile hat keine Bedienelemente; sie darf jede Minute neu entstehen.
+      const kennung = `${this._gruppenKennung(gruppe)}|${this._ortszeit().minute}`;
       if (kennung === stand) return;
       stand = kennung;
       this._heuteZeichnen(gruppe, teile);
@@ -207,16 +240,22 @@ export const ZeitprogrammeMixin = (Basis) =>
     teile.text.textContent = [lage, this._wahlText(gruppe)].filter(Boolean).join(" · ");
   }
 
-  /** Was sich an einer Gruppe ändern kann: Uhrzeit, Auswahl, Blöcke, geltendes Programm. */
+  /** Was eine Gruppe neu aufbaut: Wochentag, Auswahl, Blöcke, geltendes Programm. Die Minute nicht. */
   _gruppenKennung(gruppe) {
-    const zeit = this._ortszeit();
     const programme = gruppe.eintraege.flatMap(({ programm, vorlauf }) => [programm, vorlauf].filter(Boolean));
     const teile = programme.map((programm) => {
-      const zustand = this._zustand(programm.entity);
-      const bloecke = zustand && zustand.attributes ? JSON.stringify(zustand.attributes.blocks) : "";
-      return [programm.entity, bloecke, this._gilt(programm)].join("~");
+      const stand = this._blockstand(programm.entity);
+      return [programm.entity, stand ? stand.nummer : "-", this._giltInGruppe(gruppe, programm)].join("~");
     });
-    return [zeit.tag, zeit.minute, this._wahlText(gruppe), ...teile].join("|");
+    return [this._ortszeit().tag, this._wahlText(gruppe), ...teile].join("|");
+  }
+
+  /** Die Jetzt-Linien eines Knotens auf die aktuelle Minute setzen, ohne ihn neu zu bauen. */
+  _jetztLinienSetzen(knoten) {
+    const links = `${(this._ortszeit().minute / TAG_MINUTEN) * 100}%`;
+    knoten.querySelectorAll(".jetzt-linie").forEach((linie) => {
+      linie.style.left = links;
+    });
   }
 
   // -------------------------------------------------------------------
@@ -253,23 +292,42 @@ export const ZeitprogrammeMixin = (Basis) =>
         stand = kennung;
         this._gruppeZeichnen(knoten, gruppe, teile);
       }
+      this._jetztLinienSetzen(knoten);
       this._tastenSetzen(gruppe, teile);
     });
     return knoten;
   }
 
-  _programmTeile({ programm, vorlauf }) {
+  _rueckmeldung(programm) {
     const rueckmeldung = document.createElement("div");
     rueckmeldung.className = "rueckmeldung";
     rueckmeldung.dataset.programm = programm.entity;
+    return rueckmeldung;
+  }
+
+  /** Bedienelemente eines Programms; sie überdauern das Neuzeichnen der Gruppe samt Fokus. */
+  _programmTeile({ programm, vorlauf }) {
+    const rueckmeldung = this._rueckmeldung(programm);
+    const vorlaufRueckmeldung = vorlauf ? this._rueckmeldung(vorlauf) : null;
     // „Öffnen“, nicht „Bearbeiten“: Der Dialog zeigt zuerst die Zeiten als „von – bis“.
     const oeffnen = this._zpTaste("Öffnen", "zp-taste betont", () =>
       this._zeitprogrammBearbeiten(programm, rueckmeldung)
     );
     const vorlaufTaste = vorlauf
-      ? this._zpTaste("Vorlauf", "zp-taste", () => this._zeitprogrammBearbeiten(vorlauf, rueckmeldung))
+      ? this._zpTaste("Vorlauf", "zp-taste", () => this._zeitprogrammBearbeiten(vorlauf, vorlaufRueckmeldung))
       : null;
-    return { rueckmeldung, oeffnen, vorlaufTaste, aktivieren: this._aktivierenTaste(programm, rueckmeldung) };
+    const name = this._zpTaste("", "zp-mininame", () => this._zeitprogrammBearbeiten(programm, rueckmeldung));
+    name.textContent = this._programmTitel(programm);
+    name.dataset.roh = "";
+    name.title = this._t("Öffnen");
+    return {
+      rueckmeldung,
+      vorlaufRueckmeldung,
+      oeffnen,
+      vorlaufTaste,
+      name,
+      aktivieren: this._aktivierenTaste(programm, rueckmeldung),
+    };
   }
 
   _zpTaste(text, klasse, aktion) {
@@ -294,6 +352,8 @@ export const ZeitprogrammeMixin = (Basis) =>
 
   /** Groß das geltende Programm, darunter die übrigen als Minibalken; gilt keines, sagt eine Zeile warum. */
   _gruppeZeichnen(knoten, gruppe, teile) {
+    // Umgehängte Knöpfe verlieren den Fokus; wer per Tastatur dort stand, bleibt dort.
+    const fokus = this.shadowRoot.activeElement;
     const { sichtbar, gross } = this._gruppenStand(gruppe);
     const zeit = this._ortszeit();
     const inhalt = [];
@@ -309,6 +369,9 @@ export const ZeitprogrammeMixin = (Basis) =>
       .forEach((eintrag) => inhalt.push(this._programmMini(eintrag, teile.get(eintrag.programm.entity), zeit)));
     knoten.replaceChildren(...inhalt);
     knoten.hidden = !inhalt.length;
+    if (fokus && fokus !== this.shadowRoot.activeElement && knoten.contains(fokus)) {
+      fokus.focus({ preventScroll: true });
+    }
   }
 
   _programmName(programm, klasse) {
@@ -353,7 +416,8 @@ export const ZeitprogrammeMixin = (Basis) =>
     });
     const leiste = document.createElement("div");
     leiste.className = "zp-karteleiste";
-    leiste.append(...[teile.oeffnen, teile.vorlaufTaste, teile.aktivieren, teile.rueckmeldung].filter(Boolean));
+    const knoepfe = [teile.oeffnen, teile.vorlaufTaste, teile.aktivieren, teile.rueckmeldung, teile.vorlaufRueckmeldung];
+    leiste.append(...knoepfe.filter(Boolean));
     knoten.append(kopf, raster, leiste);
     return knoten;
   }
@@ -365,13 +429,6 @@ export const ZeitprogrammeMixin = (Basis) =>
     const t = this._t.bind(this);
     const zeile = document.createElement("div");
     zeile.className = "zp-mini";
-    const name = document.createElement("button");
-    name.type = "button";
-    name.className = "zp-mininame";
-    name.textContent = this._programmTitel(programm);
-    name.dataset.roh = "";
-    name.title = t("Öffnen");
-    name.addEventListener("click", () => this._zeitprogrammBearbeiten(programm, teile.rueckmeldung));
     const spuren = document.createElement("div");
     spuren.className = "zeitraster zp-minispuren";
     const heute = tagesabschnitte(bloecke, zeit.tag);
@@ -381,7 +438,7 @@ export const ZeitprogrammeMixin = (Basis) =>
       const duenn = tagesabschnitte(vorlaufBloecke, zeit.tag);
       spuren.appendChild(spurKnoten(duenn, skala(vorlaufBloecke, "vorlauf"), { t, duenn: true }));
     }
-    zeile.append(name, spuren, ...[teile.aktivieren, teile.rueckmeldung].filter(Boolean));
+    zeile.append(teile.name, spuren, ...[teile.aktivieren, teile.rueckmeldung].filter(Boolean));
     return zeile;
   }
 

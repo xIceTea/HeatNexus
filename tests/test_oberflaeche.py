@@ -1370,3 +1370,25 @@ def test_die_leiste_eines_fensters_bleibt_sichtbar():
     assert "position: sticky" in regel
     assert "bottom: -22px" in regel
     assert "overflow-y: auto" in stil[stil.index("  .dialog { max-height") :].split("}")[0]
+
+
+def test_ohne_betriebswahl_gilt_von_mehreren_heizprogrammen_keines(durchlauf):
+    """Sonst stünde das erste groß und im Heute-Streifen, ohne dass es belegt gilt."""
+    assert durchlauf["ohneWahl"] == {"aktiv": None, "gross": None, "einzelnAktiv": True}
+
+
+def test_der_vorlauf_hat_eine_eigene_rueckmeldung(durchlauf):
+    assert durchlauf["vorlaufRueckmeldung"] == "sensor.vorlauf_1"
+
+
+def test_der_minutentakt_bewegt_heute_text_und_jetzt_linie(durchlauf):
+    """Montag 22:30: 16 °C bis Dienstag 06:00. Das große Programm bleibt derselbe Knoten."""
+    uhr = durchlauf["uhr"]
+    assert uhr["vorher"] == "jetzt 21 °C · ab 22:00 16 °C"
+    assert uhr["nachher"] == "jetzt 16 °C · ab Di 06:00 21 °C"
+    assert uhr["gleicherKnoten"] is True
+    assert uhr["linie"] == "93.75%"
+
+
+def test_ein_neuaufbau_behaelt_den_tastaturfokus(durchlauf):
+    assert durchlauf["fokus"] == {"neuGezeichnet": True, "behalten": True}

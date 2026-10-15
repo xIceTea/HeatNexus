@@ -182,6 +182,8 @@ class Knoten {
   removeChild(kind) {
     this.children = this.children.filter((eintrag) => eintrag !== kind);
     kind.parentElement = null;
+    // Wie im Browser: Ein Knoten, der den Baum verlässt, nimmt seinen Fokus nicht mit.
+    if (fokus.element && kind.contains(fokus.element)) fokus.element = null;
     return kind;
   }
   remove() {
@@ -189,6 +191,7 @@ class Knoten {
   }
   replaceChildren(...kinder) {
     this.children.forEach((kind) => {
+      if (fokus.element && kind.contains(fokus.element)) fokus.element = null;
       kind.parentElement = null;
     });
     this.children = [];
@@ -415,6 +418,8 @@ export function browserAttrappe() {
     offeneAuftraege: () => auftraege.length,
     offeneBilder: () => bilder.length,
     offeneTakte: () => takte.length,
+    /** Jeden Takt dieser Dauer einmal auslösen. */
+    takteAusloesen: (ms) => takte.filter((takt) => takt.ms === ms).forEach((takt) => takt.ruf()),
   };
 }
 

@@ -904,6 +904,59 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     sichtbar: stand.sichtbar.map((eintrag) => eintrag.programm.entity),
     gross: stand.gross && stand.gross.programm.entity,
   };
+
+  // Ohne bekannte Betriebswahl gilt von mehreren Heizprogrammen keines.
+  const ohneWahl = flaeche._gruppenStand({
+    gruppe: "heizen",
+    eintraege: [
+      { programm: { entity: "sensor.zirk_temp" }, vorlauf: null },
+      { programm: { entity: "sensor.zirk_zeit" }, vorlauf: null },
+    ],
+  });
+  const einzeln = flaeche._gruppenStand({ gruppe: "puffer", eintraege: [{ programm: { entity: "sensor.zirk_temp" }, vorlauf: null }] });
+  bilanz.ohneWahl = { aktiv: ohneWahl.aktiv, gross: ohneWahl.gross, einzelnAktiv: !!einzeln.aktiv };
+
+  // Ein Vorlaufprogramm meldet sich an seiner eigenen Rückmeldung zurück.
+  const teile = flaeche._programmTeile({ programm: { entity: "sensor.raum_1" }, vorlauf: { entity: "sensor.vorlauf_1" } });
+  bilanz.vorlaufRueckmeldung = teile.vorlaufRueckmeldung && teile.vorlaufRueckmeldung.dataset.programm;
+}
+
+// Uhr: Ohne Zustandsänderung rücken Heute-Text und Jetzt-Linie mit dem Minutentakt vor.
+{
+  flaeche._jetzt = () => new Date("2026-09-21T10:00:00Z");
+  hass.config = { time_zone: "UTC" };
+  states["select.betriebswahl"].state = "Programm 1";
+  flaeche._reiter = "zeitprogramme";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  // Der Takt läuft nur, solange das Panel im Dokument hängt.
+  Object.defineProperty(flaeche, "isConnected", { value: true, configurable: true });
+  const wurzel = flaeche.shadowRoot;
+  const heizen = () => wurzel.querySelectorAll(".zp-heute-zeile").find((zeile) => zeile.dataset.gruppe === "heizen");
+  const gross = () => wurzel.querySelectorAll(".zp-programm")[0];
+  const vorher = { text: text(heizen().querySelector(".zp-heute-text")), gross: gross() };
+  flaeche._jetzt = () => new Date("2026-09-21T22:30:00Z");
+  zeit.takteAusloesen(60 * 1000);
+  const linie = gross().querySelector(".jetzt-linie");
+  bilanz.uhr = {
+    vorher: vorher.text,
+    nachher: text(heizen().querySelector(".zp-heute-text")),
+    gleicherKnoten: gross() === vorher.gross,
+    linie: linie && linie.style.left,
+  };
+
+  // Fokus: Ein Neuaufbau der Gruppe lässt die Taste fokussiert, an der man stand.
+  flaeche._jetzt = () => new Date("2026-09-21T10:00:00Z");
+  flaeche._aktualisieren();
+  const taste = wurzel.querySelectorAll(".zp-mini").map((zeile) => zeile.querySelector(".zp-aktivieren")).find(Boolean);
+  taste.focus();
+  const vorUmstellung = gross();
+  states["select.betriebswahl"].state = "Standby";
+  flaeche._aktualisieren();
+  bilanz.fokus = { neuGezeichnet: gross() !== vorUmstellung, behalten: wurzel.activeElement === taste };
+  states["select.betriebswahl"].state = "Programm 1";
+  flaeche._aktualisieren();
+  delete flaeche.isConnected;
 }
 
 // ---------------------------------------------------------------------------
