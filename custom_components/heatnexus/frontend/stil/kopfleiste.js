@@ -11,9 +11,11 @@ export const KOPFLEISTE = `
      Leiste hindurch. Der Farbwert ist derselbe wie am Wirtselement, damit die
      Leiste im hellen wie im dunklen Erscheinungsbild nicht auffällt. */
   .leiste {
-    position: sticky; top: 0; z-index: 5;
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
     background: var(--hn-grund);
     border-bottom: 1px solid var(--hn-flaeche);
+    /* Am iPhone klebt die Leiste unter der Statusleiste; der Schatten deckt den Streifen darüber. */
+    box-shadow: 0 calc(-1 * env(safe-area-inset-top, 0px)) 0 0 var(--hn-grund);
   }
   .kopfleiste {
     display: flex; align-items: center; gap: 12px;

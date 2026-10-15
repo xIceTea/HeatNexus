@@ -28,6 +28,7 @@ from .steuerung import (
     bereitet_warmwasser,
     kaminkehrer_bedienung,
     warmwasser_bedienung,
+    warmwasser_rueckfrage,
     ww_ausloeser,
 )
 from .suche import eintrag_suchen, erster, kennung_suchen
@@ -166,6 +167,7 @@ def _schnellzugriff_eintrag(
     }
     if _passt(beschriftung, WARMWASSER):
         eintrag.update(warmwasser_bedienung(alle, teil["entitaeten"]))
+        eintrag.update(warmwasser_rueckfrage(teil["entitaeten"], teil.get("fct_type")))
         eintrag.update(ausloeser_optionen(treffer))
     if _passt(mustername(treffer), KAMINKEHRER):
         eintrag.update(kaminkehrer_bedienung(teil["entitaeten"]))

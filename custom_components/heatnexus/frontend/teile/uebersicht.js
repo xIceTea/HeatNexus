@@ -551,6 +551,9 @@ export const UebersichtMixin = (Basis) =>
       if (eintrag.laufzeit) {
         felder.push(this._zahlenfeld(eintrag.laufzeit, "Laufzeit", "min"));
       }
+      if (eintrag.laden_temperatur) {
+        felder.push(this._zahlenfeld(eintrag.laden_temperatur, "Ladetemperatur", "°C"));
+      }
       let werte = null;
       if (felder.length) {
         werte = await this._bestaetigen(eintrag.titel, eintrag.frage || "", felder);

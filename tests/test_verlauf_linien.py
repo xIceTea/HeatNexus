@@ -52,6 +52,17 @@ def test_die_suche_trifft_titel_und_kennung_ohne_gewaehltes(linien):
     }
 
 
+def test_ohne_suchbegriff_klappt_die_liste_alle_freien_linien_auf(linien):
+    frei = ["sensor.puffer_mitte", "sensor.aussen"]
+    assert linien["aufklappen"] == {
+        "zuBeginn": False,
+        "perKlick": frei,
+        "zweiterDruck": False,
+        "perTaste": frei,
+        "perPfeil": frei,
+    }
+
+
 def test_escape_schliesst_die_vorschlaege(linien):
     assert linien["escape"] == {"vorher": True, "nachher": True}
 

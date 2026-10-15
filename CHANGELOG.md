@@ -20,12 +20,15 @@ wenn dort Vorabversionen zugelassen sind.
 ### Geändert
 
 **Panel**
+- „Warmwasser laden“ fragt vor dem Start nach und zeigt die Ladetemperatur.
 - Die Hilfe unter „Alle“ nennt jede Erklärung nur einmal.
 
 ### Behoben
 
 **Panel**
 - Die Menütaste steht wieder in jeder Ansicht und öffnet die Seitenleiste.
+- Die Kopfleiste bleibt am iPhone beim Blättern unter der Statusleiste sichtbar.
+- Die Linienwahl im Verlauf zeigt alle verfügbaren Linien auch ohne Suchbegriff.
 
 ## [1.14.0-beta.3]
 

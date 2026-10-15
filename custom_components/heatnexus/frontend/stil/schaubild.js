@@ -420,9 +420,15 @@ export const SCHAUBILD = `
   .linien-werkzeuge { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 12px; }
   .linien-suche-huelle { position: relative; flex: 1; min-width: 0; }
   .linien-suche {
-    width: 100%; box-sizing: border-box; padding: 6px 10px; border-radius: 8px;
+    width: 100%; box-sizing: border-box; padding: 6px 34px 6px 10px; border-radius: 8px;
     border: 1px solid var(--hn-linie); background: var(--hn-flaeche); color: inherit; font: inherit;
   }
+  .linien-aufklappen {
+    position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
+    display: inline-flex; padding: 3px; border: none; border-radius: 6px; cursor: pointer;
+    background: none; color: var(--hn-gedaempft); --mdc-icon-size: 22px;
+  }
+  .linien-aufklappen:hover { color: var(--hn-text); }
   .linien-vorschlaege {
     position: absolute; z-index: 3; left: 0; right: 0; top: calc(100% + 4px);
     margin: 0; padding: 4px 0; list-style: none; max-height: 280px; overflow-y: auto;

@@ -781,11 +781,14 @@ def test_serviceausbrand_fragt_nach(panel, kessel_und_heizkreis):
     assert eintraege["Serviceausbrand"]["frage"], "Serviceausbrand muss nachfragen"
 
 
-def test_warmwasserladung_fragt_nicht_nach(panel, kessel_und_heizkreis):
-    """Was harmlos ist, darf nicht mit einer Rückfrage genervt werden."""
+def test_warmwasserladung_fragt_mit_ladetemperatur_nach(panel, kessel_und_heizkreis):
+    """Ein Druck aus Versehen startet keine Ladung; die Rückfrage zeigt die eingestellte Ladetemperatur."""
     daten = panel.anlage_daten(kessel_und_heizkreis)
     eintraege = {e["titel"]: e for e in daten["schnellzugriff"]}
-    assert eintraege["Warmwasser laden"]["frage"] == ""
+    taste = eintraege["Warmwasser laden"]
+    assert taste["frage"] == "Warmwasser jetzt einmal laden?"
+    assert "laden_temperatur" in taste
+    assert daten["steuerung"]["warmwasser"]["taste"]["frage"] == taste["frage"]
 
 
 def test_gleiche_bedienungen_nennen_ihren_anlagenteil(panel):
