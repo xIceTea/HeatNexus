@@ -1,9 +1,7 @@
-"""Störspeicher des Bediengeräts: lesen, quittieren, zurücksetzen, löschen.
+"""Meldungsliste des Bediengeräts (`InfoWinFehlerlog`): lesen, zurücksetzen, löschen.
 
-Das Bediengerät führt die Liste selbst (`InfoWinFehlerlog`); jede Meldung
-eines Geräts wird dort ein Eintrag, bis sie gelöscht wird. Die Regeln, wann
-ein Eintrag zurückgesetzt, quittiert oder gelöscht werden darf, folgen der
-Oberfläche des Bediengeräts.
+Jede Meldung eines Geräts wird dort ein Eintrag, bis jemand ihn löscht.
+Wann ein Eintrag anliegt und was erlaubt ist, folgt der Oberfläche des Bediengeräts.
 """
 
 from __future__ import annotations
