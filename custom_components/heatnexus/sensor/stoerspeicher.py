@@ -80,7 +80,7 @@ def kennungen(coordinators: dict) -> set[str]:
         kennung(coordinator)
         for coordinator in coordinators.values()
         if (coordinator.data or {}).get("stoerspeicher") is not None
-        or getattr(coordinator.client, "stoerspeicher_vorhanden", False) is None
+        or getattr(getattr(coordinator, "client", None), "stoerspeicher_vorhanden", False) is None
     }
 
 
