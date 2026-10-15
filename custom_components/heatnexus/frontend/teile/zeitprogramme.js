@@ -79,19 +79,10 @@ export const ZeitprogrammeMixin = (Basis) =>
     return wirkung.muster_nicht ? !text.includes(wirkung.muster_nicht) : text.includes(wirkung.muster);
   }
 
-  /** Das Zirkulationsprogramm der anderen Steuerungsart wirkt nicht und heißt gleich; es verschwindet. */
-  _verborgen(programm) {
-    const wirkung = programm.wirkung;
-    if (!wirkung || !wirkung.verbergen_bei) return false;
-    const zustand = this._zustand(wirkung.entity);
-    return !!zustand && String(zustand.state).toLowerCase().includes(wirkung.verbergen_bei);
-  }
-
   /** Sichtbare Programme der Gruppe, das geltende und das, das groß steht. */
   _gruppenStand(gruppe) {
-    const sichtbar = gruppe.eintraege.filter(
-      ({ programm }) => !this._verborgen(programm) && this._bloecke(programm.entity) !== null
-    );
+    // Auch das Programm, das gerade nicht gilt, bleibt sichtbar: klein, mit „Aktivieren“.
+    const sichtbar = gruppe.eintraege.filter(({ programm }) => this._bloecke(programm.entity) !== null);
     const aktiv = sichtbar.find(({ programm }) => this._gilt(programm)) || null;
     // Ein einzelnes Programm steht immer groß, auch wenn es gerade nicht wirkt.
     const gross = gruppe.eintraege.length === 1 ? sichtbar[0] || null : aktiv;
@@ -223,7 +214,7 @@ export const ZeitprogrammeMixin = (Basis) =>
     const teile = programme.map((programm) => {
       const zustand = this._zustand(programm.entity);
       const bloecke = zustand && zustand.attributes ? JSON.stringify(zustand.attributes.blocks) : "";
-      return [programm.entity, bloecke, this._gilt(programm), this._verborgen(programm)].join("~");
+      return [programm.entity, bloecke, this._gilt(programm)].join("~");
     });
     return [zeit.tag, zeit.minute, this._wahlText(gruppe), ...teile].join("|");
   }

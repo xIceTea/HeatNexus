@@ -700,14 +700,8 @@ def test_zirkulationsprogramm_sagt_wann_es_wirkt(panel):
     assert "wirkung" not in programme["Programm 1"]
 
 
-def test_von_zwei_zirkulationsprogrammen_bleibt_das_wirksame(panel):
-    """Die Anlage führt zwei – wortgleich benannt, nur die Adresse trennt sie.
-
-    `5/65` gilt bei Zeitsteuerung, `5/64` bei Temperatursteuerung. Ohne die
-    Unterscheidung standen zwei gleichnamige Karten nebeneinander, und keine
-    sagte, welche gerade wirkt. Versteckt wird jeweils die der **anderen**
-    Art – bei „Aus" oder Impulssteuerung bleiben beide stehen.
-    """
+def test_jedes_zirkulationsprogramm_nennt_seine_steuerungsart(panel):
+    """`5/65` gilt bei Zeitsteuerung, `5/64` bei Temperatursteuerung; beide bleiben sichtbar."""
     kreis = teil(
         "UMLZ HEIZKREIS",
         14,
@@ -733,10 +727,8 @@ def test_von_zwei_zirkulationsprogrammen_bleibt_das_wirksame(panel):
     nach_zeit = programme["sensor.zirkulationsprogramm_zeit"]["wirkung"]
     nach_temperatur = programme["sensor.zirkulationsprogramm_temperatur"]["wirkung"]
 
-    # Jedes verschwindet, sobald die Pumpe der anderen Art folgt.
-    assert nach_zeit["verbergen_bei"] == "temperatursteuerung"
-    assert nach_temperatur["verbergen_bei"] == "zeitsteuerung"
-    # Und jedes nennt die Steuerungsart, bei der es selbst greift.
+    assert "verbergen_bei" not in nach_zeit
+    assert "verbergen_bei" not in nach_temperatur
     assert nach_zeit["muster"] == "zeitsteuerung"
     assert nach_temperatur["muster"] == "temperatursteuerung"
     assert "Temperatursteuerung" in nach_temperatur["hinweis"]

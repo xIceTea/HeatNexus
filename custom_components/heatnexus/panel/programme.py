@@ -209,12 +209,7 @@ def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str,
     Ohne diese Unterscheidung standen zwei gleichnamige Karten nebeneinander,
     und keine sagte, welche gerade wirkt.
 
-    Deshalb zweierlei: Das Programm der *anderen* Steuerungsart verschwindet
-    (`verbergen_bei`), und was übrig bleibt, trägt einen Hinweis, solange die
-    Pumpe auf keiner der beiden steht – aus, nach Impuls oder durchlaufend.
-    Versteckt wird also nur, was nachweislich eine andere Art betrifft; bei
-    „Aus" bleiben beide sichtbar, damit man sein Programm vorbereiten kann,
-    bevor man die Steuerung umstellt.
+    Deshalb nennt jedes Programm die Steuerungsart, bei der es greift.
     """
     if not _passt(mustername(programm), ZIRKULATIONSPROGRAMM):
         # Kein Zirkulationsprogramm – am Puffer entscheidet seine eigene
@@ -243,10 +238,7 @@ def _wirkt_nur_wenn(programm: dict[str, Any], teil: dict[str, Any]) -> dict[str,
     # Welche Art dieses Programm ist, sagt allein sein Schlüssel – der Name
     # taugt dafür nicht, beide heißen gleich.
     schluessel = programm.get("schluessel")
-    if schluessel == "dhw_circulation_program_time":
-        wirkung["verbergen_bei"] = _auswahltext(pumpe, 2, "temperatursteuerung")
-    elif schluessel == "dhw_circulation_program_temperature":
-        wirkung["verbergen_bei"] = _auswahltext(pumpe, 1, "zeitsteuerung")
+    if schluessel == "dhw_circulation_program_temperature":
         wirkung["muster"] = _auswahltext(pumpe, 2, "temperatursteuerung")
         wirkung["hinweis"] = (
             "Wirkt erst, wenn die Zirkulationspumpe auf „Mit Temperatursteuerung“ steht."

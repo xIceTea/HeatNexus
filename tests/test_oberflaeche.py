@@ -283,6 +283,13 @@ def test_ein_verdeckter_reiter_rueckt_gerade_so_weit_nach(durchlauf):
     assert imbild["linksVerdeckt"] == 250
 
 
+def test_das_zirkulationsprogramm_der_anderen_art_bleibt_klein_sichtbar(durchlauf):
+    """Steht die Pumpe auf Temperatursteuerung, gilt 5/64; 5/65 lässt sich daneben aktivieren."""
+    zirkulation = durchlauf["zirkulation"]
+    assert zirkulation["sichtbar"] == ["sensor.zirk_zeit", "sensor.zirk_temp"]
+    assert zirkulation["gross"] == "sensor.zirk_temp"
+
+
 def test_unter_alle_steht_ein_streifen_mit_jeder_anlage(durchlauf):
     alle = durchlauf["heute"]["alle"]
     assert alle["karten"] == 1

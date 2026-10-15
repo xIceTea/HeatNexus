@@ -886,6 +886,24 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
   flaeche._anlageIndex = vorherIndex;
   flaeche._gebaut = false;
   bilanz.heute = heute;
+
+  // Zirkulation: Die Pumpe steht auf Temperatursteuerung; das Zeitprogramm bleibt klein sichtbar.
+  const block = (punkte) => [{ weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], switchPoints: punkte }];
+  states["select.zirk_modus"] = { entity_id: "select.zirk_modus", state: "Mit Temperatursteuerung", attributes: {} };
+  states["sensor.zirk_zeit"] = { entity_id: "sensor.zirk_zeit", state: "", attributes: { blocks: block([{ time: "06:00", value: 1 }, { time: "08:00", value: 0 }]) } };
+  states["sensor.zirk_temp"] = { entity_id: "sensor.zirk_temp", state: "", attributes: { blocks: block([{ time: "05:00", value: 45 }]) } };
+  const zirkulation = {
+    gruppe: "zirkulation",
+    eintraege: [
+      { programm: { entity: "sensor.zirk_zeit", wirkung: { entity: "select.zirk_modus", muster: "mit zeitsteuerung" } }, vorlauf: null },
+      { programm: { entity: "sensor.zirk_temp", wirkung: { entity: "select.zirk_modus", muster: "mit temperatursteuerung" } }, vorlauf: null },
+    ],
+  };
+  const stand = flaeche._gruppenStand(zirkulation);
+  bilanz.zirkulation = {
+    sichtbar: stand.sichtbar.map((eintrag) => eintrag.programm.entity),
+    gross: stand.gross && stand.gross.programm.entity,
+  };
 }
 
 // ---------------------------------------------------------------------------
