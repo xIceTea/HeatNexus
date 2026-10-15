@@ -8,34 +8,50 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [1.14.0-beta.3]
 
+### Highlight: Meldungsliste des Bediengeräts
+
+HeatNexus zeigt die Meldungsliste des InfoWIN Touch im Panel wie am Display. Wortlaut und Farben folgen Windhager, zu jeder Meldung steht die Abhilfe aus den Anleitungen. Einträge lassen sich zurücksetzen und löschen.
+
 ### Neu
 
-- Die **Meldungsliste des Bediengeräts** steht im Panel; Einträge lassen sich zurücksetzen und löschen.
-- Zurücksetzen und Löschen erscheinen sofort in der Meldungsliste.
-- Ein Eintrag gilt als erledigt, sobald das Gerät die Meldung nicht mehr anzeigt.
+**Meldungen**
+- Die Meldungsliste des Bediengeräts steht im Panel; Einträge lassen sich zurücksetzen und löschen.
 - Das Detail einer Meldung zeigt die Abhilfe aus den Bedienungsanleitungen.
 - Die Karte „Meldungen“ zeigt Info, Fehler und Alarm in Wortlaut und Farben von Windhager.
 - Eine Option erlaubt, Störungen am Kessel zurückzusetzen; ab Werk ist sie aus.
-- Die Diagnose nennt, was die Steuerung anbietet.
+
+**Auswertung**
 - Die Auswertung vergleicht Kesselstarts je Gradtag mit und ohne Eingriff der Automatik.
 - Die Auswertung meldet Räume, die meist über dem Ziel liegen, samt Abhilfe.
 
+**Diagnose**
+- Die Diagnose nennt, was die Steuerung anbietet.
+
 ### Geändert
 
+**Meldungen**
 - Die Meldungsliste eines Geräts zeigt die Einträge des Bediengeräts, sofern es eine führt.
 - „Meldungsliste leeren“ löscht erledigte Einträge auch am Bediengerät.
+
+**Automatik**
 - Die Automatik pausiert an milden trüben Tagen, wenn die Räume deutlich zu warm sind.
 
 ### Behoben
 
+**Meldungen**
 - Störungsmeldungen eines Geräts fehlen nicht mehr, wenn die Steuerung sie beim Einlesen auslässt.
+
+**Bedienung**
 - Nach einer Quittung oder einem Eingriff am Kessel erscheinen die neuen Werte sofort.
 - Behaglichkeitskorrektur und Zeitprogramme warten nach dem Schreiben nicht mehr auf einen vollen Abruf.
-- Hilfetexte, Rückfragen und Prüfmeldungen erscheinen auf Englisch und Niederländisch ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
 - Die Warmwasser-Taste rechnet mit der eingestellten Einschalthysterese statt mit 5 K.
-- Die Sonnenquote der Automatik zählt nur die restlichen Stunden des Tages.
-- Die Sonnenquote aus PV-Erträgen rechnet den Sonnenstand der Jahreszeit heraus.
+
+**Automatik**
+- Die Sonnenquote zählt nur die restlichen Stunden und rechnet die Jahreszeit heraus.
 - Die Automatik meldet bei langem Abfrageintervall keinen Handeingriff mehr ohne Grund ([#22](https://github.com/xIceTea/HeatNexus/issues/22)).
+
+**Sprache**
+- Hilfetexte, Rückfragen und Prüfmeldungen erscheinen auf Englisch und Niederländisch ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
 
 ## [1.14.0-beta.2]
 
