@@ -46,6 +46,7 @@ WOCHENTAGE.forEach(([code, text]) => {
 const FARBE_KALT = [37, 80, 143];
 const FARBE_WARM = [226, 84, 58];
 const FARBE_AUS = "rgba(255, 255, 255, 0.06)";
+const FARBE_EIN = "var(--hn-akzent, rgb(226, 84, 58))";
 
 /** Ohne Wörterbuch bleibt der deutsche Text stehen. */
 const OHNE = (text) => text;
@@ -172,6 +173,40 @@ export function jetztStelle(bloecke, zeit) {
   return stueck ? { block, von: stueck.von } : null;
 }
 
+/** Die Abschnitte des Tages, der zu dieser Zeit gilt; leer, wenn der Tag keinen Block hat. */
+export function tagesabschnitte(bloecke, tag) {
+  const block = (bloecke || []).find((eintrag) => eintrag.tage.includes(tag));
+  return block ? abschnitte(block.punkte) : [];
+}
+
+/** Der Wert, der zu dieser Zeit gilt; 'null' ohne Block für den Tag. */
+export function wertJetzt(bloecke, zeit) {
+  if (!zeit || !zeit.tag) return null;
+  const stueck = tagesabschnitte(bloecke, zeit.tag).find(
+    (eintrag) => eintrag.von <= zeit.minute && zeit.minute < eintrag.bis
+  );
+  return stueck ? stueck.wert : null;
+}
+
+/**
+ * Der nächste Abschnitt mit anderem Wert, höchstens eine Woche voraus.
+ *
+ * Gleicher Wert nach Mitternacht ist kein Wechsel; ohne Wechsel ergibt sich 'null'.
+ */
+export function naechsterWechsel(bloecke, zeit) {
+  const jetzt = wertJetzt(bloecke, zeit);
+  if (jetzt === null) return null;
+  const start = TAGE.indexOf(zeit.tag);
+  for (let tage = 0; tage <= 7; tage += 1) {
+    const tag = TAGE[(start + tage) % TAGE.length];
+    const treffer = tagesabschnitte(bloecke, tag).find(
+      (stueck) => stueck.wert !== jetzt && (tage > 0 || stueck.von > zeit.minute)
+    );
+    if (treffer) return { tag, tage, minute: treffer.von, wert: treffer.wert };
+  }
+  return null;
+}
+
 /**
  * Wochentage kurz benennen: „täglich", „Mo–Fr", „Mo–Mi, Sa".
  *
@@ -237,20 +272,29 @@ export function istSchaltprogramm(bloecke) {
   return werte.length > 0 && werte.every((wert) => wert === 0 || wert === 1);
 }
 
-/** Wertebereich für die Färbung. */
-export function bereich(bloecke) {
-  if (istSchaltprogramm(bloecke)) return { min: 0, max: 1, schalt: true };
-  const werte = (bloecke || []).flatMap((block) => block.punkte.map((punkt) => punkt.wert));
-  if (!werte.length) return { min: 10, max: 25, schalt: false };
-  const min = Math.min(...werte);
-  const max = Math.max(...werte);
-  // Bei nur einem Wert gäbe es keine Spanne; dann ist alles gleich warm.
-  return { min, max: max > min ? max : min + 1, schalt: false };
+/** Feste Farbskalen: gleiche Temperatur, gleiche Farbe, in jedem Programm. */
+export const SKALEN = {
+  raum: { min: 14, max: 24 },
+  wasser: { min: 40, max: 65 },
+};
+
+// Ohne Angabe des Servers entscheidet der Wert: eine Raumtemperatur über 30 °C gibt es nicht.
+const RAUM_HOECHSTENS = 30;
+
+/** Die Skala eines Programms; Vorlauf ist Wassertemperatur und liegt auf der Wasserskala. */
+export function skala(bloecke, art) {
+  if (istSchaltprogramm(bloecke)) return { min: 0, max: 1, schalt: true, art: "schalt" };
+  let name = art === "vorlauf" ? "wasser" : art;
+  if (!SKALEN[name]) {
+    const werte = (bloecke || []).flatMap((block) => block.punkte.map((punkt) => punkt.wert));
+    name = werte.length && Math.max(...werte) > RAUM_HOECHSTENS ? "wasser" : "raum";
+  }
+  return { ...SKALEN[name], schalt: false, art: name };
 }
 
 /** Farbe eines Abschnitts: kalt nach warm, bzw. Ein und Aus. */
 export function farbe(wert, grenzen) {
-  if (grenzen.schalt) return wert >= 0.5 ? "rgb(226, 84, 58)" : FARBE_AUS;
+  if (grenzen.schalt) return wert >= 0.5 ? FARBE_EIN : FARBE_AUS;
   const spanne = grenzen.max - grenzen.min || 1;
   const anteil = Math.max(0, Math.min(1, (wert - grenzen.min) / spanne));
   const kanal = (stelle) =>
@@ -355,16 +399,68 @@ export function gleich(einer, anderer) {
 // Zeichnen
 // ---------------------------------------------------------------------------
 
+// Ab dieser Länge in Minuten steht der Wert im Segment; kürzere zeigen ihn im Tooltip.
+const WERT_IM_SEGMENT_AB = 120;
+
 /**
- * Das Wochenraster: sieben Zeilen, darin die Schaltzeiten als Balken.
+ * Eine 24-h-Spur aus Abschnitten, auf Wunsch mit Werten und Jetzt-Linie.
  *
- * Die Breite kommt in Prozent, nicht in Bildpunkten – die Karte ist mal halb
- * so breit wie der Bildschirm und mal ganz. Dasselbe hat beim Heizkörper im
- * Schaubild einmal ein gestreiftes Ergebnis erzeugt.
+ * Breiten in Prozent: Die Karte ist mal eine Spalte breit und mal vier.
+ */
+export function spurKnoten(stuecke, grenzen, optionen = {}) {
+  const t = optionen.t || OHNE;
+  const spur = document.createElement("div");
+  spur.className = optionen.duenn ? "spur duenn" : "spur";
+  if (!stuecke.length) {
+    spur.classList.add("leer");
+    spur.title = t("kein Programm");
+  }
+  stuecke.forEach((stueck) => {
+    const balken = document.createElement("div");
+    balken.className = "balken";
+    balken.style.left = `${(stueck.von / TAG_MINUTEN) * 100}%`;
+    balken.style.width = `${((stueck.bis - stueck.von) / TAG_MINUTEN) * 100}%`;
+    balken.style.background = farbe(stueck.wert, grenzen);
+    const text = wertText(stueck.wert, grenzen, t);
+    balken.title = `${uhrzeit(stueck.von)}–${uhrzeit(stueck.bis % TAG_MINUTEN)} · ${text}`;
+    // Bei Ein/Aus trägt nur „Ein“ eine Beschriftung; „Aus“ ist die leere Spur.
+    const aus = grenzen.schalt && stueck.wert < 0.5;
+    if (optionen.werte && !aus && stueck.bis - stueck.von >= WERT_IM_SEGMENT_AB) {
+      const wert = document.createElement("span");
+      wert.className = "zp-segmentwert";
+      wert.textContent = text;
+      balken.appendChild(wert);
+    }
+    spur.appendChild(balken);
+  });
+  if (Number.isFinite(optionen.jetzt)) {
+    const linie = document.createElement("div");
+    linie.className = "jetzt-linie";
+    linie.style.left = `${(optionen.jetzt / TAG_MINUTEN) * 100}%`;
+    spur.appendChild(linie);
+  }
+  return spur;
+}
+
+function rasterZeile(text, spur, klasse = "") {
+  const reihe = document.createElement("div");
+  reihe.className = `zeitraster-zeile ${klasse}`.trim();
+  const tag = document.createElement("span");
+  tag.className = "tag";
+  tag.textContent = text;
+  reihe.append(tag, spur);
+  return reihe;
+}
+
+/**
+ * Das Wochenraster: eine Zeile je Block, die Werte in den Segmenten.
+ *
+ * Mit jetzt trägt die Zeile des heutigen Tags die Jetzt-Linie; mit vorlauf folgt eine dünne Spur.
  */
 export function rasterKnoten(bloecke, optionen = {}) {
   const t = optionen.t || OHNE;
-  const grenzen = bereich(bloecke);
+  const grenzen = optionen.grenzen || skala(bloecke, optionen.art);
+  const jetzt = optionen.jetzt || null;
   const raster = document.createElement("div");
   raster.className = "zeitraster";
 
@@ -377,63 +473,41 @@ export function rasterKnoten(bloecke, optionen = {}) {
   });
   raster.appendChild(kopf);
 
-  blockraster(bloecke, t).forEach((zeile) => {
+  const zeilen = blockraster(bloecke, t);
+  const vorlauf = optionen.vorlauf ? blockraster(optionen.vorlauf, t) : null;
+  const vorlaufGrenzen = vorlauf ? skala(optionen.vorlauf, "vorlauf") : null;
+  // Nur bei gleicher Tagesaufteilung steht die Vorlaufspur direkt unter der Raumspur.
+  const passend =
+    vorlauf &&
+    vorlauf.length === zeilen.length &&
+    vorlauf.every((zeile, n) => zeile.tage.join() === zeilen[n].tage.join());
+
+  zeilen.forEach((zeile, n) => {
     const gruppe = document.createElement("div");
     gruppe.className = "zeitraster-block";
-
-    const reihe = document.createElement("div");
-    reihe.className = "zeitraster-zeile";
-
-    const tag = document.createElement("span");
-    tag.className = "tag";
-    tag.textContent = zeile.text;
-
-    const spur = document.createElement("div");
-    spur.className = "spur";
-    if (!zeile.abschnitte.length) {
-      spur.classList.add("leer");
-      spur.title = t("kein Programm");
+    const heute = jetzt && zeile.tage.includes(jetzt.tag) ? jetzt.minute : null;
+    const spur = spurKnoten(zeile.abschnitte, grenzen, { t, werte: true, jetzt: heute });
+    gruppe.appendChild(rasterZeile(zeile.text, spur));
+    if (passend) {
+      const duenn = spurKnoten(vorlauf[n].abschnitte, vorlaufGrenzen, { t, duenn: true });
+      gruppe.appendChild(rasterZeile(t("Vorlauf"), duenn, "vorlauf"));
     }
-    zeile.abschnitte.forEach((stueck) => {
-      const balken = document.createElement("div");
-      balken.className = "balken";
-      balken.style.left = `${(stueck.von / TAG_MINUTEN) * 100}%`;
-      balken.style.width = `${((stueck.bis - stueck.von) / TAG_MINUTEN) * 100}%`;
-      balken.style.background = farbe(stueck.wert, grenzen);
-      balken.title = `${uhrzeit(stueck.von)}–${uhrzeit(stueck.bis % TAG_MINUTEN)} · ${wertText(
-        stueck.wert,
-        grenzen,
-        t
-      )}`;
-      spur.appendChild(balken);
-    });
-
-    reihe.append(tag, spur);
-    gruppe.appendChild(reihe);
-
-    // Die Schaltzeiten noch einmal als Text. Aus dem Balken allein liest
-    // niemand ab, ob um 05:00 oder um 05:30 geschaltet wird.
-    if (zeile.punkte.length) {
-      const zeiten = document.createElement("div");
-      zeiten.className = "zeitraster-zeiten";
-      zeile.punkte.forEach((punkt) => {
-        const marke = document.createElement("span");
-        marke.className = "schaltzeit";
-        const punktfarbe = document.createElement("i");
-        punktfarbe.style.background = farbe(punkt.wert, grenzen);
-        const text = document.createElement("span");
-        // Strich zwischen Uhrzeit und Wert. Ohne ihn standen „06:00" und
-        // „21,0 °C" nur durch ein Leerzeichen getrennt nebeneinander und
-        // lasen sich wie eine einzige Angabe.
-        text.textContent = `${uhrzeit(punkt.zeit)} – ${wertText(punkt.wert, grenzen, t)}`;
-        marke.append(punktfarbe, text);
-        zeiten.appendChild(marke);
-      });
-      gruppe.appendChild(zeiten);
-    }
-
     raster.appendChild(gruppe);
   });
+
+  if (vorlauf && !passend) {
+    const titel = document.createElement("div");
+    titel.className = "zeitraster-abschnitt";
+    titel.textContent = t("Vorlauf");
+    raster.appendChild(titel);
+    vorlauf.forEach((zeile) => {
+      const gruppe = document.createElement("div");
+      gruppe.className = "zeitraster-block";
+      const duenn = spurKnoten(zeile.abschnitte, vorlaufGrenzen, { t, duenn: true });
+      gruppe.appendChild(rasterZeile(zeile.text, duenn, "vorlauf"));
+      raster.appendChild(gruppe);
+    });
+  }
 
   return raster;
 }
@@ -450,7 +524,7 @@ export function rasterKnoten(bloecke, optionen = {}) {
  */
 export function uebersichtKnoten(bloecke, optionen = {}) {
   const t = optionen.t || OHNE;
-  const grenzen = optionen.grenzen || bereich(bloecke);
+  const grenzen = optionen.grenzen || skala(bloecke);
   const stelle = optionen.jetzt ? jetztStelle(bloecke, optionen.jetzt) : null;
   const knoten = document.createElement("div");
   knoten.className = "zp-uebersicht";
@@ -509,7 +583,7 @@ export function uebersichtKnoten(bloecke, optionen = {}) {
  */
 export function editorKnoten(bloecke, optionen = {}) {
   const t = optionen.t || OHNE;
-  const grenzen = optionen.grenzen || bereich(bloecke);
+  const grenzen = optionen.grenzen || skala(bloecke);
   // Eine eigene Kopie – solange nicht gespeichert ist, bleibt der Stand der
   // Anlage unangetastet.
   const modell = (bloecke || []).map((block) => ({

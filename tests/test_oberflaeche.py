@@ -219,11 +219,61 @@ def test_ohne_waermeanforderung_steht_ein_strich(durchlauf):
     assert durchlauf["uebersicht"]["ohneAnforderung"] > 0
 
 
-def test_zwischen_schaltzeit_und_wert_steht_ein_strich(durchlauf):
-    """Sonst standen „06:00" und „21,0 °C" nur durch ein Leerzeichen getrennt da."""
-    schaltzeiten = durchlauf["zeitprogramme"]["schaltzeiten"]
-    assert schaltzeiten, "Das Wochenraster zeigt keine Schaltzeiten"
-    assert all(" – " in text for text in schaltzeiten), schaltzeiten
+def test_die_werte_stehen_im_balken_statt_darunter(durchlauf):
+    """Die Schaltzeiten als Text doppelten den Balken; die genauen Zeiten zeigt der Dialog."""
+    zeitprogramme = durchlauf["zeitprogramme"]
+    assert zeitprogramme["schaltzeiten"] == 0
+    assert zeitprogramme["segmentWerte"], "Im Balken steht kein Wert"
+    assert all(text.endswith("°C") for text in zeitprogramme["segmentWerte"])
+
+
+def test_eine_karte_je_anlagenteil_statt_je_programm(durchlauf):
+    titel = durchlauf["zeitprogramme"]["titel"]
+    assert not any(t.startswith("Programm") for t in titel), titel
+    assert any("UMLZ" in t or "Heizkreis" in t.title() for t in titel), titel
+
+
+def test_das_geltende_programm_steht_gross_die_uebrigen_klein(durchlauf):
+    zeitprogramme = durchlauf["zeitprogramme"]
+    assert zeitprogramme["grosseProgramme"] == ["Programm 1", "WW-Programm"]
+    assert zeitprogramme["kleineProgramme"] == ["Programm 2 – Übergangszeit"]
+
+
+def test_der_hinweis_steht_einmal_im_kartenfuss(durchlauf):
+    assert durchlauf["zeitprogramme"]["fuss"] == [
+        [
+            "Es wirkt nur das Programm, auf dem die Betriebswahl steht.",
+            "Wirkt nicht, solange die Betriebswahl auf „Standby“ steht.",
+        ]
+    ]
+
+
+def test_der_heute_streifen_zeigt_jetzt_und_den_naechsten_wechsel(durchlauf):
+    """Montag 10:00: Programm 1 hält 21 °C bis 22:00, dann 16 °C."""
+    zeilen = durchlauf["heute"]["zeilen"]
+    assert [z["gruppe"] for z in zeilen] == ["heizen", "warmwasser"]
+    heizen = zeilen[0]
+    assert heizen["programm"] == "Programm 1"
+    assert heizen["text"] == "jetzt 21 °C · ab 22:00 16 °C"
+    assert all(z["jetztLinien"] == 1 for z in zeilen)
+
+
+def test_die_legende_steht_einmal_je_seite(durchlauf):
+    assert durchlauf["zeitprogramme"]["heuteKarten"] == 1
+    assert durchlauf["zeitprogramme"]["legenden"] == 1
+
+
+def test_ein_leeres_programm_braucht_nur_eine_zeile(durchlauf):
+    (leer,) = durchlauf["heute"]["leer"]
+    assert leer["name"].startswith("Programm 2")
+    assert (leer["spuren"], leer["aktivieren"]) == (0, 0)
+
+
+def test_unter_alle_steht_ein_streifen_mit_jeder_anlage(durchlauf):
+    alle = durchlauf["heute"]["alle"]
+    assert alle["karten"] == 1
+    assert alle["anlagen"] == ["Anlage A", "Anlage B"]
+    assert alle["legenden"] == 1
 
 
 def test_der_zeitprogramm_dialog_zeigt_erst_die_spannen(durchlauf):
@@ -300,8 +350,8 @@ def test_nach_der_betriebswahl_werden_die_verwandten_werte_gelesen(durchlauf):
 
 
 def test_das_aktive_zeitprogramm_hebt_sich_ab(durchlauf):
-    """Vier gleich aussehende Karten sagen sonst nicht, welche gerade gilt."""
-    aktiv = durchlauf["zeitprogramme"]["aktiveKarten"]
+    """Gleich aussehende Programme sagen sonst nicht, welches gerade gilt."""
+    aktiv = durchlauf["zeitprogramme"]["aktiveProgramme"]
     # Betriebswahl „Programm 1": das Heizprogramm gilt, Warmwasser gilt immer
     # außer auf Standby, Programm 2 gilt nicht.
     assert aktiv == ["Programm 1", "WW-Programm"], aktiv
@@ -600,8 +650,8 @@ def test_unter_der_stoerung_steht_die_abhilfe(durchlauf):
 # ---------------------------------------------------------------------------
 # Zeitprogramm aktivieren
 # ---------------------------------------------------------------------------
-def test_die_bezeichnung_steht_im_kartentitel(durchlauf):
-    assert any("Programm 2 – Übergangszeit" in t for t in durchlauf["zeitprogramme"]["titel"])
+def test_die_bezeichnung_steht_am_programmnamen(durchlauf):
+    assert "Programm 2 – Übergangszeit" in durchlauf["zeitprogramme"]["programmNamen"]
 
 
 def test_aktivieren_steht_nur_an_programmen_die_nicht_gelten(durchlauf):
@@ -615,6 +665,10 @@ def test_waehrend_der_umstellung_ist_keine_taste_zu_sehen(durchlauf):
 
 def test_nach_der_umstellung_wechselt_die_taste_zum_alten_programm(durchlauf):
     assert durchlauf["aktivieren"]["danach"] == ["Programm 1"]
+
+
+def test_nach_der_umstellung_steht_das_neue_programm_gross(durchlauf):
+    assert durchlauf["aktivieren"]["grossDanach"] == ["Programm 2 – Übergangszeit", "WW-Programm"]
 
 
 def test_ohne_verfuegbare_auswahl_fehlt_die_taste(durchlauf):

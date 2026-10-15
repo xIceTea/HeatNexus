@@ -5,11 +5,6 @@ export const ZEITPROGRAMME = `
   /* Die Balken sitzen in Prozent der Spur, nicht in Bildpunkten: Die Karte
      ist mal eine Spalte breit und mal vier. In Bildpunkten säßen die Zeiten
      schon bei der zweiten Breite daneben. */
-  .zp-anlagenteil {
-    font-size: 12px; opacity: 0.55; margin: -4px 0 12px;
-    display: flex; align-items: center; gap: 5px;
-  }
-  .zp-anlagenteil ha-icon { --mdc-icon-size: 15px; }
   /* Die Einheit hinter dem Eingabefeld: leise, aber da. */
   .zp-einheit { font-size: 12px; opacity: 0.6; min-width: 20px; }
 
@@ -64,27 +59,100 @@ export const ZEITPROGRAMME = `
   .zeitraster-zeile .tag {
     width: 84px; flex: none; font-size: 12px; font-weight: 600; opacity: 0.75;
   }
-  /* Die Schaltzeiten als Text unter dem Balken: Aus dem Balken allein liest
-     niemand ab, ob um 05:00 oder um 05:30 geschaltet wird. */
-  .zeitraster-zeiten {
-    display: flex; flex-wrap: wrap; gap: 6px 14px;
-    margin: 6px 0 2px 92px; font-size: 12px; opacity: 0.75;
-  }
-  .zeitraster-zeiten .schaltzeit { display: inline-flex; align-items: center; gap: 5px; }
-  .zeitraster-zeiten .schaltzeit i {
-    width: 8px; height: 8px; border-radius: 2px; display: inline-block;
-  }
   .zeitraster .spur {
-    position: relative; flex: 1; height: 16px; border-radius: 5px;
+    position: relative; flex: 1; height: 20px; border-radius: 5px;
     background: var(--hn-flaeche); overflow: hidden;
   }
+  .zeitraster .spur.duenn { height: 7px; border-radius: 3px; }
   .zeitraster .spur.leer { opacity: 0.5; }
-  .zeitraster .balken { position: absolute; top: 0; bottom: 0; }
-
-  .zp-wirkung {
-    margin-top: 12px; padding: 7px 10px; border-radius: 8px; font-size: 12px;
-    background: rgba(255, 171, 111, 0.12); color: #ffab6f;
+  .zeitraster .balken {
+    position: absolute; top: 0; bottom: 0; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
   }
+  /* Der Wert im Segment; ein schmales Segment schneidet ihn ab statt umzubrechen. */
+  .zeitraster .balken .zp-segmentwert {
+    font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.6); padding: 0 3px;
+  }
+  /* Passt der Wert nicht ins Segment, steht er nur im Tooltip statt abgeschnitten. */
+  .zeitraster .balken { container-type: inline-size; }
+  @container (max-width: 44px) { .zeitraster .balken .zp-segmentwert { visibility: hidden; } }
+  .zeitraster .jetzt-linie {
+    position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px;
+    background: var(--hn-text); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  }
+  .zeitraster-zeile.vorlauf { margin-top: 3px; }
+  .zeitraster-zeile.vorlauf .tag { font-weight: 400; opacity: 0.55; }
+  .zeitraster-abschnitt { margin: 10px 0 2px; font-size: 12px; font-weight: 600; opacity: 0.6; }
+
+  /* Heute-Streifen: Name, Tagesbalken, Text in festen Spalten, damit die Balken untereinander stehen. */
+  .zp-heute-zeile {
+    display: grid; grid-template-columns: minmax(130px, 200px) 1fr minmax(170px, 230px);
+    align-items: center; gap: 4px 14px; padding: 6px 0;
+  }
+  .zp-heute-kopf { padding: 0; }
+  .zp-heute-kopf .zeitraster-skala { margin-left: 0; }
+  .zp-heute-anlagenname {
+    margin: 10px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; opacity: 0.6;
+  }
+  .zp-heute-name { display: grid; grid-template-columns: auto 1fr; column-gap: 6px; align-items: center; }
+  .zp-heute-name ha-icon { --mdc-icon-size: 18px; grid-row: span 2; opacity: 0.8; }
+  .zp-heute-titel { font-size: 13px; font-weight: 600; }
+  .zp-heute-programm { font-size: 12px; opacity: 0.6; }
+  .zp-heute-text { font-size: 13px; font-variant-numeric: tabular-nums; }
+  @media (max-width: 700px) {
+    .zp-heute-zeile { grid-template-columns: 1fr; }
+    .zp-heute-kopf > span { display: none; }
+  }
+  .zp-legende {
+    display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 12px;
+    padding-top: 10px; border-top: 1px solid var(--hn-flaeche); font-size: 12px; opacity: 0.8;
+  }
+  .zp-legende-eintrag { display: inline-flex; align-items: center; gap: 6px; }
+  .zp-legende-eintrag span:first-child { font-weight: 600; }
+  .zp-verlauf { display: inline-block; width: 72px; height: 8px; border-radius: 4px; }
+  .zp-ein { display: inline-block; width: 18px; height: 8px; border-radius: 4px; }
+
+  /* Karte je Anlagenteil: das geltende Programm groß, die übrigen als Minibalken. */
+  .zp-kartensymbol { --mdc-icon-size: 20px; opacity: 0.8; }
+  .zp-gruppe + .zp-gruppe { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hn-flaeche); }
+  .zp-programm { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--hn-linie); }
+  .zp-programm.aktiv {
+    border-color: var(--hn-akzent);
+    background: color-mix(in srgb, var(--hn-akzent) 8%, transparent);
+  }
+  .zp-programmkopf { margin-bottom: 6px; font-size: 14px; }
+  .zp-programmname { font-weight: 600; }
+  .zp-programm .zp-karteleiste { padding-top: 10px; }
+  .zp-mini {
+    display: grid; grid-template-columns: minmax(110px, 180px) 1fr auto;
+    align-items: center; gap: 10px; padding: 6px 2px 0;
+  }
+  .zp-mini .rueckmeldung { grid-column: 1 / -1; }
+  .zp-mini .rueckmeldung:empty { display: none; }
+  @media (max-width: 700px) {
+    .zp-mini { grid-template-columns: 1fr auto; }
+    .zp-minispuren { grid-column: 1 / -1; grid-row: 2; }
+  }
+  .zp-mini.leer { grid-template-columns: minmax(110px, 180px) 1fr; opacity: 0.6; }
+  .zp-mininame {
+    font: inherit; font-size: 13px; text-align: left; padding: 0; color: inherit;
+    background: none; border: none; cursor: pointer; text-decoration: underline dotted;
+    text-underline-offset: 3px;
+  }
+  .zp-minispuren { gap: 2px; }
+  /* In der Spalte gilt flex:1 der Höhe, nicht der Breite; hier bleibt die Spur so hoch, wie sie ist. */
+  .zp-heute-spur .spur, .zp-minispuren .spur { flex: none; }
+  .zp-minispuren .spur:not(.duenn) { height: 10px; }
+  .zp-mini .zp-taste { padding: 4px 10px; font-size: 12px; }
+  .zp-leer { font-size: 12px; font-style: italic; }
+  .zp-zustand { font-size: 13px; opacity: 0.75; margin-bottom: 2px; }
+  .zp-fuss {
+    margin-top: auto; padding-top: 12px; font-size: 12px; opacity: 0.6;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .zp-gruppe:last-of-type { margin-bottom: 4px; }
   /* margin-top:auto haelt die Leiste am unteren Rand. Die Karten einer Zeile
      sind gleich hoch (.raster steht auf align-items:stretch), und ohne das
      stand die Taste bei einem kurzen Programm irgendwo in der Mitte, weil

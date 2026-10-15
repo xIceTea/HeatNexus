@@ -402,6 +402,7 @@ class HeatNexusPanel extends Grundlage {
       flaechen.push(this._reiter === "automatik" ? this._automatikAlle() : this._befundAlle());
       inhalt.appendChild(flaechen[0]);
     } else if (this._alleAnlagen()) {
+      if (this._reiter === "zeitprogramme") inhalt.appendChild(this._zeitprogrammeHeute());
       this._anlagen().forEach((eintrag) => {
         const ueberschrift = document.createElement("div");
         ueberschrift.className = "anlagen-trenner";

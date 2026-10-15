@@ -30,6 +30,8 @@ MODUL = (
     / "zeitprogramm.js"
 )
 
+SEITE = MODUL.with_name("zeitprogrammseite.js")
+
 pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="node nicht vorhanden")
 
 
@@ -38,23 +40,44 @@ def rechnung(tmp_path_factory) -> dict:
     """Die reinen Funktionen des Moduls einmal in Node ausführen."""
     skript = tmp_path_factory.mktemp("zeitprogramm") / "pruefung.mjs"
     adresse = MODUL.resolve().as_uri()
+    seite = SEITE.resolve().as_uri()
     skript.write_text(
         f"""
 import {{
   abschnitte,
-  bereich,
   blockraster,
   bloeckeLesen,
   gleich,
   istSchaltprogramm,
+  farbe,
   jetztStelle,
   nachDienst,
+  naechsterWechsel,
   ortszeit,
   pruefen,
+  skala,
   tagesbereich,
+  wertJetzt,
   wertText,
   wochenraster,
 }} from "{adresse}";
+import {{ gruppieren, heuteText, nachTeilen }} from "{seite}";
+
+const kreis = [
+  {{ entity: "sensor.p1", teil: "hk", anlagenteil: "HK", gruppe: "heizen", art: "raum", nummer: 1 }},
+  {{ entity: "sensor.ww", teil: "hk", anlagenteil: "HK", gruppe: "warmwasser", art: "wasser" }},
+  {{ entity: "sensor.v1", teil: "hk", anlagenteil: "HK", gruppe: "heizen", art: "vorlauf", nummer: 1 }},
+  {{ entity: "sensor.v3", teil: "hk", anlagenteil: "HK", gruppe: "heizen", art: "vorlauf", nummer: 3 }},
+  {{ entity: "sensor.p2", teil: "hk", anlagenteil: "HK", gruppe: "heizen", art: "raum", nummer: 2 }},
+  {{ entity: "sensor.frei", teil: "hk", anlagenteil: "HK" }},
+  {{ entity: "sensor.puffer", teil: "pu", anlagenteil: "Puffer", gruppe: "puffer", art: "wasser" }},
+];
+
+const nur21 = bloeckeLesen([{{ weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], switchPoints: [{{ time: "00:00", value: 21 }}] }}]);
+const warmUndKalt = bloeckeLesen([
+  {{ weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], switchPoints: [{{ time: "06:00", value: 21 }}, {{ time: "22:00", value: 14 }}] }},
+]);
+const vorlauf = bloeckeLesen([{{ weekdays: ["Mo"], switchPoints: [{{ time: "05:00", value: 55 }}, {{ time: "22:00", value: 10 }}] }}]);
 
 const heizen = bloeckeLesen([
   {{
@@ -143,13 +166,25 @@ console.log(
     ]),
     schalt_erkannt: istSchaltprogramm(schalten),
     heizen_ist_kein_schaltprogramm: istSchaltprogramm(heizen),
-    bereich_heizen: bereich(heizen),
-    bereich_schalten: bereich(schalten),
-    schalttext: [1, 0].map((wert) => wertText(wert, bereich(schalten))),
+    skala_heizen: skala(heizen, "raum"),
+    skala_schalten: skala(schalten),
+    skala_vorlauf: skala(vorlauf, "vorlauf"),
+    skala_geraten: [skala(heizen).art, skala(vorlauf).art],
+    farbe_gleich: farbe(21, skala(nur21, "raum")) === farbe(21, skala(warmUndKalt, "raum")),
+    farbe_raender: [farbe(5, skala(heizen, "raum")) === farbe(14, skala(heizen, "raum")),
+      farbe(30, skala(heizen, "raum")) === farbe(24, skala(heizen, "raum"))],
+    schalttext: [1, 0].map((wert) => wertText(wert, skala(schalten))),
     schalttext_englisch: [1, 0].map((wert) =>
-      wertText(wert, bereich(schalten), (text) => ({{ Ein: "On", Aus: "Off" }})[text])
+      wertText(wert, skala(schalten), (text) => ({{ Ein: "On", Aus: "Off" }})[text])
     ),
-    temperaturtext: wertText(20.55, bereich(heizen), () => "falsch"),
+    temperaturtext: wertText(20.55, skala(heizen), () => "falsch"),
+    wert_jetzt: wertJetzt(heizen, {{ tag: "Mo", minute: 10 * 60 }}),
+    wechsel_heute: naechsterWechsel(heizen, {{ tag: "Mo", minute: 10 * 60 }}),
+    wechsel_nach_mitternacht: naechsterWechsel(heizen, {{ tag: "Mo", minute: 23 * 60 }}),
+    wechsel_wochenende: naechsterWechsel(heizen, {{ tag: "Fr", minute: 23 * 60 }}),
+    wechsel_spaeter_tag: naechsterWechsel(vorlauf, {{ tag: "Mo", minute: 23 * 60 }}),
+    wechsel_keiner: naechsterWechsel(nur21, {{ tag: "We", minute: 600 }}),
+    wechsel_ohne_block: naechsterWechsel(vorlauf, {{ tag: "Tu", minute: 600 }}),
     dienst: nachDienst(heizen),
     fehler_zuviele: pruefen(zuviele),
     fehler_doppelter_tag: pruefen(doppelterTag),
@@ -165,6 +200,14 @@ console.log(
     jetzt_ohne_block: jetztStelle(deutsch, {{ tag: "Mo", minute: 600 }}),
     ortszeit_utc: ortszeit(new Date("2026-09-21T21:45:00Z"), "UTC"),
     ortszeit_wien: ortszeit(new Date("2026-09-21T22:30:00Z"), "Europe/Vienna"),
+    teile: nachTeilen(kreis).map((teil) => [teil.teil, teil.programme.length]),
+    gruppen: gruppieren(kreis.filter((p) => p.teil === "hk")).map((gruppe) => [
+      gruppe.schluessel,
+      gruppe.eintraege.map((e) => [e.programm.entity, e.vorlauf ? e.vorlauf.entity : null]),
+    ]),
+    heute_text: heuteText(heizen, {{ tag: "Mo", minute: 600 }}, skala(heizen, "raum")),
+    heute_text_spaeter: heuteText(vorlauf, {{ tag: "Mo", minute: 1400 }}, skala(vorlauf, "vorlauf")),
+    heute_ohne_block: heuteText(vorlauf, {{ tag: "Tu", minute: 600 }}, skala(vorlauf, "vorlauf")),
     ortszeit_falsche_zone: ortszeit(new Date("2026-09-21T10:00:00Z"), "Nirgendwo/Stadt").tag !== null,
   }})
 );
@@ -266,9 +309,61 @@ def test_schaltprogramm_wird_am_wertebereich_erkannt(rechnung):
     """
     assert rechnung["schalt_erkannt"] is True
     assert rechnung["heizen_ist_kein_schaltprogramm"] is False
-    assert rechnung["bereich_schalten"] == {"min": 0, "max": 1, "schalt": True}
-    assert rechnung["bereich_heizen"]["schalt"] is False
-    assert rechnung["bereich_heizen"]["min"] == 16
+    assert rechnung["skala_schalten"] == {"min": 0, "max": 1, "schalt": True, "art": "schalt"}
+    assert rechnung["skala_heizen"]["schalt"] is False
+
+
+def test_die_farbskala_ist_fest(rechnung):
+    """Gleiche Temperatur, gleiche Farbe – unabhängig von den übrigen Werten des Programms."""
+    assert rechnung["skala_heizen"] == {"min": 14, "max": 24, "schalt": False, "art": "raum"}
+    assert rechnung["farbe_gleich"] is True
+    # Außerhalb der Skala gilt die Endfarbe.
+    assert rechnung["farbe_raender"] == [True, True]
+
+
+def test_vorlauf_liegt_auf_der_wasserskala(rechnung):
+    assert rechnung["skala_vorlauf"] == {"min": 40, "max": 65, "schalt": False, "art": "wasser"}
+
+
+def test_ohne_art_entscheidet_der_wert_ueber_die_skala(rechnung):
+    """Eine Raumtemperatur über 30 °C gibt es nicht."""
+    assert rechnung["skala_geraten"] == ["raum", "wasser"]
+
+
+# ---------------------------------------------------------------------------
+# Heute: jetzt und der nächste Wechsel
+# ---------------------------------------------------------------------------
+def test_der_wert_jetzt_kommt_aus_dem_heutigen_block(rechnung):
+    assert rechnung["wert_jetzt"] == 21
+
+
+def test_der_naechste_wechsel_am_selben_tag(rechnung):
+    assert rechnung["wechsel_heute"] == {"tag": "Mo", "tage": 0, "minute": 1320, "wert": 16}
+
+
+def test_der_naechste_wechsel_nach_mitternacht(rechnung):
+    """Um 23 Uhr gilt 16 °C; der Umlauf bis 06:00 ist kein Wechsel, erst 06:00 ist einer."""
+    assert rechnung["wechsel_nach_mitternacht"] == {
+        "tag": "Tu",
+        "tage": 1,
+        "minute": 360,
+        "wert": 21,
+    }
+
+
+def test_gleicher_wert_nach_mitternacht_zaehlt_nicht(rechnung):
+    """Freitag 23 Uhr 16 °C, das Wochenende beginnt mit 21 °C ab 00:00 – das ist der Wechsel."""
+    assert rechnung["wechsel_wochenende"] == {"tag": "Sa", "tage": 1, "minute": 0, "wert": 21}
+
+
+def test_der_naechste_wechsel_an_einem_spaeteren_tag(rechnung):
+    """Ein Block nur für Montag: Der nächste Wechsel ist eine Woche später."""
+    assert rechnung["wechsel_spaeter_tag"] == {"tag": "Mo", "tage": 7, "minute": 300, "wert": 55}
+
+
+def test_ohne_wechsel_oder_ohne_block_gibt_es_keinen(rechnung):
+    assert rechnung["wechsel_keiner"] is None
+    assert rechnung["wechsel_ohne_block"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -354,3 +449,34 @@ def test_die_ortszeit_folgt_der_zeitzone_von_home_assistant(rechnung):
 
 def test_eine_unbekannte_zeitzone_faellt_auf_den_browser(rechnung):
     assert rechnung["ortszeit_falsche_zone"] is True
+
+
+# ---------------------------------------------------------------------------
+# Seite: Gruppen je Anlagenteil und der Text im Heute-Streifen
+# ---------------------------------------------------------------------------
+def test_programme_werden_je_anlagenteil_gesammelt(rechnung):
+    assert rechnung["teile"] == [["hk", 6], ["pu", 1]]
+
+
+def test_vorlauf_haengt_am_raumprogramm_gleicher_nummer(rechnung):
+    """Ohne Raumprogramm gleicher Nummer steht das Vorlaufprogramm allein in der Gruppe."""
+    assert rechnung["gruppen"] == [
+        [
+            "heizen",
+            [["sensor.p1", "sensor.v1"], ["sensor.v3", None], ["sensor.p2", None]],
+        ],
+        ["warmwasser", [["sensor.ww", None]]],
+        ["allein:sensor.frei", [["sensor.frei", None]]],
+    ]
+
+
+def test_der_heute_text_nennt_jetzt_und_den_wechsel(rechnung):
+    assert rechnung["heute_text"] == "jetzt 21 °C · ab 22:00 16 °C"
+
+
+def test_ein_wechsel_an_einem_anderen_tag_nennt_den_wochentag(rechnung):
+    assert rechnung["heute_text_spaeter"] == "jetzt 10 °C · ab Mo 05:00 55 °C"
+
+
+def test_ohne_block_fuer_heute_steht_kein_zeitplan(rechnung):
+    assert rechnung["heute_ohne_block"] == "heute kein Zeitplan"

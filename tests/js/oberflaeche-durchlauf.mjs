@@ -19,6 +19,22 @@ import { browserAttrappe } from "./dom-attrappe.mjs";
 const [pfadPanel, pfadDaten] = process.argv.slice(2);
 const zeit = browserAttrappe();
 
+/** Text eines Knotens, ohne Rand. */
+const text = (knoten) => String((knoten && knoten.textContent) || "").trim();
+
+/** Namen der Zeitprogramme, groß wie klein, in der Reihenfolge auf der Seite. */
+const programmNamen = (wurzel) => [
+  ...wurzel.querySelectorAll(".zp-programmname"),
+  ...wurzel.querySelectorAll(".zp-mininame"),
+].map(text);
+
+/** Der Name des Programms, an dem eine Taste steht. */
+const programmVon = (taste) => {
+  const gross = taste.closest(".zp-programm");
+  if (gross) return text(gross.querySelector(".zp-programmname"));
+  return text(taste.closest(".zp-mini").querySelector(".zp-mininame"));
+};
+
 /** Kartentitel ohne die Marke „aktiv", die in derselben Überschrift steht. */
 function titelOhneMarke(ueberschrift) {
   const marke = ueberschrift.querySelector(".zp-aktiv");
@@ -168,10 +184,18 @@ REITER.forEach((reiter) => {
     ohneAnforderung: [...flaeche.shadowRoot.querySelectorAll(".wert")].filter(
       (knoten) => String(knoten.textContent || "").trim() === "–"
     ).length,
-    // Die Schaltzeiten unter dem Wochenraster: Uhrzeit, Strich, Wert.
-    schaltzeiten: [...flaeche.shadowRoot.querySelectorAll(".schaltzeit")].map((knoten) =>
-      String(knoten.textContent || "").trim()
-    ),
+    // Zeitprogramme: das geltende groß, die übrigen klein, der Hinweis einmal im Fuß.
+    aktiveProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-programm")]
+      .filter((programm) => programm.classList.contains("aktiv"))
+      .map((programm) => text(programm.querySelector(".zp-programmname"))),
+    grosseProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-programmname")].map(text),
+    kleineProgramme: [...flaeche.shadowRoot.querySelectorAll(".zp-mininame")].map(text),
+    programmNamen: programmNamen(flaeche.shadowRoot),
+    fuss: [...flaeche.shadowRoot.querySelectorAll(".zp-fuss")].map((fuss) => fuss.children.map(text)),
+    schaltzeiten: flaeche.shadowRoot.querySelectorAll(".schaltzeit").length,
+    segmentWerte: [...flaeche.shadowRoot.querySelectorAll(".zp-segmentwert")].map(text),
+    heuteKarten: flaeche.shadowRoot.querySelectorAll(".zp-heute").length,
+    legenden: flaeche.shadowRoot.querySelectorAll(".zp-legende").length,
     // Eigene Pfeile am Zahlenfeld – die des Browsers sind abgeschaltet.
     zahlPfeile: flaeche.shadowRoot.querySelectorAll(".zahl-pfeil").length,
     // Unter der aktiven Störung steht die Handlungsempfehlung.
@@ -551,12 +575,8 @@ const gesetzt = dienstAufrufe
   .slice(vorJa)
   .find((aufruf) => aufruf.dienst === "select.select_option");
 
-// Die Programme, deren Karte die Taste gerade zeigt.
-const mitAktivieren = () =>
-  flaeche.shadowRoot
-    .querySelectorAll(".karte")
-    .filter((karte) => karte.querySelectorAll(".zp-aktivieren").some((taste) => !taste.hidden))
-    .map((karte) => titelOhneMarke(karte.querySelector("h2")));
+// Die Programme, an denen die Taste gerade sichtbar ist.
+const mitAktivieren = () => sichtbareAktivieren().map(programmVon);
 
 states["select.betriebswahl"].state = "Programm 2";
 flaeche._aktualisieren();
@@ -569,6 +589,8 @@ bilanz.aktivieren = {
   gesetzt: gesetzt ? gesetzt.angaben.option : null,
   waehrendUmstellung,
   danach: mitAktivieren(),
+  // Das neu geltende Programm rückt nach oben, das alte in die Minibalken.
+  grossDanach: [...flaeche.shadowRoot.querySelectorAll(".zp-programmname")].map(text),
 };
 
 // Eine nicht verfügbare Auswahl behält ihre Optionen, stellt aber nichts um.
@@ -657,16 +679,14 @@ hass.callWS = async (anfrage) => {
 flaeche._reiter = "zeitprogramme";
 flaeche._gebaut = false;
 flaeche._zeichnen();
-const karteZwei = flaeche.shadowRoot
-  .querySelectorAll(".karte")
-  .find((karte) => titelOhneMarke(karte.querySelector("h2")).startsWith("Programm 2"));
+// Programm 2 gilt nicht und steht als Minibalken; sein Name öffnet den Dialog.
+const nameZwei = flaeche.shadowRoot
+  .querySelectorAll(".zp-mininame")
+  .find((name) => text(name).startsWith("Programm 2"));
 let bezeichnungUndZeiten = null;
-if (karteZwei) {
+if (nameZwei) {
   const vorZugleich = dienstAufrufe.length;
-  karteZwei
-    .querySelectorAll(".zp-taste")
-    .find((taste) => String(taste.textContent).trim() === "Öffnen")
-    .ausloesen("click");
+  nameZwei.ausloesen("click");
   const dialog = flaeche.shadowRoot.querySelectorAll(".zp-dialog").at(-1);
   dialog._bearbeiten();
   dialog.querySelector(".zp-bezeichnung").value = "Sommer";
@@ -698,13 +718,66 @@ if (karteZwei) {
     geschrieben: !!geschrieben,
     waehrend,
     bestaetigt: sichtbareRueckmeldungen(),
-    titel: [...flaeche.shadowRoot.querySelectorAll(".kartenkopf")].map((kopf) =>
-      String(kopf.textContent || "").trim()
-    ),
+    titel: programmNamen(flaeche.shadowRoot),
   };
   zeit.zeitLaufenLassen();
 }
 bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
+
+// ---------------------------------------------------------------------------
+// Heute-Streifen, leeres Programm, „Alle“
+// ---------------------------------------------------------------------------
+{
+  flaeche._jetzt = () => new Date("2026-09-21T10:00:00Z");
+  hass.config = { time_zone: "UTC" };
+  states["select.betriebswahl"].state = "Programm 1";
+  const zwei = states["sensor.programm_2"];
+  const zweiBloecke = zwei.attributes.blocks;
+  zwei.attributes.blocks = [{ weekdays: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], switchPoints: [] }];
+  flaeche._reiter = "zeitprogramme";
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  const wurzel = flaeche.shadowRoot;
+  const heute = {
+    zeilen: [...wurzel.querySelectorAll(".zp-heute-zeile")]
+      .filter((zeile) => zeile.dataset.gruppe)
+      .map((zeile) => ({
+        gruppe: zeile.dataset.gruppe,
+        programm: text(zeile.querySelector(".zp-heute-programm")),
+        text: text(zeile.querySelector(".zp-heute-text")),
+        jetztLinien: zeile.querySelectorAll(".jetzt-linie").length,
+      })),
+    leer: wurzel.querySelectorAll(".zp-mini").filter((zeile) => zeile.classList.contains("leer")).map((zeile) => ({
+      name: text(zeile.querySelector(".zp-mininame")),
+      spuren: zeile.querySelectorAll(".spur").length,
+      aktivieren: zeile.querySelectorAll(".zp-aktivieren").length,
+    })),
+  };
+  zwei.attributes.blocks = zweiBloecke;
+
+  const vorherDaten = flaeche._daten;
+  const vorherIndex = flaeche._anlageIndex;
+  const erste = vorherDaten.anlagen[0];
+  flaeche._daten = {
+    ...vorherDaten,
+    anlagen: [
+      { ...erste, id: "anlage-a", name: "Anlage A" },
+      { ...erste, id: "anlage-b", name: "Anlage B" },
+    ],
+  };
+  flaeche._anlageIndex = -1;
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  heute.alle = {
+    karten: wurzel.querySelectorAll(".zp-heute").length,
+    anlagen: [...wurzel.querySelectorAll(".zp-heute-anlagenname")].map(text),
+    legenden: wurzel.querySelectorAll(".zp-legende").length,
+  };
+  flaeche._daten = vorherDaten;
+  flaeche._anlageIndex = vorherIndex;
+  flaeche._gebaut = false;
+  bilanz.heute = heute;
+}
 
 // ---------------------------------------------------------------------------
 // Reiter „Automatik“
