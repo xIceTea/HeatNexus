@@ -107,7 +107,7 @@ def kennwerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def heizkreise(anlage: dict[str, Any]) -> list[dict[str, Any]]:
-    """Thermostat und Vorlauf je Heizkreis."""
+    """Thermostat und Vorlauf je Heizkreis; `geraet` führt zur Automatik des Kreises."""
     zeilen = []
     for teil in anlage["teile"]:
         thermostat = next((e for e in teil["entitaeten"] if e["bereich"] == "climate"), None)
@@ -119,6 +119,7 @@ def heizkreise(anlage: dict[str, Any]) -> list[dict[str, Any]]:
                 "entity": thermostat["entity_id"],
                 "titel": teil["name"],
                 "vorlauf": vorlauf["entity_id"] if vorlauf else None,
+                "geraet": teil["id"],
             }
         )
     return zeilen

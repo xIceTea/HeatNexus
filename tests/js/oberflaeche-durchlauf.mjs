@@ -1613,4 +1613,38 @@ await Promise.resolve();
 await Promise.resolve();
 bilanz.meldungBeimSpeichern = meldungen;
 
+// ---------------------------------------------------------------------------
+// Abzeichen der Automatik am Heizkreis: verborgen im Programm, sonst die
+// Kurzfassung des Zustands; ein Klick öffnet den Reiter „Automatik“.
+// ---------------------------------------------------------------------------
+{
+  const zustaende = flaeche._hass.states;
+  const vorherReiter = flaeche._reiter;
+  zustaende["sensor.hk_automatik"] = { entity_id: "sensor.hk_automatik", state: "programm", attributes: { kurz: null } };
+  const vorher = flaeche._bindungen.length;
+  const zeile = flaeche._heizkreiszeile({ entity: "climate.heizkreis", titel: "HK", automatik: "sensor.hk_automatik" });
+  const binden = () => flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());
+  const abzeichen = zeile.querySelector(".automatik-abzeichen");
+  binden();
+  const imProgramm = abzeichen.hidden;
+  zustaende["sensor.hk_automatik"] = {
+    entity_id: "sensor.hk_automatik",
+    state: "sonnentag",
+    attributes: { kurz: "Sonnentag · 19 °C" },
+  };
+  binden();
+  const sonnentag = {
+    verborgen: abzeichen.hidden,
+    text: String(abzeichen.querySelector("span").textContent),
+    zustand: abzeichen.dataset.zustand,
+  };
+  abzeichen.ausloesen("click");
+  const reiter = flaeche._reiter;
+  const ohneAutomatik = flaeche._heizkreiszeile({ entity: "climate.heizkreis", titel: "HK" });
+  bilanz.automatikAbzeichen = { imProgramm, sonnentag, reiter, ohne: !ohneAutomatik.querySelector(".automatik-abzeichen") };
+  flaeche._reiter = vorherReiter;
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+}
+
 console.log(JSON.stringify(bilanz));

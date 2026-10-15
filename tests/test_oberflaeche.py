@@ -1267,3 +1267,16 @@ def test_starts_mit_und_ohne_automatik_stehen_im_vergleich(durchlauf):
 
 def test_zu_warme_raeume_nennen_die_abhilfe(durchlauf):
     assert "mehr als 0,5 K über dem Ziel" in durchlauf["befund"]["zuWarm"]
+
+
+def test_das_automatik_abzeichen_zeigt_nur_abweichungen(durchlauf):
+    """Im Programm bleibt der Heizkreis ohne Abzeichen; Sonnentag erscheint mit Kurzfassung und führt zur Automatik."""
+    abzeichen = durchlauf["automatikAbzeichen"]
+    assert abzeichen["imProgramm"] is True
+    assert abzeichen["sonnentag"] == {
+        "verborgen": False,
+        "text": "Sonnentag · 19 °C",
+        "zustand": "sonnentag",
+    }
+    assert abzeichen["reiter"] == "automatik"
+    assert abzeichen["ohne"] is True

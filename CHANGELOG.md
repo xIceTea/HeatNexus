@@ -15,6 +15,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Kopfzeile zeigt das HeatNexus-Zeichen in vier Stilen, wahlweise ohne Hersteller.
 - Ein Klick auf das Zeichen öffnet die Seitenleiste; eine eigene Menütaste ist wählbar.
 - „Alle“ fasst auf Wunsch gleiche Karten aller Anlagen in einem Rahmen zusammen.
+- Die Übersicht zeigt am Heizkreis Sonnentag, Heizpause und andere Eingriffe der Automatik.
 
 ### Geändert
 
