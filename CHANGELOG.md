@@ -10,11 +10,13 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Neu
 
-- Die Meldungsliste des Bediengeräts erscheint im Panel; Einträge lassen sich zurücksetzen und löschen.
+- Die **Meldungsliste des Bediengeräts** steht im Panel; Einträge lassen sich zurücksetzen und löschen.
+- Zurücksetzen und Löschen erscheinen sofort in der Meldungsliste.
+- Ein Eintrag gilt als erledigt, sobald das Gerät die Meldung nicht mehr anzeigt.
+- Das Detail einer Meldung zeigt die Abhilfe aus den Bedienungsanleitungen.
+- Die Karte „Meldungen“ zeigt Info, Fehler und Alarm in Wortlaut und Farben von Windhager.
 - Eine Option erlaubt, Störungen am Kessel zurückzusetzen; ab Werk ist sie aus.
 - Die Diagnose nennt, was die Steuerung anbietet.
-- Das Detail einer Störung zeigt die Abhilfe aus den Bedienungsanleitungen.
-- Die Karte „Meldungen“ zeigt Info, Fehler und Alarm in Wortlaut und Farben von Windhager.
 - Die Auswertung vergleicht Kesselstarts je Gradtag mit und ohne Eingriff der Automatik.
 - Die Auswertung meldet Räume, die meist über dem Ziel liegen, samt Abhilfe.
 
@@ -28,13 +30,11 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Störungsmeldungen eines Geräts fehlen nicht mehr, wenn die Steuerung sie beim Einlesen auslässt.
 - Nach einer Quittung oder einem Eingriff am Kessel erscheinen die neuen Werte sofort.
+- Behaglichkeitskorrektur und Zeitprogramme warten nach dem Schreiben nicht mehr auf einen vollen Abruf.
 - Hilfetexte, Rückfragen und Prüfmeldungen erscheinen auf Englisch und Niederländisch ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
 - Die Warmwasser-Taste rechnet mit der eingestellten Einschalthysterese statt mit 5 K.
 - Die Sonnenquote der Automatik zählt nur die restlichen Stunden des Tages.
 - Die Sonnenquote aus PV-Erträgen rechnet den Sonnenstand der Jahreszeit heraus.
-- Zurücksetzen und Löschen in der Meldungsliste erscheinen sofort, ohne auf den nächsten Abruf zu warten.
-- Ein Eintrag gilt als erledigt, sobald das Gerät die Meldung nicht mehr anzeigt.
-- Behaglichkeitskorrektur und Zeitprogramme warten nach dem Schreiben nicht mehr auf einen vollen Abruf.
 - Die Automatik meldet bei langem Abfrageintervall keinen Handeingriff mehr ohne Grund ([#22](https://github.com/xIceTea/HeatNexus/issues/22)).
 
 ## [1.14.0-beta.2]
