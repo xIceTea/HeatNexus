@@ -384,6 +384,10 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
   const nachKlick = gedrueckt();
   const kopfNachKlick = flaeche._kopfstil();
   const [schliessen, uebernehmen] = fenster.querySelector(".dialog-leiste").querySelectorAll(".dialog-taste");
+  const beimOeffnen = {
+    fokusOhneScrollen: !!(schliessen._fokusOptionen && schliessen._fokusOptionen.preventScroll),
+    oben: fenster.querySelector(".dialog").scrollTop === 0,
+  };
   const leiste = () => ({ text: String(schliessen.textContent), rot: schliessen.classList.contains("betont"), uebernehmen: !uebernehmen.hidden });
   const leisteNachKlick = leiste();
   uebernehmen.ausloesen("click");
@@ -405,6 +409,7 @@ bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: 
     leisteAnfangs,
     kopfNachVerwerfen: flaeche._kopfstil(),
     zu: wurzel.querySelectorAll(".schleier").length === vorher,
+    beimOeffnen,
   };
   flaeche._darstellungSetzen({ kopf: "standard" });
 }

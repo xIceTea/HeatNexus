@@ -280,8 +280,9 @@ class Knoten {
     liste.forEach((ruf) => ruf({ type: art, target: this, preventDefault() {}, stopPropagation() {}, ...ereignis }));
     return liste.length;
   }
-  focus() {
+  focus(optionen) {
     fokus.element = this;
+    this._fokusOptionen = optionen;
   }
   blur() {
     if (fokus.element === this) fokus.element = null;

@@ -1348,3 +1348,8 @@ def test_das_automatik_abzeichen_zeigt_nur_abweichungen(durchlauf):
     }
     assert abzeichen["reiter"] == "automatik"
     assert abzeichen["ohne"] is True
+
+
+def test_das_fenster_darstellung_beginnt_oben(durchlauf):
+    """Der Fokus liegt auf „Schließen“ ganz unten; das Fenster darf dafür nicht nach unten scrollen."""
+    assert durchlauf["darstellung"]["beimOeffnen"] == {"fokusOhneScrollen": True, "oben": True}

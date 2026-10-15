@@ -264,7 +264,9 @@ export const BausteineMixin = (Basis) =>
       );
       stapel.push(abbrechen);
       this.shadowRoot.appendChild(schleier);
-      if (fokus) fokus.focus();
+      // Ein Fenster beginnt oben; der Fokus auf einer Taste der unteren Leiste scrollt es nicht dorthin.
+      if (fokus) fokus.focus({ preventScroll: true });
+      dialog.scrollTop = 0;
       return zu;
     }
 
