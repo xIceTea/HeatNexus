@@ -112,3 +112,39 @@ def test_jede_sprache_hat_ihre_tabelle(error_texts):
 def test_message_kinds_in_english(error_texts, letter, kind):
     msgs = error_texts.parse_messages(f"PUR 09{letter}322", sprache="en")
     assert msgs[0]["kind"] == kind
+
+
+def test_die_behebung_aus_der_anleitung_kommt_mit(error_texts):
+    meldung = error_texts.parse_messages("PUR 09E346")[0]
+
+    assert meldung["behebung"]
+    assert meldung["behebung"] != meldung["info"]
+
+
+def test_ohne_tabelleneintrag_ist_die_behebung_leer(error_texts):
+    tabelle = error_texts._table("de")
+    ohne = next(
+        int(code[2:])
+        for code, eintrag in tabelle.items()
+        if code.startswith("FE") and "behebung" not in eintrag
+    )
+
+    assert error_texts.parse_messages(f"PUR 09E{ohne}")[0]["behebung"] is None
+
+
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+def test_andere_sprachen_bekommen_keine_deutsche_behebung(error_texts, sprache):
+    meldung = error_texts.parse_messages("PUR 09E346", sprache=sprache)[0]
+
+    assert meldung["behebung"] is None
+    assert meldung["info"]
+
+
+def test_jede_behebung_ist_bereinigter_text(error_texts):
+    """Bildverweise und Abschnittsnummern der Anleitung tragen ohne das Heft nichts."""
+    behebungen = {c: e["behebung"] for c, e in error_texts._table("de").items() if "behebung" in e}
+
+    assert behebungen
+    for code, text in behebungen.items():
+        assert text.strip() == text and text, code
+        assert "Fig." not in text and "Pkt." not in text and "WARNUNG" not in text, code

@@ -1,9 +1,11 @@
 {
  "AL1": {
+  "behebung": "Die Primärluftklappe erreicht die Position nicht mehr. Primärluftklappenmotor oder Endschalter defekt. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Primärluftklappe blockiert oder defekt.",
   "text": "Primärluftklappe defekt"
  },
  "AL10": {
+  "behebung": "Kessel geht nicht in Betrieb. Glutbettschieber steckt durch Fremdteil.\nHauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Ascheraumtür vorsichtig (es kann noch Glut vorhanden sein) öffnen und Fremdteil entfernen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Wenn geschmolzene Asche oder große Brocken in der Asche sind, sollte die Brennstoffauswahl auf „schlackend“ umgestellt werden. Tritt der Fehler nach der Umstellung wieder muss ein Brennstoff mit kleiner 1,5 % Aschegehalt verwendet werden. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Glutbettschieber blockiert"
  },
@@ -28,6 +30,7 @@
   "text": "TPO-Fühler defekt"
  },
  "AL11": {
+  "behebung": "Kessel geht nicht in Betrieb. Ascheschieber steckt durch Fremdteil.\nHauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Ascheraumtür vorsichtig (es kann noch Glut vorhanden sein) öffnen und Fremdteil entfernen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Wenn geschmolzene Asche oder große Brocken in der Asche sind, sollte die Brennstoffauswahl auf „schlackend“ umgestellt werden. Tritt der Fehler nach der Umstellung wieder muss ein Brennstoff mit kleiner 1,5 % Aschegehalt verwendet werden. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Ascheschieber blockiert"
  },
@@ -40,10 +43,12 @@
   "text": "ZSK Kesselfühler defekt"
  },
  "AL119": {
+  "behebung": "Aschebox und Deckel von Aschebox auf richtige Position und Dichtheit kontrollieren (siehe Bedienungsanleitung vom Kessel) – Gefahr von Falschluft. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.",
   "info": "Bedienungsanleitung beachten",
   "text": "Aschebox nicht vorhanden"
  },
  "AL12": {
+  "behebung": "Hauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Vorratsbehälter entleeren, Fremdkörper entfernen, siehe Bedienungsanleitung des Kessels. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Vorratsbehälterschnecke blockiert"
  },
@@ -52,10 +57,12 @@
   "text": "Keine Flammenbildung im Regelbetrieb"
  },
  "AL129": {
+  "behebung": "Die maximale Ausbrandzeit wurde überschritten.\na) Die Hauptreinigung des Pelletskessels muss durchgeführt werden (siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Hauptreinigung muss die Hauptreinigung bestätigt werden.\nb) Aschebox und Deckel von Aschebox auf richtige Position und Dichtheit kontrollieren (siehe Bedienungsanleitung Pelletskessel) – Gefahr von Falschluft.\nc) Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
   "text": "Maximale Ausbrandzeit überschritten"
  },
  "AL13": {
+  "behebung": "Hauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Wartungsdeckel seitlich bei Stokerschnecke abschrauben, Fremdkörper aus der Schnecke entfernen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Stockerschnecke blockiert"
  },
@@ -64,58 +71,72 @@
   "text": "Brennraumtemperatur zu gering"
  },
  "AL131": {
+  "behebung": "a) Brennstoff im Lagerraum kontrollieren, gegebenenfalls nachfüllen.\nb) Der Brennstoff hat zu hohen Wassergehalt. Zulässigen Brennstoff verwenden – siehe Bedienungsanleitung vom Kessel. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Flammenabrisse / Wassergehalt Brennstoff zu hoch"
  },
  "AL133": {
+  "behebung": "Kesseltemperatur ist über 100 °C, Kessel geht in den Ausbrand, Saugzuggebläse wird sofort ausgeschaltet.\na) Wasserstand bzw. Druck in der Heizungsanlage kontrollieren – nachfüllen, entlüften.\nb) Luft in der Heizungsanlage – entlüften.\nc) Heizungspumpe- oder Boilerladepumpe steckt bzw. ist defekt – Pumpe anwerfen oder reparieren. Nach Absinken der Kesselwassertemperatur unter 90 °C, Abdeckkappe entfernen, Entriegelungsknopf B7.1 des Sicherheitsthermostates fest drücken bzw. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Anlage und Fülldruck überprüfen.",
   "text": "Sicherheitstemperatur Abschaltung"
  },
  "AL134": {
+  "behebung": "Kontrolle der Rückbrandsicherung an der Stokerschnecke, hat diese aufgelöst, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Bedienungsanleitung beachten",
   "text": "Übertemperatur an der Stokerschnecke"
  },
  "AL135": {
+  "behebung": "Kessel geht in den Ausbrand und fördert Pellets in den Brennraum.\na) Füllstand des Wasserbehälters kontrollieren (siehe Bedienungsanleitung Pelletskessel), wenn kein Wasser im Behälter (Rückbrandsicherung hat ausgelöst) Windhager- Kundendienst verständigen.\nb) Brenner kontrollieren, alle Pellets aus dem Brennertopf entfernen.\nc) Brennraumtür öffnen, Abdeckkappe am Sicherheitsthermostat-Schneckenro hr entfernen, Entriegelungsknopf B8.1 fest drücken. Sollte die Zündung das erste Mal nicht funktionieren (Alarm 171), Meldung „Zurücksetzen“ bzw. löschen (Pellets in der Förderschnecke sind durch die höhere Temperatur in Mitleidenschaft gezogen worden).",
   "info": "Schneckenrohr prüfen",
   "text": "Übertemperatur am Schneckenrohr"
  },
  "AL144": {
+  "behebung": "Sicherheitstemperaturbegrenzer oder externe Sicherheitseinrichtung hat ausgelöst.\na) Wasserstand bzw. Druck in der Heizungsanlage kontrollieren – nachfüllen, entlüften.\nb) Luft in der Heizungsanlage – entlüften.\nc) Heizungspumpe- oder Boilerladepumpe steckt bzw. ist defekt – Pumpe anwerfen oder reparieren.\nd) Externe Sicherheitseinrichtung (z.B. Wassermangelsicherung usw.) kontrollieren. Nach Absinken der Kesselwassertemperatur unter 90 °C, Verkleidungstür und Klappe öffnen, Abdeckkappe entfernen, Entriegelungsknopf des Sicherheitstemperaturbegrenzers fest drücken. Tritt die Störung wieder auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Sicherheitseinrichtung überprüfen.",
   "text": "Sicherheitseinrichtung unterbrochen"
  },
  "AL147": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Absperrschieber unten defekt"
  },
  "AL148": {
+  "behebung": "Hauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Vorlaufrohr bei Absperrschieber reinigen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Absperrschieber oben defekt"
  },
  "AL149": {
+  "behebung": "Lagerraumtür schließen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Sicherheitseinrichtungen Lagerraum kontrollieren, Bedienungsanleitung beachten",
   "text": "Sicherheitseinrichtung Lagerrraum"
  },
  "AL15": {
+  "behebung": "Die 230 V Netzspannung für den Feuerungsautomaten ist nicht vorhanden. Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Netzzuleitung bzw. Netzspannung prüfen",
   "text": "Netzspannung nicht vorhanden"
  },
  "AL150": {
+  "behebung": "Deckel bei Vorratsbehälter montieren – siehe Bedienungsanleitung vom Kessel. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Deckel Vorratsbehälter Saugzuführung kontrollieren, Bedienungsanleitung beachten",
   "text": "Deckel Vorratsbehälter Saugzuführung offen"
  },
  "AL151": {
+  "behebung": "Kaltwasseranschluss überprüfen z.B. Absperrung zu, Filter verlegt usw. Meldung „Zurücksetzen“ bzw. löschen. Tritt die Störung sofort wieder oder nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Kaltwasseranschluss überprüfen",
   "text": "Kein Durchfluss Spülung Abfluss"
  },
  "AL152": {
+  "behebung": "Das Ventil Spülung ist undicht. Sperren Sie den Kaltwasseranschluss ab, um einen unnötigen Wasserverbrauch zu vermeiden. Benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Kaltwasseranschluss schließen",
   "text": "Ventil Spülung Abfluss schließt nicht"
  },
  "AL153": {
+  "behebung": "Kaltwasseranschluss überprüfen z.B. Absperrung zu, Filter verlegt usw. Meldung „Zurücksetzen“ bzw. löschen. Tritt die Störung sofort wieder oder nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Kaltwasseranschluss überprüfen",
   "text": "Kein Durchfluss Spülung Wärmetauscher"
  },
  "AL154": {
+  "behebung": "Das Ventil Spülung ist undicht. Sperren Sie den Kaltwasseranschluss ab, um einen unnötigen Wasserverbrauch zu vermeiden. Benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Kaltwasseranschluss schließen",
   "text": "Ventil Spülung Wärmetauscher schließt nicht"
  },
@@ -124,14 +145,17 @@
   "text": "Wassermangelsicherung hat angesprochen"
  },
  "AL156": {
+  "behebung": "Kessel geht in den Ausbrand. Die Hauptreinigung des Pelletskessels muss durchgeführt werden (siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Hauptreinigung muss die Hauptreinigung bestätigt werden.\na) Deckel-Nachheizfläche undicht, Kontrolle ob dieser fest verschlossen ist (siehe Bedienungsanleitung Pelletskessel), Meldung „Zurücksetzen“ bzw. löschen.\nb) Primärluftrohr mit Asche verlegt, Primärluftrohr aussaugen (siehe Bedienungsanleitung Pelletskessel).\nc) Brennraumtür ist undicht – Dichtung kontrollieren, gegebenenfalls Dichtung tauschen, Meldung „Zurücksetzen“ bzw. löschen.\nd) Abgasrohr bzw. Kamin ist verlegt, reinigen lassen, Meldung „Zurücksetzen“ bzw. löschen.\ne) Aschebox und Deckel von Aschebox auf richtige Position und Dichtheit kontrollieren (siehe Bedienungsanleitung Pelletskessel) – Gefahr von Falschluft.\nf) Drucksensor ist defekt, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Kein Unterdruck im Brennraum bzw. Sensor defekt.",
   "text": "Kein Unterdruck im Brennraum"
  },
  "AL157": {
+  "behebung": "Kessel geht in den Ausbrand. Die Hauptreinigung des Kessels muss durchgeführt werden (siehe Bedienungsanleitung vom Kessel).\na) Reinigungsdeckel oben bei Nachheizflächen undicht, Kontrolle ob dieser fest verschlossen ist (siehe Bedienungsanleitung vom Kessel). Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Brennraumtür ist undicht – Dichtung kontrollieren, gegebenenfalls Dichtung tauschen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nc) Abgasrohr bzw. Kamin ist verlegt, reinigen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nd) Aschebox und Deckel von Aschebox auf richtige Position und Dichtheit kontrollieren (siehe Bedienungsanleitung vom Kessel) – Gefahr von Falschluft.\ne) Deckel bei Ascheraum unter Nachheizflächen undicht, Kontrolle ob dieser fest verschlossen ist (siehe Bedienungsanleitung vom Kessel). Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Primärluftmenge nicht korrekt"
  },
  "AL16": {
+  "behebung": "Die tatsächliche Drehzahl ist abweichend von der Soll-Drehzahl. Kessel geht in den Ausbrand.\na) Gebläserad und Gebläsekasten sind verschmutzt, reinigen. Reset-Taste drücken.\nb) Gebläsestecker locker bzw. nicht eingerastet, Stecker (an der Kessel-Rückwand) fest zusammen stecken.\nc) Motor-Saugzuggebläse tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Gebläserad und Gebläsekasten reinigen.",
   "text": "Saugzuggebläse defekt"
  },
@@ -160,26 +184,32 @@
   "text": "Spannungsversorgung Wärmepumpe fehlt"
  },
  "AL17": {
+  "behebung": "Das Gebläserad steckt bzw. bewegt sich nicht.\na) Gebläserad ist verschmutzt, reinigen (siehe Bedienungsanleitung vom Kessel). Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Gebläsestecker locker bzw. nicht eingerastet, Stecker fest zusammen stecken. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Gebläserad reinigen.",
   "text": "Saugzuggebläse steckt"
  },
  "AL171": {
+  "behebung": "Beim Anheizen keine Flammenbildung. Anheizvorgang wird abgebrochen.\na) Die Hauptreinigung des Pelletskessels muss durchgeführt werden (siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Hauptreinigung muss die Hauptreinigung bestätigt werden.\nb) Durch zu viel Staubanteil der Pellets wird die Schnecke leer gefahren. (eventuell wurde aber in der Zwischenzeit eine Brennstoffzuführung gestartet), Vorratsbehälter kpl. entleeren (siehe Bedienungsanleitung Pelletskessel) und Staub entfernen. Bis Kessel wieder in Betrieb geht, kann bis zu 2 x die Meldung Alarm 171 auftreten. Meldung „Zurücksetzen“ bzw. löschen.\nc) Förderschnecke steckt durch Fremdteil, Vorratsbehälter reinigen (siehe Bedienungsanleitung Pelletskessel) und Fremdteil bei Öffnung über Schnecke entfernen, Vorratsbehälter wieder befüllen. Bis Kessel wieder in Betrieb geht, kann bis zu 2 x die Meldung Alarm 171 auftreten. Meldung „Zurücksetzen“ bzw. löschen.\nd) Zündung defekt, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Brennertopf reinigen.",
   "text": "Maximale Anheizzeit überschritten"
  },
  "AL176": {
+  "behebung": "Lambdasonde über der Reinigungsöffnung bei Ascheraum unter Nachheizflächen reinigen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Vorspülen nicht erfolgreich"
  },
  "AL179": {
+  "behebung": "a) Brennstoff im Lagerraum kontrollieren, gegebenenfalls nachfüllen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nHauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern.\nb) Näherungsschalter Levelcontrol verschmutzt. Näherungsschalter Levelcontrol nach oben und unten bewegen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nc) Zündöffnung am Konus verlegt, reinigen. Meldung „Zurücksetzen“ bzw. löschen. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Primärzündung nicht erfolgreich"
  },
  "AL18": {
+  "behebung": "Die tatsächliche Drehzahl ist abweichend von der Soll-Drehzahl. Kessel geht in den Ausbrand.\na) Gebläserad ist verschmutzt, reinigen (siehe Bedienungsanleitung vom Kessel). Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Gebläsestecker locker bzw. nicht eingerastet, Stecker fest zusammen stecken Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nc) Motor-Saugzuggebläse tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Saugzuggebläse bzw. Gebläsekasten kontrollieren",
   "text": "Saugzuggebläse instabil"
  },
  "AL180": {
+  "behebung": "Brennstoff im Lagerraum kontrollieren, gegebenenfalls nachfüllen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Sekundärzündung nicht erfolgreich"
  },
@@ -188,10 +218,12 @@
   "text": "Keine Kommunikation mit MES Modul"
  },
  "AL187": {
+  "behebung": "Kessel geht in den Ausbrand.\na) Verbindungskabel bzw. Steckverbindung InfoWIN Touch zu Feuerungsautomat überprüfen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bindung Feuerungsautomat und Anschlüsse überprüfen.",
   "text": "Keine Kommunikation mit Feuerungsautomat"
  },
  "AL188": {
+  "behebung": "Bei Auftreten dieses Fehlers wird automatisch nach 1 min. ein Reset durchgeführt. Tritt die Störung wieder auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Internal error occurred",
   "text": "Internal error occurred"
  },
@@ -212,6 +244,7 @@
   "text": "Brennraumtür im Betrieb geöffnet"
  },
  "AL197": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Ansteuerung Saugzuführung ausgefallen"
  },
@@ -220,90 +253,112 @@
   "text": "Anlage offline"
  },
  "AL2": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Primärluftventil schließt nicht"
  },
  "AL20": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Saugturbine defekt"
  },
  "AL27": {
+  "behebung": "a) Meldung „Zurücksetzen“ bzw. löschen. Tritt die Störung sofort wieder oder nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.\nb) Zündelement tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Zündung defekt",
   "text": "Zündung defekt"
  },
  "AL29": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Sekundärzündung defekt"
  },
  "AL3": {
+  "behebung": "Die Sekundärluftklappe erreicht die Position nicht mehr. Sekundärluftklappenmotor oder Endschalter defekt. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Sekundärluftklappe blockiert oder defekt.",
   "text": "Sekundärluftklappe defekt"
  },
  "AL35": {
+  "behebung": "Beide Hauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern, beim Kessel und bei Schaltfeld 3 – dieses befindet sich in der Nähe des Lagerraumes. Wartungsdeckel beim Übergabeblock öffnen und reinigen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Netzrelais Saugzuführung defekt"
  },
  "AL37": {
+  "behebung": "Es können keine Pellets zugeführt werden. Kessel geht nicht in Betrieb.\na) Klappe in der Zuführeinheit geht nicht von selbst auf – Klappe reinigen und auf Leichtgängigkeit kontrollieren (siehe Bedienungsanleitung Pelletskessel). Reset-Taster drücken.\nb) Saugturbine der Zuführeinheit schaltet nicht mehr aus, Netzstecker ausstecken. Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Klappe in Zuführeinheit überprüfen.",
   "text": "Klappe Brennstoffzuführung öffnet nicht"
  },
  "AL38": {
+  "behebung": "Es können keine Pellets zugeführt werden. Kessel geht nicht in Betrieb.\na) Keine Pellets bei Ansaugsonde – In der Betreiberebene bei „Sondenumschaltung“ eine andere Sonde einstellen oder alle „Sonden zurücksetzen“. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Zuführschlauch ist verlegt – freilegen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Notbetrieb: Zuführung ausschalten. Vorr atsbehälter von Hand aus mit Pellets befüllen (siehe Bedienungsanleitung Pelletskessel), Kessel darf ohne Zuführung weiterbetrieben werden.",
   "info": "Brennstoffvorrat im Lagerraum und Zuführschlauch\nüberprüfen.",
   "text": "Zuführung saugt keinen Brennstoff an"
  },
  "AL39": {
+  "behebung": "Parkposition für Absperrfunktion externe Verbrennungsluftansaugung kann nicht erreicht werden. Kessel geht nicht in Betrieb. Meldung „Zurücksetzen“ bzw. löschen. Tritt die Störung sofort wieder oder nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann. Notbetrieb: Zuführung ausschalten. Vorratsbehälter von Hand aus mit Pellets befüllen (siehe Bedienungsanleitung Pelletskessel), Kessel darf ohne Zuführung weiterbetrieben werden.",
   "info": "Umschalteinheit überprüfen",
   "text": "Sondenumschaltung defekt"
  },
  "AL40": {
+  "behebung": "Die Absperreinheit bewegt sich nicht mehr oder kann nicht mehr schließen. Kessel geht in den Ausbrand und ist gesperrt.\na) Absperreinheit steckt, Meldung „Zurücksetzen“, bleibt Alarm-Meldung, dann Windhager-Kundendienst oder Heizungsfachmann verständigen.\nb) Motor für Absperreinheit defekt, Windhager-Kundendienst oder Heizungsfachmann verständigen.\nc) Endschalter Absperreinheit defekt, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Absperreinheit der Brennstoffzuführung öffnet oder schließt nicht.",
   "text": "Absperreinheit defekt"
  },
  "AL41": {
+  "behebung": "Der Endschalter für den Deckel Vorratsbehälter ist defekt.\na) Endschalter überprüfen, bei offenem Deckel darf die LED am Schalter nicht leuchten, bei geschlossenem Deckel muss diese leuchten. Bei defektem Schalter Windhager-Kundendienst oder Heizungsfachmann verständigen.\nb) Meldung „Zurücksetzen“, tritt die Alarm-Meldung sofort wieder oder nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Schalter Deckel Vorratsbehälter überprüfen.",
   "text": "Schalter Deckel Vorratsbehälter defekt"
  },
  "AL42": {
+  "behebung": "Die Saugturbine läuft dauernd oder die Überwachung der Saugturbine ist defekt. Kessel am Netzstecker ausstecken und stromlos machen. Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Netzstecker am Kessel abstecken.",
   "text": "Relais Saugturbine defekt"
  },
  "AL43": {
+  "behebung": "Beide Hauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern, beim Kessel und bei Schaltfeld 3 – dieses befindet sich in der Nähe des Lagerraumes. Wartungsdeckel beim Übergabeblock öffnen und reinigen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Raumaustragung blockiert"
  },
  "AL44": {
+  "behebung": "Beide Hauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern, beim Kessel und bei Schaltfeld 3 – dieses befindet sich in der Nähe des Lagerraumes. Wartungsdeckel beim Übergabeblock öffnen und reinigen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Überfüllung Raumaustragung"
  },
  "AL45": {
+  "behebung": "Es können keine Pellets zugeführt werden und der Vorratsbehälter ist leer. Kessel geht nicht in Betrieb.\na) Keine Pellets bei Ansaugsonde – In der Betreiberebene bei „Sondenumschaltung“ eine andere Sonde einstellen oder alle „Sonden zurücksetzen“. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Zuführschlauch ist verlegt – freilegen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Notbetrieb: Zuführung ausschalten. Vorratsbehälter von Hand aus mit Pellets befüllen (siehe Bedienungsanleitung Pelletskessel), Kessel darf ohne Zuführung weiterbetrieben werden.",
   "info": "Brennstoffvorrat im Lagerraum und Zuführschlauch\nüberprüfen.",
   "text": "Alle ausgewählten Sonden sind leer"
  },
  "AL5": {
+  "behebung": "Motor für Entaschung bewegt sich nicht mehr oder erreicht Endposition nicht mehr, Kessel geht in den Ausbrand.\na) Brennerverschmutzung; Brennertopf, wie in der Bedienungsanleitung des Kessels beschrieben, reinigen. Meldung „Zurücksetzen“, bleibt Alarm-Meldung, dann Windhager-Kundendienst oder Heizungsfachmann verständigen.\nb) Motor für Entaschung defekt, Windhager-Kundendienst oder Heizungsfachmann verständigen.\nc) Endschalter defekt, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Entaschung / Rostrüttelung defekt oder steckt. Brennertopf reinigen.",
   "text": "Entaschung / Rostrüttelung defekt"
  },
  "AL50": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Stokerschnecke defekt"
  },
  "AL51": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Raumaustragung defekt"
  },
  "AL52": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Vorratsbehälterschnecke defekt"
  },
  "AL53": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Raumaustragung defekt"
  },
  "AL54": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Steig-/Zwischenschnecke defekt"
  },
  "AL55": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Saugturbine defekt"
  },
@@ -312,18 +367,22 @@
   "text": "Brennerstörung"
  },
  "AL6": {
+  "behebung": "Kessel geht in den Ausbrand, Saugzuggebläse wird sofort abgestellt.\na) Meldung „Zurücksetzen“ bzw. löschen. Tritt die Störung sofort wieder oder nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.\nb) Motor-Förderschnecke tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Motor Förderschnecke defekt.",
   "text": "Motor Förderschnecke defekt"
  },
  "AL62": {
+  "behebung": "Externe Luftklappe (optional) öffnet nicht.\na) Luftklappe kontrollieren, Meldung „Zurücksetzen“ bzw. löschen.\nb) Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Zuluftklappe defekt bzw. öffnet nicht. Klappen überprüfen.",
   "text": "Zuluftklappe defekt"
  },
  "AL63": {
+  "behebung": "Hauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Wartungsdeckel beim Übergabeblock von Steig-/Zwischenschnecke öffnen und reinigen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Steig-/Zwischenschnecke blockiert"
  },
  "AL64": {
+  "behebung": "Hauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Wartungsdeckel beim Übergabeblock von Steig-/Zwischenschnecke öffnen und reinigen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Überfüllung Steig-/Zwischenschnecke"
  },
@@ -332,30 +391,37 @@
   "text": "Verkleidungstürschalter defekt"
  },
  "AL69": {
+  "behebung": "a) Brennstoff im Lagerraum kontrollieren, gegebenenfalls nachfüllen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Näherungsschalter Levelcontrol verschmutzt.\nHauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern.\nc) Näherungsschalter Levelcontrol nach oben und unten bewegen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Lagerraum / Vorratsbehälter kontrollieren!\nBedienungsanleitung beachten!",
   "text": "Brennstoffzuführung in den Brenner funktioniert nicht"
  },
  "AL7": {
+  "behebung": "Förderschnecke blockiert bzw. bewegt sich nicht mehr. Kessel geht in den Ausbrand.\na) Meldung „Zurücksetzen“ bzw. löschen. Tritt die Störung sofort wieder oder nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.\nb) Motor-Förderschnecke tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Förderschnecke blockiert",
   "text": "Förderschnecke blockiert"
  },
  "AL71": {
+  "behebung": "Kessel geht in den Ausbrand, jedoch läuft das Gebläse nicht. Heizungsnot- bzw. Fluchtschalter einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.",
   "info": "Schalterstellung bei Sicherheits- und Notschaltern kontrollieren.",
   "text": "Sicherheits-/Notschalter offen"
  },
  "AL72": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Sicherheitseinrichtungen Raumaustragung"
  },
  "AL73": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Interne Spannungsversorgung defekt"
  },
  "AL76": {
+  "behebung": "Kessel geht in den Ausbrand.\na) Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung sofort wieder oder nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.\nb) Kesselfühler tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Kesselfühler und Anschlüsse prüfen.",
   "text": "Kesselfühler defekt"
  },
  "AL78": {
+  "behebung": "Kessel geht in den Ausbrand.\na) Thermocontrolfühler ist zu kalt < 0 °C. Fühler anwärmen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung sofort wieder oder nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.\nc) Thermocontrolfühler tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Thermocontrolfühler und Anschlüsse überprüfen.",
   "text": "Thermocontrolfühler defekt"
  },
@@ -376,18 +442,22 @@
   "text": "Maximale Abgastemperatur überschritten"
  },
  "AL88": {
+  "behebung": "a) Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.\nb) O2-Sonde tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "O2-Sonde und Anschlüsse überprüfen.",
   "text": "O2-Sonde defekt"
  },
  "AL89": {
+  "behebung": "a) Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.\nb) O2-Sonde oder/und Trafo tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "O2-Sonde, Trafo und Anschlüsse überprüfen.",
   "text": "O2-Sonde Heizung defekt"
  },
  "AL9": {
+  "behebung": "Ascheaustragung blockiert, Kessel geht nicht in Betrieb.\na) Aschebox entleeren (siehe Bedienungsanleitung vom Kessel), wenn Aschebox voll ist, den Korrekturwert Reinigungsintervall anpassen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Ascheaustragung steckt durch Fremdteil.\nHauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Ascheraumtür bzw. Deckel bei Ascheraum unter Nachheizflächen vorsichtig (es kann noch Glut vorhanden sein) öffnen (siehe auch Bedienungsanleitung des Kessels) und Fremdteil entfernen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Ascheaustragung blockiert"
  },
  "AL90": {
+  "behebung": "a) Aschebox und Deckel von Aschebox auf richtige Position und Dichtheit kontrollieren (siehe Bedienungsanleitung vom Kessel) – Gefahr von Falschluft. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Reinigungsdeckel oben bei Nachheizflächen undicht, Kontrolle ob dieser fest verschlossen ist (siehe Bedienungsanleitung vom Kessel). Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nc) Deckel bei Ascheraum unter Nachheizflächen undicht, Kontrolle ob dieser fest verschlossen ist (siehe Bedienungsanleitung vom Kessel). Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "O2 Messwert außerhalb der Grenzwerte.\nBedienungsanleitung beachten!",
   "text": "Fehler O2 Messwert"
  },
@@ -400,34 +470,42 @@
   "text": "Pumpe Wärmeerzeuger defekt"
  },
  "FE204": {
+  "behebung": "Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Bedienungsanleitung beachten",
   "text": "Ventil Abgas-Rezirkulation defekt"
  },
  "FE206": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Förderschnecke und Näherungssensor prüfen",
   "text": "Überwachung der Förderschnecke defekt"
  },
  "FE208": {
+  "behebung": "Heizflächen reinigen – siehe Bedienungsanleitung des Kessels. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Heizflächenreinigung prüfen",
   "text": "Heizflächenreinigung defekt"
  },
  "FE209": {
+  "behebung": "Ascheaustragung blockiert, Kessel läuft noch max. 20 Stunden. Bei Reinigungen, den Kessel immer vorher über „Betreiberebene“ → „Serviceausband“ → „OK“ ausschalten.\na) Aschebox entleeren (siehe Bedienungsanleitung vom Kessel), wenn Aschebox voll ist, den Korrekturwert Reinigungsintervall anpassen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Ascheaustragung steckt durch Fremdteil.\nHauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Ascheraumtür bzw. Deckel bei Ascheraum unter Nachheizflächen vorsichtig (es kann noch Glut vorhanden sein) öffnen (siehe auch Bedienungsanleitung des Kessels) und Fremdteil entfernen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Ascheaustragung blockiert"
  },
  "FE214": {
+  "behebung": "Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Bedienungsanleitung beachten",
   "text": "Ascheförderer defekt"
  },
  "FE226": {
+  "behebung": "a) Kein Brennstoff vor der Zündöffnung. Anheizvorgang nicht nach Anleitung durchgeführt. Reset-Taster drücken.\nb) Zündöffnung in der Anzündtür oder beim Stehrost mit Asche verlegt, reinigen. Reset-Taster drücken.\nc) Zündelement defekt, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Zündvorgang nicht erfolgreich",
   "text": "Keine Flammenbildung beim Zünden"
  },
  "FE238": {
+  "behebung": "Es kann kein Brennstoff zugeführt werden. Kessel geht nicht in Betrieb. Es befindet sich kein Brennstoff im Lagerraum. Notbetrieb: Zuführung ausschalten. Vorratsbehälter von Hand aus mit Brennstoff befüllen – siehe Bedienungsanleitung des Kessels. Kessel darf ohne Zuführung weiter betrieben werden.",
   "info": "Brennstoffvorrat im Lagerraum und Zuführschlauch überprüfen.",
   "text": "Zuführung saugt keinen Brennstoff an"
  },
  "FE239": {
+  "behebung": "Es können keine Pellets zugeführt werden. Kessel geht nicht in Betrieb. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt Fehler nach dem Reset wieder auf, dann Windhager-Kundendienst oder Heizungsfachmann verständigen. Notbetrieb: Zuführung ausschalten. Vorratsbehälter von Hand aus mit Pellets befüllen (siehe Bedienungsanleitung Pelletskessel), Kessel darf ohne Zuführung weiterbetrieben werden.",
   "info": "Umschalteinheit überprüfen.",
   "text": "Sondenumschaltung defekt"
  },
@@ -436,14 +514,17 @@
   "text": "Absperreinheit Brennstoffzuführung offen"
  },
  "FE241": {
+  "behebung": "Der Deckel Vorratsbehälter ist offen. Deckel schließen.\na) Der Deckel Vorratsbehälter ist offen, Deckel schließen.\nb) Pellets liegen auf der Dichtfläche des Deckel, diese entfernen und Deckel ganz schließen.\nc) Endschalter Vorratsbehälter defekt, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Deckel Vorratsbehälter schließen.",
   "text": "Deckel Vorratsbehälter offen"
  },
  "FE242": {
+  "behebung": "Die Saugturbine läuft dauernd oder die Überwachung der Saugturbine ist defekt. Hauptschalter in „0“-Stellung bringen und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Hauptschalter ausschalten und gegen Wiedereinschalten sichern. Kundendienst oder Heizungsfachmann verständigen.",
   "text": "Relais Saugturbine defekt"
  },
  "FE245": {
+  "behebung": "Es können keine Pellets zugeführt werden. Kessel geht nicht in Betrieb.\na) Keine Pellets bei Ansaugsonde – In der Betreiberebene bei „Sondenumschaltung“ eine andere Sonde einstellen oder alle „Sonden zurücksetzen“. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Zuführschlauch ist verlegt – freilegen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Notbetrieb: Zuführung ausschalten. Vorratsbehälter von Hand aus mit Pellets befüllen (siehe Bedienungsanleitung Pelletskessel), Kessel darf ohne Zuführung weiterbetrieben werden.",
   "info": "Brennstoffvorrat im Lagerraum und Zuführschlauch\nüberprüfen.",
   "text": "Alle ausgewählten Sonden sind leer"
  },
@@ -452,34 +533,42 @@
   "text": "Vorratsbehälter ist leer."
  },
  "FE250": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Stokerschnecke defekt"
  },
  "FE251": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Raumaustragung defekt"
  },
  "FE252": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Vorratsbehälterschnecke defekt"
  },
  "FE253": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Raumaustragung defekt"
  },
  "FE254": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Steig-/Zwischenschnecke defekt"
  },
  "FE255": {
+  "behebung": "Hauptschalter min. 30 sec. ausschalten, dann erst wieder einschalten. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Hauptschalter Aus- und Einschalten, Bedienungsanleitung beachten",
   "text": "Ansteuerung Saugturbine defekt"
  },
  "FE260": {
+  "behebung": "Hauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Wartungsdeckel beim Übergabeblock öffnen und reinigen. Bei Saugzuführung auch das unmittelbare Vorlaufrohr und das Filtersieb im Vorratsbehälter (siehe auch Bedienungsanleitung des Kessels) kontrollieren, gegebenenfalls reinigen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Raumaustragung blockiert"
  },
  "FE261": {
+  "behebung": "Hauptschalter ausschalten und mit einem Vorhängeschloss gegen Wiedereinschalten sichern. Wartungsdeckel beim Übergabeblock öffnen und reinigen. Bei Saugzuführung auch das unmittelbare Vorlaufrohr und das Filtersieb im Vorratsbehälter (siehe auch Bedienungsanleitung des Kessels) kontrollieren, gegebenenfalls reinigen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Überfüllung Raumaustragung"
  },
@@ -488,6 +577,7 @@
   "text": "Fülltürschalter schaltet nicht"
  },
  "FE268": {
+  "behebung": "Kessel ausbrennen lassen, Fehler muss behoben werden. Nach dem Ausbrand (Betriebsphase Standby): Verkleidungstür offen – Gebläse muss laufen. Verkleidungstür geschlossen bzw. Anheizabbruch drücken – Gebläse muss stoppen. Ist das nicht der Fall:\na) Verkleidungstürschalter Schaltweg (hörbares Klicken) kontrollieren bzw. einstellen – siehe Montageanleitung Holzvergaserkessel.\nb) Verkleidungstürschalter defekt, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Verkleidungstürschalter prüfen",
   "text": "Verkleidungstürschalter defekt"
  },
@@ -496,6 +586,7 @@
   "text": "Vorlauffühler Inneneinheit defekt"
  },
  "FE281": {
+  "behebung": "Keine Anzeige der Abgastemperatur möglich. Abgastemperaturfühler tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Abgastemperaturfühler und Anschlüsse überprüfen.",
   "text": "Abgastemperaturfühler defekt"
  },
@@ -516,6 +607,7 @@
   "text": "Frostschutz Wärmepumpe"
  },
  "FE296": {
+  "behebung": "Falls die Mischerfunktion eingeschaltet ist, wird der Vorlauffühler überwacht. Fällt dieser Fühler aus (Unterbruch, Kurzschluss), wird der Fehler 296 angezeigt. Der Heizkreis bleibt in Betrieb, der Motormischer wird nicht mehr angesteuert. Ist der Fehler behoben, z.B. Fühler defekt oder Kabel unterbrochen, falsche Einstellung bei Modulfunktionen oder wird die Mischerfunktion ausgeschaltet, wird der Fehler zurückgesetzt.",
   "info": "Fühler und Anschlüsse kontrollieren",
   "text": "Vorlauffühler defekt"
  },
@@ -524,6 +616,7 @@
   "text": "Sollwert wird nicht erreicht"
  },
  "FE298": {
+  "behebung": "Fehler erlischt wieder beim nächsten Ausbrand. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Kessel-Minimaltemperatur wird nicht erreicht"
  },
@@ -532,6 +625,7 @@
   "text": "RT-Fühler defekt"
  },
  "FE300": {
+  "behebung": "Falls die Warmwasserfunktion eingeschaltet ist, wird der Warmwasserfühler überwacht. Fällt dieser Fühler aus (Unterbruch, Kurzschluss), wird der Fehler 300 angezeigt. Die Warmwasserfunktion wird deaktiviert. Ist der Fehler behoben oder wird die Warmwasserfunktion ausgeschaltet, wird der Fehler zurückgesetzt.",
   "info": "Fühler und Anschlüsse kontrollieren",
   "text": "WW-Fühler defekt"
  },
@@ -568,10 +662,12 @@
   "text": "TPS-Fühler defekt"
  },
  "FE316": {
+  "behebung": "Falls die Solarfunktion eingeschaltet ist, wird der Kollektorfühler überwacht. Fällt dieser Fühler aus (Unterbruch, Kurzschluss), wird der Fehler 316 angezeigt. Die Solarfunktion wird deaktiviert. Ist der Fehler behoben oder wird die Solarfunktion ausgeschaltet, wird der Fehler zurückgesetzt.",
   "info": "Fühler und Anschlüsse kontrollieren",
   "text": "Kollektorfühler defekt"
  },
  "FE317": {
+  "behebung": "Falls die Zirkulationspumpe mit Temperatursteuerung aktiviert ist, wird der WW-Zirkulationsfühler überwacht. Fällt dieser Fühler aus (Unterbruch, Kurzschluss), wird der Fehler 317 angezeigt. Die Zirkulationspumpensteuerung wird deaktiviert. Ist der Fehler behoben oder wird die Zirkulationspumpe mit Temperatursteuerung ausgeschaltet, wird der Fehler zurückgesetzt.",
   "info": "Fühler und Anschlüsse kontrollieren",
   "text": "Zirkulationsfühler defekt"
  },
@@ -580,50 +676,62 @@
   "text": "TPT-Fühler defekt"
  },
  "FE320": {
+  "behebung": "Kessel geht in taktenden Betrieb, d.h. Kessel hat Stillstandszeiten. Die Reinigung des Pelletskessels muss durchgeführt werden (Reinigung siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Reinigung muss die Reinigung bestätigt werden.",
   "info": "Aschelade entleeren, Asche unter Nachheizfläche entfernen. Thermocontrolfühler reinigen.",
   "text": "Notbetrieb! Reinigung"
  },
  "FE321": {
+  "behebung": "Kessel geht in taktenden Betrieb, d.h. Kessel hat Stillstandszeiten. Die Hauptreinigung des Pelletskessels muss durchgeführt werden (Reinigung siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Hauptreinigung muss die Hauptreinigung bestätigt werden.",
   "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
   "text": "Notbetrieb! Hauptreinigung"
  },
  "FE322": {
+  "behebung": "Kessel geht in taktenden Betrieb, d.h. Kessel hat Stillstandszeiten. Die Reinigung des Pelletskessels muss durchgeführt werden (Reinigung siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Reinigung muss die Reinigung bestätigt werden.",
   "info": "Aschebox entleeren, Brennraum und Brennertopf reinigen.",
   "text": "Notbetrieb! Reinigung"
  },
  "FE323": {
+  "behebung": "Kessel geht in taktenden Betrieb, d.h. Kessel hat Stillstandszeiten. Die Hauptreinigung des Pelletskessels muss durchgeführt werden (Reinigung siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Hauptreinigung muss die Hauptreinigung bestätigt werden.",
   "info": "Aschelade entleeren, Asche unter Nachheizfläche entfernen. Thermocontrolfühler reinigen.",
   "text": "Notbetrieb! Hauptreinigung"
  },
  "FE324": {
+  "behebung": "Das Wartungsintervall des Pelletskessels ist von den Betriebsstunden abhängig. Hinweis, dass die Wartung durch den Windhager-Kundendienst oder Kundendienstpartner durchgeführt werden muss. Die Wartung muss spätestens lt. dem Datum auf der Wartungsplakette durchgeführt werden.",
   "info": "Die Wartung ist Voraussetzung für die Gerätegarantie.",
   "text": "Wartung"
  },
  "FE325": {
+  "behebung": "Kessel geht in taktenden Betrieb, d.h. Kessel hat Stillstandszeiten. Die Entleerung der Aschebox des Kessels muss durchgeführt werden (siehe Bedienungsanleitung vom Kessel). Nach erfolgter Entleerung muss diese Reinigung bestätigt werden.",
   "info": "Aschebox entleeren, Bedienungsanleitung beachten",
   "text": "Notbetrieb! Aschebox entleeren"
  },
  "FE326": {
+  "behebung": "Kessel geht in taktenden Betrieb, d.h. Kessel hat Stillstandszeiten. Die Hauptreinigung des Kessels muss durchgeführt werden (Reinigung siehe Bedienungsanleitung vom Kessel). Nach erfolgter Hauptreinigung muss die Reinigung bestätigt werden",
   "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
   "text": "Notbetrieb! Hauptreinigung"
  },
  "FE327": {
+  "behebung": "Das Wartungsintervall des Kessels ist von den Betriebsstunden und vom Brennstoffverbrauch abhängig. Hinweis, dass die Wartung durch den Windhager-Kundendienst oder Kundendienstpartner durchgeführt werden muss. Spätestens dann muss die Wartung lt. dem Datum auf der Wartungsplakette durchgeführt werden.",
   "info": "Die Wartung ist Voraussetzung für die Gerätegarantie. Termin für die Wartung vereinbaren.",
   "text": "Wartung"
  },
  "FE330": {
+  "behebung": "Die Brennraumtemperatur ist in der Betriebsphase „Modulation“ zu gering.\na) Die Hauptreinigung des Pelletskessels muss durchgeführt werden (siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Hauptreinigung muss die Hauptreinigung bestätigt werden.\nb) Aschebox und Deckel von Aschebox auf richtige Position und Dichtheit kontrollieren (siehe Bedienungsanleitung Pelletskessel) – Gefahr von Falschluft.\nc) Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Maximale Ausbrandzeit überschritten",
   "text": "Brennraumtemperatur zu gering"
  },
  "FE338": {
+  "behebung": "Verbindungskabel bzw. Steckverbindung zum Staubabscheider überprüfen, Meldung „Zurücksetzen“ bzw. löschen. Tritt Fehler nach dem Reset wieder auf, dann Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Bedienungsanleitung beachten",
   "text": "Kommunikation zu Staubabscheider unterbrochen"
  },
  "FE345": {
+  "behebung": "Kessel geht in den Ausbrand. Verkleidungstür schließen. Tür darf nur bei ausgeschaltetem Brenner geöffnet werden. Bei Nichtbeachten können durch Temperaturspitzen Bauteile im Brennraum beschädigt werden!",
   "info": "Brenner gesperrt.",
   "text": "Brennraumtür offen"
  },
  "FE346": {
+  "behebung": "Kessel geht in den Ausbrand. Verkleidungstür schließen. Brennraum- oder Ascheraumtür darf nur bei ausgeschaltetem Brenner geöffnet werden. Bei Nichtbeachtung können durch Temperaturspitzen Bauteile im Brennraum beschädigt werden!",
   "info": "Verkleidungstür schließen, Bedienungsanleitung beachten",
   "text": "Verkleidungstür offen"
  },
@@ -632,10 +740,12 @@
   "text": "Deckel Vorratsbehälter Saugzuführung offen"
  },
  "FE351": {
+  "behebung": "Kaltwasseranschluss überprüfen z.B. Absperrung zu, Filter verlegt usw. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt Fehler nach dem Reset wieder auf, dann Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Kaltwasseranschluss überprüfen",
   "text": "Durchfluss Spülung Abfluss zu gering"
  },
  "FE353": {
+  "behebung": "Kaltwasseranschluss überprüfen z.B. Absperrung zu, Filter verlegt usw. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt Fehler nach dem Reset wieder auf, dann Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Kaltwasseranschluss überprüfen",
   "text": "Durchfluss Spülung Wärmetauscher zu gering"
  },
@@ -660,10 +770,12 @@
   "text": "E-Heizung funktioniert nicht"
  },
  "FE372": {
+  "behebung": "Mit zu nassem Holz und /oder Holz minderer Qualität angeheizt. Anheizvorgang nicht nach Anleitung durchgeführt. Reset-Taster drücken.",
   "info": "Zu geringe Brennkammertemperatur beim Anheizen.",
   "text": "Anheizauswertung"
  },
  "FE373": {
+  "behebung": "Sorgen Sie für eine entsprechende Wärmeabnahme (Handmischer öffnen, Regelung auf Wärmeanforderung/Heizbetrieb stellen). Reset-Taste betätigen. Wichtig: Fordert die Regelung keine Wärme an (Absenkung) und ist der Boiler oder Pufferspeicher geladen, nicht anheizen!",
   "info": "Zu geringe Leistungsabnahme beim Anheizen.",
   "text": "Fehler beim Anheizen"
  },
@@ -672,6 +784,7 @@
   "text": "Anheizabbruch"
  },
  "FE375": {
+  "behebung": "Sorgen Sie für eine entsprechende Wärmeabnahme (Handmischer öffnen, Regelung auf Wärmeanforderung/Heizbetrieb stellen). Reset-Taste betätigen. Wichtig: Fordert die Regelung keine Wärme an (Absenkung) und ist der Boiler oder Pufferspeicher geladen, nicht anheizen!",
   "info": "Bedienungsanleitung beachten",
   "text": "Anheizen bei zu hoher Kessel-/ Puffertemperatur"
  },
@@ -680,18 +793,22 @@
   "text": "Kommunikationsausfall"
  },
  "FE381": {
+  "behebung": "Freigabezeit für die Zuführung ist zu kurz eingestellt, d.h. der Brennstoff im Vorratsbehälter ist aufgebraucht, die Zuführung ist gesperrt. Freigabezeit für die Zuführung im Menüpunkt „Zeitprofil Zuführung“ verlängern oder im Menüpunkt „Betriebsart Zuführung“ den Betrieb auf „mit Startzeit“ bzw. „ohne Zeitsteuerung“ umstellen.",
   "info": "Zeitprogramm sperrt Zuführung. Freigabezeit in Menü Betreiberebene ändern.",
   "text": "Vorratsbehälter leer"
  },
  "FE382": {
+  "behebung": "Kessel geht nicht in Betrieb.\na) Klappe schließt nicht – Klappe reinigen (siehe Bedienungsanleitung Pelletskessel). Sie muss vollflächig an der Zuführeinheit anliegen. Kontrolllampe am Näherungsschalter der Zuführeinheit muss bei geschlossener Klappe stark leuchten. Reset-Taster drücken.\nb) Füllstandsschalter (Näherungsschalter) im Vorratsbehälter defekt – Windhager Kundendienst oder Heizungsfachmann verständigen.\nc) Windhager-Kundendienst oder Heizungsfachmann verständigen. Notbetrieb: Zuführung ausschalten. Vorratsbehälter von Hand aus mit Pellets befüllen (siehe Bedienungsanleitung Pelletskessel), Kessel darf ohne Zuführung weiterbetrieben werden.",
   "info": "Klappe und Schalter im Vorratsbehälter überprüfen.",
   "text": "Klappe oder Schalter im Vorratsbehälter defekt."
  },
  "FE383": {
+  "behebung": "Kessel geht nicht in Betrieb.\na) Vorratsbehälter reinigen, siehe Bedienungsanleitung des Kessels. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.\nb) Füllstandsschalter (Näherungsschalter) im Vorratsbehälter defekt – Windhager Kundendienst oder Heizungsfachmann verständigen. Notbetrieb: Zuführung ausschalten. Vorratsbehälter von Hand aus mit Brennstoff befüllen – siehe Bedienungsanleitung des Kessels. Kessel darf ohne Zuführung weiter betrieben werden.",
   "info": "Bedienungsanleitung beachten",
   "text": "Füllstandsmeldung nicht in Ordnung"
  },
  "FE384": {
+  "behebung": "Internetverbindung prüfen.",
   "info": "Internetverbindung prüfen",
   "text": "Variable Stromtarife Download Fehler"
  },
@@ -716,18 +833,22 @@
   "text": "Brennraum- oder Aschetür offen."
  },
  "FE396": {
+  "behebung": "Verkleidungstür schließen.",
   "info": "Verkleidungstür schliessen.",
   "text": "Verkleidungstür offen"
  },
  "IN408": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Überwachung Nachheizflächenreinigung defekt"
  },
  "IN409": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Überwachung Ascheaustragung defekt"
  },
  "IN414": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Ascheförderer defekt"
  },
@@ -740,10 +861,12 @@
   "text": "Eine Zone im Lagerraum ist leer"
  },
  "IN445": {
+  "behebung": "Eine Sonde im Lagerraum wurde als leer erkannt. Bitte überprüfen Sie den Brennstoffvorrat im Lagerraum. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.",
   "info": "Brennstoffvorrat im Lagerraum überprüfen",
   "text": "Eine Sonde ist leer"
  },
  "IN446": {
+  "behebung": "Eine Sonde im Lagerraum wurde als leer erkannt. Bitte überprüfen Sie den Brennstoffvorrat im Lagerraum. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind.",
   "info": "Brennstoffvorrat im Lagerraum überprüfen",
   "text": "Lagerraum wird leer"
  },
@@ -752,6 +875,7 @@
   "text": "Brennstoff nachfüllen"
  },
  "IN481": {
+  "behebung": "Abgastemperaturfühler beim Wärmetauscher tauschen, Windhager-Kundendienst oder Heizungsfachmann verständigen.",
   "info": "Abgastemperaturfühler und Anschlüsse überprüfen",
   "text": "Abgastemperaturfühler vor Wärmetauscher defekt"
  },
@@ -776,46 +900,57 @@
   "text": "TP/TW Frostschutz aktiv"
  },
  "IN511": {
+  "behebung": "Volumenstromsensor und Anschlüsse überprüfen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Fehler Volumenstromsensor"
  },
  "IN512": {
+  "behebung": "Wärmemengenzähler und Anschlüsse überprüfen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Fehler Wärmemengenzähler"
  },
  "IN519": {
+  "behebung": "Aschebox und Deckel von Aschebox auf richtige Position und Dichtheit kontrollieren (siehe Bedienungsanleitung vom Kessel) – Gefahr von Falschluft.",
   "info": "Bedienungsanleitung beachten",
   "text": "Aschebox nicht vorhanden"
  },
  "IN520": {
+  "behebung": "Hinweis, dass die Reinigung des Pelletskessels in den nächsten 100 Betriebsstunden erfolgen muss (Reinigung siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Reinigung muss die Reinigung bestätigt werden.",
   "info": "Aschelade entleeren, Asche unter Nachheizfläche entfernen. Thermocontrolfühler reinigen.",
   "text": "Reinigung"
  },
  "IN521": {
+  "behebung": "Hinweis, dass die Hauptreinigung des Pelletskessels in den nächsten 100 Betriebsstunden erfolgen muss (Reinigung siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Hauptreinigung muss die Hauptreinigung bestätigt werden.",
   "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
   "text": "Hauptreinigung"
  },
  "IN522": {
+  "behebung": "Hinweis, dass die Reinigung des Pelletskessels in den nächsten 100 Betriebsstunden erfolgen muss (Reinigung siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Reinigung muss die Reinigung bestätigt werden.",
   "info": "Aschebox entleeren, Brennraum und Brennertopf reinigen.",
   "text": "Reinigung"
  },
  "IN523": {
+  "behebung": "Hinweis, dass die Hauptreinigung des Pelletskessels in den nächsten 100 Betriebsstunden erfolgen muss (Reinigung siehe Bedienungsanleitung Pelletskessel). Nach erfolgter Hauptreinigung muss die Hauptreinigung bestätigt werden.",
   "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
   "text": "Hauptreinigung"
  },
  "IN524": {
+  "behebung": "Das Wartungsintervall des Pelletskessels ist von den Betriebsstunden abhängig. Hinweis, dass die Wartung durch den Windhager-Kundendienst oder Kundendienstpartner innerhalb der nächsten 3 Monate durchgeführt werden muss. Spätestens dann muss die Wartung lt. dem Datum auf der Wartungsplakette durchgeführt werden.",
   "info": "Die Wartung ist Voraussetzung für die Gerätegarantie.",
   "text": "Wartung"
  },
  "IN525": {
+  "behebung": "Hinweis, dass die Aschebox in den nächsten 50 Betriebsstunden entleert werden muss (siehe Bedienungsanleitung vom Kessel). Nach erfolgter Entleerung muss diese Reinigung bestätigt werden.",
   "info": "Aschebox entleeren, Bedienungsanleitung beachten",
   "text": "Aschebox entleeren"
  },
  "IN526": {
+  "behebung": "Hinweis, dass die Hauptreinigung des Kessels in den nächsten 50 Betriebsstunden erfolgen muss (Reinigung siehe Bedienungsanleitung vom Kessel). Nach erfolgter Hauptreinigung muss die Reinigung bestätigt werden.",
   "info": "Hauptreinigung entsprechend der Bedienungsanleitung durchführen.",
   "text": "Hauptreinigung"
  },
  "IN527": {
+  "behebung": "Das Wartungsintervall des Kessels ist von den Betriebsstunden und vom Brennstoffverbrauch abhängig. Hinweis, dass die Wartung durch den Windhager-Kundendienst oder Kundendienstpartner innerhalb der nächsten 3 Monate durchgeführt werden muss. Spätestens dann muss die Wartung lt. dem Datum auf der Wartungsplakette durchgeführt werden.",
   "info": "Die Wartung ist Voraussetzung für die Gerätegarantie. Termin für die Wartung innerhalb von 3 Monaten vereinbaren.",
   "text": "Wartung"
  },
@@ -824,10 +959,12 @@
   "text": "Brennwertnutzen zu gering"
  },
  "IN551": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Durchfluss Spülung Abfluss zu hoch"
  },
  "IN553": {
+  "behebung": "Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Durchfluss Spülung Wärmetauscher zu hoch"
  },
@@ -844,6 +981,7 @@
   "text": "Zusatzkessel meldet Störung"
  },
  "IN564": {
+  "behebung": "Brennstoff im Lagerraum kontrollieren, gegebenenfalls nachfüllen. Meldung „Zurücksetzen“ bzw. löschen und kontrollieren, ob weitere Meldungen vorhanden sind. Tritt die Störung nach kurzer Zeit bzw. in regelmäßigen Abständen auf, benachrichtigen Sie bitte den Windhager-Kundendienst oder Heizungsfachmann.",
   "info": "Bedienungsanleitung beachten",
   "text": "Laufzeit der Flammenstabilisierung überschritten"
  },
@@ -860,10 +998,12 @@
   "text": "Saugzuggebläse beim Holzkessel gesperrt"
  },
  "IN581": {
+  "behebung": "Kessel heizt solange weiter bis die restliche Brennstoffmenge verbraucht ist. Zuführung ist in der „Betriebsart Zuführung“ „ausgeschaltet“. Im Menüpunkt „Betriebsart Zuführung“ auf „mit Freigabezeit“, „mit Startzeit“ oder „ohne Zeitsteuerung“ stellen.",
   "info": "Vorratsbehälter ist fast leer. Brennstoff nachfüllen.",
   "text": "Brennstoff nachfüllen"
  },
  "IN582": {
+  "behebung": "Zuführung ist in der „Betriebsart Zuführung“ „ausgeschaltet“. Im Menüpunkt „Betriebsart Zuführung“ auf „mit Freigabezeit“, „mit Startzeit“ oder „ohne Zeitsteuerung“ stellen.",
   "info": "Vorratsbehälter ist leer. Brennstoff nachfüllen. Brenner wird gesperrt.",
   "text": "Vorratsbehälter ist leer."
  },

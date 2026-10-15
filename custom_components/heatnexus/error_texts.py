@@ -4,7 +4,8 @@ Die Geräte-Discovery liefert je Gerät ein FE01msg, z.B. "PUR 09  OK" (kein
 Fehler) oder "PUR 09E346" (Fehler 346). Mehrere Störungen reihen sich als
 weitere E<code>-Einträge an. Die Codes werden über error_texts_<sprache>.json
 (generiert aus den offiziellen Windhager-emStrIds) in Klartext + Handlungs-
-empfehlung übersetzt.
+empfehlung übersetzt. Die deutsche Tabelle führt zusätzlich `behebung`, die
+ausführliche Abhilfe aus den Störungstabellen der Bedienungsanleitungen.
 """
 
 from __future__ import annotations
@@ -79,13 +80,15 @@ def parse_messages(raw: str | None, zusatz: dict | None = None, sprache: str = "
 
     'PUR 09E346' -> [{'code': 346, 'kind': 'Fehler',
                       'text': 'Verkleidungstür offen',
-                      'info': 'Verkleidungstür schließen, ...'}]
+                      'info': 'Verkleidungstür schließen, ...',
+                      'behebung': 'Kessel geht in den Ausbrand. ...'}]
     'PUR 09  OK' -> []
 
     ``zusatz`` sind die Störungstexte, die die Anlage selbst mitführt. Sie
     gelten vor der mitgelieferten Tabelle, weil sie zur Fassung der Steuerung
     und zur eingestellten Sprache passen. Eine Handlungsempfehlung führt die
     Steuerung nicht mit; die bleibt aus der Tabelle der ``sprache``.
+    ``behebung`` ist None, wo die Anleitungen zum Code nichts sagen.
     """
     treffer = _CODE_RE.findall(raw or "")
     if not treffer:
@@ -109,6 +112,7 @@ def parse_messages(raw: str | None, zusatz: dict | None = None, sprache: str = "
                 "kind": _ART[sprache].get(letter, _ART[sprache]["E"]),
                 "text": vom_geraet.get(code) or entry.get("text", _UNBEKANNT[sprache]),
                 "info": entry.get("info"),
+                "behebung": entry.get("behebung"),
             }
         )
     return out

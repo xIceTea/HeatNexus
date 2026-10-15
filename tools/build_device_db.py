@@ -8,6 +8,10 @@ Die Dateien liegen öffentlich bereit und werden bei Bedarf geladen:
     en-parameters.json      englische Namen, Enum- und Störungstexte als Rückfall
     parameterLayer.json     Zuordnung der Datenpunkte zu den Bedienebenen
 
+Dazu kommt mit `--abhilfe` eine JSON-Datei mit den Abhilfetexten der
+Störungstabellen aus Windhagers Bedienungsanleitungen. Sie füllt das Feld
+`behebung` der deutschen Störungstexte; `info` bleibt der Herstellertext.
+
 Ergebnis sind diese Dateien der Integration:
 
     custom_components/heatnexus/device_db.json
@@ -447,6 +451,20 @@ def ergaenze_stoerungen(tabelle: dict[str, dict[str, str]], sprache: str) -> Non
             tabelle[code] = dict(je_sprache[sprache])
 
 
+def ergaenze_behebung(tabelle: dict[str, dict[str, str]], abhilfe: dict) -> int:
+    """Abhilfetexte aus den Bedienungsanleitungen als `behebung` übernehmen.
+
+    Weichen die Anleitungen je Baureihe ab, gilt die erste Fassung. Codes, die
+    die Tabelle nicht kennt, bleiben außen vor. Zurück kommt die Zahl der Einträge.
+    """
+    anzahl = 0
+    for code, fassungen in abhilfe.get("codes", {}).items():
+        if (eintrag := tabelle.get(code)) is not None and fassungen:
+            eintrag["behebung"] = fassungen[0]["behebung"]
+            anzahl += 1
+    return anzahl
+
+
 def main() -> int:
     """Kommandozeile."""
     parser = argparse.ArgumentParser(
@@ -457,6 +475,11 @@ def main() -> int:
         "--geraetetexte",
         type=Path,
         help="XML einer Steuerung mit Datenpunktnamen (VarIdentTexte)",
+    )
+    parser.add_argument(
+        "--abhilfe",
+        type=Path,
+        help="JSON mit den Abhilfetexten der Bedienungsanleitungen (Feld behebung)",
     )
     parser.add_argument("--nur-anzeigen", action="store_true", help="nichts schreiben")
     args = parser.parse_args()
@@ -471,6 +494,8 @@ def main() -> int:
     ergaenzt = uebersteuern(ebenen)
     stoerungen = {"de": sammle_stoerungen(texte)}
     ergaenze_stoerungen(stoerungen["de"], "de")
+    abhilfe = json.loads(args.abhilfe.read_text(encoding="utf-8")) if args.abhilfe else {}
+    behebungen = ergaenze_behebung(stoerungen["de"], abhilfe)
     sprachen = {}
     for sprache in FREMDSPRACHEN:
         xml = geraetetexte_fuer(args.geraetetexte, sprache)
@@ -484,6 +509,7 @@ def main() -> int:
     print(f"Enum-Tabellen   : {len(enums)}")
     print(f"Funktionstypen  : {len(ebenen)}")
     print(f"Störungstexte   : {len(stoerungen['de'])}")
+    print(f"davon Behebung  : {behebungen}" + ("" if args.abhilfe else " (ohne --abhilfe)"))
     for sprache, inhalt in sprachen.items():
         print(f"Namen {sprache:<10}: {len(inhalt['names'])}, Enum-Tabellen {len(inhalt['enums'])}")
         print(f"Störungen {sprache:<6}: {len(stoerungen[sprache])}")

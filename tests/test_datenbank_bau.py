@@ -138,6 +138,42 @@ def test_ein_herstellertext_hat_vorrang_vor_der_ergaenzung(generator):
     assert tabelle["FE242"] == {"text": "vom Hersteller"}
 
 
+def _fassung(text: str, *baureihen: str) -> dict:
+    return {"behebung": text, "baureihen": list(baureihen), "quellen": []}
+
+
+def test_die_behebung_kommt_aus_der_ersten_fassung(generator):
+    tabelle = {"AL76": {"text": "Kesselfühler defekt", "info": "Fühler prüfen."}}
+    abhilfe = {
+        "codes": {
+            "AL76": [_fassung("Zurücksetzen.", "PuroWIN"), _fassung("Reset drücken.", "LogWIN")]
+        }
+    }
+
+    assert generator.ergaenze_behebung(tabelle, abhilfe) == 1
+    assert tabelle["AL76"] == {
+        "text": "Kesselfühler defekt",
+        "info": "Fühler prüfen.",
+        "behebung": "Zurücksetzen.",
+    }
+
+
+def test_eine_behebung_ohne_stoerungstext_legt_keinen_eintrag_an(generator):
+    tabelle = {"FE346": {"text": "Verkleidungstür offen"}}
+
+    assert (
+        generator.ergaenze_behebung(tabelle, {"codes": {"FE999": [_fassung("x", "PuroWIN")]}}) == 0
+    )
+    assert tabelle == {"FE346": {"text": "Verkleidungstür offen"}}
+
+
+def test_ohne_abhilfedatei_bleibt_die_tabelle_wie_sie_ist(generator):
+    tabelle = {"FE346": {"text": "Verkleidungstür offen"}}
+
+    assert generator.ergaenze_behebung(tabelle, {}) == 0
+    assert tabelle == {"FE346": {"text": "Verkleidungstür offen"}}
+
+
 # Hebungen über die Herstellerebene, für die noch keine Quelle verzeichnet ist.
 # Die Liste darf nur schrumpfen: Wer einen Beleg in BELEGE einträgt, nimmt die
 # Adresse hier heraus; eine neue Hebung ohne Beleg lässt den Test scheitern.
