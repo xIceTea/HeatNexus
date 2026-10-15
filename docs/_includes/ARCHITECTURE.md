@@ -341,7 +341,8 @@ was dort steht, lädt der Browser genau so.
 | `stil.js` | setzt das CSS aus den Teilen in `stil/` in fester Reihenfolge zusammen |
 | `stil/*.js` | das CSS, je Bereich ein Teil (Grund, Raster, Karten, Dialog, …) |
 | `ordnung.js` | Reihenfolge der Karten und Zeitkonstanten – dieselbe Rechnung wie `anordnung.py` auf dem Server |
-| `zeitprogramm.js` | Zeitprogramme: Abschnitte, Prüfung, Nutzlast, Wochenraster, Editor |
+| `zeitprogramm.js` | Zeitprogramme: Abschnitte, Farbskala, nächster Wechsel, Prüfung, Nutzlast, Wochenraster, Editor |
+| `zeitprogrammseite.js` | Reiter Zeitprogramme: Gruppen je Anlagenteil, Text im Heute-Streifen, Legende |
 | `teile/*.js` | die Abschnitte der Oberfläche, je einer als Mixin |
 
 Ein Web-Component ist **eine** Klasse. Um sie trotzdem auf mehrere Dateien zu

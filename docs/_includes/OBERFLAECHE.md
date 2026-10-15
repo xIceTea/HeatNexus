@@ -78,9 +78,14 @@ der Brennstoff, die Zählerstände.
 
 <a id="zeitprogramme"></a>
 
-**Zeitprogramme.** Je Programm ein Wochenraster: Blöcke wie „Mo–Fr" und
-„Sa, So", darin die Schaltzeiten als Balken, darunter als Text. Bearbeitet wird
-in Blöcken und gespeichert als ganzes Programm — so, wie die Anlage es führt.
+**Zeitprogramme.** Oben zeigt der Streifen „Heute“ je Heizkreis, Warmwasser und
+Puffer den heutigen Tag des geltenden Programms. Rechts stehen der Wert von jetzt
+und der nächste Wechsel. Darunter steht je Anlagenteil eine Karte. Das geltende
+Programm erscheint groß als Wochenraster mit Blöcken wie „Mo–Fr“ und „Sa, So“, die
+Werte stehen im Balken. Die übrigen Programme zeigen ihren heutigen Tag als
+schmalen Balken. Gleiche Temperaturen haben überall dieselbe Farbe; die Legende
+steht unter dem Streifen. Bearbeitet wird in Blöcken und gespeichert als ganzes
+Programm — so, wie die Anlage es führt.
 „Aktivieren“ stellt die zugehörige Auswahl nach einer Rückfrage auf dieses Programm.
 Beim Bearbeiten lässt sich eine eigene Bezeichnung wie „Übergangszeit“ vergeben.
 Sie steht hinter dem Namen des Programms. In der Leseansicht ist die Zeile
