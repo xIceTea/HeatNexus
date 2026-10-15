@@ -418,6 +418,7 @@ class HeatNexusPanel extends Grundlage {
     }
     this._reiterFlaechen(inhalt, flaechen);
     this._flaecheErsetzen(...stil, inhalt);
+    this._reiterZeigen(inhalt);
     if (this._tastaturFokus) {
       const taste = inhalt.querySelector(this._tastaturFokus);
       this._tastaturFokus = null;
@@ -657,6 +658,19 @@ class HeatNexusPanel extends Grundlage {
     });
     this._reiterTastatur(leiste);
     return leiste;
+  }
+
+  /**
+   * Am Telefon passen nicht alle Reiter in die Leiste, und der Neuaufbau setzt sie an den Anfang.
+   * Der gewählte Reiter rückt deshalb in die Mitte der Leiste.
+   */
+  _reiterZeigen(inhalt) {
+    const leiste = inhalt.querySelector(".reiter");
+    const taste = leiste && leiste.querySelector('[aria-selected="true"]');
+    if (!taste || !(leiste.scrollWidth > leiste.clientWidth) || !taste.getBoundingClientRect) return;
+    const rand = leiste.getBoundingClientRect();
+    const knopf = taste.getBoundingClientRect();
+    leiste.scrollLeft += knopf.left - rand.left - (leiste.clientWidth - knopf.width) / 2;
   }
 
   /**

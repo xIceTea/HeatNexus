@@ -725,6 +725,24 @@ if (nameZwei) {
 bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 
 // ---------------------------------------------------------------------------
+// Reiterleiste am Telefon: Der gewählte Reiter rückt nach dem Neuaufbau ins Bild.
+// ---------------------------------------------------------------------------
+{
+  const inhalt = flaeche.shadowRoot;
+  const leiste = inhalt.querySelector(".reiter");
+  const taste = leiste.querySelector('[aria-selected="true"]');
+  Object.assign(leiste, { scrollWidth: 900, clientWidth: 375, scrollLeft: 0 });
+  leiste.getBoundingClientRect = () => ({ left: 0, width: 375 });
+  taste.getBoundingClientRect = () => ({ left: 600, width: 120 });
+  flaeche._reiterZeigen(inhalt);
+  const mitte = leiste.scrollLeft;
+  leiste.scrollWidth = 300;
+  leiste.scrollLeft = 0;
+  flaeche._reiterZeigen(inhalt);
+  bilanz.reiterImBild = { gewaehlt: taste.dataset.reiter, mitte, ohneUeberlauf: leiste.scrollLeft };
+}
+
+// ---------------------------------------------------------------------------
 // Heute-Streifen, leeres Programm, „Alle“
 // ---------------------------------------------------------------------------
 {
