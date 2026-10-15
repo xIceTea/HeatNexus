@@ -2,6 +2,7 @@
   "domain": "heatnexus",
   "name": "HeatNexus",
   "after_dependencies": [
+    "logbook",
     "recorder"
   ],
   "codeowners": [
