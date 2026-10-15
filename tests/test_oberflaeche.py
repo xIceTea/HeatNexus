@@ -381,7 +381,7 @@ def test_die_werkzeuge_liegen_hinter_einem_knopf(durchlauf):
     assert durchlauf["werkzeugmenueDa"] is True
     assert durchlauf["werkzeugeZu"] is True
     assert durchlauf["werkzeugeOffen"] is True
-    assert durchlauf["werkzeuge"] == ["Ansicht bearbeiten", "Dashboard-Vorlage"]
+    assert durchlauf["werkzeuge"] == ["Ansicht bearbeiten", "Darstellung", "Dashboard-Vorlage"]
     assert durchlauf["werkzeugeNachKlickZu"] is True
 
 
@@ -398,12 +398,12 @@ def test_die_dashboard_vorlage_nennt_die_feste_adresse(durchlauf):
 
 def test_ohne_verwalterrecht_keine_dashboard_vorlage(durchlauf):
     """Wer keine Dashboards anlegen darf, kann mit der Vorlage nichts anfangen."""
-    assert durchlauf["werkzeugeOhneRecht"] == ["Ansicht bearbeiten"]
+    assert durchlauf["werkzeugeOhneRecht"] == ["Ansicht bearbeiten", "Darstellung"]
 
 
 def test_ein_misslungenes_speichern_wird_gemeldet(durchlauf):
     """Sonst bleibt der Fehlschlag in der Entwicklerkonsole stehen."""
-    assert durchlauf["meldungBeimSpeichern"] == ["Die Farbwahl konnte nicht gespeichert werden."]
+    assert durchlauf["meldungBeimSpeichern"] == ["Die Darstellung konnte nicht gespeichert werden."]
 
 
 def test_der_farbsatz_faerbt_auch_die_oberflaeche(durchlauf):
@@ -420,6 +420,101 @@ def test_der_farbsatz_steht_vor_den_einstellungen_bereit(durchlauf):
     """Sonst zeigt der erste Aufbau den Standardanstrich und springt dann um."""
     assert durchlauf["gemerkt"]["gesetzt"] == "petrol"
     assert durchlauf["gemerkt"]["beimAufbau"] == "petrol"
+
+
+def test_die_kopfzeile_folgt_der_gewaehlten_darstellung(durchlauf):
+    """Standard und Farbig zeigen den Hersteller darunter, die schlichten Stile nicht; die Wahl wird gemerkt."""
+    kopf = durchlauf["kopf"]
+    assert kopf["vorher"] == {"klasse": "markenblock", "unterzeile": True}
+    assert kopf["schlicht"] == {"klasse": "markenblock kurz", "unterzeile": False}
+    assert kopf["farbig"] == {"klasse": "markenblock farbig", "unterzeile": True}
+    assert kopf["kurz"] == {"klasse": "markenblock farbig kurz", "unterzeile": False}
+    assert kopf["beimAufbau"] == "farbig_schlicht"
+
+
+def test_das_zeichen_oeffnet_die_seitenleiste_oder_eine_taste_davor(durchlauf):
+    """Ohne Wahl ist das Zeichen die Menütaste; mit „Eigene Menütaste“ steht eine Taste davor."""
+    menue = durchlauf["menue"]
+    assert menue["zeichen"] == ["menue-taste zeichen-taste", "menue-taste"]
+    assert menue["mitTaste"] == ["menue-taste seitenleiste-taste", "menue-taste"]
+    assert menue["gesendet"] == ["hass-toggle-menu", "hass-toggle-menu"]
+
+
+def test_das_fenster_darstellung_zeigt_und_setzt_die_wahl(durchlauf):
+    """Eine Wahl bleibt Entwurf: „Übernehmen“ speichert sie, „Verwerfen“ lässt die alte stehen."""
+    darstellung = durchlauf["darstellung"]
+    assert darstellung["kacheln"] == [6, 4, 2]
+    assert darstellung["anfangs"][1:] == [["standard"], ["zeichen"]]
+    assert darstellung["nachKlick"][1:] == [["farbig"], ["zeichen"]]
+    assert darstellung["kopfNachKlick"] == "standard"
+    assert darstellung["leisteNachKlick"] == {"text": "Verwerfen", "rot": True, "uebernehmen": True}
+    assert darstellung["kopfNachUebernehmen"] == "farbig"
+    assert darstellung["leisteAnfangs"] == {"text": "Schließen"}
+    assert darstellung["kopfNachVerwerfen"] == "farbig"
+    assert darstellung["zu"] is True
+
+
+def test_alle_getrennt_zeigt_jede_anlage_fuer_sich(durchlauf):
+    assert durchlauf["alleZusammen"]["getrennt"] == {"raster": 2, "marken": 0}
+
+
+def test_alle_zusammen_verschmilzt_gleiche_karten_zu_einer(durchlauf):
+    """Ein Raster ohne Trenner; gleiche Karten stehen in einem Rahmen, ein Abschnitt je Anlage."""
+    zusammen = durchlauf["alleZusammen"]["zusammen"]
+    assert zusammen["raster"] == 1
+    assert zusammen["trenner"] == 0
+    karten = zusammen["karten"]
+    feste = ["Anlagenübersicht", "Systemstatus", "Heizkreise", "Schnellzugriff", "Meldungen"]
+    for titel in feste:
+        treffer = [k for k in karten if k["titel"] == titel]
+        assert len(treffer) == 1, titel
+        assert treffer[0]["verschmolzen"] is True
+        assert treffer[0]["anlagen"] == ["Anlage A", "Anlage B"]
+
+
+def test_alle_zusammen_bettet_klappkarten_je_anlage_ein(durchlauf):
+    """Der Verlauf bleibt je Anlage aufklappbar, auch im gemeinsamen Rahmen."""
+    karten = durchlauf["alleZusammen"]["zusammen"]["karten"]
+    verlauf = [k for k in karten if k["titel"].startswith("Verlauf")]
+    assert len(verlauf) == 1
+    assert verlauf[0]["klappen"] == 2
+
+
+def test_jeder_zusammenfassende_reiter_nennt_an_jeder_karte_die_anlage(durchlauf):
+    """Neue Karten brauchen keine Vorbereitung: Name und Verschmelzen kommen aus der Kartenliste."""
+    for reiter, stand in durchlauf["alleZusammen"]["jeReiter"].items():
+        assert stand["ohneAnlage"] == [], reiter
+
+
+def test_im_anordnen_schiebt_der_pfeil_die_ganze_karte(durchlauf):
+    anordnen = durchlauf["alleZusammen"]["anordnen"]
+    assert anordnen["linksGesperrt"] is True
+    assert anordnen["rechtsGesperrt"] is False
+    assert anordnen["nachSchritt"][1] == "alle|seite"
+
+
+def test_alle_zusammen_verschiebt_die_verschmolzene_karte(durchlauf):
+    gespeichert = durchlauf["alleZusammen"]["gespeichert"]
+    assert gespeichert[0]["titel"] == "Meldungen"
+    assert gespeichert[0]["anlagen"] == ["Anlage A", "Anlage B"]
+
+
+def test_alle_zusammen_gilt_auch_in_der_steuerung(durchlauf):
+    """Auch hier ein Raster, und jede Karte nennt ihre Anlagen."""
+    karten = durchlauf["alleZusammen"]["steuerung"]
+    assert {a for k in karten for a in k["anlagen"]} == {"Anlage A", "Anlage B"}
+    assert all(k["anlagen"] for k in karten)
+
+
+def test_hilfe_unter_alle_nennt_jede_erklaerung_einmal(durchlauf):
+    hilfe = durchlauf["alleZusammen"]["hilfe"]
+    assert hilfe["raster"] == 1
+    assert sorted(hilfe["eintraege"]) == ["Heizgrenze", "Kessel", "Puffer"]
+
+
+def test_schliessen_im_menue_der_anordnung_schliesst_das_fenster(durchlauf):
+    """Die Taste muss die Schließfunktion des geöffneten Fensters aufrufen."""
+    assert durchlauf["anordnenMenue"] == {"offen": 1, "danach": 0}
 
 
 def test_der_abzug_der_anmeldung_ueberschreibt_nichts_frisches(durchlauf):
@@ -1048,6 +1143,23 @@ def test_unter_alle_steht_jede_anlage_in_ihrer_sprache(zwei_sprachen):
     reste = sorted(t for t in ergebnis["alle"]["anlage"] if DEUTSCH_NEBEN_NL.search(ohne_namen(t)))
     assert not reste, f"Anlage B unter „Alle“ noch deutsch: {reste}"
     assert any(DEUTSCH.search(t) for t in ergebnis["alle"]["rahmen"])
+
+
+def test_im_gemeinsamen_raster_spricht_jede_karte_ihre_sprache(zwei_sprachen):
+    nutzlast, ergebnis = zwei_sprachen
+    ohne_namen = _ohne_namen(nutzlast["anlagen"][1])
+    reste = sorted(
+        t for t in ergebnis["zusammen"]["anlage"] if DEUTSCH_NEBEN_NL.search(ohne_namen(t))
+    )
+    assert not reste, f"Karten von Anlage B im gemeinsamen Raster noch deutsch: {reste}"
+    assert ergebnis["zusammen"]["anlage"]
+
+
+def test_die_verschmolzene_karte_erklaert_in_der_sprache_der_oberflaeche(zwei_sprachen):
+    nutzlast, ergebnis = zwei_sprachen
+    erklaerung = ergebnis["erklaerung"]
+    assert erklaerung, "keine verschmolzene Karte mit „?“"
+    assert erklaerung["text"] == nutzlast["anlagen"][0]["hilfe"][erklaerung["titel"]]
 
 
 def test_spaete_texte_folgen_der_sprache_der_anlage(zwei_sprachen):

@@ -328,9 +328,12 @@ eine Aktion auslöst. Beides – Oberfläche und Erklärungen – lässt sich un
 *Konfigurieren → Allgemein* abschalten.
 
 Über das Werkzeugmenü (⋮) rechts in der Kopfzeile lassen sich die Karten
-umsortieren und die Dashboard-Vorlage abrufen. Der Farbsatz – Dunkel, Hell,
-Terrakotta, Petrol oder Pflaume – steht in den Einstellungen der Anordnung und
-gilt für Oberfläche und Schaubild gemeinsam.
+umsortieren und die Dashboard-Vorlage abrufen. Unter *Darstellung* stehen der
+Farbsatz – Dunkel, Hell, Terrakotta, Petrol oder Pflaume –, die Kopfzeile
+(Standard, Schlicht, Farbig, Farbig schlicht) und der Weg zur Seitenleiste: Ein Klick auf das Zeichen
+öffnet sie, auf Wunsch steht eine eigene Menütaste davor. Bei mehreren Anlagen
+legt *Alle Anlagen* fest, ob „Alle“ jede Anlage für sich zeigt oder gleiche
+Karten aller Anlagen in einem Rahmen zusammenfasst. Die Hilfe nennt unter „Alle“ jede Erklärung einmal.
 
 Die Aufteilung entsteht in Home Assistant, nicht im Browser: Was die Anlage
 liefert, erscheint; was fehlt, entfällt.

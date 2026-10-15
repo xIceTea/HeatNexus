@@ -20,16 +20,33 @@ export const KOPFLEISTE = `
     padding: 12px 16px 0;
     flex-wrap: wrap;
   }
+  /* Runde Tasten ohne Rahmen wie in den Ansichten von Home Assistant. */
   .menue-taste {
     display: inline-flex;
     align-items: center; justify-content: center;
-    width: 40px; height: 40px; flex: none;
-    border-radius: 12px; cursor: pointer;
-    background: var(--hn-flaeche);
-    border: 1px solid var(--hn-linie);
+    width: 44px; height: 44px; flex: none;
+    border-radius: 50%; cursor: pointer;
+    background: none; border: none; padding: 0;
     color: inherit;
   }
-  .menue-taste:hover { background: var(--hn-linie); }
+  .menue-taste:hover { background: var(--hn-flaeche); }
+  .menue-taste ha-icon { --mdc-icon-size: 24px; }
+  .seitenleiste-taste { margin: 0 -8px 0 -6px; }
+  .zeichen-taste { margin: 0 -4px 0 -7px; }
+  .markenblock { display: flex; align-items: center; gap: 10px; }
+  .markenblock .zeichen { width: 30px; height: 30px; flex: none; }
+  .markenblock.kurz { gap: 8px; }
+  .markenblock.kurz .zeichen { width: 26px; height: 26px; }
+  .zeichen .knoten { fill: var(--hn-grund); }
+  .wortmarke .marke { font-size: 18px; font-weight: 500; line-height: 1.15; }
+  .wortmarke .unterzeile { font-size: 12px; color: var(--hn-gedaempft); }
+  .wortmarke.farbig .marke { font-size: 19px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.15; }
+  .markenblock.kurz .wortmarke .marke { font-size: 20px; }
+  .wortmarke.farbig .heat, .wortmarke.farbig .nexus {
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .wortmarke.farbig .heat { background-image: linear-gradient(90deg, #f7a23b, #ee5a30); }
+  .wortmarke.farbig .nexus { background-image: linear-gradient(90deg, #3d9fe6, #46b6f0); }
   /* Werkzeuge der Kopfzeile: ein Knopf, darunter die Liste. */
   /* Ganz nach rechts, auch wenn die Kopfzeile umbricht: Sonst klebt der
      Knopf an der letzten Anlagentaste statt am Rand. */
@@ -50,7 +67,6 @@ export const KOPFLEISTE = `
   }
   .werkzeugliste button:hover { background: var(--hn-flaeche); }
   .werkzeugliste ha-icon { --mdc-icon-size: 20px; }
-  .kopfleiste .marke { font-size: 20px; font-weight: 700; }
   .kopfleiste .abstand { flex: 1; }
   .aussen {
     display: inline-flex; align-items: center; gap: 6px;

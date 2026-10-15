@@ -309,9 +309,92 @@ bilanz.palette = { terrakotta: beiWahl, auto: flaeche.style.getPropertyValue("--
 
 // Eine gewählte Farbe wird im Browser gemerkt: Die nächste Oberfläche steht
 // damit vom ersten Aufbau an richtig, ohne auf die Einstellungen zu warten.
-flaeche._farbsatzSetzen("petrol");
+flaeche._darstellungSetzen({ farbsatz: "petrol" });
 const zweite = new (customElements.get("heatnexus-panel"))();
-bilanz.gemerkt = { gesetzt: flaeche._farbsatzGemerkt(), beimAufbau: zweite._farbsatz() };
+bilanz.gemerkt = { gesetzt: flaeche._gemerkt("heatnexus.farbsatz"), beimAufbau: zweite._farbsatz() };
+
+// Die Kopfzeile folgt der Wahl in „Darstellung“ und wird ebenso gemerkt.
+{
+  const marke = () => flaeche.shadowRoot.querySelector(".markenblock");
+  const stand = () => ({ klasse: marke().className, unterzeile: Boolean(marke().querySelector(".unterzeile")) });
+  const vorher = stand();
+  flaeche._darstellungSetzen({ kopf: "schlicht" });
+  const schlicht = stand();
+  flaeche._darstellungSetzen({ kopf: "farbig" });
+  const farbig = stand();
+  flaeche._darstellungSetzen({ kopf: "farbig_schlicht" });
+  const kurz = stand();
+  const dritte = new (customElements.get("heatnexus-panel"))();
+  bilanz.kopf = { vorher, schlicht, farbig, kurz, beimAufbau: dritte._kopfstil() };
+  flaeche._darstellungSetzen({ kopf: "standard" });
+}
+
+// Die Seitenleiste öffnet das Zeichen selbst; auf Wunsch steht eine Menütaste davor.
+{
+  const wurzel = flaeche.shadowRoot;
+  const kopfTasten = () => wurzel.querySelector(".kopfleiste").querySelectorAll(".menue-taste").map((t) => t.className);
+  const gesendet = [];
+  const vorherDispatch = flaeche.dispatchEvent;
+  flaeche.dispatchEvent = (ereignis) => gesendet.push(ereignis.type);
+  wurzel.querySelector(".zeichen-taste").ausloesen("click");
+  const zeichen = kopfTasten();
+  flaeche._darstellungSetzen({ menue: "taste" });
+  const mitTaste = kopfTasten();
+  wurzel.querySelector(".seitenleiste-taste").ausloesen("click");
+  flaeche.dispatchEvent = vorherDispatch;
+  bilanz.menue = { zeichen, mitTaste, gesendet };
+  flaeche._darstellungSetzen({ menue: "zeichen" });
+}
+
+// Das Fenster „Darstellung“ zeigt je Einstellung Vorschaukacheln; ein Klick wirkt sofort.
+{
+  const wurzel = flaeche.shadowRoot;
+  const vorher = wurzel.querySelectorAll(".schleier").length;
+  flaeche._darstellungOeffnen();
+  const fenster = wurzel.querySelectorAll(".schleier")[vorher];
+  const gruppen = fenster.querySelectorAll(".darstellung-wahl");
+  const gedrueckt = () =>
+    gruppen.map((g) => g.querySelectorAll(".darstellung-muster").filter((k) => k.getAttribute("aria-pressed") === "true").map((k) => k.dataset.wert));
+  const anfangs = gedrueckt();
+  gruppen[1].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "farbig").ausloesen("click");
+  const nachKlick = gedrueckt();
+  const kopfNachKlick = flaeche._kopfstil();
+  const [schliessen, uebernehmen] = fenster.querySelector(".dialog-leiste").querySelectorAll(".dialog-taste");
+  const leiste = () => ({ text: String(schliessen.textContent), rot: schliessen.classList.contains("betont"), uebernehmen: !uebernehmen.hidden });
+  const leisteNachKlick = leiste();
+  uebernehmen.ausloesen("click");
+  const kopfNachUebernehmen = flaeche._kopfstil();
+  // Ein zweites Fenster: geändert und verworfen bleibt die alte Wahl.
+  flaeche._darstellungOeffnen();
+  const zweites = wurzel.querySelectorAll(".schleier")[vorher];
+  const zweiteGruppen = zweites.querySelectorAll(".darstellung-wahl");
+  const leisteAnfangs = { text: String(zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").textContent) };
+  zweiteGruppen[1].querySelectorAll(".darstellung-muster").find((k) => k.dataset.wert === "schlicht").ausloesen("click");
+  zweites.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
+  bilanz.darstellung = {
+    kacheln: gruppen.map((g) => g.querySelectorAll(".darstellung-muster").length),
+    anfangs,
+    nachKlick,
+    kopfNachKlick,
+    leisteNachKlick,
+    kopfNachUebernehmen,
+    leisteAnfangs,
+    kopfNachVerwerfen: flaeche._kopfstil(),
+    zu: wurzel.querySelectorAll(".schleier").length === vorher,
+  };
+  flaeche._darstellungSetzen({ kopf: "standard" });
+}
+
+// „Schließen" im Menü neben „Fertig" schließt das Fenster.
+{
+  const fenster = () => flaeche.shadowRoot.querySelectorAll(".schleier");
+  const vorher = fenster().length;
+  flaeche._anordnenMenue();
+  const offen = fenster().length - vorher;
+  const neuestes = fenster()[fenster().length - 1];
+  neuestes.querySelector(".dialog-leiste").querySelector(".dialog-taste").ausloesen("click");
+  bilanz.anordnenMenue = { offen, danach: fenster().length - vorher };
+}
 
 // Nach einem Verbindungsabriss stellt Home Assistant die Panel-Anmeldung
 // erneut zu. Der Abzug darin ist älter als das, was schon geholt wurde.
@@ -1268,6 +1351,80 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 }
 
 // ---------------------------------------------------------------------------
+// „Alle“ zusammen und die Hilfe über alle Anlagen
+//
+// Zusammen steht ein Raster da, Karten gleicher Art beieinander und jede mit
+// ihrer Anlage. Die Hilfe fasst immer zusammen und nennt jede Erklärung einmal.
+// ---------------------------------------------------------------------------
+{
+  const vorherDaten = flaeche._daten;
+  const vorherIndex = flaeche._anlageIndex;
+  const vorherAnordnung = flaeche._anordnung;
+  const erste = vorherDaten.anlagen[0];
+  const gleich = { titel: "Heizgrenze", text: "Ab dieser Außentemperatur heizt der Kreis." };
+  flaeche._daten = {
+    ...vorherDaten,
+    anlagen: [
+      { ...erste, id: "anlage-a", name: "Anlage A", hilfe_liste: [gleich, { titel: "Puffer", text: "Speicher." }] },
+      { ...erste, id: "anlage-b", name: "Anlage B", hilfe_liste: [gleich, { titel: "Kessel", text: "Erzeuger." }] },
+    ],
+  };
+  flaeche._anlageIndex = -1;
+  const wurzel = flaeche.shadowRoot;
+  const karten = () =>
+    wurzel.querySelector(".raster").children.map((karte) => ({
+      anlagen: karte.querySelectorAll(".karten-anlage").map((marke) => String(marke.textContent)),
+      titel: String((karte.querySelector("h2") || {}).textContent || "").trim(),
+      verschmolzen: karte.classList.contains("verschmolzen"),
+      klappen: karte.querySelectorAll(".klappkarte").length,
+    }));
+  const zeichnen = (reiter, einstellungen, ordnung) => {
+    flaeche._anordnung = { einstellungen, ...(ordnung ? { [reiter]: { ordnung } } : {}) };
+    flaeche._reiter = reiter;
+    flaeche._gebaut = false;
+    flaeche._zeichnen();
+  };
+  zeichnen("uebersicht", { alle: "getrennt" });
+  const getrennt = { raster: wurzel.querySelectorAll(".raster").length, marken: wurzel.querySelectorAll(".karten-anlage").length };
+  zeichnen("uebersicht", { alle: "zusammen" });
+  const zusammen = { raster: wurzel.querySelectorAll(".raster").length, trenner: wurzel.querySelectorAll(".anlagen-trenner").length, karten: karten() };
+  // Die verschmolzene Karte hat eine eigene Kennung und lässt sich wie jede andere verschieben.
+  zeichnen("uebersicht", { alle: "zusammen" }, ["alle|stoerungen", "alle|seite"]);
+  const gespeichert = karten().slice(0, 2);
+  zeichnen("steuerung", { alle: "zusammen" });
+  const steuerung = karten();
+  // Jeder Reiter, der zusammenfasst, nennt an jeder Karte ihre Anlage – auch an künftigen Karten.
+  const jeReiter = {};
+  for (const reiter of ["uebersicht", "steuerung", "wartung", "verlauf", "zeitprogramme"]) {
+    zeichnen(reiter, { alle: "zusammen" });
+    const liste = karten().filter((k) => k.titel !== "HeatNexus");
+    jeReiter[reiter] = { karten: liste.length, ohneAnlage: liste.filter((k) => !k.anlagen.length).map((k) => k.titel) };
+  }
+  // Im Anordnen-Modus: Pfeile schieben ganze Karten, am Ende ist der Pfeil gesperrt.
+  flaeche._anordnen = true;
+  zeichnen("uebersicht", { alle: "zusammen" });
+  const griffe = (nr) => wurzel.querySelectorAll(".anordner")[nr].querySelector(".anordner-griff").querySelectorAll("button");
+  const erster = griffe(0);
+  const anordnen = { linksGesperrt: erster[0].disabled, rechtsGesperrt: erster[1].disabled };
+  erster[1].ausloesen("click");
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  anordnen.nachSchritt = wurzel.querySelectorAll(".anordner").slice(0, 2).map((h) => h.dataset.kennung);
+  flaeche._anordnen = false;
+  zeichnen("hilfe", { alle: "getrennt" });
+  const hilfe = {
+    raster: wurzel.querySelectorAll(".raster").length,
+    eintraege: wurzel.querySelectorAll(".hilfe-eintrag").map((e) => String(e.querySelector("summary").textContent)),
+  };
+  bilanz.alleZusammen = { getrennt, zusammen, gespeichert, steuerung, jeReiter, anordnen, hilfe };
+  flaeche._daten = vorherDaten;
+  flaeche._anlageIndex = vorherIndex;
+  flaeche._anordnung = vorherAnordnung;
+  flaeche._reiter = "uebersicht";
+  flaeche._gebaut = false;
+}
+
+// ---------------------------------------------------------------------------
 // Reiter „Befund“
 //
 // Ein Befund mit Wert bekommt eine Karte, die übrigen stehen in einer Kachel.
@@ -1451,7 +1608,7 @@ flaeche.addEventListener("hass-notification", (ereignis) => {
 hass.callWS = async () => {
   throw new Error("kein Server im Test");
 };
-flaeche._farbsatzSetzen("kontrast");
+flaeche._darstellungSetzen({ farbsatz: "kontrast" });
 await Promise.resolve();
 await Promise.resolve();
 bilanz.meldungBeimSpeichern = meldungen;

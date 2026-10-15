@@ -75,7 +75,7 @@ const neu = () => ({ rahmen: new Set(), anlage: new Set(), fenster: new Set() })
 const alsListen = (ablage) =>
   Object.fromEntries(Object.entries(ablage).map(([k, v]) => [k, [...v].sort()]));
 
-const ergebnis = { seite: neu(), alle: neu() };
+const ergebnis = { seite: neu(), alle: neu(), zusammen: neu() };
 
 // Die Seite der zweiten Anlage, Reiter für Reiter; die Automatik spricht die gemeinsame Sprache.
 flaeche._anlageIndex = 1;
@@ -108,7 +108,7 @@ ergebnis.rueckmeldung = anzeige.textContent;
 
 // „Alle“: beide Anlagen untereinander, jede in ihrer Sprache.
 flaeche._anlageIndex = -1;
-for (const reiter of ["uebersicht", "steuerung", "wartung"]) {
+for (const reiter of ["uebersicht", "steuerung", "wartung", "hilfe"]) {
   flaeche._reiter = reiter;
   flaeche._gebaut = false;
   flaeche._zeichnen();
@@ -116,10 +116,38 @@ for (const reiter of ["uebersicht", "steuerung", "wartung"]) {
   texte(flaeche.shadowRoot, ergebnis.alle);
 }
 
+// „Alle“ zusammen: ein Raster, jede Karte in der Sprache ihrer Anlage.
+flaeche._anordnung = { ...flaeche._anordnung, einstellungen: { alle: "zusammen" } };
+for (const reiter of ["uebersicht", "steuerung", "wartung", "hilfe"]) {
+  flaeche._reiter = reiter;
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+  flaeche._aktualisieren();
+  texte(flaeche.shadowRoot, ergebnis.zusammen);
+}
+
+// Das „?“ einer verschmolzenen Karte erklärt in der Sprache der Oberfläche.
+flaeche._reiter = "uebersicht";
+flaeche._gebaut = false;
+flaeche._zeichnen();
+const mitErklaerung = flaeche.shadowRoot
+  .querySelectorAll(".verschmolzen")
+  .find((karte) => karte.children[0].querySelector(".fragezeichen"));
+if (mitErklaerung) {
+  mitErklaerung.children[0].querySelector(".fragezeichen").ausloesen("click");
+  const fenster = flaeche.shadowRoot.querySelectorAll(".schleier").pop();
+  ergebnis.erklaerung = {
+    titel: String(mitErklaerung.children[0].querySelector("h2").textContent),
+    text: String(fenster.querySelector(".dialog-text").textContent),
+  };
+}
+
 console.log(
   JSON.stringify({
     seite: alsListen(ergebnis.seite),
     alle: alsListen(ergebnis.alle),
+    zusammen: alsListen(ergebnis.zusammen),
+    erklaerung: ergebnis.erklaerung || null,
     lang: ergebnis.lang,
     geoeffnet: ergebnis.geoeffnet,
     rueckmeldung: ergebnis.rueckmeldung,

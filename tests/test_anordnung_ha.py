@@ -1,4 +1,4 @@
-"""Einstellungen der Oberfläche je Benutzer über WebSocket: Reiterfolge."""
+"""Einstellungen der Oberfläche je Benutzer über WebSocket: Reiterfolge, Kopfzeile, Menütaste."""
 
 from __future__ import annotations
 
@@ -28,6 +28,31 @@ async def test_reiterfolge_und_ausgeblendete_reiter_bleiben_gespeichert(hass, ha
     gelesen = (await _senden(client, type="heatnexus/anordnung"))["result"]
     assert gelesen["einstellungen"]["reiter"] == ["uebersicht", "zeitprogramme"]
     assert gelesen["einstellungen"]["reiter_versteckt"] == ["hilfe"]
+
+
+async def test_kopfzeile_und_menuetaste_werden_gespeichert_unbekannte_abgewiesen(
+    hass, hass_ws_client
+):
+    from custom_components.heatnexus.anordnung import async_register_anordnung
+
+    async_register_anordnung(hass)
+    client = await hass_ws_client(hass)
+
+    antwort = await _senden(
+        client,
+        type="heatnexus/anordnung/einstellungen",
+        einstellungen={"kopf": "farbig", "menue": "taste", "alle": "zusammen"},
+    )
+    assert antwort["success"], antwort
+    gelesen = (await _senden(client, type="heatnexus/anordnung"))["result"]
+    assert gelesen["einstellungen"]["kopf"] == "farbig"
+    assert gelesen["einstellungen"]["menue"] == "taste"
+    assert gelesen["einstellungen"]["alle"] == "zusammen"
+
+    antwort = await _senden(
+        client, type="heatnexus/anordnung/einstellungen", einstellungen={"kopf": "bunt"}
+    )
+    assert not antwort["success"]
 
 
 async def test_unbekannter_reiter_wird_abgewiesen(hass, hass_ws_client):

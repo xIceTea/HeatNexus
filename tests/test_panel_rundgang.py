@@ -41,14 +41,10 @@ def rundgang():
 def test_der_rundgang_zeigt_nur_reiter_die_es_gibt(rundgang):
     """Ein Tippfehler im Reiternamen ergäbe eine leere Aufnahme."""
     quelle = (
-        Path(__file__).parent.parent
-        / "custom_components"
-        / "heatnexus"
-        / "frontend"
-        / "heatnexus-panel.js"
+        Path(__file__).parent.parent / "custom_components" / "heatnexus" / "frontend" / "ordnung.js"
     ).read_text(encoding="utf-8")
     for auftritt in rundgang.AUFTRITTE:
-        assert f'"{auftritt["reiter"]}"' in quelle, auftritt["reiter"]
+        assert f'schluessel: "{auftritt["reiter"]}"' in quelle, auftritt["reiter"]
 
 
 def test_jeder_auftritt_hat_eine_dauer_und_einen_titel(rundgang):

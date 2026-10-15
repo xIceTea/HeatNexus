@@ -96,10 +96,21 @@ REITER_SCHEMA = vol.Schema(
 
 REITERLISTE = vol.All([vol.In(REITER)], vol.Length(max=len(REITER)))
 
-# Farbsatz, Reihenfolge und ausgeblendete Reiter gelten für die ganze Oberfläche.
+# Marke in der Kopfzeile und Weg zur Seitenleiste. Muss zu `KOPFSTILE` und
+# `MENUESTILE` in `frontend/ordnung.js` passen.
+KOPFSTILE = ("standard", "schlicht", "farbig", "farbig_schlicht")
+MENUESTILE = ("zeichen", "taste")
+# Ob „Alle“ jede Anlage für sich zeigt oder Karten gleicher Art zusammenstellt.
+# Muss zu `ALLESTILE` in `frontend/ordnung.js` passen.
+ALLESTILE = ("getrennt", "zusammen")
+
+# Farbsatz, Kopfzeile, Menütaste, Reihenfolge und ausgeblendete Reiter gelten für die ganze Oberfläche.
 EINSTELLUNGEN_SCHEMA = vol.Schema(
     {
         vol.Optional("farbsatz"): vol.In(FARBSAETZE),
+        vol.Optional("kopf"): vol.In(KOPFSTILE),
+        vol.Optional("menue"): vol.In(MENUESTILE),
+        vol.Optional("alle"): vol.In(ALLESTILE),
         vol.Optional("reiter"): REITERLISTE,
         vol.Optional("reiter_versteckt"): REITERLISTE,
     }
