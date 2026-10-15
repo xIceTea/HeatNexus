@@ -101,10 +101,6 @@ class HeatNexusPanel extends Grundlage {
     // Betriebswahl je Kreis, wie sie **vor** einer Warmwasserladung stand.
     // Beim Abbrechen wird genau die wiederhergestellt.
     this._wahlVorLadung = {};
-    // Zuletzt gezeichnetes Zeitprogramm je Entität. Ohne den Vergleich würde
-    // das Wochenraster bei jedem Abruf neu entstehen – auch dann, wenn sich
-    // nichts geändert hat.
-    this._zeitprogrammStand = new Map();
   }
 
   /**
@@ -380,7 +376,6 @@ class HeatNexusPanel extends Grundlage {
     this._bindungen = [];
     this._verlaufskarten = [];
     this._wartend = [];
-    this._zeitprogrammStand = new Map();
     const anlage = this._aktuelleAnlage();
     const stil = this._stilEinsetzen();
     this._paletteAnwenden();
