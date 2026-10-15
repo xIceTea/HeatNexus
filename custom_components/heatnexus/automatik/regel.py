@@ -42,6 +42,8 @@ PAUSE = "pause"
 PAUSE_ABSTAND = 1.5
 VORGABE_MIN = 6.0
 PAUSE_EINSTIEG_K = 1.5
+# Bis so weit unter der Rückkehrgrenze trägt eine milde AT die Pause, wenn die Räume deutlich zu warm sind.
+PAUSE_MILD_K = 4.0
 PAUSE_ERNEUERN_REST = timedelta(minutes=30)
 PAUSE_NACHRUECKEN_K = 1.0
 # Der Vorlauf-Soll steht nach dem Abschalten noch für den Pumpennachlauf.
@@ -518,7 +520,7 @@ def _gleitend(lage: Lage, e: Entscheidung, soll: float, w: Werte) -> Entscheidun
         return e
     # Nach dem Zurückschalten steht die Betriebswahl wieder auf dem Programm.
     nachher = replace(lage, betriebswahl=min(PROGRAMMWAHL))
-    if not _pause_erlaubt(nachher, e.gedaechtnis, soll, w) or _pause_anlass(lage, w) is None:
+    if not _pause_erlaubt(nachher, e.gedaechtnis, soll, w) or _pause_anlass(lage, soll, w) is None:
         return e
     if (ziel := pause_soll(lage, w)) is None:
         return e
@@ -756,8 +758,12 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
     )
 
 
-def _pause_anlass(lage: Lage, w: Werte) -> str | None:
+def _pause_anlass(lage: Lage, soll: float, w: Werte) -> str | None:
     schwelle = grenze(lage, w)
+    if lage.at_steuerung is None:
+        return None
+    if lage.at_steuerung < schwelle - w.hysterese + PAUSE_EINSTIEG_K:
+        return _pause_anlass_mild(lage, soll, w)
     if lage.at_gedaempft is not None and lage.at_gedaempft > schwelle + w.hysterese:
         return f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C über {_zahl(schwelle + w.hysterese)} °C"
     if lage.mittel_heute is not None and lage.mittel_heute >= schwelle:
@@ -774,7 +780,14 @@ def _pause_anlass(lage: Lage, w: Werte) -> str | None:
         return f"Sonnenquote {lage.sonnenquote:.0f} %"
     if lage.vorrang_laeuft and (lage.vorrang_minuten or 0.0) >= VORRANG_PAUSE_MINUTEN:
         return f"{lage.vorrang_name or 'Vorrangquelle'} liefert"
-    return None
+    return _pause_anlass_mild(lage, soll, w)
+
+
+def _pause_anlass_mild(lage: Lage, soll: float, w: Werte) -> str | None:
+    """Milde AT ohne Sonne: Nur Räume deutlich über Ziel, deren Thermostate nichts wollen, tragen die Pause."""
+    if lage.ruhig is not True or (ueber := abweichung(lage, soll)) < w.stark_k:
+        return None
+    return f"Räume {kelvin(ueber)} über Ziel"
 
 
 def _pause_erlaubt(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> bool:
@@ -785,7 +798,7 @@ def _pause_erlaubt(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> bool:
         and lage.absenkung_moeglich
         and lage.betriebswahl in PROGRAMMWAHL
         and lage.at_steuerung is not None
-        and lage.at_steuerung >= unten + PAUSE_EINSTIEG_K
+        and lage.at_steuerung >= unten - PAUSE_MILD_K
         and lage.ruhig is not False
         and abweichung(lage, soll) >= -SAISON_RAUM_K
     )
@@ -863,7 +876,7 @@ def _heizpause(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
         g = ohne_absenkung(g)
     if lage.modell_steuert or not _pause_erlaubt(lage, g, soll, w):
         return None
-    if (anlass := _pause_anlass(lage, w)) is None:
+    if (anlass := _pause_anlass(lage, soll, w)) is None:
         return None
     if (ziel := pause_soll(lage, w)) is None or _abwesend_tiefer(lage, g, soll, ziel):
         return None

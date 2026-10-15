@@ -20,6 +20,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 - Die Meldungsliste eines Geräts zeigt die Einträge des Störspeichers, sofern die Steuerung einen führt.
 - „Meldungsliste leeren“ löscht mit Störspeicher dessen erledigte Einträge am Bediengerät.
+- Die Automatik pausiert an milden trüben Tagen, wenn die Räume deutlich zu warm sind.
 
 ### Behoben
 

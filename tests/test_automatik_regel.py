@@ -708,6 +708,38 @@ def test_sonne_als_anlass_der_heizpause_gilt_nur_bei_tag(m, w, jetzt, pause):
     assert any(a.art == "pause" for a in e.aktionen) is pause
 
 
+# Trüb und mild, die Räume deutlich über Ziel, kein Thermostat fordert Wärme an.
+TRUEB = {
+    "at": 13.5,
+    "at_steuerung": 13.5,
+    "at_gedaempft": 13.0,
+    "mittel_heute": 13.0,
+    "sonnenquote": 15.0,
+    "raum": 22.2,
+    "ruhig": True,
+}
+
+
+def test_milder_trueber_tag_mit_warmen_raeumen_beginnt_die_heizpause(m, w):
+    e = m.entscheiden(lage(m, **TRUEB), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.HEIZPAUSE
+    assert [(a.art, a.soll) for a in e.aktionen] == [("pause", 12.0)]
+    assert e.begruendung.startswith("Räume +1,2 K über Ziel")
+
+
+@pytest.mark.parametrize(
+    "abweichung",
+    [
+        {"raum": 21.8},  # nur 0,8 K über Ziel
+        {"ruhig": None},  # ohne Thermostate kein Beleg, dass die Räume nichts brauchen
+        {"at_steuerung": 11.5},  # unter dem milden Band
+    ],
+)
+def test_ohne_warme_raeume_bei_milder_at_keine_heizpause(m, w, abweichung):
+    e = m.entscheiden(lage(m, **{**TRUEB, **abweichung}), m.Gedaechtnis(), w)
+    assert all(a.art != "pause" for a in e.aktionen)
+
+
 def test_nach_einer_beendeten_pause_heute_keine_neue(m, w):
     g = m.Gedaechtnis(pause_sperre=MORGEN.date().isoformat())
     e = m.entscheiden(lage(m, **MILD), g, w)

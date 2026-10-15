@@ -592,6 +592,7 @@
   "Sonnenquote {quote} %": "Sun share {quote} %",
   "{quelle} liefert": "{quelle} delivers",
   "Räume {wert} unter Ziel": "Rooms {wert} below target",
+  "Räume {wert} über Ziel": "Rooms {wert} above target",
   "Thermostate fordern Wärme an": "Thermostats call for heat",
   "Die Steuerung heizt wieder": "The controller is heating again",
   "Tagesbudget von {budget} Eingriffen erreicht – nicht geschrieben.": "Daily budget of {budget} interventions reached – not written.",
