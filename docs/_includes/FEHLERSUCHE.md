@@ -97,11 +97,10 @@ und fügt den Text im Rohkonfigurations-Editor ein.
 
 ## Meldungen stehen noch da
 
-Die Störungsanzeige wird **gelesen, nicht quittiert**. Verschwindet die Meldung
-an der Anlage, verschwindet auch die Anzeige. Der Dienst
-`heatnexus.meldungen_loeschen` leert nur die von HeatNexus geführte Liste in
-Home Assistant — der Störspeicher am Bediengerät bleibt unberührt und wird wie
-gewohnt dort zurückgesetzt.
+Die Anzeige einer Störung wird **gelesen, nicht zurückgesetzt**. Verschwindet die
+Meldung an der Anlage, verschwindet auch die Anzeige. Führt das Bediengerät eine
+Meldungsliste, löscht `heatnexus.meldungen_loeschen` dort die erledigten Einträge.
+Sonst leert der Dienst nur die von HeatNexus geführte Liste in Home Assistant.
 
 ## Etwas melden
 

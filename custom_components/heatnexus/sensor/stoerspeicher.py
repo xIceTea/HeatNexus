@@ -25,8 +25,8 @@ from ..exceptions import WindhagerError, WindhagerValueError, mit_text
 _ZEIT = "%Y-%m-%d %H:%M:%S"
 # Was im Logbuch steht; die Wörter laufen durch das Wörterbuch.
 _AKTIONEN = {
-    "quittieren": "Störung quittiert",
-    "zuruecksetzen": "Störung zurückgesetzt",
+    "quittieren": "Meldung zurückgesetzt",
+    "zuruecksetzen": "Störung am Kessel zurückgesetzt",
     "loeschen": "Meldung gelöscht",
 }
 

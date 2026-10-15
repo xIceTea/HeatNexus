@@ -1,5 +1,5 @@
 /**
- * Störspeicher des Bediengeräts in der Karte „Störungen“.
+ * Meldungsliste des Bediengeräts in der Karte „Meldungen“.
  *
  * Anliegende Einträge stehen als Kachel oben, mit der Taste, die das
  * Bediengerät dafür anbietet. Darunter folgt der Verlauf in festen Spalten:
@@ -44,10 +44,10 @@ export const StoerspeicherMixin = (Basis) =>
         const anliegend = eintraege.filter((eintrag) => eintrag.aktiv);
         const verlauf = eintraege.filter((eintrag) => !eintrag.aktiv);
         kacheln.replaceChildren(...anliegend.map((eintrag) => this._stoerspeicherKachel(eintrag, entity)));
-        kopf.textContent = this._t(anliegend.length ? "Verlauf" : "Störspeicher");
+        kopf.textContent = this._t(anliegend.length ? "Verlauf" : "Meldungsliste");
         liste.replaceChildren(...verlauf.map((eintrag) => this._stoerspeicherZeile(eintrag, entity)));
         const leer = !eintraege.length;
-        if (leer) liste.appendChild(this._hinweisKnoten(this._t("Der Störspeicher ist leer.")));
+        if (leer) liste.appendChild(this._hinweisKnoten(this._t("Keine Meldungen vorhanden")));
         kopf.style.display = verlauf.length || leer ? "block" : "none";
       });
     }
@@ -144,7 +144,7 @@ export const StoerspeicherMixin = (Basis) =>
         this._stoerspeicherTaste(
           "stoerspeicher-taste",
           aktion === "zuruecksetzen" ? "mdi:restore" : "mdi:check",
-          aktion === "zuruecksetzen" ? "Zurücksetzen" : "Quittieren",
+          aktion === "zuruecksetzen" ? "Störung am Kessel zurücksetzen" : "Zurücksetzen",
           aktion,
           eintrag,
           entity
@@ -195,8 +195,8 @@ export const StoerspeicherMixin = (Basis) =>
       schliessen.textContent = this._t("Schließen");
       leiste.appendChild(schliessen);
       const aktionen = [
-        ["zuruecksetzen", "Zurücksetzen", eintrag.zuruecksetzbar],
-        ["quittieren", "Quittieren", eintrag.quittierbar],
+        ["zuruecksetzen", "Störung am Kessel zurücksetzen", eintrag.zuruecksetzbar],
+        ["quittieren", "Zurücksetzen", eintrag.quittierbar],
         ["loeschen", "Löschen", eintrag.loeschbar],
       ];
       let zu = () => {};
@@ -222,14 +222,14 @@ export const StoerspeicherMixin = (Basis) =>
     async _stoerspeicherAktion(aktion, eintrag, entity) {
       const fragen = {
         zuruecksetzen: [
-          "Störung zurücksetzen",
-          "Die Störung wird wie mit der Taste am Bediengerät zurückgesetzt. Steuerungen ab Fassung 2 heben damit die Störung am Kessel auf. Ist die Ursache behoben?",
+          "Störung am Kessel zurücksetzen",
+          "Die Steuerung setzt die Störung am Kessel zurück. Steuerungen ab Fassung 2 heben sie damit auf, auch eine verriegelnde. Ist die Ursache behoben?",
         ],
         quittieren: [
-          "Störung quittieren",
-          "Die Meldung gilt als gelesen und schließt sich am Bediengerät. Die Störung am Kessel bleibt bestehen.",
+          "Meldung zurücksetzen",
+          "Die Meldung gilt als erledigt und schließt sich am Bediengerät. Eine Störung am Kessel bleibt bestehen, solange ihre Ursache anliegt.",
         ],
-        loeschen: ["Meldung löschen", "Der Eintrag verschwindet aus dem Störspeicher des Bediengeräts."],
+        loeschen: ["Meldung löschen", "Der Eintrag verschwindet aus der Meldungsliste des Bediengeräts."],
       };
       const [titel, frage] = fragen[aktion];
       if (!(await this._bestaetigen(this._t(titel), this._t(frage)))) return;

@@ -32,19 +32,21 @@ set_current_temp_compensation:
 meldungen_loeschen:
   name: Meldungsliste leeren
   description: >-
-    Leert die Meldungsliste eines Geräts. Führt die Steuerung einen
-    Störspeicher, löscht der Dienst dort die Einträge dieses Geräts, deren
-    Störung nicht mehr anliegt. Sonst leert er nur die Liste in Home Assistant.
+    Leert die Meldungsliste eines Geräts. Führt das Bediengerät eine
+    Meldungsliste, löscht der Dienst dort die Einträge dieses Geräts, deren
+    Störung nicht mehr anliegt. Sonst leert er nur die Liste in Home
+    Assistant.
   target:
     entity:
       integration: heatnexus
       domain: sensor
 
 stoerung_quittieren:
-  name: Störung quittieren
+  name: Meldung zurücksetzen
   description: >-
-    Markiert einen Eintrag im Störspeicher der Steuerung als gelesen. Am
-    Bediengerät schließt sich die Meldung. Die Störung am Kessel bleibt bestehen.
+    Setzt einen Eintrag in der Meldungsliste zurück. Die Meldung schließt
+    sich am Bediengerät. Eine Störung am Kessel bleibt bestehen, solange ihre
+    Ursache anliegt.
   target:
     entity:
       integration: heatnexus
@@ -53,8 +55,8 @@ stoerung_quittieren:
     eintrag: &eintrag
       name: Eintrag
       description: >-
-        Nummer des Eintrags im Störspeicher, wie sie im Attribut „eintraege“
-        des Sensors Störspeicher steht.
+        Nummer des Eintrags in der Meldungsliste, wie sie im Attribut
+        „eintraege“ des Sensors Meldungen steht.
       required: true
       selector:
         number:
@@ -63,11 +65,11 @@ stoerung_quittieren:
           mode: box
 
 stoerung_zuruecksetzen:
-  name: Störung zurücksetzen
+  name: Störung am Kessel zurücksetzen
   description: >-
-    Setzt eine anliegende Störung zurück wie die Taste am Bediengerät.
-    Steuerungen ab Fassung 2 heben damit die Störung am Kessel auf. Dafür muss
-    in den Optionen „Störungen am Kessel zurücksetzen erlauben“ eingeschaltet sein.
+    Setzt eine anliegende Störung am Kessel zurück. Steuerungen ab Fassung 2
+    heben sie damit auf. Dafür muss in den Optionen „Störungen am Kessel
+    zurücksetzen erlauben“ eingeschaltet sein.
   target:
     entity:
       integration: heatnexus
@@ -78,8 +80,8 @@ stoerung_zuruecksetzen:
 stoerung_loeschen:
   name: Meldung löschen
   description: >-
-    Nimmt einen Eintrag aus dem Störspeicher der Steuerung. Löschen lassen sich
-    nur Einträge, deren Störung nicht mehr anliegt.
+    Nimmt einen Eintrag aus der Meldungsliste des Bediengeräts. Löschen lassen
+    sich nur Einträge, deren Störung nicht mehr anliegt.
   target:
     entity:
       integration: heatnexus

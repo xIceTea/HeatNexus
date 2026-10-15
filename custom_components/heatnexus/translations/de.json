@@ -128,7 +128,7 @@
           "hilfe": "Setzt ein „?“ neben Karten und Bedienungen, das erklärt, was ein Wert bedeutet und was eine Bedienung auslöst.",
           "sprache": "Gilt für alle Anlagen in HeatNexus: Namen der Datenpunkte, Oberfläche und Dashboard. Bei „Automatisch“ gilt die Sprache von Home Assistant. Eine Änderung hier stellt alle Anlagen um.",
           "sprache_anlage": "Legt eine eigene Sprache nur für diese Anlage fest: für Namen, Zustände, Störungstexte und ihre Seite in der Oberfläche. „Wie HeatNexus“ übernimmt die Sprache von HeatNexus.",
-          "stoerung_zuruecksetzen": "Schaltet im Störspeicher die Taste „Zurücksetzen“ frei. Sie wirkt wie die Taste am Bediengerät: Steuerungen ab Fassung 2 heben damit eine Störung am Kessel auf, auch eine verriegelnde. Zurücksetzen sollte nur, wer die Ursache kennt und behoben hat."
+          "stoerung_zuruecksetzen": "Schaltet in der Meldungsliste die Taste „Störung am Kessel zurücksetzen“ frei. Steuerungen ab Fassung 2 heben damit eine Störung am Kessel auf, auch eine verriegelnde. Zurücksetzen sollte nur, wer die Ursache kennt und behoben hat."
         }
       },
       "system": {
@@ -482,7 +482,7 @@
         "name": "Auswertung Energie je Heizgradtag"
       },
       "stoerspeicher": {
-        "name": "Störspeicher"
+        "name": "Meldungen"
       }
     },
     "binary_sensor": {
@@ -697,16 +697,16 @@
       "message": "Die Verbindung zu {anlage} ist geschlossen."
     },
     "stoerspeicher_abgelehnt": {
-      "message": "Die Steuerung hat die Aktion im Störspeicher abgelehnt. HTTP {status}."
+      "message": "Die Steuerung hat die Aktion in der Meldungsliste abgelehnt. HTTP {status}."
     },
     "kein_stoerspeicher": {
-      "message": "Diese Steuerung führt keinen Störspeicher."
+      "message": "Diese Steuerung führt keine Meldungsliste."
     },
     "eintrag_fehlt": {
-      "message": "Den Eintrag {eintrag} gibt es im Störspeicher nicht mehr."
+      "message": "Den Eintrag {eintrag} gibt es in der Meldungsliste nicht mehr."
     },
     "zuruecksetzen_aus": {
-      "message": "Das Zurücksetzen von Störungen ist ausgeschaltet. Es lässt sich in den Optionen unter „Allgemein“ einschalten."
+      "message": "Das Zurücksetzen von Störungen am Kessel ist ausgeschaltet. Es lässt sich in den Optionen unter „Allgemein“ einschalten."
     },
     "nicht_zuruecksetzbar": {
       "message": "Der Eintrag {eintrag} lässt sich nicht zurücksetzen. Die Störung liegt nicht mehr an, oder sie gehört zu einem anderen Bediengerät."
@@ -732,7 +732,7 @@
     },
     "meldungen_loeschen": {
       "name": "Meldungsliste leeren",
-      "description": "Leert die Meldungsliste eines Geräts. Führt die Steuerung einen Störspeicher, löscht der Dienst dort die Einträge dieses Geräts, deren Störung nicht mehr anliegt. Sonst leert er nur die Liste in Home Assistant."
+      "description": "Leert die Meldungsliste eines Geräts. Führt das Bediengerät eine Meldungsliste, löscht der Dienst dort die Einträge dieses Geräts, deren Störung nicht mehr anliegt. Sonst leert er nur die Liste in Home Assistant."
     },
     "set_vorgabe": {
       "name": "Befristete Vorgabe setzen",
@@ -771,32 +771,32 @@
       "description": "Gibt das mitgelieferte Dashboard als YAML-Text zurück. Es wird bei jedem Öffnen neu gebaut und lässt sich deshalb nicht bearbeiten. Aus diesem Text entsteht ein eigenes, bearbeitbares Dashboard: neues Dashboard anlegen, Rohkonfigurations-Editor öffnen, Text einfügen."
     },
     "stoerung_quittieren": {
-      "name": "Störung quittieren",
-      "description": "Markiert einen Eintrag im Störspeicher der Steuerung als gelesen. Am Bediengerät schließt sich die Meldung. Die Störung am Kessel bleibt bestehen.",
+      "name": "Meldung zurücksetzen",
+      "description": "Setzt einen Eintrag in der Meldungsliste zurück. Die Meldung schließt sich am Bediengerät. Eine Störung am Kessel bleibt bestehen, solange ihre Ursache anliegt.",
       "fields": {
         "eintrag": {
           "name": "Eintrag",
-          "description": "Nummer des Eintrags im Störspeicher, wie sie im Attribut „eintraege“ des Sensors Störspeicher steht."
+          "description": "Nummer des Eintrags in der Meldungsliste, wie sie im Attribut „eintraege“ des Sensors Meldungen steht."
         }
       }
     },
     "stoerung_zuruecksetzen": {
-      "name": "Störung zurücksetzen",
-      "description": "Setzt eine anliegende Störung zurück wie die Taste am Bediengerät. Steuerungen ab Fassung 2 heben damit die Störung am Kessel auf. Dafür muss in den Optionen „Störungen am Kessel zurücksetzen erlauben“ eingeschaltet sein.",
+      "name": "Störung am Kessel zurücksetzen",
+      "description": "Setzt eine anliegende Störung am Kessel zurück. Steuerungen ab Fassung 2 heben sie damit auf. Dafür muss in den Optionen „Störungen am Kessel zurücksetzen erlauben“ eingeschaltet sein.",
       "fields": {
         "eintrag": {
           "name": "Eintrag",
-          "description": "Nummer des Eintrags im Störspeicher, wie sie im Attribut „eintraege“ des Sensors Störspeicher steht."
+          "description": "Nummer des Eintrags in der Meldungsliste, wie sie im Attribut „eintraege“ des Sensors Meldungen steht."
         }
       }
     },
     "stoerung_loeschen": {
       "name": "Meldung löschen",
-      "description": "Nimmt einen Eintrag aus dem Störspeicher der Steuerung. Löschen lassen sich nur Einträge, deren Störung nicht mehr anliegt.",
+      "description": "Nimmt einen Eintrag aus der Meldungsliste des Bediengeräts. Löschen lassen sich nur Einträge, deren Störung nicht mehr anliegt.",
       "fields": {
         "eintrag": {
           "name": "Eintrag",
-          "description": "Nummer des Eintrags im Störspeicher, wie sie im Attribut „eintraege“ des Sensors Störspeicher steht."
+          "description": "Nummer des Eintrags in der Meldungsliste, wie sie im Attribut „eintraege“ des Sensors Meldungen steht."
         }
       }
     }

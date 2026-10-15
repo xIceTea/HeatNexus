@@ -128,7 +128,7 @@
           "hilfe": "Adds a „?“ next to cards and controls that explains what a value means and what an action does.",
           "sprache": "Applies to every system in HeatNexus: datapoint names, interface and dashboard. With “Automatic” the language of Home Assistant applies. A change here switches all systems.",
           "sprache_anlage": "Sets a separate language for this system only: for names, states, fault texts and its page in the interface. “Same as HeatNexus” uses the HeatNexus language.",
-          "stoerung_zuruecksetzen": "Enables the “Reset” button in the fault memory. It acts like the button on the control panel: controllers from version 2 clear a fault at the boiler with it, including a locking one. Only reset when you know the cause and have fixed it."
+          "stoerung_zuruecksetzen": "Enables the “Reset fault at the boiler” button in the message list. Controllers from version 2 clear a fault at the boiler with it, including a locking one. Only reset when you know the cause and have fixed it."
         }
       },
       "system": {
@@ -482,7 +482,7 @@
         "name": "Analysis energy per heating degree day"
       },
       "stoerspeicher": {
-        "name": "Fault memory"
+        "name": "Messages"
       }
     },
     "binary_sensor": {
@@ -697,16 +697,16 @@
       "message": "The connection to {anlage} is closed."
     },
     "stoerspeicher_abgelehnt": {
-      "message": "The controller rejected the action in the fault memory. HTTP {status}."
+      "message": "The controller rejected the action in the message list. HTTP {status}."
     },
     "kein_stoerspeicher": {
-      "message": "This controller has no fault memory."
+      "message": "This controller has no message list."
     },
     "eintrag_fehlt": {
-      "message": "Entry {eintrag} no longer exists in the fault memory."
+      "message": "Entry {eintrag} no longer exists in the message list."
     },
     "zuruecksetzen_aus": {
-      "message": "Resetting faults is switched off. You can switch it on in the options under “General”."
+      "message": "Resetting faults at the boiler is switched off. You can switch it on in the options under “General”."
     },
     "nicht_zuruecksetzbar": {
       "message": "Entry {eintrag} cannot be reset. The fault is no longer present, or it belongs to another control panel."
@@ -732,7 +732,7 @@
     },
     "meldungen_loeschen": {
       "name": "Clear message list",
-      "description": "Clears the message list of a device. If the controller keeps a fault memory, the action deletes the entries of this device there whose fault is no longer present. Otherwise it only clears the list in Home Assistant."
+      "description": "Clears the message list of a device. If the control panel keeps a message list, the action deletes the entries of this device there whose fault is no longer present. Otherwise it only clears the list in Home Assistant."
     },
     "set_vorgabe": {
       "name": "Set temporary setpoint",
@@ -771,32 +771,32 @@
       "description": "Returns the bundled dashboard as YAML text. It is rebuilt every time it is opened and therefore cannot be edited. With this text you create a dashboard of your own: add a new dashboard, open the raw configuration editor, paste the text."
     },
     "stoerung_quittieren": {
-      "name": "Acknowledge fault",
-      "description": "Marks an entry in the controller's fault memory as read. The message closes on the control panel. The fault at the boiler remains.",
+      "name": "Reset message",
+      "description": "Resets an entry in the message list. The message closes on the control panel. A fault at the boiler remains as long as its cause is present.",
       "fields": {
         "eintrag": {
           "name": "Entry",
-          "description": "Number of the entry in the fault memory, as listed in the “eintraege” attribute of the fault memory sensor."
+          "description": "Number of the entry in the message list, as listed in the “eintraege” attribute of the messages sensor."
         }
       }
     },
     "stoerung_zuruecksetzen": {
-      "name": "Reset fault",
-      "description": "Resets a present fault like the button on the control panel. Controllers from version 2 clear the fault at the boiler with it. “Allow resetting faults at the boiler” must be switched on in the options.",
+      "name": "Reset fault at the boiler",
+      "description": "Resets a present fault at the boiler. Controllers from version 2 clear it with this. “Allow resetting faults at the boiler” must be switched on in the options.",
       "fields": {
         "eintrag": {
           "name": "Entry",
-          "description": "Number of the entry in the fault memory, as listed in the “eintraege” attribute of the fault memory sensor."
+          "description": "Number of the entry in the message list, as listed in the “eintraege” attribute of the messages sensor."
         }
       }
     },
     "stoerung_loeschen": {
       "name": "Delete message",
-      "description": "Removes an entry from the controller's fault memory. Only entries whose fault is no longer present can be deleted.",
+      "description": "Removes an entry from the message list of the control panel. Only entries whose fault is no longer present can be deleted.",
       "fields": {
         "eintrag": {
           "name": "Entry",
-          "description": "Number of the entry in the fault memory, as listed in the “eintraege” attribute of the fault memory sensor."
+          "description": "Number of the entry in the message list, as listed in the “eintraege” attribute of the messages sensor."
         }
       }
     }

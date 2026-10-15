@@ -29,25 +29,27 @@ Stichleitungen sieht man, wohin die Wärme gerade geht.
 
 <a id="stoerung"></a>
 
-**Störung.** Liegt eine Meldung an, wechselt der Balken oben von „Anlage in
-Ordnung" auf „Störung anliegend", und die Störungskarte nennt den Klartext des
-Herstellers samt Abhilfe. Verschwindet die Meldung an der Anlage, verschwindet
-auch die Anzeige.
+**Meldungen.** Liegt eine Meldung an, wechselt der Balken oben von „Anlage in
+Ordnung" auf die Art der Meldung, wie Windhager sie nennt: „Info-Meldung
+anliegend" in Blau, „Fehler-Meldung anliegend" in Gelb, „Alarm-Meldung
+anliegend" in Rot. Die Karte „Meldungen" nennt den Klartext des Herstellers
+samt Abhilfe. Verschwindet die Meldung an der Anlage, verschwindet auch die
+Anzeige.
 
 <a id="stoerspeicher"></a>
 
-**Störspeicher.** Führt die Steuerung einen Störspeicher, steht er unter der
-Störungskarte. Es ist dieselbe Liste wie am Bediengerät: Jede Zeile nennt den
+**Meldungsliste.** Führt das Bediengerät eine Meldungsliste, steht sie in der
+Karte „Meldungen“. Es ist dieselbe Liste wie am Bediengerät: Jede Zeile nennt den
 Klartext, darunter Gerät, Art und Code, rechts die Zeit. Ein Tippen öffnet das
 Detail mit den Tasten, die für den Eintrag gelten.
 
 | Taste | Wann | Wirkung |
 |---|---|---|
-| Quittieren | Der Eintrag ist neu. | Die Meldung gilt als gelesen und schließt sich am Bediengerät. Die Störung am Kessel bleibt bestehen. |
+| Zurücksetzen | Der Eintrag ist neu. | Die Meldung gilt als erledigt und schließt sich am Bediengerät. Eine Störung am Kessel bleibt bestehen, solange ihre Ursache anliegt. |
 | Löschen | Die Störung liegt nicht mehr an. | Der Eintrag verschwindet aus der Liste des Bediengeräts. |
-| Zurücksetzen | Die Störung liegt an, und die Option ist eingeschaltet. | Wirkt wie die Taste am Bediengerät. Steuerungen ab Fassung 2 heben damit die Störung am Kessel auf. |
+| Störung am Kessel zurücksetzen | Die Störung liegt an, und die Option ist eingeschaltet. | Steuerungen ab Fassung 2 heben damit die Störung am Kessel auf, wie mit der Taste „Zurücksetzen“ an ihrem Bediengerät. |
 
-Zurücksetzen ist ab Werk ausgeschaltet. Die Option „Störungen am Kessel
+Das Zurücksetzen am Kessel ist ab Werk ausgeschaltet. Die Option „Störungen am Kessel
 zurücksetzen erlauben“ steht unter Einstellungen → Geräte & Dienste → HeatNexus
 → Optionen → Allgemein. Sie gilt für die ganze Anlage und bleibt über Updates
 erhalten. Zurücksetzen sollte nur, wer die Ursache kennt und behoben hat. Jede

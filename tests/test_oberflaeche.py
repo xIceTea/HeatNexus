@@ -154,7 +154,7 @@ def aufteilung() -> dict:
                     "steuerung_entitaeten": [
                         _entitaet(
                             "sensor.stoerspeicher",
-                            "Störspeicher",
+                            "Meldungen",
                             kategorie="diagnostic",
                             uebersetzung="stoerspeicher",
                         )
@@ -1115,7 +1115,7 @@ def test_der_stoerspeicher_steht_in_der_stoerungskarte(durchlauf):
 
 def test_ein_anliegender_eintrag_wird_kachel_in_der_farbe_seiner_art(durchlauf):
     assert durchlauf["stoerspeicher"]["kacheln"] == ["stoerspeicher-kachel fehler"]
-    assert durchlauf["stoerspeicher"]["kachelTasten"] == ["Quittieren"]
+    assert durchlauf["stoerspeicher"]["kachelTasten"] == ["Zurücksetzen"]
 
 
 def test_ein_anliegender_eintrag_im_stoerspeicher_ist_eine_stoerung(durchlauf):
@@ -1135,8 +1135,8 @@ def test_die_schwerste_anliegende_meldungsart_bestimmt_die_stufe(durchlauf):
 
 
 def test_das_detail_zeigt_nur_die_erlaubten_tasten(durchlauf):
-    """Ohne Erlaubnis kein Zurücksetzen; der neue Eintrag lässt sich quittieren."""
-    assert durchlauf["stoerspeicher"]["tasten"] == ["Schließen", "Quittieren"]
+    """Ohne Erlaubnis kein Reset am Kessel; der neue Eintrag lässt sich zurücksetzen."""
+    assert durchlauf["stoerspeicher"]["tasten"] == ["Schließen", "Zurücksetzen"]
 
 
 def test_quittieren_ruft_den_dienst_mit_dem_eintrag(durchlauf):

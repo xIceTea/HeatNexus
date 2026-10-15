@@ -28,19 +28,19 @@ const STUFEN = {
     abzeichen: "Anlage in Ordnung", abzeichenSymbol: "mdi:check-circle-outline",
   },
   info: {
-    symbol: "mdi:information-outline", farbe: "info-farbe", haupt: "Meldung anliegend",
+    symbol: "mdi:information-outline", farbe: "info-farbe", haupt: "Info-Meldung anliegend",
     neben: "Ein Hinweis ohne Handlungsbedarf.",
-    abzeichen: "Meldung anliegend", abzeichenSymbol: "mdi:information-outline",
+    abzeichen: "Info-Meldung anliegend", abzeichenSymbol: "mdi:information-outline",
   },
   fehler: {
-    symbol: "mdi:alert-outline", farbe: "warnung", haupt: "Fehler anliegend",
+    symbol: "mdi:alert-outline", farbe: "warnung", haupt: "Fehler-Meldung anliegend",
     neben: "Ein Fehler sollte zeitnah geprüft werden.",
-    abzeichen: "Fehler anliegend", abzeichenSymbol: "mdi:alert-outline",
+    abzeichen: "Fehler-Meldung anliegend", abzeichenSymbol: "mdi:alert-outline",
   },
   alarm: {
-    symbol: "mdi:shield-alert-outline", farbe: "schlecht", haupt: "Alarm anliegend",
+    symbol: "mdi:shield-alert-outline", farbe: "schlecht", haupt: "Alarm-Meldung anliegend",
     neben: "Ein Alarm erfordert eine Kontrolle an der Anlage.",
-    abzeichen: "Alarm anliegend", abzeichenSymbol: "mdi:alert-circle-outline",
+    abzeichen: "Alarm-Meldung anliegend", abzeichenSymbol: "mdi:alert-circle-outline",
   },
 };
 
@@ -74,7 +74,7 @@ export const UebersichtMixin = (Basis) =>
         breite: wasser ? 1 : 2,
       },
       { id: "warmwasser", titel: "Warmwasser", knoten: wasser },
-      { id: "stoerungen", titel: "Störungen", knoten: this._stoerungskarte(anlage) },
+      { id: "stoerungen", titel: "Meldungen", knoten: this._stoerungskarte(anlage) },
       {
         id: "verlauf24",
         titel: "Verlauf (24 Stunden)",
@@ -328,7 +328,7 @@ export const UebersichtMixin = (Basis) =>
   }
 
   _stoerungskarte(anlage) {
-    const karte = this._karte("Störungen");
+    const karte = this._karte("Meldungen");
     const eintraege = anlage.stoerungen || [];
 
     const mitte = document.createElement("div");

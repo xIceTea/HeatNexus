@@ -144,7 +144,7 @@ HILFE_KARTEN = {
         "nur bis etwa einen Meter Schütthöhe befüllt werden, sonst kann das "
         "Rührwerk Schaden nehmen."
     ),
-    "Störungen": (
+    "Meldungen": (
         "Meldungen der Anlage im Klartext. Fehler und Alarme müssen am "
         "Bediengerät zurückgesetzt werden, bevor die Anlage weiterläuft."
     ),
@@ -198,7 +198,7 @@ KARTE_BEDINGUNG = {
     "Heizkreise": "heizkreise",
     "Warmwasser": "warmwasser",
     "Lagerraum befüllen": "lagerraum",
-    "Störungen": "stoerungen",
+    "Meldungen": "stoerungen",
     "Schnellzugriff": "schnellzugriff",
     "Restlaufzeiten": "wartung",
     "Brennstoff": "wartung",
