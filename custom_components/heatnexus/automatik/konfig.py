@@ -26,7 +26,7 @@ from .profile import (
 MODI = ("beobachten", "empfehlen", "schalten")
 RAUM_ARTEN = ("mittel", "minimum")
 LISTEN_MAX = {"raeume": 10, "personen": 10, "fenster": 20, "vorrang": 5}
-EIGENE_FELDER = frozenset({*GRENZEN, *UHRZEITEN, *SCHALTER, "lernfenster"})
+EIGENE_FELDER = frozenset({*GRENZEN, *UHRZEITEN, *SCHALTER, "lernfenster", "beginn_art"})
 # Wunschtemperatur der Räume, deren Fühler kein eigenes Ziel kennt.
 RAUM_ZIEL = (10.0, 30.0)
 

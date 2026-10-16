@@ -120,3 +120,23 @@ def test_unbekannte_ausrichtung_gilt_als_ausgewogen(profile):
     assert profile.werte(profile.STANDARD, ausrichtung="gibt_es_nicht") == profile.werte(
         profile.STANDARD
     )
+
+
+@pytest.mark.parametrize(
+    ("name", "erwartet"),
+    [("schnell", (2, 4, 30.0)), ("standard", (3, 6, 60.0)), ("traege", (4, 8, 90.0))],
+)
+def test_profile_bringen_ihre_ruhe_mit(profile, name, erwartet):
+    w = profile.werte(name)
+    assert (w.beginn_laeufe, w.ende_laeufe, w.halten_min) == erwartet
+    assert w.beginn_art == "aufgang"
+
+
+def test_beginn_art_kennt_nur_drei_werte(profile):
+    assert profile.werte(profile.STANDARD, {"beginn_art": "nachts"}).beginn_art == "aufgang"
+    assert profile.werte(profile.STANDARD, {"beginn_art": "aus"}).beginn_art == "aus"
+
+
+def test_zaehler_sind_ganze_zahlen_in_ihren_grenzen(profile):
+    w = profile.werte(profile.STANDARD, {"beginn_laeufe": 2.6, "ende_laeufe": 99, "halten_min": -5})
+    assert (w.beginn_laeufe, w.ende_laeufe, w.halten_min) == (3, 24, 0.0)

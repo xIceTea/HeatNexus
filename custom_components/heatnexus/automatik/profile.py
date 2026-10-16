@@ -36,6 +36,13 @@ class Werte:
     mindestdauer_h: float = 24.0
     entscheidung: str = "07:00"
     nachpruefung: str = ""
+    # Ab wann die Sonne einen Eingriff auslösen darf: Sonnenaufgang, feste Uhrzeit oder ohne Sperre.
+    beginn_art: str = "aufgang"
+    beginn_uhrzeit: str = "07:00"
+    # So viele Takte in Folge muss ein Beginn oder ein Ende gleich bleiben; danach hält der Zustand.
+    beginn_laeufe: int = 3
+    ende_laeufe: int = 6
+    halten_min: float = 60.0
     absenkung_k: float = 1.5
     rueckkehr_k: float = 0.8
     # So weit darf die Vorhersage den Raum unter das Ziel sinken lassen.
@@ -68,6 +75,9 @@ VORGABEN: dict[str, Werte] = {
         absenkung_k=1.0,
         rueckkehr_k=0.5,
         sonnenquote=55.0,
+        beginn_laeufe=2,
+        ende_laeufe=4,
+        halten_min=30.0,
     ),
     STANDARD: Werte(),
     TRAEGE: Werte(
@@ -77,6 +87,9 @@ VORGABEN: dict[str, Werte] = {
         absenkung_k=2.0,
         rueckkehr_k=1.0,
         sonnenquote=65.0,
+        beginn_laeufe=4,
+        ende_laeufe=8,
+        halten_min=90.0,
     ),
 }
 
@@ -97,7 +110,13 @@ GRENZEN: dict[str, tuple[float, float]] = {
     "sonne_frost_at": (-15.0, 10.0),
     "sonne_voll_at": (-10.0, 25.0),
     "raum_fehlt_min": (0.0, 120.0),
+    "beginn_laeufe": (1.0, 12.0),
+    "ende_laeufe": (1.0, 24.0),
+    "halten_min": (0.0, 240.0),
 }
+# Diese Felder zählen Takte oder Eingriffe; sie bleiben ganze Zahlen.
+GANZZAHLEN = frozenset({"budget", "beginn_laeufe", "ende_laeufe"})
+BEGINN_ARTEN = ("aufgang", "uhrzeit", "aus")
 
 # Die Ausrichtung verschiebt die Vorgabe der Heizflächen: Eco greift früher und
 # kräftiger ein, Komfort später und sanfter. Eigene Werte gehen beidem vor.
@@ -109,7 +128,7 @@ AUSRICHTUNG_FEST: dict[str, dict[str, Any]] = {
     ECO: {"stark": True, "stark_k": 0.5, "ruhe_h": 1.0, "spielraum_k": 0.5},
     KOMFORT: {"stark": False, "ruhe_h": 3.0, "spielraum_k": 0.0},
 }
-UHRZEITEN = ("entscheidung", "nachpruefung")
+UHRZEITEN = ("entscheidung", "nachpruefung", "beginn_uhrzeit")
 SCHALTER = ("sonnentag", "stark", "anpassen", "melden")
 # Über so viele Tage lernt die Prognosekorrektur; andere Werte gelten nicht.
 LERNFENSTER = (3, 7, 14)
@@ -141,7 +160,7 @@ def _zahl(name: str, wert: Any) -> float | int | None:
         return None
     unten, oben = GRENZEN[name]
     zahl = min(max(zahl, unten), oben)
-    return round(zahl) if name == "budget" else zahl
+    return round(zahl) if name in GANZZAHLEN else zahl
 
 
 def vorgabe(profil: str, ausrichtung: str = AUSGEWOGEN) -> Werte:
@@ -168,6 +187,9 @@ def werte(
         elif name in UHRZEITEN:
             if (zeit := _uhrzeit(wert)) is not None:
                 aenderungen[name] = zeit
+        elif name == "beginn_art":
+            if wert in BEGINN_ARTEN:
+                aenderungen[name] = wert
         elif name in SCHALTER:
             aenderungen[name] = bool(wert)
         elif name == "lernfenster":
