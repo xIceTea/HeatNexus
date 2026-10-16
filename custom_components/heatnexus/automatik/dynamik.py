@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from .profile import Werte
 from .regel import (
     ABWESEND,
+    ANLASS_MODELL,
     PAUSE,
     SONNE,
     Entscheidung,
@@ -95,7 +96,9 @@ def _dringend(
     kalt = soll is not None and bool(lage.raeume) and abweichung(lage, soll) < -w.rueckkehr_k
     heimgekehrt = vorher is Zustand.ABWESEND and not lage.abwesend
     abgeschaltet = vorher is Zustand.SONNENTAG and not w.sonnentag
-    return kalt or lage.ruhig is False or heimgekehrt or abgeschaltet
+    # Die Vorausschau des Hausmodells hält ihre Stufen selbst; ihr Ende gilt sofort.
+    modell = alt.absenkung_anlass == ANLASS_MODELL
+    return kalt or lage.ruhig is False or heimgekehrt or abgeschaltet or modell
 
 
 def _bleiben(

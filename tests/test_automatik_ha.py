@@ -144,10 +144,15 @@ async def _schalten(client) -> None:
 
 
 async def _schalten_ohne_eingriff(client, verwaltung, coordinator) -> None:
-    """Scharf schalten; den Sonnentag, den der Wechsel sofort schreibt, wieder zurücknehmen."""
+    """Scharf schalten; der Wechsel selbst schreibt nichts."""
     await _schalten(client)
-    await verwaltung.laufzeiten[HEIZKREIS].zuruecknehmen()
     coordinator.client.geschrieben.clear()
+
+
+async def _takte(laufzeit, anzahl: int | None = None) -> None:
+    """So viele Fünf-Minuten-Takte, wie ein Beginn braucht."""
+    for _ in range(anzahl or laufzeit.werte.beginn_laeufe):
+        await laufzeit.auswerten(takt=True)
 
 
 async def _empfehlen(client) -> None:
@@ -158,13 +163,13 @@ async def _empfehlen(client) -> None:
 
 
 async def _empfohlen(hass, hass_ws_client, verwaltung, freezer):
-    """Eine Empfehlung zur Entscheidungszeit, noch nichts geschrieben."""
+    """Eine Empfehlung nach den nötigen Takten, noch nichts geschrieben."""
     client = await hass_ws_client(hass)
     freezer.move_to(MORGEN)
     await _einrichten(client)
     await _empfehlen(client)
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     return laufzeit, client
 
 
@@ -187,7 +192,6 @@ async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(
 
     assert laufzeit.empfehlung is not None
     assert laufzeit.empfehlung["zustand"] == "sonnentag"
-    assert laufzeit.empfehlung["entscheidungszeit"] is True
     assert laufzeit.als_dict()["empfehlung"] == laufzeit.empfehlung
     assert laufzeit.zustand.value == "programm"
     assert laufzeit.begruendung.startswith("Empfehlung: ")
@@ -199,7 +203,7 @@ async def test_empfehlen_legt_eine_empfehlung_an_und_meldet_sie(
     assert ereignisse[0].data["taste"] is None
     assert ereignisse[0].data["begruendung"] != laufzeit.empfehlung["begruendung"]
 
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     await hass.async_block_till_done()
     assert len(ereignisse) == 1
 
@@ -276,6 +280,7 @@ async def test_empfehlung_steht_in_der_seitenleiste_bis_sie_erledigt_ist(
             eigene={"melden": False},
         )
     await _empfehlen(client)
+    await _takte(verwaltung.laufzeiten[HEIZKREIS])
     kennung = f"heatnexus_empfehlung_{HEIZKREIS}"
     meldungen = _async_get_or_create_notifications(hass)
     assert (kennung in meldungen) is melden
@@ -320,6 +325,7 @@ async def test_wechsel_weg_vom_schalten_beendet_den_eingriff_und_rechnet_neu(
     freezer.move_to(MORGEN)
     await _einrichten(client)
     await _schalten(client)
+    await _takte(verwaltung.laufzeiten[HEIZKREIS])
     assert coordinator.client.geschrieben == [
         (f"{PREFIX}/3/4/0", "19.5"),
         (f"{PREFIX}/2/10/0", "400"),
@@ -335,6 +341,7 @@ async def test_wechsel_weg_vom_schalten_beendet_den_eingriff_und_rechnet_neu(
     assert antwort["success"], antwort
     assert coordinator.client.geschrieben == [(f"{PREFIX}/2/10/0", "0")]
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await _takte(laufzeit)
     if modus == "empfehlen":
         assert laufzeit.empfehlung["zustand"] == "sonnentag"
         assert "19,5 °C" in laufzeit.empfehlung["begruendung"]
@@ -353,6 +360,7 @@ async def test_nach_ablauf_gilt_der_raumsoll_vor_dem_eingriff(
     await _einrichten(client)
     await _schalten(client)
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await _takte(laufzeit)
     g = laufzeit.gedaechtnis
     assert g.absenkung_soll == 19.5
     freezer.move_to(g.absenkung_bis + timedelta(minutes=1))
@@ -376,19 +384,16 @@ async def test_verworfene_empfehlung_kommt_erst_am_naechsten_tag_wieder(
     assert antwort["success"], antwort
     assert laufzeit.empfehlung is None
     assert laufzeit.steller.stand.protokoll[0]["art"] == "verworfen"
-    await laufzeit.auswerten(entscheidungszeit=True)
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     assert laufzeit.empfehlung is None
     assert laufzeit.begruendung.startswith("Verworfen: ")
-    # Dieselbe Prüfung kurz hintereinander, etwa bei mehreren Moduswechseln, steht einmal im Protokoll.
-    arten = [e["art"] for e in laufzeit.steller.stand.protokoll]
-    assert arten[:2] == ["geprueft", "verworfen"]
+    assert laufzeit.steller.stand.protokoll[0]["art"] == "verworfen"
     assert laufzeit.als_dict()["verworfen"]["zustaende"] == ["sonnentag"]
     assert coordinator.client.geschrieben == []
 
     freezer.tick(timedelta(days=1))
     await laufzeit._prognose_holen()
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     assert laufzeit.empfehlung["zustand"] == "sonnentag"
 
 
@@ -409,7 +414,10 @@ async def test_bestaetigung_gilt_nur_fuer_die_angezeigte_empfehlung(
         [(f"{PREFIX}/3/4/0", "19.5"), (f"{PREFIX}/2/10/0", "400")] if geschrieben else []
     )
     assert (laufzeit.empfehlung is None) is geschrieben
-    assert geschrieben or laufzeit.empfehlung["zustand"] == "sonnentag"
+    if not geschrieben:
+        # Die Regel will anderes als angezeigt; nach den nötigen Takten folgt die neue Empfehlung.
+        await _takte(laufzeit)
+        assert laufzeit.empfehlung["zustand"] == "sonnentag"
 
 
 async def test_bestaetigung_waehrend_einer_auswertung_geht_nicht_verloren(
@@ -465,7 +473,7 @@ async def test_einrichten_startet_im_beobachtungsmodus(hass, hass_ws_client, anl
     assert antwort["success"], antwort
     assert antwort["result"]["modus"] == "beobachten"
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     assert coordinator.client.geschrieben == []
     assert laufzeit.steller.stand.protokoll[0]["art"] == "haette"
 
@@ -495,7 +503,7 @@ async def test_lesen_auf_englisch_uebersetzt_begruendung_und_protokoll(
     freezer.move_to(MORGEN)
     await _einrichten(client)
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     hass.config.language = "en"
 
     (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
@@ -532,14 +540,17 @@ async def test_lesen_liefert_die_offene_empfehlung_uebersetzt(
     assert laufzeit.empfehlung["begruendung"] == deutsch
 
 
-async def test_schalten_schreibt_zur_entscheidungszeit(hass, hass_ws_client, anlage, freezer):
+async def test_schalten_schreibt_nach_drei_takten(hass, hass_ws_client, anlage, freezer):
     verwaltung, coordinator = anlage
     client = await hass_ws_client(hass)
     freezer.move_to(MORGEN)
     await _einrichten(client)
     await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
 
-    await verwaltung.laufzeiten[HEIZKREIS].auswerten(entscheidungszeit=True)
+    await _takte(laufzeit, 2)
+    assert coordinator.client.geschrieben == []
+    await _takte(laufzeit, 1)
 
     assert coordinator.client.geschrieben == [
         (f"{PREFIX}/3/4/0", "19.5"),
@@ -547,7 +558,6 @@ async def test_schalten_schreibt_zur_entscheidungszeit(hass, hass_ws_client, anl
     ]
 
 
-@pytest.mark.xfail(strict=True, reason="Moduswechsel nachts entscheidet, Fix offen")
 async def test_moduswechsel_in_der_nacht_schreibt_keine_vorgabe(
     hass, hass_ws_client, anlage, freezer
 ):
@@ -557,9 +567,38 @@ async def test_moduswechsel_in_der_nacht_schreibt_keine_vorgabe(
     await _einrichten(client)
 
     await _schalten(client)
+    await _takte(verwaltung.laufzeiten[HEIZKREIS])
 
     assert coordinator.client.geschrieben == []
     assert verwaltung.laufzeiten[HEIZKREIS].zustand.value == "programm"
+
+
+async def test_wechsel_nach_empfehlen_empfiehlt_nach_drei_takten(
+    hass, hass_ws_client, anlage, freezer
+):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _empfehlen(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    assert laufzeit.empfehlung is None
+
+    await _takte(laufzeit)
+
+    assert laufzeit.empfehlung["zustand"] == "sonnentag"
+
+
+async def test_takt_ohne_aenderung_zaehlt_weiter(hass, hass_ws_client, anlage, freezer):
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    for _ in range(3):
+        await laufzeit._takt(None)
+    assert coordinator.client.geschrieben[0] == (f"{PREFIX}/3/4/0", "19.5")
 
 
 async def test_ausschalten_nimmt_die_absenkung_zurueck(hass, hass_ws_client, anlage, freezer):
@@ -568,7 +607,7 @@ async def test_ausschalten_nimmt_die_absenkung_zurueck(hass, hass_ws_client, anl
     freezer.move_to(MORGEN)
     await _einrichten(client)
     await _schalten(client)
-    await verwaltung.laufzeiten[HEIZKREIS].auswerten(entscheidungszeit=True)
+    await _takte(verwaltung.laufzeiten[HEIZKREIS])
 
     await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
 
@@ -587,7 +626,7 @@ async def test_ausschalten_nimmt_trotz_sperre_zurueck(hass, hass_ws_client, anla
     await _einrichten(client)
     await _schalten(client)
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     bis = (dt_util.now() + timedelta(hours=1)).isoformat()
     laufzeit.steller.stand = replace(laufzeit.steller.stand, gesperrt_bis=bis)
 
@@ -607,7 +646,7 @@ async def test_abgelehnte_ruecknahme_meldet_sich(hass, hass_ws_client, anlage, f
     await _einrichten(client)
     await _schalten(client)
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     coordinator.client.ablehnen = True
 
     await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
@@ -626,7 +665,7 @@ async def test_wiedereinschalten_behaelt_die_nicht_zurueckgenommene_absenkung(
     await _einrichten(client)
     await _schalten(client)
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     coordinator.client.ablehnen = True
     await _senden(client, type="heatnexus/automatik/einstellen", heizkreis=HEIZKREIS, aktiv=False)
     coordinator.client.ablehnen = False
@@ -1438,12 +1477,10 @@ async def test_ohne_vorrangquelle_keine_angabe(hass, hass_ws_client, anlage):
     assert kreis["konfig"]["vorrang"] == []
 
 
-async def test_lieferbeginn_einer_vorrangquelle_loest_eine_entscheidung_aus(
+async def test_lieferbeginn_einer_vorrangquelle_rechnet_sofort(
     hass, hass_ws_client, anlage, freezer
 ):
-    """Einmal am Tag; ein zweiter Lieferbeginn entscheidet nicht erneut."""
-    from datetime import timedelta
-
+    """Der Lieferbeginn rechnet sofort; ein Eingriff folgt nach den nötigen Takten."""
     verwaltung, _ = anlage
     freezer.move_to(MORGEN)
     quelle = _quelle(hass, "off")
@@ -1462,15 +1499,12 @@ async def test_lieferbeginn_einer_vorrangquelle_loest_eine_entscheidung_aus(
     hass.states.async_set(quelle, "on", {"friendly_name": "Solaranlage"})
     await hass.async_block_till_done()
 
+    assert laufzeit.kandidat.begruendung.startswith("Solaranlage liefert")
+    assert len(laufzeit.steller.stand.protokoll) == vorher
+    await _takte(laufzeit)
     eintraege = laufzeit.steller.stand.protokoll
     assert len(eintraege) == vorher + 1
     assert eintraege[0]["text"].startswith("Solaranlage liefert")
-
-    for zustand in ("off", "on"):
-        freezer.tick(timedelta(minutes=10))
-        hass.states.async_set(quelle, zustand, {"friendly_name": "Solaranlage"})
-        await hass.async_block_till_done()
-    assert len(laufzeit.steller.stand.protokoll) == vorher + 1
 
 
 async def test_ausgeschaltete_thermostate_sind_raeume_ohne_bedarf(hass, anlage):
@@ -1511,7 +1545,7 @@ async def test_stundenraster_zeigt_was_je_stunde_galt(hass, anlage, freezer):
         {"heizkreis": HEIZKREIS, "raeume": ["sensor.wohnzimmer"], "wetter": "weather.home"},
     )
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     assert laufzeit.zustand == regel.Zustand.SONNENTAG
 
     freezer.tick(timedelta(hours=3))
@@ -1637,7 +1671,7 @@ async def test_sensoren_der_automatik(hass, anlage, freezer):
     freezer.move_to(MORGEN)
     laufzeit = await _eingerichtet(hass, verwaltung)
     await verwaltung.einstellen(HEIZKREIS, {"modus": "schalten"})
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
 
     def wert(art):
         return KLASSEN[art](verwaltung, HEIZKREIS).native_value
@@ -1798,7 +1832,7 @@ async def test_system_geraet_buendelt_die_automatiken(hass, anlage, freezer):
     assert wert("prognose") is True
 
     await verwaltung.einstellen(HEIZKREIS, {"modus": "schalten"})
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     assert wert("status") == "eingriff"
     assert wert("eingriffe") == 1
     assert wert("letzter_eingriff") is not None
@@ -1854,7 +1888,7 @@ async def test_diagnose_enthaelt_die_automatik(hass, anlage, freezer):
     verwaltung, _ = anlage
     freezer.move_to(MORGEN)
     laufzeit = await _eingerichtet(hass, verwaltung)
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     entry = hass.config_entries.async_entries("heatnexus")[0]
 
     automatik = diagnostics.automatik_auszug(hass, entry)
@@ -1975,7 +2009,7 @@ async def test_entitaeten_der_automatik_gehoeren_dem_untereintrag(hass, hass_ws_
     assert aufnahme.untereintraege == [verwaltung.subeintrag(entry)] != [None]
 
 
-async def test_entscheidungszeit_waehrend_einer_auswertung_geht_nicht_verloren(
+async def test_ein_takt_waehrend_einer_auswertung_geht_nicht_verloren(
     hass, hass_ws_client, anlage, freezer
 ):
     verwaltung, coordinator = anlage
@@ -1986,15 +2020,11 @@ async def test_entscheidungszeit_waehrend_einer_auswertung_geht_nicht_verloren(
     laufzeit = verwaltung.laufzeiten[HEIZKREIS]
 
     await laufzeit._sperre.acquire()
-    aufgabe = hass.async_create_task(laufzeit._entscheidungszeit(None))
-    assert coordinator.client.geschrieben == []
+    aufgabe = hass.async_create_task(laufzeit._takt(None))
     laufzeit._sperre.release()
     await aufgabe
 
-    assert coordinator.client.geschrieben == [
-        (f"{PREFIX}/3/4/0", "19.5"),
-        (f"{PREFIX}/2/10/0", "400"),
-    ]
+    assert laufzeit.anstehend.zaehler == 1
 
 
 async def test_regel_wartet_auf_die_werte_der_steuerung(hass, anlage, freezer):
@@ -2572,7 +2602,7 @@ async def _mit_modell(hass, verwaltung, freezer, paare: int):
     laufzeit = await _eingerichtet(hass, verwaltung)
     laufzeit.hausmodell = _modell(paare)
     laufzeit.stunden = _stundenprognose(10.0)
-    await laufzeit.auswerten(entscheidungszeit=True)
+    await _takte(laufzeit)
     return laufzeit
 
 

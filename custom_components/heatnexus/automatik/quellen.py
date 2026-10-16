@@ -197,13 +197,9 @@ class QuellenMixin:
         return eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang, ab)
 
     def _lieferbeginn(self) -> None:
-        """Einmal am Tag sofort entscheiden, statt bis zur nächsten Entscheidungszeit zu warten."""
-        heute = dt_util.now().date()
-        if self._lieferbeginn_am == heute:
-            return
-        self._lieferbeginn_am = heute
+        """Eine Vorrangquelle beginnt zu liefern: sofort rechnen, nicht bis zum nächsten Takt warten."""
         self._geaendert = True
-        self._aufgabe(self.auswerten(entscheidungszeit=True))
+        self._aufgabe(self.auswerten())
 
     def vorrang_liefert(self) -> list[str]:
         """Die gewählten Vorrangquellen, die gerade liefern."""

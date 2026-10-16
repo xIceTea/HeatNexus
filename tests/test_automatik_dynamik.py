@@ -158,3 +158,12 @@ def test_ohne_aktion_zaehlt_nichts(d, r, w):
 def test_anstehender_beginn_nennt_sich_in_der_begruendung(d, r, w):
     e = d.stabilisieren(sonnentag(r), r.Gedaechtnis(), d.Verlauf(), lage(r), w, takt=True)
     assert e.entscheidung.begruendung == "Sonnentag in Sicht (1 von 3): Sonne"
+
+
+def test_ende_einer_stufe_des_hausmodells_gilt_sofort(d, r, w):
+    from dataclasses import replace
+
+    alt = replace(sonnentag(r).gedaechtnis, absenkung_anlass=r.ANLASS_MODELL)
+    ende = programm(r, (r.Aktion("absenkung_ende"),))
+    e = d.stabilisieren(ende, alt, d.Verlauf(), lage(r), w, takt=False)
+    assert e.entscheidung.aktionen == ende.aktionen

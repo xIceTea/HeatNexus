@@ -524,7 +524,9 @@ class Verwaltung:
                 laufzeit.gedaechtnis_leeren()
             if neu["modus"] == "beobachten" and alt["modus"] != "beobachten":
                 laufzeit.beobachtet_seit = dt_util.now()
-            await laufzeit.neu_starten(neu, entscheidungszeit=gewechselt and neu["aktiv"])
+            if gewechselt:
+                laufzeit.ruhe_loesen()
+            await laufzeit.neu_starten(neu)
             # Andere Räume oder anderes Wetter: Das gelernte Hausmodell passt nicht mehr.
             if any(alt.get(k) != neu.get(k) for k in ("raeume", "raum_art", "wetter")):
                 laufzeit.modell_neu_lernen()

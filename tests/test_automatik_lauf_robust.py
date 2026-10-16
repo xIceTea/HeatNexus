@@ -111,11 +111,22 @@ async def test_bleibt_der_neue_raumsoll_stehen_kennt_ihn_das_gedaechtnis(
 
 
 # --- Läufe nacheinander -----------------------------------------------------
-def _absenkung_festlegen(monkeypatch):
-    """Die Regel beginnt immer eine Absenkung auf 19 °C für drei Stunden."""
+def _absenkung_festlegen(monkeypatch) -> list[bool]:
+    """Die Regel beginnt immer eine Absenkung auf 19 °C für drei Stunden, ohne Zählung.
+
+    Zurück kommt die Liste, ob ein Lauf als Takt kam.
+    """
     from homeassistant.util import dt as dt_util
 
-    from custom_components.heatnexus.automatik import regel
+    from custom_components.heatnexus.automatik import dynamik, regel
+
+    takte: list[bool] = []
+
+    def durchreichen(kandidat, _alt, verlauf, _lage, _w, *, takt, erzwingen=False):
+        takte.append(takt)
+        return dynamik.Ergebnis(kandidat, verlauf)
+
+    monkeypatch.setattr(dynamik, "stabilisieren", durchreichen)
 
     def entscheiden(lage, g, _werte):
         if regel.absenkung_laeuft(g, lage.jetzt):
@@ -132,6 +143,7 @@ def _absenkung_festlegen(monkeypatch):
         return regel.Entscheidung(regel.Zustand.SONNENTAG, (aktion,), "Sonnentag.", neu)
 
     monkeypatch.setattr(regel, "entscheiden", entscheiden)
+    return takte
 
 
 def _aufhalten(laufzeit):
@@ -175,7 +187,7 @@ async def test_zuruecknehmen_wartet_auf_den_laufenden_lauf(hass, anlage, freezer
     assert coordinator.client.geschrieben[-1] == (f"{ha.PREFIX}/2/10/0", "0")
 
 
-async def test_eine_entscheidungszeit_waehrend_eines_laufs_geht_nicht_verloren(
+async def test_ein_takt_waehrend_eines_laufs_geht_nicht_verloren(
     hass, anlage, freezer, monkeypatch
 ):
     import asyncio
@@ -185,17 +197,17 @@ async def test_eine_entscheidungszeit_waehrend_eines_laufs_geht_nicht_verloren(
     verwaltung, _ = anlage
     laufzeit = await _schaltend(hass, verwaltung, freezer)
     laufzeit.gedaechtnis = regel.Gedaechtnis()
-    _absenkung_festlegen(monkeypatch)
+    takte = _absenkung_festlegen(monkeypatch)
     weiter, gestartet = _aufhalten(laufzeit)
 
     lauf = asyncio.ensure_future(laufzeit.auswerten())
     await asyncio.wait_for(gestartet.wait(), 5)
-    entscheidung = asyncio.ensure_future(laufzeit.auswerten(entscheidungszeit=True))
+    entscheidung = asyncio.ensure_future(laufzeit.auswerten(takt=True))
     await asyncio.sleep(0)
     weiter.set()
     await asyncio.wait_for(asyncio.gather(lauf, entscheidung), 5)
 
-    assert laufzeit.lage.entscheidungszeit is True
+    assert takte[-1] is True
 
 
 async def test_entladen_wartet_auf_den_lauf_und_danach_schreibt_nichts_mehr(

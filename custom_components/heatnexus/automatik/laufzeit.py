@@ -31,6 +31,7 @@ from ..helpers import get_oid_value
 from ..registrierung import geraetename
 from ..texte import woerterbuch
 from . import (
+    dynamik,
     eingaben,
     hausmodell,
     korrektur,
@@ -83,7 +84,6 @@ EMPFEHLUNG_MAX = timedelta(hours=6)
 # So lange gilt nach einer Rücknahme der Raumsoll vor dem Eingriff, solange `1/1` noch den geschriebenen zeigt.
 SOLL_NACHLAUF = timedelta(minutes=10)
 # Dieselbe Prüfung innerhalb dieser Zeit steht nur einmal im Protokoll, etwa bei mehreren Moduswechseln.
-GEPRUEFT_RUHE = timedelta(minutes=15)
 
 
 def _messwert(zustand: Any) -> Any:
@@ -221,7 +221,13 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self.eingefroren: set[str] = set()
         self._gestartet = dt_util.now()
         self._wartet = False
-        self._lieferbeginn_am: date | None = None
+        # Ruhe der Automatik: was gerade gezählt wird; nach einem Neustart beginnt die Zählung neu.
+        self.stabil = dynamik.Verlauf()
+        self.anstehend: dynamik.Anstehend | None = None
+        self.kandidat: regel.Entscheidung | None = None
+        self._takt_offen = False
+        self._halten_vorher: datetime | None = None
+        self._empfehlung_weg = 0
 
     def _laeufe_laden(self, z: dict[str, Any]) -> None:
         """Wie lange Vorrangquellen lieferten und Sonnentag oder nur Warmwasser heute galten."""
@@ -323,9 +329,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._aufgaben.add(aufgabe)
         aufgabe.add_done_callback(self._aufgaben.discard)
 
-    async def starten(
-        self, entscheidungszeit: bool = False, *, im_hintergrund: bool = False
-    ) -> None:
+    async def starten(self, *, im_hintergrund: bool = False) -> None:
         """Auslöser anmelden, Prognose holen, einmal auswerten.
 
         `im_hintergrund` lässt Prognose und ersten Lauf nach dem Start folgen; das Setup wartet nicht.
@@ -335,10 +339,10 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._gestartet = dt_util.now()
         self._ausloeser_anmelden()
         if im_hintergrund:
-            self._aufgabe(self._anlaufen(entscheidungszeit), hintergrund=True)
+            self._aufgabe(self._anlaufen(), hintergrund=True)
         else:
             await self._prognose_holen()
-            await self.auswerten(entscheidungszeit)
+            await self.auswerten()
         self._nebenlaeufe_starten(self._gestartet.date())
 
     def _nebenlaeufe_starten(self, heute: date) -> None:
@@ -382,16 +386,8 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._abmelden.append(
             async_track_time_interval(self.hass, self._prognose_takt, PROGNOSE_TAKT)
         )
-        for uhrzeit in (self.werte.entscheidung, self.werte.nachpruefung):
-            if uhrzeit:
-                stunde, minute = (int(teil) for teil in uhrzeit.split(":"))
-                self._abmelden.append(
-                    async_track_time_change(
-                        self.hass, self._entscheidungszeit, hour=stunde, minute=minute, second=0
-                    )
-                )
 
-    async def _anlaufen(self, entscheidungszeit: bool) -> None:
+    async def _anlaufen(self) -> None:
         """Erste Prognose und erster Lauf; fehlt die Prognose, wird sie bald noch einmal gefragt."""
         try:
             await self._prognose_holen()
@@ -399,7 +395,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
                 self._abmelden.append(
                     async_call_later(self.hass, PROGNOSE_WIEDERHOLEN_S, self._prognose_takt)
                 )
-            await self.auswerten(entscheidungszeit)
+            await self.auswerten()
         except Exception:  # der Takt versucht es wieder; das Setup bleibt davon unberührt
             _LOGGER.exception("Automatik %s: Erster Lauf nach dem Start gescheitert", self.name)
             self._geaendert = True
@@ -437,13 +433,13 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
                 client.unregister_poll_oid(f"{self.prefix}{adresse}")
             self._angemeldet = False
 
-    async def neu_starten(self, konfig: dict[str, Any], entscheidungszeit: bool = False) -> None:
+    async def neu_starten(self, konfig: dict[str, Any]) -> None:
         """Mit geänderten Einstellungen weiterlaufen; Zustand, Nachtragen und Lernen bleiben."""
         self.aussetzen()
         ir.async_delete_issue(self.hass, DOMAIN, self.prognose_kennung)
         await self.abwarten()
         self.konfig = konfig
-        await self.starten(entscheidungszeit)
+        await self.starten()
 
     # --- Auslöser ------------------------------------------------------------
     @callback
@@ -475,26 +471,22 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
                 self._lieferbeginn()
 
     async def _takt(self, _jetzt: datetime) -> None:
-        if self._geaendert:
-            await self.auswerten()
-
-    async def _entscheidungszeit(self, _jetzt: datetime) -> None:
-        self._geaendert = True
-        await self.auswerten(entscheidungszeit=True)
+        # Jeder Takt zählt; auch ohne neuen Messwert öffnet sich etwa das Fenster ab Sonnenaufgang.
+        await self.auswerten(takt=True)
 
     async def _prognose_takt(self, _jetzt: datetime) -> None:
         await self._prognose_holen()
         self._geaendert = True
 
     # --- Ablauf --------------------------------------------------------------
-    async def auswerten(self, entscheidungszeit: bool = False) -> None:
+    async def auswerten(self, takt: bool = False) -> None:
         """Ein Lauf der Regel; läuft nie doppelt.
 
-        Kommt ein Anlass während eines Laufs, folgt ein weiterer; die Entscheidungszeit bleibt vorgemerkt.
+        Kommt ein Anlass während eines Laufs, folgt ein weiterer; ein Takt bleibt vorgemerkt.
         """
         if self._gestoppt:
             return
-        self._entscheidung_offen |= entscheidungszeit
+        self._takt_offen |= takt
         if self._vorgemerkt:
             return
         self._vorgemerkt = True
@@ -515,14 +507,13 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
     async def _auswerten(self) -> None:
         self._geaendert = False
         bestaetigung = self._bestaetigung()
-        offen, self._entscheidung_offen = self._entscheidung_offen, False
-        entscheidungszeit = offen or bool(bestaetigung)
+        takt, self._takt_offen = self._takt_offen, False
         jetzt = dt_util.now()
         self._daempfen(jetzt)
         self._lernen(jetzt)
         self._vorrang_fortschreiben(jetzt)
         self._ablauf_merken(jetzt)
-        lage = self._lage(jetzt, entscheidungszeit)
+        lage = self._lage(jetzt)
         self.lage = lage
         if not self.aktiv:
             self.empfehlung = None
@@ -530,28 +521,73 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             return
         self._wartet = self._steuerung_fehlt(jetzt)
         if self._wartet:
-            self._warten(bestaetigung, offen)
+            self._warten(bestaetigung, takt)
             return
         lage = self._handeingriff_pruefen(lage, jetzt)
-        entscheidung = regel.entscheiden(lage, self.gedaechtnis, self.werte)
-        bestaetigt = self._bestaetigt(bestaetigung, entscheidung)
+        kandidat = regel.entscheiden(lage, self.gedaechtnis, self.werte)
+        entscheidung = self._stabilisieren(kandidat, lage, takt, bestaetigung)
+        bestaetigt = self._bestaetigt(bestaetigung, kandidat)
         entscheidung = self._ohne_verworfenes(entscheidung, bestaetigt, jetzt)
         angenommen = await self._ausfuehren(entscheidung, lage, jetzt, bestaetigt)
+        if not angenommen:
+            # Gehalten wird nur, was die Steuerung angenommen hat; Empfohlenes und Verworfenes nicht.
+            self.stabil = replace(self.stabil, halten_bis=self._halten_vorher)
         self._sicherheit_pruefen(entscheidung, angenommen)
         self.steller.abgleichen(self.gedaechtnis, jetzt)
-        if entscheidungszeit and not entscheidung.aktionen:
-            self._geprueft(jetzt, entscheidung.begruendung)
         if self.steller.empfohlen:
-            self._empfohlen(jetzt, entscheidung, entscheidungszeit)
+            self._empfohlen(jetzt, entscheidung)
             return
-        self._empfehlung_pruefen(jetzt, entscheidung, entscheidungszeit, angenommen, bestaetigt)
+        ueberholt = self._empfehlung_ueberholt(kandidat, takt)
+        self._empfehlung_pruefen(jetzt, entscheidung, ueberholt, angenommen, bestaetigt)
         self._setzen(entscheidung.zustand, entscheidung.begruendung)
 
-    def _warten(self, bestaetigung: bool | None, offen: bool) -> None:
-        """Bis zum ersten Abruf bleiben Bestätigung und Entscheidungszeit für den nächsten Lauf."""
+    def _stabilisieren(
+        self, kandidat: regel.Entscheidung, lage: regel.Lage, takt: bool, bestaetigung: bool
+    ) -> regel.Entscheidung:
+        """Die Regel will etwas; ob es schon gilt, entscheidet die Ruhe über mehrere Takte."""
+        self.kandidat = kandidat
+        self._halten_vorher = self.stabil.halten_bis
+        if self._schon_empfohlen(kandidat, lage.jetzt):
+            self.anstehend = None
+            return kandidat
+        ergebnis = dynamik.stabilisieren(
+            kandidat,
+            self.gedaechtnis,
+            self.stabil,
+            lage,
+            self.werte,
+            takt=takt,
+            erzwingen=self._bestaetigt(bestaetigung, kandidat),
+        )
+        self.stabil, self.anstehend = ergebnis.verlauf, ergebnis.anstehend
+        return ergebnis.entscheidung
+
+    def _schon_empfohlen(self, kandidat: regel.Entscheidung, jetzt: datetime) -> bool:
+        """Eine offene oder heute verworfene Empfehlung desselben Zustands wird nicht neu gezählt."""
+        if not self.empfehlen or not braucht_bestaetigung(kandidat.aktionen):
+            return False
+        zustand = kandidat.zustand.value
+        offen = self.empfehlung is not None and self.empfehlung["zustand"] == zustand
+        return offen or zustand in self._heute_verworfen(jetzt)
+
+    def ruhe_loesen(self) -> None:
+        """Nach einem Moduswechsel gilt kein Halten mehr; ein laufender Zähler bleibt."""
+        self.stabil = replace(self.stabil, halten_bis=None)
+
+    def _empfehlung_ueberholt(self, kandidat: regel.Entscheidung, takt: bool) -> bool:
+        """Will die Regel `ende_laeufe` Takte lang etwas anderes, ist die Empfehlung überholt."""
+        if self.empfehlung is None or kandidat.zustand.value == self.empfehlung["zustand"]:
+            self._empfehlung_weg = 0
+            return False
+        if takt:
+            self._empfehlung_weg += 1
+        return self._empfehlung_weg >= self.werte.ende_laeufe
+
+    def _warten(self, bestaetigung: bool, takt: bool) -> None:
+        """Bis zum ersten Abruf bleiben Bestätigung und Takt für den nächsten Lauf."""
         self._geaendert = True
-        self._bestaetigt_offen |= bestaetigung is not None
-        self._entscheidung_offen |= offen
+        self._bestaetigt_offen |= bestaetigung
+        self._takt_offen |= takt
         # Die Werte stehen schon in der Lage; die Sensoren zeigen sie, auch wenn die Regel noch wartet.
         async_dispatcher_send(self.hass, SIGNAL_AKTUALISIERT.format(self.device_id))
         async_dispatcher_send(self.hass, SIGNAL_SYSTEM.format(self.entry_id))
@@ -603,17 +639,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             self.gedaechtnis = replace(self.gedaechtnis, absenkung_soll=halb)
         return False
 
-    def _geprueft(self, jetzt: datetime, text: str) -> None:
-        letzter = next(iter(self.steller.stand.protokoll), None)
-        if (
-            letzter is not None
-            and letzter.get("art") == "geprueft"
-            and letzter.get("text") == text
-            and jetzt - datetime.fromisoformat(letzter["zeit"]) < GEPRUEFT_RUHE
-        ):
-            return
-        self.steller.vermerken(jetzt, "geprueft", text)
-
     def _setzen(self, zustand: regel.Zustand, begruendung: str) -> None:
         wechsel = zustand != self.zustand
         self.zustand = zustand
@@ -646,8 +671,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
 
     # --- Empfehlung ----------------------------------------------------------
     def _offenes_laden(self, z: dict[str, Any]) -> None:
-        """Was auf einen Lauf wartet: Entscheidungszeit, Bestätigung, offene Empfehlung."""
-        self._entscheidung_offen = False
+        """Was auf einen Lauf wartet: Bestätigung, offene Empfehlung."""
         self._bestaetigt_offen = False
         self.empfehlung: dict[str, Any] | None = _gueltige_empfehlung(z.get("empfehlung"))
         self.verworfen: dict[str, Any] = _gueltig_verworfen(z.get("verworfen"))
@@ -703,16 +727,14 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         text = f"Verworfen: {entscheidung.begruendung}"
         return regel.Entscheidung(zustand, (), text, self.gedaechtnis)
 
-    def _bestaetigung(self) -> bool | None:
-        """Eine offene Bestätigung abholen: `None` ohne, sonst die Entscheidungszeit der Empfehlung."""
+    def _bestaetigung(self) -> bool:
+        """Eine offene Bestätigung abholen; ohne offene Empfehlung zählt sie nicht."""
         offen, self._bestaetigt_offen = self._bestaetigt_offen, False
-        if not offen or self.empfehlung is None:
-            return None
-        return bool(self.empfehlung.get("entscheidungszeit"))
+        return offen and self.empfehlung is not None
 
-    def _bestaetigt(self, bestaetigung: bool | None, entscheidung: regel.Entscheidung) -> bool:
+    def _bestaetigt(self, bestaetigung: bool, entscheidung: regel.Entscheidung) -> bool:
         """Die Zustimmung gilt nur für den Zustand, den der Nutzer gesehen hat."""
-        if bestaetigung is None or self.empfehlung is None:
+        if not bestaetigung or self.empfehlung is None:
             return False
         if not braucht_bestaetigung(entscheidung.aktionen):
             return True
@@ -724,17 +746,13 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             return self.werte.budget
         return max(self.werte.budget, self.steller.stand.eingriffe + 1)
 
-    def _empfohlen(
-        self, jetzt: datetime, entscheidung: regel.Entscheidung, entscheidungszeit: bool
-    ) -> None:
+    def _empfohlen(self, jetzt: datetime, entscheidung: regel.Entscheidung) -> None:
         """An der Steuerung bleibt alles, wie es ist; der Zustand zeigt das, die Begründung den Vorschlag."""
-        self._empfehlung_merken(jetzt, entscheidung, entscheidungszeit)
+        self._empfehlung_merken(jetzt, entscheidung)
         zustand = regel.zustand_aus(self.gedaechtnis, jetzt)
         self._setzen(zustand, f"Empfehlung: {entscheidung.begruendung}")
 
-    def _empfehlung_merken(
-        self, jetzt: datetime, entscheidung: regel.Entscheidung, entscheidungszeit: bool
-    ) -> None:
+    def _empfehlung_merken(self, jetzt: datetime, entscheidung: regel.Entscheidung) -> None:
         """Eine neue Empfehlung melden; dieselbe bleibt still und frischt nur ihre Begründung auf."""
         neu = entscheidung.zustand.value
         if self.empfehlung is not None and self.empfehlung.get("zustand") == neu:
@@ -744,7 +762,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             "zustand": neu,
             "begruendung": entscheidung.begruendung,
             "seit": jetzt.isoformat(),
-            "entscheidungszeit": entscheidungszeit,
         }
         self.hass.bus.async_fire(
             EREIGNIS_EMPFEHLUNG,
@@ -762,7 +779,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self,
         jetzt: datetime,
         entscheidung: regel.Entscheidung,
-        entscheidungszeit: bool,
+        ueberholt: bool,
         angenommen: bool,
         bestaetigt: bool,
     ) -> None:
@@ -772,7 +789,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         seit = datetime.fromisoformat(self.empfehlung["seit"])
         if (
             (angenommen and (entscheidung.aktionen or bestaetigt))
-            or entscheidungszeit
+            or ueberholt
             or jetzt - seit > EMPFEHLUNG_MAX
             or not self.empfehlen
         ):
@@ -1229,7 +1246,18 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         stunde = (self.verlauf.get("stunden") or {}).get(str(max(jetzt.hour - 1, 0))) or {}
         return stunde.get("at")
 
-    def _lage(self, jetzt: datetime, entscheidungszeit: bool) -> regel.Lage:
+    def _at_prognose(self, jetzt: datetime) -> tuple[float, ...]:
+        """Korrigierte AT der nächsten zwei vollen Stunden; fehlt eine, ist das Ergebnis leer."""
+        werte = []
+        for abstand in (1, 2):
+            zeit = jetzt + timedelta(hours=abstand)
+            wert = (self.stundenprognose(zeit.date()).get(zeit.hour) or {}).get("korrigiert")
+            if wert is None:
+                return ()
+            werte.append(float(wert))
+        return tuple(werte)
+
+    def _lage(self, jetzt: datetime) -> regel.Lage:
         messungen = self._messungen()
         if any(m.heizt for m in messungen):
             self.anforderung_zuletzt = jetzt
@@ -1248,7 +1276,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             self._raeume_fehlen_seit = None
         elif self._raeume_fehlen_seit is None:
             self._raeume_fehlen_seit = jetzt
-        untergang = self.sonne(jetzt.date())[1]
+        aufgang, untergang = self.sonne(jetzt.date())
         lage = regel.Lage(
             jetzt=jetzt,
             at=at,
@@ -1274,7 +1302,10 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             fenster_offen=self._fenster(jetzt),
             abwesend=self._abwesend(jetzt),
             pausiert_bis=self.pausiert_bis,
-            entscheidungszeit=entscheidungszeit,
+            sonnenaufgang=aufgang,
+            fruehester_beginn=dynamik.fruehester_beginn(self.werte, jetzt, aufgang),
+            at_prognose=self._at_prognose(jetzt),
+            grenze_absenk=self.grenze_absenk(),
             absenkung_moeglich=self._wert("/2/10/0") is not None,
             at_steuerung=self._wert("/0/0/0"),
             vl_soll=self._wert("/1/2/0"),

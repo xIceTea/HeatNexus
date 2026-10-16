@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.util import dt as dt_util
 
-from . import eingaben, hausmodell, regel, stundenmodus
+from . import dynamik, eingaben, hausmodell, regel, stundenmodus
 from .steller import nur_ww_wert
 
 if TYPE_CHECKING:
@@ -180,7 +180,6 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
     """Morgen und übermorgen: was die Regel voraussichtlich entscheidet, Raum am Sollwert."""
     werte, g = laufzeit.werte, laufzeit.gedaechtnis
     soll = g.saison_soll or g.absenkung_basis or (laufzeit.lage.soll if laufzeit.lage else None)
-    stunde, minute = (int(teil) for teil in werte.entscheidung.split(":"))
     tage = []
     for abstand in range(1, VORSCHAU_TAGE + 1):
         tag = jetzt.date() + timedelta(days=abstand)
@@ -192,8 +191,13 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
             for m in (laufzeit.tagesmittel(tag - timedelta(days=1)), laufzeit.tagesmittel(tag))
             if m is not None
         ]
+        aufgang = laufzeit.sonne(tag)[0]
+        mitternacht = dt_util.start_of_local_day(tag)
+        beginn = dynamik.fruehester_beginn(werte, mitternacht, aufgang)
         lage = regel.Lage(
-            jetzt=dt_util.start_of_local_day(tag).replace(hour=stunde, minute=minute),
+            jetzt=beginn or mitternacht.replace(hour=9),
+            sonnenaufgang=aufgang,
+            fruehester_beginn=beginn,
             at_gedaempft=sum(mittel) / len(mittel) if mittel else None,
             raeume=() if soll is None else ((soll, None),),
             soll=soll,
@@ -203,7 +207,6 @@ def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
             sonnenuntergang=laufzeit.sonne(tag)[1],
             betriebswahl=6 if g.saison == regel.NUR_WW else 1,
             grenze_steuerung=laufzeit.lage.grenze_steuerung if laufzeit.lage else None,
-            entscheidungszeit=True,
             # Mit freigegebenem Modell beginnt die bisherige Regel keine Heizpause und keinen Sonnentag.
             modell_freigegeben=hausmodell.freigegeben(laufzeit.hausmodell),
         )
