@@ -1100,6 +1100,23 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     bilanz.automatik.jaNeinZurueck = [schalter.value, speichern.disabled];
   }
 
+  // Die feste Uhrzeit ist nur mit „Feste Uhrzeit“ als frühestem Beginn bedienbar.
+  {
+    const zeile = (titel) =>
+      wurzel.querySelectorAll(".automatik-feld").find((f) => String((f.querySelector(".automatik-feldtitel") || {}).textContent) === titel);
+    const art = zeile("Frühester Beginn").querySelector("select");
+    const uhr = zeile("Feste Uhrzeit");
+    const stand = () => [uhr.classList.contains("gesperrt"), uhr.querySelector("input").disabled];
+    const vorher = art.value;
+    const verlauf = [stand()];
+    for (const wert of ["uhrzeit", "aufgang", vorher]) {
+      art.value = wert;
+      art.ausloesen("change");
+      verlauf.push(stand());
+    }
+    bilanz.automatik.uhrzeitGesperrt = verlauf.slice(0, 3);
+  }
+
   // Speichern wird erst mit einer Abweichung vom gespeicherten Wert aktiv, und zurück wieder grau.
   {
     const speichern = wurzel.querySelectorAll(".automatik-knopf").find((k) => k.classList.contains("speichern"));

@@ -81,6 +81,7 @@ export const EinrichtungMixin = (Basis) =>
         eingabe.addEventListener("change", pruefen);
       });
       pruefen();
+      this._automatikUhrzeitSperren(eingaben, felder.zeilen, darf);
 
       // Der Schalter der Auswertung gilt sofort und bleibt beim Zurücksetzen der Werte.
       const melden = !!kreis.konfig.befund_melden;
@@ -152,6 +153,20 @@ export const EinrichtungMixin = (Basis) =>
         [...Object.values(eingaben).map(([, e]) => e), ...Object.values(grenzen)].map((e) => [e, e.value])
       );
       return { zeilen, eingaben, grenzen, anfang, abweichend };
+    }
+
+    /** Die feste Uhrzeit gilt nur, wenn sie als frühester Beginn gewählt ist; sonst grau. */
+    _automatikUhrzeitSperren(eingaben, zeilen, darf) {
+      const [, art] = eingaben.beginn_art || [];
+      const [, uhr] = eingaben.beginn_uhrzeit || [];
+      if (!art || !uhr) return;
+      const sperren = () => {
+        const aus = art.value !== "uhrzeit";
+        uhr.disabled = !darf || aus;
+        zeilen.beginn_uhrzeit.classList.toggle("gesperrt", aus);
+      };
+      art.addEventListener("change", sperren);
+      sperren();
     }
 
     /** Kopf der Karte: Pfeil, Titel und das Profil mit der Zahl eigener Werte. */

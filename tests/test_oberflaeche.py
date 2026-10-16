@@ -950,6 +950,11 @@ def test_ja_nein_felder_der_einstellungen_sind_schalter(durchlauf):
     assert automatik["textVorn"] is True
 
 
+def test_feste_uhrzeit_ist_nur_beim_beginn_nach_uhrzeit_bedienbar(durchlauf):
+    # [gesperrt, Eingabe aus] vorher, nach „Feste Uhrzeit“, nach „Sonnenaufgang“.
+    assert durchlauf["automatik"]["uhrzeitGesperrt"] == [[True, True], [False, False], [True, True]]
+
+
 def test_prognose_anpassen_zeigt_seine_wirkung(durchlauf):
     """Neben dem Schalter steht, um wie viel die Anpassung die Prognose verschiebt."""
     automatik = durchlauf["automatik"]

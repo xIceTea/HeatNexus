@@ -395,6 +395,7 @@ export const AUTOMATIK = `
     background: var(--hn-akzent); vertical-align: middle;
   }
   .automatik-feld .profilwert { font-size: 11px; color: var(--hn-gedaempft); margin-top: 2px; }
+  .automatik-feld.gesperrt { opacity: 0.45; }
   .automatik-feld .eingabe { display: flex; align-items: center; gap: 8px; flex: none; }
   .automatik-feld input, .automatik-feld select {
     padding: 6px 10px; border-radius: 8px; font: inherit; font-size: 14px;
