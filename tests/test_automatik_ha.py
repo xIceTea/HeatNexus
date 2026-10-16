@@ -2387,9 +2387,13 @@ async def test_ablage_haelt_tage_die_die_aufzeichnung_nicht_mehr_hat(
     assert len(hass_storage[schluessel]["data"]["tage"]) == 7
     assert laufzeit.als_dict()["hausmodell_gelernt"] == dt_util.now().date().isoformat()
 
+    # Der älteste gelieferte Tag ist angeschnitten; die Ablage hat ihn vollständig.
+    aeltester = min(zuletzt)
+    zuletzt[aeltester] = zuletzt[aeltester][5:]
     lieferung["tage"] = zuletzt
     await laufzeit.hausmodell_lernen()
     assert gelernt[-1] == 6
+    assert len(hass_storage[schluessel]["data"]["tage"][aeltester.isoformat()]) == 24
 
     # Gespeicherte Stunden einer anderen Heizart zählen nicht.
     lieferung["art"] = "pumpe"
@@ -2557,7 +2561,7 @@ async def test_lerndaten_kommen_stundenweise_aus_dem_verlauf(
     assert erste[12].sonne > 0.0
 
 
-async def test_tag_ohne_aufzeichnung_ab_mitternacht_entfaellt(
+async def test_angeschnittener_tag_bleibt_mit_seinen_stunden(
     hass, hass_ws_client, anlage, freezer, monkeypatch
 ):
     from datetime import timedelta
@@ -2582,8 +2586,8 @@ async def test_tag_ohne_aufzeichnung_ab_mitternacht_entfaellt(
 
     _, je_tag = await laufzeit._lerndaten()
 
-    assert len(je_tag) == 13
-    assert min(je_tag) == zeiten[24].date()
+    assert len(je_tag) == 14
+    assert 0 < len(je_tag[zeiten[0].date()]) < 24
 
 
 async def test_ausfall_wird_nicht_mit_dem_letzten_wert_ueberbrueckt(

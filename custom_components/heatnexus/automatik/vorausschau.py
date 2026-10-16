@@ -112,21 +112,6 @@ def lernstunden(
     return ergebnis
 
 
-def _beginn(reihen: Reihen) -> datetime | None:
-    """Ab wann jede Reihe mit Verlauf einen Wert hat; davor hat der Recorder gelöscht."""
-    anfaenge = [r[0][0] for r in (*reihen.raeume, reihen.at, reihen.heizen) if r]
-    return max(anfaenge) if anfaenge else None
-
-
-def _volle_tage(
-    je_tag: dict[date, list[hausmodell.Stunde]], beginn: datetime | None
-) -> dict[date, list[hausmodell.Stunde]]:
-    """Nur Tage, deren Verlauf ab Mitternacht vorliegt; ein angeschnittener Tag verzerrt das Lernen."""
-    if beginn is None:
-        return je_tag
-    return {tag: s for tag, s in je_tag.items() if dt_util.start_of_local_day(tag) >= beginn}
-
-
 def _kurvenwert(kurve: tuple[tuple[str, float], ...], jetzt: datetime) -> float | None:
     """Der erwartete Raumwert zur laufenden Stunde: der letzte Punkt der Kurve bis jetzt."""
     werte = [wert for zeit, wert in kurve if datetime.fromisoformat(zeit) <= jetzt]
@@ -353,8 +338,7 @@ class VorausschauMixin:
         for art, heizer in quellen:
             reihen = self._reihen(zustaende, art, heizer)
             if any(wert is not None for _, wert in reihen.heizen):
-                je_tag = self._je_tag(reihen, art, _lernzeiten(jetzt.date()))
-                return art, _volle_tage(je_tag, _beginn(reihen))
+                return art, self._je_tag(reihen, art, _lernzeiten(jetzt.date()))
         return None
 
     def _mit_fehlern(
@@ -415,14 +399,20 @@ class VorausschauMixin:
     async def _mit_ablage(
         self, heiz_art: str, aus_verlauf: dict[date, list[hausmodell.Stunde]]
     ) -> dict[date, list[hausmodell.Stunde]]:
-        """Der Verlauf, ergänzt um abgelegte Tage, die er nicht mehr ganz enthält; danach abgelegt."""
+        """Der Verlauf, ergänzt um abgelegte Tage; danach abgelegt.
+
+        Je Tag gilt die Fassung mit mehr Stunden, bei Gleichstand die Aufzeichnung.
+        """
         if self._ablage_weg is not None:
             await self._ablage_weg
             self._ablage_weg = None
         heute = dt_util.now().date()
         erster = heute - timedelta(days=LERNTAGE)
         abgelegt = await lernablage.laden(self.hass, self.device_id, heiz_art)
-        tage = {t: s for t, s in abgelegt.items() if erster <= t < heute} | aus_verlauf
+        tage = {t: s for t, s in abgelegt.items() if erster <= t < heute}
+        for tag, stunden in aus_verlauf.items():
+            if len(stunden) >= len(tage.get(tag, [])):
+                tage[tag] = stunden
         if tage:
             await lernablage.sichern(self.hass, self.device_id, heiz_art, tage)
         return tage

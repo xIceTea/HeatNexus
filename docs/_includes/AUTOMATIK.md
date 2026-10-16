@@ -191,8 +191,9 @@ Grund.
 Gelernt wird einmal am Tag kurz nach Mitternacht. Ein Neustart von Home
 Assistant lernt nur, wenn an diesem Tag noch kein Modell entstanden ist. Die
 Automatik legt die Lernstunden in einer eigenen Datei ab. So bleiben auch Tage
-im Lernfenster, die die Aufzeichnung schon gelöscht hat. Ein Tag, dessen
-Aufzeichnung erst nach Mitternacht beginnt, zählt nicht. Eine neue Auskühlzeit
+im Lernfenster, die die Aufzeichnung schon gelöscht hat. Fehlen der
+Aufzeichnung Stunden eines Tages, gilt der vollständige Tag aus der Ablage.
+Eine neue Auskühlzeit
 gilt erst, wenn die bisherige die neuen Stunden um mehr als 10 % schlechter
 trifft. Der Fehler ändert sich über die Auskühlzeit nur wenig; ohne diese
 Schwelle wechselt sie mit jedem Lernlauf.
