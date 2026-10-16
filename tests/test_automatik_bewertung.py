@@ -84,14 +84,20 @@ def test_im_programm_entscheidet_die_erste_unerfuellte(mods):
 def test_beginn_nennt_vor_dem_fenster_den_fruehesten_beginn(mods):
     p, r, b = mods
     stand = lage(r, jetzt=MORGEN.replace(hour=5))
-    liste = {x.name: x for x in b.bewerten(stand, r.Gedaechtnis(), p.werte(p.STANDARD), r.Zustand.PROGRAMM)}
+    liste = {
+        x.name: x
+        for x in b.bewerten(stand, r.Gedaechtnis(), p.werte(p.STANDARD), r.Zustand.PROGRAMM)
+    }
     assert (liste["beginn"].erfuellt, liste["beginn"].schwelle) == (False, "07:12")
 
 
 def test_beginn_nennt_nach_dem_fenster_dessen_ende(mods):
     p, r, b = mods
     stand = lage(r, jetzt=MORGEN.replace(hour=17, minute=9))
-    liste = {x.name: x for x in b.bewerten(stand, r.Gedaechtnis(), p.werte(p.STANDARD), r.Zustand.PROGRAMM)}
+    liste = {
+        x.name: x
+        for x in b.bewerten(stand, r.Gedaechtnis(), p.werte(p.STANDARD), r.Zustand.PROGRAMM)
+    }
     assert (liste["beginn"].erfuellt, liste["beginn"].schwelle) == (False, "16:55")
 
 

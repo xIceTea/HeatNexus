@@ -861,7 +861,9 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     """Eingerichtet: Karte mit Marke, Feldern und Protokoll; sonst die Einladung."""
     automatik = durchlauf["automatik"]
     assert automatik["marken"] == ["Sonnentag · beobachtet"]
-    assert automatik["felder"] == 29  # Profil, zwei Heizgrenzen, fünfundzwanzig Werte und die Auswertung
+    assert (
+        automatik["felder"] == 29
+    )  # Profil, zwei Heizgrenzen, fünfundzwanzig Werte und die Auswertung
     assert automatik["geaendert"] == 1
     assert automatik["protokoll"] == 1
     assert automatik["einladungen"] == 1
@@ -953,7 +955,10 @@ def test_ja_nein_felder_der_einstellungen_sind_schalter(durchlauf):
 def test_laeufe_der_regel_stehen_aufklappbar_zwischen_den_eintraegen(durchlauf):
     laeufe = durchlauf["automatikLaeufe"]
     assert laeufe["folge"] == ["laeufe", "eintrag", "laeufe"]
-    assert laeufe["texte"] == ["2 Läufe · Sonnentag zählt · Zähler bis 2/3", "1 Lauf · Heizen nach Programm bleibt"]
+    assert laeufe["texte"] == [
+        "2 Läufe · Sonnentag zählt · Zähler bis 2/3",
+        "1 Lauf · Heizen nach Programm bleibt",
+    ]
     assert laeufe["zeilen"] == [2, 1]
     assert laeufe["offen"] == [True, False]
     assert laeufe["regellaufKarte"] == 0

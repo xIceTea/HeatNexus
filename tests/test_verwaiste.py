@@ -463,10 +463,15 @@ def test_die_liste_nennt_jede_entitaet_mit_namen(modul):
         SimpleNamespace(entity_id="switch.c", name=None, original_name=None),
     ]
 
-    assert modul.liste(eintraege) == "- `sensor.a` – Eigener Name\n- `sensor.b` – Vorlauf\n- `switch.c`"
+    assert (
+        modul.liste(eintraege)
+        == "- `sensor.a` – Eigener Name\n- `sensor.b` – Vorlauf\n- `switch.c`"
+    )
 
 
 def test_die_liste_zeigt_sonderzeichen_im_namen_als_text(modul):
-    eintrag = SimpleNamespace(entity_id="sensor.p", name="Puffer *oben* [alt] <3", original_name=None)
+    eintrag = SimpleNamespace(
+        entity_id="sensor.p", name="Puffer *oben* [alt] <3", original_name=None
+    )
 
     assert modul.liste([eintrag]) == r"- `sensor.p` – Puffer \*oben\* \[alt\] \<3"
