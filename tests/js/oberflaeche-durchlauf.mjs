@@ -996,7 +996,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
           fruehester_beginn: "2026-09-28T07:00:00+02:00",
           modus_seit: "2026-09-27T07:00:00+02:00",
         },
-        tag: { sonne: [0, 0.5, 0], absenkung_von: 7, absenkung_bis: 13.67, absenkung_ziel: 16.92, entscheidungen: [7], jetzt: 11.3 },
+        tag: { sonne: [0, 0.5, 0], absenkung_von: 7, absenkung_bis: 13.67, absenkung_ziel: 16.92, beginn: 7, jetzt: 11.3 },
         protokoll: [{ zeit: "2026-09-27T07:00:00+02:00", art: "haette", text: "Sonnenquote 78 %.", werte: [] }],
         beobachtet_seit: "2026-09-20T07:00:00+02:00",
         pausiert_bis: null,

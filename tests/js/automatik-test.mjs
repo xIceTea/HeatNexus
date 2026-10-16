@@ -25,7 +25,7 @@ const tag = {
   absenkung_von: 7,
   absenkung_bis: 13.667,
   absenkung_ziel: 16.917,
-  entscheidungen: [7],
+  beginn: 7,
   jetzt: 11.33,
 };
 const bild = tagesleisteSvg(tag, 1000);

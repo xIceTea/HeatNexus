@@ -176,7 +176,7 @@ def _eintrag(
 def _lauf(laufzeit: Laufzeit, jetzt: datetime) -> dict[str, Any]:
     """Regellauf und die Bewertungen, die gerade entscheiden."""
     return {
-        "regellauf": laufzeit.regellauf.liste(jetzt)[:REGELLAUF_ANZEIGE],
+        "regellauf": laufzeit.regellauf.liste(jetzt, REGELLAUF_ANZEIGE),
         "kern": {
             "bewertungen": bewertung.kern(laufzeit.bewertungen),
             "anstehend": _anstehend(laufzeit.anstehend),

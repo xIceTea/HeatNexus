@@ -45,6 +45,34 @@ def test_nur_ein_wechsel_eines_hakens_zaehlt(rl):
     assert lauf.eintragen(eintrag(JETZT, erfuellt=False)) is True
 
 
+def test_zeile_behaelt_nur_entscheidende_und_gekippte_bewertungen(rl):
+    lauf = rl.Regellauf()
+    erste = eintrag(JETZT)
+    erste["bewertungen"] = [
+        {"name": "sonne", "erfuellt": True, "entscheidend": True},
+        {"name": "raeume", "erfuellt": True, "entscheidend": False},
+        {"name": "fenster", "erfuellt": True, "entscheidend": False},
+    ]
+    zweite = eintrag(JETZT + timedelta(minutes=5), zaehler=2)
+    zweite["bewertungen"] = [
+        {"name": "sonne", "erfuellt": True, "entscheidend": True},
+        {"name": "raeume", "erfuellt": False, "entscheidend": False},
+        {"name": "fenster", "erfuellt": True, "entscheidend": False},
+    ]
+    lauf.eintragen(erste)
+    lauf.eintragen(zweite)
+    neu, alt = lauf.liste(JETZT + timedelta(minutes=5))
+    assert [b["name"] for b in neu["bewertungen"]] == ["sonne", "raeume"]
+    assert [b["name"] for b in alt["bewertungen"]] == ["sonne"]
+
+
+def test_liste_haelt_die_anzahl_ein(rl):
+    lauf = rl.Regellauf()
+    for n in range(5):
+        lauf.eintragen(eintrag(JETZT, zaehler=n))
+    assert [e["zaehler"] for e in lauf.liste(JETZT, 2)] == [4, 3]
+
+
 def test_aelter_als_ein_tag_faellt_weg(rl):
     lauf = rl.Regellauf()
     lauf.eintragen(eintrag(JETZT - timedelta(hours=25)))

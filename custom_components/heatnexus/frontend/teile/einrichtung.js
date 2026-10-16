@@ -353,14 +353,7 @@ export const EinrichtungMixin = (Basis) =>
 
     _automatikEingabe(feld, wert, darf) {
       if (feld.art === "auswahl") {
-        const wahl = document.createElement("select");
-        feld.optionen.forEach(([wertOption, beschriftung]) => {
-          const eintrag = document.createElement("option");
-          eintrag.value = wertOption;
-          eintrag.textContent = this._t(beschriftung);
-          eintrag.selected = wert === wertOption;
-          wahl.appendChild(eintrag);
-        });
+        const wahl = this._automatikAuswahl(feld.optionen, wert);
         wahl.disabled = !darf;
         return wahl;
       }

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import asdict
 from datetime import datetime, timedelta
+from itertools import islice
 from typing import Any
 
 from .bewertung import Bewertung
@@ -50,17 +51,26 @@ class Regellauf:
         self._letztes: tuple[Any, ...] | None = None
 
     def eintragen(self, e: dict[str, Any]) -> bool:
-        """Den Lauf aufnehmen, wenn er sich vom letzten unterscheidet."""
+        """Den Lauf aufnehmen, wenn er sich vom letzten unterscheidet.
+
+        Eine Zeile behält nur Bewertungen, die entscheiden oder gegenüber der vorigen kippten.
+        """
         merkmal = _merkmal(e)
         if merkmal == self._letztes:
             return False
+        vorher = dict(self._letztes[-1]) if self._letztes else {}
         self._letztes = merkmal
-        self._eintraege.appendleft(e)
+        bleiben = [
+            b
+            for b in e["bewertungen"]
+            if b.get("entscheidend") or vorher.get(b["name"], b["erfuellt"]) != b["erfuellt"]
+        ]
+        self._eintraege.appendleft({**e, "bewertungen": bleiben})
         return True
 
-    def liste(self, jetzt: datetime) -> list[dict[str, Any]]:
-        """Die Einträge der letzten 24 Stunden, neueste zuerst."""
+    def liste(self, jetzt: datetime, anzahl: int | None = None) -> list[dict[str, Any]]:
+        """Die Einträge der letzten 24 Stunden, neueste zuerst; höchstens `anzahl`."""
         grenze = jetzt - DAUER
         while self._eintraege and datetime.fromisoformat(self._eintraege[-1]["zeit"]) < grenze:
             self._eintraege.pop()
-        return list(self._eintraege)
+        return list(islice(self._eintraege, anzahl))

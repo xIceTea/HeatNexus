@@ -1,7 +1,7 @@
 """Automatik eines Heizkreises zur Laufzeit: Auslöser, Eingänge, Ablauf.
 
-Ereignisse setzen nur ein Merkzeichen. Ausgewertet wird im Takt von fünf
-Minuten und zu den Entscheidungszeiten des Profils.
+Ausgewertet wird im Takt von fünf Minuten; nur Takte zählen für die Ruhe.
+Ereignisse wie Moduswechsel, Lieferbeginn oder Bestätigung lösen einen Lauf außer der Reihe aus.
 """
 
 from __future__ import annotations
@@ -85,7 +85,6 @@ EREIGNIS_EMPFEHLUNG = f"{DOMAIN}_automatik_empfehlung"
 EMPFEHLUNG_MAX = timedelta(hours=6)
 # So lange gilt nach einer Rücknahme der Raumsoll vor dem Eingriff, solange `1/1` noch den geschriebenen zeigt.
 SOLL_NACHLAUF = timedelta(minutes=10)
-# Dieselbe Prüfung innerhalb dieser Zeit steht nur einmal im Protokoll, etwa bei mehreren Moduswechseln.
 
 
 def _messwert(zustand: Any) -> Any:
@@ -215,7 +214,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._weg_seit: datetime | None = None
         self._daten_fehlen_seit: datetime | None = None
         self._raeume_fehlen_seit: datetime | None = None
-        self._geaendert = True
         # Restzeit `2/10` und seit wann sie so dasteht; sie zählt minütlich herunter.
         self._restzeit: tuple[float | None, datetime | None] = (None, None)
         self._nachladen: Any = None
@@ -226,9 +224,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         # Ruhe der Automatik: was gerade gezählt wird; nach einem Neustart beginnt die Zählung neu.
         self.stabil = dynamik.Verlauf()
         self.anstehend: dynamik.Anstehend | None = None
-        self.kandidat: regel.Entscheidung | None = None
         self._takt_offen = False
-        self._halten_vorher: datetime | None = None
         self._empfehlung_weg = 0
         self.regellauf = regellauf.Regellauf()
         self.bewertungen: tuple[bewertung.Bewertung, ...] = ()
@@ -402,7 +398,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             await self.auswerten()
         except Exception:  # der Takt versucht es wieder; das Setup bleibt davon unberührt
             _LOGGER.exception("Automatik %s: Erster Lauf nach dem Start gescheitert", self.name)
-            self._geaendert = True
 
     def aussetzen(self) -> None:
         """Auslöser abmelden; danach beginnt kein Lauf mehr, ein laufender endet regulär."""
@@ -448,7 +443,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
     # --- Auslöser ------------------------------------------------------------
     @callback
     def _merken(self, *_: Any) -> None:
-        self._geaendert = True
         # Nur ein neuer Wert ist ein frisch gelesener; Nachlesen anderer Adressen weckt hier auch.
         if (rest := self._wert(OID_DAUER)) != self._restzeit[0]:
             self._restzeit = (rest, dt_util.now())
@@ -458,7 +452,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
 
     @callback
     def _ereignis(self, event: Event) -> None:
-        self._geaendert = True
         entity_id = event.data.get("entity_id")
         alt, neu = event.data.get("old_state"), event.data.get("new_state")
         veraendert = alt is None or neu is None or _messwert(alt) != _messwert(neu)
@@ -480,7 +473,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
 
     async def _prognose_takt(self, _jetzt: datetime) -> None:
         await self._prognose_holen()
-        self._geaendert = True
 
     # --- Ablauf --------------------------------------------------------------
     async def auswerten(self, takt: bool = False) -> None:
@@ -509,7 +501,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             self._sperre.release()
 
     async def _auswerten(self) -> None:
-        self._geaendert = False
         bestaetigung = self._bestaetigung()
         takt, self._takt_offen = self._takt_offen, False
         jetzt = dt_util.now()
@@ -529,13 +520,14 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             return
         lage = self._handeingriff_pruefen(lage, jetzt)
         kandidat = regel.entscheiden(lage, self.gedaechtnis, self.werte)
-        entscheidung = self._stabilisieren(kandidat, lage, takt, bestaetigung)
         bestaetigt = self._bestaetigt(bestaetigung, kandidat)
+        halten_vorher = self.stabil.halten_bis
+        entscheidung = self._stabilisieren(kandidat, lage, takt, bestaetigt)
         entscheidung = self._ohne_verworfenes(entscheidung, bestaetigt, jetzt)
         angenommen = await self._ausfuehren(entscheidung, lage, jetzt, bestaetigt)
         if not angenommen:
             # Gehalten wird nur, was die Steuerung angenommen hat; Empfohlenes und Verworfenes nicht.
-            self.stabil = replace(self.stabil, halten_bis=self._halten_vorher)
+            self.stabil = replace(self.stabil, halten_bis=halten_vorher)
         self._sicherheit_pruefen(entscheidung, angenommen)
         self.steller.abgleichen(self.gedaechtnis, jetzt)
         self._protokollieren(jetzt, lage, kandidat, entscheidung, angenommen)
@@ -547,11 +539,9 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._setzen(entscheidung.zustand, entscheidung.begruendung)
 
     def _stabilisieren(
-        self, kandidat: regel.Entscheidung, lage: regel.Lage, takt: bool, bestaetigung: bool
+        self, kandidat: regel.Entscheidung, lage: regel.Lage, takt: bool, bestaetigt: bool
     ) -> regel.Entscheidung:
         """Die Regel will etwas; ob es schon gilt, entscheidet die Ruhe über mehrere Takte."""
-        self.kandidat = kandidat
-        self._halten_vorher = self.stabil.halten_bis
         if self._schon_empfohlen(kandidat, lage.jetzt):
             self.anstehend = None
             return kandidat
@@ -562,7 +552,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             lage,
             self.werte,
             takt=takt,
-            erzwingen=self._bestaetigt(bestaetigung, kandidat),
+            erzwingen=bestaetigt,
         )
         self.stabil, self.anstehend = ergebnis.verlauf, ergebnis.anstehend
         return ergebnis.entscheidung
@@ -621,7 +611,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
 
     def _warten(self, bestaetigung: bool, takt: bool) -> None:
         """Bis zum ersten Abruf bleiben Bestätigung und Takt für den nächsten Lauf."""
-        self._geaendert = True
         self._bestaetigt_offen |= bestaetigung
         self._takt_offen |= takt
         # Die Werte stehen schon in der Lage; die Sensoren zeigen sie, auch wenn die Regel noch wartet.
@@ -837,7 +826,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             return
         # Läuft gerade eine Auswertung, holt der folgende Lauf die Bestätigung nach.
         self._bestaetigt_offen = True
-        self._geaendert = True
         await self.auswerten()
 
     async def empfehlung_verwerfen(self) -> None:
@@ -855,7 +843,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
                 self.gedaechtnis = replace(self.gedaechtnis, pause_sperre=tag)
             self.steller.vermerken(jetzt, "verworfen", self.empfehlung["begruendung"])
             self.empfehlung = None
-            self._geaendert = True
         await self.auswerten()
 
     def _pausieren(self, jetzt: datetime, grund: str) -> None:
@@ -946,7 +933,6 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self.steller.vermerken(
             dt_util.now(), "einstellung", f"Heizgrenzen der Steuerung: {text}.", paare
         )
-        self._geaendert = True
         self._speichern()
         if (auffrischen := getattr(self.coordinator, "async_request_refresh", None)) is not None:
             self.hass.async_create_task(auffrischen())
@@ -1282,13 +1268,16 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         stunde = (self.verlauf.get("stunden") or {}).get(str(max(jetzt.hour - 1, 0))) or {}
         return stunde.get("at")
 
-    def _at_prognose(self, jetzt: datetime) -> tuple[float, ...]:
+    @staticmethod
+    def _at_prognose(
+        stundenwerte: list[tuple[datetime, float | None]], jetzt: datetime
+    ) -> tuple[float, ...]:
         """Korrigierte AT der nächsten zwei vollen Stunden; fehlt eine, ist das Ergebnis leer."""
+        je_stunde = {(zeit.date(), zeit.hour): wert for zeit, wert in stundenwerte}
         werte = []
         for abstand in (1, 2):
             zeit = jetzt + timedelta(hours=abstand)
-            wert = (self.stundenprognose(zeit.date()).get(zeit.hour) or {}).get("korrigiert")
-            if wert is None:
+            if (wert := je_stunde.get((zeit.date(), zeit.hour))) is None:
                 return ()
             werte.append(float(wert))
         return tuple(werte)
@@ -1313,6 +1302,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         elif self._raeume_fehlen_seit is None:
             self._raeume_fehlen_seit = jetzt
         aufgang, untergang = self.sonne(jetzt.date())
+        stundenwerte = self._stundenwerte(jetzt)
         lage = regel.Lage(
             jetzt=jetzt,
             at=at,
@@ -1326,7 +1316,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             sonnenquote=self.sonnenquote(jetzt.date(), self.konfig.get("pv"), jetzt.date(), jetzt),
             mittel_heute=self.tagesmittel(jetzt.date(), jetzt.date()),
             mittel_morgen=self.tagesmittel(jetzt.date() + timedelta(days=1), jetzt.date()),
-            minimum_bis_morgen=eingaben.minimum_bis_morgen(self._stundenwerte(jetzt), jetzt),
+            minimum_bis_morgen=eingaben.minimum_bis_morgen(stundenwerte, jetzt),
             sonnenuntergang=untergang,
             betriebswahl=_ganzzahl(self._wert("/3/50/0")),
             betriebsart=_ganzzahl(self._wert("/2/9/0")),
@@ -1340,7 +1330,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             pausiert_bis=self.pausiert_bis,
             sonnenaufgang=aufgang,
             fruehester_beginn=dynamik.fruehester_beginn(self.werte, jetzt, aufgang),
-            at_prognose=self._at_prognose(jetzt),
+            at_prognose=self._at_prognose(stundenwerte, jetzt),
             grenze_absenk=self.grenze_absenk(),
             absenkung_moeglich=self._wert("/2/10/0") is not None,
             at_steuerung=self._wert("/0/0/0"),

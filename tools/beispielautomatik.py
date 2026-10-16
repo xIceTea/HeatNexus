@@ -56,7 +56,7 @@ def _tag(versatz: float = 0.0, gemessen: bool = True) -> dict:
         "absenkung_von": 7.0,
         "absenkung_bis": 13.67,
         "absenkung_ziel": 16.55,
-        "entscheidungen": [7.0] if gemessen else [],
+        "beginn": 7.25,
         "jetzt": JETZT if gemessen else None,
         "stunden": _stunden(versatz, gemessen),
     }

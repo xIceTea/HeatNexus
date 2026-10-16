@@ -291,7 +291,7 @@ def absenkung_laeuft(g: Gedaechtnis, jetzt: datetime) -> bool:
     )
 
 
-_ZUSTAND_JE_ART = {SONNE: Zustand.SONNENTAG, ABWESEND: Zustand.ABWESEND, PAUSE: Zustand.HEIZPAUSE}
+ZUSTAND_JE_ART = {SONNE: Zustand.SONNENTAG, ABWESEND: Zustand.ABWESEND, PAUSE: Zustand.HEIZPAUSE}
 
 
 def zustand_aus(g: Gedaechtnis, jetzt: datetime) -> Zustand:
@@ -299,17 +299,23 @@ def zustand_aus(g: Gedaechtnis, jetzt: datetime) -> Zustand:
     if g.saison == NUR_WW:
         return Zustand.NUR_WW
     if absenkung_laeuft(g, jetzt):
-        return _ZUSTAND_JE_ART.get(g.absenkung_art, Zustand.PROGRAMM)
+        return ZUSTAND_JE_ART.get(g.absenkung_art, Zustand.PROGRAMM)
     return Zustand.PROGRAMM
 
 
-def soll_bezug(lage: Lage, g: Gedaechtnis) -> float | None:
-    """Raumsoll des Programms; während eigener Eingriffe zeigt `1/1` den gesetzten Wert."""
+def _gemerkter_soll(g: Gedaechtnis) -> float | None:
+    """Der Raumsoll vor dem eigenen Eingriff; währenddessen zeigt `1/1` den gesetzten Wert."""
     if g.saison == NUR_WW and g.saison_soll is not None:
         return g.saison_soll
     if g.absenkung_art is not None and g.absenkung_basis is not None:
         return g.absenkung_basis
-    return lage.soll
+    return None
+
+
+def soll_bezug(lage: Lage, g: Gedaechtnis) -> float | None:
+    """Raumsoll des Programms; während eigener Eingriffe der gemerkte."""
+    gemerkt = _gemerkter_soll(g)
+    return lage.soll if gemerkt is None else gemerkt
 
 
 def raeume_zum_ziel(lage: Lage | None, g: Gedaechtnis) -> tuple[float | None, float | None]:
@@ -317,14 +323,9 @@ def raeume_zum_ziel(lage: Lage | None, g: Gedaechtnis) -> tuple[float | None, fl
 
     Ohne Programm in der Betriebswahl meldet `1/1` nur den Frostschutz; dann gilt kein Bezug.
     """
-    if g.saison == NUR_WW and g.saison_soll is not None:
-        bezug = g.saison_soll
-    elif g.absenkung_art is not None and g.absenkung_basis is not None:
-        bezug = g.absenkung_basis
-    elif lage is not None and lage.betriebswahl in PROGRAMMWAHL:
+    bezug = _gemerkter_soll(g)
+    if bezug is None and lage is not None and lage.betriebswahl in PROGRAMMWAHL:
         bezug = lage.soll
-    else:
-        bezug = None
     if lage is None or not lage.raeume:
         return bezug, None
     eigene = all(ziel is not None for _, ziel in lage.raeume)
@@ -991,7 +992,7 @@ def _modell_ohne_vorausschau(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) 
         return Entscheidung(Zustand.PROGRAMM, (Aktion("absenkung_ende"),), text, gesperrt)
     name = "Heizpause" if g.absenkung_art == PAUSE else "Sonnentag"
     text = f"{name} – {_zahl(g.absenkung_soll)} °C bis {_uhr(g.absenkung_bis)}."
-    return Entscheidung(_ZUSTAND_JE_ART.get(g.absenkung_art, Zustand.PROGRAMM), (), text, g)
+    return Entscheidung(ZUSTAND_JE_ART.get(g.absenkung_art, Zustand.PROGRAMM), (), text, g)
 
 
 def _absenkung_verboten(

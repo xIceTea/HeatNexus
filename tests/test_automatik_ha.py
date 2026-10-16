@@ -1499,7 +1499,8 @@ async def test_lieferbeginn_einer_vorrangquelle_rechnet_sofort(
     hass.states.async_set(quelle, "on", {"friendly_name": "Solaranlage"})
     await hass.async_block_till_done()
 
-    assert laufzeit.kandidat.begruendung.startswith("Solaranlage liefert")
+    assert laufzeit.anstehend.zustand.value == "sonnentag"
+    assert "Solaranlage liefert" in laufzeit.begruendung
     assert len(laufzeit.steller.stand.protokoll) == vorher
     await _takte(laufzeit)
     eintraege = laufzeit.steller.stand.protokoll

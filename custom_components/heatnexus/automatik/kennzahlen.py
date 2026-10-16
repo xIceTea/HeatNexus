@@ -44,9 +44,9 @@ def zeit(eintrag: dict[str, Any] | None) -> datetime | None:
     return datetime.fromisoformat(eintrag["zeit"]) if eintrag else None
 
 
-def fruehester_beginn(laufzeit: Laufzeit, jetzt: datetime | None = None) -> datetime | None:
+def fruehester_beginn(laufzeit: Laufzeit) -> datetime | None:
     """Der früheste Beginn heute, wenn er bevorsteht, sonst der morgige; ohne Sperre keiner."""
-    jetzt = jetzt or dt_util.now()
+    jetzt = dt_util.now()
     for tag in (jetzt, jetzt + timedelta(days=1)):
         beginn = dynamik.fruehester_beginn(laufzeit.werte, tag, laufzeit.sonne(tag.date())[0])
         if beginn is None or beginn > jetzt:

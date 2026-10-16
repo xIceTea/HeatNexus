@@ -361,7 +361,7 @@ export const AutomatikMixin = (Basis) =>
       warum.className = "automatik-warum";
       warum.textContent = kreis.begruendung || "";
       karte.appendChild(warum);
-      const kern = this._automatikKern(kreis);
+      const kern = this._automatikKern((kreis.kern || {}).bewertungen, (kreis.kern || {}).anstehend);
       if (kern) karte.appendChild(kern);
       karte.appendChild(this._automatikSteuerzeile(kreis, darf));
       const hinweis = this._automatikHinweis(kreis, darf);
@@ -476,7 +476,7 @@ export const AutomatikMixin = (Basis) =>
       grund.className = "empfehlung-grund";
       grund.textContent = empfehlung.begruendung || "";
       text.append(titel, grund);
-      const kern = this._automatikKern({ kern: { bewertungen: (kreis.kern || {}).bewertungen } });
+      const kern = this._automatikKern((kreis.kern || {}).bewertungen);
       if (kern) text.appendChild(kern);
       const taste = document.createElement("button");
       taste.type = "button";
@@ -550,10 +550,7 @@ export const AutomatikMixin = (Basis) =>
     }
 
     /** Unter der Begründung: was gerade entscheidet, davor ein anstehender Wechsel mit Zählerstand. */
-    _automatikKern(kreis) {
-      const kern = kreis.kern || {};
-      const bewertungen = kern.bewertungen || [];
-      const a = kern.anstehend;
+    _automatikKern(bewertungen = [], a = null) {
       if (!bewertungen.length && !a) return null;
       const zeile = document.createElement("div");
       zeile.className = "automatik-kern";
@@ -579,28 +576,14 @@ export const AutomatikMixin = (Basis) =>
       karte.classList.add("automatik-protokollkarte");
       const eintraege = kreis.regellauf || [];
       this._automatikRegellaufAlle = this._automatikRegellaufAlle || new Set();
-      const alle = this._automatikRegellaufAlle.has(kreis.heizkreis);
-      const kopf = karte.querySelector(".kartenkopf");
-      if (kopf && eintraege.length > REGELLAUF_KURZ) {
-        const umschalten = document.createElement("button");
-        umschalten.type = "button";
-        umschalten.className = "automatik-verweis";
-        umschalten.textContent = this._t(alle ? "Weniger anzeigen" : "Alle anzeigen");
-        umschalten.setAttribute("aria-expanded", String(alle));
-        umschalten.addEventListener("click", () => {
-          if (alle) this._automatikRegellaufAlle.delete(kreis.heizkreis);
-          else this._automatikRegellaufAlle.add(kreis.heizkreis);
-          this._automatikNeuZeichnen();
-        });
-        kopf.appendChild(umschalten);
-      }
+      const alle = this._automatikAlleUmschalten(karte, this._automatikRegellaufAlle, kreis.heizkreis, eintraege.length > REGELLAUF_KURZ);
       if (!eintraege.length) {
         karte.appendChild(this._hinweisKnoten("Noch kein Lauf seit dem Start."));
         return karte;
       }
       const liste = document.createElement("ul");
       liste.className = "automatik-protokoll automatik-regellauf";
-      (alle ? eintraege : eintraege.slice(0, REGELLAUF_KURZ)).forEach((e, i) => {
+      (alle ? eintraege : eintraege.slice(0, REGELLAUF_KURZ)).forEach((e) => {
         const zeile = document.createElement("li");
         const zeit = document.createElement("span");
         zeit.className = "zeit";
@@ -615,17 +598,33 @@ export const AutomatikMixin = (Basis) =>
         art.textContent = this._t(ERGEBNISSE[e.ergebnis] || e.ergebnis);
         const marken = document.createElement("div");
         marken.className = "automatik-kern";
-        // Je Zeile nur, was entscheidet oder sich gegenüber dem vorigen Lauf geändert hat.
-        const vorher = new Map(((eintraege[i + 1] || {}).bewertungen || []).map((b) => [b.name, b.erfuellt]));
-        (e.bewertungen || [])
-          .filter((b) => b.entscheidend || (vorher.has(b.name) && vorher.get(b.name) !== b.erfuellt))
-          .forEach((b) => marken.appendChild(this._bewertungMarke(b)));
+        // Der Server liefert je Zeile nur, was entscheidet oder sich gegenüber dem vorigen Lauf geändert hat.
+        (e.bewertungen || []).forEach((b) => marken.appendChild(this._bewertungMarke(b)));
         inhalt.append(kopfzeile, art, marken);
         zeile.append(zeit, inhalt);
         liste.appendChild(zeile);
       });
       karte.appendChild(liste);
       return karte;
+    }
+
+    /** „Alle anzeigen“ im Kartenkopf einer langen Liste; gibt zurück, ob gerade alle sichtbar sind. */
+    _automatikAlleUmschalten(karte, menge, heizkreis, lang) {
+      const alle = menge.has(heizkreis);
+      const kopf = karte.querySelector(".kartenkopf");
+      if (!kopf || !lang) return alle;
+      const umschalten = document.createElement("button");
+      umschalten.type = "button";
+      umschalten.className = "automatik-verweis";
+      umschalten.textContent = this._t(alle ? "Weniger anzeigen" : "Alle anzeigen");
+      umschalten.setAttribute("aria-expanded", String(alle));
+      umschalten.addEventListener("click", () => {
+        if (alle) menge.delete(heizkreis);
+        else menge.add(heizkreis);
+        this._automatikNeuZeichnen();
+      });
+      kopf.appendChild(umschalten);
+      return alle;
     }
 
     // --- Protokoll -----------------------------------------------------
@@ -635,21 +634,7 @@ export const AutomatikMixin = (Basis) =>
       karte.classList.add("automatik-protokollkarte");
       const eintraege = kreis.protokoll || [];
       this._automatikProtokollAlle = this._automatikProtokollAlle || new Set();
-      const alle = this._automatikProtokollAlle.has(kreis.heizkreis);
-      const kopf = karte.querySelector(".kartenkopf");
-      if (kopf && eintraege.length > PROTOKOLL_KURZ) {
-        const umschalten = document.createElement("button");
-        umschalten.type = "button";
-        umschalten.className = "automatik-verweis";
-        umschalten.textContent = this._t(alle ? "Weniger anzeigen" : "Alle anzeigen");
-        umschalten.setAttribute("aria-expanded", String(alle));
-        umschalten.addEventListener("click", () => {
-          if (alle) this._automatikProtokollAlle.delete(kreis.heizkreis);
-          else this._automatikProtokollAlle.add(kreis.heizkreis);
-          this._automatikNeuZeichnen();
-        });
-        kopf.appendChild(umschalten);
-      }
+      const alle = this._automatikAlleUmschalten(karte, this._automatikProtokollAlle, kreis.heizkreis, eintraege.length > PROTOKOLL_KURZ);
       if (!eintraege.length) karte.appendChild(this._hinweisKnoten("Noch keine Entscheidung."));
       const zone = zeitzone(this._hass);
       const heute = kalendertagIn(Date.now(), zone);

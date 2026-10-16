@@ -197,8 +197,7 @@ class QuellenMixin:
         return eingaben.sonnenquote_aus_bewoelkung(stunden, aufgang, untergang, ab)
 
     def _lieferbeginn(self) -> None:
-        """Eine Vorrangquelle beginnt zu liefern: sofort rechnen, nicht bis zum nächsten Takt warten."""
-        self._geaendert = True
+        """Eine Vorrangquelle beginnt zu liefern: sofort neu rechnen; ein Wechsel zählt erst im Takt."""
         self._aufgabe(self.auswerten())
 
     def vorrang_liefert(self) -> list[str]:

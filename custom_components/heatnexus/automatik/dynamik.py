@@ -11,10 +11,8 @@ from datetime import datetime, timedelta
 
 from .profile import Werte
 from .regel import (
-    ABWESEND,
     ANLASS_MODELL,
-    PAUSE,
-    SONNE,
+    ZUSTAND_JE_ART,
     Entscheidung,
     Gedaechtnis,
     Lage,
@@ -27,7 +25,6 @@ from .regel import (
 EINGRIFFE = frozenset({Zustand.SONNENTAG, Zustand.NUR_WW, Zustand.HEIZPAUSE, Zustand.ABWESEND})
 # Diese Zustände schützen oder halten an; sie warten auf keinen Takt.
 SOFORT = frozenset({Zustand.SICHERHEIT, Zustand.PAUSIERT, Zustand.FENSTER, Zustand.KEINE_DATEN})
-_JE_ART = {SONNE: Zustand.SONNENTAG, ABWESEND: Zustand.ABWESEND, PAUSE: Zustand.HEIZPAUSE}
 _IN_SICHT = {
     Zustand.SONNENTAG: "Sonnentag in Sicht ({n} von {noetig}): {grund}",
     Zustand.NUR_WW: "Nur Warmwasser in Sicht ({n} von {noetig}): {grund}",
@@ -79,8 +76,8 @@ def fruehester_beginn(w: Werte, jetzt: datetime, aufgang: datetime | None) -> da
 def laufend(g: Gedaechtnis, jetzt: datetime) -> Zustand:
     """Was an der Steuerung gilt; eine abgelaufene Absenkung zählt bis zum Aufräumen mit."""
     zustand = zustand_aus(g, jetzt)
-    if zustand is Zustand.PROGRAMM and g.absenkung_art in _JE_ART:
-        return _JE_ART[g.absenkung_art]
+    if zustand is Zustand.PROGRAMM and g.absenkung_art in ZUSTAND_JE_ART:
+        return ZUSTAND_JE_ART[g.absenkung_art]
     return zustand
 
 
@@ -101,15 +98,19 @@ def _dringend(
     return kalt or lage.ruhig is False or heimgekehrt or abgeschaltet or modell
 
 
+def _gilt(kandidat: Entscheidung, jetzt: datetime, w: Werte) -> Ergebnis:
+    return Ergebnis(kandidat, Verlauf(halten_bis=jetzt + timedelta(minutes=w.halten_min)))
+
+
 def _bleiben(
-    kandidat: Entscheidung, alt: Gedaechtnis, vorher: Zustand, a: Anstehend
-) -> Entscheidung:
+    kandidat: Entscheidung, alt: Gedaechtnis, vorher: Zustand, a: Anstehend, verlauf: Verlauf
+) -> Ergebnis:
     if a.halten_bis is not None:
         text = _HAELT.format(zeit=a.halten_bis.strftime("%H:%M"), grund=kandidat.begruendung)
     else:
         muster = _IN_SICHT.get(kandidat.zustand, _RUECKKEHR)
         text = muster.format(n=a.zaehler, noetig=a.noetig, grund=kandidat.begruendung)
-    return Entscheidung(vorher, (), text, alt)
+    return Ergebnis(Entscheidung(vorher, (), text, alt), verlauf, a)
 
 
 def stabilisieren(
@@ -128,18 +129,18 @@ def stabilisieren(
     if not kandidat.aktionen or kandidat.zustand is vorher:
         return Ergebnis(kandidat, Verlauf(halten_bis=halten) if takt else verlauf)
     if erzwingen or _dringend(kandidat, vorher, lage, alt, w):
-        return Ergebnis(kandidat, Verlauf(halten_bis=jetzt + timedelta(minutes=w.halten_min)))
+        return _gilt(kandidat, jetzt, w)
     noetig = w.beginn_laeufe if kandidat.zustand in EINGRIFFE else w.ende_laeufe
     if halten is not None and jetzt < halten:
         a = Anstehend(kandidat.zustand, 0, noetig, halten)
-        return Ergebnis(_bleiben(kandidat, alt, vorher, a), Verlauf(halten_bis=halten), a)
+        return _bleiben(kandidat, alt, vorher, a, Verlauf(halten_bis=halten))
     zaehler = verlauf.zaehler if verlauf.kandidat is kandidat.zustand else 0
     if not takt:
-        a = Anstehend(kandidat.zustand, zaehler, noetig)
-        return Ergebnis(_bleiben(kandidat, alt, vorher, a), verlauf, a)
+        return _bleiben(
+            kandidat, alt, vorher, Anstehend(kandidat.zustand, zaehler, noetig), verlauf
+        )
     zaehler += 1
     if zaehler >= noetig:
-        return Ergebnis(kandidat, Verlauf(halten_bis=jetzt + timedelta(minutes=w.halten_min)))
+        return _gilt(kandidat, jetzt, w)
     a = Anstehend(kandidat.zustand, zaehler, noetig)
-    neu = Verlauf(kandidat.zustand, zaehler, halten)
-    return Ergebnis(_bleiben(kandidat, alt, vorher, a), neu, a)
+    return _bleiben(kandidat, alt, vorher, a, Verlauf(kandidat.zustand, zaehler, halten))
