@@ -681,31 +681,25 @@ export const AutomatikMixin = (Basis) =>
       this._automatikProtokollAlle = this._automatikProtokollAlle || new Set();
       const alle = this._automatikAlleUmschalten(karte, this._automatikProtokollAlle, kreis.heizkreis, folge.length > ende);
       if (!folge.length) karte.appendChild(this._hinweisKnoten("Noch keine Entscheidung."));
+      const zone = zeitzone(this._hass);
+      const namen = { [kalendertagIn(Date.now(), zone)]: "Heute", [kalendertagIn(Date.now() - 86400000, zone)]: "Gestern" };
       let liste = null;
       let letzterTag = null;
       (alle ? folge : folge.slice(0, ende)).forEach((teil) => {
         const datum = new Date(teil.art === "eintrag" ? teil.eintrag.zeit : teil.laeufe[0].zeit);
-        const tag = kalendertagIn(datum, zeitzone(this._hass));
+        const tag = kalendertagIn(datum, zone);
         if (tag !== letzterTag) {
           letzterTag = tag;
+          const ueberschrift = document.createElement("h4");
+          ueberschrift.className = "automatik-protokolltag";
+          ueberschrift.textContent = namen[tag] ? this._t(namen[tag]) : tagMonat(datum, zone);
           liste = document.createElement("ul");
           liste.className = "automatik-protokoll";
-          karte.append(this._automatikProtokollTag(datum), liste);
+          karte.append(ueberschrift, liste);
         }
         liste.appendChild(teil.art === "eintrag" ? this._automatikProtokollZeile(teil.eintrag) : this._automatikLaeufe(kreis, teil));
       });
       return karte;
-    }
-
-    _automatikProtokollTag(datum) {
-      const zone = zeitzone(this._hass);
-      const tag = kalendertagIn(datum, zone);
-      const ueberschrift = document.createElement("h4");
-      ueberschrift.className = "automatik-protokolltag";
-      if (tag === kalendertagIn(Date.now(), zone)) ueberschrift.textContent = this._t("Heute");
-      else if (tag === kalendertagIn(Date.now() - 86400000, zone)) ueberschrift.textContent = this._t("Gestern");
-      else ueberschrift.textContent = tagMonat(datum, zone);
-      return ueberschrift;
     }
 
     _automatikProtokollZeile(eintrag) {
