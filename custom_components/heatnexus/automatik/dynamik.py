@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from .profile import Werte
 from .regel import (
     ANLASS_MODELL,
+    SAISON_RAUM_K,
     ZUSTAND_JE_ART,
     Entscheidung,
     Gedaechtnis,
@@ -90,7 +91,9 @@ def _dringend(
     if vorher not in EINGRIFFE or kandidat.zustand in EINGRIFFE:
         return False
     soll = soll_bezug(lage, alt)
-    kalt = soll is not None and bool(lage.raeume) and abweichung(lage, soll) < -w.rueckkehr_k
+    # Nur Warmwasser endet in der Regel schon ab −SAISON_RAUM_K unter Ziel; das gilt hier ebenso sofort.
+    grenze_k = min(w.rueckkehr_k, SAISON_RAUM_K) if vorher is Zustand.NUR_WW else w.rueckkehr_k
+    kalt = soll is not None and bool(lage.raeume) and abweichung(lage, soll) < -grenze_k
     heimgekehrt = vorher is Zustand.ABWESEND and not lage.abwesend
     abgeschaltet = vorher is Zustand.SONNENTAG and not w.sonnentag
     # Die Vorausschau des Hausmodells hält ihre Stufen selbst; ihr Ende gilt sofort.

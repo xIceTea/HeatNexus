@@ -124,6 +124,13 @@ def test_kalte_raeume_und_fordernde_thermostate_beenden_sofort(d, r, w, felder):
     assert e.entscheidung.aktionen == ende.aktionen
 
 
+def test_rueckkehr_aus_nur_warmwasser_bei_kuehlen_raeumen_gilt_sofort(d, r, w):
+    alt = r.Gedaechtnis(saison=r.NUR_WW, saison_soll=21.0)
+    zurueck = programm(r, (r.Aktion("zurueck"),))
+    e = d.stabilisieren(zurueck, alt, d.Verlauf(), lage(r, raeume=((20.4, None),)), w, takt=False)
+    assert e.entscheidung.aktionen == zurueck.aktionen
+
+
 def test_sicherheit_wirkt_sofort(d, r, w):
     alt = sonnentag(r).gedaechtnis
     aktion = r.Aktion("absenkung_ende", sicherheit=True)

@@ -12,7 +12,9 @@ from typing import Any
 from .profile import Werte
 from .regel import (
     ABSENKBETRIEB,
+    PAUSE_SONNE_PLUS,
     PROGRAMMWAHL,
+    SAISON_RAUM_K,
     SONDERBETRIEB,
     SONNE_RAUM_K,
     Gedaechtnis,
@@ -104,9 +106,19 @@ def _temperaturen(lage: Lage, w: Werte) -> list[Bewertung]:
     ]
 
 
-def _messen(lage: Lage, g: Gedaechtnis, w: Werte) -> list[Bewertung]:
+def _schwellen(zustand: Zustand, w: Werte) -> tuple[float, float]:
+    """Sonnenquote und Raumabstand, die die Regel für diesen Zustand verlangt."""
+    if zustand is Zustand.HEIZPAUSE:
+        return w.sonnenquote + PAUSE_SONNE_PLUS, -SAISON_RAUM_K
+    if zustand is Zustand.NUR_WW:
+        return w.sonnenquote, -SAISON_RAUM_K
+    return w.sonnenquote, -SONNE_RAUM_K
+
+
+def _messen(lage: Lage, g: Gedaechtnis, w: Werte, zustand: Zustand) -> list[Bewertung]:
     _, abstand = raeume_zum_ziel(lage, g)
     quote = lage.sonnenquote
+    sonne_ab, raum_ab = _schwellen(zustand, w)
     return [
         Bewertung("daten", lage.daten_ok and lage.raum is not None),
         Bewertung("prognose", lage.prognose_ok),
@@ -114,17 +126,9 @@ def _messen(lage: Lage, g: Gedaechtnis, w: Werte) -> list[Bewertung]:
         Bewertung(
             "beginn", sonne_im_fenster(lage), _uhr(lage.jetzt), _uhr(lage.fruehester_beginn), "uhr"
         ),
-        Bewertung(
-            "sonne", _ueber(quote, w.sonnenquote, gleich=True), _rund(quote), w.sonnenquote, "%"
-        ),
+        Bewertung("sonne", _ueber(quote, sonne_ab, gleich=True), _rund(quote), sonne_ab, "%"),
         Bewertung("vorrang", bool(lage.vorrang_laeuft), _rund(lage.vorrang_minuten), None, "min"),
-        Bewertung(
-            "raeume",
-            _ueber(abstand, -SONNE_RAUM_K, gleich=True),
-            _rund(abstand),
-            -SONNE_RAUM_K,
-            "K",
-        ),
+        Bewertung("raeume", _ueber(abstand, raum_ab, gleich=True), _rund(abstand), raum_ab, "K"),
         Bewertung("thermostate", lage.ruhig is not False),
         *_temperaturen(lage, w),
         Bewertung("programmwahl", lage.betriebswahl in PROGRAMMWAHL, lage.betriebswahl),
@@ -141,7 +145,7 @@ def _messen(lage: Lage, g: Gedaechtnis, w: Werte) -> list[Bewertung]:
 
 def bewerten(lage: Lage, g: Gedaechtnis, w: Werte, zustand: Zustand) -> tuple[Bewertung, ...]:
     """Alle Bewertungen eines Laufs; `entscheidend` markiert, was den Zustand trägt oder verhindert."""
-    liste = _messen(lage, g, w)
+    liste = _messen(lage, g, w, zustand)
     if (tragend := TRAGEND.get(zustand)) is not None:
         return tuple(replace(b, entscheidend=b.erfuellt and b.name in tragend) for b in liste)
     offen = {b.name for b in liste if not b.erfuellt}

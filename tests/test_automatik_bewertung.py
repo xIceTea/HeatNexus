@@ -46,6 +46,15 @@ def test_sonnentag_traegt_beginn_sonne_und_raeume(mods):
     assert (sonne.wert, sonne.schwelle, sonne.einheit, sonne.erfuellt) == (78.0, 60.0, "%", True)
 
 
+def test_heizpause_misst_mit_den_schwellen_der_regel(mods):
+    p, r, b = mods
+    w = p.werte(p.STANDARD)
+    stand = lage(r, sonnenquote=70.0, raeume=((20.6, None),))
+    liste = {x.name: x for x in b.bewerten(stand, r.Gedaechtnis(), w, r.Zustand.HEIZPAUSE)}
+    assert (liste["sonne"].schwelle, liste["sonne"].erfuellt) == (w.sonnenquote + 20.0, False)
+    assert (liste["raeume"].schwelle, liste["raeume"].erfuellt) == (-0.5, True)
+
+
 def test_im_programm_entscheidet_die_erste_unerfuellte(mods):
     p, r, b = mods
     stand = lage(r, jetzt=MORGEN.replace(hour=5))
