@@ -188,3 +188,12 @@ def test_schalter_der_optimierung_werden_verworfen(konfig):
     assert "hinweise" not in k
     assert "hinweise_melden" not in k
     assert "hinweise" not in k["eigene"]
+
+
+def test_eigene_entscheidungszeit_wird_zum_fruehesten_beginn(konfig):
+    k = konfig.pruefen(roh(eigene={"entscheidung": "07:45", "nachpruefung": "11:00"}))
+    assert k["eigene"] == {"beginn_art": "uhrzeit", "beginn_uhrzeit": "07:45"}
+
+
+def test_ohne_eigene_entscheidungszeit_gilt_der_sonnenaufgang(konfig):
+    assert "beginn_art" not in konfig.pruefen(roh())["eigene"]

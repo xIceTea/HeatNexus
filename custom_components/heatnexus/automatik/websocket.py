@@ -148,8 +148,8 @@ def _eintrag(
             "sonne_raum_k": regel.SONNE_RAUM_K,
             "eingriffe": laufzeit.steller.stand.eingriffe,
             "budget": werte.budget,
-            "naechste_pruefung": (
-                n.isoformat() if (n := kennzahlen.naechste_entscheidung(laufzeit)) else None
+            "fruehester_beginn": (
+                n.isoformat() if (n := kennzahlen.fruehester_beginn(laufzeit)) else None
             ),
             "modus_seit": (s.isoformat() if (s := kennzahlen.modus_seit(laufzeit)) else None),
             "vorrang": _vorrang(laufzeit, lage),

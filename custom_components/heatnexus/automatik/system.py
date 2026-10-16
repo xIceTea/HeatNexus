@@ -185,7 +185,7 @@ class SystemLetzterEingriff(SystemEntitaet, SensorEntity):
 
 
 class SystemNaechsteEntscheidung(SystemEntitaet, SensorEntity):
-    """Die früheste nächste Entscheidung aller Automatiken."""
+    """Der früheste Beginn aller Automatiken."""
 
     ART = "naechste_entscheidung"
     _attr_translation_key = "automatik_system_naechste_entscheidung"
@@ -193,7 +193,7 @@ class SystemNaechsteEntscheidung(SystemEntitaet, SensorEntity):
 
     @property
     def native_value(self) -> datetime | None:
-        zeiten = [z for lz in self._laufzeiten if (z := kennzahlen.naechste_entscheidung(lz))]
+        zeiten = [z for lz in self._laufzeiten if (z := kennzahlen.fruehester_beginn(lz))]
         return min(zeiten) if zeiten else None
 
 

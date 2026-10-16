@@ -81,6 +81,14 @@ def _liste(wert: Any, grenze: int) -> list[str]:
     return ergebnis[:grenze]
 
 
+def _umstieg(eigene: Mapping[str, Any]) -> dict[str, Any]:
+    """Eine eigene Entscheidungszeit wird zur festen Uhrzeit des frühesten Beginns."""
+    neu = {k: v for k, v in eigene.items() if k not in ("entscheidung", "nachpruefung")}
+    if "entscheidung" in eigene and "beginn_art" not in eigene:
+        neu.update(beginn_art="uhrzeit", beginn_uhrzeit=eigene["entscheidung"])
+    return neu
+
+
 def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
     """Die gespeicherte Form; `None`, wenn Heizkreis, Raumfühler oder Wetter fehlen."""
     heizkreis = str(roh.get("heizkreis") or "").strip()
@@ -95,6 +103,7 @@ def pruefen(roh: Mapping[str, Any]) -> dict[str, Any] | None:
     if profil not in PROFILE:
         profil = profil_fuer(heizflaechen)
     eigene_roh = roh.get("eigene") if isinstance(roh.get("eigene"), Mapping) else {}
+    eigene_roh = _umstieg(eigene_roh)
     eigene = {name: wert for name, wert in eigene_roh.items() if name in EIGENE_FELDER}
     ausrichtung = roh.get("ausrichtung")
     if ausrichtung not in AUSRICHTUNGEN:

@@ -153,13 +153,12 @@ def _band(g: regel.Gedaechtnis, tag: date) -> dict[str, float | None]:
 def heute(laufzeit: Laufzeit, jetzt: datetime) -> dict[str, Any]:
     """Der laufende Tag mit Messwerten und dem tatsächlichen Gedächtnis."""
     werte, tag, g = laufzeit.werte, jetzt.date(), laufzeit.gedaechtnis
+    beginn = dynamik.fruehester_beginn(werte, jetzt, laufzeit.sonne(tag)[0])
     return {
         "sonne": sonne(laufzeit, tag),
         **tageslicht(laufzeit, tag),
         **_band(g, tag),
-        "entscheidungen": [
-            int(z[:2]) + int(z[3:]) / 60 for z in (werte.entscheidung, werte.nachpruefung) if z
-        ],
+        "beginn": None if beginn is None else beginn.hour + beginn.minute / 60,
         "jetzt": jetzt.hour + jetzt.minute / 60,
         "stunden": stunden(laufzeit, tag, g),
         "vorhersage": vorhersage_kurve(laufzeit, tag),

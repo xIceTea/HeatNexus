@@ -34,8 +34,6 @@ class Werte:
     hysterese: float = 1.0
     tau_h: float = 15.0
     mindestdauer_h: float = 24.0
-    entscheidung: str = "07:00"
-    nachpruefung: str = ""
     # Ab wann die Sonne einen Eingriff auslösen darf: Sonnenaufgang, feste Uhrzeit oder ohne Sperre.
     beginn_art: str = "aufgang"
     beginn_uhrzeit: str = "07:00"
@@ -70,8 +68,6 @@ VORGABEN: dict[str, Werte] = {
     SCHNELL: Werte(
         tau_h=5.0,
         mindestdauer_h=12.0,
-        entscheidung="07:30",
-        nachpruefung="11:00",
         absenkung_k=1.0,
         rueckkehr_k=0.5,
         sonnenquote=55.0,
@@ -83,7 +79,6 @@ VORGABEN: dict[str, Werte] = {
     TRAEGE: Werte(
         tau_h=25.0,
         mindestdauer_h=48.0,
-        entscheidung="05:00",
         absenkung_k=2.0,
         rueckkehr_k=1.0,
         sonnenquote=65.0,
@@ -128,7 +123,7 @@ AUSRICHTUNG_FEST: dict[str, dict[str, Any]] = {
     ECO: {"stark": True, "stark_k": 0.5, "ruhe_h": 1.0, "spielraum_k": 0.5},
     KOMFORT: {"stark": False, "ruhe_h": 3.0, "spielraum_k": 0.0},
 }
-UHRZEITEN = ("entscheidung", "nachpruefung", "beginn_uhrzeit")
+UHRZEITEN = ("beginn_uhrzeit",)
 SCHALTER = ("sonnentag", "stark", "anpassen", "melden")
 # Über so viele Tage lernt die Prognosekorrektur; andere Werte gelten nicht.
 LERNFENSTER = (3, 7, 14)
@@ -182,8 +177,6 @@ def werte(
         if name in GRENZEN:
             if (zahl := _zahl(name, wert)) is not None:
                 aenderungen[name] = zahl
-        elif name == "nachpruefung" and str(wert or "").strip() == "":
-            aenderungen[name] = ""
         elif name in UHRZEITEN:
             if (zeit := _uhrzeit(wert)) is not None:
                 aenderungen[name] = zeit

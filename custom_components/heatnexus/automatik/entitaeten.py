@@ -343,14 +343,14 @@ class AutomatikLetzterEingriff(AutomatikWert):
 
 
 class AutomatikNaechsteEntscheidung(AutomatikWert):
-    """Die nächste Entscheidungszeit des Profils, heute oder morgen."""
+    """Ab wann die Sonne einen Eingriff auslösen darf, heute oder morgen."""
 
     ART = "naechste_entscheidung"
     _attr_translation_key = "automatik_naechste_entscheidung"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def _wert(self, laufzeit: Laufzeit) -> datetime | None:
-        return kennzahlen.naechste_entscheidung(laufzeit)
+        return kennzahlen.fruehester_beginn(laufzeit)
 
 
 class AutomatikStoerung(AutomatikEntitaet, BinarySensorEntity):

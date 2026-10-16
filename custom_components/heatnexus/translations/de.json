@@ -405,7 +405,7 @@
         "name": "Letzter Eingriff"
       },
       "automatik_naechste_entscheidung": {
-        "name": "Nächste Entscheidung"
+        "name": "Frühester Beginn"
       },
       "automatik_system_status": {
         "name": "Status",
@@ -428,7 +428,7 @@
         "name": "Letzter Eingriff"
       },
       "automatik_system_naechste_entscheidung": {
-        "name": "Nächste Entscheidung"
+        "name": "Frühester Beginn"
       },
       "automatik_system_sonnentag_heute": {
         "name": "Dauer Sonnentag heute"

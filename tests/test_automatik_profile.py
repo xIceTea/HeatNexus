@@ -24,8 +24,6 @@ def test_vorgaben_unterscheiden_sich_in_der_traegheit(profile):
     schnell = profile.werte(profile.SCHNELL)
     traege = profile.werte(profile.TRAEGE)
     assert schnell.tau_h < profile.werte(profile.STANDARD).tau_h < traege.tau_h
-    assert schnell.nachpruefung == "11:00"
-    assert traege.entscheidung == "05:00"
     assert schnell.grenze_versatz == traege.grenze_versatz == 0.0
 
 
@@ -37,9 +35,14 @@ def test_eigene_werte_ueberschreiben_und_werden_begrenzt(profile):
 
 
 def test_ungueltige_uhrzeit_bleibt_bei_der_vorgabe(profile):
-    assert profile.werte(profile.STANDARD, {"entscheidung": "25:00"}).entscheidung == "07:00"
-    assert profile.werte(profile.STANDARD, {"entscheidung": "6:5"}).entscheidung == "06:05"
-    assert profile.werte(profile.SCHNELL, {"nachpruefung": ""}).nachpruefung == ""
+    assert profile.werte(profile.STANDARD, {"beginn_uhrzeit": "25:00"}).beginn_uhrzeit == "07:00"
+    assert profile.werte(profile.STANDARD, {"beginn_uhrzeit": "6:5"}).beginn_uhrzeit == "06:05"
+
+
+def test_entscheidung_und_nachpruefung_gibt_es_nicht_mehr(profile):
+    w = profile.werte(profile.STANDARD)
+    assert not hasattr(w, "entscheidung")
+    assert not hasattr(w, "nachpruefung")
 
 
 def test_unbekannte_felder_werden_ignoriert(profile):

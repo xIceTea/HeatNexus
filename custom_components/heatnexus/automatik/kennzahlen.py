@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.util import dt as dt_util
 
-from . import eingaben, regel
+from . import dynamik, eingaben, regel
 from .regel import Zustand
 
 if TYPE_CHECKING:
@@ -44,17 +44,14 @@ def zeit(eintrag: dict[str, Any] | None) -> datetime | None:
     return datetime.fromisoformat(eintrag["zeit"]) if eintrag else None
 
 
-def naechste_entscheidung(laufzeit: Laufzeit) -> datetime | None:
-    """Die nächste Entscheidungszeit des Profils, heute oder morgen."""
-    jetzt = dt_util.now()
-    zeiten = []
-    for uhrzeit in (laufzeit.werte.entscheidung, laufzeit.werte.nachpruefung):
-        if not uhrzeit:
-            continue
-        stunde, minute = (int(teil) for teil in uhrzeit.split(":"))
-        wann = jetzt.replace(hour=stunde, minute=minute, second=0, microsecond=0)
-        zeiten.append(wann if wann > jetzt else wann + timedelta(days=1))
-    return min(zeiten) if zeiten else None
+def fruehester_beginn(laufzeit: Laufzeit, jetzt: datetime | None = None) -> datetime | None:
+    """Der früheste Beginn heute, wenn er bevorsteht, sonst der morgige; ohne Sperre keiner."""
+    jetzt = jetzt or dt_util.now()
+    for tag in (jetzt, jetzt + timedelta(days=1)):
+        beginn = dynamik.fruehester_beginn(laufzeit.werte, tag, laufzeit.sonne(tag.date())[0])
+        if beginn is None or beginn > jetzt:
+            return beginn
+    return None
 
 
 def status(laufzeit: Laufzeit) -> str:

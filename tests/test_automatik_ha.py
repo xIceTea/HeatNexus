@@ -1661,7 +1661,7 @@ async def test_gespeicherte_abgeschaltete_automatik_zeigt_aus(hass, anlage):
 
 
 async def test_sensoren_der_automatik(hass, anlage, freezer):
-    from datetime import datetime
+    from datetime import datetime, timedelta
 
     from homeassistant.util import dt as dt_util
 
@@ -1685,9 +1685,9 @@ async def test_sensoren_der_automatik(hass, anlage, freezer):
     assert wert("letzter_eingriff") == datetime.fromisoformat(
         laufzeit.steller.stand.protokoll[0]["zeit"]
     )
-    naechste = wert("naechste_entscheidung")
-    assert naechste > dt_util.now()
-    assert (naechste.hour, naechste.minute) == (7, 0)
+    # Der früheste Beginn heute ist vorbei; es gilt der Sonnenaufgang morgen.
+    morgen = (dt_util.now() + timedelta(days=1)).date()
+    assert wert("naechste_entscheidung") == laufzeit.sonne(morgen)[0]
 
 
 async def test_auskuehlzeit_erscheint_mit_dem_hausmodell(hass, anlage, freezer):

@@ -405,7 +405,7 @@
         "name": "Laatste ingreep"
       },
       "automatik_naechste_entscheidung": {
-        "name": "Volgende beslissing"
+        "name": "Vroegste start"
       },
       "automatik_system_status": {
         "name": "Status",
@@ -428,7 +428,7 @@
         "name": "Laatste ingreep"
       },
       "automatik_system_naechste_entscheidung": {
-        "name": "Volgende beslissing"
+        "name": "Vroegste start"
       },
       "automatik_system_sonnentag_heute": {
         "name": "Duur zonnige dag vandaag"
