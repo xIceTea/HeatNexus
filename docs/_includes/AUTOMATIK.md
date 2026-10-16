@@ -188,6 +188,15 @@ weil sie sich nicht von der Heizung trennen lässt. Neue Vergleichstage kommen
 erst mit Stunden ohne Heizen dazu. Fehlt etwas, nennt die Kachel „Haus“ den
 Grund.
 
+Gelernt wird einmal am Tag kurz nach Mitternacht. Ein Neustart von Home
+Assistant lernt nur, wenn an diesem Tag noch kein Modell entstanden ist. Die
+Automatik legt die Lernstunden in einer eigenen Datei ab. So bleiben auch Tage
+im Lernfenster, die die Aufzeichnung schon gelöscht hat. Ein Tag, dessen
+Aufzeichnung erst nach Mitternacht beginnt, zählt nicht. Eine neue Auskühlzeit
+gilt erst, wenn die bisherige die neuen Stunden um mehr als 10 % schlechter
+trifft. Der Fehler ändert sich über die Auskühlzeit nur wenig; ohne diese
+Schwelle wechselt sie mit jedem Lernlauf.
+
 Zuerst beobachtet sie nur. Sie vergleicht ihre Vorhersage für die Stunden ohne
 Heizen mit dem gemessenen Raum und mit der Annahme, dass der Raum gleich bleibt.
 Beim ersten Lernen rechnet sie die vergangenen Tage nach: Jeder Tag zählt gegen
@@ -208,7 +217,8 @@ Fällt der Raum unter die Grenze oder deutlich unter die Vorhersage, kehrt der
 Heizkreis ins Programm zurück. Fehlt die Prognose oder verliert das Modell die
 Freigabe, verlängert die Automatik keine Stufe. Sie prüft die Räume dann wie
 bei der bisherigen Heizpause. „Hausmodell neu lernen“ in den Einstellungen
-verwirft das Modell und lernt aus der Aufzeichnung neu.
+verwirft das Modell und die abgelegten Stunden und lernt aus der Aufzeichnung
+neu. Andere Räume oder ein anderes Wetter wirken ebenso.
 
 ## Räume und ihr Ziel
 

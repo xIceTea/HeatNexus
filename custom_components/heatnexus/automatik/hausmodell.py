@@ -31,6 +31,9 @@ MAX_HEIZWIRKUNG = {"vorlauf": 0.1, "pumpe": 2.0}
 RASTER = 20
 MIN_AUSKUEHLZEIT_H = 2.0
 MAX_AUSKUEHLZEIT_H = 500.0
+# Die bisherige Auskühlzeit bleibt, solange sie die neuen Stunden höchstens so viel schlechter trifft.
+# Der Fehler ändert sich über τ nur flach; ohne diese Schwelle springt τ mit jedem Lernlauf.
+BEHALTEN_ANTEIL = 0.1
 
 
 @dataclass(frozen=True)
@@ -126,8 +129,11 @@ def _minimum(f: Any, a: float, b: float, schritte: int = 24) -> tuple[float, flo
     return (c, fc) if fc <= fd else (d, fd)
 
 
-def _anpassen(fehler: Any, oben: float) -> tuple[float, float] | None:
-    """Auskühlzeit im Raster, dazu der zweite Wert mit dem kleinsten Fehler; am Rand `None`."""
+def _anpassen(fehler: Any, oben: float, bisher: float | None = None) -> tuple[float, float] | None:
+    """Auskühlzeit im Raster, dazu der zweite Wert mit dem kleinsten Fehler; am Rand `None`.
+
+    Eine `bisher` gelernte Auskühlzeit bleibt, wenn sie kaum schlechter passt als die beste.
+    """
 
     def mit_bestem(log_tau: float) -> float:
         tau = math.exp(log_tau)
@@ -142,7 +148,11 @@ def _anpassen(fehler: Any, oben: float) -> tuple[float, float] | None:
         return None
     log_tau, _ = _minimum(mit_bestem, raster[best - 1], raster[best + 1], 16)
     tau = math.exp(log_tau)
-    k, _ = _minimum(lambda k: fehler(tau, k), 0.0, oben)
+    k, f = _minimum(lambda k: fehler(tau, k), 0.0, oben)
+    if bisher is not None and MIN_AUSKUEHLZEIT_H <= bisher <= MAX_AUSKUEHLZEIT_H:
+        k_bisher, f_bisher = _minimum(lambda k: fehler(bisher, k), 0.0, oben)
+        if f_bisher <= f * (1 + BEHALTEN_ANTEIL):
+            tau, k = bisher, k_bisher
     # Der goldene Schnitt erreicht den Rand nie genau; ein Rest nahe null ist null.
     return tau, 0.0 if k < oben * 1e-3 else k
 
@@ -160,7 +170,9 @@ def _heizwirkung(gut: list[Stunde], heiz_art: str, tau: float, sonne_k: float) -
     return max(0.0, sum(x * y for x, y in paare) / nenner)
 
 
-def _aus_heizstunden(stunden: list[Stunde], heiz_art: str, tage: int) -> Modell | None:
+def _aus_heizstunden(
+    stunden: list[Stunde], heiz_art: str, tage: int, bisher: float | None = None
+) -> Modell | None:
     """Ohne genug Stunden ohne Heizen: Auskühlzeit und Heizwirkung gemeinsam aus allen Stunden.
 
     Die Sonne lässt sich so nicht von der Heizung trennen und bleibt null.
@@ -169,21 +181,26 @@ def _aus_heizstunden(stunden: list[Stunde], heiz_art: str, tage: int) -> Modell 
     fenster = _fenster(laeufe)
     if sum(len(lauf) for lauf in laeufe) < MIN_STUNDEN_AUS:
         return None
-    passend = _anpassen(lambda tau, h: _laufen(tau, 0.0, h, fenster), MAX_HEIZWIRKUNG[heiz_art])
+    passend = _anpassen(
+        lambda tau, h: _laufen(tau, 0.0, h, fenster), MAX_HEIZWIRKUNG[heiz_art], bisher
+    )
     if passend is None or passend[1] <= 0:
         return None
     return Modell(passend[0], 0.0, 0.0, passend[1], heiz_art, tage)
 
 
-def lernen(stunden: list[Stunde], heiz_art: str, tage: int) -> Modell | None:
+def lernen(
+    stunden: list[Stunde], heiz_art: str, tage: int, bisher: float | None = None
+) -> Modell | None:
     """Auskühlzeit und Sonne aus den Stunden ohne Heizen, danach die Heizwirkung.
 
     Heizt der Heizkreis fast durchgehend, etwa im Winter, lernt es aus den Heizstunden.
     """
     if stunden_ohne_heizen(stunden, heiz_art) < MIN_STUNDEN_AUS:
-        return _aus_heizstunden(stunden, heiz_art, tage)
+        return _aus_heizstunden(stunden, heiz_art, tage, bisher)
     fenster = strecken(stunden, heiz_art)
-    if (passend := _anpassen(lambda tau, k: _laufen(tau, k, 0.0, fenster), MAX_SONNE_K_H)) is None:
+    passend = _anpassen(lambda tau, k: _laufen(tau, k, 0.0, fenster), MAX_SONNE_K_H, bisher)
+    if passend is None:
         return None
     tau, sonne_k = passend
     gut = [s for s in stunden if s.raum_danach is not None]
@@ -231,11 +248,13 @@ def nachrechnen(tage: list[list[Stunde]], heiz_art: str) -> tuple[list[float], l
     """Beide Fehlerreihen für vergangene Tage: jeder Tag gegen ein Modell aus den Tagen davor."""
     fehler: list[float] = []
     bleibt: list[float] = []
+    bisher = None
     for i in range(1, len(tage)):
         davor = tage[max(0, i - FREIGABE_TAGE) : i]
-        modell = lernen([s for tag in davor for s in tag], heiz_art, len(davor))
+        modell = lernen([s for tag in davor for s in tag], heiz_art, len(davor), bisher=bisher)
         if modell is None:
             continue
+        bisher = modell.auskuehlzeit_h
         mit = tagesfehler(modell, tage[i])
         ohne = tagesfehler_bleibt(tage[i], heiz_art)
         if mit is not None and ohne is not None:

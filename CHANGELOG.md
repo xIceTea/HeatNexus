@@ -30,6 +30,10 @@ wenn dort Vorabversionen zugelassen sind.
 - Jeder Anlagenteil hat eine Karte; das geltende Programm erscheint als Wochenraster.
 - Gleiche Temperaturen tragen in allen Programmen dieselbe Farbe.
 
+**Automatik**
+- Die Automatik legt die Lernstunden des Hausmodells selbst ab und behält zwei Wochen.
+- Eine neue Auskühlzeit gilt erst, wenn die bisherige deutlich schlechter passt.
+
 ### Behoben
 
 **Panel**
@@ -42,6 +46,9 @@ wenn dort Vorabversionen zugelassen sind.
 **Zeitprogramme**
 - Beide Zirkulationsprogramme bleiben sichtbar und lassen sich aktivieren.
 - Vorlaufprogramme ohne Optionstexte zeigen richtig an, wann sie gelten.
+
+**Automatik**
+- Ein Neustart von Home Assistant ändert die gelernte Auskühlzeit nicht mehr.
 
 ## [1.14.0-beta.3]
 

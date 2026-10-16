@@ -46,6 +46,20 @@ def test_wind_wird_nicht_gelernt(h):
     assert (m.wind_je_ms, m.wind_mittel) == (0.0, 0.0)
 
 
+def test_bisherige_auskuehlzeit_bleibt_wenn_sie_fast_so_gut_passt(h):
+    # Raumfühler mit 0,1 K Streuung: Die Fehlerkurve ist flach wie an echten Häusern.
+    stunden = _erzeugt(h, rauschen=0.1)
+    nah = h.lernen(stunden, "vorlauf", 10).auskuehlzeit_h * 1.05
+    m = h.lernen(stunden, "vorlauf", 10, bisher=nah)
+    assert m.auskuehlzeit_h == nah
+    assert m.sonne_k_h == pytest.approx(0.6, rel=0.2)
+
+
+def test_deutlich_schlechtere_auskuehlzeit_weicht_der_gelernten(h):
+    m = h.lernen(_erzeugt(h), "vorlauf", 10, bisher=5.0)
+    assert m.auskuehlzeit_h == pytest.approx(40.0, rel=0.15)
+
+
 def test_unsinnige_daten_ergeben_kein_modell(h):
     stunden = [h.Stunde(21.0, 21.0, 21.0, 0.0, None, 0.0)] * 50
     assert h.lernen(stunden, "vorlauf", 3) is None

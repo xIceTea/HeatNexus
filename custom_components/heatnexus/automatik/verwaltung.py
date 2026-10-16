@@ -38,6 +38,7 @@ from ..registrierung import (
 )
 from ..texte import woerterbuch
 from . import konfig as konfig_modul
+from . import lernablage
 from .laufzeit import SIGNAL_AKTUALISIERT, Laufzeit
 
 _LOGGER = logging.getLogger(__name__)
@@ -466,11 +467,11 @@ class Verwaltung:
     async def eintrag_entfernt(self, entry_id: str) -> None:
         """Einstellungen eines gelöschten Eintrags verwerfen."""
         await self.laden()
-        self._daten["heizkreise"] = {
-            device_id: eintrag
-            for device_id, eintrag in self._daten["heizkreise"].items()
-            if (eintrag.get("konfig") or {}).get("entry_id") != entry_id
-        }
+        kreise = self._daten["heizkreise"]
+        weg = [k for k, e in kreise.items() if (e.get("konfig") or {}).get("entry_id") == entry_id]
+        self._daten["heizkreise"] = {k: e for k, e in kreise.items() if k not in weg}
+        for device_id in weg:
+            await lernablage.entfernen(self.hass, device_id)
         await self._store.async_save(self._daten)
 
     # --- Bedienung -----------------------------------------------------------
@@ -571,6 +572,7 @@ class Verwaltung:
             laufzeit.stoppen()
             await laufzeit.zuruecknehmen()
             laufzeit.meldung_entfernen()
+        await lernablage.entfernen(self.hass, device_id)
         entry_id = ((self._daten["heizkreise"].pop(device_id, None) or {}).get("konfig") or {}).get(
             "entry_id"
         )

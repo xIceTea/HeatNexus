@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import replace
 from datetime import date, datetime, timedelta
+from functools import partial
 import logging
 from typing import Any, NamedTuple
 
@@ -13,7 +14,16 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
-from . import eingaben, hausmodell, nachladen, regel, tagesansicht, vorhersage, zeitprogramm
+from . import (
+    eingaben,
+    hausmodell,
+    lernablage,
+    nachladen,
+    regel,
+    tagesansicht,
+    vorhersage,
+    zeitprogramm,
+)
 
 _LOGGER = logging.getLogger(__name__)
 LERNTAGE = 14
@@ -102,6 +112,21 @@ def lernstunden(
     return ergebnis
 
 
+def _beginn(reihen: Reihen) -> datetime | None:
+    """Ab wann jede Reihe mit Verlauf einen Wert hat; davor hat der Recorder gelöscht."""
+    anfaenge = [r[0][0] for r in (*reihen.raeume, reihen.at, reihen.heizen) if r]
+    return max(anfaenge) if anfaenge else None
+
+
+def _volle_tage(
+    je_tag: dict[date, list[hausmodell.Stunde]], beginn: datetime | None
+) -> dict[date, list[hausmodell.Stunde]]:
+    """Nur Tage, deren Verlauf ab Mitternacht vorliegt; ein angeschnittener Tag verzerrt das Lernen."""
+    if beginn is None:
+        return je_tag
+    return {tag: s for tag, s in je_tag.items() if dt_util.start_of_local_day(tag) >= beginn}
+
+
 def _kurvenwert(kurve: tuple[tuple[str, float], ...], jetzt: datetime) -> float | None:
     """Der erwartete Raumwert zur laufenden Stunde: der letzte Punkt der Kurve bis jetzt."""
     werte = [wert for zeit, wert in kurve if datetime.fromisoformat(zeit) <= jetzt]
@@ -141,6 +166,9 @@ class VorausschauMixin:
         self.hausmodell = hausmodell.aus_dict(z.get("hausmodell"))
         tag = z.get("hausmodell_tag")
         self._fehler_tag: str | None = tag if isinstance(tag, str) else None
+        gelernt = z.get("hausmodell_gelernt")
+        self._modell_gelernt: str | None = gelernt if isinstance(gelernt, str) else None
+        self._ablage_weg: Any = None
         self._lernaufgabe: Any = None
         self.lern_grund: str | None = None
         self._vorhersage_zuletzt: vorhersage.Vorhersage | None = None
@@ -158,11 +186,19 @@ class VorausschauMixin:
         """Von vorn lernen, etwa nach geänderten Räumen; `sofort` startet den Lauf gleich."""
         self.hausmodell = None
         self._fehler_tag = None
+        self._modell_gelernt = None
         self._vorhersage_zuletzt = None
         self._vorhersage_bezug = None
+        self._ablage_weg = self.hass.async_create_task(
+            lernablage.entfernen(self.hass, self.device_id), f"heatnexus_ablage_{self.device_id}"
+        )
         self._speichern()
         if sofort:
             self._lernen_anstossen()
+
+    def heute_gelernt(self, heute: date) -> bool:
+        """Ob ein Modell von heute vorliegt; ein Neustart lernt dann nicht noch einmal."""
+        return self.hausmodell is not None and self._modell_gelernt == heute.isoformat()
 
     def _lernen_starten(self) -> None:
         """Einmal jetzt und danach täglich lernen."""
@@ -317,7 +353,8 @@ class VorausschauMixin:
         for art, heizer in quellen:
             reihen = self._reihen(zustaende, art, heizer)
             if any(wert is not None for _, wert in reihen.heizen):
-                return art, self._je_tag(reihen, art, _lernzeiten(jetzt.date()))
+                je_tag = self._je_tag(reihen, art, _lernzeiten(jetzt.date()))
+                return art, _volle_tage(je_tag, _beginn(reihen))
         return None
 
     def _mit_fehlern(
@@ -347,18 +384,25 @@ class VorausschauMixin:
         Ohne bisheriges Modell rechnet es die vergangenen Tage nach, statt 14 Tage zu sammeln.
         """
         daten = await self._lerndaten()
-        if daten is None or not daten[1]:
+        if daten is None:
             self.lern_grund = GRUND_DATEN
             return
-        heiz_art, stunden_je_tag = daten
+        heiz_art, stunden_je_tag = daten[0], await self._mit_ablage(*daten)
+        if not stunden_je_tag:
+            self.lern_grund = GRUND_DATEN
+            return
         tage = sorted(stunden_je_tag)
         alle = [s for tag in tage[:-1] for s in stunden_je_tag[tag]]
         ausfuehren = self.hass.async_add_executor_job
-        neu = await ausfuehren(hausmodell.lernen, alle, heiz_art, len(tage) - 1)
+        bisher = self.hausmodell.auskuehlzeit_h if self.hausmodell else None
+        neu = await ausfuehren(
+            partial(hausmodell.lernen, alle, heiz_art, len(tage) - 1, bisher=bisher)
+        )
         if neu is None:
             self.lern_grund = GRUND_UNPASSEND
             return
         self.lern_grund = None
+        self._modell_gelernt = dt_util.now().date().isoformat()
         if self.hausmodell is None:
             reihen = [stunden_je_tag[tag] for tag in tage]
             fehler, bleibt = await ausfuehren(hausmodell.nachrechnen, reihen, heiz_art)
@@ -367,6 +411,21 @@ class VorausschauMixin:
         else:
             self.hausmodell = self._mit_fehlern(neu, tage[-1], stunden_je_tag[tage[-1]])
         self._speichern()
+
+    async def _mit_ablage(
+        self, heiz_art: str, aus_verlauf: dict[date, list[hausmodell.Stunde]]
+    ) -> dict[date, list[hausmodell.Stunde]]:
+        """Der Verlauf, ergänzt um abgelegte Tage, die er nicht mehr ganz enthält; danach abgelegt."""
+        if self._ablage_weg is not None:
+            await self._ablage_weg
+            self._ablage_weg = None
+        heute = dt_util.now().date()
+        erster = heute - timedelta(days=LERNTAGE)
+        abgelegt = await lernablage.laden(self.hass, self.device_id, heiz_art)
+        tage = {t: s for t, s in abgelegt.items() if erster <= t < heute} | aus_verlauf
+        if tage:
+            await lernablage.sichern(self.hass, self.device_id, heiz_art, tage)
+        return tage
 
     # --- Vorhersage ----------------------------------------------------------
     def _zeitprogramm(self, betriebswahl: int | None) -> Any:

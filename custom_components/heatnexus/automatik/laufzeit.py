@@ -300,6 +300,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             "verworfen": self.verworfen,
             "hausmodell": hausmodell.als_dict(self.hausmodell) if self.hausmodell else None,
             "hausmodell_tag": self._fehler_tag,
+            "hausmodell_gelernt": self._modell_gelernt,
         }
 
     # --- Lebenszyklus --------------------------------------------------------
@@ -352,7 +353,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             self._nachladen = self.hass.async_create_background_task(
                 nachladen.heute_nachtragen(self.hass, self), f"heatnexus_automatik_{self.device_id}"
             )
-        if self._gelernt_am != heute:
+        if self._gelernt_am != heute and not self.heute_gelernt(heute):
             self._lernen_starten()
         else:
             self._abmelden.append(

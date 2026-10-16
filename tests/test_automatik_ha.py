@@ -2321,6 +2321,94 @@ async def test_hausmodell_lernt_und_schreibt_den_fehler_paarweise_fort(
     assert len(laufzeit.hausmodell.fehler) == nachgerechnet
 
 
+async def test_neustart_lernt_nur_ohne_modell_vom_selben_tag(hass, anlage, freezer, monkeypatch):
+    from datetime import timedelta
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import hausmodell
+    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+    laeufe = []
+
+    async def lernen(selbst):
+        laeufe.append(selbst)
+
+    monkeypatch.setattr(Laufzeit, "hausmodell_lernen", lernen)
+    heute = dt_util.now().date()
+    eintrag = hass.config_entries.async_entries("heatnexus")[0]
+    for gelernt, erwartet in ((heute, 0), (heute - timedelta(days=1), 1)):
+        laufzeit.hausmodell = hausmodell.Modell(40.0, 0.0, 0.6, 0.03, "vorlauf", 6)
+        laufzeit._modell_gelernt = gelernt.isoformat()
+        zustand = laufzeit.als_dict()
+        assert zustand["hausmodell_gelernt"] == gelernt.isoformat()
+        verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+        verwaltung._daten["heizkreise"][HEIZKREIS]["zustand"] = zustand
+        laeufe.clear()
+        await verwaltung._nachholen(eintrag)
+        await hass.async_block_till_done()
+        laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+        assert len(laeufe) == erwartet
+
+
+async def test_ablage_haelt_tage_die_die_aufzeichnung_nicht_mehr_hat(
+    hass, hass_storage, anlage, freezer, monkeypatch
+):
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.automatik import hausmodell
+
+    verwaltung, _ = anlage
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+    gelernt = []
+    echt = hausmodell.lernen
+
+    def lernen(stunden, art, tage, *weiter, **benannt):
+        gelernt.append(tage)
+        return echt(stunden, art, tage, *weiter, **benannt)
+
+    monkeypatch.setattr(hausmodell, "lernen", lernen)
+    alle = _lernstunden(7)
+    zuletzt = dict(sorted(alle.items())[-3:])
+    lieferung = {"art": "vorlauf", "tage": alle}
+
+    async def lerndaten():
+        return lieferung["art"], lieferung["tage"]
+
+    monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
+    await laufzeit.hausmodell_lernen()
+    schluessel = f"heatnexus.hausmodell_{HEIZKREIS}"
+    assert len(hass_storage[schluessel]["data"]["tage"]) == 7
+    assert laufzeit.als_dict()["hausmodell_gelernt"] == dt_util.now().date().isoformat()
+
+    lieferung["tage"] = zuletzt
+    await laufzeit.hausmodell_lernen()
+    assert gelernt[-1] == 6
+
+    # Gespeicherte Stunden einer anderen Heizart zählen nicht.
+    lieferung["art"] = "pumpe"
+    await laufzeit.hausmodell_lernen()
+    assert gelernt[-1] == 2
+
+    laufzeit.hausmodell_neu()
+    await hass.async_block_till_done()
+    assert schluessel not in hass_storage
+    assert laufzeit.als_dict()["hausmodell_gelernt"] is None
+
+    lieferung["art"] = "vorlauf"
+    await laufzeit.hausmodell_lernen()
+    assert schluessel in hass_storage
+    await verwaltung.entfernen(HEIZKREIS)
+    await hass.async_block_till_done()
+    assert schluessel not in hass_storage
+
+
 async def test_hausmodell_nennt_den_grund_ohne_modell(
     hass, hass_ws_client, anlage, freezer, monkeypatch
 ):
@@ -2467,6 +2555,35 @@ async def test_lerndaten_kommen_stundenweise_aus_dem_verlauf(
     assert erste[3].at == 5.0
     assert erste[3].sonne == 0.0
     assert erste[12].sonne > 0.0
+
+
+async def test_tag_ohne_aufzeichnung_ab_mitternacht_entfaellt(
+    hass, hass_ws_client, anlage, freezer, monkeypatch
+):
+    from datetime import timedelta
+
+    from homeassistant.core import State
+
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    aussen, vorlauf = _entitaeten(hass, [("sensor", "0-0-0"), ("sensor", "0-2-0")])
+    await _einrichten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    zeiten = _lernzeiten_im_test()
+    zustaende = _basis_zustaende(zeiten, aussen)
+    # Die Aufzeichnung des Raums beginnt erst 04:12; davor hat sie der Recorder gelöscht.
+    zustaende["sensor.wohnzimmer"] = [
+        State("sensor.wohnzimmer", "20.0", {}, last_updated=zeiten[4] + timedelta(minutes=12)),
+        *zustaende["sensor.wohnzimmer"][5:],
+    ]
+    zustaende[vorlauf] = [State(vorlauf, "40.0", {}, last_updated=zeiten[0])]
+    _verlauf_bereit(hass, monkeypatch, zustaende)
+
+    _, je_tag = await laufzeit._lerndaten()
+
+    assert len(je_tag) == 13
+    assert min(je_tag) == zeiten[24].date()
 
 
 async def test_ausfall_wird_nicht_mit_dem_letzten_wert_ueberbrueckt(
