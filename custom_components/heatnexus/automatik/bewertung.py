@@ -17,6 +17,7 @@ from .regel import (
     SAISON_RAUM_K,
     SONDERBETRIEB,
     SONNE_RAUM_K,
+    VORLAUF_UNTERGANG,
     Gedaechtnis,
     Lage,
     Zustand,
@@ -74,6 +75,13 @@ def _uhr(zeit: datetime | None) -> str | None:
     return None if zeit is None else zeit.strftime("%H:%M")
 
 
+def _beginn_schwelle(lage: Lage) -> str | None:
+    """Vor dem Fenster sein Beginn, danach sein Ende (Untergang − 2 h)."""
+    if lage.sonnenuntergang is not None and lage.jetzt >= lage.sonnenuntergang - VORLAUF_UNTERGANG:
+        return _uhr(lage.sonnenuntergang - VORLAUF_UNTERGANG)
+    return _uhr(lage.fruehester_beginn)
+
+
 def _ueber(wert: float | None, schwelle: float, gleich: bool = False) -> bool:
     if wert is None:
         return False
@@ -122,7 +130,7 @@ def _messen(lage: Lage, g: Gedaechtnis, w: Werte, zustand: Zustand) -> list[Bewe
         Bewertung("prognose", lage.prognose_ok),
         Bewertung("fenster", not lage.fenster_offen),
         Bewertung(
-            "beginn", sonne_im_fenster(lage), _uhr(lage.jetzt), _uhr(lage.fruehester_beginn), "uhr"
+            "beginn", sonne_im_fenster(lage), _uhr(lage.jetzt), _beginn_schwelle(lage), "uhr"
         ),
         Bewertung("sonne", _ueber(quote, sonne_ab, gleich=True), _rund(quote), sonne_ab, "%"),
         Bewertung("vorrang", bool(lage.vorrang_laeuft), _rund(lage.vorrang_minuten), None, "min"),
