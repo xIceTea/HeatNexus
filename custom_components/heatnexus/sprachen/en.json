@@ -418,7 +418,7 @@
   "So weit müssen die Räume über ihrem Ziel liegen, damit ein sehr sonniger Tag auf nur Warmwasser schaltet.": "The rooms must be this far above their target before a very sunny day switches to hot water only.",
   "So lange darf kein Thermostat Wärme angefordert haben, bevor die Automatik auf nur Warmwasser schaltet.": "No thermostat may have requested heat for this long before the automation switches to hot water only.",
   "Eco greift früher und kräftiger ein, Komfort später und sanfter. Ausgewogen nimmt die Werte der Heizflächen unverändert.": "Eco intervenes earlier and more strongly, comfort later and more gently. Balanced uses the values of the heating surfaces unchanged.",
-  "Sehr sonnig ab Räumen über Ziel": "Very sunny when rooms exceed target by",
+  "Sehr sonnig: Räume über Ziel ab": "Very sunny when rooms exceed target by",
   "Räume ruhig seit": "Rooms quiet for",
   "1 · Heizflächen und Ausrichtung": "1 · Heating surfaces and orientation",
   "Eco – früh und kräftig eingreifen": "Eco – intervene early and strongly",
