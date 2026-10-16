@@ -1094,5 +1094,5 @@
   "zählt": "telt",
   "hält": "houdt",
   "bleibt": "blijft",
-  "Kein Bezug: Die Betriebswahl steht auf keinem Programm.": "Geen referentie: de bedrijfsmodus staat niet op een programma."
+  "Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.": "Zonder programma in de bedrijfsmodus ontbreekt het setpoint waaraan de ruimtes worden gemeten."
 }

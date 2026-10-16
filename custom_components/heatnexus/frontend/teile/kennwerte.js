@@ -217,7 +217,7 @@ export const KennwerteMixin = (Basis) =>
       const fuss = [];
       if (raeume.length > 1 || k.eigene_ziele) fuss.push(this._raumliste(raeume));
       else if (vorhanden(k.soll)) fuss.push(knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) })));
-      else fuss.push(knoten("div", "fuss", this._t("Kein Bezug: Die Betriebswahl steht auf keinem Programm.")));
+      else fuss.push(knoten("div", "fuss", this._t("Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.")));
       return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, skala, fuss));
     }
 

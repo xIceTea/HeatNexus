@@ -1089,5 +1089,5 @@
   "zählt": "counting",
   "hält": "holding",
   "bleibt": "stays",
-  "Kein Bezug: Die Betriebswahl steht auf keinem Programm.": "No reference: the operating mode is not set to a program."
+  "Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.": "Without a program in the operating mode there is no setpoint to measure the rooms against."
 }
