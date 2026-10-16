@@ -55,6 +55,25 @@ def test_heizpause_misst_mit_den_schwellen_der_regel(mods):
     assert (liste["raeume"].schwelle, liste["raeume"].erfuellt) == (-0.5, True)
 
 
+def test_heizpause_markiert_nur_den_vermerkten_anlass(mods):
+    p, r, b = mods
+    w = p.werte(p.STANDARD)
+    # Gedämpfte AT und Tagesmittel sind erfüllt, die Pause trägt aber die Prognose.
+    stand = lage(r, at_gedaempft=19.5, mittel_heute=18.0, at_prognose=(19.0, 19.5))
+    liste = b.bewerten(stand, r.Gedaechtnis(), w, r.Zustand.HEIZPAUSE, anlass="at_prognose")
+    kern = {x.name for x in liste if x.entscheidend}
+    assert "at_prognose" in kern
+    assert not {"at_gedaempft", "tagesmittel"} & kern
+
+
+def test_ohne_vermerk_tragen_alle_erfuellten_anlaesse(mods):
+    p, r, b = mods
+    w = p.werte(p.STANDARD)
+    stand = lage(r, at_gedaempft=19.5, mittel_heute=18.0)
+    liste = b.bewerten(stand, r.Gedaechtnis(), w, r.Zustand.HEIZPAUSE)
+    assert {"at_gedaempft", "tagesmittel"} <= {x.name for x in liste if x.entscheidend}
+
+
 def test_im_programm_entscheidet_die_erste_unerfuellte(mods):
     p, r, b = mods
     stand = lage(r, jetzt=MORGEN.replace(hour=5))

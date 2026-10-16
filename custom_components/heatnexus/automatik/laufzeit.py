@@ -574,7 +574,13 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         angenommen: bool,
     ) -> None:
         """Den Lauf in den Regellauf schreiben; ohne Änderung entsteht keine Zeile."""
-        self.bewertungen = bewertung.bewerten(lage, self.gedaechtnis, self.werte, kandidat.zustand)
+        self.bewertungen = bewertung.bewerten(
+            lage,
+            self.gedaechtnis,
+            self.werte,
+            kandidat.zustand,
+            anlass=regel.anlass(kandidat.gedaechtnis),
+        )
         if self.anstehend is not None:
             ergebnis = "haelt" if self.anstehend.halten_bis else "zaehlt"
         elif not entscheidung.aktionen:

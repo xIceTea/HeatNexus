@@ -57,7 +57,8 @@ Die Karte **Regellauf** im Reiter Automatik zeigt jede Prüfung, bei der sich
 etwas ändert: die Bedingungen mit Wert und Haken, den Zählerstand und das
 Ergebnis. Sie hält die letzten 24 Stunden im Speicher und beginnt nach einem
 Neustart leer. Unter der Begründung des Heizkreises stehen die Bedingungen, die
-gerade entscheiden.
+gerade entscheiden. Bei einem Eingriff ist das der Anlass, der ihn auslöste, und
+die Bedingungen, die ihn zulassen.
 
 ## Die Heizgrenze der Steuerung
 

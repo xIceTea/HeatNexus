@@ -27,20 +27,18 @@ from .regel import (
     sonne_im_fenster,
 )
 
-# Bei einem Eingriff tragen ihn diese Bedingungen, soweit sie erfüllt sind.
-TRAGEND = {
-    Zustand.SONNENTAG: ("beginn", "sonne", "vorrang", "raeume", "programmwahl", "betriebsart"),
-    Zustand.HEIZPAUSE: (
-        "at_prognose",
-        "at_gedaempft",
-        "tagesmittel",
-        "sonne",
-        "vorrang",
-        "raeume",
-        "thermostate",
+# Bei einem Eingriff: die Anlässe, von denen einer ihn auslöst, und die Bedingungen, die ihn zulassen.
+TRAGEND: dict[Zustand, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    Zustand.SONNENTAG: (
+        ("sonne", "vorrang", "hausmodell"),
+        ("beginn", "raeume", "programmwahl", "betriebsart"),
     ),
-    Zustand.NUR_WW: ("at_gedaempft", "tagesmittel", "raeume", "thermostate"),
-    Zustand.ABWESEND: ("abwesend",),
+    Zustand.HEIZPAUSE: (
+        ("at_prognose", "at_gedaempft", "tagesmittel", "sonne", "vorrang", "raeume", "hausmodell"),
+        ("raeume", "thermostate"),
+    ),
+    Zustand.NUR_WW: (("at_gedaempft", "tagesmittel", "sonne"), ("raeume", "thermostate")),
+    Zustand.ABWESEND: (("abwesend",), ()),
 }
 # Sonst entscheidet die erste Bedingung dieser Reihe, die nicht erfüllt ist.
 REIHE = (
@@ -143,11 +141,29 @@ def _messen(lage: Lage, g: Gedaechtnis, w: Werte, zustand: Zustand) -> list[Bewe
     ]
 
 
-def bewerten(lage: Lage, g: Gedaechtnis, w: Werte, zustand: Zustand) -> tuple[Bewertung, ...]:
-    """Alle Bewertungen eines Laufs; `entscheidend` markiert, was den Zustand trägt oder verhindert."""
+def _traegt(
+    b: Bewertung, anlaesse: tuple[str, ...], bedingungen: tuple[str, ...], anlass: str | None
+) -> bool:
+    if b.name == anlass:
+        return True
+    # Ohne bekannten Anlass, etwa bei einem älteren Gedächtnis, gilt jeder erfüllte als tragend.
+    offen = anlass is None or anlass not in anlaesse
+    return b.erfuellt and (b.name in bedingungen or (offen and b.name in anlaesse))
+
+
+def bewerten(
+    lage: Lage, g: Gedaechtnis, w: Werte, zustand: Zustand, anlass: str | None = None
+) -> tuple[Bewertung, ...]:
+    """Alle Bewertungen eines Laufs; `entscheidend` markiert, was den Zustand trägt oder verhindert.
+
+    `anlass` ist der Name, den die Regel im Gedächtnis des Kandidaten vermerkt (`regel.anlass`).
+    """
     liste = _messen(lage, g, w, zustand)
     if (tragend := TRAGEND.get(zustand)) is not None:
-        return tuple(replace(b, entscheidend=b.erfuellt and b.name in tragend) for b in liste)
+        anlaesse, bedingungen = tragend
+        return tuple(
+            replace(b, entscheidend=_traegt(b, anlaesse, bedingungen, anlass)) for b in liste
+        )
     offen = {b.name for b in liste if not b.erfuellt}
     erste = next((name for name in REIHE if name in offen), None)
     return tuple(replace(b, entscheidend=b.name == erste) for b in liste)

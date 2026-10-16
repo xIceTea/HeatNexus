@@ -312,6 +312,23 @@ def _gemerkter_soll(g: Gedaechtnis) -> float | None:
     return None
 
 
+# Die Absenkung merkt sich, woher sie kommt; als Name der Bewertung, die sie trägt.
+_ANLASS_BEWERTUNG = {ANLASS_QUOTE: "sonne", ANLASS_VORRANG: "vorrang", ANLASS_MODELL: "hausmodell"}
+
+
+def anlass(g: Gedaechtnis) -> str | None:
+    """Welche Bewertung den Eingriff im Gedächtnis trägt; ohne Eingriff oder Vermerk `None`."""
+    if g.saison == NUR_WW:
+        if g.stark_bis is not None:
+            return "sonne"
+        return {"gedaempft": "at_gedaempft", "prognose": "tagesmittel"}.get(g.saison_grund or "")
+    if g.absenkung_art == ABWESEND:
+        return "abwesend"
+    if g.absenkung_art is None or g.absenkung_anlass is None:
+        return None
+    return _ANLASS_BEWERTUNG.get(g.absenkung_anlass, g.absenkung_anlass)
+
+
 def soll_bezug(lage: Lage, g: Gedaechtnis) -> float | None:
     """Raumsoll des Programms; während eigener Eingriffe der gemerkte."""
     gemerkt = _gemerkter_soll(g)
@@ -555,13 +572,15 @@ def _gleitend(lage: Lage, e: Entscheidung, soll: float, w: Werte) -> Entscheidun
         return e
     # Nach dem Zurückschalten steht die Betriebswahl wieder auf dem Programm.
     nachher = replace(lage, betriebswahl=min(PROGRAMMWAHL))
-    if not _pause_erlaubt(nachher, e.gedaechtnis, soll, w) or _pause_anlass(lage, soll, w) is None:
+    if not _pause_erlaubt(nachher, e.gedaechtnis, soll, w):
         return e
-    if (ziel := pause_soll(lage, w)) is None:
+    if (anlass := _pause_anlass(lage, soll, w)) is None or (ziel := pause_soll(lage, w)) is None:
         return e
     bis = nach_minuten(lage.jetzt, MAX_MINUTEN)
     text = f"{e.begruendung} Danach Heizpause, {_zahl(ziel)} °C bis {_uhr(bis)}."
-    pause = _pause_schreiben(lage, e.gedaechtnis, soll, ziel, text, erneuern=False)
+    pause = _pause_schreiben(
+        lage, e.gedaechtnis, soll, ziel, text, erneuern=False, anlass=anlass[0]
+    )
     return replace(pause, aktionen=(*e.aktionen, *pause.aktionen))
 
 
@@ -810,35 +829,37 @@ def bald_aus(lage: Lage, w: Werte) -> str | None:
     return f"AT laut Prognose über {_zahl(schwelle)} °C"
 
 
-def _pause_anlass(lage: Lage, soll: float, w: Werte) -> str | None:
+def _pause_anlass(lage: Lage, soll: float, w: Werte) -> tuple[str, str] | None:
+    """Was eine Heizpause trägt: Name der Bewertung und Text der Begründung."""
     schwelle = grenze(lage, w)
     if (bald := bald_aus(lage, w)) is not None:
-        return bald
+        return "at_prognose", bald
     if lage.at_steuerung is None:
         return None
     if lage.at_steuerung < schwelle - w.hysterese + PAUSE_EINSTIEG_K:
         return _pause_anlass_mild(lage, soll, w)
     if lage.at_gedaempft is not None and lage.at_gedaempft > schwelle + w.hysterese:
-        return f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C über {_zahl(schwelle + w.hysterese)} °C"
+        oben = _zahl(schwelle + w.hysterese)
+        return "at_gedaempft", f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C über {oben} °C"
     if lage.mittel_heute is not None and lage.mittel_heute >= schwelle:
-        return f"Tagesmittel heute {_zahl(lage.mittel_heute)} °C"
+        return "tagesmittel", f"Tagesmittel heute {_zahl(lage.mittel_heute)} °C"
     sonne_scheint = sonne_im_fenster(lage)
     if (
         sonne_scheint
         and lage.sonnenquote is not None
         and lage.sonnenquote >= w.sonnenquote + PAUSE_SONNE_PLUS
     ):
-        return f"Sonnenquote {lage.sonnenquote:.0f} %"
+        return "sonne", f"Sonnenquote {lage.sonnenquote:.0f} %"
     if lage.vorrang_laeuft and (lage.vorrang_minuten or 0.0) >= VORRANG_PAUSE_MINUTEN:
-        return f"{lage.vorrang_name or 'Vorrangquelle'} liefert"
+        return "vorrang", f"{lage.vorrang_name or 'Vorrangquelle'} liefert"
     return _pause_anlass_mild(lage, soll, w)
 
 
-def _pause_anlass_mild(lage: Lage, soll: float, w: Werte) -> str | None:
+def _pause_anlass_mild(lage: Lage, soll: float, w: Werte) -> tuple[str, str] | None:
     """Milde AT ohne Sonne: Nur Räume deutlich über Ziel, deren Thermostate nichts wollen, tragen die Pause."""
     if lage.ruhig is not True or (ueber := abweichung(lage, soll)) < w.stark_k:
         return None
-    return f"Räume {kelvin(ueber)} über Ziel"
+    return "raeume", f"Räume {kelvin(ueber)} über Ziel"
 
 
 def _pause_erlaubt(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> bool:
@@ -856,8 +877,16 @@ def _pause_erlaubt(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> bool:
 
 
 def _pause_schreiben(
-    lage: Lage, g: Gedaechtnis, soll: float, ziel: float, text: str, *, erneuern: bool
+    lage: Lage,
+    g: Gedaechtnis,
+    soll: float,
+    ziel: float,
+    text: str,
+    *,
+    erneuern: bool,
+    anlass: str | None = None,
 ) -> Entscheidung:
+    """Eine Heizpause schreiben; `anlass` ist der Name der Bewertung, die sie beginnt."""
     bis = nach_minuten(lage.jetzt, MAX_MINUTEN)
     basis = g if erneuern else ohne_absenkung(g)
     neu = replace(
@@ -867,7 +896,7 @@ def _pause_schreiben(
         absenkung_bis=bis,
         absenkung_basis=g.absenkung_basis if erneuern else soll,
         absenkung_soll=ziel,
-        absenkung_anlass=g.absenkung_anlass if erneuern else None,
+        absenkung_anlass=g.absenkung_anlass if erneuern else anlass,
     )
     aktion = Aktion("pause", soll=ziel, minuten=MAX_MINUTEN, erneuern=erneuern)
     return Entscheidung(Zustand.HEIZPAUSE, (aktion,), text, neu)
@@ -932,8 +961,9 @@ def _heizpause(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
     if (ziel := pause_soll(lage, w)) is None or _abwesend_tiefer(lage, g, soll, ziel):
         return None
     bis = nach_minuten(lage.jetzt, MAX_MINUTEN)
-    text = f"{anlass}: Heizpause, {_zahl(ziel)} °C bis {_uhr(bis)}."
-    return _pause_schreiben(lage, g, soll, ziel, text, erneuern=False)
+    name, grund = anlass
+    text = f"{grund}: Heizpause, {_zahl(ziel)} °C bis {_uhr(bis)}."
+    return _pause_schreiben(lage, g, soll, ziel, text, erneuern=False, anlass=name)
 
 
 def _text_stufe(v: Vorhersage) -> str:

@@ -1241,7 +1241,30 @@ def test_nach_der_rueckkehr_beginnt_heute_keine_neue_stufe(m, w, vh):
 def test_ohne_vorhersage_gilt_die_bisherige_regel(m, w):
     e = m.entscheiden(lage(m, **MILD), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.HEIZPAUSE  # wie test_milder_tag_beginnt_die_heizpause
-    assert e.gedaechtnis.absenkung_anlass is None
+    assert e.gedaechtnis.absenkung_anlass != m.ANLASS_MODELL
+
+
+def test_heizpause_vermerkt_ihren_anlass(m, w):
+    e = m.entscheiden(lage(m, **MILD), m.Gedaechtnis(), w)
+    assert m.anlass(e.gedaechtnis) == "tagesmittel"
+
+
+@pytest.mark.parametrize(
+    ("felder", "erwartet"),
+    [
+        ({"saison": "nur_ww", "saison_grund": "gedaempft"}, "at_gedaempft"),
+        ({"saison": "nur_ww", "saison_grund": "prognose"}, "tagesmittel"),
+        ({"saison": "nur_ww", "stark_bis": datetime(2026, 9, 27, 18, tzinfo=TZ)}, "sonne"),
+        ({"absenkung_art": "sonne", "absenkung_anlass": "quote"}, "sonne"),
+        ({"absenkung_art": "sonne", "absenkung_anlass": "vorrang"}, "vorrang"),
+        ({"absenkung_art": "pause", "absenkung_anlass": "modell"}, "hausmodell"),
+        ({"absenkung_art": "abwesend"}, "abwesend"),
+        ({"absenkung_art": "pause"}, None),
+        ({}, None),
+    ],
+)
+def test_anlass_aus_dem_gedaechtnis(m, felder, erwartet):
+    assert m.anlass(m.Gedaechtnis(**felder)) == erwartet
 
 
 def test_laufende_modellpause_mit_genug_rest_bleibt(m, w, vh):
