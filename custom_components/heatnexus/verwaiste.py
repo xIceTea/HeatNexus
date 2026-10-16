@@ -131,6 +131,15 @@ def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[
     return verwaist
 
 
+def liste(eintraege: list[er.RegistryEntry]) -> str:
+    """Eine Markdown-Zeile je Entität: Kennung, dahinter ihr Name, nach Kennung sortiert."""
+    zeilen = []
+    for eintrag in sorted(eintraege, key=lambda e: e.entity_id):
+        name = eintrag.name or eintrag.original_name
+        zeilen.append(f"- `{eintrag.entity_id}`" + (f" – {name}" if name else ""))
+    return "\n".join(zeilen)
+
+
 @callback
 def hinweis_pflegen(hass: HomeAssistant, entry: ConfigEntry, anzahl: int) -> None:
     """Den Reparatureintrag setzen oder zurücknehmen."""

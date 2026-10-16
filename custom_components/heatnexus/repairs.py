@@ -53,11 +53,16 @@ class VerwaisteFlow(RepairsFlow):
             verwaiste.entfernen(self.hass, eintrag, koordinatoren)
             return self.async_create_entry(title="", data={})
 
-        anzahl = len(verwaiste.finden(self.hass, eintrag, koordinatoren))
+        gefunden = verwaiste.finden(self.hass, eintrag, koordinatoren)
+        # Die Beschriftung steht übersetzt zwischen den beiden Platzhaltern; das HTML kommt von hier.
         return self.async_show_form(
             step_id="confirm",
             data_schema=vol.Schema({}),
-            description_placeholders={"anzahl": str(anzahl)},
+            description_placeholders={
+                "anzahl": str(len(gefunden)),
+                "liste_anfang": "<details><summary>",
+                "liste_ende": f"</summary>\n\n{verwaiste.liste(gefunden)}\n\n</details>",
+            },
         )
 
 

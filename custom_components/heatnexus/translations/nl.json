@@ -529,7 +529,7 @@
         "step": {
           "confirm": {
             "title": "Entiteiten zonder datapunt verwijderen",
-            "description": "De installatie levert voor {anzahl} entiteiten geen waarde meer. Ze zijn al uitgeschakeld en kosten geen opvraging.\n\nBij het verwijderen gaan je eigen naam, pictogram, ruimte en geschiedenis verloren. Levert de installatie de waarde weer, dan wordt de entiteit opnieuw aangemaakt."
+            "description": "De installatie levert voor {anzahl} entiteiten geen waarde meer. Ze zijn al uitgeschakeld en kosten geen opvraging.\n\nBij het verwijderen gaan je eigen naam, pictogram, ruimte en geschiedenis verloren. Levert de installatie de waarde weer, dan wordt de entiteit opnieuw aangemaakt.\n\n{liste_anfang}Entiteiten tonen{liste_ende}"
           }
         },
         "abort": {

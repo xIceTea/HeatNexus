@@ -144,7 +144,12 @@ async def test_der_reparaturablauf_entfernt_nach_bestaetigung(hass):
 
     formular = await ablauf.async_step_init()
     assert formular["step_id"] == "confirm"
-    assert formular["description_placeholders"] == {"anzahl": "1"}
+    platzhalter = formular["description_placeholders"]
+    assert platzhalter["anzahl"] == "1"
+    assert platzhalter["liste_anfang"] == "<details><summary>"
+    assert platzhalter["liste_ende"].startswith("</summary>\n\n")
+    assert f"- `{verwaist}`" in platzhalter["liste_ende"]
+    assert platzhalter["liste_ende"].endswith("\n\n</details>")
 
     ergebnis = await ablauf.async_step_confirm({})
     assert ergebnis["type"] is FlowResultType.CREATE_ENTRY
@@ -449,3 +454,13 @@ def test_ein_ersetzter_eintrag_wird_geloescht(domaene, kennung, erwartet):
 
     eintrag = SimpleNamespace(domain=domaene, unique_id=kennung)
     assert stilllegung.endgueltig_weg(eintrag, {}) is erwartet
+
+
+def test_die_liste_nennt_jede_entitaet_mit_namen(modul):
+    eintraege = [
+        SimpleNamespace(entity_id="sensor.b", name=None, original_name="Vorlauf"),
+        SimpleNamespace(entity_id="sensor.a", name="Eigener Name", original_name="Rücklauf"),
+        SimpleNamespace(entity_id="switch.c", name=None, original_name=None),
+    ]
+
+    assert modul.liste(eintraege) == "- `sensor.a` – Eigener Name\n- `sensor.b` – Vorlauf\n- `switch.c`"

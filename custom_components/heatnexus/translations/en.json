@@ -529,7 +529,7 @@
         "step": {
           "confirm": {
             "title": "Remove entities without a datapoint",
-            "description": "The system no longer provides a value for {anzahl} entities. They are already disabled and cost no request.\n\nRemoving them discards your own name, icon, area and history. If the system delivers the value again, the entity is created anew."
+            "description": "The system no longer provides a value for {anzahl} entities. They are already disabled and cost no request.\n\nRemoving them discards your own name, icon, area and history. If the system delivers the value again, the entity is created anew.\n\n{liste_anfang}Show entities{liste_ende}"
           }
         },
         "abort": {

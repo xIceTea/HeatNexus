@@ -529,7 +529,7 @@
         "step": {
           "confirm": {
             "title": "Entitäten ohne Datenpunkt entfernen",
-            "description": "Zu {anzahl} Entitäten liefert die Anlage keinen Wert mehr. Sie sind bereits abgeschaltet und kosten keine Abfrage.\n\nBeim Entfernen gehen eigener Name, Symbol, Bereichszuordnung und Verlauf verloren. Liefert die Anlage den Wert wieder, entsteht die Entität neu."
+            "description": "Zu {anzahl} Entitäten liefert die Anlage keinen Wert mehr. Sie sind bereits abgeschaltet und kosten keine Abfrage.\n\nBeim Entfernen gehen eigener Name, Symbol, Bereichszuordnung und Verlauf verloren. Liefert die Anlage den Wert wieder, entsteht die Entität neu.\n\n{liste_anfang}Entitäten anzeigen{liste_ende}"
           }
         },
         "abort": {
