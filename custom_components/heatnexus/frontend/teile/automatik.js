@@ -228,7 +228,7 @@ export const AutomatikMixin = (Basis) =>
           return [{ id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikEinladung(kreis, daten) }];
         }
         return [
-          { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikBereich(kreis, daten), breite: 2 },
+          { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikBereich(kreis, daten), breite: 3 },
           { id: `automatik-protokoll:${kreis.heizkreis}`, titel: "Protokoll", knoten: this._automatikProtokoll(kreis) },
         ];
       });
