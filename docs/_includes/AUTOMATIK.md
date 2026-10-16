@@ -53,11 +53,12 @@ das der Sonnenaufgang. Unter „Erweitert“ lässt sich eine feste Uhrzeit oder
 „Ohne Sperre“ wählen. Andere Anlässe, etwa eine milde Außentemperatur, gelten zu
 jeder Zeit.
 
-Die Karte **Regellauf** im Reiter Automatik zeigt jede Prüfung, bei der sich
-etwas ändert: die Bedingungen mit Wert und Haken, den Zählerstand und das
-Ergebnis. Sie hält die letzten 24 Stunden im Speicher und beginnt nach einem
-Neustart leer. Unter der Begründung des Heizkreises stehen die Bedingungen, die
-gerade entscheiden. Bei einem Eingriff ist das der Anlass, der ihn auslöste, und
+Zwischen zwei Einträgen im **Protokoll** steht eine aufklappbare Zeile mit den
+Läufen der Regel. Sie zeigt jede Prüfung, bei der sich etwas ändert: die
+Bedingungen mit Wert und Haken, den Zählerstand und das Ergebnis. Die Läufe der
+letzten 24 Stunden liegen im Speicher; nach einem Neustart beginnen sie leer.
+Unter der Begründung des Heizkreises stehen die Bedingungen, die gerade
+entscheiden. Bei einem Eingriff ist das der Anlass, der ihn auslöste, und
 die Bedingungen, die ihn zulassen.
 
 ## Die Heizgrenze der Steuerung

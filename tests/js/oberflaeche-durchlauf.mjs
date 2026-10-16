@@ -1412,6 +1412,53 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
 }
 
 // ---------------------------------------------------------------------------
+// Reiter „Automatik“: Läufe der Regel im Protokoll
+//
+// Läufe zwischen zwei Einträgen stehen als aufklappbare Zeile; offen bleibt offen.
+// ---------------------------------------------------------------------------
+{
+  const [kreis] = flaeche._automatik.heizkreise;
+  const lauf = (zeit, kandidat, ergebnis, zaehler = null) => ({
+    zeit, kandidat, zustand: "programm", zaehler, noetig: zaehler ? 3 : null, halten_bis: null, ergebnis,
+    bewertungen: [{ name: "sonne", erfuellt: true, wert: 78, schwelle: 60, einheit: "%", entscheidend: true }],
+  });
+  kreis.regellauf = [
+    lauf("2026-09-27T07:10:00+02:00", "sonnentag", "zaehlt", 2),
+    lauf("2026-09-27T07:05:00+02:00", "sonnentag", "zaehlt", 1),
+    lauf("2026-09-27T06:55:00+02:00", "programm", "bleibt"),
+  ];
+  const zeichnen = () => {
+    flaeche._gebaut = false;
+    flaeche._zeichnen();
+    clearInterval(flaeche._automatikUhr);
+    flaeche._automatikUhr = null;
+    return flaeche.shadowRoot.querySelectorAll(".automatik-protokollkarte")[0];
+  };
+  let karte = zeichnen();
+  const folge = () =>
+    karte
+      .querySelectorAll(".automatik-protokoll")
+      .filter((l) => !l.classList.contains("automatik-regellauf"))
+      .flatMap((l) => l.childNodes.map((li) => (li.classList.contains("automatik-laeufe") ? "laeufe" : "eintrag")));
+  const gruppen = () => karte.querySelectorAll(".automatik-laeufe");
+  const vorher = folge();
+  const texte = gruppen().map((g) => String(g.querySelector("summary").textContent || "").trim());
+  const zeilen = gruppen().map((g) => g.querySelector(".automatik-regellauf").childNodes.length);
+  const erste = gruppen()[0].querySelector("details");
+  erste.open = true;
+  erste.ausloesen("toggle");
+  karte = zeichnen();
+  bilanz.automatikLaeufe = {
+    folge: vorher,
+    texte,
+    zeilen,
+    offen: gruppen().map((g) => !!g.querySelector("details").open),
+    regellaufKarte: flaeche.shadowRoot.querySelectorAll(".kartenkopf").filter((k) => String(k.textContent || "").includes("Regellauf")).length,
+  };
+  kreis.regellauf = [];
+}
+
+// ---------------------------------------------------------------------------
 // Reiter „Automatik“: Modus „Manuell mit Empfehlung“
 //
 // Eine offene Empfehlung steht als Hinweis mit Knopf unter dem Kreis; der Knopf

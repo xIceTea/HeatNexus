@@ -950,6 +950,15 @@ def test_ja_nein_felder_der_einstellungen_sind_schalter(durchlauf):
     assert automatik["textVorn"] is True
 
 
+def test_laeufe_der_regel_stehen_aufklappbar_zwischen_den_eintraegen(durchlauf):
+    laeufe = durchlauf["automatikLaeufe"]
+    assert laeufe["folge"] == ["laeufe", "eintrag", "laeufe"]
+    assert laeufe["texte"] == ["2 Läufe · Sonnentag zählt · Zähler bis 2/3", "1 Lauf · Heizen nach Programm bleibt"]
+    assert laeufe["zeilen"] == [2, 1]
+    assert laeufe["offen"] == [True, False]
+    assert laeufe["regellaufKarte"] == 0
+
+
 def test_feste_uhrzeit_ist_nur_beim_beginn_nach_uhrzeit_bedienbar(durchlauf):
     # [gesperrt, Eingabe aus] vorher, nach „Feste Uhrzeit“, nach „Sonnenaufgang“.
     assert durchlauf["automatik"]["uhrzeitGesperrt"] == [[True, True], [False, False], [True, True]]

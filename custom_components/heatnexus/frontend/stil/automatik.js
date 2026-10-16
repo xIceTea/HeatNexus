@@ -428,6 +428,15 @@ export const AUTOMATIK = `
     padding: 10px 0; border-bottom: 1px solid var(--hn-flaeche); font-size: 13px; line-height: 1.45;
   }
   .automatik-protokoll li:last-child { border-bottom: none; }
+  .automatik-protokoll li.automatik-laeufe { display: block; padding: 6px 0 6px 60px; }
+  .automatik-laeufe summary {
+    display: flex; align-items: center; gap: 6px; list-style: none; cursor: pointer;
+    font-size: 12px; color: var(--hn-gedaempft);
+  }
+  .automatik-laeufe summary::-webkit-details-marker { display: none; }
+  .automatik-laeufe summary .pfeil { --mdc-icon-size: 16px; transform: rotate(-90deg); transition: transform 0.15s; }
+  .automatik-laeufe details[open] summary .pfeil { transform: none; }
+  .automatik-laeufe .automatik-regellauf { margin-top: 4px; padding-left: 10px; border-left: 2px solid var(--hn-linie); }
   .automatik-protokoll .zeit {
     color: var(--hn-gedaempft); font-variant-numeric: tabular-nums;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;

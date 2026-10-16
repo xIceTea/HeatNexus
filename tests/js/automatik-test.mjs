@@ -238,4 +238,14 @@ assert.ok(kastenWien.includes(`${zeit.uhr24(nachtUtc, "Europe/Vienna")} Wien`), 
 const { EINSTELLUNGSGRUPPEN } = await import(new URL("./einrichtung.js", pathToFileURL(process.argv[2])).href);
 const gruppiert = EINSTELLUNGSGRUPPEN.flatMap(([, namen]) => namen);
 for (const feld of FELDER) assert.equal(gruppiert.filter((n) => n === feld.name).length, 1, feld.name);
+// Läufe zwischen zwei Protokolleinträgen bilden eine Gruppe; der Schlüssel ist der ältere Eintrag.
+const { protokollMitLaeufen } = modul;
+const p = (zeit) => ({ zeit: `2026-10-16T${zeit}:00+02:00` });
+const reihe = protokollMitLaeufen([p("15:10"), p("13:55")], [p("15:20"), p("15:15"), p("14:00"), p("13:00")]);
+assert.deepEqual(
+  reihe.map((t) => (t.art === "eintrag" ? t.eintrag.zeit.slice(11, 16) : `${t.laeufe.length}@${t.schluessel === "anfang" ? "anfang" : t.schluessel.slice(11, 16)}`)),
+  ["2@15:10", "15:10", "1@13:55", "13:55", "1@anfang"]
+);
+assert.deepEqual(protokollMitLaeufen([], []), []);
+assert.deepEqual(protokollMitLaeufen([p("12:00")], []).map((t) => t.art), ["eintrag"]);
 console.log("ok");

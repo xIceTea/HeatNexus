@@ -17,8 +17,6 @@ export const VERALTET_STUNDEN = 12;
 export const AUTOMATIK_TAKT_MS = 60 * 1000;
 // So viele Protokolleinträge stehen, bis „Alle anzeigen“ den Rest aufklappt.
 const PROTOKOLL_KURZ = 8;
-// So viele Läufe stehen im Regellauf, bis „Alle anzeigen“ den Rest aufklappt.
-const REGELLAUF_KURZ = 20;
 // Diese Bewertungen tragen einen Code der Steuerung; die Marke zeigt nur Name und Haken.
 const CODES = new Set(["programmwahl", "betriebsart"]);
 
@@ -145,6 +143,29 @@ export function kelvin(wert) {
 }
 
 /** Ein Schalter ohne Text: Spur mit Knopf, eingeschaltet mit Haken. */
+/**
+ * Protokoll und Regellauf in einer Folge, neueste zuerst: Läufe zwischen zwei Einträgen bilden eine Gruppe.
+ * `schluessel` ist die Zeit des älteren Eintrags darunter, beim ältesten Abschnitt "anfang".
+ */
+export function protokollMitLaeufen(protokoll = [], laeufe = []) {
+  const folge = [];
+  let gruppe = [];
+  let j = 0;
+  const abschliessen = (schluessel) => {
+    if (gruppe.length) folge.push({ art: "laeufe", laeufe: gruppe, schluessel });
+    gruppe = [];
+  };
+  for (const eintrag of protokoll) {
+    const grenze = Date.parse(eintrag.zeit);
+    while (j < laeufe.length && Date.parse(laeufe[j].zeit) > grenze) gruppe.push(laeufe[j++]);
+    abschliessen(eintrag.zeit);
+    folge.push({ art: "eintrag", eintrag });
+  }
+  gruppe.push(...laeufe.slice(j));
+  abschliessen("anfang");
+  return folge;
+}
+
 export function schalterKnopf(an, darf, klein = false) {
   const schalter = document.createElement("button");
   schalter.type = "button";
@@ -209,7 +230,6 @@ export const AutomatikMixin = (Basis) =>
         return [
           { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikBereich(kreis, daten), breite: 2 },
           { id: `automatik-protokoll:${kreis.heizkreis}`, titel: "Protokoll", knoten: this._automatikProtokoll(kreis) },
-          { id: `automatik-regellauf:${kreis.heizkreis}`, titel: "Regellauf", knoten: this._automatikRegellauf(kreis) },
         ];
       });
     }
@@ -570,42 +590,62 @@ export const AutomatikMixin = (Basis) =>
       return zeile;
     }
 
-    /** Ein Eintrag je Lauf, in dem sich etwas änderte; neueste oben. */
-    _automatikRegellauf(kreis) {
-      const karte = this._karte("Regellauf");
-      karte.classList.add("automatik-protokollkarte");
-      const eintraege = kreis.regellauf || [];
-      this._automatikRegellaufAlle = this._automatikRegellaufAlle || new Set();
-      const alle = this._automatikAlleUmschalten(karte, this._automatikRegellaufAlle, kreis.heizkreis, eintraege.length > REGELLAUF_KURZ);
-      if (!eintraege.length) {
-        karte.appendChild(this._hinweisKnoten("Noch kein Lauf seit dem Start."));
-        return karte;
+    /** Ein Lauf der Regel: Zeit, Kandidat mit Zählerstand, Ergebnis und die Marken der Bewertungen. */
+    _automatikLaufZeile(e) {
+      const zeile = document.createElement("li");
+      const zeit = document.createElement("span");
+      zeit.className = "zeit";
+      zeit.textContent = uhrAus(e.zeit, this._hass);
+      const inhalt = document.createElement("div");
+      inhalt.className = "inhalt";
+      const kopfzeile = document.createElement("div");
+      const zaehler = e.zaehler ? ` ${e.zaehler}/${e.noetig}` : "";
+      kopfzeile.textContent = `${this._t(ZUSTAENDE[e.kandidat] || e.kandidat)}${zaehler}`;
+      const art = document.createElement("span");
+      art.className = `art ${e.ergebnis}`;
+      art.textContent = this._t(ERGEBNISSE[e.ergebnis] || e.ergebnis);
+      const marken = document.createElement("div");
+      marken.className = "automatik-kern";
+      // Der Server liefert je Zeile nur, was entscheidet oder sich gegenüber dem vorigen Lauf geändert hat.
+      (e.bewertungen || []).forEach((b) => marken.appendChild(this._bewertungMarke(b)));
+      inhalt.append(kopfzeile, art, marken);
+      zeile.append(zeit, inhalt);
+      return zeile;
+    }
+
+    /** Läufe zwischen zwei Protokolleinträgen als aufklappbare Zeile; offen bleibt offen beim Nachladen. */
+    _automatikLaeufe(kreis, gruppe) {
+      const zeile = document.createElement("li");
+      zeile.className = "automatik-laeufe";
+      const bereich = document.createElement("details");
+      const schluessel = `${kreis.heizkreis}|${gruppe.schluessel}`;
+      this._automatikLaeufeOffen = this._automatikLaeufeOffen || new Set();
+      bereich.open = this._automatikLaeufeOffen.has(schluessel);
+      bereich.addEventListener("toggle", () => {
+        if (bereich.open) this._automatikLaeufeOffen.add(schluessel);
+        else this._automatikLaeufeOffen.delete(schluessel);
+      });
+      const [neuester] = gruppe.laeufe;
+      const anzahl = gruppe.laeufe.length;
+      const teile = [
+        anzahl === 1 ? this._t("1 Lauf") : this._tMit("{zahl} Läufe", { zahl: anzahl }),
+        `${this._t(ZUSTAENDE[neuester.kandidat] || neuester.kandidat)} ${this._t(ERGEBNISSE[neuester.ergebnis] || neuester.ergebnis)}`,
+      ];
+      const gezaehlt = gruppe.laeufe.filter((e) => e.zaehler);
+      if (gezaehlt.length) {
+        const hoechster = gezaehlt.reduce((a, e) => (e.zaehler > a.zaehler ? e : a));
+        teile.push(this._tMit("Zähler bis {stand}", { stand: `${hoechster.zaehler}/${hoechster.noetig}` }));
       }
+      const kopf = document.createElement("summary");
+      const text = document.createElement("span");
+      text.textContent = teile.join(" · ");
+      kopf.append(this._symbolKnoten("mdi:chevron-down", "pfeil"), text);
       const liste = document.createElement("ul");
       liste.className = "automatik-protokoll automatik-regellauf";
-      (alle ? eintraege : eintraege.slice(0, REGELLAUF_KURZ)).forEach((e) => {
-        const zeile = document.createElement("li");
-        const zeit = document.createElement("span");
-        zeit.className = "zeit";
-        zeit.textContent = uhrAus(e.zeit, this._hass);
-        const inhalt = document.createElement("div");
-        inhalt.className = "inhalt";
-        const kopfzeile = document.createElement("div");
-        const zaehler = e.zaehler ? ` ${e.zaehler}/${e.noetig}` : "";
-        kopfzeile.textContent = `${this._t(ZUSTAENDE[e.kandidat] || e.kandidat)}${zaehler}`;
-        const art = document.createElement("span");
-        art.className = `art ${e.ergebnis}`;
-        art.textContent = this._t(ERGEBNISSE[e.ergebnis] || e.ergebnis);
-        const marken = document.createElement("div");
-        marken.className = "automatik-kern";
-        // Der Server liefert je Zeile nur, was entscheidet oder sich gegenüber dem vorigen Lauf geändert hat.
-        (e.bewertungen || []).forEach((b) => marken.appendChild(this._bewertungMarke(b)));
-        inhalt.append(kopfzeile, art, marken);
-        zeile.append(zeit, inhalt);
-        liste.appendChild(zeile);
-      });
-      karte.appendChild(liste);
-      return karte;
+      gruppe.laeufe.forEach((e) => liste.appendChild(this._automatikLaufZeile(e)));
+      bereich.append(kopf, liste);
+      zeile.appendChild(bereich);
+      return zeile;
     }
 
     /** „Alle anzeigen“ im Kartenkopf einer langen Liste; gibt zurück, ob gerade alle sichtbar sind. */
@@ -628,48 +668,60 @@ export const AutomatikMixin = (Basis) =>
     }
 
     // --- Protokoll -----------------------------------------------------
-    /** Einträge nach Tagen: Heute, Gestern, dann das Datum; lange Listen zeigen erst die jüngsten. */
+    /** Einträge nach Tagen: Heute, Gestern, dann das Datum; dazwischen die Läufe der Regel, aufklappbar. */
     _automatikProtokoll(kreis) {
       const karte = this._karte("Protokoll");
       karte.classList.add("automatik-protokollkarte");
-      const eintraege = kreis.protokoll || [];
+      const folge = protokollMitLaeufen(kreis.protokoll || [], kreis.regellauf || []);
+      // Gekürzt wird nach Protokolleinträgen; Läufe darüber bleiben sichtbar.
+      let ende = 0;
+      for (let gezaehlt = 0; ende < folge.length && gezaehlt < PROTOKOLL_KURZ; ende += 1) {
+        if (folge[ende].art === "eintrag") gezaehlt += 1;
+      }
       this._automatikProtokollAlle = this._automatikProtokollAlle || new Set();
-      const alle = this._automatikAlleUmschalten(karte, this._automatikProtokollAlle, kreis.heizkreis, eintraege.length > PROTOKOLL_KURZ);
-      if (!eintraege.length) karte.appendChild(this._hinweisKnoten("Noch keine Entscheidung."));
-      const zone = zeitzone(this._hass);
-      const heute = kalendertagIn(Date.now(), zone);
-      const gestern = kalendertagIn(Date.now() - 86400000, zone);
+      const alle = this._automatikAlleUmschalten(karte, this._automatikProtokollAlle, kreis.heizkreis, folge.length > ende);
+      if (!folge.length) karte.appendChild(this._hinweisKnoten("Noch keine Entscheidung."));
       let liste = null;
       let letzterTag = null;
-      (alle ? eintraege : eintraege.slice(0, PROTOKOLL_KURZ)).forEach((eintrag) => {
-        const datum = new Date(eintrag.zeit);
-        const tag = kalendertagIn(datum, zone);
+      (alle ? folge : folge.slice(0, ende)).forEach((teil) => {
+        const datum = new Date(teil.art === "eintrag" ? teil.eintrag.zeit : teil.laeufe[0].zeit);
+        const tag = kalendertagIn(datum, zeitzone(this._hass));
         if (tag !== letzterTag) {
           letzterTag = tag;
-          const ueberschrift = document.createElement("h4");
-          ueberschrift.className = "automatik-protokolltag";
-          if (tag === heute) ueberschrift.textContent = this._t("Heute");
-          else if (tag === gestern) ueberschrift.textContent = this._t("Gestern");
-          else ueberschrift.textContent = tagMonat(datum, zone);
           liste = document.createElement("ul");
           liste.className = "automatik-protokoll";
-          karte.append(ueberschrift, liste);
+          karte.append(this._automatikProtokollTag(datum), liste);
         }
-        const zeile = document.createElement("li");
-        const zeit = document.createElement("span");
-        zeit.className = "zeit";
-        zeit.textContent = uhrAus(datum, this._hass);
-        const inhalt = document.createElement("div");
-        inhalt.className = "inhalt";
-        const text = document.createElement("div");
-        text.textContent = eintrag.text;
-        const art = document.createElement("span");
-        art.className = `art ${eintrag.art}`;
-        art.textContent = this._t(PROTOKOLL_ARTEN[eintrag.art] || eintrag.art);
-        inhalt.append(text, art);
-        zeile.append(zeit, inhalt);
-        liste.appendChild(zeile);
+        liste.appendChild(teil.art === "eintrag" ? this._automatikProtokollZeile(teil.eintrag) : this._automatikLaeufe(kreis, teil));
       });
       return karte;
+    }
+
+    _automatikProtokollTag(datum) {
+      const zone = zeitzone(this._hass);
+      const tag = kalendertagIn(datum, zone);
+      const ueberschrift = document.createElement("h4");
+      ueberschrift.className = "automatik-protokolltag";
+      if (tag === kalendertagIn(Date.now(), zone)) ueberschrift.textContent = this._t("Heute");
+      else if (tag === kalendertagIn(Date.now() - 86400000, zone)) ueberschrift.textContent = this._t("Gestern");
+      else ueberschrift.textContent = tagMonat(datum, zone);
+      return ueberschrift;
+    }
+
+    _automatikProtokollZeile(eintrag) {
+      const zeile = document.createElement("li");
+      const zeit = document.createElement("span");
+      zeit.className = "zeit";
+      zeit.textContent = uhrAus(new Date(eintrag.zeit), this._hass);
+      const inhalt = document.createElement("div");
+      inhalt.className = "inhalt";
+      const text = document.createElement("div");
+      text.textContent = eintrag.text;
+      const art = document.createElement("span");
+      art.className = `art ${eintrag.art}`;
+      art.textContent = this._t(PROTOKOLL_ARTEN[eintrag.art] || eintrag.art);
+      inhalt.append(text, art);
+      zeile.append(zeit, inhalt);
+      return zeile;
     }
   };
