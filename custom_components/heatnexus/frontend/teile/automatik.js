@@ -19,6 +19,8 @@ export const AUTOMATIK_TAKT_MS = 60 * 1000;
 const PROTOKOLL_KURZ = 8;
 // So viele Läufe stehen im Regellauf, bis „Alle anzeigen“ den Rest aufklappt.
 const REGELLAUF_KURZ = 20;
+// Diese Bewertungen tragen einen Code der Steuerung; die Marke zeigt nur Name und Haken.
+const CODES = new Set(["programmwahl", "betriebsart"]);
 
 export const FELDER = [
   { name: "grenze_versatz", hilfe: "Die Automatik richtet sich nach der Heizgrenze der Steuerung (TA Heizbetrieb) und verschiebt sie um diesen Wert. Negativ schaltet früher auf nur Warmwasser. Die Ausrichtung setzt ihn; hier lässt er sich fein einstellen.", titel: "Abstand zur Heizgrenze", einheit: "K", schritt: 0.5 },
@@ -91,7 +93,7 @@ export const BEWERTUNGEN = {
   at_gedaempft: "Gedämpfte AT",
   tagesmittel: "Tagesmittel",
   at_prognose: "AT-Prognose",
-  programmwahl: "Programm",
+  programmwahl: "Betriebswahl",
   betriebsart: "Betriebsart",
   abwesend: "Abwesend",
   hausmodell: "Hausmodell",
@@ -535,7 +537,9 @@ export const AutomatikMixin = (Basis) =>
       const marke = document.createElement("span");
       marke.className = `bewertung ${b.erfuellt ? "ja" : "nein"}${b.entscheidend ? " kern" : ""}`;
       const einheit = b.einheit && b.einheit !== "uhr" ? ` ${b.einheit}` : "";
-      const wert = typeof b.wert === "number" ? `${zahl(b.wert)}${einheit}` : b.wert ?? "";
+      const roh = CODES.has(b.name) ? null : b.wert;
+      const stellen = b.einheit === "%" || b.einheit === "min" ? 0 : 1;
+      const wert = typeof roh === "number" ? `${zahl(roh, stellen)}${einheit}` : roh ?? "";
       const name = this._t(BEWERTUNGEN[b.name] || b.name);
       marke.textContent = [name, wert, b.erfuellt ? "✓" : "✗"].filter((teil) => teil !== "").join(" ");
       if (b.schwelle !== null && b.schwelle !== undefined) {
@@ -596,7 +600,7 @@ export const AutomatikMixin = (Basis) =>
       }
       const liste = document.createElement("ul");
       liste.className = "automatik-protokoll automatik-regellauf";
-      (alle ? eintraege : eintraege.slice(0, REGELLAUF_KURZ)).forEach((e) => {
+      (alle ? eintraege : eintraege.slice(0, REGELLAUF_KURZ)).forEach((e, i) => {
         const zeile = document.createElement("li");
         const zeit = document.createElement("span");
         zeit.className = "zeit";
@@ -611,7 +615,11 @@ export const AutomatikMixin = (Basis) =>
         art.textContent = this._t(ERGEBNISSE[e.ergebnis] || e.ergebnis);
         const marken = document.createElement("div");
         marken.className = "automatik-kern";
-        (e.bewertungen || []).forEach((b) => marken.appendChild(this._bewertungMarke(b)));
+        // Je Zeile nur, was entscheidet oder sich gegenüber dem vorigen Lauf geändert hat.
+        const vorher = new Map(((eintraege[i + 1] || {}).bewertungen || []).map((b) => [b.name, b.erfuellt]));
+        (e.bewertungen || [])
+          .filter((b) => b.entscheidend || (vorher.has(b.name) && vorher.get(b.name) !== b.erfuellt))
+          .forEach((b) => marken.appendChild(this._bewertungMarke(b)));
         inhalt.append(kopfzeile, art, marken);
         zeile.append(zeit, inhalt);
         liste.appendChild(zeile);

@@ -107,7 +107,10 @@ def _temperaturen(lage: Lage, w: Werte) -> list[Bewertung]:
 
 def _messen(lage: Lage, g: Gedaechtnis, w: Werte) -> list[Bewertung]:
     soll = soll_bezug(lage, g)
-    abstand = abweichung(lage, soll) if soll is not None and lage.raeume else None
+    # Ohne Programm meldet `1/1` den Frostschutz; gegen ihn gemessen sagt der Raum nichts.
+    gemerkt = soll is not None and soll != lage.soll
+    gueltig = soll is not None and (lage.betriebswahl in PROGRAMMWAHL or gemerkt)
+    abstand = abweichung(lage, soll) if gueltig and lage.raeume else None
     quote = lage.sonnenquote
     return [
         Bewertung("daten", lage.daten_ok and lage.raum is not None),

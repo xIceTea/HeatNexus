@@ -59,3 +59,24 @@ def test_kern_liefert_nur_entscheidende_als_dict(mods):
     kern = b.kern(liste)
     assert kern
     assert all(e["entscheidend"] for e in kern)
+
+
+def test_ohne_programm_bewerten_die_raeume_keinen_frostschutz(mods):
+    p, r, b = mods
+    stand = lage(r, soll=4.9, betriebswahl=6)
+    raeume = next(
+        x
+        for x in b.bewerten(stand, r.Gedaechtnis(), p.werte(p.STANDARD), r.Zustand.PROGRAMM)
+        if x.name == "raeume"
+    )
+    assert (raeume.wert, raeume.erfuellt) == (None, False)
+
+
+def test_im_nur_warmwasser_der_automatik_gilt_der_gemerkte_sollwert(mods):
+    p, r, b = mods
+    g = r.Gedaechtnis(saison=r.NUR_WW, saison_soll=21.0)
+    stand = lage(r, soll=4.9, betriebswahl=6)
+    raeume = next(
+        x for x in b.bewerten(stand, g, p.werte(p.STANDARD), r.Zustand.NUR_WW) if x.name == "raeume"
+    )
+    assert raeume.wert == 0.4
