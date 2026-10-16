@@ -193,9 +193,8 @@ Assistant lernt nur, wenn an diesem Tag noch kein Modell entstanden ist. Die
 Automatik legt die Lernstunden in einer eigenen Datei ab. So bleiben auch Tage
 im Lernfenster, die die Aufzeichnung schon gelöscht hat. Fehlen der
 Aufzeichnung Stunden eines Tages, gilt der vollständige Tag aus der Ablage.
-Eine neue Auskühlzeit
-gilt erst, wenn die bisherige die neuen Stunden um mehr als 10 % schlechter
-trifft. Der Fehler ändert sich über die Auskühlzeit nur wenig; ohne diese
+Eine neue Auskühlzeit gilt erst, wenn die bisherige die neuen Stunden um mehr
+als 10 % schlechter trifft. Der Fehler ändert sich über die Auskühlzeit nur wenig; ohne diese
 Schwelle wechselt sie mit jedem Lernlauf.
 
 Zuerst beobachtet sie nur. Sie vergleicht ihre Vorhersage für die Stunden ohne
@@ -219,7 +218,8 @@ Heizkreis ins Programm zurück. Fehlt die Prognose oder verliert das Modell die
 Freigabe, verlängert die Automatik keine Stufe. Sie prüft die Räume dann wie
 bei der bisherigen Heizpause. „Hausmodell neu lernen“ in den Einstellungen
 verwirft das Modell und die abgelegten Stunden und lernt aus der Aufzeichnung
-neu. Andere Räume oder ein anderes Wetter wirken ebenso.
+neu. Dasselbe geschieht, wenn in der Einrichtung andere Räume oder ein anderes
+Wetter gewählt werden.
 
 ## Räume und ihr Ziel
 

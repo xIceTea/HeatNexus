@@ -20,6 +20,17 @@ wenn dort Vorabversionen zugelassen sind.
 **Zeitprogramme**
 - Der Streifen „Heute“ zeigt je Anlagenteil den geltenden Wert und den nächsten Wechsel.
 
+**Automatik**
+- Die Automatik prüft alle fünf Minuten statt einmal am Morgen.
+- Ein Wechsel beginnt erst nach mehreren gleichen Prüfungen und hält danach eine Weile.
+- „Frühester Beginn“ legt fest, ab wann die Sonne einen Eingriff auslöst.
+- Eine Heizpause beginnt auch, wenn die Steuerung laut Prognose bald selbst abschaltet.
+- Unter der Begründung stehen die Bedingungen, die gerade entscheiden.
+- Das Protokoll zeigt die Läufe der Regel aufklappbar zwischen den Einträgen.
+
+**Reparaturen**
+- „Entitäten ohne Datenpunkt“ listet die betroffenen Entitäten aufklappbar.
+
 ### Geändert
 
 **Panel**
@@ -33,6 +44,9 @@ wenn dort Vorabversionen zugelassen sind.
 **Automatik**
 - Die Automatik legt die Lernstunden des Hausmodells selbst ab und behält zwei Wochen.
 - Eine neue Auskühlzeit gilt erst, wenn die bisherige deutlich schlechter passt.
+- Die Einstellungen fassen beide Benachrichtigungen in einer Gruppe zusammen.
+- Die feste Uhrzeit ist nur bedienbar, wenn sie als frühester Beginn gewählt ist.
+- Die Karte der Automatik ist ab Werk drei Spalten breit.
 
 ### Behoben
 
@@ -49,6 +63,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 **Automatik**
 - Ein Neustart von Home Assistant ändert die gelernte Auskühlzeit nicht mehr.
+- Ein Moduswechsel in der Nacht schreibt keine Vorgabe über den Komfortbeginn hinaus.
+- Die Sonnenquote löst vor Sonnenaufgang keine Heizpause mehr aus.
+- „Räume zum Ziel“ misst ohne Programm nicht mehr gegen den Frostschutz-Sollwert.
+- Skalenbeschriftungen bleiben in schmalen Kacheln innerhalb des Rahmens.
 
 ## [1.14.0-beta.3]
 
