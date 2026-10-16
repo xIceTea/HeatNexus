@@ -68,7 +68,7 @@ heißt so lange „Warmwasser laden abbrechen". Erkannt wird das an der
 Betriebsart oder an der Freigabe der Einmalladung. Die Freigabe steht bis zum
 Ende der Ladung auf Ja, auch wenn eine Vorgabe auf Zeit die Betriebsart belegt.
 
-**Automatik.** Ein Sonnentag im Winter: Die Automatik hat um 07:00 die
+**Automatik.** Ein Sonnentag im Winter: Die Automatik hat am Morgen die
 Sonnenquote geprüft und den Sollwert bis zum Nachmittag abgesenkt. Die Kacheln
 zeigen Außentemperatur, Sonne und die Räume gegen ihr Ziel. Darunter steht der
 Tagesverlauf mit Stundenraster und Vorschau auf morgen und übermorgen.

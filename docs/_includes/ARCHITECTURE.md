@@ -194,7 +194,8 @@ Laufs entsteht eine Entscheidung mit Begründung. `eingaben.py`, `konfig.py`,
 `profile.py` und `korrektur.py` kommen ebenfalls ohne Home Assistant aus.
 
 - `laufzeit.py` sammelt die Eingänge und stößt die Regel im Fünf-Minuten-Takt
-  und zu den Entscheidungszeiten an.
+  an. `dynamik.py` lässt einen Wechsel erst nach mehreren gleichen Takten
+  gelten; `bewertung.py` und `regellauf.py` halten fest, was geprüft wurde.
 - `steller.py` schreibt an die Steuerung. Er prüft Budget, Beobachtungsmodus
   und Handeingriffe.
 - `verwaltung.py` hält Einstellungen und Zustand im Store `heatnexus.automatik`.

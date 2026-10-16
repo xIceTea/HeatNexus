@@ -7,7 +7,7 @@ Temperaturfühler aus Home Assistant, die Wetterprognose und auf Wunsch eine
 PV-Prognose dazu. Sie regelt nicht selbst, sondern verschiebt, was die Anlage
 ohnehin tut:
 
-- **Sonnentag.** Zur Entscheidungszeit prüft sie die Sonnenquote des Tages. Ist
+- **Sonnentag.** Ab dem frühesten Beginn prüft sie die Sonnenquote des Tages. Ist
   sie hoch genug und der Raum warm genug, senkt sie den Sollwert befristet ab,
   auf demselben Weg wie Eco in der Steuerung. Die Absenkung endet an der Anlage
   von selbst, spätestens zwei Stunden vor Sonnenuntergang. Fällt der Raum unter
@@ -28,11 +28,36 @@ ohnehin tut:
   Raumsollwert knapp unter die Außentemperatur der Steuerung. Die Steuerung
   schaltet den Heizkreis damit ab und nimmt ihn bei Kälte wieder in Betrieb.
   Auslöser sind eine gedämpfte Außentemperatur über der Heizgrenze, ein
-  Tagesmittel ab der Heizgrenze, starke Sonne oder eine laufende
+  Tagesmittel ab der Heizgrenze, eine Prognose, nach der die Steuerung in den
+  nächsten zwei Stunden selbst abschaltet, starke Sonne oder eine laufende
   Vorrangquelle. Die Vorgabe läuft ab. Die Automatik erneuert sie nur,
   solange die Pause passt.
 - **Abwesenheit und Fenster** sind freiwillig. Sind alle Personen weg, senkt
   sie ab. Ein offenes Fenster setzt die Entscheidungen aus.
+
+## Takt und Ruhe
+
+Die Automatik prüft alle fünf Minuten. Ein Eingriff beginnt erst, wenn mehrere
+Prüfungen in Folge dasselbe ergeben. Er endet ebenso erst nach mehreren gleichen
+Prüfungen. Nach jedem Wechsel bleibt der neue Zustand eine Mindestzeit bestehen.
+Kalte Räume, fordernde Thermostate und die Sicherheitsregel wirken sofort.
+
+| Profil | Beginn nach | Ende nach | Halten |
+|---|---|---|---|
+| Schnell | 2 Prüfungen | 4 Prüfungen | 30 min |
+| Standard | 3 Prüfungen | 6 Prüfungen | 60 min |
+| Träge | 4 Prüfungen | 8 Prüfungen | 90 min |
+
+Die Sonne löst einen Eingriff erst ab dem **frühesten Beginn** aus. Ab Werk ist
+das der Sonnenaufgang. Unter „Erweitert“ lässt sich eine feste Uhrzeit oder
+„Ohne Sperre“ wählen. Andere Anlässe, etwa eine milde Außentemperatur, gelten zu
+jeder Zeit.
+
+Die Karte **Regellauf** im Reiter Automatik zeigt jede Prüfung, bei der sich
+etwas ändert: die Bedingungen mit Wert und Haken, den Zählerstand und das
+Ergebnis. Sie hält die letzten 24 Stunden im Speicher und beginnt nach einem
+Neustart leer. Unter der Begründung des Heizkreises stehen die Bedingungen, die
+gerade entscheiden.
 
 ## Die Heizgrenze der Steuerung
 
@@ -91,9 +116,8 @@ Der Modus bestimmt, was die Automatik mit ihrer Entscheidung tut:
 - **Automatisch** schreibt jede Entscheidung selbst.
 
 Ein Wechsel weg von „Automatisch“ nimmt laufende Eingriffe der Automatik
-zurück, und die Regel rechnet sofort neu. Im Modus „Manuell mit Empfehlung“
-erscheint dann gleich die passende Empfehlung, im Beobachten der vorgemerkte
-Eingriff.
+zurück, und die Regel rechnet sofort neu. Eine Empfehlung oder ein
+vorgemerkter Eingriff folgt nach den nötigen Prüfungen.
 
 Weitere Regeln:
 
@@ -216,10 +240,10 @@ Vorrang vor dem Kessel hat, etwa eine Solaranlage oder ein Heizstab am
 PV-Überschuss. Ob eine Quelle Vorrang bekommt, entscheidet jede Anlage selbst;
 ab Werk ist keine gewählt.
 
-- Liefert eine gewählte Quelle zur Entscheidungszeit, gilt der Tag als
-  Sonnentag, auch wenn die Prognose vorsichtiger ist.
-- Beginnt eine gewählte Quelle zu liefern, entscheidet die Automatik sofort
-  neu, einmal am Tag, statt bis zur nächsten Entscheidungszeit zu warten.
+- Liefert eine gewählte Quelle, gilt der Tag als Sonnentag, auch wenn die
+  Prognose vorsichtiger ist. Der früheste Beginn gilt dafür nicht.
+- Beginnt eine gewählte Quelle zu liefern, prüft die Automatik sofort, statt
+  bis zur nächsten Prüfung im Takt zu warten.
 - Hat vier Stunden nach Beginn einer Absenkung keine gewählte Quelle Wärme
   geliefert, beendet die Automatik die Absenkung.
 - Die Sonnen-Kachel nennt, ob eine Quelle liefert oder wie lange heute schon.
@@ -238,7 +262,7 @@ bündelt alle Automatiken des Eintrags:
 - **Status**: aus, beobachten, aktiv, Eingriff aktiv, pausiert oder Störung,
   der schwerste Zustand aller Heizkreise; je Heizkreis als Attribut,
 - **Automatiken**, **Eingriffe heute**, **Letzter Eingriff** mit Grund und
-  Heizkreis, **Nächste Entscheidung**,
+  Heizkreis, **Frühester Beginn**,
 - **Störung** und **Wetterprognose** (an, solange jede Automatik eine
   Prognose hat, die jünger als sechs Stunden ist).
 
@@ -253,10 +277,11 @@ Darunter steht je Heizkreis das Gerät **Automatik <Heizkreis>**. Es führt:
   **Heizgrenze** (die der Steuerung samt Ausrichtung), **Räume zum Ziel**,
   **Sonnenquote heute**,
 - **Eingriffe heute** mit dem Budget als Attribut, **Letzter Eingriff** mit
-  dem Grund, **Nächste Entscheidung**,
+  dem Grund, **Frühester Beginn**,
 - **Störung**: an, solange die Steuerung Eingriffe ablehnt oder die
   Sicherheitsregel greift.
 
 Damit lässt sich die Automatik auch in Automationen und Dashboards verwenden.
 Der Diagnose-Export der Integration enthält je Automatik Einstellungen,
-wirksame Werte, die letzte Lage, das Protokoll und den Verlauf des Tages.
+wirksame Werte, die letzte Lage, das Protokoll, den Regellauf und den Verlauf
+des Tages.
