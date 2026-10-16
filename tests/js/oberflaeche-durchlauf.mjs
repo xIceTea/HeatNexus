@@ -1456,6 +1456,16 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     regellaufKarte: flaeche.shadowRoot.querySelectorAll(".kartenkopf").filter((k) => String(k.textContent || "").includes("Regellauf")).length,
   };
   kreis.regellauf = [];
+
+  // Die Kreiskarte ist ab Werk drei Spalten breit, höchstens so breit wie die gewählte Spaltenzahl.
+  const breite = () => (flaeche.shadowRoot.querySelector(".automatik-bereich") || { style: {} }).style["--breite"];
+  const vorherAnordnung = flaeche._anordnung;
+  zeichnen();
+  const abWerk = breite();
+  flaeche._anordnung = { ...vorherAnordnung, automatik: { spalten: 2 } };
+  zeichnen();
+  bilanz.automatikLaeufe.breite = [abWerk, breite()];
+  flaeche._anordnung = vorherAnordnung;
 }
 
 // ---------------------------------------------------------------------------

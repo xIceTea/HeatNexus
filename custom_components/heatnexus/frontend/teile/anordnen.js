@@ -134,7 +134,9 @@ export const AnordnenMixin = (Basis) =>
       if (!karte) return;
       const istVersteckt = versteckt.has(kennung);
       if (istVersteckt && !this._anordnen) return;
-      const breite = Math.max(1, Math.min(BREITE_MAX, breiten[kennung] || karte.breite || 1));
+      // Breiter als die gewählte Spaltenzahl legte das Raster eine zusätzliche Spalte an.
+      const hoechstens = spalten > 0 ? Math.min(BREITE_MAX, spalten) : BREITE_MAX;
+      const breite = Math.max(1, Math.min(hoechstens, breiten[kennung] || karte.breite || 1));
       const knoten = this._anordnen
         ? this._anordner(karte, breite, istVersteckt, reihenfolge, nachArt)
         : karte.knoten;

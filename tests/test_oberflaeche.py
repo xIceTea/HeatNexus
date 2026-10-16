@@ -957,6 +957,7 @@ def test_laeufe_der_regel_stehen_aufklappbar_zwischen_den_eintraegen(durchlauf):
     assert laeufe["zeilen"] == [2, 1]
     assert laeufe["offen"] == [True, False]
     assert laeufe["regellaufKarte"] == 0
+    assert laeufe["breite"] == ["3", "2"]
 
 
 def test_feste_uhrzeit_ist_nur_beim_beginn_nach_uhrzeit_bedienbar(durchlauf):
