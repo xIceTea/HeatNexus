@@ -3099,3 +3099,22 @@ async def test_regellauf_zeigt_den_zaehler(hass, hass_ws_client, anlage, freezer
     assert kreis["regellauf"][1]["zaehler"] == 2
     assert kreis["kern"]["anstehend"] is None
     assert {b["name"] for b in kreis["kern"]["bewertungen"]} >= {"sonne", "raeume"}
+
+
+async def test_ohne_programm_misst_die_kachel_nicht_gegen_den_frostschutz(
+    hass, hass_ws_client, anlage, freezer
+):
+    from custom_components.heatnexus.automatik.entitaeten import AutomatikAbweichung
+
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    coordinator.data["oids"][f"{PREFIX}/3/50/0"] = "6"
+    coordinator.data["oids"][f"{PREFIX}/1/1/0"] = "4.9"
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await laufzeit.auswerten()
+
+    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
+    assert (kreis["kennwerte"]["soll"], kreis["kennwerte"]["abweichung"]) == (None, None)
+    assert AutomatikAbweichung._wert(None, laufzeit) is None

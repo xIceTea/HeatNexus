@@ -18,11 +18,10 @@ from .regel import (
     Gedaechtnis,
     Lage,
     Zustand,
-    abweichung,
     bald_aus,
     bald_schwelle,
     grenze,
-    soll_bezug,
+    raeume_zum_ziel,
     sonne_im_fenster,
 )
 
@@ -106,11 +105,7 @@ def _temperaturen(lage: Lage, w: Werte) -> list[Bewertung]:
 
 
 def _messen(lage: Lage, g: Gedaechtnis, w: Werte) -> list[Bewertung]:
-    soll = soll_bezug(lage, g)
-    # Ohne Programm meldet `1/1` den Frostschutz; gegen ihn gemessen sagt der Raum nichts.
-    gemerkt = soll is not None and soll != lage.soll
-    gueltig = soll is not None and (lage.betriebswahl in PROGRAMMWAHL or gemerkt)
-    abstand = abweichung(lage, soll) if gueltig and lage.raeume else None
+    _, abstand = raeume_zum_ziel(lage, g)
     quote = lage.sonnenquote
     return [
         Bewertung("daten", lage.daten_ok and lage.raum is not None),

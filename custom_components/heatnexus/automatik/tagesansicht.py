@@ -178,7 +178,7 @@ def _pv_sensor(laufzeit: Laufzeit, abstand: int) -> str | None:
 def vorschau(laufzeit: Laufzeit, jetzt: datetime) -> list[dict[str, Any]]:
     """Morgen und übermorgen: was die Regel voraussichtlich entscheidet, Raum am Sollwert."""
     werte, g = laufzeit.werte, laufzeit.gedaechtnis
-    soll = g.saison_soll or g.absenkung_basis or (laufzeit.lage.soll if laufzeit.lage else None)
+    soll, _ = regel.raeume_zum_ziel(laufzeit.lage, g)
     tage = []
     for abstand in range(1, VORSCHAU_TAGE + 1):
         tag = jetzt.date() + timedelta(days=abstand)

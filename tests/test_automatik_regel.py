@@ -1557,3 +1557,19 @@ def test_im_absenkbetrieb_zaehlt_ta_absenkbetrieb(m, w):
 @pytest.mark.parametrize("prognose", [(), (18.2,), (17.5, 18.6)])
 def test_ohne_klare_prognose_kein_bald_aus(m, w, prognose):
     assert m.bald_aus(lage(m, **BALD, at_prognose=prognose), w) is None
+
+
+@pytest.mark.parametrize(
+    ("felder", "g", "erwartet"),
+    [
+        ({"betriebswahl": 1, "soll": 21.0}, None, (21.0, 0.4)),
+        ({"betriebswahl": 6, "soll": 4.9}, None, (None, None)),
+        ({"betriebswahl": 0, "soll": 4.9}, None, (None, None)),
+        ({"betriebswahl": 6, "soll": 4.9}, "nur_ww", (21.0, 0.4)),
+        ({"betriebswahl": 6, "soll": 4.9, "raeume": ((21.4, 21.0),)}, None, (None, 0.4)),
+    ],
+)
+def test_raeume_zum_ziel_ohne_programm_ohne_frostschutz(m, felder, g, erwartet):
+    gedaechtnis = nur_ww(m, timedelta(hours=1)) if g == "nur_ww" else m.Gedaechtnis()
+    bezug, abstand = m.raeume_zum_ziel(lage(m, **felder), gedaechtnis)
+    assert (bezug, None if abstand is None else round(abstand, 2)) == erwartet

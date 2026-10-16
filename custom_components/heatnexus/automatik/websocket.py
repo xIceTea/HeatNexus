@@ -119,13 +119,8 @@ def _eintrag(
     werte = laufzeit.werte
     lage = laufzeit.lage
     g = laufzeit.gedaechtnis
-    soll = g.absenkung_basis or g.saison_soll or (lage.soll if lage else None)
+    soll, abweichung = regel.raeume_zum_ziel(lage, g)
     thermostate = eingaben.hat_thermostat(laufzeit.konfig["raeume"])
-    abweichung = (
-        regel.abweichung(lage, soll)
-        if lage is not None and lage.raum is not None and soll is not None
-        else None
-    )
     ergebnis.update(
         eingerichtet=True,
         konfig=laufzeit.konfig,

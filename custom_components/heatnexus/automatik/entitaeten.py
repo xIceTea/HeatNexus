@@ -265,11 +265,8 @@ class AutomatikAbweichung(AutomatikWert):
     _attr_suggested_display_precision = 1
 
     def _wert(self, laufzeit: Laufzeit) -> float | None:
-        lage, g = laufzeit.lage, laufzeit.gedaechtnis
-        soll = g.absenkung_basis or g.saison_soll or (lage.soll if lage else None)
-        if lage is None or lage.raum is None or soll is None:
-            return None
-        return round(regel.abweichung(lage, soll), 2)
+        _, abstand = regel.raeume_zum_ziel(laufzeit.lage, laufzeit.gedaechtnis)
+        return None if abstand is None else round(abstand, 2)
 
 
 class AutomatikSonnenquote(AutomatikWert):

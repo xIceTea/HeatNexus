@@ -216,7 +216,8 @@ export const KennwerteMixin = (Basis) =>
       });
       const fuss = [];
       if (raeume.length > 1 || k.eigene_ziele) fuss.push(this._raumliste(raeume));
-      else fuss.push(knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) })));
+      else if (vorhanden(k.soll)) fuss.push(knoten("div", "fuss", this._tMit("Bezug: Sollwert des Heizkreises {soll} °C", { soll: zahl(k.soll) })));
+      else fuss.push(knoten("div", "fuss", this._t("Kein Bezug: Die Betriebswahl steht auf keinem Programm.")));
       return this._raumKlickbar(kreis, this._kachel("raum", "Räume zum Ziel", kelvin(k.abweichung), beisatz, skala, fuss));
     }
 

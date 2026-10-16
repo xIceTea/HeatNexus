@@ -1085,5 +1085,6 @@
   "schreibt": "writes",
   "zählt": "counting",
   "hält": "holding",
-  "bleibt": "stays"
+  "bleibt": "stays",
+  "Kein Bezug: Die Betriebswahl steht auf keinem Programm.": "No reference: the operating mode is not set to a program."
 }

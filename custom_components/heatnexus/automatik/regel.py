@@ -312,6 +312,27 @@ def soll_bezug(lage: Lage, g: Gedaechtnis) -> float | None:
     return lage.soll
 
 
+def raeume_zum_ziel(lage: Lage | None, g: Gedaechtnis) -> tuple[float | None, float | None]:
+    """Bezug und Abstand der Räume zu ihrem Ziel, für Anzeige und Sensor.
+
+    Ohne Programm in der Betriebswahl meldet `1/1` nur den Frostschutz; dann gilt kein Bezug.
+    """
+    if g.saison == NUR_WW and g.saison_soll is not None:
+        bezug = g.saison_soll
+    elif g.absenkung_art is not None and g.absenkung_basis is not None:
+        bezug = g.absenkung_basis
+    elif lage is not None and lage.betriebswahl in PROGRAMMWAHL:
+        bezug = lage.soll
+    else:
+        bezug = None
+    if lage is None or not lage.raeume:
+        return bezug, None
+    eigene = all(ziel is not None for _, ziel in lage.raeume)
+    if bezug is None and not eigene:
+        return None, None
+    return bezug, abweichung(lage, bezug if bezug is not None else 0.0)
+
+
 def _raeumen(lage: Lage, g: Gedaechtnis) -> Gedaechtnis:
     if g.absenkung_art is None or g.absenkung_bis is None or absenkung_laeuft(g, lage.jetzt):
         return g
