@@ -993,7 +993,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
           abweichung: 0.4,
           rueckkehr_k: 1,
           stark_k: 1.5,
-          naechste_pruefung: "2026-09-28T07:00:00+02:00",
+          fruehester_beginn: "2026-09-28T07:00:00+02:00",
           modus_seit: "2026-09-27T07:00:00+02:00",
         },
         tag: { sonne: [0, 0.5, 0], absenkung_von: 7, absenkung_bis: 13.67, absenkung_ziel: 16.92, entscheidungen: [7], jetzt: 11.3 },
@@ -1039,7 +1039,7 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     skalen: wurzel.querySelectorAll(".automatik-skala").length,
     meta: String((wurzel.querySelector(".automatik-meta") || {}).textContent || ""),
     // In der Zone von Home Assistant, nicht in der des Rechners, auf dem der Test läuft.
-    naechstePruefungUhrzeit: new Intl.DateTimeFormat("de", {
+    beginnUhrzeit: new Intl.DateTimeFormat("de", {
       hour: "2-digit",
       minute: "2-digit",
       timeZone: (hass.config || {}).time_zone,

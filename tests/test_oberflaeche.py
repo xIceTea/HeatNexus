@@ -861,7 +861,7 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     """Eingerichtet: Karte mit Marke, Feldern und Protokoll; sonst die Einladung."""
     automatik = durchlauf["automatik"]
     assert automatik["marken"] == ["Sonnentag · beobachtet"]
-    assert automatik["felder"] == 25  # Profil, zwei Heizgrenzen und zweiundzwanzig Werte
+    assert automatik["felder"] == 28  # Profil, zwei Heizgrenzen und fünfundzwanzig Werte
     assert automatik["geaendert"] == 1
     assert automatik["protokoll"] == 1
     assert automatik["einladungen"] == 1
@@ -872,7 +872,7 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     assert automatik["skalen"] == 3
     assert "1 von 4 Eingriffen heute" in automatik["meta"]
     assert "Gemischt" in automatik["meta"]
-    assert f"Nächste Prüfung {automatik['naechstePruefungUhrzeit']}" in automatik["meta"]
+    assert f"Frühester Beginn {automatik['beginnUhrzeit']}" in automatik["meta"]
     assert (automatik["alteEingriffe"], automatik["alteProfilzeile"]) == (0, 0)
     assert automatik["raumZonen"] == 4
     # Innerhalb von ±2 K steht der Wert nur in der Kachel, nicht noch einmal am Punkt.

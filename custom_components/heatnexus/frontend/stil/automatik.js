@@ -443,6 +443,13 @@ export const AUTOMATIK = `
   .automatik-protokoll .art.abgelehnt { background: rgba(229, 57, 53, 0.15); color: #ff8a80; }
   .automatik-protokoll .art.budget, .automatik-protokoll .art.eingriff { background: rgba(255, 171, 111, 0.15); color: #ffab6f; }
   .automatik-protokoll .art.geprueft, .automatik-protokoll .art.einstellung { background: var(--hn-flaeche); color: var(--hn-gedaempft); }
+  .automatik-protokoll .art.schreibt { background: color-mix(in srgb, var(--hn-gut) 16%, transparent); color: var(--hn-gut); }
+  .automatik-protokoll .art.zaehlt, .automatik-protokoll .art.haelt, .automatik-protokoll .art.bleibt { background: var(--hn-flaeche); color: var(--hn-gedaempft); }
+  .automatik-kern { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; }
+  .automatik-kern .anstehend { font-size: 12px; font-weight: 600; margin-right: 4px; }
+  .bewertung { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--hn-flaeche); color: var(--hn-gedaempft); white-space: nowrap; }
+  .bewertung.nein { color: #ff8a80; }
+  .bewertung.kern { outline: 1px solid var(--hn-linie); color: inherit; }
 
   /* Einladung */
   .automatik-einladungskarte { border-style: dashed; padding: 18px 20px; }

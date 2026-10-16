@@ -16,7 +16,7 @@ const GESPEICHERT_MS = 4000;
 export const EINSTELLUNGSGRUPPEN = [
   ["Heizgrenze", ["profil", "heizbetrieb", "absenkbetrieb", "grenze_versatz", "hysterese", "tau_h"]],
   ["Sonnentag", ["sonnenquote", "sonnentag", "absenkung_k", "sonne_voll_at", "sonne_frost_at", "stark", "stark_k"]],
-  ["Zeitplan", ["entscheidung", "nachpruefung", "mindestdauer_h", "budget"]],
+  ["Zeitplan", ["beginn_art", "beginn_uhrzeit", "beginn_laeufe", "ende_laeufe", "halten_min", "mindestdauer_h", "budget"]],
   ["Schutz und Prognose", ["rueckkehr_k", "spielraum_k", "ruhe_h", "fenster_k_je_h", "raum_fehlt_min", "anpassen", "lernfenster"]],
   ["Manuell mit Empfehlung", ["melden"]],
 ];
@@ -352,6 +352,18 @@ export const EinrichtungMixin = (Basis) =>
     }
 
     _automatikEingabe(feld, wert, darf) {
+      if (feld.art === "auswahl") {
+        const wahl = document.createElement("select");
+        feld.optionen.forEach(([wertOption, beschriftung]) => {
+          const eintrag = document.createElement("option");
+          eintrag.value = wertOption;
+          eintrag.textContent = this._t(beschriftung);
+          eintrag.selected = wert === wertOption;
+          wahl.appendChild(eintrag);
+        });
+        wahl.disabled = !darf;
+        return wahl;
+      }
       if (feld.art === "wahl") {
         const wahl = document.createElement("select");
         feld.optionen.forEach((option) => {
@@ -401,6 +413,7 @@ export const EinrichtungMixin = (Basis) =>
       const eigene = {};
       Object.entries(eingaben).forEach(([name, [feld, eingabe]]) => {
         if (feld.art === "janein") eigene[name] = eingabe.value === "true";
+        else if (feld.art === "auswahl") eigene[name] = eingabe.value;
         else if (feld.art === "wahl") eigene[name] = Number(eingabe.value);
         else if (feld.art === "zeit") eigene[name] = eingabe.value || "";
         else if (eingabe.value !== "") eigene[name] = Number(eingabe.value);

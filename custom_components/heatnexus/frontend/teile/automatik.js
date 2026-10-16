@@ -17,14 +17,19 @@ export const VERALTET_STUNDEN = 12;
 export const AUTOMATIK_TAKT_MS = 60 * 1000;
 // So viele Protokolleinträge stehen, bis „Alle anzeigen“ den Rest aufklappt.
 const PROTOKOLL_KURZ = 8;
+// So viele Läufe stehen im Regellauf, bis „Alle anzeigen“ den Rest aufklappt.
+const REGELLAUF_KURZ = 20;
 
 export const FELDER = [
   { name: "grenze_versatz", hilfe: "Die Automatik richtet sich nach der Heizgrenze der Steuerung (TA Heizbetrieb) und verschiebt sie um diesen Wert. Negativ schaltet früher auf nur Warmwasser. Die Ausrichtung setzt ihn; hier lässt er sich fein einstellen.", titel: "Abstand zur Heizgrenze", einheit: "K", schritt: 0.5 },
   { name: "hysterese", hilfe: "Abstand über und unter der Heizgrenze. Er verhindert, dass der Heizkreis bei Werten nahe der Grenze hin- und herschaltet.", titel: "Hysterese Saison", einheit: "K", schritt: 0.1 },
   { name: "tau_h", hilfe: "Wie träge die gedämpfte Außentemperatur dem Fühler folgt. Ein größerer Wert lässt kurze Wärme am Nachmittag weniger zählen. Richtwerte: Heizkörper 5 h, gemischt 15 h, Fußbodenheizung 25 h.", titel: "Zeitkonstante gedämpfte AT", einheit: "h", schritt: 1 },
   { name: "mindestdauer_h", hilfe: "So lange bleibt der Heizkreis mindestens im Programm oder auf nur Warmwasser, bevor die Automatik wieder umschaltet. Ein zu kalter Raum geht immer vor.", titel: "Mindestdauer Saisonwechsel", einheit: "h", schritt: 1 },
-  { name: "entscheidung", hilfe: "Zu dieser Uhrzeit prüft die Automatik, ob ein Sonnentag bevorsteht, und setzt dann die Absenkung.", titel: "Entscheidung um", art: "zeit" },
-  { name: "nachpruefung", hilfe: "Eine zweite Prüfung am Tag, etwa wenn der Morgen trüb war und die Sonne später kommt. Leer lassen, wenn sie nicht gewünscht ist.", titel: "Nachprüfung um", art: "zeit" },
+  { name: "beginn_art", art: "auswahl", optionen: [["aufgang", "Sonnenaufgang"], ["uhrzeit", "Feste Uhrzeit"], ["aus", "Ohne Sperre"]], titel: "Frühester Beginn", hilfe: "Ab hier darf die Sonne einen Eingriff auslösen. Andere Anlässe, etwa eine milde Außentemperatur, gelten zu jeder Zeit." },
+  { name: "beginn_uhrzeit", art: "zeit", titel: "Feste Uhrzeit", hilfe: "Gilt, wenn als frühester Beginn eine feste Uhrzeit gewählt ist." },
+  { name: "beginn_laeufe", titel: "Beginn nach gleichen Prüfungen", einheit: "", schritt: 1, hilfe: "So viele Prüfungen in Folge, alle fünf Minuten eine, muss ein Eingriff gleich bleiben, bevor er beginnt." },
+  { name: "ende_laeufe", titel: "Ende nach gleichen Prüfungen", einheit: "", schritt: 1, hilfe: "So viele Prüfungen in Folge muss das Ende eines Eingriffs gleich bleiben. Kalte Räume und Sicherheit beenden ihn sofort." },
+  { name: "halten_min", titel: "Nach einem Wechsel halten", einheit: "min", schritt: 15, hilfe: "So lange bleibt ein neuer Zustand mindestens bestehen. Kalte Räume und Sicherheit gehen vor." },
   { name: "absenkung_k", hilfe: "Um so viel senkt die Automatik den Sollwert an einem Sonnentag. Die Absenkung endet an der Steuerung von selbst, spätestens zwei Stunden vor Sonnenuntergang.", titel: "Absenkung am Sonnentag", einheit: "K", schritt: 0.5 },
   { name: "rueckkehr_k", hilfe: "Fällt der Raum unter Soll minus diesen Wert, beendet die Automatik die Absenkung sofort.", titel: "Rückkehr bei Raum unter Soll minus", einheit: "K", schritt: 0.1 },
   { name: "sonne_frost_at", hilfe: "Unter dieser gedämpften Außentemperatur senkt die Automatik an einem Sonnentag nur ab, wenn das Hausmodell freigegeben ist. Bei Frost deckt die Sonne den Wärmeverlust selten.", titel: "Sonnentag ohne Hausmodell ab", einheit: "°C", schritt: 1 },
@@ -71,6 +76,36 @@ export const PROTOKOLL_ARTEN = {
   geprueft: "geprüft",
   eingriff: "Handeingriff",
   einstellung: "Einstellung",
+};
+
+// Was die Regel prüft; die Namen kommen vom Server, die Beschriftung von hier.
+export const BEWERTUNGEN = {
+  daten: "Daten",
+  prognose: "Prognose",
+  fenster: "Fenster",
+  beginn: "Ab",
+  sonne: "Sonne",
+  vorrang: "Vorrang",
+  raeume: "Räume",
+  thermostate: "Thermostate",
+  at_gedaempft: "Gedämpfte AT",
+  tagesmittel: "Tagesmittel",
+  at_prognose: "AT-Prognose",
+  programmwahl: "Programm",
+  betriebsart: "Betriebsart",
+  abwesend: "Abwesend",
+  hausmodell: "Hausmodell",
+  sperre: "Sperre",
+};
+
+export const ERGEBNISSE = {
+  schreibt: "schreibt",
+  haette: "hätte geschrieben",
+  empfohlen: "empfohlen",
+  abgelehnt: "abgelehnt",
+  zaehlt: "zählt",
+  haelt: "hält",
+  bleibt: "bleibt",
 };
 
 export const PROFILE = [
@@ -172,6 +207,7 @@ export const AutomatikMixin = (Basis) =>
         return [
           { id: `automatik:${kreis.heizkreis}`, titel, knoten: this._automatikBereich(kreis, daten), breite: 2 },
           { id: `automatik-protokoll:${kreis.heizkreis}`, titel: "Protokoll", knoten: this._automatikProtokoll(kreis) },
+          { id: `automatik-regellauf:${kreis.heizkreis}`, titel: "Regellauf", knoten: this._automatikRegellauf(kreis) },
         ];
       });
     }
@@ -323,6 +359,8 @@ export const AutomatikMixin = (Basis) =>
       warum.className = "automatik-warum";
       warum.textContent = kreis.begruendung || "";
       karte.appendChild(warum);
+      const kern = this._automatikKern(kreis);
+      if (kern) karte.appendChild(kern);
       karte.appendChild(this._automatikSteuerzeile(kreis, darf));
       const hinweis = this._automatikHinweis(kreis, darf);
       if (hinweis) karte.appendChild(hinweis);
@@ -392,7 +430,7 @@ export const AutomatikMixin = (Basis) =>
       return zeile;
     }
 
-    /** Unter dem Titel: Heizfläche, Eingriffe, nächste Prüfung, Modus seit. */
+    /** Unter dem Titel: Heizfläche, Eingriffe, frühester Beginn, Modus seit. */
     _automatikMeta(kreis) {
       const k = kreis.kennwerte || {};
       const meta = document.createElement("div");
@@ -408,8 +446,8 @@ export const AutomatikMixin = (Basis) =>
       teil(this._t(flaeche ? flaeche[1] : profil ? profil[1] : kreis.konfig.profil || ""));
       const entitaeten = kreis.entitaeten || {};
       this._klickbar(teil(this._tMit("{zahl} von {budget} Eingriffen heute", { zahl: k.eingriffe ?? 0, budget: k.budget ?? "–" })), entitaeten.eingriffe);
-      if (k.naechste_pruefung) {
-        this._klickbar(teil(this._tMit("Nächste Prüfung {zeit}", { zeit: uhrAus(k.naechste_pruefung, this._hass) })), entitaeten.naechste_entscheidung);
+      if (k.fruehester_beginn) {
+        this._klickbar(teil(this._tMit("Frühester Beginn {zeit}", { zeit: uhrAus(k.fruehester_beginn, this._hass) })), entitaeten.naechste_entscheidung);
       }
       if (k.modus_seit && kreis.zustand !== "programm" && ZUSTAENDE[kreis.zustand]) {
         teil(this._tMit("{modus} seit {zeit}", { modus: this._t(ZUSTAENDE[kreis.zustand]), zeit: uhrAus(k.modus_seit, this._hass) }));
@@ -436,6 +474,8 @@ export const AutomatikMixin = (Basis) =>
       grund.className = "empfehlung-grund";
       grund.textContent = empfehlung.begruendung || "";
       text.append(titel, grund);
+      const kern = this._automatikKern({ kern: { bewertungen: (kreis.kern || {}).bewertungen } });
+      if (kern) text.appendChild(kern);
       const taste = document.createElement("button");
       taste.type = "button";
       taste.className = "automatik-knopf";
@@ -487,6 +527,97 @@ export const AutomatikMixin = (Basis) =>
       }
       hinweis.append(text, taste);
       return hinweis;
+    }
+
+    // --- Regellauf und Kernbewertungen ---------------------------------
+    /** Eine Bewertung als kleine Marke: Name, Wert, Haken; die Schwelle steht im Tooltip. */
+    _bewertungMarke(b) {
+      const marke = document.createElement("span");
+      marke.className = `bewertung ${b.erfuellt ? "ja" : "nein"}${b.entscheidend ? " kern" : ""}`;
+      const einheit = b.einheit && b.einheit !== "uhr" ? ` ${b.einheit}` : "";
+      const wert = typeof b.wert === "number" ? `${zahl(b.wert)}${einheit}` : b.wert ?? "";
+      const name = this._t(BEWERTUNGEN[b.name] || b.name);
+      marke.textContent = [name, wert, b.erfuellt ? "✓" : "✗"].filter((teil) => teil !== "").join(" ");
+      if (b.schwelle !== null && b.schwelle !== undefined) {
+        const schwelle = typeof b.schwelle === "number" ? `${zahl(b.schwelle)}${einheit}` : b.schwelle;
+        marke.title = this._tMit("Schwelle {wert}", { wert: schwelle });
+      }
+      return marke;
+    }
+
+    /** Unter der Begründung: was gerade entscheidet, davor ein anstehender Wechsel mit Zählerstand. */
+    _automatikKern(kreis) {
+      const kern = kreis.kern || {};
+      const bewertungen = kern.bewertungen || [];
+      const a = kern.anstehend;
+      if (!bewertungen.length && !a) return null;
+      const zeile = document.createElement("div");
+      zeile.className = "automatik-kern";
+      if (a) {
+        const text = document.createElement("span");
+        text.className = "anstehend";
+        text.textContent = a.halten_bis
+          ? this._tMit("Hält bis {zeit}", { zeit: uhrAus(a.halten_bis, this._hass) })
+          : this._tMit("{zustand} in Sicht – {n} von {noetig}", {
+              zustand: this._t(ZUSTAENDE[a.zustand] || a.zustand),
+              n: a.zaehler,
+              noetig: a.noetig,
+            });
+        zeile.appendChild(text);
+      }
+      bewertungen.forEach((b) => zeile.appendChild(this._bewertungMarke(b)));
+      return zeile;
+    }
+
+    /** Ein Eintrag je Lauf, in dem sich etwas änderte; neueste oben. */
+    _automatikRegellauf(kreis) {
+      const karte = this._karte("Regellauf");
+      karte.classList.add("automatik-protokollkarte");
+      const eintraege = kreis.regellauf || [];
+      this._automatikRegellaufAlle = this._automatikRegellaufAlle || new Set();
+      const alle = this._automatikRegellaufAlle.has(kreis.heizkreis);
+      const kopf = karte.querySelector(".kartenkopf");
+      if (kopf && eintraege.length > REGELLAUF_KURZ) {
+        const umschalten = document.createElement("button");
+        umschalten.type = "button";
+        umschalten.className = "automatik-verweis";
+        umschalten.textContent = this._t(alle ? "Weniger anzeigen" : "Alle anzeigen");
+        umschalten.setAttribute("aria-expanded", String(alle));
+        umschalten.addEventListener("click", () => {
+          if (alle) this._automatikRegellaufAlle.delete(kreis.heizkreis);
+          else this._automatikRegellaufAlle.add(kreis.heizkreis);
+          this._automatikNeuZeichnen();
+        });
+        kopf.appendChild(umschalten);
+      }
+      if (!eintraege.length) {
+        karte.appendChild(this._hinweisKnoten("Noch kein Lauf seit dem Start."));
+        return karte;
+      }
+      const liste = document.createElement("ul");
+      liste.className = "automatik-protokoll automatik-regellauf";
+      (alle ? eintraege : eintraege.slice(0, REGELLAUF_KURZ)).forEach((e) => {
+        const zeile = document.createElement("li");
+        const zeit = document.createElement("span");
+        zeit.className = "zeit";
+        zeit.textContent = uhrAus(e.zeit, this._hass);
+        const inhalt = document.createElement("div");
+        inhalt.className = "inhalt";
+        const kopfzeile = document.createElement("div");
+        const zaehler = e.zaehler ? ` ${e.zaehler}/${e.noetig}` : "";
+        kopfzeile.textContent = `${this._t(ZUSTAENDE[e.kandidat] || e.kandidat)}${zaehler}`;
+        const art = document.createElement("span");
+        art.className = `art ${e.ergebnis}`;
+        art.textContent = this._t(ERGEBNISSE[e.ergebnis] || e.ergebnis);
+        const marken = document.createElement("div");
+        marken.className = "automatik-kern";
+        (e.bewertungen || []).forEach((b) => marken.appendChild(this._bewertungMarke(b)));
+        inhalt.append(kopfzeile, art, marken);
+        zeile.append(zeit, inhalt);
+        liste.appendChild(zeile);
+      });
+      karte.appendChild(liste);
+      return karte;
     }
 
     // --- Protokoll -----------------------------------------------------

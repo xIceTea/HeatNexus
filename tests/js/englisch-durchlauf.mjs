@@ -113,7 +113,7 @@ flaeche._automatik = {
         at: 14, at_gedaempft: 15, heizgrenze: 18, grenze_steuerung: 18, grenze_absenk: 5, hysterese: 1,
         sonnenquote: 70, sonne_schwelle: 55, stark_quote: 80, stark_k: 1, rueckkehr_k: 0.5, sonne_raum_k: 0.5,
         abweichung: 0.4, raum: 21.4, soll: 21, eigene_ziele: true, raum_art: "minimum", eingriffe: 1, budget: 4,
-        naechste_pruefung: "2026-09-28T07:00:00+02:00", modus_seit: "2026-09-28T11:00:00+02:00",
+        fruehester_beginn: "2026-09-28T07:00:00+02:00", modus_seit: "2026-09-28T11:00:00+02:00",
         vorrang: { laeuft: false, minuten: 90 },
         hinweise: {
           status: "sammelt",
