@@ -8,6 +8,7 @@ sofort, entfernt erst auf Ansage: Löschen kostet Name, Bereich und Verlauf.
 from __future__ import annotations
 
 import logging
+import re
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -136,8 +137,13 @@ def liste(eintraege: list[er.RegistryEntry]) -> str:
     zeilen = []
     for eintrag in sorted(eintraege, key=lambda e: e.entity_id):
         name = eintrag.name or eintrag.original_name
-        zeilen.append(f"- `{eintrag.entity_id}`" + (f" – {name}" if name else ""))
+        zeilen.append(f"- `{eintrag.entity_id}`" + (f" – {_maskiert(name)}" if name else ""))
     return "\n".join(zeilen)
+
+
+def _maskiert(text: str) -> str:
+    """Zeichen, die Markdown oder HTML deuten würde, als Text."""
+    return re.sub(r"([\\`*_\[\]<>#|~])", r"\\\1", text)
 
 
 @callback
