@@ -17,6 +17,7 @@ HEIZKREIS = "SN1-2-0"
 ANLAGE = "Anlage A"
 # 08:00 in der Zeitzone der Testumgebung; erst nach der Anmeldung setzen, sonst gilt das Token nicht.
 MORGEN = "2026-09-27 15:00:00+00:00"
+NACHT = "2026-09-27 09:00:00+00:00"
 
 
 class Client:
@@ -544,6 +545,21 @@ async def test_schalten_schreibt_zur_entscheidungszeit(hass, hass_ws_client, anl
         (f"{PREFIX}/3/4/0", "19.5"),
         (f"{PREFIX}/2/10/0", "400"),
     ]
+
+
+@pytest.mark.xfail(strict=True, reason="Moduswechsel nachts entscheidet, Fix offen")
+async def test_moduswechsel_in_der_nacht_schreibt_keine_vorgabe(
+    hass, hass_ws_client, anlage, freezer
+):
+    verwaltung, coordinator = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(NACHT)
+    await _einrichten(client)
+
+    await _schalten(client)
+
+    assert coordinator.client.geschrieben == []
+    assert verwaltung.laufzeiten[HEIZKREIS].zustand.value == "programm"
 
 
 async def test_ausschalten_nimmt_die_absenkung_zurueck(hass, hass_ws_client, anlage, freezer):

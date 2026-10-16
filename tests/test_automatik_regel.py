@@ -700,7 +700,16 @@ def test_ohne_bedingung_keine_heizpause(m, w, abweichung):
 
 
 @pytest.mark.parametrize(
-    ("jetzt", "pause"), [(MORGEN, True), (UNTERGANG - timedelta(hours=1), False)]
+    ("jetzt", "pause"),
+    [
+        (MORGEN, True),
+        (UNTERGANG - timedelta(hours=1), False),
+        pytest.param(
+            MORGEN - timedelta(hours=5),
+            False,
+            marks=pytest.mark.xfail(strict=True, reason="Sonnenanlass vor Aufgang, Fix offen"),
+        ),
+    ],
 )
 def test_sonne_als_anlass_der_heizpause_gilt_nur_bei_tag(m, w, jetzt, pause):
     nur_sonne = {**MILD, "mittel_heute": 12.0, "at_gedaempft": 11.8, "sonnenquote": 90.0}
