@@ -18,6 +18,9 @@ from .conftest import load_standalone
 TZ = timezone(timedelta(hours=2))
 MORGEN = datetime(2026, 9, 27, 7, 0, tzinfo=TZ)
 UNTERGANG = datetime(2026, 9, 27, 18, 55, tzinfo=TZ)
+AUFGANG = datetime(2026, 9, 27, 6, 50, tzinfo=TZ)
+# Vor dem frühesten Beginn: Die Sonne zählt nicht, ohne dass die übrige Lage sich ändert.
+SPAET = MORGEN + timedelta(hours=1)
 
 
 @pytest.fixture(scope="module")
@@ -84,7 +87,7 @@ def test_kalter_raum_beendet_eine_laufende_absenkung(m, w):
 
 def test_frost_blockiert_keinen_sonnentag(m, w):
     """Eine befristete Absenkung um wenige Kelvin birgt kein Frostrisiko."""
-    e = m.entscheiden(lage(m, at=1.0, entscheidungszeit=True), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, at=1.0), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.SONNENTAG
     assert [a.art for a in e.aktionen] == ["absenken"]
 
@@ -96,7 +99,7 @@ def test_zwei_stunden_ohne_daten_in_nur_ww_fuehren_zurueck(m, w):
 
 
 def test_pause_hat_vorrang_vor_allem_ausser_sicherheit(m, w):
-    stand = lage(m, entscheidungszeit=True, pausiert_bis=MORGEN + timedelta(hours=22))
+    stand = lage(m, pausiert_bis=MORGEN + timedelta(hours=22))
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.PAUSIERT
     assert e.aktionen == ()
@@ -113,7 +116,7 @@ def test_offenes_fenster_friert_ein(m, w):
 
 
 def test_ohne_raumwert_keine_entscheidung(m, w):
-    e = m.entscheiden(lage(m, raum=None, entscheidungszeit=True), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, raum=None), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.KEINE_DATEN
     assert e.aktionen == ()
 
@@ -146,14 +149,14 @@ def test_wartezeit_null_beendet_sofort(m, w):
 
 
 def test_zu_wenige_raeume_halten_neue_entscheidungen_an(m, w):
-    stand = lage(m, entscheidungszeit=True, raeume_fehlen_seit=MORGEN)
+    stand = lage(m, raeume_fehlen_seit=MORGEN)
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.KEINE_DATEN
     assert e.aktionen == ()
 
 
 def test_unter_der_frostgrenze_kein_sonnentag_ohne_modell(m, w):
-    stand = lage(m, at=-8.0, at_gedaempft=-6.0, entscheidungszeit=True)
+    stand = lage(m, at=-8.0, at_gedaempft=-6.0)
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.PROGRAMM
     assert e.aktionen == ()
@@ -161,7 +164,7 @@ def test_unter_der_frostgrenze_kein_sonnentag_ohne_modell(m, w):
 
 
 def test_frostgrenze_ist_einstellbar(m, w):
-    stand = lage(m, at=-8.0, at_gedaempft=-6.0, entscheidungszeit=True)
+    stand = lage(m, at=-8.0, at_gedaempft=-6.0)
     e = m.entscheiden(stand, m.Gedaechtnis(), replace(w, sonne_frost_at=-10.0))
     assert e.zustand == m.Zustand.SONNENTAG
 
@@ -196,7 +199,7 @@ def test_ohne_prognose_laeuft_die_absenkung_weiter(m, w):
     ],
 )
 def test_ohne_daten_nennt_die_begruendung_was_fehlt(m, w, felder, text):
-    e = m.entscheiden(lage(m, entscheidungszeit=True, **felder), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, **felder), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.KEINE_DATEN
     assert e.begruendung == f"{text} – keine neue Entscheidung."
 
@@ -215,7 +218,14 @@ def test_milde_prognose_schaltet_nur_ww(m, w):
 
 
 def test_kalte_nacht_in_der_prognose_verhindert_nur_ww(m, w):
-    stand = lage(m, at=17.5, mittel_heute=17.5, mittel_morgen=17.0, minimum_bis_morgen=13.7)
+    stand = lage(
+        m,
+        fruehester_beginn=SPAET,
+        at=17.5,
+        mittel_heute=17.5,
+        mittel_morgen=17.0,
+        minimum_bis_morgen=13.7,
+    )
     assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
 
 
@@ -225,7 +235,7 @@ def test_warme_nacht_in_der_prognose_erlaubt_nur_ww(m, w):
 
 
 def test_kalte_luft_jetzt_verhindert_nur_ww_trotz_gedaempfter_at(m, w):
-    stand = lage(m, at=14.0, at_gedaempft=18.2, mittel_heute=None)
+    stand = lage(m, fruehester_beginn=SPAET, at=14.0, at_gedaempft=18.2, mittel_heute=None)
     assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
 
 
@@ -325,8 +335,8 @@ def test_nur_ww_misst_gegen_den_gemerkten_sollwert(m, w):
 
 
 # --- Sonnentag ---------------------------------------------------------------
-def test_sonnentag_senkt_zur_entscheidungszeit_ab(m, w):
-    e = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), w)
+def test_sonnentag_senkt_ab(m, w):
+    e = m.entscheiden(lage(m), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.SONNENTAG
     (aktion,) = e.aktionen
     assert aktion.art == "absenken"
@@ -341,20 +351,20 @@ def test_sonnentag_senkt_zur_entscheidungszeit_ab(m, w):
     [(10.0, 19.5), (9.0, 19.5), (7.0, 20.0), (5.0, 20.0), (2.0, 20.5), (0.0, 20.5)],
 )
 def test_sonnentag_senkt_bei_kaelte_weniger_ab(m, w, gedaempft, soll):
-    stand = lage(m, at=gedaempft, at_gedaempft=gedaempft, entscheidungszeit=True)
+    stand = lage(m, at=gedaempft, at_gedaempft=gedaempft)
     (aktion,) = m.entscheiden(stand, m.Gedaechtnis(), w).aktionen
     assert aktion.soll == soll
 
 
 def test_kleinere_absenkung_steht_in_der_begruendung(m, w):
-    stand = lage(m, at=5.0, at_gedaempft=5.0, entscheidungszeit=True)
+    stand = lage(m, at=5.0, at_gedaempft=5.0)
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert e.begruendung.endswith("Gedämpfte AT 5,0 °C – Absenkung nur 1,0 K.")
     assert e.gedaechtnis.absenkung_soll == 20.0
 
 
 def test_volle_absenkung_ab_einstellbarer_temperatur(m, w):
-    stand = lage(m, at=5.0, at_gedaempft=5.0, entscheidungszeit=True)
+    stand = lage(m, at=5.0, at_gedaempft=5.0)
     e = m.entscheiden(stand, m.Gedaechtnis(), replace(w, sonne_voll_at=5.0))
     assert e.aktionen[0].soll == 19.5
     assert "nur" not in e.begruendung
@@ -368,36 +378,52 @@ def test_verlaengerung_folgt_der_kaelte(m, w):
     assert aktion.soll == 20.0
 
 
-def test_ausserhalb_der_entscheidungszeit_keine_neue_absenkung(m, w):
-    e = m.entscheiden(lage(m), m.Gedaechtnis(), w)
+def test_vor_dem_fruehesten_beginn_keine_neue_absenkung(m, w):
+    e = m.entscheiden(lage(m, fruehester_beginn=MORGEN + timedelta(minutes=30)), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.PROGRAMM
     assert e.aktionen == ()
 
 
+def test_ohne_sperre_beginnt_der_sonnentag_auch_frueh(m, w):
+    e = m.entscheiden(lage(m, jetzt=MORGEN - timedelta(hours=5)), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.SONNENTAG
+
+
+def test_liefernde_vorrangquelle_wartet_nicht_auf_den_beginn(m, w):
+    stand = lage(
+        m,
+        fruehester_beginn=MORGEN + timedelta(hours=2),
+        sonnenquote=10.0,
+        vorrang_laeuft=True,
+        vorrang_minuten=30.0,
+    )
+    assert m.entscheiden(stand, m.Gedaechtnis(), w).zustand == m.Zustand.SONNENTAG
+
+
 def test_kurzer_resttag_gibt_kurze_absenkung(m, w):
-    stand = lage(m, jetzt=datetime(2026, 9, 27, 15, 0, tzinfo=TZ), entscheidungszeit=True)
+    stand = lage(m, jetzt=datetime(2026, 9, 27, 15, 0, tzinfo=TZ))
     (aktion,) = m.entscheiden(stand, m.Gedaechtnis(), w).aktionen
     assert aktion.minuten == 115
 
 
 def test_zu_spaet_am_tag_keine_absenkung(m, w):
-    stand = lage(m, jetzt=datetime(2026, 9, 27, 16, 30, tzinfo=TZ), entscheidungszeit=True)
+    stand = lage(m, jetzt=datetime(2026, 9, 27, 16, 30, tzinfo=TZ))
     assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
 
 
 def test_zu_wenig_sonne_keine_absenkung(m, w):
-    e = m.entscheiden(lage(m, sonnenquote=45.0, entscheidungszeit=True), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, sonnenquote=45.0), m.Gedaechtnis(), w)
     assert e.aktionen == ()
     assert "45 %" in e.begruendung
 
 
 def test_kuehler_raum_keine_absenkung(m, w):
-    e = m.entscheiden(lage(m, raum=20.6, entscheidungszeit=True), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, raum=20.6), m.Gedaechtnis(), w)
     assert e.aktionen == ()
 
 
 def test_absenkung_wird_einmal_verlaengert(m, w):
-    start = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), w).gedaechtnis
+    start = m.entscheiden(lage(m), m.Gedaechtnis(), w).gedaechtnis
     spaeter = MORGEN + timedelta(minutes=401)
     e = m.entscheiden(lage(m, jetzt=spaeter, raum=21.2, soll=19.5), start, w)
     (aktion,) = e.aktionen
@@ -412,7 +438,7 @@ def test_absenkung_wird_einmal_verlaengert(m, w):
 
 
 def test_laufende_absenkung_nennt_das_geschriebene_ziel(m, w):
-    start = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), w)
+    start = m.entscheiden(lage(m), m.Gedaechtnis(), w)
     (aktion,) = start.aktionen
     staerker = replace(w, absenkung_k=w.absenkung_k + 0.5)
     e = m.entscheiden(lage(m, jetzt=MORGEN + timedelta(hours=1)), start.gedaechtnis, staerker)
@@ -421,7 +447,7 @@ def test_laufende_absenkung_nennt_das_geschriebene_ziel(m, w):
 
 
 def test_verlaengerung_merkt_das_neue_ziel(m, w):
-    start = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), w).gedaechtnis
+    start = m.entscheiden(lage(m), m.Gedaechtnis(), w).gedaechtnis
     spaeter = MORGEN + timedelta(minutes=401)
     e = m.entscheiden(lage(m, jetzt=spaeter, raum=21.2, soll=19.5), start, w)
     (aktion,) = e.aktionen
@@ -437,7 +463,7 @@ def test_gedaechtnis_ohne_geschriebenes_ziel_bleibt_lesbar(m):
 
 
 def test_kuehler_raum_beendet_den_sonnentag(m, w):
-    start = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), w).gedaechtnis
+    start = m.entscheiden(lage(m), m.Gedaechtnis(), w).gedaechtnis
     stand = lage(m, jetzt=MORGEN + timedelta(hours=2), raum=20.1, soll=19.5)
     e = m.entscheiden(stand, start, w)
     assert [a.art for a in e.aktionen] == ["absenkung_ende"]
@@ -446,7 +472,7 @@ def test_kuehler_raum_beendet_den_sonnentag(m, w):
 
 def test_starke_stufe_braucht_milde_aussenluft(m, w):
     stark = replace(w, stark=True)
-    lg = lage(m, entscheidungszeit=True, sonnenquote=90.0, raum=22.5, at=3.5, ruhig=True)
+    lg = lage(m, sonnenquote=90.0, raum=22.5, at=3.5, ruhig=True)
     e = m.entscheiden(lg, m.Gedaechtnis(), stark)
     assert e.zustand != m.Zustand.NUR_WW
 
@@ -460,7 +486,7 @@ def test_nur_ww_endet_wenn_es_seit_einer_stunde_kalt_ist(m, w):
 
 def test_starke_stufe_schaltet_nur_ww_bis_sonnenuntergang(m, w):
     stark = replace(w, stark=True)
-    stand = lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True, at=18.0)
+    stand = lage(m, raum=22.2, sonnenquote=85.0, at=18.0)
     e = m.entscheiden(stand, m.Gedaechtnis(), stark)
     assert [a.art for a in e.aktionen] == ["nur_ww"]
     assert e.gedaechtnis.stark_bis == UNTERGANG
@@ -488,7 +514,7 @@ def test_laufende_abwesenheit_schreibt_nicht_erneut(m, w):
 
 # --- Speichern ---------------------------------------------------------------
 def test_gedaechtnis_uebersteht_den_store(m, w):
-    g = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), w).gedaechtnis
+    g = m.entscheiden(lage(m), m.Gedaechtnis(), w).gedaechtnis
     assert m.gedaechtnis_aus_dict(m.gedaechtnis_als_dict(g)) == g
 
 
@@ -507,9 +533,7 @@ def test_wechsel_auf_nur_ww_beendet_laufende_absenkung(m, w):
 # --- Räume gegen ihr eigenes Ziel --------------------------------------------
 def test_raeume_am_eigenen_ziel_erlauben_den_sonnentag(m, w):
     """Ohne Raumfühler am Heizkreis ist der Sollwert nur eine Verschiebung der Heizkurve."""
-    stand = lage(
-        m, raum=20.7, soll=22.0, raeume=((20.4, 20.5), (21.0, 21.0)), entscheidungszeit=True
-    )
+    stand = lage(m, raum=20.7, soll=22.0, raeume=((20.4, 20.5), (21.0, 21.0)))
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.SONNENTAG
     assert e.aktionen[0].soll == 20.5
@@ -522,7 +546,6 @@ def test_kaeltester_raum_zaehlt_gegen_sein_ziel(m, w):
         soll=22.0,
         raeume=((22.0, 20.0), (19.0, 20.0)),
         raum_art="minimum",
-        entscheidungszeit=True,
     )
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert e.aktionen == ()
@@ -530,7 +553,7 @@ def test_kaeltester_raum_zaehlt_gegen_sein_ziel(m, w):
 
 
 def test_raum_ohne_eigenes_ziel_misst_gegen_den_sollwert(m, w):
-    stand = lage(m, raum=20.6, soll=21.0, raeume=((20.6, None),), entscheidungszeit=True)
+    stand = lage(m, raum=20.6, soll=21.0, raeume=((20.6, None),))
     assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
 
 
@@ -548,7 +571,7 @@ def test_nur_ww_bleibt_wenn_die_raeume_ihr_ziel_halten(m, w):
 
 
 def test_waermeanforderung_verhindert_nur_ww(m, w):
-    stand = lage(m, at_gedaempft=18.5, ruhig=False)
+    stand = lage(m, fruehester_beginn=SPAET, at_gedaempft=18.5, ruhig=False)
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert e.aktionen == ()
     assert "fordern Wärme an" in e.begruendung
@@ -560,7 +583,7 @@ def test_ruhige_raeume_erlauben_nur_ww(m, w):
 
 
 def test_ausgeschalteter_sonnentag_senkt_nicht_ab(m, w):
-    e = m.entscheiden(lage(m, entscheidungszeit=True), m.Gedaechtnis(), replace(w, sonnentag=False))
+    e = m.entscheiden(lage(m), m.Gedaechtnis(), replace(w, sonnentag=False))
     assert e.zustand == m.Zustand.PROGRAMM
     assert e.aktionen == ()
 
@@ -573,7 +596,7 @@ def test_ausschalten_beendet_einen_laufenden_sonnentag(m, w):
 
 
 def test_waermeanforderung_verhindert_nur_ww_am_sehr_sonnigen_tag(m, w):
-    stand = lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True, ruhig=False, at=18.0)
+    stand = lage(m, raum=22.2, sonnenquote=85.0, ruhig=False, at=18.0)
     e = m.entscheiden(stand, m.Gedaechtnis(), replace(w, stark=True))
     assert [a.art for a in e.aktionen] == ["absenken"]
 
@@ -581,7 +604,7 @@ def test_waermeanforderung_verhindert_nur_ww_am_sehr_sonnigen_tag(m, w):
 def test_waermeanforderung_beendet_nur_ww_des_sonnentags(m, w):
     stark = replace(w, stark=True)
     start = m.entscheiden(
-        lage(m, raum=22.2, sonnenquote=85.0, entscheidungszeit=True, at=18.0),
+        lage(m, raum=22.2, sonnenquote=85.0, at=18.0),
         m.Gedaechtnis(),
         stark,
     )
@@ -593,19 +616,19 @@ def test_waermeanforderung_beendet_nur_ww_des_sonnentags(m, w):
 @pytest.mark.parametrize("betriebsart", [5, 6, 9, 10, 11])
 def test_sonderbetrieb_der_steuerung_setzt_die_automatik_aus(m, w, betriebsart):
     """Estrich, Urlaub, Hand-, Test- und Kaminkehrerbetrieb laufen über `3/50` weiter im Programm."""
-    stand = lage(m, entscheidungszeit=True, at_gedaempft=18.5, betriebsart=betriebsart)
+    stand = lage(m, at_gedaempft=18.5, betriebsart=betriebsart)
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.PAUSIERT
     assert e.aktionen == ()
 
 
 def test_warmwasserladung_ist_kein_sonderbetrieb(m, w):
-    e = m.entscheiden(lage(m, entscheidungszeit=True, betriebsart=3), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, betriebsart=3), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.SONNENTAG
 
 
 def test_im_absenkbetrieb_beginnt_kein_sonnentag(m, w):
-    e = m.entscheiden(lage(m, entscheidungszeit=True, betriebsart=2), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, betriebsart=2), m.Gedaechtnis(), w)
     assert all(a.art != "absenken" for a in e.aktionen)
 
 
@@ -615,9 +638,7 @@ def lange_absenkung(m):
 
 
 def test_liefernde_vorrangquelle_bestaetigt_den_sonnentag(m, w):
-    stand = lage(
-        m, sonnenquote=40.0, entscheidungszeit=True, vorrang_laeuft=True, vorrang_name="Solaranlage"
-    )
+    stand = lage(m, sonnenquote=40.0, vorrang_laeuft=True, vorrang_name="Solaranlage")
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.SONNENTAG
     assert e.begruendung.startswith("Solaranlage liefert")
@@ -701,19 +722,13 @@ def test_ohne_bedingung_keine_heizpause(m, w, abweichung):
 
 @pytest.mark.parametrize(
     ("jetzt", "pause"),
-    [
-        (MORGEN, True),
-        (UNTERGANG - timedelta(hours=1), False),
-        pytest.param(
-            MORGEN - timedelta(hours=5),
-            False,
-            marks=pytest.mark.xfail(strict=True, reason="Sonnenanlass vor Aufgang, Fix offen"),
-        ),
-    ],
+    [(MORGEN, True), (UNTERGANG - timedelta(hours=1), False), (MORGEN - timedelta(hours=5), False)],
 )
 def test_sonne_als_anlass_der_heizpause_gilt_nur_bei_tag(m, w, jetzt, pause):
     nur_sonne = {**MILD, "mittel_heute": 12.0, "at_gedaempft": 11.8, "sonnenquote": 90.0}
-    e = m.entscheiden(lage(m, **nur_sonne, jetzt=jetzt), m.Gedaechtnis(), w)
+    e = m.entscheiden(
+        lage(m, **nur_sonne, jetzt=jetzt, fruehester_beginn=AUFGANG), m.Gedaechtnis(), w
+    )
     assert any(a.art == "pause" for a in e.aktionen) is pause
 
 
@@ -838,7 +853,7 @@ def test_kalte_raeume_beenden_die_pause_ohne_sonnentag(m, w):
 
 def test_pause_ohne_ende_im_gedaechtnis_bricht_nicht_ab(m, w):
     g = m.Gedaechtnis(absenkung_art=m.PAUSE, absenkung_soll=17.0)
-    e = m.entscheiden(lage(m, **{**MILD, "at_steuerung": None}), g, w)
+    e = m.entscheiden(lage(m, fruehester_beginn=SPAET, **{**MILD, "at_steuerung": None}), g, w)
     assert e.zustand != m.Zustand.HEIZPAUSE
     assert e.aktionen == ()
 
@@ -936,7 +951,7 @@ def test_vorrangtage_machen_einen_knapp_kuehlen_tag_mild(m, w):
 
 
 def test_vorrangquelle_ersetzt_eine_fehlende_sonnenquote(m, w):
-    stand = lage(m, sonnenquote=None, entscheidungszeit=True, vorrang_laeuft=True)
+    stand = lage(m, sonnenquote=None, vorrang_laeuft=True)
     assert [a.art for a in m.entscheiden(stand, m.Gedaechtnis(), w).aktionen] == ["absenken"]
 
 
@@ -976,13 +991,15 @@ def test_ausgeschaltete_raeume_holen_nur_ww_nicht_zurueck(m, w):
 
 
 def test_ausgeschalteter_raum_zaehlt_nicht_gegen_die_anderen(m, w):
-    stand = lage(m, raeume=((21.0, 21.0),), aus=(15.0,), entscheidungszeit=True)
+    stand = lage(m, raeume=((21.0, 21.0),), aus=(15.0,))
     assert m.abweichung(stand, 22.0) == 0.0
 
 
 # --- Heizgrenze der Steuerung --------------------------------------------------
 def test_hohe_heizgrenze_der_steuerung_haelt_den_heizkreis_im_programm(m, w):
-    stand = lage(m, mittel_heute=19.0, mittel_morgen=19.0, grenze_steuerung=20.0)
+    stand = lage(
+        m, fruehester_beginn=SPAET, mittel_heute=19.0, mittel_morgen=19.0, grenze_steuerung=20.0
+    )
     assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
 
 
@@ -1055,7 +1072,7 @@ def test_jede_begruendung_kommt_auf_englisch_an(m, w):
             "fenster_offen": zufall.random() < 0.1,
             "abwesend": zufall.random() < 0.1,
             "pausiert_bis": zufall.choice([None, None, MORGEN + timedelta(hours=2)]),
-            "entscheidungszeit": zufall.random() < 0.5,
+            "fruehester_beginn": zufall.choice([None, MORGEN + timedelta(hours=2)]),
             "vorrang_laeuft": zufall.choice([None, True, False]),
             "vorrang_minuten": zufall.choice([None, 0.0, 120.0]),
             "vorrang_name": zufall.choice([None, "Solar"]),
@@ -1103,7 +1120,7 @@ def test_jede_kurzfassung_kommt_auf_englisch_an(m):
 def test_programm_nennt_den_von_der_steuerung_ausgeschalteten_heizkreis(m, w):
     """Ohne Vorlauf-Soll heizt die Steuerung nicht; „heizt nach Programm“ wäre falsch."""
     felder = {"at": 17.6, "at_steuerung": 17.6, "vl_soll": 0.0, "ruhig": False}
-    e = m.entscheiden(lage(m, **felder), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, fruehester_beginn=SPAET, **felder), m.Gedaechtnis(), w)
     assert e.zustand == m.Zustand.PROGRAMM
     assert e.begruendung == (
         "Kein Eingriff – der Heizkreis ist an der Steuerung aus, AT 17,6 °C. "
@@ -1126,12 +1143,12 @@ def test_programm_nennt_den_von_der_steuerung_ausgeschalteten_heizkreis(m, w):
 )
 def test_ausgeschalteter_heizkreis_auf_englisch_und_niederlaendisch(m, w, sprache, erwartet):
     felder = {"at": 17.6, "at_steuerung": 17.6, "vl_soll": 0.0}
-    e = m.entscheiden(lage(m, **felder), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, fruehester_beginn=SPAET, **felder), m.Gedaechtnis(), w)
     assert load_standalone("texte").Woerterbuch(sprache).satz(e.begruendung) == erwartet
 
 
 def test_programm_mit_vorlauf_heizt(m, w):
-    e = m.entscheiden(lage(m, vl_soll=42.0), m.Gedaechtnis(), w)
+    e = m.entscheiden(lage(m, fruehester_beginn=SPAET, vl_soll=42.0), m.Gedaechtnis(), w)
     assert e.begruendung.startswith("Heizt nach Programm")
 
 
@@ -1271,7 +1288,7 @@ def test_laufende_pause_der_bisherigen_regel_endet_nach_ihren_bedingungen(m, w, 
 
 
 def test_mit_vorhersage_beginnt_kein_sonnentag_der_bisherigen_regel(m, w, vh):
-    stand = lage(m, entscheidungszeit=True, betriebswahl=1, vorhersage=_vh(vh, "programm"))
+    stand = lage(m, betriebswahl=1, vorhersage=_vh(vh, "programm"))
     assert m.entscheiden(stand, m.Gedaechtnis(), w).aktionen == ()
 
 
@@ -1446,9 +1463,8 @@ def test_nach_dem_horizont_beginnt_die_bisherige_regel_keine_pause(m, w):
     assert danach.aktionen == ()
 
 
-@pytest.mark.parametrize("entscheidungszeit", [False, True])
-def test_freigegebenes_modell_ohne_vorhersage_beginnt_keine_alte_stufe(m, w, entscheidungszeit):
-    stand = lage(m, **MILD, modell_freigegeben=True, entscheidungszeit=entscheidungszeit)
+def test_freigegebenes_modell_ohne_vorhersage_beginnt_keine_alte_stufe(m, w):
+    stand = lage(m, **MILD, modell_freigegeben=True)
     e = m.entscheiden(stand, m.Gedaechtnis(), w)
     assert (e.zustand, e.aktionen) == (m.Zustand.PROGRAMM, ())
 

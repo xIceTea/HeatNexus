@@ -126,7 +126,9 @@ class Lage:
     fenster_offen: bool = False
     abwesend: bool = False
     pausiert_bis: datetime | None = None
-    entscheidungszeit: bool = False
+    sonnenaufgang: datetime | None = None
+    # Ab hier gilt die Sonne als Anlass; `None` heißt ohne Sperre.
+    fruehester_beginn: datetime | None = None
     absenkung_moeglich: bool = True
     # Wärmequellen mit Vorrang vor dem Kessel: welche liefert gerade, wie lange heute schon.
     vorrang_laeuft: bool | None = None
@@ -135,6 +137,10 @@ class Lage:
     # AT und Vorlauf-Soll der Steuerung selbst; nach ihnen schaltet sie den Heizkreis.
     at_steuerung: float | None = None
     vl_soll: float | None = None
+    # Korrigierte AT der nächsten zwei vollen Stunden laut Prognose; leer ohne Prognose.
+    at_prognose: tuple[float, ...] = ()
+    # TA Absenkbetrieb der Steuerung (`3/2`).
+    grenze_absenk: float | None = None
     # An wie vielen der letzten drei Tage die Vorrangquelle nennenswert geliefert hat.
     vorrang_tage: int | None = None
     # Im Beobachten schreibt die Automatik nichts; der Vorlauf-Soll sagt dann nichts über die Pause.
@@ -336,6 +342,13 @@ def grenze(lage: Lage, w: Werte) -> float:
     steuerung = lage.grenze_steuerung
     gueltig = steuerung is not None and HEIZGRENZE_BEREICH[0] <= steuerung <= HEIZGRENZE_BEREICH[1]
     return (steuerung if gueltig else HEIZGRENZE_RUECKFALL) + w.grenze_versatz
+
+
+def sonne_im_fenster(lage: Lage) -> bool:
+    """Ob die Sonne als Anlass gilt: ab dem frühesten Beginn bis Untergang − 2 h."""
+    if lage.sonnenuntergang is None or lage.jetzt >= lage.sonnenuntergang - VORLAUF_UNTERGANG:
+        return False
+    return lage.fruehester_beginn is None or lage.jetzt >= lage.fruehester_beginn
 
 
 def sonne_absenkung(lage: Lage, w: Werte) -> float:
@@ -694,7 +707,7 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
     moeglich = (
         w.sonnentag
         and not lage.modell_steuert
-        and lage.entscheidungszeit
+        and (bool(lage.vorrang_laeuft) or sonne_im_fenster(lage))
         and lage.betriebswahl in PROGRAMMWAHL
         and lage.absenkung_moeglich
         and lage.betriebsart != ABSENKBETRIEB
@@ -768,10 +781,7 @@ def _pause_anlass(lage: Lage, soll: float, w: Werte) -> str | None:
         return f"Gedämpfte AT {_zahl(lage.at_gedaempft)} °C über {_zahl(schwelle + w.hysterese)} °C"
     if lage.mittel_heute is not None and lage.mittel_heute >= schwelle:
         return f"Tagesmittel heute {_zahl(lage.mittel_heute)} °C"
-    # Die Sonnenquote gilt für den ganzen Tag; nach Sonnenuntergang wärmt sie nicht mehr.
-    sonne_scheint = (
-        lage.sonnenuntergang is not None and lage.jetzt < lage.sonnenuntergang - VORLAUF_UNTERGANG
-    )
+    sonne_scheint = sonne_im_fenster(lage)
     if (
         sonne_scheint
         and lage.sonnenquote is not None
@@ -840,7 +850,7 @@ def _heizpause_laeuft(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Ents
     if (grund := _pause_ende(lage, g, soll, w)) is not None:
         neu = replace(ohne_absenkung(g), pause_sperre=lage.jetzt.date().isoformat())
         # Statt ins Programm direkt in den Sonnentag, wenn er jetzt passt; der schreibt die Vorgabe neu.
-        folge = _sonnentag(replace(lage, entscheidungszeit=True), neu, soll, w)
+        folge = _sonnentag(lage, neu, soll, w)
         if folge.zustand is Zustand.SONNENTAG and folge.aktionen:
             return replace(folge, begruendung=f"{grund} – Heizpause beendet. {folge.begruendung}")
         return Entscheidung(
