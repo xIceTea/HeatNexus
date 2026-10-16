@@ -204,7 +204,8 @@ export const AUTOMATIK = `
     display: flex; justify-content: space-between; gap: 6px; margin-top: 8px;
     font-size: 12px; color: var(--hn-gedaempft);
   }
-  .automatik-skala .achse > span { white-space: nowrap; }
+  .automatik-skala .achse > span { min-width: 0; overflow-wrap: anywhere; }
+  .automatik-skala .achse > span:last-child:not(:first-child) { text-align: right; }
   .automatik-skala .achse .vorrang-zeile { color: var(--hn-gedaempft); }
 
   /* Tagesverlauf */
