@@ -65,6 +65,7 @@ def auszug(
             "gedaechtnis": regel.gedaechtnis_als_dict(laufzeit.gedaechtnis),
             "steller": {name: inhalt for name, inhalt in stand.items() if name != "protokoll"},
             "protokoll": stand.get("protokoll", []),
+            "regellauf": laufzeit.regellauf.liste(dt_util.now()),
             "prognose_frisch": laufzeit.prognose_frisch,
             "wetter": laufzeit.wetter_stand(prognose_fehler),
             "pausiert_bis": laufzeit.pausiert_bis,

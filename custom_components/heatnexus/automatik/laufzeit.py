@@ -31,6 +31,7 @@ from ..helpers import get_oid_value
 from ..registrierung import geraetename
 from ..texte import woerterbuch
 from . import (
+    bewertung,
     dynamik,
     eingaben,
     hausmodell,
@@ -38,6 +39,7 @@ from . import (
     nachladen,
     profile,
     regel,
+    regellauf,
     seitenleiste,
     stundenmodus,
     tagesansicht,
@@ -228,6 +230,8 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._takt_offen = False
         self._halten_vorher: datetime | None = None
         self._empfehlung_weg = 0
+        self.regellauf = regellauf.Regellauf()
+        self.bewertungen: tuple[bewertung.Bewertung, ...] = ()
 
     def _laeufe_laden(self, z: dict[str, Any]) -> None:
         """Wie lange Vorrangquellen lieferten und Sonnentag oder nur Warmwasser heute galten."""
@@ -534,6 +538,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             self.stabil = replace(self.stabil, halten_bis=self._halten_vorher)
         self._sicherheit_pruefen(entscheidung, angenommen)
         self.steller.abgleichen(self.gedaechtnis, jetzt)
+        self._protokollieren(jetzt, lage, kandidat, entscheidung, angenommen)
         if self.steller.empfohlen:
             self._empfohlen(jetzt, entscheidung)
             return
@@ -569,6 +574,37 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         zustand = kandidat.zustand.value
         offen = self.empfehlung is not None and self.empfehlung["zustand"] == zustand
         return offen or zustand in self._heute_verworfen(jetzt)
+
+    def _protokollieren(
+        self,
+        jetzt: datetime,
+        lage: regel.Lage,
+        kandidat: regel.Entscheidung,
+        entscheidung: regel.Entscheidung,
+        angenommen: bool,
+    ) -> None:
+        """Den Lauf in den Regellauf schreiben; ohne Änderung entsteht keine Zeile."""
+        self.bewertungen = bewertung.bewerten(lage, self.gedaechtnis, self.werte, kandidat.zustand)
+        if self.anstehend is not None:
+            ergebnis = "haelt" if self.anstehend.halten_bis else "zaehlt"
+        elif not entscheidung.aktionen:
+            ergebnis = "bleibt"
+        elif self.steller.empfohlen:
+            ergebnis = "empfohlen"
+        elif self.beobachten:
+            ergebnis = "haette"
+        else:
+            ergebnis = "schreibt" if angenommen else "abgelehnt"
+        self.regellauf.eintragen(
+            regellauf.eintrag(
+                jetzt,
+                kandidat.zustand,
+                entscheidung.zustand,
+                self.anstehend,
+                ergebnis,
+                self.bewertungen,
+            )
+        )
 
     def ruhe_loesen(self) -> None:
         """Nach einem Moduswechsel gilt kein Halten mehr; ein laufender Zähler bleibt."""

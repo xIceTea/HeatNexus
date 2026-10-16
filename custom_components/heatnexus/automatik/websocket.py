@@ -23,7 +23,17 @@ from .. import texte
 from ..const import DOMAIN, SUBEINTRAG_QUELLE
 from ..rechte import darf_lesen
 from ..registrierung import geraet_suchen, geraetename
-from . import eingaben, kennzahlen, korrektur, nachladen, profile, regel, tagesansicht
+from . import (
+    bewertung,
+    dynamik,
+    eingaben,
+    kennzahlen,
+    korrektur,
+    nachladen,
+    profile,
+    regel,
+    tagesansicht,
+)
 from .konfig import (
     EIGENE_FELDER,
     LISTEN_MAX,
@@ -39,6 +49,7 @@ from .quellen import vorhersagearten
 from .verwaltung import DOMAENE_JE_ART, Verwaltung, unique_id, verwaltung_holen
 
 PROTOKOLL_ANZEIGE = 20
+REGELLAUF_ANZEIGE = 100
 PV_PLATTFORMEN = frozenset({"forecast_solar", "solcast_solar", "open_meteo_solar_forecast"})
 FENSTER_KLASSEN = frozenset({"window", "door", "opening"})
 KENNUNG = vol.All(str, vol.Length(min=1, max=120))
@@ -159,11 +170,36 @@ def _eintrag(
         vorschau=tagesansicht.vorschau(laufzeit, jetzt),
         korrektur=_korrektur(laufzeit, jetzt),
         protokoll=list(laufzeit.steller.stand.protokoll[:PROTOKOLL_ANZEIGE]),
+        **_lauf(laufzeit, jetzt),
         beobachtet_seit=laufzeit.beobachtet_seit.isoformat(),
         pausiert_bis=laufzeit.pausiert_bis.isoformat() if laufzeit.pausiert_bis else None,
         entitaeten={**_entitaeten(hass, device_id), "aussen": laufzeit.aussen_entitaet()},
     )
     return ergebnis
+
+
+def _lauf(laufzeit: Laufzeit, jetzt: datetime) -> dict[str, Any]:
+    """Regellauf und die Bewertungen, die gerade entscheiden."""
+    return {
+        "regellauf": laufzeit.regellauf.liste(jetzt)[:REGELLAUF_ANZEIGE],
+        "kern": {
+            "bewertungen": bewertung.kern(laufzeit.bewertungen),
+            "anstehend": _anstehend(laufzeit.anstehend),
+        },
+    }
+
+
+def _anstehend(a: dynamik.Anstehend | None) -> dict[str, Any] | None:
+    """Ein anstehender Wechsel für die Kachel; ohne keiner."""
+    if a is None:
+        return None
+    halten = a.halten_bis.isoformat() if a.halten_bis else None
+    return {
+        "zustand": a.zustand.value,
+        "zaehler": a.zaehler,
+        "noetig": a.noetig,
+        "halten_bis": halten,
+    }
 
 
 def _geladene(hass: HomeAssistant) -> list[ConfigEntry]:

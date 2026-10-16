@@ -3082,3 +3082,20 @@ async def test_entitaet_ohne_vorhersageart_wird_trotzdem_gefragt(hass, anlage, f
         ("weather.home", "hourly"),
     ]
     assert any("weather.home" in r.getMessage() for r in caplog.records)
+
+
+async def test_regellauf_zeigt_den_zaehler(hass, hass_ws_client, anlage, freezer):
+    verwaltung, _ = anlage
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    await _takte(laufzeit)
+
+    (kreis,) = (await _senden(client, type="heatnexus/automatik"))["result"]["heizkreise"]
+    ergebnisse = [e["ergebnis"] for e in kreis["regellauf"]]
+    assert ergebnisse[:3] == ["schreibt", "zaehlt", "zaehlt"]
+    assert kreis["regellauf"][1]["zaehler"] == 2
+    assert kreis["kern"]["anstehend"] is None
+    assert {b["name"] for b in kreis["kern"]["bewertungen"]} >= {"sonne", "raeume"}
