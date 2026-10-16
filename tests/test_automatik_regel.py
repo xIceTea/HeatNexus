@@ -1528,3 +1528,32 @@ def test_verbotene_absenkung_ist_uebersetzt(m, w, vh, sprache, g):
     assert uebersetzt != e.begruendung
     if sprache == "en":
         assert not DEUTSCH.search(uebersetzt), uebersetzt
+
+
+# Nachts mild, laut Prognose bald über der Heizgrenze; die Räume am Ziel, kein Thermostat fordert.
+BALD = {
+    "jetzt": MORGEN - timedelta(hours=5),
+    "fruehester_beginn": MORGEN,
+    "at": 15.5,
+    "at_steuerung": 15.5,
+    "at_gedaempft": 14.0,
+    "mittel_heute": 14.0,
+    "sonnenquote": 10.0,
+    "ruhig": True,
+}
+
+
+def test_bald_abschaltende_steuerung_beginnt_die_heizpause_auch_nachts(m, w):
+    e = m.entscheiden(lage(m, **BALD, at_prognose=(18.2, 18.6)), m.Gedaechtnis(), w)
+    assert e.zustand == m.Zustand.HEIZPAUSE
+    assert e.begruendung.startswith("AT laut Prognose über 18,0 °C")
+
+
+def test_im_absenkbetrieb_zaehlt_ta_absenkbetrieb(m, w):
+    stand = lage(m, **BALD, at_prognose=(6.5, 7.0), betriebsart=m.ABSENKBETRIEB, grenze_absenk=5.0)
+    assert m.bald_aus(stand, w) == "AT laut Prognose über 6,0 °C"
+
+
+@pytest.mark.parametrize("prognose", [(), (18.2,), (17.5, 18.6)])
+def test_ohne_klare_prognose_kein_bald_aus(m, w, prognose):
+    assert m.bald_aus(lage(m, **BALD, at_prognose=prognose), w) is None

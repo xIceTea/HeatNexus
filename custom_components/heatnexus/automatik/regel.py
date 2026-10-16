@@ -771,8 +771,27 @@ def _sonnentag(lage: Lage, g: Gedaechtnis, soll: float, w: Werte) -> Entscheidun
     )
 
 
+def bald_schwelle(lage: Lage, w: Werte) -> float:
+    """Die Schwelle, über der die Steuerung den Heizkreis abschaltet, im Absenkbetrieb `3/2`."""
+    if lage.betriebsart == ABSENKBETRIEB and lage.grenze_absenk is not None:
+        return lage.grenze_absenk
+    return grenze(lage, w)
+
+
+def bald_aus(lage: Lage, w: Werte) -> str | None:
+    """Die Steuerung schaltet laut Prognose in den nächsten zwei Stunden selbst ab."""
+    if len(lage.at_prognose) < 2:
+        return None
+    schwelle = bald_schwelle(lage, w) + w.hysterese
+    if min(lage.at_prognose) < schwelle:
+        return None
+    return f"AT laut Prognose über {_zahl(schwelle)} °C"
+
+
 def _pause_anlass(lage: Lage, soll: float, w: Werte) -> str | None:
     schwelle = grenze(lage, w)
+    if (bald := bald_aus(lage, w)) is not None:
+        return bald
     if lage.at_steuerung is None:
         return None
     if lage.at_steuerung < schwelle - w.hysterese + PAUSE_EINSTIEG_K:

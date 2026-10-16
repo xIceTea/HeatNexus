@@ -600,6 +600,7 @@
   "Räume {wert} unter Ziel": "Ruimtes {wert} onder doel",
   "Räume {wert} über Ziel": "Ruimtes {wert} boven doel",
   "Thermostate fordern Wärme an": "Thermostaten vragen om warmte",
+  "AT laut Prognose über {grenze} °C": "Buitentemp. volgens prognose boven {grenze} °C",
   "Die Steuerung heizt wieder": "De regeling verwarmt weer",
   "Tagesbudget von {budget} Eingriffen erreicht – nicht geschrieben.": "Dagbudget van {budget} ingrepen bereikt – niet geschreven.",
   "Die Steuerung hat den Eingriff abgelehnt: {fehler}. Nächster Versuch ab {zeit}.": "De regelaar heeft de ingreep geweigerd: {fehler}. Volgende poging vanaf {zeit}.",

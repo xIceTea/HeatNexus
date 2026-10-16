@@ -600,6 +600,7 @@
   "Räume {wert} unter Ziel": "Rooms {wert} below target",
   "Räume {wert} über Ziel": "Rooms {wert} above target",
   "Thermostate fordern Wärme an": "Thermostats call for heat",
+  "AT laut Prognose über {grenze} °C": "Outdoor temp. forecast above {grenze} °C",
   "Die Steuerung heizt wieder": "The controller is heating again",
   "Tagesbudget von {budget} Eingriffen erreicht – nicht geschrieben.": "Daily budget of {budget} interventions reached – not written.",
   "Die Steuerung hat den Eingriff abgelehnt: {fehler}. Nächster Versuch ab {zeit}.": "The controller rejected the intervention: {fehler}. Next attempt from {zeit}.",
