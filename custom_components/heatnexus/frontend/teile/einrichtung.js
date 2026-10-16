@@ -18,7 +18,7 @@ export const EINSTELLUNGSGRUPPEN = [
   ["Sonnentag", ["sonnenquote", "sonnentag", "absenkung_k", "sonne_voll_at", "sonne_frost_at", "stark", "stark_k"]],
   ["Zeitplan", ["beginn_art", "beginn_uhrzeit", "beginn_laeufe", "ende_laeufe", "halten_min", "mindestdauer_h", "budget"]],
   ["Schutz und Prognose", ["rueckkehr_k", "spielraum_k", "ruhe_h", "fenster_k_je_h", "raum_fehlt_min", "anpassen", "lernfenster"]],
-  ["Manuell mit Empfehlung", ["melden"]],
+  ["Benachrichtigungen", ["melden", "befund_melden"]],
 ];
 
 export const EinrichtungMixin = (Basis) =>
@@ -82,32 +82,27 @@ export const EinrichtungMixin = (Basis) =>
       });
       pruefen();
 
+      // Der Schalter der Auswertung gilt sofort und bleibt beim Zurücksetzen der Werte.
+      const melden = !!kreis.konfig.befund_melden;
+      const befund = this._automatikFeld("Hinweise der Auswertung in der Seitenleiste melden", "");
+      const befundSchalter = schalterKnopf(melden, darf);
+      befundSchalter.setAttribute("aria-label", this._t("Hinweise der Auswertung in der Seitenleiste melden"));
+      befundSchalter.addEventListener("click", () => this._automatikEinstellen(kreis, { befund_melden: !melden }));
+      befund.querySelector(".eingabe").appendChild(befundSchalter);
+
       const gruppen = document.createElement("div");
       gruppen.className = "automatik-gruppen";
+      const zeilen = { ...felder.zeilen, befund_melden: befund };
       EINSTELLUNGSGRUPPEN.forEach(([ueberschrift, gruppenNamen]) => {
         const gruppe = document.createElement("section");
         gruppe.className = "automatik-einstellungsgruppe";
         const kopfzeile = document.createElement("h4");
         kopfzeile.textContent = this._t(ueberschrift);
         gruppe.appendChild(kopfzeile);
-        gruppenNamen.forEach((name) => felder.zeilen[name] && gruppe.appendChild(felder.zeilen[name]));
+        gruppenNamen.forEach((name) => zeilen[name] && gruppe.appendChild(zeilen[name]));
         gruppen.appendChild(gruppe);
       });
       bereich.appendChild(gruppen);
-
-      // Wie die übrigen Schalter gilt er sofort und bleibt beim Zurücksetzen der Werte.
-      const befund = document.createElement("div");
-      befund.className = "automatik-befundschalter";
-      const befundTitel = document.createElement("h4");
-      befundTitel.textContent = this._t("Auswertung");
-      const melden = !!kreis.konfig.befund_melden;
-      befund.append(
-        befundTitel,
-        this._automatikSchalter(this._t("Hinweise der Auswertung in der Seitenleiste melden"), melden, darf, () =>
-          this._automatikEinstellen(kreis, { befund_melden: !melden })
-        )
-      );
-      bereich.appendChild(befund);
 
       const leiste = document.createElement("div");
       leiste.className = "automatik-leiste";
@@ -139,7 +134,8 @@ export const EinrichtungMixin = (Basis) =>
         if (geaendert) abweichend += 1;
         const basisText = typeof basis === "number" ? zahl(basis, Number.isInteger(basis) ? 0 : 1) : basis || "–";
         const anzeige = feld.art === "janein" ? this._t(basis ? "Ein" : "Aus") : `${basisText} ${feld.einheit ? this._t(feld.einheit) : ""}`.trim();
-        const zeile = this._automatikFeld(feld.titel, geaendert ? this._tMit("Profil: {wert}", { wert: anzeige || "–" }) : "", geaendert, feld.hilfe);
+        const unter = geaendert ? this._tMit("Profil: {wert}", { wert: anzeige || "–" }) : feld.unter ? this._t(feld.unter) : "";
+        const zeile = this._automatikFeld(feld.titel, unter, geaendert, feld.hilfe);
         const eingabe = this._automatikEingabe(feld, wert, darf);
         eingabe.setAttribute("aria-label", this._t(feld.titel));
         eingaben[feld.name] = [feld, eingabe];

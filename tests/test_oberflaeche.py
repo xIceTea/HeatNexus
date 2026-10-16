@@ -861,7 +861,7 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
     """Eingerichtet: Karte mit Marke, Feldern und Protokoll; sonst die Einladung."""
     automatik = durchlauf["automatik"]
     assert automatik["marken"] == ["Sonnentag · beobachtet"]
-    assert automatik["felder"] == 28  # Profil, zwei Heizgrenzen und fünfundzwanzig Werte
+    assert automatik["felder"] == 29  # Profil, zwei Heizgrenzen, fünfundzwanzig Werte und die Auswertung
     assert automatik["geaendert"] == 1
     assert automatik["protokoll"] == 1
     assert automatik["einladungen"] == 1
@@ -883,7 +883,7 @@ def test_der_reiter_automatik_folgt_dem_entwurf(durchlauf):
         "Sonnentag",
         "Zeitplan",
         "Schutz und Prognose",
-        "Manuell mit Empfehlung",
+        "Benachrichtigungen",
     ]
     assert automatik["ausrichtung"] == [
         ["Eco", "false"],
@@ -942,6 +942,7 @@ def test_ja_nein_felder_der_einstellungen_sind_schalter(durchlauf):
         ["Sehr sonnig: nur Warmwasser", "false"],
         ["Prognose an Standort anpassen", "false"],
         ["Empfehlung in der Seitenleiste melden", "false"],
+        ["Hinweise der Auswertung in der Seitenleiste melden", "false"],
     ]
     # Ein Klick schaltet um und gilt als Änderung; zurückgeschaltet ist Speichern wieder grau.
     assert automatik["jaNeinKlick"] == ["false", "true", "true", False]
