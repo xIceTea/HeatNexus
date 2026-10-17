@@ -1455,6 +1455,25 @@ bilanz.bezeichnungUndZeiten = bezeichnungUndZeiten;
     offen: gruppen().map((g) => !!g.querySelector("details").open),
     regellaufKarte: flaeche.shadowRoot.querySelectorAll(".kartenkopf").filter((k) => String(k.textContent || "").includes("Regellauf")).length,
   };
+
+  // Geschrieben, ruhig, von selbst beendet: jede Zeile sagt in Worten, was geschah.
+  kreis.regellauf = [
+    { ...lauf("2026-09-27T16:16:00+02:00", "programm", "wechselt"), vorher: "sonnentag", bewertungen: [{ name: "thermostate", erfuellt: false, entscheidend: true }] },
+    { ...lauf("2026-09-27T12:51:00+02:00", "sonnentag", "bleibt"), zustand: "sonnentag", bewertungen: [] },
+    { ...lauf("2026-09-27T11:21:00+02:00", "sonnentag", "schreibt"), zustand: "sonnentag" },
+  ];
+  karte = zeichnen();
+  gruppen().forEach((g) => {
+    const bereich = g.querySelector("details");
+    bereich.open = true;
+    bereich.ausloesen("toggle");
+  });
+  karte = zeichnen();
+  bilanz.automatikLaeufe.zeilenText = gruppen().flatMap((g) =>
+    g.querySelector(".automatik-regellauf").childNodes.map((li) =>
+      li.querySelector(".inhalt").childNodes.map((teil) => String(teil.textContent || "").trim())
+    )
+  );
   kreis.regellauf = [];
 
   // Die Kreiskarte ist ab Werk drei Spalten breit, höchstens so breit wie die gewählte Spaltenzahl.

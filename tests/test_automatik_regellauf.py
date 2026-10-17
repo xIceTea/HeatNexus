@@ -85,3 +85,66 @@ def test_hoechstens_dreihundert(rl):
     for n in range(320):
         lauf.eintragen(eintrag(JETZT, zaehler=n))
     assert len(lauf.liste(JETZT)) == 300
+
+
+def lauf_ohne_aktion(zeit, zustand, bewertungen, ergebnis="bleibt"):
+    return {
+        "zeit": zeit.isoformat(),
+        "kandidat": zustand,
+        "zustand": zustand,
+        "zaehler": None,
+        "noetig": None,
+        "halten_bis": None,
+        "ergebnis": ergebnis,
+        "bewertungen": bewertungen,
+    }
+
+
+def test_zustandswechsel_ohne_aktion_heisst_wechselt(rl):
+    lauf = rl.Regellauf()
+    haken = [{"name": "beginn", "erfuellt": True, "entscheidend": True}]
+    lauf.eintragen(lauf_ohne_aktion(JETZT, "sonnentag", haken, ergebnis="schreibt"))
+    lauf.eintragen(lauf_ohne_aktion(JETZT + timedelta(minutes=5), "programm", haken))
+    neu = lauf.liste(JETZT + timedelta(minutes=5))[0]
+    assert (neu["ergebnis"], neu["vorher"]) == ("wechselt", "sonnentag")
+    assert [b["name"] for b in neu["bewertungen"]] == ["beginn"]
+
+
+def test_ohne_vorigen_lauf_oder_bei_fehlenden_daten_kein_wechsel(rl):
+    lauf = rl.Regellauf()
+    lauf.eintragen(lauf_ohne_aktion(JETZT, "keine_daten", []))
+    lauf.eintragen(lauf_ohne_aktion(JETZT, "programm", [{"name": "x", "erfuellt": True}]))
+    assert [e["ergebnis"] for e in lauf.liste(JETZT)] == ["bleibt", "bleibt"]
+
+
+def test_ruhiger_lauf_zeigt_nur_gekippte_bewertungen(rl):
+    lauf = rl.Regellauf()
+    vorher = [
+        {"name": "beginn", "erfuellt": True, "entscheidend": True},
+        {"name": "vorrang", "erfuellt": True, "entscheidend": True},
+    ]
+    nachher = [dict(vorher[0]), {**vorher[1], "erfuellt": False}]
+    lauf.eintragen(lauf_ohne_aktion(JETZT, "sonnentag", vorher, ergebnis="schreibt"))
+    lauf.eintragen(lauf_ohne_aktion(JETZT + timedelta(minutes=5), "sonnentag", nachher))
+    neu = lauf.liste(JETZT + timedelta(minutes=5))[0]
+    assert [b["name"] for b in neu["bewertungen"]] == ["vorrang"]
+
+
+def test_ruhiger_lauf_ohne_gekippte_bewertung_erzeugt_keine_zeile(rl):
+    lauf = rl.Regellauf()
+    haken = [{"name": "beginn", "erfuellt": True, "entscheidend": True}]
+    lauf.eintragen(lauf_ohne_aktion(JETZT, "sonnentag", haken, ergebnis="schreibt"))
+    assert (
+        lauf.eintragen(lauf_ohne_aktion(JETZT + timedelta(minutes=5), "sonnentag", haken)) is False
+    )
+    assert len(lauf.liste(JETZT + timedelta(minutes=5))) == 1
+
+
+def test_erster_ruhiger_lauf_nach_neustart_zeigt_die_entscheidenden(rl):
+    lauf = rl.Regellauf()
+    haken = [
+        {"name": "beginn", "erfuellt": False, "entscheidend": True},
+        {"name": "raeume", "erfuellt": True, "entscheidend": False},
+    ]
+    lauf.eintragen(lauf_ohne_aktion(JETZT, "programm", haken))
+    assert [b["name"] for b in lauf.liste(JETZT)[0]["bewertungen"]] == ["beginn"]

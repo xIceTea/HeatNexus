@@ -9,6 +9,7 @@
  * Teil der Oberfläche `heatnexus-panel.js`; eingebunden als Mixin.
  */
 
+import { BETRIEBSARTEN } from "../ordnung.js";
 import { kalendertagIn, tagMonatIn, uhrzeitText, zeitzone } from "./zeit.js";
 
 // Wie auf dem Server: So lange darf ein Raumfühler denselben Wert zeigen, dann gilt er als veraltet.
@@ -17,8 +18,8 @@ export const VERALTET_STUNDEN = 12;
 export const AUTOMATIK_TAKT_MS = 60 * 1000;
 // So viele Protokolleinträge stehen, bis „Alle anzeigen“ den Rest aufklappt.
 const PROTOKOLL_KURZ = 8;
-// Diese Bewertungen tragen einen Code der Steuerung; die Marke zeigt nur Name und Haken.
-const CODES = new Set(["programmwahl", "betriebsart"]);
+// Nach diesen Zuständen kehrt die Steuerung von selbst zum Programm zurück, wenn ihre Dauer abläuft.
+const MIT_ABLAUF = new Set(["sonnentag", "heizpause"]);
 
 export const FELDER = [
   { name: "grenze_versatz", hilfe: "Die Automatik richtet sich nach der Heizgrenze der Steuerung (TA Heizbetrieb) und verschiebt sie um diesen Wert. Negativ schaltet früher auf nur Warmwasser. Die Ausrichtung setzt ihn; hier lässt er sich fein einstellen.", titel: "Abstand zur Heizgrenze", einheit: "K", schritt: 0.5 },
@@ -105,7 +106,6 @@ export const ERGEBNISSE = {
   abgelehnt: "abgelehnt",
   zaehlt: "zählt",
   haelt: "hält",
-  bleibt: "bleibt",
 };
 
 export const PROFILE = [
@@ -142,7 +142,84 @@ export function kelvin(wert) {
   return `${v > 0 ? "+" : v < 0 ? "−" : "±"}${zahl(Math.abs(v))} K`;
 }
 
-/** Ein Schalter ohne Text: Spur mit Knopf, eingeschaltet mit Haken. */
+/** Temperatur mit Komma und Einheit; ohne Wert ein Strich. */
+function grad(wert) {
+  return wert === null || wert === undefined ? "–" : `${zahl(wert)} °C`;
+}
+
+/** Platzhalter `{name}` füllen, ohne zu übersetzen. */
+function fuellen(text, werte = {}) {
+  return Object.entries(werte).reduce((satz, [k, v]) => satz.split(`{${k}}`).join(String(v)), text);
+}
+
+/** Eine Bewertung als Aussage, etwa „Sonnenfenster bis 16:16“; `t` übersetzt Vorlage und Werte. */
+export function markeAussage(b, t = fuellen) {
+  const ja = b.erfuellt;
+  switch (b.name) {
+    case "daten":
+      return ja ? t("Daten vollständig") : t("Daten fehlen");
+    case "prognose":
+      return ja ? t("Prognose liegt vor") : t("Prognose fehlt");
+    case "fenster":
+      return ja ? t("Fenster zu") : t("Fenster offen");
+    case "beginn":
+      return beginnAussage(b, t);
+    case "sonne":
+      if (b.wert === null || b.wert === undefined) return t("Sonnenquote fehlt");
+      return t("Sonne {wert} % (ab {schwelle} %)", { wert: zahl(b.wert, 0), schwelle: zahl(b.schwelle, 0) });
+    case "vorrang":
+      return vorrangAussage(b, t);
+    case "raeume":
+      return raeumeAussage(b, t);
+    case "thermostate":
+      return ja ? t("Thermostate ruhig") : t("Thermostate fordern Wärme");
+    case "at_gedaempft":
+      return t("Gedämpfte AT {wert} (Grenze {schwelle})", { wert: grad(b.wert), schwelle: grad(b.schwelle) });
+    case "tagesmittel":
+      return t("Tagesmittel {wert} (Grenze {schwelle})", { wert: grad(b.wert), schwelle: grad(b.schwelle) });
+    case "at_prognose":
+      return t("AT-Prognose {wert} (Grenze {schwelle})", { wert: grad(b.wert), schwelle: grad(b.schwelle) });
+    case "programmwahl":
+      if (BETRIEBSARTEN[b.wert]) return t("Betriebswahl {wahl}", { wahl: t(BETRIEBSARTEN[b.wert]) });
+      return ja ? t("Betriebswahl passt") : t("Betriebswahl außerhalb des Programms");
+    case "betriebsart":
+      return ja ? t("Betriebsart passt") : t("Betriebsart im Absenk- oder Sonderbetrieb");
+    case "abwesend":
+      return ja ? t("Abwesend") : t("Anwesend");
+    case "hausmodell":
+      return ja ? t("Hausmodell freigegeben") : t("Hausmodell nicht freigegeben");
+    case "sperre":
+      return ja ? t("Heizpause frei") : t("Heizpause heute gesperrt");
+    default:
+      return t(BEWERTUNGEN[b.name] || b.name);
+  }
+}
+
+/** Im Fenster sein Ende, davor sein Beginn, danach „vorbei“; `wert` ist die Uhrzeit des Laufs. */
+function beginnAussage(b, t) {
+  if (!b.schwelle) return b.erfuellt ? t("Im Sonnenfenster") : t("Außerhalb des Sonnenfensters");
+  if (b.erfuellt) return t("Sonnenfenster bis {zeit}", { zeit: b.schwelle });
+  if (b.wert && String(b.wert) < String(b.schwelle)) return t("Sonnenfenster ab {zeit}", { zeit: b.schwelle });
+  return t("Sonnenfenster vorbei ({zeit})", { zeit: b.schwelle });
+}
+
+/** Die Vorrangquelle mit Namen; ohne Namen das Wort „Vorrangquelle“. */
+function vorrangAussage(b, t) {
+  const quelle = b.quelle || t("Vorrangquelle");
+  if (!b.erfuellt) return t("{quelle} liefert nicht", { quelle });
+  if (b.wert === null || b.wert === undefined) return t("{quelle} liefert", { quelle });
+  return t("{quelle} liefert seit {minuten} min", { quelle, minuten: zahl(b.wert, 0) });
+}
+
+/** Abstand der Räume zum Ziel in Worten. */
+function raeumeAussage(b, t) {
+  if (b.wert === null || b.wert === undefined) return t("Räume ohne Wert");
+  const v = Math.round(Number(b.wert) * 10) / 10;
+  if (v === 0) return t("Räume am Ziel");
+  const abstand = `${zahl(Math.abs(v))} K`;
+  return v > 0 ? t("Räume {abstand} über Ziel", { abstand }) : t("Räume {abstand} unter Ziel", { abstand });
+}
+
 /**
  * Protokoll und Regellauf in einer Folge, neueste zuerst: Läufe zwischen zwei Einträgen bilden eine Gruppe.
  * `schluessel` ist die Zeit des älteren Eintrags darunter, beim ältesten Abschnitt "anfang".
@@ -166,6 +243,7 @@ export function protokollMitLaeufen(protokoll = [], laeufe = []) {
   return folge;
 }
 
+/** Ein Schalter ohne Text: Spur mit Knopf, eingeschaltet mit Haken. */
 export function schalterKnopf(an, darf, klein = false) {
   const schalter = document.createElement("button");
   schalter.type = "button";
@@ -552,20 +630,11 @@ export const AutomatikMixin = (Basis) =>
     }
 
     // --- Regellauf und Kernbewertungen ---------------------------------
-    /** Eine Bewertung als kleine Marke: Name, Wert, Haken; die Schwelle steht im Tooltip. */
+    /** Eine Bewertung als kleine Marke mit Aussage; unerfüllte heben sich farbig ab. */
     _bewertungMarke(b) {
       const marke = document.createElement("span");
       marke.className = `bewertung ${b.erfuellt ? "ja" : "nein"}${b.entscheidend ? " kern" : ""}`;
-      const einheit = b.einheit && b.einheit !== "uhr" ? ` ${b.einheit}` : "";
-      const roh = CODES.has(b.name) ? null : b.wert;
-      const stellen = b.einheit === "%" || b.einheit === "min" ? 0 : 1;
-      const wert = typeof roh === "number" ? `${zahl(roh, stellen)}${einheit}` : roh ?? "";
-      const name = this._t(BEWERTUNGEN[b.name] || b.name);
-      marke.textContent = [name, wert, b.erfuellt ? "✓" : "✗"].filter((teil) => teil !== "").join(" ");
-      if (b.schwelle !== null && b.schwelle !== undefined) {
-        const schwelle = typeof b.schwelle === "number" ? `${zahl(b.schwelle)}${einheit}` : b.schwelle;
-        marke.title = this._tMit("Schwelle {wert}", { wert: schwelle });
-      }
+      marke.textContent = markeAussage(b, (text, werte = {}) => this._tMit(text, werte));
       return marke;
     }
 
@@ -590,7 +659,27 @@ export const AutomatikMixin = (Basis) =>
       return zeile;
     }
 
-    /** Ein Lauf der Regel: Zeit, Kandidat mit Zählerstand, Ergebnis und die Marken der Bewertungen. */
+    /** Kopfzeile und Pille eines Laufs; ein ruhiger oder geschriebener Lauf braucht keine Pille. */
+    _laufKopf(e) {
+      const name = (zustand) => this._t(ZUSTAENDE[zustand] || zustand);
+      if (e.ergebnis === "schreibt") return { text: this._tMit("{zustand} geschrieben", { zustand: name(e.zustand) }) };
+      if (e.ergebnis === "bleibt") {
+        return { text: e.zustand === "programm" ? name(e.zustand) : this._tMit("{zustand} läuft", { zustand: name(e.zustand) }) };
+      }
+      if (e.ergebnis === "wechselt") {
+        const zurueck = e.zustand === "programm" && MIT_ABLAUF.has(e.vorher);
+        return {
+          text: this._tMit("{zustand} endet", { zustand: name(e.vorher) }),
+          pille: zurueck
+            ? this._t("Steuerung kehrt zum Programm zurück")
+            : this._tMit("jetzt {zustand}, ohne Schreiben", { zustand: name(e.zustand) }),
+        };
+      }
+      const zaehler = e.zaehler ? ` ${e.zaehler}/${e.noetig}` : "";
+      return { text: `${name(e.kandidat)}${zaehler}`, pille: this._t(ERGEBNISSE[e.ergebnis] || e.ergebnis) };
+    }
+
+    /** Ein Lauf der Regel: Zeit, Kopfzeile, Pille und die Marken der Bewertungen. */
     _automatikLaufZeile(e) {
       const zeile = document.createElement("li");
       const zeit = document.createElement("span");
@@ -598,17 +687,24 @@ export const AutomatikMixin = (Basis) =>
       zeit.textContent = uhrAus(e.zeit, this._hass);
       const inhalt = document.createElement("div");
       inhalt.className = "inhalt";
+      const kopf = this._laufKopf(e);
       const kopfzeile = document.createElement("div");
-      const zaehler = e.zaehler ? ` ${e.zaehler}/${e.noetig}` : "";
-      kopfzeile.textContent = `${this._t(ZUSTAENDE[e.kandidat] || e.kandidat)}${zaehler}`;
-      const art = document.createElement("span");
-      art.className = `art ${e.ergebnis}`;
-      art.textContent = this._t(ERGEBNISSE[e.ergebnis] || e.ergebnis);
-      const marken = document.createElement("div");
-      marken.className = "automatik-kern";
-      // Der Server liefert je Zeile nur, was entscheidet oder sich gegenüber dem vorigen Lauf geändert hat.
-      (e.bewertungen || []).forEach((b) => marken.appendChild(this._bewertungMarke(b)));
-      inhalt.append(kopfzeile, art, marken);
+      kopfzeile.className = `lauf ${e.ergebnis}`;
+      kopfzeile.textContent = kopf.text;
+      inhalt.appendChild(kopfzeile);
+      if (kopf.pille) {
+        const art = document.createElement("span");
+        art.className = `art ${e.ergebnis}`;
+        art.textContent = kopf.pille;
+        inhalt.appendChild(art);
+      }
+      // Der Server liefert je Zeile nur, was entscheidet oder gegenüber dem vorigen Lauf kippte.
+      if ((e.bewertungen || []).length) {
+        const marken = document.createElement("div");
+        marken.className = "automatik-kern";
+        e.bewertungen.forEach((b) => marken.appendChild(this._bewertungMarke(b)));
+        inhalt.appendChild(marken);
+      }
       zeile.append(zeit, inhalt);
       return zeile;
     }
@@ -628,8 +724,8 @@ export const AutomatikMixin = (Basis) =>
       const [neuester] = gruppe.laeufe;
       const anzahl = gruppe.laeufe.length;
       const teile = [
-        anzahl === 1 ? this._t("1 Lauf") : this._tMit("{zahl} Läufe", { zahl: anzahl }),
-        `${this._t(ZUSTAENDE[neuester.kandidat] || neuester.kandidat)} ${this._t(ERGEBNISSE[neuester.ergebnis] || neuester.ergebnis)}`,
+        anzahl === 1 ? this._t("1 Prüfung") : this._tMit("{zahl} Prüfungen", { zahl: anzahl }),
+        this._tMit("jetzt {zustand}", { zustand: this._t(ZUSTAENDE[neuester.zustand] || neuester.zustand) }),
       ];
       const gezaehlt = gruppe.laeufe.filter((e) => e.zaehler);
       if (gezaehlt.length) {

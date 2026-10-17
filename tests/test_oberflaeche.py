@@ -956,10 +956,15 @@ def test_laeufe_der_regel_stehen_aufklappbar_zwischen_den_eintraegen(durchlauf):
     laeufe = durchlauf["automatikLaeufe"]
     assert laeufe["folge"] == ["laeufe", "eintrag", "laeufe"]
     assert laeufe["texte"] == [
-        "2 Läufe · Sonnentag zählt · Zähler bis 2/3",
-        "1 Lauf · Heizen nach Programm bleibt",
+        "2 Prüfungen · jetzt Heizen nach Programm · Zähler bis 2/3",
+        "1 Prüfung · jetzt Heizen nach Programm",
     ]
     assert laeufe["zeilen"] == [2, 1]
+    assert laeufe["zeilenText"] == [
+        ["Sonnentag endet", "Steuerung kehrt zum Programm zurück", "Thermostate fordern Wärme"],
+        ["Sonnentag läuft"],
+        ["Sonnentag geschrieben", "Sonne 78 % (ab 60 %)"],
+    ]
     assert laeufe["offen"] == [True, False]
     assert laeufe["regellaufKarte"] == 0
     assert laeufe["breite"] == ["3", "2"]

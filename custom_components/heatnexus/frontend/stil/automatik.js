@@ -425,11 +425,11 @@ export const AUTOMATIK = `
   }
   .automatik-protokoll { list-style: none; margin: 0; padding: 0; }
   .automatik-protokoll li {
-    display: grid; grid-template-columns: 48px 1fr; gap: 12px; align-items: baseline;
+    display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 12px; align-items: baseline;
     padding: 10px 0; border-bottom: 1px solid var(--hn-flaeche); font-size: 13px; line-height: 1.45;
   }
   .automatik-protokoll li:last-child { border-bottom: none; }
-  .automatik-protokoll li.automatik-laeufe { display: block; padding: 6px 0 6px 60px; }
+  .automatik-protokoll li.automatik-laeufe { display: block; padding: 6px 0; }
   .automatik-laeufe summary {
     display: flex; align-items: center; gap: 6px; list-style: none; cursor: pointer;
     font-size: 12px; color: var(--hn-gedaempft);
@@ -442,7 +442,7 @@ export const AUTOMATIK = `
     color: var(--hn-gedaempft); font-variant-numeric: tabular-nums;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
   }
-  .automatik-protokoll .inhalt { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .automatik-protokoll .inhalt { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
   .automatik-protokoll .art { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
   .automatik-protokoll .art.geschrieben { background: color-mix(in srgb, var(--hn-gut) 16%, transparent); color: var(--hn-gut); }
   .automatik-protokoll .art.haette, .automatik-protokoll .art.empfohlen, .automatik-protokoll .art.verworfen { border: 1px dashed rgba(245, 196, 81, 0.6); color: var(--hn-sonne); }
@@ -450,11 +450,14 @@ export const AUTOMATIK = `
   .automatik-protokoll .art.budget, .automatik-protokoll .art.eingriff { background: rgba(255, 171, 111, 0.15); color: #ffab6f; }
   .automatik-protokoll .art.geprueft, .automatik-protokoll .art.einstellung { background: var(--hn-flaeche); color: var(--hn-gedaempft); }
   .automatik-protokoll .art.schreibt { background: color-mix(in srgb, var(--hn-gut) 16%, transparent); color: var(--hn-gut); }
-  .automatik-protokoll .art.zaehlt, .automatik-protokoll .art.haelt, .automatik-protokoll .art.bleibt { background: var(--hn-flaeche); color: var(--hn-gedaempft); }
-  .automatik-kern { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; }
+  .automatik-protokoll .art.zaehlt, .automatik-protokoll .art.haelt { background: var(--hn-flaeche); color: var(--hn-gedaempft); }
+  .automatik-protokoll .art.wechselt { background: color-mix(in srgb, var(--hn-akzent) 16%, transparent); color: var(--hn-akzent); }
+  .automatik-protokoll .lauf.schreibt, .automatik-protokoll .lauf.wechselt { font-weight: 600; }
+  .automatik-kern { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; max-width: 100%; }
   .automatik-kern .anstehend { font-size: 12px; font-weight: 600; margin-right: 4px; }
-  .bewertung { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--hn-flaeche); color: var(--hn-gedaempft); white-space: nowrap; }
-  .bewertung.nein { color: #ff8a80; }
+  .bewertung { font-size: 11px; padding: 1px 7px; border-radius: 10px; background: var(--hn-flaeche); color: var(--hn-gedaempft); max-width: 100%; overflow-wrap: anywhere; }
+  /* Unerfüllt in Orange wie andere Hinweise; Rot bleibt der Störung. */
+  .bewertung.nein { background: rgba(255, 171, 111, 0.15); color: #ffab6f; }
   .bewertung.kern { outline: 1px solid var(--hn-linie); color: inherit; }
 
   /* Einladung */

@@ -65,6 +65,7 @@ class Bewertung:
     schwelle: float | str | None = None
     einheit: str = ""
     entscheidend: bool = False
+    quelle: str | None = None
 
 
 def _rund(wert: float | None) -> float | None:
@@ -76,8 +77,9 @@ def _uhr(zeit: datetime | None) -> str | None:
 
 
 def _beginn_schwelle(lage: Lage) -> str | None:
-    """Vor dem Fenster sein Beginn, danach sein Ende (Untergang − 2 h)."""
-    if lage.sonnenuntergang is not None and lage.jetzt >= lage.sonnenuntergang - VORLAUF_UNTERGANG:
+    """Vor dem Fenster sein Beginn, ab dem Beginn sein Ende (Untergang − 2 h)."""
+    vor_beginn = lage.fruehester_beginn is not None and lage.jetzt < lage.fruehester_beginn
+    if lage.sonnenuntergang is not None and not vor_beginn:
         return _uhr(lage.sonnenuntergang - VORLAUF_UNTERGANG)
     return _uhr(lage.fruehester_beginn)
 
@@ -133,7 +135,14 @@ def _messen(lage: Lage, g: Gedaechtnis, w: Werte, zustand: Zustand) -> list[Bewe
             "beginn", sonne_im_fenster(lage), _uhr(lage.jetzt), _beginn_schwelle(lage), "uhr"
         ),
         Bewertung("sonne", _ueber(quote, sonne_ab, gleich=True), _rund(quote), sonne_ab, "%"),
-        Bewertung("vorrang", bool(lage.vorrang_laeuft), _rund(lage.vorrang_minuten), None, "min"),
+        Bewertung(
+            "vorrang",
+            bool(lage.vorrang_laeuft),
+            _rund(lage.vorrang_minuten),
+            None,
+            "min",
+            quelle=lage.vorrang_name,
+        ),
         Bewertung("raeume", _ueber(abstand, raum_ab, gleich=True), _rund(abstand), raum_ab, "K"),
         Bewertung("thermostate", lage.ruhig is not False),
         *_temperaturen(lage, w),

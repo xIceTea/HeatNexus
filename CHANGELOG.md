@@ -27,6 +27,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Eine Heizpause beginnt auch, wenn die Steuerung laut Prognose bald selbst abschaltet.
 - Unter der Begründung stehen die Bedingungen, die gerade entscheiden.
 - Das Protokoll zeigt die Läufe der Regel aufklappbar zwischen den Einträgen.
+- Die Bedingungen erscheinen in Worten, etwa „Sonnenfenster bis 16:16“.
+- Das Protokoll zeigt, wenn ein Sonnentag oder eine Heizpause an der Steuerung endet.
 
 **Reparaturen**
 - „Entitäten ohne Datenpunkt“ listet die betroffenen Entitäten aufklappbar.

@@ -101,6 +101,25 @@ def test_beginn_nennt_nach_dem_fenster_dessen_ende(mods):
     assert (liste["beginn"].erfuellt, liste["beginn"].schwelle) == (False, "16:55")
 
 
+def test_beginn_nennt_im_fenster_dessen_ende(mods):
+    p, r, b = mods
+    liste = {
+        x.name: x
+        for x in b.bewerten(lage(r), r.Gedaechtnis(), p.werte(p.STANDARD), r.Zustand.PROGRAMM)
+    }
+    assert (liste["beginn"].erfuellt, liste["beginn"].schwelle) == (True, "16:55")
+
+
+def test_vorrang_nennt_seine_quelle(mods):
+    p, r, b = mods
+    stand = lage(r, vorrang_laeuft=True, vorrang_minuten=12.0, vorrang_name="Solaranlage")
+    liste = {
+        x.name: x
+        for x in b.bewerten(stand, r.Gedaechtnis(), p.werte(p.STANDARD), r.Zustand.PROGRAMM)
+    }
+    assert (liste["vorrang"].erfuellt, liste["vorrang"].quelle) == (True, "Solaranlage")
+
+
 def test_kern_liefert_nur_entscheidende_als_dict(mods):
     p, r, b = mods
     liste = b.bewerten(lage(r), r.Gedaechtnis(), p.werte(p.STANDARD), r.Zustand.SONNENTAG)

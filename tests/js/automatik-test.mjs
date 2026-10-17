@@ -248,4 +248,21 @@ assert.deepEqual(
 );
 assert.deepEqual(protokollMitLaeufen([], []), []);
 assert.deepEqual(protokollMitLaeufen([p("12:00")], []).map((t) => t.art), ["eintrag"]);
+
+// Marken sagen in Worten, was gilt; kein Haken, kein Kreuz.
+const { markeAussage } = modul;
+const aussage = (b) => markeAussage({ erfuellt: true, ...b });
+assert.equal(aussage({ name: "beginn", wert: "11:21", schwelle: "16:16" }), "Sonnenfenster bis 16:16");
+assert.equal(aussage({ name: "beginn", erfuellt: false, wert: "05:01", schwelle: "07:31" }), "Sonnenfenster ab 07:31");
+assert.equal(aussage({ name: "beginn", erfuellt: false, wert: "16:21", schwelle: "16:16" }), "Sonnenfenster vorbei (16:16)");
+assert.equal(aussage({ name: "vorrang", wert: 9.6, quelle: "Solaranlage" }), "Solaranlage liefert seit 10 min");
+assert.equal(aussage({ name: "vorrang", erfuellt: false, wert: 70.1 }), "Vorrangquelle liefert nicht");
+assert.equal(aussage({ name: "raeume", wert: 0.2 }), "Räume 0,2 K über Ziel");
+assert.equal(aussage({ name: "raeume", erfuellt: false, wert: -1 }), "Räume 1,0 K unter Ziel");
+assert.equal(aussage({ name: "raeume", wert: -0.04 }), "Räume am Ziel");
+assert.equal(aussage({ name: "thermostate", erfuellt: false }), "Thermostate fordern Wärme");
+assert.equal(aussage({ name: "sonne", erfuellt: false, wert: 36.9, schwelle: 40 }), "Sonne 37 % (ab 40 %)");
+assert.equal(aussage({ name: "programmwahl", wert: 1 }), "Betriebswahl Heizprogramm 1");
+assert.equal(aussage({ name: "programmwahl", erfuellt: false, wert: 0 }), "Betriebswahl Standby");
+assert.ok(!/[✓✗]/.test(aussage({ name: "unbekannt" })));
 console.log("ok");

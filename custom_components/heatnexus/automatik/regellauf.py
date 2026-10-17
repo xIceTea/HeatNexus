@@ -14,6 +14,8 @@ from .regel import Zustand
 
 DAUER = timedelta(hours=24)
 HOECHSTENS = 300
+# Zwischen diesen Zuständen gibt es keinen Wechsel zu melden: Es fehlte nur die Grundlage.
+OHNE_WECHSEL = frozenset({Zustand.KEINE_DATEN.value})
 
 
 def _merkmal(e: dict[str, Any]) -> tuple[Any, ...]:
@@ -43,6 +45,10 @@ def eintrag(
     }
 
 
+def _gewechselt(vorher: str, jetzt: str) -> bool:
+    return vorher != jetzt and not {vorher, jetzt} & OHNE_WECHSEL
+
+
 class Regellauf:
     """Neueste zuerst; ein Lauf ohne Änderung gegenüber dem letzten erzeugt keine Zeile."""
 
@@ -53,18 +59,29 @@ class Regellauf:
     def eintragen(self, e: dict[str, Any]) -> bool:
         """Den Lauf aufnehmen, wenn er sich vom letzten unterscheidet.
 
-        Eine Zeile behält nur Bewertungen, die entscheiden oder gegenüber der vorigen kippten.
+        Eine Zeile behält, was entscheidet oder kippte; ein ruhiger Lauf nur, was kippte.
         """
+        letztes = self._letztes
+        if (
+            letztes is not None
+            and e["ergebnis"] == "bleibt"
+            and _gewechselt(letztes[1], e["zustand"])
+        ):
+            e = {**e, "ergebnis": "wechselt", "vorher": letztes[1]}
         merkmal = _merkmal(e)
-        if merkmal == self._letztes:
+        if merkmal == letztes:
             return False
-        vorher = dict(self._letztes[-1]) if self._letztes else {}
         self._letztes = merkmal
+        vorher = dict(letztes[-1]) if letztes else {}
+        ruhig = letztes is not None and e["ergebnis"] == "bleibt" and letztes[1] == e["zustand"]
         bleiben = [
             b
             for b in e["bewertungen"]
-            if b.get("entscheidend") or vorher.get(b["name"], b["erfuellt"]) != b["erfuellt"]
+            if (b.get("entscheidend") and not ruhig)
+            or vorher.get(b["name"], b["erfuellt"]) != b["erfuellt"]
         ]
+        if ruhig and not bleiben:
+            return False
         self._eintraege.appendleft({**e, "bewertungen": bleiben})
         return True
 
