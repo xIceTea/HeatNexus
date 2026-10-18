@@ -47,6 +47,7 @@ wenn dort Vorabversionen zugelassen sind.
 **Automatik**
 - Die Automatik legt die Lernstunden des Hausmodells selbst ab und behält zwei Wochen.
 - Eine neue Auskühlzeit gilt erst, wenn die bisherige deutlich schlechter passt.
+- Das Hausmodell lernt die Auskühlzeit schon ab zwölf Stunden ohne Heizen.
 - Die Einstellungen fassen beide Benachrichtigungen in einer Gruppe zusammen.
 - Die feste Uhrzeit ist nur bedienbar, wenn sie als frühester Beginn gewählt ist.
 - Die Karte der Automatik ist ab Werk drei Spalten breit.

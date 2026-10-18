@@ -13,7 +13,7 @@ import math
 from typing import Any
 
 # Ein Modell aus einem anderen Lernverfahren wird beim Laden verworfen und neu gelernt.
-FASSUNG = 5
+FASSUNG = 3
 FREIGABE_TAGE = 14
 FREIGABE_FEHLER_K = 0.5
 FREIGABE_ANTEIL = 0.8
@@ -24,7 +24,7 @@ AUS_GRENZE = {"vorlauf": 5.0, "pumpe": 0.2}
 STRECKE_H = 12
 STRECKE_TAKT = 3
 STRECKE_MIN = 3
-MIN_STUNDEN_AUS = 24
+MIN_STUNDEN_AUS = 12
 MIN_HEIZSTUNDEN = 12
 MAX_SONNE_K_H = 2.0
 MAX_HEIZWIRKUNG = {"vorlauf": 0.1, "pumpe": 2.0}

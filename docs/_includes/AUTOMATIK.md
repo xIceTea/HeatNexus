@@ -182,9 +182,10 @@ Für das Lernen braucht sie:
 - Die Außentemperatur und den Vorlauf oder die Heizkreispumpe der Steuerung in
   der Aufzeichnung.
 
-Heizt der Heizkreis fast rund um die Uhr, etwa im Winter, lernt sie Auskühlzeit
-und Heizwirkung gemeinsam aus den Heizstunden. Die Sonne bleibt dann außen vor,
-weil sie sich nicht von der Heizung trennen lässt. Neue Vergleichstage kommen
+Für die Auskühlzeit braucht sie mindestens zwölf Stunden ohne Heizen in den
+zwei Wochen. Heizt der Heizkreis fast rund um die Uhr, etwa im Winter, behält
+sie die zuletzt gelernte Auskühlzeit und lernt nur die Heizwirkung nach. Ohne
+gelernte Auskühlzeit entsteht dann noch kein Modell. Neue Vergleichstage kommen
 erst mit Stunden ohne Heizen dazu. Fehlt etwas, nennt die Kachel „Haus“ den
 Grund.
 
