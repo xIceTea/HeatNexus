@@ -147,6 +147,17 @@ export const KennwerteMixin = (Basis) =>
       return kachel;
     }
 
+    /** Zwischen Sonnenuntergang und -aufgang „Nacht“, sonst der Zustand der Wetter-Entität. */
+    _sonneJetzt(kreis) {
+      const k = kreis.kennwerte || {};
+      const auf = k.sonnenaufgang ? Date.parse(k.sonnenaufgang) : NaN;
+      const unter = k.sonnenuntergang ? Date.parse(k.sonnenuntergang) : NaN;
+      const jetzt = Date.now();
+      if (!Number.isNaN(auf) && !Number.isNaN(unter) && (jetzt < auf || jetzt >= unter)) return this._t("Nacht");
+      const wetter = (kreis.konfig || {}).wetter;
+      return wetter && this._hatWert(wetter) ? this._text(wetter) : null;
+    }
+
     _kachelSonne(kreis) {
       const k = kreis.kennwerte || {};
       const w = kreis.werte || {};
@@ -168,8 +179,11 @@ export const KennwerteMixin = (Basis) =>
         achse: [this._tMit("Sonnentag ab {ab} %", { ab: zahl(schwelle, 0) }), [vorrang, vorrang ? "vorrang-zeile" : ""]],
       });
       const aus = w.sonnentag === false ? knoten("div", "fuss", this._t("Sonnentag ausgeschaltet")) : null;
-      const kachel = this._kachel("sonne", "Sonne heute", `${zahl(k.sonnenquote, 0)} %`, this._t("Sonnenquote"), skala, [aus]);
+      const jetzt = this._sonneJetzt(kreis);
+      const beisatz = jetzt ? this._tMit("Jetzt: {wetter}", { wetter: jetzt }) : this._t("Sonnenquote");
+      const kachel = this._kachel("sonne", "Sonne heute", `${zahl(k.sonnenquote, 0)} %`, beisatz, skala, [aus]);
       this._klickbar(kachel.querySelector(".zahl"), (kreis.entitaeten || {}).sonnenquote);
+      if (jetzt) this._klickbar(kachel.querySelector(".neben"), (kreis.konfig || {}).wetter);
       const vorrangZeile = kachel.querySelector(".vorrang-zeile");
       if (vorrangZeile && k.vorrang) this._klickbar(vorrangZeile, k.vorrang.entity);
       return kachel;

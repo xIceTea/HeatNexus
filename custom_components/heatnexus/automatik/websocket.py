@@ -60,6 +60,10 @@ def _liste(grenze: int) -> vol.All:
     return vol.All([ENTITAET], vol.Length(max=grenze))
 
 
+def _zeit(wert: datetime | None) -> str | None:
+    return wert.isoformat() if wert else None
+
+
 def _korrektur(laufzeit: Laufzeit, jetzt: datetime) -> dict[str, Any]:
     fenster, heute = laufzeit.werte.lernfenster, jetzt.date()
     return {
@@ -132,6 +136,8 @@ def _eintrag(
         empfehlung=dict(laufzeit.empfehlung) if laufzeit.empfehlung else None,
         kennwerte={
             "sonnenquote": lage.sonnenquote if lage else None,
+            "sonnenaufgang": _zeit(lage.sonnenaufgang if lage else None),
+            "sonnenuntergang": _zeit(lage.sonnenuntergang if lage else None),
             "raum": lage.raum if lage else None,
             "soll": soll,
             "abweichung": abweichung,

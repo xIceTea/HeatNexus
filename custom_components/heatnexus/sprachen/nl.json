@@ -448,6 +448,8 @@
   "Automatik: {grenze} °C, {versatz} zur Steuerung": "Automatische regeling: {grenze} °C, {versatz} t.o.v. de regelaar",
   "Sonne heute": "Zon vandaag",
   "Sonnenquote": "Zonaandeel",
+  "Jetzt: {wetter}": "Nu: {wetter}",
+  "Nacht": "Nacht",
   "Sonnentag ab": "Zonnige dag vanaf",
   "sehr sonnig": "zeer zonnig",
   "Sonnentag ab {ab} %": "Zonnige dag vanaf {ab} %",

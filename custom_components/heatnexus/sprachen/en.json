@@ -448,6 +448,8 @@
   "Automatik: {grenze} °C, {versatz} zur Steuerung": "Automation: {grenze} °C, {versatz} to the controller",
   "Sonne heute": "Sun today",
   "Sonnenquote": "Sunshine share",
+  "Jetzt: {wetter}": "Now: {wetter}",
+  "Nacht": "Night",
   "Sonnentag ab": "Sunny day from",
   "sehr sonnig": "very sunny",
   "Sonnentag ab {ab} %": "Sunny day from {ab} %",
