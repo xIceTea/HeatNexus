@@ -73,6 +73,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Sonnenquote löst vor Sonnenaufgang keine Heizpause mehr aus.
 - „Räume zum Ziel“ misst ohne Programm nicht mehr gegen den Frostschutz-Sollwert.
 - Skalenbeschriftungen bleiben in schmalen Kacheln innerhalb des Rahmens.
+- Nach einem eigenen Eingriff oder Neustart meldet die Automatik keinen Handeingriff ohne Grund ([#22](https://github.com/xIceTea/HeatNexus/issues/22)).
 
 **Thermostat**
 - Während einer Vorgabe zeigt das Thermostat die gewählte Betriebsart statt „Handbetrieb“.

@@ -201,7 +201,7 @@ def test_handeingriff_an_der_betriebswahl(s, regel):
     ausfuehren(steller, entscheidung(regel, regel.Aktion("nur_ww")))
     spaeter = JETZT + timedelta(minutes=10)
     g = regel.Gedaechtnis(saison=regel.NUR_WW)
-    kw = {"jetzt": spaeter, "rest_min": None}
+    kw = {"jetzt": spaeter, "rest_min": None, "abgerufen": spaeter}
     assert steller.handeingriff(g, betriebswahl=1, betriebsart=1, **kw)
     assert steller.handeingriff(g, betriebswahl=6, betriebsart=0, **kw) is None
     assert steller.handeingriff(g, betriebswahl=1, betriebsart=3, **kw) is None
@@ -212,7 +212,90 @@ def test_handeingriff_nicht_direkt_nach_eigenem_schreiben(s, regel):
     ausfuehren(steller, entscheidung(regel, regel.Aktion("nur_ww")))
     g = regel.Gedaechtnis(saison=regel.NUR_WW)
     kurz = JETZT + timedelta(minutes=1)
-    assert steller.handeingriff(g, jetzt=kurz, betriebswahl=2, rest_min=None, betriebsart=0) is None
+    kw = {"betriebswahl": 2, "rest_min": None, "betriebsart": 0, "abgerufen": kurz}
+    assert steller.handeingriff(g, jetzt=kurz, **kw) is None
+    # Ein Abruf kurz nach dem Schreiben zählt auch im späteren Lauf nicht.
+    assert steller.handeingriff(g, jetzt=JETZT + timedelta(minutes=10), **kw) is None
+
+
+def test_betriebswahl_aus_dem_abruf_vor_dem_schreiben_ist_kein_handeingriff(s, regel):
+    """Abruf alle 300 s: Der Lauf fünf Minuten nach „nur Warmwasser“ sieht noch die alte Wahl."""
+    steller = s.Steller("/1/15/0", UML, Schreiber())
+    ausfuehren(steller, entscheidung(regel, regel.Aktion("nur_ww")), betriebswahl=1)
+    g = regel.Gedaechtnis(saison=regel.NUR_WW)
+    kw = {"jetzt": JETZT + timedelta(minutes=5), "betriebswahl": 1, "rest_min": None}
+    vorher = JETZT - timedelta(minutes=2)
+    assert steller.handeingriff(g, betriebsart=1, abgerufen=vorher, **kw) is None
+    frisch = JETZT + timedelta(minutes=4)
+    assert (
+        steller.handeingriff(g, betriebsart=1, abgerufen=frisch, **kw)
+        == "Betriebswahl von Hand auf 1 gestellt."
+    )
+
+
+def _eigene_absenkung(s, regel):
+    """Eine eigene Absenkung auf 19,5 °C für 400 min, geschrieben um `JETZT`."""
+    steller = s.Steller("/1/15/0", UML, Schreiber())
+    absenken = regel.Aktion("absenken", soll=19.5, minuten=400)
+    assert ausfuehren(steller, entscheidung(regel, absenken), betriebswahl=1)
+    g = regel.Gedaechtnis(
+        absenkung_art=regel.SONNE,
+        absenkung_von=JETZT,
+        absenkung_bis=JETZT + timedelta(minutes=400),
+        absenkung_basis=21.0,
+        absenkung_soll=19.5,
+    )
+    return steller, g
+
+
+def test_lauf_ohne_abruf_nach_eigenem_schreiben_ist_kein_handeingriff(s, regel):
+    """Abruf alle 300 s: Fünf Minuten nach dem Schreiben stehen noch `2/10 = 0` und `1/1 = 21`."""
+    steller, g = _eigene_absenkung(s, regel)
+    vorher = JETZT - timedelta(minutes=2)
+    kw = {
+        "jetzt": JETZT + timedelta(minutes=5),
+        "betriebswahl": 1,
+        "betriebsart": 1,
+        "raumsoll": 21.0,
+        "abgerufen": vorher,
+    }
+    assert steller.handeingriff(g, rest_min=0, gelesen=vorher, **kw) is None
+    assert steller.handeingriff(g, rest_min=None, **kw) is None
+
+
+def test_handeingriff_nach_frischem_abruf_wird_erkannt(s, regel):
+    steller, g = _eigene_absenkung(s, regel)
+    frisch = JETZT + timedelta(minutes=4)
+    kw = {
+        "jetzt": JETZT + timedelta(minutes=5),
+        "betriebswahl": 1,
+        "betriebsart": 1,
+        "gelesen": frisch,
+        "abgerufen": frisch,
+    }
+    assert steller.handeingriff(g, rest_min=396, raumsoll=19.5, **kw) is None
+    assert steller.handeingriff(g, rest_min=0, raumsoll=19.5, **kw) == "Absenkung von Hand beendet."
+    assert (
+        steller.handeingriff(g, rest_min=396, raumsoll=21.0, **kw) == "Absenkung von Hand geändert."
+    )
+
+
+def test_nach_dem_start_urteilt_erst_der_erste_abruf(s, regel):
+    """Bis zum ersten Abruf kann der Bestand einen alten Wert aus dem Lesespeicher zeigen."""
+    stand = s.Stand(zuletzt=(JETZT - timedelta(hours=2)).isoformat())
+    steller = s.Steller("/1/15/0", UML, Schreiber(), stand)
+    g = regel.Gedaechtnis(
+        absenkung_art=regel.SONNE,
+        absenkung_von=JETZT - timedelta(hours=2),
+        absenkung_bis=JETZT + timedelta(minutes=200),
+        absenkung_soll=19.5,
+    )
+    kw = {"jetzt": JETZT, "betriebswahl": 1, "betriebsart": 1, "raumsoll": 19.5, "rest_min": 208}
+    assert steller.handeingriff(g, abgerufen=None, **kw) is None
+    assert (
+        steller.handeingriff(g, abgerufen=JETZT, gelesen=JETZT, **kw)
+        == "Absenkung von Hand geändert."
+    )
 
 
 def test_handeingriff_beendet_die_absenkung(s, regel):
@@ -223,10 +306,9 @@ def test_handeingriff_beendet_die_absenkung(s, regel):
         absenkung_bis=JETZT + timedelta(hours=5),
     )
     spaeter = JETZT + timedelta(hours=1)
-    text = steller.handeingriff(g, jetzt=spaeter, betriebswahl=1, rest_min=0, betriebsart=1)
-    assert text == "Absenkung von Hand beendet."
-    passt = steller.handeingriff(g, jetzt=spaeter, betriebswahl=1, rest_min=240, betriebsart=1)
-    assert passt is None
+    kw = {"jetzt": spaeter, "betriebswahl": 1, "betriebsart": 1, "abgerufen": spaeter}
+    assert steller.handeingriff(g, rest_min=0, **kw) == "Absenkung von Hand beendet."
+    assert steller.handeingriff(g, rest_min=240, **kw) is None
 
 
 def test_alte_restzeit_aus_langsamem_abruf_ist_kein_handeingriff(s, regel):
@@ -239,7 +321,7 @@ def test_alte_restzeit_aus_langsamem_abruf_ist_kein_handeingriff(s, regel):
     )
     gelesen = JETZT + timedelta(minutes=60)
     pruefung = JETZT + timedelta(minutes=65)
-    kw = {"jetzt": pruefung, "betriebswahl": 1, "betriebsart": 1}
+    kw = {"jetzt": pruefung, "betriebswahl": 1, "betriebsart": 1, "abgerufen": gelesen}
     assert steller.handeingriff(g, rest_min=341, gelesen=gelesen, **kw) is None
     assert (
         steller.handeingriff(g, rest_min=370, gelesen=gelesen, **kw)
@@ -260,7 +342,7 @@ def test_handeingriff_am_raumsoll_der_pause(s, regel, raumsoll, erwartet):
     )
     spaeter = JETZT + timedelta(hours=1)
     kw = {"jetzt": spaeter, "betriebswahl": 1, "rest_min": 340, "betriebsart": 1}
-    assert steller.handeingriff(g, raumsoll=raumsoll, **kw) == erwartet
+    assert steller.handeingriff(g, raumsoll=raumsoll, abgerufen=spaeter, **kw) == erwartet
 
 
 def test_raumsoll_innerhalb_der_schonfrist_ist_kein_handeingriff(s, regel):
@@ -273,7 +355,7 @@ def test_raumsoll_innerhalb_der_schonfrist_ist_kein_handeingriff(s, regel):
         absenkung_soll=17.0,
     )
     kurz = JETZT + timedelta(minutes=1)
-    kw = {"jetzt": kurz, "betriebswahl": 2, "rest_min": 399, "betriebsart": 1}
+    kw = {"jetzt": kurz, "betriebswahl": 2, "rest_min": 399, "betriebsart": 1, "abgerufen": kurz}
     assert steller.handeingriff(g, raumsoll=21.0, **kw) is None
 
 
@@ -329,9 +411,8 @@ def test_teilweise_angenommen_gilt_nicht_als_handeingriff(s, regel):
     g = regel.nach_teilerfolg(regel.Gedaechtnis(saison=regel.NUR_WW), steller.erledigt, JETZT)
     assert g.saison == regel.HEIZEN
     spaeter = JETZT + timedelta(minutes=10)
-    assert (
-        steller.handeingriff(g, jetzt=spaeter, betriebswahl=1, rest_min=None, betriebsart=1) is None
-    )
+    kw = {"jetzt": spaeter, "rest_min": None, "betriebsart": 1, "abgerufen": spaeter}
+    assert steller.handeingriff(g, betriebswahl=1, **kw) is None
 
 
 def test_beendete_absenkung_bleibt_beendet_wenn_nur_ww_scheitert(s, regel):

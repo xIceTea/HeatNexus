@@ -122,7 +122,12 @@ def test_zeiten_ohne_zone_aus_dem_store_entfallen(s, regel):
     assert _ausfuehren(steller, e) is True
     assert (
         steller.handeingriff(
-            regel.Gedaechtnis(), jetzt=JETZT, betriebswahl=1, rest_min=0, betriebsart=1
+            regel.Gedaechtnis(),
+            jetzt=JETZT,
+            betriebswahl=1,
+            rest_min=0,
+            betriebsart=1,
+            abgerufen=JETZT,
         )
         is None
     )

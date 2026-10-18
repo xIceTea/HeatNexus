@@ -35,8 +35,10 @@ WW_LADUNG = frozenset({3, 17, 18})
 PROTOKOLL_MAX = 200
 TOLERANZ_MIN = 5.0
 RAUMSOLL_TOLERANZ = 0.3
-# Der Abruf zeigt einen eigenen Schreibvorgang erst mit Verzug.
+# Die Steuerung zeigt einen eigenen Schreibvorgang erst mit Verzug; erst ein späterer Abruf zählt.
 SCHONFRIST = timedelta(minutes=3)
+# Was `handeingriff` liest; nach dem eigenen Schreiben wird es gezielt nachgelesen.
+GEPRUEFT = (OID_BETRIEBSWAHL, OID_DAUER, "/1/1/0", "/2/9/0")
 # Nach einer Ablehnung wartet der Steller, mit jeder weiteren doppelt so lang.
 SPERRE_START = timedelta(minutes=30)
 SPERRE_MAX = timedelta(hours=6)
@@ -364,13 +366,17 @@ class Steller:
         betriebswahl: int | None,
         rest_min: float | None,
         betriebsart: int | None,
+        abgerufen: datetime | None,
         raumsoll: float | None = None,
         gelesen: datetime | None = None,
     ) -> str | None:
-        """Beschreibt einen Eingriff von Hand gegen eine laufende eigene Aktion."""
+        """Beschreibt einen Eingriff von Hand gegen eine laufende eigene Aktion.
+
+        `abgerufen` ist der letzte Abruf; ohne einen nach dem eigenen Schreiben gilt nichts.
+        """
         if betriebsart is not None and betriebsart in WW_LADUNG:
             return None
-        if self.stand.zuletzt and jetzt - datetime.fromisoformat(self.stand.zuletzt) < SCHONFRIST:
+        if not self._nach_eigenem_schreiben(abgerufen):
             return None
         erwartet = self.stand.erwartet
         if erwartet is not None and betriebswahl is not None and betriebswahl != erwartet:
@@ -378,6 +384,13 @@ class Steller:
         if absenkung_laeuft(g, jetzt):
             return _absenkung_von_hand(g, jetzt, _gealtert(rest_min, gelesen, jetzt), raumsoll)
         return None
+
+    def _nach_eigenem_schreiben(self, abgerufen: datetime | None) -> bool:
+        """Ob der Abruf frühestens eine Schonfrist nach dem eigenen letzten Schreiben lag."""
+        if abgerufen is None:
+            return False
+        zuletzt = self.stand.zuletzt
+        return zuletzt is None or dauer(datetime.fromisoformat(zuletzt), abgerufen) >= SCHONFRIST
 
     def abgleichen(self, g: Gedaechtnis, jetzt: datetime) -> None:
         """Ohne eigenen Eingriff gibt es nichts zu überwachen."""

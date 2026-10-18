@@ -45,7 +45,15 @@ from . import (
     tagesansicht,
 )
 from .quellen import QuellenMixin, ortszeit
-from .steller import OID_DAUER, Stand, Steller, braucht_bestaetigung, nur_ww_wert
+from .steller import (
+    GEPRUEFT,
+    OID_DAUER,
+    SCHONFRIST,
+    Stand,
+    Steller,
+    braucht_bestaetigung,
+    nur_ww_wert,
+)
 from .vorausschau import LERNZEIT, VorausschauMixin
 
 _LOGGER = logging.getLogger(__name__)
@@ -216,6 +224,8 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
         self._raeume_fehlen_seit: datetime | None = None
         # Restzeit `2/10` und seit wann sie so dasteht; sie zählt minütlich herunter.
         self._restzeit: tuple[float | None, datetime | None] = (None, None)
+        # Letzter Abruf seit dem Start; der Bestand davor kann aus dem Lesespeicher stammen.
+        self._abgerufen: datetime | None = None
         self._nachladen: Any = None
         # Raumfühler, deren Wert laut Verlauf eingefroren ist; ein neuer Wert löst sie.
         self.eingefroren: set[str] = set()
@@ -444,9 +454,10 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
     # --- Auslöser ------------------------------------------------------------
     @callback
     def _merken(self, *_: Any) -> None:
+        self._abgerufen = dt_util.now()
         # Nur ein neuer Wert ist ein frisch gelesener; Nachlesen anderer Adressen weckt hier auch.
         if (rest := self._wert(OID_DAUER)) != self._restzeit[0]:
-            self._restzeit = (rest, dt_util.now())
+            self._restzeit = (rest, self._abgerufen)
         if self._wartet and not self._steuerung_fehlt(dt_util.now()):
             self._wartet = False
             self._aufgabe(self.auswerten())
@@ -636,6 +647,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             betriebswahl=lage.betriebswahl,
             rest_min=rest,
             betriebsart=_ganzzahl(self._wert("/2/9/0")),
+            abgerufen=self._abgerufen,
             raumsoll=self._wert("/1/1/0"),
             gelesen=seit if wert == rest else None,
         )
@@ -649,6 +661,7 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
     ) -> bool:
         """Die Entscheidung schreiben und das Gedächtnis dem anpassen, was die Steuerung annahm."""
         laeuft = regel.absenkung_laeuft(self.gedaechtnis, jetzt)
+        zuletzt = self.steller.stand.zuletzt
         angenommen = await self.steller.ausfuehren(
             entscheidung,
             jetzt=jetzt,
@@ -660,6 +673,11 @@ class Laufzeit(QuellenMixin, VorausschauMixin):
             soll_vorher=self.gedaechtnis.absenkung_soll if laeuft else None,
         )
         self._erzwingen = False
+        if self.steller.stand.zuletzt != zuletzt:
+            # Für den Handeingriff zählt erst ein Abruf nach der Schonfrist; dieses Nachlesen
+            # stellt ihn vor dem nächsten Takt bereit.
+            adressen = [f"{self.prefix}{adresse}" for adresse in GEPRUEFT]
+            self.coordinator.nachfassen(adressen, anzahl=1, abstand=SCHONFRIST.total_seconds())
         if angenommen:
             self.gedaechtnis = entscheidung.gedaechtnis
             return True

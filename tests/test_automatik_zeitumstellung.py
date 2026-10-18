@@ -111,6 +111,7 @@ def test_restzeit_der_steuerung_gilt_ueber_die_umstellung(m, w, s, start):
             rest_min=400 - vergangen,
             betriebsart=1,
             raumsoll=e.gedaechtnis.absenkung_soll,
+            abgerufen=jetzt,
         )
         assert grund is None, (vergangen, grund)
 
@@ -142,7 +143,13 @@ def test_eine_gespeicherte_absenkung_gilt_gegen_die_ortszeit(m, s):
 
     assert (
         steller.handeingriff(
-            g, jetzt=jetzt, betriebswahl=None, rest_min=340, betriebsart=1, raumsoll=17.0
+            g,
+            jetzt=jetzt,
+            betriebswahl=None,
+            rest_min=340,
+            betriebsart=1,
+            raumsoll=17.0,
+            abgerufen=jetzt,
         )
         is None
     )

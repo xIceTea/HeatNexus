@@ -51,6 +51,7 @@ class Coordinator:
     def __init__(self) -> None:
         """Ein Heizkreis mit Sollwert 21 °C in Programm 1."""
         self.client = Client()
+        self.nachgefasst: list[tuple[list[str], dict]] = []
         self.data = {
             "devices": [
                 {
@@ -76,6 +77,10 @@ class Coordinator:
 
     def async_add_listener(self, _rueckruf):
         return lambda: None
+
+    def nachfassen(self, oids, **kwargs) -> None:
+        """Merkt sich jedes gezielte Nachlesen; gelesen wird nichts."""
+        self.nachgefasst.append((list(oids), kwargs))
 
 
 @pytest.fixture
@@ -726,9 +731,62 @@ async def test_geaenderter_raumsoll_der_pause_gilt_als_handeingriff(
     )
     coordinator.data["oids"][f"{PREFIX}/2/10/0"] = "340"
 
+    # Seit dem Start kam kein Abruf; der Bestand kann aus dem Lesespeicher stammen.
+    await laufzeit.auswerten()
+    assert laufzeit.pausiert_bis is None
+
+    laufzeit._merken()
     await laufzeit.auswerten()
 
     assert laufzeit.pausiert_bis is not None
+
+
+async def _eigene_absenkung(hass, hass_ws_client, verwaltung, coordinator, freezer):
+    """Scharf geschaltet, ein Abruf vor dem Schreiben, dann schreibt die Automatik ihre Absenkung."""
+    client = await hass_ws_client(hass)
+    freezer.move_to(MORGEN)
+    await _einrichten(client)
+    await _schalten(client)
+    laufzeit = verwaltung.laufzeiten[HEIZKREIS]
+    laufzeit._merken()
+    await _takte(laufzeit)
+    assert coordinator.client.geschrieben == [
+        (f"{PREFIX}/3/4/0", "19.5"),
+        (f"{PREFIX}/2/10/0", "400"),
+    ]
+    return laufzeit
+
+
+async def test_lauf_ohne_abruf_nach_dem_schreiben_pausiert_nicht(
+    hass, hass_ws_client, anlage, freezer
+):
+    """Abruf alle 300 s: Fünf Minuten nach dem Schreiben zeigt der Bestand noch `2/10 = 0`."""
+    from datetime import timedelta
+
+    verwaltung, coordinator = anlage
+    laufzeit = await _eigene_absenkung(hass, hass_ws_client, verwaltung, coordinator, freezer)
+
+    freezer.tick(timedelta(minutes=5))
+    await laufzeit.auswerten(takt=True)
+    assert laufzeit.pausiert_bis is None
+
+    # Der nächste Abruf zeigt die Absenkung beendet: Das war jemand von Hand.
+    laufzeit._merken()
+    await laufzeit.auswerten(takt=True)
+    assert laufzeit.pausiert_bis is not None
+    assert laufzeit.steller.stand.protokoll[0]["text"].startswith("Absenkung von Hand beendet.")
+
+
+async def test_nach_dem_schreiben_liest_die_automatik_gezielt_nach(
+    hass, hass_ws_client, anlage, freezer
+):
+    verwaltung, coordinator = anlage
+    await _eigene_absenkung(hass, hass_ws_client, verwaltung, coordinator, freezer)
+
+    adressen = ["/3/50/0", "/2/10/0", "/1/1/0", "/2/9/0"]
+    assert coordinator.nachgefasst == [
+        ([f"{PREFIX}{a}" for a in adressen], {"anzahl": 1, "abstand": 180.0})
+    ]
 
 
 async def test_nur_administratoren_richten_ein(
