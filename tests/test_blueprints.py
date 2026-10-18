@@ -368,12 +368,24 @@ def test_abwesend_ohne_szene(abwesend):
     assert set(_aktionen(abwesend["actions"])) == {"climate.set_preset_mode"}
 
 
+def _attribute(**werte):
+    return lambda _entitaet, name: werte.get(name)
+
+
 def test_abwesend_merkt_die_betriebsart_vor_dem_absenken(abwesend):
     vorher = abwesend["variables"]["vorher"]
-    assert _rendern(vorher, state_attr=lambda _e, _a: "3", heizkreis="climate.hk") == "3"
+    attribute = _attribute(preset_mode="3")
+    assert _rendern(vorher, state_attr=attribute, heizkreis="climate.hk") == "3"
     absenken, zurueck = (a for a in abwesend["actions"] if a.get("action"))
     assert absenken["data"]["preset_mode"] == "{{ modus_abwesend }}"
     assert zurueck["data"]["preset_mode"] == "{{ vorher }}"
+
+
+def test_abwesend_merkt_den_modus_vor_einer_umschaltenden_vorgabe(abwesend):
+    """Eine Vorgabe aus Standby schaltet nur befristet ins Heizprogramm."""
+    vorher = abwesend["variables"]["vorher"]
+    attribute = _attribute(preset_mode="1", modus_vor_vorgabe=0)
+    assert _rendern(vorher, state_attr=attribute, heizkreis="climate.hk") == "0"
 
 
 @pytest.mark.parametrize(

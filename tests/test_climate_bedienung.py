@@ -119,3 +119,12 @@ async def test_nach_der_bedienung_liest_der_koordinator_nach(thermostat):
     entitaet, koordinator, _ = thermostat
     await entitaet.async_set_preset_mode("4")
     assert koordinator.nachgefasst
+
+
+async def test_eine_laufende_vorgabe_meldet_die_echte_betriebswahl(thermostat):
+    """Voreinstellung 7 ist der Handbetrieb, nicht die befristete Vorgabe."""
+    entitaet, koordinator, _ = thermostat
+    koordinator.data["oids"].update({"/1/15/0/3/50/0": "1", "/1/15/0/2/10/0": "120"})
+    assert entitaet.preset_mode == "1"
+    assert entitaet.extra_state_attributes["override_aktiv"] is True
+    assert entitaet.extra_state_attributes["override_restzeit_min"] == 120

@@ -74,6 +74,10 @@ wenn dort Vorabversionen zugelassen sind.
 - „Räume zum Ziel“ misst ohne Programm nicht mehr gegen den Frostschutz-Sollwert.
 - Skalenbeschriftungen bleiben in schmalen Kacheln innerhalb des Rahmens.
 
+**Thermostat**
+- Während einer Vorgabe zeigt das Thermostat die gewählte Betriebsart statt „Handbetrieb“.
+- Die Abwesenheitsvorlage stellt nach einer Vorgabe die Betriebsart von davor wieder ein.
+
 ## [1.14.0-beta.3]
 
 ### Highlight: Meldungsliste des Bediengeräts

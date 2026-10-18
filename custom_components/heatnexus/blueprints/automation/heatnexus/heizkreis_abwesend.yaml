@@ -70,7 +70,10 @@ variables:
   modus_abwesend: !input modus_abwesend
   # Nur die Betriebsart, keine Szene: Eine Szene stellte auch die
   # Solltemperatur zurück und schriebe damit eine befristete Vorgabe.
-  vorher: "{{ state_attr(heizkreis, 'preset_mode') | string }}"
+  # Hat eine Vorgabe nur befristet ins Heizprogramm geschaltet, gilt der Modus davor.
+  vorher: >
+    {% set davor = state_attr(heizkreis, 'modus_vor_vorgabe') %}
+    {{ (davor if davor is not none else state_attr(heizkreis, 'preset_mode')) | string }}
 
 conditions:
   - condition: template

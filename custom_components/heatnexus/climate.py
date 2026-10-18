@@ -399,17 +399,10 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
 
     @property
     def preset_mode(self) -> str | None:
-        """Return the current preset mode."""
-        # Frisch gewählte Voreinstellung sofort zeigen (ohne "7"-Override-Logik).
-        if (
-            (
-                self._optimistic_mode is None
-                or not self._optimistisch_gueltig(self._optimistic_mode_ts)
-            )
-            and self.raw_custom_temp_remaining_time() > 0
-            and "7" in self._preset_modes
-        ):
-            return "7"
+        """Die Betriebswahl `3/50`, auch während einer befristeten Vorgabe.
+
+        Die Vorgabe zeigt `override_aktiv`; Voreinstellung 7 ist der Handbetrieb.
+        """
         mode = self.raw_selected_mode()
         if mode is None:
             return None
