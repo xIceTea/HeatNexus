@@ -211,6 +211,14 @@ class TransportMixin:
             )
             if self._abmelden(oid, data, status):
                 return oid, None
+            if status in (0, 401, 403) or status >= 500:
+                # Abgewiesen oder vom vorgeschalteten Webserver beantwortet: kein Messwert.
+                # Den Anmeldefehler zählt `_get`.
+                _LOGGER.debug("Lesen von %s scheitert mit HTTP %s", oid, status)
+                self._letzter_lesefehler = mit_text(
+                    CannotConnect, "wert_abruf_status", anlage=self.host, status=status
+                )
+                return oid, FEHLGESCHLAGEN
             value = data.get("value") if isinstance(data, dict) else None
             return oid, self._wert_oder_none(value)
         except Exception as e:

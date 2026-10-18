@@ -302,11 +302,118 @@ async def test_eine_leermarke_wird_kein_messwert(client):
     assert await c._fetch_oid("/1/60/0/0/9/0") == ("/1/60/0/0/9/0", None)
 
 
-async def test_ein_gescheiterter_wert_bricht_den_durchlauf_nicht_ab(client):
-    """Sonst risse ein einzelner Aussetzer den ganzen Abruf mit."""
-    c = client(_Antwort(500, b"kaputt"))
+@pytest.mark.parametrize(
+    ("status", "rohdaten"),
+    [
+        (502, b'{"code": 502, "message": "Bad Gateway"}'),
+        (502, b"<html><body>502 Bad Gateway</body></html>"),
+        (503, b""),
+        (504, b'{"code": 504, "reason": "No response from Device"}'),
+        (500, b"kaputt"),
+        (401, b""),
+        (403, b""),
+    ],
+)
+async def test_eine_fehlerantwort_ist_kein_messwert(client, status, rohdaten):
+    """Ein Fehlerstatus heißt: Die Anfrage kam nicht an. Der letzte Wert bleibt stehen."""
+    from custom_components.heatnexus.client.gemeinsam import FEHLGESCHLAGEN
+
+    c = client(_Antwort(status, rohdaten))
+
+    assert await c._fetch_oid("/1/60/0/0/7/0") == ("/1/60/0/0/7/0", FEHLGESCHLAGEN)
+    assert c._letzter_lesefehler.translation_placeholders["status"] == str(status)
+    assert c._abgemeldet == set()
+
+
+async def test_nur_schreibbar_bleibt_ein_leerer_wert(client):
+    """`409` ohne unbekannte Kennung ist eine Auskunft der Anlage, kein Ausfall."""
+    rohdaten = json.dumps({"code": 409, "reason": "datapoint is write only"}).encode()
+    c = client(_Antwort(409, rohdaten))
 
     assert await c._fetch_oid("/1/60/0/0/7/0") == ("/1/60/0/0/7/0", None)
+    assert c._letzter_lesefehler is None
+
+
+async def test_eine_unbekannte_kennung_wird_abgemeldet(client):
+    rohdaten = json.dumps({"code": 409, "reason": "invalid Identifier"}).encode()
+    c = client(_Antwort(409, rohdaten))
+
+    assert await c._fetch_oid("/1/60/0/0/7/0") == ("/1/60/0/0/7/0", None)
+    assert c._abgemeldet == {"/1/60/0/0/7/0"}
+
+
+async def test_ein_abgewiesener_wert_zaehlt_einmal_als_anmeldefehler(client):
+    c = client(_Antwort(401, b""))
+
+    await c._fetch_oid("/1/60/0/0/7/0")
+
+    assert c.auth_errors == 1
+
+
+class _NachAdresse(_Sitzung):
+    """Antwortet je Adresse; was nicht in `antworten` steht, bekommt `rest`."""
+
+    def __init__(self, antworten: dict[str, _Antwort], rest: _Antwort):
+        super().__init__(rest)
+        self._je_adresse = antworten
+
+    def request(self, methode, url, data=None):
+        self.anfragen.append((methode, str(url), data))
+        antwort = next(
+            (a for oid, a in self._je_adresse.items() if str(url).endswith(oid)),
+            self._antworten[0],
+        )
+
+        async def erzeuger():
+            return antwort
+
+        return _Anfrage(erzeuger)
+
+
+def _mit_abrufplan(client_module, sitzung, oids: list[str]):
+    c = client_module.WindhagerHttpClient("192.0.2.10", "geheim")
+    c._session = sitzung
+    c.oids = set(oids)
+    c.poll_oids = set(oids)
+    c.poll_class = dict.fromkeys(oids, "fast")
+    c.devices = []
+    c._tick = 1
+    return c
+
+
+async def test_lauter_gatewayfehler_sind_ein_ausfall(client_module):
+    """Antwortet nur noch der Webserver vor der Steuerung, scheitert der Durchlauf."""
+    from custom_components.heatnexus.exceptions import CannotConnect
+
+    oids = ["/1/60/0/0/7/0", "/1/60/0/0/8/0"]
+    sitzung = _NachAdresse({}, _Antwort(502, b"<html>Bad Gateway</html>"))
+    c = _mit_abrufplan(client_module, sitzung, oids)
+    c._letzte_werte = {"/1/60/0/0/7/0": "63.5"}
+
+    with pytest.raises(CannotConnect):
+        await c.fetch_all()
+
+    assert c._letzte_werte["/1/60/0/0/7/0"] == "63.5"
+
+
+async def test_ein_bekannter_wert_bleibt_bei_einem_gatewayfehler_stehen(hass, client_module):
+    """Ein einzelner Fehler bricht den Durchlauf nicht ab und leert keine Anzeige.
+
+    `hass` übersetzt die Fehlermeldung in der Warnung zum Teilausfall.
+    """
+    oids = ["/1/60/0/0/7/0", "/1/60/0/0/8/0"]
+    sitzung = _NachAdresse(
+        {"/1/60/0/0/8/0": _Antwort(200, b'{"value": "41.0"}')},
+        _Antwort(502, b'{"code": 502, "message": "Bad Gateway"}'),
+    )
+    c = _mit_abrufplan(client_module, sitzung, oids)
+    c._letzte_werte = {"/1/60/0/0/7/0": "63.5"}
+
+    daten = await c.fetch_all()
+
+    assert daten["oids"]["/1/60/0/0/7/0"] == "63.5"
+    assert daten["oids"]["/1/60/0/0/8/0"] == "41.0"
+    assert "/1/60/0/0/7/0" in c._rest
 
 
 # ---------------------------------------------------------------------------

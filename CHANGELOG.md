@@ -80,6 +80,9 @@ wenn dort Vorabversionen zugelassen sind.
 - Eine Vorgabe mit Dauer 0 schaltet einen ausgeschalteten Heizkreis nicht mehr ein.
 - Scheitert eine Vorgabe, kehrt der Heizkreis in die Betriebsart davor zurück.
 
+**Verbindung**
+- Die letzten Werte bleiben sichtbar, wenn die Anlage eine Abfrage mit einem Fehler beantwortet.
+
 ## [1.14.0-beta.3]
 
 ### Highlight: Meldungsliste des Bediengeräts

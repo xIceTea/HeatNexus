@@ -690,6 +690,9 @@
     "werte_nicht_lesbar": {
       "message": "The system {anlage} returns no values."
     },
+    "wert_abruf_status": {
+      "message": "The system {anlage} responds to the request with HTTP {status}."
+    },
     "struktur_unlesbar": {
       "message": "The system {anlage} does not return its structure (HTTP {status})."
     },

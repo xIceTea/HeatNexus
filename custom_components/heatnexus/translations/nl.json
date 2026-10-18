@@ -690,6 +690,9 @@
     "werte_nicht_lesbar": {
       "message": "De installatie {anlage} levert geen waarden."
     },
+    "wert_abruf_status": {
+      "message": "De installatie {anlage} beantwoordt de aanvraag met HTTP {status}."
+    },
     "struktur_unlesbar": {
       "message": "De installatie {anlage} levert haar opbouw niet (HTTP {status})."
     },

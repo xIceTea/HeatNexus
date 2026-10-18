@@ -690,6 +690,9 @@
     "werte_nicht_lesbar": {
       "message": "Die Anlage {anlage} liefert keinen Wert."
     },
+    "wert_abruf_status": {
+      "message": "Die Anlage {anlage} beantwortet die Abfrage mit HTTP {status}."
+    },
     "struktur_unlesbar": {
       "message": "Die Anlage {anlage} liefert ihren Aufbau nicht (HTTP {status})."
     },
