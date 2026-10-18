@@ -77,6 +77,8 @@ wenn dort Vorabversionen zugelassen sind.
 **Thermostat**
 - Während einer Vorgabe zeigt das Thermostat die gewählte Betriebsart statt „Handbetrieb“.
 - Die Abwesenheitsvorlage stellt nach einer Vorgabe die Betriebsart von davor wieder ein.
+- Eine Vorgabe mit Dauer 0 schaltet einen ausgeschalteten Heizkreis nicht mehr ein.
+- Scheitert eine Vorgabe, kehrt der Heizkreis in die Betriebsart davor zurück.
 
 ## [1.14.0-beta.3]
 

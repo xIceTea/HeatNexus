@@ -128,3 +128,42 @@ async def test_eine_laufende_vorgabe_meldet_die_echte_betriebswahl(thermostat):
     assert entitaet.preset_mode == "1"
     assert entitaet.extra_state_attributes["override_aktiv"] is True
     assert entitaet.extra_state_attributes["override_restzeit_min"] == 120
+
+
+async def test_eine_vorgabe_mit_dauer_null_schaltet_nicht_um(thermostat):
+    """Dauer 0 beendet eine Vorgabe; der ausgeschaltete Kreis bleibt aus."""
+    entitaet, koordinator, _ = thermostat
+    await entitaet.async_set_vorgabe(21.0, 0)
+    assert ("/1/15/0/3/50/0", "1") not in koordinator.client.geschrieben
+    assert entitaet._modus_davor is None
+
+
+def _scheitert_bei(koordinator, adresse, *, auch_beim_zuruecknehmen=False):
+    schreiben = koordinator.client.update
+
+    async def update(oid, wert):
+        if oid.endswith(adresse) or (auch_beim_zuruecknehmen and wert == "6"):
+            raise RuntimeError("409")
+        await schreiben(oid, wert)
+
+    koordinator.client.update = update
+
+
+async def test_eine_gescheiterte_vorgabe_nimmt_die_umschaltung_zurueck(thermostat):
+    entitaet, koordinator, _ = thermostat
+    _scheitert_bei(koordinator, "/3/4/0")
+    with pytest.raises(RuntimeError):
+        await entitaet.async_set_vorgabe(21.0, 60)
+    assert koordinator.client.geschrieben[-1] == ("/1/15/0/3/50/0", "6")
+    assert entitaet._modus_davor is None
+
+
+async def test_scheitert_auch_das_zuruecknehmen_bleibt_der_ruecksprung(thermostat):
+    entitaet, koordinator, _ = thermostat
+    _scheitert_bei(koordinator, "/3/4/0", auch_beim_zuruecknehmen=True)
+    with pytest.raises(RuntimeError):
+        await entitaet.async_set_vorgabe(21.0, 60)
+    assert koordinator.client.geschrieben == [("/1/15/0/3/50/0", "1")]
+    koordinator.data["oids"]["/1/15/0/3/50/0"] = "1"
+    entitaet._ruecksprung_pruefen()
+    assert [n for n in entitaet.platform.config_entry.hintergrund if "ruecksprung" in n]

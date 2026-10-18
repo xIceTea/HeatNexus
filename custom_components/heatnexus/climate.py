@@ -483,25 +483,39 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         mode = self.raw_selected_mode()
         if mode is None:
             raise mit_text(WindhagerValueError, "betriebswahl_unbekannt")
+        temp = max(MIN_TEMP, min(MAX_TEMP, float(temperature)))
+        dauer = max(0, min(OVERRIDE_DURATION_MAX, round(float(duration))))
         stand = self._stand()
-        werte = []
-        if mode in self.OFF_MODES:
+        # Dauer 0 beendet eine Vorgabe; dafür wird nicht in ein Heizprogramm geschaltet.
+        umschalten = mode in self.OFF_MODES and dauer > 0
+        if umschalten:
             self._modus_davor = mode
             self._vorgabe_gesehen = False
             self._set_optimistic_mode(HEIZPROGRAMM)
-            werte.append(("/3/50/0", str(HEIZPROGRAMM)))
-
-        temp = max(MIN_TEMP, min(MAX_TEMP, float(temperature)))
-        dauer = max(0, min(OVERRIDE_DURATION_MAX, round(float(duration))))
+            await self._schreiben(stand, ("/3/50/0", str(HEIZPROGRAMM)))
 
         # Sofort anzeigen, dann Override + Dauer schreiben und Refresh anstoßen.
         self._optimistic_target = temp
         self._optimistic_ts = time.monotonic()
         self._ablauf_planen()
         self.async_write_ha_state()
-        werte += [("/3/4/0", f"{temp:.1f}"), ("/2/10/0", str(dauer))]
-        await self._schreiben(stand, *werte)
+        try:
+            await self._schreiben(stand, ("/3/4/0", f"{temp:.1f}"), ("/2/10/0", str(dauer)))
+        except Exception:
+            if umschalten:
+                await self._umschaltung_zuruecknehmen(mode)
+            raise
         self._start_fast_refresh()
+
+    async def _umschaltung_zuruecknehmen(self, modus: int) -> None:
+        """Nach einer gescheiterten Vorgabe die Betriebswahl von davor zurückschreiben."""
+        try:
+            await self.client.update(f"{self._prefix}/3/50/0", str(modus))
+        except Exception as err:
+            # Der Merker bleibt; der Rücksprung holt das Zurückschalten beim nächsten Abruf nach.
+            _LOGGER.warning("Betriebswahl %s nicht zurückgeschrieben: %s", modus, err)
+            self._modus_davor, self._vorgabe_gesehen = modus, True
+            self.async_write_ha_state()
 
 
 class WindhagerThermostatClimate(WindhagerBaseThermostat):
