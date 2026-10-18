@@ -1238,52 +1238,136 @@ def test_das_beenden_eines_eingriffs_kuendigt_sich_an(panel, kessel_und_heizkrei
     assert daten["steuerung"]["lagerraum"]["frage_abbrechen"]
 
 
-def test_die_lagerraumkarte_beendet_ueber_die_gegentaste(panel, kessel_und_heizkreis):
-    """Ob die Befüllung läuft, steht in der Betriebswahl; beendet wird sie mit der zweiten Taste."""
-    for anlagenteil in kessel_und_heizkreis["teile"]:
-        if anlagenteil["fct_type"] != 25:
-            continue
-        anlagenteil["entitaeten"] += [
-            entitaet("button.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
-            entitaet("button.lagerraumbefuellung_beenden", "Lagerraumbefüllung beenden"),
-            entitaet(
-                "sensor.betriebswahl_kessel",
-                "Betriebswahl Kessel",
-                optionen={1: "EIN", 3: "Kaminkehrer", 7: "Lagerraum befüllen"},
-            ),
-            entitaet("sensor.lagerraum_restlaufzeit", "Lagerraumbefüllung Restlaufzeit"),
-        ]
+@pytest.fixture
+def betriebsart_texte() -> dict[int, str]:
+    """Die Herstellertexte der Betriebsart `2/59`."""
+    from custom_components.heatnexus import device_db
+
+    return device_db.get_enum("2/59")
+
+
+def _kesselteil_ergaenzen(zielanlage, *neu) -> None:
+    for anlagenteil in zielanlage["teile"]:
+        if anlagenteil["fct_type"] == 25:
+            anlagenteil["entitaeten"] += list(neu)
+
+
+def test_die_lagerraumkarte_beendet_ueber_die_gegentaste(
+    panel, kessel_und_heizkreis, betriebsart_texte
+):
+    """Ob die Befüllung läuft, steht in der Betriebsart; beendet wird sie mit der zweiten Taste."""
+    _kesselteil_ergaenzen(
+        kessel_und_heizkreis,
+        entitaet("button.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
+        entitaet("button.lagerraumbefuellung_beenden", "Lagerraumbefüllung beenden"),
+        entitaet("sensor.betriebsart", "Betriebsart", adresse="2/59", optionen=betriebsart_texte),
+        entitaet("sensor.lagerraum_restlaufzeit", "Lagerraumbefüllung Restlaufzeit"),
+    )
 
     lagerraum = panel.anlage_daten(kessel_und_heizkreis)["steuerung"]["lagerraum"]
 
     assert lagerraum["anfordern"] == "button.lagerraumbefuellung"
     assert lagerraum["abbrechen"] == "button.lagerraumbefuellung_beenden"
-    assert lagerraum["zustand_an"] == "sensor.betriebswahl_kessel"
-    assert lagerraum["zustand_wenn"] == ["Lagerraum befüllen"]
+    assert lagerraum["zustand_an"] == "sensor.betriebsart"
     assert lagerraum["titel_abbrechen"]
     assert "Restlaufzeit" in [z["titel"] for z in lagerraum["zeilen"]]
 
 
+@pytest.mark.parametrize(
+    ("betriebsart", "laeuft"), [(14, True), (15, True), (5, False), (9, False)]
+)
+def test_die_befuellung_laeuft_laut_betriebsart(
+    panel, kessel_und_heizkreis, betriebsart_texte, betriebsart, laeuft
+):
+    """14 und 15 heißen Lagerraum befüllen (direkt/Saug); 5 ist der Normalbetrieb."""
+    _kesselteil_ergaenzen(
+        kessel_und_heizkreis,
+        entitaet("button.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
+        entitaet("button.lagerraumbefuellung_beenden", "Lagerraumbefüllung beenden"),
+        entitaet("sensor.betriebsart", "Betriebsart", adresse="2/59", optionen=betriebsart_texte),
+    )
+
+    lagerraum = panel.anlage_daten(kessel_und_heizkreis)["steuerung"]["lagerraum"]
+
+    assert (betriebsart_texte[betriebsart] in lagerraum["zustand_wenn"]) is laeuft
+
+
+def test_die_lagerraumkarte_liest_die_betriebsart_ihres_kessels(
+    panel, kessel_und_heizkreis, betriebsart_texte
+):
+    """Ein zweiter Kessel führt ebenfalls `2/59`; sein Zustand gehört nicht zur Befüllung."""
+    _kesselteil_ergaenzen(
+        kessel_und_heizkreis,
+        entitaet("button.lagerraumbefuellung", "Lagerraumbefüllung anfordern"),
+        entitaet("button.lagerraumbefuellung_beenden", "Lagerraumbefüllung beenden"),
+        entitaet("sensor.betriebsart", "Betriebsart", adresse="2/59", optionen=betriebsart_texte),
+    )
+    zusatz = entitaet(
+        "sensor.zusatzkessel_betriebsart", "Betriebsart", adresse="2/59", optionen=betriebsart_texte
+    )
+    kessel_und_heizkreis["teile"].insert(0, teil("Zusatzkessel", 10, [zusatz]))
+
+    lagerraum = panel.anlage_daten(kessel_und_heizkreis)["steuerung"]["lagerraum"]
+
+    assert lagerraum["zustand_an"] == "sensor.betriebsart"
+
+
 def test_der_kaminkehrer_endet_ueber_seine_gegentaste(panel, kessel_und_heizkreis):
-    """Die Kachel liest den Zustand aus der Betriebswahl und drückt zum Beenden die zweite Taste."""
-    for anlagenteil in kessel_und_heizkreis["teile"]:
-        if anlagenteil["fct_type"] != 25:
-            continue
-        anlagenteil["entitaeten"] += [
-            entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
-            entitaet("button.kaminkehrer_beenden", "Kaminkehrer beenden"),
-            entitaet(
-                "sensor.betriebswahl_kessel", "Betriebswahl Kessel", optionen={3: "Chimney sweep"}
-            ),
-        ]
+    """Die Kachel liest den Zustand aus der Betriebsart und drückt zum Beenden die zweite Taste."""
+    _kesselteil_ergaenzen(
+        kessel_und_heizkreis,
+        entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
+        entitaet("button.kaminkehrer_beenden", "Kaminkehrer beenden"),
+        entitaet(
+            "sensor.betriebsart",
+            "Betriebsart",
+            adresse="2/59",
+            optionen={5: "Boiler temperature", 9: "Chimney sweep function"},
+        ),
+    )
 
     daten = panel.anlage_daten(kessel_und_heizkreis)
     taste = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
 
     assert taste["entity"] == "button.kaminkehrer_starten"
     assert taste["abbrechen"] == "button.kaminkehrer_beenden"
-    assert taste["zustand_an"] == "sensor.betriebswahl_kessel"
-    assert taste["zustand_wenn"] == ["Chimney sweep", "Kaminkehrer"]
+    assert taste["zustand_an"] == "sensor.betriebsart"
+    assert taste["zustand_wenn"] == ["Chimney sweep function", "Kaminkehrerfunktion"]
+
+
+@pytest.mark.parametrize(("betriebsart", "laeuft"), [(9, True), (5, False), (14, False)])
+def test_der_kaminkehrer_laeuft_laut_betriebsart(
+    panel, kessel_und_heizkreis, betriebsart_texte, betriebsart, laeuft
+):
+    """9 heißt Kaminkehrerfunktion, auch wenn die Betriebswahl `9/75` „-“ meldet."""
+    _kesselteil_ergaenzen(
+        kessel_und_heizkreis,
+        entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
+        entitaet("button.kaminkehrer_beenden", "Kaminkehrer beenden"),
+        entitaet("sensor.betriebsart", "Betriebsart", adresse="2/59", optionen=betriebsart_texte),
+        entitaet("sensor.betriebswahl_kessel", "Betriebswahl Kessel", hat_wert=False),
+    )
+
+    kessel = panel.anlage_daten(kessel_und_heizkreis)["steuerung"]["kessel"]
+    taste = next(e for e in kessel if e["titel"] == "Kaminkehrer")
+
+    assert taste["zustand_an"] == "sensor.betriebsart"
+    assert (betriebsart_texte[betriebsart] in taste["zustand_wenn"]) is laeuft
+
+
+def test_die_betriebswahl_dient_nicht_als_laufanzeige(panel, kessel_und_heizkreis):
+    """`9/75` nimmt den Befehl entgegen; ohne Betriebsart bleibt die Laufanzeige leer."""
+    _kesselteil_ergaenzen(
+        kessel_und_heizkreis,
+        entitaet("button.kaminkehrer_starten", "Kaminkehrer starten"),
+        entitaet("button.kaminkehrer_beenden", "Kaminkehrer beenden"),
+        entitaet("sensor.betriebswahl_kessel", "Betriebswahl Kessel", optionen={3: "Kaminkehrer"}),
+    )
+
+    daten = panel.anlage_daten(kessel_und_heizkreis)
+    taste = next(e for e in daten["schnellzugriff"] if e["titel"] == "Kaminkehrer")
+
+    assert taste.get("zustand_an") != "sensor.betriebswahl_kessel"
 
 
 def test_der_kaminkehrer_steht_auch_in_der_steuerung(panel, kessel_und_heizkreis):

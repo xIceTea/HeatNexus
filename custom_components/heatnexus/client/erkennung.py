@@ -56,6 +56,10 @@ DESKRIPTOR_VORGABE: dict = {
     # 1 und 0.
     "ein_wert": None,
     "aus_wert": None,
+    # Wo der Zustand steht, wenn er nicht an der eigenen Adresse liegt, und
+    # welche Werte dort für einen Schalter „aus“ heißen.
+    "zustand_oid": None,
+    "zustand_aus": None,
     "write_prot": None,
     # Eine Änderung startet die Steuerung neu (Merkmal `restart` des Herstellers).
     "neustart": None,
@@ -330,6 +334,8 @@ class ErkennungMixin:
             press_value=definition.get("press_value"),
             ein_wert=definition.get("ein_wert"),
             aus_wert=definition.get("aus_wert"),
+            zustand_oid=f"{base}/{zustand}/0" if (zustand := definition.get("zustand")) else None,
+            zustand_aus=definition.get("zustand_aus"),
             device_id=self._geraetekennung(prefix),
             alt_device_id=self._alte_kennung(prefix),
             device_name=fct["name"],

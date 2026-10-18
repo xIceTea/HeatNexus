@@ -16,9 +16,9 @@ from ..schema import passt as _passt
 from .hilfe import HILFE_KARTEN, hilfe
 from .muster import (
     BETRIEBSART,
+    BETRIEBSART_KESSEL,
     BETRIEBSART_URLAUB,
     BETRIEBSWAHL,
-    BETRIEBSWAHL_KESSEL,
     BETRIEBSWAHL_STANDBY,
     BETRIEBSWAHL_STANDBY_WERT,
     BETRIEBSWAHL_WW,
@@ -227,23 +227,31 @@ def warmwasser_bedienung(alle: list[dict[str, Any]], kreis: list[dict[str, Any]]
     }
 
 
-# Werte der Betriebswahl `9/75`, solange der Eingriff läuft; der Text dient als Rückfall.
-KAMINKEHRER_WERT, KAMINKEHRER_TEXT = 3, "Kaminkehrer"
-BEFUELLEN_WERT, BEFUELLEN_TEXT = 7, "Lagerraum befüllen"
+# Werte der Betriebsart `2/59`, solange der Eingriff läuft; der Text dient als Rückfall.
+# Während der Befüllung steht dort 14 (direkt) oder 15 (Saug).
+KAMINKEHRER_WERTE, KAMINKEHRER_TEXT = (9,), "Kaminkehrerfunktion"
+BEFUELLEN_WERTE, BEFUELLEN_TEXT = (14, 15), "Lagerraum befüllen"
 
 
 def eingriff_bedienung(
-    entitaeten: list[dict[str, Any]], beenden: tuple, wert: int, text: str
+    entitaeten: list[dict[str, Any]], beenden: tuple, werte: tuple[int, ...], text: str
 ) -> dict[str, Any]:
     """Die Taste, die einen Eingriff beendet, und woran die Kachel erkennt, dass er läuft."""
     taste = kennung_suchen(entitaeten, beenden, ("button",))
-    wahl = eintrag_suchen(entitaeten, BETRIEBSWAHL_KESSEL, ("sensor",))
-    if taste is None or wahl is None:
+    art = next(
+        (
+            e
+            for e in entitaeten
+            if e["bereich"] == "sensor" and e.get("adresse") == BETRIEBSART_KESSEL
+        ),
+        None,
+    )
+    if taste is None or art is None:
         return {}
-    texte = _optionstexte(wahl, wert)
+    texte = list(dict.fromkeys(_optionstexte(art, *werte)))
     return {
         "abbrechen": taste,
-        "zustand_an": wahl["entity_id"],
+        "zustand_an": art["entity_id"],
         "zustand_wenn": [*texte, *([text] if text not in texte else [])],
     }
 
@@ -264,7 +272,7 @@ def kaminkehrer_bedienung(entitaeten: list[dict[str, Any]]) -> dict[str, Any]:
         ),
     }
     bedienung.update(
-        eingriff_bedienung(entitaeten, KAMINKEHRER_BEENDEN, KAMINKEHRER_WERT, KAMINKEHRER_TEXT)
+        eingriff_bedienung(entitaeten, KAMINKEHRER_BEENDEN, KAMINKEHRER_WERTE, KAMINKEHRER_TEXT)
     )
     if leistung := kennung_suchen(entitaeten, KAMINKEHRER_LEISTUNG, ("number",)):
         bedienung["leistung"] = leistung
@@ -406,7 +414,7 @@ def _kessel_karten(anlage: dict[str, Any]) -> list[dict[str, Any]]:
     return karten
 
 
-def _lagerraum_karte(alle: list[dict[str, Any]]) -> dict[str, Any] | None:
+def _lagerraum_karte(anlage: dict[str, Any], alle: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Lagerraumbefüllung: anfordern und dann ablesen, ob freigegeben ist.
 
     Ohne die Anforderungstaste hat die Karte keinen Zweck.
@@ -414,9 +422,18 @@ def _lagerraum_karte(alle: list[dict[str, Any]]) -> dict[str, Any] | None:
     anfordern = kennung_suchen(alle, LAGERRAUM_ANFORDERN, ("switch", "button"))
     if anfordern is None:
         return None
+    # Die Betriebsart gehört zum Kessel der Taste; ein Zusatzkessel führt eine eigene.
+    kessel = next(
+        (
+            teil["entitaeten"]
+            for teil in anlage["teile"]
+            if any(e["entity_id"] == anfordern for e in teil["entitaeten"])
+        ),
+        alle,
+    )
     return {
         "anfordern": anfordern,
-        **eingriff_bedienung(alle, LAGERRAUM_BEENDEN, BEFUELLEN_WERT, BEFUELLEN_TEXT),
+        **eingriff_bedienung(kessel, LAGERRAUM_BEENDEN, BEFUELLEN_WERTE, BEFUELLEN_TEXT),
         "titel_abbrechen": "Befüllung beenden",
         "frage_abbrechen": (
             "Erst beenden, wenn die Befüllung abgeschlossen ist. Das Rührwerk steht danach still."
@@ -442,5 +459,5 @@ def steuerung(anlage: dict[str, Any]) -> dict[str, Any]:
         "heizkreise": _heizkreise(anlage),
         "warmwasser": _warmwasser_karte(anlage, alle),
         "kessel": _kessel_karten(anlage),
-        "lagerraum": _lagerraum_karte(alle),
+        "lagerraum": _lagerraum_karte(anlage, alle),
     }

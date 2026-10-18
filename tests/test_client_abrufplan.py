@@ -556,6 +556,21 @@ def test_eigene_schaltwerte_ueberstehen_die_beschreibung(client):
     assert beschreibung["aus_wert"] == "1"
 
 
+def test_der_kesselschalter_liest_seinen_zustand_aus_der_betriebsart(client):
+    """Die Kennung bleibt an `9/75`; der Zustand kommt aus `2/59` desselben Kessels."""
+    from custom_components.heatnexus.geraete import purowin
+
+    client.oids = set()
+    client.devices = []
+    schalter = next(d for d in purowin.ENTITAETEN if d.get("key_suffix") == "ein_aus")
+    client._add_entity(schalter, "/1/60/0", "/1/60", {"name": "PuroWIN", "fctType": 25})
+    (beschreibung,) = client.devices
+    assert beschreibung["oid"] == "/1/60/0/9/75/0"
+    assert beschreibung["id"] == "0000ABCD1234-0-9-75-0-ein_aus"
+    assert beschreibung["zustand_oid"] == "/1/60/0/2/59/0"
+    assert set(beschreibung["zustand_aus"]) == {0, 1}
+
+
 def test_ein_knotenweiter_datenpunkt_haengt_am_knoten_nicht_an_der_funktion(client):
     """Sonst bekäme jede Funktion desselben Knotens ihre eigene Meldung."""
     client.oids = set()

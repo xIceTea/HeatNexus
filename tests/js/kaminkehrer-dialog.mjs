@@ -23,18 +23,18 @@ if (!klasse) throw new Error("Die Oberfläche hat kein Element angemeldet");
 
 const AUSLOESER = "button.kaminkehrer_starten";
 const BEENDEN = "button.kaminkehrer_beenden";
-const WAHL = "sensor.betriebswahl_kessel";
+const ART = "sensor.betriebsart";
 const LEISTUNG = "number.kaminkehrer_leistung";
 const LAUFZEIT = "number.kaminkehrer_laufzeit";
 
-function panelBauen({ laufzeit = LAUFZEIT, wahl = "EIN" } = {}) {
+function panelBauen({ laufzeit = LAUFZEIT, art = "Kessel-Temperatur" } = {}) {
   const element = new klasse();
   const gerufen = [];
   element._hass = {
     states: {
       [AUSLOESER]: { entity_id: AUSLOESER, state: "unknown", attributes: {} },
       [BEENDEN]: { entity_id: BEENDEN, state: "unknown", attributes: {} },
-      [WAHL]: { entity_id: WAHL, state: wahl, attributes: {} },
+      [ART]: { entity_id: ART, state: art, attributes: {} },
       [LEISTUNG]: {
         entity_id: LEISTUNG,
         state: "50",
@@ -59,8 +59,8 @@ function panelBauen({ laufzeit = LAUFZEIT, wahl = "EIN" } = {}) {
     titel_abbrechen: "Kaminkehrer beenden",
     frage_abbrechen: "Der Kessel kehrt in den normalen Betrieb zurück.",
     abbrechen: BEENDEN,
-    zustand_an: WAHL,
-    zustand_wenn: ["Kaminkehrer"],
+    zustand_an: ART,
+    zustand_wenn: ["Kaminkehrerfunktion"],
     ...(laufzeit ? { laufzeit } : {}),
   };
   const taste = element._bedientaste(eintrag, false);
@@ -139,7 +139,7 @@ const faelle = [];
 
 // --- Läuft der Kaminkehrer, drückt die Kachel die Taste zum Beenden ----------
 {
-  const { element, taste, gerufen } = panelBauen({ wahl: "Kaminkehrer" });
+  const { element, taste, gerufen } = panelBauen({ art: "Kaminkehrerfunktion" });
   taste.ausloesen("click");
   await abwarten();
   knopf(element, "Kaminkehrer beenden").ausloesen("click");

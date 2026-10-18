@@ -335,13 +335,17 @@ ENTITAETEN: list[dict] = [
         "name": "Kessel",
         "platform": "switch",
         "key_suffix": "ein_aus",
+        # `9/75` ist ein Befehlsregister. Der Zustand steht in der Betriebsart
+        # `2/59`; 0 heißt ausgeschaltet, 1 Abschaltvorgang.
+        "zustand": "2/59",
+        "zustand_aus": (0, 1),
         "poll_class": "fast",
         "category": "config",
         "icon": "mdi:power",
     },
     # Kaminkehrer (3) und Lagerraumbefüllung (7) halten die Betriebswahl, bis
     # jemand zurückschaltet. Je Eingriff eine Taste zum Starten und eine, die
-    # mit 1 in den normalen Betrieb zurückkehrt; ob er läuft, zeigt `9/75`.
+    # mit 1 in den normalen Betrieb zurückkehrt; ob er läuft, zeigt `2/59`.
     {
         "oid": "/9/75/0",
         "name": "Kaminkehrer starten",

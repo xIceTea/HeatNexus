@@ -221,3 +221,13 @@ async def test_der_abruf_fragt_nur_bekannte_adressen(anlage, umfang):
     assert erg["daten"]["devices"]
     assert isinstance(erg["daten"]["oids"], dict)
     assert not [o for o in fremd if erg["spiel"].metadaten(o) is None], fremd[:10]
+
+
+@pytest.mark.parametrize("umfang", sorted(UMFAENGE))
+async def test_der_kesselschalter_liest_die_betriebsart_im_abruf(umfang):
+    """Der Zustand des PuroWIN steht in `2/59`; die Betriebswahl `9/75` meldet dort „-“."""
+    erg = await _lauf("purowin-uml-puffer", umfang)
+    (schalter,) = [d for d in erg["devices"] if str(d.get("id")).endswith("-9-75-0-ein_aus")]
+    assert schalter["zustand_oid"] == schalter["oid"].replace("/9/75/0", "/2/59/0")
+    assert schalter["zustand_oid"] in erg["poll"]
+    assert erg["daten"]["oids"].get(schalter["zustand_oid"]) is not None

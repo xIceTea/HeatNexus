@@ -607,6 +607,91 @@ async def test_ein_gewoehnlicher_schalter_bleibt_bei_eins_und_null(schalter_modu
     assert koordinator.client.geschrieben == [("/1/60/0/39/57/0", "1")]
 
 
+KESSEL = "/1/60/0/9/75/0"
+BETRIEBSART = "/1/60/0/2/59/0"
+
+
+def _kesselschalter(schalter_modul, werte):
+    """Der Schalter „Kessel“: schreibt die Betriebswahl, liest die Betriebsart."""
+    entitaet, koordinator = _entitaet(
+        schalter_modul.WindhagerSwitch,
+        werte,
+        oid=KESSEL,
+        name="Kessel",
+        type="switch",
+        zustand_oid=BETRIEBSART,
+        zustand_aus=[0, 1],
+    )
+    koordinator.async_update_listeners = lambda: None
+    return entitaet, koordinator
+
+
+@pytest.mark.parametrize(
+    ("betriebsart", "an"),
+    [("5", True), ("9", True), ("14", True), ("0", False), ("1", False)],
+)
+def test_der_kesselschalter_folgt_der_betriebsart(schalter_modul, betriebsart, an):
+    """Die Betriebswahl meldet „-“; Ausgeschaltet (0) und Abschaltvorgang (1) heißen aus."""
+    entitaet, _ = _kesselschalter(schalter_modul, {KESSEL: None, BETRIEBSART: betriebsart})
+    assert entitaet.is_on is an
+
+
+def test_eine_stehengebliebene_betriebswahl_ueberstimmt_die_betriebsart_nicht(schalter_modul):
+    entitaet, _ = _kesselschalter(schalter_modul, {KESSEL: "3", BETRIEBSART: "0"})
+    assert entitaet.is_on is False
+
+
+def test_ohne_betriebsart_gilt_die_betriebswahl(schalter_modul):
+    entitaet, _ = _kesselschalter(schalter_modul, {KESSEL: "0", BETRIEBSART: None})
+    assert entitaet.is_on is False
+
+
+async def test_der_kesselschalter_zeigt_das_ausschalten_bis_die_betriebsart_folgt(schalter_modul):
+    """Bis die Anlage den Auftrag umsetzt, steht der Schalter auf dem geschriebenen Wert."""
+    entitaet, koordinator = _kesselschalter(schalter_modul, {KESSEL: None, BETRIEBSART: "5"})
+
+    await entitaet.async_turn_off()
+    assert koordinator.client.geschrieben == [(KESSEL, "0")]
+    assert entitaet.is_on is False
+
+    koordinator.data["oids"].update({KESSEL: None, BETRIEBSART: "1"})
+    assert entitaet.is_on is False
+
+
+async def test_nimmt_die_anlage_das_ausschalten_nicht_an_gilt_wieder_die_betriebsart(
+    schalter_modul, monkeypatch
+):
+    monkeypatch.setattr(schalter_modul, "VORMERK_MAX_ALTER_S", 0)
+    entitaet, _ = _kesselschalter(schalter_modul, {KESSEL: None, BETRIEBSART: "5"})
+
+    await entitaet.async_turn_off()
+    assert entitaet.is_on is True
+
+
+def test_der_kesselschalter_liest_nach_dem_schalten_die_betriebsart_nach(schalter_modul):
+    entitaet, koordinator = _kesselschalter(schalter_modul, {KESSEL: None, BETRIEBSART: "5"})
+    entitaet.hass = object()
+
+    asyncio.run(entitaet.async_turn_off())
+    assert koordinator.nachgefasst == [[KESSEL, BETRIEBSART]]
+
+
+async def test_der_kesselschalter_meldet_die_betriebsart_zum_abruf_an(schalter_modul, monkeypatch):
+    """Auch wenn der Sensor „Betriebsart“ abgeschaltet ist, wird sie gelesen."""
+
+    async def nichts(_self) -> None:
+        return None
+
+    monkeypatch.setattr(schalter_modul.WindhagerEntity, "async_added_to_hass", nichts)
+    monkeypatch.setattr(schalter_modul.WindhagerEntity, "async_will_remove_from_hass", nichts)
+    entitaet, koordinator = _kesselschalter(schalter_modul, {})
+
+    await entitaet.async_added_to_hass()
+    assert koordinator.client.angemeldet == [BETRIEBSART]
+    await entitaet.async_will_remove_from_hass()
+    assert koordinator.client.angemeldet == []
+
+
 @pytest.fixture(scope="module")
 def schalter_modul():
     from custom_components.heatnexus import switch

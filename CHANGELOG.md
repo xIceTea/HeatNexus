@@ -84,6 +84,9 @@ wenn dort Vorabversionen zugelassen sind.
 **Verbindung**
 - Die letzten Werte bleiben sichtbar, wenn die Anlage eine Abfrage mit einem Fehler beantwortet.
 
+**Kessel**
+- PuroWIN: Schalter „Kessel“ und Panel zeigen an, ob Kessel, Kaminkehrer oder Lagerraumbefüllung laufen.
+
 ## [1.14.0-beta.3]
 
 ### Highlight: Meldungsliste des Bediengeräts

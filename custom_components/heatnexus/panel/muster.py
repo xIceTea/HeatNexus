@@ -221,8 +221,9 @@ SCHNELLZUGRIFF: tuple[Zeile, ...] = (
 # Auslösen abgefragt, weil die Messung an genau diesem Wert hängt.
 KAMINKEHRER = namensmuster(r"kaminkehrer starten")
 KAMINKEHRER_BEENDEN = namensmuster(r"kaminkehrer beenden")
-# Ob ein Eingriff läuft, steht in der Betriebswahl des Kessels (`9/75`).
-BETRIEBSWAHL_KESSEL = namensmuster(r"^betriebswahl kessel$")
+# Ob ein Eingriff läuft, steht in der Betriebsart des Kessels (`2/59`).
+# Die Betriebswahl `9/75` ist ein Befehlsregister.
+BETRIEBSART_KESSEL = "2/59"
 KAMINKEHRER_LEISTUNG = namensmuster(r"kaminkehrer leistung")
 KAMINKEHRER_LAUFZEIT = namensmuster(r"kaminkehrer laufzeit")
 
