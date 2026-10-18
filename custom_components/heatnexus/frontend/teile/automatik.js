@@ -147,6 +147,16 @@ function grad(wert) {
   return wert === null || wert === undefined ? "–" : `${zahl(wert)} °C`;
 }
 
+// Betriebsarten des Heizkreises (`2/9`), die einen Eingriff aufhalten; deckt sich mit `regel.SONDERBETRIEB`.
+const HEIZKREIS_BETRIEB = {
+  2: "Heizkreis im Absenkbetrieb",
+  5: "Heizkreis im Urlaubsprogramm",
+  6: "Heizkreis im Estrichprogramm",
+  9: "Heizkreis im Handbetrieb",
+  10: "Heizkreis im Testbetrieb",
+  11: "Heizkreis im Kaminkehrerbetrieb",
+};
+
 /** Platzhalter `{name}` füllen, ohne zu übersetzen. */
 function fuellen(text, werte = {}) {
   return Object.entries(werte).reduce((satz, [k, v]) => satz.split(`{${k}}`).join(String(v)), text);
@@ -181,9 +191,10 @@ export function markeAussage(b, t = fuellen) {
       return t("AT-Prognose {wert} (Grenze {schwelle})", { wert: grad(b.wert), schwelle: grad(b.schwelle) });
     case "programmwahl":
       if (BETRIEBSARTEN[b.wert]) return t("Betriebswahl {wahl}", { wahl: t(BETRIEBSARTEN[b.wert]) });
-      return ja ? t("Betriebswahl passt") : t("Betriebswahl außerhalb des Programms");
+      return ja ? t("Betriebswahl im Programm") : t("Betriebswahl außerhalb des Programms");
     case "betriebsart":
-      return ja ? t("Betriebsart passt") : t("Betriebsart im Absenk- oder Sonderbetrieb");
+      if (ja) return t("Heizkreis im Normalbetrieb");
+      return t(HEIZKREIS_BETRIEB[b.wert] || "Heizkreis im Sonderbetrieb");
     case "abwesend":
       return ja ? t("Abwesend") : t("Anwesend");
     case "hausmodell":

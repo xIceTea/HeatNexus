@@ -264,5 +264,11 @@ assert.equal(aussage({ name: "thermostate", erfuellt: false }), "Thermostate for
 assert.equal(aussage({ name: "sonne", erfuellt: false, wert: 36.9, schwelle: 40 }), "Sonne 37 % (ab 40 %)");
 assert.equal(aussage({ name: "programmwahl", wert: 1 }), "Betriebswahl Heizprogramm 1");
 assert.equal(aussage({ name: "programmwahl", erfuellt: false, wert: 0 }), "Betriebswahl Standby");
+assert.equal(aussage({ name: "programmwahl", wert: 99 }), "Betriebswahl im Programm");
+assert.equal(aussage({ name: "betriebsart", wert: 4 }), "Heizkreis im Normalbetrieb");
+assert.equal(aussage({ name: "betriebsart", erfuellt: false, wert: 2 }), "Heizkreis im Absenkbetrieb");
+assert.equal(aussage({ name: "betriebsart", erfuellt: false, wert: 5 }), "Heizkreis im Urlaubsprogramm");
+assert.equal(aussage({ name: "betriebsart", erfuellt: false, wert: 11 }), "Heizkreis im Kaminkehrerbetrieb");
+assert.equal(aussage({ name: "betriebsart", erfuellt: false, wert: 42 }), "Heizkreis im Sonderbetrieb");
 assert.ok(!/[✓✗]/.test(aussage({ name: "unbekannt" })));
 console.log("ok");
