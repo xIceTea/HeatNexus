@@ -13,7 +13,7 @@ import math
 from typing import Any
 
 # Ein Modell aus einem anderen Lernverfahren wird beim Laden verworfen und neu gelernt.
-FASSUNG = 3
+FASSUNG = 5
 FREIGABE_TAGE = 14
 FREIGABE_FEHLER_K = 0.5
 FREIGABE_ANTEIL = 0.8
@@ -173,20 +173,21 @@ def _heizwirkung(gut: list[Stunde], heiz_art: str, tau: float, sonne_k: float) -
 def _aus_heizstunden(
     stunden: list[Stunde], heiz_art: str, tage: int, bisher: float | None = None
 ) -> Modell | None:
-    """Ohne genug Stunden ohne Heizen: Auskühlzeit und Heizwirkung gemeinsam aus allen Stunden.
+    """Ohne genug Stunden ohne Heizen: die Heizwirkung zur bisher gelernten Auskühlzeit.
 
-    Die Sonne lässt sich so nicht von der Heizung trennen und bleibt null.
+    Geregelte Heizstunden verzerren die Auskühlzeit stark; ohne bisherige entsteht kein Modell.
     """
     laeufe = _laeufe(stunden, lambda _s: True)
-    fenster = _fenster(laeufe)
+    if bisher is None or not MIN_AUSKUEHLZEIT_H <= bisher <= MAX_AUSKUEHLZEIT_H:
+        return None
     if sum(len(lauf) for lauf in laeufe) < MIN_STUNDEN_AUS:
         return None
-    passend = _anpassen(
-        lambda tau, h: _laufen(tau, 0.0, h, fenster), MAX_HEIZWIRKUNG[heiz_art], bisher
-    )
-    if passend is None or passend[1] <= 0:
+    fenster = _fenster(laeufe)
+    oben = MAX_HEIZWIRKUNG[heiz_art]
+    heiz = _minimum(lambda h: _laufen(bisher, 0.0, h, fenster), 0.0, oben)[0]
+    if heiz < oben * 1e-3:
         return None
-    return Modell(passend[0], 0.0, 0.0, passend[1], heiz_art, tage)
+    return Modell(bisher, 0.0, 0.0, heiz, heiz_art, tage)
 
 
 def lernen(
@@ -194,7 +195,7 @@ def lernen(
 ) -> Modell | None:
     """Auskühlzeit und Sonne aus den Stunden ohne Heizen, danach die Heizwirkung.
 
-    Heizt der Heizkreis fast durchgehend, etwa im Winter, lernt es aus den Heizstunden.
+    Heizt der Heizkreis fast durchgehend, etwa im Winter, lernt es nur die Heizwirkung nach.
     """
     if stunden_ohne_heizen(stunden, heiz_art) < MIN_STUNDEN_AUS:
         return _aus_heizstunden(stunden, heiz_art, tage, bisher)

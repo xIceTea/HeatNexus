@@ -234,13 +234,23 @@ def _winter(h, tau=40.0, heiz=0.03, tage=10):
     return stunden
 
 
-def test_im_winter_lernt_es_aus_den_heizstunden(h):
+def test_im_winter_ohne_bisherige_auskuehlzeit_entsteht_kein_modell(h):
     stunden = _winter(h)
     assert h.stunden_ohne_heizen(stunden, "vorlauf") < h.MIN_STUNDEN_AUS
-    m = h.lernen(stunden, "vorlauf", 10)
-    assert m.auskuehlzeit_h == pytest.approx(40.0, rel=0.15)
+    assert h.lernen(stunden, "vorlauf", 10) is None
+
+
+def test_im_winter_bleibt_die_bisherige_auskuehlzeit_und_die_heizwirkung_passt_dazu(h):
+    m = h.lernen(_winter(h), "vorlauf", 10, bisher=40.0)
+    assert m.auskuehlzeit_h == 40.0
     assert m.heizwirkung == pytest.approx(0.03, rel=0.15)
     assert m.sonne_k_h == 0.0
+
+
+def test_im_winter_bleibt_auch_eine_abweichende_auskuehlzeit(h):
+    m = h.lernen(_winter(h), "vorlauf", 10, bisher=12.0)
+    assert m.auskuehlzeit_h == 12.0
+    assert m.heizwirkung > 0
 
 
 def test_negative_heizwirkung_entfaellt(h):

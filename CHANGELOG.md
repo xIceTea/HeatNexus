@@ -65,6 +65,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 **Automatik**
 - Ein Neustart von Home Assistant ändert die gelernte Auskühlzeit nicht mehr.
+- Die Auskühlzeit springt nicht mehr auf über 100 Stunden, wenn fast durchgehend geheizt wird.
 - Ein Moduswechsel in der Nacht schreibt keine Vorgabe über den Komfortbeginn hinaus.
 - Die Sonnenquote löst vor Sonnenaufgang keine Heizpause mehr aus.
 - „Räume zum Ziel“ misst ohne Programm nicht mehr gegen den Frostschutz-Sollwert.
