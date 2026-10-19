@@ -535,6 +535,9 @@ MENU_PAGE_SIZE = 10
 
 # Antworten, mit denen eine Steuerung einen Abruf abbricht, der kurz danach gelingt.
 GATEWAY_FEHLER = frozenset({502, 503, 504})
+
+# Nach einem Adresswechsel: je (Eintrag, neue Adresse) die alte, deren Befund-Archiv umzieht.
+BEFUND_UMZUG = f"{DOMAIN}_befund_umzug"
 MENU_WIEDERHOLUNGEN = 3
 MENU_WIEDERHOLPAUSE_S = 2.0
 

@@ -21,7 +21,7 @@ from ..automatik.seitenleiste import entfernen as meldung_entfernen
 from ..automatik.seitenleiste import melden as meldung_setzen
 from ..automatik.tagesansicht import hausmodell_stand
 from ..automatik.verwaltung import Verwaltung, verwaltung_holen
-from ..const import DOMAIN
+from ..const import BEFUND_UMZUG, DOMAIN
 from ..erkennungsstand import systems
 from ..helpers import get_oid_value
 from ..registrierung import geraet_suchen
@@ -159,19 +159,30 @@ class Sammler:
         self._gemeldet: dict[str, frozenset[str]] = {}
         # Die übrigen Sammler desselben Eintrags; die Verwaltung setzt sie.
         self.nachbarn: Any = list
-        self._store = speicher(
-            hass, entry.entry_id, str(getattr(coordinator, "host", "") or anlage_id)
-        )
+        self._host = str(getattr(coordinator, "host", "") or anlage_id)
+        self._store = speicher(hass, entry.entry_id, self._host)
         self._aufgabe: Any = None
 
     # --- Speicher -----------------------------------------------------------
     async def laden(self) -> None:
-        self.archiv = Archiv.aus_dict(await self._store.async_load())
+        self.archiv = Archiv.aus_dict(await self._laden_oder_umziehen())
         if self.archiv.nachgerechnet < NACHRECHNEN_FASSUNG:
             self._aufgabe = self.hass.async_create_background_task(
                 self.nachrechnen(), f"heatnexus_befund_{self.anlage_id}"
             )
         self.aktualisieren()
+
+    async def _laden_oder_umziehen(self) -> Any:
+        """Das eigene Archiv; nach einem Adresswechsel das der alten Adresse."""
+        roh = await self._store.async_load()
+        alt = self.hass.data.get(BEFUND_UMZUG, {}).pop((self.entry.entry_id, self._host), None)
+        if roh is not None or not alt:
+            return roh
+        alter = speicher(self.hass, self.entry.entry_id, alt)
+        if (roh := await alter.async_load()) is not None:
+            await self._store.async_save(roh)
+            await alter.async_remove()
+        return roh
 
     def speichern(self) -> None:
         self._store.async_delay_save(self.archiv.als_dict, SPEICHERN_S)

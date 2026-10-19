@@ -172,6 +172,37 @@ async def test_neu_konfigurieren_zieht_mit_adresse_und_optionen_um(hass, eintrag
     assert NEU in eintrag.options and ALT not in eintrag.options
 
 
+async def test_neu_konfigurieren_zieht_die_waermequellen_mit(hass, eintrag):
+    from homeassistant.config_entries import ConfigSubentry
+
+    from custom_components.heatnexus.const import SUBEINTRAG_QUELLE
+
+    await _einrichten(hass, eintrag)
+    quelle = ConfigSubentry(
+        data={"host": ALT, "id": "heizstab", "art": "heizstab"},
+        subentry_type=SUBEINTRAG_QUELLE,
+        title="Heizstab",
+        unique_id=None,
+    )
+    hass.config_entries.async_add_subentry(eintrag, quelle)
+    await hass.async_block_till_done()
+
+    await _neu_konfigurieren(hass, eintrag)
+
+    assert eintrag.subentries[quelle.subentry_id].data["host"] == NEU
+
+
+async def test_neu_konfigurieren_zieht_das_befund_archiv_mit(hass, eintrag, hass_storage):
+    await _einrichten(hass, eintrag)
+    alt = f"{DOMAIN}.befund_{eintrag.entry_id}_{ALT.replace('.', '_')}"
+    neu = f"{DOMAIN}.befund_{eintrag.entry_id}_{NEU.replace('.', '_')}"
+
+    await _neu_konfigurieren(hass, eintrag)
+
+    assert neu in hass_storage
+    assert alt not in hass_storage
+
+
 async def test_neu_konfigurieren_laedt_den_eintrag_einmal(hass, eintrag):
     """Der Update-Listener lädt neu; ein zweites Neuladen aus dem Ablauf kostet einen Abruf."""
     await _einrichten(hass, eintrag)

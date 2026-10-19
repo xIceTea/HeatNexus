@@ -40,6 +40,7 @@ import voluptuous as vol
 from . import steuerungen
 from .blueprints import verfuegbare as verfuegbare_vorlagen
 from .const import (
+    BEFUND_UMZUG,
     CONF_AUSSENTEMPERATUR,
     CONF_COUNT,
     CONF_DASHBOARD,
@@ -419,9 +420,20 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
                 umfang[neu_host] = umfang.pop(alt)
             adresshinweise_entfernen(self.hass, entry.entry_id, alt)
             await Store(self.hass, DISCOVERY_STORE_VERSION, store_key(entry, alt)).async_remove()
+            self._quellen_umstellen(entry, alt, neu_host)
+            # Das Archiv zieht erst beim Neuladen um, nachdem der alte Sammler gespeichert hat.
+            self.hass.data.setdefault(BEFUND_UMZUG, {})[(entry.entry_id, neu_host)] = alt
         return self._uebernehmen_und_beenden(
             entry, {**entry.data, CONF_SYSTEMS: neu}, options=optionen
         )
+
+    def _quellen_umstellen(self, entry: ConfigEntry, alt: str, neu_host: str) -> None:
+        """Die Wärmequellen der Anlage an die neue Adresse hängen."""
+        for sub in (entry.subentries or {}).values():
+            if sub.subentry_type == SUBEINTRAG_QUELLE and (sub.data or {}).get(CONF_HOST) == alt:
+                self.hass.config_entries.async_update_subentry(
+                    entry, sub, data={**sub.data, CONF_HOST: neu_host}
+                )
 
     def _uebernehmen_und_beenden(
         self, entry: ConfigEntry, daten: Mapping[str, Any], **optionen: Any
