@@ -52,6 +52,10 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Einstellungen fassen beide Benachrichtigungen in einer Gruppe zusammen.
 - Die feste Uhrzeit ist nur bedienbar, wenn sie als frühester Beginn gewählt ist.
 - Die Karte der Automatik ist ab Werk drei Spalten breit.
+- Ein gespeichertes Hausmodell wird einmal neu gelernt.
+
+**Einstellungen**
+- Service- und Werksparameter der festen Tabellen sind nur mit Freigabe einstellbar.
 
 ### Behoben
 
@@ -74,6 +78,8 @@ wenn dort Vorabversionen zugelassen sind.
 - „Räume zum Ziel“ misst ohne Programm nicht mehr gegen den Frostschutz-Sollwert.
 - Skalenbeschriftungen bleiben in schmalen Kacheln innerhalb des Rahmens.
 - Nach einem eigenen Eingriff oder Neustart meldet die Automatik keinen Handeingriff ohne Grund ([#22](https://github.com/xIceTea/HeatNexus/issues/22)).
+- Das Hausmodell behält im Winter seinen gelernten Sonnenwert.
+- Antwortet die Steuerung nicht, schreibt die Automatik nach fünf Minuten erneut.
 
 **Thermostat**
 - Während einer Vorgabe zeigt das Thermostat die gewählte Betriebsart statt „Handbetrieb“.
@@ -83,6 +89,9 @@ wenn dort Vorabversionen zugelassen sind.
 
 **Verbindung**
 - Die letzten Werte bleiben sichtbar, wenn die Anlage eine Abfrage mit einem Fehler beantwortet.
+- Ein Schreibvorgang wird nach einem Gateway-Fehler wiederholt.
+- Ein Anlagenteil ohne Antwort beim Einlesen gilt nicht mehr als entfernt.
+- Nach einer neuen Adresse bleiben Wärmequellen und Auswertung erhalten.
 
 **Kessel**
 - PuroWIN: Schalter „Kessel“ und Panel zeigen an, ob Kessel, Kaminkehrer oder Lagerraumbefüllung laufen.
