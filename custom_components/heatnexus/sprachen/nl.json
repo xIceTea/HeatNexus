@@ -609,6 +609,7 @@
   "Die Steuerung heizt wieder": "De regeling verwarmt weer",
   "Tagesbudget von {budget} Eingriffen erreicht – nicht geschrieben.": "Dagbudget van {budget} ingrepen bereikt – niet geschreven.",
   "Die Steuerung hat den Eingriff abgelehnt: {fehler}. Nächster Versuch ab {zeit}.": "De regelaar heeft de ingreep geweigerd: {fehler}. Volgende poging vanaf {zeit}.",
+  "Die Steuerung hat nicht geantwortet: {fehler}. Nächster Versuch ab {zeit}.": "De regelaar heeft niet geantwoord: {fehler}. Volgende poging vanaf {zeit}.",
   "Betriebswahl von Hand auf {wert} gestellt.": "Bedrijfsmodus handmatig op {wert} gezet.",
   "Absenkung von Hand beendet.": "Verlaging handmatig beëindigd.",
   "Absenkung von Hand geändert.": "Verlaging handmatig gewijzigd.",

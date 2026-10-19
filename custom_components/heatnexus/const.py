@@ -535,11 +535,14 @@ MENU_PAGE_SIZE = 10
 
 # Antworten, mit denen eine Steuerung einen Abruf abbricht, der kurz danach gelingt.
 GATEWAY_FEHLER = frozenset({502, 503, 504})
+MENU_WIEDERHOLUNGEN = 3
+MENU_WIEDERHOLPAUSE_S = 2.0
+# Ein Schreibvorgang mit Gateway-Fehler wird mit wachsender Pause wiederholt.
+SCHREIB_WIEDERHOLUNGEN = 2
+SCHREIB_WIEDERHOLPAUSE_S = 3.0
 
 # Nach einem Adresswechsel: je (Eintrag, neue Adresse) die alte, deren Befund-Archiv umzieht.
 BEFUND_UMZUG = f"{DOMAIN}_befund_umzug"
-MENU_WIEDERHOLUNGEN = 3
-MENU_WIEDERHOLPAUSE_S = 2.0
 
 
 # Timeout (s) für die einmalige Erstinitialisierung (Discovery + Metadaten

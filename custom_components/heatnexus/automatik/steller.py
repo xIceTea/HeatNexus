@@ -44,6 +44,8 @@ SPERRE_START = timedelta(minutes=30)
 SPERRE_MAX = timedelta(hours=6)
 # Eine abgelehnte Sicherheitsaktion versucht es nach dieser festen Frist wieder, ohne Verdopplung.
 SPERRE_SICHERHEIT = timedelta(minutes=15)
+# Ohne Antwort hat die Steuerung nichts abgelehnt; der nächste Lauf versucht es erneut.
+SPERRE_OHNE_ANTWORT = timedelta(minutes=5)
 # Mehr heizen ist die sichere Richtung; das Budget begrenzt nur das Gegenteil.
 RUECKKEHR = frozenset({"zurueck", "absenkung_ende"})
 # Diese Eingriffe heizen weniger; im Modus „empfehlen" warten sie auf eine Bestätigung.
@@ -332,14 +334,21 @@ class Steller:
         self, jetzt: datetime, fehler: Exception, paare: list[tuple[str, str]], sicherheit: bool
     ) -> None:
         anzahl = self.stand.ablehnungen + 1
-        sperre = (
-            SPERRE_SICHERHEIT if sicherheit else min(SPERRE_START * 2 ** (anzahl - 1), SPERRE_MAX)
-        )
+        ohne_antwort = getattr(fehler, "translation_key", None) == "schreiben_ohne_antwort"
+        if ohne_antwort:
+            anzahl, sperre = self.stand.ablehnungen, SPERRE_OHNE_ANTWORT
+        elif sicherheit:
+            sperre = SPERRE_SICHERHEIT
+        else:
+            sperre = min(SPERRE_START * 2 ** (anzahl - 1), SPERRE_MAX)
         bis = jetzt + sperre
         self.stand = replace(self.stand, ablehnungen=anzahl, gesperrt_bis=bis.isoformat())
-        text = (
-            f"Die Steuerung hat den Eingriff abgelehnt: {fehler}. Nächster Versuch ab {bis:%H:%M}."
-        )
+        if ohne_antwort:
+            text = (
+                f"Die Steuerung hat nicht geantwortet: {fehler}. Nächster Versuch ab {bis:%H:%M}."
+            )
+        else:
+            text = f"Die Steuerung hat den Eingriff abgelehnt: {fehler}. Nächster Versuch ab {bis:%H:%M}."
         werte = [[oid, wert] for oid, wert in paare]
         letzter = self.stand.protokoll[0] if self.stand.protokoll else {}
         # Dieselbe Ablehnung noch einmal: Eintrag auffrischen statt das Protokoll zu füllen.

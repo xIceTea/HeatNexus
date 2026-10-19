@@ -166,6 +166,21 @@ def test_abgelehnte_sicherheit_wartet_kurz_und_protokolliert_einmal(s, regel):
     assert ausfuehren(steller, sicher, jetzt=JETZT + timedelta(minutes=64)) is True
 
 
+class OhneAntwort(Exception):
+    translation_key = "schreiben_ohne_antwort"
+
+
+def test_ohne_antwort_versucht_es_der_steller_bald_wieder(s, regel):
+    schreiber = Schreiber(OhneAntwort("HTTP 502"))
+    steller = s.Steller("/1/15/0", UML, schreiber)
+    e = entscheidung(regel, regel.Aktion("zurueck"))
+    ausfuehren(steller, e)
+    assert steller.stand.ablehnungen == 0
+    assert "nicht geantwortet" in steller.stand.protokoll[0]["text"]
+    schreiber.fehler = None
+    assert ausfuehren(steller, e, jetzt=JETZT + timedelta(minutes=6)) is True
+
+
 def test_andere_ablehnung_verdraengt_den_eintrag_nicht(s, regel):
     """Nur dieselbe Ablehnung ersetzt ihren Eintrag; eine andere kommt dazu."""
     schreiber = Schreiber(RuntimeError("HTTP 409"))

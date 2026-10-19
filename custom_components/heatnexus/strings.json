@@ -627,6 +627,9 @@
     "wert_abgelehnt": {
       "message": "The system did not accept the new value. The setting is locked or cannot be changed in the current state of the system. Data point {oid}, HTTP {status}."
     },
+    "schreiben_ohne_antwort": {
+      "message": "The system did not answer the write request. A later attempt usually succeeds. Data point {oid}, HTTP {status}."
+    },
     "zeitprogramm_abgelehnt": {
       "message": "The system did not accept the schedule. Please check the switching times. Data point {oid}, HTTP {status}."
     },

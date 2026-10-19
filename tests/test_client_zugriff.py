@@ -233,6 +233,33 @@ async def test_ein_abgelehnter_schreibvorgang_bleibt_nicht_still(client):
         await c.update("/1/15/0/3/51/0", "21.5")
 
 
+async def test_ein_gateway_fehler_beim_schreiben_wird_wiederholt(client, monkeypatch):
+    from custom_components.heatnexus.client import transport
+
+    async def ohne_pause(_sekunden):
+        return None
+
+    monkeypatch.setattr(transport.asyncio, "sleep", ohne_pause)
+    c = client(_Antwort(502, b""), _Antwort(200, b""))
+    await c.update("/1/15/0/3/4/0", "21.5")
+    assert len(c._session.anfragen) == 2
+
+
+async def test_ein_bleibender_gateway_fehler_heisst_ohne_antwort(client, monkeypatch):
+    from custom_components.heatnexus.client import transport
+    from custom_components.heatnexus.exceptions import WindhagerWriteError
+
+    async def ohne_pause(_sekunden):
+        return None
+
+    monkeypatch.setattr(transport.asyncio, "sleep", ohne_pause)
+    c = client(*[_Antwort(504, b"") for _ in range(3)])
+    with pytest.raises(WindhagerWriteError) as fehler:
+        await c.update("/1/15/0/3/4/0", "21.5")
+    assert fehler.value.translation_key == "schreiben_ohne_antwort"
+    assert len(c._session.anfragen) == 3
+
+
 # ---------------------------------------------------------------------------
 # object-Endpunkt (Zeitprogramme)
 # ---------------------------------------------------------------------------

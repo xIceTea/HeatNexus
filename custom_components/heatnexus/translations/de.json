@@ -627,6 +627,9 @@
     "wert_abgelehnt": {
       "message": "Die Anlage hat den neuen Wert nicht angenommen. Die Einstellung ist im aktuellen Zustand der Anlage gesperrt oder nicht änderbar. Datenpunkt {oid}, HTTP {status}."
     },
+    "schreiben_ohne_antwort": {
+      "message": "Die Anlage hat den Schreibvorgang nicht beantwortet. Ein späterer Versuch gelingt meist. Datenpunkt {oid}, HTTP {status}."
+    },
     "zeitprogramm_abgelehnt": {
       "message": "Die Anlage hat das Zeitprogramm nicht angenommen. Bitte die Schaltzeiten prüfen. Datenpunkt {oid}, HTTP {status}."
     },

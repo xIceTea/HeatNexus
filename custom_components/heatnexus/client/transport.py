@@ -7,6 +7,7 @@ Zeichensatzkette in `_decode`.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -14,7 +15,15 @@ import time
 import aiohttp
 from yarl import URL
 
-from ..const import ANFRAGE_TIMEOUT, FETCH_CONCURRENCY, POLL_CONCURRENCY, VERBINDUNG_TIMEOUT
+from ..const import (
+    ANFRAGE_TIMEOUT,
+    FETCH_CONCURRENCY,
+    GATEWAY_FEHLER,
+    POLL_CONCURRENCY,
+    SCHREIB_WIEDERHOLPAUSE_S,
+    SCHREIB_WIEDERHOLUNGEN,
+    VERBINDUNG_TIMEOUT,
+)
 from ..exceptions import CannotConnect, WindhagerWriteError, mit_text
 from .gemeinsam import FEHLGESCHLAGEN
 
@@ -228,22 +237,29 @@ class TransportMixin:
             self._letzter_lesefehler = e
             return oid, FEHLGESCHLAGEN
 
+    async def _put(self, url, rumpf: bytes) -> tuple[int, str]:
+        """PUT, nach einem Gateway-Fehler mit wachsender Pause wiederholt; zurück Status und Antwort."""
+        await self._ensure_session()
+        for versuch in range(SCHREIB_WIEDERHOLUNGEN + 1):
+            async with self._semaphore, self._session.request("PUT", url, data=rumpf) as ret:
+                status = ret.status
+                body = await ret.text() if status >= 400 else ""
+            if status not in GATEWAY_FEHLER or versuch == SCHREIB_WIEDERHOLUNGEN:
+                break
+            await asyncio.sleep(SCHREIB_WIEDERHOLPAUSE_S * (versuch + 1))
+        return status, body
+
     async def update(self, oid, value):
         """PUT a new value to a datapoint."""
-        await self._ensure_session()
         rumpf = json.dumps(
             {"OID": oid, "value": str(value)}, separators=(",", ":"), ensure_ascii=False
         )
-        async with (
-            self._semaphore,
-            self._session.request(
-                "PUT", f"http://{self.host}/api/1.0/datapoint", data=rumpf.encode()
-            ) as ret,
-        ):
-            if ret.status >= 400:
-                body = await ret.text()
-                _LOGGER.debug("Schreiben auf %s scheitert mit HTTP %s: %s", oid, ret.status, body)
-                raise mit_text(WindhagerWriteError, "wert_abgelehnt", oid=oid, status=ret.status)
+        url = f"http://{self.host}/api/1.0/datapoint"
+        status, body = await self._put(url, rumpf.encode())
+        if status >= 400:
+            _LOGGER.debug("Schreiben auf %s scheitert mit HTTP %s: %s", oid, status, body)
+            schluessel = "schreiben_ohne_antwort" if status >= 500 else "wert_abgelehnt"
+            raise mit_text(WindhagerWriteError, schluessel, oid=oid, status=status)
         self.vormerken(oid, value)
         _LOGGER.debug("Auf %s geschrieben: %s", oid, value)
 
@@ -281,24 +297,14 @@ class TransportMixin:
 
     async def write_object(self, full_oid, payload: dict):
         """PUT a structured object (Zeitprogramm) via ?OID=<full_oid>."""
-        await self._ensure_session()
-        async with (
-            self._semaphore,
-            self._session.request(
-                "PUT", self._object_url(full_oid), data=bytes(json.dumps(payload), "utf-8")
-            ) as ret,
-        ):
-            if ret.status >= 400:
-                body = await ret.text()
-                _LOGGER.debug(
-                    "Schreiben auf Objekt %s scheitert mit HTTP %s: %s",
-                    full_oid,
-                    ret.status,
-                    body,
-                )
-                raise mit_text(
-                    WindhagerWriteError, "zeitprogramm_abgelehnt", oid=full_oid, status=ret.status
-                )
+        rumpf = bytes(json.dumps(payload), "utf-8")
+        status, body = await self._put(self._object_url(full_oid), rumpf)
+        if status >= 400:
+            _LOGGER.debug(
+                "Schreiben auf Objekt %s scheitert mit HTTP %s: %s", full_oid, status, body
+            )
+            schluessel = "schreiben_ohne_antwort" if status >= 500 else "zeitprogramm_abgelehnt"
+            raise mit_text(WindhagerWriteError, schluessel, oid=full_oid, status=status)
         _LOGGER.debug("Auf Objekt %s geschrieben: %s", full_oid, payload)
 
     async def probe(self):

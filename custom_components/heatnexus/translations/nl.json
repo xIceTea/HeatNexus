@@ -627,6 +627,9 @@
     "wert_abgelehnt": {
       "message": "De installatie heeft de nieuwe waarde niet aangenomen. De instelling is in de huidige toestand van de installatie vergrendeld of niet te wijzigen. Datapunt {oid}, HTTP {status}."
     },
+    "schreiben_ohne_antwort": {
+      "message": "De installatie heeft de schrijfopdracht niet beantwoord. Een latere poging lukt meestal. Datapunt {oid}, HTTP {status}."
+    },
     "zeitprogramm_abgelehnt": {
       "message": "De installatie heeft het tijdprogramma niet aangenomen. Controleer de schakeltijden. Datapunt {oid}, HTTP {status}."
     },
