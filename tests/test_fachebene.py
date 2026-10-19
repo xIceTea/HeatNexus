@@ -59,3 +59,37 @@ def test_ausdruecklich_bedienbare_eintraege_bleiben_einstellbar(client_module, a
     heizkreis = _kuratiert(client_module, 14, freigabe=False)
     assert heizkreis[adresse]["level"] == "operate"
     assert heizkreis[adresse]["type"] in ("select", "number")
+
+
+def test_das_alte_eingabefeld_eines_fachparameters_wird_geloescht(hass):
+    """Ohne Freigabe ist der Fachparameter eine Anzeige mit derselben Kennung."""
+    from types import SimpleNamespace
+
+    from homeassistant.helpers import entity_registry as er
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.heatnexus import stilllegung
+    from custom_components.heatnexus.const import DOMAIN
+    from custom_components.heatnexus.entity import TYP_DOMAENE
+
+    kennung = "SN1-1-9-32-0"
+    vorher = dict(TYP_DOMAENE)
+    TYP_DOMAENE["sensor"] = "sensor"
+    eintrag = MockConfigEntry(domain=DOMAIN, title="HeatNexus", data={}, options={})
+    eintrag.add_to_hass(hass)
+    registry = er.async_get(hass)
+    feld = registry.async_get_or_create("number", DOMAIN, kennung, config_entry=eintrag)
+    anzeige = registry.async_get_or_create("sensor", DOMAIN, kennung, config_entry=eintrag)
+    beschreibung = {"id": kennung, "type": "sensor", "level": "service", "enabled_default": True}
+    koordinator = SimpleNamespace(
+        data={"devices": [beschreibung]},
+        client=SimpleNamespace(_vollstaendig=True, writable_advanced=False),
+    )
+    try:
+        stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
+    finally:
+        TYP_DOMAENE.clear()
+        TYP_DOMAENE.update(vorher)
+
+    assert registry.async_get(feld.entity_id) is None
+    assert registry.async_get(anzeige.entity_id) is not None

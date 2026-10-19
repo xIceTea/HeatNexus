@@ -137,9 +137,29 @@ ERSETZT: frozenset[tuple[str, str]] = frozenset(
 )
 
 
-def endgueltig_weg(eintrag: er.RegistryEntry, umfaenge: dict[str, dict]) -> bool:
+# Plattformen, auf denen ein Fachparameter ohne Freigabe nicht mehr entsteht.
+SCHREIBDOMAENEN = frozenset({"number", "select", "switch", "time", "date"})
+
+
+def nur_lesende_fachparameter(coordinators: dict) -> frozenset[str]:
+    """Kennungen der Service- und Werksparameter, die ohne Freigabe nur Anzeige sind."""
+    return frozenset(
+        d.get("id")
+        for c in coordinators.values()
+        if not getattr(c.client, "writable_advanced", False)
+        for d in (c.data or {}).get("devices", [])
+        if d.get("level") in ADVANCED_LEVELS
+    )
+
+
+def endgueltig_weg(
+    eintrag: er.RegistryEntry, umfaenge: dict[str, dict], nur_lesend: frozenset[str] = frozenset()
+) -> bool:
     """Ob eine Waise gelöscht wird statt stillgelegt, ohne dass der Nutzer etwas abwählte."""
     if (eintrag.domain, kanonisch.gnmn(eintrag.unique_id)) in BEWUSST_ENTFALLEN:
+        return True
+    # Das alte Eingabefeld eines Fachparameters: Die Anzeige trägt dieselbe Kennung.
+    if eintrag.domain in SCHREIBDOMAENEN and eintrag.unique_id in nur_lesend:
         return True
     kennung = eintrag.unique_id or ""
     if any(eintrag.domain == d and kennung.endswith(ende) for d, ende in ERSETZT):
@@ -258,10 +278,11 @@ def abgewaehlte_entitaeten_stilllegen(
     # Dieselbe Regel wie der Reparatureintrag: Kennung **und** Domäne. Sonst
     # gilt eine Zeile hier als vorhanden, die dort verwaist heißt.
     verwaiste_ids = {e.entity_id for e in verwaiste.finden(hass, entry, coordinators)}
+    nur_lesend = nur_lesende_fachparameter(coordinators)
     von_integration = er.RegistryEntryDisabler.INTEGRATION
     for eintrag in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
         if eintrag.entity_id in verwaiste_ids:
-            entfernen = endgueltig_weg(eintrag, umfaenge) or _abgewaehlt(
+            entfernen = endgueltig_weg(eintrag, umfaenge, nur_lesend) or _abgewaehlt(
                 eintrag.unique_id, abgewaehlt, geantwortet
             )
             if _verwaiste_behandeln(registry, eintrag, entfernen):
