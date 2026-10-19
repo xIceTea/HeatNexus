@@ -582,21 +582,21 @@ def test_ein_stand_ohne_umfang_loest_nichts_aus(stilllegung, stand):
 # ---------------------------------------------------------------------------
 def test_netzwerkvariablen_bei_abgeschaltetem_bus_gelten_als_abgewaehlt(stilllegung):
     umfaenge = {HOST: _umfang(["info"], lon=False)}
-    assert stilllegung.quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
+    assert stilllegung.quelle_abgeschaltet("0702ab12cd34-nv-0-1-nvostatus", umfaenge)
 
 
 def test_netzwerkvariablen_bei_eingeschaltetem_bus_bleiben(stilllegung):
     """Sie fehlen dann aus einem anderen Grund und behalten Name und Verlauf."""
     umfaenge = {HOST: _umfang(["info"], lon=True)}
-    assert not stilllegung.quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
+    assert not stilllegung.quelle_abgeschaltet("0702ab12cd34-nv-0-1-nvostatus", umfaenge)
 
 
 def test_eine_zweite_anlage_mit_bus_schuetzt_die_kennungen(stilllegung):
     umfaenge = {HOST: _umfang(["info"], lon=False), "192.0.2.11": _umfang(["info"], lon=True)}
-    assert not stilllegung.quelle_abgeschaltet("070269ad1601-nv-0-1-nvostatus", umfaenge)
+    assert not stilllegung.quelle_abgeschaltet("0702ab12cd34-nv-0-1-nvostatus", umfaenge)
 
 
-@pytest.mark.parametrize("kennung", [None, "", "070269ad1601-0-39-91-0"])
+@pytest.mark.parametrize("kennung", [None, "", "0702ab12cd34-0-39-91-0"])
 def test_ein_gewoehnlicher_datenpunkt_wird_nur_stillgelegt(stilllegung, kennung):
     """Kein Bus-Wert – über ihn entscheidet allein der Umfangsvergleich."""
     assert not stilllegung.quelle_abgeschaltet(kennung, {HOST: _umfang(["info"], lon=False)})
