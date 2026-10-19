@@ -13,7 +13,8 @@ import math
 from typing import Any
 
 # Ein Modell aus einem anderen Lernverfahren wird beim Laden verworfen und neu gelernt.
-FASSUNG = 3
+# Fassung 4 und 5 sind übersprungen: Sie liefen nur als Zwischenstand.
+FASSUNG = 6
 FREIGABE_TAGE = 14
 FREIGABE_FEHLER_K = 0.5
 FREIGABE_ANTEIL = 0.8
@@ -171,9 +172,9 @@ def _heizwirkung(gut: list[Stunde], heiz_art: str, tau: float, sonne_k: float) -
 
 
 def _aus_heizstunden(
-    stunden: list[Stunde], heiz_art: str, tage: int, bisher: float | None = None
+    stunden: list[Stunde], heiz_art: str, tage: int, bisher: float | None, sonne_k: float
 ) -> Modell | None:
-    """Ohne genug Stunden ohne Heizen: die Heizwirkung zur bisher gelernten Auskühlzeit.
+    """Ohne genug Stunden ohne Heizen: die Heizwirkung zu bisheriger Auskühlzeit und Sonne.
 
     Geregelte Heizstunden verzerren die Auskühlzeit stark; ohne bisherige entsteht kein Modell.
     """
@@ -184,21 +185,25 @@ def _aus_heizstunden(
         return None
     fenster = _fenster(laeufe)
     oben = MAX_HEIZWIRKUNG[heiz_art]
-    heiz = _minimum(lambda h: _laufen(bisher, 0.0, h, fenster), 0.0, oben)[0]
+    heiz = _minimum(lambda h: _laufen(bisher, sonne_k, h, fenster), 0.0, oben)[0]
     if heiz < oben * 1e-3:
         return None
-    return Modell(bisher, 0.0, 0.0, heiz, heiz_art, tage)
+    return Modell(bisher, 0.0, sonne_k, heiz, heiz_art, tage)
 
 
 def lernen(
-    stunden: list[Stunde], heiz_art: str, tage: int, bisher: float | None = None
+    stunden: list[Stunde],
+    heiz_art: str,
+    tage: int,
+    bisher: float | None = None,
+    sonne_bisher: float = 0.0,
 ) -> Modell | None:
     """Auskühlzeit und Sonne aus den Stunden ohne Heizen, danach die Heizwirkung.
 
     Heizt der Heizkreis fast durchgehend, etwa im Winter, lernt es nur die Heizwirkung nach.
     """
     if stunden_ohne_heizen(stunden, heiz_art) < MIN_STUNDEN_AUS:
-        return _aus_heizstunden(stunden, heiz_art, tage, bisher)
+        return _aus_heizstunden(stunden, heiz_art, tage, bisher, sonne_bisher)
     fenster = strecken(stunden, heiz_art)
     passend = _anpassen(lambda tau, k: _laufen(tau, k, 0.0, fenster), MAX_SONNE_K_H, bisher)
     if passend is None:
@@ -249,13 +254,14 @@ def nachrechnen(tage: list[list[Stunde]], heiz_art: str) -> tuple[list[float], l
     """Beide Fehlerreihen für vergangene Tage: jeder Tag gegen ein Modell aus den Tagen davor."""
     fehler: list[float] = []
     bleibt: list[float] = []
-    bisher = None
+    bisher, sonne = None, 0.0
     for i in range(1, len(tage)):
         davor = tage[max(0, i - FREIGABE_TAGE) : i]
-        modell = lernen([s for tag in davor for s in tag], heiz_art, len(davor), bisher=bisher)
+        alle = [s for tag in davor for s in tag]
+        modell = lernen(alle, heiz_art, len(davor), bisher=bisher, sonne_bisher=sonne)
         if modell is None:
             continue
-        bisher = modell.auskuehlzeit_h
+        bisher, sonne = modell.auskuehlzeit_h, modell.sonne_k_h
         mit = tagesfehler(modell, tage[i])
         ohne = tagesfehler_bleibt(tage[i], heiz_art)
         if mit is not None and ohne is not None:

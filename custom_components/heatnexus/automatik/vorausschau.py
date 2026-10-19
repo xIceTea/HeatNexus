@@ -378,9 +378,16 @@ class VorausschauMixin:
         tage = sorted(stunden_je_tag)
         alle = [s for tag in tage[:-1] for s in stunden_je_tag[tag]]
         ausfuehren = self.hass.async_add_executor_job
-        bisher = self.hausmodell.auskuehlzeit_h if self.hausmodell else None
+        vorher = self.hausmodell
         neu = await ausfuehren(
-            partial(hausmodell.lernen, alle, heiz_art, len(tage) - 1, bisher=bisher)
+            partial(
+                hausmodell.lernen,
+                alle,
+                heiz_art,
+                len(tage) - 1,
+                bisher=vorher.auskuehlzeit_h if vorher else None,
+                sonne_bisher=vorher.sonne_k_h if vorher else 0.0,
+            )
         )
         if neu is None:
             self.lern_grund = GRUND_UNPASSEND

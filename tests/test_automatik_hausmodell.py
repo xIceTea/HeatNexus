@@ -247,6 +247,16 @@ def test_im_winter_bleibt_die_bisherige_auskuehlzeit_und_die_heizwirkung_passt_d
     assert m.sonne_k_h == 0.0
 
 
+def test_im_winter_bleibt_der_gelernte_sonnenwert(h):
+    m = h.lernen(_winter(h), "vorlauf", 10, bisher=40.0, sonne_bisher=0.4)
+    assert m.sonne_k_h == 0.4
+
+
+def test_ein_modell_aelterer_fassung_wird_neu_gelernt(h):
+    alt = {**h.als_dict(h.Modell(129.0, 0.0, 0.0, 0.003, "vorlauf", 14)), "fassung": 3}
+    assert h.aus_dict(alt) is None
+
+
 def test_im_winter_bleibt_auch_eine_abweichende_auskuehlzeit(h):
     m = h.lernen(_winter(h), "vorlauf", 10, bisher=12.0)
     assert m.auskuehlzeit_h == 12.0
