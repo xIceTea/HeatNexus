@@ -85,22 +85,32 @@ class MetadatenMixin:
         self._wurzel_luecken_ueberbruecken()
 
     def _wurzel_luecken_ueberbruecken(self) -> None:
-        """Die bekannten Beschreibungen eines Teils behalten, dessen Menüwurzel schwieg."""
-        ohne_antwort = self._wurzel_luecken | self._wurzel_ueberbrueckt
-        if not ohne_antwort or not self._geraete_waehrend_einlesen:
-            return
-        # Nur ungemeldete Funktionen stehen für ein ganzes Gerät; ein LON-Adressraum für seine Adressen.
-        geraete = {self._geraetekennung(prefix) for prefix in self._wurzel_luecken}
-        stamm = tuple(f"{prefix}/" for prefix in ohne_antwort)
+        """Die bekannten Beschreibungen eines Teils behalten, dessen Menüwurzel schwieg.
+
+        Eine Lücke bleibt nur, wo vorher etwas bekannt war; was nie da war, geht nicht verloren.
+        """
+        behalten: set[str] = set()
         vorhanden = {d.get("id") for d in self.devices}
-        for d in self._geraete_waehrend_einlesen:
-            oid = d.get("oid") or ""
-            if d.get("id") in vorhanden:
+        for d in self._geraete_waehrend_einlesen or ():
+            if d.get("id") in vorhanden or not (teile := self._ohne_antwort_zu(d)):
                 continue
-            if d.get("device_id") in geraete or oid.startswith(stamm):
-                self.devices.append(dict(d))
-                if oid:
-                    self.oids.add(oid)
+            behalten |= teile
+            self.devices.append(dict(d))
+            if oid := d.get("oid"):
+                self.oids.add(oid)
+        self._wurzel_luecken &= behalten
+
+    def _ohne_antwort_zu(self, d: dict) -> set[str]:
+        """Die schweigenden Wurzeln, zu denen eine Beschreibung gehört.
+
+        Eine ungemeldete Funktion steht für ihr ganzes Gerät, ein LON-Adressraum nur für seine Adressen.
+        """
+        oid = d.get("oid") or ""
+        teile = {
+            p for p in self._wurzel_luecken | self._wurzel_ueberbrueckt if oid.startswith(f"{p}/")
+        }
+        teile |= {p for p in self._wurzel_luecken if d.get("device_id") == self._geraetekennung(p)}
+        return teile
 
     async def _metadaten_lesen(self, offen: list[str]) -> tuple[dict, set[str], set[str]]:
         """Metadaten einzeln lesen: zurück kommen Metadaten, fehlende Adressen und Lücken.

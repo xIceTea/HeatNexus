@@ -68,6 +68,17 @@ def test_die_bekannten_beschreibungen_des_teils_bleiben(anlage):
     anlage._wurzel_luecken_ueberbruecken()
     assert {d["id"] for d in anlage.devices} == {"a", "b"}
     assert anlage.oids == {f"{PRAEFIX}/0/7/0"}
+    assert anlage.erkennung_unvollstaendig
+
+
+def test_eine_schweigende_wurzel_ohne_bekannten_teil_ist_keine_luecke(anlage):
+    """Ein Bediengerät ohne eigene Funktion antwortet auf jede gesuchte mit 5xx."""
+    anlage._geraete_waehrend_einlesen = [{"id": "a", "oid": "/1/15/0/0/7/0", "device_id": "x"}]
+    anlage._wurzel_luecken = {"/1/90/0"}
+    anlage.devices, anlage.oids = [], set()
+    anlage._wurzel_luecken_ueberbruecken()
+    assert not anlage.devices
+    assert not anlage.erkennung_unvollstaendig
 
 
 async def test_ein_lon_adressraum_ohne_antwort_haelt_die_erkennung_nicht_auf(anlage, monkeypatch):
