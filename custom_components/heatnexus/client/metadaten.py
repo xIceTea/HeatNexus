@@ -86,10 +86,12 @@ class MetadatenMixin:
 
     def _wurzel_luecken_ueberbruecken(self) -> None:
         """Die bekannten Beschreibungen eines Teils behalten, dessen Menüwurzel schwieg."""
-        if not self._wurzel_luecken or not self._geraete_waehrend_einlesen:
+        ohne_antwort = self._wurzel_luecken | self._wurzel_ueberbrueckt
+        if not ohne_antwort or not self._geraete_waehrend_einlesen:
             return
+        # Nur ungemeldete Funktionen stehen für ein ganzes Gerät; ein LON-Adressraum für seine Adressen.
         geraete = {self._geraetekennung(prefix) for prefix in self._wurzel_luecken}
-        stamm = tuple(f"{prefix}/" for prefix in self._wurzel_luecken)
+        stamm = tuple(f"{prefix}/" for prefix in ohne_antwort)
         vorhanden = {d.get("id") for d in self.devices}
         for d in self._geraete_waehrend_einlesen:
             oid = d.get("oid") or ""

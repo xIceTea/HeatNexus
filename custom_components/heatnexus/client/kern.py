@@ -168,6 +168,8 @@ class WindhagerHttpClient(
         self._metadaten_luecken: set[str] = set()
         # Teile, deren Menüwurzel ohne Antwort blieb und für die kein Einzelweg greift.
         self._wurzel_luecken: set[str] = set()
+        # LON-Adressräume ohne Antwort: Bekanntes bleibt, der Lauf gilt trotzdem als vollständig.
+        self._wurzel_ueberbrueckt: set[str] = set()
 
     @property
     def erkennung_unvollstaendig(self) -> bool:

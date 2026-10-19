@@ -45,6 +45,10 @@ class NetzwerkvariablenMixin:
         sind Eingänge der Regelung zwischen den Knoten, keine Bedienung.
         """
         ebenen = await self._menue_ebenen(prefix)
+        if prefix in self._wurzel_luecken:
+            # Manche Bediengeräte beantworten ihren Adressraum nie; das ist keine Lücke der Erkennung.
+            self._wurzel_luecken.discard(prefix)
+            self._wurzel_ueberbrueckt.add(prefix)
         if not ebenen:
             return
 

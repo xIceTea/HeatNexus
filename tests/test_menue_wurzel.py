@@ -16,7 +16,7 @@ def anlage():
     from custom_components.heatnexus import client
 
     c = client.WindhagerHttpClient("192.0.2.10", "geheim", levels=["info", "operate"])
-    c._wurzel_luecken = set()
+    c._wurzel_luecken, c._wurzel_ueberbrueckt = set(), set()
     return c
 
 
@@ -68,3 +68,24 @@ def test_die_bekannten_beschreibungen_des_teils_bleiben(anlage):
     anlage._wurzel_luecken_ueberbruecken()
     assert {d["id"] for d in anlage.devices} == {"a", "b"}
     assert anlage.oids == {f"{PRAEFIX}/0/7/0"}
+
+
+async def test_ein_lon_adressraum_ohne_antwort_haelt_die_erkennung_nicht_auf(anlage, monkeypatch):
+    """Manche Bediengeräte beantworten ihren Adressraum nie."""
+    _antwort(anlage, monkeypatch, status=500)
+    anlage._wurzel_ueberbrueckt = set()
+    await anlage._lese_nv("/1/90/32")
+    assert not anlage.erkennung_unvollstaendig
+    assert anlage._wurzel_ueberbrueckt == {"/1/90/32"}
+
+
+def test_von_einem_lon_adressraum_bleiben_nur_seine_adressen(anlage):
+    kennung = anlage._geraetekennung("/1/60/0")
+    anlage._geraete_waehrend_einlesen = [
+        {"id": "nv", "oid": "/1/60/32/1/2/0", "device_id": kennung},
+        {"id": "kessel", "oid": "/1/60/0/0/7/0", "device_id": kennung},
+    ]
+    anlage._wurzel_ueberbrueckt = {"/1/60/32"}
+    anlage.devices, anlage.oids = [], set()
+    anlage._wurzel_luecken_ueberbruecken()
+    assert [d["id"] for d in anlage.devices] == ["nv"]

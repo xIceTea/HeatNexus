@@ -214,10 +214,11 @@ class MenuesMixin:
         try:
             root, status = await self._menue_abruf(f"http://{self.host}/api/1.0/lookup{prefix}")
         except TimeoutError:
+            _LOGGER.warning("%s antwortet nicht und wird übergangen", prefix)
             status = 0
         if status == 0 or status >= 500:
             # Keine Antwort ist keine Absage: Der Teil kann vorhanden sein.
-            _LOGGER.warning("%s antwortet nicht und wird übergangen", prefix)
+            _LOGGER.debug("%s: Menüwurzel ohne Antwort (HTTP %s)", prefix, status)
             self._wurzel_luecken.add(prefix)
             return None
         if status != 200 or not isinstance(root, list) or not root:
