@@ -93,6 +93,9 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein Anlagenteil ohne Antwort beim Einlesen gilt nicht mehr als entfernt.
 - Nach einer neuen Adresse bleiben Wärmequellen und Auswertung erhalten.
 
+**Reparaturen**
+- Ein überholter Hinweis „Entitäten ohne Datenpunkt“ verschwindet beim Öffnen.
+
 **Kessel**
 - PuroWIN: Schalter „Kessel“ und Panel zeigen an, ob Kessel, Kaminkehrer oder Lagerraumbefüllung laufen.
 
