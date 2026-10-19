@@ -99,6 +99,21 @@ Der Reiter **Automatik** zeigt je Heizkreis Zustand, Begründung, Tagesverlauf,
 Protokoll und Einstellungen. Wie sie entscheidet und was sie an die Steuerung
 schreibt, steht unter [Automatik](#automatik).
 
+## Auswertung
+
+Der Reiter **Auswertung** zeigt, wie Heizkreise und Kessel über die Tage
+arbeiten. Jeder Kennwert nennt sein Ergebnis und wie verlässlich es ist. Solange
+zu wenige Tage vorliegen, steht dort „Sammelt noch Tage.“ Beim ersten Start
+rechnet HeatNexus die vergangenen Tage aus der Langzeitstatistik nach.
+
+| Teil | Kennwerte |
+|---|---|
+| Heizkreis | Wärmespeicher, gemessene Heizgrenze, Räume am Ziel, Nachtabsenkung, Vorlauf unter Soll |
+| Kessel | Laufzeit je Start, Starts mit Automatik, Energie je Heizgradtag |
+
+Jeder Kennwert steht auch als Sensor bereit. Auffällige Ergebnisse lassen sich
+auf Wunsch als Hinweis in der Seitenleiste melden.
+
 ## Eigene Werte über Labels
 
 Auch Werte, die nicht von der Heizung stammen, lassen sich anzeigen. Vergib der

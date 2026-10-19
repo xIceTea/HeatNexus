@@ -1,6 +1,6 @@
 # Vorlagen und Dienste
 
-HeatNexus liefert sieben Automations-Vorlagen und sechs Dienste mit. Die
+HeatNexus liefert sieben Automations-Vorlagen und neun Dienste mit. Die
 Vorlagen landen bei der Einrichtung unter
 `blueprints/automation/heatnexus/` und werden mit jeder neuen Fassung
 aufgefrischt; welche mitkommen, steht in den Optionen.
@@ -88,9 +88,12 @@ Reiter Automatik oder mit den Tasten **Empfehlung übernehmen** und
 |---|---|---|
 | `rediscover` | — | Verwirft den Erkennungsstand und liest die Anlage neu ein. Nach Umbauten. |
 | `set_vorgabe` | Thermostat | Befristete Raumtemperatur, dieselbe, die die Anlage „Eco / Comfort" nennt. |
-| `set_current_temp_compensation` | Thermostat | Verschiebt die gemessene Raumtemperatur um einen festen Betrag. |
+| `set_current_temp_compensation` | Thermostat | Verschiebt den Raumsollwert und damit die Heizkurve um einen festen Betrag. |
 | `set_time_program` | Zeitprogramm-Sensor | Schreibt ein Wochenprogramm. |
-| `meldungen_loeschen` | Sensor | Leert die Meldungsliste in Home Assistant. |
+| `meldungen_loeschen` | Sensor | Leert die Meldungsliste; am Bediengerät löscht er die erledigten Einträge. |
+| `stoerung_quittieren` | Sensor | Setzt einen Eintrag der Meldungsliste zurück. |
+| `stoerung_loeschen` | Sensor | Löscht einen erledigten Eintrag aus der Meldungsliste. |
+| `stoerung_zuruecksetzen` | Sensor | Setzt eine anliegende Störung am Kessel zurück; nur mit eingeschalteter Option. |
 | `dashboard_ausgeben` | — | Gibt das mitgelieferte Dashboard als YAML zurück. |
 
 ### Befristete Vorgabe

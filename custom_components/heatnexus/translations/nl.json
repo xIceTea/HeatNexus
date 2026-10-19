@@ -729,11 +729,11 @@
     },
     "set_current_temp_compensation": {
       "name": "Comfortcorrectie instellen",
-      "description": "Verschuift de gemeten kamertemperatuur van een verwarmingscircuit met een vaste waarde. Bedoeld voor sensoren die door hun plaats steeds te warm of te koud meten.",
+      "description": "Verschuift de gewenste kamertemperatuur van een verwarmingscircuit en daarmee de stooklijn met een vaste waarde. Een positieve waarde verwarmt meer.",
       "fields": {
         "compensation": {
           "name": "Correctie",
-          "description": "Wordt bij de gemeten kamertemperatuur opgeteld."
+          "description": "Wordt bij de gewenste kamertemperatuur opgeteld."
         }
       }
     },

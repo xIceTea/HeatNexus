@@ -79,7 +79,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       <a class="feld" href="ANLEITUNG#oberflaeche">
         <span class="nr">02</span>
         <h3>Eigene Oberfläche</h3>
-        <p>Eine Seite in der Seitenleiste: Schaubild, Kennwerte, Heizkreise, Warmwasser, Wartung, Verlauf und Zeitprogramme.</p>
+        <p>Eine Seite in der Seitenleiste: Schaubild, Kennwerte, Heizkreise, Warmwasser, Wartung, Verlauf, Zeitprogramme und Auswertung.</p>
         <span class="weiter">Die Oberfläche</span>
       </a>
       <a class="feld" href="ANLEITUNG#dashboard">
@@ -109,7 +109,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       <a class="feld" href="ANLEITUNG#stoerung">
         <span class="nr">07</span>
         <h3>Störungen im Klartext</h3>
-        <p>Code, Art und Handlungsempfehlung statt einer Zahl. Über 200 Meldungen hinterlegt.</p>
+        <p>Code, Art und Handlungsempfehlung statt einer Zahl, dazu die Meldungsliste des Bediengeräts.</p>
         <span class="weiter">Störungsanzeige</span>
       </a>
       <a class="feld" href="ANLEITUNG#vorlagen">
@@ -127,7 +127,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       <a class="feld" href="ANLEITUNG#automatik">
         <span class="nr">10</span>
         <h3>Automatik je Heizkreis</h3>
-        <p>Senkt an sonnigen Tagen ab und schaltet in der Übergangszeit auf nur Warmwasser. Beginnt im Beobachtungsmodus. Schlägt Eingriffe auf Wunsch nur vor.</p>
+        <p>Lernt das Haus, senkt an sonnigen Tagen ab und legt an milden Tagen eine Heizpause ein. Beginnt im Beobachtungsmodus.</p>
         <span class="weiter">Wie sie entscheidet</span>
       </a>
       <a class="feld" href="ANLEITUNG#einrichtung">
@@ -345,7 +345,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       </a>
       <a class="feld" href="ANLEITUNG#vorlagen">
         <h3>Vorlagen und Dienste</h3>
-        <p>Sieben Automations-Vorlagen und sechs Dienste, mit Beispielaufruf.</p>
+        <p>Sieben Automations-Vorlagen und neun Dienste, mit Beispielaufruf.</p>
       </a>
       <a class="feld" href="ANLEITUNG#oberflaeche">
         <h3>Die eigene Oberfläche</h3>

@@ -121,7 +121,10 @@ Assistant beendet ihn die Taste „beenden“.
   PV-Prognose, Raumfühler und Wärmequellen mit Vorrang. Sie beginnt im
   Beobachtungsmodus und schreibt erst nach Freigabe an die Steuerung. An milden
   Tagen setzt sie eine Heizpause. Im Modus „Manuell mit Empfehlung“ schlägt sie
-  Eingriffe vor, die weniger heizen.
+  Eingriffe vor, die weniger heizen. Ein gelerntes Hausmodell sagt den
+  Raumverlauf des Tages voraus.
+- **Auswertung**: Kennwerte zu Heizkreisen und Kessel über die Tage, etwa
+  gemessene Heizgrenze, Räume am Ziel und Energie je Heizgradtag, auch als Sensoren.
 - **Zeitprogramme** für Heizung, Warmwasser und Zirkulation lesen und schreiben –
   in der eigenen Oberfläche als Wochenraster, mit Editor für Wochentage und
   Schaltzeiten.
@@ -132,8 +135,8 @@ Assistant beendet ihn die Taste „beenden“.
   Entity zuschaltbar.
 - **Eigene Oberfläche** in der Seitenleiste: Anlagenschaubild, Kennwerte,
   Systemstatus, Heizkreise, Warmwasser, Störungen, Verlauf und Schnellzugriff
-  auf einer Seite; dazu eigene Reiter für Steuerung, Wartung, Verlauf und
-  Zeitprogramme.
+  auf einer Seite; dazu eigene Reiter für Steuerung, Wartung, Verlauf,
+  Zeitprogramme, Automatik und Auswertung.
 - **Anlagenschaubild** aus den erkannten Anlagenteilen gezeichnet, mit
   laufenden Pumpen und den Live-Werten darauf. Die Art des Wärmeerzeugers –
   Hackgut, Pellets, Scheitholz, Wärmepumpe, Gas/Öl – wird erkannt und lässt

@@ -87,6 +87,7 @@ Die Automatik lernt, wie schnell das Haus auskühlt und wie die Sonne es wärmt.
 - Kopfleiste, Fenster und Reiter bleiben am Telefon beim Blättern sichtbar.
 - Hilfetexte und Meldungen erscheinen auf Englisch und Niederländisch ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
 - Beide Zirkulationsprogramme bleiben sichtbar und lassen sich aktivieren.
+- Die Dienstbeschreibung der Behaglichkeitskorrektur nennt die Wirkung auf Raumsollwert und Heizkurve.
 
 **Kessel**
 - DuoWIN: Die Werte des LogWIN der ersten Generation am InfoWIN Plus erscheinen ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).

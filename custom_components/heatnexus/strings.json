@@ -729,11 +729,11 @@
     },
     "set_current_temp_compensation": {
       "name": "Set comfort correction",
-      "description": "Shifts the measured room temperature of a heating circuit by a fixed amount. Meant for sensors that permanently read too warm or too cold because of where they hang.",
+      "description": "Shifts the room setpoint of a heating circuit, and with it the heating curve, by a fixed amount. A positive value heats warmer.",
       "fields": {
         "compensation": {
           "name": "Correction",
-          "description": "Added to the measured room temperature."
+          "description": "Added to the room setpoint."
         }
       }
     },

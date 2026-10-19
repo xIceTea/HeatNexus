@@ -729,11 +729,11 @@
     },
     "set_current_temp_compensation": {
       "name": "Behaglichkeitskorrektur setzen",
-      "description": "Verschiebt die gemessene Raumtemperatur eines Heizkreises um einen festen Betrag. Gedacht für Fühler, die dauerhaft zu warm oder zu kalt messen, weil sie ungünstig hängen.",
+      "description": "Verschiebt den Raumsollwert eines Heizkreises und damit die Heizkurve um einen festen Betrag. Ein positiver Wert heizt wärmer.",
       "fields": {
         "compensation": {
           "name": "Korrektur",
-          "description": "Wird auf die gemessene Raumtemperatur aufgeschlagen."
+          "description": "Wird auf den Raumsollwert aufgeschlagen."
         }
       }
     },

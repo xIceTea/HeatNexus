@@ -102,16 +102,23 @@ welcome — the integration's diagnostics export is all it takes.
   forecast, room sensors and heat sources with priority. It starts in observe
   mode and only writes to the controller once released. In the
   "Manual with recommendation" mode it proposes the interventions that heat
-  less.
+  less. A learned house model predicts the room temperature over the day, and
+  on mild days it pauses heating.
+- **Analysis**: key figures for heating circuits and boiler over the days, such
+  as the measured heating limit, rooms at target and energy per degree day, also
+  as sensors.
 - **Time programs** for heating, hot water and circulation, readable and
   writable — shown as a weekly grid in the panel, with an editor for weekdays
   and switch points.
 - **Faults in plain text** with code, class and what to do about it.
+- **Message list of the control unit** in the "Meldungen" card: entries can be
+  reset and deleted, optionally also the fault at the boiler.
 - **Service level** available in full, disabled by default, switchable per
   entity.
 - **A dedicated panel** in the sidebar: plant diagram, key values, system
   status, heating circuits, hot water, faults, history and quick controls on one
-  page, plus tabs for controls, maintenance, history and time programs.
+  page, plus tabs for controls, maintenance, history, time programs, automation
+  and analysis.
 - **Plant diagram** drawn from the discovered parts, with running pumps and live
   values on top. The kind of heat generator — wood chips, pellets, logs, heat
   pump, gas/oil — is detected and can be overridden per system.
@@ -246,7 +253,10 @@ background.
 | `heatnexus.set_time_program` | set a time program (`switch_points` with `weekdays`, or `blocks` for separate weekly plans) |
 | `heatnexus.set_vorgabe` | timed room temperature override for a heating circuit ("Eco / Comfort") |
 | `heatnexus.set_current_temp_compensation` | comfort correction of a heating circuit |
-| `heatnexus.meldungen_loeschen` | clear the collected message list of a system |
+| `heatnexus.meldungen_loeschen` | clear the message list of a device; on the control unit, delete its resolved entries |
+| `heatnexus.stoerung_quittieren` | reset an entry of the message list (`eintrag`: number) |
+| `heatnexus.stoerung_loeschen` | delete a resolved entry from the message list |
+| `heatnexus.stoerung_zuruecksetzen` | reset an active fault at the boiler; only with the option enabled |
 | `heatnexus.dashboard_ausgeben` | return the bundled dashboard as YAML |
 | `heatnexus.rediscover` | re-read the system, e.g. after modifications |
 
