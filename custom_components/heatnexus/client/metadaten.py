@@ -82,6 +82,23 @@ class MetadatenMixin:
         self.devices = kept
         self.oids -= missing
         await self._nachbearbeiten(meta)
+        self._wurzel_luecken_ueberbruecken()
+
+    def _wurzel_luecken_ueberbruecken(self) -> None:
+        """Die bekannten Beschreibungen eines Teils behalten, dessen Menüwurzel schwieg."""
+        if not self._wurzel_luecken or not self._geraete_waehrend_einlesen:
+            return
+        geraete = {self._geraetekennung(prefix) for prefix in self._wurzel_luecken}
+        stamm = tuple(f"{prefix}/" for prefix in self._wurzel_luecken)
+        vorhanden = {d.get("id") for d in self.devices}
+        for d in self._geraete_waehrend_einlesen:
+            oid = d.get("oid") or ""
+            if d.get("id") in vorhanden:
+                continue
+            if d.get("device_id") in geraete or oid.startswith(stamm):
+                self.devices.append(dict(d))
+                if oid:
+                    self.oids.add(oid)
 
     async def _metadaten_lesen(self, offen: list[str]) -> tuple[dict, set[str], set[str]]:
         """Metadaten einzeln lesen: zurück kommen Metadaten, fehlende Adressen und Lücken.

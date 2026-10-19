@@ -369,6 +369,7 @@ class ErkennungMixin:
         self.oids = set()
         self.devices = []
         self._menue_luecken = set()
+        self._wurzel_luecken = set()
         json_devices = await self._struktur_lesen()
         if not self.geraeteinfo:
             await self._lese_geraeteinfo()

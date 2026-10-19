@@ -214,7 +214,11 @@ class MenuesMixin:
         try:
             root, status = await self._menue_abruf(f"http://{self.host}/api/1.0/lookup{prefix}")
         except TimeoutError:
+            status = 0
+        if status == 0 or status >= 500:
+            # Keine Antwort ist keine Absage: Der Teil kann vorhanden sein.
             _LOGGER.warning("%s antwortet nicht und wird übergangen", prefix)
+            self._wurzel_luecken.add(prefix)
             return None
         if status != 200 or not isinstance(root, list) or not root:
             return None
@@ -226,6 +230,9 @@ class MenuesMixin:
         """Alle Datenpunkte einer Funktion über ihre Menü-Ebenen einlesen."""
         menus = await self._menue_ebenen(prefix)
         if menus is None:
+            # Eine gemeldete Funktion liest die Erkennung dann Adresse für Adresse.
+            if fct_type is not None:
+                self._wurzel_luecken.discard(prefix)
             return {}
 
         layers = get_layers(fct_type) or {}

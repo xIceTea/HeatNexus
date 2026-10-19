@@ -166,11 +166,13 @@ class WindhagerHttpClient(
         self._geraete_waehrend_einlesen: list[dict] | None = None
         # Adressen, zu denen der letzte Lauf keine Metadaten erhielt, weil die Anlage nicht antwortete.
         self._metadaten_luecken: set[str] = set()
+        # Teile, deren Menüwurzel ohne Antwort blieb und für die kein Einzelweg greift.
+        self._wurzel_luecken: set[str] = set()
 
     @property
     def erkennung_unvollstaendig(self) -> bool:
         """Sagen, ob der letzte Erkennungslauf Adressen ohne Antwort zurückließ."""
-        return bool(self._metadaten_luecken)
+        return bool(self._metadaten_luecken or self._wurzel_luecken)
 
     def _verbindung_anlegen(self) -> None:
         """Sitzung, Warteschlangen und Zähler der Anfragen an die Anlage."""
