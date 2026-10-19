@@ -36,8 +36,8 @@ DESKRIPTOR_VORGABE: dict = {
     "oid": None,
     "name": None,
     "type": "auto",
-    # Die Bedienebene, aus der der Datenpunkt stammt. `None` heißt: aus einer
-    # kuratierten Tabelle, nicht aus einer Ebene der Anlage.
+    # Die Bedienebene des Datenpunkts. `None` heißt: Die Herstellerliste führt
+    # den kuratierten Eintrag in keiner Ebene.
     "level": None,
     "enabled_default": True,
     "enum": None,
@@ -299,7 +299,9 @@ class ErkennungMixin:
         """
         return {**DESKRIPTOR_VORGABE, **felder}
 
-    def _add_entity(self, definition: dict, prefix: str, device_id: str, fct: dict):
+    def _add_entity(
+        self, definition: dict, prefix: str, device_id: str, fct: dict, level_of: dict[str, str]
+    ):
         """Create a device/entity descriptor from a curated table entry."""
         base = device_id if definition.get("node_level") else prefix
         oid = f"{base}{definition['oid']}"
@@ -321,6 +323,9 @@ class ErkennungMixin:
                 gepflegt=name_override(fct.get("fctType"), self._gnmn(base, oid)),
             ),
             type=definition["platform"],
+            # Die Ebene des Herstellers gilt auch hier: Sie entscheidet, ob ein
+            # Fachparameter ohne Freigabe nur lesbar bleibt.
+            level=definition.get("ebene") or level_of.get(self._gnmn(base, oid)),
             unit=definition.get("unit"),
             enum=definition.get("enum"),
             enum_texte=self._enum_texte_fuer(self._gnmn(base, oid)),
@@ -453,9 +458,11 @@ class ErkennungMixin:
         # Kuratierte Tabellen: beim Kurzdurchlauf übersprungen, damit
         # die Einrichtung nur wenige Anfragen kostet. Thermostat und
         # Meldungen entstehen weiter unten und reichen für den Start.
+        layers = get_layers(fct_type) or {}
         if not nur_kern:
+            level_of, _ = self._ebenen_und_gruppen(layers)
             for definition in FCT_ENTITY_MAP.get(fct_type, []):
-                self._add_entity(definition, prefix, device_id, fct)
+                self._add_entity(definition, prefix, device_id, fct, level_of)
 
         # Sammel-Lesezugriff: Die Menü-Ebenen der Funktion liefern
         # sämtliche vorhandenen Datenpunkte inklusive Metadaten in
@@ -468,7 +475,6 @@ class ErkennungMixin:
             menu_data = {} if nur_kern else await self._read_function_menus(prefix, fct_type)
         self.menu_meta.update(menu_data)
 
-        layers = get_layers(fct_type) or {}
         candidates, ergaenzt = self._kandidaten(
             prefix, fct_type, menu_data, layers, statisch, nur_kern
         )

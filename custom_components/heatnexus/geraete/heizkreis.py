@@ -112,17 +112,19 @@ ENTITAETEN: list[dict] = [
         "oid": "/5/6/0",
         "name": "WW-Zirkulationspumpe Modus",
         "platform": "select",
+        "ebene": "operate",
         "enum": "5/6",
         "category": "config",
         "icon": "mdi:reload",
     },
-    # Wie weit die Warmwassertemperatur unter den Sollwert fallen darf, bevor
-    # die Anlage nachlädt (Werk 5 K, Bereich 1 bis 20 K). Gilt für jede
-    # Ladung, nicht nur für die Einmalladung.
+    # Wie weit das Warmwasser unter den Sollwert fallen darf, bevor die Anlage
+    # nachlädt (Werk 5 K, 1 bis 20 K), bei jeder Ladung. Bedienbar wie `5/6`,
+    # obwohl der Hersteller beide auf der Serviceebene führt.
     {
         "oid": "/5/0/0",
         "name": "Hysterese Ein",
         "platform": "number",
+        "ebene": "operate",
         "unit": "K",
         "min": 1,
         "max": 20,
