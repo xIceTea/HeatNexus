@@ -533,7 +533,8 @@
           }
         },
         "abort": {
-          "nicht_geladen": "Die Anlage ist gerade nicht geladen. Bitte später erneut versuchen."
+          "nicht_geladen": "Die Anlage ist gerade nicht geladen. Bitte später erneut versuchen.",
+          "nichts_verwaist": "Alle Entitäten haben wieder ihren Datenpunkt. Es ist nichts zu entfernen."
         }
       }
     },

@@ -86,9 +86,15 @@ async def eintrag_entfernt(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 
 def kessel_praefixe(coordinator: Any) -> list[str]:
-    """Jede Funktion mit Brennerstarts `2/80` ist ein Kessel."""
-    oids = (coordinator.data or {}).get("oids") or {}
-    return sorted({k[: -len(STARTS)] for k in oids if k.endswith(STARTS)})
+    """Jede Funktion mit Brennerstarts `2/80` ist ein Kessel.
+
+    Es zählt die Beschreibung, nicht der Wert: Fehlt er in einem Abruf, bleibt der Kessel ein Kessel.
+    """
+    daten = coordinator.data or {}
+    adressen = set(daten.get("oids") or {}) | {
+        d.get("oid") or "" for d in daten.get("devices") or []
+    }
+    return sorted({k[: -len(STARTS)] for k in adressen if k.endswith(STARTS)})
 
 
 def kessel_geraet(coordinator: Any, prefix: str) -> str | None:

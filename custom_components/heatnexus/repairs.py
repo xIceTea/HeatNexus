@@ -54,6 +54,10 @@ class VerwaisteFlow(RepairsFlow):
             return self.async_create_entry(title="", data={})
 
         gefunden = verwaiste.finden(self.hass, eintrag, koordinatoren)
+        if not gefunden:
+            # Der Hinweis zählte vor einem späteren Abruf; inzwischen fehlt nichts mehr.
+            verwaiste.hinweis_pflegen(self.hass, eintrag, 0)
+            return self.async_abort(reason="nichts_verwaist")
         # Die Beschriftung steht übersetzt zwischen den beiden Platzhaltern; das HTML kommt von hier.
         return self.async_show_form(
             step_id="confirm",

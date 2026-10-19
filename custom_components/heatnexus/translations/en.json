@@ -533,7 +533,8 @@
           }
         },
         "abort": {
-          "nicht_geladen": "The system is not loaded right now. Please try again later."
+          "nicht_geladen": "The system is not loaded right now. Please try again later.",
+          "nichts_verwaist": "Every entity has its data point again. Nothing needs to be removed."
         }
       }
     },

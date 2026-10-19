@@ -533,7 +533,8 @@
           }
         },
         "abort": {
-          "nicht_geladen": "De installatie is op dit moment niet geladen. Probeer het later opnieuw."
+          "nicht_geladen": "De installatie is op dit moment niet geladen. Probeer het later opnieuw.",
+          "nichts_verwaist": "Alle entiteiten hebben hun datapunt weer. Er hoeft niets te worden verwijderd."
         }
       }
     },

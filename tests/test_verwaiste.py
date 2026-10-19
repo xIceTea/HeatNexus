@@ -475,3 +475,32 @@ def test_die_liste_zeigt_sonderzeichen_im_namen_als_text(modul):
     )
 
     assert modul.liste([eintrag]) == r"- `sensor.p` – Puffer \*oben\* \[alt\] \<3"
+
+
+async def test_ohne_verwaiste_nimmt_der_ablauf_den_hinweis_zurueck(hass, modul):
+    """Zwischen Hinweis und Klick kann der Datenpunkt zurückgekommen sein."""
+    from homeassistant.data_entry_flow import FlowResultType
+
+    from custom_components.heatnexus import repairs
+
+    eintrag, _ = _eintrag_mit_entitaet(hass)
+    eintrag.runtime_data = {"coordinators": {"a": _koordinator(["SN1-0-0-7-0"])}}
+    modul.hinweis_pflegen(hass, eintrag, 3)
+    ablauf = await repairs.async_create_fix_flow(
+        hass, modul.HINWEIS.format(entry_id=eintrag.entry_id), {"entry_id": eintrag.entry_id}
+    )
+    ablauf.hass = hass
+
+    ergebnis = await ablauf.async_step_init()
+    assert ergebnis["type"] is FlowResultType.ABORT
+    assert ergebnis["reason"] == "nichts_verwaist"
+    assert _hinweis(hass, eintrag, modul) is None
+
+
+def test_ein_kessel_ohne_wert_im_abruf_behaelt_seine_kennwerte(hass):
+    from custom_components.heatnexus.befund import laufzeit
+
+    starts = {"id": "SN1-0-2-80-0", "oid": "/1/60/0/2/80/0", "device_id": "SN1-0"}
+    koordinator = SimpleNamespace(data={"devices": [starts], "oids": {}})
+    eintrag = SimpleNamespace(runtime_data={"coordinators": {"a": koordinator}})
+    assert "SN1-0-befund-starts" in laufzeit.kennungen(eintrag)
