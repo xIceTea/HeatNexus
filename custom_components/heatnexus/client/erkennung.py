@@ -300,7 +300,12 @@ class ErkennungMixin:
         return {**DESKRIPTOR_VORGABE, **felder}
 
     def _add_entity(
-        self, definition: dict, prefix: str, device_id: str, fct: dict, level_of: dict[str, str]
+        self,
+        definition: dict,
+        prefix: str,
+        device_id: str,
+        fct: dict,
+        level_of: dict[str, str] | None = None,
     ):
         """Create a device/entity descriptor from a curated table entry."""
         base = device_id if definition.get("node_level") else prefix
@@ -325,7 +330,7 @@ class ErkennungMixin:
             type=definition["platform"],
             # Die Ebene des Herstellers gilt auch hier: Sie entscheidet, ob ein
             # Fachparameter ohne Freigabe nur lesbar bleibt.
-            level=definition.get("ebene") or level_of.get(self._gnmn(base, oid)),
+            level=definition.get("ebene") or (level_of or {}).get(self._gnmn(base, oid)),
             unit=definition.get("unit"),
             enum=definition.get("enum"),
             enum_texte=self._enum_texte_fuer(self._gnmn(base, oid)),
