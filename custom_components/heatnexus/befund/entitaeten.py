@@ -12,7 +12,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from ..const import DOMAIN
+from ..const import DOMAIN, SIGNAL_NEUE_ENTITAETEN
 from .laufzeit import SIGNAL_NEU, SIGNAL_STAND, befund_holen, unique_id
 
 # Einheit und Geräteklasse je Art; Energie je Heizgradtag in Kilowattstunden je Kelvintag.
@@ -92,3 +92,10 @@ def anmelden(
     entry.async_on_unload(
         async_dispatcher_connect(hass, SIGNAL_NEU.format(entry.entry_id), _anlegen)
     )
+    # Ein Kessel steht erst nach dem ersten Abruf oder Einlesen fest; dann kommen seine Sensoren dazu.
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, SIGNAL_NEUE_ENTITAETEN.format(entry.entry_id), _anlegen)
+    )
+    koordinatoren = ((getattr(entry, "runtime_data", None) or {}).get("coordinators")) or {}
+    for koordinator in koordinatoren.values():
+        entry.async_on_unload(koordinator.async_add_listener(_anlegen))

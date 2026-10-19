@@ -157,6 +157,24 @@ async def test_sensoren_je_heizkreis_und_kessel(hass, anlage):
         assert sensor.extra_state_attributes["status"] is not None, sensor.unique_id
 
 
+async def test_ein_spaeter_bekannter_kessel_bekommt_seine_sensoren(hass, anlage):
+    from homeassistant.helpers.dispatcher import async_dispatcher_send
+
+    from custom_components.heatnexus.befund.entitaeten import anmelden
+    from custom_components.heatnexus.const import SIGNAL_NEUE_ENTITAETEN
+
+    _, eintrag = anlage
+    koordinator = eintrag.runtime_data["coordinators"]["192.0.2.10"]
+    kessel = koordinator.data["devices"].pop()
+    angelegt = []
+    anmelden(hass, eintrag, angelegt.extend)
+    assert not any("SN1-1-0-befund" in s.unique_id for s in angelegt)
+
+    koordinator.data["devices"].append(kessel)
+    async_dispatcher_send(hass, SIGNAL_NEUE_ENTITAETEN.format(eintrag.entry_id))
+    assert "SN1-1-0-befund-starts" in {s.unique_id for s in angelegt}
+
+
 async def test_befund_sensoren_gelten_nicht_als_verwaist(hass, anlage):
     from custom_components.heatnexus import verwaiste
 
