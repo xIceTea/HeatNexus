@@ -6,6 +6,173 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.14.0] - 2026-10-19
+
+### Highlight: Automatik mit Hausmodell
+
+Die Automatik lernt, wie schnell das Haus auskühlt und wie die Sonne es wärmt. Damit sagt sie den Raumverlauf des Tages voraus und legt an milden Tagen eine Heizpause ein. Im Modus „Manuell mit Empfehlung“ schlägt sie Eingriffe nur vor.
+
+### Neu
+
+**Automatik**
+- Eine Heizpause hält den Heizkreis an milden Tagen aus; bei Kälte heizt die Steuerung.
+- Eine Heizpause beginnt auch, wenn die Steuerung laut Prognose bald selbst abschaltet.
+- Der Modus „Manuell mit Empfehlung“ schlägt Eingriffe vor, die weniger heizen.
+- Offene Empfehlungen erscheinen in der Seitenleiste, am Reiter „Automatik“ und per Blueprint.
+- Die Automatik lernt das Haus und sagt den Raumverlauf des Tages voraus.
+- Beim ersten Lernen rechnet die Automatik die vergangenen zwei Wochen nach.
+- Trifft die Vorhersage über Wochen besser als ohne Modell, entscheidet sie mit.
+- Mit Hausmodell senkt die Automatik bei Sonne früh ab oder legt eine Heizpause ein.
+- Der Reiter Automatik zeigt Hauswerte und Raumverlauf; die Auskühlzeit gibt es als Sensor.
+- „Hausmodell neu lernen“ steht in den Einstellungen der Automatik.
+- Die Ausrichtung legt fest, wie weit die Räume unter das Ziel sinken dürfen.
+- Die Automatik prüft alle fünf Minuten statt einmal am Morgen.
+- Ein Wechsel beginnt erst nach mehreren gleichen Prüfungen und hält danach eine Weile.
+- Unter der Begründung stehen die entscheidenden Bedingungen in Worten, etwa „Sonnenfenster bis 16:16“.
+- Das Protokoll zeigt die Läufe der Regel aufklappbar und das Ende eines Eingriffs.
+- Die Kachel „Sonne heute“ zeigt das aktuelle Wetter, nachts „Nacht“.
+- Der Einrichtungsdialog empfiehlt Räume, die das Haus typisch abbilden.
+- Die Automatik nennt fehlende Werte; fehlt die Wettervorhersage länger, erscheint eine Reparaturmeldung.
+- Die Wetterauswahl zeigt nur Entitäten mit Vorhersage; zwei Prognosen am Tag genügen.
+
+**Auswertung**
+- Der Reiter Auswertung zeigt Kennwerte von Haus, Heizkreis und Kessel, auch als Sensoren.
+- Die Auswertung vergleicht Kesselstarts je Gradtag mit und ohne Eingriff der Automatik.
+- Die Auswertung meldet Räume, die meist über dem Ziel liegen, samt Abhilfe.
+- Hinweise der Auswertung lassen sich in der Seitenleiste melden.
+
+**Meldungen**
+- Die Meldungsliste des Bediengeräts steht im Panel; Einträge lassen sich zurücksetzen und löschen.
+- Das Detail einer Meldung zeigt die Abhilfe aus den Bedienungsanleitungen.
+- Die Karte „Meldungen“ zeigt Info, Fehler und Alarm in Wortlaut und Farben von Windhager.
+- Eine Option erlaubt, Störungen am Kessel zurückzusetzen; ab Werk ist sie aus.
+
+**Panel**
+- Das Fenster „Darstellung“ stellt Farbsatz, Kopfzeile und Seitenleiste ein.
+- Die Kopfzeile zeigt das HeatNexus-Zeichen in vier Stilen; ein Klick öffnet die Seitenleiste.
+- „Alle“ fasst auf Wunsch gleiche Karten aller Anlagen in einem Rahmen zusammen.
+- Die Übersicht zeigt Karten für Kessel, Puffer, Heizkreis und Warmwasser, auch bei einer Anlage.
+- Die Übersicht zeigt am Heizkreis Sonnentag, Heizpause und andere Eingriffe der Automatik.
+- Linien im Verlauf lassen sich suchen und entfernen und bleiben gespeichert ([#16](https://github.com/xIceTea/HeatNexus/issues/16)).
+- Das Panel lässt sich vollständig mit der Tastatur bedienen.
+- „Entitäten ohne Datenpunkt“ listet die betroffenen Entitäten aufklappbar.
+
+**Zeitprogramme**
+- Der Streifen „Heute“ zeigt je Anlagenteil den geltenden Wert und den nächsten Wechsel.
+
+**Sprache**
+- Die Sprache lässt sich gemeinsam oder für jede Anlage einzeln wählen.
+- Panel, Dashboard und Schaubild erscheinen in der Sprache der jeweiligen Anlage.
+
+**Diagnose**
+- Die Diagnose nennt, was die Steuerung anbietet.
+
+**Kessel**
+- BioWIN: Zwei Tasten quittieren Reinigung und Wartung.
+
+### Geändert
+
+**Bedienung**
+- Kaminkehrer und Lagerraumbefüllung haben Tasten statt Schalter; Automationen müssen angepasst werden.
+- Service- und Werksparameter der festen Tabellen sind ohne Freigabe nur Anzeige; die Eingabefelder entfallen.
+- „Warmwasser laden“ fragt vor dem Start nach und zeigt die Ladetemperatur.
+
+**Automatik**
+- Der Automatik-Modus enthält „Aus“; der Schalter „Automatik“ entfällt.
+- „Frühester Beginn“ ersetzt die Entscheidungszeit des Sonnentags.
+- Der Sonnentag senkt bei kalter Außentemperatur weniger ab.
+- Ohne Hausmodell senkt der Sonnentag unter einer einstellbaren Außentemperatur nicht ab.
+- Der Wechsel weg von „Automatisch“ beendet laufende Eingriffe und rechnet sofort neu.
+- Ja/Nein-Einstellungen sind Schalter; die Benachrichtigungen stehen in einer Gruppe.
+- Automatik-Geräte und -Werte tragen sprechende Namen.
+- Die Karte der Automatik ist ab Werk drei Spalten breit.
+
+**Meldungen**
+- Die Meldungsliste eines Geräts zeigt die Einträge des Bediengeräts, sofern es eine führt.
+- „Meldungsliste leeren“ löscht erledigte Einträge auch am Bediengerät.
+- Die Meldungsliste führt keine Einheit mehr; Home Assistant fragt einmal nach der Statistik.
+
+**Panel**
+- Das Panel lädt schneller und folgt dem hellen und dunklen Theme.
+- Die Dashboard-Ansicht Auswertung heißt jetzt Statistik.
+- Die Hilfe unter „Alle“ nennt jede Erklärung nur einmal.
+
+**Zeitprogramme**
+- Jeder Anlagenteil hat eine Karte; das geltende Programm erscheint als Wochenraster.
+- Gleiche Temperaturen tragen in allen Programmen dieselbe Farbe.
+
+### Behoben
+
+**Verbindung**
+- Abgebrochene Abfragen werden wiederholt; ein großer Abruf verliert keine Werte ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
+- Ein Schreibvorgang wird nach einem Gateway-Fehler wiederholt.
+- Die letzten Werte bleiben sichtbar, wenn die Anlage eine Abfrage mit einem Fehler beantwortet.
+- Eine nicht erreichbare Anlage erscheint als Störung statt mit eingefrorenen Werten.
+- Ein Anlagenteil ohne Antwort beim Einlesen gilt nicht mehr als entfernt.
+
+**Einrichtung**
+- Neu konfigurieren lehnt fremde Steuerungen ab; eine Abwahl löscht nur den abgewählten Umfang.
+- Nach einer neuen Adresse bleiben die Wärmequellen erhalten.
+- Ein falsches Passwort beim Start öffnet die Passwortabfrage.
+- Entitäts-IDs mit einer Ziffer am Namensende erhalten den richtigen Namen.
+- Ein neuer Untereintrag lädt die Integration auch bei gleichen Optionen neu.
+
+**Bedienung**
+- Nach einer Quittung oder einem Eingriff am Kessel erscheinen die neuen Werte sofort.
+- Behaglichkeitskorrektur und Zeitprogramme warten nach dem Schreiben nicht mehr auf einen vollen Abruf.
+- Die Warmwasser-Taste rechnet mit der eingestellten Einschalthysterese statt mit 5 K.
+
+**Thermostat**
+- Während einer Vorgabe zeigt das Thermostat die gewählte Betriebsart statt „Handbetrieb“.
+- Eine Vorgabe mit Dauer 0 schaltet einen ausgeschalteten Heizkreis nicht mehr ein.
+- Scheitert eine Vorgabe, kehrt der Heizkreis in die Betriebsart davor zurück.
+
+**Automatik**
+- Die Automatik meldet keinen Handeingriff ohne Grund, auch bei langem Abfrageintervall ([#22](https://github.com/xIceTea/HeatNexus/issues/22)).
+- Die Automatik übersteht Zeitumstellung, Speicherfehler und den Ausfall einzelner Heizkreise.
+- Liefert weniger als die Hälfte der Räume Werte, endet eine Absenkung nach einstellbarer Wartezeit.
+- „Absenkbetrieb bis“ steht nach einem Neustart sofort im Reiter Automatik.
+- Die Automatik zeigt, wenn der Heizkreis an der Steuerung aus ist.
+- Ein Sonnentag aus der Sonnenquote endet nicht mehr ohne Wärme der Solaranlage.
+- Die Sonnenquote zählt nur die restlichen Stunden und rechnet die Jahreszeit heraus.
+- Ein Moduswechsel in der Nacht schreibt keine Vorgabe über den Komfortbeginn hinaus.
+- Bei Kälte endet nur Warmwasser früher.
+- „Räume zum Ziel“ misst ohne Programm nicht mehr gegen den Frostschutz-Sollwert.
+- Antwortet die Steuerung nicht, schreibt die Automatik nach fünf Minuten erneut.
+
+**Vorlagen**
+- Die Abwesenheitsvorlage behält Handänderungen und stellt danach die Betriebsart von davor ein.
+- Die Legionellenvorlage findet den WW-Betrieb in jeder Sprache.
+
+**Panel**
+- Das Schaubild im Dashboard erscheint, sobald die HeatNexus-Oberfläche geöffnet wurde ([#21](https://github.com/xIceTea/HeatNexus/discussions/21)).
+- Die Anlagenseite zeigt das Schaubild bei einer einzelnen Anlage nur einmal.
+- Zustandslisten zeigen keinen Platzhalter für Werte ohne Text.
+- Die Kopfleiste bleibt am iPhone beim Blättern unter der Statusleiste sichtbar.
+- Fenster öffnen oben im Bild; die Fußleiste bleibt beim Blättern sichtbar.
+- Der gewählte Reiter bleibt am Telefon in der Reiterleiste sichtbar.
+
+**Zeitprogramme**
+- Zeitprogramme bleiben nach einem Verbindungsfehler erhalten und nehmen Wochentage jeder Sprache an.
+- Beide Zirkulationsprogramme bleiben sichtbar und lassen sich aktivieren.
+- Vorlaufprogramme ohne Optionstexte zeigen richtig an, wann sie gelten.
+
+**Sprache**
+- Hilfetexte, Rückfragen und Prüfmeldungen erscheinen auf Englisch und Niederländisch ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
+- Meldungssensoren und Zustände einer Wärmequelle erscheinen in der Sprache der Anlage.
+- Das Schaubild erkennt die Kesselart auch auf Englisch und Niederländisch.
+
+**Reparaturen**
+- Ein überholter Hinweis „Entitäten ohne Datenpunkt“ verschwindet beim Öffnen.
+
+**Meldungen**
+- Störungsmeldungen eines Geräts fehlen nicht mehr, wenn die Steuerung sie beim Einlesen auslässt.
+
+**Kessel**
+- BioWIN: Der Befüllgrad des Lagerraums ist nur noch eine Anzeige.
+- DuoWIN: Die Werte des LogWIN der ersten Generation am InfoWIN Plus erscheinen ([#4](https://github.com/xIceTea/HeatNexus/discussions/4)).
+- PuroWIN: Schalter „Kessel“ und Panel zeigen an, ob Kessel, Kaminkehrer oder Lagerraumbefüllung laufen.
+
 ## [1.14.0-beta.4]
 
 ### Neu
