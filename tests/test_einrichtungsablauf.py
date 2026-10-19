@@ -184,8 +184,10 @@ async def test_neu_konfigurieren_zieht_die_waermequellen_mit(hass, eintrag):
         title="Heizstab",
         unique_id=None,
     )
-    hass.config_entries.async_add_subentry(eintrag, quelle)
-    await hass.async_block_till_done()
+    # Der neue Untereintrag lädt den Eintrag neu; auch dabei bleibt die Anlage eine Attrappe.
+    with patch("custom_components.heatnexus.WindhagerHttpClient", AttrappenClient):
+        hass.config_entries.async_add_subentry(eintrag, quelle)
+        await hass.async_block_till_done()
 
     await _neu_konfigurieren(hass, eintrag)
 
