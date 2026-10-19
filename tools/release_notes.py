@@ -56,7 +56,8 @@ def mit_symbolen(block: str) -> str:
 
     def ersetzen(treffer: re.Match) -> str:
         titel = treffer.group(1).strip()
-        symbol = SYMBOLE.get(titel)
+        # Das Highlight trägt hinter dem Wort das Merkmal: „Highlight: Meldungsliste“.
+        symbol = "🌟" if titel.startswith("Highlight:") else SYMBOLE.get(titel)
         return f"### {symbol} {titel}" if symbol else treffer.group(0)
 
     return re.sub(r"^### ([^\n]+)$", ersetzen, block, flags=re.M)
