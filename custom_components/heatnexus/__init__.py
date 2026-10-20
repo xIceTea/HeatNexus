@@ -20,7 +20,7 @@ from typing import NamedTuple
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.start import async_at_started
@@ -445,7 +445,7 @@ async def _entitaeten_einrichten(
     # die Plattformen melden ihn erst danach an. Ein zweiter Lauf, sobald Home
     # Assistant steht, spart den Umweg über einen weiteren Start.
     entry.async_on_unload(
-        async_at_started(hass, lambda _hass: async_entity_ids_umstellen(hass, entry))
+        async_at_started(hass, callback(lambda _hass: async_entity_ids_umstellen(hass, entry)))
     )
     abgewaehlte_entitaeten_stilllegen(hass, entry, coordinators)
 
