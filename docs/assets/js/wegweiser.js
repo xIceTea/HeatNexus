@@ -259,4 +259,21 @@
 
   rand();
   abschnitte();
+
+  // ---- Hell oder dunkel ---------------------------------------------------
+  // Die Wahl liegt im Browser. Ist der Speicher gesperrt, gilt sie bis zum
+  // Neuladen.
+  var tonTaste = document.querySelector(".ton");
+  function tonBeschriften(ton) {
+    tonTaste.setAttribute("aria-label", ton === "hell" ? "Dunkle Darstellung einschalten" : "Helle Darstellung einschalten");
+  }
+  if (tonTaste) {
+    tonBeschriften(wurzel.dataset.theme);
+    tonTaste.addEventListener("click", function () {
+      var ton = wurzel.dataset.theme === "hell" ? "dunkel" : "hell";
+      wurzel.dataset.theme = ton;
+      tonBeschriften(ton);
+      try { localStorage.setItem("heatnexus.ton", ton); } catch (e) { /* nur für diesen Besuch */ }
+    });
+  }
 })();
