@@ -222,6 +222,10 @@ assert.equal(zeit.uhrzeitText(sieben, { ...utc, config: { time_zone: "Asia/Tokyo
 assert.match(zeit.uhrzeitText(sieben, { ...utc, locale: { language: "en", time_format: "12" } }), /^05:00\s?AM$/i);
 assert.equal(zeit.uhrzeitText(sieben, { ...utc, locale: { language: "en", time_format: "24" } }), "05:00");
 assert.equal(zeit.uhrzeitText(sieben, { config: { time_zone: "Kein/Ort" }, locale: { language: "de" } }).length, 5);
+// Ein vergangener Tastendruck: heute nur die Uhrzeit, sonst mit Datum, das Jahr nur wenn es abweicht.
+assert.equal(zeit.zeitpunktText(sieben, utc, new Date("2026-09-28T20:00:00Z")), "05:00");
+assert.equal(zeit.zeitpunktText(sieben, utc, new Date("2026-10-25T08:00:00Z")), "28.9. 05:00");
+assert.equal(zeit.zeitpunktText(sieben, utc, new Date("2027-01-02T08:00:00Z")), "28.9.2026 05:00");
 assert.equal(zeit.zeitzone({ ...utc, locale: { time_zone: "local" } }), undefined);
 assert.equal(zeit.zeitzone(utc), "UTC");
 assert.equal(zeit.uhr24("2026-09-28T23:30:00Z", "Europe/Vienna"), "01:30");

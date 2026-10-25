@@ -10,7 +10,7 @@
  */
 
 import { BESTAETIGUNG_MAX_MS, NACHFASS_PLAN, RUECKMELDUNG_MS } from "../ordnung.js";
-import { uhrzeitText } from "./zeit.js";
+import { zeitpunktText } from "./zeit.js";
 
 export const BedienenMixin = (Basis) =>
   class extends Basis {
@@ -282,7 +282,7 @@ export const BedienenMixin = (Basis) =>
     if (bereich === "button") {
       const zeitpunkt = new Date(zustand.state);
       if (Number.isNaN(zeitpunkt.getTime())) return this._t("noch nie ausgelöst");
-      return this._tMit("zuletzt {zeit}", { zeit: uhrzeitText(zeitpunkt, this._hass) });
+      return this._tMit("zuletzt {zeit}", { zeit: zeitpunktText(zeitpunkt, this._hass) });
     }
     return this._t(laeuft ? "läuft" : "aus");
   }

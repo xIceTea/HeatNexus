@@ -74,3 +74,16 @@ export function uhrzeitText(datum, hass) {
   else if (locale.time_format === "24") optionen.hourCycle = "h23";
   return formatierer(sprache, optionen, zeitzone(hass)).format(new Date(datum));
 }
+
+/** Ein vergangener Zeitpunkt: heute nur die Uhrzeit, sonst Datum und Uhrzeit, das Jahr nur wenn es abweicht. */
+export function zeitpunktText(datum, hass, jetzt = new Date()) {
+  const zone = zeitzone(hass);
+  const dann = zeitTeile(datum, zone);
+  const heute = zeitTeile(jetzt, zone);
+  if (dann.kalendertag === heute.kalendertag) return uhrzeitText(datum, hass);
+  const locale = (hass && hass.locale) || {};
+  const sprache = locale.language || (hass && hass.language) || "de";
+  const optionen = { day: "numeric", month: "numeric" };
+  if (dann.jahr !== heute.jahr) optionen.year = "numeric";
+  return `${formatierer(sprache, optionen, zone).format(new Date(datum))} ${uhrzeitText(datum, hass)}`;
+}

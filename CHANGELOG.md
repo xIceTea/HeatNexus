@@ -6,6 +6,17 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.14.1]
+
+### Behoben
+
+**Panel**
+- Während einer Warmwasserladung nach Programm lässt sich eine Einmalladung starten.
+- Tasten nennen beim letzten Auslösen das Datum, nicht nur die Uhrzeit.
+
+**Home Assistant**
+- Die Auslieferung der Kartendateien blockiert Home Assistant nicht mehr.
+
 ## [1.14.0] - 2026-10-19
 
 ### Highlight: Automatik mit Hausmodell
