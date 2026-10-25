@@ -267,7 +267,7 @@ WARMWASSER_SOLL = namensmuster(r"\bww[- ]temperatur sollwert", r"\bwarmwasser so
 # Eine Einmalladung überstimmt die Betriebswahl also nur vorübergehend; wer
 # die Betriebswahl neu setzt, stellt den Grundzustand wieder her und bricht
 # damit ab. Angezeigt wird deshalb die Betriebsart; die Ladepumpe ist nur der
-# Rückfall für Anlagen, die keine Betriebsart melden.
+# Rückfall für Anlagen ohne Betriebsart und ohne Schalter `2/16`.
 BETRIEBSART = namensmuster(r"^betriebsart$")
 WARMWASSER_LADEPUMPE = namensmuster(r"\bww-ladepumpe")
 
@@ -284,9 +284,11 @@ WARMWASSER_HYSTERESE = r"^hysterese ein$"
 # Entität (`kennung_suchen` erwartet ein Tupel, `erster` eine Zeichenkette).
 WARMWASSER_HYSTERESE_MUSTER = namensmuster(WARMWASSER_HYSTERESE)
 
-# Betriebsarten (2/9), die eine laufende Warmwasserladung bedeuten.
-WARMWASSER_LAEDT = ("WW-Ladung", "Warmwasser Einmalladung", "Warmwasser Hygiene-Programm")
-WARMWASSER_LAEDT_WERTE = (3, 17, 18)
+# Betriebsart (2/9) einer laufenden Einmalladung. Eine Ladung nach Programm
+# („WW-Ladung") zählt nicht: Währenddessen soll die Taste eine Einmalladung
+# mit eigener Temperatur starten können, nicht eine fremde Ladung abbrechen.
+WARMWASSER_LAEDT = ("Warmwasser Einmalladung",)
+WARMWASSER_LAEDT_WERTE = (18,)
 
 # Betriebswahl-Einträge (3/50), die bei der Warmwasserladung eine Rolle
 # spielen. Es sind Muster, keine festen Namen: Welche Einträge eine Anlage

@@ -1578,12 +1578,13 @@ def test_warmwasser_laden_erkennt_englische_betriebswahl():
     assert re.search(bedienung["betriebswahl_aus"], "Stand-by", re.IGNORECASE)
     assert not re.search(bedienung["betriebswahl_aus"], "Program 1", re.IGNORECASE)
     assert re.search(bedienung["betriebswahl_ww"], "DHW operation", re.IGNORECASE)
-    assert {"DHW charging", "DHW single charge", "Hot water hygiene programme"} <= set(
-        bedienung["zustand_wenn"]
-    )
+    assert "DHW single charge" in bedienung["zustand_wenn"]
+    # Eine Ladung nach Programm und das Hygiene-Programm sind keine Einmalladung.
+    assert not {"DHW charging", "Hot water hygiene programme"} & set(bedienung["zustand_wenn"])
     # Ohne bekannte Texte bleiben die deutschen Muster.
     assert re.search(bedienung["betriebswahl_aus"], "Standby", re.IGNORECASE)
-    assert "WW-Ladung" in bedienung["zustand_wenn"]
+    assert "Warmwasser Einmalladung" in bedienung["zustand_wenn"]
+    assert "WW-Ladung" not in bedienung["zustand_wenn"]
 
 
 @pytest.mark.parametrize(

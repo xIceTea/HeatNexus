@@ -853,8 +853,8 @@ export const UebersichtMixin = (Basis) =>
    * Ob die Anlage eine Ladung meldet: Betriebsart oder Freigabe `2/16`.
    *
    * Eine Vorgabe auf Zeit („Eco / Comfort“) verdeckt die Ladung in der Betriebsart;
-   * die Freigabe steht dann weiter auf Ja. Die Ladepumpe läuft nach und zählt nur
-   * ohne Betriebsart.
+   * die Freigabe steht dann weiter auf Ja. Die Ladepumpe läuft auch bei einer Ladung
+   * nach Programm; neben einem Schalter `2/16` zählt sie deshalb nicht.
    */
   _ladungLautAnlage(eintrag, mitPumpe) {
     if (this._laedtLautBetriebsart(eintrag)) return true;
@@ -863,7 +863,8 @@ export const UebersichtMixin = (Basis) =>
       const zustand = this._zustand(eintrag.zustand_an);
       if (zustand && !OHNE_WERT.includes(String(zustand.state).toLowerCase())) return false;
     }
-    if (mitPumpe && eintrag.zustand_pumpe && this._istAn(eintrag.zustand_pumpe)) return true;
+    const schalter = (eintrag.entity || "").startsWith("switch.");
+    if (mitPumpe && !schalter && eintrag.zustand_pumpe && this._istAn(eintrag.zustand_pumpe)) return true;
     return this._istAn(eintrag.entity);
   }
 
@@ -895,9 +896,8 @@ export const UebersichtMixin = (Basis) =>
   /**
    * Lädt die Anlage laut Betriebsart – ohne die nachlaufende Ladepumpe.
    *
-   * Für die Anzeige zählt die Pumpe mit: Sie ist der handfeste Beleg, dass
-   * gerade geladen wird. Für die Bestätigung eines Abbruchs zählt sie
-   * gerade nicht.
+   * Für die Anzeige zählt die Pumpe nur ohne Schalter `2/16` mit. Für die
+   * Bestätigung eines Abbruchs zählt sie nie.
    */
   _laedtLautBetriebsart(eintrag) {
     if (!eintrag.zustand_an) return false;

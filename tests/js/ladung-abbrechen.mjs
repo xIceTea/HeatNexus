@@ -61,7 +61,7 @@ function panelBauen({ laedt, optionen, betriebswahl = BETRIEBSWAHL, zusatz = {} 
     betriebswahl,
     betriebswahl_zurueck: "^programm",
     zustand_an: BETRIEBSART,
-    zustand_wenn: ["WW-Ladung", "Warmwasser Einmalladung"],
+    zustand_wenn: ["Warmwasser Einmalladung"],
     zustand_pumpe: LADEPUMPE,
     ...zusatz,
   };
@@ -273,10 +273,11 @@ const faelle = [];
   faelle.push("nachlaufende Pumpe gilt nicht als laufende Ladung");
 }
 
-// --- Ohne lesbare Betriebsart bleibt die Pumpe der Beleg -------------------
+// --- Ohne lesbare Betriebsart: Freigabe vor Pumpe --------------------------
 //
 // An einem Kreis mit nur einem zulaessigen Wert meldet die Betriebsart den
-// Ladezustand gar nicht. Dann ist die Pumpe alles, was es gibt.
+// Ladezustand gar nicht. Ein Schalter meldet die Einmalladung selbst; die
+// Pumpe läuft auch bei einer Ladung nach Programm und zählt nur bei einer Taste.
 {
   const { element, taste } = panelBauen({
     laedt: false,
@@ -287,10 +288,46 @@ const faelle = [];
   element._bindungen.forEach((bindung) => bindung());
 
   const beschriftung = taste.querySelector(".beschriftung").textContent;
-  if (beschriftung !== "Warmwasser laden abbrechen") {
-    throw new Error(`Ohne Betriebsart zaehlt die Pumpe nicht: "${beschriftung}"`);
+  if (beschriftung !== "Warmwasser laden") {
+    throw new Error(`Pumpe ueberstimmte den Schalter: "${beschriftung}"`);
   }
-  faelle.push("ohne lesbare Betriebsart bleibt die Pumpe der Beleg");
+  faelle.push("Schalter aus, Pumpe an: keine Einmalladung");
+}
+{
+  const TASTE = "button.ww_einmalladung";
+  const { element, taste } = panelBauen({
+    laedt: false,
+    optionen: ["Standby", "WW-Betrieb"],
+    zusatz: { entity: TASTE, abbrechen: "button.ww_einmalladung_abbrechen" },
+  });
+  element._hass.states[TASTE] = { entity_id: TASTE, state: "unknown", attributes: {} };
+  element._hass.states[BETRIEBSART].state = "unavailable";
+  element._hass.states[LADEPUMPE].state = "on";
+  element._bindungen.forEach((bindung) => bindung());
+
+  const beschriftung = taste.querySelector(".beschriftung").textContent;
+  if (beschriftung !== "Warmwasser laden abbrechen") {
+    throw new Error(`Bei einer Taste zaehlt die Pumpe nicht: "${beschriftung}"`);
+  }
+  faelle.push("Taste ohne Zustand: die Pumpe bleibt der Beleg");
+}
+
+// --- Eine Ladung nach Programm ist keine Einmalladung ----------------------
+{
+  const { element, taste } = panelBauen({
+    laedt: false,
+    optionen: ["Standby", "Programm 1", "WW-Betrieb"],
+    zusatz: { zustand_wenn: ["Warmwasser Einmalladung"] },
+  });
+  element._hass.states[BETRIEBSART].state = "WW-Ladung";
+  element._hass.states[LADEPUMPE].state = "on";
+  element._bindungen.forEach((bindung) => bindung());
+
+  const beschriftung = taste.querySelector(".beschriftung").textContent;
+  if (beschriftung !== "Warmwasser laden") {
+    throw new Error(`Programmladung bot einen Abbruch an: "${beschriftung}"`);
+  }
+  faelle.push("Ladung nach Programm: Einmalladung bleibt startbar");
 }
 
 // --- Aus einem Programm heraus wird nichts gemerkt -------------------------
@@ -440,7 +477,7 @@ const abschaltungen = (gerufen) =>
   };
   const laufend = bauen("Ja");
   laufend.element._bedientaste(
-    { entity: AUSWAHL, titel: "Warmwasser laden", titel_abbrechen: "Warmwasser laden abbrechen", zustand_wenn: ["WW-Ladung"], ein_option: "Ja", aus_option: "Nein" },
+    { entity: AUSWAHL, titel: "Warmwasser laden", titel_abbrechen: "Warmwasser laden abbrechen", zustand_wenn: ["Warmwasser Einmalladung"], ein_option: "Ja", aus_option: "Nein" },
     false
   ).ausloesen("click");
   await abwarten();
@@ -448,7 +485,7 @@ const abschaltungen = (gerufen) =>
   if (!aus || aus.daten.option !== "Nein") throw new Error("laufende Ladung über Auswahl nicht mit Nein beendet");
   const ruhend = bauen("Nein");
   ruhend.element._bedientaste(
-    { entity: AUSWAHL, titel: "Warmwasser laden", titel_abbrechen: "Warmwasser laden abbrechen", zustand_wenn: ["WW-Ladung"], ein_option: "Ja", aus_option: "Nein" },
+    { entity: AUSWAHL, titel: "Warmwasser laden", titel_abbrechen: "Warmwasser laden abbrechen", zustand_wenn: ["Warmwasser Einmalladung"], ein_option: "Ja", aus_option: "Nein" },
     false
   ).ausloesen("click");
   await abwarten();

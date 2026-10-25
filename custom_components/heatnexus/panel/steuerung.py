@@ -200,10 +200,9 @@ def warmwasser_bedienung(alle: list[dict[str, Any]], kreis: list[dict[str, Any]]
     return {
         "zustand_an": art["entity_id"] if art else None,
         "zustand_wenn": [*laedt, *(t for t in WARMWASSER_LAEDT if t not in laedt)],
-        # Zweiter Beleg für „lädt gerade": die Ladepumpe. Die Betriebsart
-        # allein genügt nicht – sie meldet je nach Baureihe andere Worte, und
-        # an einem Kreis mit nur einem zulässigen Wert (`allowed: [0]`) meldet
-        # sie den Ladezustand gar nicht.
+        # Rückfall für Kreise ohne Betriebsart und ohne Schalter `2/16`. Die
+        # Pumpe läuft auch bei einer Ladung nach Programm, ist also nur dort
+        # ein Beleg, wo sonst nichts die Einmalladung meldet.
         "zustand_pumpe": kennung_suchen(
             kreis, WARMWASSER_LADEPUMPE, ("binary_sensor",), "dhw_charge_pump"
         ),

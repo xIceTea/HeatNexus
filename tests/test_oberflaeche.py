@@ -710,9 +710,15 @@ def test_die_nachlaufende_ladepumpe_ist_keine_ladung(abbruch):
     assert "nachlaufende Pumpe gilt nicht als laufende Ladung" in abbruch["faelle"]
 
 
-def test_ohne_betriebsart_zaehlt_weiter_die_pumpe(abbruch):
-    """Die Gegenprobe: An manchen Kreisen meldet die Betriebsart gar nichts."""
-    assert "ohne lesbare Betriebsart bleibt die Pumpe der Beleg" in abbruch["faelle"]
+def test_ohne_betriebsart_entscheidet_der_ausloeser(abbruch):
+    """Ohne Betriebsart meldet ein Schalter die Einmalladung; die Pumpe zählt nur bei einer Taste."""
+    assert "Schalter aus, Pumpe an: keine Einmalladung" in abbruch["faelle"]
+    assert "Taste ohne Zustand: die Pumpe bleibt der Beleg" in abbruch["faelle"]
+
+
+def test_eine_ladung_nach_programm_ist_keine_einmalladung(abbruch):
+    """Während einer Ladung nach Programm bleibt die Einmalladung startbar."""
+    assert "Ladung nach Programm: Einmalladung bleibt startbar" in abbruch["faelle"]
 
 
 def test_die_labelkarte_steht_in_der_uebersicht(durchlauf):
