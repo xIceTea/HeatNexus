@@ -6,6 +6,17 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.15.0]
+
+### Neu
+
+**Panel**
+- Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
+- Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
+
+**Dashboard**
+- Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
+
 ## [1.14.1] - 2026-10-25
 
 ### Behoben
