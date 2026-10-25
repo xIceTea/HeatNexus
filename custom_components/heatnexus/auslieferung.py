@@ -95,7 +95,8 @@ def _fassungspfade_anbieten(hass: HomeAssistant) -> None:
         return
 
     async def _ausliefern(request: web.Request) -> web.FileResponse:
-        ziel = datei_im_ordner(request.match_info["datei"])
+        # Pfad auflösen und Datei prüfen greift aufs Dateisystem: im Executor.
+        ziel = await hass.async_add_executor_job(datei_im_ordner, request.match_info["datei"])
         if ziel is None:
             raise web.HTTPNotFound
         return web.FileResponse(ziel)

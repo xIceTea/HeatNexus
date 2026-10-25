@@ -59,6 +59,20 @@ async def test_ein_alter_fassungspfad_bleibt_erreichbar(hass, auslieferung):
     assert "/heatnexus-karte-{fassung}" in " ".join(pfade)
 
 
+async def test_ein_alter_fassungspfad_liefert_die_datei(hass, auslieferung, aiohttp_client):
+    """Die Datei kommt über den alten Pfad an; eine fehlende bleibt 404."""
+    from homeassistant.setup import async_setup_component
+
+    assert await async_setup_component(hass, "http", {})
+    await auslieferung.async_dateien_ausliefern(hass, "1.11.0")
+    client = await aiohttp_client(hass.http.app)
+
+    antwort = await client.get("/heatnexus-karte-1.11.0/heatnexus-schaubild-karte.js")
+    assert antwort.status == 200
+    antwort = await client.get("/heatnexus-karte-1.11.0/gibtsnicht.js")
+    assert antwort.status == 404
+
+
 @requires_frontend()
 async def test_das_kartenmodul_steht_vor_jeder_anlage_bereit(hass, enable_custom_integrations):
     """Ohne eingerichtete Anlage ist das Kartenmodul schon angemeldet."""
