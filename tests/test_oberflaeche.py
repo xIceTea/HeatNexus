@@ -1409,6 +1409,14 @@ def test_ohne_besonderen_kesselzustand_bleibt_anlage_in_ordnung(durchlauf, fall)
     assert kopf["sonder"]["anzeige"] == "none"
 
 
+def test_meldung_und_kesselzustand_stehen_gemeinsam_im_kopf(durchlauf):
+    """Liegt eine Meldung an, bleibt sie neben dem Kesselzustand sichtbar."""
+    kopf = durchlauf["kesselzustandKopf"]["mitMeldung"]
+    assert kopf["ok"] == {"anzeige": "", "text": "Fehler-Meldung anliegend"}
+    assert kopf["sonder"]["anzeige"] == ""
+    assert kopf["sonder"]["text"] == "Kaminkehrer aktiv"
+
+
 def test_das_fenster_darstellung_beginnt_oben(durchlauf):
     """Der Fokus liegt auf „Schließen“ ganz unten; das Fenster darf dafür nicht nach unten scrollen."""
     assert durchlauf["darstellung"]["beimOeffnen"] == {"fokusOhneScrollen": True, "oben": True}

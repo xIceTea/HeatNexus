@@ -1930,9 +1930,9 @@ bilanz.meldungBeimSpeichern = meldungen;
       { quelle: "betriebsart", wenn: ["Kaminkehrerfunktion"], serviceausbrand: null, text: "Kaminkehrer aktiv", symbol: "mdi:account-hard-hat" },
     ],
   };
-  const kopf = (kesselzustandBeschreibung) => {
+  const kopf = (kesselzustandBeschreibung, stoerungen = []) => {
     const vorher = flaeche._bindungen.length;
-    const karte = flaeche._seite({ name: "A", kennwerte: [], stoerungen: [], kesselzustand: kesselzustandBeschreibung });
+    const karte = flaeche._seite({ name: "A", kennwerte: [], stoerungen, kesselzustand: kesselzustandBeschreibung });
     flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());
     const [ok, sonder] = karte.querySelectorAll(".abzeichen");
     return {
@@ -1946,7 +1946,13 @@ bilanz.meldungBeimSpeichern = meldungen;
   const imBetrieb = kopf(beschreibung);
   setzen("sensor.kz_art", "Kaminkehrerfunktion");
   const ohneBeschreibung = kopf(null);
-  bilanz.kesselzustandKopf = { kaminkehrer, imBetrieb, ohneBeschreibung };
+  // Meldung und Kesselzustand zugleich: beide Abzeichen bleiben sichtbar.
+  setzen("sensor.kz_art", "Kaminkehrerfunktion");
+  setzen("sensor.kz_stoerung", "Fehler");
+  setzen("binary_sensor.kz_melder", "on");
+  const mitMeldung = kopf(beschreibung, [{ entity: "sensor.kz_stoerung", melder: "binary_sensor.kz_melder" }]);
+  bilanz.kesselzustandKopf = { kaminkehrer, imBetrieb, ohneBeschreibung, mitMeldung };
+  for (const kennung of ["sensor.kz_art", "sensor.kz_stoerung", "binary_sensor.kz_melder"]) delete zustaende[kennung];
   flaeche._gebaut = false;
   flaeche._zeichnen();
 }
