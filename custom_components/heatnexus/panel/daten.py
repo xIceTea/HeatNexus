@@ -16,6 +16,7 @@ from collections.abc import Callable
 from typing import Any
 
 from ..dashboard.anlagen import trifft
+from ..dashboard.kesselzustand import kesselzustand
 from ..helpers import mustername
 from ..schema import schaubild_nutzdaten
 from . import uebersicht
@@ -101,6 +102,7 @@ def anlage_daten(
         "heizkreise": uebersicht.heizkreise(anlage),
         "warmwasser": warmwasser_zeilen(alle),
         "stoerungen": uebersicht.stoerungen(anlage),
+        "kesselzustand": kesselzustand(anlage),
         "stoerspeicher": next(
             (
                 e["entity_id"]
