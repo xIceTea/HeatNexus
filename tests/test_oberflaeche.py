@@ -714,6 +714,7 @@ def test_ohne_betriebsart_entscheidet_der_ausloeser(abbruch):
     """Ohne Betriebsart meldet ein Schalter die Einmalladung; die Pumpe zählt nur bei einer Taste."""
     assert "Schalter aus, Pumpe an: keine Einmalladung" in abbruch["faelle"]
     assert "Taste ohne Zustand: die Pumpe bleibt der Beleg" in abbruch["faelle"]
+    assert "Auswahl ohne Betriebsart: die Pumpe bleibt der Beleg" in abbruch["faelle"]
 
 
 def test_eine_ladung_nach_programm_ist_keine_einmalladung(abbruch):

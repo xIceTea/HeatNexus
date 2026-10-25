@@ -330,6 +330,26 @@ const faelle = [];
   faelle.push("Ladung nach Programm: Einmalladung bleibt startbar");
 }
 
+// --- Auswahl Nein/Ja ohne Betriebsart: die Pumpe bleibt der Beleg ----------
+{
+  const FREIGABE = "select.ww_freigabe_starten";
+  const { element, taste } = panelBauen({
+    laedt: false,
+    optionen: [],
+    betriebswahl: null,
+    zusatz: { entity: FREIGABE, zustand_an: null, ein_option: "Ja", aus_option: "Nein" },
+  });
+  element._hass.states[FREIGABE] = { entity_id: FREIGABE, state: "Nein", attributes: {} };
+  element._hass.states[LADEPUMPE].state = "on";
+  element._bindungen.forEach((bindung) => bindung());
+
+  const beschriftung = taste.querySelector(".beschriftung").textContent;
+  if (beschriftung !== "Warmwasser laden abbrechen") {
+    throw new Error(`Bei einer Auswahl zaehlt die Pumpe nicht: "${beschriftung}"`);
+  }
+  faelle.push("Auswahl ohne Betriebsart: die Pumpe bleibt der Beleg");
+}
+
 // --- Aus einem Programm heraus wird nichts gemerkt -------------------------
 //
 // Die Anlage stellt die Betriebswahl während einer Ladung selbst auf WW-Betrieb
