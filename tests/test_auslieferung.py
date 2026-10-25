@@ -59,18 +59,25 @@ async def test_ein_alter_fassungspfad_bleibt_erreichbar(hass, auslieferung):
     assert "/heatnexus-karte-{fassung}" in " ".join(pfade)
 
 
-async def test_ein_alter_fassungspfad_liefert_die_datei(hass, auslieferung, aiohttp_client):
+async def test_ein_alter_fassungspfad_liefert_die_datei(hass, auslieferung):
     """Die Datei kommt über den alten Pfad an; eine fehlende bleibt 404."""
+    from aiohttp import web
+    from aiohttp.test_utils import make_mocked_request
     from homeassistant.setup import async_setup_component
 
     assert await async_setup_component(hass, "http", {})
     await auslieferung.async_dateien_ausliefern(hass, "1.11.0")
-    client = await aiohttp_client(hass.http.app)
 
-    antwort = await client.get("/heatnexus-karte-1.11.0/heatnexus-schaubild-karte.js")
-    assert antwort.status == 200
-    antwort = await client.get("/heatnexus-karte-1.11.0/gibtsnicht.js")
-    assert antwort.status == 404
+    async def abrufen(datei: str):
+        anfrage = make_mocked_request("GET", f"/heatnexus-karte-1.11.0/{datei}", app=hass.http.app)
+        treffer = await hass.http.app.router.resolve(anfrage)
+        anfrage._match_info = treffer
+        return await treffer.handler(anfrage)
+
+    antwort = await abrufen("heatnexus-schaubild-karte.js")
+    assert isinstance(antwort, web.FileResponse)
+    with pytest.raises(web.HTTPNotFound):
+        await abrufen("gibtsnicht.js")
 
 
 @requires_frontend()
