@@ -17,7 +17,7 @@ Integration erst installieren zu müssen.
 
 **Übersicht.** Oben die Heizungsübersicht: je Anlagenteil ein Leitwert, so wie
 das Bediengerät der Anlage ihn zeigt — am Kessel die Kesseltemperatur, am
-Puffer die obere, am Heizkreis die Raumtemperatur. Darunter das
+Puffer die obere, am Heizkreis die Raumtemperatur. Sonderzustände des Kessels wie Serviceausbrand oder Kaminkehrer erscheinen im Kopf der Übersicht; ist die Steuerung nicht erreichbar, steht dort eine Meldung. Darunter das
 Anlagenschaubild, dann der Systemstatus mit Betriebszustand,
 Außentemperatur, Kesselleistung, Brennstoff, Vorratsbehälter und den
 Restlaufzeiten.
