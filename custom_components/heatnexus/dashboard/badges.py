@@ -17,11 +17,13 @@ from . import auswahl
 from .anlagen import gewaehlte_aussentemperatur
 from .kacheln import KESSEL as KESSELROLLE
 from .kacheln import entitaeten_je_schluessel, rolle
+from .kesselzustand import kesselzustand
 from .muster import WARTUNG_HINWEIS_STUNDEN, WARTUNG_KURZNAMEN
 
 # Namen der Kennwert-Badges; bei mehreren Kesseln einer Anlage steht der Name des Teils.
 KESSEL = "Kessel"
 VORRAT = ("fuel_storage_status", "Vorrat")
+STEUERUNG = "Steuerung"
 
 # Zustände, in denen ein Heizkreis seinem Programm folgt; nur Abweichungen zeigen eine Badge.
 PLANMAESSIG = ["programm", "aus"]
@@ -34,6 +36,13 @@ Eintrag = tuple[str, str, list[dict[str, Any]] | None]
 # Aussehen der Badges in der Übersicht.
 PHASE = {"show_state": True, "show_icon": True, "icon": "mdi:fire", "color": "deep-orange"}
 VORRAT_LEER = {"show_state": True, "show_icon": True, "icon": "mdi:silo", "color": "red"}
+SONDERBETRIEB = {
+    "show_state": True,
+    "show_icon": True,
+    "icon": "mdi:information-outline",
+    "color": "blue",
+}
+AUSFALL = {"show_state": True, "show_icon": True, "icon": "mdi:lan-disconnect", "color": "red"}
 WARTUNG_FARBE = "orange"
 STOERUNG_FARBE = "red"
 # Vorratsbehälter (`39/76`): 0 = Fehler, 1 = leer.
@@ -114,6 +123,42 @@ def _stoerungen(anlage: dict[str, Any]) -> list[Eintrag]:
     ]
 
 
+def _kesselzustand(
+    anlage: dict[str, Any], uebersetze: Callable[[str], str]
+) -> list[dict[str, Any]]:
+    """Ausfall der Steuerung, Serviceausbrand und Sonderbetrieb des Kessels; jede nur, solange sie zutrifft."""
+    b = kesselzustand(anlage)
+    if b is None:
+        return []
+    bezug = b["bezug"]
+    ergebnis = [
+        badge(
+            bezug,
+            _name(anlage, uebersetze(STEUERUNG), True),
+            [{"condition": "state", "entity": bezug, "state": "unavailable"}],
+        )
+        | AUSFALL
+    ]
+    sonder = list(
+        dict.fromkeys(t for r in b["regeln"] if r["quelle"] == "betriebsart" for t in r["wenn"])
+    )
+    if not sonder:
+        return ergebnis
+    name = _name(anlage, uebersetze(KESSEL), True)
+    bedingung = [{"condition": "state", "entity": b["betriebsart"], "state": sonder}]
+    if b["serviceausbrand"]:
+        wahl = b["betriebswahl"]
+        bedingung.append({"condition": "state", "entity": wahl, "state_not": b["serviceausbrand"]})
+        ergebnis.append(
+            badge(
+                wahl, name, [{"condition": "state", "entity": wahl, "state": b["serviceausbrand"]}]
+            )
+            | SONDERBETRIEB
+        )
+    ergebnis.append(badge(b["betriebsart"], name, bedingung) | SONDERBETRIEB)
+    return ergebnis
+
+
 def _phasen(anlage: dict[str, Any], uebersetze: Callable[[str], str]) -> list[dict[str, Any]]:
     """Betriebsphase je Kessel; mit zwei Kesseln steht der Teilname hinter der Anlage."""
     kessel = [t for t in anlage["teile"] if rolle(t) == KESSELROLLE]
@@ -152,6 +197,7 @@ def uebersicht_anlagenbadges(
     ]
     return [
         *(b for anlage in anlagen for b in _phasen(anlage, uebersetze)),
+        *(b for anlage in anlagen for b in _kesselzustand(anlage, uebersetze)),
         *hinweise,
         *(b for anlage in anlagen for b in _vorrat(anlage, uebersetze)),
     ]
