@@ -1390,6 +1390,25 @@ def test_das_automatik_abzeichen_zeigt_nur_abweichungen(durchlauf):
     assert abzeichen["ohne"] is True
 
 
+def test_der_kesselzustand_ersetzt_im_kopf_die_meldung_in_ordnung(durchlauf):
+    """Kaminkehrer aktiv: Das Sonderabzeichen erscheint, „Anlage in Ordnung“ entfällt."""
+    kopf = durchlauf["kesselzustandKopf"]
+    assert kopf["kaminkehrer"]["ok"]["anzeige"] == "none"
+    assert kopf["kaminkehrer"]["sonder"] == {
+        "anzeige": "",
+        "text": "Kaminkehrer aktiv",
+        "symbol": "mdi:account-hard-hat",
+    }
+
+
+@pytest.mark.parametrize("fall", ["imBetrieb", "ohneBeschreibung"])
+def test_ohne_besonderen_kesselzustand_bleibt_anlage_in_ordnung(durchlauf, fall):
+    """Im Normalbetrieb und ohne Beschreibung vom Server bleibt nur das übliche Abzeichen."""
+    kopf = durchlauf["kesselzustandKopf"][fall]
+    assert kopf["ok"] == {"anzeige": "", "text": "Anlage in Ordnung"}
+    assert kopf["sonder"]["anzeige"] == "none"
+
+
 def test_das_fenster_darstellung_beginnt_oben(durchlauf):
     """Der Fokus liegt auf „Schließen“ ganz unten; das Fenster darf dafür nicht nach unten scrollen."""
     assert durchlauf["darstellung"]["beimOeffnen"] == {"fokusOhneScrollen": True, "oben": True}

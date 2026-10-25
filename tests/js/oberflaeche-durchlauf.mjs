@@ -1910,4 +1910,45 @@ bilanz.meldungBeimSpeichern = meldungen;
   flaeche._zeichnen();
 }
 
+// ---------------------------------------------------------------------------
+// Kopf der Übersicht: Der Kesselzustand erscheint als zweites Abzeichen und
+// ersetzt „Anlage in Ordnung“, solange er etwas Besonderes meldet.
+// ---------------------------------------------------------------------------
+{
+  const zustaende = flaeche._hass.states;
+  const setzen = (kennung, wert) => {
+    zustaende[kennung] = { entity_id: kennung, state: wert, attributes: {} };
+  };
+  const beschreibung = {
+    bezug: "sensor.kz_art",
+    betriebsart: "sensor.kz_art",
+    betriebswahl: "sensor.kz_wahl",
+    phase: "sensor.kz_phase",
+    serviceausbrand: ["Serviceausbrand"],
+    offline: { text: "Steuerung nicht erreichbar", symbol: "mdi:lan-disconnect" },
+    regeln: [
+      { quelle: "betriebsart", wenn: ["Kaminkehrerfunktion"], serviceausbrand: null, text: "Kaminkehrer aktiv", symbol: "mdi:account-hard-hat" },
+    ],
+  };
+  const kopf = (kesselzustandBeschreibung) => {
+    const vorher = flaeche._bindungen.length;
+    const karte = flaeche._seite({ name: "A", kennwerte: [], stoerungen: [], kesselzustand: kesselzustandBeschreibung });
+    flaeche._bindungen.slice(vorher).forEach((bindung) => bindung());
+    const [ok, sonder] = karte.querySelectorAll(".abzeichen");
+    return {
+      ok: { anzeige: ok.style.display, text: text(ok) },
+      sonder: { anzeige: sonder.style.display, text: text(sonder), symbol: sonder.firstChild.getAttribute("icon") },
+    };
+  };
+  setzen("sensor.kz_art", "Kaminkehrerfunktion");
+  const kaminkehrer = kopf(beschreibung);
+  setzen("sensor.kz_art", "Kessel-Temperatur");
+  const imBetrieb = kopf(beschreibung);
+  setzen("sensor.kz_art", "Kaminkehrerfunktion");
+  const ohneBeschreibung = kopf(null);
+  bilanz.kesselzustandKopf = { kaminkehrer, imBetrieb, ohneBeschreibung };
+  flaeche._gebaut = false;
+  flaeche._zeichnen();
+}
+
 console.log(JSON.stringify(bilanz));

@@ -18,6 +18,7 @@ import {
   RUECKMELDUNG_MS,
   SPERRE_MS,
 } from "../ordnung.js";
+import { kesselzustand } from "./kesselzustand.js";
 import { uhrzeitText } from "./zeit.js";
 
 // Symbol je Zustand der Automatik (`automatik_zustand`), für das Abzeichen am Heizkreis.
@@ -123,6 +124,14 @@ export const UebersichtMixin = (Basis) =>
   // -------------------------------------------------------------------
   // Linke Spalte: Marke, Zustand, Kennwerte
   // -------------------------------------------------------------------
+  /** Ein Abzeichen: Symbol und Text, gefüllt von einer Bindung. */
+  _abzeichenKnoten(symbol) {
+    const knoten = document.createElement("div");
+    knoten.className = "abzeichen";
+    knoten.append(this._symbolKnoten(symbol), document.createElement("span"));
+    return knoten;
+  }
+
   _seite(anlage) {
     // Eine Überschrift wie jede andere Karte. Marke und Logo standen hier ein
     // zweites Mal, obwohl beide in der Kopfleiste darüber stehen; der Name der
@@ -130,17 +139,23 @@ export const UebersichtMixin = (Basis) =>
     // Reiter oben rechts.
     const karte = this._karte("Heizungsübersicht");
 
-    const abzeichen = document.createElement("div");
-    abzeichen.className = "abzeichen";
-    abzeichen.appendChild(this._symbolKnoten("mdi:check-circle-outline"));
-    const abzeichenText = document.createElement("span");
-    abzeichen.appendChild(abzeichenText);
-    karte.appendChild(abzeichen);
+    const abzeichen = this._abzeichenKnoten("mdi:check-circle-outline");
+    const sonder = this._abzeichenKnoten("mdi:information-outline");
+    sonder.classList.add("sonderbetrieb");
+    karte.append(abzeichen, sonder);
     this._bindungen.push(() => {
       const stufe = this._stoerungsstufe(anlage);
+      const zustand = kesselzustand(anlage.kesselzustand, (kennung) => this._zustand(kennung));
       for (const name of ["info", "fehler", "alarm"]) abzeichen.classList.toggle(name, stufe === name);
-      abzeichenText.textContent = this._t(STUFEN[stufe].abzeichen);
+      abzeichen.lastChild.textContent = this._t(STUFEN[stufe].abzeichen);
       abzeichen.firstChild.setAttribute("icon", STUFEN[stufe].abzeichenSymbol);
+      // „Anlage in Ordnung“ nur, wenn auch der Kessel nichts Besonderes meldet.
+      abzeichen.style.display = stufe === "ok" && zustand ? "none" : "";
+      sonder.style.display = zustand ? "" : "none";
+      if (zustand) {
+        sonder.lastChild.textContent = zustand.uebersetzen ? this._t(zustand.text) : zustand.text;
+        sonder.firstChild.setAttribute("icon", zustand.symbol);
+      }
     });
 
     const liste = document.createElement("div");
