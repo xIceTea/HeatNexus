@@ -6,7 +6,7 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [1.14.1]
+## [1.14.1] - 2026-10-25
 
 ### Behoben
 
@@ -16,6 +16,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 **Home Assistant**
 - Die Auslieferung der Kartendateien blockiert Home Assistant nicht mehr.
+- Entitäts-IDs werden nach dem Start ohne Fehlermeldung an das Namensschema angeglichen.
 
 ## [1.14.0] - 2026-10-19
 
