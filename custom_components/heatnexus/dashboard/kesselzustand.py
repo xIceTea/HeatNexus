@@ -27,7 +27,9 @@ PHASEN_GESPERRT = ((0, 9), "mdi:lock-outline")
 TEXTE = (OFFLINE[0], *(text for *_, text, _ in REGELN if text))
 
 
-def _finden(teil: dict[str, Any], adresse: str, bereiche: tuple[str, ...] = ("sensor",)) -> dict | None:
+def _finden(
+    teil: dict[str, Any], adresse: str, bereiche: tuple[str, ...] = ("sensor",)
+) -> dict | None:
     return next(
         (e for e in teil["entitaeten"] if e.get("adresse") == adresse and e["bereich"] in bereiche),
         None,
@@ -43,13 +45,27 @@ def _texte(eintrag: dict[str, Any] | None, adresse: str, werte: tuple[int, ...])
 
 def _regeln(art: dict, wahl: dict | None, phase: dict | None) -> list[dict[str, Any]]:
     regeln = [
-        {"quelle": "betriebsart", "wenn": wenn, "serviceausbrand": service, "text": text, "symbol": symbol}
+        {
+            "quelle": "betriebsart",
+            "wenn": wenn,
+            "serviceausbrand": service,
+            "text": text,
+            "symbol": symbol,
+        }
         for werte, service, text, symbol in REGELN
         if (service is not True or wahl) and (wenn := _texte(art, BETRIEBSART, werte))
     ]
     werte, symbol = PHASEN_GESPERRT
     if phase and (wenn := _texte(phase, PHASE, werte)):
-        regeln.append({"quelle": "phase", "wenn": wenn, "serviceausbrand": None, "text": None, "symbol": symbol})
+        regeln.append(
+            {
+                "quelle": "phase",
+                "wenn": wenn,
+                "serviceausbrand": None,
+                "text": None,
+                "symbol": symbol,
+            }
+        )
     return regeln
 
 
