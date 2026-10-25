@@ -9,7 +9,8 @@ from ..device_db import get_enum
 BETRIEBSART = "2/59"
 BETRIEBSWAHL = "9/75"
 PHASE = "2/1"
-HEIZKREIS_BETRIEBSART = "2/9"
+# Betriebsart eines Anlagenteils (Heizkreis, Puffer): reicht als Bezug für die Erreichbarkeit.
+BETRIEBSART_ANLAGENTEIL = "2/9"
 SERVICEAUSBRAND = 6
 
 OFFLINE = ("Steuerung nicht erreichbar", "mdi:lan-disconnect")
@@ -27,11 +28,9 @@ PHASEN_GESPERRT = ((0, 9), "mdi:lock-outline")
 TEXTE = (OFFLINE[0], *(text for *_, text, _ in REGELN if text))
 
 
-def _finden(
-    teil: dict[str, Any], adresse: str, bereiche: tuple[str, ...] = ("sensor",)
-) -> dict | None:
+def _finden(teil: dict[str, Any], adresse: str) -> dict | None:
     return next(
-        (e for e in teil["entitaeten"] if e.get("adresse") == adresse and e["bereich"] in bereiche),
+        (e for e in teil["entitaeten"] if e.get("adresse") == adresse and e["bereich"] == "sensor"),
         None,
     )
 
@@ -73,10 +72,10 @@ def kesselzustand(anlage: dict[str, Any]) -> dict[str, Any] | None:
     """Was den Zustand im Kopf bestimmt: der erste Kessel, sonst nur die Erreichbarkeit."""
     kessel = next((t for t in anlage["teile"] if _finden(t, BETRIEBSART)), None)
     art = _finden(kessel, BETRIEBSART) if kessel else None
-    wahl = _finden(kessel, BETRIEBSWAHL, ("sensor", "select")) if kessel else None
+    wahl = _finden(kessel, BETRIEBSWAHL) if kessel else None
     phase = _finden(kessel, PHASE) if kessel else None
     bezug = art or next(
-        (e for t in anlage["teile"] if (e := _finden(t, HEIZKREIS_BETRIEBSART))), None
+        (e for t in anlage["teile"] if (e := _finden(t, BETRIEBSART_ANLAGENTEIL))), None
     )
     if bezug is None:
         return None
