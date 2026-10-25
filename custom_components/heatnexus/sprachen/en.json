@@ -288,6 +288,7 @@
   "Terrakotta": "Terracotta",
   "Träge – Fußboden- oder Wandheizung": "Slow – floor or wall heating",
   "Uhr": "Time",
+  "Verbindung zur Steuerung": "Connection to controller",
   "Verbleibende Betriebsstunden bis Ascheentleerung, Hauptreinigung und Wartung. Erledigt wird die Arbeit am Kessel, bestätigt im Reiter Steuerung.": "Remaining operating hours until ash removal, main cleaning and maintenance. The work is done at the boiler and confirmed in the Control tab.",
   "Verbleibende Betriebsstunden bis zur nächsten Arbeit. Läuft der Wert ab, fordert die Anlage sie an; bestätigt wird sie mit der zugehörigen Taste im Reiter Steuerung.": "Remaining operating hours until the next task. When the value runs out, the system requests it; it is confirmed with the matching button in the Control tab.",
   "Verlauf": "History",

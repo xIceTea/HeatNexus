@@ -1645,3 +1645,19 @@ def test_anlage_ohne_kessel_bekommt_nur_die_ausfall_badge(badges):
     assert [b["visibility"] for b in eigene] == [
         [{"condition": "state", "entity": "sensor.hk", "state": "unavailable"}]
     ]
+
+
+@pytest.mark.parametrize(
+    ("sprache", "erwartet"),
+    [("en", "Connection to controller"), ("nl", "Verbinding met regeling")],
+)
+def test_die_ausfall_badge_nennt_die_verbindung_zur_steuerung(badges, sprache, erwartet):
+    from custom_components.heatnexus.texte import Woerterbuch
+
+    kreis = {
+        **_kessel(),
+        "entitaeten": [_e("sensor.hk", "Betriebsart", adresse="2/9", optionen={3: "WW-Ladung"})],
+    }
+    liste = badges.uebersicht_anlagenbadges([_anlage(kreis)], uebersetze=Woerterbuch(sprache))
+    namen = [b["name"] for b in liste if b["entity"] == "sensor.hk"]
+    assert [n.split(" · ")[-1] for n in namen] == [erwartet]

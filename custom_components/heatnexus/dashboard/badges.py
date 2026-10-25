@@ -23,7 +23,7 @@ from .muster import WARTUNG_HINWEIS_STUNDEN, WARTUNG_KURZNAMEN
 # Namen der Kennwert-Badges; bei mehreren Kesseln einer Anlage steht der Name des Teils.
 KESSEL = "Kessel"
 VORRAT = ("fuel_storage_status", "Vorrat")
-STEUERUNG = "Steuerung"
+VERBINDUNG = "Verbindung zur Steuerung"
 
 # Zustände, in denen ein Heizkreis seinem Programm folgt; nur Abweichungen zeigen eine Badge.
 PLANMAESSIG = ["programm", "aus"]
@@ -134,7 +134,7 @@ def _kesselzustand(
     ergebnis = [
         badge(
             bezug,
-            _name(anlage, uebersetze(STEUERUNG), True),
+            _name(anlage, uebersetze(VERBINDUNG), True),
             [{"condition": "state", "entity": bezug, "state": "unavailable"}],
         )
         | AUSFALL
