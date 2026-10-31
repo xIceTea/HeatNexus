@@ -335,9 +335,7 @@ async def test_ein_gateway_fehler_beim_lesen_wird_einmal_wiederholt(client, monk
     assert len(c._session.anfragen) == 2
 
 
-async def test_ein_bleibender_gateway_fehler_beim_lesen_laesst_den_wert_stehen(
-    client, monkeypatch
-):
+async def test_ein_bleibender_gateway_fehler_beim_lesen_laesst_den_wert_stehen(client, monkeypatch):
     from custom_components.heatnexus.client import transport
     from custom_components.heatnexus.client.gemeinsam import FEHLGESCHLAGEN
 
