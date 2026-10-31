@@ -468,12 +468,16 @@ EINHEITEN: dict[str, tuple[str, str | None, str, int]] = {
     "bar": ("bar", "pressure", "measurement", 2),
     "mbar": ("mbar", "pressure", "measurement", 1),
     "Pa": ("Pa", "pressure", "measurement", 0),
+    "g": ("g", "weight", "measurement", 0),
+    "ms": ("ms", "duration", "measurement", 0),
 }
 
 # Dieselben Größen in der Schreibweise des LON-Adressraums. Als Verweis statt
 # als zweiter Eintrag: Ändert sich die Umrechnung, ändert sie sich für beide.
 EINHEITEN["rpm"] = EINHEITEN["U/min"]
 EINHEITEN["Std"] = EINHEITEN["h"]
+# BioWIN meldet den Volumenstrom mit großem L.
+EINHEITEN["L/h"] = EINHEITEN["l/h"]
 
 # Namensbestandteile, die einen Zählerstand kennzeichnen: Sie laufen nur nach
 # oben und gehören damit in die Langzeitstatistik als Summe, nicht als Messwert.

@@ -27,6 +27,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 **Home Assistant**
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
+- Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
 
 ## [1.14.1] - 2026-10-25
 

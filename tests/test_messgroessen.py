@@ -27,6 +27,9 @@ def _sensor(**felder):
         ("°C", "°C"),
         ("%", "%"),
         ("h", "h"),
+        ("L/h", "L/h"),
+        ("g", "g"),
+        ("ms", "ms"),
     ],
 )
 def test_einheit_wird_auf_ha_schreibweise_gebracht(helpers, geraet, erwartet):
