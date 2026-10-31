@@ -227,7 +227,9 @@ BRENNSTOFF_ART: tuple[tuple[str, str], ...] = (
 )
 
 
-# Dritte Quelle: das Modell der Baureihe, dann der Gerätename. Das Modell ist
+# Dritte Quelle: die Geräteklasse (`geraete.KESSELART_JE_KLASSE`).
+
+# Zuletzt das Modell der Baureihe, dann der Gerätename. Das Modell ist
 # deutsch und fest; der Name folgt der Sprache und jeder Umbenennung, deshalb
 # kennen die Muster auch die englischen und niederländischen Bezeichnungen.
 NAME_ART: tuple[tuple[str, str], ...] = (
@@ -272,7 +274,7 @@ def _art_aus_namen(*namen: object) -> str | None:
 
 
 def kesselart_des_teils(teil: dict[str, Any]) -> str | None:
-    """Art eines Wärmeerzeugers: Funktionstyp, gemeldeter Brennstoff, Modell, Name.
+    """Art eines Wärmeerzeugers: Funktionstyp, Brennstoff, Geräteklasse, Modell, Name.
 
     ``None`` heißt „neutral zeichnen" – nicht raten. Wirkt nur auf die Zeichnung.
     """
@@ -284,6 +286,8 @@ def kesselart_des_teils(teil: dict[str, Any]) -> str | None:
     for eintrag in teil.get("entitaeten", []):
         if _ist_brennstoff(eintrag) and (art := _art_des_brennstoffs(eintrag)):
             return art
+    if art := geraete.KESSELART_JE_KLASSE.get(str(teil.get("klasse") or "")):
+        return art
     return _art_aus_namen(teil.get("modell"), teil.get("name"))
 
 

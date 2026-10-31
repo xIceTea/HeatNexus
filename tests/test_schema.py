@@ -630,6 +630,27 @@ def test_kesselart_folgt_dem_modell_statt_dem_geraetenamen(werte, fct, modell, a
         assert werte.kesselart_des_teils(teil) == art, name
 
 
+@pytest.mark.parametrize(
+    ("fct", "klasse", "art"),
+    [
+        (10, "1409", "scheitholz"),
+        (10, "1414", "hackgut"),
+        (9, "1415", "pellets"),
+        (10, "1203", "gas_oel"),
+    ],
+)
+def test_kesselart_folgt_der_geraeteklasse(werte, fct, klasse, art):
+    """Die Klasse gilt vor dem Modell; der Gerätename sagt hier nichts."""
+    teil = {**_teil("Keller", fct, []), "klasse": klasse, "modell": "Automatik-/Zusatzkessel"}
+    assert werte.kesselart_des_teils(teil) == art
+
+
+def test_der_gemeldete_brennstoff_gilt_vor_der_geraeteklasse(werte):
+    """Ein PuroWIN der Hackgut-Klasse, der gerade Pellets verbrennt."""
+    pellets = {**_kessel_mit_brennstoff("de", 2), "klasse": "1414"}
+    assert werte.kesselart_des_teils(pellets) == "pellets"
+
+
 def test_kesselart_raet_nicht(werte):
     """Sagt weder Brennstoff noch Name etwas, wird neutral gezeichnet."""
     assert werte.kesselart_des_teils(_teil("Waermeerzeuger", 25, [])) is None

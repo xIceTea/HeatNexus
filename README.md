@@ -263,8 +263,9 @@ ein.
 
 Dort steht je Anlage auch der **Wärmeerzeuger**. Er wirkt nur auf die Zeichnung
 im Anlagenschaubild und ändert weder Entitäten noch Werte. Ab Werk steht er auf
-*automatisch erkennen*: HeatNexus nimmt zuerst den Brennstoff, den die Anlage
-meldet, sonst den Funktionstyp, sonst den Namen der Funktion. Passt das Ergebnis
+*automatisch erkennen*: Eine Wärmepumpe oder ein Gas-/Ölkessel ist am Funktionstyp
+erkannt. Sonst nimmt HeatNexus den Brennstoff, den die Anlage meldet, dann die
+Geräteklasse des Kessels, zuletzt den Namen der Funktion. Passt das Ergebnis
 nicht, lässt es sich hier fest setzen.
 
 #### Die erste Minute

@@ -54,6 +54,14 @@ def test_die_klasse_gilt_nur_fuer_ihren_funktionstyp(geraete):
     assert geraete.modell(9, "2009") == geraete.MODELLE[9]
 
 
+def test_jede_kesselart_je_klasse_hat_eine_zeichnung(geraete):
+    """Klassen klein geschrieben wie `geraeteklasse`, Arten aus der Auswahl am Gerät."""
+    const = load_standalone("const")
+    for klasse, art in geraete.KESSELART_JE_KLASSE.items():
+        assert geraete.geraeteklasse(f"900100{klasse}0a0501") == klasse
+        assert art in const.KESSELARTEN, (klasse, art)
+
+
 def test_jede_klasse_mit_eigenem_modell_ist_beim_hersteller_belegt(geraete):
     """Nur Klassen, für die der Hersteller eine eigene Ebenenliste führt."""
     db = json.loads((KOMPONENTE / "device_db.json").read_text(encoding="utf-8"))

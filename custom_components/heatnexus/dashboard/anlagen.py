@@ -114,12 +114,12 @@ def _beschreibungen(hass: HomeAssistant):
         yield from (coordinator.data or {}).get("devices", [])
 
 
-def _fct_je_geraet(hass: HomeAssistant) -> dict[str, tuple[Any, str | None]]:
-    """Funktionstyp und deutsches Werksmodell je Gerätekennung.
+def _fct_je_geraet(hass: HomeAssistant) -> dict[str, tuple[Any, str | None, str | None]]:
+    """Funktionstyp, deutsches Werksmodell und Geräteklasse je Gerätekennung.
 
     Das Modell folgt weder der Sprache noch einer Umbenennung des Geräts.
     """
-    zuordnung: dict[str, tuple[Any, str | None]] = {}
+    zuordnung: dict[str, tuple[Any, str | None, str | None]] = {}
     # Erst eine Beschreibung mit Knoten legt das Modell fest; ohne Knoten gilt
     # das Modell des Funktionstyps nur, bis eine mit Knoten kommt.
     mit_knoten: set[str] = set()
@@ -134,7 +134,8 @@ def _fct_je_geraet(hass: HomeAssistant) -> dict[str, tuple[Any, str | None]]:
                 mit_knoten.add(kennung)
             elif kennung in zuordnung:
                 continue
-            zuordnung[kennung] = (fct, geraete.modell(fct, klassen.get(knoten_nr)))
+            klasse = klassen.get(knoten_nr)
+            zuordnung[kennung] = (fct, geraete.modell(fct, klasse), klasse)
     return zuordnung
 
 
@@ -271,7 +272,7 @@ def _gruppe_abschliessen(gruppe: dict[str, Any]) -> None:
 class _Lesestand:
     """Was je Gerät und je Entität einmal aus den Koordinatoren gelesen wird."""
 
-    fct_je_geraet: dict[str, tuple[Any, str | None]]
+    fct_je_geraet: dict[str, tuple[Any, str | None, str | None]]
     quellen_je_geraet: dict[str, dict[str, Any]]
     schaubildwahl_je_geraet: dict[str, tuple[str, str, bool]]
     auswahltexte: dict[str, dict[int, str]]
@@ -291,7 +292,7 @@ def _lesestand(hass: HomeAssistant) -> _Lesestand:
 
 def _teil(entry_id: str, geraet: Any, kennung: str, stand: _Lesestand) -> dict[str, Any]:
     """Ein Anlagenteil aus seinem Gerät, noch ohne Entitäten."""
-    fct, modell = stand.fct_je_geraet.get(kennung, (None, None))
+    fct, modell, klasse = stand.fct_je_geraet.get(kennung, (None, None, None))
     quelle = stand.quellen_je_geraet.get(kennung) or {}
     art = quelle.get("art")
     kesselart, kesselwert, modulpumpe = stand.schaubildwahl_je_geraet.get(
@@ -305,6 +306,7 @@ def _teil(entry_id: str, geraet: Any, kennung: str, stand: _Lesestand) -> dict[s
         "eintrag": entry_id,
         "fct_type": fct,
         "modell": modell,
+        "klasse": klasse,
         "art": art,
         "quellenpumpe": bool(quelle.get("pumpe")),
         "rang": rang(fct, art),

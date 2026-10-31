@@ -18,12 +18,13 @@ wenn dort Vorabversionen zugelassen sind.
 **Dashboard**
 - Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
 - Auch Anlagen ohne Kessel melden in der Kopfzeile eine nicht erreichbare Steuerung.
+- Das Schaubild wählt die Kesselart nach der Geräteklasse, wenn kein Brennstoff gemeldet wird.
 
 **Home Assistant**
 - Ein Sensor „Anlagenzustand“ meldet je Steuerung Störung, Sonderbetrieb und Ausfall.
 - Home Assistant findet die Steuerung im Netz und bietet sie zur Einrichtung an.
 - Nach einem Adresswechsel stellt HeatNexus die Anlage selbst auf die neue Adresse um.
-- Ein neu angeschlossenes Anlagenteil erscheint ohne Neustart.
+- HeatNexus übernimmt neu angeschlossene und entfernte Anlagenteile ohne Neustart.
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
 - Wärmepumpen zeigen Wärmemengen, Betriebsstunden, Starts und COP.
 
