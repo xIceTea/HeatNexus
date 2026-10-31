@@ -25,6 +25,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Nach einem Adresswechsel stellt HeatNexus die Anlage selbst auf die neue Adresse um.
 - Ein neu angeschlossenes Anlagenteil erscheint ohne Neustart.
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
+- Wärmepumpen zeigen Wärmemengen, Betriebsstunden, Starts und COP.
 
 ### Behoben
 

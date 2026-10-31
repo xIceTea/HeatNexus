@@ -76,6 +76,18 @@ def test_zusatzadressen_stehen_ohne_fuehrenden_schraegstrich(geraete):
         assert all(not a.startswith("/") for a in eintraege)
 
 
+def test_jede_zusatzadresse_der_waermepumpe_hat_einen_namen(geraete):
+    """Gruppe 52 steht in keinem Menü; ohne Namen aus der Datenbank hieße der Wert nur nach der Adresse."""
+    import json
+    from pathlib import Path
+
+    db = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "device_db.json"
+    namen = json.loads(db.read_text(encoding="utf-8"))["names"]
+    for fct_type in (7, 26):
+        assert geraete.EXTRA_OIDS[fct_type]
+        assert all(gnmn in namen for gnmn in geraete.EXTRA_OIDS[fct_type]), fct_type
+
+
 def test_schaltpunkte_nennen_ihren_funktionstyp(geraete):
     """Ohne ihn fände der Client die Funktion nicht, an der er rechnet."""
     typen = {m.FCT_TYPE for m in geraete.MODULE}
