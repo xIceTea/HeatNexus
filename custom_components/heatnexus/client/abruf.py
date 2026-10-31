@@ -407,6 +407,8 @@ class AbrufMixin:
         mitliefert. Nur nötig, wenn ein Meldungs-/Klartext-Sensor existiert.
         """
         typen = {typ for _, typ, _, _ in MELDUNGS_SENSOREN}
+        # Die Antwort dient zugleich der Strukturprüfung; ohne Abruf bleibt sie leer.
+        self._struktur_antwort = None
         if not any(d.get("type") in typen for d in self.geraeteliste):
             return {}
         try:
@@ -414,6 +416,7 @@ class AbrufMixin:
         except Exception as e:
             _LOGGER.debug("Meldungen nicht lesbar: %s", e)
             devs = None
+        self._struktur_antwort = devs if isinstance(devs, list) else None
         if not isinstance(devs, list):
             # Wie bei den Werten: Ein Fehlschlag lässt den letzten Stand stehen.
             return dict(self._letzte_meldungen)
@@ -717,6 +720,8 @@ class AbrufMixin:
         if langsam_faellig:
             self._letzte_objekte = await self._fetch_time_programs()
         status = await self._fetch_status()
+        if langsam_faellig:
+            await self._struktur_pruefen(self._struktur_antwort)
         stoerspeicher = await self._fetch_stoerspeicher(status)
         faellig = self._faellig()
         # Ein misslungener Abruf ist kein Messwert: Der zuletzt gelesene Wert

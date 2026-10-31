@@ -377,6 +377,7 @@ class ErkennungMixin:
         self._wurzel_luecken = set()
         self._wurzel_ueberbrueckt = set()
         json_devices = await self._struktur_lesen()
+        self._struktur = self._strukturabdruck(json_devices)
         if not self.geraeteinfo:
             await self._lese_geraeteinfo()
         if not self.werksbezeichnung:
@@ -393,6 +394,61 @@ class ErkennungMixin:
                 await self._knoten_erkennen(device, statisch, nur_kern)
 
         self._abfragetasten()
+
+    def _funktion_zaehlt(self, fct_type) -> bool:
+        """Sagen, ob die Erkennung eine Funktion dieser Art auswertet."""
+        if fct_type == FCT_NV:
+            return bool(self.lon or self.lon_grundumfang)
+        return fct_type in FCT_ENTITY_MAP or bool(get_layers(fct_type))
+
+    def _strukturabdruck(self, json_devices: list) -> list[str]:
+        """Knoten und freie, auswertbare Funktionen aus `/1` als sortierte Liste.
+
+        Gesperrte Funktionen zählen nicht; sie legt auch die Erkennung nicht an.
+        """
+        abdruck: set[str] = set()
+        for knoten in json_devices:
+            if not isinstance(knoten, dict) or knoten.get("nodeId") is None:
+                continue
+            abdruck.add(str(knoten["nodeId"]))
+            for fct in knoten.get("functions") or ():
+                if fct.get("lock") or not self._funktion_zaehlt(fct.get("fctType")):
+                    continue
+                abdruck.add(f"{knoten['nodeId']}/{fct.get('fctId')}/{fct.get('fctType')}")
+        return sorted(abdruck)
+
+    async def _struktur_pruefen(self, antwort: list | None = None) -> None:
+        """`/1` mit dem Erkennungsstand vergleichen und eine neue Abweichung vormerken.
+
+        Ohne mitgegebene Antwort fragt der Client selbst; ein Fehlschlag ändert nichts.
+        """
+        if self.oids is None:
+            return
+        if antwort is None:
+            try:
+                antwort = await self.fetch("/1")
+            except Exception as fehler:
+                _LOGGER.debug("Struktur von %s nicht lesbar: %s", self.host, fehler)
+                return
+        if not antwort or not isinstance(antwort, list):
+            return
+        abdruck = self._strukturabdruck(antwort)
+        if self._struktur is None:
+            # Ein Stand ohne Abdruck übernimmt die erste Antwort als Vergleichsstand.
+            self._struktur = abdruck
+            return
+        if abdruck in (self._struktur, self._struktur_gemeldet):
+            return
+        self._struktur_gemeldet = abdruck
+        self._struktur_geaendert = True
+        _LOGGER.info(
+            "%s: Der Aufbau der Anlage hat sich geändert; sie wird neu eingelesen.", self.host
+        )
+
+    def strukturaenderung_abholen(self) -> bool:
+        """Sagen, ob seit der letzten Frage eine geänderte Struktur auffiel, und quittieren."""
+        geaendert, self._struktur_geaendert = self._struktur_geaendert, False
+        return geaendert
 
     def _seriennummern_sammeln(self, json_devices: list[dict]) -> None:
         """Erst die Seriennummern einsammeln – alle Kennungen hängen daran."""
@@ -695,6 +751,7 @@ class ErkennungMixin:
             "werksbezeichnung": dict(self.werksbezeichnung),
             "geraeteklasse": dict(self.geraeteklasse),
             "zusatzkandidaten": list(self.zusatzkandidaten),
+            "struktur": list(self._struktur) if self._struktur is not None else None,
         }
 
     def restore_discovery(self, data: dict) -> None:
@@ -710,6 +767,9 @@ class ErkennungMixin:
         self.werksbezeichnung = dict(data.get("werksbezeichnung") or {})
         self.geraeteklasse = dict(data.get("geraeteklasse") or {})
         self.zusatzkandidaten = [dict(k) for k in data.get("zusatzkandidaten") or []]
+        # Fehlt der Abdruck, setzt ihn die nächste Strukturprüfung, ohne Einlesen.
+        struktur = data.get("struktur")
+        self._struktur = list(struktur) if isinstance(struktur, list) else None
         # Die Auswahl kann sich seit dem Speichern geändert haben.
         for d in self.devices:
             if d.get("type") in self.ZUSATZTYPEN:

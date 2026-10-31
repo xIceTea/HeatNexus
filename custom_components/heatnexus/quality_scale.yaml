@@ -71,10 +71,11 @@ rules:
   docs-troubleshooting: done
   docs-use-cases: done
   dynamic-devices:
-    status: todo
+    status: done
     comment: >-
-      Neue Anlagenteile erscheinen erst nach heatnexus.rediscover oder einem
-      Neustart, nicht von allein.
+      Im langsamen Takt vergleicht HeatNexus den Aufbau der Anlage mit dem
+      Erkennungsstand. Kommt ein Anlagenteil dazu, liest es die Anlage im
+      Hintergrund neu ein; neue Geräte erscheinen ohne Neustart.
   entity-category: done
   entity-device-class: done
   entity-disabled-by-default: done

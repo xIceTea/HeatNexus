@@ -170,6 +170,13 @@ class WindhagerHttpClient(
         self._wurzel_luecken: set[str] = set()
         # LON-Adressräume ohne Antwort: Bekanntes bleibt, der Lauf gilt trotzdem als vollständig.
         self._wurzel_ueberbrueckt: set[str] = set()
+        # Abdruck der freien Funktionen aus `/1`, gegen den der Abruf die Struktur prüft.
+        self._struktur: list[str] | None = None
+        # Zuletzt gemeldeter abweichender Abdruck und ob die Meldung noch abzuholen ist.
+        self._struktur_gemeldet: list[str] | None = None
+        self._struktur_geaendert = False
+        # Die `/1`-Antwort des laufenden Abrufs, sofern die Meldungen sie schon geholt haben.
+        self._struktur_antwort: list | None = None
 
     @property
     def erkennung_unvollstaendig(self) -> bool:
@@ -259,6 +266,7 @@ class WindhagerHttpClient(
         "_menue_luecken",
         "_texte",
         "_vollstaendig",
+        "_struktur",
     )
 
     def _stand_sichern(self) -> dict:

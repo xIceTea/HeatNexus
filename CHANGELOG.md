@@ -20,6 +20,7 @@ wenn dort Vorabversionen zugelassen sind.
 **Home Assistant**
 - Home Assistant findet die Steuerung im Netz und bietet sie zur Einrichtung an.
 - Nach einem Adresswechsel stellt HeatNexus die Anlage selbst auf die neue Adresse um.
+- Ein neu angeschlossenes Anlagenteil erscheint ohne Neustart.
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
 
 ### Behoben

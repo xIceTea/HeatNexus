@@ -51,7 +51,7 @@ from .const import (
 from .coordinator import WindhagerDataUpdateCoordinator
 from .dashboard import async_remove_dashboard, async_setup_dashboard
 from .dienste import async_register_dashboard_export, async_register_rediscover_service
-from .einlesen import meldungs_id, vollabzuege_starten
+from .einlesen import meldungs_id, strukturpruefung_anschliessen, vollabzuege_starten
 from .entity import steuerung_info, steuerung_kennung
 from .erkennungsstand import (
     abgleich_noetig,
@@ -552,6 +552,7 @@ async def _anlagen_einbinden(
     await _oberflaechen_einrichten(hass, entry, version)
 
     hintergrund.extend(vollabzuege_starten(hass, entry, nachzuladen, mem_cache, version))
+    strukturpruefung_anschliessen(hass, entry, anlagen, mem_cache, version)
 
 
 async def _einrichtung_zuruecknehmen(

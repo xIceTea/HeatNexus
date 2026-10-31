@@ -282,6 +282,11 @@ löst das **nicht** aus – sonst kostete jede Aktualisierung die volle Wartezei
 von vorn. Stattdessen ist der gespeicherte Stand sofort da, und was neu
 dazugekommen ist, ergänzt HeatNexus im Hintergrund.
 
+Ändert sich der Aufbau der Anlage, etwa durch einen zusätzlichen Heizkreis,
+bemerkt HeatNexus das innerhalb einer Viertelstunde und liest die Anlage im
+Hintergrund neu ein. Ein Gerät, das die Anlage nicht mehr meldet, lässt sich
+danach auf seiner Geräteseite löschen.
+
 ## Dienste
 
 | Dienst | Wirkung |
