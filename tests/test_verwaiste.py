@@ -504,3 +504,65 @@ def test_ein_kessel_ohne_wert_im_abruf_behaelt_seine_kennwerte(hass):
     koordinator = SimpleNamespace(data={"devices": [starts], "oids": {}})
     eintrag = SimpleNamespace(runtime_data={"coordinators": {"a": koordinator}})
     assert "SN1-0-befund-starts" in laufzeit.kennungen(eintrag)
+
+
+async def _geraet_mit_entitaet(hass, kennung, unique_id=None):
+    """Eintrag, geladene Automatik und ein Gerät, optional mit einer Entität daran."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.heatnexus.automatik.verwaltung import verwaltung_holen
+    from custom_components.heatnexus.const import DOMAIN
+
+    eintrag, _ = _eintrag_mit_entitaet(hass, "SN1-0-0-7-0")
+    await verwaltung_holen(hass).laden()
+    geraet = dr.async_get(hass).async_get_or_create(
+        config_entry_id=eintrag.entry_id, identifiers={(DOMAIN, kennung)}
+    )
+    if unique_id:
+        er.async_get(hass).async_get_or_create(
+            "sensor", DOMAIN, unique_id, config_entry=eintrag, device_id=geraet.id
+        )
+    return eintrag, geraet
+
+
+def _mit_steuerung(koordinator):
+    koordinator.client.steuerung_kennung = lambda: "steuerung-SN1"
+    return koordinator
+
+
+async def test_ein_geraet_ohne_gemeldeten_datenpunkt_darf_weg(modul, hass):
+    eintrag, geraet = await _geraet_mit_entitaet(hass, "SN9-0", "SN9-0-0-7-0")
+    koordinator = _mit_steuerung(_koordinator(["SN1-0-0-7-0"]))
+
+    assert modul.geraet_entfernbar(hass, eintrag, {"a": koordinator}, geraet)
+
+
+async def test_ein_geraet_mit_gemeldetem_datenpunkt_bleibt(modul, hass):
+    eintrag, geraet = await _geraet_mit_entitaet(hass, "SN9-0", "SN9-0-0-7-0")
+    koordinator = _mit_steuerung(_koordinator(["SN9-0-0-7-0"]))
+
+    assert not modul.geraet_entfernbar(hass, eintrag, {"a": koordinator}, geraet)
+
+
+async def test_die_steuerung_bleibt_auch_ohne_entitaet(modul, hass):
+    eintrag, geraet = await _geraet_mit_entitaet(hass, "steuerung-SN1")
+    koordinator = _mit_steuerung(_koordinator(["SN1-0-0-7-0"]))
+
+    assert not modul.geraet_entfernbar(hass, eintrag, {"a": koordinator}, geraet)
+
+
+async def test_ein_gemeldetes_geraet_bleibt_auch_ohne_entitaet(modul, hass):
+    eintrag, geraet = await _geraet_mit_entitaet(hass, "SN1-0")
+    koordinator = _mit_steuerung(_koordinator(["SN1-0-0-7-0"]))
+    koordinator.data["devices"][0]["device_id"] = "SN1-0"
+
+    assert not modul.geraet_entfernbar(hass, eintrag, {"a": koordinator}, geraet)
+
+
+async def test_vor_dem_vollabzug_bleibt_jedes_geraet(modul, hass):
+    eintrag, geraet = await _geraet_mit_entitaet(hass, "SN9-0", "SN9-0-0-7-0")
+    koordinator = _mit_steuerung(_koordinator(["SN1-0-0-7-0"]))
+    koordinator.client._vollstaendig = False
+
+    assert not modul.geraet_entfernbar(hass, eintrag, {"a": koordinator}, geraet)

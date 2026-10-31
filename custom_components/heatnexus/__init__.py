@@ -678,6 +678,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: ConfigEntry, geraet: dr.DeviceEntry
+) -> bool:
+    """Das Löschen eines Geräts zulassen, das die Anlage nicht mehr meldet."""
+    coordinators = (laufzeitdaten(entry) or {}).get("coordinators") or {}
+    return verwaiste.geraet_entfernbar(hass, entry, coordinators, geraet)
+
+
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Gespeicherten Erkennungsstand und Dashboard abräumen."""
     await verwaltung_holen(hass).eintrag_entfernt(entry.entry_id)

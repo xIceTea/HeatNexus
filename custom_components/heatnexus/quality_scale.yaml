@@ -92,11 +92,12 @@ rules:
   reconfiguration-flow: done
   repair-issues: done
   stale-devices:
-    status: todo
+    status: done
     comment: >-
-      Verschwundene Datenpunkte werden stillgelegt, aber nicht entfernt - das
-      ist Absicht (Verlauf und Benennung bleiben erhalten). Ein ganzes Gerät,
-      das die Anlage nicht mehr meldet, bleibt derzeit stehen.
+      Verschwundene Datenpunkte werden stillgelegt, aber nicht entfernt, damit
+      Verlauf und Benennung erhalten bleiben. Ein Gerät, an dem nach dem
+      Vollabzug nichts Gemeldetes mehr hängt, lässt sich in Home Assistant
+      löschen.
 
   # --------------------------------------------------------------- Platin
   async-dependency:

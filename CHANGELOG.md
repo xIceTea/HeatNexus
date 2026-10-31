@@ -17,6 +17,9 @@ wenn dort Vorabversionen zugelassen sind.
 **Dashboard**
 - Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
 
+**Home Assistant**
+- Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
+
 ## [1.14.1] - 2026-10-25
 
 ### Behoben
