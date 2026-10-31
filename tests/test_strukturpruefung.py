@@ -153,6 +153,16 @@ async def test_vor_der_erkennung_wird_nicht_verglichen(client):
     assert client.strukturaenderung_abholen() is False
 
 
+async def test_waehrend_eines_einlesens_wird_nicht_verglichen(client):
+    client._geraete_waehrend_einlesen = []
+    client.antworten = [_mit_funktion(NEUER_HEIZKREIS)]
+
+    await client._struktur_pruefen()
+
+    assert client.gefragt == []
+    assert client.strukturaenderung_abholen() is False
+
+
 # ---------------------------------------------------------------------------
 # Wiederhergestellter Stand
 # ---------------------------------------------------------------------------

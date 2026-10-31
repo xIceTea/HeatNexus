@@ -421,8 +421,9 @@ class ErkennungMixin:
         """`/1` mit dem Erkennungsstand vergleichen und eine neue Abweichung vormerken.
 
         Ohne mitgegebene Antwort fragt der Client selbst; ein Fehlschlag ändert nichts.
+        Während eines Einlesens setzt dessen Lauf den Abdruck; verglichen wird nicht.
         """
-        if self.oids is None:
+        if self.oids is None or self._geraete_waehrend_einlesen is not None:
             return
         if antwort is None:
             try:
