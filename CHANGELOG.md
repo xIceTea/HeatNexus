@@ -20,6 +20,11 @@ wenn dort Vorabversionen zugelassen sind.
 **Home Assistant**
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
 
+### Behoben
+
+**Home Assistant**
+- Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
+
 ## [1.14.1] - 2026-10-25
 
 ### Behoben

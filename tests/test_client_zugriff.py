@@ -322,6 +322,37 @@ async def test_ein_wert_kommt_ueber_den_datapoint_endpunkt(client):
     assert url.endswith("/api/1.0/datapoint/1/60/0/0/7/0")
 
 
+async def test_ein_gateway_fehler_beim_lesen_wird_einmal_wiederholt(client, monkeypatch):
+    from custom_components.heatnexus.client import transport
+
+    async def ohne_pause(_sekunden):
+        return None
+
+    monkeypatch.setattr(transport.asyncio, "sleep", ohne_pause)
+    c = client(_Antwort(502, b""), _Antwort(200, json.dumps({"value": "63.5"}).encode()))
+
+    assert await c._fetch_oid("/1/60/0/0/7/0") == ("/1/60/0/0/7/0", "63.5")
+    assert len(c._session.anfragen) == 2
+
+
+async def test_ein_bleibender_gateway_fehler_beim_lesen_laesst_den_wert_stehen(
+    client, monkeypatch
+):
+    from custom_components.heatnexus.client import transport
+    from custom_components.heatnexus.client.gemeinsam import FEHLGESCHLAGEN
+
+    async def ohne_pause(_sekunden):
+        return None
+
+    monkeypatch.setattr(transport.asyncio, "sleep", ohne_pause)
+    c = client(_Antwort(502, b""), _Antwort(502, b""))
+
+    _oid, wert = await c._fetch_oid("/1/60/0/0/7/0")
+
+    assert wert is FEHLGESCHLAGEN
+    assert len(c._session.anfragen) == 2
+
+
 async def test_eine_leermarke_wird_kein_messwert(client):
     """`-.-` heißt „kein Wert", nicht 0."""
     c = client(_Antwort(200, json.dumps({"value": "-.-"}).encode()))

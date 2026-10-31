@@ -19,6 +19,8 @@ from ..const import (
     ANFRAGE_TIMEOUT,
     FETCH_CONCURRENCY,
     GATEWAY_FEHLER,
+    LESE_WIEDERHOLPAUSE_S,
+    LESE_WIEDERHOLUNGEN,
     POLL_CONCURRENCY,
     SCHREIB_WIEDERHOLPAUSE_S,
     SCHREIB_WIEDERHOLUNGEN,
@@ -215,9 +217,7 @@ class TransportMixin:
         stehen, statt die Anzeige zu leeren.
         """
         try:
-            data, status = await self._get(
-                f"http://{self.host}/api/1.0/datapoint{oid}", self._poll_semaphore
-            )
+            data, status = await self._datapoint_lesen(oid)
             if self._abmelden(oid, data, status):
                 return oid, None
             if status in (0, 401, 403) or status >= 500:
@@ -236,6 +236,19 @@ class TransportMixin:
             _LOGGER.debug("Fehler beim Lesen von %s: %s", oid, e)
             self._letzter_lesefehler = e
             return oid, FEHLGESCHLAGEN
+
+    async def _datapoint_lesen(self, oid) -> tuple[object, int]:
+        """GET auf `datapoint`; ein Gateway-Fehler wird nach kurzer Pause einmal wiederholt.
+
+        Der vorgeschaltete Webserver weist vereinzelt eine Anfrage ab, die gleich danach gelingt.
+        """
+        url = f"http://{self.host}/api/1.0/datapoint{oid}"
+        for versuch in range(LESE_WIEDERHOLUNGEN + 1):
+            data, status = await self._get(url, self._poll_semaphore)
+            if status not in GATEWAY_FEHLER or versuch == LESE_WIEDERHOLUNGEN:
+                break
+            await asyncio.sleep(LESE_WIEDERHOLPAUSE_S)
+        return data, status
 
     async def _put(self, url, rumpf: bytes) -> tuple[int, str]:
         """PUT, nach einem Gateway-Fehler mit wachsender Pause wiederholt; zurück Status und Antwort."""

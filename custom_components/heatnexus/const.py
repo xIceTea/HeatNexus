@@ -540,6 +540,9 @@ MENU_WIEDERHOLPAUSE_S = 2.0
 # Ein Schreibvorgang mit Gateway-Fehler wird mit wachsender Pause wiederholt.
 SCHREIB_WIEDERHOLUNGEN = 2
 SCHREIB_WIEDERHOLPAUSE_S = 3.0
+# Ein gelesener Wert mit Gateway-Fehler wird einmal nachgefragt; die kurze Pause hält den Takt.
+LESE_WIEDERHOLUNGEN = 1
+LESE_WIEDERHOLPAUSE_S = 1.0
 
 # Nach einem Adresswechsel: je (Eintrag, neue Adresse) die alte, deren Befund-Archiv umzieht.
 BEFUND_UMZUG = f"{DOMAIN}_befund_umzug"
