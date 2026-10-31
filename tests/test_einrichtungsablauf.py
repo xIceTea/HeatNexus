@@ -350,6 +350,115 @@ async def test_neu_anmelden_meldet_einen_unerwarteten_fehler(hass, eintrag):
 
 
 # ---------------------------------------------------------------------------
+# Im Netz gefunden
+# ---------------------------------------------------------------------------
+MAC = "00:23:43:00:5b:a1"
+
+
+def _mdns(host: str = NEU):
+    from ipaddress import ip_address
+
+    from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
+
+    return ZeroconfServiceInfo(
+        ip_address=ip_address(host),
+        ip_addresses=[ip_address(host)],
+        port=None,
+        hostname="mb6620-2.local.",
+        type="_workstation._tcp.local.",
+        name=f"mb6620-2 [{MAC}]._workstation._tcp.local.",
+        properties={},
+    )
+
+
+async def _gefunden(hass, info, verbindung=None) -> tuple[dict, AsyncMock]:
+    """Einen Fund melden; zurück kommen das Ergebnis und die Attrappe der Verbindung."""
+    verbindung = verbindung or _verbindung()
+    with (
+        patch("custom_components.heatnexus.config_flow.validate_connection", verbindung),
+        patch("custom_components.heatnexus.WindhagerHttpClient", AttrappenClient),
+    ):
+        quelle = "dhcp" if type(info).__name__ == "DhcpServiceInfo" else "zeroconf"
+        ergebnis = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": quelle}, data=info
+        )
+        await hass.async_block_till_done()
+    return ergebnis, verbindung
+
+
+async def test_eine_eingetragene_adresse_wird_nicht_angeboten(hass, eintrag):
+    ergebnis, verbindung = await _gefunden(hass, _mdns(ALT))
+
+    assert ergebnis["reason"] == "already_configured"
+    verbindung.assert_not_called()
+
+
+async def test_dhcp_erkennt_eine_eingetragene_adresse(hass, eintrag):
+    from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
+
+    info = DhcpServiceInfo(ip=ALT, hostname="mb6620-2", macaddress="002343005ba1")
+    ergebnis, _ = await _gefunden(hass, info)
+
+    assert ergebnis["reason"] == "already_configured"
+
+
+async def test_eine_neue_steuerung_wird_mit_ihrer_adresse_angeboten(hass):
+    ergebnis, _ = await _gefunden(hass, _mdns())
+    assert ergebnis["step_id"] == "user"
+
+    with (
+        patch("custom_components.heatnexus.config_flow.validate_connection", _verbindung()),
+        patch("custom_components.heatnexus.WindhagerHttpClient", AttrappenClient),
+    ):
+        ablauf = await hass.config_entries.flow.async_configure(
+            ergebnis["flow_id"], {"name": "Anlage A", "count": 1}
+        )
+        ablauf = await hass.config_entries.flow.async_configure(
+            ablauf["flow_id"], {"label": "Anlage A", "username": "USER", "password": "geheim"}
+        )
+        ablauf = await hass.config_entries.flow.async_configure(ablauf["flow_id"], {})
+        await hass.async_block_till_done()
+
+    assert [s["host"] for s in ablauf["result"].data[CONF_SYSTEMS]] == [NEU]
+
+
+async def test_derselbe_fund_laeuft_nur_einmal(hass):
+    await _gefunden(hass, _mdns())
+
+    ergebnis, _ = await _gefunden(hass, _mdns())
+
+    assert ergebnis["reason"] == "already_in_progress"
+
+
+async def test_eine_verstummte_steuerung_zieht_an_die_neue_adresse(hass, eintrag):
+    """Nicht geladen heißt: Sie antwortet unter der alten Adresse nicht."""
+    ergebnis, _ = await _gefunden(hass, _mdns())
+
+    assert ergebnis["reason"] == "adresse_nachgefuehrt"
+    assert [s["host"] for s in eintrag.data[CONF_SYSTEMS]] == [NEU]
+    assert NEU in eintrag.options and ALT not in eintrag.options
+
+
+async def test_eine_fremde_seriennummer_zieht_nicht_um(hass, eintrag):
+    fremd = [{"nodeId": 15, "neuronId": "0000FFFF0000", "functions": []}]
+    ergebnis, _ = await _gefunden(hass, _mdns(), _verbindung(fremd))
+
+    assert ergebnis["step_id"] == "user"
+    assert [s["host"] for s in eintrag.data[CONF_SYSTEMS]] == [ALT]
+
+
+async def test_eine_erreichbare_steuerung_wird_nicht_befragt(hass, eintrag):
+    """Ihr Zugang geht nur an eine fremde Adresse, wenn sie selbst schweigt."""
+    await _einrichten(hass, eintrag)
+
+    ergebnis, verbindung = await _gefunden(hass, _mdns())
+
+    assert ergebnis["step_id"] == "user"
+    verbindung.assert_not_called()
+    assert [s["host"] for s in eintrag.data[CONF_SYSTEMS]] == [ALT]
+
+
+# ---------------------------------------------------------------------------
 # Entfernen
 # ---------------------------------------------------------------------------
 async def test_entfernen_raeumt_die_hinweise_des_eintrags_ab(hass, eintrag):

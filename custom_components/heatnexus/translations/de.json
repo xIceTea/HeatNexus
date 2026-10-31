@@ -1,9 +1,11 @@
 {
   "config": {
+    "flow_title": "{name}",
     "abort": {
       "already_configured": "Diese Anlage ist bereits eingerichtet",
       "reauth_successful": "Passwort aktualisiert",
-      "reconfigure_successful": "Adresse geändert"
+      "reconfigure_successful": "Adresse geändert",
+      "adresse_nachgefuehrt": "Die Steuerung antwortet unter einer neuen Adresse. Die Anlage wurde umgestellt."
     },
     "create_entry": {
       "default": "Die Anlage ist eingerichtet. Damit die Karten im Dashboard erscheinen, die Seite einmal neu laden."

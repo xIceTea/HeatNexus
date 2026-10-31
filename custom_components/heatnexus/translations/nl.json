@@ -1,9 +1,11 @@
 {
   "config": {
+    "flow_title": "{name}",
     "abort": {
       "already_configured": "Deze installatie is al ingesteld",
       "reauth_successful": "Wachtwoord bijgewerkt",
-      "reconfigure_successful": "Adres gewijzigd"
+      "reconfigure_successful": "Adres gewijzigd",
+      "adresse_nachgefuehrt": "De regelaar antwoordt op een nieuw adres. De installatie is aangepast."
     },
     "create_entry": {
       "default": "De installatie is ingericht. Laad de pagina één keer opnieuw, zodat de kaarten in het dashboard verschijnen."

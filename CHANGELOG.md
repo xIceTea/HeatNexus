@@ -18,6 +18,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
 
 **Home Assistant**
+- Home Assistant findet die Steuerung im Netz und bietet sie zur Einrichtung an.
+- Nach einem Adresswechsel stellt HeatNexus die Anlage selbst auf die neue Adresse um.
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
 
 ### Behoben

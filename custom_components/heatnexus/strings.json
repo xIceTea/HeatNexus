@@ -1,9 +1,11 @@
 {
   "config": {
+    "flow_title": "{name}",
     "abort": {
       "already_configured": "This system is already configured",
       "reauth_successful": "Password updated",
-      "reconfigure_successful": "Address changed"
+      "reconfigure_successful": "Address changed",
+      "adresse_nachgefuehrt": "The controller answers at a new address. The system was updated."
     },
     "create_entry": {
       "default": "The system is set up. Reload the page once so that the cards appear in the dashboard."

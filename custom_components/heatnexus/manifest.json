@@ -17,6 +17,12 @@
     "repairs",
     "websocket_api"
   ],
+  "dhcp": [
+    {
+      "hostname": "mb6620*",
+      "macaddress": "002343*"
+    }
+  ],
   "documentation": "https://github.com/xIceTea/HeatNexus",
   "integration_type": "hub",
   "iot_class": "local_polling",
@@ -25,5 +31,11 @@
     "custom_components.heatnexus"
   ],
   "requirements": [],
-  "version": "1.15.0"
+  "version": "1.15.0",
+  "zeroconf": [
+    {
+      "type": "_workstation._tcp.local.",
+      "name": "mb6620*"
+    }
+  ]
 }

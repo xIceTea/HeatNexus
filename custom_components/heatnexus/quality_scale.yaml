@@ -54,16 +54,15 @@ rules:
   devices: done
   diagnostics: done
   discovery:
-    status: exempt
+    status: done
     comment: >-
-      Die Steuerung meldet sich weder über mDNS noch über SSDP oder DHCP an.
-      Sie wird über Adresse und Passwort eingerichtet.
+      Die InfoWIN Touch meldet sich per mDNS (`_workstation._tcp`, Name
+      `mb6620…`) und per DHCP an. Home Assistant bietet sie zur Einrichtung an.
   discovery-update-info:
-    status: exempt
+    status: done
     comment: >-
-      Ohne Erkennung im Netz gibt es nichts nachzuführen. Ein Adresswechsel
-      lässt sich über den Neu-Einrichten-Dialog erledigen; die Entitäten hängen
-      ohnehin an der Seriennummer der Anlage, nicht an der Adresse.
+      Antwortet eine verstummte Steuerung unter der gefundenen Adresse mit
+      ihrer Seriennummer, zieht der Eintrag an die neue Adresse um.
   docs-data-update: done
   docs-examples: done
   docs-known-limitations: done
