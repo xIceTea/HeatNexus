@@ -128,17 +128,29 @@ def _kesselzustand(
 ) -> list[dict[str, Any]]:
     """Ausfall der Steuerung, Serviceausbrand und Sonderbetrieb des Kessels; jede nur, solange sie zutrifft."""
     b = kesselzustand(anlage)
-    if b is None:
-        return []
-    bezug = b["bezug"]
-    ergebnis = [
-        badge(
-            bezug,
-            _name(anlage, uebersetze(VERBINDUNG), True),
-            [{"condition": "state", "entity": bezug, "state": "unavailable"}],
+    # Der Anlagenzustand bleibt verfügbar und zeigt beim Klick den Verlauf der Ausfälle.
+    zustand = next(
+        (
+            e["entity_id"]
+            for e in anlage.get("steuerung_entitaeten", [])
+            if e.get("uebersetzung") == "anlagenzustand"
+        ),
+        None,
+    )
+    if zustand:
+        # `unavailable`, solange der Eintrag nach einem Start ohne Steuerung noch nicht geladen ist.
+        weg = ["nicht_erreichbar", "unavailable"]
+        ziel, ausfall = zustand, {"condition": "state", "entity": zustand, "state": weg}
+    elif b is not None:
+        ziel, ausfall = (
+            b["bezug"],
+            {"condition": "state", "entity": b["bezug"], "state": "unavailable"},
         )
-        | AUSFALL
-    ]
+    else:
+        return []
+    ergebnis = [badge(ziel, _name(anlage, uebersetze(VERBINDUNG), True), [ausfall]) | AUSFALL]
+    if b is None:
+        return ergebnis
     sonder = list(
         dict.fromkeys(t for r in b["regeln"] if r["quelle"] == "betriebsart" for t in r["wenn"])
     )

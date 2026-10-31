@@ -186,6 +186,19 @@ def test_die_stilllegung_meldet_den_hinweis(hass, modul):
     assert hinweis.translation_placeholders == {"anzahl": "1"}
 
 
+def test_der_anlagenzustand_ist_weder_verwaist_noch_hindert_er_die_stilllegung(hass, modul):
+    """Er hängt an der Steuerung, nicht an einem Datenpunkt der Anlage."""
+    from custom_components.heatnexus import stilllegung
+
+    eintrag, _entitaet = _eintrag_mit_entitaet(hass, "steuerung-SN1-anlagenzustand")
+    koordinatoren = {"a": _koordinator(["SN1-0-0-7-0"])}
+
+    stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, koordinatoren)
+
+    assert modul.finden(hass, eintrag, koordinatoren) == []
+    assert _hinweis(hass, eintrag, modul) is None
+
+
 def test_der_hinweis_geht_zurueck_wenn_der_datenpunkt_wiederkommt(hass, modul):
     """Über den echten Weg, nicht über den direkten Aufruf."""
     from custom_components.heatnexus import stilllegung

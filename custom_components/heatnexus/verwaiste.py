@@ -114,6 +114,7 @@ def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[
     if not coordinators or not abzug_steht(coordinators):
         return []
     from .automatik.verwaltung import AUTOMATIK_MARKE, verwaltung_holen
+    from .sensor.anlagenzustand import ENDUNG as ANLAGENZUSTAND_ENDUNG
 
     geladen = verwaltung_holen(hass).geladen
     bekannt = bekannte_kennungen(entry, coordinators, hass)
@@ -123,6 +124,9 @@ def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[
     for eintrag in er.async_entries_for_config_entry(registry, entry.entry_id):
         # Ohne gelesenen Store ist eine Automatik unbekannt, nicht verwaist.
         if not geladen and AUTOMATIK_MARKE in eintrag.unique_id:
+            continue
+        # Den Anlagenzustand legt jede Steuerung an; er hängt an keinem Datenpunkt.
+        if eintrag.unique_id.endswith(ANLAGENZUSTAND_ENDUNG):
             continue
         if eintrag.unique_id not in bekannt:
             verwaist.append(eintrag)

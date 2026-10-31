@@ -65,6 +65,11 @@ def _table(sprache: str = "de") -> dict:
         return {}
 
 
+def meldungscodes(raw: str | None) -> list[tuple[str, int]]:
+    """Kennbuchstabe (E, A, I) und Code jeder Meldung in einem FE01msg, ohne Texte."""
+    return [(buchstabe, int(code)) for buchstabe, code in _CODE_RE.findall(raw or "")]
+
+
 def _lookup(cat: str, code: int, sprache: str = "de") -> dict:
     """Eintrag zu Kategorie+Code, mit Fallback über alle Kategorien und auf Deutsch."""
     for table in (_table(sprache), _table("de")):

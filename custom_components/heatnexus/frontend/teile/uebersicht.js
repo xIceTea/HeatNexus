@@ -142,6 +142,9 @@ export const UebersichtMixin = (Basis) =>
     const abzeichen = this._abzeichenKnoten("mdi:check-circle-outline");
     const sonder = this._abzeichenKnoten("mdi:information-outline");
     sonder.classList.add("sonderbetrieb");
+    // Beide öffnen den Sensor „Anlagenzustand“ mit seinem Verlauf.
+    this._klickbar(abzeichen, anlage.anlagenzustand);
+    this._klickbar(sonder, anlage.anlagenzustand);
     karte.append(abzeichen, sonder);
     this._bindungen.push(() => {
       const stufe = this._stoerungsstufe(anlage);

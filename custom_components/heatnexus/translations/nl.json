@@ -485,6 +485,38 @@
       },
       "stoerspeicher": {
         "name": "Meldingen"
+      },
+      "anlagenzustand": {
+        "name": "Installatiestatus",
+        "state": {
+          "in_ordnung": "In orde",
+          "info": "Infomelding",
+          "fehler": "Foutmelding",
+          "alarm": "Alarmmelding",
+          "nicht_erreichbar": "Regelaar niet bereikbaar",
+          "serviceausbrand": "Service-uitbranden loopt",
+          "nach_serviceausbrand": "Ketel uit na service-uitbranden",
+          "kaminkehrer": "Schoorsteenveger actief",
+          "lagerraum": "Opslagruimte vullen",
+          "sonderbetrieb": "Speciale werking",
+          "schaltet_ab": "Ketel schakelt uit",
+          "kessel_aus": "Ketel uitgeschakeld",
+          "brenner_gesperrt": "Brander geblokkeerd"
+        },
+        "state_attributes": {
+          "meldungsstufe": {
+            "name": "Meldingsniveau"
+          },
+          "kesselzustand": {
+            "name": "Ketelstatus"
+          },
+          "betriebsart": {
+            "name": "Bedrijfsstatus"
+          },
+          "betriebsphase": {
+            "name": "Bedrijfsfase"
+          }
+        }
       }
     },
     "binary_sensor": {

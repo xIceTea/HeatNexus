@@ -13,11 +13,14 @@ wenn dort Vorabversionen zugelassen sind.
 **Panel**
 - Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
 - Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
+- Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 
 **Dashboard**
 - Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
+- Auch Anlagen ohne Kessel melden in der Kopfzeile eine nicht erreichbare Steuerung.
 
 **Home Assistant**
+- Ein Sensor „Anlagenzustand“ meldet je Steuerung Störung, Sonderbetrieb und Ausfall.
 - Home Assistant findet die Steuerung im Netz und bietet sie zur Einrichtung an.
 - Nach einem Adresswechsel stellt HeatNexus die Anlage selbst auf die neue Adresse um.
 - Ein neu angeschlossenes Anlagenteil erscheint ohne Neustart.

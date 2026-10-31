@@ -1647,6 +1647,46 @@ def test_anlage_ohne_kessel_bekommt_nur_die_ausfall_badge(badges):
     ]
 
 
+def test_die_ausfall_badge_zeigt_den_anlagenzustand(badges):
+    """Er bleibt verfügbar; ein Klick zeigt den Verlauf der Ausfälle."""
+    kreis = {
+        **_kessel(),
+        "entitaeten": [_e("sensor.hk", "Betriebsart", adresse="2/9", optionen={3: "WW-Ladung"})],
+    }
+    anlage = _anlage(kreis)
+    anlage["steuerung_entitaeten"] = [
+        {"entity_id": "sensor.anlagenzustand", "uebersetzung": "anlagenzustand"}
+    ]
+    eigene = [
+        b
+        for b in badges.uebersicht_anlagenbadges([anlage])
+        if b["entity"] == "sensor.anlagenzustand"
+    ]
+    assert [b["visibility"] for b in eigene] == [
+        [
+            {
+                "condition": "state",
+                "entity": "sensor.anlagenzustand",
+                "state": ["nicht_erreichbar", "unavailable"],
+            }
+        ]
+    ]
+
+
+def test_auch_eine_anlage_ohne_betriebsart_meldet_den_ausfall(badges):
+    """Ohne Kessel und Betriebsart bleibt der Anlagenzustand als Bezug."""
+    anlage = _anlage({**_kessel(), "entitaeten": []})
+    anlage["steuerung_entitaeten"] = [
+        {"entity_id": "sensor.anlagenzustand", "uebersetzung": "anlagenzustand"}
+    ]
+    eigene = [
+        b
+        for b in badges.uebersicht_anlagenbadges([anlage])
+        if b["entity"] == "sensor.anlagenzustand"
+    ]
+    assert len(eigene) == 1
+
+
 @pytest.mark.parametrize(
     ("sprache", "erwartet"),
     [("en", "Connection to controller"), ("nl", "Verbinding met regeling")],

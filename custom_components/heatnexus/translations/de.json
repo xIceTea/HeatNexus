@@ -485,6 +485,38 @@
       },
       "stoerspeicher": {
         "name": "Meldungen"
+      },
+      "anlagenzustand": {
+        "name": "Anlagenzustand",
+        "state": {
+          "in_ordnung": "In Ordnung",
+          "info": "Info-Meldung",
+          "fehler": "Fehler-Meldung",
+          "alarm": "Alarm-Meldung",
+          "nicht_erreichbar": "Steuerung nicht erreichbar",
+          "serviceausbrand": "Serviceausbrand läuft",
+          "nach_serviceausbrand": "Kessel aus nach Serviceausbrand",
+          "kaminkehrer": "Kaminkehrer aktiv",
+          "lagerraum": "Lagerraum befüllen",
+          "sonderbetrieb": "Sonderbetrieb",
+          "schaltet_ab": "Kessel schaltet ab",
+          "kessel_aus": "Kessel ausgeschaltet",
+          "brenner_gesperrt": "Brenner gesperrt"
+        },
+        "state_attributes": {
+          "meldungsstufe": {
+            "name": "Meldungsstufe"
+          },
+          "kesselzustand": {
+            "name": "Kesselzustand"
+          },
+          "betriebsart": {
+            "name": "Betriebsart"
+          },
+          "betriebsphase": {
+            "name": "Betriebsphase"
+          }
+        }
       }
     },
     "binary_sensor": {

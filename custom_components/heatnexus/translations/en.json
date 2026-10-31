@@ -485,6 +485,38 @@
       },
       "stoerspeicher": {
         "name": "Messages"
+      },
+      "anlagenzustand": {
+        "name": "System status",
+        "state": {
+          "in_ordnung": "OK",
+          "info": "Info message",
+          "fehler": "Error message",
+          "alarm": "Alarm message",
+          "nicht_erreichbar": "Controller unreachable",
+          "serviceausbrand": "Service burn-off running",
+          "nach_serviceausbrand": "Boiler off after service burn-off",
+          "kaminkehrer": "Chimney sweep active",
+          "lagerraum": "Filling storage room",
+          "sonderbetrieb": "Special operation",
+          "schaltet_ab": "Boiler shutting down",
+          "kessel_aus": "Boiler off",
+          "brenner_gesperrt": "Burner blocked"
+        },
+        "state_attributes": {
+          "meldungsstufe": {
+            "name": "Message level"
+          },
+          "kesselzustand": {
+            "name": "Boiler state"
+          },
+          "betriebsart": {
+            "name": "Operating state"
+          },
+          "betriebsphase": {
+            "name": "Operating phase"
+          }
+        }
       }
     },
     "binary_sensor": {

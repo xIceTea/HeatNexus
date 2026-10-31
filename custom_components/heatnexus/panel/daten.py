@@ -59,6 +59,18 @@ def _hilfe_liste(anlage: dict[str, Any], nutzdaten: dict[str, Any]) -> list[dict
     return [{"titel": titel, "text": gefunden[titel]} for titel in sorted(gefunden)]
 
 
+def _steuerungsentitaet(anlage: dict[str, Any], uebersetzung: str) -> str | None:
+    """Die Entität am Gerät „Steuerung“ mit diesem Übersetzungsschlüssel."""
+    return next(
+        (
+            e["entity_id"]
+            for e in anlage.get("steuerung_entitaeten", [])
+            if e.get("uebersetzung") == uebersetzung
+        ),
+        None,
+    )
+
+
 def anlage_daten(
     anlage: dict[str, Any],
     aussen_gewaehlt: str | None = None,
@@ -103,14 +115,8 @@ def anlage_daten(
         "warmwasser": warmwasser_zeilen(alle),
         "stoerungen": uebersicht.stoerungen(anlage),
         "kesselzustand": kesselzustand(anlage),
-        "stoerspeicher": next(
-            (
-                e["entity_id"]
-                for e in anlage.get("steuerung_entitaeten", [])
-                if e.get("uebersetzung") == "stoerspeicher"
-            ),
-            None,
-        ),
+        "stoerspeicher": _steuerungsentitaet(anlage, "stoerspeicher"),
+        "anlagenzustand": _steuerungsentitaet(anlage, "anlagenzustand"),
         "schnellzugriff": uebersicht.schnellzugriff(anlage, alle),
         # Nur Messwerte: Ein Einsteller trägt oft denselben Namen wie der
         # Wert, den er begrenzt, und gehört nicht als Linie in den Verlauf.

@@ -129,6 +129,10 @@ Assistant beendet ihn die Taste „beenden“.
   in der eigenen Oberfläche als Wochenraster, mit Editor für Wochentage und
   Schaltzeiten.
 - **Störungen im Klartext** mit Code, Art und Handlungsempfehlung.
+- **Anlagenzustand je Steuerung** als Sensor: in Ordnung, Info-, Fehler- oder
+  Alarm-Meldung, Sonderbetrieb des Kessels oder Steuerung nicht erreichbar. Er
+  bleibt auch bei einem Ausfall verfügbar und eignet sich als Auslöser für
+  Benachrichtigungen.
 - **Meldungsliste des Bediengeräts** in der Karte „Meldungen“: Einträge lassen
   sich zurücksetzen und löschen, auf Wunsch auch die Störung am Kessel.
 - **Serviceebene** vollständig verfügbar, standardmäßig deaktiviert und pro

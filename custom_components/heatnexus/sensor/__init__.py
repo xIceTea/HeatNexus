@@ -30,6 +30,7 @@ from .ableitungen import (
     WindhagerSchaltpunktSensor,
     WindhagerWarmwasserAbstandSensor,
 )
+from .anlagenzustand import anmelden as anlagenzustand_anmelden
 from .gemeinsam import DEVICE_CLASSES, STATE_CLASS_MAP, anzeigezahl, zahl_aus_zustand
 from .meldungen import (
     WindhagerDeviceStatusSensor,
@@ -65,6 +66,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     platform.async_register_entity_service("stoerung_zuruecksetzen", eintrag, "async_zuruecksetzen")
     platform.async_register_entity_service("stoerung_loeschen", eintrag, "async_loeschen")
     stoerspeicher_anmelden(hass, entry, async_add_entities)
+    anlagenzustand_anmelden(hass, entry, async_add_entities)
 
     # Service zum Schreiben eines Zeitprogramms (Heiz-/WW-Programm). Ziel ist
     # eine Zeitprogramm-Sensor-Entity. Entweder mehrere "blocks" (volle
