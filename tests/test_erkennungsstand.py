@@ -624,6 +624,32 @@ def test_ein_vollstaendiger_lauf_gilt():
     assert client._erkennung_zu_mager(vorher) is False
 
 
+def _zwei_heizkreise() -> dict:
+    """Vorheriger Stand: zwei gleich große Heizkreise an Knoten 15."""
+    oids = [f"/1/15/{fct}/0/{n}/0" for fct in (0, 1) for n in range(30)]
+    return {"oids": sorted(oids), "struktur": ["15", "15/0/14", "15/1/14"]}
+
+
+def test_eine_entfernte_funktion_macht_den_lauf_nicht_mager():
+    """Fehlt ein Heizkreis in `/1`, fehlen seine Datenpunkte zu Recht."""
+    from custom_components.heatnexus.client import WindhagerHttpClient
+
+    client = WindhagerHttpClient("192.0.2.10", "geheim")
+    client.oids = {f"/1/15/0/0/{n}/0" for n in range(30)}
+    client._struktur = ["15", "15/0/14"]
+    assert client._erkennung_zu_mager(_zwei_heizkreise()) is False
+
+
+def test_bei_gleicher_struktur_bleibt_der_schutz():
+    """Meldet `/1` beide Heizkreise, fehlt der zweite nicht zu Recht."""
+    from custom_components.heatnexus.client import WindhagerHttpClient
+
+    client = WindhagerHttpClient("192.0.2.10", "geheim")
+    client.oids = {f"/1/15/0/0/{n}/0" for n in range(30)}
+    client._struktur = ["15", "15/0/14", "15/1/14"]
+    assert client._erkennung_zu_mager(_zwei_heizkreise()) is True
+
+
 def test_ohne_vorherigen_stand_gilt_jeder_lauf():
     """Beim Ersteinlesen gibt es nichts zu vergleichen."""
     from custom_components.heatnexus.client import WindhagerHttpClient

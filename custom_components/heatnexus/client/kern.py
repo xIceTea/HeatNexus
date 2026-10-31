@@ -286,6 +286,9 @@ class WindhagerHttpClient(
         bleibt dann stehen, der nächste Lauf versucht es erneut.
         """
         vorher = len(vorheriger.get("oids") or ()) if vorheriger else 0
+        if vorher and vorheriger.get("struktur") not in (None, self._struktur):
+            # Fehlt eine Funktion nun in `/1`, fehlen ihre Datenpunkte zu Recht.
+            vorher = len(self._noch_vorhanden(vorheriger["oids"]))
         if vorher < ERKENNUNG_MIN_DATENPUNKTE:
             return False
         jetzt = len(self.oids or ())
@@ -299,6 +302,15 @@ class WindhagerHttpClient(
             vorher,
         )
         return True
+
+    def _noch_vorhanden(self, oids) -> list[str]:
+        """Die Datenpunkte, deren Funktion der aktuelle Strukturabdruck noch führt."""
+        funktionen = {
+            f"/1/{eintrag.split('/')[0]}/{eintrag.split('/')[1]}/"
+            for eintrag in self._struktur or ()
+            if eintrag.count("/") == 2
+        }
+        return [oid for oid in oids if "/".join(oid.split("/")[:4]) + "/" in funktionen]
 
     async def async_init(self, erzwingen: bool = False) -> None:
         """Anlage vollständig einlesen (getrennt vom zyklischen Abruf).
