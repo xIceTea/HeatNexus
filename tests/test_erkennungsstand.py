@@ -399,7 +399,10 @@ def _eintrag_in_hass(hass):
 
 def _koordinator(daten):
     """Ein Koordinator, dessen Anlage vollständig eingelesen ist."""
-    return SimpleNamespace(data=daten, client=SimpleNamespace(_vollstaendig=True))
+    return SimpleNamespace(
+        data=daten,
+        client=SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True),
+    )
 
 
 def test_ein_abruf_ohne_daten_legt_nichts_still(stilllegung, hass):

@@ -37,6 +37,7 @@ def diagnostics():
 def _client():
     return SimpleNamespace(
         neuron_by_node={"60": SERIENNUMMER},
+        steuerung_kennung=lambda: f"steuerung-{SERIENNUMMER}",
         oids={"/1/60/0/0/7/0", "/1/60/0/2/1/0"},
         poll_oids={"/1/60/0/0/7/0"},
         poll_class={"/1/60/0/0/7/0": "fast", "/1/60/0/2/1/0": "slow"},

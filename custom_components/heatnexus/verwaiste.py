@@ -41,6 +41,13 @@ def _stoerspeicher(coordinators: dict) -> dict[str, str]:
     return dict.fromkeys(kennungen(coordinators), "sensor")
 
 
+def _anlagenzustand(coordinators: dict) -> dict[str, str]:
+    # Den Anlagenzustand legt jede Steuerung an; er hängt an keinem Datenpunkt.
+    from .sensor.anlagenzustand import kennung
+
+    return {kennung(coordinator): "sensor" for coordinator in coordinators.values()}
+
+
 def _befund(entry: ConfigEntry) -> dict[str, str]:
     # Die Befund-Sensoren stehen in keinem Abzug; sie folgen den Heizkreisen und Kesseln.
     from .befund.laufzeit import kennungen
@@ -63,7 +70,12 @@ def bekannte_kennungen(
         for beschreibung in (coordinator.data or {}).get("devices", [])
     }
     quellen = dict.fromkeys(waermequelle.kennungen(entry, coordinators), True)
-    eigene = {**_automatik(hass, entry), **_befund(entry), **_stoerspeicher(coordinators)}
+    eigene = {
+        **_automatik(hass, entry),
+        **_befund(entry),
+        **_stoerspeicher(coordinators),
+        **_anlagenzustand(coordinators),
+    }
     return bekannt | quellen | dict.fromkeys(eigene, True)
 
 
@@ -100,7 +112,12 @@ def erwartete_domaenen(
         if beschreibung.get("id") and beschreibung.get("type") in TYP_DOMAENE
     }
     quellen = dict.fromkeys(waermequelle.kennungen(entry, coordinators), "binary_sensor")
-    eigene = _automatik(hass, entry) | _befund(entry) | _stoerspeicher(coordinators)
+    eigene = (
+        _automatik(hass, entry)
+        | _befund(entry)
+        | _stoerspeicher(coordinators)
+        | _anlagenzustand(coordinators)
+    )
     return domaenen | quellen | eigene
 
 
@@ -114,7 +131,6 @@ def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[
     if not coordinators or not abzug_steht(coordinators):
         return []
     from .automatik.verwaltung import AUTOMATIK_MARKE, verwaltung_holen
-    from .sensor.anlagenzustand import ENDUNG as ANLAGENZUSTAND_ENDUNG
 
     geladen = verwaltung_holen(hass).geladen
     bekannt = bekannte_kennungen(entry, coordinators, hass)
@@ -124,9 +140,6 @@ def finden(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> list[
     for eintrag in er.async_entries_for_config_entry(registry, entry.entry_id):
         # Ohne gelesenen Store ist eine Automatik unbekannt, nicht verwaist.
         if not geladen and AUTOMATIK_MARKE in eintrag.unique_id:
-            continue
-        # Den Anlagenzustand legt jede Steuerung an; er hängt an keinem Datenpunkt.
-        if eintrag.unique_id.endswith(ANLAGENZUSTAND_ENDUNG):
             continue
         if eintrag.unique_id not in bekannt:
             verwaist.append(eintrag)

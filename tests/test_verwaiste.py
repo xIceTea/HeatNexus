@@ -26,7 +26,8 @@ def modul():
 def _koordinator(kennungen):
     """Ein vollständig eingelesener Koordinator mit diesen Kennungen."""
     devices = [{"id": kennung, "enabled_default": True} for kennung in kennungen]
-    return SimpleNamespace(data={"devices": devices}, client=SimpleNamespace(_vollstaendig=True))
+    client = SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True)
+    return SimpleNamespace(data={"devices": devices}, client=client)
 
 
 def _eintrag_mit_entitaet(hass, kennung="SN1-0-0-7-0"):
@@ -70,7 +71,10 @@ def test_ein_vorhandener_datenpunkt_zaehlt_nicht(modul, hass):
 def test_ohne_vollstaendigen_abzug_wird_nichts_gemeldet(modul, hass):
     """Ein Abruf ohne Daten heißt nicht, dass es keine Datenpunkte gibt."""
     eintrag, _ = _eintrag_mit_entitaet(hass)
-    unfertig = SimpleNamespace(data=None, client=SimpleNamespace(_vollstaendig=True))
+    unfertig = SimpleNamespace(
+        data=None,
+        client=SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True),
+    )
 
     assert not modul.finden(hass, eintrag, {"a": unfertig})
 
@@ -80,7 +84,10 @@ def test_eine_stumme_anlage_schuetzt_die_andere(modul, hass):
     eintrag, _ = _eintrag_mit_entitaet(hass)
     koordinatoren = {
         "a": _koordinator(["ein-anderer"]),
-        "b": SimpleNamespace(data=None, client=SimpleNamespace(_vollstaendig=True)),
+        "b": SimpleNamespace(
+            data=None,
+            client=SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True),
+        ),
     }
 
     assert not modul.finden(hass, eintrag, koordinatoren)
@@ -123,7 +130,10 @@ def test_entfernen_ohne_bestand_ruehrt_nichts_an(modul, hass):
     from homeassistant.helpers import entity_registry as er
 
     eintrag, entitaet = _eintrag_mit_entitaet(hass)
-    unfertig = SimpleNamespace(data=None, client=SimpleNamespace(_vollstaendig=True))
+    unfertig = SimpleNamespace(
+        data=None,
+        client=SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True),
+    )
 
     assert modul.entfernen(hass, eintrag, {"a": unfertig}) == 0
     assert er.async_get(hass).async_get(entitaet) is not None
@@ -222,7 +232,10 @@ def test_ein_abruf_ohne_daten_nimmt_den_hinweis_zurueck(hass, modul):
     stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": _koordinator(["fremd"])})
     assert _hinweis(hass, eintrag, modul) is not None
 
-    stumm = SimpleNamespace(data=None, client=SimpleNamespace(_vollstaendig=True))
+    stumm = SimpleNamespace(
+        data=None,
+        client=SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True),
+    )
     stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": stumm})
 
     assert _hinweis(hass, eintrag, modul) is None
@@ -273,7 +286,7 @@ def test_eine_zeile_der_falschen_domaene_gilt_als_verwaist(modul, hass):
 
     koordinator = SimpleNamespace(
         data={"devices": [{"id": "SN1-0-0-9-90-0", "type": "sensor", "enabled_default": True}]},
-        client=SimpleNamespace(_vollstaendig=True),
+        client=SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True),
     )
     gefunden = [e.entity_id for e in modul.finden(hass, eintrag, {"a": koordinator})]
 
@@ -292,7 +305,7 @@ def test_ein_unbekannter_typ_gilt_nicht_als_verwaist(modul, hass):
     eintrag, _entitaet = _eintrag_mit_entitaet(hass, "SN1-0-0-7-0")
     koordinator = SimpleNamespace(
         data={"devices": [{"id": "SN1-0-0-7-0", "type": "kuenftig", "enabled_default": True}]},
-        client=SimpleNamespace(_vollstaendig=True),
+        client=SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True),
     )
 
     assert not modul.finden(hass, eintrag, {"a": koordinator})
@@ -316,7 +329,7 @@ def test_die_stilllegung_zaehlt_die_falsche_domaene_mit(hass, modul):
     registry.async_get_or_create("sensor", DOMAIN, "SN1-0-0-9-90-0", config_entry=eintrag)
     koordinator = SimpleNamespace(
         data={"devices": [{"id": "SN1-0-0-9-90-0", "type": "sensor", "enabled_default": True}]},
-        client=SimpleNamespace(_vollstaendig=True),
+        client=SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True),
     )
 
     stilllegung.abgewaehlte_entitaeten_stilllegen(hass, eintrag, {"a": koordinator})
@@ -351,7 +364,7 @@ def test_ein_wieder_eingeschalteter_wert_wird_sofort_gemeldet(hass):
         data={
             "devices": [{"id": "SN1-0-2-1-0-laufzeit", "type": "laufzeit", "enabled_default": True}]
         },
-        client=SimpleNamespace(_vollstaendig=True),
+        client=SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True),
     )
 
     gerufen = []

@@ -14,7 +14,7 @@ from ..automatik.verwaltung import DATEN_SCHLUESSEL, system_unique_id, unique_id
 from ..const import DOMAIN
 from ..texte import Woerterbuch, woerterbuch
 from . import auswahl
-from .anlagen import gewaehlte_aussentemperatur
+from .anlagen import gewaehlte_aussentemperatur, steuerungsentitaet
 from .kacheln import KESSEL as KESSELROLLE
 from .kacheln import entitaeten_je_schluessel, rolle
 from .kesselzustand import kesselzustand
@@ -129,25 +129,14 @@ def _kesselzustand(
     """Ausfall der Steuerung, Serviceausbrand und Sonderbetrieb des Kessels; jede nur, solange sie zutrifft."""
     b = kesselzustand(anlage)
     # Der Anlagenzustand bleibt verfügbar und zeigt beim Klick den Verlauf der Ausfälle.
-    zustand = next(
-        (
-            e["entity_id"]
-            for e in anlage.get("steuerung_entitaeten", [])
-            if e.get("uebersetzung") == "anlagenzustand"
-        ),
-        None,
-    )
-    if zustand:
+    if zustand := steuerungsentitaet(anlage, "anlagenzustand"):
         # `unavailable`, solange der Eintrag nach einem Start ohne Steuerung noch nicht geladen ist.
-        weg = ["nicht_erreichbar", "unavailable"]
-        ziel, ausfall = zustand, {"condition": "state", "entity": zustand, "state": weg}
+        ziel, weg = zustand, ["nicht_erreichbar", "unavailable"]
     elif b is not None:
-        ziel, ausfall = (
-            b["bezug"],
-            {"condition": "state", "entity": b["bezug"], "state": "unavailable"},
-        )
+        ziel, weg = b["bezug"], "unavailable"
     else:
         return []
+    ausfall = {"condition": "state", "entity": ziel, "state": weg}
     ergebnis = [badge(ziel, _name(anlage, uebersetze(VERBINDUNG), True), [ausfall]) | AUSFALL]
     if b is None:
         return ergebnis

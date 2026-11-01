@@ -6,16 +6,15 @@ und Dashboard; die Kesselregeln stehen in `dashboard/kesselzustand.py`.
 
 from __future__ import annotations
 
-import contextlib
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .. import geraete
 from ..const import DOMAIN
+from ..dashboard.anlagen import rang
 from ..dashboard.kesselzustand import (
     BETRIEBSART,
     BETRIEBSWAHL,
@@ -27,18 +26,8 @@ from ..dashboard.kesselzustand import (
 )
 from ..entity import steuerung_kennung
 from ..error_texts import meldungscodes
-from ..helpers import enum_texte
+from ..helpers import enum_texte, parse_value
 
-# Zustand je Regel aus `REGELN`, in derselben Reihenfolge; ohne eigenen Text: Sonderbetrieb.
-_REGELZUSTAND = {
-    "Serviceausbrand läuft": "serviceausbrand",
-    "Kessel aus nach Serviceausbrand": "nach_serviceausbrand",
-    "Kaminkehrer aktiv": "kaminkehrer",
-    "Lagerraum befüllen": "lagerraum",
-    None: "sonderbetrieb",
-    "Kessel schaltet ab": "schaltet_ab",
-    "Kessel ausgeschaltet": "kessel_aus",
-}
 _STUFEN = ("alarm", "fehler", "info")
 _STUFENSYMBOL = {
     "in_ordnung": "mdi:check-circle-outline",
@@ -50,17 +39,14 @@ ZUSTAENDE: tuple[str, ...] = (
     "in_ordnung",
     *_STUFEN,
     "nicht_erreichbar",
-    *dict.fromkeys(_REGELZUSTAND.values()),
+    *dict.fromkeys(zustand for *_, zustand in REGELN),
     "brenner_gesperrt",
 )
 
 
-ENDUNG = "-anlagenzustand"
-
-
 def kennung(coordinator: Any) -> str:
     """Kennung des Sensors „Anlagenzustand“ einer Steuerung."""
-    return f"{steuerung_kennung(coordinator)}{ENDUNG}"
+    return f"{steuerung_kennung(coordinator)}-anlagenzustand"
 
 
 def meldungsstufe(daten: dict[str, Any]) -> str:
@@ -87,27 +73,24 @@ def _kessel(beschreibungen: list[dict]) -> str | None:
     ]
     if not kandidaten:
         return None
-    erster = min(kandidaten, key=lambda d: (geraete.RANG.get(d.get("fct_type"), 99), d["oid"]))
+    erster = min(kandidaten, key=lambda d: (rang(d.get("fct_type")), d["oid"]))
     return erster["oid"][: -len(endung)]
 
 
 def _zahl(oids: dict[str, Any], oid: str) -> int | None:
-    with contextlib.suppress(TypeError, ValueError):
-        return int(float(oids.get(oid)))
-    return None
+    return parse_value(oids.get(oid), int, oid)
 
 
-def kesselzustand(daten: dict[str, Any], beschreibungen: list[dict]) -> tuple[str, str] | None:
+def kesselzustand(daten: dict[str, Any], praefix: str | None) -> tuple[str, str] | None:
     """Sonderzustand des Kessels als (Zustand, Symbol); `None`, wenn nichts Besonderes anliegt."""
-    praefix = _kessel(beschreibungen)
     if praefix is None:
         return None
     oids = daten.get("oids") or {}
     art = _zahl(oids, f"{praefix}/{BETRIEBSART}/0")
     service = _zahl(oids, f"{praefix}/{BETRIEBSWAHL}/0") == SERVICEAUSBRAND
-    for werte, mit_service, text, symbol in REGELN:
+    for werte, mit_service, _, symbol, zustand in REGELN:
         if art in werte and mit_service in (None, service):
-            return _REGELZUSTAND[text], symbol
+            return zustand, symbol
     werte, symbol = PHASEN_GESPERRT
     if _zahl(oids, f"{praefix}/{PHASE}/0") in werte:
         return "brenner_gesperrt", symbol
@@ -134,8 +117,8 @@ def ermitteln(
     if daten is None:
         return None, _STUFENSYMBOL["in_ordnung"], {}
     stufe = meldungsstufe(daten)
-    kessel = kesselzustand(daten, beschreibungen)
     praefix, oids = _kessel(beschreibungen), daten.get("oids") or {}
+    kessel = kesselzustand(daten, praefix)
     attribute = {
         "meldungsstufe": stufe,
         "kesselzustand": kessel[0] if kessel else None,
@@ -162,29 +145,26 @@ class AnlagenzustandSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._attr_unique_id = kennung(coordinator)
         self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, steuerung_kennung(coordinator))})
+        self._auswerten()
 
     @property
     def available(self) -> bool:
         # Bleibt verfügbar: Gerade wenn die Steuerung schweigt, meldet der Sensor das.
         return True
 
-    def _ergebnis(self) -> tuple[str | None, str, dict[str, Any]]:
+    def _auswerten(self) -> None:
+        """Zustand, Symbol und Attribute einmal je Abruf bestimmen."""
         beschreibungen = getattr(self.coordinator.client, "devices", None) or []
-        return ermitteln(
-            self.coordinator.data, beschreibungen, self.coordinator.last_update_success
-        )
+        (
+            self._attr_native_value,
+            self._attr_icon,
+            self._attr_extra_state_attributes,
+        ) = ermitteln(self.coordinator.data, beschreibungen, self.coordinator.last_update_success)
 
-    @property
-    def native_value(self) -> str | None:
-        return self._ergebnis()[0]
-
-    @property
-    def icon(self) -> str:
-        return self._ergebnis()[1]
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        return self._ergebnis()[2]
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self._auswerten()
+        super()._handle_coordinator_update()
 
 
 def anmelden(hass: HomeAssistant, entry: Any, async_add_entities: Any) -> None:

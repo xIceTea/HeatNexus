@@ -64,7 +64,7 @@ def test_das_alte_eingabefeld_wird_geloescht(hass, adresse):
     anzeige = registry.async_get_or_create("sensor", DOMAIN, kennung, config_entry=eintrag)
     koordinator = SimpleNamespace(
         data={"devices": [{"id": kennung, "type": "sensor", "enabled_default": True}]},
-        client=SimpleNamespace(_vollstaendig=True),
+        client=SimpleNamespace(steuerung_kennung=lambda: "steuerung-SN1", _vollstaendig=True),
     )
 
     try:

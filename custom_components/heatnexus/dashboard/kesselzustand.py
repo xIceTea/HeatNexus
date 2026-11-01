@@ -15,17 +15,18 @@ SERVICEAUSBRAND = 6
 
 OFFLINE = ("Steuerung nicht erreichbar", "mdi:lan-disconnect")
 # Reihenfolge = Vorrang. `True`/`False`: nur mit bzw. ohne Serviceausbrand in `9/75`; Text `None`: Text der Anlage.
-REGELN: tuple[tuple[tuple[int, ...], bool | None, str | None, str], ...] = (
-    ((1,), True, "Serviceausbrand läuft", "mdi:fire-off"),
-    ((0,), True, "Kessel aus nach Serviceausbrand", "mdi:fire-off"),
-    ((9,), None, "Kaminkehrer aktiv", "mdi:account-hard-hat"),
-    ((14, 15), None, "Lagerraum befüllen", "mdi:warehouse"),
-    ((8, 10, 11, 13, 16), None, None, "mdi:wrench"),
-    ((1,), False, "Kessel schaltet ab", "mdi:power"),
-    ((0,), False, "Kessel ausgeschaltet", "mdi:power-off"),
+# Das letzte Feld ist der Zustand des Sensors „Anlagenzustand“.
+REGELN: tuple[tuple[tuple[int, ...], bool | None, str | None, str, str], ...] = (
+    ((1,), True, "Serviceausbrand läuft", "mdi:fire-off", "serviceausbrand"),
+    ((0,), True, "Kessel aus nach Serviceausbrand", "mdi:fire-off", "nach_serviceausbrand"),
+    ((9,), None, "Kaminkehrer aktiv", "mdi:account-hard-hat", "kaminkehrer"),
+    ((14, 15), None, "Lagerraum befüllen", "mdi:warehouse", "lagerraum"),
+    ((8, 10, 11, 13, 16), None, None, "mdi:wrench", "sonderbetrieb"),
+    ((1,), False, "Kessel schaltet ab", "mdi:power", "schaltet_ab"),
+    ((0,), False, "Kessel ausgeschaltet", "mdi:power-off", "kessel_aus"),
 )
 PHASEN_GESPERRT = ((0, 9), "mdi:lock-outline")
-TEXTE = (OFFLINE[0], *(text for *_, text, _ in REGELN if text))
+TEXTE = (OFFLINE[0], *(text for _, _, text, _, _ in REGELN if text))
 
 
 def _finden(teil: dict[str, Any], adresse: str) -> dict | None:
@@ -51,7 +52,7 @@ def _regeln(art: dict, wahl: dict | None, phase: dict | None) -> list[dict[str, 
             "text": text,
             "symbol": symbol,
         }
-        for werte, service, text, symbol in REGELN
+        for werte, service, text, symbol, _ in REGELN
         if (service is not True or wahl) and (wenn := _texte(art, BETRIEBSART, werte))
     ]
     werte, symbol = PHASEN_GESPERRT
