@@ -31,6 +31,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - HeatNexus übernimmt neu angeschlossene und entfernte Anlagenteile ohne Neustart.
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
 - Wärmepumpen zeigen Leistung, Betriebsphase, Wärmemengen, Betriebsstunden, Starts und COP.
+- BioWIN: Der Hybridmanager zeigt Wärmepreis der Pellets und Grenz-COP.
 - Infinity PLUS und AeroWIN zeigen Temperaturen, Betriebsart und Zähler auch ohne Menüeintrag.
 - Ein Dienst benennt einen Heizkreis in der Steuerung um.
 - Ein Diagnose-Sensor zeigt, wie weit die Uhr der Steuerung von Home Assistant abweicht.

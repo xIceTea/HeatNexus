@@ -181,3 +181,11 @@ def test_rundinstrumente_nennen_nur_bekannte_schluessel(geraete):
 def test_kessel_und_puffer_haben_zeigerinstrumente(geraete):
     assert [s for s, _ in geraete.RUNDINSTRUMENTE[25]] == ["boiler_temperature", "boiler_power"]
     assert [s for s, _ in geraete.RUNDINSTRUMENTE[16]] == ["buffer_top", "buffer_bottom"]
+
+
+def test_hybridmanager_nennt_waermepreis_und_grenz_cop():
+    """Interne Rechenwerte ohne Namen in Datenbank, App und Display; benannt nach Nachrechnung."""
+    from custom_components.heatnexus.client.erkennung import name_override
+
+    assert name_override(26, "54/3") == "Wärmepreis Pellets (ct/kWh)"
+    assert name_override(26, "54/4") == "Grenz-COP"
