@@ -689,7 +689,7 @@ LAUFPHASEN: dict[str, frozenset[int]] = {
 # Welchen Stundenzähler die Laufzeit aus dem Zustand ersetzt, je
 # Zustandstabelle. Nur diesen: Ein Wartungszähler auf demselben Gerät zählt
 # etwas anderes und behält seine Ableitung.
-_WP_STUNDEN = frozenset(TAGESZAEHLER)
+_WP_STUNDEN = frozenset({"52/50", "52/52", "52/54"})
 
 LAUFZEIT_ERSETZT: dict[str, frozenset[str]] = {
     "2/1": frozenset({"2/81"}),

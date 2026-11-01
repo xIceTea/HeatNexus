@@ -268,3 +268,16 @@ async def test_die_zaehler_der_waermepumpe_sind_anzeigen(umfang):
     assert all(d.get("state_class") == "total_increasing" for d in zaehler), falsch
     # Die Tageswerte führt die Steuerung selbst; ein zweites „heute" daneben entfällt.
     assert not [d["name"] for d in erg["devices"] if (d.get("name") or "").endswith("heute heute")]
+
+
+@pytest.mark.parametrize("umfang", sorted(UMFAENGE))
+async def test_die_waermemengen_behalten_ihren_zuwachs_seit_start(umfang):
+    """Die Laufzeit aus der Betriebsphase ersetzt nur Stundenzähler, keine Wärmemengen."""
+    erg = await _lauf("biowin-hybrid", umfang)
+    seit_start = {
+        d["oid"].split("/1/60/1/")[-1].rsplit("/", 1)[0]
+        for d in erg["devices"]
+        if d.get("type") == "zaehler_start" and d["oid"].startswith("/1/60/1/")
+    }
+    assert {"52/59", "52/61"} <= seit_start
+    assert not {"52/50", "52/52"} & seit_start
