@@ -11,6 +11,7 @@ from ..dashboard.muster import (
     WARTUNG_WEITERE,
     WARTUNG_WEITERE_SCHLUESSEL,
 )
+from .hauptsystem import teile_geordnet
 from .muster import (
     WARTUNG_BRENNSTOFF,
     WARTUNG_BRENNSTOFF_SCHLUESSEL,
@@ -19,12 +20,14 @@ from .muster import (
 
 def wartung(anlage: dict[str, Any]) -> dict[str, Any]:
     """Der Reiter „Wartung": Restlaufzeiten, Brennstoff, Zählerstände."""
-    alle = [e for teil in anlage["teile"] for e in teil["entitaeten"]]
+    # Jede Zeile trägt ihren Anlagenteil: An einer Anlage mit Kessel und
+    # Wärmepumpe hieße „Betriebsstunden“ sonst zweierlei.
+    alle = [(teil["name"], e) for teil in teile_geordnet(anlage) for e in teil["entitaeten"]]
 
     def zeilen(bedingung) -> list[dict[str, str]]:
         return [
-            {"entity": e["entity_id"], "titel": e["name"]}
-            for e in alle
+            {"entity": e["entity_id"], "titel": e["name"], "teil": name}
+            for name, e in alle
             if e["kategorie"] is None and bedingung(e)
         ]
 
