@@ -401,25 +401,25 @@ class AbrufMixin:
         return wert
 
     async def _fetch_status(self) -> dict:
-        """Aktuelle Geräte-Meldungen (FExxmsg) je Knoten neu lesen.
+        """Aktuelle Geräte-Meldungen (FExxmsg) je Knoten neu lesen."""
+        return (await self._meldungen_lesen())[0]
 
-        Quelle ist die /1-Discovery, die je Gerät FE01msg (+ ggf. weitere)
-        mitliefert. Nur nötig, wenn ein Meldungs-/Klartext-Sensor existiert.
+    async def _meldungen_lesen(self) -> tuple[dict, list | None]:
+        """Meldungen je Knoten und die rohe `/1`-Antwort, die je Gerät FE01msg mitliefert.
+
+        Gelesen wird nur, wenn ein Meldungs-/Klartext-Sensor existiert; sonst ist die Antwort `None`.
         """
         typen = {typ for _, typ, _, _ in MELDUNGS_SENSOREN}
-        # Die Antwort dient zugleich der Strukturprüfung; ohne Abruf bleibt sie leer.
-        self._struktur_antwort = None
         if not any(d.get("type") in typen for d in self.geraeteliste):
-            return {}
+            return {}, None
         try:
             devs = await self.fetch("/1")
         except Exception as e:
             _LOGGER.debug("Meldungen nicht lesbar: %s", e)
             devs = None
-        self._struktur_antwort = devs if isinstance(devs, list) else None
         if not isinstance(devs, list):
             # Wie bei den Werten: Ein Fehlschlag lässt den letzten Stand stehen.
-            return dict(self._letzte_meldungen)
+            return dict(self._letzte_meldungen), None
         out: dict = {}
         for dev in devs:
             nid = dev.get("nodeId")
@@ -429,7 +429,7 @@ class AbrufMixin:
             if msgs:
                 out[str(nid)] = "  ".join(msgs)
         self._letzte_meldungen = out
-        return out
+        return out, devs
 
     def statistik(self) -> dict:
         """Kennzahlen des Abrufverhaltens – für die Diagnose.
@@ -719,9 +719,9 @@ class AbrufMixin:
             langsam_faellig = True
         if langsam_faellig:
             self._letzte_objekte = await self._fetch_time_programs()
-        status = await self._fetch_status()
+        status, antwort = await self._meldungen_lesen()
         if langsam_faellig:
-            await self._struktur_pruefen(self._struktur_antwort)
+            await self._struktur_pruefen(antwort)
         stoerspeicher = await self._fetch_stoerspeicher(status)
         faellig = self._faellig()
         # Ein misslungener Abruf ist kein Messwert: Der zuletzt gelesene Wert

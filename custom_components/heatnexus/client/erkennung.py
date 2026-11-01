@@ -771,6 +771,7 @@ class ErkennungMixin:
         # Fehlt der Abdruck, setzt ihn die nächste Strukturprüfung, ohne Einlesen.
         struktur = data.get("struktur")
         self._struktur = list(struktur) if isinstance(struktur, list) else None
+        self._struktur_gemeldet = None
         # Die Auswahl kann sich seit dem Speichern geändert haben.
         for d in self.devices:
             if d.get("type") in self.ZUSATZTYPEN:

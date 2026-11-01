@@ -210,6 +210,23 @@ async def test_ein_gescheiterter_lauf_behaelt_den_abdruck(client, monkeypatch):
     assert client._struktur == vorher
 
 
+async def test_nach_gescheitertem_lauf_meldet_die_pruefung_erneut(client, monkeypatch):
+    client.antworten = [_mit_funktion(NEUER_HEIZKREIS)]
+    await client._struktur_pruefen()
+    assert client.strukturaenderung_abholen() is True
+
+    async def discover(nur_kern=False):
+        raise OSError("Leitung weg")
+
+    monkeypatch.setattr(client, "_discover", discover)
+    with pytest.raises(OSError):
+        await client.async_init(erzwingen=True)
+
+    client.antworten = [_mit_funktion(NEUER_HEIZKREIS)]
+    await client._struktur_pruefen()
+    assert client.strukturaenderung_abholen() is True
+
+
 # ---------------------------------------------------------------------------
 # Takt
 # ---------------------------------------------------------------------------

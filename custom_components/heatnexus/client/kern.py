@@ -175,8 +175,6 @@ class WindhagerHttpClient(
         # Zuletzt gemeldeter abweichender Abdruck und ob die Meldung noch abzuholen ist.
         self._struktur_gemeldet: list[str] | None = None
         self._struktur_geaendert = False
-        # Die `/1`-Antwort des laufenden Abrufs, sofern die Meldungen sie schon geholt haben.
-        self._struktur_antwort: list | None = None
 
     @property
     def erkennung_unvollstaendig(self) -> bool:
@@ -277,6 +275,8 @@ class WindhagerHttpClient(
         """Den gesicherten Erkennungsstand wieder einsetzen."""
         for name, wert in stand.items():
             setattr(self, name, wert)
+        # Mit dem alten Abdruck gilt die Abweichung wieder als neu; der nächste Takt meldet sie.
+        self._struktur_gemeldet = None
 
     def _erkennung_zu_mager(self, vorheriger: dict | None) -> bool:
         """Prüfen, ob dieser Lauf deutlich weniger fand als der Stand davor.
@@ -306,11 +306,11 @@ class WindhagerHttpClient(
     def _noch_vorhanden(self, oids) -> list[str]:
         """Die Datenpunkte, deren Funktion der aktuelle Strukturabdruck noch führt."""
         funktionen = {
-            f"/1/{eintrag.split('/')[0]}/{eintrag.split('/')[1]}/"
+            "/1/" + eintrag.rsplit("/", 1)[0]
             for eintrag in self._struktur or ()
             if eintrag.count("/") == 2
         }
-        return [oid for oid in oids if "/".join(oid.split("/")[:4]) + "/" in funktionen]
+        return [oid for oid in oids if self._praefix_aus_oid(oid) in funktionen]
 
     async def async_init(self, erzwingen: bool = False) -> None:
         """Anlage vollständig einlesen (getrennt vom zyklischen Abruf).
