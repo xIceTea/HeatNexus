@@ -66,6 +66,8 @@ def _karte(hybrid: list[dict[str, Any]], wp: list[dict[str, Any]]) -> dict[str, 
         "tarife": tarife,
         "cop": _kennung(wp, r"^cop aktuell$"),
         "cop_heute": _kennung(wp, r"^ø cop heizen heute$"),
+        "sg_ready": _kennung(hybrid, r"^sg ready$"),
+        "sg_status": _kennung(hybrid, r"^sg ready status$"),
     }
 
 

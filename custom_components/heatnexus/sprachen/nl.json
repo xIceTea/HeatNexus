@@ -1159,5 +1159,8 @@
   "Tarif": "Tarief",
   "Wärmepreis = Pelletpreis ÷ (Heizwert × Wirkungsgrad). Grenz-COP = Strompreis ÷ Wärmepreis: Liegt die Leistungszahl darüber, heizt die Wärmepumpe günstiger.": "Warmteprijs = pelletprijs ÷ (verbrandingswaarde × rendement). Grens-COP = stroomprijs ÷ warmteprijs: ligt de COP daarboven, dan verwarmt de warmtepomp goedkoper.",
   "Wärmepreis Pellets": "Warmteprijs pellets",
-  "Wärmemenge je Tag": "Warmte per dag"
+  "Wärmemenge je Tag": "Warmte per dag",
+  "SG Ready Status": "SG Ready-status",
+  "Zustand 1: gesperrt · 2: Normalbetrieb · 3: Einschaltempfehlung · 4: Einschaltbefehl": "Toestand 1: geblokkeerd · 2: normaal bedrijf · 3: inschakeladvies · 4: inschakelopdracht",
+  "SG Ready": "SG Ready"
 }

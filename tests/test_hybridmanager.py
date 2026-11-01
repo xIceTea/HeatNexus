@@ -34,6 +34,8 @@ def anlage():
                     _e("number.t1", "Tarif 1"),
                     _e("number.t2", "Tarif 2"),
                     _e("sensor.aussen", "Aussentemperatur Regelung"),
+                    _e("select.sg", "SG Ready"),
+                    _e("sensor.sg_status", "SG Ready Status"),
                 ],
             },
             {
@@ -100,3 +102,10 @@ def test_die_diagramme_fuer_den_verlauf(anlage):
     ]
     assert diagramme[1]["karte"]["entities"] == ["sensor.leistung", "sensor.kl"]
     assert diagramme[3]["karte"]["type"] == "statistics-graph"
+
+
+def test_die_karte_kennt_sg_ready_und_seinen_zustand(anlage):
+    from custom_components.heatnexus.panel.hybrid import hybrid
+
+    karte = hybrid(anlage)["karte"]
+    assert (karte["sg_ready"], karte["sg_status"]) == ("select.sg", "sensor.sg_status")

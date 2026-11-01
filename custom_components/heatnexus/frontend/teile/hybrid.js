@@ -20,12 +20,38 @@ export const HybridMixin = (Basis) =>
     (w.tarife || []).forEach((tarif) => {
       karte.appendChild(this._zahlFeld(`${this._t("Tarif")} ${tarif.nummer}`, tarif.entity));
     });
+    this._hybridSgReady(karte, w);
     const kopf = document.createElement("div");
     kopf.className = "status-abschnitt";
     kopf.textContent = this._t("Kostenvergleich");
     karte.appendChild(kopf);
     karte.appendChild(this._hybridVergleich(w));
     return karte;
+  }
+
+  /** SG Ready: die Einstellung zum Umschalten und der Zustand, den der Netzbetreiber gerade meldet. */
+  _hybridSgReady(karte, w) {
+    if (!w.sg_ready && !w.sg_status) return;
+    const kopf = document.createElement("div");
+    kopf.className = "status-abschnitt";
+    kopf.textContent = "SG Ready";
+    karte.appendChild(kopf);
+    if (w.sg_ready) {
+      karte.appendChild(
+        w.sg_ready.startsWith("select.")
+          ? this._auswahlFeld(this._t("SG Ready"), w.sg_ready)
+          : this._statuszeile(w.sg_ready, this._t("SG Ready"), "mdi:transmission-tower")
+      );
+    }
+    if (w.sg_status) {
+      karte.appendChild(this._statuszeile(w.sg_status, this._t("SG Ready Status"), "mdi:transmission-tower"));
+      const erklaerung = document.createElement("div");
+      erklaerung.className = "abhilfe";
+      erklaerung.textContent = this._t(
+        "Zustand 1: gesperrt · 2: Normalbetrieb · 3: Einschaltempfehlung · 4: Einschaltbefehl"
+      );
+      karte.appendChild(erklaerung);
+    }
   }
 
   /** Die Diagramme des Hybridmanagers für den Verlauf. */
