@@ -355,7 +355,7 @@ async def test_neu_anmelden_meldet_einen_unerwarteten_fehler(hass, eintrag):
 MAC = "00:23:43:00:5b:a1"
 
 
-def _mdns(host: str = NEU):
+def _mdns(host: str = NEU, name: str = f"mb6620-2 [{MAC}]._workstation._tcp.local."):
     from ipaddress import ip_address
 
     from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
@@ -366,7 +366,7 @@ def _mdns(host: str = NEU):
         port=None,
         hostname="mb6620-2.local.",
         type="_workstation._tcp.local.",
-        name=f"mb6620-2 [{MAC}]._workstation._tcp.local.",
+        name=name,
         properties={},
     )
 
@@ -420,6 +420,35 @@ async def test_eine_neue_steuerung_wird_mit_ihrer_adresse_angeboten(hass):
         await hass.async_block_till_done()
 
     assert [s["host"] for s in ablauf["result"].data[CONF_SYSTEMS]] == [NEU]
+
+
+async def test_eine_manuelle_einrichtung_schliesst_den_fund(hass):
+    await _gefunden(hass, _mdns())
+
+    with (
+        patch("custom_components.heatnexus.config_flow.validate_connection", _verbindung()),
+        patch("custom_components.heatnexus.WindhagerHttpClient", AttrappenClient),
+    ):
+        ablauf = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        ablauf = await hass.config_entries.flow.async_configure(
+            ablauf["flow_id"], {"name": "Anlage A", "count": 1}
+        )
+        ablauf = await hass.config_entries.flow.async_configure(
+            ablauf["flow_id"],
+            {"label": "Anlage A", "host": NEU, "username": "USER", "password": "geheim"},
+        )
+        ablauf = await hass.config_entries.flow.async_configure(ablauf["flow_id"], {})
+        await hass.async_block_till_done()
+
+    assert ablauf["type"] == "create_entry"
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+
+
+async def test_ein_fund_ohne_mac_laesst_sich_ignorieren(hass):
+    ergebnis, _ = await _gefunden(hass, _mdns(name="mb6620-2._workstation._tcp.local."))
+
+    fund = hass.config_entries.flow.async_get(ergebnis["flow_id"])
+    assert fund["context"]["unique_id"] == "mb6620-2._workstation._tcp.local."
 
 
 async def test_derselbe_fund_laeuft_nur_einmal(hass):

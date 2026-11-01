@@ -160,23 +160,29 @@ def _zugangsfeld(systeme: list[dict[str, Any]]) -> dict:
     return {vol.Required(CONF_USERNAME, default=vorgabe): benutzer_auswahl()}
 
 
+def _seriennummern(entry: ConfigEntry, system: Mapping[str, Any]) -> set[str]:
+    """Die Seriennummer der Steuerung, sonst die Kennungen aus dem Eintrag."""
+    if system.get("kennung"):
+        return {system["kennung"]}
+    return set(str(entry.unique_id or "").split("-")) - {""}
+
+
 def _gleiche_steuerung(entry: ConfigEntry, system: Mapping[str, Any], struktur: list) -> bool:
     """Ob unter der neuen Adresse die Steuerung antwortet, die der Eintrag kennt.
 
     Verglichen wird die Seriennummer; fehlt sie auf einer Seite, lässt sich nichts prüfen.
     """
     neu = anlagenkennung(struktur)
-    bekannt = {system["kennung"]} if system.get("kennung") else set()
-    bekannt = bekannt or set(str(entry.unique_id or "").split("-")) - {""}
+    bekannt = _seriennummern(entry, system)
     if not neu or not bekannt or system.get(CONF_HOST) in bekannt:
         return True
     return neu in bekannt
 
 
-def _dieselbe_steuerung(entry: ConfigEntry, struktur: list) -> bool:
-    """Ob die Seriennummer der Antwort zum Eintrag gehört; ohne Seriennummer gilt das nicht."""
+def _dieselbe_steuerung(entry: ConfigEntry, system: Mapping[str, Any], struktur: list) -> bool:
+    """Ob die Seriennummer der Antwort zu dieser Steuerung gehört; ohne Seriennummer gilt das nicht."""
     neu = anlagenkennung(struktur)
-    return bool(neu) and neu in set(str(entry.unique_id or "").split("-")) - {""}
+    return bool(neu) and neu in _seriennummern(entry, system)
 
 
 def _erreichbar(entry: ConfigEntry, host: str) -> bool:
@@ -219,21 +225,23 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> ConfigFlowResult:
         """Eine Steuerung, die sich per mDNS anmeldet."""
         treffer = _MAC_IM_NAMEN.search(discovery_info.name or "")
-        return await self._steuerung_gefunden(
-            str(discovery_info.ip_address), treffer.group(1) if treffer else ""
-        )
+        # Ohne MAC im Namen bleibt der Dienstname als Kennung, damit sich der Fund ignorieren lässt.
+        kennung = format_mac(treffer.group(1)) if treffer else (discovery_info.name or "").lower()
+        return await self._steuerung_gefunden(str(discovery_info.ip_address), kennung)
 
     async def async_step_dhcp(self, discovery_info: DhcpServiceInfo) -> ConfigFlowResult:
         """Eine Steuerung, die per DHCP eine Adresse bezieht."""
-        return await self._steuerung_gefunden(discovery_info.ip, discovery_info.macaddress)
+        return await self._steuerung_gefunden(
+            discovery_info.ip, format_mac(discovery_info.macaddress)
+        )
 
-    async def _steuerung_gefunden(self, host: str, mac: str) -> ConfigFlowResult:
+    async def _steuerung_gefunden(self, host: str, kennung: str) -> ConfigFlowResult:
         """Bekannte Adresse: nichts tun. Umgezogene Steuerung: Adresse nachführen.
 
         Sonst bietet Home Assistant die Steuerung zur Einrichtung an.
         """
-        if mac:
-            await self.async_set_unique_id(format_mac(mac))
+        if kennung:
+            await self.async_set_unique_id(kennung)
             self._abort_if_unique_id_configured()
         eintraege = [
             e for e in self._async_current_entries(include_ignore=False) if not e.disabled_by
@@ -243,25 +251,35 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         if umzug := await self._umzug_nachfuehren(eintraege, host):
             return umzug
         self._gefunden = host
+        self.context["host"] = host
         self.context["title_placeholders"] = {"name": host}
         return await self.async_step_user()
+
+    def _funde_schliessen(self, adressen: set[str]) -> None:
+        """Offene Funde der eben eingerichteten Steuerungen schließen; ihre Kennung ist die MAC."""
+        for fund in self._async_in_progress(include_uninitialized=True):
+            if fund["flow_id"] != self.flow_id and fund["context"].get("host") in adressen:
+                self.hass.config_entries.flow.async_abort(fund["flow_id"])
 
     async def _umzug_nachfuehren(
         self, eintraege: list[ConfigEntry], host: str
     ) -> ConfigFlowResult | None:
         """Eine verstummte Steuerung, die unter `host` mit ihrer Seriennummer antwortet, zieht um.
 
-        Gefragt wird nur mit dem Zugang einer Steuerung, die gerade nicht antwortet.
+        Gefragt wird nur mit dem Zugang einer Steuerung, die gerade nicht antwortet,
+        und mit jedem Zugang nur einmal.
         """
+        antworten: dict[tuple[str, str], tuple[list | None, str]] = {}
         for entry in eintraege:
             for system in entry.data.get(CONF_SYSTEMS, []):
                 if _erreichbar(entry, system[CONF_HOST]):
                     continue
                 benutzer = system.get(CONF_USERNAME) or DEFAULT_USERNAME
-                struktur, fehler = await _verbindung_pruefen(
-                    host, system.get(CONF_PASSWORD, ""), benutzer
-                )
-                if not fehler and _dieselbe_steuerung(entry, struktur or []):
+                zugang = (benutzer, system.get(CONF_PASSWORD, ""))
+                if zugang not in antworten:
+                    antworten[zugang] = await _verbindung_pruefen(host, zugang[1], benutzer)
+                struktur, fehler = antworten[zugang]
+                if not fehler and _dieselbe_steuerung(entry, system, struktur or []):
                     return await self._adresse_umstellen(
                         entry, system[CONF_HOST], host, benutzer, "adresse_nachgefuehrt"
                     )
@@ -357,6 +375,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
             kennungen = sorted(s.get("kennung") or s[CONF_HOST] for s in self._systeme)
             await self.async_set_unique_id("-".join(kennungen))
             self._abort_if_unique_id_configured()
+            self._funde_schliessen({s[CONF_HOST] for s in self._systeme})
 
             return self.async_create_entry(
                 title=self._name,
