@@ -12,6 +12,7 @@ from typing import Any
 
 from .bauteile import aus_datei
 from .farben import FARBE_RAHMEN, FARBE_RUECKLAUF, FARBE_TITEL, FARBE_VORLAUF, FARBEN, SCHRIFT
+from .werte import WERTE_JE_ART
 
 # Maße des Schaubilds. Die Karte skaliert es auf ihre Breite, die Angaben
 # sind also Verhältnisse, keine Bildpunkte.
@@ -378,8 +379,17 @@ def _kasten(
     return f'<g transform="translate({x},0)">{anschluss}{inhalt}{titel}</g>'
 
 
-def beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str, Any]]:
+# Arten, deren Werte ihre kurze Beschriftung mittragen: Am Heizkreis stehen
+# Vorlauf und Raum als zwei ähnliche Temperaturen übereinander. Selbst gewählte
+# Werte tragen ihren langen Namen und bleiben ohne.
+BESCHRIFTETE_ARTEN = {art: frozenset(b for _, b, _ in WERTE_JE_ART[art]) for art in ("heizkreis",)}
+
+
+def beschriftungen(
+    x: int, modul: dict[str, Any], breite: int, buch: Buch | None = None
+) -> list[dict[str, Any]]:
     """Die Live-Werte eines Anlagenteils als picture-elements-Einträge."""
+    kurz = BESCHRIFTETE_ARTEN.get(modul["art"], frozenset())
     mitte = x + MODUL_BREITE // 2
     # Zwei Werte werden ober- und unterhalb der Mitte gesetzt, einer mittig.
     hoehen = (
@@ -394,7 +404,11 @@ def beschriftungen(x: int, modul: dict[str, Any], breite: int) -> list[dict[str,
             {
                 "type": "state-label",
                 "entity": wert["entity_id"],
-                "prefix": "",
+                "prefix": (
+                    f"{(buch or _gleich)(wert['beschriftung'])} "
+                    if wert.get("beschriftung") in kurz
+                    else ""
+                ),
                 "style": {
                     "top": f"{y / HOEHE * 100:.1f}%",
                     "left": f"{mitte / breite * 100:.1f}%",

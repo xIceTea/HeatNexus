@@ -495,7 +495,8 @@ ZAEHLER_WOERTER = (
 
 # Namensbestandteile, die trotz Zählerwort keinen Zählerstand meinen: Restzeiten
 # („Betriebsstunden bis …") zählen herunter, die übrigen sind Raten oder Einstellwerte.
-ZAEHLER_AUSNAHMEN = (" bis ", "durchfluss", "bitmuster", "offset", "länge", "temperatur")
+# „kwh/kg“: der Heizwert der Pellets am Hybridmanager heißt „Wärmemenge Pellets (kWh/kg)“.
+ZAEHLER_AUSNAHMEN = (" bis ", "durchfluss", "bitmuster", "offset", "länge", "temperatur", "kwh/kg")
 
 # Datenpunkte, die das Gerät beschreiben statt seinen Zustand: Typ, Versionen,
 # Kennungen. Sie gehören in die Diagnose, nicht zwischen die Messwerte.

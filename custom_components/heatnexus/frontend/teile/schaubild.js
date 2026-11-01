@@ -496,7 +496,17 @@ export const SchaubildMixin = (Basis) =>
         // Symbol und nicht wie ein fehlender Messwert.
         const da = this._hatWert(eintrag.entity);
         marke.hidden = !da;
-        marke.textContent = da ? this._text(eintrag.entity) : "";
+        marke.textContent = "";
+        if (!da) return;
+        // Am Heizkreis stehen zwei ähnliche Temperaturen übereinander; erst
+        // die Beschriftung sagt, welche der Vorlauf ist und welche der Raum.
+        if (eintrag.beschriftung) {
+          const name = document.createElement("span");
+          name.className = "marke-name";
+          name.textContent = eintrag.beschriftung;
+          marke.append(name, " ");
+        }
+        marke.append(this._text(eintrag.entity));
       });
     });
 
