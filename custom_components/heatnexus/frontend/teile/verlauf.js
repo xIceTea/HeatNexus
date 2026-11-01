@@ -304,20 +304,27 @@ export const VerlaufMixin = (Basis) =>
         // über zwei Spalten; schmaler machen kann man es im Anordnen-Modus.
         breite: 2,
       },
+      ...this._hybridDiagramme(anlage),
     ];
   }
 
   async _verlaufKarteLaden() {
-    const plaetze = this.shadowRoot.querySelectorAll("[data-verlauf]");
+    // `data-karte` trägt eine fertige Kartenkonfiguration (Hybridmanager),
+    // `data-verlauf` den Verlauf mit wählbaren Linien.
+    const plaetze = this.shadowRoot.querySelectorAll("[data-verlauf], [data-karte]");
     if (!plaetze.length || !window.loadCardHelpers) return;
     const helfer = await window.loadCardHelpers();
     this._verlaufskarten = [];
     plaetze.forEach((platz) => {
-      const karte = helfer.createCardElement({
-        type: "history-graph",
-        hours_to_show: Number(platz.dataset.stunden) || 24,
-        entities: JSON.parse(platz.dataset.entities),
-      });
+      const karte = helfer.createCardElement(
+        platz.dataset.karte
+          ? JSON.parse(platz.dataset.karte)
+          : {
+              type: "history-graph",
+              hours_to_show: Number(platz.dataset.stunden) || 24,
+              entities: JSON.parse(platz.dataset.entities),
+            }
+      );
       karte.hass = this._hass;
       platz.replaceChildren(karte);
       this._verlaufskarten.push(karte);

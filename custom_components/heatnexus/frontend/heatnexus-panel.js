@@ -34,6 +34,7 @@ import { EinrichtungMixin } from "./teile/einrichtung.js";
 import { KennwerteMixin } from "./teile/kennwerte.js";
 import { BedienenMixin } from "./teile/bedienen.js";
 import { HilfeMixin } from "./teile/hilfe.js";
+import { HybridMixin } from "./teile/hybrid.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { SteuerungMixin } from "./teile/steuerung.js";
 import { StoerspeicherMixin } from "./teile/stoerspeicher.js";
@@ -49,7 +50,7 @@ import { GemeinsamMixin } from "./teile/gemeinsam.js";
 /** Das Stylesheet wird je Seitensitzung einmal geparst und von allen Instanzen geteilt. */
 const STILBOGEN = { bogen: null };
 
-const Grundlage = GemeinsamMixin(HilfeMixin(
+const Grundlage = GemeinsamMixin(HybridMixin(HilfeMixin(
   ZeitprogrammeMixin(
     WartungMixin(
       VerlaufMixin(
@@ -59,7 +60,7 @@ const Grundlage = GemeinsamMixin(HilfeMixin(
               TagesbildMixin(
                 SteuerungMixin(
                   UebersichtMixin(StoerspeicherMixin(
-                    SchaubildMixin(DarstellungMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement))))))
+                    SchaubildMixin(DarstellungMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))))
                   ))
                 )
               )

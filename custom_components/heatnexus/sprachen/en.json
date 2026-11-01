@@ -1142,5 +1142,16 @@
   "schreibt": "writes",
   "zählt": "counting",
   "hält": "holding",
-  "Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.": "Without a program in the operating mode there is no setpoint to measure the rooms against."
+  "Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.": "Without a program in the operating mode there is no setpoint to measure the rooms against.",
+  "COP Heizen heute": "Heating COP today",
+  "COP aktuell": "Current COP",
+  "Für den Vergleich fehlen Heizwert und Wirkungsgrad der Pellets. Beide stehen in der Werksebene: In den Optionen der Steuerung unter „Bedienebenen“ die Werksebene einbinden.": "The comparison needs the pellets' calorific value and efficiency. Both are on the factory level: add the factory level under “Levels” in the controller's options.",
+  "Grenz-COP": "Break-even COP",
+  "Kosten Pellets": "Pellet cost",
+  "Kostenvergleich": "Cost comparison",
+  "Pelletpreis, Heizwert oder Wirkungsgrad melden gerade keinen Wert.": "Pellet price, calorific value or efficiency report no value at the moment.",
+  "Tarif": "Tariff",
+  "Wärmepreis = Pelletpreis ÷ (Heizwert × Wirkungsgrad). Grenz-COP = Strompreis ÷ Wärmepreis: Liegt die Leistungszahl darüber, heizt die Wärmepumpe günstiger.": "Heat price = pellet price ÷ (calorific value × efficiency). Break-even COP = electricity price ÷ heat price: above it, the heat pump heats more cheaply.",
+  "Wärmepreis Pellets": "Pellet heat price",
+  "Wärmemenge je Tag": "Heat per day"
 }

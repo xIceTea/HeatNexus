@@ -40,7 +40,9 @@ export const SteuerungMixin = (Basis) =>
         id: "lagerraum",
         titel: "Lagerraum befüllen",
         knoten: steuerung.lagerraum ? this._lagerraumKarte(steuerung.lagerraum) : null,
-      }
+      },
+      // Nur an der Anlage mit Hybridmanager; sonst bleibt der Knoten leer.
+      { id: "hybridmanager", titel: "Hybridmanager", knoten: this._hybridKarte(anlage) }
     );
     return karten;
   }

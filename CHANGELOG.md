@@ -16,6 +16,8 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 
 **Panel**
 - Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
+- BioWIN: Die Steuerung zeigt eine Karte „Hybridmanager“ mit Pelletpreis, Stromtarifen und Kostenvergleich.
+- BioWIN: Der Verlauf zeigt Temperaturen, Leistung, COP und Wärmemenge je Tag des Hybridsystems.
 - Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
 - Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 
