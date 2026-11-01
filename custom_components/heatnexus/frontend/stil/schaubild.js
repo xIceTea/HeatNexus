@@ -398,6 +398,7 @@ export const SCHAUBILD = `
     padding: 0.22em 0.6em;
     border-radius: 0.55em; white-space: nowrap;
   }
+  .schaubild .marke-wert .marke-name { font-weight: 400; opacity: 0.75; font-size: 0.8em; }
 
   .linienwahl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .linie {

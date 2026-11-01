@@ -56,7 +56,7 @@ def anlagenschema(
     rahmen = ebenen.Rahmen.aus_modulen(module, breite)
     elemente: list[dict[str, Any]] = []
     for platz, modul in enumerate(module):
-        elemente += beschriftungen(RAND + platz * MODUL_BREITE, modul, breite)
+        elemente += beschriftungen(RAND + platz * MODUL_BREITE, modul, breite, buch)
     module_lampen, uebergabe = ebenen.pumpenmodule(module, rahmen)
     lampen = [*ebenen.lampen_der_erzeuger(module, rahmen), *module_lampen]
 
@@ -171,6 +171,7 @@ def schaubild_nutzdaten(
                     "entity": el["entity"],
                     "left": el["style"]["left"],
                     "top": el["style"]["top"],
+                    "beschriftung": el["prefix"].strip() or None,
                 }
                 for el in bild["elements"]
             ]
