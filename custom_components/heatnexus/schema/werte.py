@@ -59,6 +59,7 @@ ANALOG_SOLLWERT = r"^analog[- ]sollwert$"
 
 
 KESSELLEISTUNG_IST = r"kesselleistung"
+WP_LEISTUNG_IST = r"^aktuelle leistung$"
 
 
 # Eine Wärmequelle meldet keinen Messwert, sondern ob sie gerade liefert.
@@ -120,9 +121,17 @@ WERTE_JE_ART: dict[str, tuple[Wert, ...]] = {
         ),
     ),
     # Weiche bzw. Umschaltung: was hereinkommt und was im Speicher steht.
+    # Der Hybridmanager nennt seinen Fühler nur „Puffertemperatur“.
     "umschaltung": (
         (r"kesseltemperatur(?!.*soll)", "Kessel", ("boiler_temperature",)),
-        (r"puffertemperatur (oben|tpe)", "Puffer", ("buffer_top",)),
+        (r"puffertemperatur (oben|tpe)|^puffertemperatur$", "Puffer", ("buffer_top",)),
+    ),
+    # Eine Wärmepumpe hat weder Kesseltemperatur noch Kesselleistung; sie steht
+    # mit Vorlauf und Leistungszahl im Bild. Kein Schlüssel `flow_temperature`:
+    # der gehört dem Heizkreis.
+    "waermepumpe": (
+        (r"^vorlauftemperatur$", "Vorlauf", ()),
+        (r"^cop aktuell$", "COP", ()),
     ),
 }
 
@@ -335,6 +344,13 @@ def finde(entitaeten: list[dict[str, Any]], muster: str, *schluessel: str) -> di
     return next((e for e in gefunden if e.get("hat_wert")), gefunden[0])
 
 
+def _vorlagenart(teil: dict[str, Any], art: str) -> str:
+    """Welche Wertevorlage ein Teil bekommt: die Wärmepumpe ihre eigene."""
+    if art == "kessel" and kesselart_des_teils(teil) == "waermepumpe":
+        return "waermepumpe"
+    return art
+
+
 def _werte_je_art(art: str, kesselwert: str | None) -> tuple[Wert, ...]:
     """Die Wertevorlage einer Art, mit dem gewählten zweiten Kesselwert."""
     vorlage = WERTE_JE_ART.get(art, ())
@@ -456,7 +472,10 @@ def waehlbare_werte(
                 "art": art,
                 "symbol": symbol_je_fct(teil.get("fct_type")),
                 "werte": sorted(werte, key=lambda w: w["name"]),
-                "vorgabe": [w["entity_id"] for w in _werte(teil["entitaeten"], art, kesselwert)],
+                "vorgabe": [
+                    w["entity_id"]
+                    for w in _werte(teil["entitaeten"], _vorlagenart(teil, art), kesselwert)
+                ],
             }
         )
     return liste
@@ -471,7 +490,9 @@ def _gewaehlte_werte(
     Übrige bekommt seinen Namen. Ohne die Rolle wüsste der Puffer nicht mehr,
     welcher Fühler oben sitzt.
     """
-    bekannt = {w["entity_id"]: w for w in _werte(teil["entitaeten"], art, kesselwert)}
+    bekannt = {
+        w["entity_id"]: w for w in _werte(teil["entitaeten"], _vorlagenart(teil, art), kesselwert)
+    }
     namen = {e["entity_id"]: e.get("name") or e["entity_id"] for e in teil["entitaeten"]}
     werte = []
     for entity in gewaehlt:
@@ -483,12 +504,12 @@ def _gewaehlte_werte(
 
 
 def _entitaet_wenn(
-    bedingung: bool, entitaeten: list[dict[str, Any]], muster: str, schluessel: str
+    bedingung: bool, entitaeten: list[dict[str, Any]], muster: str, *schluessel: str
 ) -> str | None:
     """Die Kennung der passenden Entität, sofern die Bedingung gilt."""
     if not bedingung:
         return None
-    gefunden = finde(entitaeten, muster, schluessel)
+    gefunden = finde(entitaeten, muster, *schluessel)
     return gefunden["entity_id"] if gefunden else None
 
 
@@ -533,7 +554,9 @@ def _hauptmodul(
         "entitaeten": entitaeten,
         # Für das Glutbett, unabhängig davon, welcher Wert im Bild
         # steht: Leistung zuerst, Brennkammertemperatur als Ersatz.
-        "leistung": _entitaet_wenn(art == "kessel", entitaeten, KESSELLEISTUNG_IST, "boiler_power"),
+        # Die Wärmepumpe meldet ihre Leistung als „Aktuelle Leistung“.
+        "leistung": _entitaet_wenn(art == "kessel", entitaeten, KESSELLEISTUNG_IST, "boiler_power")
+        or _entitaet_wenn(art == "kessel", entitaeten, WP_LEISTUNG_IST),
         "brennkammer": _entitaet_wenn(
             art == "kessel", entitaeten, BRENNKAMMER_IST, "combustion_chamber_temperature"
         ),
@@ -601,7 +624,7 @@ def zeichenbare_module(
         werte = (
             _gewaehlte_werte(teil, art, kesselwert, gewaehlt)
             if gewaehlt is not None
-            else _werte(teil["entitaeten"], art, kesselwert)
+            else _werte(teil["entitaeten"], _vorlagenart(teil, art), kesselwert)
         )
         # Das Pumpen-/Relaismodul wird auch ohne Messwert gezeichnet: Seine
         # Kesseltemperatur misst bei einer Fernwärmeübergabe den Speicher auf
