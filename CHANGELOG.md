@@ -34,9 +34,13 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+**Dashboard**
+- Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
+
 **Home Assistant**
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
 - Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
+- Der Hybridmanager des BioWIN 2 Hybrid heißt so und nicht mehr „Wärmepumpe (Energiemanagement)“.
 
 ## [1.14.1] - 2026-10-25
 

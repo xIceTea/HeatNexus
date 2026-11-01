@@ -37,7 +37,7 @@ hat.
 | 21 | Puffer | Puffertemperatur oben/mitte/unten, Beladegrad | 13 | 5 | 21 | – |
 | 24 | Pumpe Wärmeerzeuger / Schichtladung | Rücklaufhochhaltung, Mischer | 5 | – | 16 | – |
 | 25 | Kessel (PuroWIN) | Hackgut und Pellets | 10 | 24 | 64 | 289 |
-| 26 | Wärmepumpe (Energiemanagement) | Stromtarife, PV-Eingang, SG Ready | 5 | 19 | 5 | 57 |
+| 26 | Hybridmanager | Bivalenz, Umschaltventil, Stromtarife, PV-Eingang, SG Ready | 5 | 19 | 5 | 57 |
 | 27 | Wärmepumpe | Betriebsphase, Wärmemenge Heizen/Kühlen, E-Heizung | 21 | 15 | 47 | – |
 
 `fctType -1` sind die internen Netzwerkvariablen (`NV's`); sie tragen keine
@@ -1659,7 +1659,7 @@ Datenpunkte und werden übersprungen.
 | `43/79` | Sonden zurücksetzen | Betreiber |
 | `376` | – | Werk |
 
-### fctType 26 – Wärmepumpe (Energiemanagement)
+### fctType 26 – Hybridmanager
 
 | OID | Name | Ebene |
 |---|---|---|
