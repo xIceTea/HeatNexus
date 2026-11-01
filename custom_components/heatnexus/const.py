@@ -484,6 +484,7 @@ EINHEITEN["L/h"] = EINHEITEN["l/h"]
 ZAEHLER_WOERTER = (
     "betriebsstunden",
     "brennerstarts",
+    "anzahl starts",
     "verbrauch",
     "zähler",
     "zaehler",
@@ -662,6 +663,9 @@ TAGESZAEHLER: dict[str, str] = {
     "52/50": "52/51",  # Betriebsstunden Heizen -> … heute
     "52/52": "52/53",  # Betriebsstunden Warmwasser -> … heute
     "52/54": "52/55",  # Betriebsstunden Kühlen -> … heute
+    "52/59": "52/60",  # Wärmemenge Heizen -> … heute
+    "52/61": "52/62",  # Wärmemenge Warmwasser -> … heute
+    "52/63": "52/64",  # Energiemenge Kühlen -> … heute
 }
 # Dieselbe Auskunft als Menge: Ist dieser Datenpunkt selbst schon ein Tageswert?
 TAGESWERTE = frozenset(TAGESZAEHLER.values())
@@ -685,7 +689,7 @@ LAUFPHASEN: dict[str, frozenset[int]] = {
 # Welchen Stundenzähler die Laufzeit aus dem Zustand ersetzt, je
 # Zustandstabelle. Nur diesen: Ein Wartungszähler auf demselben Gerät zählt
 # etwas anderes und behält seine Ableitung.
-_WP_STUNDEN = frozenset(TAGESZAEHLER)
+_WP_STUNDEN = frozenset({"52/50", "52/52", "52/54"})
 
 LAUFZEIT_ERSETZT: dict[str, frozenset[str]] = {
     "2/1": frozenset({"2/81"}),

@@ -743,14 +743,13 @@ def test_funktionstypen_stimmen_mit_der_parameterliste_ueberein(werte):
         21: "puffer",
         24: "pumpenmodul",  # Pumpe Wärmeerzeuger, Schichtladung
         25: "kessel",  # PuroWIN
-        26: "kessel",  # Wärmepumpe
+        26: "umschaltung",  # Hybridmanager: Bivalenz, Umschaltventil, Stromtarife
         27: "kessel",  # Wärmepumpe
     }
     assert erwartet == werte.ART_JE_FCT
     assert werte.KESSELART_JE_FCT == {
         6: "gas_oel",
         7: "waermepumpe",
-        26: "waermepumpe",
         27: "waermepumpe",
     }
 
@@ -779,11 +778,18 @@ def test_puffer_in_beiden_schreibweisen(werte):
 
 def test_waermepumpe_ist_ein_waermeerzeuger(werte):
     """Eine Wärmepumpe steht an der Stelle des Kessels, nicht daneben."""
-    for fct in (26, 27):
+    for fct in (7, 27):
         assert werte.ART_JE_FCT[fct] == "kessel"
     # Und sie braucht weder Brennstoff noch sprechenden Namen.
-    stumm = _teil("Modul 26", 26, [("sensor.k", "Kesseltemperatur Ist")])
+    stumm = _teil("Modul 27", 27, [("sensor.k", "Kesseltemperatur Ist")])
     assert werte.kesselart_des_teils(stumm) == "waermepumpe"
+
+
+def test_der_hybridmanager_ist_kein_waermeerzeuger(werte):
+    """Am BioWIN 2 Hybrid schaltet fctType 26 zwischen BioWIN und AeroWIN um."""
+    teil = _teil("Hybrid", 26, [("sensor.v", "UmschaltVentil")])
+    assert werte.ART_JE_FCT[26] == "umschaltung"
+    assert werte.kesselart_des_teils(teil) is None
 
 
 def test_zsp_und_zirkulation_sehen_verschieden_aus(werte, bauteile):
