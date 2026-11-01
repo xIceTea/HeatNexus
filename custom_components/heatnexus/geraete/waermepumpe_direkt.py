@@ -1,7 +1,8 @@
 """Wärmepumpe (fctType 27).
 
 Ohne gepflegte Datenpunkttabelle: Name, Rang, Symbol und Schaubildteil sind
-belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage.
+belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage, dazu die Kernwerte des
+Herstellers.
 """
 
 from __future__ import annotations
@@ -12,7 +13,23 @@ RANG = 10
 SYMBOL = "mdi:heat-pump"
 SCHAUBILD = "kessel"
 
-EXTRA_OIDS: tuple[str, ...] = ()
+# Kernwerte, die der Hersteller über seine Modbus-Schnittstelle ausgibt; nur Anzeigewerte.
+EXTRA_OIDS: tuple[str, ...] = (
+    "50/26",
+    "50/70",
+    "50/76",
+    "52/49",
+    "52/50",
+    "52/54",
+    "52/57",
+    "52/59",
+    "52/63",
+    "52/121",
+    "54/49",
+    "56/29",
+    "59/45",
+    "59/71",
+)
 KESSELART: str | None = "waermepumpe"
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.

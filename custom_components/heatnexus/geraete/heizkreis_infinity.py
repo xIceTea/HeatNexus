@@ -1,7 +1,8 @@
 """Heizkreis Infinity PLUS (fctType 1).
 
 Ohne gepflegte Datenpunkttabelle: Name, Rang, Symbol und Schaubildteil sind
-belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage.
+belegt, die Datenpunkte kommen aus den Menü-Ebenen der Anlage, dazu die Kernwerte des
+Herstellers.
 """
 
 from __future__ import annotations
@@ -12,7 +13,14 @@ RANG = 30
 SYMBOL = "mdi:radiator"
 SCHAUBILD = "heizkreis"
 
-EXTRA_OIDS: tuple[str, ...] = ()
+# Kernwerte, die der Hersteller über seine Modbus-Schnittstelle ausgibt; nur Anzeigewerte.
+EXTRA_OIDS: tuple[str, ...] = (
+    "0/1",
+    "0/2",
+    "1/2",
+    "1/101",
+    "2/9",
+)
 KESSELART: str | None = None
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.

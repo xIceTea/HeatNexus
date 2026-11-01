@@ -26,7 +26,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Nach einem Adresswechsel stellt HeatNexus die Anlage selbst auf die neue Adresse um.
 - HeatNexus übernimmt neu angeschlossene und entfernte Anlagenteile ohne Neustart.
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
-- Wärmepumpen zeigen Wärmemengen, Betriebsstunden, Starts und COP.
+- Wärmepumpen zeigen Leistung, Betriebsphase, Wärmemengen, Betriebsstunden, Starts und COP.
+- Infinity PLUS und AeroWIN zeigen Temperaturen, Betriebsart und Zähler auch ohne Menüeintrag.
 
 ### Behoben
 

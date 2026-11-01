@@ -1,7 +1,8 @@
 """Wärmepumpe (fctType 7).
 
 Ohne gepflegte Datenpunkttabelle: Die Datenpunkte kommen aus den Menü-Ebenen
-der Anlage, dazu Wärmemengen, Betriebsstunden, Starts und COP aus Gruppe 52.
+der Anlage, dazu Leistung und Betriebsphase sowie Wärmemengen, Betriebsstunden, Starts
+und COP aus Gruppe 52.
 """
 
 from __future__ import annotations
@@ -12,8 +13,10 @@ RANG = 10
 SYMBOL = "mdi:heat-pump"
 SCHAUBILD = "kessel"
 
-# Gruppe 52 steht in keinem Menü der Steuerung; abgeglichen mit der App an einer BioWIN Hybrid.
+# Abgeglichen mit der App an einer BioWIN Hybrid; Gruppe 52 steht in keinem Menü der Steuerung.
 EXTRA_OIDS: tuple[str, ...] = (
+    "50/6",
+    "50/26",
     "52/50",
     "52/51",
     "52/52",
