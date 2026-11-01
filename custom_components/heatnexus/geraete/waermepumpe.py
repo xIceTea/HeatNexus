@@ -35,4 +35,19 @@ KESSELART: str | None = "waermepumpe"
 NAMEN: dict[str, str] = {}
 
 NUR_BUS: tuple[str, ...] = ()
+
+# Zählerstände, die die Steuerung ohne Schreibschutz meldet: Betriebsstunden,
+# Starts und Wärmemengen, je gesamt und heute. Als Eingabefeld ließen sie sich
+# aus Home Assistant überschreiben und fehlten in der Langzeitstatistik.
+NUR_ANZEIGE: tuple[str, ...] = (
+    "52/50",  # Betriebsstunden Heizen
+    "52/51",  # Betriebsstunden Heizen heute
+    "52/52",  # Betriebsstunden Warmwasser
+    "52/53",  # Betriebsstunden Warmwasser heute
+    "52/56",  # Anzahl Starts
+    "52/59",  # Wärmemenge Heizen
+    "52/60",  # Wärmemenge Heizen heute
+    "52/61",  # Wärmemenge Warmwasser
+    "52/62",  # Wärmemenge Warmwasser heute
+)
 ENTITAETEN: list[dict] = []

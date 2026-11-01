@@ -484,6 +484,7 @@ EINHEITEN["L/h"] = EINHEITEN["l/h"]
 ZAEHLER_WOERTER = (
     "betriebsstunden",
     "brennerstarts",
+    "anzahl starts",
     "verbrauch",
     "zähler",
     "zaehler",
@@ -662,6 +663,9 @@ TAGESZAEHLER: dict[str, str] = {
     "52/50": "52/51",  # Betriebsstunden Heizen -> … heute
     "52/52": "52/53",  # Betriebsstunden Warmwasser -> … heute
     "52/54": "52/55",  # Betriebsstunden Kühlen -> … heute
+    "52/59": "52/60",  # Wärmemenge Heizen -> … heute
+    "52/61": "52/62",  # Wärmemenge Warmwasser -> … heute
+    "52/63": "52/64",  # Energiemenge Kühlen -> … heute
 }
 # Dieselbe Auskunft als Menge: Ist dieser Datenpunkt selbst schon ein Tageswert?
 TAGESWERTE = frozenset(TAGESZAEHLER.values())

@@ -8,6 +8,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 ## [1.15.0]
 
+### Beim Aktualisieren
+
+- Zählerstände der AeroWIN sind Sensoren statt Eingabefelder; die Entitäts-IDs beginnen mit `sensor.`.
+
 ### Neu
 
 **Panel**
@@ -41,6 +45,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
 - Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
 - Der Hybridmanager des BioWIN 2 Hybrid heißt so und nicht mehr „Wärmepumpe (Energiemanagement)“.
+- Betriebsstunden, Starts und Wärmemengen der AeroWIN lassen sich nicht mehr überschreiben.
+- Neben den Tageswerten der AeroWIN entsteht kein zweites „heute“ mehr.
 
 ## [1.14.1] - 2026-10-25
 
