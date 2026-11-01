@@ -16,6 +16,8 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 
 **Panel**
 - Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
+- Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
+- Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
 - Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
 - Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 
@@ -40,6 +42,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 
 **Dashboard**
 - BioWIN: Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
+- BioWIN: Das Schaubild zeichnet die AeroWIN mit Vorlauf und Leistungszahl.
 
 **Home Assistant**
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
@@ -48,6 +51,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Neben den Tageswerten der AeroWIN entsteht kein zweites „heute“ mehr.
 - Alle Datenpunktnamen erscheinen auf Englisch und Niederländisch übersetzt.
 - BioWIN: Der Hybridmanager heißt nicht mehr „Wärmepumpe (Energiemanagement)“.
+- BioWIN: Der Heizwert der Pellets am Hybridmanager gilt nicht mehr als Zählerstand.
 
 ## [1.14.1] - 2026-10-25
 
