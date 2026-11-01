@@ -20,6 +20,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Weitere Wärmeerzeuger stehen mit den wichtigsten Werten in Spalten unter dem Schaubild.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Der Reiter „Hybrid“ zeigt Zustand, Einsatzgrenzen, Kostenvergleich und Diagramme des Hybridmanagers.
+- Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
 - Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
 - Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 
