@@ -6,11 +6,11 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [1.15.0]
+## [1.15.0-beta.1] - 2026-11-01
 
-### Beim Aktualisieren
+### Highlight: Zustand von Kessel und Anlage
 
-- Zählerstände der AeroWIN sind Sensoren statt Eingabefelder; die Entitäts-IDs beginnen mit `sensor.`.
+Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder Kaminkehrer. Ein Sensor „Anlagenzustand“ meldet je Steuerung Störung, Sonderbetrieb und Ausfall. Home Assistant findet die Steuerung im Netz, und nach einem Adresswechsel stellt HeatNexus selbst um.
 
 ### Neu
 
@@ -31,7 +31,7 @@ wenn dort Vorabversionen zugelassen sind.
 - HeatNexus übernimmt neu angeschlossene und entfernte Anlagenteile ohne Neustart.
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
 - Wärmepumpen zeigen Leistung, Betriebsphase, Wärmemengen, Betriebsstunden, Starts und COP.
-- Der Hybridmanager zeigt Wärmepreis der Pellets und Grenz-COP.
+- BioWIN: Der Hybridmanager zeigt Wärmepreis der Pellets und Grenz-COP.
 - Infinity PLUS und AeroWIN zeigen Temperaturen, Betriebsart und Zähler auch ohne Menüeintrag.
 - Ein Dienst benennt einen Heizkreis in der Steuerung um.
 - Ein Diagnose-Sensor zeigt, wie weit die Uhr der Steuerung von Home Assistant abweicht.
@@ -40,14 +40,14 @@ wenn dort Vorabversionen zugelassen sind.
 ### Behoben
 
 **Dashboard**
-- Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
+- BioWIN: Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
 
 **Home Assistant**
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
 - Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
-- Der Hybridmanager des BioWIN 2 Hybrid heißt so und nicht mehr „Wärmepumpe (Energiemanagement)“.
-- Betriebsstunden, Starts und Wärmemengen der AeroWIN lassen sich nicht mehr überschreiben.
+- Fehler und Alarm mit gleicher Nummer erscheinen beide in den Meldungen.
 - Neben den Tageswerten der AeroWIN entsteht kein zweites „heute“ mehr.
+- BioWIN: Der Hybridmanager heißt nicht mehr „Wärmepumpe (Energiemanagement)“.
 
 ## [1.14.1] - 2026-10-25
 

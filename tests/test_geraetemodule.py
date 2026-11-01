@@ -88,6 +88,23 @@ def test_jede_zusatzadresse_der_waermepumpe_hat_einen_namen(geraete):
         assert all(gnmn in namen for gnmn in geraete.EXTRA_OIDS[fct_type]), fct_type
 
 
+def test_zaehler_unter_den_zusatzadressen_sind_anzeigen(geraete):
+    """Die Steuerung meldet Zählerstände ohne Schreibschutz; ohne Eintrag entstünde ein Eingabefeld."""
+    import json
+
+    db = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "device_db.json"
+    namen = json.loads(db.read_text(encoding="utf-8"))["names"]
+    woerter = ("betriebsstunden", "anzahl starts", "wärmemenge", "energiemenge")
+    fehlend = [
+        f"{fct_type} {gnmn}"
+        for fct_type, adressen in geraete.EXTRA_OIDS.items()
+        for gnmn in adressen
+        if any(wort in (namen.get(gnmn) or "").lower() for wort in woerter)
+        and gnmn not in geraete.NUR_ANZEIGE.get(fct_type, ())
+    ]
+    assert not fehlend, fehlend
+
+
 def test_schaltpunkte_nennen_ihren_funktionstyp(geraete):
     """Ohne ihn fände der Client die Funktion nicht, an der er rechnet."""
     typen = {m.FCT_TYPE for m in geraete.MODULE}

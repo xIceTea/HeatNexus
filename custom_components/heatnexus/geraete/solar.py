@@ -27,4 +27,7 @@ KESSELART: str | None = None
 NAMEN: dict[str, str] = {}
 
 NUR_BUS: tuple[str, ...] = ()
+
+# Der Wärmemengenzähler kommt ohne Schreibschutz; als Anzeige geht er in die Langzeitstatistik.
+NUR_ANZEIGE: tuple[str, ...] = ("43/99",)
 ENTITAETEN: list[dict] = []

@@ -36,4 +36,16 @@ KESSELART: str | None = "waermepumpe"
 NAMEN: dict[str, str] = {}
 
 NUR_BUS: tuple[str, ...] = ()
+
+# Zählerstände ohne Schreibschutz der Steuerung: als Anzeige, damit sie in die Langzeitstatistik gehen.
+NUR_ANZEIGE: tuple[str, ...] = (
+    "52/49",  # Anzahl Starts Heizen
+    "52/50",  # Betriebsstunden Heizen
+    "52/54",  # Betriebsstunden Kühlen
+    "52/57",  # Anzahl Starts Kühlen
+    "52/59",  # Wärmemenge Heizen
+    "52/63",  # Energiemenge Kühlen
+    "56/29",  # Betriebsstunden
+    "59/71",  # Anzahl Starts
+)
 ENTITAETEN: list[dict] = []
