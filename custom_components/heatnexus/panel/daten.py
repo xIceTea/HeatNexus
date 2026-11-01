@@ -21,6 +21,7 @@ from ..helpers import mustername
 from ..schema import schaubild_nutzdaten
 from . import hauptsystem, uebersicht
 from .hilfe import HILFE_KARTEN, KARTE_BEDINGUNG, hilfe
+from .hybrid import hybrid
 from .muster import (
     AUSSENTEMPERATUR,
     VERLAUF,
@@ -96,6 +97,8 @@ def anlage_daten(
         "steuerung": steuerung(anlage),
         "zeitprogramme": zeitprogramme(anlage),
         "wartung": wartung(anlage),
+        # Reiter „Hybrid“; ohne Hybridmanager `None`.
+        "hybrid": hybrid(anlage),
         "kennwerte": uebersicht.kennwerte(anlage),
         "status": hauptsystem.status(anlage, alle) + list(marken_status or []),
         # Mehrere Wärmeerzeuger: die übrigen in Spalten unter dem Schaubild.

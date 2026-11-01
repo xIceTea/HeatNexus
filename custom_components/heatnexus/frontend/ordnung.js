@@ -91,6 +91,7 @@ export const REITER = [
   { schluessel: "automatik", titel: "Automatik", symbol: "mdi:weather-sunny-alert" },
   { schluessel: "befund", titel: "Auswertung", symbol: "mdi:clipboard-pulse-outline" },
   { schluessel: "wartung", titel: "Wartung", symbol: "mdi:wrench-outline" },
+  { schluessel: "hybrid", titel: "Hybrid", symbol: "mdi:swap-horizontal" },
   { schluessel: "verlauf", titel: "Verlauf", symbol: "mdi:chart-line" },
   { schluessel: "zeitprogramme", titel: "Zeitprogramme", symbol: "mdi:calendar-clock" },
   { schluessel: "hilfe", titel: "Hilfe", symbol: "mdi:help-circle-outline" },

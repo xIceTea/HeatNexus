@@ -139,6 +139,31 @@ STATUS_WAERMEPUMPE: tuple[Zeile, ...] = (
     (r"^betriebsstunden heizen$", "Betriebsstunden Heizen", "mdi:clock-outline", ()),
 )
 
+# Reiter „Hybrid“: der Zustand des Hybridmanagers und die Grenzen, nach denen er
+# zwischen Kessel und Wärmepumpe wählt.
+HYBRID_ZUSTAND: tuple[Zeile, ...] = (
+    (r"^betriebsart$", "Betriebsart", "mdi:swap-horizontal", ()),
+    (r"^zustand bivalenz$", "Bivalenz", "mdi:scale-balance", ()),
+    (r"^umschaltventil$", "Umschaltventil", "mdi:valve", ()),
+    (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer", ("outdoor_temperature",)),
+    (r"^puffertemperatur$", "Puffer", "mdi:storage-tank", ()),
+    (r"^sg ready status$", "SG Ready", "mdi:transmission-tower", ()),
+    (r"^zustand pv eingang$", "PV-Eingang", "mdi:solar-power", ()),
+)
+HYBRID_GRENZEN: tuple[Zeile, ...] = (
+    (r"^bivalenztemperatur heizung$", "Bivalenztemperatur Heizung", "mdi:home-thermometer", ()),
+    (r"^bivalenztemperatur ww$", "Bivalenztemperatur Warmwasser", "mdi:water-thermometer", ()),
+    (
+        r"^untere einsatzgrenze wärmepumpe$",
+        "Untere Einsatzgrenze Wärmepumpe",
+        "mdi:thermometer-low",
+        (),
+    ),
+    (r"^hysterese bivalenz$", "Hysterese Bivalenz", "mdi:arrow-expand-vertical", ()),
+    (r"^verzögerungszeit bivalenz heizung$", "Verzögerung Heizung", "mdi:timer-sand", ()),
+    (r"^verzögerungszeit bivalenz ww$", "Verzögerung Warmwasser", "mdi:timer-sand", ()),
+)
+
 # Systemstatus des Hybridmanagers (fctType 26): welcher Betrieb, was ihn treibt.
 STATUS_HYBRID: tuple[Zeile, ...] = (
     (r"^betriebsart$", "Betriebsart", "mdi:swap-horizontal", ()),

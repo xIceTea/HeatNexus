@@ -34,6 +34,7 @@ import { EinrichtungMixin } from "./teile/einrichtung.js";
 import { KennwerteMixin } from "./teile/kennwerte.js";
 import { BedienenMixin } from "./teile/bedienen.js";
 import { HilfeMixin } from "./teile/hilfe.js";
+import { HybridMixin } from "./teile/hybrid.js";
 import { SchaubildMixin } from "./teile/schaubild.js";
 import { SteuerungMixin } from "./teile/steuerung.js";
 import { StoerspeicherMixin } from "./teile/stoerspeicher.js";
@@ -49,7 +50,7 @@ import { GemeinsamMixin } from "./teile/gemeinsam.js";
 /** Das Stylesheet wird je Seitensitzung einmal geparst und von allen Instanzen geteilt. */
 const STILBOGEN = { bogen: null };
 
-const Grundlage = GemeinsamMixin(HilfeMixin(
+const Grundlage = GemeinsamMixin(HybridMixin(HilfeMixin(
   ZeitprogrammeMixin(
     WartungMixin(
       VerlaufMixin(
@@ -59,7 +60,7 @@ const Grundlage = GemeinsamMixin(HilfeMixin(
               TagesbildMixin(
                 SteuerungMixin(
                   UebersichtMixin(StoerspeicherMixin(
-                    SchaubildMixin(DarstellungMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement))))))
+                    SchaubildMixin(DarstellungMixin(AnordnenMixin(BausteineMixin(BedienenMixin(WerteMixin(HTMLElement)))))))
                   ))
                 )
               )
@@ -742,6 +743,7 @@ class HeatNexusPanel extends Grundlage {
       automatik: [() => this._automatikReiter(anlage), "Keine Heizkreise gefunden."],
       befund: [() => this._befundReiter(anlage), "Für diese Anlage liegt noch keine Auswertung vor."],
       wartung: [() => this._wartung(anlage), "Keine Wartungswerte gefunden."],
+      hybrid: [() => this._hybridReiter(anlage), "Diese Anlage hat keinen Hybridmanager."],
       verlauf: [() => this._verlaufReiter(anlage), "Keine Werte für einen Verlauf gefunden."],
       zeitprogramme: [() => this._zeitprogrammeReiter(anlage), "Diese Anlage meldet keine Zeitprogramme."],
       hilfe: [() => this._hilfeReiter(anlage), "Keine Erklärungen gefunden."],

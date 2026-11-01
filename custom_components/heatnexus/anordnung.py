@@ -51,6 +51,7 @@ REITER = (
     "automatik",
     "befund",
     "wartung",
+    "hybrid",
     "verlauf",
     "zeitprogramme",
     "hilfe",

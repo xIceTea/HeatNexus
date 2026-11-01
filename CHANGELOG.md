@@ -19,6 +19,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Die Option „Hauptsystem“ legt fest, welcher Wärmeerzeuger in der Übersicht vorn steht.
 - Weitere Wärmeerzeuger stehen mit den wichtigsten Werten in Spalten unter dem Schaubild.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
+- Der Reiter „Hybrid“ zeigt Zustand, Einsatzgrenzen, Kostenvergleich und Diagramme des Hybridmanagers.
 - Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
 - Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 
@@ -54,6 +55,7 @@ wenn dort Vorabversionen zugelassen sind.
 - Der Hybridmanager des BioWIN 2 Hybrid heißt so und nicht mehr „Wärmepumpe (Energiemanagement)“.
 - Betriebsstunden, Starts und Wärmemengen der AeroWIN lassen sich nicht mehr überschreiben.
 - Neben den Tageswerten der AeroWIN entsteht kein zweites „heute“ mehr.
+- Der Heizwert der Pellets am Hybridmanager gilt nicht mehr als Zählerstand.
 
 ## [1.14.1] - 2026-10-25
 

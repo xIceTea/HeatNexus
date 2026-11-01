@@ -39,9 +39,12 @@ export const AnordnenMixin = (Basis) =>
 
   /** Reiter in der Reihenfolge des Benutzers; neue stehen an ihrem Standardplatz. */
   _reiterFolge() {
-    const standard = REITER.map((reiter) => reiter.schluessel);
+    // Den Reiter „Hybrid“ gibt es nur, wo eine Anlage einen Hybridmanager hat.
+    const mitHybrid = (this._anlagen ? this._anlagen() : []).some((anlage) => anlage.hybrid);
+    const angeboten = REITER.filter((reiter) => reiter.schluessel !== "hybrid" || mitHybrid);
+    const standard = angeboten.map((reiter) => reiter.schluessel);
     return ordnungAnwenden(standard, this._einstellungen().reiter).map((schluessel) =>
-      REITER.find((reiter) => reiter.schluessel === schluessel)
+      angeboten.find((reiter) => reiter.schluessel === schluessel)
     );
   }
 
@@ -63,7 +66,7 @@ export const AnordnenMixin = (Basis) =>
   _reiterAusblenden(schluessel) {
     const versteckt = this._reiterVersteckt();
     if (versteckt.has(schluessel)) versteckt.delete(schluessel);
-    else if (REITER.length - versteckt.size > 1) versteckt.add(schluessel);
+    else if (this._reiterFolge().length - versteckt.size > 1) versteckt.add(schluessel);
     this._reiterSichern(
       this._reiterFolge().map((reiter) => reiter.schluessel),
       versteckt
