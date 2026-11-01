@@ -545,6 +545,8 @@ MENU_WIEDERHOLPAUSE_S = 2.0
 SCHREIB_WIEDERHOLUNGEN = 2
 SCHREIB_WIEDERHOLPAUSE_S = 3.0
 # Ein gelesener Wert mit Gateway-Fehler wird einmal nachgefragt; die kurze Pause hält den Takt.
+# Nicht nach 504: Das Gerät antwortete nicht, und der Webserver sucht dann selbst nach Geräten.
+LESE_WIEDERHOLBAR = frozenset({502, 503})
 LESE_WIEDERHOLUNGEN = 1
 LESE_WIEDERHOLPAUSE_S = 1.0
 

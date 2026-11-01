@@ -351,6 +351,23 @@ async def test_ein_bleibender_gateway_fehler_beim_lesen_laesst_den_wert_stehen(c
     assert len(c._session.anfragen) == 2
 
 
+async def test_nach_504_wird_nicht_nachgefragt(client, monkeypatch):
+    """504 heißt: Das Gerät antwortet nicht; eine Wiederholung träfe den Suchlauf des Webservers."""
+    from custom_components.heatnexus.client import transport
+    from custom_components.heatnexus.client.gemeinsam import FEHLGESCHLAGEN
+
+    async def ohne_pause(_sekunden):
+        return None
+
+    monkeypatch.setattr(transport.asyncio, "sleep", ohne_pause)
+    c = client(_Antwort(504, b""), _Antwort(200, json.dumps({"value": "63.5"}).encode()))
+
+    _oid, wert = await c._fetch_oid("/1/60/0/0/7/0")
+
+    assert wert is FEHLGESCHLAGEN
+    assert len(c._session.anfragen) == 1
+
+
 async def test_eine_leermarke_wird_kein_messwert(client):
     """`-.-` heißt „kein Wert", nicht 0."""
     c = client(_Antwort(200, json.dumps({"value": "-.-"}).encode()))
