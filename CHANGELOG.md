@@ -46,6 +46,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
 - Fehler und Alarm mit gleicher Nummer erscheinen beide in den Meldungen.
 - Neben den Tageswerten der AeroWIN entsteht kein zweites „heute“ mehr.
+- Alle Datenpunktnamen erscheinen auf Englisch und Niederländisch übersetzt.
 - BioWIN: Der Hybridmanager heißt nicht mehr „Wärmepumpe (Energiemanagement)“.
 
 ## [1.14.1] - 2026-10-25

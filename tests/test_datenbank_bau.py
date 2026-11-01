@@ -8,6 +8,7 @@ verlässlicheren Liste darf einen vorhandenen Namen nicht verdrängen.
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 import sys
 from types import ModuleType
@@ -213,3 +214,43 @@ def test_die_ausnahmeliste_enthaelt_nur_hebungen_ohne_beleg(generator):
 
 def test_kein_beleg_ohne_hebung(generator):
     assert sorted(_belegt(generator) - _hebungen(generator)) == []
+
+
+def test_der_herstellertext_geht_der_eigenen_uebersetzung_vor(generator):
+    sprachen = {"nl": {"names": {"0/7": "Keteltemperatuur"}}}
+    eigene = {
+        "0/7": {"de": "Kesseltemperatur", "nl": "Temperatuur ketel"},
+        "41/15": {"de": "Minimale Laufzeit", "nl": "Minimale looptijd"},
+    }
+    namen = {"0/7": "Kesseltemperatur", "41/15": "Minimale Laufzeit"}
+    ergaenzt, veraltet = generator.ergaenze_eigene_namen(namen, sprachen, eigene)
+    assert sprachen["nl"]["names"] == {"0/7": "Keteltemperatuur", "41/15": "Minimale looptijd"}
+    assert (ergaenzt, veraltet) == ({"nl": 1}, [])
+
+
+def test_eine_uebersetzung_mit_geaendertem_deutschen_namen_bleibt_draussen(generator):
+    sprachen = {"nl": {"names": {}}}
+    eigene = {"41/15": {"de": "Minimale Laufzeit", "nl": "Minimale looptijd"}}
+    _, veraltet = generator.ergaenze_eigene_namen(
+        {"41/15": "Minimale Laufzeit Schnecke"}, sprachen, eigene
+    )
+    assert sprachen["nl"]["names"] == {}
+    assert veraltet == ["41/15"]
+
+
+def test_jede_eigene_uebersetzung_steht_in_der_datenbank(generator):
+    """Fehlt sie, lief der Generator nach der letzten Änderung nicht."""
+    db = json.loads(
+        (WERKZEUG.parents[1] / "custom_components/heatnexus/device_db.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    eigene = json.loads(generator.EIGENE_NAMEN.read_text(encoding="utf-8"))
+    veraltet = sorted(a for a, f in eigene.items() if db["names"].get(a) != f["de"])
+    fehlt = sorted(
+        f"{sprache} {adresse}"
+        for adresse, fassungen in eigene.items()
+        for sprache in generator.FREMDSPRACHEN
+        if sprache in fassungen and adresse not in db["sprachen"][sprache]["names"]
+    )
+    assert (veraltet, fehlt) == ([], [])
