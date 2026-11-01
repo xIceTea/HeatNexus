@@ -61,7 +61,7 @@ export const ZEILEN = `
     padding: 0 0 8px; white-space: pre-line;
   }
   ha-icon { --mdc-icon-size: 22px; opacity: 0.85; flex: none; }
-  .stoerspeicher-kopf {
+  .stoerspeicher-kopf, .status-abschnitt {
     margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hn-flaeche);
     font-size: 13px; font-weight: 600; color: var(--hn-gedaempft);
   }
