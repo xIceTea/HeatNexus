@@ -579,3 +579,23 @@ async def test_vor_dem_vollabzug_bleibt_jedes_geraet(modul, hass):
     koordinator.client._vollstaendig = False
 
     assert not modul.geraet_entfernbar(hass, eintrag, {"a": koordinator}, geraet)
+
+
+async def test_das_loeschen_eines_geraets_zaehlt_den_hinweis_neu(modul, hass):
+    """Hingen alle Verwaisten am gelöschten Gerät, verschwindet der Hinweis."""
+    eintrag, geraet = await _geraet_mit_entitaet(hass, "SN9-0", "SN9-0-0-7-0")
+    koordinator = _mit_steuerung(_koordinator(["SN1-0-0-7-0"]))
+    modul.hinweis_pflegen(hass, eintrag, 1)
+
+    modul.hinweis_ohne_geraet(hass, eintrag, {"a": koordinator}, geraet)
+
+    assert _hinweis(hass, eintrag, modul) is None
+
+
+async def test_ohne_hinweis_legt_das_loeschen_keinen_an(modul, hass):
+    eintrag, geraet = await _geraet_mit_entitaet(hass, "SN9-0", "SN9-0-0-7-0")
+    koordinator = _mit_steuerung(_koordinator(["SN1-0-0-7-0"]))
+
+    modul.hinweis_ohne_geraet(hass, eintrag, {"a": koordinator}, geraet)
+
+    assert _hinweis(hass, eintrag, modul) is None

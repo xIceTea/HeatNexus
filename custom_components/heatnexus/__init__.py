@@ -684,7 +684,10 @@ async def async_remove_config_entry_device(
 ) -> bool:
     """Das Löschen eines Geräts zulassen, das die Anlage nicht mehr meldet."""
     coordinators = (laufzeitdaten(entry) or {}).get("coordinators") or {}
-    return verwaiste.geraet_entfernbar(hass, entry, coordinators, geraet)
+    if not verwaiste.geraet_entfernbar(hass, entry, coordinators, geraet):
+        return False
+    verwaiste.hinweis_ohne_geraet(hass, entry, coordinators, geraet)
+    return True
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:

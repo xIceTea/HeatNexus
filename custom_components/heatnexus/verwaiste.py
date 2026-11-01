@@ -211,6 +211,17 @@ def hinweis_pflegen(hass: HomeAssistant, entry: ConfigEntry, anzahl: int) -> Non
 
 
 @callback
+def hinweis_ohne_geraet(
+    hass: HomeAssistant, entry: ConfigEntry, coordinators: dict, geraet: dr.DeviceEntry
+) -> None:
+    """Einen bestehenden Hinweis ohne die Entitäten des Geräts neu zählen, das gleich wegfällt."""
+    if ir.async_get(hass).async_get_issue(DOMAIN, HINWEIS.format(entry_id=entry.entry_id)) is None:
+        return
+    rest = [e for e in finden(hass, entry, coordinators) if e.device_id != geraet.id]
+    hinweis_pflegen(hass, entry, len(rest))
+
+
+@callback
 def entfernen(hass: HomeAssistant, entry: ConfigEntry, coordinators: dict) -> int:
     """Die Verwaiste löschen und den Hinweis zurücknehmen.
 
