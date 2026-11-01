@@ -309,15 +309,17 @@ class TransportMixin:
             _LOGGER.debug("Objekt %s nicht lesbar: %s", full_oid, e)
             return None, 0
 
-    async def write_object(self, full_oid, payload: dict):
-        """PUT a structured object (Zeitprogramm) via ?OID=<full_oid>."""
+    async def write_object(
+        self, full_oid, payload: dict, abgelehnt: str = "zeitprogramm_abgelehnt"
+    ):
+        """PUT a structured object (Zeitprogramm, Name) via ?OID=<full_oid>."""
         rumpf = bytes(json.dumps(payload), "utf-8")
         status, body = await self._put(self._object_url(full_oid), rumpf)
         if status >= 400:
             _LOGGER.debug(
                 "Schreiben auf Objekt %s scheitert mit HTTP %s: %s", full_oid, status, body
             )
-            schluessel = "schreiben_ohne_antwort" if status >= 500 else "zeitprogramm_abgelehnt"
+            schluessel = "schreiben_ohne_antwort" if status >= 500 else abgelehnt
             raise mit_text(WindhagerWriteError, schluessel, oid=full_oid, status=status)
         _LOGGER.debug("Auf Objekt %s geschrieben: %s", full_oid, payload)
 

@@ -676,6 +676,12 @@
     "zeitprogramm_abgelehnt": {
       "message": "The system did not accept the schedule. Please check the switching times. Data point {oid}, HTTP {status}."
     },
+    "name_abgelehnt": {
+      "message": "The system did not accept the name. Datapoint {oid}, HTTP {status}."
+    },
+    "name_zu_lang": {
+      "message": "The name is too long. At most {hoechstens} bytes are allowed; an umlaut counts twice."
+    },
     "voreinstellung_unbekannt": {
       "message": "The preset {voreinstellung} does not exist."
     },
@@ -776,6 +782,16 @@
         "compensation": {
           "name": "Correction",
           "description": "Added to the room setpoint."
+        }
+      }
+    },
+    "heizkreis_umbenennen": {
+      "name": "Rename heating circuit",
+      "description": "Writes the heating circuit's name to the controller. The control panel shows it at once. The web server's function list, and with it the device name in Home Assistant, follow after a restart of the web server and a new discovery.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "At most 20 bytes; an umlaut counts twice."
         }
       }
     },

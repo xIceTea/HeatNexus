@@ -28,6 +28,26 @@ set_current_temp_compensation:
           step: 0.1
           unit_of_measurement: "K"
 
+heizkreis_umbenennen:
+  name: Heizkreis umbenennen
+  description: >-
+    Schreibt den Namen des Heizkreises in die Steuerung. Das Bediengerät zeigt
+    ihn sofort. Die Liste der Funktionen am Webserver und damit der Gerätename
+    in Home Assistant folgen nach einem Neustart des Webservers und einem
+    neuen Einlesen.
+  target:
+    entity:
+      integration: heatnexus
+      domain: climate
+  fields:
+    name:
+      name: Name
+      description: Höchstens 20 Byte; ein Umlaut zählt doppelt.
+      required: true
+      example: Wohnhaus
+      selector:
+        text:
+
 meldungen_loeschen:
   name: Meldungsliste leeren
   description: >-

@@ -676,6 +676,12 @@
     "zeitprogramm_abgelehnt": {
       "message": "De installatie heeft het tijdprogramma niet aangenomen. Controleer de schakeltijden. Datapunt {oid}, HTTP {status}."
     },
+    "name_abgelehnt": {
+      "message": "De installatie heeft de naam niet aangenomen. Datapunt {oid}, HTTP {status}."
+    },
+    "name_zu_lang": {
+      "message": "De naam is te lang. Toegestaan zijn hoogstens {hoechstens} bytes; een umlaut telt dubbel."
+    },
     "voreinstellung_unbekannt": {
       "message": "De voorinstelling {voreinstellung} bestaat niet."
     },
@@ -776,6 +782,16 @@
         "compensation": {
           "name": "Correctie",
           "description": "Wordt bij de gewenste kamertemperatuur opgeteld."
+        }
+      }
+    },
+    "heizkreis_umbenennen": {
+      "name": "Verwarmingscircuit hernoemen",
+      "description": "Schrijft de naam van het verwarmingscircuit naar de regeling. Het bedieningspaneel toont hem meteen. De functielijst van de webserver, en daarmee de apparaatnaam in Home Assistant, volgen na een herstart van de webserver en een nieuwe detectie.",
+      "fields": {
+        "name": {
+          "name": "Naam",
+          "description": "Hoogstens 20 bytes; een umlaut telt dubbel."
         }
       }
     },

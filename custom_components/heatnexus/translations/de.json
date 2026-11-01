@@ -676,6 +676,12 @@
     "zeitprogramm_abgelehnt": {
       "message": "Die Anlage hat das Zeitprogramm nicht angenommen. Bitte die Schaltzeiten prüfen. Datenpunkt {oid}, HTTP {status}."
     },
+    "name_abgelehnt": {
+      "message": "Die Anlage hat den Namen nicht angenommen. Datenpunkt {oid}, HTTP {status}."
+    },
+    "name_zu_lang": {
+      "message": "Der Name ist zu lang. Erlaubt sind höchstens {hoechstens} Byte; ein Umlaut zählt doppelt."
+    },
     "voreinstellung_unbekannt": {
       "message": "Die Voreinstellung {voreinstellung} gibt es nicht."
     },
@@ -776,6 +782,16 @@
         "compensation": {
           "name": "Korrektur",
           "description": "Wird auf den Raumsollwert aufgeschlagen."
+        }
+      }
+    },
+    "heizkreis_umbenennen": {
+      "name": "Heizkreis umbenennen",
+      "description": "Schreibt den Namen des Heizkreises in die Steuerung. Das Bediengerät zeigt ihn sofort. Die Liste der Funktionen am Webserver und damit der Gerätename in Home Assistant folgen nach einem Neustart des Webservers und einem neuen Einlesen.",
+      "fields": {
+        "name": {
+          "name": "Name",
+          "description": "Höchstens 20 Byte; ein Umlaut zählt doppelt."
         }
       }
     },

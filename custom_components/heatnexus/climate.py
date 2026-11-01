@@ -55,6 +55,7 @@ ATTR_MODUS_DAVOR = "modus_vor_vorgabe"
 # Sicherheits-Fallback: spätestens nach dieser Zeit wird der optimistische
 # Sollwert verworfen, auch wenn das Gerät ihn nie exakt bestätigt.
 OPTIMISTIC_MAX_AGE_S = 120
+NAME_HOECHSTENS_BYTE = 20
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
@@ -82,6 +83,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             ),
         },
         "async_set_vorgabe",
+    )
+
+    platform.async_register_entity_service(
+        "heizkreis_umbenennen",
+        {vol.Required("name"): vol.All(str, vol.Strip, vol.Length(min=1))},
+        "async_umbenennen",
     )
 
     async_setup_entities(hass, entry, async_add_entities, {"climate": WindhagerThermostatClimate})
@@ -536,6 +543,19 @@ class WindhagerThermostatClimate(WindhagerBaseThermostat):
         if self._optimistic_target is not None and self._optimistisch_gueltig(self._optimistic_ts):
             return self._optimistic_target
         return self.get_oid_value("/1/1/0")
+
+    async def async_umbenennen(self, name: str) -> None:
+        """Den Funktionsnamen (Objekt 4/5) schreiben, wie ihn auch das Bediengerät zeigt."""
+        # Die Steuerung füllt auf genau 20 Byte auf; ein längerer Name bringt ihren Webserver aus dem Tritt.
+        if len(name.encode("utf-8")) > NAME_HOECHSTENS_BYTE:
+            raise mit_text(
+                WindhagerValueError, "name_zu_lang", hoechstens=str(NAME_HOECHSTENS_BYTE)
+            )
+        oid = f"{self._prefix}/4/5/0"
+        await self.client.write_object(
+            oid, {"OID": oid, "typeId": 30, "subtypeId": 9, "value": name}, "name_abgelehnt"
+        )
+        _LOGGER.info("Heizkreis %s heißt jetzt „%s“", oid, name)
 
     async def set_current_temp_compensation(self, compensation: float) -> None:
         """Set the heating-curve comfort correction (Behaglichkeit, 3/58)."""
