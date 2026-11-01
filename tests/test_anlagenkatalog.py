@@ -94,6 +94,21 @@ async def test_kennungen_sind_eindeutig_und_haengen_an_der_seriennummer(anlage, 
     ][:5]
 
 
+# Werte, die die Anlage meldet, für die aber auch die Texttabellen von Windhager
+# keinen Eintrag führen – je (fctType, Adresse). Zur Laufzeit erscheinen sie
+# neutral als „Wert 2“ bzw. „Unbekannt (8)“.
+BEKANNTE_LUECKEN: dict[tuple[int, str], frozenset[int]] = {
+    (7, "50/7"): frozenset({8, 9}),  # AeroWIN Betriebsart
+    (26, "50/7"): frozenset({8, 9}),  # Hybridmanager Betriebsart
+    (7, "50/96"): frozenset({2}),  # AeroWIN Kühlen
+}
+
+
+def _bekannte_luecke(d: dict) -> frozenset[int]:
+    gnmn = "/".join(d["oid"].split("/")[4:6])
+    return BEKANNTE_LUECKEN.get((d.get("fct_type"), gnmn), frozenset())
+
+
 @pytest.mark.parametrize(("anlage", "umfang"), FAELLE)
 async def test_jeder_gemeldete_auswahlwert_hat_einen_text(anlage, umfang):
     from custom_components.heatnexus.helpers import enum_texte
@@ -109,7 +124,9 @@ async def test_jeder_gemeldete_auswahlwert_hat_einen_text(anlage, umfang):
         # Eine Anzeige meldet oft einen Wertebereich; über dem höchsten Eintrag liegt Reserve.
         grenze = max(texte) if d["type"] == "enum_sensor" else max(d["allowed"])
         fehlend += [
-            f"{d['oid']} {d['name']}: {w}" for w in d["allowed"] if w not in texte and w <= grenze
+            f"{d['oid']} {d['name']}: {w}"
+            for w in d["allowed"]
+            if w not in texte and w <= grenze and w not in _bekannte_luecke(d)
         ]
     assert not fehlend, fehlend
 
@@ -231,3 +248,23 @@ async def test_der_kesselschalter_liest_die_betriebsart_im_abruf(umfang):
     assert schalter["zustand_oid"] == schalter["oid"].replace("/9/75/0", "/2/59/0")
     assert schalter["zustand_oid"] in erg["poll"]
     assert erg["daten"]["oids"].get(schalter["zustand_oid"]) is not None
+
+
+@pytest.mark.parametrize("umfang", sorted(UMFAENGE))
+async def test_die_zaehler_der_waermepumpe_sind_anzeigen(umfang):
+    """Zähler der AeroWIN sind Anzeigen, auch wenn die Steuerung sie ohne Schreibschutz meldet."""
+    erg = await _lauf("biowin-hybrid", umfang)
+    adressen = ("52/50", "52/51", "52/52", "52/53", "52/56", "52/59", "52/60", "52/61", "52/62")
+    zaehler = [
+        d
+        for d in _mit_oid(erg["devices"])
+        if d["oid"].startswith("/1/60/1/")
+        and "/".join(d["oid"].split("/")[4:6]) in adressen
+        and d["type"] in ("sensor", "number")
+    ]
+    assert len(zaehler) == len(adressen)
+    falsch = [f"{d['oid']} {d['type']} {d.get('state_class')}" for d in zaehler]
+    assert all(d["type"] == "sensor" for d in zaehler), falsch
+    assert all(d.get("state_class") == "total_increasing" for d in zaehler), falsch
+    # Die Tageswerte führt die Steuerung selbst; ein zweites „heute" daneben entfällt.
+    assert not [d["name"] for d in erg["devices"] if (d.get("name") or "").endswith("heute heute")]
