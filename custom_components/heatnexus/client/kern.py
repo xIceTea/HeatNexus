@@ -136,6 +136,8 @@ class WindhagerHttpClient(
         # über den object-Endpunkt versucht wurden.
         self.objekt_texte: list[dict] = []
         self._objekte_versucht: set[str] = set()
+        # Objekte, die im laufenden langsamen Takt noch nicht gelesen sind.
+        self._objekte_offen: list[dict] = []
         # Poll-Klasse je OID und Zähler der Abrufdurchläufe. Zusammen sorgen
         # sie dafür, dass träge Werte nicht im 30-Sekunden-Takt gelesen werden.
         self.poll_class: dict[str, str] = {}
