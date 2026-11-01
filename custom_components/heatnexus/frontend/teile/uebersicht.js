@@ -75,7 +75,12 @@ export const UebersichtMixin = (Basis) =>
     const wasser = this._warmwasserkarte(anlage);
     const fest = [
       { id: "seite", titel: "Heizungsübersicht", knoten: this._seite(anlage) },
-      { id: "schaubild", titel: "Anlagenübersicht", knoten: this._schaubild(anlage), breite: 2 },
+      {
+        id: "schaubild",
+        titel: "Anlagenübersicht",
+        knoten: this._mitErzeugern(this._schaubild(anlage), anlage),
+        breite: 2,
+      },
       { id: "status", titel: "Systemstatus", knoten: this._statuskarte(anlage) },
       { id: "heizkreise", titel: "Heizkreise", knoten: this._heizkreiskarte(anlage) },
       {
@@ -370,6 +375,34 @@ export const UebersichtMixin = (Basis) =>
   }
 
   /**
+   * Weitere Wärmeerzeuger in Spalten unter dem Schaubild.
+   *
+   * Steht das Hauptsystem im Systemstatus, hätten die übrigen dort eine lange
+   * Liste ergeben – und die Karte daneben streckte sich mit. Hier nutzen sie
+   * den Platz, den das Bild ohnehin frei lässt.
+   */
+  _mitErzeugern(karte, anlage) {
+    const spalten = anlage.erzeuger || [];
+    if (!karte || !spalten.length) return karte;
+    const raster = document.createElement("div");
+    raster.className = "erzeuger-raster";
+    spalten.forEach((spalte) => {
+      const block = document.createElement("div");
+      block.className = "erzeuger-spalte";
+      const kopf = document.createElement("div");
+      kopf.className = "status-abschnitt";
+      kopf.textContent = spalte.titel;
+      block.appendChild(kopf);
+      spalte.zeilen.forEach((zeile) => {
+        block.appendChild(this._statuszeile(zeile.entity, zeile.titel, zeile.symbol));
+      });
+      raster.appendChild(block);
+    });
+    karte.appendChild(raster);
+    return karte;
+  }
+
+  /**
    * Der Systemstatus – **ohne** die Störungskarte.
    *
    * In einer gemeinsamen Hülle wären beide in einer Spalte ein einziger
@@ -381,6 +414,14 @@ export const UebersichtMixin = (Basis) =>
   _statuskarte(anlage) {
     const karte = this._karte("Systemstatus");
     (anlage.status || []).forEach((eintrag) => {
+      // Mehrere Wärmeerzeuger: Jeder bekommt eine Zwischenzeile mit seinem Namen.
+      if (eintrag.abschnitt) {
+        const kopf = document.createElement("div");
+        kopf.className = "status-abschnitt";
+        kopf.textContent = eintrag.abschnitt;
+        karte.appendChild(kopf);
+        return;
+      }
       karte.appendChild(this._statuszeile(eintrag.entity, eintrag.titel, eintrag.symbol));
     });
     if (!(anlage.status || []).length) {
@@ -472,6 +513,12 @@ export const UebersichtMixin = (Basis) =>
       if (istAuswahl(eintrag)) {
         const huelle = this._auswahlFeld(eintrag.titel, eintrag.entity, eintrag.hilfe);
         huelle.style.gridColumn = "1 / -1";
+        // Meldet die Anlage einen Wert, den die Auswahl nicht anbietet, stünde
+        // hier ein leeres Feld. Dann lieber keins – bis ein gültiger Wert kommt.
+        this._bindungen.push(() => {
+          const zustand = this._zustand(eintrag.entity);
+          huelle.style.display = zustand && zustand.state === "unknown" ? "none" : "";
+        });
         gitter.appendChild(huelle);
         return;
       }

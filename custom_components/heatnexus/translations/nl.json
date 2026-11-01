@@ -145,6 +145,7 @@
           "username": "Toegang",
           "kesselart": "Warmteopwekker (schema)",
           "kesselwert": "Ketelwaarde (schema)",
+          "hauptsystem": "Hoofdsysteem (interface)",
           "modulpumpe": "Pomp aangesloten op de pomp-/relaismodule",
           "zeitwerte": "Systeemklok en systeemdatum aanmaken",
           "lon": "Waarden van de LON-bus lezen",
@@ -162,6 +163,7 @@
           "username": "USER ziet info- en bedieningsniveau, Service daarnaast de vakmanparameters. Een wijziging leest de installatie opnieuw in.",
           "kesselart": "Welk ketelsymbool het installatieschema toont. Werkt alleen op de tekening – geen entiteit, geen waarde verandert.",
           "kesselwert": "Welke tweede waarde bij de ketel staat. Het gloeibed volgt verder het vermogen; meldt de installatie dat niet, dan geldt de branderkamertemperatuur.",
+          "hauptsystem": "Welke warmteopwekker als eerste in de systeemstatus en in het schema staat. „Automatisch” kiest de hybride manager, anders de warmtepomp, anders de eerste ketel.",
           "modulpumpe": "Alleen met vinkje verschijnt de pomp van de module in het schema. De module meldt ook een toerental als er niets op is aangesloten; de module zelf en haar lampjes worden altijd getoond.",
           "zeitwerte": "De klok van de regelaar. Zonder vinkje uitgeschakeld aangemaakt; alle andere tijd- en datumvelden blijven hierdoor ongewijzigd.",
           "lon": "Leest ook de busadresruimte van de regelaar: ventilatortoerental, verwarming van de lambdasonde, pelletvoorraad en wat alleen daar beschikbaar is. Bij PuroWIN en Infinity voegt dit weinig toe, omdat dezelfde waarden al als datapunt komen.",
@@ -244,6 +246,14 @@
       "options": {
         "leistung": "Ketelvermogen",
         "brennkammer": "Branderkamertemperatuur"
+      }
+    },
+    "hauptsystem": {
+      "options": {
+        "auto": "Automatisch",
+        "hybrid": "Hybride manager",
+        "waermepumpe": "Warmtepomp",
+        "kessel": "Ketel"
       }
     },
     "sprache": {

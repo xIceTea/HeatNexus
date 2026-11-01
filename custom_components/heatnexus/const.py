@@ -174,6 +174,27 @@ KESSELWERT_BESCHRIFTUNG = {
     KESSELWERT_BRENNKAMMER: "Brennkammertemperatur",
 }
 
+# Welcher Wärmeerzeuger in der Oberfläche vorn steht: im Systemstatus zuerst
+# und im Schaubild links. „Automatisch“ nimmt den Hybridmanager, wo es einen
+# gibt, sonst die Wärmepumpe, sonst den ersten Kessel – wie bisher.
+CONF_HAUPTSYSTEM = "hauptsystem"
+HAUPTSYSTEM_AUTO = "auto"
+HAUPTSYSTEM_HYBRID = "hybrid"
+HAUPTSYSTEM_WAERMEPUMPE = "waermepumpe"
+HAUPTSYSTEM_KESSEL = "kessel"
+HAUPTSYSTEME = (
+    HAUPTSYSTEM_AUTO,
+    HAUPTSYSTEM_HYBRID,
+    HAUPTSYSTEM_WAERMEPUMPE,
+    HAUPTSYSTEM_KESSEL,
+)
+HAUPTSYSTEM_BESCHRIFTUNG = {
+    HAUPTSYSTEM_AUTO: "Automatisch",
+    HAUPTSYSTEM_HYBRID: "Hybridmanager",
+    HAUPTSYSTEM_WAERMEPUMPE: "Wärmepumpe",
+    HAUPTSYSTEM_KESSEL: "Kessel",
+}
+
 # Ersatzskala für das Glutbett, wenn keine Leistung gemeldet wird: Unter 100 °C
 # im Brennraum glimmt nichts, ab 500 °C laeuft der Kessel voll. Darueber bleibt
 # es bei voller Helligkeit - heisser heisst nicht mehr Leistung.

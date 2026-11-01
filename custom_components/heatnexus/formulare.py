@@ -32,6 +32,7 @@ from .const import (
     CONF_ECO_DAUER,
     CONF_ECO_TEMP,
     CONF_ENABLE_ADVANCED,
+    CONF_HAUPTSYSTEM,
     CONF_KESSELART,
     CONF_KESSELWERT,
     CONF_LEVELS,
@@ -50,6 +51,9 @@ from .const import (
     DEFAULT_USERNAME,
     ECO_TEMP_STANDARD,
     GRUPPE_INDIVIDUELL,
+    HAUPTSYSTEM_AUTO,
+    HAUPTSYSTEM_BESCHRIFTUNG,
+    HAUPTSYSTEME,
     KESSELART_AUTO,
     KESSELART_BESCHRIFTUNG,
     KESSELARTEN,
@@ -129,6 +133,40 @@ def beschreibe(struktur: list, leer: str = "keine Funktionen gemeldet") -> str:
     return ", ".join(dict.fromkeys(n for n in namen if n)) or leer
 
 
+def _darstellung_felder(defaults: Mapping[str, Any]) -> dict:
+    """Felder, die nur die Darstellung betreffen: Kesselwert und Hauptsystem."""
+    return {
+        # Welcher zweite Wert am Kessel steht. Das Glutbett richtet sich
+        # weiterhin nach der Leistung; die Wahl betrifft nur die Anzeige.
+        vol.Required(
+            CONF_KESSELWERT, default=defaults.get(CONF_KESSELWERT, KESSELWERT_LEISTUNG)
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=wert, label=KESSELWERT_BESCHRIFTUNG[wert])
+                    for wert in KESSELWERTE
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+                translation_key="kesselwert",
+            )
+        ),
+        # Welcher Wärmeerzeuger in der Oberfläche vorn steht. Wirkt nur auf die
+        # Darstellung, nicht auf die Anlage.
+        vol.Required(
+            CONF_HAUPTSYSTEM, default=defaults.get(CONF_HAUPTSYSTEM, HAUPTSYSTEM_AUTO)
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=wert, label=HAUPTSYSTEM_BESCHRIFTUNG[wert])
+                    for wert in HAUPTSYSTEME
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+                translation_key="hauptsystem",
+            )
+        ),
+    }
+
+
 def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol.Schema:
     """Auswahl der Bedienebenen (und des Abfrageintervalls)."""
     felder: dict = {
@@ -188,20 +226,7 @@ def level_schema(defaults: Mapping[str, Any], mit_intervall: bool = True) -> vol
                 translation_key="kesselart",
             )
         ),
-        # Welcher zweite Wert am Kessel steht. Das Glutbett richtet sich
-        # weiterhin nach der Leistung; die Wahl betrifft nur die Anzeige.
-        vol.Required(
-            CONF_KESSELWERT, default=defaults.get(CONF_KESSELWERT, KESSELWERT_LEISTUNG)
-        ): SelectSelector(
-            SelectSelectorConfig(
-                options=[
-                    SelectOptionDict(value=wert, label=KESSELWERT_BESCHRIFTUNG[wert])
-                    for wert in KESSELWERTE
-                ],
-                mode=SelectSelectorMode.DROPDOWN,
-                translation_key="kesselwert",
-            )
-        ),
+        **_darstellung_felder(defaults),
         # Ein Pumpen-/Relaismodul meldet seine Drehzahl auch dann, wenn keine
         # Pumpe daran hängt. Erst der Haken bringt sie ins Schaubild; das Modul
         # selbst und seine Lampen stehen unabhängig davon im Bild.
@@ -334,6 +359,7 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
             levels.append(pflicht)
     kesselart = raw.get(CONF_KESSELART, KESSELART_AUTO)
     kesselwert = raw.get(CONF_KESSELWERT, KESSELWERT_LEISTUNG)
+    hauptsystem = raw.get(CONF_HAUPTSYSTEM, HAUPTSYSTEM_AUTO)
     # Labels gelten je Anlage; in den Systemstatus kommt nur, was die
     # Kartenauswahl auch zeigt.
     marken = [str(k) for k in raw.get(CONF_MARKEN, [])][:MARKEN_MAX_KARTEN]
@@ -349,6 +375,7 @@ def normalize_options(raw: Mapping[str, Any]) -> dict[str, Any]:
         CONF_ZUSATZWERTE: [str(k) for k in raw.get(CONF_ZUSATZWERTE, [])][:200],
         CONF_KESSELART: kesselart if kesselart in KESSELARTEN else KESSELART_AUTO,
         CONF_KESSELWERT: (kesselwert if kesselwert in KESSELWERTE else KESSELWERT_LEISTUNG),
+        CONF_HAUPTSYSTEM: hauptsystem if hauptsystem in HAUPTSYSTEME else HAUPTSYSTEM_AUTO,
         CONF_MODULPUMPE: bool(raw.get(CONF_MODULPUMPE, False)),
         CONF_MARKEN: marken,
         CONF_MARKEN_STATUS: [k for k in marken if k in im_status],

@@ -16,6 +16,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_ENABLE_ADVANCED,
+    CONF_HAUPTSYSTEM,
     CONF_KESSELART,
     CONF_KESSELWERT,
     CONF_LEVELS,
@@ -49,7 +50,9 @@ def systems(entry: ConfigEntry) -> list[dict]:
 
 # Optionen, die allein das Schaubild betreffen: Sie ändern keine Entität und
 # keinen Abruf, also braucht ihre Änderung kein Neuladen.
-NUR_ANZEIGE_OPTIONEN = frozenset({CONF_KESSELART, CONF_KESSELWERT, CONF_MODULPUMPE})
+NUR_ANZEIGE_OPTIONEN = frozenset(
+    {CONF_KESSELART, CONF_KESSELWERT, CONF_MODULPUMPE, CONF_HAUPTSYSTEM}
+)
 
 
 def umfang_der_anlage(hass: HomeAssistant, entry: ConfigEntry, host: str) -> dict:

@@ -16,6 +16,9 @@ wenn dort Vorabversionen zugelassen sind.
 
 **Panel**
 - Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
+- Die Option „Hauptsystem“ legt fest, welcher Wärmeerzeuger in der Übersicht vorn steht.
+- Weitere Wärmeerzeuger stehen mit den wichtigsten Werten in Spalten unter dem Schaubild.
+- Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
 - Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 
@@ -40,6 +43,10 @@ wenn dort Vorabversionen zugelassen sind.
 
 **Dashboard**
 - Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
+- Das Schaubild zeichnet die AeroWIN mit Vorlauf und Leistungszahl.
+
+**Panel**
+- Eine Auswahl mit ungültigem Wert erscheint im Schnellzugriff nicht mehr als leeres Feld.
 
 **Home Assistant**
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.

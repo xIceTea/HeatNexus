@@ -1147,5 +1147,11 @@
   "schreibt": "schrijft",
   "zählt": "telt",
   "hält": "houdt",
-  "Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.": "Zonder programma in de bedrijfsmodus ontbreekt het setpoint waaraan de ruimtes worden gemeten."
+  "Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.": "Zonder programma in de bedrijfsmodus ontbreekt het setpoint waaraan de ruimtes worden gemeten.",
+  "Betriebsstunden Heizen": "Bedrijfsuren verwarmen",
+  "Bivalenz": "Bivalentie",
+  "COP": "COP",
+  "COP Heizen heute": "COP verwarmen vandaag",
+  "PV-Eingang": "PV-ingang",
+  "SG Ready": "SG Ready"
 }

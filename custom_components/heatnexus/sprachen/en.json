@@ -1142,5 +1142,11 @@
   "schreibt": "writes",
   "zählt": "counting",
   "hält": "holding",
-  "Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.": "Without a program in the operating mode there is no setpoint to measure the rooms against."
+  "Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.": "Without a program in the operating mode there is no setpoint to measure the rooms against.",
+  "Betriebsstunden Heizen": "Operating hours heating",
+  "Bivalenz": "Bivalence",
+  "COP": "COP",
+  "COP Heizen heute": "COP heating today",
+  "PV-Eingang": "PV input",
+  "SG Ready": "SG Ready"
 }

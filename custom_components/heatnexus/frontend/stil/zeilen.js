@@ -61,6 +61,14 @@ export const ZEILEN = `
     padding: 0 0 8px; white-space: pre-line;
   }
   ha-icon { --mdc-icon-size: 22px; opacity: 0.85; flex: none; }
+  .status-abschnitt {
+    margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hn-flaeche);
+    font-size: 13px; font-weight: 600; color: var(--hn-gedaempft);
+  }
+  .erzeuger-raster {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0 28px; margin-top: 8px;
+  }
   .stoerspeicher-kopf {
     margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hn-flaeche);
     font-size: 13px; font-weight: 600; color: var(--hn-gedaempft);

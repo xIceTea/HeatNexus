@@ -19,10 +19,12 @@ from ..bezeichnung import bezeichnung_lesen
 from ..const import (
     AUTOMATIK_GERAET_ENDUNG,
     CONF_AUSSENTEMPERATUR,
+    CONF_HAUPTSYSTEM,
     CONF_KESSELART,
     CONF_KESSELWERT,
     CONF_MODULPUMPE,
     DOMAIN,
+    HAUPTSYSTEM_AUTO,
     KESSELART_AUTO,
     KESSELWERT_LEISTUNG,
     QUELLEN_RANG,
@@ -187,10 +189,10 @@ def quellen_nach_geraet(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
 
 
 # Vorgabe, solange eine Anlage noch keine eigene Wahl gespeichert hat.
-_SCHAUBILD_STANDARD = (KESSELART_AUTO, KESSELWERT_LEISTUNG, False)
+_SCHAUBILD_STANDARD = (KESSELART_AUTO, KESSELWERT_LEISTUNG, False, HAUPTSYSTEM_AUTO)
 
 
-def _schaubildwahl_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str, bool]]:
+def _schaubildwahl_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str, bool, str]]:
     """Eingestellte Schaubild-Optionen je Gerätekennung.
 
     Die Option liegt je Anlage unter deren Adresse; die Geräte tragen sie nicht.
@@ -209,6 +211,7 @@ def _schaubildwahl_je_geraet(hass: HomeAssistant) -> dict[str, tuple[str, str, b
                 je_host.get(CONF_KESSELART) or KESSELART_AUTO,
                 je_host.get(CONF_KESSELWERT) or KESSELWERT_LEISTUNG,
                 bool(je_host.get(CONF_MODULPUMPE, False)),
+                je_host.get(CONF_HAUPTSYSTEM) or HAUPTSYSTEM_AUTO,
             )
             for beschreibung in (coordinator.data or {}).get("devices", []):
                 if kennung := beschreibung.get("device_id"):
@@ -262,6 +265,15 @@ def _gruppe_abschliessen(gruppe: dict[str, Any]) -> None:
     )
     # Erst wenn eine Anlage eine Pumpe am Modul bestätigt, steht sie im Bild.
     gruppe["modulpumpe"] = any(t.get("modulpumpe_wahl") for t in gruppe["teile"])
+    # Das Hauptsystem der Oberfläche; die erste ausdrückliche Wahl gilt.
+    gruppe["hauptsystem"] = next(
+        (
+            t["hauptsystem_wahl"]
+            for t in gruppe["teile"]
+            if t.get("hauptsystem_wahl") not in (None, HAUPTSYSTEM_AUTO)
+        ),
+        HAUPTSYSTEM_AUTO,
+    )
 
 
 @dataclass(frozen=True)
@@ -270,7 +282,7 @@ class _Lesestand:
 
     fct_je_geraet: dict[str, tuple[Any, str | None]]
     quellen_je_geraet: dict[str, dict[str, Any]]
-    schaubildwahl_je_geraet: dict[str, tuple[str, str, bool]]
+    schaubildwahl_je_geraet: dict[str, tuple[str, str, bool, str]]
     auswahltexte: dict[str, dict[int, str]]
     deutsche_namen: Callable[[Any], str]
 
@@ -293,7 +305,7 @@ def _teil(entry_id: str, geraet: Any, kennung: str, stand: _Lesestand) -> dict[s
     modell = geraete.modell(fct, klasse)
     quelle = stand.quellen_je_geraet.get(kennung) or {}
     art = quelle.get("art")
-    kesselart, kesselwert, modulpumpe = stand.schaubildwahl_je_geraet.get(
+    kesselart, kesselwert, modulpumpe, hauptsystem = stand.schaubildwahl_je_geraet.get(
         kennung, _SCHAUBILD_STANDARD
     )
     return {
@@ -312,6 +324,7 @@ def _teil(entry_id: str, geraet: Any, kennung: str, stand: _Lesestand) -> dict[s
         "kesselart_wahl": kesselart,
         "kesselwert_wahl": kesselwert,
         "modulpumpe_wahl": modulpumpe,
+        "hauptsystem_wahl": hauptsystem,
         "entitaeten": [],
     }
 

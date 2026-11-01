@@ -124,6 +124,31 @@ STATUS: tuple[Zeile, ...] = (
     ),
 )
 
+# Systemstatus einer Wärmepumpe (AeroWIN, fctType 7/27). Ihre Datenpunkte
+# tragen keine kanonischen Schlüssel; die Namen stammen aus der
+# Geräte-Datenbank und sind an beiden Baureihen gleich.
+STATUS_WAERMEPUMPE: tuple[Zeile, ...] = (
+    (r"^betriebsphase$", "Betriebszustand", "mdi:state-machine", ()),
+    (r"^betriebsart$", "Betriebsart", "mdi:cog-outline", ()),
+    (r"^aktuelle leistung$", "Leistung", "mdi:heat-pump", ()),
+    (r"^cop aktuell$", "COP", "mdi:gauge", ()),
+    (r"^vorlauftemperatur$", "Vorlauf", "mdi:thermometer-chevron-up", ()),
+    (r"^r(ü|ue)cklauftemperatur$", "Rücklauf", "mdi:thermometer-chevron-down", ()),
+    (r"^ø cop heizen heute$", "COP Heizen heute", "mdi:gauge", ()),
+    (r"^anzahl starts$", "Starts", "mdi:restart", ()),
+    (r"^betriebsstunden heizen$", "Betriebsstunden Heizen", "mdi:clock-outline", ()),
+)
+
+# Systemstatus des Hybridmanagers (fctType 26): welcher Betrieb, was ihn treibt.
+STATUS_HYBRID: tuple[Zeile, ...] = (
+    (r"^betriebsart$", "Betriebsart", "mdi:swap-horizontal", ()),
+    (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer", ("outdoor_temperature",)),
+    (r"^zustand bivalenz$", "Bivalenz", "mdi:scale-balance", ()),
+    (r"^sg ready status$", "SG Ready", "mdi:transmission-tower", ()),
+    (r"^zustand pv eingang$", "PV-Eingang", "mdi:solar-power", ()),
+    (r"^puffertemperatur$", "Puffer", "mdi:storage-tank", ()),
+)
+
 # Warmwasser hat keine eigene Funktion: Die Datenpunkte hängen am Heizkreis.
 # Die Wortgrenze ist nötig – ohne sie zählte auch die Abgas-Re*zirkulation* des
 # Kessels als Warmwasserwert.

@@ -19,11 +19,10 @@ from ..dashboard.anlagen import steuerungsentitaet, trifft
 from ..dashboard.kesselzustand import kesselzustand
 from ..helpers import mustername
 from ..schema import schaubild_nutzdaten
-from . import uebersicht
+from . import hauptsystem, uebersicht
 from .hilfe import HILFE_KARTEN, KARTE_BEDINGUNG, hilfe
 from .muster import (
     AUSSENTEMPERATUR,
-    STATUS,
     VERLAUF,
     VERLAUF_MAX,
     VERLAUF_SCHLUESSEL,
@@ -33,7 +32,7 @@ from .steuerung import (
     steuerung,
     warmwasser_zeilen,
 )
-from .suche import kennung_suchen, zeilen_aus
+from .suche import kennung_suchen
 from .wartung import wartung
 
 
@@ -98,7 +97,9 @@ def anlage_daten(
         "zeitprogramme": zeitprogramme(anlage),
         "wartung": wartung(anlage),
         "kennwerte": uebersicht.kennwerte(anlage),
-        "status": zeilen_aus(alle, STATUS) + list(marken_status or []),
+        "status": hauptsystem.status(anlage, alle) + list(marken_status or []),
+        # Mehrere Wärmeerzeuger: die übrigen in Spalten unter dem Schaubild.
+        "erzeuger": hauptsystem.nebensysteme(anlage),
         "heizkreise": uebersicht.heizkreise(anlage),
         "warmwasser": warmwasser_zeilen(alle),
         "stoerungen": uebersicht.stoerungen(anlage),
@@ -121,7 +122,8 @@ def anlage_daten(
             if e["kategorie"] is None and e["bereich"] == "sensor"
         ],
         # Bilder, Lagen und Bewegung des Schaubilds, wie die Lovelace-Karte sie bekommt.
-        **schaubild_nutzdaten(anlage, buch=buch),
+        # Das Hauptsystem steht im Bild vorn.
+        **schaubild_nutzdaten({**anlage, "teile": hauptsystem.teile_geordnet(anlage)}, buch=buch),
     }
     # Braucht die fertigen Nutzdaten: Ob eine Karte gebaut wird, steht erst
     # darin.

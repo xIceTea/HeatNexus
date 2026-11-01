@@ -145,6 +145,7 @@
           "username": "Access",
           "kesselart": "Heat generator (diagram)",
           "kesselwert": "Boiler value (diagram)",
+          "hauptsystem": "Main system (interface)",
           "modulpumpe": "Pump connected to the pump/relay module",
           "zeitwerte": "Create system clock and system date",
           "lon": "Read values from the LON bus",
@@ -162,6 +163,7 @@
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant.",
           "kesselart": "Which boiler symbol the plant diagram shows. Affects the drawing only – no entity, no value changes.",
           "kesselwert": "Which second value is shown at the boiler. The ember bed still follows the output; if none is reported it falls back to the combustion chamber temperature.",
+          "hauptsystem": "Which heat generator comes first in the system status and in the plant diagram. “Automatic” takes the hybrid manager, otherwise the heat pump, otherwise the first boiler.",
           "modulpumpe": "Only with the tick does the module's pump appear in the diagram. The module reports a speed even when nothing is wired to it; the module itself and its lamps are shown either way.",
           "zeitwerte": "The controller's own clock. Without the tick they are created disabled; all other time and date fields are unaffected.",
           "lon": "Also reads the bus address space of the controller: fan speed, lambda probe heating, pellet stock and whatever is only available there. On PuroWIN and Infinity this adds little, because the same values already come as data points.",
@@ -244,6 +246,14 @@
       "options": {
         "leistung": "Boiler output",
         "brennkammer": "Combustion chamber temperature"
+      }
+    },
+    "hauptsystem": {
+      "options": {
+        "auto": "Automatic",
+        "hybrid": "Hybrid manager",
+        "waermepumpe": "Heat pump",
+        "kessel": "Boiler"
       }
     },
     "sprache": {
