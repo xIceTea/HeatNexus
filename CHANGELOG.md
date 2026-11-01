@@ -6,23 +6,23 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
-## [1.15.0]
+## [1.15.0-beta.1] - 2026-11-01
 
-### Beim Aktualisieren
+### Highlight: Zustand von Kessel und Anlage
 
-- Zählerstände der AeroWIN sind Sensoren statt Eingabefelder; die Entitäts-IDs beginnen mit `sensor.`.
+Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder Kaminkehrer. Ein Sensor „Anlagenzustand“ meldet je Steuerung Störung, Sonderbetrieb und Ausfall. Home Assistant findet die Steuerung im Netz, und nach einem Adresswechsel stellt HeatNexus selbst um.
 
 ### Neu
 
 **Panel**
 - Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
+- Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
+- Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 - Die Option „Hauptsystem“ legt fest, welcher Wärmeerzeuger in der Übersicht vorn steht.
 - Weitere Wärmeerzeuger stehen mit den wichtigsten Werten in Spalten unter dem Schaubild.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
-- Der Reiter „Hybrid“ zeigt Zustand, Einsatzgrenzen, Kostenvergleich und Diagramme des Hybridmanagers.
+- BioWIN: Der Reiter „Hybrid“ zeigt Zustand, Einsatzgrenzen, Kostenvergleich und Diagramme des Hybridmanagers.
 - Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
-- Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
-- Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 
 **Dashboard**
 - Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
@@ -44,8 +44,8 @@ wenn dort Vorabversionen zugelassen sind.
 ### Behoben
 
 **Dashboard**
-- Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
-- Das Schaubild zeichnet die AeroWIN mit Vorlauf und Leistungszahl.
+- BioWIN: Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
+- BioWIN: Das Schaubild zeichnet die AeroWIN mit Vorlauf und Leistungszahl.
 
 **Panel**
 - Eine Auswahl mit ungültigem Wert erscheint im Schnellzugriff nicht mehr als leeres Feld.
@@ -53,10 +53,10 @@ wenn dort Vorabversionen zugelassen sind.
 **Home Assistant**
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
 - Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
-- Der Hybridmanager des BioWIN 2 Hybrid heißt so und nicht mehr „Wärmepumpe (Energiemanagement)“.
-- Betriebsstunden, Starts und Wärmemengen der AeroWIN lassen sich nicht mehr überschreiben.
+- Fehler und Alarm mit gleicher Nummer erscheinen beide in den Meldungen.
 - Neben den Tageswerten der AeroWIN entsteht kein zweites „heute“ mehr.
-- Der Heizwert der Pellets am Hybridmanager gilt nicht mehr als Zählerstand.
+- BioWIN: Der Hybridmanager heißt nicht mehr „Wärmepumpe (Energiemanagement)“.
+- BioWIN: Der Heizwert der Pellets am Hybridmanager gilt nicht mehr als Zählerstand.
 
 ## [1.14.1] - 2026-10-25
 
