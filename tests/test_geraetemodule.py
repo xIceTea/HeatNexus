@@ -167,7 +167,7 @@ def test_kessel_und_puffer_haben_zeigerinstrumente(geraete):
 
 
 def test_hybridmanager_nennt_waermepreis_und_grenz_cop():
-    """Beide führt die Datenbank ohne Namen; das Display der InfoWIN Touch zeigt sie."""
+    """Interne Rechenwerte ohne Namen in Datenbank, App und Display; benannt nach Nachrechnung."""
     from custom_components.heatnexus.client.erkennung import name_override
 
     assert name_override(26, "54/3") == "Wärmepreis Pellets (ct/kWh)"

@@ -19,8 +19,8 @@ SCHAUBILD = "umschaltung"
 EXTRA_OIDS: tuple[str, ...] = ("52/10", "54/49")
 KESSELART: str | None = None
 
-# Die Datenbank führt beide ohne Namen; das Display der InfoWIN Touch zeigt
-# sie. Nachgerechnet: Pelletpreis ÷ (Heizwert × Wirkungsgrad) und Strompreis ÷
+# Interne Rechenwerte: Datenbank, App und Display führen sie nicht. Benannt
+# nach Nachrechnung: Pelletpreis ÷ (Heizwert × Wirkungsgrad) und Strompreis ÷
 # Wärmepreis. Danach wählt der Hybridmanager zwischen Kessel und Wärmepumpe.
 NAMEN: dict[str, str] = {
     "54/3": "Wärmepreis Pellets (ct/kWh)",
