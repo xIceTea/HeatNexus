@@ -196,6 +196,10 @@ class ErkennungMixin:
         """
         daten, status = await self._get(f"http://{self.host}/api/1.0/info/deviceinfo")
         self.geraeteinfo = daten if status == 200 and isinstance(daten, dict) else {}
+        # Der Webserver 0.10.x nennt die Fassung seiner LON-Anwendung nur hier.
+        lon, status = await self._get(f"http://{self.host}/WsFUP7030/api/1.0/info/LONApp")
+        if status == 200 and isinstance(lon, dict) and lon.get("version"):
+            self.geraeteinfo["lonapp"] = str(lon["version"]).strip()
 
     async def _lese_knotendaten(self) -> None:
         """Die Werksbezeichnung je Knoten holen.

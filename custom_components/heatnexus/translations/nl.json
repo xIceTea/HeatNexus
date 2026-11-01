@@ -486,6 +486,14 @@
       "stoerspeicher": {
         "name": "Meldingen"
       },
+      "uhrabweichung": {
+        "name": "Klokafwijking",
+        "state_attributes": {
+          "uhrzeit": {
+            "name": "Tijd van de regeling"
+          }
+        }
+      },
       "anlagenzustand": {
         "name": "Installatiestatus",
         "state": {

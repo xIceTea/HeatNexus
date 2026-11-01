@@ -486,6 +486,14 @@
       "stoerspeicher": {
         "name": "Messages"
       },
+      "uhrabweichung": {
+        "name": "Clock offset",
+        "state_attributes": {
+          "uhrzeit": {
+            "name": "Controller time"
+          }
+        }
+      },
       "anlagenzustand": {
         "name": "System status",
         "state": {

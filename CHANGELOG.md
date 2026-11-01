@@ -28,6 +28,8 @@ wenn dort Vorabversionen zugelassen sind.
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
 - Wärmepumpen zeigen Leistung, Betriebsphase, Wärmemengen, Betriebsstunden, Starts und COP.
 - Infinity PLUS und AeroWIN zeigen Temperaturen, Betriebsart und Zähler auch ohne Menüeintrag.
+- Ein Diagnose-Sensor zeigt, wie weit die Uhr der Steuerung von Home Assistant abweicht.
+- Die Geräteseite der Steuerung nennt auch die Fassung von Stack und LON-Anwendung.
 
 ### Behoben
 

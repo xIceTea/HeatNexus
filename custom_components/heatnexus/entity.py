@@ -200,6 +200,16 @@ def geraet_info(coordinator: Any, beschreibung: dict) -> DeviceInfo:
     return info
 
 
+def _mit_bausteinen(fassung: str, auskunft: dict) -> str:
+    """Die Fassung der Steuerung, dahinter Stack und LON-Anwendung, soweit sie gemeldet sind."""
+    teile = [
+        f"{name} {wert}"
+        for name, schluessel in (("Stack", "vsnStack"), ("LON", "lonapp"))
+        if (wert := str(auskunft.get(schluessel) or "").strip()) and wert != fassung
+    ]
+    return f"{fassung} ({', '.join(teile)})" if teile else fassung
+
+
 def steuerung_info(coordinator: Any) -> dict[str, str]:
     """Modell und Firmwarestand der Steuerung für ihre Geräteseite.
 
@@ -210,7 +220,7 @@ def steuerung_info(coordinator: Any) -> dict[str, str]:
     auskunft = getattr(coordinator.client, "geraeteinfo", None) or {}
     info = {"model": str(auskunft.get("device") or "").strip() or "Steuerung"}
     if fassung := str(auskunft.get("version") or "").strip():
-        info["sw_version"] = fassung
+        info["sw_version"] = _mit_bausteinen(fassung, auskunft)
     # Die Steuerung bringt eine eigene Weboberfläche mit. Der Verweis führt von
     # der Geräteseite dorthin.
     if host := (getattr(coordinator, "host", "") or "").strip():

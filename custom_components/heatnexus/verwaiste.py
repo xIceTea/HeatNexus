@@ -41,6 +41,13 @@ def _stoerspeicher(coordinators: dict) -> dict[str, str]:
     return dict.fromkeys(kennungen(coordinators), "sensor")
 
 
+def _uhrzeit(coordinators: dict) -> dict[str, str]:
+    # Die Uhrabweichung hängt an der Steuerung, nicht an einem Datenpunkt.
+    from .sensor.uhrzeit import kennungen
+
+    return dict.fromkeys(kennungen(coordinators), "sensor")
+
+
 def _anlagenzustand(coordinators: dict) -> dict[str, str]:
     # Den Anlagenzustand legt jede Steuerung an; er hängt an keinem Datenpunkt.
     from .sensor.anlagenzustand import kennung
@@ -75,6 +82,7 @@ def bekannte_kennungen(
         **_befund(entry),
         **_stoerspeicher(coordinators),
         **_anlagenzustand(coordinators),
+        **_uhrzeit(coordinators),
     }
     return bekannt | quellen | dict.fromkeys(eigene, True)
 
@@ -117,6 +125,7 @@ def erwartete_domaenen(
         | _befund(entry)
         | _stoerspeicher(coordinators)
         | _anlagenzustand(coordinators)
+        | _uhrzeit(coordinators)
     )
     return domaenen | quellen | eigene
 

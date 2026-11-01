@@ -486,6 +486,14 @@
       "stoerspeicher": {
         "name": "Meldungen"
       },
+      "uhrabweichung": {
+        "name": "Uhrabweichung",
+        "state_attributes": {
+          "uhrzeit": {
+            "name": "Uhrzeit der Steuerung"
+          }
+        }
+      },
       "anlagenzustand": {
         "name": "Anlagenzustand",
         "state": {

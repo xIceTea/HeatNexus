@@ -141,6 +141,41 @@ async def test_die_steuerung_nennt_sich_selbst(client):
     assert c._session.anfragen[0][1].endswith("/api/1.0/info/deviceinfo")
 
 
+async def test_der_webserver_nennt_seine_lon_anwendung(client):
+    c = client(
+        _Antwort(200, b'{"device": "MB6621", "version": "0.10.1"}'),
+        _Antwort(200, b'{"name": "MB6611_LOP", "version": "V 1.02"}'),
+    )
+    await c._lese_geraeteinfo()
+    assert c.geraeteinfo["lonapp"] == "V 1.02"
+    assert c._session.anfragen[1][1].endswith("/WsFUP7030/api/1.0/info/LONApp")
+
+
+async def test_die_uhr_der_steuerung_wird_mit_home_assistant_verglichen(client, monkeypatch):
+    from datetime import datetime
+
+    from homeassistant.util import dt as dt_util
+
+    from custom_components.heatnexus.client import systemzeit
+
+    jetzt = datetime(2026, 11, 1, 12, 0, 0, tzinfo=dt_util.get_default_time_zone())
+    monkeypatch.setattr(systemzeit.dt_util, "now", lambda: jetzt)
+    c = client(_Antwort(200, b'{"dateTime": "2026-11-01T13:00:30"}'))
+
+    zeit = await c._systemzeit_lesen()
+
+    assert zeit["abweichung"] == 3630
+    assert c._session.anfragen[0][1].endswith("/WsAdmin/api/1.0/systemtime")
+
+
+async def test_ohne_uhr_fragt_der_client_nicht_weiter(client):
+    c = client(_Antwort(503, b"endpoint <WsAdmin> does not exist."))
+
+    assert await c._systemzeit_lesen() is None
+    assert await c._systemzeit_lesen() is None
+    assert len(c._session.anfragen) == 1
+
+
 async def test_ohne_auskunft_bleibt_die_geraeteinfo_leer(client):
     """Ältere Steuerungen kennen den Endpunkt nicht – das ist kein Fehler."""
     c = client(_Antwort(404, b"not found"))

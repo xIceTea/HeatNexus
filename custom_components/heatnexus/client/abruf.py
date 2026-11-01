@@ -723,6 +723,7 @@ class AbrufMixin:
         if langsam_faellig:
             await self._struktur_pruefen(antwort)
         stoerspeicher = await self._fetch_stoerspeicher(status)
+        systemzeit = await self._systemzeit_lesen() if langsam_faellig else self._systemzeit
         faellig = self._faellig()
         # Ein misslungener Abruf ist kein Messwert: Der zuletzt gelesene Wert
         # bleibt stehen, und die Adresse ist im nächsten Durchlauf wieder
@@ -747,6 +748,7 @@ class AbrufMixin:
             "objects": dict(self._letzte_objekte),
             "status": status,
             "stoerspeicher": stoerspeicher,
+            "systemzeit": systemzeit,
         }
 
     def _ausfall_pruefen(self, misslungen: set[str], gelesen: int) -> None:
