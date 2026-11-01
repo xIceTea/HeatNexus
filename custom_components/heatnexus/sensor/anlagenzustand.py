@@ -56,13 +56,18 @@ def meldungsstufe(daten: dict[str, Any]) -> str:
     """
     speicher = [e for e in daten.get("stoerspeicher") or [] if e.get("aktiv")]
     arten = {{"A": "alarm", "I": "info"}.get(e.get("symbol"), "fehler") for e in speicher}
-    im_speicher = {str(e.get("code")) for e in speicher}
+    im_speicher = {(e.get("symbol") or None, str(e.get("code"))) for e in speicher}
     for roh in (daten.get("status") or {}).values():
         codes = meldungscodes(roh)
-        if not codes or all(str(code) in im_speicher for _, code in codes):
+        if not codes or all(_im_speicher(art, code, im_speicher) for art, code in codes):
             continue
         arten.add("alarm" if any(art == "A" for art, _ in codes) else "fehler")
     return next((stufe for stufe in _STUFEN if stufe in arten), "ok")
+
+
+def _im_speicher(art: str, code: int, eintraege: set[tuple[Any, str]]) -> bool:
+    # Ein Eintrag ohne Kennbuchstaben deckt jede Meldung mit seinem Code.
+    return (art, str(code)) in eintraege or (None, str(code)) in eintraege
 
 
 def _kessel(beschreibungen: list[dict]) -> str | None:

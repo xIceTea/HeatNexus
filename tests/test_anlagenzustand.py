@@ -90,6 +90,12 @@ def test_der_stoerspeicher_bestimmt_die_art(modul):
     assert modul.ermitteln(daten, BESCHREIBUNGEN, True)[0] == "info"
 
 
+def test_ein_info_eintrag_deckt_keinen_fehler_mit_gleichem_code(modul):
+    speicher = [{"code": 12, "aktiv": True, "symbol": "I"}]
+    daten = _daten(status={"60": "PUR 09E012"}, speicher=speicher)
+    assert modul.meldungsstufe(daten) == "fehler"
+
+
 def test_erledigte_eintraege_zaehlen_nicht(modul):
     speicher = [{"code": 346, "aktiv": False, "symbol": "E"}]
     assert modul.meldungsstufe(_daten(speicher=speicher)) == "ok"

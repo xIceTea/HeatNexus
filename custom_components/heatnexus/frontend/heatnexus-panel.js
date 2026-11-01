@@ -268,12 +268,15 @@ class HeatNexusPanel extends Grundlage {
 
   /** Ob jede Meldung dieser Gerätezeile als anliegender Eintrag im Störspeicher steht. */
   _stoerungImSpeicher(eintrag, anlage) {
-    const codes = new Set(
-      this._stoerspeicherEintraege(anlage.stoerspeicher).filter((e) => e.aktiv).map((e) => String(e.code))
-    );
+    const eintraege = this._stoerspeicherEintraege(anlage.stoerspeicher).filter((e) => e.aktiv);
     const zustand = this._zustand(eintrag.entity);
     const meldungen = (zustand && zustand.attributes.meldungen) || [];
-    return meldungen.length > 0 && meldungen.every((m) => codes.has(String(m.code)));
+    // Code und Kennbuchstabe; fehlt der Buchstabe auf einer Seite, zählt der Code allein.
+    const gedeckt = (m) =>
+      eintraege.some(
+        (e) => String(e.code) === String(m.code) && (!e.symbol || !m.symbol || e.symbol === m.symbol)
+      );
+    return meldungen.length > 0 && meldungen.every(gedeckt);
   }
 
   /**
