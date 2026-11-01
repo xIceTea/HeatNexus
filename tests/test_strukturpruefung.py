@@ -57,6 +57,7 @@ def client():
 
     c.fetch = fetch
     c._fetch_stoerspeicher = nichts
+    c._systemzeit_lesen = nichts
     return c
 
 
