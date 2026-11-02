@@ -96,7 +96,7 @@
       },
       "umzug": {
         "title": "Is de regeling verhuisd?",
-        "description": "Op {host} meldt zich een regeling, terwijl een ingestelde regeling op dit moment niet antwoordt. Is ze verhuisd, dan controleert HeatNexus met de opgeslagen toegang of op {host} dezelfde regeling antwoordt. Kies dit alleen als je het apparaat op {host} vertrouwt.",
+        "description": "Op {host} meldt zich een regeling, terwijl een ingestelde regeling op dit moment niet antwoordt. Is ze verhuisd, dan controleert HeatNexus met de opgeslagen toegang of op {host} dezelfde regeling antwoordt. Alleen kiezen als het apparaat op {host} bekend is.",
         "menu_options": {
           "umzug_pruefen": "Ja, adres bijwerken",
           "user": "Nee, als nieuwe regeling instellen"

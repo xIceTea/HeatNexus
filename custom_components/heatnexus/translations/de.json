@@ -96,7 +96,7 @@
       },
       "umzug": {
         "title": "Ist die Steuerung umgezogen?",
-        "description": "Unter {host} meldet sich eine Steuerung, während eine eingerichtete gerade nicht antwortet. Ist sie umgezogen, prüft HeatNexus mit ihrem gespeicherten Zugang, ob unter {host} dieselbe Steuerung antwortet. Wähle das nur, wenn du dem Gerät unter {host} vertraust.",
+        "description": "Unter {host} meldet sich eine Steuerung, während eine eingerichtete gerade nicht antwortet. Ist sie umgezogen, prüft HeatNexus mit ihrem gespeicherten Zugang, ob unter {host} dieselbe Steuerung antwortet. Nur wählen, wenn das Gerät unter {host} bekannt ist.",
         "menu_options": {
           "umzug_pruefen": "Ja, Adresse nachführen",
           "user": "Nein, als neue Steuerung einrichten"

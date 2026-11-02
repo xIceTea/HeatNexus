@@ -96,7 +96,7 @@
       },
       "umzug": {
         "title": "Has the controller moved?",
-        "description": "A controller answers at {host}, while a configured controller is currently silent. If it has moved, HeatNexus checks with its stored login whether the same controller answers at {host}. Choose this only if you trust the device at {host}.",
+        "description": "A controller answers at {host}, while a configured controller is currently silent. If it has moved, HeatNexus checks with its stored login whether the same controller answers at {host}. Only choose this if the device at {host} is known.",
         "menu_options": {
           "umzug_pruefen": "Yes, update the address",
           "user": "No, set it up as a new controller"
