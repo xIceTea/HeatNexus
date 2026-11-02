@@ -18,6 +18,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
+- Im Schaubild steht „COP“ vor der Leistungszahl der Wärmepumpe.
 - Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
 - Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 
@@ -33,6 +34,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - HeatNexus übernimmt neu angeschlossene und entfernte Anlagenteile ohne Neustart.
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
 - Wärmepumpen zeigen Leistung, Betriebsphase, Wärmemengen, Betriebsstunden, Starts und COP.
+- Der COP gilt als Messwert und erscheint im Verlauf als Kurve.
 - BioWIN: Der Hybridmanager zeigt Wärmepreis der Pellets und Grenz-COP.
 - BioWIN: Der SG-Ready-Zustand des Hybridmanagers heißt etwa „Normalbetrieb“ statt „Zustand 2“.
 - Infinity PLUS und AeroWIN zeigen Temperaturen, Betriebsart und Zähler auch ohne Menüeintrag.

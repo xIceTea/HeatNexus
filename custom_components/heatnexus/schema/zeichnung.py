@@ -385,11 +385,15 @@ def _kasten(
 BESCHRIFTETE_ARTEN = {art: frozenset(b for _, b, _ in WERTE_JE_ART[art]) for art in ("heizkreis",)}
 
 
+# Eine Zahl ohne Einheit braucht ihren Namen, gleich an welchem Anlagenteil.
+IMMER_BESCHRIFTET = frozenset({"COP"})
+
+
 def beschriftungen(
     x: int, modul: dict[str, Any], breite: int, buch: Buch | None = None
 ) -> list[dict[str, Any]]:
     """Die Live-Werte eines Anlagenteils als picture-elements-Einträge."""
-    kurz = BESCHRIFTETE_ARTEN.get(modul["art"], frozenset())
+    kurz = BESCHRIFTETE_ARTEN.get(modul["art"], frozenset()) | IMMER_BESCHRIFTET
     mitte = x + MODUL_BREITE // 2
     # Zwei Werte werden ober- und unterhalb der Mitte gesetzt, einer mittig.
     hoehen = (
