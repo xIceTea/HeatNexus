@@ -41,6 +41,15 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 
 ### Behoben
 
+**Automatik**
+- Nach vielen abgelehnten Eingriffen in Folge scheitert nicht mehr jeder Lauf.
+- Ein abgebrochener Lernlauf hält das Hausmodell nicht mehr bis zum Neuladen an.
+- Zwei Änderungen der Einstellungen zugleich gehen beide ein.
+- Eine entfernte Automatik hinterlässt keine Reparaturmeldungen mehr.
+- Eine gescheiterte Einrichtung hinterlässt weder System-Gerät noch Untereintrag.
+- Ein früh gescheiterter Start erscheint im Log und als Reparaturmeldung.
+- An den Tagen der Zeitumstellung stimmen die Minuten je Modus.
+
 **Dashboard**
 - BioWIN: Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
 - BioWIN: Das Schaubild zeichnet die AeroWIN mit Vorlauf und Leistungszahl.

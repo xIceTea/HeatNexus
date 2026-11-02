@@ -494,6 +494,8 @@ class Verwaltung:
             del self._daten["heizkreise"][device_id]
             # Die Antwort an das Panel nennt den Fehler; eine Reparaturmeldung bliebe ohne Automatik stehen.
             ir.async_delete_issue(self.hass, DOMAIN, f"automatik_start_{device_id}")
+            if not self.kennungen(entry.entry_id):
+                self._system_entfernen(entry.entry_id)
             raise ValueError("Die Automatik ließ sich nicht starten.") from fehler
         if not gestartet:
             del self._daten["heizkreise"][device_id]

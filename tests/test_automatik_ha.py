@@ -921,6 +921,26 @@ def _automatik_geraete(hass, eintrag):
     ]
 
 
+async def test_ein_gescheitertes_einrichten_hinterlaesst_nichts(hass, anlage, monkeypatch):
+    """Ohne Automatik bleiben weder System-Gerät noch Untereintrag „HeatNexus Automatik“."""
+    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+
+    async def scheitert(*_a, **_k):
+        raise RuntimeError("Start gescheitert")
+
+    monkeypatch.setattr(Laufzeit, "starten", scheitert)
+    with pytest.raises(ValueError):
+        await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+
+    [eintrag] = hass.config_entries.async_entries(DOMAIN)
+    assert verwaltung.subeintrag(eintrag) is None
+    assert _automatik_geraete(hass, eintrag) == []
+
+
 async def test_die_automatik_hat_einen_eigenen_untereintrag(hass, hass_ws_client, anlage):
     from custom_components.heatnexus.const import DOMAIN, SUBEINTRAG_AUTOMATIK
     from custom_components.heatnexus.registrierung import untereintraege
