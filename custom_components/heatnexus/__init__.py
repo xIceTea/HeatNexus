@@ -679,10 +679,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await verwaltung_holen(hass).eintrag_stoppen(entry)
     await befund_holen(hass).eintrag_stoppen(entry)
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if not unload_ok:
-        # Der Eintrag bleibt geladen; dann läuft auch weiter, was zu ihm gehört.
-        await verwaltung_holen(hass).eintrag_starten(entry)
-        await befund_holen(hass).eintrag_starten(entry)
     if unload_ok:
         daten = laufzeitdaten(entry) or {}
         # Erst den Vollabzug beenden, dann die Verbindung schließen. Andersherum
@@ -696,6 +692,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # bleiben sie stehen, meldet HeatNexus eine Anlage als bereit, die es
         # nicht mehr gibt.
         entry.runtime_data = None
+    else:
+        # Der Eintrag bleibt geladen; dann läuft auch weiter, was zu ihm gehört.
+        await verwaltung_holen(hass).eintrag_starten(entry)
+        await befund_holen(hass).eintrag_starten(entry)
     return unload_ok
 
 

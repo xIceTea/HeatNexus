@@ -65,11 +65,8 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 
 **Home Assistant**
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
-- Scheitert die Einrichtung spät, laufen Befund und Entitäten nicht weiter.
-- Scheitert das Entladen, laufen Automatik und Befund weiter.
-- Fehlt beim Schreiben die Verbindung, erscheint eine übersetzte Meldung statt eines Stapelauszugs.
+- Fehlt beim Schreiben die Verbindung, erscheint eine übersetzte Meldung.
 - Ein Fehlertext der Steuerung mit Umlauten verdeckt den Schreibfehler nicht mehr.
-- Schreiben während des Entladens meldet „nicht verbunden“ statt eines internen Fehlers.
 - Ein abgewiesenes Passwort geht bei mehreren Steuerungen nicht mehr hinter anderen Fehlern unter.
 - Eine `automations.yaml` mit fremdem Zeichensatz lässt die Einrichtung nicht mehr scheitern.
 - Viele Zeitprogramme lassen den Abruf nicht mehr nach einer Viertelstunde dauerhaft scheitern.
