@@ -160,9 +160,19 @@ export const SchaubildMixin = (Basis) =>
     this._bindungen.push(() => bindungen.forEach((binden) => binden()));
     ordnen(0);
     if (typeof ResizeObserver === "function") {
-      const beobachter = new ResizeObserver(([eintrag]) => ordnen(eintrag.contentRect.width));
+      // Gebaut wird im nächsten Bild: Ein Umbau im Rückruf löst sonst die Meldung über eine Schleife aus.
+      const signal = this._aufbauAbbruch?.signal;
+      let zuletzt = -1;
+      const beobachter = new ResizeObserver(([eintrag]) => {
+        const verfuegbar = eintrag.contentRect.width;
+        if (verfuegbar === zuletzt) return;
+        zuletzt = verfuegbar;
+        requestAnimationFrame(() => {
+          if (!signal?.aborted) ordnen(verfuegbar);
+        });
+      });
       beobachter.observe(karte);
-      this._aufbauAbbruch?.signal.addEventListener("abort", () => beobachter.disconnect());
+      signal?.addEventListener("abort", () => beobachter.disconnect());
     }
     return rahmen;
   }

@@ -115,8 +115,7 @@ ERZEUGERWAHL = vol.All(
     {vol.Match(r"^(anlage|alle):[0-9a-zA-Z_-]{1,64}$"): bool}, vol.Length(max=ERZEUGER_MAX)
 )
 
-# Farbsatz, Kopfzeile, Menütaste, Reihenfolge, ausgeblendete Reiter und offene Erzeuger
-# gelten für die ganze Oberfläche.
+# Jede Einstellung gilt für die ganze Oberfläche, nicht für eine Anlage.
 EINSTELLUNGEN_SCHEMA = vol.Schema(
     {
         vol.Optional("farbsatz"): vol.In(FARBSAETZE),

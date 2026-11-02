@@ -75,6 +75,11 @@ def test_breite_karte_eine_reihe_ohne_liegengebliebene_bindungen(reihen):
     assert reihen["getrennt"] is True
 
 
+def test_abbruch_verwirft_den_vorgemerkten_umbau(reihen):
+    """Der Umbau läuft im nächsten Bild; nach dem Abbau der Oberfläche bleibt er aus."""
+    assert reihen["nachAbbruch"] == ["840px"]
+
+
 def test_verkleinern_bleibt_in_einer_reihe_unter_der_obergrenze(reihen):
     assert len(reihen["verkleinern"]) == 1
     assert float(reihen["verkleinern"][0].removesuffix("px")) < 700

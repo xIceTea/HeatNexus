@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { browserAttrappe } from "./dom-attrappe.mjs";
 
 const [pfadPanel] = process.argv.slice(2);
-browserAttrappe();
+const uhr = browserAttrappe();
 const beobachter = [];
 globalThis.ResizeObserver = class {
   constructor(ruf) {
@@ -21,6 +21,7 @@ globalThis.ResizeObserver = class {
   }
   melden(breite) {
     this.ruf([{ contentRect: { width: breite } }]);
+    uhr.bilderLaufenLassen();
   }
 };
 await import(pathToFileURL(pfadPanel).href);
@@ -66,7 +67,10 @@ ergebnis.ohneNeubau = karte.querySelector(".schaubild") === ersteHuelle;
 messung.melden(2000);
 ergebnis.breit = breiten(karte);
 ergebnis.bindungen = element._bindungen.length;
+messung.ruf([{ contentRect: { width: 700 } }]);
 element._aufbauAbbruch.abort();
+uhr.bilderLaufenLassen();
+ergebnis.nachAbbruch = breiten(karte);
 ergebnis.getrennt = messung.getrennt;
 
 const klein = panel({ strang: "verkleinern", strang_groesse: "gross" });
