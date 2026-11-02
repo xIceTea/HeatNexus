@@ -1,4 +1,4 @@
-"""Werte und Füllstand im Schaubild: feste Stellen an der Wärmepumpe, Behälter und Lagerraum."""
+"""Werte und Füllstand im Schaubild: feste Stellen an der Wärmepumpe und der Vorratsbehälter."""
 
 from __future__ import annotations
 
@@ -122,7 +122,7 @@ def test_ohne_gemeldeten_fuellstand_bleibt_die_zeichnung(schema):
     assert '<g opacity="0" ' not in bild["svg"]
 
 
-def test_der_biowin_zeigt_den_lagerraum_und_fuellt_den_behaelter_nicht(schema):
+def test_der_biowin_fuellt_den_behaelter_nach_seinem_befuellgrad(schema):
     teil = _teil(
         "BioWIN",
         9,
@@ -133,5 +133,13 @@ def test_der_biowin_zeigt_den_lagerraum_und_fuellt_den_behaelter_nicht(schema):
             ("sensor.lager", "Befüllgrad Lagerraum", "43/78"),
         ],
     )
-    vorrat = schema.karte.anlagenschema([teil])["vorrat"]
-    assert [(e["art"], e["entity"]) for e in vorrat] == [("lagerraum", "sensor.lager")]
+    bild = schema.karte.anlagenschema([teil])
+    vorrat = bild["vorrat"]
+    assert [(e["art"], e["entity"]) for e in vorrat] == [
+        ("behaelter", "sensor.vorratsbehaelter"),
+        ("fuellgrad", "sensor.vorratsbehaelter"),
+    ]
+    # Ohne Füllgrad bleibt oben so viel leer wie in der Zeichnung über der festen Höhe.
+    assert vorrat[0]["anteil"] is True
+    assert vorrat[0]["fest"] == "33.85%"
+    assert '<g opacity="0" ' in bild["svg"]

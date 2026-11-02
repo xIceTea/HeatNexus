@@ -198,6 +198,6 @@ def schaubild_nutzdaten(
         "schema_hybrid": bild.get("hybrid", []) if bild else [],
         "schema_waerme": bild.get("waerme", []) if bild else [],
         "schema_speicher": bild.get("speicher", []) if bild else [],
-        # Füllstand: Vorratsbehälter in Stufen, Lagerraum als Zahl.
+        # Füllstand: Vorratsbehälter in Stufen oder in Prozent mit Zahl.
         "schema_vorrat": bild.get("vorrat", []) if bild else [],
     }

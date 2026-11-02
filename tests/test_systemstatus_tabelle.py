@@ -254,3 +254,19 @@ async def test_der_zweite_kessel_zeigt_seine_eigenen_werte(hass):
         assert all("funktion_10_0" in z["entity"] for z in zusatz["zeilen"])
     finally:
         await _abbauen(hass, eintrag)
+
+
+def test_der_lagerraum_steht_mit_namen_unter_dem_vorratsbehaelter():
+    """Das Schaubild zeigt nur den Behälter am Kessel; der Lagerraum braucht eine eigene Zeile."""
+    import re
+
+    geraete = load_standalone("geraete")
+    titel = [z.titel for z in geraete.statuszeilen.KESSEL]
+    assert titel.index("Lagerraum") == titel.index("Vorratsbehälter") + 1
+    [lager] = [z for z in geraete.statuszeilen.KESSEL if z.titel == "Lagerraum"]
+    treffer = [
+        n
+        for n in ("Befüllgrad Lagerraum", "Vulniveau bunker", "Befüllgrad Vorratsbehälter")
+        if re.search(lager.muster, n, re.IGNORECASE)
+    ]
+    assert treffer == ["Befüllgrad Lagerraum", "Vulniveau bunker"]

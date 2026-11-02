@@ -430,11 +430,13 @@ export const SCHAUBILD = `
   }
   .schaubild .marke-wert .marke-name { font-weight: 400; opacity: 0.75; font-size: 0.8em; }
   /* Nur die Zahl, mittig über dem Behälter und schmal genug für ihn. Am Rand des Ausschnitts rückt sie so weit ein, dass sie ganz bleibt. */
-  .schaubild .marke-wert.lagerraum {
+  .schaubild .marke-wert.fuellgrad {
     background: none; padding: 0; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 3px rgba(0, 0, 0, 0.7);
     margin-left: max(0px, calc(var(--hn-kante, 0px) + 1.2em - var(--hn-links, 0%)));
-    font-size: clamp(calc(8px * var(--hn-schrift)), calc(var(--hn-einheit) * 11 * var(--hn-schrift)), calc(15px * var(--hn-schrift)));
+    font-size: clamp(calc(9px * var(--hn-schrift)), calc(var(--hn-einheit) * 13 * var(--hn-schrift)), calc(17px * var(--hn-schrift)));
   }
+  /* In einer anderen Reihe des Strangs bleibt sie an ihrer Stelle außerhalb des Ausschnitts. */
+  .schaubild .marke-wert.fuellgrad[aria-hidden="true"] { margin-left: 0; }
   /* Füllstand des Vorratsbehälters: dieselbe Körnung wie in der Zeichnung, von unten bis zur Stufe.
      Ein Fehler lässt ihn leer, umrandet ihn orange und setzt ein „!“; die Meldung steht im Systemstatus. */
   .schaubild .vorrat { position: absolute; pointer-events: auto; }
@@ -443,6 +445,7 @@ export const SCHAUBILD = `
   .schaubild .vorrat .koerner .umriss-linie, .schaubild .vorrat .umriss .koerner-flaeche { display: none; }
   .schaubild .vorrat .koerner { clip-path: inset(100% 0 0 0); transition: clip-path 0.4s ease; }
   .schaubild .vorrat[data-stufe="voll"] .koerner { clip-path: inset(0); }
+  .schaubild .vorrat[data-stufe="anteil"] .koerner { clip-path: inset(var(--hn-leer, 50%) 0 0 0); }
   .schaubild .vorrat[data-stufe="teil"] .koerner { clip-path: inset(50% 0 0 0); }
   .schaubild .vorrat .umriss { visibility: hidden; }
   .schaubild .vorrat[data-stufe="fehler"] .umriss { visibility: visible; }

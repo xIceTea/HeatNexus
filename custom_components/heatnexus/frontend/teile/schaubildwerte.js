@@ -28,29 +28,29 @@ export const SchaubildWerteMixin = (Basis) =>
       return lage === "unter" || (lage === "automatisch" && MODUL * massstab < UNTER_AB);
     }
 
-    /** Alle Zahlen eines Bildes: die Messwerte und der Befüllgrad des Lagerraums. */
+    /** Alle Zahlen eines Bildes: die Messwerte und der Befüllgrad des Vorratsbehälters. */
     _zahlwerte(anlage) {
-      const lager = (anlage.schema_vorrat || [])
-        .filter((eintrag) => eintrag.art === "lagerraum")
-        .map((eintrag) => ({ ...eintrag, name: this._t("Lagerraum"), lagerraum: true }));
-      return [...(anlage.schema_werte || []), ...lager];
+      const fuellgrad = (anlage.schema_vorrat || [])
+        .filter((eintrag) => eintrag.art === "fuellgrad")
+        .map((eintrag) => ({ ...eintrag, name: this._t("Vorratsbehälter"), fuellgrad: true }));
+      return [...(anlage.schema_werte || []), ...fuellgrad];
     }
 
-    /** Ohne Wert keine Zahl; der Lagerraum bleibt auch bei 0 % weg. */
+    /** Ohne Wert keine Zahl; der Befüllgrad bleibt auch bei 0 % weg. */
     _wertDa(eintrag) {
       if (!this._hatWert(eintrag.entity)) return false;
-      return !eintrag.lagerraum || (this._zahl(eintrag.entity) || 0) > 0;
+      return !eintrag.fuellgrad || (this._zahl(eintrag.entity) || 0) > 0;
     }
 
     /** Die Zahlen als Marken in der Zeichnung. */
     _wertmarken(huelle, anlage) {
       this._zahlwerte(anlage).forEach((eintrag) => {
         const marke = document.createElement("div");
-        marke.className = eintrag.lagerraum ? "marke-wert lagerraum" : "marke-wert";
+        marke.className = eintrag.fuellgrad ? "marke-wert fuellgrad" : "marke-wert";
         marke.style.left = eintrag.left;
         marke.style.top = eintrag.top;
         // Im Bild steht beim Behälter nur die Zahl; der Name erscheint beim Überfahren.
-        if (eintrag.lagerraum) {
+        if (eintrag.fuellgrad) {
           marke.title = eintrag.name;
           marke.style.setProperty("--hn-links", eintrag.left);
         }
@@ -106,6 +106,16 @@ export const SchaubildWerteMixin = (Basis) =>
       return leiste;
     }
 
+    /** Der Behälter steht so hoch wie gemeldet; ohne Befüllgrad bis zur festen Höhe der Zeichnung. */
+    _fuellenNachAnteil(flaeche, eintrag) {
+      const prozent = this._hatWert(eintrag.entity) ? this._zahl(eintrag.entity) || 0 : 0;
+      const oben = prozent > 0 ? `${100 - Math.min(100, prozent)}%` : eintrag.fest;
+      flaeche.dataset.stufe = "anteil";
+      flaeche.hidden = false;
+      flaeche.style.setProperty("--hn-leer", oben);
+      flaeche.title = prozent > 0 ? `${this._t("Vorratsbehälter")} – ${this._text(eintrag.entity)}` : eintrag.titel;
+    }
+
     /** Die Körnung füllt den Behälter bis zur Stufe; ein Fehler zeigt ihn leer mit orangem Umriss und „!“. */
     _vorratsbehaelter(huelle, anlage) {
       (anlage.schema_vorrat || [])
@@ -125,6 +135,10 @@ export const SchaubildWerteMixin = (Basis) =>
           // Die Texte der Stufen tragen am Gerät mitunter ein Leerzeichen am Ende.
           const stufen = Object.fromEntries(Object.entries(eintrag.stufen || {}).map(([text, stufe]) => [text.trim(), stufe]));
           this._bindungen.push(() => {
+            if (eintrag.anteil) {
+              this._fuellenNachAnteil(flaeche, eintrag);
+              return;
+            }
             const zustand = this._zustand(eintrag.entity);
             const stufe = (zustand && stufen[String(zustand.state).trim()]) || "";
             flaeche.dataset.stufe = stufe;

@@ -181,6 +181,8 @@ def waermeflaeche(art: str, zeichnung: str | None = None) -> dict[str, float] | 
 # Die Innenform des Vorratsbehälters und die Körnung, die ihn füllt.
 _VORRATSMARKE = re.compile(r'<path[^>]*\sdata-vorrat[^>]*\sd="([^"]+)"')
 _KOERNUNG = re.compile(r'<g id="koernung"[^>]*>(.*?)</g>', re.S)
+# Die feste Höhe, bis zu der die Zeichnung den Brennstoff ohne gemeldeten Füllstand zeigt.
+_FESTE_HOEHE = re.compile(r'<clipPath id="fest"><rect[^>]*\sy="([\d.]+)"')
 # Die Warnfarbe des Panels für einen Behälter, der einen Fehler meldet.
 VORRAT_WARNFARBE = "#f59e0b"
 
@@ -209,11 +211,14 @@ def vorratsflaeche(kesselart: str | None, zeichnung: str | None = None) -> dict[
         rahmen = (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
         koernung = _KOERNUNG.search(einfaerben(fragment))
         kennung = f"vorrat-{dateiname.removesuffix('.svg')}"
+        fest = _FESTE_HOEHE.search(fragment)
         return {
             "x": rahmen[0],
             "y": rahmen[1],
             "breite": rahmen[2],
             "hoehe": rahmen[3],
+            # Leerer Anteil über der festen Höhe, von oben gemessen.
+            "fest": (float(fest.group(1)) - rahmen[1]) / rahmen[3] if fest else 0.5,
             "bild": _vorratsbild(
                 marke.group(1), koernung.group(1).strip() if koernung else "", rahmen, kennung
             ),
