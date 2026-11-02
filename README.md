@@ -188,8 +188,10 @@ zugehörige Passwort.
 
 Home Assistant findet ein InfoWIN Touch im Netz meist von selbst und bietet es
 unter *Geräte & Dienste* als gefunden an; die Adresse ist dann vorbelegt.
-Bezieht eine eingerichtete Steuerung später eine neue Adresse, stellt HeatNexus
-den Eintrag um, sobald sie sich im Netz meldet und ihre Seriennummer passt.
+Bezieht eine eingerichtete Steuerung später eine neue Adresse, fragt HeatNexus
+beim Fund unter *Geräte & Dienste*, ob sie umgezogen ist. Erst nach der
+Bestätigung meldet es sich an der neuen Adresse an und stellt den Eintrag um,
+wenn die Seriennummer passt.
 
 #### Zugang und Passwort
 

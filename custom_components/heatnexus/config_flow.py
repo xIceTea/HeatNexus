@@ -236,7 +236,7 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def _steuerung_gefunden(self, host: str, kennung: str) -> ConfigFlowResult:
-        """Bekannte Adresse: nichts tun. Umgezogene Steuerung: Adresse nachführen.
+        """Bekannte Adresse: nichts tun. Schweigt eine Steuerung, fragen, ob sie umgezogen ist.
 
         Sonst bietet Home Assistant die Steuerung zur Einrichtung an.
         """
@@ -248,12 +248,39 @@ class WindhagerConfigFlow(ConfigFlow, domain=DOMAIN):
         ]
         if any(s.get(CONF_HOST) == host for e in eintraege for s in e.data.get(CONF_SYSTEMS, [])):
             return self.async_abort(reason="already_configured")
-        if umzug := await self._umzug_nachfuehren(eintraege, host):
-            return umzug
         self._gefunden = host
         self.context["host"] = host
         self.context["title_placeholders"] = {"name": host}
+        # Name und MAC kann jedes Gerät im Netz vorgeben. Der gespeicherte Zugang
+        # geht erst an die neue Adresse, wenn der Nutzer den Umzug bestätigt.
+        if any(
+            not _erreichbar(e, s[CONF_HOST])
+            for e in eintraege
+            for s in e.data.get(CONF_SYSTEMS, [])
+        ):
+            return await self.async_step_umzug()
         return await self.async_step_user()
+
+    async def async_step_umzug(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Fragen, ob die gefundene Steuerung eine umgezogene ist oder eine neue."""
+        return self.async_show_menu(
+            step_id="umzug",
+            menu_options=["umzug_pruefen", "user"],
+            description_placeholders={"host": self._gefunden},
+        )
+
+    async def async_step_umzug_pruefen(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Bestätigter Umzug: an der neuen Adresse mit dem Zugang der schweigenden Steuerung fragen."""
+        eintraege = [
+            e for e in self._async_current_entries(include_ignore=False) if not e.disabled_by
+        ]
+        if umzug := await self._umzug_nachfuehren(eintraege, self._gefunden):
+            return umzug
+        return self.async_abort(
+            reason="kein_umzug", description_placeholders={"host": self._gefunden}
+        )
 
     def _funde_schliessen(self, adressen: set[str]) -> None:
         """Offene Funde der eben eingerichteten Steuerungen schließen; ihre Kennung ist die MAC."""

@@ -5,7 +5,8 @@
       "already_configured": "This system is already configured",
       "reauth_successful": "Password updated",
       "reconfigure_successful": "Address changed",
-      "adresse_nachgefuehrt": "The controller answers at a new address. The system was updated."
+      "adresse_nachgefuehrt": "The controller answers at a new address. The system was updated.",
+      "kein_umzug": "The controller at {host} is not the silent one. Its address was not changed."
     },
     "create_entry": {
       "default": "The system is set up. Reload the page once so that the cards appear in the dashboard."
@@ -91,6 +92,14 @@
         },
         "data_description": {
           "username": "USER sees info and operator level, Service additionally the specialist parameters. Changing it re-reads the plant."
+        }
+      },
+      "umzug": {
+        "title": "Has the controller moved?",
+        "description": "A controller answers at {host}, while a configured controller is currently silent. If it has moved, HeatNexus checks with its stored login whether the same controller answers at {host}. Choose this only if you trust the device at {host}.",
+        "menu_options": {
+          "umzug_pruefen": "Yes, update the address",
+          "user": "No, set it up as a new controller"
         }
       }
     }

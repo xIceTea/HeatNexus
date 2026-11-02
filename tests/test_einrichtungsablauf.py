@@ -459,21 +459,61 @@ async def test_derselbe_fund_laeuft_nur_einmal(hass):
     assert ergebnis["reason"] == "already_in_progress"
 
 
-async def test_eine_verstummte_steuerung_zieht_an_die_neue_adresse(hass, eintrag):
+async def _umzug_bestaetigen(hass, ergebnis: dict, verbindung=None) -> tuple[dict, AsyncMock]:
+    """Im Menü des Fundes „Adresse nachführen“ wählen."""
+    verbindung = verbindung or _verbindung()
+    with (
+        patch("custom_components.heatnexus.config_flow.validate_connection", verbindung),
+        patch("custom_components.heatnexus.WindhagerHttpClient", AttrappenClient),
+    ):
+        ablauf = await hass.config_entries.flow.async_configure(
+            ergebnis["flow_id"], {"next_step_id": "umzug_pruefen"}
+        )
+        await hass.async_block_till_done()
+    return ablauf, verbindung
+
+
+async def test_ein_fund_sendet_den_gespeicherten_zugang_nicht_von_selbst(hass, eintrag):
+    """Name und MAC kann jedes Gerät im Netz vorgeben; ohne Bestätigung geht keine Anmeldung hinaus."""
+    ergebnis, verbindung = await _gefunden(hass, _mdns())
+
+    assert ergebnis["type"] == "menu"
+    assert ergebnis["step_id"] == "umzug"
+    verbindung.assert_not_called()
+    assert [s["host"] for s in eintrag.data[CONF_SYSTEMS]] == [ALT]
+
+
+async def test_eine_verstummte_steuerung_zieht_nach_bestaetigung_um(hass, eintrag):
     """Nicht geladen heißt: Sie antwortet unter der alten Adresse nicht."""
     ergebnis, _ = await _gefunden(hass, _mdns())
 
-    assert ergebnis["reason"] == "adresse_nachgefuehrt"
+    ablauf, verbindung = await _umzug_bestaetigen(hass, ergebnis)
+
+    assert ablauf["reason"] == "adresse_nachgefuehrt"
+    verbindung.assert_called_once()
     assert [s["host"] for s in eintrag.data[CONF_SYSTEMS]] == [NEU]
     assert NEU in eintrag.options and ALT not in eintrag.options
 
 
 async def test_eine_fremde_seriennummer_zieht_nicht_um(hass, eintrag):
     fremd = [{"nodeId": 15, "neuronId": "0000FFFF0000", "functions": []}]
-    ergebnis, _ = await _gefunden(hass, _mdns(), _verbindung(fremd))
+    ergebnis, _ = await _gefunden(hass, _mdns())
 
-    assert ergebnis["step_id"] == "user"
+    ablauf, _ = await _umzug_bestaetigen(hass, ergebnis, _verbindung(fremd))
+
+    assert ablauf["reason"] == "kein_umzug"
     assert [s["host"] for s in eintrag.data[CONF_SYSTEMS]] == [ALT]
+
+
+async def test_ein_fund_laesst_sich_als_neue_steuerung_einrichten(hass, eintrag):
+    ergebnis, verbindung = await _gefunden(hass, _mdns())
+
+    ablauf = await hass.config_entries.flow.async_configure(
+        ergebnis["flow_id"], {"next_step_id": "user"}
+    )
+
+    assert ablauf["step_id"] == "user"
+    verbindung.assert_not_called()
 
 
 async def test_eine_erreichbare_steuerung_wird_nicht_befragt(hass, eintrag):
