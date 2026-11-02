@@ -387,7 +387,8 @@ def brenner(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
     """
     ergebnis: Ebene = []
     for platz, modul in enumerate(module):
-        if modul["art"] != "kessel":
+        # Die Wärmepumpe verbrennt nichts; ihren Betrieb zeigen Lüfter und Lampe.
+        if modul["art"] != "kessel" or modul.get("kesselart") == "waermepumpe":
             continue
         leistung, ersatz = modul.get("leistung"), modul.get("brennkammer")
         if not (leistung or ersatz):

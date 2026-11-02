@@ -63,6 +63,16 @@ def test_die_waermepumpe_traegt_ihre_werte_an_festen_stellen(schema):
     assert [vorlauf["name"], cop["name"]] == ["Vorlauf", "COP"]
 
 
+def test_die_waermepumpe_hat_kein_glutbett(schema):
+    """Sie zeigt den Betrieb über Lüfter und Lampe; eine Glut läge über der Lampe."""
+    rahmen = schema.ebenen.Rahmen(400, (), ())
+    module = [
+        {"art": "kessel", "kesselart": art, "leistung": f"sensor.{art}", "titel": art}
+        for art in ("waermepumpe", "pellets")
+    ]
+    assert [e["entity"] for e in schema.ebenen.brenner(module, rahmen)] == ["sensor.pellets"]
+
+
 @pytest.mark.parametrize("kesselart", ["pellets", "hackgut"])
 def test_die_kessel_mit_behaelter_markieren_seine_innenflaeche(schema, kesselart):
     assert schema.bauteile.vorratsflaeche(kesselart) is not None
