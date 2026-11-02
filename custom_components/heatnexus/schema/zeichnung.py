@@ -318,6 +318,10 @@ HYBRID_DREIECKE = {
 HYBRID_LAMPEN = {"kessel": (70, 268, 5), "waermepumpe": (134, 268, 5)}
 
 
+# Fläche um Antrieb und Ventil, über die man die Betriebsart öffnet.
+HYBRID_VENTIL = (56, 146, 88, 80)
+
+
 # Ventilatorgitter und Flügel der Wärmepumpe, wörtlich aus `kessel-waermepumpe.svg`.
 WP_LUEFTER = (110, 196, 44, 34)
 

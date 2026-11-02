@@ -349,6 +349,9 @@ export const SCHAUBILD = `
   .schaubild .hybrid-teil.lampe {
     aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%);
   }
+  .schaubild .hybrid-teil.lampe.klickbar { pointer-events: auto; cursor: pointer; }
+  .schaubild .hybrid-ventil { position: absolute; cursor: pointer; border-radius: 8px; }
+  .schaubild .hybrid-ventil:focus-visible { outline: 2px solid var(--hn-uebergabe); }
   /* Am Lüfter ist die Glut rund wie das Gitter, und das Rad dreht schneller. */
   .schaubild .uebergabe.luefter { border-radius: 50%; }
   .schaubild .uebergabe.luefter .glut { top: 50%; }

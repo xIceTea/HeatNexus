@@ -481,6 +481,8 @@ export const SchaubildMixin = (Basis) =>
 
     // Das Ventil des Hybridmanagers leuchtet zu dem Erzeuger hin, der gerade
     // Leistung bringt; laufen beide, leuchten beide Eingänge.
+    // Ein Klick aufs Ventil öffnet die Betriebsart, einer auf eine Lampe die
+    // Leistung ihres Erzeugers.
     (anlage.schema_hybrid || []).forEach((eintrag) => {
       eintrag.teile.forEach((teil) => {
         const feld = document.createElement("div");
@@ -489,14 +491,23 @@ export const SchaubildMixin = (Basis) =>
         feld.style.top = teil.top;
         feld.style.width = teil.breite;
         if (teil.hoehe) feld.style.height = teil.hoehe;
-        huelle.appendChild(feld);
+        huelle.appendChild(teil.form === "lampe" ? this._klickbar(feld, teil.entities[0]) : feld);
         this._bindungen.push(() => {
-          const an = teil.entities.some((entity) => {
-            const leistung = this._zahl(entity);
-            return leistung !== null && leistung > 0;
-          });
-          feld.classList.toggle("an", an);
+          feld.classList.toggle("an", teil.entities.some((entity) => this._foerdert(entity)));
         });
+      });
+      if (!eintrag.entity) return;
+      const ventil = document.createElement("div");
+      ventil.className = "hybrid-ventil";
+      Object.assign(ventil.style, {
+        left: eintrag.ventil.left,
+        top: eintrag.ventil.top,
+        width: eintrag.ventil.breite,
+        height: eintrag.ventil.hoehe,
+      });
+      huelle.appendChild(this._klickbar(ventil, eintrag.entity));
+      this._bindungen.push(() => {
+        ventil.title = `${eintrag.titel} – ${this._text(eintrag.entity)}`;
       });
     });
 

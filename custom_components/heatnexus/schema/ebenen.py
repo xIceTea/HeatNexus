@@ -36,6 +36,7 @@ from .zeichnung import (
     HOEHE,
     HYBRID_DREIECKE,
     HYBRID_LAMPEN,
+    HYBRID_VENTIL,
     KANTEN_JE_ART,
     KANTEN_STANDARD,
     LADE_TOLERANZ,
@@ -56,6 +57,11 @@ from .zeichnung import (
 )
 
 Ebene = list[dict[str, Any]]
+
+
+# Der Hybridmanager fördert die Wärme seiner Erzeuger in die Anlage und strömt
+# deshalb wie ein Erzeuger: vom Rücklauf hinauf in den Vorlauf.
+STROEMT_WIE_ERZEUGER = frozenset(ERZEUGER_ARTEN | {"hybridmanager"})
 
 
 @dataclass(frozen=True)
@@ -138,7 +144,7 @@ def _pumpe(modul: dict[str, Any], mitte: float, rahmen: Rahmen) -> dict[str, Any
         # Eine Quelle lädt den Speicher, ohne dass seine Ladepumpe fördert. Ohne
         # sie stünde die Stichleitung still, während der Speicher „lädt" anzeigt.
         "quellen": list(rahmen.lieferungen) if puffer else [],
-        "erzeuger": modul["art"] in ERZEUGER_ARTEN,
+        "erzeuger": modul["art"] in STROEMT_WIE_ERZEUGER,
     }
 
 
@@ -159,13 +165,16 @@ def _kesselstrang(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
     An dieser Stelle sitzt keine Pumpe.
     """
     ladepumpe = next((m["pumpe"] for m in module if m["art"] == "puffer" and m.get("pumpe")), None)
-    if not ladepumpe:
-        return []
+    # Am Hybridmanager strömt nur der Erzeuger, der Leistung bringt; die
+    # Ladepumpe liefe auch für den, der gerade steht.
+    hybrid = any(m["art"] == "hybridmanager" for m in module)
     ergebnis: Ebene = []
     for platz, modul in enumerate(module):
         if modul["art"] != "kessel" or modul.get("pumpe"):
             continue
-        ergebnis.append(_strang(ladepumpe, modul, _mitte(platz), rahmen, nur_strang=True))
+        antrieb = modul.get("leistung") if hybrid else ladepumpe
+        if antrieb:
+            ergebnis.append(_strang(antrieb, modul, _mitte(platz), rahmen, nur_strang=True))
     return ergebnis
 
 
@@ -465,7 +474,20 @@ def hybrid(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
             }
             for rolle, (lx, ly, lr) in HYBRID_LAMPEN.items()
         ]
-        ergebnis.append({"titel": modul["titel"], "teile": teile})
+        betriebsart = finde(modul.get("entitaeten") or [], r"^betriebsart$")
+        vx, vy, vb, vh = HYBRID_VENTIL
+        ergebnis.append(
+            {
+                "titel": modul["titel"],
+                "entity": betriebsart["entity_id"] if betriebsart else None,
+                "ventil": {
+                    **_stelle(x + vx, vy, rahmen),
+                    "breite": _pct(vb, rahmen.breite),
+                    "hoehe": _pct(vh, HOEHE),
+                },
+                "teile": teile,
+            }
+        )
     return ergebnis
 
 

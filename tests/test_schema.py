@@ -1897,7 +1897,16 @@ def _hybridanlage():
             [("sensor.wp_vl", "Vorlauftemperatur"), ("sensor.wp_l", "Aktuelle Leistung")],
         ),
         _teil(
-            "Hybrid", 26, [("sensor.bp", "Kessel-/Bypasspumpe"), ("sensor.p", "Puffertemperatur")]
+            "Hybrid",
+            26,
+            [
+                ("sensor.bp", "Kessel-/Bypasspumpe"),
+                ("sensor.p", "Puffertemperatur"),
+                ("sensor.ba", "Betriebsart"),
+            ],
+        ),
+        _teil(
+            "PUFFER", 16, [("sensor.po", "Puffertemperatur oben"), ("sensor.lp", "Pufferladepumpe")]
         ),
     ]
 
@@ -1923,3 +1932,18 @@ def test_der_hybridmanager_zeigt_welcher_erzeuger_liefert(karte):
 def test_der_hybridmanager_liest_seine_pumpe_auch_ohne_menueebene():
     geraete = load_standalone("geraete")
     assert "50/54" in geraete.EXTRA_OIDS[26]
+
+
+def test_das_ventil_des_hybridmanagers_oeffnet_seine_betriebsart(karte):
+    (eintrag,) = karte.anlagenschema(_hybridanlage())["hybrid"]
+    assert eintrag["entity"] == "sensor.ba"
+    lampen = {t["rolle"]: t["entities"] for t in eintrag["teile"] if t["form"] == "lampe"}
+    assert lampen == {"kessel": ["sensor.kl"], "waermepumpe": ["sensor.wp_l"]}
+
+
+def test_am_hybridmanager_stroemen_die_erzeuger_mit_ihrer_leistung(karte):
+    """Nicht die Pufferladepumpe: Sonst strömte auch der Erzeuger, der gerade steht."""
+    pumpen = {p["titel"]: p for p in karte.anlagenschema(_hybridanlage())["pumpen"]}
+    assert pumpen["BioWIN"]["entity"] == "sensor.kl"
+    assert pumpen["AeroWIN"]["entity"] == "sensor.wp_l"
+    assert pumpen["Hybrid"]["erzeuger"] is True

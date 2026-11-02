@@ -24,6 +24,8 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 - BioWIN: Am Hybridmanager leuchtet im Schaubild der Erzeuger, der gerade heizt.
 - BioWIN: Die Pumpe des Hybridmanagers dreht im Schaubild im Rücklauf.
+- BioWIN: Ein Klick auf das Ventil zeigt die Betriebsart des Hybridmanagers.
+- BioWIN: Im Schaubild strömen BioWIN und AeroWIN nur, solange sie heizen.
 
 **Dashboard**
 - Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
