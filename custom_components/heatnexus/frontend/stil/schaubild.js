@@ -351,9 +351,13 @@ export const SCHAUBILD = `
   .schaubild .hybrid-teil.rechts { clip-path: polygon(0 0, 0 100%, 100% 50%); }
   .schaubild .hybrid-teil.links { clip-path: polygon(100% 0, 100% 100%, 0 50%); }
   .schaubild .hybrid-teil.oben { clip-path: polygon(0 100%, 100% 100%, 50% 0); }
+  /* Die Lampe des liefernden Erzeugers pulst grün wie die Lampe am Erzeuger selbst. */
   .schaubild .hybrid-teil.lampe {
     aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%);
+    background: radial-gradient(circle at 50% 40%, #d6ffe2 0%, #4ade6a 55%, #2f9e46 100%);
+    box-shadow: 0 0 7px 2px rgba(74, 222, 106, 0.7);
   }
+  .schaubild .hybrid-teil.lampe.an { animation: lampe-blinken 2.6s ease-in-out infinite; }
   .schaubild .hybrid-teil.lampe.klickbar { pointer-events: auto; cursor: pointer; }
   .schaubild .hybrid-ventil { position: absolute; cursor: pointer; border-radius: 8px; }
   .schaubild .hybrid-ventil:focus-visible { outline: 2px solid var(--hn-uebergabe); }
@@ -365,6 +369,7 @@ export const SCHAUBILD = `
     .schaubild .uebergabe .glut,
     .schaubild .uebergabe .welle,
     .schaubild .uebergabe-rad.an .rad { animation: none; }
+    .schaubild .hybrid-teil.lampe.an { animation: none; opacity: 1; }
     .schaubild .uebergabe .glut { opacity: 0.3; }
     .schaubild .uebergabe .welle { opacity: 0; }
   }
