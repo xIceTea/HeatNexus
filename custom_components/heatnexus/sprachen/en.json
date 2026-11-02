@@ -1155,6 +1155,9 @@
   "Wärmepreis = Pelletpreis ÷ (Heizwert × Wirkungsgrad). Grenz-COP = Strompreis ÷ Wärmepreis: Liegt die Leistungszahl darüber, heizt die Wärmepumpe günstiger.": "Heat price = pellet price ÷ (calorific value × efficiency). Break-even COP = electricity price ÷ heat price: above it, the heat pump heats more cheaply.",
   "Wärmepreis Pellets": "Pellet heat price",
   "Wärmemenge je Tag": "Heat per day",
+  "Temperaturen": "Temperatures",
+  "Wer heizt": "Active heat generator",
+  "Leistungszahl": "Coefficient of performance",
   "SG Ready Status": "SG Ready status",
   "Zustand 1: gesperrt · 2: Normalbetrieb · 3: Einschaltempfehlung · 4: Einschaltbefehl": "State 1: blocked · 2: normal operation · 3: switch-on recommended · 4: switch-on command",
   "SG Ready": "SG Ready"

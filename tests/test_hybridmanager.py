@@ -109,3 +109,17 @@ def test_die_karte_kennt_sg_ready_und_seinen_zustand(anlage):
 
     karte = hybrid(anlage)["karte"]
     assert (karte["sg_ready"], karte["sg_status"]) == ("select.sg", "sensor.sg_status")
+
+
+@pytest.mark.parametrize("sprache", ["en", "nl"])
+def test_kartentitel_gibt_es_in_jeder_sprache(anlage, sprache):
+    """Die Titel gehen im Panel durch `_t`; ohne Eintrag stünden sie deutsch da."""
+    import json
+    from pathlib import Path
+
+    from custom_components.heatnexus.panel.hybrid import hybrid
+
+    ordner = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "sprachen"
+    woerter = json.loads((ordner / f"{sprache}.json").read_text(encoding="utf-8"))
+    titel = ["Hybridmanager", *(d["titel"] for d in hybrid(anlage)["diagramme"])]
+    assert [t for t in titel if t not in woerter] == []

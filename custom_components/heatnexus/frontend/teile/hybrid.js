@@ -15,7 +15,7 @@ export const HybridMixin = (Basis) =>
   _hybridKarte(anlage) {
     const w = anlage.hybrid && anlage.hybrid.karte;
     if (!w || !w.kosten) return null;
-    const karte = this._karte("Hybridmanager");
+    const karte = this._karte(this._t("Hybridmanager"));
     karte.appendChild(this._zahlFeld(this._t("Kosten Pellets"), w.kosten));
     (w.tarife || []).forEach((tarif) => {
       karte.appendChild(this._zahlFeld(`${this._t("Tarif")} ${tarif.nummer}`, tarif.entity));
@@ -57,7 +57,7 @@ export const HybridMixin = (Basis) =>
   /** Die Diagramme des Hybridmanagers für den Verlauf. */
   _hybridDiagramme(anlage) {
     return ((anlage.hybrid && anlage.hybrid.diagramme) || []).map((diagramm, nummer) => {
-      const karte = this._karte(diagramm.titel);
+      const karte = this._karte(this._t(diagramm.titel));
       const platz = document.createElement("div");
       platz.dataset.karte = JSON.stringify(diagramm.karte);
       karte.appendChild(platz);
