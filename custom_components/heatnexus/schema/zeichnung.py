@@ -134,6 +134,7 @@ KANTEN_JE_ART: dict[str, tuple[int, int]] = {
     "pumpenmodul": (150, 266),
     "solar": (158, 244),
     "umschaltung": (132, 284),
+    "hybridmanager": (140, 282),
     "modul": (132, 280),
     "heizstab": (150, 270),
     "fremdquelle": (152, 264),
@@ -303,6 +304,18 @@ ZSP_GEHAEUSE = (52, 150, 96, 116)
 
 
 ZSP_PUMPE = (100, 212, 26)
+
+
+# Dreiwegeventil und Lampen des Hybridmanagers, wörtlich aus `hybridmanager.svg`:
+# je Rolle das Rechteck um ihr Dreieck (x, y, Breite, Höhe) und die Spitze.
+HYBRID_DREIECKE = {
+    "kessel": (60, 172, 40, 32, "rechts"),
+    "waermepumpe": (100, 172, 40, 32, "links"),
+    "ausgang": (84, 188, 32, 36, "oben"),
+}
+
+
+HYBRID_LAMPEN = {"kessel": (70, 268, 5), "waermepumpe": (134, 268, 5)}
 
 
 # Ventilatorgitter und Flügel der Wärmepumpe, wörtlich aus `kessel-waermepumpe.svg`.

@@ -743,7 +743,7 @@ def test_funktionstypen_stimmen_mit_der_parameterliste_ueberein(werte):
         21: "puffer",
         24: "pumpenmodul",  # Pumpe Wärmeerzeuger, Schichtladung
         25: "kessel",  # PuroWIN
-        26: "umschaltung",  # Hybridmanager: Bivalenz, Umschaltventil, Stromtarife
+        26: "hybridmanager",  # Hybridmanager: Bivalenz, Umschaltventil, Stromtarife
         27: "kessel",  # Wärmepumpe
     }
     assert erwartet == werte.ART_JE_FCT
@@ -788,7 +788,7 @@ def test_waermepumpe_ist_ein_waermeerzeuger(werte):
 def test_der_hybridmanager_ist_kein_waermeerzeuger(werte):
     """Am BioWIN 2 Hybrid schaltet fctType 26 zwischen BioWIN und AeroWIN um."""
     teil = _teil("Hybrid", 26, [("sensor.v", "UmschaltVentil")])
-    assert werte.ART_JE_FCT[26] == "umschaltung"
+    assert werte.ART_JE_FCT[26] == "hybridmanager"
     assert werte.kesselart_des_teils(teil) is None
 
 
@@ -1871,12 +1871,6 @@ def test_die_waermepumpe_steht_mit_vorlauf_und_cop_im_bild(werte):
     assert modul["leistung"] == "sensor.leistung"
 
 
-def test_der_hybridmanager_zeigt_seinen_puffer(werte):
-    hybrid = _teil("Hybrid", 26, [("sensor.puffer", "Puffertemperatur")])
-    modul = werte.zeichenbare_module([hybrid])[0]
-    assert [w["entity_id"] for w in modul["werte"]] == ["sensor.puffer"]
-
-
 def test_der_luefter_der_waermepumpe_haengt_an_ihrer_leistung(karte):
     """Läuft die Wärmepumpe, dreht sich ihr Lüfter; ein Kessel hat keinen."""
     teile = [
@@ -1892,3 +1886,40 @@ def test_der_luefter_der_waermepumpe_haengt_an_ihrer_leistung(karte):
     bild = karte.anlagenschema(teile)
     assert [e["entity"] for e in bild["luefter"]] == ["sensor.wp_l"]
     assert bild["luefter"][0]["titel"] == "AeroWIN"
+
+
+def _hybridanlage():
+    return [
+        _teil("BioWIN", 9, [("sensor.k", "Kesseltemperatur Ist"), ("sensor.kl", "Kesselleistung")]),
+        _teil(
+            "AeroWIN",
+            7,
+            [("sensor.wp_vl", "Vorlauftemperatur"), ("sensor.wp_l", "Aktuelle Leistung")],
+        ),
+        _teil(
+            "Hybrid", 26, [("sensor.bp", "Kessel-/Bypasspumpe"), ("sensor.p", "Puffertemperatur")]
+        ),
+    ]
+
+
+def test_der_hybridmanager_steht_ohne_messwert_mit_seiner_pumpe_im_bild(werte):
+    """Er speichert nichts: kein Puffer-Wert, aber die Pumpe im Rücklauf."""
+    module = werte.zeichenbare_module(_hybridanlage())
+    hybrid = next(m for m in module if m["titel"] == "Hybrid")
+    assert hybrid["art"] == "hybridmanager"
+    assert hybrid["werte"] == []
+    assert hybrid["pumpe"] == "sensor.bp"
+
+
+def test_der_hybridmanager_zeigt_welcher_erzeuger_liefert(karte):
+    bild = karte.anlagenschema(_hybridanlage())
+    (eintrag,) = bild["hybrid"]
+    rollen = {t["rolle"]: t["entities"] for t in eintrag["teile"]}
+    assert rollen["kessel"] == ["sensor.kl"]
+    assert rollen["waermepumpe"] == ["sensor.wp_l"]
+    assert rollen["ausgang"] == ["sensor.kl", "sensor.wp_l"]
+
+
+def test_der_hybridmanager_liest_seine_pumpe_auch_ohne_menueebene():
+    geraete = load_standalone("geraete")
+    assert "50/54" in geraete.EXTRA_OIDS[26]

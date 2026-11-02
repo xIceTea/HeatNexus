@@ -34,6 +34,8 @@ from .zeichnung import (
     HEIZKOERPER_X,
     HEIZKOERPER_Y,
     HOEHE,
+    HYBRID_DREIECKE,
+    HYBRID_LAMPEN,
     KANTEN_JE_ART,
     KANTEN_STANDARD,
     LADE_TOLERANZ,
@@ -417,6 +419,53 @@ def luefter(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
                 "titel": modul["titel"],
             }
         )
+    return ergebnis
+
+
+def _leistungen(module: list[dict[str, Any]], waermepumpe: bool) -> list[str]:
+    return [
+        m["leistung"]
+        for m in module
+        if m["art"] == "kessel"
+        and m.get("leistung")
+        and (m.get("kesselart") == "waermepumpe") == waermepumpe
+    ]
+
+
+def hybrid(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
+    """Das Ventil des Hybridmanagers: Es leuchtet zum Erzeuger hin, der gerade Leistung bringt.
+
+    Laufen beide, leuchten beide Eingänge. Die Stellung `50/45` ist nicht belegt.
+    """
+    ergebnis: Ebene = []
+    kessel, waermepumpe = _leistungen(module, False), _leistungen(module, True)
+    rollen = {"kessel": kessel, "waermepumpe": waermepumpe, "ausgang": kessel + waermepumpe}
+    for platz, modul in enumerate(module):
+        if modul["art"] != "hybridmanager" or modul.get("zeichnung") not in (None, "hybridmanager"):
+            continue
+        x = _links(platz)
+        teile = [
+            {
+                "rolle": rolle,
+                "form": spitze,
+                "entities": rollen[rolle],
+                **_stelle(x + dx, dy, rahmen),
+                "breite": _pct(breite, rahmen.breite),
+                "hoehe": _pct(hoehe, HOEHE),
+            }
+            for rolle, (dx, dy, breite, hoehe, spitze) in HYBRID_DREIECKE.items()
+        ]
+        teile += [
+            {
+                "rolle": rolle,
+                "form": "lampe",
+                "entities": rollen[rolle],
+                **_stelle(x + lx, ly, rahmen),
+                "breite": _pct(2 * lr, rahmen.breite),
+            }
+            for rolle, (lx, ly, lr) in HYBRID_LAMPEN.items()
+        ]
+        ergebnis.append({"titel": modul["titel"], "teile": teile})
     return ergebnis
 
 

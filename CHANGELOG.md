@@ -22,6 +22,8 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Im Schaubild leuchtet und dreht der Lüfter der Wärmepumpe, solange sie läuft.
 - Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
 - Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
+- BioWIN: Am Hybridmanager leuchtet im Schaubild der Erzeuger, der gerade heizt.
+- BioWIN: Die Pumpe des Hybridmanagers dreht im Schaubild im Rücklauf.
 
 **Dashboard**
 - Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
@@ -46,7 +48,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 ### Behoben
 
 **Dashboard**
-- BioWIN: Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
+- BioWIN: Das Schaubild zeigt den Hybridmanager als Ventilgruppe statt als dritten Wärmeerzeuger.
 - BioWIN: Das Schaubild zeichnet die AeroWIN mit Vorlauf und Leistungszahl.
 
 **Home Assistant**

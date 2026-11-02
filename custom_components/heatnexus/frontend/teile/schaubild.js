@@ -479,6 +479,27 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
+    // Das Ventil des Hybridmanagers leuchtet zu dem Erzeuger hin, der gerade
+    // Leistung bringt; laufen beide, leuchten beide Eingänge.
+    (anlage.schema_hybrid || []).forEach((eintrag) => {
+      eintrag.teile.forEach((teil) => {
+        const feld = document.createElement("div");
+        feld.className = `hybrid-teil ${teil.form}`;
+        feld.style.left = teil.left;
+        feld.style.top = teil.top;
+        feld.style.width = teil.breite;
+        if (teil.hoehe) feld.style.height = teil.hoehe;
+        huelle.appendChild(feld);
+        this._bindungen.push(() => {
+          const an = teil.entities.some((entity) => {
+            const leistung = this._zahl(entity);
+            return leistung !== null && leistung > 0;
+          });
+          feld.classList.toggle("an", an);
+        });
+      });
+    });
+
     // Eine Wärmequelle wärmt ihr Bauteil, solange sie liefert: dieselbe Glut
     // wie am Pumpen-/Relaismodul, aber ohne Abgabe nach außen und ohne Laufrad.
     (anlage.schema_waerme || []).forEach((eintrag) => {
