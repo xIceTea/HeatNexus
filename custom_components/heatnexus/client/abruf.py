@@ -328,10 +328,10 @@ class AbrufMixin:
             return {}
         if not self._objekte_offen:
             self._objekte_offen = list(objekte)
+            self._objekte_status = []
 
         # Ungelesene behalten ihren letzten Stand; nur eine Absage nimmt ein Objekt weg.
         objects = dict(self._letzte_objekte)
-        status: list[int] = []
         any_ok = False
         while self._objekte_offen and (ende is None or time.monotonic() < ende):
             stapel = self._objekte_offen[:OBJEKTE_JE_STAPEL]
@@ -339,7 +339,7 @@ class AbrufMixin:
             results = await asyncio.gather(*(self.fetch_object(tp["oid"]) for tp in stapel))
             for tp, (data, st) in zip(stapel, results, strict=False):
                 self._objekte_versucht.add(tp["oid"])
-                status.append(st)
+                self._objekte_status.append(st)
                 if st != 200 or not isinstance(data, dict) or "value" not in data:
                     if st in self._OBJEKT_ABSAGE:
                         objects.pop(tp["oid"], None)
@@ -347,6 +347,8 @@ class AbrufMixin:
                 any_ok = True
                 self._objekt_einordnen(tp, data["value"], objects)
 
+        # Eine Absage entscheidet erst, wenn der Durchlauf alle Objekte gesehen hat.
+        status = [] if self._objekte_offen else self._objekte_status
         objekte = self._objektendpunkt_entscheiden(objekte, status, any_ok)
         if not objekte:
             self._objekte_offen = []
@@ -378,7 +380,8 @@ class AbrufMixin:
     def _objektendpunkt_entscheiden(self, objekte: list, status: list, any_ok: bool) -> list:
         """Beim ersten Lesen festhalten, ob die Anlage den object-Endpunkt führt.
 
-        Ohne Antwort bleibt es offen. Erst eine Absage (4xx außer Anmeldung) entscheidet.
+        Ein `200` entscheidet sofort. Eine Absage (4xx außer Anmeldung) entscheidet nur,
+        wenn `status` einen vollen Durchlauf umfasst; ohne Antwort bleibt es offen.
         """
         if self._objects_supported is not None:
             return objekte
