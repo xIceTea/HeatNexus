@@ -1,0 +1,38 @@
+<defs>
+  <linearGradient id="gehaeuse" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="{{korpus_hell}}"/>
+    <stop offset="100%" stop-color="{{korpus_dunkel}}"/>
+  </linearGradient>
+</defs>
+
+<!-- Hybridmanager: kein Speicher, kein Erzeuger, sondern die Ventilgruppe, die
+     zwischen Pelletkessel und Wärmepumpe umschaltet. Die Pumpe dazu sitzt als
+     Marke im Rücklauf, die zeichnet `schema/zeichnung.py`. -->
+<rect x="48" y="140" width="104" height="142" rx="12" fill="url(#gehaeuse)"
+      stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Stellantrieb des Dreiwegeventils -->
+<rect x="91" y="148" width="18" height="12" rx="3" fill="{{korpus}}"
+      stroke="{{rahmen}}" stroke-width="1.2"/>
+<line x1="100" y1="160" x2="100" y2="170" stroke="{{rahmen}}" stroke-width="2"/>
+
+<!-- Dreiwegeventil: links der Eingang vom Kessel, rechts der von der Wärmepumpe,
+     unten der Ausgang. Im Betrieb legt die Oberfläche Licht über die Dreiecke. -->
+<g fill="{{korpus_dunkel}}" stroke="{{titel}}" stroke-width="2" stroke-linejoin="round"
+   stroke-opacity="0.45">
+  <path d="M 60 172 L 60 204 L 100 188 Z"/>
+  <path d="M 140 172 L 140 204 L 100 188 Z"/>
+  <path d="M 84 224 L 116 224 L 100 188 Z"/>
+</g>
+
+<!-- Zeichen der beiden Erzeuger: Flamme für den Kessel, Lüfter für die Wärmepumpe -->
+<path d="M 66 254 C 60 246 66 240 68 233 C 72 240 79 244 75 254 Z"
+      fill="none" stroke="{{titel}}" stroke-width="2" stroke-opacity="0.5"/>
+<g fill="none" stroke="{{titel}}" stroke-width="2" stroke-opacity="0.5">
+  <circle cx="134" cy="244" r="9"/>
+  <path d="M 134 244 L 134 236 M 134 244 L 141 248 M 134 244 L 127 248"/>
+</g>
+
+<!-- Lampen der Erzeuger -->
+<circle cx="70" cy="268" r="4.5" fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.2"/>
+<circle cx="134" cy="268" r="4.5" fill="{{korpus_dunkel}}" stroke="{{rahmen}}" stroke-width="1.2"/>

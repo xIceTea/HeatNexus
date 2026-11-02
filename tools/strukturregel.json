@@ -1,6 +1,6 @@
 {
  "custom_components/heatnexus/client/kern.py::WindhagerHttpClient.__init__": {
-  "zeilen": 109
+  "zeilen": 112
  },
  "custom_components/heatnexus/client/metadaten.py::MetadatenMixin._resolve_auto_type": {
   "komplexitaet": 16

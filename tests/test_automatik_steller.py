@@ -129,6 +129,17 @@ def test_nach_ablehnung_wartet_der_steller_immer_laenger(s, regel):
     assert steller.stand.ablehnungen == 0
 
 
+def test_viele_ablehnungen_in_folge_sperren_hoechstens_bis_zur_grenze(s, regel):
+    """Ab der 37. Ablehnung lief die Rechnung über; die Sperre bleibt bei der Grenze."""
+    from dataclasses import replace
+
+    steller = s.Steller("/1/15/0", UML, Schreiber(RuntimeError("HTTP 409")))
+    steller.stand = replace(steller.stand, ablehnungen=40)
+    assert ausfuehren(steller, entscheidung(regel, regel.Aktion("zurueck"))) is False
+    assert steller.stand.ablehnungen == 41
+    assert datetime.fromisoformat(steller.stand.gesperrt_bis) == JETZT + s.SPERRE_MAX
+
+
 def test_erzwingen_uebergeht_die_sperre(s, regel):
     schreiber = Schreiber(RuntimeError("HTTP 409"))
     steller = s.Steller("/1/15/0", UML, schreiber)

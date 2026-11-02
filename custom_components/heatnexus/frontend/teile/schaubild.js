@@ -450,6 +450,67 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
+    // Der Lüfter der Wärmepumpe: dieselbe Glut und dasselbe Laufrad wie an der
+    // Übergabe, rund über dem Gitter und schneller, solange sie Leistung bringt.
+    (anlage.schema_luefter || []).forEach((eintrag) => {
+      const feld = document.createElement("div");
+      feld.className = "uebergabe luefter";
+      feld.style.left = eintrag.left;
+      feld.style.top = eintrag.top;
+      feld.style.width = eintrag.breite;
+      feld.style.height = eintrag.hoehe;
+      feld.innerHTML = '<span class="glut"></span><span class="glut zwei"></span>';
+      huelle.appendChild(feld);
+
+      const rad = document.createElement("div");
+      rad.className = "uebergabe-rad luefter";
+      rad.style.left = eintrag.rad_left;
+      rad.style.top = eintrag.rad_top;
+      rad.style.width = eintrag.rad_groesse;
+      rad.appendChild(this._laufrad());
+      huelle.appendChild(this._klickbar(rad, eintrag.entity));
+
+      this._bindungen.push(() => {
+        const leistung = this._zahl(eintrag.entity);
+        const an = leistung !== null && leistung > 0;
+        feld.classList.toggle("an", an);
+        rad.classList.toggle("an", an);
+        rad.title = `${eintrag.titel} – ${this._t(an ? "in Betrieb" : "aus")}`;
+      });
+    });
+
+    // Das Ventil des Hybridmanagers leuchtet zu dem Erzeuger hin, der gerade
+    // Leistung bringt; laufen beide, leuchten beide Eingänge.
+    // Ein Klick aufs Ventil öffnet die Betriebsart, einer auf eine Lampe die
+    // Leistung ihres Erzeugers.
+    (anlage.schema_hybrid || []).forEach((eintrag) => {
+      eintrag.teile.forEach((teil) => {
+        const feld = document.createElement("div");
+        feld.className = `hybrid-teil ${teil.form}`;
+        feld.style.left = teil.left;
+        feld.style.top = teil.top;
+        feld.style.width = teil.breite;
+        if (teil.hoehe) feld.style.height = teil.hoehe;
+        huelle.appendChild(teil.form === "lampe" ? this._klickbar(feld, teil.entities[0]) : feld);
+        this._bindungen.push(() => {
+          feld.classList.toggle("an", teil.entities.some((entity) => this._foerdert(entity)));
+        });
+      });
+      if (!eintrag.entity) return;
+      const ventil = document.createElement("div");
+      ventil.className = "hybrid-ventil";
+      Object.assign(ventil.style, {
+        left: eintrag.ventil.left,
+        top: eintrag.ventil.top,
+        width: eintrag.ventil.breite,
+        height: eintrag.ventil.hoehe,
+      });
+      huelle.appendChild(this._klickbar(ventil, eintrag.entity));
+      this._bindungen.push(() => {
+        ventil.title = `${eintrag.titel} – ${this._text(eintrag.entity)}`;
+      });
+    });
+
     // Eine Wärmequelle wärmt ihr Bauteil, solange sie liefert: dieselbe Glut
     // wie am Pumpen-/Relaismodul, aber ohne Abgabe nach außen und ohne Laufrad.
     (anlage.schema_waerme || []).forEach((eintrag) => {

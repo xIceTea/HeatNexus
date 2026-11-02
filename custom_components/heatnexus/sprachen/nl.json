@@ -1149,5 +1149,6 @@
   "hält": "houdt",
   "Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.": "Zonder programma in de bedrijfsmodus ontbreekt het setpoint waaraan de ruimtes worden gemeten.",
   "Grenz-COP": "Grens-COP",
-  "Wärmepreis Pellets (ct/kWh)": "Warmteprijs pellets (ct/kWh)"
+  "Wärmepreis Pellets (ct/kWh)": "Warmteprijs pellets (ct/kWh)",
+  "SG Ready": "SG Ready"
 }

@@ -58,6 +58,7 @@ Bild wird als `data:`-URL ausgeliefert; alles Externe würde geblockt.
 | `zirkulation.svg` | Warmwasser-Zirkulationskreis (hängt am Heizkreis) |
 | `pumpenmodul.svg` | ZSP – Pumpen-/Relaismodul (fctType 20) |
 | `solar.svg` | Solarkollektor (fctType 5) |
+| `hybridmanager.svg` | Hybridmanager, Umschaltung Kessel/Wärmepumpe (fctType 26) |
 | `modul.svg` | unbekannter Funktionstyp |
 
 Eine Wärmepumpe bekommt keine eigene Datei: Sie ist der Wärmeerzeuger und wird

@@ -122,6 +122,8 @@ WERTE_JE_ART: dict[str, tuple[Wert, ...]] = {
     ),
     # Weiche bzw. Umschaltung: was hereinkommt und was im Speicher steht.
     # Der Hybridmanager nennt seinen Fühler nur „Puffertemperatur“.
+    # Der Hybridmanager speichert nichts; seine Puffertemperatur gehört dem Puffer.
+    "hybridmanager": (),
     "umschaltung": (
         (r"kesseltemperatur(?!.*soll)", "Kessel", ("boiler_temperature",)),
         (r"puffertemperatur (oben|tpe)|^puffertemperatur$", "Puffer", ("buffer_top",)),
@@ -136,6 +138,10 @@ WERTE_JE_ART: dict[str, tuple[Wert, ...]] = {
 }
 
 
+# Arten, die auch ohne Messwert im Bild stehen; ihren Zustand zeigen Lampen.
+OHNE_MESSWERT_GEZEICHNET = frozenset({"pumpenmodul", "hybridmanager"})
+
+
 # Die Pumpe eines Anlagenteils; sie dreht sich im Schaubild, solange sie läuft.
 # Der Schlüssel trägt auch ohne deutschen Namen, das Muster fängt den Rest.
 PUMPE_JE_ART: dict[str, tuple[str, tuple[str, ...]]] = {
@@ -147,6 +153,7 @@ PUMPE_JE_ART: dict[str, tuple[str, tuple[str, ...]]] = {
     "pumpenmodul": (r"pumpendrehzahl|zirkulationspumpe(?!.*modus)", ("pump_speed",)),
     "zirkulation": (r"\bww-zirkulationspumpe(?!.*modus)", ("dhw_circulation_pump",)),
     "solar": (r"solarpumpe|pumpensteuerung drehzahl", ("pump_speed",)),
+    "hybridmanager": (r"kessel-/bypasspumpe", ()),
 }
 
 
@@ -636,7 +643,7 @@ def zeichenbare_module(
             continue
         # Eine Wärmequelle wird auch ohne Messwert gezeichnet: Dass sie in der
         # Anlage steht, ist die Aussage; ob sie liefert, sagt ihre Lampe.
-        if werte or art == "pumpenmodul" or teil.get("art"):
+        if werte or art in OHNE_MESSWERT_GEZEICHNET or teil.get("art"):
             module.append(_hauptmodul(teil, art, werte, zeichnungen, modulpumpe))
         module.extend(_nebenmodule(teil, art, zeichnungen))
     return module

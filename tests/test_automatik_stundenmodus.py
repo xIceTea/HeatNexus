@@ -159,3 +159,15 @@ def test_heizpause_endet_mit_dem_absenkungsende(m):
         "nur_ww": 0.0,
         "heizpause": 60.0,
     }
+
+
+@pytest.mark.parametrize(("tag", "stunden"), [(date(2026, 10, 25), 24), (date(2026, 3, 29), 22)])
+def test_minuten_zaehlen_an_der_zeitumstellung_echte_zeit(m, tag, stunden):
+    """Der Tag der Umstellung hat 25 bzw. 23 Stunden; gezählt wird die vergangene Zeit, nicht die Uhr."""
+    from zoneinfo import ZoneInfo
+
+    wien = ZoneInfo("Europe/Vienna")
+    vorabend = datetime.combine(tag - timedelta(days=1), datetime.min.time(), wien)
+    vortag = {**eintrag("00:00", ("/3/50/0", "6")), "zeit": vorabend.replace(hour=22).isoformat()}
+    bis = datetime.combine(tag, datetime.min.time(), wien).replace(hour=23)
+    assert m.minuten([vortag], tag, bis, 6)["nur_ww"] == stunden * 60.0

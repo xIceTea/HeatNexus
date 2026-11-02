@@ -785,10 +785,10 @@
   },
   "54/49": {
    "0": "Aus",
-   "1": "Zustand 1",
-   "2": "Zustand 2",
-   "3": "Zustand 3",
-   "4": "Zustand 4"
+   "1": "Sperre",
+   "2": "Normalbetrieb",
+   "3": "Einschaltempfehlung",
+   "4": "Einschaltbefehl"
   },
   "54/50": {
    "0": "Nein",
@@ -8953,10 +8953,10 @@
     },
     "54/49": {
      "0": "Off",
-     "1": "State 1",
-     "2": "State 2",
-     "3": "State 3",
-     "4": "State 4"
+     "1": "Blocked",
+     "2": "Normal operation",
+     "3": "Switch-on recommendation",
+     "4": "Switch-on command"
     },
     "54/50": {
      "0": "No",
@@ -12931,10 +12931,10 @@
     },
     "54/49": {
      "0": "UIT ",
-     "1": "Status 1",
-     "2": "Status 2",
-     "3": "Status 3",
-     "4": "Status 4"
+     "1": "Blokkering",
+     "2": "Normaal bedrijf",
+     "3": "Inschakeladvies",
+     "4": "Inschakelcommando"
     },
     "54/50": {
      "0": "Nee",

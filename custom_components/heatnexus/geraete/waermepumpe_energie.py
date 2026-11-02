@@ -11,12 +11,13 @@ FCT_TYPE = 26
 MODELL = "Hybridmanager"
 RANG = 16
 SYMBOL = "mdi:valve"
-# Er erzeugt keine Wärme, sondern schaltet zwischen BioWIN und AeroWIN um –
-# im Schaubild deshalb wie die Kaskade, nicht als dritter Wärmeerzeuger.
-SCHAUBILD = "umschaltung"
+# Er erzeugt keine Wärme und speichert keine, sondern schaltet zwischen BioWIN
+# und AeroWIN um – im Schaubild als Ventilgruppe mit Pumpe im Rücklauf.
+SCHAUBILD = "hybridmanager"
 
-# Beide stehen in keinem Menü der Steuerung; abgeglichen mit der App an einer BioWIN Hybrid.
-EXTRA_OIDS: tuple[str, ...] = ("52/10", "54/49")
+# Keiner steht in einer Bedienebene der Datenbank; abgeglichen mit der App an einer
+# BioWIN Hybrid. 50/54 ist die Kessel-/Bypasspumpe, die das Schaubild dreht.
+EXTRA_OIDS: tuple[str, ...] = ("52/10", "54/49", "50/54")
 KESSELART: str | None = None
 
 # Interne Rechenwerte: Datenbank, App und Display führen sie nicht. Benannt
