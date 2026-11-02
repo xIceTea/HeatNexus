@@ -147,6 +147,11 @@ def statuszeilen_fuer(fct_types: list[object]) -> tuple[statuszeilen.Statuszeile
     return statuszeilen.zusammenstellen(tuple(erzeuger) or statuszeilen.KESSEL)
 
 
+def erzeuger_von(teile: list[dict]) -> list[dict]:
+    """Die Anlagenteile mit eigenen Statuszeilen, in der Reihenfolge der Anlage."""
+    return [teil for teil in teile if teil.get("fct_type") in STATUSZEILEN]
+
+
 # Namen, die erst im Zusammenhang einer Baureihe eindeutig sind.
 NAMEN: dict[int, dict[str, str]] = {m.FCT_TYPE: m.NAMEN for m in MODULE if m.NAMEN}
 

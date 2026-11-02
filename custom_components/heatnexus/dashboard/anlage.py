@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+import re
 from typing import Any
 
 from ..const import KARTE_ELEMENT
-from ..geraete import statuszeilen_fuer
+from ..geraete import STATUSZEILEN, erzeuger_von, statuszeilen_fuer
+from ..geraete.statuszeilen import GEMEINSAM, Statuszeile
 from ..schema import anlagenschema
 from ..texte import Woerterbuch
 from . import auswahl
@@ -23,20 +26,46 @@ from .karten import (
 from .muster import namensmuster
 
 
+@lru_cache(maxsize=16)
+def _kartenmuster(
+    zeilen: tuple[Statuszeile, ...],
+) -> tuple[tuple[re.Pattern, ...], tuple[str, ...]]:
+    """Muster und Schlüssel der Zeilen mit `karte`."""
+    karte = [z for z in zeilen if z.karte]
+    return namensmuster(*(z.muster for z in karte)), tuple(s for z in karte for s in z.schluessel)
+
+
+def _trifft_zeilen(eintrag: dict[str, Any], zeilen: tuple[Statuszeile, ...]) -> bool:
+    """Ob ein Messwert eine der Zeilen mit `karte` trifft."""
+    muster, schluessel = _kartenmuster(zeilen)
+    return trifft(eintrag, muster, *schluessel)
+
+
 def zustandswerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
-    """Meldung, Betriebsphase, Außentemperatur – der Zustand in Kurzform."""
-    zeilen = [
-        z for z in statuszeilen_fuer([teil.get("fct_type") for teil in anlage["teile"]]) if z.karte
-    ]
-    muster = namensmuster(*(z.muster for z in zeilen))
-    schluessel = tuple(s for z in zeilen for s in z.schluessel)
+    """Meldung, Betriebsphase, Außentemperatur – der Zustand in Kurzform.
+
+    Ab zwei Erzeugern trifft jeder nur seine eigenen Zeilen; die übrigen Teile
+    nur die Zeilen der ganzen Anlage.
+    """
+    erzeuger = {teil["id"] for teil in erzeuger_von(anlage["teile"])}
+    alle = statuszeilen_fuer([teil.get("fct_type") for teil in anlage["teile"]])
+
+    def zeilen(teil: dict[str, Any]) -> tuple[Statuszeile, ...]:
+        if len(erzeuger) < 2:
+            return alle
+        return (
+            (*GEMEINSAM, *STATUSZEILEN.get(teil["fct_type"], ()))
+            if teil["id"] in erzeuger
+            else GEMEINSAM
+        )
+
     return [
         e
         for teil in anlage["teile"]
         for e in teil["entitaeten"]
         # Einsteller bleiben draußen: Ein Grenzwert der Serviceebene heißt
         # mitunter wie der Messwert, den er begrenzt.
-        if e["hat_wert"] and e.get("kategorie") is None and trifft(e, muster, *schluessel)
+        if e["hat_wert"] and e.get("kategorie") is None and _trifft_zeilen(e, zeilen(teil))
     ]
 
 

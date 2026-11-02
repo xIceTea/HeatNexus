@@ -1452,3 +1452,47 @@ def test_der_minutentakt_bewegt_heute_text_und_jetzt_linie(durchlauf):
 
 def test_ein_neuaufbau_behaelt_den_tastaturfokus(durchlauf):
     assert durchlauf["fokus"] == {"neuGezeichnet": True, "behalten": True}
+
+
+# Der Systemstatus ab zwei Erzeugern: Kopfzeile je Erzeuger, auf- und zuklappbar.
+ERZEUGER = Path(__file__).parent / "js" / "systemstatus-erzeuger.mjs"
+
+
+@pytest.fixture(scope="module")
+def erzeuger() -> dict:
+    lauf = subprocess.run(
+        ["node", str(ERZEUGER), str(PANEL_JS)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert lauf.returncode == 0, lauf.stderr or lauf.stdout
+    return json.loads(lauf.stdout)
+
+
+def test_die_kopfzeile_reiht_die_kopfwerte_mit_vorsatz(erzeuger):
+    """Ein Wert ohne Zustand fällt weg, statt als „unavailable“ im Kopf zu stehen."""
+    assert erzeuger["namen"] == ["AeroWIN", "BioWIN"]
+    assert erzeuger["kopf_aero"] == "Heizen · 62 % · COP 3.6"
+    assert erzeuger["kopf_bio"] == "Standby"
+
+
+def test_die_kopfwerte_stehen_nicht_noch_einmal_darunter(erzeuger):
+    assert erzeuger["zeilen_aero"] == ["Starts"]
+    assert erzeuger["oben"] == ["Außentemperatur"]
+
+
+def test_je_anlage_offen_unter_alle_zu(erzeuger):
+    assert erzeuger["offen_je_anlage"] == [True, True]
+    assert erzeuger["offen_unter_alle"] == [False, False]
+
+
+def test_die_gemerkte_wahl_gilt_vor_der_vorgabe(erzeuger):
+    assert erzeuger["gemerkt"] == [True, False]
+
+
+def test_nur_ein_klick_wird_gespeichert(erzeuger):
+    """Auch das Setzen beim Aufbau meldet „toggle“; das darf nichts schreiben."""
+    assert erzeuger["ohne_klick_gespeichert"] == 0
+    assert erzeuger["nach_klick"] == [{"erzeuger": {"anlage:aero": False}}]

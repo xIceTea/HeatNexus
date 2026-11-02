@@ -67,3 +67,34 @@ async def test_unbekannter_reiter_wird_abgewiesen(hass, hass_ws_client):
         einstellungen={"reiter": ["gibt_es_nicht"]},
     )
     assert not antwort["success"]
+
+
+async def test_offene_erzeuger_werden_je_ansicht_gespeichert(hass, hass_ws_client):
+    from custom_components.heatnexus.anordnung import async_register_anordnung
+
+    async_register_anordnung(hass)
+    client = await hass_ws_client(hass)
+    wahl = {"anlage:9c1a2a075f23a07f3d5257079f2c028a": False, "alle:b1861b10": True}
+
+    antwort = await _senden(
+        client, type="heatnexus/anordnung/einstellungen", einstellungen={"erzeuger": wahl}
+    )
+    assert antwort["success"], antwort
+    gelesen = (await _senden(client, type="heatnexus/anordnung"))["result"]
+    assert gelesen["einstellungen"]["erzeuger"] == wahl
+
+
+async def test_erzeugerwahl_ohne_ansicht_oder_ueber_der_grenze_wird_abgewiesen(
+    hass, hass_ws_client
+):
+    from custom_components.heatnexus.anordnung import ERZEUGER_MAX, async_register_anordnung
+
+    async_register_anordnung(hass)
+    client = await hass_ws_client(hass)
+    zu_viele = {f"anlage:teil{nummer}": True for nummer in range(ERZEUGER_MAX + 1)}
+
+    for wahl in ({"teil": True}, {"anlage:teil": "offen"}, zu_viele):
+        antwort = await _senden(
+            client, type="heatnexus/anordnung/einstellungen", einstellungen={"erzeuger": wahl}
+        )
+        assert not antwort["success"], wahl

@@ -1164,5 +1164,9 @@
   "Wer heizt": "Actieve warmteopwekker",
   "Leistungszahl": "Prestatiecoëfficiënt",
   "SG Ready Status": "SG Ready-status",
-  "SG Ready": "SG Ready"
+  "SG Ready": "SG Ready",
+  "COP heute Heizen": "COP verwarmen vandaag",
+  "COP heute Warmwasser": "COP warm water vandaag",
+  "Betriebsstunden Heizen": "Bedrijfsuren verwarmen",
+  "Wärmemenge Heizen": "Warmte verwarmen"
 }

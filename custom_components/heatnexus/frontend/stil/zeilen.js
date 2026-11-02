@@ -56,6 +56,20 @@ export const ZEILEN = `
   }
   .status-zeile .wert.zustand { color: #7bd88f; }
   .status-zeile .wert.warm { color: #ffab6f; }
+  .status-erzeuger + .status-erzeuger { border-top: 1px solid var(--hn-flaeche); }
+  .status-erzeuger > summary {
+    display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; list-style: none;
+  }
+  .status-erzeuger > summary::-webkit-details-marker { display: none; }
+  .status-erzeuger[open] > summary { border-bottom: 1px solid var(--hn-flaeche); }
+  .status-erzeuger > summary:focus-visible { outline: 2px solid var(--hn-akzent); outline-offset: 2px; border-radius: 6px; }
+  .erzeuger-name { font-weight: 600; font-size: 14px; flex: none; }
+  .erzeuger-werte {
+    flex: 1; min-width: 0; text-align: right; font-weight: 600; font-size: 14px; color: #ffab6f;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .status-erzeuger .pfeil { --mdc-icon-size: 20px; opacity: 0.6; transform: rotate(-90deg); transition: transform 0.15s; }
+  .status-erzeuger[open] > summary .pfeil { transform: none; }
   .abhilfe {
     font-size: 13px; color: var(--hn-gedaempft);
     padding: 0 0 8px; white-space: pre-line;

@@ -152,6 +152,10 @@ export const FARBSAETZE = [
 // vor den Einstellungen vom Server steht und sonst umspringen würde.
 export const DARSTELLUNG = { farbsatz: FARBSAETZE, kopf: KOPFSTILE, menue: MENUESTILE, alle: ALLESTILE };
 
+// Wie viele Erzeuger sich ihre Wahl „offen“ oder „zu“ merken. Muss zu
+// `ERZEUGER_MAX` in `anordnung.py` passen.
+export const ERZEUGER_MAX = 64;
+
 /** Wo eine Wahl der Darstellung im Browser liegt. */
 export function darstellungSpeicher(schluessel) {
   return `heatnexus.${schluessel}`;

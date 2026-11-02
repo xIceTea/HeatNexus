@@ -3,7 +3,7 @@
  * Die Einstellungen gelten für alle Reiter und stehen deshalb nicht in „Ansicht bearbeiten“.
  */
 
-import { DARSTELLUNG, KOPFSTILE, PALETTEN, darstellungSpeicher } from "../ordnung.js";
+import { DARSTELLUNG, ERZEUGER_MAX, KOPFSTILE, PALETTEN, darstellungSpeicher } from "../ordnung.js";
 import { zeichenKnoten } from "../zeichen.js";
 
 export const DarstellungMixin = (Basis) =>
@@ -63,6 +63,24 @@ export const DarstellungMixin = (Basis) =>
     /** Was ein Kopfstil zeigt: Name in Farbe, Hersteller darunter. */
     _kopfmerkmale(stil) {
       return KOPFSTILE.find((eintrag) => eintrag.schluessel === stil) || KOPFSTILE[0];
+    }
+
+    /** Ob ein Erzeuger im Systemstatus offen steht: die gemerkte Wahl, sonst die Vorgabe. */
+    _erzeugerOffen(schluessel, vorgabe) {
+      const gemerkt = (this._einstellungen().erzeuger || {})[schluessel];
+      return typeof gemerkt === "boolean" ? gemerkt : vorgabe;
+    }
+
+    /** Die Wahl je Erzeuger und Ansicht speichern; die Oberfläche steht schon richtig und baut nicht neu. */
+    _erzeugerMerken(schluessel, offen) {
+      // Die jüngste Wahl steht hinten; über der Grenze am Server fallen die ältesten weg.
+      const bisher = Object.entries(this._einstellungen().erzeuger || {}).filter(([k]) => k !== schluessel);
+      const erzeuger = Object.fromEntries([...bisher, [schluessel, offen]].slice(-ERZEUGER_MAX));
+      this._anordnung = { ...this._anordnung, einstellungen: { ...this._einstellungen(), erzeuger } };
+      this._hass.callWS({ type: "heatnexus/anordnung/einstellungen", einstellungen: { erzeuger } }).catch((err) => {
+        console.warn("HeatNexus: Einstellung konnte nicht gespeichert werden", err);
+        this._melden("Die Darstellung konnte nicht gespeichert werden.");
+      });
     }
 
     _darstellungSetzen(teil) {

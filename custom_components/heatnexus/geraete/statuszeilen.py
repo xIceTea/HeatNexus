@@ -10,7 +10,8 @@ class Statuszeile:
     """Muster, Beschriftung, Symbol, kanonische Schlüssel und wo die Zeile erscheint.
 
     `panel` ist der Systemstatus im Panel, `karte` die Liste „Zustand“ der
-    Schaubild-Karte in Dashboard und Lovelace.
+    Schaubild-Karte in Dashboard und Lovelace. `kopf` setzt den Wert ab zwei
+    Erzeugern in die Kopfzeile des Erzeugers, mit `vorsatz` davor.
     """
 
     muster: str
@@ -19,6 +20,8 @@ class Statuszeile:
     schluessel: tuple[str, ...] = ()
     panel: bool = False
     karte: bool = False
+    kopf: bool = False
+    vorsatz: str = ""
 
 
 # Wie ein Erzeuger gerade läuft. Die Laufzeit entsteht aus dem Zustand: Sie
@@ -31,6 +34,7 @@ BETRIEB: tuple[Statuszeile, ...] = (
         ("operating_phase",),
         panel=True,
         karte=True,
+        kopf=True,
     ),
     Statuszeile(
         r"^laufzeit(?: aktuell)?$",
@@ -70,7 +74,13 @@ GEMEINSAM: tuple[Statuszeile, ...] = (
 KESSEL: tuple[Statuszeile, ...] = (
     *BETRIEB,
     Statuszeile(
-        r"kesselleistung", "Kesselleistung", "mdi:fire", ("boiler_power",), panel=True, karte=True
+        r"kesselleistung",
+        "Kesselleistung",
+        "mdi:fire",
+        ("boiler_power",),
+        panel=True,
+        karte=True,
+        kopf=True,
     ),
     Statuszeile(
         r"brenn(er)?kammertemperatur",
@@ -142,6 +152,31 @@ KESSEL: tuple[Statuszeile, ...] = (
         ("maintenance_cleaning_hours",),
         panel=True,
     ),
+)
+
+
+# Eine Wärmepumpe: Zustand, Leistung und COP, dazu Vorlauf, Starts und Zähler
+# fürs Heizen. Die Namen sind die der AeroWIN an einer BioWIN Hybrid.
+WAERMEPUMPE: tuple[Statuszeile, ...] = (
+    *BETRIEB,
+    Statuszeile(r"^aktuelle leistung$", "Leistung", "mdi:gauge", panel=True, karte=True, kopf=True),
+    Statuszeile(
+        r"^cop aktuell$",
+        "COP aktuell",
+        "mdi:speedometer",
+        panel=True,
+        karte=True,
+        kopf=True,
+        vorsatz="COP",
+    ),
+    Statuszeile(r"cop heizen heute$", "COP heute Heizen", "mdi:speedometer", panel=True),
+    Statuszeile(r"cop warmwasser heute$", "COP heute Warmwasser", "mdi:speedometer", panel=True),
+    Statuszeile(r"^vorlauftemperatur$", "Vorlauf", "mdi:thermometer", panel=True),
+    Statuszeile(r"^anzahl starts$", "Starts", "mdi:restart", panel=True),
+    Statuszeile(
+        r"^betriebsstunden heizen$", "Betriebsstunden Heizen", "mdi:clock-outline", panel=True
+    ),
+    Statuszeile(r"^w(ä|ae)rmemenge heizen$", "Wärmemenge Heizen", "mdi:fire", panel=True),
 )
 
 

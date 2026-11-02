@@ -19,6 +19,8 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - BioWIN: Die Steuerung zeigt eine Karte „Hybridmanager“ mit Pelletpreis, Stromtarifen, SG Ready und Kostenvergleich.
 - BioWIN: Der Verlauf zeigt Temperaturen, Leistung, COP und Wärmemenge je Tag des Hybridsystems.
 - Der Systemstatus zeigt den SG-Ready-Zustand, wo die Anlage ihn meldet.
+- Bei mehreren Wärmeerzeugern zeigt der Systemstatus je Gerät eine aufklappbare Kopfzeile.
+- An der Wärmepumpe zeigt der Systemstatus COP, Vorlauf, Starts und Zähler fürs Heizen.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
 - Im Schaubild steht „COP“ vor der Leistungszahl der Wärmepumpe.
@@ -34,6 +36,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
 - Auch Anlagen ohne Kessel melden in der Kopfzeile eine nicht erreichbare Steuerung.
 - Das Schaubild wählt die Kesselart nach der Geräteklasse, wenn kein Brennstoff gemeldet wird.
+- Bei mehreren Wärmeerzeugern zeigt die Schaubild-Karte die Werte jedes Geräts.
 
 **Home Assistant**
 - Ein Sensor „Anlagenzustand“ meldet je Steuerung Störung, Sonderbetrieb und Ausfall.

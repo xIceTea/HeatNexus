@@ -1159,5 +1159,9 @@
   "Wer heizt": "Active heat generator",
   "Leistungszahl": "Coefficient of performance",
   "SG Ready Status": "SG Ready status",
-  "SG Ready": "SG Ready"
+  "SG Ready": "SG Ready",
+  "COP heute Heizen": "Heating COP today",
+  "COP heute Warmwasser": "Hot water COP today",
+  "Betriebsstunden Heizen": "Operating hours heating",
+  "Wärmemenge Heizen": "Heat delivered heating"
 }
