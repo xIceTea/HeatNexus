@@ -1875,3 +1875,20 @@ def test_der_hybridmanager_zeigt_seinen_puffer(werte):
     hybrid = _teil("Hybrid", 26, [("sensor.puffer", "Puffertemperatur")])
     modul = werte.zeichenbare_module([hybrid])[0]
     assert [w["entity_id"] for w in modul["werte"]] == ["sensor.puffer"]
+
+
+def test_der_luefter_der_waermepumpe_haengt_an_ihrer_leistung(karte):
+    """Läuft die Wärmepumpe, dreht sich ihr Lüfter; ein Kessel hat keinen."""
+    teile = [
+        _teil(
+            "AeroWIN",
+            7,
+            [("sensor.wp_vl", "Vorlauftemperatur"), ("sensor.wp_l", "Aktuelle Leistung")],
+        ),
+        _teil(
+            "PuroWIN", 25, [("sensor.k", "Kesseltemperatur Ist"), ("sensor.kl", "Kesselleistung")]
+        ),
+    ]
+    bild = karte.anlagenschema(teile)
+    assert [e["entity"] for e in bild["luefter"]] == ["sensor.wp_l"]
+    assert bild["luefter"][0]["titel"] == "AeroWIN"

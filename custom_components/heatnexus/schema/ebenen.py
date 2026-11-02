@@ -45,6 +45,7 @@ from .zeichnung import (
     SPEICHER_ARTEN,
     SPEICHER_Y,
     VORLAUF_Y,
+    WP_LUEFTER,
     ZSP_BETRIEBSLAMPE,
     ZSP_GEHAEUSE,
     ZSP_KLEMMEN,
@@ -389,6 +390,34 @@ def pumpenmodule(module: list[dict[str, Any]], rahmen: Rahmen) -> tuple[Ebene, E
             }
         )
     return lampen, uebergabe
+
+
+def luefter(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
+    """Der Lüfter der Wärmepumpe: Er leuchtet und dreht sich, solange sie Leistung bringt.
+
+    Nur über der eigenen Zeichnung; eine von Hand gewählte hat den Lüfter woanders.
+    """
+    ergebnis: Ebene = []
+    for platz, modul in enumerate(module):
+        if not (modul["art"] == "kessel" and modul.get("kesselart") == "waermepumpe"):
+            continue
+        if not modul.get("leistung") or modul.get("zeichnung") not in (None, "kessel-waermepumpe"):
+            continue
+        x = _links(platz)
+        lx, ly, gitter, fluegel = WP_LUEFTER
+        ergebnis.append(
+            {
+                "entity": modul["leistung"],
+                **_stelle(x + lx - gitter, ly - gitter, rahmen),
+                "breite": _pct(2 * gitter, rahmen.breite),
+                "hoehe": _pct(2 * gitter, HOEHE),
+                "rad_left": _pct(x + lx, rahmen.breite),
+                "rad_top": _pct(ly, HOEHE),
+                "rad_groesse": _pct(2 * fluegel, rahmen.breite),
+                "titel": modul["titel"],
+            }
+        )
+    return ergebnis
 
 
 def schichtung(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:

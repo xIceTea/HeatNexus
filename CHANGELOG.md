@@ -19,6 +19,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
 - Im Schaubild steht „COP“ vor der Leistungszahl der Wärmepumpe.
+- Im Schaubild leuchtet und dreht der Lüfter der Wärmepumpe, solange sie läuft.
 - Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
 - Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
 

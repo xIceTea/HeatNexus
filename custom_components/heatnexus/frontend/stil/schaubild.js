@@ -336,6 +336,10 @@ export const SCHAUBILD = `
   }
   .schaubild .uebergabe-rad .rad svg { display: block; width: 100%; height: 100%; }
   .schaubild .uebergabe-rad.an .rad { animation: dreht 16s linear infinite; will-change: transform; }
+  /* Am Lüfter ist die Glut rund wie das Gitter, und das Rad dreht schneller. */
+  .schaubild .uebergabe.luefter { border-radius: 50%; }
+  .schaubild .uebergabe.luefter .glut { top: 50%; }
+  .schaubild .uebergabe-rad.luefter.an .rad { animation-duration: 3s; }
   @media (prefers-reduced-motion: reduce) {
     .schaubild .uebergabe .glut,
     .schaubild .uebergabe .welle,

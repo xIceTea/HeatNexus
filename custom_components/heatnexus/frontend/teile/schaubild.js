@@ -450,6 +450,35 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
+    // Der Lüfter der Wärmepumpe: dieselbe Glut und dasselbe Laufrad wie an der
+    // Übergabe, rund über dem Gitter und schneller, solange sie Leistung bringt.
+    (anlage.schema_luefter || []).forEach((eintrag) => {
+      const feld = document.createElement("div");
+      feld.className = "uebergabe luefter";
+      feld.style.left = eintrag.left;
+      feld.style.top = eintrag.top;
+      feld.style.width = eintrag.breite;
+      feld.style.height = eintrag.hoehe;
+      feld.innerHTML = '<span class="glut"></span><span class="glut zwei"></span>';
+      huelle.appendChild(feld);
+
+      const rad = document.createElement("div");
+      rad.className = "uebergabe-rad luefter";
+      rad.style.left = eintrag.rad_left;
+      rad.style.top = eintrag.rad_top;
+      rad.style.width = eintrag.rad_groesse;
+      rad.appendChild(this._laufrad());
+      huelle.appendChild(this._klickbar(rad, eintrag.entity));
+
+      this._bindungen.push(() => {
+        const leistung = this._zahl(eintrag.entity);
+        const an = leistung !== null && leistung > 0;
+        feld.classList.toggle("an", an);
+        rad.classList.toggle("an", an);
+        rad.title = `${eintrag.titel} – ${this._t(an ? "in Betrieb" : "aus")}`;
+      });
+    });
+
     // Eine Wärmequelle wärmt ihr Bauteil, solange sie liefert: dieselbe Glut
     // wie am Pumpen-/Relaismodul, aber ohne Abgabe nach außen und ohne Laufrad.
     (anlage.schema_waerme || []).forEach((eintrag) => {

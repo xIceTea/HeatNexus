@@ -305,6 +305,10 @@ ZSP_GEHAEUSE = (52, 150, 96, 116)
 ZSP_PUMPE = (100, 212, 26)
 
 
+# Ventilatorgitter und Flügel der Wärmepumpe, wörtlich aus `kessel-waermepumpe.svg`.
+WP_LUEFTER = (110, 196, 44, 34)
+
+
 # Arten, deren Pumpe dem Speicher Wärme entnimmt.
 ENTNAHME_ARTEN = ("heizkreis", "wasser", "zirkulation", "pumpenmodul")
 
