@@ -45,8 +45,9 @@ async def test_einkessel_anlage_zeigt_panel_und_karte_unveraendert(hass):
     eintrag = await _einrichten(hass, "purowin-uml-puffer", "betreiber")
     try:
         [anlage] = anlagen_lesen(hass)
-        status = anlage_daten(anlage)["status"]
-        assert [(z["titel"], z["entity"]) for z in status] == PANEL
+        daten = anlage_daten(anlage)
+        assert [(z["titel"], z["entity"]) for z in daten["status"]] == PANEL
+        assert daten["regelung"] is None
         karte = schaubild(anlage, als_karte=True, mit_liste=True)
         assert karte["zusatzwerte"] == KARTE
     finally:
@@ -136,6 +137,45 @@ def test_ein_teil_ohne_treffer_zaehlt_nicht_als_erzeuger():
     assert [e["entity_id"] for e in zustandswerte(anlage)] == ["sensor.phase", "sensor.leistung"]
 
 
+@requires_ha()
+def test_sg_ready_bleibt_mit_einem_erzeuger_oben():
+    from custom_components.heatnexus.panel.daten import systemstatus
+    from custom_components.heatnexus.panel.regelung import regelung
+
+    anlage = _anlage(
+        (9, [_e("sensor.phase", "Betriebsphase"), _e("sensor.sg", "SG Ready Status")]),
+    )
+    status, _ = systemstatus(anlage)
+    assert [z["titel"] for z in status] == ["Betriebszustand", "SG Ready"]
+    assert regelung(anlage) is None
+
+
+@requires_ha()
+def test_ab_zwei_erzeugern_zieht_sg_ready_in_die_regelung():
+    """Der Hybridmanager nennt seine Betriebsart und je Erzeuger die Leistung, an der er liefert."""
+    from custom_components.heatnexus.panel.daten import systemstatus
+    from custom_components.heatnexus.panel.regelung import regelung
+
+    anlage = _anlage(
+        (9, [_e("sensor.phase", "Betriebsphase"), _e("sensor.kl", "Kesselleistung")]),
+        (7, [_e("sensor.wp_phase", "Betriebsphase"), _e("sensor.wp", "Aktuelle Leistung")]),
+        (26, [_e("select.art", "Betriebsart"), _e("sensor.sg", "SG Ready Status")]),
+    )
+    status, erzeuger = systemstatus(anlage)
+    assert len(erzeuger) == 2
+    assert "SG Ready" not in [z["titel"] for z in status]
+    ergebnis = regelung(anlage)
+    assert [(z["titel"], z["entity"]) for z in ergebnis["zeilen"]] == [("SG Ready", "sensor.sg")]
+    assert ergebnis["hybrid"] == {
+        "betriebsart": "select.art",
+        "lieferanten": [
+            {"name": "Teil 0", "entity": "sensor.kl"},
+            {"name": "Teil 1", "entity": "sensor.wp"},
+        ],
+    }
+    assert ergebnis["automatik"] is None
+
+
 AERO = "sensor.anlage_funktion_7_1_"
 BIO = "sensor.anlage_funktion_9_0_"
 
@@ -152,7 +192,14 @@ async def test_ab_zwei_erzeugern_hat_jeder_kopf_und_eigene_zeilen(hass):
     try:
         [anlage] = anlagen_lesen(hass)
         daten = anlage_daten(anlage)
-        assert [z["titel"] for z in daten["status"]] == ["Außentemperatur", "SG Ready"]
+        assert [z["titel"] for z in daten["status"]] == ["Außentemperatur"]
+        regelung = daten["regelung"]
+        assert [z["titel"] for z in regelung["zeilen"]] == ["SG Ready"]
+        assert regelung["hybrid"]["betriebsart"]
+        assert [e["entity"] for e in regelung["hybrid"]["lieferanten"]] == [
+            AERO + "aktuelle_leistung",
+            BIO + "kesselleistung",
+        ]
         aero, bio = daten["erzeuger"]
         assert [(z["entity"], z.get("vorsatz")) for z in aero["kopf"]] == [
             (AERO + "betriebsphase", None),

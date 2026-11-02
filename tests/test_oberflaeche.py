@@ -1489,6 +1489,30 @@ def test_die_kopfwerte_stehen_nicht_noch_einmal_darunter(erzeuger):
     assert erzeuger["oben"] == ["Außentemperatur"]
 
 
+def test_die_regelung_steht_unter_den_erzeugern(erzeuger):
+    """Heizkreise, Hybridmanager, SG Ready und zuletzt die Automatik."""
+    assert erzeuger["regelung_nach_erzeugern"] is True
+    assert erzeuger["regelung"] == [
+        "Regelung",
+        ["Heizkreise", "Heizen nach Programm"],
+        ["Hybridmanager", "Eco-Betrieb · AeroWIN heizt"],
+        ["SG Ready", "Normalbetrieb"],
+        ["Automatik", "beobachten"],
+    ]
+
+
+def test_heizkreise_nennen_nur_abweichende_kreise(erzeuger):
+    assert erzeuger["kreise_abweichend"] == "Kreis 2 sonnentag"
+
+
+def test_ein_klick_auf_die_automatik_oeffnet_ihren_reiter(erzeuger):
+    assert erzeuger["klick_automatik"] == ["automatik", True]
+
+
+def test_ohne_regelung_kein_abschnitt(erzeuger):
+    assert erzeuger["ohne_regelung"] == 0
+
+
 def test_je_anlage_offen_unter_alle_zu(erzeuger):
     assert erzeuger["offen_je_anlage"] == [True, True]
     assert erzeuger["offen_unter_alle"] == [False, False]

@@ -11,7 +11,8 @@ class Statuszeile:
 
     `panel` ist der Systemstatus im Panel, `karte` die Liste „Zustand“ der
     Schaubild-Karte in Dashboard und Lovelace. `kopf` setzt den Wert ab zwei
-    Erzeugern in die Kopfzeile des Erzeugers, mit `vorsatz` davor.
+    Erzeugern in die Kopfzeile des Erzeugers, mit `vorsatz` davor. `regelung`
+    zieht die Zeile ab zwei Erzeugern in den Abschnitt „Regelung“.
     """
 
     muster: str
@@ -22,6 +23,7 @@ class Statuszeile:
     karte: bool = False
     kopf: bool = False
     vorsatz: str = ""
+    regelung: bool = False
 
 
 # Wie ein Erzeuger gerade läuft. Die Laufzeit entsteht aus dem Zustand: Sie
@@ -67,7 +69,9 @@ GEMEINSAM: tuple[Statuszeile, ...] = (
     ),
     # Ob der Netzbetreiber gerade sperrt oder zum Einschalten auffordert; nur
     # Anlagen mit SG-Ready-Eingang (Hybridmanager) melden den Zustand.
-    Statuszeile(r"^sg ready status$", "SG Ready", "mdi:transmission-tower", panel=True),
+    Statuszeile(
+        r"^sg ready status$", "SG Ready", "mdi:transmission-tower", panel=True, regelung=True
+    ),
 )
 
 # Ein Kessel: Zustand, Leistung, Verbrennung, Brennstoff, Zähler und Wartung.

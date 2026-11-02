@@ -341,7 +341,8 @@ export const UebersichtMixin = (Basis) =>
   // -------------------------------------------------------------------
   // Systemstatus und Störungen
   // -------------------------------------------------------------------
-  _statuszeile(entity, titel, symbol) {
+  /** Eine Zeile des Systemstatus; `text` setzt den Wert zusammen, `klick` öffnet die Detailansicht. */
+  _statuszeile(entity, titel, symbol, { text = () => this._text(entity), klick = true } = {}) {
     const zeile = document.createElement("div");
     zeile.className = "status-zeile";
     if (symbol) zeile.appendChild(this._symbolKnoten(symbol));
@@ -352,21 +353,21 @@ export const UebersichtMixin = (Basis) =>
     wert.className = "wert";
     zeile.append(links, wert);
     this._bindungen.push(() => {
-      const text = this._text(entity);
-      wert.textContent = text;
-      wert.title = text;
+      const inhalt = text();
+      wert.textContent = inhalt;
+      wert.title = inhalt;
       // Farbe nach Art des Wertes: kurze Zustände grün, Leistungen orange,
       // Zahlen blau – so wie im Muster. Ein langer Text bleibt neutral, sonst
       // leuchtet die halbe Karte.
-      const zustand = this._zustand(entity);
+      const zustand = entity && this._zustand(entity);
       const einheit = zustand && zustand.attributes.unit_of_measurement;
       wert.className = "wert";
       if (einheit === "%" || einheit === "kW") wert.classList.add("warm");
-      else if (!einheit && this._hatWert(entity) && text.length <= 20) {
+      else if (!einheit && zustand && this._hatWert(entity) && inhalt.length <= 20) {
         wert.classList.add("zustand");
       }
     });
-    return this._klickbar(zeile, entity);
+    return klick ? this._klickbar(zeile, entity) : zeile;
   }
 
   /**
@@ -387,6 +388,7 @@ export const UebersichtMixin = (Basis) =>
       karte.appendChild(this._statuszeile(eintrag.entity, eintrag.titel, eintrag.symbol));
     });
     (anlage.erzeuger || []).forEach((block) => karte.appendChild(this._erzeugerblock(block)));
+    if (anlage.regelung) this._regelung(karte, anlage);
     if (!(anlage.status || []).length && !(anlage.erzeuger || []).length) {
       karte.appendChild(this._hinweisKnoten("Keine Statuswerte gefunden."));
     }
@@ -426,6 +428,68 @@ export const UebersichtMixin = (Basis) =>
       this._erzeugerMerken(schluessel, stand);
     });
     return bereich;
+  }
+
+  /** Abschnitt „Regelung“ unter den Erzeugern: Heizkreise, Hybridmanager, SG Ready, zuletzt die Automatik. */
+  _regelung(karte, anlage) {
+    const { hybrid, zeilen = [], automatik } = anlage.regelung;
+    const kreise = (anlage.heizkreise || []).filter((kreis) => kreis.automatik);
+    const inhalt = [];
+    if (automatik && kreise.length) {
+      const zeile = this._statuszeile(null, "Heizkreise", "mdi:radiator", { text: () => this._kreiseText(kreise) });
+      inhalt.push(this._zurAutomatik(zeile));
+    }
+    if (hybrid) {
+      inhalt.push(this._statuszeile(hybrid.betriebsart, "Hybridmanager", "mdi:valve", { text: () => this._hybridText(hybrid) }));
+    }
+    zeilen.forEach((eintrag) => inhalt.push(this._statuszeile(eintrag.entity, eintrag.titel, eintrag.symbol)));
+    if (automatik) {
+      inhalt.push(this._zurAutomatik(this._statuszeile(automatik, "Automatik", "mdi:robot-outline", { klick: false })));
+    }
+    if (!inhalt.length) return;
+    inhalt.forEach((zeile) => zeile.classList.add("umbruch"));
+    const kopf = document.createElement("div");
+    kopf.className = "status-abschnitt";
+    kopf.textContent = "Regelung";
+    karte.append(kopf, ...inhalt);
+  }
+
+  /** Nur die Kreise, an denen die Automatik vom Programm abweicht; sonst „Heizen nach Programm“. */
+  _kreiseText(kreise) {
+    const ruhig = ["programm", "aus", "keine_daten", "unknown", "unavailable"];
+    const abweichend = kreise
+      .filter((kreis) => !ruhig.includes((this._zustand(kreis.automatik) || {}).state || "unknown"))
+      .map((kreis) => `${kreis.titel} ${this._text(kreis.automatik)}`);
+    return abweichend.length ? abweichend.join(" · ") : this._t("Heizen nach Programm");
+  }
+
+  /** Betriebsart und welcher Erzeuger gerade Leistung bringt. */
+  _hybridText(hybrid) {
+    const heizen = hybrid.lieferanten.filter((eintrag) => this._foerdert(eintrag.entity)).map((eintrag) => eintrag.name);
+    const wer = heizen.length
+      ? this._tMit(heizen.length > 1 ? "{erzeuger} heizen" : "{erzeuger} heizt", { erzeuger: heizen.join(" + ") })
+      : this._t("Kein Erzeuger heizt");
+    return hybrid.betriebsart && this._hatWert(hybrid.betriebsart) ? `${this._text(hybrid.betriebsart)} · ${wer}` : wer;
+  }
+
+  /** Ein Klick auf die Zeile öffnet den Reiter Automatik. */
+  _zurAutomatik(zeile) {
+    zeile.classList.add("klickbar");
+    zeile.setAttribute("role", "button");
+    zeile.setAttribute("tabindex", "0");
+    zeile.title = this._t("Zur Automatik");
+    const oeffnen = () => {
+      this._reiter = "automatik";
+      this._gebaut = false;
+      this._zeichnen();
+    };
+    zeile.addEventListener("click", oeffnen);
+    zeile.addEventListener("keydown", (ereignis) => {
+      if (ereignis.key !== "Enter" && ereignis.key !== " ") return;
+      ereignis.preventDefault();
+      oeffnen();
+    });
+    return zeile;
   }
 
   _stoerungskarte(anlage) {

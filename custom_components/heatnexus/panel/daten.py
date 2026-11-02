@@ -32,6 +32,7 @@ from .muster import (
     Zeile,
 )
 from .programme import zeitprogramme
+from .regelung import regelung
 from .steuerung import (
     steuerung,
     warmwasser_zeilen,
@@ -100,7 +101,8 @@ def systemstatus(
                 "zeilen": _zeilen(teil["entitaeten"], [z for z in zeilen if not z.kopf]),
             }
         )
-    return _zeilen(alle, [z for z in GEMEINSAM if z.panel]) + marken, bloecke
+    oben = [z for z in GEMEINSAM if z.panel and not z.regelung]
+    return _zeilen(alle, oben) + marken, bloecke
 
 
 def anlage_daten(
@@ -147,6 +149,8 @@ def anlage_daten(
         "kennwerte": uebersicht.kennwerte(anlage),
         "status": status,
         "erzeuger": erzeuger,
+        # Abschnitt „Regelung“ unter den Erzeugern; mit einem Erzeuger `None`.
+        "regelung": regelung(anlage),
         "heizkreise": uebersicht.heizkreise(anlage),
         "warmwasser": warmwasser_zeilen(alle),
         "stoerungen": uebersicht.stoerungen(anlage),

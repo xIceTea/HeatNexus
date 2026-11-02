@@ -54,6 +54,9 @@ export const ZEILEN = `
     max-width: 60%; text-align: right;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  /* In der Regelung bleibt der Name ganz; ein langer Wert bricht um. */
+  .status-zeile.umbruch .titel { flex: none; }
+  .status-zeile.umbruch .wert { flex: 1; max-width: none; white-space: normal; }
   .status-zeile .wert.zustand { color: #7bd88f; }
   .status-zeile .wert.warm { color: #ffab6f; }
   .status-erzeuger + .status-erzeuger { border-top: 1px solid var(--hn-flaeche); }

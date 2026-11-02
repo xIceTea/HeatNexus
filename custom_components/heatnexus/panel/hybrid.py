@@ -18,7 +18,7 @@ STUNDEN_VERLAUF = 48
 TARIFE = 5
 
 
-def _rolle(teil: dict[str, Any]) -> str | None:
+def rolle(teil: dict[str, Any]) -> str | None:
     """Hybridmanager, Wärmepumpe, Kessel – oder nichts davon."""
     try:
         fct = int(teil.get("fct_type"))
@@ -34,8 +34,8 @@ def _rolle(teil: dict[str, Any]) -> str | None:
 def _entitaeten_je_rolle(anlage: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     je_rolle: dict[str, list[dict[str, Any]]] = {"hybrid": [], "waermepumpe": [], "kessel": []}
     for teil in anlage["teile"]:
-        if rolle := _rolle(teil):
-            je_rolle[rolle].extend(teil["entitaeten"])
+        if art := rolle(teil):
+            je_rolle[art].extend(teil["entitaeten"])
     return je_rolle
 
 
@@ -132,7 +132,7 @@ def _diagramme(
 def hybrid(anlage: dict[str, Any]) -> dict[str, Any] | None:
     """Karte und Diagramme des Hybridmanagers; ohne Hybridmanager nichts."""
     je_rolle = _entitaeten_je_rolle(anlage)
-    if not any(_rolle(teil) == "hybrid" for teil in anlage["teile"]):
+    if not any(rolle(teil) == "hybrid" for teil in anlage["teile"]):
         return None
     return {
         "karte": _karte(je_rolle["hybrid"], je_rolle["waermepumpe"]),
