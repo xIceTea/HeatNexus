@@ -1851,3 +1851,27 @@ def test_englische_namen_ergeben_dasselbe_schaubild(karte, werte):
 
     assert zurueck_auf_deutsch(karte.anlagenschema(englisch), namen) == karte.anlagenschema(deutsch)
     assert werte.kesselart_des_teils(englisch[0]) == "pellets"
+
+
+def test_die_waermepumpe_steht_mit_vorlauf_und_cop_im_bild(werte):
+    aerowin = _teil(
+        "AeroWIN",
+        7,
+        [
+            ("sensor.vorlauf", "Vorlauftemperatur"),
+            ("sensor.cop", "COP aktuell"),
+            ("sensor.leistung", "Aktuelle Leistung"),
+        ],
+    )
+    modul = werte.zeichenbare_module([aerowin])[0]
+    assert [(w["entity_id"], w["beschriftung"]) for w in modul["werte"]] == [
+        ("sensor.vorlauf", "Vorlauf"),
+        ("sensor.cop", "COP"),
+    ]
+    assert modul["leistung"] == "sensor.leistung"
+
+
+def test_der_hybridmanager_zeigt_seinen_puffer(werte):
+    hybrid = _teil("Hybrid", 26, [("sensor.puffer", "Puffertemperatur")])
+    modul = werte.zeichenbare_module([hybrid])[0]
+    assert [w["entity_id"] for w in modul["werte"]] == ["sensor.puffer"]
