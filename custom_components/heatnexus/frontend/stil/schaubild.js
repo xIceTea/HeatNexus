@@ -455,6 +455,10 @@ export const SCHAUBILD = `
   /* Werte unter dem Bild: je Anlagenteil eine Spalte, jede Zahl mit ihrem Namen. */
   .wertleiste { display: grid; gap: 4px; padding: 6px 0 2px; font-size: calc(11px * var(--hn-schrift)); }
   .wertleiste > div { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+  /* Jedes Anlagenteil mit Werten bekommt einen Kasten in den Farben des Themas. */
+  .wertleiste > div:has(> .leiste-wert:not([hidden])) {
+    background: var(--hn-flaeche); border: 1px solid var(--hn-linie); border-radius: 8px; padding: 5px 4px;
+  }
   .leiste-wert { display: flex; flex-direction: column; align-items: center; max-width: 100%; line-height: 1.2; text-align: center; }
   .leiste-name { font-size: 0.85em; opacity: 0.7; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .leiste-zahl { font-weight: 600; white-space: nowrap; }
