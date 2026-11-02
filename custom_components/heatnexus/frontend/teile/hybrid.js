@@ -45,12 +45,6 @@ export const HybridMixin = (Basis) =>
     }
     if (w.sg_status) {
       karte.appendChild(this._statuszeile(w.sg_status, this._t("SG Ready Status"), "mdi:transmission-tower"));
-      const erklaerung = document.createElement("div");
-      erklaerung.className = "abhilfe";
-      erklaerung.textContent = this._t(
-        "Zustand 1: gesperrt · 2: Normalbetrieb · 3: Einschaltempfehlung · 4: Einschaltbefehl"
-      );
-      karte.appendChild(erklaerung);
     }
   }
 
