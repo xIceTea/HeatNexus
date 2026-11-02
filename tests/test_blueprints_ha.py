@@ -83,3 +83,16 @@ async def test_die_vorlage_ergibt_eine_gueltige_automation(hass, vorlage):
 
     assert geprueft is not None
     assert geprueft.validation_status == "ok", geprueft.validation_error
+
+
+def test_eine_automations_yaml_in_fremdem_zeichensatz_bricht_nichts_ab(tmp_path):
+    """Ein Umlaut in CP1252 ließ das Setup scheitern; erkannt wird die Vorlage trotzdem."""
+    from custom_components.heatnexus import blueprints
+
+    datei = tmp_path / "automations.yaml"
+    datei.write_bytes(
+        "- alias: Küche\n  use_blueprint:\n    path: heatnexus/test.yaml\n".encode("cp1252")
+    )
+    assert blueprints._wird_benutzt(datei, "test") is True
+    datei.write_bytes("- alias: Küche\n".encode("cp1252"))
+    assert blueprints._wird_benutzt(datei, "test") is False

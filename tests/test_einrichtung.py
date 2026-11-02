@@ -753,3 +753,14 @@ async def test_ein_abbruch_beim_aufraeumen_geht_weiter(hass):
     with pytest.raises(asyncio.CancelledError):
         await aufraeumen
     await asyncio.gather(hintergrund, return_exceptions=True)
+
+
+def test_ein_abgewiesenes_passwort_geht_vor():
+    """Scheitern zwei Steuerungen zugleich, fragt Home Assistant trotzdem nach dem Passwort."""
+    from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+
+    import custom_components.heatnexus as modul
+
+    nicht_bereit, passwort = ConfigEntryNotReady("weg"), ConfigEntryAuthFailed("falsch")
+    assert modul._wichtigster_fehler((nicht_bereit, passwort)) is passwort
+    assert modul._wichtigster_fehler((nicht_bereit,)) is nicht_bereit

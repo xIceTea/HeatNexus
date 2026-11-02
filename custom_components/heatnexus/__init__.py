@@ -484,6 +484,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+def _wichtigster_fehler(fehler: tuple[BaseException, ...]) -> BaseException:
+    """Ein abgewiesenes Passwort vor allem anderen: Nur so fragt Home Assistant neu danach."""
+    return next((f for f in fehler if isinstance(f, ConfigEntryAuthFailed)), fehler[0])
+
+
 async def _anlagen_vorbereiten(
     hass: HomeAssistant, entry: ConfigEntry, systeme: list[dict], mem_cache: dict, version: str
 ) -> list[_Anlage]:
@@ -499,7 +504,7 @@ async def _anlagen_vorbereiten(
                     gruppe.create_task(_anlage_vorbereiten(hass, entry, system, mem_cache, version))
                 )
     except BaseExceptionGroup as gruppe_fehler:
-        fehler: BaseException = gruppe_fehler.exceptions[0]
+        fehler: BaseException = _wichtigster_fehler(gruppe_fehler.exceptions)
     except BaseException as abbruch:
         fehler = abbruch
     else:

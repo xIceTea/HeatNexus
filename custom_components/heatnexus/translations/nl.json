@@ -670,6 +670,9 @@
     "wert_abgelehnt": {
       "message": "De installatie heeft de nieuwe waarde niet aangenomen. De instelling is in de huidige toestand van de installatie vergrendeld of niet te wijzigen. Datapunt {oid}, HTTP {status}."
     },
+    "schreiben_nicht_erreichbar": {
+      "message": "De installatie {anlage} heeft de schrijfopdracht niet beantwoord: geen verbinding of tijd verstreken. Een latere poging lukt meestal. Datapunt {oid}."
+    },
     "schreiben_ohne_antwort": {
       "message": "De installatie heeft de schrijfopdracht niet beantwoord. Een latere poging lukt meestal. Datapunt {oid}, HTTP {status}."
     },

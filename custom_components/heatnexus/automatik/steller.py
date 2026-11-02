@@ -42,6 +42,8 @@ GEPRUEFT = (OID_BETRIEBSWAHL, OID_DAUER, "/1/1/0", "/2/9/0")
 # Nach einer Ablehnung wartet der Steller, mit jeder weiteren doppelt so lang.
 SPERRE_START = timedelta(minutes=30)
 SPERRE_MAX = timedelta(hours=6)
+# Fehler, bei denen die Anlage nichts entschieden hat: kurze Pause statt wachsender Sperre.
+OHNE_ANTWORT = ("schreiben_ohne_antwort", "schreiben_nicht_erreichbar")
 # Eine abgelehnte Sicherheitsaktion versucht es nach dieser festen Frist wieder, ohne Verdopplung.
 SPERRE_SICHERHEIT = timedelta(minutes=15)
 # Ohne Antwort hat die Steuerung nichts abgelehnt; der nächste Lauf versucht es erneut.
@@ -334,7 +336,7 @@ class Steller:
         self, jetzt: datetime, fehler: Exception, paare: list[tuple[str, str]], sicherheit: bool
     ) -> None:
         anzahl = self.stand.ablehnungen + 1
-        ohne_antwort = getattr(fehler, "translation_key", None) == "schreiben_ohne_antwort"
+        ohne_antwort = getattr(fehler, "translation_key", None) in OHNE_ANTWORT
         if ohne_antwort:
             anzahl, sperre = self.stand.ablehnungen, SPERRE_OHNE_ANTWORT
         elif sicherheit:
