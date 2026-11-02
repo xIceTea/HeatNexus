@@ -10,6 +10,7 @@ wenn dort Vorabversionen zugelassen sind.
 
 ### Behoben
 
+- Der Diagnose-Export schwärzt MAC-Adresse und Seriennummer der Steuerung.
 - Vor dem Nachführen einer neuen Adresse fragt HeatNexus, ob die Steuerung umgezogen ist.
 
 ## [1.15.0-beta.2] - 2026-11-02
