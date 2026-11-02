@@ -467,7 +467,7 @@
   "Bezug: Sollwert des Heizkreises {soll} °C": "Reference: heating circuit setpoint {soll} °C",
   "Räume zum Ziel": "Rooms to target",
   "kältester Raum": "coldest room",
-  "Mittel": "Average",
+  "Mittel": "Medium",
   "Ø Räume": "Ø rooms",
   "Heizgrenzen der Steuerung": "Controller heating limits",
   "Heizbetrieb": "Heating mode",
@@ -1185,5 +1185,17 @@
   "Regelung": "Control",
   "{erzeuger} heizt": "{erzeuger} is heating",
   "{erzeuger} heizen": "{erzeuger} are heating",
-  "Kein Erzeuger heizt": "No heat generator is heating"
+  "Kein Erzeuger heizt": "No heat generator is heating",
+  "Lage": "Position",
+  "Größe": "Size",
+  "Im Bild": "In the diagram",
+  "Unter dem Bild": "Below the diagram",
+  "Lagerraum": "Storage room",
+  "Legt fest, wo und wie groß die Zahlen im Schaubild stehen.": "Sets where and how large the values in the diagram appear.",
+  "Kleine Schrift für viele Anlagenteile": "Small text for many components",
+  "Die übliche Schrift": "The usual text size",
+  "Große Schrift für einen Bildschirm in der Ferne": "Large text for a screen viewed from a distance",
+  "Unter dem Bild, sobald ein Anlagenteil schmaler als 100 px steht": "Below the diagram as soon as a component is narrower than 100 px",
+  "Die Werte stehen immer in der Zeichnung": "The values always appear in the drawing",
+  "Die Werte stehen immer mit Namen unter der Zeichnung": "The values always appear with their names below the drawing"
 }

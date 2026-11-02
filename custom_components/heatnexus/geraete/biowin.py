@@ -22,6 +22,8 @@ RUNDINSTRUMENTE: tuple[tuple[str, dict], ...] = (
 )
 
 STATUSZEILEN = statuszeilen.KESSEL
+# Errechneter Befüllgrad des Lagerraums in Prozent; das Schaubild zeigt ihn als Zahl.
+LAGERRAUM = "43/78"
 EXTRA_OIDS: tuple[str, ...] = ()
 
 # Was diese Baureihe nur über den LON-Bus hergibt. Die Brennkammertemperatur

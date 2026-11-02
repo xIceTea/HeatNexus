@@ -96,7 +96,11 @@ def _ids_eindeutig(fragment: str, praefix: str) -> str:
 #
 # `koerper`  Füllung des Speicherkörpers: der neutrale Verlauf, oder `none`,
 #            wenn die Oberfläche die gemessene Schichtung darunterlegt.
-ZUSATZ_PLATZHALTER = frozenset({"koerper"})
+# `vorrat`   Deckkraft des gezeichneten Brennstoffs im Vorratsbehälter: `0`,
+#            wenn die Oberfläche den gemeldeten Füllstand darüberlegt.
+ZUSATZ_PLATZHALTER = frozenset({"koerper", "vorrat"})
+# Was gilt, solange der Aufrufer nichts anderes einsetzt.
+ZUSATZ_STANDARD = {"vorrat": "1"}
 
 
 # Der Punkt in der Glutfarbe, den jede Kesselzeichnung trägt: im Bild eine rote
@@ -173,6 +177,25 @@ def waermeflaeche(art: str, zeichnung: str | None = None) -> dict[str, float] | 
     return None
 
 
+# Die Innenfläche des Vorratsbehälters, die sich nach dem Füllstand füllt.
+_VORRATSMARKE = re.compile(r"<rect[^>]*\sdata-vorrat[^>]*>")
+
+
+def vorratsflaeche(kesselart: str | None, zeichnung: str | None = None) -> dict[str, float] | None:
+    """Innenfläche des Vorratsbehälters in einer Kesselzeichnung; ohne Behälter `None`."""
+    for dateiname in _bauteil_dateien("kessel", kesselart, zeichnung):
+        fragment = bauteil(dateiname)
+        if fragment is None or (marke := _VORRATSMARKE.search(fragment)) is None:
+            continue
+        masse = {}
+        for name, schluessel in (("x", "x"), ("y", "y"), ("width", "breite"), ("height", "hoehe")):
+            if (wert := re.search(rf'\s{name}="(-?[\d.]+)"', marke.group(0))) is None:
+                return None
+            masse[schluessel] = float(wert.group(1))
+        return masse
+    return None
+
+
 def kessellampe(
     kesselart: str | None, zeichnung: str | None = None
 ) -> tuple[float, float, float] | None:
@@ -207,7 +230,7 @@ def aus_datei(
     """
     for dateiname in _bauteil_dateien(art, kesselart, zeichnung):
         if (fragment := bauteil(dateiname)) is not None:
-            for name, wert in (zusatz or {}).items():
+            for name, wert in {**ZUSATZ_STANDARD, **(zusatz or {})}.items():
                 fragment = fragment.replace("{{" + name + "}}", wert)
             return _ids_eindeutig(einfaerben(fragment), praefix)
     return None

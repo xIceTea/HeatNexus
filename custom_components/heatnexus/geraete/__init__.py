@@ -55,6 +55,8 @@ KANNFELDER = (
     "RUNDINSTRUMENTE",
     "NUR_ANZEIGE",
     "STATUSZEILEN",
+    "BEHAELTER",
+    "LAGERRAUM",
 )
 
 MODULE: tuple[ModuleType, ...] = (
@@ -141,6 +143,14 @@ STATUSZEILEN: dict[int, tuple[statuszeilen.Statuszeile, ...]] = {
 
 # Namen, die erst im Zusammenhang einer Baureihe eindeutig sind.
 NAMEN: dict[int, dict[str, str]] = {m.FCT_TYPE: m.NAMEN for m in MODULE if m.NAMEN}
+
+# Füllstand im Schaubild: Vorratsbehälter in Stufen, Lagerraum in Prozent.
+BEHAELTER: dict[int, str] = {
+    m.FCT_TYPE: m.BEHAELTER for m in MODULE if getattr(m, "BEHAELTER", None)
+}
+LAGERRAUM: dict[int, str] = {
+    m.FCT_TYPE: m.LAGERRAUM for m in MODULE if getattr(m, "LAGERRAUM", None)
+}
 
 # Wo der Funktionstyp die Bauart des Wärmeerzeugers schon festlegt.
 KESSELARTEN: dict[int, str] = {m.FCT_TYPE: m.KESSELART for m in MODULE if m.KESSELART}

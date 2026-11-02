@@ -140,6 +140,18 @@ export const STRANGGROESSEN = [
   { schluessel: "mittel", titel: "Mittel (120 px)", hinweis: "Jedes Anlagenteil ist 120 Pixel breit", pixel: 120 },
   { schluessel: "gross", titel: "Groß (160 px)", hinweis: "Jedes Anlagenteil ist 160 Pixel breit", pixel: 160 },
 ];
+// Größe und Lage der Werte im Schaubild. Die Schlüssel decken sich mit
+// `WERTEGROESSEN` und `WERTELAGEN` in `anordnung.py`. „Mittel“ ist das bisherige Maß.
+export const WERTEGROESSEN = [
+  { schluessel: "klein", titel: "Klein", hinweis: "Kleine Schrift für viele Anlagenteile", faktor: 1 },
+  { schluessel: "mittel", titel: "Mittel", hinweis: "Die übliche Schrift", faktor: 1.25 },
+  { schluessel: "gross", titel: "Groß", hinweis: "Große Schrift für einen Bildschirm in der Ferne", faktor: 1.5 },
+];
+export const WERTELAGEN = [
+  { schluessel: "automatisch", titel: "Automatisch", hinweis: "Unter dem Bild, sobald ein Anlagenteil schmaler als 100 px steht" },
+  { schluessel: "bild", titel: "Im Bild", hinweis: "Die Werte stehen immer in der Zeichnung" },
+  { schluessel: "unter", titel: "Unter dem Bild", hinweis: "Die Werte stehen immer mit Namen unter der Zeichnung" },
+];
 
 // Wo der zuletzt gelesene Aufbau der Schaubild-Karte liegt. Ohne ihn steht die
 // Karte beim Öffnen leer, bis die Anlagendaten über WebSocket da sind.
@@ -168,10 +180,12 @@ export const DARSTELLUNG = {
   alle: ALLESTILE,
   strang: STRANGSTILE,
   strang_groesse: STRANGGROESSEN,
+  werte_groesse: WERTEGROESSEN,
+  werte_lage: WERTELAGEN,
 };
 
 // Wo der Standard nicht der erste Eintrag der Liste ist.
-export const DARSTELLUNG_STANDARD = { strang_groesse: "mittel" };
+export const DARSTELLUNG_STANDARD = { strang_groesse: "mittel", werte_groesse: "mittel" };
 
 // Wie viele Erzeuger sich ihre Wahl „offen“ oder „zu“ merken. Muss zu
 // `ERZEUGER_MAX` in `anordnung.py` passen.

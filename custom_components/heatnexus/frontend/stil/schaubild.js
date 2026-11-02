@@ -429,6 +429,27 @@ export const SCHAUBILD = `
     border-radius: 0.55em; white-space: nowrap;
   }
   .schaubild .marke-wert .marke-name { font-weight: 400; opacity: 0.75; font-size: 0.8em; }
+  .schaubild .marke-wert.lagerraum {
+    font-size: clamp(calc(9px * var(--hn-schrift)), calc(var(--hn-einheit) * 11 * var(--hn-schrift)), calc(16px * var(--hn-schrift)));
+  }
+  /* Füllstand des Vorratsbehälters: voll, halb, leer; ein Fehler gestreift in der Warnfarbe. */
+  .schaubild .vorrat { position: absolute; overflow: hidden; border-radius: 3px; pointer-events: auto; }
+  .schaubild .vorrat > span {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 0;
+    background: rgba(214, 170, 110, 0.6); transition: height 0.4s ease;
+  }
+  .schaubild .vorrat[data-stufe="voll"] > span { height: 100%; }
+  .schaubild .vorrat[data-stufe="teil"] > span { height: 50%; }
+  .schaubild .vorrat[data-stufe="fehler"] > span {
+    height: 100%;
+    background: repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.6) 0 4px, rgba(239, 68, 68, 0.15) 4px 8px);
+  }
+  /* Werte unter dem Bild: je Anlagenteil eine Spalte, jede Zahl mit ihrem Namen. */
+  .wertleiste { display: grid; gap: 4px; padding: 6px 0 2px; font-size: calc(11px * var(--hn-schrift)); }
+  .wertleiste > div { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+  .leiste-wert { display: flex; flex-direction: column; align-items: center; max-width: 100%; line-height: 1.2; text-align: center; }
+  .leiste-name { font-size: 0.85em; opacity: 0.7; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .leiste-zahl { font-weight: 600; white-space: nowrap; }
 
   .linienwahl { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .linie {

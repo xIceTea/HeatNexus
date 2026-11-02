@@ -467,7 +467,7 @@
   "Bezug: Sollwert des Heizkreises {soll} °C": "Referentie: instelwaarde van het verwarmingscircuit {soll} °C",
   "Räume zum Ziel": "Ruimtes t.o.v. doel",
   "kältester Raum": "koudste ruimte",
-  "Mittel": "Gemiddeld",
+  "Mittel": "Middel",
   "Ø Räume": "Ø ruimtes",
   "Heizgrenzen der Steuerung": "Verwarmingsgrenzen van de regelaar",
   "Heizbetrieb": "Verwarmingsbedrijf",
@@ -1190,5 +1190,17 @@
   "Regelung": "Regeling",
   "{erzeuger} heizt": "{erzeuger} verwarmt",
   "{erzeuger} heizen": "{erzeuger} verwarmen",
-  "Kein Erzeuger heizt": "Geen warmteopwekker verwarmt"
+  "Kein Erzeuger heizt": "Geen warmteopwekker verwarmt",
+  "Lage": "Positie",
+  "Größe": "Grootte",
+  "Im Bild": "In het schema",
+  "Unter dem Bild": "Onder het schema",
+  "Lagerraum": "Brandstofbunker",
+  "Legt fest, wo und wie groß die Zahlen im Schaubild stehen.": "Bepaalt waar en hoe groot de waarden in het schema staan.",
+  "Kleine Schrift für viele Anlagenteile": "Kleine tekst voor veel onderdelen",
+  "Die übliche Schrift": "De gebruikelijke tekstgrootte",
+  "Große Schrift für einen Bildschirm in der Ferne": "Grote tekst voor een scherm op afstand",
+  "Unter dem Bild, sobald ein Anlagenteil schmaler als 100 px steht": "Onder het schema zodra een onderdeel smaller is dan 100 px",
+  "Die Werte stehen immer in der Zeichnung": "De waarden staan altijd in de tekening",
+  "Die Werte stehen immer mit Namen unter der Zeichnung": "De waarden staan altijd met hun naam onder de tekening"
 }

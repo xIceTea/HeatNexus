@@ -8,11 +8,12 @@
  * Methoden unverändert an derselben Klasse hängen. Siehe dort.
  */
 
-import { STRANGGROESSEN, farbenUmstellen, schaubildAdresse, schriftmass } from "../ordnung.js";
+import { STRANGGROESSEN, farbenUmstellen, schaubildAdresse } from "../ordnung.js";
+import { SchaubildWerteMixin } from "./schaubildwerte.js";
 import { HOEHE, MODUL, RAND, reihenPlanen, teileAus } from "./strang.js";
 
 export const SchaubildMixin = (Basis) =>
-  class extends Basis {
+  class extends SchaubildWerteMixin(Basis) {
   // -------------------------------------------------------------------
   // Schaubild
   // -------------------------------------------------------------------
@@ -27,13 +28,9 @@ export const SchaubildMixin = (Basis) =>
     return schaubildAdresse(farbenUmstellen(anlage.schema_svg, farben[this._farbsatzGilt()]));
   }
 
-  /**
-   * Wie groß die Marken im Schaubild stehen. Die Karte überschreibt das.
-   * Die Oberfläche zeigt das Bild über die volle Breite, dort tragen die
-   * Werte die größere Stufe.
-   */
+  /** Wie groß die Marken im Schaubild stehen: nach der Darstellung. Die Karte überschreibt das. */
   _schriftmass() {
-    return schriftmass("gross");
+    return this._werteFaktor();
   }
 
   /** Ob die Pumpen als Marke im Bild stehen. Die Karte darf sie abwählen. */
@@ -148,11 +145,13 @@ export const SchaubildMixin = (Basis) =>
       const plan = breite && verfuegbar > 0
         ? reihenPlanen({ teile: teileAus(breite), breite, verfuegbar, ...wahl })
         : null;
-      const kennung = JSON.stringify(plan && plan.reihen);
+      const unter = Boolean(plan) && this._werteUnter(plan.massstab);
+      const kennung = JSON.stringify([plan && plan.reihen, unter]);
       if (kennung !== gebaut) {
         gebaut = kennung;
         bindungen = [];
-        rahmen.replaceChildren(...(plan ? plan.reihen : [null]).map(() => this._strangReihe(anlage, plan, bindungen)));
+        const reihen = plan ? plan.reihen : [null];
+        rahmen.replaceChildren(...reihen.map((reihe) => this._strangReihe(anlage, reihe, bindungen, unter)));
         if (this._hass) bindungen.forEach((binden) => binden());
       }
       if (plan) [...rahmen.children].forEach((fenster, nr) => this._strangStellen(fenster, plan.reihen[nr], plan.massstab, breite));
@@ -177,23 +176,27 @@ export const SchaubildMixin = (Basis) =>
     return rahmen;
   }
 
-  /** Eine Hülle; ihre Bindungen wandern aus `_bindungen` in die der Reihen. */
-  _strangReihe(anlage, plan, bindungen) {
+  /** Eine Hülle, mit `unter` samt Wertleiste; ihre Bindungen wandern aus `_bindungen` in die der Reihen. */
+  _strangReihe(anlage, reihe, bindungen, unter) {
     const anfang = this._bindungen.length;
-    const huelle = this._schaubildHuelle(anlage);
+    const huelle = this._schaubildHuelle(anlage, unter);
+    const leiste = unter ? this._wertleiste(anlage, reihe) : null;
     bindungen.push(...this._bindungen.splice(anfang));
-    if (!plan) return huelle;
+    if (!reihe) return huelle;
     const fenster = document.createElement("div");
     fenster.className = "strang-reihe";
     fenster.appendChild(huelle);
+    if (leiste) fenster.appendChild(leiste);
     return fenster;
   }
 
   /** Das Fenster schneidet genau an den Kanten der Anlagenteile, sonst ragt der Name des Nachbarn herein. */
   _strangStellen(fenster, [erstes, anzahl], massstab, breite) {
     fenster.style.width = `${anzahl * MODUL * massstab}px`;
-    fenster.style.height = `${HOEHE * massstab}px`;
-    const huelle = fenster.children[0];
+    // Mit Wertleiste wächst das Fenster um sie; die Leiste beginnt unter der Zeichnung.
+    const [huelle, leiste] = fenster.children;
+    fenster.style.height = leiste ? "" : `${HOEHE * massstab}px`;
+    if (leiste) leiste.style.marginTop = `${HOEHE * massstab}px`;
     huelle.style.width = `${breite * massstab}px`;
     huelle.style.left = `${-(RAND + erstes * MODUL) * massstab}px`;
     this._strangMarken(huelle, erstes, anzahl, breite);
@@ -220,7 +223,8 @@ export const SchaubildMixin = (Basis) =>
     });
   }
 
-  _schaubildHuelle(anlage) {
+  /** Die Zeichnung mit ihren Marken; `ohneWerte` lässt die Zahlen für die Wertleiste weg. */
+  _schaubildHuelle(anlage, ohneWerte = false) {
     const huelle = document.createElement("div");
     huelle.className = "schaubild";
     // Eine Einheit der Zeichnung, ausgedrückt in der Breite der Karte. Alles
@@ -229,8 +233,7 @@ export const SchaubildMixin = (Basis) =>
     if (anlage.schema_breite) {
       huelle.style.setProperty("--hn-einheit", `${(100 / anlage.schema_breite).toFixed(4)}cqw`);
     }
-    // Das Schriftmaß der Marken. Die Karte gibt es vor, die Oberfläche bleibt
-    // beim Normalmaß.
+    // Das Schriftmaß der Marken: in der Karte aus dem Editor, in der Oberfläche aus der Darstellung.
     huelle.style.setProperty("--hn-schrift", String(this._schriftmass()));
     const bild = document.createElement("img");
     const anfangsbild = this._schemaBild(anlage);
@@ -646,30 +649,8 @@ export const SchaubildMixin = (Basis) =>
       });
     });
 
-    (anlage.schema_werte || []).forEach((eintrag) => {
-      const marke = document.createElement("div");
-      marke.className = "marke-wert";
-      marke.style.left = eintrag.left;
-      marke.style.top = eintrag.top;
-      huelle.appendChild(this._klickbar(marke, eintrag.entity));
-      this._bindungen.push(() => {
-        // Ohne Wert keine Marke: Ein „–" mitten im Heizkörper sah aus wie ein
-        // Symbol und nicht wie ein fehlender Messwert.
-        const da = this._hatWert(eintrag.entity);
-        marke.hidden = !da;
-        marke.textContent = "";
-        if (!da) return;
-        // Am Heizkreis stehen zwei ähnliche Temperaturen übereinander; erst
-        // die Beschriftung sagt, welche der Vorlauf ist und welche der Raum.
-        if (eintrag.beschriftung) {
-          const name = document.createElement("span");
-          name.className = "marke-name";
-          name.textContent = eintrag.beschriftung;
-          marke.append(name, " ");
-        }
-        marke.append(this._text(eintrag.entity));
-      });
-    });
+    this._vorratsbehaelter(huelle, anlage);
+    if (!ohneWerte) this._wertmarken(huelle, anlage);
 
     // Pumpen liegen als eigene Marken auf dem Bild: Ein Standbild kann sich
     // nicht drehen, und ohne Bewegung sieht man der Anlage nicht an, ob

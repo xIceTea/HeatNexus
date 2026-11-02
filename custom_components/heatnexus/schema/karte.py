@@ -76,6 +76,7 @@ def anlagenschema(
             for m in module
         ],
         "leitungen": ebenen.leitungen(rahmen),
+        "vorrat": ebenen.vorrat(module, rahmen),
         # Die Pumpen liegen nicht im Bild: Ein Standbild kann sich nicht
         # drehen. Sie werden als eigene Marken darübergelegt.
         "pumpen": ebenen.pumpen(module, rahmen),
@@ -174,6 +175,7 @@ def schaubild_nutzdaten(
                     "left": el["style"]["left"],
                     "top": el["style"]["top"],
                     "beschriftung": el["prefix"].strip() or None,
+                    "name": el.get("name"),
                 }
                 for el in bild["elements"]
             ]
@@ -196,4 +198,6 @@ def schaubild_nutzdaten(
         "schema_hybrid": bild.get("hybrid", []) if bild else [],
         "schema_waerme": bild.get("waerme", []) if bild else [],
         "schema_speicher": bild.get("speicher", []) if bild else [],
+        # Füllstand: Vorratsbehälter in Stufen, Lagerraum als Zahl.
+        "schema_vorrat": bild.get("vorrat", []) if bild else [],
     }

@@ -107,6 +107,10 @@ ALLESTILE = ("getrennt", "zusammen")
 # `STRANGGROESSEN` in `frontend/ordnung.js` passen.
 STRANGSTILE = ("umbrechen", "verkleinern")
 STRANGGROESSEN = ("klein", "mittel", "gross")
+# Größe und Lage der Werte im Schaubild. Muss zu `WERTEGROESSEN` und
+# `WERTELAGEN` in `frontend/ordnung.js` passen.
+WERTEGROESSEN = ("klein", "mittel", "gross")
+WERTELAGEN = ("automatisch", "bild", "unter")
 
 # Offen oder zu je Erzeuger im Systemstatus, als „anlage:<id>“ oder „alle:<id>“.
 # Muss zu `ERZEUGER_MAX` in `frontend/ordnung.js` passen.
@@ -124,6 +128,8 @@ EINSTELLUNGEN_SCHEMA = vol.Schema(
         vol.Optional("alle"): vol.In(ALLESTILE),
         vol.Optional("strang"): vol.In(STRANGSTILE),
         vol.Optional("strang_groesse"): vol.In(STRANGGROESSEN),
+        vol.Optional("werte_groesse"): vol.In(WERTEGROESSEN),
+        vol.Optional("werte_lage"): vol.In(WERTELAGEN),
         vol.Optional("reiter"): REITERLISTE,
         vol.Optional("reiter_versteckt"): REITERLISTE,
         vol.Optional("erzeuger"): ERZEUGERWAHL,

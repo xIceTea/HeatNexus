@@ -10,6 +10,24 @@
   </linearGradient>
 </defs>
 
+<!-- Vorratsbehälter über dem Einschub, unten trichterförmig in den Fallschacht -->
+<path d="M 6 140 L 38 140 L 38 214 L 28 232 L 16 232 L 6 214 Z"
+      fill="#dde3ea" stroke="#7d8b9a" stroke-width="2"/>
+<rect x="18" y="231" width="8" height="25" fill="#dde3ea" stroke="#7d8b9a" stroke-width="2"/>
+<!-- Füllstand. Meldet der Kessel ihn, füllt die Oberfläche die markierte Fläche
+     und `vorrat` blendet diese Zeichnung aus. -->
+<g opacity="1">
+  <path d="M 8 180 L 36 180 L 36 213 L 27 230 L 17 230 L 8 213 Z"
+        fill="#16202b" opacity="0.16"/>
+  <g fill="#16202b" opacity="0.5">
+    <rect x="12" y="190" width="7" height="5" rx="1"/>
+    <rect x="23" y="196" width="8" height="4" rx="1"/>
+    <rect x="13" y="204" width="8" height="5" rx="1"/>
+    <rect x="24" y="210" width="6" height="5" rx="1"/>
+  </g>
+</g>
+<rect data-vorrat="" x="8" y="142" width="28" height="71" fill="none"/>
+
 <!-- Einschub der Stokerschnecke, von links unten in den Brennraum -->
 <g stroke="#7d8b9a" stroke-width="2" fill="#dde3ea">
   <path d="M 14 290 L 14 262 L 46 240 L 46 274 Z"/>

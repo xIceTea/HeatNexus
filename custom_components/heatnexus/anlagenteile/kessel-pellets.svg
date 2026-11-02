@@ -13,16 +13,20 @@
 <!-- Vorratsbehälter links, unten trichterförmig -->
 <path d="M 2 140 L 36 140 L 36 250 L 25 274 L 13 274 L 2 250 Z"
       fill="{{korpus}}" stroke="{{rahmen}}" stroke-width="2"/>
-<!-- Füllstand -->
-<path d="M 4 186 L 34 186 L 34 249 L 24 272 L 14 272 L 4 249 Z"
-      fill="{{titel}}" opacity="0.16"/>
-<g fill="{{titel}}" opacity="0.5">
-  <rect x="10" y="196" width="9" height="4" rx="2"/>
-  <rect x="22" y="204" width="9" height="4" rx="2"/>
-  <rect x="10" y="214" width="9" height="4" rx="2"/>
-  <rect x="21" y="224" width="9" height="4" rx="2"/>
-  <rect x="12" y="234" width="9" height="4" rx="2"/>
+<!-- Füllstand. Meldet der Kessel ihn, füllt die Oberfläche die markierte Fläche
+     und `vorrat` blendet diese Zeichnung aus. -->
+<g opacity="{{vorrat}}">
+  <path d="M 4 186 L 34 186 L 34 249 L 24 272 L 14 272 L 4 249 Z"
+        fill="{{titel}}" opacity="0.16"/>
+  <g fill="{{titel}}" opacity="0.5">
+    <rect x="10" y="196" width="9" height="4" rx="2"/>
+    <rect x="22" y="204" width="9" height="4" rx="2"/>
+    <rect x="10" y="214" width="9" height="4" rx="2"/>
+    <rect x="21" y="224" width="9" height="4" rx="2"/>
+    <rect x="12" y="234" width="9" height="4" rx="2"/>
+  </g>
 </g>
+<rect data-vorrat="" x="4" y="142" width="30" height="107" fill="none"/>
 
 <!-- Kesselkörper -->
 <rect x="44" y="120" width="112" height="174" rx="14" fill="url(#gehaeuse)"

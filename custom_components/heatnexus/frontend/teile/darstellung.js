@@ -6,6 +6,9 @@
 import { DARSTELLUNG, DARSTELLUNG_STANDARD, ERZEUGER_MAX, KOPFSTILE, PALETTEN, darstellungSpeicher } from "../ordnung.js";
 import { zeichenKnoten } from "../zeichen.js";
 
+// Wahlen ohne Vorschaubild: eine schmale Leiste aus Tasten nebeneinander.
+const KOMPAKT = new Set(["strang_groesse", "werte_lage", "werte_groesse"]);
+
 export const DarstellungMixin = (Basis) =>
   class extends Basis {
     /**
@@ -229,6 +232,11 @@ export const DarstellungMixin = (Basis) =>
           wahl(this._t("Schaubild"), "strang", "strang"),
           groesse,
         ],
+        [
+          this._t("Werte"),
+          this._t("Legt fest, wo und wie groß die Zahlen im Schaubild stehen."),
+          ...this._werteWahl(wahl),
+        ],
       ];
       if (this._anlagen().length > 1) {
         zeilen.push([this._t("Alle Anlagen"), this._t("Gilt für den Reiter „Alle“."), wahl(this._t("Alle Anlagen"), "alle", "alle")]);
@@ -248,6 +256,18 @@ export const DarstellungMixin = (Basis) =>
         weg();
         this._vorschau = null;
         this._darstellungSetzen(teil);
+      });
+    }
+
+    /** Lage und Größe der Werte, je mit eigenem Namen; beide gelten immer. */
+    _werteWahl(wahl) {
+      return [
+        [this._t("Lage"), "werte_lage"],
+        [this._t("Größe"), "werte_groesse"],
+      ].map(([name, schluessel]) => {
+        const block = this._darstellungUnterwahl("", wahl(name, schluessel, schluessel));
+        this._unterwahlStellen(block, true);
+        return block;
       });
     }
 
@@ -298,7 +318,7 @@ export const DarstellungMixin = (Basis) =>
     /** Vorschaukacheln für eine Einstellung; die gewählte ist markiert. */
     _darstellungGruppe(name, art, eintraege, gewaehlt, setzen) {
       const wahl = document.createElement("div");
-      wahl.className = `darstellung-wahl ${art}`;
+      wahl.className = `darstellung-wahl ${art}${KOMPAKT.has(art) ? " kompakt" : ""}`;
       wahl.setAttribute("role", "group");
       wahl.setAttribute("aria-label", name);
       const markieren = () => {
@@ -313,7 +333,7 @@ export const DarstellungMixin = (Basis) =>
         const beschriftung = document.createElement("span");
         beschriftung.className = "muster-name";
         beschriftung.textContent = this._t(eintrag.titel);
-        if (art !== "strang_groesse") kachel.appendChild(this._darstellungVorschau(art, eintrag.schluessel));
+        if (!KOMPAKT.has(art)) kachel.appendChild(this._darstellungVorschau(art, eintrag.schluessel));
         kachel.appendChild(beschriftung);
         kachel.addEventListener("click", () => {
           setzen(eintrag.schluessel);

@@ -520,6 +520,14 @@ def _entitaet_wenn(
     return gefunden["entity_id"] if gefunden else None
 
 
+def _an_adresse(teil: dict[str, Any], tabelle: dict[int, str]) -> dict[str, Any] | None:
+    """Die Entität an der Adresse, die die Baureihe in `tabelle` nennt."""
+    adresse = tabelle.get(teil.get("fct_type"))
+    if adresse is None:
+        return None
+    return next((e for e in teil["entitaeten"] if e.get("adresse") == adresse), None)
+
+
 def _hauptmodul(
     teil: dict[str, Any],
     art: str,
@@ -567,6 +575,9 @@ def _hauptmodul(
         "brennkammer": _entitaet_wenn(
             art == "kessel", entitaeten, BRENNKAMMER_IST, "combustion_chamber_temperature"
         ),
+        # Füllstand: Vorratsbehälter in Stufen (PuroWIN), Lagerraum in Prozent (BioWIN).
+        "behaelter": _an_adresse(teil, geraete.BEHAELTER) if art == "kessel" else None,
+        "lagerraum": _an_adresse(teil, geraete.LAGERRAUM) if art == "kessel" else None,
     }
 
 

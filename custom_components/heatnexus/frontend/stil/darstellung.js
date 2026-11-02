@@ -87,22 +87,22 @@ export const DARSTELLUNG = `
     margin-bottom: 6px; font-size: 12px; font-weight: 600; color: var(--hn-text);
   }
   .unter-bedingung { font-weight: 400; color: var(--hn-gedaempft); }
-  .darstellung-wahl.strang_groesse {
+  .darstellung-wahl.kompakt {
     grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0;
     border: 1px solid var(--hn-linie); border-radius: 10px; overflow: hidden;
   }
-  .darstellung-wahl.strang_groesse .darstellung-muster {
+  .darstellung-wahl.kompakt .darstellung-muster {
     justify-content: center; align-items: center; text-align: center; padding: 8px 6px;
     border: 0; border-radius: 0; background: var(--hn-grund);
   }
-  .darstellung-wahl.strang_groesse .darstellung-muster + .darstellung-muster { border-left: 1px solid var(--hn-linie); }
-  .darstellung-wahl.strang_groesse .darstellung-muster:hover {
+  .darstellung-wahl.kompakt .darstellung-muster + .darstellung-muster { border-left: 1px solid var(--hn-linie); }
+  .darstellung-wahl.kompakt .darstellung-muster:hover {
     background: color-mix(in srgb, var(--hn-akzent) 14%, var(--hn-grund));
   }
-  .darstellung-wahl.strang_groesse .darstellung-muster[aria-pressed="true"] {
+  .darstellung-wahl.kompakt .darstellung-muster[aria-pressed="true"] {
     background: var(--hn-akzent); color: var(--hn-akzent-text, #fff);
   }
-  .darstellung-wahl.strang_groesse .darstellung-muster:focus-visible { outline-offset: -3px; }
+  .darstellung-wahl.kompakt .darstellung-muster:focus-visible { outline-offset: -3px; }
   .darstellung-unter.aus .darstellung-wahl { opacity: 0.4; }
   .darstellung-unter.aus .darstellung-muster { cursor: not-allowed; }
   .darstellung-unter.aus .darstellung-muster:hover { background: var(--hn-grund); }

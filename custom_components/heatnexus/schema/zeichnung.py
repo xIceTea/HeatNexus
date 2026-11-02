@@ -45,6 +45,15 @@ WERT_HOEHEN_STANDARD = (170, 250)
 
 WERT_HOEHE_EINZELN = 206
 
+# Feste Stellen (x im Modul, y) je Kesselart und Beschriftung, wo die Zeichnung
+# dafür freie Fläche hat: an der Wärmepumpe über dem Lüfter und im Anzeigefeld.
+WERT_STELLEN: dict[str, dict[str, tuple[int, int]]] = {
+    "waermepumpe": {"Vorlauf": (100, 140), "COP": (118, 266)},
+}
+
+# Der Befüllgrad des Lagerraums steht über dem Kessel, zwischen Vorlauf und Gehäuse.
+LAGERRAUM_STELLE = (100, 107)
+
 # Übersetzt einen deutschen Text; was das Wörterbuch nicht kennt, bleibt stehen.
 Buch = Callable[[str], str]
 
@@ -359,7 +368,7 @@ def _kasten(
     art = modul["art"]
     # Der Speicherkörper bleibt leer, wenn die Oberfläche die gemessene
     # Temperatur darunterlegt – sonst deckt sie die Zeichnung zu.
-    zusatz = {}
+    zusatz = {"vorrat": "0"} if modul.get("behaelter") else {}
     if (masse := SPEICHER_ARTEN.get(art)) is not None:
         zusatz["koerper"] = "none" if hat_speicherfarbe(modul) else masse["fuellung"]
     inhalt = aus_datei(
@@ -415,7 +424,6 @@ def beschriftungen(
 ) -> list[dict[str, Any]]:
     """Die Live-Werte eines Anlagenteils als picture-elements-Einträge."""
     kurz = BESCHRIFTETE_ARTEN.get(modul["art"], frozenset()) | IMMER_BESCHRIFTET
-    mitte = x + MODUL_BREITE // 2
     # Zwei Werte werden ober- und unterhalb der Mitte gesetzt, einer mittig.
     hoehen = (
         WERT_HOEHEN.get(modul["art"], WERT_HOEHEN_STANDARD)
@@ -423,8 +431,10 @@ def beschriftungen(
         else (WERT_HOEHE_EINZELN,)
     )
 
+    stellen = WERT_STELLEN.get(modul.get("kesselart") or "", {})
     elemente = []
     for wert, y in zip(modul["werte"], hoehen, strict=False):
+        dx, y = stellen.get(wert.get("beschriftung"), (MODUL_BREITE // 2, y))
         elemente.append(
             {
                 "type": "state-label",
@@ -434,9 +444,13 @@ def beschriftungen(
                     if wert.get("beschriftung") in kurz
                     else ""
                 ),
+                # Der kurze Name des Werts; unter dem Bild steht jede Zahl mit ihm.
+                "name": (buch or _gleich)(wert["beschriftung"])
+                if wert.get("beschriftung")
+                else None,
                 "style": {
                     "top": f"{y / HOEHE * 100:.1f}%",
-                    "left": f"{mitte / breite * 100:.1f}%",
+                    "left": f"{(x + dx) / breite * 100:.1f}%",
                     "transform": "translate(-50%, -50%)",
                     "color": "#ffffff",
                     "font-size": "15px",

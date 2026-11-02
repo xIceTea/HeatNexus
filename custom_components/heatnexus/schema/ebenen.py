@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .bauteile import kessellampe, lampenpunkt, waermeflaeche
+from .bauteile import kessellampe, lampenpunkt, vorratsflaeche, waermeflaeche
 from .werte import (
     ANALOG_SOLLWERT,
     BRENNKAMMER_HEISS,
@@ -40,6 +40,7 @@ from .zeichnung import (
     KANTEN_JE_ART,
     KANTEN_STANDARD,
     LADE_TOLERANZ,
+    LAGERRAUM_STELLE,
     MISCHER_JE_ART,
     MISCHER_MARKE,
     MODUL_BREITE,
@@ -273,6 +274,50 @@ def lampen_der_erzeuger(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
                     "art": "betrieb",
                     "zweck": "erzeuger",
                     "titel": modul["titel"],
+                }
+            )
+    return ergebnis
+
+
+# Rohwerte des Vorratsbehälters (`39/76`) und ihre Stufe im Bild.
+BEHAELTER_STUFEN = {0: "fehler", 1: "leer", 2: "teil", 3: "voll"}
+
+
+def vorrat(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
+    """Füllstand am Kessel: der Vorratsbehälter in Stufen, der Lagerraum als Zahl.
+
+    Der Behälter füllt sich nur, wo die Zeichnung seine Innenfläche markiert. Die
+    Stufe folgt dem Text des Zustands; `stufen` ordnet jeden Text seiner Stufe zu.
+    """
+    ergebnis: Ebene = []
+    for platz, modul in enumerate(module):
+        links = _links(platz)
+        behaelter = modul.get("behaelter")
+        flaeche = vorratsflaeche(modul.get("kesselart"), modul.get("zeichnung"))
+        if behaelter and flaeche:
+            optionen = behaelter.get("optionen") or {}
+            ergebnis.append(
+                {
+                    "art": "behaelter",
+                    "entity": behaelter["entity_id"],
+                    "titel": modul["titel"],
+                    "stufen": {
+                        text: BEHAELTER_STUFEN[int(wert)]
+                        for wert, text in optionen.items()
+                        if str(wert).isdigit() and int(wert) in BEHAELTER_STUFEN
+                    },
+                    **_stelle(links + flaeche["x"], flaeche["y"], rahmen),
+                    "breite": _pct(flaeche["breite"], rahmen.breite),
+                    "hoehe": _pct(flaeche["hoehe"], HOEHE),
+                }
+            )
+        if lagerraum := modul.get("lagerraum"):
+            ergebnis.append(
+                {
+                    "art": "lagerraum",
+                    "entity": lagerraum["entity_id"],
+                    "titel": modul["titel"],
+                    **_stelle(links + LAGERRAUM_STELLE[0], LAGERRAUM_STELLE[1], rahmen),
                 }
             )
     return ergebnis

@@ -47,6 +47,8 @@ async def test_kopfzeile_und_menuetaste_werden_gespeichert_unbekannte_abgewiesen
             "alle": "zusammen",
             "strang": "verkleinern",
             "strang_groesse": "gross",
+            "werte_groesse": "klein",
+            "werte_lage": "unter",
         },
     )
     assert antwort["success"], antwort
@@ -56,8 +58,15 @@ async def test_kopfzeile_und_menuetaste_werden_gespeichert_unbekannte_abgewiesen
     assert gelesen["einstellungen"]["alle"] == "zusammen"
     assert gelesen["einstellungen"]["strang"] == "verkleinern"
     assert gelesen["einstellungen"]["strang_groesse"] == "gross"
+    assert gelesen["einstellungen"]["werte_groesse"] == "klein"
+    assert gelesen["einstellungen"]["werte_lage"] == "unter"
 
-    for fremd in ({"kopf": "bunt"}, {"strang": "falten"}, {"strang_groesse": "riesig"}):
+    for fremd in (
+        {"kopf": "bunt"},
+        {"strang": "falten"},
+        {"strang_groesse": "riesig"},
+        {"werte_lage": "daneben"},
+    ):
         antwort = await _senden(
             client, type="heatnexus/anordnung/einstellungen", einstellungen=fremd
         )

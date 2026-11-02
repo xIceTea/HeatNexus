@@ -113,7 +113,12 @@ def schaubild(
         return karte
     bild = anlagenschema(anlage["teile"], modulpumpe=anlage.get("modulpumpe", False), buch=buch)
     # Lovelace liest nur diese Felder; Zeichnung und Hilfslisten dienen der Oberfläche.
-    return {feld: bild[feld] for feld in BILDKARTE_FELDER} if bild else None
+    if not bild:
+        return None
+    karte = {feld: bild[feld] for feld in BILDKARTE_FELDER}
+    # Den kurzen Namen braucht nur die Oberfläche, für Werte unter dem Bild.
+    karte["elements"] = [{k: v for k, v in e.items() if k != "name"} for e in karte["elements"]]
+    return karte
 
 
 def teilabschnitt(teil: dict[str, Any]) -> list[dict[str, Any]]:
