@@ -6,6 +6,12 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [Unreleased]
+
+### Behoben
+
+- Der Diagnose-Export schwärzt MAC-Adresse und Seriennummer der Steuerung.
+
 ## [1.15.0-beta.2] - 2026-11-02
 
 ### Highlight: Mehrere Wärmeerzeuger und ein neues Schaubild
