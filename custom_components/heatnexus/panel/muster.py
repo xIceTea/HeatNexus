@@ -89,6 +89,9 @@ STATUS: tuple[Zeile, ...] = (
         ("operating_phase_runtime_today",),
     ),
     (r"au(ß|ss)entemperatur", "Außentemperatur", "mdi:thermometer", ("outdoor_temperature",)),
+    # Ob der Netzbetreiber gerade sperrt oder zum Einschalten auffordert; nur
+    # Anlagen mit SG-Ready-Eingang (Hybridmanager) melden den Zustand.
+    (r"^sg ready status$", "SG Ready", "mdi:transmission-tower", ()),
     (r"kesselleistung", "Kesselleistung", "mdi:fire", ("boiler_power",)),
     (
         r"brenn(er)?kammertemperatur",

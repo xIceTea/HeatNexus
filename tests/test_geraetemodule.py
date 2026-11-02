@@ -15,7 +15,16 @@ from .conftest import load_standalone
 ORDNER = Path(__file__).parent.parent / "custom_components" / "heatnexus" / "geraete"
 
 # Bauteile, die das Schaubild zeichnen kann.
-ARTEN = {"kessel", "puffer", "heizkreis", "wasser", "solar", "pumpenmodul", "umschaltung"}
+ARTEN = {
+    "kessel",
+    "puffer",
+    "heizkreis",
+    "wasser",
+    "solar",
+    "pumpenmodul",
+    "umschaltung",
+    "hybridmanager",
+}
 
 
 @pytest.fixture(scope="module")

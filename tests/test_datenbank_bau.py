@@ -106,6 +106,30 @@ def test_standby_an_der_heizgrenze_hat_einen_eigenen_text(generator):
     assert niederlaendisch["2/9"]["8"] == "Standby verwarmingsgrens"
 
 
+def test_sg_ready_status_nennt_den_betriebszustand(generator):
+    datei = {
+        "enums": {
+            "54/49": {
+                "0": "Aus",
+                "1": "Zustand 1",
+                "2": "Zustand 2",
+                "3": "Zustand 3",
+                "4": "Zustand 4",
+            }
+        }
+    }
+
+    assert generator.sammle_enums(datei)["54/49"] == {
+        "0": "Aus",
+        "1": "Sperre",
+        "2": "Normalbetrieb",
+        "3": "Einschaltempfehlung",
+        "4": "Einschaltbefehl",
+    }
+    assert generator.sammle_enums(datei, "en")["54/49"]["3"] == "Switch-on recommendation"
+    assert generator.sammle_enums(datei, "nl")["54/49"]["2"] == "Normaal bedrijf"
+
+
 def test_die_geraetedatei_der_fremdsprache_liegt_neben_der_deutschen(generator, tmp_path):
     deutsch = tmp_path / "PW_VarIdentTexte_de.xml"
     englisch = tmp_path / "PW_VarIdentTexte_en.xml"

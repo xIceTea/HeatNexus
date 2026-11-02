@@ -113,6 +113,17 @@ ENUM_PRAEZISIERUNG: dict[str, dict[str, dict[str, str]]] = {
             "nl": "Standby verwarmingsgrens",
         }
     },
+    # Der Hersteller nummeriert nur. Die Nummern sind die Betriebszustände des SG-Ready-Labels.
+    "54/49": {
+        "1": {"de": "Sperre", "en": "Blocked", "nl": "Blokkering"},
+        "2": {"de": "Normalbetrieb", "en": "Normal operation", "nl": "Normaal bedrijf"},
+        "3": {
+            "de": "Einschaltempfehlung",
+            "en": "Switch-on recommendation",
+            "nl": "Inschakeladvies",
+        },
+        "4": {"de": "Einschaltbefehl", "en": "Switch-on command", "nl": "Inschakelcommando"},
+    },
 }
 
 

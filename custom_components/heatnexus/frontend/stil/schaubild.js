@@ -336,6 +336,26 @@ export const SCHAUBILD = `
   }
   .schaubild .uebergabe-rad .rad svg { display: block; width: 100%; height: 100%; }
   .schaubild .uebergabe-rad.an .rad { animation: dreht 16s linear infinite; will-change: transform; }
+  /* Das Ventil des Hybridmanagers: Licht über dem Dreieck des liefernden Erzeugers. */
+  .schaubild .hybrid-teil {
+    position: absolute; pointer-events: none;
+    background: var(--hn-uebergabe);
+    opacity: 0; transition: opacity 0.8s ease;
+  }
+  .schaubild .hybrid-teil.an { opacity: 0.9; }
+  .schaubild .hybrid-teil.rechts { clip-path: polygon(0 0, 0 100%, 100% 50%); }
+  .schaubild .hybrid-teil.links { clip-path: polygon(100% 0, 100% 100%, 0 50%); }
+  .schaubild .hybrid-teil.oben { clip-path: polygon(0 100%, 100% 100%, 50% 0); }
+  .schaubild .hybrid-teil.lampe {
+    aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%);
+  }
+  .schaubild .hybrid-teil.lampe.klickbar { pointer-events: auto; cursor: pointer; }
+  .schaubild .hybrid-ventil { position: absolute; cursor: pointer; border-radius: 8px; }
+  .schaubild .hybrid-ventil:focus-visible { outline: 2px solid var(--hn-uebergabe); }
+  /* Am Lüfter ist die Glut rund wie das Gitter, und das Rad dreht schneller. */
+  .schaubild .uebergabe.luefter { border-radius: 50%; }
+  .schaubild .uebergabe.luefter .glut { top: 50%; }
+  .schaubild .uebergabe-rad.luefter.an .rad { animation-duration: 3s; }
   @media (prefers-reduced-motion: reduce) {
     .schaubild .uebergabe .glut,
     .schaubild .uebergabe .welle,

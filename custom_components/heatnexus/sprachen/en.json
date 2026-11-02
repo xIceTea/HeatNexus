@@ -1144,5 +1144,6 @@
   "hält": "holding",
   "Ohne Programm in der Betriebswahl fehlt der Sollwert, an dem die Räume gemessen werden.": "Without a program in the operating mode there is no setpoint to measure the rooms against.",
   "Grenz-COP": "Break-even COP",
-  "Wärmepreis Pellets (ct/kWh)": "Pellet heat price (ct/kWh)"
+  "Wärmepreis Pellets (ct/kWh)": "Pellet heat price (ct/kWh)",
+  "SG Ready": "SG Ready"
 }

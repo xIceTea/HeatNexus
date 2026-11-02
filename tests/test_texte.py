@@ -205,7 +205,7 @@ def test_jede_kachelbeschriftung_ist_uebersetzt(texte):
         if isinstance(zeile, tuple) and len(zeile) >= 2 and isinstance(zeile[1], str)
     }
     # Diese Begriffe lauten auf Englisch gleich und brauchen keinen Eintrag.
-    GLEICH = {"HeatNexus", "Eco", "Comfort", "Auto", "Name"}
+    GLEICH = {"HeatNexus", "Eco", "Comfort", "Auto", "Name", "SG Ready"}
     englisch = texte.Woerterbuch("en")
     fehlen = sorted(b for b in beschriftungen - GLEICH if englisch(b) == b)
     assert not fehlen, f"ohne englische Fassung: {fehlen}"

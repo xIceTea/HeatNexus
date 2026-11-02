@@ -828,6 +828,89 @@ async def test_entfernen_raeumt_ab(hass, hass_ws_client, anlage):
     assert verwaltung.subeintrag(eintrag) is None
 
 
+async def test_entfernen_raeumt_die_reparaturmeldungen_ab(hass, anlage):
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    arten = ("automatik_ruecknahme", "automatik_sicherheit", "automatik_start")
+    for art in arten:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            f"{art}_{HEIZKREIS}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=art,
+        )
+
+    await verwaltung.entfernen(HEIZKREIS)
+
+    register = ir.async_get(hass)
+    assert [a for a in arten if register.async_get_issue(DOMAIN, f"{a}_{HEIZKREIS}")] == []
+
+
+async def test_gleichzeitige_einstellungen_gehen_beide_ein(hass, anlage):
+    """Panel und Auswahl „Modus“ zugleich: Keine der beiden Änderungen geht verloren."""
+    import asyncio
+
+    verwaltung, _ = anlage
+    laufzeit = await _eingerichtet(hass, verwaltung)
+
+    async def laeuft_noch():
+        # Ein laufender Durchgang: `abwarten` gibt die Schleife frei.
+        await asyncio.sleep(0.01)
+
+    laufzeit.abwarten = laeuft_noch
+    await asyncio.gather(
+        verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"}),
+        verwaltung.einstellen(HEIZKREIS, {"aktiv": False}),
+    )
+
+    konfig = verwaltung.konfig(HEIZKREIS)
+    assert (konfig["modus"], konfig["aktiv"]) == ("empfehlen", False)
+
+
+async def test_ein_frueh_gescheiterter_start_wird_gemeldet(hass, anlage, monkeypatch, caplog):
+    """Scheitert schon das System-Gerät, steht der Start trotzdem im Log und als Meldung."""
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+
+    def kaputt(_entry):
+        raise RuntimeError("Geräteregister gesperrt")
+
+    monkeypatch.setattr(verwaltung, "_system_anlegen", kaputt)
+    await verwaltung._nachholen(hass.config_entries.async_entries(DOMAIN)[0])
+
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"automatik_start_{HEIZKREIS}")
+    assert "Start gescheitert" in caplog.text
+
+
+async def test_neue_einstellungen_bleiben_auch_wenn_der_neustart_scheitert(hass, anlage):
+    """Die Laufzeit rechnet schon mit der neuen Konfiguration; gespeichert wird dieselbe."""
+    verwaltung, _ = anlage
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    echt = laufzeit.starten
+
+    async def scheitert(*_a, **_k):
+        raise RuntimeError("Start gescheitert")
+
+    laufzeit.starten = scheitert
+    with pytest.raises(RuntimeError):
+        await verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"})
+    laufzeit.starten = echt
+
+    assert laufzeit.konfig["modus"] == "empfehlen"
+    assert verwaltung.konfig(HEIZKREIS)["modus"] == "empfehlen"
+
+
 def _automatik_geraete(hass, eintrag):
     from homeassistant.helpers import device_registry as dr
 
@@ -836,6 +919,26 @@ def _automatik_geraete(hass, eintrag):
         for g in dr.async_entries_for_config_entry(dr.async_get(hass), eintrag.entry_id)
         if any(k.endswith("-automatik") for _, k in g.identifiers)
     ]
+
+
+async def test_ein_gescheitertes_einrichten_hinterlaesst_nichts(hass, anlage, monkeypatch):
+    """Ohne Automatik bleiben weder System-Gerät noch Untereintrag „HeatNexus Automatik“."""
+    from custom_components.heatnexus.automatik.laufzeit import Laufzeit
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+
+    async def scheitert(*_a, **_k):
+        raise RuntimeError("Start gescheitert")
+
+    monkeypatch.setattr(Laufzeit, "starten", scheitert)
+    with pytest.raises(ValueError):
+        await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+
+    [eintrag] = hass.config_entries.async_entries(DOMAIN)
+    assert verwaltung.subeintrag(eintrag) is None
+    assert _automatik_geraete(hass, eintrag) == []
 
 
 async def test_die_automatik_hat_einen_eigenen_untereintrag(hass, hass_ws_client, anlage):
@@ -2469,6 +2572,62 @@ async def test_ablage_haelt_tage_die_die_aufzeichnung_nicht_mehr_hat(
     await verwaltung.entfernen(HEIZKREIS)
     await hass.async_block_till_done()
     assert schluessel not in hass_storage
+
+
+async def _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen):
+    """Nach `hausmodell_neu` mit dem gegebenen Löschen: Der nächste Lernlauf legt wieder ab."""
+    from custom_components.heatnexus.automatik import lernablage
+
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+    monkeypatch.setattr(lernablage, "entfernen", entfernen)
+    tage = _lernstunden(7)
+
+    async def lerndaten():
+        return "vorlauf", tage
+
+    monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
+    laufzeit.hausmodell_neu()
+    return laufzeit
+
+
+async def test_ein_abgebrochener_lernlauf_sperrt_die_ablage_nicht(
+    hass, hass_storage, anlage, freezer, monkeypatch
+):
+    """Wird der Lernlauf abgebrochen, während er aufs Löschen wartet, lernt der nächste trotzdem."""
+    import asyncio
+
+    verwaltung, _ = anlage
+    frei = asyncio.Event()
+
+    async def entfernen(_hass, _device_id):
+        await frei.wait()
+
+    laufzeit = await _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen)
+    lauf = hass.async_create_task(laufzeit.hausmodell_lernen())
+    await asyncio.sleep(0)
+    lauf.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await lauf
+    frei.set()
+
+    await laufzeit.hausmodell_lernen()
+    assert f"heatnexus.hausmodell_{HEIZKREIS}" in hass_storage
+
+
+async def test_ein_gescheitertes_loeschen_sperrt_die_ablage_nicht(
+    hass, hass_storage, anlage, freezer, monkeypatch
+):
+    verwaltung, _ = anlage
+
+    async def entfernen(_hass, _device_id):
+        raise OSError("Datei gesperrt")
+
+    laufzeit = await _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen)
+    await laufzeit.hausmodell_lernen()
+    await laufzeit.hausmodell_lernen()
+    assert f"heatnexus.hausmodell_{HEIZKREIS}" in hass_storage
 
 
 async def test_hausmodell_nennt_den_grund_ohne_modell(
