@@ -11,6 +11,7 @@ wenn dort Vorabversionen zugelassen sind.
 ### Behoben
 
 - Der Diagnose-Export schwärzt MAC-Adresse und Seriennummer der Steuerung.
+- „Anlage neu erkennen“ und „Dashboard als YAML ausgeben“ sind nur für Administratoren aufrufbar.
 
 ## [1.15.0-beta.2] - 2026-11-02
 

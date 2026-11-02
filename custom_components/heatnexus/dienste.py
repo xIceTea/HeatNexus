@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.helpers.storage import Store
 
 from .const import DISCOVERY_STORE_VERSION, DOMAIN
@@ -31,7 +32,9 @@ def async_register_dashboard_export(hass: HomeAssistant) -> None:
             raise mit_text(ServiceValidationError, "keine_anlage")
         return {"yaml": dashboard_als_yaml(hass)}
 
-    hass.services.async_register(
+    # Nur für Administratoren, wie der WebSocket-Befehl `dashboard_yaml` mit demselben Inhalt.
+    async_register_admin_service(
+        hass,
         DOMAIN,
         "dashboard_ausgeben",
         _handle_export,
@@ -73,7 +76,9 @@ def async_register_rediscover_service(hass: HomeAssistant) -> None:
             await asyncio.wait(aufgaben, timeout=WARTEZEIT_VOLLABZUG)
         return {"anlagen": [_bericht(h, c) for e in eintraege for h, c in _koordinatoren(e)]}
 
-    hass.services.async_register(
+    # Nur für Administratoren: Ein Vollabzug ist die schwerste Last für die Steuerung.
+    async_register_admin_service(
+        hass,
         DOMAIN,
         "rediscover",
         _handle_rediscover,
