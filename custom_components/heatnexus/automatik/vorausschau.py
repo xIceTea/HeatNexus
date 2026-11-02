@@ -410,9 +410,20 @@ class VorausschauMixin:
 
         Je Tag gilt die Fassung mit mehr Stunden, bei Gleichstand die Aufzeichnung.
         """
-        if self._ablage_weg is not None:
-            await self._ablage_weg
-            self._ablage_weg = None
+        if (weg := self._ablage_weg) is not None:
+            # Geschützt: Ein Abbruch dieses Laufs bricht das Löschen nicht mit ab.
+            try:
+                await asyncio.shield(weg)
+            except asyncio.CancelledError:
+                if not weg.cancelled():
+                    raise
+            except Exception:
+                _LOGGER.warning(
+                    "Lernablage %s ließ sich nicht löschen", self.device_id, exc_info=True
+                )
+            finally:
+                if weg.done() and self._ablage_weg is weg:
+                    self._ablage_weg = None
         heute = dt_util.now().date()
         erster = heute - timedelta(days=LERNTAGE)
         abgelegt = await lernablage.laden(self.hass, self.device_id, heiz_art)

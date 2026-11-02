@@ -2471,6 +2471,62 @@ async def test_ablage_haelt_tage_die_die_aufzeichnung_nicht_mehr_hat(
     assert schluessel not in hass_storage
 
 
+async def _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen):
+    """Nach `hausmodell_neu` mit dem gegebenen Löschen: Der nächste Lernlauf legt wieder ab."""
+    from custom_components.heatnexus.automatik import lernablage
+
+    freezer.move_to(MORGEN)
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    await hass.async_block_till_done()
+    monkeypatch.setattr(lernablage, "entfernen", entfernen)
+    tage = _lernstunden(7)
+
+    async def lerndaten():
+        return "vorlauf", tage
+
+    monkeypatch.setattr(laufzeit, "_lerndaten", lerndaten)
+    laufzeit.hausmodell_neu()
+    return laufzeit
+
+
+async def test_ein_abgebrochener_lernlauf_sperrt_die_ablage_nicht(
+    hass, hass_storage, anlage, freezer, monkeypatch
+):
+    """Wird der Lernlauf abgebrochen, während er aufs Löschen wartet, lernt der nächste trotzdem."""
+    import asyncio
+
+    verwaltung, _ = anlage
+    frei = asyncio.Event()
+
+    async def entfernen(_hass, _device_id):
+        await frei.wait()
+
+    laufzeit = await _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen)
+    lauf = hass.async_create_task(laufzeit.hausmodell_lernen())
+    await asyncio.sleep(0)
+    lauf.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await lauf
+    frei.set()
+
+    await laufzeit.hausmodell_lernen()
+    assert f"heatnexus.hausmodell_{HEIZKREIS}" in hass_storage
+
+
+async def test_ein_gescheitertes_loeschen_sperrt_die_ablage_nicht(
+    hass, hass_storage, anlage, freezer, monkeypatch
+):
+    verwaltung, _ = anlage
+
+    async def entfernen(_hass, _device_id):
+        raise OSError("Datei gesperrt")
+
+    laufzeit = await _lernt_wieder(hass, verwaltung, freezer, monkeypatch, entfernen)
+    await laufzeit.hausmodell_lernen()
+    await laufzeit.hausmodell_lernen()
+    assert f"heatnexus.hausmodell_{HEIZKREIS}" in hass_storage
+
+
 async def test_hausmodell_nennt_den_grund_ohne_modell(
     hass, hass_ws_client, anlage, freezer, monkeypatch
 ):
