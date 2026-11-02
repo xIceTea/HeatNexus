@@ -1400,3 +1400,82 @@ async def test_ein_gescheiterter_strukturabruf_laesst_die_meldung_stehen(client)
 
     assert await client._fetch_status() == {"60": "FMP 09E245"}
     assert await client._fetch_status() == {"60": "FMP 09E245"}
+
+
+def _programme(anzahl: int) -> list[dict]:
+    return [{"oid": f"/1/15/0/5/{60 + n}/0", "type": "time_program"} for n in range(anzahl)]
+
+
+async def test_ein_abgebrochener_durchlauf_steht_nicht_wieder_an(client, monkeypatch):
+    """Bricht der Coordinator den trägen Durchlauf ab, rückt der Takt trotzdem weiter.
+
+    Sonst stünde derselbe träge Durchlauf wieder an, und eine Anlage mit vielen
+    Zeitprogrammen fragte ihn ohne Ende erneut ab, bis die Integration neu lud.
+    """
+    import asyncio
+
+    async def haengt(oid):
+        await asyncio.sleep(10)
+
+    monkeypatch.setattr(client, "fetch_object", haengt)
+    client.oids = set()
+    client._tick = 30  # träger Durchlauf bei 30 s Intervall
+    client.time_programs = _programme(2)
+    client._objekte_versucht = {tp["oid"] for tp in client.time_programs}
+
+    with pytest.raises(TimeoutError):
+        async with asyncio.timeout(0.05):
+            await client.fetch_all()
+
+    assert client._tick == 31
+
+
+async def test_zeitprogramme_bleiben_im_zeitfenster(client, monkeypatch):
+    """Viele Zeitprogramme bekommen höchstens die Hälfte des Fensters; der Rest folgt danach."""
+    import asyncio
+
+    abrufe = []
+
+    async def langsam(oid):
+        abrufe.append(oid)
+        await asyncio.sleep(0.2)
+        return {"value": [{"weekdays": ["Mo"], "switchPoints": []}]}, 200
+
+    monkeypatch.setattr(client, "fetch_object", langsam)
+    client.oids = set()
+    client._tick = 30
+    client.time_programs = _programme(7)
+    client._objekte_versucht = {tp["oid"] for tp in client.time_programs}
+
+    daten = await client.fetch_all(budget=0.2)
+
+    assert len(abrufe) == 3
+    assert len(daten["objects"]) == 3
+    assert len(client._objekte_offen) == 4
+
+    await client.fetch_all(budget=10)
+
+    assert len(abrufe) == 7
+    assert client._objekte_offen == []
+
+
+async def test_ungelesene_zeitprogramme_behalten_ihren_stand(client, monkeypatch):
+    """Was im Fenster nicht mehr drankommt, zeigt bis zum nächsten Lesen den letzten Stand."""
+    import asyncio
+
+    async def langsam(oid):
+        await asyncio.sleep(0.2)
+        return {"value": [{"weekdays": ["Di"], "switchPoints": []}]}, 200
+
+    monkeypatch.setattr(client, "fetch_object", langsam)
+    client.oids = set()
+    client._tick = 30
+    client.time_programs = _programme(4)
+    client._objekte_versucht = {tp["oid"] for tp in client.time_programs}
+    alt = [{"weekdays": ["Mo"], "switchPoints": []}]
+    client._letzte_objekte = {tp["oid"]: alt for tp in client.time_programs}
+
+    daten = await client.fetch_all(budget=0.2)
+
+    assert daten["objects"]["/1/15/0/5/63/0"] == alt
+    assert daten["objects"]["/1/15/0/5/60/0"] != alt

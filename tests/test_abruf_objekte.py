@@ -92,3 +92,61 @@ async def test_ein_teilausfall_behaelt_den_vorigen_stand(client, monkeypatch):
     objekte = await client._fetch_time_programs()
 
     assert set(objekte) == {"/1/60/0/3/61/0", "/1/60/0/3/62/0"}
+
+
+# ---------------------------------------------------------------------------
+# object-Endpunkt: Eine Absage entscheidet erst nach einem vollen Durchlauf
+# ---------------------------------------------------------------------------
+def _stapelweise(client, monkeypatch, antwort):
+    """Sechs Zeitprogramme, je Aufruf mit knappem Fenster genau ein Stapel."""
+    import asyncio
+
+    client.time_programs = [
+        {"oid": f"/1/60/0/3/{60 + n}/0", "type": "time_program"} for n in range(6)
+    ]
+    client.devices = list(client.time_programs)
+
+    async def fetch_object(oid):
+        await asyncio.sleep(0.05)
+        return antwort(oid)
+
+    monkeypatch.setattr(client, "fetch_object", fetch_object)
+
+
+async def _ein_stapel(client):
+    import time
+
+    await client._fetch_time_programs(time.monotonic() + 0.01)
+
+
+async def test_absage_im_ersten_stapel_entscheidet_noch_nicht(client, monkeypatch):
+    erster = {f"/1/60/0/3/{60 + n}/0" for n in range(3)}
+    _stapelweise(
+        client,
+        monkeypatch,
+        lambda oid: ({"reason": "gesperrt"}, 404) if oid in erster else ({"value": BLOECKE}, 200),
+    )
+
+    await _ein_stapel(client)
+
+    assert client._objects_supported is None
+    assert len(client.time_programs) == 6
+    assert len(client.devices) == 6
+
+    await _ein_stapel(client)
+
+    assert client._objects_supported is True
+    assert len(client.time_programs) == 6
+
+
+async def test_absage_in_allen_stapeln_entscheidet_nach_dem_durchlauf(client, monkeypatch):
+    _stapelweise(client, monkeypatch, lambda _oid: ({"reason": "unknown endpoint"}, 404))
+
+    await _ein_stapel(client)
+
+    assert client._objects_supported is None
+
+    await _ein_stapel(client)
+
+    assert client._objects_supported is False
+    assert client.devices == []
