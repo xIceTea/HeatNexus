@@ -592,3 +592,21 @@ def test_nur_der_neustartstand_bleibt_aus_dem_rekorder(sensoren, klasse, felder,
     entity._attr_last_reset = None
     vorhanden = set(entity.extra_state_attributes)
     assert vorhanden - entity._unrecorded_attributes == behalten
+
+
+def test_meldungsliste_waechst_nicht_ohne_grenze(sensoren):
+    """Die Liste geht ganz in den Zustand für den Neustart und an die Oberfläche.
+
+    Fällt etwas weg, dann die erledigten Meldungen, die am längsten zurückliegen.
+    """
+    from custom_components.heatnexus.sensor import meldungen
+
+    entity, koordinator = _liste(sensoren)
+    grenze = meldungen.MELDUNGEN_MAX
+    for code in range(100, 100 + grenze + 10):
+        _melden(entity, koordinator, f"PUR 09E{code}")
+
+    codes = [m["code"] for m in entity.extra_state_attributes["meldungen"]]
+    assert len(codes) == grenze
+    assert 100 + grenze + 9 in codes  # die anstehende bleibt
+    assert 100 not in codes  # die älteste erledigte geht

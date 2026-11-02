@@ -67,6 +67,9 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 
 **Home Assistant**
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
+- Scheitert das Zurückschalten nach einer befristeten Vorgabe, folgt beim nächsten Abruf ein neuer Versuch.
+- Die eigene Meldungsliste behält höchstens 50 Einträge, die erledigten ältesten fallen weg.
+- Zahlenwerte gehen auf die Schrittweite der Anlage gerundet an die Steuerung.
 - Fehlt beim Schreiben die Verbindung, erscheint eine übersetzte Meldung.
 - Ein Fehlertext der Steuerung mit Umlauten verdeckt den Schreibfehler nicht mehr.
 - Ein abgewiesenes Passwort geht bei mehreren Steuerungen nicht mehr hinter anderen Fehlern unter.

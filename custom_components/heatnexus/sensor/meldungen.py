@@ -14,6 +14,10 @@ from ..entity import MeldungsQuelle, WindhagerEntity
 from ..error_texts import keine_stoerung, klartext, parse_messages, textsprache, unbekannt
 from .stoerspeicher import eintraege_aufbereiten, zuruecksetzen_erlaubt
 
+# Höchstzahl der eigenen Liste: Sie geht ganz in den Zustand für den Neustart
+# und mit jeder Änderung an die Oberfläche.
+MELDUNGEN_MAX = 50
+
 
 class WindhagerErrorTextSensor(WindhagerEntity, SensorEntity):
     """Maps a Windhager alarm code (e.g. 0/97) to its error text."""
@@ -178,6 +182,17 @@ class WindhagerMessageListSensor(WindhagerEntity, SensorEntity):
             vorhanden["zuletzt"] = jetzt
         for code, eintrag in self._eintraege.items():
             eintrag["aktiv"] = code in anstehend
+        self._kuerzen()
+
+    def _kuerzen(self) -> None:
+        """Über der Grenze gehen die erledigten Meldungen, die am längsten zurückliegen."""
+        zu_viel = len(self._eintraege) - MELDUNGEN_MAX
+        if zu_viel <= 0:
+            return
+        erledigt = [c for c, e in self._eintraege.items() if not e.get("aktiv")]
+        erledigt.sort(key=lambda c: str(self._eintraege[c].get("zuletzt") or ""))
+        for code in erledigt[:zu_viel]:
+            del self._eintraege[code]
 
     async def leeren(self) -> None:
         """Mit Störspeicher dessen erledigte Einträge löschen, sonst die eigene Liste."""

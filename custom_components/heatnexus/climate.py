@@ -55,6 +55,8 @@ ATTR_MODUS_DAVOR = "modus_vor_vorgabe"
 # Sicherheits-Fallback: spätestens nach dieser Zeit wird der optimistische
 # Sollwert verworfen, auch wenn das Gerät ihn nie exakt bestätigt.
 OPTIMISTIC_MAX_AGE_S = 120
+# So oft in Folge versucht der Rücksprung zu schreiben, bevor er aufgibt.
+RUECKSPRUNG_VERSUCHE = 3
 NAME_HOECHSTENS_BYTE = 20
 
 
@@ -148,6 +150,7 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         # Wurde die vorgemerkte Vorgabe überhaupt schon einmal als laufend
         # gelesen? Vorher kann sie nicht abgelaufen sein.
         self._vorgabe_gesehen = False
+        self._ruecksprung_fehler = 0
         self._ablauf_abbrechen = None
         self._device_info = geraet_info(coordinator, device_info)
 
@@ -223,11 +226,21 @@ class WindhagerBaseThermostat(CoordinatorEntity, RestoreEntity, ClimateEntity):
         self._im_hintergrund(self._modus_schreiben(ziel), "ruecksprung")
 
     async def _modus_schreiben(self, modus: int) -> None:
-        """Die Betriebswahl setzen; ein Fehler darf die Anzeige nicht zerreißen."""
+        """Die Betriebswahl setzen; scheitert es, versucht es der nächste Abruf noch einmal."""
         try:
             await self.client.update(f"{self._prefix}/3/50/0", str(modus))
-        except Exception as err:  # pragma: no cover - Gerätefehler
-            _LOGGER.warning("Rücksprung auf Betriebswahl %s fehlgeschlagen: %s", modus, err)
+        except Exception as err:
+            self._optimistic_mode = None
+            self._ruecksprung_fehler += 1
+            if self._ruecksprung_fehler < RUECKSPRUNG_VERSUCHE:
+                _LOGGER.debug("Rücksprung auf Betriebswahl %s fehlgeschlagen: %s", modus, err)
+                self._modus_davor, self._vorgabe_gesehen = modus, True
+            else:
+                _LOGGER.warning("Rücksprung auf Betriebswahl %s fehlgeschlagen: %s", modus, err)
+                self._ruecksprung_fehler = 0
+            self.async_write_ha_state()
+            return
+        self._ruecksprung_fehler = 0
 
     async def async_added_to_hass(self) -> None:
         """Einen vorgemerkten Rücksprung über den Neustart hinweg übernehmen.

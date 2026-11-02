@@ -728,3 +728,14 @@ def test_select_macht_doppelte_beschriftungen_unterscheidbar(select_klasse):
     assert entity.current_option == "Auto (6)"
     asyncio.run(entity.async_select_option("Auto (6)"))
     assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "6")]
+
+
+@pytest.mark.parametrize(
+    ("schritt", "eingabe", "erwartet"),
+    [(5, 12.0, "10"), (5, 13.0, "15"), (0.5, 20.3, "20.5"), (0.1, 0.30000000000000004, "0.3")],
+)
+def test_number_rundet_auf_die_schrittweite(number_klasse, schritt, eingabe, erwartet):
+    """Ein Dienstaufruf hält die Schrittweite nicht ein; die Anlage lehnt Zwischenwerte ab."""
+    entity, koordinator = _entitaet(number_klasse, {}, type="number", min=0, max=100, step=schritt)
+    asyncio.run(entity.async_set_native_value(eingabe))
+    assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", erwartet)]

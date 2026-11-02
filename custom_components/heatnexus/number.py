@@ -47,8 +47,10 @@ class WindhagerNumber(WindhagerEntity, NumberEntity):
         return self.float_value
 
     async def async_set_native_value(self, value: float) -> None:
-        # Clamp defensively, HA UI should already enforce the limits
-        value = max(self._attr_native_min_value, min(self._attr_native_max_value, value))
+        # Ein Dienstaufruf hält weder Grenzen noch Schrittweite ein: erst auf den Schritt, dann kappen.
+        unten, schritt = self._attr_native_min_value, self._attr_native_step
+        value = round(unten + round((value - unten) / schritt) * schritt, 9)
+        value = max(unten, min(self._attr_native_max_value, value))
         if self._stellen:
             payload = f"{value:.{self._stellen}f}"
         elif float(value).is_integer():
