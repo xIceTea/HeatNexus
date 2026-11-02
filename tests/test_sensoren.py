@@ -595,7 +595,7 @@ def test_nur_der_neustartstand_bleibt_aus_dem_rekorder(sensoren, klasse, felder,
 
 
 def test_meldungsliste_waechst_nicht_ohne_grenze(sensoren):
-    """Das Attribut darf nicht über die 16-KB-Grenze des Recorders wachsen.
+    """Die Liste geht ganz in den Zustand für den Neustart und an die Oberfläche.
 
     Fällt etwas weg, dann die erledigten Meldungen, die am längsten zurückliegen.
     """

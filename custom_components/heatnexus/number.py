@@ -33,10 +33,8 @@ class WindhagerNumber(WindhagerEntity, NumberEntity):
 
     def __init__(self, coordinator, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
-        unten = _grenze(device_info.get("min"), 0)
-        oben = _grenze(device_info.get("max"), 100)
-        # Vertauschte Grenzen ließen nur einen einzigen Wert zu.
-        self._attr_native_min_value, self._attr_native_max_value = sorted((unten, oben))
+        self._attr_native_min_value = _grenze(device_info.get("min"), 0)
+        self._attr_native_max_value = _grenze(device_info.get("max"), 100)
         self._attr_native_step = _grenze(device_info.get("step"), 1) or 1
         self._stellen = nachkommastellen(device_info.get("step"))
         self._attr_native_unit_of_measurement = device_info.get("unit")

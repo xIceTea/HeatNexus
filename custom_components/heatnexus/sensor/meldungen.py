@@ -14,7 +14,8 @@ from ..entity import MeldungsQuelle, WindhagerEntity
 from ..error_texts import keine_stoerung, klartext, parse_messages, textsprache, unbekannt
 from .stoerspeicher import eintraege_aufbereiten, zuruecksetzen_erlaubt
 
-# Höchstzahl der eigenen Liste: Das Attribut darf nicht über die 16 KB des Recorders wachsen.
+# Höchstzahl der eigenen Liste: Sie geht ganz in den Zustand für den Neustart
+# und mit jeder Änderung an die Oberfläche.
 MELDUNGEN_MAX = 50
 
 

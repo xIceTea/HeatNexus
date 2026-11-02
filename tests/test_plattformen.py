@@ -739,11 +739,3 @@ def test_number_rundet_auf_die_schrittweite(number_klasse, schritt, eingabe, erw
     entity, koordinator = _entitaet(number_klasse, {}, type="number", min=0, max=100, step=schritt)
     asyncio.run(entity.async_set_native_value(eingabe))
     assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", erwartet)]
-
-
-def test_number_vertauschte_grenzen_werden_getauscht(number_klasse):
-    """Eine Beschreibung mit min über max sperrte sonst jeden Wert außer einem."""
-    entity, koordinator = _entitaet(number_klasse, {}, type="number", min=80, max=20, step=1)
-    assert (entity.native_min_value, entity.native_max_value) == (20, 80)
-    asyncio.run(entity.async_set_native_value(50.0))
-    assert koordinator.client.geschrieben == [("/1/60/0/9/75/0", "50")]

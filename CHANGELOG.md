@@ -68,7 +68,6 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Scheitert das Zurückschalten nach einer befristeten Vorgabe, folgt beim nächsten Abruf ein neuer Versuch.
 - Die eigene Meldungsliste behält höchstens 50 Einträge, die erledigten ältesten fallen weg.
 - Zahlenwerte gehen auf die Schrittweite der Anlage gerundet an die Steuerung.
-- Vertauschte Grenzen eines Zahlenwerts werden getauscht.
 - Viele Zeitprogramme lassen den Abruf nicht mehr nach einer Viertelstunde dauerhaft scheitern.
 - Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
 - Fehler und Alarm mit gleicher Nummer erscheinen beide in den Meldungen.
