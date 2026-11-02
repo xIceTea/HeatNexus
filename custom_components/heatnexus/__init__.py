@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 from copy import deepcopy
 import logging
 
@@ -437,6 +436,8 @@ async def _entitaeten_einrichten(
     # sonst neben seinem Subeintrag ein zweites Mal in der Übersicht.
     waermequelle.geraete_entflechten(registry, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Nur was angelegt ist, darf der Rückbau entladen; sonst wirft Home Assistant.
+    entry.runtime_data["plattformen"] = True
     geraetenamen_angleichen(registry, entry, coordinators)
     await verwaltung_holen(hass).eintrag_starten(entry)
     await befund_holen(hass).eintrag_starten(entry)
@@ -559,18 +560,32 @@ async def _einrichtung_zuruecknehmen(
     hass: HomeAssistant, entry: ConfigEntry, anlagen: list[_Anlage]
 ) -> None:
     """Nach einem Fehler mitten im Setup aufräumen; Home Assistant ruft dann kein Entladen auf."""
-    try:
-        await verwaltung_holen(hass).eintrag_stoppen(entry)
-    except Exception as fehler:
-        _LOGGER.debug("Automatik ließ sich nicht anhalten: %s", fehler)
-    for aufgabe in (laufzeitdaten(entry) or {}).get("hintergrund", []):
-        aufgabe.cancel()
-        with contextlib.suppress(asyncio.CancelledError, Exception):
-            await aufgabe
+    daten = laufzeitdaten(entry) or {}
+    for name, holen in (("Automatik", verwaltung_holen), ("Befund", befund_holen)):
+        try:
+            await holen(hass).eintrag_stoppen(entry)
+        except Exception as fehler:
+            _LOGGER.debug("%s ließ sich nicht anhalten: %s", name, fehler)
+    if daten.get("plattformen"):
+        try:
+            await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+        except Exception as fehler:
+            _LOGGER.debug("Plattformen ließen sich nicht entladen: %s", fehler)
+    await _aufgaben_beenden(daten.get("hintergrund", []))
     for anlage in anlagen:
         await anlage.coordinator.async_shutdown()
         await anlage.client.close()
     entry.runtime_data = None
+
+
+async def _aufgaben_beenden(aufgaben: list[asyncio.Task]) -> None:
+    """Hintergrundaufgaben abbrechen und auf sie warten.
+
+    `gather` sammelt ihre Abbrüche und Fehler ein; ein Abbruch der eigenen Aufgabe geht weiter.
+    """
+    for aufgabe in aufgaben:
+        aufgabe.cancel()
+    await asyncio.gather(*aufgaben, return_exceptions=True)
 
 
 async def _oberflaechen_einrichten(hass: HomeAssistant, entry: ConfigEntry, version: str) -> None:
@@ -659,16 +674,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await verwaltung_holen(hass).eintrag_stoppen(entry)
     await befund_holen(hass).eintrag_stoppen(entry)
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if not unload_ok:
+        # Der Eintrag bleibt geladen; dann läuft auch weiter, was zu ihm gehört.
+        await verwaltung_holen(hass).eintrag_starten(entry)
+        await befund_holen(hass).eintrag_starten(entry)
     if unload_ok:
         daten = laufzeitdaten(entry) or {}
         # Erst den Vollabzug beenden, dann die Verbindung schließen. Andersherum
         # läuft die Hintergrundaufgabe in eine geschlossene Verbindung und
         # meldet „Connector is closed".
-        for aufgabe in daten.get("hintergrund", []):
-            aufgabe.cancel()
-        for aufgabe in daten.get("hintergrund", []):
-            with contextlib.suppress(asyncio.CancelledError):
-                await aufgabe
+        await _aufgaben_beenden(daten.get("hintergrund", []))
         for coordinator in daten.get("coordinators", {}).values():
             await coordinator.client.close()
         # Die Laufzeitdaten ausdrücklich abräumen. An ihnen hängen der
