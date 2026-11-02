@@ -9,10 +9,9 @@ from dataclasses import dataclass
 class Statuszeile:
     """Muster, Beschriftung, Symbol, kanonische Schlüssel und wo die Zeile erscheint.
 
-    `panel` ist der Systemstatus im Panel, `karte` die Liste „Zustand“ der
-    Schaubild-Karte in Dashboard und Lovelace. `kopf` setzt den Wert ab zwei
-    Erzeugern in die Kopfzeile des Erzeugers, mit `vorsatz` davor. `regelung`
-    zieht die Zeile ab zwei Erzeugern in den Abschnitt „Regelung“.
+    `panel` ist der Systemstatus im Panel, `karte` die Liste „Zustand“ der Schaubild-Karte.
+    Ab zwei Erzeugern setzt `kopf` den Wert mit `vorsatz` in die Kopfzeile des Erzeugers,
+    `regelung` zieht die Zeile in den Abschnitt „Regelung“.
     """
 
     muster: str
