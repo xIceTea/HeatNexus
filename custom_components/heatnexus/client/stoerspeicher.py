@@ -176,7 +176,7 @@ class StoerspeicherMixin:
                     methode,
                     rest,
                     ret.status,
-                    await ret.text(),
+                    self._decode(await ret.read()),
                 )
                 raise mit_text(WindhagerWriteError, "stoerspeicher_abgelehnt", status=ret.status)
 

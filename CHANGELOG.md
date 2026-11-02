@@ -16,6 +16,8 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 
 **Panel**
 - Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
+- BioWIN: Die Steuerung zeigt eine Karte „Hybridmanager“ mit Pelletpreis, Stromtarifen, SG Ready und Kostenvergleich.
+- BioWIN: Der Verlauf zeigt Temperaturen, Leistung, COP und Wärmemenge je Tag des Hybridsystems.
 - Der Systemstatus zeigt den SG-Ready-Zustand, wo die Anlage ihn meldet.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
@@ -68,6 +70,10 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Scheitert das Zurückschalten nach einer befristeten Vorgabe, folgt beim nächsten Abruf ein neuer Versuch.
 - Die eigene Meldungsliste behält höchstens 50 Einträge, die erledigten ältesten fallen weg.
 - Zahlenwerte gehen auf die Schrittweite der Anlage gerundet an die Steuerung.
+- Fehlt beim Schreiben die Verbindung, erscheint eine übersetzte Meldung.
+- Ein Fehlertext der Steuerung mit Umlauten verdeckt den Schreibfehler nicht mehr.
+- Ein abgewiesenes Passwort geht bei mehreren Steuerungen nicht mehr hinter anderen Fehlern unter.
+- Eine `automations.yaml` mit fremdem Zeichensatz lässt die Einrichtung nicht mehr scheitern.
 - Viele Zeitprogramme lassen den Abruf nicht mehr nach einer Viertelstunde dauerhaft scheitern.
 - Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
 - Fehler und Alarm mit gleicher Nummer erscheinen beide in den Meldungen.

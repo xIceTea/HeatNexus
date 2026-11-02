@@ -419,6 +419,33 @@ async def test_ein_fehler_nach_dem_verbinden_schliesst_die_verbindung(hass, eint
     assert modul.laufzeitdaten(eintrag) is None
 
 
+async def test_ein_spaeter_fehler_haelt_befund_und_plattformen_an(hass, eintrag):
+    """Scheitert das Setup nach den Plattformen, läuft danach weder Sammler noch Entität weiter."""
+    from homeassistant.helpers import entity_registry as er
+
+    import custom_components.heatnexus as modul
+    from custom_components.heatnexus.befund.laufzeit import befund_holen
+
+    async def kaputt(*_argumente) -> None:
+        raise RuntimeError("Oberfläche kaputt")
+
+    with (
+        patch("custom_components.heatnexus.WindhagerHttpClient", AttrappenClient),
+        patch.object(modul, "_oberflaechen_einrichten", kaputt),
+    ):
+        await hass.config_entries.async_setup(eintrag.entry_id)
+        await hass.async_block_till_done()
+
+    befund = befund_holen(hass)
+    assert [s for s in befund.sammler.values() if s.entry.entry_id == eintrag.entry_id] == []
+    assert eintrag.entry_id not in befund._abmelden
+    entitaeten = er.async_entries_for_config_entry(er.async_get(hass), eintrag.entry_id)
+    assert entitaeten
+    # Entladen lässt registrierte Entitäten als „unavailable“ mit `restored` stehen.
+    zustaende = [hass.states.get(e.entity_id) for e in entitaeten]
+    assert [z.entity_id for z in zustaende if z and not z.attributes.get("restored")] == []
+
+
 async def test_eine_zeitueberschreitung_beim_verbinden_gilt_als_nicht_bereit(hass, eintrag):
     """Der Erstabruf hat ein eigenes, großzügiges Zeitfenster – reißt es, ist Schluss."""
     from homeassistant.config_entries import ConfigEntryState
@@ -444,6 +471,32 @@ async def test_der_eintrag_laesst_sich_wieder_entladen(hass, eintrag):
     await hass.async_block_till_done()
 
     assert eintrag.state is ConfigEntryState.NOT_LOADED
+
+
+async def test_scheitert_das_entladen_laeuft_der_befund_weiter(hass, eintrag):
+    """Bleibt der Eintrag geladen, steht auch nichts still, was zu ihm gehört."""
+    from custom_components.heatnexus.befund.laufzeit import befund_holen
+
+    assert await _einrichten(hass, eintrag) is True
+
+    async def bleibt(*_argumente) -> bool:
+        return False
+
+    with patch.object(hass.config_entries, "async_unload_platforms", bleibt):
+        assert await hass.config_entries.async_unload(eintrag.entry_id) is False
+    await hass.async_block_till_done()
+
+    befund = befund_holen(hass)
+    assert eintrag.entry_id in befund._abmelden
+    assert [s for s in befund.sammler.values() if s.entry.entry_id == eintrag.entry_id]
+
+    import custom_components.heatnexus as modul
+
+    # Aufräumen: Der Eintrag steht in FAILED_UNLOAD, Home Assistant entlädt ihn nicht mehr selbst.
+    koordinatoren = list(modul.laufzeitdaten(eintrag)["coordinators"].values())
+    assert await modul.async_unload_entry(hass, eintrag) is True
+    for koordinator in koordinatoren:
+        await koordinator.async_shutdown()
 
 
 async def test_beim_entladen_bleiben_keine_laufzeitdaten_stehen(hass, eintrag):
@@ -679,3 +732,35 @@ def test_eine_neue_anlage_laedt_neu():
     alt = {"192.0.2.10": {CONF_MODULPUMPE: True}}
     neu = dict(alt, **{"192.0.2.11": {CONF_MODULPUMPE: True}})
     assert nur_anzeige_geaendert(alt, neu) is False
+
+
+async def test_ein_abbruch_beim_aufraeumen_geht_weiter(hass):
+    """Wird das Aufräumen selbst abgebrochen, schluckt es den Abbruch nicht."""
+    import custom_components.heatnexus as modul
+
+    async def stur() -> None:
+        try:
+            await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            await asyncio.sleep(0.2)
+
+    hintergrund = asyncio.create_task(stur())
+    await asyncio.sleep(0)
+    aufraeumen = asyncio.create_task(modul._aufgaben_beenden([hintergrund]))
+    await asyncio.sleep(0.01)
+    aufraeumen.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await aufraeumen
+    await asyncio.gather(hintergrund, return_exceptions=True)
+
+
+def test_ein_abgewiesenes_passwort_geht_vor():
+    """Scheitern zwei Steuerungen zugleich, fragt Home Assistant trotzdem nach dem Passwort."""
+    from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+
+    import custom_components.heatnexus as modul
+
+    nicht_bereit, passwort = ConfigEntryNotReady("weg"), ConfigEntryAuthFailed("falsch")
+    assert modul._wichtigster_fehler((nicht_bereit, passwort)) is passwort
+    assert modul._wichtigster_fehler((nicht_bereit,)) is nicht_bereit
