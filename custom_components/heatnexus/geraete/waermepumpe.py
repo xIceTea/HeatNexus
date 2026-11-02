@@ -7,6 +7,8 @@ und COP aus Gruppe 52.
 
 from __future__ import annotations
 
+from . import statuszeilen
+
 FCT_TYPE = 7
 MODELL = "Wärmepumpe"
 RANG = 10
@@ -14,6 +16,7 @@ SYMBOL = "mdi:heat-pump"
 SCHAUBILD = "kessel"
 
 # Abgeglichen mit der App an einer BioWIN Hybrid; Gruppe 52 steht in keinem Menü der Steuerung.
+STATUSZEILEN = statuszeilen.KESSEL
 EXTRA_OIDS: tuple[str, ...] = (
     "50/6",
     "50/26",

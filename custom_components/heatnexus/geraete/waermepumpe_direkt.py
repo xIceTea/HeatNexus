@@ -7,6 +7,8 @@ Herstellers.
 
 from __future__ import annotations
 
+from . import statuszeilen
+
 FCT_TYPE = 27
 MODELL = "Wärmepumpe"
 RANG = 10
@@ -14,6 +16,7 @@ SYMBOL = "mdi:heat-pump"
 SCHAUBILD = "kessel"
 
 # Kernwerte, die der Hersteller über seine Modbus-Schnittstelle ausgibt; nur Anzeigewerte.
+STATUSZEILEN = statuszeilen.KESSEL
 EXTRA_OIDS: tuple[str, ...] = (
     "50/26",
     "50/70",

@@ -24,6 +24,7 @@ from . import (
     purowin,
     solar,
     solar_es,
+    statuszeilen,
     umschaltung,
     waermepumpe,
     waermepumpe_direkt,
@@ -53,6 +54,7 @@ KANNFELDER = (
     "MODELLE_JE_KLASSE",
     "RUNDINSTRUMENTE",
     "NUR_ANZEIGE",
+    "STATUSZEILEN",
 )
 
 MODULE: tuple[ModuleType, ...] = (
@@ -79,7 +81,7 @@ MODULE: tuple[ModuleType, ...] = (
 )
 
 # Dateien, die mehrere Baureihen teilen; selbst keine Baureihe.
-HILFSMODULE: tuple[str, ...] = ("quittung",)
+HILFSMODULE: tuple[str, ...] = ("quittung", "statuszeilen")
 
 # Was für ein Anlagenteil das ist – für die Geräteseite in Home Assistant. Der
 # Name der Anlage taugt dafür nicht: Er ist oft von Hand vergeben und
@@ -130,6 +132,20 @@ NUR_BUS: dict[int, tuple[str, ...]] = {m.FCT_TYPE: m.NUR_BUS for m in MODULE if 
 NUR_ANZEIGE: dict[int, frozenset[str]] = {
     m.FCT_TYPE: frozenset(m.NUR_ANZEIGE) for m in MODULE if getattr(m, "NUR_ANZEIGE", None)
 }
+
+# Zeilen des Systemstatus je Erzeuger.
+STATUSZEILEN: dict[int, tuple[statuszeilen.Statuszeile, ...]] = {
+    m.FCT_TYPE: m.STATUSZEILEN for m in MODULE if getattr(m, "STATUSZEILEN", None)
+}
+
+
+def statuszeilen_fuer(fct_types: list[object]) -> tuple[statuszeilen.Statuszeile, ...]:
+    """Die Zeilen der Erzeuger einer Anlage, ohne Erzeuger die eines Kessels."""
+    erzeuger: dict[statuszeilen.Statuszeile, None] = {}
+    for fct_type in fct_types:
+        erzeuger.update(dict.fromkeys(STATUSZEILEN.get(fct_type, ())))
+    return statuszeilen.zusammenstellen(tuple(erzeuger) or statuszeilen.KESSEL)
+
 
 # Namen, die erst im Zusammenhang einer Baureihe eindeutig sind.
 NAMEN: dict[int, dict[str, str]] = {m.FCT_TYPE: m.NAMEN for m in MODULE if m.NAMEN}

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..const import KARTE_ELEMENT
+from ..geraete import statuszeilen_fuer
 from ..schema import anlagenschema
 from ..texte import Woerterbuch
 from . import auswahl
@@ -19,18 +20,23 @@ from .karten import (
     ueberschrift,
     zeigerinstrument,
 )
-from .muster import ZUSTAND, ZUSTAND_SCHLUESSEL
+from .muster import namensmuster
 
 
 def zustandswerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
     """Meldung, Betriebsphase, Außentemperatur – der Zustand in Kurzform."""
+    zeilen = [
+        z for z in statuszeilen_fuer([teil.get("fct_type") for teil in anlage["teile"]]) if z.karte
+    ]
+    muster = namensmuster(*(z.muster for z in zeilen))
+    schluessel = tuple(s for z in zeilen for s in z.schluessel)
     return [
         e
         for teil in anlage["teile"]
         for e in teil["entitaeten"]
         # Einsteller bleiben draußen: Ein Grenzwert der Serviceebene heißt
         # mitunter wie der Messwert, den er begrenzt.
-        if e["hat_wert"] and e.get("kategorie") is None and trifft(e, ZUSTAND, *ZUSTAND_SCHLUESSEL)
+        if e["hat_wert"] and e.get("kategorie") is None and trifft(e, muster, *schluessel)
     ]
 
 
