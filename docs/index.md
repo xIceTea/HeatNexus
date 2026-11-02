@@ -169,7 +169,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
       <div class="serie"><svg><use href="#sym-flamme"/></svg><h3>BioWIN</h3><p>Pellets, auch BioWIN 2 und PelletsWIN</p><span class="stand fremd">Fremde Anlage geprüft</span></div>
       <div class="serie"><svg><use href="#sym-scheit"/></svg><h3>LogWIN</h3><p>Scheitholz, auch VarioWIN</p><span class="stand fremd">Fremde Anlage geprüft</span></div>
       <div class="serie"><svg><use href="#sym-scheit"/></svg><h3>DuoWIN</h3><p>Pellets und Scheitholz</p><span class="stand fremd">Fremde Anlage geprüft</span></div>
-      <div class="serie"><svg><use href="#sym-waermepumpe"/></svg><h3>AeroWIN</h3><p>Wärmepumpe</p><span class="stand offen">Eingebunden, ungeprüft</span></div>
+      <div class="serie"><svg><use href="#sym-waermepumpe"/></svg><h3>AeroWIN</h3><p>Wärmepumpe</p><span class="stand fremd">Fremde Anlage geprüft</span></div>
     </div>
 
     <details class="alle">
@@ -184,7 +184,8 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
               <tr><td>BioWIN, BioWIN 2, PelletsWIN</td><td>Pellets</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
               <tr><td>LogWIN, VarioWIN</td><td>Scheitholz</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
               <tr><td>DuoWIN</td><td>Pellets und Scheitholz</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
-              <tr><td>AeroWIN und andere Wärmepumpen</td><td>Strom</td><td><span class="stand offen">Eingebunden, ungeprüft</span></td></tr>
+              <tr><td>AeroWIN</td><td>Strom</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
+              <tr><td>Andere Wärmepumpen</td><td>Strom</td><td><span class="stand offen">Eingebunden, ungeprüft</span></td></tr>
               <tr><td>Gas- und Ölkessel, Brennwerttherme</td><td>Gas, Öl</td><td><span class="stand offen">Eingebunden, ungeprüft</span></td></tr>
               <tr><td>E-Heizung, Automatik- und Zusatzkessel</td><td>—</td><td><span class="stand offen">Eingebunden, ungeprüft</span></td></tr>
             </tbody>
@@ -200,6 +201,7 @@ beschreibung: HeatNexus liest die Anlage lokal aus, ohne Cloud und ohne Konto �
               <tr><td>ZSP Pumpen- und Relaismodul</td><td><span class="stand geprueft">An der Anlage geprüft</span></td></tr>
               <tr><td>Infinity PLUS Heizkreis und Warmwasser</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
               <tr><td>Pufferspeicher am Kessel</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
+              <tr><td>Hybridmanager der BioWIN Hybrid</td><td><span class="stand fremd">Fremde Anlage geprüft</span></td></tr>
               <tr><td>Solar, Kaskade, Umschaltung, weitere Puffer</td><td><span class="stand offen">Eingebunden, ungeprüft</span></td></tr>
             </tbody>
           </table>

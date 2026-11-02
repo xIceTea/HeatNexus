@@ -64,7 +64,9 @@ Datenbank steht:
 | 🔵 | DuoWIN – Pellets und Scheitholz | an einer fremden Anlage geprüft |
 | 🔵 | Infinity PLUS Heizkreis und Warmwasser | an einer fremden Anlage geprüft |
 | 🔵 | Pufferspeicher am Kessel | an einer fremden Anlage geprüft |
-| ⚪ | AeroWIN und andere Wärmepumpen, E-Heizung | eingebunden, ungeprüft |
+| 🔵 | AeroWIN – Wärmepumpe | an einer fremden Anlage geprüft |
+| 🔵 | Hybridmanager der BioWIN Hybrid | an einer fremden Anlage geprüft |
+| ⚪ | Andere Wärmepumpen, E-Heizung | eingebunden, ungeprüft |
 | ⚪ | Gas- und Ölkessel, Brennwerttherme | eingebunden, ungeprüft |
 | ⚪ | Solar, Kaskade, Umschaltung, weitere Puffer | eingebunden, ungeprüft |
 
