@@ -16,7 +16,6 @@ SYMBOL = "mdi:heat-pump"
 SCHAUBILD = "kessel"
 
 # Abgeglichen mit der App an einer BioWIN Hybrid; Gruppe 52 steht in keinem Menü der Steuerung.
-STATUSZEILEN = statuszeilen.KESSEL
 EXTRA_OIDS: tuple[str, ...] = (
     "50/6",
     "50/26",
@@ -32,6 +31,7 @@ EXTRA_OIDS: tuple[str, ...] = (
     "52/87",
     "52/89",
 )
+STATUSZEILEN = statuszeilen.KESSEL
 KESSELART: str | None = "waermepumpe"
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.

@@ -23,8 +23,8 @@ RUNDINSTRUMENTE: tuple[tuple[str, dict], ...] = (
 
 # Störcode, Softwarestand und die Lagerraumbefüllung stehen in keiner
 # Bedienebene; das InfoWIN Touch zeigt sie trotzdem an.
-STATUSZEILEN = statuszeilen.KESSEL
 EXTRA_OIDS: tuple[str, ...] = ("0/97", "4/92", "39/107", "39/5")
+STATUSZEILEN = statuszeilen.KESSEL
 
 # Was diese Baureihe nur über den LON-Bus hergibt. Leer: Ihre Netzwerknamen
 # tragen nichts bei, was nicht schon als Datenpunkt dasteht.

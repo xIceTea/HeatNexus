@@ -16,7 +16,6 @@ SYMBOL = "mdi:heat-pump"
 SCHAUBILD = "kessel"
 
 # Kernwerte, die der Hersteller über seine Modbus-Schnittstelle ausgibt; nur Anzeigewerte.
-STATUSZEILEN = statuszeilen.KESSEL
 EXTRA_OIDS: tuple[str, ...] = (
     "50/26",
     "50/70",
@@ -33,6 +32,7 @@ EXTRA_OIDS: tuple[str, ...] = (
     "59/45",
     "59/71",
 )
+STATUSZEILEN = statuszeilen.KESSEL
 KESSELART: str | None = "waermepumpe"
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
