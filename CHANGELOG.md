@@ -21,6 +21,12 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Der Systemstatus zeigt den SG-Ready-Zustand, wo die Anlage ihn meldet.
 - Bei mehreren Wärmeerzeugern zeigt der Systemstatus je Gerät eine aufklappbare Kopfzeile.
 - An der Wärmepumpe zeigt der Systemstatus COP, Vorlauf, Starts und Zähler für das Heizen.
+- Bei mehreren Wärmeerzeugern zeigt der Systemstatus unten einen Abschnitt „Regelung“.
+- Bei wenig Platz bricht das Schaubild in die nächste Reihe um.
+- Die Darstellung legt die Größe der Anlagenteile im Schaubild fest.
+- Die Darstellung legt Größe und Lage der Werte im Schaubild fest.
+- Bei schmalen Anlagenteilen stehen die Werte mit Namen unter dem Bild.
+- Das Fenster „Darstellung“ zeigt jede Wahl sofort als Vorschau.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
 - Im Schaubild steht „COP“ vor der Leistungszahl der Wärmepumpe.
@@ -31,6 +37,10 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - BioWIN: Die Pumpe des Hybridmanagers dreht im Schaubild im Rücklauf.
 - BioWIN: Ein Klick auf das Ventil zeigt die Betriebsart des Hybridmanagers.
 - BioWIN: Im Schaubild strömen BioWIN und AeroWIN nur, solange sie heizen.
+- BioWIN: Die Lampe des liefernden Erzeugers am Hybridmanager pulsiert grün.
+- BioWIN: Die Werte der AeroWIN stehen über dem Lüfter und im Anzeigefeld.
+- BioWIN: Das Schaubild zeigt den Befüllgrad des Lagerraums über dem Kessel.
+- PuroWIN: Im Schaubild füllt sich der Vorratsbehälter in drei Stufen.
 
 **Dashboard**
 - Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
