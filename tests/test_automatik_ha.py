@@ -873,6 +873,44 @@ async def test_gleichzeitige_einstellungen_gehen_beide_ein(hass, anlage):
     assert (konfig["modus"], konfig["aktiv"]) == ("empfehlen", False)
 
 
+async def test_ein_frueh_gescheiterter_start_wird_gemeldet(hass, anlage, monkeypatch, caplog):
+    """Scheitert schon das System-Gerät, steht der Start trotzdem im Log und als Meldung."""
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    verwaltung.laufzeiten.pop(HEIZKREIS).stoppen()
+
+    def kaputt(_entry):
+        raise RuntimeError("Geräteregister gesperrt")
+
+    monkeypatch.setattr(verwaltung, "_system_anlegen", kaputt)
+    await verwaltung._nachholen(hass.config_entries.async_entries(DOMAIN)[0])
+
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"automatik_start_{HEIZKREIS}")
+    assert "Start gescheitert" in caplog.text
+
+
+async def test_neue_einstellungen_bleiben_auch_wenn_der_neustart_scheitert(hass, anlage):
+    """Die Laufzeit rechnet schon mit der neuen Konfiguration; gespeichert wird dieselbe."""
+    verwaltung, _ = anlage
+    laufzeit = await _eingerichtet(hass, verwaltung)
+    echt = laufzeit.starten
+
+    async def scheitert(*_a, **_k):
+        raise RuntimeError("Start gescheitert")
+
+    laufzeit.starten = scheitert
+    with pytest.raises(RuntimeError):
+        await verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"})
+    laufzeit.starten = echt
+
+    assert laufzeit.konfig["modus"] == "empfehlen"
+    assert verwaltung.konfig(HEIZKREIS)["modus"] == "empfehlen"
+
+
 def _automatik_geraete(hass, eintrag):
     from homeassistant.helpers import device_registry as dr
 

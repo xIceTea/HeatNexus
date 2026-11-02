@@ -400,10 +400,10 @@ class Verwaltung:
         if treffer is None or eintrag is None:
             return False
         coordinator, beschreibung = treffer
-        # Das System-Gerät muss stehen, bevor der Heizkreis darauf verweist.
-        self._system_anlegen(entry)
         kennung = f"automatik_start_{device_id}"
         try:
+            # Das System-Gerät muss stehen, bevor der Heizkreis darauf verweist.
+            self._system_anlegen(entry)
             laufzeit = Laufzeit(
                 self.hass,
                 coordinator,
@@ -536,7 +536,13 @@ class Verwaltung:
                 laufzeit.beobachtet_seit = dt_util.now()
             if gewechselt:
                 laufzeit.ruhe_loesen()
-            await laufzeit.neu_starten(neu)
+            try:
+                await laufzeit.neu_starten(neu)
+            except Exception:
+                # Die Laufzeit hat die neue Konfiguration schon; gespeichert wird dieselbe.
+                eintrag["konfig"] = neu
+                self.speichern()
+                raise
             # Andere Räume oder anderes Wetter: Das gelernte Hausmodell passt nicht mehr.
             if any(alt.get(k) != neu.get(k) for k in ("raeume", "raum_art", "wetter")):
                 laufzeit.modell_neu_lernen()
