@@ -9,12 +9,14 @@ Client.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from .const import (
     DIFFERENZ_WOERTER,
     EINHEITEN,
     ENUMS,
+    MESSWERT_OHNE_EINHEIT,
     POLL_ZIEL_SEKUNDEN,
     UPDATE_INTERVAL,
     ZAEHLER_AUSNAHMEN,
@@ -164,6 +166,15 @@ def ist_zaehler(beschreibung: dict[str, Any], einheit: str | None) -> bool:
     return any(wort in name for wort in ZAEHLER_WOERTER)
 
 
+def _ist_messwert_ohne_einheit(beschreibung: dict[str, Any]) -> bool:
+    """Ob ein Anzeigewert ohne Einheit trotzdem eine Messgröße ist."""
+    return (
+        beschreibung.get("type") == "sensor"
+        and beschreibung.get("state_class") is None
+        and re.search(MESSWERT_OHNE_EINHEIT, mustername(beschreibung).lower()) is not None
+    )
+
+
 def _ist_differenz(beschreibung: dict[str, Any]) -> bool:
     """Ob der Name eine Temperaturdifferenz nennt, die in Kelvin gehört."""
     name = mustername(beschreibung).lower()
@@ -195,6 +206,9 @@ def messgroesse(beschreibung: dict[str, Any]) -> dict[str, Any]:
             and ist_zaehler(beschreibung, None)
         ):
             beschreibung["state_class"] = "total_increasing"
+        elif _ist_messwert_ohne_einheit(beschreibung):
+            beschreibung["state_class"] = "measurement"
+            beschreibung.setdefault("precision", 1)
         return beschreibung
     # „20" und „21" meldet die Anlage als Einheit von Datum und Uhrzeit – das
     # sind Formatkennungen, keine Maßeinheiten.
