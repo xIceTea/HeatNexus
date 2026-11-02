@@ -11,8 +11,9 @@ Ohne Argumente startet der geführte Modus (Auswahlmenü). Alternativ direkt:
     python tools/heatnexus_probe.py oid 192.0.2.10 /1/15/0/3/50/0
     python tools/heatnexus_probe.py all 192.0.2.10 -o probe
 
-Passwörter werden nie gespeichert. Sie kommen aus `--password`, aus der
-Umgebungsvariablen HEATNEXUS_PW oder aus einer verdeckten Eingabe.
+Passwörter werden nie gespeichert. Sie kommen aus einer verdeckten Eingabe,
+aus der Umgebungsvariablen HEATNEXUS_PW oder aus `--password`; Letzteres steht
+in Prozessliste und Shell-Verlauf.
 """
 
 from __future__ import annotations
@@ -2094,7 +2095,11 @@ def main() -> int:
     )
     parser.add_argument("hosts", nargs="*", help="eine oder mehrere IP-Adressen")
     parser.add_argument("--oid", help="vollständige OID für die Aktionen 'oid' und 'objekt'")
-    parser.add_argument("--password", help="Service-Passwort (sonst Abfrage oder HEATNEXUS_PW)")
+    parser.add_argument(
+        "--password",
+        help="Service-Passwort; steht dann in Prozessliste und Shell-Verlauf. "
+        "Besser weglassen: Abfrage oder HEATNEXUS_PW",
+    )
     parser.add_argument(
         "--user",
         default=USERNAME,

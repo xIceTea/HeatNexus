@@ -264,6 +264,26 @@ async def test_die_dienste_stehen_ohne_eintrag_bereit(hass):
     assert hass.services.has_service(DOMAIN, "dashboard_ausgeben")
 
 
+@pytest.mark.parametrize("dienst", ["rediscover", "dashboard_ausgeben"])
+async def test_die_dienste_verlangen_administratorrechte(hass, hass_read_only_user, dienst):
+    """`rediscover` löst einen Vollabzug aus, `dashboard_ausgeben` gibt nur Admins Auskunft."""
+    from homeassistant.core import Context
+    from homeassistant.exceptions import Unauthorized
+    from homeassistant.setup import async_setup_component
+
+    assert await async_setup_component(hass, DOMAIN, {})
+
+    with pytest.raises(Unauthorized):
+        await hass.services.async_call(
+            DOMAIN,
+            dienst,
+            {},
+            blocking=True,
+            return_response=True,
+            context=Context(user_id=hass_read_only_user.id),
+        )
+
+
 async def test_ohne_anlage_im_eintrag_wird_nicht_eingerichtet(hass):
     """Ein Eintrag ohne Anlage ist kein Grund, halb zu starten."""
     from homeassistant.config_entries import ConfigEntryState
