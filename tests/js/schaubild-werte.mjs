@@ -41,6 +41,7 @@ const anlage = {
       top: "36%",
       breite: "2%",
       hoehe: "27%",
+      bild: "<svg><g class='koerner-flaeche'></g><path class='umriss-linie'/></svg>",
     },
     { art: "lagerraum", entity: "sensor.lager", titel: "BioWIN", left: "5%", top: "27%" },
   ],
@@ -99,7 +100,7 @@ ergebnis.auto_breit_leiste = Boolean(leisten(aufbauen({ strang: "verkleinern" },
 ergebnis.lager_null = marken(aufbauen({ werte_lage: "bild" }, 2000, "0"));
 
 const behaelter = aufbauen({}, 2000).querySelector(".vorrat");
-ergebnis.behaelter = [behaelter.dataset.stufe, behaelter.hidden];
+ergebnis.behaelter = [behaelter.dataset.stufe, behaelter.hidden, behaelter.children.map((teil) => teil.className)];
 
 ergebnis.schrift = ["klein", "mittel", "gross", undefined].map((groesse) =>
   panel(groesse ? { werte_groesse: groesse } : {})._schriftmass()

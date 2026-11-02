@@ -68,33 +68,48 @@ def test_die_kessel_mit_behaelter_markieren_seine_innenflaeche(schema, kesselart
     assert schema.bauteile.vorratsflaeche(kesselart) is not None
 
 
+@pytest.mark.parametrize(("kesselart", "farbe"), [("pellets", "#c9a26b"), ("hackgut", "#a87c4f")])
+def test_ohne_gemeldeten_fuellstand_zeigt_die_zeichnung_den_brennstoff_in_holzfarbe(
+    schema, kesselart, farbe
+):
+    """Der BioWIN meldet keinen Behälter; die Körner stehen trotzdem bis zur festen Höhe."""
+    zeichnung = schema.bauteile.aus_datei("kessel", kesselart, "t0-")
+    assert '<g opacity="1" clip-path="url(#t0-fest)">' in zeichnung
+    assert farbe in zeichnung
+
+
 def test_ohne_behaelter_in_der_zeichnung_keine_flaeche(schema):
     assert schema.bauteile.vorratsflaeche("waermepumpe") is None
 
 
 @pytest.mark.parametrize(
-    ("brennstoff", "kesselart"), [("Pellets", "pellets"), ("Hackgut normal", "hackgut")]
+    ("brennstoff", "kesselart", "farbe"),
+    [("Pellets", "pellets", "#c9a26b"), ("Hackgut normal", "hackgut", "#a87c4f")],
 )
-def test_der_purowin_fuellt_seinen_behaelter_in_stufen(schema, brennstoff, kesselart):
+def test_der_purowin_fuellt_seinen_behaelter_in_stufen(schema, brennstoff, kesselart, farbe):
     [modul] = schema.werte.zeichenbare_module([_purowin(brennstoff)])
     assert modul["kesselart"] == kesselart
     bild = schema.karte.anlagenschema([_purowin(brennstoff)])
     [behaelter] = [e for e in bild["vorrat"] if e["art"] == "behaelter"]
     assert behaelter["entity"] == "sensor.behaelter"
+    # Die Füllung trägt dieselbe Körnung wie die Zeichnung, samt Umriss für den Fehler.
+    assert 'class="koerner-flaeche"' in behaelter["bild"]
+    assert farbe in behaelter["bild"]
+    assert 'class="umriss-linie"' in behaelter["bild"]
     assert behaelter["stufen"] == {
         "Fehler Vorratsbehälter ": "fehler",
         "Vorratsbehälter leer": "leer",
         "Vorratsbehälter voll": "voll",
     }
     # Der gezeichnete Brennstoff weicht der gemeldeten Füllung.
-    assert '<g opacity="0">' in bild["svg"]
+    assert '<g opacity="0" ' in bild["svg"]
 
 
 def test_ohne_gemeldeten_fuellstand_bleibt_die_zeichnung(schema):
     teil = _teil("PuroWIN", 25, [("sensor.kessel", "Kesseltemperatur Ist", "0/7")])
     bild = schema.karte.anlagenschema([teil])
     assert bild["vorrat"] == []
-    assert '<g opacity="0">' not in bild["svg"]
+    assert '<g opacity="0" ' not in bild["svg"]
 
 
 def test_der_biowin_zeigt_den_lagerraum_und_fuellt_den_behaelter_nicht(schema):

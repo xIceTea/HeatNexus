@@ -26,6 +26,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Die Darstellung legt die Größe der Anlagenteile im Schaubild fest.
 - Die Darstellung legt Größe und Lage der Werte im Schaubild fest.
 - Bei schmalen Anlagenteilen stehen die Werte mit Namen unter dem Bild.
+- Im Schaubild liegen Pellets und Hackgut in Holzfarbe im Vorratsbehälter.
 - Das Fenster „Darstellung“ zeigt jede Wahl sofort als Vorschau.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.

@@ -14,19 +14,79 @@
 <path d="M 6 140 L 38 140 L 38 214 L 28 232 L 16 232 L 6 214 Z"
       fill="#2b333c" stroke="#4a5561" stroke-width="2"/>
 <rect x="18" y="231" width="8" height="25" fill="#2b333c" stroke="#4a5561" stroke-width="2"/>
-<!-- Füllstand. Meldet der Kessel ihn, füllt die Oberfläche die markierte Fläche
-     und `vorrat` blendet diese Zeichnung aus. -->
-<g opacity="1">
-  <path d="M 8 180 L 36 180 L 36 213 L 27 230 L 17 230 L 8 213 Z"
-        fill="#f2f6fa" opacity="0.16"/>
-  <g fill="#f2f6fa" opacity="0.5">
-    <rect x="12" y="190" width="7" height="5" rx="1"/>
-    <rect x="23" y="196" width="8" height="4" rx="1"/>
-    <rect x="13" y="204" width="8" height="5" rx="1"/>
-    <rect x="24" y="210" width="6" height="5" rx="1"/>
-  </g>
+<!-- Hackgut in Holzfarbe, dunkler und kantiger als Pellets. `koernung` füllt den ganzen Behälter;
+     ohne gemeldeten Füllstand steht sie bis zur festen Höhe, sonst füllt die Oberfläche nach Stufe. -->
+<defs>
+  <clipPath id="t0-innen"><path d="M 8 142 L 36 142 L 36 213 L 27 230 L 17 230 L 8 213 Z"/></clipPath>
+  <clipPath id="t0-fest"><rect x="0" y="180" width="200" height="212"/></clipPath>
+</defs>
+<g opacity="1" clip-path="url(#t0-fest)">
+<g id="t0-koernung" clip-path="url(#t0-innen)">
+  <path d="M 8 142 L 36 142 L 36 213 L 27 230 L 17 230 L 8 213 Z" fill="#a87c4f" fill-opacity="0.3"/>
+  <path d="M 9.6 145.8 L 15.6 145.2 L 15.2 150.3 L 9.2 149.4 Z" fill="#a87c4f"/>
+  <path d="M 17.4 146.0 L 22.1 144.1 L 20.2 148.7 L 17.2 147.7 Z" fill="#a87c4f"/>
+  <path d="M 23.0 145.3 L 27.9 144.5 L 27.9 149.6 L 23.1 148.9 Z" fill="#a87c4f"/>
+  <path d="M 30.2 145.7 L 36.1 144.6 L 34.1 149.5 L 30.2 148.2 Z" fill="#a87c4f"/>
+  <path d="M 9.2 151.1 L 13.8 149.6 L 11.9 154.9 L 9.3 154.9 Z" fill="#7e5a35"/>
+  <path d="M 16.3 150.0 L 22.1 150.1 L 20.5 155.3 L 15.6 155.2 Z" fill="#a87c4f"/>
+  <path d="M 24.4 150.0 L 31.3 149.0 L 29.7 153.6 L 23.8 152.7 Z" fill="#a87c4f"/>
+  <path d="M 33.0 150.0 L 39.3 149.7 L 38.8 153.6 L 32.0 152.2 Z" fill="#a87c4f"/>
+  <path d="M 9.4 155.8 L 14.6 156.7 L 14.2 160.9 L 8.3 159.7 Z" fill="#a87c4f"/>
+  <path d="M 16.4 156.0 L 20.8 155.9 L 20.0 159.4 L 15.7 157.9 Z" fill="#a87c4f"/>
+  <path d="M 22.4 157.0 L 29.7 156.3 L 29.2 159.5 L 21.9 158.4 Z" fill="#a87c4f"/>
+  <path d="M 31.4 156.3 L 38.4 154.9 L 38.3 160.9 L 31.5 160.6 Z" fill="#a87c4f"/>
+  <path d="M 10.3 161.5 L 15.1 160.9 L 14.0 165.3 L 10.0 164.3 Z" fill="#7e5a35"/>
+  <path d="M 17.4 162.1 L 22.6 160.5 L 22.2 164.9 L 17.0 164.1 Z" fill="#7e5a35"/>
+  <path d="M 24.6 162.4 L 31.3 161.6 L 31.0 166.9 L 23.2 166.8 Z" fill="#a87c4f"/>
+  <path d="M 33.8 162.1 L 40.7 161.9 L 40.1 164.9 L 33.8 164.8 Z" fill="#a87c4f"/>
+  <path d="M 10.8 167.8 L 16.6 167.6 L 14.8 172.3 L 10.3 171.7 Z" fill="#a87c4f"/>
+  <path d="M 19.0 168.1 L 25.1 167.5 L 24.9 172.0 L 18.8 170.5 Z" fill="#a87c4f"/>
+  <path d="M 27.6 167.9 L 32.9 167.9 L 32.7 172.2 L 27.3 172.2 Z" fill="#a87c4f"/>
+  <path d="M 10.8 172.5 L 15.9 171.1 L 15.3 176.8 L 9.9 176.5 Z" fill="#7e5a35"/>
+  <path d="M 19.1 172.6 L 24.7 172.4 L 24.3 176.5 L 17.9 175.3 Z" fill="#a87c4f"/>
+  <path d="M 27.0 172.3 L 32.7 172.1 L 31.0 176.8 L 27.3 175.7 Z" fill="#a87c4f"/>
+  <path d="M 34.0 172.4 L 39.1 171.9 L 37.9 176.5 L 33.9 176.0 Z" fill="#a87c4f"/>
+  <path d="M 8.2 178.3 L 13.2 177.4 L 12.6 182.5 L 8.8 182.5 Z" fill="#7e5a35"/>
+  <path d="M 14.8 177.5 L 19.5 176.4 L 18.2 182.4 L 14.6 181.5 Z" fill="#a87c4f"/>
+  <path d="M 21.5 178.0 L 29.1 176.6 L 29.1 182.2 L 21.4 181.1 Z" fill="#7e5a35"/>
+  <path d="M 30.8 178.2 L 36.0 177.8 L 35.2 182.2 L 30.7 180.8 Z" fill="#7e5a35"/>
+  <path d="M 9.6 183.4 L 14.6 183.0 L 12.9 187.6 L 9.0 186.2 Z" fill="#a87c4f"/>
+  <path d="M 17.3 183.8 L 21.7 183.3 L 21.3 187.8 L 16.9 186.3 Z" fill="#a87c4f"/>
+  <path d="M 24.4 184.1 L 30.4 182.6 L 30.2 187.0 L 23.2 186.2 Z" fill="#a87c4f"/>
+  <path d="M 31.7 184.1 L 36.7 182.2 L 36.0 188.0 L 32.3 187.8 Z" fill="#7e5a35"/>
+  <path d="M 10.4 189.9 L 16.7 187.6 L 16.3 193.8 L 10.0 193.4 Z" fill="#a87c4f"/>
+  <path d="M 19.0 188.9 L 24.8 188.2 L 23.1 193.6 L 19.1 193.3 Z" fill="#a87c4f"/>
+  <path d="M 27.0 189.3 L 33.3 188.5 L 32.1 193.1 L 26.3 191.6 Z" fill="#a87c4f"/>
+  <path d="M 9.2 195.0 L 15.6 194.0 L 13.7 199.0 L 10.0 198.6 Z" fill="#a87c4f"/>
+  <path d="M 17.6 194.9 L 22.6 193.8 L 22.2 199.3 L 16.7 197.9 Z" fill="#7e5a35"/>
+  <path d="M 24.6 195.2 L 29.3 193.8 L 28.6 198.0 L 24.7 197.9 Z" fill="#a87c4f"/>
+  <path d="M 30.3 194.9 L 36.5 194.0 L 35.8 198.2 L 30.1 197.4 Z" fill="#7e5a35"/>
+  <path d="M 10.2 200.9 L 15.9 199.1 L 14.4 204.8 L 10.0 203.4 Z" fill="#a87c4f"/>
+  <path d="M 18.3 200.9 L 24.6 198.9 L 24.1 203.5 L 17.4 203.1 Z" fill="#7e5a35"/>
+  <path d="M 26.5 200.2 L 32.6 200.0 L 32.6 204.7 L 26.2 203.7 Z" fill="#a87c4f"/>
+  <path d="M 10.0 204.6 L 16.3 203.4 L 16.1 208.8 L 8.6 208.0 Z" fill="#a87c4f"/>
+  <path d="M 17.9 205.5 L 23.1 205.3 L 21.2 208.1 L 17.3 208.0 Z" fill="#a87c4f"/>
+  <path d="M 25.0 205.0 L 31.6 204.1 L 30.4 208.4 L 23.8 207.4 Z" fill="#a87c4f"/>
+  <path d="M 32.9 204.6 L 38.7 203.6 L 37.7 209.3 L 31.9 207.9 Z" fill="#a87c4f"/>
+  <path d="M 10.0 211.5 L 15.5 210.7 L 15.0 214.8 L 10.1 213.6 Z" fill="#a87c4f"/>
+  <path d="M 18.5 211.1 L 23.4 210.6 L 21.9 215.4 L 17.3 214.3 Z" fill="#7e5a35"/>
+  <path d="M 25.0 211.0 L 30.8 210.3 L 30.4 213.6 L 25.3 212.6 Z" fill="#a87c4f"/>
+  <path d="M 32.9 211.6 L 39.0 210.3 L 37.6 214.6 L 33.0 213.2 Z" fill="#7e5a35"/>
+  <path d="M 8.8 216.2 L 14.7 214.9 L 14.2 219.3 L 9.4 218.4 Z" fill="#a87c4f"/>
+  <path d="M 17.6 216.9 L 23.4 214.8 L 22.2 221.2 L 17.3 221.1 Z" fill="#a87c4f"/>
+  <path d="M 24.9 216.6 L 30.5 214.8 L 28.6 219.5 L 24.2 218.7 Z" fill="#a87c4f"/>
+  <path d="M 32.4 216.1 L 37.4 216.1 L 36.8 220.5 L 31.1 220.1 Z" fill="#7e5a35"/>
+  <path d="M 8.9 222.8 L 16.5 222.2 L 16.3 226.3 L 9.6 225.7 Z" fill="#a87c4f"/>
+  <path d="M 19.8 222.4 L 24.2 221.2 L 22.2 225.9 L 19.2 224.9 Z" fill="#7e5a35"/>
+  <path d="M 25.7 222.1 L 32.0 220.6 L 31.1 225.2 L 26.1 224.5 Z" fill="#7e5a35"/>
+  <path d="M 34.1 222.8 L 39.6 222.2 L 38.1 226.4 L 33.2 226.2 Z" fill="#a87c4f"/>
+  <path d="M 9.6 227.6 L 14.5 227.0 L 13.0 231.6 L 8.5 231.2 Z" fill="#a87c4f"/>
+  <path d="M 16.5 227.1 L 24.0 226.6 L 22.8 230.3 L 16.1 229.5 Z" fill="#7e5a35"/>
+  <path d="M 25.6 227.3 L 31.7 226.7 L 31.3 231.3 L 24.7 230.2 Z" fill="#a87c4f"/>
+  <path d="M 33.2 227.9 L 37.7 226.2 L 36.8 231.9 L 32.2 230.6 Z" fill="#a87c4f"/>
 </g>
-<rect data-vorrat="" x="8" y="142" width="28" height="71" fill="none"/>
+</g>
+<path data-vorrat="" d="M 8 142 L 36 142 L 36 213 L 27 230 L 17 230 L 8 213 Z" fill="none"/>
 
 <!-- Einschub der Stokerschnecke, von links unten in den Brennraum -->
 <g stroke="#4a5561" stroke-width="2" fill="#2b333c">

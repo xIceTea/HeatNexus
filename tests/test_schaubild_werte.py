@@ -63,8 +63,8 @@ def test_der_lagerraum_bleibt_bei_null_prozent_weg(werte):
     assert werte["lager_null"] == ["71.5 °C", "COP 3.6"]
 
 
-def test_der_behaelter_zeigt_seine_stufe(werte):
-    assert werte["behaelter"] == ["voll", False]
+def test_der_behaelter_zeigt_seine_stufe_mit_koernung_und_umriss(werte):
+    assert werte["behaelter"] == ["voll", False, ["koerner", "umriss"]]
 
 
 def test_die_groesse_der_werte_setzt_das_schriftmass(werte):

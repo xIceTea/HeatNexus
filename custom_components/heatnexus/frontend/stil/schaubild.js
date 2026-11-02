@@ -432,17 +432,22 @@ export const SCHAUBILD = `
   .schaubild .marke-wert.lagerraum {
     font-size: clamp(calc(9px * var(--hn-schrift)), calc(var(--hn-einheit) * 11 * var(--hn-schrift)), calc(16px * var(--hn-schrift)));
   }
-  /* Füllstand des Vorratsbehälters: voll, halb, leer; ein Fehler gestreift in der Warnfarbe. */
-  .schaubild .vorrat { position: absolute; overflow: hidden; border-radius: 3px; pointer-events: auto; }
-  .schaubild .vorrat > span {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 0;
-    background: rgba(214, 170, 110, 0.6); transition: height 0.4s ease;
-  }
-  .schaubild .vorrat[data-stufe="voll"] > span { height: 100%; }
-  .schaubild .vorrat[data-stufe="teil"] > span { height: 50%; }
-  .schaubild .vorrat[data-stufe="fehler"] > span {
-    height: 100%;
-    background: repeating-linear-gradient(45deg, rgba(239, 68, 68, 0.6) 0 4px, rgba(239, 68, 68, 0.15) 4px 8px);
+  /* Füllstand des Vorratsbehälters: dieselbe Körnung wie in der Zeichnung, von unten bis zur Stufe.
+     Ein Fehler lässt ihn leer, umrandet ihn orange und setzt ein „!“; die Meldung steht im Systemstatus. */
+  .schaubild .vorrat { position: absolute; pointer-events: auto; }
+  .schaubild .vorrat > div { position: absolute; inset: 0; }
+  .schaubild .vorrat svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .schaubild .vorrat .koerner .umriss-linie, .schaubild .vorrat .umriss .koerner-flaeche { display: none; }
+  .schaubild .vorrat .koerner { clip-path: inset(100% 0 0 0); transition: clip-path 0.4s ease; }
+  .schaubild .vorrat[data-stufe="voll"] .koerner { clip-path: inset(0); }
+  .schaubild .vorrat[data-stufe="teil"] .koerner { clip-path: inset(50% 0 0 0); }
+  .schaubild .vorrat .umriss { visibility: hidden; }
+  .schaubild .vorrat[data-stufe="fehler"] .umriss { visibility: visible; }
+  .schaubild .vorrat[data-stufe="fehler"]::after {
+    content: "!"; position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
+    width: 1.4em; height: 1.4em; border-radius: 50%; display: grid; place-items: center;
+    background: #f59e0b; color: #1a1205; font-weight: 800; line-height: 1;
+    font-size: clamp(8px, calc(var(--hn-einheit) * 13), 15px);
   }
   /* Werte unter dem Bild: je Anlagenteil eine Spalte, jede Zahl mit ihrem Namen. */
   .wertleiste { display: grid; gap: 4px; padding: 6px 0 2px; font-size: calc(11px * var(--hn-schrift)); }

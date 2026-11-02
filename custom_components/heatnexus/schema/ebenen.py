@@ -309,6 +309,7 @@ def vorrat(module: list[dict[str, Any]], rahmen: Rahmen) -> Ebene:
                     **_stelle(links + flaeche["x"], flaeche["y"], rahmen),
                     "breite": _pct(flaeche["breite"], rahmen.breite),
                     "hoehe": _pct(flaeche["hoehe"], HOEHE),
+                    "bild": flaeche["bild"],
                 }
             )
         if lagerraum := modul.get("lagerraum"):

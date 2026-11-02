@@ -101,7 +101,7 @@ export const SchaubildWerteMixin = (Basis) =>
       return leiste;
     }
 
-    /** Der Vorratsbehälter füllt sich nach seiner Stufe; ein Fehler steht in der Warnfarbe. */
+    /** Die Körnung füllt den Behälter bis zur Stufe; ein Fehler zeigt ihn leer mit orangem Umriss und „!“. */
     _vorratsbehaelter(huelle, anlage) {
       (anlage.schema_vorrat || [])
         .filter((eintrag) => eintrag.art === "behaelter")
@@ -109,7 +109,13 @@ export const SchaubildWerteMixin = (Basis) =>
           const flaeche = document.createElement("div");
           flaeche.className = "vorrat";
           Object.assign(flaeche.style, { left: eintrag.left, top: eintrag.top, width: eintrag.breite, height: eintrag.hoehe });
-          flaeche.appendChild(document.createElement("span"));
+          // Dasselbe Bild zweimal: einmal beschnittene Körnung, einmal der Umriss für den Fehler.
+          ["koerner", "umriss"].forEach((ebene) => {
+            const teil = document.createElement("div");
+            teil.className = ebene;
+            teil.innerHTML = eintrag.bild || "";
+            flaeche.appendChild(teil);
+          });
           huelle.appendChild(this._klickbar(flaeche, eintrag.entity));
           // Die Texte der Stufen tragen am Gerät mitunter ein Leerzeichen am Ende.
           const stufen = Object.fromEntries(Object.entries(eintrag.stufen || {}).map(([text, stufe]) => [text.trim(), stufe]));
