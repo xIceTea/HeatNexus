@@ -1597,9 +1597,10 @@ def test_warmwasser_laden_erkennt_englische_betriebswahl():
     ],
 )
 def test_zaehlermuster_treffen_nur_den_ganzen_namen(name, gesucht):
-    from custom_components.heatnexus.panel.muster import STATUS
+    from custom_components.heatnexus.geraete import statuszeilen_fuer
 
-    treffer = [titel for muster, titel, *_ in STATUS if re.search(muster, name.lower())]
+    zeilen = [z for z in statuszeilen_fuer([]) if z.panel]
+    treffer = [z.titel for z in zeilen if re.search(z.muster, name.lower())]
     assert treffer[:1] == ([gesucht] if gesucht else [])
 
 

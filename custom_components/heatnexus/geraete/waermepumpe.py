@@ -7,6 +7,8 @@ und COP aus Gruppe 52.
 
 from __future__ import annotations
 
+from . import statuszeilen
+
 FCT_TYPE = 7
 MODELL = "Wärmepumpe"
 RANG = 10
@@ -29,6 +31,7 @@ EXTRA_OIDS: tuple[str, ...] = (
     "52/87",
     "52/89",
 )
+STATUSZEILEN = statuszeilen.KESSEL
 KESSELART: str | None = "waermepumpe"
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.

@@ -17,6 +17,7 @@ from typing import Any
 
 from ..dashboard.anlagen import steuerungsentitaet, trifft
 from ..dashboard.kesselzustand import kesselzustand
+from ..geraete import statuszeilen_fuer
 from ..helpers import mustername
 from ..schema import schaubild_nutzdaten
 from . import uebersicht
@@ -24,10 +25,10 @@ from .hilfe import HILFE_KARTEN, KARTE_BEDINGUNG, hilfe
 from .hybrid import hybrid
 from .muster import (
     AUSSENTEMPERATUR,
-    STATUS,
     VERLAUF,
     VERLAUF_MAX,
     VERLAUF_SCHLUESSEL,
+    Zeile,
 )
 from .programme import zeitprogramme
 from .steuerung import (
@@ -58,6 +59,12 @@ def _hilfe_liste(anlage: dict[str, Any], nutzdaten: dict[str, Any]) -> list[dict
             continue
         gefunden.setdefault(titel, text)
     return [{"titel": titel, "text": gefunden[titel]} for titel in sorted(gefunden)]
+
+
+def status_vorlage(anlage: dict[str, Any]) -> tuple[Zeile, ...]:
+    """Die Zeilen des Systemstatus, die das Panel zeigt."""
+    zeilen = statuszeilen_fuer([teil.get("fct_type") for teil in anlage["teile"]])
+    return tuple((z.muster, z.titel, z.symbol, z.schluessel) for z in zeilen if z.panel)
 
 
 def anlage_daten(
@@ -101,7 +108,7 @@ def anlage_daten(
         # Karte „Hybridmanager“ und ihre Diagramme; ohne Hybridmanager `None`.
         "hybrid": hybrid(anlage),
         "kennwerte": uebersicht.kennwerte(anlage),
-        "status": zeilen_aus(alle, STATUS) + list(marken_status or []),
+        "status": zeilen_aus(alle, status_vorlage(anlage)) + list(marken_status or []),
         "heizkreise": uebersicht.heizkreise(anlage),
         "warmwasser": warmwasser_zeilen(alle),
         "stoerungen": uebersicht.stoerungen(anlage),

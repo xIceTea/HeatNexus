@@ -7,6 +7,8 @@ Herstellers.
 
 from __future__ import annotations
 
+from . import statuszeilen
+
 FCT_TYPE = 27
 MODELL = "Wärmepumpe"
 RANG = 10
@@ -30,6 +32,7 @@ EXTRA_OIDS: tuple[str, ...] = (
     "59/45",
     "59/71",
 )
+STATUSZEILEN = statuszeilen.KESSEL
 KESSELART: str | None = "waermepumpe"
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.

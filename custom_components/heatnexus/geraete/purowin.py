@@ -6,7 +6,7 @@ Datenpunkttabelle dieser Baureihe.
 
 from __future__ import annotations
 
-from . import quittung
+from . import quittung, statuszeilen
 
 FCT_TYPE = 25
 MODELL = "PuroWIN Hackgutkessel"
@@ -24,6 +24,7 @@ RUNDINSTRUMENTE: tuple[tuple[str, dict], ...] = (
 # Störcode, Softwarestand und die Lagerraumbefüllung stehen in keiner
 # Bedienebene; das InfoWIN Touch zeigt sie trotzdem an.
 EXTRA_OIDS: tuple[str, ...] = ("0/97", "4/92", "39/107", "39/5")
+STATUSZEILEN = statuszeilen.KESSEL
 
 # Was diese Baureihe nur über den LON-Bus hergibt. Leer: Ihre Netzwerknamen
 # tragen nichts bei, was nicht schon als Datenpunkt dasteht.
