@@ -20,7 +20,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - BioWIN: Der Verlauf zeigt Temperaturen, Leistung, COP und Wärmemenge je Tag des Hybridsystems.
 - Der Systemstatus zeigt den SG-Ready-Zustand, wo die Anlage ihn meldet.
 - Bei mehreren Wärmeerzeugern zeigt der Systemstatus je Gerät eine aufklappbare Kopfzeile.
-- An der Wärmepumpe zeigt der Systemstatus COP, Vorlauf, Starts und Zähler fürs Heizen.
+- An der Wärmepumpe zeigt der Systemstatus COP, Vorlauf, Starts und Zähler für das Heizen.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
 - Im Schaubild steht „COP“ vor der Leistungszahl der Wärmepumpe.

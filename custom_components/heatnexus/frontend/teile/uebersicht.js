@@ -402,6 +402,8 @@ export const UebersichtMixin = (Basis) =>
     const kopf = document.createElement("summary");
     const name = document.createElement("span");
     name.className = "erzeuger-name";
+    // Der Name kommt von der Anlage; im Wörterbuch stehende wie „Wärmepumpe“ bleiben, wie sie sind.
+    name.dataset.roh = "";
     name.textContent = block.name;
     const werte = document.createElement("span");
     werte.className = "erzeuger-werte";

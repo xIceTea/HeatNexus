@@ -93,6 +93,20 @@ def trifft(eintrag: dict, muster: tuple[re.Pattern, ...], *schluessel: str) -> b
     return _traegt(eintrag, schluessel) or _passt(mustername(eintrag), muster)
 
 
+def erzeuger_von(teile: list[dict]) -> list[dict]:
+    """Anlagenteile mit eigenen Statuszeilen, von denen mindestens eine bei ihnen trifft."""
+    return [
+        teil
+        for teil in teile
+        if any(
+            trifft(e, (re.compile(z.muster, re.IGNORECASE),), *z.schluessel)
+            for z in geraete.STATUSZEILEN.get(teil.get("fct_type"), ())
+            if z.panel
+            for e in teil["entitaeten"]
+        )
+    ]
+
+
 def skala(wert: float | None) -> int:
     """Obere Grenze einer Restlaufzeit-Skala, auf 100 aufgerundet."""
     if not wert or wert <= 0:

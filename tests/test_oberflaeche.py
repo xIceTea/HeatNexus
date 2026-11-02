@@ -1479,6 +1479,11 @@ def test_die_kopfzeile_reiht_die_kopfwerte_mit_vorsatz(erzeuger):
     assert erzeuger["kopf_bio"] == "Standby"
 
 
+def test_der_name_des_erzeugers_wird_nicht_uebersetzt(erzeuger):
+    """Ein Gerätename wie „Wärmepumpe“ steht im Wörterbuch, gehört aber der Anlage."""
+    assert erzeuger["namen_roh"] == [True, True]
+
+
 def test_die_kopfwerte_stehen_nicht_noch_einmal_darunter(erzeuger):
     assert erzeuger["zeilen_aero"] == ["Starts"]
     assert erzeuger["oben"] == ["Außentemperatur"]

@@ -88,6 +88,7 @@ const ergebnis = {};
   const { karte } = panelBauen();
   const [aero, bio] = bloecke(karte);
   ergebnis.namen = bloecke(karte).map((b) => b.querySelector(".erzeuger-name").textContent);
+  ergebnis.namen_roh = bloecke(karte).map((b) => b.querySelector(".erzeuger-name").dataset.roh === "");
   ergebnis.kopf_aero = kopftext(aero);
   ergebnis.kopf_bio = kopftext(bio);
   ergebnis.offen_je_anlage = bloecke(karte).map((b) => b.open);

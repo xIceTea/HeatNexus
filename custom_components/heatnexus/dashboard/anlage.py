@@ -7,12 +7,12 @@ import re
 from typing import Any
 
 from ..const import KARTE_ELEMENT
-from ..geraete import STATUSZEILEN, erzeuger_von, statuszeilen_fuer
-from ..geraete.statuszeilen import GEMEINSAM, Statuszeile
+from ..geraete import STATUSZEILEN
+from ..geraete.statuszeilen import EINZELN, GEMEINSAM, Statuszeile
 from ..schema import anlagenschema
 from ..texte import Woerterbuch
 from . import auswahl
-from .anlagen import trifft, voller_name
+from .anlagen import erzeuger_von, trifft, voller_name
 from .karten import (
     abschnitt,
     ansicht,
@@ -48,11 +48,10 @@ def zustandswerte(anlage: dict[str, Any]) -> list[dict[str, Any]]:
     nur die Zeilen der ganzen Anlage.
     """
     erzeuger = {teil["id"] for teil in erzeuger_von(anlage["teile"])}
-    alle = statuszeilen_fuer([teil.get("fct_type") for teil in anlage["teile"]])
 
     def zeilen(teil: dict[str, Any]) -> tuple[Statuszeile, ...]:
         if len(erzeuger) < 2:
-            return alle
+            return EINZELN
         return (
             (*GEMEINSAM, *STATUSZEILEN.get(teil["fct_type"], ()))
             if teil["id"] in erzeuger

@@ -156,7 +156,7 @@ KESSEL: tuple[Statuszeile, ...] = (
 
 
 # Eine Wärmepumpe: Zustand, Leistung und COP, dazu Vorlauf, Starts und Zähler
-# fürs Heizen. Die Namen sind die der AeroWIN an einer BioWIN Hybrid.
+# für das Heizen. Die Namen sind die der AeroWIN an einer BioWIN Hybrid.
 WAERMEPUMPE: tuple[Statuszeile, ...] = (
     *BETRIEB,
     Statuszeile(r"^aktuelle leistung$", "Leistung", "mdi:gauge", panel=True, karte=True, kopf=True),
@@ -180,7 +180,10 @@ WAERMEPUMPE: tuple[Statuszeile, ...] = (
 )
 
 
-def zusammenstellen(erzeuger: tuple[Statuszeile, ...]) -> tuple[Statuszeile, ...]:
-    """Erst wie der Erzeuger läuft, dann was für die Anlage gilt, dann seine Werte."""
-    lauf = tuple(z for z in erzeuger if z in BETRIEB)
-    return (*lauf, *GEMEINSAM, *(z for z in erzeuger if z not in BETRIEB))
+# Mit höchstens einem Erzeuger: die Zeilen eines Kessels über die ganze Anlage.
+# Erst wie er läuft, dann was für die Anlage gilt, dann seine Werte.
+EINZELN: tuple[Statuszeile, ...] = (
+    *BETRIEB,
+    *GEMEINSAM,
+    *(z for z in KESSEL if z not in BETRIEB),
+)

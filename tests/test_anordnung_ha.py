@@ -83,7 +83,7 @@ async def test_offene_erzeuger_werden_je_ansicht_gespeichert(hass, hass_ws_clien
 
     async_register_anordnung(hass)
     client = await hass_ws_client(hass)
-    wahl = {"anlage:9c1a2a075f23a07f3d5257079f2c028a": False, "alle:b1861b10": True}
+    wahl = {"anlage:waermepumpe1": False, "alle:kessel1": True}
 
     antwort = await _senden(
         client, type="heatnexus/anordnung/einstellungen", einstellungen={"erzeuger": wahl}

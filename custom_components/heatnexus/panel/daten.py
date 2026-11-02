@@ -15,10 +15,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from ..dashboard.anlagen import steuerungsentitaet, trifft
+from ..dashboard.anlagen import erzeuger_von, steuerungsentitaet, trifft
 from ..dashboard.kesselzustand import kesselzustand
-from ..geraete import STATUSZEILEN, erzeuger_von, statuszeilen_fuer
-from ..geraete.statuszeilen import GEMEINSAM, Statuszeile
+from ..geraete import STATUSZEILEN
+from ..geraete.statuszeilen import EINZELN, GEMEINSAM, Statuszeile
 from ..helpers import mustername
 from ..schema import schaubild_nutzdaten
 from . import uebersicht
@@ -63,9 +63,8 @@ def _hilfe_liste(anlage: dict[str, Any], nutzdaten: dict[str, Any]) -> list[dict
 
 
 def status_vorlage(anlage: dict[str, Any]) -> tuple[Zeile, ...]:
-    """Die Zeilen des Systemstatus, die das Panel zeigt."""
-    zeilen = statuszeilen_fuer([teil.get("fct_type") for teil in anlage["teile"]])
-    return tuple((z.muster, z.titel, z.symbol, z.schluessel) for z in zeilen if z.panel)
+    """Die Zeilen des Systemstatus mit höchstens einem Erzeuger."""
+    return tuple((z.muster, z.titel, z.symbol, z.schluessel) for z in EINZELN if z.panel)
 
 
 def _zeilen(entitaeten: list[dict[str, Any]], zeilen: list[Statuszeile]) -> list[dict[str, str]]:

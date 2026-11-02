@@ -32,7 +32,7 @@ EXTRA_OIDS: tuple[str, ...] = (
     "59/45",
     "59/71",
 )
-STATUSZEILEN = statuszeilen.WAERMEPUMPE
+STATUSZEILEN = statuszeilen.KESSEL
 KESSELART: str | None = "waermepumpe"
 
 # Namen, die erst im Zusammenhang dieser Baureihe eindeutig sind.
