@@ -185,8 +185,9 @@ class _Antwort:
     async def __aexit__(self, *_):
         return False
 
-    async def text(self):
-        return "abgelehnt"
+    async def read(self):
+        # Ein Fehlertext in der DOS-Codepage der Steuerung, wie ihn `text()` nicht lesen könnte.
+        return "abgelehnt: ungültig".encode("cp850")
 
 
 class _Sitzung:

@@ -67,6 +67,10 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 
 **Home Assistant**
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
+- Fehlt beim Schreiben die Verbindung, erscheint eine übersetzte Meldung.
+- Ein Fehlertext der Steuerung mit Umlauten verdeckt den Schreibfehler nicht mehr.
+- Ein abgewiesenes Passwort geht bei mehreren Steuerungen nicht mehr hinter anderen Fehlern unter.
+- Eine `automations.yaml` mit fremdem Zeichensatz lässt die Einrichtung nicht mehr scheitern.
 - Viele Zeitprogramme lassen den Abruf nicht mehr nach einer Viertelstunde dauerhaft scheitern.
 - Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
 - Fehler und Alarm mit gleicher Nummer erscheinen beide in den Meldungen.

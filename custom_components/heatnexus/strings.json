@@ -670,6 +670,9 @@
     "wert_abgelehnt": {
       "message": "The system did not accept the new value. The setting is locked or cannot be changed in the current state of the system. Data point {oid}, HTTP {status}."
     },
+    "schreiben_nicht_erreichbar": {
+      "message": "The system {anlage} did not answer the write request: no connection or timed out. A later attempt usually succeeds. Data point {oid}."
+    },
     "schreiben_ohne_antwort": {
       "message": "The system did not answer the write request. A later attempt usually succeeds. Data point {oid}, HTTP {status}."
     },

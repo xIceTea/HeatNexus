@@ -670,6 +670,9 @@
     "wert_abgelehnt": {
       "message": "Die Anlage hat den neuen Wert nicht angenommen. Die Einstellung ist im aktuellen Zustand der Anlage gesperrt oder nicht änderbar. Datenpunkt {oid}, HTTP {status}."
     },
+    "schreiben_nicht_erreichbar": {
+      "message": "Die Anlage {anlage} hat den Schreibvorgang nicht beantwortet: keine Verbindung oder Zeit abgelaufen. Ein späterer Versuch gelingt meist. Datenpunkt {oid}."
+    },
     "schreiben_ohne_antwort": {
       "message": "Die Anlage hat den Schreibvorgang nicht beantwortet. Ein späterer Versuch gelingt meist. Datenpunkt {oid}, HTTP {status}."
     },

@@ -251,13 +251,22 @@ class TransportMixin:
             await asyncio.sleep(LESE_WIEDERHOLPAUSE_S)
         return data, status
 
-    async def _put(self, url, rumpf: bytes) -> tuple[int, str]:
-        """PUT, nach einem Gateway-Fehler mit wachsender Pause wiederholt; zurück Status und Antwort."""
-        await self._ensure_session()
+    async def _put(self, url, rumpf: bytes, oid: str) -> tuple[int, str]:
+        """PUT, nach einem Gateway-Fehler mit wachsender Pause wiederholt; zurück Status und Antwort.
+
+        Die Sitzung wird je Versuch geholt: Wer in der Pause entlädt, bekommt `CannotConnect`.
+        """
         for versuch in range(SCHREIB_WIEDERHOLUNGEN + 1):
-            async with self._semaphore, self._session.request("PUT", url, data=rumpf) as ret:
-                status = ret.status
-                body = await ret.text() if status >= 400 else ""
+            try:
+                async with self._semaphore:
+                    await self._ensure_session()
+                    async with self._session.request("PUT", url, data=rumpf) as ret:
+                        status = ret.status
+                        body = self._decode(await ret.read()) if status >= 400 else ""
+            except (aiohttp.ClientError, TimeoutError) as fehler:
+                raise mit_text(
+                    WindhagerWriteError, "schreiben_nicht_erreichbar", oid=oid, anlage=self.host
+                ) from fehler
             if status not in GATEWAY_FEHLER or versuch == SCHREIB_WIEDERHOLUNGEN:
                 break
             await asyncio.sleep(SCHREIB_WIEDERHOLPAUSE_S * (versuch + 1))
@@ -269,7 +278,7 @@ class TransportMixin:
             {"OID": oid, "value": str(value)}, separators=(",", ":"), ensure_ascii=False
         )
         url = f"http://{self.host}/api/1.0/datapoint"
-        status, body = await self._put(url, rumpf.encode())
+        status, body = await self._put(url, rumpf.encode(), oid)
         if status >= 400:
             _LOGGER.debug("Schreiben auf %s scheitert mit HTTP %s: %s", oid, status, body)
             schluessel = "schreiben_ohne_antwort" if status >= 500 else "wert_abgelehnt"
@@ -314,7 +323,7 @@ class TransportMixin:
     ):
         """PUT a structured object (Zeitprogramm, Name) via ?OID=<full_oid>."""
         rumpf = bytes(json.dumps(payload), "utf-8")
-        status, body = await self._put(self._object_url(full_oid), rumpf)
+        status, body = await self._put(self._object_url(full_oid), rumpf, full_oid)
         if status >= 400:
             _LOGGER.debug(
                 "Schreiben auf Objekt %s scheitert mit HTTP %s: %s", full_oid, status, body

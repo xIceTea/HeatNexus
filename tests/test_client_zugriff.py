@@ -295,6 +295,51 @@ async def test_ein_bleibender_gateway_fehler_heisst_ohne_antwort(client, monkeyp
     assert len(c._session.anfragen) == 3
 
 
+class _StrengeAntwort(_Antwort):
+    """`text()` wie aiohttp ohne Zeichensatz im Kopf: UTF-8, ohne Nachsicht."""
+
+    async def text(self) -> str:
+        return self._rohdaten.decode("utf-8")
+
+
+async def test_ein_fehlertext_in_der_dos_codepage_bleibt_ein_schreibfehler(client):
+    from custom_components.heatnexus.exceptions import WindhagerWriteError
+
+    c = client(_StrengeAntwort(409, "Ungültig".encode("cp850")))
+    with pytest.raises(WindhagerWriteError) as fehler:
+        await c.update("/1/15/0/3/51/0", "21.5")
+    assert fehler.value.translation_key == "wert_abgelehnt"
+
+
+@pytest.mark.parametrize("ursache", ["verbindung", "zeit"])
+async def test_ohne_verbindung_beim_schreiben_kommt_eine_meldung(client, ursache):
+    """Statt eines Stapelauszugs von aiohttp steht an der Entität ein übersetzter Satz."""
+    import aiohttp
+
+    from custom_components.heatnexus.exceptions import WindhagerWriteError
+
+    c = client()
+    fehler = aiohttp.ClientConnectionError("weg") if ursache == "verbindung" else TimeoutError()
+    c._session.request = _scheitert(fehler)
+    with pytest.raises(WindhagerWriteError) as gemeldet:
+        await c.update("/1/15/0/3/51/0", "21.5")
+    assert gemeldet.value.translation_key == "schreiben_nicht_erreichbar"
+
+
+async def test_entladen_waehrend_der_wiederholung_heisst_nicht_verbunden(client, monkeypatch):
+    from custom_components.heatnexus.client import transport
+    from custom_components.heatnexus.exceptions import CannotConnect
+
+    c = client(_Antwort(502, b""), _Antwort(200, b""))
+
+    async def entladen_in_der_pause(_sekunden):
+        await c.close()
+
+    monkeypatch.setattr(transport.asyncio, "sleep", entladen_in_der_pause)
+    with pytest.raises(CannotConnect):
+        await c.update("/1/15/0/3/4/0", "21.5")
+
+
 # ---------------------------------------------------------------------------
 # object-Endpunkt (Zeitprogramme)
 # ---------------------------------------------------------------------------

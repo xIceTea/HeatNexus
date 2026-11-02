@@ -181,8 +181,13 @@ class OhneAntwort(Exception):
     translation_key = "schreiben_ohne_antwort"
 
 
-def test_ohne_antwort_versucht_es_der_steller_bald_wieder(s, regel):
-    schreiber = Schreiber(OhneAntwort("HTTP 502"))
+class NichtErreichbar(Exception):
+    translation_key = "schreiben_nicht_erreichbar"
+
+
+@pytest.mark.parametrize("fehler", [OhneAntwort("HTTP 502"), NichtErreichbar("Zeit abgelaufen")])
+def test_ohne_antwort_versucht_es_der_steller_bald_wieder(s, regel, fehler):
+    schreiber = Schreiber(fehler)
     steller = s.Steller("/1/15/0", UML, schreiber)
     e = entscheidung(regel, regel.Aktion("zurueck"))
     ausfuehren(steller, e)
