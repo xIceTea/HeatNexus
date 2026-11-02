@@ -6,6 +6,13 @@ Versionierung nach [Semantic Versioning](https://semver.org/lang/de/).
 Vorabversionen tragen ein Suffix (`0.1.0-beta.1`) und erscheinen in HACS nur,
 wenn dort Vorabversionen zugelassen sind.
 
+## [1.14.2] - 2026-11-02
+
+### Behoben
+
+**Home Assistant**
+- Selbst geänderte Blueprints bleiben bei einem Update erhalten.
+
 ## [1.14.1] - 2026-10-25
 
 ### Behoben
