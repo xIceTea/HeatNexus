@@ -108,7 +108,15 @@ ALLESTILE = ("getrennt", "zusammen")
 STRANGSTILE = ("umbrechen", "verkleinern")
 STRANGGROESSEN = ("klein", "mittel", "gross")
 
-# Farbsatz, Kopfzeile, Menütaste, Reihenfolge und ausgeblendete Reiter gelten für die ganze Oberfläche.
+# Offen oder zu je Erzeuger im Systemstatus, als „anlage:<id>“ oder „alle:<id>“.
+# Muss zu `ERZEUGER_MAX` in `frontend/ordnung.js` passen.
+ERZEUGER_MAX = 64
+ERZEUGERWAHL = vol.All(
+    {vol.Match(r"^(anlage|alle):[0-9a-zA-Z_-]{1,64}$"): bool}, vol.Length(max=ERZEUGER_MAX)
+)
+
+# Farbsatz, Kopfzeile, Menütaste, Reihenfolge, ausgeblendete Reiter und offene Erzeuger
+# gelten für die ganze Oberfläche.
 EINSTELLUNGEN_SCHEMA = vol.Schema(
     {
         vol.Optional("farbsatz"): vol.In(FARBSAETZE),
@@ -119,6 +127,7 @@ EINSTELLUNGEN_SCHEMA = vol.Schema(
         vol.Optional("strang_groesse"): vol.In(STRANGGROESSEN),
         vol.Optional("reiter"): REITERLISTE,
         vol.Optional("reiter_versteckt"): REITERLISTE,
+        vol.Optional("erzeuger"): ERZEUGERWAHL,
     }
 )
 

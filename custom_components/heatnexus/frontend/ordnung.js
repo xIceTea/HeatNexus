@@ -173,6 +173,10 @@ export const DARSTELLUNG = {
 // Wo der Standard nicht der erste Eintrag der Liste ist.
 export const DARSTELLUNG_STANDARD = { strang_groesse: "mittel" };
 
+// Wie viele Erzeuger sich ihre Wahl „offen“ oder „zu“ merken. Muss zu
+// `ERZEUGER_MAX` in `anordnung.py` passen.
+export const ERZEUGER_MAX = 64;
+
 /** Wo eine Wahl der Darstellung im Browser liegt. */
 export function darstellungSpeicher(schluessel) {
   return `heatnexus.${schluessel}`;

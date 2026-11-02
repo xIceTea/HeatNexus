@@ -133,18 +133,10 @@ NUR_ANZEIGE: dict[int, frozenset[str]] = {
     m.FCT_TYPE: frozenset(m.NUR_ANZEIGE) for m in MODULE if getattr(m, "NUR_ANZEIGE", None)
 }
 
-# Zeilen des Systemstatus je Erzeuger.
+# Zeilen des Systemstatus je Erzeuger, ab zwei Erzeugern in dessen Block.
 STATUSZEILEN: dict[int, tuple[statuszeilen.Statuszeile, ...]] = {
     m.FCT_TYPE: m.STATUSZEILEN for m in MODULE if getattr(m, "STATUSZEILEN", None)
 }
-
-
-def statuszeilen_fuer(fct_types: list[object]) -> tuple[statuszeilen.Statuszeile, ...]:
-    """Die Zeilen der Erzeuger einer Anlage, ohne Erzeuger die eines Kessels."""
-    erzeuger: dict[statuszeilen.Statuszeile, None] = {}
-    for fct_type in fct_types:
-        erzeuger.update(dict.fromkeys(STATUSZEILEN.get(fct_type, ())))
-    return statuszeilen.zusammenstellen(tuple(erzeuger) or statuszeilen.KESSEL)
 
 
 # Namen, die erst im Zusammenhang einer Baureihe eindeutig sind.

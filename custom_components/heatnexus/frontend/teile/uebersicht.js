@@ -377,16 +377,55 @@ export const UebersichtMixin = (Basis) =>
    *
    * Kein dritter Störungshinweis: Derselbe Zustand steht in der
    * Anlagenübersicht („Anlage in Ordnung") und in der Störungskarte.
+   *
+   * Ab zwei Erzeugern steht unter den Zeilen der Anlage je Erzeuger ein Block
+   * mit Kopfzeile zum Auf- und Zuklappen.
    */
   _statuskarte(anlage) {
     const karte = this._karte("Systemstatus");
     (anlage.status || []).forEach((eintrag) => {
       karte.appendChild(this._statuszeile(eintrag.entity, eintrag.titel, eintrag.symbol));
     });
-    if (!(anlage.status || []).length) {
+    (anlage.erzeuger || []).forEach((block) => karte.appendChild(this._erzeugerblock(block)));
+    if (!(anlage.status || []).length && !(anlage.erzeuger || []).length) {
       karte.appendChild(this._hinweisKnoten("Keine Statuswerte gefunden."));
     }
     return karte;
+  }
+
+  /** Ein Erzeuger im Systemstatus: Name, Kopfwerte und Pfeil; offen je Anlage, unter „Alle“ zu. */
+  _erzeugerblock(block) {
+    const schluessel = `${this._alleAnlagen() ? "alle" : "anlage"}:${block.id}`;
+    const bereich = document.createElement("details");
+    bereich.className = "status-erzeuger";
+    bereich.open = this._erzeugerOffen(schluessel, !this._alleAnlagen());
+    const kopf = document.createElement("summary");
+    const name = document.createElement("span");
+    name.className = "erzeuger-name";
+    // Der Name kommt von der Anlage; im Wörterbuch stehende wie „Wärmepumpe“ bleiben, wie sie sind.
+    name.dataset.roh = "";
+    name.textContent = block.name;
+    const werte = document.createElement("span");
+    werte.className = "erzeuger-werte";
+    kopf.append(name, werte, this._symbolKnoten("mdi:chevron-down", "pfeil"));
+    bereich.appendChild(kopf);
+    (block.zeilen || []).forEach((eintrag) => {
+      bereich.appendChild(this._statuszeile(eintrag.entity, eintrag.titel, eintrag.symbol));
+    });
+    this._bindungen.push(() => {
+      werte.textContent = (block.kopf || [])
+        .filter((eintrag) => this._hatWert(eintrag.entity))
+        .map((eintrag) => [eintrag.vorsatz, this._text(eintrag.entity)].filter(Boolean).join(" "))
+        .join(" · ");
+    });
+    // Auch das Setzen beim Aufbau löst „toggle“ aus; gemerkt wird nur ein Klick.
+    let stand = bereich.open;
+    bereich.addEventListener("toggle", () => {
+      if (bereich.open === stand) return;
+      stand = bereich.open;
+      this._erzeugerMerken(schluessel, stand);
+    });
+    return bereich;
   }
 
   _stoerungskarte(anlage) {

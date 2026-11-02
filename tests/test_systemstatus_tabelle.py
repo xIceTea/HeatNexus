@@ -62,7 +62,7 @@ def test_jeder_erzeuger_im_schaubild_fuehrt_statuszeilen():
 
 def test_der_lauf_steht_vor_den_gemeinsamen_zeilen_und_den_werten():
     geraete = load_standalone("geraete")
-    titel = [z.titel for z in geraete.statuszeilen_fuer([9]) if z.panel]
+    titel = [z.titel for z in geraete.statuszeilen.EINZELN if z.panel]
     assert titel[:6] == [
         "Betriebszustand",
         "Laufzeit",
@@ -73,7 +73,137 @@ def test_der_lauf_steht_vor_den_gemeinsamen_zeilen_und_den_werten():
     ]
 
 
-def test_ohne_erzeuger_gelten_die_zeilen_eines_kessels():
-    """Auch eine Anlage ohne erkannten Erzeuger meldet Betriebsstunden und Brennstoff."""
-    geraete = load_standalone("geraete")
-    assert geraete.statuszeilen_fuer([14, 16]) == geraete.statuszeilen_fuer([25])
+def _e(entity_id: str, name: str) -> dict:
+    return {
+        "entity_id": entity_id,
+        "name": name,
+        "bereich": entity_id.split(".")[0],
+        "hat_wert": True,
+        "schluessel": None,
+        "kategorie": None,
+    }
+
+
+def _anlage(*teile: tuple[int, list[dict]]) -> dict:
+    return {
+        "teile": [
+            {"id": f"teil{nummer}", "name": f"Teil {nummer}", "fct_type": fct, "entitaeten": e}
+            for nummer, (fct, e) in enumerate(teile)
+        ]
+    }
+
+
+@requires_ha()
+def test_eine_anlage_nur_mit_waermepumpe_bleibt_wie_sie_ist():
+    """Die Zeilen der Wärmepumpe gelten nur in ihrem Block; flach bleibt es bei denen eines Kessels."""
+    from custom_components.heatnexus.dashboard.anlage import zustandswerte
+    from custom_components.heatnexus.panel.daten import systemstatus
+
+    anlage = _anlage(
+        (
+            7,
+            [
+                _e("sensor.wp_phase", "Betriebsphase"),
+                _e("sensor.wp_leistung", "Aktuelle Leistung"),
+                _e("sensor.wp_cop", "COP aktuell"),
+                _e("sensor.wp_vorlauf", "Vorlauftemperatur"),
+            ],
+        ),
+        (
+            14,
+            [_e("sensor.aussen", "Außentemperatur"), _e("sensor.hk_vorlauf", "Vorlauftemperatur")],
+        ),
+    )
+    status, erzeuger = systemstatus(anlage)
+    assert erzeuger == []
+    assert [z["titel"] for z in status] == ["Betriebszustand", "Außentemperatur"]
+    assert [e["entity_id"] for e in zustandswerte(anlage)] == ["sensor.wp_phase", "sensor.aussen"]
+
+
+@requires_ha()
+def test_ein_teil_ohne_treffer_zaehlt_nicht_als_erzeuger():
+    """Kessel und Heizstab ohne passende Werte ergeben keinen Block nur mit Namen."""
+    from custom_components.heatnexus.dashboard.anlage import zustandswerte
+    from custom_components.heatnexus.panel.daten import systemstatus
+
+    anlage = _anlage(
+        (9, [_e("sensor.phase", "Betriebsphase"), _e("sensor.leistung", "Kesselleistung")]),
+        (8, [_e("sensor.heizstab", "Heizstab Freigabe")]),
+    )
+    status, erzeuger = systemstatus(anlage)
+    assert erzeuger == []
+    assert [z["titel"] for z in status] == ["Betriebszustand", "Kesselleistung"]
+    assert [e["entity_id"] for e in zustandswerte(anlage)] == ["sensor.phase", "sensor.leistung"]
+
+
+AERO = "sensor.anlage_funktion_7_1_"
+BIO = "sensor.anlage_funktion_9_0_"
+
+
+@requires_ha()
+@requires_frontend()
+@requires_moderne_ha()
+async def test_ab_zwei_erzeugern_hat_jeder_kopf_und_eigene_zeilen(hass):
+    """Die BioWIN Hybrid: Kopfwerte stehen nur im Kopf, jeder Erzeuger sucht bei sich."""
+    from custom_components.heatnexus.dashboard.anlagen import anlagen_lesen
+    from custom_components.heatnexus.panel.daten import anlage_daten
+
+    eintrag = await _einrichten(hass, "biowin-hybrid", "betreiber")
+    try:
+        [anlage] = anlagen_lesen(hass)
+        daten = anlage_daten(anlage)
+        assert [z["titel"] for z in daten["status"]] == ["Außentemperatur", "SG Ready"]
+        aero, bio = daten["erzeuger"]
+        assert [(z["entity"], z.get("vorsatz")) for z in aero["kopf"]] == [
+            (AERO + "betriebsphase", None),
+            (AERO + "aktuelle_leistung", None),
+            (AERO + "cop_aktuell", "COP"),
+        ]
+        assert [z["titel"] for z in aero["zeilen"]] == [
+            "COP heute Heizen",
+            "COP heute Warmwasser",
+            "Vorlauf",
+            "Starts",
+            "Betriebsstunden Heizen",
+            "Wärmemenge Heizen",
+        ]
+        assert [z["entity"] for z in bio["kopf"]] == [BIO + "betriebsphase", BIO + "kesselleistung"]
+        assert all(z["entity"].startswith(BIO) for z in bio["zeilen"])
+    finally:
+        await _abbauen(hass, eintrag)
+
+
+@requires_ha()
+@requires_frontend()
+@requires_moderne_ha()
+async def test_ab_zwei_erzeugern_zeigt_die_karte_je_erzeuger_seine_werte(hass):
+    from custom_components.heatnexus.dashboard.anlage import schaubild
+    from custom_components.heatnexus.dashboard.anlagen import anlagen_lesen
+
+    eintrag = await _einrichten(hass, "biowin-hybrid", "betreiber")
+    try:
+        [anlage] = anlagen_lesen(hass)
+        werte = schaubild(anlage, als_karte=True, mit_liste=True)["zusatzwerte"]
+        assert {AERO + "aktuelle_leistung", AERO + "cop_aktuell"} <= set(werte)
+        assert BIO + "kesselleistung" in werte
+        assert not any(e.startswith(AERO) and "kessel" in e for e in werte)
+    finally:
+        await _abbauen(hass, eintrag)
+
+
+@requires_ha()
+@requires_frontend()
+@requires_moderne_ha()
+async def test_der_zweite_kessel_zeigt_seine_eigenen_werte(hass):
+    """Ab zwei Erzeugern sucht auch der Zusatzkessel der DuoWIN seine Zeilen nur bei sich."""
+    from custom_components.heatnexus.dashboard.anlagen import anlagen_lesen
+    from custom_components.heatnexus.panel.daten import anlage_daten
+
+    eintrag = await _einrichten(hass, "duowin", "betreiber")
+    try:
+        [anlage] = anlagen_lesen(hass)
+        _, zusatz = anlage_daten(anlage)["erzeuger"]
+        assert {z["titel"] for z in zusatz["zeilen"]} >= {"Abgastemperatur", "Betriebsstunden"}
+        assert all("funktion_10_0" in z["entity"] for z in zusatz["zeilen"])
+    finally:
+        await _abbauen(hass, eintrag)
