@@ -185,6 +185,8 @@ class Verwaltung:
         self._prognose_sperre = asyncio.Lock()
         # Je Wetter-Entität und Vorhersageart der letzte Fehler, bis ein Abruf gelingt.
         self.prognose_fehler: dict[tuple[str, str], tuple[datetime, str]] = {}
+        # Je Heizkreis eine Sperre: Zwei Änderungen zugleich rechneten sonst mit demselben alten Stand.
+        self._sperren: dict[str, asyncio.Lock] = {}
 
     async def laden(self) -> None:
         """Den Store einmal lesen; zwei Einträge, die zugleich starten, warten aufeinander."""
@@ -499,8 +501,15 @@ class Verwaltung:
         self.speichern()
         return konfig
 
+    def _sperre(self, device_id: str) -> asyncio.Lock:
+        return self._sperren.setdefault(device_id, asyncio.Lock())
+
     async def einstellen(self, device_id: str, aenderung: dict[str, Any]) -> dict[str, Any]:
         """Einstellungen ändern; ein Wechsel weg von „Automatisch" nimmt laufende Eingriffe zurück."""
+        async with self._sperre(device_id):
+            return await self._einstellen(device_id, aenderung)
+
+    async def _einstellen(self, device_id: str, aenderung: dict[str, Any]) -> dict[str, Any]:
         eintrag = self._daten["heizkreise"].get(device_id)
         if eintrag is None:
             raise ValueError("Für diesen Heizkreis gibt es keine Automatik.")
@@ -567,11 +576,18 @@ class Verwaltung:
         laufzeit.modell_neu_lernen()
 
     async def entfernen(self, device_id: str) -> None:
-        """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten abräumen."""
+        """Automatik löschen: eigene Eingriffe zurücknehmen, Entitäten und Meldungen abräumen."""
+        async with self._sperre(device_id):
+            await self._entfernen(device_id)
+        self._sperren.pop(device_id, None)
+
+    async def _entfernen(self, device_id: str) -> None:
         if (laufzeit := self.laufzeiten.pop(device_id, None)) is not None:
             laufzeit.stoppen()
             await laufzeit.zuruecknehmen()
             laufzeit.meldung_entfernen()
+        for art in ("automatik_ruecknahme", "automatik_sicherheit", "automatik_start"):
+            ir.async_delete_issue(self.hass, DOMAIN, f"{art}_{device_id}")
         await lernablage.entfernen(self.hass, device_id)
         entry_id = ((self._daten["heizkreise"].pop(device_id, None) or {}).get("konfig") or {}).get(
             "entry_id"

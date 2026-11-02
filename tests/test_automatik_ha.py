@@ -828,6 +828,51 @@ async def test_entfernen_raeumt_ab(hass, hass_ws_client, anlage):
     assert verwaltung.subeintrag(eintrag) is None
 
 
+async def test_entfernen_raeumt_die_reparaturmeldungen_ab(hass, anlage):
+    from homeassistant.helpers import issue_registry as ir
+
+    from custom_components.heatnexus.const import DOMAIN
+
+    verwaltung, _ = anlage
+    await _eingerichtet(hass, verwaltung)
+    arten = ("automatik_ruecknahme", "automatik_sicherheit", "automatik_start")
+    for art in arten:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            f"{art}_{HEIZKREIS}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=art,
+        )
+
+    await verwaltung.entfernen(HEIZKREIS)
+
+    register = ir.async_get(hass)
+    assert [a for a in arten if register.async_get_issue(DOMAIN, f"{a}_{HEIZKREIS}")] == []
+
+
+async def test_gleichzeitige_einstellungen_gehen_beide_ein(hass, anlage):
+    """Panel und Auswahl „Modus“ zugleich: Keine der beiden Änderungen geht verloren."""
+    import asyncio
+
+    verwaltung, _ = anlage
+    laufzeit = await _eingerichtet(hass, verwaltung)
+
+    async def laeuft_noch():
+        # Ein laufender Durchgang: `abwarten` gibt die Schleife frei.
+        await asyncio.sleep(0.01)
+
+    laufzeit.abwarten = laeuft_noch
+    await asyncio.gather(
+        verwaltung.einstellen(HEIZKREIS, {"modus": "empfehlen"}),
+        verwaltung.einstellen(HEIZKREIS, {"aktiv": False}),
+    )
+
+    konfig = verwaltung.konfig(HEIZKREIS)
+    assert (konfig["modus"], konfig["aktiv"]) == ("empfehlen", False)
+
+
 def _automatik_geraete(hass, eintrag):
     from homeassistant.helpers import device_registry as dr
 
