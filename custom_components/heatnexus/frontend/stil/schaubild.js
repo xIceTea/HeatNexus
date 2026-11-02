@@ -290,16 +290,19 @@ export const SCHAUBILD = `
     opacity: 0; transition: opacity 0.8s ease;
   }
   .schaubild .uebergabe.an { opacity: 1; }
+  /* „height: auto“ hebt die feste Höhe des Glutbetts auf; sonst läge statt
+     eines runden Scheins ein flaches Band hinter der Scheibe. */
   .schaubild .uebergabe .glut {
-    position: absolute; left: 50%; top: 53%; width: 112%; aspect-ratio: 1.15;
+    position: absolute; left: 50%; top: 53%; width: 112%; height: auto; aspect-ratio: 1.15;
     transform: translate(-50%, -50%); border-radius: 50%;
     background: radial-gradient(circle, var(--hn-uebergabe) 0%,
       color-mix(in srgb, var(--hn-uebergabe) 55%, transparent) 45%,
       transparent 72%);
     animation: uebergabe-glimmen 3.4s ease-in-out infinite;
   }
+  /* Der zweite Schein liegt mittig wie das Rad; versetzt wanderte das Licht beim Pulsieren um die Scheibe. */
   .schaubild .uebergabe .glut.zwei {
-    left: 32%; top: 40%; width: 74%;
+    width: 74%;
     animation-duration: 2.1s; animation-direction: reverse;
   }
   @keyframes uebergabe-glimmen {
@@ -307,20 +310,20 @@ export const SCHAUBILD = `
     45% { opacity: 0.40; }
     70% { opacity: 0.22; }
   }
-  /* Die Wellen liegen im Gehäuse und werden am Rand beschnitten: Sie sollen
-     die Abgabe andeuten, nicht über die Nachbarn im Bild laufen. */
+  /* Drei feste Ringe um die Scheibe leuchten nacheinander von innen nach außen auf.
+     Wachsende Ringe neben dem drehenden Rad hinterließen in Firefox Bruchstücke auf dem Rad. */
   .schaubild .uebergabe .welle {
-    position: absolute; left: 50%; top: 53%; width: 90%; aspect-ratio: 1;
+    position: absolute; left: 50%; top: 53%; width: 62%; aspect-ratio: 1;
     transform: translate(-50%, -50%); border-radius: 50%;
     border: 2px solid var(--hn-uebergabe); opacity: 0;
     animation: uebergabe-abgabe 3s ease-out infinite;
   }
-  .schaubild .uebergabe .welle:nth-child(4) { animation-delay: 1s; }
-  .schaubild .uebergabe .welle:nth-child(5) { animation-delay: 2s; }
+  .schaubild .uebergabe .welle:nth-child(4) { width: 86%; animation-delay: 1s; }
+  .schaubild .uebergabe .welle:nth-child(5) { width: 110%; animation-delay: 2s; }
   @keyframes uebergabe-abgabe {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-    25% { opacity: 0.5; }
-    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.45); }
+    0%, 100% { opacity: 0; }
+    25% { opacity: 0.55; }
+    55% { opacity: 0; }
   }
   /* Das eigene Laufrad über dem gezeichneten. Es dreht sich viel langsamer
      als eine Pumpe: Hier fließt keine Fördermenge, hier geht Wärme über. */
