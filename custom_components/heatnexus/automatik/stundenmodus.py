@@ -72,7 +72,8 @@ def minuten(
         grenze = min(max(zeit, beginn), bis)
         schluss = min(grenze, ende) if ende is not None else grenze
         if modus in summe and schluss > ab:
-            summe[modus] += (schluss - ab).total_seconds() / 60
+            # Über Zeitstempel: Bei gleicher Zone rechnet Python mit der Wanduhr, falsch zur Umstellung.
+            summe[modus] += (schluss.timestamp() - ab.timestamp()) / 60
         modus, ende, ab = neu, neues_ende, grenze
         if zeit >= bis:
             break

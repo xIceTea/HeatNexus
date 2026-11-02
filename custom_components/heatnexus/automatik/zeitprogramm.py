@@ -27,9 +27,11 @@ def _punkte(bloecke: Any, tag: date) -> list[tuple[int, float]]:
         if not isinstance(block, dict) or code not in (block.get("weekdays") or []):
             continue
         for punkt in block.get("switchPoints") or []:
-            minute = _minuten((punkt or {}).get("time"))
+            if not isinstance(punkt, dict):
+                continue
+            minute = _minuten(punkt.get("time"))
             try:
-                wert = float((punkt or {}).get("value"))
+                wert = float(punkt.get("value"))
             except (TypeError, ValueError):
                 continue
             if minute is not None:

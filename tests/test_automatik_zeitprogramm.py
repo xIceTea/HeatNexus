@@ -55,3 +55,10 @@ def test_ohne_programm_gilt_der_rueckfall(z):
     d = datetime(2026, 10, 8, 8, 0, tzinfo=TZ)
     assert z.horizont(None, d) == d.replace(hour=22, minute=0)
     assert z.horizont([{"weekdays": ["Sa"], "switchPoints": []}], d) == d.replace(hour=22)
+
+
+def test_ein_schaltpunkt_ohne_felder_wird_uebersprungen(z):
+    """Eine fremde Antwort darf nicht jeden Lauf scheitern lassen; der Rest des Programms gilt."""
+    seltsam = [{**P1[0], "switchPoints": ["06:00", *P1[0]["switchPoints"], 7]}]
+    donnerstag = datetime(2026, 10, 8, 3, 0, tzinfo=TZ)
+    assert z.soll_um(seltsam, donnerstag) == 21
