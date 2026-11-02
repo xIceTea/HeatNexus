@@ -16,6 +16,7 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 
 **Panel**
 - Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
+- Der Systemstatus zeigt den SG-Ready-Zustand, wo die Anlage ihn meldet.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
 - Im Schaubild steht „COP“ vor der Leistungszahl der Wärmepumpe.
