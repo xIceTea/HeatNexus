@@ -25,6 +25,10 @@ GERAETEINFO = {
     "serialnr": "00100900000000002",
 }
 ADRESSE = "192.0.2.10"
+# MAC-Adresse und Seriennummer, wie die Steuerung sie unter `39/112` und
+# `39/115` meldet. Die MAC stammt aus dem Bereich für Dokumentation.
+MAC = "00:00:5E:00:53:01"
+SERIENNUMMER_39_115 = "1408000012345"
 
 
 @pytest.fixture(scope="module")
@@ -97,7 +101,13 @@ def _coordinator():
                 },
             ],
             "status": {"60": "keine Meldung"},
-            "oids": {"/1/60/0/0/7/0": "63.5"},
+            "oids": {
+                "/1/60/0/0/7/0": "63.5",
+                "/1/60/0/39/112/0": MAC,
+                "/1/60/0/39/115/0": SERIENNUMMER_39_115,
+                # Kurze Werte bleiben stehen: Eine „0“ überall zu ersetzen, zerstörte den Export.
+                "/1/60/0/39/61/0": "15",
+            },
         },
     )
 
@@ -131,6 +141,29 @@ async def test_der_export_nennt_die_anlagen_durchnummeriert(export):
     assert daten["eintrag"]["anlagen"] == 1
     assert list(daten["anlagen"]) == ["anlage_1"]
     assert daten["anlagen"]["anlage_1"]["bezeichnung"] == "Heizhaus"
+
+
+async def test_keine_mac_und_keine_seriennummer_der_steuerung_unter_den_werten(export):
+    """`async_redact_data` greift dort nicht: Die Schlüssel sind Adressen, keine Feldnamen."""
+    daten = await export
+    text = json.dumps(daten)
+    assert MAC not in text
+    assert MAC.replace(":", "") not in text
+    assert SERIENNUMMER_39_115 not in text
+    werte = daten["anlagen"]["anlage_1"]["werte"]
+    assert werte["/1/60/0/39/61/0"] == "15"
+    assert werte["/1/60/0/0/7/0"] == "63.5"
+
+
+async def test_eine_mac_in_einem_text_wird_ersetzt(diagnostics):
+    """Auch eine MAC, die nicht unter `39/112` steht, etwa in einer Meldung."""
+    text = diagnostics._anonymisieren("Gerät 00-00-5e-00-53-02 meldet sich", {})
+    assert "00-00-5e-00-53-02" not in text
+
+
+async def test_zeitspannen_sehen_nur_aehnlich_aus(diagnostics):
+    spannen = "06:00-08:00-12:00"
+    assert diagnostics._anonymisieren(spannen, {}) == spannen
 
 
 async def test_keine_seriennummer_im_export(export):
