@@ -340,7 +340,8 @@ class Steller:
         elif sicherheit:
             sperre = SPERRE_SICHERHEIT
         else:
-            sperre = min(SPERRE_START * 2 ** (anzahl - 1), SPERRE_MAX)
+            # Der Exponent ist gedeckelt; ungedeckelt läuft die Rechnung nach vielen Ablehnungen über.
+            sperre = min(SPERRE_START * 2 ** min(anzahl - 1, 10), SPERRE_MAX)
         bis = jetzt + sperre
         self.stand = replace(self.stand, ablehnungen=anzahl, gesperrt_bis=bis.isoformat())
         if ohne_antwort:

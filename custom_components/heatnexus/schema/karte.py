@@ -93,6 +93,8 @@ def anlagenschema(
         # Wärme im Gehäuse, drehendes Laufrad und Abgabe nach außen, solange
         # das Modul Wärme anfordert.
         "uebergabe": uebergabe,
+        "luefter": ebenen.luefter(module, rahmen),
+        "hybrid": ebenen.hybrid(module, rahmen),
         # Wärme im Bauteil einer Quelle, solange sie liefert.
         "waerme": ebenen.waerme(module, rahmen),
     }
@@ -190,6 +192,8 @@ def schaubild_nutzdaten(
         "schema_schichtung": bild.get("schichtung", []) if bild else [],
         "schema_lampen": bild.get("lampen", []) if bild else [],
         "schema_uebergabe": bild.get("uebergabe", []) if bild else [],
+        "schema_luefter": bild.get("luefter", []) if bild else [],
+        "schema_hybrid": bild.get("hybrid", []) if bild else [],
         "schema_waerme": bild.get("waerme", []) if bild else [],
         "schema_speicher": bild.get("speicher", []) if bild else [],
     }

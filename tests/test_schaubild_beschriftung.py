@@ -20,3 +20,8 @@ def test_selbst_gewaehlte_und_andere_werte_bleiben_ohne():
     kessel = _modul("kessel", [("sensor.k", "Kessel"), ("sensor.l", "Leistung")])
     assert [e["prefix"] for e in beschriftungen(0, heizkreis, 400)] == [""]
     assert [e["prefix"] for e in beschriftungen(0, kessel, 400)] == ["", ""]
+
+
+def test_die_leistungszahl_traegt_ihren_namen():
+    waermepumpe = _modul("kessel", [("sensor.vl", "Vorlauf"), ("sensor.cop", "COP")])
+    assert [e["prefix"] for e in beschriftungen(0, waermepumpe, 400)] == ["", "COP "]

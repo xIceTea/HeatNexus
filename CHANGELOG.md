@@ -18,10 +18,17 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - Die Übersicht zeigt Serviceausbrand, Kaminkehrer und andere Sonderzustände des Kessels.
 - BioWIN: Die Steuerung zeigt eine Karte „Hybridmanager“ mit Pelletpreis, Stromtarifen, SG Ready und Kostenvergleich.
 - BioWIN: Der Verlauf zeigt Temperaturen, Leistung, COP und Wärmemenge je Tag des Hybridsystems.
+- Der Systemstatus zeigt den SG-Ready-Zustand, wo die Anlage ihn meldet.
 - Die Wartung trennt die Werte nach Anlagenteil, sobald eine Karte mehrere mischt.
 - Im Schaubild stehen am Heizkreis „Vorlauf“ und „Raum“ vor den Temperaturen.
+- Im Schaubild steht „COP“ vor der Leistungszahl der Wärmepumpe.
+- Im Schaubild leuchtet und dreht der Lüfter der Wärmepumpe, solange sie läuft.
 - Die Übersicht meldet, wenn die Steuerung nicht erreichbar ist.
 - Ein Klick auf den Zustand der Übersicht öffnet den Anlagenzustand mit Verlauf.
+- BioWIN: Am Hybridmanager leuchtet im Schaubild der Erzeuger, der gerade heizt.
+- BioWIN: Die Pumpe des Hybridmanagers dreht im Schaubild im Rücklauf.
+- BioWIN: Ein Klick auf das Ventil zeigt die Betriebsart des Hybridmanagers.
+- BioWIN: Im Schaubild strömen BioWIN und AeroWIN nur, solange sie heizen.
 
 **Dashboard**
 - Die Kopfzeile zeigt Sonderzustände des Kessels und eine nicht erreichbare Steuerung.
@@ -35,7 +42,9 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - HeatNexus übernimmt neu angeschlossene und entfernte Anlagenteile ohne Neustart.
 - Ein Gerät, das die Anlage nicht mehr meldet, lässt sich löschen.
 - Wärmepumpen zeigen Leistung, Betriebsphase, Wärmemengen, Betriebsstunden, Starts und COP.
+- Der COP gilt als Messwert und erscheint im Verlauf als Kurve.
 - BioWIN: Der Hybridmanager zeigt Wärmepreis der Pellets und Grenz-COP.
+- BioWIN: Der SG-Ready-Zustand des Hybridmanagers heißt etwa „Normalbetrieb“ statt „Zustand 2“.
 - Infinity PLUS und AeroWIN zeigen Temperaturen, Betriebsart und Zähler auch ohne Menüeintrag.
 - Ein Dienst benennt einen Heizkreis in der Steuerung um.
 - Ein Diagnose-Sensor zeigt, wie weit die Uhr der Steuerung von Home Assistant abweicht.
@@ -43,12 +52,22 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 
 ### Behoben
 
+**Automatik**
+- Nach vielen abgelehnten Eingriffen in Folge scheitert nicht mehr jeder Lauf.
+- Ein abgebrochener Lernlauf hält das Hausmodell nicht mehr bis zum Neuladen an.
+- Zwei Änderungen der Einstellungen zugleich gehen beide ein.
+- Eine entfernte Automatik hinterlässt keine Reparaturmeldungen mehr.
+- Eine gescheiterte Einrichtung hinterlässt weder System-Gerät noch Untereintrag.
+- Ein früh gescheiterter Start erscheint im Log und als Reparaturmeldung.
+- An den Tagen der Zeitumstellung stimmen die Minuten je Modus.
+
 **Dashboard**
-- BioWIN: Das Schaubild zeigt den Hybridmanager als Umschaltung statt als dritten Wärmeerzeuger.
+- BioWIN: Das Schaubild zeigt den Hybridmanager als Ventilgruppe statt als dritten Wärmeerzeuger.
 - BioWIN: Das Schaubild zeichnet die AeroWIN mit Vorlauf und Leistungszahl.
 
 **Home Assistant**
 - Eine vereinzelt abgewiesene Abfrage wird wiederholt und erzeugt keine Warnung mehr.
+- Viele Zeitprogramme lassen den Abruf nicht mehr nach einer Viertelstunde dauerhaft scheitern.
 - Werte in L/h, g und ms zeigen die Einheit und erscheinen in der Langzeitstatistik.
 - Fehler und Alarm mit gleicher Nummer erscheinen beide in den Meldungen.
 - Neben den Tageswerten der AeroWIN entsteht kein zweites „heute“ mehr.

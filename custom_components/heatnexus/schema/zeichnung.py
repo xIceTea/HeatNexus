@@ -134,6 +134,7 @@ KANTEN_JE_ART: dict[str, tuple[int, int]] = {
     "pumpenmodul": (150, 266),
     "solar": (158, 244),
     "umschaltung": (132, 284),
+    "hybridmanager": (140, 282),
     "modul": (132, 280),
     "heizstab": (150, 270),
     "fremdquelle": (152, 264),
@@ -305,6 +306,26 @@ ZSP_GEHAEUSE = (52, 150, 96, 116)
 ZSP_PUMPE = (100, 212, 26)
 
 
+# Dreiwegeventil und Lampen des Hybridmanagers, wörtlich aus `hybridmanager.svg`:
+# je Rolle das Rechteck um ihr Dreieck (x, y, Breite, Höhe) und die Spitze.
+HYBRID_DREIECKE = {
+    "kessel": (60, 172, 40, 32, "rechts"),
+    "waermepumpe": (100, 172, 40, 32, "links"),
+    "ausgang": (84, 188, 32, 36, "oben"),
+}
+
+
+HYBRID_LAMPEN = {"kessel": (70, 268, 5), "waermepumpe": (134, 268, 5)}
+
+
+# Fläche um Antrieb und Ventil, über die man die Betriebsart öffnet.
+HYBRID_VENTIL = (56, 146, 88, 80)
+
+
+# Ventilatorgitter und Flügel der Wärmepumpe, wörtlich aus `kessel-waermepumpe.svg`.
+WP_LUEFTER = (110, 196, 44, 34)
+
+
 # Arten, deren Pumpe dem Speicher Wärme entnimmt.
 ENTNAHME_ARTEN = ("heizkreis", "wasser", "zirkulation", "pumpenmodul")
 
@@ -385,11 +406,15 @@ def _kasten(
 BESCHRIFTETE_ARTEN = {art: frozenset(b for _, b, _ in WERTE_JE_ART[art]) for art in ("heizkreis",)}
 
 
+# Eine Zahl ohne Einheit braucht ihren Namen, gleich an welchem Anlagenteil.
+IMMER_BESCHRIFTET = frozenset({"COP"})
+
+
 def beschriftungen(
     x: int, modul: dict[str, Any], breite: int, buch: Buch | None = None
 ) -> list[dict[str, Any]]:
     """Die Live-Werte eines Anlagenteils als picture-elements-Einträge."""
-    kurz = BESCHRIFTETE_ARTEN.get(modul["art"], frozenset())
+    kurz = BESCHRIFTETE_ARTEN.get(modul["art"], frozenset()) | IMMER_BESCHRIFTET
     mitte = x + MODUL_BREITE // 2
     # Zwei Werte werden ober- und unterhalb der Mitte gesetzt, einer mittig.
     hoehen = (
