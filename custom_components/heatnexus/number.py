@@ -33,8 +33,10 @@ class WindhagerNumber(WindhagerEntity, NumberEntity):
 
     def __init__(self, coordinator, device_info: dict) -> None:
         super().__init__(coordinator, device_info)
-        self._attr_native_min_value = _grenze(device_info.get("min"), 0)
-        self._attr_native_max_value = _grenze(device_info.get("max"), 100)
+        unten = _grenze(device_info.get("min"), 0)
+        oben = _grenze(device_info.get("max"), 100)
+        # Vertauschte Grenzen ließen nur einen einzigen Wert zu.
+        self._attr_native_min_value, self._attr_native_max_value = sorted((unten, oben))
         self._attr_native_step = _grenze(device_info.get("step"), 1) or 1
         self._stellen = nachkommastellen(device_info.get("step"))
         self._attr_native_unit_of_measurement = device_info.get("unit")
@@ -47,8 +49,10 @@ class WindhagerNumber(WindhagerEntity, NumberEntity):
         return self.float_value
 
     async def async_set_native_value(self, value: float) -> None:
-        # Clamp defensively, HA UI should already enforce the limits
-        value = max(self._attr_native_min_value, min(self._attr_native_max_value, value))
+        # Ein Dienstaufruf hält weder Grenzen noch Schrittweite ein: erst auf den Schritt, dann kappen.
+        unten, schritt = self._attr_native_min_value, self._attr_native_step
+        value = round(unten + round((value - unten) / schritt) * schritt, 9)
+        value = max(unten, min(self._attr_native_max_value, value))
         if self._stellen:
             payload = f"{value:.{self._stellen}f}"
         elif float(value).is_integer():
