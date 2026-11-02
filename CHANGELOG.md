@@ -82,6 +82,13 @@ Panel und Dashboard zeigen Sonderzustände des Kessels wie Serviceausbrand oder 
 - BioWIN: Der Hybridmanager heißt nicht mehr „Wärmepumpe (Energiemanagement)“.
 - BioWIN: Der Heizwert der Pellets am Hybridmanager gilt nicht mehr als Zählerstand.
 
+## [1.14.2] - 2026-11-02
+
+### Behoben
+
+**Home Assistant**
+- Selbst geänderte Blueprints bleiben bei einem Update erhalten.
+
 ## [1.14.1] - 2026-10-25
 
 ### Behoben

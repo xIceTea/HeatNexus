@@ -6,13 +6,16 @@ unter Einstellungen → Automationen → Blueprint verwenden ohne Import aus
 dem Netz bereit.
 
 Aktualisiert werden sie nur beim Versionswechsel der Integration. Eine
-Vorlage ist ein Bauplan, kein Nutzerdokument – die eigenen Angaben stecken
-in der jeweiligen Automation und bleiben davon unberührt.
+Vorlage, die der Nutzer selbst geändert hat, bleibt dabei unangetastet: Die
+Marke merkt sich den Hash jeder abgelegten Datei, weicht die Datei davon ab,
+wird sie weder überschrieben noch entfernt.
 """
 
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import json
 import logging
 from pathlib import Path
 import re
@@ -26,6 +29,8 @@ _LOGGER = logging.getLogger(__name__)
 
 _QUELLE = Path(__file__).parent / "blueprints" / "automation" / DOMAIN
 _MARKE = ".heatnexus-version"
+# Hashes aller bisher ausgelieferten Vorlagen; gilt, solange die Marke noch keine Hashes trägt.
+_AUSGELIEFERT = Path(__file__).parent / "blueprints" / "ausgeliefert.json"
 
 
 _NAME = re.compile(r"^\s{2}name:\s*(.+?)\s*$", re.MULTILINE)
@@ -63,43 +68,77 @@ def _wird_benutzt(automationen: Path, kennung: str) -> bool:
     return True
 
 
+def _hash(datei: Path) -> str:
+    return hashlib.sha256(datei.read_bytes()).hexdigest()
+
+
+def _marke_lesen(marke: Path) -> tuple[str, dict[str, str]]:
+    """Version und Hashes der abgelegten Dateien; ältere Marken tragen nur die Version."""
+    if not marke.is_file():
+        return "", {}
+    text = marke.read_text(encoding="utf-8").strip()
+    try:
+        inhalt = json.loads(text)
+    except ValueError:
+        return text, {}
+    if not isinstance(inhalt, dict):
+        return text, {}
+    return str(inhalt.get("version", "")), dict(inhalt.get("dateien") or {})
+
+
+def _ausgeliefert() -> frozenset[str]:
+    if not _AUSGELIEFERT.is_file():
+        return frozenset()
+    return frozenset(json.loads(_AUSGELIEFERT.read_text(encoding="utf-8")))
+
+
 def _kopieren(
     ziel: Path, version: str, gewaehlt: set[str] | None, automationen: Path
-) -> tuple[int, int]:
+) -> tuple[int, int, list[str]]:
     """Vorlagen ablegen und abgewählte entfernen; ohne Auswahl alle.
 
-    Zurück kommt ``(geschrieben, entfernt)``. Eine Vorlage, die eine
-    Automation benutzt, bleibt auch abgewählt liegen – sonst stünde die
-    Automation ohne ihren Bauplan da.
+    Zurück kommt ``(geschrieben, entfernt, übersprungen)``. Eine Vorlage, die
+    eine Automation benutzt oder die der Nutzer geändert hat, bleibt liegen.
     """
     if not _QUELLE.is_dir():
-        return 0, 0
+        return 0, 0, []
     if gewaehlt is None:
         gewaehlt = set(verfuegbare())
 
     marke = ziel / _MARKE
-    bekannt = marke.read_text(encoding="utf-8").strip() if marke.is_file() else ""
+    bekannt, hashes = _marke_lesen(marke)
     aktuell = bekannt == version
+    unveraendert = set(hashes.values()) if hashes else set(_ausgeliefert())
 
     ziel.mkdir(parents=True, exist_ok=True)
     geschrieben = 0
     entfernt = 0
+    uebersprungen: list[str] = []
+    neue: dict[str, str] = {}
     for datei in sorted(_QUELLE.glob("*.yaml")):
         vorhanden = ziel / datei.name
+        quelle = _hash(datei)
+        eigen = vorhanden.is_file() and _hash(vorhanden) not in unveraendert | {quelle}
         if datei.stem not in gewaehlt:
-            if vorhanden.is_file() and not _wird_benutzt(automationen, datei.stem):
+            if eigen:
+                uebersprungen.append(datei.name)
+            elif vorhanden.is_file() and not _wird_benutzt(automationen, datei.stem):
                 vorhanden.unlink()
                 entfernt += 1
             continue
+        if eigen:
+            uebersprungen.append(datei.name)
+            continue
+        neue[datei.name] = quelle
         # Bei gleicher Version nur ergänzen, sonst alles auffrischen.
         if vorhanden.is_file() and aktuell:
             continue
         shutil.copyfile(datei, vorhanden)
         geschrieben += 1
 
-    if geschrieben or entfernt or not aktuell:
-        marke.write_text(version, encoding="utf-8")
-    return geschrieben, entfernt
+    if geschrieben or entfernt or not aktuell or neue != hashes:
+        marke.write_text(json.dumps({"version": version, "dateien": neue}), encoding="utf-8")
+    return geschrieben, entfernt, uebersprungen
 
 
 async def async_install_blueprints(
@@ -115,7 +154,7 @@ async def async_install_blueprints(
     automationen = Path(hass.config.path("automations.yaml"))
     wahl = None if gewaehlt is None else set(gewaehlt)
     try:
-        geschrieben, entfernt = await hass.async_add_executor_job(
+        geschrieben, entfernt, uebersprungen = await hass.async_add_executor_job(
             _kopieren, ziel, version, wahl, automationen
         )
     except OSError as err:
@@ -125,3 +164,9 @@ async def async_install_blueprints(
         _LOGGER.info("%d Automations-Vorlagen bereitgestellt in %s", geschrieben, ziel)
     if entfernt:
         _LOGGER.info("%d abgewählte Automations-Vorlagen entfernt", entfernt)
+    if uebersprungen:
+        _LOGGER.warning(
+            "Selbst geänderte Automations-Vorlagen bleiben unverändert: %s. "
+            "Wer die neue Fassung möchte, löscht die Datei; sie wird beim nächsten Start neu angelegt",
+            ", ".join(uebersprungen),
+        )
